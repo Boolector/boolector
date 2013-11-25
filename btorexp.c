@@ -1493,6 +1493,7 @@ recursively_release_exp (Btor *btor, BtorNode *root)
     {
     RECURSIVELY_RELEASE_NODE_ENTER_WITHOUT_POP:
       assert (cur->refs == 1);
+      assert (!cur->ext_refs || cur->ext_refs == 1);
       assert (cur->parents == 0);
 
       for (i = cur->arity - 1; i >= 0; i--)
@@ -5996,6 +5997,9 @@ btor_new_btor (void)
 
   btor->mm = mm;
 
+  btor->bv_assignments    = btor_new_bv_assignment_list (mm);
+  btor->array_assignments = btor_new_array_assignment_list (mm);
+
   BTOR_INIT_UNIQUE_TABLE (mm, btor->nodes_unique_table);
 
   btor->avmgr = btor_new_aigvec_mgr (mm);
@@ -6212,6 +6216,9 @@ btor_delete_btor (Btor *btor)
   mm = btor->mm;
 
   btor_release_exp (btor, btor->true_exp);
+
+  btor_delete_bv_assignment_list (btor->bv_assignments);
+  btor_delete_array_assignment_list (btor->array_assignments);
 
   for (b = btor->lod_cache->first; b; b = b->next)
     btor_release_exp (btor, (BtorNode *) b->key);
@@ -6702,7 +6709,10 @@ synthesize_exp (Btor *btor, BtorNode *exp, BtorPtrHashTable *backannotation)
 
     if (cur->synth_mark == 0)
     {
+      /* we need to mark nodes reachable on-the-fly during
+       * lazy_synthesize_and_encode_*_exp, do not remove! */
       cur->reachable = 1;
+
       if (BTOR_IS_BV_CONST_NODE (cur))
       {
         cur->av = btor_const_aigvec (avmgr, cur->bits);
@@ -8271,6 +8281,7 @@ propagate (Btor *btor,
     app = BTOR_POP_STACK (*prop_stack);
     assert (BTOR_IS_REGULAR_NODE (app));
     assert (BTOR_IS_APPLY_NODE (app));
+    assert (app->refs - app->ext_refs > 0);
     check_not_simplified_or_const (btor, app);
 
     BTORLOG ("propagate");
@@ -9620,7 +9631,7 @@ add_constraint (Btor *btor, BtorNode *exp)
 }
 
 void
-btor_add_constraint_exp (Btor *btor, BtorNode *exp)
+btor_assert_exp (Btor *btor, BtorNode *exp)
 {
   assert (btor);
   assert (exp);
@@ -9633,7 +9644,7 @@ btor_add_constraint_exp (Btor *btor, BtorNode *exp)
 }
 
 void
-btor_add_assumption_exp (Btor *btor, BtorNode *exp)
+btor_assume_exp (Btor *btor, BtorNode *exp)
 {
   BtorNode *cur, *child;
   BtorNodePtrStack stack;
@@ -11471,6 +11482,35 @@ synthesize_all_applies (Btor * btor)
 }
 #endif
 
+/* Mark all reachable expressions as reachable, reset reachable flag for all
+ * previously reachable expressions that became unreachable due to rewriting. */
+static void
+update_reachable (Btor *btor)
+{
+  assert (btor);
+
+  int i;
+  BtorNode *exp;
+  BtorPtrHashBucket *b;
+
+  assert (check_unique_table_mark_unset_dbg (btor));
+  assert (btor->unsynthesized_constraints->count == 0);
+  assert (btor->embedded_constraints->count == 0);
+  assert (btor->varsubst_constraints->count == 0);
+
+  for (b = btor->synthesized_constraints->first; b; b = b->next)
+    btor_mark_exp (btor, (BtorNode *) b->key, 1);
+  for (b = btor->lod_cache->first; b; b = b->next)
+    btor_mark_exp (btor, (BtorNode *) b->key, 1);
+
+  for (i = 1; i < BTOR_COUNT_STACK (btor->nodes_id_table); i++)
+  {
+    if (!(exp = BTOR_PEEK_STACK (btor->nodes_id_table, i))) continue;
+    exp->reachable = exp->mark;
+    exp->mark      = 0;
+  }
+}
+
 static int
 btor_sat_aux_btor (Btor *btor)
 {
@@ -11528,6 +11568,7 @@ btor_sat_aux_btor (Btor *btor)
 
   } while (btor->unsynthesized_constraints->count > 0);
 
+  update_reachable (btor);
   update_assumptions (btor);
 
   found_assumption_false = add_again_assumptions (btor);

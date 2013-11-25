@@ -19,6 +19,7 @@
 #include "btordump.h"
 #include "btorexit.h"
 #include "btorexp.h"
+#include "btorhash.h"
 #include "btorutil.h"
 
 /*------------------------------------------------------------------------*/
@@ -411,6 +412,30 @@ btor_chkclone_aig (BtorAIG *aig, BtorAIG *clone)
     assert (BTOR_GET_TAG_NODE (real_exp->field)        \
             == BTOR_GET_TAG_NODE (real_clone->field)); \
   } while (0)
+
+/* Note: no hash table to be cloned uses data->asInt (check data->asPtr only) */
+#define BTOR_CHKCLONE_NODE_PTR_HASH_TABLE(table, clone)                  \
+  do                                                                     \
+  {                                                                      \
+    BtorPtrHashBucket *bb, *cbb;                                         \
+    if (!(table))                                                        \
+    {                                                                    \
+      assert (!(clone));                                                 \
+      break;                                                             \
+    }                                                                    \
+    assert ((table)->size == (clone)->size);                             \
+    assert ((table)->count == (clone)->count);                           \
+    assert ((table)->hash == (clone)->hash);                             \
+    assert ((table)->cmp == (clone)->cmp);                               \
+    for (bb = (table)->first, cbb = (clone)->first; bb;                  \
+         bb = bb->next, cbb = cbb->next)                                 \
+    {                                                                    \
+      assert (cbb);                                                      \
+      BTOR_CHKCLONE_EXPID ((BtorNode *) bb->key, (BtorNode *) cbb->key); \
+      assert (!bb->next || cbb->next);                                   \
+    }                                                                    \
+  } while (0)
+
 #endif
 
 static void
@@ -487,7 +512,8 @@ btor_chkclone_exp (BtorNode *exp, BtorNode *clone)
     else
       assert (real_exp->av == real_clone->av);
   }
-  // TODO CHECK RHO
+  else if (real_exp->rho)
+    BTOR_CHKCLONE_NODE_PTR_HASH_TABLE (real_exp->rho, real_clone->rho);
 
   BTOR_CHKCLONE_EXPPID (next);
   /* Note: parent node used during BFS only, pointer is not reset after bfs,
@@ -646,29 +672,6 @@ btor_chkclone_exp (BtorNode *exp, BtorNode *clone)
     }                                                              \
   } while (0)
 
-/* Note: no hash table to be cloned uses data->asInt (check data->asPtr only) */
-#define BTOR_CHKCLONE_NODE_PTR_HASH_TABLE(table, clone)                  \
-  do                                                                     \
-  {                                                                      \
-    BtorPtrHashBucket *bb, *cbb;                                         \
-    if (!(table))                                                        \
-    {                                                                    \
-      assert (!(clone));                                                 \
-      break;                                                             \
-    }                                                                    \
-    assert ((table)->size == (clone)->size);                             \
-    assert ((table)->count == (clone)->count);                           \
-    assert ((table)->hash == (clone)->hash);                             \
-    assert ((table)->cmp == (clone)->cmp);                               \
-    for (bb = (table)->first, cbb = (clone)->first; bb;                  \
-         bb = bb->next, cbb = cbb->next)                                 \
-    {                                                                    \
-      assert (cbb);                                                      \
-      BTOR_CHKCLONE_EXPID ((BtorNode *) bb->key, (BtorNode *) cbb->key); \
-      assert (!bb->next || cbb->next);                                   \
-    }                                                                    \
-  } while (0)
-
 #define BTOR_CHKCLONE_NODE_ID_TABLE(stack, clone)                  \
   do                                                               \
   {                                                                \
@@ -704,6 +707,42 @@ btor_chkclone_exp (BtorNode *exp, BtorNode *clone)
       BTOR_CHKCLONE_EXPID (table.chains[i], clone.chains[i]); \
     }                                                         \
   } while (0)
+
+static void
+btor_chkclone_assignment_lists (Btor *btor)
+{
+  BtorBVAssignment *bvass, *cbvass;
+  BtorArrayAssignment *arrass, *carrass;
+  char **ind, **val, **cind, **cval;
+  int i;
+
+  for (bvass = btor->bv_assignments->first,
+      cbvass = btor->clone->bv_assignments->first;
+       bvass;
+       bvass = bvass->next, cbvass = cbvass->next)
+  {
+    assert (cbvass);
+    assert (!strcmp (btor_get_bv_assignment_str (bvass),
+                     btor_get_bv_assignment_str (cbvass)));
+  }
+
+  for (arrass = btor->array_assignments->first,
+      carrass = btor->clone->array_assignments->first;
+       arrass;
+       arrass = arrass->next, carrass = carrass->next)
+  {
+    assert (carrass);
+    assert (arrass->size == carrass->size);
+    btor_get_array_assignment_indices_values (arrass, &ind, &val, arrass->size);
+    btor_get_array_assignment_indices_values (
+        carrass, &cind, &cval, carrass->size);
+    for (i = 0; i < arrass->size; i++)
+    {
+      assert (!strcmp (ind[i], cind[i]));
+      assert (!strcmp (val[i], cval[i]));
+    }
+  }
+}
 
 static void
 btor_chkclone_tables (Btor *btor)
@@ -755,6 +794,7 @@ btor_chkclone_tables (Btor *btor)
     btor_chkclone_mem (btor);                                          \
     btor_chkclone_state (btor);                                        \
     btor_chkclone_stats (btor);                                        \
+    btor_chkclone_assignment_lists (btor);                             \
     BTOR_CHKCLONE_AIG_UNIQUE_TABLE (                                   \
         btor_get_aig_mgr_aigvec_mgr (btor->avmgr)->table,              \
         btor_get_aig_mgr_aigvec_mgr (btor->clone->avmgr)->table);      \
@@ -1117,6 +1157,7 @@ boolector_var (Btor *btor, int width, const char *symbol)
     btor->external_refs++;
     res = btor_var_exp (btor, width, symbol);
   }
+
   BTOR_REAL_ADDR_NODE (res)->ext_refs += 1;
 
   if (symbol == NULL) BTOR_DELETEN (btor->mm, symb, 20);
@@ -2475,21 +2516,6 @@ boolector_cond (Btor *btor, BtorNode *e_cond, BtorNode *e_if, BtorNode *e_else)
 }
 
 BtorNode *
-boolector_lambda (Btor *btor, BtorNode *param, BtorNode *exp)
-{
-  // TODO TRAPI
-  BTOR_ABORT_ARG_NULL_BOOLECTOR (btor);
-  BTOR_ABORT_ARG_NULL_BOOLECTOR (param);
-  BTOR_ABORT_ARG_NULL_BOOLECTOR (exp);
-  BTOR_ABORT_REFS_NOT_POS_BOOLECTOR (param);
-  BTOR_ABORT_REFS_NOT_POS_BOOLECTOR (exp);
-  BTOR_ABORT_BOOLECTOR (!BTOR_IS_PARAM_NODE (BTOR_REAL_ADDR_NODE (param)),
-                        "'param' must be a parameter");
-  btor->external_refs++;
-  return btor_lambda_exp (btor, param, exp);
-}
-
-BtorNode *
 boolector_param (Btor *btor, int width, const char *symbol)
 {
   BTOR_ABORT_ARG_NULL_BOOLECTOR (btor);
@@ -2538,6 +2564,7 @@ boolector_fun (Btor *btor, int paramc, BtorNode **params, BtorNode *exp)
   BTOR_NEWN (btor->mm, strtrapi, len);
   sprintf (strtrapi, "fun %d", paramc);
 
+  // TODO allocate within clone
   if (btor->clone) cparams = malloc (paramc * sizeof (*cparams));
 
   for (i = 0; i < paramc; i++)
@@ -2578,6 +2605,7 @@ boolector_apply (Btor *btor, int argc, BtorNode **args, BtorNode *fun)
   BTOR_NEWN (btor->mm, strtrapi, len);
   sprintf (strtrapi, "apply %d", argc);
 
+  // TODO allocate within clone
   if (btor->clone) cargs = malloc (argc * sizeof (*cargs));
 
   cur = BTOR_REAL_ADDR_NODE (btor_simplify_exp (btor, fun));
@@ -2864,7 +2892,7 @@ boolector_assert (Btor *btor, BtorNode *exp)
   BTOR_ABORT_ARRAY_BOOLECTOR (simp);
   BTOR_ABORT_BOOLECTOR (BTOR_REAL_ADDR_NODE (simp)->len != 1,
                         "'exp' must have bit-width one");
-  btor_add_constraint_exp (btor, simp);
+  btor_assert_exp (btor, simp);
   BTOR_CHKCLONE_NORES (boolector_assert, BTOR_CLONED_EXP (exp));
 }
 
@@ -2883,7 +2911,7 @@ boolector_assume (Btor *btor, BtorNode *exp)
   BTOR_ABORT_ARRAY_BOOLECTOR (simp);
   BTOR_ABORT_BOOLECTOR (BTOR_REAL_ADDR_NODE (simp)->len != 1,
                         "'exp' must have bit-width one");
-  btor_add_assumption_exp (btor, simp);
+  btor_assume_exp (btor, simp);
   BTOR_CHKCLONE_NORES (boolector_assume, BTOR_CLONED_EXP (exp));
 }
 
@@ -2903,11 +2931,13 @@ boolector_sat (Btor *btor)
   return res;
 }
 
-char *
+const char *
 boolector_bv_assignment (Btor *btor, BtorNode *exp)
 {
-  char *ass, *res;
+  char *ass;
+  const char *res;
   BtorNode *simp;
+  BtorBVAssignment *bvass;
 
   BTOR_ABORT_ARG_NULL_BOOLECTOR (btor);
   BTOR_TRAPI_UNFUN ("bv_assignment", exp);
@@ -2920,22 +2950,17 @@ boolector_bv_assignment (Btor *btor, BtorNode *exp)
   BTOR_ABORT_ARRAY_BOOLECTOR (simp);
   BTOR_ABORT_BOOLECTOR (!btor->model_gen,
                         "model generation has not been enabled");
-  ass = btor_bv_assignment_exp (btor, simp);
-  res = malloc (BTOR_REAL_ADDR_NODE (exp)->len + 1);
-  strcpy (res, ass);
-  btor_free_bv_assignment_exp (btor, ass);
-
+  ass   = btor_bv_assignment_exp (btor, simp);
+  bvass = btor_new_bv_assignment (btor->bv_assignments, ass);
+  btor_free_bv_assignment_exp (btor, (char *) ass);
+  res = btor_get_bv_assignment_str (bvass);
   if (btor->clone)
   {
-    char *cloneres =
-        boolector_bv_assignment (btor->clone, BTOR_CLONED_EXP (exp));
+    const char *cloneres = boolector_bv_assignment (btor->clone, exp);
     assert (!strcmp (cloneres, res));
+    bvass->cloned_assignment = cloneres;
     BTOR_CHKCLONE ();
-    /* Note: clone result is immediately released,
-     *       boolector_free_bv_assignment is not mirrored! */
-    free (cloneres);
   }
-  BTOR_CHKCLONE_RES_STR (res, boolector_bv_assignment, exp);
   BTOR_TRAPI_RETURN_PTR (res);
   return res;
 }
@@ -2943,23 +2968,24 @@ boolector_bv_assignment (Btor *btor, BtorNode *exp)
 void
 boolector_free_bv_assignment (Btor *btor, char *assignment)
 {
+  char *cass;
+  (void) cass;
   BTOR_ABORT_ARG_NULL_BOOLECTOR (btor);
   BTOR_TRAPI ("free_bv_assignment %p", assignment);
   BTOR_ABORT_ARG_NULL_BOOLECTOR (assignment);
-  free (assignment);
-  /* Note: clone result is immediately released,
-   *       boolector_free_bv_assignment is not mirrored! */
+  cass = (char *) btor_get_bv_assignment ((const char *) assignment)
+             ->cloned_assignment;
+  btor_release_bv_assignment (btor->bv_assignments, assignment);
+  BTOR_CHKCLONE_NORES (boolector_free_bv_assignment, cass);
 }
 
 void
 boolector_array_assignment (
     Btor *btor, BtorNode *e_array, char ***indices, char ***values, int *size)
 {
-  // TODO move separation between allocation outside and inside (of boolector)
-  // to btor_array_assignment_exp
-
-  char **ind, **val;
   int i;
+  char **ind, **val;
+  BtorArrayAssignment *arrass;
 
   BTOR_ABORT_ARG_NULL_BOOLECTOR (btor);
   BTOR_ABORT_BOOLECTOR (
@@ -2975,45 +3001,40 @@ boolector_array_assignment (
   BTOR_ABORT_BV_BOOLECTOR (e_array);
   BTOR_ABORT_BOOLECTOR (!btor->model_gen,
                         "model generation has not been enabled");
-  btor_array_assignment_exp (btor, e_array, &ind, &val, &i);
-  if ((*size = i) == 0) return;
-  *indices = malloc (*size * sizeof (char *));
-  *values  = malloc (*size * sizeof (char *));
-  for (i = 0; i < *size; i++)
+
+  btor_array_assignment_exp (btor, e_array, &ind, &val, size);
+  if (*size)
   {
-    (*indices)[i] = malloc (strlen (ind[i]) + 1);
-    strcpy ((*indices)[i], ind[i]);
-    btor_free_bv_assignment_exp (btor, ind[i]);
-    (*values)[i] = malloc (strlen (val[i]) + 1);
-    strcpy ((*values)[i], val[i]);
-    btor_free_bv_assignment_exp (btor, val[i]);
+    arrass =
+        btor_new_array_assignment (btor->array_assignments, ind, val, *size);
+    for (i = 0; i < *size; i++)
+    {
+      btor_free_bv_assignment_exp (btor, ind[i]);
+      btor_free_bv_assignment_exp (btor, val[i]);
+    }
+    btor_free (btor->mm, ind, *size * sizeof (*ind));
+    btor_free (btor->mm, val, *size * sizeof (*val));
+    btor_get_array_assignment_indices_values (arrass, indices, values, *size);
   }
-  btor_free (btor->mm, ind, *size * sizeof (*ind));
-  btor_free (btor->mm, val, *size * sizeof (*val));
 
   if (btor->clone)
   {
     char **cindices, **cvalues;
-    int csize;
-
+    int i, csize;
     boolector_array_assignment (
-        btor->clone, BTOR_CLONED_EXP (e_array), &cindices, &cvalues, &csize);
+        btor->clone, e_array, &cindices, &cvalues, &csize);
     assert (csize == *size);
     for (i = 0; i < *size; i++)
     {
       assert (!strcmp ((*indices)[i], cindices[i]));
       assert (!strcmp ((*values)[i], cvalues[i]));
     }
-    BTOR_CHKCLONE ();
-    /* Note: clone result is immediately released,
-     *       boolector_free_array_assignment is not mirrored! */
-    for (i = 0; i < *size; i++)
+    if (*size)
     {
-      free (cindices[i]);
-      free (cvalues[i]);
+      arrass->cloned_indices = cindices;
+      arrass->cloned_values  = cvalues;
     }
-    free (cindices);
-    free (cvalues);
+    BTOR_CHKCLONE ();
   }
   /* special case: we treat out parameters as return values for btoruntrace */
   BTOR_TRAPI ("return %p %p %d", *indices, *values, *size);
@@ -3025,7 +3046,8 @@ boolector_free_array_assignment (Btor *btor,
                                  char **values,
                                  int size)
 {
-  int i;
+  BtorArrayAssignment *arrass;
+  char **cindices, **cvalues;
 
   BTOR_ABORT_ARG_NULL_BOOLECTOR (btor);
   BTOR_TRAPI ("free_array_assignment %p %p %d", indices, values, size);
@@ -3041,14 +3063,12 @@ boolector_free_array_assignment (Btor *btor,
     BTOR_ABORT_BOOLECTOR (values, "non zero 'values' but 'size == 0'");
   }
 
-  for (i = 0; i < size; i++)
-  {
-    free (indices[i]);
-    free (values[i]);
-  }
-  free (indices);
-  free (values);
-
-  /* Note: clone result is immediately released,
-   *       boolector_free_array_assignment is not mirrored! */
+  arrass = btor_get_array_assignment (
+      (const char **) indices, (const char **) values, size);
+  cindices = arrass->cloned_indices;
+  cvalues  = arrass->cloned_values;
+  btor_release_array_assignment (
+      btor->array_assignments, indices, values, size);
+  BTOR_CHKCLONE_NORES (
+      boolector_free_array_assignment, cindices, cvalues, size);
 }

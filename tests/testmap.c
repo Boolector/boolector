@@ -126,7 +126,7 @@ test_map1 ()
       BtorNodeMap *map = btor_new_node_map (g_btor);
       BtorNode *d, *g;
       d = btor_non_recursive_extended_substitute_node (
-          g_btor, map, 0, test_map1_mapper, s);
+          g_btor, map, 0, test_map1_mapper, boolector_release, s);
       g = boolector_int (g_btor, 66, 8);
       assert (d == g);
       boolector_release (g_btor, g);

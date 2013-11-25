@@ -1340,7 +1340,7 @@ boolector_main (int argc, char **argv)
             root = btor_redor_exp (btor, root);
           else
             root = btor_copy_exp (btor, root);
-          btor_add_constraint_exp (btor, root);
+          btor_assert_exp (btor, root);
           btor_release_exp (btor, root);
         }
         parser_api->reset (parser);
@@ -1375,7 +1375,7 @@ boolector_main (int argc, char **argv)
             root = btor_redor_exp (btor, root);
           else
             root = btor_copy_exp (btor, root);
-          btor_add_constraint_exp (btor, root);
+          btor_assert_exp (btor, root);
           btor_release_exp (btor, root);
         }
         parser_api->reset (parser);
@@ -1478,7 +1478,7 @@ boolector_main (int argc, char **argv)
           root = btor_redor_exp (btor, root);
         else
           root = btor_copy_exp (btor, root);
-        btor_add_constraint_exp (btor, root);
+        btor_assert_exp (btor, root);
         btor_release_exp (btor, root);
       }
 

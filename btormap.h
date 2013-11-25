@@ -55,11 +55,16 @@ BtorNode *btor_non_recursive_substitute_node (Btor *,
  */
 typedef BtorNode *(*BtorNodeMapper) (Btor *, void *state, BtorNode *);
 
+/* References returned by a 'BtorNodeMapper' are not restricted to be
+ * allocated internally, hence we need a matching release operation. */
+typedef void (*BtorNodeReleaser) (Btor *, BtorNode *);
+
 BtorNode *btor_non_recursive_extended_substitute_node (
     Btor *,
-    BtorNodeMap *,   // share/cache substitution results
-    void *state,     // for the mapper
-    BtorNodeMapper,  // see above
+    BtorNodeMap *,     // share/cache substitution results
+    void *state,       // for the mapper
+    BtorNodeMapper,    // see above
+    BtorNodeReleaser,  // see above
     BtorNode *root);
 
 /*========================================================================*/

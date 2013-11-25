@@ -89,7 +89,7 @@ boolector_new_mc (void)
   BtorMemMgr *mm;
   BtorMC *res;
   Btor *btor;
-  btor = boolector_new ();
+  btor = btor_new_btor ();
   assert (btor);
   mm = btor->mm;
   BTOR_CNEW (mm, res);
@@ -255,9 +255,9 @@ boolector_delete_mc (BtorMC *mc)
   while (!BTOR_EMPTY_STACK (mc->constraints))
     btor_release_exp (btor, BTOR_POP_STACK (mc->constraints));
   BTOR_RELEASE_STACK (mm, mc->constraints);
-  if (mc->forward) boolector_delete (mc->forward);
+  if (mc->forward) btor_delete_btor (mc->forward);
   BTOR_DELETE (mm, mc);
-  boolector_delete (btor);
+  btor_delete_btor (btor);
 }
 
 BtorNode *
@@ -274,7 +274,7 @@ boolector_input (BtorMC *mc, int width, const char *name)
   BTOR_ABORT_BOOLECTOR (1 > width, "given width < 1");
   btor = mc->btor;
   mm   = btor->mm;
-  res  = boolector_var (btor, width, name);
+  res  = btor_var_exp (btor, width, name);
   BTOR_NEW (mm, input);
   assert (input);
   input->id   = (int) mc->inputs->count;
@@ -305,7 +305,7 @@ boolector_latch (BtorMC *mc, int width, const char *name)
   assert (1 <= width);
   btor = mc->btor;
   mm   = btor->mm;
-  res  = boolector_var (btor, width, name);
+  res  = btor_var_exp (btor, width, name);
   BTOR_NEW (mm, latch);
   assert (latch);
   latch->id   = (int) mc->latches->count;
@@ -463,7 +463,7 @@ initialize_inputs_of_frame (BtorMC *mc, BtorMcFrame *f)
     assert (input->id == i);
 #endif
     sym = timed_symbol (mc->btor, src, f->time);
-    dst = boolector_var (mc->forward, src->len, sym);
+    dst = btor_var_exp (mc->forward, src->len, sym);
     btor_freestr (mc->btor->mm, sym);
     assert (BTOR_COUNT_STACK (f->inputs) == i);
     BTOR_PUSH_STACK (mc->btor->mm, f->inputs, dst);
@@ -515,7 +515,7 @@ initialize_latches_of_frame (BtorMC *mc, BtorMcFrame *f)
     else
     {
       sym = timed_symbol (mc->btor, src, f->time);
-      dst = boolector_var (mc->forward, src->len, sym);
+      dst = btor_var_exp (mc->forward, src->len, sym);
       btor_freestr (mc->btor->mm, sym);
     }
     assert (BTOR_COUNT_STACK (f->latches) == i);
@@ -601,7 +601,7 @@ initialize_constraints_of_frame (BtorMC *mc, BtorNodeMap *map, BtorMcFrame *f)
 
   if (constraint)
   {
-    btor_add_constraint_exp (mc->forward, constraint);
+    btor_assert_exp (mc->forward, constraint);
     btor_release_exp (mc->forward, constraint);
   }
 }
@@ -740,7 +740,7 @@ print_trace (BtorMC * mc, int p, int k)
       for (j = 0; j < BTOR_COUNT_STACK (f->inputs); j++)
 	{
 	  node = BTOR_PEEK_STACK (f->inputs, j);
-	  a = boolector_bv_assignment (f->btor, node);
+	  a = btor_bv_assignment_exp (f->btor, node);
 	  if (node->symbol)
 	    symbol = node->symbol;
 	  else
@@ -749,7 +749,7 @@ print_trace (BtorMC * mc, int p, int k)
 	      symbol = buffer;
 	    }
 	  printf ("%s = %s\n", symbol, a);
-	  boolector_free_bv_assignment (f->btor, a);
+	  btor_free_bv_assignment_exp (f->btor, a);
 	}
     }
   fflush (stdout);
@@ -780,8 +780,8 @@ check_last_forward_frame (BtorMC *mc)
                  i,
                  k);
     bad = BTOR_PEEK_STACK (f->bad, i);
-    boolector_assume (mc->forward, bad);
-    res = boolector_sat (mc->forward);
+    btor_assume_exp (mc->forward, bad);
+    res = btor_sat_btor (mc->forward);
     if (res == BOOLECTOR_SAT)
     {
       btor_msg_mc (
@@ -885,7 +885,7 @@ btor_mc_forward2const_mapper (Btor *btor, void *state, BtorNode *node)
 
   res = 0;
 
-  assignment = boolector_bv_assignment (mc->forward, node);
+  assignment = btor_bv_assignment_exp (mc->forward, node);
   btor_zero_normalize_assignment (assignment);
   res = btor_const_exp (mc->btor, assignment);
   btor_free_bv_assignment_exp (mc->forward, assignment);
@@ -900,7 +900,7 @@ btor_mc_forward2const (BtorMC *mc, BtorNode *node)
   assert (BTOR_REAL_ADDR_NODE (node)->btor == mc->forward);
   map = btor_get_mc_forward2const (mc);
   return btor_non_recursive_extended_substitute_node (
-      mc->btor, map, mc, btor_mc_forward2const_mapper, node);
+      mc->btor, map, mc, btor_mc_forward2const_mapper, btor_release_exp, node);
 }
 
 typedef struct BtorMcModel2ConstMapper BtorMcModel2ConstMapper;
@@ -951,7 +951,7 @@ btor_mc_model2const_mapper (Btor *btor, void *state, BtorNode *node)
     node_at_time = BTOR_PEEK_STACK (frame->inputs, input->id);
     assert (node_at_time);
     assert (BTOR_REAL_ADDR_NODE (node_at_time)->btor == mc->forward);
-    bits = boolector_bv_assignment (mc->forward, node_at_time);
+    bits = btor_bv_assignment_exp (mc->forward, node_at_time);
     btor_zero_normalize_assignment (bits);
     res = btor_const_exp (mc->btor, bits);
     btor_free_bv_assignment_exp (mc->btor, bits);
@@ -959,7 +959,7 @@ btor_mc_model2const_mapper (Btor *btor, void *state, BtorNode *node)
   else
   {
     bucket = btor_find_in_ptr_hash_table (mc->latches, node);
-    sym    = boolector_get_symbol_of_var (mc->btor, node);
+    sym    = btor_get_symbol_exp (mc->btor, node);
     if (sym)
       BTOR_ABORT_BOOLECTOR (
           !bucket, "variable '%s' not a latch nor an input", sym);
@@ -991,7 +991,12 @@ btor_mc_model2const (BtorMC *mc, BtorNode *node, int time)
   f           = mc->frames.start + time;
   map         = btor_get_mc_model2const_map (mc, f);
   return btor_non_recursive_extended_substitute_node (
-      mc->btor, map, &mapper, btor_mc_model2const_mapper, node);
+      mc->btor,
+      map,
+      &mapper,
+      btor_mc_model2const_mapper,
+      btor_release_exp,
+      node);
 }
 
 char *
@@ -1034,7 +1039,7 @@ boolector_mc_assignment (BtorMC *mc, BtorNode *node, int time)
     frame        = mc->frames.start + time;
     node_at_time = BTOR_PEEK_STACK (frame->inputs, input->id);
     assert (node_at_time);
-    bits_owned_by_forward = boolector_bv_assignment (mc->forward, node_at_time);
+    bits_owned_by_forward = btor_bv_assignment_exp (mc->forward, node_at_time);
     res                   = btor_strdup (mc->btor->mm, bits_owned_by_forward);
     btor_zero_normalize_assignment (res);
     btor_free_bv_assignment_exp (mc->forward, bits_owned_by_forward);
