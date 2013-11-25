@@ -740,7 +740,7 @@ print_trace (BtorMC * mc, int p, int k)
       for (j = 0; j < BTOR_COUNT_STACK (f->inputs); j++)
 	{
 	  node = BTOR_PEEK_STACK (f->inputs, j);
-	  a = boolector_bv_assignment (f->btor, node);
+	  a = btor_bv_assignment_exp (f->btor, node);
 	  if (node->symbol)
 	    symbol = node->symbol;
 	  else
@@ -885,7 +885,7 @@ btor_mc_forward2const_mapper (Btor *btor, void *state, BtorNode *node)
 
   res = 0;
 
-  assignment = boolector_bv_assignment (mc->forward, node);
+  assignment = btor_bv_assignment_exp (mc->forward, node);
   btor_zero_normalize_assignment (assignment);
   res = btor_const_exp (mc->btor, assignment);
   btor_free_bv_assignment_exp (mc->forward, assignment);
@@ -951,7 +951,7 @@ btor_mc_model2const_mapper (Btor *btor, void *state, BtorNode *node)
     node_at_time = BTOR_PEEK_STACK (frame->inputs, input->id);
     assert (node_at_time);
     assert (BTOR_REAL_ADDR_NODE (node_at_time)->btor == mc->forward);
-    bits = boolector_bv_assignment (mc->forward, node_at_time);
+    bits = btor_bv_assignment_exp (mc->forward, node_at_time);
     btor_zero_normalize_assignment (bits);
     res = btor_const_exp (mc->btor, bits);
     btor_free_bv_assignment_exp (mc->btor, bits);
@@ -974,6 +974,8 @@ btor_mc_model2const_mapper (Btor *btor, void *state, BtorNode *node)
     res = btor_mc_forward2const (mc, node_at_time);
     res = btor_copy_exp (mc->btor, res);
   }
+
+  // TODO wrap into Aina's BtorBVAssignment ....
 
   return res;
 }
@@ -1034,7 +1036,7 @@ boolector_mc_assignment (BtorMC *mc, BtorNode *node, int time)
     frame        = mc->frames.start + time;
     node_at_time = BTOR_PEEK_STACK (frame->inputs, input->id);
     assert (node_at_time);
-    bits_owned_by_forward = boolector_bv_assignment (mc->forward, node_at_time);
+    bits_owned_by_forward = btor_bv_assignment_exp (mc->forward, node_at_time);
     res                   = btor_strdup (mc->btor->mm, bits_owned_by_forward);
     btor_zero_normalize_assignment (res);
     btor_free_bv_assignment_exp (mc->forward, bits_owned_by_forward);
