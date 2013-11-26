@@ -11472,17 +11472,17 @@ btor_sat_aux_btor (Btor *btor)
       sat_result = BTOR_UNSAT;
       goto DONE;
     }
-
-    if (btor->model_gen)
-    {
-      synthesize_all_var_rhs (btor);
-      synthesize_all_array_rhs (btor);
-      if (btor->generate_model_for_all_reads) synthesize_all_reads (btor);
-    }
-
   } while (btor->unsynthesized_constraints->count > 0);
 
   update_reachable (btor);
+
+  if (btor->model_gen)
+  {
+    synthesize_all_var_rhs (btor);
+    synthesize_all_array_rhs (btor);
+    if (btor->generate_model_for_all_reads) synthesize_all_reads (btor);
+  }
+
   update_assumptions (btor);
 
   found_assumption_false = add_again_assumptions (btor);
@@ -11575,8 +11575,8 @@ btor_bv_assignment_exp (Btor *btor, BtorNode *exp)
     if (invert_bits)
       btor_invert_const (btor->mm, BTOR_REAL_ADDR_NODE (exp)->bits);
   }
-  else if ((!real_exp->reachable || !BTOR_IS_SYNTH_NODE (real_exp))
-           && !real_exp->vread)
+  else if (!real_exp->vread
+           && (!real_exp->reachable || !BTOR_IS_SYNTH_NODE (real_exp)))
   {
     assignment = btor_x_const_3vl (btor->mm, real_exp->len);
   }
