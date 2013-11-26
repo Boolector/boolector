@@ -1004,7 +1004,11 @@ boolector_simplify (Btor *btor)
 {
   // TODO TRAPI
   BTOR_ABORT_ARG_NULL_BOOLECTOR (btor);
-  return btor_simplify (btor);
+
+  int res;
+  res = btor_simplify (btor);
+  BTOR_CHKCLONE_RES (res, boolector_simplify);
+  return res;
 }
 
 BtorNode *
@@ -2593,6 +2597,34 @@ boolector_fun (Btor *btor, int paramc, BtorNode **params, BtorNode *exp)
 }
 
 BtorNode *
+boolector_args (Btor *btor, int argc, BtorNode **args)
+{
+  // TODO TRAPI
+  BTOR_ABORT_ARG_NULL_BOOLECTOR (btor);
+  BTOR_ABORT_ARG_NULL_BOOLECTOR (args);
+  BTOR_ABORT_BOOLECTOR (argc < 1, "'argc' must not be < 1");
+
+  int i;
+  BtorNode *res, **cargs = 0;
+
+  // TODO allocate within clone
+  if (btor->clone)
+  {
+    cargs = malloc (argc * sizeof (*cargs));
+    for (i = 0; i < argc; i++) cargs[i] = BTOR_CLONED_EXP (args[i]);
+  }
+
+  btor->external_refs++;
+  res = btor_args_exp (btor, argc, args);
+  BTOR_REAL_ADDR_NODE (res)->ext_refs += 1;
+  BTOR_CHKCLONE_RES_PTR (res, boolector_args, argc, cargs);
+
+  if (btor->clone) free (cargs);
+
+  return res;
+}
+
+BtorNode *
 boolector_apply (Btor *btor, int argc, BtorNode **args, BtorNode *fun)
 {
   BTOR_ABORT_ARG_NULL_BOOLECTOR (btor);
@@ -2644,6 +2676,24 @@ boolector_apply (Btor *btor, int argc, BtorNode **args, BtorNode *fun)
       res, boolector_apply, argc, cargs, BTOR_CLONED_EXP (fun));
   BTOR_TRAPI_RETURN_NODE (res);
   if (btor->clone) free (cargs);
+  return res;
+}
+
+BtorNode *
+boolector_apply_args (Btor *btor, BtorNode *args, BtorNode *fun)
+{
+  // TODO TRAPI
+  BTOR_ABORT_ARG_NULL_BOOLECTOR (btor);
+  BTOR_ABORT_ARG_NULL_BOOLECTOR (args);
+  BTOR_ABORT_ARG_NULL_BOOLECTOR (fun);
+
+  BtorNode *res;
+
+  btor->external_refs++;
+  res = btor_apply_exp (btor, args, fun);
+  BTOR_REAL_ADDR_NODE (res)->ext_refs += 1;
+  BTOR_CHKCLONE_RES_PTR (
+      res, boolector_apply_args, BTOR_CLONED_EXP (args), BTOR_CLONED_EXP (fun));
   return res;
 }
 

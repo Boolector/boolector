@@ -1546,9 +1546,7 @@ parse_apply (BtorBTORParser *parser, int len)
     goto RELEASE_FUN_AND_RETURN_ERROR;
   }
 
-  // TODO: use API call if available
-  //  res = boolector_apply (parser->btor, fun, args);
-  res = btor_apply_exp (parser->btor, fun, args);
+  res = boolector_apply_args (parser->btor, args, fun);
   boolector_release (parser->btor, fun);
   boolector_release (parser->btor, args);
 
@@ -1574,7 +1572,7 @@ parse_args (BtorBTORParser *parser, int len)
     i -= BTOR_REAL_ADDR_NODE (arg)->len;
   }
 
-  res = btor_args_exp (parser->btor, BTOR_COUNT_STACK (args), args.start);
+  res = boolector_args (parser->btor, BTOR_COUNT_STACK (args), args.start);
 
   while (!BTOR_EMPTY_STACK (args))
   {
