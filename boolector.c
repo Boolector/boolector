@@ -2686,11 +2686,15 @@ boolector_apply_args (Btor *btor, BtorNode *args, BtorNode *fun)
   BTOR_ABORT_ARG_NULL_BOOLECTOR (btor);
   BTOR_ABORT_ARG_NULL_BOOLECTOR (args);
   BTOR_ABORT_ARG_NULL_BOOLECTOR (fun);
+  BTOR_ABORT_BOOLECTOR (!BTOR_IS_REGULAR_NODE (args),
+                        "'args' must not be inverted");
+  BTOR_ABORT_BOOLECTOR (!BTOR_IS_ARGS_NODE (args),
+                        "'args' is not an argument node");
 
   BtorNode *res;
 
   btor->external_refs++;
-  res = btor_apply_exp (btor, args, fun);
+  res = btor_apply_exp (btor, fun, args);
   BTOR_REAL_ADDR_NODE (res)->ext_refs += 1;
   BTOR_CHKCLONE_RES_PTR (
       res, boolector_apply_args, BTOR_CLONED_EXP (args), BTOR_CLONED_EXP (fun));
