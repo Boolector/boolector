@@ -19,73 +19,8 @@
 #include "btorhash.h"
 #include "btormem.h"
 #include "btorqueue.h"
+#include "btorsort.h"
 #include "btorstack.h"
-
-/*------------------------------------------------------------------------*/
-
-enum BtorSortKind
-{
-  BTOR_INVALID_SORT = 0,
-  BTOR_BOOL_SORT    = 1,
-  BTOR_BITVEC_SORT  = 2,
-  BTOR_ARRAY_SORT   = 3,
-  BTOR_LST_SORT     = 4,
-  BTOR_FUN_SORT     = 5
-};
-
-typedef enum BtorSortKind BtorSortKind;
-
-typedef struct BtorBitVecSort BtorBitVecSort;
-typedef struct BtorArraySort BtorArraySort;
-typedef struct BtorLstSort BtorLstSort;
-typedef struct BtorFunSort BtorFunSort;
-
-struct BtorBitVecSort
-{
-  int len;
-};
-
-struct BtorArraySort
-{
-  BtorSort *index;
-  BtorSort *element;
-};
-
-struct BtorLstSort
-{
-  BtorSort *head;
-  BtorSort *tail;
-};
-
-struct BtorFunSort
-{
-  BtorSort *domain;
-  BtorSort *codomain;
-};
-
-struct BtorSort
-{
-  BtorSortKind kind;  // what kind of sort
-  unsigned id;        // fixed id
-  int refs;           // reference counter
-  BtorSort *next;     // collision chain for unique table
-  union
-  {
-    BtorBitVecSort bitvec;
-    BtorArraySort array;
-    BtorLstSort lst;
-    BtorFunSort fun;
-  };
-};
-
-struct BtorSortUniqueTable
-{
-  int size;
-  int num_elements;
-  BtorSort **chains;
-};
-
-typedef struct BtorSortUniqueTable BtorSortUniqueTable;
 
 /*------------------------------------------------------------------------*/
 
@@ -697,22 +632,6 @@ const char *btor_version (Btor *btor);
 
 /* Prints statistics. */
 void btor_print_stats_btor (Btor *btor);
-
-/*------------------------------------------------------------------------*/
-
-BtorSort *btor_bool_sort (Btor *btor);
-
-BtorSort *btor_bitvec_sort (Btor *btor, int len);
-
-BtorSort *btor_array_sort (Btor *btor, BtorSort *idx, BtorSort *elem);
-
-BtorSort *btor_lst_sort (Btor *btor, BtorSort *head, BtorSort *tail);
-
-BtorSort *btor_fun_sort (Btor *btor, BtorSort *dom, BtorSort *codom);
-
-BtorSort *btor_copy_sort (Btor *btor, BtorSort *sort);
-
-void btor_release_sort (Btor *btor, BtorSort *sort);
 
 /*------------------------------------------------------------------------*/
 
