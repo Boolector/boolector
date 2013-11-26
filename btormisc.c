@@ -11,6 +11,7 @@
  */
 
 #include "btormisc.h"
+#include "btorcore.h"
 #include "dumper/btordumpbtor.h"
 
 char g_strbuf[256];

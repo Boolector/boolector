@@ -12,7 +12,7 @@
 
 #include "btordumpbtor.h"
 #include "btorconst.h"
-#include "btorexp.h"
+#include "btorcore.h"
 #include "btorhash.h"
 #include "btormem.h"
 #include "btorstack.h"
@@ -385,6 +385,7 @@ bdcnode (BtorDumpContext *bdc, BtorNode *node, FILE *file)
 }
 #endif
 
+// TODO: btor->pprint does not work anymore
 static void
 bdcrec (BtorDumpContext *bdc, BtorNode *start, FILE *file)
 {

@@ -18,7 +18,7 @@
  */
 
 #include "btorbeta.h"
-#include "btorexp.h"
+#include "btorcore.h"
 #include "btorutil.h"
 #include "testexp.h"
 #include "testrunner.h"

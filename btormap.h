@@ -12,7 +12,7 @@
 #define BTORMAP_H_INCLUDED
 
 #include "btoraig.h"
-#include "btorexp.h"
+#include "btorcore.h"
 
 /*------------------------------------------------------------------------*/
 

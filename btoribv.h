@@ -15,7 +15,7 @@
 
 extern "C" {
 #include "btorabort.h"
-#include "btorexp.h"
+#include "btorcore.h"
 #include "btormc.h"
 #include "btorstack.h"
 };

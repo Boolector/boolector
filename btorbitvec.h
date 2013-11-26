@@ -12,7 +12,7 @@
 #define BTORCONSTBV_H_INCLUDED
 
 #include <stdint.h>
-#include "btorexp.h"
+#include "btorcore.h"
 
 #define BTOR_BV_TYPE uint32_t
 #define BTOR_BV_TYPE_BW (sizeof (BTOR_BV_TYPE) * 8)
