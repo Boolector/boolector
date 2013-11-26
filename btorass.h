@@ -38,6 +38,7 @@ BtorBVAssignmentList *btor_new_bv_assignment_list (BtorMemMgr *);
 
 BtorBVAssignmentList *btor_clone_bv_assignment_list (BtorMemMgr *,
                                                      BtorBVAssignmentList *);
+
 void btor_delete_bv_assignment_list (BtorBVAssignmentList *);
 
 BtorBVAssignment *btor_get_bv_assignment (const char *);
