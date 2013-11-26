@@ -10,7 +10,7 @@
  *  See COPYING for more information on using this software.
  */
 
-#include "btordump2.h"
+#include "btordumpbtor.h"
 #include "btorconst.h"
 #include "btorexp.h"
 #include "btorhash.h"
@@ -458,4 +458,71 @@ btor_dump_btor (BtorDumpContext *bdc, FILE *file)
              btor_get_exp_len (bdc->btor, node),
              bdcid (bdc, node));
   }
+}
+
+void
+btor_dump_btor_node (Btor *btor, FILE *file, BtorNode *exp)
+{
+  assert (btor);
+  assert (file);
+  assert (exp);
+
+  BtorDumpContext *bdc;
+
+  bdc = btor_new_dump_context (btor);
+  btor_add_root_to_dump_context (bdc, exp);
+  btor_dump_btor (bdc, file);
+  btor_delete_dump_context (bdc);
+}
+
+void
+btor_dump_btor_nodes (Btor *btor, FILE *file, BtorNode **roots, int nroots)
+{
+  assert (btor);
+  assert (file);
+  assert (roots);
+  assert (nroots > 0);
+
+  int i;
+  BtorDumpContext *bdc;
+
+  bdc = btor_new_dump_context (btor);
+
+  for (i = 0; i < nroots; i++) btor_add_root_to_dump_context (bdc, roots[i]);
+
+  btor_dump_btor (bdc, file);
+  btor_delete_dump_context (bdc);
+}
+
+void
+btor_dump_btor_after_simplify (Btor *btor, FILE *file)
+{
+  assert (btor);
+  assert (file);
+  assert (!btor->inc_enabled);
+  assert (!btor->model_gen);
+
+  int ret;
+  BtorNode *temp;
+  BtorPtrHashBucket *b;
+  BtorDumpContext *bdc;
+
+  ret = btor_simplify (btor);
+  bdc = btor_new_dump_context (btor);
+
+  if (ret == BTOR_UNKNOWN)
+  {
+    for (b = btor->unsynthesized_constraints->first; b; b = b->next)
+      btor_add_root_to_dump_context (bdc, (BtorNode *) b->key);
+  }
+  else
+  {
+    assert (ret == BTOR_SAT || ret == BTOR_UNSAT);
+    temp = (ret == BTOR_SAT) ? btor_true_exp (btor) : btor_false_exp (btor);
+    btor_add_root_to_dump_context (bdc, temp);
+    btor_release_exp (btor, temp);
+  }
+
+  btor_dump_btor (bdc, file);
+  btor_delete_dump_context (bdc);
 }

@@ -11,7 +11,7 @@
  */
 
 #include "btormisc.h"
-#include "btordump.h"
+#include "dumper/btordumpbtor.h"
 
 char g_strbuf[256];
 int g_strbufpos = 0;
@@ -66,8 +66,9 @@ node2string (BtorNode *exp)
 
   if (exp->kind == BTOR_SLICE_NODE)
     sprintf (strbuf, "%s %d %d", strbuf, exp->upper, exp->lower);
-  else if (BTOR_IS_BV_CONST_NODE (exp))
-    sprintf (strbuf, "%s %s", strbuf, exp->bits);
+  // FIXME: len exceeds buf
+  //  else if (BTOR_IS_BV_CONST_NODE (exp))
+  //    sprintf (strbuf, "%s %s", strbuf, exp->bits);
 
   len = strlen (strbuf) + 1;
 
@@ -90,7 +91,7 @@ btor_vis_exp (Btor *btor, BtorNode *exp)
   path = cmd + strlen (cmd);
   sprintf (path, "/tmp/btorvisexp.%d.btor", btor->vis_idx++);
   file = fopen (path, "w");
-  btor_dump_exp (btor, file, exp);
+  btor_dump_btor_node (btor, file, exp);
   fclose (file);
   strcat (cmd, "&");
   res = system (cmd);

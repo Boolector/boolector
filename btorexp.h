@@ -1169,18 +1169,6 @@ BtorNode *btor_copy_exp (Btor *btor, BtorNode *exp);
 /* Releases expression (decrements reference counter). */
 void btor_release_exp (Btor *btor, BtorNode *exp);
 
-/* Dumps expression(s) to file in BTOR format. */
-void btor_dump_exps_after_global_rewriting (Btor *btor, FILE *file);
-
-/* Dumps expression(s) to file in SMT1 format. */
-void btor_dump_smt1_after_global_rewriting (Btor *btor, FILE *file);
-
-/* Dumps expression(s) to file in SMT2 format. */
-void btor_dump_smt2_after_global_rewriting (Btor *btor, FILE *file);
-
-/* Dumps expression(s) to file in SMT2 format, use define-fun instead of let. */
-void btor_dump_smt2_fun_after_global_rewriting (Btor *btor, FILE *file);
-
 /* Adds top level constraint. */
 void btor_assert_exp (Btor *btor, BtorNode *exp);
 

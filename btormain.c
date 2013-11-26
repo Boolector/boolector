@@ -13,10 +13,8 @@
 #include "btormain.h"
 #include "btoraig.h"
 #include "btoraigvec.h"
-#include "btorbtor.h"
 #include "btorconfig.h"
 #include "btorconst.h"
-#include "btordump.h"
 #include "btorexit.h"
 #include "btorexp.h"
 #include "btorhash.h"
@@ -25,10 +23,13 @@
 #include "btormem.h"
 #include "btorparse.h"
 #include "btorsat.h"
-#include "btorsmt.h"
-#include "btorsmt2.h"
 #include "btorstack.h"
 #include "btorutil.h"
+#include "dumper/btordumpbtor.h"
+#include "dumper/btordumpsmt.h"
+#include "parser/btorbtor.h"
+#include "parser/btorsmt.h"
+#include "parser/btorsmt2.h"
 
 #include <assert.h>
 #include <ctype.h>
@@ -1345,10 +1346,10 @@ boolector_main (int argc, char **argv)
         }
         parser_api->reset (parser);
         parser_api = 0;
-        btor_dump_exps_after_global_rewriting (btor, app.output_file);
+        btor_dump_btor_after_simplify (btor, app.output_file);
       }
       else
-        btor_dump_exps (
+        btor_dump_btor_nodes (
             btor, app.output_file, parse_res.outputs, parse_res.noutputs);
       app.done = 1;
     }
@@ -1382,11 +1383,11 @@ boolector_main (int argc, char **argv)
         parser_api = 0;
 
         if (app.dump_smt <= 1)
-          btor_dump_smt1_after_global_rewriting (btor, app.output_file);
+          btor_dump_smt1_after_simplify (btor, app.output_file);
         else if (app.dump_smt == 2)
-          btor_dump_smt2_after_global_rewriting (btor, app.output_file);
+          btor_dump_smt2_after_simplify (btor, app.output_file);
         else
-          btor_dump_smt2_fun_after_global_rewriting (btor, app.output_file);
+          btor_dump_smt2_fun_after_simplify (btor, app.output_file);
       }
       else
       {

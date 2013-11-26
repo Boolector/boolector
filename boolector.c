@@ -16,11 +16,12 @@
 #include "boolector.h"
 #include "btorabort.h"
 #include "btorclone.h"
-#include "btordump.h"
 #include "btorexit.h"
 #include "btorexp.h"
 #include "btorhash.h"
 #include "btorutil.h"
+#include "dumper/btordumpbtor.h"
+#include "dumper/btordumpsmt.h"
 
 /*------------------------------------------------------------------------*/
 
@@ -2842,7 +2843,7 @@ boolector_dump_btor (Btor *btor, FILE *file, BtorNode *exp)
   BTOR_ABORT_ARG_NULL_BOOLECTOR (file);
   BTOR_ABORT_ARG_NULL_BOOLECTOR (exp);
   BTOR_ABORT_REFS_NOT_POS_BOOLECTOR (exp);
-  btor_dump_exp (btor, file, exp);
+  btor_dump_btor_node (btor, file, exp);
   BTOR_CHKCLONE_NORES (boolector_dump_btor, file, BTOR_CLONED_EXP (exp));
 }
 
@@ -2852,7 +2853,7 @@ boolector_dump_btor_all (Btor *btor, FILE *file)
   // TODO TRAPI
   BTOR_ABORT_ARG_NULL_BOOLECTOR (btor);
   BTOR_ABORT_ARG_NULL_BOOLECTOR (file);
-  btor_dump_exps_after_global_rewriting (btor, file);
+  btor_dump_btor_after_simplify (btor, file);
 }
 
 void

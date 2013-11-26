@@ -17,7 +17,6 @@
 #include "btorbitvec.h"
 #include "btorconfig.h"
 #include "btorconst.h"
-#include "btordump.h"
 #include "btorexit.h"
 #include "btorhash.h"
 #include "btoriter.h"
@@ -5904,88 +5903,6 @@ btor_fun_sort_check (Btor *btor, int argc, BtorNode **args, BtorNode *fun)
   return -1;
 }
 
-/* Dump formula after global rewriting phase.
- *
- * mode: 1 = BTOR, 2 = SMT1, 3 = SMT2, 4 = SMT2FUN
- */
-static void
-dump_after_global_rewriting (Btor *btor, FILE *file, int mode)
-{
-  BtorNode *temp, **new_roots;
-  BtorPtrHashBucket *b;
-  int new_nroots, i;
-  assert (!btor->inc_enabled);
-  assert (!btor->model_gen);
-  //  assert (btor->rewrite_level > 1);
-  assert (mode >= 1 && mode <= 4);
-
-  btor_simplify (btor);
-
-  if (btor->inconsistent)
-  {
-    temp = btor_false_exp (btor);
-    if (mode == 1)
-      btor_dump_exp (btor, file, temp);
-    else if (mode == 2)
-      btor_dump_smt1 (btor, file, &temp, 1);
-    else
-      btor_dump_smt2 (btor, file, &temp, 1);
-    btor_release_exp (btor, temp);
-  }
-  else if (btor->unsynthesized_constraints->count == 0u)
-  {
-    temp = btor_true_exp (btor);
-    if (mode == 1)
-      btor_dump_exp (btor, file, temp);
-    else if (mode == 2)
-      btor_dump_smt1 (btor, file, &temp, 1);
-    else
-      btor_dump_smt2 (btor, file, &temp, 1);
-    btor_release_exp (btor, temp);
-  }
-  else
-  {
-    new_nroots = (int) btor->unsynthesized_constraints->count;
-    BTOR_NEWN (btor->mm, new_roots, new_nroots);
-    i = 0;
-    for (b = btor->unsynthesized_constraints->first; b; b = b->next)
-      new_roots[i++] = (BtorNode *) b->key;
-    if (mode == 1)
-      btor_dump_exps (btor, file, new_roots, new_nroots);
-    else if (mode == 2)
-      btor_dump_smt1 (btor, file, new_roots, new_nroots);
-    else if (mode == 3)
-      btor_dump_smt2 (btor, file, new_roots, new_nroots);
-    else
-      btor_dump_smt2_fun (btor, file, new_roots, new_nroots);
-    BTOR_DELETEN (btor->mm, new_roots, new_nroots);
-  }
-}
-
-void
-btor_dump_exps_after_global_rewriting (Btor *btor, FILE *file)
-{
-  dump_after_global_rewriting (btor, file, 1);
-}
-
-void
-btor_dump_smt1_after_global_rewriting (Btor *btor, FILE *file)
-{
-  dump_after_global_rewriting (btor, file, 2);
-}
-
-void
-btor_dump_smt2_after_global_rewriting (Btor *btor, FILE *file)
-{
-  dump_after_global_rewriting (btor, file, 3);
-}
-
-void
-btor_dump_smt2_fun_after_global_rewriting (Btor *btor, FILE *file)
-{
-  dump_after_global_rewriting (btor, file, 4);
-}
-
 Btor *
 btor_new_btor (void)
 {
@@ -11401,14 +11318,11 @@ btor_simplify (Btor *btor)
   btor->time.rewrite += delta;
   btor_msg_exp (btor, 1, "%d rewriting rounds in %.1f seconds", rounds, delta);
 
-  if (btor->unsynthesized_constraints->count == 0u
-      && btor->synthesized_constraints->count == 0u)
-  {
-    assert (!btor->inconsistent);
-    return BTOR_SAT;
-  }
-  else if (btor->inconsistent)
+  if (btor->inconsistent)
     return BTOR_UNSAT;
+  else if (btor->unsynthesized_constraints->count == 0u
+           && btor->synthesized_constraints->count == 0u)
+    return BTOR_SAT;
 
   return BTOR_UNKNOWN;
 }
