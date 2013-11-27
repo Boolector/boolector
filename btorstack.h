@@ -18,13 +18,13 @@
 #include <assert.h>
 #include <stdlib.h>
 
-#define BTOR_DECLARE_STACK(first, name, type)           \
-  typedef struct first##name##Stack first##name##Stack; \
-  struct first##name##Stack                             \
-  {                                                     \
-    type *start;                                        \
-    type *top;                                          \
-    type *end;                                          \
+#define BTOR_DECLARE_STACK(name, type)    \
+  typedef struct name##Stack name##Stack; \
+  struct name##Stack                      \
+  {                                       \
+    type *start;                          \
+    type *top;                            \
+    type *end;                            \
   }
 
 #define BTOR_INIT_STACK(stack) \
@@ -122,12 +122,12 @@
     (stack).start[idx] = (elem);               \
   } while (0)
 
-BTOR_DECLARE_STACK (Btor, Int, int);
+BTOR_DECLARE_STACK (BtorInt, int);
 
-BTOR_DECLARE_STACK (Btor, Char, char);
+BTOR_DECLARE_STACK (BtorChar, char);
 
-BTOR_DECLARE_STACK (Btor, CharPtr, char *);
+BTOR_DECLARE_STACK (BtorCharPtr, char *);
 
-BTOR_DECLARE_STACK (Btor, VoidPtr, void *);
+BTOR_DECLARE_STACK (BtorVoidPtr, void *);
 
 #endif

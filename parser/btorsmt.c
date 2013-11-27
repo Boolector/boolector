@@ -162,7 +162,7 @@ struct BtorSMTNode
 #endif
 };
 
-BTOR_DECLARE_STACK (Btor, SMTNodePtr, BtorSMTNode *);
+BTOR_DECLARE_STACK (BtorSMTNodePtr, BtorSMTNode *);
 
 struct BtorSMTSymbol
 {

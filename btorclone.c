@@ -20,8 +20,8 @@
 #include <stdio.h>
 #include <stdlib.h>
 
-BTOR_DECLARE_STACK (Btor, NodePtrStackPtr, BtorNodePtrStack *);
-BTOR_DECLARE_STACK (Btor, PtrHashTablePtrPtr, BtorPtrHashTable **);
+BTOR_DECLARE_STACK (BtorNodePtrStackPtr, BtorNodePtrStack *);
+BTOR_DECLARE_STACK (BtorPtrHashTablePtrPtr, BtorPtrHashTable **);
 
 BtorNode *
 clone_exp (Btor *clone,

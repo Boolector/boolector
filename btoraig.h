@@ -37,8 +37,8 @@ struct BtorAIG
 
 typedef struct BtorAIG BtorAIG;
 
-BTOR_DECLARE_STACK (Btor, AIGPtr, BtorAIG *);
-BTOR_DECLARE_STACK (Btor, AIGPtrPtr, BtorAIG **);
+BTOR_DECLARE_STACK (BtorAIGPtr, BtorAIG *);
+BTOR_DECLARE_STACK (BtorAIGPtrPtr, BtorAIG **);
 
 struct BtorAIGUniqueTable
 {

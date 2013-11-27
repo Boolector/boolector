@@ -25,7 +25,7 @@
 #include <stdlib.h>
 #include <string.h>
 
-BTOR_DECLARE_STACK (Boolector, NodePtr, BoolectorNode *);
+BTOR_DECLARE_STACK (BoolectorNodePtr, BoolectorNode *);
 
 typedef struct BtorBTORParser BtorBTORParser;
 
@@ -45,7 +45,7 @@ struct Info
   unsigned array : 1;
 };
 
-BTOR_DECLARE_STACK (Btor, Info, Info);
+BTOR_DECLARE_STACK (BtorInfo, Info);
 
 struct BtorBTORParser
 {

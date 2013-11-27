@@ -19,7 +19,7 @@
 #include <limits.h>
 #include <stdarg.h>
 
-BTOR_DECLARE_STACK (Boolector, NodePtr, BoolectorNode *);
+BTOR_DECLARE_STACK (BoolectorNodePtr, BoolectorNode *);
 
 /*------------------------------------------------------------------------*/
 
@@ -238,7 +238,7 @@ typedef struct BtorSMT2Item
   };
 } BtorSMT2Item;
 
-BTOR_DECLARE_STACK (Btor, SMT2Item, BtorSMT2Item);
+BTOR_DECLARE_STACK (BtorSMT2Item, BtorSMT2Item);
 
 /*------------------------------------------------------------------------*/
 

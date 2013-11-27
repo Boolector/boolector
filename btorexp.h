@@ -21,9 +21,9 @@
 
 /*------------------------------------------------------------------------*/
 
-BTOR_DECLARE_STACK (Btor, NodePtr, BtorNode *);
-BTOR_DECLARE_STACK (Btor, NodePtrPtr, BtorNode **);
-BTOR_DECLARE_QUEUE (NodePtr, BtorNode *);
+BTOR_DECLARE_STACK (BtorNodePtr, BtorNode *);
+BTOR_DECLARE_STACK (BtorNodePtrPtr, BtorNode **);
+BTOR_DECLARE_QUEUE (BtorNodePtr, BtorNode *);
 
 /*------------------------------------------------------------------------*/
 
