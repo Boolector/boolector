@@ -12,7 +12,7 @@
 
 #include "btordumpbtor.h"
 #include "btorconst.h"
-#include "btorexp.h"
+#include "btorcore.h"
 #include "btorhash.h"
 #include "btormem.h"
 #include "btorstack.h"
@@ -199,6 +199,82 @@ bdcid (BtorDumpContext *bdc, BtorNode *node)
   return res;
 }
 
+#if 1
+static void
+bdcnode (BtorDumpContext *bdc, BtorNode *node, FILE *file)
+{
+  int i;
+  char idbuffer[20];
+  const char *op;
+
+  node = BTOR_REAL_ADDR_NODE (node);
+
+  switch (node->kind)
+  {
+    case BTOR_ADD_NODE: op = "add"; break;
+    case BTOR_AND_NODE: op = "and"; break;
+    case BTOR_CONCAT_NODE: op = "concat"; break;
+    case BTOR_BCOND_NODE: op = "cond"; break;
+    case BTOR_BEQ_NODE:
+    case BTOR_AEQ_NODE: op = "eq"; break;
+    case BTOR_MUL_NODE: op = "mul"; break;
+    case BTOR_PROXY_NODE: op = "proxy"; break;
+    case BTOR_READ_NODE: op = "read"; break;
+    case BTOR_SLL_NODE: op = "sll"; break;
+    case BTOR_SRL_NODE: op = "srl"; break;
+    case BTOR_UDIV_NODE: op = "udiv"; break;
+    case BTOR_ULT_NODE: op = "ult"; break;
+    case BTOR_UREM_NODE: op = "urem"; break;
+    case BTOR_SLICE_NODE: op = "slice"; break;
+    case BTOR_ARRAY_VAR_NODE:
+      op = "array";
+      break;
+      // NOTE: do not exist anymore
+      //      case BTOR_WRITE_NODE:     op = "write"; break;
+      //      case BTOR_ACOND_NODE:	op = "acond"; break;
+    case BTOR_BV_CONST_NODE:
+      if (btor_is_zero_const (node->bits))
+        op = "zero";
+      else if (btor_is_one_const (node->bits))
+        op = "one";
+      else if (btor_is_ones_const (node->bits))
+        op = "ones";
+      else
+        op = "const";
+      break;
+    case BTOR_PARAM_NODE: op = "param"; break;
+    case BTOR_LAMBDA_NODE: op = "lambda"; break;
+    case BTOR_APPLY_NODE: op = "apply"; break;
+    case BTOR_ARGS_NODE: op = "args"; break;
+    default: assert (node->kind == BTOR_BV_VAR_NODE); op = "var";
+  }
+
+  fprintf (file, "%d %s %d", bdcid (bdc, node), op, node->len);
+
+  /* print index bit width of arrays */
+  if (BTOR_IS_ARRAY_NODE (node)) fprintf (file, " %d", node->index_len);
+
+  /* print children or const values */
+  if (strcmp (op, "const") == 0)
+    fprintf (file, " %s", node->bits);
+  else if (BTOR_IS_PROXY_NODE (node))
+    fprintf (file, " %d", bdcid (bdc, node->simplified));
+  else
+    for (i = 0; i < node->arity; i++)
+      fprintf (file, " %d", bdcid (bdc, node->e[i]));
+
+  /* print slice limits/var symbols */
+  if (node->kind == BTOR_SLICE_NODE)
+    fprintf (file, " %d %d", node->upper, node->lower);
+  else if (BTOR_IS_BV_VAR_NODE (node) || BTOR_IS_ARRAY_VAR_NODE (node))
+  {
+    sprintf (idbuffer, "%d", bdcid (bdc, node));
+    assert (node->symbol);
+    if (strcmp (node->symbol, idbuffer)) fprintf (file, " %s", node->symbol);
+  }
+  fputc ('\n', file);
+}
+#else
 static void
 bdcnode (BtorDumpContext *bdc, BtorNode *node, FILE *file)
 {
@@ -307,7 +383,9 @@ bdcnode (BtorDumpContext *bdc, BtorNode *node, FILE *file)
 
   fputc ('\n', file);
 }
+#endif
 
+// TODO: btor->pprint does not work anymore
 static void
 bdcrec (BtorDumpContext *bdc, BtorNode *start, FILE *file)
 {

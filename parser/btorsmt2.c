@@ -11,7 +11,7 @@
 
 #include "btorsmt2.h"
 #include "btorconst.h"
-#include "btorexp.h"
+#include "btorcore.h"
 #include "btormem.h"
 #include "btorutil.h"
 

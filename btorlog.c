@@ -11,7 +11,7 @@
 #ifndef NBTORLOG
 
 #include "btorlog.h"
-#include "btorexp.h"
+#include "btorcore.h"
 
 #include <stdarg.h>
 

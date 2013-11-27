@@ -10,7 +10,7 @@
 
 #include "btoraig.h"
 #include "btoraigvec.h"
-#include "btorexp.h"
+#include "btorcore.h"
 #include "btorhash.h"
 #include "btormap.h"
 #include "btorsat.h"

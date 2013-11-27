@@ -19,8 +19,8 @@
  */
 
 #include "testinc.h"
+#include "btorcore.h"
 #include "btorexit.h"
-#include "btorexp.h"
 #include "testrunner.h"
 
 #ifdef NDEBUG

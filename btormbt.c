@@ -11,7 +11,7 @@
  */
 
 #include "boolector.h"
-#include "btorexp.h"
+#include "btorcore.h"
 
 #include <assert.h>
 #include <ctype.h>

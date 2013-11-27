@@ -8,6 +8,7 @@
  */
 
 #include "testmc.h"
+#include "btorexp.h"
 #include "btormc.h"
 #include "testrunner.h"
 

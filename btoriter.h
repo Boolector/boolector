@@ -13,7 +13,7 @@
 #ifndef BTORITER_H_INCLUDED
 #define BTORITER_H_INCLUDED
 
-#include "btorexp.h"
+#include "btorcore.h"
 
 /*------------------------------------------------------------------------*/
 
