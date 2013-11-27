@@ -27,6 +27,7 @@
 // get_args_arity
 // is_array_var
 // is_fun
+// args
 //
 //
 static int verbose, exitonabort, lineno, skip, ignore_sat;
@@ -289,26 +290,36 @@ NEXT:
   {
     /* do nothing, all clone checking via shadow clone */
   }
+  else if (!strcmp (tok, "set_rewrite_level"))
+  {
+    PARSE_ARGS1 (tok, int);
+    boolector_set_rewrite_level (btor, arg1_int);
+  }
   else if (!strcmp (tok, "enable_model_gen"))
   {
     PARSE_ARGS0 (tok);
     boolector_enable_model_gen (btor);
+  }
+  else if (!strcmp (tok, "generate_model_for_all_reads"))
+  {
+    PARSE_ARGS0 (tok);
+    boolector_generate_model_for_all_reads (btor);
   }
   else if (!strcmp (tok, "enable_inc_usage"))
   {
     PARSE_ARGS0 (tok);
     boolector_enable_inc_usage (btor);
   }
+  else if (!strcmp (tok, "enable_beta_reduce_all"))
+  {
+    PARSE_ARGS0 (tok);
+    boolector_enable_beta_reduce_all (btor);
+  }
   else if (!strcmp (tok, "set_sat_solver"))
   {
     PARSE_ARGS1 (tok, str);
     ret_int = boolector_set_sat_solver (btor, arg1_str);
     exp_ret = RET_INT;
-  }
-  else if (!strcmp (tok, "set_rewrite_level"))
-  {
-    PARSE_ARGS1 (tok, int);
-    boolector_set_rewrite_level (btor, arg1_int);
   }
   else if (!strcmp (tok, "get_refs"))
   {
@@ -325,6 +336,11 @@ NEXT:
   {
     PARSE_ARGS0 (tok);
     boolector_delete (btor);
+  }
+  else if (!strcmp (tok, "simplify"))
+  {
+    PARSE_ARGS0 (tok);
+    boolector_simplify (btor);
   }
   else if (!strcmp (tok, "const"))
   {
@@ -750,6 +766,16 @@ NEXT:
     free (tmp);
     exp_ret = RET_VOIDPTR;
   }
+  else if (!strcmp (tok, "args"))
+  {
+    arg1_int = intarg (tok);                                 /* argc */
+    tmp      = malloc (sizeof (BoolectorNode *) * arg1_int); /* args */
+    for (i = 0; i < arg1_int; i++) tmp[i] = hmap_get (hmap, strarg (tok));
+    checklastarg (tok);
+    ret_ptr = boolector_args (btor, arg1_int, tmp);
+    free (tmp);
+    exp_ret = RET_VOIDPTR;
+  }
   else if (!strcmp (tok, "apply"))
   {
     arg1_int = intarg (tok);                                 /* argc */
@@ -759,6 +785,13 @@ NEXT:
     checklastarg (tok);
     ret_ptr = boolector_apply (btor, arg1_int, tmp, hmap_get (hmap, arg1_str));
     free (tmp);
+    exp_ret = RET_VOIDPTR;
+  }
+  else if (!strcmp (tok, "apply_args"))
+  {
+    PARSE_ARGS2 (tok, str, str);
+    ret_ptr = boolector_apply_args (
+        btor, hmap_get (hmap, arg1_str), hmap_get (hmap, arg2_str));
     exp_ret = RET_VOIDPTR;
   }
   else if (!strcmp (tok, "inc"))
@@ -773,12 +806,56 @@ NEXT:
     ret_ptr = boolector_dec (btor, hmap_get (hmap, arg1_str));
     exp_ret = RET_VOIDPTR;
   }
+  else if (!strcmp (tok, "get_width"))
+  {
+    PARSE_ARGS1 (tok, str);
+    if (!skip)
+    {
+      ret_int = boolector_get_width (btor, hmap_get (hmap, arg1_str));
+      exp_ret = RET_INT;
+    }
+    else
+      exp_ret = RET_SKIP;
+  }
   else if (!strcmp (tok, "is_array"))
   {
     PARSE_ARGS1 (tok, str);
     if (!skip)
     {
       ret_int = boolector_is_array (btor, hmap_get (hmap, arg1_str));
+      exp_ret = RET_INT;
+    }
+    else
+      exp_ret = RET_SKIP;
+  }
+  else if (!strcmp (tok, "is_array_var"))
+  {
+    PARSE_ARGS1 (tok, str);
+    if (!skip)
+    {
+      ret_int = boolector_is_array_var (btor, hmap_get (hmap, arg1_str));
+      exp_ret = RET_INT;
+    }
+    else
+      exp_ret = RET_SKIP;
+  }
+  else if (!strcmp (tok, "is_param"))
+  {
+    PARSE_ARGS1 (tok, str);
+    if (!skip)
+    {
+      ret_int = boolector_is_param (btor, hmap_get (hmap, arg1_str));
+      exp_ret = RET_INT;
+    }
+    else
+      exp_ret = RET_SKIP;
+  }
+  else if (!strcmp (tok, "is_bound_param"))
+  {
+    PARSE_ARGS1 (tok, str);
+    if (!skip)
+    {
+      ret_int = boolector_is_bound_param (btor, hmap_get (hmap, arg1_str));
       exp_ret = RET_INT;
     }
     else
@@ -806,12 +883,23 @@ NEXT:
     else
       exp_ret = RET_SKIP;
   }
-  else if (!strcmp (tok, "get_width"))
+  else if (!strcmp (tok, "is_args"))
   {
     PARSE_ARGS1 (tok, str);
     if (!skip)
     {
-      ret_int = boolector_get_width (btor, hmap_get (hmap, arg1_str));
+      ret_int = boolector_is_args (btor, hmap_get (hmap, arg1_str));
+      exp_ret = RET_INT;
+    }
+    else
+      exp_ret = RET_SKIP;
+  }
+  else if (!strcmp (tok, "get_args_arity"))
+  {
+    PARSE_ARGS1 (tok, str);
+    if (!skip)
+    {
+      ret_int = boolector_get_args_arity (btor, hmap_get (hmap, arg1_str));
       exp_ret = RET_INT;
     }
     else
@@ -827,6 +915,17 @@ NEXT:
     }
     else
       exp_ret = RET_SKIP;
+  }
+  else if (!strcmp (tok, "fun_sort_check"))
+  {
+    arg1_int = intarg (tok); /* argc */
+    tmp      = malloc (sizeof (BoolectorNode *) * arg1_int);
+    for (i = 0; i < arg1_int; i++) /* args */
+      tmp[i] = hmap_get (hmap, strarg (tok));
+    arg1_str = strarg (tok); /* function body */
+    checklastarg (tok);
+    ret_int = boolector_fun_sort_check (
+        btor, arg1_int, tmp, hmap_get (hmap, arg1_str));
   }
   else if (!strcmp (tok, "get_symbol_of_var"))
   {

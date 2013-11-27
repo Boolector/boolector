@@ -32,7 +32,7 @@
 /*------------------------------------------------------------------------*/
 
 #define BTOR_IMPORT_BOOLECTOR_NODE(node) (((BtorNode *) (node)))
-#define BTOR_IMPORT_BOOLECTOR_n_array(array) (((BtorNode **) (array)))
+#define BTOR_IMPORT_BOOLECTOR_NODE_ARRAY(array) (((BtorNode **) (array)))
 #define BTOR_EXPORT_BOOLECTOR_NODE(node) (((BoolectorNode *) (node)))
 
 /*------------------------------------------------------------------------*/
@@ -937,8 +937,8 @@ boolector_enable_model_gen (Btor *btor)
 void
 boolector_generate_model_for_all_reads (Btor *btor)
 {
-  // TODO TRAPI
   BTOR_ABORT_ARG_NULL_BOOLECTOR (btor);
+  BTOR_TRAPI ("generate_model_for_all_reads");
   btor_generate_model_for_all_reads (btor);
   BTOR_CHKCLONE_NORES (boolector_generate_model_for_all_reads);
 }
@@ -958,8 +958,8 @@ boolector_enable_inc_usage (Btor *btor)
 void
 boolector_enable_beta_reduce_all (Btor *btor)
 {
-  // TODO TRAPI
   BTOR_ABORT_ARG_NULL_BOOLECTOR (btor);
+  BTOR_TRAPI ("enable_beta_reduce_all");
   btor_enable_beta_reduce_all (btor);
   BTOR_CHKCLONE_NORES (btor_enable_beta_reduce_all);
 }
@@ -1010,8 +1010,8 @@ boolector_delete (Btor *btor)
 int
 boolector_simplify (Btor *btor)
 {
-  // TODO TRAPI
   BTOR_ABORT_ARG_NULL_BOOLECTOR (btor);
+  BTOR_TRAPI ("simplify");
 
   int res;
   res = btor_simplify (btor);
@@ -2667,9 +2667,9 @@ boolector_fun (Btor *btor,
   int i, len;
   char *strtrapi;
   BtorNode **params, *exp, *res;
-  BoolectorNode **cparams = NULL;
+  BoolectorNode **cparam_nodes = NULL;
 
-  params = BTOR_IMPORT_BOOLECTOR_n_array (param_nodes);
+  params = BTOR_IMPORT_BOOLECTOR_NODE_ARRAY (param_nodes);
   exp    = BTOR_IMPORT_BOOLECTOR_NODE (node);
 
   BTOR_ABORT_ARG_NULL_BOOLECTOR (btor);
@@ -2683,7 +2683,7 @@ boolector_fun (Btor *btor,
   sprintf (strtrapi, "fun %d", paramc);
 
   // TODO allocate within clone
-  if (btor->clone) cparams = malloc (paramc * sizeof (*cparams));
+  if (btor->clone) cparam_nodes = malloc (paramc * sizeof (*cparam_nodes));
 
   for (i = 0; i < paramc; i++)
   {
@@ -2694,7 +2694,7 @@ boolector_fun (Btor *btor,
     BTOR_ABORT_REFS_NOT_POS_BOOLECTOR (params[i]);
     sprintf (
         strtrapi + strlen (strtrapi), NODE_FMT, BTOR_TRAPI_NODE_ID (params[i]));
-    if (btor->clone) cparams[i] = BTOR_CLONED_EXP (params[i]);
+    if (btor->clone) cparam_nodes[i] = BTOR_CLONED_EXP (params[i]);
   }
   sprintf (strtrapi + strlen (strtrapi), NODE_FMT, BTOR_TRAPI_NODE_ID (exp));
   BTOR_TRAPI (strtrapi);
@@ -2703,40 +2703,49 @@ boolector_fun (Btor *btor,
   res = btor_fun_exp (btor, paramc, params, exp);
   BTOR_REAL_ADDR_NODE (res)->ext_refs += 1;
   BTOR_CHKCLONE_RES_PTR (
-      res, boolector_fun, paramc, cparams, BTOR_CLONED_EXP (exp));
+      res, boolector_fun, paramc, cparam_nodes, BTOR_CLONED_EXP (exp));
   BTOR_TRAPI_RETURN_NODE (res);
-  if (btor->clone) free (cparams);
+  if (btor->clone) free (cparam_nodes);
   return BTOR_EXPORT_BOOLECTOR_NODE (res);
 }
 
 BoolectorNode *
 boolector_args (Btor *btor, int argc, BoolectorNode **arg_nodes)
 {
-  // TODO TRAPI
-  int i;
+  int i, len;
+  char *strtrapi;
   BtorNode **args, *res;
-  BoolectorNode **cargs = NULL;
+  BoolectorNode **carg_nodes = NULL;
 
-  args = BTOR_IMPORT_BOOLECTOR_n_array (arg_nodes);
+  args = BTOR_IMPORT_BOOLECTOR_NODE_ARRAY (arg_nodes);
 
   BTOR_ABORT_ARG_NULL_BOOLECTOR (btor);
   BTOR_ABORT_ARG_NULL_BOOLECTOR (args);
   BTOR_ABORT_BOOLECTOR (argc < 1, "'argc' must not be < 1");
 
-  // TODO allocate within clone
-  if (btor->clone)
-  {
-    cargs = malloc (argc * sizeof (*cargs));
-    for (i = 0; i < argc; i++) cargs[i] = BTOR_CLONED_EXP (args[i]);
-  }
+  len = 6 + 10 + argc * 20;
+  BTOR_NEWN (btor->mm, strtrapi, len);
+  sprintf (strtrapi, "args %d", argc);
 
+  // TODO allocate within clone
+  if (btor->clone) carg_nodes = malloc (argc * sizeof (*carg_nodes));
+
+  for (i = 0; i < argc; i++)
+  {
+    BTOR_ABORT_ARG_NULL_BOOLECTOR (args[i]);
+    BTOR_ABORT_REFS_NOT_POS_BOOLECTOR (args[i]);
+    sprintf (
+        strtrapi + strlen (strtrapi), NODE_FMT, BTOR_TRAPI_NODE_ID (args[i]));
+    if (btor->clone) carg_nodes[i] = BTOR_CLONED_EXP (args[i]);
+  }
+  BTOR_TRAPI (strtrapi);
+  BTOR_DELETEN (btor->mm, strtrapi, len);
   btor->external_refs++;
   res = btor_args_exp (btor, argc, args);
   BTOR_REAL_ADDR_NODE (res)->ext_refs += 1;
-  BTOR_CHKCLONE_RES_PTR (res, boolector_args, argc, cargs);
-
-  if (btor->clone) free (cargs);
-
+  BTOR_CHKCLONE_RES_PTR (res, boolector_args, argc, carg_nodes);
+  BTOR_TRAPI_RETURN_NODE (res);
+  if (btor->clone) free (carg_nodes);
   return BTOR_EXPORT_BOOLECTOR_NODE (res);
 }
 
@@ -2749,9 +2758,9 @@ boolector_apply (Btor *btor,
   int i, len;
   char *strtrapi;
   BtorNode **args, *e_fun, *res, *cur;
-  BoolectorNode **cargs = NULL;
+  BoolectorNode **carg_nodes = NULL;
 
-  args  = BTOR_IMPORT_BOOLECTOR_n_array (arg_nodes);
+  args  = BTOR_IMPORT_BOOLECTOR_NODE_ARRAY (arg_nodes);
   e_fun = BTOR_IMPORT_BOOLECTOR_NODE (n_fun);
 
   BTOR_ABORT_ARG_NULL_BOOLECTOR (btor);
@@ -2762,7 +2771,7 @@ boolector_apply (Btor *btor,
   sprintf (strtrapi, "apply %d", argc);
 
   // TODO allocate within clone
-  if (btor->clone) cargs = malloc (argc * sizeof (*cargs));
+  if (btor->clone) carg_nodes = malloc (argc * sizeof (*carg_nodes));
 
   cur = BTOR_REAL_ADDR_NODE (btor_simplify_exp (btor, e_fun));
   for (i = 0; i < argc; i++)
@@ -2772,7 +2781,7 @@ boolector_apply (Btor *btor,
         "number of arguments muste be <= number of parameters in 'fun'");
     sprintf (
         strtrapi + strlen (strtrapi), NODE_FMT, BTOR_TRAPI_NODE_ID (args[i]));
-    if (btor->clone) cargs[i] = BTOR_CLONED_EXP (args[i]);
+    if (btor->clone) carg_nodes[i] = BTOR_CLONED_EXP (args[i]);
     cur = BTOR_REAL_ADDR_NODE (btor_simplify_exp (btor, cur->e[1]));
   }
   sprintf (strtrapi + strlen (strtrapi), NODE_FMT, BTOR_TRAPI_NODE_ID (e_fun));
@@ -2796,16 +2805,15 @@ boolector_apply (Btor *btor,
   res = btor_apply_exps (btor, argc, args, e_fun);
   BTOR_REAL_ADDR_NODE (res)->ext_refs += 1;
   BTOR_CHKCLONE_RES_PTR (
-      res, boolector_apply, argc, cargs, BTOR_CLONED_EXP (e_fun));
+      res, boolector_apply, argc, carg_nodes, BTOR_CLONED_EXP (e_fun));
   BTOR_TRAPI_RETURN_NODE (res);
-  if (btor->clone) free (cargs);
+  if (btor->clone) free (carg_nodes);
   return BTOR_EXPORT_BOOLECTOR_NODE (res);
 }
 
 BoolectorNode *
 boolector_apply_args (Btor *btor, BoolectorNode *n_args, BoolectorNode *n_fun)
 {
-  // TODO TRAPI
   BtorNode *e_args, *e_fun, *res;
 
   e_args = BTOR_IMPORT_BOOLECTOR_NODE (n_args);
@@ -2814,6 +2822,7 @@ boolector_apply_args (Btor *btor, BoolectorNode *n_args, BoolectorNode *n_fun)
   BTOR_ABORT_ARG_NULL_BOOLECTOR (btor);
   BTOR_ABORT_ARG_NULL_BOOLECTOR (e_args);
   BTOR_ABORT_ARG_NULL_BOOLECTOR (e_fun);
+  BTOR_TRAPI_BINFUN ("apply_args", e_args, e_fun);
   BTOR_ABORT_BOOLECTOR (!BTOR_IS_REGULAR_NODE (e_args),
                         "'args' must not be inverted");
   BTOR_ABORT_BOOLECTOR (!BTOR_IS_ARGS_NODE (e_args),
@@ -2825,6 +2834,7 @@ boolector_apply_args (Btor *btor, BoolectorNode *n_args, BoolectorNode *n_fun)
                          boolector_apply_args,
                          BTOR_CLONED_EXP (e_args),
                          BTOR_CLONED_EXP (e_fun));
+  BTOR_TRAPI_RETURN_NODE (res);
   return BTOR_EXPORT_BOOLECTOR_NODE (res);
 }
 
@@ -3061,20 +3071,41 @@ boolector_fun_sort_check (Btor *btor,
                           BoolectorNode **arg_nodes,
                           BoolectorNode *n_fun)
 {
-  BtorNode **args, *e_fun;
-  int res;
+  BtorNode **args, *e_fun, *simp;
+  BoolectorNode **carg_nodes = NULL;
+  char *strtrapi;
+  int i, len, res;
 
-  args  = BTOR_IMPORT_BOOLECTOR_n_array (arg_nodes);
+  args  = BTOR_IMPORT_BOOLECTOR_NODE_ARRAY (arg_nodes);
   e_fun = BTOR_IMPORT_BOOLECTOR_NODE (n_fun);
   BTOR_ABORT_ARG_NULL_BOOLECTOR (btor);
   BTOR_ABORT_ARG_NULL_BOOLECTOR (e_fun);
-  BTOR_TRAPI_UNFUN ("is_args", e_fun);
   BTOR_ABORT_BOOLECTOR (argc < 1, "'argc' must not be < 1");
   BTOR_ABORT_BOOLECTOR (argc >= 1 && !args,
                         "no arguments given but argc defined > 0");
-  e_fun = btor_simplify_exp (btor, e_fun);
-  // TODO CLONE
-  res = btor_fun_sort_check (btor, argc, args, e_fun);
+
+  len = 15 + 10 + argc * 20 + 20;
+  BTOR_NEWN (btor->mm, strtrapi, len);
+  sprintf (strtrapi, "fun_sort_check %d", argc);
+
+  // TODO allocate within clone
+  if (btor->clone) carg_nodes = malloc (argc * sizeof (*carg_nodes));
+
+  for (i = 0; i < argc; i++)
+  {
+    BTOR_ABORT_ARG_NULL_BOOLECTOR (args[i]);
+    BTOR_ABORT_REFS_NOT_POS_BOOLECTOR (args[i]);
+    sprintf (
+        strtrapi + strlen (strtrapi), NODE_FMT, BTOR_TRAPI_NODE_ID (args[i]));
+    if (btor->clone) carg_nodes[i] = BTOR_CLONED_EXP (args[i]);
+  }
+  sprintf (strtrapi + strlen (strtrapi), NODE_FMT, BTOR_TRAPI_NODE_ID (e_fun));
+  BTOR_TRAPI (strtrapi);
+  BTOR_DELETEN (btor->mm, strtrapi, len);
+  simp = btor_simplify_exp (btor, e_fun);
+  res  = btor_fun_sort_check (btor, argc, args, simp);
+  BTOR_CHKCLONE_RES (
+      res, boolector_fun_sort_check, argc, carg_nodes, BTOR_CLONED_EXP (e_fun));
   BTOR_TRAPI_RETURN (res);
   return res;
 }
