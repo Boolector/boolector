@@ -49,7 +49,7 @@
     btor_trapi (btor, msg, ##args); \
   } while (0)
 
-#define BTOR_TRAPI_UNFUN_ADD(name, exp, fmt, args...) \
+#define BTOR_TRAPI_UNFUN_EXT(name, exp, fmt, args...) \
   BTOR_TRAPI (name NODE_FMT " " fmt, BTOR_TRAPI_NODE_ID (exp), ##args)
 
 #define BTOR_TRAPI_UNFUN(name, exp) \
@@ -1323,7 +1323,7 @@ boolector_slice (Btor *btor, BoolectorNode *node, int upper, int lower)
   exp = BTOR_IMPORT_BOOLECTOR_NODE (node);
   BTOR_ABORT_ARG_NULL_BOOLECTOR (btor);
   BTOR_ABORT_ARG_NULL_BOOLECTOR (exp);
-  BTOR_TRAPI_UNFUN_ADD ("slice", exp, "%d %d", upper, lower);
+  BTOR_TRAPI_UNFUN_EXT ("slice", exp, "%d %d", upper, lower);
   BTOR_ABORT_REFS_NOT_POS_BOOLECTOR (exp);
   simp = btor_simplify_exp (btor, exp);
   BTOR_ABORT_ARRAY_BOOLECTOR (simp);
@@ -1348,7 +1348,7 @@ boolector_uext (Btor *btor, BoolectorNode *node, int width)
   exp = BTOR_IMPORT_BOOLECTOR_NODE (node);
   BTOR_ABORT_ARG_NULL_BOOLECTOR (btor);
   BTOR_ABORT_ARG_NULL_BOOLECTOR (exp);
-  BTOR_TRAPI_UNFUN_ADD ("uext", exp, "%d", width);
+  BTOR_TRAPI_UNFUN_EXT ("uext", exp, "%d", width);
   BTOR_ABORT_REFS_NOT_POS_BOOLECTOR (exp);
   simp = btor_simplify_exp (btor, exp);
   BTOR_ABORT_ARRAY_BOOLECTOR (simp);
@@ -1369,7 +1369,7 @@ boolector_sext (Btor *btor, BoolectorNode *node, int width)
   exp = BTOR_IMPORT_BOOLECTOR_NODE (node);
   BTOR_ABORT_ARG_NULL_BOOLECTOR (btor);
   BTOR_ABORT_ARG_NULL_BOOLECTOR (exp);
-  BTOR_TRAPI_UNFUN_ADD ("sext", exp, "%d", width);
+  BTOR_TRAPI_UNFUN_EXT ("sext", exp, "%d", width);
   BTOR_ABORT_REFS_NOT_POS_BOOLECTOR (exp);
   simp = btor_simplify_exp (btor, exp);
   BTOR_ABORT_ARRAY_BOOLECTOR (simp);
