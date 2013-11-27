@@ -2,7 +2,7 @@
  *
  *  Copyright (C) 2007-2009 Robert Daniel Brummayer.
  *  Copyright (C) 2007-2013 Armin Biere.
- *  Copyright (C) 2012 Aina Niemetz, Mathias Preiner.
+ *  Copyright (C) 2012-2013 Aina Niemetz, Mathias Preiner.
  *
  *  All rights reserved.
  *
@@ -1268,9 +1268,6 @@ boolector_main (int argc, char **argv)
     btor_set_output_sat (smgr, stdout);
     btor_enable_verbosity_sat (smgr, app.verbosity);
 
-    // FIXME btormain should use api calls and BoolectorNodes only!!!
-    outputs = (BtorNode **) parse_res.outputs;
-    //
     if (app.incremental)
     {
       btor_enable_inc_usage (btor);
@@ -1334,6 +1331,9 @@ boolector_main (int argc, char **argv)
     }
     else if (app.dump_exp)
     {
+      // FIXME btormain should use api calls and BoolectorNodes only!!!
+      outputs = (BtorNode **) parse_res.outputs;
+      //
       if (app.verbosity > 0)
         btor_msg_main_va_args ("dumping BTOR expressions\n");
 
@@ -1364,6 +1364,9 @@ boolector_main (int argc, char **argv)
     }
     else if (app.dump_smt)
     {
+      // FIXME btormain should use api calls and BoolectorNodes only!!!
+      outputs = (BtorNode **) parse_res.outputs;
+      //
       if (app.verbosity > 0)
       {
         if (app.dump_smt < 2)
@@ -1400,6 +1403,9 @@ boolector_main (int argc, char **argv)
       }
       else
       {
+        // FIXME btormain should use api calls and BoolectorNodes only!!!
+        outputs = (BtorNode **) parse_res.outputs;
+        //
         all = 0;
         for (i = 0; i < parse_res.noutputs; i++)
         {
@@ -1435,6 +1441,9 @@ boolector_main (int argc, char **argv)
     }
     else
     {
+      // FIXME btormain should use api calls and BoolectorNodes only!!!
+      outputs = (BtorNode **) parse_res.outputs;
+      //
       assert (!app.incremental);
       if (app.verbosity > 0)
       {

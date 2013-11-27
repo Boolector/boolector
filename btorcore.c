@@ -168,6 +168,28 @@ check_all_hash_tables_simp_free_dbg (const Btor *btor)
     return 0;
   return 1;
 }
+
+static int
+check_reachable_flag_dbg (const Btor *btor)
+{
+  int i;
+  BtorNode *cur, *parent;
+  BtorFullParentIterator it;
+
+  for (i = BTOR_COUNT_STACK (btor->nodes_id_table) - 1; i >= 0; i--)
+  {
+    if (!(cur = BTOR_PEEK_STACK (btor->nodes_id_table, i))) continue;
+
+    init_full_parent_iterator (&it, cur);
+
+    while (has_next_parent_full_parent_iterator (&it))
+    {
+      parent = next_parent_full_parent_iterator (&it);
+      if (parent->reachable && !cur->reachable) return 0;
+    }
+  }
+  return 1;
+}
 /*------------------------------------------------------------------------*/
 #endif
 /*------------------------------------------------------------------------*/
@@ -4043,6 +4065,8 @@ update_reachable (Btor *btor)
     btor_mark_exp (btor, (BtorNode *) b->key, 1);
   for (b = btor->lod_cache->first; b; b = b->next)
     btor_mark_exp (btor, (BtorNode *) b->key, 1);
+  for (b = btor->assumptions->first; b; b = b->next)
+    btor_mark_exp (btor, (BtorNode *) b->key, 1);
 
   for (i = 1; i < BTOR_COUNT_STACK (btor->nodes_id_table); i++)
   {
@@ -5757,6 +5781,73 @@ propagate (Btor *btor,
   return 0;
 }
 
+#if 0
+static void
+print_cone_dbg (Btor * btor, BtorNode * exp)
+{
+  assert (btor);
+  assert (exp);
+
+  BTOR_DECLARE_QUEUE (Int, int);
+
+  int i, lvl;
+  BtorNode *cur, *parent;
+  BtorFullParentIterator it;
+  BtorNodePtrQueue queue;
+  BtorIntQueue level;
+  BtorPtrHashTable *table;
+  BtorPtrHashBucket *b;
+
+  BTOR_INIT_QUEUE (queue);
+  BTOR_INIT_QUEUE (level);
+  BTOR_ENQUEUE (btor->mm, queue, exp);
+  BTOR_ENQUEUE (btor->mm, level, 0);
+  table = btor_new_ptr_hash_table (btor->mm,
+				   (BtorHashPtr) btor_hash_exp_by_id,
+				   (BtorCmpPtr) btor_compare_exp_by_id);
+
+  while (!BTOR_EMPTY_QUEUE (queue))
+    {
+      cur = BTOR_REAL_ADDR_NODE (BTOR_DEQUEUE (queue));
+      lvl = BTOR_DEQUEUE (level);
+
+      if (!btor_find_in_ptr_hash_table (table, cur))
+	{
+	  (void) btor_insert_in_ptr_hash_table (table, cur);
+	  printf ("(%d) cone: %s\n", lvl, node2string (cur));
+	  printf ("       reachable:  %d\n", cur->reachable);
+	  printf ("       synth:      %d\n", BTOR_IS_SYNTH_NODE (cur));
+	  printf ("       refs/ext:   %d/%d\n", cur->refs, cur->ext_refs);
+	  printf ("       parents:    %d\n", cur->parents);
+	  printf ("       constraint: %d\n", cur->constraint);
+	  printf ("       children:  ");
+	  for (i = 0; i < cur->arity; i++)
+	    {
+	      if (btor_find_in_ptr_hash_table (table,
+		    BTOR_REAL_ADDR_NODE (cur->e[i])))
+	      printf (" %d", BTOR_REAL_ADDR_NODE (cur->e[i])->id);
+	    }
+	  printf ("\n");
+
+	  init_full_parent_iterator (&it, cur);
+
+	  while (has_next_parent_full_parent_iterator (&it))
+	    {
+	      parent = next_parent_full_parent_iterator (&it);
+	      assert (BTOR_IS_REGULAR_NODE (parent));
+
+	      BTOR_ENQUEUE (btor->mm, queue, parent);
+	      BTOR_ENQUEUE (btor->mm, level, lvl + 1);
+	    }
+	}
+    }
+
+  btor_delete_ptr_hash_table (table);
+  BTOR_RELEASE_QUEUE (btor->mm, queue);
+  BTOR_RELEASE_QUEUE (btor->mm, level);
+}
+#endif
+
 static int
 check_and_resolve_conflicts (Btor *btor, BtorNodePtrStack *top_functions)
 {
@@ -5950,7 +6041,10 @@ btor_sat_aux_btor (Btor *btor)
     }
   } while (btor->unsynthesized_constraints->count > 0);
 
+  update_assumptions (btor);
+
   update_reachable (btor);
+  assert (check_reachable_flag_dbg (btor));
 
   if (btor->model_gen)
   {
@@ -5958,10 +6052,11 @@ btor_sat_aux_btor (Btor *btor)
     synthesize_all_array_rhs (btor);
     if (btor->generate_model_for_all_reads) synthesize_all_reads (btor);
   }
-
-  update_assumptions (btor);
+  assert (check_reachable_flag_dbg (btor));
 
   found_assumption_false = add_again_assumptions (btor);
+  assert (check_reachable_flag_dbg (btor));
+
   if (found_assumption_false) goto UNSAT;
 
   BTOR_INIT_STACK (top_functions);
