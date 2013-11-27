@@ -273,4 +273,17 @@ BtorNode *btor_simplify_exp (Btor *btor, BtorNode *exp);
 /* Finds most simplified expression and shortens path to it */
 BtorNode *btor_pointer_chase_simplified_exp (Btor *btor, BtorNode *exp);
 
+/* Builds current assignment string of expression (in the SAT case)
+ * and returns it.
+ * Do not call before calling btor_sat_exp.
+ * strlen(result) = len(exp)
+ */
+char *btor_bv_assignment_exp (Btor *btor, BtorNode *exp);
+
+void btor_array_assignment_exp (
+    Btor *btor, BtorNode *exp, char ***indices, char ***values, int *size);
+
+/* Frees BV assignment obtained by calling 'btor_assignment_exp' */
+void btor_free_bv_assignment_exp (Btor *btor, char *assignment);
+
 #endif
