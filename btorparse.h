@@ -71,10 +71,10 @@ struct BtorParseResult
   BtorParseSATStatus result;
 
   int ninputs;
-  BtorNode **inputs;
+  BoolectorNode **inputs;
 
   int noutputs;
-  BtorNode **outputs;
+  BoolectorNode **outputs;
 };
 
 struct BtorParserAPI

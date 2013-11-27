@@ -469,12 +469,15 @@ print_array_assignment (BtorMainApp *app, Btor *btor, BtorNode *exp)
 static void
 print_assignment (BtorMainApp *app, Btor *btor, BtorParseResult *parse_res)
 {
-  BtorNode *var, *temp;
+  BtorNode *var, *temp, **inputs;
   int i;
+
+  // FIXME btormain should use api functions only!!!
+  inputs = (BtorNode **) parse_res->inputs;
 
   for (i = 0; i < parse_res->ninputs; i++)
   {
-    var  = parse_res->inputs[i];
+    var  = inputs[i];
     temp = btor_simplify_exp (btor, var);
     if (BTOR_IS_ARRAY_NODE (temp))
       print_array_assignment (app, btor, var);
@@ -999,6 +1002,9 @@ boolector_main (int argc, char **argv)
   BtorParseOpt parse_opt;
   BtorMemMgr *mem = 0;
   BtorNode *root, *tmp, *all;
+  // FIXME btormain should use api functions and BoolectorNodes only!!!
+  BtorNode **outputs;
+  //////
   BtorCharStack prefix;
 
   btor_static_start_time = btor_time_stamp ();
@@ -1262,6 +1268,9 @@ boolector_main (int argc, char **argv)
     btor_set_output_sat (smgr, stdout);
     btor_enable_verbosity_sat (smgr, app.verbosity);
 
+    // FIXME btormain should use api calls and BoolectorNodes only!!!
+    outputs = (BtorNode **) parse_res.outputs;
+    //
     if (app.incremental)
     {
       btor_enable_inc_usage (btor);
@@ -1334,7 +1343,7 @@ boolector_main (int argc, char **argv)
       {
         for (i = 0; i < parse_res.noutputs; i++)
         {
-          root     = parse_res.outputs[i];
+          root     = outputs[i];
           root_len = btor_get_exp_len (btor, root);
           assert (root_len >= 1);
           if (root_len > 1)
@@ -1350,7 +1359,7 @@ boolector_main (int argc, char **argv)
       }
       else
         btor_dump_btor_nodes (
-            btor, app.output_file, parse_res.outputs, parse_res.noutputs);
+            btor, app.output_file, outputs, parse_res.noutputs);
       app.done = 1;
     }
     else if (app.dump_smt)
@@ -1369,7 +1378,7 @@ boolector_main (int argc, char **argv)
       {
         for (i = 0; i < parse_res.noutputs; i++)
         {
-          root     = parse_res.outputs[i];
+          root     = outputs[i];
           root_len = btor_get_exp_len (btor, root);
           assert (root_len >= 1);
           if (root_len > 1)
@@ -1394,7 +1403,7 @@ boolector_main (int argc, char **argv)
         all = 0;
         for (i = 0; i < parse_res.noutputs; i++)
         {
-          root     = parse_res.outputs[i];
+          root     = outputs[i];
           root_len = btor_get_exp_len (btor, root);
           assert (root_len >= 1);
           if (root_len > 1)
@@ -1472,7 +1481,7 @@ boolector_main (int argc, char **argv)
 
       for (i = 0; i < parse_res.noutputs; i++)
       {
-        root     = parse_res.outputs[i];
+        root     = outputs[i];
         root_len = btor_get_exp_len (btor, root);
         assert (root_len >= 1);
         if (root_len > 1)
