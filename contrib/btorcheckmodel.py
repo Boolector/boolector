@@ -2,6 +2,7 @@
 
 import boolector
 import sys
+import random
 import re
 from optparse import OptionParser
 
@@ -351,10 +352,14 @@ def parse_model(inputfile):
                     else:
                         error_and_exit("formula is not SAT")
 
-                m = re.match(r'([0-9a-zA-Z_]+)(\[(\d+)\])? (\d+)', line)
+                m = re.match(r'([0-9a-zA-Z_]+)(\[(\d+)\])? ([x0-1]+)', line)
                 sym = m.group(1)
                 index = m.group(3)
                 value = m.group(4)
+
+                # choose random value for don't care bits
+                if "x" in value:
+                    value = value.replace("x", str(random.randint(0, 1)))
 
                 if index is None:
                     assert(sym not in g_model_vars)

@@ -902,6 +902,8 @@ BtorNode *boolector_fun (Btor *btor,
                          BtorNode **params,
                          BtorNode *exp);
 
+BtorNode *boolector_args (Btor *btor, int argc, BtorNode **args);
+
 /**
  * Creates a function application expression.
  * \param btor Boolector instance.
@@ -914,6 +916,8 @@ BtorNode *boolector_apply (Btor *btor,
                            int argc,
                            BtorNode **args,
                            BtorNode *fun);
+
+BtorNode *boolector_apply_args (Btor *btor, BtorNode *args, BtorNode *fun);
 
 /**
  * Increments bit-vector by one.
