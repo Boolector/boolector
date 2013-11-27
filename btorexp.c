@@ -5812,6 +5812,14 @@ btor_is_array_exp (Btor *btor, BtorNode *exp)
 }
 
 int
+btor_is_array_var_exp (Btor *btor, BtorNode *exp)
+{
+  assert (btor);
+  assert (exp);
+  exp = btor_simplify_exp (btor, exp);
+  return BTOR_IS_ARRAY_VAR_NODE (BTOR_REAL_ADDR_NODE (exp));
+}
+int
 btor_get_index_exp_len (Btor *btor, BtorNode *e_array)
 {
   assert (btor);
@@ -5842,7 +5850,7 @@ btor_is_param_exp (Btor *btor, BtorNode *exp)
 }
 
 int
-btor_is_bound_param (Btor *btor, BtorNode *param)
+btor_is_bound_param_exp (Btor *btor, BtorNode *param)
 {
   assert (btor);
   assert (param);
@@ -5852,7 +5860,7 @@ btor_is_bound_param (Btor *btor, BtorNode *param)
 }
 
 int
-btor_is_lambda_exp (Btor *btor, BtorNode *exp)
+btor_is_fun_exp (Btor *btor, BtorNode *exp)
 {
   assert (btor);
   assert (exp);
@@ -5861,7 +5869,7 @@ btor_is_lambda_exp (Btor *btor, BtorNode *exp)
 }
 
 int
-btor_get_lambda_arity (Btor *btor, BtorNode *exp)
+btor_get_fun_arity (Btor *btor, BtorNode *exp)
 {
   (void) btor;
   assert (btor);
@@ -5882,7 +5890,7 @@ btor_fun_sort_check (Btor *btor, int argc, BtorNode **args, BtorNode *fun)
   assert (fun);
   assert (BTOR_IS_REGULAR_NODE (fun));
   assert (BTOR_IS_LAMBDA_NODE (fun));
-  assert (argc == btor_get_lambda_arity (btor, fun));
+  assert (argc == btor_get_fun_arity (btor, fun));
 
   int i;
   BtorNode *arg;
@@ -5901,6 +5909,27 @@ btor_fun_sort_check (Btor *btor, int argc, BtorNode **args, BtorNode *fun)
     if (arg->len != param->len) return i;
   }
   return -1;
+}
+
+int
+btor_is_args_exp (Btor *btor, BtorNode *exp)
+{
+  assert (btor);
+  assert (exp);
+  exp = btor_simplify_exp (btor, exp);
+  return BTOR_IS_ARGS_NODE (BTOR_REAL_ADDR_NODE (exp));
+}
+
+int
+btor_get_args_arity (Btor *btor, BtorNode *exp)
+{
+  (void) btor;
+  assert (btor);
+  assert (exp);
+  exp = btor_simplify_exp (btor, exp);
+  assert (BTOR_IS_REGULAR_NODE (exp));
+  assert (BTOR_IS_ARGS_NODE (exp));
+  return ((BtorArgsNode *) exp)->num_args;
 }
 
 Btor *

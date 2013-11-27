@@ -89,8 +89,8 @@ typedef struct BtorSortUniqueTable BtorSortUniqueTable;
 
 /*------------------------------------------------------------------------*/
 
-BTOR_DECLARE_STACK (NodePtr, BtorNode *);
-BTOR_DECLARE_STACK (NodePtrPtr, BtorNode **);
+BTOR_DECLARE_STACK (Btor, NodePtr, BtorNode *);
+BTOR_DECLARE_STACK (Btor, NodePtrPtr, BtorNode **);
 
 BTOR_DECLARE_QUEUE (NodePtr, BtorNode *);
 
@@ -1116,6 +1116,7 @@ BtorNode *btor_apply_exps (Btor *btor,
                            int argc,
                            BtorNode **args,
                            BtorNode *fun);
+
 BtorNode *btor_args_exp (Btor *btor, int argc, BtorNode **args);
 
 /* If-then-else.
@@ -1140,6 +1141,9 @@ int btor_get_exp_len (Btor *btor, BtorNode *exp);
 /* Determines if expression is an array or not. */
 int btor_is_array_exp (Btor *btor, BtorNode *exp);
 
+/* Determines if expression is an array variable or not. */
+int btor_is_array_var_exp (Btor *btor, BtorNode *exp);
+
 /* Gets the number of bits used by indices on 'e_array'. */
 int btor_get_index_exp_len (Btor *btor, BtorNode *e_array);
 
@@ -1150,18 +1154,24 @@ char *btor_get_symbol_exp (Btor *btor, BtorNode *exp);
 int btor_is_param_exp (Btor *btor, BtorNode *exp);
 
 /* Determines if param is already bound to a lambda expression or not. */
-int btor_is_bound_param (Btor *btor, BtorNode *param);
+int btor_is_bound_param_exp (Btor *btor, BtorNode *param);
 
 /* Determines if expression is a lambda or not. */
-int btor_is_lambda_exp (Btor *btor, BtorNode *exp);
+int btor_is_fun_exp (Btor *btor, BtorNode *exp);
 
 /* Gets the number of arguments of lambda expression 'exp'. */
-int btor_get_lambda_arity (Btor *btor, BtorNode *exp);
+int btor_get_fun_arity (Btor *btor, BtorNode *exp);
 
 /* Check whether the sorts of given arguments match the signature of the
  * function. If sorts a correct -1 is returned, otherwise the position of
  * the invalid argument is returned. */
 int btor_fun_sort_check (Btor *btor, int argc, BtorNode **args, BtorNode *fun);
+
+/* Determines if expression is an argument expression or not. */
+int btor_is_args_exp (Btor *btor, BtorNode *exp);
+
+/* Gets the number of arguments of an argument expression 'exp'. */
+int btor_get_args_arity (Btor *btor, BtorNode *exp);
 
 /* Copies expression (increments reference counter). */
 BtorNode *btor_copy_exp (Btor *btor, BtorNode *exp);

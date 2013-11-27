@@ -19,6 +19,16 @@
 #include "boolector.h"
 #include "btorhash.h"
 
+// TODO
+// is_args
+// fun sort check
+// is_param
+// is_bound_param
+// get_args_arity
+// is_array_var
+// is_fun
+//
+//
 static int verbose, exitonabort, lineno, skip, ignore_sat;
 static const char *name;
 
@@ -190,7 +200,7 @@ parse (FILE *file)
   char buffer[200], *tok;
   Btor *btor;
   void *ret_ptr;
-  BtorNode **tmp;
+  BoolectorNode **tmp;
   BtorPtrHashTable *hmap;
   BtorMemMgr *mm;
 
@@ -731,8 +741,8 @@ NEXT:
   }
   else if (!strcmp (tok, "fun"))
   {
-    arg1_int = intarg (tok);                            /* paramc */
-    tmp      = malloc (sizeof (BtorNode *) * arg1_int); /* params */
+    arg1_int = intarg (tok);                                 /* paramc */
+    tmp      = malloc (sizeof (BoolectorNode *) * arg1_int); /* params */
     for (i = 0; i < arg1_int; i++) tmp[i] = hmap_get (hmap, strarg (tok));
     arg1_str = strarg (tok); /* function body */
     checklastarg (tok);
@@ -742,8 +752,8 @@ NEXT:
   }
   else if (!strcmp (tok, "apply"))
   {
-    arg1_int = intarg (tok);                            /* argc */
-    tmp      = malloc (sizeof (BtorNode *) * arg1_int); /* args */
+    arg1_int = intarg (tok);                                 /* argc */
+    tmp      = malloc (sizeof (BoolectorNode *) * arg1_int); /* args */
     for (i = 0; i < arg1_int; i++) tmp[i] = hmap_get (hmap, strarg (tok));
     arg1_str = strarg (tok); /* function */
     checklastarg (tok);
