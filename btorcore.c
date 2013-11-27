@@ -1025,8 +1025,10 @@ update_assumptions (Btor *btor)
     }
     else
     {
-      assert (!btor_find_in_ptr_hash_table (ass, cur));
-      btor_insert_in_ptr_hash_table (ass, cur);
+      if (!btor_find_in_ptr_hash_table (ass, cur))
+        btor_insert_in_ptr_hash_table (ass, cur);
+      else
+        btor_release_exp (btor, cur);
     }
   }
   btor_delete_ptr_hash_table (btor->assumptions);
