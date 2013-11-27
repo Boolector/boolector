@@ -1123,7 +1123,7 @@ boolector_unsigned_int (Btor *btor, unsigned int u, int width)
   BTOR_TRAPI ("unsigned_int %u %d", u, width);
   BTOR_ABORT_BOOLECTOR (width < 1, "'width' must not be < 1");
   btor->external_refs++;
-  res = btor_unsigned_to_exp (btor, u, width);
+  res = btor_unsigned_exp (btor, u, width);
   BTOR_REAL_ADDR_NODE (res)->ext_refs += 1;
   BTOR_CHKCLONE_RES_PTR (res, boolector_unsigned_int, u, width);
   BTOR_TRAPI_RETURN_NODE (res);
@@ -1139,7 +1139,7 @@ boolector_int (Btor *btor, int i, int width)
   BTOR_TRAPI ("int %d %u", i, width);
   BTOR_ABORT_BOOLECTOR (width < 1, "'width' must not be < 1");
   btor->external_refs++;
-  res = btor_int_to_exp (btor, i, width);
+  res = btor_int_exp (btor, i, width);
   BTOR_REAL_ADDR_NODE (res)->ext_refs += 1;
   BTOR_CHKCLONE_RES_PTR (res, boolector_int, i, width);
   BTOR_TRAPI_RETURN_NODE (res);

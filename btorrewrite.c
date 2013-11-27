@@ -940,7 +940,7 @@ rewrite_binary_exp (Btor *btor, BtorNodeKind kind, BtorNode *e0, BtorNode *e1)
       {
         if (real_e0->len >= 2)
         {
-          tmp1   = btor_int_to_exp (btor, 2, real_e0->len);
+          tmp1   = btor_int_exp (btor, 2, real_e0->len);
           result = btor_rewrite_mul_exp (btor, e0, tmp1);
           btor_release_exp (btor, tmp1);
         }

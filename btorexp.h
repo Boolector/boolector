@@ -478,14 +478,14 @@ BtorNode *btor_one_exp (Btor *btor, int len);
  * or by unsigned extension (padding with zeroes).
  * len > 0
  */
-BtorNode *btor_unsigned_to_exp (Btor *btor, unsigned u, int len);
+BtorNode *btor_unsigned_exp (Btor *btor, unsigned u, int len);
 
 /* Binary constant representing the signed integer.
  * The constant is obtained by either truncating bits
  * or by signed extension (padding with ones).
  * len > 0
  */
-BtorNode *btor_int_to_exp (Btor *emg, int i, int len);
+BtorNode *btor_int_exp (Btor *emg, int i, int len);
 
 /* Variable representing 'len' bits.
  * len > 0
