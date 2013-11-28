@@ -1224,7 +1224,7 @@ const char *boolector_bv_assignment (Btor *btor, BoolectorNode *node);
  * \param assignment String which has to be freed.
  * \see boolector_bv_assignment
  */
-void boolector_free_bv_assignment (Btor *btor, char *assignment);
+void boolector_free_bv_assignment (Btor *btor, const char *assignment);
 
 /**
  * Builds a model for an array expression.

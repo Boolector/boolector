@@ -88,7 +88,7 @@ btor_new_bv_assignment (BtorBVAssignmentList *list, char *ass)
 }
 
 void
-btor_release_bv_assignment (BtorBVAssignmentList *list, char *ass)
+btor_release_bv_assignment (BtorBVAssignmentList *list, const char *ass)
 {
   assert (list);
   assert (ass);
