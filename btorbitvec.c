@@ -667,7 +667,6 @@ btor_concat_bv (Btor *btor, BitVector *a, BitVector *b)
   for (i = b->len - 1; i >= 0; i--) res->bits[j--] = b->bits[i];
 
   k = b->width % BTOR_BV_TYPE_BW;
-  assert (res->bits[j] >> k == 0);
 
   /* copy bits from bit vector a */
   if (k == 0)
@@ -678,6 +677,7 @@ btor_concat_bv (Btor *btor, BitVector *a, BitVector *b)
   else
   {
     j += 1;
+    assert (res->bits[j] >> k == 0);
     v = res->bits[j];
     for (i = a->len - 1; i >= 0; i--)
     {
