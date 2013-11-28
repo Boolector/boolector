@@ -11,218 +11,282 @@
 from libc.stdio cimport FILE
 
 cdef extern from "boolector.h":
-      ctypedef struct BtorNode:
+    ctypedef struct BoolectorNode:
         pass
-    #  ctypedef struct BtorSort:
-    #    pass
-      ctypedef struct Btor:
+    ctypedef struct Btor:
         pass
 
     #void boolector_set_trapi (Btor * btor, FILE * apitrace)
     #FILE *boolector_get_trapi (Btor * btor)
 
-      Btor * boolector_new ()
+    Btor *boolector_new ()
 
-      void boolector_delete (Btor * btor)
+    Btor *boolector_clone (Btor * btor)
 
-      # debug
-    #  void boolector_print (Btor * btor, BtorNode * node)
+    void boolector_enable_model_gen (Btor * btor)
 
-      Btor *boolector_clone (Btor * btor)
+    void boolector_generate_model_for_all_reads (Btor * btor)
 
-      void boolector_enable_model_gen (Btor * btor)
+    void boolector_enable_inc_usage (Btor * btor)
 
-      void boolector_generate_model_for_all_reads (Btor * btor)
+    int boolector_set_sat_solver (Btor * btor, const char * solver)
 
-      void boolector_enable_inc_usage (Btor * btor)
+    void boolector_set_rewrite_level (Btor * btor, int rewrite_level)
 
-      int boolector_set_sat_solver (Btor * btor, const char * solver)
+    int boolector_get_refs (Btor * btor)
 
-      void boolector_set_rewrite_level (Btor * btor, int rewrite_level)
+    void boolector_delete (Btor * btor)
 
-      int boolector_get_refs (Btor * btor)
+    int boolector_simplify (Btor * btor)
 
-      int boolector_simplify (Btor * btor)
+    void boolector_enable_beta_reduce_all (Btor * btor)
 
-      void boolector_enable_beta_reduce_all (Btor * btor) 
+    BoolectorNode *boolector_const (Btor * btor, const char *bits)
 
-      BtorNode *boolector_const (Btor * btor, const char * bits)
+    BoolectorNode *boolector_zero (Btor * btor, int width)
 
-      BtorNode *boolector_zero (Btor * btor, int width)
+    BoolectorNode *boolector_false (Btor * btor)
 
-      BtorNode *boolector_false (Btor * btor)
+    BoolectorNode *boolector_ones (Btor * btor, int width)
 
-      BtorNode *boolector_ones (Btor * btor, int width)
+    BoolectorNode *boolector_true (Btor * btor)
 
-      BtorNode *boolector_true (Btor * btor)
+    BoolectorNode *boolector_one (Btor * btor, int width)
 
-      BtorNode *boolector_one (Btor * btor, int width)
+    BoolectorNode *boolector_unsigned_int (Btor * btor, unsigned u, int width)
 
-      BtorNode *boolector_unsigned_int (Btor * btor, unsigned u, int width)
+    BoolectorNode *boolector_int (Btor * btor, int i, int width)
 
-      BtorNode *boolector_int (Btor * btor, int i, int width)
+    BoolectorNode *boolector_var (Btor * btor, int width, const char *symbol)
 
-      BtorNode *boolector_var (Btor * btor, int width, const char *symbol)
+    BoolectorNode *boolector_array (Btor * btor, 
+                                   int elem_width, 
+                                   int index_width, 
+                                   const char *symbol)
 
-      BtorNode *boolector_array (Btor * btor, int elem_width, int index_width,
-                                 const char *symbol)
+    BoolectorNode *boolector_not (Btor * btor, BoolectorNode * node)
 
-      BtorNode *boolector_not (Btor * btor, BtorNode * exp)
+    BoolectorNode *boolector_neg (Btor * btor, BoolectorNode * node)
 
-      BtorNode *boolector_neg (Btor * btor, BtorNode * exp)
+    BoolectorNode *boolector_redor (Btor * btor, BoolectorNode * node)
 
-      BtorNode *boolector_redor (Btor * btor, BtorNode * exp)
+    BoolectorNode *boolector_redxor (Btor * btor, BoolectorNode * node)
 
-      BtorNode *boolector_redxor (Btor * btor, BtorNode * exp)
+    BoolectorNode *boolector_redand (Btor * btor, BoolectorNode * node)
 
-      BtorNode *boolector_redand (Btor * btor, BtorNode * exp)
+    BoolectorNode *boolector_slice (
+        Btor * btor, BoolectorNode * node, int upper, int lower)
 
-      BtorNode *boolector_slice (Btor * btor, BtorNode * exp, int upper,
-                                 int lower)
+    BoolectorNode *boolector_uext (Btor * btor, BoolectorNode * node, int width)
 
-      BtorNode *boolector_uext (Btor * btor, BtorNode * exp, int width)
+    BoolectorNode *boolector_sext (Btor * btor, BoolectorNode * node, int width)
 
-      BtorNode *boolector_sext (Btor * btor, BtorNode * exp, int width)
+    BoolectorNode *boolector_implies (
+        Btor * btor, BoolectorNode * n0, BoolectorNode * n1)
 
-      BtorNode *boolector_implies (Btor * btor, BtorNode * e0, BtorNode * e1)
+    BoolectorNode *boolector_iff (
+        Btor * btor, BoolectorNode * n0, BoolectorNode * n1)
 
-      BtorNode *boolector_iff (Btor * btor, BtorNode * e0, BtorNode * e1)
+    BoolectorNode *boolector_xor (
+        Btor * btor, BoolectorNode * n0, BoolectorNode * n1)
 
-      BtorNode *boolector_xor (Btor * btor, BtorNode * e0, BtorNode * e1)
+    BoolectorNode *boolector_xnor (
+        Btor * btor, BoolectorNode * n0, BoolectorNode * n1)
 
-      BtorNode *boolector_xnor (Btor * btor, BtorNode * e0, BtorNode * e1)
+    BoolectorNode *boolector_and (
+        Btor * btor, BoolectorNode * n0, BoolectorNode * n1)
 
-      BtorNode *boolector_and (Btor * btor, BtorNode * e0, BtorNode * e1)
+    BoolectorNode *boolector_nand (
+        Btor * btor, BoolectorNode * n0, BoolectorNode * n1)
 
-      BtorNode *boolector_nand (Btor * btor, BtorNode * e0, BtorNode * e1)
+    BoolectorNode *boolector_or (
+        Btor * btor, BoolectorNode * n0, BoolectorNode * n1)
 
-      BtorNode *boolector_or (Btor * btor, BtorNode * e0, BtorNode * e1)
+    BoolectorNode *boolector_nor (
+        Btor * btor, BoolectorNode * n0, BoolectorNode * n1)
 
-      BtorNode *boolector_nor (Btor * btor, BtorNode * e0, BtorNode * e1)
+    BoolectorNode *boolector_eq (
+        Btor * btor, BoolectorNode * n0, BoolectorNode * n1)
 
-      BtorNode *boolector_eq (Btor * btor, BtorNode * e0, BtorNode * e1)
+    BoolectorNode *boolector_ne (
+        Btor * btor, BoolectorNode * n0, BoolectorNode * n1)
 
-      BtorNode *boolector_ne (Btor * btor, BtorNode * e0, BtorNode * e1)
+    BoolectorNode *boolector_add (
+        Btor * btor, BoolectorNode * n0, BoolectorNode * n1)
 
-      BtorNode *boolector_add (Btor * btor, BtorNode * e0, BtorNode * e1)
+    BoolectorNode *boolector_uaddo (
+        Btor * btor, BoolectorNode * n0, BoolectorNode * n1)
 
-      BtorNode *boolector_uaddo (Btor * btor, BtorNode * e0, BtorNode * e1)
+    BoolectorNode *boolector_saddo (
+        Btor * btor, BoolectorNode * n0, BoolectorNode * n1)
 
-      BtorNode *boolector_saddo (Btor * btor, BtorNode * e0, BtorNode * e1)
+    BoolectorNode *boolector_mul (
+        Btor * btor, BoolectorNode * n0, BoolectorNode * n1)
 
-      BtorNode *boolector_mul (Btor * btor, BtorNode * e0, BtorNode * e1)
+    BoolectorNode *boolector_umulo (
+        Btor * btor, BoolectorNode * n0, BoolectorNode * n1)
 
-      BtorNode *boolector_umulo (Btor * btor, BtorNode * e0, BtorNode * e1)
+    BoolectorNode *boolector_smulo (
+        Btor * btor, BoolectorNode * n0, BoolectorNode * n1)
 
-      BtorNode *boolector_smulo (Btor * btor, BtorNode * e0, BtorNode * e1)
+    BoolectorNode *boolector_ult (
+        Btor * btor, BoolectorNode * n0, BoolectorNode * n1)
 
-      BtorNode *boolector_ult (Btor * btor, BtorNode * e0, BtorNode * e1)
+    BoolectorNode *boolector_slt (
+        Btor * btor, BoolectorNode * n0, BoolectorNode * n1)
 
-      BtorNode *boolector_slt (Btor * btor, BtorNode * e0, BtorNode * e1)
+    BoolectorNode *boolector_ulte (
+        Btor * btor, BoolectorNode * n0, BoolectorNode * n1)
 
-      BtorNode *boolector_ulte (Btor * btor, BtorNode * e0, BtorNode * e1)
+    BoolectorNode *boolector_slte (
+        Btor * btor, BoolectorNode * n0, BoolectorNode * n1)
 
-      BtorNode *boolector_slte (Btor * btor, BtorNode * e0, BtorNode * e1)
+    BoolectorNode *boolector_ugt (
+        Btor * btor, BoolectorNode * n0, BoolectorNode * n1)
 
-      BtorNode *boolector_ugt (Btor * btor, BtorNode * e0, BtorNode * e1)
+    BoolectorNode *boolector_sgt (
+        Btor * btor, BoolectorNode * n0, BoolectorNode * n1)
 
-      BtorNode *boolector_sgt (Btor * btor, BtorNode * e0, BtorNode * e1)
+    BoolectorNode *boolector_ugte (
+        Btor * btor, BoolectorNode * n0, BoolectorNode * n1)
 
-      BtorNode *boolector_ugte (Btor * btor, BtorNode * e0, BtorNode * e1)
+    BoolectorNode *boolector_sgte (
+        Btor * btor, BoolectorNode * n0, BoolectorNode * n1)
 
-      BtorNode *boolector_sgte (Btor * btor, BtorNode * e0, BtorNode * e1)
+    BoolectorNode *boolector_sll (
+        Btor * btor, BoolectorNode * n0, BoolectorNode * n1)
 
-      BtorNode *boolector_sll (Btor * btor, BtorNode * e0, BtorNode * e1)
+    BoolectorNode *boolector_srl (
+        Btor * btor, BoolectorNode * n0, BoolectorNode * n1)
 
-      BtorNode *boolector_srl (Btor * btor, BtorNode * e0, BtorNode * e1)
+    BoolectorNode *boolector_sra (
+        Btor * btor, BoolectorNode * n0, BoolectorNode * n1)
 
-      BtorNode *boolector_sra (Btor * btor, BtorNode * e0, BtorNode * e1)
+    BoolectorNode *boolector_rol (
+        Btor * btor, BoolectorNode * n0, BoolectorNode * n1)
 
-      BtorNode *boolector_rol (Btor * btor, BtorNode * e0, BtorNode * e1)
+    BoolectorNode *boolector_ror (
+        Btor * btor, BoolectorNode * n0, BoolectorNode * n1)
 
-      BtorNode *boolector_ror (Btor * btor, BtorNode * e0, BtorNode * e1)
+    BoolectorNode *boolector_sub (
+        Btor * btor, BoolectorNode * n0, BoolectorNode * n1)
 
-      BtorNode *boolector_sub (Btor * btor, BtorNode * e0, BtorNode * e1)
+    BoolectorNode *boolector_usubo (
+        Btor * btor, BoolectorNode * n0, BoolectorNode * n1)
 
-      BtorNode *boolector_usubo (Btor * btor, BtorNode * e0, BtorNode * e1)
+    BoolectorNode *boolector_ssubo (
+        Btor * btor, BoolectorNode * n0, BoolectorNode * n1)
 
-      BtorNode *boolector_ssubo (Btor * btor, BtorNode * e0, BtorNode * e1)
+    BoolectorNode *boolector_udiv (
+        Btor * btor, BoolectorNode * n0, BoolectorNode * n1)
 
-      BtorNode *boolector_udiv (Btor * btor, BtorNode * e0, BtorNode * e1)
+    BoolectorNode *boolector_sdiv (
+        Btor * btor, BoolectorNode * n0, BoolectorNode * n1)
 
-      BtorNode *boolector_sdiv (Btor * btor, BtorNode * e0, BtorNode * e1)
+    BoolectorNode *boolector_sdivo (
+        Btor * btor, BoolectorNode * n0, BoolectorNode * n1)
 
-      BtorNode *boolector_sdivo (Btor * btor, BtorNode * e0, BtorNode * e1)
+    BoolectorNode *boolector_urem (
+        Btor * btor, BoolectorNode * n0, BoolectorNode * n1)
 
-      BtorNode *boolector_urem (Btor * btor, BtorNode * e0, BtorNode * e1)
+    BoolectorNode *boolector_srem (
+        Btor * btor, BoolectorNode * n0, BoolectorNode * n1)
 
-      BtorNode *boolector_srem (Btor * btor, BtorNode * e0, BtorNode * e1)
+    BoolectorNode *boolector_smod (
+        Btor * btor, BoolectorNode * n0, BoolectorNode * n1)
 
-      BtorNode *boolector_smod (Btor * btor, BtorNode * e0, BtorNode * e1)
+    BoolectorNode *boolector_concat (
+        Btor * btor, BoolectorNode * n0, BoolectorNode * n1)
 
-      BtorNode *boolector_concat (Btor * btor, BtorNode * e0, BtorNode * e1)
+    BoolectorNode *boolector_read (
+        Btor * btor, BoolectorNode * n_array, BoolectorNode * n_index)
 
-      BtorNode *boolector_read (Btor * btor, BtorNode * e_array,
-                                BtorNode * e_index)
+    BoolectorNode *boolector_write (Btor * btor, 
+                                    BoolectorNode * n_array, 
+                                    BoolectorNode * n_index, 
+                                    BoolectorNode * n_value)
 
-      BtorNode *boolector_write (Btor * btor, BtorNode * e_array,
-                                 BtorNode * e_index, BtorNode * e_value)
+    BoolectorNode *boolector_cond (Btor * btor, 
+                                   BoolectorNode * n_cond, 
+                                   BoolectorNode * n_if, 
+                                   BoolectorNode * n_else)
 
-      BtorNode *boolector_cond (Btor * btor, BtorNode * e_cond, BtorNode * e_if,
-                                BtorNode * e_else)
+    BoolectorNode *boolector_param (Btor * btor, int width, const char * symbol) 
 
-      BtorNode *boolector_param (Btor * btor, int width, const char * symbol) 
+    BoolectorNode *boolector_fun (Btor * btor, 
+                                  int paramc, 
+                                  BoolectorNode ** param_nodes, 
+                                  BoolectorNode * node) 
 
-      BtorNode *boolector_fun (Btor * btor, int paramc, BtorNode ** params,
-                               BtorNode * exp) 
+# NOTE: not required
+#    BoolectorNode *boolector_args (
+#        Btor * btor, int argc, BoolectorNode ** arg_nodes)
 
-      BtorNode *boolector_apply (Btor * btor, int argc, BtorNode ** args, 
-                                 BtorNode * fun)
+    BoolectorNode *boolector_apply (
+        Btor * btor, int argc, BoolectorNode ** arg_nodes,
+        BoolectorNode * n_fun)
 
-      BtorNode *boolector_inc (Btor * btor, BtorNode *exp)
+# NOTE: not required
+#    BoolectorNode *boolector_apply_args (
+#        Btor * btor, BoolectorNode * n_args, BoolectorNode * n_fun)
 
-      BtorNode *boolector_dec (Btor * btor, BtorNode *exp)
+    BoolectorNode *boolector_inc (Btor * btor, BoolectorNode *node)
 
-      int boolector_is_array (Btor * btor, BtorNode * exp)
+    BoolectorNode *boolector_dec (Btor * btor, BoolectorNode *node)
 
-      int boolector_is_fun (Btor * btor, BtorNode * exp)
+    int boolector_is_array (Btor * btor, BoolectorNode * node)
 
-      int boolector_get_fun_arity (Btor * btor, BtorNode * exp)
+    int boolector_is_array_var (Btor * btor, BoolectorNode * node)
 
-      int boolector_get_width (Btor * btor, BtorNode * exp)
+    int boolector_is_param (Btor * btor, BoolectorNode * node)
 
-      int boolector_get_index_width (Btor * btor, BtorNode * e_array)
+    int boolector_is_bound_param (Btor * btor, BoolectorNode * node)
+
+    int boolector_is_fun (Btor * btor, BoolectorNode * node)
+
+    int boolector_get_fun_arity (Btor * btor, BoolectorNode * node)
+
+# NOTE: not required
+#    int boolector_is_args (Btor * btor, BoolectorNode * node)
+#
+#    int boolector_get_args_arity (Btor * btor, BoolectorNode * node)
+
+    int boolector_get_width (Btor * btor, BoolectorNode * node)
+
+    int boolector_get_index_width (Btor * btor, BoolectorNode * n_array)
+
+    #int boolector_fun_sort_check (
+    #    Btor * btor, int argc, BoolectorNode ** arg_nodes, BoolectorNode * n_fun)
+
+    const char *boolector_get_symbol_of_var (Btor * btor, BoolectorNode * var)
+
+    BoolectorNode *boolector_copy (Btor * btor, BoolectorNode * node)
+
+    void boolector_release (Btor * btor, BoolectorNode * node)
+
+    void boolector_dump_btor (Btor * btor, FILE * file, BoolectorNode * node)
+
+    void boolector_dump_btor_all (Btor * btor, FILE * file)
+
+    #void boolector_dump_smt (Btor * btor, FILE * file, BoolectorNode * node)
     #
-    #int boolector_fun_sort_check (Btor * btor, int argc, BtorNode ** args,
-    #			      BtorNode * fun)
-    #
-      const char *boolector_get_symbol_of_var (Btor * btor, BtorNode * var)
+    #void boolector_dump_smt2 (Btor * btor, FILE * file, BoolectorNode * node)
 
-      BtorNode *boolector_copy (Btor * btor, BtorNode * exp)
+    void boolector_assert (Btor * btor, BoolectorNode * node)
 
-      void boolector_release (Btor * btor, BtorNode * exp)
+    void boolector_assume (Btor * btor, BoolectorNode * node)
 
-      void boolector_dump_btor (Btor * btor, FILE * file, BtorNode * exp)
+    int boolector_sat (Btor * btor)
 
-      void boolector_dump_btor_all (Btor * btor, FILE * file)
+    const char *boolector_bv_assignment (Btor * btor, BoolectorNode * node)
 
-    #void boolector_dump_smt (Btor * btor, FILE * file, BtorNode * exp)
-    #
-    #void boolector_dump_smt2 (Btor * btor, FILE * file, BtorNode * exp)
-    #
-      void boolector_assert (Btor * btor, BtorNode * exp)
+    void boolector_free_bv_assignment (Btor * btor, const char * assignment)
 
-      void boolector_assume (Btor * btor, BtorNode * exp)
+    void boolector_array_assignment (Btor * btor, 
+                                     BoolectorNode * n_array, 
+                                     char ***indices, 
+                                     char ***values, 
+                                     int *size)
 
-      int boolector_sat (Btor * btor)
-
-      char *boolector_bv_assignment (Btor * btor, BtorNode * exp)
-
-      void boolector_free_bv_assignment (Btor * btor, char * assignment)
-
-      void boolector_array_assignment (Btor * btor, BtorNode * e_array,
-                                       char ***indices, char ***values,
-                                       int *size)
-
-      void boolector_free_array_assignment (Btor * btor, char ** indices,
-                                            char ** values, int size)
+    void boolector_free_array_assignment (
+        Btor * btor, char ** indices, char ** values, int size)
