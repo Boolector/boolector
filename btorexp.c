@@ -1498,7 +1498,7 @@ btor_one_exp (Btor *btor, int len)
 }
 
 BtorNode *
-btor_int_to_exp (Btor *btor, int i, int len)
+btor_int_exp (Btor *btor, int i, int len)
 {
   char *string;
   BtorNode *result;
@@ -1513,7 +1513,7 @@ btor_int_to_exp (Btor *btor, int i, int len)
 }
 
 BtorNode *
-btor_unsigned_to_exp (Btor *btor, unsigned int u, int len)
+btor_unsigned_exp (Btor *btor, unsigned int u, int len)
 {
   char *string;
   BtorNode *result;

@@ -13,7 +13,10 @@
 
 #include "btormem.h"
 
+/*------------------------------------------------------------------------*/
+
 typedef struct BtorBVAssignment BtorBVAssignment;
+typedef struct BtorBVAssignmentList BtorBVAssignmentList;
 
 struct BtorBVAssignment
 {
@@ -21,8 +24,6 @@ struct BtorBVAssignment
   BtorBVAssignment *prev;
   BtorBVAssignment *next;
 };
-
-typedef struct BtorArrayAssignment BtorArrayAssignment;
 
 struct BtorBVAssignmentList
 {
@@ -32,22 +33,32 @@ struct BtorBVAssignmentList
   BtorBVAssignment *last;
 };
 
-typedef struct BtorBVAssignmentList BtorBVAssignmentList;
-
+/* Create new bv assignment list. */
 BtorBVAssignmentList *btor_new_bv_assignment_list (BtorMemMgr *);
 
+/* Clone bv assignment list. */
 BtorBVAssignmentList *btor_clone_bv_assignment_list (BtorMemMgr *,
                                                      BtorBVAssignmentList *);
 
+/* Delete bv assignment list. */
 void btor_delete_bv_assignment_list (BtorBVAssignmentList *);
 
+/* Get BtorBVAssignment bucket reference from bv assignment string. */
 BtorBVAssignment *btor_get_bv_assignment (const char *);
 
+/* Get bv assignment string from BtorBVAssignment bucket. */
 const char *btor_get_bv_assignment_str (BtorBVAssignment *);
 
+/* Create new bv assignment and add it to the list. */
 BtorBVAssignment *btor_new_bv_assignment (BtorBVAssignmentList *, char *);
 
+/* Release bv assignment and remove it from the list. */
 void btor_release_bv_assignment (BtorBVAssignmentList *, const char *);
+
+/*------------------------------------------------------------------------*/
+
+typedef struct BtorArrayAssignment BtorArrayAssignment;
+typedef struct BtorArrayAssignmentList BtorArrayAssignmentList;
 
 struct BtorArrayAssignment
 {
@@ -66,29 +77,34 @@ struct BtorArrayAssignmentList
   BtorArrayAssignment *last;
 };
 
-typedef struct BtorArrayAssignmentList BtorArrayAssignmentList;
-
+/* Create new array assignment list. */
 BtorArrayAssignmentList *btor_new_array_assignment_list (BtorMemMgr *);
 
+/* Clone array assignment list. */
 BtorArrayAssignmentList *btor_clone_array_assignment_list (
     BtorMemMgr *, BtorArrayAssignmentList *);
 
+/* Delete array assignment list. */
 void btor_delete_array_assignment_list (BtorArrayAssignmentList *);
 
+/* Get BtorArrayAssignment bucket reference from indices reference. */
 BtorArrayAssignment *btor_get_array_assignment (const char **,
                                                 const char **,
                                                 int);
 
+/* Get indices and values references from BtorArrayAssignment bucket. */
 void btor_get_array_assignment_indices_values (BtorArrayAssignment *,
                                                char ***,
                                                char ***,
                                                int size);
 
+/* Create new array assignment and add it to the list. */
 BtorArrayAssignment *btor_new_array_assignment (BtorArrayAssignmentList *,
                                                 char **,
                                                 char **,
                                                 int);
 
+/* Release array assignment and remove it from the list. */
 void btor_release_array_assignment (BtorArrayAssignmentList *,
                                     char **,
                                     char **,
