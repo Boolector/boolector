@@ -182,6 +182,8 @@ struct Btor
     double enc_lambda;
     double enc_var;
     double find_dfs;
+    double reachable;
+    double lemma_gen;
   } time;
 };
 

@@ -57,6 +57,10 @@
 
 #define BTOR_FIND_AND_AIG_CONTRADICTION_LIMIT 8
 
+//#define BTOR_EXTRACT_MULTI_OR
+
+#define NBTOR_AIG_SORT
+
 /*------------------------------------------------------------------------*/
 
 static void
@@ -184,7 +188,7 @@ find_and_aig (BtorAIGMgr *amgr, BtorAIG *left, BtorAIG *right)
          & (amgr->table.size - 1);
   result = amgr->table.chains + hash;
   cur    = *result;
-#if 1
+#ifndef NBTOR_AIG_SORT
   if (BTOR_REAL_ADDR_AIG (right)->id < BTOR_REAL_ADDR_AIG (left)->id)
   {
     temp  = left;
@@ -196,9 +200,17 @@ find_and_aig (BtorAIGMgr *amgr, BtorAIG *left, BtorAIG *right)
   {
     assert (!BTOR_IS_INVERTED_AIG (cur));
     assert (BTOR_IS_AND_AIG (cur));
+#ifdef NBTOR_AIG_SORT
+    if ((BTOR_LEFT_CHILD_AIG (cur) == left
+         && BTOR_RIGHT_CHILD_AIG (cur) == right)
+        || (BTOR_LEFT_CHILD_AIG (cur) == right
+            && BTOR_RIGHT_CHILD_AIG (cur) == left))
+      break;
+#else
     if (BTOR_LEFT_CHILD_AIG (cur) == left
         && BTOR_RIGHT_CHILD_AIG (cur) == right)
       break;
+#endif
     else
     {
       result = &(cur->next);
@@ -1334,6 +1346,65 @@ btor_set_next_id_aig_mgr (BtorAIGMgr *amgr, BtorAIG *root)
   amgr->id2aig.start[root->cnf_id] = root;
 }
 
+static int
+btor_is_or_aig (BtorAIGMgr *amgr, BtorAIG *root, BtorAIGPtrStack *leafs)
+{
+  assert (amgr);
+  assert (root);
+  assert (leafs);
+  assert (BTOR_EMPTY_STACK (*leafs));
+
+  BtorAIG *real_cur, *cur, **p;
+  BtorAIGPtrStack tree;
+  BtorMemMgr *mm;
+
+  if (!BTOR_IS_INVERTED_AIG (root)
+      || !BTOR_IS_AND_AIG (BTOR_REAL_ADDR_AIG (root)))
+    return 0;
+
+  mm   = amgr->mm;
+  root = BTOR_REAL_ADDR_AIG (root);
+
+  BTOR_INIT_STACK (tree);
+  BTOR_PUSH_STACK (mm, tree, BTOR_RIGHT_CHILD_AIG (root));
+  BTOR_PUSH_STACK (mm, tree, BTOR_LEFT_CHILD_AIG (root));
+
+  while (!BTOR_EMPTY_STACK (tree))
+  {
+    cur      = BTOR_POP_STACK (tree);
+    real_cur = BTOR_REAL_ADDR_AIG (cur);
+
+    if (BTOR_IS_CONST_AIG (real_cur))
+    {
+      assert (cur == BTOR_AIG_FALSE);
+      continue;
+    }
+
+    if (real_cur->mark) continue;
+
+    if (!BTOR_IS_INVERTED_AIG (cur) && BTOR_IS_AND_AIG (real_cur))
+    {
+      BTOR_PUSH_STACK (mm, tree, BTOR_RIGHT_CHILD_AIG (real_cur));
+      BTOR_PUSH_STACK (mm, tree, BTOR_LEFT_CHILD_AIG (real_cur));
+    }
+    else
+    {
+      BTOR_PUSH_STACK (mm, *leafs, cur);
+      real_cur->mark = 1;
+    }
+  }
+
+  for (p = (*leafs).start; p < (*leafs).top; p++)
+  {
+    cur = *p;
+    assert (BTOR_REAL_ADDR_AIG (cur)->mark);
+    BTOR_REAL_ADDR_AIG (cur)->mark = 0;
+  }
+
+  BTOR_RELEASE_STACK (mm, tree);
+  return 1;
+}
+
 void
 btor_aig_to_sat_tseitin (BtorAIGMgr *amgr, BtorAIG *start)
 {
@@ -1553,8 +1624,8 @@ btor_add_toplevel_aig_to_sat (BtorAIGMgr *amgr, BtorAIG *root)
 {
   BtorMemMgr *mm;
   BtorSATMgr *smgr;
-  BtorAIG *aig, *real_aig, *left, *right;
-  BtorAIGPtrStack stack;
+  BtorAIG *aig, *real_aig, *left, *right, **p;
+  BtorAIGPtrStack stack, leafs;
 
   mm   = amgr->mm;
   smgr = amgr->smgr;
@@ -1584,6 +1655,33 @@ btor_add_toplevel_aig_to_sat (BtorAIGMgr *amgr, BtorAIG *root)
     {
       real_aig = BTOR_REAL_ADDR_AIG (aig);
 
+#ifdef BTOR_EXTRACT_MULTI_OR
+      BTOR_INIT_STACK (leafs);
+      if (btor_is_or_aig (amgr, aig, &leafs))
+      {
+        assert (BTOR_COUNT_STACK (leafs) > 1);
+        for (p = leafs.start; p < leafs.top; p++)
+        {
+          left = *p;
+          if (BTOR_IS_CONST_AIG (left)) continue;
+          btor_aig_to_sat (amgr, left);
+        }
+        for (p = leafs.start; p < leafs.top; p++)
+        {
+          left = *p;
+          assert (BTOR_GET_CNF_ID_AIG (left));
+          btor_add_sat (smgr, BTOR_GET_CNF_ID_AIG (BTOR_INVERT_AIG (left)));
+        }
+        btor_add_sat (smgr, 0);
+      }
+      else
+      {
+        btor_aig_to_sat (amgr, aig);
+        btor_add_sat (smgr, BTOR_GET_CNF_ID_AIG (aig));
+        btor_add_sat (smgr, 0);
+      }
+      BTOR_RELEASE_STACK (mm, leafs);
+#else
       if (BTOR_IS_INVERTED_AIG (aig) && BTOR_IS_AND_AIG (real_aig))
       {
         left  = BTOR_INVERT_AIG (BTOR_LEFT_CHILD_AIG (real_aig));
@@ -1600,6 +1698,7 @@ btor_add_toplevel_aig_to_sat (BtorAIGMgr *amgr, BtorAIG *root)
         btor_add_sat (smgr, BTOR_GET_CNF_ID_AIG (aig));
         btor_add_sat (smgr, 0);
       }
+#endif
     }
   }
   BTOR_RELEASE_STACK (mm, stack);
