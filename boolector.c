@@ -723,6 +723,7 @@ btor_chkclone_assignment_lists (Btor *btor)
   char **ind, **val, **cind, **cval;
   int i;
 
+  assert (btor->bv_assignments->count == btor->clone->bv_assignments->count);
   for (bvass = btor->bv_assignments->first,
       cbvass = btor->clone->bv_assignments->first;
        bvass;
@@ -733,6 +734,8 @@ btor_chkclone_assignment_lists (Btor *btor)
                      btor_get_bv_assignment_str (cbvass)));
   }
 
+  assert (btor->array_assignments->count
+          == btor->clone->array_assignments->count);
   for (arrass = btor->array_assignments->first,
       carrass = btor->clone->array_assignments->first;
        arrass;
@@ -3331,7 +3334,7 @@ boolector_array_assignment (Btor *btor,
 {
   int i;
   char **ind, **val;
-  BtorNode *e_array;
+  BtorNode *e_array, *simp;
   BtorArrayAssignment *arrass;
 
   e_array = BTOR_IMPORT_BOOLECTOR_NODE (n_array);
@@ -3345,12 +3348,13 @@ boolector_array_assignment (Btor *btor,
   BTOR_ABORT_ARG_NULL_BOOLECTOR (values);
   BTOR_ABORT_ARG_NULL_BOOLECTOR (size);
   BTOR_ABORT_REFS_NOT_POS_BOOLECTOR (e_array);
-  e_array = btor_simplify_exp (btor, e_array);
-  BTOR_ABORT_BV_BOOLECTOR (e_array);
+  simp = btor_simplify_exp (btor, e_array);
+  BTOR_ABORT_BV_BOOLECTOR (simp);
   BTOR_ABORT_BOOLECTOR (!btor->model_gen,
                         "model generation has not been enabled");
 
-  btor_array_assignment_exp (btor, e_array, &ind, &val, size);
+  btor_array_assignment_exp (btor, simp, &ind, &val, size);
+
   if (*size)
   {
     arrass =
@@ -3368,7 +3372,8 @@ boolector_array_assignment (Btor *btor,
   if (btor->clone)
   {
     char **cindices, **cvalues;
-    int i, csize;
+    int csize;
+
     boolector_array_assignment (
         btor->clone, BTOR_CLONED_EXP (e_array), &cindices, &cvalues, &csize);
     assert (csize == *size);
