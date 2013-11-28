@@ -29,6 +29,9 @@ btor_new_bv_assignment_list (BtorMemMgr *mm)
 BtorBVAssignmentList *
 btor_clone_bv_assignment_list (BtorMemMgr *mm, BtorBVAssignmentList *list)
 {
+  assert (mm);
+  assert (list);
+
   BtorBVAssignmentList *res;
   BtorBVAssignment *bvass;
 
@@ -57,6 +60,7 @@ btor_delete_bv_assignment_list (BtorBVAssignmentList *list)
 BtorBVAssignment *
 btor_get_bv_assignment (const char *ass)
 {
+  assert (ass);
   return (BtorBVAssignment *) (ass - sizeof (BtorBVAssignment));
 }
 
@@ -147,6 +151,9 @@ btor_new_array_assignment_list (BtorMemMgr *mm)
 BtorArrayAssignmentList *
 btor_clone_array_assignment_list (BtorMemMgr *mm, BtorArrayAssignmentList *list)
 {
+  assert (mm);
+  assert (list);
+
   BtorArrayAssignmentList *res;
   BtorArrayAssignment *arrass;
   char **ind, **val, **cind, **cval;
@@ -188,14 +195,15 @@ btor_get_array_assignment (const char **indices, const char **values, int size)
 {
   assert (indices);
   assert (values);
+  (void) values;
   assert (size);
+  (void) size;
 
   BtorArrayAssignment *arrass;
 
   arrass =
       (BtorArrayAssignment *) ((char *) indices - sizeof (BtorArrayAssignment));
   assert (arrass->size == size);
-  (void) size;
   return arrass;
 }
 
@@ -205,6 +213,12 @@ btor_get_array_assignment_indices_values (BtorArrayAssignment *ass,
                                           char ***values,
                                           int size)
 {
+  assert (ass);
+  assert (indices);
+  assert (values);
+  assert (size);
+  (void) size;
+
   assert (size == ass->size);
   *indices = (char **) ((char *) ass + sizeof (BtorArrayAssignment));
   *values  = (char **) ((char *) ass + sizeof (BtorArrayAssignment)

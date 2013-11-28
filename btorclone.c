@@ -452,12 +452,12 @@ btor_clone_btor (Btor *btor)
   BtorNodeMap *exp_map;
   BtorAIGMap *aig_map;
   BtorMemMgr *mm;
-  BtorPtrHashBucket *b, *cb;
 #ifndef NDEBUG
   int i;
   size_t allocated, amap_size, amap_count, emap_size, emap_count;
   BtorNode *cur;
   BtorAIGMgr *amgr = btor_get_aig_mgr_aigvec_mgr (btor->avmgr);
+  BtorPtrHashBucket *b, *cb;
   BtorBVAssignment *bvass;
   BtorArrayAssignment *arrass;
   char **ind, **val;
