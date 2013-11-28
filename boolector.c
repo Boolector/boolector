@@ -3312,7 +3312,7 @@ boolector_bv_assignment (Btor *btor, BoolectorNode *node)
 }
 
 void
-boolector_free_bv_assignment (Btor *btor, char *assignment)
+boolector_free_bv_assignment (Btor *btor, const char *assignment)
 {
   char *cass;
   (void) cass;

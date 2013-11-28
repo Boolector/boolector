@@ -53,7 +53,7 @@ const char *btor_get_bv_assignment_str (BtorBVAssignment *);
 BtorBVAssignment *btor_new_bv_assignment (BtorBVAssignmentList *, char *);
 
 /* Release bv assignment and remove it from the list. */
-void btor_release_bv_assignment (BtorBVAssignmentList *, char *);
+void btor_release_bv_assignment (BtorBVAssignmentList *, const char *);
 
 /*------------------------------------------------------------------------*/
 

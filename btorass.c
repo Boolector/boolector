@@ -104,7 +104,7 @@ btor_find_bv_assignment_dbg (BtorBVAssignmentList *list, BtorBVAssignment *ass)
 }
 
 void
-btor_release_bv_assignment (BtorBVAssignmentList *list, char *ass)
+btor_release_bv_assignment (BtorBVAssignmentList *list, const char *ass)
 {
   assert (list);
   assert (ass);

@@ -21,7 +21,7 @@ BOOLECTOR_UNSAT = 20
 cdef class BoolectorNode:
     cdef Boolector btor
     cdef btorapi.Btor* _c_btor
-    cdef btorapi.BtorNode* _c_node
+    cdef btorapi.BoolectorNode* _c_node
 
     def __richcmp__(BoolectorNode x, BoolectorNode y, opcode):
         if opcode == 0:
@@ -112,8 +112,19 @@ cdef class BoolectorNode:
         return \
             btorapi.boolector_is_array(self.btor._c_btor, self._c_node) == 1
 
+    def is_array_var(self):
+        return \
+            btorapi.boolector_is_array_var(self.btor._c_btor, self._c_node) == 1
+
     def is_fun(self):
         return btorapi.boolector_is_fun(self.btor._c_btor, self._c_node) == 1
+
+    def is_param(self):
+        return btorapi.boolector_is_param(self.btor._c_btor, self._c_node) == 1
+
+    def is_bound_param(self):
+        return btorapi.boolector_is_bound_param(self.btor._c_btor,
+                                                self._c_node) == 1
 
     def arity(self):
         return \
@@ -135,7 +146,7 @@ cdef class BoolectorNode:
         cdef char** c_str_i
         cdef char** c_str_v
         cdef int size
-        cdef char* c_str
+        cdef const char* c_str
         cdef bytes py_str
 
         if self.is_array():
@@ -580,9 +591,9 @@ cdef class Boolector:
 
     def Fun(self, list params, BoolectorNode body):
         cdef int paramc = len(params)
-        cdef btorapi.BtorNode** c_params = \
-            <btorapi.BtorNode**> \
-                malloc(paramc * sizeof(btorapi.BtorNode*))
+        cdef btorapi.BoolectorNode** c_params = \
+            <btorapi.BoolectorNode**> \
+                malloc(paramc * sizeof(btorapi.BoolectorNode*))
 
         # copy params into array
         for i in range(paramc):
@@ -599,8 +610,9 @@ cdef class Boolector:
 
     def Apply(self, list args, BoolectorNode fun):
         cdef int argc = len(args)
-        cdef btorapi.BtorNode** c_args = \
-            <btorapi.BtorNode**> malloc(argc * sizeof(btorapi.BtorNode*))
+        cdef btorapi.BoolectorNode** c_args = \
+            <btorapi.BoolectorNode**> \
+	      malloc(argc * sizeof(btorapi.BoolectorNode*))
 
         # copy arguments into array
         for i in range(argc):
