@@ -3684,7 +3684,6 @@ mark_synth_mark_exp (Btor *btor, BtorNode *exp, int new_mark)
   BTOR_RELEASE_STACK (mm, stack);
 }
 
-// TODO: stop synthesize at lambdas
 static void
 synthesize_exp (Btor *btor, BtorNode *exp, BtorPtrHashTable *backannotation)
 {
@@ -3728,10 +3727,6 @@ synthesize_exp (Btor *btor, BtorNode *exp, BtorPtrHashTable *backannotation)
 
     if (cur->synth_mark == 0)
     {
-      /* we need to mark nodes reachable on-the-fly during
-       * lazy_synthesize_and_encode_*_exp, do not remove! */
-      cur->reachable = 1;
-
       if (BTOR_IS_BV_CONST_NODE (cur))
       {
         cur->av = btor_const_aigvec (avmgr, cur->bits);
@@ -4021,6 +4016,7 @@ synthesize_all_array_rhs (Btor *btor)
   }
 }
 
+// TODO: no reads anymore -> check is_read of apply nodes instead
 static void
 synthesize_all_reads (Btor *btor)
 {
@@ -4053,7 +4049,7 @@ update_reachable (Btor *btor)
   assert (btor);
 
   int i;
-  BtorNode *exp;
+  BtorNode *cur;
   BtorPtrHashBucket *b;
 
   assert (check_unique_table_mark_unset_dbg (btor));
@@ -4063,16 +4059,33 @@ update_reachable (Btor *btor)
 
   for (b = btor->synthesized_constraints->first; b; b = b->next)
     btor_mark_exp (btor, (BtorNode *) b->key, 1);
-  for (b = btor->lod_cache->first; b; b = b->next)
-    btor_mark_exp (btor, (BtorNode *) b->key, 1);
   for (b = btor->assumptions->first; b; b = b->next)
     btor_mark_exp (btor, (BtorNode *) b->key, 1);
 
+  /* in case of models, var_rhs and array_rhs are also marked as reachable */
+  if (btor->model_gen)
+  {
+    for (b = btor->var_rhs->first; b; b = b->next)
+    {
+      cur = (BtorNode *) b->key;
+      cur = BTOR_REAL_ADDR_NODE (btor_simplify_exp (btor, cur));
+      if (cur->vread) continue;
+      btor_mark_exp (btor, cur, 1);
+    }
+    for (b = btor->array_rhs->first; b; b = b->next)
+    {
+      cur = (BtorNode *) b->key;
+      cur = BTOR_REAL_ADDR_NODE (btor_simplify_exp (btor, cur));
+      assert (BTOR_IS_ARRAY_NODE (cur));
+      btor_mark_exp (btor, cur, 1);
+    }
+  }
+
   for (i = 1; i < BTOR_COUNT_STACK (btor->nodes_id_table); i++)
   {
-    if (!(exp = BTOR_PEEK_STACK (btor->nodes_id_table, i))) continue;
-    exp->reachable = exp->mark;
-    exp->mark      = 0;
+    if (!(cur = BTOR_PEEK_STACK (btor->nodes_id_table, i))) continue;
+    cur->reachable = cur->mark;
+    cur->mark      = 0;
   }
 }
 
@@ -5665,6 +5678,8 @@ propagate (Btor *btor,
               btor_insert_in_ptr_hash_table (lambda->synth_apps,
                                              btor_copy_exp (btor, param_app));
 
+              param_app->vread = 1;
+
               btor->stats.lambda_synth_apps++;
               *assignments_changed =
                   lazy_synthesize_and_encode_apply_exp (btor, param_app, 1);
@@ -6041,17 +6056,17 @@ btor_sat_aux_btor (Btor *btor)
     }
   } while (btor->unsynthesized_constraints->count > 0);
 
-  update_assumptions (btor);
-
-  update_reachable (btor);
-  assert (check_reachable_flag_dbg (btor));
-
   if (btor->model_gen)
   {
     synthesize_all_var_rhs (btor);
     synthesize_all_array_rhs (btor);
+    // TODO: no reads anymore -> check is_read of apply nodes instead
     if (btor->generate_model_for_all_reads) synthesize_all_reads (btor);
   }
+
+  update_assumptions (btor);
+
+  update_reachable (btor);
   assert (check_reachable_flag_dbg (btor));
 
   found_assumption_false = add_again_assumptions (btor);
