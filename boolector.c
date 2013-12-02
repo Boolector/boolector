@@ -966,7 +966,7 @@ boolector_enable_beta_reduce_all (Btor *btor)
   BTOR_TRAPI ("enable_beta_reduce_all");
   btor_enable_beta_reduce_all (btor);
 #ifndef NDEBUG
-  BTOR_CHKCLONE_NORES (btor_enable_beta_reduce_all);
+  BTOR_CHKCLONE_NORES (boolector_enable_beta_reduce_all);
 #endif
 }
 
@@ -977,7 +977,29 @@ boolector_enable_force_cleanup (Btor *btor)
   BTOR_TRAPI ("enable_force_cleanup");
   btor_enable_force_cleanup (btor);
 #ifndef NDEBUG
-  BTOR_CHKCLONE_NORES (btor_enable_force_cleanup);
+  BTOR_CHKCLONE_NORES (boolector_enable_force_cleanup);
+#endif
+}
+
+void
+boolector_set_verbosity (Btor *btor, int verbosity)
+{
+  BTOR_ABORT_ARG_NULL_BOOLECTOR (btor);
+  BTOR_TRAPI ("set_verbosity %d", verbosity);
+  btor_set_verbosity_btor (btor, verbosity);
+#ifndef NDEBUG
+  BTOR_CHKCLONE_NORES (boolector_set_verbosity, verbosity);
+#endif
+}
+
+void
+boolector_set_loglevel (Btor *btor, int loglevel)
+{
+  BTOR_ABORT_ARG_NULL_BOOLECTOR (btor);
+  BTOR_TRAPI ("set_loglevel %d", loglevel);
+  btor_set_loglevel_btor (btor, loglevel);
+#ifndef NDEBUG
+  BTOR_CHKCLONE_NORES (boolector_set_loglevel, loglevel);
 #endif
 }
 
@@ -3386,6 +3408,14 @@ boolector_dump_smt (Btor *btor, FILE *file, BoolectorNode *node)
 }
 
 void
+boolector_dump_smt_all (Btor *btor, FILE *file)
+{
+  BTOR_ABORT_ARG_NULL_BOOLECTOR (btor);
+  BTOR_ABORT_ARG_NULL_BOOLECTOR (file);
+  btor_dump_smt1_after_simplify (btor, file);
+}
+
+void
 boolector_dump_smt2 (Btor *btor, FILE *file, BoolectorNode *node)
 {
   // TODO TRAPI
@@ -3400,6 +3430,14 @@ boolector_dump_smt2 (Btor *btor, FILE *file, BoolectorNode *node)
 #ifndef NDEBUG
   BTOR_CHKCLONE_NORES (boolector_dump_smt2, file, BTOR_CLONED_EXP (exp));
 #endif
+}
+
+void
+boolector_dump_smt2_all (Btor *btor, FILE *file)
+{
+  BTOR_ABORT_ARG_NULL_BOOLECTOR (btor);
+  BTOR_ABORT_ARG_NULL_BOOLECTOR (file);
+  btor_dump_smt2_after_simplify (btor, file);
 }
 
 void

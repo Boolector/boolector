@@ -198,6 +198,20 @@ void boolector_generate_model_for_all_reads (Btor *btor);
 void boolector_enable_inc_usage (Btor *btor);
 
 /**
+ * Set level of verbosity.
+ * \param btor Boolector instance.
+ * \param verbosity Verbosity level.
+ */
+void boolector_set_verbosity (Btor *btor, int verbosity);
+
+/**
+ * Set log level.
+ * \param btor Boolector instance.
+ * \param loglevel Log level level.
+ */
+void boolector_set_loglevel (Btor *btor, int loglevel);
+
+/**
  * Sets the SAT solver to use.
  * Currently, we support 'Lingeling', 'PicoSAT', and 'MiniSAT' as string
  * value of \para solver ignoring the case of characters.  This is however
@@ -1153,12 +1167,21 @@ void boolector_dump_btor_all (Btor *btor, FILE *file);
 /**
  * Recursively dumps expression to file.
  *<a
- *href="http://goedel.cs.uiowa.edu/smtlib/papers/format-v1.2-r06.08.30.pdf">SMT-LIB
- *1.2</a> is used as format. \param btor Boolector instance. \param file File to
- *which the expression should be dumped. The file must be have been opened by
- *the user before. \param exp The expression which should be dumped.
+ *href="http://smtlib.cs.uiowa.edu/papers/format-v1.2-r06.08.30.pdf">SMT-LIB 1.2</a>
+ *is used as format. \param btor Boolector instance. \param file File to which
+ *the expression should be dumped. The file must be have been opened by the
+ *user before. \param exp The expression which should be dumped.
  */
 void boolector_dump_smt (Btor *btor, FILE *file, BoolectorNode *node);
+
+/**
+ * Dumps formula to file in SMT-LIB format.
+ *<a
+ *href="http://smtlib.cs.uiowa.edu/papers/format-v1.2-r06.08.30.pdf">SMT-LIB 1.2</a>
+ *is used as format. \param btor Boolector instance. \param btor Boolector
+ *instance \param file Output file.
+ */
+void boolector_dump_smt_all (Btor *btor, FILE *file);
 
 /**
  * Recursively dumps expression to file.
@@ -1169,6 +1192,15 @@ void boolector_dump_smt (Btor *btor, FILE *file, BoolectorNode *node);
  *the user before. \param exp The expression which should be dumped.
  */
 void boolector_dump_smt2 (Btor *btor, FILE *file, BoolectorNode *node);
+
+/**
+ * Dumps formula to file in SMT-LIB format.
+ *<a
+ *href="http://smtlib.cs.uiowa.edu/papers/smt-lib-reference-v2.0-r12.09.09.pdf">SMT-LIB
+ *2.0</a> is used as format. \param btor Boolector instance. \param btor
+ *Boolector instance \param file Output file.
+ */
+void boolector_dump_smt2_all (Btor *btor, FILE *file);
 
 /**
  * Adds constraint. Use this function to assert 'node'.
