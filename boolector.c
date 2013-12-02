@@ -817,39 +817,39 @@ btor_chkclone_tables (Btor *btor)
   do                                      \
   {                                       \
     if (!btor->clone) break;              \
-    fun (btor->clone, ##args);            \
+    boolector##fun (btor->clone, ##args); \
     BTOR_CHKCLONE ();                     \
   } while (0)
 
-#define BTOR_CHKCLONE_RES(res, fun, args...)  \
-  do                                          \
-  {                                           \
-    if (!btor->clone) break;                  \
-    int cloneres = fun (btor->clone, ##args); \
-    (void) cloneres;                          \
-    assert (cloneres == res);                 \
-    BTOR_CHKCLONE ();                         \
+#define BTOR_CHKCLONE_RES(res, fun, args...)             \
+  do                                                     \
+  {                                                      \
+    if (!btor->clone) break;                             \
+    int cloneres = boolector##fun (btor->clone, ##args); \
+    (void) cloneres;                                     \
+    assert (cloneres == res);                            \
+    BTOR_CHKCLONE ();                                    \
   } while (0)
 
-#define BTOR_CHKCLONE_RES_PTR(res, fun, args...)                       \
-  do                                                                   \
-  {                                                                    \
-    if (!btor->clone) break;                                           \
-    BtorNode *cloneres;                                                \
-    cloneres = BTOR_IMPORT_BOOLECTOR_NODE (fun (btor->clone, ##args)); \
-    (void) cloneres;                                                   \
-    btor_chkclone_exp (res, cloneres);                                 \
-    BTOR_CHKCLONE ();                                                  \
+#define BTOR_CHKCLONE_RES_PTR(res, fun, args...)                           \
+  do                                                                       \
+  {                                                                        \
+    if (!btor->clone) break;                                               \
+    BtorNode *cloneres =                                                   \
+        BTOR_IMPORT_BOOLECTOR_NODE (boolector##fun (btor->clone, ##args)); \
+    (void) cloneres;                                                       \
+    btor_chkclone_exp (res, cloneres);                                     \
+    BTOR_CHKCLONE ();                                                      \
   } while (0)
 
-#define BTOR_CHKCLONE_RES_STR(res, fun, args...)      \
-  do                                                  \
-  {                                                   \
-    if (!btor->clone) break;                          \
-    const char *cloneres = fun (btor->clone, ##args); \
-    (void) cloneres;                                  \
-    assert (!strcmp (cloneres, res));                 \
-    BTOR_CHKCLONE ();                                 \
+#define BTOR_CHKCLONE_RES_STR(res, fun, args...)                 \
+  do                                                             \
+  {                                                              \
+    if (!btor->clone) break;                                     \
+    const char *cloneres = boolector##fun (btor->clone, ##args); \
+    (void) cloneres;                                             \
+    assert (!strcmp (cloneres, res));                            \
+    BTOR_CHKCLONE ();                                            \
   } while (0)
 
 #define BTOR_CLONED_EXP(exp)                                                 \
@@ -916,7 +916,7 @@ boolector_set_rewrite_level (Btor *btor, int rewrite_level)
       "setting rewrite level must be done before creating expressions");
   btor_set_rewrite_level_btor (btor, rewrite_level);
 #ifndef NDEBUG
-  BTOR_CHKCLONE_NORES (boolector_set_rewrite_level, rewrite_level);
+  BTOR_CHKCLONE_NORES (rewrite_level);
 #endif
 }
 
@@ -930,7 +930,7 @@ boolector_enable_model_gen (Btor *btor)
       "enabling model generation must be done before creating expressions");
   btor_enable_model_gen (btor);
 #ifndef NDEBUG
-  BTOR_CHKCLONE_NORES (boolector_enable_model_gen);
+  BTOR_CHKCLONE_NORES (enable_model_gen);
 #endif
 }
 
@@ -941,7 +941,7 @@ boolector_generate_model_for_all_reads (Btor *btor)
   BTOR_TRAPI ("generate_model_for_all_reads");
   btor_generate_model_for_all_reads (btor);
 #ifndef NDEBUG
-  BTOR_CHKCLONE_NORES (boolector_generate_model_for_all_reads);
+  BTOR_CHKCLONE_NORES (generate_model_for_all_reads);
 #endif
 }
 
@@ -955,7 +955,7 @@ boolector_enable_inc_usage (Btor *btor)
       "enabling incremental usage must be done before calling 'boolector_sat'");
   btor_enable_inc_usage (btor);
 #ifndef NDEBUG
-  BTOR_CHKCLONE_NORES (boolector_enable_inc_usage);
+  BTOR_CHKCLONE_NORES (enable_inc_usage);
 #endif
 }
 
@@ -966,7 +966,7 @@ boolector_enable_beta_reduce_all (Btor *btor)
   BTOR_TRAPI ("enable_beta_reduce_all");
   btor_enable_beta_reduce_all (btor);
 #ifndef NDEBUG
-  BTOR_CHKCLONE_NORES (boolector_enable_beta_reduce_all);
+  BTOR_CHKCLONE_NORES (enable_beta_reduce_all);
 #endif
 }
 
@@ -977,7 +977,7 @@ boolector_enable_force_cleanup (Btor *btor)
   BTOR_TRAPI ("enable_force_cleanup");
   btor_enable_force_cleanup (btor);
 #ifndef NDEBUG
-  BTOR_CHKCLONE_NORES (boolector_enable_force_cleanup);
+  BTOR_CHKCLONE_NORES (enable_force_cleanup);
 #endif
 }
 
@@ -988,7 +988,7 @@ boolector_set_verbosity (Btor *btor, int verbosity)
   BTOR_TRAPI ("set_verbosity %d", verbosity);
   btor_set_verbosity_btor (btor, verbosity);
 #ifndef NDEBUG
-  BTOR_CHKCLONE_NORES (boolector_set_verbosity, verbosity);
+  BTOR_CHKCLONE_NORES (set_verbosity, verbosity);
 #endif
 }
 
@@ -999,7 +999,7 @@ boolector_set_loglevel (Btor *btor, int loglevel)
   BTOR_TRAPI ("set_loglevel %d", loglevel);
   btor_set_loglevel_btor (btor, loglevel);
 #ifndef NDEBUG
-  BTOR_CHKCLONE_NORES (boolector_set_loglevel, loglevel);
+  BTOR_CHKCLONE_NORES (set_loglevel, loglevel);
 #endif
 }
 
@@ -1016,7 +1016,7 @@ boolector_set_sat_solver (Btor *btor, const char *solver)
       "setting the SAT solver must be done before calling 'boolector_sat'");
   res = btor_set_sat_solver (btor, solver);
 #ifndef NDEBUG
-  BTOR_CHKCLONE_RES (res, boolector_set_sat_solver, solver);
+  BTOR_CHKCLONE_RES (res, set_sat_solver, solver);
 #endif
   BTOR_TRAPI_RETURN (res);
   return res;
@@ -1031,7 +1031,7 @@ boolector_get_refs (Btor *btor)
   BTOR_TRAPI ("get_refs");
   res = btor->external_refs;
 #ifndef NDEBUG
-  BTOR_CHKCLONE_RES (res, boolector_get_refs);
+  BTOR_CHKCLONE_RES (res, get_refs);
 #endif
   BTOR_TRAPI_RETURN (res);
   return res;
@@ -1060,7 +1060,7 @@ boolector_simplify (Btor *btor)
 
   res = btor_simplify (btor);
 #ifndef NDEBUG
-  BTOR_CHKCLONE_RES (res, boolector_simplify);
+  BTOR_CHKCLONE_RES (res, simplify);
 #endif
   BTOR_TRAPI_RETURN (res);
   return res;
@@ -1079,7 +1079,7 @@ boolector_const (Btor *btor, const char *bits)
   res = btor_const_exp (btor, bits);
   BTOR_REAL_ADDR_NODE (res)->ext_refs += 1;
 #ifndef NDEBUG
-  BTOR_CHKCLONE_RES_PTR (res, boolector_const, bits);
+  BTOR_CHKCLONE_RES_PTR (res, const, bits);
 #endif
   BTOR_TRAPI_RETURN_NODE (res);
   return BTOR_EXPORT_BOOLECTOR_NODE (res);
@@ -1097,7 +1097,7 @@ boolector_zero (Btor *btor, int width)
   res = btor_zero_exp (btor, width);
   BTOR_REAL_ADDR_NODE (res)->ext_refs += 1;
 #ifndef NDEBUG
-  BTOR_CHKCLONE_RES_PTR (res, boolector_zero, width);
+  BTOR_CHKCLONE_RES_PTR (res, zero, width);
 #endif
   BTOR_TRAPI_RETURN_NODE (res);
   return BTOR_EXPORT_BOOLECTOR_NODE (res);
@@ -1114,7 +1114,7 @@ boolector_false (Btor *btor)
   res = btor_false_exp (btor);
   BTOR_REAL_ADDR_NODE (res)->ext_refs += 1;
 #ifndef NDEBUG
-  BTOR_CHKCLONE_RES_PTR (res, boolector_false);
+  BTOR_CHKCLONE_RES_PTR (res, false);
 #endif
   BTOR_TRAPI_RETURN_NODE (res);
   return BTOR_EXPORT_BOOLECTOR_NODE (res);
@@ -1132,7 +1132,7 @@ boolector_ones (Btor *btor, int width)
   res = btor_ones_exp (btor, width);
   BTOR_REAL_ADDR_NODE (res)->ext_refs += 1;
 #ifndef NDEBUG
-  BTOR_CHKCLONE_RES_PTR (res, boolector_ones, width);
+  BTOR_CHKCLONE_RES_PTR (res, ones, width);
 #endif
   BTOR_TRAPI_RETURN_NODE (res);
   return BTOR_EXPORT_BOOLECTOR_NODE (res);
@@ -1149,7 +1149,7 @@ boolector_true (Btor *btor)
   res = btor_true_exp (btor);
   BTOR_REAL_ADDR_NODE (res)->ext_refs += 1;
 #ifndef NDEBUG
-  BTOR_CHKCLONE_RES_PTR (res, boolector_true);
+  BTOR_CHKCLONE_RES_PTR (res, true);
 #endif
   BTOR_TRAPI_RETURN_NODE (res);
   return BTOR_EXPORT_BOOLECTOR_NODE (res);
@@ -1167,7 +1167,7 @@ boolector_one (Btor *btor, int width)
   res = btor_one_exp (btor, width);
   BTOR_REAL_ADDR_NODE (res)->ext_refs += 1;
 #ifndef NDEBUG
-  BTOR_CHKCLONE_RES_PTR (res, boolector_one, width);
+  BTOR_CHKCLONE_RES_PTR (res, one, width);
 #endif
   BTOR_TRAPI_RETURN_NODE (res);
   return BTOR_EXPORT_BOOLECTOR_NODE (res);
@@ -1185,7 +1185,7 @@ boolector_unsigned_int (Btor *btor, unsigned int u, int width)
   res = btor_unsigned_exp (btor, u, width);
   BTOR_REAL_ADDR_NODE (res)->ext_refs += 1;
 #ifndef NDEBUG
-  BTOR_CHKCLONE_RES_PTR (res, boolector_unsigned_int, u, width);
+  BTOR_CHKCLONE_RES_PTR (res, unsigned_int, u, width);
 #endif
   BTOR_TRAPI_RETURN_NODE (res);
   return BTOR_EXPORT_BOOLECTOR_NODE (res);
@@ -1203,7 +1203,7 @@ boolector_int (Btor *btor, int i, int width)
   res = btor_int_exp (btor, i, width);
   BTOR_REAL_ADDR_NODE (res)->ext_refs += 1;
 #ifndef NDEBUG
-  BTOR_CHKCLONE_RES_PTR (res, boolector_int, i, width);
+  BTOR_CHKCLONE_RES_PTR (res, int, i, width);
 #endif
   BTOR_TRAPI_RETURN_NODE (res);
   return BTOR_EXPORT_BOOLECTOR_NODE (res);
@@ -1238,7 +1238,7 @@ boolector_var (Btor *btor, int width, const char *symbol)
 
   if (symbol == NULL) BTOR_DELETEN (btor->mm, symb, 20);
 #ifndef NDEBUG
-  BTOR_CHKCLONE_RES_PTR (res, boolector_var, width, symbol);
+  BTOR_CHKCLONE_RES_PTR (res, var, width, symbol);
 #endif
   BTOR_TRAPI_RETURN_NODE (res);
   return BTOR_EXPORT_BOOLECTOR_NODE (res);
@@ -1276,7 +1276,7 @@ boolector_array (Btor *btor,
   BTOR_REAL_ADDR_NODE (res)->ext_refs += 1;
   if (symbol == NULL) BTOR_DELETEN (btor->mm, symb, 20);
 #ifndef NDEBUG
-  BTOR_CHKCLONE_RES_PTR (res, boolector_array, elem_width, index_width, symbol);
+  BTOR_CHKCLONE_RES_PTR (res, array, elem_width, index_width, symbol);
 #endif
   BTOR_TRAPI_RETURN_NODE (res);
   return BTOR_EXPORT_BOOLECTOR_NODE (res);
@@ -1298,7 +1298,7 @@ boolector_not (Btor *btor, BoolectorNode *node)
   res = btor_not_exp (btor, simp);
   BTOR_REAL_ADDR_NODE (res)->ext_refs += 1;
 #ifndef NDEBUG
-  BTOR_CHKCLONE_RES_PTR (res, boolector_not, BTOR_CLONED_EXP (exp));
+  BTOR_CHKCLONE_RES_PTR (res, not, BTOR_CLONED_EXP (exp));
 #endif
   BTOR_TRAPI_RETURN_NODE (res);
   return BTOR_EXPORT_BOOLECTOR_NODE (res);
@@ -1320,7 +1320,7 @@ boolector_neg (Btor *btor, BoolectorNode *node)
   res = btor_neg_exp (btor, simp);
   BTOR_REAL_ADDR_NODE (res)->ext_refs += 1;
 #ifndef NDEBUG
-  BTOR_CHKCLONE_RES_PTR (res, boolector_neg, BTOR_CLONED_EXP (exp));
+  BTOR_CHKCLONE_RES_PTR (res, neg, BTOR_CLONED_EXP (exp));
 #endif
   BTOR_TRAPI_RETURN_NODE (res);
   return BTOR_EXPORT_BOOLECTOR_NODE (res);
@@ -1342,7 +1342,7 @@ boolector_redor (Btor *btor, BoolectorNode *node)
   res = btor_redor_exp (btor, simp);
   BTOR_REAL_ADDR_NODE (res)->ext_refs += 1;
 #ifndef NDEBUG
-  BTOR_CHKCLONE_RES_PTR (res, boolector_redor, BTOR_CLONED_EXP (exp));
+  BTOR_CHKCLONE_RES_PTR (res, redor, BTOR_CLONED_EXP (exp));
 #endif
   BTOR_TRAPI_RETURN_NODE (res);
   return BTOR_EXPORT_BOOLECTOR_NODE (res);
@@ -1364,7 +1364,7 @@ boolector_redxor (Btor *btor, BoolectorNode *node)
   res = btor_redxor_exp (btor, simp);
   BTOR_REAL_ADDR_NODE (res)->ext_refs += 1;
 #ifndef NDEBUG
-  BTOR_CHKCLONE_RES_PTR (res, boolector_redxor, BTOR_CLONED_EXP (exp));
+  BTOR_CHKCLONE_RES_PTR (res, redxor, BTOR_CLONED_EXP (exp));
 #endif
   BTOR_TRAPI_RETURN_NODE (res);
   return BTOR_EXPORT_BOOLECTOR_NODE (res);
@@ -1386,7 +1386,7 @@ boolector_redand (Btor *btor, BoolectorNode *node)
   res = btor_redand_exp (btor, simp);
   BTOR_REAL_ADDR_NODE (res)->ext_refs += 1;
 #ifndef NDEBUG
-  BTOR_CHKCLONE_RES_PTR (res, boolector_redand, BTOR_CLONED_EXP (exp));
+  BTOR_CHKCLONE_RES_PTR (res, redand, BTOR_CLONED_EXP (exp));
 #endif
   BTOR_TRAPI_RETURN_NODE (res);
   return BTOR_EXPORT_BOOLECTOR_NODE (res);
@@ -1412,8 +1412,7 @@ boolector_slice (Btor *btor, BoolectorNode *node, int upper, int lower)
   res = btor_slice_exp (btor, simp, upper, lower);
   BTOR_REAL_ADDR_NODE (res)->ext_refs += 1;
 #ifndef NDEBUG
-  BTOR_CHKCLONE_RES_PTR (
-      res, boolector_slice, BTOR_CLONED_EXP (exp), upper, lower);
+  BTOR_CHKCLONE_RES_PTR (res, slice, BTOR_CLONED_EXP (exp), upper, lower);
 #endif
   BTOR_TRAPI_RETURN_NODE (res);
   return BTOR_EXPORT_BOOLECTOR_NODE (res);
@@ -1436,7 +1435,7 @@ boolector_uext (Btor *btor, BoolectorNode *node, int width)
   res = btor_uext_exp (btor, simp, width);
   BTOR_REAL_ADDR_NODE (res)->ext_refs += 1;
 #ifndef NDEBUG
-  BTOR_CHKCLONE_RES_PTR (res, boolector_uext, BTOR_CLONED_EXP (exp), width);
+  BTOR_CHKCLONE_RES_PTR (res, uext, BTOR_CLONED_EXP (exp), width);
 #endif
   BTOR_TRAPI_RETURN_NODE (res);
   return BTOR_EXPORT_BOOLECTOR_NODE (res);
@@ -1459,7 +1458,7 @@ boolector_sext (Btor *btor, BoolectorNode *node, int width)
   res = btor_sext_exp (btor, simp, width);
   BTOR_REAL_ADDR_NODE (res)->ext_refs += 1;
 #ifndef NDEBUG
-  BTOR_CHKCLONE_RES_PTR (res, boolector_sext, BTOR_CLONED_EXP (exp), width);
+  BTOR_CHKCLONE_RES_PTR (res, sext, BTOR_CLONED_EXP (exp), width);
 #endif
   BTOR_TRAPI_RETURN_NODE (res);
   return BTOR_EXPORT_BOOLECTOR_NODE (res);
@@ -1490,7 +1489,7 @@ boolector_implies (Btor *btor, BoolectorNode *n0, BoolectorNode *n1)
   BTOR_REAL_ADDR_NODE (res)->ext_refs += 1;
 #ifndef NDEBUG
   BTOR_CHKCLONE_RES_PTR (
-      res, boolector_implies, BTOR_CLONED_EXP (e0), BTOR_CLONED_EXP (e1));
+      res, implies, BTOR_CLONED_EXP (e0), BTOR_CLONED_EXP (e1));
 #endif
   BTOR_TRAPI_RETURN_NODE (res);
   return BTOR_EXPORT_BOOLECTOR_NODE (res);
@@ -1520,8 +1519,7 @@ boolector_iff (Btor *btor, BoolectorNode *n0, BoolectorNode *n1)
   res = btor_iff_exp (btor, simp0, simp1);
   BTOR_REAL_ADDR_NODE (res)->ext_refs += 1;
 #ifndef NDEBUG
-  BTOR_CHKCLONE_RES_PTR (
-      res, boolector_iff, BTOR_CLONED_EXP (e0), BTOR_CLONED_EXP (e1));
+  BTOR_CHKCLONE_RES_PTR (res, iff, BTOR_CLONED_EXP (e0), BTOR_CLONED_EXP (e1));
 #endif
   BTOR_TRAPI_RETURN_NODE (res);
   return BTOR_EXPORT_BOOLECTOR_NODE (res);
@@ -1549,8 +1547,7 @@ boolector_xor (Btor *btor, BoolectorNode *n0, BoolectorNode *n1)
   res = btor_xor_exp (btor, simp0, simp1);
   BTOR_REAL_ADDR_NODE (res)->ext_refs += 1;
 #ifndef NDEBUG
-  BTOR_CHKCLONE_RES_PTR (
-      res, boolector_xor, BTOR_CLONED_EXP (e0), BTOR_CLONED_EXP (e1));
+  BTOR_CHKCLONE_RES_PTR (res, xor, BTOR_CLONED_EXP (e0), BTOR_CLONED_EXP (e1));
 #endif
   BTOR_TRAPI_RETURN_NODE (res);
   return BTOR_EXPORT_BOOLECTOR_NODE (res);
@@ -1578,8 +1575,7 @@ boolector_xnor (Btor *btor, BoolectorNode *n0, BoolectorNode *n1)
   res = btor_xnor_exp (btor, simp0, simp1);
   BTOR_REAL_ADDR_NODE (res)->ext_refs += 1;
 #ifndef NDEBUG
-  BTOR_CHKCLONE_RES_PTR (
-      res, boolector_xnor, BTOR_CLONED_EXP (e0), BTOR_CLONED_EXP (e1));
+  BTOR_CHKCLONE_RES_PTR (res, xnor, BTOR_CLONED_EXP (e0), BTOR_CLONED_EXP (e1));
 #endif
   BTOR_TRAPI_RETURN_NODE (res);
   return BTOR_EXPORT_BOOLECTOR_NODE (res);
@@ -1607,8 +1603,7 @@ boolector_and (Btor *btor, BoolectorNode *n0, BoolectorNode *n1)
   res = btor_and_exp (btor, simp0, simp1);
   BTOR_REAL_ADDR_NODE (res)->ext_refs += 1;
 #ifndef NDEBUG
-  BTOR_CHKCLONE_RES_PTR (
-      res, boolector_and, BTOR_CLONED_EXP (e0), BTOR_CLONED_EXP (e1));
+  BTOR_CHKCLONE_RES_PTR (res, and, BTOR_CLONED_EXP (e0), BTOR_CLONED_EXP (e1));
 #endif
   BTOR_TRAPI_RETURN_NODE (res);
   return BTOR_EXPORT_BOOLECTOR_NODE (res);
@@ -1636,8 +1631,7 @@ boolector_nand (Btor *btor, BoolectorNode *n0, BoolectorNode *n1)
   res = btor_nand_exp (btor, simp0, simp1);
   BTOR_REAL_ADDR_NODE (res)->ext_refs += 1;
 #ifndef NDEBUG
-  BTOR_CHKCLONE_RES_PTR (
-      res, boolector_nand, BTOR_CLONED_EXP (e0), BTOR_CLONED_EXP (e1));
+  BTOR_CHKCLONE_RES_PTR (res, nand, BTOR_CLONED_EXP (e0), BTOR_CLONED_EXP (e1));
 #endif
   BTOR_TRAPI_RETURN_NODE (res);
   return BTOR_EXPORT_BOOLECTOR_NODE (res);
@@ -1665,8 +1659,7 @@ boolector_or (Btor *btor, BoolectorNode *n0, BoolectorNode *n1)
   res = btor_or_exp (btor, simp0, simp1);
   BTOR_REAL_ADDR_NODE (res)->ext_refs += 1;
 #ifndef NDEBUG
-  BTOR_CHKCLONE_RES_PTR (
-      res, boolector_or, BTOR_CLONED_EXP (e0), BTOR_CLONED_EXP (e1));
+  BTOR_CHKCLONE_RES_PTR (res, or, BTOR_CLONED_EXP (e0), BTOR_CLONED_EXP (e1));
 #endif
   BTOR_TRAPI_RETURN_NODE (res);
   return BTOR_EXPORT_BOOLECTOR_NODE (res);
@@ -1694,8 +1687,7 @@ boolector_nor (Btor *btor, BoolectorNode *n0, BoolectorNode *n1)
   res = btor_nor_exp (btor, simp0, simp1);
   BTOR_REAL_ADDR_NODE (res)->ext_refs += 1;
 #ifndef NDEBUG
-  BTOR_CHKCLONE_RES_PTR (
-      res, boolector_nor, BTOR_CLONED_EXP (e0), BTOR_CLONED_EXP (e1));
+  BTOR_CHKCLONE_RES_PTR (res, nor, BTOR_CLONED_EXP (e0), BTOR_CLONED_EXP (e1));
 #endif
   BTOR_TRAPI_RETURN_NODE (res);
   return BTOR_EXPORT_BOOLECTOR_NODE (res);
@@ -1736,8 +1728,7 @@ boolector_eq (Btor *btor, BoolectorNode *n0, BoolectorNode *n1)
   res = btor_eq_exp (btor, simp0, simp1);
   BTOR_REAL_ADDR_NODE (res)->ext_refs += 1;
 #ifndef NDEBUG
-  BTOR_CHKCLONE_RES_PTR (
-      res, boolector_eq, BTOR_CLONED_EXP (e0), BTOR_CLONED_EXP (e1));
+  BTOR_CHKCLONE_RES_PTR (res, eq, BTOR_CLONED_EXP (e0), BTOR_CLONED_EXP (e1));
 #endif
   BTOR_TRAPI_RETURN_NODE (res);
   return BTOR_EXPORT_BOOLECTOR_NODE (res);
@@ -1774,8 +1765,7 @@ boolector_ne (Btor *btor, BoolectorNode *n0, BoolectorNode *n1)
   res = btor_ne_exp (btor, simp0, simp1);
   BTOR_REAL_ADDR_NODE (res)->ext_refs += 1;
 #ifndef NDEBUG
-  BTOR_CHKCLONE_RES_PTR (
-      res, boolector_ne, BTOR_CLONED_EXP (e0), BTOR_CLONED_EXP (e1));
+  BTOR_CHKCLONE_RES_PTR (res, ne, BTOR_CLONED_EXP (e0), BTOR_CLONED_EXP (e1));
 #endif
   BTOR_TRAPI_RETURN_NODE (res);
   return BTOR_EXPORT_BOOLECTOR_NODE (res);
@@ -1803,8 +1793,7 @@ boolector_add (Btor *btor, BoolectorNode *n0, BoolectorNode *n1)
   res = btor_add_exp (btor, simp0, simp1);
   BTOR_REAL_ADDR_NODE (res)->ext_refs += 1;
 #ifndef NDEBUG
-  BTOR_CHKCLONE_RES_PTR (
-      res, boolector_add, BTOR_CLONED_EXP (e0), BTOR_CLONED_EXP (e1));
+  BTOR_CHKCLONE_RES_PTR (res, add, BTOR_CLONED_EXP (e0), BTOR_CLONED_EXP (e1));
 #endif
   BTOR_TRAPI_RETURN_NODE (res);
   return BTOR_EXPORT_BOOLECTOR_NODE (res);
@@ -1833,7 +1822,7 @@ boolector_uaddo (Btor *btor, BoolectorNode *n0, BoolectorNode *n1)
   BTOR_REAL_ADDR_NODE (res)->ext_refs += 1;
 #ifndef NDEBUG
   BTOR_CHKCLONE_RES_PTR (
-      res, boolector_uaddo, BTOR_CLONED_EXP (e0), BTOR_CLONED_EXP (e1));
+      res, uaddo, BTOR_CLONED_EXP (e0), BTOR_CLONED_EXP (e1));
 #endif
   BTOR_TRAPI_RETURN_NODE (res);
   return BTOR_EXPORT_BOOLECTOR_NODE (res);
@@ -1862,7 +1851,7 @@ boolector_saddo (Btor *btor, BoolectorNode *n0, BoolectorNode *n1)
   BTOR_REAL_ADDR_NODE (res)->ext_refs += 1;
 #ifndef NDEBUG
   BTOR_CHKCLONE_RES_PTR (
-      res, boolector_saddo, BTOR_CLONED_EXP (e0), BTOR_CLONED_EXP (e1));
+      res, saddo, BTOR_CLONED_EXP (e0), BTOR_CLONED_EXP (e1));
 #endif
   BTOR_TRAPI_RETURN_NODE (res);
   return BTOR_EXPORT_BOOLECTOR_NODE (res);
@@ -1890,8 +1879,7 @@ boolector_mul (Btor *btor, BoolectorNode *n0, BoolectorNode *n1)
   res = btor_mul_exp (btor, simp0, simp1);
   BTOR_REAL_ADDR_NODE (res)->ext_refs += 1;
 #ifndef NDEBUG
-  BTOR_CHKCLONE_RES_PTR (
-      res, boolector_mul, BTOR_CLONED_EXP (e0), BTOR_CLONED_EXP (e1));
+  BTOR_CHKCLONE_RES_PTR (res, mul, BTOR_CLONED_EXP (e0), BTOR_CLONED_EXP (e1));
 #endif
   BTOR_TRAPI_RETURN_NODE (res);
   return BTOR_EXPORT_BOOLECTOR_NODE (res);
@@ -1920,7 +1908,7 @@ boolector_umulo (Btor *btor, BoolectorNode *n0, BoolectorNode *n1)
   BTOR_REAL_ADDR_NODE (res)->ext_refs += 1;
 #ifndef NDEBUG
   BTOR_CHKCLONE_RES_PTR (
-      res, boolector_umulo, BTOR_CLONED_EXP (e0), BTOR_CLONED_EXP (e1));
+      res, umulo, BTOR_CLONED_EXP (e0), BTOR_CLONED_EXP (e1));
 #endif
   BTOR_TRAPI_RETURN_NODE (res);
   return BTOR_EXPORT_BOOLECTOR_NODE (res);
@@ -1950,7 +1938,7 @@ boolector_smulo (Btor *btor, BoolectorNode *n0, BoolectorNode *n1)
   BTOR_REAL_ADDR_NODE (res)->ext_refs += 1;
 #ifndef NDEBUG
   BTOR_CHKCLONE_RES_PTR (
-      res, boolector_smulo, BTOR_CLONED_EXP (e0), BTOR_CLONED_EXP (e1));
+      res, smulo, BTOR_CLONED_EXP (e0), BTOR_CLONED_EXP (e1));
 #endif
   BTOR_TRAPI_RETURN_NODE (res);
   return BTOR_EXPORT_BOOLECTOR_NODE (res);
@@ -1978,8 +1966,7 @@ boolector_ult (Btor *btor, BoolectorNode *n0, BoolectorNode *n1)
   res = btor_ult_exp (btor, simp0, simp1);
   BTOR_REAL_ADDR_NODE (res)->ext_refs += 1;
 #ifndef NDEBUG
-  BTOR_CHKCLONE_RES_PTR (
-      res, boolector_ult, BTOR_CLONED_EXP (e0), BTOR_CLONED_EXP (e1));
+  BTOR_CHKCLONE_RES_PTR (res, ult, BTOR_CLONED_EXP (e0), BTOR_CLONED_EXP (e1));
 #endif
   BTOR_TRAPI_RETURN_NODE (res);
   return BTOR_EXPORT_BOOLECTOR_NODE (res);
@@ -2007,8 +1994,7 @@ boolector_slt (Btor *btor, BoolectorNode *n0, BoolectorNode *n1)
   res = btor_slt_exp (btor, simp0, simp1);
   BTOR_REAL_ADDR_NODE (res)->ext_refs += 1;
 #ifndef NDEBUG
-  BTOR_CHKCLONE_RES_PTR (
-      res, boolector_slt, BTOR_CLONED_EXP (e0), BTOR_CLONED_EXP (e1));
+  BTOR_CHKCLONE_RES_PTR (res, slt, BTOR_CLONED_EXP (e0), BTOR_CLONED_EXP (e1));
 #endif
   BTOR_TRAPI_RETURN_NODE (res);
   return BTOR_EXPORT_BOOLECTOR_NODE (res);
@@ -2036,8 +2022,7 @@ boolector_ulte (Btor *btor, BoolectorNode *n0, BoolectorNode *n1)
   res = btor_ulte_exp (btor, simp0, simp1);
   BTOR_REAL_ADDR_NODE (res)->ext_refs += 1;
 #ifndef NDEBUG
-  BTOR_CHKCLONE_RES_PTR (
-      res, boolector_ulte, BTOR_CLONED_EXP (e0), BTOR_CLONED_EXP (e1));
+  BTOR_CHKCLONE_RES_PTR (res, ulte, BTOR_CLONED_EXP (e0), BTOR_CLONED_EXP (e1));
 #endif
   BTOR_TRAPI_RETURN_NODE (res);
   return BTOR_EXPORT_BOOLECTOR_NODE (res);
@@ -2065,8 +2050,7 @@ boolector_slte (Btor *btor, BoolectorNode *n0, BoolectorNode *n1)
   res = btor_slte_exp (btor, simp0, simp1);
   BTOR_REAL_ADDR_NODE (res)->ext_refs += 1;
 #ifndef NDEBUG
-  BTOR_CHKCLONE_RES_PTR (
-      res, boolector_slte, BTOR_CLONED_EXP (e0), BTOR_CLONED_EXP (e1));
+  BTOR_CHKCLONE_RES_PTR (res, slte, BTOR_CLONED_EXP (e0), BTOR_CLONED_EXP (e1));
 #endif
   BTOR_TRAPI_RETURN_NODE (res);
   return BTOR_EXPORT_BOOLECTOR_NODE (res);
@@ -2094,8 +2078,7 @@ boolector_ugt (Btor *btor, BoolectorNode *n0, BoolectorNode *n1)
   res = btor_ugt_exp (btor, simp0, simp1);
   BTOR_REAL_ADDR_NODE (res)->ext_refs += 1;
 #ifndef NDEBUG
-  BTOR_CHKCLONE_RES_PTR (
-      res, boolector_ugt, BTOR_CLONED_EXP (e0), BTOR_CLONED_EXP (e1));
+  BTOR_CHKCLONE_RES_PTR (res, ugt, BTOR_CLONED_EXP (e0), BTOR_CLONED_EXP (e1));
 #endif
   BTOR_TRAPI_RETURN_NODE (res);
   return BTOR_EXPORT_BOOLECTOR_NODE (res);
@@ -2123,8 +2106,7 @@ boolector_sgt (Btor *btor, BoolectorNode *n0, BoolectorNode *n1)
   res = btor_sgt_exp (btor, simp0, simp1);
   BTOR_REAL_ADDR_NODE (res)->ext_refs += 1;
 #ifndef NDEBUG
-  BTOR_CHKCLONE_RES_PTR (
-      res, boolector_sgt, BTOR_CLONED_EXP (e0), BTOR_CLONED_EXP (e1));
+  BTOR_CHKCLONE_RES_PTR (res, sgt, BTOR_CLONED_EXP (e0), BTOR_CLONED_EXP (e1));
 #endif
   BTOR_TRAPI_RETURN_NODE (res);
   return BTOR_EXPORT_BOOLECTOR_NODE (res);
@@ -2152,8 +2134,7 @@ boolector_ugte (Btor *btor, BoolectorNode *n0, BoolectorNode *n1)
   res = btor_ugte_exp (btor, simp0, simp1);
   BTOR_REAL_ADDR_NODE (res)->ext_refs += 1;
 #ifndef NDEBUG
-  BTOR_CHKCLONE_RES_PTR (
-      res, boolector_ugte, BTOR_CLONED_EXP (e0), BTOR_CLONED_EXP (e1));
+  BTOR_CHKCLONE_RES_PTR (res, ugte, BTOR_CLONED_EXP (e0), BTOR_CLONED_EXP (e1));
 #endif
   BTOR_TRAPI_RETURN_NODE (res);
   return BTOR_EXPORT_BOOLECTOR_NODE (res);
@@ -2181,8 +2162,7 @@ boolector_sgte (Btor *btor, BoolectorNode *n0, BoolectorNode *n1)
   res = btor_sgte_exp (btor, simp0, simp1);
   BTOR_REAL_ADDR_NODE (res)->ext_refs += 1;
 #ifndef NDEBUG
-  BTOR_CHKCLONE_RES_PTR (
-      res, boolector_sgte, BTOR_CLONED_EXP (e0), BTOR_CLONED_EXP (e1));
+  BTOR_CHKCLONE_RES_PTR (res, sgte, BTOR_CLONED_EXP (e0), BTOR_CLONED_EXP (e1));
 #endif
   BTOR_TRAPI_RETURN_NODE (res);
   return BTOR_EXPORT_BOOLECTOR_NODE (res);
@@ -2216,8 +2196,7 @@ boolector_sll (Btor *btor, BoolectorNode *n0, BoolectorNode *n1)
   res = btor_sll_exp (btor, simp0, simp1);
   BTOR_REAL_ADDR_NODE (res)->ext_refs += 1;
 #ifndef NDEBUG
-  BTOR_CHKCLONE_RES_PTR (
-      res, boolector_sll, BTOR_CLONED_EXP (e0), BTOR_CLONED_EXP (e1));
+  BTOR_CHKCLONE_RES_PTR (res, sll, BTOR_CLONED_EXP (e0), BTOR_CLONED_EXP (e1));
 #endif
   BTOR_TRAPI_RETURN_NODE (res);
   return BTOR_EXPORT_BOOLECTOR_NODE (res);
@@ -2251,8 +2230,7 @@ boolector_srl (Btor *btor, BoolectorNode *n0, BoolectorNode *n1)
   res = btor_srl_exp (btor, simp0, simp1);
   BTOR_REAL_ADDR_NODE (res)->ext_refs += 1;
 #ifndef NDEBUG
-  BTOR_CHKCLONE_RES_PTR (
-      res, boolector_srl, BTOR_CLONED_EXP (e0), BTOR_CLONED_EXP (e1));
+  BTOR_CHKCLONE_RES_PTR (res, srl, BTOR_CLONED_EXP (e0), BTOR_CLONED_EXP (e1));
 #endif
   BTOR_TRAPI_RETURN_NODE (res);
   return BTOR_EXPORT_BOOLECTOR_NODE (res);
@@ -2286,8 +2264,7 @@ boolector_sra (Btor *btor, BoolectorNode *n0, BoolectorNode *n1)
   res = btor_sra_exp (btor, simp0, simp1);
   BTOR_REAL_ADDR_NODE (res)->ext_refs += 1;
 #ifndef NDEBUG
-  BTOR_CHKCLONE_RES_PTR (
-      res, boolector_sra, BTOR_CLONED_EXP (e0), BTOR_CLONED_EXP (e1));
+  BTOR_CHKCLONE_RES_PTR (res, sra, BTOR_CLONED_EXP (e0), BTOR_CLONED_EXP (e1));
 #endif
   BTOR_TRAPI_RETURN_NODE (res);
   return BTOR_EXPORT_BOOLECTOR_NODE (res);
@@ -2321,8 +2298,7 @@ boolector_rol (Btor *btor, BoolectorNode *n0, BoolectorNode *n1)
   res = btor_rol_exp (btor, simp0, simp1);
   BTOR_REAL_ADDR_NODE (res)->ext_refs += 1;
 #ifndef NDEBUG
-  BTOR_CHKCLONE_RES_PTR (
-      res, boolector_rol, BTOR_CLONED_EXP (e0), BTOR_CLONED_EXP (e1));
+  BTOR_CHKCLONE_RES_PTR (res, rol, BTOR_CLONED_EXP (e0), BTOR_CLONED_EXP (e1));
 #endif
   BTOR_TRAPI_RETURN_NODE (res);
   return BTOR_EXPORT_BOOLECTOR_NODE (res);
@@ -2356,8 +2332,7 @@ boolector_ror (Btor *btor, BoolectorNode *n0, BoolectorNode *n1)
   res = btor_ror_exp (btor, simp0, simp1);
   BTOR_REAL_ADDR_NODE (res)->ext_refs += 1;
 #ifndef NDEBUG
-  BTOR_CHKCLONE_RES_PTR (
-      res, boolector_ror, BTOR_CLONED_EXP (e0), BTOR_CLONED_EXP (e1));
+  BTOR_CHKCLONE_RES_PTR (res, ror, BTOR_CLONED_EXP (e0), BTOR_CLONED_EXP (e1));
 #endif
   BTOR_TRAPI_RETURN_NODE (res);
   return BTOR_EXPORT_BOOLECTOR_NODE (res);
@@ -2385,8 +2360,7 @@ boolector_sub (Btor *btor, BoolectorNode *n0, BoolectorNode *n1)
   res = btor_sub_exp (btor, simp0, simp1);
   BTOR_REAL_ADDR_NODE (res)->ext_refs += 1;
 #ifndef NDEBUG
-  BTOR_CHKCLONE_RES_PTR (
-      res, boolector_sub, BTOR_CLONED_EXP (e0), BTOR_CLONED_EXP (e1));
+  BTOR_CHKCLONE_RES_PTR (res, sub, BTOR_CLONED_EXP (e0), BTOR_CLONED_EXP (e1));
 #endif
   BTOR_TRAPI_RETURN_NODE (res);
   return BTOR_EXPORT_BOOLECTOR_NODE (res);
@@ -2415,7 +2389,7 @@ boolector_usubo (Btor *btor, BoolectorNode *n0, BoolectorNode *n1)
   BTOR_REAL_ADDR_NODE (res)->ext_refs += 1;
 #ifndef NDEBUG
   BTOR_CHKCLONE_RES_PTR (
-      res, boolector_usubo, BTOR_CLONED_EXP (e0), BTOR_CLONED_EXP (e1));
+      res, usubo, BTOR_CLONED_EXP (e0), BTOR_CLONED_EXP (e1));
 #endif
   BTOR_TRAPI_RETURN_NODE (res);
   return BTOR_EXPORT_BOOLECTOR_NODE (res);
@@ -2444,7 +2418,7 @@ boolector_ssubo (Btor *btor, BoolectorNode *n0, BoolectorNode *n1)
   BTOR_REAL_ADDR_NODE (res)->ext_refs += 1;
 #ifndef NDEBUG
   BTOR_CHKCLONE_RES_PTR (
-      res, boolector_ssubo, BTOR_CLONED_EXP (e0), BTOR_CLONED_EXP (e1));
+      res, ssubo, BTOR_CLONED_EXP (e0), BTOR_CLONED_EXP (e1));
 #endif
   BTOR_TRAPI_RETURN_NODE (res);
   return BTOR_EXPORT_BOOLECTOR_NODE (res);
@@ -2472,8 +2446,7 @@ boolector_udiv (Btor *btor, BoolectorNode *n0, BoolectorNode *n1)
   res = btor_udiv_exp (btor, simp0, simp1);
   BTOR_REAL_ADDR_NODE (res)->ext_refs += 1;
 #ifndef NDEBUG
-  BTOR_CHKCLONE_RES_PTR (
-      res, boolector_udiv, BTOR_CLONED_EXP (e0), BTOR_CLONED_EXP (e1));
+  BTOR_CHKCLONE_RES_PTR (res, udiv, BTOR_CLONED_EXP (e0), BTOR_CLONED_EXP (e1));
 #endif
   BTOR_TRAPI_RETURN_NODE (res);
   return BTOR_EXPORT_BOOLECTOR_NODE (res);
@@ -2501,8 +2474,7 @@ boolector_sdiv (Btor *btor, BoolectorNode *n0, BoolectorNode *n1)
   res = btor_sdiv_exp (btor, simp0, simp1);
   BTOR_REAL_ADDR_NODE (res)->ext_refs += 1;
 #ifndef NDEBUG
-  BTOR_CHKCLONE_RES_PTR (
-      res, boolector_sdiv, BTOR_CLONED_EXP (e0), BTOR_CLONED_EXP (e1));
+  BTOR_CHKCLONE_RES_PTR (res, sdiv, BTOR_CLONED_EXP (e0), BTOR_CLONED_EXP (e1));
 #endif
   BTOR_TRAPI_RETURN_NODE (res);
   return BTOR_EXPORT_BOOLECTOR_NODE (res);
@@ -2531,7 +2503,7 @@ boolector_sdivo (Btor *btor, BoolectorNode *n0, BoolectorNode *n1)
   BTOR_REAL_ADDR_NODE (res)->ext_refs += 1;
 #ifndef NDEBUG
   BTOR_CHKCLONE_RES_PTR (
-      res, boolector_sdivo, BTOR_CLONED_EXP (e0), BTOR_CLONED_EXP (e1));
+      res, sdivo, BTOR_CLONED_EXP (e0), BTOR_CLONED_EXP (e1));
 #endif
   BTOR_TRAPI_RETURN_NODE (res);
   return BTOR_EXPORT_BOOLECTOR_NODE (res);
@@ -2559,8 +2531,7 @@ boolector_urem (Btor *btor, BoolectorNode *n0, BoolectorNode *n1)
   res = btor_urem_exp (btor, simp0, simp1);
   BTOR_REAL_ADDR_NODE (res)->ext_refs += 1;
 #ifndef NDEBUG
-  BTOR_CHKCLONE_RES_PTR (
-      res, boolector_urem, BTOR_CLONED_EXP (e0), BTOR_CLONED_EXP (e1));
+  BTOR_CHKCLONE_RES_PTR (res, urem, BTOR_CLONED_EXP (e0), BTOR_CLONED_EXP (e1));
 #endif
   BTOR_TRAPI_RETURN_NODE (res);
   return BTOR_EXPORT_BOOLECTOR_NODE (res);
@@ -2588,8 +2559,7 @@ boolector_srem (Btor *btor, BoolectorNode *n0, BoolectorNode *n1)
   res = btor_srem_exp (btor, simp0, simp1);
   BTOR_REAL_ADDR_NODE (res)->ext_refs += 1;
 #ifndef NDEBUG
-  BTOR_CHKCLONE_RES_PTR (
-      res, boolector_srem, BTOR_CLONED_EXP (e0), BTOR_CLONED_EXP (e1));
+  BTOR_CHKCLONE_RES_PTR (res, srem, BTOR_CLONED_EXP (e0), BTOR_CLONED_EXP (e1));
 #endif
   BTOR_TRAPI_RETURN_NODE (res);
   return BTOR_EXPORT_BOOLECTOR_NODE (res);
@@ -2617,8 +2587,7 @@ boolector_smod (Btor *btor, BoolectorNode *n0, BoolectorNode *n1)
   res = btor_smod_exp (btor, simp0, simp1);
   BTOR_REAL_ADDR_NODE (res)->ext_refs += 1;
 #ifndef NDEBUG
-  BTOR_CHKCLONE_RES_PTR (
-      res, boolector_smod, BTOR_CLONED_EXP (e0), BTOR_CLONED_EXP (e1));
+  BTOR_CHKCLONE_RES_PTR (res, smod, BTOR_CLONED_EXP (e0), BTOR_CLONED_EXP (e1));
 #endif
   BTOR_TRAPI_RETURN_NODE (res);
   return BTOR_EXPORT_BOOLECTOR_NODE (res);
@@ -2649,7 +2618,7 @@ boolector_concat (Btor *btor, BoolectorNode *n0, BoolectorNode *n1)
   BTOR_REAL_ADDR_NODE (res)->ext_refs += 1;
 #ifndef NDEBUG
   BTOR_CHKCLONE_RES_PTR (
-      res, boolector_concat, BTOR_CLONED_EXP (e0), BTOR_CLONED_EXP (e1));
+      res, concat, BTOR_CLONED_EXP (e0), BTOR_CLONED_EXP (e1));
 #endif
   BTOR_TRAPI_RETURN_NODE (res);
   return BTOR_EXPORT_BOOLECTOR_NODE (res);
@@ -2679,10 +2648,8 @@ boolector_read (Btor *btor, BoolectorNode *n_array, BoolectorNode *n_index)
   res = btor_read_exp (btor, simp_array, simp_index);
   BTOR_REAL_ADDR_NODE (res)->ext_refs += 1;
 #ifndef NDEBUG
-  BTOR_CHKCLONE_RES_PTR (res,
-                         boolector_read,
-                         BTOR_CLONED_EXP (e_array),
-                         BTOR_CLONED_EXP (e_index));
+  BTOR_CHKCLONE_RES_PTR (
+      res, read, BTOR_CLONED_EXP (e_array), BTOR_CLONED_EXP (e_index));
 #endif
   BTOR_TRAPI_RETURN_NODE (res);
   return BTOR_EXPORT_BOOLECTOR_NODE (res);
@@ -2726,7 +2693,7 @@ boolector_write (Btor *btor,
   BTOR_REAL_ADDR_NODE (res)->ext_refs += 1;
 #ifndef NDEBUG
   BTOR_CHKCLONE_RES_PTR (res,
-                         boolector_write,
+                         write,
                          BTOR_CLONED_EXP (e_array),
                          BTOR_CLONED_EXP (e_index),
                          BTOR_CLONED_EXP (e_value));
@@ -2784,7 +2751,7 @@ boolector_cond (Btor *btor,
   BTOR_REAL_ADDR_NODE (res)->ext_refs += 1;
 #ifndef NDEBUG
   BTOR_CHKCLONE_RES_PTR (res,
-                         boolector_cond,
+                         cond,
                          BTOR_CLONED_EXP (e_cond),
                          BTOR_CLONED_EXP (e_if),
                          BTOR_CLONED_EXP (e_else));
@@ -2821,7 +2788,7 @@ boolector_param (Btor *btor, int width, const char *symbol)
 
   if (symbol == NULL) BTOR_DELETEN (btor->mm, symb, 20);
 #ifndef NDEBUG
-  BTOR_CHKCLONE_RES_PTR (res, boolector_param, width, symbol);
+  BTOR_CHKCLONE_RES_PTR (res, param, width, symbol);
 #endif
   BTOR_TRAPI_RETURN_NODE (res);
   return BTOR_EXPORT_BOOLECTOR_NODE (res);
@@ -2870,8 +2837,7 @@ boolector_fun (Btor *btor,
   BoolectorNode *cparam_nodes[paramc];
   for (i = 0; btor->clone && i < paramc; i++)
     cparam_nodes[i] = BTOR_CLONED_EXP (params[i]);
-  BTOR_CHKCLONE_RES_PTR (
-      res, boolector_fun, paramc, cparam_nodes, BTOR_CLONED_EXP (exp));
+  BTOR_CHKCLONE_RES_PTR (res, fun, paramc, cparam_nodes, BTOR_CLONED_EXP (exp));
 #endif
   BTOR_TRAPI_RETURN_NODE (res);
   return BTOR_EXPORT_BOOLECTOR_NODE (res);
@@ -2910,7 +2876,7 @@ boolector_args (Btor *btor, int argc, BoolectorNode **arg_nodes)
   BoolectorNode *carg_nodes[argc];
   for (i = 0; btor->clone && i < argc; i++)
     carg_nodes[i] = BTOR_CLONED_EXP (args[i]);
-  BTOR_CHKCLONE_RES_PTR (res, boolector_args, argc, carg_nodes);
+  BTOR_CHKCLONE_RES_PTR (res, args, argc, carg_nodes);
 #endif
   BTOR_TRAPI_RETURN_NODE (res);
   return BTOR_EXPORT_BOOLECTOR_NODE (res);
@@ -2970,8 +2936,7 @@ boolector_apply (Btor *btor,
   BoolectorNode *carg_nodes[argc];
   for (i = 0; btor->clone && i < argc; i++)
     carg_nodes[i] = BTOR_CLONED_EXP (args[i]);
-  BTOR_CHKCLONE_RES_PTR (
-      res, boolector_apply, argc, carg_nodes, BTOR_CLONED_EXP (e_fun));
+  BTOR_CHKCLONE_RES_PTR (res, apply, argc, carg_nodes, BTOR_CLONED_EXP (e_fun));
 #endif
   BTOR_TRAPI_RETURN_NODE (res);
   return BTOR_EXPORT_BOOLECTOR_NODE (res);
@@ -2997,10 +2962,8 @@ boolector_apply_args (Btor *btor, BoolectorNode *n_args, BoolectorNode *n_fun)
   res = btor_apply_exp (btor, e_fun, e_args);
   BTOR_REAL_ADDR_NODE (res)->ext_refs += 1;
 #ifndef NDEBUG
-  BTOR_CHKCLONE_RES_PTR (res,
-                         boolector_apply_args,
-                         BTOR_CLONED_EXP (e_args),
-                         BTOR_CLONED_EXP (e_fun));
+  BTOR_CHKCLONE_RES_PTR (
+      res, apply_args, BTOR_CLONED_EXP (e_args), BTOR_CLONED_EXP (e_fun));
 #endif
   BTOR_TRAPI_RETURN_NODE (res);
   return BTOR_EXPORT_BOOLECTOR_NODE (res);
@@ -3023,7 +2986,7 @@ boolector_inc (Btor *btor, BoolectorNode *node)
   res = btor_inc_exp (btor, simp);
   BTOR_REAL_ADDR_NODE (res)->ext_refs += 1;
 #ifndef NDEBUG
-  BTOR_CHKCLONE_RES_PTR (res, boolector_inc, BTOR_CLONED_EXP (exp));
+  BTOR_CHKCLONE_RES_PTR (res, inc, BTOR_CLONED_EXP (exp));
 #endif
   BTOR_TRAPI_RETURN_NODE (res);
   return BTOR_EXPORT_BOOLECTOR_NODE (res);
@@ -3046,7 +3009,7 @@ boolector_dec (Btor *btor, BoolectorNode *node)
   res = btor_dec_exp (btor, simp);
   BTOR_REAL_ADDR_NODE (res)->ext_refs += 1;
 #ifndef NDEBUG
-  BTOR_CHKCLONE_RES_PTR (res, boolector_dec, BTOR_CLONED_EXP (exp));
+  BTOR_CHKCLONE_RES_PTR (res, dec, BTOR_CLONED_EXP (exp));
 #endif
   BTOR_TRAPI_RETURN_NODE (res);
   return BTOR_EXPORT_BOOLECTOR_NODE (res);
@@ -3065,7 +3028,7 @@ boolector_get_width (Btor *btor, BoolectorNode *node)
   BTOR_ABORT_REFS_NOT_POS_BOOLECTOR (exp);
   res = btor_get_exp_len (btor, exp);
 #ifndef NDEBUG
-  BTOR_CHKCLONE_RES (res, boolector_get_width, BTOR_CLONED_EXP (exp));
+  BTOR_CHKCLONE_RES (res, get_width, BTOR_CLONED_EXP (exp));
 #endif
   BTOR_TRAPI_RETURN (res);
   return res;
@@ -3085,7 +3048,7 @@ boolector_is_array (Btor *btor, BoolectorNode *node)
   simp = btor_simplify_exp (btor, exp);
   res  = btor_is_array_exp (btor, simp);
 #ifndef NDEBUG
-  BTOR_CHKCLONE_RES (res, boolector_is_array, BTOR_CLONED_EXP (exp));
+  BTOR_CHKCLONE_RES (res, is_array, BTOR_CLONED_EXP (exp));
 #endif
   BTOR_TRAPI_RETURN (res);
   return res;
@@ -3105,7 +3068,7 @@ boolector_is_array_var (Btor *btor, BoolectorNode *node)
   simp = btor_simplify_exp (btor, exp);
   res  = btor_is_array_var_exp (btor, simp);
 #ifndef NDEBUG
-  BTOR_CHKCLONE_RES (res, boolector_is_array_var, BTOR_CLONED_EXP (exp));
+  BTOR_CHKCLONE_RES (res, is_array_var, BTOR_CLONED_EXP (exp));
 #endif
   BTOR_TRAPI_RETURN (res);
   return res;
@@ -3124,7 +3087,7 @@ boolector_is_param (Btor *btor, BoolectorNode *node)
   simp = btor_simplify_exp (btor, exp);
   res  = btor_is_param_exp (btor, simp);
 #ifndef NDEBUG
-  BTOR_CHKCLONE_RES (res, boolector_is_param, node);
+  BTOR_CHKCLONE_RES (res, is_param, node);
 #endif
   BTOR_TRAPI_RETURN (res);
   return res;
@@ -3146,7 +3109,7 @@ boolector_is_bound_param (Btor *btor, BoolectorNode *node)
                         "given expression is not a parameter node");
   res = btor_is_bound_param_exp (btor, simp);
 #ifndef NDEBUG
-  BTOR_CHKCLONE_RES (res, boolector_is_bound_param, node);
+  BTOR_CHKCLONE_RES (res, is_bound_param, node);
 #endif
   BTOR_TRAPI_RETURN (res);
   return res;
@@ -3166,7 +3129,7 @@ boolector_is_fun (Btor *btor, BoolectorNode *node)
   simp = btor_simplify_exp (btor, exp);
   res  = btor_is_fun_exp (btor, simp);
 #ifndef NDEBUG
-  BTOR_CHKCLONE_RES (res, boolector_is_fun, BTOR_CLONED_EXP (exp));
+  BTOR_CHKCLONE_RES (res, is_fun, BTOR_CLONED_EXP (exp));
 #endif
   BTOR_TRAPI_RETURN (res);
   return res;
@@ -3188,7 +3151,7 @@ boolector_get_fun_arity (Btor *btor, BoolectorNode *node)
                         "given expression is not a function node");
   res = btor_get_fun_arity (btor, simp);
 #ifndef NDEBUG
-  BTOR_CHKCLONE_RES (res, boolector_get_fun_arity, BTOR_CLONED_EXP (exp));
+  BTOR_CHKCLONE_RES (res, get_fun_arity, BTOR_CLONED_EXP (exp));
 #endif
   BTOR_TRAPI_RETURN (res);
   return res;
@@ -3208,7 +3171,7 @@ boolector_is_args (Btor *btor, BoolectorNode *node)
   simp = btor_simplify_exp (btor, exp);
   res  = btor_is_args_exp (btor, simp);
 #ifndef NDEBUG
-  BTOR_CHKCLONE_RES (res, boolector_is_args, BTOR_CLONED_EXP (exp));
+  BTOR_CHKCLONE_RES (res, is_args, BTOR_CLONED_EXP (exp));
 #endif
   BTOR_TRAPI_RETURN (res);
   return res;
@@ -3230,7 +3193,7 @@ boolector_get_args_arity (Btor *btor, BoolectorNode *node)
                         "given expression is not an argument node");
   res = btor_get_args_arity (btor, simp);
 #ifndef NDEBUG
-  BTOR_CHKCLONE_RES (res, boolector_get_args_arity, BTOR_CLONED_EXP (exp));
+  BTOR_CHKCLONE_RES (res, get_args_arity, BTOR_CLONED_EXP (exp));
 #endif
   BTOR_TRAPI_RETURN (res);
   return res;
@@ -3251,7 +3214,7 @@ boolector_get_index_width (Btor *btor, BoolectorNode *n_array)
   BTOR_ABORT_BV_BOOLECTOR (simp_array);
   res = btor_get_index_exp_len (btor, simp_array);
 #ifndef NDEBUG
-  BTOR_CHKCLONE_RES (res, boolector_get_index_width, BTOR_CLONED_EXP (e_array));
+  BTOR_CHKCLONE_RES (res, get_index_width, BTOR_CLONED_EXP (e_array));
 #endif
   BTOR_TRAPI_RETURN (res);
   return res;
@@ -3296,7 +3259,7 @@ boolector_fun_sort_check (Btor *btor,
   for (i = 0; btor->clone && i < argc; i++)
     carg_nodes[i] = BTOR_CLONED_EXP (args[i]);
   BTOR_CHKCLONE_RES (
-      res, boolector_fun_sort_check, argc, carg_nodes, BTOR_CLONED_EXP (e_fun));
+      res, fun_sort_check, argc, carg_nodes, BTOR_CLONED_EXP (e_fun));
 #endif
   BTOR_TRAPI_RETURN (res);
   return res;
@@ -3315,8 +3278,7 @@ boolector_get_symbol_of_var (Btor *btor, BoolectorNode *node)
   BTOR_ABORT_REFS_NOT_POS_BOOLECTOR (exp);
   res = (const char *) btor_get_symbol_exp (btor, exp);
 #ifndef NDEBUG
-  BTOR_CHKCLONE_RES_STR (
-      res, boolector_get_symbol_of_var, BTOR_CLONED_EXP (exp));
+  BTOR_CHKCLONE_RES_STR (res, get_symbol_of_var, BTOR_CLONED_EXP (exp));
 #endif
   BTOR_TRAPI_RETURN_STR (res);
   return res;
@@ -3336,7 +3298,7 @@ boolector_copy (Btor *btor, BoolectorNode *node)
   res = btor_copy_exp (btor, exp);
   BTOR_REAL_ADDR_NODE (res)->ext_refs += 1;
 #ifndef NDEBUG
-  BTOR_CHKCLONE_RES_PTR (res, boolector_copy, BTOR_CLONED_EXP (exp));
+  BTOR_CHKCLONE_RES_PTR (res, copy, BTOR_CLONED_EXP (exp));
 #endif
   BTOR_TRAPI_RETURN_NODE (res);
   return BTOR_EXPORT_BOOLECTOR_NODE (res);
@@ -3360,7 +3322,7 @@ boolector_release (Btor *btor, BoolectorNode *node)
   BTOR_REAL_ADDR_NODE (exp)->ext_refs -= 1;
   btor_release_exp (btor, exp);
 #ifndef NDEBUG
-  BTOR_CHKCLONE_NORES (boolector_release, cexp);
+  BTOR_CHKCLONE_NORES (release, cexp);
 #endif
 }
 
@@ -3377,7 +3339,7 @@ boolector_dump_btor (Btor *btor, FILE *file, BoolectorNode *node)
   BTOR_ABORT_REFS_NOT_POS_BOOLECTOR (exp);
   btor_dump_btor_node (btor, file, exp);
 #ifndef NDEBUG
-  BTOR_CHKCLONE_NORES (boolector_dump_btor, file, BTOR_CLONED_EXP (exp));
+  BTOR_CHKCLONE_NORES (dump_btor, file, BTOR_CLONED_EXP (exp));
 #endif
 }
 
@@ -3388,6 +3350,9 @@ boolector_dump_btor_all (Btor *btor, FILE *file)
   BTOR_ABORT_ARG_NULL_BOOLECTOR (btor);
   BTOR_ABORT_ARG_NULL_BOOLECTOR (file);
   btor_dump_btor_after_simplify (btor, file);
+#ifndef NDEBUG
+  BTOR_CHKCLONE_NORES (dump_btor_all, file);
+#endif
 }
 
 void
@@ -3403,7 +3368,7 @@ boolector_dump_smt (Btor *btor, FILE *file, BoolectorNode *node)
   BTOR_ABORT_REFS_NOT_POS_BOOLECTOR (exp);
   btor_dump_smt1 (btor, file, &exp, 1);
 #ifndef NDEBUG
-  BTOR_CHKCLONE_NORES (boolector_dump_smt, file, BTOR_CLONED_EXP (exp));
+  BTOR_CHKCLONE_NORES (dump_smt, file, BTOR_CLONED_EXP (exp));
 #endif
 }
 
@@ -3413,6 +3378,9 @@ boolector_dump_smt_all (Btor *btor, FILE *file)
   BTOR_ABORT_ARG_NULL_BOOLECTOR (btor);
   BTOR_ABORT_ARG_NULL_BOOLECTOR (file);
   btor_dump_smt1_after_simplify (btor, file);
+#ifndef NDEBUG
+  BTOR_CHKCLONE_NORES (dump_smt_all, file);
+#endif
 }
 
 void
@@ -3428,7 +3396,7 @@ boolector_dump_smt2 (Btor *btor, FILE *file, BoolectorNode *node)
   BTOR_ABORT_REFS_NOT_POS_BOOLECTOR (exp);
   btor_dump_smt2 (btor, file, &exp, 1);
 #ifndef NDEBUG
-  BTOR_CHKCLONE_NORES (boolector_dump_smt2, file, BTOR_CLONED_EXP (exp));
+  BTOR_CHKCLONE_NORES (dump_smt2, file, BTOR_CLONED_EXP (exp));
 #endif
 }
 
@@ -3438,6 +3406,9 @@ boolector_dump_smt2_all (Btor *btor, FILE *file)
   BTOR_ABORT_ARG_NULL_BOOLECTOR (btor);
   BTOR_ABORT_ARG_NULL_BOOLECTOR (file);
   btor_dump_smt2_after_simplify (btor, file);
+#ifndef NDEBUG
+  BTOR_CHKCLONE_NORES (dump_smt2_all, file, BTOR_CLONED_EXP (exp));
+#endif
 }
 
 void
@@ -3456,7 +3427,7 @@ boolector_assert (Btor *btor, BoolectorNode *node)
                         "'exp' must have bit-width one");
   btor_assert_exp (btor, simp);
 #ifndef NDEBUG
-  BTOR_CHKCLONE_NORES (boolector_assert, BTOR_CLONED_EXP (exp));
+  BTOR_CHKCLONE_NORES (assert, BTOR_CLONED_EXP (exp));
 #endif
 }
 
@@ -3478,7 +3449,7 @@ boolector_assume (Btor *btor, BoolectorNode *node)
                         "'exp' must have bit-width one");
   btor_assume_exp (btor, simp);
 #ifndef NDEBUG
-  BTOR_CHKCLONE_NORES (boolector_assume, BTOR_CLONED_EXP (exp));
+  BTOR_CHKCLONE_NORES (assume, BTOR_CLONED_EXP (exp));
 #endif
 }
 
@@ -3494,7 +3465,7 @@ boolector_sat (Btor *btor)
                         "'boolector_sat' may only be called once");
   res = btor_sat_btor (btor);
 #ifndef NDEBUG
-  BTOR_CHKCLONE_RES (res, boolector_sat);
+  BTOR_CHKCLONE_RES (res, sat);
 #endif
   BTOR_TRAPI_RETURN (res);
   return res;
@@ -3551,7 +3522,7 @@ boolector_free_bv_assignment (Btor *btor, const char *assignment)
 #endif
   btor_release_bv_assignment (btor->bv_assignments, assignment);
 #ifndef NDEBUG
-  BTOR_CHKCLONE_NORES (boolector_free_bv_assignment, cass);
+  BTOR_CHKCLONE_NORES (free_bv_assignment, cass);
 #endif
 }
 
@@ -3656,7 +3627,6 @@ boolector_free_array_assignment (Btor *btor,
   btor_release_array_assignment (
       btor->array_assignments, indices, values, size);
 #ifndef NDEBUG
-  BTOR_CHKCLONE_NORES (
-      boolector_free_array_assignment, cindices, cvalues, size);
+  BTOR_CHKCLONE_NORES (free_array_assignment, cindices, cvalues, size);
 #endif
 }
