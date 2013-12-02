@@ -41,7 +41,7 @@ BtorBVAssignmentList *btor_clone_bv_assignment_list (BtorMemMgr *,
                                                      BtorBVAssignmentList *);
 
 /* Delete bv assignment list. */
-void btor_delete_bv_assignment_list (BtorBVAssignmentList *);
+void btor_delete_bv_assignment_list (BtorBVAssignmentList *, int);
 
 /* Get BtorBVAssignment bucket reference from bv assignment string. */
 BtorBVAssignment *btor_get_bv_assignment (const char *);
@@ -85,7 +85,7 @@ BtorArrayAssignmentList *btor_clone_array_assignment_list (
     BtorMemMgr *, BtorArrayAssignmentList *);
 
 /* Delete array assignment list. */
-void btor_delete_array_assignment_list (BtorArrayAssignmentList *);
+void btor_delete_array_assignment_list (BtorArrayAssignmentList *, int);
 
 /* Get BtorArrayAssignment bucket reference from indices reference. */
 BtorArrayAssignment *btor_get_array_assignment (const char **,

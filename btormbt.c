@@ -1358,6 +1358,9 @@ _opt (BtorMBT *btormbt, unsigned r)
   int rw;
   RNG rng = initrng (r);
 
+  BTORMBT_LOG (1, btormbt, "enable force cleanup\n");
+  boolector_enable_force_cleanup (btormbt->btor);
+
   if (pick (&rng, 0, 1))
   {
     BTORMBT_LOG (1, btormbt, "enable model generation\n");

@@ -970,6 +970,17 @@ boolector_enable_beta_reduce_all (Btor *btor)
 #endif
 }
 
+void
+boolector_enable_force_cleanup (Btor *btor)
+{
+  BTOR_ABORT_ARG_NULL_BOOLECTOR (btor);
+  BTOR_TRAPI ("enable_force_cleanup");
+  btor_enable_force_cleanup (btor);
+#ifndef NDEBUG
+  BTOR_CHKCLONE_NORES (btor_enable_force_cleanup);
+#endif
+}
+
 int
 boolector_set_sat_solver (Btor *btor, const char *solver)
 {

@@ -430,6 +430,13 @@ btor_enable_beta_reduce_all (Btor *btor)
 }
 
 void
+btor_enable_force_cleanup (Btor *btor)
+{
+  assert (btor);
+  btor->force_cleanup = 1;
+}
+
+void
 btor_disable_pretty_print (Btor *btor)
 {
   assert (btor);
@@ -833,8 +840,9 @@ btor_delete_btor (Btor *btor)
 
   btor_release_exp (btor, btor->true_exp);
 
-  btor_delete_bv_assignment_list (btor->bv_assignments);
-  btor_delete_array_assignment_list (btor->array_assignments);
+  btor_delete_bv_assignment_list (btor->bv_assignments, btor->force_cleanup);
+  btor_delete_array_assignment_list (btor->array_assignments,
+                                     btor->force_cleanup);
 
   for (b = btor->lod_cache->first; b; b = b->next)
     btor_release_exp (btor, (BtorNode *) b->key);
@@ -895,7 +903,7 @@ btor_delete_btor (Btor *btor)
     btor_release_exp (btor, BTOR_POP_STACK (stack));
   BTOR_RELEASE_STACK (mm, stack);
 
-  if (btor->external_refs)
+  if (btor->force_cleanup && btor->external_refs)
   {
     for (i = BTOR_COUNT_STACK (btor->nodes_id_table) - 1; i >= 0; i--)
     {
@@ -914,7 +922,6 @@ btor_delete_btor (Btor *btor)
     for (i = BTOR_COUNT_STACK (btor->nodes_id_table) - 1; i >= 0; i--)
       assert (!BTOR_PEEK_STACK (btor->nodes_id_table, i));
   }
-
 #ifndef NDEBUG
   int k;
   BtorNode *cur;

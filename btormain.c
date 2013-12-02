@@ -66,6 +66,7 @@ struct BtorMainApp
 #endif
   int incremental;
   int beta_reduce_all;
+  int force_cleanup;
   int pprint;
 #ifdef BTOR_USE_LINGELING
   int nofork;
@@ -111,10 +112,10 @@ static const char *g_usage =
     "  -c, --copyright                  print copyright and exit\n"
     "  -V, --version                    print version and exit\n"
     "\n"
-    "  -m|--model                       print model in the SAT case\n"
-    "  -v|--verbose                     increase verbosity (0 default, 4 max)\n"
+    "  -m, --model                      print model in the SAT case\n"
+    "  -v, --verbose                    increase verbosity (0 default, 4 max)\n"
 #ifndef NBTORLOG
-    "  -l|--log                         increase loglevel (0 default)\n"
+    "  -l, --log                        increase loglevel (0 default)\n"
 #endif
     "\n"
     "  -i, --inc[remental]              incremental mode (SMT1 only)\n"
@@ -146,6 +147,7 @@ static const char *g_usage =
     "\n"
     "  -rwl<n>, --rewrite-level<n>      set rewrite level [0,3] (default 3)\n"
     "  -bra, --beta-reduce-all          eliminate lambda expressions\n"
+    "  -fc, --force-cleanup             force cleanup on exit\n"
     // TODO: -npp|--no-pretty-print ? (debug only?)
     "\n"
 #ifdef BTOR_USE_PICOSAT
@@ -603,6 +605,11 @@ parse_commandline_arguments (BtorMainApp *app)
     {
       app->beta_reduce_all = 1;
     }
+    else if (!strcmp (app->argv[app->argpos], "-fc")
+             || !strcmp (app->argv[app->argpos], "--force-cleanup"))
+    {
+      app->force_cleanup = 1;
+    }
     else if (!strcmp (app->argv[app->argpos], "-npp")
              || !strcmp (app->argv[app->argpos], "--no-pretty-print"))
     {
@@ -1033,6 +1040,7 @@ boolector_main (int argc, char **argv)
   app.force_smt_input        = 0;
   app.print_model            = 0;
   app.beta_reduce_all        = 0;
+  app.force_cleanup          = 0;
   app.pprint                 = 1;
   app.forced_sat_solver_name = 0;
   app.forced_sat_solvers     = 0;
@@ -1089,6 +1097,8 @@ boolector_main (int argc, char **argv)
     btor_set_rewrite_level_btor (btor, app.rewrite_level);
 
     if (app.beta_reduce_all) btor_enable_beta_reduce_all (btor);
+
+    if (app.force_cleanup) btor_enable_force_cleanup (btor);
 
     if (!app.pprint) btor_disable_pretty_print (btor);
 

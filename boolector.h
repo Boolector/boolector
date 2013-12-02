@@ -241,6 +241,12 @@ int boolector_simplify (Btor *btor);
 
 void boolector_enable_beta_reduce_all (Btor *btor);
 
+/* Enables forced automatic cleanup of expressions and assignment string on
+ * \ref boolector_delete.
+ * \param btor Boolector instance.
+ */
+void boolector_enable_force_cleanup (Btor *btor);
+
 /*------------------------------------------------------------------------*/
 
 /**

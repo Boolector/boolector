@@ -101,6 +101,7 @@ struct Btor
   int btor_sat_btor_called; /* how often is btor_sat_btor been called */
   int msgtick;              /* message tick in incremental mode */
   int beta_reduce_all;      /* eliminate lambda expressions */
+  int force_cleanup;        /* force cleanup of exps, assignment strings */
   int pprint;               /* reindex exps when dumping */
   int last_sat_result;      /* status of last SAT call (SAT/UNSAT) */
 
@@ -196,6 +197,9 @@ void btor_generate_model_for_all_reads (Btor *btor);
 
 /* Enable rewriting of reads on lambda expressions. */
 void btor_enable_beta_reduce_all (Btor *btor);
+
+/* Enable forcing of automatic clenaup of expressions and assignment strings. */
+void btor_enable_force_cleanup (Btor *btor);
 
 /* Disable pretty printing when dumping and rewriting of writes is enabled.  */
 void btor_disable_pretty_print (Btor *btor);
