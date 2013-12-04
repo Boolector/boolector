@@ -992,6 +992,7 @@ boolector_set_verbosity (Btor *btor, int verbosity)
 #endif
 }
 
+#ifndef NBTORLOG
 void
 boolector_set_loglevel (Btor *btor, int loglevel)
 {
@@ -1002,6 +1003,7 @@ boolector_set_loglevel (Btor *btor, int loglevel)
   BTOR_CHKCLONE_NORES (set_loglevel, loglevel);
 #endif
 }
+#endif
 
 int
 boolector_set_sat_solver (Btor *btor, const char *solver)

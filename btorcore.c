@@ -492,16 +492,16 @@ btor_set_verbosity_btor (Btor *btor, int verbosity)
   btor_set_verbosity_sat_mgr (smgr, verbosity);
 }
 
+#ifndef NBTORLOG
 void
 btor_set_loglevel_btor (Btor *btor, int loglevel)
 {
   assert (btor);
   (void) btor;
   (void) loglevel;
-#ifndef NBTORLOG
   btor->loglevel = loglevel;
-#endif
 }
+#endif
 
 static int
 constraints_stats_changes (Btor *btor)
