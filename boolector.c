@@ -813,43 +813,43 @@ btor_chkclone_tables (Btor *btor)
     btor_chkclone_tables (btor);                                       \
   } while (0)
 
-#define BTOR_CHKCLONE_NORES(fun, args...) \
-  do                                      \
-  {                                       \
-    if (!btor->clone) break;              \
-    boolector##fun (btor->clone, ##args); \
-    BTOR_CHKCLONE ();                     \
+#define BTOR_CHKCLONE_NORES(fun, args...)  \
+  do                                       \
+  {                                        \
+    if (!btor->clone) break;               \
+    boolector_##fun (btor->clone, ##args); \
+    BTOR_CHKCLONE ();                      \
   } while (0)
 
-#define BTOR_CHKCLONE_RES(res, fun, args...)             \
-  do                                                     \
-  {                                                      \
-    if (!btor->clone) break;                             \
-    int cloneres = boolector##fun (btor->clone, ##args); \
-    (void) cloneres;                                     \
-    assert (cloneres == res);                            \
-    BTOR_CHKCLONE ();                                    \
+#define BTOR_CHKCLONE_RES(res, fun, args...)              \
+  do                                                      \
+  {                                                       \
+    if (!btor->clone) break;                              \
+    int cloneres = boolector_##fun (btor->clone, ##args); \
+    (void) cloneres;                                      \
+    assert (cloneres == res);                             \
+    BTOR_CHKCLONE ();                                     \
   } while (0)
 
-#define BTOR_CHKCLONE_RES_PTR(res, fun, args...)                           \
-  do                                                                       \
-  {                                                                        \
-    if (!btor->clone) break;                                               \
-    BtorNode *cloneres =                                                   \
-        BTOR_IMPORT_BOOLECTOR_NODE (boolector##fun (btor->clone, ##args)); \
-    (void) cloneres;                                                       \
-    btor_chkclone_exp (res, cloneres);                                     \
-    BTOR_CHKCLONE ();                                                      \
+#define BTOR_CHKCLONE_RES_PTR(res, fun, args...)                            \
+  do                                                                        \
+  {                                                                         \
+    if (!btor->clone) break;                                                \
+    BtorNode *cloneres =                                                    \
+        BTOR_IMPORT_BOOLECTOR_NODE (boolector_##fun (btor->clone, ##args)); \
+    (void) cloneres;                                                        \
+    btor_chkclone_exp (res, cloneres);                                      \
+    BTOR_CHKCLONE ();                                                       \
   } while (0)
 
-#define BTOR_CHKCLONE_RES_STR(res, fun, args...)                 \
-  do                                                             \
-  {                                                              \
-    if (!btor->clone) break;                                     \
-    const char *cloneres = boolector##fun (btor->clone, ##args); \
-    (void) cloneres;                                             \
-    assert (!strcmp (cloneres, res));                            \
-    BTOR_CHKCLONE ();                                            \
+#define BTOR_CHKCLONE_RES_STR(res, fun, args...)                  \
+  do                                                              \
+  {                                                               \
+    if (!btor->clone) break;                                      \
+    const char *cloneres = boolector_##fun (btor->clone, ##args); \
+    (void) cloneres;                                              \
+    assert (!strcmp (cloneres, res));                             \
+    BTOR_CHKCLONE ();                                             \
   } while (0)
 
 #define BTOR_CLONED_EXP(exp)                                                 \
@@ -916,7 +916,7 @@ boolector_set_rewrite_level (Btor *btor, int rewrite_level)
       "setting rewrite level must be done before creating expressions");
   btor_set_rewrite_level_btor (btor, rewrite_level);
 #ifndef NDEBUG
-  BTOR_CHKCLONE_NORES (rewrite_level);
+  BTOR_CHKCLONE_NORES (set_rewrite_level, rewrite_level);
 #endif
 }
 
@@ -3409,7 +3409,7 @@ boolector_dump_smt2_all (Btor *btor, FILE *file)
   BTOR_ABORT_ARG_NULL_BOOLECTOR (file);
   btor_dump_smt2_after_simplify (btor, file);
 #ifndef NDEBUG
-  BTOR_CHKCLONE_NORES (dump_smt2_all, file, BTOR_CLONED_EXP (exp));
+  BTOR_CHKCLONE_NORES (dump_smt2_all, file);
 #endif
 }
 
