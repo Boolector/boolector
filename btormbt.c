@@ -2049,9 +2049,8 @@ finish (void)
 int
 main (int argc, char **argv)
 {
-  int i, max, mac, pid, prev, res, seeded;
-  char name[100];
-  char *aname, *cmd;
+  int i, max, mac, pid, prev, res, seeded, quiet;
+  char *name, *cmd;
 
   start_time = current_time ();
 
@@ -2103,12 +2102,7 @@ main (int argc, char **argv)
     }
   }
 
-  if (!(aname = getenv ("BTORAPITRACE")))
-  {
-    sprintf (name, "/tmp/bug-%d-mbt.trace", getpid ());
-    setenv ("BTORAPITRACE", name, 1);
-  }
-
+  quiet    = env.quiet;
   env.ppid = getpid ();
   setsighandlers ();
 
@@ -2144,21 +2138,33 @@ main (int argc, char **argv)
         fflush (stdout);
       }
 
-      res = run (rantrav);
+      env.quiet = 1;
+      res       = run (rantrav);
+      env.quiet = quiet;
 
       if (res > 0)
       {
         env.bugs++;
         env.bugs++;
         cmd = malloc (strlen (name) + 80);
-        sprintf (cmd, "cp %s btormbt-bug-%d.trace", name, env.seed);
-
+        if ((name = getenv ("BTORAPITRACE")))
+          sprintf (cmd, "cp %s btormbt-bug-%d.trace", name, env.seed);
+        else
+        {
+          name = malloc (100 * sizeof (char));
+          sprintf (name, "/tmp/bug-%d-mbt.trace", getpid ());
+          setenv ("BTORAPITRACE", name, 1);
+          sprintf (cmd, "cp %s btormbt-bug-%d.trace", name, env.seed);
+          free (name);
+          res = run (rantrav); /* replay */
+          assert (res);
+          unsetenv ("BTORAPITRACE");
+        }
         if (system (cmd))
         {
           printf ("Error on copy command %s \n", cmd);
           exit (1);
         }
-
         free (cmd);
       }
 
