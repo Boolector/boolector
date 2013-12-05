@@ -101,6 +101,7 @@ struct Btor
   int btor_sat_btor_called; /* how often is btor_sat_btor been called */
   int msgtick;              /* message tick in incremental mode */
   int beta_reduce_all;      /* eliminate lambda expressions */
+  int force_cleanup;        /* force cleanup of exps, assignment strings */
   int pprint;               /* reindex exps when dumping */
   int last_sat_result;      /* status of last SAT call (SAT/UNSAT) */
 
@@ -155,7 +156,8 @@ struct Btor
                                     write during construction */
     long long int lemmas_size_sum;  /* sum of the size of all added lemmas */
     long long int lclause_size_sum; /* sum of the size of all linking clauses */
-    ConstraintStats constraints, oldconstraints;
+    ConstraintStats constraints;
+    ConstraintStats oldconstraints;
     long long expressions;
     long long beta_reduce_calls;
     long long eval_exp_calls;
@@ -182,6 +184,7 @@ struct Btor
     double enc_lambda;
     double enc_var;
     double find_dfs;
+    double cloning;
   } time;
 };
 
@@ -196,6 +199,9 @@ void btor_generate_model_for_all_reads (Btor *btor);
 
 /* Enable rewriting of reads on lambda expressions. */
 void btor_enable_beta_reduce_all (Btor *btor);
+
+/* Enable forcing of automatic clenaup of expressions and assignment strings. */
+void btor_enable_force_cleanup (Btor *btor);
 
 /* Disable pretty printing when dumping and rewriting of writes is enabled.  */
 void btor_disable_pretty_print (Btor *btor);
@@ -217,9 +223,8 @@ int btor_set_sat_solver (Btor *, const char *);
  */
 void btor_set_verbosity_btor (Btor *btor, int verbosity);
 
-/* Set log level.
- */
 #ifndef NBTORLOG
+/* Set log level. */
 void btor_set_loglevel_btor (Btor *btor, int loglevel);
 #endif
 

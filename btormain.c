@@ -11,6 +11,7 @@
  */
 
 #include "btormain.h"
+#include "boolector.h"
 #include "btoraig.h"
 #include "btoraigvec.h"
 #include "btorconfig.h"
@@ -66,6 +67,7 @@ struct BtorMainApp
 #endif
   int incremental;
   int beta_reduce_all;
+  int force_cleanup;
   int pprint;
 #ifdef BTOR_USE_LINGELING
   int nofork;
@@ -111,10 +113,10 @@ static const char *g_usage =
     "  -c, --copyright                  print copyright and exit\n"
     "  -V, --version                    print version and exit\n"
     "\n"
-    "  -m|--model                       print model in the SAT case\n"
-    "  -v|--verbose                     increase verbosity (0 default, 4 max)\n"
+    "  -m, --model                      print model in the SAT case\n"
+    "  -v, --verbose                    increase verbosity (0 default, 4 max)\n"
 #ifndef NBTORLOG
-    "  -l|--log                         increase loglevel (0 default)\n"
+    "  -l, --log                        increase loglevel (0 default)\n"
 #endif
     "\n"
     "  -i, --inc[remental]              incremental mode (SMT1 only)\n"
@@ -146,6 +148,7 @@ static const char *g_usage =
     "\n"
     "  -rwl<n>, --rewrite-level<n>      set rewrite level [0,3] (default 3)\n"
     "  -bra, --beta-reduce-all          eliminate lambda expressions\n"
+    "  -fc, --force-cleanup             force cleanup on exit\n"
     // TODO: -npp|--no-pretty-print ? (debug only?)
     "\n"
 #ifdef BTOR_USE_PICOSAT
@@ -193,42 +196,42 @@ static const char *g_copyright =
 #endif
     ;
 
-static int btor_static_verbosity;
-static BtorSATMgr *btor_static_smgr;
-static Btor *btor_static_btor;
-static int btor_static_catched_sig;
-static int btor_static_set_alarm;
+static int static_verbosity;
+static BtorSATMgr *static_smgr;
+static Btor *static_btor;
+static int static_caught_sig;
+static int static_set_alarm;
 #ifdef BTOR_HAVE_GETRUSAGE
-static double btor_static_start_time;
+static double static_start_time;
 #endif
 
-static void (*btor_sig_int_handler) (int);
-static void (*btor_sig_segv_handler) (int);
-static void (*btor_sig_abrt_handler) (int);
-static void (*btor_sig_term_handler) (int);
-static void (*btor_sig_bus_handler) (int);
+static void (*sig_int_handler) (int);
+static void (*sig_segv_handler) (int);
+static void (*sig_abrt_handler) (int);
+static void (*sig_term_handler) (int);
+static void (*sig_bus_handler) (int);
 
 /*------------------------------------------------------------------------*/
 
 static void
-btor_reset_sig_handlers (void)
+reset_sig_handlers (void)
 {
-  (void) signal (SIGINT, btor_sig_int_handler);
-  (void) signal (SIGSEGV, btor_sig_segv_handler);
-  (void) signal (SIGABRT, btor_sig_abrt_handler);
-  (void) signal (SIGTERM, btor_sig_term_handler);
-  (void) signal (SIGBUS, btor_sig_bus_handler);
+  (void) signal (SIGINT, sig_int_handler);
+  (void) signal (SIGSEGV, sig_segv_handler);
+  (void) signal (SIGABRT, sig_abrt_handler);
+  (void) signal (SIGTERM, sig_term_handler);
+  (void) signal (SIGBUS, sig_bus_handler);
 }
 
 static void
-btor_catched_sig_msg (int sig)
+caught_sig_msg (int sig)
 {
   printf ("[btormain] CAUGHT SIGNAL %d\n", sig);
   fflush (stdout);
 }
 
 static void
-btor_msg_main (char *msg)
+msg_main (char *msg)
 {
   assert (msg);
   fprintf (stdout, "[btormain] %s", msg);
@@ -236,7 +239,7 @@ btor_msg_main (char *msg)
 }
 
 static void
-btor_msg_main_va_args (char *msg, ...)
+msg_main_va_args (char *msg, ...)
 {
   va_list list;
   assert (msg);
@@ -247,88 +250,89 @@ btor_msg_main_va_args (char *msg, ...)
 }
 
 static void
-btor_print_static_stats (void)
+print_static_stats (void)
 {
   size_t maxallocated;
 #ifdef BTOR_HAVE_GETRUSAGE
-  double delta_time = delta_time = btor_time_stamp () - btor_static_start_time;
-  btor_msg_main_va_args ("%.1f seconds\n", delta_time);
+  // FIXME api?? (is util fct)
+  double delta_time = delta_time = btor_time_stamp () - static_start_time;
+  msg_main_va_args ("%.1f seconds\n", delta_time);
 #else
-  btor_msg_main ("can not determine run-time in seconds (no getrusage)");
+  msg_main ("can not determine run-time in seconds (no getrusage)");
 #endif
-  maxallocated = btor_static_btor ? btor_static_btor->mm->maxallocated : 0;
-  btor_msg_main_va_args ("%.1f MB\n", maxallocated / (double) (1 << 20));
+  maxallocated = static_btor ? static_btor->mm->maxallocated : 0;
+  msg_main_va_args ("%.1f MB\n", maxallocated / (double) (1 << 20));
 }
 
 static void
-btor_catch_sig (int sig)
+catch_sig (int sig)
 {
-  if (!btor_static_catched_sig)
+  if (!static_caught_sig)
   {
-    btor_static_catched_sig = 1;
-    btor_catched_sig_msg (sig);
+    static_caught_sig = 1;
+    caught_sig_msg (sig);
     fputs ("unknown\n", stdout);
     fflush (stdout);
-    if (btor_static_verbosity > 0)
+    if (static_verbosity > 0)
     {
-      if (btor_static_smgr) btor_print_stats_sat (btor_static_smgr);
-      if (btor_static_btor) btor_print_stats_btor (btor_static_btor);
-      btor_print_static_stats ();
-      btor_catched_sig_msg (sig);
+      if (static_smgr) btor_print_stats_sat (static_smgr);
+      if (static_btor) btor_print_stats_btor (static_btor);
+      print_static_stats ();
+      caught_sig_msg (sig);
     }
   }
-  btor_reset_sig_handlers ();
+  reset_sig_handlers ();
   raise (sig);
   exit (sig);
 }
 
 static void
-btor_set_sig_handlers (void)
+set_sig_handlers (void)
 {
-  btor_sig_int_handler  = signal (SIGINT, btor_catch_sig);
-  btor_sig_segv_handler = signal (SIGSEGV, btor_catch_sig);
-  btor_sig_abrt_handler = signal (SIGABRT, btor_catch_sig);
-  btor_sig_term_handler = signal (SIGTERM, btor_catch_sig);
-  btor_sig_bus_handler  = signal (SIGBUS, btor_catch_sig);
+  sig_int_handler  = signal (SIGINT, catch_sig);
+  sig_segv_handler = signal (SIGSEGV, catch_sig);
+  sig_abrt_handler = signal (SIGABRT, catch_sig);
+  sig_term_handler = signal (SIGTERM, catch_sig);
+  sig_bus_handler  = signal (SIGBUS, catch_sig);
 }
 
-static void (*btor_sig_alrm_handler) (int);
+static void (*sig_alrm_handler) (int);
 
 static void
-btor_reset_alarm (void)
+reset_alarm (void)
 {
   alarm (0);
-  (void) signal (SIGALRM, btor_sig_alrm_handler);
+  (void) signal (SIGALRM, sig_alrm_handler);
 }
 
 static void
-btor_catch_alarm (int sig)
+catch_alarm (int sig)
 {
   (void) sig;
   assert (sig == SIGALRM);
-  if (btor_static_set_alarm > 0)
+  if (static_set_alarm > 0)
   {
     printf ("[btormain] ALARM TRIGGERED: time limit %d seconds reached\n",
-            btor_static_set_alarm);
+            static_set_alarm);
     fputs ("unknown\n", stdout);
     fflush (stdout);
-    if (btor_static_verbosity > 0)
+    if (static_verbosity > 0)
     {
-      if (btor_static_smgr) btor_print_stats_sat (btor_static_smgr);
-      if (btor_static_btor) btor_print_stats_btor (btor_static_btor);
-      btor_print_static_stats ();
+      if (static_smgr) btor_print_stats_sat (static_smgr);
+      if (static_btor) btor_print_stats_btor (static_btor);
+      print_static_stats ();
     }
   }
-  btor_reset_alarm ();
+  reset_alarm ();
   exit (0);
 }
 
 static void
-btor_set_alarm (void)
+set_alarm (void)
 {
-  btor_sig_alrm_handler = signal (SIGALRM, btor_catch_alarm);
-  assert (btor_static_set_alarm > 0);
-  alarm (btor_static_set_alarm);
+  sig_alrm_handler = signal (SIGALRM, catch_alarm);
+  assert (static_set_alarm > 0);
+  alarm (static_set_alarm);
 }
 
 static void
@@ -377,7 +381,7 @@ file_name_has_suffix (const char *str, const char *suffix)
 }
 
 static char *
-format_assignment (BtorMainApp *app, Btor *btor, char *assignment)
+format_assignment_str (BtorMainApp *app, Btor *btor, const char *assignment)
 {
   char *pretty, *grounded;
   BtorBasis basis;
@@ -395,94 +399,97 @@ format_assignment (BtorMainApp *app, Btor *btor, char *assignment)
 
   if (not_binary)
   {
+    // FIXME api?? (is util fct)
     grounded = btor_ground_const_3vl (mm, assignment);
 
     if (basis == BTOR_HEXADECIMAL_BASIS)
+      // FIXME api?? (is util fct)
       pretty = btor_const_to_hex (mm, grounded);
     else
     {
       assert (basis == BTOR_DECIMAL_BASIS);
+      // FIXME api?? (is util fct)
       pretty = btor_const_to_decimal (mm, grounded);
     }
 
+    // FIXME api?? (is util fct)
     btor_delete_const (mm, grounded);
   }
   else
+    // FIXME api?? (is util fct)
     pretty = btor_copy_const (mm, assignment);
 
   return pretty;
 }
 
 static void
-print_bv_assignment (BtorMainApp *app, Btor *btor, BtorNode *exp)
+print_bv_assignment (BtorMainApp *app, Btor *btor, BoolectorNode *node)
 {
-  char *pretty, *assignment;
-
   assert (app);
   assert (btor);
-  assert (exp);
-  assert (!BTOR_IS_INVERTED_NODE (exp));
+  assert (node);
 
-  assignment = btor_bv_assignment_exp (btor, exp);
-  assert (assignment);
+  char *pretty;
+  const char *assignment;
 
-  pretty = format_assignment (app, btor, assignment);
-  fprintf (
-      app->output_file, "%s %s\n", btor_get_symbol_exp (btor, exp), pretty);
-  btor_free_bv_assignment_exp (btor, pretty);
-  btor_free_bv_assignment_exp (btor, assignment);
+  assignment = boolector_bv_assignment (btor, node);
+  pretty     = format_assignment_str (app, btor, assignment);
+  fprintf (app->output_file,
+           "%s %s\n",
+           boolector_get_symbol_of_var (btor, node),
+           pretty);
+  // FIXME api?? (is util fct)
+  btor_freestr (btor->mm, pretty);
+  boolector_free_bv_assignment (btor, assignment);
 }
 
 static void
-print_array_assignment (BtorMainApp *app, Btor *btor, BtorNode *exp)
+print_array_assignment (BtorMainApp *app, Btor *btor, BoolectorNode *node)
 {
-  char **indices, **values;
-  char *pretty_index, *pretty_value;
-  int i, size;
-
   assert (app);
   assert (btor);
-  assert (exp);
-  assert (!BTOR_IS_INVERTED_NODE (exp));
-  btor_array_assignment_exp (btor, exp, &indices, &values, &size);
+  assert (node);
+
+  char **ind, **val;
+  char *pretty_ind, *pretty_val;
+  int i, size;
+
+  boolector_array_assignment (btor, node, &ind, &val, &size);
   if (size > 0)
   {
     for (i = 0; i < size; i++)
     {
-      pretty_index = format_assignment (app, btor, indices[i]);
-      pretty_value = format_assignment (app, btor, values[i]);
+      pretty_ind = format_assignment_str (app, btor, ind[i]);
+      pretty_val = format_assignment_str (app, btor, val[i]);
       fprintf (app->output_file,
                "%s[%s] %s\n",
-               exp->symbol,
-               pretty_index,
-               pretty_value);
-      btor_free_bv_assignment_exp (btor, pretty_index);
-      btor_free_bv_assignment_exp (btor, pretty_value);
-      btor_free_bv_assignment_exp (btor, indices[i]);
-      btor_free_bv_assignment_exp (btor, values[i]);
+               boolector_get_symbol_of_var (btor, node),
+               pretty_ind,
+               pretty_val);
+      // FIXME api?? (is util fct)
+      btor_freestr (btor->mm, pretty_ind);
+      // FIXME api?? (is util fct)
+      btor_freestr (btor->mm, pretty_val);
     }
-    BTOR_DELETEN (btor->mm, indices, size);
-    BTOR_DELETEN (btor->mm, values, size);
+    boolector_free_array_assignment (btor, ind, val, size);
   }
 }
 
 static void
 print_assignment (BtorMainApp *app, Btor *btor, BtorParseResult *parse_res)
 {
-  BtorNode *var, *temp, **inputs;
-  int i;
+  assert (app);
+  assert (btor);
+  assert (parse_res);
 
-  // FIXME btormain should use api functions only!!!
-  inputs = (BtorNode **) parse_res->inputs;
+  int i;
 
   for (i = 0; i < parse_res->ninputs; i++)
   {
-    var  = inputs[i];
-    temp = btor_simplify_exp (btor, var);
-    if (BTOR_IS_ARRAY_NODE (temp))
-      print_array_assignment (app, btor, var);
+    if (boolector_is_array (btor, parse_res->inputs[i]))
+      print_array_assignment (app, btor, parse_res->inputs[i]);
     else
-      print_bv_assignment (app, btor, var);
+      print_bv_assignment (app, btor, parse_res->inputs[i]);
   }
 }
 
@@ -563,10 +570,6 @@ parse_commandline_arguments (BtorMainApp *app)
              || !strcmp (app->argv[app->argpos], "-ds2")
              || !strcmp (app->argv[app->argpos], "--dump-smt2"))
       app->dump_smt = 2;
-    else if (!strcmp (app->argv[app->argpos], "-d2fun")
-             || !strcmp (app->argv[app->argpos], "-ds2fun")
-             || !strcmp (app->argv[app->argpos], "--dump-smt2-fun"))
-      app->dump_smt = 3;
     else if (!strcmp (app->argv[app->argpos], "-m")
              || !strcmp (app->argv[app->argpos], "--model"))
       app->print_model = 1;
@@ -602,6 +605,11 @@ parse_commandline_arguments (BtorMainApp *app)
              || !strcmp (app->argv[app->argpos], "--beta-reduce-all"))
     {
       app->beta_reduce_all = 1;
+    }
+    else if (!strcmp (app->argv[app->argpos], "-fc")
+             || !strcmp (app->argv[app->argpos], "--force-cleanup"))
+    {
+      app->force_cleanup = 1;
     }
     else if (!strcmp (app->argv[app->argpos], "-npp")
              || !strcmp (app->argv[app->argpos], "--no-pretty-print"))
@@ -671,8 +679,8 @@ parse_commandline_arguments (BtorMainApp *app)
     {
       if (app->argpos + 1 < app->argc)
       {
-        btor_static_set_alarm = atoi (app->argv[++app->argpos]);
-        if (btor_static_set_alarm <= 0)
+        static_set_alarm = atoi (app->argv[++app->argpos]);
+        if (static_set_alarm <= 0)
         {
           print_err (app, "argument to '-t' invalid (should be positive)");
           app->err = 1;
@@ -792,6 +800,7 @@ parse_commandline_arguments (BtorMainApp *app)
     else
     {
       char *name = app->argv[app->argpos];
+      // FIXME api?? (is util fct)
       if (!btor_file_exists (name))
       {
         temp_file = 0;
@@ -852,15 +861,13 @@ parse_commandline_arguments (BtorMainApp *app)
   }
 
   if (!app->err && app->verbosity > 0 && app->incremental)
-    btor_msg_main ("incremental mode through command line option\n");
+    msg_main ("incremental mode through command line option\n");
   if (!app->err && app->verbosity > 0 && app->indepth)
-    btor_msg_main_va_args ("incremental in-depth window of %d\n", app->indepth);
+    msg_main_va_args ("incremental in-depth window of %d\n", app->indepth);
   if (!app->err && app->verbosity > 0 && app->lookahead)
-    btor_msg_main_va_args ("incremental look-ahead window of %d\n",
-                           app->lookahead);
+    msg_main_va_args ("incremental look-ahead window of %d\n", app->lookahead);
   if (!app->err && app->verbosity > 0 && app->interval)
-    btor_msg_main_va_args ("incremental interval window of %d\n",
-                           app->interval);
+    msg_main_va_args ("incremental interval window of %d\n", app->interval);
 }
 
 static void
@@ -882,6 +889,7 @@ print_sat_result (BtorMainApp *app, int sat_result)
 static int
 setup_lingeling (BtorMainApp *app, BtorSATMgr *smgr)
 {
+  // FIXME api
   if (btor_enable_lingeling_sat (smgr, app->lingeling_options, app->nofork))
     return 1;
 
@@ -972,10 +980,14 @@ setup_sat (BtorMainApp *app, BtorSATMgr *smgr)
 
   assert (used_solvers == 1);
 #ifdef BTOR_USE_PICOSAT
-  if (use_picosat) btor_enable_picosat_sat (smgr);
+  if (use_picosat)
+    // FIXME api
+    btor_enable_picosat_sat (smgr);
 #endif
 #ifdef BTOR_USE_MINISAT
-  if (use_minisat) btor_enable_minisat_sat (smgr);
+  if (use_minisat)
+    // FIXME api
+    btor_enable_minisat_sat (smgr);
 #endif
 #ifdef BTOR_USE_LINGELING
   if (use_lingeling) return setup_lingeling (app, smgr);
@@ -1001,13 +1013,11 @@ boolector_main (int argc, char **argv)
   BtorParser *parser              = 0;
   BtorParseOpt parse_opt;
   BtorMemMgr *mem = 0;
-  BtorNode *root, *tmp, *all;
-  // FIXME btormain should use api functions and BoolectorNodes only!!!
-  BtorNode **outputs;
-  //////
+  BoolectorNode *root, *tmp, *all;
   BtorCharStack prefix;
 
-  btor_static_start_time = btor_time_stamp ();
+  // FIXME api?? (is util fct)
+  static_start_time = btor_time_stamp ();
 
   memset (&app, 0, sizeof app);
 
@@ -1033,6 +1043,7 @@ boolector_main (int argc, char **argv)
   app.force_smt_input        = 0;
   app.print_model            = 0;
   app.beta_reduce_all        = 0;
+  app.force_cleanup          = 0;
   app.pprint                 = 1;
   app.forced_sat_solver_name = 0;
   app.forced_sat_solvers     = 0;
@@ -1046,18 +1057,18 @@ boolector_main (int argc, char **argv)
 #ifdef BTOR_USE_MINISAT
   app.force_minisat = 0;
 #endif
-  btor_static_set_alarm = 0;
+  static_set_alarm = 0;
 
   parse_commandline_arguments (&app);
 
   if (app.verbosity > 0)
   {
-    btor_msg_main_va_args ("Boolector Version %s %s\n", BTOR_VERSION, BTOR_ID);
-    btor_msg_main_va_args ("%s\n", BTOR_CC);
-    btor_msg_main_va_args ("%s\n", BTOR_CFLAGS);
-    btor_msg_main_va_args ("released %s\n", BTOR_RELEASED);
-    btor_msg_main_va_args ("compiled %s\n", BTOR_COMPILED);
-    if (*BTOR_CC) btor_msg_main_va_args ("%s\n", BTOR_CC);
+    msg_main_va_args ("Boolector Version %s %s\n", BTOR_VERSION, BTOR_ID);
+    msg_main_va_args ("%s\n", BTOR_CC);
+    msg_main_va_args ("%s\n", BTOR_CFLAGS);
+    msg_main_va_args ("released %s\n", BTOR_RELEASED);
+    msg_main_va_args ("compiled %s\n", BTOR_COMPILED);
+    if (*BTOR_CC) msg_main_va_args ("%s\n", BTOR_CC);
   }
 
   if (!app.done && !app.err)
@@ -1083,80 +1094,88 @@ boolector_main (int argc, char **argv)
 
     BTOR_INIT_STACK (prefix);
 
-    // btor_static_btor = btor = btor_new_btor ();
-    btor_static_btor = btor = boolector_new ();
-    btor_static_verbosity   = app.verbosity;
-    btor_set_rewrite_level_btor (btor, app.rewrite_level);
+    static_btor = btor = boolector_new ();
+    static_verbosity   = app.verbosity;
+    boolector_set_rewrite_level (btor, app.rewrite_level);
 
-    if (app.beta_reduce_all) btor_enable_beta_reduce_all (btor);
+    if (app.beta_reduce_all) boolector_enable_beta_reduce_all (btor);
 
+    if (app.force_cleanup) boolector_enable_force_cleanup (btor);
+
+    // FIXME api
     if (!app.pprint) btor_disable_pretty_print (btor);
 
-    if (app.print_model) btor_enable_model_gen (btor);
+    if (app.print_model) boolector_enable_model_gen (btor);
 
-    btor_set_verbosity_btor (btor, app.verbosity);
+    boolector_set_verbosity (btor, app.verbosity);
 #ifndef NBTORLOG
     if (!app.loglevel && getenv ("BTORLOG")) app.loglevel = 1;
-    btor_set_loglevel_btor (btor, app.loglevel);
+    boolector_set_loglevel (btor, app.loglevel);
 #endif
     mem = btor->mm;
 
-    avmgr            = btor->avmgr;
-    amgr             = btor_get_aig_mgr_aigvec_mgr (avmgr);
-    btor_static_smgr = smgr = btor_get_sat_mgr_aig_mgr (amgr);
+    // FIXME api
+    avmgr       = btor->avmgr;
+    amgr        = btor_get_aig_mgr_aigvec_mgr (avmgr);
+    static_smgr = smgr = btor_get_sat_mgr_aig_mgr (amgr);
 
-    if (app.verbosity > 0) btor_msg_main ("setting signal handlers\n");
-    btor_set_sig_handlers ();
-    if (btor_static_set_alarm)
+    if (app.verbosity > 0) msg_main ("setting signal handlers\n");
+    set_sig_handlers ();
+    if (static_set_alarm)
     {
-      assert (btor_static_set_alarm > 0);
+      assert (static_set_alarm > 0);
       if (app.verbosity > 0)
-        btor_msg_main_va_args ("setting time limit to %d seconds\n",
-                               btor_static_set_alarm);
-      btor_set_alarm ();
+        msg_main_va_args ("setting time limit to %d seconds\n",
+                          static_set_alarm);
+      set_alarm ();
     }
     else if (app.verbosity > 0)
-      btor_msg_main ("no time limit\n");
+      msg_main ("no time limit\n");
 
     if (app.force_smt_input == -1)
     {
+      // FIXME api
       parser_api = btor_btor_parser_api ();
       if (app.verbosity > 0)
-        btor_msg_main ("forced BTOR parsing through command line option\n");
+        msg_main ("forced BTOR parsing through command line option\n");
     }
     else if (app.force_smt_input == 1)
     {
+      // FIXME api
       parser_api = btor_smt_parser_api ();
       if (app.verbosity > 0)
-        btor_msg_main (
+        msg_main (
             "forced SMTLIB version 1 parsing through command line option\n");
     }
     else if (app.force_smt_input == 2)
     {
+      // FIXME api
       parser_api = btor_smt2_parser_api ();
       if (app.verbosity > 0)
-        btor_msg_main (
+        msg_main (
             "forced SMTLIB version 2 parsing through command line option\n");
     }
     else if (app.close_input_file
              && file_name_has_suffix (app.input_file_name, ".btor"))
     {
+      // FIXME api
       parser_api = btor_btor_parser_api ();
       if (app.verbosity > 0)
-        btor_msg_main_va_args (
-            "assuming BTOR parsing because of '.btor' suffix\n");
+        msg_main_va_args ("assuming BTOR parsing because of '.btor' suffix\n");
     }
     else if (app.close_input_file
              && file_name_has_suffix (app.input_file_name, ".smt2"))
     {
+      // FIXME api
       parser_api = btor_smt2_parser_api ();
       if (app.verbosity > 0)
-        btor_msg_main_va_args (
+        msg_main_va_args (
             "assuming SMTLIB version 2 parsing because of '.smt2' suffix\n");
     }
     else
     {
       int ch, first, second;
+      // FIXME api
       parser_api = btor_btor_parser_api ();
       first = second = 0;
       for (;;)
@@ -1194,26 +1213,28 @@ boolector_main (int argc, char **argv)
         {
           if (second == 'b')
           {
+            // FIXME api
             parser_api = btor_smt_parser_api ();
             if (app.verbosity > 0)
-              btor_msg_main_va_args (
+              msg_main_va_args (
                   "assuming SMTLIB version 1 "
                   "parsing because of '(b' "
                   "prefix\n");
           }
           else
           {
+            // FIXME api
             parser_api = btor_smt2_parser_api ();
             if (app.verbosity > 0)
             {
               if (isprint (second))
-                btor_msg_main_va_args (
+                msg_main_va_args (
                     "assuming SMTLIB version 2 "
                     "parsing because of '(%c' "
                     "prefix\n",
                     second);
               else
-                btor_msg_main_va_args (
+                msg_main_va_args (
                     "assuming SMTLIB version 2 "
                     "parsing because of '(' "
                     "but not '(b' prefix\n");
@@ -1221,20 +1242,20 @@ boolector_main (int argc, char **argv)
           }
         }
         else if (app.verbosity > 0)
-          btor_msg_main_va_args (
+          msg_main_va_args (
               "assuming BTOR parsing because first "
               "character differs from '('\n");
       }
       else if (app.verbosity > 0)
       {
         if (ch == EOF)
-          btor_msg_main_va_args (
+          msg_main_va_args (
               "assuming BTOR parsing because "
               "end-of-file found\n");
         else
         {
           assert (!ch);
-          btor_msg_main_va_args (
+          msg_main_va_args (
               "assuming BTOR parsing because "
               "zero byte found\n");
         }
@@ -1264,15 +1285,16 @@ boolector_main (int argc, char **argv)
     else if (!setup_sat (&app, smgr))
       goto DONE;
 
+    // FIXME api
     btor_init_sat (smgr);
     btor_set_output_sat (smgr, stdout);
     btor_enable_verbosity_sat (smgr, app.verbosity);
 
     if (app.incremental)
     {
-      btor_enable_inc_usage (btor);
+      boolector_enable_inc_usage (btor);
 
-      if (app.verbosity > 0) btor_msg_main ("starting incremental BTOR mode\n");
+      if (app.verbosity > 0) msg_main ("starting incremental BTOR mode\n");
 
       sat_result = BTOR_UNKNOWN;
 
@@ -1294,14 +1316,14 @@ boolector_main (int argc, char **argv)
         if (parse_res.result == BTOR_PARSE_SAT_STATUS_SAT)
         {
           if (app.verbosity > 0)
-            btor_msg_main ("one formula SAT in incremental mode\n");
+            msg_main ("one formula SAT in incremental mode\n");
 
           sat_result = BTOR_SAT;
         }
         else if (parse_res.result == BTOR_PARSE_SAT_STATUS_UNSAT)
         {
           if (app.verbosity > 0)
-            btor_msg_main ("all formulas UNSAT in incremental mode\n");
+            msg_main ("all formulas UNSAT in incremental mode\n");
 
           sat_result = BTOR_UNSAT;
         }
@@ -1331,11 +1353,7 @@ boolector_main (int argc, char **argv)
     }
     else if (app.dump_exp)
     {
-      // FIXME btormain should use api calls and BoolectorNodes only!!!
-      outputs = (BtorNode **) parse_res.outputs;
-      //
-      if (app.verbosity > 0)
-        btor_msg_main_va_args ("dumping BTOR expressions\n");
+      if (app.verbosity > 0) msg_main_va_args ("dumping BTOR expressions\n");
 
       assert (app.rewrite_level >= 0);
       assert (app.rewrite_level <= 3);
@@ -1343,36 +1361,35 @@ boolector_main (int argc, char **argv)
       {
         for (i = 0; i < parse_res.noutputs; i++)
         {
-          root     = outputs[i];
-          root_len = btor_get_exp_len (btor, root);
+          root     = parse_res.outputs[i];
+          root_len = boolector_get_width (btor, root);
           assert (root_len >= 1);
           if (root_len > 1)
-            root = btor_redor_exp (btor, root);
+            root = boolector_redor (btor, root);
           else
-            root = btor_copy_exp (btor, root);
-          btor_assert_exp (btor, root);
-          btor_release_exp (btor, root);
+            root = boolector_copy (btor, root);
+          boolector_assert (btor, root);
+          boolector_release (btor, root);
         }
         parser_api->reset (parser);
         parser_api = 0;
-        btor_dump_btor_after_simplify (btor, app.output_file);
+        boolector_dump_btor_all (btor, app.output_file);
       }
       else
-        btor_dump_btor_nodes (
-            btor, app.output_file, outputs, parse_res.noutputs);
+      {
+        for (i = 0; i < parse_res.noutputs; i++)
+          boolector_dump_btor (btor, app.output_file, parse_res.outputs[i]);
+      }
       app.done = 1;
     }
     else if (app.dump_smt)
     {
-      // FIXME btormain should use api calls and BoolectorNodes only!!!
-      outputs = (BtorNode **) parse_res.outputs;
-      //
       if (app.verbosity > 0)
       {
         if (app.dump_smt < 2)
-          btor_msg_main_va_args ("dumping in SMT 1.2 format\n");
+          msg_main_va_args ("dumping in SMT 1.2 format\n");
         else
-          btor_msg_main_va_args ("dumping in SMT 2.0 format\n");
+          msg_main_va_args ("dumping in SMT 2.0 format\n");
       }
 
       assert (app.rewrite_level >= 0);
@@ -1381,124 +1398,111 @@ boolector_main (int argc, char **argv)
       {
         for (i = 0; i < parse_res.noutputs; i++)
         {
-          root     = outputs[i];
-          root_len = btor_get_exp_len (btor, root);
+          root     = parse_res.outputs[i];
+          root_len = boolector_get_width (btor, root);
           assert (root_len >= 1);
           if (root_len > 1)
-            root = btor_redor_exp (btor, root);
+            root = boolector_redor (btor, root);
           else
-            root = btor_copy_exp (btor, root);
-          btor_assert_exp (btor, root);
-          btor_release_exp (btor, root);
+            root = boolector_copy (btor, root);
+          boolector_assert (btor, root);
+          boolector_release (btor, root);
         }
         parser_api->reset (parser);
         parser_api = 0;
 
         if (app.dump_smt <= 1)
-          btor_dump_smt1_after_simplify (btor, app.output_file);
-        else if (app.dump_smt == 2)
-          btor_dump_smt2_after_simplify (btor, app.output_file);
+          boolector_dump_smt_all (btor, app.output_file);
         else
-          btor_dump_smt2_fun_after_simplify (btor, app.output_file);
+          boolector_dump_smt2_all (btor, app.output_file);
       }
       else
       {
-        // FIXME btormain should use api calls and BoolectorNodes only!!!
-        outputs = (BtorNode **) parse_res.outputs;
-        //
         all = 0;
         for (i = 0; i < parse_res.noutputs; i++)
         {
-          root     = outputs[i];
-          root_len = btor_get_exp_len (btor, root);
+          root     = parse_res.outputs[i];
+          root_len = boolector_get_width (btor, root);
           assert (root_len >= 1);
           if (root_len > 1)
-            root = btor_redor_exp (btor, root);
+            root = boolector_redor (btor, root);
           else
-            root = btor_copy_exp (btor, root);
+            root = boolector_copy (btor, root);
           if (all)
           {
-            tmp = btor_and_exp (btor, all, root);
-            btor_release_exp (btor, root);
-            btor_release_exp (btor, all);
+            tmp = boolector_and (btor, all, root);
+            boolector_release (btor, root);
+            boolector_release (btor, all);
             all = tmp;
           }
           else
             all = root;
         }
-
         if (app.dump_smt <= 1)
-          btor_dump_smt1 (btor, app.output_file, &all, parse_res.noutputs);
-        else if (app.dump_smt == 2)
-          btor_dump_smt2 (btor, app.output_file, &all, parse_res.noutputs);
+          boolector_dump_smt (btor, app.output_file, all);
         else
-          btor_dump_smt2_fun (btor, app.output_file, &all, parse_res.noutputs);
+          boolector_dump_smt2 (btor, app.output_file, all);
 
-        if (all) btor_release_exp (btor, all);
+        if (all) boolector_release (btor, all);
       }
 
       app.done = 1;
     }
     else
     {
-      // FIXME btormain should use api calls and BoolectorNodes only!!!
-      outputs = (BtorNode **) parse_res.outputs;
-      //
       assert (!app.incremental);
       if (app.verbosity > 0)
       {
-        btor_msg_main_va_args ("parsed %d inputs and %d outputs\n",
-                               parse_res.ninputs,
-                               parse_res.noutputs);
+        msg_main_va_args ("parsed %d inputs and %d outputs\n",
+                          parse_res.ninputs,
+                          parse_res.noutputs);
         if (parse_res.logic == BTOR_LOGIC_QF_BV)
         {
-          btor_msg_main ("logic QF_BV\n");
+          msg_main ("logic QF_BV\n");
         }
         else
         {
           assert (parse_res.logic == BTOR_LOGIC_QF_AUFBV);
-          btor_msg_main ("logic QF_AUFBV\n");
+          msg_main ("logic QF_AUFBV\n");
         }
 
         if (parse_res.status == BTOR_PARSE_SAT_STATUS_SAT)
-          btor_msg_main ("status sat\n");
+          msg_main ("status sat\n");
         else if (parse_res.status == BTOR_PARSE_SAT_STATUS_UNSAT)
-          btor_msg_main ("status unsat\n");
+          msg_main ("status unsat\n");
         else
         {
           assert (parse_res.status == BTOR_PARSE_SAT_STATUS_UNKNOWN);
-          btor_msg_main ("status unknown\n");
+          msg_main ("status unknown\n");
         }
       }
 
       if (parse_res.logic == BTOR_LOGIC_QF_BV)
       {
-        if (app.verbosity)
-          btor_msg_main ("no need for incremental SAT solving\n");
+        if (app.verbosity) msg_main ("no need for incremental SAT solving\n");
         smgr->inc_required = 0;
       }
       else
       {
         assert (parse_res.logic == BTOR_LOGIC_QF_AUFBV);
         assert (smgr->inc_required);
-        if (app.verbosity)
-          btor_msg_main ("requiring incremental SAT solving\n");
+        if (app.verbosity) msg_main ("requiring incremental SAT solving\n");
         smgr->inc_required = 1;
       }
 
-      if (app.verbosity > 0) btor_msg_main ("generating SAT instance\n");
+      if (app.verbosity > 0) msg_main ("generating SAT instance\n");
 
       for (i = 0; i < parse_res.noutputs; i++)
       {
-        root     = outputs[i];
-        root_len = btor_get_exp_len (btor, root);
+        root     = parse_res.outputs[i];
+        root_len = boolector_get_width (btor, root);
         assert (root_len >= 1);
         if (root_len > 1)
-          root = btor_redor_exp (btor, root);
+          root = boolector_redor (btor, root);
         else
-          root = btor_copy_exp (btor, root);
-        btor_assert_exp (btor, root);
-        btor_release_exp (btor, root);
+          root = boolector_copy (btor, root);
+        boolector_assert (btor, root);
+        boolector_release (btor, root);
       }
 
       if (!app.print_model)
@@ -1508,9 +1512,9 @@ boolector_main (int argc, char **argv)
       }
 
       if (app.verbosity > 1)
-        btor_msg_main_va_args ("added %d outputs (100%)\n", parse_res.noutputs);
+        msg_main_va_args ("added %d outputs (100%)\n", parse_res.noutputs);
 
-      sat_result = btor_sat_btor (btor);
+      sat_result = boolector_sat (btor);
       assert (sat_result != BTOR_UNKNOWN);
 
       /* check if status is equal to benchmark status */
@@ -1543,7 +1547,8 @@ boolector_main (int argc, char **argv)
       }
     }
 
-    btor_static_smgr = 0;
+    static_smgr = 0;
+    // FIXME api
     btor_reset_sat (smgr);
   DONE:
     if (parser_api)
@@ -1552,14 +1557,14 @@ boolector_main (int argc, char **argv)
       parser_api->reset (parser);
     }
 
-    if (!app.err && !app.done && app.verbosity > 0) btor_print_static_stats ();
+    if (!app.err && !app.done && app.verbosity > 0) print_static_stats ();
 
-    btor_static_btor      = 0;
-    btor_static_verbosity = 0;
+    static_btor      = 0;
+    static_verbosity = 0;
     BTOR_RELEASE_STACK (mem, prefix);
-    btor_delete_btor (btor);
+    boolector_delete (btor);
 
-    btor_reset_sig_handlers ();
+    reset_sig_handlers ();
   }
 
   if (app.close_input_file == 1) fclose (app.input_file);
