@@ -1348,7 +1348,6 @@ _new (BtorMBT *btormbt, unsigned r)
 
   btormbt->btor = boolector_new ();
   assert (btormbt->btor);
-  assert (btormbt->btor->apitrace);
   return _opt;
 }
 

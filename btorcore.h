@@ -156,7 +156,8 @@ struct Btor
                                     write during construction */
     long long int lemmas_size_sum;  /* sum of the size of all added lemmas */
     long long int lclause_size_sum; /* sum of the size of all linking clauses */
-    ConstraintStats constraints, oldconstraints;
+    ConstraintStats constraints;
+    ConstraintStats oldconstraints;
     long long expressions;
     long long beta_reduce_calls;
     long long eval_exp_calls;
@@ -183,6 +184,7 @@ struct Btor
     double enc_lambda;
     double enc_var;
     double find_dfs;
+    double cloning;
   } time;
 };
 
