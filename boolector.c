@@ -877,6 +877,7 @@ boolector_chkclone (Btor *btor)
   BTOR_TRAPI ("chkclone");
 #ifndef NDEBUG
   if (btor->clone) btor_delete_btor (btor->clone);
+  btor->clone = btor; /* mark clone as going-to-be shadow clone */
   btor->clone = btor_clone_btor (btor);
   assert (btor->clone->mm);
   assert (btor->clone->avmgr);
