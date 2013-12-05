@@ -11,7 +11,7 @@
  */
 
 #include "boolector.h"
-#include "btorexp.h"
+#include "btorcore.h"
 
 #include <assert.h>
 #include <ctype.h>
@@ -193,15 +193,15 @@ typedef enum ExpType
 
 typedef struct Exp
 {
-  BtorNode *exp;
+  BoolectorNode *exp;
   int pars; /* number of parents */
 } Exp;
 
 typedef struct ExpStack
 {
   Exp *exps;
-  int size, n, sexp, /* marker for selected expressions */
-      initlayer;     /* marker for init layer */
+  int size, n, sexp; /* marker for selected expressions */
+  int initlayer;     /* marker for init layer */
 } ExpStack;
 
 typedef struct BtorMBT
@@ -242,7 +242,7 @@ void boolector_chkclone (Btor *);
 /*------------------------------------------------------------------------*/
 
 void
-es_push (ExpStack *es, BtorNode *exp)
+es_push (ExpStack *es, BoolectorNode *exp)
 {
   assert (es);
   assert (exp);
@@ -458,9 +458,9 @@ nextpow2 (int val, int *pow2, int *log2)
 
 /* Change node e with width ew to width tow.
  * Note: param ew prevents too many boolector_get_width calls. */
-static BtorNode *
+static BoolectorNode *
 modifybv (
-    BtorMBT *btormbt, RNG *rng, BtorNode *e, int ew, int tow, int is_param)
+    BtorMBT *btormbt, RNG *rng, BoolectorNode *e, int ew, int tow, int is_param)
 {
   int tmp;
   ExpStack *es;
@@ -577,11 +577,11 @@ make_arr (BtorMBT *btormbt, RNG *rng)
 }
 
 /* randomly select variables from bo within the range ifrom - ito */
-static BtorNode *
+static BoolectorNode *
 make_clause (BtorMBT *btormbt, RNG *rng, int ifrom, int ito)
 {
   int i, idx;
-  BtorNode *e0, *e1;
+  BoolectorNode *e0, *e1;
   ExpStack *es;
 
   es = &btormbt->bo;
@@ -615,7 +615,7 @@ make_clause (BtorMBT *btormbt, RNG *rng, int ifrom, int ito)
 }
 
 static void
-unary_fun (BtorMBT *btormbt, RNG *rng, Op op, BtorNode *e0, int is_param)
+unary_fun (BtorMBT *btormbt, RNG *rng, Op op, BoolectorNode *e0, int is_param)
 {
   int tmp0, tmp1, e0w, rw;
   ExpStack *es;
@@ -669,8 +669,12 @@ unary_fun (BtorMBT *btormbt, RNG *rng, Op op, BtorNode *e0, int is_param)
 }
 
 static void
-binary_fun (
-    BtorMBT *btormbt, RNG *rng, Op op, BtorNode *e0, BtorNode *e1, int is_param)
+binary_fun (BtorMBT *btormbt,
+            RNG *rng,
+            Op op,
+            BoolectorNode *e0,
+            BoolectorNode *e1,
+            int is_param)
 {
   int tmp0, tmp1, e0w, e1w, rw;
   ExpStack *es;
@@ -794,9 +798,9 @@ static void
 ternary_fun (BtorMBT *btormbt,
              RNG *rng,
              Op op,
-             BtorNode *e0,
-             BtorNode *e1,
-             BtorNode *e2,
+             BoolectorNode *e0,
+             BoolectorNode *e1,
+             BoolectorNode *e2,
              int is_param)
 {
   int e1w, e2w;
@@ -839,9 +843,9 @@ static void
 afun (BtorMBT *btormbt,
       RNG *rng,
       Op op,
-      BtorNode *e0,
-      BtorNode *e1,
-      BtorNode *e2,
+      BoolectorNode *e0,
+      BoolectorNode *e1,
+      BoolectorNode *e2,
       int is_param)
 {
   assert (e0);
@@ -911,7 +915,7 @@ afun (BtorMBT *btormbt,
 /* Randomly select expression by given type, nodes with no parents (yet unused)
  * are preferred.
  */
-static BtorNode *
+static BoolectorNode *
 selexp (
     BtorMBT *btormbt, RNG *rng, ExpType type, int force_param, int *is_param)
 {
@@ -921,7 +925,7 @@ selexp (
 
   int rand, i, bw, idx = -1;
   ExpStack *es, *bo, *bv, *arr;
-  BtorNode *exp, *e[3];
+  BoolectorNode *exp, *e[3];
 
   /* choose between param. exps and non-param. exps with p = 0.5 */
   rand = pick (rng, 0, NORM_VAL - 1);
@@ -1014,17 +1018,17 @@ selexp (
  * and index width eiw.  If no suitable expression is found,
  * create new array/parameterized WRITE eew->eiw.
  */
-static BtorNode *
+static BoolectorNode *
 selarrexp (BtorMBT *btormbt,
            RNG *rng,
-           BtorNode *exp,
+           BoolectorNode *exp,
            int eew,
            int eiw,
            int force_param)
 {
   int i, rand, idx, sel_eew, sel_eiw;
   ExpStack *es;
-  BtorNode *sel_e, *e[3];
+  BoolectorNode *sel_e, *e[3];
 
   /* choose between param. exps and non-param. exps with p = 0.5 */
   rand = pick (rng, 0, NORM_VAL - 1);
@@ -1081,7 +1085,7 @@ static void
 param_fun (BtorMBT *btormbt, RNG *rng, int op_from, int op_to)
 {
   int i, rand;
-  BtorNode *e[3];
+  BoolectorNode *e[3];
   Op op;
 
   assert (op_from >= NOT && op_from <= COND);
@@ -1123,7 +1127,7 @@ static void
 param_afun (BtorMBT *btormbt, RNG *rng, int force_arrnparr)
 {
   int i, rand, eiw, eew;
-  BtorNode *e[3];
+  BoolectorNode *e[3];
   Op op;
 
   /* force array exp with non-parameterized arrays? */
@@ -1166,7 +1170,7 @@ bfun (BtorMBT *btormbt, unsigned r, int *nparams, int *width, int nlevel)
   int i, n, np, ip, w, nops, rand;
   ExpStack parambo, parambv, paramarr;
   ExpStack *es, *tmpparambo, *tmpparambv, *tmpparamarr;
-  BtorNode *tmp, *fun, **params, **args;
+  BoolectorNode *tmp, *fun, **params, **args;
   RNG rng;
 
   rng = initrng (r);
@@ -1197,7 +1201,7 @@ bfun (BtorMBT *btormbt, unsigned r, int *nparams, int *width, int nlevel)
     /* choose function parameters */
     *width   = pick (&rng, 1, MAX_BITWIDTH);
     *nparams = pick (&rng, MIN_NPARAMS, MAX_NPARAMS);
-    params   = malloc (sizeof (BtorNode *) * *nparams);
+    params   = malloc (sizeof (BoolectorNode *) * *nparams);
     for (i = 0; i < *nparams; i++)
     {
       tmp       = boolector_param (btormbt->btor, *width, NULL);
@@ -1270,7 +1274,7 @@ bfun (BtorMBT *btormbt, unsigned r, int *nparams, int *width, int nlevel)
   }
 
   /* generate apply expression with arguments within scope of apply */
-  args = malloc (sizeof (BtorNode *) * *nparams);
+  args = malloc (sizeof (BoolectorNode *) * *nparams);
   for (i = 0; i < *nparams; i++)
   {
     tmp     = selexp (btormbt, &rng, T_BV, 0, &ip);
@@ -1353,6 +1357,9 @@ _opt (BtorMBT *btormbt, unsigned r)
 {
   int rw;
   RNG rng = initrng (r);
+
+  BTORMBT_LOG (1, btormbt, "enable force cleanup\n");
+  boolector_enable_force_cleanup (btormbt->btor);
 
   if (pick (&rng, 0, 1))
   {
@@ -1519,7 +1526,7 @@ _addop (BtorMBT *btormbt, unsigned r)
 static void *
 _fun (BtorMBT *btormbt, unsigned r)
 {
-  BtorNode *e0, *e1, *e2;
+  BoolectorNode *e0, *e1, *e2;
   RNG rng = initrng (r);
 
   Op op = pick (&rng, NOT, COND);
@@ -1553,7 +1560,7 @@ _afun (BtorMBT *btormbt, unsigned r)
 {
   int e0w, e0iw;
   Op op;
-  BtorNode *e0, *e1, *e2 = NULL;
+  BoolectorNode *e0, *e1, *e2 = NULL;
   RNG rng = initrng (r);
 
   e0   = selexp (btormbt, &rng, T_ARR, 0, NULL);
@@ -1650,7 +1657,7 @@ _ass (BtorMBT *btormbt, unsigned r)
 {
   int lower;
   RNG rng = initrng (r);
-  BtorNode *cls;
+  BoolectorNode *cls;
 
   /* select from init layer with lower probability */
   lower = btormbt->bo.initlayer && btormbt->bo.n > btormbt->bo.initlayer
@@ -1674,46 +1681,18 @@ _ass (BtorMBT *btormbt, unsigned r)
   return _main;
 }
 
-#define BTORMBT_CLONED_EXP(exp)                                            \
-  (btormbt->btor->clone                                                    \
-       ? (BTOR_IS_INVERTED_NODE (exp)                                      \
-              ? BTOR_INVERT_NODE (                                         \
-                    BTOR_PEEK_STACK (btormbt->btor->clone->nodes_id_table, \
-                                     BTOR_REAL_ADDR_NODE (exp)->id))       \
-              : BTOR_PEEK_STACK (btormbt->btor->clone->nodes_id_table,     \
-                                 BTOR_REAL_ADDR_NODE (exp)->id))           \
-       : 0)
-
 static void *
 _sat (BtorMBT *btormbt, unsigned r)
 {
-  int i, res;
+  int res;
   RNG rng;
 
   BTORMBT_LOG (1, btormbt, "call sat...\n");
 
   rng = initrng (r);
   if (!btormbt->btor->clone || !pick (&rng, 0, 50))
-  {
-    /* release clones of external refs */
-    for (i = 0; btormbt->btor->clone && i < btormbt->bo.n; i++)
-      boolector_release (btormbt->btor->clone,
-                         BTORMBT_CLONED_EXP (btormbt->bo.exps[i].exp));
-    for (i = 0; btormbt->btor->clone && i < btormbt->bv.n; i++)
-      boolector_release (btormbt->btor->clone,
-                         BTORMBT_CLONED_EXP (btormbt->bv.exps[i].exp));
-    for (i = 0; btormbt->btor->clone && i < btormbt->arr.n; i++)
-      boolector_release (btormbt->btor->clone,
-                         BTORMBT_CLONED_EXP (btormbt->arr.exps[i].exp));
-    for (i = 0; btormbt->btor->clone && i < btormbt->fun.n; i++)
-      boolector_release (btormbt->btor->clone,
-                         BTORMBT_CLONED_EXP (btormbt->fun.exps[i].exp));
-    for (i = 0; btormbt->btor->clone && i < btormbt->cnf.n; i++)
-      boolector_release (btormbt->btor->clone,
-                         BTORMBT_CLONED_EXP (btormbt->cnf.exps[i].exp));
-
+    /* cleanup done by boolector */
     boolector_chkclone (btormbt->btor);
-  }
 
   res = boolector_sat (btormbt->btor);
 
@@ -2070,9 +2049,8 @@ finish (void)
 int
 main (int argc, char **argv)
 {
-  int i, max, mac, pid, prev, res, seeded;
-  char name[100];
-  char *aname, *cmd;
+  int i, max, mac, pid, prev, res, seeded, quiet;
+  char *name, *cmd;
 
   start_time = current_time ();
 
@@ -2124,12 +2102,7 @@ main (int argc, char **argv)
     }
   }
 
-  if (!(aname = getenv ("BTORAPITRACE")))
-  {
-    sprintf (name, "/tmp/bug-%d-mbt.trace", getpid ());
-    setenv ("BTORAPITRACE", name, 1);
-  }
-
+  quiet    = env.quiet;
   env.ppid = getpid ();
   setsighandlers ();
 
@@ -2165,21 +2138,33 @@ main (int argc, char **argv)
         fflush (stdout);
       }
 
-      res = run (rantrav);
+      env.quiet = 1;
+      res       = run (rantrav);
+      env.quiet = quiet;
 
       if (res > 0)
       {
         env.bugs++;
         env.bugs++;
         cmd = malloc (strlen (name) + 80);
-        sprintf (cmd, "cp %s btormbt-bug-%d.trace", name, env.seed);
-
+        if ((name = getenv ("BTORAPITRACE")))
+          sprintf (cmd, "cp %s btormbt-bug-%d.trace", name, env.seed);
+        else
+        {
+          name = malloc (100 * sizeof (char));
+          sprintf (name, "/tmp/bug-%d-mbt.trace", getpid ());
+          setenv ("BTORAPITRACE", name, 1);
+          sprintf (cmd, "cp %s btormbt-bug-%d.trace", name, env.seed);
+          free (name);
+          res = run (rantrav); /* replay */
+          assert (res);
+          unsetenv ("BTORAPITRACE");
+        }
         if (system (cmd))
         {
           printf ("Error on copy command %s \n", cmd);
           exit (1);
         }
-
         free (cmd);
       }
 

@@ -31,6 +31,7 @@
 #include <assert.h>
 #include <limits.h>
 #include <stdio.h>
+#include <stdlib.h>
 
 #define BTOR_TEST_LOGIC_TEMP_FILE_NAME "logic.tmp"
 

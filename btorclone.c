@@ -10,7 +10,7 @@
 
 #include "btoraig.h"
 #include "btoraigvec.h"
-#include "btorexp.h"
+#include "btorcore.h"
 #include "btorhash.h"
 #include "btormap.h"
 #include "btorsat.h"
@@ -20,8 +20,8 @@
 #include <stdio.h>
 #include <stdlib.h>
 
-BTOR_DECLARE_STACK (NodePtrStackPtr, BtorNodePtrStack *);
-BTOR_DECLARE_STACK (PtrHashTablePtrPtr, BtorPtrHashTable **);
+BTOR_DECLARE_STACK (BtorNodePtrStackPtr, BtorNodePtrStack *);
+BTOR_DECLARE_STACK (BtorPtrHashTablePtrPtr, BtorPtrHashTable **);
 
 BtorNode *
 clone_exp (Btor *clone,
@@ -452,12 +452,12 @@ btor_clone_btor (Btor *btor)
   BtorNodeMap *exp_map;
   BtorAIGMap *aig_map;
   BtorMemMgr *mm;
-  BtorPtrHashBucket *b, *cb;
 #ifndef NDEBUG
   int i;
   size_t allocated, amap_size, amap_count, emap_size, emap_count;
   BtorNode *cur;
   BtorAIGMgr *amgr = btor_get_aig_mgr_aigvec_mgr (btor->avmgr);
+  BtorPtrHashBucket *b, *cb;
   BtorBVAssignment *bvass;
   BtorArrayAssignment *arrass;
   char **ind, **val;

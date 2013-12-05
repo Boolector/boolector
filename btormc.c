@@ -66,7 +66,7 @@ typedef struct BtorMcFrame
   BtorNodePtrStack inputs, init, latches, next, bad;
 } BtorMcFrame;
 
-BTOR_DECLARE_STACK (McFrame, BtorMcFrame);
+BTOR_DECLARE_STACK (BtorMcFrame, BtorMcFrame);
 
 struct BtorMC
 {

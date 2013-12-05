@@ -16,14 +16,14 @@
 
 #include <assert.h>
 
-#define BTOR_DECLARE_QUEUE(name, type)                \
-  typedef struct Btor##name##Queue Btor##name##Queue; \
-  struct Btor##name##Queue                            \
-  {                                                   \
-    type* start;                                      \
-    type* head;                                       \
-    type* tail;                                       \
-    type* end;                                        \
+#define BTOR_DECLARE_QUEUE(name, type)    \
+  typedef struct name##Queue name##Queue; \
+  struct name##Queue                      \
+  {                                       \
+    type* start;                          \
+    type* head;                           \
+    type* tail;                           \
+    type* end;                            \
   }
 
 #define BTOR_INIT_QUEUE(queue) \
@@ -92,6 +92,6 @@
 
 #define BTOR_DEQUEUE(queue) (*(queue).head++)
 
-BTOR_DECLARE_QUEUE (Int, int);
+BTOR_DECLARE_QUEUE (BtorInt, int);
 
 #endif

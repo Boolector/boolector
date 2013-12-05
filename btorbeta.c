@@ -915,9 +915,8 @@ btor_beta_reduce_partial_aux (Btor *btor,
   start = btor_time_stamp ();
   btor->stats.beta_reduce_calls++;
 
-  // FIXME: set rewriting level to 1 for now (performance issues)
-  rwl                 = btor->rewrite_level;
-  btor->rewrite_level = 1;
+  rwl = btor->rewrite_level;
+  if (btor->rewrite_level > 0) btor->rewrite_level = 1;
 
   mm = btor->mm;
   BTOR_INIT_STACK (stack);
