@@ -202,6 +202,7 @@ btor_chkclone_state (Btor *btor)
   BTOR_CHKCLONE_STATE (inc_enabled);
   BTOR_CHKCLONE_STATE (btor_sat_btor_called);
   BTOR_CHKCLONE_STATE (msgtick);
+  BTOR_CHKCLONE_STATE (force_cleanup);
   BTOR_CHKCLONE_STATE (beta_reduce_all);
   BTOR_CHKCLONE_STATE (pprint);
   BTOR_CHKCLONE_STATE (last_sat_result);
