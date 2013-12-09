@@ -107,7 +107,7 @@ typedef struct BtorNodePair BtorNodePair;
     char *bits;   /* three-valued bits */                               \
     int id;       /* unique expression id */                            \
     int len;      /* number of bits */                                  \
-    int refs;     /* reference counter */                               \
+    int refs;     /* reference counter (incl. ext_refs) */              \
     int ext_refs; /* external references counter */                     \
     int parents;  /* number of parents */                               \
     int arity;    /* arity of operator */                               \
