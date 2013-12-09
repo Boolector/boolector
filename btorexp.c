@@ -1171,7 +1171,7 @@ new_args_exp_node (Btor *btor, int arity, BtorNode **e, int len)
 
   int i;
   BtorArgsNode *exp;
-#ifdef NDEBUG
+#ifndef NDEBUG
   for (i = 0; i < arity; i++) assert (e[i]);
 #endif
 
