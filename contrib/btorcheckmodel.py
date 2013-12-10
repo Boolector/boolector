@@ -353,7 +353,7 @@ def parse_model(inputfile):
                 value = m.group(4)
 
                 # choose random value for don't care bits
-                if "x" in index:
+                if index != None and "x" in index:
                     index = index.replace("x", str(random.randint(0, 1)))
 
                 # choose random value for don't care bits
