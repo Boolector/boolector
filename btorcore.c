@@ -13,6 +13,7 @@
 #include "btorcore.h"
 #include "btorbeta.h"
 #include "btorbitvec.h"
+#include "btorclone.h"
 #include "btorconfig.h"
 #include "btorconst.h"
 #include "btorexit.h"
@@ -35,6 +36,7 @@
 #endif
 
 #define ENABLE_APPLY_PROP_DOWN 1
+//#define BTOR_CHECK_MODEL
 
 /*------------------------------------------------------------------------*/
 
@@ -70,6 +72,12 @@
 
 //#define MARK_PROP_UP(exp) ((BtorNode *) (1ul | (unsigned long int) (exp)))
 //#define PROPAGATED_UPWARDS(exp) (1ul & (unsigned long int) (exp)->parent)
+
+/*------------------------------------------------------------------------*/
+
+#ifdef BTOR_CHECK_MODEL
+static int btor_check_model (Btor *, Btor *);
+#endif
 
 /*------------------------------------------------------------------------*/
 
@@ -206,39 +214,41 @@ typedef enum BtorSubstCompKind BtorSubstCompKind;
 
 /*------------------------------------------------------------------------*/
 
-#if 0
+#ifdef BTOR_CHECK_MODEL
 static void
-btor_init_substitutions (Btor * btor)
+btor_init_substitutions (Btor *btor)
 {
   assert (btor);
   assert (!btor->substitutions);
 
   btor->substitutions =
-    btor_new_ptr_hash_table (btor->mm,
-			     (BtorHashPtr) btor_hash_exp_by_id,
-			     (BtorCmpPtr) btor_compare_exp_by_id);
+      btor_new_ptr_hash_table (btor->mm,
+                               (BtorHashPtr) btor_hash_exp_by_id,
+                               (BtorCmpPtr) btor_compare_exp_by_id);
 }
 
 static void
-btor_delete_substitutions (Btor * btor)
+btor_delete_substitutions (Btor *btor)
 {
   assert (btor);
 
   BtorPtrHashBucket *b;
 
   for (b = btor->substitutions->first; b; b = b->next)
-    {
-      btor_release_exp (btor, (BtorNode *) b->data.asPtr);
-      btor_release_exp (btor, (BtorNode *) b->key);
-    }
+  {
+    btor_release_exp (btor, (BtorNode *) b->data.asPtr);
+    btor_release_exp (btor, (BtorNode *) b->key);
+  }
 
   btor_delete_ptr_hash_table (btor->substitutions);
   btor->substitutions = 0;
 }
 
 static void
-btor_insert_substitution (Btor * btor, BtorNode * exp, BtorNode * subst,
-			  int update)
+btor_insert_substitution (Btor *btor,
+                          BtorNode *exp,
+                          BtorNode *subst,
+                          int update)
 {
   assert (btor);
   assert (exp);
@@ -249,20 +259,20 @@ btor_insert_substitution (Btor * btor, BtorNode * exp, BtorNode * subst,
   BtorPtrHashBucket *b;
   exp = BTOR_REAL_ADDR_NODE (exp);
 
-  assert (update || !btor_find_in_ptr_hash_table (btor->substitutions, exp)); 
+  assert (update || !btor_find_in_ptr_hash_table (btor->substitutions, exp));
 
   if (update && (b = btor_find_in_ptr_hash_table (btor->substitutions, exp)))
-    {
-      assert (b->data.asPtr);
-      /* release data of current bucket */
-      btor_release_exp (btor, (BtorNode *) b->data.asPtr);
-      btor_remove_from_ptr_hash_table (btor->substitutions, exp, 0, 0);
-      /* release key of current bucket */
-      btor_release_exp (btor, exp);
-    }
+  {
+    assert (b->data.asPtr);
+    /* release data of current bucket */
+    btor_release_exp (btor, (BtorNode *) b->data.asPtr);
+    btor_remove_from_ptr_hash_table (btor->substitutions, exp, 0, 0);
+    /* release key of current bucket */
+    btor_release_exp (btor, exp);
+  }
 
-  btor_insert_in_ptr_hash_table (btor->substitutions,
-    btor_copy_exp (btor, exp))->data.asPtr = btor_copy_exp (btor, subst);
+  btor_insert_in_ptr_hash_table (btor->substitutions, btor_copy_exp (btor, exp))
+      ->data.asPtr = btor_copy_exp (btor, subst);
 }
 
 #endif
@@ -274,16 +284,16 @@ btor_find_substitution (Btor *btor, BtorNode *exp)
   assert (exp);
 
   BtorNode *result;
-  BtorPtrHashBucket *bucket;
+  BtorPtrHashBucket *b;
 
   if (!btor->substitutions) return 0;
 
-  bucket = btor_find_in_ptr_hash_table (btor->substitutions,
-                                        BTOR_REAL_ADDR_NODE (exp));
+  b = btor_find_in_ptr_hash_table (btor->substitutions,
+                                   BTOR_REAL_ADDR_NODE (exp));
 
-  if (!bucket) return 0;
+  if (!b) return 0;
 
-  result = btor_simplify_exp (btor, (BtorNode *) bucket->data.asPtr);
+  result = btor_simplify_exp (btor, (BtorNode *) b->data.asPtr);
 
   if (BTOR_IS_INVERTED_NODE (exp)) return BTOR_INVERT_NODE (result);
   return result;
@@ -2001,9 +2011,6 @@ btor_simplify_exp (Btor *btor, BtorNode *exp)
 
   real_exp = BTOR_REAL_ADDR_NODE (exp);
 
-  // TODO: should we move that to the bottom?
-  if (real_exp->constraint) return simplify_constraint_exp (btor, exp);
-
   // TODO: substitution flag for BtorNode?
   if (btor->substitutions)
   {
@@ -2016,6 +2023,10 @@ btor_simplify_exp (Btor *btor, BtorNode *exp)
       result = btor_pointer_chase_simplified_exp (btor, bucket->data.asPtr);
     else
       result = simp;
+
+    assert (!btor_find_in_ptr_hash_table (btor->substitutions,
+                                          BTOR_REAL_ADDR_NODE (result)));
+    assert (!BTOR_REAL_ADDR_NODE (result)->simplified);
 
     if (BTOR_IS_INVERTED_NODE (exp)) return BTOR_INVERT_NODE (result);
     return result;
@@ -5542,10 +5553,12 @@ propagate (Btor *btor,
     assert (BTOR_IS_FUN_NODE (fun));
     assert (!fun->simplified);
     assert (!BTOR_EMPTY_STACK (*prop_stack));
+    assert (fun->reachable);
     app = BTOR_POP_STACK (*prop_stack);
     assert (BTOR_IS_REGULAR_NODE (app));
     assert (BTOR_IS_APPLY_NODE (app));
     assert (app->refs - app->ext_refs > 0);
+    assert (app->reachable || app->vread);
     check_not_simplified_or_const (btor, app);
 
     BTORLOG ("propagate");
@@ -6136,8 +6149,17 @@ btor_sat_btor (Btor *btor)
   assert (btor);
   assert (btor->btor_sat_btor_called >= 0);
   assert (btor->inc_enabled || btor->btor_sat_btor_called == 0);
+#ifdef BTOR_CHECK_MODEL
+  Btor *clone;
+  clone = btor_clone_btor (btor);
+  btor_enable_force_cleanup (clone);
+#endif
   res = btor_sat_aux_btor (btor);
   btor->btor_sat_btor_called++;
+#ifdef BTOR_CHECK_MODEL
+  if (res == BTOR_SAT) btor_check_model (btor, clone);
+  btor_delete_btor (clone);
+#endif
   return res;
 }
 
@@ -6773,8 +6795,9 @@ btor_bv_assignment_exp (Btor *btor, BtorNode *exp)
     if (invert_bits)
       btor_invert_const (btor->mm, BTOR_REAL_ADDR_NODE (exp)->bits);
   }
-  else if (!real_exp->vread
-           && (!real_exp->reachable || !BTOR_IS_SYNTH_NODE (real_exp)))
+  else if (!BTOR_IS_SYNTH_NODE (real_exp))
+  //  else if (!real_exp->vread
+  //	   && (!real_exp->reachable || !BTOR_IS_SYNTH_NODE (real_exp)))
   {
     assignment = btor_x_const_3vl (btor->mm, real_exp->len);
   }
@@ -6846,3 +6869,145 @@ btor_free_bv_assignment_exp (Btor *btor, char *assignment)
   assert (assignment);
   btor_freestr (btor->mm, assignment);
 }
+
+#ifdef BTOR_CHECK_MODEL
+static void
+init_x_values (char *a)
+{
+  assert (a);
+
+  int i, len;
+
+  len = strlen (a);
+  for (i = 0; i < len; i++)
+    if (a[i] == 'x') a[i] = '1';
+}
+
+static int
+btor_check_model (Btor *btor, Btor *clone)
+{
+  assert (btor);
+  assert (btor->last_sat_result == BTOR_SAT);
+
+  int i, ret, size;
+  char *a, **indices, **values;
+  BtorNode *cur, *ccur, *val, *idx, *w, *tmp;
+  BtorPtrHashBucket *b, *cb;
+  BtorNodePtrStack stack;
+
+  /* add assumptions as assertions */
+  for (b = clone->assumptions->first; b; b = b->next)
+  {
+    cur = (BtorNode *) b->key;
+    btor_assert_exp (clone, cur);
+  }
+  btor_reset_assumptions (clone);
+
+  /* initial simplifications */
+  ret = btor_simplify (clone);
+  if (ret == BTOR_SAT) return 1;
+
+  assert (!clone->substitutions);
+  btor_init_substitutions (clone);
+
+  BTOR_INIT_STACK (stack);
+
+  // TODO: do we need var_rhs?
+  //  if (btor->model_gen)
+  //    {
+  //      for (b = btor->var_rhs->first; b; b = b->next)
+  //	BTOR_PUSH_STACK (clone->mm, stack, (BtorNode *) b->key);
+  //    }
+  for (b = btor->bv_vars->first; b; b = b->next)
+    BTOR_PUSH_STACK (clone->mm, stack, (BtorNode *) b->key);
+
+  while (!BTOR_EMPTY_STACK (stack))
+  {
+    cur = BTOR_POP_STACK (stack);
+    assert (BTOR_IS_REGULAR_NODE (cur));
+    assert (BTOR_IS_BV_VAR_NODE (cur));
+
+    a = btor_bv_assignment_exp (btor, cur);
+    init_x_values (a);
+    val = btor_const_exp (clone, a);
+
+    cb = btor_find_in_ptr_hash_table (clone->bv_vars, cur);
+    assert (cb);
+    ccur = (BtorNode *) cb->key;
+    assert (!btor_find_in_ptr_hash_table (clone->substitutions, ccur));
+    btor_insert_substitution (clone, ccur, val, 0);
+
+    btor_release_exp (clone, val);
+    btor_free_bv_assignment_exp (btor, a);
+  }
+
+  // TODO: do we need array_rhs?
+  //  if (btor->model_gen)
+  //    {
+  //      for (b = btor->array_rhs->first; b; b = b->next)
+  //	BTOR_PUSH_STACK (clone->mm, stack, (BtorNode *) b->key);
+  //    }
+  for (b = btor->array_vars->first; b; b = b->next)
+    BTOR_PUSH_STACK (clone->mm, stack, (BtorNode *) b->key);
+
+  while (!BTOR_EMPTY_STACK (stack))
+  {
+    cur = BTOR_POP_STACK (stack);
+    assert (BTOR_IS_REGULAR_NODE (cur));
+    size    = 0;
+    indices = 0;
+    values  = 0;
+
+    btor_array_assignment_exp (btor, cur, &indices, &values, &size);
+
+    if (size == 0) continue;
+
+    assert (indices);
+    assert (values);
+
+    w = btor_array_exp (clone, cur->len, cur->index_len, "");
+    for (i = 0; i < size; i++)
+    {
+      a = indices[i];
+      init_x_values (a);
+      idx = btor_const_exp (clone, a);
+      a   = values[i];
+      init_x_values (a);
+      val = btor_const_exp (clone, a);
+      tmp = btor_write_exp (clone, w, idx, val);
+      btor_release_exp (clone, w);
+      w = tmp;
+
+      btor_release_exp (clone, val);
+      btor_release_exp (clone, idx);
+      btor_free_bv_assignment_exp (btor, indices[i]);
+      btor_free_bv_assignment_exp (btor, values[i]);
+    }
+
+    cb = btor_find_in_ptr_hash_table (clone->array_vars, cur);
+    assert (cb);
+    ccur = (BtorNode *) cb->key;
+    assert (!btor_find_in_ptr_hash_table (clone->substitutions, ccur));
+    btor_insert_substitution (clone, ccur, w, 0);
+
+    btor_release_exp (clone, w);
+    btor_free (btor->mm, indices, sizeof (*indices) * size);
+    btor_free (btor->mm, values, sizeof (*values) * size);
+  }
+  BTOR_RELEASE_STACK (clone->mm, stack);
+
+  btor_reset_array_models (clone);
+  btor_enable_beta_reduce_all (clone);
+  substitute_and_rebuild (clone, clone->substitutions, 0);
+
+  if (clone->rewrite_level == 3)
+    ret = btor_simplify (clone);
+  else
+    ret = btor_sat_aux_btor (clone);
+
+  assert (ret == BTOR_SAT);
+
+  btor_delete_substitutions (clone);
+  return 1;
+}
+#endif
