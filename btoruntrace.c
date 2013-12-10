@@ -2,6 +2,7 @@
  *
  *  Copyright (C) 2013 Christian Reisenberger.
  *  Copyright (C) 2013 Aina Niemetz.
+ *  Copyright (C) 2013 Mathias Preiner.
  *
  *  All rights reserved.
  *
@@ -314,6 +315,11 @@ NEXT:
   {
     PARSE_ARGS0 (tok);
     boolector_enable_beta_reduce_all (btor);
+  }
+  else if (!strcmp (tok, "enable_force_cleanup"))
+  {
+    PARSE_ARGS0 (tok);
+    boolector_enable_force_cleanup (btor);
   }
   else if (!strcmp (tok, "set_verbosity"))
   {
