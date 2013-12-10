@@ -1009,7 +1009,11 @@ process_unsynthesized_constraints (Btor *btor)
     if (!btor_find_in_ptr_hash_table (sc, cur))
     {
       aig = btor_exp_to_aig (btor, cur);
-      if (aig == BTOR_AIG_FALSE) btor->inconsistent = 1;
+      if (aig == BTOR_AIG_FALSE)
+      {
+        btor->inconsistent = 1;
+        break;
+      }
       btor_add_toplevel_aig_to_sat (amgr, aig);
       btor_release_aig (amgr, aig);
       (void) btor_insert_in_ptr_hash_table (sc, cur);
@@ -4310,7 +4314,11 @@ add_again_assumptions (Btor *btor)
     exp = btor_simplify_exp (btor, exp);
     aig = btor_exp_to_aig (btor, exp);
 
-    if (aig == BTOR_AIG_FALSE) btor->assumption_false = 1;
+    if (aig == BTOR_AIG_FALSE)
+    {
+      btor->assumption_false = 1;
+      break;
+    }
 
     btor_aig_to_sat (amgr, aig);
 
