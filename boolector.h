@@ -1225,6 +1225,14 @@ void boolector_assert (Btor *btor, BoolectorNode *node);
 void boolector_assume (Btor *btor, BoolectorNode *node);
 
 /**
+ * Determine if assumption 'node' is a failed assumption.
+ * \param btor Boolector instance.
+ * \param node Bit-vector expression with bit-width one.
+ * \return 1 if assumption is failed, and 0 otherwise.
+ */
+int boolector_failed (Btor *btor, BoolectorNode *node);
+
+/**
  * Solves SAT instance represented by constraints and assumptions added
  * by \ref boolector_assert and \ref boolector_assume. Note that
  * assertions and assumptions are combined by boolean 'and'.

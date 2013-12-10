@@ -258,7 +258,7 @@ typedef struct BtorMBT
 
   int nops;    /* number of operations in current round */
   int nassert; /* number of produced asserts in current round */
-  int nassume; /* number of produced assumes in currentl round */
+  int nassume; /* number of produced assumes in current round */
 
   int max_nlits; /* max number of literals in current round */
   int max_nops;  /* max number of operations in current round */
@@ -266,6 +266,7 @@ typedef struct BtorMBT
 
   int tot_nassert; /* total number of asserts in current round */
 
+  ExpStack assumptions;
   ExpStack bo, bv, arr, fun;
   ExpStack *parambo, *parambv, *paramarr;
   ExpStack cnf;
@@ -318,48 +319,51 @@ es_push (ExpStack *es, BoolectorNode *exp)
   es->n++;
 }
 
+BoolectorNode *
+es_pop (ExpStack *es)
+{
+  BoolectorNode *res;
+
+  if (!es->n) return 0;
+  es->n -= 1;
+  res = es->exps[es->n].exp;
+  return res;
+}
+
 static void
-es_del (BtorMBT *btormbt, ExpStack *es, int idx)
+es_del (ExpStack *es, int idx)
 {
   assert (es);
   assert (idx >= 0 && idx < es->n);
 
   int i;
 
-  boolector_release (btormbt->btor, es->exps[idx].exp);
   for (i = idx; i < es->n - 1; i++) es->exps[i] = es->exps[i + 1];
   es->n -= 1;
   if (idx < es->sexp) es->sexp -= 1;
 }
 
 static void
-es_reset (BtorMBT *btormbt, ExpStack *es)
+es_reset (ExpStack *es)
 {
   assert (es);
 
-  int i;
-
-  for (i = 0; i < es->n; i++)
-    boolector_release (btormbt->btor, es->exps[i].exp);
-  es->n = 0;
+  es->n         = 0;
+  es->sexp      = 0;
+  es->initlayer = 0;
 }
 
 void
-es_release (BtorMBT *btormbt, ExpStack *es)
+es_release (ExpStack *es)
 {
-  int i;
+  if (!es) return;
 
-  if (es)
-  {
-    for (i = 0; i < es->n; i++)
-      boolector_release (btormbt->btor, es->exps[i].exp);
-    es->n         = 0;
-    es->size      = 0;
-    es->sexp      = 0;
-    es->initlayer = 0;
-    free (es->exps);
-    es->exps = NULL;
-  }
+  es->n         = 0;
+  es->size      = 0;
+  es->sexp      = 0;
+  es->initlayer = 0;
+  free (es->exps);
+  es->exps = NULL;
 }
 
 /*------------------------------------------------------------------------*/
@@ -1328,9 +1332,15 @@ bfun (BtorMBT *btormbt, unsigned r, int *nparams, int *width, int nlevel)
     btormbt->paramarr = tmpparamarr;
 
     /* cleanup */
-    es_release (btormbt, &parambo);
-    es_release (btormbt, &parambv);
-    es_release (btormbt, &paramarr);
+    for (i = 0; i < parambo.n; i++)
+      boolector_release (btormbt->btor, parambo.exps[i].exp);
+    es_release (&parambo);
+    for (i = 0; i < parambv.n; i++)
+      boolector_release (btormbt->btor, parambv.exps[i].exp);
+    es_release (&parambv);
+    for (i = 0; i < paramarr.n; i++)
+      boolector_release (btormbt->btor, paramarr.exps[i].exp);
+    es_release (&paramarr);
     free (params);
   }
 
@@ -1723,7 +1733,8 @@ _relop (BtorMBT *btormbt, unsigned r)
     else
       assert (boolector_is_array (btormbt->btor, btormbt->arr.exps[idx].exp));
 
-    es_del (btormbt, es, idx);
+    boolector_release (btormbt->btor, es->exps[idx].exp);
+    es_del (es, idx);
   }
   return (btormbt->is_init ? _main : _init);
 }
@@ -1733,24 +1744,25 @@ _ass (BtorMBT *btormbt, unsigned r)
 {
   int lower;
   RNG rng = initrng (r);
-  BoolectorNode *cls;
+  BoolectorNode *node;
 
   /* select from init layer with lower probability */
   lower = btormbt->bo.initlayer && btormbt->bo.n > btormbt->bo.initlayer
                   && pick (&rng, 0, 4)
               ? btormbt->bo.initlayer - 1
               : 0;
-  cls = make_clause (btormbt, &rng, lower, btormbt->bo.n - 1);
-  assert (!BTOR_REAL_ADDR_NODE (cls)->parameterized);
+  node = make_clause (btormbt, &rng, lower, btormbt->bo.n - 1);
+  assert (!BTOR_REAL_ADDR_NODE (node)->parameterized);
 
   if (btormbt->inc && pick (&rng, 0, 4))
   {
-    boolector_assume (btormbt->btor, cls);
+    boolector_assume (btormbt->btor, node);
+    es_push (&btormbt->assumptions, node);
     btormbt->nassume++;
   }
   else
   {
-    boolector_assert (btormbt->btor, cls);
+    boolector_assert (btormbt->btor, node);
     btormbt->nassert++;
     btormbt->tot_nassert++;
   }
@@ -1760,12 +1772,14 @@ _ass (BtorMBT *btormbt, unsigned r)
 static void *
 _sat (BtorMBT *btormbt, unsigned r)
 {
-  int res;
+  int res, failed;
   RNG rng;
+  BoolectorNode *ass;
 
   BTORMBT_LOG (1, btormbt, "call sat...\n");
 
   rng = initrng (r);
+
   if (!btormbt->btor->clone || !pick (&rng, 0, 50))
     /* cleanup done by boolector */
     boolector_chkclone (btormbt->btor);
@@ -1779,17 +1793,26 @@ _sat (BtorMBT *btormbt, unsigned r)
   else
     BTORMBT_LOG (1, btormbt, "sat call returned %d\n", res);
 
+  while (res == BOOLECTOR_UNSAT && btormbt->assumptions.n)
+  {
+    ass = es_pop (&btormbt->assumptions);
+    assert (ass);
+    failed = boolector_failed (btormbt->btor, ass);
+    BTORMBT_LOG (1, btormbt, "assumption %p failed: %d\n", ass, failed);
+  }
+  es_reset (&btormbt->assumptions);
+
   return btormbt->mgen && res == BOOLECTOR_SAT ? _mgen : _inc;
 }
 
 static void *
 _mgen (BtorMBT *btormbt, unsigned r)
 {
-  BTORMBT_UNUSED (r);
   int i, size = 0;
   const char *bv = NULL;
   char **indices = NULL, **values = NULL;
 
+  BTORMBT_UNUSED (r);
   assert (btormbt->mgen);
 
   for (i = 0; i < btormbt->bo.n; i++)
@@ -1815,10 +1838,15 @@ _mgen (BtorMBT *btormbt, unsigned r)
 static void *
 _inc (BtorMBT *btormbt, unsigned r)
 {
-  RNG rng = initrng (r);
+  int i;
+  RNG rng;
+
+  rng = initrng (r);
 
   /* release cnf expressions */
-  es_reset (btormbt, &btormbt->cnf);
+  for (i = 0; i < btormbt->cnf.n; i++)
+    boolector_release (btormbt->btor, btormbt->cnf.exps[i].exp);
+  es_reset (&btormbt->cnf);
 
   // FIXME externalize
   if (btormbt->inc && pick (&rng, 0, 2))
@@ -1859,13 +1887,26 @@ _del (BtorMBT *btormbt, unsigned r)
   assert (btormbt);
   assert (btormbt->btor);
 
+  int i;
+
   BTORMBT_UNUSED (r);
 
-  es_release (btormbt, &btormbt->bo);
-  es_release (btormbt, &btormbt->bv);
-  es_release (btormbt, &btormbt->arr);
-  es_release (btormbt, &btormbt->fun);
-  es_release (btormbt, &btormbt->cnf);
+  for (i = 0; i < btormbt->bo.n; i++)
+    boolector_release (btormbt->btor, btormbt->bo.exps[i].exp);
+  es_release (&btormbt->bo);
+  for (i = 0; i < btormbt->bv.n; i++)
+    boolector_release (btormbt->btor, btormbt->bv.exps[i].exp);
+  es_release (&btormbt->bv);
+  for (i = 0; i < btormbt->arr.n; i++)
+    boolector_release (btormbt->btor, btormbt->arr.exps[i].exp);
+  es_release (&btormbt->arr);
+  for (i = 0; i < btormbt->fun.n; i++)
+    boolector_release (btormbt->btor, btormbt->fun.exps[i].exp);
+  es_release (&btormbt->fun);
+  for (i = 0; i < btormbt->cnf.n; i++)
+    boolector_release (btormbt->btor, btormbt->cnf.exps[i].exp);
+  es_release (&btormbt->cnf);
+  es_release (&btormbt->assumptions);
 
   assert (btormbt->parambo == NULL);
   assert (btormbt->parambv == NULL);

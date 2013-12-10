@@ -19,17 +19,6 @@
 #include "boolector.h"
 #include "btorhash.h"
 
-// TODO
-// is_args
-// fun sort check
-// is_param
-// is_bound_param
-// get_args_arity
-// is_array_var
-// is_fun
-// args
-//
-//
 static int verbose, exitonabort, lineno, skip, ignore_sat;
 static const char *name;
 
@@ -314,6 +303,11 @@ NEXT:
   {
     PARSE_ARGS0 (tok);
     boolector_enable_beta_reduce_all (btor);
+  }
+  else if (!strcmp (tok, "enable_force_cleanup"))
+  {
+    PARSE_ARGS0 (tok);
+    boolector_enable_force_cleanup (btor);
   }
   else if (!strcmp (tok, "set_verbosity"))
   {
@@ -972,6 +966,12 @@ NEXT:
     PARSE_ARGS1 (tok, str);
     boolector_assume (btor, hmap_get (hmap, arg1_str));
   }
+  else if (!strcmp (tok, "failed"))
+  {
+    PARSE_ARGS1 (tok, str);
+    boolector_failed (btor, hmap_get (hmap, arg1_str));
+    exp_ret = RET_INT;
+  }
   else if (!strcmp (tok, "sat"))
   {
     PARSE_ARGS0 (tok);
@@ -1027,9 +1027,9 @@ static const char *usage =
     "\n"
     "where <option> is one of the following:\n"
     "\n"
-    "  -v | --verbose\n"
-    "  -e | --exit-on-abort\n"
-    "  -s | --skip-getters\n";
+    "  -v, --verbose          increase verbosity\n"
+    "  -e, --exit-on-abort    exit on boolector abort\n"
+    "  -s, --skip-getters     skip 'getter' functions\n";
 
 int
 main (int argc, char **argv)
