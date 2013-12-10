@@ -1903,6 +1903,7 @@ btor_failed_exp (Btor *btor, BtorNode *exp)
           else
           {
             assert (btor_find_in_ptr_hash_table (btor->assumptions, cur->e[i]));
+            if (!BTOR_IS_SYNTH_NODE (BTOR_REAL_ADDR_NODE (cur))) continue;
             if ((BTOR_IS_INVERTED_NODE (cur)
                  && BTOR_REAL_ADDR_NODE (cur)->av->aigs[0] == BTOR_AIG_TRUE)
                 || (!BTOR_IS_INVERTED_NODE (cur)
@@ -1917,10 +1918,11 @@ btor_failed_exp (Btor *btor, BtorNode *exp)
     else
     {
       assert (btor_find_in_ptr_hash_table (btor->assumptions, exp));
-      if ((BTOR_IS_INVERTED_NODE (exp)
-           && BTOR_REAL_ADDR_NODE (exp)->av->aigs[0] == BTOR_AIG_TRUE)
-          || (!BTOR_IS_INVERTED_NODE (exp)
-              && exp->av->aigs[0] == BTOR_AIG_FALSE))
+      if (BTOR_IS_SYNTH_NODE (BTOR_REAL_ADDR_NODE (exp))
+          && ((BTOR_IS_INVERTED_NODE (exp)
+               && BTOR_REAL_ADDR_NODE (exp)->av->aigs[0] == BTOR_AIG_TRUE)
+              || (!BTOR_IS_INVERTED_NODE (exp)
+                  && exp->av->aigs[0] == BTOR_AIG_FALSE)))
         return 0;
     }
     return 1;
