@@ -1859,6 +1859,7 @@ btor_failed_exp (Btor *btor, BtorNode *exp)
 {
   assert (btor);
   assert (btor->inc_enabled);
+  assert (btor->last_sat_result == BTOR_UNSAT);
   assert (exp);
 
   int i, lit;
@@ -1873,9 +1874,9 @@ btor_failed_exp (Btor *btor, BtorNode *exp)
   assert (!BTOR_REAL_ADDR_NODE (exp)->parameterized);
   assert (btor_is_assumption_exp (btor, exp));
 
-  printf ("btor->assumption_false %d\n", btor->assumption_false);
-  printf ("last_sat_call %d\n", btor->last_sat_result);
-  printf ("btor->inconsistent %d\n", btor->inconsistent);
+  // printf ("btor->assumption_false %d\n", btor->assumption_false);
+  // printf ("last_sat_call %d\n", btor->last_sat_result);
+  // printf ("btor->inconsistent %d\n", btor->inconsistent);
 
   if (btor->inconsistent) return 0;
 

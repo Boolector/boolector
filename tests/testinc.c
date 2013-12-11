@@ -1,6 +1,6 @@
 /*  Boolector: Satisfiablity Modulo Theories (SMT) solver.
  *  Copyright (C) 2007-2012 Robert Daniel Brummayer, Armin Biere
- *  Copyright (C) 2012 Aina Niemetz
+ *  Copyright (C) 2012-2013 Aina Niemetz
  *
  *  This file is part of Boolector.
  *
@@ -64,6 +64,7 @@ test_inc_true_false (void)
   btor_assume_exp (g_btor, ff);
   res = btor_sat_btor (g_btor);
   assert (res == BTOR_UNSAT);
+  assert (btor_failed_exp (g_btor, ff));
 
   btor_release_exp (g_btor, ff);
   btor_release_exp (g_btor, tt);
@@ -96,7 +97,6 @@ test_inc_counter (int w, int nondet)
       sprintf (name, "oracle%d", i);
       if (i)
         oracle = btor_var_exp (g_btor, 1, name);
-
       else
         oracle = btor_true_exp (g_btor);
       next = btor_cond_exp (g_btor, oracle, inc, current);
@@ -122,6 +122,8 @@ test_inc_counter (int w, int nondet)
     if (res == BTOR_SAT) break;
 
     assert (res == BTOR_UNSAT);
+    assert (btor_failed_exp (g_btor, allzero));
+
     assert (i < (1 << w));
   }
 
@@ -272,25 +274,32 @@ static void
 test_inc_assume_assert1 (void)
 {
   int sat_result;
+  BtorNode *array, *index1, *index2, *read1, *read2, *eq_index, *ne_read;
 
   init_inc_test ();
   btor_enable_inc_usage (g_btor);
   btor_set_rewrite_level_btor (g_btor, 0);
-  BtorNode *array    = btor_array_exp (g_btor, 1, 1, "array1");
-  BtorNode *index1   = btor_var_exp (g_btor, 1, "index1");
-  BtorNode *index2   = btor_var_exp (g_btor, 1, "index2");
-  BtorNode *read1    = btor_read_exp (g_btor, array, index1);
-  BtorNode *read2    = btor_read_exp (g_btor, array, index2);
-  BtorNode *eq_index = btor_eq_exp (g_btor, index1, index2);
-  BtorNode *ne_read  = btor_ne_exp (g_btor, read1, read2);
+
+  array    = btor_array_exp (g_btor, 1, 1, "array1");
+  index1   = btor_var_exp (g_btor, 1, "index1");
+  index2   = btor_var_exp (g_btor, 1, "index2");
+  read1    = btor_read_exp (g_btor, array, index1);
+  read2    = btor_read_exp (g_btor, array, index2);
+  eq_index = btor_eq_exp (g_btor, index1, index2);
+  ne_read  = btor_ne_exp (g_btor, read1, read2);
+
   btor_assert_exp (g_btor, ne_read);
   sat_result = btor_sat_btor (g_btor);
   assert (sat_result == BTOR_SAT);
+
   btor_assume_exp (g_btor, eq_index);
   sat_result = btor_sat_btor (g_btor);
   assert (sat_result == BTOR_UNSAT);
+  assert (btor_failed_exp (g_btor, eq_index));
+
   sat_result = btor_sat_btor (g_btor);
   assert (sat_result == BTOR_SAT);
+
   btor_release_exp (g_btor, array);
   btor_release_exp (g_btor, index1);
   btor_release_exp (g_btor, index2);
@@ -306,23 +315,29 @@ static void
 test_inc_lemmas_on_demand_1 ()
 {
   int sat_result;
+  BtorNode *array, *index1, *index2, *read1, *read2, *eq, *ne;
 
   init_inc_test ();
   btor_enable_inc_usage (g_btor);
   btor_set_rewrite_level_btor (g_btor, 0);
-  BtorNode *array  = btor_array_exp (g_btor, 1, 1, "array1");
-  BtorNode *index1 = btor_var_exp (g_btor, 1, "index1");
-  BtorNode *index2 = btor_var_exp (g_btor, 1, "index2");
-  BtorNode *read1  = btor_read_exp (g_btor, array, index1);
-  BtorNode *read2  = btor_read_exp (g_btor, array, index2);
-  BtorNode *eq     = btor_eq_exp (g_btor, index1, index2);
-  BtorNode *ne     = btor_ne_exp (g_btor, read1, read2);
+
+  array  = btor_array_exp (g_btor, 1, 1, "array1");
+  index1 = btor_var_exp (g_btor, 1, "index1");
+  index2 = btor_var_exp (g_btor, 1, "index2");
+  read1  = btor_read_exp (g_btor, array, index1);
+  read2  = btor_read_exp (g_btor, array, index2);
+  eq     = btor_eq_exp (g_btor, index1, index2);
+  ne     = btor_ne_exp (g_btor, read1, read2);
+
   btor_assert_exp (g_btor, eq);
   btor_assume_exp (g_btor, ne);
   sat_result = btor_sat_btor (g_btor);
   assert (sat_result == BTOR_UNSAT);
+  assert (btor_failed_exp (g_btor, ne));
+
   sat_result = btor_sat_btor (g_btor);
   assert (sat_result == BTOR_SAT);
+
   btor_release_exp (g_btor, array);
   btor_release_exp (g_btor, index1);
   btor_release_exp (g_btor, index2);
