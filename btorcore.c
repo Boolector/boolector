@@ -1916,8 +1916,7 @@ btor_failed_exp (Btor *btor, BtorNode *exp)
 
   if (exp == btor->true_exp) return 0;
 
-  assert (exp
-          != BTOR_INVERT_NODE (btor->true_exp));  // can this ever happen? TODO
+  if (exp == BTOR_INVERT_NODE (btor->true_exp)) return 1;
 
   // assumption_false:
   // exp inverted or not and: exp false -> return 1 (failed)
