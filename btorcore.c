@@ -1833,7 +1833,6 @@ btor_is_assumption_exp (Btor *btor, BtorNode *exp)
 {
   assert (btor);
   assert (btor->inc_enabled);
-  assert (BTOR_REAL_ADDR_NODE (exp)->mark == 0);
   assert (exp);
 
   int i;
@@ -1841,6 +1840,9 @@ btor_is_assumption_exp (Btor *btor, BtorNode *exp)
   BtorNodePtrStack stack;
 
   exp = btor_simplify_exp (btor, exp);
+
+  if (BTOR_REAL_ADDR_NODE (exp) == BTOR_REAL_ADDR_NODE (btor->true_exp))
+    return 1;
 
   if (BTOR_IS_ARRAY_NODE (BTOR_REAL_ADDR_NODE (exp))
       || BTOR_REAL_ADDR_NODE (exp)->len != 1
@@ -1911,6 +1913,11 @@ btor_failed_exp (Btor *btor, BtorNode *exp)
   // printf ("btor->inconsistent %d\n", btor->inconsistent);
 
   if (btor->inconsistent) return 0;
+
+  if (exp == btor->true_exp) return 0;
+
+  assert (exp
+          != BTOR_INVERT_NODE (btor->true_exp));  // can this ever happen? TODO
 
   // assumption_false:
   // exp inverted or not and: exp false -> return 1 (failed)
