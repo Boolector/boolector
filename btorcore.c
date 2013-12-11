@@ -1011,7 +1011,7 @@ process_unsynthesized_constraints (Btor *btor)
       aig = btor_exp_to_aig (btor, cur);
       if (aig == BTOR_AIG_FALSE)
       {
-        btor->inconsistent = 1;
+        btor->found_constraint_false = 1;
         break;
       }
       btor_add_toplevel_aig_to_sat (amgr, aig);
@@ -1906,7 +1906,7 @@ btor_failed_exp (Btor *btor, BtorNode *exp)
   assert (!BTOR_REAL_ADDR_NODE (exp)->parameterized);
   assert (btor_is_assumption_exp (btor, exp));
 
-  // printf ("btor->assumption_false %d\n", btor->assumption_false);
+  // printf ("btor->found_assumption_false %d\n", btor->found_assumption_false);
   // printf ("last_sat_call %d\n", btor->last_sat_result);
   // printf ("btor->inconsistent %d\n", btor->inconsistent);
 
@@ -1927,11 +1927,12 @@ btor_failed_exp (Btor *btor, BtorNode *exp)
   if (BTOR_IS_INVERTED_NODE (exp) || !BTOR_IS_AND_NODE (exp))
   {
     real_exp = BTOR_REAL_ADDR_NODE (exp);
-    assert (btor->assumption_false || BTOR_IS_SYNTH_NODE (real_exp));
+    assert (btor->found_assumption_false || btor->found_constraint_false
+            || BTOR_IS_SYNTH_NODE (real_exp));
 
     if (!BTOR_IS_SYNTH_NODE (real_exp)) return 0;
 
-    if (btor->assumption_false)
+    if (btor->found_assumption_false || btor->found_constraint_false)
       return ((BTOR_IS_INVERTED_NODE (exp)
                && real_exp->av->aigs[0] == BTOR_AIG_TRUE)
               || (!BTOR_IS_INVERTED_NODE (exp)
@@ -1982,7 +1983,7 @@ btor_failed_exp (Btor *btor, BtorNode *exp)
             || (!BTOR_IS_INVERTED_NODE (cur->e[i])
                 && cur->e[i]->av->aigs[0] == BTOR_AIG_FALSE))
           goto ASSUMPTION_FAILED;
-        if (!btor->assumption_false)
+        if (!btor->found_assumption_false && !btor->found_constraint_false)
           BTOR_PUSH_STACK (btor->mm, assumptions, cur->e[i]);
       }
     }
@@ -4382,7 +4383,7 @@ add_again_assumptions (Btor *btor)
   BtorSATMgr *smgr;
   BtorAIGMgr *amgr;
 
-  btor->assumption_false = 0; /* reset */
+  btor->found_assumption_false = 0; /* reset */
 
   amgr = btor_get_aig_mgr_aigvec_mgr (btor->avmgr);
   smgr = btor_get_sat_mgr_aig_mgr (amgr);
@@ -4396,7 +4397,7 @@ add_again_assumptions (Btor *btor)
 
     if (aig == BTOR_AIG_FALSE)
     {
-      btor->assumption_false = 1;
+      btor->found_assumption_false = 1;
       break;
     }
 
@@ -4439,10 +4440,10 @@ update_sat_assignments (Btor *btor)
 
   smgr = btor_get_sat_mgr_aig_mgr (btor_get_aig_mgr_aigvec_mgr (btor->avmgr));
   add_again_assumptions (btor);
-  assert (!btor->assumption_false);
+  assert (!btor->found_assumption_false);
   result = btor_timed_sat_sat (btor, -1);
   assert (result == BTOR_SAT);
-  return btor->assumption_false || (result != BTOR_SAT)
+  return btor->found_assumption_false || (result != BTOR_SAT)
          || btor_changed_sat (smgr);
 }
 
@@ -6289,7 +6290,7 @@ btor_sat_aux_btor (Btor *btor)
     assert (check_all_hash_tables_proxy_free_dbg (btor));
     assert (check_all_hash_tables_simp_free_dbg (btor));
 
-    if (btor->inconsistent)
+    if (btor->found_constraint_false)
     {
     UNSAT:
       sat_result = BTOR_UNSAT;
@@ -6314,7 +6315,7 @@ btor_sat_aux_btor (Btor *btor)
   add_again_assumptions (btor);
   assert (check_reachable_flag_dbg (btor));
 
-  if (btor->assumption_false) goto UNSAT;
+  if (btor->found_assumption_false) goto UNSAT;
 
   BTOR_INIT_STACK (top_functions);
   sat_result = btor_timed_sat_sat (btor, -1);
@@ -6335,7 +6336,7 @@ btor_sat_aux_btor (Btor *btor)
     // BTOR_RELEASE_STACK (mm, top_functions);
     // btor->stats.lod_refinements++;
     // add_again_assumptions (btor);
-    // assert (!btor->assumption_false);
+    // assert (!btor->found_assumption_false);
     //
     // FIXME
 
@@ -6345,7 +6346,7 @@ btor_sat_aux_btor (Btor *btor)
     {
       btor->stats.lod_refinements++;
       add_again_assumptions (btor);
-      assert (!btor->assumption_false);
+      assert (!btor->found_assumption_false);
     }
 
     BTOR_RELEASE_STACK (mm, top_functions);
@@ -6363,8 +6364,8 @@ btor_sat_aux_btor (Btor *btor)
     }
 
     add_again_assumptions (btor);
-    assert (!btor->assumption_false);
-    if (btor->assumption_false)
+    assert (!btor->found_assumption_false);
+    if (btor->found_assumption_false)
       sat_result = BTOR_UNSAT;
     else
       sat_result = btor_timed_sat_sat (btor, -1);

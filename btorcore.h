@@ -95,7 +95,8 @@ struct Btor
   int vis_idx; /* file index for visualizing expressions */
   int vread_index_id;
   int inconsistent;
-  int assumption_false;
+  int found_assumption_false;
+  int found_constraint_false;
   int model_gen;            /* model generation enabled */
   int external_refs;        /* external references (library mode) */
   int inc_enabled;          /* incremental usage enabled ? */
