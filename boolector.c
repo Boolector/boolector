@@ -3466,8 +3466,9 @@ boolector_failed (Btor *btor, BoolectorNode *node)
 
   exp = BTOR_IMPORT_BOOLECTOR_NODE (node);
   BTOR_ABORT_ARG_NULL_BOOLECTOR (btor);
-  BTOR_ABORT_BOOLECTOR (btor->last_sat_result != BTOR_UNSAT,
-                        "no failed assumptions if input formula is SAT");
+  BTOR_ABORT_BOOLECTOR (
+      btor->last_sat_result != BTOR_UNSAT,
+      "cannot check failed assumptions if input formula is not UNSAT");
   BTOR_ABORT_ARG_NULL_BOOLECTOR (exp);
   BTOR_TRAPI_UNFUN ("failed", exp);
   BTOR_ABORT_BOOLECTOR (!btor->inc_enabled,

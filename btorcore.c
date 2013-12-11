@@ -6252,7 +6252,11 @@ btor_sat_aux_btor (Btor *btor)
 
   verbosity = btor->verbosity;
 
-  if (btor->inconsistent) return BTOR_UNSAT;
+  if (btor->inconsistent)
+  {
+    btor->last_sat_result = BTOR_UNSAT;
+    return BTOR_UNSAT;
+  }
 
   btor_msg (btor, 1, "calling SAT");
 
@@ -6260,7 +6264,11 @@ btor_sat_aux_btor (Btor *btor)
   btor_simplify (btor);
   update_assumptions (btor);
 
-  if (btor->inconsistent) return BTOR_UNSAT;
+  if (btor->inconsistent)
+  {
+    btor->last_sat_result = BTOR_UNSAT;
+    return BTOR_UNSAT;
+  }
 
   mm = btor->mm;
 
