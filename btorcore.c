@@ -1036,9 +1036,11 @@ update_assumptions (Btor *btor)
 {
   assert (btor);
 
+  int i;
   BtorPtrHashTable *ass;
   BtorPtrHashBucket *b;
-  BtorNode *cur, *simp;
+  BtorNode *cur, *simp, *tmp;
+  BtorNodePtrStack stack;
 
   ass = btor_new_ptr_hash_table (btor->mm,
                                  (BtorHashPtr) btor_hash_exp_by_id,
@@ -1050,7 +1052,32 @@ update_assumptions (Btor *btor)
     if (BTOR_REAL_ADDR_NODE (cur)->simplified)
     {
       simp = btor_simplify_exp (btor, cur);
-      if (!btor_find_in_ptr_hash_table (ass, simp))
+      if (!BTOR_IS_INVERTED_NODE (simp) && BTOR_IS_AND_NODE (simp))
+      {
+        BTOR_INIT_STACK (stack);
+        BTOR_PUSH_STACK (btor->mm, stack, simp);
+        while (!BTOR_EMPTY_STACK (stack))
+        {
+          tmp = BTOR_POP_STACK (stack);
+          assert (!BTOR_IS_INVERTED_NODE (tmp));
+          assert (BTOR_IS_AND_NODE (tmp));
+          assert (tmp->mark == 0 || tmp->mark == 1);
+          if (tmp->mark) continue;
+          tmp->mark = 1;
+          for (i = 0; i < 2; i++)
+          {
+            if (!BTOR_IS_INVERTED_NODE (tmp->e[i])
+                && BTOR_IS_AND_NODE (tmp->e[i]))
+              BTOR_PUSH_STACK (btor->mm, stack, tmp->e[i]);
+            else if (!btor_find_in_ptr_hash_table (ass, tmp->e[i]))
+              (void) btor_insert_in_ptr_hash_table (
+                  ass, btor_copy_exp (btor, tmp->e[i]));
+          }
+        }
+        BTOR_RELEASE_STACK (btor->mm, stack);
+        btor_mark_exp (btor, simp, 0);
+      }
+      else if (!btor_find_in_ptr_hash_table (ass, simp))
         btor_insert_in_ptr_hash_table (ass, btor_copy_exp (btor, simp));
       btor_release_exp (btor, cur);
     }
@@ -1806,6 +1833,7 @@ btor_is_assumption_exp (Btor *btor, BtorNode *exp)
 {
   assert (btor);
   assert (btor->inc_enabled);
+  assert (BTOR_REAL_ADDR_NODE (exp)->mark == 0);
   assert (exp);
 
   int i;
@@ -1841,7 +1869,11 @@ btor_is_assumption_exp (Btor *btor, BtorNode *exp)
             BTOR_PUSH_STACK (btor->mm, stack, cur->e[i]);
           }
           else if (!btor_find_in_ptr_hash_table (btor->assumptions, cur->e[i]))
+          {
+            BTOR_RELEASE_STACK (btor->mm, stack);
+            btor_mark_exp (btor, exp, 0);
             return 0;
+          }
         }
       }
     }
