@@ -2911,7 +2911,7 @@ boolector_apply (Btor *btor,
   {
     BTOR_ABORT_BOOLECTOR (
         !BTOR_IS_LAMBDA_NODE (cur),
-        "number of arguments muste be <= number of parameters in 'fun'");
+        "number of arguments must be <= number of parameters in 'fun'");
     sprintf (
         strtrapi + strlen (strtrapi), NODE_FMT, BTOR_TRAPI_NODE_ID (args[i]));
     cur = BTOR_REAL_ADDR_NODE (btor_simplify_exp (btor, cur->e[1]));
