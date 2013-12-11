@@ -86,7 +86,7 @@
     {                                         \
       printf ("[btormbt] ");                  \
       printf (fmt, ##args);                   \
-      fflush (stdout);                        \
+      printf ("\n");                          \
     }                                         \
   } while (0)
 
@@ -1413,7 +1413,7 @@ _new (BtorMBT *btormbt, unsigned r)
 
   BTORMBT_LOG (1,
                btormbt,
-               "init: pick %d ops (add:rel=%0.1f%%:%0.1f%%), %d lits\n",
+               "init: pick %d ops (add:rel=%0.1f%%:%0.1f%%), %d lits",
                btormbt->max_nops,
                btormbt->p_addop / 10,
                btormbt->p_relop / 10,
@@ -1430,39 +1430,39 @@ _opt (BtorMBT *btormbt, unsigned r)
   int rw;
   RNG rng = initrng (r);
 
-  BTORMBT_LOG (1, btormbt, "enable force cleanup\n");
+  BTORMBT_LOG (1, btormbt, "enable force cleanup");
   boolector_enable_force_cleanup (btormbt->btor);
 
 #ifndef NBTORLOG
   if (btormbt->bloglevel)
   {
-    BTORMBT_LOG (1, btormbt, "boolector log level: '%d'\n", btormbt->bloglevel);
+    BTORMBT_LOG (1, btormbt, "boolector log level: '%d'", btormbt->bloglevel);
     boolector_set_loglevel (btormbt->btor, btormbt->bloglevel);
   }
 #endif
   if (btormbt->bverblevel)
   {
     BTORMBT_LOG (
-        1, btormbt, "boolector verbose level: '%d'\n", btormbt->bverblevel);
+        1, btormbt, "boolector verbose level: '%d'", btormbt->bverblevel);
     boolector_set_verbosity (btormbt->btor, btormbt->bverblevel);
   }
   btormbt->mgen = 0;
   if (!btormbt->force_nomgen && pick (&rng, 0, 1))
   {
-    BTORMBT_LOG (1, btormbt, "enable model generation\n");
+    BTORMBT_LOG (1, btormbt, "enable model generation");
     boolector_enable_model_gen (btormbt->btor);
     btormbt->mgen = 1;
   }
 
   if (pick (&rng, 0, 1))
   {
-    BTORMBT_LOG (1, btormbt, "enable incremental usage\n");
+    BTORMBT_LOG (1, btormbt, "enable incremental usage");
     boolector_enable_inc_usage (btormbt->btor);
     btormbt->inc = 1;
   }
 
   rw = pick (&rng, 0, 3);
-  BTORMBT_LOG (1, btormbt, "set rewrite level %d \n", rw);
+  BTORMBT_LOG (1, btormbt, "set rewrite level %d", rw);
   boolector_set_rewrite_level (btormbt->btor, rw);
 
   return _init;
@@ -1497,7 +1497,7 @@ _init (BtorMBT *btormbt, unsigned r)
 
   BTORMBT_LOG (1,
                btormbt,
-               "after init: nexps: booleans %d, bitvectors %d, arrays %d \n",
+               "after init: nexps: booleans %d, bitvectors %d, arrays %d",
                btormbt->bo.n,
                btormbt->bv.n,
                btormbt->arr.n);
@@ -1537,12 +1537,11 @@ _init (BtorMBT *btormbt, unsigned r)
 
   BTORMBT_LOG (1,
                btormbt,
-               "main: pick %d ops (add:rel=%0.1f%%:%0.1f%%)\n",
+               "main: pick %d ops (add:rel=%0.1f%%:%0.1f%%)",
                btormbt->max_nops,
                btormbt->p_addop / 10,
                btormbt->p_relop / 10);
-  BTORMBT_LOG (
-      1, btormbt, "      make ~%d asserts/assumes \n", btormbt->max_nass);
+  BTORMBT_LOG (1, btormbt, "      make ~%d asserts/assumes", btormbt->max_nass);
 
   btormbt->is_init = 1;
   return _main;
@@ -1577,13 +1576,13 @@ _main (BtorMBT *btormbt, unsigned r)
 
   BTORMBT_LOG (1,
                btormbt,
-               "after main: nexps: booleans %d, bitvectors %d, arrays %d \n",
+               "after main: nexps: booleans %d, bitvectors %d, arrays %d",
                btormbt->bo.n,
                btormbt->bv.n,
                btormbt->arr.n);
   BTORMBT_LOG (1,
                btormbt,
-               "after main: number of asserts: %d, assumps: %d \n",
+               "after main: number of asserts: %d, assumps: %d",
                btormbt->tot_nassert,
                btormbt->nassume);
 
@@ -1782,26 +1781,26 @@ _sat (BtorMBT *btormbt, unsigned r)
 
   if (btormbt->shadow && (!btormbt->btor->clone || !pick (&rng, 0, 50)))
   {
-    BTORMBT_LOG (1, btormbt, "cloning...\n");
+    BTORMBT_LOG (1, btormbt, "cloning...");
     /* cleanup done by boolector */
     boolector_chkclone (btormbt->btor);
   }
 
-  BTORMBT_LOG (1, btormbt, "calling sat...\n");
+  BTORMBT_LOG (1, btormbt, "calling sat...");
   res = boolector_sat (btormbt->btor);
   if (res == BOOLECTOR_UNSAT)
-    BTORMBT_LOG (1, btormbt, "unsat\n");
+    BTORMBT_LOG (1, btormbt, "unsat");
   else if (res == BOOLECTOR_SAT)
-    BTORMBT_LOG (1, btormbt, "sat\n");
+    BTORMBT_LOG (1, btormbt, "sat");
   else
-    BTORMBT_LOG (1, btormbt, "sat call returned %d\n", res);
+    BTORMBT_LOG (1, btormbt, "sat call returned %d", res);
 
   while (res == BOOLECTOR_UNSAT && btormbt->assumptions.n)
   {
     ass = es_pop (&btormbt->assumptions);
     assert (ass);
     failed = boolector_failed (btormbt->btor, ass);
-    BTORMBT_LOG (1, btormbt, "assumption %p failed: %d\n", ass, failed);
+    BTORMBT_LOG (1, btormbt, "assumption %p failed: %d", ass, failed);
   }
   es_reset (&btormbt->assumptions);
 
@@ -1872,12 +1871,12 @@ _inc (BtorMBT *btormbt, unsigned r)
 
     BTORMBT_LOG (1,
                  btormbt,
-                 "inc: pick %d ops(add:rel=%0.1f%%:%0.1f%%) \n",
+                 "inc: pick %d ops(add:rel=%0.1f%%:%0.1f%%)",
                  btormbt->max_nops,
                  btormbt->p_addop / 10,
                  btormbt->p_relop / 10);
     BTORMBT_LOG (
-        btormbt->inc, btormbt, "number of increments: %d \n", btormbt->inc - 1);
+        btormbt->inc, btormbt, "number of increments: %d", btormbt->inc - 1);
 
     return _main;
   }
