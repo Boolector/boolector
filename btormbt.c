@@ -51,6 +51,7 @@
   "  -a, --always-fork                fork even if seed given\n"          \
   "  -n, --no-modelgen                do not enable model generation \n"  \
   "  -e, --no-extensionality          do not use extensionality\n"        \
+  "  -s, --shadow-clone               enable shadow clone\n"              \
   "\n"                                                                    \
   "  -f, --first-bug-only             quit after first bug encountered\n" \
   "  -m <maxruns>                     quit after <maxruns> rounds\n"      \
@@ -235,6 +236,7 @@ typedef struct BtorMBT
   int always_fork;
   int force_nomgen;
   int ext;
+  int shadow;
   int max_nrounds;
 
   int bloglevel;
@@ -1776,16 +1778,17 @@ _sat (BtorMBT *btormbt, unsigned r)
   RNG rng;
   BoolectorNode *ass;
 
-  BTORMBT_LOG (1, btormbt, "call sat...\n");
-
   rng = initrng (r);
 
-  if (!btormbt->btor->clone || !pick (&rng, 0, 50))
+  if (btormbt->shadow && (!btormbt->btor->clone || !pick (&rng, 0, 50)))
+  {
+    BTORMBT_LOG (1, btormbt, "cloning...\n");
     /* cleanup done by boolector */
     boolector_chkclone (btormbt->btor);
+  }
 
+  BTORMBT_LOG (1, btormbt, "calling sat...\n");
   res = boolector_sat (btormbt->btor);
-
   if (res == BOOLECTOR_UNSAT)
     BTORMBT_LOG (1, btormbt, "unsat\n");
   else if (res == BOOLECTOR_SAT)
@@ -2203,6 +2206,8 @@ main (int argc, char **argv)
     else if (!strcmp (argv[i], "-e")
              || !strcmp (argv[i], "--no-extensionality"))
       btormbt->ext = 0;
+    else if (!strcmp (argv[i], "-s") || !strcmp (argv[i], "--shadow-clone"))
+      btormbt->shadow = 1;
     else if (!strcmp (argv[i], "-m"))
     {
       if (++i == argc) die ("argument to '-m' missing (try '-h')");
