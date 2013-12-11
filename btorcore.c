@@ -2000,9 +2000,10 @@ btor_failed_exp (Btor *btor, BtorNode *exp)
   while (!BTOR_EMPTY_STACK (assumptions))
   {
     cur = BTOR_POP_STACK (assumptions);
+    assert (BTOR_IS_INVERTED_NODE (cur) || !BTOR_IS_AND_NODE (cur));
     lit = exp_to_cnf_lit (btor, cur);
     if (lit == smgr->true_lit) continue;
-    assert (-lit != smgr->true_lit);  // can this ever happen? TODO
+    if (lit == -smgr->true_lit) goto ASSUMPTION_FAILED;
     if (btor_failed_sat (smgr, lit))
     {
     ASSUMPTION_FAILED:
