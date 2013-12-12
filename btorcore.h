@@ -184,6 +184,8 @@ struct Btor
     double enc_lambda;
     double enc_var;
     double find_dfs;
+    double find_nenc_app;
+    double find_param_app;
     double cloning;
   } time;
 };
