@@ -1526,26 +1526,19 @@ insert_new_constraint (Btor *btor, BtorNode *exp)
   assert (BTOR_REAL_ADDR_NODE (exp)->len == 1);
   assert (!BTOR_REAL_ADDR_NODE (exp)->parameterized);
 
-  if (btor->inconsistent) return;
-
   exp      = btor_simplify_exp (btor, exp);
   real_exp = BTOR_REAL_ADDR_NODE (exp);
 
   if (BTOR_IS_BV_CONST_NODE (real_exp))
   {
+    /* we do not add true/false */
     if ((BTOR_IS_INVERTED_NODE (exp) && real_exp->bits[0] == '1')
         || (!BTOR_IS_INVERTED_NODE (exp) && real_exp->bits[0] == '0'))
-    {
       btor->inconsistent = 1;
-      return;
-    }
     else
-    {
-      /* we do not add true */
       assert ((BTOR_IS_INVERTED_NODE (exp) && real_exp->bits[0] == '0')
               || (!BTOR_IS_INVERTED_NODE (exp) && real_exp->bits[0] == '1'));
-      return;
-    }
+    return;
   }
 
   if (!btor_find_in_ptr_hash_table (btor->synthesized_constraints, exp))
@@ -1560,24 +1553,20 @@ insert_new_constraint (Btor *btor, BtorNode *exp)
       }
       else
       {
-        if (constraint_is_inconsistent (btor, exp))
-          btor->inconsistent = 1;
+        if (constraint_is_inconsistent (btor, exp)) btor->inconsistent = 1;
+
+        if (!real_exp->constraint)
+        {
+          if (is_embedded_constraint_exp (btor, exp))
+            insert_embedded_constraint (btor, exp);
+          else
+            insert_unsynthesized_constraint (btor, exp);
+        }
         else
         {
-          if (!real_exp->constraint)
-          {
-            if (is_embedded_constraint_exp (btor, exp))
-              insert_embedded_constraint (btor, exp);
-            else
-              insert_unsynthesized_constraint (btor, exp);
-          }
-          else
-          {
-            assert (btor_find_in_ptr_hash_table (
-                        btor->unsynthesized_constraints, exp)
-                    || btor_find_in_ptr_hash_table (btor->embedded_constraints,
-                                                    exp));
-          }
+          assert (
+              btor_find_in_ptr_hash_table (btor->unsynthesized_constraints, exp)
+              || btor_find_in_ptr_hash_table (btor->embedded_constraints, exp));
         }
       }
     }
@@ -1642,6 +1631,7 @@ add_constraint (Btor *btor, BtorNode *exp)
 
   assert (btor);
   assert (exp);
+  assert (check_unique_table_mark_unset_dbg (btor));
   exp = btor_simplify_exp (btor, exp);
   assert (!BTOR_IS_ARRAY_NODE (BTOR_REAL_ADDR_NODE (exp)));
   assert (BTOR_REAL_ADDR_NODE (exp)->len == 1);
