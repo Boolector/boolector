@@ -733,7 +733,7 @@ erase_local_data_exp (Btor *btor, BtorNode *exp, int free_symbol)
   assert (exp->kind != BTOR_INVALID_NODE);
 
   mm = btor->mm;
-  BTORLOG ("%s: %s", __FUNCTION__, node2string (exp));
+  //  BTORLOG ("%s: %s", __FUNCTION__, node2string (exp));
 
   switch (exp->kind)
   {
@@ -869,7 +869,6 @@ recursively_release_exp (Btor *btor, BtorNode *root)
 
       if (cur->simplified)
       {
-        assert (btor->rewrite_level > 1 || btor->beta_reduce_all);
         BTOR_PUSH_STACK (mm, stack, cur->simplified);
         cur->simplified = 0;
       }
