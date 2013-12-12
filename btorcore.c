@@ -4519,6 +4519,7 @@ lazy_synthesize_and_encode_lambda_exp (Btor *btor,
   assert (lambda_exp);
   assert (BTOR_IS_REGULAR_NODE (lambda_exp));
   assert (BTOR_IS_LAMBDA_NODE (lambda_exp));
+  assert (check_unique_table_mark_unset_dbg (btor));
 
   double start;
   int changed_assignments, update, i;
@@ -5468,6 +5469,64 @@ find_not_encoded_applies_vars (Btor *btor,
 }
 
 static int
+encode_applies_vars (Btor *btor,
+                     BtorLambdaNode *lambda,
+                     BtorNodePtrStack *param_apps)
+{
+  assert (btor);
+  assert (lambda);
+  assert (param_apps);
+  assert (BTOR_IS_REGULAR_NODE (lambda));
+
+  int i, assignments_changed = 0, res;
+  BtorNode *cur;
+  BtorNodePtrStack stack;
+
+  stack = *param_apps;
+
+  if (BTOR_EMPTY_STACK (stack)) return assignments_changed;
+
+  if (!lambda->synth_apps)
+  {
+    lambda->synth_apps =
+        btor_new_ptr_hash_table (btor->mm,
+                                 (BtorHashPtr) btor_hash_exp_by_id,
+                                 (BtorCmpPtr) btor_compare_exp_by_id);
+  }
+
+  for (i = 0; i < BTOR_COUNT_STACK (stack); i++)
+  {
+    cur = BTOR_PEEK_STACK (stack, i);
+    assert (BTOR_IS_REGULAR_NODE (cur));
+    assert (BTOR_IS_APPLY_NODE (cur) || BTOR_IS_BV_VAR_NODE (cur));
+
+    if (BTOR_IS_BV_VAR_NODE (cur))
+    {
+      if (!cur->tseitin)
+        res = lazy_synthesize_and_encode_var_exp (btor, cur, 1);
+    }
+    else
+    {
+      assert (BTOR_IS_APPLY_NODE (cur));
+
+      if (btor_find_in_ptr_hash_table (lambda->synth_apps, cur)) continue;
+
+      /* must be considered for consistency checking */
+      cur->vread = 1;
+      btor->stats.lambda_synth_apps++;
+      btor_insert_in_ptr_hash_table (lambda->synth_apps,
+                                     btor_copy_exp (btor, cur));
+      if (!cur->tseitin)
+        res = lazy_synthesize_and_encode_apply_exp (btor, cur, 1);
+    }
+
+    if (res) assignments_changed = 1;
+  }
+
+  return assignments_changed;
+}
+
+static int
 propagate (Btor *btor,
            BtorNodePtrStack *prop_stack,
            BtorNodePtrStack *cleanup_stack,
@@ -5611,59 +5670,14 @@ propagate (Btor *btor,
       {
         find_not_encoded_applies_vars (btor, fun_value, &param_apps);
 
-        if (!BTOR_EMPTY_STACK (param_apps))
+        *assignments_changed = encode_applies_vars (btor, lambda, &param_apps);
+
+        if (*assignments_changed)
         {
-          if (!lambda->synth_apps)
-          {
-            lambda->synth_apps =
-                btor_new_ptr_hash_table (mm,
-                                         (BtorHashPtr) btor_hash_exp_by_id,
-                                         (BtorCmpPtr) btor_compare_exp_by_id);
-          }
-
-          for (i = 0; i < BTOR_COUNT_STACK (param_apps); i++)
-          {
-            param_app = BTOR_PEEK_STACK (param_apps, i);
-            assert (BTOR_IS_REGULAR_NODE (param_app));
-            assert (BTOR_IS_APPLY_NODE (param_app)
-                    || BTOR_IS_BV_VAR_NODE (param_app));
-
-            if (BTOR_IS_BV_VAR_NODE (param_app))
-            {
-              if (param_app->tseitin) continue;
-
-              *assignments_changed =
-                  lazy_synthesize_and_encode_var_exp (btor, param_app, 1);
-            }
-            else
-            {
-              assert (BTOR_IS_APPLY_NODE (param_app));
-
-              if (btor_find_in_ptr_hash_table (lambda->synth_apps, param_app))
-                continue;
-
-              btor_insert_in_ptr_hash_table (lambda->synth_apps,
-                                             btor_copy_exp (btor, param_app));
-
-              param_app->vread = 1;
-
-              btor->stats.lambda_synth_apps++;
-
-              if (!param_app->tseitin)
-              {
-                *assignments_changed =
-                    lazy_synthesize_and_encode_apply_exp (btor, param_app, 1);
-              }
-            }
-
-            if (*assignments_changed)
-            {
-              btor_unassign_params (btor, fun);
-              btor_release_exp (btor, fun_value);
-              BTOR_RELEASE_STACK (mm, param_apps);
-              return 0;
-            }
-          }
+          btor_unassign_params (btor, fun);
+          btor_release_exp (btor, fun_value);
+          BTOR_RELEASE_STACK (mm, param_apps);
+          return 0;
         }
       }
 
