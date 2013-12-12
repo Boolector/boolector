@@ -78,13 +78,24 @@ def add_node(tokens):
         n = g_btor.And(c[0], c[1])
     elif kind == "apply":
         c = get_children(tokens, 3)
+        assert(len(c) == 2)
 #        if c[0].is_array():
 #            print(c[1])
 #            n = g_btor.Read(c[0], c[1][0])
 #        else:
-        n = g_btor.Apply(c[1], c[0])
+        if c[0].is_array_var():
+            assert(len(c[1]) == 1)
+            n = g_btor.Read(c[0], c[1][0])
+        else:
+            n = g_btor.Apply(c[1], c[0])
     elif kind == "args":
-        n = get_children(tokens, 3)
+        c = get_children(tokens, 3)
+        n = []
+        for cc in c:
+            if isinstance(cc, list):
+                n.extend(cc)
+            else:
+                n.append(cc)
     # represent array model as chain of writes
     elif kind == "array":
         m = None
