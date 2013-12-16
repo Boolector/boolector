@@ -274,18 +274,18 @@ static void
 test_inc_assume_assert1 (void)
 {
   int sat_result;
-  BtorNode *array, *index1, *index2, *read1, *read2, *eq_index, *ne_read;
+  BoolectorNode *array, *index1, *index2, *read1, *read2, *eq_index, *ne_read;
 
   init_inc_test ();
   boolector_enable_inc_usage (g_btor);
   boolector_set_rewrite_level (g_btor, 0);
-  BoolectorNode *array    = boolector_array (g_btor, 1, 1, "array1");
-  BoolectorNode *index1   = boolector_var (g_btor, 1, "index1");
-  BoolectorNode *index2   = boolector_var (g_btor, 1, "index2");
-  BoolectorNode *read1    = boolector_read (g_btor, array, index1);
-  BoolectorNode *read2    = boolector_read (g_btor, array, index2);
-  BoolectorNode *eq_index = boolector_eq (g_btor, index1, index2);
-  BoolectorNode *ne_read  = boolector_ne (g_btor, read1, read2);
+  array    = boolector_array (g_btor, 1, 1, "array1");
+  index1   = boolector_var (g_btor, 1, "index1");
+  index2   = boolector_var (g_btor, 1, "index2");
+  read1    = boolector_read (g_btor, array, index1);
+  read2    = boolector_read (g_btor, array, index2);
+  eq_index = boolector_eq (g_btor, index1, index2);
+  ne_read  = boolector_ne (g_btor, read1, read2);
   boolector_assert (g_btor, ne_read);
   sat_result = boolector_sat (g_btor);
   assert (sat_result == BOOLECTOR_SAT);
@@ -310,18 +310,18 @@ static void
 test_inc_lemmas_on_demand_1 ()
 {
   int sat_result;
-  BtorNode *array, *index1, *index2, *read1, *read2, *eq, *ne;
+  BoolectorNode *array, *index1, *index2, *read1, *read2, *eq, *ne;
 
   init_inc_test ();
   boolector_enable_inc_usage (g_btor);
   boolector_set_rewrite_level (g_btor, 0);
-  BoolectorNode *array  = boolector_array (g_btor, 1, 1, "array1");
-  BoolectorNode *index1 = boolector_var (g_btor, 1, "index1");
-  BoolectorNode *index2 = boolector_var (g_btor, 1, "index2");
-  BoolectorNode *read1  = boolector_read (g_btor, array, index1);
-  BoolectorNode *read2  = boolector_read (g_btor, array, index2);
-  BoolectorNode *eq     = boolector_eq (g_btor, index1, index2);
-  BoolectorNode *ne     = boolector_ne (g_btor, read1, read2);
+  array  = boolector_array (g_btor, 1, 1, "array1");
+  index1 = boolector_var (g_btor, 1, "index1");
+  index2 = boolector_var (g_btor, 1, "index2");
+  read1  = boolector_read (g_btor, array, index1);
+  read2  = boolector_read (g_btor, array, index2);
+  eq     = boolector_eq (g_btor, index1, index2);
+  ne     = boolector_ne (g_btor, read1, read2);
   boolector_assert (g_btor, eq);
   boolector_assume (g_btor, ne);
   sat_result = boolector_sat (g_btor);
