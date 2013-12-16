@@ -53,11 +53,16 @@ struct BtorIterator
 typedef struct BtorIterator BtorIterator;
 typedef struct BtorIterator BtorPartialParentIterator;
 
+#define BTOR_HASH_TABLE_ITERATOR_STACK_SIZE 8
+
 struct BtorHashTableIterator
 {
   BtorPtrHashBucket *bucket;
   void *cur;
-  int reversed;
+  char reversed;
+  int num_queued;
+  int pos;
+  BtorPtrHashTable *stack[BTOR_HASH_TABLE_ITERATOR_STACK_SIZE];
 };
 
 typedef struct BtorHashTableIterator BtorHashTableIterator;
@@ -113,5 +118,7 @@ void init_reversed_node_hash_table_iterator (Btor *,
                                              BtorPtrHashTable *);
 BtorNode *next_node_hash_table_iterator (BtorHashTableIterator *);
 int has_next_node_hash_table_iterator (BtorHashTableIterator *);
+void queue_node_hash_table_iterator (BtorHashTableIterator *,
+                                     BtorPtrHashTable *);
 
 #endif

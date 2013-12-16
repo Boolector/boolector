@@ -295,9 +295,11 @@ init_reversed_node_hash_table_iterator (Btor *btor,
   assert (it);
   assert (t);
 
-  it->bucket   = t->last;
-  it->cur      = it->bucket ? it->bucket->key : 0;
-  it->reversed = 1;
+  it->bucket     = t->last;
+  it->cur        = it->bucket ? it->bucket->key : 0;
+  it->reversed   = 1;
+  it->num_queued = 0;
+  it->pos        = 0;
 }
 
 void
@@ -309,8 +311,21 @@ init_node_hash_table_iterator (Btor *btor,
   assert (it);
   assert (t);
 
-  it->bucket = t->first;
-  it->cur    = it->bucket ? it->bucket->key : 0;
+  it->bucket     = t->first;
+  it->cur        = it->bucket ? it->bucket->key : 0;
+  it->reversed   = 0;
+  it->num_queued = 0;
+  it->pos        = 0;
+}
+
+void
+queue_node_hash_table_iterator (BtorHashTableIterator *it, BtorPtrHashTable *t)
+{
+  assert (it);
+  assert (t);
+  assert (it->num_queued < BTOR_HASH_TABLE_ITERATOR_STACK_SIZE);
+
+  it->stack[it->num_queued++] = t;
 }
 
 BtorNode *
@@ -318,11 +333,16 @@ next_node_hash_table_iterator (BtorHashTableIterator *it)
 {
   assert (it);
   assert (it->bucket);
+  assert (it->cur);
 
   BtorNode *res;
   res = (BtorNode *) it->cur;
   if (it->bucket)
     it->bucket = it->reversed ? it->bucket->prev : it->bucket->next;
+  if (!it->bucket && it->pos < it->num_queued)
+    it->bucket =
+        it->reversed ? it->stack[it->pos++]->last : it->stack[it->pos++]->first;
+
   it->cur = it->bucket ? it->bucket->key : 0;
   return res;
 }
