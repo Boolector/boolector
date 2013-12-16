@@ -676,16 +676,17 @@ btor_clone_btor (Btor *btor)
   clone->apitrace      = NULL;
   clone->closeapitrace = 0;
 
-  assert (clone->mm->allocated
-          == btor->mm->allocated + sizeof (BtorNodeMap)
-                 + MEM_PTR_HASH_TABLE (exp_map->table) + sizeof (BtorAIGMap)
-                 + MEM_PTR_HASH_TABLE (aig_map->table));
+  assert (!btor->clone /* not a shadow clone */
+          || (clone->mm->allocated
+              == btor->mm->allocated + sizeof (BtorNodeMap)
+                     + MEM_PTR_HASH_TABLE (exp_map->table) + sizeof (BtorAIGMap)
+                     + MEM_PTR_HASH_TABLE (aig_map->table)));
 
   btor_delete_node_map (exp_map);
   btor_delete_aig_map (aig_map);
 
-  assert (btor->mm->allocated == clone->mm->allocated);
-  assert (btor->mm->sat_allocated == clone->mm->sat_allocated);
+  assert (!btor->clone || btor->mm->allocated == clone->mm->allocated);
+  assert (!btor->clone || btor->mm->sat_allocated == clone->mm->sat_allocated);
 
   btor->time.cloning += btor_time_stamp () - start;
   return clone;

@@ -377,7 +377,7 @@ BoolectorNode *boolector_array (Btor *btor,
 /**
  * One's complement.
  * \param btor Boolector instance.
- * \param exp Bit-vector operand.
+ * \param node Bit-vector operand.
  * \return Bit-vector with the same bit-width as 'node'.
  */
 BoolectorNode *boolector_not (Btor *btor, BoolectorNode *node);
@@ -385,7 +385,7 @@ BoolectorNode *boolector_not (Btor *btor, BoolectorNode *node);
 /**
  * Two's complement.
  * \param btor Boolector instance.
- * \param exp Bit-vector operand.
+ * \param node Bit-vector operand.
  * \return Bit-vector with the same bit-width as 'node'.
  */
 BoolectorNode *boolector_neg (Btor *btor, BoolectorNode *node);
@@ -393,7 +393,7 @@ BoolectorNode *boolector_neg (Btor *btor, BoolectorNode *node);
 /**
  * Or reduction. All bits are combined by or.
  * \param btor Boolector instance.
- * \param exp Bit-vector operand.
+ * \param node Bit-vector operand.
  * \return Bit-vector with bit-width one.
  */
 BoolectorNode *boolector_redor (Btor *btor, BoolectorNode *node);
@@ -401,7 +401,7 @@ BoolectorNode *boolector_redor (Btor *btor, BoolectorNode *node);
 /**
  * Xor reduction. All bits are combined by xor.
  * \param btor Boolector instance.
- * \param exp Bit-vector operand.
+ * \param node Bit-vector operand.
  * \return Bit-vector with bit-width one.
  */
 BoolectorNode *boolector_redxor (Btor *btor, BoolectorNode *node);
@@ -409,7 +409,7 @@ BoolectorNode *boolector_redxor (Btor *btor, BoolectorNode *node);
 /**
  * And reduction. All bits are combined by and.
  * \param btor Boolector instance.
- * \param exp Bit-vector operand.
+ * \param node Bit-vector operand.
  * \return Bit-vector with bit-width one.
  */
 BoolectorNode *boolector_redand (Btor *btor, BoolectorNode *node);
@@ -417,7 +417,7 @@ BoolectorNode *boolector_redand (Btor *btor, BoolectorNode *node);
 /**
  * Bit-vector slice of 'node' from index 'upper' to index 'lower'.
  * \param btor Boolector instance.
- * \param exp Bit-vector operand.
+ * \param node Bit-vector operand.
  * \param upper Upper index which must be greater than or equal to zero, and
  * less than the bit-width of 'node'.
  * \param lower Lower index which must be greater than or equal to zero, and
@@ -432,7 +432,7 @@ BoolectorNode *boolector_slice (Btor *btor,
 /**
  * Unsigned extension. The operand 'node' is padded with 'width' zeroes.
  * \param btor Boolector instance.
- * \param exp Bit-vector operand.
+ * \param node Bit-vector operand.
  * \param width Number of zeroes to pad.
  * \return Bit-vector with bit-width: bit-width of 'node' + 'width'.
  */
@@ -442,7 +442,7 @@ BoolectorNode *boolector_uext (Btor *btor, BoolectorNode *node, int width);
  * Signed extension. The operand 'node' is padded with 'width' bits. If zeroes
  * or ones are padded depends on the most significant bit of 'node'.
  * \param btor Boolector instance.
- * \param exp Bit-vector operand.
+ * \param node Bit-vector operand.
  * \param width Number of bits to pad.
  * \return Bit-vector with bit-width: bit-width of 'node' + 'width'.
  */
@@ -967,7 +967,7 @@ BoolectorNode *boolector_param (Btor *btor, int width, const char *symbol);
  * \param btor Boolector instance.
  * \param paramc Number of parameters.
  * \param param_nodes Parameters of function.
- * \param exp Function body.
+ * \param node Function body.
  * \result Function parameter.
  */
 BoolectorNode *boolector_fun (Btor *btor,
@@ -1010,7 +1010,7 @@ BoolectorNode *boolector_apply_args (Btor *btor,
 /**
  * Increments bit-vector by one.
  * \param btor Boolector instance.
- * \param exp Bit-vector operand.
+ * \param node Bit-vector operand.
  * \result Bit-vector with the same bit-width as 'node'.
  */
 BoolectorNode *boolector_inc (Btor *btor, BoolectorNode *node);
@@ -1018,7 +1018,7 @@ BoolectorNode *boolector_inc (Btor *btor, BoolectorNode *node);
 /**
  * Decrements bit-vector by one.
  * \param btor Boolector instance.
- * \param exp Bit-vector operand.
+ * \param node Bit-vector operand.
  * \result Bit-vector with the same bit-width as 'node'.
  */
 BoolectorNode *boolector_dec (Btor *btor, BoolectorNode *node);
@@ -1026,7 +1026,7 @@ BoolectorNode *boolector_dec (Btor *btor, BoolectorNode *node);
 /**
  * Determines if expression is an array. If not, expression is a bit-vector.
  * \param btor Boolector instance.
- * \param exp Operand.
+ * \param node Operand.
  * \result True if expression is an array, and false otherwise.
  */
 int boolector_is_array (Btor *btor, BoolectorNode *node);
@@ -1034,7 +1034,7 @@ int boolector_is_array (Btor *btor, BoolectorNode *node);
 /**
  * Determines if expression is an array variable.
  * \param btor Boolector instance.
- * \param exp Operand.
+ * \param node Operand.
  * \result True if expression is an array variable, and false otherwise.
  */
 int boolector_is_array_var (Btor *btor, BoolectorNode *node);
@@ -1042,7 +1042,7 @@ int boolector_is_array_var (Btor *btor, BoolectorNode *node);
 /**
  * Determines if given node is a parameter expression.
  * \param btor Boolector instance.
- * \param exp Operand.
+ * \param node Operand.
  * \result True if expression is a parameter, and false otherwise.
  */
 int boolector_is_param (Btor *btor, BoolectorNode *node);
@@ -1050,7 +1050,7 @@ int boolector_is_param (Btor *btor, BoolectorNode *node);
 /**
  * Determines if given parameter node is bound by a function.
  * \param btor Boolector instance.
- * \param exp Parameter node.
+ * \param node Parameter node.
  * \result True if paramter is bound, and false otherwise.
  */
 int boolector_is_bound_param (Btor *btor, BoolectorNode *node);
@@ -1058,7 +1058,7 @@ int boolector_is_bound_param (Btor *btor, BoolectorNode *node);
 /**
  * Determines if expression is a function.
  * \param btor Boolector instance.
- * \param exp Operand.
+ * \param node Operand.
  * \result True if epxression is a function, and false otherwise.
  */
 int boolector_is_fun (Btor *btor, BoolectorNode *node);
@@ -1066,7 +1066,7 @@ int boolector_is_fun (Btor *btor, BoolectorNode *node);
 /**
  * Gets the arity of function 'node'.
  * \param btor Boolector instance.
- * \param exp Function.
+ * \param node Function.
  * \return arity of 'node'.
  */
 int boolector_get_fun_arity (Btor *btor, BoolectorNode *node);
@@ -1074,7 +1074,7 @@ int boolector_get_fun_arity (Btor *btor, BoolectorNode *node);
 /**
  * Determines if expression is an argument expression.
  * \param btor Boolector instance.
- * \param exp Operand.
+ * \param node Operand.
  * \result True if epxression is an argument, and false otherwise.
  */
 int boolector_is_args (Btor *btor, BoolectorNode *node);
@@ -1082,7 +1082,7 @@ int boolector_is_args (Btor *btor, BoolectorNode *node);
 /**
  * Gets the arity of argument 'node'.
  * \param btor Boolector instance.
- * \param exp Argument expression.
+ * \param node Argument expression.
  * \return arity of 'node'.
  */
 int boolector_get_args_arity (Btor *btor, BoolectorNode *node);
@@ -1091,7 +1091,7 @@ int boolector_get_args_arity (Btor *btor, BoolectorNode *node);
  * Gets the bit-width of an expression. If the expression
  * is an array, it returns the bit-width of the array elements.
  * \param btor Boolector instance.
- * \param exp Operand.
+ * \param node Operand.
  * \return bit-width of 'node'.
  */
 int boolector_get_width (Btor *btor, BoolectorNode *node);
@@ -1131,7 +1131,7 @@ const char *boolector_get_symbol_of_var (Btor *btor, BoolectorNode *var);
 /**
  * Copies expression (increments reference counter).
  * \param btor Boolector instance.
- * \param exp Operand.
+ * \param node Operand.
  * \return The expression 'node'.
  */
 BoolectorNode *boolector_copy (Btor *btor, BoolectorNode *node);
@@ -1139,7 +1139,7 @@ BoolectorNode *boolector_copy (Btor *btor, BoolectorNode *node);
 /**
  * Releases expression (decrements reference counter).
  * \param btor Boolector instance.
- * \param exp Operand.
+ * \param node Operand.
  */
 void boolector_release (Btor *btor, BoolectorNode *node);
 
@@ -1151,7 +1151,7 @@ void boolector_release (Btor *btor, BoolectorNode *node);
  * \param btor Boolector instance.
  * \param file File to which the expression should be dumped.
  * The file must be have been opened by the user before.
- * \param exp The expression which should be dumped.
+ * \param node The expression which should be dumped.
  */
 void boolector_dump_btor (Btor *btor, FILE *file, BoolectorNode *node);
 
@@ -1170,7 +1170,7 @@ void boolector_dump_btor_all (Btor *btor, FILE *file);
  *href="http://smtlib.cs.uiowa.edu/papers/format-v1.2-r06.08.30.pdf">SMT-LIB 1.2</a>
  *is used as format. \param btor Boolector instance. \param file File to which
  *the expression should be dumped. The file must be have been opened by the
- *user before. \param exp The expression which should be dumped.
+ *user before. \param node The expression which should be dumped.
  */
 void boolector_dump_smt (Btor *btor, FILE *file, BoolectorNode *node);
 
@@ -1189,7 +1189,7 @@ void boolector_dump_smt_all (Btor *btor, FILE *file);
  *href="http://smtlib.cs.uiowa.edu/papers/smt-lib-reference-v2.0-r12.09.09.pdf">SMT-LIB
  *2.0</a> is used as format. \param btor Boolector instance. \param file File to
  *which the expression should be dumped. The file must be have been opened by
- *the user before. \param exp The expression which should be dumped.
+ *the user before. \param node The expression which should be dumped.
  */
 void boolector_dump_smt2 (Btor *btor, FILE *file, BoolectorNode *node);
 
@@ -1207,7 +1207,7 @@ void boolector_dump_smt2_all (Btor *btor, FILE *file);
  * Added constraints can not be deleted anymore. After 'node' has
  * been asserted, it can be safely released by \ref boolector_release.
  * \param btor Boolector instance.
- * \param exp Bit-vector expression with bit-width one.
+ * \param node Bit-vector expression with bit-width one.
  */
 void boolector_assert (Btor *btor, BoolectorNode *node);
 
@@ -1220,9 +1220,17 @@ void boolector_assert (Btor *btor, BoolectorNode *node);
  * and assertions are logically combined by boolean 'and'.
  * This is the same way of using assumptions as in MiniSAT.
  * \param btor Boolector instance.
- * \param exp Bit-vector expression with bit-width one.
+ * \param node Bit-vector expression with bit-width one.
  */
 void boolector_assume (Btor *btor, BoolectorNode *node);
+
+/**
+ * Determine if assumption 'node' is a failed assumption.
+ * \param btor Boolector instance.
+ * \param node Bit-vector expression with bit-width one.
+ * \return 1 if assumption is failed, and 0 otherwise.
+ */
+int boolector_failed (Btor *btor, BoolectorNode *node);
 
 /**
  * Solves SAT instance represented by constraints and assumptions added
@@ -1247,7 +1255,7 @@ int boolector_sat (Btor *btor);
  * bit-vector expression which occurs in an assertion or current assumption.
  * The assignment string has to be freed by \ref boolector_free_bv_assignment.
  * \param btor Boolector instance.
- * \param exp Bit-vector expression.
+ * \param node Bit-vector expression.
  * \return String representing a satisfying assignment to bit-vector variables
  * and a consistent assignment for arbitrary bit-vector expressions.
  * Each character of the string can be '0', '1' or 'x'. The latter

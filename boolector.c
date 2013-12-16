@@ -197,6 +197,8 @@ btor_chkclone_state (Btor *btor)
   BTOR_CHKCLONE_STATE (vis_idx);
   BTOR_CHKCLONE_STATE (vread_index_id);
   BTOR_CHKCLONE_STATE (inconsistent);
+  BTOR_CHKCLONE_STATE (found_assumption_false);
+  BTOR_CHKCLONE_STATE (found_constraint_false);
   BTOR_CHKCLONE_STATE (model_gen);
   BTOR_CHKCLONE_STATE (external_refs);
   BTOR_CHKCLONE_STATE (inc_enabled);
@@ -877,6 +879,7 @@ boolector_chkclone (Btor *btor)
   BTOR_TRAPI ("chkclone");
 #ifndef NDEBUG
   if (btor->clone) btor_delete_btor (btor->clone);
+  btor->clone = btor; /* mark clone as going-to-be shadow clone */
   btor->clone = btor_clone_btor (btor);
   assert (btor->clone->mm);
   assert (btor->clone->avmgr);
@@ -3454,6 +3457,35 @@ boolector_assume (Btor *btor, BoolectorNode *node)
 #ifndef NDEBUG
   BTOR_CHKCLONE_NORES (assume, BTOR_CLONED_EXP (exp));
 #endif
+}
+
+int
+boolector_failed (Btor *btor, BoolectorNode *node)
+{
+  int res;
+  BtorNode *exp, *simp;
+
+  exp = BTOR_IMPORT_BOOLECTOR_NODE (node);
+  BTOR_ABORT_ARG_NULL_BOOLECTOR (btor);
+  BTOR_ABORT_BOOLECTOR (
+      btor->last_sat_result != BTOR_UNSAT,
+      "cannot check failed assumptions if input formula is not UNSAT");
+  BTOR_ABORT_ARG_NULL_BOOLECTOR (exp);
+  BTOR_TRAPI_UNFUN ("failed", exp);
+  BTOR_ABORT_BOOLECTOR (!btor->inc_enabled,
+                        "incremental usage has not been enabled");
+  BTOR_ABORT_REFS_NOT_POS_BOOLECTOR (exp);
+  simp = btor_simplify_exp (btor, exp);
+  BTOR_ABORT_ARRAY_BOOLECTOR (simp);
+  BTOR_ABORT_BOOLECTOR (BTOR_REAL_ADDR_NODE (simp)->len != 1,
+                        "'exp' must have bit-width one");
+  BTOR_ABORT_BOOLECTOR (!btor_is_assumption_exp (btor, simp),
+                        "'exp' must be an assumption");
+  res = btor_failed_exp (btor, simp);
+#ifndef NDEBUG
+  BTOR_CHKCLONE_RES (res, failed, BTOR_CLONED_EXP (exp));
+#endif
+  return res;
 }
 
 int

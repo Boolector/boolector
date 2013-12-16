@@ -107,7 +107,7 @@ typedef struct BtorNodePair BtorNodePair;
     char *bits;   /* three-valued bits */                               \
     int id;       /* unique expression id */                            \
     int len;      /* number of bits */                                  \
-    int refs;     /* reference counter */                               \
+    int refs;     /* reference counter (incl. ext_refs) */              \
     int ext_refs; /* external references counter */                     \
     int parents;  /* number of parents */                               \
     int arity;    /* arity of operator */                               \
@@ -240,6 +240,8 @@ struct BtorArgsNode
 
 typedef struct BtorArgsNode BtorArgsNode;
 
+#define BTOR_IS_AND_NODE_KIND(kind) ((kind) == BTOR_AND_NODE)
+
 #define BTOR_IS_BV_CONST_NODE_KIND(kind) ((kind) == BTOR_BV_CONST_NODE)
 
 #define BTOR_IS_BV_VAR_NODE_KIND(kind) ((kind) == BTOR_BV_VAR_NODE)
@@ -286,6 +288,8 @@ typedef struct BtorArgsNode BtorArgsNode;
 
 #define BTOR_IS_TERNARY_NODE_KIND(kind) \
   (((kind) >= BTOR_WRITE_NODE) && ((kind) <= BTOR_ACOND_NODE))
+
+#define BTOR_IS_AND_NODE(exp) ((exp) && BTOR_IS_AND_NODE_KIND ((exp)->kind))
 
 #define BTOR_IS_BV_CONST_NODE(exp) \
   ((exp) && BTOR_IS_BV_CONST_NODE_KIND ((exp)->kind))
