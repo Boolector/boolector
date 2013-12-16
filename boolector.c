@@ -3485,6 +3485,7 @@ boolector_failed (Btor *btor, BoolectorNode *node)
 #ifndef NDEBUG
   BTOR_CHKCLONE_RES (res, failed, BTOR_CLONED_EXP (exp));
 #endif
+  BTOR_TRAPI_RETURN (res);
   return res;
 }
 
