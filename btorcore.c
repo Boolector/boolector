@@ -1511,8 +1511,10 @@ insert_new_constraint (Btor *btor, BtorNode *exp)
         || (!BTOR_IS_INVERTED_NODE (exp) && real_exp->bits[0] == '0'))
       btor->inconsistent = 1;
     else
+    {
       assert ((BTOR_IS_INVERTED_NODE (exp) && real_exp->bits[0] == '0')
               || (!BTOR_IS_INVERTED_NODE (exp) && real_exp->bits[0] == '1'));
+    }
     return;
   }
 
