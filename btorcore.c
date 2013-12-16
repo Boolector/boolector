@@ -6176,10 +6176,10 @@ btor_sat_aux_btor (Btor *btor)
     return BTOR_UNSAT;
   }
 
-  mm = btor->mm;
-
+  mm   = btor->mm;
   amgr = btor_get_aig_mgr_aigvec_mgr (btor->avmgr);
   smgr = btor_get_sat_mgr_aig_mgr (amgr);
+
   if (!btor_is_initialized_sat (smgr)) btor_init_sat (smgr);
 
   if (btor->valid_assignments == 1) btor_reset_incremental_usage (btor);
@@ -6191,7 +6191,9 @@ btor_sat_aux_btor (Btor *btor)
   {
     assert (check_all_hash_tables_proxy_free_dbg (btor));
     assert (check_all_hash_tables_simp_free_dbg (btor));
+
     process_unsynthesized_constraints (btor);
+
     assert (check_all_hash_tables_proxy_free_dbg (btor));
     assert (check_all_hash_tables_simp_free_dbg (btor));
 
@@ -6230,33 +6232,14 @@ btor_sat_aux_btor (Btor *btor)
     assert (BTOR_EMPTY_STACK (top_functions));
     search_top_functions (btor, &top_functions);
 
-    // found_conflict = check_and_resolve_conflicts (btor, &top_functions);
-
-    // if (!found_conflict)
-    //  {
-    //    BTOR_RELEASE_STACK (mm, top_functions);
-    //    break;
-    //  }
-
-    // BTOR_RELEASE_STACK (mm, top_functions);
-    // btor->stats.lod_refinements++;
-    // add_again_assumptions (btor);
-    // assert (!btor->found_assumption_false);
-    //
-    // FIXME
-
     found_conflict = check_and_resolve_conflicts (btor, &top_functions);
-
-    if (found_conflict)
-    {
-      btor->stats.lod_refinements++;
-      add_again_assumptions (btor);
-      assert (!btor->found_assumption_false);
-    }
-
     BTOR_RELEASE_STACK (mm, top_functions);
 
     if (!found_conflict) break;
+
+    btor->stats.lod_refinements++;
+    add_again_assumptions (btor);
+    assert (!btor->found_assumption_false);
 
     if (verbosity > 1)
     {
