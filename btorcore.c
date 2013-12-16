@@ -198,6 +198,32 @@ check_reachable_flag_dbg (const Btor *btor)
   }
   return 1;
 }
+
+static int
+check_constraints_not_const_dbg (Btor *btor)
+{
+  BtorNode *cur;
+  BtorHashTableIterator it;
+
+  init_node_hash_table_iterator (btor, &it, btor->unsynthesized_constraints);
+  while (has_next_node_hash_table_iterator (&it))
+  {
+    cur = next_node_hash_table_iterator (&it);
+    assert (cur);
+    cur = BTOR_REAL_ADDR_NODE (cur);
+    if (BTOR_IS_BV_CONST_NODE (cur)) return 0;
+  }
+
+  init_node_hash_table_iterator (btor, &it, btor->synthesized_constraints);
+  while (has_next_node_hash_table_iterator (&it))
+  {
+    cur = next_node_hash_table_iterator (&it);
+    assert (cur);
+    cur = BTOR_REAL_ADDR_NODE (cur);
+    if (BTOR_IS_BV_CONST_NODE (cur)) return 0;
+  }
+  return 1;
+}
 /*------------------------------------------------------------------------*/
 #endif
 /*------------------------------------------------------------------------*/
@@ -1088,6 +1114,26 @@ insert_unsynthesized_constraint (Btor *btor, BtorNode *exp)
   assert (!BTOR_REAL_ADDR_NODE (exp)->parameterized);
 
   BtorPtrHashTable *uc;
+
+  if (BTOR_IS_BV_CONST_NODE (BTOR_REAL_ADDR_NODE (exp)))
+  {
+    if ((BTOR_IS_INVERTED_NODE (exp)
+         && BTOR_REAL_ADDR_NODE (exp)->bits[0] == '1')
+        || (!BTOR_IS_INVERTED_NODE (exp) && exp->bits[0] == '0'))
+    {
+      btor->inconsistent = 1;
+      return;
+    }
+    else
+    {
+      /* we do not add true */
+      assert ((BTOR_IS_INVERTED_NODE (exp)
+               && BTOR_REAL_ADDR_NODE (exp)->bits[0] == '0')
+              || (!BTOR_IS_INVERTED_NODE (exp) && exp->bits[0] == '1'));
+      return;
+    }
+  }
+
   uc = btor->unsynthesized_constraints;
   if (!btor_find_in_ptr_hash_table (uc, exp))
   {
@@ -1104,6 +1150,7 @@ insert_embedded_constraint (Btor *btor, BtorNode *exp)
   assert (btor);
   assert (exp);
   assert (!BTOR_REAL_ADDR_NODE (exp)->parameterized);
+  assert (!BTOR_IS_BV_CONST_NODE (BTOR_REAL_ADDR_NODE (exp)));
 
   BtorPtrHashTable *embedded_constraints;
   embedded_constraints = btor->embedded_constraints;
@@ -1121,13 +1168,13 @@ insert_embedded_constraint (Btor *btor, BtorNode *exp)
 static void
 insert_varsubst_constraint (Btor *btor, BtorNode *left, BtorNode *right)
 {
-  BtorNode *eq;
-  BtorPtrHashTable *vsc;
-  BtorPtrHashBucket *bucket;
-
   assert (btor);
   assert (left);
   assert (right);
+
+  BtorNode *eq;
+  BtorPtrHashTable *vsc;
+  BtorPtrHashBucket *bucket;
 
   vsc    = btor->varsubst_constraints;
   bucket = btor_find_in_ptr_hash_table (vsc, left);
@@ -1670,6 +1717,8 @@ add_constraint (Btor *btor, BtorNode *exp)
   }
   else
     insert_new_constraint (btor, exp);
+
+  assert (check_constraints_not_const_dbg (btor));
 }
 
 void
@@ -3538,13 +3587,14 @@ merge_lambda_chains (Btor * btor)
 int
 btor_simplify (Btor *btor)
 {
+  assert (btor);
+
   int rounds;
   double start, delta;
 #ifndef BTOR_DO_NOT_PROCESS_SKELETON
   int skelrounds = 0;
 #endif
 
-  assert (btor);
   if (btor->inconsistent) return BTOR_UNSAT;
 
   //  if (btor->rewrite_level <= 1 && !btor->beta_reduce_all)
