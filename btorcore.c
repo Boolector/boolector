@@ -1036,6 +1036,7 @@ static void
 update_assumptions (Btor *btor)
 {
   assert (btor);
+  assert (check_unique_table_mark_unset_dbg (btor));
 
   int i;
   BtorPtrHashTable *ass;
@@ -1053,32 +1054,34 @@ update_assumptions (Btor *btor)
     if (BTOR_REAL_ADDR_NODE (cur)->simplified)
     {
       simp = btor_simplify_exp (btor, cur);
-      if (!BTOR_IS_INVERTED_NODE (simp) && BTOR_IS_AND_NODE (simp))
-      {
-        BTOR_INIT_STACK (stack);
-        BTOR_PUSH_STACK (btor->mm, stack, simp);
-        while (!BTOR_EMPTY_STACK (stack))
-        {
-          tmp = BTOR_POP_STACK (stack);
-          assert (!BTOR_IS_INVERTED_NODE (tmp));
-          assert (BTOR_IS_AND_NODE (tmp));
-          assert (tmp->mark == 0 || tmp->mark == 1);
-          if (tmp->mark) continue;
-          tmp->mark = 1;
-          for (i = 0; i < 2; i++)
-          {
-            if (!BTOR_IS_INVERTED_NODE (tmp->e[i])
-                && BTOR_IS_AND_NODE (tmp->e[i]))
-              BTOR_PUSH_STACK (btor->mm, stack, tmp->e[i]);
-            else if (!btor_find_in_ptr_hash_table (ass, tmp->e[i]))
-              (void) btor_insert_in_ptr_hash_table (
-                  ass, btor_copy_exp (btor, tmp->e[i]));
-          }
-        }
-        BTOR_RELEASE_STACK (btor->mm, stack);
-        btor_mark_exp (btor, simp, 0);
-      }
-      else if (!btor_find_in_ptr_hash_table (ass, simp))
+      // if (!BTOR_IS_INVERTED_NODE (simp)
+      //    && BTOR_IS_AND_NODE (simp))
+      //  {
+      //    BTOR_INIT_STACK (stack);
+      //    BTOR_PUSH_STACK (btor->mm, stack, simp);
+      //    while (!BTOR_EMPTY_STACK (stack))
+      //      {
+      //        tmp = BTOR_POP_STACK (stack);
+      //        assert (!BTOR_IS_INVERTED_NODE (tmp));
+      //        assert (BTOR_IS_AND_NODE (tmp));
+      //        assert (tmp->mark == 0 || tmp->mark == 1);
+      //        if (tmp->mark) continue;
+      //        tmp->mark = 1;
+      //        for (i = 0; i < 2; i++)
+      //          {
+      //            if (!BTOR_IS_INVERTED_NODE (tmp->e[i])
+      //      	  && BTOR_IS_AND_NODE (tmp->e[i]))
+      //      	BTOR_PUSH_STACK (btor->mm, stack, tmp->e[i]);
+      //            else if (!btor_find_in_ptr_hash_table (ass, tmp->e[i]))
+      //      	(void) btor_insert_in_ptr_hash_table (
+      //      	    ass, btor_copy_exp (btor, tmp->e[i]));
+      //          }
+      //      }
+      //    BTOR_RELEASE_STACK (btor->mm, stack);
+      //    btor_mark_exp (btor, simp, 0);
+      //  }
+      // else
+      if (!btor_find_in_ptr_hash_table (ass, simp))
         btor_insert_in_ptr_hash_table (ass, btor_copy_exp (btor, simp));
       btor_release_exp (btor, cur);
     }
@@ -4518,8 +4521,6 @@ add_again_assumptions (Btor *btor)
     btor_mark_exp (btor, exp, 0);
   }
 
-  // assert (BTOR_COUNT_STACK (assumptions) >= btor->assumptions->count);
-  assert (assumptions->count >= btor->assumptions->count);
   // while (!BTOR_EMPTY_STACK (assumptions))
   for (b = assumptions->first; b; b = b->next)
   {
