@@ -1735,8 +1735,7 @@ btor_assume_exp (Btor *btor, BtorNode *exp)
 
   if (btor->valid_assignments) btor_reset_incremental_usage (btor);
 
-  if (BTOR_REAL_ADDR_NODE (exp) != BTOR_REAL_ADDR_NODE (btor->true_exp)
-      && !btor_find_in_ptr_hash_table (btor->assumptions, exp))
+  if (!btor_find_in_ptr_hash_table (btor->assumptions, exp))
     (void) btor_insert_in_ptr_hash_table (btor->assumptions,
                                           btor_copy_exp (btor, exp));
 }
