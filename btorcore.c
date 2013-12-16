@@ -1259,7 +1259,6 @@ occurrence_check (Btor *btor, BtorNode *left, BtorNode *right)
   assert (btor);
   assert (left);
   assert (right);
-  assert (check_unique_table_aux_mark_unset_dbg (btor));
 
   BtorNode *cur, *real_left;
   BtorNodePtrStack stack, unmark_stack;
@@ -1279,10 +1278,10 @@ occurrence_check (Btor *btor, BtorNode *left, BtorNode *right)
   {
     cur = BTOR_REAL_ADDR_NODE (BTOR_POP_STACK (stack));
   OCCURRENCE_CHECK_ENTER_WITHOUT_POP:
-    assert (cur->aux_mark == 0 || cur->aux_mark == 1);
-    if (cur->aux_mark == 0)
+    assert (cur->occ_mark == 0 || cur->occ_mark == 1);
+    if (cur->occ_mark == 0)
     {
-      cur->aux_mark = 1;
+      cur->occ_mark = 1;
       BTOR_PUSH_STACK (mm, unmark_stack, cur);
       if (cur == real_left)
       {
@@ -1299,8 +1298,8 @@ occurrence_check (Btor *btor, BtorNode *left, BtorNode *right)
   {
     cur = BTOR_POP_STACK (unmark_stack);
     assert (BTOR_IS_REGULAR_NODE (cur));
-    assert (cur->aux_mark == 1);
-    cur->aux_mark = 0;
+    assert (cur->occ_mark == 1);
+    cur->occ_mark = 0;
   }
   BTOR_RELEASE_STACK (mm, unmark_stack);
 
@@ -3186,7 +3185,6 @@ process_skeleton_tseitin (Btor *btor,
                           BtorNode *root)
 {
   assert (btor);
-  assert (check_unique_table_mark_unset_dbg (btor));
 
   int i, lhs, rhs[3], fixed;
   BtorNode *exp;
@@ -3449,6 +3447,7 @@ process_skeleton (Btor *btor)
       "skeleton preprocessing produced %d new constraints in %.1f seconds",
       fixed,
       delta);
+  assert (check_unique_table_mark_unset_dbg (btor));
 }
 
 /*------------------------------------------------------------------------*/
