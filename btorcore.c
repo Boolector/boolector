@@ -7041,19 +7041,16 @@ btor_check_model (Btor *btor, Btor *clone)
   char *a, **indices, **values;
   BtorNode *cur, *exp, *val, *idx, *w, *tmp;
   BtorPtrHashBucket *b;
+  BtorHashTableIterator it;
 
   clone->loglevel = 0;
 
-  // FIXME: assumptions are reset in the next sat call if valid_assignments
-  //        shouldn't we reset them at the end of the sat call?
   if (clone->valid_assignments) btor_reset_incremental_usage (clone);
 
   /* add assumptions as assertions */
-  for (b = clone->assumptions->first; b; b = b->next)
-  {
-    cur = (BtorNode *) b->key;
-    btor_assert_exp (clone, cur);
-  }
+  init_node_hash_table_iterator (btor, &it, clone->assumptions);
+  while (has_next_node_hash_table_iterator (&it))
+    btor_assert_exp (clone, next_node_hash_table_iterator (&it));
   btor_reset_assumptions (clone);
 
   /* initial simplifications */
@@ -7064,14 +7061,19 @@ btor_check_model (Btor *btor, Btor *clone)
   assert (!clone->substitutions);
   btor_init_substitutions (clone);
 
-  for (b = clone->bv_vars->first; b; b = b->next)
+  init_node_hash_table_iterator (btor, &it, clone->bv_vars);
+
+  while (has_next_node_hash_table_iterator (&it))
   {
-    cur = (BtorNode *) b->key;
+    cur = next_node_hash_table_iterator (&it);
     assert (BTOR_IS_REGULAR_NODE (cur));
     assert (BTOR_IS_BV_VAR_NODE (cur));
     assert (!cur->simplified);
 
     if (!cur->parents) continue;
+
+    /* FIXME: variable introduced due to rewriting, check var_rhs? */
+    if (BTOR_COUNT_STACK (btor->nodes_id_table) < cur->id) continue;
 
     exp = BTOR_PEEK_STACK (btor->nodes_id_table, cur->id);
     assert (exp);
@@ -7138,8 +7140,8 @@ btor_check_model (Btor *btor, Btor *clone)
     btor_enable_beta_reduce_all (clone);
     ret = btor_simplify (clone);
   }
-  else
-    ret = btor_sat_aux_btor (clone);
+
+  if (ret == BTOR_UNKNOWN) ret = btor_sat_aux_btor (clone);
 
   BTOR_ABORT_CORE (ret != BTOR_SAT, "invalid model");
 
