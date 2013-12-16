@@ -29,6 +29,8 @@
 
 // TODO externalize all parameters
 
+/*------------------------------------------------------------------------*/
+
 #define NORM_VAL 1000.0f
 
 #define MAX_BITWIDTH 128 /* must be >= 2 */
@@ -39,45 +41,33 @@
 #define MAX_NPARAMOPS 5
 #define MAX_NNESTEDBFUNS 50
 
+/*------------------------------------------------------------------------*/
+
+#define BTORMBT_USAGE                                                     \
+  "usage: btormbt [<option>]\n"                                           \
+  "\n"                                                                    \
+  "where <option> is one of the following:\n"                             \
+  "\n"                                                                    \
+  "  -h, --help                       print this message and exit\n"      \
+  "  -q, --quiet                      do not be verbose\n"                \
+  "  -k, --keep-lines                 do not clear output lines\n"        \
+  "  -a, --always-fork                fork even if seed given\n"          \
+  "  -n, --no-modelgen                do not enable model generation \n"  \
+  "  -e, --no-extensionality          do not use extensionality\n"        \
+  "\n"                                                                    \
+  "  -f, --first-bug-only             quit after first bug encountered\n" \
+  "  -m <maxruns>                     quit after <maxruns> rounds\n"      \
+  "\n"                                                                    \
+  "  --bverb <verblevel>              enable boolector verbosity\n"
+
 #ifndef NBTORLOG
-#define BTORMBT_USAGE                                                     \
-  "usage: btormbt [<option>]\n"                                           \
-  "\n"                                                                    \
-  "where <option> is one of the following:\n"                             \
-  "\n"                                                                    \
-  "  -h, --help                       print this message and exit\n"      \
-  "  -q, --quiet                      do not be verbose\n"                \
-  "  -k, --keep-lines                 do not clear output lines\n"        \
-  "  -a, --always-fork                fork even if seed given\n"          \
-  "  -n, --no-modelgen                do not enable model generation \n"  \
-  "  -e, --no-extensionality          do not use extensionality\n"        \
-  "  -s, --shadow-clone               enable shadow clone\n"              \
-  "\n"                                                                    \
-  "  -f, --first-bug-only             quit after first bug encountered\n" \
-  "  -m <maxruns>                     quit after <maxruns> rounds\n"      \
-  "\n"                                                                    \
-  "  --blog <loglevel>                enable boolector logging\n"         \
-  "  --bverb <verblevel>              enable boolector verbosity\n"
+#define BTORMBT_LOG_USAGE \
+  "  --blog <loglevel>                enable boolector logging\n"
 #else
-#define BTORMBT_USAGE                                                     \
-  "usage: btormbt [<option>]\n"                                           \
-  "\n"                                                                    \
-  "where <option> is one of the following:\n"                             \
-  "\n"                                                                    \
-  "  -h, --help                       print this message and exit\n"      \
-  "  -q, --quiet                      do not be verbose\n"                \
-  "  -k, --keep-lines                 do not clear output lines\n"        \
-  "  -a, --always-fork                fork even if seed given\n"          \
-  "  -n, --no-modelgen                do not enable model generation \n"  \
-  "  -e, --no-extensionality          do not use extensionality\n"        \
-  "\n"                                                                    \
-  "  -f, --first-bug-only             quit after first bug encountered\n" \
-  "  -m <maxruns>                     quit after <maxruns> rounds\n"      \
-  "\n"                                                                    \
-  "  --bverb <verblevel>              enable boolector verbosity\n"
+#define BTORMBT_LOG_USAGE ""
 #endif
 
-#define BTORMBT_MIN(x, y) ((x) < (y) ? (x) : (y))
+/*------------------------------------------------------------------------*/
 
 #define BTORMBT_LOG(c, btormbt, fmt, args...) \
   do                                          \
@@ -91,23 +81,8 @@
   } while (0)
 
 /*------------------------------------------------------------------------*/
-#ifndef NDEBUG
-/*------------------------------------------------------------------------*/
-#define BTORMBT_DEBUG_MSG(msg, ARGS...)  \
-  do                                     \
-  {                                      \
-    printf ("[btormbt] *** debug *** "); \
-    printf (msg, ##ARGS);                \
-    fflush (stdout);                     \
-  } while (0)
-#else
-#define BTORMBT_DEBUG_MSG(msg, ARGS...) \
-  do                                    \
-  {                                     \
-  } while (0)
-/*------------------------------------------------------------------------*/
-#endif
-/*------------------------------------------------------------------------*/
+
+#define BTORMBT_MIN(x, y) ((x) < (y) ? (x) : (y))
 
 /* avoid compiler warnings for unused variables in DEBUG assertions */
 #define BTORMBT_UNUSED(expr) \
@@ -2189,7 +2164,7 @@ main (int argc, char **argv)
   {
     if (!strcmp (argv[i], "-h") || !strcmp (argv[i], "--help"))
     {
-      printf ("%s", BTORMBT_USAGE);
+      printf ("%s%s", BTORMBT_USAGE, BTORMBT_LOG_USAGE);
       exit (0);
     }
     else if (!strcmp (argv[i], "-q") || !strcmp (argv[i], "--quiet"))
