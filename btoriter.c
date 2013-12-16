@@ -285,3 +285,51 @@ has_next_parameterized_iterator (BtorParameterizedIterator *it)
   assert (it);
   return it->cur != 0;
 }
+
+void
+init_reversed_node_hash_table_iterator (Btor *btor,
+                                        BtorHashTableIterator *it,
+                                        BtorPtrHashTable *t)
+{
+  assert (btor);
+  assert (it);
+  assert (t);
+
+  it->bucket   = t->last;
+  it->cur      = it->bucket ? it->bucket->key : 0;
+  it->reversed = 1;
+}
+
+void
+init_node_hash_table_iterator (Btor *btor,
+                               BtorHashTableIterator *it,
+                               BtorPtrHashTable *t)
+{
+  assert (btor);
+  assert (it);
+  assert (t);
+
+  it->bucket = t->first;
+  it->cur    = it->bucket ? it->bucket->key : 0;
+}
+
+BtorNode *
+next_node_hash_table_iterator (BtorHashTableIterator *it)
+{
+  assert (it);
+  assert (it->bucket);
+
+  BtorNode *res;
+  res = (BtorNode *) it->cur;
+  if (it->bucket)
+    it->bucket = it->reversed ? it->bucket->prev : it->bucket->next;
+  it->cur = it->bucket ? it->bucket->key : 0;
+  return res;
+}
+
+int
+has_next_node_hash_table_iterator (BtorHashTableIterator *it)
+{
+  assert (it);
+  return it->cur != 0;
+}
