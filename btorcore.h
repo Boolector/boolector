@@ -95,6 +95,8 @@ struct Btor
   int vis_idx; /* file index for visualizing expressions */
   int vread_index_id;
   int inconsistent;
+  int found_assumption_false;
+  int found_constraint_false;
   int model_gen;            /* model generation enabled */
   int external_refs;        /* external references (library mode) */
   int inc_enabled;          /* incremental usage enabled ? */
@@ -245,8 +247,13 @@ void btor_assert_exp (Btor *btor, BtorNode *exp);
 /* Adds assumption. */
 void btor_assume_exp (Btor *btor, BtorNode *exp);
 
-/* Solves SAT instance.
- */
+/* Determines if expression has been previously assumed. */
+int btor_is_assumption_exp (Btor *btor, BtorNode *exp);
+
+/* Determines if assumption is a failed assumption. */
+int btor_failed_exp (Btor *btor, BtorNode *exp);
+
+/* Solves SAT instance. */
 int btor_sat_btor (Btor *btor);
 
 /* Run rewriting engine */

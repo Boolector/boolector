@@ -1,6 +1,6 @@
 /*  Boolector: Satisfiablity Modulo Theories (SMT) solver.
  *  Copyright (C) 2007-2012 Robert Daniel Brummayer, Armin Biere
- *  Copyright (C) 2012 Aina Niemetz
+ *  Copyright (C) 2012-2013 Aina Niemetz
  *
  *  This file is part of Boolector.
  *
@@ -64,6 +64,7 @@ test_inc_true_false (void)
   boolector_assume (g_btor, ff);
   res = boolector_sat (g_btor);
   assert (res == BOOLECTOR_UNSAT);
+  assert (boolector_failed (g_btor, ff));
 
   boolector_release (g_btor, ff);
   boolector_release (g_btor, tt);
@@ -122,6 +123,7 @@ test_inc_counter (int w, int nondet)
     if (res == BOOLECTOR_SAT) break;
 
     assert (res == BOOLECTOR_UNSAT);
+    assert (boolector_failed (g_btor, allzero));
     assert (i < (1 << w));
   }
 
@@ -272,6 +274,7 @@ static void
 test_inc_assume_assert1 (void)
 {
   int sat_result;
+  BtorNode *array, *index1, *index2, *read1, *read2, *eq_index, *ne_read;
 
   init_inc_test ();
   boolector_enable_inc_usage (g_btor);
@@ -289,6 +292,7 @@ test_inc_assume_assert1 (void)
   boolector_assume (g_btor, eq_index);
   sat_result = boolector_sat (g_btor);
   assert (sat_result == BOOLECTOR_UNSAT);
+  assert (boolector_failed (g_btor, eq_index));
   sat_result = boolector_sat (g_btor);
   assert (sat_result == BOOLECTOR_SAT);
   boolector_release (g_btor, array);
@@ -306,6 +310,7 @@ static void
 test_inc_lemmas_on_demand_1 ()
 {
   int sat_result;
+  BtorNode *array, *index1, *index2, *read1, *read2, *eq, *ne;
 
   init_inc_test ();
   boolector_enable_inc_usage (g_btor);
@@ -321,6 +326,7 @@ test_inc_lemmas_on_demand_1 ()
   boolector_assume (g_btor, ne);
   sat_result = boolector_sat (g_btor);
   assert (sat_result == BOOLECTOR_UNSAT);
+  assert (boolector_failed (g_btor, ne));
   sat_result = boolector_sat (g_btor);
   assert (sat_result == BOOLECTOR_SAT);
   boolector_release (g_btor, array);
