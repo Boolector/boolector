@@ -2633,6 +2633,7 @@ substitute_and_rebuild (Btor *btor, BtorPtrHashTable *subst, int bra)
   assert (btor);
   assert (subst);
   assert (bra == 0 || bra == 1);
+  assert (check_unique_table_aux_mark_unset_dbg (btor));
 
   int i, pushed;
   BtorMemMgr *mm;
@@ -2641,7 +2642,6 @@ substitute_and_rebuild (Btor *btor, BtorPtrHashTable *subst, int bra)
   BtorNodePtrQueue queue;
   BtorPtrHashBucket *b;
   BtorFullParentIterator it;
-  assert (check_unique_table_mark_unset_dbg (btor));
 
   if (subst->count == 0u) return;
 
@@ -2650,13 +2650,10 @@ substitute_and_rebuild (Btor *btor, BtorPtrHashTable *subst, int bra)
   BTOR_INIT_STACK (roots);
   BTOR_INIT_QUEUE (queue);
 
-  assert (check_unique_table_mark_unset_dbg (btor));
-  assert (check_unique_table_aux_mark_unset_dbg (btor));
   for (b = subst->first; b; b = b->next)
   {
     cur = BTOR_REAL_ADDR_NODE ((BtorNode *) b->key);
     assert (!BTOR_IS_PROXY_NODE (cur));
-    if (bra) cur->mark = 1; /* mark as in substitute table */
     BTOR_ENQUEUE (mm, queue, cur);
   }
 
@@ -2730,16 +2727,11 @@ substitute_and_rebuild (Btor *btor, BtorPtrHashTable *subst, int bra)
         continue;
       }
 
-      if (bra && BTOR_IS_APPLY_NODE (cur) && cur->mark)
-      {
-        cur->mark   = 0;
+      if (bra && BTOR_IS_APPLY_NODE (cur)
+          && btor_find_in_ptr_hash_table (subst, cur))
         rebuilt_exp = btor_beta_reduce_full (btor, cur);
-      }
       else
-      {
-        assert (!cur->mark);
         rebuilt_exp = rebuild_exp (btor, cur);
-      }
 
       assert (rebuilt_exp);
       /* base case: rebuilt_exp == cur */
