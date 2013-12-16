@@ -6213,8 +6213,11 @@ btor_sat_aux_btor (Btor *btor)
     if (btor->generate_model_for_all_reads) synthesize_all_reads (btor);
   }
 
-  // FIXME redundant?
-  update_assumptions (btor);
+#ifndef NDEBUG
+  BtorPtrHashBucket *b;
+  for (b = btor->assumptions->first; b; b = b->next)
+    assert (!BTOR_REAL_ADDR_NODE ((BtorNode *) b->key)->simplified);
+#endif
 
   update_reachable (btor);
   assert (check_reachable_flag_dbg (btor));
