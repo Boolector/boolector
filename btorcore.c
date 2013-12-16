@@ -36,7 +36,7 @@
 #endif
 
 #define ENABLE_APPLY_PROP_DOWN 1
-#define BTOR_CHECK_MODEL
+//#define BTOR_CHECK_MODEL
 
 /*------------------------------------------------------------------------*/
 
@@ -1256,13 +1256,15 @@ lambda_var_exp (Btor *btor, int len)
 static int
 occurrence_check (Btor *btor, BtorNode *left, BtorNode *right)
 {
+  assert (btor);
+  assert (left);
+  assert (right);
+  assert (check_unique_table_aux_mark_unset_dbg (btor));
+
   BtorNode *cur, *real_left;
   BtorNodePtrStack stack, unmark_stack;
   int is_cyclic, i;
   BtorMemMgr *mm;
-  assert (btor);
-  assert (left);
-  assert (right);
 
   is_cyclic = 0;
   mm        = btor->mm;
@@ -1663,13 +1665,14 @@ btor_reset_incremental_usage (Btor *btor)
 static void
 add_constraint (Btor *btor, BtorNode *exp)
 {
+  assert (btor);
+  assert (exp);
+  assert (check_unique_table_mark_unset_dbg (btor));
+
   BtorNode *cur, *child;
   BtorNodePtrStack stack;
   BtorMemMgr *mm;
 
-  assert (btor);
-  assert (exp);
-  assert (check_unique_table_mark_unset_dbg (btor));
   exp = btor_simplify_exp (btor, exp);
   assert (!BTOR_IS_ARRAY_NODE (BTOR_REAL_ADDR_NODE (exp)));
   assert (BTOR_REAL_ADDR_NODE (exp)->len == 1);
@@ -1832,6 +1835,7 @@ btor_failed_exp (Btor *btor, BtorNode *exp)
   assert (btor->inc_enabled);
   assert (btor->last_sat_result == BTOR_UNSAT);
   assert (exp);
+  assert (check_unique_table_mark_unset_dbg (btor));
 
   int i, lit;
   BtorAIG *aig;
@@ -2252,14 +2256,16 @@ rebuild_exp (Btor *btor, BtorNode *exp)
 static void
 substitute_vars_and_rebuild_exps (Btor *btor, BtorPtrHashTable *substs)
 {
+  assert (btor);
+  assert (substs);
+  assert (check_unique_table_aux_mark_unset_dbg (btor));
+
   BtorNodePtrStack stack, root_stack;
   BtorPtrHashBucket *b;
   BtorNode *cur, *cur_parent, *rebuilt_exp, **temp, **top, *rhs, *simplified;
   BtorMemMgr *mm;
   BtorFullParentIterator it;
   int pushed, i;
-  assert (btor);
-  assert (substs);
 
   if (substs->count == 0u) return;
 
@@ -2371,6 +2377,9 @@ substitute_vars_and_rebuild_exps (Btor *btor, BtorPtrHashTable *substs)
 static void
 substitute_var_exps (Btor *btor)
 {
+  assert (btor);
+  assert (check_unique_table_mark_unset_dbg (btor));
+
   BtorPtrHashTable *varsubst_constraints, *order, *substs;
   BtorNode *cur, *constraint, *left, *right, *child;
   BtorPtrHashBucket *b, *b_temp;
@@ -2380,7 +2389,6 @@ substitute_var_exps (Btor *btor)
   unsigned count;
   BtorMemMgr *mm;
 
-  assert (btor);
   mm                   = btor->mm;
   varsubst_constraints = btor->varsubst_constraints;
 
@@ -3175,6 +3183,9 @@ process_skeleton_tseitin (Btor *btor,
                           BtorPtrHashTable *ids,
                           BtorNode *root)
 {
+  assert (btor);
+  assert (check_unique_table_mark_unset_dbg (btor));
+
   int i, lhs, rhs[3], fixed;
   BtorNode *exp;
 
@@ -5598,6 +5609,7 @@ find_not_encoded_applies_vars (Btor *btor,
   assert (btor);
   assert (exp);
   assert (param_apps);
+  assert (check_unique_table_mark_unset_dbg (btor));
 
   int i;
   double start;
@@ -6027,6 +6039,7 @@ find_param_applies (Btor *btor, BtorNode *exp, BtorNodePtrStack *param_apps)
   assert (btor);
   assert (exp);
   assert (param_apps);
+  assert (check_unique_table_mark_unset_dbg (btor));
 
   int i;
   double start;
