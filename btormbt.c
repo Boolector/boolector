@@ -54,7 +54,7 @@
   "  -k, --keep-lines                 do not clear output lines\n"             \
   "  -a, --always-fork                fork even if seed given\n"               \
   "  -n, --no-modelgen                do not enable model generation \n"       \
-  "  -e, --no-extensionality          do not use extensionality\n"             \
+  "  -e, --extensionality          do not use extensionality\n"                \
   "\n"                                                                         \
   "  -f, --first-bug-only             quit after first bug encountered\n"      \
   "  -m <maxruns>                     quit after <maxruns> rounds\n"           \
@@ -272,7 +272,7 @@ new_btormbt (void)
   btormbt->seed        = -1;
   btormbt->terminal    = isatty (1);
   btormbt->verbose     = 1;
-  btormbt->ext         = 1;
+  btormbt->ext         = 0;
   return btormbt;
 }
 
@@ -2209,9 +2209,8 @@ main (int argc, char **argv)
       btormbt->quit_after_first = 1;
     else if (!strcmp (argv[i], "-n") || !strcmp (argv[i], "--no-modelgen"))
       btormbt->force_nomgen = 1;
-    else if (!strcmp (argv[i], "-e")
-             || !strcmp (argv[i], "--no-extensionality"))
-      btormbt->ext = 0;
+    else if (!strcmp (argv[i], "-e") || !strcmp (argv[i], "--extensionality"))
+      btormbt->ext = 1;
     else if (!strcmp (argv[i], "-s") || !strcmp (argv[i], "--shadow-clone"))
       btormbt->shadow = 1;
     else if (!strcmp (argv[i], "-m"))
