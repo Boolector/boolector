@@ -1942,7 +1942,7 @@ set_alarm (void)
 }
 
 static int
-run (BtorMBT *btormbt, void (*process) (BtorMBT *), int verbose)
+run (BtorMBT *btormbt, void (*process) (BtorMBT *), int verbose, int ffork)
 {
   assert (btormbt);
   assert (process);
@@ -1950,89 +1950,94 @@ run (BtorMBT *btormbt, void (*process) (BtorMBT *), int verbose)
   int res, status, saved1, saved2, null;
   pid_t id;
 
-  (void) saved1;
-  btormbt->forked++;
-  fflush (stdout);
-  if ((id = fork ()))
-  {
-    reset_alarm ();
-#ifndef NDEBUG
-    pid_t wid =
-#endif
-        wait (&status);
-    assert (wid == id);
-  }
+  if (!ffork)
+    process (btormbt);
   else
   {
-    if (btormbt->timeout)
+    (void) saved1;
+    btormbt->forked++;
+    fflush (stdout);
+    if ((id = fork ()))
     {
-      BTORMBT_LOG (1, "set time limit to %d seconds", btormbt->timeout);
-      set_alarm ();
-    }
+      reset_alarm ();
 #ifndef NDEBUG
-    int tmp;
+      pid_t wid =
 #endif
-    if (!verbose)
+          wait (&status);
+      assert (wid == id);
+    }
+    else
     {
-      saved1 = dup (1);
-      saved2 = dup (2);
-      null   = open ("/dev/null", O_WRONLY);
-      close (1);
+      if (btormbt->timeout)
+      {
+        BTORMBT_LOG (1, "set time limit to %d seconds", btormbt->timeout);
+        set_alarm ();
+      }
+#ifndef NDEBUG
+      int tmp;
+#endif
+      if (!verbose)
+      {
+        saved1 = dup (1);
+        saved2 = dup (2);
+        null   = open ("/dev/null", O_WRONLY);
+        close (1);
+        close (2);
+#ifndef NDEBUG
+        tmp =
+#endif
+#ifdef USE_PRAGMAS_TO_DISABLE_UNUSED_RESULT_WARNING
+#pragma GCC diagnostic ignored "-Wunused-result"
+#endif
+            dup (null);
+        assert (tmp == 1);
+#ifndef NDEBUG
+        tmp =
+#endif
+            dup (null);
+#ifndef NDEBUG
+        assert (tmp == 2);
+#endif
+      }
+      process (btormbt);
+      close (null);
       close (2);
 #ifndef NDEBUG
       tmp =
 #endif
-#ifdef USE_PRAGMAS_TO_DISABLE_UNUSED_RESULT_WARNING
-#pragma GCC diagnostic ignored "-Wunused-result"
-#endif
-          dup (null);
-      assert (tmp == 1);
+          dup (saved2);
+#ifndef NDEBUG
+      assert (tmp == 2);
+      close (1);
 #ifndef NDEBUG
       tmp =
 #endif
-          dup (null);
-#ifndef NDEBUG
-      assert (tmp == 2);
-#endif
-    }
-    process (btormbt);
-    close (null);
-    close (2);
-#ifndef NDEBUG
-    tmp =
-#endif
-        dup (saved2);
-#ifndef NDEBUG
-    assert (tmp == 2);
-    close (1);
-#ifndef NDEBUG
-    tmp =
-#endif
-        dup (saved1);
+          dup (saved1);
 #ifdef USE_PRAGMAS_TO_DISABLE_UNUSED_RESULT_WARNING
 #pragma GCC diagnostic ignored "-Wunused-result"
 #endif
 #ifdef NDEBUG
-    assert (tmp == 1);
+      assert (tmp == 1);
 #endif
-    BTORMBT_UNUSED (tmp);
+      BTORMBT_UNUSED (tmp);
 #endif
-    exit (0);
-  }
-  if (WIFEXITED (status))
-  {
-    res = WEXITSTATUS (status);
-    if (btormbt->verbose) printf ("exit %d ", res);
-  }
-  else if (WIFSIGNALED (status))
-  {
-    if (btormbt->verbose) printf ("signal %d", WTERMSIG (status));
-    res = 1;
-  }
-  else
-  {
-    if (btormbt->verbose) printf ("unknown");
-    res = 1;
+      exit (0);
+    }
+    if (WIFEXITED (status))
+    {
+      res = WEXITSTATUS (status);
+      if (btormbt->verbose && !btormbt->seed) printf ("exit %d ", res);
+    }
+    else if (WIFSIGNALED (status))
+    {
+      if (btormbt->verbose) printf ("signal %d", WTERMSIG (status));
+      res = 1;
+    }
+    else
+    {
+      if (btormbt->verbose) printf ("unknown");
+      res = 1;
+    }
   }
   return res;
 }
@@ -2145,7 +2150,7 @@ sig_handler (int sig)
 {
   char str[100];
 
-  sprintf (str, "*** btormbt: caught signal %d\n", sig);
+  sprintf (str, "*** btormbt: caught signal %d\n\n", sig);
 #ifdef USE_PRAGMAS_TO_DISABLE_UNUSED_RESULT_WARNING
 #pragma GCC diagnostic ignored "-Wunused-result"
 #endif
@@ -2259,10 +2264,7 @@ main (int argc, char **argv)
   set_sig_handlers ();
 
   if (btormbt->seed >= 0)
-  {
-    (void) run (btormbt, rantrav, 1);
-    printf ("\n");
-  }
+    (void) run (btormbt, rantrav, 1, btormbt->always_fork);
   else
   {
     mac = hashmac ();
@@ -2292,7 +2294,7 @@ main (int argc, char **argv)
       }
 
       btormbt->verbose = 0;
-      res              = run (btormbt, rantrav, 0);
+      res              = run (btormbt, rantrav, 0, 1);
       btormbt->verbose = verbose;
 
       if (res > 0)
@@ -2309,7 +2311,7 @@ main (int argc, char **argv)
           setenv ("BTORAPITRACE", name, 1);
           sprintf (cmd, "cp %s btormbt-bug-%d.trace", name, btormbt->seed);
           free (name);
-          res = run (btormbt, rantrav, 0); /* replay */
+          res = run (btormbt, rantrav, 0, 1); /* replay */
           assert (res);
           unsetenv ("BTORAPITRACE");
         }
@@ -2319,12 +2321,6 @@ main (int argc, char **argv)
           exit (1);
         }
         free (cmd);
-      }
-
-      if (btormbt->verbose)
-      {
-        if (res || !btormbt->terminal) printf ("\n");
-        fflush (stdout);
       }
 
       if ((res && btormbt->quit_after_first) || seeded) break;
