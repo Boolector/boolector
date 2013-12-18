@@ -1968,10 +1968,15 @@ run (BtorMBT *btormbt, void (*process) (BtorMBT *), int verbose, int ffork)
     }
     else
     {
-      if (btormbt->timeout)
+      if (btormbt->verbose && btormbt->timeout)
       {
-        BTORMBT_LOG (1, "set time limit to %d seconds", btormbt->timeout);
-        set_alarm ();
+        if (!verbose)
+          printf ("timeout after %d seconds\n", btormbt->timeout);
+        else
+        {
+          BTORMBT_LOG (1, "set time limit to %d seconds", btormbt->timeout);
+          set_alarm ();
+        }
       }
 #ifndef NDEBUG
       int tmp;
