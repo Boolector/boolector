@@ -50,7 +50,7 @@
   "where <option> is one of the following:\n"                                  \
   "\n"                                                                         \
   "  -h, --help                       print this message and exit\n"           \
-  "  -q, --quiet                      do not be verbose\n"                     \
+  "  -v, --verbose                    be verbose\n"                            \
   "  -k, --keep-lines                 do not clear output lines\n"             \
   "  -a, --always-fork                fork even if seed given\n"               \
   "  -n, --no-modelgen                do not enable model generation \n"       \
@@ -212,12 +212,12 @@ typedef struct BtorMBT
   int verbose;
   int terminal;
   int quit_after_first;
-  int always_fork;
+  int fork;
   int force_nomgen;
   int ext;
   int shadow;
   int max_nrounds;
-  int timeout;
+  int time_limit;
 
   int bloglevel;
   int bverblevel;
@@ -271,7 +271,7 @@ new_btormbt (void)
   btormbt->max_nrounds = INT_MAX;
   btormbt->seed        = -1;
   btormbt->terminal    = isatty (1);
-  btormbt->verbose     = 1;
+  btormbt->fork        = 1;
   btormbt->ext         = 1;
   return btormbt;
 }
@@ -1925,24 +1925,23 @@ reset_alarm (void)
 static void
 catch_alarm (int sig)
 {
-  (void) sig;
   assert (sig == SIGALRM);
-  if (btormbt->timeout > 0)
-    BTORMBT_LOG (1, "TIMEOUT: time limit %d seconds reached", btormbt->timeout);
+  (void) sig;
+
   reset_alarm ();
-  exit (0);
+  exit (2);
 }
 
 static void
 set_alarm (void)
 {
   sig_alrm_handler = signal (SIGALRM, catch_alarm);
-  assert (btormbt->timeout > 0);
-  alarm (btormbt->timeout);
+  assert (btormbt->time_limit > 0);
+  alarm (btormbt->time_limit);
 }
 
 static int
-run (BtorMBT *btormbt, void (*process) (BtorMBT *), int verbose, int ffork)
+run (BtorMBT *btormbt, void (*process) (BtorMBT *))
 {
   assert (btormbt);
   assert (process);
@@ -1950,7 +1949,7 @@ run (BtorMBT *btormbt, void (*process) (BtorMBT *), int verbose, int ffork)
   int res, status, saved1, saved2, null;
   pid_t id;
 
-  if (!ffork)
+  if (!btormbt->fork)
     process (btormbt);
   else
   {
@@ -1968,20 +1967,17 @@ run (BtorMBT *btormbt, void (*process) (BtorMBT *), int verbose, int ffork)
     }
     else
     {
-      if (btormbt->verbose && btormbt->timeout)
+      if (btormbt->time_limit)
       {
-        if (!verbose)
-          printf ("timeout after %d seconds\n", btormbt->timeout);
-        else
-        {
-          BTORMBT_LOG (1, "set time limit to %d seconds", btormbt->timeout);
-          set_alarm ();
-        }
+        set_alarm ();
+        BTORMBT_LOG (btormbt->verbose,
+                     "set time limit to %d second(s)",
+                     btormbt->time_limit);
       }
 #ifndef NDEBUG
       int tmp;
 #endif
-      if (!verbose)
+      if (!btormbt->verbose)
       {
         saved1 = dup (1);
         saved2 = dup (2);
@@ -2028,10 +2024,17 @@ run (BtorMBT *btormbt, void (*process) (BtorMBT *), int verbose, int ffork)
 #endif
       exit (0);
     }
+
     if (WIFEXITED (status))
     {
       res = WEXITSTATUS (status);
-      if (btormbt->verbose && !btormbt->seed) printf ("exit %d ", res);
+      BTORMBT_LOG (res == 2,
+                   "TIMEOUT: time limit %d seconds reached\n",
+                   btormbt->time_limit);
+      if (res == 2 && !btormbt->verbose)
+        printf ("timed out after %d second(s)\n", btormbt->time_limit);
+      else if (!btormbt->seed)
+        printf ("exit %d ", res);
     }
     else if (WIFSIGNALED (status))
     {
@@ -2190,7 +2193,7 @@ finish (void)
 int
 main (int argc, char **argv)
 {
-  int i, mac, pid, prev, res, seeded, verbose;
+  int i, mac, pid, prev, res, seeded, verbose, always_fork;
   char *name, *cmd;
 
   btormbt             = new_btormbt ();
@@ -2209,12 +2212,12 @@ main (int argc, char **argv)
       printf ("%s%s", BTORMBT_USAGE, BTORMBT_LOG_USAGE);
       exit (0);
     }
-    else if (!strcmp (argv[i], "-q") || !strcmp (argv[i], "--quiet"))
-      btormbt->verbose = 0;
+    else if (!strcmp (argv[i], "-v") || !strcmp (argv[i], "--verbose"))
+      btormbt->verbose = 1;
     else if (!strcmp (argv[i], "-k") || !strcmp (argv[i], "--keep-lines"))
       btormbt->terminal = 0;
     else if (!strcmp (argv[i], "-a") || !strcmp (argv[i], "--always-fork"))
-      btormbt->always_fork = 1;
+      always_fork = 1;
     else if (!strcmp (argv[i], "-f") || !strcmp (argv[i], "--first-bug-only"))
       btormbt->quit_after_first = 1;
     else if (!strcmp (argv[i], "-n") || !strcmp (argv[i], "--no-modelgen"))
@@ -2236,8 +2239,8 @@ main (int argc, char **argv)
       if (++i == argc) die ("argument to '-t' missing (try '-h')");
       if (!isnumstr (argv[i]))
         die ("argument '%s' to '-t' is not a number (try '-h')", argv[i]);
-      btormbt->timeout     = atoi (argv[i]);
-      btormbt->always_fork = 1;
+      btormbt->time_limit = atoi (argv[i]);
+      btormbt->fork       = 1;
     }
     else if (!strcmp (argv[i], "--blog"))
     {
@@ -2269,7 +2272,10 @@ main (int argc, char **argv)
   set_sig_handlers ();
 
   if (btormbt->seed >= 0)
-    (void) run (btormbt, rantrav, 1, btormbt->always_fork);
+  {
+    if (!always_fork && !btormbt->time_limit) btormbt->fork = 0;
+    (void) run (btormbt, rantrav);
+  }
   else
   {
     mac = hashmac ();
@@ -2291,18 +2297,15 @@ main (int argc, char **argv)
         prev = btormbt->seed = abs (btormbt->seed) >> 1;
       }
 
-      if (btormbt->verbose)
-      {
-        if (btormbt->terminal) erase ();
-        printf ("%d %d ", btormbt->round, btormbt->seed);
-        fflush (stdout);
-      }
+      if (btormbt->terminal) erase ();
+      printf ("%d %d ", btormbt->round, btormbt->seed);
+      fflush (stdout);
 
       btormbt->verbose = 0;
-      res              = run (btormbt, rantrav, 0, 1);
+      res              = run (btormbt, rantrav);
       btormbt->verbose = verbose;
 
-      if (res > 0)
+      if (res == 1)
       {
         btormbt->bugs++;
         btormbt->bugs++;
@@ -2316,7 +2319,7 @@ main (int argc, char **argv)
           setenv ("BTORAPITRACE", name, 1);
           sprintf (cmd, "cp %s btormbt-bug-%d.trace", name, btormbt->seed);
           free (name);
-          res = run (btormbt, rantrav, 0, 1); /* replay */
+          res = run (btormbt, rantrav); /* replay */
           assert (res);
           unsetenv ("BTORAPITRACE");
         }
