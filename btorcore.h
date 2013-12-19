@@ -293,12 +293,12 @@ BtorNode *btor_pointer_chase_simplified_exp (Btor *btor, BtorNode *exp);
  * Do not call before calling btor_sat_exp.
  * strlen(result) = len(exp)
  */
-char *btor_bv_assignment_exp (Btor *btor, BtorNode *exp);
+char *btor_bv_assignment_str_exp (Btor *btor, BtorNode *exp);
 
-void btor_array_assignment_exp (
+void btor_array_assignment_str_exp (
     Btor *btor, BtorNode *exp, char ***indices, char ***values, int *size);
 
 /* Frees BV assignment obtained by calling 'btor_assignment_exp' */
-void btor_free_bv_assignment_exp (Btor *btor, char *assignment);
+void btor_release_bv_assignment_str_exp (Btor *btor, char *assignment);
 
 #endif
