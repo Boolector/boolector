@@ -4303,7 +4303,7 @@ add_again_assumptions (Btor *btor)
 
   int i;
   BtorNode *exp, *cur, *e;
-  BtorNodePtrStack stack;
+  BtorNodePtrStack stack, unmark_stack;
   BtorPtrHashTable *assumptions;
   BtorPtrHashBucket *b;
   BtorAIG *aig;
@@ -4316,6 +4316,7 @@ add_again_assumptions (Btor *btor)
   smgr = btor_get_sat_mgr_aig_mgr (amgr);
 
   BTOR_INIT_STACK (stack);
+  BTOR_INIT_STACK (unmark_stack);
 
   assumptions = btor_new_ptr_hash_table (btor->mm,
                                          (BtorHashPtr) btor_hash_exp_by_id,
@@ -4342,6 +4343,7 @@ add_again_assumptions (Btor *btor)
         assert (cur->mark == 0 || cur->mark == 1);
         if (cur->mark) continue;
         cur->mark = 1;
+        BTOR_PUSH_STACK (btor->mm, unmark_stack, cur);
         for (i = 0; i < 2; i++)
         {
           e = cur->e[i];
@@ -4372,7 +4374,11 @@ add_again_assumptions (Btor *btor)
     btor_release_aig (amgr, aig);
   }
 
+  while (!BTOR_EMPTY_STACK (unmark_stack))
+    BTOR_REAL_ADDR_NODE (BTOR_POP_STACK (unmark_stack))->mark = 0;
+
   BTOR_RELEASE_STACK (btor->mm, stack);
+  BTOR_RELEASE_STACK (btor->mm, unmark_stack);
   btor_delete_ptr_hash_table (assumptions);
 }
 
