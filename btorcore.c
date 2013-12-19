@@ -1156,13 +1156,11 @@ insert_embedded_constraint (Btor *btor, BtorNode *exp)
   assert (!BTOR_REAL_ADDR_NODE (exp)->parameterized);
   assert (!BTOR_IS_BV_CONST_NODE (BTOR_REAL_ADDR_NODE (exp)));
 
-  BtorPtrHashTable *embedded_constraints;
-  embedded_constraints = btor->embedded_constraints;
-  if (!btor_find_in_ptr_hash_table (embedded_constraints, exp))
+  if (!btor_find_in_ptr_hash_table (btor->embedded_constraints, exp))
   {
     assert (
         !btor_find_in_ptr_hash_table (btor->unsynthesized_constraints, exp));
-    (void) btor_insert_in_ptr_hash_table (embedded_constraints,
+    (void) btor_insert_in_ptr_hash_table (btor->embedded_constraints,
                                           btor_copy_exp (btor, exp));
     BTOR_REAL_ADDR_NODE (exp)->constraint = 1;
     btor->stats.constraints.embedded++;
@@ -2775,10 +2773,10 @@ substitute_and_rebuild (Btor *btor, BtorPtrHashTable *subst, int bra)
 static void
 substitute_embedded_constraints (Btor *btor)
 {
+  assert (btor);
+
   BtorPtrHashBucket *b;
   BtorNode *cur;
-
-  assert (btor);
 
   for (b = btor->embedded_constraints->first; b; b = b->next)
   {
@@ -2788,34 +2786,52 @@ substitute_embedded_constraints (Btor *btor)
      * e.g. top conjunction of constraints that are released */
     if (has_parents_exp (btor, cur)) btor->stats.ec_substitutions++;
   }
+
   substitute_and_rebuild (btor, btor->embedded_constraints, 0);
 }
 
 static void
 process_embedded_constraints (Btor *btor)
 {
-  BtorPtrHashTable *embedded_constraints;
-  BtorPtrHashBucket *b;
+  assert (btor);
+
+  BtorHashTableIterator it;
+  BtorNodePtrStack ec;
   double start, delta;
   BtorNode *cur;
   int count;
-  assert (btor);
-  embedded_constraints = btor->embedded_constraints;
-  if (embedded_constraints->count > 0u)
+
+  if (btor->embedded_constraints->count > 0u)
   {
     start = btor_time_stamp ();
     count = 0;
+    BTOR_INIT_STACK (ec);
+    init_node_hash_table_iterator (btor, &it, btor->embedded_constraints);
+    while (has_next_node_hash_table_iterator (&it))
+    {
+      cur = btor_copy_exp (btor, next_node_hash_table_iterator (&it));
+      BTOR_PUSH_STACK (btor->mm, ec, cur);
+    }
+
+    /* Note: it may happen that new embedded constraints are inserted into
+     *       btor->embedded_constraints here. */
     substitute_embedded_constraints (btor);
 
-    while (embedded_constraints->count > 0u)
+    while (!BTOR_EMPTY_STACK (ec))
     {
-      count++;
-      b   = embedded_constraints->first;
-      cur = (BtorNode *) b->key;
-      btor_remove_from_ptr_hash_table (embedded_constraints, cur, 0, 0);
-      insert_unsynthesized_constraint (btor, cur);
+      cur = BTOR_POP_STACK (ec);
+
+      if (btor_find_in_ptr_hash_table (btor->embedded_constraints, cur))
+      {
+        count++;
+        btor_remove_from_ptr_hash_table (btor->embedded_constraints, cur, 0, 0);
+        insert_unsynthesized_constraint (btor, cur);
+        btor_release_exp (btor, cur);
+      }
       btor_release_exp (btor, cur);
     }
+    BTOR_RELEASE_STACK (btor->mm, ec);
+
     delta = btor_time_stamp () - start;
     btor->time.embedded += delta;
     btor_msg (btor,
