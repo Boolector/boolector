@@ -351,8 +351,9 @@ btor_beta_reduce (Btor *btor, BtorNode *exp, int mode, int bound)
     if (!mbucket)
     {
       if (BTOR_IS_LAMBDA_NODE (real_cur)
-          //	      && !real_cur->parameterized
+          && !real_cur->parameterized
           /* only open new scope at first lambda of nested lambdas */
+          // TODO: check if we still need this condition with parameterized
           && (!BTOR_IS_NESTED_LAMBDA_NODE (real_cur)
               || BTOR_IS_FIRST_NESTED_LAMBDA (real_cur)))
         BETA_REDUCE_OPEN_NEW_SCOPE (real_cur);
@@ -493,7 +494,6 @@ btor_beta_reduce (Btor *btor, BtorNode *exp, int mode, int bound)
           case BTOR_CONCAT_NODE:
             result = btor_concat_exp (btor, e[0], e[1]);
             break;
-          case BTOR_READ_NODE: result = btor_read_exp (btor, e[0], e[1]); break;
           case BTOR_ARGS_NODE:
             result = btor_args_exp (btor, real_cur->arity, e);
             break;
@@ -539,11 +539,13 @@ btor_beta_reduce (Btor *btor, BtorNode *exp, int mode, int bound)
               assert (!real_cur->beta_mark);
               result = btor_copy_exp (btor, real_cur);
             }
+            // TODO: is this really relevant or dead code?
             /* lambda reduced to some term with e[0] due to rewriting */
             else if (real_cur->beta_mark == 1
                      || (real_cur->e[0] == e[0]
                          && BTOR_REAL_ADDR_NODE (e[1])->parameterized))
             {
+              assert (0);
               // FIXME: we do not support reducing nested lambdas
               //        like that, see test_merge.smt2 if we fully
               //        reduce lambda 14 without assigning the params
@@ -607,32 +609,10 @@ btor_beta_reduce (Btor *btor, BtorNode *exp, int mode, int bound)
             else
             {
               assert (!real_cur->beta_mark);
-              /* if a lambda is reduced to a constant term and
-               * its parent expects an array, we have to create a
-               * constant lambda expression instead of a constant
-               * term. this can only occur with bounded or full
-               * reduction */
-              if ((mode == BETA_RED_FULL || mode == BETA_RED_BOUNDED)
-                  && (BTOR_IS_WRITE_NODE (cur_parent)
-                      || BTOR_IS_ARRAY_COND_NODE (cur_parent)))
-              {
-                assert (!BTOR_REAL_ADDR_NODE (e[1])->parameterized);
-                param =
-                    btor_param_exp (btor, BTOR_REAL_ADDR_NODE (e[0])->len, "");
-                result = btor_lambda_exp (btor, param, e[1]);
-                btor_release_exp (btor, param);
-              }
-              else
-              {
-                result = btor_copy_exp (btor, e[1]);
-              }
+              result = btor_copy_exp (btor, e[1]);
             }
             break;
-          case BTOR_WRITE_NODE:
-            result = btor_write_exp (btor, e[0], e[1], e[2]);
-            break;
           case BTOR_BCOND_NODE:
-          case BTOR_ACOND_NODE:
             result = btor_cond_exp (btor, e[0], e[1], e[2]);
             break;
           default:
@@ -661,6 +641,13 @@ btor_beta_reduce (Btor *btor, BtorNode *exp, int mode, int bound)
       if (real_cur == cur_scope_lambda)
       {
         BETA_REDUCE_CLOSE_SCOPE ();
+        goto BETA_REDUCE_UNASSIGN_PARAMS;
+      }
+
+      if (BTOR_IS_LAMBDA_NODE (real_cur)
+          && !BTOR_IS_NESTED_LAMBDA_NODE (real_cur) && real_cur->parameterized)
+      {
+      BETA_REDUCE_UNASSIGN_PARAMS:
 #ifndef NDEBUG
         if (!BTOR_EMPTY_STACK (unassign_stack)
             && BTOR_TOP_STACK (unassign_stack) == real_cur)
@@ -952,6 +939,7 @@ btor_beta_reduce_partial_aux (Btor *btor,
           btor_release_exp (btor, e[1]);
           break;
         case BTOR_ARGS_NODE:
+          // FIXME: not needed anymore
           for (j = 0; j < real_cur->arity; j++)
             BTOR_PUSH_STACK (mm, args_stack, e[real_cur->arity - 1 - j]);
           result = btor_args_exp (btor, real_cur->arity, args_stack.start);
@@ -962,7 +950,7 @@ btor_beta_reduce_partial_aux (Btor *btor,
         case BTOR_APPLY_NODE:
           if (BTOR_IS_FUN_NODE (BTOR_REAL_ADDR_NODE (e[1])))
           {
-            result = btor_apply_exp (btor, e[1], e[0]);
+            result = btor_apply_exp_node (btor, e[1], e[0]);
             btor_release_exp (btor, e[1]);
           }
           else
@@ -990,6 +978,7 @@ btor_beta_reduce_partial_aux (Btor *btor,
           result = 0;
           /* not reachable */
           assert (0);
+          // TODO: abort
       }
 
       /* cache rebuilt parameterized node with current arguments */
