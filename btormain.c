@@ -1357,7 +1357,7 @@ boolector_main (int argc, char **argv)
 
       assert (app.rewrite_level >= 0);
       assert (app.rewrite_level <= 3);
-      if (app.rewrite_level >= 2)
+      if (app.rewrite_level >= 1)
       {
         for (i = 0; i < parse_res.noutputs; i++)
         {
@@ -1394,7 +1394,7 @@ boolector_main (int argc, char **argv)
 
       assert (app.rewrite_level >= 0);
       assert (app.rewrite_level <= 3);
-      if (app.rewrite_level >= 2)
+      if (app.rewrite_level >= 1)
       {
         for (i = 0; i < parse_res.noutputs; i++)
         {
