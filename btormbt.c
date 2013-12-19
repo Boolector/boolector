@@ -42,6 +42,10 @@
 #define MAX_NPARAMOPS 5
 #define MAX_NNESTEDBFUNS 50
 
+#define EXIT_OK 0
+#define EXIT_ERROR 1
+#define EXIT_TIMEOUT 2
+
 /*------------------------------------------------------------------------*/
 
 #define BTORMBT_USAGE                                                          \
@@ -1929,7 +1933,7 @@ catch_alarm (int sig)
   (void) sig;
 
   reset_alarm ();
-  exit (2);
+  exit (EXIT_TIMEOUT);
 }
 
 static void
@@ -2022,16 +2026,16 @@ run (BtorMBT *btormbt, void (*process) (BtorMBT *))
 #endif
       BTORMBT_UNUSED (tmp);
 #endif
-      exit (0);
+      exit (EXIT_OK);
     }
 
     if (WIFEXITED (status))
     {
       res = WEXITSTATUS (status);
-      BTORMBT_LOG (res == 2,
+      BTORMBT_LOG (res == EXIT_TIMEOUT,
                    "TIMEOUT: time limit %d seconds reached\n",
                    btormbt->time_limit);
-      if (res == 2 && !btormbt->verbose)
+      if (res == EXIT_TIMEOUT && !btormbt->verbose)
         printf ("timed out after %d second(s)\n", btormbt->time_limit);
       else if (!btormbt->seed)
         printf ("exit %d ", res);
@@ -2039,12 +2043,12 @@ run (BtorMBT *btormbt, void (*process) (BtorMBT *))
     else if (WIFSIGNALED (status))
     {
       if (btormbt->verbose) printf ("signal %d", WTERMSIG (status));
-      res = 1;
+      res = EXIT_ERROR;
     }
     else
     {
       if (btormbt->verbose) printf ("unknown");
-      res = 1;
+      res = EXIT_ERROR;
     }
   }
   return res;
@@ -2080,7 +2084,7 @@ die (const char *msg, ...)
   va_end (ap);
   fputc ('\n', stderr);
   fflush (stderr);
-  exit (1);
+  exit (EXIT_ERROR);
 }
 
 static int
@@ -2168,7 +2172,7 @@ sig_handler (int sig)
 #endif
   /* Note: if _exit is used here (which is reentrant, in contrast to exit),
    *       atexit handler is not called. Hence, use exit here. */
-  exit (1);
+  exit (EXIT_ERROR);
 }
 
 static void
@@ -2210,7 +2214,7 @@ main (int argc, char **argv)
     if (!strcmp (argv[i], "-h") || !strcmp (argv[i], "--help"))
     {
       printf ("%s%s", BTORMBT_USAGE, BTORMBT_LOG_USAGE);
-      exit (0);
+      exit (EXIT_OK);
     }
     else if (!strcmp (argv[i], "-v") || !strcmp (argv[i], "--verbose"))
       btormbt->verbose = 1;
@@ -2305,7 +2309,7 @@ main (int argc, char **argv)
       res              = run (btormbt, rantrav);
       btormbt->verbose = verbose;
 
-      if (res == 1)
+      if (res == EXIT_ERROR)
       {
         btormbt->bugs++;
         btormbt->bugs++;
@@ -2326,12 +2330,12 @@ main (int argc, char **argv)
         if (system (cmd))
         {
           printf ("Error on copy command %s \n", cmd);
-          exit (1);
+          exit (EXIT_ERROR);
         }
         free (cmd);
       }
 
-      if ((res && btormbt->quit_after_first) || seeded) break;
+      if ((res == EXIT_ERROR && btormbt->quit_after_first) || seeded) break;
     }
   }
   if (btormbt->verbose)
