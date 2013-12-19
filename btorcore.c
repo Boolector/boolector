@@ -36,7 +36,7 @@
 #endif
 
 #define ENABLE_APPLY_PROP_DOWN 1
-//#define BTOR_CHECK_MODEL
+#define BTOR_CHECK_MODEL
 
 /*------------------------------------------------------------------------*/
 
@@ -1553,6 +1553,7 @@ is_embedded_constraint_exp (Btor *btor, BtorNode *exp)
 {
   assert (btor);
   assert (exp);
+  // FIXME: use exp->parents > 0
   return BTOR_REAL_ADDR_NODE (exp)->len == 1 && has_parents_exp (btor, exp);
 }
 
@@ -2119,7 +2120,7 @@ btor_pointer_chase_simplified_exp (Btor *btor, BtorNode *exp)
   return recursively_pointer_chase_simplified_exp (btor, exp);
 }
 
-BtorNode *
+static BtorNode *
 simplify_constraint_exp (Btor *btor, BtorNode *exp)
 {
   assert (btor);
@@ -3351,6 +3352,7 @@ process_skeleton (Btor *btor)
   BTOR_INIT_STACK (work_stack);
   BTOR_INIT_STACK (unmark_stack);
 
+  // TODO: use new hash table iterators
   for (constraints = 0; constraints <= 1; constraints++)
   {
     table = constraints ? btor->synthesized_constraints
@@ -3514,8 +3516,6 @@ beta_reduce_applies_on_lambdas (Btor *btor)
       if (btor_find_in_ptr_hash_table (apps, app)) continue;
 
       if (!app->parameterized)
-      // FIXME: only beta reduce not parameterized reads
-      //	      || BTOR_REAL_ADDR_NODE (read->e[0])->refs == 1)
       {
         assert (!app->parameterized || app->e[0]->refs == 1);
         btor_insert_in_ptr_hash_table (apps, app);
@@ -4982,7 +4982,7 @@ collect_premisses (Btor *btor,
               btor, (BtorNode *) BTOR_PARAM_GET_LAMBDA_NODE (param), arg);
         }
 
-        result = btor_beta_reduce_partial (btor, cond, 0);
+        result = btor_beta_reduce_bounded (btor, cond, 1);
         BTORLOG ("collected %s: %s, result: %s",
                  (c == cond_sel1) ? "sel1" : "sel2",
                  node2string (cond),
@@ -5827,11 +5827,6 @@ propagate (Btor *btor,
     btor_assign_args (btor, fun, args);
     fun_value = btor_beta_reduce_partial (btor, fun, &parameterized);
     assert (!BTOR_IS_LAMBDA_NODE (BTOR_REAL_ADDR_NODE (fun_value)));
-    //      // debug
-    //      char *b = btor_eval_exp (btor, fun_value);
-    //      BTORLOG ("  fun_value: %s, %s", b, node2string (fun_value));
-    //      btor_freestr (btor->mm, b);
-    //      // debug
 
     if (BTOR_IS_ARRAY_VAR_NODE (BTOR_REAL_ADDR_NODE (fun_value)))
     {
@@ -7277,6 +7272,7 @@ btor_check_model (Btor *btor, Btor *clone)
 
   btor_reset_array_models (clone);
   substitute_and_rebuild (clone, clone->substitutions, 0);
+  btor_delete_substitutions (clone);
 
   if (clone->rewrite_level == 3)
   {
@@ -7288,7 +7284,6 @@ btor_check_model (Btor *btor, Btor *clone)
 
   BTOR_ABORT_CORE (ret != BTOR_SAT, "invalid model");
 
-  btor_delete_substitutions (clone);
   return 1;
 }
 #endif
