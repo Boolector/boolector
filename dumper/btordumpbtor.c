@@ -47,6 +47,10 @@ btor_new_dump_context (Btor *btor)
   res->idtab   = btor_new_ptr_hash_table (btor->mm,
                                         (BtorHashPtr) btor_hash_exp_by_id,
                                         (BtorCmpPtr) btor_compare_exp_by_id);
+
+  /* set start id for roots */
+  if (!btor->pprint) res->maxid = BTOR_COUNT_STACK (btor->nodes_id_table);
+
   return res;
 }
 
@@ -190,9 +194,12 @@ bdcid (BtorDumpContext *bdc, BtorNode *node)
   b    = btor_find_in_ptr_hash_table (bdc->idtab, real);
   if (!b)
   {
-    b             = btor_insert_in_ptr_hash_table (bdc->idtab,
+    b = btor_insert_in_ptr_hash_table (bdc->idtab,
                                        btor_copy_exp (bdc->btor, node));
-    b->data.asInt = ++bdc->maxid;
+    if (bdc->btor->pprint)
+      b->data.asInt = ++bdc->maxid;
+    else
+      b->data.asInt = real->id;
   }
   res = b->data.asInt;
   if (!BTOR_IS_REGULAR_NODE (node)) res = -res;
@@ -577,8 +584,11 @@ btor_dump_btor_after_simplify (Btor *btor, FILE *file)
 {
   assert (btor);
   assert (file);
-  assert (!btor->inc_enabled);
-  assert (!btor->model_gen);
+  // FIXME: why do we not allow these flags?
+  //        inc_enabled -> ok if no assumptions
+  //        model_gen -> ??
+  //  assert (!btor->inc_enabled);
+  //  assert (!btor->model_gen);
 
   int ret;
   BtorNode *temp;
@@ -588,6 +598,7 @@ btor_dump_btor_after_simplify (Btor *btor, FILE *file)
   ret = btor_simplify (btor);
   bdc = btor_new_dump_context (btor);
 
+  // FIXME: what about synthesized_constraints?
   if (ret == BTOR_UNKNOWN)
   {
     for (b = btor->unsynthesized_constraints->first; b; b = b->next)
