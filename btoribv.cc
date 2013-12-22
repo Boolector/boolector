@@ -1854,11 +1854,12 @@ BtorIBV::analyze ()
           default:
             BTOR_ABORT_BOOLECTOR (
                 1,
-                "id %u unexpected '%s[%u]' assignment tag '%s'",
+                "id %u unexpected '%s[%u]' assignment tag '%s%s'",
                 b.id,
                 n->name,
                 b.bit,
-                btor_ibv_tag_to_str (a->tag));
+                btor_ibv_tag_to_str (a->tag),
+                (a->tag & BTOR_IBV_IS_PREDICATE) ? "_PRED" : "");
             break;
         }
       }
@@ -2247,8 +2248,9 @@ BtorIBV::translate_assignment_conquer (BtorIBVAtom *dst,
     default:
       res = 0;
       BTOR_ABORT_BOOLECTOR (1,
-                            "operator %s (%d) not handled yet",
+                            "operator '%s%s' (%d) not handled yet",
                             btor_ibv_tag_to_str (a->tag),
+                            (a->tag & BTOR_IBV_IS_PREDICATE) ? "_PRED" : "",
                             (int) a->tag);
       break;
   }
