@@ -79,6 +79,9 @@
 static int btor_check_model (Btor *, Btor *);
 #endif
 
+#ifndef NDEBUG
+static void btor_check_failed_assumptions (Btor *, Btor *);
+#endif
 /*------------------------------------------------------------------------*/
 
 const char *const g_btor_op2string[] = {
@@ -835,8 +838,11 @@ btor_new_btor (void)
   btor->vread_index_id    = 1;
   btor->msgtick           = -1;
   btor->pprint            = 1;
+#ifndef NDEBUG
+  btor->chk_failed_assumptions = 1;
+#endif
   // TODO debug
-  btor->dual_prop = 1;
+  //  btor->dual_prop = 1;
 
   BTOR_PUSH_STACK (btor->mm, btor->nodes_id_table, 0);
 
@@ -1853,6 +1859,7 @@ btor_failed_exp (Btor *btor, BtorNode *exp)
   BtorAIGMgr *amgr;
 
   exp = btor_simplify_exp (btor, exp);
+  assert (BTOR_REAL_ADDR_NODE (exp)->btor == btor);
   assert (!BTOR_IS_ARRAY_NODE (BTOR_REAL_ADDR_NODE (exp)));
   assert (BTOR_REAL_ADDR_NODE (exp)->len == 1);
   assert (!BTOR_REAL_ADDR_NODE (exp)->parameterized);
@@ -6326,6 +6333,7 @@ search_top_applies (Btor *btor, BtorNodePtrStack *top_applies)
   clone = clone_btor_negated (btor);
   btor_enable_force_cleanup (clone);
   btor_enable_inc_usage (clone);
+  clone->loglevel  = 0;
   clone->dual_prop = 0;
 
   /* assume non-boolean bv assignments */
@@ -6510,12 +6518,15 @@ btor_sat_aux_btor (Btor *btor)
   assert (btor);
 
   int sat_result, found_conflict, verbosity, refinements;
-  int fc;  // DEBUG
   BtorNodePtrStack top_functions;
   BtorAIGMgr *amgr;
   BtorSATMgr *smgr;
   BtorMemMgr *mm;
 
+#ifndef NDEBUG
+  Btor *clone;
+  clone = btor->chk_failed_assumptions ? btor_clone_btor (btor) : 0;
+#endif
   verbosity = btor->verbosity;
 
   if (btor->inconsistent) goto UNSAT;
@@ -6654,6 +6665,10 @@ DONE:
                    "result must be sat or unsat");
 
   btor->last_sat_result = sat_result;
+#ifndef NDEBUG
+  if (btor->chk_failed_assumptions && btor->last_sat_result == BTOR_UNSAT)
+    btor_check_failed_assumptions (btor, clone);
+#endif
   return sat_result;
 }
 
@@ -7543,5 +7558,78 @@ btor_check_model (Btor *btor, Btor *clone)
 
   btor_delete_substitutions (clone);
   return 1;
+}
+#endif
+
+#ifndef NDEBUG
+
+#define BTOR_CLONED_EXP(clone, exp)                                         \
+  (BTOR_IS_INVERTED_NODE (exp)                                              \
+       ? BTOR_INVERT_NODE (BTOR_PEEK_STACK (clone->nodes_id_table,          \
+                                            BTOR_REAL_ADDR_NODE (exp)->id)) \
+       : BTOR_PEEK_STACK (clone->nodes_id_table,                            \
+                          BTOR_REAL_ADDR_NODE (exp)->id))
+
+static void
+btor_check_failed_assumptions (Btor *btor, Btor *clone)
+{
+  assert (btor);
+  assert (btor->last_sat_result == BTOR_UNSAT);
+
+  int sat_result;
+  BtorNode *ass;
+  BtorPtrHashTable *failed_assumptions;
+  BtorHashTableIterator it;
+
+  failed_assumptions =
+      btor_new_ptr_hash_table (btor->mm,
+                               (BtorHashPtr) btor_hash_exp_by_id,
+                               (BtorCmpPtr) btor_compare_exp_by_id);
+  clone->loglevel               = 0;
+  clone->chk_failed_assumptions = 0;
+  clone->dual_prop              = 0;  // FIXME
+
+  /* reset assumptions without premature release of expressions */
+  btor_delete_ptr_hash_table (clone->assumptions);
+  clone->assumptions =
+      btor_new_ptr_hash_table (clone->mm,
+                               (BtorHashPtr) btor_hash_exp_by_id,
+                               (BtorCmpPtr) btor_compare_exp_by_id);
+
+  /* find failed assumptions */
+  init_node_hash_table_iterator (btor, &it, btor->assumptions);
+  while (has_next_node_hash_table_iterator (&it))
+  {
+    ass = next_node_hash_table_iterator (&it);
+    if (btor_failed_exp (btor, ass)
+        && !btor_find_in_ptr_hash_table (failed_assumptions, ass))
+      btor_insert_in_ptr_hash_table (failed_assumptions, ass);
+  }
+
+  /* initial sat call */
+  sat_result = btor_sat_btor (clone);
+  assert ((sat_result == BTOR_SAT && failed_assumptions->count)
+          || (sat_result == BTOR_UNSAT && !failed_assumptions->count));
+  if (!failed_assumptions->count) return;
+  assert (!btor->inconsistent);
+
+  /* assert failed assumptions */
+  init_node_hash_table_iterator (btor, &it, failed_assumptions);
+  while (has_next_node_hash_table_iterator (&it))
+  {
+    ass = next_node_hash_table_iterator (&it);
+    btor_assert_exp (clone, BTOR_CLONED_EXP (clone, ass));
+  }
+
+  assert (btor_sat_btor (clone) == BTOR_UNSAT);
+
+  /* cleanup */
+  init_node_hash_table_iterator (btor, &it, btor->assumptions);
+  while (has_next_node_hash_table_iterator (&it))
+  {
+    ass = next_node_hash_table_iterator (&it);
+    btor_release_exp (clone, BTOR_CLONED_EXP (clone, ass));
+  }
+  btor_delete_ptr_hash_table (failed_assumptions);
 }
 #endif

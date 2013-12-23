@@ -1416,8 +1416,8 @@ _opt (BtorMBT *btormbt, unsigned r)
   boolector_enable_force_cleanup (btormbt->btor);
 
   // FIXME switch
-  BTORMBT_LOG (1, "enable dual prop");
-  boolector_enable_dual_prop (btormbt->btor);
+  // BTORMBT_LOG (1, "enable dual prop");
+  // boolector_enable_dual_prop (btormbt->btor);
 
 #ifndef NBTORLOG
   if (btormbt->bloglevel)
