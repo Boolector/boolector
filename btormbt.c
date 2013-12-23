@@ -2197,7 +2197,7 @@ finish (void)
 int
 main (int argc, char **argv)
 {
-  int i, mac, pid, prev, res, seeded, verbose, always_fork;
+  int i, mac, pid, prev, res, seeded, verbose, always_fork = 0;
   char *name, *cmd;
 
   btormbt             = new_btormbt ();
