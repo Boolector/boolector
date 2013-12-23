@@ -3504,16 +3504,18 @@ release_cache (Btor *btor)
 static void
 beta_reduce_applies_on_lambdas (Btor *btor)
 {
-  double start = btor_time_stamp (), delta;
   assert (btor);
 
+  double start, delta;
   BtorPtrHashTable *apps;
-  BtorPtrHashBucket *b;
   BtorNode *app, *fun;
   BtorParentIterator it;
+  BtorHashTableIterator h_it;
   BtorMemMgr *mm;
 
   if (btor->lambdas->count == 0) return;
+
+  start = btor_time_stamp ();
 
   mm   = btor->mm;
   apps = btor_new_ptr_hash_table (mm,
@@ -3521,9 +3523,10 @@ beta_reduce_applies_on_lambdas (Btor *btor)
                                   (BtorCmpPtr) btor_compare_exp_by_id);
 
   /* collect function applications */
-  for (b = btor->lambdas->first; b; b = b->next)
+  init_node_hash_table_iterator (btor, &h_it, btor->lambdas);
+  while (has_next_node_hash_table_iterator (&h_it))
   {
-    fun = BTOR_REAL_ADDR_NODE ((BtorNode *) b->key);
+    fun = next_node_hash_table_iterator (&h_it);
     init_apply_parent_iterator (&it, fun);
     while (has_next_parent_apply_parent_iterator (&it))
     {
@@ -3531,23 +3534,25 @@ beta_reduce_applies_on_lambdas (Btor *btor)
 
       if (btor_find_in_ptr_hash_table (apps, app)) continue;
 
-      if (!app->parameterized)
-      {
-        assert (!app->parameterized || app->e[0]->refs == 1);
-        btor_insert_in_ptr_hash_table (apps, app);
-      }
+      if (app->parameterized) continue;
+
+      btor_insert_in_ptr_hash_table (apps, btor_copy_exp (btor, app));
     }
   }
 
-  // TODO: do we have to release the cache for lambdas that are only referenced
-  // by the cache itself? maybe a cleanup cache function?
   btor_msg (btor,
             1,
             "starting to beta reduce %d lamba with %d applications",
             btor->lambdas->count,
             apps->count);
+
   substitute_and_rebuild (btor, apps, 1);
+
+  init_node_hash_table_iterator (btor, &h_it, apps);
+  while (has_next_node_hash_table_iterator (&h_it))
+    btor_release_exp (btor, next_node_hash_table_iterator (&h_it));
   btor_delete_ptr_hash_table (apps);
+
   delta = btor_time_stamp () - start;
   btor->time.betareduce += delta;
   btor_msg (btor, 1, "beta reduced all lambdas in %.1f seconds", delta);
