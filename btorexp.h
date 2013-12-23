@@ -74,8 +74,7 @@ typedef enum BtorNodeKind BtorNodeKind;
 
 typedef struct BtorNodePair BtorNodePair;
 
-// TODO: rename struct as it is base struct for all nodes
-#define BTOR_BV_VAR_NODE_STRUCT                                         \
+#define BTOR_BV_NODE_STRUCT                                             \
   struct                                                                \
   {                                                                     \
     BtorNodeKind kind : 5;       /* kind of expression */               \
@@ -144,47 +143,45 @@ typedef struct BtorNodePair BtorNodePair;
 
 struct BtorBVVarNode
 {
-  BTOR_BV_VAR_NODE_STRUCT;
+  BTOR_BV_NODE_STRUCT;
   char *symbol;
 };
 
 typedef struct BtorBVVarNode BtorBVVarNode;
 
+struct BtorArrayVarNode
+{
+  BTOR_BV_NODE_STRUCT;
+  char *symbol;
+  int index_len;
+};
+
+typedef struct BtorArrayVarNode BtorArrayVarNode;
+
 struct BtorBVConstNode
 {
-  BTOR_BV_VAR_NODE_STRUCT;
-  // TODO: remove
-  BTOR_BV_ADDITIONAL_NODE_STRUCT;
+  BTOR_BV_NODE_STRUCT;
 };
 
 typedef struct BtorBVConstNode BtorBVConstNode;
 
 struct BtorBVNode
 {
-  BTOR_BV_VAR_NODE_STRUCT;
+  BTOR_BV_NODE_STRUCT;
   BTOR_BV_ADDITIONAL_NODE_STRUCT;
 };
 
 typedef struct BtorBVNode BtorBVNode;
 
-struct BtorArrayVarNode
-{
-  BTOR_BV_VAR_NODE_STRUCT;
-  BTOR_BV_ADDITIONAL_NODE_STRUCT;
-  int index_len;
-};
-
-typedef struct BtorArrayVarNode BtorArrayVarNode;
-
 struct BtorNode
 {
-  BTOR_BV_VAR_NODE_STRUCT;
+  BTOR_BV_NODE_STRUCT;
   BTOR_BV_ADDITIONAL_NODE_STRUCT;
 };
 
 struct BtorLambdaNode
 {
-  BTOR_BV_VAR_NODE_STRUCT;
+  BTOR_BV_NODE_STRUCT;
   BTOR_BV_ADDITIONAL_NODE_STRUCT;
   BtorPtrHashTable *synth_apps;
   struct BtorLambdaNode *nested; /* points to first lambda in the nested lambda
@@ -197,7 +194,7 @@ typedef struct BtorLambdaNode BtorLambdaNode;
 
 struct BtorParamNode
 {
-  BTOR_BV_VAR_NODE_STRUCT;
+  BTOR_BV_NODE_STRUCT;
   char *symbol;
   BtorLambdaNode *lambda_exp;    /* 1:1 relation param:lambda_exp */
   BtorNodePtrStack assigned_exp; /* scoped assigned expression stack */
@@ -207,7 +204,7 @@ typedef struct BtorParamNode BtorParamNode;
 
 struct BtorArgsNode
 {
-  BTOR_BV_VAR_NODE_STRUCT;
+  BTOR_BV_NODE_STRUCT;
   BTOR_BV_ADDITIONAL_NODE_STRUCT;
   int num_args;
 };
