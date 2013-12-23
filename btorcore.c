@@ -835,6 +835,8 @@ btor_new_btor (void)
   btor->vread_index_id    = 1;
   btor->msgtick           = -1;
   btor->pprint            = 1;
+  // TODO debug
+  btor->dual_prop = 1;
 
   BTOR_PUSH_STACK (btor->mm, btor->nodes_id_table, 0);
 
@@ -6312,10 +6314,18 @@ search_top_applies (Btor *btor, BtorNodePtrStack *top_applies)
   BtorHashTableIterator it;
   BtorNode *cur, *ccur, *eq, *bvconst;
   BtorNodePtrStack stack;
+  BtorAIGMgr *amgr;
+  BtorSATMgr *smgr;
+
+  amgr = btor_get_aig_mgr_aigvec_mgr (btor->avmgr);
+  smgr = btor_get_sat_mgr_aig_mgr (amgr);
+  if (!smgr->inc_required) return;
 
   BTOR_INIT_STACK (stack);
 
-  clone            = clone_btor_negated (btor);
+  clone = clone_btor_negated (btor);
+  btor_enable_force_cleanup (clone);
+  btor_enable_inc_usage (clone);
   clone->dual_prop = 0;
 
   /* assume non-boolean bv assignments */
@@ -6323,7 +6333,7 @@ search_top_applies (Btor *btor, BtorNodePtrStack *top_applies)
   {
     for (cur = btor->nodes_unique_table.chains[i]; cur; cur = cur->next)
     {
-      if (!cur->tseitin) continue;
+      if (!BTOR_IS_SYNTH_NODE (cur)) continue;
       if (BTOR_IS_BV_VAR_NODE (cur) || BTOR_IS_APPLY_NODE (cur))
         BTOR_PUSH_STACK (btor->mm, stack, cur);
     }
@@ -6337,13 +6347,13 @@ search_top_applies (Btor *btor, BtorNodePtrStack *top_applies)
                : BTOR_PEEK_STACK (clone->nodes_id_table,
                                   BTOR_REAL_ADDR_NODE (cur)->id);
 
-    ass     = btor_bv_assignment_str_exp (clone, ccur);
+    ass     = btor_bv_assignment_str_exp (btor, ccur);
     bvconst = btor_const_exp (clone, ass);
     eq      = btor_eq_exp (clone, ccur, bvconst);
     btor_assume_exp (clone, eq);
     btor_release_exp (clone, eq);
     btor_release_exp (clone, bvconst);
-    btor_release_bv_assignment_str_exp (clone, ass);
+    btor_release_bv_assignment_str_exp (btor, ass);
   }
   btor_sat_btor (clone);
 
@@ -6352,6 +6362,7 @@ search_top_applies (Btor *btor, BtorNodePtrStack *top_applies)
   while (has_next_node_hash_table_iterator (&it))
   {
     cur = next_node_hash_table_iterator (&it);
+    printf ("-- ass %s\n", node2string (cur));
     if (btor_failed_exp (clone, cur))
     {
       ccur = BTOR_IS_INVERTED_NODE (cur)
@@ -6372,8 +6383,68 @@ check_and_resolve_conflicts_aux (Btor *btor, BtorNodePtrStack *top_applies)
 {
   assert (btor);
   assert (top_applies);
+  assert (btor->ops[BTOR_AEQ_NODE] == 0);
 
-  return 0;
+  int i, found_conflict, changed_assignments;
+  BtorNode *cur;
+  BtorNodePtrStack work_stack, cleanup_stack;
+
+  found_conflict = 0;
+BTOR_CONFLICT_CHECK:
+  assert (!found_conflict);
+  changed_assignments = 0;
+  BTOR_INIT_STACK (work_stack);
+  BTOR_INIT_STACK (cleanup_stack);
+
+  for (i = 0; i < BTOR_COUNT_STACK (*top_applies); i++)
+  {
+    cur = BTOR_PEEK_STACK (*top_applies, i);
+    printf ("cur: %s\n", node2string (cur));
+    assert (BTOR_IS_REGULAR_NODE (cur));
+    assert (BTOR_IS_APPLY_NODE (cur));
+    assert (cur->reachable);
+    assert (!cur->parameterized);
+    check_not_simplified_or_const (btor, cur);
+    BTOR_PUSH_STACK (btor->mm, work_stack, cur);       /* apply */
+    BTOR_PUSH_STACK (btor->mm, work_stack, cur->e[0]); /* function */
+    found_conflict =
+        propagate (btor, &work_stack, &cleanup_stack, &changed_assignments);
+    if (found_conflict || changed_assignments) goto BTOR_CONFLICT_CLEANUP;
+  }
+BTOR_CONFLICT_CLEANUP:
+  while (!BTOR_EMPTY_STACK (cleanup_stack))
+  {
+    cur = BTOR_POP_STACK (cleanup_stack);
+    assert (BTOR_IS_REGULAR_NODE (cur));
+    assert (BTOR_IS_FUN_NODE (cur));
+    assert (cur->rho);
+
+    if (found_conflict || changed_assignments)
+    {
+      btor_delete_ptr_hash_table (cur->rho);
+      cur->rho = 0;
+    }
+    else
+    {
+      /* remember arrays for incremental_usage (and prevent premature
+       * release in case that array is released via API call) */
+      BTOR_PUSH_STACK (
+          btor->mm, btor->arrays_with_model, btor_copy_exp (btor, cur));
+    }
+  }
+
+  BTOR_RELEASE_STACK (btor->mm, cleanup_stack);
+  BTOR_RELEASE_STACK (btor->mm, work_stack);
+
+  if (changed_assignments)
+  {
+    btor->stats.synthesis_assignment_inconsistencies += 1;
+    BTORLOG ("synthesis assignment inconsistency: %d",
+             btor->stats.synthesis_assignment_inconsistencies);
+    goto BTOR_CONFLICT_CHECK;
+  }
+
+  return found_conflict;
 }
 
 static int
@@ -6439,6 +6510,7 @@ btor_sat_aux_btor (Btor *btor)
   assert (btor);
 
   int sat_result, found_conflict, verbosity, refinements;
+  int fc;  // DEBUG
   BtorNodePtrStack top_functions;
   BtorAIGMgr *amgr;
   BtorSATMgr *smgr;
@@ -6450,8 +6522,11 @@ btor_sat_aux_btor (Btor *btor)
 
   btor_msg (btor, 1, "calling SAT");
 
-  // TODO: use return value?
-  btor_simplify (btor);
+  if (btor_simplify (btor) == BTOR_SAT)
+  {
+    sat_result = BTOR_SAT;
+    goto DONE;
+  }
   update_assumptions (btor);
 
   if (btor->inconsistent) goto UNSAT;
@@ -6513,18 +6588,36 @@ btor_sat_aux_btor (Btor *btor)
   while (sat_result == BTOR_SAT)
   {
     assert (BTOR_EMPTY_STACK (top_functions));
-    search_top_functions (btor, &top_functions);
 
-    reset_applies (btor);
-    if (btor->dual_prop && btor->synthesized_constraints->count)
+    // if (btor->dual_prop)// && btor->synthesized_constraints->count)
+    //  {
+    //    BtorNodePtrStack ta;
+    //    BTOR_INIT_STACK (ta);
+    //    search_top_applies (btor, &ta);
+    //    BTOR_RELEASE_STACK (btor->mm, ta);
+    //    fc = check_and_resolve_conflicts_aux (btor, &ta);
+    //    printf ("-- dp: found_conflict: %d\n", fc);
+    //  }
+    // found_conflict = check_and_resolve_conflicts (btor, &top_functions);
+    // printf ("++ found_conflict: %d\n", found_conflict);
+    // BTOR_RELEASE_STACK (mm, top_functions);
+    if (btor->dual_prop)
     {
       BtorNodePtrStack ta;
       BTOR_INIT_STACK (ta);
       search_top_applies (btor, &ta);
-      BTOR_RELEASE_STACK (btor->mm, ta);
+      reset_applies (btor);
+      found_conflict = check_and_resolve_conflicts_aux (btor, &ta);
+      printf ("--- fc %d\n", found_conflict);
+      BTOR_RELEASE_STACK (mm, top_functions);
     }
-    found_conflict = check_and_resolve_conflicts (btor, &top_functions);
-    BTOR_RELEASE_STACK (mm, top_functions);
+    else
+    {
+      search_top_functions (btor, &top_functions);
+      reset_applies (btor);
+      found_conflict = check_and_resolve_conflicts (btor, &top_functions);
+      BTOR_RELEASE_STACK (mm, top_functions);
+    }
 
     if (!found_conflict) break;
 
@@ -6542,6 +6635,7 @@ btor_sat_aux_btor (Btor *btor)
       }
     }
 
+    // FIXME redundant?
     add_again_assumptions (btor);
     assert (!btor->found_assumption_false);
     if (btor->found_assumption_false)
@@ -6552,7 +6646,8 @@ btor_sat_aux_btor (Btor *btor)
 
 DONE:
 
-  assert (sat_result != BTOR_SAT || check_applies_dbg (btor));
+  assert (sat_result != BTOR_SAT || btor->dual_prop
+          || check_applies_dbg (btor));
 
   btor->valid_assignments = 1;
   BTOR_ABORT_CORE (sat_result != BTOR_SAT && sat_result != BTOR_UNSAT,
