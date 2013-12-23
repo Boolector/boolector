@@ -84,6 +84,7 @@ typedef struct BtorNodePair BtorNodePair;
     BtorNodeKind kind : 5;       /* kind of expression */               \
     unsigned int mark : 3;       /* for DAG traversal */                \
     unsigned int aux_mark : 2;   /* auxiliary mark flag */              \
+    unsigned int occ_mark : 1;   /* occurrence check mark flag */       \
     unsigned int fun_mark : 1;   /* for bottom up function traversal */ \
     unsigned int beta_mark : 2;  /* mark for beta_reduce */             \
     unsigned int eval_mark : 2;  /* mark for eval_exp */                \
@@ -104,6 +105,7 @@ typedef struct BtorNodePair BtorNodePair;
     unsigned int chain : 1;                                             \
     unsigned int is_write : 1;                                          \
     unsigned int is_read : 1;                                           \
+    unsigned int propagated : 1;                                        \
     char *bits;   /* three-valued bits */                               \
     int id;       /* unique expression id */                            \
     int len;      /* number of bits */                                  \

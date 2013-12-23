@@ -2,6 +2,7 @@
  *
  *  Copyright (C) 2013 Christian Reisenberger.
  *  Copyright (C) 2013 Aina Niemetz.
+ *  Copyright (C) 2013 Mathias Preiner.
  *
  *  All rights reserved.
  *
@@ -969,7 +970,7 @@ NEXT:
   else if (!strcmp (tok, "failed"))
   {
     PARSE_ARGS1 (tok, str);
-    boolector_failed (btor, hmap_get (hmap, arg1_str));
+    ret_int = boolector_failed (btor, hmap_get (hmap, arg1_str));
     exp_ret = RET_INT;
   }
   else if (!strcmp (tok, "sat"))
