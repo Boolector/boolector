@@ -305,6 +305,11 @@ NEXT:
     PARSE_ARGS0 (tok);
     boolector_enable_beta_reduce_all (btor);
   }
+  else if (!strcmp (tok, "enable_dual_prop"))
+  {
+    PARSE_ARGS0 (tok);
+    boolector_enable_dual_prop (btor);
+  }
   else if (!strcmp (tok, "enable_force_cleanup"))
   {
     PARSE_ARGS0 (tok);

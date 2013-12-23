@@ -100,12 +100,13 @@ struct Btor
   int model_gen;            /* model generation enabled */
   int external_refs;        /* external references (library mode) */
   int inc_enabled;          /* incremental usage enabled ? */
-  int btor_sat_btor_called; /* how often is btor_sat_btor been called */
-  int msgtick;              /* message tick in incremental mode */
   int beta_reduce_all;      /* eliminate lambda expressions */
+  int dual_prop;            /* dual prop optimization */
   int force_cleanup;        /* force cleanup of exps, assignment strings */
   int pprint;               /* reindex exps when dumping */
   int last_sat_result;      /* status of last SAT call (SAT/UNSAT) */
+  int btor_sat_btor_called; /* how often is btor_sat_btor been called */
+  int msgtick;              /* message tick in incremental mode */
 
   int generate_model_for_all_reads;
 
@@ -198,26 +199,29 @@ Btor *btor_new_btor (void);
 /* Sets rewrite level [0,2]. */
 void btor_set_rewrite_level_btor (Btor *btor, int rewrite_level);
 
-/* Forces all reads to be synthesized during model generation. */
-void btor_generate_model_for_all_reads (Btor *btor);
-
-/* Enable rewriting of reads on lambda expressions. */
-void btor_enable_beta_reduce_all (Btor *btor);
-
-/* Enable forcing of automatic clenaup of expressions and assignment strings. */
-void btor_enable_force_cleanup (Btor *btor);
-
-/* Disable pretty printing when dumping and rewriting of writes is enabled.  */
-void btor_disable_pretty_print (Btor *btor);
-
 /* Enables model generation. */
 void btor_enable_model_gen (Btor *btor);
+
+/* Forces all reads to be synthesized during model generation. */
+void btor_generate_model_for_all_reads (Btor *btor);
 
 /* Enables incremental usage which means that assumptions are enabled
  * and btor_sat_btor can be called more than once. Note that enabling this
  * feature turns off some optimizations which are not possible anymore.
  */
 void btor_enable_inc_usage (Btor *btor);
+
+/* Enable rewriting of reads on lambda expressions. */
+void btor_enable_beta_reduce_all (Btor *btor);
+
+/* Enable dual propagation optimization of consistency check. */
+void btor_enable_dual_prop (Btor *btor);
+
+/* Enable forcing of automatic clenaup of expressions and assignment strings. */
+void btor_enable_force_cleanup (Btor *btor);
+
+/* Disable pretty printing when dumping and rewriting of writes is enabled.  */
+void btor_disable_pretty_print (Btor *btor);
 
 int btor_set_sat_solver (Btor *, const char *);
 

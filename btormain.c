@@ -67,6 +67,7 @@ struct BtorMainApp
 #endif
   int incremental;
   int beta_reduce_all;
+  int dual_prop;
   int force_cleanup;
   int pprint;
 #ifdef BTOR_USE_LINGELING
@@ -148,6 +149,7 @@ static const char *g_usage =
     "\n"
     "  -rwl<n>, --rewrite-level<n>      set rewrite level [0,3] (default 3)\n"
     "  -bra, --beta-reduce-all          eliminate lambda expressions\n"
+    "  -dp, --dual-prop                 enable dual prop optimization\n"
     "  -fc, --force-cleanup             force cleanup on exit\n"
     // TODO: -npp|--no-pretty-print ? (debug only?)
     "\n"
@@ -606,6 +608,11 @@ parse_commandline_arguments (BtorMainApp *app)
     {
       app->beta_reduce_all = 1;
     }
+    else if (!strcmp (app->argv[app->argpos], "-dp")
+             || !strcmp (app->argv[app->argpos], "--dual-prop"))
+    {
+      app->dual_prop = 1;
+    }
     else if (!strcmp (app->argv[app->argpos], "-fc")
              || !strcmp (app->argv[app->argpos], "--force-cleanup"))
     {
@@ -1021,43 +1028,14 @@ boolector_main (int argc, char **argv)
 
   memset (&app, 0, sizeof app);
 
-  app.verbosity              = 0;
-  app.incremental            = 0;
-  app.indepth                = 0;
-  app.lookahead              = 0;
-  app.interval               = 0;
-  app.output_file            = stdout;
-  app.close_output_file      = 0;
-  app.input_file             = stdin;
-  app.input_file_name        = "<stdin>";
-  app.close_input_file       = 0;
-  app.argc                   = argc;
-  app.argv                   = argv;
-  app.argpos                 = 0;
-  app.done                   = 0;
-  app.err                    = 0;
-  app.basis                  = BTOR_BINARY_BASIS;
-  app.dump_exp               = 0;
-  app.dump_smt               = 0;
-  app.rewrite_level          = 3;
-  app.force_smt_input        = 0;
-  app.print_model            = 0;
-  app.beta_reduce_all        = 0;
-  app.force_cleanup          = 0;
-  app.pprint                 = 1;
-  app.forced_sat_solver_name = 0;
-  app.forced_sat_solvers     = 0;
-#ifdef BTOR_USE_PICOSAT
-  app.force_picosat = 0;
-#endif
-#ifdef BTOR_USE_LINGELING
-  app.force_lingeling   = 0;
-  app.lingeling_options = 0;
-#endif
-#ifdef BTOR_USE_MINISAT
-  app.force_minisat = 0;
-#endif
-  static_set_alarm = 0;
+  app.output_file     = stdout;
+  app.input_file      = stdin;
+  app.input_file_name = "<stdin>";
+  app.argc            = argc;
+  app.argv            = argv;
+  app.basis           = BTOR_BINARY_BASIS;
+  app.rewrite_level   = 3;
+  app.pprint          = 1;
 
   parse_commandline_arguments (&app);
 
@@ -1099,6 +1077,8 @@ boolector_main (int argc, char **argv)
     boolector_set_rewrite_level (btor, app.rewrite_level);
 
     if (app.beta_reduce_all) boolector_enable_beta_reduce_all (btor);
+
+    if (app.dual_prop) boolector_enable_dual_prop (btor);
 
     if (app.force_cleanup) boolector_enable_force_cleanup (btor);
 

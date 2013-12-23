@@ -202,12 +202,13 @@ btor_chkclone_state (Btor *btor)
   BTOR_CHKCLONE_STATE (model_gen);
   BTOR_CHKCLONE_STATE (external_refs);
   BTOR_CHKCLONE_STATE (inc_enabled);
-  BTOR_CHKCLONE_STATE (btor_sat_btor_called);
-  BTOR_CHKCLONE_STATE (msgtick);
-  BTOR_CHKCLONE_STATE (force_cleanup);
   BTOR_CHKCLONE_STATE (beta_reduce_all);
+  BTOR_CHKCLONE_STATE (dual_prop);
+  BTOR_CHKCLONE_STATE (force_cleanup);
   BTOR_CHKCLONE_STATE (pprint);
   BTOR_CHKCLONE_STATE (last_sat_result);
+  BTOR_CHKCLONE_STATE (btor_sat_btor_called);
+  BTOR_CHKCLONE_STATE (msgtick);
   BTOR_CHKCLONE_STATE (generate_model_for_all_reads);
 }
 
@@ -971,6 +972,17 @@ boolector_enable_beta_reduce_all (Btor *btor)
   btor_enable_beta_reduce_all (btor);
 #ifndef NDEBUG
   BTOR_CHKCLONE_NORES (enable_beta_reduce_all);
+#endif
+}
+
+void
+boolector_enable_dual_prop (Btor *btor)
+{
+  BTOR_ABORT_ARG_NULL_BOOLECTOR (btor);
+  BTOR_TRAPI ("enable_dual_prop");
+  btor_enable_dual_prop (btor);
+#ifndef NDEBUG
+  BTOR_CHKCLONE_NORES (enable_dual_prop);
 #endif
 }
 

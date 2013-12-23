@@ -253,6 +253,8 @@ void boolector_delete (Btor *btor);
 
 int boolector_simplify (Btor *btor);
 
+void boolector_enable_dual_prop (Btor *btor);
+
 void boolector_enable_beta_reduce_all (Btor *btor);
 
 /* Enables forced automatic cleanup of expressions and assignment string on
