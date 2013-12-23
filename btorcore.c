@@ -7610,7 +7610,7 @@ btor_check_failed_assumptions (Btor *btor, Btor *clone)
   sat_result = btor_sat_btor (clone);
   assert ((sat_result == BTOR_SAT && failed_assumptions->count)
           || (sat_result == BTOR_UNSAT && !failed_assumptions->count));
-  if (!failed_assumptions->count) return;
+  if (!failed_assumptions->count) goto CLEANUP;
   assert (!btor->inconsistent);
 
   /* assert failed assumptions */
@@ -7623,7 +7623,7 @@ btor_check_failed_assumptions (Btor *btor, Btor *clone)
 
   assert (btor_sat_btor (clone) == BTOR_UNSAT);
 
-  /* cleanup */
+CLEANUP:
   init_node_hash_table_iterator (btor, &it, btor->assumptions);
   while (has_next_node_hash_table_iterator (&it))
   {
