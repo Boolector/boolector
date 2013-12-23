@@ -18,15 +18,6 @@
 
 /*------------------------------------------------------------------------*/
 
-struct BtorFullParentIterator
-{
-  BtorNode *cur;
-  BtorNode *exp;
-  int regular_parents_done;
-};
-
-typedef struct BtorFullParentIterator BtorFullParentIterator;
-
 struct BtorArgsIterator
 {
   int pos;
@@ -45,13 +36,12 @@ struct BtorParameterizedIterator
 
 typedef struct BtorParameterizedIterator BtorParameterizedIterator;
 
-struct BtorIterator
+struct BtorParentIterator
 {
   BtorNode *cur;
 };
 
-typedef struct BtorIterator BtorIterator;
-typedef struct BtorIterator BtorPartialParentIterator;
+typedef struct BtorParentIterator BtorParentIterator;
 
 #define BTOR_HASH_TABLE_ITERATOR_STACK_SIZE 8
 
@@ -75,21 +65,21 @@ typedef struct BtorHashTableIterator BtorHashTableIterator;
 #define BTOR_PREV_PARENT(exp) \
   (BTOR_REAL_ADDR_NODE (exp)->prev_parent[BTOR_GET_TAG_NODE (exp)])
 
-void init_apply_parent_iterator (BtorPartialParentIterator *, BtorNode *);
-BtorNode *next_parent_apply_parent_iterator (BtorPartialParentIterator *);
-int has_next_parent_apply_parent_iterator (BtorPartialParentIterator *);
+void init_apply_parent_iterator (BtorParentIterator *, BtorNode *);
+BtorNode *next_parent_apply_parent_iterator (BtorParentIterator *);
+int has_next_parent_apply_parent_iterator (BtorParentIterator *);
 
-void init_full_parent_iterator (BtorFullParentIterator *, BtorNode *);
-BtorNode *next_parent_full_parent_iterator (BtorFullParentIterator *);
-int has_next_parent_full_parent_iterator (BtorFullParentIterator *);
+void init_full_parent_iterator (BtorParentIterator *, BtorNode *);
+BtorNode *next_parent_full_parent_iterator (BtorParentIterator *);
+int has_next_parent_full_parent_iterator (BtorParentIterator *);
 
 void init_args_iterator (BtorArgsIterator *, BtorNode *);
 BtorNode *next_args_iterator (BtorArgsIterator *);
 int has_next_args_iterator (BtorArgsIterator *);
 
-void init_lambda_iterator (BtorIterator *, BtorNode *);
-BtorNode *next_lambda_iterator (BtorIterator *);
-int has_next_lambda_iterator (BtorIterator *);
+void init_lambda_iterator (BtorParentIterator *, BtorNode *);
+BtorNode *next_lambda_iterator (BtorParentIterator *);
+int has_next_lambda_iterator (BtorParentIterator *);
 
 void init_parameterized_iterator (Btor *,
                                   BtorParameterizedIterator *,

@@ -13,7 +13,7 @@
 #include "btoriter.h"
 
 void
-init_apply_parent_iterator (BtorPartialParentIterator *it, BtorNode *exp)
+init_apply_parent_iterator (BtorParentIterator *it, BtorNode *exp)
 {
   assert (it);
   assert (exp);
@@ -21,25 +21,15 @@ init_apply_parent_iterator (BtorPartialParentIterator *it, BtorNode *exp)
 }
 
 void
-init_full_parent_iterator (BtorFullParentIterator *it, BtorNode *exp)
+init_full_parent_iterator (BtorParentIterator *it, BtorNode *exp)
 {
   assert (it);
   assert (exp);
-  it->exp = exp;
-  if (BTOR_REAL_ADDR_NODE (exp)->first_parent)
-  {
-    it->regular_parents_done = 0;
-    it->cur                  = BTOR_REAL_ADDR_NODE (exp)->first_parent;
-  }
-  else
-  {
-    it->regular_parents_done = 0;
-    it->cur                  = 0;
-  }
+  it->cur = BTOR_REAL_ADDR_NODE (exp)->first_parent;
 }
 
 BtorNode *
-next_parent_apply_parent_iterator (BtorPartialParentIterator *it)
+next_parent_apply_parent_iterator (BtorParentIterator *it)
 {
   BtorNode *result;
   assert (it);
@@ -52,7 +42,7 @@ next_parent_apply_parent_iterator (BtorPartialParentIterator *it)
 }
 
 BtorNode *
-next_parent_full_parent_iterator (BtorFullParentIterator *it)
+next_parent_full_parent_iterator (BtorParentIterator *it)
 {
   assert (it);
 
@@ -65,7 +55,7 @@ next_parent_full_parent_iterator (BtorFullParentIterator *it)
 }
 
 int
-has_next_parent_apply_parent_iterator (BtorPartialParentIterator *it)
+has_next_parent_apply_parent_iterator (BtorParentIterator *it)
 {
   assert (it);
   /* function child of apply is at position 0, so cur is not tagged */
@@ -73,7 +63,7 @@ has_next_parent_apply_parent_iterator (BtorPartialParentIterator *it)
 }
 
 int
-has_next_parent_full_parent_iterator (BtorFullParentIterator *it)
+has_next_parent_full_parent_iterator (BtorParentIterator *it)
 {
   assert (it);
   return it->cur != 0;
@@ -132,7 +122,7 @@ has_next_args_iterator (BtorArgsIterator *it)
 }
 
 void
-init_lambda_iterator (BtorIterator *it, BtorNode *exp)
+init_lambda_iterator (BtorParentIterator *it, BtorNode *exp)
 {
   assert (it);
   assert (exp);
@@ -143,7 +133,7 @@ init_lambda_iterator (BtorIterator *it, BtorNode *exp)
 }
 
 BtorNode *
-next_lambda_iterator (BtorIterator *it)
+next_lambda_iterator (BtorParentIterator *it)
 {
   assert (it);
   assert (it->cur);
@@ -155,7 +145,7 @@ next_lambda_iterator (BtorIterator *it)
 }
 
 int
-has_next_lambda_iterator (BtorIterator *it)
+has_next_lambda_iterator (BtorParentIterator *it)
 {
   assert (it);
   assert (it->cur);

@@ -1045,7 +1045,7 @@ new_lambda_exp_node (Btor *btor, BtorNode *e_param, BtorNode *e_exp)
   assert (BTOR_IS_PARAM_NODE (e_param));
   assert (e_exp);
 
-  BtorIterator it;
+  BtorParentIterator it;
   BtorNode *exp;
   BtorLambdaNode *lambda_exp;
 

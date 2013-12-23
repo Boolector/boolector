@@ -139,7 +139,7 @@ btor_assign_args (Btor *btor, BtorNode *fun, BtorNode *args)
   //	   ((BtorArgsNode *) args)->num_args);
 
   BtorNode *cur_lambda, *cur_arg;
-  BtorIterator it;
+  BtorParentIterator it;
   BtorArgsIterator ait;
 
   init_args_iterator (&ait, args);

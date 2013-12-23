@@ -182,7 +182,7 @@ check_reachable_flag_dbg (const Btor *btor)
 {
   int i;
   BtorNode *cur, *parent;
-  BtorFullParentIterator it;
+  BtorParentIterator it;
 
   for (i = BTOR_COUNT_STACK (btor->nodes_id_table) - 1; i >= 0; i--)
   {
@@ -1536,7 +1536,7 @@ constraint_is_inconsistent (Btor *btor, BtorNode *exp)
 static int
 has_parents_exp (Btor *btor, BtorNode *exp)
 {
-  BtorFullParentIterator it;
+  BtorParentIterator it;
 
   assert (btor);
   assert (exp);
@@ -2264,7 +2264,7 @@ substitute_vars_and_rebuild_exps (Btor *btor, BtorPtrHashTable *substs)
   BtorPtrHashBucket *b;
   BtorNode *cur, *cur_parent, *rebuilt_exp, **temp, **top, *rhs, *simplified;
   BtorMemMgr *mm;
-  BtorFullParentIterator it;
+  BtorParentIterator it;
   int pushed, i;
 
   if (substs->count == 0u) return;
@@ -2649,7 +2649,7 @@ substitute_and_rebuild (Btor *btor, BtorPtrHashTable *subst, int bra)
   BtorNodePtrStack roots;
   BtorNodePtrQueue queue;
   BtorPtrHashBucket *b;
-  BtorFullParentIterator it;
+  BtorParentIterator it;
 
   if (subst->count == 0u) return;
 
@@ -2939,7 +2939,7 @@ eliminate_slices_on_bv_vars (Btor *btor)
   BtorNode *var, *cur, *result, *lambda_var, *temp;
   BtorSlice *s1, *s2, *new_s1, *new_s2, *new_s3, **sorted_slices;
   BtorPtrHashBucket *b_var, *b1, *b2;
-  BtorFullParentIterator it;
+  BtorParentIterator it;
   BtorPtrHashTable *slices;
   int i, min, max, count;
   BtorNodePtrStack vars;
@@ -3510,7 +3510,7 @@ beta_reduce_applies_on_lambdas (Btor *btor)
   BtorPtrHashTable *apps;
   BtorPtrHashBucket *b;
   BtorNode *app, *fun;
-  BtorPartialParentIterator it;
+  BtorParentIterator it;
   BtorMemMgr *mm;
 
   if (btor->lambdas->count == 0) return;
@@ -4435,7 +4435,7 @@ search_top_functions (Btor *btor, BtorNodePtrStack *top_funs)
   BtorNode *cur, *cur_parent;
   BtorPtrHashTable *table;
   BtorPtrHashBucket *bucket;
-  BtorFullParentIterator it;
+  BtorParentIterator it;
 
   mm = btor->mm;
 
@@ -5993,7 +5993,7 @@ print_cone_dbg (Btor * btor, BtorNode * exp)
 
   int i, lvl;
   BtorNode *cur, *parent;
-  BtorFullParentIterator it;
+  BtorParentIterator it;
   BtorNodePtrQueue queue;
   BtorIntQueue level;
   BtorPtrHashTable *table;
@@ -6110,7 +6110,7 @@ check_and_resolve_conflicts (Btor *btor, BtorNodePtrStack *top_functions)
   BtorNode *cur_fun, *cur_parent, **top, **temp, *param_app;
   BtorNodePtrStack fun_stack, cleanup_stack, working_stack, unmark_stack;
   BtorNodePtrStack param_apps;
-  BtorPartialParentIterator it;
+  BtorParentIterator it;
 
   found_conflict = 0;
   mm             = btor->mm;
@@ -6483,7 +6483,7 @@ btor_fun_sort_check (Btor *btor, int argc, BtorNode **args, BtorNode *fun)
   int i;
   BtorNode *arg;
   BtorParamNode *param;
-  BtorIterator it;
+  BtorParentIterator it;
 
   init_lambda_iterator (&it, fun);
 
