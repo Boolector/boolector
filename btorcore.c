@@ -1183,13 +1183,13 @@ insert_varsubst_constraint (Btor *btor, BtorNode *left, BtorNode *right)
 
   if (!bucket)
   {
-    if (btor->model_gen && !BTOR_IS_ARRAY_NODE (BTOR_REAL_ADDR_NODE (right))
+    if (btor->model_gen && !BTOR_IS_FUN_NODE (BTOR_REAL_ADDR_NODE (right))
         && !btor_find_in_ptr_hash_table (btor->var_rhs, left))
     {
       btor_insert_in_ptr_hash_table (btor->var_rhs, btor_copy_exp (btor, left));
     }
 
-    if (btor->model_gen && BTOR_IS_ARRAY_NODE (BTOR_REAL_ADDR_NODE (right))
+    if (btor->model_gen && BTOR_IS_FUN_NODE (BTOR_REAL_ADDR_NODE (right))
         && !btor_find_in_ptr_hash_table (btor->array_rhs, left))
     {
       btor_insert_in_ptr_hash_table (btor->array_rhs,
@@ -1643,7 +1643,7 @@ btor_reset_array_models (Btor *btor)
   {
     cur = btor->arrays_with_model.start[i];
     assert (!BTOR_IS_INVERTED_NODE (cur));
-    assert (BTOR_IS_ARRAY_NODE (cur));
+    assert (BTOR_IS_FUN_NODE (cur));
     assert (cur->rho);
     btor_delete_ptr_hash_table (cur->rho);
     cur->rho = 0;
@@ -1674,7 +1674,7 @@ add_constraint (Btor *btor, BtorNode *exp)
   BtorMemMgr *mm;
 
   exp = btor_simplify_exp (btor, exp);
-  assert (!BTOR_IS_ARRAY_NODE (BTOR_REAL_ADDR_NODE (exp)));
+  assert (!BTOR_IS_FUN_NODE (BTOR_REAL_ADDR_NODE (exp)));
   assert (BTOR_REAL_ADDR_NODE (exp)->len == 1);
   assert (!BTOR_REAL_ADDR_NODE (exp)->parameterized);
 
@@ -1724,7 +1724,7 @@ btor_assert_exp (Btor *btor, BtorNode *exp)
   assert (btor);
   assert (exp);
   exp = btor_simplify_exp (btor, exp);
-  assert (!BTOR_IS_ARRAY_NODE (BTOR_REAL_ADDR_NODE (exp)));
+  assert (!BTOR_IS_FUN_NODE (BTOR_REAL_ADDR_NODE (exp)));
   assert (BTOR_REAL_ADDR_NODE (exp)->len == 1);
   assert (!BTOR_REAL_ADDR_NODE (exp)->parameterized);
 
@@ -1820,7 +1820,7 @@ btor_is_assumption_exp (Btor *btor, BtorNode *exp)
   if (BTOR_REAL_ADDR_NODE (exp) == BTOR_REAL_ADDR_NODE (btor->true_exp))
     return 1;
 
-  if (BTOR_IS_ARRAY_NODE (BTOR_REAL_ADDR_NODE (exp))
+  if (BTOR_IS_FUN_NODE (BTOR_REAL_ADDR_NODE (exp))
       || BTOR_REAL_ADDR_NODE (exp)->len != 1
       || BTOR_REAL_ADDR_NODE (exp)->parameterized)
     return 0;
@@ -1845,7 +1845,7 @@ btor_failed_exp (Btor *btor, BtorNode *exp)
   BtorAIGMgr *amgr;
 
   exp = btor_simplify_exp (btor, exp);
-  assert (!BTOR_IS_ARRAY_NODE (BTOR_REAL_ADDR_NODE (exp)));
+  assert (!BTOR_IS_FUN_NODE (BTOR_REAL_ADDR_NODE (exp)));
   assert (BTOR_REAL_ADDR_NODE (exp)->len == 1);
   assert (!BTOR_REAL_ADDR_NODE (exp)->parameterized);
   assert (btor_is_assumption_exp (btor, exp));
@@ -4189,7 +4189,7 @@ synthesize_all_var_rhs (Btor *btor)
     cur      = (BtorNode *) b->key;
     cur      = btor_simplify_exp (btor, cur);
     real_cur = BTOR_REAL_ADDR_NODE (cur);
-    assert (!BTOR_IS_ARRAY_NODE (real_cur));
+    assert (!BTOR_IS_FUN_NODE (real_cur));
     if (real_cur->vread) continue;
 
     synthesize_exp (btor, cur, 0);
@@ -4215,21 +4215,22 @@ synthesize_all_array_rhs (Btor *btor)
   {
     cur = (BtorNode *) b->key;
     cur = btor_simplify_exp (btor, cur);
-    assert (BTOR_IS_ARRAY_NODE (BTOR_REAL_ADDR_NODE (cur)));
+    assert (BTOR_IS_FUN_NODE (BTOR_REAL_ADDR_NODE (cur)));
     synthesize_exp (btor, cur, 0);
   }
 }
 
 // TODO: no reads anymore -> check is_read of apply nodes instead
-static void
-synthesize_all_reads (Btor *btor)
-{
-  BtorNode *n;
-  int i;
-  for (i = 0; i < btor->nodes_unique_table.size; i++)
-    for (n = btor->nodes_unique_table.chains[i]; n; n = n->next)
-      if (BTOR_IS_READ_NODE (n)) synthesize_exp (btor, n, 0);
-}
+// static void
+// synthesize_all_reads (Btor * btor)
+//{
+//  BtorNode *n;
+//  int i;
+//  for (i = 0; i < btor->nodes_unique_table.size; i++)
+//    for (n = btor->nodes_unique_table.chains[i]; n; n = n->next)
+//      if (BTOR_IS_READ_NODE (n))
+//	synthesize_exp (btor, n, 0);
+//}
 
 #if 0
 // TODO: check if needed
@@ -4281,7 +4282,7 @@ update_reachable (Btor *btor)
     {
       cur = (BtorNode *) b->key;
       cur = BTOR_REAL_ADDR_NODE (btor_simplify_exp (btor, cur));
-      assert (BTOR_IS_ARRAY_NODE (cur));
+      assert (BTOR_IS_FUN_NODE (cur));
       btor_mark_exp (btor, cur, 1);
     }
   }
@@ -4507,8 +4508,8 @@ compare_assignments (BtorNode *exp1, BtorNode *exp2)
   BtorAIG *aig1, *aig2;
   assert (exp1);
   assert (exp2);
-  assert (!BTOR_IS_ARRAY_NODE (BTOR_REAL_ADDR_NODE (exp1)));
-  assert (!BTOR_IS_ARRAY_NODE (BTOR_REAL_ADDR_NODE (exp2)));
+  assert (!BTOR_IS_FUN_NODE (BTOR_REAL_ADDR_NODE (exp1)));
+  assert (!BTOR_IS_FUN_NODE (BTOR_REAL_ADDR_NODE (exp2)));
   assert (BTOR_REAL_ADDR_NODE (exp1)->len == BTOR_REAL_ADDR_NODE (exp2)->len);
   assert (BTOR_IS_SYNTH_NODE (BTOR_REAL_ADDR_NODE (exp1)));
   assert (BTOR_IS_SYNTH_NODE (BTOR_REAL_ADDR_NODE (exp2)));
@@ -4742,7 +4743,7 @@ lazy_synthesize_and_encode_apply_exp (Btor *btor,
   while (has_next_args_iterator (&it))
   {
     arg = next_args_iterator (&it);
-    assert (!BTOR_IS_ARRAY_NODE (BTOR_REAL_ADDR_NODE (arg)));
+    assert (!BTOR_IS_FUN_NODE (BTOR_REAL_ADDR_NODE (arg)));
     if (!BTOR_IS_SYNTH_NODE (BTOR_REAL_ADDR_NODE (arg)))
       synthesize_exp (btor, arg, 0);
 
@@ -5056,8 +5057,8 @@ assignment_always_unequal (Btor *btor, BtorNode *exp1, BtorNode *exp2)
   amgr  = btor_get_aig_mgr_aigvec_mgr (avmgr);
   smgr  = btor_get_sat_mgr_aig_mgr (amgr);
 
-  assert (!BTOR_IS_ARRAY_NODE (BTOR_REAL_ADDR_NODE (exp1)));
-  assert (!BTOR_IS_ARRAY_NODE (BTOR_REAL_ADDR_NODE (exp2)));
+  assert (!BTOR_IS_FUN_NODE (BTOR_REAL_ADDR_NODE (exp1)));
+  assert (!BTOR_IS_FUN_NODE (BTOR_REAL_ADDR_NODE (exp2)));
   assert (BTOR_REAL_ADDR_NODE (exp1)->len == BTOR_REAL_ADDR_NODE (exp2)->len);
 
   av1 = BTOR_REAL_ADDR_NODE (exp1)->av;
@@ -5117,8 +5118,8 @@ assignment_always_equal (Btor *btor, BtorNode *exp1, BtorNode *exp2)
   amgr  = btor_get_aig_mgr_aigvec_mgr (avmgr);
   smgr  = btor_get_sat_mgr_aig_mgr (amgr);
 
-  assert (!BTOR_IS_ARRAY_NODE (BTOR_REAL_ADDR_NODE (exp1)));
-  assert (!BTOR_IS_ARRAY_NODE (BTOR_REAL_ADDR_NODE (exp2)));
+  assert (!BTOR_IS_FUN_NODE (BTOR_REAL_ADDR_NODE (exp1)));
+  assert (!BTOR_IS_FUN_NODE (BTOR_REAL_ADDR_NODE (exp2)));
   assert (BTOR_REAL_ADDR_NODE (exp1)->len == BTOR_REAL_ADDR_NODE (exp2)->len);
 
   av1 = BTOR_REAL_ADDR_NODE (exp1)->av;
@@ -5745,9 +5746,6 @@ propagate (Btor *btor,
   assert (cleanup_stack);
   // TODO: extensionality for write lambdas
   assert (btor->ops[BTOR_AEQ_NODE] == 0);
-  assert (btor->ops[BTOR_READ_NODE] == 0);
-  assert (btor->ops[BTOR_ACOND_NODE] == 0);
-  assert (btor->ops[BTOR_WRITE_NODE] == 0);
 
   int i, values_equal, args_equal;
   char *fun_value_assignment, *app_assignment;
@@ -6356,7 +6354,8 @@ btor_sat_aux_btor (Btor *btor)
     synthesize_all_var_rhs (btor);
     synthesize_all_array_rhs (btor);
     // TODO: no reads anymore -> check is_read of apply nodes instead
-    if (btor->generate_model_for_all_reads) synthesize_all_reads (btor);
+    //      if (btor->generate_model_for_all_reads)
+    //	synthesize_all_reads (btor);
   }
 
 #ifndef NDEBUG
@@ -7088,7 +7087,7 @@ btor_bv_assignment_str_exp (Btor *btor, BtorNode *exp)
   assert (!btor->inconsistent);
   assert (exp);
   exp = btor_simplify_exp (btor, exp);
-  assert (!BTOR_IS_ARRAY_NODE (BTOR_REAL_ADDR_NODE (exp)));
+  assert (!BTOR_IS_FUN_NODE (BTOR_REAL_ADDR_NODE (exp)));
 
   real_exp = BTOR_REAL_ADDR_NODE (exp);
   assert (real_exp);
@@ -7136,7 +7135,7 @@ btor_array_assignment_str_exp (
   assert (exp);
   assert (!BTOR_IS_INVERTED_NODE (exp));
   exp = btor_simplify_exp (btor, exp);
-  assert (BTOR_IS_ARRAY_NODE (exp));
+  assert (BTOR_IS_FUN_NODE (exp));
   assert (indices);
   assert (values);
   assert (size);
@@ -7162,7 +7161,7 @@ btor_array_assignment_str_exp (
       assert (BTOR_IS_ARGS_NODE (args));
       assert (args->arity == 1);
       index         = args->e[0];
-      value         = BTOR_GET_VALUE_ACC_NODE ((BtorNode *) b->data.asPtr);
+      value         = (BtorNode *) b->data.asPtr;
       (*indices)[i] = btor_bv_assignment_str_exp (btor, index);
       (*values)[i]  = btor_bv_assignment_str_exp (btor, value);
       i++;
@@ -7251,7 +7250,7 @@ btor_check_model (Btor *btor, Btor *clone)
   {
     cur = (BtorNode *) b->key;
     assert (BTOR_IS_REGULAR_NODE (cur));
-    assert (BTOR_IS_ARRAY_NODE (cur));
+    assert (BTOR_IS_FUN_NODE (cur));
     assert (!cur->simplified);
     size    = 0;
     indices = 0;
@@ -7266,7 +7265,7 @@ btor_check_model (Btor *btor, Btor *clone)
     assert (indices);
     assert (values);
 
-    w = btor_array_exp (clone, cur->len, cur->index_len, "");
+    w = btor_array_exp (clone, cur->len, BTOR_ARRAY_INDEX_LEN (cur), "");
     for (i = 0; i < size; i++)
     {
       a = indices[i];

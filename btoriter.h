@@ -75,25 +75,12 @@ typedef struct BtorHashTableIterator BtorHashTableIterator;
 #define BTOR_PREV_PARENT(exp) \
   (BTOR_REAL_ADDR_NODE (exp)->prev_parent[BTOR_GET_TAG_NODE (exp)])
 
-#define BTOR_NEXT_AEQ_ACOND_PARENT(exp) \
-  (BTOR_REAL_ADDR_NODE (exp)->next_aeq_acond_parent[BTOR_GET_TAG_NODE (exp)])
-
-#define BTOR_PREV_AEQ_ACOND_PARENT(exp) \
-  (BTOR_REAL_ADDR_NODE (exp)->prev_aeq_acond_parent[BTOR_GET_TAG_NODE (exp)])
-
 void init_apply_parent_iterator (BtorPartialParentIterator *, BtorNode *);
-void init_aeq_parent_iterator (BtorPartialParentIterator *, BtorNode *);
-void init_acond_parent_iterator (BtorPartialParentIterator *, BtorNode *);
-void init_full_parent_iterator (BtorFullParentIterator *, BtorNode *);
-
 BtorNode *next_parent_apply_parent_iterator (BtorPartialParentIterator *);
-BtorNode *next_parent_aeq_parent_iterator (BtorPartialParentIterator *);
-BtorNode *next_parent_acond_parent_iterator (BtorPartialParentIterator *);
-BtorNode *next_parent_full_parent_iterator (BtorFullParentIterator *);
-
 int has_next_parent_apply_parent_iterator (BtorPartialParentIterator *);
-int has_next_parent_aeq_parent_iterator (BtorPartialParentIterator *);
-int has_next_parent_acond_parent_iterator (BtorPartialParentIterator *);
+
+void init_full_parent_iterator (BtorFullParentIterator *, BtorNode *);
+BtorNode *next_parent_full_parent_iterator (BtorFullParentIterator *);
 int has_next_parent_full_parent_iterator (BtorFullParentIterator *);
 
 void init_args_iterator (BtorArgsIterator *, BtorNode *);

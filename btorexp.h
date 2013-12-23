@@ -34,7 +34,7 @@ BTOR_DECLARE_QUEUE (BtorNodePtr, BtorNode *);
  * and BTOR_PROXY_NODE is BTOR_NUM_OPS_NODE - 1
  * FURTHER NOTE:
  * binary nodes: [BTOR_AND_NODE, ..., BTOR_LAMBDA_NODE]
- * ternary nodes: [BTOR_WRITE_NODE, ..., BTOR_ACOND_NODE]
+ * ternary nodes: [BTOR_BCOND_NODE]
  * commutative nodes: [BTOR_AND_NODE, ..., BTOR_MUL_NODE]
  */
 enum BtorNodeKind
@@ -62,15 +62,12 @@ enum BtorNodeKind
   BTOR_UDIV_NODE      = 14,
   BTOR_UREM_NODE      = 15,
   BTOR_CONCAT_NODE    = 16,
-  BTOR_READ_NODE      = 17,
-  BTOR_APPLY_NODE     = 18,
-  BTOR_LAMBDA_NODE    = 19, /* lambda expression */
-  BTOR_WRITE_NODE     = 20,
-  BTOR_BCOND_NODE     = 21, /* conditional on bit vectors */
-  BTOR_ACOND_NODE     = 22, /* conditional on arrays */
-  BTOR_ARGS_NODE      = 23,
-  BTOR_PROXY_NODE     = 24, /* simplified expression without children */
-  BTOR_NUM_OPS_NODE   = 25
+  BTOR_APPLY_NODE     = 17,
+  BTOR_LAMBDA_NODE    = 18, /* lambda expression */
+  BTOR_BCOND_NODE     = 19, /* conditional on bit vectors */
+  BTOR_ARGS_NODE      = 20,
+  BTOR_PROXY_NODE     = 21, /* simplified expression without children */
+  BTOR_NUM_OPS_NODE   = 22
 };
 
 typedef enum BtorNodeKind BtorNodeKind;
@@ -145,27 +142,6 @@ typedef struct BtorNodePair BtorNodePair;
   }
 // TODO: optimization of **e, **prev_parent, **next_parent memory allocation
 
-#define BTOR_ARRAY_VAR_NODE_STRUCT                                           \
-  struct                                                                     \
-  {                                                                          \
-    int index_len;                    /* length of the index */              \
-    BtorNode *first_aeq_acond_parent; /* first array equality or array       \
-                                               conditional in parent list */ \
-    BtorNode *last_aeq_acond_parent;  /* last array equality or array        \
-                                               conditional in parent list */ \
-  }
-
-#define BTOR_ARRAY_ADDITIONAL_NODE_STRUCT                                  \
-  struct                                                                   \
-  {                                                                        \
-    BtorNode *prev_aeq_acond_parent[3]; /* prev array equality or          \
-                                                 conditional in aeq acond  \
-                                                 parent list of child i */ \
-    BtorNode *next_aeq_acond_parent[3]; /* next array equality or          \
-                                                 conditional in aeq acond  \
-                                                 parent list of child i */ \
-  }
-
 struct BtorBVVarNode
 {
   BTOR_BV_VAR_NODE_STRUCT;
@@ -195,7 +171,7 @@ struct BtorArrayVarNode
 {
   BTOR_BV_VAR_NODE_STRUCT;
   BTOR_BV_ADDITIONAL_NODE_STRUCT;
-  BTOR_ARRAY_VAR_NODE_STRUCT;
+  int index_len;
 };
 
 typedef struct BtorArrayVarNode BtorArrayVarNode;
@@ -204,16 +180,12 @@ struct BtorNode
 {
   BTOR_BV_VAR_NODE_STRUCT;
   BTOR_BV_ADDITIONAL_NODE_STRUCT;
-  BTOR_ARRAY_VAR_NODE_STRUCT;
-  BTOR_ARRAY_ADDITIONAL_NODE_STRUCT;
 };
 
 struct BtorLambdaNode
 {
   BTOR_BV_VAR_NODE_STRUCT;
   BTOR_BV_ADDITIONAL_NODE_STRUCT;
-  BTOR_ARRAY_VAR_NODE_STRUCT;
-  BTOR_ARRAY_ADDITIONAL_NODE_STRUCT;
   BtorPtrHashTable *synth_apps;
   struct BtorLambdaNode *nested; /* points to first lambda in the nested lambda
                                     chain */
@@ -256,29 +228,17 @@ typedef struct BtorArgsNode BtorArgsNode;
 
 #define BTOR_IS_ARRAY_EQ_NODE_KIND(kind) (kind == BTOR_AEQ_NODE)
 
-#define BTOR_IS_READ_NODE_KIND(kind) (kind == BTOR_READ_NODE)
-
 #define BTOR_IS_LAMBDA_NODE_KIND(kind) ((kind) == BTOR_LAMBDA_NODE)
 
 #define BTOR_IS_ARGS_NODE_KIND(kind) ((kind) == BTOR_ARGS_NODE)
 
 #define BTOR_IS_APPLY_NODE_KIND(kind) ((kind) == BTOR_APPLY_NODE)
 
-#define BTOR_IS_WRITE_NODE_KIND(kind) (kind == BTOR_WRITE_NODE)
-
-#define BTOR_IS_ARRAY_COND_NODE_KIND(kind) (kind == BTOR_ACOND_NODE)
-
 #define BTOR_IS_BV_COND_NODE_KIND(kind) (kind == BTOR_BCOND_NODE)
 
 #define BTOR_IS_PROXY_NODE_KIND(kind) ((kind) == BTOR_PROXY_NODE)
 
 #define BTOR_IS_CONCAT_NODE_KIND(kind) ((kind) == BTOR_CONCAT_NODE)
-
-/* array nodes: array var, write, acond, lambda
- *		proxy (if it was originally one of the above) */
-#define BTOR_IS_ARRAY_NODE_KIND(kind)                             \
-  (((kind) == BTOR_ARRAY_VAR_NODE) || ((kind) == BTOR_WRITE_NODE) \
-   || ((kind) == BTOR_ACOND_NODE) || ((kind) == BTOR_LAMBDA_NODE))
 
 #define BTOR_IS_UNARY_NODE_KIND(kind) ((kind) == BTOR_SLICE_NODE)
 
@@ -288,8 +248,7 @@ typedef struct BtorArgsNode BtorArgsNode;
 #define BTOR_IS_BINARY_COMMUTATIVE_NODE_KIND(kind) \
   (((kind) >= BTOR_AND_NODE) && ((kind) <= BTOR_MUL_NODE))
 
-#define BTOR_IS_TERNARY_NODE_KIND(kind) \
-  (((kind) >= BTOR_WRITE_NODE) && ((kind) <= BTOR_ACOND_NODE))
+#define BTOR_IS_TERNARY_NODE_KIND(kind) (((kind) >= BTOR_BCOND_NODE))
 
 #define BTOR_IS_AND_NODE(exp) ((exp) && BTOR_IS_AND_NODE_KIND ((exp)->kind))
 
@@ -310,9 +269,7 @@ typedef struct BtorArgsNode BtorArgsNode;
   ((exp) && BTOR_IS_ARRAY_EQ_NODE_KIND ((exp)->kind))
 
 #define BTOR_IS_ARRAY_OR_BV_EQ_NODE(exp) \
-  ((exp) && (BTOR_IS_ARRAY_EQ_NODE (exp) || BTOR_IS_BV_EQ_NODE (exp)))
-
-#define BTOR_IS_READ_NODE(exp) ((exp) && BTOR_IS_READ_NODE_KIND ((exp)->kind))
+  (BTOR_IS_ARRAY_EQ_NODE (exp) || BTOR_IS_BV_EQ_NODE (exp))
 
 #define BTOR_IS_LAMBDA_NODE(exp) \
   ((exp) && BTOR_IS_LAMBDA_NODE_KIND ((exp)->kind))
@@ -329,16 +286,10 @@ typedef struct BtorArgsNode BtorArgsNode;
 #define BTOR_IS_BV_COND_NODE(exp) \
   ((exp) && BTOR_IS_BV_COND_NODE_KIND ((exp)->kind))
 
-#define BTOR_IS_ARRAY_OR_BV_COND_NODE(exp) \
-  ((exp) && (BTOR_IS_ARRAY_COND_NODE (exp) || BTOR_IS_BV_COND_NODE (exp)))
-
 #define BTOR_IS_PROXY_NODE(exp) ((exp) && BTOR_IS_PROXY_NODE_KIND ((exp)->kind))
 
 #define BTOR_IS_CONCAT_NODE(exp) \
   ((exp) && BTOR_IS_CONCAT_NODE_KIND ((exp)->kind))
-
-#define BTOR_IS_ARRAY_NODE(exp) \
-  ((exp) && (BTOR_IS_ARRAY_NODE_KIND ((exp)->kind)))
 
 #define BTOR_IS_UNARY_NODE(exp) ((exp) && BTOR_IS_UNARY_NODE_KIND ((exp)->kind))
 
@@ -379,18 +330,6 @@ typedef struct BtorArgsNode BtorArgsNode;
 
 #define BTOR_IS_REGULAR_NODE(exp) (!(3ul & (unsigned long int) (exp)))
 
-#define BTOR_IS_ACC_NODE(exp)                          \
-  (BTOR_IS_READ_NODE (exp) || BTOR_IS_WRITE_NODE (exp) \
-   || BTOR_IS_APPLY_NODE (exp))
-
-#define BTOR_GET_INDEX_ACC_NODE(exp) ((exp)->e[1])
-
-#define BTOR_GET_VALUE_ACC_NODE(exp) \
-  (BTOR_IS_READ_NODE (exp) || BTOR_IS_APPLY_NODE (exp) ? (exp) : (exp)->e[2])
-
-#define BTOR_ACC_TARGET_NODE(exp) \
-  (BTOR_IS_READ_NODE (exp) || BTOR_IS_APPLY_NODE (exp) ? (exp)->e[0] : (exp))
-
 #define BTOR_IS_SYNTH_NODE(exp) ((exp)->av != 0)
 
 #define BTOR_IS_NESTED_LAMBDA_NODE(exp) \
@@ -415,6 +354,10 @@ typedef struct BtorArgsNode BtorArgsNode;
 #define BTOR_LAMBDA_GET_PARAM(exp) (((BtorParamNode *) exp->e[0]))
 
 #define BTOR_LAMBDA_GET_BODY(exp) (((BtorLambdaNode *) exp)->body)
+
+#define BTOR_ARRAY_INDEX_LEN(exp)                                        \
+  ((BTOR_IS_ARRAY_VAR_NODE (exp) ? ((BtorArrayVarNode *) exp)->index_len \
+                                 : BTOR_LAMBDA_GET_PARAM (exp)->len))
 
 /*------------------------------------------------------------------------*/
 

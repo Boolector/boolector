@@ -977,8 +977,7 @@ rewrite_binary_exp (Btor *btor, BtorNodeKind kind, BtorNode *e0, BtorNode *e1)
         break;
     }
   }
-  else if (BTOR_IS_ARRAY_OR_BV_COND_NODE (real_e0)
-           && BTOR_IS_ARRAY_OR_BV_COND_NODE (real_e1)
+  else if (BTOR_IS_BV_COND_NODE (real_e0) && BTOR_IS_BV_COND_NODE (real_e1)
            && BTOR_IS_INVERTED_NODE (e0) == BTOR_IS_INVERTED_NODE (e1)
            &&  // TODO needed?
            real_e0->e[0] == real_e1->e[0]
@@ -1180,13 +1179,13 @@ is_always_unequal (Btor *btor, BtorNode *e0, BtorNode *e1)
 
   if (!real_e0 || !real_e1) return 0;
 
-  if (BTOR_IS_ARRAY_NODE (real_e0))
+  if (BTOR_IS_FUN_NODE (real_e0))
   {
-    assert (BTOR_IS_ARRAY_NODE (real_e1));
+    assert (BTOR_IS_FUN_NODE (real_e1));
     return 0;
   }
 
-  assert (!BTOR_IS_ARRAY_NODE (real_e1));
+  assert (!BTOR_IS_FUN_NODE (real_e1));
 
   if (e0 == BTOR_INVERT_NODE (e1)) return 1;
 
@@ -2149,20 +2148,25 @@ btor_rewrite_eq_exp (Btor *btor, BtorNode *e0, BtorNode *e1)
   assert (btor_precond_eq_exp_dbg (btor, e0, e1));
   assert (btor->rewrite_level > 0);
 
-  if (BTOR_IS_ARRAY_NODE (BTOR_REAL_ADDR_NODE (e0)))
+  if (BTOR_IS_FUN_NODE (BTOR_REAL_ADDR_NODE (e0)))
     kind = BTOR_AEQ_NODE;
   else
     kind = BTOR_BEQ_NODE;
 
-  /* write (a, i, e1) = write (a, i, e2) ----> e1 = e2 */
-  if (kind == BTOR_AEQ_NODE && BTOR_IS_WRITE_NODE (e0)
-      && BTOR_IS_WRITE_NODE (e1) && e0->e[0] == e1->e[0]
-      && e0->e[1] == e1->e[1])
-  {
-    e0   = e0->e[2];
-    e1   = e1->e[2];
-    kind = BTOR_BEQ_NODE;
-  }
+    /* write (a, i, e1) = write (a, i, e2) ----> e1 = e2 */
+#if 0
+  // TODO: no writes anymore
+  if (kind == BTOR_AEQ_NODE &&
+      BTOR_IS_WRITE_NODE (e0) &&
+      BTOR_IS_WRITE_NODE (e1) &&
+      e0->e[0] == e1->e[0] &&
+      e0->e[1] == e1->e[1])
+    {
+      e0 = e0->e[2];
+      e1 = e1->e[2];
+      kind = BTOR_BEQ_NODE;
+    }
+#endif
 
   e0 = normalize_negated_add (btor, e0);
   e1 = normalize_negated_add (btor, e1);
@@ -2441,7 +2445,7 @@ btor_rewrite_eq_exp (Btor *btor, BtorNode *e0, BtorNode *e1)
     /* a = b ? a : c is rewritten to  b OR a = c
      * a = ~(b ? a : c) is rewritten to  !b AND a = ~c
      */
-    if (BTOR_IS_ARRAY_OR_BV_COND_NODE (real_e0))
+    if (BTOR_IS_BV_COND_NODE (real_e0))
     {
       if (real_e0->e[1] == e1)
       {
@@ -2487,7 +2491,7 @@ btor_rewrite_eq_exp (Btor *btor, BtorNode *e0, BtorNode *e1)
       }
     }
 
-    if (BTOR_IS_ARRAY_OR_BV_COND_NODE (real_e1))
+    if (BTOR_IS_BV_COND_NODE (real_e1))
     {
       if (real_e1->e[1] == e0)
       {
@@ -3684,8 +3688,10 @@ btor_rewrite_apply_exp (Btor *btor, BtorNode *fun, BtorNode *args)
   return result;
 }
 
+// NOTE: disabled not needed anymore
+#if 0
 BtorNode *
-btor_rewrite_read_exp (Btor *btor, BtorNode *e_array, BtorNode *e_index)
+btor_rewrite_read_exp (Btor * btor, BtorNode * e_array, BtorNode * e_index)
 {
   BtorNode *result, *cur_array, *write_index;
   int propagations;
@@ -3700,45 +3706,49 @@ btor_rewrite_read_exp (Btor *btor, BtorNode *e_array, BtorNode *e_index)
   cur_array = e_array;
 
   if (BTOR_IS_WRITE_NODE (cur_array))
-  {
-    write_index = cur_array->e[1];
-    /* if read index is equal write index, then return write value */
-    if (e_index == write_index) return btor_copy_exp (btor, cur_array->e[2]);
-
-    assert (BTOR_IS_REGULAR_NODE (cur_array));
-    assert (BTOR_IS_ARRAY_NODE (cur_array));
-    propagations = 0;
-
-    do
     {
-      assert (BTOR_IS_WRITE_NODE (cur_array));
       write_index = cur_array->e[1];
+      /* if read index is equal write index, then return write value */
+      if (e_index == write_index)
+	return btor_copy_exp (btor, cur_array->e[2]);
 
-      if (e_index == write_index) return btor_copy_exp (btor, cur_array->e[2]);
-
-      if (!is_always_unequal (btor, e_index, write_index)) break;
-
-      cur_array = cur_array->e[0];
       assert (BTOR_IS_REGULAR_NODE (cur_array));
-      assert (BTOR_IS_ARRAY_NODE (cur_array));
-      btor->stats.read_props_construct++;
-    } while (BTOR_IS_WRITE_NODE (cur_array)
-             && propagations++ < BTOR_READ_OVER_WRITE_DOWN_PROPAGATION_LIMIT);
-  }
+      assert (BTOR_IS_FUN_NODE (cur_array));
+      propagations = 0;
 
-  if (BTOR_IS_ARRAY_COND_NODE (cur_array) && btor->rewrite_level > 2
-      &&                               // TODO when to enable?
-      btor->rec_read_acond_calls < 0)  // TODO global constant!
-  {
-    BtorNode *t1, *t2;
-    btor->rec_read_acond_calls++;
-    t1     = btor_read_exp (btor, cur_array->e[1], e_index);
-    t2     = btor_read_exp (btor, cur_array->e[2], e_index);
-    result = btor_cond_exp (btor, cur_array->e[0], t1, t2);
-    btor->rec_read_acond_calls--;
-    btor_release_exp (btor, t2);
-    btor_release_exp (btor, t1);
-  }
+      do
+	{
+	  assert (BTOR_IS_WRITE_NODE (cur_array));
+	  write_index = cur_array->e[1];
+
+	  if (e_index == write_index)
+	    return btor_copy_exp (btor, cur_array->e[2]);
+
+	  if (!is_always_unequal (btor, e_index, write_index))
+	    break;
+
+	  cur_array = cur_array->e[0];
+	  assert (BTOR_IS_REGULAR_NODE (cur_array));
+	  assert (BTOR_IS_FUN_NODE (cur_array));
+	  btor->stats.read_props_construct++;
+	}
+      while (BTOR_IS_WRITE_NODE (cur_array) &&
+	propagations++ < BTOR_READ_OVER_WRITE_DOWN_PROPAGATION_LIMIT);
+    }
+
+  if (BTOR_IS_ARRAY_COND_NODE (cur_array) &&
+      btor->rewrite_level > 2 &&		// TODO when to enable?
+      btor->rec_read_acond_calls < 0)		// TODO global constant!
+    {
+      BtorNode * t1, * t2;
+      btor->rec_read_acond_calls++;
+      t1 = btor_read_exp (btor, cur_array->e[1], e_index);
+      t2 = btor_read_exp (btor, cur_array->e[2], e_index);
+      result = btor_cond_exp (btor, cur_array->e[0], t1, t2);
+      btor->rec_read_acond_calls--;
+      btor_release_exp (btor, t2);
+      btor_release_exp (btor, t1);
+    }
   else
     result = btor_read_exp_node (btor, cur_array, e_index);
 
@@ -3748,10 +3758,8 @@ btor_rewrite_read_exp (Btor *btor, BtorNode *e_array, BtorNode *e_index)
 }
 
 BtorNode *
-btor_rewrite_write_exp (Btor *btor,
-                        BtorNode *e_array,
-                        BtorNode *e_index,
-                        BtorNode *e_value)
+btor_rewrite_write_exp (Btor * btor, BtorNode * e_array, BtorNode * e_index,
+			BtorNode * e_value)
 {
   BtorNode *cur, *cur_write, *temp, *result;
   BtorNode *chain[BTOR_WRITE_CHAIN_NODE_RW_BOUND];
@@ -3818,51 +3826,55 @@ btor_rewrite_write_exp (Btor *btor,
   else
 #endif
   if (btor->rewrite_level > 2 && BTOR_IS_WRITE_NODE (e_array))
-  {
-    depth = 0;
-    cur   = e_array;
-    assert (BTOR_IS_REGULAR_NODE (cur));
-    assert (BTOR_IS_WRITE_NODE (cur));
-
-    while (BTOR_IS_WRITE_NODE (cur) && cur->e[1] != e_index
-           && depth < BTOR_WRITE_CHAIN_NODE_RW_BOUND)
     {
+      depth = 0;
+      cur = e_array;
       assert (BTOR_IS_REGULAR_NODE (cur));
       assert (BTOR_IS_WRITE_NODE (cur));
-      chain[depth++] = cur;
-      cur            = cur->e[0];
-      assert (BTOR_IS_REGULAR_NODE (cur));
-      assert (BTOR_IS_ARRAY_NODE (cur));
+
+      while (BTOR_IS_WRITE_NODE (cur) && cur->e[1] != e_index
+	     && depth < BTOR_WRITE_CHAIN_NODE_RW_BOUND)
+	{
+	  assert (BTOR_IS_REGULAR_NODE (cur));
+	  assert (BTOR_IS_WRITE_NODE (cur));
+	  chain[depth++] = cur;
+	  cur = cur->e[0];
+	  assert (BTOR_IS_REGULAR_NODE (cur));
+	  assert (BTOR_IS_FUN_NODE (cur));
+	}
+
+      if (depth < BTOR_WRITE_CHAIN_NODE_RW_BOUND && BTOR_IS_WRITE_NODE (cur))
+	{
+	  assert (cur->e[1] == e_index);
+	  /* we overwrite this position anyhow, so we can skip
+	   * this intermediate write */
+	  cur = btor_copy_exp (btor, cur->e[0]);
+	  depth--;
+	  while (depth >= 0)
+	    {
+	      cur_write = chain[depth--];
+	      assert (BTOR_IS_REGULAR_NODE (cur_write));
+	      assert (BTOR_IS_WRITE_NODE (cur_write));
+	      temp =
+		btor_write_exp_node (btor, cur, cur_write->e[1],
+				     cur_write->e[2]);
+	      btor_release_exp (btor, cur);
+	      cur = temp;
+	    }
+
+	  result = btor_write_exp_node (btor, cur, e_index, e_value);
+	  btor_release_exp (btor, cur);
+	}
     }
 
-    if (depth < BTOR_WRITE_CHAIN_NODE_RW_BOUND && BTOR_IS_WRITE_NODE (cur))
-    {
-      assert (cur->e[1] == e_index);
-      /* we overwrite this position anyhow, so we can skip
-       * this intermediate write */
-      cur = btor_copy_exp (btor, cur->e[0]);
-      depth--;
-      while (depth >= 0)
-      {
-        cur_write = chain[depth--];
-        assert (BTOR_IS_REGULAR_NODE (cur_write));
-        assert (BTOR_IS_WRITE_NODE (cur_write));
-        temp =
-            btor_write_exp_node (btor, cur, cur_write->e[1], cur_write->e[2]);
-        btor_release_exp (btor, cur);
-        cur = temp;
-      }
-
-      result = btor_write_exp_node (btor, cur, e_index, e_value);
-      btor_release_exp (btor, cur);
-    }
-  }
-
-  if (!result) result = btor_write_exp_node (btor, e_array, e_index, e_value);
+  if (!result)
+    result = btor_write_exp_node (btor, e_array, e_index, e_value);
 
   return result;
 }
+#endif
 
+// TODO: no aconds possible anymore
 BtorNode *
 btor_rewrite_cond_exp (Btor *btor,
                        BtorNode *e_cond,
@@ -3895,8 +3907,7 @@ RESTART:
   }
 
   assert (!BTOR_IS_INVERTED_NODE (e_cond));
-
-  if (BTOR_IS_ARRAY_NODE (BTOR_REAL_ADDR_NODE (e_if))) kind = BTOR_ACOND_NODE;
+  assert (!BTOR_IS_FUN_NODE (BTOR_REAL_ADDR_NODE (e_if)));
 
   if (e_if == e_else)
   {
@@ -3913,7 +3924,7 @@ RESTART:
     return result;
   }
 
-  if (BTOR_IS_ARRAY_OR_BV_COND_NODE (BTOR_REAL_ADDR_NODE (e_if)))
+  if (BTOR_IS_BV_COND_NODE (BTOR_REAL_ADDR_NODE (e_if)))
   {
     if (BTOR_REAL_ADDR_NODE (e_if)->e[0] == e_cond)
     {
@@ -3969,7 +3980,7 @@ RESTART:
     }
   }
 
-  if (BTOR_IS_ARRAY_OR_BV_COND_NODE (BTOR_REAL_ADDR_NODE (e_else)))
+  if (BTOR_IS_BV_COND_NODE (BTOR_REAL_ADDR_NODE (e_else)))
   {
     if (BTOR_REAL_ADDR_NODE (e_else)->e[0] == e_cond)
     {

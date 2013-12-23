@@ -524,7 +524,6 @@ btor_beta_reduce (Btor *btor, BtorNode *exp, int mode, int bound)
             /* function exp has been beta-reduced to value */
             if (!BTOR_IS_FUN_NODE (BTOR_REAL_ADDR_NODE (e[1])))
             {
-              assert (!BTOR_IS_ARRAY_NODE (BTOR_REAL_ADDR_NODE (e[1])));
               result = btor_copy_exp (btor, e[1]);
             }
             else
