@@ -168,6 +168,7 @@ btor_get_array_assignment (const char **indices, const char **values, int size)
 {
   assert (indices);
   assert (values);
+  (void) values;
   assert (size);
 
   BtorArrayAssignment *arrass;
@@ -186,6 +187,7 @@ btor_get_array_assignment_indices_values (BtorArrayAssignment *ass,
                                           int size)
 {
   assert (size == ass->size);
+  (void) size;
   *indices = (char **) ((char *) ass + sizeof (BtorArrayAssignment));
   *values  = (char **) ((char *) ass + sizeof (BtorArrayAssignment)
                        + ass->size * sizeof (char *));

@@ -3017,6 +3017,8 @@ boolector_array_assignment (
     btor_free (btor->mm, val, *size * sizeof (*val));
     btor_get_array_assignment_indices_values (arrass, indices, values, *size);
   }
+  else
+    arrass = 0;  // remove warning
 
   if (btor->clone)
   {
@@ -3030,8 +3032,9 @@ boolector_array_assignment (
       assert (!strcmp ((*indices)[i], cindices[i]));
       assert (!strcmp ((*values)[i], cvalues[i]));
     }
-    if (*size)
+    if (arrass)
     {
+      assert (*size);
       arrass->cloned_indices = cindices;
       arrass->cloned_values  = cvalues;
     }

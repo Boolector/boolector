@@ -27,6 +27,12 @@
 #include <sys/wait.h>
 #include <unistd.h>
 
+#ifdef __GNUC__
+#if __GNUC__ > 3 && __GNUC_MAJOR__ >= 6
+#define USE_PRAGMAS_TO_DISABLE_WARNINGS
+#endif
+#endif
+
 // TODO externalize all parameters
 
 #define NORM_VAL 1000.0f
@@ -1876,7 +1882,7 @@ run (void (*process) (void))
 #ifndef NDEBUG
     tmp =
 #endif
-#ifdef USE_PRAGMAS_TO_DISABLE_UNUSED_RESULT_WARNING
+#ifdef USE_PRAGMAS_TO_DISABLE_WARNINGS
 #pragma GCC diagnostic ignored "-Wunused-result"
 #endif
         dup (null);
@@ -1902,7 +1908,7 @@ run (void (*process) (void))
     tmp =
 #endif
         dup (saved1);
-#ifdef USE_PRAGMAS_TO_DISABLE_UNUSED_RESULT_WARNING
+#ifdef USE_PRAGMAS_TO_DISABLE_WARNINGS
 #pragma GCC diagnostic ignored "-Wunused-result"
 #endif
 #ifdef NDEBUG
@@ -2022,12 +2028,6 @@ stats (void)
   printf ("%d bugs = %0.2f bugs per second\n", env.bugs, average (env.bugs, t));
 }
 
-#ifdef __GNUC__
-#if __GNUC__ >= 4 && __GNUC_MAJOR__ >= 6
-#define USE_PRAGMAS_TO_DISABLE_UNUSED_RESULT_WARNING
-#endif
-#endif
-
 /* Note: - do not call non-reentrant function here, see:
  *         https://www.securecoding.cert.org/confluence/display/seccode/SIG30-C.+Call+only+asynchronous-safe+functions+within+signal+handlers
  *       - do not use printf here (causes segfault when SIGINT and valgrind) */
@@ -2037,12 +2037,14 @@ sighandler (int sig)
   char str[100];
 
   sprintf (str, "*** btormbt: caught signal %d\n", sig);
-#ifdef USE_PRAGMAS_TO_DISABLE_UNUSED_RESULT_WARNING
+#ifdef USE_PRAGMAS_TO_DISABLE_WARNINGS
 #pragma GCC diagnostic ignored "-Wunused-result"
+#pragma GCC diagnostic ignored "-Wunused-variable"
 #endif
   write (1, str, strlen (str));
-#ifdef USE_PRAGMAS_TO_DISABLE_UNUSED_RESULT_WARNING
+#ifdef USE_PRAGMAS_TO_DISABLE_WARNINGS
 #pragma GCC diagnostic warning "-Wunused-result"
+#pragma GCC diagnostic warning "-Wunused-variable"
 #endif
   /* Note: if _exit is used here (which is reentrant, in contrast to exit),
    *       atexit handler is not called. Hence, use exit here. */
