@@ -16,7 +16,7 @@
 #include "btoraig.h"
 #include "btormem.h"
 
-// typedef struct BtorAIGMap BtorAIGMap;
+struct BtorAIGMap;
 
 /*------------------------------------------------------------------------*/
 

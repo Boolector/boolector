@@ -20,7 +20,7 @@
 
 #include <stdio.h>
 
-// typedef struct BtorAIGMap BtorAIGMap;
+struct BtorAIGMap;
 
 /*------------------------------------------------------------------------*/
 
