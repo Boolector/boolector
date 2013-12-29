@@ -16,6 +16,7 @@
 #include "boolector.h"
 #include "btorabort.h"
 #include "btorclone.h"
+#include "btorconst.h"
 #include "btorcore.h"
 #include "btorexit.h"
 #include "btorhash.h"
@@ -905,17 +906,24 @@ boolector_clone (Btor *btor)
 Btor *
 boolector_btor (BoolectorNode *node)
 {
-  BtorNode *exp, *real, *simp;
+  BtorNode *exp, *real_exp, *simp, *real_simp;
   Btor *btor;
   BTOR_ABORT_ARG_NULL_BOOLECTOR (node);
-  exp  = BTOR_IMPORT_BOOLECTOR_NODE (node);
-  simp = btor_simplify_exp (btor, exp);
-  real = BTOR_REAL_ADDR_NODE (simp);
-  btor = real->btor;
-#ifndef NDEBUG
-  BTOR_CHKCLONE_NORES (btor);
-#endif
+  exp       = BTOR_IMPORT_BOOLECTOR_NODE (node);
+  real_exp  = BTOR_REAL_ADDR_NODE (exp);
+  simp      = btor_simplify_exp (real_exp->btor, exp);
+  real_simp = BTOR_REAL_ADDR_NODE (simp);
+  btor      = real_simp->btor;
+  assert (btor == real_exp->btor);
   BTOR_TRAPI ("btor", exp);
+#ifndef NDEBUG
+  if (btor->clone)
+  {
+    Btor *clone = boolector_btor (BTOR_CLONED_EXP (exp));
+    assert (clone == btor->clone);
+    BTOR_CHKCLONE ();
+  }
+#endif
   BTOR_TRAPI_RETURN_PTR (btor);
   return btor;
 }
@@ -1127,7 +1135,7 @@ const char *
 boolector_get_bits (Btor *btor, BoolectorNode *node)
 {
   BtorNode *exp, *simp, *real;
-  const char *bits;
+  const char *res;
   BTOR_ABORT_ARG_NULL_BOOLECTOR (btor);
   BTOR_ABORT_ARG_NULL_BOOLECTOR (node);
   exp = BTOR_IMPORT_BOOLECTOR_NODE (node);
@@ -1143,9 +1151,14 @@ boolector_get_bits (Btor *btor, BoolectorNode *node)
     res = real->invbits;
   }
   else
-    res = btor->bits;
+    res = simp->bits;
 #ifndef NDEBUG
-  BTOR_CHKCLONE_NORES (get_bits, exp);
+  if (btor->clone)
+  {
+    const char *cloned_res =
+        boolector_get_bits (btor->clone, BTOR_CLONED_EXP (node));
+    assert (!strcmp (cloned_res, res));
+  }
 #endif
   return res;
 }
