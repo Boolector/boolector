@@ -31,12 +31,10 @@ analyze:
 	clang --analyze $(CFLAGS) $(INCS) $(shell ls *.c *.cc)
 
 dependencies: btorconfig.h $(SRC) makefile
-	rm -f $@
-	for srcdir in $(SRCDIRS); \
-        do \
-	  $(CC) $(CFLAGS) $(INCS) -MM $$srcdir | \
-	  sed -e 's,\(.*\):,'$$srcdir/'\1: makefile,' >>$@; \
-	done
+	rm -f $@; for srcdir in $(SRCDIRS); do \
+	cppfiles="`ls $$srsdir/*.cc 2>/dev/null`"; \
+	$(CC) $(CFLAGS) $(INCS) -MM $$srcdir/*.[ch] $$cppfiles | \
+	sed -e 's,\(.*\):,'$$srcdir/'\1: makefile,' >>$@; done
 boolector: boolectormain.o libboolector.a $(LDEPS)
 	$(CC) $(CFLAGS) $(INCS) -o $@ boolectormain.o -L. -lboolector $(LIBS)
 
