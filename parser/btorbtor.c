@@ -25,8 +25,6 @@
 #include <stdlib.h>
 #include <string.h>
 
-BTOR_DECLARE_STACK (BoolectorNodePtr, BoolectorNode *);
-
 typedef struct BtorBTORParser BtorBTORParser;
 
 typedef BoolectorNode *(*BtorOpParser) (BtorBTORParser *, int len);

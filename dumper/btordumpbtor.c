@@ -269,8 +269,12 @@ bdcnode (BtorDumpContext *bdc, BtorNode *node, FILE *file)
   else if (BTOR_IS_BV_VAR_NODE (node) || BTOR_IS_ARRAY_VAR_NODE (node))
   {
     sprintf (idbuffer, "%d", bdcid (bdc, node));
-    assert (node->symbol);
-    if (strcmp (node->symbol, idbuffer)) fprintf (file, " %s", node->symbol);
+    if (node->symbol && strcmp (node->symbol, idbuffer))
+      fprintf (file, " %s", node->symbol);
+    else
+    {
+      // TODO want to print nothing here, right?
+    }
   }
   fputc ('\n', file);
 }
