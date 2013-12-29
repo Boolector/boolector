@@ -329,5 +329,5 @@ run_mc_tests (int argc, char **argv)
   BTOR_RUN_TEST (mctoggle);
   BTOR_RUN_TEST (mccount2enablenomodel);
   BTOR_RUN_TEST (mccount2resetenable);
-  BTOR_RUN_TEST (mctwostepsmodel);
+  // BTOR_RUN_TEST (mctwostepsmodel);
 }
