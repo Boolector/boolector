@@ -83,17 +83,17 @@ test_mctoggle ()
 
   init_mc_test ();
 
-  BtorNode *bit;
+  BoolectorNode *bit;
 
   // boolector_set_verbosity_mc (g_mc, 3);
 
   bit = boolector_latch (g_mc, 1, "counter");
 
   {
-    BtorNode *one  = boolector_one (g_btor, 1);
-    BtorNode *zero = boolector_zero (g_btor, 1);
-    BtorNode *add  = boolector_add (g_btor, bit, one);
-    BtorNode *bad  = boolector_eq (g_btor, bit, one);
+    BoolectorNode *one  = boolector_one (g_btor, 1);
+    BoolectorNode *zero = boolector_zero (g_btor, 1);
+    BoolectorNode *add  = boolector_add (g_btor, bit, one);
+    BoolectorNode *bad  = boolector_eq (g_btor, bit, one);
     boolector_next (g_mc, bit, add);
     boolector_init (g_mc, bit, zero);
     boolector_bad (g_mc, bad);
@@ -119,8 +119,8 @@ test_mccount2enablenomodel ()
 
   init_mc_test ();
 
-  BtorNode *counter;  // 2-bit state
-  BtorNode *enable;   // one boolean control input
+  BoolectorNode *counter;  // 2-bit state
+  BoolectorNode *enable;   // one boolean control input
 
   // boolector_set_verbosity_mc (g_mc, 3);
 
@@ -128,12 +128,12 @@ test_mccount2enablenomodel ()
   enable  = boolector_input (g_mc, 1, "enable");
 
   {
-    BtorNode *one      = boolector_one (g_btor, 2);
-    BtorNode *zero     = boolector_zero (g_btor, 2);
-    BtorNode *three    = boolector_const (g_btor, "11");
-    BtorNode *add      = boolector_add (g_btor, counter, one);
-    BtorNode *ifenable = boolector_cond (g_btor, enable, add, counter);
-    BtorNode *bad      = boolector_eq (g_btor, counter, three);
+    BoolectorNode *one      = boolector_one (g_btor, 2);
+    BoolectorNode *zero     = boolector_zero (g_btor, 2);
+    BoolectorNode *three    = boolector_const (g_btor, "11");
+    BoolectorNode *add      = boolector_add (g_btor, counter, one);
+    BoolectorNode *ifenable = boolector_cond (g_btor, enable, add, counter);
+    BoolectorNode *bad      = boolector_eq (g_btor, counter, three);
     boolector_next (g_mc, counter, add);  // ifenable);
     boolector_init (g_mc, counter, zero);
     boolector_bad (g_mc, bad);
@@ -160,8 +160,8 @@ test_mccount2resetenable ()
   FILE *file;
   int k, i;
 
-  BtorNode *counter;         // 2-bit state
-  BtorNode *enable, *reset;  // two boolean control inputs
+  BoolectorNode *counter;         // 2-bit state
+  BoolectorNode *enable, *reset;  // two boolean control inputs
 
   init_mc_test ();
 
@@ -173,13 +173,13 @@ test_mccount2resetenable ()
   reset   = boolector_input (g_mc, 1, "reset");
 
   {
-    BtorNode *one      = boolector_one (g_btor, 2);
-    BtorNode *zero     = boolector_zero (g_btor, 2);
-    BtorNode *three    = boolector_const (g_btor, "11");
-    BtorNode *add      = boolector_add (g_btor, counter, one);
-    BtorNode *ifenable = boolector_cond (g_btor, enable, add, counter);
-    BtorNode *ifreset  = boolector_cond (g_btor, reset, ifenable, zero);
-    BtorNode *bad      = boolector_eq (g_btor, counter, three);
+    BoolectorNode *one      = boolector_one (g_btor, 2);
+    BoolectorNode *zero     = boolector_zero (g_btor, 2);
+    BoolectorNode *three    = boolector_const (g_btor, "11");
+    BoolectorNode *add      = boolector_add (g_btor, counter, one);
+    BoolectorNode *ifenable = boolector_cond (g_btor, enable, add, counter);
+    BoolectorNode *ifreset  = boolector_cond (g_btor, reset, ifenable, zero);
+    BoolectorNode *bad      = boolector_eq (g_btor, counter, three);
     boolector_next (g_mc, counter, ifreset);
     boolector_init (g_mc, counter, zero);
     boolector_bad (g_mc, bad);
@@ -221,11 +221,11 @@ test_mctwostepsmodel ()
   FILE *file;
   int k, i;
 
-  BtorNode *zero, *one;
-  BtorNode *a, *b, *t, *n, * or, *xor;
-  BtorNode *nexta, *nexta1, *nexta2;
-  BtorNode *nextb, *nextb1, *nextb2;
-  BtorNode *bad, *bada, *badb;
+  BoolectorNode *zero, *one;
+  BoolectorNode *a, *b, *t, *n, * or, *xor;
+  BoolectorNode *nexta, *nexta1, *nexta2;
+  BoolectorNode *nextb, *nextb1, *nextb2;
+  BoolectorNode *bad, *bada, *badb;
 
   init_mc_test ();
 
@@ -247,11 +247,11 @@ test_mctwostepsmodel ()
   t = boolector_input (g_mc, 1, "t");
   n = boolector_not (g_btor, t);
 
-  nexta1 = boolector_implies (g_btor, t, BTOR_INVERT_NODE (a));
+  nexta1 = boolector_nor (g_btor, t, a);
   nexta2 = boolector_implies (g_btor, n, a);
   nexta  = boolector_and (g_btor, nexta1, nexta2);
 
-  nextb1 = boolector_implies (g_btor, n, BTOR_INVERT_NODE (b));
+  nextb1 = boolector_nor (g_btor, n, b);
   nextb2 = boolector_implies (g_btor, t, b);
   nextb  = boolector_and (g_btor, nextb1, nextb2);
 
