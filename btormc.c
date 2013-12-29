@@ -203,7 +203,7 @@ btor_mc_release_assignment (BtorMC *mc)
     btor_msg_mc (mc,
                  1,
                  "releasing forward to constant mapping of size %d",
-                 BTOR_COUNT_MAP (mc->forward2const));
+                 boolector_count_map (mc->forward2const));
     boolector_delete_node_map (mc->forward2const);
     mc->forward2const = 0;
   }
@@ -214,7 +214,7 @@ btor_mc_release_assignment (BtorMC *mc)
       btor_msg_mc (mc,
                    1,
                    "releasing model to constant mapping of size %d at time %d",
-                   BTOR_COUNT_MAP (f->model2const),
+                   boolector_count_map (f->model2const),
                    (int) (f - mc->frames.start));
       boolector_delete_node_map (f->model2const);
       f->model2const = 0;
@@ -671,7 +671,8 @@ map_inputs_and_latches_of_frame (BtorMC *mc, BtorMcFrame *f)
     boolector_map_node (res, src, dst);
   }
 
-  assert (res->table->count == mc->inputs->count + mc->latches->count);
+  assert ((unsigned) boolector_count_map (res)
+          == mc->inputs->count + mc->latches->count);
 
   return res;
 }

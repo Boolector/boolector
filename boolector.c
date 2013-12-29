@@ -1127,6 +1127,7 @@ const char *
 boolector_get_bits (Btor *btor, BoolectorNode *node)
 {
   BtorNode *exp, *simp, *real;
+  const char *bits;
   BTOR_ABORT_ARG_NULL_BOOLECTOR (btor);
   BTOR_ABORT_ARG_NULL_BOOLECTOR (node);
   exp = BTOR_IMPORT_BOOLECTOR_NODE (node);
@@ -1135,6 +1136,18 @@ boolector_get_bits (Btor *btor, BoolectorNode *node)
   real = BTOR_REAL_ADDR_NODE (simp);
   BTOR_ABORT_BOOLECTOR (!BTOR_IS_BV_CONST_NODE (real),
                         "argument is not a constant node");
+  if (BTOR_IS_INVERTED_NODE (simp))
+  {
+    if (!real->invbits)
+      real->invbits = btor_not_const_3vl (btor->mm, real->bits);
+    res = real->invbits;
+  }
+  else
+    res = btor->bits;
+#ifndef NDEBUG
+  BTOR_CHKCLONE_NORES (get_bits, exp);
+#endif
+  return res;
 }
 
 BoolectorNode *
