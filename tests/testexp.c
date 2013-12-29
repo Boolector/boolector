@@ -19,7 +19,7 @@
  */
 
 #include "testexp.h"
-#include "btorexp.h"
+#include "btorcore.h"
 #include "dumper/btordumpbtor.h"
 #include "testrunner.h"
 
@@ -125,10 +125,10 @@ static void
 test_unsigned_to_exp (void)
 {
   init_exp_test ();
-  BtorNode *exp1 = btor_unsigned_to_exp (g_btor, 32u, 8);
-  BtorNode *exp2 = btor_unsigned_to_exp (g_btor, 49u, 8);
-  BtorNode *exp3 = btor_unsigned_to_exp (g_btor, 3u, 8);
-  BtorNode *exp4 = btor_unsigned_to_exp (g_btor, 57u, 8);
+  BtorNode *exp1 = btor_unsigned_exp (g_btor, 32u, 8);
+  BtorNode *exp2 = btor_unsigned_exp (g_btor, 49u, 8);
+  BtorNode *exp3 = btor_unsigned_exp (g_btor, 3u, 8);
+  BtorNode *exp4 = btor_unsigned_exp (g_btor, 57u, 8);
   BtorNode *exp5 = btor_const_exp (g_btor, "00100000");
   BtorNode *exp6 = btor_const_exp (g_btor, "00110001");
   BtorNode *exp7 = btor_const_exp (g_btor, "00000011");

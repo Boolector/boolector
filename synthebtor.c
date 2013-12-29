@@ -55,6 +55,7 @@ main (int argc, char **argv)
   BtorMemMgr *mem;
   BtorAIGVec *av;
   Btor *btor;
+  BtorNode **outputs;
 
   verbosity    = 0;
   close_input  = 0;
@@ -137,9 +138,13 @@ main (int argc, char **argv)
   BTOR_INIT_STACK (aigs);
   merged = BTOR_AIG_TRUE;
 
+  // FIXME synthebtor should use api calls and BoolectorNodes only!!!
+  outputs = (BtorNode **) model.outputs;
+  //
+
   for (i = 0; i < model.noutputs; i++)
   {
-    av = btor_exp_to_aigvec (btor, model.outputs[i], back_annotation);
+    av = btor_exp_to_aigvec (btor, outputs[i], back_annotation);
     for (j = 0; j < av->len; j++)
     {
       aig = av->aigs[j];

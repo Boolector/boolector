@@ -13,7 +13,8 @@
 #ifndef BTORITER_H_INCLUDED
 #define BTORITER_H_INCLUDED
 
-#include "btorexp.h"
+#include "btorcore.h"
+#include "btorhash.h"
 
 /*------------------------------------------------------------------------*/
 
@@ -51,6 +52,20 @@ struct BtorIterator
 
 typedef struct BtorIterator BtorIterator;
 typedef struct BtorIterator BtorPartialParentIterator;
+
+#define BTOR_HASH_TABLE_ITERATOR_STACK_SIZE 8
+
+struct BtorHashTableIterator
+{
+  BtorPtrHashBucket *bucket;
+  void *cur;
+  char reversed;
+  int num_queued;
+  int pos;
+  BtorPtrHashTable *stack[BTOR_HASH_TABLE_ITERATOR_STACK_SIZE];
+};
+
+typedef struct BtorHashTableIterator BtorHashTableIterator;
 
 /*------------------------------------------------------------------------*/
 
@@ -94,5 +109,16 @@ void init_parameterized_iterator (Btor *,
                                   BtorNode *);
 BtorNode *next_parameterized_iterator (BtorParameterizedIterator *);
 int has_next_parameterized_iterator (BtorParameterizedIterator *);
+
+void init_node_hash_table_iterator (Btor *,
+                                    BtorHashTableIterator *,
+                                    BtorPtrHashTable *);
+void init_reversed_node_hash_table_iterator (Btor *,
+                                             BtorHashTableIterator *,
+                                             BtorPtrHashTable *);
+BtorNode *next_node_hash_table_iterator (BtorHashTableIterator *);
+int has_next_node_hash_table_iterator (BtorHashTableIterator *);
+void queue_node_hash_table_iterator (BtorHashTableIterator *,
+                                     BtorPtrHashTable *);
 
 #endif

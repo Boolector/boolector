@@ -21,7 +21,6 @@
 #ifndef TESTRUNNER_H_INCLUDED
 #define TESTRUNNER_H_INCLUDED
 
-#include <btorexp.h>
 #include <stdio.h>
 
 extern int g_rwreads;

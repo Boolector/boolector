@@ -11,7 +11,7 @@
 #ifndef BTORSMT_H_INCLUDED
 #define BTORSMT_H_INCLUDED
 
-#include "btorexp.h"
+#include "boolector.h"
 #include "btorparse.h"
 
 #include <stdio.h>

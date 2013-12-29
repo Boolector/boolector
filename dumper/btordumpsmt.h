@@ -14,7 +14,7 @@
 #define BTORDUMPSMT_H_INCLUDED
 
 #include <stdio.h>
-#include "btorexp.h"
+#include "btorcore.h"
 
 /* Dumps expression(s) in SMT1 format. */
 void btor_dump_smt1 (Btor* btor, FILE* file, BtorNode** roots, int nroots);

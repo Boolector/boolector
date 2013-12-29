@@ -2,6 +2,7 @@
  *
  *  Copyright (C) 2013 Christian Reisenberger.
  *  Copyright (C) 2013 Aina Niemetz.
+ *  Copyright (C) 2013 Mathias Preiner.
  *  Copyright (C) 2013 Armin Biere.
  *
  *  All rights reserved.
@@ -11,7 +12,7 @@
  */
 
 #include "boolector.h"
-#include "btorexp.h"
+#include "btorcore.h"
 
 #include <assert.h>
 #include <ctype.h>
@@ -35,6 +36,8 @@
 
 // TODO externalize all parameters
 
+/*------------------------------------------------------------------------*/
+
 #define NORM_VAL 1000.0f
 
 #define MAX_BITWIDTH 128 /* must be >= 2 */
@@ -45,51 +48,53 @@
 #define MAX_NPARAMOPS 5
 #define MAX_NNESTEDBFUNS 50
 
-#define BTORMBT_USAGE                         \
-  "usage: btormbt [<option>]\n"               \
-  "\n"                                        \
-  "where <option> is one of the following:\n" \
-  "\n"                                        \
-  "  -k, --keep-lines\n"                      \
-  "  -q, --quiet\n"                           \
-  "  -f, --first-bug-only\n"                  \
-  "  -a, --always-fork\n"                     \
-  "  -n, --no-modelgen\n"                     \
-  "  -e | --no-extensionality\n"              \
-  "\n"                                        \
-  "  -m <maxruns>\n"
+#define EXIT_OK 0
+#define EXIT_ERROR 1
+#define EXIT_TIMEOUT 2
+
+/*------------------------------------------------------------------------*/
+
+#define BTORMBT_USAGE                                                          \
+  "usage: btormbt [<option>]\n"                                                \
+  "\n"                                                                         \
+  "where <option> is one of the following:\n"                                  \
+  "\n"                                                                         \
+  "  -h, --help                       print this message and exit\n"           \
+  "  -v, --verbose                    be verbose\n"                            \
+  "  -k, --keep-lines                 do not clear output lines\n"             \
+  "  -a, --always-fork                fork even if seed given\n"               \
+  "  -n, --no-modelgen                do not enable model generation \n"       \
+  "  -e, --no-extensionality          do not use extensionality\n"             \
+  "\n"                                                                         \
+  "  -f, --first-bug-only             quit after first bug encountered\n"      \
+  "  -m <maxruns>                     quit after <maxruns> rounds\n"           \
+  "  -t <seconds>                     set time limit for calls to boolector\n" \
+  "\n"                                                                         \
+  "  --bverb <verblevel>              enable boolector verbosity\n"
+
+#ifndef NBTORLOG
+#define BTORMBT_LOG_USAGE \
+  "  --blog <loglevel>                enable boolector logging\n"
+#else
+#define BTORMBT_LOG_USAGE ""
+#endif
+
+/*------------------------------------------------------------------------*/
+
+#define BTORMBT_LOG(c, fmt, args...) \
+  do                                 \
+  {                                  \
+    if ((c) && btormbt->verbose)     \
+    {                                \
+      printf ("[btormbt] ");         \
+      printf (fmt, ##args);          \
+      printf ("\n");                 \
+    }                                \
+  } while (0)
+
+/*------------------------------------------------------------------------*/
 
 #define BTORMBT_MIN(x, y) ((x) < (y) ? (x) : (y))
-
-#define BTORMBT_LOG(c, btormbt, fmt, args...) \
-  do                                          \
-  {                                           \
-    if ((c) && btormbt->print)                \
-    {                                         \
-      printf ("[btormbt] ");                  \
-      printf (fmt, ##args);                   \
-      fflush (stdout);                        \
-    }                                         \
-  } while (0)
-
-/*------------------------------------------------------------------------*/
-#ifndef NDEBUG
-/*------------------------------------------------------------------------*/
-#define BTORMBT_DEBUG_MSG(msg, ARGS...)  \
-  do                                     \
-  {                                      \
-    printf ("[btormbt] *** debug *** "); \
-    printf (msg, ##ARGS);                \
-    fflush (stdout);                     \
-  } while (0)
-#else
-#define BTORMBT_DEBUG_MSG(msg, ARGS...) \
-  do                                    \
-  {                                     \
-  } while (0)
-/*------------------------------------------------------------------------*/
-#endif
-/*------------------------------------------------------------------------*/
 
 /* avoid compiler warnings for unused variables in DEBUG assertions */
 #define BTORMBT_UNUSED(expr) \
@@ -104,14 +109,6 @@ typedef struct RNG
 {
   unsigned z, w;
 } RNG;
-
-typedef struct Env
-{
-  int terminal, quiet, first, alwaysfork, nomgen, noext;
-  int seed, round, bugs, forked;
-  int ppid; /* parent pid */
-  RNG rng;
-} Env;
 
 typedef enum Op
 {
@@ -199,56 +196,106 @@ typedef enum ExpType
 
 typedef struct Exp
 {
-  BtorNode *exp;
+  BoolectorNode *exp;
   int pars; /* number of parents */
 } Exp;
 
 typedef struct ExpStack
 {
   Exp *exps;
-  int size, n, sexp, /* marker for selected expressions */
-      initlayer;     /* marker for init layer */
+  int size, n, sexp; /* marker for selected expressions */
+  int initlayer;     /* marker for init layer */
 } ExpStack;
 
 typedef struct BtorMBT
 {
   Btor *btor;
-  int print, isinit;
-  int inc, mgen;
-  int nlits, ops, nops;
-  /* probability distribution of variables, constants, arrays */
+
+  double start_time;
+
+  int seed;
+  int round;
+  int bugs;
+  int forked;
+  int ppid; /* parent pid */
+
+  int verbose;
+  int terminal;
+  int quit_after_first;
+  int fork;
+  int force_nomgen;
+  int ext;
+  int shadow;
+  int max_nrounds;
+  int time_limit;
+
+  int bloglevel;
+  int bverblevel;
+
+  /* Note: no global settings after this point! Do not change order! */
+
+  int is_init;
+  int inc;
+  int mgen;
+
+  /* prob. distribution of variables, constants, arrays in current round */
   float p_var, p_const, p_arr;
-  /* propability distrbution of add and release operations */
+  /* prop. distrbution of add and release operations in current round */
   float p_addop, p_relop;
-  /* probability distribution of functions (without macros and array
-   * operations), array operations, macros, literals */
+  /* prob. distribution of functions (without macros and array operations),
+   * array operations, macros, literals in current round */
   float p_fun, p_afun, p_bfun, p_lit;
-  /* probability distribution of assertions */
+  /* prob. distribution of assertions in current round */
   float p_ass;
 
+  int nops;    /* number of operations in current round */
+  int nassert; /* number of produced asserts in current round */
+  int nassume; /* number of produced assumes in current round */
+
+  int max_nlits; /* max number of literals in current round */
+  int max_nops;  /* max number of operations in current round */
+  int max_nass;  /* max number of asserts / assumes in current round */
+
+  int tot_nassert; /* total number of asserts in current round */
+
+  ExpStack assumptions;
   ExpStack bo, bv, arr, fun;
   ExpStack *parambo, *parambv, *paramarr;
   ExpStack cnf;
 
-  int nass;       /* number of asserts / assumes todo in actual round */
-  int nassert;    /* number of produced asserts in actual round */
-  int nassume;    /* number of produced assumes in actual round */
-  int totasserts; /* total asserts done save for printing */
+  RNG rng;
+
 } BtorMBT;
 
 typedef void *(*State) (BtorMBT *, unsigned rand);
 
 /*------------------------------------------------------------------------*/
 
-static double start_time;
-static Env env;
+static BtorMBT *
+new_btormbt (void)
+{
+  BtorMBT *btormbt;
+
+  btormbt = malloc (sizeof (BtorMBT));
+  memset (btormbt, 0, sizeof (BtorMBT));
+  btormbt->max_nrounds = INT_MAX;
+  btormbt->seed        = -1;
+  btormbt->terminal    = isatty (1);
+  btormbt->fork        = 1;
+  btormbt->ext         = 1;
+  return btormbt;
+}
+
+/*------------------------------------------------------------------------*/
+
+static BtorMBT *btormbt;
 
 void boolector_chkclone (Btor *);
 
 /*------------------------------------------------------------------------*/
 
 void
-es_push (ExpStack *es, BtorNode *exp)
+es_push (ExpStack *es, BoolectorNode *exp)
 {
   assert (es);
   assert (exp);
@@ -263,48 +310,51 @@ es_push (ExpStack *es, BtorNode *exp)
   es->n++;
 }
 
+BoolectorNode *
+es_pop (ExpStack *es)
+{
+  BoolectorNode *res;
+
+  if (!es->n) return 0;
+  es->n -= 1;
+  res = es->exps[es->n].exp;
+  return res;
+}
+
 static void
-es_del (BtorMBT *btormbt, ExpStack *es, int idx)
+es_del (ExpStack *es, int idx)
 {
   assert (es);
   assert (idx >= 0 && idx < es->n);
 
   int i;
 
-  boolector_release (btormbt->btor, es->exps[idx].exp);
   for (i = idx; i < es->n - 1; i++) es->exps[i] = es->exps[i + 1];
   es->n -= 1;
   if (idx < es->sexp) es->sexp -= 1;
 }
 
 static void
-es_reset (BtorMBT *btormbt, ExpStack *es)
+es_reset (ExpStack *es)
 {
   assert (es);
 
-  int i;
-
-  for (i = 0; i < es->n; i++)
-    boolector_release (btormbt->btor, es->exps[i].exp);
-  es->n = 0;
+  es->n         = 0;
+  es->sexp      = 0;
+  es->initlayer = 0;
 }
 
 void
-es_release (BtorMBT *btormbt, ExpStack *es)
+es_release (ExpStack *es)
 {
-  int i;
+  if (!es) return;
 
-  if (es)
-  {
-    for (i = 0; i < es->n; i++)
-      boolector_release (btormbt->btor, es->exps[i].exp);
-    es->n         = 0;
-    es->size      = 0;
-    es->sexp      = 0;
-    es->initlayer = 0;
-    free (es->exps);
-    es->exps = NULL;
-  }
+  es->n         = 0;
+  es->size      = 0;
+  es->sexp      = 0;
+  es->initlayer = 0;
+  free (es->exps);
+  es->exps = NULL;
 }
 
 /*------------------------------------------------------------------------*/
@@ -464,9 +514,9 @@ nextpow2 (int val, int *pow2, int *log2)
 
 /* Change node e with width ew to width tow.
  * Note: param ew prevents too many boolector_get_width calls. */
-static BtorNode *
+static BoolectorNode *
 modifybv (
-    BtorMBT *btormbt, RNG *rng, BtorNode *e, int ew, int tow, int is_param)
+    BtorMBT *btormbt, RNG *rng, BoolectorNode *e, int ew, int tow, int is_param)
 {
   int tmp;
   ExpStack *es;
@@ -583,11 +633,11 @@ make_arr (BtorMBT *btormbt, RNG *rng)
 }
 
 /* randomly select variables from bo within the range ifrom - ito */
-static BtorNode *
+static BoolectorNode *
 make_clause (BtorMBT *btormbt, RNG *rng, int ifrom, int ito)
 {
   int i, idx;
-  BtorNode *e0, *e1;
+  BoolectorNode *e0, *e1;
   ExpStack *es;
 
   es = &btormbt->bo;
@@ -621,7 +671,7 @@ make_clause (BtorMBT *btormbt, RNG *rng, int ifrom, int ito)
 }
 
 static void
-unary_fun (BtorMBT *btormbt, RNG *rng, Op op, BtorNode *e0, int is_param)
+unary_fun (BtorMBT *btormbt, RNG *rng, Op op, BoolectorNode *e0, int is_param)
 {
   int tmp0, tmp1, e0w, rw;
   ExpStack *es;
@@ -675,8 +725,12 @@ unary_fun (BtorMBT *btormbt, RNG *rng, Op op, BtorNode *e0, int is_param)
 }
 
 static void
-binary_fun (
-    BtorMBT *btormbt, RNG *rng, Op op, BtorNode *e0, BtorNode *e1, int is_param)
+binary_fun (BtorMBT *btormbt,
+            RNG *rng,
+            Op op,
+            BoolectorNode *e0,
+            BoolectorNode *e1,
+            int is_param)
 {
   int tmp0, tmp1, e0w, e1w, rw;
   ExpStack *es;
@@ -800,9 +854,9 @@ static void
 ternary_fun (BtorMBT *btormbt,
              RNG *rng,
              Op op,
-             BtorNode *e0,
-             BtorNode *e1,
-             BtorNode *e2,
+             BoolectorNode *e0,
+             BoolectorNode *e1,
+             BoolectorNode *e2,
              int is_param)
 {
   int e1w, e2w;
@@ -845,9 +899,9 @@ static void
 afun (BtorMBT *btormbt,
       RNG *rng,
       Op op,
-      BtorNode *e0,
-      BtorNode *e1,
-      BtorNode *e2,
+      BoolectorNode *e0,
+      BoolectorNode *e1,
+      BoolectorNode *e2,
       int is_param)
 {
   assert (e0);
@@ -917,7 +971,7 @@ afun (BtorMBT *btormbt,
 /* Randomly select expression by given type, nodes with no parents (yet unused)
  * are preferred.
  */
-static BtorNode *
+static BoolectorNode *
 selexp (
     BtorMBT *btormbt, RNG *rng, ExpType type, int force_param, int *is_param)
 {
@@ -927,7 +981,7 @@ selexp (
 
   int rand, i, bw, idx = -1;
   ExpStack *es, *bo, *bv, *arr;
-  BtorNode *exp, *e[3];
+  BoolectorNode *exp, *e[3];
 
   /* choose between param. exps and non-param. exps with p = 0.5 */
   rand = pick (rng, 0, NORM_VAL - 1);
@@ -1020,17 +1074,17 @@ selexp (
  * and index width eiw.  If no suitable expression is found,
  * create new array/parameterized WRITE eew->eiw.
  */
-static BtorNode *
+static BoolectorNode *
 selarrexp (BtorMBT *btormbt,
            RNG *rng,
-           BtorNode *exp,
+           BoolectorNode *exp,
            int eew,
            int eiw,
            int force_param)
 {
   int i, rand, idx, sel_eew, sel_eiw;
   ExpStack *es;
-  BtorNode *sel_e, *e[3];
+  BoolectorNode *sel_e, *e[3];
 
   /* choose between param. exps and non-param. exps with p = 0.5 */
   rand = pick (rng, 0, NORM_VAL - 1);
@@ -1087,7 +1141,7 @@ static void
 param_fun (BtorMBT *btormbt, RNG *rng, int op_from, int op_to)
 {
   int i, rand;
-  BtorNode *e[3];
+  BoolectorNode *e[3];
   Op op;
 
   assert (op_from >= NOT && op_from <= COND);
@@ -1129,7 +1183,7 @@ static void
 param_afun (BtorMBT *btormbt, RNG *rng, int force_arrnparr)
 {
   int i, rand, eiw, eew;
-  BtorNode *e[3];
+  BoolectorNode *e[3];
   Op op;
 
   /* force array exp with non-parameterized arrays? */
@@ -1157,8 +1211,8 @@ param_afun (BtorMBT *btormbt, RNG *rng, int force_arrnparr)
   {
     /* force COND if array exp with non-parameterized arrays forced,
      * else distribute EQ, NE and COND evenly */
-    op =
-        rand >= 0 && pick (rng, 0, 2) && !env.noext ? pick (rng, EQ, NE) : COND;
+    op = rand >= 0 && pick (rng, 0, 2) && btormbt->ext ? pick (rng, EQ, NE)
+                                                       : COND;
     e[1] =
         selarrexp (btormbt, rng, e[0], eew, eiw, rand == -1 ? rand : rand ^ 1);
     if (op == COND) e[2] = selexp (btormbt, rng, T_BO, rand < 0 ? 1 : 0, NULL);
@@ -1169,10 +1223,10 @@ param_afun (BtorMBT *btormbt, RNG *rng, int force_arrnparr)
 static void
 bfun (BtorMBT *btormbt, unsigned r, int *nparams, int *width, int nlevel)
 {
-  int i, n, np, ip, w, nops, rand;
+  int i, n, np, ip, w, max_nops, rand;
   ExpStack parambo, parambv, paramarr;
   ExpStack *es, *tmpparambo, *tmpparambv, *tmpparamarr;
-  BtorNode *tmp, *fun, **params, **args;
+  BoolectorNode *tmp, *fun, **params, **args;
   RNG rng;
 
   rng = initrng (r);
@@ -1203,7 +1257,7 @@ bfun (BtorMBT *btormbt, unsigned r, int *nparams, int *width, int nlevel)
     /* choose function parameters */
     *width   = pick (&rng, 1, MAX_BITWIDTH);
     *nparams = pick (&rng, MIN_NPARAMS, MAX_NPARAMS);
-    params   = malloc (sizeof (BtorNode *) * *nparams);
+    params   = malloc (sizeof (BoolectorNode *) * *nparams);
     for (i = 0; i < *nparams; i++)
     {
       tmp       = boolector_param (btormbt->btor, *width, NULL);
@@ -1227,9 +1281,9 @@ bfun (BtorMBT *btormbt, unsigned r, int *nparams, int *width, int nlevel)
     assert (btormbt->paramarr->n);
 
     /* generate parameterized expressions */
-    nops = pick (&rng, 0, MAX_NPARAMOPS);
-    n    = 0;
-    while (n++ < nops)
+    max_nops = pick (&rng, 0, MAX_NPARAMOPS);
+    n        = 0;
+    while (n++ < max_nops)
     {
     BFUN_PICK_FUN_TYPE:
       assert (parambo.n);
@@ -1269,14 +1323,20 @@ bfun (BtorMBT *btormbt, unsigned r, int *nparams, int *width, int nlevel)
     btormbt->paramarr = tmpparamarr;
 
     /* cleanup */
-    es_release (btormbt, &parambo);
-    es_release (btormbt, &parambv);
-    es_release (btormbt, &paramarr);
+    for (i = 0; i < parambo.n; i++)
+      boolector_release (btormbt->btor, parambo.exps[i].exp);
+    es_release (&parambo);
+    for (i = 0; i < parambv.n; i++)
+      boolector_release (btormbt->btor, parambv.exps[i].exp);
+    es_release (&parambv);
+    for (i = 0; i < paramarr.n; i++)
+      boolector_release (btormbt->btor, paramarr.exps[i].exp);
+    es_release (&paramarr);
     free (params);
   }
 
   /* generate apply expression with arguments within scope of apply */
-  args = malloc (sizeof (BtorNode *) * *nparams);
+  args = malloc (sizeof (BoolectorNode *) * *nparams);
   for (i = 0; i < *nparams; i++)
   {
     tmp     = selexp (btormbt, &rng, T_BV, 0, &ip);
@@ -1325,11 +1385,11 @@ _new (BtorMBT *btormbt, unsigned r)
 
   // FIXME externalise
   /* number of initial literals */
-  // btormbt->nlits = pick (&rng, 5, 40);
-  btormbt->nlits = pick (&rng, 3, 30);
+  // btormbt->max_nlits = pick (&rng, 5, 40);
+  btormbt->max_nlits = pick (&rng, 3, 30);
   /* number of initial operations */
-  // btormbt->nops = pick (&rng, 0, 100);
-  btormbt->nops = pick (&rng, 0, 50);
+  // btormbt->max_nops = pick (&rng, 0, 100);
+  btormbt->max_nops = pick (&rng, 0, 50);
 
   init_pd_lits (
       btormbt, pick (&rng, 1, 10), pick (&rng, 0, 5), pick (&rng, 2, 5));
@@ -1341,16 +1401,14 @@ _new (BtorMBT *btormbt, unsigned r)
       btormbt, pick (&rng, 1, 10), pick (&rng, 0, 5), pick (&rng, 0, 5), 0);
 
   BTORMBT_LOG (1,
-               btormbt,
-               "init: pick %d ops (add:rel=%0.1f%%:%0.1f%%), %d lits\n",
-               btormbt->nops,
+               "init: pick %d ops (add:rel=%0.1f%%:%0.1f%%), %d lits",
+               btormbt->max_nops,
                btormbt->p_addop / 10,
                btormbt->p_relop / 10,
-               btormbt->nlits);
+               btormbt->max_nlits);
 
   btormbt->btor = boolector_new ();
   assert (btormbt->btor);
-  assert (btormbt->btor->apitrace);
   return _opt;
 }
 
@@ -1360,21 +1418,38 @@ _opt (BtorMBT *btormbt, unsigned r)
   int rw;
   RNG rng = initrng (r);
 
-  if (pick (&rng, 0, 1))
+  BTORMBT_LOG (1, "enable force cleanup");
+  boolector_enable_force_cleanup (btormbt->btor);
+
+#ifndef NBTORLOG
+  if (btormbt->bloglevel)
   {
-    BTORMBT_LOG (1, btormbt, "enable model generation\n");
-    boolector_enable_model_gen (btormbt->btor);
-    btormbt->mgen = env.nomgen ? 0 : 1;
+    BTORMBT_LOG (1, "boolector log level: '%d'", btormbt->bloglevel);
+    boolector_set_loglevel (btormbt->btor, btormbt->bloglevel);
   }
+#endif
+  if (btormbt->bverblevel)
+  {
+    BTORMBT_LOG (1, "boolector verbose level: '%d'", btormbt->bverblevel);
+    boolector_set_verbosity (btormbt->btor, btormbt->bverblevel);
+  }
+  btormbt->mgen = 0;
+  if (!btormbt->force_nomgen && pick (&rng, 0, 1))
+  {
+    BTORMBT_LOG (1, "enable model generation");
+    boolector_enable_model_gen (btormbt->btor);
+    btormbt->mgen = 1;
+  }
+
   if (pick (&rng, 0, 1))
   {
-    BTORMBT_LOG (1, btormbt, "enable incremental usage\n");
+    BTORMBT_LOG (1, "enable incremental usage");
     boolector_enable_inc_usage (btormbt->btor);
     btormbt->inc = 1;
   }
 
   rw = pick (&rng, 0, 3);
-  BTORMBT_LOG (1, btormbt, "set rewrite level %d \n", rw);
+  BTORMBT_LOG (1, "set rewrite level %d", rw);
   boolector_set_rewrite_level (btormbt->btor, rw);
 
   return _init;
@@ -1386,7 +1461,7 @@ _init (BtorMBT *btormbt, unsigned r)
   int rand;
   RNG rng = initrng (r);
 
-  if (btormbt->bo.n + btormbt->bv.n + btormbt->arr.n < btormbt->nlits)
+  if (btormbt->bo.n + btormbt->bv.n + btormbt->arr.n < btormbt->max_nlits)
   {
     return _lit;
   }
@@ -1397,9 +1472,9 @@ _init (BtorMBT *btormbt, unsigned r)
   if (btormbt->bv.n < 1) make_var (btormbt, &rng, T_BV);
   if (btormbt->arr.n < 1) make_arr (btormbt, &rng);
 
-  if (btormbt->ops < btormbt->nops)
+  if (btormbt->nops < btormbt->max_nops)
   {
-    btormbt->ops++;
+    btormbt->nops++;
     rand = pick (&rng, 0, NORM_VAL - 1);
     if (rand < btormbt->p_addop)
       return _addop;
@@ -1408,8 +1483,7 @@ _init (BtorMBT *btormbt, unsigned r)
   }
 
   BTORMBT_LOG (1,
-               btormbt,
-               "after init: nexps: booleans %d, bitvectors %d, arrays %d \n",
+               "after init: nexps: booleans %d, bitvectors %d, arrays %d",
                btormbt->bo.n,
                btormbt->bv.n,
                btormbt->arr.n);
@@ -1420,20 +1494,20 @@ _init (BtorMBT *btormbt, unsigned r)
 
   // FIXME externalise
   /* adapt paramters for main */
-  btormbt->ops = 0; /* reset operation counter */
-  // btormbt->nops = pick (&rng, 20, 200);
-  // btormbt->nass = pick (&rng, 10, 70);  /* how many assertions of nops */
-  btormbt->nops = pick (&rng, 20, 100);
+  btormbt->nops = 0; /* reset operation counter */
+  // btormbt->max_nops = pick (&rng, 20, 200);
+  // btormbt->max_nass = pick (&rng, 10, 70);  /* how many assertions of nops */
+  btormbt->max_nops = pick (&rng, 20, 100);
   /* how many operations should be assertions?
-   * -> nops and nass should be in relation (the more ops, the more assertions)
-   *    in order to keep the sat/unsat ration balanced */
+   * -> max_nops and nass should be in relation (the more ops, the more
+   * assertions) in order to keep the sat/unsat ratio balanced */
   // TODO may improve?
-  // btormbt->nass = pick (&rng, 10, 30);
+  // btormbt->max_nass = pick (&rng, 10, 30);
   // does this find as many bugs??
-  if (btormbt->nops < 50)
-    btormbt->nass = BTORMBT_MIN (btormbt->nops, pick (&rng, 5, 25));
+  if (btormbt->max_nops < 50)
+    btormbt->max_nass = BTORMBT_MIN (btormbt->max_nops, pick (&rng, 5, 25));
   else
-    btormbt->nass = pick (&rng, 20, 30);
+    btormbt->max_nass = pick (&rng, 20, 30);
 
   //  FIXME externalise
   //  init_pd_lits (btormbt, pick (&rng, 1, 10), pick (&rng, 0, 5),
@@ -1448,14 +1522,13 @@ _init (BtorMBT *btormbt, unsigned r)
                  pick (&rng, 0, 3));
 
   BTORMBT_LOG (1,
-               btormbt,
-               "main: pick %d ops (add:rel=%0.1f%%:%0.1f%%)\n",
-               btormbt->nops,
+               "main: pick %d ops (add:rel=%0.1f%%:%0.1f%%)",
+               btormbt->max_nops,
                btormbt->p_addop / 10,
                btormbt->p_relop / 10);
-  BTORMBT_LOG (1, btormbt, "      make ~%d asserts/assumes \n", btormbt->nass);
+  BTORMBT_LOG (1, "      make ~%d asserts/assumes", btormbt->max_nass);
 
-  btormbt->isinit = 1;
+  btormbt->is_init = 1;
   return _main;
 }
 
@@ -1470,11 +1543,11 @@ _main (BtorMBT *btormbt, unsigned r)
   assert (btormbt->arr.n > 0);
 
   /* main operations */
-  if (btormbt->ops < btormbt->nops)
+  if (btormbt->nops < btormbt->max_nops)
   {
-    btormbt->ops++;
+    btormbt->nops++;
     rand = pick (&rng, 0, NORM_VAL - 1);
-    if (rand < btormbt->nass * NORM_VAL / btormbt->nops)
+    if (rand < btormbt->max_nass * NORM_VAL / btormbt->max_nops)
       return _ass;
     else
     {
@@ -1487,15 +1560,13 @@ _main (BtorMBT *btormbt, unsigned r)
   }
 
   BTORMBT_LOG (1,
-               btormbt,
-               "after main: nexps: booleans %d, bitvectors %d, arrays %d \n",
+               "after main: nexps: booleans %d, bitvectors %d, arrays %d",
                btormbt->bo.n,
                btormbt->bv.n,
                btormbt->arr.n);
   BTORMBT_LOG (1,
-               btormbt,
-               "after main: number of asserts: %d, assumps: %d \n",
-               btormbt->totasserts,
+               "after main: number of asserts: %d, assumps: %d",
+               btormbt->tot_nassert,
                btormbt->nassume);
 
   return _sat;
@@ -1525,7 +1596,7 @@ _addop (BtorMBT *btormbt, unsigned r)
 static void *
 _fun (BtorMBT *btormbt, unsigned r)
 {
-  BtorNode *e0, *e1, *e2;
+  BoolectorNode *e0, *e1, *e2;
   RNG rng = initrng (r);
 
   Op op = pick (&rng, NOT, COND);
@@ -1551,7 +1622,7 @@ _fun (BtorMBT *btormbt, unsigned r)
     e2 = selexp (btormbt, &rng, T_BB, 0, NULL);
     ternary_fun (btormbt, &rng, op, e0, e1, e2, 0);
   }
-  return (btormbt->isinit ? _main : _init);
+  return (btormbt->is_init ? _main : _init);
 }
 
 static void *
@@ -1559,7 +1630,7 @@ _afun (BtorMBT *btormbt, unsigned r)
 {
   int e0w, e0iw;
   Op op;
-  BtorNode *e0, *e1, *e2 = NULL;
+  BoolectorNode *e0, *e1, *e2 = NULL;
   RNG rng = initrng (r);
 
   e0   = selexp (btormbt, &rng, T_ARR, 0, NULL);
@@ -1578,13 +1649,13 @@ _afun (BtorMBT *btormbt, unsigned r)
   else
   {
     /* select EQ/NE/COND with same propability */
-    op = pick (&rng, 0, 2) && !env.noext ? pick (&rng, EQ, NE) : COND;
+    op = pick (&rng, 0, 2) && btormbt->ext ? pick (&rng, EQ, NE) : COND;
     e1 = selarrexp (btormbt, &rng, e0, e0w, e0iw, 0);
     if (op == COND) e2 = selexp (btormbt, &rng, T_BO, 0, NULL);
     afun (btormbt, &rng, op, e0, e1, e2, 0);
   }
 
-  return (btormbt->isinit ? _main : _init);
+  return (btormbt->is_init ? _main : _init);
 }
 
 static void *
@@ -1598,7 +1669,7 @@ _bfun (BtorMBT *btormbt, unsigned r)
 
   btormbt->parambo = btormbt->parambv = btormbt->paramarr = NULL; /* cleanup */
 
-  return (btormbt->isinit ? _main : _init);
+  return (btormbt->is_init ? _main : _init);
 }
 
 static void *
@@ -1615,7 +1686,7 @@ _lit (BtorMBT *btormbt, unsigned r)
   else
     make_arr (btormbt, &rng);
 
-  return (btormbt->isinit ? _main : _init);
+  return (btormbt->is_init ? _main : _init);
 }
 
 static void *
@@ -1646,9 +1717,10 @@ _relop (BtorMBT *btormbt, unsigned r)
     else
       assert (boolector_is_array (btormbt->btor, btormbt->arr.exps[idx].exp));
 
-    es_del (btormbt, es, idx);
+    boolector_release (btormbt->btor, es->exps[idx].exp);
+    es_del (es, idx);
   }
-  return (btormbt->isinit ? _main : _init);
+  return (btormbt->is_init ? _main : _init);
 }
 
 static void *
@@ -1656,79 +1728,64 @@ _ass (BtorMBT *btormbt, unsigned r)
 {
   int lower;
   RNG rng = initrng (r);
-  BtorNode *cls;
+  BoolectorNode *node;
 
   /* select from init layer with lower probability */
   lower = btormbt->bo.initlayer && btormbt->bo.n > btormbt->bo.initlayer
                   && pick (&rng, 0, 4)
               ? btormbt->bo.initlayer - 1
               : 0;
-  cls = make_clause (btormbt, &rng, lower, btormbt->bo.n - 1);
-  assert (!BTOR_REAL_ADDR_NODE (cls)->parameterized);
+  node = make_clause (btormbt, &rng, lower, btormbt->bo.n - 1);
+  assert (!BTOR_REAL_ADDR_NODE (node)->parameterized);
 
   if (btormbt->inc && pick (&rng, 0, 4))
   {
-    boolector_assume (btormbt->btor, cls);
+    boolector_assume (btormbt->btor, node);
+    es_push (&btormbt->assumptions, node);
     btormbt->nassume++;
   }
   else
   {
-    boolector_assert (btormbt->btor, cls);
+    boolector_assert (btormbt->btor, node);
     btormbt->nassert++;
-    btormbt->totasserts++;
+    btormbt->tot_nassert++;
   }
   return _main;
 }
 
-#define BTORMBT_CLONED_EXP(exp)                                            \
-  (btormbt->btor->clone                                                    \
-       ? (BTOR_IS_INVERTED_NODE (exp)                                      \
-              ? BTOR_INVERT_NODE (                                         \
-                    BTOR_PEEK_STACK (btormbt->btor->clone->nodes_id_table, \
-                                     BTOR_REAL_ADDR_NODE (exp)->id))       \
-              : BTOR_PEEK_STACK (btormbt->btor->clone->nodes_id_table,     \
-                                 BTOR_REAL_ADDR_NODE (exp)->id))           \
-       : 0)
-
 static void *
 _sat (BtorMBT *btormbt, unsigned r)
 {
-  int i, res;
+  int res, failed;
   RNG rng;
-
-  BTORMBT_LOG (1, btormbt, "call sat...\n");
+  BoolectorNode *ass;
 
   rng = initrng (r);
-  if (!btormbt->btor->clone || !pick (&rng, 0, 50))
-  {
-    /* release clones of external refs */
-    for (i = 0; btormbt->btor->clone && i < btormbt->bo.n; i++)
-      boolector_release (btormbt->btor->clone,
-                         BTORMBT_CLONED_EXP (btormbt->bo.exps[i].exp));
-    for (i = 0; btormbt->btor->clone && i < btormbt->bv.n; i++)
-      boolector_release (btormbt->btor->clone,
-                         BTORMBT_CLONED_EXP (btormbt->bv.exps[i].exp));
-    for (i = 0; btormbt->btor->clone && i < btormbt->arr.n; i++)
-      boolector_release (btormbt->btor->clone,
-                         BTORMBT_CLONED_EXP (btormbt->arr.exps[i].exp));
-    for (i = 0; btormbt->btor->clone && i < btormbt->fun.n; i++)
-      boolector_release (btormbt->btor->clone,
-                         BTORMBT_CLONED_EXP (btormbt->fun.exps[i].exp));
-    for (i = 0; btormbt->btor->clone && i < btormbt->cnf.n; i++)
-      boolector_release (btormbt->btor->clone,
-                         BTORMBT_CLONED_EXP (btormbt->cnf.exps[i].exp));
 
+  if (btormbt->shadow && (!btormbt->btor->clone || !pick (&rng, 0, 50)))
+  {
+    BTORMBT_LOG (1, "cloning...");
+    /* cleanup done by boolector */
     boolector_chkclone (btormbt->btor);
   }
 
+  BTORMBT_LOG (1, "calling sat...");
   res = boolector_sat (btormbt->btor);
-
   if (res == BOOLECTOR_UNSAT)
-    BTORMBT_LOG (1, btormbt, "unsat\n");
+    BTORMBT_LOG (1, "unsat");
   else if (res == BOOLECTOR_SAT)
-    BTORMBT_LOG (1, btormbt, "sat\n");
+    BTORMBT_LOG (1, "sat");
   else
-    BTORMBT_LOG (1, btormbt, "sat call returned %d\n", res);
+    BTORMBT_LOG (1, "sat call returned %d", res);
+
+  while (res == BOOLECTOR_UNSAT && btormbt->assumptions.n)
+  {
+    ass = es_pop (&btormbt->assumptions);
+    assert (ass);
+    failed = boolector_failed (btormbt->btor, ass);
+    BTORMBT_LOG (1, "assumption %p failed: %d", ass, failed);
+  }
+  es_reset (&btormbt->assumptions);
 
   return btormbt->mgen && res == BOOLECTOR_SAT ? _mgen : _inc;
 }
@@ -1736,11 +1793,11 @@ _sat (BtorMBT *btormbt, unsigned r)
 static void *
 _mgen (BtorMBT *btormbt, unsigned r)
 {
-  BTORMBT_UNUSED (r);
   int i, size = 0;
   const char *bv = NULL;
   char **indices = NULL, **values = NULL;
 
+  BTORMBT_UNUSED (r);
   assert (btormbt->mgen);
 
   for (i = 0; i < btormbt->bo.n; i++)
@@ -1766,21 +1823,26 @@ _mgen (BtorMBT *btormbt, unsigned r)
 static void *
 _inc (BtorMBT *btormbt, unsigned r)
 {
-  RNG rng = initrng (r);
+  int i;
+  RNG rng;
+
+  rng = initrng (r);
 
   /* release cnf expressions */
-  es_reset (btormbt, &btormbt->cnf);
+  for (i = 0; i < btormbt->cnf.n; i++)
+    boolector_release (btormbt->btor, btormbt->cnf.exps[i].exp);
+  es_reset (&btormbt->cnf);
 
   // FIXME externalize
   if (btormbt->inc && pick (&rng, 0, 2))
   {
     btormbt->inc++;
-    btormbt->ops     = 0; /* reset */
-    btormbt->nass    = btormbt->nass - btormbt->nassert;
-    btormbt->nassume = 0; /* reset */
-    btormbt->nassert = 0;
-    // btormbt->nops = pick (&rng, 0, 150);
-    btormbt->nops = pick (&rng, 20, 50);
+    btormbt->nops     = 0; /* reset */
+    btormbt->max_nass = btormbt->max_nass - btormbt->nassert;
+    btormbt->nassume  = 0; /* reset */
+    btormbt->nassert  = 0;
+    // btormbt->max_nops = pick (&rng, 0, 150);
+    btormbt->max_nops = pick (&rng, 20, 50);
     init_pd_lits (
         btormbt, pick (&rng, 1, 10), pick (&rng, 0, 5), pick (&rng, 0, 5));
     init_pd_op (btormbt, pick (&rng, 1, 5), pick (&rng, 1, 5));
@@ -1791,13 +1853,11 @@ _inc (BtorMBT *btormbt, unsigned r)
                    pick (&rng, 0, 3));
 
     BTORMBT_LOG (1,
-                 btormbt,
-                 "inc: pick %d ops(add:rel=%0.1f%%:%0.1f%%) \n",
-                 btormbt->nops,
+                 "inc: pick %d ops(add:rel=%0.1f%%:%0.1f%%)",
+                 btormbt->max_nops,
                  btormbt->p_addop / 10,
                  btormbt->p_relop / 10);
-    BTORMBT_LOG (
-        btormbt->inc, btormbt, "number of increments: %d \n", btormbt->inc - 1);
+    BTORMBT_LOG (btormbt->inc, "number of increments: %d", btormbt->inc - 1);
 
     return _main;
   }
@@ -1807,15 +1867,29 @@ _inc (BtorMBT *btormbt, unsigned r)
 static void *
 _del (BtorMBT *btormbt, unsigned r)
 {
+  assert (btormbt);
   assert (btormbt->btor);
+
+  int i;
 
   BTORMBT_UNUSED (r);
 
-  es_release (btormbt, &btormbt->bo);
-  es_release (btormbt, &btormbt->bv);
-  es_release (btormbt, &btormbt->arr);
-  es_release (btormbt, &btormbt->fun);
-  es_release (btormbt, &btormbt->cnf);
+  for (i = 0; i < btormbt->bo.n; i++)
+    boolector_release (btormbt->btor, btormbt->bo.exps[i].exp);
+  es_release (&btormbt->bo);
+  for (i = 0; i < btormbt->bv.n; i++)
+    boolector_release (btormbt->btor, btormbt->bv.exps[i].exp);
+  es_release (&btormbt->bv);
+  for (i = 0; i < btormbt->arr.n; i++)
+    boolector_release (btormbt->btor, btormbt->arr.exps[i].exp);
+  es_release (&btormbt->arr);
+  for (i = 0; i < btormbt->fun.n; i++)
+    boolector_release (btormbt->btor, btormbt->fun.exps[i].exp);
+  es_release (&btormbt->fun);
+  for (i = 0; i < btormbt->cnf.n; i++)
+    boolector_release (btormbt->btor, btormbt->cnf.exps[i].exp);
+  es_release (&btormbt->cnf);
+  es_release (&btormbt->assumptions);
 
   assert (btormbt->parambo == NULL);
   assert (btormbt->parambv == NULL);
@@ -1827,111 +1901,161 @@ _del (BtorMBT *btormbt, unsigned r)
 }
 
 static void
-rantrav (void)
+rantrav (BtorMBT *btormbt)
 {
+  assert (btormbt);
+
   State state, next;
   unsigned rand;
-  BtorMBT btormbt;
-  memset (&btormbt, 0, sizeof btormbt);
 
-  btormbt.print = !env.quiet;
-  memset (&btormbt.bo, 0, sizeof (btormbt.bo));
-  memset (&btormbt.bv, 0, sizeof (btormbt.bv));
-  memset (&btormbt.arr, 0, sizeof (btormbt.arr));
-  memset (&btormbt.fun, 0, sizeof (btormbt.fun));
-  memset (&btormbt.cnf, 0, sizeof (btormbt.cnf));
-  btormbt.parambo = btormbt.parambv = btormbt.paramarr = NULL;
-
-  env.rng.z = env.rng.w = env.seed;
+  memset (&btormbt->is_init,
+          0,
+          (char *) &btormbt->rng - (char *) &btormbt->is_init);
+  assert (btormbt->is_init == 0);
+  assert (btormbt->tot_nassert == 0);
+  btormbt->rng.z = btormbt->rng.w = btormbt->seed;
 
   /* state loop */
   for (state = _new; state; state = next)
   {
-    rand = nextrand (&env.rng);
-    next = state (&btormbt, rand);
+    rand = nextrand (&btormbt->rng);
+    next = state (btormbt, rand);
   }
 }
 
-static int
-run (void (*process) (void))
+static void (*sig_alrm_handler) (int);
+
+static void
+reset_alarm (void)
 {
+  alarm (0);
+  (void) signal (SIGALRM, sig_alrm_handler);
+}
+
+static void
+catch_alarm (int sig)
+{
+  assert (sig == SIGALRM);
+  (void) sig;
+
+  reset_alarm ();
+  exit (EXIT_TIMEOUT);
+}
+
+static void
+set_alarm (void)
+{
+  sig_alrm_handler = signal (SIGALRM, catch_alarm);
+  assert (btormbt->time_limit > 0);
+  alarm (btormbt->time_limit);
+}
+
+static int
+run (BtorMBT *btormbt, void (*process) (BtorMBT *))
+{
+  assert (btormbt);
+  assert (process);
+
   int res, status, saved1, saved2, null;
   pid_t id;
 
-  (void) saved1;
-  env.forked++;
-  fflush (stdout);
-  if ((id = fork ()))
-  {
-#ifndef NDEBUG
-    pid_t wid =
-#endif
-        wait (&status);
-    assert (wid == id);
-  }
+  if (!btormbt->fork)
+    process (btormbt);
   else
   {
+    (void) saved1;
+    btormbt->forked++;
+    fflush (stdout);
+    if ((id = fork ()))
+    {
+      reset_alarm ();
 #ifndef NDEBUG
-    int tmp;
+      pid_t wid =
 #endif
-    saved1 = dup (1);
-    saved2 = dup (2);
-    null   = open ("/dev/null", O_WRONLY);
-    close (1);
-    close (2);
+          wait (&status);
+      assert (wid == id);
+    }
+    else
+    {
+      if (btormbt->time_limit)
+      {
+        set_alarm ();
+        BTORMBT_LOG (btormbt->verbose,
+                     "set time limit to %d second(s)",
+                     btormbt->time_limit);
+      }
 #ifndef NDEBUG
-    tmp =
+      int tmp;
+#endif
+      if (!btormbt->verbose)
+      {
+        saved1 = dup (1);
+        saved2 = dup (2);
+        null   = open ("/dev/null", O_WRONLY);
+        close (1);
+        close (2);
+#ifndef NDEBUG
+        tmp =
 #endif
 #ifdef USE_PRAGMAS_TO_DISABLE_WARNINGS
 #pragma GCC diagnostic ignored "-Wunused-result"
 #endif
-        dup (null);
-    assert (tmp == 1);
+            dup (null);
+        assert (tmp == 1);
 #ifndef NDEBUG
-    tmp =
+        tmp =
 #endif
-        dup (null);
+            dup (null);
 #ifndef NDEBUG
-    assert (tmp == 2);
+        assert (tmp == 2);
 #endif
-    process ();
-    close (null);
-    close (2);
+      }
+      process (btormbt);
+      close (null);
+      close (2);
 #ifndef NDEBUG
-    tmp =
+      tmp =
 #endif
-        dup (saved2);
+          dup (saved2);
 #ifndef NDEBUG
-    assert (tmp == 2);
-    close (1);
+      assert (tmp == 2);
+      close (1);
 #ifndef NDEBUG
-    tmp =
+      tmp =
 #endif
-        dup (saved1);
+          dup (saved1);
 #ifdef USE_PRAGMAS_TO_DISABLE_WARNINGS
 #pragma GCC diagnostic ignored "-Wunused-result"
 #endif
 #ifdef NDEBUG
-    assert (tmp == 1);
+      assert (tmp == 1);
 #endif
-    BTORMBT_UNUSED (tmp);
+      BTORMBT_UNUSED (tmp);
 #endif
-    exit (0);
-  }
-  if (WIFEXITED (status))
-  {
-    res = WEXITSTATUS (status);
-    if (!env.quiet) printf ("exit %d ", res);
-  }
-  else if (WIFSIGNALED (status))
-  {
-    if (!env.quiet) printf ("signal %d", WTERMSIG (status));
-    res = 1;
-  }
-  else
-  {
-    if (!env.quiet) printf ("unknown");
-    res = 1;
+      exit (EXIT_OK);
+    }
+
+    if (WIFEXITED (status))
+    {
+      res = WEXITSTATUS (status);
+      BTORMBT_LOG (res == EXIT_TIMEOUT,
+                   "TIMEOUT: time limit %d seconds reached\n",
+                   btormbt->time_limit);
+      if (res == EXIT_TIMEOUT && !btormbt->verbose)
+        printf ("timed out after %d second(s)\n", btormbt->time_limit);
+      else if (!btormbt->seed)
+        printf ("exit %d ", res);
+    }
+    else if (WIFSIGNALED (status))
+    {
+      if (btormbt->verbose) printf ("signal %d", WTERMSIG (status));
+      res = EXIT_ERROR;
+    }
+    else
+    {
+      if (btormbt->verbose) printf ("unknown");
+      res = EXIT_ERROR;
+    }
   }
   return res;
 }
@@ -1966,7 +2090,7 @@ die (const char *msg, ...)
   va_end (ap);
   fputc ('\n', stderr);
   fflush (stderr);
-  exit (1);
+  exit (EXIT_ERROR);
 }
 
 static int
@@ -2008,7 +2132,7 @@ current_time (void)
 static double
 get_time ()
 {
-  return current_time () - start_time;
+  return current_time () - btormbt->start_time;
 }
 
 static double
@@ -2018,25 +2142,27 @@ average (double a, double b)
 }
 
 static void
-stats (void)
+stats (BtorMBT *btormbt)
 {
   double t = get_time ();
   printf ("finished after %0.2f seconds\n", t);
   printf ("%d rounds = %0.2f rounds per second\n",
-          env.round,
-          average (env.round, t));
-  printf ("%d bugs = %0.2f bugs per second\n", env.bugs, average (env.bugs, t));
+          btormbt->round,
+          average (btormbt->round, t));
+  printf ("%d bugs = %0.2f bugs per second\n",
+          btormbt->bugs,
+          average (btormbt->bugs, t));
 }
 
 /* Note: - do not call non-reentrant function here, see:
  *         https://www.securecoding.cert.org/confluence/display/seccode/SIG30-C.+Call+only+asynchronous-safe+functions+within+signal+handlers
  *       - do not use printf here (causes segfault when SIGINT and valgrind) */
 static void
-sighandler (int sig)
+sig_handler (int sig)
 {
   char str[100];
 
-  sprintf (str, "*** btormbt: caught signal %d\n", sig);
+  sprintf (str, "*** btormbt: caught signal %d\n\n", sig);
 #ifdef USE_PRAGMAS_TO_DISABLE_WARNINGS
 #pragma GCC diagnostic ignored "-Wunused-result"
 #pragma GCC diagnostic ignored "-Wunused-variable"
@@ -2048,16 +2174,16 @@ sighandler (int sig)
 #endif
   /* Note: if _exit is used here (which is reentrant, in contrast to exit),
    *       atexit handler is not called. Hence, use exit here. */
-  exit (1);
+  exit (EXIT_ERROR);
 }
 
 static void
-setsighandlers (void)
+set_sig_handlers (void)
 {
-  (void) signal (SIGINT, sighandler);
-  (void) signal (SIGSEGV, sighandler);
-  (void) signal (SIGABRT, sighandler);
-  (void) signal (SIGTERM, sighandler);
+  (void) signal (SIGINT, sig_handler);
+  (void) signal (SIGSEGV, sig_handler);
+  (void) signal (SIGABRT, sig_handler);
+  (void) signal (SIGTERM, sig_handler);
 }
 
 static void
@@ -2065,55 +2191,76 @@ finish (void)
 {
   fflush (stderr);
   fflush (stdout);
-  if (env.ppid == getpid ()) stats ();
+  if (btormbt->ppid == getpid ()) stats (btormbt);
+  free (btormbt);
   fflush (stdout);
 }
 
 int
 main (int argc, char **argv)
 {
-  int i, max, mac, pid, prev, res, seeded;
-  char name[100];
-  char *aname, *cmd;
+  int i, mac, pid, prev, res, seeded, verbose, always_fork;
+  char *name, *cmd;
 
-  start_time = current_time ();
+  btormbt             = new_btormbt ();
+  btormbt->start_time = current_time ();
 
-  memset (&env, 0, sizeof env);
-  max          = INT_MAX;
-  pid          = 0;
-  prev         = 0;
-  seeded       = 0;
-  env.seed     = -1;
-  env.terminal = isatty (1);
+  pid    = 0;
+  prev   = 0;
+  seeded = 0;
 
   atexit (finish);
 
   for (i = 1; i < argc; i++)
   {
-    if (!strcmp (argv[i], "-h"))
+    if (!strcmp (argv[i], "-h") || !strcmp (argv[i], "--help"))
     {
-      printf ("%s", BTORMBT_USAGE);
-      exit (0);
+      printf ("%s%s", BTORMBT_USAGE, BTORMBT_LOG_USAGE);
+      exit (EXIT_OK);
     }
+    else if (!strcmp (argv[i], "-v") || !strcmp (argv[i], "--verbose"))
+      btormbt->verbose = 1;
     else if (!strcmp (argv[i], "-k") || !strcmp (argv[i], "--keep-lines"))
-      env.terminal = 0;
-    else if (!strcmp (argv[i], "-q") || !strcmp (argv[i], "--quiet"))
-      env.quiet = 1;
+      btormbt->terminal = 0;
     else if (!strcmp (argv[i], "-a") || !strcmp (argv[i], "--always-fork"))
-      env.alwaysfork = 1;
+      always_fork = 1;
     else if (!strcmp (argv[i], "-f") || !strcmp (argv[i], "--first-bug-only"))
-      env.first = 1;
+      btormbt->quit_after_first = 1;
     else if (!strcmp (argv[i], "-n") || !strcmp (argv[i], "--no-modelgen"))
-      env.nomgen = 1;
+      btormbt->force_nomgen = 1;
     else if (!strcmp (argv[i], "-e")
              || !strcmp (argv[i], "--no-extensionality"))
-      env.noext = 1;
+      btormbt->ext = 0;
+    else if (!strcmp (argv[i], "-s") || !strcmp (argv[i], "--shadow-clone"))
+      btormbt->shadow = 1;
     else if (!strcmp (argv[i], "-m"))
     {
       if (++i == argc) die ("argument to '-m' missing (try '-h')");
       if (!isnumstr (argv[i]))
-        die ("argument '%s' to '-m' not a number (try '-h')", argv[i]);
-      max = atoi (argv[i]);
+        die ("argument '%s' to '-m' is not a number (try '-h')", argv[i]);
+      btormbt->max_nrounds = atoi (argv[i]);
+    }
+    else if (!strcmp (argv[i], "-t"))
+    {
+      if (++i == argc) die ("argument to '-t' missing (try '-h')");
+      if (!isnumstr (argv[i]))
+        die ("argument '%s' to '-t' is not a number (try '-h')", argv[i]);
+      btormbt->time_limit = atoi (argv[i]);
+      btormbt->fork       = 1;
+    }
+    else if (!strcmp (argv[i], "--blog"))
+    {
+      if (++i == argc) die ("argument to '--blog' missing (try '-h')");
+      if (!isnumstr (argv[i]))
+        die ("argument '%s' to '--blog' not a number (try '-h')", argv[i]);
+      btormbt->bloglevel = atoi (argv[i]);
+    }
+    else if (!strcmp (argv[i], "--bverb"))
+    {
+      if (++i == argc) die ("argument to '--bverb' missing (try '-h')");
+      if (!isnumstr (argv[i]))
+        die ("argument '%s' to '--bverb' not a number (try '-h')", argv[i]);
+      btormbt->bverblevel = atoi (argv[i]);
     }
     else if (!isnumstr (argv[i]))
     {
@@ -2121,83 +2268,82 @@ main (int argc, char **argv)
     }
     else
     {
-      env.seed = atoi (argv[i]);
-      seeded   = 1;
+      btormbt->seed = atoi (argv[i]);
+      seeded        = 1;
     }
   }
 
-  if (!(aname = getenv ("BTORAPITRACE")))
-  {
-    sprintf (name, "/tmp/bug-%d-mbt.trace", getpid ());
-    setenv ("BTORAPITRACE", name, 1);
-  }
+  verbose       = btormbt->verbose;
+  btormbt->ppid = getpid ();
+  set_sig_handlers ();
 
-  env.ppid = getpid ();
-  setsighandlers ();
-
-  if (env.seed >= 0 && !env.alwaysfork)
+  if (btormbt->seed >= 0)
   {
-    rantrav ();
-    printf ("\n");
+    if (!always_fork && !btormbt->time_limit) btormbt->fork = 0;
+    (void) run (btormbt, rantrav);
   }
   else
   {
     mac = hashmac ();
-    for (env.round = 0; env.round < max; env.round++)
+    for (btormbt->round = 0; btormbt->round < btormbt->max_nrounds;
+         btormbt->round++)
     {
       if (!(prev & 1)) prev++;
 
       if (!seeded)
       {
-        env.seed = mac;
-        env.seed *= 123301093;
-        env.seed += times (0);
-        env.seed *= 223531513;
-        env.seed += pid;
-        env.seed *= 31752023;
-        env.seed += prev;
-        env.seed *= 43376579;
-        prev = env.seed = abs (env.seed) >> 1;
+        btormbt->seed = mac;
+        btormbt->seed *= 123301093;
+        btormbt->seed += times (0);
+        btormbt->seed *= 223531513;
+        btormbt->seed += pid;
+        btormbt->seed *= 31752023;
+        btormbt->seed += prev;
+        btormbt->seed *= 43376579;
+        prev = btormbt->seed = abs (btormbt->seed) >> 1;
       }
 
-      if (!env.quiet)
-      {
-        if (env.terminal) erase ();
-        printf ("%d %d ", env.round, env.seed);
-        fflush (stdout);
-      }
+      if (btormbt->terminal) erase ();
+      printf ("%d %d ", btormbt->round, btormbt->seed);
+      fflush (stdout);
 
-      res = run (rantrav);
+      btormbt->verbose = 0;
+      res              = run (btormbt, rantrav);
+      btormbt->verbose = verbose;
 
-      if (res > 0)
+      if (res == EXIT_ERROR)
       {
-        env.bugs++;
-        env.bugs++;
+        btormbt->bugs++;
+        btormbt->bugs++;
         cmd = malloc (strlen (name) + 80);
-        sprintf (cmd, "cp %s btormbt-bug-%d.trace", name, env.seed);
-
+        if ((name = getenv ("BTORAPITRACE")))
+          sprintf (cmd, "cp %s btormbt-bug-%d.trace", name, btormbt->seed);
+        else
+        {
+          name = malloc (100 * sizeof (char));
+          sprintf (name, "/tmp/bug-%d-mbt.trace", getpid ());
+          setenv ("BTORAPITRACE", name, 1);
+          sprintf (cmd, "cp %s btormbt-bug-%d.trace", name, btormbt->seed);
+          free (name);
+          res = run (btormbt, rantrav); /* replay */
+          assert (res);
+          unsetenv ("BTORAPITRACE");
+        }
         if (system (cmd))
         {
           printf ("Error on copy command %s \n", cmd);
-          exit (1);
+          exit (EXIT_ERROR);
         }
-
         free (cmd);
       }
 
-      if (!env.quiet)
-      {
-        if (res || !env.terminal) printf ("\n");
-        fflush (stdout);
-      }
-
-      if ((res && env.first) || seeded) break;
+      if ((res == EXIT_ERROR && btormbt->quit_after_first) || seeded) break;
     }
   }
-  if (!env.quiet)
+  if (btormbt->verbose)
   {
-    if (env.terminal) erase ();
-    printf ("forked %d\n", env.forked);
+    if (btormbt->terminal) erase ();
+    printf ("forked %d\n", btormbt->forked);
   }
   return 0;
 }

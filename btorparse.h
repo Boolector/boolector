@@ -12,7 +12,7 @@
 #ifndef BTORPARSE_H_INCLUDED
 #define BTORPARSE_H_INCLUDED
 
-#include "btorexp.h"
+#include "btorcore.h"
 #include "btorlogic.h"
 #include "btorstack.h"
 
@@ -71,10 +71,10 @@ struct BtorParseResult
   BtorParseSATStatus result;
 
   int ninputs;
-  BtorNode **inputs;
+  BoolectorNode **inputs;
 
   int noutputs;
-  BtorNode **outputs;
+  BoolectorNode **outputs;
 };
 
 struct BtorParserAPI

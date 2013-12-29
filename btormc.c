@@ -66,7 +66,7 @@ typedef struct BtorMcFrame
   BtorNodePtrStack inputs, init, latches, next, bad;
 } BtorMcFrame;
 
-BTOR_DECLARE_STACK (McFrame, BtorMcFrame);
+BTOR_DECLARE_STACK (BtorMcFrame, BtorMcFrame);
 
 struct BtorMC
 {
@@ -740,7 +740,7 @@ print_trace (BtorMC * mc, int p, int k)
       for (j = 0; j < BTOR_COUNT_STACK (f->inputs); j++)
 	{
 	  node = BTOR_PEEK_STACK (f->inputs, j);
-	  a = btor_bv_assignment_exp (f->btor, node);
+	  a = btor_bv_assignment_str_exp (f->btor, node);
 	  if (node->symbol)
 	    symbol = node->symbol;
 	  else
@@ -749,7 +749,7 @@ print_trace (BtorMC * mc, int p, int k)
 	      symbol = buffer;
 	    }
 	  printf ("%s = %s\n", symbol, a);
-	  btor_free_bv_assignment_exp (f->btor, a);
+	  btor_release_bv_assignment_str_exp (f->btor, a);
 	}
     }
   fflush (stdout);
@@ -885,10 +885,10 @@ btor_mc_forward2const_mapper (Btor *btor, void *state, BtorNode *node)
 
   res = 0;
 
-  assignment = btor_bv_assignment_exp (mc->forward, node);
+  assignment = btor_bv_assignment_str_exp (mc->forward, node);
   btor_zero_normalize_assignment (assignment);
   res = btor_const_exp (mc->btor, assignment);
-  btor_free_bv_assignment_exp (mc->forward, assignment);
+  btor_release_bv_assignment_str_exp (mc->forward, assignment);
 
   return res;
 }
@@ -951,10 +951,10 @@ btor_mc_model2const_mapper (Btor *btor, void *state, BtorNode *node)
     node_at_time = BTOR_PEEK_STACK (frame->inputs, input->id);
     assert (node_at_time);
     assert (BTOR_REAL_ADDR_NODE (node_at_time)->btor == mc->forward);
-    bits = btor_bv_assignment_exp (mc->forward, node_at_time);
+    bits = btor_bv_assignment_str_exp (mc->forward, node_at_time);
     btor_zero_normalize_assignment (bits);
     res = btor_const_exp (mc->btor, bits);
-    btor_free_bv_assignment_exp (mc->btor, bits);
+    btor_release_bv_assignment_str_exp (mc->btor, bits);
   }
   else
   {
@@ -1041,10 +1041,11 @@ boolector_mc_assignment (BtorMC *mc, BtorNode *node, int time)
     frame        = mc->frames.start + time;
     node_at_time = BTOR_PEEK_STACK (frame->inputs, input->id);
     assert (node_at_time);
-    bits_owned_by_forward = btor_bv_assignment_exp (mc->forward, node_at_time);
-    res                   = btor_strdup (mc->btor->mm, bits_owned_by_forward);
+    bits_owned_by_forward =
+        btor_bv_assignment_str_exp (mc->forward, node_at_time);
+    res = btor_strdup (mc->btor->mm, bits_owned_by_forward);
     btor_zero_normalize_assignment (res);
-    btor_free_bv_assignment_exp (mc->forward, bits_owned_by_forward);
+    btor_release_bv_assignment_str_exp (mc->forward, bits_owned_by_forward);
   }
   else
   {

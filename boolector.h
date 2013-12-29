@@ -19,9 +19,16 @@
 
 /*------------------------------------------------------------------------*/
 
-typedef struct BtorNode BtorNode;
-typedef struct BtorSort BtorSort;
 typedef struct Btor Btor;
+typedef struct BtorSort BtorSort;
+typedef struct BtorNode BtorNode;
+
+#ifdef BOOLECTOR_FORCE_API_1
+#define BoolectorNode BtorNode
+#else
+#define BOOLECTOR_API_2
+typedef struct BoolectorNode BoolectorNode;
+#endif
 
 /*------------------------------------------------------------------------*/
 
@@ -191,6 +198,20 @@ void boolector_generate_model_for_all_reads (Btor *btor);
 void boolector_enable_inc_usage (Btor *btor);
 
 /**
+ * Set level of verbosity.
+ * \param btor Boolector instance.
+ * \param verbosity Verbosity level.
+ */
+void boolector_set_verbosity (Btor *btor, int verbosity);
+
+/**
+ * Set log level.
+ * \param btor Boolector instance.
+ * \param loglevel Log level level.
+ */
+void boolector_set_loglevel (Btor *btor, int loglevel);
+
+/**
  * Sets the SAT solver to use.
  * Currently, we support 'Lingeling', 'PicoSAT', and 'MiniSAT' as string
  * value of \para solver ignoring the case of characters.  This is however
@@ -234,6 +255,12 @@ int boolector_simplify (Btor *btor);
 
 void boolector_enable_beta_reduce_all (Btor *btor);
 
+/* Enables forced automatic cleanup of expressions and assignment string on
+ * \ref boolector_delete.
+ * \param btor Boolector instance.
+ */
+void boolector_enable_force_cleanup (Btor *btor);
+
 /*------------------------------------------------------------------------*/
 
 /**
@@ -243,7 +270,7 @@ void boolector_enable_beta_reduce_all (Btor *btor);
  * representing the bit-vector constant specified by 'bits'.
  * \return Bit-vector constant with bit-width strlen('bits').
  */
-BtorNode *boolector_const (Btor *btor, const char *bits);
+BoolectorNode *boolector_const (Btor *btor, const char *bits);
 
 /**
  * Bit-vector constant zero.
@@ -251,14 +278,14 @@ BtorNode *boolector_const (Btor *btor, const char *bits);
  * \param width Number of bits which must be greater than zero.
  * \return Bit-vector constant zero with bit-width 'width'.
  */
-BtorNode *boolector_zero (Btor *btor, int width);
+BoolectorNode *boolector_zero (Btor *btor, int width);
 
 /**
  * Bit-vector constant zero with bit-width one.
  * \param btor Boolector instance.
  * \return Bit-vector constant zero with bit-width one.
  */
-BtorNode *boolector_false (Btor *btor);
+BoolectorNode *boolector_false (Btor *btor);
 
 /**
  * Binary constant representing 'width' ones.
@@ -266,14 +293,14 @@ BtorNode *boolector_false (Btor *btor);
  * \param width Number of bits which must be greater than zero.
  * \return Bit-vector constant -1 with bit-width 'width'.
  */
-BtorNode *boolector_ones (Btor *btor, int width);
+BoolectorNode *boolector_ones (Btor *btor, int width);
 
 /**
  * Bit-vector constant one with bit-width one.
  * \param btor Boolector instance.
  * \return Bit-vector constant one with bit-width one.
  */
-BtorNode *boolector_true (Btor *btor);
+BoolectorNode *boolector_true (Btor *btor);
 
 /**
  * Bit-vector constant one.
@@ -281,7 +308,7 @@ BtorNode *boolector_true (Btor *btor);
  * \param width Number of bits which must be greater than zero.
  * \return Bit-vector constant one with bit-width 'width'.
  */
-BtorNode *boolector_one (Btor *btor, int width);
+BoolectorNode *boolector_one (Btor *btor, int width);
 
 /**
  * Binary constant representing the unsigned integer 'u' with bit-width 'width'.
@@ -292,7 +319,7 @@ BtorNode *boolector_one (Btor *btor, int width);
  * \param width Number of bits which must be greater than zero.
  * \return Bit-vector constant with bit-width 'width'.
  */
-BtorNode *boolector_unsigned_int (Btor *btor, unsigned u, int width);
+BoolectorNode *boolector_unsigned_int (Btor *btor, unsigned u, int width);
 
 /**
  * Binary constant representing the signed integer 'i' with bit-width 'width'.
@@ -303,7 +330,7 @@ BtorNode *boolector_unsigned_int (Btor *btor, unsigned u, int width);
  * \param width Number of bits which must be greater than zero.
  * \return Bit-vector constant with bit-width 'width'.
  */
-BtorNode *boolector_int (Btor *btor, int i, int width);
+BoolectorNode *boolector_int (Btor *btor, int i, int width);
 
 /**
  * Fresh bit-vector variable with bit-width 'width'.
@@ -319,7 +346,7 @@ BtorNode *boolector_int (Btor *btor, int i, int width);
  * dump may be incorrect. If you are not interested in dumping expressions,
  * just pass NULL as symbol.
  */
-BtorNode *boolector_var (Btor *btor, int width, const char *symbol);
+BoolectorNode *boolector_var (Btor *btor, int width, const char *symbol);
 
 /**
  * One-dimensional bit-vector array of size 2 ^ 'index_width' with elements of
@@ -342,415 +369,444 @@ BtorNode *boolector_var (Btor *btor, int width, const char *symbol);
  * If you are not interested in dumping expressions,
  * just pass NULL as symbol.
  */
-BtorNode *boolector_array (Btor *btor,
-                           int elem_width,
-                           int index_width,
-                           const char *symbol);
+BoolectorNode *boolector_array (Btor *btor,
+                                int elem_width,
+                                int index_width,
+                                const char *symbol);
 
 /**
  * One's complement.
  * \param btor Boolector instance.
- * \param exp Bit-vector operand.
- * \return Bit-vector with the same bit-width as 'exp'.
+ * \param node Bit-vector operand.
+ * \return Bit-vector with the same bit-width as 'node'.
  */
-BtorNode *boolector_not (Btor *btor, BtorNode *exp);
+BoolectorNode *boolector_not (Btor *btor, BoolectorNode *node);
 
 /**
  * Two's complement.
  * \param btor Boolector instance.
- * \param exp Bit-vector operand.
- * \return Bit-vector with the same bit-width as 'exp'.
+ * \param node Bit-vector operand.
+ * \return Bit-vector with the same bit-width as 'node'.
  */
-BtorNode *boolector_neg (Btor *btor, BtorNode *exp);
+BoolectorNode *boolector_neg (Btor *btor, BoolectorNode *node);
 
 /**
  * Or reduction. All bits are combined by or.
  * \param btor Boolector instance.
- * \param exp Bit-vector operand.
+ * \param node Bit-vector operand.
  * \return Bit-vector with bit-width one.
  */
-BtorNode *boolector_redor (Btor *btor, BtorNode *exp);
+BoolectorNode *boolector_redor (Btor *btor, BoolectorNode *node);
 
 /**
  * Xor reduction. All bits are combined by xor.
  * \param btor Boolector instance.
- * \param exp Bit-vector operand.
+ * \param node Bit-vector operand.
  * \return Bit-vector with bit-width one.
  */
-BtorNode *boolector_redxor (Btor *btor, BtorNode *exp);
+BoolectorNode *boolector_redxor (Btor *btor, BoolectorNode *node);
 
 /**
  * And reduction. All bits are combined by and.
  * \param btor Boolector instance.
- * \param exp Bit-vector operand.
+ * \param node Bit-vector operand.
  * \return Bit-vector with bit-width one.
  */
-BtorNode *boolector_redand (Btor *btor, BtorNode *exp);
+BoolectorNode *boolector_redand (Btor *btor, BoolectorNode *node);
 
 /**
- * Bit-vector slice of 'exp' from index 'upper' to index 'lower'.
+ * Bit-vector slice of 'node' from index 'upper' to index 'lower'.
  * \param btor Boolector instance.
- * \param exp Bit-vector operand.
+ * \param node Bit-vector operand.
  * \param upper Upper index which must be greater than or equal to zero, and
- * less than the bit-width of 'exp'.
+ * less than the bit-width of 'node'.
  * \param lower Lower index which must be greater than or equal to zero, and
  * less than or equal to 'upper'.
  * \return Bit-vector with bit-width 'upper' - 'lower' + 1.
  */
-BtorNode *boolector_slice (Btor *btor, BtorNode *exp, int upper, int lower);
+BoolectorNode *boolector_slice (Btor *btor,
+                                BoolectorNode *node,
+                                int upper,
+                                int lower);
 
 /**
- * Unsigned extension. The operand 'exp' is padded with 'width' zeroes.
+ * Unsigned extension. The operand 'node' is padded with 'width' zeroes.
  * \param btor Boolector instance.
- * \param exp Bit-vector operand.
+ * \param node Bit-vector operand.
  * \param width Number of zeroes to pad.
- * \return Bit-vector with bit-width: bit-width of 'exp' + 'width'.
+ * \return Bit-vector with bit-width: bit-width of 'node' + 'width'.
  */
-BtorNode *boolector_uext (Btor *btor, BtorNode *exp, int width);
+BoolectorNode *boolector_uext (Btor *btor, BoolectorNode *node, int width);
 
 /**
- * Signed extension. The operand 'exp' is padded with 'width' bits. If zeroes
- * or ones are padded depends on the most significant bit of 'exp'.
+ * Signed extension. The operand 'node' is padded with 'width' bits. If zeroes
+ * or ones are padded depends on the most significant bit of 'node'.
  * \param btor Boolector instance.
- * \param exp Bit-vector operand.
+ * \param node Bit-vector operand.
  * \param width Number of bits to pad.
- * \return Bit-vector with bit-width: bit-width of 'exp' + 'width'.
+ * \return Bit-vector with bit-width: bit-width of 'node' + 'width'.
  */
-BtorNode *boolector_sext (Btor *btor, BtorNode *exp, int width);
+BoolectorNode *boolector_sext (Btor *btor, BoolectorNode *node, int width);
 
 /**
- * Implication. The parameters * 'e0' and 'e1' must have bit-width one.
+ * Implication. The parameters * 'n0' and 'n1' must have bit-width one.
  * \param btor Boolector instance.
- * \param e0 First bit-vector operand.
- * \param e1 Second bit-vector operand.
+ * \param n0 First bit-vector operand.
+ * \param n1 Second bit-vector operand.
  * \return Bit-vector with bit-width one.
  */
-BtorNode *boolector_implies (Btor *btor, BtorNode *e0, BtorNode *e1);
+BoolectorNode *boolector_implies (Btor *btor,
+                                  BoolectorNode *n0,
+                                  BoolectorNode *n1);
 
 /**
- * Equivalence. The parameters 'e0' and 'e1' must have bit-width one.
+ * Equivalence. The parameters 'n0' and 'n1' must have bit-width one.
  * \param btor Boolector instance.
- * \param e0 First bit-vector operand.
- * \param e1 Second bit-vector operand.
+ * \param n0 First bit-vector operand.
+ * \param n1 Second bit-vector operand.
  * \return Bit-vector with bit-width one.
  */
-BtorNode *boolector_iff (Btor *btor, BtorNode *e0, BtorNode *e1);
+BoolectorNode *boolector_iff (Btor *btor, BoolectorNode *n0, BoolectorNode *n1);
 
 /**
- * Xor. The parameters 'e0' and 'e1' must have the same bit-width.
+ * Xor. The parameters 'n0' and 'n1' must have the same bit-width.
  * \param btor Boolector instance.
- * \param e0 First bit-vector operand.
- * \param e1 Second bit-vector operand.
+ * \param n0 First bit-vector operand.
+ * \param n1 Second bit-vector operand.
  * \return Bit-vector with the same bit-width as the operands.
  */
-BtorNode *boolector_xor (Btor *btor, BtorNode *e0, BtorNode *e1);
+BoolectorNode *boolector_xor (Btor *btor, BoolectorNode *n0, BoolectorNode *n1);
 
 /**
- * Xnor. The parameters 'e0' and 'e1' must have the same bit-width.
+ * Xnor. The parameters 'n0' and 'n1' must have the same bit-width.
  * \param btor Boolector instance.
- * \param e0 First bit-vector operand.
- * \param e1 Second bit-vector operand.
+ * \param n0 First bit-vector operand.
+ * \param n1 Second bit-vector operand.
  * \return Bit-vector with the same bit-width as the operands.
  */
-BtorNode *boolector_xnor (Btor *btor, BtorNode *e0, BtorNode *e1);
+BoolectorNode *boolector_xnor (Btor *btor,
+                               BoolectorNode *n0,
+                               BoolectorNode *n1);
 
 /**
- * And. The parameters 'e0' and 'e1' must have the same bit-width.
+ * And. The parameters 'n0' and 'n1' must have the same bit-width.
  * \param btor Boolector instance.
- * \param e0 First bit-vector operand.
- * \param e1 Second bit-vector operand.
+ * \param n0 First bit-vector operand.
+ * \param n1 Second bit-vector operand.
  * \return Bit-vector with the same bit-width as the operands.
  */
-BtorNode *boolector_and (Btor *btor, BtorNode *e0, BtorNode *e1);
+BoolectorNode *boolector_and (Btor *btor, BoolectorNode *n0, BoolectorNode *n1);
 
 /**
- * Nand. The parameters 'e0' and 'e1' must have the same bit-width.
+ * Nand. The parameters 'n0' and 'n1' must have the same bit-width.
  * \param btor Boolector instance.
- * \param e0 First bit-vector operand.
- * \param e1 Second bit-vector operand.
+ * \param n0 First bit-vector operand.
+ * \param n1 Second bit-vector operand.
  * \return Bit-vector with the same bit-width as the operands.
  */
-BtorNode *boolector_nand (Btor *btor, BtorNode *e0, BtorNode *e1);
+BoolectorNode *boolector_nand (Btor *btor,
+                               BoolectorNode *n0,
+                               BoolectorNode *n1);
 
 /**
- * Or. The parameters 'e0' and 'e1' must have the same bit-width.
+ * Or. The parameters 'n0' and 'n1' must have the same bit-width.
  * \param btor Boolector instance.
- * \param e0 First bit-vector operand.
- * \param e1 Second bit-vector operand.
+ * \param n0 First bit-vector operand.
+ * \param n1 Second bit-vector operand.
  * \return Bit-vector with the same bit-width as the operands.
  */
-BtorNode *boolector_or (Btor *btor, BtorNode *e0, BtorNode *e1);
+BoolectorNode *boolector_or (Btor *btor, BoolectorNode *n0, BoolectorNode *n1);
 
 /**
- * Nor. The parameters 'e0' and 'e1' must have the same bit-width.
+ * Nor. The parameters 'n0' and 'n1' must have the same bit-width.
  * \param btor Boolector instance.
- * \param e0 First bit-vector operand.
- * \param e1 Second bit-vector operand.
+ * \param n0 First bit-vector operand.
+ * \param n1 Second bit-vector operand.
  * \return Bit-vector with the same bit-width as the operands.
  */
-BtorNode *boolector_nor (Btor *btor, BtorNode *e0, BtorNode *e1);
+BoolectorNode *boolector_nor (Btor *btor, BoolectorNode *n0, BoolectorNode *n1);
 
 /** Equality. Either both operands are bit-vectors with the same
  * bit-width or both operands are arrays of the same type.
  * \param btor Boolector instance.
- * \param e0 First operand.
- * \param e1 Second operand.
+ * \param n0 First operand.
+ * \param n1 Second operand.
  * \return Bit-vector with bit-width one.
  */
-BtorNode *boolector_eq (Btor *btor, BtorNode *e0, BtorNode *e1);
+BoolectorNode *boolector_eq (Btor *btor, BoolectorNode *n0, BoolectorNode *n1);
 
 /** Inequality. Either both operands are bit-vectors with the same
  * bit-width or both operands are arrays of the same type.
  * \param btor Boolector instance.
- * \param e0 First operand.
- * \param e1 Second operand.
+ * \param n0 First operand.
+ * \param n1 Second operand.
  * \return Bit-vector with bit-width one.
  */
-BtorNode *boolector_ne (Btor *btor, BtorNode *e0, BtorNode *e1);
+BoolectorNode *boolector_ne (Btor *btor, BoolectorNode *n0, BoolectorNode *n1);
 
 /**
  * Addition.
- * The parameters 'e0' and 'e1' must have the same bit-width.
+ * The parameters 'n0' and 'n1' must have the same bit-width.
  * \param btor Boolector instance.
- * \param e0 First bit-vector operand.
- * \param e1 Second bit-vector operand.
+ * \param n0 First bit-vector operand.
+ * \param n1 Second bit-vector operand.
  * \return Bit-vector with the same bit-width as the operands.
  */
-BtorNode *boolector_add (Btor *btor, BtorNode *e0, BtorNode *e1);
+BoolectorNode *boolector_add (Btor *btor, BoolectorNode *n0, BoolectorNode *n1);
 
 /**
  * Unsigned addition overflow detection. The result represents if the addition
  * overflows when both operands are interpreted as unsigned.
- * The parameters 'e0' and 'e1' must have the same bit-width.
+ * The parameters 'n0' and 'n1' must have the same bit-width.
  * \param btor Boolector instance.
- * \param e0 First bit-vector operand.
- * \param e1 Second bit-vector operand.
+ * \param n0 First bit-vector operand.
+ * \param n1 Second bit-vector operand.
  * \return Bit-vector with bit-width one.
  */
-BtorNode *boolector_uaddo (Btor *btor, BtorNode *e0, BtorNode *e1);
+BoolectorNode *boolector_uaddo (Btor *btor,
+                                BoolectorNode *n0,
+                                BoolectorNode *n1);
 
 /**
  * Signed addition overflow detection. The result represents if the addition
  * overflows when both operands are interpreted as signed.
- * The parameters 'e0' and 'e1' must have the same bit-width.
+ * The parameters 'n0' and 'n1' must have the same bit-width.
  * \param btor Boolector instance.
- * \param e0 First bit-vector operand.
- * \param e1 Second bit-vector operand.
+ * \param n0 First bit-vector operand.
+ * \param n1 Second bit-vector operand.
  * \return Bit-vector with bit-width one.
  */
-BtorNode *boolector_saddo (Btor *btor, BtorNode *e0, BtorNode *e1);
+BoolectorNode *boolector_saddo (Btor *btor,
+                                BoolectorNode *n0,
+                                BoolectorNode *n1);
 
 /**
  * Multiplication.
- * The parameters 'e0' and 'e1' must have the same bit-width.
+ * The parameters 'n0' and 'n1' must have the same bit-width.
  * \param btor Boolector instance.
- * \param e0 First bit-vector operand.
- * \param e1 Second bit-vector operand.
+ * \param n0 First bit-vector operand.
+ * \param n1 Second bit-vector operand.
  * \return Bit-vector with the same bit-width as the operands.
  */
-BtorNode *boolector_mul (Btor *btor, BtorNode *e0, BtorNode *e1);
+BoolectorNode *boolector_mul (Btor *btor, BoolectorNode *n0, BoolectorNode *n1);
 
 /**
  * Unsigned multiplication overflow detection.
  * The result represents if the multiplication
  * overflows when both operands are interpreted as unsigned.
- * The parameters 'e0' and 'e1' must have the same bit-width.
+ * The parameters 'n0' and 'n1' must have the same bit-width.
  * \param btor Boolector instance.
- * \param e0 First bit-vector operand.
- * \param e1 Second bit-vector operand.
+ * \param n0 First bit-vector operand.
+ * \param n1 Second bit-vector operand.
  * \return Bit-vector with bit-width one.
  */
-BtorNode *boolector_umulo (Btor *btor, BtorNode *e0, BtorNode *e1);
+BoolectorNode *boolector_umulo (Btor *btor,
+                                BoolectorNode *n0,
+                                BoolectorNode *n1);
 
 /**
  * Signed multiplication overflow detection.
  * The result represents if the multiplication
  * overflows when both operands are interpreted as signed.
- * The parameters 'e0' and 'e1' must have the same bit-width.
+ * The parameters 'n0' and 'n1' must have the same bit-width.
  * \param btor Boolector instance.
- * \param e0 First bit-vector operand.
- * \param e1 Second bit-vector operand.
+ * \param n0 First bit-vector operand.
+ * \param n1 Second bit-vector operand.
  * \return Bit-vector with bit-width one.
  */
-BtorNode *boolector_smulo (Btor *btor, BtorNode *e0, BtorNode *e1);
+BoolectorNode *boolector_smulo (Btor *btor,
+                                BoolectorNode *n0,
+                                BoolectorNode *n1);
 
 /**
  * Unsigned less than.
- * The parameters 'e0' and 'e1' must have the same bit-width.
+ * The parameters 'n0' and 'n1' must have the same bit-width.
  * \param btor Boolector instance.
- * \param e0 First bit-vector operand.
- * \param e1 Second bit-vector operand.
+ * \param n0 First bit-vector operand.
+ * \param n1 Second bit-vector operand.
  * \return Bit-vector with bit-width one.
  */
-BtorNode *boolector_ult (Btor *btor, BtorNode *e0, BtorNode *e1);
+BoolectorNode *boolector_ult (Btor *btor, BoolectorNode *n0, BoolectorNode *n1);
 
 /**
  * Signed less than.
- * The parameters 'e0' and 'e1' must have the same bit-width.
+ * The parameters 'n0' and 'n1' must have the same bit-width.
  * \param btor Boolector instance.
- * \param e0 First bit-vector operand.
- * \param e1 Second bit-vector operand.
+ * \param n0 First bit-vector operand.
+ * \param n1 Second bit-vector operand.
  * \return Bit-vector with bit-width one.
  */
-BtorNode *boolector_slt (Btor *btor, BtorNode *e0, BtorNode *e1);
+BoolectorNode *boolector_slt (Btor *btor, BoolectorNode *n0, BoolectorNode *n1);
 
 /**
  * Unsigned less than or equal.
- * The parameters 'e0' and 'e1' must have the same bit-width.
+ * The parameters 'n0' and 'n1' must have the same bit-width.
  * \param btor Boolector instance.
- * \param e0 First bit-vector operand.
- * \param e1 Second bit-vector operand.
+ * \param n0 First bit-vector operand.
+ * \param n1 Second bit-vector operand.
  * \return Bit-vector with bit-width one.
  */
-BtorNode *boolector_ulte (Btor *btor, BtorNode *e0, BtorNode *e1);
+BoolectorNode *boolector_ulte (Btor *btor,
+                               BoolectorNode *n0,
+                               BoolectorNode *n1);
 
 /**
  * Signed less than or equal.
- * The parameters 'e0' and 'e1' must have the same bit-width.
+ * The parameters 'n0' and 'n1' must have the same bit-width.
  * \param btor Boolector instance.
- * \param e0 First bit-vector operand.
- * \param e1 Second bit-vector operand.
+ * \param n0 First bit-vector operand.
+ * \param n1 Second bit-vector operand.
  * \return Bit-vector with bit-width one.
  */
-BtorNode *boolector_slte (Btor *btor, BtorNode *e0, BtorNode *e1);
+BoolectorNode *boolector_slte (Btor *btor,
+                               BoolectorNode *n0,
+                               BoolectorNode *n1);
 
 /**
  * Unsigned greater than.
- * The parameters 'e0' and 'e1' must have the same bit-width.
+ * The parameters 'n0' and 'n1' must have the same bit-width.
  * \param btor Boolector instance.
- * \param e0 First bit-vector operand.
- * \param e1 Second bit-vector operand.
+ * \param n0 First bit-vector operand.
+ * \param n1 Second bit-vector operand.
  * \return Bit-vector with bit-width one.
  */
-BtorNode *boolector_ugt (Btor *btor, BtorNode *e0, BtorNode *e1);
+BoolectorNode *boolector_ugt (Btor *btor, BoolectorNode *n0, BoolectorNode *n1);
 
 /**
  * Signed greater than.
- * The parameters 'e0' and 'e1' must have the same bit-width.
+ * The parameters 'n0' and 'n1' must have the same bit-width.
  * \param btor Boolector instance.
- * \param e0 First bit-vector operand.
- * \param e1 Second bit-vector operand.
+ * \param n0 First bit-vector operand.
+ * \param n1 Second bit-vector operand.
  * \return Bit-vector with bit-width one.
  */
-BtorNode *boolector_sgt (Btor *btor, BtorNode *e0, BtorNode *e1);
+BoolectorNode *boolector_sgt (Btor *btor, BoolectorNode *n0, BoolectorNode *n1);
 
 /**
  * Unsigned greater than or equal.
- * The parameters 'e0' and 'e1' must have the same bit-width.
+ * The parameters 'n0' and 'n1' must have the same bit-width.
  * \param btor Boolector instance.
- * \param e0 First bit-vector operand.
- * \param e1 Second bit-vector operand.
+ * \param n0 First bit-vector operand.
+ * \param n1 Second bit-vector operand.
  * \return Bit-vector with bit-width one.
  */
-BtorNode *boolector_ugte (Btor *btor, BtorNode *e0, BtorNode *e1);
+BoolectorNode *boolector_ugte (Btor *btor,
+                               BoolectorNode *n0,
+                               BoolectorNode *n1);
 
 /**
  * Signed greater than or equal.
- * The parameters 'e0' and 'e1' must have the same bit-width.
+ * The parameters 'n0' and 'n1' must have the same bit-width.
  * \param btor Boolector instance.
- * \param e0 First bit-vector operand.
- * \param e1 Second bit-vector operand.
+ * \param n0 First bit-vector operand.
+ * \param n1 Second bit-vector operand.
  * \return Bit-vector with bit-width one.
  */
-BtorNode *boolector_sgte (Btor *btor, BtorNode *e0, BtorNode *e1);
+BoolectorNode *boolector_sgte (Btor *btor,
+                               BoolectorNode *n0,
+                               BoolectorNode *n1);
 
 /**
  * Shift left.
  * \param btor Boolector instance.
- * \param e0 First bit-vector operand where the bit-width is a power of two
+ * \param n0 First bit-vector operand where the bit-width is a power of two
  * and greater than 1.
- * \param e1 Second bit-vector operand with bit-width log2 of
- * the bit-width of 'e0'.
- * \return Bit-vector with the same bit-width as 'e0'.
+ * \param n1 Second bit-vector operand with bit-width log2 of
+ * the bit-width of 'n0'.
+ * \return Bit-vector with the same bit-width as 'n0'.
  */
-BtorNode *boolector_sll (Btor *btor, BtorNode *e0, BtorNode *e1);
+BoolectorNode *boolector_sll (Btor *btor, BoolectorNode *n0, BoolectorNode *n1);
 
 /**
  * Shift right logical. Zeroes are shifted in.
  * \param btor Boolector instance.
- * \param e0 First bit-vector operand where the bit-width is a power of two
+ * \param n0 First bit-vector operand where the bit-width is a power of two
  * and greater than 1.
- * \param e1 Second bit-vector operand with bit-width log2 of
- * the bit-width of 'e0'.
- * \return Bit-vector with the same bit-width as 'e0'.
+ * \param n1 Second bit-vector operand with bit-width log2 of
+ * the bit-width of 'n0'.
+ * \return Bit-vector with the same bit-width as 'n0'.
  */
-BtorNode *boolector_srl (Btor *btor, BtorNode *e0, BtorNode *e1);
+BoolectorNode *boolector_srl (Btor *btor, BoolectorNode *n0, BoolectorNode *n1);
 
 /**
  * Shift right arithmetic. Whether zeroes or ones are shifted in depends
- * on the most significant bit of 'e0'.
+ * on the most significant bit of 'n0'.
  * \param btor Boolector instance.
- * \param e0 First bit-vector operand where the bit-width is a power of two
+ * \param n0 First bit-vector operand where the bit-width is a power of two
  * and greater than 1.
- * \param e1 Second bit-vector operand with bit-width log2 of
- * the bit-width of 'e0'.
- * \return Bit-vector with the same bit-width as 'e0'.
+ * \param n1 Second bit-vector operand with bit-width log2 of
+ * the bit-width of 'n0'.
+ * \return Bit-vector with the same bit-width as 'n0'.
  */
-BtorNode *boolector_sra (Btor *btor, BtorNode *e0, BtorNode *e1);
+BoolectorNode *boolector_sra (Btor *btor, BoolectorNode *n0, BoolectorNode *n1);
 
 /**
  * Rotate left.
  * \param btor Boolector instance.
- * \param e0 First bit-vector operand where the bit-width is a power of two
+ * \param n0 First bit-vector operand where the bit-width is a power of two
  * and greater than 1.
- * \param e1 Second bit-vector operand with bit-width log2 of
- * the bit-width of 'e0'.
- * \return Bit-vector with the same bit-width as 'e0'.
+ * \param n1 Second bit-vector operand with bit-width log2 of
+ * the bit-width of 'n0'.
+ * \return Bit-vector with the same bit-width as 'n0'.
  */
-BtorNode *boolector_rol (Btor *btor, BtorNode *e0, BtorNode *e1);
+BoolectorNode *boolector_rol (Btor *btor, BoolectorNode *n0, BoolectorNode *n1);
 
 /**
  * Rotate right.
  * \param btor Boolector instance.
- * \param e0 First bit-vector operand where the bit-width is a power of two
+ * \param n0 First bit-vector operand where the bit-width is a power of two
  * and greater than 1.
- * \param e1 Second bit-vector operand with bit-width log2 of
- * the bit-width of 'e0'.
- * \return Bit-vector with the same bit-width as 'e0'.
+ * \param n1 Second bit-vector operand with bit-width log2 of
+ * the bit-width of 'n0'.
+ * \return Bit-vector with the same bit-width as 'n0'.
  */
-BtorNode *boolector_ror (Btor *btor, BtorNode *e0, BtorNode *e1);
+BoolectorNode *boolector_ror (Btor *btor, BoolectorNode *n0, BoolectorNode *n1);
 
 /**
  * Subtraction.
- * The parameters 'e0' and 'e1' must have the same bit-width.
+ * The parameters 'n0' and 'n1' must have the same bit-width.
  * \param btor Boolector instance.
- * \param e0 First bit-vector operand.
- * \param e1 Second bit-vector operand.
+ * \param n0 First bit-vector operand.
+ * \param n1 Second bit-vector operand.
  * \return Bit-vector with the same bit-width as the operands.
  */
-BtorNode *boolector_sub (Btor *btor, BtorNode *e0, BtorNode *e1);
+BoolectorNode *boolector_sub (Btor *btor, BoolectorNode *n0, BoolectorNode *n1);
 
 /**
  * Unsigned subtraction overflow detection.
  * The result represents if the subtraction
  * overflows when both operands are interpreted as unsigned.
- * The parameters 'e0' and 'e1' must have the same bit-width.
+ * The parameters 'n0' and 'n1' must have the same bit-width.
  * \param btor Boolector instance.
- * \param e0 First bit-vector operand.
- * \param e1 Second bit-vector operand.
+ * \param n0 First bit-vector operand.
+ * \param n1 Second bit-vector operand.
  * \return Bit-vector with bit-width one.
  */
-BtorNode *boolector_usubo (Btor *btor, BtorNode *e0, BtorNode *e1);
+BoolectorNode *boolector_usubo (Btor *btor,
+                                BoolectorNode *n0,
+                                BoolectorNode *n1);
 
 /**
  * Signed subtraction overflow detection.
  * The result represents if the subtraction
  * overflows when both operands are interpreted as signed.
- * The parameters 'e0' and 'e1' must have the same bit-width.
+ * The parameters 'n0' and 'n1' must have the same bit-width.
  * \param btor Boolector instance.
- * \param e0 First bit-vector operand.
- * \param e1 Second bit-vector operand.
+ * \param n0 First bit-vector operand.
+ * \param n1 Second bit-vector operand.
  * \return Bit-vector with bit-width one.
  */
-BtorNode *boolector_ssubo (Btor *btor, BtorNode *e0, BtorNode *e1);
+BoolectorNode *boolector_ssubo (Btor *btor,
+                                BoolectorNode *n0,
+                                BoolectorNode *n1);
 
 /**
  * Unsigned division.
- * The parameters 'e0' and 'e1' must have the same bit-width.
- * If 'e1' is zero, then the result is -1.
+ * The parameters 'n0' and 'n1' must have the same bit-width.
+ * If 'n1' is zero, then the result is -1.
  * \param btor Boolector instance.
- * \param e0 First bit-vector operand.
- * \param e1 Second bit-vector operand.
+ * \param n0 First bit-vector operand.
+ * \param n1 Second bit-vector operand.
  * \return Bit-vector with the same bit-width as the operands.
  * \remarks The behavior that division by zero returns -1 does not exactly
  * comply with the SMT-LIB standard 1.2 where division by zero is
@@ -758,233 +814,309 @@ BtorNode *boolector_ssubo (Btor *btor, BtorNode *e0, BtorNode *e1);
  * real circuits where division by zero cannot be uninterpreted and of course
  * returns a result.
  */
-BtorNode *boolector_udiv (Btor *btor, BtorNode *e0, BtorNode *e1);
+BoolectorNode *boolector_udiv (Btor *btor,
+                               BoolectorNode *n0,
+                               BoolectorNode *n1);
 
 /**
  * Signed division.
- * The parameters 'e0' and 'e1' must have the same bit-width.
+ * The parameters 'n0' and 'n1' must have the same bit-width.
  * \param btor Boolector instance.
- * \param e0 First bit-vector operand.
- * \param e1 Second bit-vector operand.
+ * \param n0 First bit-vector operand.
+ * \param n1 Second bit-vector operand.
  * \return Bit-vector with the same bit-width as the operands.
  * \remarks Signed division is expressed by unsigned division and
- * the sign bits of 'e0' and 'e1'. If the sign bit of 'e0' resp. 'e1' is
+ * the sign bits of 'n0' and 'n1'. If the sign bit of 'n0' resp. 'n1' is
  * one then two's complement is applied to normalize them.
  * Then, unsigned division is performed. Finally, two's complement
- * is applied to the result if the sign bits of 'e0' and 'e1' are different.
+ * is applied to the result if the sign bits of 'n0' and 'n1' are different.
  * Therefore, the behavior upon dividing zero depends on \ref boolector_udiv.
  */
-BtorNode *boolector_sdiv (Btor *btor, BtorNode *e0, BtorNode *e1);
+BoolectorNode *boolector_sdiv (Btor *btor,
+                               BoolectorNode *n0,
+                               BoolectorNode *n1);
 
 /**
  * Signed division overflow detection.
  * The result represents if the division
  * overflows when both operands are interpreted as signed.
- * This happens when 'e0' represents INT_MIN and 'e1' represents -1.
- * The parameters 'e0' and 'e1' must have the same bit-width.
+ * This happens when 'n0' represents INT_MIN and 'n1' represents -1.
+ * The parameters 'n0' and 'n1' must have the same bit-width.
  * \param btor Boolector instance.
- * \param e0 First bit-vector operand.
- * \param e1 Second bit-vector operand.
+ * \param n0 First bit-vector operand.
+ * \param n1 Second bit-vector operand.
  * \return Bit-vector with bit-width one.
  * \remarks Unsigned division cannot overflow.
  */
-BtorNode *boolector_sdivo (Btor *btor, BtorNode *e0, BtorNode *e1);
+BoolectorNode *boolector_sdivo (Btor *btor,
+                                BoolectorNode *n0,
+                                BoolectorNode *n1);
 
 /**
  * Unsigned remainder.
- * The parameters 'e0' and 'e1' must have the same bit-width.
- * If 'e1' is zero, then the result is 'e0'.
+ * The parameters 'n0' and 'n1' must have the same bit-width.
+ * If 'n1' is zero, then the result is 'n0'.
  * \param btor Boolector instance.
- * \param e0 First bit-vector operand.
- * \param e1 Second bit-vector operand.
+ * \param n0 First bit-vector operand.
+ * \param n1 Second bit-vector operand.
  * \return Bit-vector with the same bit-width as the operands.
- * \remarks As in \ref boolector_udiv the behavior if 'e1' is zero, does
+ * \remarks As in \ref boolector_udiv the behavior if 'n1' is zero, does
  * not exactly comply with the SMT-LIB standard 1.2 where the result
  * is handled as uninterpreted. Our semantics are motivated by
  * real circuits where results cannot be uninterpreted.
  */
-BtorNode *boolector_urem (Btor *btor, BtorNode *e0, BtorNode *e1);
+BoolectorNode *boolector_urem (Btor *btor,
+                               BoolectorNode *n0,
+                               BoolectorNode *n1);
 
 /**
  * Signed remainder.
- * The parameters 'e0' and 'e1' must have the same bit-width.
- * If 'e1' is zero, then the result is 'e0'.
+ * The parameters 'n0' and 'n1' must have the same bit-width.
+ * If 'n1' is zero, then the result is 'n0'.
  * \param btor Boolector instance.
- * \param e0 First bit-vector operand.
- * \param e1 Second bit-vector operand.
+ * \param n0 First bit-vector operand.
+ * \param n1 Second bit-vector operand.
  * \return Bit-vector with the same bit-width as the operands.
  * \remarks Analogously to \ref boolector_sdiv signed remainder is expressed by
- * unsigned remainder and the sign bits of 'e0' and 'e1'.
- * Therefore, if 'e1' is zero, the result depends on \ref boolector_urem.
+ * unsigned remainder and the sign bits of 'n0' and 'n1'.
+ * Therefore, if 'n1' is zero, the result depends on \ref boolector_urem.
  */
-BtorNode *boolector_srem (Btor *btor, BtorNode *e0, BtorNode *e1);
+BoolectorNode *boolector_srem (Btor *btor,
+                               BoolectorNode *n0,
+                               BoolectorNode *n1);
 
 /**
  * Signed remainder where sign follows divisor.
- * The parameters 'e0' and 'e1' must have the same bit-width.
+ * The parameters 'n0' and 'n1' must have the same bit-width.
  * \param btor Boolector instance.
- * \param e0 First bit-vector operand.
- * \param e1 Second bit-vector operand.
+ * \param n0 First bit-vector operand.
+ * \param n1 Second bit-vector operand.
  * \return Bit-vector with the same bit-width as the operands.
- * \remarks The behavior, if 'e1' is zero depends on \ref boolector_urem.
+ * \remarks The behavior, if 'n1' is zero depends on \ref boolector_urem.
  */
-BtorNode *boolector_smod (Btor *btor, BtorNode *e0, BtorNode *e1);
+BoolectorNode *boolector_smod (Btor *btor,
+                               BoolectorNode *n0,
+                               BoolectorNode *n1);
 
 /**
  * Concatenation.
  * \param btor Boolector instance.
- * \param e0 First bit-vector operand.
- * \param e1 Second bit-vector operand.
- * \return Bit-vector with bit-width: bit-width of 'e0' + bit-width of 'e1'.
+ * \param n0 First bit-vector operand.
+ * \param n1 Second bit-vector operand.
+ * \return Bit-vector with bit-width: bit-width of 'n0' + bit-width of 'n1'.
  */
-BtorNode *boolector_concat (Btor *btor, BtorNode *e0, BtorNode *e1);
+BoolectorNode *boolector_concat (Btor *btor,
+                                 BoolectorNode *n0,
+                                 BoolectorNode *n1);
 
 /**
- * Array read on array 'e_array' at position 'e_index'.
+ * Array read on array 'n_array' at position 'n_index'.
  * \param btor Boolector instance.
- * \param e_array Array operand.
- * \param e_index Bit-vector index. The bit-width of 'e_index' must have
- * the same bit-width as the indices of 'e_array'.
- * return Bit-vector with the same bit-width as the elements of 'e_array'.
+ * \param n_array Array operand.
+ * \param n_index Bit-vector index. The bit-width of 'n_index' must have
+ * the same bit-width as the indices of 'n_array'.
+ * return Bit-vector with the same bit-width as the elements of 'n_array'.
  */
-BtorNode *boolector_read (Btor *btor, BtorNode *e_array, BtorNode *e_index);
+BoolectorNode *boolector_read (Btor *btor,
+                               BoolectorNode *n_array,
+                               BoolectorNode *n_index);
 
 /**
- * Array write on array 'e_array' at position 'e_index' with value 'e_value'.
+ * Array write on array 'n_array' at position 'n_index' with value 'n_value'.
  * The array is updated at one position. All other elements remain the same.
  * \param btor Boolector instance.
- * \param e_array Array operand.
- * \param e_index Bit-vector index. The bit-width of 'e_index' must have
- * the same bit-width as the indices of 'e_array'.
- * \param e_value Bit-vector value. The bit-width of 'e_value' must have
- * the same bit-width as the elements of 'e_array'.
+ * \param n_array Array operand.
+ * \param n_index Bit-vector index. The bit-width of 'n_index' must have
+ * the same bit-width as the indices of 'n_array'.
+ * \param n_value Bit-vector value. The bit-width of 'n_value' must have
+ * the same bit-width as the elements of 'n_array'.
  * \return Array where the value at one specific index has been updated.
  */
-BtorNode *boolector_write (Btor *btor,
-                           BtorNode *e_array,
-                           BtorNode *e_index,
-                           BtorNode *e_value);
+BoolectorNode *boolector_write (Btor *btor,
+                                BoolectorNode *n_array,
+                                BoolectorNode *n_index,
+                                BoolectorNode *n_value);
 
 /**
- * If-then-else. If the condition 'e_cond' is one, then
- * 'e_if' is returned, otherwise 'e_else'.
- * Either 'e_if' and 'e_else' must be both arrays, or they must be both
+ * If-then-else. If the condition 'n_cond' is one, then
+ * 'n_if' is returned, otherwise 'n_else'.
+ * Either 'n_if' and 'n_else' must be both arrays, or they must be both
  * bit-vectors.
  * \param btor Boolector instance.
- * \param e_cond Bit-vector condition with bit-width one.
- * \param e_if Operand returned in the if case.
- * \param e_else Operand returned in the else case.
- * \return Result with the same type as 'e_if' and 'e_else'.
+ * \param n_cond Bit-vector condition with bit-width one.
+ * \param n_if Operand returned in the if case.
+ * \param n_else Operand returned in the else case.
+ * \return Result with the same type as 'n_if' and 'n_else'.
  */
-BtorNode *boolector_cond (Btor *btor,
-                          BtorNode *e_cond,
-                          BtorNode *e_if,
-                          BtorNode *e_else);
+BoolectorNode *boolector_cond (Btor *btor,
+                               BoolectorNode *n_cond,
+                               BoolectorNode *n_if,
+                               BoolectorNode *n_else);
 
 /**
  * Parameter.
  * \param btor Boolector instance.
  * \param width Number of bits which must be greater than zero.
  * \param symbol Name of parameter.
+ * \result Parameter expression.
  */
-BtorNode *boolector_param (Btor *btor, int width, const char *symbol);
+BoolectorNode *boolector_param (Btor *btor, int width, const char *symbol);
 
 /**
  * Function.
  * \param btor Boolector instance.
  * \param paramc Number of parameters.
- * \param params Parameters of function.
- * \param exp Function body.
+ * \param param_nodes Parameters of function.
+ * \param node Function body.
  * \result Function parameter.
  */
-BtorNode *boolector_fun (Btor *btor,
-                         int paramc,
-                         BtorNode **params,
-                         BtorNode *exp);
+BoolectorNode *boolector_fun (Btor *btor,
+                              int paramc,
+                              BoolectorNode **param_nodes,
+                              BoolectorNode *node);
+
+/**
+ * Creates an argument expression consisting of 'argc' argument expressions
+ * given as 'arg_nodes'.
+ * \param btor Boolector instance.
+ * \param argc Argument count.
+ * \param arg_nodes Argument nodes.
+ * \result Argument expression.
+ */
+BoolectorNode *boolector_args (Btor *btor, int argc, BoolectorNode **arg_nodes);
 
 /**
  * Creates a function application expression.
  * \param btor Boolector instance.
  * \param argc Number of arguments to be applied.
- * \param args Arguments to be applied.
- * \param fun Function expression.
+ * \param arg_nodes Arguments to be applied.
+ * \param n_fun Function expression.
  * \result Function application expression.
  */
-BtorNode *boolector_apply (Btor *btor,
-                           int argc,
-                           BtorNode **args,
-                           BtorNode *fun);
+BoolectorNode *boolector_apply (Btor *btor,
+                                int argc,
+                                BoolectorNode **arg_nodes,
+                                BoolectorNode *n_fun);
+
+/* Applies argument expression 'n_args' to function 'n_fun'.
+ * \param btor Boolector instance.
+ * \param n_args Argument expression.
+ * \param n_fun Function expression.
+ */
+BoolectorNode *boolector_apply_args (Btor *btor,
+                                     BoolectorNode *n_args,
+                                     BoolectorNode *n_fun);
 
 /**
  * Increments bit-vector by one.
  * \param btor Boolector instance.
- * \param exp Bit-vector operand.
- * \result Bit-vector with the same bit-width as 'exp'.
+ * \param node Bit-vector operand.
+ * \result Bit-vector with the same bit-width as 'node'.
  */
-BtorNode *boolector_inc (Btor *btor, BtorNode *exp);
+BoolectorNode *boolector_inc (Btor *btor, BoolectorNode *node);
 
 /**
  * Decrements bit-vector by one.
  * \param btor Boolector instance.
- * \param exp Bit-vector operand.
- * \result Bit-vector with the same bit-width as 'exp'.
+ * \param node Bit-vector operand.
+ * \result Bit-vector with the same bit-width as 'node'.
  */
-BtorNode *boolector_dec (Btor *btor, BtorNode *exp);
+BoolectorNode *boolector_dec (Btor *btor, BoolectorNode *node);
 
 /**
  * Determines if expression is an array. If not, expression is a bit-vector.
  * \param btor Boolector instance.
- * \param exp Operand.
+ * \param node Operand.
  * \result True if expression is an array, and false otherwise.
  */
-int boolector_is_array (Btor *btor, BtorNode *exp);
+int boolector_is_array (Btor *btor, BoolectorNode *node);
+
+/**
+ * Determines if expression is an array variable.
+ * \param btor Boolector instance.
+ * \param node Operand.
+ * \result True if expression is an array variable, and false otherwise.
+ */
+int boolector_is_array_var (Btor *btor, BoolectorNode *node);
+
+/**
+ * Determines if given node is a parameter expression.
+ * \param btor Boolector instance.
+ * \param node Operand.
+ * \result True if expression is a parameter, and false otherwise.
+ */
+int boolector_is_param (Btor *btor, BoolectorNode *node);
+
+/**
+ * Determines if given parameter node is bound by a function.
+ * \param btor Boolector instance.
+ * \param node Parameter node.
+ * \result True if paramter is bound, and false otherwise.
+ */
+int boolector_is_bound_param (Btor *btor, BoolectorNode *node);
 
 /**
  * Determines if expression is a function.
  * \param btor Boolector instance.
- * \param exp Operand.
+ * \param node Operand.
  * \result True if epxression is a function, and false otherwise.
  */
-int boolector_is_fun (Btor *btor, BtorNode *exp);
+int boolector_is_fun (Btor *btor, BoolectorNode *node);
 
 /**
- * Gets the arity of function 'exp'.
+ * Gets the arity of function 'node'.
  * \param btor Boolector instance.
- * \param exp Function.
- * \return arity of 'exp'.
+ * \param node Function.
+ * \return arity of 'node'.
  */
-int boolector_get_fun_arity (Btor *btor, BtorNode *exp);
+int boolector_get_fun_arity (Btor *btor, BoolectorNode *node);
+
+/**
+ * Determines if expression is an argument expression.
+ * \param btor Boolector instance.
+ * \param node Operand.
+ * \result True if epxression is an argument, and false otherwise.
+ */
+int boolector_is_args (Btor *btor, BoolectorNode *node);
+
+/**
+ * Gets the arity of argument 'node'.
+ * \param btor Boolector instance.
+ * \param node Argument expression.
+ * \return arity of 'node'.
+ */
+int boolector_get_args_arity (Btor *btor, BoolectorNode *node);
 
 /**
  * Gets the bit-width of an expression. If the expression
  * is an array, it returns the bit-width of the array elements.
  * \param btor Boolector instance.
- * \param exp Operand.
- * \return bit-width of 'exp'.
+ * \param node Operand.
+ * \return bit-width of 'node'.
  */
-int boolector_get_width (Btor *btor, BtorNode *exp);
+int boolector_get_width (Btor *btor, BoolectorNode *node);
 
 /**
- * Gets the bit-width of indices of 'e_array'.
+ * Gets the bit-width of indices of 'n_array'.
  * \param btor Boolector instance.
- * \param e_array Array operand.
- * \return bit-width of indices of 'e_array'.
+ * \param n_array Array operand.
+ * \return bit-width of indices of 'n_array'.
  */
-int boolector_get_index_width (Btor *btor, BtorNode *e_array);
+int boolector_get_index_width (Btor *btor, BoolectorNode *n_array);
 
 /**
  * Checks if sorts of given arguments matches the function signature.
  * \param btor Boolector instance.
  * \param argc Number of arguments to be checked.
- * \param args Arguments to be checked.
- * \param fun Function expression.
+ * \param arg_nodes Arguments to be checked.
+ * \param n_fun Function expression.
  * \return -1 if all sorts are correct, otherwise returns the position of the
  *         incorrect argument.
  */
 int boolector_fun_sort_check (Btor *btor,
                               int argc,
-                              BtorNode **args,
-                              BtorNode *fun);
+                              BoolectorNode **arg_nodes,
+                              BoolectorNode *n_fun);
 
 /**
  * Gets the symbol of a variable.
@@ -994,22 +1126,22 @@ int boolector_fun_sort_check (Btor *btor,
  * \see boolector_var
  * \see boolector_array
  */
-const char *boolector_get_symbol_of_var (Btor *btor, BtorNode *var);
+const char *boolector_get_symbol_of_var (Btor *btor, BoolectorNode *var);
 
 /**
  * Copies expression (increments reference counter).
  * \param btor Boolector instance.
- * \param exp Operand.
- * \return The expression 'exp'.
+ * \param node Operand.
+ * \return The expression 'node'.
  */
-BtorNode *boolector_copy (Btor *btor, BtorNode *exp);
+BoolectorNode *boolector_copy (Btor *btor, BoolectorNode *node);
 
 /**
  * Releases expression (decrements reference counter).
  * \param btor Boolector instance.
- * \param exp Operand.
+ * \param node Operand.
  */
-void boolector_release (Btor *btor, BtorNode *exp);
+void boolector_release (Btor *btor, BoolectorNode *node);
 
 /**
  * Recursively dumps expression to file.
@@ -1019,9 +1151,9 @@ void boolector_release (Btor *btor, BtorNode *exp);
  * \param btor Boolector instance.
  * \param file File to which the expression should be dumped.
  * The file must be have been opened by the user before.
- * \param exp The expression which should be dumped.
+ * \param node The expression which should be dumped.
  */
-void boolector_dump_btor (Btor *btor, FILE *file, BtorNode *exp);
+void boolector_dump_btor (Btor *btor, FILE *file, BoolectorNode *node);
 
 /**
  * Dumps formula to file in BTOR format.
@@ -1035,12 +1167,21 @@ void boolector_dump_btor_all (Btor *btor, FILE *file);
 /**
  * Recursively dumps expression to file.
  *<a
- *href="http://goedel.cs.uiowa.edu/smtlib/papers/format-v1.2-r06.08.30.pdf">SMT-LIB
- *1.2</a> is used as format. \param btor Boolector instance. \param file File to
- *which the expression should be dumped. The file must be have been opened by
- *the user before. \param exp The expression which should be dumped.
+ *href="http://smtlib.cs.uiowa.edu/papers/format-v1.2-r06.08.30.pdf">SMT-LIB 1.2</a>
+ *is used as format. \param btor Boolector instance. \param file File to which
+ *the expression should be dumped. The file must be have been opened by the
+ *user before. \param node The expression which should be dumped.
  */
-void boolector_dump_smt (Btor *btor, FILE *file, BtorNode *exp);
+void boolector_dump_smt (Btor *btor, FILE *file, BoolectorNode *node);
+
+/**
+ * Dumps formula to file in SMT-LIB format.
+ *<a
+ *href="http://smtlib.cs.uiowa.edu/papers/format-v1.2-r06.08.30.pdf">SMT-LIB 1.2</a>
+ *is used as format. \param btor Boolector instance. \param btor Boolector
+ *instance \param file Output file.
+ */
+void boolector_dump_smt_all (Btor *btor, FILE *file);
 
 /**
  * Recursively dumps expression to file.
@@ -1048,21 +1189,30 @@ void boolector_dump_smt (Btor *btor, FILE *file, BtorNode *exp);
  *href="http://smtlib.cs.uiowa.edu/papers/smt-lib-reference-v2.0-r12.09.09.pdf">SMT-LIB
  *2.0</a> is used as format. \param btor Boolector instance. \param file File to
  *which the expression should be dumped. The file must be have been opened by
- *the user before. \param exp The expression which should be dumped.
+ *the user before. \param node The expression which should be dumped.
  */
-void boolector_dump_smt2 (Btor *btor, FILE *file, BtorNode *exp);
+void boolector_dump_smt2 (Btor *btor, FILE *file, BoolectorNode *node);
 
 /**
- * Adds constraint. Use this function to assert 'exp'.
- * Added constraints can not be deleted anymore. After 'exp' has
+ * Dumps formula to file in SMT-LIB format.
+ *<a
+ *href="http://smtlib.cs.uiowa.edu/papers/smt-lib-reference-v2.0-r12.09.09.pdf">SMT-LIB
+ *2.0</a> is used as format. \param btor Boolector instance. \param btor
+ *Boolector instance \param file Output file.
+ */
+void boolector_dump_smt2_all (Btor *btor, FILE *file);
+
+/**
+ * Adds constraint. Use this function to assert 'node'.
+ * Added constraints can not be deleted anymore. After 'node' has
  * been asserted, it can be safely released by \ref boolector_release.
  * \param btor Boolector instance.
- * \param exp Bit-vector expression with bit-width one.
+ * \param node Bit-vector expression with bit-width one.
  */
-void boolector_assert (Btor *btor, BtorNode *exp);
+void boolector_assert (Btor *btor, BoolectorNode *node);
 
 /**
- * Adds assumption. Use this function to assume 'exp'.
+ * Adds assumption. Use this function to assume 'node'.
  * You must enable Boolector's incremental usage by calling
  * \ref boolector_enable_inc_usage before.
  * In contrast to \ref boolector_assert the assumptions are
@@ -1070,9 +1220,17 @@ void boolector_assert (Btor *btor, BtorNode *exp);
  * and assertions are logically combined by boolean 'and'.
  * This is the same way of using assumptions as in MiniSAT.
  * \param btor Boolector instance.
- * \param exp Bit-vector expression with bit-width one.
+ * \param node Bit-vector expression with bit-width one.
  */
-void boolector_assume (Btor *btor, BtorNode *exp);
+void boolector_assume (Btor *btor, BoolectorNode *node);
+
+/**
+ * Determine if assumption 'node' is a failed assumption.
+ * \param btor Boolector instance.
+ * \param node Bit-vector expression with bit-width one.
+ * \return 1 if assumption is failed, and 0 otherwise.
+ */
+int boolector_failed (Btor *btor, BoolectorNode *node);
 
 /**
  * Solves SAT instance represented by constraints and assumptions added
@@ -1097,14 +1255,14 @@ int boolector_sat (Btor *btor);
  * bit-vector expression which occurs in an assertion or current assumption.
  * The assignment string has to be freed by \ref boolector_free_bv_assignment.
  * \param btor Boolector instance.
- * \param exp Bit-vector expression.
+ * \param node Bit-vector expression.
  * \return String representing a satisfying assignment to bit-vector variables
  * and a consistent assignment for arbitrary bit-vector expressions.
  * Each character of the string can be '0', '1' or 'x'. The latter
  * represents that the corresponding bit can be assigned arbitrarily.
  * \see boolector_enable_model_gen
  */
-const char *boolector_bv_assignment (Btor *btor, BtorNode *exp);
+const char *boolector_bv_assignment (Btor *btor, BoolectorNode *node);
 
 /**
  * Frees an assignment string for bit-vectors.
@@ -1112,7 +1270,7 @@ const char *boolector_bv_assignment (Btor *btor, BtorNode *exp);
  * \param assignment String which has to be freed.
  * \see boolector_bv_assignment
  */
-void boolector_free_bv_assignment (Btor *btor, char *assignment);
+void boolector_free_bv_assignment (Btor *btor, const char *assignment);
 
 /**
  * Builds a model for an array expression.
@@ -1130,13 +1288,16 @@ void boolector_free_bv_assignment (Btor *btor, char *assignment);
  * default value, for example 0. The bit-vector assignments to the indices and
  * values have to be freed by \ref boolector_free_bv_assignment. Furthermore,
  * the user has to free the array of indices and the array of values,
- * respectively of size 'size'. \param btor Boolector instance. \param e_array
+ * respectively of size 'size'. \param btor Boolector instance. \param n_array
  * Array operand for which the array model should be built. \param indices
  * Pointer to array of index strings. \param values Pointer to array of value
  * strings. \param size Pointer to size. \see boolector_enable_model_gen
  */
-void boolector_array_assignment (
-    Btor *btor, BtorNode *e_array, char ***indices, char ***values, int *size);
+void boolector_array_assignment (Btor *btor,
+                                 BoolectorNode *n_array,
+                                 char ***indices,
+                                 char ***values,
+                                 int *size);
 
 /**
  * Frees an assignment string for arrays of bit-vectors.

@@ -19,7 +19,6 @@
  */
 
 #include "testrunner.h"
-#include "btorexp.h"
 
 #ifdef NDEBUG
 #undef NDEBUG

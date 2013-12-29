@@ -940,7 +940,7 @@ rewrite_binary_exp (Btor *btor, BtorNodeKind kind, BtorNode *e0, BtorNode *e1)
       {
         if (real_e0->len >= 2)
         {
-          tmp1   = btor_int_to_exp (btor, 2, real_e0->len);
+          tmp1   = btor_int_exp (btor, 2, real_e0->len);
           result = btor_rewrite_mul_exp (btor, e0, tmp1);
           btor_release_exp (btor, tmp1);
         }
@@ -3505,14 +3505,43 @@ btor_rewrite_apply_exp (Btor *btor, BtorNode *fun, BtorNode *args)
   assert (BTOR_IS_REGULAR_NODE (args));
   assert (BTOR_IS_FUN_NODE (fun));
   assert (BTOR_IS_ARGS_NODE (args));
+  assert (btor->rewrite_level > 0);
 
   BtorNode *result, *prev_result, *cur_fun, *cur_args, *e_cond;
-  BtorNode *beta_cond, *cur_cond, *cur_branch, *next_fun;
-  int propagations, apply_propagations, done, inv_result;
+  BtorNode *beta_cond, *cur_cond, *cur_branch, *next_fun, *body;
+  int propagations, apply_propagations, done, inv_result, release_args = 0;
 
   fun  = btor_simplify_exp (btor, fun);
   args = btor_simplify_exp (btor, args);
-  assert (btor->rewrite_level > 0);
+
+  /* function that returns always a constant */
+  if (0 && BTOR_IS_LAMBDA_NODE (fun))
+  {
+    body = BTOR_LAMBDA_GET_BODY (fun);
+    if (!BTOR_REAL_ADDR_NODE (body)->parameterized)
+      return btor_copy_exp (btor, body);
+    else if (BTOR_IS_PARAM_NODE (BTOR_REAL_ADDR_NODE (body)))
+    {
+      btor_assign_args (btor, fun, args);
+      result = btor_copy_exp (
+          btor, btor_param_cur_assignment (BTOR_REAL_ADDR_NODE (body)));
+      btor_unassign_params (btor, fun);
+      if (BTOR_IS_INVERTED_NODE (body)) result = BTOR_INVERT_NODE (result);
+      return result;
+    }
+    else if (BTOR_IS_APPLY_NODE (BTOR_REAL_ADDR_NODE (body)))
+    {
+      btor_assign_args (btor, fun, args);
+      result =
+          btor_beta_reduce_bounded (btor, BTOR_REAL_ADDR_NODE (body)->e[1], 1);
+      btor_unassign_params (btor, fun);
+
+      args = result;
+      assert (BTOR_IS_FUN_NODE (BTOR_REAL_ADDR_NODE (body)->e[0]));
+      fun          = BTOR_REAL_ADDR_NODE (body)->e[0];
+      release_args = 1;
+    }
+  }
 
   cur_fun  = fun;
   cur_args = args;
@@ -3645,7 +3674,11 @@ btor_rewrite_apply_exp (Btor *btor, BtorNode *fun, BtorNode *args)
     btor->stats.apply_props_construct += apply_propagations;
   }
   else
+  {
     result = btor_apply_exp_node (btor, cur_fun, cur_args);
+  }
+
+  if (release_args) btor_release_exp (btor, args);
 
   assert (result);
   return result;
