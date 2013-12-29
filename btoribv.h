@@ -15,7 +15,7 @@
 
 extern "C" {
 #include "btorabort.h"
-#include "btorexp.h"
+#include "btorcore.h"
 #include "btormc.h"
 #include "btorstack.h"
 };
@@ -82,7 +82,7 @@ struct BtorIBVRange
 };
 
 extern "C" {
-BTOR_DECLARE_STACK (IBVRange, BtorIBVRange);
+BTOR_DECLARE_STACK (BtorIBVRange, BtorIBVRange);
 };
 
 struct BtorIBVAssignment
@@ -102,7 +102,7 @@ struct BtorIBVAssignment
 };
 
 extern "C" {
-BTOR_DECLARE_STACK (IBVAssignment, BtorIBVAssignment);
+BTOR_DECLARE_STACK (BtorIBVAssignment, BtorIBVAssignment);
 };
 
 struct BtorIBVAtom
@@ -113,7 +113,7 @@ struct BtorIBVAtom
 };
 
 extern "C" {
-BTOR_DECLARE_STACK (IBVAtom, BtorIBVAtom);
+BTOR_DECLARE_STACK (BtorIBVAtom, BtorIBVAtom);
 };
 
 struct BtorIBVRangeName
@@ -126,7 +126,7 @@ struct BtorIBVRangeName
 };
 
 extern "C" {
-BTOR_DECLARE_STACK (IBVRangeName, BtorIBVRangeName);
+BTOR_DECLARE_STACK (BtorIBVRangeName, BtorIBVRangeName);
 };
 
 struct BtorIBVNode;
@@ -139,7 +139,7 @@ struct BtorIBVNodePtrNext
 };
 
 extern "C" {
-BTOR_DECLARE_STACK (IBVNodePtrNext, BtorIBVNodePtrNext);
+BTOR_DECLARE_STACK (BtorIBVNodePtrNext, BtorIBVNodePtrNext);
 };
 
 enum BtorIBVClassification
@@ -193,7 +193,7 @@ struct BtorIBVNode
 };
 
 extern "C" {
-BTOR_DECLARE_STACK (IBVNodePtr, BtorIBVNode *);
+BTOR_DECLARE_STACK (BtorIBVNodePtr, BtorIBVNode *);
 };
 
 struct BtorIBVBit
@@ -204,7 +204,7 @@ struct BtorIBVBit
 };
 
 extern "C" {
-BTOR_DECLARE_STACK (IBVBit, BtorIBVBit);
+BTOR_DECLARE_STACK (BtorIBVBit, BtorIBVBit);
 };
 
 struct BtorIBVAssumption
@@ -215,7 +215,7 @@ struct BtorIBVAssumption
 };
 
 extern "C" {
-BTOR_DECLARE_STACK (IBVAssumption, BtorIBVAssumption);
+BTOR_DECLARE_STACK (BtorIBVAssumption, BtorIBVAssumption);
 };
 
 class BtorIBV : public BitVector

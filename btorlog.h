@@ -1,6 +1,7 @@
 /*  Boolector: Satisfiablity Modulo Theories (SMT) solver.
  *
  *  Copyright (C) 2012 Armin Biere.
+ *  Copyright (C) 2013 Aina Niemetz.
  *
  *  All rights reserved.
 
@@ -14,7 +15,10 @@
 int btor_log_start (Btor *, const char *, ...);
 void btor_log_end (Btor *);
 
+/*------------------------------------------------------------------------*/
 #ifndef NBTORLOG
+/*------------------------------------------------------------------------*/
+
 #define BTORLOG(FMT, ARGS...)                  \
   do                                           \
   {                                            \
@@ -22,12 +26,30 @@ void btor_log_end (Btor *);
     (void) btor_log_start (btor, FMT, ##ARGS); \
     btor_log_end (btor);                       \
   } while (0)
+
+#define BTORLOG_TIMESTAMP(start) \
+  do                             \
+  {                              \
+    start = btor_time_stamp ();  \
+  } while (0)
+
+/*------------------------------------------------------------------------*/
 #else
+/*------------------------------------------------------------------------*/
+
 #define BTORLOG(...) \
   do                 \
   {                  \
     (void) btor;     \
   } while (0)
+#define BTORLOG_TIMESTAMP(start) \
+  do                             \
+  {                              \
+    (void) start;                \
+  } while (0)
+
+/*------------------------------------------------------------------------*/
 #endif
+/*------------------------------------------------------------------------*/
 
 #endif

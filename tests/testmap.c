@@ -10,7 +10,7 @@
  */
 
 #include "testmap.h"
-#include "boolector.h"
+#include "btorexp.h"
 #include "btormap.h"
 #include "testrunner.h"
 
@@ -40,7 +40,7 @@ static void
 init_map_test (void)
 {
   assert (!g_btor);
-  g_btor = boolector_new ();
+  g_btor = btor_new_btor ();
   assert (g_btor);
 }
 
@@ -48,7 +48,7 @@ static void
 finish_map_test (void)
 {
   assert (g_btor);
-  boolector_delete (g_btor);
+  btor_delete_btor (g_btor);
   g_btor = 0;
 }
 
@@ -70,28 +70,28 @@ void
 test_map0 ()
 {
   init_map_test ();
-  {
-    BtorNode *a = boolector_var (g_btor, 32, "a");
-    BtorNode *b = boolector_var (g_btor, 32, "b");
-    BtorNode *s = boolector_sub (g_btor, a, b);
-    BtorNode *o = boolector_one (g_btor, 32);
-    BtorNode *t = boolector_unsigned_int (g_btor, 2, 32);
-    {
-      BtorNodeMap *map = btor_new_node_map (g_btor);
-      BtorNode *d;
-      btor_map_node (map, a, t);
-      btor_map_node (map, b, o);
-      d = btor_non_recursive_substitute_node (g_btor, map, s);
-      assert (d == o);
-      btor_delete_node_map (map);
-      // boolector_release (g_btor, d); // No, map owns reference!!!!!!
-    }
-    boolector_release (g_btor, a);
-    boolector_release (g_btor, b);
-    boolector_release (g_btor, o);
-    boolector_release (g_btor, s);
-    boolector_release (g_btor, t);
-  }
+
+  BtorNode *a = btor_var_exp (g_btor, 32, "a");
+  BtorNode *b = btor_var_exp (g_btor, 32, "b");
+  BtorNode *s = btor_sub_exp (g_btor, a, b);
+  BtorNode *o = btor_one_exp (g_btor, 32);
+  BtorNode *t = btor_unsigned_exp (g_btor, 2, 32);
+
+  BtorNodeMap *map = btor_new_node_map (g_btor);
+  BtorNode *d;
+  btor_map_node (map, a, t);
+  btor_map_node (map, b, o);
+  d = btor_non_recursive_substitute_node (g_btor, map, s);
+  assert (d == o);
+  btor_delete_node_map (map);
+  // btor_release_exp (g_btor, d); // No, map owns reference!!!!!!
+
+  btor_release_exp (g_btor, a);
+  btor_release_exp (g_btor, b);
+  btor_release_exp (g_btor, o);
+  btor_release_exp (g_btor, s);
+  btor_release_exp (g_btor, t);
+
   finish_map_test ();
 }
 
@@ -105,38 +105,37 @@ test_map1_mapper (Btor *btor, void *state, BtorNode *node)
   assert (BTOR_IS_REGULAR_NODE (node));
   if (!BTOR_IS_BV_VAR_NODE (node)) return 0;
   assert (node->symbol);
-  return boolector_int (btor, atoi (node->symbol), 8);
+  return btor_int_exp (btor, atoi (node->symbol), 8);
 }
 
 void
 test_map1 ()
 {
   init_map_test ();
-  {
-    BtorNode *a = boolector_var (g_btor, 8, "11");
-    BtorNode *b = boolector_var (g_btor, 8, "22");
-    BtorNode *c = boolector_var (g_btor, 8, "33");
-    BtorNode *s;
-    {
-      BtorNode *sum = boolector_add (g_btor, a, b);
-      s             = boolector_add (g_btor, sum, c);
-      boolector_release (g_btor, sum);
-    }
-    {
-      BtorNodeMap *map = btor_new_node_map (g_btor);
-      BtorNode *d, *g;
-      d = btor_non_recursive_extended_substitute_node (
-          g_btor, map, 0, test_map1_mapper, boolector_release, s);
-      g = boolector_int (g_btor, 66, 8);
-      assert (d == g);
-      boolector_release (g_btor, g);
-      btor_delete_node_map (map);
-    }
-    boolector_release (g_btor, a);
-    boolector_release (g_btor, b);
-    boolector_release (g_btor, c);
-    boolector_release (g_btor, s);
-  }
+
+  BtorNode *a = btor_var_exp (g_btor, 8, "11");
+  BtorNode *b = btor_var_exp (g_btor, 8, "22");
+  BtorNode *c = btor_var_exp (g_btor, 8, "33");
+  BtorNode *s;
+
+  BtorNode *sum = btor_add_exp (g_btor, a, b);
+  s             = btor_add_exp (g_btor, sum, c);
+  btor_release_exp (g_btor, sum);
+
+  BtorNodeMap *map = btor_new_node_map (g_btor);
+  BtorNode *d, *g;
+  d = btor_non_recursive_extended_substitute_node (
+      g_btor, map, 0, test_map1_mapper, btor_release_exp, s);
+  g = btor_int_exp (g_btor, 66, 8);
+  assert (d == g);
+  btor_release_exp (g_btor, g);
+  btor_delete_node_map (map);
+
+  btor_release_exp (g_btor, a);
+  btor_release_exp (g_btor, b);
+  btor_release_exp (g_btor, c);
+  btor_release_exp (g_btor, s);
+
   finish_map_test ();
 }
 

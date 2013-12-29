@@ -2,6 +2,7 @@
 
 import boolector
 import sys
+import random
 import re
 from optparse import OptionParser
 
@@ -77,15 +78,28 @@ def add_node(tokens):
         n = g_btor.And(c[0], c[1])
     elif kind == "apply":
         c = get_children(tokens, 3)
-        if c[0].is_array():
+        assert(len(c) == 2)
+#        if c[0].is_array():
+#            print(c[1])
+#            n = g_btor.Read(c[0], c[1][0])
+#        else:
+        if c[0].is_array_var():
+            assert(len(c[1]) == 1)
             n = g_btor.Read(c[0], c[1][0])
         else:
             n = g_btor.Apply(c[1], c[0])
     elif kind == "args":
-        n = get_children(tokens, 3)
+        c = get_children(tokens, 3)
+        n = []
+        for cc in c:
+            if isinstance(cc, list):
+                n.extend(cc)
+            else:
+                n.append(cc)
     # represent array model as chain of writes
     elif kind == "array":
         m = None
+        key = None
         i_width = int(tokens[3])
         if len(tokens) == 5:
             sym = tokens[4]
@@ -93,27 +107,20 @@ def add_node(tokens):
             assert(sym not in g_symbolmap)
             g_symbolmap[sym] = n
 
-            m = g_model_arrays[sym]
+            key = sym
         else:
             n = g_btor.Array(width, i_width)
-            m = g_model_arrays[str(id)]
+            key = str(id)
 
-        a = n
-        for i, v in m.items():
-            c_i = g_btor.Const(i)
-            c_v = g_btor.Const(v)
-            a = g_btor.Write(a, c_i, c_v)
+        if key in g_model_arrays:
+            m = g_model_arrays[key]
+            a = n
+            for i, v in m.items():
+                c_i = g_btor.Const(i)
+                c_v = g_btor.Const(v)
+                a = g_btor.Write(a, c_i, c_v)
 
-        n = a
-#    elif kind == "array":
-#        i_width = int(tokens[3])
-#        if len(tokens) == 5:
-#            symbol = tokens[4]
-#            n = g_btor.Array(width, i_width, symbol)
-#            assert(symbol not in g_symbolmap)
-#            g_symbolmap[symbol] = n
-#        else:
-#            n = g_btor.Array(width, i_width)
+            n = a
     elif kind == "concat":
         c = get_children(tokens, 3)
         n = g_btor.Concat(c[0], c[1])
@@ -351,10 +358,18 @@ def parse_model(inputfile):
                     else:
                         error_and_exit("formula is not SAT")
 
-                m = re.match(r'([0-9a-zA-Z_]+)(\[(\d+)\])? (\d+)', line)
+                m = re.match(r'([0-9a-zA-Z_]+)(\[([x0-1]+)\])? ([x0-1]+)', line)
                 sym = m.group(1)
                 index = m.group(3)
                 value = m.group(4)
+
+                # choose random value for don't care bits
+                if index != None and "x" in index:
+                    index = index.replace("x", str(random.randint(0, 1)))
+
+                # choose random value for don't care bits
+                if "x" in value:
+                    value = value.replace("x", str(random.randint(0, 1)))
 
                 if index is None:
                     assert(sym not in g_model_vars)

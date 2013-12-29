@@ -11,13 +11,15 @@
 
 #include "btorsmt2.h"
 #include "btorconst.h"
-#include "btorexp.h"
+#include "btorcore.h"
 #include "btormem.h"
 #include "btorutil.h"
 
 #include <ctype.h>
 #include <limits.h>
 #include <stdarg.h>
+
+BTOR_DECLARE_STACK (BoolectorNodePtr, BoolectorNode *);
 
 /*------------------------------------------------------------------------*/
 
@@ -212,7 +214,7 @@ typedef struct BtorSMT2Node
   unsigned bound : 1;
   BtorSMT2Coo coo;
   char *name;
-  BtorNode *exp;
+  BoolectorNode *exp;
   struct BtorSMT2Node *next;
 } BtorSMT2Node;
 
@@ -231,12 +233,12 @@ typedef struct BtorSMT2Item
   union
   {
     BtorSMT2Node *node;
-    BtorNode *exp;
+    BoolectorNode *exp;
     char *str;
   };
 } BtorSMT2Item;
 
-BTOR_DECLARE_STACK (SMT2Item, BtorSMT2Item);
+BTOR_DECLARE_STACK (BtorSMT2Item, BtorSMT2Item);
 
 /*------------------------------------------------------------------------*/
 
@@ -293,7 +295,7 @@ typedef struct BtorSMT2Parser
     BtorSMT2Node **table;
   } symbol;
   unsigned char cc[256];
-  BtorNodePtrStack outputs, inputs;
+  BoolectorNodePtrStack outputs, inputs;
   BtorCharStack token;
   BtorSMT2ItemStack work;
   BtorParseResult *res;
@@ -1543,13 +1545,15 @@ btor_check_not_array_args_smt2 (BtorSMT2Parser *parser,
   return 1;
 }
 
-static BtorNode *
+static BoolectorNode *
 btor_translate_shift_smt2 (Btor *btor,
-                           BtorNode *a0,
-                           BtorNode *a1,
-                           BtorNode *(*f) (Btor *, BtorNode *, BtorNode *) )
+                           BoolectorNode *a0,
+                           BoolectorNode *a1,
+                           BoolectorNode *(*f) (Btor *,
+                                                BoolectorNode *,
+                                                BoolectorNode *) )
 {
-  BtorNode *c, *e, *t, *e0, *u, *l, *tmp, *res;
+  BoolectorNode *c, *e, *t, *e0, *u, *l, *tmp, *res;
   int len, l0, l1, p0, p1;
 
   len = boolector_get_width (btor, a0);
@@ -1636,28 +1640,28 @@ btor_translate_shift_smt2 (Btor *btor,
   return res;
 }
 
-static BtorNode *
-btor_shl_smt2 (Btor *btor, BtorNode *a, BtorNode *b)
+static BoolectorNode *
+btor_shl_smt2 (Btor *btor, BoolectorNode *a, BoolectorNode *b)
 {
   return btor_translate_shift_smt2 (btor, a, b, boolector_sll);
 }
 
-static BtorNode *
-btor_ashr_smt2 (Btor *btor, BtorNode *a, BtorNode *b)
+static BoolectorNode *
+btor_ashr_smt2 (Btor *btor, BoolectorNode *a, BoolectorNode *b)
 {
   return btor_translate_shift_smt2 (btor, a, b, boolector_sra);
 }
 
-static BtorNode *
-btor_lshr_smt2 (Btor *btor, BtorNode *a, BtorNode *b)
+static BoolectorNode *
+btor_lshr_smt2 (Btor *btor, BoolectorNode *a, BoolectorNode *b)
 {
   return btor_translate_shift_smt2 (btor, a, b, boolector_srl);
 }
 
-static BtorNode *
-btor_translate_rotate_smt2 (Btor *btor, BtorNode *exp, int shift, int left)
+static BoolectorNode *
+btor_translate_rotate_smt2 (Btor *btor, BoolectorNode *exp, int shift, int left)
 {
-  BtorNode *l, *r, *res;
+  BoolectorNode *l, *r, *res;
   int len;
 
   assert (shift >= 0);
@@ -1686,29 +1690,29 @@ btor_translate_rotate_smt2 (Btor *btor, BtorNode *exp, int shift, int left)
   return res;
 }
 
-static BtorNode *
-btor_rotate_left_smt2 (Btor *btor, BtorNode *exp, int shift)
+static BoolectorNode *
+btor_rotate_left_smt2 (Btor *btor, BoolectorNode *exp, int shift)
 {
   return btor_translate_rotate_smt2 (btor, exp, shift, 1);
 }
 
-static BtorNode *
-btor_rotate_right_smt2 (Btor *btor, BtorNode *exp, int shift)
+static BoolectorNode *
+btor_rotate_right_smt2 (Btor *btor, BoolectorNode *exp, int shift)
 {
   return btor_translate_rotate_smt2 (btor, exp, shift, 0);
 }
 
 static int
 btor_parse_term_smt2 (BtorSMT2Parser *parser,
-                      BtorNode **resptr,
+                      BoolectorNode **resptr,
                       BtorSMT2Coo *cooptr)
 {
   int tag, width, domain, len, nargs, i, j, open = 0, work_cnt;
-  BtorNode *(*binfun) (Btor *, BtorNode *, BtorNode *);
-  BtorNode *(*extfun) (Btor *, BtorNode *, int);
-  BtorNode *(*rotatefun) (Btor *, BtorNode *, int);
-  BtorNode *(*unaryfun) (Btor *, BtorNode *);
-  BtorNode *res, *exp, *tmp, *old;
+  BoolectorNode *(*binfun) (Btor *, BoolectorNode *, BoolectorNode *);
+  BoolectorNode *(*extfun) (Btor *, BoolectorNode *, int);
+  BoolectorNode *(*rotatefun) (Btor *, BoolectorNode *, int);
+  BoolectorNode *(*unaryfun) (Btor *, BoolectorNode *);
+  BoolectorNode *res, *exp, *tmp, *old;
   BtorSMT2Item *l, *p;
   unaryfun = 0;
   binfun   = 0;
@@ -1776,7 +1780,7 @@ btor_parse_term_smt2 (BtorSMT2Parser *parser,
       if (tag == BTOR_EXP_TAG_SMT2 && nargs
           && boolector_is_fun (parser->btor, p[0].exp))
       {
-        BtorNodePtrStack fargs;
+        BoolectorNodePtrStack fargs;
         BTOR_INIT_STACK (fargs);
         for (i = 1; i <= nargs; i++)
         {
@@ -2818,11 +2822,11 @@ static int
 btor_define_fun_smt2 (BtorSMT2Parser *parser)
 {
   int tag, domain, width, nargs = 0;
-  BtorNode *exp = 0;
+  BoolectorNode *exp = 0;
   BtorSMT2Coo coo;
   BtorSMT2Item *item;
   BtorSMT2Node *fun, *arg;
-  BtorNodePtrStack args;
+  BoolectorNodePtrStack args;
   fun   = 0;
   arg   = 0;
   width = domain = 0;
@@ -3022,7 +3026,7 @@ btor_set_info_smt2 (BtorSMT2Parser *parser)
 static int
 btor_read_command_smt2 (BtorSMT2Parser *parser)
 {
-  BtorNode *exp = 0;
+  BoolectorNode *exp = 0;
   BtorSMT2Coo coo;
   int tag;
   coo.x = coo.y = 0;

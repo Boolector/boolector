@@ -21,6 +21,8 @@
 
 /*------------------------------------------------------------------------*/
 
+BTOR_DECLARE_STACK (BoolectorNodePtr, BoolectorNode *);
+
 typedef struct BtorSMTParser BtorSMTParser;
 typedef struct BtorSMTNode BtorSMTNode;
 typedef struct BtorSMTNodes BtorSMTNodes;
@@ -156,13 +158,13 @@ struct BtorSMTNode
 {
   void *head;
   void *tail;
-  BtorNode *exp;  // TODO overlay with tail/head?
+  BoolectorNode *exp;  // TODO overlay with tail/head?
 #ifdef BTOR_FIND_LEAKING_SMT_NODES
   struct BtorSMTNode *prev, *next;
 #endif
 };
 
-BTOR_DECLARE_STACK (SMTNodePtr, BtorSMTNode *);
+BTOR_DECLARE_STACK (BtorSMTNodePtr, BtorSMTNode *);
 
 struct BtorSMTSymbol
 {
@@ -170,7 +172,7 @@ struct BtorSMTSymbol
   BtorSMTToken token;
   BtorSMTSymbol *next;
   BtorSMTNode *last;
-  BtorNode *exp;
+  BoolectorNode *exp;
 };
 
 struct BtorSMTParser
@@ -231,9 +233,9 @@ struct BtorSMTParser
   BtorSMTNode *last;
 #endif
 
-  BtorNodePtrStack inputs;
-  BtorNodePtrStack outputs;
-  BtorNodePtrStack window;
+  BoolectorNodePtrStack inputs;
+  BoolectorNodePtrStack outputs;
+  BoolectorNodePtrStack window;
 };
 
 /*------------------------------------------------------------------------*/
@@ -329,14 +331,14 @@ find_symbol_position (BtorSMTParser *parser, const char *name)
 static void
 delete_symbol (BtorSMTParser *parser, BtorSMTSymbol *symbol)
 {
-  BtorNode *exp;
+  BoolectorNode *exp;
 
   assert (parser->symbols > 0);
   parser->symbols--;
 
   btor_freestr (parser->mem, symbol->name);
 
-  if ((exp = symbol->exp)) btor_release_exp (parser->btor, exp);
+  if ((exp = symbol->exp)) boolector_release (parser->btor, exp);
 
   BTOR_DELETE (parser->mem, symbol);
 }
@@ -363,7 +365,7 @@ btor_delete_smt_node (BtorSMTParser *parser, BtorSMTNode *node)
   assert (parser->nodes > 0);
   parser->nodes--;
 
-  if (node->exp) btor_release_exp (parser->btor, node->exp);
+  if (node->exp) boolector_release (parser->btor, node->exp);
 
   if (!parser->model && isleaf (car (node)))
   {
@@ -521,7 +523,7 @@ btor_release_smt_nodes (BtorSMTParser *parser)
     /* Became redundant, keep it for debugging BTOR_FIND_LEAKING_SMT_NODES.
      */
     BtorSMTNode *p, *prev;
-    BtorNode *e;
+    BoolectorNode *e;
 
     assert (!parser->last);
 
@@ -530,7 +532,7 @@ btor_release_smt_nodes (BtorSMTParser *parser)
       assert (parser->nodes > 0);
       parser->nodes--;
       prev = p->prev;
-      if ((e = p->exp)) btor_release_exp (parser->btor, e);
+      if ((e = p->exp)) boolector_release (parser->btor, e);
       BTOR_DELETE (parser->mem, p);
     }
     assert (!parser->nodes);
@@ -555,10 +557,10 @@ btor_release_smt_internals (BtorSMTParser *parser)
 static void
 btor_release_smt_vars (BtorSMTParser *parser)
 {
-  BtorNode **p;
+  BoolectorNode **p;
 
   for (p = parser->inputs.start; p < parser->inputs.top; p++)
-    btor_release_exp (parser->btor, *p);
+    boolector_release (parser->btor, *p);
 
   BTOR_RELEASE_STACK (parser->mem, parser->inputs);
 }
@@ -566,7 +568,7 @@ btor_release_smt_vars (BtorSMTParser *parser)
 static void
 btor_delete_smt_parser (BtorSMTParser *parser)
 {
-  BtorNode **p;
+  BoolectorNode **p;
 
   btor_release_smt_internals (parser);
 
@@ -574,11 +576,11 @@ btor_delete_smt_parser (BtorSMTParser *parser)
   btor_release_smt_vars (parser);
 
   for (p = parser->outputs.start; p != parser->outputs.top; p++)
-    btor_release_exp (parser->btor, *p);
+    boolector_release (parser->btor, *p);
   BTOR_RELEASE_STACK (parser->mem, parser->outputs);
 
   for (p = parser->window.start; p != parser->window.top; p++)
-    btor_release_exp (parser->btor, *p);
+    boolector_release (parser->btor, *p);
   BTOR_RELEASE_STACK (parser->mem, parser->window);
 
   BTOR_DELETE (parser->mem, parser);
@@ -1230,11 +1232,11 @@ btorsmtpp (BtorSMTNode *node)
 }
 
 static void
-push_input (BtorSMTParser *parser, BtorNode *v)
+push_input (BtorSMTParser *parser, BoolectorNode *v)
 {
   if (parser->model)
     BTOR_PUSH_STACK (
-        parser->mem, parser->inputs, btor_copy_exp (parser->btor, v));
+        parser->mem, parser->inputs, boolector_copy (parser->btor, v));
 }
 
 static const char *
@@ -1306,7 +1308,7 @@ extrafun (BtorSMTParser *parser, BtorSMTNode *fdecl)
 
   if (!strcmp (p, "Bool"))
   {
-    symbol->exp = btor_var_exp (parser->btor, 1, symbol->name);
+    symbol->exp = boolector_var (parser->btor, 1, symbol->name);
     push_input (parser, symbol->exp);
   }
   else if (has_prefix (p, "BitVec"))
@@ -1316,7 +1318,7 @@ extrafun (BtorSMTParser *parser, BtorSMTNode *fdecl)
     datalen = atoi (p); /* TODO Overflow? */
     if (!datalen) goto INVALID_SORT;
 
-    symbol->exp = btor_var_exp (parser->btor, datalen, symbol->name);
+    symbol->exp = boolector_var (parser->btor, datalen, symbol->name);
     push_input (parser, symbol->exp);
   }
   else if (has_prefix (p, "Array"))
@@ -1331,7 +1333,8 @@ extrafun (BtorSMTParser *parser, BtorSMTNode *fdecl)
     datalen = atoi (p); /* TODO Overflow? */
     if (!datalen) goto INVALID_SORT;
 
-    symbol->exp = btor_array_exp (parser->btor, datalen, addrlen, symbol->name);
+    symbol->exp =
+        boolector_array (parser->btor, datalen, addrlen, symbol->name);
 
     if (parser->required_logic == BTOR_LOGIC_QF_BV)
     {
@@ -1382,7 +1385,7 @@ extrapred (BtorSMTParser *parser, BtorSMTNode *pdecl)
     return !btor_perr_smt (
         parser, "multiple definitions for '%s'", symbol->name);
 
-  symbol->exp = btor_var_exp (parser->btor, 1, symbol->name);
+  symbol->exp = boolector_var (parser->btor, 1, symbol->name);
   push_input (parser, symbol->exp);
 
   return 1;
@@ -1416,7 +1419,7 @@ is_let_or_flet (BtorSMTNode *node)
   return token == BTOR_SMTOK_LET || token == BTOR_SMTOK_FLET;
 }
 
-static BtorNode *
+static BoolectorNode *
 node2exp (BtorSMTParser *parser, BtorSMTNode *node)
 {
   const char *p, *start, *end;
@@ -1431,10 +1434,10 @@ node2exp (BtorSMTParser *parser, BtorSMTNode *node)
 
     token = symbol->token;
     if (token == BTOR_SMTOK_TRUE || token == BTOR_SMTOK_BIT1)
-      return symbol->exp = btor_const_exp (parser->btor, "1");
+      return symbol->exp = boolector_const (parser->btor, "1");
 
     if (token == BTOR_SMTOK_FALSE || token == BTOR_SMTOK_BIT0)
-      return symbol->exp = btor_const_exp (parser->btor, "0");
+      return symbol->exp = boolector_const (parser->btor, "0");
 
     p = symbol->name;
     if (*p++ == 'b' && *p++ == 'v')
@@ -1469,7 +1472,7 @@ node2exp (BtorSMTParser *parser, BtorSMTNode *node)
                   tmp = extended;
                 }
 
-                symbol->exp = btor_const_exp (parser->btor, tmp);
+                symbol->exp = boolector_const (parser->btor, tmp);
                 parser->constants++;
               }
 
@@ -1487,7 +1490,7 @@ node2exp (BtorSMTParser *parser, BtorSMTNode *node)
 
           if (start < p && !*p)
           {
-            symbol->exp = btor_const_exp (parser->btor, start);
+            symbol->exp = boolector_const (parser->btor, start);
             parser->constants++;
           }
         }
@@ -1509,7 +1512,7 @@ node2exp (BtorSMTParser *parser, BtorSMTNode *node)
             btor_delete_const (parser->mem, tmp);
             tmp = extended;
           }
-          symbol->exp = btor_const_exp (parser->btor, tmp);
+          symbol->exp = boolector_const (parser->btor, tmp);
           btor_delete_const (parser->mem, tmp);
           parser->constants++;
         }
@@ -1534,13 +1537,13 @@ node2exp (BtorSMTParser *parser, BtorSMTNode *node)
   return 0;
 }
 
-static BtorNode *
+static BoolectorNode *
 node2nonarrayexp (BtorSMTParser *parser, BtorSMTNode *node)
 {
-  BtorNode *res;
+  BoolectorNode *res;
 
   res = node2exp (parser, node);
-  if (res && btor_is_array_exp (parser->btor, res))
+  if (res && boolector_is_array (parser->btor, res))
   {
     (void) btor_perr_smt (parser, "unexpected array argument");
     res = 0;
@@ -1550,7 +1553,7 @@ node2nonarrayexp (BtorSMTParser *parser, BtorSMTNode *node)
 }
 
 static void
-translate_node (BtorSMTParser *parser, BtorSMTNode *node, BtorNode *exp)
+translate_node (BtorSMTParser *parser, BtorSMTNode *node, BoolectorNode *exp)
 {
   (void) parser;
   assert (!isleaf (node));
@@ -1562,7 +1565,7 @@ static void
 translate_symbol (BtorSMTParser *parser, BtorSMTNode *node)
 {
   BtorSMTNode *c;
-  BtorNode *a;
+  BoolectorNode *a;
 
   assert (!node->exp);
   if (!is_list_of_length (node, 1))
@@ -1573,17 +1576,17 @@ translate_symbol (BtorSMTParser *parser, BtorSMTNode *node)
 
   c = car (node);
   if ((a = node2nonarrayexp (parser, c)))
-    translate_node (parser, node, btor_copy_exp (parser->btor, a));
+    translate_node (parser, node, boolector_copy (parser->btor, a));
 }
 
 static void
 translate_unary (BtorSMTParser *parser,
                  BtorSMTNode *node,
                  const char *name,
-                 BtorNode *(*f) (Btor *, BtorNode *) )
+                 BoolectorNode *(*f) (Btor *, BoolectorNode *) )
 {
   BtorSMTNode *c;
-  BtorNode *a;
+  BoolectorNode *a;
 
   assert (!node->exp);
 
@@ -1603,10 +1606,12 @@ static void
 translate_binary (BtorSMTParser *parser,
                   BtorSMTNode *node,
                   const char *name,
-                  BtorNode *(*f) (Btor *, BtorNode *, BtorNode *) )
+                  BoolectorNode *(*f) (Btor *,
+                                       BoolectorNode *,
+                                       BoolectorNode *) )
 {
   BtorSMTNode *c0, *c1;
-  BtorNode *a0, *a1;
+  BoolectorNode *a0, *a1;
 
   assert (!node->exp);
 
@@ -1623,8 +1628,8 @@ translate_binary (BtorSMTParser *parser,
   if ((a0 = node2nonarrayexp (parser, c0)))
     if ((a1 = node2nonarrayexp (parser, c1)))
     {
-      if (btor_get_exp_len (parser->btor, a0)
-          != btor_get_exp_len (parser->btor, a1))
+      if (boolector_get_width (parser->btor, a0)
+          != boolector_get_width (parser->btor, a1))
         (void) btor_perr_smt (parser, "expression width mismatch");
       else
         translate_node (parser, node, f (parser->btor, a0, a1));
@@ -1636,7 +1641,7 @@ translate_eq (BtorSMTParser *parser, BtorSMTNode *node)
 {
   int isarray0, isarray1, len0, len1;
   BtorSMTNode *c0, *c1;
-  BtorNode *a0, *a1;
+  BoolectorNode *a0, *a1;
 
   assert (!node->exp);
 
@@ -1654,8 +1659,8 @@ translate_eq (BtorSMTParser *parser, BtorSMTNode *node)
   a1 = node2exp (parser, c1);
   if (!a1) return;
 
-  len0 = btor_get_exp_len (parser->btor, a0);
-  len1 = btor_get_exp_len (parser->btor, a1);
+  len0 = boolector_get_width (parser->btor, a0);
+  len1 = boolector_get_width (parser->btor, a1);
 
   if (len0 != len1)
   {
@@ -1663,8 +1668,8 @@ translate_eq (BtorSMTParser *parser, BtorSMTNode *node)
     return;
   }
 
-  isarray0 = btor_is_array_exp (parser->btor, a0);
-  isarray1 = btor_is_array_exp (parser->btor, a1);
+  isarray0 = boolector_is_array (parser->btor, a0);
+  isarray1 = boolector_is_array (parser->btor, a1);
 
   if (isarray0 != isarray1)
   {
@@ -1674,8 +1679,8 @@ translate_eq (BtorSMTParser *parser, BtorSMTNode *node)
 
   if (isarray0 && isarray1)
   {
-    len0 = btor_get_index_exp_len (parser->btor, a0);
-    len1 = btor_get_index_exp_len (parser->btor, a1);
+    len0 = boolector_get_index_width (parser->btor, a0);
+    len1 = boolector_get_index_width (parser->btor, a1);
 
     if (len0 != len1)
     {
@@ -1685,16 +1690,18 @@ translate_eq (BtorSMTParser *parser, BtorSMTNode *node)
   }
 
   assert (!parser->error);
-  translate_node (parser, node, btor_eq_exp (parser->btor, a0, a1));
+  translate_node (parser, node, boolector_eq (parser->btor, a0, a1));
 }
 
 static void
 translate_associative_binary (BtorSMTParser *parser,
                               BtorSMTNode *node,
                               const char *name,
-                              BtorNode *(*f) (Btor *, BtorNode *, BtorNode *) )
+                              BoolectorNode *(*f) (Btor *,
+                                                   BoolectorNode *,
+                                                   BoolectorNode *) )
 {
-  BtorNode *res, *tmp, *exp;
+  BoolectorNode *res, *tmp, *exp;
   BtorSMTNode *child, *p;
   int len;
 
@@ -1709,8 +1716,8 @@ translate_associative_binary (BtorSMTParser *parser,
     return;
   }
 
-  len = btor_get_exp_len (parser->btor, exp);
-  res = btor_copy_exp (parser->btor, exp);
+  len = boolector_get_width (parser->btor, exp);
+  res = boolector_copy (parser->btor, exp);
 
   for (p = cdr (cdr (node)); p; p = cdr (p))
   {
@@ -1718,19 +1725,19 @@ translate_associative_binary (BtorSMTParser *parser,
     if (!(exp = node2nonarrayexp (parser, child)))
     {
     RELEASE_RES_CHECK_FOR_PARSE_ERROR_AND_RETURN:
-      btor_release_exp (parser->btor, res);
+      boolector_release (parser->btor, res);
       assert (parser->error);
       goto CHECK_FOR_PARSE_ERROR_AND_RETURN;
     }
 
-    if (btor_get_exp_len (parser->btor, exp) != len)
+    if (boolector_get_width (parser->btor, exp) != len)
     {
       btor_perr_smt (parser, "mismatched width of arguments of '%s'", name);
       goto RELEASE_RES_CHECK_FOR_PARSE_ERROR_AND_RETURN;
     }
 
     tmp = f (parser->btor, res, exp); /* left associative ? */
-    btor_release_exp (parser->btor, res);
+    boolector_release (parser->btor, res);
     res = tmp;
   }
 
@@ -1742,7 +1749,7 @@ translate_cond (BtorSMTParser *parser, BtorSMTNode *node, const char *name)
 {
   int isarray1, isarray2, len1, len2;
   BtorSMTNode *c0, *c1, *c2;
-  BtorNode *a0, *a1, *a2;
+  BoolectorNode *a0, *a1, *a2;
 
   assert (!node->exp);
 
@@ -1760,7 +1767,7 @@ translate_cond (BtorSMTParser *parser, BtorSMTNode *node, const char *name)
   a0 = node2nonarrayexp (parser, c0);
   if (!a0) return;
 
-  if (btor_get_exp_len (parser->btor, a0) != 1)
+  if (boolector_get_width (parser->btor, a0) != 1)
   {
     (void) btor_perr_smt (parser, "non boolean conditional");
     return;
@@ -1772,8 +1779,8 @@ translate_cond (BtorSMTParser *parser, BtorSMTNode *node, const char *name)
   a2 = node2exp (parser, c2);
   if (!a2) return;
 
-  len1 = btor_get_exp_len (parser->btor, a1);
-  len2 = btor_get_exp_len (parser->btor, a2);
+  len1 = boolector_get_width (parser->btor, a1);
+  len2 = boolector_get_width (parser->btor, a2);
 
   if (len1 != len2)
   {
@@ -1781,8 +1788,8 @@ translate_cond (BtorSMTParser *parser, BtorSMTNode *node, const char *name)
     return;
   }
 
-  isarray1 = btor_is_array_exp (parser->btor, a1);
-  isarray2 = btor_is_array_exp (parser->btor, a2);
+  isarray1 = boolector_is_array (parser->btor, a1);
+  isarray2 = boolector_is_array (parser->btor, a2);
 
   if (isarray1 != isarray2)
   {
@@ -1793,8 +1800,8 @@ translate_cond (BtorSMTParser *parser, BtorSMTNode *node, const char *name)
 
   if (isarray1 && isarray2)
   {
-    len1 = btor_get_index_exp_len (parser->btor, a1);
-    len2 = btor_get_index_exp_len (parser->btor, a2);
+    len1 = boolector_get_index_width (parser->btor, a1);
+    len2 = boolector_get_index_width (parser->btor, a2);
 
     if (len1 != len2)
     {
@@ -1803,7 +1810,7 @@ translate_cond (BtorSMTParser *parser, BtorSMTNode *node, const char *name)
     }
   }
 
-  translate_node (parser, node, btor_cond_exp (parser->btor, a0, a1, a2));
+  translate_node (parser, node, boolector_cond (parser->btor, a0, a1, a2));
 }
 
 static void
@@ -1812,7 +1819,7 @@ translate_extract (BtorSMTParser *parser, BtorSMTNode *node)
   BtorSMTSymbol *symbol;
   int upper, lower, len;
   const char *p;
-  BtorNode *exp;
+  BoolectorNode *exp;
 
   assert (!node->exp);
 
@@ -1832,7 +1839,7 @@ translate_extract (BtorSMTParser *parser, BtorSMTNode *node)
     return;
   }
 
-  len = btor_get_exp_len (parser->btor, exp);
+  len = boolector_get_width (parser->btor, exp);
 
   p = next_numeral (p);
   assert (p);
@@ -1849,13 +1856,13 @@ translate_extract (BtorSMTParser *parser, BtorSMTNode *node)
   }
 
   translate_node (
-      parser, node, btor_slice_exp (parser->btor, exp, upper, lower));
+      parser, node, boolector_slice (parser->btor, exp, upper, lower));
 }
 
 static void
 translate_repeat (BtorSMTParser *parser, BtorSMTNode *node)
 {
-  BtorNode *tmp, *exp, *res;
+  BoolectorNode *tmp, *exp, *res;
   BtorSMTSymbol *symbol;
   const char *p;
   int i, count;
@@ -1890,12 +1897,12 @@ translate_repeat (BtorSMTParser *parser, BtorSMTNode *node)
     return;
   }
 
-  res = btor_copy_exp (parser->btor, exp);
+  res = boolector_copy (parser->btor, exp);
 
   for (i = 1; i < count; i++)
   {
-    tmp = btor_concat_exp (parser->btor, exp, res);
-    btor_release_exp (parser->btor, res);
+    tmp = boolector_concat (parser->btor, exp, res);
+    boolector_release (parser->btor, res);
     res = tmp;
   }
 
@@ -1905,11 +1912,11 @@ translate_repeat (BtorSMTParser *parser, BtorSMTNode *node)
 static void
 translate_extend (BtorSMTParser *parser,
                   BtorSMTNode *node,
-                  BtorNode *(*f) (Btor *, BtorNode *, int) )
+                  BoolectorNode *(*f) (Btor *, BoolectorNode *, int) )
 {
   BtorSMTSymbol *symbol;
   const char *p;
-  BtorNode *exp;
+  BoolectorNode *exp;
   int pad;
 
   assert (!node->exp);
@@ -1940,7 +1947,7 @@ translate_extend (BtorSMTParser *parser,
 static void
 translate_rotate (BtorSMTParser *parser, BtorSMTNode *node)
 {
-  BtorNode *exp, *l, *r;
+  BoolectorNode *exp, *l, *r;
   BtorSMTSymbol *symbol;
   int shift, token, len;
   const char *p;
@@ -1971,7 +1978,7 @@ translate_rotate (BtorSMTParser *parser, BtorSMTNode *node)
   shift = atoi (p); /* TODO Overflow? */
   assert (shift >= 0);
 
-  len = btor_get_exp_len (parser->btor, exp);
+  len = boolector_get_width (parser->btor, exp);
   assert (len > 0);
   shift %= len;
 
@@ -1981,24 +1988,24 @@ translate_rotate (BtorSMTParser *parser, BtorSMTNode *node)
 
     assert (1 <= shift && shift < len);
 
-    l = btor_slice_exp (parser->btor, exp, shift - 1, 0);
-    r = btor_slice_exp (parser->btor, exp, len - 1, shift);
+    l = boolector_slice (parser->btor, exp, shift - 1, 0);
+    r = boolector_slice (parser->btor, exp, len - 1, shift);
 
-    translate_node (parser, node, btor_concat_exp (parser->btor, l, r));
-    assert (btor_get_exp_len (parser->btor, node->exp) == len);
+    translate_node (parser, node, boolector_concat (parser->btor, l, r));
+    assert (boolector_get_width (parser->btor, node->exp) == len);
 
-    btor_release_exp (parser->btor, l);
-    btor_release_exp (parser->btor, r);
+    boolector_release (parser->btor, l);
+    boolector_release (parser->btor, r);
   }
   else
-    translate_node (parser, node, btor_copy_exp (parser->btor, exp));
+    translate_node (parser, node, boolector_copy (parser->btor, exp));
 }
 
 static void
 translate_concat (BtorSMTParser *parser, BtorSMTNode *node)
 {
   BtorSMTNode *c0, *c1;
-  BtorNode *a0, *a1;
+  BoolectorNode *a0, *a1;
 
   assert (!node->exp);
 
@@ -2013,16 +2020,18 @@ translate_concat (BtorSMTParser *parser, BtorSMTNode *node)
 
   if ((a0 = node2nonarrayexp (parser, c0)))
     if ((a1 = node2nonarrayexp (parser, c1)))
-      translate_node (parser, node, btor_concat_exp (parser->btor, a0, a1));
+      translate_node (parser, node, boolector_concat (parser->btor, a0, a1));
 }
 
 static void
 translate_shift (BtorSMTParser *parser,
                  BtorSMTNode *node,
                  const char *name,
-                 BtorNode *(*f) (Btor *, BtorNode *, BtorNode *) )
+                 BoolectorNode *(*f) (Btor *,
+                                      BoolectorNode *,
+                                      BoolectorNode *) )
 {
-  BtorNode *a0, *a1, *c, *e, *t, *e0, *u, *l, *tmp;
+  BoolectorNode *a0, *a1, *c, *e, *t, *e0, *u, *l, *tmp;
   int len, l0, l1, p0, p1;
   BtorSMTNode *c0, *c1;
 
@@ -2050,9 +2059,9 @@ translate_shift (BtorSMTParser *parser,
     return;
   }
 
-  len = btor_get_exp_len (parser->btor, a0);
+  len = boolector_get_width (parser->btor, a0);
 
-  if (len != btor_get_exp_len (parser->btor, a1))
+  if (len != boolector_get_width (parser->btor, a1))
   {
     (void) btor_perr_smt (parser, "expression width mismatch");
     return;
@@ -2068,13 +2077,13 @@ translate_shift (BtorSMTParser *parser,
     assert (l0 == 1);
     assert (l1 == 0);
 
-    if (f == btor_sra_exp)
-      translate_node (parser, node, btor_copy_exp (parser->btor, a0));
+    if (f == boolector_sra)
+      translate_node (parser, node, boolector_copy (parser->btor, a0));
     else
     {
-      tmp = btor_not_exp (parser->btor, a1);
-      translate_node (parser, node, btor_and_exp (parser->btor, a0, tmp));
-      btor_release_exp (parser->btor, tmp);
+      tmp = boolector_not (parser->btor, a1);
+      translate_node (parser, node, boolector_and (parser->btor, a0, tmp));
+      boolector_release (parser->btor, tmp);
     }
   }
   else
@@ -2087,53 +2096,53 @@ translate_shift (BtorSMTParser *parser,
     assert (p0 >= 0);
     assert (p1 > 0);
 
-    u = btor_slice_exp (parser->btor, a1, len - 1, len - p1);
-    l = btor_slice_exp (parser->btor, a1, l1 - 1, 0);
+    u = boolector_slice (parser->btor, a1, len - 1, len - p1);
+    l = boolector_slice (parser->btor, a1, l1 - 1, 0);
 
-    assert (btor_get_exp_len (parser->btor, u) == p1);
-    assert (btor_get_exp_len (parser->btor, l) == l1);
+    assert (boolector_get_width (parser->btor, u) == p1);
+    assert (boolector_get_width (parser->btor, l) == l1);
 
     if (p1 > 1)
-      c = btor_redor_exp (parser->btor, u);
+      c = boolector_redor (parser->btor, u);
     else
-      c = btor_copy_exp (parser->btor, u);
+      c = boolector_copy (parser->btor, u);
 
-    btor_release_exp (parser->btor, u);
+    boolector_release (parser->btor, u);
 
-    if (f == btor_sra_exp)
+    if (f == boolector_sra)
     {
-      tmp = btor_slice_exp (parser->btor, a0, len - 1, len - 1);
-      t   = btor_sext_exp (parser->btor, tmp, len - 1);
-      btor_release_exp (parser->btor, tmp);
+      tmp = boolector_slice (parser->btor, a0, len - 1, len - 1);
+      t   = boolector_sext (parser->btor, tmp, len - 1);
+      boolector_release (parser->btor, tmp);
     }
     else
-      t = btor_zero_exp (parser->btor, len);
+      t = boolector_zero (parser->btor, len);
 
     if (!p0)
-      e0 = btor_copy_exp (parser->btor, a0);
-    else if (f == btor_sra_exp)
-      e0 = btor_sext_exp (parser->btor, a0, p0);
+      e0 = boolector_copy (parser->btor, a0);
+    else if (f == boolector_sra)
+      e0 = boolector_sext (parser->btor, a0, p0);
     else
-      e0 = btor_uext_exp (parser->btor, a0, p0);
+      e0 = boolector_uext (parser->btor, a0, p0);
 
-    assert (btor_get_exp_len (parser->btor, e0) == l0);
+    assert (boolector_get_width (parser->btor, e0) == l0);
 
     e = f (parser->btor, e0, l);
-    btor_release_exp (parser->btor, e0);
-    btor_release_exp (parser->btor, l);
+    boolector_release (parser->btor, e0);
+    boolector_release (parser->btor, l);
 
     if (p0 > 0)
     {
-      tmp = btor_slice_exp (parser->btor, e, len - 1, 0);
-      btor_release_exp (parser->btor, e);
+      tmp = boolector_slice (parser->btor, e, len - 1, 0);
+      boolector_release (parser->btor, e);
       e = tmp;
     }
 
-    translate_node (parser, node, btor_cond_exp (parser->btor, c, t, e));
+    translate_node (parser, node, boolector_cond (parser->btor, c, t, e));
 
-    btor_release_exp (parser->btor, c);
-    btor_release_exp (parser->btor, t);
-    btor_release_exp (parser->btor, e);
+    boolector_release (parser->btor, c);
+    boolector_release (parser->btor, t);
+    boolector_release (parser->btor, e);
   }
 }
 
@@ -2141,7 +2150,7 @@ static void
 translate_select (BtorSMTParser *parser, BtorSMTNode *node)
 {
   BtorSMTNode *c0, *c1;
-  BtorNode *a0, *a1;
+  BoolectorNode *a0, *a1;
 
   assert (!node->exp);
 
@@ -2160,7 +2169,7 @@ translate_select (BtorSMTParser *parser, BtorSMTNode *node)
     return;
   }
 
-  if (!btor_is_array_exp (parser->btor, a0))
+  if (!boolector_is_array (parser->btor, a0))
   {
     (void) btor_perr_smt (parser, "invalid first argument to 'select'");
     return;
@@ -2172,21 +2181,21 @@ translate_select (BtorSMTParser *parser, BtorSMTNode *node)
     return;
   }
 
-  if (btor_get_index_exp_len (parser->btor, a0)
-      != btor_get_exp_len (parser->btor, a1))
+  if (boolector_get_index_width (parser->btor, a0)
+      != boolector_get_width (parser->btor, a1))
   {
     (void) btor_perr_smt (parser, "mismatched bit width of 'select' index");
     return;
   }
 
-  translate_node (parser, node, btor_read_exp (parser->btor, a0, a1));
+  translate_node (parser, node, boolector_read (parser->btor, a0, a1));
 }
 
 static void
 translate_store (BtorSMTParser *parser, BtorSMTNode *node)
 {
   BtorSMTNode *c0, *c1, *c2;
-  BtorNode *a0, *a1, *a2;
+  BoolectorNode *a0, *a1, *a2;
 
   assert (!node->exp);
 
@@ -2207,7 +2216,7 @@ translate_store (BtorSMTParser *parser, BtorSMTNode *node)
     return;
   }
 
-  if (!btor_is_array_exp (parser->btor, a0))
+  if (!boolector_is_array (parser->btor, a0))
   {
     (void) btor_perr_smt (parser, "invalid first argument to 'store'");
     return;
@@ -2219,8 +2228,8 @@ translate_store (BtorSMTParser *parser, BtorSMTNode *node)
     return;
   }
 
-  if (btor_get_index_exp_len (parser->btor, a0)
-      != btor_get_exp_len (parser->btor, a1))
+  if (boolector_get_index_width (parser->btor, a0)
+      != boolector_get_width (parser->btor, a1))
   {
     (void) btor_perr_smt (parser, "mismatched bit width of 'store' index");
     return;
@@ -2232,17 +2241,17 @@ translate_store (BtorSMTParser *parser, BtorSMTNode *node)
     return;
   }
 
-  if (btor_get_exp_len (parser->btor, a2)
-      != btor_get_exp_len (parser->btor, a0))
+  if (boolector_get_width (parser->btor, a2)
+      != boolector_get_width (parser->btor, a0))
   {
     (void) btor_perr_smt (parser, "mismatched bit width of 'store' value");
     return;
   }
 
-  translate_node (parser, node, btor_write_exp (parser->btor, a0, a1, a2));
+  translate_node (parser, node, boolector_write (parser->btor, a0, a1, a2));
 }
 
-static BtorNode *
+static BoolectorNode *
 translate_formula (BtorSMTParser *parser, BtorSMTNode *root)
 {
   BtorSMTNode *node, *child, *p, **s, **t, *tmp;
@@ -2250,7 +2259,7 @@ translate_formula (BtorSMTParser *parser, BtorSMTNode *root)
   BtorSMTSymbol *symbol;
   BtorSMTToken token;
   int start, end;
-  BtorNode *exp;
+  BoolectorNode *exp;
 
   assert (BTOR_EMPTY_STACK (parser->work));
   assert (BTOR_EMPTY_STACK (parser->stack));
@@ -2283,7 +2292,7 @@ translate_formula (BtorSMTParser *parser, BtorSMTNode *root)
             || !cdr (assignment) || cdr (cdr (assignment)) || !cdr (cdr (node))
             || cdr (cdr (cdr (node))))
           return btor_perr_smt (parser, "illformed 'let' or 'flet'"),
-                 (BtorNode *) 0;
+                 (BoolectorNode *) 0;
 
         body = car (cdr (cdr (node)));
 
@@ -2354,7 +2363,8 @@ translate_formula (BtorSMTParser *parser, BtorSMTNode *root)
 
     child = car (node);
 
-    if (!child) return btor_perr_smt (parser, "empty list"), (BtorNode *) 0;
+    if (!child)
+      return btor_perr_smt (parser, "empty list"), (BoolectorNode *) 0;
 
     if (isleaf (child))
     {
@@ -2363,28 +2373,28 @@ translate_formula (BtorSMTParser *parser, BtorSMTNode *root)
       switch (symbol->token)
       {
         case BTOR_SMTOK_NOT:
-          translate_unary (parser, node, "not", btor_not_exp);
+          translate_unary (parser, node, "not", boolector_not);
           break;
         case BTOR_SMTOK_AND:
-          translate_associative_binary (parser, node, "and", btor_and_exp);
+          translate_associative_binary (parser, node, "and", boolector_and);
           break;
         case BTOR_SMTOK_OR:
-          translate_associative_binary (parser, node, "or", btor_or_exp);
+          translate_associative_binary (parser, node, "or", boolector_or);
           break;
         case BTOR_SMTOK_IMPLIES:
-          translate_binary (parser, node, "implies", btor_implies_exp);
+          translate_binary (parser, node, "implies", boolector_implies);
           break;
         case BTOR_SMTOK_XOR:
-          translate_associative_binary (parser, node, "xor", btor_xor_exp);
+          translate_associative_binary (parser, node, "xor", boolector_xor);
           break;
         case BTOR_SMTOK_IFF:
-          translate_associative_binary (parser, node, "iff", btor_xnor_exp);
+          translate_associative_binary (parser, node, "iff", boolector_xnor);
           break;
 
         case BTOR_SMTOK_EQ: translate_eq (parser, node); break;
 
         case BTOR_SMTOK_DISTINCT:
-          translate_binary (parser, node, "distinct", btor_ne_exp);
+          translate_binary (parser, node, "distinct", boolector_ne);
           break;
         case BTOR_SMTOK_ITE: translate_cond (parser, node, "ite"); break;
         case BTOR_SMTOK_IF_THEN_ELSE:
@@ -2398,23 +2408,23 @@ translate_formula (BtorSMTParser *parser, BtorSMTNode *root)
           symbol = strip (car (cdr (node)));
           if (symbol->exp)
             return btor_perr_smt (parser, "unsupported nested '[f]let'"),
-                   (BtorNode *) 0;
+                   (BoolectorNode *) 0;
           body = car (cdr (cdr (node)));
           if ((exp = node2exp (parser, body)))
           {
             if (symbol->token == BTOR_SMTOK_FVAR)
             {
-              if (btor_get_exp_len (parser->btor, exp) != 1)
+              if (boolector_get_width (parser->btor, exp) != 1)
               {
                 return btor_perr_smt (parser, "flet assignment width not one"),
-                       (BtorNode *) 0;
+                       (BoolectorNode *) 0;
               }
             }
             else
               assert (symbol->token == BTOR_SMTOK_VAR);
 
             assert (!symbol->exp);
-            symbol->exp = btor_copy_exp (parser->btor, exp);
+            symbol->exp = boolector_copy (parser->btor, exp);
           }
           /* Prevent leaking of 'bind' nodes.
            */
@@ -2429,104 +2439,104 @@ translate_formula (BtorSMTParser *parser, BtorSMTNode *root)
           assert (symbol->exp);
           body = car (cdr (cdr (node)));
           if ((exp = node2exp (parser, body)))
-            node->exp = btor_copy_exp (parser->btor, exp);
-          btor_release_exp (parser->btor, symbol->exp);
+            node->exp = boolector_copy (parser->btor, exp);
+          boolector_release (parser->btor, symbol->exp);
           symbol->exp = 0;
           break;
         case BTOR_SMTOK_EXTRACT: translate_extract (parser, node); break;
         case BTOR_SMTOK_REPEAT: translate_repeat (parser, node); break;
         case BTOR_SMTOK_ZERO_EXTEND:
-          translate_extend (parser, node, btor_uext_exp);
+          translate_extend (parser, node, boolector_uext);
           break;
         case BTOR_SMTOK_SIGN_EXTEND:
-          translate_extend (parser, node, btor_sext_exp);
+          translate_extend (parser, node, boolector_sext);
           break;
         case BTOR_SMTOK_ROTATE_RIGHT:
         case BTOR_SMTOK_ROTATE_LEFT: translate_rotate (parser, node); break;
         case BTOR_SMTOK_CONCAT: translate_concat (parser, node); break;
         case BTOR_SMTOK_BVNOT:
-          translate_unary (parser, node, "bvnot", btor_not_exp);
+          translate_unary (parser, node, "bvnot", boolector_not);
           break;
         case BTOR_SMTOK_BVNEG:
-          translate_unary (parser, node, "bvneg", btor_neg_exp);
+          translate_unary (parser, node, "bvneg", boolector_neg);
           break;
         case BTOR_SMTOK_BVADD:
-          translate_associative_binary (parser, node, "bvadd", btor_add_exp);
+          translate_associative_binary (parser, node, "bvadd", boolector_add);
           break;
         case BTOR_SMTOK_BVSUB:
-          translate_binary (parser, node, "bvsub", btor_sub_exp);
+          translate_binary (parser, node, "bvsub", boolector_sub);
           break;
         case BTOR_SMTOK_BVSDIV:
-          translate_binary (parser, node, "bvsdiv", btor_sdiv_exp);
+          translate_binary (parser, node, "bvsdiv", boolector_sdiv);
           break;
         case BTOR_SMTOK_BVUDIV:
-          translate_binary (parser, node, "bvudiv", btor_udiv_exp);
+          translate_binary (parser, node, "bvudiv", boolector_udiv);
           break;
         case BTOR_SMTOK_BVUREM:
-          translate_binary (parser, node, "bvurem", btor_urem_exp);
+          translate_binary (parser, node, "bvurem", boolector_urem);
           break;
         case BTOR_SMTOK_BVSREM:
-          translate_binary (parser, node, "bvsrem", btor_srem_exp);
+          translate_binary (parser, node, "bvsrem", boolector_srem);
           break;
         case BTOR_SMTOK_BVSMOD:
-          translate_binary (parser, node, "bvsmod", btor_smod_exp);
+          translate_binary (parser, node, "bvsmod", boolector_smod);
           break;
         case BTOR_SMTOK_BVMUL:
-          translate_associative_binary (parser, node, "bvmul", btor_mul_exp);
+          translate_associative_binary (parser, node, "bvmul", boolector_mul);
           break;
         case BTOR_SMTOK_BVULE:
-          translate_binary (parser, node, "bvule", btor_ulte_exp);
+          translate_binary (parser, node, "bvule", boolector_ulte);
           break;
         case BTOR_SMTOK_BVSLE:
-          translate_binary (parser, node, "bvsle", btor_slte_exp);
+          translate_binary (parser, node, "bvsle", boolector_slte);
           break;
         case BTOR_SMTOK_BVSGT:
-          translate_binary (parser, node, "bvsgt", btor_sgt_exp);
+          translate_binary (parser, node, "bvsgt", boolector_sgt);
           break;
         case BTOR_SMTOK_BVSGE:
-          translate_binary (parser, node, "bvsge", btor_sgte_exp);
+          translate_binary (parser, node, "bvsge", boolector_sgte);
           break;
         case BTOR_SMTOK_BVCOMP:
-          translate_binary (parser, node, "bvcomp", btor_eq_exp);
+          translate_binary (parser, node, "bvcomp", boolector_eq);
           break;
         case BTOR_SMTOK_BVULT:
-          translate_binary (parser, node, "bvult", btor_ult_exp);
+          translate_binary (parser, node, "bvult", boolector_ult);
           break;
         case BTOR_SMTOK_BVUGT:
-          translate_binary (parser, node, "bvugt", btor_ugt_exp);
+          translate_binary (parser, node, "bvugt", boolector_ugt);
           break;
         case BTOR_SMTOK_BVUGE:
-          translate_binary (parser, node, "bvuge", btor_ugte_exp);
+          translate_binary (parser, node, "bvuge", boolector_ugte);
           break;
         case BTOR_SMTOK_BVSLT:
-          translate_binary (parser, node, "bvslt", btor_slt_exp);
+          translate_binary (parser, node, "bvslt", boolector_slt);
           break;
         case BTOR_SMTOK_BVAND:
-          translate_binary (parser, node, "bvand", btor_and_exp);
+          translate_binary (parser, node, "bvand", boolector_and);
           break;
         case BTOR_SMTOK_BVOR:
-          translate_binary (parser, node, "bvor", btor_or_exp);
+          translate_binary (parser, node, "bvor", boolector_or);
           break;
         case BTOR_SMTOK_BVXOR:
-          translate_binary (parser, node, "bvxor", btor_xor_exp);
+          translate_binary (parser, node, "bvxor", boolector_xor);
           break;
         case BTOR_SMTOK_BVXNOR:
-          translate_binary (parser, node, "bvxnor", btor_xnor_exp);
+          translate_binary (parser, node, "bvxnor", boolector_xnor);
           break;
         case BTOR_SMTOK_BVNOR:
-          translate_binary (parser, node, "bvnor", btor_nor_exp);
+          translate_binary (parser, node, "bvnor", boolector_nor);
           break;
         case BTOR_SMTOK_BVNAND:
-          translate_binary (parser, node, "bvnand", btor_nand_exp);
+          translate_binary (parser, node, "bvnand", boolector_nand);
           break;
         case BTOR_SMTOK_BVLSHR:
-          translate_shift (parser, node, "bvlshr", btor_srl_exp);
+          translate_shift (parser, node, "bvlshr", boolector_srl);
           break;
         case BTOR_SMTOK_BVASHR:
-          translate_shift (parser, node, "bvashr", btor_sra_exp);
+          translate_shift (parser, node, "bvashr", boolector_sra);
           break;
         case BTOR_SMTOK_BVSHL:
-          translate_shift (parser, node, "bvshl", btor_sll_exp);
+          translate_shift (parser, node, "bvshl", boolector_sll);
           break;
         case BTOR_SMTOK_SELECT: translate_select (parser, node); break;
         case BTOR_SMTOK_STORE: translate_store (parser, node); break;
@@ -2541,13 +2551,13 @@ translate_formula (BtorSMTParser *parser, BtorSMTNode *root)
       if (is_list_of_length (node, 1))
       {
         if ((exp = node2exp (parser, child)))
-          translate_node (parser, node, btor_copy_exp (parser->btor, exp));
+          translate_node (parser, node, boolector_copy (parser->btor, exp));
       }
       else
         (void) btor_perr_smt (parser, "invalid list expression");
     }
 
-    if (parser->error) return (BtorNode *) 0;
+    if (parser->error) return (BoolectorNode *) 0;
   }
 
   BTOR_RESET_STACK (parser->work);
@@ -2555,23 +2565,23 @@ translate_formula (BtorSMTParser *parser, BtorSMTNode *root)
   if (!(exp = node2exp (parser, root)))
   {
     assert (parser->error);
-    return (BtorNode *) 0;
+    return (BoolectorNode *) 0;
   }
 
-  if (btor_get_exp_len (parser->btor, exp) != 1)
-    return btor_perr_smt (parser, "non boolean formula"), (BtorNode *) 0;
+  if (boolector_get_width (parser->btor, exp) != 1)
+    return btor_perr_smt (parser, "non boolean formula"), (BoolectorNode *) 0;
 
   assert (!parser->error);
 
   assert (exp);
 
-  return btor_copy_exp (parser->btor, exp);
+  return boolector_copy (parser->btor, exp);
 }
 
 static void
 btor_smt_parser_inc_add_release_sat (BtorSMTParser *parser,
                                      BtorParseResult *res,
-                                     BtorNode *exp)
+                                     BoolectorNode *exp)
 {
   char formula[40];
   int satres, maxformula, checked;
@@ -2595,14 +2605,14 @@ btor_smt_parser_inc_add_release_sat (BtorSMTParser *parser,
   {
     btor_smt_message (
         parser, 3, "adding last ':formula' %s permanently", formula);
-    btor_assert_exp (parser->btor, exp);
+    boolector_assert (parser->btor, exp);
   }
   else
   {
     btor_smt_message (parser, 3, "adding ':formula' %s as assumption", formula);
-    btor_assume_exp (parser->btor, exp);
+    boolector_assume (parser->btor, exp);
   }
-  btor_release_exp (parser->btor, exp);
+  boolector_release (parser->btor, exp);
 
   satres = btor_sat_btor (parser->btor);
   if (satres == BTOR_SAT)
@@ -2635,10 +2645,10 @@ continue_parsing (BtorSMTParser *parser, BtorParseResult *res)
   return parser->incremental & BTOR_PARSE_MODE_INCREMENTAL_BUT_CONTINUE;
 }
 
-static BtorNode *
+static BoolectorNode *
 or_and_flush_window (BtorSMTParser *parser)
 {
-  BtorNode *next, *res, *tmp;
+  BoolectorNode *next, *res, *tmp;
 
   res = 0;
   while (!BTOR_EMPTY_STACK (parser->window))
@@ -2646,9 +2656,9 @@ or_and_flush_window (BtorSMTParser *parser)
     next = BTOR_POP_STACK (parser->window);
     if (res)
     {
-      tmp = btor_or_exp (parser->btor, next, res);
-      btor_release_exp (parser->btor, res);
-      btor_release_exp (parser->btor, next);
+      tmp = boolector_or (parser->btor, next, res);
+      boolector_release (parser->btor, res);
+      boolector_release (parser->btor, next);
       res = tmp;
     }
     else
@@ -2666,7 +2676,7 @@ translate_benchmark (BtorSMTParser *parser,
   int count_window, missing, indepth, lookahead, interval;
   BtorSMTSymbol *symbol, *logic, *benchmark;
   BtorSMTNode *p, *node, *q;
-  BtorNode *exp, *next;
+  BoolectorNode *exp, *next;
   BtorSMTToken status;
 
   btor_smt_message (parser, 2, "extracting expressions");
@@ -2820,8 +2830,8 @@ translate_benchmark (BtorSMTParser *parser,
                             3,
                             "adding ':assumption' %d",
                             parser->assumptions.handled);
-          btor_assert_exp (parser->btor, exp);
-          btor_release_exp (parser->btor, exp);
+          boolector_assert (parser->btor, exp);
+          boolector_release (parser->btor, exp);
         }
         else
         {
@@ -2968,7 +2978,7 @@ translate_benchmark (BtorSMTParser *parser,
           && ((parser->incremental & BTOR_PARSE_MODE_INCREMENTAL_BUT_CONTINUE)
               || res->result != BTOR_PARSE_SAT_STATUS_SAT))
       {
-        BtorNode *next;
+        BoolectorNode *next;
         if (interval)
         {
           next = or_and_flush_window (parser);
