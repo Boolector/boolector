@@ -906,18 +906,18 @@ Btor *
 boolector_btor (BoolectorNode *node)
 {
   BtorNode *exp, *real, *simp;
-  Btor *res;
+  Btor *btor;
   BTOR_ABORT_ARG_NULL_BOOLECTOR (node);
-  exp = BTOR_IMPORT_BOOLECTOR_NODE (node);
-  BTOR_TRAPI ("btor", exp);
+  exp  = BTOR_IMPORT_BOOLECTOR_NODE (node);
   simp = btor_simplify_exp (btor, exp);
   real = BTOR_REAL_ADDR_NODE (simp);
 #ifndef NDEBUG
   BTOR_CHKCLONE_NORES (btor);
 #endif
-  res = real->btor;
-  BTOR_TRAPI_RETURN_PTR (res);
-  return res;
+  btor = real->btor;
+  BTOR_TRAPI ("btor", exp);
+  BTOR_TRAPI_RETURN_PTR (btor);
+  return btor;
 }
 
 void
