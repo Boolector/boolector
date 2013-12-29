@@ -911,10 +911,10 @@ boolector_btor (BoolectorNode *node)
   exp  = BTOR_IMPORT_BOOLECTOR_NODE (node);
   simp = btor_simplify_exp (btor, exp);
   real = BTOR_REAL_ADDR_NODE (simp);
+  btor = real->btor;
 #ifndef NDEBUG
   BTOR_CHKCLONE_NORES (btor);
 #endif
-  btor = real->btor;
   BTOR_TRAPI ("btor", exp);
   BTOR_TRAPI_RETURN_PTR (btor);
   return btor;
