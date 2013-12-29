@@ -69,6 +69,47 @@ BtorNode *btor_non_recursive_extended_substitute_node (
 
 /*========================================================================*/
 
+// External version using external 'boolector_...' API calls internally.
+
+struct BoolectorNodeMap
+{
+  Btor *btor;
+  BtorPtrHashTable *table;
+};
+
+typedef struct BoolectorNodeMap BoolectorNodeMap;
+
+/*------------------------------------------------------------------------*/
+
+BoolectorNodeMap *boolector_new_node_map (Btor *);
+BoolectorNode *boolector_mapped_node (BoolectorNodeMap *, BoolectorNode *);
+void boolector_map_node (BoolectorNodeMap *, BoolectorNode *, BoolectorNode *);
+void boolector_delete_node_map (BoolectorNodeMap *);
+
+/*------------------------------------------------------------------------*/
+
+BoolectorNode *boolector_non_recursive_substitute_node (Btor *,
+                                                        BoolectorNodeMap *,
+                                                        BoolectorNode *);
+
+/*------------------------------------------------------------------------*/
+
+typedef BoolectorNode *(*BoolectorNodeMapper) (Btor *,
+                                               void *state,
+                                               BoolectorNode *);
+
+typedef void (*BoolectorNodeReleaser) (Btor *, BoolectorNode *);
+
+BoolectorNode *boolector_non_recursive_extended_substitute_node (
+    Btor *,
+    BoolectorNodeMap *,
+    void *state,
+    BoolectorNodeMapper,
+    BoolectorNodeReleaser,
+    BoolectorNode *root);
+
+/*========================================================================*/
+
 /* Simple map for AIG node.  Same reference counting and signed/tagged
  * behavior as BtorNodeMap.
  */

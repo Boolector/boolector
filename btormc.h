@@ -39,16 +39,16 @@ Btor *boolector_btor_mc (BtorMC *);
 
 /*------------------------------------------------------------------------*/
 
-BtorNode *boolector_input (BtorMC *, int width, const char *);
-BtorNode *boolector_latch (BtorMC *, int width, const char *);
+BoolectorNode *boolector_input (BtorMC *, int width, const char *);
+BoolectorNode *boolector_latch (BtorMC *, int width, const char *);
 
-void boolector_next (BtorMC *, BtorNode *latch, BtorNode *next);
+void boolector_next (BtorMC *, BoolectorNode *latch, BoolectorNode *next);
 
-void boolector_init (BtorMC *, BtorNode *latch, BtorNode *init);
+void boolector_init (BtorMC *, BoolectorNode *latch, BoolectorNode *init);
 
-int boolector_bad (BtorMC *, BtorNode *bad);
+int boolector_bad (BtorMC *, BoolectorNode *bad);
 
-int boolector_constraint (BtorMC *, BtorNode *constraint);
+int boolector_constraint (BtorMC *, BoolectorNode *constraint);
 
 /*------------------------------------------------------------------------*/
 
@@ -61,7 +61,9 @@ int boolector_bmc (BtorMC *, int mink, int maxk);
 /* Assumes that 'boolector_enable_trace_gen' was called and then
  * 'boolector_bmc' which returned a 'k' with '0 <= time <= k'.
  */
-char *boolector_mc_assignment (BtorMC *, BtorNode *input_or_latch, int time);
+char *boolector_mc_assignment (BtorMC *,
+                               BoolectorNode *input_or_latch,
+                               int time);
 
 /* The caller of 'boolector_mc_assignment' has to release the returned
  * assignment with this 'boolector_free_mc_assignment' again.

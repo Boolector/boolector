@@ -31,12 +31,6 @@
 
 /*------------------------------------------------------------------------*/
 
-#define BTOR_IMPORT_BOOLECTOR_NODE(node) (((BtorNode *) (node)))
-#define BTOR_IMPORT_BOOLECTOR_NODE_ARRAY(array) (((BtorNode **) (array)))
-#define BTOR_EXPORT_BOOLECTOR_NODE(node) (((BoolectorNode *) (node)))
-
-/*------------------------------------------------------------------------*/
-
 #define BTOR_TRAPI_NODE_ID(exp) \
   (BTOR_IS_INVERTED_NODE (exp) ? -BTOR_REAL_ADDR_NODE (exp)->id : exp->id)
 
@@ -908,6 +902,24 @@ boolector_clone (Btor *btor)
   return btor_clone_btor (btor);
 }
 
+Btor *
+boolector_btor (BoolectorNode *node)
+{
+  BtorNode *exp, *real, *simp;
+  Btor *res;
+  BTOR_ABORT_ARG_NULL_BOOLECTOR (node);
+  exp = BTOR_IMPORT_BOOLECTOR_NODE (node);
+  BTOR_TRAPI ("btor", exp);
+  simp = btor_simplify_exp (btor, exp);
+  real = BTOR_REAL_ADDR_NODE (simp);
+#ifndef NDEBUG
+  BTOR_CHKCLONE_NORES (btor);
+#endif
+  res = real->btor;
+  BTOR_TRAPI_RETURN_PTR (res);
+  return res;
+}
+
 void
 boolector_set_rewrite_level (Btor *btor, int rewrite_level)
 {
@@ -1091,6 +1103,40 @@ boolector_const (Btor *btor, const char *bits)
   return BTOR_EXPORT_BOOLECTOR_NODE (res);
 }
 
+int
+boolector_is_const (Btor *btor, BoolectorNode *node)
+{
+  BtorNode *exp, *simp, *real;
+  int res;
+  exp = BTOR_IMPORT_BOOLECTOR_NODE (node);
+  BTOR_ABORT_ARG_NULL_BOOLECTOR (btor);
+  BTOR_ABORT_ARG_NULL_BOOLECTOR (exp);
+  BTOR_TRAPI ("is_const", exp);
+  BTOR_ABORT_REFS_NOT_POS_BOOLECTOR (exp);
+  simp = btor_simplify_exp (btor, exp);
+  real = BTOR_REAL_ADDR_NODE (simp);
+  res  = BTOR_IS_BV_CONST_NODE (real);
+#ifndef NDEBUG
+  BTOR_CHKCLONE_RES (res, is_const, BTOR_CLONED_EXP (exp));
+#endif
+  BTOR_TRAPI_RETURN (res);
+  return res;
+}
+
+const char *
+boolector_get_bits (Btor *btor, BoolectorNode *node)
+{
+  BtorNode *exp, *simp, *real;
+  BTOR_ABORT_ARG_NULL_BOOLECTOR (btor);
+  BTOR_ABORT_ARG_NULL_BOOLECTOR (node);
+  exp = BTOR_IMPORT_BOOLECTOR_NODE (node);
+  BTOR_ABORT_REFS_NOT_POS_BOOLECTOR (exp);
+  simp = btor_simplify_exp (btor, exp);
+  real = BTOR_REAL_ADDR_NODE (simp);
+  BTOR_ABORT_BOOLECTOR (!BTOR_IS_BV_CONST_NODE (real),
+                        "argument is not a constant node");
+}
+
 BoolectorNode *
 boolector_zero (Btor *btor, int width)
 {
@@ -1248,6 +1294,26 @@ boolector_var (Btor *btor, int width, const char *symbol)
 #endif
   BTOR_TRAPI_RETURN_NODE (res);
   return BTOR_EXPORT_BOOLECTOR_NODE (res);
+}
+
+int
+boolector_is_var (Btor *btor, BoolectorNode *node)
+{
+  BtorNode *exp, *simp, *real;
+  int res;
+  exp = BTOR_IMPORT_BOOLECTOR_NODE (node);
+  BTOR_ABORT_ARG_NULL_BOOLECTOR (btor);
+  BTOR_ABORT_ARG_NULL_BOOLECTOR (exp);
+  BTOR_TRAPI ("is_var", exp);
+  BTOR_ABORT_REFS_NOT_POS_BOOLECTOR (exp);
+  simp = btor_simplify_exp (btor, exp);
+  real = BTOR_REAL_ADDR_NODE (simp);
+  res  = BTOR_IS_BV_VAR_NODE (real);
+#ifndef NDEBUG
+  BTOR_CHKCLONE_RES (res, is_const, BTOR_CLONED_EXP (exp));
+#endif
+  BTOR_TRAPI_RETURN (res);
+  return res;
 }
 
 BoolectorNode *
