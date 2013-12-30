@@ -1,4 +1,4 @@
-1 const 2 10
-2 var 2
-3 eq 1 -2 -1
+1 var 2 2
+2 const 2 10
+3 eq 1 -1 -2
 4 root 1 -3
