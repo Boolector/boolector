@@ -20,7 +20,6 @@
 /*------------------------------------------------------------------------*/
 
 typedef struct Btor Btor;
-typedef struct BtorSort BtorSort;
 typedef struct BtorNode BtorNode;
 
 #ifdef BOOLECTOR_FORCE_API_1
