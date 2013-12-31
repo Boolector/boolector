@@ -418,8 +418,8 @@ boolector_bad (BtorMC *mc, BoolectorNode *bad)
   BTOR_ABORT_ARG_NULL_BOOLECTOR (mc);
   BTOR_ABORT_IF_STATE (mc);
   BTOR_MC_CHECK_OWNS_NODE_ARG (bad);
-  assert (!boolector_is_array (mc->btor, bad));
   assert (boolector_get_width (mc->btor, bad) == 1);
+  assert (!boolector_is_array (mc->btor, bad));
   res = BTOR_COUNT_STACK (mc->bad);
   (void) boolector_copy (mc->btor, bad);
   BTOR_PUSH_STACK (mc->btor->mm, mc->bad, bad);
