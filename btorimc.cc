@@ -727,10 +727,20 @@ static const char* USAGE =
     "<k>     maximal bound for bounded model checking (default 20)\n"
     "<ibv>   IBV input file (default '<stdin>')\n";
 
+static void
+propertyReachedCallBack (void* state, int i, int k)
+{
+  (void) state;
+  assert (!state);
+  printf ("property %d reached at bound %d\n", i, k);
+  fflush (stdout);
+}
+
 int
 main (int argc, char** argv)
 {
   bool witness = true, dump = false, force = false, ignore = false;
+  bool multi             = false;
   const char* outputname = 0;
   int k = -1, r, rwl = 3;
   for (int i = 1; i < argc; i++)
@@ -744,6 +754,8 @@ main (int argc, char** argv)
       witness = false;
     else if (!strcmp (argv[i], "-d"))
       dump = true;
+    else if (!strcmp (argv[i], "-m"))
+      multi = true, witness = false;
     else if (!strcmp (argv[i], "-i"))
       ignore = true;
     else if (!strcmp (argv[i], "-f"))
@@ -785,6 +797,12 @@ main (int argc, char** argv)
   ibvm->setRewriteLevel (rwl);
   if (force) ibvm->setForce ();
   if (witness) ibvm->enableTraceGeneration ();
+  if (multi)
+  {
+    assert (!witness);
+    ibvm->setStop (false);
+    ibvm->setReachedAtBoundCallBack (0, propertyReachedCallBack);
+  }
   parse ();
   if (close_input == 1) fclose (input);
   if (close_input == 2) pclose (input);
@@ -810,6 +828,8 @@ main (int argc, char** argv)
   {
     if (k < 0) k = 20;
     msg ("running bounded model checking up to bound %d", k);
+    if (witness) msg ("will print witness");
+    if (multi) msg ("will not stop at first reached property necessarily");
     r = ibvm->bmc ((int) ignore, k);
     if (r < 0)
       msg ("property not reachable from %d until bound %d", (int) ignore, k);
