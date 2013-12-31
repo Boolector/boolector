@@ -71,7 +71,8 @@ BTOR_DECLARE_STACK (BtorMcFrame, BtorMcFrame);
 struct BtorMC
 {
   BtorMcState state;
-  int verbosity, trace_enabled, initialized, nextstates;
+  int verbosity, trace_enabled, stop;
+  int initialized, nextstates;
   Btor *btor, *forward;
   BtorMcFrameStack frames;
   BtorPtrHashTable *inputs;
@@ -79,6 +80,16 @@ struct BtorMC
   BoolectorNodePtrStack bad;
   BoolectorNodePtrStack constraints;
   BoolectorNodeMap *forward2const;
+  BtorIntStack reached;
+  int num_reached;
+  struct
+  {
+    struct
+    {
+      void *state;
+      BtorMCReachedAtBound fun;
+    } reached_at_bound;
+  } call_backs;
 };
 
 /*------------------------------------------------------------------------*/
@@ -102,6 +113,7 @@ boolector_new_mc (void)
                                           (BtorCmpPtr) btor_compare_exp_by_id);
   assert (res->state == BTOR_NO_MC_STATE);
   assert (!res->forward2const);
+  res->stop = 1;
   return res;
 }
 
@@ -111,6 +123,22 @@ boolector_set_verbosity_mc (BtorMC *mc, int verbosity)
   BTOR_ABORT_ARG_NULL_BOOLECTOR (mc);
   mc->verbosity = verbosity;
   btor_set_verbosity_btor (mc->btor, verbosity);
+}
+
+void
+boolector_set_stop_at_first_reached_property_mc (BtorMC *mc, int stop)
+{
+  BTOR_ABORT_ARG_NULL_BOOLECTOR (mc);
+  mc->stop = stop;
+}
+
+void
+boolector_set_reached_at_bound_call_back_mc (BtorMC *mc,
+                                             void *state,
+                                             BtorMCReachedAtBound fun)
+{
+  mc->call_backs.reached_at_bound.state = state;
+  mc->call_backs.reached_at_bound.fun   = fun;
 }
 
 void
@@ -255,6 +283,7 @@ boolector_delete_mc (BtorMC *mc)
   while (!BTOR_EMPTY_STACK (mc->constraints))
     boolector_release (btor, BTOR_POP_STACK (mc->constraints));
   BTOR_RELEASE_STACK (mm, mc->constraints);
+  BTOR_RELEASE_STACK (mm, mc->reached);
   if (mc->forward) boolector_delete (mc->forward);
   BTOR_DELETE (mm, mc);
   btor_delete_btor (btor);
@@ -394,6 +423,8 @@ boolector_bad (BtorMC *mc, BoolectorNode *bad)
   res = BTOR_COUNT_STACK (mc->bad);
   (void) boolector_copy (mc->btor, bad);
   BTOR_PUSH_STACK (mc->btor->mm, mc->bad, bad);
+  assert (res == BTOR_COUNT_STACK (mc->reached));
+  BTOR_PUSH_STACK (mc->btor->mm, mc->reached, -1);
   btor_msg_mc (mc, 2, "adding BAD property %d", res);
   return res;
 }
@@ -794,6 +825,17 @@ check_last_forward_frame (BtorMC *mc)
       btor_msg_mc (
           mc, 1, "bad state property %d at bound k = %d SATISFIABLE", i, k);
       satisfied++;
+      if (BTOR_PEEK_STACK (mc->reached, i) < 0)
+      {
+        mc->num_reached++;
+        assert (mc->num_reached <= BTOR_COUNT_STACK (mc->bad));
+        BTOR_POKE_STACK (mc->reached, i, k);
+        if (mc->call_backs.reached_at_bound.fun)
+        {
+          mc->call_backs.reached_at_bound.fun (
+              mc->call_backs.reached_at_bound.state, i, k);
+        }
+      }
     }
     else
     {
@@ -837,12 +879,17 @@ boolector_bmc (BtorMC *mc, int mink, int maxk)
   while ((k = BTOR_COUNT_STACK (mc->frames)) <= maxk)
   {
     initialize_new_forward_frame (mc);
-    if (k >= mink && check_last_forward_frame (mc))
+    if (k < mink) continue;
+    if (check_last_forward_frame (mc))
     {
-      btor_msg_mc (mc, 2, "entering SAT state");
-      mc->state = BTOR_SAT_MC_STATE;
-      assert (k >= 0);
-      return k;
+      if (mc->stop || mc->num_reached == BTOR_COUNT_STACK (mc->bad)
+          || k == maxk)
+      {
+        btor_msg_mc (mc, 2, "entering SAT state at bound k=%d", k);
+        mc->state = BTOR_SAT_MC_STATE;
+        assert (k >= 0);
+        return k;
+      }
     }
   }
 
@@ -1135,4 +1182,18 @@ boolector_dump_btormc (BtorMC *mc, FILE *file)
 
   btor_dump_btor (bdc, file);
   btor_delete_dump_context (bdc);
+}
+
+int
+boolector_reached_bad_at_bound_mc (BtorMC *mc, int badidx)
+{
+  BTOR_ABORT_ARG_NULL_BOOLECTOR (mc);
+  BTOR_ABORT_BOOLECTOR (mc->state == BTOR_NO_MC_STATE,
+                        "model checker was not run before");
+  BTOR_ABORT_BOOLECTOR (
+      mc->stop, "stopping at first reached property has to be disabled");
+  BTOR_ABORT_BOOLECTOR (badidx < 0, "negative bad state property index");
+  BTOR_ABORT_BOOLECTOR (badidx >= BTOR_COUNT_STACK (mc->bad),
+                        "bad state property index too large");
+  return BTOR_PEEK_STACK (mc->reached, badidx);
 }
