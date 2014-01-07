@@ -842,7 +842,7 @@ btor_new_btor (void)
   btor->chk_failed_assumptions = 1;
 #endif
   // TODO debug
-  //  btor->dual_prop = 1;
+  btor->dual_prop = 1;
 
   BTOR_PUSH_STACK (btor->mm, btor->nodes_id_table, 0);
 
@@ -6370,7 +6370,6 @@ search_top_applies (Btor *btor, BtorNodePtrStack *top_applies)
   while (has_next_node_hash_table_iterator (&it))
   {
     cur = next_node_hash_table_iterator (&it);
-    printf ("-- ass %s\n", node2string (cur));
     if (btor_failed_exp (clone, cur))
     {
       ccur = BTOR_IS_INVERTED_NODE (cur)
@@ -6378,7 +6377,6 @@ search_top_applies (Btor *btor, BtorNodePtrStack *top_applies)
                        clone->nodes_id_table, BTOR_REAL_ADDR_NODE (cur)->id))
                  : BTOR_PEEK_STACK (clone->nodes_id_table,
                                     BTOR_REAL_ADDR_NODE (cur)->id);
-      printf ("-- FA: %s\n", node2string (ccur));
       BTOR_PUSH_STACK (btor->mm, *top_applies, ccur);
     }
   }
@@ -6617,7 +6615,6 @@ btor_sat_aux_btor (Btor *btor)
       search_top_applies (btor, &ta);
       reset_applies (btor);
       found_conflict = check_and_resolve_conflicts_aux (btor, &ta);
-      printf ("--- fc %d\n", found_conflict);
       BTOR_RELEASE_STACK (mm, top_functions);
     }
     else
@@ -7606,8 +7603,8 @@ btor_check_failed_assumptions (Btor *btor, Btor *clone)
 
   /* initial sat call */
   sat_result = btor_sat_btor (clone);
-  assert ((sat_result == BTOR_SAT && failed_assumptions->count)
-          || (sat_result == BTOR_UNSAT && !failed_assumptions->count));
+  assert ((sat_result == BTOR_UNSAT && failed_assumptions->count)
+          || (sat_result == BTOR_SAT && !failed_assumptions->count));
   if (!failed_assumptions->count) goto CLEANUP;
   assert (!btor->inconsistent);
 
