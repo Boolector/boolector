@@ -20,7 +20,6 @@
 /*------------------------------------------------------------------------*/
 
 typedef struct Btor Btor;
-typedef struct BtorSort BtorSort;
 typedef struct BtorNode BtorNode;
 
 #ifdef BOOLECTOR_FORCE_API_1
@@ -171,6 +170,8 @@ Btor *boolector_new (void);
  */
 Btor *boolector_clone (Btor *btor);
 
+Btor *boolector_btor (BoolectorNode *node);
+
 /**
  * Enables model generation. If you want Boolector to produce
  * a model in the satisfiable case, call this function
@@ -274,6 +275,10 @@ void boolector_enable_force_cleanup (Btor *btor);
  */
 BoolectorNode *boolector_const (Btor *btor, const char *bits);
 
+int boolector_is_const (Btor *btor, BoolectorNode *node);
+
+const char *boolector_get_bits (Btor *, BoolectorNode *node);
+
 /**
  * Bit-vector constant zero.
  * \param btor Boolector instance.
@@ -349,6 +354,8 @@ BoolectorNode *boolector_int (Btor *btor, int i, int width);
  * just pass NULL as symbol.
  */
 BoolectorNode *boolector_var (Btor *btor, int width, const char *symbol);
+
+int boolector_is_var (Btor *btor, BoolectorNode *node);
 
 /**
  * One-dimensional bit-vector array of size 2 ^ 'index_width' with elements of

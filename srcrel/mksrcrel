@@ -53,6 +53,12 @@ cp -p \
   Doxyfile \
 $dir/
 
+for subdir in dumper parser
+do
+  mkdir $dir/$subdir/
+  cp -p $subdir/*.[ch] $dir/$subdir/
+done
+
 if [ $intel = yes ]
 then
   cp -p \
