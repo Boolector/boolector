@@ -19,6 +19,35 @@
 #include "btormem.h"
 #include "btorsort.h"
 
+/*------------------------------------------------------------------------*/
+
+// Currently these are just to hide syntactically the internal nodes.  For
+// now we continue to assume that 'BtorNode' and 'BoolectorNode' are the
+// same structs and internal 'btor_...' functions work the same way as
+// external counter parts 'boolector_...', except for tracing and contract
+// checking.  If this stops to hold we need to provide real containers for
+// the external 'BoolectorNode', currently actually only 'BoolectorNodeMap'
+// needs to be fixed.
+
+#define BTOR_IMPORT_BOOLECTOR_NODE(node) (((BtorNode *) (node)))
+#define BTOR_IMPORT_BOOLECTOR_NODE_ARRAY(array) (((BtorNode **) (array)))
+#define BTOR_EXPORT_BOOLECTOR_NODE(node) (((BoolectorNode *) (node)))
+
+/*------------------------------------------------------------------------*/
+
+#define BOOLECTOR_IS_REGULAR_NODE BTOR_IS_INVERTED_NODE
+#define BOOLECTOR_IS_INVERTED_NODE BTOR_IS_INVERTED_NODE
+
+#define BOOLECTOR_REAL_ADDR_NODE(node) \
+  BTOR_EXPORT_BOOLECTOR_NODE (         \
+      BTOR_REAL_ADDR_NODE (BTOR_IMPORT_BOOLECTOR_NODE (node)))
+
+#define BOOLECTOR_INVERT_NODE(node) \
+  BTOR_EXPORT_BOOLECTOR_NODE (      \
+      BTOR_INVERT_NODE (BTOR_IMPORT_BOOLECTOR_NODE (node)))
+
+/*------------------------------------------------------------------------*/
+
 struct BtorNodeUniqueTable
 {
   int size;

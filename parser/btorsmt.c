@@ -21,8 +21,6 @@
 
 /*------------------------------------------------------------------------*/
 
-BTOR_DECLARE_STACK (BoolectorNodePtr, BoolectorNode *);
-
 typedef struct BtorSMTParser BtorSMTParser;
 typedef struct BtorSMTNode BtorSMTNode;
 typedef struct BtorSMTNodes BtorSMTNodes;

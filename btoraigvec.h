@@ -16,7 +16,7 @@
 #include "btoraig.h"
 #include "btormem.h"
 
-typedef struct BtorAIGMap BtorAIGMap;
+struct BtorAIGMap;
 
 /*------------------------------------------------------------------------*/
 
@@ -188,7 +188,7 @@ BtorAIGVec *btor_copy_aigvec (BtorAIGVecMgr *avmgr, BtorAIGVec *av);
 /* Clones an existing AIG vector. All aigs referenced must already be cloned. */
 BtorAIGVec *btor_clone_aigvec (BtorAIGVec *av,
                                BtorAIGVecMgr *avmgr,
-                               BtorAIGMap *aig_map);
+                               struct BtorAIGMap *aig_map);
 
 /* Translates every AIG of the AIG vector into SAT in both phases  */
 void btor_aigvec_to_sat_tseitin (BtorAIGVecMgr *avmgr, BtorAIGVec *av);

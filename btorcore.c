@@ -5686,7 +5686,7 @@ encode_applies_vars (Btor *btor,
   assert (param_apps);
   assert (BTOR_IS_REGULAR_NODE (lambda));
 
-  int i, assignments_changed = 0, res;
+  int i, assignments_changed = 0, res = 0;
   BtorNode *cur;
   BtorNodePtrStack stack;
 
@@ -6247,6 +6247,8 @@ BTOR_CONFLICT_CLEANUP:
   return found_conflict;
 }
 
+#ifndef NDEBUG
+
 static int
 check_applies_dbg (Btor *btor)
 {
@@ -6285,6 +6287,8 @@ check_applies_dbg (Btor *btor)
 
   return !failed;
 }
+
+#endif
 
 static void
 reset_applies (Btor *btor)
