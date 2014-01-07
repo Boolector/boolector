@@ -65,8 +65,9 @@
   "  -a, --always-fork                fork even if seed given\n"               \
   "  -n, --no-modelgen                do not enable model generation \n"       \
   "  -e, --no-extensionality          do not use extensionality\n"             \
+  "  -d, --dual-prop		      enable dual prop optimization\n"                   \
   "\n"                                                                         \
-  "  -f, --first-bug-only             quit after first bug encountered\n"      \
+  "  -f, --quit-after-first           quit after first bug encountered\n"      \
   "  -m <maxruns>                     quit after <maxruns> rounds\n"           \
   "  -t <seconds>                     set time limit for calls to boolector\n" \
   "\n"                                                                         \
@@ -225,6 +226,7 @@ typedef struct BtorMBT
   int fork;
   int force_nomgen;
   int ext;
+  int dual_prop;
   int shadow;
   int max_nrounds;
   int time_limit;
@@ -1421,10 +1423,11 @@ _opt (BtorMBT *btormbt, unsigned r)
   BTORMBT_LOG (1, "enable force cleanup");
   boolector_enable_force_cleanup (btormbt->btor);
 
-  // FIXME switch
-  // BTORMBT_LOG (1, "enable dual prop");
-  // boolector_enable_dual_prop (btormbt->btor);
-
+  if (btormbt->dual_prop)
+  {
+    BTORMBT_LOG (1, "enable dual prop");
+    boolector_enable_dual_prop (btormbt->btor);
+  }
 #ifndef NBTORLOG
   if (btormbt->bloglevel)
   {
@@ -2228,13 +2231,15 @@ main (int argc, char **argv)
       btormbt->terminal = 0;
     else if (!strcmp (argv[i], "-a") || !strcmp (argv[i], "--always-fork"))
       always_fork = 1;
-    else if (!strcmp (argv[i], "-f") || !strcmp (argv[i], "--first-bug-only"))
+    else if (!strcmp (argv[i], "-f") || !strcmp (argv[i], "--quit-after-first"))
       btormbt->quit_after_first = 1;
     else if (!strcmp (argv[i], "-n") || !strcmp (argv[i], "--no-modelgen"))
       btormbt->force_nomgen = 1;
     else if (!strcmp (argv[i], "-e")
              || !strcmp (argv[i], "--no-extensionality"))
       btormbt->ext = 0;
+    else if (!strcmp (argv[i], "-d") || !strcmp (argv[i], "--enable-dual-prop"))
+      btormbt->dual_prop = 1;
     else if (!strcmp (argv[i], "-s") || !strcmp (argv[i], "--shadow-clone"))
       btormbt->shadow = 1;
     else if (!strcmp (argv[i], "-m"))
