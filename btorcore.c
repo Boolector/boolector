@@ -7584,9 +7584,8 @@ btor_check_failed_assumptions (Btor *btor, Btor *clone)
   assert (btor);
   assert (btor->last_sat_result == BTOR_UNSAT);
 
-  int sat_result;
   BtorNode *ass;
-  BtorPtrHashTable *cloned_assumptions, *failed_assumptions;
+  BtorPtrHashTable *failed_assumptions;
   BtorHashTableIterator it;
 
   failed_assumptions =
@@ -7597,51 +7596,31 @@ btor_check_failed_assumptions (Btor *btor, Btor *clone)
   clone->chk_failed_assumptions = 0;
   clone->dual_prop              = 0;  // FIXME
 
-  /* reset assumptions premature release of expressions */
-  cloned_assumptions = clone->assumptions;
+  /* assert failed assumptions */
+  init_node_hash_table_iterator (btor, &it, btor->assumptions);
+  while (has_next_node_hash_table_iterator (&it))
+  {
+    ass = next_node_hash_table_iterator (&it);
+    if (btor_failed_exp (btor, ass))
+    {
+      ass = BTOR_CLONED_EXP (clone, ass);
+      assert (ass);
+      btor_assert_exp (clone, ass);
+    }
+  }
+
+  /* cleanup assumptions */
+  init_node_hash_table_iterator (clone, &it, clone->assumptions);
+  while (has_next_node_hash_table_iterator (&it))
+    btor_release_exp (clone, next_node_hash_table_iterator (&it));
+  btor_delete_ptr_hash_table (clone->assumptions);
   clone->assumptions =
       btor_new_ptr_hash_table (clone->mm,
                                (BtorHashPtr) btor_hash_exp_by_id,
                                (BtorCmpPtr) btor_compare_exp_by_id);
 
-  /* find failed assumptions */
-  init_node_hash_table_iterator (btor, &it, btor->assumptions);
-  while (has_next_node_hash_table_iterator (&it))
-  {
-    ass = next_node_hash_table_iterator (&it);
-    if (btor_failed_exp (btor, ass)
-        && !btor_find_in_ptr_hash_table (failed_assumptions, ass))
-      btor_insert_in_ptr_hash_table (failed_assumptions, ass);
-  }
-
-  /* initial sat call */
-  sat_result = btor_sat_btor (clone);
-  assert ((sat_result == BTOR_UNSAT && failed_assumptions->count)
-          || (sat_result == BTOR_SAT && !failed_assumptions->count));
-  if (!failed_assumptions->count) goto CLEANUP;
-  assert (!btor->inconsistent);
-
-  /* assert failed assumptions */
-  init_node_hash_table_iterator (btor, &it, failed_assumptions);
-  while (has_next_node_hash_table_iterator (&it))
-  {
-    ass = next_node_hash_table_iterator (&it);
-    btor_assert_exp (clone, BTOR_CLONED_EXP (clone, ass));
-  }
-
   assert (btor_sat_btor (clone) == BTOR_UNSAT);
 
-CLEANUP:
-  // init_node_hash_table_iterator (btor, &it, btor->assumptions);
-  // while (has_next_node_hash_table_iterator (&it))
-  //  {
-  //    ass = next_node_hash_table_iterator (&it);
-  //    btor_release_exp (clone, BTOR_CLONED_EXP (clone, ass));
-  //  }
-  init_node_hash_table_iterator (clone, &it, cloned_assumptions);
-  while (has_next_node_hash_table_iterator (&it))
-    btor_release_exp (clone, next_node_hash_table_iterator (&it));
-  btor_delete_ptr_hash_table (cloned_assumptions);
   btor_delete_ptr_hash_table (failed_assumptions);
 }
 #endif
