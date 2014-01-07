@@ -6535,11 +6535,7 @@ btor_sat_aux_btor (Btor *btor)
 
   btor_msg (btor, 1, "calling SAT");
 
-  if (btor_simplify (btor) == BTOR_SAT)
-  {
-    sat_result = BTOR_SAT;
-    goto DONE;
-  }
+  btor_simplify (btor);
   update_assumptions (btor);
 
   if (btor->inconsistent) goto UNSAT;
