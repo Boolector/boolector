@@ -6366,6 +6366,27 @@ search_top_applies (Btor *btor, BtorNodePtrStack *top_applies)
   }
   btor_sat_btor (clone);
 
+  //// TODO DEBUG
+  // printf ("--- clone.\n");
+  // for (i = 1; i < BTOR_COUNT_STACK (clone->nodes_id_table); i++)
+  //  {
+  //    cur = BTOR_PEEK_STACK (clone->nodes_id_table, i);
+  //    if (!cur || !cur->tseitin) continue;
+  //    char *ass = btor_bv_assignment_str_exp (clone, cur);
+  //    printf ("node: %s assignment:%s\n", node2string (cur), ass);
+  //    btor_release_bv_assignment_str_exp (clone, ass);
+  //  }
+  // printf ("--- parent.\n");
+  // for (i = 1; i < BTOR_COUNT_STACK (btor->nodes_id_table); i++)
+  //  {
+  //    cur = btor->nodes_id_table.start[i];
+  //    if (!cur || !cur->tseitin) continue;
+  //    char *ass = btor_bv_assignment_str_exp (btor, cur);
+  //    printf ("node: %s assignment:%s\n", node2string (cur), ass);
+  //    btor_release_bv_assignment_str_exp (btor, ass);
+  //  }
+  ////
+
   /* partial assignment (via failed assumptions of negated clone) */
   init_node_hash_table_iterator (clone, &it, clone->assumptions);
   while (has_next_node_hash_table_iterator (&it))
@@ -6619,13 +6640,23 @@ btor_sat_aux_btor (Btor *btor)
     // found_conflict = check_and_resolve_conflicts (btor, &top_functions);
     // printf ("++ found_conflict: %d\n", found_conflict);
     // BTOR_RELEASE_STACK (mm, top_functions);
-    if (btor->dual_prop)
+    if (btor->synthesized_constraints->count && btor->dual_prop)
     {
       BtorNodePtrStack ta;
       BTOR_INIT_STACK (ta);
       search_top_applies (btor, &ta);
-      reset_applies (btor);
-      found_conflict = check_and_resolve_conflicts_aux (btor, &ta);
+      //	  if (!BTOR_COUNT_STACK (ta))
+      //	    {
+      //	      search_top_functions (btor, &top_functions);
+      //	      reset_applies (btor);
+      //	      found_conflict = check_and_resolve_conflicts (
+      //				    btor, &top_functions);
+      //	    }
+      //	  else
+      {
+        reset_applies (btor);
+        found_conflict = check_and_resolve_conflicts_aux (btor, &ta);
+      }
       BTOR_RELEASE_STACK (mm, ta);
       BTOR_RELEASE_STACK (mm, top_functions);
     }
