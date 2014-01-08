@@ -234,6 +234,8 @@ typedef struct BtorMBT
   int bloglevel;
   int bverblevel;
 
+  Btor *clone;
+
   /* Note: no global settings after this point! Do not change order! */
 
   int is_init;
@@ -1426,6 +1428,7 @@ _opt (BtorMBT *btormbt, unsigned r)
   if (btormbt->dual_prop)
   {
     BTORMBT_LOG (1, "enable dual prop");
+    btormbt->clone = boolector_clone (btormbt->btor);
     boolector_enable_dual_prop (btormbt->btor);
   }
 #ifndef NBTORLOG
@@ -1778,6 +1781,13 @@ _sat (BtorMBT *btormbt, unsigned r)
 
   BTORMBT_LOG (1, "calling sat...");
   res = boolector_sat (btormbt->btor);
+  if (btormbt->clone)
+  {
+    int cloneres = boolector_sat (btormbt->clone);
+    printf ("-- res: %d\n", res);
+    printf ("--cloneres: %d\n", cloneres);
+    assert (res == cloneres);
+  }
   if (res == BOOLECTOR_UNSAT)
     BTORMBT_LOG (1, "unsat");
   else if (res == BOOLECTOR_SAT)
