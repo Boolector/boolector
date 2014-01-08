@@ -6356,7 +6356,9 @@ search_top_applies (Btor *btor, BtorNodePtrStack *top_applies)
                : BTOR_PEEK_STACK (clone->nodes_id_table,
                                   BTOR_REAL_ADDR_NODE (cur)->id);
 
-    ass     = btor_bv_assignment_str_exp (btor, ccur);
+    ass = btor_bv_assignment_str_exp (btor, ccur);
+    for (i = 0; i < BTOR_REAL_ADDR_NODE (ccur)->len; i++)
+      ass[i] = ass[i] == 'x' ? '0' : ass[i];
     bvconst = btor_const_exp (clone, ass);
     eq      = btor_eq_exp (clone, ccur, bvconst);
     btor_assume_exp (clone, eq);
