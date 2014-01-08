@@ -6396,15 +6396,13 @@ search_top_applies (Btor *btor, BtorNodePtrStack *top_applies)
     cur = next_node_hash_table_iterator (&it);
     if (btor_failed_exp (clone, cur))
     {
-      assert (BTOR_IS_BV_EQ_NODE (BTOR_REAL_ADDR_NODE (cur)));
-      assert (BTOR_IS_APPLY_NODE (
-          BTOR_REAL_ADDR_NODE (BTOR_REAL_ADDR_NODE (cur)->e[0])));
-      ccur = BTOR_REAL_ADDR_NODE (cur)->e[0];
-      ccur = BTOR_IS_INVERTED_NODE (ccur)
-                 ? BTOR_INVERT_NODE (BTOR_PEEK_STACK (
-                       btor->nodes_id_table, BTOR_REAL_ADDR_NODE (ccur)->id))
-                 : BTOR_PEEK_STACK (btor->nodes_id_table,
-                                    BTOR_REAL_ADDR_NODE (ccur)->id);
+      ccur = BTOR_REAL_ADDR_NODE (cur);
+      assert (BTOR_IS_BV_EQ_NODE (ccur)
+              || (BTOR_IS_APPLY_NODE (ccur) && ccur->len == 1));
+      if (!BTOR_IS_APPLY_NODE (ccur)) ccur = BTOR_REAL_ADDR_NODE (ccur->e[0]);
+      assert (BTOR_IS_REGULAR_NODE (ccur));
+      assert (BTOR_IS_APPLY_NODE (ccur));
+      ccur = BTOR_PEEK_STACK (btor->nodes_id_table, ccur->id);
       assert (ccur);
       BTOR_PUSH_STACK (btor->mm, *top_applies, ccur);
     }
@@ -6647,14 +6645,14 @@ btor_sat_aux_btor (Btor *btor)
       BtorNodePtrStack ta;
       BTOR_INIT_STACK (ta);
       search_top_applies (btor, &ta);
-      //	  if (!BTOR_COUNT_STACK (ta))
-      //	    {
-      //	      search_top_functions (btor, &top_functions);
-      //	      reset_applies (btor);
-      //	      found_conflict = check_and_resolve_conflicts (
-      //				    btor, &top_functions);
-      //	    }
-      //	  else
+      // if (!BTOR_COUNT_STACK (ta))
+      //  {
+      //    search_top_functions (btor, &top_functions);
+      //    reset_applies (btor);
+      //    found_conflict = check_and_resolve_conflicts (
+      //      		    btor, &top_functions);
+      //  }
+      // else
       {
         reset_applies (btor);
         found_conflict = check_and_resolve_conflicts_aux (btor, &ta);
