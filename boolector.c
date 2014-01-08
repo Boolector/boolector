@@ -638,15 +638,15 @@ btor_chkclone_exp (BtorNode *exp, BtorNode *clone)
       }
     }
 
-    if (((BtorLambdaNode *) real_exp)->nested)
+    if (((BtorLambdaNode *) real_exp)->head)
     {
-      assert (((BtorLambdaNode *) real_exp)->nested
-              != ((BtorLambdaNode *) real_clone)->nested);
-      BTOR_CHKCLONE_EXPID (((BtorLambdaNode *) real_exp)->nested,
-                           ((BtorLambdaNode *) real_clone)->nested);
+      assert (((BtorLambdaNode *) real_exp)->head
+              != ((BtorLambdaNode *) real_clone)->head);
+      BTOR_CHKCLONE_EXPID (((BtorLambdaNode *) real_exp)->head,
+                           ((BtorLambdaNode *) real_clone)->head);
     }
     else
-      assert (!((BtorLambdaNode *) real_clone)->nested);
+      assert (!((BtorLambdaNode *) real_clone)->head);
 
     if (((BtorLambdaNode *) real_exp)->body)
     {

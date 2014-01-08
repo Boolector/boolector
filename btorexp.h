@@ -184,10 +184,10 @@ struct BtorLambdaNode
   BTOR_BV_NODE_STRUCT;
   BTOR_BV_ADDITIONAL_NODE_STRUCT;
   BtorPtrHashTable *synth_apps;
-  struct BtorLambdaNode *nested; /* points to first lambda in the nested lambda
-                                    chain */
-  BtorNode *body;                /* function body */
-  int num_params;                /* number of params of nested lambdas below */
+  struct BtorLambdaNode *head; /* points to first lambda in the curried lambda
+                                  chain */
+  BtorNode *body;              /* function body */
+  int num_params; /* number of params (> 1 in case of curried lambdas) */
 };
 
 typedef struct BtorLambdaNode BtorLambdaNode;
@@ -329,8 +329,12 @@ typedef struct BtorArgsNode BtorArgsNode;
 
 #define BTOR_IS_SYNTH_NODE(exp) ((exp)->av != 0)
 
-#define BTOR_IS_NESTED_LAMBDA_NODE(exp) \
-  (BTOR_IS_LAMBDA_NODE (exp) && ((BtorLambdaNode *) exp)->nested)
+#define BTOR_IS_CURRIED_LAMBDA_NODE(exp) \
+  (BTOR_IS_LAMBDA_NODE (exp) && ((BtorLambdaNode *) exp)->head)
+
+#define BTOR_IS_FIRST_CURRIED_LAMBDA(exp) \
+  (BTOR_IS_LAMBDA_NODE (exp)              \
+   && (((BtorLambdaNode *) exp)->head == (BtorLambdaNode *) exp))
 
 #define BTOR_IS_FUN_NODE(exp) \
   (BTOR_IS_LAMBDA_NODE (exp) || BTOR_IS_ARRAY_VAR_NODE (exp))
@@ -342,11 +346,7 @@ typedef struct BtorArgsNode BtorArgsNode;
 #define BTOR_PARAM_SET_LAMBDA_NODE(param, lambda) \
   (((BtorParamNode *) BTOR_REAL_ADDR_NODE (param))->lambda_exp = lambda)
 
-#define BTOR_IS_FIRST_NESTED_LAMBDA(exp) \
-  (BTOR_IS_LAMBDA_NODE (exp)             \
-   && (((BtorLambdaNode *) exp)->nested == (BtorLambdaNode *) exp))
-
-#define BTOR_LAMBDA_GET_NESTED(exp) (((BtorLambdaNode *) exp)->nested)
+#define BTOR_LAMBDA_GET_NESTED(exp) (((BtorLambdaNode *) exp)->head)
 
 #define BTOR_LAMBDA_GET_PARAM(exp) (((BtorParamNode *) exp->e[0]))
 

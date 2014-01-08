@@ -172,10 +172,10 @@ clone_exp (Btor *clone,
       BTOR_PUSH_STACK (mm, *sapps, &((BtorLambdaNode *) res)->synth_apps);
       BTOR_PUSH_STACK (mm, *sapps, &((BtorLambdaNode *) exp)->synth_apps);
     }
-    BTOR_PUSH_STACK_IF (((BtorLambdaNode *) exp)->nested,
+    BTOR_PUSH_STACK_IF (((BtorLambdaNode *) exp)->head,
                         mm,
                         *nodes,
-                        (BtorNode **) &((BtorLambdaNode *) res)->nested);
+                        (BtorNode **) &((BtorLambdaNode *) res)->head);
     BTOR_PUSH_STACK_IF (((BtorLambdaNode *) exp)->body,
                         mm,
                         *nodes,

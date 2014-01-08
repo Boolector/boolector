@@ -451,6 +451,13 @@ remove_param_parameterized (Btor *btor, BtorNode *exp, BtorNode *param)
   assert (btor_find_in_ptr_hash_table (t, param));
   btor_remove_from_ptr_hash_table (t, param, 0, 0);
   btor_release_exp (btor, param);
+
+  /* remove hash table if it is empty */
+  if (t->count == 0)
+  {
+    btor_remove_from_ptr_hash_table (btor->parameterized, exp, 0, 0);
+    btor_delete_ptr_hash_table (t);
+  }
 }
 
 static void
@@ -1068,8 +1075,8 @@ new_lambda_exp_node (Btor *btor, BtorNode *e_param, BtorNode *e_exp)
     init_lambda_iterator (&it, (BtorNode *) lambda_exp);
     while (has_next_lambda_iterator (&it))
     {
-      exp                              = next_lambda_iterator (&it);
-      ((BtorLambdaNode *) exp)->nested = lambda_exp;
+      exp                            = next_lambda_iterator (&it);
+      ((BtorLambdaNode *) exp)->head = lambda_exp;
     }
     lambda_exp->num_params += ((BtorLambdaNode *) e_exp)->num_params;
     lambda_exp->body = BTOR_LAMBDA_GET_BODY (e_exp);
