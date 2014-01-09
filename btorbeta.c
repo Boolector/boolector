@@ -268,6 +268,7 @@ btor_unassign_params (Btor *btor, BtorNode *lambda)
 #if 1
 #define BTOR_ENABLE_PARAM_CACHE
 
+// TODO: get rid of assignment_exp stack (do we still need a stack?)
 static BtorNode *
 btor_beta_reduce (Btor *btor, BtorNode *exp, int mode, int bound)
 {
@@ -636,12 +637,21 @@ btor_beta_reduce (Btor *btor, BtorNode *exp, int mode, int bound)
       {
         if (BTOR_IS_LAMBDA_NODE (real_cur))
         {
-          BtorNode *cur_args;
-          cur_args = BTOR_TOP_STACK (arg_stack);
-          assert (BTOR_IS_ARGS_NODE (BTOR_REAL_ADDR_NODE (cur_args)));
-          btor_assign_args (btor, real_cur, cur_args);
+          args = 0;
+          /* we do not need to assign parameters of curried lambdas
+           * that are not the first one */
+          // TODO: is it enough to check if lambda has assignment?
+          // we can then assert condition below
+          if (BTOR_IS_FIRST_CURRIED_LAMBDA (real_cur)
+              || !BTOR_IS_CURRIED_LAMBDA_NODE (real_cur))
+          {
+            assert (!btor_param_cur_assignment (real_cur->e[0]));
+            args = BTOR_TOP_STACK (arg_stack);
+            assert (BTOR_IS_ARGS_NODE (BTOR_REAL_ADDR_NODE (args)));
+            btor_assign_args (btor, real_cur, args);
+          }
           t = btor_new_param_cache_tuple (btor, real_cur);
-          btor_unassign_params (btor, real_cur);
+          if (args) btor_unassign_params (btor, real_cur);
         }
         else
           t = btor_new_param_cache_tuple (btor, real_cur);
