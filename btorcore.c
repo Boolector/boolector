@@ -2128,6 +2128,8 @@ simplify_constraint_exp (Btor *btor, BtorNode *exp)
   assert (exp);
   assert (BTOR_REAL_ADDR_NODE (exp)->constraint);
   assert (!BTOR_REAL_ADDR_NODE (exp)->simplified);
+  /* embedded constraints rewriting enabled with rwl > 1 */
+  assert (btor->rewrite_level > 1);
 
   BtorNode *real_exp, *result, *not_exp;
 
@@ -2205,7 +2207,8 @@ btor_simplify_exp (Btor *btor, BtorNode *exp)
 
   result = btor_pointer_chase_simplified_exp (btor, exp);
 
-  if (BTOR_REAL_ADDR_NODE (result)->constraint)
+  /* NOTE: embedded constraints rewriting is enabled with rwl > 1 */
+  if (BTOR_REAL_ADDR_NODE (result)->constraint && btor->rewrite_level > 1)
     return simplify_constraint_exp (btor, result);
 
   return result;
