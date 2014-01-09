@@ -65,6 +65,7 @@ btor_new_param_cache_tuple (Btor *btor, BtorNode *exp)
     t->num_args = 1;
     BTOR_NEWN (btor->mm, t->args, t->num_args);
     arg = btor_param_cur_assignment ((BtorNode *) BTOR_LAMBDA_GET_PARAM (exp));
+    assert (arg);
     t->args[0] = btor_copy_exp (btor, arg);
     hash += (unsigned int) BTOR_GET_ID_NODE (arg);
   }
