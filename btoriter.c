@@ -121,6 +121,7 @@ has_next_args_iterator (BtorArgsIterator *it)
   return it->cur != 0;
 }
 
+// TODO: parent iterator needed here?
 void
 init_lambda_iterator (BtorParentIterator *it, BtorNode *exp)
 {
@@ -248,6 +249,13 @@ queue_node_hash_table_iterator (BtorHashTableIterator *it, BtorPtrHashTable *t)
   assert (it->num_queued < BTOR_HASH_TABLE_ITERATOR_STACK_SIZE);
 
   it->stack[it->num_queued++] = t;
+
+  /* if initial table is empty, initialize with queued table */
+  if (!it->bucket)
+  {
+    it->bucket = t->first;
+    it->cur    = it->bucket ? it->bucket->key : 0;
+  }
 }
 
 BtorNode *
