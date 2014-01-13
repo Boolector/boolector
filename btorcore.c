@@ -740,6 +740,10 @@ btor_print_stats_btor (Btor *btor)
   btor_msg (btor, 1, "lambdas merged: %lld", btor->stats.lambdas_merged);
   btor_msg (btor, 1, "propagations: %lld", btor->stats.propagations);
   btor_msg (btor, 1, "propagations down: %lld", btor->stats.propagations_down);
+  btor_msg (btor,
+            1,
+            "partial beta reduction restarts: %lld",
+            btor->stats.partial_beta_reduction_restarts);
 
   btor_msg (btor, 1, "");
   btor_msg (btor, 1, "%.2f seconds beta-reduction", btor->time.beta);
@@ -5583,6 +5587,9 @@ add_lemma (Btor *btor, BtorNode *fun, BtorNode *app0, BtorNode *app1)
   assert (!app1 || BTOR_IS_REGULAR_NODE (app1));
   assert (!app1 || BTOR_IS_APPLY_NODE (app1));
 
+#ifndef NDEBUG
+  int evalerr;
+#endif
   BtorPtrHashTable *bconds_sel1, *bconds_sel2;
   BtorNode *args, *value, *exp;
   BtorMemMgr *mm;
@@ -5616,7 +5623,12 @@ add_lemma (Btor *btor, BtorNode *fun, BtorNode *app0, BtorNode *app1)
   {
     args = app0->e[1];
     btor_assign_args (btor, fun, args);
-    value = btor_beta_reduce_partial (btor, fun, 0);  //&parameterized);
+#ifndef NDEBUG
+    value = btor_beta_reduce_partial (btor, fun, 0, &evalerr);
+    assert (!evalerr);
+#else
+    value = btor_beta_reduce_partial (btor, fun, 0, 0);
+#endif
     btor_unassign_params (btor, fun);
     assert (!BTOR_IS_LAMBDA_NODE (BTOR_REAL_ADDR_NODE (value)));
 
@@ -5758,7 +5770,7 @@ propagate (Btor *btor,
   // TODO: extensionality for write lambdas
   assert (btor->ops[BTOR_AEQ_NODE] == 0);
 
-  int i, values_equal, args_equal;
+  int i, values_equal, args_equal, evalerr;
   char *fun_value_assignment, *app_assignment;
   BtorMemMgr *mm;
   BtorLambdaNode *lambda;
@@ -5856,7 +5868,8 @@ propagate (Btor *btor,
     if (*assignments_changed) return 0;
 
     btor_assign_args (btor, fun, args);
-    fun_value = btor_beta_reduce_partial (btor, fun, &parameterized);
+  PROPAGATE_BETA_REDUCE_PARTIAL:
+    fun_value = btor_beta_reduce_partial (btor, fun, &parameterized, &evalerr);
     assert (!BTOR_IS_LAMBDA_NODE (BTOR_REAL_ADDR_NODE (fun_value)));
 
     if (BTOR_IS_ARRAY_VAR_NODE (BTOR_REAL_ADDR_NODE (fun_value)))
@@ -5891,7 +5904,22 @@ propagate (Btor *btor,
           BTOR_RELEASE_STACK (mm, param_apps);
           return 0;
         }
+
+        /* if we couldn't fully evaluate 'fun_value' there were still
+         * not encoded inputs. now every required input is encoded and
+         * we can restart partial beta reduction.
+         * if we would not restart partial beta reduction it may produce
+         * different values for lemma generation. */
+        if (evalerr)
+        {
+          btor_release_exp (btor, fun_value);
+          BTOR_RELEASE_STACK (mm, param_apps);
+          btor->stats.partial_beta_reduction_restarts++;
+          goto PROPAGATE_BETA_REDUCE_PARTIAL;
+        }
       }
+
+      assert (!evalerr);
 
       /* NOTE: this is a special case
        * 'fun_value' is a function application and is not encoded.
@@ -5927,6 +5955,7 @@ propagate (Btor *btor,
       }
       else
       {
+        assert (!evalerr);
         /* compute assignment of 'fun_value' and compare it to the
          * assignment of 'app'. */
         app_assignment = btor_bv_assignment_str_exp (btor, app);

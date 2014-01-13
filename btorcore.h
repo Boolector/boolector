@@ -169,6 +169,7 @@ struct Btor
     long long propagations;
     long long propagations_down;
     long long apply_props_construct;
+    long long partial_beta_reduction_restarts;
   } stats;
 
   struct

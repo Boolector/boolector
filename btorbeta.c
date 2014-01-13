@@ -363,7 +363,6 @@ btor_beta_reduce (Btor *btor, BtorNode *exp, int mode, int bound)
       if (bound > 0 && BTOR_IS_LAMBDA_NODE (real_cur)
           && cur_lambda_depth == bound)
       {
-        //	    printf ("BOUND reached\n");
         assert (!real_cur->parameterized);
         cur_lambda_depth--;
         BTOR_PUSH_STACK (mm, arg_stack, btor_copy_exp (btor, cur));
@@ -1223,7 +1222,8 @@ btor_beta_reduce_partial_aux (Btor *btor,
                               BtorNode *exp,
                               BtorNode **parameterized,
                               BtorPtrHashTable *cond_sel1,
-                              BtorPtrHashTable *cond_sel2)
+                              BtorPtrHashTable *cond_sel2,
+                              int *evalerr)
 {
   assert (btor);
   assert (exp);
@@ -1242,6 +1242,9 @@ btor_beta_reduce_partial_aux (Btor *btor,
   BtorPtrHashBucket *b;
   BtorParamCacheTuple *t0;
   BtorNodeTuple *t1;
+
+  /* initialize evalerr */
+  if (evalerr) *evalerr = 0;
 
   if (!BTOR_REAL_ADDR_NODE (exp)->parameterized
       && !BTOR_IS_LAMBDA_NODE (BTOR_REAL_ADDR_NODE (exp)))
@@ -1299,54 +1302,60 @@ btor_beta_reduce_partial_aux (Btor *btor,
         BTOR_PUSH_STACK (mm, param_stack, real_cur);
         continue;
       }
-      /* evaluate ite nodes and continue with if or else branch */
-      else if (BTOR_IS_BV_COND_NODE (real_cur))
-      {
-        e = real_cur->e;
-        assert (BTOR_REAL_ADDR_NODE (e[0])->tseitin
-                || BTOR_REAL_ADDR_NODE (e[0])->parameterized
-                || BTOR_IS_BV_CONST_NODE (BTOR_REAL_ADDR_NODE (e[0])));
-        eval_res = btor_eval_exp (btor, e[0]);
+#if 0
+	  /* evaluate ite nodes and continue with if or else branch */
+	  else if (BTOR_IS_BV_COND_NODE (real_cur))
+	    {
+	      e = real_cur->e;
+	      assert (BTOR_REAL_ADDR_NODE (e[0])->tseitin
+		      || BTOR_REAL_ADDR_NODE (e[0])->parameterized
+		      || BTOR_IS_BV_CONST_NODE (BTOR_REAL_ADDR_NODE (e[0])));
+	      eval_res = btor_eval_exp (btor, e[0]);
 
-        if (eval_res)
-        {
-          if (eval_res[0] == '1')
-          {
-            if (cond_sel1)
-            {
-              t0 =
-                  btor_new_param_cache_tuple (btor, BTOR_REAL_ADDR_NODE (e[0]));
-              if (!btor_find_in_ptr_hash_table (cond_sel1, t0))
-                btor_insert_in_ptr_hash_table (cond_sel1, t0)->data.asPtr =
-                    e[0];
-              else
-                btor_delete_param_cache_tuple (btor, t0);
-            }
-            next = e[1];
-          }
-          else
-          {
-            assert (eval_res[0] == '0');
-            if (cond_sel2)
-            {
-              t0 =
-                  btor_new_param_cache_tuple (btor, BTOR_REAL_ADDR_NODE (e[0]));
-              if (!btor_find_in_ptr_hash_table (cond_sel2, t0))
-                btor_insert_in_ptr_hash_table (cond_sel2, t0)->data.asPtr =
-                    e[0];
-              else
-                btor_delete_param_cache_tuple (btor, t0);
-            }
-            next = e[2];
-          }
-          assert (next);
-          if (BTOR_IS_INVERTED_NODE (cur)) next = BTOR_INVERT_NODE (next);
-          BTOR_PUSH_STACK (mm, stack, next);
-          BTOR_PUSH_STACK (mm, stack, real_cur);
-          btor_freestr (mm, (char *) eval_res);
-          continue;
-        }
-      }
+	      if (eval_res)
+		{
+		  if (eval_res[0] == '1')
+		    {
+		      if (cond_sel1)
+			{
+			  t0 = btor_new_param_cache_tuple (btor,
+				 BTOR_REAL_ADDR_NODE (e[0]));
+			  if (!btor_find_in_ptr_hash_table (cond_sel1, t0))
+			    btor_insert_in_ptr_hash_table (cond_sel1,
+			      t0)->data.asPtr = e[0];
+			  else
+			    btor_delete_param_cache_tuple (btor, t0);
+			}
+		      next = e[1];
+		    }
+		  else
+		    {
+		      assert (eval_res[0] == '0');
+		      if (cond_sel2)
+			{
+			  t0 = btor_new_param_cache_tuple (btor,
+				 BTOR_REAL_ADDR_NODE (e[0]));
+			  if (!btor_find_in_ptr_hash_table (cond_sel2, t0))
+			    btor_insert_in_ptr_hash_table (cond_sel2,
+			      t0)->data.asPtr = e[0];
+			  else
+			    btor_delete_param_cache_tuple (btor, t0);
+			}
+		      next = e[2];
+		    }
+		  assert (next);
+		  if (BTOR_IS_INVERTED_NODE (cur))
+		    next = BTOR_INVERT_NODE (next);
+		  BTOR_PUSH_STACK (mm, stack, next);
+		  BTOR_PUSH_STACK (mm, stack, real_cur);
+		  btor_freestr (mm, (char *) eval_res);
+		  continue;
+		}
+	      /* condition couldn't be evaluated due to not encoded inputs */
+	      else if (evalerr)
+		*evalerr = 1;
+	    }
+#endif
       /* assign params of lambda expression */
       else if (BTOR_IS_LAMBDA_NODE (real_cur)
                && BTOR_IS_APPLY_NODE (cur_parent)
@@ -1481,7 +1490,50 @@ btor_beta_reduce_partial_aux (Btor *btor,
           btor_release_exp (btor, e[1]);
           break;
         case BTOR_BCOND_NODE:
-          result = btor_cond_exp (btor, e[2], e[1], e[0]);
+          eval_res = btor_eval_exp (btor, e[2]);
+
+          if (eval_res)
+          {
+            if (eval_res[0] == '1')
+            {
+              if (cond_sel1)
+              {
+                t0 = btor_new_param_cache_tuple (btor,
+                                                 BTOR_REAL_ADDR_NODE (e[2]));
+                if (!btor_find_in_ptr_hash_table (cond_sel1, t0))
+                  btor_insert_in_ptr_hash_table (cond_sel1, t0)->data.asPtr =
+                      e[2];
+                else
+                  btor_delete_param_cache_tuple (btor, t0);
+              }
+              next = e[1];
+            }
+            else
+            {
+              assert (eval_res[0] == '0');
+              if (cond_sel2)
+              {
+                t0 = btor_new_param_cache_tuple (btor,
+                                                 BTOR_REAL_ADDR_NODE (e[2]));
+                if (!btor_find_in_ptr_hash_table (cond_sel2, t0))
+                  btor_insert_in_ptr_hash_table (cond_sel2, t0)->data.asPtr =
+                      e[2];
+                else
+                  btor_delete_param_cache_tuple (btor, t0);
+              }
+              next = e[0];
+            }
+            assert (next);
+            if (BTOR_IS_INVERTED_NODE (cur)) next = BTOR_INVERT_NODE (next);
+            result = btor_copy_exp (btor, next);
+            btor_freestr (mm, (char *) eval_res);
+          }
+          else
+          {
+            result = btor_cond_exp (btor, e[2], e[1], e[0]);
+            /* condition couldn't be evaluated due to not encoded inputs */
+            if (evalerr) *evalerr = 1;
+          }
           btor_release_exp (btor, e[0]);
           btor_release_exp (btor, e[1]);
           btor_release_exp (btor, e[2]);
@@ -1602,10 +1654,13 @@ btor_beta_reduce_bounded (Btor *btor, BtorNode *exp, int bound)
 }
 
 BtorNode *
-btor_beta_reduce_partial (Btor *btor, BtorNode *exp, BtorNode **parameterized)
+btor_beta_reduce_partial (Btor *btor,
+                          BtorNode *exp,
+                          BtorNode **parameterized,
+                          int *evalerr)
 {
   BTORLOG ("%s: %s", __FUNCTION__, node2string (exp));
-  return btor_beta_reduce_partial_aux (btor, exp, parameterized, 0, 0);
+  return btor_beta_reduce_partial_aux (btor, exp, parameterized, 0, 0, evalerr);
 }
 
 BtorNode *
@@ -1615,7 +1670,16 @@ btor_beta_reduce_partial_collect (Btor *btor,
                                   BtorPtrHashTable *cond_sel2)
 {
   BTORLOG ("%s: %s", __FUNCTION__, node2string (exp));
-  return btor_beta_reduce_partial_aux (btor, exp, 0, cond_sel1, cond_sel2);
+#ifndef NDEBUG
+  int evalerr;
+  BtorNode *res;
+  res = btor_beta_reduce_partial_aux (
+      btor, exp, 0, cond_sel1, cond_sel2, &evalerr);
+  assert (!evalerr);
+  return res;
+#else
+  return btor_beta_reduce_partial_aux (btor, exp, 0, cond_sel1, cond_sel2, 0);
+#endif
 }
 
 BtorNode *
