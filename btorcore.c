@@ -4264,24 +4264,34 @@ synthesize_all_applies (Btor * btor)
 /* Mark all reachable expressions as reachable, reset reachable flag for all
  * previously reachable expressions that became unreachable due to rewriting. */
 static void
-update_reachable (Btor *btor)
+update_reachable (Btor *btor, int check_all_tables)
 {
   assert (btor);
 
   int i;
   BtorNode *cur;
   BtorPtrHashBucket *b;
+  BtorHashTableIterator it;
 
   assert (check_unique_table_mark_unset_dbg (btor));
-  assert (btor->unsynthesized_constraints->count == 0);
-  assert (btor->embedded_constraints->count == 0);
-  assert (btor->varsubst_constraints->count == 0);
+  assert (check_all_tables || btor->unsynthesized_constraints->count == 0);
+  assert (check_all_tables || btor->embedded_constraints->count == 0);
+  assert (check_all_tables || btor->varsubst_constraints->count == 0);
 
-  for (b = btor->synthesized_constraints->first; b; b = b->next)
-    btor_mark_exp (btor, (BtorNode *) b->key, 1);
-  // FIXME
-  for (b = btor->assumptions->first; b; b = b->next)
-    btor_mark_exp (btor, (BtorNode *) b->key, 1);
+  init_node_hash_table_iterator (btor, &it, btor->synthesized_constraints);
+  queue_node_hash_table_iterator (&it, btor->assumptions);
+  if (check_all_tables)
+  {
+    queue_node_hash_table_iterator (&it, btor->unsynthesized_constraints);
+    queue_node_hash_table_iterator (&it, btor->embedded_constraints);
+    queue_node_hash_table_iterator (&it, btor->varsubst_constraints);
+  }
+
+  while (has_next_node_hash_table_iterator (&it))
+  {
+    cur = next_node_hash_table_iterator (&it);
+    btor_mark_exp (btor, cur, 1);
+  }
 
   /* in case of models, var_rhs and array_rhs are also marked as reachable */
   if (btor->model_gen)
@@ -6404,7 +6414,7 @@ btor_sat_aux_btor (Btor *btor)
     assert (!BTOR_REAL_ADDR_NODE ((BtorNode *) b->key)->simplified);
 #endif
 
-  update_reachable (btor);
+  update_reachable (btor, 0);
   assert (check_reachable_flag_dbg (btor));
 
   add_again_assumptions (btor);
@@ -7258,11 +7268,14 @@ map_inputs_check_model (Btor *btor, Btor *clone)
                                     (BtorHashPtr) btor_hash_exp_by_id,
                                     (BtorCmpPtr) btor_compare_exp_by_id);
 
+  update_reachable (clone, 1);
+
   init_node_hash_table_iterator (btor, &it, clone->bv_vars);
   while (has_next_node_hash_table_iterator (&it))
   {
     cur = next_node_hash_table_iterator (&it);
-    b   = btor_find_in_ptr_hash_table (btor->bv_vars, cur);
+    if (!cur->reachable) continue;
+    b = btor_find_in_ptr_hash_table (btor->bv_vars, cur);
     assert (b);
 
     assert (!btor_find_in_ptr_hash_table (inputs, cur));
@@ -7274,7 +7287,8 @@ map_inputs_check_model (Btor *btor, Btor *clone)
   while (has_next_node_hash_table_iterator (&it))
   {
     cur = next_node_hash_table_iterator (&it);
-    b   = btor_find_in_ptr_hash_table (btor->array_vars, cur);
+    if (!cur->reachable) continue;
+    b = btor_find_in_ptr_hash_table (btor->array_vars, cur);
     assert (b);
 
     assert (!btor_find_in_ptr_hash_table (inputs, cur));
