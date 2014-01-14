@@ -6526,8 +6526,9 @@ search_top_applies (Btor *btor, BtorNodePtrStack *top_applies)
     {
       ccur = BTOR_REAL_ADDR_NODE (cur);
       assert (BTOR_IS_BV_EQ_NODE (ccur)
+              || (BTOR_IS_BV_VAR_NODE (ccur) && ccur->len == 1)
               || (BTOR_IS_APPLY_NODE (ccur) && ccur->len == 1));
-      if (!BTOR_IS_APPLY_NODE (ccur))
+      if (BTOR_IS_BV_EQ_NODE (ccur))
         ccur = BTOR_IS_BV_VAR_NODE (BTOR_REAL_ADDR_NODE (ccur->e[0]))
                        || BTOR_IS_APPLY_NODE (BTOR_REAL_ADDR_NODE (ccur->e[0]))
                    ? BTOR_REAL_ADDR_NODE (ccur->e[0])
