@@ -843,7 +843,7 @@ btor_new_btor (void)
   btor->chk_failed_assumptions = 1;
 #endif
   // TODO debug
-  // btor->dual_prop = 1;
+  btor->dual_prop = 1;
 
   BTOR_PUSH_STACK (btor->mm, btor->nodes_id_table, 0);
 
@@ -6365,7 +6365,8 @@ clone_exp_layer_negated (Btor *btor)
   init_node_hash_table_iterator (clone, &it, clone->unsynthesized_constraints);
   while (has_next_node_hash_table_iterator (&it))
   {
-    cur = next_node_hash_table_iterator (&it);
+    cur                                   = next_node_hash_table_iterator (&it);
+    BTOR_REAL_ADDR_NODE (cur)->constraint = 0;
     if (!root)
       root = btor_copy_exp (clone, cur);
     else
@@ -6376,7 +6377,6 @@ clone_exp_layer_negated (Btor *btor)
     }
   }
   root = BTOR_INVERT_NODE (root);
-  btor_dump_btor_node (clone, stdout, root);
   init_node_hash_table_iterator (clone, &it, clone->unsynthesized_constraints);
   while (has_next_node_hash_table_iterator (&it))
     btor_release_exp (clone, next_node_hash_table_iterator (&it));
@@ -6426,12 +6426,33 @@ search_top_applies (Btor *btor, BtorNodePtrStack *top_applies)
   printf ("-- initial sat: %s\n", sat_result == BTOR_SAT ? "SAT" : "UNSAT");
 #endif
 
+  //  // TODO DEBUG
+  //  init_node_hash_table_iterator (btor, &it, btor->synthesized_constraints);
+  //  while (has_next_node_hash_table_iterator (&it))
+  //    {
+  //      cur = next_node_hash_table_iterator (&it);
+  //      printf ("\ncur %d *******------------------\n", BTOR_REAL_ADDR_NODE
+  //      (cur)->id); btor_dump_btor_node (btor, stdout, cur); printf
+  //      ("********-----------------------\n");
+  //    }
+  //  //
   // clone = clone_btor_negated (btor);
   clone = clone_exp_layer_negated (btor);
   btor_enable_force_cleanup (clone);
   btor_enable_inc_usage (clone);
   clone->loglevel  = 0;
   clone->dual_prop = 0;
+  //  // TODO DEBUG
+  //  init_node_hash_table_iterator (clone, &it,
+  //  clone->unsynthesized_constraints); while
+  //  (has_next_node_hash_table_iterator (&it))
+  //    {
+  //      cur = next_node_hash_table_iterator (&it);
+  //      printf ("\ncur %d +++++++++++++------------\n", BTOR_REAL_ADDR_NODE
+  //      (cur)->id); btor_dump_btor_node (clone, stdout, cur); printf
+  //      ("++++++++++++++++---------------\n");
+  //    }
+  //  //
 
   /* assume non-boolean bv assignments */
   // for (i = 0; i < btor->nodes_unique_table.size; i++)
