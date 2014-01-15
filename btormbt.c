@@ -2311,21 +2311,22 @@ main (int argc, char **argv)
       if (res == EXIT_ERROR)
       {
         btormbt->bugs++;
-        btormbt->bugs++;
-        cmd = malloc (strlen (name) + 80);
-        if ((name = getenv ("BTORAPITRACE")))
-          sprintf (cmd, "cp %s btormbt-bug-%d.trace", name, btormbt->seed);
-        else
+
+        if (!(name = getenv ("BTORAPITRACE")))
         {
           name = malloc (100 * sizeof (char));
           sprintf (name, "/tmp/bug-%d-mbt.trace", getpid ());
+          /* replay run */
           setenv ("BTORAPITRACE", name, 1);
-          sprintf (cmd, "cp %s btormbt-bug-%d.trace", name, btormbt->seed);
-          free (name);
-          res = run (btormbt, rantrav); /* replay */
+          res = run (btormbt, rantrav);
           assert (res);
           unsetenv ("BTORAPITRACE");
         }
+
+        cmd = malloc (strlen (name) + 80);
+        sprintf (cmd, "cp %s btormbt-bug-%d.trace", name, btormbt->seed);
+
+        if (!getenv ("BTORAPITRACE")) free (name);
         if (system (cmd))
         {
           printf ("Error on copy command %s \n", cmd);
