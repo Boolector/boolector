@@ -225,6 +225,46 @@ check_constraints_not_const_dbg (Btor *btor)
   }
   return 1;
 }
+
+static int
+check_applies_dbg (Btor *btor)
+{
+  assert (btor);
+
+  int i, failed = 0;
+  BtorNode *cur;
+
+  for (i = 0; i < btor->nodes_unique_table.size; i++)
+  {
+    for (cur = btor->nodes_unique_table.chains[i]; cur; cur = cur->next)
+    {
+      if (!BTOR_IS_APPLY_NODE (cur)
+          /* parameterized applies do need to be checked */
+          || cur->parameterized
+          || cur->propagated
+          /* apply is not yet added to formula */
+          || (!cur->reachable && !cur->vread)
+          /* function not in formula anymore, applies do not need to be
+           * checked */
+          || !cur->e[0]->reachable)
+        continue;
+      assert (cur->e[0]->reachable);
+#if 0
+	  printf ("(%d|%d/%d|%d/%d/%d) (%d) %s\n",
+		  cur->propagated,
+		  cur->reachable, cur->vread,
+		  BTOR_IS_SYNTH_NODE (cur), cur->tseitin,
+		  cur->parameterized,
+		  cur->parents,
+		  node2string (cur));
+#endif
+      failed = 1;
+    }
+  }
+
+  return !failed;
+}
+
 /*------------------------------------------------------------------------*/
 #endif
 /*------------------------------------------------------------------------*/
@@ -675,12 +715,12 @@ btor_print_stats_btor (Btor *btor)
   {
     btor_msg (btor,
               1,
-              " array axiom 1 conflicts: %d",
-              btor->stats.array_axiom_1_conflicts);
+              " function congruence conflicts: %d",
+              btor->stats.function_congruence_conflicts);
     btor_msg (btor,
               1,
-              " array axiom 2 conflicts: %d",
-              btor->stats.array_axiom_2_conflicts);
+              " beta reduction conflicts: %d",
+              btor->stats.beta_reduction_conflicts);
     btor_msg (btor,
               1,
               " average lemma size: %.1f",
@@ -5637,7 +5677,7 @@ add_lemma (Btor *btor, BtorNode *fun, BtorNode *app0, BtorNode *app1)
     value = btor_beta_reduce_partial (btor, fun, 0, &evalerr);
     assert (!evalerr);
 #else
-    value = btor_beta_reduce_partial (btor, fun, 0, 0, 0);
+    value = btor_beta_reduce_partial (btor, fun, 0, 0);
 #endif
     btor_unassign_params (btor, fun);
     assert (!BTOR_IS_LAMBDA_NODE (BTOR_REAL_ADDR_NODE (value)));
@@ -5846,16 +5886,17 @@ propagate (Btor *btor,
         assert (BTOR_IS_REGULAR_NODE (hashed_app));
         assert (BTOR_IS_APPLY_NODE (hashed_app));
 
+        /* function congruence conflict */
         if (compare_assignments (hashed_app, app) != 0)
         {
           BTORLOG ("\e[1;31m");
-          BTORLOG ("A1 conflict at: %s", node2string (fun));
+          BTORLOG ("FC conflict at: %s", node2string (fun));
           BTORLOG ("add_lemma:");
           BTORLOG ("  fun: %s", node2string (fun));
           BTORLOG ("  app1: %s", node2string (hashed_app));
           BTORLOG ("  app2: %s", node2string (app));
           BTORLOG ("\e[0;39m");
-          btor->stats.array_axiom_1_conflicts++;
+          btor->stats.function_congruence_conflicts++;
           add_lemma (btor, fun, hashed_app, app);
           return 1;
         }
@@ -5987,16 +6028,17 @@ propagate (Btor *btor,
         btor_freestr (mm, fun_value_assignment);
         btor_release_bv_assignment_str_exp (btor, app_assignment);
 
+        /* beta reduction conflict */
         if (!values_equal)
         {
-        LAMBDA_AXIOM_2_CONFLICT:
+        BETA_REDUCTION_CONFLICT:
           BTORLOG ("\e[1;31m");
-          BTORLOG ("A2 conflict at: %s", node2string (fun));
+          BTORLOG ("BR conflict at: %s", node2string (fun));
           BTORLOG ("add_lemma:");
           BTORLOG ("  fun: %s", node2string (fun));
           BTORLOG ("  app: %s", node2string (app));
           BTORLOG ("\e[0;39m");
-          btor->stats.array_axiom_2_conflicts++;
+          btor->stats.beta_reduction_conflicts++;
           add_lemma (btor, fun, app, 0);
           btor_unassign_params (btor, fun);
           btor_release_exp (btor, fun_value);
@@ -6009,7 +6051,7 @@ propagate (Btor *btor,
       /* we already have an assignment for 'fun_value' and we can check
        * if both function value 'app' and 'fun_value' are the same */
       if (compare_assignments (app, fun_value) != 0)
-        goto LAMBDA_AXIOM_2_CONFLICT;
+        goto BETA_REDUCTION_CONFLICT;
     }
     btor_unassign_params (btor, fun);
     btor_release_exp (btor, fun_value);
@@ -6274,45 +6316,6 @@ BTOR_CONFLICT_CLEANUP:
     goto BTOR_CONFLICT_CHECK;
   }
   return found_conflict;
-}
-
-static int
-check_applies_dbg (Btor *btor)
-{
-  assert (btor);
-
-  int i, failed = 0;
-  BtorNode *cur;
-
-  for (i = 0; i < btor->nodes_unique_table.size; i++)
-  {
-    for (cur = btor->nodes_unique_table.chains[i]; cur; cur = cur->next)
-    {
-      if (!BTOR_IS_APPLY_NODE (cur)
-          /* parameterized applies do need to be checked */
-          || cur->parameterized
-          || cur->propagated
-          /* apply is not yet added to formula */
-          || (!cur->reachable && !cur->vread)
-          /* function not in formula anymore, applies do not need to be
-           * checked */
-          || !cur->e[0]->reachable)
-        continue;
-      assert (cur->e[0]->reachable);
-#if 0
-	  printf ("(%d|%d/%d|%d/%d/%d) (%d) %s\n",
-		  cur->propagated,
-		  cur->reachable, cur->vread,
-		  BTOR_IS_SYNTH_NODE (cur), cur->tseitin,
-		  cur->parameterized,
-		  cur->parents,
-		  node2string (cur));
-#endif
-      failed = 1;
-    }
-  }
-
-  return !failed;
 }
 
 static void
@@ -7298,7 +7301,9 @@ check_model (Btor *btor, Btor *clone, BtorPtrHashTable *inputs)
   BtorNode *cur, *exp, *val, *idx, *w, *tmp, *simp;
   BtorHashTableIterator it;
 
-  clone->loglevel = 0;
+#ifndef NBTORLOG
+  btor_set_loglevel_btor (clone, 0);
+#endif
 
   if (clone->valid_assignments) btor_reset_incremental_usage (clone);
 

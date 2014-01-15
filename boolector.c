@@ -238,8 +238,8 @@ btor_chkclone_stats (Btor *btor)
   BTOR_CHKCLONE_STATS (synthesis_assignment_inconsistencies);
   BTOR_CHKCLONE_STATS (synthesis_inconsistency_apply);
   BTOR_CHKCLONE_STATS (synthesis_inconsistency_lambda);
-  BTOR_CHKCLONE_STATS (array_axiom_1_conflicts);
-  BTOR_CHKCLONE_STATS (array_axiom_2_conflicts);
+  BTOR_CHKCLONE_STATS (function_congruence_conflicts);
+  BTOR_CHKCLONE_STATS (beta_reduction_conflicts);
   BTOR_CHKCLONE_STATS (var_substitutions);
   BTOR_CHKCLONE_STATS (array_substitutions);
   BTOR_CHKCLONE_STATS (ec_substitutions);

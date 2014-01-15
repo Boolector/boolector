@@ -217,6 +217,7 @@ init_reversed_node_hash_table_iterator (Btor *btor,
   assert (btor);
   assert (it);
   assert (t);
+  (void) btor;
 
   it->bucket     = t->last;
   it->cur        = it->bucket ? it->bucket->key : 0;
@@ -233,6 +234,7 @@ init_node_hash_table_iterator (Btor *btor,
   assert (btor);
   assert (it);
   assert (t);
+  (void) btor;
 
   it->bucket     = t->first;
   it->cur        = it->bucket ? it->bucket->key : 0;
