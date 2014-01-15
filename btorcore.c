@@ -899,9 +899,18 @@ btor_delete_btor (Btor *btor)
 
   btor_release_exp (btor, btor->true_exp);
 
+#ifndef NDEBUG
+  btor_delete_bv_assignment_list (
+      btor->bv_assignments,
+      btor->force_cleanup || btor->force_internal_cleanup);
+  btor_delete_array_assignment_list (
+      btor->array_assignments,
+      btor->force_cleanup || btor->force_internal_cleanup);
+#else
   btor_delete_bv_assignment_list (btor->bv_assignments, btor->force_cleanup);
   btor_delete_array_assignment_list (btor->array_assignments,
                                      btor->force_cleanup);
+#endif
 
   for (b = btor->lod_cache->first; b; b = b->next)
     btor_release_exp (btor, (BtorNode *) b->key);
@@ -978,10 +987,34 @@ btor_delete_btor (Btor *btor)
       }
     }
     assert (btor->external_refs == 0);
+#ifndef NDEBUG
+    if (!btor->force_internal_cleanup)
+#endif
+      for (i = BTOR_COUNT_STACK (btor->nodes_id_table) - 1; i >= 0; i--)
+        assert (!BTOR_PEEK_STACK (btor->nodes_id_table, i));
+  }
+#ifndef NDEBUG
+  int j;
+  if (btor->force_internal_cleanup)
+  {
+    j = 0;
+    for (j = 0; j < 2; j++)
+    {
+      for (i = BTOR_COUNT_STACK (btor->nodes_id_table) - 1; i >= 0; i--)
+      {
+        if (!(exp = BTOR_PEEK_STACK (btor->nodes_id_table, i))) continue;
+        assert (exp->refs);
+        if (j || (!j && BTOR_IS_PROXY_NODE (exp)))
+        {
+          exp->refs = 1;
+          btor_release_exp (btor, exp);
+        }
+      }
+    }
     for (i = BTOR_COUNT_STACK (btor->nodes_id_table) - 1; i >= 0; i--)
       assert (!BTOR_PEEK_STACK (btor->nodes_id_table, i));
   }
-#ifndef NDEBUG
+
   int k;
   BtorNode *cur;
   if (btor->nodes_unique_table.num_elements)
@@ -6660,8 +6693,9 @@ search_top_applies (Btor *btor, BtorNodePtrStack *top_applies)
 
     assert (!btor_find_in_ptr_hash_table (assumptions, cur));
     bucket             = btor_insert_in_ptr_hash_table (assumptions, cur);
-    bucket->data.asPtr = bv_const;
+    bucket->data.asPtr = bv_eq;
 
+    btor_release_exp (clone, bv_const);
     btor_release_bv_assignment_str_exp (btor, ass_str);
   }
 
@@ -6672,11 +6706,10 @@ search_top_applies (Btor *btor, BtorNodePtrStack *top_applies)
   init_node_hash_table_iterator (btor, &it, assumptions);
   while (has_next_node_hash_table_iterator (&it))
   {
-    bv_const = (BtorNode *) it.bucket->data.asPtr;
-    cur      = next_node_hash_table_iterator (&it);
+    bv_eq = (BtorNode *) it.bucket->data.asPtr;
+    cur   = next_node_hash_table_iterator (&it);
     assert (BTOR_IS_REGULAR_NODE (cur));
     assert (BTOR_IS_BV_VAR_NODE (cur) || BTOR_IS_APPLY_NODE (cur));
-    bv_eq = btor_eq_exp (clone, cur, bv_const);
 
     if (btor_failed_exp (clone, bv_eq))
     {
@@ -6709,19 +6742,17 @@ search_top_applies (Btor *btor, BtorNodePtrStack *top_applies)
         BTOR_PUSH_STACK (btor->mm, *top_applies, cur);
       }
     }
-    btor_release_exp (clone, bv_eq);
   }
 
   /* cleanup */
-  // init_node_hash_table_iterator (btor, &it, assumptions);
-  // while (has_next_node_hash_table_iterator (&it))
-  //  {
-  //    bv_const = (BtorNode *) it.bucket->data.asPtr;
-  //    cur = next_node_hash_table_iterator (&it);
-  //    assert (BTOR_IS_REGULAR_NODE (cur));
-  //    btor_release_exp (clone, cur);
-  //    btor_release_exp (clone, BTOR_REAL_ADDR_NODE (bv_const));
-  //  }
+  init_node_hash_table_iterator (btor, &it, assumptions);
+  while (has_next_node_hash_table_iterator (&it))
+  {
+    bv_eq = (BtorNode *) it.bucket->data.asPtr;
+    cur   = next_node_hash_table_iterator (&it);
+    assert (BTOR_IS_REGULAR_NODE (cur));
+    btor_release_exp (clone, BTOR_REAL_ADDR_NODE (bv_eq));
+  }
   btor_delete_ptr_hash_table (assumptions);
   btor_delete_btor (clone);
   BTOR_RELEASE_STACK (btor->mm, stack);
@@ -6748,7 +6779,6 @@ BTOR_CONFLICT_CHECK:
   for (i = 0; i < BTOR_COUNT_STACK (*top_applies); i++)
   {
     cur = BTOR_PEEK_STACK (*top_applies, i);
-    printf ("cur: %s\n", node2string (cur));
     assert (BTOR_IS_REGULAR_NODE (cur));
     assert (BTOR_IS_APPLY_NODE (cur));
     assert (cur->reachable);
@@ -6877,11 +6907,7 @@ btor_sat_aux_btor (Btor *btor)
 
 #ifndef NDEBUG
   Btor *clone = 0;
-  if (btor->chk_failed_assumptions)
-  {
-    clone = btor_clone_btor (btor);
-    btor_enable_force_cleanup (clone);
-  }
+  if (btor->chk_failed_assumptions) clone = btor_clone_btor (btor);
 #endif
 
   if (btor->inconsistent) goto UNSAT;
@@ -7935,15 +7961,12 @@ btor_check_failed_assumptions (Btor *btor, Btor *clone)
   assert (btor->last_sat_result == BTOR_UNSAT);
 
   BtorNode *ass;
-  BtorPtrHashTable *failed_assumptions;
   BtorHashTableIterator it;
 
-  failed_assumptions =
-      btor_new_ptr_hash_table (btor->mm,
-                               (BtorHashPtr) btor_hash_exp_by_id,
-                               (BtorCmpPtr) btor_compare_exp_by_id);
+  btor_enable_force_cleanup (clone);
   clone->loglevel               = 0;
   clone->chk_failed_assumptions = 0;
+  clone->force_internal_cleanup = 1;
   clone->dual_prop              = 0;  // FIXME
 
   /* assert failed assumptions */
@@ -7970,7 +7993,5 @@ btor_check_failed_assumptions (Btor *btor, Btor *clone)
                                (BtorCmpPtr) btor_compare_exp_by_id);
 
   assert (btor_sat_btor (clone) == BTOR_UNSAT);
-
-  btor_delete_ptr_hash_table (failed_assumptions);
 }
 #endif

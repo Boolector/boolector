@@ -131,9 +131,12 @@ struct Btor
   int inc_enabled;     /* incremental usage enabled ? */
   int beta_reduce_all; /* eliminate lambda expressions */
   int dual_prop;       /* dual prop optimization */
-  int force_cleanup;   /* force cleanup of exps, assignment strings */
+  int force_cleanup;   /* cleanup exps, assignment strings (external
+                          references only) */
   int pprint;          /* reindex exps when dumping */
 #ifndef NDEBUG
+  int force_internal_cleanup; /* cleanup exps, assignment strings (internal
+                                 references only) */
   int chk_failed_assumptions;
 #endif
   int last_sat_result;      /* status of last SAT call (SAT/UNSAT) */
