@@ -5637,7 +5637,7 @@ add_lemma (Btor *btor, BtorNode *fun, BtorNode *app0, BtorNode *app1)
     value = btor_beta_reduce_partial (btor, fun, 0, &evalerr);
     assert (!evalerr);
 #else
-    value = btor_beta_reduce_partial (btor, fun, 0, 0);
+    value = btor_beta_reduce_partial (btor, fun, 0, 0, 0);
 #endif
     btor_unassign_params (btor, fun);
     assert (!BTOR_IS_LAMBDA_NODE (BTOR_REAL_ADDR_NODE (value)));
@@ -5780,6 +5780,9 @@ propagate (Btor *btor,
   // TODO: extensionality for write lambdas
   assert (btor->ops[BTOR_AEQ_NODE] == 0);
 
+#ifndef NDEBUG
+  int num_restarts;
+#endif
   int i, values_equal, args_equal, evalerr;
   char *fun_value_assignment, *app_assignment;
   BtorMemMgr *mm;
@@ -5878,6 +5881,9 @@ propagate (Btor *btor,
     if (*assignments_changed) return 0;
 
     btor_assign_args (btor, fun, args);
+#ifndef NDEBUG
+    num_restarts = 0;
+#endif
   PROPAGATE_BETA_REDUCE_PARTIAL:
     fun_value = btor_beta_reduce_partial (btor, fun, &parameterized, &evalerr);
     assert (!BTOR_IS_LAMBDA_NODE (BTOR_REAL_ADDR_NODE (fun_value)));
@@ -5894,7 +5900,6 @@ propagate (Btor *btor,
     if (parameterized)
     {
       assert (BTOR_IS_REGULAR_NODE (parameterized));
-      BTOR_INIT_STACK (param_apps);
 
       args_equal = 0;
       if (BTOR_IS_APPLY_NODE (BTOR_REAL_ADDR_NODE (fun_value))
@@ -5903,6 +5908,7 @@ propagate (Btor *btor,
 
       if (!args_equal)
       {
+        BTOR_INIT_STACK (param_apps);
         find_not_encoded_applies_vars (btor, fun_value, &param_apps);
 
         *assignments_changed = encode_applies_vars (btor, lambda, &param_apps);
@@ -5915,6 +5921,23 @@ propagate (Btor *btor,
           return 0;
         }
 
+        /* we have to ensure the consistency of the freshly encoded
+         * function applications, hence we need to propagate them. */
+        for (i = 0; i < BTOR_COUNT_STACK (param_apps); i++)
+        {
+          param_app = BTOR_REAL_ADDR_NODE (BTOR_PEEK_STACK (param_apps, i));
+          assert (BTOR_IS_REGULAR_NODE (param_app));
+          assert (BTOR_IS_APPLY_NODE (param_app)
+                  || BTOR_IS_BV_VAR_NODE (param_app));
+
+          if (!BTOR_IS_APPLY_NODE (param_app)) continue;
+
+          BTOR_PUSH_STACK (mm, *prop_stack, param_app);
+          BTOR_PUSH_STACK (mm, *prop_stack, param_app->e[0]);
+        }
+
+        BTOR_RELEASE_STACK (mm, param_apps);
+
         /* if we couldn't fully evaluate 'fun_value' there were still
          * not encoded inputs. now every required input is encoded and
          * we can restart partial beta reduction.
@@ -5923,8 +5946,12 @@ propagate (Btor *btor,
         if (evalerr)
         {
           btor_release_exp (btor, fun_value);
-          BTOR_RELEASE_STACK (mm, param_apps);
           btor->stats.partial_beta_reduction_restarts++;
+#ifndef NDEBUG
+          num_restarts++;
+          assert (num_restarts < 3);
+#endif
+          BTORLOG ("restart partial beta reduction");
           goto PROPAGATE_BETA_REDUCE_PARTIAL;
         }
       }
@@ -5941,41 +5968,20 @@ propagate (Btor *btor,
        * which has the same properties as 'fun_value'. further, we do not
        * have to encode every intermediate function application we
        * encounter while propagating 'app'. */
-      if (BTOR_IS_APPLY_NODE (BTOR_REAL_ADDR_NODE (fun_value))
-          //	      && BTOR_IS_APPLY_NODE (BTOR_REAL_ADDR_NODE
-          //(parameterized))
-          && args_equal)
+      if (BTOR_IS_APPLY_NODE (BTOR_REAL_ADDR_NODE (fun_value)) && args_equal)
       {
-        //	      assert (
-        //		BTOR_REAL_ADDR_NODE (fun_value)->e[0] ==
-        // parameterized->e[0]); 	      assert (BTOR_IS_APPLY_NODE
-        //(parameterized));
         BTOR_PUSH_STACK (mm, *prop_stack, app);
-        //	      BTOR_PUSH_STACK (mm, *prop_stack, parameterized->e[0]);
         BTOR_PUSH_STACK (
             mm, *prop_stack, BTOR_REAL_ADDR_NODE (fun_value)->e[0]);
         BTORLOG ("  propagate down: %s", node2string (app));
-        //	      BTORLOG ("    parameterized: %s (%s)",
-        //		       node2string (parameterized),
-        //		       node2string (parameterized->e[1]));
-        //	      BTORLOG ("    value: %s (%s)", node2string (fun_value),
-        //		       node2string (BTOR_REAL_ADDR_NODE
-        //(fun_value)->e[1]));
         btor->stats.propagations_down++;
       }
       else
       {
-        assert (!evalerr);
         /* compute assignment of 'fun_value' and compare it to the
          * assignment of 'app'. */
-        app_assignment = btor_bv_assignment_str_exp (btor, app);
-        //	      if (BTOR_REAL_ADDR_NODE (fun_value)->tseitin
-        //		  || BTOR_IS_BV_CONST_NODE (BTOR_REAL_ADDR_NODE
-        //(fun_value)))
+        app_assignment       = btor_bv_assignment_str_exp (btor, app);
         fun_value_assignment = btor_eval_exp (btor, fun_value);
-        //	      else
-        //		fun_value_assignment =
-        //		  btor_eval_exp (btor, BTOR_LAMBDA_GET_BODY (fun));
         assert (fun_value_assignment);
         values_equal = strcmp (app_assignment, fun_value_assignment) == 0;
         btor_freestr (mm, fun_value_assignment);
@@ -5994,29 +6000,9 @@ propagate (Btor *btor,
           add_lemma (btor, fun, app, 0);
           btor_unassign_params (btor, fun);
           btor_release_exp (btor, fun_value);
-          if (parameterized) BTOR_RELEASE_STACK (mm, param_apps);
           return 1;
         }
-        else if (!BTOR_EMPTY_STACK (param_apps))
-        {
-          /* in case that we did not encounter any conflict, but
-           * instantiated and encoded function applications, we need
-           * to propagate them. */
-          for (i = 0; i < BTOR_COUNT_STACK (param_apps); i++)
-          {
-            param_app = BTOR_REAL_ADDR_NODE (BTOR_PEEK_STACK (param_apps, i));
-            assert (BTOR_IS_REGULAR_NODE (param_app));
-            assert (BTOR_IS_APPLY_NODE (param_app)
-                    || BTOR_IS_BV_VAR_NODE (param_app));
-
-            if (!BTOR_IS_APPLY_NODE (param_app)) continue;
-
-            BTOR_PUSH_STACK (mm, *prop_stack, param_app);
-            BTOR_PUSH_STACK (mm, *prop_stack, param_app->e[0]);
-          }
-        }
       }
-      BTOR_RELEASE_STACK (mm, param_apps);
     }
     else
     {
@@ -7404,7 +7390,8 @@ check_model (Btor *btor, Btor *clone, BtorPtrHashTable *inputs)
 
   if (clone->rewrite_level == 3)
   {
-    btor_enable_beta_reduce_all (clone);
+    // FIXME: still a problem with full beta reduction
+    //      btor_enable_beta_reduce_all (clone);
     ret = btor_simplify (clone);
   }
 
