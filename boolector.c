@@ -201,6 +201,10 @@ btor_chkclone_state (Btor *btor)
   BTOR_CHKCLONE_STATE (dual_prop);
   BTOR_CHKCLONE_STATE (force_cleanup);
   BTOR_CHKCLONE_STATE (pprint);
+#ifndef NDEBUG
+  BTOR_CHKCLONE_STATE (force_internal_cleanup);
+  BTOR_CHKCLONE_STATE (chk_failed_assumptions);
+#endif
   BTOR_CHKCLONE_STATE (last_sat_result);
   BTOR_CHKCLONE_STATE (btor_sat_btor_called);
   BTOR_CHKCLONE_STATE (msgtick);
