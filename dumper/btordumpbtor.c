@@ -253,7 +253,7 @@ bdcnode (BtorDumpContext *bdc, BtorNode *node, FILE *file)
   fprintf (file, "%d %s %d", bdcid (bdc, node), op, node->len);
 
   /* print index bit width of arrays */
-  if (BTOR_IS_ARRAY_VAR_NODE (node))
+  if (BTOR_IS_ARRAY_VAR_NODE (node) || BTOR_IS_LAMBDA_NODE (node))
     fprintf (file, " %d", BTOR_ARRAY_INDEX_LEN (node));
 
   /* print children or const values */
