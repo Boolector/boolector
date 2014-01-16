@@ -71,7 +71,7 @@ clone_exp (Btor *clone,
   }
 
   /* Note: no need to cache aig vectors here (exp->av is unique to exp). */
-  if (!BTOR_IS_ARRAY_NODE (exp) && exp->av)
+  if (!BTOR_IS_FUN_NODE (exp) && exp->av)
     res->av = btor_clone_aigvec (exp->av, clone->avmgr, aig_map);
   else
   {
@@ -133,36 +133,33 @@ clone_exp (Btor *clone,
       }
     }
   }
-  /* <---------------------------------------------------------------------- */
+  /* <----------------------------------------------------------------------
+   */
 
+#if 0
   /* ---------------- BTOR_ARRAY_VAR_NODE_STRUCT (all nodes) --------------> */
-  if (BTOR_IS_ARRAY_NODE (exp) || BTOR_IS_ARRAY_EQ_NODE (exp))
-  {
-    BTOR_PUSH_STACK_IF (exp->first_aeq_acond_parent,
-                        mm,
-                        *parents,
-                        &res->first_aeq_acond_parent);
-    BTOR_PUSH_STACK_IF (
-        exp->last_aeq_acond_parent, mm, *parents, &res->last_aeq_acond_parent);
-
-    /* ----------- BTOR_ARRAY_ADDITIONAL_NODE_STRUCT (all nodes) -------> */
-    if (!BTOR_IS_ARRAY_VAR_NODE (exp))
+  if (BTOR_IS_FUN_NODE (exp) || BTOR_IS_ARRAY_EQ_NODE (exp))
     {
-      for (i = 0; i < exp->arity; i++)
-      {
-        BTOR_PUSH_STACK_IF (exp->prev_aeq_acond_parent[i],
-                            mm,
-                            *parents,
-                            &res->prev_aeq_acond_parent[i]);
-        BTOR_PUSH_STACK_IF (exp->next_aeq_acond_parent[i],
-                            mm,
-                            *parents,
-                            &res->next_aeq_acond_parent[i]);
-      }
+      BTOR_PUSH_STACK_IF (exp->first_aeq_acond_parent,
+                          mm, *parents, &res->first_aeq_acond_parent);
+      BTOR_PUSH_STACK_IF (exp->last_aeq_acond_parent,
+                          mm, *parents, &res->last_aeq_acond_parent);
+
+      /* ----------- BTOR_ARRAY_ADDITIONAL_NODE_STRUCT (all nodes) -------> */
+      if (!BTOR_IS_ARRAY_VAR_NODE (exp))
+        {
+          for (i = 0; i < exp->arity; i++)
+            {
+              BTOR_PUSH_STACK_IF (exp->prev_aeq_acond_parent[i],
+                  mm, *parents, &res->prev_aeq_acond_parent[i]);
+              BTOR_PUSH_STACK_IF (exp->next_aeq_acond_parent[i],
+                  mm, *parents, &res->next_aeq_acond_parent[i]);
+            }
+        }
+      /* <------------------------------------------------------------------ */
     }
-    /* <------------------------------------------------------------------ */
-  }
   /* <---------------------------------------------------------------------- */
+#endif
 
   if (BTOR_IS_PARAM_NODE (exp))
   {
@@ -181,10 +178,10 @@ clone_exp (Btor *clone,
       BTOR_PUSH_STACK (mm, *sapps, &((BtorLambdaNode *) res)->synth_apps);
       BTOR_PUSH_STACK (mm, *sapps, &((BtorLambdaNode *) exp)->synth_apps);
     }
-    BTOR_PUSH_STACK_IF (((BtorLambdaNode *) exp)->nested,
+    BTOR_PUSH_STACK_IF (((BtorLambdaNode *) exp)->head,
                         mm,
                         *nodes,
-                        (BtorNode **) &((BtorLambdaNode *) res)->nested);
+                        (BtorNode **) &((BtorLambdaNode *) res)->head);
     BTOR_PUSH_STACK_IF (((BtorLambdaNode *) exp)->body,
                         mm,
                         *nodes,
@@ -577,7 +574,7 @@ btor_clone_btor (Btor *btor)
     if (!(cur = BTOR_PEEK_STACK (btor->nodes_id_table, i))) continue;
     allocated += cur->bytes;
     if (cur->bits) allocated += strlen (cur->bits) + 1;
-    if (!BTOR_IS_ARRAY_NODE (cur) && cur->av)
+    if (!BTOR_IS_FUN_NODE (cur) && cur->av)
       allocated += sizeof (*(cur->av)) + cur->len * sizeof (BtorAIG *);
     else if (cur->rho)
       allocated += MEM_PTR_HASH_TABLE (cur->rho);
@@ -808,9 +805,9 @@ btor_clone_exp_layer (Btor *btor)
     assert (!BTOR_PEEK_STACK (clone->nodes_id_table, i)->tseitin);
     assert (!BTOR_PEEK_STACK (clone->nodes_id_table, i)->lazy_tseitin);
     if (cur->bits) allocated += strlen (cur->bits) + 1;
-    if (!BTOR_IS_ARRAY_NODE (cur))
+    if (!BTOR_IS_FUN_NODE (cur))
       assert (!BTOR_PEEK_STACK (clone->nodes_id_table, i)->av);
-    if (BTOR_IS_ARRAY_NODE (cur) && cur->rho)
+    if (BTOR_IS_FUN_NODE (cur) && cur->rho)
       allocated += MEM_PTR_HASH_TABLE (cur->rho);
     if (!BTOR_IS_BV_CONST_NODE (cur)
         && (BTOR_IS_BV_VAR_NODE (cur) || BTOR_IS_ARRAY_VAR_NODE (cur)

@@ -1822,7 +1822,7 @@ check_params_bound (BtorBTORParser *parser)
     {
       assert (boolector_get_symbol_of_var (parser->btor, param));
       return btor_perr_btor (parser,
-                             "param '%d' not bound to any lambda expression",
+                             "param '%s' not bound to any lambda expression",
                              boolector_get_symbol_of_var (parser->btor, param));
     }
   }

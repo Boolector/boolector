@@ -58,7 +58,7 @@
 #define BTOR_ABORT_ARRAY_BOOLECTOR(arg)                      \
   do                                                         \
   {                                                          \
-    if (BTOR_IS_ARRAY_NODE (BTOR_REAL_ADDR_NODE ((arg))))    \
+    if (BTOR_IS_FUN_NODE (BTOR_REAL_ADDR_NODE ((arg))))      \
     {                                                        \
       fprintf (stderr, "[%s] %s: ", __FILE__, __FUNCTION__); \
       fprintf (stderr, "'%s' must not be an array\n", #arg); \
@@ -70,7 +70,7 @@
 #define BTOR_ABORT_BV_BOOLECTOR(arg)                             \
   do                                                             \
   {                                                              \
-    if (!BTOR_IS_ARRAY_NODE (BTOR_REAL_ADDR_NODE ((arg))))       \
+    if (!BTOR_IS_FUN_NODE (BTOR_REAL_ADDR_NODE ((arg))))         \
     {                                                            \
       fprintf (stderr, "[%s] %s: ", __FILE__, __FUNCTION__);     \
       fprintf (stderr, "'%s' must not be a bit-vector\n", #arg); \

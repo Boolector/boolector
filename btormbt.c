@@ -64,7 +64,7 @@
   "  -k, --keep-lines                 do not clear output lines\n"             \
   "  -a, --always-fork                fork even if seed given\n"               \
   "  -n, --no-modelgen                do not enable model generation \n"       \
-  "  -e, --no-extensionality          do not use extensionality\n"             \
+  "  -e, --extensionality	      use extensionality\n"                          \
   "  -d, --dual-prop		      enable dual prop optimization\n"                   \
   "\n"                                                                         \
   "  -f, --quit-after-first           quit after first bug encountered\n"      \
@@ -286,7 +286,7 @@ new_btormbt (void)
   btormbt->seed        = -1;
   btormbt->terminal    = isatty (1);
   btormbt->fork        = 1;
-  btormbt->ext         = 1;
+  btormbt->ext         = 0;
   return btormbt;
 }
 
@@ -2216,7 +2216,7 @@ finish (void)
 int
 main (int argc, char **argv)
 {
-  int i, mac, pid, prev, res, seeded, verbose, always_fork;
+  int i, mac, pid, prev, res, seeded, verbose, always_fork = 0;
   char *name, *cmd;
 
   btormbt             = new_btormbt ();
@@ -2245,9 +2245,8 @@ main (int argc, char **argv)
       btormbt->quit_after_first = 1;
     else if (!strcmp (argv[i], "-n") || !strcmp (argv[i], "--no-modelgen"))
       btormbt->force_nomgen = 1;
-    else if (!strcmp (argv[i], "-e")
-             || !strcmp (argv[i], "--no-extensionality"))
-      btormbt->ext = 0;
+    else if (!strcmp (argv[i], "-e") || !strcmp (argv[i], "--extensionality"))
+      btormbt->ext = 1;
     else if (!strcmp (argv[i], "-d") || !strcmp (argv[i], "--enable-dual-prop"))
       btormbt->dual_prop = 1;
     else if (!strcmp (argv[i], "-s") || !strcmp (argv[i], "--shadow-clone"))
@@ -2333,21 +2332,22 @@ main (int argc, char **argv)
       if (res == EXIT_ERROR)
       {
         btormbt->bugs++;
-        btormbt->bugs++;
-        cmd = malloc (strlen (name) + 80);
-        if ((name = getenv ("BTORAPITRACE")))
-          sprintf (cmd, "cp %s btormbt-bug-%d.trace", name, btormbt->seed);
-        else
+
+        if (!(name = getenv ("BTORAPITRACE")))
         {
           name = malloc (100 * sizeof (char));
           sprintf (name, "/tmp/bug-%d-mbt.trace", getpid ());
+          /* replay run */
           setenv ("BTORAPITRACE", name, 1);
-          sprintf (cmd, "cp %s btormbt-bug-%d.trace", name, btormbt->seed);
-          free (name);
-          res = run (btormbt, rantrav); /* replay */
+          res = run (btormbt, rantrav);
           assert (res);
           unsetenv ("BTORAPITRACE");
         }
+
+        cmd = malloc (strlen (name) + 80);
+        sprintf (cmd, "cp %s btormbt-bug-%d.trace", name, btormbt->seed);
+
+        if (!getenv ("BTORAPITRACE")) free (name);
         if (system (cmd))
         {
           printf ("Error on copy command %s \n", cmd);

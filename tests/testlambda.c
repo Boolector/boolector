@@ -1382,7 +1382,8 @@ run_lambda_tests (int argc, char **argv)
   BTOR_RUN_TEST (lambda_reduce_nested_lambdas_const_n1000);
 
   /* partial reduction tests */
-  BTOR_RUN_TEST (lambda_partial_reduce_nested_lambdas_add1);
+  // TODO: should we really support this? use case?
+  //  BTOR_RUN_TEST (lambda_partial_reduce_nested_lambdas_add1);
 
   /* additional tests */
   BTOR_RUN_TEST (lambda_define_fun);

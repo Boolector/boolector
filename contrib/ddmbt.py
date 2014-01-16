@@ -19,6 +19,8 @@ g_num_tests = 0
 g_lines = []
 g_subst_lines = {}
 g_line_tokens = []
+g_id2line = {}
+g_ids = []
 
 SKIP_SUBST_LIST = ["return", "release", "get_index_width", "bv_assignment", \
                    "free_bv_assignment", "get_width", "get_fun_arity"]
@@ -100,7 +102,7 @@ def _tokens_bw(tokens, nodes_bw):
             return cbw[0]
 
 def _build_graph():
-    global g_lines, g_line_tokens
+    global g_lines, g_line_tokens, g_ids, g_id2line
 
     g_line_tokens = [] 
     node_map = {}
@@ -114,12 +116,14 @@ def _build_graph():
         if tokens[0] == "return" and not "assignment" in prev_tokens[0]:
             if _is_node(tokens[1]):
                 nid = tokens[1]
+                g_ids.append(nid)
                 node_map[nid] = prev_tokens 
                 bw = _tokens_bw(prev_tokens, nodes_bw) 
                 nodes_bw[nid] = bw
                 assert(i > 0)
                 g_line_tokens[i - 1][0] = nid
                 g_line_tokens[i - 1][1] = bw
+                g_id2line[nid] = i - 1
 
         prev_tokens = tokens
         g_line_tokens.append(["", [], tokens])
@@ -262,29 +266,64 @@ def _compact_graph():
 
         del(g_subst_lines[i])
 
-#    # eliminate writes
-#    for i in range(len(g_line_tokens)):
-#        nid = g_line_tokens[i][0]
-#        bw = g_line_tokens[i][1]
-#        tokens = g_line_tokens[i][2]
-#        kind = tokens[0]
-#
-#        if kind != "write":
-#            continue
-#
-#        _log(1, "  substitute write at line {}, {}".format(i, num_substs), True)
-#        g_subst_lines[i] = "array {} {}".format(bw[0], bw[1])
-#        _open_file_dump_trace(g_tmpfile, g_lines)
-#
-#        if _test():
-#            _save(g_lines)
-#            g_lines[i] = g_subst_lines[i]
-#            num_substs += 1
-#
-#        del(g_subst_lines[i])
+    return num_substs
 
+def _swap_candidates(nid):
+    global g_line_tokens, g_id2line
+
+    i = g_id2line[nid]
+    bw = g_line_tokens[i][1]
+
+    candidates = []
+    for j in range(i):
+        if g_line_tokens[j][1] == bw:
+            candidates.append(g_line_tokens[j][0])
+
+    return candidates
+
+
+def _swap_ids():
+    global g_line_tokens, g_subst_lines, g_lines
+
+    num_substs = 0
+    g_subst_lines = {}
+
+    _build_graph()
+    assert(len(g_lines) == len(g_line_tokens))
+
+    for i in range(len(g_line_tokens)):
+        nid = g_line_tokens[i][0]
+        bw = g_line_tokens[i][1]
+        tokens = g_line_tokens[i][2]
+        kind = tokens[0]
+
+        if nid == "":
+            continue;
+
+        for j in range(len(tokens)):
+            if _is_node(tokens[j]):
+                candidates = _swap_candidates(tokens[j])
+
+                t = [str(tt) for tt in tokens]
+                for c in candidates:
+                    old = t[j]
+                    t[j] = str(c)
+                    g_subst_lines[i] = " ".join(t)
+                    _log(1, "  line {}, swap nodes {}".format(i, num_substs),
+                         True)
+                    _open_file_dump_trace(g_tmpfile, g_lines)
+
+                    if _test():
+                        _save(g_lines)
+                        g_lines[i] = g_subst_lines[i]
+                        num_substs += 1
+                    else:
+                        t[j] = old
+
+                    del(g_subst_lines[i])
 
     return num_substs
+
 
 def _remove_return_pairs():
     global g_lines
@@ -363,17 +402,18 @@ def ddmbt_main():
 
         num_substs = _compact_graph()
         num_lines = _remove_lines()
+        num_swaps = _swap_ids()
 
         if pairs:
             num_lines += _remove_return_pairs()
 
-        _log(1, "round {}, removed {} lines, substituted {} lines".format(
-             rounds, num_lines, num_substs))
+        _log(1, "round {}, removed {} lines, substituted {} lines, swapped {} nodes".format(
+             rounds, num_lines, num_substs, num_swaps))
 
         if num_lines == 0 and not pairs:
             _log(1, "remove return pairs")
             pairs = True
-        elif num_lines == 0 and num_substs == 0:
+        elif num_lines == 0 and num_substs == 0 and num_swaps == 0:
             break
 
 
