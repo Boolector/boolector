@@ -20,7 +20,7 @@
 
 #include <stdio.h>
 
-typedef struct BtorAIGMap BtorAIGMap;
+struct BtorAIGMap;
 
 /*------------------------------------------------------------------------*/
 
@@ -104,11 +104,15 @@ BtorAIGMgr *btor_clone_aig_mgr (BtorMemMgr *mm, BtorAIGMgr *amgr);
 
 /* Clone all aigs managed by the AIG manager. This needs to be done after
  * cloning the aig manager, as aig_map needs an associated aig manager clone. */
-void btor_clone_aigs (BtorAIGMgr *amgr, BtorAIGMgr *clone, BtorAIGMap *aig_map);
+void btor_clone_aigs (BtorAIGMgr *amgr,
+                      BtorAIGMgr *clone,
+                      struct BtorAIGMap *aig_map);
 
 /* Wrapper to retrieve cloned aigs from aig_map in case that var aigs occur
  * in the aig vector but not as children to non-var aigs. */
-BtorAIG *btor_cloned_aig (BtorMemMgr *mm, BtorAIG *aig, BtorAIGMap *aig_map);
+BtorAIG *btor_cloned_aig (BtorMemMgr *mm,
+                          BtorAIG *aig,
+                          struct BtorAIGMap *aig_map);
 
 /* Sets verbosity [-1,3] */
 void btor_set_verbosity_aig_mgr (BtorAIGMgr *amgr, int verbosity);

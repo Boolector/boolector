@@ -684,7 +684,8 @@ erase_local_data_exp (Btor *btor, BtorNode *exp, int free_symbol)
   {
     case BTOR_BV_CONST_NODE:
       btor_freestr (mm, exp->bits);
-      exp->bits = 0;
+      if (exp->invbits) btor_freestr (mm, exp->invbits);
+      exp->bits = exp->invbits = 0;
       break;
     case BTOR_LAMBDA_NODE:
       synth_apps = ((BtorLambdaNode *) exp)->synth_apps;
@@ -767,6 +768,7 @@ really_deallocate_exp (Btor *btor, BtorNode *exp)
   exp->kind = BTOR_INVALID_NODE;
 
   if (exp->bits) btor_freestr (btor->mm, exp->bits);
+  if (exp->invbits) btor_freestr (btor->mm, exp->invbits);
 
   btor_free (mm, exp, exp->bytes);
 }

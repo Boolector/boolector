@@ -215,6 +215,7 @@ init_reversed_node_hash_table_iterator (Btor *btor,
                                         BtorPtrHashTable *t)
 {
   assert (btor);
+  (void) btor;
   assert (it);
   assert (t);
   (void) btor;
@@ -232,6 +233,7 @@ init_node_hash_table_iterator (Btor *btor,
                                BtorPtrHashTable *t)
 {
   assert (btor);
+  (void) btor;
   assert (it);
   assert (t);
   (void) btor;

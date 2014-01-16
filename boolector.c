@@ -16,6 +16,7 @@
 #include "boolector.h"
 #include "btorabort.h"
 #include "btorclone.h"
+#include "btorconst.h"
 #include "btorcore.h"
 #include "btorexit.h"
 #include "btorhash.h"
@@ -28,12 +29,6 @@
 #include <limits.h>
 #include <stdio.h>
 #include <string.h>
-
-/*------------------------------------------------------------------------*/
-
-#define BTOR_IMPORT_BOOLECTOR_NODE(node) (((BtorNode *) (node)))
-#define BTOR_IMPORT_BOOLECTOR_NODE_ARRAY(array) (((BtorNode **) (array)))
-#define BTOR_EXPORT_BOOLECTOR_NODE(node) (((BoolectorNode *) (node)))
 
 /*------------------------------------------------------------------------*/
 
@@ -909,6 +904,31 @@ boolector_clone (Btor *btor)
   return btor_clone_btor (btor);
 }
 
+Btor *
+boolector_btor (BoolectorNode *node)
+{
+  BtorNode *exp, *real_exp, *simp, *real_simp;
+  Btor *btor;
+  BTOR_ABORT_ARG_NULL_BOOLECTOR (node);
+  exp       = BTOR_IMPORT_BOOLECTOR_NODE (node);
+  real_exp  = BTOR_REAL_ADDR_NODE (exp);
+  simp      = btor_simplify_exp (real_exp->btor, exp);
+  real_simp = BTOR_REAL_ADDR_NODE (simp);
+  btor      = real_simp->btor;
+  assert (btor == real_exp->btor);
+  BTOR_TRAPI ("btor", exp);
+#ifndef NDEBUG
+  if (btor->clone)
+  {
+    Btor *clone = boolector_btor (BTOR_CLONED_EXP (exp));
+    assert (clone == btor->clone);
+    BTOR_CHKCLONE ();
+  }
+#endif
+  BTOR_TRAPI_RETURN_PTR (btor);
+  return btor;
+}
+
 void
 boolector_set_rewrite_level (Btor *btor, int rewrite_level)
 {
@@ -1092,6 +1112,58 @@ boolector_const (Btor *btor, const char *bits)
   return BTOR_EXPORT_BOOLECTOR_NODE (res);
 }
 
+int
+boolector_is_const (Btor *btor, BoolectorNode *node)
+{
+  BtorNode *exp, *simp, *real;
+  int res;
+  exp = BTOR_IMPORT_BOOLECTOR_NODE (node);
+  BTOR_ABORT_ARG_NULL_BOOLECTOR (btor);
+  BTOR_ABORT_ARG_NULL_BOOLECTOR (exp);
+  BTOR_TRAPI ("is_const", exp);
+  BTOR_ABORT_REFS_NOT_POS_BOOLECTOR (exp);
+  simp = btor_simplify_exp (btor, exp);
+  real = BTOR_REAL_ADDR_NODE (simp);
+  res  = BTOR_IS_BV_CONST_NODE (real);
+#ifndef NDEBUG
+  BTOR_CHKCLONE_RES (res, is_const, BTOR_CLONED_EXP (exp));
+#endif
+  BTOR_TRAPI_RETURN (res);
+  return res;
+}
+
+const char *
+boolector_get_bits (Btor *btor, BoolectorNode *node)
+{
+  BtorNode *exp, *simp, *real;
+  const char *res;
+  BTOR_ABORT_ARG_NULL_BOOLECTOR (btor);
+  BTOR_ABORT_ARG_NULL_BOOLECTOR (node);
+  exp = BTOR_IMPORT_BOOLECTOR_NODE (node);
+  BTOR_ABORT_REFS_NOT_POS_BOOLECTOR (exp);
+  simp = btor_simplify_exp (btor, exp);
+  real = BTOR_REAL_ADDR_NODE (simp);
+  BTOR_ABORT_BOOLECTOR (!BTOR_IS_BV_CONST_NODE (real),
+                        "argument is not a constant node");
+  if (BTOR_IS_INVERTED_NODE (simp))
+  {
+    if (!real->invbits)
+      real->invbits = btor_not_const_3vl (btor->mm, real->bits);
+    res = real->invbits;
+  }
+  else
+    res = simp->bits;
+#ifndef NDEBUG
+  if (btor->clone)
+  {
+    const char *cloned_res =
+        boolector_get_bits (btor->clone, BTOR_CLONED_EXP (node));
+    assert (!strcmp (cloned_res, res));
+  }
+#endif
+  return res;
+}
+
 BoolectorNode *
 boolector_zero (Btor *btor, int width)
 {
@@ -1249,6 +1321,26 @@ boolector_var (Btor *btor, int width, const char *symbol)
 #endif
   BTOR_TRAPI_RETURN_NODE (res);
   return BTOR_EXPORT_BOOLECTOR_NODE (res);
+}
+
+int
+boolector_is_var (Btor *btor, BoolectorNode *node)
+{
+  BtorNode *exp, *simp, *real;
+  int res;
+  exp = BTOR_IMPORT_BOOLECTOR_NODE (node);
+  BTOR_ABORT_ARG_NULL_BOOLECTOR (btor);
+  BTOR_ABORT_ARG_NULL_BOOLECTOR (exp);
+  BTOR_TRAPI ("is_var", exp);
+  BTOR_ABORT_REFS_NOT_POS_BOOLECTOR (exp);
+  simp = btor_simplify_exp (btor, exp);
+  real = BTOR_REAL_ADDR_NODE (simp);
+  res  = BTOR_IS_BV_VAR_NODE (real);
+#ifndef NDEBUG
+  BTOR_CHKCLONE_RES (res, is_const, BTOR_CLONED_EXP (exp));
+#endif
+  BTOR_TRAPI_RETURN (res);
+  return res;
 }
 
 BoolectorNode *
@@ -3610,6 +3702,9 @@ boolector_array_assignment (Btor *btor,
     btor_free (btor->mm, val, *size * sizeof (*val));
     btor_get_array_assignment_indices_values (arrass, indices, values, *size);
   }
+  else
+    arrass = 0;  // remove warning
+
 #ifndef NDEBUG
   if (btor->clone)
   {
@@ -3624,8 +3719,9 @@ boolector_array_assignment (Btor *btor,
       assert (!strcmp ((*indices)[i], cindices[i]));
       assert (!strcmp ((*values)[i], cvalues[i]));
     }
-    if (*size)
+    if (arrass)
     {
+      assert (*size);
       arrass->cloned_indices = cindices;
       arrass->cloned_values  = cvalues;
     }

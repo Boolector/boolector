@@ -15,10 +15,6 @@
 #include "btorcore.h"
 
 /*------------------------------------------------------------------------*/
-
-#define BTOR_COUNT_MAP(MAP) (assert (MAP), (MAP)->table->count)
-
-/*------------------------------------------------------------------------*/
 /* Simple map for expression node.  The 'map' owns references to the non
  * zero 'src' and 'dst' nodes added in 'btor_map_node'.  Succesful look-up
  * through 'btor_mapped_node' does not add a reference.  The destructor
@@ -37,6 +33,7 @@ typedef struct BtorNodeMap BtorNodeMap;
 
 BtorNodeMap *btor_new_node_map (Btor *);
 BtorNode *btor_mapped_node (BtorNodeMap *, BtorNode *);
+int btor_count_map (BtorNodeMap *map);
 void btor_map_node (BtorNodeMap *, BtorNode *src, BtorNode *dst);
 void btor_delete_node_map (BtorNodeMap *);
 
@@ -66,6 +63,42 @@ BtorNode *btor_non_recursive_extended_substitute_node (
     BtorNodeMapper,    // see above
     BtorNodeReleaser,  // see above
     BtorNode *root);
+
+/*========================================================================*/
+
+// External version using external 'boolector_...' API calls internally.
+
+typedef struct BoolectorNodeMap BoolectorNodeMap;
+
+/*------------------------------------------------------------------------*/
+
+BoolectorNodeMap *boolector_new_node_map (Btor *);
+BoolectorNode *boolector_mapped_node (BoolectorNodeMap *, BoolectorNode *);
+int boolector_count_map (BoolectorNodeMap *map);
+void boolector_map_node (BoolectorNodeMap *, BoolectorNode *, BoolectorNode *);
+void boolector_delete_node_map (BoolectorNodeMap *);
+
+/*------------------------------------------------------------------------*/
+
+BoolectorNode *boolector_non_recursive_substitute_node (Btor *,
+                                                        BoolectorNodeMap *,
+                                                        BoolectorNode *);
+
+/*------------------------------------------------------------------------*/
+
+typedef BoolectorNode *(*BoolectorNodeMapper) (Btor *,
+                                               void *state,
+                                               BoolectorNode *);
+
+typedef void (*BoolectorNodeReleaser) (Btor *, BoolectorNode *);
+
+BoolectorNode *boolector_non_recursive_extended_substitute_node (
+    Btor *,
+    BoolectorNodeMap *,
+    void *state,
+    BoolectorNodeMapper,
+    BoolectorNodeReleaser,
+    BoolectorNode *root);
 
 /*========================================================================*/
 

@@ -108,7 +108,7 @@ BTOR_DECLARE_STACK (BtorIBVAssignment, BtorIBVAssignment);
 struct BtorIBVAtom
 {
   BtorIBVRange range;
-  BtorNode *exp, *next;
+  BoolectorNode *exp, *next;
   BtorIBVAtom (const BtorIBVRange &r) : range (r), exp (0), next (0) {}
 };
 
@@ -182,7 +182,7 @@ struct BtorIBVNode
   BitVector::BvVariableSource source;
   BitVector::DirectionKind direction;
   signed char marked, used, coi;
-  BtorNode *cached, *forwarded;
+  BoolectorNode *cached, *forwarded;
   char *name;
   BtorIBVFlags *flags;
   BtorIBVAssignment **assigned;
@@ -202,6 +202,8 @@ struct BtorIBVBit
   BtorIBVBit (unsigned i, unsigned b) : id (i), bit (b) {}
   BtorIBVBit (const BitVector::Bit &b);
 };
+
+typedef struct BtorIBVBit BtorIBVBit;
 
 extern "C" {
 BTOR_DECLARE_STACK (BtorIBVBit, BtorIBVBit);
@@ -336,9 +338,11 @@ class BtorIBV : public BitVector
 
   void translate_atom_divide (BtorIBVAtom *, bool, BtorIBVNodePtrNextStack *);
   void translate_atom_conquer (BtorIBVAtom *, bool);
-  BtorNode *translate_assignment_conquer (BtorIBVAtom *,
-                                          bool,
-                                          BtorIBVAssignment *);
+
+  BoolectorNode *translate_assignment_conquer (BtorIBVAtom *,
+                                               bool,
+                                               BtorIBVAssignment *);
+
   void translate_atom_base (BtorIBVAtom *);
 
   void translate_node_divide (BtorIBVNode *, bool, BtorIBVNodePtrNextStack *);

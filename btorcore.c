@@ -5750,7 +5750,7 @@ encode_applies_vars (Btor *btor,
   assert (param_apps);
   assert (BTOR_IS_REGULAR_NODE (lambda));
 
-  int i, assignments_changed = 0, res;
+  int i, assignments_changed = 0, res = 0;
   BtorNode *cur;
   BtorNodePtrStack stack;
 

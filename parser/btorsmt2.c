@@ -19,8 +19,6 @@
 #include <limits.h>
 #include <stdarg.h>
 
-BTOR_DECLARE_STACK (BoolectorNodePtr, BoolectorNode *);
-
 /*------------------------------------------------------------------------*/
 
 typedef enum BtorSMT2TagClass
