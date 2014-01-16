@@ -197,7 +197,6 @@ btor_chkclone_state (Btor *btor)
   BTOR_CHKCLONE_STATE (vis_idx);
   BTOR_CHKCLONE_STATE (vread_index_id);
   BTOR_CHKCLONE_STATE (inconsistent);
-  BTOR_CHKCLONE_STATE (found_assumption_false);
   BTOR_CHKCLONE_STATE (found_constraint_false);
   BTOR_CHKCLONE_STATE (model_gen);
   BTOR_CHKCLONE_STATE (external_refs);
