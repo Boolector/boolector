@@ -4109,8 +4109,8 @@ RESTART:
     BtorNode *real_else = BTOR_REAL_ADDR_NODE (e_else);
     BtorNode *i0        = BTOR_COND_INVERT_NODE (e_if, real_if->e[0]);
     BtorNode *i1        = BTOR_COND_INVERT_NODE (e_if, real_if->e[1]);
-    BtorNode *e0        = BTOR_COND_INVERT_NODE (e_if, real_else->e[0]);
-    BtorNode *e1        = BTOR_COND_INVERT_NODE (e_if, real_else->e[1]);
+    BtorNode *e0        = BTOR_COND_INVERT_NODE (e_else, real_else->e[0]);
+    BtorNode *e1        = BTOR_COND_INVERT_NODE (e_else, real_else->e[1]);
     if (i0 == e0 || i1 == e1)
     {
       if (btor->rec_rw_calls >= BTOR_REC_RW_BOUND)
