@@ -4376,6 +4376,7 @@ add_again_assumptions (Btor *btor)
   BtorSATMgr *smgr;
   BtorAIGMgr *amgr;
 
+  // FIXME: not needed anymore
   btor->found_assumption_false = 0;
 
   amgr = btor_get_aig_mgr_aigvec_mgr (btor->avmgr);
@@ -4428,14 +4429,10 @@ add_again_assumptions (Btor *btor)
     cur = (BtorNode *) b->key;
     assert (BTOR_REAL_ADDR_NODE (cur)->len == 1);
     assert (!BTOR_REAL_ADDR_NODE (cur)->simplified);
-    if ((aig = btor_exp_to_aig (btor, cur)) == BTOR_AIG_FALSE)
-    {
-      btor->found_assumption_false = 1;
-      break;
-    }
+    aig = btor_exp_to_aig (btor, cur);
     btor_aig_to_sat (amgr, aig);
     if (aig == BTOR_AIG_TRUE) continue;
-    assert (BTOR_REAL_ADDR_AIG (aig)->cnf_id != 0);
+    assert (BTOR_GET_CNF_ID_AIG (aig) != 0);
     btor_assume_sat (smgr, BTOR_GET_CNF_ID_AIG (aig));
     btor_release_aig (amgr, aig);
   }
