@@ -6386,12 +6386,17 @@ clone_exp_layer_negated (Btor *btor)
 {
   assert (btor);
   assert (btor->synthesized_constraints->count);
+  assert (!btor->unsynthesized_constraints->count);
+  assert (!btor->embedded_constraints->count);
 
   Btor *clone;
   BtorNode *root, *cur, *and;
   BtorHashTableIterator it;
 
   clone = btor_clone_exp_layer (btor);
+  assert (!clone->synthesized_constraints->count);
+  assert (clone->unsynthesized_constraints->count);
+  assert (!clone->embedded_constraints->count);
   btor_enable_inc_usage (clone);
 
   root = 0;
@@ -6418,7 +6423,8 @@ clone_exp_layer_negated (Btor *btor)
       btor_new_ptr_hash_table (clone->mm,
                                (BtorHashPtr) btor_hash_exp_by_id,
                                (BtorCmpPtr) btor_compare_exp_by_id);
-  insert_unsynthesized_constraint (clone, root);
+  btor_assert_exp (clone, root);
+  //  insert_unsynthesized_constraint (clone, root);
   btor_release_exp (clone, root);
   return clone;
 }
@@ -6646,8 +6652,9 @@ search_top_applies (Btor *btor, BtorNodePtrStack *top_applies)
   Btor *clone_dbg = clone_exp_layer_negated (btor);
   btor_enable_force_cleanup (clone_dbg);
   btor_enable_inc_usage (clone_dbg);
-  clone_dbg->loglevel  = 0;
-  clone_dbg->dual_prop = 0;
+  clone_dbg->loglevel               = 0;
+  clone_dbg->dual_prop              = 0;
+  clone_dbg->chk_failed_assumptions = 0;
   assert (btor_sat_btor (clone_dbg) == BTOR_SAT);
   btor_delete_btor (clone_dbg);
 #endif

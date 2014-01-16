@@ -55,6 +55,11 @@ clone_exp (Btor *clone,
 
   res = btor_malloc (mm, exp->bytes);
   memcpy (res, exp, exp->bytes);
+  if (!aig_map)
+  {
+    res->tseitin      = 0;
+    res->lazy_tseitin = 0;
+  }
 
   /* ----------------- BTOR_BV_VAR_NODE_STRUCT (all nodes) ----------------> */
   if (exp->bits)
@@ -382,8 +387,23 @@ clone_nodes_id_table (Btor *clone,
   {
     htable  = BTOR_POP_STACK (sapps);
     chtable = BTOR_POP_STACK (sapps);
-    *chtable =
-        btor_clone_ptr_hash_table (mm, *htable, mapped_node, 0, exp_map, 0);
+    if (aig_map)
+    {
+      *chtable =
+          btor_clone_ptr_hash_table (mm, *htable, mapped_node, 0, exp_map, 0);
+    }
+    else
+    {
+      BtorNode *cur;
+      BtorHashTableIterator it;
+      init_node_hash_table_iterator (clone, &it, *htable);
+      while (has_next_node_hash_table_iterator (&it))
+      {
+        cur = next_node_hash_table_iterator (&it);
+        btor_release_exp (clone, BTOR_PEEK_STACK (*res, cur->id));
+      }
+      *chtable = 0;
+    }
   }
 
   BTOR_RELEASE_STACK (mm, parents);
@@ -702,20 +722,21 @@ btor_clone_exp_layer (Btor *btor)
 
   Btor *clone;
   BtorNodeMap *exp_map;
-  BtorAIGMap *aig_map;
+  // BtorAIGMap *aig_map;
   BtorMemMgr *mm;
   BtorHashTableIterator it;
   BtorNode *exp;
+  BtorNodePtrStack stack;
   double start, delta;
 #ifndef NDEBUG
   int i;
-  size_t allocated, amap_size, amap_count, emap_size, emap_count;
+  size_t allocated, /*amap_size, amap_count,*/ emap_size, emap_count;
   BtorNode *cur;
-  BtorAIGMgr *amgr = btor_get_aig_mgr_aigvec_mgr (btor->avmgr);
+  // BtorAIGMgr *amgr = btor_get_aig_mgr_aigvec_mgr (btor->avmgr);
   BtorPtrHashBucket *b, *cb;
-  BtorBVAssignment *bvass;
-  BtorArrayAssignment *arrass;
-  char **ind, **val;
+  // BtorBVAssignment *bvass;
+  // BtorArrayAssignment *arrass;
+  // char **ind, **val;
 #endif
 
   BTORLOG ("start cloning btor %p ...", btor);
@@ -728,9 +749,8 @@ btor_clone_exp_layer (Btor *btor)
   memcpy (&clone->bv_lambda_id,
           &btor->bv_lambda_id,
           (char *) &btor->lod_cache - (char *) &btor->bv_lambda_id);
-  memcpy (&clone->stats,
-          &btor->stats,
-          (char *) btor + sizeof (*btor) - (char *) &btor->stats);
+  // memcpy (&clone->stats, &btor->stats,
+  //        (char *) btor + sizeof (*btor) - (char *) &btor->stats);
   assert ((allocated = sizeof (Btor)) == clone->mm->allocated);
 
   clone->avmgr = btor_new_aigvec_mgr (mm);
@@ -739,30 +759,35 @@ btor_clone_exp_layer (Btor *btor)
                         + sizeof (BtorAIG *)) /* BtorAIGUniqueTable chains */
           == clone->mm->allocated);
 
-  BTORLOG_TIMESTAMP (delta);
-  clone->bv_assignments =
-      btor_clone_bv_assignment_list (clone->mm, btor->bv_assignments);
-  BTORLOG ("  clone BV assignments: %.3f s", (btor_time_stamp () - delta));
+  //  BTORLOG_TIMESTAMP (delta);
+  clone->bv_assignments = btor_new_bv_assignment_list (mm);
+
+//  clone->bv_assignments = btor_clone_bv_assignment_list (
+//			     clone->mm, btor->bv_assignments);
+//  BTORLOG ("  clone BV assignments: %.3f s", (btor_time_stamp () - delta));
 #ifndef NDEBUG
-  for (bvass = btor->bv_assignments->first; bvass; bvass = bvass->next)
-    allocated +=
-        sizeof (BtorBVAssignment) + strlen (btor_get_bv_assignment_str (bvass));
+  //  for (bvass = btor->bv_assignments->first; bvass; bvass = bvass->next)
+  //    allocated += sizeof (BtorBVAssignment)
+  //      + strlen (btor_get_bv_assignment_str (bvass));
   assert ((allocated += sizeof (BtorBVAssignmentList)) == clone->mm->allocated);
 #endif
 
-  BTORLOG_TIMESTAMP (delta);
-  clone->array_assignments =
-      btor_clone_array_assignment_list (clone->mm, btor->array_assignments);
-  BTORLOG ("  clone array assignments: %.3f s", (btor_time_stamp () - delta));
+  clone->array_assignments = btor_new_array_assignment_list (mm);
+//  BTORLOG_TIMESTAMP (delta);
+//  clone->array_assignments = btor_clone_array_assignment_list (
+//				clone->mm, btor->array_assignments);
+//  BTORLOG ("  clone array assignments: %.3f s", (btor_time_stamp () - delta));
 #ifndef NDEBUG
-  for (arrass = btor->array_assignments->first; arrass; arrass = arrass->next)
-  {
-    allocated +=
-        sizeof (BtorArrayAssignment) + 2 * arrass->size * sizeof (char *);
-    btor_get_array_assignment_indices_values (arrass, &ind, &val, arrass->size);
-    for (i = 0; i < arrass->size; i++)
-      allocated += strlen (ind[i]) + strlen (val[i]);
-  }
+  // for (arrass = btor->array_assignments->first; arrass; arrass =
+  // arrass->next)
+  //   {
+  //     allocated += sizeof (BtorArrayAssignment)
+  //       	   + 2 * arrass->size * sizeof (char *);
+  //     btor_get_array_assignment_indices_values (
+  //         arrass, &ind, &val, arrass->size);
+  //     for (i = 0; i < arrass->size; i++)
+  //       allocated += strlen (ind[i]) + strlen (val[i]);
+  //   }
   assert ((allocated += sizeof (BtorArrayAssignmentList))
           == clone->mm->allocated);
 #endif
@@ -780,7 +805,11 @@ btor_clone_exp_layer (Btor *btor)
   {
     if (!(cur = BTOR_PEEK_STACK (btor->nodes_id_table, i))) continue;
     allocated += cur->bytes;
+    assert (!BTOR_PEEK_STACK (clone->nodes_id_table, i)->tseitin);
+    assert (!BTOR_PEEK_STACK (clone->nodes_id_table, i)->lazy_tseitin);
     if (cur->bits) allocated += strlen (cur->bits) + 1;
+    if (!BTOR_IS_ARRAY_NODE (cur))
+      assert (!BTOR_PEEK_STACK (clone->nodes_id_table, i)->av);
     if (BTOR_IS_ARRAY_NODE (cur) && cur->rho)
       allocated += MEM_PTR_HASH_TABLE (cur->rho);
     if (!BTOR_IS_BV_CONST_NODE (cur)
@@ -792,8 +821,9 @@ btor_clone_exp_layer (Btor *btor)
     if (BTOR_IS_PARAM_NODE (cur))
       allocated += BTOR_SIZE_STACK (((BtorParamNode *) cur)->assigned_exp)
                    * sizeof (BtorNode *);
-    if (BTOR_IS_LAMBDA_NODE (cur) && ((BtorLambdaNode *) cur)->synth_apps)
-      allocated += MEM_PTR_HASH_TABLE (((BtorLambdaNode *) cur)->synth_apps);
+    //      if (BTOR_IS_LAMBDA_NODE (cur) && ((BtorLambdaNode *)
+    //      cur)->synth_apps)
+    //	allocated += MEM_PTR_HASH_TABLE (((BtorLambdaNode *) cur)->synth_apps);
   }
   allocated += exp_map->table->size * sizeof (BtorPtrHashBucket *)
                + exp_map->table->count * sizeof (BtorPtrHashBucket)
@@ -890,19 +920,31 @@ btor_clone_exp_layer (Btor *btor)
   assert (allocated == clone->mm->allocated);
 #endif
 
+  BTOR_INIT_STACK (stack);
   init_node_hash_table_iterator (clone, &it, clone->synthesized_constraints);
   while (has_next_node_hash_table_iterator (&it))
   {
-    exp = next_node_hash_table_iterator (&it);
-    assert (
-        !btor_find_in_ptr_hash_table (clone->unsynthesized_constraints, exp));
-    btor_insert_in_ptr_hash_table (clone->unsynthesized_constraints, exp);
+    exp                                   = next_node_hash_table_iterator (&it);
+    BTOR_REAL_ADDR_NODE (exp)->constraint = 0;
+    BTOR_PUSH_STACK (btor->mm, stack, exp);
   }
   btor_delete_ptr_hash_table (clone->synthesized_constraints);
   clone->synthesized_constraints =
       btor_new_ptr_hash_table (mm,
                                (BtorHashPtr) btor_hash_exp_by_id,
                                (BtorCmpPtr) btor_compare_exp_by_id);
+  while (!BTOR_EMPTY_STACK (stack))
+  {
+    exp = BTOR_POP_STACK (stack);
+    assert (!BTOR_REAL_ADDR_NODE (exp)->constraint);
+    btor_assert_exp (clone, exp);
+    btor_release_exp (clone, exp);
+  }
+  assert (clone->unsynthesized_constraints->count);
+  BTOR_RELEASE_STACK (btor->mm, stack);
+  //      assert (!btor_find_in_ptr_hash_table (
+  //		   clone->unsynthesized_constraints, exp));
+  //      btor_insert_in_ptr_hash_table (clone->unsynthesized_constraints, exp);
   clone->clone         = NULL;
   clone->apitrace      = NULL;
   clone->closeapitrace = 0;
