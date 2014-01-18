@@ -21,9 +21,10 @@ btor_new_param_cache_tuple (Btor *btor, BtorNode *exp)
 
   int i;
   unsigned int hash;
-  BtorNode *param, *arg;
+  BtorNode *param, *arg, *cur;
   BtorParamCacheTuple *t;
   BtorParameterizedIterator it;
+  BtorParentIterator pit;
 
   BTOR_NEW (btor->mm, t);
   BTOR_CLR (t);
@@ -35,18 +36,24 @@ btor_new_param_cache_tuple (Btor *btor, BtorNode *exp)
   if (has_next_parameterized_iterator (&it))
   {
     t->num_args = it.num_params;
-    if (BTOR_IS_LAMBDA_NODE (exp)) t->num_args += 1;
+    if (BTOR_IS_LAMBDA_NODE (exp))
+      t->num_args += ((BtorLambdaNode *) exp)->num_params;
 
     BTOR_NEWN (btor->mm, t->args, t->num_args);
 
     i = 0;
     if (BTOR_IS_LAMBDA_NODE (exp))
     {
-      arg =
-          btor_param_cur_assignment ((BtorNode *) BTOR_LAMBDA_GET_PARAM (exp));
-      assert (arg);
-      t->args[i++] = btor_copy_exp (btor, arg);
-      hash += (unsigned int) BTOR_GET_ID_NODE (arg);
+      init_lambda_iterator (&pit, exp);
+      while (has_next_lambda_iterator (&pit))
+      {
+        cur = next_lambda_iterator (&pit);
+        arg = btor_param_cur_assignment (
+            (BtorNode *) BTOR_LAMBDA_GET_PARAM (cur));
+        assert (arg);
+        t->args[i++] = btor_copy_exp (btor, arg);
+        hash += (unsigned int) BTOR_GET_ID_NODE (arg);
+      }
     }
 
     do
@@ -62,11 +69,20 @@ btor_new_param_cache_tuple (Btor *btor, BtorNode *exp)
   }
   else if (BTOR_IS_LAMBDA_NODE (exp))
   {
-    t->num_args = 1;
+    init_lambda_iterator (&pit, exp);
+    t->num_args = ((BtorLambdaNode *) exp)->num_params;
     BTOR_NEWN (btor->mm, t->args, t->num_args);
-    arg = btor_param_cur_assignment ((BtorNode *) BTOR_LAMBDA_GET_PARAM (exp));
-    t->args[0] = btor_copy_exp (btor, arg);
-    hash += (unsigned int) BTOR_GET_ID_NODE (arg);
+
+    i = 0;
+    while (has_next_lambda_iterator (&pit))
+    {
+      cur = next_lambda_iterator (&pit);
+      arg =
+          btor_param_cur_assignment ((BtorNode *) BTOR_LAMBDA_GET_PARAM (cur));
+      assert (arg);
+      t->args[i++] = btor_copy_exp (btor, arg);
+      hash += (unsigned int) BTOR_GET_ID_NODE (arg);
+    }
   }
   hash *= 7334147u;
   t->hash = hash;

@@ -145,11 +145,9 @@ btor_map_node_internal (Btor *btor, BtorNodeMap *map, BtorNode *exp)
     case BTOR_UDIV_NODE: return btor_udiv_exp (btor, m[0], m[1]);
     case BTOR_UREM_NODE: return btor_urem_exp (btor, m[0], m[1]);
     case BTOR_CONCAT_NODE: return btor_concat_exp (btor, m[0], m[1]);
-    case BTOR_READ_NODE: return btor_read_exp (btor, m[0], m[1]);
-    case BTOR_WRITE_NODE: return btor_write_exp (btor, m[0], m[1], m[2]);
     case BTOR_LAMBDA_NODE: return btor_lambda_exp (btor, m[0], m[1]);
     default:
-      assert (BTOR_IS_ARRAY_OR_BV_COND_NODE (exp));
+      assert (BTOR_IS_BV_COND_NODE (exp));
       return btor_cond_exp (btor, m[0], m[1], m[2]);
   }
 }

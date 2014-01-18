@@ -192,7 +192,6 @@ btor_chkclone_state (Btor *btor)
   BTOR_CHKCLONE_STATE (vis_idx);
   BTOR_CHKCLONE_STATE (vread_index_id);
   BTOR_CHKCLONE_STATE (inconsistent);
-  BTOR_CHKCLONE_STATE (found_assumption_false);
   BTOR_CHKCLONE_STATE (found_constraint_false);
   BTOR_CHKCLONE_STATE (model_gen);
   BTOR_CHKCLONE_STATE (external_refs);
@@ -233,8 +232,8 @@ btor_chkclone_stats (Btor *btor)
   BTOR_CHKCLONE_STATS (synthesis_assignment_inconsistencies);
   BTOR_CHKCLONE_STATS (synthesis_inconsistency_apply);
   BTOR_CHKCLONE_STATS (synthesis_inconsistency_lambda);
-  BTOR_CHKCLONE_STATS (array_axiom_1_conflicts);
-  BTOR_CHKCLONE_STATS (array_axiom_2_conflicts);
+  BTOR_CHKCLONE_STATS (function_congruence_conflicts);
+  BTOR_CHKCLONE_STATS (beta_reduction_conflicts);
   BTOR_CHKCLONE_STATS (var_substitutions);
   BTOR_CHKCLONE_STATS (array_substitutions);
   BTOR_CHKCLONE_STATS (ec_substitutions);
@@ -504,7 +503,7 @@ btor_chkclone_exp (BtorNode *exp, BtorNode *clone)
   BTOR_CHKCLONE_EXP (parents);
   BTOR_CHKCLONE_EXP (arity);
 
-  if (!BTOR_IS_ARRAY_NODE (real_exp))
+  if (!BTOR_IS_FUN_NODE (real_exp))
   {
     if (real_exp->av)
     {
@@ -560,21 +559,23 @@ btor_chkclone_exp (BtorNode *exp, BtorNode *clone)
     }
   }
 
-  if (BTOR_IS_ARRAY_NODE (real_exp))
-  {
-    BTOR_CHKCLONE_EXP (index_len);
-    BTOR_CHKCLONE_EXPPTAG (first_aeq_acond_parent);
-    BTOR_CHKCLONE_EXPPTAG (last_aeq_acond_parent);
-
-    if (!BTOR_IS_ARRAY_VAR_NODE (real_exp))
+#if 0
+  if (BTOR_IS_FUN_NODE (real_exp))
     {
-      for (i = 0; i < real_exp->arity; i++)
-      {
-        BTOR_CHKCLONE_EXPPTAG (prev_aeq_acond_parent[i]);
-        BTOR_CHKCLONE_EXPPTAG (next_aeq_acond_parent[i]);
-      }
+      BTOR_CHKCLONE_EXP (index_len);
+      BTOR_CHKCLONE_EXPPTAG (first_aeq_acond_parent);
+      BTOR_CHKCLONE_EXPPTAG (last_aeq_acond_parent);
+
+      if (!BTOR_IS_ARRAY_VAR_NODE (real_exp))
+	{
+	  for (i = 0; i < real_exp->arity; i++)
+	    {
+	      BTOR_CHKCLONE_EXPPTAG (prev_aeq_acond_parent[i]);
+	      BTOR_CHKCLONE_EXPPTAG (next_aeq_acond_parent[i]);
+	    }
+	}
     }
-  }
+#endif
 
   if (BTOR_IS_PARAM_NODE (real_exp))
   {
@@ -631,15 +632,15 @@ btor_chkclone_exp (BtorNode *exp, BtorNode *clone)
       }
     }
 
-    if (((BtorLambdaNode *) real_exp)->nested)
+    if (((BtorLambdaNode *) real_exp)->head)
     {
-      assert (((BtorLambdaNode *) real_exp)->nested
-              != ((BtorLambdaNode *) real_clone)->nested);
-      BTOR_CHKCLONE_EXPID (((BtorLambdaNode *) real_exp)->nested,
-                           ((BtorLambdaNode *) real_clone)->nested);
+      assert (((BtorLambdaNode *) real_exp)->head
+              != ((BtorLambdaNode *) real_clone)->head);
+      BTOR_CHKCLONE_EXPID (((BtorLambdaNode *) real_exp)->head,
+                           ((BtorLambdaNode *) real_clone)->head);
     }
     else
-      assert (!((BtorLambdaNode *) real_clone)->nested);
+      assert (!((BtorLambdaNode *) real_clone)->head);
 
     if (((BtorLambdaNode *) real_exp)->body)
     {
@@ -1809,8 +1810,8 @@ boolector_eq (Btor *btor, BoolectorNode *n0, BoolectorNode *n1)
   simp1          = btor_simplify_exp (btor, e1);
   real_simp0     = BTOR_REAL_ADDR_NODE (simp0);
   real_simp1     = BTOR_REAL_ADDR_NODE (simp1);
-  is_array_simp0 = BTOR_IS_ARRAY_NODE (real_simp0);
-  is_array_simp1 = BTOR_IS_ARRAY_NODE (real_simp1);
+  is_array_simp0 = BTOR_IS_FUN_NODE (real_simp0);
+  is_array_simp1 = BTOR_IS_FUN_NODE (real_simp1);
   BTOR_ABORT_BOOLECTOR (is_array_simp0 != is_array_simp1,
                         "array must not be compared to bit-vector");
   BTOR_ABORT_BOOLECTOR (!is_array_simp0 && real_simp0 && real_simp1
@@ -1820,7 +1821,8 @@ boolector_eq (Btor *btor, BoolectorNode *n0, BoolectorNode *n1)
                             && real_simp0->len != real_simp1->len,
                         "arrays must not have unequal element bit-width");
   BTOR_ABORT_BOOLECTOR (is_array_simp0 && real_simp0 && real_simp1
-                            && real_simp0->index_len != real_simp1->index_len,
+                            && BTOR_ARRAY_INDEX_LEN (real_simp0)
+                                   != BTOR_ARRAY_INDEX_LEN (real_simp1),
                         "arrays must not have unequal index bit-width");
   btor->external_refs++;
   res = btor_eq_exp (btor, simp0, simp1);
@@ -1850,15 +1852,16 @@ boolector_ne (Btor *btor, BoolectorNode *n0, BoolectorNode *n1)
   simp1          = btor_simplify_exp (btor, e1);
   real_simp0     = BTOR_REAL_ADDR_NODE (simp0);
   real_simp1     = BTOR_REAL_ADDR_NODE (simp1);
-  is_array_simp0 = BTOR_IS_ARRAY_NODE (real_simp0);
-  is_array_simp1 = BTOR_IS_ARRAY_NODE (real_simp1);
+  is_array_simp0 = BTOR_IS_FUN_NODE (real_simp0);
+  is_array_simp1 = BTOR_IS_FUN_NODE (real_simp1);
   BTOR_ABORT_BOOLECTOR (is_array_simp0 != is_array_simp1,
                         "array must not be compared to bit-vector");
   BTOR_ABORT_BOOLECTOR (is_array_simp0 && real_simp0->len != real_simp1->len,
                         "arrays must not have unequal element bit-width");
-  BTOR_ABORT_BOOLECTOR (
-      is_array_simp0 && real_simp0->index_len != real_simp1->index_len,
-      "arrays must not have unequal index bit-width");
+  BTOR_ABORT_BOOLECTOR (is_array_simp0
+                            && BTOR_ARRAY_INDEX_LEN (real_simp0)
+                                   != BTOR_ARRAY_INDEX_LEN (real_simp1),
+                        "arrays must not have unequal index bit-width");
   btor->external_refs++;
   res = btor_ne_exp (btor, simp0, simp1);
   BTOR_REAL_ADDR_NODE (res)->ext_refs += 1;
@@ -2740,7 +2743,8 @@ boolector_read (Btor *btor, BoolectorNode *n_array, BoolectorNode *n_index)
   BTOR_ABORT_BV_BOOLECTOR (simp_array);
   BTOR_ABORT_ARRAY_BOOLECTOR (simp_index);
   BTOR_ABORT_BOOLECTOR (
-      simp_array->index_len != BTOR_REAL_ADDR_NODE (simp_index)->len,
+      BTOR_ARRAY_INDEX_LEN (simp_array)
+          != BTOR_REAL_ADDR_NODE (simp_index)->len,
       "index bit-width of 'e_array' and bit-width of 'e_index' must be equal");
   btor->external_refs++;
   res = btor_read_exp (btor, simp_array, simp_index);
@@ -2780,7 +2784,8 @@ boolector_write (Btor *btor,
   BTOR_ABORT_ARRAY_BOOLECTOR (simp_index);
   BTOR_ABORT_ARRAY_BOOLECTOR (simp_value);
   BTOR_ABORT_BOOLECTOR (
-      simp_array->index_len != BTOR_REAL_ADDR_NODE (simp_index)->len,
+      BTOR_ARRAY_INDEX_LEN (simp_array)
+          != BTOR_REAL_ADDR_NODE (simp_index)->len,
       "index bit-width of 'e_array' and bit-width of 'e_index' must be equal");
   BTOR_ABORT_BOOLECTOR (
       simp_array->len != BTOR_REAL_ADDR_NODE (simp_value)->len,
@@ -2830,8 +2835,8 @@ boolector_cond (Btor *btor,
                         "bit-width of 'e_cond' must be equal to 1");
   real_simp_if       = BTOR_REAL_ADDR_NODE (simp_if);
   real_simp_else     = BTOR_REAL_ADDR_NODE (simp_else);
-  is_array_simp_if   = BTOR_IS_ARRAY_NODE (real_simp_if);
-  is_array_simp_else = BTOR_IS_ARRAY_NODE (real_simp_else);
+  is_array_simp_if   = BTOR_IS_FUN_NODE (real_simp_if);
+  is_array_simp_else = BTOR_IS_FUN_NODE (real_simp_else);
   BTOR_ABORT_BOOLECTOR (is_array_simp_if != is_array_simp_else,
                         "array must not be combined with bit-vector");
   BTOR_ABORT_BOOLECTOR (!is_array_simp_if && real_simp_if && real_simp_else
@@ -2840,10 +2845,10 @@ boolector_cond (Btor *btor,
   BTOR_ABORT_BOOLECTOR (is_array_simp_if && real_simp_if && real_simp_else
                             && real_simp_if->len != real_simp_else->len,
                         "arrays must not have unequal element bit-width");
-  BTOR_ABORT_BOOLECTOR (
-      is_array_simp_if && real_simp_if && real_simp_else
-          && real_simp_if->index_len != real_simp_else->index_len,
-      "arrays must not have unequal index bit-width");
+  BTOR_ABORT_BOOLECTOR (is_array_simp_if && real_simp_if && real_simp_else
+                            && BTOR_ARRAY_INDEX_LEN (real_simp_if)
+                                   != BTOR_ARRAY_INDEX_LEN (real_simp_else),
+                        "arrays must not have unequal index bit-width");
   btor->external_refs++;
   res = btor_cond_exp (btor, simp_cond, simp_if, simp_else);
   BTOR_REAL_ADDR_NODE (res)->ext_refs += 1;
