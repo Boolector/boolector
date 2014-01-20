@@ -1591,8 +1591,8 @@ btor_beta_reduce_partial_aux (Btor *btor,
       cur = next_node_hash_table_iterator (&it);
       assert (BTOR_IS_REGULAR_NODE (cur));
       /* if 'cur' is used in 'result' the reference count is now higher
-       * than it was after construction */
-      if (cur->refs > i) *evalerr = 1;
+       * or equal than it was after construction */
+      if (cur->refs >= i) *evalerr = 1;
       btor_release_exp (btor, cur);
     }
   }
