@@ -36,7 +36,7 @@
 #endif
 
 #define ENABLE_APPLY_PROP_DOWN 1
-//#define BTOR_SYMBOLIC_LEMMAS
+#define BTOR_SYMBOLIC_LEMMAS
 #define BTOR_CHECK_MODEL
 
 /*------------------------------------------------------------------------*/
@@ -4379,6 +4379,7 @@ update_reachable (Btor *btor, int check_all_tables)
   btor->time.reachable += btor_time_stamp () - start;
 }
 
+#ifdef BTOR_SYMBOLIC_LEMMAS
 static void
 mark_reachable (Btor *btor, BtorNode *exp)
 {
@@ -4409,6 +4410,7 @@ mark_reachable (Btor *btor, BtorNode *exp)
   BTOR_RELEASE_STACK (btor->mm, stack);
   btor->time.reachable += btor_time_stamp () - start;
 }
+#endif
 
 /* forward assumptions to the SAT solver */
 static void
@@ -6581,27 +6583,6 @@ btor_sat_aux_btor (Btor *btor)
   assert (check_all_hash_tables_proxy_free_dbg (btor));
   assert (check_all_hash_tables_simp_free_dbg (btor));
 
-#if 0
-  do
-    {
-      assert (check_all_hash_tables_proxy_free_dbg (btor));
-      assert (check_all_hash_tables_simp_free_dbg (btor));
-
-      process_unsynthesized_constraints (btor);
-      
-      assert (check_all_hash_tables_proxy_free_dbg (btor));
-      assert (check_all_hash_tables_simp_free_dbg (btor));
-
-      if (btor->found_constraint_false)
-	{
-UNSAT:
-	  sat_result = BTOR_UNSAT;
-	  goto DONE;
-	}
-    }
-  while (btor->unsynthesized_constraints->count > 0);
-#endif
-
   if (btor->model_gen)
   {
     synthesize_all_var_rhs (btor);
@@ -6660,6 +6641,10 @@ UNSAT:
         fflush (stdout);
       }
     }
+
+    /* may be set in add_symbolic_lemma via insert_unsythesized_constraint
+     * in case generated lemma is false */
+    if (btor->inconsistent) goto UNSAT;
 
 #ifdef BTOR_SYMBOLIC_LEMMAS
     process_unsynthesized_constraints (btor);
