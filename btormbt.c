@@ -2,7 +2,7 @@
  *
  *  Copyright (C) 2013 Christian Reisenberger.
  *  Copyright (C) 2013 Aina Niemetz.
- *  Copyright (C) 2013 Mathias Preiner.
+ *  Copyright (C) 2013-2014 Mathias Preiner.
  *  Copyright (C) 2013 Armin Biere.
  *
  *  All rights reserved.
@@ -1959,14 +1959,13 @@ run (BtorMBT *btormbt)
 {
   assert (btormbt);
 
-  int status, saved1, saved2, null;
+  int status, null;
   pid_t id;
 
   if (!btormbt->fork)
     rantrav (btormbt);
   else
   {
-    (void) saved1;
     btormbt->forked++;
     fflush (stdout);
     if ((id = fork ()))
@@ -1987,54 +1986,18 @@ run (BtorMBT *btormbt)
                      "set time limit to %d second(s)",
                      btormbt->time_limit);
       }
-#ifndef NDEBUG
-      int tmp;
-#endif
+
+      /* redirect output from child to /dev/null if we don't want to have
+       * verbose output */
       if (!btormbt->verbose)
       {
-        saved1 = dup (STDOUT_FILENO);
-        saved2 = dup (STDERR_FILENO);
-        null   = open ("/dev/null", O_WRONLY);
-        close (STDOUT_FILENO);
-        close (STDERR_FILENO);
-#ifndef NDEBUG
-        tmp =
-#endif
-#ifdef USE_PRAGMAS_TO_DISABLE_WARNINGS
-#pragma GCC diagnostic ignored "-Wunused-result"
-#endif
-            dup (null);
-        assert (tmp == STDOUT_FILENO);
-#ifndef NDEBUG
-        tmp =
-#endif
-            dup (null);
-#ifndef NDEBUG
-        assert (tmp == STDERR_FILENO);
-#endif
+        null = open ("/dev/null", O_WRONLY);
+        dup2 (null, STDOUT_FILENO);
+        dup2 (null, STDERR_FILENO);
+        close (null);
       }
+
       rantrav (btormbt);
-      close (null);
-      close (STDERR_FILENO);
-#ifndef NDEBUG
-      tmp =
-#endif
-          dup (saved2);
-#ifndef NDEBUG
-      assert (tmp == STDERR_FILENO);
-      close (STDOUT_FILENO);
-#ifndef NDEBUG
-      tmp =
-#endif
-          dup (saved1);
-#ifdef USE_PRAGMAS_TO_DISABLE_WARNINGS
-#pragma GCC diagnostic ignored "-Wunused-result"
-#endif
-#ifdef NDEBUG
-      assert (tmp == STDOUT_FILENO);
-#endif
-      BTORMBT_UNUSED (tmp);
-#endif
       exit (EXIT_OK);
     }
   }
@@ -2285,6 +2248,7 @@ main (int argc, char **argv)
       printf ("%d %d ", btormbt->round, btormbt->seed);
       fflush (stdout);
 
+      /* reset verbose flag for initial run, only print */
       btormbt->verbose = 0;
       status           = run (btormbt);
       btormbt->verbose = verbose;
