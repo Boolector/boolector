@@ -5978,9 +5978,13 @@ propagate (Btor *btor,
         {
           btor_release_exp (btor, fun_value);
           btor->stats.partial_beta_reduction_restarts++;
+          // TODO: stats for max. restarts
+          // TODO: if we reach a certain limit should we just continue
+          //       without encoding everything? if we do so, we need
+          //       means to reproduce the propagation paths.
 #ifndef NDEBUG
           num_restarts++;
-          assert (num_restarts < 3);
+          assert (num_restarts < 8);
 #endif
           BTORLOG ("restart partial beta reduction");
           goto PROPAGATE_BETA_REDUCE_PARTIAL;
