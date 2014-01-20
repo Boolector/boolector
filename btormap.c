@@ -63,6 +63,13 @@ btor_mapped_node (BtorNodeMap *map, BtorNode *node)
   return res;
 }
 
+int
+btor_count_map (BtorNodeMap *map)
+{
+  assert (map);
+  return map->table->count;
+}
+
 void
 btor_map_node (BtorNodeMap *map, BtorNode *src, BtorNode *dst)
 {
@@ -89,7 +96,7 @@ btor_map_node (BtorNodeMap *map, BtorNode *src, BtorNode *dst)
 /*------------------------------------------------------------------------*/
 
 static BtorNode *
-map_node (Btor *btor, BtorNodeMap *map, BtorNode *exp)
+btor_map_node_internal (Btor *btor, BtorNodeMap *map, BtorNode *exp)
 {
   assert (btor);
   assert (exp);
@@ -138,11 +145,9 @@ map_node (Btor *btor, BtorNodeMap *map, BtorNode *exp)
     case BTOR_UDIV_NODE: return btor_udiv_exp (btor, m[0], m[1]);
     case BTOR_UREM_NODE: return btor_urem_exp (btor, m[0], m[1]);
     case BTOR_CONCAT_NODE: return btor_concat_exp (btor, m[0], m[1]);
-    case BTOR_READ_NODE: return btor_read_exp (btor, m[0], m[1]);
-    case BTOR_WRITE_NODE: return btor_write_exp (btor, m[0], m[1], m[2]);
     case BTOR_LAMBDA_NODE: return btor_lambda_exp (btor, m[0], m[1]);
     default:
-      assert (BTOR_IS_ARRAY_OR_BV_COND_NODE (exp));
+      assert (BTOR_IS_BV_COND_NODE (exp));
       return btor_cond_exp (btor, m[0], m[1], m[2]);
   }
 }
@@ -188,7 +193,7 @@ btor_non_recursive_extended_substitute_node (Btor *btor,
     }
     else
     {
-      mapped = map_node (btor, map, node);
+      mapped = btor_map_node_internal (btor, map, node);
       btor_map_node (map, node, mapped);
       btor_release_exp (btor, mapped);
       assert (node->mark == 1);
@@ -224,6 +229,71 @@ btor_non_recursive_substitute_node (Btor *btor,
 {
   return btor_non_recursive_extended_substitute_node (
       btor, map, 0, btor_never_map_mapper, 0, root);
+}
+
+/*------------------------------------------------------------------------*/
+
+BoolectorNodeMap *
+boolector_new_node_map (Btor *btor)
+{
+  return (BoolectorNodeMap *) btor_new_node_map (btor);
+}
+
+void
+boolector_delete_node_map (BoolectorNodeMap *map)
+{
+  btor_delete_node_map ((BtorNodeMap *) map);
+}
+
+int
+boolector_count_map (BoolectorNodeMap *map)
+{
+  return btor_count_map ((BtorNodeMap *) map);
+}
+
+BoolectorNode *
+boolector_mapped_node (BoolectorNodeMap *map, BoolectorNode *node)
+{
+  BtorNode *exp = BTOR_IMPORT_BOOLECTOR_NODE (node);
+  BtorNode *res = btor_mapped_node ((BtorNodeMap *) map, exp);
+  return BTOR_EXPORT_BOOLECTOR_NODE (res);
+}
+
+void
+boolector_map_node (BoolectorNodeMap *map,
+                    BoolectorNode *src,
+                    BoolectorNode *dst)
+{
+  btor_map_node ((BtorNodeMap *) map,
+                 BTOR_IMPORT_BOOLECTOR_NODE (src),
+                 BTOR_IMPORT_BOOLECTOR_NODE (dst));
+}
+
+BoolectorNode *
+boolector_non_recursive_extended_substitute_node (Btor *btor,
+                                                  BoolectorNodeMap *map,
+                                                  void *state,
+                                                  BoolectorNodeMapper mapper,
+                                                  BoolectorNodeReleaser release,
+                                                  BoolectorNode *root)
+{
+  return BTOR_EXPORT_BOOLECTOR_NODE (
+      btor_non_recursive_extended_substitute_node (
+          btor,
+          (BtorNodeMap *) map,
+          state,
+          (BtorNodeMapper) mapper,
+          (BtorNodeReleaser) release,
+          BTOR_IMPORT_BOOLECTOR_NODE (root)));
+}
+
+BoolectorNode *
+boolector_non_recursive_substitute_node (Btor *btor,
+                                         BoolectorNodeMap *map,
+                                         BoolectorNode *root)
+{
+  return BTOR_EXPORT_BOOLECTOR_NODE (btor_non_recursive_substitute_node (
+      btor, (BtorNodeMap *) map, BTOR_IMPORT_BOOLECTOR_NODE (root)));
 }
 
 /*------------------------------------------------------------------------*/

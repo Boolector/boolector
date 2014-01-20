@@ -47,6 +47,10 @@ btor_new_dump_context (Btor *btor)
   res->idtab   = btor_new_ptr_hash_table (btor->mm,
                                         (BtorHashPtr) btor_hash_exp_by_id,
                                         (BtorCmpPtr) btor_compare_exp_by_id);
+
+  /* set start id for roots */
+  if (!btor->pprint) res->maxid = BTOR_COUNT_STACK (btor->nodes_id_table);
+
   return res;
 }
 
@@ -190,9 +194,12 @@ bdcid (BtorDumpContext *bdc, BtorNode *node)
   b    = btor_find_in_ptr_hash_table (bdc->idtab, real);
   if (!b)
   {
-    b             = btor_insert_in_ptr_hash_table (bdc->idtab,
+    b = btor_insert_in_ptr_hash_table (bdc->idtab,
                                        btor_copy_exp (bdc->btor, node));
-    b->data.asInt = ++bdc->maxid;
+    if (bdc->btor->pprint)
+      b->data.asInt = ++bdc->maxid;
+    else
+      b->data.asInt = real->id;
   }
   res = b->data.asInt;
   if (!BTOR_IS_REGULAR_NODE (node)) res = -res;
@@ -219,19 +226,13 @@ bdcnode (BtorDumpContext *bdc, BtorNode *node, FILE *file)
     case BTOR_AEQ_NODE: op = "eq"; break;
     case BTOR_MUL_NODE: op = "mul"; break;
     case BTOR_PROXY_NODE: op = "proxy"; break;
-    case BTOR_READ_NODE: op = "read"; break;
     case BTOR_SLL_NODE: op = "sll"; break;
     case BTOR_SRL_NODE: op = "srl"; break;
     case BTOR_UDIV_NODE: op = "udiv"; break;
     case BTOR_ULT_NODE: op = "ult"; break;
     case BTOR_UREM_NODE: op = "urem"; break;
     case BTOR_SLICE_NODE: op = "slice"; break;
-    case BTOR_ARRAY_VAR_NODE:
-      op = "array";
-      break;
-      // NOTE: do not exist anymore
-      //      case BTOR_WRITE_NODE:     op = "write"; break;
-      //      case BTOR_ACOND_NODE:	op = "acond"; break;
+    case BTOR_ARRAY_VAR_NODE: op = "array"; break;
     case BTOR_BV_CONST_NODE:
       if (btor_is_zero_const (node->bits))
         op = "zero";
@@ -252,7 +253,8 @@ bdcnode (BtorDumpContext *bdc, BtorNode *node, FILE *file)
   fprintf (file, "%d %s %d", bdcid (bdc, node), op, node->len);
 
   /* print index bit width of arrays */
-  if (BTOR_IS_ARRAY_NODE (node)) fprintf (file, " %d", node->index_len);
+  if (BTOR_IS_ARRAY_VAR_NODE (node) || BTOR_IS_LAMBDA_NODE (node))
+    fprintf (file, " %d", BTOR_ARRAY_INDEX_LEN (node));
 
   /* print children or const values */
   if (strcmp (op, "const") == 0)
@@ -269,8 +271,12 @@ bdcnode (BtorDumpContext *bdc, BtorNode *node, FILE *file)
   else if (BTOR_IS_BV_VAR_NODE (node) || BTOR_IS_ARRAY_VAR_NODE (node))
   {
     sprintf (idbuffer, "%d", bdcid (bdc, node));
-    assert (node->symbol);
-    if (strcmp (node->symbol, idbuffer)) fprintf (file, " %s", node->symbol);
+    if (node->symbol && strcmp (node->symbol, idbuffer))
+      fprintf (file, " %s", node->symbol);
+    else
+    {
+      // TODO want to print nothing here, right?
+    }
   }
   fputc ('\n', file);
 }
@@ -299,7 +305,6 @@ bdcnode (BtorDumpContext *bdc, BtorNode *node, FILE *file)
     case BTOR_AEQ_NODE: op = "eq"; goto PRINT;
     case BTOR_MUL_NODE: op = "mul"; goto PRINT;
     case BTOR_PROXY_NODE: op = "proxy"; goto PRINT;
-    case BTOR_READ_NODE: op = "read"; goto PRINT;
     case BTOR_SLL_NODE: op = "sll"; goto PRINT;
     case BTOR_SRL_NODE: op = "srl"; goto PRINT;
     case BTOR_UDIV_NODE: op = "udiv"; goto PRINT;
@@ -328,26 +333,6 @@ bdcnode (BtorDumpContext *bdc, BtorNode *node, FILE *file)
 
     case BTOR_ARRAY_VAR_NODE:
       fprintf (file, "array %d %d", n->len, n->index_len);
-      break;
-
-    case BTOR_WRITE_NODE:
-      fprintf (file,
-               "write %d %d %d %d %d",
-               n->len,
-               n->index_len,
-               bdcid (bdc, n->e[0]),
-               bdcid (bdc, n->e[1]),
-               bdcid (bdc, n->e[2]));
-      break;
-
-    case BTOR_ACOND_NODE:
-      fprintf (file,
-               "acond %d %d %d %d %d",
-               n->len,
-               n->index_len,
-               bdcid (bdc, n->e[0]),
-               bdcid (bdc, n->e[1]),
-               bdcid (bdc, n->e[2]));
       break;
 
     case BTOR_BV_CONST_NODE:
@@ -577,8 +562,11 @@ btor_dump_btor_after_simplify (Btor *btor, FILE *file)
 {
   assert (btor);
   assert (file);
-  assert (!btor->inc_enabled);
-  assert (!btor->model_gen);
+  // FIXME: why do we not allow these flags?
+  //        inc_enabled -> ok if no assumptions
+  //        model_gen -> ??
+  //  assert (!btor->inc_enabled);
+  //  assert (!btor->model_gen);
 
   int ret;
   BtorNode *temp;
@@ -588,6 +576,7 @@ btor_dump_btor_after_simplify (Btor *btor, FILE *file)
   ret = btor_simplify (btor);
   bdc = btor_new_dump_context (btor);
 
+  // FIXME: what about synthesized_constraints?
   if (ret == BTOR_UNKNOWN)
   {
     for (b = btor->unsynthesized_constraints->first; b; b = b->next)

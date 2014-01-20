@@ -1,6 +1,6 @@
-1 const 32 00000000000000000000000000000000
-2 var 32 v1
-3 slice 1 2 31 31
-4 cond 32 3 -1 1
-5 concat 64 4 2
+1 var 32 v1
+2 slice 1 1 31 31
+3 zero 32
+4 cond 32 2 -3 3
+5 concat 64 4 1
 6 root 64 5

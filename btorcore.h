@@ -19,6 +19,35 @@
 #include "btormem.h"
 #include "btorsort.h"
 
+/*------------------------------------------------------------------------*/
+
+// Currently these are just to hide syntactically the internal nodes.  For
+// now we continue to assume that 'BtorNode' and 'BoolectorNode' are the
+// same structs and internal 'btor_...' functions work the same way as
+// external counter parts 'boolector_...', except for tracing and contract
+// checking.  If this stops to hold we need to provide real containers for
+// the external 'BoolectorNode', currently actually only 'BoolectorNodeMap'
+// needs to be fixed.
+
+#define BTOR_IMPORT_BOOLECTOR_NODE(node) (((BtorNode *) (node)))
+#define BTOR_IMPORT_BOOLECTOR_NODE_ARRAY(array) (((BtorNode **) (array)))
+#define BTOR_EXPORT_BOOLECTOR_NODE(node) (((BoolectorNode *) (node)))
+
+/*------------------------------------------------------------------------*/
+
+#define BOOLECTOR_IS_REGULAR_NODE BTOR_IS_INVERTED_NODE
+#define BOOLECTOR_IS_INVERTED_NODE BTOR_IS_INVERTED_NODE
+
+#define BOOLECTOR_REAL_ADDR_NODE(node) \
+  BTOR_EXPORT_BOOLECTOR_NODE (         \
+      BTOR_REAL_ADDR_NODE (BTOR_IMPORT_BOOLECTOR_NODE (node)))
+
+#define BOOLECTOR_INVERT_NODE(node) \
+  BTOR_EXPORT_BOOLECTOR_NODE (      \
+      BTOR_INVERT_NODE (BTOR_IMPORT_BOOLECTOR_NODE (node)))
+
+/*------------------------------------------------------------------------*/
+
 struct BtorNodeUniqueTable
 {
   int size;
@@ -95,12 +124,14 @@ struct Btor
   int vis_idx; /* file index for visualizing expressions */
   int vread_index_id;
   int inconsistent;
+  int found_constraint_false;
   int model_gen;            /* model generation enabled */
   int external_refs;        /* external references (library mode) */
   int inc_enabled;          /* incremental usage enabled ? */
   int btor_sat_btor_called; /* how often is btor_sat_btor been called */
   int msgtick;              /* message tick in incremental mode */
   int beta_reduce_all;      /* eliminate lambda expressions */
+  int force_cleanup;        /* force cleanup of exps, assignment strings */
   int pprint;               /* reindex exps when dumping */
   int last_sat_result;      /* status of last SAT call (SAT/UNSAT) */
 
@@ -136,26 +167,25 @@ struct Btor
     int synthesis_inconsistency_apply;
     int synthesis_inconsistency_lambda;
     int synthesis_inconsistency_var;
-    int array_axiom_1_conflicts; /* number of array axiom 1 conflicts:
-                                    a = b /\ i = j => read(a, i) = read(b, j) */
-    int array_axiom_2_conflicts; /* array axiom 2 confs:
-                                    i = j => read(write(a, i, e), j) = e */
-    int var_substitutions;       /* number substituted vars (non array) */
-    int array_substitutions;     /* num substituted array vars */
-    int ec_substitutions;        /* embedded constraint substitutions */
-    int vreads;                  /* number of virtual reads */
-    int linear_equations;        /* number of linear equations */
-    int gaussian_eliminations;   /* number of gaussian eliminations */
-    int eliminated_slices;       /* number of eliminated slices */
-    int skeleton_constraints;    /* number of extracted skeleton constraints */
-    int adds_normalized;         /* number of add chains normalizations */
-    int ands_normalized;         /* number of and chains normalizations */
-    int muls_normalized;         /* number of mul chains normalizations */
-    int read_props_construct;    /* how often have we pushed a read over
-                                    write during construction */
+    int function_congruence_conflicts;
+    int beta_reduction_conflicts;
+    int var_substitutions;     /* number substituted vars (non array) */
+    int array_substitutions;   /* num substituted array vars */
+    int ec_substitutions;      /* embedded constraint substitutions */
+    int vreads;                /* number of virtual reads */
+    int linear_equations;      /* number of linear equations */
+    int gaussian_eliminations; /* number of gaussian eliminations */
+    int eliminated_slices;     /* number of eliminated slices */
+    int skeleton_constraints;  /* number of extracted skeleton constraints */
+    int adds_normalized;       /* number of add chains normalizations */
+    int ands_normalized;       /* number of and chains normalizations */
+    int muls_normalized;       /* number of mul chains normalizations */
+    int read_props_construct;  /* how often have we pushed a read over
+                                  write during construction */
     long long int lemmas_size_sum;  /* sum of the size of all added lemmas */
     long long int lclause_size_sum; /* sum of the size of all linking clauses */
-    ConstraintStats constraints, oldconstraints;
+    ConstraintStats constraints;
+    ConstraintStats oldconstraints;
     long long expressions;
     long long beta_reduce_calls;
     long long eval_exp_calls;
@@ -165,6 +195,7 @@ struct Btor
     long long propagations;
     long long propagations_down;
     long long apply_props_construct;
+    long long partial_beta_reduction_restarts;
   } stats;
 
   struct
@@ -184,6 +215,9 @@ struct Btor
     double find_dfs;
     double reachable;
     double lemma_gen;
+    double find_nenc_app;
+    double find_param_app;
+    double cloning;
   } time;
 };
 
@@ -198,6 +232,9 @@ void btor_generate_model_for_all_reads (Btor *btor);
 
 /* Enable rewriting of reads on lambda expressions. */
 void btor_enable_beta_reduce_all (Btor *btor);
+
+/* Enable forcing of automatic clenaup of expressions and assignment strings. */
+void btor_enable_force_cleanup (Btor *btor);
 
 /* Disable pretty printing when dumping and rewriting of writes is enabled.  */
 void btor_disable_pretty_print (Btor *btor);
@@ -219,9 +256,8 @@ int btor_set_sat_solver (Btor *, const char *);
  */
 void btor_set_verbosity_btor (Btor *btor, int verbosity);
 
-/* Set log level.
- */
 #ifndef NBTORLOG
+/* Set log level. */
 void btor_set_loglevel_btor (Btor *btor, int loglevel);
 #endif
 
@@ -240,8 +276,13 @@ void btor_assert_exp (Btor *btor, BtorNode *exp);
 /* Adds assumption. */
 void btor_assume_exp (Btor *btor, BtorNode *exp);
 
-/* Solves SAT instance.
- */
+/* Determines if expression has been previously assumed. */
+int btor_is_assumption_exp (Btor *btor, BtorNode *exp);
+
+/* Determines if assumption is a failed assumption. */
+int btor_failed_exp (Btor *btor, BtorNode *exp);
+
+/* Solves SAT instance. */
 int btor_sat_btor (Btor *btor);
 
 /* Run rewriting engine */
@@ -281,12 +322,12 @@ BtorNode *btor_pointer_chase_simplified_exp (Btor *btor, BtorNode *exp);
  * Do not call before calling btor_sat_exp.
  * strlen(result) = len(exp)
  */
-char *btor_bv_assignment_exp (Btor *btor, BtorNode *exp);
+char *btor_bv_assignment_str_exp (Btor *btor, BtorNode *exp);
 
-void btor_array_assignment_exp (
+void btor_array_assignment_str_exp (
     Btor *btor, BtorNode *exp, char ***indices, char ***values, int *size);
 
 /* Frees BV assignment obtained by calling 'btor_assignment_exp' */
-void btor_free_bv_assignment_exp (Btor *btor, char *assignment);
+void btor_release_bv_assignment_str_exp (Btor *btor, char *assignment);
 
 #endif

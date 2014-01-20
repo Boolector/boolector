@@ -13,13 +13,11 @@
 
 #include "btorcore.h"
 
-BtorNode *btor_beta_reduce (Btor *, BtorNode *, int, BtorNode **, int);
-
 BtorNode *btor_beta_reduce_full (Btor *, BtorNode *);
 
 BtorNode *btor_beta_reduce_chains (Btor *, BtorNode *);
 
-BtorNode *btor_beta_reduce_partial (Btor *, BtorNode *, BtorNode **);
+BtorNode *btor_beta_reduce_partial (Btor *, BtorNode *, BtorNode **, int *);
 
 BtorNode *btor_beta_reduce_partial_collect (Btor *,
                                             BtorNode *,

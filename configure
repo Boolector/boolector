@@ -248,6 +248,32 @@ else
     INCS="${INCS}-I../lingeling"
   fi
 
+  if [ -d ../yalsat ]
+  then
+    for path in ../yalsat/yals.h ../yalsat/libyals.a allfound
+    do
+      [ -f $path ] || break
+    done
+  else
+    path=../yalsat
+  fi
+
+  if [ $path = allfound ]
+  then
+    msg "using YalSAT in '../yalsat' too"
+    yalsat=yes
+  else
+    msg "not using YalSAT"
+    yalsat=no
+  fi
+
+  if [ $yalsat = yes ]
+  then
+    [ X"$LDEPS" = X ] || LDEPS="$LDEPS "
+    [ X"$LIBS" = X ] || LIBS="$LIBS "
+    LIBS="${LIBS}-L../yalsat -lyals"
+    LDEPS="${LDEPS}../yalsat/libyals.a"
+  fi
 fi
 
 #--------------------------------------------------------------------------#

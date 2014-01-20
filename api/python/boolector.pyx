@@ -251,12 +251,12 @@ cdef class Boolector:
         r._c_node = btorapi.boolector_ones(self._c_btor, width)
         return r
 
-    def True(self):
+    def TRUE(self):
         r = BoolectorNode(self)
         r._c_node = btorapi.boolector_true(self._c_btor)
         return r
 
-    def False(self):
+    def FALSE(self):
         r = BoolectorNode(self)
         r._c_node = btorapi.boolector_false(self._c_btor)
         return r

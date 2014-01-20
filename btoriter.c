@@ -13,7 +13,7 @@
 #include "btoriter.h"
 
 void
-init_apply_parent_iterator (BtorPartialParentIterator *it, BtorNode *exp)
+init_apply_parent_iterator (BtorParentIterator *it, BtorNode *exp)
 {
   assert (it);
   assert (exp);
@@ -21,44 +21,15 @@ init_apply_parent_iterator (BtorPartialParentIterator *it, BtorNode *exp)
 }
 
 void
-init_aeq_parent_iterator (BtorPartialParentIterator *it, BtorNode *exp)
+init_full_parent_iterator (BtorParentIterator *it, BtorNode *exp)
 {
   assert (it);
   assert (exp);
-  it->cur = BTOR_REAL_ADDR_NODE (exp)->first_aeq_acond_parent;
-}
-
-void
-init_acond_parent_iterator (BtorPartialParentIterator *it, BtorNode *exp)
-{
-  assert (it);
-  assert (exp);
-  it->cur = BTOR_REAL_ADDR_NODE (exp)->last_aeq_acond_parent;
-}
-
-void
-init_full_parent_iterator (BtorFullParentIterator *it, BtorNode *exp)
-{
-  assert (it);
-  assert (exp);
-  it->exp = exp;
-  if (BTOR_REAL_ADDR_NODE (exp)->first_parent)
-  {
-    it->regular_parents_done = 0;
-    it->cur                  = BTOR_REAL_ADDR_NODE (exp)->first_parent;
-  }
-  else
-  {
-    it->regular_parents_done = 1;
-    if (BTOR_IS_ARRAY_NODE (BTOR_REAL_ADDR_NODE (exp)))
-      it->cur = BTOR_REAL_ADDR_NODE (exp)->first_aeq_acond_parent;
-    else
-      it->cur = 0;
-  }
+  it->cur = BTOR_REAL_ADDR_NODE (exp)->first_parent;
 }
 
 BtorNode *
-next_parent_apply_parent_iterator (BtorPartialParentIterator *it)
+next_parent_apply_parent_iterator (BtorParentIterator *it)
 {
   BtorNode *result;
   assert (it);
@@ -71,55 +42,20 @@ next_parent_apply_parent_iterator (BtorPartialParentIterator *it)
 }
 
 BtorNode *
-next_parent_aeq_parent_iterator (BtorPartialParentIterator *it)
+next_parent_full_parent_iterator (BtorParentIterator *it)
 {
-  BtorNode *result;
   assert (it);
-  result = it->cur;
-  assert (result);
-  it->cur = BTOR_NEXT_AEQ_ACOND_PARENT (result);
-  assert (BTOR_IS_ARRAY_EQ_NODE (BTOR_REAL_ADDR_NODE (result)));
-  return BTOR_REAL_ADDR_NODE (result);
-}
 
-BtorNode *
-next_parent_acond_parent_iterator (BtorPartialParentIterator *it)
-{
   BtorNode *result;
-  assert (it);
   result = it->cur;
   assert (result);
-  it->cur = BTOR_PREV_AEQ_ACOND_PARENT (result);
-  assert (BTOR_IS_ARRAY_COND_NODE (BTOR_REAL_ADDR_NODE (result)));
-  return BTOR_REAL_ADDR_NODE (result);
-}
+  it->cur = BTOR_NEXT_PARENT (result);
 
-BtorNode *
-next_parent_full_parent_iterator (BtorFullParentIterator *it)
-{
-  BtorNode *result;
-  assert (it);
-  result = it->cur;
-  assert (result);
-  if (!it->regular_parents_done)
-  {
-    it->cur = BTOR_NEXT_PARENT (result);
-    /* reached end of regular parent list ? */
-    if (!it->cur)
-    {
-      it->regular_parents_done = 1;
-      /* traverse aeq acond parent list */
-      if (BTOR_IS_ARRAY_NODE (BTOR_REAL_ADDR_NODE (it->exp)))
-        it->cur = BTOR_REAL_ADDR_NODE (it->exp)->first_aeq_acond_parent;
-    }
-  }
-  else
-    it->cur = BTOR_NEXT_AEQ_ACOND_PARENT (result);
   return BTOR_REAL_ADDR_NODE (result);
 }
 
 int
-has_next_parent_apply_parent_iterator (BtorPartialParentIterator *it)
+has_next_parent_apply_parent_iterator (BtorParentIterator *it)
 {
   assert (it);
   /* function child of apply is at position 0, so cur is not tagged */
@@ -127,21 +63,7 @@ has_next_parent_apply_parent_iterator (BtorPartialParentIterator *it)
 }
 
 int
-has_next_parent_aeq_parent_iterator (BtorPartialParentIterator *it)
-{
-  assert (it);
-  return it->cur && BTOR_IS_ARRAY_EQ_NODE (BTOR_REAL_ADDR_NODE (it->cur));
-}
-
-int
-has_next_parent_acond_parent_iterator (BtorPartialParentIterator *it)
-{
-  assert (it);
-  return it->cur && BTOR_IS_ARRAY_COND_NODE (BTOR_REAL_ADDR_NODE (it->cur));
-}
-
-int
-has_next_parent_full_parent_iterator (BtorFullParentIterator *it)
+has_next_parent_full_parent_iterator (BtorParentIterator *it)
 {
   assert (it);
   return it->cur != 0;
@@ -199,8 +121,9 @@ has_next_args_iterator (BtorArgsIterator *it)
   return it->cur != 0;
 }
 
+// TODO: parent iterator needed here?
 void
-init_lambda_iterator (BtorIterator *it, BtorNode *exp)
+init_lambda_iterator (BtorParentIterator *it, BtorNode *exp)
 {
   assert (it);
   assert (exp);
@@ -211,7 +134,7 @@ init_lambda_iterator (BtorIterator *it, BtorNode *exp)
 }
 
 BtorNode *
-next_lambda_iterator (BtorIterator *it)
+next_lambda_iterator (BtorParentIterator *it)
 {
   assert (it);
   assert (it->cur);
@@ -223,7 +146,7 @@ next_lambda_iterator (BtorIterator *it)
 }
 
 int
-has_next_lambda_iterator (BtorIterator *it)
+has_next_lambda_iterator (BtorParentIterator *it)
 {
   assert (it);
   assert (it->cur);
@@ -281,6 +204,85 @@ next_parameterized_iterator (BtorParameterizedIterator *it)
 
 int
 has_next_parameterized_iterator (BtorParameterizedIterator *it)
+{
+  assert (it);
+  return it->cur != 0;
+}
+
+void
+init_reversed_node_hash_table_iterator (Btor *btor,
+                                        BtorHashTableIterator *it,
+                                        BtorPtrHashTable *t)
+{
+  assert (btor);
+  (void) btor;
+  assert (it);
+  assert (t);
+  (void) btor;
+
+  it->bucket     = t->last;
+  it->cur        = it->bucket ? it->bucket->key : 0;
+  it->reversed   = 1;
+  it->num_queued = 0;
+  it->pos        = 0;
+}
+
+void
+init_node_hash_table_iterator (Btor *btor,
+                               BtorHashTableIterator *it,
+                               BtorPtrHashTable *t)
+{
+  assert (btor);
+  (void) btor;
+  assert (it);
+  assert (t);
+  (void) btor;
+
+  it->bucket     = t->first;
+  it->cur        = it->bucket ? it->bucket->key : 0;
+  it->reversed   = 0;
+  it->num_queued = 0;
+  it->pos        = 0;
+}
+
+void
+queue_node_hash_table_iterator (BtorHashTableIterator *it, BtorPtrHashTable *t)
+{
+  assert (it);
+  assert (t);
+  assert (it->num_queued < BTOR_HASH_TABLE_ITERATOR_STACK_SIZE);
+
+  it->stack[it->num_queued++] = t;
+
+  /* if initial table is empty, initialize with queued table */
+  if (!it->bucket)
+  {
+    it->bucket = t->first;
+    it->cur    = it->bucket ? it->bucket->key : 0;
+  }
+}
+
+BtorNode *
+next_node_hash_table_iterator (BtorHashTableIterator *it)
+{
+  assert (it);
+  assert (it->bucket);
+  assert (it->cur);
+
+  BtorNode *res;
+  res = (BtorNode *) it->cur;
+  if (it->bucket)
+    it->bucket = it->reversed ? it->bucket->prev : it->bucket->next;
+  if (!it->bucket && it->pos < it->num_queued)
+    it->bucket =
+        it->reversed ? it->stack[it->pos++]->last : it->stack[it->pos++]->first;
+
+  it->cur = it->bucket ? it->bucket->key : 0;
+  return res;
+}
+
+int
+has_next_node_hash_table_iterator (BtorHashTableIterator *it)
 {
   assert (it);
   return it->cur != 0;

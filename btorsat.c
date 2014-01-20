@@ -691,6 +691,7 @@ btor_lingeling_sat (BtorSATMgr *smgr, int limit)
   if (smgr->inc_required)
   {
     lglsetopt (lgl, "flipping", 0);
+    lglsetopt (lgl, "locs", 0);
   }
   else
   {

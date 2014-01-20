@@ -389,6 +389,7 @@ parse_line ()
   const char* str;
   vector<string> toks;
   char* p;
+  if (line[0] == '#' || line[0] == ';') return;
   for (p = line; *p; p++)
     ;
   while (p > line && myisspace (p[-1])) *--p = 0;
