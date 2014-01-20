@@ -6446,7 +6446,6 @@ clone_exp_layer_negated (Btor *btor)
   assert (btor);
   assert (btor->synthesized_constraints->count);
   assert (!btor->unsynthesized_constraints->count);
-  assert (!btor->embedded_constraints->count);
 
   Btor *clone;
   BtorNode *root, *cur, *and;
@@ -6455,7 +6454,6 @@ clone_exp_layer_negated (Btor *btor)
   clone = btor_clone_exp_layer (btor);
   assert (!clone->synthesized_constraints->count);
   assert (clone->unsynthesized_constraints->count);
-  assert (!clone->embedded_constraints->count);
   btor_enable_inc_usage (clone);
 
   root = 0;
