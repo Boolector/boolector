@@ -138,7 +138,7 @@ btor_dump_exp_smt (
 
     fputs ("))", file);
   }
-  else if (BTOR_IS_ARRAY_OR_BV_COND_NODE (e))
+  else if (BTOR_IS_BV_COND_NODE (e))
   {
     fputs ("(ite (= ", file);
     btor_dump_bit_smt (format, 1, file);
@@ -150,7 +150,7 @@ btor_dump_exp_smt (
     btor_dump_smt_id (e->e[2], sgp, file);
     fputc (')', file);
   }
-  else if (BTOR_IS_ARRAY_OR_BV_EQ_NODE (e) || e->kind == BTOR_ULT_NODE)
+  else if (BTOR_IS_BV_EQ_NODE (e) || e->kind == BTOR_ULT_NODE)
   {
     fputs ("(ite (", file);
     if (e->kind == BTOR_ULT_NODE)
@@ -178,14 +178,20 @@ btor_dump_exp_smt (
       case BTOR_MUL_NODE: op = "bvmul"; break;
       case BTOR_UDIV_NODE: op = "bvudiv"; break;
       case BTOR_UREM_NODE: op = "bvurem"; break;
-      case BTOR_CONCAT_NODE: op = "concat"; break;
-      case BTOR_READ_NODE: op = "select"; break;
+      case BTOR_CONCAT_NODE:
+        op = "concat";
+        break;
+        //	case BTOR_READ_NODE:
+        //	  op = "select";
+        //	  break;
 
       default:
-      case BTOR_WRITE_NODE:
-        assert (e->kind == BTOR_WRITE_NODE);
-        op = "store";
-        break;
+        assert (0);
+        op = "unknown";
+        //	case BTOR_WRITE_NODE:
+        //	  assert (e->kind == BTOR_WRITE_NODE);
+        //	  op = "store";
+        //	  break;
     }
 
     fputs (op, file);
@@ -208,8 +214,11 @@ btor_dump_sort_smt2 (BtorNode *e, FILE *file)
 
   e = BTOR_REAL_ADDR_NODE (e);
 
-  if (BTOR_IS_ARRAY_NODE (e) && !BTOR_IS_LAMBDA_NODE (e))
-    fprintf (file, "(Array (_ BitVec %d) (_ BitVec %d))", e->index_len, e->len);
+  if (BTOR_IS_ARRAY_VAR_NODE (e))
+    fprintf (file,
+             "(Array (_ BitVec %d) (_ BitVec %d))",
+             BTOR_ARRAY_INDEX_LEN (e),
+             e->len);
   //  else if (e->len == 1)
   //    fprintf (file, "Bool");
   else if (e)
@@ -611,7 +620,7 @@ btor_dump_smt (Btor *btor, int format, FILE *file, BtorNode **roots, int nroots)
       if (BTOR_IS_BV_VAR_NODE (e))
         fprintf (file, " BitVec[%d]))\n", e->len);
       else
-        fprintf (file, " Array[%d:%d]))\n", e->index_len, e->len);
+        fprintf (file, " Array[%d:%d]))\n", BTOR_ARRAY_INDEX_LEN (e), e->len);
     }
     else
       btor_dump_declare_fun_smt2 (e, sgp, file);

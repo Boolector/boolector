@@ -124,7 +124,6 @@ struct Btor
   int vis_idx; /* file index for visualizing expressions */
   int vread_index_id;
   int inconsistent;
-  int found_assumption_false;
   int found_constraint_false;
   int model_gen;            /* model generation enabled */
   int external_refs;        /* external references (library mode) */
@@ -168,23 +167,21 @@ struct Btor
     int synthesis_inconsistency_apply;
     int synthesis_inconsistency_lambda;
     int synthesis_inconsistency_var;
-    int array_axiom_1_conflicts; /* number of array axiom 1 conflicts:
-                                    a = b /\ i = j => read(a, i) = read(b, j) */
-    int array_axiom_2_conflicts; /* array axiom 2 confs:
-                                    i = j => read(write(a, i, e), j) = e */
-    int var_substitutions;       /* number substituted vars (non array) */
-    int array_substitutions;     /* num substituted array vars */
-    int ec_substitutions;        /* embedded constraint substitutions */
-    int vreads;                  /* number of virtual reads */
-    int linear_equations;        /* number of linear equations */
-    int gaussian_eliminations;   /* number of gaussian eliminations */
-    int eliminated_slices;       /* number of eliminated slices */
-    int skeleton_constraints;    /* number of extracted skeleton constraints */
-    int adds_normalized;         /* number of add chains normalizations */
-    int ands_normalized;         /* number of and chains normalizations */
-    int muls_normalized;         /* number of mul chains normalizations */
-    int read_props_construct;    /* how often have we pushed a read over
-                                    write during construction */
+    int function_congruence_conflicts;
+    int beta_reduction_conflicts;
+    int var_substitutions;     /* number substituted vars (non array) */
+    int array_substitutions;   /* num substituted array vars */
+    int ec_substitutions;      /* embedded constraint substitutions */
+    int vreads;                /* number of virtual reads */
+    int linear_equations;      /* number of linear equations */
+    int gaussian_eliminations; /* number of gaussian eliminations */
+    int eliminated_slices;     /* number of eliminated slices */
+    int skeleton_constraints;  /* number of extracted skeleton constraints */
+    int adds_normalized;       /* number of add chains normalizations */
+    int ands_normalized;       /* number of and chains normalizations */
+    int muls_normalized;       /* number of mul chains normalizations */
+    int read_props_construct;  /* how often have we pushed a read over
+                                  write during construction */
     long long int lemmas_size_sum;  /* sum of the size of all added lemmas */
     long long int lclause_size_sum; /* sum of the size of all linking clauses */
     ConstraintStats constraints;
@@ -198,6 +195,7 @@ struct Btor
     long long propagations;
     long long propagations_down;
     long long apply_props_construct;
+    long long partial_beta_reduction_restarts;
   } stats;
 
   struct
