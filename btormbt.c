@@ -28,12 +28,6 @@
 #include <sys/wait.h>
 #include <unistd.h>
 
-#ifdef __GNUC__
-#if __GNUC__ > 3 && __GNUC_MAJOR__ >= 6
-#define USE_PRAGMAS_TO_DISABLE_WARNINGS
-#endif
-#endif
-
 // TODO externalize all parameters
 
 /*------------------------------------------------------------------------*/
@@ -97,13 +91,6 @@
 /*------------------------------------------------------------------------*/
 
 #define BTORMBT_MIN(x, y) ((x) < (y) ? (x) : (y))
-
-/* avoid compiler warnings for unused variables in DEBUG assertions */
-#define BTORMBT_UNUSED(expr) \
-  do                         \
-  {                          \
-    (void) (expr);           \
-  } while (0)
 
 /*------------------------------------------------------------------------*/
 
@@ -490,13 +477,13 @@ is_ternary_fun (Op op)
 {
   return op == COND;
 }
-#endif
 
 static int
 is_array_fun (Op op)
 {
   return (op >= COND && op <= WRITE) || (op >= EQ && op <= NE);
 }
+#endif
 
 /*------------------------------------------------------------------------*/
 
@@ -541,10 +528,6 @@ modifybv (
   }
   else if (tow > ew)
   {
-    // TODO 'tmp' unused so remove?
-#if 0
-      tmp = boolector_get_width (btormbt->btor, e);
-#endif
     e = (pick (rng, 0, 1) ? boolector_uext (btormbt->btor, e, tow - ew)
                           : boolector_sext (btormbt->btor, e, tow - ew));
     es_push (es, e);
@@ -766,9 +749,7 @@ binary_fun (BtorMBT *btormbt,
         }
       }
     }
-    e1  = modifybv (btormbt, rng, e1, e1w, e0w, is_param);
-    e1w = e0w;
-    (void) e1w;  // TODO remove since never used?
+    e1 = modifybv (btormbt, rng, e1, e1w, e0w, is_param);
   }
   else if (op >= SLL && op <= ROR)
   {
@@ -777,9 +758,7 @@ binary_fun (BtorMBT *btormbt,
     e0  = modifybv (btormbt, rng, e0, e0w, tmp0, is_param);
     e1  = modifybv (btormbt, rng, e1, e1w, tmp1, is_param);
     e0w = tmp0;
-    e1w = tmp1;
-    (void) e1w;  // TODO remove since never used?
-    rw = e0w;
+    rw  = e0w;
   }
   else if (op == CONCAT)
   {
@@ -877,9 +856,7 @@ ternary_fun (BtorMBT *btormbt,
   assert (e2w <= MAX_BITWIDTH);
 
   /* bitvectors must have same bit width */
-  e2  = modifybv (btormbt, rng, e2, e2w, e1w, is_param);
-  e2w = e1w;
-  (void) e2w;  // TODO remove since 'e2w' never used?
+  e2 = modifybv (btormbt, rng, e2, e2w, e1w, is_param);
 
   if (e1w == 1)
     es = is_param ? btormbt->parambo : &btormbt->bo;
@@ -911,13 +888,10 @@ afun (BtorMBT *btormbt,
   assert (e0);
   assert (e1);
   assert (boolector_is_array (btormbt->btor, e0));
+  assert (is_array_fun (op));
 
   int e0w, e0iw, e1w, e2w;
   ExpStack *es;
-
-  int isarr = is_array_fun (op);
-  BTORMBT_UNUSED (isarr);
-  assert (isarr);
 
   e0w = boolector_get_width (btormbt->btor, e0);
   assert (e0w <= MAX_BITWIDTH);
@@ -1797,11 +1771,11 @@ _sat (BtorMBT *btormbt, unsigned r)
 static void *
 _mgen (BtorMBT *btormbt, unsigned r)
 {
+  (void) r;
   int i, size = 0;
   const char *bv = NULL;
   char **indices = NULL, **values = NULL;
 
-  BTORMBT_UNUSED (r);
   assert (btormbt->mgen);
 
   for (i = 0; i < btormbt->bo.n; i++)
@@ -1871,12 +1845,11 @@ _inc (BtorMBT *btormbt, unsigned r)
 static void *
 _del (BtorMBT *btormbt, unsigned r)
 {
+  (void) r;
   assert (btormbt);
   assert (btormbt->btor);
 
   int i;
-
-  BTORMBT_UNUSED (r);
 
   for (i = 0; i < btormbt->bo.n; i++)
     boolector_release (btormbt->btor, btormbt->bo.exps[i].exp);
@@ -2108,15 +2081,7 @@ sig_handler (int sig)
   char str[100];
 
   sprintf (str, "*** btormbt: caught signal %d\n\n", sig);
-#ifdef USE_PRAGMAS_TO_DISABLE_WARNINGS
-#pragma GCC diagnostic ignored "-Wunused-result"
-#pragma GCC diagnostic ignored "-Wunused-variable"
-#endif
-  write (1, str, strlen (str));
-#ifdef USE_PRAGMAS_TO_DISABLE_WARNINGS
-#pragma GCC diagnostic warning "-Wunused-result"
-#pragma GCC diagnostic warning "-Wunused-variable"
-#endif
+  (void) write (STDOUT_FILENO, str, strlen (str));
   /* Note: if _exit is used here (which is reentrant, in contrast to exit),
    *       atexit handler is not called. Hence, use exit here. */
   exit (EXIT_ERROR);
@@ -2248,7 +2213,7 @@ main (int argc, char **argv)
       printf ("%d %d ", btormbt->round, btormbt->seed);
       fflush (stdout);
 
-      /* reset verbose flag for initial run, only print */
+      /* reset verbose flag for initial run, only print on replay */
       btormbt->verbose = 0;
       status           = run (btormbt);
       btormbt->verbose = verbose;

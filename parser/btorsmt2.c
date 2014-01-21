@@ -1,7 +1,8 @@
 /*  Boolector: Satisfiablity Modulo Theories (SMT) solver.
  *
  *  Copyright (C) 2011-2013 Armin Biere.
- *  Copyright (C) 2013 Aina Niemetz, Mathias Preiner.
+ *  Copyright (C) 2013 Aina Niemetz.
+ *  Copyright (C) 2013-2014 Mathias Preiner.
  *
  *  All rights reserved.
  *
@@ -3200,10 +3201,9 @@ btor_parse_smt2_parser (BtorSMT2Parser *parser,
                  parser->commands.all,
                  delta);
 
-  if (parser->need_functions)
+  if (parser->need_functions && parser->res->logic == BTOR_LOGIC_QF_BV)
   {
     btor_msg_smt2 (parser, 1, "found functions thus using 'QF_AUFBV' logic");
-    assert (parser->res->logic == BTOR_LOGIC_QF_BV);
     parser->res->logic = BTOR_LOGIC_QF_AUFBV;
   }
   else if (parser->commands.set_logic)

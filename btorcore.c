@@ -2,7 +2,8 @@
  *
  *  Copyright (C) 2007-2009 Robert Daniel Brummayer.
  *  Copyright (C) 2007-2013 Armin Biere.
- *  Copyright (C) 2012-2013 Aina Niemetz, Mathias Preiner.
+ *  Copyright (C) 2012-2013 Aina Niemetz.
+ *  Copyright (C) 2012-2014 Mathias Preiner.
  *
  *  All rights reserved.
  *
@@ -4463,13 +4464,17 @@ update_sat_assignments (Btor *btor)
 {
   assert (btor);
 
-  int result;
   BtorSATMgr *smgr;
 
   smgr = btor_get_sat_mgr_aig_mgr (btor_get_aig_mgr_aigvec_mgr (btor->avmgr));
   add_again_assumptions (btor);
+#ifndef NDEBUG
+  int result;
   result = btor_timed_sat_sat (btor, -1);
   assert (result == BTOR_SAT);
+#else
+  (void) btor_timed_sat_sat (btor, -1);
+#endif
   return btor_changed_sat (smgr);
 }
 
@@ -5978,9 +5983,13 @@ propagate (Btor *btor,
         {
           btor_release_exp (btor, fun_value);
           btor->stats.partial_beta_reduction_restarts++;
+          // TODO: stats for max. restarts
+          // TODO: if we reach a certain limit should we just continue
+          //       without encoding everything? if we do so, we need
+          //       means to reproduce the propagation paths.
 #ifndef NDEBUG
           num_restarts++;
-          assert (num_restarts < 3);
+          assert (num_restarts < 8);
 #endif
           BTORLOG ("restart partial beta reduction");
           goto PROPAGATE_BETA_REDUCE_PARTIAL;
@@ -7281,7 +7290,7 @@ check_model (Btor *btor, Btor *clone, BtorPtrHashTable *inputs)
 
   int i, ret, size;
   char *a, **indices, **values;
-  BtorNode *cur, *exp, *val, *idx, *w, *tmp, *simp;
+  BtorNode *cur, *exp, *val, *idx, *w, *tmp, *simp, *real_simp;
   BtorHashTableIterator it;
 
 #ifndef NBTORLOG
@@ -7314,13 +7323,14 @@ check_model (Btor *btor, Btor *clone, BtorPtrHashTable *inputs)
     cur = next_node_hash_table_iterator (&it);
     assert (BTOR_IS_REGULAR_NODE (cur));
     assert (cur->btor == clone);
-    simp = BTOR_REAL_ADDR_NODE (btor_pointer_chase_simplified_exp (clone, cur));
+    simp      = btor_pointer_chase_simplified_exp (clone, cur);
+    real_simp = BTOR_REAL_ADDR_NODE (simp);
 
-    if (BTOR_IS_BV_CONST_NODE (simp)
-        || btor_find_in_ptr_hash_table (clone->substitutions, simp))
+    if (BTOR_IS_BV_CONST_NODE (real_simp)
+        || btor_find_in_ptr_hash_table (clone->substitutions, real_simp))
       continue;
 
-    if (BTOR_IS_ARRAY_VAR_NODE (simp) || BTOR_IS_LAMBDA_NODE (simp))
+    if (BTOR_IS_ARRAY_VAR_NODE (real_simp) || BTOR_IS_LAMBDA_NODE (real_simp))
     {
       size    = 0;
       indices = 0;
@@ -7333,7 +7343,8 @@ check_model (Btor *btor, Btor *clone, BtorPtrHashTable *inputs)
       assert (indices);
       assert (values);
 
-      w = btor_array_exp (clone, simp->len, BTOR_ARRAY_INDEX_LEN (simp), "");
+      w = btor_array_exp (
+          clone, real_simp->len, BTOR_ARRAY_INDEX_LEN (real_simp), "");
       for (i = 0; i < size; i++)
       {
         a = indices[i];
@@ -7352,22 +7363,23 @@ check_model (Btor *btor, Btor *clone, BtorPtrHashTable *inputs)
         btor_release_bv_assignment_str_exp (btor, values[i]);
       }
 
-      assert (!btor_find_in_ptr_hash_table (clone->substitutions, simp));
-      btor_insert_substitution (clone, simp, w, 0);
+      assert (!btor_find_in_ptr_hash_table (clone->substitutions, real_simp));
+      btor_insert_substitution (clone, real_simp, w, 0);
       btor_release_exp (clone, w);
       btor_free (btor->mm, indices, sizeof (*indices) * size);
       btor_free (btor->mm, values, sizeof (*values) * size);
     }
-    else if (BTOR_IS_BV_VAR_NODE (simp))
+    else if (BTOR_IS_BV_VAR_NODE (real_simp))
     {
-      assert (!BTOR_IS_FUN_NODE (simp));
-      a = btor_bv_assignment_str_exp (btor, exp);
+      assert (!BTOR_IS_FUN_NODE (real_simp));
+      /* we need to invert the assignment if simplified is inverted */
+      a = btor_bv_assignment_str_exp (btor, BTOR_COND_INVERT_NODE (simp, exp));
       init_x_values (a);
       val = btor_const_exp (clone, a);
       btor_release_bv_assignment_str_exp (btor, a);
 
-      assert (!btor_find_in_ptr_hash_table (clone->substitutions, simp));
-      btor_insert_substitution (clone, simp, val, 0);
+      assert (!btor_find_in_ptr_hash_table (clone->substitutions, real_simp));
+      btor_insert_substitution (clone, real_simp, val, 0);
       btor_release_exp (clone, val);
     }
   }
