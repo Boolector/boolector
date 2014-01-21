@@ -4518,13 +4518,17 @@ update_sat_assignments (Btor *btor)
 {
   assert (btor);
 
-  int result;
   BtorSATMgr *smgr;
 
   smgr = btor_get_sat_mgr_aig_mgr (btor_get_aig_mgr_aigvec_mgr (btor->avmgr));
   add_again_assumptions (btor);
+#ifndef NDEBUG
+  int result;
   result = btor_timed_sat_sat (btor, -1);
   assert (result == BTOR_SAT);
+#else
+  (void) btor_timed_sat_sat (btor, -1);
+#endif
   return btor_changed_sat (smgr);
 }
 
