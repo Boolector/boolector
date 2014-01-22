@@ -5670,7 +5670,7 @@ add_lemma (Btor *btor, BtorNode *fun, BtorNode *app0, BtorNode *app1)
     btor_assign_args (btor, fun, args);
 #ifndef NDEBUG
     value = btor_beta_reduce_partial (btor, fun, 0, &evalerr);
-    assert (!evalerr);
+//      assert (!evalerr);
 #else
     value = btor_beta_reduce_partial (btor, fun, 0, 0);
 #endif
@@ -5823,7 +5823,7 @@ propagate (Btor *btor,
   BtorMemMgr *mm;
   BtorLambdaNode *lambda;
   BtorNode *fun, *app, *args, *fun_value, *parameterized, *param_app;
-  BtorNode *hashed_app;
+  BtorNode *hashed_app, *prev_fun_value;
   BtorPtrHashBucket *b;
   BtorNodePtrStack param_apps;
 
@@ -5920,9 +5920,23 @@ propagate (Btor *btor,
 #ifndef NDEBUG
     num_restarts = 0;
 #endif
+    prev_fun_value = 0;
   PROPAGATE_BETA_REDUCE_PARTIAL:
     fun_value = btor_beta_reduce_partial (btor, fun, &parameterized, &evalerr);
     assert (!BTOR_IS_LAMBDA_NODE (BTOR_REAL_ADDR_NODE (fun_value)));
+
+    /* 'prev_fun_value' is set if we already restarted beta reduction. if the
+     * result does not differ from the previous one, we are safe to
+     * continue with consistency checking. */
+#if 1
+    if (fun_value == prev_fun_value)
+    {
+      assert (prev_fun_value);
+      evalerr = 0;
+      btor_release_exp (btor, prev_fun_value);
+      prev_fun_value = 0;
+    }
+#endif
 
     if (BTOR_IS_ARRAY_VAR_NODE (BTOR_REAL_ADDR_NODE (fun_value)))
     {
@@ -5930,6 +5944,7 @@ propagate (Btor *btor,
       BTOR_PUSH_STACK (mm, *prop_stack, fun_value);
       btor_unassign_params (btor, fun);
       btor_release_exp (btor, fun_value);
+      if (prev_fun_value) btor_release_exp (btor, prev_fun_value);
       continue;
     }
 
@@ -5953,6 +5968,7 @@ propagate (Btor *btor,
         {
           btor_unassign_params (btor, fun);
           btor_release_exp (btor, fun_value);
+          if (prev_fun_value) btor_release_exp (btor, prev_fun_value);
           BTOR_RELEASE_STACK (mm, param_apps);
           return 0;
         }
@@ -5974,14 +5990,20 @@ propagate (Btor *btor,
 
         BTOR_RELEASE_STACK (mm, param_apps);
 
-        /* if we couldn't fully evaluate 'fun_value' there were still
-         * not encoded inputs. now every required input is encoded and
-         * we can restart partial beta reduction.
-         * if we would not restart partial beta reduction it may produce
-         * different values for lemma generation. */
+        /* if not all bvcond in 'fun_value' could be evaluated, there are
+         * still some inputs (vars, applies) that are not encoded.
+         * we encode all inputs required for evaluating the bvconds in
+         * 'fun_value' and restart beta reduction. however, it might be
+         * still the case that beta reduction yields fresh applies (not
+         * encoded) and we have to restart again. we have to ensure that
+         * successive beta reduction calls yield the same result as
+         * otherwise it may produce different results for beta reduction.
+         */
         if (evalerr)
         {
-          btor_release_exp (btor, fun_value);
+          if (prev_fun_value) btor_release_exp (btor, prev_fun_value);
+          prev_fun_value = fun_value;
+          //		  btor_release_exp (btor, fun_value);
           btor->stats.partial_beta_reduction_restarts++;
           // TODO: stats for max. restarts
           // TODO: if we reach a certain limit should we just continue
@@ -6041,6 +6063,7 @@ propagate (Btor *btor,
           add_lemma (btor, fun, app, 0);
           btor_unassign_params (btor, fun);
           btor_release_exp (btor, fun_value);
+          if (prev_fun_value) btor_release_exp (btor, prev_fun_value);
           return 1;
         }
       }
@@ -6054,6 +6077,7 @@ propagate (Btor *btor,
     }
     btor_unassign_params (btor, fun);
     btor_release_exp (btor, fun_value);
+    if (prev_fun_value) btor_release_exp (btor, prev_fun_value);
   }
 
   return 0;
