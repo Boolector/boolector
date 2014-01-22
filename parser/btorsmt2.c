@@ -1,7 +1,8 @@
 /*  Boolector: Satisfiablity Modulo Theories (SMT) solver.
  *
  *  Copyright (C) 2011-2013 Armin Biere.
- *  Copyright (C) 2013 Aina Niemetz, Mathias Preiner.
+ *  Copyright (C) 2013 Aina Niemetz.
+ *  Copyright (C) 2013-2014 Mathias Preiner.
  *
  *  All rights reserved.
  *
@@ -276,7 +277,7 @@ typedef struct BtorSMT2Parser
 {
   Btor *btor;
   BtorMemMgr *mem;
-  int verbosity, incremental, model, need_arrays;
+  int verbosity, incremental, model, need_functions;
   char *name;
   BtorSMT2Coo coo, lastcoo, nextcoo, perrcoo;
   FILE *file;
@@ -2806,7 +2807,7 @@ btor_declare_fun_smt2 (BtorSMT2Parser *parser)
                    width,
                    fun->coo.x,
                    fun->coo.y);
-    parser->need_arrays = 1;
+    parser->need_functions = 1;
   }
   else
     return !btor_perr_smt2 (
@@ -2921,7 +2922,7 @@ SORTED_VAR:
                    width,
                    fun->coo.x,
                    fun->coo.y);
-    parser->need_arrays = 1;
+    parser->need_functions = 1;
   }
   else
     return !btor_perr_smt2 (
@@ -2975,7 +2976,7 @@ SORTED_VAR:
       boolector_release (parser->btor, BTOR_POP_STACK (args));
     boolector_release (parser->btor, exp);
     BTOR_RELEASE_STACK (parser->mem, args);
-    parser->need_arrays = 1;
+    parser->need_functions = 1;
   }
   else
   {
@@ -3200,21 +3201,21 @@ btor_parse_smt2_parser (BtorSMT2Parser *parser,
                  parser->commands.all,
                  delta);
 
-  if (parser->commands.set_logic)
+  if (parser->need_functions && parser->res->logic == BTOR_LOGIC_QF_BV)
   {
-    assert (!parser->need_arrays || parser->res->logic == BTOR_LOGIC_QF_AUFBV);
-    if (!parser->need_arrays && parser->res->logic == BTOR_LOGIC_QF_AUFBV)
+    btor_msg_smt2 (parser, 1, "found functions thus using 'QF_AUFBV' logic");
+    parser->res->logic = BTOR_LOGIC_QF_AUFBV;
+  }
+  else if (parser->commands.set_logic)
+  {
+    assert (!parser->need_functions
+            || parser->res->logic == BTOR_LOGIC_QF_AUFBV);
+    if (!parser->need_functions && parser->res->logic == BTOR_LOGIC_QF_AUFBV)
     {
       btor_msg_smt2 (
-          parser, 1, "no arrays found thus restricting logic to 'QF_BV'");
+          parser, 1, "no functions found thus restricting logic to 'QF_BV'");
       parser->res->logic = BTOR_LOGIC_QF_BV;
     }
-  }
-  else if (parser->need_arrays)
-  {
-    btor_msg_smt2 (parser, 1, "found arrays thus using 'QF_AUFBV' logic");
-    assert (parser->res->logic == BTOR_LOGIC_QF_BV);
-    parser->res->logic = BTOR_LOGIC_QF_AUFBV;
   }
   return 0;
 }

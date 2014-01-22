@@ -2,7 +2,7 @@
  *
  *  Copyright (C) 2007-2009 Robert Daniel Brummayer.
  *  Copyright (C) 2007-2013 Armin Biere.
- *  Copyright (C) 2012-2013 Mathias Preiner.
+ *  Copyright (C) 2012-2014 Mathias Preiner.
  *  Copyright (C) 2012-2014 Aina Niemetz.
  *
  *  All rights reserved.
@@ -37,7 +37,8 @@
 #endif
 
 #define ENABLE_APPLY_PROP_DOWN 1
-//#define BTOR_CHECK_MODEL
+#define BTOR_SYMBOLIC_LEMMAS
+#define BTOR_CHECK_MODEL
 
 /*------------------------------------------------------------------------*/
 
@@ -804,6 +805,8 @@ btor_print_stats_btor (Btor *btor)
       btor, 1, "%.2f seconds lazy lambda encoding", btor->time.enc_lambda);
   btor_msg (btor, 1, "%.2f seconds lazy var encoding", btor->time.enc_var);
   btor_msg (btor, 1, "%.2f seconds node search", btor->time.find_dfs);
+  btor_msg (btor, 1, "%.2f seconds reachable search", btor->time.reachable);
+  btor_msg (btor, 1, "%.2f seconds lemma generation", btor->time.lemma_gen);
   btor_msg (
       btor, 1, "%.2f seconds param apply search", btor->time.find_param_app);
   btor_msg (btor,
@@ -3655,6 +3658,20 @@ beta_reduce_applies_on_lambdas (Btor *btor)
 }
 
 #if 0
+static int
+findfun_param (BtorNode * exp)
+{
+  assert (exp);
+  return BTOR_IS_PARAM_NODE (BTOR_REAL_ADDR_NODE (exp));
+}
+
+static int
+skipfun_param (BtorNode * exp)
+{
+  assert (exp);
+  return !BTOR_REAL_ADDR_NODE (exp)->parameterized;
+}
+
 static void
 merge_lambda_chains (Btor * btor)
 {
@@ -3862,7 +3879,7 @@ btor_simplify (Btor *btor)
   rounds = 0;
   start  = btor_time_stamp ();
 
-  init_cache (btor);
+  if (btor->beta_reduce_all) init_cache (btor);
 
   do
   {
@@ -3944,7 +3961,7 @@ btor_simplify (Btor *btor)
   } while (btor->varsubst_constraints->count
            || btor->embedded_constraints->count);
 
-  release_cache (btor);
+  if (btor->beta_reduce_all) release_cache (btor);
 
   delta = btor_time_stamp () - start;
   btor->time.rewrite += delta;
@@ -4333,8 +4350,8 @@ synthesize_all_array_rhs (Btor *btor)
 //	synthesize_exp (btor, n, 0);
 //}
 
-#if 0
 // TODO: check if needed
+#if 0
 static void
 synthesize_all_applies (Btor * btor)
 {
@@ -4355,6 +4372,7 @@ update_reachable (Btor *btor, int check_all_tables)
   assert (btor);
 
   int i;
+  double start;
   BtorNode *cur;
   BtorPtrHashBucket *b;
   BtorHashTableIterator it;
@@ -4363,6 +4381,8 @@ update_reachable (Btor *btor, int check_all_tables)
   assert (check_all_tables || btor->unsynthesized_constraints->count == 0);
   assert (check_all_tables || btor->embedded_constraints->count == 0);
   assert (check_all_tables || btor->varsubst_constraints->count == 0);
+
+  start = btor_time_stamp ();
 
   init_node_hash_table_iterator (btor, &it, btor->synthesized_constraints);
   queue_node_hash_table_iterator (&it, btor->assumptions);
@@ -4404,7 +4424,41 @@ update_reachable (Btor *btor, int check_all_tables)
     cur->reachable = cur->mark;
     cur->mark      = 0;
   }
+  btor->time.reachable += btor_time_stamp () - start;
 }
+
+#ifdef BTOR_SYMBOLIC_LEMMAS
+static void
+mark_reachable (Btor *btor, BtorNode *exp)
+{
+  assert (btor);
+  assert (exp);
+
+  int i;
+  double start;
+  BtorNode *cur;
+  BtorNodePtrStack stack;
+
+  start = btor_time_stamp ();
+  BTOR_INIT_STACK (stack);
+  BTOR_PUSH_STACK (btor->mm, stack, exp);
+
+  while (!BTOR_EMPTY_STACK (stack))
+  {
+    cur = BTOR_REAL_ADDR_NODE (BTOR_POP_STACK (stack));
+
+    if (cur->reachable) continue;
+
+    cur->reachable = 1;
+
+    for (i = 0; i < cur->arity; i++)
+      BTOR_PUSH_STACK (btor->mm, stack, cur->e[i]);
+  }
+
+  BTOR_RELEASE_STACK (btor->mm, stack);
+  btor->time.reachable += btor_time_stamp () - start;
+}
+#endif
 
 /* forward assumptions to the SAT solver */
 static void
@@ -4511,13 +4565,17 @@ update_sat_assignments (Btor *btor)
 {
   assert (btor);
 
-  int result;
   BtorSATMgr *smgr;
 
   smgr = btor_get_sat_mgr_aig_mgr (btor_get_aig_mgr_aigvec_mgr (btor->avmgr));
   add_again_assumptions (btor);
+#ifndef NDEBUG
+  int result;
   result = btor_timed_sat_sat (btor, -1);
   assert (result == BTOR_SAT);
+#else
+  (void) btor_timed_sat_sat (btor, -1);
+#endif
   return btor_changed_sat (smgr);
 }
 
@@ -5140,6 +5198,7 @@ collect_premisses (Btor *btor,
   btor_delete_ptr_hash_table (cond_sel2);
 }
 
+#ifndef BTOR_SYMBOLIC_LEMMAS
 static int
 assignment_always_unequal (Btor *btor, BtorNode *exp1, BtorNode *exp2)
 {
@@ -5340,6 +5399,7 @@ add_neq_exp_to_clause (Btor *btor,
   add_new_exp_to_clause (btor, eq, -1, linking_clause);
   btor_release_exp (btor, eq);
 }
+#endif
 
 // TODO: update print function according to encode_lemma (new apply handling...)
 #if 0
@@ -5426,6 +5486,139 @@ print_lemma_dbg (Btor * btor,
 }
 #endif
 
+#ifdef BTOR_SYMBOLIC_LEMMAS
+static void
+add_symbolic_lemma (Btor *btor,
+                    BtorPtrHashTable *bconds_sel1,
+                    BtorPtrHashTable *bconds_sel2,
+                    BtorNode *a,
+                    BtorNode *b,
+                    BtorNode *args0,
+                    BtorNode *args1)
+{
+  assert (btor);
+  assert (bconds_sel1);
+  assert (bconds_sel2);
+  assert (a);
+  assert (b);
+  assert (BTOR_IS_REGULAR_NODE (a));
+  assert (BTOR_IS_APPLY_NODE (a));
+  assert (BTOR_IS_REGULAR_NODE (args0));
+  assert (BTOR_IS_ARGS_NODE (args0));
+  assert (!args1 || BTOR_IS_REGULAR_NODE (b));
+  assert (!args1 || BTOR_IS_APPLY_NODE (b));
+  assert (!args1 || BTOR_IS_REGULAR_NODE (args1));
+  assert (!args1 || BTOR_IS_ARGS_NODE (args1));
+  assert (!a->parameterized);
+  assert (!BTOR_REAL_ADDR_NODE (b)->parameterized);
+  assert (BTOR_IS_SYNTH_NODE (a));
+
+  BtorNode *cond, *eq, *and, *arg0, *arg1;
+  BtorNode *premise = 0, *conclusion = 0, *lemma;
+  BtorArgsIterator it0, it1;
+  BtorPtrHashBucket *bucket;
+
+  /* function congruence axiom conflict:
+   *   apply arguments: a_0,...,a_n, b_0,...,b_n
+   *   encode premisses: \forall i <= n . /\ a_i = b_i */
+  if (args1)
+  {
+    assert (BTOR_IS_SYNTH_NODE (b));
+    assert (((BtorArgsNode *) args0)->num_args
+            == ((BtorArgsNode *) args1)->num_args);
+    assert (args0->len == args1->len);
+
+    init_args_iterator (&it0, args0);
+    init_args_iterator (&it1, args1);
+
+    while (has_next_args_iterator (&it0))
+    {
+      assert (has_next_args_iterator (&it1));
+      arg0 = next_args_iterator (&it0);
+      arg1 = next_args_iterator (&it1);
+      eq   = btor_eq_exp (btor, arg0, arg1);
+      if (premise)
+      {
+        and = btor_and_exp (btor, premise, eq);
+        btor_release_exp (btor, premise);
+        btor_release_exp (btor, eq);
+        premise = and;
+      }
+      else
+        premise = eq;
+
+      btor->stats.lemmas_size_sum += 1;
+    }
+  }
+  /* else beta reduction conflict */
+
+  /* encode conclusion a = b */
+  conclusion = btor_eq_exp (btor, a, b);
+
+  btor->stats.lemmas_size_sum += 1; /* a == b */
+  btor->stats.lemmas_size_sum += bconds_sel1->count;
+  btor->stats.lemmas_size_sum += bconds_sel2->count;
+
+  /* premisses bv conditions:
+   *   true conditions: c_0, ..., c_k
+   *   encode premisses: \forall i <= k. /\ c_i */
+  for (bucket = bconds_sel1->first; bucket; bucket = bucket->next)
+  {
+    cond = (BtorNode *) bucket->key;
+    BTORLOG ("  cond: %s", node2string (cond));
+    assert (BTOR_REAL_ADDR_NODE (cond)->len == 1);
+    assert (!BTOR_REAL_ADDR_NODE (cond)->parameterized);
+    if (premise)
+    {
+      and = btor_and_exp (btor, premise, cond);
+      btor_release_exp (btor, premise);
+      premise = and;
+    }
+    else
+      premise = btor_copy_exp (btor, cond);
+    btor_release_exp (btor, cond);
+  }
+
+  /* premisses bv conditions:
+   *   false conditions: c_0, ..., c_l
+   *   encode premisses: \forall i <= l. /\ \not c_i */
+  for (bucket = bconds_sel2->first; bucket; bucket = bucket->next)
+  {
+    cond = (BtorNode *) bucket->key;
+    BTORLOG ("  cond: %s", node2string (cond));
+    assert (BTOR_REAL_ADDR_NODE (cond)->len == 1);
+    assert (!BTOR_REAL_ADDR_NODE (cond)->parameterized);
+    if (premise)
+    {
+      and = btor_and_exp (btor, premise, BTOR_INVERT_NODE (cond));
+      btor_release_exp (btor, premise);
+      premise = and;
+    }
+    else
+      premise = btor_copy_exp (btor, BTOR_INVERT_NODE (cond));
+    btor_release_exp (btor, cond);
+  }
+
+  assert (conclusion);
+  if (premise)
+  {
+    lemma = btor_implies_exp (btor, premise, conclusion);
+    btor_release_exp (btor, premise);
+  }
+  else
+    lemma = btor_copy_exp (btor, conclusion);
+
+  if (!btor_find_in_ptr_hash_table (btor->lod_cache, lemma))
+    btor_insert_in_ptr_hash_table (btor->lod_cache,
+                                   btor_copy_exp (btor, lemma));
+
+  insert_unsynthesized_constraint (btor, lemma);
+  mark_reachable (btor, lemma);
+  //  add_constraint (btor, lemma);
+  btor_release_exp (btor, lemma);
+  btor_release_exp (btor, conclusion);
+}
+#else
 static void
 encode_lemma (Btor *btor,
               BtorPtrHashTable *bconds_sel1,
@@ -5463,10 +5656,10 @@ encode_lemma (Btor *btor,
   BtorPtrHashBucket *bucket;
   BtorArgsIterator it0, it1;
 
-  mm    = btor->mm;
+  mm = btor->mm;
   avmgr = btor->avmgr;
-  amgr  = btor_get_aig_mgr_aigvec_mgr (avmgr);
-  smgr  = btor_get_sat_mgr_aig_mgr (amgr);
+  amgr = btor_get_aig_mgr_aigvec_mgr (avmgr);
+  smgr = btor_get_sat_mgr_aig_mgr (amgr);
 
   BTOR_INIT_STACK (linking_clause);
 
@@ -5494,8 +5687,8 @@ encode_lemma (Btor *btor,
   }
   /* else beta reduction conflict */
 
-  /* encode conclusion a = b */
-  add_eq_exp_to_clause (btor, a, b, &linking_clause);
+  //  /* encode conclusion a = b */
+  //  add_eq_exp_to_clause (btor, a, b, &linking_clause);
 
   btor->stats.lemmas_size_sum += 1; /* a == b */
   btor->stats.lemmas_size_sum += bconds_sel1->count;
@@ -5527,20 +5720,30 @@ encode_lemma (Btor *btor,
     btor_release_exp (btor, cond);
   }
 
+  /* encode conclusion a = b */
+  add_eq_exp_to_clause (btor, a, b, &linking_clause);
+
   /* add linking clause */
-  while (!BTOR_EMPTY_STACK (linking_clause))
+  //  printf ("lemma (%d): ", BTOR_COUNT_STACK (linking_clause));
+  int i;
+  for (i = 0; i < BTOR_COUNT_STACK (linking_clause); i++)
+  //  while (!BTOR_EMPTY_STACK (linking_clause))
   {
-    k = BTOR_POP_STACK (linking_clause);
+    k = BTOR_PEEK_STACK (linking_clause, i);
+    //      k = BTOR_POP_STACK (linking_clause);
     assert (k != 0);
     val = btor_fixed_sat (smgr, k);
     if (val < 0) continue;
     assert (!val);
+    //      printf ("%d ", k);
     btor_add_sat (smgr, k);
     btor->stats.lclause_size_sum++;
   }
+  //  printf ("\n");
   btor_add_sat (smgr, 0);
   BTOR_RELEASE_STACK (mm, linking_clause);
 }
+#endif
 
 #if 0
 /* Encodes the following array inequality constraint:
@@ -5675,6 +5878,7 @@ add_lemma (Btor *btor, BtorNode *fun, BtorNode *app0, BtorNode *app1)
   assert (!app1 || BTOR_IS_REGULAR_NODE (app1));
   assert (!app1 || BTOR_IS_APPLY_NODE (app1));
 
+  double start;
 #ifndef NDEBUG
   int evalerr;
 #endif
@@ -5682,7 +5886,8 @@ add_lemma (Btor *btor, BtorNode *fun, BtorNode *app0, BtorNode *app1)
   BtorNode *args, *value, *exp;
   BtorMemMgr *mm;
 
-  mm = btor->mm;
+  mm    = btor->mm;
+  start = btor_time_stamp ();
 
   /* collect intermediate conditions of bit vector conditionals */
   bconds_sel1 = btor_new_ptr_hash_table (mm,
@@ -5703,8 +5908,13 @@ add_lemma (Btor *btor, BtorNode *fun, BtorNode *app0, BtorNode *app1)
       /* path from exp to conflicting fun */
       collect_premisses (btor, exp, fun, args, bconds_sel1, bconds_sel2);
     }
+#ifdef BTOR_SYMBOLIC_LEMMAS
+    add_symbolic_lemma (
+        btor, bconds_sel1, bconds_sel2, app0, app1, app0->e[1], app1->e[1]);
+#else
     encode_lemma (
         btor, bconds_sel1, bconds_sel2, app0, app1, app0->e[1], app1->e[1]);
+#endif
   }
   /* beta reduction conflict */
   else
@@ -5713,7 +5923,7 @@ add_lemma (Btor *btor, BtorNode *fun, BtorNode *app0, BtorNode *app1)
     btor_assign_args (btor, fun, args);
 #ifndef NDEBUG
     value = btor_beta_reduce_partial (btor, fun, 0, &evalerr);
-    assert (!evalerr);
+//      assert (!evalerr);
 #else
     value = btor_beta_reduce_partial (btor, fun, 0, 0);
 #endif
@@ -5727,13 +5937,19 @@ add_lemma (Btor *btor, BtorNode *fun, BtorNode *app0, BtorNode *app1)
     collect_premisses (
         btor, fun, BTOR_REAL_ADDR_NODE (value), args, bconds_sel1, bconds_sel2);
 
+#ifdef BTOR_SYMBOLIC_LEMMAS
+    add_symbolic_lemma (
+        btor, bconds_sel1, bconds_sel2, app0, value, app0->e[1], 0);
+#else
     encode_lemma (btor, bconds_sel1, bconds_sel2, app0, value, app0->e[1], 0);
+#endif
 
     btor_release_exp (btor, value);
   }
 
   btor_delete_ptr_hash_table (bconds_sel1);
   btor_delete_ptr_hash_table (bconds_sel2);
+  btor->time.lemma_gen += btor_time_stamp () - start;
 }
 
 static void
@@ -5866,7 +6082,7 @@ propagate (Btor *btor,
   BtorMemMgr *mm;
   BtorLambdaNode *lambda;
   BtorNode *fun, *app, *args, *fun_value, *parameterized, *param_app;
-  BtorNode *hashed_app;
+  BtorNode *hashed_app, *prev_fun_value;
   BtorPtrHashBucket *b;
   BtorNodePtrStack param_apps;
 
@@ -5963,9 +6179,23 @@ propagate (Btor *btor,
 #ifndef NDEBUG
     num_restarts = 0;
 #endif
+    prev_fun_value = 0;
   PROPAGATE_BETA_REDUCE_PARTIAL:
     fun_value = btor_beta_reduce_partial (btor, fun, &parameterized, &evalerr);
     assert (!BTOR_IS_LAMBDA_NODE (BTOR_REAL_ADDR_NODE (fun_value)));
+
+    /* 'prev_fun_value' is set if we already restarted beta reduction. if the
+     * result does not differ from the previous one, we are safe to
+     * continue with consistency checking. */
+#if 1
+    if (fun_value == prev_fun_value)
+    {
+      assert (prev_fun_value);
+      evalerr = 0;
+      btor_release_exp (btor, prev_fun_value);
+      prev_fun_value = 0;
+    }
+#endif
 
     if (BTOR_IS_ARRAY_VAR_NODE (BTOR_REAL_ADDR_NODE (fun_value)))
     {
@@ -5973,6 +6203,7 @@ propagate (Btor *btor,
       BTOR_PUSH_STACK (mm, *prop_stack, fun_value);
       btor_unassign_params (btor, fun);
       btor_release_exp (btor, fun_value);
+      if (prev_fun_value) btor_release_exp (btor, prev_fun_value);
       continue;
     }
 
@@ -5996,6 +6227,7 @@ propagate (Btor *btor,
         {
           btor_unassign_params (btor, fun);
           btor_release_exp (btor, fun_value);
+          if (prev_fun_value) btor_release_exp (btor, prev_fun_value);
           BTOR_RELEASE_STACK (mm, param_apps);
           return 0;
         }
@@ -6017,18 +6249,28 @@ propagate (Btor *btor,
 
         BTOR_RELEASE_STACK (mm, param_apps);
 
-        /* if we couldn't fully evaluate 'fun_value' there were still
-         * not encoded inputs. now every required input is encoded and
-         * we can restart partial beta reduction.
-         * if we would not restart partial beta reduction it may produce
-         * different values for lemma generation. */
+        /* if not all bvcond in 'fun_value' could be evaluated, there are
+         * still some inputs (vars, applies) that are not encoded.
+         * we encode all inputs required for evaluating the bvconds in
+         * 'fun_value' and restart beta reduction. however, it might be
+         * still the case that beta reduction yields fresh applies (not
+         * encoded) and we have to restart again. we have to ensure that
+         * successive beta reduction calls yield the same result as
+         * otherwise it may produce different results for beta reduction.
+         */
         if (evalerr)
         {
-          btor_release_exp (btor, fun_value);
+          if (prev_fun_value) btor_release_exp (btor, prev_fun_value);
+          prev_fun_value = fun_value;
+          //		  btor_release_exp (btor, fun_value);
           btor->stats.partial_beta_reduction_restarts++;
+          // TODO: stats for max. restarts
+          // TODO: if we reach a certain limit should we just continue
+          //       without encoding everything? if we do so, we need
+          //       means to reproduce the propagation paths.
 #ifndef NDEBUG
           num_restarts++;
-          assert (num_restarts < 3);
+          assert (num_restarts < 8);
 #endif
           BTORLOG ("restart partial beta reduction");
           goto PROPAGATE_BETA_REDUCE_PARTIAL;
@@ -6080,6 +6322,7 @@ propagate (Btor *btor,
           add_lemma (btor, fun, app, 0);
           btor_unassign_params (btor, fun);
           btor_release_exp (btor, fun_value);
+          if (prev_fun_value) btor_release_exp (btor, prev_fun_value);
           return 1;
         }
       }
@@ -6093,6 +6336,7 @@ propagate (Btor *btor,
     }
     btor_unassign_params (btor, fun);
     btor_release_exp (btor, fun_value);
+    if (prev_fun_value) btor_release_exp (btor, prev_fun_value);
   }
 
   return 0;
@@ -6968,23 +7212,16 @@ btor_sat_aux_btor (Btor *btor)
   BTOR_ABORT_CORE (btor->ops[BTOR_AEQ_NODE] > 0,
                    "extensionality on arrays/lambdas not yet supported");
 
-  do
+  process_unsynthesized_constraints (btor);
+  if (btor->found_constraint_false)
   {
-    assert (check_all_hash_tables_proxy_free_dbg (btor));
-    assert (check_all_hash_tables_simp_free_dbg (btor));
-
-    process_unsynthesized_constraints (btor);
-
-    assert (check_all_hash_tables_proxy_free_dbg (btor));
-    assert (check_all_hash_tables_simp_free_dbg (btor));
-
-    if (btor->found_constraint_false)
-    {
-    UNSAT:
-      sat_result = BTOR_UNSAT;
-      goto DONE;
-    }
-  } while (btor->unsynthesized_constraints->count > 0);
+  UNSAT:
+    sat_result = BTOR_UNSAT;
+    goto DONE;
+  }
+  assert (btor->unsynthesized_constraints->count == 0);
+  assert (check_all_hash_tables_proxy_free_dbg (btor));
+  assert (check_all_hash_tables_simp_free_dbg (btor));
 
   if (btor->model_gen)
   {
@@ -7059,7 +7296,18 @@ btor_sat_aux_btor (Btor *btor)
     btor->stats.lod_refinements++;
     add_again_assumptions (btor);
 
-    if (verbosity > 1)
+    if (verbosity == 1)
+    {
+      refinements = btor->stats.lod_refinements;
+      fprintf (stdout,
+               "\r[btorcore] refinement iteration %d, "
+               "vars %d, applies %d\r",
+               refinements,
+               btor->ops[BTOR_BV_VAR_NODE],
+               btor->ops[BTOR_APPLY_NODE]);
+      fflush (stdout);
+    }
+    else if (verbosity > 1)
     {
       refinements = btor->stats.lod_refinements;
       if (verbosity > 2 || !(refinements % 10))
@@ -7069,7 +7317,18 @@ btor_sat_aux_btor (Btor *btor)
       }
     }
 
-    // FIXME redundant?
+    /* may be set in add_symbolic_lemma via insert_unsythesized_constraint
+     * in case generated lemma is false */
+    if (btor->inconsistent) goto UNSAT;
+
+#ifdef BTOR_SYMBOLIC_LEMMAS
+    process_unsynthesized_constraints (btor);
+    if (btor->found_constraint_false) goto UNSAT;
+    assert (btor->unsynthesized_constraints->count == 0);
+    assert (check_all_hash_tables_proxy_free_dbg (btor));
+    assert (check_all_hash_tables_simp_free_dbg (btor));
+    assert (check_reachable_flag_dbg (btor));
+#endif
     add_again_assumptions (btor);
     sat_result = btor_timed_sat_sat (btor, -1);
   }
@@ -7934,7 +8193,7 @@ check_model (Btor *btor, Btor *clone, BtorPtrHashTable *inputs)
 
   int i, ret, size;
   char *a, **indices, **values;
-  BtorNode *cur, *exp, *val, *idx, *w, *tmp, *simp;
+  BtorNode *cur, *exp, *val, *idx, *w, *tmp, *simp, *real_simp;
   BtorHashTableIterator it;
 
 #ifndef NBTORLOG
@@ -7967,13 +8226,14 @@ check_model (Btor *btor, Btor *clone, BtorPtrHashTable *inputs)
     cur = next_node_hash_table_iterator (&it);
     assert (BTOR_IS_REGULAR_NODE (cur));
     assert (cur->btor == clone);
-    simp = BTOR_REAL_ADDR_NODE (btor_pointer_chase_simplified_exp (clone, cur));
+    simp      = btor_pointer_chase_simplified_exp (clone, cur);
+    real_simp = BTOR_REAL_ADDR_NODE (simp);
 
-    if (BTOR_IS_BV_CONST_NODE (simp)
-        || btor_find_in_ptr_hash_table (clone->substitutions, simp))
+    if (BTOR_IS_BV_CONST_NODE (real_simp)
+        || btor_find_in_ptr_hash_table (clone->substitutions, real_simp))
       continue;
 
-    if (BTOR_IS_ARRAY_VAR_NODE (simp) || BTOR_IS_LAMBDA_NODE (simp))
+    if (BTOR_IS_ARRAY_VAR_NODE (real_simp) || BTOR_IS_LAMBDA_NODE (real_simp))
     {
       size    = 0;
       indices = 0;
@@ -7986,7 +8246,8 @@ check_model (Btor *btor, Btor *clone, BtorPtrHashTable *inputs)
       assert (indices);
       assert (values);
 
-      w = btor_array_exp (clone, simp->len, BTOR_ARRAY_INDEX_LEN (simp), "");
+      w = btor_array_exp (
+          clone, real_simp->len, BTOR_ARRAY_INDEX_LEN (real_simp), "");
       for (i = 0; i < size; i++)
       {
         a = indices[i];
@@ -8005,22 +8266,23 @@ check_model (Btor *btor, Btor *clone, BtorPtrHashTable *inputs)
         btor_release_bv_assignment_str_exp (btor, values[i]);
       }
 
-      assert (!btor_find_in_ptr_hash_table (clone->substitutions, simp));
-      btor_insert_substitution (clone, simp, w, 0);
+      assert (!btor_find_in_ptr_hash_table (clone->substitutions, real_simp));
+      btor_insert_substitution (clone, real_simp, w, 0);
       btor_release_exp (clone, w);
       btor_free (btor->mm, indices, sizeof (*indices) * size);
       btor_free (btor->mm, values, sizeof (*values) * size);
     }
-    else if (BTOR_IS_BV_VAR_NODE (simp))
+    else if (BTOR_IS_BV_VAR_NODE (real_simp))
     {
-      assert (!BTOR_IS_FUN_NODE (simp));
-      a = btor_bv_assignment_str_exp (btor, exp);
+      assert (!BTOR_IS_FUN_NODE (real_simp));
+      /* we need to invert the assignment if simplified is inverted */
+      a = btor_bv_assignment_str_exp (btor, BTOR_COND_INVERT_NODE (simp, exp));
       init_x_values (a);
       val = btor_const_exp (clone, a);
       btor_release_bv_assignment_str_exp (btor, a);
 
-      assert (!btor_find_in_ptr_hash_table (clone->substitutions, simp));
-      btor_insert_substitution (clone, simp, val, 0);
+      assert (!btor_find_in_ptr_hash_table (clone->substitutions, real_simp));
+      btor_insert_substitution (clone, real_simp, val, 0);
       btor_release_exp (clone, val);
     }
   }

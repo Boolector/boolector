@@ -2,7 +2,7 @@
  *
  *  Copyright (C) 2013 Christian Reisenberger.
  *  Copyright (C) 2013-2014 Aina Niemetz.
- *  Copyright (C) 2013 Mathias Preiner.
+ *  Copyright (C) 2013-2014 Mathias Preiner.
  *  Copyright (C) 2013 Armin Biere.
  *
  *  All rights reserved.
@@ -28,12 +28,6 @@
 #include <sys/wait.h>
 #include <unistd.h>
 
-#ifdef __GNUC__
-#if __GNUC__ > 3 && __GNUC_MAJOR__ >= 6
-#define USE_PRAGMAS_TO_DISABLE_WARNINGS
-#endif
-#endif
-
 // TODO externalize all parameters
 
 /*------------------------------------------------------------------------*/
@@ -51,6 +45,8 @@
 #define EXIT_OK 0
 #define EXIT_ERROR 1
 #define EXIT_TIMEOUT 2
+#define EXIT_SIGNALED 3
+#define EXIT_UNKNOWN 4
 
 /*------------------------------------------------------------------------*/
 
@@ -96,13 +92,6 @@
 /*------------------------------------------------------------------------*/
 
 #define BTORMBT_MIN(x, y) ((x) < (y) ? (x) : (y))
-
-/* avoid compiler warnings for unused variables in DEBUG assertions */
-#define BTORMBT_UNUSED(expr) \
-  do                         \
-  {                          \
-    (void) (expr);           \
-  } while (0)
 
 /*------------------------------------------------------------------------*/
 
@@ -215,6 +204,7 @@ typedef struct BtorMBT
   double start_time;
 
   int seed;
+  int seeded;
   int round;
   int bugs;
   int forked;
@@ -284,8 +274,9 @@ new_btormbt (void)
   memset (btormbt, 0, sizeof (BtorMBT));
   btormbt->max_nrounds = INT_MAX;
   btormbt->seed        = -1;
+  btormbt->seeded      = 0;
   btormbt->terminal    = isatty (1);
-  btormbt->fork        = 1;
+  btormbt->fork        = 0;
   btormbt->ext         = 0;
   return btormbt;
 }
@@ -490,13 +481,13 @@ is_ternary_fun (Op op)
 {
   return op == COND;
 }
-#endif
 
 static int
 is_array_fun (Op op)
 {
   return (op >= COND && op <= WRITE) || (op >= EQ && op <= NE);
 }
+#endif
 
 /*------------------------------------------------------------------------*/
 
@@ -541,10 +532,6 @@ modifybv (
   }
   else if (tow > ew)
   {
-    // TODO 'tmp' unused so remove?
-#if 0
-      tmp = boolector_get_width (btormbt->btor, e);
-#endif
     e = (pick (rng, 0, 1) ? boolector_uext (btormbt->btor, e, tow - ew)
                           : boolector_sext (btormbt->btor, e, tow - ew));
     es_push (es, e);
@@ -766,9 +753,7 @@ binary_fun (BtorMBT *btormbt,
         }
       }
     }
-    e1  = modifybv (btormbt, rng, e1, e1w, e0w, is_param);
-    e1w = e0w;
-    (void) e1w;  // TODO remove since never used?
+    e1 = modifybv (btormbt, rng, e1, e1w, e0w, is_param);
   }
   else if (op >= SLL && op <= ROR)
   {
@@ -777,9 +762,7 @@ binary_fun (BtorMBT *btormbt,
     e0  = modifybv (btormbt, rng, e0, e0w, tmp0, is_param);
     e1  = modifybv (btormbt, rng, e1, e1w, tmp1, is_param);
     e0w = tmp0;
-    e1w = tmp1;
-    (void) e1w;  // TODO remove since never used?
-    rw = e0w;
+    rw  = e0w;
   }
   else if (op == CONCAT)
   {
@@ -877,9 +860,7 @@ ternary_fun (BtorMBT *btormbt,
   assert (e2w <= MAX_BITWIDTH);
 
   /* bitvectors must have same bit width */
-  e2  = modifybv (btormbt, rng, e2, e2w, e1w, is_param);
-  e2w = e1w;
-  (void) e2w;  // TODO remove since 'e2w' never used?
+  e2 = modifybv (btormbt, rng, e2, e2w, e1w, is_param);
 
   if (e1w == 1)
     es = is_param ? btormbt->parambo : &btormbt->bo;
@@ -911,13 +892,10 @@ afun (BtorMBT *btormbt,
   assert (e0);
   assert (e1);
   assert (boolector_is_array (btormbt->btor, e0));
+  assert (is_array_fun (op));
 
   int e0w, e0iw, e1w, e2w;
   ExpStack *es;
-
-  int isarr = is_array_fun (op);
-  BTORMBT_UNUSED (isarr);
-  assert (isarr);
 
   e0w = boolector_get_width (btormbt->btor, e0);
   assert (e0w <= MAX_BITWIDTH);
@@ -1810,11 +1788,11 @@ _sat (BtorMBT *btormbt, unsigned r)
 static void *
 _mgen (BtorMBT *btormbt, unsigned r)
 {
+  (void) r;
   int i, size = 0;
   const char *bv = NULL;
   char **indices = NULL, **values = NULL;
 
-  BTORMBT_UNUSED (r);
   assert (btormbt->mgen);
 
   for (i = 0; i < btormbt->bo.n; i++)
@@ -1884,12 +1862,11 @@ _inc (BtorMBT *btormbt, unsigned r)
 static void *
 _del (BtorMBT *btormbt, unsigned r)
 {
+  (void) r;
   assert (btormbt);
   assert (btormbt->btor);
 
   int i;
-
-  BTORMBT_UNUSED (r);
 
   for (i = 0; i < btormbt->bo.n; i++)
     boolector_release (btormbt->btor, btormbt->bo.exps[i].exp);
@@ -1968,19 +1945,17 @@ set_alarm (void)
 }
 
 static int
-run (BtorMBT *btormbt, void (*process) (BtorMBT *))
+run (BtorMBT *btormbt)
 {
   assert (btormbt);
-  assert (process);
 
-  int res, status, saved1, saved2, null;
+  int status, null;
   pid_t id;
 
   if (!btormbt->fork)
-    process (btormbt);
+    rantrav (btormbt);
   else
   {
-    (void) saved1;
     btormbt->forked++;
     fflush (stdout);
     if ((id = fork ()))
@@ -2001,80 +1976,23 @@ run (BtorMBT *btormbt, void (*process) (BtorMBT *))
                      "set time limit to %d second(s)",
                      btormbt->time_limit);
       }
-#ifndef NDEBUG
-      int tmp;
-#endif
+
+      /* redirect output from child to /dev/null if we don't want to have
+       * verbose output */
       if (!btormbt->verbose)
       {
-        saved1 = dup (1);
-        saved2 = dup (2);
-        null   = open ("/dev/null", O_WRONLY);
-        close (1);
-        close (2);
-#ifndef NDEBUG
-        tmp =
-#endif
-#ifdef USE_PRAGMAS_TO_DISABLE_WARNINGS
-#pragma GCC diagnostic ignored "-Wunused-result"
-#endif
-            dup (null);
-        assert (tmp == 1);
-#ifndef NDEBUG
-        tmp =
-#endif
-            dup (null);
-#ifndef NDEBUG
-        assert (tmp == 2);
-#endif
+        null = open ("/dev/null", O_WRONLY);
+        dup2 (null, STDOUT_FILENO);
+        dup2 (null, STDERR_FILENO);
+        close (null);
       }
-      process (btormbt);
-      close (null);
-      close (2);
-#ifndef NDEBUG
-      tmp =
-#endif
-          dup (saved2);
-#ifndef NDEBUG
-      assert (tmp == 2);
-      close (1);
-#ifndef NDEBUG
-      tmp =
-#endif
-          dup (saved1);
-#ifdef USE_PRAGMAS_TO_DISABLE_WARNINGS
-#pragma GCC diagnostic ignored "-Wunused-result"
-#endif
-#ifdef NDEBUG
-      assert (tmp == 1);
-#endif
-      BTORMBT_UNUSED (tmp);
-#endif
+
+      rantrav (btormbt);
       exit (EXIT_OK);
     }
-
-    if (WIFEXITED (status))
-    {
-      res = WEXITSTATUS (status);
-      BTORMBT_LOG (res == EXIT_TIMEOUT,
-                   "TIMEOUT: time limit %d seconds reached\n",
-                   btormbt->time_limit);
-      if (res == EXIT_TIMEOUT && !btormbt->verbose)
-        printf ("timed out after %d second(s)\n", btormbt->time_limit);
-      else if (!btormbt->seed)
-        printf ("exit %d ", res);
-    }
-    else if (WIFSIGNALED (status))
-    {
-      if (btormbt->verbose) printf ("signal %d", WTERMSIG (status));
-      res = EXIT_ERROR;
-    }
-    else
-    {
-      if (btormbt->verbose) printf ("unknown");
-      res = EXIT_ERROR;
-    }
   }
-  return res;
+
+  return status;
 }
 
 /*------------------------------------------------------------------------*/
@@ -2180,15 +2098,7 @@ sig_handler (int sig)
   char str[100];
 
   sprintf (str, "*** btormbt: caught signal %d\n\n", sig);
-#ifdef USE_PRAGMAS_TO_DISABLE_WARNINGS
-#pragma GCC diagnostic ignored "-Wunused-result"
-#pragma GCC diagnostic ignored "-Wunused-variable"
-#endif
-  write (1, str, strlen (str));
-#ifdef USE_PRAGMAS_TO_DISABLE_WARNINGS
-#pragma GCC diagnostic warning "-Wunused-result"
-#pragma GCC diagnostic warning "-Wunused-variable"
-#endif
+  (void) write (STDOUT_FILENO, str, strlen (str));
   /* Note: if _exit is used here (which is reentrant, in contrast to exit),
    *       atexit handler is not called. Hence, use exit here. */
   exit (EXIT_ERROR);
@@ -2216,15 +2126,14 @@ finish (void)
 int
 main (int argc, char **argv)
 {
-  int i, mac, pid, prev, res, seeded, verbose, always_fork = 0;
+  int i, mac, pid, prev, res, verbose, status;
   char *name, *cmd;
 
   btormbt             = new_btormbt ();
   btormbt->start_time = current_time ();
 
-  pid    = 0;
-  prev   = 0;
-  seeded = 0;
+  pid  = 0;
+  prev = 0;
 
   atexit (finish);
 
@@ -2240,7 +2149,7 @@ main (int argc, char **argv)
     else if (!strcmp (argv[i], "-k") || !strcmp (argv[i], "--keep-lines"))
       btormbt->terminal = 0;
     else if (!strcmp (argv[i], "-a") || !strcmp (argv[i], "--always-fork"))
-      always_fork = 1;
+      btormbt->fork = 1;
     else if (!strcmp (argv[i], "-f") || !strcmp (argv[i], "--quit-after-first"))
       btormbt->quit_after_first = 1;
     else if (!strcmp (argv[i], "-n") || !strcmp (argv[i], "--no-modelgen"))
@@ -2286,8 +2195,8 @@ main (int argc, char **argv)
     }
     else
     {
-      btormbt->seed = atoi (argv[i]);
-      seeded        = 1;
+      btormbt->seed   = atoi (argv[i]);
+      btormbt->seeded = 1;
     }
   }
 
@@ -2295,40 +2204,47 @@ main (int argc, char **argv)
   btormbt->ppid = getpid ();
   set_sig_handlers ();
 
-  if (btormbt->seed >= 0)
+  if (btormbt->seeded)
   {
-    if (!always_fork && !btormbt->time_limit) btormbt->fork = 0;
-    (void) run (btormbt, rantrav);
+    (void) run (btormbt);
   }
   else
   {
+    btormbt->fork = 1;
+
     mac = hashmac ();
     for (btormbt->round = 0; btormbt->round < btormbt->max_nrounds;
          btormbt->round++)
     {
       if (!(prev & 1)) prev++;
 
-      if (!seeded)
-      {
-        btormbt->seed = mac;
-        btormbt->seed *= 123301093;
-        btormbt->seed += times (0);
-        btormbt->seed *= 223531513;
-        btormbt->seed += pid;
-        btormbt->seed *= 31752023;
-        btormbt->seed += prev;
-        btormbt->seed *= 43376579;
-        prev = btormbt->seed = abs (btormbt->seed) >> 1;
-      }
+      btormbt->seed = mac;
+      btormbt->seed *= 123301093;
+      btormbt->seed += times (0);
+      btormbt->seed *= 223531513;
+      btormbt->seed += pid;
+      btormbt->seed *= 31752023;
+      btormbt->seed += prev;
+      btormbt->seed *= 43376579;
+      prev = btormbt->seed = abs (btormbt->seed) >> 1;
 
       if (btormbt->terminal) erase ();
       printf ("%d %d ", btormbt->round, btormbt->seed);
       fflush (stdout);
 
+      /* reset verbose flag for initial run, only print on replay */
       btormbt->verbose = 0;
-      res              = run (btormbt, rantrav);
+      status           = run (btormbt);
       btormbt->verbose = verbose;
 
+      if (WIFEXITED (status))
+        res = WEXITSTATUS (status);
+      else if (WIFSIGNALED (status))
+        res = EXIT_SIGNALED;
+      else
+        res = EXIT_UNKNOWN;
+
+      /* replay run on error */
       if (res == EXIT_ERROR)
       {
         btormbt->bugs++;
@@ -2339,8 +2255,9 @@ main (int argc, char **argv)
           sprintf (name, "/tmp/bug-%d-mbt.trace", getpid ());
           /* replay run */
           setenv ("BTORAPITRACE", name, 1);
-          res = run (btormbt, rantrav);
-          assert (res);
+          i = run (btormbt);
+          assert (WIFEXITED (i));
+          assert (WEXITSTATUS (i) == res);
           unsetenv ("BTORAPITRACE");
         }
 
@@ -2356,7 +2273,28 @@ main (int argc, char **argv)
         free (cmd);
       }
 
-      if ((res == EXIT_ERROR && btormbt->quit_after_first) || seeded) break;
+      if (res == EXIT_SIGNALED)
+      {
+        if (btormbt->verbose) printf ("signal %d", WTERMSIG (status));
+      }
+      else if (res == EXIT_UNKNOWN)
+      {
+        if (btormbt->verbose) printf ("unknown");
+      }
+      else if (res == EXIT_TIMEOUT)
+      {
+        BTORMBT_LOG (
+            1, "TIMEOUT: time limit %d seconds reached\n", btormbt->time_limit);
+        if (!btormbt->verbose)
+          printf ("timed out after %d second(s)\n", btormbt->time_limit);
+      }
+      else if (res == EXIT_ERROR)
+      {
+        printf ("exit %d\n", res);
+      }
+
+      if ((res == EXIT_ERROR && btormbt->quit_after_first) || btormbt->seeded)
+        break;
     }
   }
   if (btormbt->verbose)

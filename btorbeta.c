@@ -1,6 +1,7 @@
 /*  Boolector: Satisfiablity Modulo Theories (SMT) solver.
  *
- *  Copyright (C) 2012-2013 Aina Niemetz, Mathias Preiner.
+ *  Copyright (C) 2012-2013 Aina Niemetz.
+ *  Copyright (C) 2012-2014 Mathias Preiner.
  *  Copyright (C) 2013 Armin Biere.
  *
  *  All rights reserved.
@@ -1238,7 +1239,7 @@ btor_beta_reduce_partial_aux (Btor *btor,
   BtorNode *cur, *real_cur, *cur_parent, *next, *result, **e, *args;
   BtorNode *parameterized_result, *cur_args;
   BtorNodePtrStack stack, arg_stack, param_stack;
-  BtorPtrHashTable *cache, *noeval_conds;
+  BtorPtrHashTable *cache, *mark;  //*noeval_conds;
   BtorPtrHashBucket *b;
   BtorParamCacheTuple *t0;
   BtorNodeTuple *t1;
@@ -1264,9 +1265,15 @@ btor_beta_reduce_partial_aux (Btor *btor,
                                    (BtorHashPtr) btor_hash_param_cache_tuple,
                                    (BtorCmpPtr) btor_compare_param_cache_tuple);
 
+#if 0
   noeval_conds = btor_new_ptr_hash_table (mm,
-                                          (BtorHashPtr) btor_hash_exp_by_id,
-                                          (BtorCmpPtr) btor_compare_exp_by_id);
+					  (BtorHashPtr) btor_hash_exp_by_id,
+					  (BtorCmpPtr) btor_compare_exp_by_id);
+#endif
+
+  mark = btor_new_ptr_hash_table (mm,
+                                  (BtorHashPtr) btor_hash_exp_by_id,
+                                  (BtorCmpPtr) btor_compare_exp_by_id);
 
   real_cur = BTOR_REAL_ADDR_NODE (exp);
 
@@ -1456,7 +1463,8 @@ btor_beta_reduce_partial_aux (Btor *btor,
                 else
                   btor_delete_param_cache_tuple (btor, t0);
               }
-              next = e[1];
+              next                 = e[1];
+              parameterized_result = param_stack.top[1];
             }
             else
             {
@@ -1471,7 +1479,8 @@ btor_beta_reduce_partial_aux (Btor *btor,
                 else
                   btor_delete_param_cache_tuple (btor, t0);
               }
-              next = e[0];
+              next                 = e[0];
+              parameterized_result = param_stack.top[0];
             }
             assert (next);
             result = btor_copy_exp (btor, next);
@@ -1488,12 +1497,17 @@ btor_beta_reduce_partial_aux (Btor *btor,
             {
               assert (!BTOR_IS_BV_CONST_NODE (BTOR_REAL_ADDR_NODE (e[2])));
               next = BTOR_REAL_ADDR_NODE (result);
-              if (!btor_find_in_ptr_hash_table (noeval_conds, next))
-              {
-                btor_insert_in_ptr_hash_table (noeval_conds,
-                                               btor_copy_exp (btor, next))
-                    ->data.asInt = next->refs;
-              }
+#if 0
+			  if (!btor_find_in_ptr_hash_table (noeval_conds, next))
+			    {
+			      btor_insert_in_ptr_hash_table (noeval_conds,
+				btor_copy_exp (btor, next))->data.asInt =
+				  next->refs;
+			    }
+#endif
+              if (!btor_find_in_ptr_hash_table (mark, next))
+                btor_insert_in_ptr_hash_table (mark,
+                                               btor_copy_exp (btor, next));
             }
           }
           btor_release_exp (btor, e[0]);
@@ -1506,6 +1520,18 @@ btor_beta_reduce_partial_aux (Btor *btor,
           /* not reachable */
           assert (0);
           // TODO: abort
+      }
+
+      next = BTOR_REAL_ADDR_NODE (result);
+      for (i = 0; mark->count > 0 && i < next->arity; i++)
+      {
+        if (btor_find_in_ptr_hash_table (mark,
+                                         BTOR_REAL_ADDR_NODE (next->e[i])))
+        {
+          if (!btor_find_in_ptr_hash_table (mark, next))
+            btor_insert_in_ptr_hash_table (mark, btor_copy_exp (btor, next));
+          break;
+        }
       }
 
       /* cache rebuilt parameterized node with current arguments */
@@ -1583,25 +1609,37 @@ btor_beta_reduce_partial_aux (Btor *btor,
   /* check if result contains bv conditions that couldn't be evaluated */
   if (evalerr)
   {
-    init_node_hash_table_iterator (btor, &it, noeval_conds);
+    if (btor_find_in_ptr_hash_table (mark, BTOR_REAL_ADDR_NODE (result)))
+      *evalerr = 1;
+#if 0
+      init_node_hash_table_iterator (btor, &it, noeval_conds);
 
-    while (has_next_node_hash_table_iterator (&it))
-    {
-      i   = it.bucket->data.asInt;
-      cur = next_node_hash_table_iterator (&it);
-      assert (BTOR_IS_REGULAR_NODE (cur));
-      /* if 'cur' is used in 'result' the reference count is now higher
-       * than it was after construction */
-      if (cur->refs > i) *evalerr = 1;
-      btor_release_exp (btor, cur);
-    }
+      while (has_next_node_hash_table_iterator (&it))
+	{
+	  i = it.bucket->data.asInt;
+	  cur = next_node_hash_table_iterator (&it);
+	  assert (BTOR_IS_REGULAR_NODE (cur));
+	  /* if 'cur' is used in 'result' the reference count is now higher
+	   * or equal than it was after construction */
+	  if (cur->refs >= i)
+	    *evalerr = 1;
+	  btor_release_exp (btor, cur);
+	}
+#endif
   }
+
+  init_node_hash_table_iterator (btor, &it, mark);
+  while (has_next_node_hash_table_iterator (&it))
+    btor_release_exp (btor, next_node_hash_table_iterator (&it));
 
   BTOR_RELEASE_STACK (mm, stack);
   BTOR_RELEASE_STACK (mm, arg_stack);
   BTOR_RELEASE_STACK (mm, param_stack);
   btor_delete_ptr_hash_table (cache);
+#if 0
   btor_delete_ptr_hash_table (noeval_conds);
+#endif
+  btor_delete_ptr_hash_table (mark);
   btor->rewrite_level = rwl;
 
   BTORLOG ("%s: result %s (%d)",
@@ -1656,7 +1694,7 @@ btor_beta_reduce_partial_collect (Btor *btor,
   BtorNode *res;
   res = btor_beta_reduce_partial_aux (
       btor, exp, 0, cond_sel1, cond_sel2, &evalerr);
-  assert (!evalerr);
+  //  assert (!evalerr);
   return res;
 #else
   return btor_beta_reduce_partial_aux (btor, exp, 0, cond_sel1, cond_sel2, 0);

@@ -2,7 +2,8 @@
  *
  *  Copyright (C) 2007-2009 Robert Daniel Brummayer.
  *  Copyright (C) 2007-2013 Armin Biere.
- *  Copyright (C) 2012-2013 Aina Niemetz, Mathias Preiner.
+ *  Copyright (C) 2012-2013 Aina Niemetz.
+ *  Copyright (C) 2012-2014 Mathias Preiner.
  *
  *  All rights reserved.
  *
@@ -49,6 +50,8 @@
 #define BTOR_FULL_UNIQUE_TABLE(table)   \
   ((table).num_elements >= (table).size \
    && btor_log_2_util ((table).size) < BTOR_UNIQUE_TABLE_LIMIT)
+
+//#define NBTOR_SORT_BIN_COMMUTATIVE
 
 /*------------------------------------------------------------------------*/
 #ifndef NDEBUG
@@ -1277,6 +1280,14 @@ find_exp (Btor *btor, BtorNodeKind kind, int arity, BtorNode **e)
     if (cur->kind == kind && cur->arity == arity)
     {
       equal = 1;
+#ifdef NBTOR_SORT_BIN_COMMUTATIVE
+      if (BTOR_IS_BINARY_COMMUTATIVE_NODE_KIND (kind))
+      {
+        if ((cur->e[0] == e[0] && cur->e[1] == e[1])
+            || (cur->e[0] == e[1] && cur->e[1] == e[0]))
+          break;
+      }
+#endif
       for (i = 0; i < arity && equal; i++)
         if (cur->e[i] != e[i]) equal = 0;
 
@@ -1600,9 +1611,11 @@ create_exp (Btor *btor, BtorNodeKind kind, int arity, BtorNode **e, int len)
   assert (kind);
   assert (arity > 0);
   assert (e);
+#ifndef NBTOR_SORT_BIN_COMMUTATIVE
   assert (btor->rewrite_level == 0
           || !BTOR_IS_BINARY_COMMUTATIVE_NODE_KIND (kind)
           || BTOR_REAL_ADDR_NODE (e[0])->id <= BTOR_REAL_ADDR_NODE (e[1])->id);
+#endif
 
   BtorNode **lookup;
 
@@ -1654,6 +1667,7 @@ binary_exp (Btor *btor, BtorNodeKind kind, BtorNode *e0, BtorNode *e1, int len)
   e[0] = btor_simplify_exp (btor, e0);
   e[1] = btor_simplify_exp (btor, e1);
 
+#ifndef NBTOR_SORT_BIN_COMMUTATIVE
   if (btor->rewrite_level > 0 && BTOR_IS_BINARY_COMMUTATIVE_NODE_KIND (kind)
       && BTOR_REAL_ADDR_NODE (e[1])->id < BTOR_REAL_ADDR_NODE (e[0])->id)
   {
@@ -1661,6 +1675,7 @@ binary_exp (Btor *btor, BtorNodeKind kind, BtorNode *e0, BtorNode *e1, int len)
     e[0] = e[1];
     e[1] = t;
   }
+#endif
 
   return create_exp (btor, kind, 2, e, len);
 }

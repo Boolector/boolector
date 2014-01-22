@@ -220,6 +220,8 @@ struct Btor
     double enc_lambda;
     double enc_var;
     double find_dfs;
+    double reachable;
+    double lemma_gen;
     double find_nenc_app;
     double find_param_app;
     double cloning;
