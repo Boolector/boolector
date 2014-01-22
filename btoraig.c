@@ -57,9 +57,9 @@
 
 #define BTOR_FIND_AND_AIG_CONTRADICTION_LIMIT 8
 
-//#define BTOR_EXTRACT_MULTI_OR
+//#define BTOR_EXTRACT_TOP_LEVEL_MULTI_OR
 
-#define NBTOR_AIG_SORT
+//#define NBTOR_AIG_SORT
 
 /*------------------------------------------------------------------------*/
 
@@ -1346,6 +1346,7 @@ btor_set_next_id_aig_mgr (BtorAIGMgr *amgr, BtorAIG *root)
   amgr->id2aig.start[root->cnf_id] = root;
 }
 
+#ifdef BTOR_EXTRACT_TOP_LEVEL_MULTI_OR
 static int
 btor_is_or_aig (BtorAIGMgr *amgr, BtorAIG *root, BtorAIGPtrStack *leafs)
 {
@@ -1404,6 +1405,7 @@ btor_is_or_aig (BtorAIGMgr *amgr, BtorAIG *root, BtorAIGPtrStack *leafs)
   BTOR_RELEASE_STACK (mm, tree);
   return 1;
 }
+#endif
 
 void
 btor_aig_to_sat_tseitin (BtorAIGMgr *amgr, BtorAIG *start)
@@ -1624,8 +1626,12 @@ btor_add_toplevel_aig_to_sat (BtorAIGMgr *amgr, BtorAIG *root)
 {
   BtorMemMgr *mm;
   BtorSATMgr *smgr;
-  BtorAIG *aig, *real_aig, *left, *right, **p;
-  BtorAIGPtrStack stack, leafs;
+  BtorAIG *aig, *real_aig, *left, *right;
+  BtorAIGPtrStack stack;
+#ifdef BTOR_EXTRACT_TOP_LEVEL_MULTI_OR
+  BtorAIGPtrStack leafs;
+  BtorAig **p;
+#endif
 
   mm   = amgr->mm;
   smgr = amgr->smgr;
@@ -1655,7 +1661,7 @@ btor_add_toplevel_aig_to_sat (BtorAIGMgr *amgr, BtorAIG *root)
     {
       real_aig = BTOR_REAL_ADDR_AIG (aig);
 
-#ifdef BTOR_EXTRACT_MULTI_OR
+#ifdef BTOR_EXTRACT_TOP_LEVEL_MULTI_OR
       BTOR_INIT_STACK (leafs);
       if (btor_is_or_aig (amgr, aig, &leafs))
       {
