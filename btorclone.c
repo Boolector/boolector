@@ -709,6 +709,8 @@ btor_clone_btor (Btor *btor)
   assert (!btor->clone || btor->mm->sat_allocated == clone->mm->sat_allocated);
 
   btor->time.cloning += btor_time_stamp () - start;
+  BTORLOG ("cloning total: %.3f s", btor->time.cloning);
+
   return clone;
 }
 
@@ -949,6 +951,7 @@ btor_clone_exp_layer (Btor *btor)
   btor_delete_node_map (exp_map);
 
   btor->time.cloning += btor_time_stamp () - start;
+  BTORLOG ("cloning total: %.3f s", btor->time.cloning);
 
   return clone;
 }
