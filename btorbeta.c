@@ -1694,7 +1694,7 @@ btor_beta_reduce_partial_collect (Btor *btor,
   BtorNode *res;
   res = btor_beta_reduce_partial_aux (
       btor, exp, 0, cond_sel1, cond_sel2, &evalerr);
-  assert (!evalerr);
+  //  assert (!evalerr);
   return res;
 #else
   return btor_beta_reduce_partial_aux (btor, exp, 0, cond_sel1, cond_sel2, 0);
