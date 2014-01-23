@@ -891,7 +891,7 @@ btor_new_btor (void)
   btor->chk_failed_assumptions = 1;
 #endif
   // TODO debug
-  //  btor->dual_prop = 1;
+  btor->dual_prop = 1;
 
   BTOR_PUSH_STACK (btor->mm, btor->nodes_id_table, 0);
 
@@ -1655,11 +1655,12 @@ is_embedded_constraint_exp (Btor *btor, BtorNode *exp)
 static void
 insert_new_constraint (Btor *btor, BtorNode *exp)
 {
-  BtorNode *left, *right, *real_exp;
   assert (btor);
   assert (exp);
   assert (BTOR_REAL_ADDR_NODE (exp)->len == 1);
   assert (!BTOR_REAL_ADDR_NODE (exp)->parameterized);
+
+  BtorNode *left, *right, *real_exp;
 
   exp      = btor_simplify_exp (btor, exp);
   real_exp = BTOR_REAL_ADDR_NODE (exp);
@@ -1701,6 +1702,20 @@ insert_new_constraint (Btor *btor, BtorNode *exp)
         }
         else
         {
+          /* special case: top-level constraint applies are not
+           * simplified to true/false (in order to not break dual
+           * prop), check for inconsistency */
+          if (btor_find_in_ptr_hash_table (btor->synthesized_constraints,
+                                           BTOR_INVERT_NODE (exp))
+              || btor_find_in_ptr_hash_table (btor->unsynthesized_constraints,
+                                              BTOR_INVERT_NODE (exp))
+              || btor_find_in_ptr_hash_table (btor->embedded_constraints,
+                                              BTOR_INVERT_NODE (exp)))
+          {
+            btor->inconsistent = 1;
+            return;
+          }
+
           assert (
               btor_find_in_ptr_hash_table (btor->unsynthesized_constraints, exp)
               || btor_find_in_ptr_hash_table (btor->embedded_constraints, exp));
