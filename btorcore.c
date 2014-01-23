@@ -526,6 +526,15 @@ btor_enable_force_cleanup (Btor *btor)
   btor->force_cleanup = 1;
 }
 
+#ifndef NDEBUG
+void
+btor_enable_force_internal_cleanup (Btor *btor)
+{
+  assert (btor);
+  btor->force_internal_cleanup = 1;
+}
+#endif
+
 void
 btor_disable_pretty_print (Btor *btor)
 {
@@ -7222,7 +7231,15 @@ btor_sat_aux_btor (Btor *btor)
 
 #ifndef NDEBUG
   Btor *clone = 0;
-  if (btor->chk_failed_assumptions) clone = btor_clone_btor (btor);
+  if (btor->chk_failed_assumptions)
+  {
+    clone = btor_clone_btor (btor);
+    btor_enable_force_cleanup (clone);
+    btor_enable_force_internal_cleanup (clone);
+    clone->loglevel               = 0;
+    clone->chk_failed_assumptions = 0;
+    clone->dual_prop              = 0;  // FIXME should be redundant
+  }
 #endif
 
   if (btor->inconsistent) goto UNSAT;
@@ -8349,12 +8366,6 @@ btor_check_failed_assumptions (Btor *btor, Btor *clone)
 
   BtorNode *ass;
   BtorHashTableIterator it;
-
-  btor_enable_force_cleanup (clone);
-  clone->loglevel               = 0;
-  clone->chk_failed_assumptions = 0;
-  clone->force_internal_cleanup = 1;
-  clone->dual_prop              = 0;  // FIXME
 
   /* assert failed assumptions */
   init_node_hash_table_iterator (btor, &it, btor->assumptions);
