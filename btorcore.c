@@ -1042,22 +1042,20 @@ btor_delete_btor (Btor *btor)
 #endif
   }
 #ifndef NDEBUG
-  int j;
   if (btor->force_internal_cleanup)
   {
-    j = 0;
-    for (j = 0; j < 2; j++)
+    for (i = BTOR_COUNT_STACK (btor->nodes_id_table) - 1; i >= 0; i--)
     {
-      for (i = BTOR_COUNT_STACK (btor->nodes_id_table) - 1; i >= 0; i--)
-      {
-        if (!(exp = BTOR_PEEK_STACK (btor->nodes_id_table, i))) continue;
-        assert (exp->refs);
-        if (j || (!j && BTOR_IS_PROXY_NODE (exp)))
-        {
-          exp->refs = 1;
-          btor_release_exp (btor, exp);
-        }
-      }
+      exp = BTOR_PEEK_STACK (btor->nodes_id_table, i);
+      if (!exp || !BTOR_IS_PROXY_NODE (exp)) continue;
+      exp->simplified = 0;
+    }
+    for (i = BTOR_COUNT_STACK (btor->nodes_id_table) - 1; i >= 0; i--)
+    {
+      if (!(exp = BTOR_PEEK_STACK (btor->nodes_id_table, i))) continue;
+      assert (exp->refs);
+      exp->refs = 1;
+      btor_release_exp (btor, exp);
     }
     for (i = BTOR_COUNT_STACK (btor->nodes_id_table) - 1; i >= 0; i--)
       assert (!BTOR_PEEK_STACK (btor->nodes_id_table, i));
@@ -6831,6 +6829,7 @@ search_top_applies (Btor * btor, BtorNodePtrStack * top_applies)
       if (!cur) continue;
       if (!cur->reachable) continue;
       if (!BTOR_IS_SYNTH_NODE (cur)) continue;
+      assert (!BTOR_IS_PARAMETERIZED_NODE (cur));
       if (BTOR_IS_BV_VAR_NODE (cur) || BTOR_IS_APPLY_NODE (cur))
 	BTOR_PUSH_STACK (btor->mm, stack, cur);
     }
@@ -6913,6 +6912,7 @@ search_top_applies (Btor * btor, BtorNodePtrStack * top_applies)
 		    {
 		      ccur = BTOR_PEEK_STACK (btor->nodes_id_table, ccur->id); 
 		      assert (ccur);
+		      assert (!BTOR_IS_PARAMETERIZED_NODE (ccur));
 		      BTOR_PUSH_STACK (btor->mm, *top_applies, ccur);
 		    }
 		  init_full_parent_iterator (&pit, ccur);
@@ -6929,6 +6929,7 @@ search_top_applies (Btor * btor, BtorNodePtrStack * top_applies)
 	    {
 	      ccur = BTOR_PEEK_STACK (btor->nodes_id_table, ccur->id); 
 	      assert (ccur);
+	      assert (!BTOR_IS_PARAMETERIZED_NODE (cur));
 	      BTOR_PUSH_STACK (btor->mm, *top_applies, ccur);
 	    }
 	}
@@ -7063,11 +7064,13 @@ search_top_applies (Btor *btor, BtorNodePtrStack *top_applies)
         {
           cur_btor = BTOR_POP_STACK (stack);
           if (cur_btor->aux_mark) continue;
+          if (!cur_btor->reachable && !cur_btor->vread) continue;
           cur_btor->aux_mark = 1;
           BTOR_PUSH_STACK (btor->mm, unmark_stack, cur_btor);
-          if (BTOR_IS_APPLY_NODE (cur_btor))
+          if (BTOR_IS_APPLY_NODE (cur_btor) && BTOR_IS_SYNTH_NODE (cur_btor))
           {
             BTORLOG ("top apply: %s", node2string (cur_btor));
+            assert (!cur_btor->parameterized);
             BTOR_PUSH_STACK (btor->mm, *top_applies, cur_btor);
           }
           init_full_parent_iterator (&pit, cur_btor);
@@ -7085,6 +7088,7 @@ search_top_applies (Btor *btor, BtorNodePtrStack *top_applies)
         cur_btor->aux_mark = 1;
         BTOR_PUSH_STACK (btor->mm, unmark_stack, cur_btor);
         assert (cur_btor);
+        assert (!cur_btor->parameterized);
         BTORLOG ("top apply: %s", node2string (cur_btor));
         BTOR_PUSH_STACK (btor->mm, *top_applies, cur_btor);
       }
