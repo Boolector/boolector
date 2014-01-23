@@ -938,10 +938,13 @@ btor_clone_exp_layer (Btor *btor)
   {
     exp = BTOR_POP_STACK (stack);
     assert (!BTOR_REAL_ADDR_NODE (exp)->constraint);
-    btor_assert_exp (clone, exp);
-    btor_release_exp (clone, exp);
+    if (!btor_find_in_ptr_hash_table (clone->synthesized_constraints, exp))
+      btor_insert_in_ptr_hash_table (clone->unsynthesized_constraints, exp);
+    // btor_assert_exp (clone, exp);
+    // btor_release_exp (clone, exp);
   }
-  assert (clone->unsynthesized_constraints->count);
+  assert (clone->unsynthesized_constraints->count
+          || clone->embedded_constraints->count);
   BTOR_RELEASE_STACK (btor->mm, stack);
   //      assert (!btor_find_in_ptr_hash_table (
   //		   clone->unsynthesized_constraints, exp));

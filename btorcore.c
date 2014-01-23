@@ -6625,8 +6625,9 @@ BTOR_CONFLICT_CLEANUP:
   return found_conflict;
 }
 
+#if 0
 static Btor *
-clone_btor_negated (Btor *btor)
+clone_btor_negated (Btor * btor)
 {
   assert (btor);
   assert (btor->synthesized_constraints->count);
@@ -6639,75 +6640,76 @@ clone_btor_negated (Btor *btor)
 
   clone = btor_clone_btor (btor);
   btor_enable_inc_usage (clone);
-
+  
   BTOR_INIT_STACK (stack);
   root = 0;
   init_node_hash_table_iterator (clone, &it, clone->synthesized_constraints);
   while (has_next_node_hash_table_iterator (&it))
-  {
-    exp = next_node_hash_table_iterator (&it);
-    BTOR_PUSH_STACK (btor->mm, stack, exp);
-    while (!BTOR_EMPTY_STACK (stack))
     {
-      cur      = BTOR_POP_STACK (stack);
-      real_cur = BTOR_REAL_ADDR_NODE (cur);
-      if (!BTOR_REAL_ADDR_AIG (real_cur->av->aigs[0])->cnf_id)
-      {
-        assert (BTOR_IS_INVERTED_NODE (cur) && BTOR_IS_AND_NODE (real_cur));
-        for (i = 0; i < real_cur->arity; i++)
-          BTOR_PUSH_STACK (btor->mm, stack, real_cur->e[i]);
-      }
+      exp = next_node_hash_table_iterator (&it);
+      BTOR_PUSH_STACK (btor->mm, stack, exp);
+      while (!BTOR_EMPTY_STACK (stack))
+	{
+	  cur = BTOR_POP_STACK (stack);
+	  real_cur = BTOR_REAL_ADDR_NODE (cur);
+	  if (!BTOR_REAL_ADDR_AIG (real_cur->av->aigs[0])->cnf_id)
+	    {
+	      assert (BTOR_IS_INVERTED_NODE (cur) 
+		      && BTOR_IS_AND_NODE (real_cur));
+	      for (i = 0; i < real_cur->arity; i++)
+		BTOR_PUSH_STACK (btor->mm, stack, real_cur->e[i]);
+	    }
+	  else
+	    {
+	      btor_release_delete_aigvec (clone->avmgr, real_cur->av);
+	      real_cur->av = 0;
+	    }
+	}
+//      real_cur = BTOR_REAL_ADDR_NODE (cur);
+//      assert (real_cur->constraint);
+//      if (!BTOR_REAL_ADDR_AIG (real_cur->av->aigs[0])->cnf_id)
+//	{
+//	  assert (BTOR_IS_INVERTED_NODE (cur) && BTOR_IS_AND_NODE (real_cur));
+//	  BTOR_PUSH_STACK (btor, stack, real_cur);
+//	}
+//      while (!BTOR_EMPTY_STACK (stack))
+//	{
+//	  real_cur = BTOR_POP_STACK (stack);
+//	  assert (BTOR_REAL_ADDR_NODE (real_cur));
+//	  if (!BTOR_REAL_ADDR_AIG (real_cur->av->aigs[0])->cnf_id)
+//	    {
+//	    }
+//	}
+//      btor_release_delete_aigvec (clone->avmgr, real_cur->av);
+//      real_cur->av = 0;
+//      real_cur->constraint = 0;
+      BTOR_REAL_ADDR_NODE (exp)->constraint = 0; 
+      if (!root)
+//	root = btor_copy_exp (clone, cur);
+	root = btor_copy_exp (clone, exp);
       else
-      {
-        btor_release_delete_aigvec (clone->avmgr, real_cur->av);
-        real_cur->av = 0;
-      }
+	{
+//	  and = btor_and_exp (clone, root, cur);
+	  and = btor_and_exp (clone, root, exp);	  
+	  btor_release_exp (clone, root);
+	  root = and;
+	}
     }
-    //      real_cur = BTOR_REAL_ADDR_NODE (cur);
-    //      assert (real_cur->constraint);
-    //      if (!BTOR_REAL_ADDR_AIG (real_cur->av->aigs[0])->cnf_id)
-    //	{
-    //	  assert (BTOR_IS_INVERTED_NODE (cur) && BTOR_IS_AND_NODE (real_cur));
-    //	  BTOR_PUSH_STACK (btor, stack, real_cur);
-    //	}
-    //      while (!BTOR_EMPTY_STACK (stack))
-    //	{
-    //	  real_cur = BTOR_POP_STACK (stack);
-    //	  assert (BTOR_REAL_ADDR_NODE (real_cur));
-    //	  if (!BTOR_REAL_ADDR_AIG (real_cur->av->aigs[0])->cnf_id)
-    //	    {
-    //	    }
-    //	}
-    //      btor_release_delete_aigvec (clone->avmgr, real_cur->av);
-    //      real_cur->av = 0;
-    //      real_cur->constraint = 0;
-    BTOR_REAL_ADDR_NODE (exp)->constraint = 0;
-    if (!root)
-      //	root = btor_copy_exp (clone, cur);
-      root = btor_copy_exp (clone, exp);
-    else
-    {
-      //	  and = btor_and_exp (clone, root, cur);
-      and = btor_and_exp (clone, root, exp);
-      btor_release_exp (clone, root);
-      root = and;
-    }
-  }
-  root = BTOR_INVERT_NODE (root);
+  root = BTOR_INVERT_NODE (root); 
   assert (root);
   init_node_hash_table_iterator (clone, &it, clone->synthesized_constraints);
   while (has_next_node_hash_table_iterator (&it))
     btor_release_exp (clone, next_node_hash_table_iterator (&it));
   btor_delete_ptr_hash_table (clone->synthesized_constraints);
-  clone->synthesized_constraints =
-      btor_new_ptr_hash_table (clone->mm,
-                               (BtorHashPtr) btor_hash_exp_by_id,
-                               (BtorCmpPtr) btor_compare_exp_by_id);
+  clone->synthesized_constraints = btor_new_ptr_hash_table (
+      clone->mm, (BtorHashPtr) btor_hash_exp_by_id, 
+      (BtorCmpPtr) btor_compare_exp_by_id);
   insert_unsynthesized_constraint (clone, root);
   btor_release_exp (clone, root);
   BTOR_RELEASE_STACK (btor->mm, stack);
   return clone;
 }
+#endif
 
 static Btor *
 clone_exp_layer_negated (Btor *btor)
