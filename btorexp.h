@@ -202,8 +202,8 @@ struct BtorParamNode
 {
   BTOR_BV_NODE_STRUCT;
   char *symbol;
-  BtorLambdaNode *lambda_exp;    /* 1:1 relation param:lambda_exp */
-  BtorNodePtrStack assigned_exp; /* scoped assigned expression stack */
+  BtorLambdaNode *lambda_exp; /* 1:1 relation param:lambda_exp */
+  BtorNode *assigned_exp;
 };
 
 typedef struct BtorParamNode BtorParamNode;

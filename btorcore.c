@@ -5916,14 +5916,15 @@ propagate (Btor *btor,
     *assignments_changed = lazy_synthesize_and_encode_lambda_exp (btor, fun, 1);
     if (*assignments_changed) return 0;
 
-    btor_assign_args (btor, fun, args);
 #ifndef NDEBUG
     num_restarts = 0;
 #endif
     prev_fun_value = 0;
   PROPAGATE_BETA_REDUCE_PARTIAL:
+    btor_assign_args (btor, fun, args);
     fun_value = btor_beta_reduce_partial (btor, fun, &parameterized, &evalerr);
     assert (!BTOR_IS_LAMBDA_NODE (BTOR_REAL_ADDR_NODE (fun_value)));
+    btor_unassign_params (btor, fun);
 
     /* 'prev_fun_value' is set if we already restarted beta reduction. if the
      * result does not differ from the previous one, we are safe to
@@ -5942,7 +5943,6 @@ propagate (Btor *btor,
     {
       BTOR_PUSH_STACK (mm, *prop_stack, app);
       BTOR_PUSH_STACK (mm, *prop_stack, fun_value);
-      btor_unassign_params (btor, fun);
       btor_release_exp (btor, fun_value);
       if (prev_fun_value) btor_release_exp (btor, prev_fun_value);
       continue;
@@ -5966,7 +5966,6 @@ propagate (Btor *btor,
 
         if (*assignments_changed)
         {
-          btor_unassign_params (btor, fun);
           btor_release_exp (btor, fun_value);
           if (prev_fun_value) btor_release_exp (btor, prev_fun_value);
           BTOR_RELEASE_STACK (mm, param_apps);
@@ -6061,7 +6060,6 @@ propagate (Btor *btor,
           BTORLOG ("\e[0;39m");
           btor->stats.beta_reduction_conflicts++;
           add_lemma (btor, fun, app, 0);
-          btor_unassign_params (btor, fun);
           btor_release_exp (btor, fun_value);
           if (prev_fun_value) btor_release_exp (btor, prev_fun_value);
           return 1;
@@ -6075,7 +6073,6 @@ propagate (Btor *btor,
       if (compare_assignments (app, fun_value) != 0)
         goto BETA_REDUCTION_CONFLICT;
     }
-    btor_unassign_params (btor, fun);
     btor_release_exp (btor, fun_value);
     if (prev_fun_value) btor_release_exp (btor, prev_fun_value);
   }

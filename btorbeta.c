@@ -133,9 +133,7 @@ btor_param_cur_assignment (BtorNode *param)
   assert (BTOR_IS_PARAM_NODE (param));
 
   param = BTOR_REAL_ADDR_NODE (param);
-  if (BTOR_EMPTY_STACK (((BtorParamNode *) param)->assigned_exp)) return 0;
-
-  return BTOR_TOP_STACK (((BtorParamNode *) param)->assigned_exp);
+  return ((BtorParamNode *) param)->assigned_exp;
 }
 
 void
@@ -184,7 +182,8 @@ btor_assign_param (Btor *btor, BtorNode *lambda, BtorNode *arg)
   assert (BTOR_IS_REGULAR_NODE (param));
   assert (BTOR_REAL_ADDR_NODE (arg)->len == param->len);
   //  BTORLOG ("  assign: %s (%s)", node2string (lambda), node2string (arg));
-  BTOR_PUSH_STACK (btor->mm, param->assigned_exp, arg);
+  assert (!param->assigned_exp);
+  param->assigned_exp = arg;
 }
 
 void
@@ -204,10 +203,10 @@ btor_unassign_params (Btor *btor, BtorNode *lambda)
     //      BTORLOG ("  unassign %s", node2string (lambda));
     param = (BtorParamNode *) lambda->e[0];
 
-    if (BTOR_EMPTY_STACK (param->assigned_exp)) break;
+    if (!param->assigned_exp) break;
 
-    (void) BTOR_POP_STACK (param->assigned_exp);
-    lambda = BTOR_REAL_ADDR_NODE (lambda->e[1]);
+    param->assigned_exp = 0;
+    lambda              = BTOR_REAL_ADDR_NODE (lambda->e[1]);
   } while (BTOR_IS_LAMBDA_NODE (lambda));
 }
 

@@ -589,20 +589,15 @@ btor_chkclone_exp (BtorNode *exp, BtorNode *clone)
     else
       assert (!((BtorParamNode *) real_clone)->lambda_exp);
 
-    for (i = 0;
-         i < BTOR_COUNT_STACK (((BtorParamNode *) real_exp)->assigned_exp);
-         i++)
+    if (((BtorParamNode *) real_exp)->assigned_exp)
     {
-      assert (((BtorParamNode *) real_exp)->assigned_exp.start[i]
-              != ((BtorParamNode *) real_clone)->assigned_exp.start[i]);
-      BTOR_CHKCLONE_EXPID (
-          ((BtorParamNode *) real_exp)->assigned_exp.start[i],
-          ((BtorParamNode *) real_clone)->assigned_exp.start[i]);
-      assert (BTOR_IS_INVERTED_NODE (
-                  ((BtorParamNode *) real_exp)->assigned_exp.start[i])
-              == BTOR_IS_INVERTED_NODE (
-                     ((BtorParamNode *) real_clone)->assigned_exp.start[i]));
+      assert (((BtorParamNode *) real_exp)->assigned_exp
+              != ((BtorParamNode *) real_clone)->assigned_exp);
+      BTOR_CHKCLONE_EXPID (((BtorParamNode *) real_exp)->assigned_exp,
+                           ((BtorParamNode *) real_clone)->assigned_exp);
     }
+    else
+      assert (!((BtorParamNode *) real_clone)->assigned_exp);
   }
 
   if (BTOR_IS_ARGS_NODE (real_exp))
