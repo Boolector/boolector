@@ -38,7 +38,7 @@
 
 #define ENABLE_APPLY_PROP_DOWN 1
 #define BTOR_SYMBOLIC_LEMMAS
-#define BTOR_CHECK_MODEL
+//#define BTOR_CHECK_MODEL
 
 /*------------------------------------------------------------------------*/
 
@@ -891,7 +891,7 @@ btor_new_btor (void)
   btor->chk_failed_assumptions = 1;
 #endif
   // TODO debug
-  btor->dual_prop = 1;
+  //  btor->dual_prop = 1;
 
   BTOR_PUSH_STACK (btor->mm, btor->nodes_id_table, 0);
 
@@ -2227,7 +2227,12 @@ simplify_constraint_exp (Btor *btor, BtorNode *exp)
   BtorNode *real_exp, *result, *not_exp;
 
   real_exp = BTOR_REAL_ADDR_NODE (exp);
-  not_exp  = BTOR_INVERT_NODE (real_exp);
+
+  /* Do not simplify top-level constraint applies (we need the implication
+   * dependencies for determining top applies when dual prop enabled) */
+  if (BTOR_IS_APPLY_NODE (real_exp)) return exp;
+
+  not_exp = BTOR_INVERT_NODE (real_exp);
 
   if (BTOR_IS_BV_CONST_NODE (real_exp)) return exp;
 
@@ -6949,16 +6954,16 @@ search_top_applies (Btor *btor, BtorNodePtrStack *top_applies)
   smgr = btor_get_sat_mgr_aig_mgr (btor_get_aig_mgr_aigvec_mgr (btor->avmgr));
   if (!smgr->inc_required) return;
 
-#ifndef NDEBUG
-  Btor *clone_dbg = clone_exp_layer_negated (btor);
-  btor_enable_force_cleanup (clone_dbg);
-  btor_enable_inc_usage (clone_dbg);
-  clone_dbg->loglevel               = 0;
-  clone_dbg->dual_prop              = 0;
-  clone_dbg->chk_failed_assumptions = 0;
-  assert (btor_sat_btor (clone_dbg) == BTOR_SAT);
-  btor_delete_btor (clone_dbg);
-#endif
+  //#ifndef NDEBUG
+  //  Btor *clone_dbg = clone_exp_layer_negated (btor);
+  //  btor_enable_force_cleanup (clone_dbg);
+  //  btor_enable_inc_usage (clone_dbg);
+  //  clone_dbg->loglevel = 0;
+  //  clone_dbg->dual_prop = 0;
+  //  clone_dbg->chk_failed_assumptions = 0;
+  //  assert (btor_sat_btor (clone_dbg) == BTOR_SAT);
+  //  btor_delete_btor (clone_dbg);
+  //#endif
 
   BTOR_INIT_STACK (stack);
   BTOR_INIT_STACK (unmark_stack);
@@ -7048,7 +7053,10 @@ search_top_applies (Btor *btor, BtorNodePtrStack *top_applies)
           cur_btor->aux_mark = 1;
           BTOR_PUSH_STACK (btor->mm, unmark_stack, cur_btor);
           if (BTOR_IS_APPLY_NODE (cur_btor))
+          {
+            BTORLOG ("top apply: %s", node2string (cur_btor));
             BTOR_PUSH_STACK (btor->mm, *top_applies, cur_btor);
+          }
           init_full_parent_iterator (&pit, cur_btor);
           while (has_next_parent_full_parent_iterator (&pit))
           {
@@ -7064,6 +7072,7 @@ search_top_applies (Btor *btor, BtorNodePtrStack *top_applies)
         cur_btor->aux_mark = 1;
         BTOR_PUSH_STACK (btor->mm, unmark_stack, cur_btor);
         assert (cur_btor);
+        BTORLOG ("top apply: %s", node2string (cur_btor));
         BTOR_PUSH_STACK (btor->mm, *top_applies, cur_btor);
       }
     }
