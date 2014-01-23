@@ -1627,7 +1627,15 @@ constraint_is_inconsistent (Btor *btor, BtorNode *exp)
 
   rep = btor_simplify_exp (btor, exp);
 
-  return rep == BTOR_INVERT_NODE (rep);
+  return rep == BTOR_INVERT_NODE (rep)
+         /* special case: top-level constraint applies are not simplified to
+          * true/false (in order to not break dual prop) */
+         || btor_find_in_ptr_hash_table (btor->synthesized_constraints,
+                                         BTOR_INVERT_NODE (rep))
+         || btor_find_in_ptr_hash_table (btor->unsynthesized_constraints,
+                                         BTOR_INVERT_NODE (rep))
+         || btor_find_in_ptr_hash_table (btor->embedded_constraints,
+                                         BTOR_INVERT_NODE (rep));
 }
 
 static int
@@ -1692,34 +1700,21 @@ insert_new_constraint (Btor *btor, BtorNode *exp)
       else
       {
         if (constraint_is_inconsistent (btor, exp)) btor->inconsistent = 1;
-
-        if (!real_exp->constraint)
-        {
-          if (is_embedded_constraint_exp (btor, exp))
-            insert_embedded_constraint (btor, exp);
-          else
-            insert_unsynthesized_constraint (btor, exp);
-        }
+        /* Note: if real_exp->constraint and exp in either of both
+         *       constraint lists, exp will be skipped when inserting.
+         *       otherwise, -exp is in either of the three lists,
+         *       btor->is_inconsistent and exp is inserted. */
+        assert (!exp->constraint
+                || btor_find_in_ptr_hash_table (btor->unsynthesized_constraints,
+                                                BTOR_INVERT_NODE (exp))
+                || btor_find_in_ptr_hash_table (btor->synthesized_constraints,
+                                                BTOR_INVERT_NODE (exp))
+                || btor_find_in_ptr_hash_table (btor->embedded_constraints,
+                                                BTOR_INVERT_NODE (exp)));
+        if (is_embedded_constraint_exp (btor, exp))
+          insert_embedded_constraint (btor, exp);
         else
-        {
-          /* special case: top-level constraint applies are not
-           * simplified to true/false (in order to not break dual
-           * prop), check for inconsistency */
-          if (btor_find_in_ptr_hash_table (btor->synthesized_constraints,
-                                           BTOR_INVERT_NODE (exp))
-              || btor_find_in_ptr_hash_table (btor->unsynthesized_constraints,
-                                              BTOR_INVERT_NODE (exp))
-              || btor_find_in_ptr_hash_table (btor->embedded_constraints,
-                                              BTOR_INVERT_NODE (exp)))
-          {
-            btor->inconsistent = 1;
-            return;
-          }
-
-          assert (
-              btor_find_in_ptr_hash_table (btor->unsynthesized_constraints, exp)
-              || btor_find_in_ptr_hash_table (btor->embedded_constraints, exp));
-        }
+          insert_unsynthesized_constraint (btor, exp);
       }
     }
     else
