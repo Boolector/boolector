@@ -605,7 +605,7 @@ remove_from_hash_tables (Btor *btor, BtorNode *exp)
   assert (btor);
   assert (exp);
   assert (BTOR_IS_REGULAR_NODE (exp));
-  assert (exp->kind != BTOR_INVALID_NODE);
+  assert (!BTOR_IS_INVALID_NODE (exp));
 
   switch (exp->kind)
   {
@@ -645,9 +645,7 @@ disconnect_children_exp (Btor *btor, BtorNode *exp)
   assert (exp);
 
   assert (BTOR_IS_REGULAR_NODE (exp));
-
-  assert (exp->kind != BTOR_INVALID_NODE);
-
+  assert (!BTOR_IS_INVALID_NODE (exp));
   assert (!exp->unique);
   assert (exp->erased);
   assert (!exp->disconnected);
@@ -678,7 +676,7 @@ erase_local_data_exp (Btor *btor, BtorNode *exp, int free_symbol)
   assert (!exp->unique);
   assert (!exp->erased);
   assert (!exp->disconnected);
-  assert (exp->kind != BTOR_INVALID_NODE);
+  assert (!BTOR_IS_INVALID_NODE (exp));
 
   mm = btor->mm;
   //  BTORLOG ("%s: %s", __FUNCTION__, node2string (exp));
