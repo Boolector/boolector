@@ -5669,10 +5669,10 @@ add_lemma (Btor *btor, BtorNode *fun, BtorNode *app0, BtorNode *app1)
     args = app0->e[1];
     btor_assign_args (btor, fun, args);
 #ifndef NDEBUG
-    value = btor_beta_reduce_partial (btor, fun, 0, &evalerr);
+    value = btor_beta_reduce_partial (btor, fun, &evalerr);
 //      assert (!evalerr);
 #else
-    value = btor_beta_reduce_partial (btor, fun, 0, 0);
+    value = btor_beta_reduce_partial (btor, fun, 0);
 #endif
     btor_unassign_params (btor, fun);
     assert (!BTOR_IS_LAMBDA_NODE (BTOR_REAL_ADDR_NODE (value)));
@@ -5822,7 +5822,7 @@ propagate (Btor *btor,
   char *fun_value_assignment, *app_assignment;
   BtorMemMgr *mm;
   BtorLambdaNode *lambda;
-  BtorNode *fun, *app, *args, *fun_value, *parameterized, *param_app;
+  BtorNode *fun, *app, *args, *fun_value, *param_app;
   BtorNode *hashed_app, *prev_fun_value;
   BtorPtrHashBucket *b;
   BtorNodePtrStack param_apps;
@@ -5922,7 +5922,7 @@ propagate (Btor *btor,
     prev_fun_value = 0;
   PROPAGATE_BETA_REDUCE_PARTIAL:
     btor_assign_args (btor, fun, args);
-    fun_value = btor_beta_reduce_partial (btor, fun, &parameterized, &evalerr);
+    fun_value = btor_beta_reduce_partial (btor, fun, &evalerr);
     assert (!BTOR_IS_LAMBDA_NODE (BTOR_REAL_ADDR_NODE (fun_value)));
     btor_unassign_params (btor, fun);
 
@@ -5948,10 +5948,8 @@ propagate (Btor *btor,
       continue;
     }
 
-    if (parameterized)
+    if (!BTOR_REAL_ADDR_NODE (fun_value)->tseitin)
     {
-      assert (BTOR_IS_REGULAR_NODE (parameterized));
-
       args_equal = 0;
       if (BTOR_IS_APPLY_NODE (BTOR_REAL_ADDR_NODE (fun_value))
           && ENABLE_APPLY_PROP_DOWN)
