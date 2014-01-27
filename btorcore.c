@@ -38,7 +38,7 @@
 
 #define ENABLE_APPLY_PROP_DOWN 1
 #define BTOR_SYMBOLIC_LEMMAS
-//#define BTOR_CHECK_MODEL
+#define BTOR_CHECK_MODEL
 
 /*------------------------------------------------------------------------*/
 
@@ -900,7 +900,7 @@ btor_new_btor (void)
   btor->chk_failed_assumptions = 1;
 #endif
   // TODO debug
-  btor->dual_prop = 1;
+  //  btor->dual_prop = 1;
 
   BTOR_PUSH_STACK (btor->mm, btor->nodes_id_table, 0);
 
@@ -7012,7 +7012,7 @@ search_top_applies (Btor *btor, BtorNodePtrStack *top_applies)
   btor_enable_force_cleanup (clone);
   btor_enable_inc_usage (clone);
   clone->loglevel  = 0;
-  clone->dual_prop = 0;
+  clone->dual_prop = 0;  // FIXME should be redundant
   assert (check_unique_table_aux_mark_unset_dbg (btor));
 
 #if 0
@@ -7216,8 +7216,9 @@ btor_sat_aux_btor (Btor *btor)
 {
   assert (btor);
 
-  int sat_result, found_conflict, verbosity, refinements;
-  BtorNodePtrStack top_functions;
+  int sat_result, simp_sat_result, found_conflict, verbosity, refinements;
+  // BtorNodePtrStack top_functions;
+  BtorNodePtrStack top_apply_funs;
   BtorAIGMgr *amgr;
   BtorSATMgr *smgr;
   BtorMemMgr *mm;
@@ -7228,7 +7229,7 @@ btor_sat_aux_btor (Btor *btor)
 
   btor_msg (btor, 1, "calling SAT");
 
-  btor_simplify (btor);
+  simp_sat_result = btor_simplify (btor);
   update_assumptions (btor);
 
 #ifndef NDEBUG
@@ -7240,7 +7241,7 @@ btor_sat_aux_btor (Btor *btor)
     btor_enable_force_internal_cleanup (clone);
     clone->loglevel               = 0;
     clone->chk_failed_assumptions = 0;
-    clone->dual_prop              = 0;  // FIXME should be redundant
+    clone->dual_prop              = 0;  // FIXME necessary?
   }
 #endif
 
@@ -7289,52 +7290,71 @@ btor_sat_aux_btor (Btor *btor)
   add_again_assumptions (btor);
   assert (check_reachable_flag_dbg (btor));
 
-  BTOR_INIT_STACK (top_functions);
+  // BTOR_INIT_STACK (top_functions);
   sat_result = btor_timed_sat_sat (btor, -1);
+
+  BTOR_INIT_STACK (top_apply_funs);
 
   while (sat_result == BTOR_SAT)
   {
-    assert (BTOR_EMPTY_STACK (top_functions));
+    //      assert (BTOR_EMPTY_STACK (top_functions));
+    //
+    //      //if (btor->dual_prop)// && btor->synthesized_constraints->count)
+    //      //  {
+    //      //    BtorNodePtrStack ta;
+    //      //    BTOR_INIT_STACK (ta);
+    //      //    search_top_applies (btor, &ta);
+    //      //    BTOR_RELEASE_STACK (btor->mm, ta);
+    //      //    fc = check_and_resolve_conflicts_aux (btor, &ta);
+    //      //    printf ("-- dp: found_conflict: %d\n", fc);
+    //      //  }
+    //      //found_conflict = check_and_resolve_conflicts (btor,
+    //      &top_functions);
+    //      //printf ("++ found_conflict: %d\n", found_conflict);
+    //      //BTOR_RELEASE_STACK (mm, top_functions);
+    //      printf ("%d\n", btor->synthesized_constraints->count);
+    //      if (btor->synthesized_constraints->count && btor->dual_prop)
+    //	{
+    //          BtorNodePtrStack ta;
+    //          BTOR_INIT_STACK (ta);
+    //          search_top_applies (btor, &ta);
+    ////	  if (!BTOR_COUNT_STACK (ta))
+    ////	    {
+    ////	      search_top_functions (btor, &top_functions);
+    ////	      reset_applies (btor);
+    ////	      found_conflict = check_and_resolve_conflicts (
+    ////				    btor, &top_functions);
+    ////	    }
+    ////	  else
+    //	    {
+    //	      reset_applies (btor);
+    //	      found_conflict = check_and_resolve_conflicts_aux (btor, &ta);
+    //	    }
+    //	  BTOR_RELEASE_STACK (mm, ta);
+    //          BTOR_RELEASE_STACK (mm, top_functions);
+    //	}
+    //      else
+    //	{
+    //	  search_top_functions (btor, &top_functions);
+    //	  reset_applies (btor);
+    //	  found_conflict = check_and_resolve_conflicts (btor, &top_functions);
+    //	  BTOR_RELEASE_STACK (mm, top_functions);
+    //	}
 
-    // if (btor->dual_prop)// && btor->synthesized_constraints->count)
-    //  {
-    //    BtorNodePtrStack ta;
-    //    BTOR_INIT_STACK (ta);
-    //    search_top_applies (btor, &ta);
-    //    BTOR_RELEASE_STACK (btor->mm, ta);
-    //    fc = check_and_resolve_conflicts_aux (btor, &ta);
-    //    printf ("-- dp: found_conflict: %d\n", fc);
-    //  }
-    // found_conflict = check_and_resolve_conflicts (btor, &top_functions);
-    // printf ("++ found_conflict: %d\n", found_conflict);
-    // BTOR_RELEASE_STACK (mm, top_functions);
-    if (btor->synthesized_constraints->count && btor->dual_prop)
+    assert (BTOR_EMPTY_STACK (top_apply_funs));
+    if (simp_sat_result == BTOR_SAT || !btor->dual_prop)
     {
-      BtorNodePtrStack ta;
-      BTOR_INIT_STACK (ta);
-      search_top_applies (btor, &ta);
-      //	  if (!BTOR_COUNT_STACK (ta))
-      //	    {
-      //	      search_top_functions (btor, &top_functions);
-      //	      reset_applies (btor);
-      //	      found_conflict = check_and_resolve_conflicts (
-      //				    btor, &top_functions);
-      //	    }
-      //	  else
-      {
-        reset_applies (btor);
-        found_conflict = check_and_resolve_conflicts_aux (btor, &ta);
-      }
-      BTOR_RELEASE_STACK (mm, ta);
-      BTOR_RELEASE_STACK (mm, top_functions);
+      search_top_functions (btor, &top_apply_funs);
+      reset_applies (btor);
+      found_conflict = check_and_resolve_conflicts (btor, &top_apply_funs);
     }
     else
     {
-      search_top_functions (btor, &top_functions);
+      search_top_applies (btor, &top_apply_funs);
       reset_applies (btor);
-      found_conflict = check_and_resolve_conflicts (btor, &top_functions);
-      BTOR_RELEASE_STACK (mm, top_functions);
+      found_conflict = check_and_resolve_conflicts_aux (btor, &top_apply_funs);
     }
+    BTOR_RELEASE_STACK (mm, top_apply_funs);
 
     if (!found_conflict) break;
 
@@ -8244,6 +8264,7 @@ check_model (Btor *btor, Btor *clone, BtorPtrHashTable *inputs)
 #ifndef NBTORLOG
   btor_set_loglevel_btor (clone, 0);
 #endif
+  clone->dual_prop = 0;  // FIXME necessary?
 
   if (clone->valid_assignments) btor_reset_incremental_usage (clone);
 
