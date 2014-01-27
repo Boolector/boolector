@@ -125,17 +125,17 @@ struct Btor
   int vread_index_id;
   int inconsistent;
   int found_constraint_false;
-  int model_gen;       /* model generation enabled */
-  int external_refs;   /* external references (library mode) */
-  int inc_enabled;     /* incremental usage enabled ? */
-  int beta_reduce_all; /* eliminate lambda expressions */
-  int dual_prop;       /* dual prop optimization */
-  int force_cleanup;   /* cleanup exps, assignment strings (external
-                          references only) */
-  int pprint;          /* reindex exps when dumping */
-#ifndef NDEBUG
+  int model_gen;              /* model generation enabled */
+  int external_refs;          /* external references (library mode) */
+  int inc_enabled;            /* incremental usage enabled ? */
+  int beta_reduce_all;        /* eliminate lambda expressions */
+  int dual_prop;              /* dual prop optimization */
+  int force_cleanup;          /* cleanup exps, assignment strings (external
+                                 references only) */
+  int pprint;                 /* reindex exps when dumping */
   int force_internal_cleanup; /* cleanup exps, assignment strings (internal
                                  references only) */
+#ifndef NDEBUG
   int chk_failed_assumptions;
 #endif
   int last_sat_result;      /* status of last SAT call (SAT/UNSAT) */

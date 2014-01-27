@@ -77,6 +77,8 @@
 
 /*------------------------------------------------------------------------*/
 
+static int btor_sat_aux_btor (Btor *);
+
 #ifdef BTOR_CHECK_MODEL
 static int check_model (Btor *, Btor *, BtorPtrHashTable *);
 static BtorPtrHashTable *map_inputs_check_model (Btor *, Btor *);
@@ -85,6 +87,7 @@ static BtorPtrHashTable *map_inputs_check_model (Btor *, Btor *);
 #ifndef NDEBUG
 static void btor_check_failed_assumptions (Btor *, Btor *);
 #endif
+
 /*------------------------------------------------------------------------*/
 
 const char *const g_btor_op2string[] = {
@@ -526,14 +529,12 @@ btor_enable_force_cleanup (Btor *btor)
   btor->force_cleanup = 1;
 }
 
-#ifndef NDEBUG
 void
 btor_enable_force_internal_cleanup (Btor *btor)
 {
   assert (btor);
   btor->force_internal_cleanup = 1;
 }
-#endif
 
 void
 btor_disable_pretty_print (Btor *btor)
@@ -900,7 +901,7 @@ btor_new_btor (void)
   btor->chk_failed_assumptions = 1;
 #endif
   // TODO debug
-  //  btor->dual_prop = 1;
+  btor->dual_prop = 1;
 
   BTOR_PUSH_STACK (btor->mm, btor->nodes_id_table, 0);
 
@@ -956,18 +957,12 @@ btor_delete_btor (Btor *btor)
 
   btor_release_exp (btor, btor->true_exp);
 
-#ifndef NDEBUG
   btor_delete_bv_assignment_list (
       btor->bv_assignments,
       btor->force_cleanup || btor->force_internal_cleanup);
   btor_delete_array_assignment_list (
       btor->array_assignments,
       btor->force_cleanup || btor->force_internal_cleanup);
-#else
-  btor_delete_bv_assignment_list (btor->bv_assignments, btor->force_cleanup);
-  btor_delete_array_assignment_list (btor->array_assignments,
-                                     btor->force_cleanup);
-#endif
 
   for (b = btor->lod_cache->first; b; b = b->next)
     btor_release_exp (btor, (BtorNode *) b->key);
@@ -1044,13 +1039,11 @@ btor_delete_btor (Btor *btor)
       }
     }
     assert (btor->external_refs == 0);
-#ifndef NDEBUG
     if (!btor->force_internal_cleanup)
       for (i = BTOR_COUNT_STACK (btor->nodes_id_table) - 1; i >= 0; i--)
         assert (!BTOR_PEEK_STACK (btor->nodes_id_table, i));
-#endif
   }
-#ifndef NDEBUG
+
   if (btor->force_internal_cleanup)
   {
     for (i = BTOR_COUNT_STACK (btor->nodes_id_table) - 1; i >= 0; i--)
@@ -1070,6 +1063,7 @@ btor_delete_btor (Btor *btor)
       assert (!BTOR_PEEK_STACK (btor->nodes_id_table, i));
   }
 
+#ifndef NDEBUG
   int k;
   BtorNode *cur;
   if (btor->nodes_unique_table.num_elements)
@@ -7010,8 +7004,11 @@ search_top_applies (Btor *btor, BtorNodePtrStack *top_applies)
 
   clone = clone_exp_layer_negated (btor);
   btor_enable_force_cleanup (clone);
+#ifdef BTOR_CHECK_MODEL
+  btor_enable_force_internal_cleanup (clone);
+#endif
   btor_enable_inc_usage (clone);
-  clone->loglevel  = 0;
+  btor_set_loglevel_btor (clone, 0);
   clone->dual_prop = 0;  // FIXME should be redundant
   assert (check_unique_table_aux_mark_unset_dbg (btor));
 
@@ -7052,7 +7049,7 @@ search_top_applies (Btor *btor, BtorNodePtrStack *top_applies)
     btor_release_bv_assignment_str_exp (btor, ass_str);
   }
 
-  btor_sat_btor (clone);
+  btor_sat_aux_btor (clone);
   assert (clone->last_sat_result == BTOR_UNSAT);
 
   /* partial assignment via failed assumptions of negated clone */
@@ -8413,6 +8410,6 @@ btor_check_failed_assumptions (Btor *btor, Btor *clone)
                                (BtorHashPtr) btor_hash_exp_by_id,
                                (BtorCmpPtr) btor_compare_exp_by_id);
 
-  assert (btor_sat_btor (clone) == BTOR_UNSAT);
+  assert (btor_sat_aux_btor (clone) == BTOR_UNSAT);
 }
 #endif
