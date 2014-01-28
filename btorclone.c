@@ -803,12 +803,6 @@ btor_clone_exp_layer (Btor *btor)
       allocated += cur->symbol ? strlen (cur->symbol) + 1 : 0;
     if (BTOR_IS_ARRAY_EQ_NODE (cur) && cur->vreads)
       allocated += sizeof (BtorNodePair);
-    if (BTOR_IS_PARAM_NODE (cur))
-      allocated += BTOR_SIZE_STACK (((BtorParamNode *) cur)->assigned_exp)
-                   * sizeof (BtorNode *);
-    //      if (BTOR_IS_LAMBDA_NODE (cur) && ((BtorLambdaNode *)
-    //      cur)->synth_apps)
-    //	allocated += MEM_PTR_HASH_TABLE (((BtorLambdaNode *) cur)->synth_apps);
   }
   allocated += exp_map->table->size * sizeof (BtorPtrHashBucket *)
                + exp_map->table->count * sizeof (BtorPtrHashBucket)
