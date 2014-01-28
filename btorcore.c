@@ -1910,7 +1910,9 @@ btor_assume_exp (Btor *btor, BtorNode *exp)
   assert (btor->inc_enabled);
   assert (exp);
 
-  exp = btor_simplify_exp (btor, exp);
+  /* Note: do not simplify expression, we need to add original assumption
+   * expression in order to prevent constraint expressions from not beeing
+   * added to btor->assumptions. */
 
   if (btor->valid_assignments) btor_reset_incremental_usage (btor);
 
@@ -1927,10 +1929,6 @@ btor_is_assumption_exp (Btor *btor, BtorNode *exp)
   assert (exp);
   assert (check_unique_table_mark_unset_dbg (btor));
 
-  int i, res;
-  BtorNode *cur, *e;
-  BtorNodePtrStack stack, unmark_stack;
-
   exp = btor_simplify_exp (btor, exp);
 
   if (BTOR_REAL_ADDR_NODE (exp) == BTOR_REAL_ADDR_NODE (btor->true_exp))
@@ -1941,44 +1939,7 @@ btor_is_assumption_exp (Btor *btor, BtorNode *exp)
       || BTOR_REAL_ADDR_NODE (exp)->parameterized)
     return 0;
 
-  if (BTOR_IS_INVERTED_NODE (exp) || !BTOR_IS_AND_NODE (exp))
-    return btor_find_in_ptr_hash_table (btor->assumptions, exp) ? 1 : 0;
-
-  res = 1;
-  BTOR_INIT_STACK (unmark_stack);
-  BTOR_INIT_STACK (stack);
-  BTOR_PUSH_STACK (btor->mm, stack, exp);
-  while (!BTOR_EMPTY_STACK (stack))
-  {
-    cur = BTOR_POP_STACK (stack);
-    assert (!BTOR_IS_INVERTED_NODE (cur));
-    assert (BTOR_IS_AND_NODE (cur));
-    assert (cur->mark == 0 || cur->mark == 1);
-    if (cur->mark) continue;
-    BTOR_PUSH_STACK (btor->mm, unmark_stack, cur);
-    cur->mark = 1;
-    for (i = 0; i < 2; i++)
-    {
-      e = cur->e[i];
-      if (!BTOR_IS_INVERTED_NODE (e) && BTOR_IS_AND_NODE (e))
-        BTOR_PUSH_STACK (btor->mm, stack, e);
-      else if (!btor_find_in_ptr_hash_table (btor->assumptions,
-                                             btor_simplify_exp (btor, e)))
-      {
-        res = 0;
-        break;
-      }
-    }
-  }
-  while (!BTOR_EMPTY_STACK (unmark_stack))
-  {
-    cur = BTOR_POP_STACK (unmark_stack);
-    assert (BTOR_IS_REGULAR_NODE (cur));
-    cur->mark = 0;
-  }
-  BTOR_RELEASE_STACK (btor->mm, unmark_stack);
-  BTOR_RELEASE_STACK (btor->mm, stack);
-  return res;
+  return btor_find_in_ptr_hash_table (btor->assumptions, exp) ? 1 : 0;
 }
 
 int
@@ -7462,9 +7423,9 @@ DONE:
 
   btor->last_sat_result = sat_result;
 #ifndef NDEBUG
-  if (!btor->inconsistent && btor->chk_failed_assumptions)
+  if (btor->chk_failed_assumptions)
   {
-    if (btor->last_sat_result == BTOR_UNSAT)
+    if (!btor->inconsistent && btor->last_sat_result == BTOR_UNSAT)
       btor_check_failed_assumptions (btor, clone);
     btor_delete_btor (clone);
   }
