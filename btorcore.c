@@ -2286,7 +2286,7 @@ simplify_constraint_exp (Btor *btor, BtorNode *exp)
 
   /* Do not simplify top-level constraint applies (we need the implication
    * dependencies for determining top applies when dual prop enabled) */
-  if (BTOR_IS_APPLY_NODE (real_exp)) return exp;
+  if (btor->dual_prop && BTOR_IS_APPLY_NODE (real_exp)) return exp;
 
   not_exp = BTOR_INVERT_NODE (real_exp);
 
@@ -6146,6 +6146,7 @@ propagate (Btor *btor,
   BtorNode *hashed_app, *prev_fun_value;
   BtorPtrHashBucket *b;
   BtorNodePtrStack param_apps;
+  BtorHashTableIterator it;
 
   BTOR_INIT_STACK (param_apps);
 
@@ -6259,19 +6260,6 @@ propagate (Btor *btor,
     }
 #endif
 
-    /* 'prev_fun_value' is set if we already restarted beta reduction. if the
-     * result does not differ from the previous one, we are safe to
-     * continue with consistency checking. */
-#if 1
-    if (fun_value == prev_fun_value)
-    {
-      assert (prev_fun_value);
-      evalerr = 0;
-      btor_release_exp (btor, prev_fun_value);
-      prev_fun_value = 0;
-    }
-#endif
-
     if (BTOR_IS_ARRAY_VAR_NODE (BTOR_REAL_ADDR_NODE (fun_value)))
     {
       BTOR_PUSH_STACK (mm, *prop_stack, app);
@@ -6279,6 +6267,19 @@ propagate (Btor *btor,
       btor_release_exp (btor, fun_value);
       if (prev_fun_value) btor_release_exp (btor, prev_fun_value);
       continue;
+    }
+
+    if (btor->dual_prop && lambda->synth_apps)
+    {
+      init_node_hash_table_iterator (btor, &it, lambda->synth_apps);
+      while (has_next_node_hash_table_iterator (&it))
+      {
+        param_app = next_node_hash_table_iterator (&it);
+        assert (BTOR_IS_REGULAR_NODE (param_app));
+        assert (param_app->vread);
+        BTOR_PUSH_STACK (mm, *prop_stack, param_app);
+        BTOR_PUSH_STACK (mm, *prop_stack, param_app->e[0]);
+      }
     }
 
     if (!BTOR_REAL_ADDR_NODE (fun_value)->tseitin)
@@ -7020,6 +7021,9 @@ search_top_applies (Btor *btor, BtorNodePtrStack *top_applies)
   char *ass_str;
   int i;
 
+  BTORLOG ("");
+  BTORLOG ("*** search top applies");
+
   smgr = btor_get_sat_mgr_aig_mgr (btor_get_aig_mgr_aigvec_mgr (btor->avmgr));
   if (!smgr->inc_required) return;
 
@@ -7114,6 +7118,7 @@ search_top_applies (Btor *btor, BtorNodePtrStack *top_applies)
 
     if (btor_failed_exp (clone, bv_eq))
     {
+      BTORLOG ("failed: %s", node2string (cur_btor));
       if (BTOR_IS_BV_VAR_NODE (cur_btor))
       {
         assert (BTOR_EMPTY_STACK (stack));
@@ -7204,6 +7209,7 @@ BTOR_CONFLICT_CHECK:
         propagate (btor, &work_stack, &cleanup_stack, &changed_assignments);
     if (found_conflict || changed_assignments) goto BTOR_CONFLICT_CLEANUP;
   }
+
 BTOR_CONFLICT_CLEANUP:
   while (!BTOR_EMPTY_STACK (cleanup_stack))
   {
