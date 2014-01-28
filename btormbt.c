@@ -1729,7 +1729,6 @@ _ass (BtorMBT *btormbt, unsigned r)
   if (btormbt->inc && pick (&rng, 0, 4))
   {
     boolector_assume (btormbt->btor, node);
-    printf ("btormbt: assume: %d\n", BTOR_REAL_ADDR_NODE (node)->id);
     es_push (&btormbt->assumptions, node);
     btormbt->nassume++;
   }
