@@ -1145,16 +1145,16 @@ update_assumptions (Btor *btor)
   assert (check_unique_table_mark_unset_dbg (btor));
 
   BtorPtrHashTable *ass;
-  BtorPtrHashBucket *b;
   BtorNode *cur, *simp;
+  BtorHashTableIterator it;
 
   ass = btor_new_ptr_hash_table (btor->mm,
                                  (BtorHashPtr) btor_hash_exp_by_id,
                                  (BtorCmpPtr) btor_compare_exp_by_id);
-
-  for (b = btor->assumptions->first; b; b = b->next)
+  init_node_hash_table_iterator (btor, &it, btor->assumptions);
+  while (has_next_node_hash_table_iterator (&it))
   {
-    cur = (BtorNode *) b->key;
+    cur = next_node_hash_table_iterator (&it);
     if (BTOR_REAL_ADDR_NODE (cur)->simplified)
     {
       simp = btor_simplify_exp (btor, cur);
@@ -1863,7 +1863,10 @@ btor_assume_exp (Btor *btor, BtorNode *exp)
   assert (btor->inc_enabled);
   assert (exp);
 
-  exp = btor_simplify_exp (btor, exp);
+  /* Note: do not simplify constraint expression in order to prevent
+   *       constraint expressions from not being added to btor->assumptions. */
+  if (BTOR_REAL_ADDR_NODE (exp->simplified))
+    exp = btor_simplify_exp (btor, exp);
 
   if (btor->valid_assignments) btor_reset_incremental_usage (btor);
 
@@ -4254,6 +4257,15 @@ update_reachable (Btor *btor, int check_all_tables)
   assert (check_all_tables || btor->unsynthesized_constraints->count == 0);
   assert (check_all_tables || btor->embedded_constraints->count == 0);
   assert (check_all_tables || btor->varsubst_constraints->count == 0);
+
+#ifndef NDEBUG
+  init_node_hash_table_iterator (btor, &it, btor->assumptions);
+  while (has_next_node_hash_table_iterator (&it))
+  {
+    cur = next_node_hash_table_iterator (&it);
+    assert (!BTOR_IS_PROXY_NODE (BTOR_REAL_ADDR_NODE (cur)));
+  }
+#endif
 
   init_node_hash_table_iterator (btor, &it, btor->synthesized_constraints);
   queue_node_hash_table_iterator (&it, btor->assumptions);
