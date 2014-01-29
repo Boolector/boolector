@@ -3548,7 +3548,7 @@ boolector_assert (Btor *btor, BoolectorNode *node)
 void
 boolector_assume (Btor *btor, BoolectorNode *node)
 {
-  BtorNode *exp;
+  BtorNode *exp, *simp;
 
   exp = BTOR_IMPORT_BOOLECTOR_NODE (node);
   BTOR_ABORT_ARG_NULL_BOOLECTOR (btor);
@@ -3557,13 +3557,14 @@ boolector_assume (Btor *btor, BoolectorNode *node)
   BTOR_ABORT_BOOLECTOR (!btor->inc_enabled,
                         "incremental usage has not been enabled");
   BTOR_ABORT_REFS_NOT_POS_BOOLECTOR (exp);
-  /* Note: do not simplify expression, we need to add original assumption
-   * expression in order to prevent constraint expressions from not beeing
-   * added to btor->assumptions. */
-  BTOR_ABORT_ARRAY_BOOLECTOR (exp);
-  BTOR_ABORT_BOOLECTOR (BTOR_REAL_ADDR_NODE (exp)->len != 1,
+  /* Note: do not simplify constraint expression in order to prevent
+   *       constraint expressions from not being added to btor->assumptions. */
+  simp = BTOR_REAL_ADDR_NODE (exp->simplified) ? btor_simplify_exp (btor, exp)
+                                               : exp;
+  BTOR_ABORT_ARRAY_BOOLECTOR (simp);
+  BTOR_ABORT_BOOLECTOR (BTOR_REAL_ADDR_NODE (simp)->len != 1,
                         "'exp' must have bit-width one");
-  btor_assume_exp (btor, exp);
+  btor_assume_exp (btor, simp);
 #ifndef NDEBUG
   BTOR_CHKCLONE_NORES (assume, BTOR_CLONED_EXP (exp));
 #endif
