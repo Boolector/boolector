@@ -6938,6 +6938,9 @@ btor_sat_aux_btor (Btor *btor)
   BtorAIGMgr *amgr;
   BtorSATMgr *smgr;
   BtorMemMgr *mm;
+#ifndef NDEBUG
+  Btor *clone = 0;
+#endif
 
   verbosity = btor->verbosity;
 
@@ -6949,7 +6952,6 @@ btor_sat_aux_btor (Btor *btor)
   update_assumptions (btor);
 
 #ifndef NDEBUG
-  Btor *clone = 0;
   if (btor->chk_failed_assumptions)
   {
     clone = btor_clone_btor (btor);
@@ -7080,7 +7082,7 @@ DONE:
 
   btor->last_sat_result = sat_result;
 #ifndef NDEBUG
-  if (btor->chk_failed_assumptions)
+  if (clone && btor->chk_failed_assumptions)
   {
     if (!btor->inconsistent && btor->last_sat_result == BTOR_UNSAT)
       btor_check_failed_assumptions (btor, clone);
