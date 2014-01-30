@@ -214,7 +214,7 @@ struct Btor
     double enc_var;
     double find_dfs;
     double find_nenc_app;
-    double find_param_app;
+    double find_prop_app;
     double cloning;
   } time;
 };
