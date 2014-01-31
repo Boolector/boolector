@@ -47,6 +47,11 @@
 #define MAX_NOPS_INIT 50
 #define MIN_NOPS 20
 #define MAX_NOPS 100
+#define MAX_NOPS_LOWER 50
+#define MIN_NASSERTS_LOWER 5
+#define MAX_NASSERTS_LOWER 25
+#define MIN_NASSERTS_UPPER 20
+#define MAX_NASSERTS_UPPER 30
 
 #define EXIT_OK 0
 #define EXIT_ERROR 1
@@ -74,24 +79,52 @@
   "  -m <maxruns>                     quit after <maxruns> rounds\n" \
   "  -t <seconds>                     set time limit for calls to boolector\n" \
   "\n" \
-  "  --min-nlits <val>                minimum number of literals "\
+  "  --min-nlits <val>                minimum number of literals \n"\
   "                                   (default: " \
 				      BTORMBT_M2STR (MIN_NLITS) ")\n" \
   "  --max-nlits <val>                maximum number of literals \n" \
   "                                   (default: " \
 				      BTORMBT_M2STR (MAX_NLITS) ")\n" \
-  "  --min-nops-init <val>            minimum number of operations \n"\
-  "                                   (init layer, default: " \
+  "  --min-nops-init <val>            absolute minimum number of operations \n"\
+  "                                   for init layer\n" \
+  "                                   (default: " \
 				      BTORMBT_M2STR (MIN_NOPS_INIT) ")\n" \
-  "  --max-nops-init <val>            maximum number of operations \n" \
-  "                                   (init layer, default: " \
+  "  --max-nops-init <val>            absolute maximum number of operations \n"\
+  "                                   for init layer \n" \
+  "                                   (default: " \
 				      BTORMBT_M2STR (MAX_NOPS_INIT) ")\n" \
-  "  --min-nops <val>                 minimum number of operations \n"\
-  "                                   (after init layer, default: " \
+  "  --min-nops <val>                 absolute minimum number of operations \n"\
+  "                                   after init layer\n" \
+  "                                   (default: " \
 				      BTORMBT_M2STR (MIN_NOPS) ")\n" \
-  "  --max-nops <val>                 maximum number of operations \n" \
-  "                                   (after init layer, default: " \
+  "  --max-nops <val>                 absolute maximum number of operations \n"\
+  "                                   after init layer\n" \
+  "                                   (default: " \
 				      BTORMBT_M2STR (MAX_NOPS) ")\n" \
+  "  --max-nops-lower <val>           lower bound for max-nops in current " \
+                                      "round\n" \
+  "                                   (default: " \
+				      BTORMBT_M2STR (MAX_NOPS_LOWER) ")\n" \
+  "  --min-nasserts-lower <val>       minimum number of assertions for "\
+                                      "current\n" \
+  "                                   max-nops < max-nops-lower\n" \
+  "                                   (default: " \
+				      BTORMBT_M2STR (MIN_NASSERTS_LOWER) ")\n" \
+  "  --max-nasserts-lower <val>       maximum number of assertions for " \
+                                      "current\n" \
+  "                                   max-nops < max-nops-lower\n" \
+  "                                   (default: " \
+				      BTORMBT_M2STR (MAX_NASSERTS_LOWER) ")\n" \
+  "  --min-nasserts-upper <val>       minimum number of assertions for "\
+                                      "current\n" \
+  "                                   max-nops >= max-nops-lower\n" \
+  "                                   (default: " \
+				      BTORMBT_M2STR (MIN_NASSERTS_UPPER) ")\n" \
+  "  --max-nasserts-upper <val>       maximum number of assertions for " \
+                                      "current\n" \
+  "                                   max-nops >= max-nops-lower\n"\
+  "                                   (default: " \
+				      BTORMBT_M2STR (MAX_NASSERTS_UPPER) ")\n" \
   "\n" \
   "  --bverb <verblevel>              enable boolector verbosity\n"
 
@@ -249,12 +282,22 @@ typedef struct BtorMBT
   int bverblevel;
 
   int g_max_nrounds;
-  int g_min_nlits;     /* min number of literals in a round */
-  int g_max_nlits;     /* max number of literals in a round */
-  int g_min_nops_init; /* min number of operations (initial layer) */
-  int g_max_nops_init; /* max number of operations (initial layer) */
-  int g_min_nops;      /* min number of operations (after initial layer) */
-  int g_max_nops;      /* max number of operations (after initial layer) */
+  int g_min_nlits;          /* min number of literals in a round */
+  int g_max_nlits;          /* max number of literals in a round */
+  int g_min_nops_init;      /* min number of operations (initial layer) */
+  int g_max_nops_init;      /* max number of operations (initial layer) */
+  int g_min_nops;           /* min number of operations (after initial layer) */
+  int g_max_nops;           /* max number of operations (after initial layer) */
+  int g_max_nops_lower;     /* lower bound for current max_nops (for determining
+                               max_nass of current round) */
+  int g_min_nasserts_lower; /* min number of assertions in a round
+                               for max_ops < MAX_NOPS_LOWER */
+  int g_max_nasserts_lower; /* max number of assertions in a round
+                               for max_ops < MAX_NOPS_LOWER */
+  int g_min_nasserts_upper; /* min number of assertions in a round
+                               for max_ops >= MAX_NOPS_LOWER */
+  int g_max_nasserts_upper; /* max number of assertions in a round
+                               for max_ops >= MAX_NOPS_LOWER */
 
   /* Note: no global settings after this point! Do not change order! */
 
@@ -272,15 +315,15 @@ typedef struct BtorMBT
   /* prob. distribution of assertions in current round */
   float p_ass;
 
-  int nops;    /* number of operations in current round */
-  int nassert; /* number of produced asserts in current round */
-  int nassume; /* number of produced assumes in current round */
+  int nops;     /* number of operations in current round */
+  int nasserts; /* number of produced asserts in current round */
+  int nassumes; /* number of produced assumes in current round */
 
   int max_nlits; /* max number of literals in current round */
   int max_nops;  /* max number of operations in current round */
   int max_nass;  /* max number of asserts / assumes in current round */
 
-  int tot_nassert; /* total number of asserts in current round */
+  int tot_nasserts; /* total number of asserts in current round */
 
   ExpStack assumptions;
   ExpStack bo, bv, arr, fun;
@@ -302,18 +345,22 @@ new_btormbt (void)
 
   btormbt = malloc (sizeof (BtorMBT));
   memset (btormbt, 0, sizeof (BtorMBT));
-  btormbt->g_max_nrounds   = INT_MAX;
-  btormbt->seed            = -1;
-  btormbt->seeded          = 0;
-  btormbt->terminal        = isatty (1);
-  btormbt->fork            = 0;
-  btormbt->ext             = 0;
-  btormbt->g_min_nlits     = MIN_NLITS;
-  btormbt->g_max_nlits     = MAX_NLITS;
-  btormbt->g_min_nops_init = MIN_NOPS_INIT;
-  btormbt->g_max_nops_init = MAX_NOPS_INIT;
-  btormbt->g_min_nops      = MIN_NOPS;
-  btormbt->g_max_nops      = MAX_NOPS;
+  btormbt->g_max_nrounds        = INT_MAX;
+  btormbt->seed                 = -1;
+  btormbt->seeded               = 0;
+  btormbt->terminal             = isatty (1);
+  btormbt->fork                 = 0;
+  btormbt->ext                  = 0;
+  btormbt->g_min_nlits          = MIN_NLITS;
+  btormbt->g_max_nlits          = MAX_NLITS;
+  btormbt->g_min_nops_init      = MIN_NOPS_INIT;
+  btormbt->g_max_nops_init      = MAX_NOPS_INIT;
+  btormbt->g_min_nops           = MIN_NOPS;
+  btormbt->g_max_nops           = MAX_NOPS;
+  btormbt->g_min_nasserts_lower = MIN_NASSERTS_LOWER;
+  btormbt->g_max_nasserts_lower = MAX_NASSERTS_LOWER;
+  btormbt->g_min_nasserts_upper = MIN_NASSERTS_UPPER;
+  btormbt->g_max_nasserts_upper = MAX_NASSERTS_UPPER;
   return btormbt;
 }
 
@@ -1514,14 +1561,14 @@ _init (BtorMBT *btormbt, unsigned r)
   /* how many operations should be assertions?
    * -> max_nops and nass should be in relation (the more ops, the more
    * assertions) in order to keep the sat/unsat ratio balanced */
-  // TODO may improve?
-  // btormbt->max_nass = pick (&rng, 10, 30);
-  // does this find as many bugs??
-  // FIXME externalise
   if (btormbt->max_nops < 50)
-    btormbt->max_nass = BTORMBT_MIN (btormbt->max_nops, pick (&rng, 5, 25));
+    btormbt->max_nass = BTORMBT_MIN (btormbt->max_nops,
+                                     pick (&rng,
+                                           btormbt->g_min_nasserts_lower,
+                                           btormbt->g_max_nasserts_lower));
   else
-    btormbt->max_nass = pick (&rng, 20, 30);
+    btormbt->max_nass = pick (
+        &rng, btormbt->g_min_nasserts_upper, btormbt->g_max_nasserts_upper);
 
   //  FIXME externalise
   //  init_pd_lits (btormbt, pick (&rng, 1, 10), pick (&rng, 0, 5),
@@ -1580,8 +1627,8 @@ _main (BtorMBT *btormbt, unsigned r)
                btormbt->arr.n);
   BTORMBT_LOG (1,
                "after main: number of asserts: %d, assumps: %d",
-               btormbt->tot_nassert,
-               btormbt->nassume);
+               btormbt->tot_nasserts,
+               btormbt->nassumes);
 
   return _sat;
 }
@@ -1756,13 +1803,13 @@ _ass (BtorMBT *btormbt, unsigned r)
   {
     boolector_assume (btormbt->btor, node);
     es_push (&btormbt->assumptions, node);
-    btormbt->nassume++;
+    btormbt->nassumes++;
   }
   else
   {
     boolector_assert (btormbt->btor, node);
-    btormbt->nassert++;
-    btormbt->tot_nassert++;
+    btormbt->nasserts++;
+    btormbt->tot_nasserts++;
   }
   return _main;
 }
@@ -1852,9 +1899,9 @@ _inc (BtorMBT *btormbt, unsigned r)
   {
     btormbt->inc++;
     btormbt->nops     = 0; /* reset */
-    btormbt->max_nass = btormbt->max_nass - btormbt->nassert;
-    btormbt->nassume  = 0; /* reset */
-    btormbt->nassert  = 0;
+    btormbt->max_nass = btormbt->max_nass - btormbt->nasserts;
+    btormbt->nassumes = 0; /* reset */
+    btormbt->nasserts = 0;
     // btormbt->max_nops = pick (&rng, 0, 150);
     btormbt->max_nops = pick (&rng, 20, 50);
     init_pd_lits (
@@ -1925,7 +1972,7 @@ rantrav (BtorMBT *btormbt)
           0,
           (char *) &btormbt->rng - (char *) &btormbt->is_init);
   assert (btormbt->is_init == 0);
-  assert (btormbt->tot_nassert == 0);
+  assert (btormbt->tot_nasserts == 0);
   btormbt->rng.z = btormbt->rng.w = btormbt->seed;
 
   /* state loop */
@@ -2233,6 +2280,46 @@ main (int argc, char **argv)
       if (!isnumstr (argv[i]))
         die ("argument to '--max-nops' is not a number (try '-h')");
       btormbt->g_max_nops = atoi (argv[i]);
+    }
+    else if (!strcmp (argv[i], "--max-nops-lower"))
+    {
+      if (++i == argc)
+        die ("argument to '--max-nops-lower' missing (try '-h')");
+      if (!isnumstr (argv[i]))
+        die ("argument to '--max-nops-lower' is not a number (try '-h')");
+      btormbt->g_max_nops_lower = atoi (argv[i]);
+    }
+    else if (!strcmp (argv[i], "--min-nasserts-lower"))
+    {
+      if (++i == argc)
+        die ("argument to '--min-nasserts-lower' missing (try '-h')");
+      if (!isnumstr (argv[i]))
+        die ("argument to '--min-nasserts-lower' is not a number (try '-h')");
+      btormbt->g_min_nasserts_lower = atoi (argv[i]);
+    }
+    else if (!strcmp (argv[i], "--max-nasserts-lower"))
+    {
+      if (++i == argc)
+        die ("argument to '--max-nasserts-lower' missing (try '-h')");
+      if (!isnumstr (argv[i]))
+        die ("argument to '--max-nasserts-lower' is not a number (try '-h')");
+      btormbt->g_max_nasserts_lower = atoi (argv[i]);
+    }
+    else if (!strcmp (argv[i], "--min-nasserts-upper"))
+    {
+      if (++i == argc)
+        die ("argument to '--min-nasserts-upper' missing (try '-h')");
+      if (!isnumstr (argv[i]))
+        die ("argument to '--min-nasserts-upper' is not a number (try '-h')");
+      btormbt->g_min_nasserts_upper = atoi (argv[i]);
+    }
+    else if (!strcmp (argv[i], "--max-nasserts-upper"))
+    {
+      if (++i == argc)
+        die ("argument to '--max-nasserts-upper' missing (try '-h')");
+      if (!isnumstr (argv[i]))
+        die ("argument to '--max-nasserts-upper' is not a number (try '-h')");
+      btormbt->g_max_nasserts_upper = atoi (argv[i]);
     }
     else if (!strcmp (argv[i], "--blog"))
     {
