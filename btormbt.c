@@ -57,6 +57,12 @@
 
 #define P_PARAM_EXP 0.5
 #define P_PARAM_ARR_EXP 0.5
+#define P_APPLY_FUN 0.5
+#define P_RW 0.66
+#define P_READ 0.5
+#define P_COND 0.33
+#define P_EQ 0.5
+#define P_INC 0.33
 
 #define EXIT_OK 0
 #define EXIT_ERROR 1
@@ -144,7 +150,30 @@
 				      "over\n" \
   "                                   non-parameterized array expressions\n" \
   "                                   (default: " \
-				      BTORMBT_M2STR (P_PARAM_ARR_EXP) ")\n"
+				      BTORMBT_M2STR (P_PARAM_ARR_EXP) ")\n" \
+  " --p-apply-fun <val>               probability of choosing an apply on\n" \
+  "                                   existing over new function\n" \
+  "                                   (default: " \
+				      BTORMBT_M2STR (P_APPLY_FUN) ")\n" \
+  " --p-rw <val>                      probability of choosing read/write\n" \
+  "                                   over eq/ne/cond\n" \
+  "                                   (default: " \
+				      BTORMBT_M2STR (P_RW) ")\n" \
+  " --p-read <val>                    probability of choosing read over " \
+                                      "write\n" \
+  "                                   (default: " \
+				      BTORMBT_M2STR (P_READ) ")\n" \
+  " --p-cond <val>                    probability of choosing cond over " \
+                                      "eq/ne\n" \
+  "                                   (default: " \
+				      BTORMBT_M2STR (P_COND) ")\n" \
+  " --p-eq <val>                      probability of choosing eq over ne\n" \
+  "                                   (default: " \
+				      BTORMBT_M2STR (P_EQ) ")\n" \
+  " --p-inc <val>                     probability of choosing an " \
+                                      "incremental step\n" \
+  "                                   (default: " \
+				      BTORMBT_M2STR (P_INC) ")\n"
 
 /*------------------------------------------------------------------------*/
 
@@ -316,10 +345,18 @@ typedef struct BtorMBT
   int g_max_nasserts_upper; /* max number of assertions in a round
                                for max_ops >= g_max_nops_lower */
 
-  double p_param_exp;     /* probability of choosing parameterized expressions
-                             over non-parameterized expressions */
-  double p_param_arr_exp; /* probability of choosing parameterized expressions
-                             over non-parameterized array expressions */
+  int p_param_exp;     /* probability of choosing parameterized expressions
+                          over non-parameterized expressions */
+  int p_param_arr_exp; /* probability of choosing parameterized expressions
+                          over non-parameterized array expressions */
+  int p_apply_fun;     /* probability of choosing an apply on an existing
+                          over an apply on a new function */
+  int p_rw;            /* probability of choosing read/write over
+                          eq/ne/cond */
+  int p_read;          /* probability of choosing read over write */
+  int p_cond;          /* probability of choosing cond over eq/ne */
+  int p_eq;            /* probability of choosing eq over ne */
+  int p_inc;           /* probability of choosing an incremental step */
 
   /* Note: no global settings after this point! Do not change order! */
 
@@ -385,8 +422,14 @@ new_btormbt (void)
   btormbt->g_max_nasserts_lower = MAX_NASSERTS_LOWER;
   btormbt->g_min_nasserts_upper = MIN_NASSERTS_UPPER;
   btormbt->g_max_nasserts_upper = MAX_NASSERTS_UPPER;
-  btormbt->p_param_exp          = P_PARAM_EXP;
-  btormbt->p_param_arr_exp      = P_PARAM_ARR_EXP;
+  btormbt->p_param_exp          = P_PARAM_EXP * NORM_VAL;
+  btormbt->p_param_arr_exp      = P_PARAM_ARR_EXP * NORM_VAL;
+  btormbt->p_apply_fun          = P_APPLY_FUN * NORM_VAL;
+  btormbt->p_rw                 = P_RW * NORM_VAL;
+  btormbt->p_read               = P_READ * NORM_VAL;
+  btormbt->p_cond               = P_COND * NORM_VAL;
+  btormbt->p_eq                 = P_EQ * NORM_VAL;
+  btormbt->p_inc                = P_INC * NORM_VAL;
   return btormbt;
 }
 
@@ -1081,7 +1124,7 @@ selexp (
   if (force_param == -1
       || (!btormbt->parambo && !btormbt->parambv && !btormbt->paramarr)
       || (!btormbt->parambo->n && !btormbt->parambv->n && !btormbt->paramarr->n)
-      || (force_param == 0 && (rand >= btormbt->p_param_exp * NORM_VAL)))
+      || (force_param == 0 && rand >= btormbt->p_param_exp))
   {
     bo  = &btormbt->bo;
     bv  = &btormbt->bv;
@@ -1182,7 +1225,7 @@ selarrexp (BtorMBT *btormbt,
   if (force_param == -1
       || (!btormbt->parambo && !btormbt->parambv && !btormbt->paramarr)
       || (!btormbt->parambo->n && !btormbt->parambv->n && !btormbt->paramarr->n)
-      || (force_param == 0 && (rand >= btormbt->p_param_arr_exp * NORM_VAL)))
+      || (force_param == 0 && rand >= btormbt->p_param_arr_exp))
     es = &btormbt->arr;
   else
     es = btormbt->paramarr;
@@ -1317,10 +1360,9 @@ bfun (BtorMBT *btormbt, unsigned r, int *nparams, int *width, int nlevel)
   RNG rng;
 
   rng = initrng (r);
-  /* choose between apply on random existing function and apply on new
-   * function with p = 0.5 */
-  // FIXME externalise p
-  if (btormbt->fun.n && pick (&rng, 0, 1)) /* use existing function */
+  /* choose between apply on random existing and apply on new function */
+  rand = pick (&rng, 0, NORM_VAL - 1);
+  if (btormbt->fun.n && rand < btormbt->p_apply_fun) /* use existing function */
   {
     rand     = pick (&rng, 0, btormbt->fun.n - 1);
     fun      = btormbt->fun.exps[rand].exp;
@@ -1711,28 +1753,40 @@ _fun (BtorMBT *btormbt, unsigned r)
 static void *
 _afun (BtorMBT *btormbt, unsigned r)
 {
-  int e0w, e0iw;
+  int e0w, e0iw, rand;
   Op op;
-  BoolectorNode *e0, *e1, *e2 = NULL;
-  RNG rng = initrng (r);
+  BoolectorNode *e0, *e1, *e2;
+  RNG rng;
+
+  rng  = initrng (r);
+  rand = pick (&rng, 0, NORM_VAL - 1);
 
   e0   = selexp (btormbt, &rng, T_ARR, 0, NULL);
   e0w  = boolector_get_width (btormbt->btor, e0);
   e0iw = boolector_get_index_width (btormbt->btor, e0);
 
+  e2 = NULL;
+
   /* use read/write with p=0.666 else EQ/NE/COND */
-  // TODO may use p=0.5??
-  if (pick (&rng, 0, 2))
+  if (rand < btormbt->p_rw)
   {
-    op = pick (&rng, READ, WRITE);
-    e1 = selexp (btormbt, &rng, T_BV, 0, NULL);
+    rand = pick (&rng, 0, NORM_VAL - 1);
+    op   = rand < btormbt->p_read ? READ : WRITE;
+    e1   = selexp (btormbt, &rng, T_BV, 0, NULL);
     if (op == WRITE) e2 = selexp (btormbt, &rng, T_BV, 0, NULL);
     afun (btormbt, &rng, op, e0, e1, e2, 0);
   }
   else
   {
     /* select EQ/NE/COND with same propability */
-    op = pick (&rng, 0, 2) && btormbt->ext ? pick (&rng, EQ, NE) : COND;
+    rand = pick (&rng, 0, NORM_VAL - 1);
+    if (!btormbt->ext || rand < btormbt->p_cond)
+      op = COND;
+    else
+    {
+      rand = pick (&rng, 0, NORM_VAL - 1);
+      op   = rand < btormbt->p_eq ? EQ : NE;
+    }
     e1 = selarrexp (btormbt, &rng, e0, e0w, e0iw, 0);
     if (op == COND) e2 = selexp (btormbt, &rng, T_BO, 0, NULL);
     afun (btormbt, &rng, op, e0, e1, e2, 0);
@@ -1906,18 +1960,18 @@ _mgen (BtorMBT *btormbt, unsigned r)
 static void *
 _inc (BtorMBT *btormbt, unsigned r)
 {
-  int i;
+  int i, rand;
   RNG rng;
 
-  rng = initrng (r);
+  rng  = initrng (r);
+  rand = pick (&rng, 0, NORM_VAL - 1);
 
   /* release cnf expressions */
   for (i = 0; i < btormbt->cnf.n; i++)
     boolector_release (btormbt->btor, btormbt->cnf.exps[i].exp);
   es_reset (&btormbt->cnf);
 
-  // FIXME externalize
-  if (btormbt->inc && pick (&rng, 0, 2))
+  if (btormbt->inc && rand < btormbt->p_inc)
   {
     btormbt->inc++;
     btormbt->nops     = 0; /* reset */
@@ -1928,6 +1982,7 @@ _inc (BtorMBT *btormbt, unsigned r)
     btormbt->max_nops =
         pick (&rng, btormbt->g_min_nops_inc, btormbt->g_max_nops_inc);
 
+    // FIXME externalize
     init_pd_lits (
         btormbt, pick (&rng, 1, 10), pick (&rng, 0, 5), pick (&rng, 0, 5));
     init_pd_op (btormbt, pick (&rng, 1, 5), pick (&rng, 1, 5));
@@ -2369,8 +2424,8 @@ main (int argc, char **argv)
       if (++i == argc) die ("argument to '--p-param-exp' missing (try '-h')");
       if (!isfloatnumstr (argv[i]))
         die ("argument to '--p-param-exp' is not a number (try '-h')");
-      btormbt->p_param_exp = atof (argv[i]);
-      if (btormbt->p_param_exp > 1.0)
+      btormbt->p_param_exp = atof (argv[i]) * NORM_VAL;
+      if (btormbt->p_param_exp > NORM_VAL)
         die ("argument to '--p-param-exp' must be < 1.0");
     }
     else if (!strcmp (argv[i], "--p-param-arr-exp"))
@@ -2379,9 +2434,63 @@ main (int argc, char **argv)
         die ("argument to '--p-param-arr-exp' missing (try '-h')");
       if (!isfloatnumstr (argv[i]))
         die ("argument to '--p-param-arr-exp' is not a number (try '-h')");
-      btormbt->p_param_arr_exp = atof (argv[i]);
-      if (btormbt->p_param_exp > 1.0)
+      btormbt->p_param_arr_exp = atof (argv[i]) * NORM_VAL;
+      if (btormbt->p_param_exp > NORM_VAL)
         die ("argument to '--p-param-arr-exp' must be < 1.0");
+    }
+    else if (!strcmp (argv[i], "--p-apply-fun"))
+    {
+      if (++i == argc) die ("argument to '--p-apply-fun' missing (try '-h')");
+      if (!isfloatnumstr (argv[i]))
+        die ("argument to '--p-apply-fun' is not a number (try '-h')");
+      btormbt->p_apply_fun = atof (argv[i]) * NORM_VAL;
+      if (btormbt->p_param_exp > NORM_VAL)
+        die ("argument to '--p-apply-fun' must be < 1.0");
+    }
+    else if (!strcmp (argv[i], "--p-rw"))
+    {
+      if (++i == argc) die ("argument to '--p-rw' missing (try '-h')");
+      if (!isfloatnumstr (argv[i]))
+        die ("argument to '--p-rw' is not a number (try '-h')");
+      btormbt->p_rw = atof (argv[i]) * NORM_VAL;
+      if (btormbt->p_param_exp > NORM_VAL)
+        die ("argument to '--p-rw' must be < 1.0");
+    }
+    else if (!strcmp (argv[i], "--p-read"))
+    {
+      if (++i == argc) die ("argument to '--p-read' missing (try '-h')");
+      if (!isfloatnumstr (argv[i]))
+        die ("argument to '--p-read' is not a number (try '-h')");
+      btormbt->p_read = atof (argv[i]) * NORM_VAL;
+      if (btormbt->p_param_exp > NORM_VAL)
+        die ("argument to '--p-read' must be < 1.0");
+    }
+    else if (!strcmp (argv[i], "--p-cond"))
+    {
+      if (++i == argc) die ("argument to '--p-cond' missing (try '-h')");
+      if (!isfloatnumstr (argv[i]))
+        die ("argument to '--p-cond' is not a number (try '-h')");
+      btormbt->p_cond = atof (argv[i]) * NORM_VAL;
+      if (btormbt->p_param_exp > NORM_VAL)
+        die ("argument to '--p-cond' must be < 1.0");
+    }
+    else if (!strcmp (argv[i], "--p-eq"))
+    {
+      if (++i == argc) die ("argument to '--p-eq' missing (try '-h')");
+      if (!isfloatnumstr (argv[i]))
+        die ("argument to '--p-eq' is not a number (try '-h')");
+      btormbt->p_eq = atof (argv[i]) * NORM_VAL;
+      if (btormbt->p_param_exp > NORM_VAL)
+        die ("argument to '--p-eq' must be < 1.0");
+    }
+    else if (!strcmp (argv[i], "--p-inc"))
+    {
+      if (++i == argc) die ("argument to '--p-inc' missing (try '-h')");
+      if (!isfloatnumstr (argv[i]))
+        die ("argument to '--p-inc' is not a number (try '-h')");
+      btormbt->p_inc = atof (argv[i]) * NORM_VAL;
+      if (btormbt->p_param_exp > NORM_VAL)
+        die ("argument to '--p-inc' must be < 1.0");
     }
     else if (!isnumstr (argv[i]))
     {
