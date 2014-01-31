@@ -63,6 +63,14 @@
 
 #define BTORMBT_STR(str) #str
 #define BTORMBT_M2STR(m) BTORMBT_STR (m)
+
+#ifndef NBTORLOG
+#define BTORMBT_LOG_USAGE \
+  "  --blog <loglevel>                enable boolector logging\n"
+#else
+#define BTORMBT_LOG_USAGE ""
+#endif
+
 #define BTORMBT_USAGE \
   "usage: btormbt [<option>]\n" \
   "\n" \
@@ -78,6 +86,9 @@
   "  -f, --first-bug-only             quit after first bug encountered\n" \
   "  -m <maxruns>                     quit after <maxruns> rounds\n" \
   "  -t <seconds>                     set time limit for calls to boolector\n" \
+  "\n" \
+  "  --bverb <verblevel>              enable boolector verbosity\n" \
+  BTORMBT_LOG_USAGE \
   "\n" \
   "  --min-nlits <val>                minimum number of literals \n"\
   "                                   (default: " \
@@ -124,16 +135,7 @@
                                       "current\n" \
   "                                   max-nops >= max-nops-lower\n"\
   "                                   (default: " \
-				      BTORMBT_M2STR (MAX_NASSERTS_UPPER) ")\n" \
-  "\n" \
-  "  --bverb <verblevel>              enable boolector verbosity\n"
-
-#ifndef NBTORLOG
-#define BTORMBT_LOG_USAGE \
-  "  --blog <loglevel>                enable boolector logging\n"
-#else
-#define BTORMBT_LOG_USAGE ""
-#endif
+				      BTORMBT_M2STR (MAX_NASSERTS_UPPER) ")\n"
 
 /*------------------------------------------------------------------------*/
 
@@ -2207,7 +2209,7 @@ main (int argc, char **argv)
   {
     if (!strcmp (argv[i], "-h") || !strcmp (argv[i], "--help"))
     {
-      printf ("%s%s", BTORMBT_USAGE, BTORMBT_LOG_USAGE);
+      printf ("%s", BTORMBT_USAGE);
       exit (EXIT_OK);
     }
     else if (!strcmp (argv[i], "-v") || !strcmp (argv[i], "--verbose"))
@@ -2238,6 +2240,24 @@ main (int argc, char **argv)
         die ("argument '%s' to '-t' is not a number (try '-h')", argv[i]);
       btormbt->time_limit = atoi (argv[i]);
       btormbt->fork       = 1;
+    }
+    else if (!strcmp (argv[i], "--blog"))
+    {
+      if (++i == argc) die ("argument to '--blog' missing (try '-h')");
+      if (!isnumstr (argv[i]))
+        die ("argument '%s' to '--blog' not a number (try '-h')", argv[i]);
+      btormbt->bloglevel = atoi (argv[i]);
+    }
+    else if (!strcmp (argv[i], "--bverb"))
+    {
+      if (++i == argc) die ("argument to '--bverb' missing (try '-h')");
+      if (!isnumstr (argv[i]))
+        die ("argument '%s' to '--bverb' not a number (try '-h')", argv[i]);
+      btormbt->bverblevel = atoi (argv[i]);
+    }
+    else if (!isnumstr (argv[i]))
+    {
+      die ("invalid command line option '%s' (try '-h')", argv[i]);
     }
     else if (!strcmp (argv[i], "--min-nlits"))
     {
@@ -2320,24 +2340,6 @@ main (int argc, char **argv)
       if (!isnumstr (argv[i]))
         die ("argument to '--max-nasserts-upper' is not a number (try '-h')");
       btormbt->g_max_nasserts_upper = atoi (argv[i]);
-    }
-    else if (!strcmp (argv[i], "--blog"))
-    {
-      if (++i == argc) die ("argument to '--blog' missing (try '-h')");
-      if (!isnumstr (argv[i]))
-        die ("argument '%s' to '--blog' not a number (try '-h')", argv[i]);
-      btormbt->bloglevel = atoi (argv[i]);
-    }
-    else if (!strcmp (argv[i], "--bverb"))
-    {
-      if (++i == argc) die ("argument to '--bverb' missing (try '-h')");
-      if (!isnumstr (argv[i]))
-        die ("argument '%s' to '--bverb' not a number (try '-h')", argv[i]);
-      btormbt->bverblevel = atoi (argv[i]);
-    }
-    else if (!isnumstr (argv[i]))
-    {
-      die ("invalid command line option '%s' (try '-h')", argv[i]);
     }
     else
     {
