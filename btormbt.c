@@ -41,6 +41,12 @@
 #define MAX_NPARAMS 5
 #define MAX_NPARAMOPS 5
 #define MAX_NNESTEDBFUNS 50
+#define MIN_NLITS 3
+#define MAX_NLITS 30
+#define MIN_NOPS_INIT 0
+#define MAX_NOPS_INIT 50
+#define MIN_NOPS 20
+#define MAX_NOPS 100
 
 #define EXIT_OK 0
 #define EXIT_ERROR 1
@@ -50,22 +56,43 @@
 
 /*------------------------------------------------------------------------*/
 
-#define BTORMBT_USAGE                                                          \
-  "usage: btormbt [<option>]\n"                                                \
-  "\n"                                                                         \
-  "where <option> is one of the following:\n"                                  \
-  "\n"                                                                         \
-  "  -h, --help                       print this message and exit\n"           \
-  "  -v, --verbose                    be verbose\n"                            \
-  "  -k, --keep-lines                 do not clear output lines\n"             \
-  "  -a, --always-fork                fork even if seed given\n"               \
-  "  -n, --no-modelgen                do not enable model generation \n"       \
-  "  -e, --extensionality          do not use extensionality\n"                \
-  "\n"                                                                         \
-  "  -f, --first-bug-only             quit after first bug encountered\n"      \
-  "  -m <maxruns>                     quit after <maxruns> rounds\n"           \
+#define BTORMBT_STR(str) #str
+#define BTORMBT_M2STR(m) BTORMBT_STR (m)
+#define BTORMBT_USAGE \
+  "usage: btormbt [<option>]\n" \
+  "\n" \
+  "where <option> is one of the following:\n" \
+  "\n" \
+  "  -h, --help                       print this message and exit\n" \
+  "  -v, --verbose                    be verbose\n" \
+  "  -k, --keep-lines                 do not clear output lines\n" \
+  "  -a, --always-fork                fork even if seed given\n" \
+  "  -n, --no-modelgen                do not enable model generation \n" \
+  "  -e, --extensionality             use extensionality\n" \
+  "\n" \
+  "  -f, --first-bug-only             quit after first bug encountered\n" \
+  "  -m <maxruns>                     quit after <maxruns> rounds\n" \
   "  -t <seconds>                     set time limit for calls to boolector\n" \
-  "\n"                                                                         \
+  "\n" \
+  "  --min-nlits <val>                minimum number of literals "\
+  "                                   (default: " \
+				      BTORMBT_M2STR (MIN_NLITS) ")\n" \
+  "  --max-nlits <val>                maximum number of literals \n" \
+  "                                   (default: " \
+				      BTORMBT_M2STR (MAX_NLITS) ")\n" \
+  "  --min-nops-init <val>            minimum number of operations \n"\
+  "                                   (init layer, default: " \
+				      BTORMBT_M2STR (MIN_NOPS_INIT) ")\n" \
+  "  --max-nops-init <val>            maximum number of operations \n" \
+  "                                   (init layer, default: " \
+				      BTORMBT_M2STR (MAX_NOPS_INIT) ")\n" \
+  "  --min-nops <val>                 minimum number of operations \n"\
+  "                                   (after init layer, default: " \
+				      BTORMBT_M2STR (MIN_NOPS) ")\n" \
+  "  --max-nops <val>                 maximum number of operations \n" \
+  "                                   (after init layer, default: " \
+				      BTORMBT_M2STR (MAX_NOPS) ")\n" \
+  "\n" \
   "  --bverb <verblevel>              enable boolector verbosity\n"
 
 #ifndef NBTORLOG
@@ -216,11 +243,18 @@ typedef struct BtorMBT
   int force_nomgen;
   int ext;
   int shadow;
-  int max_nrounds;
   int time_limit;
 
   int bloglevel;
   int bverblevel;
+
+  int g_max_nrounds;
+  int g_min_nlits;     /* min number of literals in a round */
+  int g_max_nlits;     /* max number of literals in a round */
+  int g_min_nops_init; /* min number of operations (initial layer) */
+  int g_max_nops_init; /* max number of operations (initial layer) */
+  int g_min_nops;      /* min number of operations (after initial layer) */
+  int g_max_nops;      /* max number of operations (after initial layer) */
 
   /* Note: no global settings after this point! Do not change order! */
 
@@ -268,12 +302,18 @@ new_btormbt (void)
 
   btormbt = malloc (sizeof (BtorMBT));
   memset (btormbt, 0, sizeof (BtorMBT));
-  btormbt->max_nrounds = INT_MAX;
-  btormbt->seed        = -1;
-  btormbt->seeded      = 0;
-  btormbt->terminal    = isatty (1);
-  btormbt->fork        = 0;
-  btormbt->ext         = 0;
+  btormbt->g_max_nrounds   = INT_MAX;
+  btormbt->seed            = -1;
+  btormbt->seeded          = 0;
+  btormbt->terminal        = isatty (1);
+  btormbt->fork            = 0;
+  btormbt->ext             = 0;
+  btormbt->g_min_nlits     = MIN_NLITS;
+  btormbt->g_max_nlits     = MAX_NLITS;
+  btormbt->g_min_nops_init = MIN_NOPS_INIT;
+  btormbt->g_max_nops_init = MAX_NOPS_INIT;
+  btormbt->g_min_nops      = MIN_NOPS;
+  btormbt->g_max_nops      = MAX_NOPS;
   return btormbt;
 }
 
@@ -1361,13 +1401,11 @@ _new (BtorMBT *btormbt, unsigned r)
 {
   RNG rng = initrng (r);
 
-  // FIXME externalise
   /* number of initial literals */
-  // btormbt->max_nlits = pick (&rng, 5, 40);
-  btormbt->max_nlits = pick (&rng, 3, 30);
+  btormbt->max_nlits = pick (&rng, btormbt->g_min_nlits, btormbt->g_max_nlits);
   /* number of initial operations */
-  // btormbt->max_nops = pick (&rng, 0, 100);
-  btormbt->max_nops = pick (&rng, 0, 50);
+  btormbt->max_nops =
+      pick (&rng, btormbt->g_min_nops_init, btormbt->g_max_nops_init);
 
   init_pd_lits (
       btormbt, pick (&rng, 1, 10), pick (&rng, 0, 5), pick (&rng, 2, 5));
@@ -1470,18 +1508,16 @@ _init (BtorMBT *btormbt, unsigned r)
   btormbt->bv.initlayer  = btormbt->bv.n;
   btormbt->arr.initlayer = btormbt->arr.n;
 
-  // FIXME externalise
   /* adapt paramters for main */
-  btormbt->nops = 0; /* reset operation counter */
-  // btormbt->max_nops = pick (&rng, 20, 200);
-  // btormbt->max_nass = pick (&rng, 10, 70);  /* how many assertions of nops */
-  btormbt->max_nops = pick (&rng, 20, 100);
+  btormbt->nops     = 0;
+  btormbt->max_nops = pick (&rng, btormbt->g_min_nops, btormbt->g_max_nops);
   /* how many operations should be assertions?
    * -> max_nops and nass should be in relation (the more ops, the more
    * assertions) in order to keep the sat/unsat ratio balanced */
   // TODO may improve?
   // btormbt->max_nass = pick (&rng, 10, 30);
   // does this find as many bugs??
+  // FIXME externalise
   if (btormbt->max_nops < 50)
     btormbt->max_nass = BTORMBT_MIN (btormbt->max_nops, pick (&rng, 5, 25));
   else
@@ -2146,7 +2182,7 @@ main (int argc, char **argv)
       if (++i == argc) die ("argument to '-m' missing (try '-h')");
       if (!isnumstr (argv[i]))
         die ("argument '%s' to '-m' is not a number (try '-h')", argv[i]);
-      btormbt->max_nrounds = atoi (argv[i]);
+      btormbt->g_max_nrounds = atoi (argv[i]);
     }
     else if (!strcmp (argv[i], "-t"))
     {
@@ -2155,6 +2191,48 @@ main (int argc, char **argv)
         die ("argument '%s' to '-t' is not a number (try '-h')", argv[i]);
       btormbt->time_limit = atoi (argv[i]);
       btormbt->fork       = 1;
+    }
+    else if (!strcmp (argv[i], "--min-nlits"))
+    {
+      if (++i == argc) die ("argument to '--min-nlits' missing (try '-h')");
+      if (!isnumstr (argv[i]))
+        die ("argument to '--min-nlits' is not a number (try '-h')");
+      btormbt->g_min_nlits = atoi (argv[i]);
+    }
+    else if (!strcmp (argv[i], "--max-nlits"))
+    {
+      if (++i == argc) die ("argument to '--max-nlits' missing (try '-h')");
+      if (!isnumstr (argv[i]))
+        die ("argument to '--max-nlits' is not a number (try '-h')");
+      btormbt->g_max_nlits = atoi (argv[i]);
+    }
+    else if (!strcmp (argv[i], "--min-nops-init"))
+    {
+      if (++i == argc) die ("argument to '--min-nops-init' missing (try '-h')");
+      if (!isnumstr (argv[i]))
+        die ("argument to '--min-nops-init' is not a number (try '-h')");
+      btormbt->g_min_nops_init = atoi (argv[i]);
+    }
+    else if (!strcmp (argv[i], "--max-nops-init"))
+    {
+      if (++i == argc) die ("argument to '--max-nops-init' missing (try '-h')");
+      if (!isnumstr (argv[i]))
+        die ("argument to '--max-nops-init' is not a number (try '-h')");
+      btormbt->g_max_nops_init = atoi (argv[i]);
+    }
+    else if (!strcmp (argv[i], "--min-nops"))
+    {
+      if (++i == argc) die ("argument to '--min-nops' missing (try '-h')");
+      if (!isnumstr (argv[i]))
+        die ("argument to '--min-nops' is not a number (try '-h')");
+      btormbt->g_min_nops = atoi (argv[i]);
+    }
+    else if (!strcmp (argv[i], "--max-nops"))
+    {
+      if (++i == argc) die ("argument to '--max-nops' missing (try '-h')");
+      if (!isnumstr (argv[i]))
+        die ("argument to '--max-nops' is not a number (try '-h')");
+      btormbt->g_max_nops = atoi (argv[i]);
     }
     else if (!strcmp (argv[i], "--blog"))
     {
@@ -2194,7 +2272,7 @@ main (int argc, char **argv)
     btormbt->fork = 1;
 
     mac = hashmac ();
-    for (btormbt->round = 0; btormbt->round < btormbt->max_nrounds;
+    for (btormbt->round = 0; btormbt->round < btormbt->g_max_nrounds;
          btormbt->round++)
     {
       if (!(prev & 1)) prev++;
