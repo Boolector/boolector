@@ -47,6 +47,8 @@
 #define MAX_NOPS_INIT 50
 #define MIN_NOPS 20
 #define MAX_NOPS 100
+#define MIN_NOPS_INC 20
+#define MAX_NOPS_INC 50
 #define MAX_NOPS_LOWER 50
 #define MIN_NASSERTS_LOWER 5
 #define MAX_NASSERTS_LOWER 25
@@ -115,6 +117,14 @@
   "                                   after init layer\n" \
   "                                   (default: " \
 				      BTORMBT_M2STR (MAX_NOPS) ")\n" \
+  "  --min-nops-inc <val>             absolute minimum number of operations \n"\
+  "                                   when reinitializing for inc step\n" \
+  "                                   (default: " \
+				      BTORMBT_M2STR (MIN_NOPS_INC) ")\n" \
+  "  --max-nops-inc <val>             absolute maximum number of operations \n"\
+  "                                   when reinitializing for inc step\n" \
+  "                                   (default: " \
+				      BTORMBT_M2STR (MAX_NOPS_INC) ")\n" \
   "  --max-nops-lower <val>           lower bound for max-nops in current " \
                                       "round\n" \
   "                                   (default: " \
@@ -299,15 +309,19 @@ typedef struct BtorMBT
 
   int g_max_nrounds;
 
-  int g_min_nlits;     /* min number of literals in a round */
-  int g_max_nlits;     /* max number of literals in a round */
+  int g_min_nlits; /* min number of literals in a round */
+  int g_max_nlits; /* max number of literals in a round */
+
   int g_min_nops_init; /* min number of operations (initial layer) */
   int g_max_nops_init; /* max number of operations (initial layer) */
   int g_min_nops;      /* min number of operations (after init. layer) */
   int g_max_nops;      /* max number of operations (after init. layer) */
+  int g_min_nops_inc;  /* min number of operations (reinit inc step) */
+  int g_max_nops_inc;  /* max number of operations (reinit inc step) */
 
-  int g_max_nops_lower;     /* lower bound for current max_nops (for
-                               determining max_nass of current round) */
+  int g_max_nops_lower; /* lower bound for current max_nops (for
+                           determining max_nass of current round) */
+
   int g_min_nasserts_lower; /* min number of assertions in a round
                                for max_ops < g_max_nops_lower */
   int g_max_nasserts_lower; /* max number of assertions in a round
@@ -380,6 +394,8 @@ new_btormbt (void)
   btormbt->g_max_nops_init      = MAX_NOPS_INIT;
   btormbt->g_min_nops           = MIN_NOPS;
   btormbt->g_max_nops           = MAX_NOPS;
+  btormbt->g_min_nops_inc       = MIN_NOPS_INC;
+  btormbt->g_max_nops_inc       = MAX_NOPS_INC;
   btormbt->g_min_nasserts_lower = MIN_NASSERTS_LOWER;
   btormbt->g_max_nasserts_lower = MAX_NASSERTS_LOWER;
   btormbt->g_min_nasserts_upper = MIN_NASSERTS_UPPER;
@@ -1923,8 +1939,10 @@ _inc (BtorMBT *btormbt, unsigned r)
     btormbt->max_nass = btormbt->max_nass - btormbt->nasserts;
     btormbt->nassumes = 0; /* reset */
     btormbt->nasserts = 0;
-    // btormbt->max_nops = pick (&rng, 0, 150);
-    btormbt->max_nops = pick (&rng, 20, 50);
+
+    btormbt->max_nops =
+        pick (&rng, btormbt->g_min_nops_inc, btormbt->g_max_nops_inc);
+
     init_pd_lits (
         btormbt, pick (&rng, 1, 10), pick (&rng, 0, 5), pick (&rng, 0, 5));
     init_pd_op (btormbt, pick (&rng, 1, 5), pick (&rng, 1, 5));
@@ -2324,6 +2342,20 @@ main (int argc, char **argv)
       if (!isnumstr (argv[i]))
         die ("argument to '--max-nops' is not a number (try '-h')");
       btormbt->g_max_nops = atoi (argv[i]);
+    }
+    else if (!strcmp (argv[i], "--min-nops-inc"))
+    {
+      if (++i == argc) die ("argument to '--min-nops-inc' missing (try '-h')");
+      if (!isnumstr (argv[i]))
+        die ("argument to '--min-nops-inc' is not a number (try '-h')");
+      btormbt->g_min_nops_inc = atoi (argv[i]);
+    }
+    else if (!strcmp (argv[i], "--max-nops-inc"))
+    {
+      if (++i == argc) die ("argument to '--max-nops-inc' missing (try '-h')");
+      if (!isnumstr (argv[i]))
+        die ("argument to '--max-nops-inc' is not a number (try '-h')");
+      btormbt->g_max_nops_inc = atoi (argv[i]);
     }
     else if (!strcmp (argv[i], "--max-nops-lower"))
     {
