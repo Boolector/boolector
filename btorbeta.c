@@ -1501,7 +1501,7 @@ btor_beta_reduce_partial_aux (Btor *btor,
               /* build bv cond */
               real_cur->beta_mark = 1;
               BTOR_PUSH_STACK (mm, arg_stack, e[0]);
-              BTOR_PUSH_STACK (mm, stack, real_cur);
+              BTOR_PUSH_STACK (mm, stack, cur);
               BTOR_PUSH_STACK (mm, stack, cur_parent);
               BTOR_PUSH_STACK (mm, stack, real_cur->e[2]);
               BTOR_PUSH_STACK (mm, stack, real_cur);
