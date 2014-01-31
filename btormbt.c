@@ -95,60 +95,45 @@
   "  --bverb <verblevel>              enable boolector verbosity\n" \
   BTORMBT_LOG_USAGE \
   "\n" \
-  "  --min-nlits <val>                minimum number of literals \n"\
+  "  --nlits <min> <max>              number of literals\n" \
   "                                   (default: " \
-				      BTORMBT_M2STR (MIN_NLITS) ")\n" \
-  "  --max-nlits <val>                maximum number of literals \n" \
+                                      BTORMBT_M2STR (MIN_NLITS) " " \
+                                      BTORMBT_M2STR (MAX_NLITS) ")\n" \
+  "\n" \
+  "  --nops-init <min> <max>          number of operations " \
+                                      "for init layer\n" \
   "                                   (default: " \
-				      BTORMBT_M2STR (MAX_NLITS) ")\n" \
-  "  --min-nops-init <val>            absolute minimum number of operations \n"\
-  "                                   for init layer\n" \
+                                      BTORMBT_M2STR (MIN_NOPS_INIT) " " \
+                                      BTORMBT_M2STR (MAX_NOPS_INIT) ")\n" \
+  "  --nops <min> <max>               number of operations " \
+                                      "after init layer\n" \
   "                                   (default: " \
-				      BTORMBT_M2STR (MIN_NOPS_INIT) ")\n" \
-  "  --max-nops-init <val>            absolute maximum number of operations \n"\
-  "                                   for init layer \n" \
+                                      BTORMBT_M2STR (MIN_NOPS) " " \
+                                      BTORMBT_M2STR (MAX_NOPS) ")\n" \
+  "  --nops-inc <min> <max>           number of operations " \
+                                      "for reinitalizing\n" \
+  "                                   incremental step\n" \
   "                                   (default: " \
-				      BTORMBT_M2STR (MAX_NOPS_INIT) ")\n" \
-  "  --min-nops <val>                 absolute minimum number of operations \n"\
-  "                                   after init layer\n" \
-  "                                   (default: " \
-				      BTORMBT_M2STR (MIN_NOPS) ")\n" \
-  "  --max-nops <val>                 absolute maximum number of operations \n"\
-  "                                   after init layer\n" \
-  "                                   (default: " \
-				      BTORMBT_M2STR (MAX_NOPS) ")\n" \
-  "  --min-nops-inc <val>             absolute minimum number of operations \n"\
-  "                                   when reinitializing for inc step\n" \
-  "                                   (default: " \
-				      BTORMBT_M2STR (MIN_NOPS_INC) ")\n" \
-  "  --max-nops-inc <val>             absolute maximum number of operations \n"\
-  "                                   when reinitializing for inc step\n" \
-  "                                   (default: " \
-				      BTORMBT_M2STR (MAX_NOPS_INC) ")\n" \
+                                      BTORMBT_M2STR (MIN_NOPS_INC) " " \
+                                      BTORMBT_M2STR (MAX_NOPS_INC) ")\n" \
+  "\n" \
   "  --max-nops-lower <val>           lower bound for max-nops in current " \
                                       "round\n" \
   "                                   (default: " \
 				      BTORMBT_M2STR (MAX_NOPS_LOWER) ")\n" \
-  "  --min-nasserts-lower <val>       minimum number of assertions for "\
-                                      "current\n" \
+  "\n" \
+  "  --asserts-lower <min> <max>      number of assertions " \
+                                      "for current\n" \
   "                                   max-nops < max-nops-lower\n" \
   "                                   (default: " \
-				      BTORMBT_M2STR (MIN_NASSERTS_LOWER) ")\n" \
-  "  --max-nasserts-lower <val>       maximum number of assertions for " \
-                                      "current\n" \
-  "                                   max-nops < max-nops-lower\n" \
-  "                                   (default: " \
-				      BTORMBT_M2STR (MAX_NASSERTS_LOWER) ")\n" \
-  "  --min-nasserts-upper <val>       minimum number of assertions for "\
-                                      "current\n" \
+                                      BTORMBT_M2STR (MIN_NASSERTS_LOWER) " " \
+                                      BTORMBT_M2STR (MAX_NASSERTS_LOWER) ")\n" \
+  "  --asserts-upper <min> <max>      number of assertions " \
+                                      "for current\n" \
   "                                   max-nops >= max-nops-lower\n" \
   "                                   (default: " \
-				      BTORMBT_M2STR (MIN_NASSERTS_UPPER) ")\n" \
-  "  --max-nasserts-upper <val>       maximum number of assertions for " \
-                                      "current\n" \
-  "                                   max-nops >= max-nops-lower\n"\
-  "                                   (default: " \
-				      BTORMBT_M2STR (MAX_NASSERTS_UPPER) ")\n" \
+                                      BTORMBT_M2STR (MIN_NASSERTS_UPPER) " " \
+                                      BTORMBT_M2STR (MAX_NASSERTS_UPPER) ")\n" \
   "\n" \
   "  --p-param-exp <val>              probability of choosing parameterized " \
 				      "over\n" \
@@ -2301,60 +2286,48 @@ main (int argc, char **argv)
         die ("argument '%s' to '--bverb' not a number (try '-h')", argv[i]);
       btormbt->bverblevel = atoi (argv[i]);
     }
-    else if (!strcmp (argv[i], "--min-nlits"))
+    else if (!strcmp (argv[i], "--nlits"))
     {
-      if (++i == argc) die ("argument to '--min-nlits' missing (try '-h')");
+      if (++i == argc) die ("argument to '--nlits' missing (try '-h')");
       if (!isnumstr (argv[i]))
-        die ("argument to '--min-nlits' is not a number (try '-h')");
+        die ("argument to '--nlits' is not a number (try '-h')");
       btormbt->g_min_nlits = atoi (argv[i]);
-    }
-    else if (!strcmp (argv[i], "--max-nlits"))
-    {
-      if (++i == argc) die ("argument to '--max-nlits' missing (try '-h')");
+      if (++i == argc) die ("argument to '--nlits' missing (try '-h')");
       if (!isnumstr (argv[i]))
-        die ("argument to '--max-nlits' is not a number (try '-h')");
+        die ("argument to '--nlits' is not a number (try '-h')");
       btormbt->g_max_nlits = atoi (argv[i]);
     }
-    else if (!strcmp (argv[i], "--min-nops-init"))
+    else if (!strcmp (argv[i], "--nops-init"))
     {
-      if (++i == argc) die ("argument to '--min-nops-init' missing (try '-h')");
+      if (++i == argc) die ("argument to '--nops-init' missing (try '-h')");
       if (!isnumstr (argv[i]))
-        die ("argument to '--min-nops-init' is not a number (try '-h')");
+        die ("argument to '--nops-init' is not a number (try '-h')");
       btormbt->g_min_nops_init = atoi (argv[i]);
-    }
-    else if (!strcmp (argv[i], "--max-nops-init"))
-    {
-      if (++i == argc) die ("argument to '--max-nops-init' missing (try '-h')");
+      if (++i == argc) die ("argument to '--nops-init' missing (try '-h')");
       if (!isnumstr (argv[i]))
-        die ("argument to '--max-nops-init' is not a number (try '-h')");
+        die ("argument to '--nops-init' is not a number (try '-h')");
       btormbt->g_max_nops_init = atoi (argv[i]);
     }
-    else if (!strcmp (argv[i], "--min-nops"))
+    else if (!strcmp (argv[i], "--nops"))
     {
-      if (++i == argc) die ("argument to '--min-nops' missing (try '-h')");
+      if (++i == argc) die ("argument to '--nops' missing (try '-h')");
       if (!isnumstr (argv[i]))
-        die ("argument to '--min-nops' is not a number (try '-h')");
+        die ("argument to '--nops' is not a number (try '-h')");
       btormbt->g_min_nops = atoi (argv[i]);
-    }
-    else if (!strcmp (argv[i], "--max-nops"))
-    {
-      if (++i == argc) die ("argument to '--max-nops' missing (try '-h')");
+      if (++i == argc) die ("argument to '--nops' missing (try '-h')");
       if (!isnumstr (argv[i]))
-        die ("argument to '--max-nops' is not a number (try '-h')");
+        die ("argument to '--nops' is not a number (try '-h')");
       btormbt->g_max_nops = atoi (argv[i]);
     }
-    else if (!strcmp (argv[i], "--min-nops-inc"))
+    else if (!strcmp (argv[i], "--nops-inc"))
     {
-      if (++i == argc) die ("argument to '--min-nops-inc' missing (try '-h')");
+      if (++i == argc) die ("argument to '--nops-inc' missing (try '-h')");
       if (!isnumstr (argv[i]))
-        die ("argument to '--min-nops-inc' is not a number (try '-h')");
+        die ("argument to '--nops-inc' is not a number (try '-h')");
       btormbt->g_min_nops_inc = atoi (argv[i]);
-    }
-    else if (!strcmp (argv[i], "--max-nops-inc"))
-    {
-      if (++i == argc) die ("argument to '--max-nops-inc' missing (try '-h')");
+      if (++i == argc) die ("argument to '--nops-inc' missing (try '-h')");
       if (!isnumstr (argv[i]))
-        die ("argument to '--max-nops-inc' is not a number (try '-h')");
+        die ("argument to '--nops-inc' is not a number (try '-h')");
       btormbt->g_max_nops_inc = atoi (argv[i]);
     }
     else if (!strcmp (argv[i], "--max-nops-lower"))
@@ -2365,36 +2338,30 @@ main (int argc, char **argv)
         die ("argument to '--max-nops-lower' is not a number (try '-h')");
       btormbt->g_max_nops_lower = atoi (argv[i]);
     }
-    else if (!strcmp (argv[i], "--min-nasserts-lower"))
+    else if (!strcmp (argv[i], "--nasserts-lower"))
     {
       if (++i == argc)
-        die ("argument to '--min-nasserts-lower' missing (try '-h')");
+        die ("argument to '--nasserts-lower' missing (try '-h')");
       if (!isnumstr (argv[i]))
-        die ("argument to '--min-nasserts-lower' is not a number (try '-h')");
+        die ("argument to '--nasserts-lower' is not a number (try '-h')");
       btormbt->g_min_nasserts_lower = atoi (argv[i]);
-    }
-    else if (!strcmp (argv[i], "--max-nasserts-lower"))
-    {
       if (++i == argc)
-        die ("argument to '--max-nasserts-lower' missing (try '-h')");
+        die ("argument to '--nasserts-lower' missing (try '-h')");
       if (!isnumstr (argv[i]))
-        die ("argument to '--max-nasserts-lower' is not a number (try '-h')");
+        die ("argument to '--nasserts-lower' is not a number (try '-h')");
       btormbt->g_max_nasserts_lower = atoi (argv[i]);
     }
-    else if (!strcmp (argv[i], "--min-nasserts-upper"))
+    else if (!strcmp (argv[i], "--nasserts-upper"))
     {
       if (++i == argc)
-        die ("argument to '--min-nasserts-upper' missing (try '-h')");
+        die ("argument to '--nasserts-upper' missing (try '-h')");
       if (!isnumstr (argv[i]))
-        die ("argument to '--min-nasserts-upper' is not a number (try '-h')");
+        die ("argument to '--nasserts-upper' is not a number (try '-h')");
       btormbt->g_min_nasserts_upper = atoi (argv[i]);
-    }
-    else if (!strcmp (argv[i], "--max-nasserts-upper"))
-    {
       if (++i == argc)
-        die ("argument to '--max-nasserts-upper' missing (try '-h')");
+        die ("argument to '--nasserts-upper' missing (try '-h')");
       if (!isnumstr (argv[i]))
-        die ("argument to '--max-nasserts-upper' is not a number (try '-h')");
+        die ("argument to '--nasserts-upper' is not a number (try '-h')");
       btormbt->g_max_nasserts_upper = atoi (argv[i]);
     }
     else if (!strcmp (argv[i], "--p-param-exp"))
