@@ -53,6 +53,9 @@
 #define MIN_NASSERTS_UPPER 20
 #define MAX_NASSERTS_UPPER 30
 
+#define P_PARAM_EXP 0.5
+#define P_PARAM_ARR_EXP 0.5
+
 #define EXIT_OK 0
 #define EXIT_ERROR 1
 #define EXIT_TIMEOUT 2
@@ -135,7 +138,18 @@
                                       "current\n" \
   "                                   max-nops >= max-nops-lower\n"\
   "                                   (default: " \
-				      BTORMBT_M2STR (MAX_NASSERTS_UPPER) ")\n"
+				      BTORMBT_M2STR (MAX_NASSERTS_UPPER) ")\n" \
+  "\n" \
+  "  --p-param-exp <val>              probability of choosing parameterized " \
+				      "over\n" \
+  "                                   non-parameterized expressions\n" \
+  "                                   (default: " \
+				      BTORMBT_M2STR (P_PARAM_EXP) ")\n" \
+  "  --p-param-arr-exp <val>          probability of choosing parameterized " \
+				      "over\n" \
+  "                                   non-parameterized array expressions\n" \
+  "                                   (default: " \
+				      BTORMBT_M2STR (P_PARAM_ARR_EXP) ")\n"
 
 /*------------------------------------------------------------------------*/
 
@@ -284,22 +298,29 @@ typedef struct BtorMBT
   int bverblevel;
 
   int g_max_nrounds;
-  int g_min_nlits;          /* min number of literals in a round */
-  int g_max_nlits;          /* max number of literals in a round */
-  int g_min_nops_init;      /* min number of operations (initial layer) */
-  int g_max_nops_init;      /* max number of operations (initial layer) */
-  int g_min_nops;           /* min number of operations (after initial layer) */
-  int g_max_nops;           /* max number of operations (after initial layer) */
-  int g_max_nops_lower;     /* lower bound for current max_nops (for determining
-                               max_nass of current round) */
+
+  int g_min_nlits;     /* min number of literals in a round */
+  int g_max_nlits;     /* max number of literals in a round */
+  int g_min_nops_init; /* min number of operations (initial layer) */
+  int g_max_nops_init; /* max number of operations (initial layer) */
+  int g_min_nops;      /* min number of operations (after init. layer) */
+  int g_max_nops;      /* max number of operations (after init. layer) */
+
+  int g_max_nops_lower;     /* lower bound for current max_nops (for
+                               determining max_nass of current round) */
   int g_min_nasserts_lower; /* min number of assertions in a round
-                               for max_ops < MAX_NOPS_LOWER */
+                               for max_ops < g_max_nops_lower */
   int g_max_nasserts_lower; /* max number of assertions in a round
-                               for max_ops < MAX_NOPS_LOWER */
+                               for max_ops < g_max_nops_lower */
   int g_min_nasserts_upper; /* min number of assertions in a round
-                               for max_ops >= MAX_NOPS_LOWER */
+                               for max_ops >= g_max_nops_lower */
   int g_max_nasserts_upper; /* max number of assertions in a round
-                               for max_ops >= MAX_NOPS_LOWER */
+                               for max_ops >= g_max_nops_lower */
+
+  double p_param_exp;     /* probability of choosing parameterized expressions
+                             over non-parameterized expressions */
+  double p_param_arr_exp; /* probability of choosing parameterized expressions
+                             over non-parameterized array expressions */
 
   /* Note: no global settings after this point! Do not change order! */
 
@@ -363,6 +384,8 @@ new_btormbt (void)
   btormbt->g_max_nasserts_lower = MAX_NASSERTS_LOWER;
   btormbt->g_min_nasserts_upper = MIN_NASSERTS_UPPER;
   btormbt->g_max_nasserts_upper = MAX_NASSERTS_UPPER;
+  btormbt->p_param_exp          = P_PARAM_EXP;
+  btormbt->p_param_arr_exp      = P_PARAM_ARR_EXP;
   return btormbt;
 }
 
@@ -1035,8 +1058,8 @@ afun (BtorMBT *btormbt,
   }
 }
 
-/* Randomly select expression by given type, nodes with no parents (yet unused)
- * are preferred.
+/* Randomly select expression by given type. Nodes with no parents
+ * (yet unused) are preferred.
  */
 static BoolectorNode *
 selexp (
@@ -1050,16 +1073,14 @@ selexp (
   ExpStack *es, *bo, *bv, *arr;
   BoolectorNode *exp, *e[3];
 
-  /* choose between param. exps and non-param. exps with p = 0.5 */
+  /* choose between param. exps and non-param. exps */
   rand = pick (rng, 0, NORM_VAL - 1);
-
   assert ((!btormbt->parambo && !btormbt->parambv && !btormbt->paramarr)
           || (btormbt->parambo && btormbt->parambv && btormbt->paramarr));
   if (force_param == -1
       || (!btormbt->parambo && !btormbt->parambv && !btormbt->paramarr)
       || (!btormbt->parambo->n && !btormbt->parambv->n && !btormbt->paramarr->n)
-      || (force_param == 0 && (rand < 0.5 * NORM_VAL)))
-  // FIXME store p value in btormbt
+      || (force_param == 0 && (rand >= btormbt->p_param_exp * NORM_VAL)))
   {
     bo  = &btormbt->bo;
     bv  = &btormbt->bv;
@@ -1153,16 +1174,14 @@ selarrexp (BtorMBT *btormbt,
   ExpStack *es;
   BoolectorNode *sel_e, *e[3];
 
-  /* choose between param. exps and non-param. exps with p = 0.5 */
+  /* choose between param. exps and non-param. array exps */
   rand = pick (rng, 0, NORM_VAL - 1);
-
   assert ((!btormbt->parambo && !btormbt->parambv && !btormbt->paramarr)
           || (btormbt->parambo && btormbt->parambv && btormbt->paramarr));
   if (force_param == -1
       || (!btormbt->parambo && !btormbt->parambv && !btormbt->paramarr)
       || (!btormbt->parambo->n && !btormbt->parambv->n && !btormbt->paramarr->n)
-      || (force_param == 0 && (rand < 0.5 * NORM_VAL)))
-    // FIXME store p value in btormbt
+      || (force_param == 0 && (rand >= btormbt->p_param_arr_exp * NORM_VAL)))
     es = &btormbt->arr;
   else
     es = btormbt->paramarr;
@@ -2083,6 +2102,15 @@ isnumstr (const char *str)
   return 1;
 }
 
+static int
+isfloatnumstr (const char *str)
+{
+  const char *p;
+  for (p = str; *p; p++)
+    if (!isdigit (*p) && !*p == '.') return 0;
+  return 1;
+}
+
 static void
 die (const char *msg, ...)
 {
@@ -2255,10 +2283,6 @@ main (int argc, char **argv)
         die ("argument '%s' to '--bverb' not a number (try '-h')", argv[i]);
       btormbt->bverblevel = atoi (argv[i]);
     }
-    else if (!isnumstr (argv[i]))
-    {
-      die ("invalid command line option '%s' (try '-h')", argv[i]);
-    }
     else if (!strcmp (argv[i], "--min-nlits"))
     {
       if (++i == argc) die ("argument to '--min-nlits' missing (try '-h')");
@@ -2340,6 +2364,29 @@ main (int argc, char **argv)
       if (!isnumstr (argv[i]))
         die ("argument to '--max-nasserts-upper' is not a number (try '-h')");
       btormbt->g_max_nasserts_upper = atoi (argv[i]);
+    }
+    else if (!strcmp (argv[i], "--p-param-exp"))
+    {
+      if (++i == argc) die ("argument to '--p-param-exp' missing (try '-h')");
+      if (!isfloatnumstr (argv[i]))
+        die ("argument to '--p-param-exp' is not a number (try '-h')");
+      btormbt->p_param_exp = atof (argv[i]);
+      if (btormbt->p_param_exp > 1.0)
+        die ("argument to '--p-param-exp' must be < 1.0");
+    }
+    else if (!strcmp (argv[i], "--p-param-arr-exp"))
+    {
+      if (++i == argc)
+        die ("argument to '--p-param-arr-exp' missing (try '-h')");
+      if (!isfloatnumstr (argv[i]))
+        die ("argument to '--p-param-arr-exp' is not a number (try '-h')");
+      btormbt->p_param_arr_exp = atof (argv[i]);
+      if (btormbt->p_param_exp > 1.0)
+        die ("argument to '--p-param-arr-exp' must be < 1.0");
+    }
+    else if (!isnumstr (argv[i]))
+    {
+      die ("invalid command line option '%s' (try '-h')", argv[i]);
     }
     else
     {
