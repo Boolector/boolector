@@ -37,7 +37,9 @@
 #endif
 
 #define ENABLE_APPLY_PROP_DOWN 1
+#ifndef NDEBUG
 #define BTOR_CHECK_MODEL
+#endif
 
 /*------------------------------------------------------------------------*/
 
@@ -7449,8 +7451,7 @@ check_model (Btor *btor, Btor *clone, BtorPtrHashTable *inputs)
 
   if (clone->rewrite_level == 3)
   {
-    // FIXME: still a problem with full beta reduction
-    //      btor_enable_beta_reduce_all (clone);
+    btor_enable_beta_reduce_all (clone);
     ret = btor_simplify (clone);
   }
 
