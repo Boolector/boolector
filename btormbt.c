@@ -1582,7 +1582,7 @@ _init (BtorMBT *btormbt, unsigned r)
   /* how many operations should be assertions?
    * -> max_nops and nass should be in relation (the more ops, the more
    * assertions) in order to keep the sat/unsat ratio balanced */
-  if (btormbt->max_nops < 50)
+  if (btormbt->max_nops < btormbt->g_max_nops_lower)
     btormbt->max_nass = BTORMBT_MIN (btormbt->max_nops,
                                      pick (&rng,
                                            btormbt->g_min_nasserts_lower,
