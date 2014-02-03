@@ -67,6 +67,18 @@
 #define MAX_NOPS 100
 #define MIN_NOPS_INC 20
 #define MAX_NOPS_INC 50
+#define MIN_NADDOPS_INIT 1
+#define MAX_NADDOPS_INIT 1
+#define MIN_NADDOPS 1
+#define MAX_NADDOPS 8
+#define MIN_NADDOPS_INC 1
+#define MAX_NADDOPS_INC 5
+#define MIN_NRELOPS_INIT 0
+#define MAX_NRELOPS_INIT 0
+#define MIN_NRELOPS 1
+#define MAX_NRELOPS 3
+#define MIN_NRELOPS_INC 1
+#define MAX_NRELOPS_INC 5
 #define MAX_NOPS_LOWER 50
 #define MIN_NASSERTS_LOWER 5
 #define MAX_NASSERTS_LOWER 25
@@ -185,6 +197,39 @@
   "                                   (default: " \
                                       BTORMBT_M2STR (MIN_NOPS_INC) " " \
                                       BTORMBT_M2STR (MAX_NOPS_INC) ")\n" \
+  "\n" \
+  "  --naddops-init <min> <max>       number of add operations " \
+                                      "for init layer\n" \
+  "                                   (default: " \
+                                      BTORMBT_M2STR (MIN_NADDOPS_INIT) " " \
+                                      BTORMBT_M2STR (MAX_NADDOPS_INIT) ")\n" \
+  "  --naddops <min> <max>            number of add operations " \
+                                      "after init layer\n" \
+  "                                   (default: " \
+                                      BTORMBT_M2STR (MIN_NADDOPS) " " \
+                                      BTORMBT_M2STR (MAX_NADDOPS) ")\n" \
+  "  --naddops-inc <min> <max>        number of add operations " \
+                                      "for reinitalizing\n" \
+  "                                   incremental step\n" \
+  "                                   (default: " \
+                                      BTORMBT_M2STR (MIN_NADDOPS_INC) " " \
+                                      BTORMBT_M2STR (MAX_NADDOPS_INC) ")\n" \
+  "  --nrelops-init <min> <max>       number of release operations " \
+                                      "for init layer\n" \
+  "                                   (default: " \
+                                      BTORMBT_M2STR (MIN_NRELOPS_INIT) " " \
+                                      BTORMBT_M2STR (MAX_NRELOPS_INIT) ")\n" \
+  "  --nrelops <min> <max>            number of release operations " \
+                                      "after init layer\n" \
+  "                                   (default: " \
+                                      BTORMBT_M2STR (MIN_NRELOPS) " " \
+                                      BTORMBT_M2STR (MAX_NRELOPS) ")\n" \
+  "  --nrelops-inc <min> <max>        number of release operations " \
+                                      "for reinitalizing\n" \
+  "                                   incremental step\n" \
+  "                                   (default: " \
+                                      BTORMBT_M2STR (MIN_NRELOPS_INC) " " \
+                                      BTORMBT_M2STR (MAX_NRELOPS_INC) ")\n" \
   "\n" \
   "  --max-nops-lower <val>           lower bound for max-nops in current " \
                                       "round\n" \
@@ -417,6 +462,20 @@ typedef struct BtorMBT
   int g_min_nops_inc;  /* min number of operations (reinit inc step) */
   int g_max_nops_inc;  /* max number of operations (reinit inc step) */
 
+  int g_min_naddops_init; /* min number of add ops (initial layer) */
+  int g_max_naddops_init; /* max number of add ops (initial layer) */
+  int g_min_naddops;      /* min number of add ops (after init. layer) */
+  int g_max_naddops;      /* max number of add ops (after init. layer) */
+  int g_min_naddops_inc;  /* min number of add ops (reinit inc step) */
+  int g_max_naddops_inc;  /* max number of add ops (reinit inc step) */
+
+  int g_min_nrelops_init; /* min number of release ops (initial layer) */
+  int g_max_nrelops_init; /* max number of release ops (initial layer) */
+  int g_min_nrelops;      /* min number of rel. ops (after init. layer) */
+  int g_max_nrelops;      /* max number of rel. ops (after init. layer) */
+  int g_min_nrelops_inc;  /* min number of rel. ops (reinit inc step) */
+  int g_max_nrelops_inc;  /* max number of release ops (reinit inc step) */
+
   int g_max_nops_lower; /* lower bound for current max_nops (for
                            determining max_nass of current round) */
 
@@ -441,6 +500,19 @@ typedef struct BtorMBT
   int p_cond;          /* probability of choosing cond over eq/ne */
   int p_eq;            /* probability of choosing eq over ne */
   int p_inc;           /* probability of choosing an incremental step */
+
+  int r_addop_init; /* number of add operations (wrt to number of release
+                       operations (initial layer) */
+  int r_relop_init; /* number of release operations (wrt to number of
+                       add operations (initial layer) */
+  int r_addop;      /* number of add operations (wrt to number of release
+                       operations (after initial layer) */
+  int r_relop;      /* number of release operations (wrt to number of
+                       add operations (after initial layer) */
+  int r_addop_inc;  /* number of add operations (wrt to number of release
+                       operations (reinit inc step) */
+  int r_relop_inc;  /* number of release operations (wrt to number of
+                       add operations (reinit inc step) */
 
   /* Note: no global settings after this point! Do not change order! */
 
@@ -520,6 +592,18 @@ new_btormbt (void)
   btormbt->g_max_nops           = MAX_NOPS;
   btormbt->g_min_nops_inc       = MIN_NOPS_INC;
   btormbt->g_max_nops_inc       = MAX_NOPS_INC;
+  btormbt->g_min_naddops_init   = MIN_NADDOPS_INIT;
+  btormbt->g_max_naddops_init   = MAX_NADDOPS_INIT;
+  btormbt->g_min_naddops        = MIN_NADDOPS;
+  btormbt->g_max_naddops        = MAX_NADDOPS;
+  btormbt->g_min_naddops_inc    = MIN_NADDOPS_INC;
+  btormbt->g_max_naddops_inc    = MAX_NADDOPS_INC;
+  btormbt->g_min_nrelops_init   = MIN_NRELOPS_INIT;
+  btormbt->g_max_nrelops_init   = MAX_NRELOPS_INIT;
+  btormbt->g_min_nrelops        = MIN_NRELOPS;
+  btormbt->g_max_nrelops        = MAX_NRELOPS;
+  btormbt->g_min_nrelops_inc    = MIN_NRELOPS_INC;
+  btormbt->g_max_nrelops_inc    = MAX_NRELOPS_INC;
   btormbt->g_min_nasserts_lower = MIN_NASSERTS_LOWER;
   btormbt->g_max_nasserts_lower = MAX_NASSERTS_LOWER;
   btormbt->g_min_nasserts_upper = MIN_NASSERTS_UPPER;
@@ -660,7 +744,7 @@ init_pd_addop (BtorMBT *btormbt,
  * normalized to NORM_VAL
  */
 static void
-init_pd_op (BtorMBT *btormbt, float ratio_addop, float ratio_relop)
+init_pd_ops (BtorMBT *btormbt, float ratio_addop, float ratio_relop)
 {
   float sum;
 
@@ -1627,7 +1711,11 @@ _new (BtorMBT *btormbt, unsigned r)
       pick (&rng, btormbt->g_min_narrs_init, btormbt->g_max_narrs_init));
 
   /* no delete operation at init */
-  init_pd_op (btormbt, 1, 0);
+  init_pd_ops (
+      btormbt,
+      pick (&rng, btormbt->g_min_naddops_init, btormbt->g_max_naddops_init),
+      pick (&rng, btormbt->g_min_nrelops_init, btormbt->g_max_nrelops_init));
+
   /* no additional lits at init */
   init_pd_addop (
       btormbt, pick (&rng, 1, 10), pick (&rng, 0, 5), pick (&rng, 0, 5), 0);
@@ -1743,7 +1831,9 @@ _init (BtorMBT *btormbt, unsigned r)
                 pick (&rng, btormbt->g_min_nvars, btormbt->g_max_nvars),
                 pick (&rng, btormbt->g_min_nconsts, btormbt->g_max_nconsts),
                 pick (&rng, btormbt->g_min_narrs, btormbt->g_max_narrs));
-  init_pd_op (btormbt, pick (&rng, 1, 8), pick (&rng, 1, 3));
+  init_pd_ops (btormbt,
+               pick (&rng, btormbt->g_min_naddops, btormbt->g_max_naddops),
+               pick (&rng, btormbt->g_min_nrelops, btormbt->g_max_nrelops));
   init_pd_addop (btormbt,
                  pick (&rng, 1, 10),
                  pick (&rng, 0, 5),
@@ -2092,7 +2182,10 @@ _inc (BtorMBT *btormbt, unsigned r)
         pick (&rng, btormbt->g_min_nvars_inc, btormbt->g_max_nvars_inc),
         pick (&rng, btormbt->g_min_nconsts_inc, btormbt->g_max_nconsts_inc),
         pick (&rng, btormbt->g_min_narrs_inc, btormbt->g_max_narrs_inc));
-    init_pd_op (btormbt, pick (&rng, 1, 5), pick (&rng, 1, 5));
+    init_pd_ops (
+        btormbt,
+        pick (&rng, btormbt->g_min_naddops_inc, btormbt->g_max_naddops_inc),
+        pick (&rng, btormbt->g_min_nrelops_inc, btormbt->g_max_nrelops_inc));
     init_pd_addop (btormbt,
                    pick (&rng, 1, 10),
                    pick (&rng, 0, 5),
@@ -2590,6 +2683,72 @@ main (int argc, char **argv)
       if (!isnumstr (argv[i]))
         die ("argument to '--nops-inc' is not a number (try '-h')");
       btormbt->g_max_nops_inc = atoi (argv[i]);
+    }
+    else if (!strcmp (argv[i], "--naddops-init"))
+    {
+      if (++i == argc) die ("argument to '--naddops-init' missing (try '-h')");
+      if (!isnumstr (argv[i]))
+        die ("argument to '--naddops-init' is not a number (try '-h')");
+      btormbt->g_min_naddops_init = atoi (argv[i]);
+      if (++i == argc) die ("argument to '--naddops-init' missing (try '-h')");
+      if (!isnumstr (argv[i]))
+        die ("argument to '--naddops-init' is not a number (try '-h')");
+      btormbt->g_max_naddops_init = atoi (argv[i]);
+    }
+    else if (!strcmp (argv[i], "--naddops"))
+    {
+      if (++i == argc) die ("argument to '--naddops' missing (try '-h')");
+      if (!isnumstr (argv[i]))
+        die ("argument to '--naddops' is not a number (try '-h')");
+      btormbt->g_min_naddops = atoi (argv[i]);
+      if (++i == argc) die ("argument to '--naddops' missing (try '-h')");
+      if (!isnumstr (argv[i]))
+        die ("argument to '--naddops' is not a number (try '-h')");
+      btormbt->g_max_naddops = atoi (argv[i]);
+    }
+    else if (!strcmp (argv[i], "--naddops-inc"))
+    {
+      if (++i == argc) die ("argument to '--naddops-inc' missing (try '-h')");
+      if (!isnumstr (argv[i]))
+        die ("argument to '--naddops-inc' is not a number (try '-h')");
+      btormbt->g_min_naddops_inc = atoi (argv[i]);
+      if (++i == argc) die ("argument to '--naddops-inc' missing (try '-h')");
+      if (!isnumstr (argv[i]))
+        die ("argument to '--naddops-inc' is not a number (try '-h')");
+      btormbt->g_max_naddops_inc = atoi (argv[i]);
+    }
+    else if (!strcmp (argv[i], "--nrelops-init"))
+    {
+      if (++i == argc) die ("argument to '--nrelops-init' missing (try '-h')");
+      if (!isnumstr (argv[i]))
+        die ("argument to '--nrelops-init' is not a number (try '-h')");
+      btormbt->g_min_nrelops_init = atoi (argv[i]);
+      if (++i == argc) die ("argument to '--nrelops-init' missing (try '-h')");
+      if (!isnumstr (argv[i]))
+        die ("argument to '--nrelops-init' is not a number (try '-h')");
+      btormbt->g_max_nrelops_init = atoi (argv[i]);
+    }
+    else if (!strcmp (argv[i], "--nrelops"))
+    {
+      if (++i == argc) die ("argument to '--nrelops' missing (try '-h')");
+      if (!isnumstr (argv[i]))
+        die ("argument to '--nrelops' is not a number (try '-h')");
+      btormbt->g_min_nrelops = atoi (argv[i]);
+      if (++i == argc) die ("argument to '--nrelops' missing (try '-h')");
+      if (!isnumstr (argv[i]))
+        die ("argument to '--nrelops' is not a number (try '-h')");
+      btormbt->g_max_nrelops = atoi (argv[i]);
+    }
+    else if (!strcmp (argv[i], "--nrelops-inc"))
+    {
+      if (++i == argc) die ("argument to '--nrelops-inc' missing (try '-h')");
+      if (!isnumstr (argv[i]))
+        die ("argument to '--nrelops-inc' is not a number (try '-h')");
+      btormbt->g_min_nrelops_inc = atoi (argv[i]);
+      if (++i == argc) die ("argument to '--nrelops-inc' missing (try '-h')");
+      if (!isnumstr (argv[i]))
+        die ("argument to '--nrelops-inc' is not a number (try '-h')");
+      btormbt->g_max_nrelops_inc = atoi (argv[i]);
     }
     else if (!strcmp (argv[i], "--max-nops-lower"))
     {
