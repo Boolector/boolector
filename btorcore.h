@@ -223,7 +223,7 @@ struct Btor
     double reachable;
     double lemma_gen;
     double find_nenc_app;
-    double find_param_app;
+    double find_prop_app;
     double cloning;
   } time;
 };
