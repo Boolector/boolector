@@ -43,6 +43,24 @@
 #define MAX_NNESTEDBFUNS 50
 #define MIN_NLITS 3
 #define MAX_NLITS 30
+#define MIN_NVARS_INIT 1
+#define MAX_NVARS_INIT 10
+#define MIN_NVARS 1
+#define MAX_NVARS 10
+#define MIN_NVARS_INC 1
+#define MAX_NVARS_INC 10
+#define MIN_NCONSTS_INIT 0
+#define MAX_NCONSTS_INIT 5
+#define MIN_NCONSTS 0
+#define MAX_NCONSTS 5
+#define MIN_NCONSTS_INC 0
+#define MAX_NCONSTS_INC 5
+#define MIN_NARRS_INIT 2
+#define MAX_NARRS_INIT 5
+#define MIN_NARRS 0
+#define MAX_NARRS 5
+#define MIN_NARRS_INC 0
+#define MAX_NARRS_INC 5
 #define MIN_NOPS_INIT 0
 #define MAX_NOPS_INIT 50
 #define MIN_NOPS 20
@@ -105,6 +123,51 @@
   "                                   (default: " \
                                       BTORMBT_M2STR (MIN_NLITS) " " \
                                       BTORMBT_M2STR (MAX_NLITS) ")\n" \
+  "  --nvars-init <min> <max>         number of variables for initial layer\n" \
+  "                                   (default: "\
+				      BTORMBT_M2STR (MIN_NVARS_INIT) " " \
+				      BTORMBT_M2STR (MAX_NVARS_INIT) ")\n" \
+  "  --nvars <min> <max>              number of variables after initial " \
+				      "layer\n" \
+  "                                   (default: "\
+				      BTORMBT_M2STR (MIN_NVARS) " " \
+				      BTORMBT_M2STR (MAX_NVARS) ")\n" \
+  "  --nvars-inc <min> <max>          number of variables " \
+				      "for reinitializing\n"\
+  "                                   incremental step\n" \
+  "                                   (default: "\
+				      BTORMBT_M2STR (MIN_NVARS_INC) " " \
+				      BTORMBT_M2STR (MAX_NVARS_INC) ")\n" \
+  "  --nconsts-init <min> <max>       number of constants for initial layer\n" \
+  "                                   (default: "\
+				      BTORMBT_M2STR (MIN_NCONSTS_INIT) " " \
+				      BTORMBT_M2STR (MAX_NCONSTS_INIT) ")\n" \
+  "  --nconsts <min> <max>            number of constants after initial " \
+				      "layer\n" \
+  "                                   (default: "\
+				      BTORMBT_M2STR (MIN_NCONSTS) " " \
+				      BTORMBT_M2STR (MAX_NCONSTS) ")\n" \
+  "  --nconsts-inc <min> <max>        number of constants " \
+				      "for reinitializing\n"\
+  "                                   incremental step\n" \
+  "                                   (default: "\
+				      BTORMBT_M2STR (MIN_NCONSTS_INC) " " \
+				      BTORMBT_M2STR (MAX_NCONSTS_INC) ")\n" \
+  "  --narrs-init <min> <max>         number of arrays for initial layer\n" \
+  "                                   (default: "\
+				      BTORMBT_M2STR (MIN_NARRS_INIT) " " \
+				      BTORMBT_M2STR (MAX_NARRS_INIT) ")\n" \
+  "  --narrs <min> <max>              number of arrays after initial " \
+				      "layer\n" \
+  "                                   (default: "\
+				      BTORMBT_M2STR (MIN_NARRS) " " \
+				      BTORMBT_M2STR (MAX_NARRS) ")\n" \
+  "  --narrs-inc <min> <max>          number of arrays " \
+				      "for reinitializing\n"\
+  "                                   incremental step\n" \
+  "                                   (default: "\
+				      BTORMBT_M2STR (MIN_NARRS_INC) " " \
+				      BTORMBT_M2STR (MAX_NARRS_INC) ")\n" \
   "\n" \
   "  --nops-init <min> <max>          number of operations " \
                                       "for init layer\n" \
@@ -326,6 +389,27 @@ typedef struct BtorMBT
   int g_min_nlits; /* min number of literals in a round */
   int g_max_nlits; /* max number of literals in a round */
 
+  int g_min_nvars_init; /* min number of variables (initial layer) */
+  int g_max_nvars_init; /* max number of variables (initial layer) */
+  int g_min_nvars;      /* min number of variables (after init. layer) */
+  int g_max_nvars;      /* max number of variables (after init. layer) */
+  int g_min_nvars_inc;  /* min number of variables (reinit inc step) */
+  int g_max_nvars_inc;  /* max number of variables (reinit inc step) */
+
+  int g_min_nconsts_init; /* min number of constants (initial layer) */
+  int g_max_nconsts_init; /* max number of constants (initial layer) */
+  int g_min_nconsts;      /* min number of constants (after init. layer) */
+  int g_max_nconsts;      /* max number of constants (after init. layer) */
+  int g_min_nconsts_inc;  /* min number of constants (reinit inc step) */
+  int g_max_nconsts_inc;  /* max number of constants (reinit inc step) */
+
+  int g_min_narrs_init; /* min number of arrays (initial layer) */
+  int g_max_narrs_init; /* max number of arrays (initial layer) */
+  int g_min_narrs;      /* min number of arrays (after init. layer) */
+  int g_max_narrs;      /* max number of arrays (after init. layer) */
+  int g_min_narrs_inc;  /* min number of arrays (reinit inc step) */
+  int g_max_narrs_inc;  /* max number of arrays (reinit inc step) */
+
   int g_min_nops_init; /* min number of operations (initial layer) */
   int g_max_nops_init; /* max number of operations (initial layer) */
   int g_min_nops;      /* min number of operations (after init. layer) */
@@ -412,6 +496,24 @@ new_btormbt (void)
   btormbt->ext                  = 0;
   btormbt->g_min_nlits          = MIN_NLITS;
   btormbt->g_max_nlits          = MAX_NLITS;
+  btormbt->g_min_nvars_init     = MIN_NVARS_INIT;
+  btormbt->g_max_nvars_init     = MAX_NVARS_INIT;
+  btormbt->g_min_nvars          = MIN_NVARS;
+  btormbt->g_max_nvars          = MAX_NVARS;
+  btormbt->g_min_nvars_inc      = MIN_NVARS_INC;
+  btormbt->g_max_nvars_inc      = MAX_NVARS_INC;
+  btormbt->g_min_nconsts_init   = MIN_NCONSTS_INIT;
+  btormbt->g_max_nconsts_init   = MAX_NCONSTS_INIT;
+  btormbt->g_min_nconsts        = MIN_NCONSTS;
+  btormbt->g_max_nconsts        = MAX_NCONSTS;
+  btormbt->g_min_nconsts_inc    = MIN_NCONSTS_INC;
+  btormbt->g_max_nconsts_inc    = MAX_NCONSTS_INC;
+  btormbt->g_min_narrs_init     = MIN_NARRS_INIT;
+  btormbt->g_max_narrs_init     = MAX_NARRS_INIT;
+  btormbt->g_min_narrs          = MIN_NARRS;
+  btormbt->g_max_narrs          = MAX_NARRS;
+  btormbt->g_min_narrs_inc      = MIN_NARRS_INC;
+  btormbt->g_max_narrs_inc      = MAX_NARRS_INC;
   btormbt->g_min_nops_init      = MIN_NOPS_INIT;
   btormbt->g_max_nops_init      = MAX_NOPS_INIT;
   btormbt->g_min_nops           = MIN_NOPS;
@@ -1519,7 +1621,10 @@ _new (BtorMBT *btormbt, unsigned r)
       pick (&rng, btormbt->g_min_nops_init, btormbt->g_max_nops_init);
 
   init_pd_lits (
-      btormbt, pick (&rng, 1, 10), pick (&rng, 0, 5), pick (&rng, 2, 5));
+      btormbt,
+      pick (&rng, btormbt->g_min_nvars_init, btormbt->g_max_nvars_init),
+      pick (&rng, btormbt->g_min_nconsts_init, btormbt->g_max_nconsts_init),
+      pick (&rng, btormbt->g_min_narrs_init, btormbt->g_max_narrs_init));
 
   /* no delete operation at init */
   init_pd_op (btormbt, 1, 0);
@@ -1634,11 +1739,10 @@ _init (BtorMBT *btormbt, unsigned r)
     btormbt->max_nass = pick (
         &rng, btormbt->g_min_nasserts_upper, btormbt->g_max_nasserts_upper);
 
-  //  FIXME externalise
-  //  init_pd_lits (btormbt, pick (&rng, 1, 10), pick (&rng, 0, 5),
-  //		pick (&rng, 0, 5));
-  init_pd_lits (
-      btormbt, pick (&rng, 1, 10), pick (&rng, 0, 5), pick (&rng, 0, 5));
+  init_pd_lits (btormbt,
+                pick (&rng, btormbt->g_min_nvars, btormbt->g_max_nvars),
+                pick (&rng, btormbt->g_min_nconsts, btormbt->g_max_nconsts),
+                pick (&rng, btormbt->g_min_narrs, btormbt->g_max_narrs));
   init_pd_op (btormbt, pick (&rng, 1, 8), pick (&rng, 1, 3));
   init_pd_addop (btormbt,
                  pick (&rng, 1, 10),
@@ -1809,6 +1913,7 @@ _bfun (BtorMBT *btormbt, unsigned r)
   return (btormbt->is_init ? _main : _init);
 }
 
+// FIXME s/lit/input
 static void *
 _lit (BtorMBT *btormbt, unsigned r)
 {
@@ -1982,9 +2087,11 @@ _inc (BtorMBT *btormbt, unsigned r)
     btormbt->max_nops =
         pick (&rng, btormbt->g_min_nops_inc, btormbt->g_max_nops_inc);
 
-    // FIXME externalize
     init_pd_lits (
-        btormbt, pick (&rng, 1, 10), pick (&rng, 0, 5), pick (&rng, 0, 5));
+        btormbt,
+        pick (&rng, btormbt->g_min_nvars_inc, btormbt->g_max_nvars_inc),
+        pick (&rng, btormbt->g_min_nconsts_inc, btormbt->g_max_nconsts_inc),
+        pick (&rng, btormbt->g_min_narrs_inc, btormbt->g_max_narrs_inc));
     init_pd_op (btormbt, pick (&rng, 1, 5), pick (&rng, 1, 5));
     init_pd_addop (btormbt,
                    pick (&rng, 1, 10),
@@ -2351,6 +2458,105 @@ main (int argc, char **argv)
       if (!isnumstr (argv[i]))
         die ("argument to '--nlits' is not a number (try '-h')");
       btormbt->g_max_nlits = atoi (argv[i]);
+    }
+    else if (!strcmp (argv[i], "--nvars-init"))
+    {
+      if (++i == argc) die ("argument to '--nvars-init' missing (try '-h')");
+      if (!isnumstr (argv[i]))
+        die ("argument to '--nvars-init' is not a number (try '-h')");
+      btormbt->g_min_nvars_init = atoi (argv[i]);
+      if (++i == argc) die ("argument to '--nvars-init' missing (try '-h')");
+      if (!isnumstr (argv[i]))
+        die ("argument to '--nvars-init' is not a number (try '-h')");
+      btormbt->g_max_nvars_init = atoi (argv[i]);
+    }
+    else if (!strcmp (argv[i], "--nvars"))
+    {
+      if (++i == argc) die ("argument to '--nvars' missing (try '-h')");
+      if (!isnumstr (argv[i]))
+        die ("argument to '--nvars' is not a number (try '-h')");
+      btormbt->g_min_nvars = atoi (argv[i]);
+      if (++i == argc) die ("argument to '--nvars' missing (try '-h')");
+      if (!isnumstr (argv[i]))
+        die ("argument to '--nvars' is not a number (try '-h')");
+      btormbt->g_max_nvars = atoi (argv[i]);
+    }
+    else if (!strcmp (argv[i], "--nvars-inc"))
+    {
+      if (++i == argc) die ("argument to '--nvars-inc' missing (try '-h')");
+      if (!isnumstr (argv[i]))
+        die ("argument to '--nvars-inc' is not a number (try '-h')");
+      btormbt->g_min_nvars_inc = atoi (argv[i]);
+      if (++i == argc) die ("argument to '--nvars-inc' missing (try '-h')");
+      if (!isnumstr (argv[i]))
+        die ("argument to '--nvars-inc' is not a number (try '-h')");
+      btormbt->g_max_nvars_inc = atoi (argv[i]);
+    }
+    else if (!strcmp (argv[i], "--nconsts-init"))
+    {
+      if (++i == argc) die ("argument to '--nconsts-init' missing (try '-h')");
+      if (!isnumstr (argv[i]))
+        die ("argument to '--nconsts-init' is not a number (try '-h')");
+      btormbt->g_min_nconsts_init = atoi (argv[i]);
+      if (++i == argc) die ("argument to '--nconsts-init' missing (try '-h')");
+      if (!isnumstr (argv[i]))
+        die ("argument to '--nconsts-init' is not a number (try '-h')");
+      btormbt->g_max_nconsts_init = atoi (argv[i]);
+    }
+    else if (!strcmp (argv[i], "--nconsts"))
+    {
+      if (++i == argc) die ("argument to '--nconsts' missing (try '-h')");
+      if (!isnumstr (argv[i]))
+        die ("argument to '--nconsts' is not a number (try '-h')");
+      btormbt->g_min_nconsts = atoi (argv[i]);
+      if (++i == argc) die ("argument to '--nconsts' missing (try '-h')");
+      if (!isnumstr (argv[i]))
+        die ("argument to '--nconsts' is not a number (try '-h')");
+      btormbt->g_max_nconsts = atoi (argv[i]);
+    }
+    else if (!strcmp (argv[i], "--nconsts-inc"))
+    {
+      if (++i == argc) die ("argument to '--nconsts-inc' missing (try '-h')");
+      if (!isnumstr (argv[i]))
+        die ("argument to '--nconsts-inc' is not a number (try '-h')");
+      btormbt->g_min_nconsts_inc = atoi (argv[i]);
+      if (++i == argc) die ("argument to '--nconsts-inc' missing (try '-h')");
+      if (!isnumstr (argv[i]))
+        die ("argument to '--nconsts-inc' is not a number (try '-h')");
+      btormbt->g_max_nconsts_inc = atoi (argv[i]);
+    }
+    else if (!strcmp (argv[i], "--narrs-init"))
+    {
+      if (++i == argc) die ("argument to '--narrs-init' missing (try '-h')");
+      if (!isnumstr (argv[i]))
+        die ("argument to '--narrs-init' is not a number (try '-h')");
+      btormbt->g_min_narrs_init = atoi (argv[i]);
+      if (++i == argc) die ("argument to '--narrs-init' missing (try '-h')");
+      if (!isnumstr (argv[i]))
+        die ("argument to '--narrs-init' is not a number (try '-h')");
+      btormbt->g_max_narrs_init = atoi (argv[i]);
+    }
+    else if (!strcmp (argv[i], "--narrs"))
+    {
+      if (++i == argc) die ("argument to '--narrs' missing (try '-h')");
+      if (!isnumstr (argv[i]))
+        die ("argument to '--narrs' is not a number (try '-h')");
+      btormbt->g_min_narrs = atoi (argv[i]);
+      if (++i == argc) die ("argument to '--narrs' missing (try '-h')");
+      if (!isnumstr (argv[i]))
+        die ("argument to '--narrs' is not a number (try '-h')");
+      btormbt->g_max_narrs = atoi (argv[i]);
+    }
+    else if (!strcmp (argv[i], "--narrs-inc"))
+    {
+      if (++i == argc) die ("argument to '--narrs-inc' missing (try '-h')");
+      if (!isnumstr (argv[i]))
+        die ("argument to '--narrs-inc' is not a number (try '-h')");
+      btormbt->g_min_narrs_inc = atoi (argv[i]);
+      if (++i == argc) die ("argument to '--narrs-inc' missing (try '-h')");
+      if (!isnumstr (argv[i]))
+        die ("argument to '--narrs-inc' is not a number (try '-h')");
+      btormbt->g_max_narrs_inc = atoi (argv[i]);
     }
     else if (!strcmp (argv[i], "--nops-init"))
     {
