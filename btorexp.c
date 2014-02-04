@@ -712,9 +712,6 @@ erase_local_data_exp (Btor *btor, BtorNode *exp, int free_symbol)
       }
       break;
     case BTOR_PARAM_NODE:
-      assert (BTOR_EMPTY_STACK (((BtorParamNode *) exp)->assigned_exp));
-      BTOR_RELEASE_STACK (mm, ((BtorParamNode *) exp)->assigned_exp);
-      /* fall through wanted */
     case BTOR_PROXY_NODE:
     case BTOR_BV_VAR_NODE:
       if (free_symbol)

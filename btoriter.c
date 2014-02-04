@@ -252,13 +252,15 @@ queue_node_hash_table_iterator (BtorHashTableIterator *it, BtorPtrHashTable *t)
   assert (t);
   assert (it->num_queued < BTOR_HASH_TABLE_ITERATOR_STACK_SIZE);
 
-  it->stack[it->num_queued++] = t;
-
   /* if initial table is empty, initialize with queued table */
   if (!it->bucket)
   {
     it->bucket = t->first;
     it->cur    = it->bucket ? it->bucket->key : 0;
+  }
+  else
+  {
+    it->stack[it->num_queued++] = t;
   }
 }
 
