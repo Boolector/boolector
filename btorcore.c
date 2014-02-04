@@ -793,6 +793,8 @@ btor_print_stats_btor (Btor *btor)
   btor_msg (btor, 1, "");
   btor_msg (btor, 1, "%.2f seconds beta-reduction", btor->time.beta);
   btor_msg (btor, 1, "%.2f seconds expression evaluation", btor->time.eval);
+  btor_msg (
+      btor, 1, "%.2f seconds synthesize expressions", btor->time.synth_exp);
   btor_msg (btor, 1, "%.2f seconds lazy apply encoding", btor->time.enc_app);
   btor_msg (
       btor, 1, "%.2f seconds lazy lambda encoding", btor->time.enc_lambda);
@@ -3965,10 +3967,12 @@ synthesize_exp (Btor *btor, BtorNode *exp, BtorPtrHashTable *backannotation)
   int invert_av0 = 0;
   int invert_av1 = 0;
   int invert_av2 = 0;
+  double start;
 
   assert (btor);
   assert (exp);
 
+  start = btor_time_stamp ();
   mm    = btor->mm;
   avmgr = btor->avmgr;
   count = 0;
@@ -4029,68 +4033,30 @@ synthesize_exp (Btor *btor, BtorNode *exp, BtorPtrHashTable *backannotation)
           }
         }
       }
-      else if (BTOR_IS_ARRAY_VAR_NODE (cur))
+      else if (BTOR_IS_APPLY_NODE (cur) && !cur->parameterized)
       {
-        /* nothing to synthesize for array base case */
+        cur->av = btor_var_aigvec (avmgr, cur->len);
+        BTORLOG ("  synthesized: %s", node2string (cur));
+        assert (BTOR_IS_REGULAR_NODE (cur->e[0]));
+        assert (BTOR_IS_FUN_NODE (cur->e[0]));
       }
-      else if (BTOR_IS_LAMBDA_NODE (cur))
+      else if (BTOR_IS_FUN_NODE (cur))
       {
-        // TODO: do we have to synthesize the children?
-        // this will be done with lazy_synth anyways
-        goto REGULAR_CASE;
+        /* we stop at function nodes as they will be lazily synthesized
+         * and encoded during consistency checking */
       }
       else
       {
-        /* Writes and Lambda expressions cannot be reached directly,
-         * hence we stop the synthesis as soon as we reach reads or
-         * array equalities.  If we synthesize writes later, we only
-         * synthesize its index and value, but not the write itself.
-         * If there are no reads or array equalities on a write, then
-         * it is not reachable. (Lambdas are treated similarly.)
-         */
-        //	      assert (!BTOR_IS_LAMBDA_NODE (cur));
-
-        /* Atomic arrays and array conditionals should also not be
-         * reached directly.
-         */
-        //	      assert (!BTOR_IS_ARRAY_VAR_NODE (cur));
         assert (!BTOR_IS_FUN_NODE (cur));
-
-        /* special cases */
-        if (BTOR_IS_APPLY_NODE (cur) && !cur->parameterized)
-        {
-          cur->av = btor_var_aigvec (avmgr, cur->len);
-          BTORLOG ("  synthesized: %s", node2string (cur));
-          assert (BTOR_IS_REGULAR_NODE (cur->e[0]));
-          assert (BTOR_IS_FUN_NODE (cur->e[0]));
-          goto REGULAR_CASE;
-        }
-#if 0
-	      else if (BTOR_IS_ARRAY_EQ_NODE (cur) && !cur->parameterized)
-		{
-		  /* Generate virtual reads and create AIG variable for
-		   * array equality.
-		   */
-		  synthesize_array_equality (btor, cur);
-		  BTOR_PUSH_STACK (mm, exp_stack, cur->e[1]);
-		  BTOR_PUSH_STACK (mm, exp_stack, cur->e[0]);
-		  goto REGULAR_CASE;
-		}
-#endif
+        /* always skip argument nodes and parameterized nodes */
+        if (cur->parameterized || BTOR_IS_ARGS_NODE (cur))
+          cur->synth_mark = 2;
         else
-        {
-        REGULAR_CASE:
-          // TODO: get rid of no_synth (use BTOR_IS_ARGS_NODE instead)
-          /* always skip lambda and parameterized nodes */
-          if (BTOR_IS_LAMBDA_NODE (cur) || cur->parameterized || cur->no_synth)
-            cur->synth_mark = 2;
-          else
-            cur->synth_mark = 1;
+          cur->synth_mark = 1;
 
-          BTOR_PUSH_STACK (mm, exp_stack, cur);
-          for (i = cur->arity - 1; i >= 0; i--)
-            BTOR_PUSH_STACK (mm, exp_stack, cur->e[i]);
-        }
+        BTOR_PUSH_STACK (mm, exp_stack, cur);
+        for (i = cur->arity - 1; i >= 0; i--)
+          BTOR_PUSH_STACK (mm, exp_stack, cur->e[i]);
       }
     }
     else
@@ -4234,6 +4200,8 @@ synthesize_exp (Btor *btor, BtorNode *exp, BtorPtrHashTable *backannotation)
 
   if (count > 0 && btor->verbosity > 3)
     btor_msg (btor, 3, "synthesized %u expressions into AIG vectors", count);
+
+  btor->time.synth_exp += btor_time_stamp () - start;
 }
 
 static void
@@ -4874,9 +4842,6 @@ lazy_synthesize_and_encode_lambda_exp (Btor *btor,
   BTORLOG ("%s: %s", __FUNCTION__, node2string (lambda_exp));
 
   cur = BTOR_REAL_ADDR_NODE (BTOR_LAMBDA_GET_BODY (lambda_exp));
-
-  if (!BTOR_IS_SYNTH_NODE (cur)) synthesize_exp (btor, cur, 0);
-
   BTOR_PUSH_STACK (mm, work_stack, cur);
 
   while (!BTOR_EMPTY_STACK (work_stack))
@@ -4896,6 +4861,7 @@ lazy_synthesize_and_encode_lambda_exp (Btor *btor,
     if (!BTOR_IS_ARGS_NODE (cur) && !BTOR_IS_LAMBDA_NODE (cur)
         && !cur->parameterized)
     {
+      if (!BTOR_IS_SYNTH_NODE (cur)) synthesize_exp (btor, cur, 0);
       assert (BTOR_IS_SYNTH_NODE (cur));
       assert (!cur->tseitin);
       BTORLOG ("  encode: %s", node2string (cur));
