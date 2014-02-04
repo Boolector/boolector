@@ -93,7 +93,7 @@ static void btor_check_failed_assumptions (Btor *, Btor *);
 /*------------------------------------------------------------------------*/
 
 const char *const g_btor_op2string[] = {
-    "invalid", "const", "var",    "array", "param", "slice",  "and",
+    "invalid", "const", "var",    "array", "param", "slice",  "And",
     "beq",     "aeq",   "add",    "mul",   "ult",   "sll",    "srl",
     "udiv",    "urem",  "concat", "read",  "apply", "lambda", "write",
     "bcond",   "acond", "args",   "proxy"};
@@ -6984,7 +6984,7 @@ btor_sat_aux_btor (Btor *btor)
 {
   assert (btor);
 
-  int sat_result, simp_sat_result, found_conflict, verbosity, refinements;
+  int sat_result, simp_sat_result, found_conflict, refinements;
   BtorNodePtrStack prop_stack;
   BtorAIGMgr *amgr;
   BtorSATMgr *smgr;
@@ -6992,7 +6992,7 @@ btor_sat_aux_btor (Btor *btor)
   Btor *clone = 0;
 #endif
 
-  verbosity = btor->verbosity;
+  BTOR_INIT_STACK (prop_stack);
 
   if (btor->inconsistent) goto UNSAT;
 
@@ -7059,8 +7059,6 @@ btor_sat_aux_btor (Btor *btor)
 
   sat_result = btor_timed_sat_sat (btor, -1);
 
-  BTOR_INIT_STACK (prop_stack);
-
   while (sat_result == BTOR_SAT)
   {
     assert (BTOR_EMPTY_STACK (prop_stack));
@@ -7078,7 +7076,7 @@ btor_sat_aux_btor (Btor *btor)
     // TODO: move into function, where lemma is added
     btor->stats.lod_refinements++;
 
-    if (verbosity == 1)
+    if (btor->verbosity == 1)
     {
       refinements = btor->stats.lod_refinements;
       fprintf (stdout,
@@ -7089,10 +7087,10 @@ btor_sat_aux_btor (Btor *btor)
                btor->ops[BTOR_APPLY_NODE]);
       fflush (stdout);
     }
-    else if (verbosity > 1)
+    else if (btor->verbosity > 1)
     {
       refinements = btor->stats.lod_refinements;
-      if (verbosity > 2 || !(refinements % 10))
+      if (btor->verbosity > 2 || !(refinements % 10))
       {
         fprintf (stdout, "[btorsat] refinement iteration %d\n", refinements);
         fflush (stdout);
@@ -7114,9 +7112,9 @@ btor_sat_aux_btor (Btor *btor)
     add_again_assumptions (btor);
     sat_result = btor_timed_sat_sat (btor, -1);
   }
-  BTOR_RELEASE_STACK (btor->mm, prop_stack);
 
 DONE:
+  BTOR_RELEASE_STACK (btor->mm, prop_stack);
   btor->valid_assignments = 1;
   BTOR_ABORT_CORE (sat_result != BTOR_SAT && sat_result != BTOR_UNSAT,
                    "result must be sat or unsat");
