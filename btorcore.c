@@ -6856,7 +6856,7 @@ BTOR_CONFLICT_CHECK:
     app = BTOR_POP_STACK (top_applies);
     assert (BTOR_IS_REGULAR_NODE (app));
     assert (BTOR_IS_APPLY_NODE (app));
-    assert (app->reachable);
+    assert (app->reachable || app->vread);
     assert (!app->parameterized);
 
     if (app->propagated) continue;
