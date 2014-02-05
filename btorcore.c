@@ -1013,8 +1013,7 @@ btor_delete_btor (Btor *btor)
     assert (btor->external_refs == 0);
 #ifndef NDEBUG
     for (i = BTOR_COUNT_STACK (btor->nodes_id_table) - 1; i >= 0; i--)
-      assert (getenv ("BTORLEAK")
-              || !BTOR_PEEK_STACK (btor->nodes_id_table, i));
+      assert (!BTOR_PEEK_STACK (btor->nodes_id_table, i));
 #endif
   }
 #ifndef NDEBUG
