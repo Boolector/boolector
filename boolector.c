@@ -1010,18 +1010,21 @@ boolector_set_verbosity (Btor *btor, int verbosity)
 #endif
 }
 
-#ifndef NBTORLOG
 void
 boolector_set_loglevel (Btor *btor, int loglevel)
 {
+#ifndef NBTORLOG
   BTOR_ABORT_ARG_NULL_BOOLECTOR (btor);
   BTOR_TRAPI ("set_loglevel %d", loglevel);
   btor_set_loglevel_btor (btor, loglevel);
 #ifndef NDEBUG
   BTOR_CHKCLONE_NORES (set_loglevel, loglevel);
 #endif
-}
+#else
+  (void) btor;
+  (void) loglevel;
 #endif
+}
 
 int
 boolector_set_sat_solver (Btor *btor, const char *solver)
