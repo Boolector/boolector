@@ -4705,8 +4705,12 @@ clone_exp_layer_negated (Btor *btor)
   assert (clone->unsynthesized_constraints->count);
   btor_enable_inc_usage (clone);
 
+  /* we treat assumptions as roots here (does not make a difference for
+   * dual propagation as we discard the clone after determining the initial
+   * top applies anyhow) */
   root = 0;
   init_node_hash_table_iterator (clone, &it, clone->unsynthesized_constraints);
+  queue_node_hash_table_iterator (&it, clone->assumptions);
   while (has_next_node_hash_table_iterator (&it))
   {
     cur                                   = next_node_hash_table_iterator (&it);
@@ -4722,15 +4726,22 @@ clone_exp_layer_negated (Btor *btor)
   }
   root = BTOR_INVERT_NODE (root);
   init_node_hash_table_iterator (clone, &it, clone->unsynthesized_constraints);
+  queue_node_hash_table_iterator (&it, clone->assumptions);
   while (has_next_node_hash_table_iterator (&it))
     btor_release_exp (clone, next_node_hash_table_iterator (&it));
   btor_delete_ptr_hash_table (clone->unsynthesized_constraints);
+  btor_delete_ptr_hash_table (clone->assumptions);
   clone->unsynthesized_constraints =
+      btor_new_ptr_hash_table (clone->mm,
+                               (BtorHashPtr) btor_hash_exp_by_id,
+                               (BtorCmpPtr) btor_compare_exp_by_id);
+  clone->assumptions =
       btor_new_ptr_hash_table (clone->mm,
                                (BtorHashPtr) btor_hash_exp_by_id,
                                (BtorCmpPtr) btor_compare_exp_by_id);
   btor_assert_exp (clone, root);
   btor_release_exp (clone, root);
+
   return clone;
 }
 
@@ -4806,6 +4817,7 @@ search_initial_applies_dual_prop (Btor *btor, BtorNodePtrStack *top_applies)
     assert (BTOR_IS_REGULAR_NODE (cur_btor));
     btor_release_exp (btor, cur_btor);
 
+    // TODO use init_x_values
     ass_str = btor_bv_assignment_str_exp (btor, cur_btor);
     for (i = 0; i < cur_btor->len; i++)
       ass_str[i] = ass_str[i] == 'x' ? '0' : ass_str[i];

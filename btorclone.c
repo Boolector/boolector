@@ -737,6 +737,7 @@ btor_clone_exp_layer (Btor *btor)
   //        (char *) btor + sizeof (*btor) - (char *) &btor->stats);
   assert ((allocated = sizeof (Btor)) == clone->mm->allocated);
   clone->btor_sat_btor_called = 0; /* reset */
+  clone->valid_assignments    = 0; /* reset */
 
   clone->avmgr = btor_new_aigvec_mgr (mm);
   assert ((allocated += sizeof (BtorAIGVecMgr) + sizeof (BtorAIGMgr)
