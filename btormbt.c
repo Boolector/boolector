@@ -151,8 +151,8 @@
   "  -k, --keep-lines                 do not clear output lines\n" \
   "  -a, --always-fork                fork even if seed given\n" \
   "  -n, --no-modelgen                do not enable model generation \n" \
-  "  -e, --extensionality	      use extensionality\n" \
-  "  -d, --dual-prop		      enable dual prop optimization\n" \
+  "  -e, --extensionality             use extensionality\n" \
+  "  -d, --dual-prop                  enable dual prop optimization\n" \
   "\n" \
   "  -f, --quit-after-first           quit after first bug encountered\n" \
   "  -m <maxruns>                     quit after <maxruns> rounds\n" \
@@ -323,7 +323,7 @@
   "  --max-nops-lower <val>           lower bound for max-nops in current " \
                                       "round\n" \
   "                                   (default: " \
-				      BTORMBT_M2STR (MAX_NOPS_LOWER) ")\n" \
+                                      BTORMBT_M2STR (MAX_NOPS_LOWER) ")\n" \
   "\n" \
   "  --asserts-lower <min> <max>      number of assertions " \
                                       "for current\n" \
@@ -339,38 +339,38 @@
                                       BTORMBT_M2STR (MAX_NASSERTS_UPPER) ")\n" \
   "\n" \
   "  --p-param-exp <val>              probability of choosing parameterized " \
-				      "over\n" \
+                                      "over\n" \
   "                                   non-parameterized expressions\n" \
   "                                   (default: " \
-				      BTORMBT_M2STR (P_PARAM_EXP) ")\n" \
+                                      BTORMBT_M2STR (P_PARAM_EXP) ")\n" \
   "  --p-param-arr-exp <val>          probability of choosing parameterized " \
-				      "over\n" \
+                                      "over\n" \
   "                                   non-parameterized array expressions\n" \
   "                                   (default: " \
-				      BTORMBT_M2STR (P_PARAM_ARR_EXP) ")\n" \
+                                      BTORMBT_M2STR (P_PARAM_ARR_EXP) ")\n" \
   " --p-apply-fun <val>               probability of choosing an apply on\n" \
   "                                   existing over new function\n" \
   "                                   (default: " \
-				      BTORMBT_M2STR (P_APPLY_FUN) ")\n" \
+                                      BTORMBT_M2STR (P_APPLY_FUN) ")\n" \
   " --p-rw <val>                      probability of choosing read/write\n" \
   "                                   over eq/ne/cond\n" \
   "                                   (default: " \
-				      BTORMBT_M2STR (P_RW) ")\n" \
+                                      BTORMBT_M2STR (P_RW) ")\n" \
   " --p-read <val>                    probability of choosing read over " \
                                       "write\n" \
   "                                   (default: " \
-				      BTORMBT_M2STR (P_READ) ")\n" \
+                                      BTORMBT_M2STR (P_READ) ")\n" \
   " --p-cond <val>                    probability of choosing cond over " \
                                       "eq/ne\n" \
   "                                   (default: " \
-				      BTORMBT_M2STR (P_COND) ")\n" \
+                                      BTORMBT_M2STR (P_COND) ")\n" \
   " --p-eq <val>                      probability of choosing eq over ne\n" \
   "                                   (default: " \
-				      BTORMBT_M2STR (P_EQ) ")\n" \
+                                      BTORMBT_M2STR (P_EQ) ")\n" \
   " --p-inc <val>                     probability of choosing an " \
                                       "incremental step\n" \
   "                                   (default: " \
-				      BTORMBT_M2STR (P_INC) ")\n"
+                                      BTORMBT_M2STR (P_INC) ")\n"
 
 /*------------------------------------------------------------------------*/
 
