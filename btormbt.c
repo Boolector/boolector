@@ -644,7 +644,7 @@ typedef struct BtorMBT
   int r_relop_inc;  /* number of release operations (wrt to number of
                        add operations (reinit inc step) */
 
-  Btor *clone;
+  Btor *clone; /* for discrepancy check when enabling dual prop */
 
   /* Note: no global settings after this point! Do not change order! */
 

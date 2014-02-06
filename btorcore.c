@@ -916,7 +916,7 @@ btor_new_btor (void)
   btor->chk_failed_assumptions = 1;
 #endif
   // TODO debug
-  btor->dual_prop = 1;
+  // btor->dual_prop = 1;
 
   BTOR_PUSH_STACK (btor->mm, btor->nodes_id_table, 0);
 
@@ -6984,6 +6984,7 @@ DONE:
     btor_delete_btor (clone);
   }
 #endif
+  printf ("-- sat result: %d\n", sat_result);
   return sat_result;
 }
 

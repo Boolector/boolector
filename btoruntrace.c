@@ -30,16 +30,17 @@
 #define BTORUNT_LOG_USAGE ""
 #endif
 
-#define BTORUNT_USAGE                                            \
-  "usage: btoruntrace [ <option> ... ] [ <trace> ]\n"            \
-  "\n"                                                           \
-  "where <option> is one of the following:\n"                    \
-  "\n"                                                           \
-  "  -v, --verbose              increase verbosity\n"            \
-  "  -e, --exit-on-abort        exit on boolector abort\n"       \
-  "  -s, --skip-getters         skip 'getter' functions\n"       \
-  "  -i, --ignore-sat-result    do not exit on mismatching sat " \
-  "result\n" BTORUNT_LOG_USAGE
+#define BTORUNT_USAGE                                                    \
+  "usage: btoruntrace [ <option> ... ] [ <trace> ]\n"                    \
+  "\n"                                                                   \
+  "where <option> is one of the following:\n"                            \
+  "\n"                                                                   \
+  "  -v, --verbose              increase verbosity\n"                    \
+  "  -e, --exit-on-abort        exit on boolector abort\n"               \
+  "  -s, --skip-getters         skip 'getter' functions\n"               \
+  "  -i, --ignore-sat-result    do not exit on mismatching sat result\n" \
+  "  -d, --dual-prop            enable dual prop "                       \
+  "optimization\n" BTORUNT_LOG_USAGE
 
 /*------------------------------------------------------------------------*/
 
@@ -50,6 +51,7 @@ typedef struct BtorUNT
   int line;
   int skip;
   int ignore_sat;
+  int dual_prop;
   int blog_level;
   char *filename;
 } BtorUNT;
@@ -322,6 +324,7 @@ NEXT:
     PARSE_ARGS0 (tok);
     btor = boolector_new ();
     if (btorunt->blog_level) boolector_set_loglevel (btor, btorunt->blog_level);
+    if (btorunt->dual_prop) boolector_enable_dual_prop (btor);
   }
   else if (!strcmp (tok, "clone"))
   {
@@ -1099,6 +1102,8 @@ main (int argc, char **argv)
     else if (!strcmp (argv[i], "-i")
              || !strcmp (argv[i], "--ignore-sat-result"))
       btorunt->ignore_sat = 1;
+    else if (!strcmp (argv[i], "-d") || !strcmp (argv[i], "--enable-dual-prop"))
+      btorunt->dual_prop = 1;
     else if (!strcmp (argv[i], "--blog"))
     {
       if (++i == argc) die ("argument to '--blog' missing (try '-h')");
