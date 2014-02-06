@@ -25,19 +25,21 @@
 #ifndef NBTORLOG
 #define BTORUNT_LOG_USAGE \
   "\n"                    \
-  "  --blog <loglevel>      enable boolector logging\n"
+  "  --blog <loglevel>          enable boolector logging\n"
 #else
 #define BTORUNT_LOG_USAGE ""
 #endif
 
-#define BTORUNT_USAGE                                  \
-  "usage: btoruntrace [ <option> ... ] [ <trace> ]\n"  \
-  "\n"                                                 \
-  "where <option> is one of the following:\n"          \
-  "\n"                                                 \
-  "  -v, --verbose          increase verbosity\n"      \
-  "  -e, --exit-on-abort    exit on boolector abort\n" \
-  "  -s, --skip-getters     skip 'getter' functions\n" BTORUNT_LOG_USAGE
+#define BTORUNT_USAGE                                            \
+  "usage: btoruntrace [ <option> ... ] [ <trace> ]\n"            \
+  "\n"                                                           \
+  "where <option> is one of the following:\n"                    \
+  "\n"                                                           \
+  "  -v, --verbose              increase verbosity\n"            \
+  "  -e, --exit-on-abort        exit on boolector abort\n"       \
+  "  -s, --skip-getters         skip 'getter' functions\n"       \
+  "  -i, --ignore-sat-result    do not exit on mismatching sat " \
+  "result\n" BTORUNT_LOG_USAGE
 
 /*------------------------------------------------------------------------*/
 
