@@ -1092,11 +1092,11 @@ main (int argc, char **argv)
     else if (!strcmp (argv[i], "-i")
              || !strcmp (argv[i], "--ignore-sat-result"))
       btorunt->ignore_sat = 1;
-    else if (!strcmp (argv[i], "-blog"))
+    else if (!strcmp (argv[i], "--blog"))
     {
-      if (++i == argc) die ("argument to '-blog' missing (try '-h')");
+      if (++i == argc) die ("argument to '--blog' missing (try '-h')");
       if (!isnumstr (argv[i]))
-        die ("argument to '-blog' is not a number (try '-h')");
+        die ("argument to '--blog' is not a number (try '-h')");
       btorunt->blog_level = atoi (argv[i]);
     }
     else if (argv[i][0] == '-')
