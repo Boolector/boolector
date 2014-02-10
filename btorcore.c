@@ -4711,6 +4711,7 @@ search_initial_applies_dual_prop (Btor *btor, BtorNodePtrStack *top_applies)
 #endif
   btor_enable_inc_usage (clone);
   btor_set_loglevel_btor (clone, 0);
+  btor_set_verbosity_btor (clone, 0);
   clone->dual_prop = 0;  // FIXME should be redundant
   assert (check_unique_table_aux_mark_unset_dbg (btor));
 
@@ -7142,6 +7143,7 @@ btor_sat_btor (Btor *btor)
   BtorPtrHashTable *inputs;
   mclone = btor_clone_btor (btor);
   btor_set_loglevel_btor (mclone, 0);
+  btor_set_verbosity_btor (mclone, 0);
   mclone->dual_prop = 0;  // FIXME necessary?
   inputs            = map_inputs_check_model (btor, mclone);
   btor_enable_force_cleanup (mclone);
