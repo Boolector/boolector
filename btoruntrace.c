@@ -25,19 +25,21 @@
 #ifndef NBTORLOG
 #define BTORUNT_LOG_USAGE \
   "\n"                    \
-  "  --blog <loglevel>      enable boolector logging\n"
+  "  --blog <loglevel>          enable boolector logging\n"
 #else
 #define BTORUNT_LOG_USAGE ""
 #endif
 
-#define BTORUNT_USAGE                                  \
-  "usage: btoruntrace [ <option> ... ] [ <trace> ]\n"  \
-  "\n"                                                 \
-  "where <option> is one of the following:\n"          \
-  "\n"                                                 \
-  "  -v, --verbose          increase verbosity\n"      \
-  "  -e, --exit-on-abort    exit on boolector abort\n" \
-  "  -s, --skip-getters     skip 'getter' functions\n" BTORUNT_LOG_USAGE
+#define BTORUNT_USAGE                                            \
+  "usage: btoruntrace [ <option> ... ] [ <trace> ]\n"            \
+  "\n"                                                           \
+  "where <option> is one of the following:\n"                    \
+  "\n"                                                           \
+  "  -v, --verbose              increase verbosity\n"            \
+  "  -e, --exit-on-abort        exit on boolector abort\n"       \
+  "  -s, --skip-getters         skip 'getter' functions\n"       \
+  "  -i, --ignore-sat-result    do not exit on mismatching sat " \
+  "result\n" BTORUNT_LOG_USAGE
 
 /*------------------------------------------------------------------------*/
 
@@ -1092,11 +1094,11 @@ main (int argc, char **argv)
     else if (!strcmp (argv[i], "-i")
              || !strcmp (argv[i], "--ignore-sat-result"))
       btorunt->ignore_sat = 1;
-    else if (!strcmp (argv[i], "-blog"))
+    else if (!strcmp (argv[i], "--blog"))
     {
-      if (++i == argc) die ("argument to '-blog' missing (try '-h')");
+      if (++i == argc) die ("argument to '--blog' missing (try '-h')");
       if (!isnumstr (argv[i]))
-        die ("argument to '-blog' is not a number (try '-h')");
+        die ("argument to '--blog' is not a number (try '-h')");
       btorunt->blog_level = atoi (argv[i]);
     }
     else if (argv[i][0] == '-')
