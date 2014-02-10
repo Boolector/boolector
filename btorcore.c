@@ -6549,6 +6549,7 @@ btor_sat_aux_btor (Btor *btor)
   BtorNodePtrStack prop_stack;
 
   verbosity = btor->verbosity;
+  BTOR_INIT_STACK (prop_stack);
 
   if (btor->inconsistent) goto UNSAT;
 
@@ -6603,7 +6604,6 @@ btor_sat_aux_btor (Btor *btor)
 
   sat_result = btor_timed_sat_sat (btor, -1);
 
-  BTOR_INIT_STACK (prop_stack);
   while (sat_result == BTOR_SAT)
   {
     found_conflict = check_and_resolve_conflicts (btor, &prop_stack);
@@ -6649,9 +6649,9 @@ btor_sat_aux_btor (Btor *btor)
     add_again_assumptions (btor);
     sat_result = btor_timed_sat_sat (btor, -1);
   }
-  BTOR_RELEASE_STACK (btor->mm, prop_stack);
 
 DONE:
+  BTOR_RELEASE_STACK (btor->mm, prop_stack);
 
   //  assert (sat_result != BTOR_SAT || check_applies_dbg (btor));
 
