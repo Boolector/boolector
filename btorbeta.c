@@ -1,6 +1,6 @@
 /*  Boolector: Satisfiablity Modulo Theories (SMT) solver.
  *
- *  Copyright (C) 2012-2013 Aina Niemetz.
+ *  Copyright (C) 2012-2014 Aina Niemetz.
  *  Copyright (C) 2012-2014 Mathias Preiner.
  *  Copyright (C) 2013 Armin Biere.
  *
@@ -1229,7 +1229,8 @@ btor_beta_reduce_partial_aux (Btor *btor,
                               BtorPtrHashTable *cond_sel1,
                               BtorPtrHashTable *cond_sel2,
                               int *evalerr,
-                              BtorPtrHashTable *to_prop)
+                              BtorPtrHashTable *to_prop,
+                              BtorPtrHashTable *conds)
 {
   assert (btor);
   assert (exp);
@@ -1467,6 +1468,15 @@ btor_beta_reduce_partial_aux (Btor *btor,
             {
               // TODO: result for real_cur not cached anymore as we
               //       skip the bv_cond
+
+              if (btor->dual_prop && conds
+                  && !btor_find_in_ptr_hash_table (conds,
+                                                   BTOR_REAL_ADDR_NODE (e[0])))
+              {
+                btor_insert_in_ptr_hash_table (
+                    conds, btor_copy_exp (btor, BTOR_REAL_ADDR_NODE (e[0])));
+              }
+
               tmp                 = 0;
               real_cur->beta_mark = 2;
               if (eval_res[0] == '1')
@@ -1665,10 +1675,12 @@ BtorNode *
 btor_beta_reduce_partial (Btor *btor,
                           BtorNode *exp,
                           int *evalerr,
-                          BtorPtrHashTable *to_prop)
+                          BtorPtrHashTable *to_prop,
+                          BtorPtrHashTable *conds)
 {
   BTORLOG ("%s: %s", __FUNCTION__, node2string (exp));
-  return btor_beta_reduce_partial_aux (btor, exp, 0, 0, evalerr, to_prop);
+  return btor_beta_reduce_partial_aux (
+      btor, exp, 0, 0, evalerr, to_prop, conds);
 }
 
 BtorNode *
@@ -1682,7 +1694,7 @@ btor_beta_reduce_partial_collect (Btor *btor,
   int evalerr;
   BtorNode *res;
   res = btor_beta_reduce_partial_aux (
-      btor, exp, cond_sel1, cond_sel2, &evalerr, 0);
+      btor, exp, cond_sel1, cond_sel2, &evalerr, 0, 0);
   //  assert (!evalerr);
   return res;
 #else

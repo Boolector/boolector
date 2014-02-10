@@ -224,6 +224,7 @@ struct Btor
     double lemma_gen;
     double find_nenc_app;
     double find_prop_app;
+    double find_cond_prop_app;
     double cloning;
     double synth_exp;
   } time;

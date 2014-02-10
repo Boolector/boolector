@@ -838,6 +838,12 @@ btor_print_stats_btor (Btor *btor)
             1,
             "%.2f seconds propagation apply search",
             btor->time.find_prop_app);
+  if (btor->dual_prop)
+    btor_msg (btor,
+              1,
+              "%.2f seconds propagation apply in conds search",
+              btor->time.find_prop_app);
+  btor_msg (btor, 1, "%.2f seconds for cloning", btor->time.cloning);
   btor_msg (btor, 1, "");
   btor_msg (btor, 1, "%.2f seconds in rewriting engine", btor->time.rewrite);
   btor_msg (btor, 1, "%.2f seconds in pure SAT solving", btor->time.sat);
@@ -6093,7 +6099,7 @@ add_lemma (Btor *btor, BtorNode *fun, BtorNode *app0, BtorNode *app1)
     args = app0->e[1];
     btor_assign_args (btor, fun, args);
 #ifndef NDEBUG
-    value = btor_beta_reduce_partial (btor, fun, &evalerr, 0);
+    value = btor_beta_reduce_partial (btor, fun, &evalerr, 0, 0);
 //      assert (!evalerr);
 #else
     value = btor_beta_reduce_partial (btor, fun, 0, 0);
@@ -6315,6 +6321,58 @@ push_applies_for_propagation (Btor *btor,
   btor->time.find_prop_app += btor_time_stamp () - start;
 }
 
+static void
+push_applies_from_cond_for_propagation (Btor *btor,
+                                        BtorNode *exp,
+                                        BtorNodePtrStack *prop_stack)
+{
+  assert (btor);
+  assert (exp);
+  assert (BTOR_IS_REGULAR_NODE (exp));
+  assert (prop_stack);
+  assert (check_unique_table_mark_unset_dbg (btor));
+
+  int i;
+  double start;
+  BtorNode *cur;
+  BtorNodePtrStack visit, unmark;
+
+  start = btor_time_stamp ();
+  BTOR_INIT_STACK (visit);
+  BTOR_INIT_STACK (unmark);
+  BTOR_PUSH_STACK (btor->mm, visit, exp);
+
+  while (!BTOR_EMPTY_STACK (visit))
+  {
+    cur = BTOR_REAL_ADDR_NODE (BTOR_POP_STACK (visit));
+
+    if (cur->mark || BTOR_IS_FUN_NODE (cur)) continue;
+
+    cur->mark = 1;
+    BTOR_PUSH_STACK (btor->mm, unmark, cur);
+
+    if (BTOR_IS_APPLY_NODE (cur) && !cur->parameterized)
+    {
+      BTOR_PUSH_STACK (btor->mm, *prop_stack, cur);
+      BTOR_PUSH_STACK (btor->mm, *prop_stack, cur->e[0]);
+    }
+
+    for (i = 0; i < cur->arity; i++)
+      BTOR_PUSH_STACK (btor->mm, visit, cur->e[i]);
+  }
+  BTOR_RELEASE_STACK (btor->mm, visit);
+
+  while (!BTOR_EMPTY_STACK (unmark))
+  {
+    cur = BTOR_POP_STACK (unmark);
+    assert (BTOR_IS_REGULAR_NODE (cur));
+    assert (cur->mark);
+    cur->mark = 0;
+  }
+  BTOR_RELEASE_STACK (btor->mm, unmark);
+  btor->time.find_cond_prop_app += btor_time_stamp () - start;
+}
+
 static int
 propagate (Btor *btor,
            BtorNodePtrStack *prop_stack,
@@ -6334,12 +6392,13 @@ propagate (Btor *btor,
   char *fun_value_assignment, *app_assignment;
   BtorMemMgr *mm;
   BtorLambdaNode *lambda;
-  BtorNode *fun, *app, *args, *fun_value, *param_app;
+  BtorNode *fun, *app, *args, *fun_value, *param_app, *cond;
   BtorNode *hashed_app, *prev_fun_value;
   BtorPtrHashBucket *b;
   BtorNodePtrStack param_apps;
   BtorHashTableIterator it;
   BtorPtrHashTable *to_prop;
+  BtorPtrHashTable *conds;
 
   BTOR_INIT_STACK (param_apps);
 
@@ -6347,6 +6406,11 @@ propagate (Btor *btor,
   to_prop = btor_new_ptr_hash_table (mm,
                                      (BtorHashPtr) btor_hash_exp_by_id,
                                      (BtorCmpPtr) btor_compare_exp_by_id);
+  conds   = btor->dual_prop
+              ? btor_new_ptr_hash_table (mm,
+                                         (BtorHashPtr) btor_hash_exp_by_id,
+                                         (BtorCmpPtr) btor_compare_exp_by_id)
+              : 0;
 
   BTORLOG ("");
   BTORLOG ("*** %s", __FUNCTION__);
@@ -6376,6 +6440,13 @@ propagate (Btor *btor,
     if (*assignments_changed)
     {
       btor_delete_ptr_hash_table (to_prop);
+      if (btor->dual_prop)
+      {
+        init_node_hash_table_iterator (btor, &it, conds);
+        while (has_next_node_hash_table_iterator (&it))
+          btor_release_exp (btor, next_node_hash_table_iterator (&it));
+        btor_delete_ptr_hash_table (conds);
+      }
       return 0;
     }
 
@@ -6413,6 +6484,13 @@ propagate (Btor *btor,
           btor->stats.function_congruence_conflicts++;
           add_lemma (btor, fun, hashed_app, app);
           btor_delete_ptr_hash_table (to_prop);
+          if (btor->dual_prop)
+          {
+            init_node_hash_table_iterator (btor, &it, conds);
+            while (has_next_node_hash_table_iterator (&it))
+              btor_release_exp (btor, next_node_hash_table_iterator (&it));
+            btor_delete_ptr_hash_table (conds);
+          }
           return 1;
         }
         else
@@ -6437,6 +6515,13 @@ propagate (Btor *btor,
     if (*assignments_changed)
     {
       btor_delete_ptr_hash_table (to_prop);
+      if (btor->dual_prop)
+      {
+        init_node_hash_table_iterator (btor, &it, conds);
+        while (has_next_node_hash_table_iterator (&it))
+          btor_release_exp (btor, next_node_hash_table_iterator (&it));
+        btor_delete_ptr_hash_table (conds);
+      }
       return 0;
     }
 
@@ -6447,7 +6532,7 @@ propagate (Btor *btor,
   PROPAGATE_BETA_REDUCE_PARTIAL:
     btor_assign_args (btor, fun, args);
     assert (to_prop->count == 0);
-    fun_value = btor_beta_reduce_partial (btor, fun, &evalerr, to_prop);
+    fun_value = btor_beta_reduce_partial (btor, fun, &evalerr, to_prop, conds);
     assert (!BTOR_IS_LAMBDA_NODE (BTOR_REAL_ADDR_NODE (fun_value)));
     btor_unassign_params (btor, fun);
 
@@ -6533,6 +6618,13 @@ propagate (Btor *btor,
         {
           btor_release_exp (btor, fun_value);
           btor_delete_ptr_hash_table (to_prop);
+          if (btor->dual_prop)
+          {
+            init_node_hash_table_iterator (btor, &it, conds);
+            while (has_next_node_hash_table_iterator (&it))
+              btor_release_exp (btor, next_node_hash_table_iterator (&it));
+            btor_delete_ptr_hash_table (conds);
+          }
           BTOR_RELEASE_STACK (mm, param_apps);
           if (prev_fun_value) btor_release_exp (btor, prev_fun_value);
           return 0;
@@ -6604,6 +6696,17 @@ propagate (Btor *btor,
         btor->stats.propagations_down++;
         app->propagated = 0;
         BTORLOG ("  propagate down: %s", node2string (app));
+        if (btor->dual_prop)
+        {
+          init_node_hash_table_iterator (btor, &it, conds);
+          while (has_next_node_hash_table_iterator (&it))
+          {
+            cond = next_node_hash_table_iterator (&it);
+            push_applies_from_cond_for_propagation (btor, cond, prop_stack);
+            btor_remove_from_ptr_hash_table (conds, cond, 0, 0);
+            btor_release_exp (btor, cond);
+          }
+        }
       }
       else
       {
@@ -6630,11 +6733,29 @@ propagate (Btor *btor,
           add_lemma (btor, fun, app, 0);
           btor_release_exp (btor, fun_value);
           btor_delete_ptr_hash_table (to_prop);
+          if (btor->dual_prop)
+          {
+            init_node_hash_table_iterator (btor, &it, conds);
+            while (has_next_node_hash_table_iterator (&it))
+              btor_release_exp (btor, next_node_hash_table_iterator (&it));
+            btor_delete_ptr_hash_table (conds);
+          }
           if (prev_fun_value) btor_release_exp (btor, prev_fun_value);
           return 1;
         }
 
         push_applies_for_propagation (btor, fun_value, lambda, prop_stack);
+        if (btor->dual_prop)
+        {
+          init_node_hash_table_iterator (btor, &it, conds);
+          while (has_next_node_hash_table_iterator (&it))
+          {
+            cond = next_node_hash_table_iterator (&it);
+            push_applies_from_cond_for_propagation (btor, cond, prop_stack);
+            btor_remove_from_ptr_hash_table (conds, cond, 0, 0);
+            btor_release_exp (btor, cond);
+          }
+        }
       }
     }
     else
@@ -6645,6 +6766,17 @@ propagate (Btor *btor,
         goto BETA_REDUCTION_CONFLICT;
 
       push_applies_for_propagation (btor, fun_value, lambda, prop_stack);
+      if (btor->dual_prop)
+      {
+        init_node_hash_table_iterator (btor, &it, conds);
+        while (has_next_node_hash_table_iterator (&it))
+        {
+          cond = next_node_hash_table_iterator (&it);
+          push_applies_from_cond_for_propagation (btor, cond, prop_stack);
+          btor_remove_from_ptr_hash_table (conds, cond, 0, 0);
+          btor_release_exp (btor, cond);
+        }
+      }
     }
 
     btor_release_exp (btor, fun_value);
@@ -6652,6 +6784,7 @@ propagate (Btor *btor,
   }
 
   btor_delete_ptr_hash_table (to_prop);
+  if (btor->dual_prop) btor_delete_ptr_hash_table (conds);
   return 0;
 }
 
@@ -6987,7 +7120,6 @@ DONE:
     btor_delete_btor (clone);
   }
 #endif
-  printf ("-- sat result: %d\n", sat_result);
   return sat_result;
 }
 
