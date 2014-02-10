@@ -834,6 +834,10 @@ btor_print_stats_btor (Btor *btor)
   btor_msg (btor, 1, "%.2f seconds lazy var encoding", btor->time.enc_var);
   btor_msg (btor, 1, "%.2f seconds node search", btor->time.find_dfs);
   btor_msg (btor, 1, "%.2f seconds reachable search", btor->time.reachable);
+  btor_msg (btor,
+            1,
+            "%.2f seconds initial applies search",
+            btor->time.search_init_apps);
   btor_msg (btor, 1, "%.2f seconds lemma generation", btor->time.lemma_gen);
   btor_msg (btor,
             1,
@@ -847,7 +851,7 @@ btor_print_stats_btor (Btor *btor)
     btor_msg (btor,
               1,
               "%.2f seconds propagation apply in conds search",
-              btor->time.find_prop_app);
+              btor->time.find_cond_prop_app);
   btor_msg (btor, 1, "%.2f seconds for cloning", btor->time.cloning);
   btor_msg (btor, 1, "");
   btor_msg (btor, 1, "%.2f seconds in rewriting engine", btor->time.rewrite);
@@ -4540,11 +4544,14 @@ search_initial_applies (Btor *btor, BtorNodePtrStack *top_applies)
   assert (BTOR_EMPTY_STACK (*top_applies));
 
   int is_top;
+  double start;
   BtorMemMgr *mm;
   BtorNode *cur, *cur_parent;
   BtorHashTableIterator it;
   BtorNodeIterator pit;
   BtorNodePtrStack top;
+
+  start = btor_time_stamp ();
 
   mm = btor->mm;
   BTOR_INIT_STACK (top);
@@ -4603,6 +4610,8 @@ search_initial_applies (Btor *btor, BtorNodePtrStack *top_applies)
     BTOR_PUSH_STACK (mm, *top_applies, BTOR_POP_STACK (top));
 
   BTOR_RELEASE_STACK (mm, top);
+
+  btor->time.search_init_apps += btor_time_stamp () - start;
 }
 
 static Btor *
@@ -4679,6 +4688,9 @@ search_initial_applies_dual_prop (Btor *btor, BtorNodePtrStack *top_applies)
   BtorNode *cur_clone, *cur_btor, *bv_const, *bv_eq;
   char *ass_str;
   int i;
+  double start;
+
+  start = btor_time_stamp ();
 
   BTORLOG ("");
   BTORLOG ("*** search top applies");
@@ -4814,6 +4826,8 @@ search_initial_applies_dual_prop (Btor *btor, BtorNodePtrStack *top_applies)
   btor_delete_btor (clone);
   BTOR_RELEASE_STACK (btor->mm, stack);
   BTOR_RELEASE_STACK (btor->mm, unmark_stack);
+
+  btor->time.search_init_apps += btor_time_stamp () - start;
 }
 
 /* Compares the assignments of two expressions. */

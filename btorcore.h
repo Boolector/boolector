@@ -221,6 +221,7 @@ struct Btor
     double enc_var;
     double find_dfs;
     double reachable;
+    double search_init_apps;
     double lemma_gen;
     double find_nenc_app;
     double find_prop_app;
