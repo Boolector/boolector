@@ -13,7 +13,7 @@
 #include "btoriter.h"
 
 void
-init_apply_parent_iterator (BtorParentIterator *it, BtorNode *exp)
+init_apply_parent_iterator (BtorNodeIterator *it, BtorNode *exp)
 {
   assert (it);
   assert (exp);
@@ -21,7 +21,7 @@ init_apply_parent_iterator (BtorParentIterator *it, BtorNode *exp)
 }
 
 void
-init_full_parent_iterator (BtorParentIterator *it, BtorNode *exp)
+init_full_parent_iterator (BtorNodeIterator *it, BtorNode *exp)
 {
   assert (it);
   assert (exp);
@@ -29,7 +29,7 @@ init_full_parent_iterator (BtorParentIterator *it, BtorNode *exp)
 }
 
 BtorNode *
-next_parent_apply_parent_iterator (BtorParentIterator *it)
+next_parent_apply_parent_iterator (BtorNodeIterator *it)
 {
   BtorNode *result;
   assert (it);
@@ -42,7 +42,7 @@ next_parent_apply_parent_iterator (BtorParentIterator *it)
 }
 
 BtorNode *
-next_parent_full_parent_iterator (BtorParentIterator *it)
+next_parent_full_parent_iterator (BtorNodeIterator *it)
 {
   assert (it);
 
@@ -55,7 +55,7 @@ next_parent_full_parent_iterator (BtorParentIterator *it)
 }
 
 int
-has_next_parent_apply_parent_iterator (BtorParentIterator *it)
+has_next_parent_apply_parent_iterator (BtorNodeIterator *it)
 {
   assert (it);
   /* function child of apply is at position 0, so cur is not tagged */
@@ -63,7 +63,7 @@ has_next_parent_apply_parent_iterator (BtorParentIterator *it)
 }
 
 int
-has_next_parent_full_parent_iterator (BtorParentIterator *it)
+has_next_parent_full_parent_iterator (BtorNodeIterator *it)
 {
   assert (it);
   return it->cur != 0;
@@ -123,7 +123,7 @@ has_next_args_iterator (BtorArgsIterator *it)
 
 // TODO: parent iterator needed here?
 void
-init_lambda_iterator (BtorParentIterator *it, BtorNode *exp)
+init_lambda_iterator (BtorNodeIterator *it, BtorNode *exp)
 {
   assert (it);
   assert (exp);
@@ -134,7 +134,7 @@ init_lambda_iterator (BtorParentIterator *it, BtorNode *exp)
 }
 
 BtorNode *
-next_lambda_iterator (BtorParentIterator *it)
+next_lambda_iterator (BtorNodeIterator *it)
 {
   assert (it);
   assert (it->cur);
@@ -146,7 +146,7 @@ next_lambda_iterator (BtorParentIterator *it)
 }
 
 int
-has_next_lambda_iterator (BtorParentIterator *it)
+has_next_lambda_iterator (BtorNodeIterator *it)
 {
   assert (it);
   assert (it->cur);
@@ -252,13 +252,15 @@ queue_node_hash_table_iterator (BtorHashTableIterator *it, BtorPtrHashTable *t)
   assert (t);
   assert (it->num_queued < BTOR_HASH_TABLE_ITERATOR_STACK_SIZE);
 
-  it->stack[it->num_queued++] = t;
-
   /* if initial table is empty, initialize with queued table */
   if (!it->bucket)
   {
     it->bucket = t->first;
     it->cur    = it->bucket ? it->bucket->key : 0;
+  }
+  else
+  {
+    it->stack[it->num_queued++] = t;
   }
 }
 

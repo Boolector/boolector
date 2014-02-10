@@ -102,8 +102,7 @@ typedef struct BtorNodePair BtorNodePair;
     unsigned int bytes : 9;         /* allocated bytes */               \
     unsigned int parameterized : 1; /* param as sub expression ? */     \
     unsigned int lambda_below : 1;  /* lambda as sub expression ? */    \
-    unsigned int no_synth : 1;      /* do not synthesize exp */         \
-    unsigned int chain : 1;                                             \
+    unsigned int merge : 1;                                             \
     unsigned int is_write : 1;                                          \
     unsigned int is_read : 1;                                           \
     unsigned int propagated : 1;                                        \
@@ -202,8 +201,8 @@ struct BtorParamNode
 {
   BTOR_BV_NODE_STRUCT;
   char *symbol;
-  BtorLambdaNode *lambda_exp;    /* 1:1 relation param:lambda_exp */
-  BtorNodePtrStack assigned_exp; /* scoped assigned expression stack */
+  BtorLambdaNode *lambda_exp; /* 1:1 relation param:lambda_exp */
+  BtorNode *assigned_exp;
 };
 
 typedef struct BtorParamNode BtorParamNode;
