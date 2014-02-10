@@ -6481,7 +6481,8 @@ btor_sat_btor (Btor *btor)
 #ifdef BTOR_CHECK_MODEL
   Btor *clone;
   BtorPtrHashTable *inputs;
-  clone  = btor_clone_btor (btor);
+  clone = btor_clone_btor (btor);
+  btor_set_loglevel_btor (clone, 0);
   inputs = map_inputs_check_model (btor, clone);
   btor_enable_force_cleanup (clone);
 #endif
@@ -7285,8 +7286,6 @@ check_model (Btor *btor, Btor *clone, BtorPtrHashTable *inputs)
   char *a, **indices, **values;
   BtorNode *cur, *exp, *val, *idx, *w, *tmp, *simp, *real_simp;
   BtorHashTableIterator it;
-
-  btor_set_loglevel_btor (clone, 0);
 
   if (clone->valid_assignments) btor_reset_incremental_usage (clone);
 
