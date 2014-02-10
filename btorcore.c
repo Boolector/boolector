@@ -4327,6 +4327,7 @@ update_reachable (Btor *btor, int check_all_tables)
   assert (check_all_tables || btor->embedded_constraints->count == 0);
   assert (check_all_tables || btor->varsubst_constraints->count == 0);
 
+  start = btor_time_stamp ();
 #ifndef NDEBUG
   init_node_hash_table_iterator (btor, &it, btor->assumptions);
   while (has_next_node_hash_table_iterator (&it))
@@ -4335,7 +4336,6 @@ update_reachable (Btor *btor, int check_all_tables)
     assert (!BTOR_IS_PROXY_NODE (BTOR_REAL_ADDR_NODE (cur)));
   }
 #endif
-  start = btor_time_stamp ();
 
   init_node_hash_table_iterator (btor, &it, btor->synthesized_constraints);
   queue_node_hash_table_iterator (&it, btor->assumptions);
@@ -6082,7 +6082,7 @@ add_lemma (Btor *btor, BtorNode *fun, BtorNode *app0, BtorNode *app1)
     value = btor_beta_reduce_partial (btor, fun, &evalerr, 0, 0);
 //      assert (!evalerr);
 #else
-    value = btor_beta_reduce_partial (btor, fun, 0, 0);
+    value = btor_beta_reduce_partial (btor, fun, 0, 0, 0);
 #endif
     btor_unassign_params (btor, fun);
     assert (!BTOR_IS_LAMBDA_NODE (BTOR_REAL_ADDR_NODE (value)));
