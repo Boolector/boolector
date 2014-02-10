@@ -40,6 +40,7 @@
 #define BTOR_SYMBOLIC_LEMMAS
 #ifndef NDEBUG
 #define BTOR_CHECK_MODEL
+#define BTOR_CHECK_FAILED
 #endif
 
 /*------------------------------------------------------------------------*/
@@ -86,7 +87,7 @@ static int check_model (Btor *, Btor *, BtorPtrHashTable *);
 static BtorPtrHashTable *map_inputs_check_model (Btor *, Btor *);
 #endif
 
-#ifndef NDEBUG
+#ifdef BTOR_CHECK_FAILED
 static void btor_check_failed_assumptions (Btor *, Btor *);
 #endif
 
@@ -918,7 +919,7 @@ btor_new_btor (void)
   btor->vread_index_id    = 1;
   btor->msgtick           = -1;
   btor->pprint            = 1;
-#ifndef NDEBUG
+#ifdef BTOR_CHECK_FAILED
   btor->chk_failed_assumptions = 1;
 #endif
   // TODO debug
@@ -4696,17 +4697,6 @@ search_initial_applies_dual_prop (Btor *btor, BtorNodePtrStack *top_applies)
   smgr = btor_get_sat_mgr_aig_mgr (btor_get_aig_mgr_aigvec_mgr (btor->avmgr));
   if (!smgr->inc_required) return;
 
-  //#ifndef NDEBUG
-  //  Btor *clone_dbg = clone_exp_layer_negated (btor);
-  //  btor_enable_force_cleanup (clone_dbg);
-  //  btor_enable_inc_usage (clone_dbg);
-  //  clone_dbg->loglevel = 0;
-  //  clone_dbg->dual_prop = 0;
-  //  clone_dbg->chk_failed_assumptions = 0;
-  //  assert (btor_sat_btor (clone_dbg) == BTOR_SAT);
-  //  btor_delete_btor (clone_dbg);
-  //#endif
-
   BTOR_INIT_STACK (stack);
   BTOR_INIT_STACK (unmark_stack);
 
@@ -6998,7 +6988,7 @@ btor_sat_aux_btor (Btor *btor)
   simp_sat_result = btor_simplify (btor);
   update_assumptions (btor);
 
-#ifndef NDEBUG
+#ifdef BTOR_CHECK_FAILED
   if (btor->chk_failed_assumptions)
   {
     clone = btor_clone_btor (btor);
@@ -7112,7 +7102,7 @@ DONE:
                    "result must be sat or unsat");
 
   btor->last_sat_result = sat_result;
-#ifndef NDEBUG
+#ifdef BTOR_CHECK_FAILED
   if (clone && btor->chk_failed_assumptions)
   {
     if (!btor->inconsistent && btor->last_sat_result == BTOR_UNSAT)
@@ -7164,6 +7154,8 @@ btor_sat_btor (Btor *btor)
   inputs = map_inputs_check_model (btor, clone);
   btor_enable_force_cleanup (clone);
 #endif
+
+  btor_dump_btor_after_simplify (btor, stdout);
 
   res = btor_sat_aux_btor (btor);
   btor->btor_sat_btor_called++;
@@ -8078,7 +8070,7 @@ check_model (Btor *btor, Btor *clone, BtorPtrHashTable *inputs)
 }
 #endif
 
-#ifndef NDEBUG
+#ifdef BTOR_CHECK_FAILED
 
 #define BTOR_CLONED_EXP(clone, exp)                                         \
   (BTOR_IS_INVERTED_NODE (exp)                                              \
