@@ -1055,7 +1055,7 @@ btor_delete_btor (Btor *btor)
     }
     assert (btor->external_refs == 0);
     if (!btor->force_internal_cleanup
-        && (!getenv ("BTORLEAK") || !getenv ("BTORLEAKEXP")))
+        && (!getenv ("BTORLEAK") && !getenv ("BTORLEAKEXP")))
     {
       for (i = BTOR_COUNT_STACK (btor->nodes_id_table) - 1; i >= 0; i--)
         assert (!BTOR_PEEK_STACK (btor->nodes_id_table, i));
