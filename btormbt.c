@@ -1908,12 +1908,6 @@ _opt (BtorMBT *btormbt, unsigned r)
   BTORMBT_LOG (1, "enable force cleanup");
   boolector_enable_force_cleanup (btormbt->btor);
 
-  if (btormbt->dual_prop)
-  {
-    BTORMBT_LOG (1, "enable dual prop");
-    btormbt->clone = boolector_clone (btormbt->btor);
-    boolector_enable_dual_prop (btormbt->btor);
-  }
 #ifndef NBTORLOG
   if (btormbt->bloglevel)
   {
@@ -1939,6 +1933,15 @@ _opt (BtorMBT *btormbt, unsigned r)
     BTORMBT_LOG (1, "enable incremental usage");
     boolector_enable_inc_usage (btormbt->btor);
     btormbt->inc = 1;
+  }
+
+  if (btormbt->dual_prop)
+  {
+    BTORMBT_LOG (1, "enable dual prop");
+    btormbt->clone = boolector_clone (btormbt->btor);
+    boolector_set_loglevel (btormbt->clone, 0);
+    boolector_set_verbosity (btormbt->clone, 0);
+    boolector_enable_dual_prop (btormbt->btor);
   }
 
   rw = pick (&rng, 0, 3);
