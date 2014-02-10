@@ -1866,7 +1866,7 @@ btor_assume_exp (Btor *btor, BtorNode *exp)
 
   /* Note: do not simplify constraint expression in order to prevent
    *       constraint expressions from not being added to btor->assumptions. */
-  if (BTOR_REAL_ADDR_NODE (exp->simplified))
+  if (BTOR_REAL_ADDR_NODE (exp)->simplified)
     exp = btor_simplify_exp (btor, exp);
 
   if (btor->valid_assignments) btor_reset_incremental_usage (btor);
