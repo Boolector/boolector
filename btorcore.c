@@ -1941,7 +1941,7 @@ btor_assume_exp (Btor *btor, BtorNode *exp)
 
   /* Note: do not simplify constraint expression in order to prevent
    *       constraint expressions from not being added to btor->assumptions. */
-  if (BTOR_REAL_ADDR_NODE (exp->simplified))
+  if (BTOR_REAL_ADDR_NODE (exp)->simplified)
     exp = btor_simplify_exp (btor, exp);
 
   if (btor->valid_assignments) btor_reset_incremental_usage (btor);
@@ -3487,9 +3487,9 @@ process_skeleton_tseitin (Btor *btor,
 static void
 process_skeleton (Btor *btor)
 {
-  BtorPtrHashTable *ids, *table;
+  BtorPtrHashTable *ids;
   BtorNodePtrStack unmark_stack;
-  int constraints, count, fixed;
+  int count, fixed;
   BtorNodePtrStack work_stack;
   BtorMemMgr *mm = btor->mm;
   BtorPtrHashBucket *b;
@@ -3497,6 +3497,7 @@ process_skeleton (Btor *btor)
   int res, lit, val;
   BtorNode *exp;
   LGL *lgl;
+  BtorHashTableIterator it;
 
   start = btor_time_stamp ();
 
@@ -3521,21 +3522,16 @@ process_skeleton (Btor *btor)
   BTOR_INIT_STACK (work_stack);
   BTOR_INIT_STACK (unmark_stack);
 
-  // TODO: use new hash table iterators
-  for (constraints = 0; constraints <= 1; constraints++)
+  init_node_hash_table_iterator (btor, &it, btor->synthesized_constraints);
+  queue_node_hash_table_iterator (&it, btor->unsynthesized_constraints);
+  while (has_next_node_hash_table_iterator (&it))
   {
-    table = constraints ? btor->synthesized_constraints
-                        : btor->unsynthesized_constraints;
-    for (b = table->first; b; b = b->next)
-    {
-      count++;
-      exp = b->key;
-      assert (BTOR_REAL_ADDR_NODE (exp)->len == 1);
-      process_skeleton_tseitin (
-          btor, lgl, &work_stack, &unmark_stack, ids, exp);
-      lgladd (lgl, process_skeleton_tseitin_lit (ids, exp));
-      lgladd (lgl, 0);
-    }
+    count++;
+    exp = next_node_hash_table_iterator (&it);
+    assert (BTOR_REAL_ADDR_NODE (exp)->len == 1);
+    process_skeleton_tseitin (btor, lgl, &work_stack, &unmark_stack, ids, exp);
+    lgladd (lgl, process_skeleton_tseitin_lit (ids, exp));
+    lgladd (lgl, 0);
   }
 
   BTOR_RELEASE_STACK (mm, work_stack);
@@ -3818,11 +3814,7 @@ merge_lambdas (Btor *btor)
     subst = btor_beta_reduce_merge (btor, BTOR_LAMBDA_GET_BODY (merge));
     subst = BTOR_COND_INVERT_NODE (BTOR_LAMBDA_GET_BODY (merge), subst);
     btor_unassign_params (btor, merge);
-    // TODO: check if we still need this condition
-    /* if nothing changed we do not need to substitute */
-    if (BTOR_REAL_ADDR_NODE (BTOR_LAMBDA_GET_BODY (merge))
-        != BTOR_REAL_ADDR_NODE (subst))
-      btor_insert_substitution (btor, BTOR_LAMBDA_GET_BODY (merge), subst, 0);
+    btor_insert_substitution (btor, BTOR_LAMBDA_GET_BODY (merge), subst, 0);
     btor_release_exp (btor, subst);
   }
 
@@ -4890,8 +4882,9 @@ compare_argument_assignments (BtorNode *e0, BtorNode *e1)
   BtorArgsIterator it0, it1;
   btor = e0->btor;
 
-  // TODO: check args num_args
-  if (e0->len != e1->len) return 1;
+  if (e0->len != e1->len
+      || ((BtorArgsNode *) e0)->num_args != ((BtorArgsNode *) e1)->num_args)
+    return 1;
 
   init_args_iterator (&it0, e0);
   init_args_iterator (&it1, e1);
@@ -6567,6 +6560,7 @@ propagate (Btor *btor,
     if (BTOR_IS_ARRAY_VAR_NODE (BTOR_REAL_ADDR_NODE (fun_value)))
     {
       // TODO: can this happen? check lambda construction
+      //	   -> right now workaround for uf lambda -> lambda -> array
       BTOR_PUSH_STACK (mm, *prop_stack, app);
       BTOR_PUSH_STACK (mm, *prop_stack, fun_value);
       btor_release_exp (btor, fun_value);
@@ -6647,7 +6641,6 @@ propagate (Btor *btor,
         {
           if (prev_fun_value) btor_release_exp (btor, prev_fun_value);
           prev_fun_value = fun_value;
-          //		  btor_release_exp (btor, fun_value);
           btor->stats.partial_beta_reduction_restarts++;
           // TODO: stats for max. restarts
           // TODO: if we reach a certain limit should we just continue
@@ -6674,9 +6667,9 @@ propagate (Btor *btor,
        * which has the same properties as 'fun_value'. further, we do not
        * have to encode every intermediate function application we
        * encounter while propagating 'app'. */
-      // TODO: check args_equal only?
-      if (BTOR_IS_APPLY_NODE (BTOR_REAL_ADDR_NODE (fun_value)) && args_equal)
+      if (args_equal)
       {
+        assert (BTOR_IS_APPLY_NODE (BTOR_REAL_ADDR_NODE (fun_value)));
         BTOR_PUSH_STACK (mm, *prop_stack, app);
         BTOR_PUSH_STACK (
             mm, *prop_stack, BTOR_REAL_ADDR_NODE (fun_value)->e[0]);
