@@ -268,10 +268,8 @@ int btor_set_sat_solver (Btor *, const char *);
  */
 void btor_set_verbosity_btor (Btor *btor, int verbosity);
 
-#ifndef NBTORLOG
 /* Set log level. */
 void btor_set_loglevel_btor (Btor *btor, int loglevel);
-#endif
 
 /* Deletes boolector. */
 void btor_delete_btor (Btor *btor);
