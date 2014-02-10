@@ -584,16 +584,16 @@ btor_set_verbosity_btor (Btor *btor, int verbosity)
   btor_set_verbosity_sat_mgr (smgr, verbosity);
 }
 
-#ifndef NBTORLOG
 void
 btor_set_loglevel_btor (Btor *btor, int loglevel)
 {
   assert (btor);
   (void) btor;
   (void) loglevel;
+#ifndef NBTORLOG
   btor->loglevel = loglevel;
-}
 #endif
+}
 
 static int
 constraints_stats_changes (Btor *btor)
@@ -7292,9 +7292,7 @@ check_model (Btor *btor, Btor *clone, BtorPtrHashTable *inputs)
   BtorNode *cur, *exp, *val, *idx, *w, *tmp, *simp, *real_simp;
   BtorHashTableIterator it;
 
-#ifndef NBTORLOG
   btor_set_loglevel_btor (clone, 0);
-#endif
 
   if (clone->valid_assignments) btor_reset_incremental_usage (clone);
 
