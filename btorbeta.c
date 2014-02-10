@@ -369,9 +369,14 @@ btor_beta_reduce (Btor *btor, BtorNode *exp, int mode, int bound)
       }
       /* skip all lambdas that are not marked for merge */
       else if (mode == BETA_RED_LAMBDA_MERGE && BTOR_IS_LAMBDA_NODE (real_cur)
-               && !real_cur->merge)
+               && !real_cur->merge
+               /* do not stop at parameterized lambdas, otherwise the
+                * result may contain parameters that are not bound by any
+                * lambda anymore */
+               && !real_cur->parameterized)
       {
-        if (!real_cur->parameterized) cur_lambda_depth--;
+        assert (!real_cur->parameterized);
+        cur_lambda_depth--;
         BTOR_PUSH_STACK (mm, arg_stack, btor_copy_exp (btor, cur));
         continue;
       }

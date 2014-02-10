@@ -3669,14 +3669,28 @@ btor_rewrite_apply_exp (Btor *btor, BtorNode *fun, BtorNode *args)
         //       current assignment of param
         cur_args = btor_beta_reduce_bounded (
             btor, BTOR_REAL_ADDR_NODE (cur_branch)->e[1], 1);
-        //		btor_beta_reduce_full (btor,
-        //		  BTOR_REAL_ADDR_NODE (cur_branch)->e[1]);
         assert (BTOR_IS_REGULAR_NODE (cur_args));
         assert (BTOR_IS_ARGS_NODE (cur_args));
-        next_fun = BTOR_REAL_ADDR_NODE (cur_branch)->e[0];
-        assert (BTOR_IS_FUN_NODE (next_fun));
+        if (BTOR_REAL_ADDR_NODE (cur_branch)->e[0]->parameterized)
+        {
+          btor_assign_args (
+              btor, BTOR_REAL_ADDR_NODE (cur_branch)->e[0], cur_args);
+          result = btor_beta_reduce_bounded (
+              btor, BTOR_REAL_ADDR_NODE (cur_branch)->e[0], 1);
+          btor_unassign_params (btor, BTOR_REAL_ADDR_NODE (cur_branch)->e[0]);
+          assert (!BTOR_IS_FUN_NODE (BTOR_REAL_ADDR_NODE (result)));
+          if (BTOR_IS_APPLY_NODE (BTOR_REAL_ADDR_NODE (result)))
+            next_fun = BTOR_REAL_ADDR_NODE (result)->e[0];
+          else
+            done = 1;
+        }
+        else
+        {
+          next_fun = BTOR_REAL_ADDR_NODE (cur_branch)->e[0];
+          assert (BTOR_IS_FUN_NODE (next_fun));
+          result = btor_apply_exp_node (btor, next_fun, cur_args);
+        }
         // TODO: do not build apply (only build last one
-        result = btor_apply_exp_node (btor, next_fun, cur_args);
         btor_release_exp (btor, cur_args);
       }
       /* check if we can further propagate down along a conditional */
