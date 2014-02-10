@@ -41,6 +41,7 @@
 #ifndef NDEBUG
 #define BTOR_CHECK_MODEL
 #define BTOR_CHECK_FAILED
+#define BTOR_CHECK_DUAL_PROP
 #endif
 
 /*------------------------------------------------------------------------*/
@@ -91,6 +92,9 @@ static BtorPtrHashTable *map_inputs_check_model (Btor *, Btor *);
 static void btor_check_failed_assumptions (Btor *, Btor *);
 #endif
 
+#ifdef BTOR_CHECK_DUAL_PROP
+static void check_dual_prop (Btor *, Btor *);
+#endif
 /*------------------------------------------------------------------------*/
 
 const char *const g_btor_op2string[] = {
@@ -596,7 +600,6 @@ btor_set_verbosity_btor (Btor *btor, int verbosity)
 
   assert (btor);
   assert (btor->verbosity >= -1);
-  assert (BTOR_COUNT_STACK (btor->nodes_id_table) == 2);
   btor->verbosity = verbosity;
 
   avmgr = btor->avmgr;
@@ -7142,32 +7145,40 @@ btor_sat_btor (Btor *btor)
   assert (btor->btor_sat_btor_called >= 0);
   assert (btor->inc_enabled || btor->btor_sat_btor_called == 0);
 #ifdef BTOR_CHECK_MODEL
-  Btor *clone;
+  Btor *mclone;
   BtorPtrHashTable *inputs;
-  clone = btor_clone_btor (btor);
-  btor_set_loglevel_btor (clone, 0);
-  clone->dual_prop = 0;  // FIXME necessary?
-  inputs           = map_inputs_check_model (btor, clone);
-  btor_enable_force_cleanup (clone);
+  mclone = btor_clone_btor (btor);
+  btor_set_loglevel_btor (mclone, 0);
+  mclone->dual_prop = 0;  // FIXME necessary?
+  inputs            = map_inputs_check_model (btor, mclone);
+  btor_enable_force_cleanup (mclone);
 #endif
-
-  btor_dump_btor_after_simplify (btor, stdout);
+#ifdef BTOR_CHECK_DUAL_PROP
+  Btor *dpclone = btor_clone_btor (btor);
+  btor_set_loglevel_btor (dpclone, 0);
+  btor_set_verbosity_btor (dpclone, 0);
+  btor_enable_force_cleanup (dpclone);
+  dpclone->dual_prop = 0;
+#endif
 
   res = btor_sat_aux_btor (btor);
   btor->btor_sat_btor_called++;
 
 #ifdef BTOR_CHECK_MODEL
-  if (res == BTOR_SAT) check_model (btor, clone, inputs);
+  if (res == BTOR_SAT) check_model (btor, mclone, inputs);
 
   BtorHashTableIterator it;
   init_node_hash_table_iterator (btor, &it, inputs);
   while (has_next_node_hash_table_iterator (&it))
   {
     btor_release_exp (btor, (BtorNode *) it.bucket->data.asPtr);
-    btor_release_exp (clone, next_node_hash_table_iterator (&it));
+    btor_release_exp (mclone, next_node_hash_table_iterator (&it));
   }
   btor_delete_ptr_hash_table (inputs);
-  btor_delete_btor (clone);
+  btor_delete_btor (mclone);
+#endif
+#ifdef BTOR_CHECK_DUAL_PROP
+  check_dual_prop (btor, dpclone);
 #endif
   return res;
 }
@@ -8062,7 +8073,6 @@ check_model (Btor *btor, Btor *clone, BtorPtrHashTable *inputs)
 #endif
 
 #ifdef BTOR_CHECK_FAILED
-
 #define BTOR_CLONED_EXP(clone, exp)                                         \
   (BTOR_IS_INVERTED_NODE (exp)                                              \
        ? BTOR_INVERT_NODE (BTOR_PEEK_STACK (clone->nodes_id_table,          \
@@ -8103,5 +8113,14 @@ btor_check_failed_assumptions (Btor *btor, Btor *clone)
                                (BtorCmpPtr) btor_compare_exp_by_id);
 
   assert (btor_sat_aux_btor (clone) == BTOR_UNSAT);
+}
+#endif
+
+#ifdef BTOR_CHECK_DUAL_PROP
+static void
+check_dual_prop (Btor *btor, Btor *clone)
+{
+  btor_sat_aux_btor (clone);
+  assert (!btor->dual_prop || btor->last_sat_result == clone->last_sat_result);
 }
 #endif

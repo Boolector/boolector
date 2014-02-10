@@ -644,8 +644,6 @@ typedef struct BtorMBT
   int r_relop_inc;  /* number of release operations (wrt to number of
                        add operations (reinit inc step) */
 
-  Btor *clone; /* for discrepancy check when enabling dual prop */
-
   /* Note: no global settings after this point! Do not change order! */
 
   int is_init;
@@ -1935,15 +1933,6 @@ _opt (BtorMBT *btormbt, unsigned r)
     btormbt->inc = 1;
   }
 
-  if (btormbt->dual_prop)
-  {
-    BTORMBT_LOG (1, "enable dual prop");
-    btormbt->clone = boolector_clone (btormbt->btor);
-    boolector_set_loglevel (btormbt->clone, 0);
-    boolector_set_verbosity (btormbt->clone, 0);
-    boolector_enable_dual_prop (btormbt->btor);
-  }
-
   rw = pick (&rng, 0, 3);
   BTORMBT_LOG (1, "set rewrite level %d", rw);
   boolector_set_rewrite_level (btormbt->btor, rw);
@@ -2271,7 +2260,7 @@ _sat (BtorMBT *btormbt, unsigned r)
 
   rng = initrng (r);
 
-  if (btormbt->shadow && (!btormbt->btor->clone || !pick (&rng, 0, 50)))
+  if (btormbt->shadow && !pick (&rng, 0, 50))
   {
     BTORMBT_LOG (1, "cloning...");
     /* cleanup done by boolector */
@@ -2280,11 +2269,6 @@ _sat (BtorMBT *btormbt, unsigned r)
 
   BTORMBT_LOG (1, "calling sat...");
   res = boolector_sat (btormbt->btor);
-  if (btormbt->clone)
-  {
-    int cloneres = boolector_sat (btormbt->clone);
-    assert (res == cloneres);
-  }
   if (res == BOOLECTOR_UNSAT)
     BTORMBT_LOG (1, "unsat");
   else if (res == BOOLECTOR_SAT)
