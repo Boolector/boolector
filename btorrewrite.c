@@ -3650,9 +3650,11 @@ btor_rewrite_apply_exp (Btor *btor, BtorNode *fun, BtorNode *args)
       }
       else if (BTOR_IS_PARAM_NODE (BTOR_REAL_ADDR_NODE (cur_branch)))
       {
-        if (btor_param_cur_assignment (cur_branch))
+        if (btor_param_cur_assignment (BTOR_REAL_ADDR_NODE (cur_branch)))
         {
-          result = btor_copy_exp (btor, btor_param_cur_assignment (cur_branch));
+          result = btor_copy_exp (
+              btor,
+              btor_param_cur_assignment (BTOR_REAL_ADDR_NODE (cur_branch)));
         }
         else
           result = btor_copy_exp (btor, cur_branch);

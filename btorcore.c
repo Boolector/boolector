@@ -2256,7 +2256,6 @@ btor_simplify_exp (Btor *btor, BtorNode *exp)
 
   real_exp = BTOR_REAL_ADDR_NODE (exp);
 
-  // TODO: substitution flag for BtorNode?
   if (btor->substitutions)
   {
     BtorNode *simp;
@@ -2273,11 +2272,10 @@ btor_simplify_exp (Btor *btor, BtorNode *exp)
                                           BTOR_REAL_ADDR_NODE (result)));
     assert (!BTOR_REAL_ADDR_NODE (result)->simplified);
 
-    if (BTOR_IS_INVERTED_NODE (exp)) return BTOR_INVERT_NODE (result);
-    return result;
+    if (BTOR_IS_INVERTED_NODE (exp)) result = BTOR_INVERT_NODE (result);
   }
-
-  result = btor_pointer_chase_simplified_exp (btor, exp);
+  else
+    result = btor_pointer_chase_simplified_exp (btor, exp);
 
   /* NOTE: embedded constraints rewriting is enabled with rwl > 1 */
   if (BTOR_REAL_ADDR_NODE (result)->constraint && btor->rewrite_level > 1)
