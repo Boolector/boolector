@@ -89,7 +89,7 @@ static BtorPtrHashTable *map_inputs_check_model (Btor *, Btor *);
 #endif
 
 #ifdef BTOR_CHECK_FAILED
-static void btor_check_failed_assumptions (Btor *, Btor *);
+static void check_failed_assumptions (Btor *, Btor *);
 #endif
 
 #ifdef BTOR_CHECK_DUAL_PROP
@@ -7111,7 +7111,7 @@ DONE:
   if (clone && btor->chk_failed_assumptions)
   {
     if (!btor->inconsistent && btor->last_sat_result == BTOR_UNSAT)
-      btor_check_failed_assumptions (btor, clone);
+      check_failed_assumptions (btor, clone);
     btor_delete_btor (clone);
   }
 #endif
@@ -8090,7 +8090,7 @@ check_model (Btor *btor, Btor *clone, BtorPtrHashTable *inputs)
                           BTOR_REAL_ADDR_NODE (exp)->id))
 
 static void
-btor_check_failed_assumptions (Btor *btor, Btor *clone)
+check_failed_assumptions (Btor *btor, Btor *clone)
 {
   assert (btor);
   assert (btor->last_sat_result == BTOR_UNSAT);
