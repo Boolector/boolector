@@ -233,7 +233,6 @@ init_node_hash_table_iterator (Btor *btor,
                                BtorPtrHashTable *t)
 {
   assert (btor);
-  (void) btor;
   assert (it);
   assert (t);
   (void) btor;
@@ -275,7 +274,8 @@ next_node_hash_table_iterator (BtorHashTableIterator *it)
   res = (BtorNode *) it->cur;
   if (it->bucket)
     it->bucket = it->reversed ? it->bucket->prev : it->bucket->next;
-  if (!it->bucket && it->pos < it->num_queued)
+
+  while (!it->bucket && it->pos < it->num_queued)
     it->bucket =
         it->reversed ? it->stack[it->pos++]->last : it->stack[it->pos++]->first;
 
