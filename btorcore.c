@@ -1155,28 +1155,31 @@ process_unsynthesized_constraints (Btor *btor)
     if (btor->rewrite_level > 2)
     {
       BtorNode *real_cur = BTOR_REAL_ADDR_NODE (cur);
-      if (real_cur->kind == BTOR_BEQ_NODE)
-      {
-        BtorNode *left  = real_cur->e[0];
-        BtorNode *right = real_cur->e[1];
-        BtorNode *other;
+      // FIXME: is not valid if rwl is set to 1 during beta reduction
+      //        (lemma generation)
+      // if (real_cur->kind == BTOR_BEQ_NODE)
+      //  {
+      //    BtorNode * left = real_cur->e[0];
+      //    BtorNode * right = real_cur->e[1];
+      //    BtorNode * other;
 
-        if (BTOR_REAL_ADDR_NODE (left)->kind == BTOR_BV_CONST_NODE)
-          other = right;
-        else if (BTOR_REAL_ADDR_NODE (right)->kind == BTOR_BV_CONST_NODE)
-          other = left;
-        else
-          other = 0;
+      //    if (BTOR_REAL_ADDR_NODE (left)->kind == BTOR_BV_CONST_NODE)
+      //      other = right;
+      //    else if (BTOR_REAL_ADDR_NODE (right)->kind == BTOR_BV_CONST_NODE)
+      //      other = left;
+      //    else
+      //      other = 0;
 
-        if (other && !BTOR_IS_INVERTED_NODE (other)
-            && other->kind == BTOR_ADD_NODE)
-        {
-          assert (BTOR_REAL_ADDR_NODE (other->e[0])->kind
-                  != BTOR_BV_CONST_NODE);
-          assert (BTOR_REAL_ADDR_NODE (other->e[1])->kind
-                  != BTOR_BV_CONST_NODE);
-        }
-      }
+      //    if (other
+      //        && !BTOR_IS_INVERTED_NODE (other)
+      //        && other->kind == BTOR_ADD_NODE)
+      //      {
+      //        assert (BTOR_REAL_ADDR_NODE (
+      //      	    other->e[0])->kind != BTOR_BV_CONST_NODE);
+      //        assert (BTOR_REAL_ADDR_NODE (
+      //      	    other->e[1])->kind != BTOR_BV_CONST_NODE);
+      //      }
+      //  }
     }
 #endif
 
