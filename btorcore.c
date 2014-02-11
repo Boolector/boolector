@@ -6592,19 +6592,6 @@ propagate (Btor *btor,
       continue;
     }
 
-    //      if (btor->dual_prop && lambda->synth_apps)
-    //	{
-    //	  init_node_hash_table_iterator (btor, &it, lambda->synth_apps);
-    //	  while (has_next_node_hash_table_iterator (&it))
-    //	    {
-    //	      param_app = next_node_hash_table_iterator (&it);
-    //	      assert (BTOR_IS_REGULAR_NODE (param_app));
-    //	      assert (param_app->vread);
-    //	      BTOR_PUSH_STACK (mm, *prop_stack, param_app);
-    //	      BTOR_PUSH_STACK (mm, *prop_stack, param_app->e[0]);
-    //	    }
-    //	}
-
     if (!BTOR_REAL_ADDR_NODE (fun_value)->tseitin)
     {
       args_equal = 0;
