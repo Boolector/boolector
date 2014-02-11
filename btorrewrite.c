@@ -3650,9 +3650,11 @@ btor_rewrite_apply_exp (Btor *btor, BtorNode *fun, BtorNode *args)
       }
       else if (BTOR_IS_PARAM_NODE (BTOR_REAL_ADDR_NODE (cur_branch)))
       {
-        if (btor_param_cur_assignment (cur_branch))
+        if (btor_param_cur_assignment (BTOR_REAL_ADDR_NODE (cur_branch)))
         {
-          result = btor_copy_exp (btor, btor_param_cur_assignment (cur_branch));
+          result = btor_copy_exp (
+              btor,
+              btor_param_cur_assignment (BTOR_REAL_ADDR_NODE (cur_branch)));
         }
         else
           result = btor_copy_exp (btor, cur_branch);
@@ -4230,13 +4232,8 @@ RESTART:
         {
           if (btor->rec_rw_calls >= BTOR_REC_RW_BOUND)
             goto BTOR_REWRITE_COND_NODE_NO_REWRITE;
-          normalize_binary_comm_ass_exp (btor,
-                                         e_if,
-                                         e_else,
-                                         &e_if_norm,
-                                         &e_else_norm,
-                                         btor_rewrite_add_exp,
-                                         e_if->kind);
+          normalize_binary_comm_ass_exp (
+              btor, e_if, e_else, &e_if_norm, &e_else_norm, fptr, e_if->kind);
           BTOR_INC_REC_RW_CALL (btor);
           result = btor_rewrite_cond_exp (btor, e_cond, e_if_norm, e_else_norm);
           BTOR_DEC_REC_RW_CALL (btor);
