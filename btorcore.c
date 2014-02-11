@@ -2342,7 +2342,6 @@ btor_simplify_exp (Btor *btor, BtorNode *exp)
 
   real_exp = BTOR_REAL_ADDR_NODE (exp);
 
-  // TODO: substitution flag for BtorNode?
   if (btor->substitutions)
   {
     BtorNode *simp;
@@ -2359,11 +2358,10 @@ btor_simplify_exp (Btor *btor, BtorNode *exp)
                                           BTOR_REAL_ADDR_NODE (result)));
     assert (!BTOR_REAL_ADDR_NODE (result)->simplified);
 
-    if (BTOR_IS_INVERTED_NODE (exp)) return BTOR_INVERT_NODE (result);
-    return result;
+    if (BTOR_IS_INVERTED_NODE (exp)) result = BTOR_INVERT_NODE (result);
   }
-
-  result = btor_pointer_chase_simplified_exp (btor, exp);
+  else
+    result = btor_pointer_chase_simplified_exp (btor, exp);
 
   /* NOTE: embedded constraints rewriting is enabled with rwl > 1 */
   if (BTOR_REAL_ADDR_NODE (result)->constraint && btor->rewrite_level > 1)
@@ -6274,7 +6272,6 @@ push_applies_for_propagation (Btor *btor,
 {
   assert (btor);
   assert (exp);
-  assert (lambda);
   assert (prop_stack);
   assert (check_unique_table_mark_unset_dbg (btor));
 
@@ -6309,7 +6306,7 @@ push_applies_for_propagation (Btor *btor,
   for (i = 0; i < BTOR_COUNT_STACK (applies); i++)
   {
     cur = BTOR_PEEK_STACK (applies, i);
-    if (!cur->reachable && !cur->vread && !cur->propagated)
+    if (lambda && !cur->reachable && !cur->vread && !cur->propagated)
       insert_synth_app_lambda (btor, lambda, cur);
     BTOR_PUSH_STACK (btor->mm, *prop_stack, cur);
     BTOR_PUSH_STACK (btor->mm, *prop_stack, cur->e[0]);
@@ -6512,6 +6509,7 @@ propagate (Btor *btor,
     if (!BTOR_IS_LAMBDA_NODE (fun))
     {
       assert (BTOR_IS_ARRAY_VAR_NODE (fun));
+      push_applies_for_propagation (btor, app, 0, prop_stack);
       continue;
     }
 
