@@ -80,7 +80,7 @@
 /*------------------------------------------------------------------------*/
 
 #ifdef BTOR_CHECK_MODEL
-static int check_model (Btor *, Btor *, BtorPtrHashTable *);
+static void check_model (Btor *, Btor *, BtorPtrHashTable *);
 static BtorPtrHashTable *map_inputs_check_model (Btor *, Btor *);
 #endif
 
@@ -928,6 +928,10 @@ btor_new_btor (void)
   BTOR_INIT_STACK (btor->arrays_with_model);
 
   btor->true_exp = btor_true_exp (btor);
+
+#ifdef BTOR_CHECK_MODEL
+  btor_enable_model_gen (btor);
+#endif
 
   return btor;
 }
@@ -1869,7 +1873,7 @@ btor_assume_exp (Btor *btor, BtorNode *exp)
 
   /* Note: do not simplify constraint expression in order to prevent
    *       constraint expressions from not being added to btor->assumptions. */
-  if (BTOR_REAL_ADDR_NODE (exp->simplified))
+  if (BTOR_REAL_ADDR_NODE (exp)->simplified)
     exp = btor_simplify_exp (btor, exp);
 
   if (btor->valid_assignments) btor_reset_incremental_usage (btor);
@@ -2717,7 +2721,7 @@ substitute_and_rebuild (Btor *btor, BtorPtrHashTable *subst, int bra)
   assert (bra == 0 || bra == 1);
   assert (check_unique_table_aux_mark_unset_dbg (btor));
 
-  int i, pushed;
+  int i, refs, pushed;
   BtorMemMgr *mm;
   BtorNode *cur, *cur_parent, *rebuilt_exp, *simplified;
   BtorNodePtrStack roots;
@@ -2768,7 +2772,7 @@ substitute_and_rebuild (Btor *btor, BtorPtrHashTable *subst, int bra)
     assert (cur->aux_mark == 1);
     if (all_exps_below_rebuilt (btor, cur))
     {
-      BTOR_ENQUEUE (mm, queue, cur);
+      BTOR_ENQUEUE (mm, queue, btor_copy_exp (btor, cur));
       cur->aux_mark = 2; /* mark as enqueued */
     }
   }
@@ -2781,6 +2785,10 @@ substitute_and_rebuild (Btor *btor, BtorPtrHashTable *subst, int bra)
     assert (!BTOR_IS_PROXY_NODE (cur));
     assert (cur->aux_mark == 2);
     cur->aux_mark = 1;
+    refs          = cur->refs;
+    btor_release_exp (btor, cur);
+
+    if (refs == 1) continue;
 
     if (all_exps_below_rebuilt (btor, cur))
     {
@@ -2794,7 +2802,7 @@ substitute_and_rebuild (Btor *btor, BtorPtrHashTable *subst, int bra)
          * simplification */
         if (cur_parent->aux_mark == 0 || cur_parent->aux_mark == 1)
         {
-          BTOR_ENQUEUE (mm, queue, cur_parent);
+          BTOR_ENQUEUE (mm, queue, btor_copy_exp (btor, cur_parent));
           cur_parent->aux_mark = 2;
         }
       }
@@ -2829,7 +2837,7 @@ substitute_and_rebuild (Btor *btor, BtorPtrHashTable *subst, int bra)
     else
     {
       cur->aux_mark = 2;
-      BTOR_ENQUEUE (mm, queue, cur);
+      BTOR_ENQUEUE (mm, queue, btor_copy_exp (btor, cur));
     }
   }
 
@@ -6216,7 +6224,8 @@ propagate (Btor *btor,
     if (!BTOR_REAL_ADDR_NODE (fun_value)->tseitin)
     {
       args_equal = 0;
-      if (BTOR_IS_APPLY_NODE (BTOR_REAL_ADDR_NODE (fun_value))
+      // TODO: how can we still propagate negated applies down?
+      if (!BTOR_IS_INVERTED_NODE (fun_value) && BTOR_IS_APPLY_NODE (fun_value)
           && ENABLE_APPLY_PROP_DOWN)
         args_equal = BTOR_REAL_ADDR_NODE (fun_value)->e[1] == args;
 
@@ -7493,7 +7502,66 @@ map_inputs_check_model (Btor *btor, Btor *clone)
   return inputs;
 }
 
-static int
+static void
+reset_varsubst_constraints (Btor *btor)
+{
+  assert (btor);
+
+  BtorNode *right, *left;
+  BtorHashTableIterator it;
+
+  init_node_hash_table_iterator (btor, &it, btor->varsubst_constraints);
+  while (has_next_node_hash_table_iterator (&it))
+  {
+    right = (BtorNode *) it.bucket->data.asPtr;
+    assert (right);
+    left = next_node_hash_table_iterator (&it);
+    btor_release_exp (btor, left);
+    btor_release_exp (btor, right);
+  }
+  btor_delete_ptr_hash_table (btor->varsubst_constraints);
+  btor->varsubst_constraints =
+      btor_new_ptr_hash_table (btor->mm,
+                               (BtorHashPtr) btor_hash_exp_by_id,
+                               (BtorCmpPtr) btor_compare_exp_by_id);
+}
+
+static void
+rebuild_formula (Btor *btor, int rewrite_level)
+{
+  assert (btor);
+
+  int i;
+  BtorNode *cur;
+  BtorPtrHashTable *t;
+
+  /* set new rewrite level */
+  btor->rewrite_level = rewrite_level;
+
+  t = btor_new_ptr_hash_table (btor->mm,
+                               (BtorHashPtr) btor_hash_exp_by_id,
+                               (BtorCmpPtr) btor_compare_exp_by_id);
+
+  /* collect all leaves and rebuild whole formula */
+  for (i = BTOR_COUNT_STACK (btor->nodes_id_table) - 1; i >= 0; i--)
+  {
+    if (!(cur = BTOR_PEEK_STACK (btor->nodes_id_table, i))) continue;
+
+    if (BTOR_IS_PROXY_NODE (cur)) continue;
+
+    if (cur->arity == 0)
+    {
+      assert (BTOR_IS_BV_VAR_NODE (cur) || BTOR_IS_ARRAY_VAR_NODE (cur)
+              || BTOR_IS_BV_CONST_NODE (cur) || BTOR_IS_PARAM_NODE (cur));
+      btor_insert_in_ptr_hash_table (t, cur);
+    }
+  }
+
+  substitute_and_rebuild (btor, t, 0);
+  btor_delete_ptr_hash_table (t);
+}
+
+static void
 check_model (Btor *btor, Btor *clone, BtorPtrHashTable *inputs)
 {
   assert (btor);
@@ -7514,10 +7582,8 @@ check_model (Btor *btor, Btor *clone, BtorPtrHashTable *inputs)
     btor_assert_exp (clone, next_node_hash_table_iterator (&it));
   btor_reset_assumptions (clone);
 
-  /* initial simplifications */
-  ret = btor_simplify (clone);
-  if (ret == BTOR_SAT) return 1;
-  assert (ret == BTOR_UNKNOWN);
+  /* rebuild formula with new rewriting level */
+  rebuild_formula (clone, 3);
 
   assert (!clone->substitutions);
   btor_init_substitutions (clone);
@@ -7585,9 +7651,9 @@ check_model (Btor *btor, Btor *clone, BtorPtrHashTable *inputs)
       assert (!BTOR_IS_FUN_NODE (real_simp));
       /* we need to invert the assignment if simplified is inverted */
       a = btor_bv_assignment_str_exp (btor, BTOR_COND_INVERT_NODE (simp, exp));
+      //	  printf ("%s %s\n", exp->symbol, a);
       init_x_values (a);
       val = btor_const_exp (clone, a);
-      //	  printf ("%s %s\n", exp->symbol, a);
       btor_release_bv_assignment_str_exp (btor, a);
 
       assert (!btor_find_in_ptr_hash_table (clone->substitutions, real_simp));
@@ -7599,17 +7665,18 @@ check_model (Btor *btor, Btor *clone, BtorPtrHashTable *inputs)
   btor_reset_array_models (clone);
   substitute_and_rebuild (clone, clone->substitutions, 0);
   btor_delete_substitutions (clone);
+  reset_varsubst_constraints (clone); /* varsubst not required */
 
-  if (clone->rewrite_level == 3)
+  btor_enable_beta_reduce_all (clone);
+  ret = btor_simplify (clone);
+
+  // FIXME: why does the first run not yield all simplifications?
+  if (ret == BTOR_UNKNOWN)
   {
-    btor_enable_beta_reduce_all (clone);
+    rebuild_formula (clone, 3);
     ret = btor_simplify (clone);
   }
-
-  if (ret == BTOR_UNKNOWN) ret = btor_sat_aux_btor (clone);
-
+  assert (ret != BTOR_UNKNOWN);
   BTOR_ABORT_CORE (ret != BTOR_SAT, "invalid model");
-
-  return 1;
 }
 #endif

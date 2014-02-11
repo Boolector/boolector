@@ -326,7 +326,7 @@ btor_beta_reduce (Btor *btor, BtorNode *exp, int mode, int bound)
     cur_parent = BTOR_POP_STACK (stack);
     cur        = BTOR_POP_STACK (stack);
     // TODO: directly push simplified exp onto stack at the beginning
-    /* we do not want the simplification of top level apply contraints */
+    /* we do not want the simplification of top level apply constraints */
     if (BTOR_REAL_ADDR_NODE (cur)->constraint
         && BTOR_IS_APPLY_NODE (BTOR_REAL_ADDR_NODE (cur)))
       cur = btor_pointer_chase_simplified_exp (btor, cur);
@@ -795,7 +795,7 @@ btor_beta_reduce (Btor *btor, BtorNode *exp, int mode, int bound)
     cur_parent = BTOR_POP_STACK (work_stack);
     cur        = BTOR_POP_STACK (work_stack);
     // TODO: directly push simplified exp onto stack at the beginning
-    /* we do not want the simplification of top level apply contraints */
+    /* we do not want the simplification of top level apply constraints */
     if (BTOR_REAL_ADDR_NODE (cur)->constraint
         && BTOR_IS_APPLY_NODE (BTOR_REAL_ADDR_NODE (cur)))
       cur = btor_pointer_chase_simplified_exp (btor, cur);

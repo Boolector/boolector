@@ -1343,14 +1343,11 @@ btor_const_exp (Btor *btor, const char *bits)
   assert (len > 0);
   inv        = 0;
   lookupbits = (char *) bits;
-  if (btor->rewrite_level > 0)
+  /* normalize constants, constants are always even */
+  if (bits[len - 1] == '1')
   {
-    /* normalize constants, constants are always even */
-    if (bits[len - 1] == '1')
-    {
-      lookupbits = btor_not_const (btor->mm, bits);
-      inv        = 1;
-    }
+    lookupbits = btor_not_const (btor->mm, bits);
+    inv        = 1;
   }
   lookup = find_const_exp (btor, lookupbits, len);
   if (!*lookup)
