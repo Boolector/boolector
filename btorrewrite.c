@@ -3,6 +3,7 @@
  *  Copyright (C) 2007-2009 Robert Daniel Brummayer.
  *  Copyright (C) 2007-2013 Armin Biere.
  *  Copyright (C) 2013-2014 Mathias Preiner.
+ *  Copyright (C) 2014 Aina Niemetz.
  *
  *  All rights reserved.
  *
@@ -406,7 +407,7 @@ rewrite_binary_exp (Btor *btor, BtorNodeKind kind, BtorNode *e0, BtorNode *e1)
   result  = 0;
   real_e0 = BTOR_REAL_ADDR_NODE (e0);
   real_e1 = BTOR_REAL_ADDR_NODE (e1);
-  if (!real_e0 || !real_e1) abort ();  // make static anlayzer happy
+  if (!real_e0 || !real_e1) abort ();  // make static analyzer happy
   if (BTOR_IS_BV_CONST_NODE (real_e0) && BTOR_IS_BV_CONST_NODE (real_e1))
   {
     same_children_mem = real_e0 == real_e1;
@@ -4229,13 +4230,8 @@ RESTART:
         {
           if (btor->rec_rw_calls >= BTOR_REC_RW_BOUND)
             goto BTOR_REWRITE_COND_NODE_NO_REWRITE;
-          normalize_binary_comm_ass_exp (btor,
-                                         e_if,
-                                         e_else,
-                                         &e_if_norm,
-                                         &e_else_norm,
-                                         btor_rewrite_add_exp,
-                                         e_if->kind);
+          normalize_binary_comm_ass_exp (
+              btor, e_if, e_else, &e_if_norm, &e_else_norm, fptr, e_if->kind);
           BTOR_INC_REC_RW_CALL (btor);
           result = btor_rewrite_cond_exp (btor, e_cond, e_if_norm, e_else_norm);
           BTOR_DEC_REC_RW_CALL (btor);
