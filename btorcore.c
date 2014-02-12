@@ -2686,28 +2686,6 @@ substitute_var_exps (Btor *btor)
   btor_msg (btor, 1, "%d variables substituted in %.1f seconds", count, delta);
 }
 
-static int
-all_exps_below_rebuilt (Btor *btor, BtorNode *exp)
-{
-  assert (btor);
-  assert (exp);
-
-  int i;
-  BtorNode *subst;
-
-  if (btor->substitutions)
-  {
-    subst = btor_find_substitution (btor, exp);
-    if (subst && BTOR_REAL_ADDR_NODE (subst)->aux_mark != 0) return 0;
-  }
-
-  exp = BTOR_REAL_ADDR_NODE (exp);
-  for (i = 0; i < exp->arity; i++)
-    if (BTOR_REAL_ADDR_NODE (exp->e[i])->aux_mark > 0) return 0;
-
-  return 1;
-}
-
 static void
 substitute_and_rebuild (Btor *btor, BtorPtrHashTable *subst, int bra)
 {
@@ -2716,11 +2694,10 @@ substitute_and_rebuild (Btor *btor, BtorPtrHashTable *subst, int bra)
   assert (bra == 0 || bra == 1);
   assert (check_unique_table_aux_mark_unset_dbg (btor));
 
-  int i, refs, pushed;
+  int i;
   BtorMemMgr *mm;
   BtorNode *cur, *cur_parent, *rebuilt_exp, *simplified;
-  BtorNodePtrStack roots;
-  BtorNodePtrQueue queue;
+  BtorNodePtrStack roots, visit;
   BtorPtrHashBucket *b;
   BtorNodeIterator it;
 
@@ -2729,19 +2706,19 @@ substitute_and_rebuild (Btor *btor, BtorPtrHashTable *subst, int bra)
   mm = btor->mm;
 
   BTOR_INIT_STACK (roots);
-  BTOR_INIT_QUEUE (queue);
+  BTOR_INIT_STACK (visit);
 
   for (b = subst->first; b; b = b->next)
   {
     cur = BTOR_REAL_ADDR_NODE ((BtorNode *) b->key);
     assert (!BTOR_IS_PROXY_NODE (cur));
-    BTOR_ENQUEUE (mm, queue, cur);
+    BTOR_PUSH_STACK (mm, visit, cur);
   }
 
   /* mark cone and copy roots */
-  while (!BTOR_EMPTY_QUEUE (queue))
+  while (!BTOR_EMPTY_STACK (visit))
   {
-    cur = BTOR_DEQUEUE (queue);
+    cur = BTOR_POP_STACK (visit);
     assert (BTOR_IS_REGULAR_NODE (cur));
     assert (!BTOR_IS_PROXY_NODE (cur));
 
@@ -2749,58 +2726,55 @@ substitute_and_rebuild (Btor *btor, BtorPtrHashTable *subst, int bra)
     {
       cur->aux_mark = 1;
 
-      pushed = 0;
+      if (cur->parents == 0)
+      {
+        BTOR_PUSH_STACK (mm, roots, btor_copy_exp (btor, cur));
+        continue;
+      }
+
       init_full_parent_iterator (&it, cur);
       while (has_next_parent_full_parent_iterator (&it))
       {
         cur_parent = next_parent_full_parent_iterator (&it);
-        BTOR_ENQUEUE (mm, queue, cur_parent);
-        pushed = 1;
+        BTOR_PUSH_STACK (mm, visit, cur_parent);
       }
-      if (!pushed) BTOR_PUSH_STACK (mm, roots, btor_copy_exp (btor, cur));
     }
   }
 
-  for (b = subst->first; b; b = b->next)
+  for (i = 0; i < BTOR_COUNT_STACK (roots); i++)
   {
-    cur = BTOR_REAL_ADDR_NODE ((BtorNode *) b->key);
-    assert (cur->aux_mark == 1);
-    if (all_exps_below_rebuilt (btor, cur))
-    {
-      BTOR_ENQUEUE (mm, queue, btor_copy_exp (btor, cur));
-      cur->aux_mark = 2; /* mark as enqueued */
-    }
+    cur = BTOR_PEEK_STACK (roots, i);
+    BTOR_PUSH_STACK (mm, visit, cur);
   }
 
-  /* rebuild bottom-up */
-  while (!BTOR_EMPTY_QUEUE (queue))
+  while (!BTOR_EMPTY_STACK (visit))
   {
-    cur = BTOR_DEQUEUE (queue);
+    cur = BTOR_POP_STACK (visit);
     assert (BTOR_IS_REGULAR_NODE (cur));
+
+    if (cur->aux_mark == 0) continue;
+
     assert (!BTOR_IS_PROXY_NODE (cur));
-    assert (cur->aux_mark == 2);
-    cur->aux_mark = 1;
-    refs          = cur->refs;
-    btor_release_exp (btor, cur);
 
-    if (refs == 1) continue;
-
-    if (all_exps_below_rebuilt (btor, cur))
+    if (cur->aux_mark == 1)
     {
-      cur->aux_mark = 0;
+      cur->aux_mark = 2;
 
-      init_full_parent_iterator (&it, cur);
-      while (has_next_parent_full_parent_iterator (&it))
-      {
-        cur_parent = next_parent_full_parent_iterator (&it);
-        /* cur might get a new parent while rebuilding due to
-         * simplification */
-        if (cur_parent->aux_mark == 0 || cur_parent->aux_mark == 1)
-        {
-          BTOR_ENQUEUE (mm, queue, btor_copy_exp (btor, cur_parent));
-          cur_parent->aux_mark = 2;
-        }
-      }
+      BTOR_PUSH_STACK (mm, visit, cur);
+
+      /* ensure that substitution is rebuilt before 'cur' */
+      simplified = btor_find_substitution (btor, cur);
+      if (simplified)
+        BTOR_PUSH_STACK (mm, visit, BTOR_REAL_ADDR_NODE (simplified));
+
+      /* ensure that children are rebuilt before 'cur' */
+      for (i = 0; i < cur->arity; i++)
+        BTOR_PUSH_STACK (mm, visit, BTOR_REAL_ADDR_NODE (cur->e[i]));
+    }
+    else
+    {
+      assert (cur->aux_mark == 2);
+      cur->aux_mark = 0;
 
       simplified = btor_find_substitution (btor, cur);
 
@@ -2828,22 +2802,15 @@ substitute_and_rebuild (Btor *btor, BtorPtrHashTable *subst, int bra)
 
       btor_release_exp (btor, rebuilt_exp);
     }
-    /* not all children rebuilt, enqueue again */
-    else
-    {
-      cur->aux_mark = 2;
-      BTOR_ENQUEUE (mm, queue, btor_copy_exp (btor, cur));
-    }
   }
 
-  BTOR_RELEASE_QUEUE (mm, queue);
+  BTOR_RELEASE_STACK (mm, visit);
 
   for (i = 0; i < BTOR_COUNT_STACK (roots); i++)
     btor_release_exp (btor, roots.start[i]);
 
   BTOR_RELEASE_STACK (mm, roots);
 
-  assert (check_unique_table_mark_unset_dbg (btor));
   assert (check_unique_table_aux_mark_unset_dbg (btor));
 }
 
