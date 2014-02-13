@@ -1,6 +1,7 @@
 /*  Boolector: Satisfiablity Modulo Theories (SMT) solver.
  *
  *  Copyright (C) 2013 Aina Niemetz.
+ *  Copyright (C) 2014 Mathias Preiner.
  *
  *  All rights reserved.
  *
@@ -31,7 +32,6 @@ clone_exp (Btor *clone,
            BtorNodePtrPtrStack *parents,
            BtorNodePtrPtrStack *nodes,
            BtorPtrHashTablePtrPtrStack *rhos,
-           BtorNodePtrStackPtrStack *aexps,
            BtorPtrHashTablePtrPtrStack *sapps,
            BtorNodeMap *exp_map,
            BtorAIGMap *aig_map)
@@ -41,7 +41,6 @@ clone_exp (Btor *clone,
   assert (BTOR_IS_REGULAR_NODE (exp));
   assert (parents);
   assert (nodes);
-  assert (aexps);
   assert (sapps);
   assert (exp_map);
   assert (aig_map);
@@ -161,8 +160,10 @@ clone_exp (Btor *clone,
                         mm,
                         *nodes,
                         (BtorNode **) &((BtorParamNode *) res)->lambda_exp);
-    BTOR_PUSH_STACK (mm, *aexps, &((BtorParamNode *) res)->assigned_exp);
-    BTOR_PUSH_STACK (mm, *aexps, &((BtorParamNode *) exp)->assigned_exp);
+    BTOR_PUSH_STACK_IF (((BtorParamNode *) exp)->assigned_exp,
+                        mm,
+                        *nodes,
+                        (BtorNode **) &((BtorParamNode *) res)->assigned_exp);
   }
 
   if (BTOR_IS_LAMBDA_NODE (exp))
@@ -296,8 +297,6 @@ clone_nodes_id_table (Btor *clone,
   BtorNode **tmp;
   BtorMemMgr *mm;
   BtorNodePtrPtrStack parents, nodes;
-  BtorNodePtrStackPtrStack aexps;
-  BtorNodePtrStack *aexp, *caexp;
   BtorPtrHashTablePtrPtrStack sapps, rhos;
   BtorPtrHashTable **htable, **chtable;
 
@@ -305,7 +304,6 @@ clone_nodes_id_table (Btor *clone,
 
   BTOR_INIT_STACK (parents);
   BTOR_INIT_STACK (nodes);
-  BTOR_INIT_STACK (aexps);
   BTOR_INIT_STACK (sapps);
   BTOR_INIT_STACK (rhos);
 
@@ -326,7 +324,6 @@ clone_nodes_id_table (Btor *clone,
                                                       &parents,
                                                       &nodes,
                                                       &rhos,
-                                                      &aexps,
                                                       &sapps,
                                                       exp_map,
                                                       aig_map)
@@ -365,14 +362,6 @@ clone_nodes_id_table (Btor *clone,
         mm, *htable, mapped_node, data_as_node_ptr, exp_map, exp_map);
   }
 
-  /* clone assigned_exp of param nodes */
-  while (!BTOR_EMPTY_STACK (aexps))
-  {
-    aexp  = BTOR_POP_STACK (aexps);
-    caexp = BTOR_POP_STACK (aexps);
-    clone_node_ptr_stack (mm, aexp, caexp, exp_map);
-  }
-
   /* clone synth_apps of lambda nodes */
   while (!BTOR_EMPTY_STACK (sapps))
   {
@@ -385,7 +374,6 @@ clone_nodes_id_table (Btor *clone,
   BTOR_RELEASE_STACK (mm, parents);
   BTOR_RELEASE_STACK (mm, nodes);
   BTOR_RELEASE_STACK (mm, rhos);
-  BTOR_RELEASE_STACK (mm, aexps);
   BTOR_RELEASE_STACK (mm, sapps);
 }
 
@@ -563,9 +551,6 @@ btor_clone_btor (Btor *btor)
       allocated += cur->symbol ? strlen (cur->symbol) + 1 : 0;
     if (BTOR_IS_ARRAY_EQ_NODE (cur) && cur->vreads)
       allocated += sizeof (BtorNodePair);
-    if (BTOR_IS_PARAM_NODE (cur))
-      allocated += BTOR_SIZE_STACK (((BtorParamNode *) cur)->assigned_exp)
-                   * sizeof (BtorNode *);
     if (BTOR_IS_LAMBDA_NODE (cur) && ((BtorLambdaNode *) cur)->synth_apps)
       allocated += MEM_PTR_HASH_TABLE (((BtorLambdaNode *) cur)->synth_apps);
   }

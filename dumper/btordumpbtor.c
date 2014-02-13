@@ -2,7 +2,8 @@
  *
  *  Copyright (C) 2007-2013 Armin Biere.
  *  Copyright (C) 2007-2009 Robert Daniel Brummayer.
- *  Copyright (C) 2012-2013 Aina Niemetz, Mathias Preiner.
+ *  Copyright (C) 2012-2014 Aina Niemetz.
+ *  Copyright (C) 2012-2014 Mathias Preiner.
  *
  *  All rights reserved.
  *
@@ -14,6 +15,7 @@
 #include "btorconst.h"
 #include "btorcore.h"
 #include "btorhash.h"
+#include "btoriter.h"
 #include "btormem.h"
 #include "btorstack.h"
 
@@ -21,15 +23,23 @@ typedef struct BtorDumpContextLatch BtorDumpContextLatch;
 
 struct BtorDumpContextLatch
 {
-  BtorNode *latch, *init, *next;
+  BtorNode *latch;
+  BtorNode *init;
+  BtorNode *next;
 };
 
 struct BtorDumpContext
 {
   int maxid;
   Btor *btor;
-  BtorPtrHashTable *idtab, *inputs, *latches;
-  BtorNodePtrStack outputs, bads, constraints, roots, work;
+  BtorPtrHashTable *idtab;
+  BtorPtrHashTable *inputs;
+  BtorPtrHashTable *latches;
+  BtorNodePtrStack outputs;
+  BtorNodePtrStack bads;
+  BtorNodePtrStack constraints;
+  BtorNodePtrStack roots;
+  BtorNodePtrStack work;
 };
 
 BtorDumpContext *
@@ -57,7 +67,7 @@ btor_new_dump_context (Btor *btor)
 void
 btor_delete_dump_context (BtorDumpContext *bdc)
 {
-  BtorPtrHashBucket *b;
+  BtorHashTableIterator it;
 
   BTOR_RELEASE_STACK (bdc->btor->mm, bdc->work);
 
@@ -77,22 +87,26 @@ btor_delete_dump_context (BtorDumpContext *bdc)
     btor_release_exp (bdc->btor, BTOR_POP_STACK (bdc->constraints));
   BTOR_RELEASE_STACK (bdc->btor->mm, bdc->constraints);
 
-  for (b = bdc->inputs->first; b; b = b->next)
-    btor_release_exp (bdc->btor, b->key);
+  init_node_hash_table_iterator (bdc->btor, &it, bdc->inputs);
+  while (has_next_node_hash_table_iterator (&it))
+    btor_release_exp (bdc->btor, next_node_hash_table_iterator (&it));
   btor_delete_ptr_hash_table (bdc->inputs);
 
-  for (b = bdc->latches->first; b; b = b->next)
+  init_node_hash_table_iterator (bdc->btor, &it, bdc->latches);
+  while (has_next_node_hash_table_iterator (&it))
   {
-    BtorDumpContextLatch *l = b->data.asPtr;
+    BtorDumpContextLatch *l = it.bucket->data.asPtr;
     btor_release_exp (bdc->btor, l->latch);
     if (l->next) btor_release_exp (bdc->btor, l->next);
     if (l->init) btor_release_exp (bdc->btor, l->init);
     BTOR_DELETE (bdc->btor->mm, l);
+    (void) next_node_hash_table_iterator (&it);
   }
   btor_delete_ptr_hash_table (bdc->latches);
 
-  for (b = bdc->idtab->first; b; b = b->next)
-    btor_release_exp (bdc->btor, b->key);
+  init_node_hash_table_iterator (bdc->btor, &it, bdc->idtab);
+  while (has_next_node_hash_table_iterator (&it))
+    btor_release_exp (bdc->btor, next_node_hash_table_iterator (&it));
   btor_delete_ptr_hash_table (bdc->idtab);
 
   BTOR_DELETE (bdc->btor->mm, bdc);
@@ -410,12 +424,13 @@ bdcrec (BtorDumpContext *bdc, BtorNode *start, FILE *file)
 void
 btor_dump_btor (BtorDumpContext *bdc, FILE *file)
 {
-  BtorPtrHashBucket *b;
+  BtorHashTableIterator it;
   int i;
 
-  for (b = bdc->inputs->first; b; b = b->next)
+  init_node_hash_table_iterator (bdc->btor, &it, bdc->inputs);
+  while (has_next_node_hash_table_iterator (&it))
   {
-    BtorNode *node = b->key;
+    BtorNode *node = next_node_hash_table_iterator (&it);
     int id;
     assert (node);
     assert (BTOR_IS_REGULAR_NODE (node));
@@ -426,9 +441,10 @@ btor_dump_btor (BtorDumpContext *bdc, FILE *file)
     fputc ('\n', file);
   }
 
-  for (b = bdc->latches->first; b; b = b->next)
+  init_node_hash_table_iterator (bdc->btor, &it, bdc->inputs);
+  while (has_next_node_hash_table_iterator (&it))
   {
-    BtorNode *node = b->key;
+    BtorNode *node = next_node_hash_table_iterator (&it);
     int id;
     assert (node);
     assert (BTOR_IS_REGULAR_NODE (node));
@@ -439,9 +455,10 @@ btor_dump_btor (BtorDumpContext *bdc, FILE *file)
     fputc ('\n', file);
   }
 
-  for (b = bdc->latches->first; b; b = b->next)
+  init_node_hash_table_iterator (bdc->btor, &it, bdc->inputs);
+  while (has_next_node_hash_table_iterator (&it))
   {
-    BtorDumpContextLatch *bdcl = b->data.asPtr;
+    BtorDumpContextLatch *bdcl = it.bucket->data.asPtr;
     int id;
     assert (bdcl->latch);
     assert (BTOR_IS_REGULAR_NODE (bdcl->latch));
@@ -468,6 +485,7 @@ btor_dump_btor (BtorDumpContext *bdc, FILE *file)
                bdcid (bdc, bdcl->latch),
                bdcid (bdc, bdcl->init));
     }
+    (void) next_node_hash_table_iterator (&it);
   }
 
   for (i = 0; i < BTOR_COUNT_STACK (bdc->outputs); i++)
@@ -570,17 +588,18 @@ btor_dump_btor_after_simplify (Btor *btor, FILE *file)
 
   int ret;
   BtorNode *temp;
-  BtorPtrHashBucket *b;
   BtorDumpContext *bdc;
+  BtorHashTableIterator it;
 
   ret = btor_simplify (btor);
   bdc = btor_new_dump_context (btor);
 
-  // FIXME: what about synthesized_constraints?
   if (ret == BTOR_UNKNOWN)
   {
-    for (b = btor->unsynthesized_constraints->first; b; b = b->next)
-      btor_add_root_to_dump_context (bdc, (BtorNode *) b->key);
+    init_node_hash_table_iterator (btor, &it, btor->unsynthesized_constraints);
+    queue_node_hash_table_iterator (&it, btor->synthesized_constraints);
+    while (has_next_node_hash_table_iterator (&it))
+      btor_add_root_to_dump_context (bdc, next_node_hash_table_iterator (&it));
   }
   else
   {

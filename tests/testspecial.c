@@ -1,6 +1,7 @@
 /*  Boolector: Satisfiablity Modulo Theories (SMT) solver.
  *  Copyright (C) 2007-2012 Robert Daniel Brummayer, Armin Biere
- *  Copyright (C) 2012 Aina Niemetz
+ *  Copyright (C) 2012-2013 Aina Niemetz
+ *  Copyright (C) 2012-2014 Mathias Preiner.
  *
  *  This file is part of Boolector.
  *
@@ -1258,6 +1259,24 @@ test_regrmodel4_special ()
   run_sat_test ("regrmodel4.btor");
 }
 
+static void
+test_regrcalypto1_special ()
+{
+  run_unsat_test ("regrcalypto1.smt2");
+}
+
+static void
+test_regrcalypto2_special ()
+{
+  run_unsat_test ("regrcalypto2.smt2");
+}
+
+static void
+test_regrcalypto3_special ()
+{
+  run_unsat_test ("regrcalypto3.smt2");
+}
+
 static int
 run_verbose_test (char *name, int verbosity)
 {
@@ -1523,6 +1542,9 @@ run_special_tests (int argc, char **argv)
   BTOR_RUN_TEST (regrmodel2_special);
   BTOR_RUN_TEST (regrmodel3_special);
   BTOR_RUN_TEST (regrmodel4_special);
+  BTOR_RUN_TEST (regrcalypto1_special);
+  BTOR_RUN_TEST (regrcalypto2_special);
+  BTOR_RUN_TEST (regrcalypto3_special);
 }
 
 void

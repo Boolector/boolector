@@ -1,6 +1,6 @@
 /*  Boolector: Satisfiablity Modulo Theories (SMT) solver.
  *
- *  Copyright (C) 2013 Mathias Preiner.
+ *  Copyright (C) 2013-2014 Mathias Preiner.
  *
  *  All rights reserved.
  *
@@ -24,7 +24,7 @@ btor_new_param_cache_tuple (Btor *btor, BtorNode *exp)
   BtorNode *param, *arg, *cur;
   BtorParamCacheTuple *t;
   BtorParameterizedIterator it;
-  BtorParentIterator pit;
+  BtorNodeIterator pit;
 
   BTOR_NEW (btor->mm, t);
   BTOR_CLR (t);

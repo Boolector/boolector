@@ -2,7 +2,7 @@
  *
  *  Copyright (C) 2013 Christian Reisenberger.
  *  Copyright (C) 2013 Aina Niemetz.
- *  Copyright (C) 2013 Mathias Preiner.
+ *  Copyright (C) 2013-2014 Mathias Preiner.
  *  Copyright (C) 2013 Armin Biere.
  *
  *  All rights reserved.
@@ -28,12 +28,6 @@
 #include <sys/wait.h>
 #include <unistd.h>
 
-#ifdef __GNUC__
-#if __GNUC__ > 3 && __GNUC_MAJOR__ >= 6
-#define USE_PRAGMAS_TO_DISABLE_WARNINGS
-#endif
-#endif
-
 // TODO externalize all parameters
 
 /*------------------------------------------------------------------------*/
@@ -43,34 +37,102 @@
 #define MAX_BITWIDTH 128 /* must be >= 2 */
 #define MAX_INDEXWIDTH 8
 #define MAX_MULDIVWIDTH 8
+
 #define MIN_NPARAMS 1 /* must be >= 1 */
 #define MAX_NPARAMS 5
 #define MAX_NPARAMOPS 5
 #define MAX_NNESTEDBFUNS 50
 
+#define MIN_NLITS 3
+#define MAX_NLITS 30
+
+#define MIN_NVARS_INIT 1
+#define MAX_NVARS_INIT 10
+#define MIN_NVARS 1
+#define MAX_NVARS 10
+#define MIN_NVARS_INC 1
+#define MAX_NVARS_INC 10
+#define MIN_NCONSTS_INIT 0
+#define MAX_NCONSTS_INIT 5
+#define MIN_NCONSTS 0
+#define MAX_NCONSTS 5
+#define MIN_NCONSTS_INC 0
+#define MAX_NCONSTS_INC 5
+#define MIN_NARRS_INIT 2
+#define MAX_NARRS_INIT 5
+#define MIN_NARRS 0
+#define MAX_NARRS 5
+#define MIN_NARRS_INC 0
+#define MAX_NARRS_INC 5
+#define MIN_NADDOPFUNS_INIT 1
+#define MAX_NADDOPFUNS_INIT 10
+#define MIN_NADDOPFUNS 1
+#define MAX_NADDOPFUNS 10
+#define MIN_NADDOPFUNS_INC 1
+#define MAX_NADDOPFUNS_INC 10
+#define MIN_NADDOPAFUNS_INIT 0
+#define MAX_NADDOPAFUNS_INIT 5
+#define MIN_NADDOPAFUNS 0
+#define MAX_NADDOPAFUNS 5
+#define MIN_NADDOPAFUNS_INC 0
+#define MAX_NADDOPAFUNS_INC 5
+#define MIN_NADDOPBFUNS_INIT 0
+#define MAX_NADDOPBFUNS_INIT 5
+#define MIN_NADDOPBFUNS 0
+#define MAX_NADDOPBFUNS 5
+#define MIN_NADDOPBFUNS_INC 1
+#define MAX_NADDOPBFUNS_INC 5
+#define MIN_NADDOPLITS_INIT 0
+#define MAX_NADDOPLITS_INIT 0
+#define MIN_NADDOPLITS 0
+#define MAX_NADDOPLITS 3
+#define MIN_NADDOPLITS_INC 0
+#define MAX_NADDOPLITS_INC 3
+
+#define MIN_NOPS_INIT 0
+#define MAX_NOPS_INIT 50
+#define MIN_NOPS 20
+#define MAX_NOPS 100
+#define MIN_NOPS_INC 20
+#define MAX_NOPS_INC 50
+#define MIN_NADDOPS_INIT 1
+#define MAX_NADDOPS_INIT 1
+#define MIN_NADDOPS 1
+#define MAX_NADDOPS 8
+#define MIN_NADDOPS_INC 1
+#define MAX_NADDOPS_INC 5
+#define MIN_NRELOPS_INIT 0
+#define MAX_NRELOPS_INIT 0
+#define MIN_NRELOPS 1
+#define MAX_NRELOPS 3
+#define MIN_NRELOPS_INC 1
+#define MAX_NRELOPS_INC 5
+
+#define MAX_NOPS_LOWER 50
+#define MIN_NASSERTS_LOWER 5
+#define MAX_NASSERTS_LOWER 25
+#define MIN_NASSERTS_UPPER 20
+#define MAX_NASSERTS_UPPER 30
+
+#define P_PARAM_EXP 0.5
+#define P_PARAM_ARR_EXP 0.5
+#define P_APPLY_FUN 0.5
+#define P_RW 0.66
+#define P_READ 0.5
+#define P_COND 0.33
+#define P_EQ 0.5
+#define P_INC 0.33
+
 #define EXIT_OK 0
 #define EXIT_ERROR 1
 #define EXIT_TIMEOUT 2
+#define EXIT_SIGNALED 3
+#define EXIT_UNKNOWN 4
 
 /*------------------------------------------------------------------------*/
 
-#define BTORMBT_USAGE                                                          \
-  "usage: btormbt [<option>]\n"                                                \
-  "\n"                                                                         \
-  "where <option> is one of the following:\n"                                  \
-  "\n"                                                                         \
-  "  -h, --help                       print this message and exit\n"           \
-  "  -v, --verbose                    be verbose\n"                            \
-  "  -k, --keep-lines                 do not clear output lines\n"             \
-  "  -a, --always-fork                fork even if seed given\n"               \
-  "  -n, --no-modelgen                do not enable model generation \n"       \
-  "  -e, --extensionality          do not use extensionality\n"                \
-  "\n"                                                                         \
-  "  -f, --first-bug-only             quit after first bug encountered\n"      \
-  "  -m <maxruns>                     quit after <maxruns> rounds\n"           \
-  "  -t <seconds>                     set time limit for calls to boolector\n" \
-  "\n"                                                                         \
-  "  --bverb <verblevel>              enable boolector verbosity\n"
+#define BTORMBT_STR(str) #str
+#define BTORMBT_M2STR(m) BTORMBT_STR (m)
 
 #ifndef NBTORLOG
 #define BTORMBT_LOG_USAGE \
@@ -78,6 +140,236 @@
 #else
 #define BTORMBT_LOG_USAGE ""
 #endif
+
+#define BTORMBT_USAGE \
+  "usage: btormbt [<option>]\n" \
+  "\n" \
+  "where <option> is one of the following:\n" \
+  "\n" \
+  "  -h, --help                       print this message and exit\n" \
+  "  -v, --verbose                    be verbose\n" \
+  "  -k, --keep-lines                 do not clear output lines\n" \
+  "  -a, --always-fork                fork even if seed given\n" \
+  "  -n, --no-modelgen                do not enable model generation \n" \
+  "  -e, --extensionality             use extensionality\n" \
+  "\n" \
+  "  -f, --first-bug-only             quit after first bug encountered\n" \
+  "  -m <maxruns>                     quit after <maxruns> rounds\n" \
+  "  -t <seconds>                     set time limit for calls to boolector\n" \
+  "\n" \
+  "  --bverb <verblevel>              enable boolector verbosity\n" \
+  BTORMBT_LOG_USAGE \
+  "\n" \
+  "  --nlits <min> <max>              number of literals\n" \
+  "                                   (default: " \
+                                      BTORMBT_M2STR (MIN_NLITS) " " \
+                                      BTORMBT_M2STR (MAX_NLITS) ")\n" \
+  "  --nvars-init <min> <max>         number of variables for initial layer\n" \
+  "                                   (default: "\
+                                      BTORMBT_M2STR (MIN_NVARS_INIT) " " \
+                                      BTORMBT_M2STR (MAX_NVARS_INIT) ")\n" \
+  "  --nvars <min> <max>              number of variables after initial " \
+                                      "layer\n" \
+  "                                   (default: "\
+                                      BTORMBT_M2STR (MIN_NVARS) " " \
+                                      BTORMBT_M2STR (MAX_NVARS) ")\n" \
+  "  --nvars-inc <min> <max>          number of variables " \
+                                      "for reinitializing\n"\
+  "                                   incremental step\n" \
+  "                                   (default: "\
+                                      BTORMBT_M2STR (MIN_NVARS_INC) " " \
+                                      BTORMBT_M2STR (MAX_NVARS_INC) ")\n" \
+  "  --nconsts-init <min> <max>       number of constants for initial layer\n" \
+  "                                   (default: "\
+                                      BTORMBT_M2STR (MIN_NCONSTS_INIT) " " \
+                                      BTORMBT_M2STR (MAX_NCONSTS_INIT) ")\n" \
+  "  --nconsts <min> <max>            number of constants after initial " \
+                                      "layer\n" \
+  "                                   (default: "\
+                                      BTORMBT_M2STR (MIN_NCONSTS) " " \
+                                      BTORMBT_M2STR (MAX_NCONSTS) ")\n" \
+  "  --nconsts-inc <min> <max>        number of constants " \
+                                      "for reinitializing\n"\
+  "                                   incremental step\n" \
+  "                                   (default: "\
+                                      BTORMBT_M2STR (MIN_NCONSTS_INC) " " \
+                                      BTORMBT_M2STR (MAX_NCONSTS_INC) ")\n" \
+  "  --narrs-init <min> <max>         number of arrays for initial layer\n" \
+  "                                   (default: "\
+                                      BTORMBT_M2STR (MIN_NARRS_INIT) " " \
+                                      BTORMBT_M2STR (MAX_NARRS_INIT) ")\n" \
+  "  --narrs <min> <max>              number of arrays after initial " \
+                                      "layer\n" \
+  "                                   (default: "\
+                                      BTORMBT_M2STR (MIN_NARRS) " " \
+                                      BTORMBT_M2STR (MAX_NARRS) ")\n" \
+  "  --narrs-inc <min> <max>          number of arrays for reinitializing\n"\
+  "                                   incremental step\n" \
+  "                                   (default: "\
+                                      BTORMBT_M2STR (MIN_NARRS_INC) " " \
+                                      BTORMBT_M2STR (MAX_NARRS_INC) ")\n" \
+  "  --naddopfuns-init <min> <max>    number of funs in add operation\n" \
+  "                                   for initial layer\n" \
+  "                                   (default: "\
+                                      BTORMBT_M2STR (MIN_NADDOPFUNS_INIT) " " \
+                                      BTORMBT_M2STR (MAX_NADDOPFUNS_INIT)")\n"\
+  "  --naddopfuns <min> <max>         number of funs in add operation\n" \
+  "                                   after initial layer\n" \
+  "                                   (default: "\
+                                      BTORMBT_M2STR (MIN_NADDOPFUNS) " " \
+                                      BTORMBT_M2STR (MAX_NADDOPFUNS) ")\n" \
+  "  --naddopfuns-inc <min> <max>     number of funs in add operation\n" \
+  "                                   for reinitializing incremental step\n" \
+  "                                   (default: "\
+                                      BTORMBT_M2STR (MIN_NADDOPFUNS_INC) " " \
+                                      BTORMBT_M2STR (MAX_NADDOPFUNS_INC) ")\n" \
+  "  --naddopafuns-init <min> <max>   number of array funs in add operation\n" \
+  "                                   for initial layer\n" \
+  "                                   (default: "\
+                                      BTORMBT_M2STR (MIN_NADDOPAFUNS_INIT) " " \
+                                      BTORMBT_M2STR (MAX_NADDOPAFUNS_INIT)")\n"\
+  "  --naddopafuns <min> <max>        number of array funs in add operation\n" \
+  "                                   after initial layer\n" \
+  "                                   (default: "\
+                                      BTORMBT_M2STR (MIN_NADDOPAFUNS) " " \
+                                      BTORMBT_M2STR (MAX_NADDOPAFUNS) ")\n" \
+  "  --naddopafuns-inc <min> <max>    number of array funs in add operation\n" \
+  "                                   for reinitializing incremental step\n" \
+  "                                   (default: "\
+                                      BTORMBT_M2STR (MIN_NADDOPAFUNS_INC) " " \
+                                      BTORMBT_M2STR (MAX_NADDOPAFUNS_INC) ")\n"\
+  "  --naddopbfuns-init <min> <max>   number of bv funs in add operation\n" \
+  "                                   for initial layer\n" \
+  "                                   (default: "\
+                                      BTORMBT_M2STR (MIN_NADDOPBFUNS_INIT) " " \
+                                      BTORMBT_M2STR (MAX_NADDOPBFUNS_INIT)")\n"\
+  "  --naddopbfuns <min> <max>        number of bv funs in add operation\n" \
+  "                                   after initial layer\n" \
+  "                                   (default: "\
+                                      BTORMBT_M2STR (MIN_NADDOPBFUNS) " " \
+                                      BTORMBT_M2STR (MAX_NADDOPBFUNS) ")\n" \
+  "  --naddopbfuns-inc <min> <max>    number of bv funs in add operation\n" \
+  "                                    for reinitializing incremental step\n" \
+  "                                   (default: "\
+                                      BTORMBT_M2STR (MIN_NADDOPBFUNS_INC) " " \
+                                      BTORMBT_M2STR (MAX_NADDOPBFUNS_INC) ")\n"\
+  "  --naddoplits-init <min> <max>    number of lits in add operation\n" \
+  "                                   for initial layer\n" \
+  "                                   (default: "\
+                                      BTORMBT_M2STR (MIN_NADDOPLITS_INIT) " " \
+                                      BTORMBT_M2STR (MAX_NADDOPLITS_INIT) ")\n"\
+  "  --naddoplits <min> <max>         number of lits in add operation\n" \
+  "                                   after initial layer\n" \
+  "                                   (default: "\
+                                      BTORMBT_M2STR (MIN_NADDOPLITS) " " \
+                                      BTORMBT_M2STR (MAX_NADDOPLITS) ")\n" \
+  "  --naddoplits-inc <min> <max>     number of lits in add operation\n" \
+  "                                   for reinitializing incremental step\n" \
+  "                                   (default: "\
+                                      BTORMBT_M2STR (MIN_NADDOPLITS_INC) " " \
+                                      BTORMBT_M2STR (MAX_NADDOPLITS_INC) ")\n" \
+  "\n" \
+  "  --nops-init <min> <max>          number of operations " \
+                                      "for init layer\n" \
+  "                                   (default: " \
+                                      BTORMBT_M2STR (MIN_NOPS_INIT) " " \
+                                      BTORMBT_M2STR (MAX_NOPS_INIT) ")\n" \
+  "  --nops <min> <max>               number of operations " \
+                                      "after init layer\n" \
+  "                                   (default: " \
+                                      BTORMBT_M2STR (MIN_NOPS) " " \
+                                      BTORMBT_M2STR (MAX_NOPS) ")\n" \
+  "  --nops-inc <min> <max>           number of operations " \
+                                      "for reinitalizing\n" \
+  "                                   incremental step\n" \
+  "                                   (default: " \
+                                      BTORMBT_M2STR (MIN_NOPS_INC) " " \
+                                      BTORMBT_M2STR (MAX_NOPS_INC) ")\n" \
+  "\n" \
+  "  --naddops-init <min> <max>       number of add operations " \
+                                      "for init layer\n" \
+  "                                   (default: " \
+                                      BTORMBT_M2STR (MIN_NADDOPS_INIT) " " \
+                                      BTORMBT_M2STR (MAX_NADDOPS_INIT) ")\n" \
+  "  --naddops <min> <max>            number of add operations " \
+                                      "after init layer\n" \
+  "                                   (default: " \
+                                      BTORMBT_M2STR (MIN_NADDOPS) " " \
+                                      BTORMBT_M2STR (MAX_NADDOPS) ")\n" \
+  "  --naddops-inc <min> <max>        number of add operations " \
+                                      "for reinitalizing\n" \
+  "                                   incremental step\n" \
+  "                                   (default: " \
+                                      BTORMBT_M2STR (MIN_NADDOPS_INC) " " \
+                                      BTORMBT_M2STR (MAX_NADDOPS_INC) ")\n" \
+  "  --nrelops-init <min> <max>       number of release operations " \
+                                      "for init layer\n" \
+  "                                   (default: " \
+                                      BTORMBT_M2STR (MIN_NRELOPS_INIT) " " \
+                                      BTORMBT_M2STR (MAX_NRELOPS_INIT) ")\n" \
+  "  --nrelops <min> <max>            number of release operations " \
+                                      "after init layer\n" \
+  "                                   (default: " \
+                                      BTORMBT_M2STR (MIN_NRELOPS) " " \
+                                      BTORMBT_M2STR (MAX_NRELOPS) ")\n" \
+  "  --nrelops-inc <min> <max>        number of release operations\n" \
+  "                                    for reinitalizing\n" \
+  "                                   incremental step\n" \
+  "                                   (default: " \
+                                      BTORMBT_M2STR (MIN_NRELOPS_INC) " " \
+                                      BTORMBT_M2STR (MAX_NRELOPS_INC) ")\n" \
+  "\n" \
+  "  --max-nops-lower <val>           lower bound for max-nops in current " \
+                                      "round\n" \
+  "                                   (default: " \
+				      BTORMBT_M2STR (MAX_NOPS_LOWER) ")\n" \
+  "\n" \
+  "  --asserts-lower <min> <max>      number of assertions " \
+                                      "for current\n" \
+  "                                   max-nops < max-nops-lower\n" \
+  "                                   (default: " \
+                                      BTORMBT_M2STR (MIN_NASSERTS_LOWER) " " \
+                                      BTORMBT_M2STR (MAX_NASSERTS_LOWER) ")\n" \
+  "  --asserts-upper <min> <max>      number of assertions " \
+                                      "for current\n" \
+  "                                   max-nops >= max-nops-lower\n" \
+  "                                   (default: " \
+                                      BTORMBT_M2STR (MIN_NASSERTS_UPPER) " " \
+                                      BTORMBT_M2STR (MAX_NASSERTS_UPPER) ")\n" \
+  "\n" \
+  "  --p-param-exp <val>              probability of choosing parameterized " \
+				      "over\n" \
+  "                                   non-parameterized expressions\n" \
+  "                                   (default: " \
+				      BTORMBT_M2STR (P_PARAM_EXP) ")\n" \
+  "  --p-param-arr-exp <val>          probability of choosing parameterized " \
+				      "over\n" \
+  "                                   non-parameterized array expressions\n" \
+  "                                   (default: " \
+				      BTORMBT_M2STR (P_PARAM_ARR_EXP) ")\n" \
+  " --p-apply-fun <val>               probability of choosing an apply on\n" \
+  "                                   existing over new function\n" \
+  "                                   (default: " \
+				      BTORMBT_M2STR (P_APPLY_FUN) ")\n" \
+  " --p-rw <val>                      probability of choosing read/write\n" \
+  "                                   over eq/ne/cond\n" \
+  "                                   (default: " \
+				      BTORMBT_M2STR (P_RW) ")\n" \
+  " --p-read <val>                    probability of choosing read over " \
+                                      "write\n" \
+  "                                   (default: " \
+				      BTORMBT_M2STR (P_READ) ")\n" \
+  " --p-cond <val>                    probability of choosing cond over " \
+                                      "eq/ne\n" \
+  "                                   (default: " \
+				      BTORMBT_M2STR (P_COND) ")\n" \
+  " --p-eq <val>                      probability of choosing eq over ne\n" \
+  "                                   (default: " \
+				      BTORMBT_M2STR (P_EQ) ")\n" \
+  " --p-inc <val>                     probability of choosing an " \
+                                      "incremental step\n" \
+  "                                   (default: " \
+				      BTORMBT_M2STR (P_INC) ")\n"
 
 /*------------------------------------------------------------------------*/
 
@@ -95,13 +387,6 @@
 /*------------------------------------------------------------------------*/
 
 #define BTORMBT_MIN(x, y) ((x) < (y) ? (x) : (y))
-
-/* avoid compiler warnings for unused variables in DEBUG assertions */
-#define BTORMBT_UNUSED(expr) \
-  do                         \
-  {                          \
-    (void) (expr);           \
-  } while (0)
 
 /*------------------------------------------------------------------------*/
 
@@ -214,6 +499,7 @@ typedef struct BtorMBT
   double start_time;
 
   int seed;
+  int seeded;
   int round;
   int bugs;
   int forked;
@@ -226,11 +512,135 @@ typedef struct BtorMBT
   int force_nomgen;
   int ext;
   int shadow;
-  int max_nrounds;
   int time_limit;
 
   int bloglevel;
   int bverblevel;
+
+  int g_max_nrounds;
+
+  int g_min_nlits; /* min number of literals in a round */
+  int g_max_nlits; /* max number of literals in a round */
+
+  int g_min_nvars_init; /* min number of variables (initial layer) */
+  int g_max_nvars_init; /* max number of variables (initial layer) */
+  int g_min_nvars;      /* min number of variables (after init. layer) */
+  int g_max_nvars;      /* max number of variables (after init. layer) */
+  int g_min_nvars_inc;  /* min number of variables (reinit inc step) */
+  int g_max_nvars_inc;  /* max number of variables (reinit inc step) */
+
+  int g_min_nconsts_init; /* min number of constants (initial layer) */
+  int g_max_nconsts_init; /* max number of constants (initial layer) */
+  int g_min_nconsts;      /* min number of constants (after init. layer) */
+  int g_max_nconsts;      /* max number of constants (after init. layer) */
+  int g_min_nconsts_inc;  /* min number of constants (reinit inc step) */
+  int g_max_nconsts_inc;  /* max number of constants (reinit inc step) */
+
+  int g_min_narrs_init; /* min number of arrays (initial layer) */
+  int g_max_narrs_init; /* max number of arrays (initial layer) */
+  int g_min_narrs;      /* min number of arrays (after init. layer) */
+  int g_max_narrs;      /* max number of arrays (after init. layer) */
+  int g_min_narrs_inc;  /* min number of arrays (reinit inc step) */
+  int g_max_narrs_inc;  /* max number of arrays (reinit inc step) */
+
+  int g_min_naddopfuns_init; /* min number of funs in add op (initial layer) */
+  int g_max_naddopfuns_init; /* max number of funs in add op (initial layer) */
+  int g_min_naddopfuns;      /* min no of funs in add op (after init. layer) */
+  int g_max_naddopfuns;      /* max no of funs in add op (after init. layer) */
+  int g_min_naddopfuns_inc;  /* min no of funs in add op (reinit inc step) */
+  int g_max_naddopfuns_inc;  /* max no of funs in add op (reinit inc step) */
+
+  int g_min_naddopafuns_init; /* min number of array funs in add op
+                                 (initial layer) */
+  int g_max_naddopafuns_init; /* max number of array funs in add op
+                                 (initial layer) */
+  int g_min_naddopafuns;      /* min number of array funs in add op
+                                 (after init. layer) */
+  int g_max_naddopafuns;      /* max number of array funs in add op
+                                 (after init. layer) */
+  int g_min_naddopafuns_inc;  /* min number of array funs in add op
+                                 (reinit inc step) */
+  int g_max_naddopafuns_inc;  /* max number of array funs in add op
+                                 (reinit inc step) */
+
+  int g_min_naddopbfuns_init; /* min number of bv funs in add op
+                                 (initial layer) */
+  int g_max_naddopbfuns_init; /* max number of bv funs in add op
+                                 (initial layer) */
+  int g_min_naddopbfuns;      /* min number of bv funs in add op
+                                 (after init. layer) */
+  int g_max_naddopbfuns;      /* max number of bv funs in add op
+                                 (after init. layer) */
+  int g_min_naddopbfuns_inc;  /* min number of bv funs in add op
+                                 (reinit inc step) */
+  int g_max_naddopbfuns_inc;  /* max number of bv funs in add op
+                                 (reinit inc step) */
+
+  int g_min_naddoplits_init; /* min number of lits in add op (initial layer) */
+  int g_max_naddoplits_init; /* max number of lits in add op (initial layer) */
+  int g_min_naddoplits;      /* min no of lits in add op (after init. layer) */
+  int g_max_naddoplits;      /* max no of lits in add op (after init. layer) */
+  int g_min_naddoplits_inc;  /* min no of lits in add op (reinit inc step) */
+  int g_max_naddoplits_inc;  /* max no of lits in add op (reinit inc step) */
+
+  int g_min_nops_init; /* min number of operations (initial layer) */
+  int g_max_nops_init; /* max number of operations (initial layer) */
+  int g_min_nops;      /* min number of operations (after init. layer) */
+  int g_max_nops;      /* max number of operations (after init. layer) */
+  int g_min_nops_inc;  /* min number of operations (reinit inc step) */
+  int g_max_nops_inc;  /* max number of operations (reinit inc step) */
+
+  int g_min_naddops_init; /* min number of add ops (initial layer) */
+  int g_max_naddops_init; /* max number of add ops (initial layer) */
+  int g_min_naddops;      /* min number of add ops (after init. layer) */
+  int g_max_naddops;      /* max number of add ops (after init. layer) */
+  int g_min_naddops_inc;  /* min number of add ops (reinit inc step) */
+  int g_max_naddops_inc;  /* max number of add ops (reinit inc step) */
+
+  int g_min_nrelops_init; /* min number of release ops (initial layer) */
+  int g_max_nrelops_init; /* max number of release ops (initial layer) */
+  int g_min_nrelops;      /* min number of rel. ops (after init. layer) */
+  int g_max_nrelops;      /* max number of rel. ops (after init. layer) */
+  int g_min_nrelops_inc;  /* min number of rel. ops (reinit inc step) */
+  int g_max_nrelops_inc;  /* max number of release ops (reinit inc step) */
+
+  int g_max_nops_lower; /* lower bound for current max_nops (for
+                           determining max_nass of current round) */
+
+  int g_min_nasserts_lower; /* min number of assertions in a round
+                               for max_ops < g_max_nops_lower */
+  int g_max_nasserts_lower; /* max number of assertions in a round
+                               for max_ops < g_max_nops_lower */
+  int g_min_nasserts_upper; /* min number of assertions in a round
+                               for max_ops >= g_max_nops_lower */
+  int g_max_nasserts_upper; /* max number of assertions in a round
+                               for max_ops >= g_max_nops_lower */
+
+  int p_param_exp;     /* probability of choosing parameterized expressions
+                          over non-parameterized expressions */
+  int p_param_arr_exp; /* probability of choosing parameterized expressions
+                          over non-parameterized array expressions */
+  int p_apply_fun;     /* probability of choosing an apply on an existing
+                          over an apply on a new function */
+  int p_rw;            /* probability of choosing read/write over
+                          eq/ne/cond */
+  int p_read;          /* probability of choosing read over write */
+  int p_cond;          /* probability of choosing cond over eq/ne */
+  int p_eq;            /* probability of choosing eq over ne */
+  int p_inc;           /* probability of choosing an incremental step */
+
+  int r_addop_init; /* number of add operations (wrt to number of release
+                       operations (initial layer) */
+  int r_relop_init; /* number of release operations (wrt to number of
+                       add operations (initial layer) */
+  int r_addop;      /* number of add operations (wrt to number of release
+                       operations (after initial layer) */
+  int r_relop;      /* number of release operations (wrt to number of
+                       add operations (after initial layer) */
+  int r_addop_inc;  /* number of add operations (wrt to number of release
+                       operations (reinit inc step) */
+  int r_relop_inc;  /* number of release operations (wrt to number of
+                       add operations (reinit inc step) */
 
   /* Note: no global settings after this point! Do not change order! */
 
@@ -248,15 +658,15 @@ typedef struct BtorMBT
   /* prob. distribution of assertions in current round */
   float p_ass;
 
-  int nops;    /* number of operations in current round */
-  int nassert; /* number of produced asserts in current round */
-  int nassume; /* number of produced assumes in current round */
+  int nops;     /* number of operations in current round */
+  int nasserts; /* number of produced asserts in current round */
+  int nassumes; /* number of produced assumes in current round */
 
   int max_nlits; /* max number of literals in current round */
   int max_nops;  /* max number of operations in current round */
   int max_nass;  /* max number of asserts / assumes in current round */
 
-  int tot_nassert; /* total number of asserts in current round */
+  int tot_nasserts; /* total number of asserts in current round */
 
   ExpStack assumptions;
   ExpStack bo, bv, arr, fun;
@@ -278,11 +688,86 @@ new_btormbt (void)
 
   btormbt = malloc (sizeof (BtorMBT));
   memset (btormbt, 0, sizeof (BtorMBT));
-  btormbt->max_nrounds = INT_MAX;
-  btormbt->seed        = -1;
-  btormbt->terminal    = isatty (1);
-  btormbt->fork        = 1;
-  btormbt->ext         = 0;
+  btormbt->g_max_nrounds          = INT_MAX;
+  btormbt->seed                   = -1;
+  btormbt->seeded                 = 0;
+  btormbt->terminal               = isatty (1);
+  btormbt->fork                   = 0;
+  btormbt->ext                    = 0;
+  btormbt->g_min_nlits            = MIN_NLITS;
+  btormbt->g_max_nlits            = MAX_NLITS;
+  btormbt->g_min_nvars_init       = MIN_NVARS_INIT;
+  btormbt->g_max_nvars_init       = MAX_NVARS_INIT;
+  btormbt->g_min_nvars            = MIN_NVARS;
+  btormbt->g_max_nvars            = MAX_NVARS;
+  btormbt->g_min_nvars_inc        = MIN_NVARS_INC;
+  btormbt->g_max_nvars_inc        = MAX_NVARS_INC;
+  btormbt->g_min_nconsts_init     = MIN_NCONSTS_INIT;
+  btormbt->g_max_nconsts_init     = MAX_NCONSTS_INIT;
+  btormbt->g_min_nconsts          = MIN_NCONSTS;
+  btormbt->g_max_nconsts          = MAX_NCONSTS;
+  btormbt->g_min_nconsts_inc      = MIN_NCONSTS_INC;
+  btormbt->g_max_nconsts_inc      = MAX_NCONSTS_INC;
+  btormbt->g_min_narrs_init       = MIN_NARRS_INIT;
+  btormbt->g_max_narrs_init       = MAX_NARRS_INIT;
+  btormbt->g_min_narrs            = MIN_NARRS;
+  btormbt->g_max_narrs            = MAX_NARRS;
+  btormbt->g_min_narrs_inc        = MIN_NARRS_INC;
+  btormbt->g_max_narrs_inc        = MAX_NARRS_INC;
+  btormbt->g_min_naddopfuns_init  = MIN_NADDOPFUNS_INIT;
+  btormbt->g_max_naddopfuns_init  = MAX_NADDOPFUNS_INIT;
+  btormbt->g_min_naddopfuns       = MIN_NADDOPFUNS;
+  btormbt->g_max_naddopfuns       = MAX_NADDOPFUNS;
+  btormbt->g_min_naddopfuns_inc   = MIN_NADDOPFUNS_INC;
+  btormbt->g_max_naddopfuns_inc   = MAX_NADDOPFUNS_INC;
+  btormbt->g_min_naddopafuns_init = MIN_NADDOPAFUNS_INIT;
+  btormbt->g_max_naddopafuns_init = MAX_NADDOPAFUNS_INIT;
+  btormbt->g_min_naddopafuns      = MIN_NADDOPAFUNS;
+  btormbt->g_max_naddopafuns      = MAX_NADDOPAFUNS;
+  btormbt->g_min_naddopafuns_inc  = MIN_NADDOPAFUNS_INC;
+  btormbt->g_max_naddopafuns_inc  = MAX_NADDOPAFUNS_INC;
+  btormbt->g_min_naddopbfuns_init = MIN_NADDOPBFUNS_INIT;
+  btormbt->g_max_naddopbfuns_init = MAX_NADDOPBFUNS_INIT;
+  btormbt->g_min_naddopbfuns      = MIN_NADDOPBFUNS;
+  btormbt->g_max_naddopbfuns      = MAX_NADDOPBFUNS;
+  btormbt->g_min_naddopbfuns_inc  = MIN_NADDOPBFUNS_INC;
+  btormbt->g_max_naddopbfuns_inc  = MAX_NADDOPBFUNS_INC;
+  btormbt->g_min_naddoplits_init  = MIN_NADDOPLITS_INIT;
+  btormbt->g_max_naddoplits_init  = MAX_NADDOPLITS_INIT;
+  btormbt->g_min_naddoplits       = MIN_NADDOPLITS;
+  btormbt->g_max_naddoplits       = MAX_NADDOPLITS;
+  btormbt->g_min_naddoplits_inc   = MIN_NADDOPLITS_INC;
+  btormbt->g_max_naddoplits_inc   = MAX_NADDOPLITS_INC;
+  btormbt->g_min_nops_init        = MIN_NOPS_INIT;
+  btormbt->g_max_nops_init        = MAX_NOPS_INIT;
+  btormbt->g_min_nops             = MIN_NOPS;
+  btormbt->g_max_nops             = MAX_NOPS;
+  btormbt->g_min_nops_inc         = MIN_NOPS_INC;
+  btormbt->g_max_nops_inc         = MAX_NOPS_INC;
+  btormbt->g_min_naddops_init     = MIN_NADDOPS_INIT;
+  btormbt->g_max_naddops_init     = MAX_NADDOPS_INIT;
+  btormbt->g_min_naddops          = MIN_NADDOPS;
+  btormbt->g_max_naddops          = MAX_NADDOPS;
+  btormbt->g_min_naddops_inc      = MIN_NADDOPS_INC;
+  btormbt->g_max_naddops_inc      = MAX_NADDOPS_INC;
+  btormbt->g_min_nrelops_init     = MIN_NRELOPS_INIT;
+  btormbt->g_max_nrelops_init     = MAX_NRELOPS_INIT;
+  btormbt->g_min_nrelops          = MIN_NRELOPS;
+  btormbt->g_max_nrelops          = MAX_NRELOPS;
+  btormbt->g_min_nrelops_inc      = MIN_NRELOPS_INC;
+  btormbt->g_max_nrelops_inc      = MAX_NRELOPS_INC;
+  btormbt->g_min_nasserts_lower   = MIN_NASSERTS_LOWER;
+  btormbt->g_max_nasserts_lower   = MAX_NASSERTS_LOWER;
+  btormbt->g_min_nasserts_upper   = MIN_NASSERTS_UPPER;
+  btormbt->g_max_nasserts_upper   = MAX_NASSERTS_UPPER;
+  btormbt->p_param_exp            = P_PARAM_EXP * NORM_VAL;
+  btormbt->p_param_arr_exp        = P_PARAM_ARR_EXP * NORM_VAL;
+  btormbt->p_apply_fun            = P_APPLY_FUN * NORM_VAL;
+  btormbt->p_rw                   = P_RW * NORM_VAL;
+  btormbt->p_read                 = P_READ * NORM_VAL;
+  btormbt->p_cond                 = P_COND * NORM_VAL;
+  btormbt->p_eq                   = P_EQ * NORM_VAL;
+  btormbt->p_inc                  = P_INC * NORM_VAL;
   return btormbt;
 }
 
@@ -411,7 +896,7 @@ init_pd_addop (BtorMBT *btormbt,
  * normalized to NORM_VAL
  */
 static void
-init_pd_op (BtorMBT *btormbt, float ratio_addop, float ratio_relop)
+init_pd_ops (BtorMBT *btormbt, float ratio_addop, float ratio_relop)
 {
   float sum;
 
@@ -486,13 +971,13 @@ is_ternary_fun (Op op)
 {
   return op == COND;
 }
-#endif
 
 static int
 is_array_fun (Op op)
 {
   return (op >= COND && op <= WRITE) || (op >= EQ && op <= NE);
 }
+#endif
 
 /*------------------------------------------------------------------------*/
 
@@ -537,10 +1022,6 @@ modifybv (
   }
   else if (tow > ew)
   {
-    // TODO 'tmp' unused so remove?
-#if 0
-      tmp = boolector_get_width (btormbt->btor, e);
-#endif
     e = (pick (rng, 0, 1) ? boolector_uext (btormbt->btor, e, tow - ew)
                           : boolector_sext (btormbt->btor, e, tow - ew));
     es_push (es, e);
@@ -762,9 +1243,7 @@ binary_fun (BtorMBT *btormbt,
         }
       }
     }
-    e1  = modifybv (btormbt, rng, e1, e1w, e0w, is_param);
-    e1w = e0w;
-    (void) e1w;  // TODO remove since never used?
+    e1 = modifybv (btormbt, rng, e1, e1w, e0w, is_param);
   }
   else if (op >= SLL && op <= ROR)
   {
@@ -773,9 +1252,7 @@ binary_fun (BtorMBT *btormbt,
     e0  = modifybv (btormbt, rng, e0, e0w, tmp0, is_param);
     e1  = modifybv (btormbt, rng, e1, e1w, tmp1, is_param);
     e0w = tmp0;
-    e1w = tmp1;
-    (void) e1w;  // TODO remove since never used?
-    rw = e0w;
+    rw  = e0w;
   }
   else if (op == CONCAT)
   {
@@ -873,9 +1350,7 @@ ternary_fun (BtorMBT *btormbt,
   assert (e2w <= MAX_BITWIDTH);
 
   /* bitvectors must have same bit width */
-  e2  = modifybv (btormbt, rng, e2, e2w, e1w, is_param);
-  e2w = e1w;
-  (void) e2w;  // TODO remove since 'e2w' never used?
+  e2 = modifybv (btormbt, rng, e2, e2w, e1w, is_param);
 
   if (e1w == 1)
     es = is_param ? btormbt->parambo : &btormbt->bo;
@@ -907,13 +1382,10 @@ afun (BtorMBT *btormbt,
   assert (e0);
   assert (e1);
   assert (boolector_is_array (btormbt->btor, e0));
+  assert (is_array_fun (op));
 
   int e0w, e0iw, e1w, e2w;
   ExpStack *es;
-
-  int isarr = is_array_fun (op);
-  BTORMBT_UNUSED (isarr);
-  assert (isarr);
 
   e0w = boolector_get_width (btormbt->btor, e0);
   assert (e0w <= MAX_BITWIDTH);
@@ -968,8 +1440,8 @@ afun (BtorMBT *btormbt,
   }
 }
 
-/* Randomly select expression by given type, nodes with no parents (yet unused)
- * are preferred.
+/* Randomly select expression by given type. Nodes with no parents
+ * (yet unused) are preferred.
  */
 static BoolectorNode *
 selexp (
@@ -983,16 +1455,14 @@ selexp (
   ExpStack *es, *bo, *bv, *arr;
   BoolectorNode *exp, *e[3];
 
-  /* choose between param. exps and non-param. exps with p = 0.5 */
+  /* choose between param. exps and non-param. exps */
   rand = pick (rng, 0, NORM_VAL - 1);
-
   assert ((!btormbt->parambo && !btormbt->parambv && !btormbt->paramarr)
           || (btormbt->parambo && btormbt->parambv && btormbt->paramarr));
   if (force_param == -1
       || (!btormbt->parambo && !btormbt->parambv && !btormbt->paramarr)
       || (!btormbt->parambo->n && !btormbt->parambv->n && !btormbt->paramarr->n)
-      || (force_param == 0 && (rand < 0.5 * NORM_VAL)))
-  // FIXME store p value in btormbt
+      || (force_param == 0 && rand >= btormbt->p_param_exp))
   {
     bo  = &btormbt->bo;
     bv  = &btormbt->bv;
@@ -1086,16 +1556,14 @@ selarrexp (BtorMBT *btormbt,
   ExpStack *es;
   BoolectorNode *sel_e, *e[3];
 
-  /* choose between param. exps and non-param. exps with p = 0.5 */
+  /* choose between param. exps and non-param. array exps */
   rand = pick (rng, 0, NORM_VAL - 1);
-
   assert ((!btormbt->parambo && !btormbt->parambv && !btormbt->paramarr)
           || (btormbt->parambo && btormbt->parambv && btormbt->paramarr));
   if (force_param == -1
       || (!btormbt->parambo && !btormbt->parambv && !btormbt->paramarr)
       || (!btormbt->parambo->n && !btormbt->parambv->n && !btormbt->paramarr->n)
-      || (force_param == 0 && (rand < 0.5 * NORM_VAL)))
-    // FIXME store p value in btormbt
+      || (force_param == 0 && rand >= btormbt->p_param_arr_exp))
     es = &btormbt->arr;
   else
     es = btormbt->paramarr;
@@ -1230,10 +1698,9 @@ bfun (BtorMBT *btormbt, unsigned r, int *nparams, int *width, int nlevel)
   RNG rng;
 
   rng = initrng (r);
-  /* choose between apply on random existing function and apply on new
-   * function with p = 0.5 */
-  // FIXME externalise p
-  if (btormbt->fun.n && pick (&rng, 0, 1)) /* use existing function */
+  /* choose between apply on random existing and apply on new function */
+  rand = pick (&rng, 0, NORM_VAL - 1);
+  if (btormbt->fun.n && rand < btormbt->p_apply_fun) /* use existing function */
   {
     rand     = pick (&rng, 0, btormbt->fun.n - 1);
     fun      = btormbt->fun.exps[rand].exp;
@@ -1383,22 +1850,38 @@ _new (BtorMBT *btormbt, unsigned r)
 {
   RNG rng = initrng (r);
 
-  // FIXME externalise
   /* number of initial literals */
-  // btormbt->max_nlits = pick (&rng, 5, 40);
-  btormbt->max_nlits = pick (&rng, 3, 30);
+  btormbt->max_nlits = pick (&rng, btormbt->g_min_nlits, btormbt->g_max_nlits);
   /* number of initial operations */
-  // btormbt->max_nops = pick (&rng, 0, 100);
-  btormbt->max_nops = pick (&rng, 0, 50);
+  btormbt->max_nops =
+      pick (&rng, btormbt->g_min_nops_init, btormbt->g_max_nops_init);
 
   init_pd_lits (
-      btormbt, pick (&rng, 1, 10), pick (&rng, 0, 5), pick (&rng, 2, 5));
+      btormbt,
+      pick (&rng, btormbt->g_min_nvars_init, btormbt->g_max_nvars_init),
+      pick (&rng, btormbt->g_min_nconsts_init, btormbt->g_max_nconsts_init),
+      pick (&rng, btormbt->g_min_narrs_init, btormbt->g_max_narrs_init));
 
   /* no delete operation at init */
-  init_pd_op (btormbt, 1, 0);
+  init_pd_ops (
+      btormbt,
+      pick (&rng, btormbt->g_min_naddops_init, btormbt->g_max_naddops_init),
+      pick (&rng, btormbt->g_min_nrelops_init, btormbt->g_max_nrelops_init));
+
   /* no additional lits at init */
   init_pd_addop (
-      btormbt, pick (&rng, 1, 10), pick (&rng, 0, 5), pick (&rng, 0, 5), 0);
+      btormbt,
+      pick (
+          &rng, btormbt->g_min_naddopfuns_init, btormbt->g_max_naddopfuns_init),
+      pick (&rng,
+            btormbt->g_min_naddopafuns_init,
+            btormbt->g_max_naddopafuns_init),
+      pick (&rng,
+            btormbt->g_min_naddopbfuns_init,
+            btormbt->g_max_naddopbfuns_init),
+      pick (&rng,
+            btormbt->g_min_naddoplits_init,
+            btormbt->g_max_naddoplits_init));
 
   BTORMBT_LOG (1,
                "init: pick %d ops (add:rel=%0.1f%%:%0.1f%%), %d lits",
@@ -1492,34 +1975,34 @@ _init (BtorMBT *btormbt, unsigned r)
   btormbt->bv.initlayer  = btormbt->bv.n;
   btormbt->arr.initlayer = btormbt->arr.n;
 
-  // FIXME externalise
   /* adapt paramters for main */
-  btormbt->nops = 0; /* reset operation counter */
-  // btormbt->max_nops = pick (&rng, 20, 200);
-  // btormbt->max_nass = pick (&rng, 10, 70);  /* how many assertions of nops */
-  btormbt->max_nops = pick (&rng, 20, 100);
+  btormbt->nops     = 0;
+  btormbt->max_nops = pick (&rng, btormbt->g_min_nops, btormbt->g_max_nops);
   /* how many operations should be assertions?
    * -> max_nops and nass should be in relation (the more ops, the more
    * assertions) in order to keep the sat/unsat ratio balanced */
-  // TODO may improve?
-  // btormbt->max_nass = pick (&rng, 10, 30);
-  // does this find as many bugs??
-  if (btormbt->max_nops < 50)
-    btormbt->max_nass = BTORMBT_MIN (btormbt->max_nops, pick (&rng, 5, 25));
+  if (btormbt->max_nops < btormbt->g_max_nops_lower)
+    btormbt->max_nass = BTORMBT_MIN (btormbt->max_nops,
+                                     pick (&rng,
+                                           btormbt->g_min_nasserts_lower,
+                                           btormbt->g_max_nasserts_lower));
   else
-    btormbt->max_nass = pick (&rng, 20, 30);
+    btormbt->max_nass = pick (
+        &rng, btormbt->g_min_nasserts_upper, btormbt->g_max_nasserts_upper);
 
-  //  FIXME externalise
-  //  init_pd_lits (btormbt, pick (&rng, 1, 10), pick (&rng, 0, 5),
-  //		pick (&rng, 0, 5));
-  init_pd_lits (
-      btormbt, pick (&rng, 1, 10), pick (&rng, 0, 5), pick (&rng, 0, 5));
-  init_pd_op (btormbt, pick (&rng, 1, 8), pick (&rng, 1, 3));
-  init_pd_addop (btormbt,
-                 pick (&rng, 1, 10),
-                 pick (&rng, 0, 5),
-                 pick (&rng, 0, 5),
-                 pick (&rng, 0, 3));
+  init_pd_lits (btormbt,
+                pick (&rng, btormbt->g_min_nvars, btormbt->g_max_nvars),
+                pick (&rng, btormbt->g_min_nconsts, btormbt->g_max_nconsts),
+                pick (&rng, btormbt->g_min_narrs, btormbt->g_max_narrs));
+  init_pd_ops (btormbt,
+               pick (&rng, btormbt->g_min_naddops, btormbt->g_max_naddops),
+               pick (&rng, btormbt->g_min_nrelops, btormbt->g_max_nrelops));
+  init_pd_addop (
+      btormbt,
+      pick (&rng, btormbt->g_min_naddopfuns, btormbt->g_max_naddopfuns),
+      pick (&rng, btormbt->g_min_naddopafuns, btormbt->g_max_naddopafuns),
+      pick (&rng, btormbt->g_min_naddopbfuns, btormbt->g_max_naddopbfuns),
+      pick (&rng, btormbt->g_min_naddoplits, btormbt->g_max_naddoplits));
 
   BTORMBT_LOG (1,
                "main: pick %d ops (add:rel=%0.1f%%:%0.1f%%)",
@@ -1566,8 +2049,8 @@ _main (BtorMBT *btormbt, unsigned r)
                btormbt->arr.n);
   BTORMBT_LOG (1,
                "after main: number of asserts: %d, assumps: %d",
-               btormbt->tot_nassert,
-               btormbt->nassume);
+               btormbt->tot_nasserts,
+               btormbt->nassumes);
 
   return _sat;
 }
@@ -1628,28 +2111,40 @@ _fun (BtorMBT *btormbt, unsigned r)
 static void *
 _afun (BtorMBT *btormbt, unsigned r)
 {
-  int e0w, e0iw;
+  int e0w, e0iw, rand;
   Op op;
-  BoolectorNode *e0, *e1, *e2 = NULL;
-  RNG rng = initrng (r);
+  BoolectorNode *e0, *e1, *e2;
+  RNG rng;
+
+  rng  = initrng (r);
+  rand = pick (&rng, 0, NORM_VAL - 1);
 
   e0   = selexp (btormbt, &rng, T_ARR, 0, NULL);
   e0w  = boolector_get_width (btormbt->btor, e0);
   e0iw = boolector_get_index_width (btormbt->btor, e0);
 
+  e2 = NULL;
+
   /* use read/write with p=0.666 else EQ/NE/COND */
-  // TODO may use p=0.5??
-  if (pick (&rng, 0, 2))
+  if (rand < btormbt->p_rw)
   {
-    op = pick (&rng, READ, WRITE);
-    e1 = selexp (btormbt, &rng, T_BV, 0, NULL);
+    rand = pick (&rng, 0, NORM_VAL - 1);
+    op   = rand < btormbt->p_read ? READ : WRITE;
+    e1   = selexp (btormbt, &rng, T_BV, 0, NULL);
     if (op == WRITE) e2 = selexp (btormbt, &rng, T_BV, 0, NULL);
     afun (btormbt, &rng, op, e0, e1, e2, 0);
   }
   else
   {
     /* select EQ/NE/COND with same propability */
-    op = pick (&rng, 0, 2) && btormbt->ext ? pick (&rng, EQ, NE) : COND;
+    rand = pick (&rng, 0, NORM_VAL - 1);
+    if (!btormbt->ext || rand < btormbt->p_cond)
+      op = COND;
+    else
+    {
+      rand = pick (&rng, 0, NORM_VAL - 1);
+      op   = rand < btormbt->p_eq ? EQ : NE;
+    }
     e1 = selarrexp (btormbt, &rng, e0, e0w, e0iw, 0);
     if (op == COND) e2 = selexp (btormbt, &rng, T_BO, 0, NULL);
     afun (btormbt, &rng, op, e0, e1, e2, 0);
@@ -1672,6 +2167,7 @@ _bfun (BtorMBT *btormbt, unsigned r)
   return (btormbt->is_init ? _main : _init);
 }
 
+// FIXME s/lit/input
 static void *
 _lit (BtorMBT *btormbt, unsigned r)
 {
@@ -1742,13 +2238,13 @@ _ass (BtorMBT *btormbt, unsigned r)
   {
     boolector_assume (btormbt->btor, node);
     es_push (&btormbt->assumptions, node);
-    btormbt->nassume++;
+    btormbt->nassumes++;
   }
   else
   {
     boolector_assert (btormbt->btor, node);
-    btormbt->nassert++;
-    btormbt->tot_nassert++;
+    btormbt->nasserts++;
+    btormbt->tot_nasserts++;
   }
   return _main;
 }
@@ -1793,11 +2289,11 @@ _sat (BtorMBT *btormbt, unsigned r)
 static void *
 _mgen (BtorMBT *btormbt, unsigned r)
 {
+  (void) r;
   int i, size = 0;
   const char *bv = NULL;
   char **indices = NULL, **values = NULL;
 
-  BTORMBT_UNUSED (r);
   assert (btormbt->mgen);
 
   for (i = 0; i < btormbt->bo.n; i++)
@@ -1823,35 +2319,50 @@ _mgen (BtorMBT *btormbt, unsigned r)
 static void *
 _inc (BtorMBT *btormbt, unsigned r)
 {
-  int i;
+  int i, rand;
   RNG rng;
 
-  rng = initrng (r);
+  rng  = initrng (r);
+  rand = pick (&rng, 0, NORM_VAL - 1);
 
   /* release cnf expressions */
   for (i = 0; i < btormbt->cnf.n; i++)
     boolector_release (btormbt->btor, btormbt->cnf.exps[i].exp);
   es_reset (&btormbt->cnf);
 
-  // FIXME externalize
-  if (btormbt->inc && pick (&rng, 0, 2))
+  if (btormbt->inc && rand < btormbt->p_inc)
   {
     btormbt->inc++;
     btormbt->nops     = 0; /* reset */
-    btormbt->max_nass = btormbt->max_nass - btormbt->nassert;
-    btormbt->nassume  = 0; /* reset */
-    btormbt->nassert  = 0;
-    // btormbt->max_nops = pick (&rng, 0, 150);
-    btormbt->max_nops = pick (&rng, 20, 50);
-    init_pd_lits (
-        btormbt, pick (&rng, 1, 10), pick (&rng, 0, 5), pick (&rng, 0, 5));
-    init_pd_op (btormbt, pick (&rng, 1, 5), pick (&rng, 1, 5));
-    init_pd_addop (btormbt,
-                   pick (&rng, 1, 10),
-                   pick (&rng, 0, 5),
-                   pick (&rng, 1, 5),
-                   pick (&rng, 0, 3));
+    btormbt->max_nass = btormbt->max_nass - btormbt->nasserts;
+    btormbt->nassumes = 0; /* reset */
+    btormbt->nasserts = 0;
 
+    btormbt->max_nops =
+        pick (&rng, btormbt->g_min_nops_inc, btormbt->g_max_nops_inc);
+
+    init_pd_lits (
+        btormbt,
+        pick (&rng, btormbt->g_min_nvars_inc, btormbt->g_max_nvars_inc),
+        pick (&rng, btormbt->g_min_nconsts_inc, btormbt->g_max_nconsts_inc),
+        pick (&rng, btormbt->g_min_narrs_inc, btormbt->g_max_narrs_inc));
+    init_pd_ops (
+        btormbt,
+        pick (&rng, btormbt->g_min_naddops_inc, btormbt->g_max_naddops_inc),
+        pick (&rng, btormbt->g_min_nrelops_inc, btormbt->g_max_nrelops_inc));
+    init_pd_addop (
+        btormbt,
+        pick (
+            &rng, btormbt->g_min_naddopfuns_inc, btormbt->g_max_naddopfuns_inc),
+        pick (&rng,
+              btormbt->g_min_naddopafuns_inc,
+              btormbt->g_max_naddopafuns_inc),
+        pick (&rng,
+              btormbt->g_min_naddopbfuns_inc,
+              btormbt->g_max_naddopbfuns_inc),
+        pick (&rng,
+              btormbt->g_min_naddoplits_inc,
+              btormbt->g_max_naddoplits_inc));
     BTORMBT_LOG (1,
                  "inc: pick %d ops(add:rel=%0.1f%%:%0.1f%%)",
                  btormbt->max_nops,
@@ -1867,12 +2378,11 @@ _inc (BtorMBT *btormbt, unsigned r)
 static void *
 _del (BtorMBT *btormbt, unsigned r)
 {
+  (void) r;
   assert (btormbt);
   assert (btormbt->btor);
 
   int i;
-
-  BTORMBT_UNUSED (r);
 
   for (i = 0; i < btormbt->bo.n; i++)
     boolector_release (btormbt->btor, btormbt->bo.exps[i].exp);
@@ -1912,7 +2422,7 @@ rantrav (BtorMBT *btormbt)
           0,
           (char *) &btormbt->rng - (char *) &btormbt->is_init);
   assert (btormbt->is_init == 0);
-  assert (btormbt->tot_nassert == 0);
+  assert (btormbt->tot_nasserts == 0);
   btormbt->rng.z = btormbt->rng.w = btormbt->seed;
 
   /* state loop */
@@ -1951,19 +2461,17 @@ set_alarm (void)
 }
 
 static int
-run (BtorMBT *btormbt, void (*process) (BtorMBT *))
+run (BtorMBT *btormbt)
 {
   assert (btormbt);
-  assert (process);
 
-  int res, status, saved1, saved2, null;
+  int status, null;
   pid_t id;
 
   if (!btormbt->fork)
-    process (btormbt);
+    rantrav (btormbt);
   else
   {
-    (void) saved1;
     btormbt->forked++;
     fflush (stdout);
     if ((id = fork ()))
@@ -1984,80 +2492,23 @@ run (BtorMBT *btormbt, void (*process) (BtorMBT *))
                      "set time limit to %d second(s)",
                      btormbt->time_limit);
       }
-#ifndef NDEBUG
-      int tmp;
-#endif
+
+      /* redirect output from child to /dev/null if we don't want to have
+       * verbose output */
       if (!btormbt->verbose)
       {
-        saved1 = dup (1);
-        saved2 = dup (2);
-        null   = open ("/dev/null", O_WRONLY);
-        close (1);
-        close (2);
-#ifndef NDEBUG
-        tmp =
-#endif
-#ifdef USE_PRAGMAS_TO_DISABLE_WARNINGS
-#pragma GCC diagnostic ignored "-Wunused-result"
-#endif
-            dup (null);
-        assert (tmp == 1);
-#ifndef NDEBUG
-        tmp =
-#endif
-            dup (null);
-#ifndef NDEBUG
-        assert (tmp == 2);
-#endif
+        null = open ("/dev/null", O_WRONLY);
+        dup2 (null, STDOUT_FILENO);
+        dup2 (null, STDERR_FILENO);
+        close (null);
       }
-      process (btormbt);
-      close (null);
-      close (2);
-#ifndef NDEBUG
-      tmp =
-#endif
-          dup (saved2);
-#ifndef NDEBUG
-      assert (tmp == 2);
-      close (1);
-#ifndef NDEBUG
-      tmp =
-#endif
-          dup (saved1);
-#ifdef USE_PRAGMAS_TO_DISABLE_WARNINGS
-#pragma GCC diagnostic ignored "-Wunused-result"
-#endif
-#ifdef NDEBUG
-      assert (tmp == 1);
-#endif
-      BTORMBT_UNUSED (tmp);
-#endif
+
+      rantrav (btormbt);
       exit (EXIT_OK);
     }
-
-    if (WIFEXITED (status))
-    {
-      res = WEXITSTATUS (status);
-      BTORMBT_LOG (res == EXIT_TIMEOUT,
-                   "TIMEOUT: time limit %d seconds reached\n",
-                   btormbt->time_limit);
-      if (res == EXIT_TIMEOUT && !btormbt->verbose)
-        printf ("timed out after %d second(s)\n", btormbt->time_limit);
-      else if (!btormbt->seed)
-        printf ("exit %d ", res);
-    }
-    else if (WIFSIGNALED (status))
-    {
-      if (btormbt->verbose) printf ("signal %d", WTERMSIG (status));
-      res = EXIT_ERROR;
-    }
-    else
-    {
-      if (btormbt->verbose) printf ("unknown");
-      res = EXIT_ERROR;
-    }
   }
-  return res;
+
+  return status;
 }
 
 /*------------------------------------------------------------------------*/
@@ -2077,6 +2528,15 @@ isnumstr (const char *str)
   const char *p;
   for (p = str; *p; p++)
     if (!isdigit (*p)) return 0;
+  return 1;
+}
+
+static int
+isfloatnumstr (const char *str)
+{
+  const char *p;
+  for (p = str; *p; p++)
+    if (!isdigit (*p) && !*p == '.') return 0;
   return 1;
 }
 
@@ -2163,15 +2623,7 @@ sig_handler (int sig)
   char str[100];
 
   sprintf (str, "*** btormbt: caught signal %d\n\n", sig);
-#ifdef USE_PRAGMAS_TO_DISABLE_WARNINGS
-#pragma GCC diagnostic ignored "-Wunused-result"
-#pragma GCC diagnostic ignored "-Wunused-variable"
-#endif
-  write (1, str, strlen (str));
-#ifdef USE_PRAGMAS_TO_DISABLE_WARNINGS
-#pragma GCC diagnostic warning "-Wunused-result"
-#pragma GCC diagnostic warning "-Wunused-variable"
-#endif
+  (void) write (STDOUT_FILENO, str, strlen (str));
   /* Note: if _exit is used here (which is reentrant, in contrast to exit),
    *       atexit handler is not called. Hence, use exit here. */
   exit (EXIT_ERROR);
@@ -2199,15 +2651,14 @@ finish (void)
 int
 main (int argc, char **argv)
 {
-  int i, mac, pid, prev, res, seeded, verbose, always_fork = 0;
+  int i, mac, pid, prev, res, verbose, status;
   char *name, *cmd;
 
   btormbt             = new_btormbt ();
   btormbt->start_time = current_time ();
 
-  pid    = 0;
-  prev   = 0;
-  seeded = 0;
+  pid  = 0;
+  prev = 0;
 
   atexit (finish);
 
@@ -2215,7 +2666,7 @@ main (int argc, char **argv)
   {
     if (!strcmp (argv[i], "-h") || !strcmp (argv[i], "--help"))
     {
-      printf ("%s%s", BTORMBT_USAGE, BTORMBT_LOG_USAGE);
+      printf ("%s", BTORMBT_USAGE);
       exit (EXIT_OK);
     }
     else if (!strcmp (argv[i], "-v") || !strcmp (argv[i], "--verbose"))
@@ -2223,7 +2674,7 @@ main (int argc, char **argv)
     else if (!strcmp (argv[i], "-k") || !strcmp (argv[i], "--keep-lines"))
       btormbt->terminal = 0;
     else if (!strcmp (argv[i], "-a") || !strcmp (argv[i], "--always-fork"))
-      always_fork = 1;
+      btormbt->fork = 1;
     else if (!strcmp (argv[i], "-f") || !strcmp (argv[i], "--first-bug-only"))
       btormbt->quit_after_first = 1;
     else if (!strcmp (argv[i], "-n") || !strcmp (argv[i], "--no-modelgen"))
@@ -2237,7 +2688,7 @@ main (int argc, char **argv)
       if (++i == argc) die ("argument to '-m' missing (try '-h')");
       if (!isnumstr (argv[i]))
         die ("argument '%s' to '-m' is not a number (try '-h')", argv[i]);
-      btormbt->max_nrounds = atoi (argv[i]);
+      btormbt->g_max_nrounds = atoi (argv[i]);
     }
     else if (!strcmp (argv[i], "-t"))
     {
@@ -2261,14 +2712,478 @@ main (int argc, char **argv)
         die ("argument '%s' to '--bverb' not a number (try '-h')", argv[i]);
       btormbt->bverblevel = atoi (argv[i]);
     }
+    else if (!strcmp (argv[i], "--nlits"))
+    {
+      if (++i == argc) die ("argument to '--nlits' missing (try '-h')");
+      if (!isnumstr (argv[i]))
+        die ("argument to '--nlits' is not a number (try '-h')");
+      btormbt->g_min_nlits = atoi (argv[i]);
+      if (++i == argc) die ("argument to '--nlits' missing (try '-h')");
+      if (!isnumstr (argv[i]))
+        die ("argument to '--nlits' is not a number (try '-h')");
+      btormbt->g_max_nlits = atoi (argv[i]);
+    }
+    else if (!strcmp (argv[i], "--nvars-init"))
+    {
+      if (++i == argc) die ("argument to '--nvars-init' missing (try '-h')");
+      if (!isnumstr (argv[i]))
+        die ("argument to '--nvars-init' is not a number (try '-h')");
+      btormbt->g_min_nvars_init = atoi (argv[i]);
+      if (++i == argc) die ("argument to '--nvars-init' missing (try '-h')");
+      if (!isnumstr (argv[i]))
+        die ("argument to '--nvars-init' is not a number (try '-h')");
+      btormbt->g_max_nvars_init = atoi (argv[i]);
+    }
+    else if (!strcmp (argv[i], "--nvars"))
+    {
+      if (++i == argc) die ("argument to '--nvars' missing (try '-h')");
+      if (!isnumstr (argv[i]))
+        die ("argument to '--nvars' is not a number (try '-h')");
+      btormbt->g_min_nvars = atoi (argv[i]);
+      if (++i == argc) die ("argument to '--nvars' missing (try '-h')");
+      if (!isnumstr (argv[i]))
+        die ("argument to '--nvars' is not a number (try '-h')");
+      btormbt->g_max_nvars = atoi (argv[i]);
+    }
+    else if (!strcmp (argv[i], "--nvars-inc"))
+    {
+      if (++i == argc) die ("argument to '--nvars-inc' missing (try '-h')");
+      if (!isnumstr (argv[i]))
+        die ("argument to '--nvars-inc' is not a number (try '-h')");
+      btormbt->g_min_nvars_inc = atoi (argv[i]);
+      if (++i == argc) die ("argument to '--nvars-inc' missing (try '-h')");
+      if (!isnumstr (argv[i]))
+        die ("argument to '--nvars-inc' is not a number (try '-h')");
+      btormbt->g_max_nvars_inc = atoi (argv[i]);
+    }
+    else if (!strcmp (argv[i], "--nconsts-init"))
+    {
+      if (++i == argc) die ("argument to '--nconsts-init' missing (try '-h')");
+      if (!isnumstr (argv[i]))
+        die ("argument to '--nconsts-init' is not a number (try '-h')");
+      btormbt->g_min_nconsts_init = atoi (argv[i]);
+      if (++i == argc) die ("argument to '--nconsts-init' missing (try '-h')");
+      if (!isnumstr (argv[i]))
+        die ("argument to '--nconsts-init' is not a number (try '-h')");
+      btormbt->g_max_nconsts_init = atoi (argv[i]);
+    }
+    else if (!strcmp (argv[i], "--nconsts"))
+    {
+      if (++i == argc) die ("argument to '--nconsts' missing (try '-h')");
+      if (!isnumstr (argv[i]))
+        die ("argument to '--nconsts' is not a number (try '-h')");
+      btormbt->g_min_nconsts = atoi (argv[i]);
+      if (++i == argc) die ("argument to '--nconsts' missing (try '-h')");
+      if (!isnumstr (argv[i]))
+        die ("argument to '--nconsts' is not a number (try '-h')");
+      btormbt->g_max_nconsts = atoi (argv[i]);
+    }
+    else if (!strcmp (argv[i], "--nconsts-inc"))
+    {
+      if (++i == argc) die ("argument to '--nconsts-inc' missing (try '-h')");
+      if (!isnumstr (argv[i]))
+        die ("argument to '--nconsts-inc' is not a number (try '-h')");
+      btormbt->g_min_nconsts_inc = atoi (argv[i]);
+      if (++i == argc) die ("argument to '--nconsts-inc' missing (try '-h')");
+      if (!isnumstr (argv[i]))
+        die ("argument to '--nconsts-inc' is not a number (try '-h')");
+      btormbt->g_max_nconsts_inc = atoi (argv[i]);
+    }
+    else if (!strcmp (argv[i], "--narrs-init"))
+    {
+      if (++i == argc) die ("argument to '--narrs-init' missing (try '-h')");
+      if (!isnumstr (argv[i]))
+        die ("argument to '--narrs-init' is not a number (try '-h')");
+      btormbt->g_min_narrs_init = atoi (argv[i]);
+      if (++i == argc) die ("argument to '--narrs-init' missing (try '-h')");
+      if (!isnumstr (argv[i]))
+        die ("argument to '--narrs-init' is not a number (try '-h')");
+      btormbt->g_max_narrs_init = atoi (argv[i]);
+    }
+    else if (!strcmp (argv[i], "--narrs"))
+    {
+      if (++i == argc) die ("argument to '--narrs' missing (try '-h')");
+      if (!isnumstr (argv[i]))
+        die ("argument to '--narrs' is not a number (try '-h')");
+      btormbt->g_min_narrs = atoi (argv[i]);
+      if (++i == argc) die ("argument to '--narrs' missing (try '-h')");
+      if (!isnumstr (argv[i]))
+        die ("argument to '--narrs' is not a number (try '-h')");
+      btormbt->g_max_narrs = atoi (argv[i]);
+    }
+    else if (!strcmp (argv[i], "--narrs-inc"))
+    {
+      if (++i == argc) die ("argument to '--narrs-inc' missing (try '-h')");
+      if (!isnumstr (argv[i]))
+        die ("argument to '--narrs-inc' is not a number (try '-h')");
+      btormbt->g_min_narrs_inc = atoi (argv[i]);
+      if (++i == argc) die ("argument to '--narrs-inc' missing (try '-h')");
+      if (!isnumstr (argv[i]))
+        die ("argument to '--narrs-inc' is not a number (try '-h')");
+      btormbt->g_max_narrs_inc = atoi (argv[i]);
+    }
+    else if (!strcmp (argv[i], "--naddopfuns-init"))
+    {
+      if (++i == argc)
+        die ("argument to '--naddopfuns-init' missing (try '-h')");
+      if (!isnumstr (argv[i]))
+        die ("argument to '--naddopfuns-init' is not a number (try '-h')");
+      btormbt->g_min_naddopfuns_init = atoi (argv[i]);
+      if (++i == argc)
+        die ("argument to '--naddopfuns-init' missing (try '-h')");
+      if (!isnumstr (argv[i]))
+        die ("argument to '--naddopfuns-init' is not a number (try '-h')");
+      btormbt->g_max_naddopfuns_init = atoi (argv[i]);
+    }
+    else if (!strcmp (argv[i], "--naddopfuns"))
+    {
+      if (++i == argc) die ("argument to '--naddopfuns' missing (try '-h')");
+      if (!isnumstr (argv[i]))
+        die ("argument to '--naddopfuns' is not a number (try '-h')");
+      btormbt->g_min_naddopfuns = atoi (argv[i]);
+      if (++i == argc) die ("argument to '--naddopfuns' missing (try '-h')");
+      if (!isnumstr (argv[i]))
+        die ("argument to '--naddopfuns' is not a number (try '-h')");
+      btormbt->g_max_naddopfuns = atoi (argv[i]);
+    }
+    else if (!strcmp (argv[i], "--naddopfuns-inc"))
+    {
+      if (++i == argc)
+        die ("argument to '--naddopfuns-inc' missing (try '-h')");
+      if (!isnumstr (argv[i]))
+        die ("argument to '--naddopfuns-inc' is not a number (try '-h')");
+      btormbt->g_min_naddopfuns_inc = atoi (argv[i]);
+      if (++i == argc)
+        die ("argument to '--naddopfuns-inc' missing (try '-h')");
+      if (!isnumstr (argv[i]))
+        die ("argument to '--naddopfuns-inc' is not a number (try '-h')");
+      btormbt->g_max_naddopfuns_inc = atoi (argv[i]);
+    }
+    else if (!strcmp (argv[i], "--naddopafuns-init"))
+    {
+      if (++i == argc)
+        die ("argument to '--naddopafuns-init' missing (try '-h')");
+      if (!isnumstr (argv[i]))
+        die ("argument to '--naddopafuns-init' is not a number (try '-h')");
+      btormbt->g_min_naddopafuns_init = atoi (argv[i]);
+      if (++i == argc)
+        die ("argument to '--naddopafuns-init' missing (try '-h')");
+      if (!isnumstr (argv[i]))
+        die ("argument to '--naddopafuns-init' is not a number (try '-h')");
+      btormbt->g_max_naddopafuns_init = atoi (argv[i]);
+    }
+    else if (!strcmp (argv[i], "--naddopafuns"))
+    {
+      if (++i == argc) die ("argument to '--naddopafuns' missing (try '-h')");
+      if (!isnumstr (argv[i]))
+        die ("argument to '--naddopafuns' is not a number (try '-h')");
+      btormbt->g_min_naddopafuns = atoi (argv[i]);
+      if (++i == argc) die ("argument to '--naddopafuns' missing (try '-h')");
+      if (!isnumstr (argv[i]))
+        die ("argument to '--naddopafuns' is not a number (try '-h')");
+      btormbt->g_max_naddopafuns = atoi (argv[i]);
+    }
+    else if (!strcmp (argv[i], "--naddopafuns-inc"))
+    {
+      if (++i == argc)
+        die ("argument to '--naddopafuns-inc' missing (try '-h')");
+      if (!isnumstr (argv[i]))
+        die ("argument to '--naddopafuns-inc' is not a number (try '-h')");
+      btormbt->g_min_naddopafuns_inc = atoi (argv[i]);
+      if (++i == argc)
+        die ("argument to '--naddopafuns-inc' missing (try '-h')");
+      if (!isnumstr (argv[i]))
+        die ("argument to '--naddopafuns-inc' is not a number (try '-h')");
+      btormbt->g_max_naddopafuns_inc = atoi (argv[i]);
+    }
+    else if (!strcmp (argv[i], "--naddopbfuns-init"))
+    {
+      if (++i == argc)
+        die ("argument to '--naddopbfuns-init' missing (try '-h')");
+      if (!isnumstr (argv[i]))
+        die ("argument to '--naddopbfuns-init' is not a number (try '-h')");
+      btormbt->g_min_naddopbfuns_init = atoi (argv[i]);
+      if (++i == argc)
+        die ("argument to '--naddopbfuns-init' missing (try '-h')");
+      if (!isnumstr (argv[i]))
+        die ("argument to '--naddopbfuns-init' is not a number (try '-h')");
+      btormbt->g_max_naddopbfuns_init = atoi (argv[i]);
+    }
+    else if (!strcmp (argv[i], "--naddopbfuns"))
+    {
+      if (++i == argc) die ("argument to '--naddopbfuns' missing (try '-h')");
+      if (!isnumstr (argv[i]))
+        die ("argument to '--naddopbfuns' is not a number (try '-h')");
+      btormbt->g_min_naddopbfuns = atoi (argv[i]);
+      if (++i == argc) die ("argument to '--naddopbfuns' missing (try '-h')");
+      if (!isnumstr (argv[i]))
+        die ("argument to '--naddopbfuns' is not a number (try '-h')");
+      btormbt->g_max_naddopbfuns = atoi (argv[i]);
+    }
+    else if (!strcmp (argv[i], "--naddopbfuns-inc"))
+    {
+      if (++i == argc)
+        die ("argument to '--naddopbfuns-inc' missing (try '-h')");
+      if (!isnumstr (argv[i]))
+        die ("argument to '--naddopbfuns-inc' is not a number (try '-h')");
+      btormbt->g_min_naddopbfuns_inc = atoi (argv[i]);
+      if (++i == argc)
+        die ("argument to '--naddopbfuns-inc' missing (try '-h')");
+      if (!isnumstr (argv[i]))
+        die ("argument to '--naddopbfuns-inc' is not a number (try '-h')");
+      btormbt->g_max_naddopbfuns_inc = atoi (argv[i]);
+    }
+    else if (!strcmp (argv[i], "--naddoplits-init"))
+    {
+      if (++i == argc)
+        die ("argument to '--naddoplits-init' missing (try '-h')");
+      if (!isnumstr (argv[i]))
+        die ("argument to '--naddoplits-init' is not a number (try '-h')");
+      btormbt->g_min_naddoplits_init = atoi (argv[i]);
+      if (++i == argc)
+        die ("argument to '--naddoplits-init' missing (try '-h')");
+      if (!isnumstr (argv[i]))
+        die ("argument to '--naddoplits-init' is not a number (try '-h')");
+      btormbt->g_max_naddoplits_init = atoi (argv[i]);
+    }
+    else if (!strcmp (argv[i], "--naddoplits"))
+    {
+      if (++i == argc) die ("argument to '--naddoplits' missing (try '-h')");
+      if (!isnumstr (argv[i]))
+        die ("argument to '--naddoplits' is not a number (try '-h')");
+      btormbt->g_min_naddoplits = atoi (argv[i]);
+      if (++i == argc) die ("argument to '--naddoplits' missing (try '-h')");
+      if (!isnumstr (argv[i]))
+        die ("argument to '--naddoplits' is not a number (try '-h')");
+      btormbt->g_max_naddoplits = atoi (argv[i]);
+    }
+    else if (!strcmp (argv[i], "--naddoplits-inc"))
+    {
+      if (++i == argc)
+        die ("argument to '--naddoplits-inc' missing (try '-h')");
+      if (!isnumstr (argv[i]))
+        die ("argument to '--naddoplits-inc' is not a number (try '-h')");
+      btormbt->g_min_naddoplits_inc = atoi (argv[i]);
+      if (++i == argc)
+        die ("argument to '--naddoplits-inc' missing (try '-h')");
+      if (!isnumstr (argv[i]))
+        die ("argument to '--naddoplits-inc' is not a number (try '-h')");
+      btormbt->g_max_naddoplits_inc = atoi (argv[i]);
+    }
+    else if (!strcmp (argv[i], "--nops-init"))
+    {
+      if (++i == argc) die ("argument to '--nops-init' missing (try '-h')");
+      if (!isnumstr (argv[i]))
+        die ("argument to '--nops-init' is not a number (try '-h')");
+      btormbt->g_min_nops_init = atoi (argv[i]);
+      if (++i == argc) die ("argument to '--nops-init' missing (try '-h')");
+      if (!isnumstr (argv[i]))
+        die ("argument to '--nops-init' is not a number (try '-h')");
+      btormbt->g_max_nops_init = atoi (argv[i]);
+    }
+    else if (!strcmp (argv[i], "--nops"))
+    {
+      if (++i == argc) die ("argument to '--nops' missing (try '-h')");
+      if (!isnumstr (argv[i]))
+        die ("argument to '--nops' is not a number (try '-h')");
+      btormbt->g_min_nops = atoi (argv[i]);
+      if (++i == argc) die ("argument to '--nops' missing (try '-h')");
+      if (!isnumstr (argv[i]))
+        die ("argument to '--nops' is not a number (try '-h')");
+      btormbt->g_max_nops = atoi (argv[i]);
+    }
+    else if (!strcmp (argv[i], "--nops-inc"))
+    {
+      if (++i == argc) die ("argument to '--nops-inc' missing (try '-h')");
+      if (!isnumstr (argv[i]))
+        die ("argument to '--nops-inc' is not a number (try '-h')");
+      btormbt->g_min_nops_inc = atoi (argv[i]);
+      if (++i == argc) die ("argument to '--nops-inc' missing (try '-h')");
+      if (!isnumstr (argv[i]))
+        die ("argument to '--nops-inc' is not a number (try '-h')");
+      btormbt->g_max_nops_inc = atoi (argv[i]);
+    }
+    else if (!strcmp (argv[i], "--naddops-init"))
+    {
+      if (++i == argc) die ("argument to '--naddops-init' missing (try '-h')");
+      if (!isnumstr (argv[i]))
+        die ("argument to '--naddops-init' is not a number (try '-h')");
+      btormbt->g_min_naddops_init = atoi (argv[i]);
+      if (++i == argc) die ("argument to '--naddops-init' missing (try '-h')");
+      if (!isnumstr (argv[i]))
+        die ("argument to '--naddops-init' is not a number (try '-h')");
+      btormbt->g_max_naddops_init = atoi (argv[i]);
+    }
+    else if (!strcmp (argv[i], "--naddops"))
+    {
+      if (++i == argc) die ("argument to '--naddops' missing (try '-h')");
+      if (!isnumstr (argv[i]))
+        die ("argument to '--naddops' is not a number (try '-h')");
+      btormbt->g_min_naddops = atoi (argv[i]);
+      if (++i == argc) die ("argument to '--naddops' missing (try '-h')");
+      if (!isnumstr (argv[i]))
+        die ("argument to '--naddops' is not a number (try '-h')");
+      btormbt->g_max_naddops = atoi (argv[i]);
+    }
+    else if (!strcmp (argv[i], "--naddops-inc"))
+    {
+      if (++i == argc) die ("argument to '--naddops-inc' missing (try '-h')");
+      if (!isnumstr (argv[i]))
+        die ("argument to '--naddops-inc' is not a number (try '-h')");
+      btormbt->g_min_naddops_inc = atoi (argv[i]);
+      if (++i == argc) die ("argument to '--naddops-inc' missing (try '-h')");
+      if (!isnumstr (argv[i]))
+        die ("argument to '--naddops-inc' is not a number (try '-h')");
+      btormbt->g_max_naddops_inc = atoi (argv[i]);
+    }
+    else if (!strcmp (argv[i], "--nrelops-init"))
+    {
+      if (++i == argc) die ("argument to '--nrelops-init' missing (try '-h')");
+      if (!isnumstr (argv[i]))
+        die ("argument to '--nrelops-init' is not a number (try '-h')");
+      btormbt->g_min_nrelops_init = atoi (argv[i]);
+      if (++i == argc) die ("argument to '--nrelops-init' missing (try '-h')");
+      if (!isnumstr (argv[i]))
+        die ("argument to '--nrelops-init' is not a number (try '-h')");
+      btormbt->g_max_nrelops_init = atoi (argv[i]);
+    }
+    else if (!strcmp (argv[i], "--nrelops"))
+    {
+      if (++i == argc) die ("argument to '--nrelops' missing (try '-h')");
+      if (!isnumstr (argv[i]))
+        die ("argument to '--nrelops' is not a number (try '-h')");
+      btormbt->g_min_nrelops = atoi (argv[i]);
+      if (++i == argc) die ("argument to '--nrelops' missing (try '-h')");
+      if (!isnumstr (argv[i]))
+        die ("argument to '--nrelops' is not a number (try '-h')");
+      btormbt->g_max_nrelops = atoi (argv[i]);
+    }
+    else if (!strcmp (argv[i], "--nrelops-inc"))
+    {
+      if (++i == argc) die ("argument to '--nrelops-inc' missing (try '-h')");
+      if (!isnumstr (argv[i]))
+        die ("argument to '--nrelops-inc' is not a number (try '-h')");
+      btormbt->g_min_nrelops_inc = atoi (argv[i]);
+      if (++i == argc) die ("argument to '--nrelops-inc' missing (try '-h')");
+      if (!isnumstr (argv[i]))
+        die ("argument to '--nrelops-inc' is not a number (try '-h')");
+      btormbt->g_max_nrelops_inc = atoi (argv[i]);
+    }
+    else if (!strcmp (argv[i], "--max-nops-lower"))
+    {
+      if (++i == argc)
+        die ("argument to '--max-nops-lower' missing (try '-h')");
+      if (!isnumstr (argv[i]))
+        die ("argument to '--max-nops-lower' is not a number (try '-h')");
+      btormbt->g_max_nops_lower = atoi (argv[i]);
+    }
+    else if (!strcmp (argv[i], "--nasserts-lower"))
+    {
+      if (++i == argc)
+        die ("argument to '--nasserts-lower' missing (try '-h')");
+      if (!isnumstr (argv[i]))
+        die ("argument to '--nasserts-lower' is not a number (try '-h')");
+      btormbt->g_min_nasserts_lower = atoi (argv[i]);
+      if (++i == argc)
+        die ("argument to '--nasserts-lower' missing (try '-h')");
+      if (!isnumstr (argv[i]))
+        die ("argument to '--nasserts-lower' is not a number (try '-h')");
+      btormbt->g_max_nasserts_lower = atoi (argv[i]);
+    }
+    else if (!strcmp (argv[i], "--nasserts-upper"))
+    {
+      if (++i == argc)
+        die ("argument to '--nasserts-upper' missing (try '-h')");
+      if (!isnumstr (argv[i]))
+        die ("argument to '--nasserts-upper' is not a number (try '-h')");
+      btormbt->g_min_nasserts_upper = atoi (argv[i]);
+      if (++i == argc)
+        die ("argument to '--nasserts-upper' missing (try '-h')");
+      if (!isnumstr (argv[i]))
+        die ("argument to '--nasserts-upper' is not a number (try '-h')");
+      btormbt->g_max_nasserts_upper = atoi (argv[i]);
+    }
+    else if (!strcmp (argv[i], "--p-param-exp"))
+    {
+      if (++i == argc) die ("argument to '--p-param-exp' missing (try '-h')");
+      if (!isfloatnumstr (argv[i]))
+        die ("argument to '--p-param-exp' is not a number (try '-h')");
+      btormbt->p_param_exp = atof (argv[i]) * NORM_VAL;
+      if (btormbt->p_param_exp > NORM_VAL)
+        die ("argument to '--p-param-exp' must be < 1.0");
+    }
+    else if (!strcmp (argv[i], "--p-param-arr-exp"))
+    {
+      if (++i == argc)
+        die ("argument to '--p-param-arr-exp' missing (try '-h')");
+      if (!isfloatnumstr (argv[i]))
+        die ("argument to '--p-param-arr-exp' is not a number (try '-h')");
+      btormbt->p_param_arr_exp = atof (argv[i]) * NORM_VAL;
+      if (btormbt->p_param_exp > NORM_VAL)
+        die ("argument to '--p-param-arr-exp' must be < 1.0");
+    }
+    else if (!strcmp (argv[i], "--p-apply-fun"))
+    {
+      if (++i == argc) die ("argument to '--p-apply-fun' missing (try '-h')");
+      if (!isfloatnumstr (argv[i]))
+        die ("argument to '--p-apply-fun' is not a number (try '-h')");
+      btormbt->p_apply_fun = atof (argv[i]) * NORM_VAL;
+      if (btormbt->p_param_exp > NORM_VAL)
+        die ("argument to '--p-apply-fun' must be < 1.0");
+    }
+    else if (!strcmp (argv[i], "--p-rw"))
+    {
+      if (++i == argc) die ("argument to '--p-rw' missing (try '-h')");
+      if (!isfloatnumstr (argv[i]))
+        die ("argument to '--p-rw' is not a number (try '-h')");
+      btormbt->p_rw = atof (argv[i]) * NORM_VAL;
+      if (btormbt->p_param_exp > NORM_VAL)
+        die ("argument to '--p-rw' must be < 1.0");
+    }
+    else if (!strcmp (argv[i], "--p-read"))
+    {
+      if (++i == argc) die ("argument to '--p-read' missing (try '-h')");
+      if (!isfloatnumstr (argv[i]))
+        die ("argument to '--p-read' is not a number (try '-h')");
+      btormbt->p_read = atof (argv[i]) * NORM_VAL;
+      if (btormbt->p_param_exp > NORM_VAL)
+        die ("argument to '--p-read' must be < 1.0");
+    }
+    else if (!strcmp (argv[i], "--p-cond"))
+    {
+      if (++i == argc) die ("argument to '--p-cond' missing (try '-h')");
+      if (!isfloatnumstr (argv[i]))
+        die ("argument to '--p-cond' is not a number (try '-h')");
+      btormbt->p_cond = atof (argv[i]) * NORM_VAL;
+      if (btormbt->p_param_exp > NORM_VAL)
+        die ("argument to '--p-cond' must be < 1.0");
+    }
+    else if (!strcmp (argv[i], "--p-eq"))
+    {
+      if (++i == argc) die ("argument to '--p-eq' missing (try '-h')");
+      if (!isfloatnumstr (argv[i]))
+        die ("argument to '--p-eq' is not a number (try '-h')");
+      btormbt->p_eq = atof (argv[i]) * NORM_VAL;
+      if (btormbt->p_param_exp > NORM_VAL)
+        die ("argument to '--p-eq' must be < 1.0");
+    }
+    else if (!strcmp (argv[i], "--p-inc"))
+    {
+      if (++i == argc) die ("argument to '--p-inc' missing (try '-h')");
+      if (!isfloatnumstr (argv[i]))
+        die ("argument to '--p-inc' is not a number (try '-h')");
+      btormbt->p_inc = atof (argv[i]) * NORM_VAL;
+      if (btormbt->p_param_exp > NORM_VAL)
+        die ("argument to '--p-inc' must be < 1.0");
+    }
     else if (!isnumstr (argv[i]))
     {
       die ("invalid command line option '%s' (try '-h')", argv[i]);
     }
     else
     {
-      btormbt->seed = atoi (argv[i]);
-      seeded        = 1;
+      btormbt->seed   = atoi (argv[i]);
+      btormbt->seeded = 1;
     }
   }
 
@@ -2276,40 +3191,47 @@ main (int argc, char **argv)
   btormbt->ppid = getpid ();
   set_sig_handlers ();
 
-  if (btormbt->seed >= 0)
+  if (btormbt->seeded)
   {
-    if (!always_fork && !btormbt->time_limit) btormbt->fork = 0;
-    (void) run (btormbt, rantrav);
+    (void) run (btormbt);
   }
   else
   {
+    btormbt->fork = 1;
+
     mac = hashmac ();
-    for (btormbt->round = 0; btormbt->round < btormbt->max_nrounds;
+    for (btormbt->round = 0; btormbt->round < btormbt->g_max_nrounds;
          btormbt->round++)
     {
       if (!(prev & 1)) prev++;
 
-      if (!seeded)
-      {
-        btormbt->seed = mac;
-        btormbt->seed *= 123301093;
-        btormbt->seed += times (0);
-        btormbt->seed *= 223531513;
-        btormbt->seed += pid;
-        btormbt->seed *= 31752023;
-        btormbt->seed += prev;
-        btormbt->seed *= 43376579;
-        prev = btormbt->seed = abs (btormbt->seed) >> 1;
-      }
+      btormbt->seed = mac;
+      btormbt->seed *= 123301093;
+      btormbt->seed += times (0);
+      btormbt->seed *= 223531513;
+      btormbt->seed += pid;
+      btormbt->seed *= 31752023;
+      btormbt->seed += prev;
+      btormbt->seed *= 43376579;
+      prev = btormbt->seed = abs (btormbt->seed) >> 1;
 
       if (btormbt->terminal) erase ();
       printf ("%d %d ", btormbt->round, btormbt->seed);
       fflush (stdout);
 
+      /* reset verbose flag for initial run, only print on replay */
       btormbt->verbose = 0;
-      res              = run (btormbt, rantrav);
+      status           = run (btormbt);
       btormbt->verbose = verbose;
 
+      if (WIFEXITED (status))
+        res = WEXITSTATUS (status);
+      else if (WIFSIGNALED (status))
+        res = EXIT_SIGNALED;
+      else
+        res = EXIT_UNKNOWN;
+
+      /* replay run on error */
       if (res == EXIT_ERROR)
       {
         btormbt->bugs++;
@@ -2320,8 +3242,9 @@ main (int argc, char **argv)
           sprintf (name, "/tmp/bug-%d-mbt.trace", getpid ());
           /* replay run */
           setenv ("BTORAPITRACE", name, 1);
-          res = run (btormbt, rantrav);
-          assert (res);
+          i = run (btormbt);
+          assert (WIFEXITED (i));
+          assert (WEXITSTATUS (i) == res);
           unsetenv ("BTORAPITRACE");
         }
 
@@ -2337,7 +3260,28 @@ main (int argc, char **argv)
         free (cmd);
       }
 
-      if ((res == EXIT_ERROR && btormbt->quit_after_first) || seeded) break;
+      if (res == EXIT_SIGNALED)
+      {
+        if (btormbt->verbose) printf ("signal %d", WTERMSIG (status));
+      }
+      else if (res == EXIT_UNKNOWN)
+      {
+        if (btormbt->verbose) printf ("unknown");
+      }
+      else if (res == EXIT_TIMEOUT)
+      {
+        BTORMBT_LOG (
+            1, "TIMEOUT: time limit %d seconds reached\n", btormbt->time_limit);
+        if (!btormbt->verbose)
+          printf ("timed out after %d second(s)\n", btormbt->time_limit);
+      }
+      else if (res == EXIT_ERROR)
+      {
+        printf ("exit %d\n", res);
+      }
+
+      if ((res == EXIT_ERROR && btormbt->quit_after_first) || btormbt->seeded)
+        break;
     }
   }
   if (btormbt->verbose)

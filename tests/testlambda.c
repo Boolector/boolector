@@ -953,6 +953,80 @@ test_lambda_bounded_reduce1 (void)
   finish_lambda_test ();
 }
 
+static void
+test_lambda_bounded_reduce2 (void)
+{
+  init_lambda_test ();
+  BtorNode *x        = btor_param_exp (g_btor, g_index_bw, "x");
+  BtorNode *i        = btor_var_exp (g_btor, g_index_bw, "i");
+  BtorNode *eq       = btor_eq_exp (g_btor, x, i);
+  BtorNode *l        = btor_lambda_exp (g_btor, x, eq);
+  BtorNode *j        = btor_var_exp (g_btor, g_index_bw, "j");
+  BtorNode *expected = btor_eq_exp (g_btor, i, j);
+
+  btor_assign_param (g_btor, l, j);
+  BtorNode *result = btor_beta_reduce_bounded (g_btor, l, 0);
+  assert (result == expected);
+  btor_release_exp (g_btor, result);
+
+  result = btor_beta_reduce_bounded (g_btor, l, 1);
+  assert (result == l);
+  btor_release_exp (g_btor, result);
+
+  result = btor_beta_reduce_bounded (g_btor, eq, 1);
+  assert (result == expected);
+  btor_release_exp (g_btor, result);
+
+  result = btor_beta_reduce_bounded (g_btor, l, 2);
+  assert (result == expected);
+  btor_unassign_params (g_btor, l);
+
+  btor_release_exp (g_btor, result);
+  btor_release_exp (g_btor, expected);
+  btor_release_exp (g_btor, j);
+  btor_release_exp (g_btor, l);
+  btor_release_exp (g_btor, eq);
+  btor_release_exp (g_btor, i);
+  btor_release_exp (g_btor, x);
+  finish_lambda_test ();
+}
+
+static void
+test_lambda_bounded_reduce3 (void)
+{
+  init_lambda_test ();
+  BtorNode *x        = btor_param_exp (g_btor, g_index_bw, "x");
+  BtorNode *y        = btor_param_exp (g_btor, g_index_bw, "y");
+  BtorNode *l1       = btor_lambda_exp (g_btor, x, x);
+  BtorNode *a        = btor_apply_exps (g_btor, 1, &y, l1);
+  BtorNode *l2       = btor_lambda_exp (g_btor, y, a);
+  BtorNode *i        = btor_var_exp (g_btor, g_index_bw, "i");
+  BtorNode *expected = btor_apply_exps (g_btor, 1, &i, l1);
+
+  btor_assign_param (g_btor, l2, i);
+  BtorNode *result = btor_beta_reduce_bounded (g_btor, l2, 1);
+  assert (result == l2);
+  btor_release_exp (g_btor, result);
+
+  result = btor_beta_reduce_bounded (g_btor, l2, 2);
+  assert (result == expected);
+  btor_release_exp (g_btor, result);
+
+  result = btor_beta_reduce_bounded (g_btor, l2, 3);
+  assert (result == i);
+  btor_unassign_params (g_btor, l2);
+
+  btor_release_exp (g_btor, result);
+  btor_release_exp (g_btor, expected);
+  btor_release_exp (g_btor, i);
+  btor_release_exp (g_btor, a);
+  btor_release_exp (g_btor, l2);
+  btor_release_exp (g_btor, l1);
+  btor_release_exp (g_btor, y);
+  btor_release_exp (g_btor, x);
+  finish_lambda_test ();
+}
+
 /*---------------------------------------------------------------------------
  * reduction tests (with reduced expressions)
  *---------------------------------------------------------------------------*/
@@ -1371,6 +1445,8 @@ run_lambda_tests (int argc, char **argv)
 
   /* bounded reduction tests */
   BTOR_RUN_TEST (lambda_bounded_reduce1);
+  BTOR_RUN_TEST (lambda_bounded_reduce2);
+  BTOR_RUN_TEST (lambda_bounded_reduce3);
 
   /* full reduction tests (with reduced expressions) */
   BTOR_RUN_TEST (lambda_reduce_write1);
