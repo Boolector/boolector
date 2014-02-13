@@ -103,10 +103,13 @@ err (const char* fmt, ...)
   exit (1);
 }
 
+static int verbosity;
+
 static void
 msg (const char* fmt, ...)
 {
   va_list ap;
+  if (!verbosity) return;
   fputs ("[btorimc] ", stdout);
   va_start (ap, fmt);
   vprintf (fmt, ap);
@@ -408,15 +411,16 @@ parse_line ()
   if (!(str = firstok ())) perr ("'(' missing");
   toks.push_back (string (str));
   while ((str = nextok ())) toks.push_back (string (str));
-#if 1
-  printf ("[btorimc] line %d:", lineno);
-  for (vector<string>::const_iterator it = toks.begin (); it != toks.end ();
-       it++)
+  if (verbosity >= 3)
   {
-    printf (" %s", (*it).c_str ());
+    printf ("[btorimc] line %d:", lineno);
+    for (vector<string>::const_iterator it = toks.begin (); it != toks.end ();
+         it++)
+    {
+      printf (" %s", (*it).c_str ());
+    }
+    printf ("\n");
   }
-  printf ("\n");
-#endif
   size_t size = toks.size ();
   assert (size > 0);
   const char* op = toks[0].c_str ();
@@ -725,11 +729,13 @@ static const char* USAGE =
     "where <option> is one of the following:\n"
     "\n"
     "  -h    print this command line option summary\n"
-    "  -n    do not print witness trace\n"
+    "  -m    continue checking multiple properties\n"
+    "  -n    do not print witness trace (default for '-m')\n"
     "  -f    force translation (replace 'x' by '0')\n"
     "  -d    dump BTOR model\n"
     "  -o    path of dump file (default is stdout)\n"
     "  -i    ignore and do not check properties at initial state\n"
+    "  -v    increment verbose level (can be used multiple times)\n"
     "\n"
     "  -rwl1 set rewrite level to 1\n"
     "  -rwl2 set rewrite level to 2\n"
@@ -796,6 +802,8 @@ main (int argc, char** argv)
       witness = false;
     else if (!strcmp (argv[i], "-d"))
       dump = true;
+    else if (!strcmp (argv[i], "-v"))
+      verbosity++;
 
     else if (!strcmp (argv[i], "-m"))
       multi = true, witness = false;  // TODO remove after fixing multi witness
@@ -837,7 +845,7 @@ main (int argc, char** argv)
   }
   msg ("reading '%s'", input_name);
   ibvm = new BtorIBV ();
-  ibvm->setVerbosity (20);
+  ibvm->setVerbosity (verbosity);
   ibvm->setRewriteLevel (rwl);
   if (force) ibvm->setForce ();
   if (witness) ibvm->enableTraceGeneration ();
