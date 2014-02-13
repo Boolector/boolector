@@ -796,8 +796,10 @@ main (int argc, char** argv)
       witness = false;
     else if (!strcmp (argv[i], "-d"))
       dump = true;
+
     else if (!strcmp (argv[i], "-m"))
-      multi = true;  //, witness = false; // TODO remove?
+      multi = true, witness = false;  // TODO remove after fixing multi witness
+
     else if (!strcmp (argv[i], "-i"))
       ignore = true;
     else if (!strcmp (argv[i], "-f"))
@@ -841,7 +843,7 @@ main (int argc, char** argv)
   if (witness) ibvm->enableTraceGeneration ();
   if (multi)
   {
-    // assert (!witness); // TODO remove
+    assert (!witness);  // TODO remove after fixing multi witness
     ibvm->setStop (false);
     ibvm->setReachedAtBoundCallBack (0, propertyReachedCallBack);
   }

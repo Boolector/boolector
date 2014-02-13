@@ -1,6 +1,6 @@
 /*  Boolector: Satisfiablity Modulo Theories (SMT) solver.
  *
- *  Copyright (C) 2007-2013 Armin Biere.
+ *  Copyright (C) 2007-2014 Armin Biere.
  *  Copyright (C) 2007-2009 Robert Daniel Brummayer.
  *  Copyright (C) 2012-2014 Aina Niemetz.
  *  Copyright (C) 2012-2014 Mathias Preiner.
@@ -441,7 +441,7 @@ btor_dump_btor (BtorDumpContext *bdc, FILE *file)
     fputc ('\n', file);
   }
 
-  init_node_hash_table_iterator (bdc->btor, &it, bdc->inputs);
+  init_node_hash_table_iterator (bdc->btor, &it, bdc->latches);
   while (has_next_node_hash_table_iterator (&it))
   {
     BtorNode *node = next_node_hash_table_iterator (&it);
@@ -455,7 +455,7 @@ btor_dump_btor (BtorDumpContext *bdc, FILE *file)
     fputc ('\n', file);
   }
 
-  init_node_hash_table_iterator (bdc->btor, &it, bdc->inputs);
+  init_node_hash_table_iterator (bdc->btor, &it, bdc->latches);
   while (has_next_node_hash_table_iterator (&it))
   {
     BtorDumpContextLatch *bdcl = it.bucket->data.asPtr;
