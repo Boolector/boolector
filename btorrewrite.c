@@ -2703,7 +2703,7 @@ btor_rewrite_add_exp (Btor *btor, BtorNode *e0, BtorNode *e1)
 
   /* a - b == 0 or -a + b == 0 if b == a */
   if (is_neg_exp (btor, e0, e1) || is_neg_exp (btor, e1, e0))
-    return btor_zero_exp (btor, e1->len);
+    return btor_zero_exp (btor, BTOR_REAL_ADDR_NODE (e1)->len);
 
   /* a + b == b if a == 0 */
   if (is_const_zero_exp (btor, e0)) return btor_copy_exp (btor, e1);
