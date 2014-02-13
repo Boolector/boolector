@@ -50,7 +50,7 @@ static bool close_input;
 static char *line, *nts;
 static int szline, nline;
 
-static vector<BitVector::BitRange> assertions;
+static vector<string> assertions;
 
 static struct
 {
@@ -647,6 +647,17 @@ parse_line ()
     RANGE (r, T (1), N (2), N (2));
     if (r.getWidth () != 1) perr ("invalid assertion width %u", r.getWidth ());
     ibvm->addAssertion (r);
+    Var& a = idtab[symtab[T (1)]];
+    if (a.width != 1)
+    {
+      string name = T (1);
+      char buffer[20];
+      sprintf (buffer, "[%u]", N (2));
+      name += buffer;
+      assertions.push_back (name);
+    }
+    else
+      assertions.push_back (T (1));
     stats.addAssertion++;
   }
   else if (!strcmp (op, "addAssumption"))
@@ -751,20 +762,26 @@ printWitness (int r)
   }
 }
 
+static bool witness = true;
+
 static void
 propertyReachedCallBack (void* state, int i, int k)
 {
   (void) state;
   assert (!state);
-  assert (0 <= i), assert (i < assertion.size ());
-  printf ("property %d '%s' reached at bound %d\n", i, 0, k);
+  assert (0 <= i), assert (i < (int) assertions.size ());
+  printf ("assertion %d '%s' falsified at bound %d\n",
+          i,
+          assertions[i].c_str (),
+          k);
   fflush (stdout);
+  if (witness) printWitness (k);
 }
 
 int
 main (int argc, char** argv)
 {
-  bool witness = true, dump = false, force = false, ignore = false;
+  bool dump = false, force = false, ignore = false;
   bool multi             = false;
   const char* outputname = 0;
   int k = -1, r, rwl = 3;
@@ -780,7 +797,7 @@ main (int argc, char** argv)
     else if (!strcmp (argv[i], "-d"))
       dump = true;
     else if (!strcmp (argv[i], "-m"))
-      multi = true, witness = false;
+      multi = true;  //, witness = false; // TODO remove?
     else if (!strcmp (argv[i], "-i"))
       ignore = true;
     else if (!strcmp (argv[i], "-f"))
@@ -824,7 +841,7 @@ main (int argc, char** argv)
   if (witness) ibvm->enableTraceGeneration ();
   if (multi)
   {
-    assert (!witness);
+    // assert (!witness); // TODO remove
     ibvm->setStop (false);
     ibvm->setReachedAtBoundCallBack (0, propertyReachedCallBack);
   }
@@ -854,13 +871,14 @@ main (int argc, char** argv)
     if (k < 0) k = 20;
     msg ("running bounded model checking up to bound %d", k);
     if (witness) msg ("will print witness");
-    if (multi) msg ("will not stop at first reached property necessarily");
+    if (multi) msg ("will not stop at first falsified assertion necessarily");
     r = ibvm->bmc ((int) ignore, k);
     if (r < 0)
-      msg ("property not reachable from %d until bound %d", (int) ignore, k);
+      msg ("assertion not falsifiable from %d until bound %d", (int) ignore, k);
     else if (!multi)
     {
-      msg ("at least one property reachable at bound %d (multi disabled)", r);
+      msg ("at least one assertion falsifiable at bound %d ('multi' disabled)",
+           r);
       if (witness)
         printWitness (r);
       else
