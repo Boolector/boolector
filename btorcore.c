@@ -5735,7 +5735,6 @@ push_applies_for_propagation (Btor *btor,
 {
   assert (btor);
   assert (exp);
-  assert (lambda);
   assert (prop_stack);
   assert (check_unique_table_mark_unset_dbg (btor));
 
@@ -5770,7 +5769,7 @@ push_applies_for_propagation (Btor *btor,
   for (i = 0; i < BTOR_COUNT_STACK (applies); i++)
   {
     cur = BTOR_PEEK_STACK (applies, i);
-    if (!cur->reachable && !cur->vread && !cur->propagated)
+    if (lambda && !cur->reachable && !cur->vread && !cur->propagated)
       insert_synth_app_lambda (btor, lambda, cur);
     BTOR_PUSH_STACK (btor->mm, *prop_stack, cur);
     BTOR_PUSH_STACK (btor->mm, *prop_stack, cur->e[0]);
@@ -5901,6 +5900,7 @@ propagate (Btor *btor,
     if (!BTOR_IS_LAMBDA_NODE (fun))
     {
       assert (BTOR_IS_ARRAY_VAR_NODE (fun));
+      push_applies_for_propagation (btor, app, 0, prop_stack);
       continue;
     }
 
