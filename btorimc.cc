@@ -75,12 +75,14 @@ static struct
   int addLogicalNot;
   int addLogicalOr;
   int addLShift;
+  int addLShiftNonConst;
   int addMod;
   int addMul;
   int addNonState;
   int addRangeName;
   int addReplicate;
   int addRShift;
+  int addRShiftNonConst;
   int addSignExtension;
   int addState;
   int addSub;
@@ -598,6 +600,10 @@ parse_line ()
     UNARYARG (addRShift);
   else if
     UNARYARG (addLShift);
+  else if
+    BINARY (addRShiftNonConst);
+  else if
+    BINARY (addLShiftNonConst);
   else if
     BINARY (addState);
   else if
