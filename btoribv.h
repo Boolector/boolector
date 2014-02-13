@@ -234,6 +234,7 @@ class BtorIBV : public BitVector
 
   bool gentrace;
   bool force;
+
   int verbosity;
 
   BtorIBVNodePtrStack idtab;
@@ -360,10 +361,19 @@ class BtorIBV : public BitVector
   BtorIBV ();
   ~BtorIBV ();
 
-  void setVerbosity (int verbosity);
   void setRewriteLevel (int rwl);
   void setForce (bool f = true) { force = f; }
+
+  void setVerbosity (int verbosity);
+
   void enableTraceGeneration ();
+
+  // See 'btormc.h' for explanations (for now).
+  // TODO add documentation here.
+  // TODO provide a C++ style abstract class listener interface too.
+  void setStop (bool stop);
+  void setReachedAtBoundCallBack (void *state,
+                                  void (*fun) (void *state, int i, int k));
 
   //------------------------------------------------------------------------
 

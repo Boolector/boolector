@@ -88,6 +88,7 @@ typedef enum BtorSMT2Tag
   BTOR_GET_OPTION_TAG_SMT2     = 16 + BTOR_COMMAND_TAG_CLASS_SMT2,
   BTOR_GET_INFO_TAG_SMT2       = 17 + BTOR_COMMAND_TAG_CLASS_SMT2,
   BTOR_EXIT_TAG_SMT2           = 18 + BTOR_COMMAND_TAG_CLASS_SMT2,
+  BTOR_GET_MODEL_TAG_SMT2      = 19 + BTOR_COMMAND_TAG_CLASS_SMT2,
 
   BTOR_ALL_STATISTICS_TAG_SMT2         = 0 + BTOR_KEYWORD_TAG_CLASS_SMT2,
   BTOR_AUTHORS_TAG_SMT2                = 1 + BTOR_KEYWORD_TAG_CLASS_SMT2,
@@ -652,6 +653,7 @@ btor_insert_commands_smt2 (BtorSMT2Parser *parser)
   INSERT ("define-sort", BTOR_DEFINE_SORT_TAG_SMT2);
   INSERT ("define-fun", BTOR_DEFINE_FUN_TAG_SMT2);
   INSERT ("exit", BTOR_EXIT_TAG_SMT2);
+  INSERT ("get-model", BTOR_GET_MODEL_TAG_SMT2);
   INSERT ("get-assertions", BTOR_GET_ASSERTIONS_TAG_SMT2);
   INSERT ("get-assignment", BTOR_GET_ASSIGNMENT_TAG_SMT2);
   INSERT ("get-info", BTOR_GET_INFO_TAG_SMT2);
@@ -3132,6 +3134,11 @@ btor_read_command_smt2 (BtorSMT2Parser *parser)
             "expected end-of-file after 'exit' command at '%s'",
             parser->token.start);
       goto DONE;
+      break;
+
+    case BTOR_GET_MODEL_TAG_SMT2:
+      if (!btor_read_rpar_smt2 (parser, " after 'get-model'")) return 0;
+      btor_msg_smt2 (parser, 1, "WARNING ignoring 'get-model' command");
       break;
 
     case BTOR_SET_INFO_TAG_SMT2:

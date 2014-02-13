@@ -2623,7 +2623,10 @@ sig_handler (int sig)
   char str[100];
 
   sprintf (str, "*** btormbt: caught signal %d\n\n", sig);
-  (void) write (STDOUT_FILENO, str, strlen (str));
+  if (!write (STDOUT_FILENO, str, strlen (str)))
+  {
+    // error message failed ....
+  }
   /* Note: if _exit is used here (which is reentrant, in contrast to exit),
    *       atexit handler is not called. Hence, use exit here. */
   exit (EXIT_ERROR);

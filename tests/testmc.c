@@ -235,8 +235,8 @@ test_mctwostepsmodel ()
   a = boolector_latch (g_mc, 1, "a");
   b = boolector_latch (g_mc, 1, "b");
 
-  or  = boolector_or (g_btor, a, b);   // dangline ...
-  xor = boolector_xor (g_btor, a, b);  // dangline ...
+  or  = boolector_or (g_btor, a, b);   // dangling ...
+  xor = boolector_xor (g_btor, a, b);  // dangling ...
 
   one  = boolector_ones (g_btor, 1);
   zero = boolector_zero (g_btor, 1);
@@ -323,6 +323,91 @@ test_mctwostepsmodel ()
   finish_mc_test ();
 }
 
+static int test_mccount2multi_reached[4];
+
+static void
+test_mccount2multi_call_back (void *state, int i, int k)
+{
+  assert (test_mccount2multi_reached == (int *) state);
+  assert (0 <= i), assert (i < 4);
+  assert (k >= 0);
+  assert (test_mccount2multi_reached[i] == -1);
+  test_mccount2multi_reached[i] = k;
+#if 0
+  printf ("property %d reached at bound %d\n", i, k);
+  fflush (stdout);
+#endif
+}
+
+static void
+test_mccount2multi ()
+{
+  int i, k;
+  init_mc_test ();
+  // boolector_set_verbosity_mc (g_mc, 3);
+  boolector_set_stop_at_first_reached_property_mc (g_mc, 0);
+  {
+    BoolectorNode *count, *one, *zero, *two, *three, *next;
+    BoolectorNode *eqzero, *eqone, *eqtwo, *eqthree;
+    count = boolector_latch (g_mc, 2, "count");
+    one   = boolector_one (g_btor, 2);
+    zero  = boolector_zero (g_btor, 2);
+    two   = boolector_const (g_btor, "10");
+    three = boolector_const (g_btor, "11");
+    next  = boolector_add (g_btor, count, one);
+    boolector_init (g_mc, count, zero);
+    boolector_next (g_mc, count, next);
+    eqzero  = boolector_eq (g_btor, count, zero);
+    eqone   = boolector_eq (g_btor, count, one);
+    eqtwo   = boolector_eq (g_btor, count, two);
+    eqthree = boolector_eq (g_btor, count, three);
+    i       = boolector_bad (g_mc, eqzero);
+    assert (i == 0);
+    i = boolector_bad (g_mc, eqone);
+    assert (i == 1);
+    i = boolector_bad (g_mc, eqtwo);
+    assert (i == 2);
+    i = boolector_bad (g_mc, eqthree);
+    assert (i == 3);
+    boolector_release (g_btor, one);
+    boolector_release (g_btor, zero);
+    boolector_release (g_btor, two);
+    boolector_release (g_btor, three);
+    boolector_release (g_btor, eqone);
+    boolector_release (g_btor, eqzero);
+    boolector_release (g_btor, eqtwo);
+    boolector_release (g_btor, eqthree);
+    boolector_release (g_btor, next);
+  }
+  test_mccount2multi_reached[0] = -1;
+  test_mccount2multi_reached[1] = -1;
+  test_mccount2multi_reached[2] = -1;
+  test_mccount2multi_reached[3] = -1;
+  boolector_set_reached_at_bound_call_back_mc (
+      g_mc, test_mccount2multi_reached, test_mccount2multi_call_back);
+  k = boolector_bmc (g_mc, 2, 3);
+  assert (k == 3);
+  assert (test_mccount2multi_reached[0] == -1);
+  assert (test_mccount2multi_reached[1] == -1);
+  assert (test_mccount2multi_reached[2] == 2);
+  assert (test_mccount2multi_reached[3] == 3);
+  assert (boolector_reached_bad_at_bound_mc (g_mc, 0) < 0);
+  assert (boolector_reached_bad_at_bound_mc (g_mc, 1) < 0);
+  assert (boolector_reached_bad_at_bound_mc (g_mc, 2) == 2);
+  assert (boolector_reached_bad_at_bound_mc (g_mc, 3) == 3);
+  k = boolector_bmc (g_mc, 4, 10);
+  assert (k == 5);
+  assert (test_mccount2multi_reached[0] == 4);
+  assert (test_mccount2multi_reached[1] == 5);
+  assert (test_mccount2multi_reached[2] == 2);
+  assert (test_mccount2multi_reached[3] == 3);
+  assert (boolector_reached_bad_at_bound_mc (g_mc, 0) == 4);
+  assert (boolector_reached_bad_at_bound_mc (g_mc, 1) == 5);
+  assert (boolector_reached_bad_at_bound_mc (g_mc, 2) == 2);
+  assert (boolector_reached_bad_at_bound_mc (g_mc, 3) == 3);
+  finish_mc_test ();
+}
+
 void
 run_mc_tests (int argc, char **argv)
 {
@@ -331,4 +416,5 @@ run_mc_tests (int argc, char **argv)
   BTOR_RUN_TEST (mccount2enablenomodel);
   BTOR_RUN_TEST (mccount2resetenable);
   // BTOR_RUN_TEST (mctwostepsmodel);
+  BTOR_RUN_TEST (mccount2multi);
 }
