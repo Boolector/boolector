@@ -1,6 +1,6 @@
 /*  Boolector: Satisfiablity Modulo Theories (SMT) solver.
  *
- *  Copyright (C) 2012-2013 Armin Biere.
+ *  Copyright (C) 2012-2014 Armin Biere.
  *
  *  All rights reserved.
  *
@@ -49,6 +49,8 @@ static bool close_input;
 
 static char *line, *nts;
 static int szline, nline;
+
+static vector<BitVector::BitRange> assertions;
 
 static struct
 {
@@ -728,11 +730,34 @@ static const char* USAGE =
     "<ibv>   IBV input file (default '<stdin>')\n";
 
 static void
+printWitness (int r)
+{
+  for (int i = 0; i <= r; i++)
+  {
+    msg ("time frame %d", i);
+    for (vector<unsigned>::const_iterator it = vartab.begin ();
+         it != vartab.end ();
+         it++)
+    {
+      unsigned id = *it;
+      printf ("time=%d id=%d ", i, id);
+      Var& var = idtab[id];
+      printf ("%s ", var.name.c_str ());
+      assert (var.width > 0);
+      BitVector::BitRange range (id, var.width - 1, 0);
+      string val = ibvm->assignment (range, i);
+      printf ("%s\n", val.c_str ());
+    }
+  }
+}
+
+static void
 propertyReachedCallBack (void* state, int i, int k)
 {
   (void) state;
   assert (!state);
-  printf ("property %d reached at bound %d\n", i, k);
+  assert (0 <= i), assert (i < assertion.size ());
+  printf ("property %d '%s' reached at bound %d\n", i, 0, k);
   fflush (stdout);
 }
 
@@ -833,31 +858,13 @@ main (int argc, char** argv)
     r = ibvm->bmc ((int) ignore, k);
     if (r < 0)
       msg ("property not reachable from %d until bound %d", (int) ignore, k);
-    else
+    else if (!multi)
     {
-      msg ("property reachable at bound %d", r);
+      msg ("at least one property reachable at bound %d (multi disabled)", r);
       if (witness)
-      {
-        for (int i = 0; i <= r; i++)
-        {
-          msg ("time frame %d", i);
-          for (vector<unsigned>::const_iterator it = vartab.begin ();
-               it != vartab.end ();
-               it++)
-          {
-            unsigned id = *it;
-            printf ("time=%d id=%d ", i, id);
-            Var& var = idtab[id];
-            printf ("%s ", var.name.c_str ());
-            assert (var.width > 0);
-            BitVector::BitRange range (id, var.width - 1, 0);
-            string val = ibvm->assignment (range, i);
-            printf ("%s\n", val.c_str ());
-          }
-        }
-      }
+        printWitness (r);
       else
-        msg ("disabled witness printing with '-n'");
+        msg ("witness printing disabled with '-n'");
     }
   }
   delete ibvm;
