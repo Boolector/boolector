@@ -2666,6 +2666,17 @@ DONE:
   return result;
 }
 
+/* check if e1 is the negation of e0 */
+static int
+is_neg_exp (Btor *btor, BtorNode *e0, BtorNode *e1)
+{
+  return !BTOR_IS_INVERTED_NODE (e1) && e1->kind == BTOR_ADD_NODE
+         && ((e0 == BTOR_INVERT_NODE (e1->e[0])
+              && is_const_one_exp (btor, e1->e[1]))
+             || (e0 == BTOR_INVERT_NODE (e1->e[1])
+                 && is_const_one_exp (btor, e1->e[0])));
+}
+
 BtorNode *
 btor_rewrite_add_exp (Btor *btor, BtorNode *e0, BtorNode *e1)
 {
@@ -2690,12 +2701,15 @@ btor_rewrite_add_exp (Btor *btor, BtorNode *e0, BtorNode *e1)
     return result;
   }
 
-  /* a - a == 0 */
-  if (!BTOR_IS_INVERTED_NODE (e1) && e1->kind == BTOR_ADD_NODE
-      && e0 == BTOR_INVERT_NODE (e1->e[0]) && is_const_one_exp (btor, e1->e[1]))
-  {
-    return btor_zero_exp (btor, e1->len);
-  }
+  /* a - b == 0 or -a + b == 0 if b == a */
+  if (is_neg_exp (btor, e0, e1) || is_neg_exp (btor, e1, e0))
+    return btor_zero_exp (btor, BTOR_REAL_ADDR_NODE (e1)->len);
+
+  /* a + b == b if a == 0 */
+  if (is_const_zero_exp (btor, e0)) return btor_copy_exp (btor, e1);
+
+  /* a + b == a if b == 0*/
+  if (is_const_zero_exp (btor, e1)) return btor_copy_exp (btor, e0);
 
   if (BTOR_IS_BV_CONST_NODE (BTOR_REAL_ADDR_NODE (e0))
       && !BTOR_IS_INVERTED_NODE (e1) && e1->kind == BTOR_ADD_NODE)
