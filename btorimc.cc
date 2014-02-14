@@ -58,6 +58,7 @@ static char *line, *nts;
 static int szline, nline;
 
 static vector<Assertion> assertions;
+static int nfalsified;
 
 static struct
 {
@@ -792,6 +793,7 @@ assertionFailedCallBack (void* state, int i, int k)
   assert (0 <= i), assert (i < (int) assertions.size ());
   Assertion& a = assertions[i];
   a.nfalsified++;
+  nfalsified++;
   int mod10 = a.nfalsified % 10;
   const char* suffix;
   switch (mod10)
@@ -801,6 +803,7 @@ assertionFailedCallBack (void* state, int i, int k)
     case 3: suffix = "RD"; break;
     default: suffix = "TH"; break;
   }
+  if (witness && nfalsified > 1) printf ("\n");
   printf ("ASSERTION %d '%s' FALSIFIED AT BOUND %d THE %d'%s TIME\n",
           i,
           a.name.c_str (),
@@ -808,7 +811,7 @@ assertionFailedCallBack (void* state, int i, int k)
           a.nfalsified,
           suffix);
   fflush (stdout);
-  if (witness) printWitness (i, k);
+  if (witness) printf ("\n"), printWitness (i, k);
 }
 
 int
@@ -914,6 +917,7 @@ main (int argc, char** argv)
         continue;
       }
       notfalsified++;
+      if (witness && (notfalsified + nfalsified > 1)) printf ("\n");
       printf ("ASSERTION %d '%s' VALID UNTIL BOUND %d (INCLUSIVE AND FROM 0)\n",
               i,
               a.name.c_str (),
