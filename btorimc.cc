@@ -36,6 +36,13 @@ struct Var
   Var (string n, int w) : name (n), width (w) {}
 };
 
+struct Assertion
+{
+  string name;
+  int nfalsified;
+  Assertion (string n) : name (n), nfalsified (0) {}
+};
+
 static BtorIBV* ibvm;
 
 static map<string, unsigned> symtab;
@@ -50,7 +57,8 @@ static bool close_input;
 static char *line, *nts;
 static int szline, nline;
 
-static vector<string> assertions;
+static vector<Assertion> assertions;
+static int nfalsified;
 
 static struct
 {
@@ -664,10 +672,10 @@ parse_line ()
       char buffer[20];
       sprintf (buffer, "[%u]", N (2));
       name += buffer;
-      assertions.push_back (name);
+      assertions.push_back (Assertion (name));
     }
     else
-      assertions.push_back (T (1));
+      assertions.push_back (Assertion (T (1)));
     stats.addAssertion++;
   }
   else if (!strcmp (op, "addAssumption"))
@@ -735,8 +743,8 @@ static const char* USAGE =
     "where <option> is one of the following:\n"
     "\n"
     "  -h    print this command line option summary\n"
-    "  -m    continue checking multiple properties\n"
-    "  -n    do not print witness trace (default for '-m')\n"
+    "  -s    stop checking after first assertion failed\n"
+    "  -n    do not print witness even if '-s' is specified\n"
     "  -f    force translation (replace 'x' by '0')\n"
     "  -d    dump BTOR model\n"
     "  -o    path of dump file (default is stdout)\n"
@@ -753,17 +761,17 @@ static const char* USAGE =
     "<ibv>   IBV input file (default '<stdin>')\n";
 
 static void
-printWitness (int r)
+printWitness (int a, int r)
 {
   for (int i = 0; i <= r; i++)
   {
-    msg ("time frame %d", i);
+    if (i) printf ("\n");
     for (vector<unsigned>::const_iterator it = vartab.begin ();
          it != vartab.end ();
          it++)
     {
       unsigned id = *it;
-      printf ("time=%d id=%d ", i, id);
+      printf ("assertion=%d time=%d id=%d ", a, i, id);
       Var& var = idtab[id];
       printf ("%s ", var.name.c_str ());
       assert (var.width > 0);
@@ -771,30 +779,45 @@ printWitness (int r)
       string val = ibvm->assignment (range, i);
       printf ("%s\n", val.c_str ());
     }
+    fflush (stdout);
   }
 }
 
 static bool witness = true;
 
 static void
-propertyReachedCallBack (void* state, int i, int k)
+assertionFailedCallBack (void* state, int i, int k)
 {
   (void) state;
   assert (!state);
   assert (0 <= i), assert (i < (int) assertions.size ());
-  printf ("assertion %d '%s' falsified at bound %d\n",
+  Assertion& a = assertions[i];
+  a.nfalsified++;
+  nfalsified++;
+  int mod10 = a.nfalsified % 10;
+  const char* suffix;
+  switch (mod10)
+  {
+    case 1: suffix = "ST"; break;
+    case 2: suffix = "ND"; break;
+    case 3: suffix = "RD"; break;
+    default: suffix = "TH"; break;
+  }
+  if (witness && nfalsified > 1) printf ("\n");
+  printf ("ASSERTION %d '%s' FALSIFIED AT BOUND %d THE %d'%s TIME\n",
           i,
-          assertions[i].c_str (),
-          k);
+          a.name.c_str (),
+          k,
+          a.nfalsified,
+          suffix);
   fflush (stdout);
-  if (witness) printWitness (k);
+  if (witness) printf ("\n"), printWitness (i, k);
 }
 
 int
 main (int argc, char** argv)
 {
-  bool dump = false, force = false, ignore = false;
-  bool multi             = false;
+  bool dump = false, force = false, ignore = false, multi = true;
   const char* outputname = 0;
   int k = -1, r, rwl = 3;
   for (int i = 1; i < argc; i++)
@@ -810,10 +833,8 @@ main (int argc, char** argv)
       dump = true;
     else if (!strcmp (argv[i], "-v"))
       verbosity++;
-
-    else if (!strcmp (argv[i], "-m"))
-      multi = true, witness = false;  // TODO remove after fixing multi witness
-
+    else if (!strcmp (argv[i], "-s"))
+      multi = false;
     else if (!strcmp (argv[i], "-i"))
       ignore = true;
     else if (!strcmp (argv[i], "-f"))
@@ -849,18 +870,15 @@ main (int argc, char** argv)
     else
       close_input = true;
   }
+  if (multi) witness = false;
   msg ("reading '%s'", input_name);
   ibvm = new BtorIBV ();
   ibvm->setVerbosity (verbosity);
   ibvm->setRewriteLevel (rwl);
   if (force) ibvm->setForce ();
   if (witness) ibvm->enableTraceGeneration ();
-  if (multi)
-  {
-    assert (!witness);  // TODO remove after fixing multi witness
-    ibvm->setStop (false);
-    ibvm->setReachedAtBoundCallBack (0, propertyReachedCallBack);
-  }
+  ibvm->setStop (!multi);
+  ibvm->setReachedAtBoundCallBack (0, assertionFailedCallBack);
   parse ();
   if (close_input == 1) fclose (input);
   if (close_input == 2) pclose (input);
@@ -888,18 +906,28 @@ main (int argc, char** argv)
     msg ("running bounded model checking up to bound %d", k);
     if (witness) msg ("will print witness");
     if (multi) msg ("will not stop at first falsified assertion necessarily");
-    r = ibvm->bmc ((int) ignore, k);
-    if (r < 0)
-      msg ("assertion not falsifiable from %d until bound %d", (int) ignore, k);
-    else if (!multi)
+    r                = ibvm->bmc ((int) ignore, k);
+    int notfalsified = 0, i;
+    for (i = 0; i < (int) assertions.size (); i++)
     {
-      msg ("at least one assertion falsifiable at bound %d ('multi' disabled)",
-           r);
-      if (witness)
-        printWitness (r);
-      else
-        msg ("witness printing disabled with '-n'");
+      Assertion& a = assertions[i];
+      if (a.nfalsified)
+      {
+        if (!multi) break;
+        continue;
+      }
+      notfalsified++;
+      if (witness && (notfalsified + nfalsified > 1)) printf ("\n");
+      printf ("ASSERTION %d '%s' VALID UNTIL BOUND %d (INCLUSIVE AND FROM 0)\n",
+              i,
+              a.name.c_str (),
+              k);
+      fflush (stdout);
     }
+    if (notfalsified)
+      msg ("%d assertions not falsified", notfalsified);
+    else
+      msg ("all assertions falsified within bound 0 to %d", r);
   }
   delete ibvm;
   return 0;
