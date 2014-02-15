@@ -2265,10 +2265,13 @@ BtorIBV::translate_assignment_conquer (BtorIBVAtom* dst,
         }
       }
       BoolectorNode* t;
-      if (a->tag == (BTOR_IBV_LEFT_SHIFT | BTOR_IBV_HAS_ARG))
+      if ((a->tag & ~BTOR_IBV_HAS_ARG) == BTOR_IBV_LEFT_SHIFT)
         t = boolector_sll (btor, e, s);
       else
+      {
+        assert ((a->tag & ~BTOR_IBV_HAS_ARG) == BTOR_IBV_RIGHT_SHIFT);
         t = boolector_srl (btor, e, s);
+      }
       boolector_release (btor, e);
       boolector_release (btor, s);
       res = boolector_slice (btor, t, w - 1, 0);
