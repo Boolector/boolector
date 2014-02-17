@@ -1,7 +1,7 @@
 /*  Boolector: Satisfiablity Modulo Theories (SMT) solver.
  *
  *  Copyright (C) 2007-2009 Robert Daniel Brummayer.
- *  Copyright (C) 2007-2013 Armin Biere.
+ *  Copyright (C) 2007-2014 Armin Biere.
  *  Copyright (C) 2012-2013 Aina Niemetz, Mathias Preiner.
  *
  *  All rights reserved.
@@ -170,22 +170,22 @@ static const char *g_usage =
 static const char *g_copyright =
     "This software is\n"
     "Copyright (c) 2007-2009 Robert Brummayer\n"
-    "Copyright (c) 2007-2013 Armin Biere\n"
-    "Copyright (c) 2012-2013 Aina Niemetz, Mathias Preiner\n"
+    "Copyright (c) 2007-2014 Armin Biere\n"
+    "Copyright (c) 2012-2014 Aina Niemetz, Mathias Preiner\n"
     "Copyright (c) 2013 Christian Reisenberger\n"
     "Institute for Formal Models and Verification\n"
     "Johannes Kepler University, Linz, Austria\n"
 #ifdef BTOR_USE_LINGELING
     "\n"
     "This software is linked against Lingeling\n"
-    "Copyright (c) 2010-2013 Armin Biere\n"
+    "Copyright (c) 2010-2014 Armin Biere\n"
     "Institute for Formal Models and Verification\n"
     "Johannes Kepler University, Linz, Austria\n"
 #endif
 #ifdef BTOR_USE_PICOSAT
     "\n"
     "This software is linked against PicoSAT\n"
-    "Copyright (c) 2006-2013 Armin Biere\n"
+    "Copyright (c) 2006-2014 Armin Biere\n"
     "Institute for Formal Models and Verification\n"
     "Johannes Kepler University, Linz, Austria\n"
 #endif

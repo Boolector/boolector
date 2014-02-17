@@ -2229,11 +2229,11 @@ BtorIBV::translate_assignment_conquer (BtorIBVAtom* dst,
       }
     }
     break;
+    case BTOR_IBV_LEFT_SHIFT:
+    case BTOR_IBV_RIGHT_SHIFT:
     case BTOR_IBV_LEFT_SHIFT | BTOR_IBV_HAS_ARG:
     case BTOR_IBV_RIGHT_SHIFT | BTOR_IBV_HAS_ARG:
     {
-      assert (BTOR_COUNT_STACK (stack) == 1);
-      assert ((a->tag & BTOR_IBV_HAS_ARG));
       BoolectorNode* arg = BTOR_PEEK_STACK (stack, 0);
       unsigned d, l, w = boolector_get_width (btor, arg);
       for (d = 0, l = 1; l < w; d++) l *= 2;
@@ -2243,8 +2243,27 @@ BtorIBV::translate_assignment_conquer (BtorIBVAtom* dst,
         e = boolector_uext (btor, arg, l - w);
       else
         e = boolector_copy (btor, arg);
-      unsigned r       = a->arg % l;
-      BoolectorNode* s = boolector_unsigned_int (btor, r, d);
+      BoolectorNode* s;
+      if (a->tag & BTOR_IBV_HAS_ARG)
+      {
+        assert (BTOR_COUNT_STACK (stack) == 1);
+        unsigned r = a->arg % l;
+        s          = boolector_unsigned_int (btor, r, d);
+      }
+      else
+      {
+        assert (BTOR_COUNT_STACK (stack) == 2);
+        BoolectorNode* shift = BTOR_PEEK_STACK (stack, 1);
+        if (boolector_get_width (btor, shift) == (int) d)
+        {
+          s = boolector_copy (btor, shift);
+        }
+        else
+        {
+          assert (boolector_get_width (btor, shift) > (int) d);
+          s = boolector_slice (btor, shift, d - 1, 0);
+        }
+      }
       BoolectorNode* t;
       if (a->tag == (BTOR_IBV_LEFT_SHIFT | BTOR_IBV_HAS_ARG))
         t = boolector_sll (btor, e, s);

@@ -71,7 +71,7 @@ BTOR_DECLARE_STACK (BtorMcFrame, BtorMcFrame);
 struct BtorMC
 {
   BtorMcState state;
-  int verbosity, trace_enabled, stop;
+  int verbosity, trace_enabled, stop, continue_checking_if_reached;
   int initialized, nextstates;
   Btor *btor, *forward;
   BtorMcFrameStack frames;
@@ -113,7 +113,8 @@ boolector_new_mc (void)
                                           (BtorCmpPtr) btor_compare_exp_by_id);
   assert (res->state == BTOR_NO_MC_STATE);
   assert (!res->forward2const);
-  res->stop = 1;
+  res->continue_checking_if_reached = 0;
+  res->stop                         = 1;
   return res;
 }
 
@@ -663,10 +664,17 @@ initialize_bad_state_properties_of_frame (BtorMC *mc,
 
   for (i = 0; i < BTOR_COUNT_STACK (mc->bad); i++)
   {
-    src = BTOR_PEEK_STACK (mc->bad, i);
-    assert (src);
-    dst = boolector_non_recursive_substitute_node (mc->forward, map, src);
-    dst = boolector_copy (mc->forward, dst);
+    if (mc->continue_checking_if_reached
+        || BTOR_PEEK_STACK (mc->reached, i) < 0)
+    {
+      src = BTOR_PEEK_STACK (mc->bad, i);
+      assert (src);
+      dst = boolector_non_recursive_substitute_node (mc->forward, map, src);
+      dst = boolector_copy (mc->forward, dst);
+    }
+    else
+      dst = 0;
+
     BTOR_PUSH_STACK (mc->btor->mm, f->bad, dst);
   }
 }
@@ -812,12 +820,27 @@ check_last_forward_frame (BtorMC *mc)
 
   for (i = 0; i < BTOR_COUNT_STACK (f->bad); i++)
   {
+    bad = BTOR_PEEK_STACK (f->bad, i);
+    if (!bad)
+    {
+      int reached;
+      assert (!mc->continue_checking_if_reached);
+      reached = BTOR_PEEK_STACK (mc->reached, i);
+      assert (reached >= 0);
+      btor_msg_mc (mc,
+                   1,
+                   "skipping checking bad state property %d at bound %d "
+                   "reached before at %d",
+                   i,
+                   k,
+                   reached);
+      continue;
+    }
     btor_msg_mc (mc,
                  1,
                  "checking forward frame bad state property %d at bound k = %d",
                  i,
                  k);
-    bad = BTOR_PEEK_STACK (f->bad, i);
     boolector_assume (mc->forward, bad);
     res = boolector_sat (mc->forward);
     if (res == BOOLECTOR_SAT)
