@@ -1904,13 +1904,11 @@ _opt (BtorMBT *btormbt, unsigned r)
   BTORMBT_LOG (1, "enable force cleanup");
   boolector_enable_force_cleanup (btormbt->btor);
 
-#ifndef NBTORLOG
   if (btormbt->bloglevel)
   {
     BTORMBT_LOG (1, "boolector log level: '%d'", btormbt->bloglevel);
     boolector_set_loglevel (btormbt->btor, btormbt->bloglevel);
   }
-#endif
   if (btormbt->bverblevel)
   {
     BTORMBT_LOG (1, "boolector verbose level: '%d'", btormbt->bverblevel);

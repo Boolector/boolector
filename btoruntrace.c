@@ -362,13 +362,11 @@ NEXT:
     PARSE_ARGS1 (tok, int);
     boolector_set_verbosity (btor, arg1_int);
   }
-#ifndef NBTORLOG
   else if (!strcmp (tok, "set_loglevel"))
   {
     PARSE_ARGS1 (tok, int);
     boolector_set_loglevel (btor, arg1_int);
   }
-#endif
   else if (!strcmp (tok, "set_sat_solver"))
   {
     PARSE_ARGS1 (tok, str);
