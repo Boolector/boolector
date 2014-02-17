@@ -1931,6 +1931,12 @@ _opt (BtorMBT *btormbt, unsigned r)
     btormbt->inc = 1;
   }
 
+  if (pick (&rng, 0, 9) == 5)
+  {
+    BTORMBT_LOG (1, "enable full beta reduction");
+    boolector_enable_beta_reduce_all (btormbt->btor);
+  }
+
   rw = pick (&rng, 0, 3);
   BTORMBT_LOG (1, "set rewrite level %d", rw);
   boolector_set_rewrite_level (btormbt->btor, rw);

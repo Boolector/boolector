@@ -1051,6 +1051,11 @@ NEXT:
     boolector_free_array_assignment (
         btor, hmap_get (hmap, arg1_str), hmap_get (hmap, arg2_str), arg3_int);
   }
+  else if (!strcmp (tok, "dump_btor"))
+  {
+    PARSE_ARGS0 (tok);
+    boolector_dump_btor_all (btor, stdout);
+  }
   else
     perr ("invalid command '%s'", tok);
   btorunt->line++;
