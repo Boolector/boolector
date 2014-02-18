@@ -4726,6 +4726,7 @@ search_initial_applies_dual_prop (Btor *btor, BtorNodePtrStack *top_applies)
   }
 
   clone = clone_exp_layer_negated (btor);
+
   btor_enable_force_cleanup (clone);
 #ifdef BTOR_CHECK_MODEL
   btor_enable_force_internal_cleanup (clone);
@@ -4744,11 +4745,27 @@ search_initial_applies_dual_prop (Btor *btor, BtorNodePtrStack *top_applies)
     assert (BTOR_IS_REGULAR_NODE (cur_btor));
     btor_release_exp (btor, cur_btor);
 
-    // TODO use init_x_values
-    ass_str = btor_bv_assignment_str_exp (btor, cur_btor);
-    for (i = 0; i < cur_btor->len; i++)
-      ass_str[i] = ass_str[i] == 'x' ? '0' : ass_str[i];
+    //      int j, skip = 1;
+    //      for (j = 0; j < cur_btor->len; j++)
+    //	{
+    //	  if (BTOR_GET_CNF_ID_AIG (cur_btor->av->aigs[j]))
+    //	    {
+    //	      skip = 0;
+    //	      break;
+    //	    }
+    //	}
+    //
+    //      if (skip)
+    //	{
+    //	printf ("-- skip: %s\n", node2string (cur_btor));
+    //	continue;
+    //	}
 
+    ass_str = btor_bv_assignment_str_exp (btor, cur_btor);
+#ifndef NDEBUG
+    int j;
+    for (j = 0; j < cur_btor->len; j++) assert (ass_str[j] != 'x');
+#endif
     cur_clone = BTOR_PEEK_STACK (clone->nodes_id_table, cur_btor->id);
     assert (cur_clone);
 
@@ -8086,8 +8103,7 @@ check_model (Btor *btor, Btor *clone, BtorPtrHashTable *inputs)
         tmp = btor_write_exp (clone, w, idx, val);
         btor_release_exp (clone, w);
         w = tmp;
-        //	      printf ("%s[%s] %s\n", exp->symbol, indices[i],
-        // values[i]);
+        // printf ("%s[%s] %s\n", exp->symbol, indices[i], values[i]);
 
         btor_release_exp (clone, val);
         btor_release_exp (clone, idx);
@@ -8106,7 +8122,7 @@ check_model (Btor *btor, Btor *clone, BtorPtrHashTable *inputs)
       assert (!BTOR_IS_FUN_NODE (real_simp));
       /* we need to invert the assignment if simplified is inverted */
       a = btor_bv_assignment_str_exp (btor, BTOR_COND_INVERT_NODE (simp, exp));
-      //	  printf ("%s %s\n", exp->symbol, a);
+      // printf ("%d %s %s\n", exp->id, exp->symbol, a);
       init_x_values (a);
       val = btor_const_exp (clone, a);
       btor_release_bv_assignment_str_exp (btor, a);
@@ -8123,6 +8139,7 @@ check_model (Btor *btor, Btor *clone, BtorPtrHashTable *inputs)
   reset_varsubst_constraints (clone); /* varsubst not required */
 
   btor_enable_beta_reduce_all (clone);
+
   ret = btor_simplify (clone);
 
   // FIXME: why does the first run not yield all simplifications?
