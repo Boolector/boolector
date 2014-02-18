@@ -39,7 +39,7 @@
   "  -e, --exit-on-abort        exit on boolector abort\n"               \
   "  -s, --skip-getters         skip 'getter' functions\n"               \
   "  -i, --ignore-sat-result    do not exit on mismatching sat result\n" \
-  "  -d, --dual-prop            enable dual prop "                       \
+  "  -dp, --dual-prop           enable dual prop "                       \
   "optimization\n" BTORUNT_LOG_USAGE
 
 /*------------------------------------------------------------------------*/

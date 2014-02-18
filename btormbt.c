@@ -152,7 +152,7 @@
   "  -a, --always-fork                fork even if seed given\n" \
   "  -n, --no-modelgen                do not enable model generation \n" \
   "  -e, --extensionality             use extensionality\n" \
-  "  -d, --dual-prop                  enable dual prop optimization\n" \
+  "  -dp, --dual-prop                 enable dual prop optimization\n" \
   "\n" \
   "  -f, --quit-after-first           quit after first bug encountered\n" \
   "  -m <maxruns>                     quit after <maxruns> rounds\n" \
