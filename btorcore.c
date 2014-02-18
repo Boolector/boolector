@@ -838,6 +838,17 @@ btor_print_stats_btor (Btor *btor)
             1,
             "%.2f seconds initial applies search",
             btor->time.search_init_apps);
+  if (btor->dual_prop)
+  {
+    btor_msg (btor,
+              1,
+              "%.2f seconds cloning for initial applies search",
+              btor->time.search_init_apps_cloning);
+    btor_msg (btor,
+              1,
+              "%.2f seconds SAT solving for initial applies search",
+              btor->time.search_init_apps_sat);
+  }
   btor_msg (btor, 1, "%.2f seconds lemma generation", btor->time.lemma_gen);
   btor_msg (btor,
             1,
@@ -4697,7 +4708,7 @@ search_initial_applies_dual_prop (Btor *btor, BtorNodePtrStack *top_applies)
   BtorNode *cur_clone, *cur_btor, *bv_const, *bv_eq;
   char *ass_str;
   int i;
-  double start;
+  double start, delta;
 
   start = btor_time_stamp ();
 
@@ -4725,8 +4736,8 @@ search_initial_applies_dual_prop (Btor *btor, BtorNodePtrStack *top_applies)
       BTOR_PUSH_STACK (btor->mm, stack, btor_copy_exp (btor, cur_btor));
   }
 
+  delta = btor_time_stamp ();
   clone = clone_exp_layer_negated (btor);
-
   btor_enable_force_cleanup (clone);
 #ifdef BTOR_CHECK_MODEL
   btor_enable_force_internal_cleanup (clone);
@@ -4735,6 +4746,8 @@ search_initial_applies_dual_prop (Btor *btor, BtorNodePtrStack *top_applies)
   btor_set_loglevel_btor (clone, 0);
   btor_set_verbosity_btor (clone, 0);
   clone->dual_prop = 0;  // FIXME should be redundant
+  btor->time.search_init_apps_cloning += btor_time_stamp () - delta;
+
   assert (check_unique_table_aux_mark_unset_dbg (btor));
 
   /* assume bv assignments of bv vars and applies */
@@ -4780,8 +4793,10 @@ search_initial_applies_dual_prop (Btor *btor, BtorNodePtrStack *top_applies)
     btor_release_bv_assignment_str_exp (btor, ass_str);
   }
 
+  delta = btor_time_stamp ();
   btor_sat_aux_btor (clone);
   assert (clone->last_sat_result == BTOR_UNSAT);
+  btor->time.search_init_apps_sat += btor_time_stamp () - delta;
 
   /* partial assignment via failed assumptions of negated clone */
   init_node_hash_table_iterator (btor, &it, assumptions);
