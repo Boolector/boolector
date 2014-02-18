@@ -381,7 +381,7 @@ btor_dump_fun_smt2 (Btor *btor, FILE *file, BtorNode *fun)
 }
 
 void
-btor_dump_smt2_fun (Btor *btor, FILE *file, BtorNode **roots, int nroots)
+btor_dump_smt2_fun_nodes (Btor *btor, FILE *file, BtorNode **roots, int nroots)
 {
   assert (btor);
   assert (file);
@@ -540,7 +540,8 @@ btor_dump_smt2_fun (Btor *btor, FILE *file, BtorNode **roots, int nroots)
   } while (0)
 
 static void
-btor_dump_smt (Btor *btor, int format, FILE *file, BtorNode **roots, int nroots)
+btor_dump_smt_nodes (
+    Btor *btor, int format, FILE *file, BtorNode **roots, int nroots)
 {
   assert (btor);
   assert (file);
@@ -683,22 +684,22 @@ btor_dump_smt (Btor *btor, int format, FILE *file, BtorNode **roots, int nroots)
 }
 
 void
-btor_dump_smt1 (Btor *btor, FILE *file, BtorNode **roots, int nroots)
+btor_dump_smt1_nodes (Btor *btor, FILE *file, BtorNode **roots, int nroots)
 {
   BtorNode *tmp;
 
   if (nroots == 0)
   {
     tmp = btor_true_exp (btor);
-    btor_dump_smt (btor, 1, file, &tmp, 1);
+    btor_dump_smt_nodes (btor, 1, file, &tmp, 1);
     btor_release_exp (btor, tmp);
   }
   else
-    btor_dump_smt (btor, 1, file, roots, nroots);
+    btor_dump_smt_nodes (btor, 1, file, roots, nroots);
 }
 
 void
-btor_dump_smt2 (Btor *btor, FILE *file, BtorNode **roots, int nroots)
+btor_dump_smt2_nodes (Btor *btor, FILE *file, BtorNode **roots, int nroots)
 {
   assert (btor->lambdas->count == 0u);  // TODO: force define-fun dumps?
   BtorNode *tmp;
@@ -706,15 +707,15 @@ btor_dump_smt2 (Btor *btor, FILE *file, BtorNode **roots, int nroots)
   if (nroots == 0)
   {
     tmp = btor_true_exp (btor);
-    btor_dump_smt (btor, 2, file, &tmp, 1);
+    btor_dump_smt_nodes (btor, 2, file, &tmp, 1);
     btor_release_exp (btor, tmp);
   }
   else
-    btor_dump_smt (btor, 2, file, roots, nroots);
+    btor_dump_smt_nodes (btor, 2, file, roots, nroots);
 }
 
 static void
-btor_dump_smt_after_simplify (Btor *btor, FILE *file, int mode)
+btor_dump_smt (Btor *btor, FILE *file, int mode)
 {
   assert (btor);
   assert (file);
@@ -736,11 +737,11 @@ btor_dump_smt_after_simplify (Btor *btor, FILE *file, int mode)
     for (i = 0, b = btor->unsynthesized_constraints->first; b; b = b->next)
       new_roots[i++] = (BtorNode *) b->key;
     if (mode == 0)
-      btor_dump_smt1 (btor, file, new_roots, new_nroots);
+      btor_dump_smt1_nodes (btor, file, new_roots, new_nroots);
     else if (mode == 1)
-      btor_dump_smt2 (btor, file, new_roots, new_nroots);
+      btor_dump_smt2_nodes (btor, file, new_roots, new_nroots);
     else
-      btor_dump_smt2_fun (btor, file, new_roots, new_nroots);
+      btor_dump_smt2_fun_nodes (btor, file, new_roots, new_nroots);
     BTOR_DELETEN (btor->mm, new_roots, new_nroots);
   }
   else
@@ -748,33 +749,33 @@ btor_dump_smt_after_simplify (Btor *btor, FILE *file, int mode)
     assert (ret == BTOR_SAT || ret == BTOR_UNSAT);
     temp = (ret == BTOR_SAT) ? btor_true_exp (btor) : btor_false_exp (btor);
     if (mode == 0)
-      btor_dump_smt1 (btor, file, &temp, 1);
+      btor_dump_smt1_nodes (btor, file, &temp, 1);
     else
-      btor_dump_smt2 (btor, file, &temp, 1);
+      btor_dump_smt2_nodes (btor, file, &temp, 1);
     btor_release_exp (btor, temp);
   }
 }
 
 void
-btor_dump_smt1_after_simplify (Btor *btor, FILE *file)
+btor_dump_smt1 (Btor *btor, FILE *file)
 {
   assert (btor);
   assert (file);
-  btor_dump_smt_after_simplify (btor, file, 0);
+  btor_dump_smt (btor, file, 0);
 }
 
 void
-btor_dump_smt2_after_simplify (Btor *btor, FILE *file)
+btor_dump_smt2 (Btor *btor, FILE *file)
 {
   assert (btor);
   assert (file);
-  btor_dump_smt_after_simplify (btor, file, 1);
+  btor_dump_smt (btor, file, 1);
 }
 
 void
-btor_dump_smt2_fun_after_simplify (Btor *btor, FILE *file)
+btor_dump_smt2_fun (Btor *btor, FILE *file)
 {
   assert (btor);
   assert (file);
-  btor_dump_smt_after_simplify (btor, file, 2);
+  btor_dump_smt (btor, file, 2);
 }
