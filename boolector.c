@@ -3455,34 +3455,6 @@ boolector_dump_btor (Btor *btor, FILE *file)
 }
 
 void
-boolector_dump_smt1_node (Btor *btor, FILE *file, BoolectorNode *node)
-{
-  // TODO TRAPI
-  BtorNode *exp;
-
-  exp = BTOR_IMPORT_BOOLECTOR_NODE (node);
-  BTOR_ABORT_ARG_NULL_BOOLECTOR (btor);
-  BTOR_ABORT_ARG_NULL_BOOLECTOR (file);
-  BTOR_ABORT_ARG_NULL_BOOLECTOR (exp);
-  BTOR_ABORT_REFS_NOT_POS_BOOLECTOR (exp);
-  btor_dump_smt1_nodes (btor, file, &exp, 1);
-#ifndef NDEBUG
-  BTOR_CHKCLONE_NORES (dump_smt1_node, file, BTOR_CLONED_EXP (exp));
-#endif
-}
-
-void
-boolector_dump_smt1 (Btor *btor, FILE *file)
-{
-  BTOR_ABORT_ARG_NULL_BOOLECTOR (btor);
-  BTOR_ABORT_ARG_NULL_BOOLECTOR (file);
-  btor_dump_smt1 (btor, file);
-#ifndef NDEBUG
-  BTOR_CHKCLONE_NORES (dump_smt1, file);
-#endif
-}
-
-void
 boolector_dump_smt2_node (Btor *btor, FILE *file, BoolectorNode *node)
 {
   // TODO TRAPI

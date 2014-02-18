@@ -145,12 +145,8 @@ static const char *g_usage =
     "\n"
     "  -x, --hex                        hexadecimal output\n"
     "  -d, --dec                        decimal output\n"
-    "  -de, --dump-exp                  dump expression in BTOR format\n"
-    "  -ds                              dump expression in SMT 1.2 format\n"
-    "  -d1, -ds1, --dump-smt            dump expression in SMT 1.2 format\n"
-    "  -d2, -ds2, --dump-smt2           dump expression in SMT 2.0 format\n"
-    "  -d2fun, -ds2fun, --dump-smt2-fun dump expression in SMT 2.0 format "
-    "using\n"
+    "  -db, --dump-btor                 dump expression in BTOR format\n"
+    "  -ds, --dump-smt                  dump expression in SMT 2.0 format\n"
     "                                   define-fun instead of let\n"
     "  -o, --output <file>              set output file for dumping\n"
     "\n"
@@ -565,18 +561,11 @@ parse_commandline_arguments (BtorMainApp *app)
       fprintf (app->output_file, "%s", g_copyright);
       app->done = 1;
     }
-    else if (!strcmp (app->argv[app->argpos], "-de")
-             || !strcmp (app->argv[app->argpos], "--dump-exp"))
+    else if (!strcmp (app->argv[app->argpos], "-db")
+             || !strcmp (app->argv[app->argpos], "--dump-btor"))
       app->dump = BTOR_DUMP_BTOR;
     else if (!strcmp (app->argv[app->argpos], "-ds")
-             || !strcmp (app->argv[app->argpos], "-d1")
-             || !strcmp (app->argv[app->argpos], "-ds1")
-             || !strcmp (app->argv[app->argpos], "--dump-smt")
-             || !strcmp (app->argv[app->argpos], "--dump-smt1"))
-      app->dump = BTOR_DUMP_SMT1;
-    else if (!strcmp (app->argv[app->argpos], "-d2")
-             || !strcmp (app->argv[app->argpos], "-ds2")
-             || !strcmp (app->argv[app->argpos], "--dump-smt2"))
+             || !strcmp (app->argv[app->argpos], "--dump-smt"))
       app->dump = BTOR_DUMP_SMT2;
     else if (!strcmp (app->argv[app->argpos], "-m")
              || !strcmp (app->argv[app->argpos], "--model"))
@@ -1340,8 +1329,6 @@ boolector_main (int argc, char **argv)
       {
         if (app.dump == BTOR_DUMP_BTOR)
           msg_main_va_args ("dumping BTOR expressions\n");
-        else if (app.dump == BTOR_DUMP_SMT1)
-          msg_main_va_args ("dumping in SMT 1.2 format\n");
         else
         {
           assert (app.dump == BTOR_DUMP_SMT2);
@@ -1364,8 +1351,6 @@ boolector_main (int argc, char **argv)
       parser_api = 0;
       if (app.dump == BTOR_DUMP_BTOR)
         boolector_dump_btor (btor, app.output_file);
-      else if (app.dump == BTOR_DUMP_SMT1)
-        boolector_dump_smt1 (btor, app.output_file);
       else
         boolector_dump_smt2 (btor, app.output_file);
       app.done = 1;
