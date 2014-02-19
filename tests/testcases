@@ -52,9 +52,9 @@ arrayand -o log/arrayand.log log/arrayand.btor
 arrayeqerr0 -o log/arrayeqerr0.log log/arrayeqerr0.btor
 arrayeqerr1 -o log/arrayeqerr1.log log/arrayeqerr1.btor
 arrayeqerr2 -o log/arrayeqerr2.log log/arrayeqerr2.btor
-dumpbtor1 -rwl0 -de -o log/dumpbtor1.log log/dumpbtor1.btor
-dumpbtor2 -rwl0 -de -o log/dumpbtor2.log log/dumpbtor2.btor
-dumpbtor3 -de -o log/dumpbtor3.log log/dumpbtor3.btor
+dumpbtor1 -rwl0 -db -o log/dumpbtor1.log log/dumpbtor1.btor
+dumpbtor2 -rwl0 -db -o log/dumpbtor2.log log/dumpbtor2.btor
+dumpbtor3 -db -o log/dumpbtor3.log log/dumpbtor3.btor
 dumpsmt1 -rwl0 -ds -o log/dumpsmt1.log log/dumpsmt1.btor
 dumpsmt2 -rwl0 -ds -o log/dumpsmt2.log log/dumpsmt2.btor
 smtextarrayaxiom1uf -o log/smtextarrayaxiom1uf.log log/smtextarrayaxiom1uf.smt
@@ -706,11 +706,11 @@ count02incuns -interval=4 -o log/count02incuns.log log/count02incuns.smt
 count03inc -in-depth=3 -o log/count03inc.log log/count03inc.smt
 count03to6 -interval=3 -o log/count03to6.log log/count03to6.smt
 count03plus2inc -interval=2 -o log/count03plus2inc.log log/count03plus2inc.smt
-concatslice1 -rwl1 -de -o log/concatslice1.log log/concatslice1.btor
-concatslice2 -rwl1 -de -o log/concatslice2.log log/concatslice2.btor
-regaddnorm1 -de -o log/regaddnorm1.log log/regaddnorm1.btor
-regaddnorm2 -de -o log/regaddnorm2.log log/regaddnorm2.btor
-regnegadd1 -de -o log/regnegadd1.log log/regnegadd1.btor
+concatslice1 -rwl1 -db -o log/concatslice1.log log/concatslice1.btor
+concatslice2 -rwl1 -db -o log/concatslice2.log log/concatslice2.btor
+regaddnorm1 -db -o log/regaddnorm1.log log/regaddnorm1.btor
+regaddnorm2 -db -o log/regaddnorm2.log log/regaddnorm2.btor
+regnegadd1 -db -o log/regnegadd1.log log/regnegadd1.btor
 sc12fuzzcheck2 -o log/sc12fuzzcheck2.log log/sc12fuzzcheck2.smt2
 regmismatch -o log/regmismatch.log log/regmismatch.smt2
 regrbetacache1 -bra -o log/regrbetacache1.log log/regrbetacache1.btor
