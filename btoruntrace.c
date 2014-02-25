@@ -362,13 +362,11 @@ NEXT:
     PARSE_ARGS1 (tok, int);
     boolector_set_verbosity (btor, arg1_int);
   }
-#ifndef NBTORLOG
   else if (!strcmp (tok, "set_loglevel"))
   {
     PARSE_ARGS1 (tok, int);
     boolector_set_loglevel (btor, arg1_int);
   }
-#endif
   else if (!strcmp (tok, "set_sat_solver"))
   {
     PARSE_ARGS1 (tok, str);
@@ -1050,6 +1048,11 @@ NEXT:
     PARSE_ARGS3 (tok, str, str, int);
     boolector_free_array_assignment (
         btor, hmap_get (hmap, arg1_str), hmap_get (hmap, arg2_str), arg3_int);
+  }
+  else if (!strcmp (tok, "dump_btor"))
+  {
+    PARSE_ARGS0 (tok);
+    boolector_dump_btor_all (btor, stdout);
   }
   else
     perr ("invalid command '%s'", tok);

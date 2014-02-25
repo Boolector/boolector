@@ -2760,13 +2760,6 @@ substitute_and_rebuild (Btor *btor, BtorPtrHashTable *subst, int bra)
       cur->aux_mark = 2;
 
       BTOR_PUSH_STACK (mm, visit, cur);
-
-      /* ensure that substitution is rebuilt before 'cur' */
-      simplified = btor_find_substitution (btor, cur);
-      if (simplified)
-        BTOR_PUSH_STACK (mm, visit, BTOR_REAL_ADDR_NODE (simplified));
-
-      /* ensure that children are rebuilt before 'cur' */
       for (i = 0; i < cur->arity; i++)
         BTOR_PUSH_STACK (mm, visit, BTOR_REAL_ADDR_NODE (cur->e[i]));
     }
@@ -2775,39 +2768,33 @@ substitute_and_rebuild (Btor *btor, BtorPtrHashTable *subst, int bra)
       assert (cur->aux_mark == 2);
       cur->aux_mark = 0;
 
-      simplified = btor_find_substitution (btor, cur);
-
-      if (simplified)
-      {
-        assert (BTOR_REAL_ADDR_NODE (simplified) != cur);
-        assert (!BTOR_REAL_ADDR_NODE (simplified)->simplified);
-        assert (BTOR_REAL_ADDR_NODE (simplified)->aux_mark != 1);
-        set_simplified_exp (btor, cur, simplified);
-        continue;
-      }
-
       if (bra && BTOR_IS_APPLY_NODE (cur)
           && btor_find_in_ptr_hash_table (subst, cur))
         rebuilt_exp = btor_beta_reduce_full (btor, cur);
       else
         rebuilt_exp = rebuild_exp (btor, cur);
 
-      /* if 'rebuilt_exp' still needs to be rebuilt, we rebuild it before
-       * we can proceed with 'cur' */
-      if (BTOR_REAL_ADDR_NODE (rebuilt_exp)->aux_mark == 1)
-      {
-        cur->aux_mark = 1;
-        BTOR_PUSH_STACK (mm, visit, cur);
-        BTOR_PUSH_STACK (mm, visit, BTOR_REAL_ADDR_NODE (rebuilt_exp));
-        btor_release_exp (btor, rebuilt_exp);
-        continue;
-      }
-
       assert (rebuilt_exp);
-      /* base case: rebuilt_exp == cur */
       if (rebuilt_exp != cur)
       {
         simplified = btor_simplify_exp (btor, rebuilt_exp);
+
+        /* check if we need to rebuild already rebuilt parents of 'cur' */
+        init_full_parent_iterator (&it, cur);
+        while (has_next_parent_full_parent_iterator (&it))
+        {
+          cur_parent = next_parent_full_parent_iterator (&it);
+          if (cur_parent->aux_mark == 0)
+          {
+            cur_parent->aux_mark = 2;
+            BTOR_PUSH_STACK (mm, visit, cur_parent);
+          }
+        }
+
+        /* copy new root */
+        if (cur->parents == 0)
+          BTOR_PUSH_STACK (mm, roots, btor_copy_exp (btor, cur));
+
         set_simplified_exp (btor, cur, simplified);
       }
 
