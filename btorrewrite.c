@@ -2153,6 +2153,9 @@ btor_find_top_add (Btor *btor, BtorNode *e)
     res = btor_find_top_add (btor, e->e[0]);
     BTOR_DEC_REC_RW_CALL (btor);
   }
+
+  // TODO handle more operators ... (here first)
+
   return res;
 }
 
@@ -2171,7 +2174,10 @@ btor_rebuild_top_add (Btor *btor, BtorNode *e, BtorNode *c, BtorNode *r)
     res = btor_copy_exp (btor, r);
   else
   {
+    // TODO handle more operators ... (then here)
+    //
     assert (e->kind == BTOR_SLICE_NODE);
+
     tmp = btor_rebuild_top_add (btor, e->e[0], c, r);
     res = btor_slice_exp (btor, tmp, e->upper, e->lower);
     btor_release_exp (btor, tmp);
