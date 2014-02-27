@@ -1204,7 +1204,7 @@ boolector_dump_btormc (BtorMC *mc, FILE *file)
         bdc, BTOR_IMPORT_BOOLECTOR_NODE (constraint));
   }
 
-  btor_dump_btor (bdc, file);
+  btor_dump_btor_bdc (bdc, file);
   btor_delete_dump_context (bdc);
 }
 

@@ -1492,19 +1492,27 @@ btor_var_exp (Btor *btor, int len, const char *symbol)
 BtorNode *
 btor_param_exp (Btor *btor, int len, const char *symbol)
 {
-  BtorMemMgr *mm;
-  BtorParamNode *exp;
-
   assert (btor);
   assert (len > 0);
   assert (symbol);
 
+  int num_digits;
+  BtorMemMgr *mm;
+  BtorParamNode *exp;
+
   mm = btor->mm;
   BTOR_CNEW (mm, exp);
   btor->ops[BTOR_PARAM_NODE]++;
-  exp->kind          = BTOR_PARAM_NODE;
-  exp->bytes         = sizeof *exp;
-  exp->symbol        = btor_strdup (mm, symbol);
+  exp->kind  = BTOR_PARAM_NODE;
+  exp->bytes = sizeof *exp;
+  if (strlen (symbol) == 0)
+  {
+    num_digits = btor_num_digits_util (btor->dpn_id);
+    BTOR_NEWN (mm, exp->symbol, num_digits + 8);
+    sprintf (exp->symbol, "param_%d_", btor->dpn_id++);
+  }
+  else
+    exp->symbol = btor_strdup (mm, symbol);
   exp->len           = len;
   exp->parameterized = 1;
   setup_node_and_add_to_id_table (btor, exp);
