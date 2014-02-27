@@ -719,3 +719,4 @@ regrencparamapps -o log/regrencparamapps.log log/regrencparamapps.smt2
 nestedfun1 -rwl2 -o log/nestedfun1.log log/nestedfun1.smt2
 regrcollectprem -o log/regrcollectprem.log log/regrcollectprem.btor
 regrlemmaloop_embeddedconstraints -rwl1 -o log/regrlemmaloop_embeddedconstraints.log log/regrlemmaloop_embeddedconstraints.btor
+addnegmul1 -o log/addnegmul1.log log/addnegmul1.btor
