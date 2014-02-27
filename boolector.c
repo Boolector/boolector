@@ -262,7 +262,6 @@ btor_chkclone_stats (Btor *btor)
   BTOR_CHKCLONE_STATS (beta_reduce_calls);
   BTOR_CHKCLONE_STATS (eval_exp_calls);
   BTOR_CHKCLONE_STATS (lambda_synth_apps);
-  BTOR_CHKCLONE_STATS (lambda_chains_merged);
   BTOR_CHKCLONE_STATS (lambdas_merged);
   BTOR_CHKCLONE_STATS (propagations);
   BTOR_CHKCLONE_STATS (propagations_down);
@@ -479,8 +478,7 @@ btor_chkclone_exp (BtorNode *exp, BtorNode *clone)
   BTOR_CHKCLONE_EXP (bytes);
   BTOR_CHKCLONE_EXP (parameterized);
   BTOR_CHKCLONE_EXP (lambda_below);
-  BTOR_CHKCLONE_EXP (no_synth);
-  BTOR_CHKCLONE_EXP (chain);
+  BTOR_CHKCLONE_EXP (merge);
   BTOR_CHKCLONE_EXP (is_write);
   BTOR_CHKCLONE_EXP (is_read);
 
@@ -1012,18 +1010,21 @@ boolector_set_verbosity (Btor *btor, int verbosity)
 #endif
 }
 
-#ifndef NBTORLOG
 void
 boolector_set_loglevel (Btor *btor, int loglevel)
 {
+#ifndef NBTORLOG
   BTOR_ABORT_ARG_NULL_BOOLECTOR (btor);
   BTOR_TRAPI ("set_loglevel %d", loglevel);
   btor_set_loglevel_btor (btor, loglevel);
 #ifndef NDEBUG
   BTOR_CHKCLONE_NORES (set_loglevel, loglevel);
 #endif
-}
+#else
+  (void) btor;
+  (void) loglevel;
 #endif
+}
 
 int
 boolector_set_sat_solver (Btor *btor, const char *solver)
@@ -3541,7 +3542,10 @@ boolector_assume (Btor *btor, BoolectorNode *node)
   BTOR_ABORT_BOOLECTOR (!btor->inc_enabled,
                         "incremental usage has not been enabled");
   BTOR_ABORT_REFS_NOT_POS_BOOLECTOR (exp);
-  simp = btor_simplify_exp (btor, exp);
+  /* Note: do not simplify constraint expression in order to prevent
+   *       constraint expressions from not being added to btor->assumptions. */
+  simp = BTOR_REAL_ADDR_NODE (exp)->simplified ? btor_simplify_exp (btor, exp)
+                                               : exp;
   BTOR_ABORT_ARRAY_BOOLECTOR (simp);
   BTOR_ABORT_BOOLECTOR (BTOR_REAL_ADDR_NODE (simp)->len != 1,
                         "'exp' must have bit-width one");

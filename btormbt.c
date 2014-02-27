@@ -1904,13 +1904,11 @@ _opt (BtorMBT *btormbt, unsigned r)
   BTORMBT_LOG (1, "enable force cleanup");
   boolector_enable_force_cleanup (btormbt->btor);
 
-#ifndef NBTORLOG
   if (btormbt->bloglevel)
   {
     BTORMBT_LOG (1, "boolector log level: '%d'", btormbt->bloglevel);
     boolector_set_loglevel (btormbt->btor, btormbt->bloglevel);
   }
-#endif
   if (btormbt->bverblevel)
   {
     BTORMBT_LOG (1, "boolector verbose level: '%d'", btormbt->bverblevel);
@@ -1929,6 +1927,12 @@ _opt (BtorMBT *btormbt, unsigned r)
     BTORMBT_LOG (1, "enable incremental usage");
     boolector_enable_inc_usage (btormbt->btor);
     btormbt->inc = 1;
+  }
+
+  if (pick (&rng, 0, 9) == 5)
+  {
+    BTORMBT_LOG (1, "enable full beta reduction");
+    boolector_enable_beta_reduce_all (btormbt->btor);
   }
 
   rw = pick (&rng, 0, 3);
@@ -2623,7 +2627,10 @@ sig_handler (int sig)
   char str[100];
 
   sprintf (str, "*** btormbt: caught signal %d\n\n", sig);
-  (void) write (STDOUT_FILENO, str, strlen (str));
+  if (!write (STDOUT_FILENO, str, strlen (str)))
+  {
+    // error message failed ....
+  }
   /* Note: if _exit is used here (which is reentrant, in contrast to exit),
    *       atexit handler is not called. Hence, use exit here. */
   exit (EXIT_ERROR);

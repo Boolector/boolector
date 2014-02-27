@@ -7,6 +7,10 @@ def shape(kind):
         return "none"
     elif "const" in kind or kind in ["array", "var", "param"]:
         return "box"
+    elif kind == "latch":
+        return "octagon"
+    elif kind == "init" or kind == "next":
+        return "diamond"
     else:
         return "oval"
 
@@ -32,7 +36,7 @@ if __name__ == "__main__":
     print("digraph G {")
 
     array_nodes = ["array", "acond", "write", "lambda"]
-    leaf_nodes = ["array", "var", "param", "const", "consth", "constd"]
+    leaf_nodes = ["array", "var", "latch", "param", "const", "consth", "constd"]
     param_nodes = {}
     roots = []
 

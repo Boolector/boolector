@@ -15,7 +15,7 @@
 
 BtorNode *btor_beta_reduce_full (Btor *, BtorNode *);
 
-BtorNode *btor_beta_reduce_chains (Btor *, BtorNode *);
+BtorNode *btor_beta_reduce_merge (Btor *, BtorNode *);
 
 BtorNode *btor_beta_reduce_partial (Btor *,
                                     BtorNode *,

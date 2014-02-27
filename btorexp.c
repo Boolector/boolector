@@ -1052,7 +1052,7 @@ new_lambda_exp_node (Btor *btor, BtorNode *e_param, BtorNode *e_exp)
   assert (BTOR_IS_PARAM_NODE (e_param));
   assert (e_exp);
 
-  BtorParentIterator it;
+  BtorNodeIterator it;
   BtorNode *exp;
   BtorLambdaNode *lambda_exp;
 
@@ -1113,11 +1113,10 @@ new_args_exp_node (Btor *btor, int arity, BtorNode **e, int len)
 
   BTOR_CNEW (btor->mm, exp);
   btor->ops[BTOR_ARGS_NODE]++;
-  exp->kind     = BTOR_ARGS_NODE;
-  exp->bytes    = sizeof (*exp);
-  exp->arity    = arity;
-  exp->len      = len;
-  exp->no_synth = 1;
+  exp->kind  = BTOR_ARGS_NODE;
+  exp->bytes = sizeof (*exp);
+  exp->arity = arity;
+  exp->len   = len;
   setup_node_and_add_to_id_table (btor, exp);
 
   for (i = 0; i < arity; i++)
@@ -1334,14 +1333,11 @@ btor_const_exp (Btor *btor, const char *bits)
   assert (len > 0);
   inv        = 0;
   lookupbits = (char *) bits;
-  if (btor->rewrite_level > 0)
+  /* normalize constants, constants are always even */
+  if (bits[len - 1] == '1')
   {
-    /* normalize constants, constants are always even */
-    if (bits[len - 1] == '1')
-    {
-      lookupbits = btor_not_const (btor->mm, bits);
-      inv        = 1;
-    }
+    lookupbits = btor_not_const (btor->mm, bits);
+    inv        = 1;
   }
   lookup = find_const_exp (btor, lookupbits, len);
   if (!*lookup)
@@ -1511,7 +1507,6 @@ btor_param_exp (Btor *btor, int len, const char *symbol)
   exp->symbol        = btor_strdup (mm, symbol);
   exp->len           = len;
   exp->parameterized = 1;
-  exp->no_synth      = 1;
   setup_node_and_add_to_id_table (btor, exp);
   return (BtorNode *) exp;
 }

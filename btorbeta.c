@@ -18,7 +18,7 @@
 #include "btorrewrite.h"
 #include "btorutil.h"
 
-#define BETA_RED_LAMBDA_CHAINS -2
+#define BETA_RED_LAMBDA_MERGE -2
 #define BETA_RED_FULL 0
 #define BETA_RED_BOUNDED 1
 
@@ -154,7 +154,7 @@ btor_assign_args (Btor *btor, BtorNode *fun, BtorNode *args)
   //	   ((BtorArgsNode *) args)->num_args);
 
   BtorNode *cur_lambda, *cur_arg;
-  BtorParentIterator it;
+  BtorNodeIterator it;
   BtorArgsIterator ait;
 
   init_args_iterator (&ait, args);
@@ -213,7 +213,7 @@ btor_unassign_params (Btor *btor, BtorNode *lambda)
   } while (BTOR_IS_LAMBDA_NODE (lambda));
 }
 
-#if 0
+#if 1
 #define BETA_REDUCE_OPEN_NEW_SCOPE(lambda)                                     \
   do                                                                           \
   {                                                                            \
@@ -260,7 +260,7 @@ btor_unassign_params (Btor *btor, BtorNode *lambda)
 
 /* We distinguish the following options for (un)bounded reduction:
  *
- *   BETA_RED_LAMBDA_CHAINS: merge lambda chains
+ *   BETA_RED_LAMBDA_MERGE: merge lambda chains
  *
  *   BETA_RED_FULL:   full reduction,
  *		      do not evaluate conditionals
@@ -271,13 +271,12 @@ btor_unassign_params (Btor *btor, BtorNode *lambda)
 #if 1
 #define BTOR_ENABLE_PARAM_CACHE
 
-// TODO: get rid of assignment_exp stack (do we still need a stack?)
 static BtorNode *
 btor_beta_reduce (Btor *btor, BtorNode *exp, int mode, int bound)
 {
   assert (btor);
   assert (exp);
-  assert (mode == BETA_RED_LAMBDA_CHAINS || mode == BETA_RED_FULL
+  assert (mode == BETA_RED_LAMBDA_MERGE || mode == BETA_RED_FULL
           || mode == BETA_RED_BOUNDED);
   assert (bound >= 0);
   assert (bound == 0 || mode == BETA_RED_BOUNDED);
@@ -327,7 +326,7 @@ btor_beta_reduce (Btor *btor, BtorNode *exp, int mode, int bound)
     cur_parent = BTOR_POP_STACK (stack);
     cur        = BTOR_POP_STACK (stack);
     // TODO: directly push simplified exp onto stack at the beginning
-    /* we do not want the simplification of top level apply contraints */
+    /* we do not want the simplification of top level apply constraints */
     if (BTOR_REAL_ADDR_NODE (cur)->constraint
         && BTOR_IS_APPLY_NODE (BTOR_REAL_ADDR_NODE (cur)))
       cur = btor_pointer_chase_simplified_exp (btor, cur);
@@ -359,12 +358,22 @@ btor_beta_reduce (Btor *btor, BtorNode *exp, int mode, int bound)
       if (BTOR_IS_LAMBDA_NODE (real_cur) && !real_cur->parameterized)
         cur_lambda_depth++;
 
-      // TODO: BETA_RED_LAMBDA_CHAINS check
-      assert (mode != BETA_RED_LAMBDA_CHAINS);
-
       /* stop at given bound */
       if (bound > 0 && BTOR_IS_LAMBDA_NODE (real_cur)
           && cur_lambda_depth == bound)
+      {
+        assert (!real_cur->parameterized);
+        cur_lambda_depth--;
+        BTOR_PUSH_STACK (mm, arg_stack, btor_copy_exp (btor, cur));
+        continue;
+      }
+      /* skip all lambdas that are not marked for merge */
+      else if (mode == BETA_RED_LAMBDA_MERGE && BTOR_IS_LAMBDA_NODE (real_cur)
+               && !real_cur->merge
+               /* do not stop at parameterized lambdas, otherwise the
+                * result may contain parameters that are not bound by any
+                * lambda anymore */
+               && !real_cur->parameterized)
       {
         assert (!real_cur->parameterized);
         cur_lambda_depth--;
@@ -576,7 +585,6 @@ btor_beta_reduce (Btor *btor, BtorNode *exp, int mode, int bound)
           /* main case: lambda reduced to some term without e[1] */
           else
           {
-            assert (!BTOR_REAL_ADDR_NODE (e[0])->parameterized);
             result = btor_copy_exp (btor, e[0]);
           }
           btor_release_exp (btor, e[0]);
@@ -733,7 +741,7 @@ btor_beta_reduce (Btor *btor, BtorNode *exp, int mode, int bound)
 {
   assert (btor);
   assert (exp);
-  assert (mode == BETA_RED_FULL || mode == BETA_RED_LAMBDA_CHAINS
+  assert (mode == BETA_RED_FULL || mode == BETA_RED_LAMBDA_MERGE
           || mode == BETA_RED_BOUNDED);
   assert (bound >= 0);
   assert (bound == 0 || mode == BETA_RED_BOUNDED);
@@ -787,7 +795,7 @@ btor_beta_reduce (Btor *btor, BtorNode *exp, int mode, int bound)
     cur_parent = BTOR_POP_STACK (work_stack);
     cur        = BTOR_POP_STACK (work_stack);
     // TODO: directly push simplified exp onto stack at the beginning
-    /* we do not want the simplification of top level apply contraints */
+    /* we do not want the simplification of top level apply constraints */
     if (BTOR_REAL_ADDR_NODE (cur)->constraint
         && BTOR_IS_APPLY_NODE (BTOR_REAL_ADDR_NODE (cur)))
       cur = btor_pointer_chase_simplified_exp (btor, cur);
@@ -829,7 +837,7 @@ btor_beta_reduce (Btor *btor, BtorNode *exp, int mode, int bound)
       }
 
       // TODO: consider nested lambdas in lambda chains?
-      if (mode == BETA_RED_LAMBDA_CHAINS
+      if (mode == BETA_RED_LAMBDA_MERGE
           /* skip all lambdas that are not part of the lambda chain */
           && ((BTOR_IS_LAMBDA_NODE (real_cur) && !real_cur->chain)
               /* skip all nodes that are not parameterized as we can't merge
@@ -1645,10 +1653,10 @@ btor_beta_reduce_full (Btor *btor, BtorNode *exp)
 }
 
 BtorNode *
-btor_beta_reduce_chains (Btor *btor, BtorNode *exp)
+btor_beta_reduce_merge (Btor *btor, BtorNode *exp)
 {
   BTORLOG ("%s: %s", __FUNCTION__, node2string (exp));
-  return btor_beta_reduce (btor, exp, BETA_RED_LAMBDA_CHAINS, 0);
+  return btor_beta_reduce (btor, exp, BETA_RED_LAMBDA_MERGE, 0);
 }
 
 BtorNode *

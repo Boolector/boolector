@@ -25,19 +25,21 @@
 #ifndef NBTORLOG
 #define BTORUNT_LOG_USAGE \
   "\n"                    \
-  "  --blog <loglevel>      enable boolector logging\n"
+  "  --blog <loglevel>          enable boolector logging\n"
 #else
 #define BTORUNT_LOG_USAGE ""
 #endif
 
-#define BTORUNT_USAGE                                  \
-  "usage: btoruntrace [ <option> ... ] [ <trace> ]\n"  \
-  "\n"                                                 \
-  "where <option> is one of the following:\n"          \
-  "\n"                                                 \
-  "  -v, --verbose          increase verbosity\n"      \
-  "  -e, --exit-on-abort    exit on boolector abort\n" \
-  "  -s, --skip-getters     skip 'getter' functions\n" BTORUNT_LOG_USAGE
+#define BTORUNT_USAGE                                            \
+  "usage: btoruntrace [ <option> ... ] [ <trace> ]\n"            \
+  "\n"                                                           \
+  "where <option> is one of the following:\n"                    \
+  "\n"                                                           \
+  "  -v, --verbose              increase verbosity\n"            \
+  "  -e, --exit-on-abort        exit on boolector abort\n"       \
+  "  -s, --skip-getters         skip 'getter' functions\n"       \
+  "  -i, --ignore-sat-result    do not exit on mismatching sat " \
+  "result\n" BTORUNT_LOG_USAGE
 
 /*------------------------------------------------------------------------*/
 
@@ -360,13 +362,11 @@ NEXT:
     PARSE_ARGS1 (tok, int);
     boolector_set_verbosity (btor, arg1_int);
   }
-#ifndef NBTORLOG
   else if (!strcmp (tok, "set_loglevel"))
   {
     PARSE_ARGS1 (tok, int);
     boolector_set_loglevel (btor, arg1_int);
   }
-#endif
   else if (!strcmp (tok, "set_sat_solver"))
   {
     PARSE_ARGS1 (tok, str);
@@ -1049,6 +1049,11 @@ NEXT:
     boolector_free_array_assignment (
         btor, hmap_get (hmap, arg1_str), hmap_get (hmap, arg2_str), arg3_int);
   }
+  else if (!strcmp (tok, "dump_btor"))
+  {
+    PARSE_ARGS0 (tok);
+    boolector_dump_btor_all (btor, stdout);
+  }
   else
     perr ("invalid command '%s'", tok);
   btorunt->line++;
@@ -1092,11 +1097,11 @@ main (int argc, char **argv)
     else if (!strcmp (argv[i], "-i")
              || !strcmp (argv[i], "--ignore-sat-result"))
       btorunt->ignore_sat = 1;
-    else if (!strcmp (argv[i], "-blog"))
+    else if (!strcmp (argv[i], "--blog"))
     {
-      if (++i == argc) die ("argument to '-blog' missing (try '-h')");
+      if (++i == argc) die ("argument to '--blog' missing (try '-h')");
       if (!isnumstr (argv[i]))
-        die ("argument to '-blog' is not a number (try '-h')");
+        die ("argument to '--blog' is not a number (try '-h')");
       btorunt->blog_level = atoi (argv[i]);
     }
     else if (argv[i][0] == '-')

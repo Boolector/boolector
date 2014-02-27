@@ -79,7 +79,7 @@
 /*------------------------------------------------------------------------*/
 
 #ifdef BTOR_CHECK_MODEL
-static int check_model (Btor *, Btor *, BtorPtrHashTable *);
+static void check_model (Btor *, Btor *, BtorPtrHashTable *);
 static BtorPtrHashTable *map_inputs_check_model (Btor *, Btor *);
 #endif
 
@@ -128,6 +128,18 @@ check_unique_table_aux_mark_unset_dbg (const Btor *btor)
   for (i = 0; i < btor->nodes_unique_table.size; i++)
     for (cur = btor->nodes_unique_table.chains[i]; cur; cur = cur->next)
       if (cur->aux_mark != 0) return 0;
+  return 1;
+}
+
+static int
+check_unique_table_merge_unset_dbg (const Btor *btor)
+{
+  int i;
+  BtorNode *cur;
+
+  for (i = 0; i < btor->nodes_unique_table.size; i++)
+    for (cur = btor->nodes_unique_table.chains[i]; cur; cur = cur->next)
+      if (cur->merge != 0) return 0;
   return 1;
 }
 
@@ -186,7 +198,7 @@ check_reachable_flag_dbg (const Btor *btor)
 {
   int i;
   BtorNode *cur, *parent;
-  BtorParentIterator it;
+  BtorNodeIterator it;
 
   for (i = BTOR_COUNT_STACK (btor->nodes_id_table) - 1; i >= 0; i--)
   {
@@ -286,7 +298,6 @@ typedef enum BtorSubstCompKind BtorSubstCompKind;
 
 /*------------------------------------------------------------------------*/
 
-#ifdef BTOR_CHECK_MODEL
 static void
 btor_init_substitutions (Btor *btor)
 {
@@ -327,6 +338,7 @@ btor_insert_substitution (Btor *btor,
   assert (subst);
   assert (btor->substitutions);
   assert (update == 0 || update == 1);
+  assert (BTOR_REAL_ADDR_NODE (exp) != BTOR_REAL_ADDR_NODE (subst));
 
   BtorPtrHashBucket *b;
   exp = BTOR_REAL_ADDR_NODE (exp);
@@ -346,8 +358,6 @@ btor_insert_substitution (Btor *btor,
   btor_insert_in_ptr_hash_table (btor->substitutions, btor_copy_exp (btor, exp))
       ->data.asPtr = btor_copy_exp (btor, subst);
 }
-
-#endif
 
 static BtorNode *
 btor_find_substitution (Btor *btor, BtorNode *exp)
@@ -575,16 +585,16 @@ btor_set_verbosity_btor (Btor *btor, int verbosity)
   btor_set_verbosity_sat_mgr (smgr, verbosity);
 }
 
-#ifndef NBTORLOG
 void
 btor_set_loglevel_btor (Btor *btor, int loglevel)
 {
   assert (btor);
   (void) btor;
   (void) loglevel;
+#ifndef NBTORLOG
   btor->loglevel = loglevel;
-}
 #endif
+}
 
 static int
 constraints_stats_changes (Btor *btor)
@@ -780,8 +790,6 @@ btor_print_stats_btor (Btor *btor)
             1,
             "synthesized lambda applies: %lld",
             btor->stats.lambda_synth_apps);
-  btor_msg (
-      btor, 1, "lambda chains merged: %lld", btor->stats.lambda_chains_merged);
   btor_msg (btor, 1, "lambdas merged: %lld", btor->stats.lambdas_merged);
   btor_msg (btor, 1, "propagations: %lld", btor->stats.propagations);
   btor_msg (btor, 1, "propagations down: %lld", btor->stats.propagations_down);
@@ -793,6 +801,8 @@ btor_print_stats_btor (Btor *btor)
   btor_msg (btor, 1, "");
   btor_msg (btor, 1, "%.2f seconds beta-reduction", btor->time.beta);
   btor_msg (btor, 1, "%.2f seconds expression evaluation", btor->time.eval);
+  btor_msg (
+      btor, 1, "%.2f seconds synthesize expressions", btor->time.synth_exp);
   btor_msg (btor, 1, "%.2f seconds lazy apply encoding", btor->time.enc_app);
   btor_msg (
       btor, 1, "%.2f seconds lazy lambda encoding", btor->time.enc_lambda);
@@ -916,6 +926,10 @@ btor_new_btor (void)
 
   btor->true_exp = btor_true_exp (btor);
 
+#ifdef BTOR_CHECK_MODEL
+  btor_enable_model_gen (btor);
+#endif
+
   return btor;
 }
 
@@ -1015,8 +1029,9 @@ btor_delete_btor (Btor *btor)
     }
     assert (btor->external_refs == 0);
 #ifndef NDEBUG
-    for (i = BTOR_COUNT_STACK (btor->nodes_id_table) - 1; i >= 0; i--)
-      assert (!BTOR_PEEK_STACK (btor->nodes_id_table, i));
+    if (!getenv ("BTORLEAK") && !getenv ("BTORLEAKEXP"))
+      for (i = BTOR_COUNT_STACK (btor->nodes_id_table) - 1; i >= 0; i--)
+        assert (!BTOR_PEEK_STACK (btor->nodes_id_table, i));
 #endif
   }
 #ifndef NDEBUG
@@ -1135,16 +1150,16 @@ update_assumptions (Btor *btor)
   assert (check_unique_table_mark_unset_dbg (btor));
 
   BtorPtrHashTable *ass;
-  BtorPtrHashBucket *b;
   BtorNode *cur, *simp;
+  BtorHashTableIterator it;
 
   ass = btor_new_ptr_hash_table (btor->mm,
                                  (BtorHashPtr) btor_hash_exp_by_id,
                                  (BtorCmpPtr) btor_compare_exp_by_id);
-
-  for (b = btor->assumptions->first; b; b = b->next)
+  init_node_hash_table_iterator (btor, &it, btor->assumptions);
+  while (has_next_node_hash_table_iterator (&it))
   {
-    cur = (BtorNode *) b->key;
+    cur = next_node_hash_table_iterator (&it);
     if (BTOR_REAL_ADDR_NODE (cur)->simplified)
     {
       simp = btor_simplify_exp (btor, cur);
@@ -1590,7 +1605,7 @@ constraint_is_inconsistent (Btor *btor, BtorNode *exp)
 static int
 has_parents_exp (Btor *btor, BtorNode *exp)
 {
-  BtorParentIterator it;
+  BtorNodeIterator it;
 
   assert (btor);
   assert (exp);
@@ -1853,7 +1868,10 @@ btor_assume_exp (Btor *btor, BtorNode *exp)
   assert (btor->inc_enabled);
   assert (exp);
 
-  exp = btor_simplify_exp (btor, exp);
+  /* Note: do not simplify constraint expression in order to prevent
+   *       constraint expressions from not being added to btor->assumptions. */
+  if (BTOR_REAL_ADDR_NODE (exp)->simplified)
+    exp = btor_simplify_exp (btor, exp);
 
   if (btor->valid_assignments) btor_reset_incremental_usage (btor);
 
@@ -2012,6 +2030,8 @@ update_constraints (Btor *btor, BtorNode *exp)
   assert (!BTOR_REAL_ADDR_NODE (exp->simplified)->simplified);
   assert (exp->constraint);
   assert (exp->refs > 1);
+  assert (!exp->parameterized);
+  assert (!BTOR_REAL_ADDR_NODE (exp->simplified)->parameterized);
 
   not_exp                   = BTOR_INVERT_NODE (exp);
   simplified                = exp->simplified;
@@ -2233,7 +2253,6 @@ btor_simplify_exp (Btor *btor, BtorNode *exp)
 
   real_exp = BTOR_REAL_ADDR_NODE (exp);
 
-  // TODO: substitution flag for BtorNode?
   if (btor->substitutions)
   {
     BtorNode *simp;
@@ -2250,11 +2269,10 @@ btor_simplify_exp (Btor *btor, BtorNode *exp)
                                           BTOR_REAL_ADDR_NODE (result)));
     assert (!BTOR_REAL_ADDR_NODE (result)->simplified);
 
-    if (BTOR_IS_INVERTED_NODE (exp)) return BTOR_INVERT_NODE (result);
-    return result;
+    if (BTOR_IS_INVERTED_NODE (exp)) result = BTOR_INVERT_NODE (result);
   }
-
-  result = btor_pointer_chase_simplified_exp (btor, exp);
+  else
+    result = btor_pointer_chase_simplified_exp (btor, exp);
 
   /* NOTE: embedded constraints rewriting is enabled with rwl > 1 */
   if (BTOR_REAL_ADDR_NODE (result)->constraint && btor->rewrite_level > 1)
@@ -2279,8 +2297,7 @@ rebuild_exp (Btor *btor, BtorNode *exp)
     case BTOR_BV_VAR_NODE:
     case BTOR_ARRAY_VAR_NODE:
     case BTOR_PARAM_NODE:
-      return btor_copy_exp (btor,
-                            btor_pointer_chase_simplified_exp (btor, exp));
+      return btor_copy_exp (btor, btor_simplify_exp (btor, exp));
     case BTOR_SLICE_NODE:
       return btor_slice_exp (btor, exp->e[0], exp->upper, exp->lower);
     case BTOR_AND_NODE: return btor_and_exp (btor, exp->e[0], exp->e[1]);
@@ -2319,7 +2336,7 @@ substitute_vars_and_rebuild_exps (Btor *btor, BtorPtrHashTable *substs)
   BtorPtrHashBucket *b;
   BtorNode *cur, *cur_parent, *rebuilt_exp, **temp, **top, *rhs, *simplified;
   BtorMemMgr *mm;
-  BtorParentIterator it;
+  BtorNodeIterator it;
   int pushed, i;
 
   if (substs->count == 0u) return;
@@ -2668,28 +2685,6 @@ substitute_var_exps (Btor *btor)
   btor_msg (btor, 1, "%d variables substituted in %.1f seconds", count, delta);
 }
 
-static int
-all_exps_below_rebuilt (Btor *btor, BtorNode *exp)
-{
-  assert (btor);
-  assert (exp);
-
-  int i;
-  BtorNode *subst;
-
-  if (btor->substitutions)
-  {
-    subst = btor_find_substitution (btor, exp);
-    if (subst && BTOR_REAL_ADDR_NODE (subst)->aux_mark != 0) return 0;
-  }
-
-  exp = BTOR_REAL_ADDR_NODE (exp);
-  for (i = 0; i < exp->arity; i++)
-    if (BTOR_REAL_ADDR_NODE (exp->e[i])->aux_mark > 0) return 0;
-
-  return 1;
-}
-
 static void
 substitute_and_rebuild (Btor *btor, BtorPtrHashTable *subst, int bra)
 {
@@ -2698,32 +2693,31 @@ substitute_and_rebuild (Btor *btor, BtorPtrHashTable *subst, int bra)
   assert (bra == 0 || bra == 1);
   assert (check_unique_table_aux_mark_unset_dbg (btor));
 
-  int i, pushed;
+  int i;
   BtorMemMgr *mm;
   BtorNode *cur, *cur_parent, *rebuilt_exp, *simplified;
-  BtorNodePtrStack roots;
-  BtorNodePtrQueue queue;
+  BtorNodePtrStack roots, visit;
   BtorPtrHashBucket *b;
-  BtorParentIterator it;
+  BtorNodeIterator it;
 
   if (subst->count == 0u) return;
 
   mm = btor->mm;
 
   BTOR_INIT_STACK (roots);
-  BTOR_INIT_QUEUE (queue);
+  BTOR_INIT_STACK (visit);
 
   for (b = subst->first; b; b = b->next)
   {
     cur = BTOR_REAL_ADDR_NODE ((BtorNode *) b->key);
     assert (!BTOR_IS_PROXY_NODE (cur));
-    BTOR_ENQUEUE (mm, queue, cur);
+    BTOR_PUSH_STACK (mm, visit, cur);
   }
 
   /* mark cone and copy roots */
-  while (!BTOR_EMPTY_QUEUE (queue))
+  while (!BTOR_EMPTY_STACK (visit))
   {
-    cur = BTOR_DEQUEUE (queue);
+    cur = BTOR_POP_STACK (visit);
     assert (BTOR_IS_REGULAR_NODE (cur));
     assert (!BTOR_IS_PROXY_NODE (cur));
 
@@ -2731,64 +2725,48 @@ substitute_and_rebuild (Btor *btor, BtorPtrHashTable *subst, int bra)
     {
       cur->aux_mark = 1;
 
-      pushed = 0;
-      init_full_parent_iterator (&it, cur);
-      while (has_next_parent_full_parent_iterator (&it))
+      if (cur->parents == 0)
       {
-        cur_parent = next_parent_full_parent_iterator (&it);
-        BTOR_ENQUEUE (mm, queue, cur_parent);
-        pushed = 1;
-      }
-      if (!pushed) BTOR_PUSH_STACK (mm, roots, btor_copy_exp (btor, cur));
-    }
-  }
-
-  for (b = subst->first; b; b = b->next)
-  {
-    cur = BTOR_REAL_ADDR_NODE ((BtorNode *) b->key);
-    assert (cur->aux_mark == 1);
-    if (all_exps_below_rebuilt (btor, cur))
-    {
-      BTOR_ENQUEUE (mm, queue, cur);
-      cur->aux_mark = 2; /* mark as enqueued */
-    }
-  }
-
-  /* rebuild bottom-up */
-  while (!BTOR_EMPTY_QUEUE (queue))
-  {
-    cur = BTOR_DEQUEUE (queue);
-    assert (BTOR_IS_REGULAR_NODE (cur));
-    assert (!BTOR_IS_PROXY_NODE (cur));
-    assert (cur->aux_mark == 2);
-    cur->aux_mark = 1;
-
-    if (all_exps_below_rebuilt (btor, cur))
-    {
-      cur->aux_mark = 0;
-
-      init_full_parent_iterator (&it, cur);
-      while (has_next_parent_full_parent_iterator (&it))
-      {
-        cur_parent = next_parent_full_parent_iterator (&it);
-        /* cur might get a new parent while rebuilding due to
-         * simplification */
-        if (cur_parent->aux_mark == 0 || cur_parent->aux_mark == 1)
-        {
-          BTOR_ENQUEUE (mm, queue, cur_parent);
-          cur_parent->aux_mark = 2;
-        }
-      }
-
-      simplified = btor_find_substitution (btor, cur);
-
-      if (simplified)
-      {
-        assert (BTOR_REAL_ADDR_NODE (simplified) != cur);
-        assert (!BTOR_REAL_ADDR_NODE (simplified)->simplified);
-        set_simplified_exp (btor, cur, simplified);
+        BTOR_PUSH_STACK (mm, roots, btor_copy_exp (btor, cur));
         continue;
       }
+
+      init_full_parent_iterator (&it, cur);
+      while (has_next_parent_full_parent_iterator (&it))
+      {
+        cur_parent = next_parent_full_parent_iterator (&it);
+        BTOR_PUSH_STACK (mm, visit, cur_parent);
+      }
+    }
+  }
+
+  for (i = 0; i < BTOR_COUNT_STACK (roots); i++)
+  {
+    cur = BTOR_PEEK_STACK (roots, i);
+    BTOR_PUSH_STACK (mm, visit, cur);
+  }
+
+  while (!BTOR_EMPTY_STACK (visit))
+  {
+    cur = BTOR_POP_STACK (visit);
+    assert (BTOR_IS_REGULAR_NODE (cur));
+
+    if (cur->aux_mark == 0) continue;
+
+    assert (!BTOR_IS_PROXY_NODE (cur));
+
+    if (cur->aux_mark == 1)
+    {
+      cur->aux_mark = 2;
+
+      BTOR_PUSH_STACK (mm, visit, cur);
+      for (i = 0; i < cur->arity; i++)
+        BTOR_PUSH_STACK (mm, visit, BTOR_REAL_ADDR_NODE (cur->e[i]));
+    }
+    else
+    {
+      assert (cur->aux_mark == 2);
+      cur->aux_mark = 0;
 
       if (bra && BTOR_IS_APPLY_NODE (cur)
           && btor_find_in_ptr_hash_table (subst, cur))
@@ -2797,32 +2775,42 @@ substitute_and_rebuild (Btor *btor, BtorPtrHashTable *subst, int bra)
         rebuilt_exp = rebuild_exp (btor, cur);
 
       assert (rebuilt_exp);
-      /* base case: rebuilt_exp == cur */
       if (rebuilt_exp != cur)
       {
         simplified = btor_simplify_exp (btor, rebuilt_exp);
+
+        /* check if we need to rebuild already rebuilt parents of 'cur' */
+        init_full_parent_iterator (&it, cur);
+        while (has_next_parent_full_parent_iterator (&it))
+        {
+          cur_parent = next_parent_full_parent_iterator (&it);
+          if (cur_parent->aux_mark == 0)
+          {
+            cur_parent->aux_mark = 2;
+            BTOR_PUSH_STACK (mm, visit, cur_parent);
+          }
+        }
+
+        /* copy new root */
+        if (cur->parents == 0)
+          BTOR_PUSH_STACK (mm, roots, btor_copy_exp (btor, cur));
+
         set_simplified_exp (btor, cur, simplified);
       }
 
       btor_release_exp (btor, rebuilt_exp);
     }
-    /* not all children rebuilt, enqueue again */
-    else
-    {
-      cur->aux_mark = 2;
-      BTOR_ENQUEUE (mm, queue, cur);
-    }
   }
 
-  BTOR_RELEASE_QUEUE (mm, queue);
+  BTOR_RELEASE_STACK (mm, visit);
 
   for (i = 0; i < BTOR_COUNT_STACK (roots); i++)
     btor_release_exp (btor, roots.start[i]);
 
   BTOR_RELEASE_STACK (mm, roots);
 
-  assert (check_unique_table_mark_unset_dbg (btor));
   assert (check_unique_table_aux_mark_unset_dbg (btor));
+  assert (check_unique_table_children_proxy_free_dbg (btor));
 }
 
 static void
@@ -2994,7 +2982,7 @@ eliminate_slices_on_bv_vars (Btor *btor)
   BtorNode *var, *cur, *result, *lambda_var, *temp;
   BtorSlice *s1, *s2, *new_s1, *new_s2, *new_s3, **sorted_slices;
   BtorPtrHashBucket *b_var, *b1, *b2;
-  BtorParentIterator it;
+  BtorNodeIterator it;
   BtorPtrHashTable *slices;
   int i, min, max, count;
   BtorNodePtrStack vars;
@@ -3389,9 +3377,9 @@ process_skeleton_tseitin (Btor *btor,
 static void
 process_skeleton (Btor *btor)
 {
-  BtorPtrHashTable *ids, *table;
+  BtorPtrHashTable *ids;
   BtorNodePtrStack unmark_stack;
-  int constraints, count, fixed;
+  int count, fixed;
   BtorNodePtrStack work_stack;
   BtorMemMgr *mm = btor->mm;
   BtorPtrHashBucket *b;
@@ -3399,6 +3387,7 @@ process_skeleton (Btor *btor)
   int res, lit, val;
   BtorNode *exp;
   LGL *lgl;
+  BtorHashTableIterator it;
 
   start = btor_time_stamp ();
 
@@ -3423,21 +3412,16 @@ process_skeleton (Btor *btor)
   BTOR_INIT_STACK (work_stack);
   BTOR_INIT_STACK (unmark_stack);
 
-  // TODO: use new hash table iterators
-  for (constraints = 0; constraints <= 1; constraints++)
+  init_node_hash_table_iterator (btor, &it, btor->synthesized_constraints);
+  queue_node_hash_table_iterator (&it, btor->unsynthesized_constraints);
+  while (has_next_node_hash_table_iterator (&it))
   {
-    table = constraints ? btor->synthesized_constraints
-                        : btor->unsynthesized_constraints;
-    for (b = table->first; b; b = b->next)
-    {
-      count++;
-      exp = b->key;
-      assert (BTOR_REAL_ADDR_NODE (exp)->len == 1);
-      process_skeleton_tseitin (
-          btor, lgl, &work_stack, &unmark_stack, ids, exp);
-      lgladd (lgl, process_skeleton_tseitin_lit (ids, exp));
-      lgladd (lgl, 0);
-    }
+    count++;
+    exp = next_node_hash_table_iterator (&it);
+    assert (BTOR_REAL_ADDR_NODE (exp)->len == 1);
+    process_skeleton_tseitin (btor, lgl, &work_stack, &unmark_stack, ids, exp);
+    lgladd (lgl, process_skeleton_tseitin_lit (ids, exp));
+    lgladd (lgl, 0);
   }
 
   BTOR_RELEASE_STACK (mm, work_stack);
@@ -3564,7 +3548,7 @@ beta_reduce_applies_on_lambdas (Btor *btor)
   double start, delta;
   BtorPtrHashTable *apps;
   BtorNode *app, *fun;
-  BtorParentIterator it;
+  BtorNodeIterator it;
   BtorHashTableIterator h_it;
   BtorMemMgr *mm;
 
@@ -3613,194 +3597,139 @@ beta_reduce_applies_on_lambdas (Btor *btor)
   btor_msg (btor, 1, "beta reduced all lambdas in %.1f seconds", delta);
 }
 
-#if 0
 static void
-merge_lambda_chains (Btor * btor)
+merge_lambdas (Btor *btor)
 {
   assert (btor);
+  assert (btor->rewrite_level > 0);
+  assert (check_unique_table_mark_unset_dbg (btor));
+  assert (check_unique_table_aux_mark_unset_dbg (btor));
+  assert (check_unique_table_merge_unset_dbg (btor));
 
+  int i, delta_lambdas;
   double start, delta;
-  int chain_depth, start_lambdas, delta_lambdas;
-  BtorNode *cur, *parent, *subst, *param, *lambda;
+  BtorNode *cur, *lambda, *subst, *parent, *merge;
   BtorMemMgr *mm;
-  BtorPtrHashBucket *b;
-  BtorNodePtrQueue queue;
-  BtorNodePtrStack stack, unmark_stack, params;
+  BtorHashTableIterator it;
+  BtorNodeIterator nit;
+  BtorNodePtrStack stack, unmark, visit;
 
-  mm = btor->mm;
-  BTOR_INIT_QUEUE (queue);
-  BTOR_INIT_STACK (stack);
-  BTOR_INIT_STACK (params);
-  BTOR_INIT_STACK (unmark_stack);
+  start         = btor_time_stamp ();
+  mm            = btor->mm;
+  delta_lambdas = btor->lambdas->count;
 
-  start = btor_time_stamp ();
   btor_init_substitutions (btor);
+  BTOR_INIT_STACK (stack);
+  BTOR_INIT_STACK (unmark);
+  BTOR_INIT_STACK (visit);
 
-  for (b = btor->lambdas->first; b; b = b->next)
+  /* collect candidates for merging */
+  init_node_hash_table_iterator (btor, &it, btor->lambdas);
+  while (has_next_node_hash_table_iterator (&it))
+  {
+    lambda = next_node_hash_table_iterator (&it);
+    assert (BTOR_IS_REGULAR_NODE (lambda));
+
+    if (lambda->parents != 1) continue;
+
+    parent = BTOR_REAL_ADDR_NODE (lambda->first_parent);
+    assert (parent);
+    /* stop at non-parameterized applies */
+    if (!parent->parameterized && BTOR_IS_APPLY_NODE (parent)) continue;
+
+    lambda->merge = 1;
+    BTOR_PUSH_STACK (mm, stack, lambda);
+  }
+
+  for (i = 0; i < BTOR_COUNT_STACK (stack); i++)
+  {
+    lambda = BTOR_PEEK_STACK (stack, i);
+    assert (BTOR_IS_REGULAR_NODE (lambda));
+    assert (lambda->parents == 1);
+
+    if (lambda->mark) continue;
+
+    lambda->mark = 1;
+    BTOR_PUSH_STACK (mm, unmark, lambda);
+
+    /* skip curried lambdas */
+    if (BTOR_IS_CURRIED_LAMBDA_NODE (lambda)
+        && !BTOR_IS_FIRST_CURRIED_LAMBDA (lambda))
+      continue;
+
+    /* search upwards for top-most lambda */
+    merge = 0;
+    BTOR_RESET_STACK (visit);
+    BTOR_PUSH_STACK (mm, visit, lambda);
+    while (!BTOR_EMPTY_STACK (visit))
     {
-      cur = (BtorNode *) b->key;
-      assert (BTOR_IS_REGULAR_NODE (cur));
+      cur = BTOR_REAL_ADDR_NODE (BTOR_POP_STACK (visit));
 
-      if (BTOR_REAL_ADDR_NODE (cur->e[1])->lambda_below)
-	continue;
+      if (cur->aux_mark) continue;
 
-      BTOR_ENQUEUE (mm, queue, cur);
+      cur->aux_mark = 1;
+      BTOR_PUSH_STACK (mm, unmark, cur);
+
+      /* we can only merge non-paremeterized lambdas */
+      // TODO: remove paraemterized if we handle btorparamcache differently
+      if (BTOR_IS_LAMBDA_NODE (cur) && !cur->merge && !cur->parameterized)
+      {
+        merge = cur;
+        break;
+      }
+
+      init_full_parent_iterator (&nit, cur);
+      while (has_next_parent_full_parent_iterator (&nit))
+        BTOR_PUSH_STACK (mm, visit, next_parent_full_parent_iterator (&nit));
     }
 
-  for (b = btor->lambdas->first; b; b = b->next)
+    /* no lambda to merge found */
+    if (!merge) continue;
+
+    assert (!merge->parameterized);
+
+    /* already processed */
+    if (merge->mark) continue;
+
+    merge->mark = 1;
+    BTOR_PUSH_STACK (mm, unmark, merge);
+
+    init_lambda_iterator (&nit, merge);
+    while (has_next_lambda_iterator (&nit))
     {
-      cur = (BtorNode *) b->key;
-      assert (BTOR_IS_REGULAR_NODE (cur));
-
-      if (!BTOR_REAL_ADDR_NODE (cur->e[1])->lambda_below)
-	continue;
-
-      BTOR_ENQUEUE (mm, queue, cur);
+      cur = next_lambda_iterator (&nit);
+      btor_assign_param (btor, cur, cur->e[0]);
     }
+    /* merge lambdas that are marked with 'merge' flag */
+    subst = btor_beta_reduce_merge (btor, BTOR_LAMBDA_GET_BODY (merge));
+    subst = BTOR_COND_INVERT_NODE (BTOR_LAMBDA_GET_BODY (merge), subst);
+    btor_unassign_params (btor, merge);
+    btor_insert_substitution (btor, BTOR_LAMBDA_GET_BODY (merge), subst, 0);
+    btor_release_exp (btor, subst);
+  }
 
-  start_lambdas = btor->lambdas->count;
-  while (!BTOR_EMPTY_QUEUE (queue))
-    {
-      cur = BTOR_DEQUEUE (queue);
-      BTOR_PUSH_STACK (mm, stack, cur);
-
-      /* look for a lambda chain */
-      chain_depth = 0;
-      while (!BTOR_EMPTY_STACK (stack))
-	{
-	  cur = BTOR_POP_STACK (stack);
-	  assert (BTOR_IS_REGULAR_NODE (cur));
-	  assert (BTOR_IS_LAMBDA_NODE (cur));
-
-	  if (cur->parents != 1 || cur->aux_mark)
-	    break;
-
-	  cur->aux_mark = 1;
-	  BTOR_PUSH_STACK (mm, unmark_stack, cur);
-
-	  parent = BTOR_REAL_ADDR_NODE (cur->first_parent);
-	  assert (parent);
-	  assert (BTOR_IS_REGULAR_NODE (parent));
-
-	  /* parent is part of a nested lambda chain */
-	  if (BTOR_IS_LAMBDA_NODE (parent))
-	    {
-	      assert (BTOR_IS_CURRIED_LAMBDA_NODE (parent));
-	      cur->chain = 1;
-	      BTOR_PUSH_STACK (mm, stack, parent);
-	      continue;
-	    }
-
-	  assert (BTOR_IS_APPLY_NODE (parent));
-
-	  if (!parent->parameterized)
-	    break;
-
-	  // TODO: should we use a flag or a hash table for marking lambda
-	  //       nodes in a chain?
-	  /* this lambda has only one parameterized application and thus,
-	   * we can merge it with the parent lambda */
-	  cur->chain = 1;
-	  chain_depth++;
-	  btor->stats.lambdas_merged++;
-	  /* mark all nested lambdas below to be part of the chain, otherwise
-	   * beta-reduction would stop at those lambdas */
-	  if (BTOR_IS_CURRIED_LAMBDA_NODE (cur))
-	    {
-	      assert (BTOR_IS_FIRST_CURRIED_LAMBDA (cur));
-	      lambda = cur;
-	      while (BTOR_IS_LAMBDA_NODE (lambda))
-		{
-		  assert (BTOR_IS_CURRIED_LAMBDA_NODE (lambda));
-		  lambda->chain = 1;
-		  lambda = lambda->e[1];
-		}
-	    }
-	  BTORLOG ("merge: %s", node2string (cur));
-
-	  /* get parent lambda */
-	  assert (BTOR_EMPTY_STACK (params));
-	  find_nodes_dfs (btor, parent->e[1], &params, findfun_param,
-			  skipfun_param);
-//	  assert (BTOR_COUNT_STACK (params) == 1);
-	  int num_params = BTOR_COUNT_STACK (params);
-
-	  // TODO: handle multiple params
-	  // if we have multiple params we found a nested function, we have to
-	  // order params in defined lambda order
-	  while (!BTOR_EMPTY_STACK (params))
-	    {
-	      param = BTOR_POP_STACK (params);
-	      assert (BTOR_IS_REGULAR_NODE (param));
-	      assert (BTOR_IS_PARAM_NODE (param));
-	      lambda = (BtorNode *) BTOR_PARAM_GET_LAMBDA_NODE (param);
-	      assert (BTOR_IS_LAMBDA_NODE (lambda));
-	      assert (num_params == 1 || BTOR_IS_CURRIED_LAMBDA_NODE (lambda));
-	      if (num_params == 1 || BTOR_IS_FIRST_CURRIED_LAMBDA (lambda))
-		BTOR_PUSH_STACK (mm, stack, lambda);
-	    }
-	}
-
-      BTOR_RESET_STACK (stack);
-      assert (BTOR_IS_REGULAR_NODE (cur));
-      assert (BTOR_IS_LAMBDA_NODE (cur));
-
-      if (chain_depth == 0)
-	continue;
-
-      /* cur is the start of the lambda chain */
-//      cur->chain = 1;
-      if (BTOR_IS_CURRIED_LAMBDA_NODE (cur))
-	{
-	  assert (BTOR_IS_FIRST_CURRIED_LAMBDA (cur));
-	  lambda = cur;
-	  while (BTOR_IS_LAMBDA_NODE (lambda))
-	    {
-	      assert (BTOR_IS_CURRIED_LAMBDA_NODE (lambda));
-	      lambda->chain = 1;
-	      lambda = lambda->e[1];
-	    }
-	  // TODO: we cannot beta reduce the start of the nested lambdas,
-	  //       we have to reduce the function body, substitute it and
-	  //       rebuild everything
-	  cur = lambda;
-	}
-      else
-	cur->chain = 1;
-
-      /* merge found lambda chain */
-//      param = cur->e[0];
-//      btor_assign_param (btor, cur, param);
-      subst = btor_beta_reduce_chains (btor, cur);
-//      btor_unassign_params (btor, cur);
-
-      // TODO: update substitution
-      btor_insert_substitution (btor, cur, subst, 1);
-      btor_release_exp (btor, subst);
-      btor->stats.lambdas_merged++;
-      btor->stats.lambda_chains_merged++;
-    }
-
-  while (!BTOR_EMPTY_STACK (unmark_stack))
-    {
-      cur = BTOR_POP_STACK (unmark_stack);
-      assert (BTOR_IS_REGULAR_NODE (cur));
-      cur->aux_mark = 0;
-    }
-  BTOR_RELEASE_STACK (mm, unmark_stack);
+  /* cleanup */
+  while (!BTOR_EMPTY_STACK (unmark))
+  {
+    cur           = BTOR_POP_STACK (unmark);
+    cur->mark     = 0;
+    cur->aux_mark = 0;
+    cur->merge    = 0;
+  }
 
   substitute_and_rebuild (btor, btor->substitutions, 0);
-  delta_lambdas = start_lambdas - btor->lambdas->count;
-
-  BTOR_RELEASE_QUEUE (mm, queue);
-  BTOR_RELEASE_STACK (mm, params);
-  BTOR_RELEASE_STACK (mm, stack);
   btor_delete_substitutions (btor);
+  delta_lambdas -= btor->lambdas->count;
+  btor->stats.lambdas_merged += delta_lambdas;
+
+  BTOR_RELEASE_STACK (mm, visit);
+  BTOR_RELEASE_STACK (mm, stack);
+  BTOR_RELEASE_STACK (mm, unmark);
+  assert (check_unique_table_aux_mark_unset_dbg (btor));
+  assert (check_unique_table_merge_unset_dbg (btor));
   delta = btor_time_stamp () - start;
-  btor_msg (btor, 1, "merged %d lambdas in %.2f seconds",
-		delta_lambdas, delta);
+  btor_msg (btor, 1, "merged %d lambdas in %.2f seconds", delta_lambdas, delta);
 }
-#endif
 
 int
 btor_simplify (Btor *btor)
@@ -3881,12 +3810,10 @@ btor_simplify (Btor *btor)
     }
 #endif
 
-#if 0
-      if (btor->rewrite_level > 2)
-	{
-	  merge_lambda_chains (btor);
-	}
-#endif
+    if (btor->rewrite_level > 2)
+    {
+      merge_lambdas (btor);
+    }
 
     if (btor->varsubst_constraints->count) continue;
 
@@ -3964,10 +3891,12 @@ synthesize_exp (Btor *btor, BtorNode *exp, BtorPtrHashTable *backannotation)
   int invert_av0 = 0;
   int invert_av1 = 0;
   int invert_av2 = 0;
+  double start;
 
   assert (btor);
   assert (exp);
 
+  start = btor_time_stamp ();
   mm    = btor->mm;
   avmgr = btor->avmgr;
   count = 0;
@@ -4028,68 +3957,30 @@ synthesize_exp (Btor *btor, BtorNode *exp, BtorPtrHashTable *backannotation)
           }
         }
       }
-      else if (BTOR_IS_ARRAY_VAR_NODE (cur))
+      else if (BTOR_IS_APPLY_NODE (cur) && !cur->parameterized)
       {
-        /* nothing to synthesize for array base case */
+        cur->av = btor_var_aigvec (avmgr, cur->len);
+        BTORLOG ("  synthesized: %s", node2string (cur));
+        assert (BTOR_IS_REGULAR_NODE (cur->e[0]));
+        assert (BTOR_IS_FUN_NODE (cur->e[0]));
       }
-      else if (BTOR_IS_LAMBDA_NODE (cur))
+      else if (BTOR_IS_FUN_NODE (cur))
       {
-        // TODO: do we have to synthesize the children?
-        // this will be done with lazy_synth anyways
-        goto REGULAR_CASE;
+        /* we stop at function nodes as they will be lazily synthesized
+         * and encoded during consistency checking */
       }
       else
       {
-        /* Writes and Lambda expressions cannot be reached directly,
-         * hence we stop the synthesis as soon as we reach reads or
-         * array equalities.  If we synthesize writes later, we only
-         * synthesize its index and value, but not the write itself.
-         * If there are no reads or array equalities on a write, then
-         * it is not reachable. (Lambdas are treated similarly.)
-         */
-        //	      assert (!BTOR_IS_LAMBDA_NODE (cur));
-
-        /* Atomic arrays and array conditionals should also not be
-         * reached directly.
-         */
-        //	      assert (!BTOR_IS_ARRAY_VAR_NODE (cur));
         assert (!BTOR_IS_FUN_NODE (cur));
-
-        /* special cases */
-        if (BTOR_IS_APPLY_NODE (cur) && !cur->parameterized)
-        {
-          cur->av = btor_var_aigvec (avmgr, cur->len);
-          BTORLOG ("  synthesized: %s", node2string (cur));
-          assert (BTOR_IS_REGULAR_NODE (cur->e[0]));
-          assert (BTOR_IS_FUN_NODE (cur->e[0]));
-          goto REGULAR_CASE;
-        }
-#if 0
-	      else if (BTOR_IS_ARRAY_EQ_NODE (cur) && !cur->parameterized)
-		{
-		  /* Generate virtual reads and create AIG variable for
-		   * array equality.
-		   */
-		  synthesize_array_equality (btor, cur);
-		  BTOR_PUSH_STACK (mm, exp_stack, cur->e[1]);
-		  BTOR_PUSH_STACK (mm, exp_stack, cur->e[0]);
-		  goto REGULAR_CASE;
-		}
-#endif
+        /* always skip argument nodes and parameterized nodes */
+        if (cur->parameterized || BTOR_IS_ARGS_NODE (cur))
+          cur->synth_mark = 2;
         else
-        {
-        REGULAR_CASE:
-          // TODO: get rid of no_synth (use BTOR_IS_ARGS_NODE instead)
-          /* always skip lambda and parameterized nodes */
-          if (BTOR_IS_LAMBDA_NODE (cur) || cur->parameterized || cur->no_synth)
-            cur->synth_mark = 2;
-          else
-            cur->synth_mark = 1;
+          cur->synth_mark = 1;
 
-          BTOR_PUSH_STACK (mm, exp_stack, cur);
-          for (i = cur->arity - 1; i >= 0; i--)
-            BTOR_PUSH_STACK (mm, exp_stack, cur->e[i]);
-        }
+        BTOR_PUSH_STACK (mm, exp_stack, cur);
+        for (i = cur->arity - 1; i >= 0; i--)
+          BTOR_PUSH_STACK (mm, exp_stack, cur->e[i]);
       }
     }
     else
@@ -4233,6 +4124,8 @@ synthesize_exp (Btor *btor, BtorNode *exp, BtorPtrHashTable *backannotation)
 
   if (count > 0 && btor->verbosity > 3)
     btor_msg (btor, 3, "synthesized %u expressions into AIG vectors", count);
+
+  btor->time.synth_exp += btor_time_stamp () - start;
 }
 
 static void
@@ -4322,6 +4215,15 @@ update_reachable (Btor *btor, int check_all_tables)
   assert (check_all_tables || btor->unsynthesized_constraints->count == 0);
   assert (check_all_tables || btor->embedded_constraints->count == 0);
   assert (check_all_tables || btor->varsubst_constraints->count == 0);
+
+#ifndef NDEBUG
+  init_node_hash_table_iterator (btor, &it, btor->assumptions);
+  while (has_next_node_hash_table_iterator (&it))
+  {
+    cur = next_node_hash_table_iterator (&it);
+    assert (!BTOR_IS_PROXY_NODE (BTOR_REAL_ADDR_NODE (cur)));
+  }
+#endif
 
   init_node_hash_table_iterator (btor, &it, btor->synthesized_constraints);
   queue_node_hash_table_iterator (&it, btor->assumptions);
@@ -4495,7 +4397,7 @@ search_initial_applies (Btor *btor, BtorNodePtrStack *top_applies)
   BtorMemMgr *mm;
   BtorNode *cur, *cur_parent;
   BtorHashTableIterator it;
-  BtorParentIterator pit;
+  BtorNodeIterator pit;
   BtorNodePtrStack top;
 
   mm = btor->mm;
@@ -4624,8 +4526,9 @@ compare_argument_assignments (BtorNode *e0, BtorNode *e1)
   BtorArgsIterator it0, it1;
   btor = e0->btor;
 
-  // TODO: check args num_args
-  if (e0->len != e1->len) return 1;
+  if (e0->len != e1->len
+      || ((BtorArgsNode *) e0)->num_args != ((BtorArgsNode *) e1)->num_args)
+    return 1;
 
   init_args_iterator (&it0, e0);
   init_args_iterator (&it1, e1);
@@ -4873,9 +4776,6 @@ lazy_synthesize_and_encode_lambda_exp (Btor *btor,
   BTORLOG ("%s: %s", __FUNCTION__, node2string (lambda_exp));
 
   cur = BTOR_REAL_ADDR_NODE (BTOR_LAMBDA_GET_BODY (lambda_exp));
-
-  if (!BTOR_IS_SYNTH_NODE (cur)) synthesize_exp (btor, cur, 0);
-
   BTOR_PUSH_STACK (mm, work_stack, cur);
 
   while (!BTOR_EMPTY_STACK (work_stack))
@@ -4895,6 +4795,7 @@ lazy_synthesize_and_encode_lambda_exp (Btor *btor,
     if (!BTOR_IS_ARGS_NODE (cur) && !BTOR_IS_LAMBDA_NODE (cur)
         && !cur->parameterized)
     {
+      if (!BTOR_IS_SYNTH_NODE (cur)) synthesize_exp (btor, cur, 0);
       assert (BTOR_IS_SYNTH_NODE (cur));
       assert (!cur->tseitin);
       BTORLOG ("  encode: %s", node2string (cur));
@@ -5833,7 +5734,6 @@ push_applies_for_propagation (Btor *btor,
 {
   assert (btor);
   assert (exp);
-  assert (lambda);
   assert (prop_stack);
   assert (check_unique_table_mark_unset_dbg (btor));
 
@@ -5868,7 +5768,7 @@ push_applies_for_propagation (Btor *btor,
   for (i = 0; i < BTOR_COUNT_STACK (applies); i++)
   {
     cur = BTOR_PEEK_STACK (applies, i);
-    if (!cur->reachable && !cur->vread && !cur->propagated)
+    if (lambda && !cur->reachable && !cur->vread && !cur->propagated)
       insert_synth_app_lambda (btor, lambda, cur);
     BTOR_PUSH_STACK (btor->mm, *prop_stack, cur);
     BTOR_PUSH_STACK (btor->mm, *prop_stack, cur->e[0]);
@@ -5999,6 +5899,7 @@ propagate (Btor *btor,
     if (!BTOR_IS_LAMBDA_NODE (fun))
     {
       assert (BTOR_IS_ARRAY_VAR_NODE (fun));
+      push_applies_for_propagation (btor, app, 0, prop_stack);
       continue;
     }
 
@@ -6066,6 +5967,7 @@ propagate (Btor *btor,
     if (BTOR_IS_ARRAY_VAR_NODE (BTOR_REAL_ADDR_NODE (fun_value)))
     {
       // TODO: can this happen? check lambda construction
+      //	   -> right now workaround for uf lambda -> lambda -> array
       BTOR_PUSH_STACK (mm, *prop_stack, app);
       BTOR_PUSH_STACK (mm, *prop_stack, fun_value);
       btor_release_exp (btor, fun_value);
@@ -6076,7 +5978,8 @@ propagate (Btor *btor,
     if (!BTOR_REAL_ADDR_NODE (fun_value)->tseitin)
     {
       args_equal = 0;
-      if (BTOR_IS_APPLY_NODE (BTOR_REAL_ADDR_NODE (fun_value))
+      // TODO: how can we still propagate negated applies down?
+      if (!BTOR_IS_INVERTED_NODE (fun_value) && BTOR_IS_APPLY_NODE (fun_value)
           && ENABLE_APPLY_PROP_DOWN)
         args_equal = BTOR_REAL_ADDR_NODE (fun_value)->e[1] == args;
 
@@ -6126,7 +6029,6 @@ propagate (Btor *btor,
         {
           if (prev_fun_value) btor_release_exp (btor, prev_fun_value);
           prev_fun_value = fun_value;
-          //		  btor_release_exp (btor, fun_value);
           btor->stats.partial_beta_reduction_restarts++;
           // TODO: stats for max. restarts
           // TODO: if we reach a certain limit should we just continue
@@ -6153,9 +6055,9 @@ propagate (Btor *btor,
        * which has the same properties as 'fun_value'. further, we do not
        * have to encode every intermediate function application we
        * encounter while propagating 'app'. */
-      // TODO: check args_equal only?
-      if (BTOR_IS_APPLY_NODE (BTOR_REAL_ADDR_NODE (fun_value)) && args_equal)
+      if (args_equal)
       {
+        assert (BTOR_IS_APPLY_NODE (BTOR_REAL_ADDR_NODE (fun_value)));
         BTOR_PUSH_STACK (mm, *prop_stack, app);
         BTOR_PUSH_STACK (
             mm, *prop_stack, BTOR_REAL_ADDR_NODE (fun_value)->e[0]);
@@ -6224,7 +6126,7 @@ print_cone_dbg (Btor * btor, BtorNode * exp)
 
   int i, lvl;
   BtorNode *cur, *parent;
-  BtorParentIterator it;
+  BtorNodeIterator it;
   BtorNodePtrQueue queue;
   BtorIntQueue level;
   BtorPtrHashTable *table;
@@ -6545,7 +6447,8 @@ btor_sat_btor (Btor *btor)
 #ifdef BTOR_CHECK_MODEL
   Btor *clone;
   BtorPtrHashTable *inputs;
-  clone  = btor_clone_btor (btor);
+  clone = btor_clone_btor (btor);
+  btor_set_loglevel_btor (clone, 0);
   inputs = map_inputs_check_model (btor, clone);
   btor_enable_force_cleanup (clone);
 #endif
@@ -6584,7 +6487,7 @@ btor_fun_sort_check (Btor *btor, int argc, BtorNode **args, BtorNode *fun)
   int i;
   BtorNode *arg;
   BtorParamNode *param;
-  BtorParentIterator it;
+  BtorNodeIterator it;
 
   init_lambda_iterator (&it, fun);
 
@@ -7337,7 +7240,66 @@ map_inputs_check_model (Btor *btor, Btor *clone)
   return inputs;
 }
 
-static int
+static void
+reset_varsubst_constraints (Btor *btor)
+{
+  assert (btor);
+
+  BtorNode *right, *left;
+  BtorHashTableIterator it;
+
+  init_node_hash_table_iterator (btor, &it, btor->varsubst_constraints);
+  while (has_next_node_hash_table_iterator (&it))
+  {
+    right = (BtorNode *) it.bucket->data.asPtr;
+    assert (right);
+    left = next_node_hash_table_iterator (&it);
+    btor_release_exp (btor, left);
+    btor_release_exp (btor, right);
+  }
+  btor_delete_ptr_hash_table (btor->varsubst_constraints);
+  btor->varsubst_constraints =
+      btor_new_ptr_hash_table (btor->mm,
+                               (BtorHashPtr) btor_hash_exp_by_id,
+                               (BtorCmpPtr) btor_compare_exp_by_id);
+}
+
+static void
+rebuild_formula (Btor *btor, int rewrite_level)
+{
+  assert (btor);
+
+  int i;
+  BtorNode *cur;
+  BtorPtrHashTable *t;
+
+  /* set new rewrite level */
+  btor->rewrite_level = rewrite_level;
+
+  t = btor_new_ptr_hash_table (btor->mm,
+                               (BtorHashPtr) btor_hash_exp_by_id,
+                               (BtorCmpPtr) btor_compare_exp_by_id);
+
+  /* collect all leaves and rebuild whole formula */
+  for (i = BTOR_COUNT_STACK (btor->nodes_id_table) - 1; i >= 0; i--)
+  {
+    if (!(cur = BTOR_PEEK_STACK (btor->nodes_id_table, i))) continue;
+
+    if (BTOR_IS_PROXY_NODE (cur)) continue;
+
+    if (cur->arity == 0)
+    {
+      assert (BTOR_IS_BV_VAR_NODE (cur) || BTOR_IS_ARRAY_VAR_NODE (cur)
+              || BTOR_IS_BV_CONST_NODE (cur) || BTOR_IS_PARAM_NODE (cur));
+      btor_insert_in_ptr_hash_table (t, cur);
+    }
+  }
+
+  substitute_and_rebuild (btor, t, 0);
+  btor_delete_ptr_hash_table (t);
+}
+
+static void
 check_model (Btor *btor, Btor *clone, BtorPtrHashTable *inputs)
 {
   assert (btor);
@@ -7350,10 +7312,6 @@ check_model (Btor *btor, Btor *clone, BtorPtrHashTable *inputs)
   BtorNode *cur, *exp, *val, *idx, *w, *tmp, *simp, *real_simp;
   BtorHashTableIterator it;
 
-#ifndef NBTORLOG
-  btor_set_loglevel_btor (clone, 0);
-#endif
-
   if (clone->valid_assignments) btor_reset_incremental_usage (clone);
 
   /* add assumptions as assertions */
@@ -7362,10 +7320,8 @@ check_model (Btor *btor, Btor *clone, BtorPtrHashTable *inputs)
     btor_assert_exp (clone, next_node_hash_table_iterator (&it));
   btor_reset_assumptions (clone);
 
-  /* initial simplifications */
-  ret = btor_simplify (clone);
-  if (ret == BTOR_SAT) return 1;
-  assert (ret == BTOR_UNKNOWN);
+  /* rebuild formula with new rewriting level */
+  rebuild_formula (clone, 3);
 
   assert (!clone->substitutions);
   btor_init_substitutions (clone);
@@ -7433,9 +7389,9 @@ check_model (Btor *btor, Btor *clone, BtorPtrHashTable *inputs)
       assert (!BTOR_IS_FUN_NODE (real_simp));
       /* we need to invert the assignment if simplified is inverted */
       a = btor_bv_assignment_str_exp (btor, BTOR_COND_INVERT_NODE (simp, exp));
+      //	  printf ("%s %s\n", exp->symbol, a);
       init_x_values (a);
       val = btor_const_exp (clone, a);
-      //	  printf ("%s %s\n", exp->symbol, a);
       btor_release_bv_assignment_str_exp (btor, a);
 
       assert (!btor_find_in_ptr_hash_table (clone->substitutions, real_simp));
@@ -7447,17 +7403,19 @@ check_model (Btor *btor, Btor *clone, BtorPtrHashTable *inputs)
   btor_reset_array_models (clone);
   substitute_and_rebuild (clone, clone->substitutions, 0);
   btor_delete_substitutions (clone);
+  reset_varsubst_constraints (clone); /* varsubst not required */
 
-  if (clone->rewrite_level == 3)
+  btor_enable_beta_reduce_all (clone);
+  ret = btor_simplify (clone);
+
+  // FIXME: why does the first run not yield all simplifications?
+  if (ret == BTOR_UNKNOWN)
   {
-    btor_enable_beta_reduce_all (clone);
+    rebuild_formula (clone, 3);
     ret = btor_simplify (clone);
   }
-
-  if (ret == BTOR_UNKNOWN) ret = btor_sat_aux_btor (clone);
-
-  BTOR_ABORT_CORE (ret != BTOR_SAT, "invalid model");
-
-  return 1;
+  assert (ret != BTOR_UNKNOWN || btor_sat_aux_btor (clone) == BTOR_SAT);
+  // TODO: if ret still UNKNOWN dump formula (for rw rule harvesting?)
+  // BTOR_ABORT_CORE (ret != BTOR_SAT, "invalid model");
 }
 #endif

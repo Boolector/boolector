@@ -190,7 +190,6 @@ struct Btor
     long long beta_reduce_calls;
     long long eval_exp_calls;
     long long lambda_synth_apps;
-    long long lambda_chains_merged;
     long long lambdas_merged;
     long long propagations;
     long long propagations_down;
@@ -216,6 +215,7 @@ struct Btor
     double find_nenc_app;
     double find_prop_app;
     double cloning;
+    double synth_exp;
   } time;
 };
 
@@ -254,10 +254,8 @@ int btor_set_sat_solver (Btor *, const char *);
  */
 void btor_set_verbosity_btor (Btor *btor, int verbosity);
 
-#ifndef NBTORLOG
 /* Set log level. */
 void btor_set_loglevel_btor (Btor *btor, int loglevel);
-#endif
 
 /* Deletes boolector. */
 void btor_delete_btor (Btor *btor);
