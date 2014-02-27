@@ -3445,7 +3445,7 @@ boolector_dump_btor_node (Btor *btor, FILE *file, BoolectorNode *node)
 void
 boolector_dump_btor (Btor *btor, FILE *file)
 {
-  // TODO TRAPI
+  BTOR_TRAPI ("dump_btor");
   BTOR_ABORT_ARG_NULL_BOOLECTOR (btor);
   BTOR_ABORT_ARG_NULL_BOOLECTOR (file);
   btor_dump_btor (btor, file);
@@ -3474,6 +3474,7 @@ boolector_dump_smt2_node (Btor *btor, FILE *file, BoolectorNode *node)
 void
 boolector_dump_smt2 (Btor *btor, FILE *file)
 {
+  BTOR_TRAPI ("dump_smt2");
   BTOR_ABORT_ARG_NULL_BOOLECTOR (btor);
   BTOR_ABORT_ARG_NULL_BOOLECTOR (file);
   btor_dump_smt2 (btor, file);
