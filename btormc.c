@@ -845,6 +845,7 @@ check_last_forward_frame (BtorMC *mc)
     res = boolector_sat (mc->forward);
     if (res == BOOLECTOR_SAT)
     {
+      mc->state = BTOR_SAT_MC_STATE;
       btor_msg_mc (
           mc, 1, "bad state property %d at bound k = %d SATISFIABLE", i, k);
       satisfied++;
@@ -863,6 +864,7 @@ check_last_forward_frame (BtorMC *mc)
     else
     {
       assert (res == BOOLECTOR_UNSAT);
+      mc->state = BTOR_UNSAT_MC_STATE;
       btor_msg_mc (
           mc, 1, "bad state property %d at bound k = %d UNSATISFIABLE", i, k);
     }
@@ -909,7 +911,6 @@ boolector_bmc (BtorMC *mc, int mink, int maxk)
           || k == maxk)
       {
         btor_msg_mc (mc, 2, "entering SAT state at bound k=%d", k);
-        mc->state = BTOR_SAT_MC_STATE;
         assert (k >= 0);
         return k;
       }
