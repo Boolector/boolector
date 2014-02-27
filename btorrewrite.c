@@ -3072,6 +3072,9 @@ btor_rewrite_mul_exp (Btor *btor, BtorNode *e0, BtorNode *e1)
 
   /* we do not need the optimization for term * power_of_2_constant as
    * the AIG level does this optimization already */
+
+  // TODO still provide power of two optimization here!
+
   /* boolean case */
   if (BTOR_REAL_ADDR_NODE (e0)->len == 1)
   {
@@ -3345,10 +3348,6 @@ btor_rewrite_udiv_exp (Btor *btor, BtorNode *e0, BtorNode *e1)
 
   normalized = 0;
 
-#if 0
-  /* we do not need the optimization for term / power_of_2_constant as
-   * the AIG level does this optimization already */
-#else
   // We still want this optimization on the expression level even
   // though it is simulated by bit-blasting on the AIG level:
   //
@@ -3356,8 +3355,10 @@ btor_rewrite_udiv_exp (Btor *btor, BtorNode *e0, BtorNode *e1)
   //
   //                with l = |e0|
   //
+  // The cases 'e1 == 1' and 'e1 == 0' are else checked else where.
+  //
   if (!BTOR_IS_INVERTED_NODE (e1) &&  // 'n=0', e.g. 'e1 == 1' skipped
-      : 1->kind == BTOR_BV_CONST_NODE
+      e1->kind == BTOR_BV_CONST_NODE
       && (n = btor_is_power_of_two_const (e1->bits)) > 0)
   {
     BtorNode *slice, *pad;
@@ -3365,8 +3366,8 @@ btor_rewrite_udiv_exp (Btor *btor, BtorNode *e0, BtorNode *e1)
     l = btor_get_exp_len (btor, e0);
     assert (l > n);
     BTOR_INC_REC_RW_CALL (btor);
-    slice = btor_slice_exp (btor, e0, l - 1, n);
-    pad = btor_zero_exp (btor, n);
+    slice  = btor_slice_exp (btor, e0, l - 1, n);
+    pad    = btor_zero_exp (btor, n);
     result = btor_concat_exp (btor, pad, slice);
     BTOR_DEC_REC_RW_CALL (btor);
     assert (btor_get_exp_len (btor, result) == l);
@@ -3374,9 +3375,9 @@ btor_rewrite_udiv_exp (Btor *btor, BtorNode *e0, BtorNode *e1)
     btor_release_exp (btor, slice);
     return result;
   }
-#endif
 
-  // TODO what about non powers of 2, like divisor 3?
+  // TODO what about non powers of 2, like divisor 3, which means that
+  // some upper bits are 0 ...
 
   /* boolean case */
   if (BTOR_REAL_ADDR_NODE (e0)->len == 1)
@@ -3443,6 +3444,11 @@ btor_rewrite_urem_exp (Btor *btor, BtorNode *e0, BtorNode *e1)
 
   /* we do not need the optimization for term % power_of_2_constant as
    * the AIG level does this optimization already */
+
+  // TODO do optimize for powers of two even AIGs do it as well !!!
+
+  // TODO what about non powers of 2, like modulo 3, which means that
+  // all but the last two bits are zero
 
   /* boolean case */
   if (BTOR_REAL_ADDR_NODE (e0)->len == 1)
