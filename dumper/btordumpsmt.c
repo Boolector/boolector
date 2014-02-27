@@ -122,7 +122,7 @@ btor_dump_smt_id (BtorSMTDumpContext *sdc, BtorNode *exp)
 
   if (u != exp) fputs ("(bvnot ", sdc->file);
 
-  if (BTOR_IS_BV_VAR_NODE (u) || BTOR_IS_PARAM_NODE (u))
+  if (BTOR_IS_BV_VAR_NODE (u))
   {
     sym = u->symbol;
     if (!isdigit (sym[0]))
@@ -131,6 +131,16 @@ btor_dump_smt_id (BtorSMTDumpContext *sdc, BtorNode *exp)
       goto CLOSE;
     }
     type = "v";
+  }
+  else if (BTOR_IS_PARAM_NODE (u))
+  {
+    sym = u->symbol;
+    if (!isdigit (sym[0]))
+    {
+      fputs (sym, sdc->file);
+      goto CLOSE;
+    }
+    type = "p";
   }
   else if (BTOR_IS_ARRAY_VAR_NODE (u))
     type = "a";
@@ -354,7 +364,9 @@ static void
 dump_fun_smt2 (BtorSMTDumpContext *sdc, BtorNode *fun)
 {
   assert (fun);
+  assert (BTOR_IS_REGULAR_NODE (fun));
   assert (BTOR_IS_FUN_NODE (fun));
+  assert (!fun->parameterized);
   assert (!btor_find_in_ptr_hash_table (sdc->mark, fun));
 
   int i, lets;
@@ -451,7 +463,6 @@ dump_fun_smt2 (BtorSMTDumpContext *sdc, BtorNode *fun)
 
     fputc (' ', sdc->file);
     dump_let_smt2 (sdc, cur);
-    fputc ('\n', sdc->file);
     lets++;
   }
 
@@ -573,7 +584,7 @@ dump_smt2 (BtorSMTDumpContext *sdc)
       BTOR_PUSH_STACK (mm, vars, cur);
     else if (BTOR_IS_ARRAY_VAR_NODE (cur))
       BTOR_PUSH_STACK (mm, arrays, cur);
-    else if (BTOR_IS_LAMBDA_NODE (cur)
+    else if (BTOR_IS_LAMBDA_NODE (cur) && !cur->parameterized
              && (!BTOR_IS_CURRIED_LAMBDA_NODE (cur)
                  || BTOR_IS_FIRST_CURRIED_LAMBDA (cur)))
       BTOR_PUSH_STACK (mm, funs, cur);
@@ -693,10 +704,30 @@ btor_dump_smt2 (Btor *btor, FILE *file)
   assert (!btor->inc_enabled);
   //  assert (!btor->model_gen);
 
-  int ret;
+  int ret, nested_funs = 0;
+  Btor *clone;
   BtorNode *temp;
   BtorHashTableIterator it;
   BtorSMTDumpContext *sdc;
+
+  init_node_hash_table_iterator (btor, &it, btor->lambdas);
+  while (has_next_node_hash_table_iterator (&it))
+  {
+    if (next_node_hash_table_iterator (&it)->parameterized)
+    {
+      nested_funs = 1;
+      break;
+    }
+  }
+
+  if (nested_funs)
+  {
+    clone = btor_clone_btor (btor);
+    // FIXME: do not beta reduce all lambdas, but eliminate nested ones (new
+    //        function)
+    btor_enable_beta_reduce_all (clone);
+    btor = clone;
+  }
 
   sdc = new_smt_dump_context (btor, file);
   ret = btor_simplify (btor);
@@ -717,4 +748,6 @@ btor_dump_smt2 (Btor *btor, FILE *file)
 
   dump_smt2 (sdc);
   delete_smt_dump_context (sdc);
+
+  if (nested_funs) btor_delete_btor (clone);
 }
