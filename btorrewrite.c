@@ -2139,6 +2139,46 @@ normalize_eq_adds_exp (Btor *btor,
 }
 #endif
 
+static BtorNode *
+btor_find_top_add (Btor *btor, BtorNode *e)
+{
+  BtorNode *res;
+  if (BTOR_IS_INVERTED_NODE (e)) e = BTOR_REAL_ADDR_NODE (e);
+  if (e->kind == BTOR_ADD_NODE) return e;
+  if (btor->rec_rw_calls >= BTOR_REC_RW_BOUND) return 0;
+  res = 0;
+  if (e->kind == BTOR_SLICE_NODE)
+  {
+    BTOR_INC_REC_RW_CALL (btor);
+    res = btor_find_top_add (btor, e->e[0]);
+    BTOR_DEC_REC_RW_CALL (btor);
+  }
+  return res;
+}
+
+static BtorNode *
+btor_rebuild_top_add (Btor *btor, BtorNode *e, BtorNode *c, BtorNode *r)
+{
+  BtorNode *res, *tmp;
+  assert (!BTOR_IS_INVERTED_NODE (c));
+  if (BTOR_IS_INVERTED_NODE (e))
+  {
+    BtorNode *real = BTOR_REAL_ADDR_NODE (e);
+    tmp            = btor_rebuild_top_add (btor, real, c, r);
+    res            = BTOR_INVERT_NODE (tmp);
+  }
+  else if (e == c)
+    res = btor_copy_exp (btor, r);
+  else
+  {
+    assert (e->kind == BTOR_SLICE_NODE);
+    tmp = btor_rebuild_top_add (btor, e->e[0], c, r);
+    res = btor_slice_exp (btor, tmp, e->upper, e->lower);
+    btor_release_exp (btor, tmp);
+  }
+  return res;
+}
+
 BtorNode *
 btor_rewrite_eq_exp (Btor *btor, BtorNode *e0, BtorNode *e1)
 {
@@ -2601,6 +2641,7 @@ btor_rewrite_eq_exp (Btor *btor, BtorNode *e0, BtorNode *e1)
     }
     else if (kind == BTOR_BEQ_NODE)
     {
+      BtorNode *c0, *c1;
       /* push eq down over concats */
       assert (real_e0);
       assert (real_e1);
@@ -2634,6 +2675,22 @@ btor_rewrite_eq_exp (Btor *btor, BtorNode *e0, BtorNode *e1)
         btor_release_exp (btor, tmp4);
         BTOR_DEC_REC_RW_CALL (btor);
         goto DONE;
+      }
+      else if ((c0 = btor_find_top_add (btor, e0))
+               && (c1 = btor_find_top_add (btor, e1)) && c0->len == c1->len)
+      {
+        BtorNode *n0, *n1;
+        normalize_adds_exp (btor, c0, c1, &n0, &n1);
+        tmp1 = btor_rebuild_top_add (btor, e0, c0, n0);
+        tmp2 = btor_rebuild_top_add (btor, e1, c1, n1);
+        btor_release_exp (btor, n0);
+        btor_release_exp (btor, n1);
+        btor_release_exp (btor, e0);
+        btor_release_exp (btor, e1);
+        e0      = tmp1;
+        e1      = tmp2;
+        real_e0 = BTOR_REAL_ADDR_NODE (e0);
+        real_e1 = BTOR_REAL_ADDR_NODE (e1);
       }
     }
 
