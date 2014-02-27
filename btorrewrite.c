@@ -3336,7 +3336,7 @@ BtorNode *
 btor_rewrite_udiv_exp (Btor *btor, BtorNode *e0, BtorNode *e1)
 {
   BtorNode *result, *e0_norm, *e1_norm;
-  int normalized;
+  int normalized, n;
 
   e0 = btor_simplify_exp (btor, e0);
   e1 = btor_simplify_exp (btor, e1);
@@ -3345,8 +3345,37 @@ btor_rewrite_udiv_exp (Btor *btor, BtorNode *e0, BtorNode *e1)
 
   normalized = 0;
 
+#if 0
   /* we do not need the optimization for term / power_of_2_constant as
    * the AIG level does this optimization already */
+#else
+  // We still want this optimization on the expression level even
+  // though it is simulated by bit-blasting on the AIG level:
+  //
+  // e0 / e1 == e0 / 2^n == 0[n-1:0] . e0[l-1:n]
+  //
+  //                with l = |e0|
+  //
+  if (!BTOR_IS_INVERTED_NODE (e1) &&  // 'n=0', e.g. 'e1 == 1' skipped
+      (n = btor_is_power_of_two_const (e1->bits)) > 0)
+  {
+    BtorNode *slice, *pad;
+    int l;
+    l = btor_get_exp_len (btor, e0);
+    assert (l > n);
+    BTOR_INC_REC_RW_CALL (btor);
+    slice = btor_slice_exp (btor, e0, l - 1, n);
+    pad = btor_zero_exp (btor, n);
+    result = btor_concat_exp (btor, pad, slice);
+    BTOR_DEC_REC_RW_CALL (btor);
+    assert (btor_get_exp_len (btor, result) == l);
+    btor_release_exp (btor, pad);
+    btor_release_exp (btor, slice);
+    return result;
+  }
+#endif
+
+  // TODO what about non powers of 2, like divisor 3?
 
   /* boolean case */
   if (BTOR_REAL_ADDR_NODE (e0)->len == 1)

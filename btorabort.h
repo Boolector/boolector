@@ -97,4 +97,19 @@
 
 /*------------------------------------------------------------------------*/
 
+#define BTOR_COVER(COND)                                          \
+  do                                                              \
+  {                                                               \
+    if (cond)                                                     \
+    {                                                             \
+      fprintf (stderr,                                            \
+               "%s:%d: in %s: Coverage target '" #COND "' hit\n", \
+               __FILE__,                                          \
+               __LINE__,                                          \
+               __FUNCTION__);                                     \
+      fflush (stderr);                                            \
+      abort ();                                                   \
+    }                                                             \
+  } while (0)
+
 #endif

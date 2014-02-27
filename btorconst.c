@@ -784,6 +784,27 @@ btor_is_ones_const (const char *str)
 }
 
 int
+btor_is_power_of_two_const (const char *str)
+{
+  const char *p, *q;
+  char ch;
+  assert (str);
+  assert (str[0]);
+  q = 0;
+  for (p = str; (ch = *p); p++)
+    if (ch == '0')
+      continue;
+    else if (ch == '1' && q)
+      return -1;
+    else if (ch == '1' && !q)
+      q = p;
+    else
+      return -1;
+  if (!q) return 0;
+  return p - q - 1;
+}
+
+int
 btor_is_zero_or_ones_const (const char *str)
 {
   const char *p;
