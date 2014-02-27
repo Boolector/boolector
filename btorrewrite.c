@@ -2780,35 +2780,31 @@ btor_rewrite_add_exp (Btor *btor, BtorNode *e0, BtorNode *e1)
     }
   }
 
-#if 0
   // e0 + e1 == ~(e00 + e01) + e1
   //         == (-(e00 + e01) -1) + e1
   //         == - e00 - e01 - 1 + e1
   //         == (~e00 + 1) + (~e01 + 1) - 1 + e1
   //         == ((~e00 + ~e01) + 1) + e1
   //
-  if (btor->rewrite_level > 2 &&
-      BTOR_IS_INVERTED_NODE (e0) &&
-      btor->rec_rw_calls < BTOR_REC_RW_BOUND &&
-      (temp = BTOR_REAL_ADDR_NODE (e0))->kind == BTOR_ADD_NODE)
-    {
-      BtorNode * e00 = temp->e[0];
-      BtorNode * e01 = temp->e[1];
-      BtorNode * one, * sum;
-      BTOR_INC_REC_RW_CALL (btor);
-      one = btor_one_exp (btor, temp->len);
-      temp = btor_add_exp (btor, BTOR_INVERT_NODE (e00), BTOR_INVERT_NODE (e01));
-      sum = btor_add_exp (btor, temp, one);
-      result = btor_add_exp (btor, sum, e1);
-      BTOR_DEC_REC_RW_CALL (btor);
-      btor_release_exp (btor, sum);
-      btor_release_exp (btor, temp);
-      btor_release_exp (btor, one);
-      return result;
-    }
-#endif
+  if (btor->rewrite_level > 2 && BTOR_IS_INVERTED_NODE (e0)
+      && btor->rec_rw_calls < BTOR_REC_RW_BOUND
+      && (temp = BTOR_REAL_ADDR_NODE (e0))->kind == BTOR_ADD_NODE)
+  {
+    BtorNode *e00 = temp->e[0];
+    BtorNode *e01 = temp->e[1];
+    BtorNode *one, *sum;
+    BTOR_INC_REC_RW_CALL (btor);
+    one  = btor_one_exp (btor, temp->len);
+    temp = btor_add_exp (btor, BTOR_INVERT_NODE (e00), BTOR_INVERT_NODE (e01));
+    sum  = btor_add_exp (btor, temp, one);
+    result = btor_add_exp (btor, sum, e1);
+    BTOR_DEC_REC_RW_CALL (btor);
+    btor_release_exp (btor, sum);
+    btor_release_exp (btor, temp);
+    btor_release_exp (btor, one);
+    return result;
+  }
 
-#if 1
   // e0 + e1 == e0 + ~(e10 + e11)
   //         == e0 + (-(e10 + e11) -1)
   //         == e0 - e10 - e11 - 1
@@ -2833,115 +2829,106 @@ btor_rewrite_add_exp (Btor *btor, BtorNode *e0, BtorNode *e1)
     btor_release_exp (btor, one);
     return result;
   }
-#endif
 
-#if 0
   //  e0 + e1 == ~(e00 * e01) + e1
   //
-  if (btor->rewrite_level > 2 &&
-      BTOR_IS_INVERTED_NODE (e0) &&
-      btor->rec_rw_calls < BTOR_REC_RW_BOUND &&
-      (temp = BTOR_REAL_ADDR_NODE (e0))->kind == BTOR_MUL_NODE)
+  if (btor->rewrite_level > 2 && BTOR_IS_INVERTED_NODE (e0)
+      && btor->rec_rw_calls < BTOR_REC_RW_BOUND
+      && (temp = BTOR_REAL_ADDR_NODE (e0))->kind == BTOR_MUL_NODE)
+  {
+    BtorNode *e00 = temp->e[0];
+    BtorNode *e01 = temp->e[1];
+    BtorNode *n00, *n01;
+
+    BTOR_INC_REC_RW_CALL (btor);
+
+    if (BTOR_IS_BV_CONST_NODE (BTOR_REAL_ADDR_NODE (e00)))
     {
-      BtorNode * e00 = temp->e[0];
-      BtorNode * e01 = temp->e[1];
-      BtorNode * n00, * n01;
-
-      BTOR_INC_REC_RW_CALL (btor);
-
-      if (BTOR_IS_BV_CONST_NODE (BTOR_REAL_ADDR_NODE (e00)))
-	{
-	  // ~(c * e01) + e1 == ((-c) * e01 - 1)  + e1
-	  //
-	  n00 = btor_neg_exp (btor, e00);
-	  n01 = btor_copy_exp (btor, e01);
-	}
-      else
-      if (BTOR_IS_BV_CONST_NODE (BTOR_REAL_ADDR_NODE (e01)))
-	{
-	  // ~(e00 * c) + e1 == (e00 * (-c) - 1)  + e1
-	  //
-	  n00 = btor_copy_exp (btor, e00);
-	  n01 = btor_neg_exp (btor, e01);
-	}
-      else
-	n00 = n01 = 0;
-
-      if (n00 && n01)
-	{
-	  BtorNode * one, * sum;
-	  one = btor_one_exp (btor, temp->len);
-	  temp = btor_mul_exp (btor, n00, n01);
-	  sum = btor_sub_exp (btor, temp, one);
-	  result = btor_add_exp (btor, sum, e1);
-	  btor_release_exp (btor, sum);
-	  btor_release_exp (btor, temp);
-	  btor_release_exp (btor, one);
-	  btor_release_exp (btor, n00);
-	  btor_release_exp (btor, n01);
-	}
-      else
-	result = 0;
-
-      BTOR_DEC_REC_RW_CALL (btor);
-
-      if (result) return result;
+      // ~(c * e01) + e1 == ((-c) * e01 - 1)  + e1
+      //
+      n00 = btor_neg_exp (btor, e00);
+      n01 = btor_copy_exp (btor, e01);
     }
-#endif
+    else if (BTOR_IS_BV_CONST_NODE (BTOR_REAL_ADDR_NODE (e01)))
+    {
+      // ~(e00 * c) + e1 == (e00 * (-c) - 1)  + e1
+      //
+      n00 = btor_copy_exp (btor, e00);
+      n01 = btor_neg_exp (btor, e01);
+    }
+    else
+      n00 = n01 = 0;
 
-#if 0
+    if (n00 && n01)
+    {
+      BtorNode *one, *sum;
+      one    = btor_one_exp (btor, temp->len);
+      temp   = btor_mul_exp (btor, n00, n01);
+      sum    = btor_sub_exp (btor, temp, one);
+      result = btor_add_exp (btor, sum, e1);
+      btor_release_exp (btor, sum);
+      btor_release_exp (btor, temp);
+      btor_release_exp (btor, one);
+      btor_release_exp (btor, n00);
+      btor_release_exp (btor, n01);
+    }
+    else
+      result = 0;
+
+    BTOR_DEC_REC_RW_CALL (btor);
+
+    if (result) return result;
+  }
+
   //  e0 + e1 == e0 + ~(e10 * e11)
   //
-  if (btor->rewrite_level > 2 &&
-      BTOR_IS_INVERTED_NODE (e1) &&
-      btor->rec_rw_calls < BTOR_REC_RW_BOUND &&
-      (temp = BTOR_REAL_ADDR_NODE (e1))->kind == BTOR_MUL_NODE)
+  if (btor->rewrite_level > 2 && BTOR_IS_INVERTED_NODE (e1)
+      && btor->rec_rw_calls < BTOR_REC_RW_BOUND
+      && (temp = BTOR_REAL_ADDR_NODE (e1))->kind == BTOR_MUL_NODE)
+  {
+    BtorNode *e10 = temp->e[0];
+    BtorNode *e11 = temp->e[1];
+    BtorNode *n10, *n11;
+
+    BTOR_INC_REC_RW_CALL (btor);
+
+    if (BTOR_IS_BV_CONST_NODE (BTOR_REAL_ADDR_NODE (e10)))
     {
-      BtorNode * e10 = temp->e[0];
-      BtorNode * e11 = temp->e[1];
-      BtorNode * n10, * n11;
-
-      BTOR_INC_REC_RW_CALL (btor);
-
-      if (BTOR_IS_BV_CONST_NODE (BTOR_REAL_ADDR_NODE (e10)))
-	{
-	  // e0 + ~(c * e11) == e0 + ((-c) * e11 - 1)
-	  //
-	  n10 = btor_neg_exp (btor, e10);
-	  n11 = btor_copy_exp (btor, e11);
-	}
-      else
-      if (BTOR_IS_BV_CONST_NODE (BTOR_REAL_ADDR_NODE (e11)))
-	{
-	  // e0 + ~(e10 * c) == e0 + (e10 * (-c) - 1)
-	  //
-	  n10 = btor_copy_exp (btor, e10);
-	  n11 = btor_neg_exp (btor, e11);
-	}
-      else
-	n10 = n11 = 0;
-
-      if (n10 && n11)
-	{
-	  BtorNode * one, * sum;
-	  one = btor_one_exp (btor, temp->len);
-	  temp = btor_mul_exp (btor, n10, n11);
-	  sum = btor_sub_exp (btor, temp, one);
-	  result = btor_add_exp (btor, e0, sum);
-	  btor_release_exp (btor, sum);
-	  btor_release_exp (btor, temp);
-	  btor_release_exp (btor, one);
-	  btor_release_exp (btor, n10);
-	  btor_release_exp (btor, n11);
-	}
-      else
-	result = 0;
-
-      BTOR_DEC_REC_RW_CALL (btor);
-
-      if (result) return result;
+      // e0 + ~(c * e11) == e0 + ((-c) * e11 - 1)
+      //
+      n10 = btor_neg_exp (btor, e10);
+      n11 = btor_copy_exp (btor, e11);
     }
-#endif
+    else if (BTOR_IS_BV_CONST_NODE (BTOR_REAL_ADDR_NODE (e11)))
+    {
+      // e0 + ~(e10 * c) == e0 + (e10 * (-c) - 1)
+      //
+      n10 = btor_copy_exp (btor, e10);
+      n11 = btor_neg_exp (btor, e11);
+    }
+    else
+      n10 = n11 = 0;
+
+    if (n10 && n11)
+    {
+      BtorNode *one, *sum;
+      one    = btor_one_exp (btor, temp->len);
+      temp   = btor_mul_exp (btor, n10, n11);
+      sum    = btor_sub_exp (btor, temp, one);
+      result = btor_add_exp (btor, e0, sum);
+      btor_release_exp (btor, sum);
+      btor_release_exp (btor, temp);
+      btor_release_exp (btor, one);
+      btor_release_exp (btor, n10);
+      btor_release_exp (btor, n11);
+    }
+    else
+      result = 0;
+
+    BTOR_DEC_REC_RW_CALL (btor);
+
+    if (result) return result;
+  }
 
   //  e0 * e1 == ~(e00 * e01) + e1
   //
