@@ -3357,7 +3357,8 @@ btor_rewrite_udiv_exp (Btor *btor, BtorNode *e0, BtorNode *e1)
   //                with l = |e0|
   //
   if (!BTOR_IS_INVERTED_NODE (e1) &&  // 'n=0', e.g. 'e1 == 1' skipped
-      (n = btor_is_power_of_two_const (e1->bits)) > 0)
+      : 1->kind == BTOR_BV_CONST_NODE
+      && (n = btor_is_power_of_two_const (e1->bits)) > 0)
   {
     BtorNode *slice, *pad;
     int l;
