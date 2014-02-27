@@ -1856,24 +1856,26 @@ BTOR_NODE_TWO_LEVEL_OPT_TRY_AGAIN:
       || find_and_contradiction_exp (btor, e1, e0, e1, &calls))
     return btor_zero_exp (btor, real_e0->len);
 
-  if (btor->rewrite_level > 2 && !BTOR_IS_INVERTED_NODE (e0)
-      && !BTOR_IS_INVERTED_NODE (e1) && e0->kind == e1->kind)
+  real_e0 = BTOR_REAL_ADDR_NODE (e0);
+  real_e1 = BTOR_REAL_ADDR_NODE (e1);
+
+  if (btor->rewrite_level > 2 && real_e0->kind == real_e1->kind)
   {
-    if (e0->kind == BTOR_ADD_NODE)
+    if (real_e0->kind == BTOR_ADD_NODE)
     {
-      assert (e1->kind == BTOR_ADD_NODE);
-      normalize_adds_exp (btor, e0, e1, &e0_norm, &e1_norm);
+      assert (real_e1->kind == BTOR_ADD_NODE);
+      normalize_adds_exp (btor, real_e0, real_e1, &e0_norm, &e1_norm);
       normalized = 1;
-      e0         = e0_norm;
-      e1         = e1_norm;
+      e0         = real_e0 == e0 ? e0_norm : BTOR_INVERT_NODE (e0_norm);
+      e1         = real_e1 == e1 ? e1_norm : BTOR_INVERT_NODE (e1_norm);
     }
-    else if (e0->kind == BTOR_MUL_NODE)
+    else if (real_e0->kind == BTOR_MUL_NODE)
     {
-      assert (e1->kind == BTOR_MUL_NODE);
-      normalize_muls_exp (btor, e0, e1, &e0_norm, &e1_norm);
+      assert (real_e1->kind == BTOR_MUL_NODE);
+      normalize_muls_exp (btor, real_e0, real_e1, &e0_norm, &e1_norm);
       normalized = 1;
-      e0         = e0_norm;
-      e1         = e1_norm;
+      e0         = real_e0 == e0 ? e0_norm : BTOR_INVERT_NODE (e0_norm);
+      e1         = real_e1 == e1 ? e1_norm : BTOR_INVERT_NODE (e1_norm);
     }
   }
 
