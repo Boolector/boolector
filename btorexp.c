@@ -754,14 +754,16 @@ set_kind (Btor *btor, BtorNode *exp, BtorNodeKind kind)
 
   if (exp->kind)
   {
-    assert (btor->ops[exp->kind] > 0);
-    btor->ops[exp->kind]--;
+    assert (btor->ops[exp->kind].cur > 0);
+    btor->ops[exp->kind].cur--;
   }
 
   if (kind)
   {
-    btor->ops[kind]++;
-    assert (btor->ops[kind] > 0);
+    btor->ops[kind].cur++;
+    assert (btor->ops[kind].cur > 0);
+    if (btor->ops[kind].cur > btor->ops[kind].max)
+      btor->ops[kind].max = btor->ops[kind].cur;
   }
 
   exp->kind = kind;

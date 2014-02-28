@@ -674,7 +674,7 @@ number_of_ops (Btor *btor)
   assert (btor);
 
   result = 0;
-  for (i = 1; i < BTOR_NUM_OPS_NODE - 1; i++) result += btor->ops[i];
+  for (i = 1; i < BTOR_NUM_OPS_NODE - 1; i++) result += btor->ops[i].cur;
 
   return result;
 }
@@ -704,7 +704,8 @@ btor_print_stats_btor (Btor *btor)
             "embedded constraint substitutions: %d",
             btor->stats.ec_substitutions);
   btor_msg (btor, 1, "assumptions: %u", btor->assumptions->count);
-  if (btor->ops[BTOR_AEQ_NODE])
+
+  if (btor->ops[BTOR_AEQ_NODE].cur)
     btor_msg (btor, 1, "virtual reads: %d", btor->stats.vreads);
 
   if (verbosity > 2)
@@ -719,8 +720,13 @@ btor_print_stats_btor (Btor *btor)
     btor_msg (btor, 2, "number of final expressions: %d", num_final_ops);
     if (num_final_ops > 0)
       for (i = 1; i < BTOR_NUM_OPS_NODE - 1; i++)
-        if (btor->ops[i])
-          btor_msg (btor, 2, " %s:%d", g_btor_op2string[i], btor->ops[i]);
+        if (btor->ops[i].cur || btor->ops[i].max)
+          btor_msg (btor,
+                    2,
+                    " %s: %d max %d",
+                    g_btor_op2string[i],
+                    btor->ops[i].cur,
+                    btor->ops[i].max);
   }
 
   btor_msg (btor, 1, "");
@@ -5955,7 +5961,7 @@ propagate (Btor *btor,
   assert (prop_stack);
   assert (cleanup_stack);
   // TODO: extensionality for write lambdas
-  assert (btor->ops[BTOR_AEQ_NODE] == 0);
+  assert (btor->ops[BTOR_AEQ_NODE].cur == 0);
 
 #ifndef NDEBUG
   int num_restarts;
@@ -6363,7 +6369,7 @@ static int
 check_and_resolve_conflicts (Btor *btor, BtorNodePtrStack *tmp_stack)
 {
   assert (btor);
-  assert (btor->ops[BTOR_AEQ_NODE] == 0);
+  assert (btor->ops[BTOR_AEQ_NODE].cur == 0);
 
   int found_conflict, changed_assignments;
   BtorMemMgr *mm;
@@ -6488,7 +6494,7 @@ btor_sat_aux_btor (Btor *btor)
 
   if (btor->valid_assignments == 1) btor_reset_incremental_usage (btor);
 
-  BTOR_ABORT_CORE (btor->ops[BTOR_AEQ_NODE] > 0,
+  BTOR_ABORT_CORE (btor->ops[BTOR_AEQ_NODE].cur > 0,
                    "extensionality on arrays/lambdas not yet supported");
 
   do
