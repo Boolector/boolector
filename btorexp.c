@@ -741,7 +741,7 @@ erase_local_data_exp (Btor *btor, BtorNode *exp, int free_symbol)
 static int
 is_valid_kind (BtorNodeKind kind)
 {
-  return 0 <= kind && kind < BTOR_NUM_OPS_NODE;
+  return 0 <= (int) kind && kind < BTOR_NUM_OPS_NODE;
 }
 
 static void
