@@ -736,7 +736,35 @@ erase_local_data_exp (Btor *btor, BtorNode *exp, int free_symbol)
     exp->av = 0;
   }
   exp->erased = 1;
-  btor->ops[exp->kind]--;
+}
+
+static int
+is_valid_kind (BtorNodeKind kind)
+{
+  return 0 <= kind && kind < BTOR_NUM_OPS_NODE;
+}
+
+static void
+set_kind (Btor *btor, BtorNode *exp, BtorNodeKind kind)
+{
+  assert (is_valid_kind (kind));
+  assert (is_valid_kind (exp->kind));
+
+  assert (!BTOR_INVALID_NODE);
+
+  if (exp->kind)
+  {
+    assert (btor->ops[exp->kind] > 0);
+    btor->ops[exp->kind]--;
+  }
+
+  if (kind)
+  {
+    btor->ops[kind]++;
+    assert (btor->ops[kind] > 0);
+  }
+
+  exp->kind = kind;
 }
 
 /* Delete expression from memory.
@@ -763,7 +791,7 @@ really_deallocate_exp (Btor *btor, BtorNode *exp)
 
   mm = btor->mm;
 
-  exp->kind = BTOR_INVALID_NODE;
+  set_kind (btor, exp, BTOR_INVALID_NODE);
 
   if (exp->bits) btor_freestr (btor->mm, exp->bits);
   if (exp->invbits) btor_freestr (btor->mm, exp->invbits);
@@ -870,7 +898,6 @@ btor_set_to_proxy_exp (Btor *btor, BtorNode *exp)
   remove_from_nodes_unique_table_exp (btor, exp);
   /* also updates op stats */
   erase_local_data_exp (btor, exp, 0);
-  btor->ops[BTOR_PROXY_NODE]++;
   assert (exp->arity <= 3);
   memset (e, 0, sizeof e);
   for (i = 0; i < exp->arity; i++) e[i] = exp->e[i];
@@ -879,7 +906,8 @@ btor_set_to_proxy_exp (Btor *btor, BtorNode *exp)
 
   for (i = 0; i < exp->arity; i++) btor_release_exp (btor, e[i]);
 
-  exp->kind          = BTOR_PROXY_NODE;
+  set_kind (btor, exp, BTOR_PROXY_NODE);
+
   exp->disconnected  = 0;
   exp->erased        = 0;
   exp->arity         = 0;
@@ -988,8 +1016,7 @@ new_const_exp_node (Btor *btor, const char *bits, int len)
   assert ((int) strlen (bits) == len);
   assert (btor_is_const_2vl (btor->mm, bits));
   BTOR_CNEW (btor->mm, exp);
-  btor->ops[BTOR_BV_CONST_NODE]++;
-  exp->kind  = BTOR_BV_CONST_NODE;
+  set_kind (btor, (BtorNode *) exp, BTOR_BV_CONST_NODE);
   exp->bytes = sizeof *exp;
   BTOR_NEWN (btor->mm, exp->bits, len + 1);
   for (i = 0; i < len; i++) exp->bits[i] = bits[i];
@@ -1011,8 +1038,7 @@ new_slice_exp_node (Btor *btor, BtorNode *e0, int upper, int lower)
   assert (lower >= 0);
 
   BTOR_CNEW (btor->mm, exp);
-  btor->ops[BTOR_SLICE_NODE]++;
-  exp->kind  = BTOR_SLICE_NODE;
+  set_kind (btor, (BtorNode *) exp, BTOR_SLICE_NODE);
   exp->bytes = sizeof *exp;
   exp->arity = 1;
   exp->upper = upper;
@@ -1032,8 +1058,7 @@ new_aeq_exp_node (Btor *btor, BtorNode *e0, BtorNode *e1)
   assert (e0);
   assert (e1);
   BTOR_CNEW (btor->mm, exp);
-  btor->ops[BTOR_AEQ_NODE]++;
-  exp->kind  = BTOR_AEQ_NODE;
+  set_kind (btor, exp, BTOR_AEQ_NODE);
   exp->bytes = sizeof *exp;
   exp->arity = 2;
   exp->len   = 1;
@@ -1057,8 +1082,7 @@ new_lambda_exp_node (Btor *btor, BtorNode *e_param, BtorNode *e_exp)
   BtorLambdaNode *lambda_exp;
 
   BTOR_CNEW (btor->mm, lambda_exp);
-  btor->ops[BTOR_LAMBDA_NODE]++;
-  lambda_exp->kind         = BTOR_LAMBDA_NODE;
+  set_kind (btor, (BtorNode *) lambda_exp, BTOR_LAMBDA_NODE);
   lambda_exp->bytes        = sizeof *lambda_exp;
   lambda_exp->arity        = 2;
   lambda_exp->len          = BTOR_REAL_ADDR_NODE (e_exp)->len;
@@ -1112,8 +1136,7 @@ new_args_exp_node (Btor *btor, int arity, BtorNode **e, int len)
 #endif
 
   BTOR_CNEW (btor->mm, exp);
-  btor->ops[BTOR_ARGS_NODE]++;
-  exp->kind  = BTOR_ARGS_NODE;
+  set_kind (btor, (BtorNode *) exp, BTOR_ARGS_NODE);
   exp->bytes = sizeof (*exp);
   exp->arity = arity;
   exp->len   = len;
@@ -1150,8 +1173,7 @@ new_exp_node (Btor *btor, BtorNodeKind kind, int arity, BtorNode **e, int len)
 #endif
 
   BTOR_CNEW (btor->mm, exp);
-  btor->ops[kind]++;
-  exp->kind  = kind;
+  set_kind (btor, (BtorNode *) exp, kind);
   exp->bytes = sizeof (*exp);
   exp->arity = arity;
   exp->len   = len;
@@ -1478,8 +1500,7 @@ btor_var_exp (Btor *btor, int len, const char *symbol)
 
   mm = btor->mm;
   BTOR_CNEW (mm, exp);
-  btor->ops[BTOR_BV_VAR_NODE]++;
-  exp->kind   = BTOR_BV_VAR_NODE;
+  set_kind (btor, (BtorNode *) exp, BTOR_BV_VAR_NODE);
   exp->bytes  = sizeof *exp;
   exp->symbol = btor_strdup (mm, symbol);
   exp->len    = len;
@@ -1502,8 +1523,7 @@ btor_param_exp (Btor *btor, int len, const char *symbol)
 
   mm = btor->mm;
   BTOR_CNEW (mm, exp);
-  btor->ops[BTOR_PARAM_NODE]++;
-  exp->kind  = BTOR_PARAM_NODE;
+  set_kind (btor, (BtorNode *) exp, BTOR_PARAM_NODE);
   exp->bytes = sizeof *exp;
   if (strlen (symbol) == 0)
   {
@@ -1532,8 +1552,7 @@ btor_array_exp (Btor *btor, int elem_len, int index_len, const char *symbol)
 
   mm = btor->mm;
   BTOR_CNEW (mm, exp);
-  btor->ops[BTOR_ARRAY_VAR_NODE]++;
-  exp->kind      = BTOR_ARRAY_VAR_NODE;
+  set_kind (btor, (BtorNode *) exp, BTOR_ARRAY_VAR_NODE);
   exp->bytes     = sizeof *exp;
   exp->symbol    = btor_strdup (mm, symbol);
   exp->index_len = index_len;
