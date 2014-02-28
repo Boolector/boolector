@@ -708,7 +708,7 @@ btor_print_stats_btor (Btor *btor)
   if (btor->ops[BTOR_AEQ_NODE].cur)
     btor_msg (btor, 1, "virtual reads: %d", btor->stats.vreads);
 
-  if (verbosity > 2)
+  if (verbosity > 0)
   {
     btor_msg (btor, 2, "max rec. RW: %d", btor->stats.max_rec_rw_calls);
     btor_msg (btor,
