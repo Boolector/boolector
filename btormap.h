@@ -1,6 +1,6 @@
 /*  Boolector: Satisfiablity Modulo Theories (SMT) solver.
  *
- *  Copyright (C) 2013 Armin Biere.
+ *  Copyright (C) 2013-2014 Armin Biere.
  *  Copyright (C) 2013 Aina Niemetz.
  *
  *  All rights reserved.
@@ -53,7 +53,8 @@ BtorNode *btor_non_recursive_substitute_node (Btor *,
 typedef BtorNode *(*BtorNodeMapper) (Btor *, void *state, BtorNode *);
 
 /* References returned by a 'BtorNodeMapper' are not restricted to be
- * allocated internally, hence we need a matching release operation. */
+ * allocated internally, hence we need a matching release operation.
+ */
 typedef void (*BtorNodeReleaser) (Btor *, BtorNode *);
 
 BtorNode *btor_non_recursive_extended_substitute_node (
