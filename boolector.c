@@ -3442,7 +3442,7 @@ boolector_release (Btor *btor, BoolectorNode *node)
 }
 
 void
-boolector_dump_btor (Btor *btor, FILE *file, BoolectorNode *node)
+boolector_dump_btor_node (Btor *btor, FILE *file, BoolectorNode *node)
 {
   // TODO TRAPI
   BtorNode *exp;
@@ -3454,52 +3454,24 @@ boolector_dump_btor (Btor *btor, FILE *file, BoolectorNode *node)
   BTOR_ABORT_REFS_NOT_POS_BOOLECTOR (exp);
   btor_dump_btor_node (btor, file, exp);
 #ifndef NDEBUG
-  BTOR_CHKCLONE_NORES (dump_btor, file, BTOR_CLONED_EXP (exp));
+  BTOR_CHKCLONE_NORES (dump_btor_node, file, BTOR_CLONED_EXP (exp));
 #endif
 }
 
 void
-boolector_dump_btor_all (Btor *btor, FILE *file)
+boolector_dump_btor (Btor *btor, FILE *file)
 {
-  // TODO TRAPI
+  BTOR_TRAPI ("dump_btor");
   BTOR_ABORT_ARG_NULL_BOOLECTOR (btor);
   BTOR_ABORT_ARG_NULL_BOOLECTOR (file);
-  btor_dump_btor_after_simplify (btor, file);
+  btor_dump_btor (btor, file);
 #ifndef NDEBUG
-  BTOR_CHKCLONE_NORES (dump_btor_all, file);
+  BTOR_CHKCLONE_NORES (dump_btor, file);
 #endif
 }
 
 void
-boolector_dump_smt (Btor *btor, FILE *file, BoolectorNode *node)
-{
-  // TODO TRAPI
-  BtorNode *exp;
-
-  exp = BTOR_IMPORT_BOOLECTOR_NODE (node);
-  BTOR_ABORT_ARG_NULL_BOOLECTOR (btor);
-  BTOR_ABORT_ARG_NULL_BOOLECTOR (file);
-  BTOR_ABORT_ARG_NULL_BOOLECTOR (exp);
-  BTOR_ABORT_REFS_NOT_POS_BOOLECTOR (exp);
-  btor_dump_smt1 (btor, file, &exp, 1);
-#ifndef NDEBUG
-  BTOR_CHKCLONE_NORES (dump_smt, file, BTOR_CLONED_EXP (exp));
-#endif
-}
-
-void
-boolector_dump_smt_all (Btor *btor, FILE *file)
-{
-  BTOR_ABORT_ARG_NULL_BOOLECTOR (btor);
-  BTOR_ABORT_ARG_NULL_BOOLECTOR (file);
-  btor_dump_smt1_after_simplify (btor, file);
-#ifndef NDEBUG
-  BTOR_CHKCLONE_NORES (dump_smt_all, file);
-#endif
-}
-
-void
-boolector_dump_smt2 (Btor *btor, FILE *file, BoolectorNode *node)
+boolector_dump_smt2_node (Btor *btor, FILE *file, BoolectorNode *node)
 {
   // TODO TRAPI
   BtorNode *exp;
@@ -3509,20 +3481,21 @@ boolector_dump_smt2 (Btor *btor, FILE *file, BoolectorNode *node)
   BTOR_ABORT_ARG_NULL_BOOLECTOR (file);
   BTOR_ABORT_ARG_NULL_BOOLECTOR (exp);
   BTOR_ABORT_REFS_NOT_POS_BOOLECTOR (exp);
-  btor_dump_smt2 (btor, file, &exp, 1);
+  btor_dump_smt2_nodes (btor, file, &exp, 1);
 #ifndef NDEBUG
-  BTOR_CHKCLONE_NORES (dump_smt2, file, BTOR_CLONED_EXP (exp));
+  BTOR_CHKCLONE_NORES (dump_smt2_node, file, BTOR_CLONED_EXP (exp));
 #endif
 }
 
 void
-boolector_dump_smt2_all (Btor *btor, FILE *file)
+boolector_dump_smt2 (Btor *btor, FILE *file)
 {
+  BTOR_TRAPI ("dump_smt2");
   BTOR_ABORT_ARG_NULL_BOOLECTOR (btor);
   BTOR_ABORT_ARG_NULL_BOOLECTOR (file);
-  btor_dump_smt2_after_simplify (btor, file);
+  btor_dump_smt2 (btor, file);
 #ifndef NDEBUG
-  BTOR_CHKCLONE_NORES (dump_smt2_all, file);
+  BTOR_CHKCLONE_NORES (dump_smt2, file);
 #endif
 }
 

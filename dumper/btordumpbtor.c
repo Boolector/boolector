@@ -1,6 +1,6 @@
 /*  Boolector: Satisfiablity Modulo Theories (SMT) solver.
  *
- *  Copyright (C) 2007-2013 Armin Biere.
+ *  Copyright (C) 2007-2014 Armin Biere.
  *  Copyright (C) 2007-2009 Robert Daniel Brummayer.
  *  Copyright (C) 2012-2014 Aina Niemetz.
  *  Copyright (C) 2012-2014 Mathias Preiner.
@@ -422,7 +422,7 @@ bdcrec (BtorDumpContext *bdc, BtorNode *start, FILE *file)
 }
 
 void
-btor_dump_btor (BtorDumpContext *bdc, FILE *file)
+btor_dump_btor_bdc (BtorDumpContext *bdc, FILE *file)
 {
   BtorHashTableIterator it;
   int i;
@@ -441,7 +441,7 @@ btor_dump_btor (BtorDumpContext *bdc, FILE *file)
     fputc ('\n', file);
   }
 
-  init_node_hash_table_iterator (bdc->btor, &it, bdc->inputs);
+  init_node_hash_table_iterator (bdc->btor, &it, bdc->latches);
   while (has_next_node_hash_table_iterator (&it))
   {
     BtorNode *node = next_node_hash_table_iterator (&it);
@@ -455,7 +455,7 @@ btor_dump_btor (BtorDumpContext *bdc, FILE *file)
     fputc ('\n', file);
   }
 
-  init_node_hash_table_iterator (bdc->btor, &it, bdc->inputs);
+  init_node_hash_table_iterator (bdc->btor, &it, bdc->latches);
   while (has_next_node_hash_table_iterator (&it))
   {
     BtorDumpContextLatch *bdcl = it.bucket->data.asPtr;
@@ -552,7 +552,7 @@ btor_dump_btor_node (Btor *btor, FILE *file, BtorNode *exp)
 
   bdc = btor_new_dump_context (btor);
   btor_add_root_to_dump_context (bdc, exp);
-  btor_dump_btor (bdc, file);
+  btor_dump_btor_bdc (bdc, file);
   btor_delete_dump_context (bdc);
 }
 
@@ -571,12 +571,12 @@ btor_dump_btor_nodes (Btor *btor, FILE *file, BtorNode **roots, int nroots)
 
   for (i = 0; i < nroots; i++) btor_add_root_to_dump_context (bdc, roots[i]);
 
-  btor_dump_btor (bdc, file);
+  btor_dump_btor_bdc (bdc, file);
   btor_delete_dump_context (bdc);
 }
 
 void
-btor_dump_btor_after_simplify (Btor *btor, FILE *file)
+btor_dump_btor (Btor *btor, FILE *file)
 {
   assert (btor);
   assert (file);
@@ -609,6 +609,6 @@ btor_dump_btor_after_simplify (Btor *btor, FILE *file)
     btor_release_exp (btor, temp);
   }
 
-  btor_dump_btor (bdc, file);
+  btor_dump_btor_bdc (bdc, file);
   btor_delete_dump_context (bdc);
 }

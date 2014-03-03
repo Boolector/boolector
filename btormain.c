@@ -1,7 +1,7 @@
 /*  Boolector: Satisfiablity Modulo Theories (SMT) solver.
  *
  *  Copyright (C) 2007-2009 Robert Daniel Brummayer.
- *  Copyright (C) 2007-2013 Armin Biere.
+ *  Copyright (C) 2007-2014 Armin Biere.
  *  Copyright (C) 2012-2013 Aina Niemetz, Mathias Preiner.
  *
  *  All rights reserved.
@@ -54,6 +54,15 @@ typedef enum BtorBasis BtorBasis;
 
 typedef enum BtorPrintModel BtorPrintModel;
 
+enum BtorDumpMode
+{
+  BTOR_DUMP_BTOR = 1,
+  BTOR_DUMP_SMT1,
+  BTOR_DUMP_SMT2
+};
+
+typedef enum BtorDumpMode BtorDumpMode;
+
 struct BtorMainApp
 {
   FILE *output_file;
@@ -82,8 +91,7 @@ struct BtorMainApp
   int argc;
   char **argv;
   BtorBasis basis;
-  int dump_exp;
-  int dump_smt;
+  BtorDumpMode dump;
   int rewrite_level;
   int force_smt_input;
   int print_model;
@@ -138,12 +146,8 @@ static const char *g_usage =
     "\n"
     "  -x, --hex                        hexadecimal output\n"
     "  -d, --dec                        decimal output\n"
-    "  -de, --dump-exp                  dump expression in BTOR format\n"
-    "  -ds                              dump expression in SMT 1.2 format\n"
-    "  -d1, -ds1, --dump-smt            dump expression in SMT 1.2 format\n"
-    "  -d2, -ds2, --dump-smt2           dump expression in SMT 2.0 format\n"
-    "  -d2fun, -ds2fun, --dump-smt2-fun dump expression in SMT 2.0 format "
-    "using\n"
+    "  -db, --dump-btor                 dump formula in BTOR format\n"
+    "  -ds, --dump-smt                  dump formula in SMT 2.0 format\n"
     "                                   define-fun instead of let\n"
     "  -o, --output <file>              set output file for dumping\n"
     "\n"
@@ -172,22 +176,22 @@ static const char *g_usage =
 static const char *g_copyright =
     "This software is\n"
     "Copyright (c) 2007-2009 Robert Brummayer\n"
-    "Copyright (c) 2007-2013 Armin Biere\n"
-    "Copyright (c) 2012-2013 Aina Niemetz, Mathias Preiner\n"
+    "Copyright (c) 2007-2014 Armin Biere\n"
+    "Copyright (c) 2012-2014 Aina Niemetz, Mathias Preiner\n"
     "Copyright (c) 2013 Christian Reisenberger\n"
     "Institute for Formal Models and Verification\n"
     "Johannes Kepler University, Linz, Austria\n"
 #ifdef BTOR_USE_LINGELING
     "\n"
     "This software is linked against Lingeling\n"
-    "Copyright (c) 2010-2013 Armin Biere\n"
+    "Copyright (c) 2010-2014 Armin Biere\n"
     "Institute for Formal Models and Verification\n"
     "Johannes Kepler University, Linz, Austria\n"
 #endif
 #ifdef BTOR_USE_PICOSAT
     "\n"
     "This software is linked against PicoSAT\n"
-    "Copyright (c) 2006-2013 Armin Biere\n"
+    "Copyright (c) 2006-2014 Armin Biere\n"
     "Institute for Formal Models and Verification\n"
     "Johannes Kepler University, Linz, Austria\n"
 #endif
@@ -559,19 +563,12 @@ parse_commandline_arguments (BtorMainApp *app)
       fprintf (app->output_file, "%s", g_copyright);
       app->done = 1;
     }
-    else if (!strcmp (app->argv[app->argpos], "-de")
-             || !strcmp (app->argv[app->argpos], "--dump-exp"))
-      app->dump_exp = 1;
+    else if (!strcmp (app->argv[app->argpos], "-db")
+             || !strcmp (app->argv[app->argpos], "--dump-btor"))
+      app->dump = BTOR_DUMP_BTOR;
     else if (!strcmp (app->argv[app->argpos], "-ds")
-             || !strcmp (app->argv[app->argpos], "-d1")
-             || !strcmp (app->argv[app->argpos], "-ds1")
-             || !strcmp (app->argv[app->argpos], "--dump-smt")
-             || !strcmp (app->argv[app->argpos], "--dump-smt1"))
-      app->dump_smt = 1;
-    else if (!strcmp (app->argv[app->argpos], "-d2")
-             || !strcmp (app->argv[app->argpos], "-ds2")
-             || !strcmp (app->argv[app->argpos], "--dump-smt2"))
-      app->dump_smt = 2;
+             || !strcmp (app->argv[app->argpos], "--dump-smt"))
+      app->dump = BTOR_DUMP_SMT2;
     else if (!strcmp (app->argv[app->argpos], "-m")
              || !strcmp (app->argv[app->argpos], "--model"))
       app->print_model = 1;
@@ -1020,7 +1017,7 @@ boolector_main (int argc, char **argv)
   BtorParser *parser              = 0;
   BtorParseOpt parse_opt;
   BtorMemMgr *mem = 0;
-  BoolectorNode *root, *tmp, *all;
+  BoolectorNode *root;
   BtorCharStack prefix;
 
   // FIXME api?? (is util fct)
@@ -1036,6 +1033,7 @@ boolector_main (int argc, char **argv)
   app.basis           = BTOR_BINARY_BASIS;
   app.rewrite_level   = 3;
   app.pprint          = 1;
+  static_set_alarm    = 0;
 
   parse_commandline_arguments (&app);
 
@@ -1331,101 +1329,39 @@ boolector_main (int argc, char **argv)
       fprintf (app.output_file, "%s\n", parse_error);
       app.err = 1;
     }
-    else if (app.dump_exp)
+    else if (app.dump)
     {
-      if (app.verbosity > 0) msg_main_va_args ("dumping BTOR expressions\n");
-
       assert (app.rewrite_level >= 0);
       assert (app.rewrite_level <= 3);
-      if (app.rewrite_level >= 1)
-      {
-        for (i = 0; i < parse_res.noutputs; i++)
-        {
-          root     = parse_res.outputs[i];
-          root_len = boolector_get_width (btor, root);
-          assert (root_len >= 1);
-          if (root_len > 1)
-            root = boolector_redor (btor, root);
-          else
-            root = boolector_copy (btor, root);
-          boolector_assert (btor, root);
-          boolector_release (btor, root);
-        }
-        parser_api->reset (parser);
-        parser_api = 0;
-        boolector_dump_btor_all (btor, app.output_file);
-      }
-      else
-      {
-        for (i = 0; i < parse_res.noutputs; i++)
-          boolector_dump_btor (btor, app.output_file, parse_res.outputs[i]);
-      }
-      app.done = 1;
-    }
-    else if (app.dump_smt)
-    {
+
       if (app.verbosity > 0)
       {
-        if (app.dump_smt < 2)
-          msg_main_va_args ("dumping in SMT 1.2 format\n");
+        if (app.dump == BTOR_DUMP_BTOR)
+          msg_main_va_args ("dumping BTOR expressions\n");
         else
+        {
+          assert (app.dump == BTOR_DUMP_SMT2);
           msg_main_va_args ("dumping in SMT 2.0 format\n");
-      }
-
-      assert (app.rewrite_level >= 0);
-      assert (app.rewrite_level <= 3);
-      if (app.rewrite_level >= 1)
-      {
-        for (i = 0; i < parse_res.noutputs; i++)
-        {
-          root     = parse_res.outputs[i];
-          root_len = boolector_get_width (btor, root);
-          assert (root_len >= 1);
-          if (root_len > 1)
-            root = boolector_redor (btor, root);
-          else
-            root = boolector_copy (btor, root);
-          boolector_assert (btor, root);
-          boolector_release (btor, root);
         }
-        parser_api->reset (parser);
-        parser_api = 0;
-
-        if (app.dump_smt <= 1)
-          boolector_dump_smt_all (btor, app.output_file);
-        else
-          boolector_dump_smt2_all (btor, app.output_file);
       }
+      for (i = 0; i < parse_res.noutputs; i++)
+      {
+        root     = parse_res.outputs[i];
+        root_len = boolector_get_width (btor, root);
+        assert (root_len >= 1);
+        if (root_len > 1)
+          root = boolector_redor (btor, root);
+        else
+          root = boolector_copy (btor, root);
+        boolector_assert (btor, root);
+        boolector_release (btor, root);
+      }
+      parser_api->reset (parser);
+      parser_api = 0;
+      if (app.dump == BTOR_DUMP_BTOR)
+        boolector_dump_btor (btor, app.output_file);
       else
-      {
-        all = 0;
-        for (i = 0; i < parse_res.noutputs; i++)
-        {
-          root     = parse_res.outputs[i];
-          root_len = boolector_get_width (btor, root);
-          assert (root_len >= 1);
-          if (root_len > 1)
-            root = boolector_redor (btor, root);
-          else
-            root = boolector_copy (btor, root);
-          if (all)
-          {
-            tmp = boolector_and (btor, all, root);
-            boolector_release (btor, root);
-            boolector_release (btor, all);
-            all = tmp;
-          }
-          else
-            all = root;
-        }
-        if (app.dump_smt <= 1)
-          boolector_dump_smt (btor, app.output_file, all);
-        else
-          boolector_dump_smt2 (btor, app.output_file, all);
-
-        if (all) boolector_release (btor, all);
-      }
-
+        boolector_dump_smt2 (btor, app.output_file);
       app.done = 1;
     }
     else

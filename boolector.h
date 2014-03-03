@@ -1162,7 +1162,7 @@ void boolector_release (Btor *btor, BoolectorNode *node);
  * The file must be have been opened by the user before.
  * \param node The expression which should be dumped.
  */
-void boolector_dump_btor (Btor *btor, FILE *file, BoolectorNode *node);
+void boolector_dump_btor_node (Btor *btor, FILE *file, BoolectorNode *node);
 
 /**
  * Dumps formula to file in BTOR format.
@@ -1171,26 +1171,7 @@ void boolector_dump_btor (Btor *btor, FILE *file, BoolectorNode *node);
  * \param file File to which the formula should be dumped.
  * The file must be have been opened by the user before.
  */
-void boolector_dump_btor_all (Btor *btor, FILE *file);
-
-/**
- * Recursively dumps expression to file.
- *<a
- *href="http://smtlib.cs.uiowa.edu/papers/format-v1.2-r06.08.30.pdf">SMT-LIB 1.2</a>
- *is used as format. \param btor Boolector instance. \param file File to which
- *the expression should be dumped. The file must be have been opened by the
- *user before. \param node The expression which should be dumped.
- */
-void boolector_dump_smt (Btor *btor, FILE *file, BoolectorNode *node);
-
-/**
- * Dumps formula to file in SMT-LIB format.
- *<a
- *href="http://smtlib.cs.uiowa.edu/papers/format-v1.2-r06.08.30.pdf">SMT-LIB 1.2</a>
- *is used as format. \param btor Boolector instance. \param btor Boolector
- *instance \param file Output file.
- */
-void boolector_dump_smt_all (Btor *btor, FILE *file);
+void boolector_dump_btor (Btor *btor, FILE *file);
 
 /**
  * Recursively dumps expression to file.
@@ -1200,7 +1181,7 @@ void boolector_dump_smt_all (Btor *btor, FILE *file);
  *which the expression should be dumped. The file must be have been opened by
  *the user before. \param node The expression which should be dumped.
  */
-void boolector_dump_smt2 (Btor *btor, FILE *file, BoolectorNode *node);
+void boolector_dump_smt2_node (Btor *btor, FILE *file, BoolectorNode *node);
 
 /**
  * Dumps formula to file in SMT-LIB format.
@@ -1209,7 +1190,7 @@ void boolector_dump_smt2 (Btor *btor, FILE *file, BoolectorNode *node);
  *2.0</a> is used as format. \param btor Boolector instance. \param btor
  *Boolector instance \param file Output file.
  */
-void boolector_dump_smt2_all (Btor *btor, FILE *file);
+void boolector_dump_smt2 (Btor *btor, FILE *file);
 
 /**
  * Adds constraint. Use this function to assert 'node'.
