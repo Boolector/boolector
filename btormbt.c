@@ -122,6 +122,7 @@
 #define P_COND 0.33
 #define P_EQ 0.5
 #define P_INC 0.33
+#define P_DUMP 0.1
 
 #define EXIT_OK 0
 #define EXIT_ERROR 1
@@ -369,7 +370,9 @@
   " --p-inc <val>                     probability of choosing an " \
                                       "incremental step\n" \
   "                                   (default: " \
-				      BTORMBT_M2STR (P_INC) ")\n"
+				      BTORMBT_M2STR (P_INC) ")\n" \
+  " --p-dump <val>		      probabilty of dumping formula " \
+  "				      (default: " BTORMBT_M2STR (P_DUMP) ")\n"
 
 /*------------------------------------------------------------------------*/
 
@@ -628,6 +631,7 @@ typedef struct BtorMBT
   int p_cond;          /* probability of choosing cond over eq/ne */
   int p_eq;            /* probability of choosing eq over ne */
   int p_inc;           /* probability of choosing an incremental step */
+  int p_dump;          /* probability of dumping formula and exit */
 
   int r_addop_init; /* number of add operations (wrt to number of release
                        operations (initial layer) */
@@ -647,6 +651,7 @@ typedef struct BtorMBT
   int is_init;
   int inc;
   int mgen;
+  int dump;
 
   /* prob. distribution of variables, constants, arrays in current round */
   float p_var, p_const, p_arr;
@@ -768,6 +773,7 @@ new_btormbt (void)
   btormbt->p_cond                 = P_COND * NORM_VAL;
   btormbt->p_eq                   = P_EQ * NORM_VAL;
   btormbt->p_inc                  = P_INC * NORM_VAL;
+  btormbt->p_dump                 = P_DUMP * NORM_VAL;
   return btormbt;
 }
 
@@ -1841,6 +1847,7 @@ static void *_lit (BtorMBT *, unsigned);
 static void *_relop (BtorMBT *, unsigned);
 static void *_ass (BtorMBT *, unsigned);
 static void *_sat (BtorMBT *, unsigned);
+static void *_dump (BtorMBT *, unsigned);
 static void *_mgen (BtorMBT *, unsigned);
 static void *_inc (BtorMBT *, unsigned);
 static void *_del (BtorMBT *, unsigned);
@@ -1904,31 +1911,38 @@ _opt (BtorMBT *btormbt, unsigned r)
   BTORMBT_LOG (1, "enable force cleanup");
   boolector_enable_force_cleanup (btormbt->btor);
 
-#ifndef NBTORLOG
   if (btormbt->bloglevel)
   {
     BTORMBT_LOG (1, "boolector log level: '%d'", btormbt->bloglevel);
     boolector_set_loglevel (btormbt->btor, btormbt->bloglevel);
   }
-#endif
   if (btormbt->bverblevel)
   {
     BTORMBT_LOG (1, "boolector verbose level: '%d'", btormbt->bverblevel);
     boolector_set_verbosity (btormbt->btor, btormbt->bverblevel);
   }
+
+  if (pick (&rng, 0, NORM_VAL - 1) < btormbt->p_dump) btormbt->dump = 1;
+
   btormbt->mgen = 0;
-  if (!btormbt->force_nomgen && pick (&rng, 0, 1))
+  if (!btormbt->dump && !btormbt->force_nomgen && pick (&rng, 0, 1))
   {
     BTORMBT_LOG (1, "enable model generation");
     boolector_enable_model_gen (btormbt->btor);
     btormbt->mgen = 1;
   }
 
-  if (pick (&rng, 0, 1))
+  if (!btormbt->dump && pick (&rng, 0, 1))
   {
     BTORMBT_LOG (1, "enable incremental usage");
     boolector_enable_inc_usage (btormbt->btor);
     btormbt->inc = 1;
+  }
+
+  if (pick (&rng, 0, 9) == 5)
+  {
+    BTORMBT_LOG (1, "enable full beta reduction");
+    boolector_enable_beta_reduce_all (btormbt->btor);
   }
 
   rw = pick (&rng, 0, 3);
@@ -2051,6 +2065,8 @@ _main (BtorMBT *btormbt, unsigned r)
                "after main: number of asserts: %d, assumps: %d",
                btormbt->tot_nasserts,
                btormbt->nassumes);
+
+  if (btormbt->dump) return _dump;
 
   return _sat;
 }
@@ -2247,6 +2263,22 @@ _ass (BtorMBT *btormbt, unsigned r)
     btormbt->tot_nasserts++;
   }
   return _main;
+}
+
+static void *
+_dump (BtorMBT *btormbt, unsigned r)
+{
+  assert (!btormbt->inc);
+  assert (!btormbt->mgen);
+
+  RNG rng;
+  rng = initrng (r);
+
+  if (pick (&rng, 0, 1))
+    boolector_dump_btor (btormbt->btor, stdout);
+  else
+    boolector_dump_smt2 (btormbt->btor, stdout);
+  return _del;
 }
 
 static void *
@@ -2623,7 +2655,10 @@ sig_handler (int sig)
   char str[100];
 
   sprintf (str, "*** btormbt: caught signal %d\n\n", sig);
-  (void) write (STDOUT_FILENO, str, strlen (str));
+  if (!write (STDOUT_FILENO, str, strlen (str)))
+  {
+    // error message failed ....
+  }
   /* Note: if _exit is used here (which is reentrant, in contrast to exit),
    *       atexit handler is not called. Hence, use exit here. */
   exit (EXIT_ERROR);
@@ -3119,7 +3154,7 @@ main (int argc, char **argv)
       if (!isfloatnumstr (argv[i]))
         die ("argument to '--p-param-arr-exp' is not a number (try '-h')");
       btormbt->p_param_arr_exp = atof (argv[i]) * NORM_VAL;
-      if (btormbt->p_param_exp > NORM_VAL)
+      if (btormbt->p_param_arr_exp > NORM_VAL)
         die ("argument to '--p-param-arr-exp' must be < 1.0");
     }
     else if (!strcmp (argv[i], "--p-apply-fun"))
@@ -3128,7 +3163,7 @@ main (int argc, char **argv)
       if (!isfloatnumstr (argv[i]))
         die ("argument to '--p-apply-fun' is not a number (try '-h')");
       btormbt->p_apply_fun = atof (argv[i]) * NORM_VAL;
-      if (btormbt->p_param_exp > NORM_VAL)
+      if (btormbt->p_apply_fun > NORM_VAL)
         die ("argument to '--p-apply-fun' must be < 1.0");
     }
     else if (!strcmp (argv[i], "--p-rw"))
@@ -3137,8 +3172,7 @@ main (int argc, char **argv)
       if (!isfloatnumstr (argv[i]))
         die ("argument to '--p-rw' is not a number (try '-h')");
       btormbt->p_rw = atof (argv[i]) * NORM_VAL;
-      if (btormbt->p_param_exp > NORM_VAL)
-        die ("argument to '--p-rw' must be < 1.0");
+      if (btormbt->p_rw > NORM_VAL) die ("argument to '--p-rw' must be < 1.0");
     }
     else if (!strcmp (argv[i], "--p-read"))
     {
@@ -3146,7 +3180,7 @@ main (int argc, char **argv)
       if (!isfloatnumstr (argv[i]))
         die ("argument to '--p-read' is not a number (try '-h')");
       btormbt->p_read = atof (argv[i]) * NORM_VAL;
-      if (btormbt->p_param_exp > NORM_VAL)
+      if (btormbt->p_read > NORM_VAL)
         die ("argument to '--p-read' must be < 1.0");
     }
     else if (!strcmp (argv[i], "--p-cond"))
@@ -3155,7 +3189,7 @@ main (int argc, char **argv)
       if (!isfloatnumstr (argv[i]))
         die ("argument to '--p-cond' is not a number (try '-h')");
       btormbt->p_cond = atof (argv[i]) * NORM_VAL;
-      if (btormbt->p_param_exp > NORM_VAL)
+      if (btormbt->p_cond > NORM_VAL)
         die ("argument to '--p-cond' must be < 1.0");
     }
     else if (!strcmp (argv[i], "--p-eq"))
@@ -3164,8 +3198,7 @@ main (int argc, char **argv)
       if (!isfloatnumstr (argv[i]))
         die ("argument to '--p-eq' is not a number (try '-h')");
       btormbt->p_eq = atof (argv[i]) * NORM_VAL;
-      if (btormbt->p_param_exp > NORM_VAL)
-        die ("argument to '--p-eq' must be < 1.0");
+      if (btormbt->p_eq > NORM_VAL) die ("argument to '--p-eq' must be < 1.0");
     }
     else if (!strcmp (argv[i], "--p-inc"))
     {
@@ -3173,7 +3206,16 @@ main (int argc, char **argv)
       if (!isfloatnumstr (argv[i]))
         die ("argument to '--p-inc' is not a number (try '-h')");
       btormbt->p_inc = atof (argv[i]) * NORM_VAL;
-      if (btormbt->p_param_exp > NORM_VAL)
+      if (btormbt->p_inc > NORM_VAL)
+        die ("argument to '--p-inc' must be < 1.0");
+    }
+    else if (!strcmp (argv[i], "--p-dump"))
+    {
+      if (++i == argc) die ("argument to '--p-dump' missing (try '-h')");
+      if (!isfloatnumstr (argv[i]))
+        die ("argument to '--p-dump' is not a number (try '-h')");
+      btormbt->p_dump = atof (argv[i]) * NORM_VAL;
+      if (btormbt->p_dump > NORM_VAL)
         die ("argument to '--p-inc' must be < 1.0");
     }
     else if (!isnumstr (argv[i]))

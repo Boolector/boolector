@@ -2,7 +2,7 @@
  *
  *  Copyright (C) 2013 Christian Reisenberger.
  *  Copyright (C) 2013-2014 Aina Niemetz.
- *  Copyright (C) 2013 Mathias Preiner.
+ *  Copyright (C) 2013-2014 Mathias Preiner.
  *
  *  All rights reserved.
  *
@@ -65,6 +65,12 @@ new_btorunt (void)
   memset (btorunt, 0, sizeof (BtorUNT));
 
   return btorunt;
+}
+
+static void
+delete_btorunt (BtorUNT *btorunt)
+{
+  free (btorunt);
 }
 
 void boolector_chkclone (Btor *);
@@ -227,7 +233,7 @@ hmap_clear (BtorPtrHashTable *hmap)
 void
 parse (FILE *file)
 {
-  int i, ch;
+  int i, ch, delete = 1;
   int exp_ret;
   int arg1_int, arg2_int, arg3_int, ret_int;
   char *arg1_str, *arg2_str, *arg3_str, *ret_str, *exp_str;
@@ -362,13 +368,11 @@ NEXT:
     PARSE_ARGS1 (tok, int);
     boolector_set_verbosity (btor, arg1_int);
   }
-#ifndef NBTORLOG
   else if (!strcmp (tok, "set_loglevel"))
   {
     PARSE_ARGS1 (tok, int);
     boolector_set_loglevel (btor, arg1_int);
   }
-#endif
   else if (!strcmp (tok, "set_sat_solver"))
   {
     PARSE_ARGS1 (tok, str);
@@ -390,6 +394,7 @@ NEXT:
   {
     PARSE_ARGS0 (tok);
     boolector_delete (btor);
+    delete = 0;
   }
   else if (!strcmp (tok, "simplify"))
   {
@@ -1051,6 +1056,16 @@ NEXT:
     boolector_free_array_assignment (
         btor, hmap_get (hmap, arg1_str), hmap_get (hmap, arg2_str), arg3_int);
   }
+  else if (!strcmp (tok, "dump_btor"))
+  {
+    PARSE_ARGS0 (tok);
+    boolector_dump_btor (btor, stdout);
+  }
+  else if (!strcmp (tok, "dump_smt2"))
+  {
+    PARSE_ARGS0 (tok);
+    boolector_dump_smt2 (btor, stdout);
+  }
   else
     perr ("invalid command '%s'", tok);
   btorunt->line++;
@@ -1061,6 +1076,7 @@ DONE:
   hmap_clear (hmap);
   btor_delete_ptr_hash_table (hmap);
   btor_delete_mem_mgr (mm);
+  if (delete) boolector_delete (btor);
 }
 
 static void
@@ -1129,7 +1145,7 @@ main (int argc, char **argv)
   }
 
   parse (file);
-
   fclose (file);
+  delete_btorunt (btorunt);
   return 0;
 }

@@ -157,7 +157,10 @@ struct Btor
   int closeapitrace;
 
   /* statistics */
-  int ops[BTOR_NUM_OPS_NODE];
+  struct
+  {
+    int cur, max;
+  } ops[BTOR_NUM_OPS_NODE];
   struct
   {
     int max_rec_rw_calls; /* maximum number of recursive rewrite calls */

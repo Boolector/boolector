@@ -1,7 +1,7 @@
 /*  Boolector: Satisfiablity Modulo Theories (SMT) solver.
  *
  *  Copyright (C) 2007-2009 Robert Daniel Brummayer.
- *  Copyright (C) 2007-2013 Armin Biere.
+ *  Copyright (C) 2007-2014 Armin Biere.
  *
  *  All rights reserved.
  *
@@ -52,6 +52,8 @@ int btor_is_zero_const (const char *str);
 int btor_is_one_const (const char *str);
 
 int btor_is_ones_const (const char *str);
+
+int btor_is_power_of_two_const (const char *str);
 
 int btor_is_zero_or_ones_const (const char *str);
 

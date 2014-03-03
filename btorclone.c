@@ -2,6 +2,7 @@
  *
  *  Copyright (C) 2013 Aina Niemetz.
  *  Copyright (C) 2014 Mathias Preiner.
+ *  Copyright (C) 2014 armin Biere.
  *
  *  All rights reserved.
  *
@@ -468,6 +469,8 @@ btor_clone_btor (Btor *btor)
           &btor->stats,
           (char *) btor + sizeof (*btor) - (char *) &btor->stats);
   assert ((allocated = sizeof (Btor)) == clone->mm->allocated);
+
+  memcpy (&clone->ops, &btor->ops, sizeof btor->ops);
 
   BTORLOG_TIMESTAMP (delta);
   clone->bv_assignments =
