@@ -7230,8 +7230,8 @@ btor_sat_aux_btor (Btor *btor)
                "\r[btorcore] refinement iteration %d, "
                "vars %d, applies %d\r",
                refinements,
-               btor->ops[BTOR_BV_VAR_NODE],
-               btor->ops[BTOR_APPLY_NODE]);
+               btor->ops[BTOR_BV_VAR_NODE].cur,
+               btor->ops[BTOR_APPLY_NODE].cur);
       fflush (stdout);
     }
     else if (btor->verbosity > 1)
