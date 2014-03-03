@@ -2249,13 +2249,15 @@ simplify_constraint_exp (Btor *btor, BtorNode *exp)
 BtorNode *
 btor_simplify_exp (Btor *btor, BtorNode *exp)
 {
-  assert (btor);
-  assert (exp);
-
   BtorNode *real_exp, *result;
   BtorPtrHashBucket *bucket;
 
+  assert (btor);
+  assert (exp);
+
   real_exp = BTOR_REAL_ADDR_NODE (exp);
+  assert (real_exp->btor == btor);
+  assert (real_exp->refs > 0);
 
   if (btor->substitutions)
   {
@@ -2281,6 +2283,9 @@ btor_simplify_exp (Btor *btor, BtorNode *exp)
   /* NOTE: embedded constraints rewriting is enabled with rwl > 1 */
   if (BTOR_REAL_ADDR_NODE (result)->constraint && btor->rewrite_level > 1)
     return simplify_constraint_exp (btor, result);
+
+  assert (BTOR_REAL_ADDR_NODE (result)->btor == btor);
+  assert (BTOR_REAL_ADDR_NODE (result)->refs > 0);
 
   return result;
 }

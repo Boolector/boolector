@@ -903,12 +903,13 @@ boolector_btor (BoolectorNode *node)
   BtorNode *exp, *real_exp, *simp, *real_simp;
   Btor *btor;
   BTOR_ABORT_ARG_NULL_BOOLECTOR (node);
-  exp       = BTOR_IMPORT_BOOLECTOR_NODE (node);
+  exp = BTOR_IMPORT_BOOLECTOR_NODE (node);
+  BTOR_ABORT_REFS_NOT_POS_BOOLECTOR (exp);
   real_exp  = BTOR_REAL_ADDR_NODE (exp);
   simp      = btor_simplify_exp (real_exp->btor, exp);
   real_simp = BTOR_REAL_ADDR_NODE (simp);
   btor      = real_simp->btor;
-  assert (btor == real_exp->btor);
+  assert (real_simp->btor == real_exp->btor);
   BTOR_TRAPI ("btor", exp);
 #ifndef NDEBUG
   if (btor->clone)
