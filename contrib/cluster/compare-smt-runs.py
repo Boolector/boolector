@@ -439,40 +439,43 @@ def _print_data ():
                     color,
                     fname.rjust(name_col_width),
                     " | ".join("{}{}{}{}{}{}{}{}".format (
-                        COLOR_DIFF \
-                        if (g_best_diff_run_lods[f]
-                            and g_best_diff_run_lods[f] == d
-                            and g_args.cmp_col == "lods")
-                           or (g_best_diff_run_satcalls[f] 
-                               and g_best_diff_run_satcalls[f] == d 
-                               and g_args.cmp_col == "calls") \
-                           or (g_best_diff_run_time_sat[f]
-                               and g_best_diff_run_time_sat[f] == d
-                               and g_args.cmp_col == "sat") \
-                           or (g_best_diff_run_time_rw[f]
-                               and g_best_diff_run_time_rw[f] == d 
-                               and g_args.cmp_col == "rw") \
-                           or (g_best_diff_run_time_beta[f]
-                               and g_best_diff_run_time_beta[f] == d
-                               and g_args.cmp_col == "beta") \
-                        else ( \
-                            COLOR_BEST \
-                            if (g_best_run_lods[f]
-                                and g_best_run_lods[f] == d
-                                and g_args.cmp_col == "lods") \
-                               or (g_best_run_satcalls[f] 
-                                   and g_best_run_satcalls[f] == d
-                                   and g_args.cmp_col == "calls") \
-                               or (g_best_run_time_sat[f]
-                                   and g_best_run_time_sat[f] == d
-                                   and g_args.cmp_col == "sat") \
-                               or (g_best_run_time_rw[f]
-                                   and g_best_run_time_rw[f] == d
-                                   and g_args.cmp_col == "rw") \
-                               or (g_best_run_time_beta[f]
-                                   and g_best_run_time_beta[f] == d
-                                   and g_args.cmp_col == "beta")
-                            else COLOR_NOCOLOR),
+                        color \
+                            if color != COLOR_NOCOLOR \
+                            else (\
+                                COLOR_DIFF
+                                if (g_best_diff_run_lods[f]
+                                    and g_best_diff_run_lods[f] == d
+                                    and g_args.cmp_col == "lods")
+                                   or (g_best_diff_run_satcalls[f] 
+                                       and g_best_diff_run_satcalls[f] == d 
+                                       and g_args.cmp_col == "calls") \
+                                   or (g_best_diff_run_time_sat[f]
+                                       and g_best_diff_run_time_sat[f] == d
+                                       and g_args.cmp_col == "sat") \
+                                   or (g_best_diff_run_time_rw[f]
+                                       and g_best_diff_run_time_rw[f] == d 
+                                       and g_args.cmp_col == "rw") \
+                                   or (g_best_diff_run_time_beta[f]
+                                       and g_best_diff_run_time_beta[f] == d
+                                       and g_args.cmp_col == "beta") \
+                                else ( \
+                                    COLOR_BEST \
+                                    if (g_best_run_lods[f]
+                                        and g_best_run_lods[f] == d
+                                        and g_args.cmp_col == "lods") \
+                                       or (g_best_run_satcalls[f] 
+                                           and g_best_run_satcalls[f] == d
+                                           and g_args.cmp_col == "calls") \
+                                       or (g_best_run_time_sat[f]
+                                           and g_best_run_time_sat[f] == d
+                                           and g_args.cmp_col == "sat") \
+                                       or (g_best_run_time_rw[f]
+                                           and g_best_run_time_rw[f] == d
+                                           and g_args.cmp_col == "rw") \
+                                       or (g_best_run_time_beta[f]
+                                           and g_best_run_time_beta[f] == d
+                                           and g_args.cmp_col == "beta")
+                                    else COLOR_NOCOLOR)),
                         g_run_status[d][idx].rjust(stat_col_width),
                         str(g_run_lods[d][idx]).rjust(lods_col_width[d]) \
                                 if idx in g_run_lods[d] \
