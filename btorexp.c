@@ -69,6 +69,7 @@ btor_precond_slice_exp_dbg (const Btor *btor,
   assert (upper >= lower);
   assert (upper < BTOR_REAL_ADDR_NODE (exp)->len);
   assert (BTOR_REAL_ADDR_NODE (exp)->len > 0);
+  assert (BTOR_REAL_ADDR_NODE (exp)->btor == btor);
   return 1;
 }
 
@@ -88,6 +89,7 @@ btor_precond_regular_unary_bv_exp_dbg (const Btor *btor, const BtorNode *exp)
   assert (!BTOR_REAL_ADDR_NODE (exp)->simplified);
   assert (!BTOR_IS_FUN_NODE (BTOR_REAL_ADDR_NODE (exp)));
   assert (BTOR_REAL_ADDR_NODE (exp)->len > 0);
+  assert (BTOR_REAL_ADDR_NODE (exp)->btor == btor);
   return 1;
 }
 
@@ -107,6 +109,9 @@ btor_precond_eq_exp_dbg (const Btor *btor,
   real_e1     = BTOR_REAL_ADDR_NODE (e1);
   is_array_e0 = BTOR_IS_FUN_NODE (real_e0);
   is_array_e1 = BTOR_IS_FUN_NODE (real_e1);
+
+  assert (real_e0->btor == btor);
+  assert (real_e1->btor == btor);
 
   assert (real_e0);
   assert (real_e1);
@@ -139,6 +144,8 @@ btor_precond_concat_exp_dbg (const Btor *btor,
   assert (BTOR_REAL_ADDR_NODE (e1)->len > 0);
   assert (BTOR_REAL_ADDR_NODE (e0)->len
           <= INT_MAX - BTOR_REAL_ADDR_NODE (e1)->len);
+  assert (BTOR_REAL_ADDR_NODE (e0)->btor == btor);
+  assert (BTOR_REAL_ADDR_NODE (e1)->btor == btor);
   return 1;
 }
 
@@ -159,6 +166,8 @@ btor_precond_shift_exp_dbg (const Btor *btor,
   assert (btor_is_power_of_2_util (BTOR_REAL_ADDR_NODE (e0)->len));
   assert (btor_log_2_util (BTOR_REAL_ADDR_NODE (e0)->len)
           == BTOR_REAL_ADDR_NODE (e1)->len);
+  assert (BTOR_REAL_ADDR_NODE (e0)->btor == btor);
+  assert (BTOR_REAL_ADDR_NODE (e1)->btor == btor);
   return 1;
 }
 
@@ -176,6 +185,8 @@ btor_precond_regular_binary_bv_exp_dbg (const Btor *btor,
   assert (!BTOR_IS_FUN_NODE (BTOR_REAL_ADDR_NODE (e1)));
   assert (BTOR_REAL_ADDR_NODE (e0)->len == BTOR_REAL_ADDR_NODE (e1)->len);
   assert (BTOR_REAL_ADDR_NODE (e0)->len > 0);
+  assert (BTOR_REAL_ADDR_NODE (e0)->btor == btor);
+  assert (BTOR_REAL_ADDR_NODE (e1)->btor == btor);
   return 1;
 }
 
@@ -197,6 +208,8 @@ btor_precond_read_exp_dbg (const Btor *btor,
   assert (BTOR_IS_LAMBDA_NODE (e_array)
           || BTOR_ARRAY_INDEX_LEN (e_array)
                  == BTOR_REAL_ADDR_NODE (e_index)->len);
+  assert (BTOR_REAL_ADDR_NODE (e_array)->btor == btor);
+  assert (BTOR_REAL_ADDR_NODE (e_index)->btor == btor);
   return 1;
 }
 
@@ -221,6 +234,9 @@ btor_precond_write_exp_dbg (const Btor *btor,
   assert (BTOR_REAL_ADDR_NODE (e_index)->len > 0);
   assert (e_array->len == BTOR_REAL_ADDR_NODE (e_value)->len);
   assert (BTOR_REAL_ADDR_NODE (e_value)->len > 0);
+  assert (BTOR_REAL_ADDR_NODE (e_array)->btor == btor);
+  assert (BTOR_REAL_ADDR_NODE (e_index)->btor == btor);
+  assert (BTOR_REAL_ADDR_NODE (e_value)->btor == btor);
   return 1;
 }
 
@@ -250,6 +266,10 @@ btor_precond_cond_exp_dbg (const Btor *btor,
 
   assert (real_e_if->len == real_e_else->len);
   assert (real_e_if->len > 0);
+
+  assert (BTOR_REAL_ADDR_NODE (e_cond)->btor == btor);
+  assert (real_e_if->btor == btor);
+  assert (real_e_else->btor == btor);
   return 1;
 }
 

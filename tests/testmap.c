@@ -160,6 +160,27 @@ test_map2 ()
   btor_delete_btor (mtor);
 }
 
+void
+test_map3 ()
+{
+  Btor *stor       = btor_new_btor ();
+  Btor *dtor       = btor_new_btor ();
+  Btor *mtor       = btor_new_btor ();
+  BtorNode *s      = btor_var_exp (stor, 32, "0");
+  BtorNode *t      = btor_var_exp (stor, 32, "1");
+  BtorNode *a      = btor_and_exp (stor, s, t);
+  BtorNodeMap *map = btor_new_node_map (mtor);
+  // BtorNode * m;
+  // m = btor_mapped_node (map, s);
+  btor_release_exp (stor, t);
+  btor_release_exp (stor, s);
+  btor_release_exp (stor, a);
+  btor_delete_node_map (map);
+  btor_delete_btor (stor);
+  btor_delete_btor (dtor);
+  btor_delete_btor (mtor);
+}
+
 /*------------------------------------------------------------------------*/
 
 void
@@ -169,4 +190,5 @@ run_map_tests (int argc, char **argv)
   BTOR_RUN_TEST (map0);
   BTOR_RUN_TEST (map1);
   BTOR_RUN_TEST (map2);
+  BTOR_RUN_TEST (map3);
 }
