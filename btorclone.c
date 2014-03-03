@@ -2,7 +2,7 @@
  *
  *  Copyright (C) 2013-2014 Aina Niemetz.
  *  Copyright (C) 2014 Mathias Preiner.
- *  Copyright (C) 2014 armin Biere.
+ *  Copyright (C) 2014 Armin Biere.
  *
  *  All rights reserved.
  *
@@ -489,9 +489,8 @@ btor_clone_btor (Btor *btor)
   memcpy (&clone->stats,
           &btor->stats,
           (char *) btor + sizeof (*btor) - (char *) &btor->stats);
-  assert ((allocated = sizeof (Btor)) == clone->mm->allocated);
-
   memcpy (&clone->ops, &btor->ops, sizeof btor->ops);
+  assert ((allocated = sizeof (Btor)) == clone->mm->allocated);
 
   BTORLOG_TIMESTAMP (delta);
   clone->bv_assignments =
@@ -738,6 +737,7 @@ btor_clone_exp_layer (Btor *btor)
           (char *) &btor->lod_cache - (char *) &btor->bv_lambda_id);
   // memcpy (&clone->stats, &btor->stats,
   //        (char *) btor + sizeof (*btor) - (char *) &btor->stats);
+  memcpy (&clone->ops, &btor->ops, sizeof btor->ops);
   assert ((allocated = sizeof (Btor)) == clone->mm->allocated);
   clone->btor_sat_btor_called = 0; /* reset */
   clone->valid_assignments    = 0; /* reset */
