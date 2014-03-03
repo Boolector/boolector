@@ -93,9 +93,8 @@ is_const_zero_exp (Btor *btor, BtorNode *exp)
   return result;
 }
 
-#if 0
 static int
-is_const_ones_exp (Btor * btor, BtorNode * exp)
+is_const_ones_exp (Btor *btor, BtorNode *exp)
 {
   int result;
   BtorNode *real_exp;
@@ -105,14 +104,13 @@ is_const_ones_exp (Btor * btor, BtorNode * exp)
 
   exp = btor_simplify_exp (btor, exp);
 
-  if (!BTOR_IS_BV_CONST_NODE (BTOR_REAL_ADDR_NODE (exp)))
-    return 0;
+  if (!BTOR_IS_BV_CONST_NODE (BTOR_REAL_ADDR_NODE (exp))) return 0;
 
   if (BTOR_IS_INVERTED_NODE (exp))
-    {
-      real_exp = BTOR_REAL_ADDR_NODE (exp);
-      result = btor_is_zero_const (real_exp->bits);
-    }
+  {
+    real_exp = BTOR_REAL_ADDR_NODE (exp);
+    result   = btor_is_zero_const (real_exp->bits);
+  }
   else
     result = btor_is_ones_const (exp->bits);
 
@@ -120,15 +118,13 @@ is_const_ones_exp (Btor * btor, BtorNode * exp)
 }
 
 static int
-is_const_exp (Btor * btor, BtorNode * exp)
+is_const_exp (Btor *btor, BtorNode *exp)
 {
   assert (btor);
   assert (exp);
   exp = btor_pointer_chase_simplified_exp (btor, exp);
-  return  !BTOR_IS_BV_CONST_NODE (BTOR_REAL_ADDR_NODE (exp));
+  return BTOR_IS_BV_CONST_NODE (BTOR_REAL_ADDR_NODE (exp));
 }
-
-#endif
 
 static int
 is_const_zero_or_ones_exp (Btor *btor, BtorNode *exp)
@@ -3372,14 +3368,57 @@ btor_rewrite_ult_exp (Btor *btor, BtorNode *e0, BtorNode *e1)
 BtorNode *
 btor_rewrite_sll_exp (Btor *btor, BtorNode *e0, BtorNode *e1)
 {
-  BtorNode *result;
+  assert (btor->rewrite_level > 0);
+
+  int shiftlen;
+  char *bits, *len;
+  BtorNode *result, *real_e0, *real_e1, *zero, *slice;
 
   e0 = btor_simplify_exp (btor, e0);
   e1 = btor_simplify_exp (btor, e1);
   assert (btor_precond_shift_exp_dbg (btor, e0, e1));
-  assert (btor->rewrite_level > 0);
+  real_e0 = BTOR_REAL_ADDR_NODE (e0);
+  real_e1 = BTOR_REAL_ADDR_NODE (e1);
+
+  if (is_const_exp (btor, real_e1) && real_e1->len <= 32)
+  {
+    if (btor->rec_rw_calls >= BTOR_REC_RW_BOUND)
+      goto BTOR_REWRITE_SLL_NODE_NO_REWRITE;
+
+    BTOR_INC_REC_RW_CALL (btor);
+
+    bits = btor_strdup (btor->mm, real_e1->bits);
+    if (BTOR_IS_INVERTED_NODE (e1)) btor_invert_const (btor->mm, bits);
+    len = btor_const_to_decimal (btor->mm, bits);
+
+    shiftlen = atoi (len);
+    btor_freestr (btor->mm, bits);
+    btor_freestr (btor->mm, len);
+
+    if (shiftlen == 0)
+      result = btor_copy_exp (btor, e0);
+    else
+    {
+      assert (shiftlen > 0);
+      assert (shiftlen < real_e0->len);
+      zero   = btor_zero_exp (btor, shiftlen);
+      slice  = btor_slice_exp (btor, e0, real_e0->len - shiftlen - 1, 0);
+      result = btor_concat_exp (btor, slice, zero);
+      btor_release_exp (btor, zero);
+      btor_release_exp (btor, slice);
+    }
+
+    assert (BTOR_REAL_ADDR_NODE (result)->len == real_e0->len);
+    BTOR_DEC_REC_RW_CALL (btor);
+    return result;
+  }
+
   result = rewrite_binary_exp (btor, BTOR_SLL_NODE, e0, e1);
-  if (!result) result = btor_sll_exp_node (btor, e0, e1);
+  if (!result)
+  {
+  BTOR_REWRITE_SLL_NODE_NO_REWRITE:
+    result = btor_sll_exp_node (btor, e0, e1);
+  }
 
   return result;
 }
@@ -3387,13 +3426,57 @@ btor_rewrite_sll_exp (Btor *btor, BtorNode *e0, BtorNode *e1)
 BtorNode *
 btor_rewrite_srl_exp (Btor *btor, BtorNode *e0, BtorNode *e1)
 {
-  BtorNode *result;
+  assert (btor->rewrite_level > 0);
+
+  int shiftlen;
+  char *bits, *len;
+  BtorNode *result, *real_e0, *real_e1, *zero, *slice;
 
   e0 = btor_simplify_exp (btor, e0);
   e1 = btor_simplify_exp (btor, e1);
   assert (btor_precond_shift_exp_dbg (btor, e0, e1));
+  real_e0 = BTOR_REAL_ADDR_NODE (e0);
+  real_e1 = BTOR_REAL_ADDR_NODE (e1);
+
+  if (is_const_exp (btor, real_e1) && real_e1->len <= 32)
+  {
+    if (btor->rec_rw_calls >= BTOR_REC_RW_BOUND)
+      goto BTOR_REWRITE_SRL_NODE_NO_REWRITE;
+
+    BTOR_INC_REC_RW_CALL (btor);
+
+    bits = btor_strdup (btor->mm, real_e1->bits);
+    if (BTOR_IS_INVERTED_NODE (e1)) btor_invert_const (btor->mm, bits);
+    len = btor_const_to_decimal (btor->mm, bits);
+
+    shiftlen = atoi (len);
+    btor_freestr (btor->mm, bits);
+    btor_freestr (btor->mm, len);
+
+    if (shiftlen == 0)
+      result = btor_copy_exp (btor, e0);
+    else
+    {
+      assert (shiftlen > 0);
+      assert (shiftlen < real_e0->len);
+      zero   = btor_zero_exp (btor, shiftlen);
+      slice  = btor_slice_exp (btor, e0, real_e0->len - 1, shiftlen);
+      result = btor_concat_exp (btor, zero, slice);
+      btor_release_exp (btor, zero);
+      btor_release_exp (btor, slice);
+    }
+
+    assert (BTOR_REAL_ADDR_NODE (result)->len == real_e0->len);
+    BTOR_DEC_REC_RW_CALL (btor);
+    return result;
+  }
+
   result = rewrite_binary_exp (btor, BTOR_SRL_NODE, e0, e1);
-  if (!result) result = btor_srl_exp_node (btor, e0, e1);
+  if (!result)
+  {
+  BTOR_REWRITE_SRL_NODE_NO_REWRITE:
+    result = btor_srl_exp_node (btor, e0, e1);
+  }
 
   return result;
 }
@@ -3579,10 +3662,6 @@ btor_rewrite_concat_exp (Btor *btor, BtorNode *e0, BtorNode *e1)
 {
   BtorNode *result, *temp, *cur, *left, *right, *real_e0, *real_e1;
   BtorNodePtrStack stack, po_stack;
-// NOTE: corresponding rules disabled
-#if 0
-  BtorNode *t, *e;
-#endif
   BtorMemMgr *mm;
   int i;
 
@@ -3590,6 +3669,8 @@ btor_rewrite_concat_exp (Btor *btor, BtorNode *e0, BtorNode *e1)
   e1 = btor_simplify_exp (btor, e1);
   assert (btor_precond_concat_exp_dbg (btor, e0, e1));
   assert (btor->rewrite_level > 0);
+  real_e0 = BTOR_REAL_ADDR_NODE (e0);
+  real_e1 = BTOR_REAL_ADDR_NODE (e1);
 
   mm = btor->mm;
 
