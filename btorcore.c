@@ -708,7 +708,7 @@ btor_print_stats_btor (Btor *btor)
   if (btor->ops[BTOR_AEQ_NODE].cur)
     btor_msg (btor, 1, "virtual reads: %d", btor->stats.vreads);
 
-  if (verbosity > 2)
+  if (verbosity > 0)
   {
     btor_msg (btor, 2, "max rec. RW: %d", btor->stats.max_rec_rw_calls);
     btor_msg (btor,
@@ -3985,7 +3985,7 @@ btor_simplify (Btor *btor)
     if (btor->embedded_constraints->count) continue;
 
     /* rewrite/beta-reduce applies on lambdas */
-    if (btor->beta_reduce_all)
+    if (btor->beta_reduce_all || btor->ops[BTOR_APPLY_NODE].cur < 100)
     {
       beta_reduce_applies_on_lambdas (btor);
       assert (check_all_hash_tables_proxy_free_dbg (btor));
