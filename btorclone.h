@@ -10,8 +10,11 @@
 #ifndef BTORCLONE_H_INCLUDED
 #define BTORCLONE_H_INCLUDED
 
+#include "btormap.h"
+
 /* Clone an existing boolector instance. */
 Btor *btor_clone_btor (Btor *);
 
-Btor *btor_clone_exp_layer (Btor *);
+/* Clone the expression layer of an existing boolector instance. */
+Btor *btor_clone_exp_layer (Btor *, BtorNodeMap *, BtorNodeMap *);
 #endif

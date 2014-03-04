@@ -4776,7 +4776,7 @@ clone_exp_layer_negated (Btor *btor)
   BtorNode *root, *cur, *and;
   BtorHashTableIterator it;
 
-  clone = btor_clone_exp_layer (btor);
+  clone = btor_clone_exp_layer (btor, 0, 0);
   assert (!clone->synthesized_constraints->count);
   assert (clone->unsynthesized_constraints->count);
   btor_enable_inc_usage (clone);
