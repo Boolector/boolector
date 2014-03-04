@@ -1118,7 +1118,8 @@ main (int argc, char **argv)
     else if (!strcmp (argv[i], "-i")
              || !strcmp (argv[i], "--ignore-sat-result"))
       btorunt->ignore_sat = 1;
-    else if (!strcmp (argv[i], "-d") || !strcmp (argv[i], "--enable-dual-prop"))
+    else if (!strcmp (argv[i], "-dp")
+             || !strcmp (argv[i], "--enable-dual-prop"))
       btorunt->dual_prop = 1;
     else if (!strcmp (argv[i], "--blog"))
     {

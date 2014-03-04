@@ -2718,7 +2718,8 @@ main (int argc, char **argv)
       btormbt->force_nomgen = 1;
     else if (!strcmp (argv[i], "-e") || !strcmp (argv[i], "--extensionality"))
       btormbt->ext = 1;
-    else if (!strcmp (argv[i], "-d") || !strcmp (argv[i], "--enable-dual-prop"))
+    else if (!strcmp (argv[i], "-dp")
+             || !strcmp (argv[i], "--enable-dual-prop"))
       btormbt->dual_prop = 1;
     else if (!strcmp (argv[i], "-s") || !strcmp (argv[i], "--shadow-clone"))
       btormbt->shadow = 1;
