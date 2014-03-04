@@ -1626,7 +1626,7 @@ btor_beta_reduce_partial_aux (Btor *btor,
       *evalerr = 1;
   }
 
-  init_node_hash_table_iterator (btor, &it, mark);
+  init_node_hash_table_iterator (&it, mark);
   while (has_next_node_hash_table_iterator (&it))
     btor_release_exp (btor, next_node_hash_table_iterator (&it));
 

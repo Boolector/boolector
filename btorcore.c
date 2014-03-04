@@ -221,7 +221,7 @@ check_constraints_not_const_dbg (Btor *btor)
   BtorNode *cur;
   BtorHashTableIterator it;
 
-  init_node_hash_table_iterator (btor, &it, btor->unsynthesized_constraints);
+  init_node_hash_table_iterator (&it, btor->unsynthesized_constraints);
   while (has_next_node_hash_table_iterator (&it))
   {
     cur = next_node_hash_table_iterator (&it);
@@ -230,7 +230,7 @@ check_constraints_not_const_dbg (Btor *btor)
     if (BTOR_IS_BV_CONST_NODE (cur)) return 0;
   }
 
-  init_node_hash_table_iterator (btor, &it, btor->synthesized_constraints);
+  init_node_hash_table_iterator (&it, btor->synthesized_constraints);
   while (has_next_node_hash_table_iterator (&it))
   {
     cur = next_node_hash_table_iterator (&it);
@@ -1160,7 +1160,7 @@ update_assumptions (Btor *btor)
   ass = btor_new_ptr_hash_table (btor->mm,
                                  (BtorHashPtr) btor_hash_exp_by_id,
                                  (BtorCmpPtr) btor_compare_exp_by_id);
-  init_node_hash_table_iterator (btor, &it, btor->assumptions);
+  init_node_hash_table_iterator (&it, btor->assumptions);
   while (has_next_node_hash_table_iterator (&it))
   {
     cur = next_node_hash_table_iterator (&it);
@@ -3014,7 +3014,7 @@ process_embedded_constraints (Btor *btor)
     start = btor_time_stamp ();
     count = 0;
     BTOR_INIT_STACK (ec);
-    init_node_hash_table_iterator (btor, &it, btor->embedded_constraints);
+    init_node_hash_table_iterator (&it, btor->embedded_constraints);
     while (has_next_node_hash_table_iterator (&it))
     {
       cur = btor_copy_exp (btor, next_node_hash_table_iterator (&it));
@@ -3577,7 +3577,7 @@ process_skeleton (Btor *btor)
   BTOR_INIT_STACK (work_stack);
   BTOR_INIT_STACK (unmark_stack);
 
-  init_node_hash_table_iterator (btor, &it, btor->synthesized_constraints);
+  init_node_hash_table_iterator (&it, btor->synthesized_constraints);
   queue_node_hash_table_iterator (&it, btor->unsynthesized_constraints);
   while (has_next_node_hash_table_iterator (&it))
   {
@@ -3727,7 +3727,7 @@ beta_reduce_applies_on_lambdas (Btor *btor)
                                   (BtorCmpPtr) btor_compare_exp_by_id);
 
   /* collect function applications */
-  init_node_hash_table_iterator (btor, &h_it, btor->lambdas);
+  init_node_hash_table_iterator (&h_it, btor->lambdas);
   while (has_next_node_hash_table_iterator (&h_it))
   {
     fun = next_node_hash_table_iterator (&h_it);
@@ -3752,7 +3752,7 @@ beta_reduce_applies_on_lambdas (Btor *btor)
 
   substitute_and_rebuild (btor, apps, 1);
 
-  init_node_hash_table_iterator (btor, &h_it, apps);
+  init_node_hash_table_iterator (&h_it, apps);
   while (has_next_node_hash_table_iterator (&h_it))
     btor_release_exp (btor, next_node_hash_table_iterator (&h_it));
   btor_delete_ptr_hash_table (apps);
@@ -3789,7 +3789,7 @@ merge_lambdas (Btor *btor)
   BTOR_INIT_STACK (visit);
 
   /* collect candidates for merging */
-  init_node_hash_table_iterator (btor, &it, btor->lambdas);
+  init_node_hash_table_iterator (&it, btor->lambdas);
   while (has_next_node_hash_table_iterator (&it))
   {
     lambda = next_node_hash_table_iterator (&it);
@@ -4382,7 +4382,7 @@ update_reachable (Btor *btor, int check_all_tables)
   assert (check_all_tables || btor->varsubst_constraints->count == 0);
 
 #ifndef NDEBUG
-  init_node_hash_table_iterator (btor, &it, btor->assumptions);
+  init_node_hash_table_iterator (&it, btor->assumptions);
   while (has_next_node_hash_table_iterator (&it))
   {
     cur = next_node_hash_table_iterator (&it);
@@ -4390,7 +4390,7 @@ update_reachable (Btor *btor, int check_all_tables)
   }
 #endif
 
-  init_node_hash_table_iterator (btor, &it, btor->synthesized_constraints);
+  init_node_hash_table_iterator (&it, btor->synthesized_constraints);
   queue_node_hash_table_iterator (&it, btor->assumptions);
   if (check_all_tables)
   {
@@ -4568,7 +4568,7 @@ search_initial_applies (Btor *btor, BtorNodePtrStack *top_applies)
   mm = btor->mm;
   BTOR_INIT_STACK (top);
 
-  init_node_hash_table_iterator (btor, &it, btor->array_vars);
+  init_node_hash_table_iterator (&it, btor->array_vars);
   queue_node_hash_table_iterator (&it, btor->lambdas);
 
   while (has_next_node_hash_table_iterator (&it))
@@ -6094,7 +6094,7 @@ propagate (Btor *btor,
     //       too many synthesized lambda applies!!!
     if (to_prop->count > 0)
     {
-      init_node_hash_table_iterator (btor, &it, to_prop);
+      init_node_hash_table_iterator (&it, to_prop);
       while (has_next_node_hash_table_iterator (&it))
       {
         param_app = next_node_hash_table_iterator (&it);
@@ -6625,7 +6625,7 @@ btor_sat_btor (Btor *btor)
   if (res == BTOR_SAT) check_model (btor, clone, inputs);
 
   BtorHashTableIterator it;
-  init_node_hash_table_iterator (btor, &it, inputs);
+  init_node_hash_table_iterator (&it, inputs);
   while (has_next_node_hash_table_iterator (&it))
   {
     btor_release_exp (btor, (BtorNode *) it.bucket->data.asPtr);
@@ -7376,7 +7376,7 @@ map_inputs_check_model (Btor *btor, Btor *clone)
 
   update_reachable (clone, 1);
 
-  init_node_hash_table_iterator (btor, &it, clone->bv_vars);
+  init_node_hash_table_iterator (&it, clone->bv_vars);
   while (has_next_node_hash_table_iterator (&it))
   {
     cur = next_node_hash_table_iterator (&it);
@@ -7389,7 +7389,7 @@ map_inputs_check_model (Btor *btor, Btor *clone)
         ->data.asPtr = btor_copy_exp (btor, (BtorNode *) b->key);
   }
 
-  init_node_hash_table_iterator (btor, &it, clone->array_vars);
+  init_node_hash_table_iterator (&it, clone->array_vars);
   while (has_next_node_hash_table_iterator (&it))
   {
     cur = next_node_hash_table_iterator (&it);
@@ -7413,7 +7413,7 @@ reset_varsubst_constraints (Btor *btor)
   BtorNode *right, *left;
   BtorHashTableIterator it;
 
-  init_node_hash_table_iterator (btor, &it, btor->varsubst_constraints);
+  init_node_hash_table_iterator (&it, btor->varsubst_constraints);
   while (has_next_node_hash_table_iterator (&it))
   {
     right = (BtorNode *) it.bucket->data.asPtr;
@@ -7480,7 +7480,7 @@ check_model (Btor *btor, Btor *clone, BtorPtrHashTable *inputs)
   if (clone->valid_assignments) btor_reset_incremental_usage (clone);
 
   /* add assumptions as assertions */
-  init_node_hash_table_iterator (btor, &it, clone->assumptions);
+  init_node_hash_table_iterator (&it, clone->assumptions);
   while (has_next_node_hash_table_iterator (&it))
     btor_assert_exp (clone, next_node_hash_table_iterator (&it));
   btor_reset_assumptions (clone);
@@ -7491,7 +7491,7 @@ check_model (Btor *btor, Btor *clone, BtorPtrHashTable *inputs)
   assert (!clone->substitutions);
   btor_init_substitutions (clone);
 
-  init_node_hash_table_iterator (btor, &it, inputs);
+  init_node_hash_table_iterator (&it, inputs);
   while (has_next_node_hash_table_iterator (&it))
   {
     exp = (BtorNode *) it.bucket->data.asPtr;

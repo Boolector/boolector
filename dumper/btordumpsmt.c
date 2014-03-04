@@ -710,7 +710,7 @@ btor_dump_smt2 (Btor *btor, FILE *file)
   BtorHashTableIterator it;
   BtorSMTDumpContext *sdc;
 
-  init_node_hash_table_iterator (btor, &it, btor->lambdas);
+  init_node_hash_table_iterator (&it, btor->lambdas);
   while (has_next_node_hash_table_iterator (&it))
   {
     if (next_node_hash_table_iterator (&it)->parameterized)
@@ -734,7 +734,7 @@ btor_dump_smt2 (Btor *btor, FILE *file)
 
   if (ret == BTOR_UNKNOWN)
   {
-    init_node_hash_table_iterator (btor, &it, btor->unsynthesized_constraints);
+    init_node_hash_table_iterator (&it, btor->unsynthesized_constraints);
     while (has_next_node_hash_table_iterator (&it))
       add_root_to_smt_dump_context (sdc, next_node_hash_table_iterator (&it));
   }

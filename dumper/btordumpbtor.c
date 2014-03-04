@@ -87,12 +87,12 @@ btor_delete_dump_context (BtorDumpContext *bdc)
     btor_release_exp (bdc->btor, BTOR_POP_STACK (bdc->constraints));
   BTOR_RELEASE_STACK (bdc->btor->mm, bdc->constraints);
 
-  init_node_hash_table_iterator (bdc->btor, &it, bdc->inputs);
+  init_node_hash_table_iterator (&it, bdc->inputs);
   while (has_next_node_hash_table_iterator (&it))
     btor_release_exp (bdc->btor, next_node_hash_table_iterator (&it));
   btor_delete_ptr_hash_table (bdc->inputs);
 
-  init_node_hash_table_iterator (bdc->btor, &it, bdc->latches);
+  init_node_hash_table_iterator (&it, bdc->latches);
   while (has_next_node_hash_table_iterator (&it))
   {
     BtorDumpContextLatch *l = it.bucket->data.asPtr;
@@ -104,7 +104,7 @@ btor_delete_dump_context (BtorDumpContext *bdc)
   }
   btor_delete_ptr_hash_table (bdc->latches);
 
-  init_node_hash_table_iterator (bdc->btor, &it, bdc->idtab);
+  init_node_hash_table_iterator (&it, bdc->idtab);
   while (has_next_node_hash_table_iterator (&it))
     btor_release_exp (bdc->btor, next_node_hash_table_iterator (&it));
   btor_delete_ptr_hash_table (bdc->idtab);
@@ -427,7 +427,7 @@ btor_dump_btor_bdc (BtorDumpContext *bdc, FILE *file)
   BtorHashTableIterator it;
   int i;
 
-  init_node_hash_table_iterator (bdc->btor, &it, bdc->inputs);
+  init_node_hash_table_iterator (&it, bdc->inputs);
   while (has_next_node_hash_table_iterator (&it))
   {
     BtorNode *node = next_node_hash_table_iterator (&it);
@@ -441,7 +441,7 @@ btor_dump_btor_bdc (BtorDumpContext *bdc, FILE *file)
     fputc ('\n', file);
   }
 
-  init_node_hash_table_iterator (bdc->btor, &it, bdc->latches);
+  init_node_hash_table_iterator (&it, bdc->latches);
   while (has_next_node_hash_table_iterator (&it))
   {
     BtorNode *node = next_node_hash_table_iterator (&it);
@@ -455,7 +455,7 @@ btor_dump_btor_bdc (BtorDumpContext *bdc, FILE *file)
     fputc ('\n', file);
   }
 
-  init_node_hash_table_iterator (bdc->btor, &it, bdc->latches);
+  init_node_hash_table_iterator (&it, bdc->latches);
   while (has_next_node_hash_table_iterator (&it))
   {
     BtorDumpContextLatch *bdcl = it.bucket->data.asPtr;
@@ -596,7 +596,7 @@ btor_dump_btor (Btor *btor, FILE *file)
 
   if (ret == BTOR_UNKNOWN)
   {
-    init_node_hash_table_iterator (btor, &it, btor->unsynthesized_constraints);
+    init_node_hash_table_iterator (&it, btor->unsynthesized_constraints);
     queue_node_hash_table_iterator (&it, btor->synthesized_constraints);
     while (has_next_node_hash_table_iterator (&it))
       btor_add_root_to_dump_context (bdc, next_node_hash_table_iterator (&it));
