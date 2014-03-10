@@ -535,9 +535,9 @@ btor_chkclone_exp (BtorNode *exp, BtorNode *clone)
     assert (!real_clone->symbol
             || !strcmp (real_exp->symbol, real_clone->symbol));
 
-    if (!BTOR_IS_BV_VAR_NODE (real_exp) && !BTOR_IS_PARAM_NODE (real_exp))
+    if (!BTOR_IS_BV_VAR_NODE (real_exp) && !BTOR_IS_ARRAY_VAR_NODE (real_exp)
+        && !BTOR_IS_PARAM_NODE (real_exp))
     {
-      assert (real_exp->arity == real_clone->arity);
       if (real_exp->arity)
       {
         for (i = 0; i < real_exp->arity; i++) BTOR_CHKCLONE_EXPPINV (e[i]);
