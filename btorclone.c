@@ -2,7 +2,7 @@
  *
  *  Copyright (C) 2013 Aina Niemetz.
  *  Copyright (C) 2014 Mathias Preiner.
- *  Copyright (C) 2014 armin Biere.
+ *  Copyright (C) 2014 Armin Biere.
  *
  *  All rights reserved.
  *
@@ -27,7 +27,7 @@
 BTOR_DECLARE_STACK (BtorNodePtrStackPtr, BtorNodePtrStack *);
 BTOR_DECLARE_STACK (BtorPtrHashTablePtrPtr, BtorPtrHashTable **);
 
-BtorNode *
+static BtorNode *
 clone_exp (Btor *clone,
            BtorNode *exp,
            BtorNodePtrPtrStack *parents,

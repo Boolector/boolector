@@ -1,6 +1,6 @@
 /*  Boolector: Satisfiablity Modulo Theories (SMT) solver.
  *
- *  Copyright (C) 2013 Armin Biere.
+ *  Copyright (C) 2013-2014 Armin Biere.
  *  Copyright (C) 2013 Aina Niemetz.
  *
  *  All rights reserved.
@@ -20,11 +20,24 @@
  * through 'btor_mapped_node' does not add a reference.  The destructor
  * releases all the owned references.  Mapping is signed, e.g. if you map
  * 'a' to 'b', then '~a' is implicitely mapped to '~b', too.
+ *
+ * As long 'BoolectorNode' is the same as 'BtorNode' these mapping functions
+ * can also be used to map 'BoolectorNode' objects (by casting).  The
+ * alternative would be to implement all these mapping functions identically
+ * through the external interface (replacing 'btor_and' by 'boolector_and'
+ * etc. in the recursive versions).
  */
 struct BtorNodeMap
 {
-  Btor *btor; /* managing (owning) map internals */
+  Btor *btor;  // For managing (owning) map memory
+               // Otherwise src and dst can have different
+               // Boolector instances (even != 'btor')!!!
   BtorPtrHashTable *table;
+
+  // '0' for BtorNodeMap:	e.g. do not follow simplify pointers ...
+  // '1' for BoolectorNodeMap:	pointer chasing on nodes enabled
+  //
+  int simplify;
 };
 
 typedef struct BtorNodeMap BtorNodeMap;
@@ -48,12 +61,15 @@ BtorNode *btor_non_recursive_substitute_node (Btor *,
  * reference to the result of mapping the argument node (using the arbitrary
  * state) or a 0 pointer if it can not map it.  The idea is that such a
  * mapper implements the base case of a (non-recursive) substitution.
- * The mapper will only be called with non-inverted nodes as arguments.
+ *
+ * The mapper will only be called with non-inverted and simplified
+ * nodes as arguments.
  */
 typedef BtorNode *(*BtorNodeMapper) (Btor *, void *state, BtorNode *);
 
 /* References returned by a 'BtorNodeMapper' are not restricted to be
- * allocated internally, hence we need a matching release operation. */
+ * allocated internally, hence we need a matching release operation.
+ */
 typedef void (*BtorNodeReleaser) (Btor *, BtorNode *);
 
 BtorNode *btor_non_recursive_extended_substitute_node (
