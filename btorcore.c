@@ -3990,7 +3990,7 @@ btor_simplify (Btor *btor)
     if (btor->embedded_constraints->count) continue;
 
     /* rewrite/beta-reduce applies on lambdas */
-    if (btor->beta_reduce_all || btor->ops[BTOR_APPLY_NODE].cur < 100)
+    if (btor->beta_reduce_all)
     {
       beta_reduce_applies_on_lambdas (btor);
       assert (check_all_hash_tables_proxy_free_dbg (btor));
