@@ -1,6 +1,6 @@
 /*  Boolector: Satisfiablity Modulo Theories (SMT) solver.
  *
- *  Copyright (C) 2013 Armin Biere.
+ *  Copyright (C) 2013 - 2014 Armin Biere.
  *  Copyright (C) 2013 Aina Niemetz.
  *
  *  All rights reserved.
@@ -16,15 +16,17 @@
 BtorNodeMap *
 btor_new_node_map (Btor *btor)
 {
-  assert (btor);
-
   BtorNodeMap *res;
 
+  assert (btor);
+
   BTOR_NEW (btor->mm, res);
-  res->btor  = btor;
-  res->table = btor_new_ptr_hash_table (btor->mm,
+  res->btor     = btor;
+  res->table    = btor_new_ptr_hash_table (btor->mm,
                                         (BtorHashPtr) btor_hash_exp_by_id,
                                         (BtorCmpPtr) btor_compare_exp_by_id);
+  res->simplify = 0;
+
   return res;
 }
 
@@ -54,6 +56,9 @@ btor_mapped_node (BtorNodeMap *map, BtorNode *node)
   BtorNode *real_node;
   BtorNode *res;
 
+  if (map->simplify)
+    node = btor_simplify_exp (BTOR_REAL_ADDR_NODE (node)->btor, node);
+
   real_node = BTOR_REAL_ADDR_NODE (node);
   bucket    = btor_find_in_ptr_hash_table (map->table, real_node);
   if (!bucket) return 0;
@@ -73,11 +78,17 @@ btor_count_map (BtorNodeMap *map)
 void
 btor_map_node (BtorNodeMap *map, BtorNode *src, BtorNode *dst)
 {
+  BtorPtrHashBucket *bucket;
+
   assert (map);
   assert (src);
   assert (dst);
 
-  BtorPtrHashBucket *bucket;
+  if (map->simplify)
+  {
+    src = btor_simplify_exp (BTOR_REAL_ADDR_NODE (src)->btor, src);
+    dst = btor_simplify_exp (BTOR_REAL_ADDR_NODE (dst)->btor, dst);
+  }
 
   if (BTOR_IS_INVERTED_NODE (src))
   {
@@ -115,6 +126,8 @@ btor_map_node_internal (Btor *btor, BtorNodeMap *map, BtorNode *exp)
     assert (BTOR_REAL_ADDR_NODE (m[i])->btor == btor);
   }
 
+  assert (exp->kind != BTOR_PROXY_NODE);
+
   switch (exp->kind)
   {
     case BTOR_BV_CONST_NODE:
@@ -129,7 +142,6 @@ btor_map_node_internal (Btor *btor, BtorNodeMap *map, BtorNode *exp)
 
       // ELSE FALL THROUGH!!!
 
-    case BTOR_PROXY_NODE:
     case BTOR_BV_VAR_NODE:
     case BTOR_ARRAY_VAR_NODE: return btor_copy_exp (btor, exp);
     case BTOR_SLICE_NODE:
@@ -165,6 +177,9 @@ btor_non_recursive_extended_substitute_node (Btor *btor,
   BtorMemMgr *mm;
   int i;
 
+  if (map->simplify)
+    root = btor_simplify_exp (BTOR_REAL_ADDR_NODE (root)->btor, root);
+
   mm = btor->mm;
 
   BTOR_INIT_STACK (working_stack);
@@ -175,6 +190,7 @@ btor_non_recursive_extended_substitute_node (Btor *btor,
   {
     node = BTOR_POP_STACK (working_stack);
     node = BTOR_REAL_ADDR_NODE (node);
+    assert (node->kind != BTOR_PROXY_NODE);
     if (btor_mapped_node (map, node)) continue;
     if (node->mark == 2) continue;
     mapped = mapper (btor, state, node);
@@ -236,7 +252,10 @@ btor_non_recursive_substitute_node (Btor *btor,
 BoolectorNodeMap *
 boolector_new_node_map (Btor *btor)
 {
-  return (BoolectorNodeMap *) btor_new_node_map (btor);
+  BtorNodeMap *map;
+  map           = btor_new_node_map (btor);
+  map->simplify = 1;
+  return (BoolectorNodeMap *) map;
 }
 
 void
