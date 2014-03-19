@@ -29,4 +29,13 @@ BtorNode *btor_clone_exp_tree (Btor *btor,
                                BtorNode *exp,
                                BtorNodeMap *exp_map,
                                BtorAIGMap *aig_map);
+
+/* Rebuild 'exp' (and all expressions below) of an existing boolector instance
+ * 'btor' in an existing boolector instance 'clone'. 'exp_map' must contain
+ * all previously cloned expressions. */
+BtorNode *btor_clone_exp_tree (Btor *btor,
+                               Btor *clone,
+                               BtorNode *exp,
+                               BtorNodeMap *exp_map,
+                               BtorAIGMap *aig_map);
 #endif

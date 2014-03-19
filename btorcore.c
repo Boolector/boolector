@@ -7351,13 +7351,14 @@ btor_sat_aux_btor (Btor *btor)
     if (clone)
     {
       lemma        = btor->lod_cache->last->key;
-      cloned_lemma = btor_clone_exp_tree (btor, clone, lemma, exp_map, 0);
+      cloned_lemma = btor_rebuild_clone_exp_tree (btor, clone, lemma, exp_map);
       printf ("lemma: %s\n", node2string (lemma));
       printf ("cloned lemma: %s\n", node2string (cloned_lemma));
       assert (BTOR_COUNT_STACK (btor->nodes_id_table)
               == BTOR_COUNT_STACK (clone->nodes_id_table));
       BTOR_REAL_ADDR_NODE (cloned_lemma)->constraint = 0;
       and = btor_and_exp (clone, clone_root, cloned_lemma);
+      btor_release_exp (clone, cloned_lemma);
       btor_release_exp (clone, clone_root);
       clone_root = and;
       /* prevent id mismatch between clone and parent */

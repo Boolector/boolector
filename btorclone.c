@@ -12,6 +12,7 @@
 
 #include "btoraig.h"
 #include "btoraigvec.h"
+#include "btorbeta.h"
 #include "btorcore.h"
 #include "btorhash.h"
 #include "btoriter.h"
@@ -958,4 +959,116 @@ btor_clone_exp_tree (Btor *btor,
              ? BTOR_INVERT_NODE (
                    BTOR_PEEK_STACK (clone->nodes_id_table, real_exp->id))
              : BTOR_PEEK_STACK (clone->nodes_id_table, real_exp->id);
+}
+
+BtorNode *
+btor_rebuild_clone_exp_tree (Btor *btor,
+                             Btor *clone,
+                             BtorNode *exp,
+                             BtorNodeMap *exp_map)
+{
+  assert (btor);
+  assert (exp);
+  assert (BTOR_REAL_ADDR_NODE (exp)->btor == btor);
+  assert (exp_map);
+
+  int i;
+  BtorNode *real_exp, *cur, *cur_clone, *e[3];
+  BtorNodePtrStack work_stack, unmark_stack;
+
+  BTOR_INIT_STACK (work_stack);
+  BTOR_INIT_STACK (unmark_stack);
+
+  BTOR_ADJUST_STACK (clone->mm, btor->nodes_id_table, clone->nodes_id_table);
+  if (btor->nodes_unique_table.size > clone->nodes_unique_table.size)
+    BTOR_REALLOC (clone->mm,
+                  clone->nodes_unique_table.chains,
+                  clone->nodes_unique_table.size,
+                  btor->nodes_unique_table.size);
+
+  real_exp = BTOR_REAL_ADDR_NODE (exp);
+  BTOR_PUSH_STACK (btor->mm, work_stack, real_exp);
+  while (!BTOR_EMPTY_STACK (work_stack))
+  {
+    cur = BTOR_REAL_ADDR_NODE (BTOR_POP_STACK (work_stack));
+
+    if (BTOR_PEEK_STACK (clone->nodes_id_table, cur->id))
+    {
+      assert (btor_mapped_node (exp_map, cur));
+      continue;
+    }
+
+    if (cur->clone_mark == 2) continue;
+
+    if (cur->clone_mark == 0)
+    {
+      cur->clone_mark = 1;
+      BTOR_PUSH_STACK (btor->mm, unmark_stack, cur);
+      BTOR_PUSH_STACK (btor->mm, work_stack, cur);
+      for (i = 0; i < cur->arity; i++)
+        BTOR_PUSH_STACK (btor->mm, work_stack, cur->e[i]);
+    }
+    else
+    {
+      assert (cur->clone_mark == 1);
+      assert (!btor_mapped_node (exp_map, cur));
+      assert (!BTOR_IS_PROXY_NODE (cur));
+      for (i = 0; i < cur->arity; i++)
+      {
+        e[i] = btor_mapped_node (exp_map, cur->e[i]);
+        assert (e[i]);
+      }
+      switch (cur->kind)
+      {
+        case BTOR_BV_CONST_NODE:
+          cur_clone = btor_const_exp (clone, cur->bits);
+          break;
+        case BTOR_BV_VAR_NODE:
+          cur_clone = btor_var_exp (clone, cur->len, cur->symbol);
+          break;
+        case BTOR_ARRAY_VAR_NODE:
+          cur_clone = btor_array_exp (clone,
+                                      cur->len,
+                                      ((BtorArrayVarNode *) cur)->index_len,
+                                      cur->symbol);
+          break;
+        case BTOR_PARAM_NODE:
+          cur_clone = btor_param_exp (clone, cur->len, cur->symbol);
+        case BTOR_SLICE_NODE:
+          cur_clone = btor_slice_exp (clone, e[0], cur->upper, cur->lower);
+          break;
+        case BTOR_AND_NODE: cur_clone = btor_and_exp (clone, e[0], e[1]); break;
+        case BTOR_BEQ_NODE:
+        case BTOR_AEQ_NODE: cur_clone = btor_eq_exp (clone, e[0], e[1]); break;
+        case BTOR_ADD_NODE: cur_clone = btor_add_exp (clone, e[0], e[1]);
+        case BTOR_MUL_NODE: cur_clone = btor_mul_exp (clone, e[0], e[1]);
+        case BTOR_ULT_NODE: cur_clone = btor_ult_exp (clone, e[0], e[1]);
+        case BTOR_SLL_NODE: cur_clone = btor_sll_exp (clone, e[0], e[1]);
+        case BTOR_SRL_NODE: cur_clone = btor_srl_exp (clone, e[0], e[1]);
+        case BTOR_UDIV_NODE: cur_clone = btor_udiv_exp (clone, e[0], e[1]);
+        case BTOR_UREM_NODE: cur_clone = btor_urem_exp (clone, e[0], e[1]);
+        case BTOR_CONCAT_NODE: cur_clone = btor_concat_exp (clone, e[0], e[1]);
+        case BTOR_LAMBDA_NODE:
+          assert (!btor_param_cur_assignment (e[0]));
+          BTOR_PARAM_SET_LAMBDA_NODE (e[0], 0);
+          cur_clone = btor_lambda_exp (clone, e[0], e[1]);
+        case BTOR_APPLY_NODE: cur_clone = btor_apply_exp (clone, e[0], e[1]);
+        case BTOR_ARGS_NODE:
+          cur_clone = btor_args_exp (clone, cur->arity, cur->e);
+        default:
+          assert (BTOR_IS_BV_COND_NODE (cur));
+          cur_clone = btor_cond_exp (clone, e[0], e[1], e[2]);
+      }
+      btor_map_node (exp_map, cur, cur_clone);
+      btor_release_exp (clone, cur_clone);
+    }
+  }
+
+  while (!BTOR_EMPTY_STACK (unmark_stack))
+    BTOR_POP_STACK (unmark_stack)->clone_mark = 0;
+
+  BTOR_RELEASE_STACK (btor->mm, work_stack);
+  BTOR_RELEASE_STACK (btor->mm, unmark_stack);
+
+  return btor_copy_exp (clone, btor_mapped_node (exp_map, exp));
 }
