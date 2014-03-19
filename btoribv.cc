@@ -1199,9 +1199,9 @@ BtorIBV::analyze ()
     bn->flags[b.bit].forwarded = 1;
     if (bn->is_next_state)
     {
+      msg (3, "forwarded id %u '%s[%u]'", bn->id, bn->name, b.bit);
       assert (bn->flags[b.bit].nonstate.next);
       assert (!bn->flags[b.bit].assigned);
-      msg (3, "forwarded id %u '%s[%u]'", bn->id, bn->name, b.bit);
       forwarded++;
       continue;
     }
