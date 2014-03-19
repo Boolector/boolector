@@ -2,7 +2,7 @@
  *
  *  Copyright (C) 2007-2009 Robert Daniel Brummayer.
  *  Copyright (C) 2007-2013 Armin Biere.
- *  Copyright (C) 2012-2013 Aina Niemetz.
+ *  Copyright (C) 2012-2014 Aina Niemetz.
  *  Copyright (C) 2012-2014 Mathias Preiner.
  *
  *  All rights reserved.
@@ -90,6 +90,7 @@ typedef struct BtorNodePair BtorNodePair;
     unsigned int beta_mark : 2;  /* mark for beta_reduce */             \
     unsigned int eval_mark : 2;  /* mark for eval_exp */                \
     unsigned int synth_mark : 2; /* mark for synthesize_exp */          \
+    unsigned int clone_mark : 2; /* mark for clone_exp_tree */          \
     unsigned int reachable : 1;  /* reachable from root ? */            \
     unsigned int tseitin : 1;    /* tseitin encoded into SAT ? */       \
     unsigned int lazy_tseitin : 1;                                      \
@@ -220,6 +221,8 @@ typedef struct BtorArgsNode BtorArgsNode;
 
 #define BTOR_IS_AND_NODE_KIND(kind) ((kind) == BTOR_AND_NODE)
 
+#define BTOR_IS_SLICE_NODE_KIND(kind) ((kind) == BTOR_SLICE_NODE)
+
 #define BTOR_IS_BV_CONST_NODE_KIND(kind) ((kind) == BTOR_BV_CONST_NODE)
 
 #define BTOR_IS_BV_VAR_NODE_KIND(kind) ((kind) == BTOR_BV_VAR_NODE)
@@ -259,6 +262,7 @@ typedef struct BtorArgsNode BtorArgsNode;
 
 #define BTOR_IS_AND_NODE(exp) ((exp) && BTOR_IS_AND_NODE_KIND ((exp)->kind))
 
+#define BTOR_IS_SLICE_NODE(exp) ((exp) && BTOR_IS_SLICE_NODE_KIND ((exp)->kind))
 #define BTOR_IS_BV_CONST_NODE(exp) \
   ((exp) && BTOR_IS_BV_CONST_NODE_KIND ((exp)->kind))
 
@@ -848,6 +852,10 @@ void btor_release_exp (Btor *btor, BtorNode *exp);
 /* Convert 'exp' to a proxy expression.
  * NOTE: 'exp' must be already simplified */
 void btor_set_to_proxy_exp (Btor *btor, BtorNode *exp);
+
+/* Return a pointer to the unique table location of 'exp', if present.
+ * Else, result pointer is the location where 'exp' may be inserted. */
+BtorNode **btor_find_unique_exp (Btor *btor, BtorNode *exp);
 
 /*------------------------------------------------------------------------*/
 

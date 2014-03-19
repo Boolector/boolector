@@ -1317,6 +1317,20 @@ find_exp (Btor *btor, BtorNodeKind kind, int arity, BtorNode **e)
   return result;
 }
 
+BtorNode **
+btor_find_unique_exp (Btor *btor, BtorNode *exp)
+{
+  assert (btor);
+  assert (exp);
+
+  exp = BTOR_REAL_ADDR_NODE (exp);
+  if (BTOR_IS_BV_CONST_NODE (exp))
+    return find_const_exp (btor, exp->bits, exp->len);
+  if (BTOR_IS_SLICE_NODE (exp))
+    return find_slice_exp (btor, exp->e[0], exp->upper, exp->lower);
+  return find_exp (btor, exp->kind, exp->arity, exp->e);
+}
+
 /* Enlarges unique table and rehashes expressions. */
 static void
 enlarge_nodes_unique_table (Btor *btor)
