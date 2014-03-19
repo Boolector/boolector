@@ -907,16 +907,17 @@ btor_new_btor (void)
                                            (BtorHashPtr) btor_hash_exp_by_id,
                                            (BtorCmpPtr) btor_compare_exp_by_id);
 
-  btor->bv_lambda_id              = 1;
-  btor->array_lambda_id           = 1;
-  btor->dvn_id                    = 1;
-  btor->dan_id                    = 1;
-  btor->valid_assignments         = 1;
-  btor->options.rewrite_level     = 3;
-  btor->vread_index_id            = 1;
-  btor->msgtick                   = -1;
-  btor->options.pprint            = 1;
-  btor->options.slice_propagation = 0;
+  btor->bv_lambda_id                 = 1;
+  btor->array_lambda_id              = 1;
+  btor->dvn_id                       = 1;
+  btor->dan_id                       = 1;
+  btor->valid_assignments            = 1;
+  btor->options.rewrite_level        = 3;
+  btor->vread_index_id               = 1;
+  btor->msgtick                      = -1;
+  btor->options.pprint               = 1;
+  btor->options.slice_propagation    = 0;
+  btor->options.simplify_constraints = 1;
 
   BTOR_PUSH_STACK (btor->mm, btor->nodes_id_table, 0);
 
@@ -2291,8 +2292,8 @@ btor_simplify_exp (Btor *btor, BtorNode *exp)
     result = btor_pointer_chase_simplified_exp (btor, exp);
 
   /* NOTE: embedded constraints rewriting is enabled with rwl > 1 */
-  if (BTOR_REAL_ADDR_NODE (result)->constraint
-      && btor->options.rewrite_level > 1)
+  if (btor->options.simplify_constraints && btor->options.rewrite_level > 1
+      && BTOR_REAL_ADDR_NODE (result)->constraint)
     return simplify_constraint_exp (btor, result);
 
   assert (BTOR_REAL_ADDR_NODE (result)->btor == btor);
@@ -3882,7 +3883,8 @@ recursively_rebuild_exp_limits (Btor *btor,
   BtorNodePtrStack visit, rebuilt, unmark;
   BtorNode *(*fptr) (Btor *, BtorNode *, BtorNode *);
 
-  mm = btor->mm;
+  btor->options.simplify_constraints = 0;
+  mm                                 = btor->mm;
   BTOR_INIT_STACK (visit);
   BTOR_INIT_STACK (rebuilt);
   BTOR_INIT_STACK (unmark);
@@ -4163,6 +4165,7 @@ ULT_BEQ_NODE:
   btor_delete_ptr_hash_table (cache);
 
   assert (check_unique_table_mark_unset_dbg (btor));
+  btor->options.simplify_constraints = 1;
 
   return result;
 }

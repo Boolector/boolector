@@ -223,6 +223,7 @@ struct Btor
     int model_gen; /* model generation enabled */
     int pprint;    /* reindex exps when dumping */
     int rewrite_level;
+    int simplify_constraints; /* force constraints to true/false */
     int slice_propagation;
     int verbosity;
   } options;
