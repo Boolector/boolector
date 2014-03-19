@@ -184,25 +184,26 @@ btor_chkclone_state (Btor *btor)
   BTOR_CHKCLONE_STATE (rec_rw_calls);
   BTOR_CHKCLONE_STATE (rec_read_acond_calls);
   BTOR_CHKCLONE_STATE (valid_assignments);
-  BTOR_CHKCLONE_STATE (rewrite_level);
-  BTOR_CHKCLONE_STATE (verbosity);
+  BTOR_CHKCLONE_STATE (options.rewrite_level);
+  BTOR_CHKCLONE_STATE (options.verbosity);
 #ifndef NBTORLOG
-  BTOR_CHKCLONE_STATE (loglevel);
+  BTOR_CHKCLONE_STATE (options.loglevel);
 #endif
   BTOR_CHKCLONE_STATE (vis_idx);
   BTOR_CHKCLONE_STATE (vread_index_id);
   BTOR_CHKCLONE_STATE (inconsistent);
   BTOR_CHKCLONE_STATE (found_constraint_false);
-  BTOR_CHKCLONE_STATE (model_gen);
+  BTOR_CHKCLONE_STATE (options.model_gen);
   BTOR_CHKCLONE_STATE (external_refs);
-  BTOR_CHKCLONE_STATE (inc_enabled);
+  BTOR_CHKCLONE_STATE (options.inc_enabled);
   BTOR_CHKCLONE_STATE (btor_sat_btor_called);
   BTOR_CHKCLONE_STATE (msgtick);
-  BTOR_CHKCLONE_STATE (force_cleanup);
-  BTOR_CHKCLONE_STATE (beta_reduce_all);
-  BTOR_CHKCLONE_STATE (pprint);
+  BTOR_CHKCLONE_STATE (options.force_cleanup);
+  BTOR_CHKCLONE_STATE (options.beta_reduce_all);
+  BTOR_CHKCLONE_STATE (options.pprint);
+  BTOR_CHKCLONE_STATE (options.slice_propagation);
   BTOR_CHKCLONE_STATE (last_sat_result);
-  BTOR_CHKCLONE_STATE (generate_model_for_all_reads);
+  BTOR_CHKCLONE_STATE (options.generate_model_for_all_reads);
 }
 
 #define BTOR_CHKCLONE_STATS(field)                    \
@@ -3633,7 +3634,7 @@ boolector_assume (Btor *btor, BoolectorNode *node)
   BTOR_ABORT_ARG_NULL_BOOLECTOR (btor);
   BTOR_ABORT_ARG_NULL_BOOLECTOR (exp);
   BTOR_TRAPI_UNFUN ("assume", exp);
-  BTOR_ABORT_BOOLECTOR (!btor->inc_enabled,
+  BTOR_ABORT_BOOLECTOR (!btor->options.inc_enabled,
                         "incremental usage has not been enabled");
   BTOR_ABORT_REFS_NOT_POS_BOOLECTOR (exp);
   BTOR_ABORT_IF_BTOR_DOES_NOT_MATCH (btor, exp);
@@ -3663,7 +3664,7 @@ boolector_failed (Btor *btor, BoolectorNode *node)
       "cannot check failed assumptions if input formula is not UNSAT");
   BTOR_ABORT_ARG_NULL_BOOLECTOR (exp);
   BTOR_TRAPI_UNFUN ("failed", exp);
-  BTOR_ABORT_BOOLECTOR (!btor->inc_enabled,
+  BTOR_ABORT_BOOLECTOR (!btor->options.inc_enabled,
                         "incremental usage has not been enabled");
   BTOR_ABORT_REFS_NOT_POS_BOOLECTOR (exp);
   BTOR_ABORT_IF_BTOR_DOES_NOT_MATCH (btor, exp);
@@ -3688,9 +3689,10 @@ boolector_sat (Btor *btor)
 
   BTOR_ABORT_ARG_NULL_BOOLECTOR (btor);
   BTOR_TRAPI ("sat");
-  BTOR_ABORT_BOOLECTOR (!btor->inc_enabled && btor->btor_sat_btor_called > 0,
-                        "incremental usage has not been enabled."
-                        "'boolector_sat' may only be called once");
+  BTOR_ABORT_BOOLECTOR (
+      !btor->options.inc_enabled && btor->btor_sat_btor_called > 0,
+      "incremental usage has not been enabled."
+      "'boolector_sat' may only be called once");
   res = btor_sat_btor (btor);
 #ifndef NDEBUG
   BTOR_CHKCLONE_RES (res, sat);
@@ -3718,7 +3720,7 @@ boolector_bv_assignment (Btor *btor, BoolectorNode *node)
   BTOR_ABORT_IF_BTOR_DOES_NOT_MATCH (btor, exp);
   simp = btor_simplify_exp (btor, exp);
   BTOR_ABORT_ARRAY_BOOLECTOR (simp);
-  BTOR_ABORT_BOOLECTOR (!btor->model_gen,
+  BTOR_ABORT_BOOLECTOR (!btor->options.model_gen,
                         "model generation has not been enabled");
   ass   = btor_bv_assignment_str_exp (btor, simp);
   bvass = btor_new_bv_assignment (btor->bv_assignments, ass);
@@ -3781,7 +3783,7 @@ boolector_array_assignment (Btor *btor,
   BTOR_ABORT_IF_BTOR_DOES_NOT_MATCH (btor, e_array);
   simp = btor_simplify_exp (btor, e_array);
   BTOR_ABORT_BV_BOOLECTOR (simp);
-  BTOR_ABORT_BOOLECTOR (!btor->model_gen,
+  BTOR_ABORT_BOOLECTOR (!btor->options.model_gen,
                         "model generation has not been enabled");
 
   btor_array_assignment_str_exp (btor, simp, &ind, &val, size);

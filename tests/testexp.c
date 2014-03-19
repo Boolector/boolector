@@ -40,8 +40,8 @@ init_exp_tests (void)
 void
 init_exp_test (void)
 {
-  g_btor                  = btor_new_btor ();
-  g_btor->beta_reduce_all = g_rwreads;
+  g_btor = btor_new_btor ();
+  if (g_rwreads) btor_enable_beta_reduce_all (g_btor);
 }
 
 void

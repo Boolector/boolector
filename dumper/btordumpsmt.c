@@ -11,6 +11,7 @@
  */
 
 #include "btordumpsmt.h"
+#include "btorclone.h"
 #include "btorconst.h"
 #include "btorcore.h"
 #include "btorexit.h"
@@ -52,7 +53,7 @@ new_smt_dump_context (Btor *btor, FILE *file)
                                         (BtorCmpPtr) btor_compare_exp_by_id);
   sdc->file   = file;
   sdc->maxid  = 1;
-  sdc->pprint = btor->pprint;
+  sdc->pprint = btor->options.pprint;
 
   BTOR_INIT_STACK (sdc->roots);
   return sdc;
@@ -701,8 +702,8 @@ btor_dump_smt2 (Btor *btor, FILE *file)
 {
   assert (btor);
   assert (file);
-  assert (!btor->inc_enabled);
-  //  assert (!btor->model_gen);
+  assert (!btor->options.inc_enabled);
+  //  assert (!btor->options.model_gen);
 
   int ret, nested_funs = 0;
   Btor *clone;

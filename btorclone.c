@@ -470,8 +470,6 @@ btor_clone_btor (Btor *btor)
           (char *) btor + sizeof (*btor) - (char *) &btor->stats);
   assert ((allocated = sizeof (Btor)) == clone->mm->allocated);
 
-  memcpy (&clone->ops, &btor->ops, sizeof btor->ops);
-
   BTORLOG_TIMESTAMP (delta);
   clone->bv_assignments =
       btor_clone_bv_assignment_list (clone->mm, btor->bv_assignments);
