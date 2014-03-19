@@ -135,6 +135,12 @@ struct Btor
   int pprint;               /* reindex exps when dumping */
   int last_sat_result;      /* status of last SAT call (SAT/UNSAT) */
 
+  // TODO: move all options into this struct
+  struct
+  {
+    int slice_propagation;
+  } options;
+
   int generate_model_for_all_reads;
 
   BtorPtrHashTable *lod_cache;
