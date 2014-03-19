@@ -13,8 +13,10 @@
 #include "btormap.h"
 
 /* Clone an existing boolector instance. */
-Btor *btor_clone_btor (Btor *);
+Btor *btor_clone_btor (Btor *btor);
 
 /* Clone the expression layer of an existing boolector instance. */
-Btor *btor_clone_exp_layer (Btor *, BtorNodeMap *, BtorNodeMap *);
+Btor *btor_clone_exp_layer (Btor *btor,
+                            BtorNodeMap **exp_map,
+                            BtorNodeMap **aig_map);
 #endif
