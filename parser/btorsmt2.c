@@ -966,7 +966,6 @@ RESTART:
       {
         btor_pushch_smt2 (parser, '"');
         btor_pushch_smt2 (parser, 0);
-        abort ();
         return BTOR_STRING_CONSTANT_TAG_SMT2;
       }
       if (ch == '\\')
