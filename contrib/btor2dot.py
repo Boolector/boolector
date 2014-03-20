@@ -43,6 +43,8 @@ if __name__ == "__main__":
     try:
         for line in sys.stdin:
             t = line.split()
+            if len(t) == 0:
+                continue
             id = int(t[0])
             kind = t[1]
             bw = t[2]
