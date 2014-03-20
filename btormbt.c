@@ -153,6 +153,7 @@
   "  -a, --always-fork                fork even if seed given\n" \
   "  -n, --no-modelgen                do not enable model generation \n" \
   "  -e, --extensionality             use extensionality\n" \
+  "  -s, --shadow                     create and check shadow clone\n" \
   "\n" \
   "  -f, --first-bug-only             quit after first bug encountered\n" \
   "  -m <maxruns>                     quit after <maxruns> rounds\n" \

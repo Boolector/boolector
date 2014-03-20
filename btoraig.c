@@ -1623,3 +1623,17 @@ btor_get_assignment_aig (BtorAIGMgr *amgr, BtorAIG *aig)
     return -btor_deref_sat (amgr->smgr, BTOR_REAL_ADDR_AIG (aig)->cnf_id);
   return btor_deref_sat (amgr->smgr, aig->cnf_id);
 }
+
+int
+btor_cmp_aig (BtorAIG *a, BtorAIG *b)
+{
+  if (a == b) return 0;
+  if (BTOR_INVERT_AIG (a) == b) return BTOR_IS_INVERTED_AIG (a) ? -1 : 1;
+  if (BTOR_IS_INVERTED_AIG (a)) a = BTOR_INVERT_AIG (a);
+  if (a == BTOR_AIG_FALSE) return -1;
+  assert (a != BTOR_AIG_TRUE);
+  if (BTOR_IS_INVERTED_AIG (b)) b = BTOR_INVERT_AIG (b);
+  if (b == BTOR_AIG_FALSE) return 1;
+  assert (b != BTOR_AIG_TRUE);
+  return a->id - b->id;
+}

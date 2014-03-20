@@ -45,6 +45,7 @@ if __name__ == "__main__":
             t = line.split()
             id = int(t[0])
             kind = t[1]
+            bw = t[2]
 
             if kind == "path":
                 nodes = t[2:]
@@ -68,7 +69,7 @@ if __name__ == "__main__":
                 children = []
 
             # set default node label, style
-            label = "{}: {}".format(id, kind)
+            label = "{}: {} ({})".format(id, kind, bw)
             style = ""
             fillcolor = ""
 

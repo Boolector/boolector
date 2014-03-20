@@ -198,4 +198,9 @@ int btor_sat_aig (BtorAIGMgr *amgr, BtorAIG *aig);
  */
 int btor_get_assignment_aig (BtorAIGMgr *amgr, BtorAIG *aig);
 
+/* Orders AIGs (actually assume left child of an AND node is smaller
+ * than right child
+ */
+int btor_cmp_aig (BtorAIG *a, BtorAIG *b);
+
 #endif

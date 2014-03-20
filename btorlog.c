@@ -19,7 +19,7 @@ int
 btor_log_start (Btor* btor, const char* fmt, ...)
 {
   va_list ap;
-  if (btor->loglevel <= 0) return 0;
+  if (btor->options.loglevel <= 0) return 0;
   fputs ("[btorlog] ", stdout);
   va_start (ap, fmt);
   vprintf (fmt, ap);
@@ -31,7 +31,7 @@ void
 btor_log_end (Btor* btor)
 {
   (void) btor;
-  assert (btor->loglevel > 0);
+  assert (btor->options.loglevel > 0);
   fputc ('\n', stdout);
   fflush (stdout);
 }
