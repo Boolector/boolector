@@ -462,9 +462,9 @@ btor_clone_btor (Btor *btor)
   BTOR_CNEW (mm, clone);
   clone->mm = mm;
 
-  memcpy (&clone->bv_lambda_id,
-          &btor->bv_lambda_id,
-          (char *) &btor->lod_cache - (char *) &btor->bv_lambda_id);
+  memcpy (&clone->dvn_id,
+          &btor->dvn_id,
+          (char *) &btor->lod_cache - (char *) &btor->dvn_id);
   memcpy (&clone->stats,
           &btor->stats,
           (char *) btor + sizeof (*btor) - (char *) &btor->stats);

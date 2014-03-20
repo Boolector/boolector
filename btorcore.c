@@ -913,8 +913,6 @@ btor_new_btor (void)
                                            (BtorHashPtr) btor_hash_exp_by_id,
                                            (BtorCmpPtr) btor_compare_exp_by_id);
 
-  btor->bv_lambda_id                 = 1;
-  btor->array_lambda_id              = 1;
   btor->dvn_id                       = 1;
   btor->dan_id                       = 1;
   btor->valid_assignments            = 1;
@@ -1337,7 +1335,7 @@ lambda_var_exp (Btor *btor, int len)
 {
   BtorNode *result;
   char *name;
-  int string_len;
+  int id, string_len;
   BtorMemMgr *mm;
 
   assert (btor);
@@ -1345,11 +1343,14 @@ lambda_var_exp (Btor *btor, int len)
 
   mm = btor->mm;
 
-  string_len = btor_num_digits_util (btor->bv_lambda_id) + 11;
+  id         = BTOR_COUNT_STACK (btor->nodes_id_table);
+  string_len = btor_num_digits_util (id) + 11;
   BTOR_NEWN (mm, name, string_len);
-  sprintf (name, "bvlambda_%d_", btor->bv_lambda_id);
-  btor->bv_lambda_id++;
+  // FIXME: there is no guarantee that the new symbol does not exist
+  sprintf (name, "bvlambda_%d_", id);
   result = btor_var_exp (btor, len, name);
+  assert (BTOR_IS_REGULAR_NODE (result));
+  assert (result->id == id);
   BTOR_DELETEN (mm, name, string_len);
   return result;
 }
