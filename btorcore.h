@@ -234,7 +234,7 @@ struct Btor
     int simplify_constraints; /* force constraints to true/false */
     int slice_propagation;
     int verbosity;
-#ifdef
+#ifdef BTOR_CHECK_FAILED
     int chk_failed_assumptions;
 #endif
   } options;

@@ -1115,7 +1115,7 @@ btor_delete_btor (Btor *btor)
       }
     }
     assert (btor->external_refs == 0);
-    if (!btor->option.force_internal_cleanup && !getenv ("BTORLEAK")
+    if (!btor->options.force_internal_cleanup && !getenv ("BTORLEAK")
         && !getenv ("BTORLEAKEXP"))
     {
       for (i = BTOR_COUNT_STACK (btor->nodes_id_table) - 1; i >= 0; i--)
@@ -1123,7 +1123,7 @@ btor_delete_btor (Btor *btor)
     }
   }
 
-  if (btor->option.force_internal_cleanup)
+  if (btor->options.force_internal_cleanup)
   {
     for (i = BTOR_COUNT_STACK (btor->nodes_id_table) - 1; i >= 0; i--)
     {
@@ -2010,7 +2010,7 @@ btor_is_assumption_exp (Btor *btor, BtorNode *exp)
   assert (btor);
   assert (btor->options.inc_enabled);
   assert (exp);
-  assert (check_unique_table_mark_unset_dbg (btor));
+  assert (check_id_table_mark_unset_dbg (btor));
 
   exp = btor_simplify_exp (btor, exp);
 
@@ -4515,7 +4515,7 @@ btor_simplify (Btor *btor)
   rounds = 0;
   start  = btor_time_stamp ();
 
-  if (btor->beta_reduce_all) init_cache (btor);
+  if (btor->options.beta_reduce_all) init_cache (btor);
 
   do
   {
@@ -4598,7 +4598,7 @@ btor_simplify (Btor *btor)
   } while (btor->varsubst_constraints->count
            || btor->embedded_constraints->count);
 
-  if (btor->beta_reduce_all) release_cache (btor);
+  if (btor->options.beta_reduce_all) release_cache (btor);
 
   delta = btor_time_stamp () - start;
   btor->time.rewrite += delta;
@@ -5383,7 +5383,7 @@ search_initial_applies_dual_prop (Btor *btor,
   }
   printf ("#### cnt: %d\n", cnt);
 
-  assert (check_unique_table_aux_mark_unset_dbg (btor));
+  assert (check_id_table_aux_mark_unset_dbg (btor));
 
   /* assume bv assignments of bv vars and applies */
   while (!BTOR_EMPTY_STACK (stack))
@@ -5422,7 +5422,7 @@ search_initial_applies_dual_prop (Btor *btor,
 
   // assert (clone->synthesized_constraints->count == 0);
   /* partial assignment via failed assumptions of negated clone */
-  init_node_hash_table_iterator (btor, &it, assumptions);
+  init_node_hash_table_iterator (&it, assumptions);
   while (has_next_node_hash_table_iterator (&it))
   {
     bv_eq     = (BtorNode *) it.bucket->data.asPtr;
@@ -5481,7 +5481,7 @@ search_initial_applies_dual_prop (Btor *btor,
   while (!BTOR_EMPTY_STACK (unmark_stack))
     BTOR_POP_STACK (unmark_stack)->aux_mark = 0;
 
-  init_node_hash_table_iterator (btor, &it, assumptions);
+  init_node_hash_table_iterator (&it, assumptions);
   while (has_next_node_hash_table_iterator (&it))
   {
     bv_eq     = (BtorNode *) it.bucket->data.asPtr;
@@ -6992,7 +6992,7 @@ push_applies_from_cond_for_propagation (Btor *btor,
   assert (exp);
   assert (BTOR_IS_REGULAR_NODE (exp));
   assert (prop_stack);
-  assert (check_unique_table_mark_unset_dbg (btor));
+  assert (check_id_table_mark_unset_dbg (btor));
 
   int i;
   double start;
@@ -7104,7 +7104,7 @@ propagate (Btor *btor,
       btor_delete_ptr_hash_table (to_prop);
       if (btor->options.dual_prop)
       {
-        init_node_hash_table_iterator (btor, &it, conds);
+        init_node_hash_table_iterator (&it, conds);
         while (has_next_node_hash_table_iterator (&it))
           btor_release_exp (btor, next_node_hash_table_iterator (&it));
         btor_delete_ptr_hash_table (conds);
@@ -7148,7 +7148,7 @@ propagate (Btor *btor,
           btor_delete_ptr_hash_table (to_prop);
           if (btor->options.dual_prop)
           {
-            init_node_hash_table_iterator (btor, &it, conds);
+            init_node_hash_table_iterator (&it, conds);
             while (has_next_node_hash_table_iterator (&it))
               btor_release_exp (btor, next_node_hash_table_iterator (&it));
             btor_delete_ptr_hash_table (conds);
@@ -7180,7 +7180,7 @@ propagate (Btor *btor,
       btor_delete_ptr_hash_table (to_prop);
       if (btor->options.dual_prop)
       {
-        init_node_hash_table_iterator (btor, &it, conds);
+        init_node_hash_table_iterator (&it, conds);
         while (has_next_node_hash_table_iterator (&it))
           btor_release_exp (btor, next_node_hash_table_iterator (&it));
         btor_delete_ptr_hash_table (conds);
@@ -7272,7 +7272,7 @@ propagate (Btor *btor,
           btor_delete_ptr_hash_table (to_prop);
           if (btor->options.dual_prop)
           {
-            init_node_hash_table_iterator (btor, &it, conds);
+            init_node_hash_table_iterator (&it, conds);
             while (has_next_node_hash_table_iterator (&it))
               btor_release_exp (btor, next_node_hash_table_iterator (&it));
             btor_delete_ptr_hash_table (conds);
@@ -7349,7 +7349,7 @@ propagate (Btor *btor,
         BTORLOG ("  propagate down: %s", node2string (app));
         if (btor->options.dual_prop)
         {
-          init_node_hash_table_iterator (btor, &it, conds);
+          init_node_hash_table_iterator (&it, conds);
           while (has_next_node_hash_table_iterator (&it))
           {
             cond = next_node_hash_table_iterator (&it);
@@ -7386,7 +7386,7 @@ propagate (Btor *btor,
           btor_delete_ptr_hash_table (to_prop);
           if (btor->options.dual_prop)
           {
-            init_node_hash_table_iterator (btor, &it, conds);
+            init_node_hash_table_iterator (&it, conds);
             while (has_next_node_hash_table_iterator (&it))
               btor_release_exp (btor, next_node_hash_table_iterator (&it));
             btor_delete_ptr_hash_table (conds);
@@ -7398,7 +7398,7 @@ propagate (Btor *btor,
         push_applies_for_propagation (btor, fun_value, lambda, prop_stack);
         if (btor->options.dual_prop)
         {
-          init_node_hash_table_iterator (btor, &it, conds);
+          init_node_hash_table_iterator (&it, conds);
           while (has_next_node_hash_table_iterator (&it))
           {
             cond = next_node_hash_table_iterator (&it);
@@ -7419,7 +7419,7 @@ propagate (Btor *btor,
       push_applies_for_propagation (btor, fun_value, lambda, prop_stack);
       if (btor->options.dual_prop)
       {
-        init_node_hash_table_iterator (btor, &it, conds);
+        init_node_hash_table_iterator (&it, conds);
         while (has_next_node_hash_table_iterator (&it))
         {
           cond = next_node_hash_table_iterator (&it);
@@ -7646,9 +7646,8 @@ btor_sat_aux_btor (Btor *btor)
   Btor *faclone = 0;
 #endif
 
-  clone     = 0;
-  exp_map   = 0;
-  verbosity = btor->options.verbosity;
+  clone   = 0;
+  exp_map = 0;
 
   BTOR_INIT_STACK (prop_stack);
 
@@ -7738,8 +7737,7 @@ btor_sat_aux_btor (Btor *btor)
 
     clone_root = 0;
     //      clone_root_btor = 0;
-    init_node_hash_table_iterator (
-        clone, &it, clone->unsynthesized_constraints);
+    init_node_hash_table_iterator (&it, clone->unsynthesized_constraints);
     queue_node_hash_table_iterator (&it, clone->assumptions);
     while (has_next_node_hash_table_iterator (&it))
     {
@@ -7776,8 +7774,7 @@ btor_sat_aux_btor (Btor *btor)
       }
     }
 
-    init_node_hash_table_iterator (
-        clone, &it, clone->unsynthesized_constraints);
+    init_node_hash_table_iterator (&it, clone->unsynthesized_constraints);
     queue_node_hash_table_iterator (&it, clone->assumptions);
     while (has_next_node_hash_table_iterator (&it))
       btor_release_exp (clone, next_node_hash_table_iterator (&it));
@@ -7787,7 +7784,7 @@ btor_sat_aux_btor (Btor *btor)
         btor_new_ptr_hash_table (clone->mm,
                                  (BtorHashPtr) btor_hash_exp_by_id,
                                  (BtorCmpPtr) btor_compare_exp_by_id);
-    clone->pprint = 0;
+    clone->options.pprint = 0;
     clone->assumptions =
         btor_new_ptr_hash_table (clone->mm,
                                  (BtorHashPtr) btor_hash_exp_by_id,
@@ -7855,7 +7852,7 @@ btor_sat_aux_btor (Btor *btor)
     // TODO: move into function, where lemma is added
     btor->stats.lod_refinements++;
 
-    if (btor->verbosity == 1)
+    if (btor->options.verbosity == 1)
     {
       refinements = btor->stats.lod_refinements;
       fprintf (stdout,
@@ -7866,10 +7863,10 @@ btor_sat_aux_btor (Btor *btor)
                btor->ops[BTOR_APPLY_NODE].cur);
       fflush (stdout);
     }
-    else if (btor->verbosity > 1)
+    else if (btor->options.verbosity > 1)
     {
       refinements = btor->stats.lod_refinements;
-      if (btor->verbosity > 2 || !(refinements % 10))
+      if (btor->options.verbosity > 2 || !(refinements % 10))
       {
         fprintf (stdout, "[btorsat] refinement iteration %d\n", refinements);
         fflush (stdout);
@@ -8966,7 +8963,7 @@ check_failed_assumptions (Btor *btor, Btor *clone)
   BtorHashTableIterator it;
 
   /* assert failed assumptions */
-  init_node_hash_table_iterator (btor, &it, btor->assumptions);
+  init_node_hash_table_iterator (&it, btor->assumptions);
   while (has_next_node_hash_table_iterator (&it))
   {
     ass = next_node_hash_table_iterator (&it);
@@ -8979,7 +8976,7 @@ check_failed_assumptions (Btor *btor, Btor *clone)
   }
 
   /* cleanup assumptions */
-  init_node_hash_table_iterator (clone, &it, clone->assumptions);
+  init_node_hash_table_iterator (&it, clone->assumptions);
   while (has_next_node_hash_table_iterator (&it))
     btor_release_exp (clone, next_node_hash_table_iterator (&it));
   btor_delete_ptr_hash_table (clone->assumptions);

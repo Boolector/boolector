@@ -385,7 +385,7 @@ clone_nodes_id_table (Btor *clone,
     {
       BtorNode *cur;
       BtorHashTableIterator it;
-      init_node_hash_table_iterator (clone, &it, *htable);
+      init_node_hash_table_iterator (&it, *htable);
       while (has_next_node_hash_table_iterator (&it))
       {
         cur = next_node_hash_table_iterator (&it);
@@ -743,7 +743,7 @@ btor_clone_aux_btor (Btor *btor,
     BtorHashTableIterator it;
 
     BTOR_INIT_STACK (stack);
-    init_node_hash_table_iterator (clone, &it, clone->synthesized_constraints);
+    init_node_hash_table_iterator (&it, clone->synthesized_constraints);
     while (has_next_node_hash_table_iterator (&it))
     {
       exp = next_node_hash_table_iterator (&it);
@@ -929,7 +929,7 @@ btor_clone_exp_tree (Btor * btor,
 	{
 	  BtorNode *cur;
 	  BtorHashTableIterator it;
-	  init_node_hash_table_iterator (clone, &it, *htable);
+	  init_node_hash_table_iterator (&it, *htable);
 	  while (has_next_node_hash_table_iterator (&it))
 	    {
 	      cur = next_node_hash_table_iterator (&it);
@@ -1202,7 +1202,7 @@ btor_clone_nodes_id_table (Btor * btor,
 	{
 	  BtorNode *cur;
 	  BtorHashTableIterator it;
-	  init_node_hash_table_iterator (clone, &it, *htable);
+	  init_node_hash_table_iterator (&it, *htable);
 	  while (has_next_node_hash_table_iterator (&it))
 	    {
 	      cur = next_node_hash_table_iterator (&it);

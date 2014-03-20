@@ -205,7 +205,7 @@ btor_chkclone_state (Btor *btor)
   BTOR_CHKCLONE_STATE (options.simplify_constraints);
   BTOR_CHKCLONE_STATE (options.slice_propagation);
   BTOR_CHKCLONE_STATE (options.verbosity);
-#ifndef CHECK_FAILED
+#ifdef BTOR_CHECK_FAILED
   BTOR_CHKCLONE_STATE (options.chk_failed_assumptions);
 #endif
 }
