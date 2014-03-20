@@ -490,6 +490,7 @@ dump_fun_smt2 (BtorSMTDumpContext *sdc, BtorNode *fun)
 
   /* close lets */
   for (i = 0; i < sdc->open_lets; i++) fputc (')', sdc->file);
+  sdc->open_lets = 0;
 
   /* close define-fun */
   fputs (")\n", sdc->file);
@@ -735,6 +736,7 @@ dump_smt (BtorSMTDumpContext *sdc)
       dump_assert_smt2 (sdc, cur);
     }
   }
+  assert (sdc->open_lets == 0);
 
 #ifndef NDEBUG
   for (i = 0; i < BTOR_COUNT_STACK (rem); i++)
