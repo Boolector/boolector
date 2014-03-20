@@ -2274,11 +2274,15 @@ _dump (BtorMBT *btormbt, unsigned r)
   assert (!btormbt->inc);
   assert (!btormbt->mgen);
 
+  int rand;
   RNG rng;
   rng = initrng (r);
 
-  if (pick (&rng, 0, 1))
+  rand = pick (&rng, 0, 2);
+  if (rand == 0)
     boolector_dump_btor (btormbt->btor, stdout);
+  else if (rand == 1)
+    boolector_dump_smt1 (btormbt->btor, stdout);
   else
     boolector_dump_smt2 (btormbt->btor, stdout);
   return _del;

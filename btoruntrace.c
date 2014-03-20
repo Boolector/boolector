@@ -1069,6 +1069,11 @@ NEXT:
     PARSE_ARGS0 (tok);
     boolector_dump_btor (btor, stdout);
   }
+  else if (!strcmp (tok, "dump_smt1"))
+  {
+    PARSE_ARGS0 (tok);
+    boolector_dump_smt1 (btor, stdout);
+  }
   else if (!strcmp (tok, "dump_smt2"))
   {
     PARSE_ARGS0 (tok);

@@ -1218,6 +1218,14 @@ is_always_unequal (Btor *btor, BtorNode *e0, BtorNode *e1)
   return 0;
 }
 
+static int
+cmp_node_id (const void *p, const void *q)
+{
+  BtorNode *a = *(BtorNode **) p;
+  BtorNode *b = *(BtorNode **) q;
+  return a->id - b->id;
+}
+
 static void
 normalize_binary_comm_ass_exp (Btor *btor,
                                BtorNode *e0,
@@ -1352,23 +1360,30 @@ normalize_binary_comm_ass_exp (Btor *btor,
   }
 
   assert (comm->count >= 2u);
-  b      = comm->first;
-  common = btor_copy_exp (btor, (BtorNode *) b->key);
-  if (b->data.asInt > 0)
-    b->data.asInt--;
-  else
-    b = b->next;
+
+  /* normalize common nodes */
+  BTOR_INIT_STACK (stack);
+  b = comm->first;
   while (b)
   {
     cur = b->key;
-    for (i = 0; i < b->data.asInt; i++)
-    {
-      temp = fptr (btor, common, cur);
-      btor_release_exp (btor, common);
-      common = temp;
-    }
+    for (i = 0; i < b->data.asInt; i++) BTOR_PUSH_STACK (mm, stack, cur);
     b = b->next;
   }
+
+  qsort (
+      stack.start, BTOR_COUNT_STACK (stack), sizeof (BtorNode *), cmp_node_id);
+
+  common = btor_copy_exp (btor, BTOR_POP_STACK (stack));
+  while (!BTOR_EMPTY_STACK (stack))
+  {
+    cur  = BTOR_POP_STACK (stack);
+    temp = fptr (btor, common, cur);
+    btor_release_exp (btor, common);
+    common = temp;
+  }
+
+  BTOR_RELEASE_STACK (mm, stack);
 
 #if 0
   /* normalize left side */

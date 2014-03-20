@@ -491,9 +491,9 @@ btor_clone_aux_btor (Btor *btor,
   clone->mm = mm;
 
   // TODO memcpy whole struct and reset unused values
-  memcpy (&clone->bv_lambda_id,
-          &btor->bv_lambda_id,
-          (char *) &btor->lod_cache - (char *) &btor->bv_lambda_id);
+  memcpy (&clone->dvn_id,
+          &btor->dvn_id,
+          (char *) &btor->lod_cache - (char *) &btor->dvn_id);
 
   if (exp_layer_only)
   {
