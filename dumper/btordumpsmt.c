@@ -792,7 +792,7 @@ dump_smt_aux (Btor *btor, FILE *file, int version, BtorNode **roots, int nroots)
 
   for (i = 0; i < nroots; i++) tmp_roots[i] = roots[i];
 
-  if (nested_funs)
+  if (nested_funs || version == 1)
   {
 #ifndef NDEBUG
     clone = btor_clone_btor (btor);
