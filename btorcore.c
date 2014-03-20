@@ -116,26 +116,32 @@ check_unique_table_children_proxy_free_dbg (const Btor *btor)
 }
 
 static int
-check_unique_table_mark_unset_dbg (const Btor *btor)
+check_id_table_mark_unset_dbg (const Btor *btor)
 {
   int i;
   BtorNode *cur;
 
-  for (i = 0; i < btor->nodes_unique_table.size; i++)
-    for (cur = btor->nodes_unique_table.chains[i]; cur; cur = cur->next)
-      if (cur->mark != 0) return 0;
+  for (i = 1; i < BTOR_COUNT_STACK (btor->nodes_id_table); i++)
+  {
+    cur = BTOR_PEEK_STACK (btor->nodes_id_table, i);
+    if (!cur) continue;
+    if (cur->mark != 0) return 0;
+  }
   return 1;
 }
 
 static int
-check_unique_table_aux_mark_unset_dbg (const Btor *btor)
+check_id_table_aux_mark_unset_dbg (const Btor *btor)
 {
   int i;
   BtorNode *cur;
 
-  for (i = 0; i < btor->nodes_unique_table.size; i++)
-    for (cur = btor->nodes_unique_table.chains[i]; cur; cur = cur->next)
-      if (cur->aux_mark != 0) return 0;
+  for (i = 1; i < BTOR_COUNT_STACK (btor->nodes_id_table); i++)
+  {
+    cur = BTOR_PEEK_STACK (btor->nodes_id_table, i);
+    if (!cur) continue;
+    if (cur->aux_mark != 0) return 0;
+  }
   return 1;
 }
 
@@ -1172,7 +1178,7 @@ static void
 update_assumptions (Btor *btor)
 {
   assert (btor);
-  assert (check_unique_table_mark_unset_dbg (btor));
+  assert (check_id_table_mark_unset_dbg (btor));
 
   BtorPtrHashTable *ass;
   BtorNode *cur, *simp;
@@ -1766,7 +1772,7 @@ add_constraint (Btor *btor, BtorNode *exp)
 {
   assert (btor);
   assert (exp);
-  assert (check_unique_table_mark_unset_dbg (btor));
+  assert (check_id_table_mark_unset_dbg (btor));
 
   BtorNode *cur, *child;
   BtorNodePtrStack stack;
@@ -1937,7 +1943,7 @@ btor_failed_exp (Btor *btor, BtorNode *exp)
   assert (btor->options.inc_enabled);
   assert (btor->last_sat_result == BTOR_UNSAT);
   assert (exp);
-  assert (check_unique_table_mark_unset_dbg (btor));
+  assert (check_id_table_mark_unset_dbg (btor));
 
   int i, lit;
   BtorAIG *aig;
@@ -2352,7 +2358,7 @@ substitute_vars_and_rebuild_exps (Btor *btor, BtorPtrHashTable *substs)
 {
   assert (btor);
   assert (substs);
-  assert (check_unique_table_aux_mark_unset_dbg (btor));
+  assert (check_id_table_aux_mark_unset_dbg (btor));
 
   BtorNodePtrStack stack, root_stack;
   BtorPtrHashBucket *b;
@@ -2472,7 +2478,7 @@ static void
 substitute_var_exps (Btor *btor)
 {
   assert (btor);
-  assert (check_unique_table_mark_unset_dbg (btor));
+  assert (check_id_table_mark_unset_dbg (btor));
 
   BtorPtrHashTable *varsubst_constraints, *order, *substs;
   BtorNode *cur, *constraint, *left, *right, *child;
@@ -2732,7 +2738,7 @@ substitute_and_rebuild (Btor *btor, BtorPtrHashTable *subst, int bra)
   assert (btor);
   assert (subst);
   assert (bra == 0 || bra == 1);
-  assert (check_unique_table_aux_mark_unset_dbg (btor));
+  assert (check_id_table_aux_mark_unset_dbg (btor));
 
   int i, refs;
   BtorMemMgr *mm;
@@ -2864,7 +2870,7 @@ substitute_and_rebuild (Btor *btor, BtorPtrHashTable *subst, int bra)
 
   BTOR_RELEASE_STACK (mm, roots);
 
-  assert (check_unique_table_aux_mark_unset_dbg (btor));
+  assert (check_id_table_aux_mark_unset_dbg (btor));
   assert (check_unique_table_children_proxy_free_dbg (btor));
 }
 
@@ -3551,7 +3557,7 @@ process_skeleton (Btor *btor)
       "skeleton preprocessing produced %d new constraints in %.1f seconds",
       fixed,
       delta);
-  assert (check_unique_table_mark_unset_dbg (btor));
+  assert (check_id_table_mark_unset_dbg (btor));
 }
 
 /*------------------------------------------------------------------------*/
@@ -3649,8 +3655,8 @@ merge_lambdas (Btor *btor)
 {
   assert (btor);
   assert (btor->options.rewrite_level > 0);
-  assert (check_unique_table_mark_unset_dbg (btor));
-  assert (check_unique_table_aux_mark_unset_dbg (btor));
+  assert (check_id_table_mark_unset_dbg (btor));
+  assert (check_id_table_aux_mark_unset_dbg (btor));
   assert (check_unique_table_merge_unset_dbg (btor));
 
   int i, delta_lambdas;
@@ -3772,7 +3778,7 @@ merge_lambdas (Btor *btor)
   BTOR_RELEASE_STACK (mm, visit);
   BTOR_RELEASE_STACK (mm, stack);
   BTOR_RELEASE_STACK (mm, unmark);
-  assert (check_unique_table_aux_mark_unset_dbg (btor));
+  assert (check_id_table_aux_mark_unset_dbg (btor));
   assert (check_unique_table_merge_unset_dbg (btor));
   delta = btor_time_stamp () - start;
   btor_msg (btor, 1, "merged %d lambdas in %.2f seconds", delta_lambdas, delta);
@@ -3873,7 +3879,7 @@ recursively_rebuild_exp_limits (Btor *btor,
   assert (limits);
   assert (exp);
   assert (BTOR_IS_REGULAR_NODE (exp));
-  assert (check_unique_table_mark_unset_dbg (btor));
+  assert (check_id_table_mark_unset_dbg (btor));
 
   int i, upper, lower, u, l;
   BtorMemMgr *mm;
@@ -4165,7 +4171,7 @@ ULT_BEQ_NODE:
   BTOR_RELEASE_STACK (mm, unmark);
   btor_delete_ptr_hash_table (cache);
 
-  assert (check_unique_table_mark_unset_dbg (btor));
+  assert (check_id_table_mark_unset_dbg (btor));
   btor->options.simplify_constraints = 1;
 
   return result;
@@ -4878,7 +4884,7 @@ update_reachable (Btor *btor, int check_all_tables)
   BtorPtrHashBucket *b;
   BtorHashTableIterator it;
 
-  assert (check_unique_table_mark_unset_dbg (btor));
+  assert (check_id_table_mark_unset_dbg (btor));
   assert (check_all_tables || btor->unsynthesized_constraints->count == 0);
   assert (check_all_tables || btor->embedded_constraints->count == 0);
   assert (check_all_tables || btor->varsubst_constraints->count == 0);
@@ -4939,7 +4945,7 @@ static void
 add_again_assumptions (Btor *btor)
 {
   assert (btor);
-  assert (check_unique_table_mark_unset_dbg (btor));
+  assert (check_id_table_mark_unset_dbg (btor));
 
   int i;
   BtorNode *exp, *cur, *e;
@@ -5419,7 +5425,7 @@ lazy_synthesize_and_encode_lambda_exp (Btor *btor,
   assert (lambda_exp);
   assert (BTOR_IS_REGULAR_NODE (lambda_exp));
   assert (BTOR_IS_LAMBDA_NODE (lambda_exp));
-  assert (check_unique_table_mark_unset_dbg (btor));
+  assert (check_id_table_mark_unset_dbg (btor));
 
   double start;
   int changed_assignments, update, i;
@@ -6270,7 +6276,7 @@ find_not_encoded_applies_vars (Btor *btor,
   assert (btor);
   assert (exp);
   assert (param_apps);
-  assert (check_unique_table_mark_unset_dbg (btor));
+  assert (check_id_table_mark_unset_dbg (btor));
 
   int i;
   double start;
@@ -6402,7 +6408,7 @@ push_applies_for_propagation (Btor *btor,
   assert (btor);
   assert (exp);
   assert (prop_stack);
-  assert (check_unique_table_mark_unset_dbg (btor));
+  assert (check_id_table_mark_unset_dbg (btor));
 
   int i;
   double start;

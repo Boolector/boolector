@@ -375,6 +375,14 @@ mul_aigvec (BtorAIGVecMgr *avmgr, BtorAIGVec *a, BtorAIGVec *b)
   amgr = btor_get_aig_mgr_aigvec_mgr (avmgr);
 
   assert (len > 0);
+  assert (len == b->len);
+
+  if (btor_cmp_aig (a->aigs[0], b->aigs[0]) > 0)
+  {
+    BtorAIGVec *c = a;
+    a             = b;
+    b             = c;
+  }
 
   res = new_aigvec (avmgr, len);
 
