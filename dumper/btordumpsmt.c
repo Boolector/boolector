@@ -11,6 +11,7 @@
  */
 
 #include "btordumpsmt.h"
+#include "btorclone.h"
 #include "btorconst.h"
 #include "btorcore.h"
 #include "btorexit.h"
@@ -52,7 +53,7 @@ new_smt_dump_context (Btor *btor, FILE *file)
                                         (BtorCmpPtr) btor_compare_exp_by_id);
   sdc->file   = file;
   sdc->maxid  = 1;
-  sdc->pprint = btor->pprint;
+  sdc->pprint = btor->options.pprint;
 
   BTOR_INIT_STACK (sdc->roots);
   return sdc;
@@ -701,8 +702,8 @@ btor_dump_smt2 (Btor *btor, FILE *file)
 {
   assert (btor);
   assert (file);
-  assert (!btor->inc_enabled);
-  //  assert (!btor->model_gen);
+  assert (!btor->options.inc_enabled);
+  //  assert (!btor->options.model_gen);
 
   int ret, nested_funs = 0;
   Btor *clone;
@@ -710,7 +711,7 @@ btor_dump_smt2 (Btor *btor, FILE *file)
   BtorHashTableIterator it;
   BtorSMTDumpContext *sdc;
 
-  init_node_hash_table_iterator (btor, &it, btor->lambdas);
+  init_node_hash_table_iterator (&it, btor->lambdas);
   while (has_next_node_hash_table_iterator (&it))
   {
     if (next_node_hash_table_iterator (&it)->parameterized)
@@ -734,7 +735,7 @@ btor_dump_smt2 (Btor *btor, FILE *file)
 
   if (ret == BTOR_UNKNOWN)
   {
-    init_node_hash_table_iterator (btor, &it, btor->unsynthesized_constraints);
+    init_node_hash_table_iterator (&it, btor->unsynthesized_constraints);
     while (has_next_node_hash_table_iterator (&it))
       add_root_to_smt_dump_context (sdc, next_node_hash_table_iterator (&it));
   }

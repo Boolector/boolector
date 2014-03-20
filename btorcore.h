@@ -109,6 +109,7 @@ struct Btor
   BtorPtrHashTable *lambdas;
   BtorPtrHashTable *substitutions;
   BtorNode *true_exp;
+
   int bv_lambda_id;    /* counter for lambda bv variables (subst) */
   int array_lambda_id; /* counter for lambda array variables (subst) */
   int dvn_id;          /* counter for vars (no symbol) via API */
@@ -117,33 +118,14 @@ struct Btor
   int rec_rw_calls;    /* calls for recursive rewriting */
   int rec_read_acond_calls;
   int valid_assignments;
-  int rewrite_level;
-  int verbosity;
-#ifndef NBTORLOG
-  int loglevel;
-#endif
   int vis_idx; /* file index for visualizing expressions */
   int vread_index_id;
   int inconsistent;
   int found_constraint_false;
-  int model_gen;              /* model generation enabled */
-  int external_refs;          /* external references (library mode) */
-  int inc_enabled;            /* incremental usage enabled ? */
-  int beta_reduce_all;        /* eliminate lambda expressions */
-  int dual_prop;              /* dual prop optimization */
-  int force_cleanup;          /* cleanup exps, assignment strings (external
-                                 references only) */
-  int pprint;                 /* reindex exps when dumping */
-  int force_internal_cleanup; /* cleanup exps, assignment strings (internal
-                                 references only) */
-#ifndef NDEBUG
-  int chk_failed_assumptions;
-#endif
-  int last_sat_result;      /* status of last SAT call (SAT/UNSAT) */
+  int external_refs;        /* external references (library mode) */
   int btor_sat_btor_called; /* how often is btor_sat_btor been called */
   int msgtick;              /* message tick in incremental mode */
-
-  int generate_model_for_all_reads;
+  int last_sat_result;      /* status of last SAT call (SAT/UNSAT) */
 
   BtorPtrHashTable *lod_cache;
 
@@ -165,10 +147,6 @@ struct Btor
   int closeapitrace;
 
   /* statistics */
-  struct
-  {
-    int cur, max;
-  } ops[BTOR_NUM_OPS_NODE];
   struct
   {
     int max_rec_rw_calls; /* maximum number of recursive rewrite calls */
@@ -210,6 +188,11 @@ struct Btor
 
   struct
   {
+    int cur, max;
+  } ops[BTOR_NUM_OPS_NODE];
+
+  struct
+  {
     double rewrite;
     double sat;
     double subst;
@@ -234,6 +217,29 @@ struct Btor
     double cloning;
     double synth_exp;
   } time;
+
+  struct
+  {
+    int dual_prop;              /* dual prop optimization */
+    int beta_reduce_all;        /* eliminate lambda expressions */
+    int force_cleanup;          /* force cleanup of exps, assignment strings */
+    int force_internal_cleanup; /* force cleanup of exps, assignment strings
+                                   (internal references only) */
+    int generate_model_for_all_reads;
+    int inc_enabled; /* incremental usage enabled ? */
+#ifndef NBTORLOG
+    int loglevel;
+#endif
+    int model_gen; /* model generation enabled */
+    int pprint;    /* reindex exps when dumping */
+    int rewrite_level;
+    int simplify_constraints; /* force constraints to true/false */
+    int slice_propagation;
+    int verbosity;
+#ifdef
+    int chk_failed_assumptions;
+#endif
+  } options;
 };
 
 /* Creates new boolector instance. */

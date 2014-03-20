@@ -29,7 +29,7 @@
 BTOR_DECLARE_STACK (BtorNodePtrStackPtr, BtorNodePtrStack *);
 BTOR_DECLARE_STACK (BtorPtrHashTablePtrPtr, BtorPtrHashTable **);
 
-BtorNode *
+static BtorNode *
 clone_exp (Btor *clone,
            BtorNode *exp,
            BtorNodePtrPtrStack *parents,

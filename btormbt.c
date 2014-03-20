@@ -154,6 +154,7 @@
   "  -n, --no-modelgen                do not enable model generation \n" \
   "  -e, --extensionality             use extensionality\n" \
   "  -dp, --dual-prop                 enable dual prop optimization\n" \
+  "  -s, --shadow                     create and check shadow clone\n" \
   "\n" \
   "  -f, --quit-after-first           quit after first bug encountered\n" \
   "  -m <maxruns>                     quit after <maxruns> rounds\n" \

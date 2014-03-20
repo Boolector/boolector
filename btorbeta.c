@@ -1263,8 +1263,8 @@ btor_beta_reduce_partial_aux (Btor *btor,
   start = btor_time_stamp ();
   btor->stats.beta_reduce_calls++;
 
-  rwl = btor->rewrite_level;
-  if (btor->rewrite_level > 0) btor->rewrite_level = 1;
+  rwl = btor->options.rewrite_level;
+  if (btor->options.rewrite_level > 0) btor->options.rewrite_level = 1;
 
   mm = btor->mm;
   BTOR_INIT_STACK (stack);
@@ -1636,7 +1636,7 @@ btor_beta_reduce_partial_aux (Btor *btor,
       *evalerr = 1;
   }
 
-  init_node_hash_table_iterator (btor, &it, mark);
+  init_node_hash_table_iterator (&it, mark);
   while (has_next_node_hash_table_iterator (&it))
     btor_release_exp (btor, next_node_hash_table_iterator (&it));
 
@@ -1644,7 +1644,7 @@ btor_beta_reduce_partial_aux (Btor *btor,
   BTOR_RELEASE_STACK (mm, arg_stack);
   btor_delete_ptr_hash_table (cache);
   btor_delete_ptr_hash_table (mark);
-  btor->rewrite_level = rwl;
+  btor->options.rewrite_level = rwl;
 
   BTORLOG ("%s: result %s (%d)",
            __FUNCTION__,
