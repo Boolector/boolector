@@ -3698,7 +3698,7 @@ boolector_failed (Btor *btor, BoolectorNode *node)
   BTOR_ABORT_IF_BTOR_DOES_NOT_MATCH (btor, exp);
   /* Note: do not simplify expression (see boolector_assume). */
   BTOR_ABORT_ARRAY_BOOLECTOR (exp);
-  BTOR_ABORT_BOOLECTOR (BTOR_REAL_ADDR_NODE (simp)->len != 1,
+  BTOR_ABORT_BOOLECTOR (BTOR_REAL_ADDR_NODE (exp)->len != 1,
                         "'exp' must have bit-width one");
   BTOR_ABORT_BOOLECTOR (!btor_is_assumption_exp (btor, simp),
                         "'exp' must be an assumption");
