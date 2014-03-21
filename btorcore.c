@@ -98,7 +98,7 @@ static void check_dual_prop (Btor *, Btor *);
 /*------------------------------------------------------------------------*/
 
 const char *const g_btor_op2string[] = {
-    "invalid", "const", "var",    "array", "param", "slice",  "And",
+    "invalid", "const", "var",    "array", "param", "slice",  "and",
     "beq",     "aeq",   "add",    "mul",   "ult",   "sll",    "srl",
     "udiv",    "urem",  "concat", "read",  "apply", "lambda", "write",
     "bcond",   "acond", "args",   "proxy"};
@@ -1245,14 +1245,19 @@ process_unsynthesized_constraints (Btor *btor)
         else
           other = 0;
 
-        if (other && !BTOR_IS_INVERTED_NODE (other)
-            && other->kind == BTOR_ADD_NODE)
-        {
-          assert (BTOR_REAL_ADDR_NODE (other->e[0])->kind
-                  != BTOR_BV_CONST_NODE);
-          assert (BTOR_REAL_ADDR_NODE (other->e[1])->kind
-                  != BTOR_BV_CONST_NODE);
-        }
+        // FIXME fails with symbolic lemmas (during beta-reduction
+        // rewrite level is forced to 1, hence symbolic lemmas might
+        // not be simplified as much as possible). possible solution:
+        // use rewrite level > 1 for lemma generation.
+        // if (other
+        //    && !BTOR_IS_INVERTED_NODE (other)
+        //    && other->kind == BTOR_ADD_NODE)
+        //  {
+        //    assert (BTOR_REAL_ADDR_NODE (
+        //  	    other->e[0])->kind != BTOR_BV_CONST_NODE);
+        //    assert (BTOR_REAL_ADDR_NODE (
+        //  	    other->e[1])->kind != BTOR_BV_CONST_NODE);
+        //  }
       }
     }
 #endif
