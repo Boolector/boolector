@@ -961,6 +961,7 @@ btor_clone_exp_tree (Btor * btor,
 }
 #endif
 
+// TODO rename
 BtorNode *
 btor_rebuild_clone_exp_tree (Btor *btor,
                              Btor *clone,
@@ -1057,7 +1058,7 @@ btor_rebuild_clone_exp_tree (Btor *btor,
           cur_clone = btor_apply_exp (clone, e[0], e[1]);
           break;
         case BTOR_ARGS_NODE:
-          cur_clone = btor_args_exp (clone, cur->arity, cur->e);
+          cur_clone = btor_args_exp (clone, cur->arity, e);
           break;
         default:
           assert (BTOR_IS_BV_COND_NODE (cur));
