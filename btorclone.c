@@ -460,9 +460,8 @@ btor_clone_btor (Btor *btor)
 
   mm = btor_new_mem_mgr ();
   BTOR_CNEW (mm, clone);
-  clone->mm = mm;
-
   memcpy (clone, btor, sizeof (Btor));
+  clone->mm = mm;
   assert ((allocated = sizeof (Btor)) == clone->mm->allocated);
 
   BTORLOG_TIMESTAMP (delta);
