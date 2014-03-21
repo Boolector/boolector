@@ -346,6 +346,11 @@ NEXT:
     PARSE_ARGS0 (tok);
     boolector_enable_model_gen (btor);
   }
+  else if (!strcmp (tok, "disable_model_gen"))
+  {
+    PARSE_ARGS0 (tok);
+    boolector_disable_model_gen (btor);
+  }
   else if (!strcmp (tok, "generate_model_for_all_reads"))
   {
     PARSE_ARGS0 (tok);

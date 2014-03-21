@@ -249,6 +249,9 @@ void btor_set_rewrite_level_btor (Btor *btor, int rewrite_level);
 /* Enables model generation. */
 void btor_enable_model_gen (Btor *btor);
 
+/* Disables model generation. */
+void btor_disable_model_gen (Btor *btor);
+
 /* Forces all reads to be synthesized during model generation. */
 void btor_generate_model_for_all_reads (Btor *btor);
 

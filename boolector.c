@@ -959,6 +959,17 @@ boolector_enable_model_gen (Btor *btor)
 }
 
 void
+boolector_disable_model_gen (Btor *btor)
+{
+  BTOR_ABORT_ARG_NULL_BOOLECTOR (btor);
+  BTOR_TRAPI ("disable_model_gen");
+  btor_disable_model_gen (btor);
+#ifndef NDEBUG
+  BTOR_CHKCLONE_NORES (disable_model_gen);
+#endif
+}
+
+void
 boolector_generate_model_for_all_reads (Btor *btor)
 {
   BTOR_ABORT_ARG_NULL_BOOLECTOR (btor);
