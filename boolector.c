@@ -3700,9 +3700,9 @@ boolector_failed (Btor *btor, BoolectorNode *node)
   BTOR_ABORT_ARRAY_BOOLECTOR (exp);
   BTOR_ABORT_BOOLECTOR (BTOR_REAL_ADDR_NODE (exp)->len != 1,
                         "'exp' must have bit-width one");
-  BTOR_ABORT_BOOLECTOR (!btor_is_assumption_exp (btor, simp),
+  BTOR_ABORT_BOOLECTOR (!btor_is_assumption_exp (btor, exp),
                         "'exp' must be an assumption");
-  res = btor_failed_exp (btor, simp);
+  res = btor_failed_exp (btor, exp);
 #ifndef NDEBUG
   BTOR_CHKCLONE_RES (res, failed, BTOR_CLONED_EXP (exp));
 #endif
