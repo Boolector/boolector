@@ -242,6 +242,22 @@ BtorIBV::setReachedAtBoundCallBack (void* state,
   boolector_set_reached_at_bound_call_back_mc (btormc, state, fun);
 }
 
+static void
+btoribv_delegate_reached_at_bound (void* ptr, int i, int k)
+{
+  assert (ptr);
+  BtorIBV::ReachedAtBoundListener* listener =
+      (BtorIBV::ReachedAtBoundListener*) ptr;
+  listener->reachedAtBound (i, k);
+}
+
+void
+BtorIBV::setReachedAtBoundListener (BtorIBV::ReachedAtBoundListener* listener)
+{
+  boolector_set_reached_at_bound_call_back_mc (
+      btormc, listener, btoribv_delegate_reached_at_bound);
+}
+
 void
 BtorIBV::setRewriteLevel (int rwl)
 {
