@@ -299,7 +299,6 @@ clone_nodes_id_table (Btor *clone,
   assert (id_table);
   assert (res);
   assert (exp_map);
-  //  assert (aig_map);
 
   int i, tag;
   BtorNode **tmp;
@@ -604,7 +603,7 @@ clone_aux_btor (Btor *btor,
   for (i = 1; i < BTOR_COUNT_STACK (btor->nodes_id_table); i++)
   {
     if (!(cur = BTOR_PEEK_STACK (btor->nodes_id_table, i))) continue;
-    if (exp_layer_only && cur->vread)
+    if (exp_layer_only && cur->vread && cur->refs == 1)
     {
       vread_bytes += cur->bytes;
       continue;
