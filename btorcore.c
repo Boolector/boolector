@@ -5439,6 +5439,8 @@ search_initial_applies_dual_prop (Btor *btor,
     ass_str = btor_bv_assignment_str_exp (btor, cur_btor);
     for (i = 0; i < cur_btor->len; i++)
       ass_str[i] = ass_str[i] == 'x' ? '0' : ass_str[i];
+    for (i = 0; i < cur_btor->len; i++)
+      ass_str[i] = ass_str[i] == 'x' ? '0' : ass_str[i];
     bv_const = btor_const_exp (clone, ass_str);
     bv_eq    = btor_eq_exp (clone, cur_clone, bv_const);
     btor_assume_exp (clone, bv_eq);
@@ -7833,8 +7835,8 @@ btor_sat_aux_btor (Btor *btor)
       lemma        = btor->lod_cache->last->key;
       cloned_lemma = btor_rebuild_clone_exp_tree (btor, clone, lemma, exp_map);
       assert (cloned_lemma);
-      printf ("lemma: %s\n", node2string (lemma));
-      printf ("cloned lemma: %s\n", node2string (cloned_lemma));
+      // printf ("lemma: %s\n", node2string (lemma));
+      // printf ("cloned lemma: %s\n", node2string (cloned_lemma));
       BTOR_REAL_ADDR_NODE (cloned_lemma)->constraint = 0;
       and = btor_and_exp (clone, clone_root, cloned_lemma);
       btor_release_exp (clone, cloned_lemma);
