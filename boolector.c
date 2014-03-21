@@ -1062,6 +1062,28 @@ boolector_set_sat_solver (Btor *btor, const char *solver)
   return res;
 }
 
+void
+boolector_reset_time (Btor *btor)
+{
+  BTOR_ABORT_ARG_NULL_BOOLECTOR (btor);
+  BTOR_TRAPI ("reset_time");
+  btor_reset_time_btor (btor);
+#ifndef NDEBUG
+  BTOR_CHKCLONE_NORES (reset_time);
+#endif
+}
+
+void
+boolector_reset_stats (Btor *btor)
+{
+  BTOR_ABORT_ARG_NULL_BOOLECTOR (btor);
+  BTOR_TRAPI ("reset_stats");
+  btor_reset_stats_btor (btor);
+#ifndef NDEBUG
+  BTOR_CHKCLONE_NORES (reset_stats);
+#endif
+}
+
 int
 boolector_get_refs (Btor *btor)
 {

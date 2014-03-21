@@ -232,6 +232,16 @@ int boolector_set_sat_solver (Btor *btor, const char *solver);
  */
 void boolector_set_rewrite_level (Btor *btor, int rewrite_level);
 
+/* Reset time statistics.
+ * \param btor Boolector instance.
+ */
+void boolector_reset_time (Btor *btor);
+
+/* Reset statistics (time statistics not included).
+ * \param btor Boolector instance.
+ */
+void boolector_reset_stats (Btor *btor);
+
 /**
  * Returns the number of external references to the boolector library.
  * Internally, Boolector manages an expression DAG with reference counting. Use

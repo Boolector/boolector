@@ -647,6 +647,20 @@ btor_set_loglevel_btor (Btor *btor, int loglevel)
 #endif
 }
 
+void
+btor_reset_time_btor (Btor *btor)
+{
+  assert (btor);
+  memset (&btor->time, 0, sizeof (btor->time));
+}
+
+void
+btor_reset_stats_btor (Btor *btor)
+{
+  assert (btor);
+  memset (&btor->stats, 0, sizeof (btor->stats));
+}
+
 static int
 constraints_stats_changes (Btor *btor)
 {

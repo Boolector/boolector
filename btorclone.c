@@ -490,22 +490,19 @@ btor_clone_aux_btor (Btor *btor,
   BTOR_CNEW (mm, clone);
   clone->mm = mm;
 
-  // TODO memcpy whole struct and reset unused values
+  memcpy (clone, btor, sizeof (Btor));
   memcpy (&clone->dvn_id,
           &btor->dvn_id,
           (char *) &btor->lod_cache - (char *) &btor->dvn_id);
 
   if (exp_layer_only)
   {
-    clone->btor_sat_btor_called = 0; /* reset */
-    clone->valid_assignments    = 0; /* reset */
+    /* reset */
+    clone->btor_sat_btor_called = 0;
+    clone->valid_assignments    = 0;
+    btor_reset_time_btor (clone);
+    btor_reset_stats_btor (clone);
   }
-  else
-    memcpy (&clone->stats,
-            &btor->stats,
-            (char *) btor + sizeof (*btor) - (char *) &btor->stats);
-
-  memcpy (&clone->ops, &btor->ops, sizeof btor->ops);
 
   assert ((allocated = sizeof (Btor)) == clone->mm->allocated);
 
