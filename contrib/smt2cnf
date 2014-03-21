@@ -1,34 +1,5 @@
-#!/bin/bash
-readonly usage='smt2cnf [--no-rewriting]'
-
-if [[ $# -ne 0 ]] && [[ $# -ne 1 ]]; then
-  echo $usage
-  exit 1
-fi
-
-rw=1
-if [[ $# -eq 1 ]]; then
-  if [[ $1 != "--no-rewriting" ]]; then 
-    echo $usage
-    exit 1
-  fi
-  rw=0
-fi
-
-boolector=`which boolector`
-if [[ -z "$boolector" ]]; then
-  echo "can not find 'boolector'" 1>&2
-  exit 1
-fi
-
-btor2cnf=`which btor2cnf`
-if [[ -z "$btor2cnf" ]]; then
-  echo "can not find 'btor2cnf'" 1>&2
-  exit 1
-fi
-
-if [[ $rw -eq 0 ]]; then
-  $boolector -rwl0 -de | $btor2cnf --no-rewriting
-else
-  $boolector -rwl0 -de | $btor2cnf
-fi
+#!/bin/sh
+tmp=/tmp/smt2cnf-$$
+trap "rm -f $tmp*" 2 10 15
+boolector $* -db|synthebtor|aigtocnf
+rm -f $tmp*
