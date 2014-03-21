@@ -248,6 +248,9 @@ void btor_disable_pretty_print (Btor *btor);
 /* Enables model generation. */
 void btor_enable_model_gen (Btor *btor);
 
+/* Disables model generation. */
+void btor_disable_model_gen (Btor *btor);
+
 /* Enables incremental usage which means that assumptions are enabled
  * and btor_sat_btor can be called more than once. Note that enabling this
  * feature turns off some optimizations which are not possible anymore.
@@ -264,6 +267,12 @@ void btor_set_verbosity_btor (Btor *btor, int verbosity);
 
 /* Set log level. */
 void btor_set_loglevel_btor (Btor *btor, int loglevel);
+
+/* Reset time statistics. */
+void btor_reset_time_btor (Btor *btor);
+
+/* Reset other statistics. */
+void btor_reset_stats_btor (Btor *btor);
 
 /* Deletes boolector. */
 void btor_delete_btor (Btor *btor);
