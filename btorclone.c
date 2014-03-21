@@ -12,7 +12,6 @@
 
 #include "btoraig.h"
 #include "btoraigvec.h"
-#include "btorbeta.h"
 #include "btorcore.h"
 #include "btorhash.h"
 #include "btoriter.h"
@@ -46,7 +45,6 @@ clone_exp (Btor *clone,
   assert (nodes);
   assert (sapps);
   assert (exp_map);
-  // assert (aig_map);
 
   int i, len;
   BtorNode *res;
