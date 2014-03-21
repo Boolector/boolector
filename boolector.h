@@ -182,6 +182,12 @@ Btor *boolector_btor (BoolectorNode *node);
 void boolector_enable_model_gen (Btor *btor);
 
 /**
+ * Disable model generation.
+ * \param btor Boolector instance.
+ */
+void boolector_disable_model_gen (Btor *btor);
+
+/**
  * By default Boolector only generates assignments for reads
  * in the cone of assertions.  If you require models for all
  * 'reads' you can use this function to force Boolector to

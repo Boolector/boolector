@@ -584,6 +584,25 @@ btor_enable_model_gen (Btor *btor)
 }
 
 void
+btor_disable_model_gen (Btor *btor)
+{
+  assert (btor);
+
+  BtorHashTableIterator it;
+
+  if (btor->options.model_gen)
+  {
+    btor->options.model_gen = 0;
+    init_node_hash_table_iterator (&it, btor->var_rhs);
+    queue_node_hash_table_iterator (&it, btor->array_rhs);
+    while (has_next_node_hash_table_iterator (&it))
+      btor_release_exp (btor, next_node_hash_table_iterator (&it));
+    btor_delete_ptr_hash_table (btor->var_rhs);
+    btor_delete_ptr_hash_table (btor->array_rhs);
+  }
+}
+
+void
 btor_enable_inc_usage (Btor *btor)
 {
   assert (btor);
