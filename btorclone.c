@@ -457,12 +457,11 @@ clone_nodes_unique_table (BtorMemMgr *mm,
     CHKCLONE_MEM_PTR_HASH_TABLE (table);                             \
   } while (0)
 
-// TODO make static
-Btor *
-btor_clone_aux_btor (Btor *btor,
-                     BtorNodeMap **exp_map,
-                     BtorAIGMap **aig_map,
-                     int exp_layer_only)
+static Btor *
+clone_aux_btor (Btor *btor,
+                BtorNodeMap **exp_map,
+                BtorAIGMap **aig_map,
+                int exp_layer_only)
 {
   assert (btor);
 
@@ -786,22 +785,21 @@ Btor *
 btor_clone_btor (Btor *btor)
 {
   assert (btor);
-  return btor_clone_aux_btor (btor, 0, 0, 0);
+  return clone_aux_btor (btor, 0, 0, 0);
 }
 
 Btor *
 btor_clone_exp_layer (Btor *btor, BtorNodeMap **exp_map, BtorAIGMap **aig_map)
 {
   assert (btor);
-  return btor_clone_aux_btor (btor, exp_map, aig_map, 1);
+  return clone_aux_btor (btor, exp_map, aig_map, 1);
 }
 
-// TODO rename
 BtorNode *
-btor_rebuild_clone_exp_tree (Btor *btor,
-                             Btor *clone,
-                             BtorNode *exp,
-                             BtorNodeMap *exp_map)
+btor_recursively_rebuild_exp_clone (Btor *btor,
+                                    Btor *clone,
+                                    BtorNode *exp,
+                                    BtorNodeMap *exp_map)
 {
   assert (btor);
   assert (exp);

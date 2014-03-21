@@ -7760,8 +7760,9 @@ btor_sat_aux_btor (Btor *btor)
     // maintains its root
     if (clone)
     {
-      lemma        = btor->lod_cache->last->key;
-      cloned_lemma = btor_rebuild_clone_exp_tree (btor, clone, lemma, exp_map);
+      lemma = btor->lod_cache->last->key;
+      cloned_lemma =
+          btor_recursively_rebuild_exp_clone (btor, clone, lemma, exp_map);
       assert (cloned_lemma);
       BTOR_REAL_ADDR_NODE (cloned_lemma)->constraint = 0;
       and = btor_and_exp (clone, clone_root, cloned_lemma);
