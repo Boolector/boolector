@@ -491,9 +491,6 @@ btor_clone_aux_btor (Btor *btor,
   clone->mm = mm;
 
   memcpy (clone, btor, sizeof (Btor));
-  memcpy (&clone->dvn_id,
-          &btor->dvn_id,
-          (char *) &btor->lod_cache - (char *) &btor->dvn_id);
 
   if (exp_layer_only)
   {
