@@ -182,6 +182,12 @@ Btor *boolector_btor (BoolectorNode *node);
 void boolector_enable_model_gen (Btor *btor);
 
 /**
+ * Disable model generation.
+ * \param btor Boolector instance.
+ */
+void boolector_disable_model_gen (Btor *btor);
+
+/**
  * By default Boolector only generates assignments for reads
  * in the cone of assertions.  If you require models for all
  * 'reads' you can use this function to force Boolector to
@@ -231,6 +237,16 @@ int boolector_set_sat_solver (Btor *btor, const char *solver);
  * 0 (no rewriting) to 3 (full rewriting).
  */
 void boolector_set_rewrite_level (Btor *btor, int rewrite_level);
+
+/* Reset time statistics.
+ * \param btor Boolector instance.
+ */
+void boolector_reset_time (Btor *btor);
+
+/* Reset statistics (time statistics not included).
+ * \param btor Boolector instance.
+ */
+void boolector_reset_stats (Btor *btor);
 
 /**
  * Returns the number of external references to the boolector library.
@@ -1170,6 +1186,25 @@ void boolector_dump_btor_node (Btor *btor, FILE *file, BoolectorNode *node);
  * The file must be have been opened by the user before.
  */
 void boolector_dump_btor (Btor *btor, FILE *file);
+
+/**
+ * Recursively dumps expression to file.
+ *<a href="http://smtlib.cs.uiowa.edu/papers/format-v1.2-r06.08.30.pdf">SMT-LIB
+ * \param btor Boolector instance.
+ * \param file File to which the expression should be dumped.
+ * The file must be have been opened by the user before.
+ * \param node The expression which should be dumped.
+ */
+void boolector_dump_smt1_node (Btor *btor, FILE *file, BoolectorNode *node);
+
+/**
+ * Dumps formula to file in SMT-LIB format.
+ *<a href="http://smtlib.cs.uiowa.edu/papers/format-v1.2-r06.08.30.pdf">SMT-LIB
+ * \param btor Boolector instance.
+ * \param btor Boolector instance
+ * \param file Output file.
+ */
+void boolector_dump_smt1 (Btor *btor, FILE *file);
 
 /**
  * Recursively dumps expression to file.

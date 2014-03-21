@@ -343,6 +343,11 @@ NEXT:
     PARSE_ARGS0 (tok);
     boolector_enable_model_gen (btor);
   }
+  else if (!strcmp (tok, "disable_model_gen"))
+  {
+    PARSE_ARGS0 (tok);
+    boolector_disable_model_gen (btor);
+  }
   else if (!strcmp (tok, "generate_model_for_all_reads"))
   {
     PARSE_ARGS0 (tok);
@@ -378,6 +383,16 @@ NEXT:
     PARSE_ARGS1 (tok, str);
     ret_int = boolector_set_sat_solver (btor, arg1_str);
     exp_ret = RET_INT;
+  }
+  else if (!strcmp (tok, "reset_time"))
+  {
+    PARSE_ARGS0 (tok);
+    boolector_reset_time (btor);
+  }
+  else if (!strcmp (tok, "reset_stats"))
+  {
+    PARSE_ARGS0 (tok);
+    boolector_reset_stats (btor);
   }
   else if (!strcmp (tok, "get_refs"))
   {
@@ -1060,6 +1075,11 @@ NEXT:
   {
     PARSE_ARGS0 (tok);
     boolector_dump_btor (btor, stdout);
+  }
+  else if (!strcmp (tok, "dump_smt1"))
+  {
+    PARSE_ARGS0 (tok);
+    boolector_dump_smt1 (btor, stdout);
   }
   else if (!strcmp (tok, "dump_smt2"))
   {
