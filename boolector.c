@@ -176,8 +176,6 @@ btor_chkclone_state (Btor *btor)
   clone = btor->clone;
   assert (clone);
 
-  BTOR_CHKCLONE_STATE (bv_lambda_id);
-  BTOR_CHKCLONE_STATE (array_lambda_id);
   BTOR_CHKCLONE_STATE (dvn_id);
   BTOR_CHKCLONE_STATE (dan_id);
   BTOR_CHKCLONE_STATE (dpn_id);
@@ -1056,6 +1054,28 @@ boolector_set_sat_solver (Btor *btor, const char *solver)
 #endif
   BTOR_TRAPI_RETURN (res);
   return res;
+}
+
+void
+boolector_reset_time (Btor *btor)
+{
+  BTOR_ABORT_ARG_NULL_BOOLECTOR (btor);
+  BTOR_TRAPI ("reset_time");
+  btor_reset_time_btor (btor);
+#ifndef NDEBUG
+  BTOR_CHKCLONE_NORES (reset_time);
+#endif
+}
+
+void
+boolector_reset_stats (Btor *btor)
+{
+  BTOR_ABORT_ARG_NULL_BOOLECTOR (btor);
+  BTOR_TRAPI ("reset_stats");
+  btor_reset_stats_btor (btor);
+#ifndef NDEBUG
+  BTOR_CHKCLONE_NORES (reset_stats);
+#endif
 }
 
 int
@@ -3586,6 +3606,36 @@ boolector_dump_btor (Btor *btor, FILE *file)
 }
 
 void
+boolector_dump_smt1_node (Btor *btor, FILE *file, BoolectorNode *node)
+{
+  // TODO TRAPI
+  BtorNode *exp;
+
+  exp = BTOR_IMPORT_BOOLECTOR_NODE (node);
+  BTOR_ABORT_ARG_NULL_BOOLECTOR (btor);
+  BTOR_ABORT_ARG_NULL_BOOLECTOR (file);
+  BTOR_ABORT_ARG_NULL_BOOLECTOR (exp);
+  BTOR_ABORT_REFS_NOT_POS_BOOLECTOR (exp);
+  BTOR_ABORT_IF_BTOR_DOES_NOT_MATCH (btor, exp);
+  btor_dump_smt1_nodes (btor, file, &exp, 1);
+#ifndef NDEBUG
+  BTOR_CHKCLONE_NORES (dump_smt1_node, file, BTOR_CLONED_EXP (exp));
+#endif
+}
+
+void
+boolector_dump_smt1 (Btor *btor, FILE *file)
+{
+  BTOR_TRAPI ("dump_smt1");
+  BTOR_ABORT_ARG_NULL_BOOLECTOR (btor);
+  BTOR_ABORT_ARG_NULL_BOOLECTOR (file);
+  btor_dump_smt1 (btor, file);
+#ifndef NDEBUG
+  BTOR_CHKCLONE_NORES (dump_smt1, file);
+#endif
+}
+
+void
 boolector_dump_smt2_node (Btor *btor, FILE *file, BoolectorNode *node)
 {
   // TODO TRAPI
@@ -3666,7 +3716,7 @@ int
 boolector_failed (Btor *btor, BoolectorNode *node)
 {
   int res;
-  BtorNode *exp, *simp;
+  BtorNode *exp;
 
   exp = BTOR_IMPORT_BOOLECTOR_NODE (node);
   BTOR_ABORT_ARG_NULL_BOOLECTOR (btor);
@@ -3679,13 +3729,13 @@ boolector_failed (Btor *btor, BoolectorNode *node)
                         "incremental usage has not been enabled");
   BTOR_ABORT_REFS_NOT_POS_BOOLECTOR (exp);
   BTOR_ABORT_IF_BTOR_DOES_NOT_MATCH (btor, exp);
-  simp = btor_simplify_exp (btor, exp);
-  BTOR_ABORT_ARRAY_BOOLECTOR (simp);
-  BTOR_ABORT_BOOLECTOR (BTOR_REAL_ADDR_NODE (simp)->len != 1,
+  /* Note: do not simplify expression (see boolector_assume). */
+  BTOR_ABORT_ARRAY_BOOLECTOR (exp);
+  BTOR_ABORT_BOOLECTOR (BTOR_REAL_ADDR_NODE (exp)->len != 1,
                         "'exp' must have bit-width one");
-  BTOR_ABORT_BOOLECTOR (!btor_is_assumption_exp (btor, simp),
+  BTOR_ABORT_BOOLECTOR (!btor_is_assumption_exp (btor, exp),
                         "'exp' must be an assumption");
-  res = btor_failed_exp (btor, simp);
+  res = btor_failed_exp (btor, exp);
 #ifndef NDEBUG
   BTOR_CHKCLONE_RES (res, failed, BTOR_CLONED_EXP (exp));
 #endif

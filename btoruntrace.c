@@ -384,6 +384,16 @@ NEXT:
     ret_int = boolector_set_sat_solver (btor, arg1_str);
     exp_ret = RET_INT;
   }
+  else if (!strcmp (tok, "reset_time"))
+  {
+    PARSE_ARGS0 (tok);
+    boolector_reset_time (btor);
+  }
+  else if (!strcmp (tok, "reset_stats"))
+  {
+    PARSE_ARGS0 (tok);
+    boolector_reset_stats (btor);
+  }
   else if (!strcmp (tok, "get_refs"))
   {
     PARSE_ARGS0 (tok);
@@ -1065,6 +1075,11 @@ NEXT:
   {
     PARSE_ARGS0 (tok);
     boolector_dump_btor (btor, stdout);
+  }
+  else if (!strcmp (tok, "dump_smt1"))
+  {
+    PARSE_ARGS0 (tok);
+    boolector_dump_smt1 (btor, stdout);
   }
   else if (!strcmp (tok, "dump_smt2"))
   {

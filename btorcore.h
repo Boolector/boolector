@@ -109,12 +109,10 @@ struct Btor
   BtorPtrHashTable *substitutions;
   BtorNode *true_exp;
 
-  int bv_lambda_id;    /* counter for lambda bv variables (subst) */
-  int array_lambda_id; /* counter for lambda array variables (subst) */
-  int dvn_id;          /* counter for vars (no symbol) via API */
-  int dan_id;          /* counter for arrays (no symbol) via API */
-  int dpn_id;          /* counter for params (no symbol) via API */
-  int rec_rw_calls;    /* calls for recursive rewriting */
+  int dvn_id;       /* counter for vars (no symbol) via API */
+  int dan_id;       /* counter for arrays (no symbol) via API */
+  int dpn_id;       /* counter for params (no symbol) via API */
+  int rec_rw_calls; /* calls for recursive rewriting */
   int rec_read_acond_calls;
   int valid_assignments;
   int vis_idx; /* file index for visualizing expressions */
@@ -269,6 +267,12 @@ void btor_set_verbosity_btor (Btor *btor, int verbosity);
 
 /* Set log level. */
 void btor_set_loglevel_btor (Btor *btor, int loglevel);
+
+/* Reset time statistics. */
+void btor_reset_time_btor (Btor *btor);
+
+/* Reset other statistics. */
+void btor_reset_stats_btor (Btor *btor);
 
 /* Deletes boolector. */
 void btor_delete_btor (Btor *btor);
