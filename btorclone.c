@@ -488,9 +488,8 @@ btor_clone_aux_btor (Btor *btor,
 
   mm = btor_new_mem_mgr ();
   BTOR_CNEW (mm, clone);
-  clone->mm = mm;
-
   memcpy (clone, btor, sizeof (Btor));
+  clone->mm = mm;
 
   if (exp_layer_only)
   {
