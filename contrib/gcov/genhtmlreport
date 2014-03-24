@@ -1,0 +1,29 @@
+#!/bin/bash
+
+in=$1
+out=$2
+tmp=/tmp/coverage$$.info
+
+if [ "$in" == "" ]; then
+  echo "[error] no input directory given"
+  echo "usage: $(basename $0) <in> <out>"
+  exit 1
+fi
+
+if [ "$out" == "" ]; then
+  echo "[error] no output directory given"
+  echo "usage: $0 <in> <out>"
+  exit 1
+fi
+
+for p in lcov genhtml; do
+  if [ $(which $p) = 0 ]; then
+    echo "[error] $p not found"
+    exit 1
+  fi
+done
+
+lcov --capture --directory $in --output-file $tmp
+genhtml $tmp --output-directory $out
+
+rm $tmp
