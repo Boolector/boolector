@@ -5320,7 +5320,7 @@ search_initial_applies_dual_prop (Btor *btor,
   assert (btor->unsynthesized_constraints->count == 0);
   assert (btor->embedded_constraints->count == 0);
   assert (clone->unsynthesized_constraints->count == 0);
-  assert (clone->synthesized_constraints->count == 0);
+  // assert (clone->synthesized_constraints->count == 0);
   assert (clone->embedded_constraints->count == 0);
 
   BtorSATMgr *smgr;
