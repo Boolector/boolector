@@ -1914,6 +1914,8 @@ _opt (BtorMBT *btormbt, unsigned r)
   BTORMBT_LOG (1, "enable force cleanup");
   boolector_enable_force_cleanup (btormbt->btor);
 
+  if (btormbt->dual_prop) boolector_enable_dual_prop (btormbt->btor);
+
   if (btormbt->bloglevel)
   {
     BTORMBT_LOG (1, "boolector log level: '%d'", btormbt->bloglevel);
