@@ -393,6 +393,16 @@ class BtorIBV : public BitVector
   //
   void setReachedAtBoundListener (ReachedAtBoundListener *);
 
+  // Return the 'k' at which a previous model checking run showed that the
+  // assertion with number 'assertion_number' (counting from 0) has been
+  // violated.  It returns a negative number if the property was not violated
+  // during the last BMC run.
+  //
+  int hasAssertionBeenViolatedAtBound (int assertion_number);
+
+  // TODO do we need BitRange instead of 'assertion_number' both for
+  // 'hasAssertionBeenViolatedAtBound' and the listener?
+
   //------------------------------------------------------------------------
 
 #define BTOR_IBV_REQUIRE_START()                                          \

@@ -242,6 +242,18 @@ BtorIBV::setReachedAtBoundCallBack (void* state,
   boolector_set_reached_at_bound_call_back_mc (btormc, state, fun);
 }
 
+int
+BtorIBV::hasAssertionBeenViolatedAtBound (int assertion_number)
+{
+  BTOR_ABORT_BOOLECTOR (assertion_number < 0, "negative assertion number");
+  BTOR_ABORT_BOOLECTOR (
+      (int) BTOR_COUNT_STACK (assertions) <= assertion_number,
+      "assertion number %d out of range (only added %d assertions)",
+      assertion_number,
+      (int) BTOR_COUNT_STACK (assertions));
+  return boolector_reached_bad_at_bound_mc (btormc, assertion_number);
+}
+
 static void
 btoribv_delegate_reached_at_bound (void* ptr, int i, int k)
 {
