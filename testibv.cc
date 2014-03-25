@@ -530,7 +530,8 @@ main ()
   Listener* listener = new Listener;
   ibvm->setReachedAtBoundListener (listener);
   cout << "checking model up to bound " << k << endl;
-  ibvm->bmc (0, k);
+  int r = ibvm->bmc (0, k);
+  cout << "bounded model checker returns at bound " << r << endl;
   cout << "summarizing assertion violations" << endl;
   for (int i = 0; i < nassertions; i++)
   {
