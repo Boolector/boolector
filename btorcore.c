@@ -5383,8 +5383,6 @@ search_initial_applies_dual_prop (Btor *btor,
     ass_str = btor_bv_assignment_str_exp (btor, cur_btor);
     for (i = 0; i < cur_btor->len; i++)
       ass_str[i] = ass_str[i] == 'x' ? '0' : ass_str[i];
-    for (i = 0; i < cur_btor->len; i++)
-      ass_str[i] = ass_str[i] == 'x' ? '0' : ass_str[i];
     bv_const = btor_const_exp (clone, ass_str);
     bv_eq    = btor_eq_exp (clone, cur_clone, bv_const);
     btor_assume_exp (clone, bv_eq);
