@@ -4450,13 +4450,13 @@ btor_simplify (Btor *btor)
 
   if (btor->inconsistent) return BTOR_UNSAT;
 
-  //  if (btor->options.rewrite_level <= 1 && !btor->beta_reduce_all)
+  //  if (btor->options.rewrite_level <= 1 && !btor->options.beta_reduce_all)
   //    return;
 
   rounds = 0;
   start  = btor_time_stamp ();
 
-  if (btor->beta_reduce_all) init_cache (btor);
+  if (btor->options.beta_reduce_all) init_cache (btor);
 
   do
   {
@@ -4539,7 +4539,7 @@ btor_simplify (Btor *btor)
   } while (btor->varsubst_constraints->count
            || btor->embedded_constraints->count);
 
-  if (btor->beta_reduce_all) release_cache (btor);
+  if (btor->options.beta_reduce_all) release_cache (btor);
 
   delta = btor_time_stamp () - start;
   btor->time.rewrite += delta;
@@ -7299,8 +7299,8 @@ btor_sat_aux_btor (Btor *btor)
                "\r[btorcore] refinement iteration %d, "
                "vars %d, applies %d\r",
                refinements,
-               btor->ops[BTOR_BV_VAR_NODE],
-               btor->ops[BTOR_APPLY_NODE]);
+               btor->ops[BTOR_BV_VAR_NODE].cur,
+               btor->ops[BTOR_APPLY_NODE].cur);
       fflush (stdout);
     }
     else if (verbosity > 1)
