@@ -358,6 +358,14 @@ class BtorIBV : public BitVector
   } stats;
 
  public:
+  class ReachedAtBoundListener
+  {
+   public:
+    ReachedAtBoundListener () {}
+    virtual ~ReachedAtBoundListener () {}
+    virtual void reachedAtBound (int assertion_number, int k) = 0;
+  };
+
   BtorIBV ();
   ~BtorIBV ();
 
@@ -368,12 +376,22 @@ class BtorIBV : public BitVector
 
   void enableTraceGeneration ();
 
-  // See 'btormc.h' for explanations (for now).
-  // TODO add documentation here.
-  // TODO provide a C++ style abstract class listener interface too.
+  //------------------------------------------------------------------------
+  // Default is to stop at the first reached bad state property.  Given a
+  // false to this function will result in the model checker to run until
+  // all properties have been reached (or proven not to be reachable) or the
+  // maximum bound is reached.
+  //
   void setStop (bool stop);
+
+  // First alternative C-style function pointer API (as in 'btormc.h').
+  //
   void setReachedAtBoundCallBack (void *state,
                                   void (*fun) (void *state, int i, int k));
+
+  // Second C++ Listener API.
+  //
+  void setReachedAtBoundListener (ReachedAtBoundListener *);
 
   //------------------------------------------------------------------------
 

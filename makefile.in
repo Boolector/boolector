@@ -58,6 +58,9 @@ clean:
 	rm -f $(TARGETS)
 	rm -f dependencies makefile btorconfig.h
 	rm -f *.gcda *.gcno *.gcov *.gch *.plist
+	rm -f tests/*.gcda tests/*.gcno tests/*.gcov
+	rm -f parser/*.gcda parser/*.gcno parser/*.gcov
+	rm -f dumper/*.gcda dumper/*.gcno dumper/*.gcov
 	rm -f log/*.log *.tmp
 	rm -f *.a $(foreach d,$(SRCDIRS),$(d)/*.o)
 	rm -f btormbt btoruntrace
