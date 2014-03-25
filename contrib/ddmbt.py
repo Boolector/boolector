@@ -96,6 +96,8 @@ def _tokens_bw(tokens, nodes_bw):
             return [cbw[0][0] + cbw[1][0]]
         elif kind == "const":
             return [len(tokens[1])]
+        elif kind == "copy":
+            return cbw[0]
         else:
             assert(len(cbw) == 2)
             assert(cbw[0] == cbw[1])
@@ -400,8 +402,8 @@ def ddmbt_main():
     while True:
         rounds += 1
 
-        num_substs = _compact_graph()
         num_lines = _remove_lines()
+        num_substs = _compact_graph()
         num_swaps = _swap_ids()
 
         if pairs:

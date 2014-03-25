@@ -234,6 +234,7 @@ class BtorIBV : public BitVector
 
   bool gentrace;
   bool force;
+
   int verbosity;
 
   BtorIBVNodePtrStack idtab;
@@ -357,13 +358,40 @@ class BtorIBV : public BitVector
   } stats;
 
  public:
+  class ReachedAtBoundListener
+  {
+   public:
+    ReachedAtBoundListener () {}
+    virtual ~ReachedAtBoundListener () {}
+    virtual void reachedAtBound (int assertion_number, int k) = 0;
+  };
+
   BtorIBV ();
   ~BtorIBV ();
 
-  void setVerbosity (int verbosity);
   void setRewriteLevel (int rwl);
   void setForce (bool f = true) { force = f; }
+
+  void setVerbosity (int verbosity);
+
   void enableTraceGeneration ();
+
+  //------------------------------------------------------------------------
+  // Default is to stop at the first reached bad state property.  Given a
+  // false to this function will result in the model checker to run until
+  // all properties have been reached (or proven not to be reachable) or the
+  // maximum bound is reached.
+  //
+  void setStop (bool stop);
+
+  // First alternative C-style function pointer API (as in 'btormc.h').
+  //
+  void setReachedAtBoundCallBack (void *state,
+                                  void (*fun) (void *state, int i, int k));
+
+  // Second C++ Listener API.
+  //
+  void setReachedAtBoundListener (ReachedAtBoundListener *);
 
   //------------------------------------------------------------------------
 

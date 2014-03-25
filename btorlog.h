@@ -22,7 +22,7 @@ void btor_log_end (Btor *);
 #define BTORLOG(FMT, ARGS...)                  \
   do                                           \
   {                                            \
-    if (btor->loglevel <= 0) break;            \
+    if (btor->options.loglevel <= 0) break;    \
     (void) btor_log_start (btor, FMT, ##ARGS); \
     btor_log_end (btor);                       \
   } while (0)

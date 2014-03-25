@@ -32,8 +32,7 @@ analyze:
 
 dependencies: btorconfig.h $(SRC) makefile
 	rm -f $@; for srcdir in $(SRCDIRS); do \
-	cppfiles="`ls $$srsdir/*.cc 2>/dev/null`"; \
-	$(CC) $(CFLAGS) $(INCS) -MM $$srcdir/*.[ch] $$cppfiles | \
+	$(CC) $(CFLAGS) $(INCS) -MM $$srcdir/*.[ch] $$srcdir/*.cc 2>/dev/null | \
 	sed -e 's,\(.*\):,'$$srcdir/'\1: makefile,' >>$@; done
 boolector: boolectormain.o libboolector.a $(LDEPS)
 	$(CC) $(CFLAGS) $(INCS) -o $@ boolectormain.o -L. -lboolector $(LIBS)
@@ -59,6 +58,9 @@ clean:
 	rm -f $(TARGETS)
 	rm -f dependencies makefile btorconfig.h
 	rm -f *.gcda *.gcno *.gcov *.gch *.plist
+	rm -f tests/*.gcda tests/*.gcno tests/*.gcov
+	rm -f parser/*.gcda parser/*.gcno parser/*.gcov
+	rm -f dumper/*.gcda dumper/*.gcno dumper/*.gcov
 	rm -f log/*.log *.tmp
 	rm -f *.a $(foreach d,$(SRCDIRS),$(d)/*.o)
 	rm -f btormbt btoruntrace
