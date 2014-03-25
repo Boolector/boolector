@@ -100,6 +100,41 @@ struct BtorSlice
 
 typedef struct BtorSlice BtorSlice;
 
+struct BtorConflict
+{
+  BtorNode *fun;
+  BtorNode *app0;
+  BtorNode *app1;
+};
+
+typedef struct BtorConflict BtorConflict;
+
+static BtorConflict *
+new_conflict (Btor *btor, BtorNode *fun, BtorNode *app0, BtorNode *app1)
+{
+  assert (btor);
+  assert (fun);
+  assert (app0);
+
+  BtorConflict *c;
+
+  BTOR_CNEW (btor->mm, c);
+
+  c->fun  = fun;
+  c->app0 = app0;
+  c->app1 = app1;
+
+  return c;
+}
+
+static void
+delete_conflict (Btor *btor, BtorConflict *c)
+{
+  assert (btor);
+  assert (c);
+  BTOR_DELETE (btor->mm, c);
+}
+
 /*------------------------------------------------------------------------*/
 #ifndef NDEBUG
 /*------------------------------------------------------------------------*/
@@ -4450,13 +4485,13 @@ btor_simplify (Btor *btor)
 
   if (btor->inconsistent) return BTOR_UNSAT;
 
-  //  if (btor->options.rewrite_level <= 1 && !btor->beta_reduce_all)
+  //  if (btor->options.rewrite_level <= 1 && !btor->options.beta_reduce_all)
   //    return;
 
   rounds = 0;
   start  = btor_time_stamp ();
 
-  if (btor->beta_reduce_all) init_cache (btor);
+  if (btor->options.beta_reduce_all) init_cache (btor);
 
   do
   {
@@ -4539,7 +4574,7 @@ btor_simplify (Btor *btor)
   } while (btor->varsubst_constraints->count
            || btor->embedded_constraints->count);
 
-  if (btor->beta_reduce_all) release_cache (btor);
+  if (btor->options.beta_reduce_all) release_cache (btor);
 
   delta = btor_time_stamp () - start;
   btor->time.rewrite += delta;
@@ -6689,7 +6724,7 @@ push_applies_for_propagation (Btor *btor,
   btor->time.find_prop_app += btor_time_stamp () - start;
 }
 
-static int
+static BtorConflict *
 propagate (Btor *btor,
            BtorNodePtrStack *prop_stack,
            BtorNodePtrStack *cleanup_stack,
@@ -6785,9 +6820,8 @@ propagate (Btor *btor,
           BTORLOG ("  app2: %s", node2string (app));
           BTORLOG ("\e[0;39m");
           btor->stats.function_congruence_conflicts++;
-          add_lemma (btor, fun, hashed_app, app);
           btor_delete_ptr_hash_table (to_prop);
-          return 1;
+          return new_conflict (btor, fun, hashed_app, app);
         }
         else
           continue;
@@ -7003,11 +7037,10 @@ propagate (Btor *btor,
           BTORLOG ("  app: %s", node2string (app));
           BTORLOG ("\e[0;39m");
           btor->stats.beta_reduction_conflicts++;
-          add_lemma (btor, fun, app, 0);
           btor_release_exp (btor, fun_value);
           btor_delete_ptr_hash_table (to_prop);
           if (prev_fun_value) btor_release_exp (btor, prev_fun_value);
-          return 1;
+          return new_conflict (btor, fun, app, 0);
         }
 
         push_applies_for_propagation (btor, fun_value, lambda, prop_stack);
@@ -7126,6 +7159,7 @@ check_and_resolve_conflicts (Btor *btor, BtorNodePtrStack *tmp_stack)
   BtorMemMgr *mm;
   BtorNode *app, *fun;
   BtorNodePtrStack top_applies, prop_stack, cleanup_stack;
+  BtorConflict *conflict;
 
   found_conflict = 0;
   mm             = btor->mm;
@@ -7166,9 +7200,18 @@ BTOR_CONFLICT_CHECK:
 
     BTOR_PUSH_STACK (mm, prop_stack, app);
     BTOR_PUSH_STACK (mm, prop_stack, app->e[0]);
-    found_conflict =
+    conflict =
         propagate (btor, &prop_stack, &cleanup_stack, &changed_assignments);
-    if (found_conflict || changed_assignments) break;
+
+    if (conflict || changed_assignments) break;
+  }
+
+  if (conflict)
+  {
+    add_lemma (btor, conflict->fun, conflict->app0, conflict->app1);
+    delete_conflict (btor, conflict);
+    found_conflict = 1;
+    btor->stats.lod_refinements++;
   }
 
   while (!BTOR_EMPTY_STACK (prop_stack))
@@ -7289,9 +7332,6 @@ btor_sat_aux_btor (Btor *btor)
 
     if (!found_conflict) break;
 
-    // TODO: move into function, where lemma is added
-    btor->stats.lod_refinements++;
-
     if (verbosity == 1)
     {
       refinements = btor->stats.lod_refinements;
@@ -7299,8 +7339,8 @@ btor_sat_aux_btor (Btor *btor)
                "\r[btorcore] refinement iteration %d, "
                "vars %d, applies %d\r",
                refinements,
-               btor->ops[BTOR_BV_VAR_NODE],
-               btor->ops[BTOR_APPLY_NODE]);
+               btor->ops[BTOR_BV_VAR_NODE].cur,
+               btor->ops[BTOR_APPLY_NODE].cur);
       fflush (stdout);
     }
     else if (verbosity > 1)
