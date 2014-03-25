@@ -7128,7 +7128,6 @@ check_and_resolve_conflicts (Btor *btor, BtorNodePtrStack *tmp_stack)
   BtorNodePtrStack top_applies, prop_stack, cleanup_stack;
 
   found_conflict = 0;
-  conflict       = 0;
   mm             = btor->mm;
 
 BTOR_CONFLICT_CHECK:
