@@ -7568,12 +7568,16 @@ BTOR_CONFLICT_CHECK:
 
   while (!BTOR_EMPTY_STACK (prop_stack))
   {
-    fun = BTOR_POP_STACK (prop_stack);
+    (void) BTOR_POP_STACK (prop_stack); /* discard fun, not needed */
     app = BTOR_POP_STACK (prop_stack);
+    /* push virtual applies that were not fully checked onto 'tmp_stack',
+     * we need to start consistency checking from app->e[0] again, as
+     * otherwise we can get inconsistent propagation paths (in case
+     * the assignments changed). */
     if (app->vread && !app->propagated)
     {
       BTOR_PUSH_STACK (mm, *tmp_stack, app);
-      BTOR_PUSH_STACK (mm, *tmp_stack, fun);
+      BTOR_PUSH_STACK (mm, *tmp_stack, app->e[0]);
     }
   }
 
@@ -7815,6 +7819,8 @@ btor_sat_aux_btor (Btor *btor)
     add_again_assumptions (btor);
     sat_result = btor_timed_sat_sat (btor, -1);
   }
+  assert (sat_result != BTOR_SAT || BTOR_EMPTY_STACK (prop_stack));
+  BTOR_RELEASE_STACK (btor->mm, prop_stack);
 
 DONE:
   BTOR_RELEASE_STACK (btor->mm, prop_stack);
