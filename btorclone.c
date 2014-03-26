@@ -803,9 +803,17 @@ btor_recursively_rebuild_exp_clone (Btor *btor,
   assert (BTOR_REAL_ADDR_NODE (exp)->btor == btor);
   assert (exp_map);
 
-  int i;
+  int i, rwl;
   BtorNode *real_exp, *cur, *cur_clone, *e[3];
   BtorNodePtrStack work_stack, unmark_stack;
+#ifndef NDEBUG
+  BtorNodeMap *key_map = btor_new_node_map (btor);
+#endif
+
+  // FIXME lemmas are currently built with rwl1 (in parent)
+  rwl = clone->options.rewrite_level;
+  btor_set_rewrite_level_btor (clone, 1);
+  //
 
   BTOR_INIT_STACK (work_stack);
   BTOR_INIT_STACK (unmark_stack);
@@ -890,6 +898,10 @@ btor_recursively_rebuild_exp_clone (Btor *btor,
           cur_clone = btor_cond_exp (clone, e[0], e[1], e[2]);
       }
       btor_map_node (exp_map, cur, cur_clone);
+#ifndef NDEBUG
+      assert (!btor_mapped_node (key_map, cur_clone));
+      btor_map_node (key_map, cur_clone, cur);
+#endif
       btor_release_exp (clone, cur_clone);
     }
   }
@@ -900,5 +912,11 @@ btor_recursively_rebuild_exp_clone (Btor *btor,
   BTOR_RELEASE_STACK (btor->mm, work_stack);
   BTOR_RELEASE_STACK (btor->mm, unmark_stack);
 
+  // FIXME lemmas are currently built with rwl1 (in parent)
+  btor_set_rewrite_level_btor (clone, rwl);
+  //
+#ifndef NDEBUG
+  btor_delete_node_map (key_map);
+#endif
   return btor_copy_exp (clone, btor_mapped_node (exp_map, exp));
 }

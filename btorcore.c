@@ -5549,10 +5549,8 @@ search_initial_applies_dual_prop (Btor *btor,
     assert (cur_clone);
     assert (BTOR_IS_REGULAR_NODE (cur_clone));
 
-    // if (btor_mapped_node (assumptions, cur_clone)) continue;
-
-    if (!btor_mapped_node (key_map, cur_clone))
-      btor_map_node (key_map, cur_clone, cur_btor);
+    assert (!btor_mapped_node (key_map, cur_clone));
+    btor_map_node (key_map, cur_clone, cur_btor);
 
     BTOR_CNEWN (btor->mm, part_ass_str, cur_btor->len + 1);
     ass_str = btor_bv_assignment_str_exp (btor, cur_btor);
@@ -5588,9 +5586,8 @@ search_initial_applies_dual_prop (Btor *btor,
           bv_eq = btor_eq_exp (clone, slice, bv_const);
         }
         btor_assume_exp (clone, bv_eq);
-        // btor_map_node (assumptions, cur_clone, bv_eq);
-        if (!btor_mapped_node (assumptions, bv_eq))
-          btor_map_node (assumptions, bv_eq, cur_clone);
+        assert (!btor_mapped_node (assumptions, bv_eq));
+        btor_map_node (assumptions, bv_eq, cur_clone);
         btor_release_exp (clone, bv_eq);
         btor_release_exp (clone, bv_const);
         lower = upper = -1;
