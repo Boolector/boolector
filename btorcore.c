@@ -5511,14 +5511,16 @@ search_initial_applies_dual_prop (Btor *btor,
   BtorNodeMapIterator it;
   BtorNodeIterator pit;
   BtorNodePtrStack stack, unmark_stack;
+  BtorSATMgr *smgr;
 
   start = btor_time_stamp ();
 
   BTORLOG ("");
   BTORLOG ("*** search initial applies");
 
-  // TODO SKIP BV
-  //
+  smgr = btor_get_sat_mgr_aig_mgr (btor_get_aig_mgr_aigvec_mgr (btor->avmgr));
+  if (!smgr->inc_required) return;
+
   key_map     = btor_new_node_map (btor);
   assumptions = btor_new_node_map (btor);
   BTOR_INIT_STACK (stack);
