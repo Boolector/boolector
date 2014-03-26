@@ -363,6 +363,19 @@ btor_srl_aigvec (BtorAIGVecMgr *avmgr, BtorAIGVec *av1, BtorAIGVec *av2)
   return result;
 }
 
+static int
+btor_cmp_aigvec_lsb_first (BtorAIGVec *a, BtorAIGVec *b)
+{
+  int len, i, res;
+  assert (a);
+  assert (b);
+  len = a->len;
+  assert (len == b->len);
+  res = 0;
+  for (i = 0; !res && i < len; i++) res = btor_cmp_aig (a->aigs[i], b->aigs[i]);
+  return res;
+}
+
 static BtorAIGVec *
 mul_aigvec (BtorAIGVecMgr *avmgr, BtorAIGVec *a, BtorAIGVec *b)
 {
@@ -377,7 +390,7 @@ mul_aigvec (BtorAIGVecMgr *avmgr, BtorAIGVec *a, BtorAIGVec *b)
   assert (len > 0);
   assert (len == b->len);
 
-  if (btor_cmp_aig (a->aigs[0], b->aigs[0]) > 0)
+  if (btor_cmp_aigvec_lsb_first (a, b) > 0)
   {
     BtorAIGVec *c = a;
     a             = b;
