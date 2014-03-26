@@ -242,19 +242,19 @@ mapped_node (const void *map, const void *key)
 static void
 data_as_node_ptr (BtorMemMgr *mm,
                   const void *map,
-                  const void *key,
+                  const void *data_ptr,
                   BtorPtrHashData *data)
 {
   assert (mm);
   assert (map);
-  assert (key);
+  assert (data_ptr);
   assert (data);
 
   BtorNode *exp, *cloned_exp;
   BtorNodeMap *exp_map;
 
   (void) mm;
-  exp        = (BtorNode *) key;
+  exp        = (BtorNode *) data_ptr;
   exp_map    = (BtorNodeMap *) map;
   cloned_exp = btor_mapped_node (exp_map, exp);
   assert (cloned_exp);
@@ -264,18 +264,18 @@ data_as_node_ptr (BtorMemMgr *mm,
 static void
 data_as_htable_ptr (BtorMemMgr *mm,
                     const void *map,
-                    const void *key,
+                    const void *data_ptr,
                     BtorPtrHashData *data)
 {
   assert (mm);
   assert (map);
-  assert (key);
+  assert (data_ptr);
   assert (data);
 
   BtorPtrHashTable *table;
   BtorNodeMap *exp_map;
 
-  table   = (BtorPtrHashTable *) key;
+  table   = (BtorPtrHashTable *) data_ptr;
   exp_map = (BtorNodeMap *) map;
 
   data->asPtr =
