@@ -3,6 +3,7 @@
  *  Copyright (C) 2007-2009 Robert Daniel Brummayer.
  *  Copyright (C) 2007-2012 Armin Biere.
  *  Copyright (C) 2012-2014 Mathias Preiner.
+ *  Copyright (C) 2014 Aina Niemetz.
  *
  *  All rights reserved.
  *
@@ -280,4 +281,37 @@ has_next_node_hash_table_iterator (BtorHashTableIterator *it)
 {
   assert (it);
   return it->cur != 0;
+}
+
+void
+init_node_map_iterator (BtorNodeMapIterator *it, BtorNodeMap *map)
+{
+  assert (map);
+  init_node_hash_table_iterator (&it->it, map->table);
+}
+
+void
+init_reversed_node_map_iterator (BtorNodeMapIterator *it, BtorNodeMap *map)
+{
+  assert (map);
+  init_reversed_node_hash_table_iterator (&it->it, map->table);
+}
+
+void
+queue_node_map_iterator (BtorNodeMapIterator *it, BtorNodeMap *map)
+{
+  assert (map);
+  queue_node_hash_table_iterator (&it->it, map->table);
+}
+
+BtorNode *
+next_node_map_iterator (BtorNodeMapIterator *it)
+{
+  return next_node_hash_table_iterator (&it->it);
+}
+
+int
+has_next_node_map_iterator (BtorNodeMapIterator *it)
+{
+  return has_next_node_hash_table_iterator (&it->it);
 }
