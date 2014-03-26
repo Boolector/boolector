@@ -150,7 +150,6 @@
   "  -h, --help                       print this message and exit\n" \
   "  -v, --verbose                    be verbose\n" \
   "  -k, --keep-lines                 do not clear output lines\n" \
-  "  -a, --always-fork                fork even if seed given\n" \
   "  -n, --no-modelgen                do not enable model generation \n" \
   "  -e, --extensionality             use extensionality\n" \
   "  -dp, --dual-prop                 enable dual prop optimization\n" \
@@ -513,7 +512,6 @@ typedef struct BtorMBT
   int verbose;
   int terminal;
   int quit_after_first;
-  int fork;
   int force_nomgen;
   int ext;
   int dual_prop;
@@ -700,7 +698,6 @@ new_btormbt (void)
   btormbt->seed                   = -1;
   btormbt->seeded                 = 0;
   btormbt->terminal               = isatty (1);
-  btormbt->fork                   = 0;
   btormbt->ext                    = 0;
   btormbt->g_min_nlits            = MIN_NLITS;
   btormbt->g_max_nlits            = MAX_NLITS;
@@ -2509,44 +2506,39 @@ run (BtorMBT *btormbt)
   int status, null;
   pid_t id;
 
-  if (!btormbt->fork)
-    rantrav (btormbt);
+  btormbt->forked++;
+  fflush (stdout);
+  if ((id = fork ()))
+  {
+    reset_alarm ();
+#ifndef NDEBUG
+    pid_t wid =
+#endif
+        wait (&status);
+    assert (wid == id);
+  }
   else
   {
-    btormbt->forked++;
-    fflush (stdout);
-    if ((id = fork ()))
+    if (btormbt->time_limit)
     {
-      reset_alarm ();
-#ifndef NDEBUG
-      pid_t wid =
-#endif
-          wait (&status);
-      assert (wid == id);
+      set_alarm ();
+      BTORMBT_LOG (btormbt->verbose,
+                   "set time limit to %d second(s)",
+                   btormbt->time_limit);
     }
-    else
+
+    /* redirect output from child to /dev/null if we don't want to have
+     * verbose output */
+    if (!btormbt->verbose)
     {
-      if (btormbt->time_limit)
-      {
-        set_alarm ();
-        BTORMBT_LOG (btormbt->verbose,
-                     "set time limit to %d second(s)",
-                     btormbt->time_limit);
-      }
-
-      /* redirect output from child to /dev/null if we don't want to have
-       * verbose output */
-      if (!btormbt->verbose)
-      {
-        null = open ("/dev/null", O_WRONLY);
-        dup2 (null, STDOUT_FILENO);
-        dup2 (null, STDERR_FILENO);
-        close (null);
-      }
-
-      rantrav (btormbt);
-      exit (EXIT_OK);
+      null = open ("/dev/null", O_WRONLY);
+      dup2 (null, STDOUT_FILENO);
+      dup2 (null, STDERR_FILENO);
+      close (null);
     }
+
+    rantrav (btormbt);
+    exit (EXIT_OK);
   }
 
   return status;
@@ -2717,8 +2709,6 @@ main (int argc, char **argv)
       btormbt->verbose = 1;
     else if (!strcmp (argv[i], "-k") || !strcmp (argv[i], "--keep-lines"))
       btormbt->terminal = 0;
-    else if (!strcmp (argv[i], "-a") || !strcmp (argv[i], "--always-fork"))
-      btormbt->fork = 1;
     else if (!strcmp (argv[i], "-f") || !strcmp (argv[i], "--quit-after-first"))
       btormbt->quit_after_first = 1;
     else if (!strcmp (argv[i], "-n") || !strcmp (argv[i], "--no-modelgen"))
@@ -2743,7 +2733,6 @@ main (int argc, char **argv)
       if (!isnumstr (argv[i]))
         die ("argument '%s' to '-t' is not a number (try '-h')", argv[i]);
       btormbt->time_limit = atoi (argv[i]);
-      btormbt->fork       = 1;
     }
     else if (!strcmp (argv[i], "--blog"))
     {
@@ -3241,24 +3230,17 @@ main (int argc, char **argv)
     }
   }
 
-  verbose       = btormbt->verbose;
   btormbt->ppid = getpid ();
   set_sig_handlers ();
 
-  if (btormbt->seeded)
+  mac = hashmac ();
+  for (btormbt->round = 0; btormbt->round < btormbt->g_max_nrounds;
+       btormbt->round++)
   {
-    (void) run (btormbt);
-  }
-  else
-  {
-    btormbt->fork = 1;
+    if (!(prev & 1)) prev++;
 
-    mac = hashmac ();
-    for (btormbt->round = 0; btormbt->round < btormbt->g_max_nrounds;
-         btormbt->round++)
+    if (!btormbt->seeded)
     {
-      if (!(prev & 1)) prev++;
-
       btormbt->seed = mac;
       btormbt->seed *= 123301093;
       btormbt->seed += times (0);
@@ -3274,69 +3256,72 @@ main (int argc, char **argv)
       fflush (stdout);
 
       /* reset verbose flag for initial run, only print on replay */
+      verbose          = btormbt->verbose;
       btormbt->verbose = 0;
       status           = run (btormbt);
       btormbt->verbose = verbose;
-
-      if (WIFEXITED (status))
-        res = WEXITSTATUS (status);
-      else if (WIFSIGNALED (status))
-        res = EXIT_SIGNALED;
-      else
-        res = EXIT_UNKNOWN;
-
-      /* replay run on error */
-      if (res == EXIT_ERROR)
-      {
-        btormbt->bugs++;
-
-        if (!(name = getenv ("BTORAPITRACE")))
-        {
-          name = malloc (100 * sizeof (char));
-          sprintf (name, "/tmp/bug-%d-mbt.trace", getpid ());
-          /* replay run */
-          setenv ("BTORAPITRACE", name, 1);
-          i = run (btormbt);
-          assert (WIFEXITED (i));
-          assert (WEXITSTATUS (i) == res);
-          unsetenv ("BTORAPITRACE");
-        }
-
-        cmd = malloc (strlen (name) + 80);
-        sprintf (cmd, "cp %s btormbt-bug-%d.trace", name, btormbt->seed);
-
-        if (!getenv ("BTORAPITRACE")) free (name);
-        if (system (cmd))
-        {
-          printf ("Error on copy command %s \n", cmd);
-          exit (EXIT_ERROR);
-        }
-        free (cmd);
-      }
-
-      if (res == EXIT_SIGNALED)
-      {
-        if (btormbt->verbose) printf ("signal %d", WTERMSIG (status));
-      }
-      else if (res == EXIT_UNKNOWN)
-      {
-        if (btormbt->verbose) printf ("unknown");
-      }
-      else if (res == EXIT_TIMEOUT)
-      {
-        BTORMBT_LOG (
-            1, "TIMEOUT: time limit %d seconds reached\n", btormbt->time_limit);
-        if (!btormbt->verbose)
-          printf ("timed out after %d second(s)\n", btormbt->time_limit);
-      }
-      else if (res == EXIT_ERROR)
-      {
-        printf ("exit %d\n", res);
-      }
-
-      if ((res == EXIT_ERROR && btormbt->quit_after_first) || btormbt->seeded)
-        break;
     }
+    else
+      status = run (btormbt);
+
+    if (WIFEXITED (status))
+      res = WEXITSTATUS (status);
+    else if (WIFSIGNALED (status))
+      res = EXIT_SIGNALED;
+    else
+      res = EXIT_UNKNOWN;
+
+    /* replay run on error */
+    if (!btormbt->seeded && res == EXIT_ERROR)
+    {
+      btormbt->bugs++;
+
+      if (!(name = getenv ("BTORAPITRACE")))
+      {
+        name = malloc (100 * sizeof (char));
+        sprintf (name, "/tmp/bug-%d-mbt.trace", getpid ());
+        /* replay run */
+        setenv ("BTORAPITRACE", name, 1);
+        i = run (btormbt);
+        assert (WIFEXITED (i));
+        assert (WEXITSTATUS (i) == res);
+        unsetenv ("BTORAPITRACE");
+      }
+
+      cmd = malloc (strlen (name) + 80);
+      sprintf (cmd, "cp %s btormbt-bug-%d.trace", name, btormbt->seed);
+
+      if (!getenv ("BTORAPITRACE")) free (name);
+      if (system (cmd))
+      {
+        printf ("Error on copy command %s \n", cmd);
+        exit (EXIT_ERROR);
+      }
+      free (cmd);
+    }
+
+    if (res == EXIT_SIGNALED)
+    {
+      if (btormbt->verbose) printf ("signal %d", WTERMSIG (status));
+    }
+    else if (res == EXIT_UNKNOWN)
+    {
+      if (btormbt->verbose) printf ("unknown");
+    }
+    else if (res == EXIT_TIMEOUT)
+    {
+      BTORMBT_LOG (
+          1, "TIMEOUT: time limit %d seconds reached\n", btormbt->time_limit);
+      if (!btormbt->verbose)
+        printf ("timed out after %d second(s)\n", btormbt->time_limit);
+    }
+    else if (res == EXIT_ERROR)
+    {
+      printf ("exit %d\n", res);
+    }
+
+    if ((res == EXIT_ERROR && btormbt->quit_after_first) || btormbt->seeded)
+      break;
   }
   if (btormbt->verbose)
   {
