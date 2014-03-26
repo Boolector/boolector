@@ -3,6 +3,7 @@
  *  Copyright (C) 2007-2009 Robert Daniel Brummayer.
  *  Copyright (C) 2007-2012 Armin Biere.
  *  Copyright (C) 2012 Mathias Preiner.
+ *  Copyright (C) 2014 Aina Niemetz.
  *
  *  All rights reserved.
  *
@@ -15,6 +16,7 @@
 
 #include "btorcore.h"
 #include "btorhash.h"
+#include "btormap.h"
 
 /*------------------------------------------------------------------------*/
 
@@ -57,6 +59,13 @@ struct BtorHashTableIterator
 
 typedef struct BtorHashTableIterator BtorHashTableIterator;
 
+struct BtorNodeMapIterator
+{
+  BtorHashTableIterator it;
+};
+
+typedef struct BtorNodeMapIterator BtorNodeMapIterator;
+
 /*------------------------------------------------------------------------*/
 
 #define BTOR_NEXT_PARENT(exp) \
@@ -96,4 +105,9 @@ int has_next_node_hash_table_iterator (BtorHashTableIterator *);
 void queue_node_hash_table_iterator (BtorHashTableIterator *,
                                      BtorPtrHashTable *);
 
+void init_node_map_iterator (BtorNodeMapIterator *, BtorNodeMap *);
+void init_reversed_node_map_iterator (BtorNodeMapIterator *, BtorNodeMap *);
+BtorNode *next_node_map_iterator (BtorNodeMapIterator *);
+int has_next_node_map_iterator (BtorNodeMapIterator *);
+void queue_node_map_iterator (BtorNodeMapIterator *, BtorNodeMap *);
 #endif
