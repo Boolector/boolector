@@ -495,7 +495,6 @@ btor_set_rewrite_level_btor (Btor *btor, int rewrite_level)
   assert (btor);
   assert (btor->options.rewrite_level >= 0);
   assert (btor->options.rewrite_level <= 3);
-  assert (BTOR_COUNT_STACK (btor->nodes_id_table) == 2);
   btor->options.rewrite_level = rewrite_level;
 }
 
