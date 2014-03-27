@@ -786,7 +786,7 @@ print_trace (BtorMC * mc, int p, int k)
       for (j = 0; j < BTOR_COUNT_STACK (f->inputs); j++)
 	{
 	  node = BTOR_PEEK_STACK (f->inputs, j);
-	  a = btor_bv_assignment_str_exp (f->btor, node);
+	  a = btor_bv_assignment_str (f->btor, node);
 	  if (node->symbol)
 	    symbol = node->symbol;
 	  else
@@ -795,7 +795,7 @@ print_trace (BtorMC * mc, int p, int k)
 	      symbol = buffer;
 	    }
 	  printf ("%s = %s\n", symbol, a);
-	  btor_release_bv_assignment_str_exp (f->btor, a);
+	  btor_release_bv_assignment_str (f->btor, a);
 	}
     }
   fflush (stdout);

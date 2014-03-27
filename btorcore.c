@@ -5252,6 +5252,51 @@ compare_assignments (BtorNode *exp1, BtorNode *exp2)
   return return_val;
 }
 
+static char *
+bv_assignment_str_exp (Btor *btor, BtorNode *exp)
+{
+  assert (btor);
+  assert (exp);
+
+  char *assignment;
+  int invert_av, invert_bits;
+  BtorAIGVecMgr *avmgr;
+  BtorAIGVec *av;
+  BtorNode *real_exp;
+
+  exp = btor_simplify_exp (btor, exp);
+  assert (!BTOR_IS_FUN_NODE (BTOR_REAL_ADDR_NODE (exp)));
+
+  real_exp = BTOR_REAL_ADDR_NODE (exp);
+  assert (real_exp);
+
+  if (BTOR_IS_BV_CONST_NODE (real_exp))
+  {
+    invert_bits = BTOR_IS_INVERTED_NODE (exp);
+    if (invert_bits)
+      btor_invert_const (btor->mm, BTOR_REAL_ADDR_NODE (exp)->bits);
+    assignment = btor_copy_const (btor->mm, BTOR_REAL_ADDR_NODE (exp)->bits);
+    if (invert_bits)
+      btor_invert_const (btor->mm, BTOR_REAL_ADDR_NODE (exp)->bits);
+  }
+  else if (!BTOR_IS_SYNTH_NODE (real_exp))
+  {
+    assignment = btor_x_const_3vl (btor->mm, real_exp->len);
+  }
+  else
+  {
+    avmgr     = btor->avmgr;
+    invert_av = BTOR_IS_INVERTED_NODE (exp);
+    av        = BTOR_REAL_ADDR_NODE (exp)->av;
+    if (invert_av) btor_invert_aigvec (avmgr, av);
+    assignment = btor_assignment_aigvec (avmgr, av);
+    /* invert back if necessary */
+    if (invert_av) btor_invert_aigvec (avmgr, av);
+  }
+
+  return assignment;
+}
+
 static int
 compare_argument_assignments (BtorNode *e0, BtorNode *e1)
 {
@@ -5283,12 +5328,12 @@ compare_argument_assignments (BtorNode *e0, BtorNode *e1)
     if (!BTOR_IS_SYNTH_NODE (BTOR_REAL_ADDR_NODE (arg0)))
       avec0 = btor_eval_exp (btor, arg0);
     else
-      avec0 = btor_bv_assignment_str_exp (btor, arg0);
+      avec0 = bv_assignment_str_exp (btor, arg0);
 
     if (!BTOR_IS_SYNTH_NODE (BTOR_REAL_ADDR_NODE (arg1)))
       avec1 = btor_eval_exp (btor, arg1);
     else
-      avec1 = btor_bv_assignment_str_exp (btor, arg1);
+      avec1 = bv_assignment_str_exp (btor, arg1);
 
     assert (avec0);
     assert (avec1);
@@ -6810,12 +6855,12 @@ propagate (Btor *btor,
       {
         /* compute assignment of 'fun_value' and compare it to the
          * assignment of 'app'. */
-        app_assignment       = btor_bv_assignment_str_exp (btor, app);
+        app_assignment       = bv_assignment_str_exp (btor, app);
         fun_value_assignment = btor_eval_exp (btor, fun_value);
         assert (fun_value_assignment);
         values_equal = strcmp (app_assignment, fun_value_assignment) == 0;
         btor_freestr (mm, fun_value_assignment);
-        btor_release_bv_assignment_str_exp (btor, app_assignment);
+        btor_release_bv_assignment_str (btor, app_assignment);
 
         /* beta reduction conflict */
         if (!values_equal)
@@ -8032,81 +8077,62 @@ EVAL_EXP_CLEANUP_EXIT:
 }
 #endif
 
-// TODO: this function should be for internal use only
-//       for external assignemnts, we have to retrieve the assignment from
-//	 btor->model
-char *
-btor_bv_assignment_str_exp (Btor *btor, BtorNode *exp)
+const char *
+btor_bv_assignment_str (Btor *btor, BtorNode *exp)
 {
-  char *assignment;
-  int invert_av, invert_bits;
-  BtorAIGVecMgr *avmgr;
-  BtorAIGVec *av;
-  BtorNode *real_exp;
-  BitVector *bv;
-
   assert (btor);
-  // FIXME last sat result
-  assert (!btor->inconsistent);
   assert (exp);
-  exp = btor_simplify_exp (btor, exp);
-  assert (!BTOR_IS_FUN_NODE (BTOR_REAL_ADDR_NODE (exp)));
+  assert (btor->options.model_gen);
+  assert (btor->last_sat_result == BTOR_SAT);
+  assert (btor->model);
 
+  char *assignment;
+  const char *result;
+  BitVector *bv;
+  BtorNode *real_exp;
+  BtorBVAssignment *bvass;
+
+  exp      = btor_simplify_exp (btor, exp);
   real_exp = BTOR_REAL_ADDR_NODE (exp);
-  assert (real_exp);
+  assert (!BTOR_IS_FUN_NODE (real_exp));
 
-  if (BTOR_IS_BV_CONST_NODE (real_exp))
-  {
-    invert_bits = BTOR_IS_INVERTED_NODE (exp);
-    if (invert_bits)
-      btor_invert_const (btor->mm, BTOR_REAL_ADDR_NODE (exp)->bits);
-    assignment = btor_copy_const (btor->mm, BTOR_REAL_ADDR_NODE (exp)->bits);
-    if (invert_bits)
-      btor_invert_const (btor->mm, BTOR_REAL_ADDR_NODE (exp)->bits);
-  }
-  else if (btor->model && (bv = get_from_model (btor, exp)))
+  if ((bv = get_from_model (btor, exp)))
   {
     assignment = btor_bv_to_char_bv (btor, bv);
     btor_free_bv (btor, bv);
   }
-  else if (!BTOR_IS_SYNTH_NODE (real_exp))
-  {
-    assignment = btor_x_const_3vl (btor->mm, real_exp->len);
-  }
   else
   {
-    avmgr     = btor->avmgr;
-    invert_av = BTOR_IS_INVERTED_NODE (exp);
-    av        = BTOR_REAL_ADDR_NODE (exp)->av;
-    if (invert_av) btor_invert_aigvec (avmgr, av);
-    assignment = btor_assignment_aigvec (avmgr, av);
-    /* invert back if necessary */
-    if (invert_av) btor_invert_aigvec (avmgr, av);
+    assignment = bv_assignment_str_exp (btor, exp);
   }
+
+#if 0
+  bvass = btor_new_bv_assignment (btor->bv_assignments, assignment);
+  btor_freestr (btor->mm, assignment);
+  result = btor_get_bv_assignment_str (bvass);
+#endif
 
   return assignment;
 }
 
 void
-btor_array_assignment_str_exp (
+btor_array_assignment_str (
     Btor *btor, BtorNode *exp, char ***indices, char ***values, int *size)
 {
-  BtorPtrHashBucket *b;
-  BtorNode *index, *value, *args;
-  int i;
-
   assert (btor);
-  // FIXME last sat result
-  assert (!btor->inconsistent);
+  assert (btor->last_sat_result == BTOR_SAT);
   assert (exp);
-  assert (!BTOR_IS_INVERTED_NODE (exp));
-  exp = btor_simplify_exp (btor, exp);
-  assert (BTOR_IS_FUN_NODE (exp));
+  assert (BTOR_IS_REGULAR_NODE (exp));
   assert (indices);
   assert (values);
   assert (size);
 
-  i = 0;
+  int i = 0;
+  BtorPtrHashBucket *b;
+  BtorNode *index, *value, *args;
+
+  exp = btor_simplify_exp (btor, exp);
+  assert (BTOR_IS_FUN_NODE (exp));
 
   if (!exp->rho)
   {
@@ -8128,15 +8154,15 @@ btor_array_assignment_str_exp (
       assert (args->arity == 1);
       index         = args->e[0];
       value         = (BtorNode *) b->data.asPtr;
-      (*indices)[i] = btor_bv_assignment_str_exp (btor, index);
-      (*values)[i]  = btor_bv_assignment_str_exp (btor, value);
+      (*indices)[i] = btor_bv_assignment_str (btor, index);
+      (*values)[i]  = btor_bv_assignment_str (btor, value);
       i++;
     }
   }
 }
 
 void
-btor_release_bv_assignment_str_exp (Btor *btor, char *assignment)
+btor_release_bv_assignment_str (Btor *btor, char *assignment)
 {
   assert (btor);
   assert (assignment);
@@ -8311,7 +8337,7 @@ check_model (Btor *btor, Btor *clone, BtorPtrHashTable *inputs)
       indices = 0;
       values  = 0;
 
-      btor_array_assignment_str_exp (btor, exp, &indices, &values, &size);
+      btor_array_assignment_str (btor, exp, &indices, &values, &size);
 
       if (size == 0) continue;
 
@@ -8336,8 +8362,8 @@ check_model (Btor *btor, Btor *clone, BtorPtrHashTable *inputs)
 
         btor_release_exp (clone, val);
         btor_release_exp (clone, idx);
-        btor_release_bv_assignment_str_exp (btor, indices[i]);
-        btor_release_bv_assignment_str_exp (btor, values[i]);
+        btor_release_bv_assignment_str (btor, indices[i]);
+        btor_release_bv_assignment_str (btor, values[i]);
       }
 
       assert (!btor_find_in_ptr_hash_table (clone->substitutions, real_simp));
@@ -8350,12 +8376,11 @@ check_model (Btor *btor, Btor *clone, BtorPtrHashTable *inputs)
     {
       assert (!BTOR_IS_FUN_NODE (real_simp));
       /* we need to invert the assignment if simplified is inverted */
-      a = btor_bv_assignment_str_exp (btor, BTOR_COND_INVERT_NODE (simp, exp));
+      a = btor_bv_assignment_str (btor, BTOR_COND_INVERT_NODE (simp, exp));
       // TODO: there shouldn't be any x values anymore
       //	  printf ("%s %s\n", exp->symbol, a);
-      init_x_values (a);
       val = btor_const_exp (clone, a);
-      btor_release_bv_assignment_str_exp (btor, a);
+      btor_release_bv_assignment_str (btor, a);
 
       assert (!btor_find_in_ptr_hash_table (clone->substitutions, real_simp));
       btor_insert_substitution (clone, real_simp, val, 0);
