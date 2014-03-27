@@ -5483,6 +5483,14 @@ search_initial_applies_dual_prop (Btor * btor,
 }
 #endif
 
+static int
+cmp_node_id (const void *p, const void *q)
+{
+  BtorNode *a = *(BtorNode **) p;
+  BtorNode *b = *(BtorNode **) q;
+  return a->id - b->id;
+}
+
 static void
 search_initial_applies_dual_prop (Btor *btor,
                                   Btor *clone,
@@ -5667,6 +5675,10 @@ search_initial_applies_dual_prop (Btor *btor,
     }
   }
 
+  qsort (top_applies->start,
+         BTOR_COUNT_STACK (*top_applies),
+         sizeof (BtorNode *),
+         cmp_node_id);
   /* cleanup */
   while (!BTOR_EMPTY_STACK (unmark_stack))
     BTOR_POP_STACK (unmark_stack)->aux_mark = 0;
