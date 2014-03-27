@@ -4365,6 +4365,15 @@ btor_rewrite_write_exp (Btor * btor, BtorNode * e_array, BtorNode * e_index,
 }
 #endif
 
+static BtorNode *
+btor_shallow_subst (
+    Btor *btor, BtorNode *lhs, BtorNode *rhs, BtorNode *node, int lim)
+{
+  if (lim-- < 0) return btor_copy_exp (btor, node);
+
+  btor_copy_exp (btor, node);
+}
+
 BtorNode *
 btor_rewrite_cond_exp (Btor *btor,
                        BtorNode *e_cond,
@@ -4667,6 +4676,44 @@ RESTART:
           btor_release_exp (btor, e_if_norm);
           btor_release_exp (btor, e_else_norm);
         }
+      }
+    }
+  }
+
+  if (!result)
+  {
+    BtorNode *real_cond = BTOR_REAL_ADDR_NODE (e_cond);
+    if (real_cond->kind == BTOR_BEQ_NODE)
+    {
+      BtorNode *lhs = real_cond->e[0];
+      BtorNode *rhs = real_cond->e[1];
+      int lhsvar =
+          !BTOR_IS_INVERTED_NODE (lhs) && lhs->kind == BTOR_BV_VAR_NODE;
+      int rhsvar =
+          !BTOR_IS_INVERTED_NODE (rhs) && rhs->kind == BTOR_BV_VAR_NODE;
+
+      if ((lhsvar && rhsvar && lhs->id < rhs->id) || (!lhsvar && rhsvar))
+      {
+        BtorNode *tmp = lhs;
+        lhs           = rhs;
+        rhs           = tmp;
+      }
+      else
+        lhs = rhs = 0;
+
+      if (lhs)
+      {
+        BtorNode *simp;
+        assert (!BTOR_IS_INVERTED_NODE (lhs));
+        assert (lhs->kind == BTOR_BV_VAR_NODE);
+
+        // TODO make this '10' an option ...
+        simp = btor_shallow_subst (btor, lhs, rhs, e_if, 10);
+
+        BTOR_INC_REC_RW_CALL (btor);
+        result = btor_rewrite_cond_exp (btor, e_cond, simp, e_else);
+        BTOR_DEC_REC_RW_CALL (btor);
+        btor_release_exp (btor, simp);
       }
     }
   }
