@@ -4369,9 +4369,61 @@ static BtorNode *
 btor_shallow_subst (
     Btor *btor, BtorNode *lhs, BtorNode *rhs, BtorNode *node, int lim)
 {
-  if (lim-- < 0) return btor_copy_exp (btor, node);
+  BtorNode *s[3], *real, *res;
+  int i, changed;
 
-  btor_copy_exp (btor, node);
+  if (node == lhs) return btor_copy_exp (btor, rhs);
+
+  if (node == BTOR_INVERT_NODE (lhs))
+    return BTOR_INVERT_NODE (btor_copy_exp (btor, rhs));
+
+  if (lim <= 0) return btor_copy_exp (btor, node);
+
+  real = BTOR_REAL_ADDR_NODE (node);
+
+  changed = 0;
+  for (i = 0; i < real->arity; i++)
+  {
+    s[i] = btor_shallow_subst (btor, lhs, rhs, real->e[i], lim - 1);
+    if (real->e[i] != s[i]) changed = 1;
+  }
+
+  if (!changed)
+    res = btor_copy_exp (btor, real);
+  else
+  {
+    switch (real->kind)
+    {
+      case BTOR_BV_CONST_NODE:
+      case BTOR_BV_VAR_NODE:
+      case BTOR_ARRAY_VAR_NODE: res = btor_copy_exp (btor, real); break;
+      case BTOR_SLICE_NODE:
+        res = btor_slice_exp (btor, s[0], real->upper, real->lower);
+        break;
+      case BTOR_AND_NODE: res = btor_and_exp (btor, s[0], s[1]); break;
+      case BTOR_BEQ_NODE:
+      case BTOR_AEQ_NODE: res = btor_eq_exp (btor, s[0], s[1]); break;
+      case BTOR_ADD_NODE: res = btor_add_exp (btor, s[0], s[1]); break;
+      case BTOR_MUL_NODE: res = btor_mul_exp (btor, s[0], s[1]); break;
+      case BTOR_ULT_NODE: res = btor_ult_exp (btor, s[0], s[1]); break;
+      case BTOR_SLL_NODE: res = btor_sll_exp (btor, s[0], s[1]); break;
+      case BTOR_SRL_NODE: res = btor_srl_exp (btor, s[0], s[1]); break;
+      case BTOR_UDIV_NODE: res = btor_udiv_exp (btor, s[0], s[1]); break;
+      case BTOR_UREM_NODE: res = btor_urem_exp (btor, s[0], s[1]);
+      case BTOR_CONCAT_NODE: res = btor_concat_exp (btor, s[0], s[1]);
+      case BTOR_LAMBDA_NODE: res = btor_lambda_exp (btor, s[0], s[1]);
+      default:
+        assert (BTOR_IS_BV_COND_NODE (real));
+        return btor_cond_exp (btor, s[0], s[1], s[2]);
+        break;
+    }
+  }
+
+  for (i = 0; i < real->arity; i++) btor_release_exp (btor, s[i]);
+
+  if (real != node) res = BTOR_INVERT_NODE (res);
+
+  return res;
 }
 
 BtorNode *
@@ -4680,7 +4732,7 @@ RESTART:
     }
   }
 
-  if (!result)
+  if (!result && btor->rec_rw_calls >= BTOR_REC_RW_BOUND)
   {
     BtorNode *real_cond = BTOR_REAL_ADDR_NODE (e_cond);
     if (real_cond->kind == BTOR_BEQ_NODE)
@@ -4709,10 +4761,12 @@ RESTART:
 
         // TODO make this '10' an option ...
         simp = btor_shallow_subst (btor, lhs, rhs, e_if, 10);
-
-        BTOR_INC_REC_RW_CALL (btor);
-        result = btor_rewrite_cond_exp (btor, e_cond, simp, e_else);
-        BTOR_DEC_REC_RW_CALL (btor);
+        if (simp != e_if)
+        {
+          BTOR_INC_REC_RW_CALL (btor);
+          result = btor_rewrite_cond_exp (btor, e_cond, simp, e_else);
+          BTOR_DEC_REC_RW_CALL (btor);
+        }
         btor_release_exp (btor, simp);
       }
     }
