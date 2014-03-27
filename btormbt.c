@@ -2506,10 +2506,10 @@ run (BtorMBT *btormbt)
   int status, null;
   pid_t id;
 
-  btormbt->forked++;
-  fflush (stdout);
-  if ((id = fork ()))
+  if (!btormbt->seeded && (id = fork ()))
   {
+    btormbt->forked++;
+    fflush (stdout);
     reset_alarm ();
 #ifndef NDEBUG
     pid_t wid =
@@ -2529,7 +2529,7 @@ run (BtorMBT *btormbt)
 
     /* redirect output from child to /dev/null if we don't want to have
      * verbose output */
-    if (!btormbt->verbose)
+    if (!btormbt->seeded && !btormbt->verbose)
     {
       null = open ("/dev/null", O_WRONLY);
       dup2 (null, STDOUT_FILENO);
