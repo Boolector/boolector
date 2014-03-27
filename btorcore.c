@@ -8357,8 +8357,6 @@ check_model (Btor *btor, Btor *clone, BtorPtrHashTable *inputs)
         tmp = btor_write_exp (clone, w, idx, val);
         btor_release_exp (clone, w);
         w = tmp;
-        //	      printf ("%s[%s] %s\n", exp->symbol, indices[i],
-        // values[i]);
 
         btor_release_exp (clone, val);
         btor_release_exp (clone, idx);
@@ -8376,9 +8374,7 @@ check_model (Btor *btor, Btor *clone, BtorPtrHashTable *inputs)
     {
       assert (!BTOR_IS_FUN_NODE (real_simp));
       /* we need to invert the assignment if simplified is inverted */
-      a = btor_bv_assignment_str (btor, BTOR_COND_INVERT_NODE (simp, exp));
-      // TODO: there shouldn't be any x values anymore
-      //	  printf ("%s %s\n", exp->symbol, a);
+      a   = btor_bv_assignment_str (btor, BTOR_COND_INVERT_NODE (simp, exp));
       val = btor_const_exp (clone, a);
       btor_release_bv_assignment_str (btor, a);
 
@@ -8397,16 +8393,9 @@ check_model (Btor *btor, Btor *clone, BtorPtrHashTable *inputs)
   clone->options.slice_propagation = 0;  // TODO: for testing only
   ret                              = btor_simplify (clone);
 
-  // FIXME: why does the first run not yield all simplifications?
-  if (ret == BTOR_UNKNOWN)
-  {
-    rebuild_formula (clone, 3);
-    ret = btor_simplify (clone);
-  }
   assert (ret != BTOR_UNKNOWN || btor_sat_aux_btor (clone) == BTOR_SAT);
   // TODO: if ret still UNKNOWN dump formula (for rw rule harvesting?)
-  // BTOR_ABORT_CORE (ret != BTOR_SAT, "invalid model");
-  BTOR_ABORT_CORE (ret == BTOR_UNKNOWN, "partial model?");
+  BTOR_ABORT_CORE (ret == BTOR_UNKNOWN, "rewriting needed");
   BTOR_ABORT_CORE (ret == BTOR_UNSAT, "invalid model");
 }
 #endif
