@@ -5635,15 +5635,17 @@ search_initial_applies_dual_prop (Btor *btor,
         while (!BTOR_EMPTY_STACK (stack))
         {
           cur_btor = BTOR_POP_STACK (stack);
-          if (cur_btor->aux_mark) continue;
           if (!cur_btor->reachable) continue;
-          cur_btor->aux_mark = 1;
-          BTOR_PUSH_STACK (btor->mm, unmark_stack, cur_btor);
-          if (BTOR_IS_APPLY_NODE (cur_btor) && BTOR_IS_SYNTH_NODE (cur_btor))
+          if (!cur_btor->aux_mark)
           {
-            BTORLOG ("initial apply: %s", node2string (cur_btor));
-            assert (!cur_btor->parameterized);
-            BTOR_PUSH_STACK (btor->mm, *top_applies, cur_btor);
+            cur_btor->aux_mark = 1;
+            BTOR_PUSH_STACK (btor->mm, unmark_stack, cur_btor);
+            if (BTOR_IS_APPLY_NODE (cur_btor) && !cur_btor->parameterized)
+            {
+              BTORLOG ("initial apply: %s", node2string (cur_btor));
+              assert (!cur_btor->parameterized);
+              BTOR_PUSH_STACK (btor->mm, *top_applies, cur_btor);
+            }
           }
           init_full_parent_iterator (&pit, cur_btor);
           while (has_next_parent_full_parent_iterator (&pit))
