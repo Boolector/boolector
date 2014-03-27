@@ -888,7 +888,10 @@ btor_recursively_rebuild_exp_clone (Btor *btor,
           cur_clone = btor_lambda_exp (clone, e[0], e[1]);
           break;
         case BTOR_APPLY_NODE:
-          cur_clone = btor_apply_exp (clone, e[0], e[1]);
+          // FIXME use btor_apply_exp as soon as applies are
+          // generated with rewriting (currently without)
+          // cur_clone = btor_apply_exp (clone, e[0], e[1]);
+          cur_clone = btor_apply_exp_node (clone, e[0], e[1]);
           break;
         case BTOR_ARGS_NODE:
           cur_clone = btor_args_exp (clone, cur->arity, e);
@@ -900,6 +903,7 @@ btor_recursively_rebuild_exp_clone (Btor *btor,
       btor_map_node (exp_map, cur, cur_clone);
 #ifndef NDEBUG
       assert (!btor_mapped_node (key_map, cur_clone));
+      assert (cur->kind == cur_clone->kind);
       btor_map_node (key_map, cur_clone, cur);
 #endif
       btor_release_exp (clone, cur_clone);
