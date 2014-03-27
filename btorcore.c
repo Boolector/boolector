@@ -7208,7 +7208,6 @@ recursively_compute_assignment (Btor *btor, BtorNode *exp)
   BitVector *result = 0, *inv_result, **e;
 
   mm = btor->mm;
-  btor->stats.eval_exp_calls++;
 
   BTOR_INIT_STACK (work_stack);
   BTOR_INIT_STACK (arg_stack);
