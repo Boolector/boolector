@@ -93,6 +93,13 @@ btor_new_bv (Btor *btor, int bw)
   return res;
 }
 
+size_t
+btor_size_bv (BitVector *bv)
+{
+  assert (bv);
+  return sizeof (BitVector) + bv->len * sizeof (BTOR_BV_TYPE);
+}
+
 void
 btor_free_bv (Btor *btor, BitVector *bv)
 {
@@ -238,17 +245,20 @@ btor_uint64_to_bv (Btor *btor, uint64_t value, int bw)
 }
 
 BitVector *
-btor_assignment_bv (Btor *btor, BtorNode *exp)
+btor_assignment_bv (Btor *btor, BtorNode *exp, int init_x_values)
 {
   assert (btor);
   assert (exp);
   assert (BTOR_IS_REGULAR_NODE (exp));
-  assert (exp->av);
+  assert (init_x_values || exp->av);
+  assert (init_x_values == 0 || init_x_values == 1);
 
   int i, j, len, bit;
   BitVector *res;
   BtorAIGVec *av;
   BtorAIGMgr *amgr;
+
+  if (!exp->av) return btor_new_bv (btor, exp->len);
 
   amgr = btor_get_aig_mgr_aigvec_mgr (btor->avmgr);
   av   = exp->av;
@@ -258,6 +268,7 @@ btor_assignment_bv (Btor *btor, BtorNode *exp)
   for (i = 0, j = len - 1; i < len; i++, j--)
   {
     bit = btor_get_assignment_aig (amgr, av->aigs[j]);
+    if (init_x_values && bit == 0) bit = -1;
     assert (bit == -1 || bit == 1);
     btor_set_bit_bv (res, i, bit == 1 ? 1 : 0);
   }

@@ -12,6 +12,7 @@
 
 #include "btoraig.h"
 #include "btoraigvec.h"
+#include "btorbitvec.h"
 #include "btorcore.h"
 #include "btorhash.h"
 #include "btorlog.h"
@@ -262,6 +263,24 @@ data_as_node_ptr (BtorMemMgr *mm,
 }
 
 static void
+data_as_bv_ptr (BtorMemMgr *mm,
+                const void *map,
+                const void *data_ptr,
+                BtorPtrHashData *data)
+{
+  assert (mm);
+  assert (map);
+  assert (data_ptr);
+  assert (data);
+
+  BtorNodeMap *exp_map;
+
+  (void) mm;
+  exp_map     = (BtorNodeMap *) map;
+  data->asPtr = btor_copy_bv (exp_map->btor, (BitVector *) data_ptr);
+}
+
+static void
 data_as_htable_ptr (BtorMemMgr *mm,
                     const void *map,
                     const void *data_ptr,
@@ -423,15 +442,15 @@ clone_nodes_unique_table (BtorMemMgr *mm,
     CHKCLONE_MEM_PTR_HASH_TABLE (table);              \
   } while (0)
 
-#define CLONE_PTR_HASH_TABLE_ASPTR(table)                                  \
-  do                                                                       \
-  {                                                                        \
-    BTORLOG_TIMESTAMP (delta);                                             \
-    clone->table = btor_clone_ptr_hash_table (                             \
-        mm, btor->table, mapped_node, data_as_node_ptr, exp_map, exp_map); \
-    BTORLOG ("  clone " #table " table: %.3f s",                           \
-             (btor_time_stamp () - delta));                                \
-    CHKCLONE_MEM_PTR_HASH_TABLE (table);                                   \
+#define CLONE_PTR_HASH_TABLE_ASPTR(table, data_ptr_func)                \
+  do                                                                    \
+  {                                                                     \
+    BTORLOG_TIMESTAMP (delta);                                          \
+    clone->table = btor_clone_ptr_hash_table (                          \
+        mm, btor->table, mapped_node, data_ptr_func, exp_map, exp_map); \
+    BTORLOG ("  clone " #table " table: %.3f s",                        \
+             (btor_time_stamp () - delta));                             \
+    CHKCLONE_MEM_PTR_HASH_TABLE (table);                                \
   } while (0)
 
 Btor *
@@ -589,13 +608,13 @@ btor_clone_btor (Btor *btor)
   CLONE_PTR_HASH_TABLE (lambdas);
   assert ((allocated += MEM_PTR_HASH_TABLE (btor->lambdas))
           == clone->mm->allocated);
-  CLONE_PTR_HASH_TABLE_ASPTR (substitutions);
+  CLONE_PTR_HASH_TABLE_ASPTR (substitutions, data_as_node_ptr);
   assert ((allocated += MEM_PTR_HASH_TABLE (btor->substitutions))
           == clone->mm->allocated);
   CLONE_PTR_HASH_TABLE (lod_cache);
   assert ((allocated += MEM_PTR_HASH_TABLE (btor->lod_cache))
           == clone->mm->allocated);
-  CLONE_PTR_HASH_TABLE_ASPTR (varsubst_constraints);
+  CLONE_PTR_HASH_TABLE_ASPTR (varsubst_constraints, data_as_node_ptr);
   assert ((allocated += MEM_PTR_HASH_TABLE (btor->varsubst_constraints))
           == clone->mm->allocated);
   CLONE_PTR_HASH_TABLE (embedded_constraints);
@@ -616,6 +635,21 @@ btor_clone_btor (Btor *btor)
   CLONE_PTR_HASH_TABLE (array_rhs);
   assert ((allocated += MEM_PTR_HASH_TABLE (btor->array_rhs))
           == clone->mm->allocated);
+  CLONE_PTR_HASH_TABLE_ASPTR (model, data_as_bv_ptr);
+#ifndef NDEBUG
+  if (btor->model)
+  {
+    for (b = btor->model->first, cb = clone->model->first; b;
+         b = b->next, cb = cb->next)
+    {
+      assert (btor_size_bv ((BitVector *) b->data.asPtr)
+              == btor_size_bv ((BitVector *) cb->data.asPtr));
+      allocated += btor_size_bv ((BitVector *) cb->data.asPtr);
+    }
+  }
+#endif
+  assert ((allocated += MEM_PTR_HASH_TABLE (btor->model))
+          == clone->mm->allocated);
 
   BTORLOG_TIMESTAMP (delta);
   clone_node_ptr_stack (
@@ -625,7 +659,7 @@ btor_clone_btor (Btor *btor)
            BTOR_SIZE_STACK (btor->arrays_with_model) * sizeof (BtorNode *))
           == clone->mm->allocated);
 
-  CLONE_PTR_HASH_TABLE_ASPTR (cache);
+  CLONE_PTR_HASH_TABLE_ASPTR (cache, data_as_node_ptr);
   assert ((allocated += MEM_PTR_HASH_TABLE (btor->cache))
           == clone->mm->allocated);
 

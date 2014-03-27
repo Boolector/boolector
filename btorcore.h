@@ -108,6 +108,7 @@ struct Btor
   BtorPtrHashTable *lambdas;
   BtorPtrHashTable *substitutions;
   BtorNode *true_exp;
+  BtorPtrHashTable *model;
 
   int dvn_id;       /* counter for vars (no symbol) via API */
   int dan_id;       /* counter for arrays (no symbol) via API */
@@ -207,6 +208,7 @@ struct Btor
     double find_prop_app;
     double cloning;
     double synth_exp;
+    double model_gen;
   } time;
 
   struct
