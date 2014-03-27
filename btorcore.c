@@ -8087,10 +8087,8 @@ btor_bv_assignment_str (Btor *btor, BtorNode *exp)
   assert (btor->model);
 
   char *assignment;
-  const char *result;
   BitVector *bv;
   BtorNode *real_exp;
-  BtorBVAssignment *bvass;
 
   exp      = btor_simplify_exp (btor, exp);
   real_exp = BTOR_REAL_ADDR_NODE (exp);
@@ -8154,8 +8152,8 @@ btor_array_assignment_str (
       assert (args->arity == 1);
       index         = args->e[0];
       value         = (BtorNode *) b->data.asPtr;
-      (*indices)[i] = btor_bv_assignment_str (btor, index);
-      (*values)[i]  = btor_bv_assignment_str (btor, value);
+      (*indices)[i] = (char *) btor_bv_assignment_str (btor, index);
+      (*values)[i]  = (char *) btor_bv_assignment_str (btor, value);
       i++;
     }
   }
@@ -8374,7 +8372,8 @@ check_model (Btor *btor, Btor *clone, BtorPtrHashTable *inputs)
     {
       assert (!BTOR_IS_FUN_NODE (real_simp));
       /* we need to invert the assignment if simplified is inverted */
-      a   = btor_bv_assignment_str (btor, BTOR_COND_INVERT_NODE (simp, exp));
+      a   = (char *) btor_bv_assignment_str (btor,
+                                           BTOR_COND_INVERT_NODE (simp, exp));
       val = btor_const_exp (clone, a);
       btor_release_bv_assignment_str (btor, a);
 
