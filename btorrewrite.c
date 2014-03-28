@@ -4732,7 +4732,7 @@ RESTART:
     }
   }
 
-  if (!result && btor->rec_rw_calls >= BTOR_REC_RW_BOUND)
+  if (!result && btor->rec_rw_calls < BTOR_REC_RW_BOUND)
   {
     BtorNode *real_cond = BTOR_REAL_ADDR_NODE (e_cond);
     if (real_cond->kind == BTOR_BEQ_NODE)
