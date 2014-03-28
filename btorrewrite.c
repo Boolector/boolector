@@ -4732,7 +4732,8 @@ RESTART:
     }
   }
 
-  if (!result && btor->rec_rw_calls < BTOR_REC_RW_BOUND)
+  if (!result && btor->options.rewrite_level > 1 &&  // TODO or > 2?
+      btor->rec_rw_calls < BTOR_REC_RW_BOUND)
   {
     BtorNode *real_cond = BTOR_REAL_ADDR_NODE (e_cond);
     if (real_cond->kind == BTOR_BEQ_NODE)
@@ -4743,6 +4744,9 @@ RESTART:
           !BTOR_IS_INVERTED_NODE (lhs) && lhs->kind == BTOR_BV_VAR_NODE;
       int rhsvar =
           !BTOR_IS_INVERTED_NODE (rhs) && rhs->kind == BTOR_BV_VAR_NODE;
+
+      // TODO should work for array's too in the same way.
+      // TODO should we target other terms too?
 
       if ((lhsvar && rhsvar && lhs->id < rhs->id) || (!lhsvar && rhsvar))
       {
@@ -4760,6 +4764,7 @@ RESTART:
         assert (lhs->kind == BTOR_BV_VAR_NODE);
 
         // TODO make this '10' an option ...
+        //
         simp = btor_shallow_subst (btor, lhs, rhs, e_if, 10);
         if (simp != e_if)
         {
