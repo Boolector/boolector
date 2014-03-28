@@ -30,8 +30,9 @@ typedef struct BitVector BitVector;
 BitVector *btor_new_bv (Btor *, int);
 BitVector *btor_char_to_bv (Btor *, char *);
 BitVector *btor_uint64_to_bv (Btor *, uint64_t, int);
-BitVector *btor_assignment_bv (Btor *, BtorNode *);
+BitVector *btor_assignment_bv (Btor *, BtorNode *, int);
 BitVector *btor_copy_bv (Btor *, BitVector *);
+size_t btor_size_bv (BitVector *);
 void btor_free_bv (Btor *, BitVector *);
 
 void btor_print_bv (BitVector *);
