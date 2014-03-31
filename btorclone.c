@@ -12,6 +12,7 @@
 
 #include "btoraig.h"
 #include "btoraigvec.h"
+#include "btorbeta.h"
 #include "btorcore.h"
 #include "btorhash.h"
 #include "btoriter.h"
