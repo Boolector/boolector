@@ -14,6 +14,7 @@ onlylingeling=no
 onlyminisat=no
 onlypicosat=no
 gcov=no
+gprof=no
 
 #--------------------------------------------------------------------------#
 
@@ -88,6 +89,7 @@ do
     -no-minisat|--no-minisat) minisat=no;;
     -h|-help|--help) usage;;
     -gcov) gcov=yes;;
+    -gprof) gprof=yes;;
     -*) die "invalid option '$1' (try '-h')";;
   esac
   shift
@@ -157,6 +159,7 @@ fi
 
 [ $log = no ] && CFLAGS="$CFLAGS -DNBTORLOG"
 [ $gcov = yes ] && CFLAGS="$CFLAGS -fprofile-arcs -ftest-coverage"
+[ $gprof = yes ] && CFLAGS="$CFLAGS -pg"
 
 #--------------------------------------------------------------------------#
 
