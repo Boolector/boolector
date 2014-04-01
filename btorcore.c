@@ -5395,6 +5395,50 @@ search_initial_applies (Btor *btor, BtorPtrHashTable *top_applies)
   btor->time.search_init_apps += btor_time_stamp () - start;
 }
 
+static char *
+bv_assignment_str_exp (Btor *btor, BtorNode *exp)
+{
+  assert (btor);
+  assert (exp);
+
+  char *assignment;
+  int invert_av, invert_bits;
+  BtorAIGVecMgr *avmgr;
+  BtorAIGVec *av;
+  BtorNode *real_exp;
+
+  exp = btor_simplify_exp (btor, exp);
+  assert (!BTOR_IS_FUN_NODE (BTOR_REAL_ADDR_NODE (exp)));
+
+  real_exp = BTOR_REAL_ADDR_NODE (exp);
+  assert (real_exp);
+
+  if (BTOR_IS_BV_CONST_NODE (real_exp))
+  {
+    invert_bits = BTOR_IS_INVERTED_NODE (exp);
+    if (invert_bits)
+      btor_invert_const (btor->mm, BTOR_REAL_ADDR_NODE (exp)->bits);
+    assignment = btor_copy_const (btor->mm, BTOR_REAL_ADDR_NODE (exp)->bits);
+    if (invert_bits)
+      btor_invert_const (btor->mm, BTOR_REAL_ADDR_NODE (exp)->bits);
+  }
+  else if (!BTOR_IS_SYNTH_NODE (real_exp))
+  {
+    assignment = btor_x_const_3vl (btor->mm, real_exp->len);
+  }
+  else
+  {
+    avmgr     = btor->avmgr;
+    invert_av = BTOR_IS_INVERTED_NODE (exp);
+    av        = BTOR_REAL_ADDR_NODE (exp)->av;
+    if (invert_av) btor_invert_aigvec (avmgr, av);
+    assignment = btor_assignment_aigvec (avmgr, av);
+    /* invert back if necessary */
+    if (invert_av) btor_invert_aigvec (avmgr, av);
+  }
+
+  return assignment;
+}
 static void
 search_initial_applies_dual_prop (Btor *btor,
                                   Btor *clone,
@@ -5464,7 +5508,7 @@ search_initial_applies_dual_prop (Btor *btor,
     assert (!btor_mapped_node (key_map, cur_clone));
     btor_map_node (key_map, cur_clone, cur_btor);
 
-    astr = (char *) btor_bv_assignment_str (btor, cur_btor);
+    astr = bv_assignment_str_exp (btor, cur_btor);
     BTOR_CNEWN (btor->mm, pastr, cur_btor->len + 1);
     for (i = 0; i < cur_btor->len; i++)
     {
@@ -6079,50 +6123,6 @@ compare_assignments (BtorNode *exp1, BtorNode *exp2)
   return return_val;
 }
 
-static char *
-bv_assignment_str_exp (Btor *btor, BtorNode *exp)
-{
-  assert (btor);
-  assert (exp);
-
-  char *assignment;
-  int invert_av, invert_bits;
-  BtorAIGVecMgr *avmgr;
-  BtorAIGVec *av;
-  BtorNode *real_exp;
-
-  exp = btor_simplify_exp (btor, exp);
-  assert (!BTOR_IS_FUN_NODE (BTOR_REAL_ADDR_NODE (exp)));
-
-  real_exp = BTOR_REAL_ADDR_NODE (exp);
-  assert (real_exp);
-
-  if (BTOR_IS_BV_CONST_NODE (real_exp))
-  {
-    invert_bits = BTOR_IS_INVERTED_NODE (exp);
-    if (invert_bits)
-      btor_invert_const (btor->mm, BTOR_REAL_ADDR_NODE (exp)->bits);
-    assignment = btor_copy_const (btor->mm, BTOR_REAL_ADDR_NODE (exp)->bits);
-    if (invert_bits)
-      btor_invert_const (btor->mm, BTOR_REAL_ADDR_NODE (exp)->bits);
-  }
-  else if (!BTOR_IS_SYNTH_NODE (real_exp))
-  {
-    assignment = btor_x_const_3vl (btor->mm, real_exp->len);
-  }
-  else
-  {
-    avmgr     = btor->avmgr;
-    invert_av = BTOR_IS_INVERTED_NODE (exp);
-    av        = BTOR_REAL_ADDR_NODE (exp)->av;
-    if (invert_av) btor_invert_aigvec (avmgr, av);
-    assignment = btor_assignment_aigvec (avmgr, av);
-    /* invert back if necessary */
-    if (invert_av) btor_invert_aigvec (avmgr, av);
-  }
-
-  return assignment;
-}
 static int
 compare_argument_assignments (BtorNode *e0, BtorNode *e1)
 {
@@ -8235,8 +8235,9 @@ btor_sat_aux_btor (Btor *btor)
   Btor *faclone = 0;
 #endif
 
-  clone   = 0;
-  exp_map = 0;
+  clone      = 0;
+  clone_root = 0;
+  exp_map    = 0;
 
   BTOR_INIT_STACK (prop_stack);
 
@@ -8317,7 +8318,6 @@ btor_sat_aux_btor (Btor *btor)
     clone->options.dual_prop = 0;  // FIXME should be redundant
     btor->time.search_init_apps_cloning += btor_time_stamp () - delta;
 
-    clone_root = 0;
     init_node_hash_table_iterator (&it, clone->unsynthesized_constraints);
     queue_node_hash_table_iterator (&it, clone->assumptions);
     while (has_next_node_hash_table_iterator (&it))
