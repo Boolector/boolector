@@ -6132,7 +6132,7 @@ compare_argument_assignments (BtorNode *e0, BtorNode *e1)
   assert (BTOR_IS_ARGS_NODE (e1));
 
   int equal;
-  const char *avec0, *avec1;
+  char *avec0, *avec1;
   BtorNode *arg0, *arg1;
   Btor *btor;
   BtorArgsIterator it0, it1;
@@ -6154,12 +6154,12 @@ compare_argument_assignments (BtorNode *e0, BtorNode *e1)
     if (!BTOR_IS_SYNTH_NODE (BTOR_REAL_ADDR_NODE (arg0)))
       avec0 = btor_eval_exp (btor, arg0);
     else
-      avec0 = btor_bv_assignment_str (btor, arg0);
+      avec0 = bv_assignment_str_exp (btor, arg0);
 
     if (!BTOR_IS_SYNTH_NODE (BTOR_REAL_ADDR_NODE (arg1)))
       avec1 = btor_eval_exp (btor, arg1);
     else
-      avec1 = btor_bv_assignment_str (btor, arg1);
+      avec1 = bv_assignment_str_exp (btor, arg1);
 
     assert (avec0);
     assert (avec1);
