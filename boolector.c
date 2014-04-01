@@ -3782,7 +3782,7 @@ boolector_sat (Btor *btor)
 const char *
 boolector_bv_assignment (Btor *btor, BoolectorNode *node)
 {
-  char *ass;
+  const char *ass;
   const char *res;
   BtorNode *exp, *simp;
   BtorBVAssignment *bvass;
@@ -3801,7 +3801,7 @@ boolector_bv_assignment (Btor *btor, BoolectorNode *node)
   BTOR_ABORT_BOOLECTOR (!btor->options.model_gen,
                         "model generation has not been enabled");
   ass   = btor_bv_assignment_str (btor, simp);
-  bvass = btor_new_bv_assignment (btor->bv_assignments, ass);
+  bvass = btor_new_bv_assignment (btor->bv_assignments, (char *) ass);
   btor_release_bv_assignment_str (btor, (char *) ass);
   res = btor_get_bv_assignment_str (bvass);
 #ifndef NDEBUG
