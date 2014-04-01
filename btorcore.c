@@ -912,6 +912,10 @@ btor_print_stats_btor (Btor *btor)
               1,
               "%.2f seconds SAT solving for initial applies search",
               btor->time.search_init_apps_sat);
+    btor_msg (btor,
+              1,
+              "%.2f seconds collecting initial applies via failed assumptions",
+              btor->time.search_init_apps_collect);
   }
   btor_msg (btor, 1, "%.2f seconds lemma generation", btor->time.lemma_gen);
   btor_msg (btor,
@@ -5296,7 +5300,7 @@ search_initial_applies (Btor *btor, BtorNodePtrStack *top_applies)
           BTOR_PUSH_STACK (mm, top, cur_parent);
         else
         {
-          if (!cur->parent->propagated)
+          if (!cur_parent->propagated)
             BTORLOG ("initial apply: %s", node2string (cur_parent));
           BTOR_PUSH_STACK (mm, *top_applies, cur_parent);
         }
@@ -5445,6 +5449,7 @@ search_initial_applies_dual_prop (Btor *btor,
   btor->time.search_init_apps_sat += btor_time_stamp () - delta;
 
   /* partial assignment via failed assumptions of dual clone */
+  delta = btor_time_stamp ();
   init_node_map_iterator (&it, assumptions);
   while (has_next_node_map_iterator (&it))
   {
@@ -5478,16 +5483,16 @@ search_initial_applies_dual_prop (Btor *btor,
         {
           cur_btor = BTOR_POP_STACK (stack);
           if (!cur_btor->reachable) continue;
-          if (!cur_btor->aux_mark)
+          if (cur_btor->aux_mark) continue;
+          // TODO do not push parents of top applies
+          // maybe use hash table for top applies
+          cur_btor->aux_mark = 1;
+          BTOR_PUSH_STACK (btor->mm, unmark_stack, cur_btor);
+          if (BTOR_IS_APPLY_NODE (cur_btor) && !cur_btor->parameterized)
           {
-            cur_btor->aux_mark = 1;
-            BTOR_PUSH_STACK (btor->mm, unmark_stack, cur_btor);
-            if (BTOR_IS_APPLY_NODE (cur_btor) && !cur_btor->parameterized)
-            {
-              BTORLOG ("initial apply: %s", node2string (cur_btor));
-              assert (!cur_btor->parameterized);
-              BTOR_PUSH_STACK (btor->mm, *top_applies, cur_btor);
-            }
+            BTORLOG ("initial apply: %s", node2string (cur_btor));
+            assert (!cur_btor->parameterized);
+            BTOR_PUSH_STACK (btor->mm, *top_applies, cur_btor);
           }
           init_full_parent_iterator (&pit, cur_btor);
           while (has_next_parent_full_parent_iterator (&pit))
@@ -5509,19 +5514,24 @@ search_initial_applies_dual_prop (Btor *btor,
     }
   }
 
+  btor->time.search_init_apps_collect += btor_time_stamp () - delta;
+
   // TODO this is just an experiment
-  while (!BTOR_EMPTY_STACK (unmark_stack))
-    BTOR_POP_STACK (unmark_stack)->aux_mark = 0;
-  while (!BTOR_EMPTY_STACK (*top_applies))
-    BTOR_POP_STACK (*top_applies)->aux_mark = 1;
-  for (i = 0; i < btor->nodes_unique_table.size; i++)
+  if (getenv ("BTORMARKPROP"))
   {
-    for (cur_btor = btor->nodes_unique_table.chains[i]; cur_btor;
-         cur_btor = cur_btor->next)
+    while (!BTOR_EMPTY_STACK (unmark_stack))
+      BTOR_POP_STACK (unmark_stack)->aux_mark = 0;
+    while (!BTOR_EMPTY_STACK (*top_applies))
+      BTOR_POP_STACK (*top_applies)->aux_mark = 1;
+    for (i = 0; i < btor->nodes_unique_table.size; i++)
     {
-      if (!BTOR_IS_APPLY_NODE (cur_btor)) continue;
-      cur_btor->propagated = cur_btor->aux_mark ? 0 : 1;
-      cur_btor->aux_mark   = 0;
+      for (cur_btor = btor->nodes_unique_table.chains[i]; cur_btor;
+           cur_btor = cur_btor->next)
+      {
+        if (!BTOR_IS_APPLY_NODE (cur_btor)) continue;
+        cur_btor->propagated = cur_btor->aux_mark ? 0 : 1;
+        cur_btor->aux_mark   = 0;
+      }
     }
   }
 
@@ -5538,7 +5548,7 @@ search_initial_applies_dual_prop (Btor *btor,
 
   btor->time.search_init_apps += btor_time_stamp () - start;
   // TODO this is just an experiment
-  search_initial_applies (btor, top_applies);
+  if (getenv ("BTORMARKPROP")) search_initial_applies (btor, top_applies);
   //
 }
 #endif
