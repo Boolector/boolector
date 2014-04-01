@@ -209,7 +209,8 @@ def _pick_data ():
             v = [(g_run_real[d][g_files[f]], d) for d in g_args.dirs]
             v = sorted(v)
             g_best_run_real[f] = None \
-                    if len(set(iter([t[0] for t in v]))) <= 1 else v[0][1]
+                    if len(set(iter([t[0] for t in v]))) <= 1  \
+                    or g_run_status[d][g_files[f]] == 'time' else v[0][1]
             g_best_diff_run_real[f] = None \
                     if not g_best_run_real[f] \
                        or v[0][0] + g_args.diff > v[1][0] \
@@ -221,7 +222,8 @@ def _pick_data ():
             v = [(g_run_time[d][g_files[f]], d) for d in g_args.dirs]
             v = sorted(v)
             g_best_run_time[f] = None \
-                    if len(set(iter([t[0] for t in v]))) <= 1 else v[0][1]
+                    if len(set(iter([t[0] for t in v]))) <= 1 \
+                    or g_run_status[d][g_files[f]] == 'time'  else v[0][1]
             g_best_diff_run_time[f] = None \
                     if not g_best_run_time[f] \
                        or v[0][0] + g_args.diff > v[1][0] \
@@ -233,7 +235,8 @@ def _pick_data ():
             v = [(g_run_space[d][g_files[f]], d) for d in g_args.dirs]
             v = sorted(v)
             g_best_run_space[f] = None \
-                    if len(set(iter([t[0] for t in v]))) <= 1 else v[0][1]
+                    if len(set(iter([t[0] for t in v]))) <= 1 \
+                    or g_run_status[d][g_files[f]] == 'time'  else v[0][1]
             g_best_diff_run_space[f] = None \
                     if not g_best_run_space[f] \
                        or v[0][0] + g_args.diff > v[1][0] \
@@ -245,7 +248,8 @@ def _pick_data ():
             v = [(g_run_lods[d][g_files[f]], d) for d in g_args.dirs]
             v = sorted(v)
             g_best_run_lods[f] = None \
-                    if len(set(iter([t[0] for t in v]))) <= 1 else v[0][1]
+                    if len(set(iter([t[0] for t in v]))) <= 1 \
+                    or g_run_status[d][g_files[f]] == 'time'  else v[0][1]
             g_best_diff_run_lods[f] = None \
                     if not g_best_run_lods[f] \
                        or v[0][0] + g_args.diff > v[1][0] \
@@ -257,7 +261,8 @@ def _pick_data ():
             v = [(g_run_satcalls[d][g_files[f]], d) for d in g_args.dirs]
             v = sorted(v)
             g_best_run_satcalls[f] = None \
-                    if len(set(iter([t[0] for t in v]))) <= 1 else v[0][1]
+                    if len(set(iter([t[0] for t in v]))) <= 1 \
+                    or g_run_status[d][g_files[f]] == 'time'  else v[0][1]
             g_best_diff_run_satcalls[f] = None \
                     if not g_best_run_satcalls[f] \
                        or v[0][0] + g_args.diff > v[1][0] \
@@ -269,7 +274,8 @@ def _pick_data ():
             v = [(g_run_time_sat[d][g_files[f]], d) for d in g_args.dirs]
             v = sorted(v)
             g_best_run_time_sat[f] = None \
-                    if len(set(iter([t[0] for t in v]))) <= 1 else v[0][1]
+                    if len(set(iter([t[0] for t in v]))) <= 1 \
+                    or g_run_status[d][g_files[f]] == 'time' else v[0][1]
             g_best_diff_run_time_sat[f] = None \
                     if not g_best_run_time_sat[f] \
                        or v[0][0] + g_args.diff > v[1][0] \
@@ -281,7 +287,8 @@ def _pick_data ():
             v = [(g_run_time_rw[d][g_files[f]], d) for d in g_args.dirs]
             v = sorted(v)
             g_best_run_time_rw[f] = None \
-                    if len(set(iter([t[0] for t in v]))) <= 1 else v[0][1]
+                    if len(set(iter([t[0] for t in v]))) <= 1 \
+                    or g_run_status[d][g_files[f]] == 'time'  else v[0][1]
             g_best_diff_run_time_rw[f] = None \
                     if not g_best_run_time_rw[f] \
                        or v[0][0] + g_args.diff > v[1][0] \
@@ -293,7 +300,8 @@ def _pick_data ():
             v = [(g_run_time_beta[d][g_files[f]], d) for d in g_args.dirs]
             v = sorted(v)
             g_best_run_time_beta[f] = None \
-                    if len(set(iter([t[0] for t in v]))) <= 1 else v[0][1]
+                    if len(set(iter([t[0] for t in v]))) <= 1 \
+                    or g_run_status[d][g_files[f]] == 'time'  else v[0][1]
             g_best_diff_run_time_beta[f] = None \
                     if not g_best_run_time_beta[f] \
                        or v[0][0] + g_args.diff > v[1][0] \
@@ -305,7 +313,8 @@ def _pick_data ():
             v = [(g_run_time_eval[d][g_files[f]], d) for d in g_args.dirs]
             v = sorted(v)
             g_best_run_time_eval[f] = None \
-                    if len(set(iter([t[0] for t in v]))) <= 1 else v[0][1]
+                    if len(set(iter([t[0] for t in v]))) <= 1 \
+                    or g_run_status[d][g_files[f]] == 'time'  else v[0][1]
             g_best_diff_run_time_eval[f] = None \
                     if not g_best_run_time_eval[f] \
                        or v[0][0] + g_args.diff > v[1][0] \
