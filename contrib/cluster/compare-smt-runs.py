@@ -71,13 +71,16 @@ COLOR_DISC = '\033[31m'
 COLOR_STAT = '\033[33m'
 COLOR_NOCOLOR = '\033[0m'
 
+def _get_name_and_ext (filename):
+    return ("".join(filename.rpartition('.')[:-2]), filename.rpartition('.')[-1])
+
 def _read_log_file (d, f):
     global g_run_lods, g_run_satcalls, g_run_time_sat, g_run_time_rw
     global g_run_time_beta, g_run_time_eval
     global g_run_time_sapp, g_run_time_clapp, g_run_time_app
     with open(os.path.join(d, f), 'rb') as infile:
         for line in infile:
-            idx = g_files[f]
+            idx = g_files[_get_name_and_ext(f)[0]]
             if d not in g_run_lods:
                 g_run_lods[d] = {}
             if d not in g_run_satcalls:
@@ -119,7 +122,7 @@ def _read_log_file (d, f):
 def _read_err_file (d, f):
     global g_run_status, g_run_result, g_run_real, g_run_time, g_run_space
     with open(os.path.join(d, f), 'rb') as infile:
-        idx = g_files[f]
+        idx = g_files[_get_name_and_ext(f)[0]]
         g_run_opts[d] = []
         for line in infile:
             if b'status:' in line:
@@ -163,13 +166,12 @@ def _read_err_file (d, f):
        and g_run_result[d][idx] != 10 and g_run_result[d][idx] != 20:
             g_run_status[d][idx] = "err"
 
-
 def _read_data (dirs):
     global g_files, g_idx
     for d in dirs:
         init_files = g_idx == 0
         for f in os.listdir(d):
-            f_ext = f.rpartition('.')[-1]
+            (f_name, f_ext) = _get_name_and_ext (f)
             if f_ext == "log":
                 f_full_log = os.path.join(d, f)
                 if os.path.isfile(f_full_log):
@@ -180,8 +182,7 @@ def _read_data (dirs):
                                     "{}{}".format(f_full_log)))
                     # init g_files
                     if init_files:
-                        g_files[f] = g_idx # log file
-                        g_files["{}{}".format(f[:-3], "err")] = g_idx # err file
+                        g_files[f_name] = g_idx
                         g_idx += 1
                     # init data
                     if not g_args.filter or g_args.filter in str(f):
@@ -493,167 +494,165 @@ def _print_data ():
                 if g_run_status[d][g_files[f]] != "ok"])) >= 1:
             continue
 
-        f_ext = f.rpartition('.')[-1]
-        if f_ext == "log":
-            idx = g_files[f]
-            fname = "".join(p for p in f.rpartition('.')[:-1])[:-1]
-            s = [g_run_status[d][g_files[f]] for d in g_args.dirs]
-            r = [g_run_result[d][g_files[f]] for d in g_args.dirs]
-            color = COLOR_STAT \
-                    if len(set(iter(s))) > 1 \
-                    else (COLOR_DISC if len(set(iter(r))) > 1 \
-                                     else COLOR_NOCOLOR)
-            if g_args.bs:
-                print ("{}{} | {} |{}".format (
-                    color,
-                    fname.rjust(name_col_width),
-                    " | ".join("{}{}{}{}{}{}{}{}".format (
-                        color \
-                            if color != COLOR_NOCOLOR \
-                            else (\
-                                COLOR_DIFF
-                                if (g_best_diff_run_lods[f]
-                                    and g_best_diff_run_lods[f] == d
-                                    and g_args.cmp_col == "lods")
-                                   or (g_best_diff_run_satcalls[f] 
-                                       and g_best_diff_run_satcalls[f] == d 
+        idx = g_files[f]
+        fname = "".join(p for p in f.rpartition('.')[:-1])[:-1]
+        s = [g_run_status[d][g_files[f]] for d in g_args.dirs]
+        r = [g_run_result[d][g_files[f]] for d in g_args.dirs]
+        color = COLOR_STAT \
+                if len(set(iter(s))) > 1 \
+                else (COLOR_DISC if len(set(iter(r))) > 1 \
+                                 else COLOR_NOCOLOR)
+        if g_args.bs:
+            print ("{}{} | {} |{}".format (
+                color,
+                fname.rjust(name_col_width),
+                " | ".join("{}{}{}{}{}{}{}{}".format (
+                    color \
+                        if color != COLOR_NOCOLOR \
+                        else (\
+                            COLOR_DIFF
+                            if (g_best_diff_run_lods[f]
+                                and g_best_diff_run_lods[f] == d
+                                and g_args.cmp_col == "lods")
+                               or (g_best_diff_run_satcalls[f] 
+                                   and g_best_diff_run_satcalls[f] == d 
+                                   and g_args.cmp_col == "calls") \
+                               or (g_best_run_time_sat[f]
+                                   and g_best_run_time_sat[f] == d
+                                   and g_args.cmp_col == "sat") \
+                               or (g_best_run_time_rw[f]
+                                   and g_best_run_time_rw[f] == d
+                                   and g_args.cmp_col == "rw") \
+                               or (g_best_diff_run_time_beta[f]
+                                   and g_best_diff_run_time_beta[f] == d
+                                   and g_args.cmp_col == "beta") \
+                            else ( \
+                                COLOR_BEST \
+                                if (g_best_run_lods[f]
+                                    and g_best_run_lods[f] == d
+                                    and g_args.cmp_col == "lods") \
+                                   or (g_best_run_satcalls[f] 
+                                       and g_best_run_satcalls[f] == d
                                        and g_args.cmp_col == "calls") \
-                                   or (g_best_diff_run_time_sat[f]
-                                       and g_best_diff_run_time_sat[f] == d
+                                   or (g_best_run_time_sat[f]
+                                       and g_best_run_time_sat[f] == d
                                        and g_args.cmp_col == "sat") \
-                                   or (g_best_diff_run_time_rw[f]
-                                       and g_best_diff_run_time_rw[f] == d 
+                                   or (g_best_run_time_rw[f]
+                                       and g_best_run_time_rw[f] == d
                                        and g_args.cmp_col == "rw") \
-                                   or (g_best_diff_run_time_beta[f]
-                                       and g_best_diff_run_time_beta[f] == d
-                                       and g_args.cmp_col == "beta") \
-                                else ( \
-                                    COLOR_BEST \
-                                    if (g_best_run_lods[f]
-                                        and g_best_run_lods[f] == d
-                                        and g_args.cmp_col == "lods") \
-                                       or (g_best_run_satcalls[f] 
-                                           and g_best_run_satcalls[f] == d
-                                           and g_args.cmp_col == "calls") \
-                                       or (g_best_run_time_sat[f]
-                                           and g_best_run_time_sat[f] == d
-                                           and g_args.cmp_col == "sat") \
-                                       or (g_best_run_time_rw[f]
-                                           and g_best_run_time_rw[f] == d
-                                           and g_args.cmp_col == "rw") \
-                                       or (g_best_run_time_beta[f]
-                                           and g_best_run_time_beta[f] == d
-                                           and g_args.cmp_col == "beta")
-                                    else COLOR_NOCOLOR)),
-                        g_run_status[d][idx].rjust(stat_col_width),
-                        str(g_run_lods[d][idx]).rjust(lods_col_width[d]) \
-                                if idx in g_run_lods[d] \
-                                else " - ".rjust(lods_col_width[d]),
-                        str(g_run_satcalls[d][idx]).rjust(calls_col_width[d]) \
-                                if idx in g_run_satcalls[d] \
-                                else "-".rjust(calls_col_width[d]),
-                        str(g_run_time_sat[d][idx]).rjust(sat_col_width[d]) \
-                                if idx in g_run_time_sat[d] \
-                                else "-".rjust(sat_col_width[d]),
-                        str(g_run_time_rw[d][idx]).rjust(rw_col_width[d]) \
-                                if idx in g_run_time_rw[d] \
-                                else "-".rjust(rw_col_width[d]),
-                        str(g_run_time_beta[d][idx]).rjust(beta_col_width[d]) \
-                                if idx in g_run_time_beta[d] \
-                                else "-".rjust(beta_col_width[d]),
-                        color if color != COLOR_NOCOLOR else COLOR_NOCOLOR) \
-                        for d in g_args.dirs),
-                        COLOR_NOCOLOR))
-            elif g_args.dp:
-                print ("{}{} | {} |{}".format (
-                    color,
-                    fname.rjust(name_col_width),
-                    " | ".join("{}{}{}{}{}{}{}".format (
-                        color \
-                            if color != COLOR_NOCOLOR \
-                            else (\
-                                COLOR_DIFF
-                                if (g_best_diff_run_time[f]
-                                    and g_best_diff_run_time[f] == d
-                                    and g_args.cmp_col == "time")
-                                   or (g_best_diff_run_time_app[f] 
-                                       and g_best_diff_run_time_app[f] == d 
+                                   or (g_best_run_time_beta[f]
+                                       and g_best_run_time_beta[f] == d
+                                       and g_args.cmp_col == "beta")
+                                else COLOR_NOCOLOR)),
+                    g_run_status[d][idx].rjust(stat_col_width),
+                    str(g_run_lods[d][idx]).rjust(lods_col_width[d]) \
+                            if idx in g_run_lods[d] \
+                            else " - ".rjust(lods_col_width[d]),
+                    str(g_run_satcalls[d][idx]).rjust(calls_col_width[d]) \
+                            if idx in g_run_satcalls[d] \
+                            else "-".rjust(calls_col_width[d]),
+                    str(g_run_time_sat[d][idx]).rjust(sat_col_width[d]) \
+                            if idx in g_run_time_sat[d] \
+                            else "-".rjust(sat_col_width[d]),
+                    str(g_run_time_rw[d][idx]).rjust(rw_col_width[d]) \
+                            if idx in g_run_time_rw[d] \
+                            else "-".rjust(rw_col_width[d]),
+                    str(g_run_time_beta[d][idx]).rjust(beta_col_width[d]) \
+                            if idx in g_run_time_beta[d] \
+                            else "-".rjust(beta_col_width[d]),
+                    color if color != COLOR_NOCOLOR else COLOR_NOCOLOR) \
+                    for d in g_args.dirs),
+                    COLOR_NOCOLOR))
+        elif g_args.dp:
+            print ("{}{} | {} |{}".format (
+                color,
+                fname.rjust(name_col_width),
+                " | ".join("{}{}{}{}{}{}{}".format (
+                    color \
+                        if color != COLOR_NOCOLOR \
+                        else (\
+                            COLOR_DIFF
+                            if (g_best_diff_run_time[f]
+                                and g_best_diff_run_time[f] == d
+                                and g_args.cmp_col == "time")
+                               or (g_best_diff_run_time_app[f] 
+                                   and g_best_diff_run_time_app[f] == d 
+                                   and g_args.cmp_col == "app") \
+                               or (g_best_diff_run_time_clapp[f]
+                                   and g_best_diff_run_time_clapp[f] == d \
+                                   and g_args.cmp_col == "clone") \
+                               or (g_best_diff_run_time_sapp[f]
+                                   and g_best_diff_run_time_sapp[f] == d 
+                                   and g_args.cmp_col == "sat") \
+                            else ( \
+                                COLOR_BEST \
+                                if (g_best_run_time[f]
+                                    and g_best_run_time[f] == d
+                                    and g_args.cmp_col == "time") \
+                                   or (g_best_run_time_app[f] 
+                                       and g_best_run_time_app[f] == d
                                        and g_args.cmp_col == "app") \
-                                   or (g_best_diff_run_time_clapp[f]
-                                       and g_best_diff_run_time_clapp[f] == d \
+                                   or (g_best_run_time_clapp[f]
+                                       and g_best_run_time_clapp[f] == d
                                        and g_args.cmp_col == "clone") \
-                                   or (g_best_diff_run_time_sapp[f]
-                                       and g_best_diff_run_time_sapp[f] == d 
+                                   or (g_best_run_time_sapp[f]
+                                       and g_best_run_time_sapp[f] == d
                                        and g_args.cmp_col == "sat") \
-                                else ( \
-                                    COLOR_BEST \
-                                    if (g_best_run_time[f]
-                                        and g_best_run_time[f] == d
-                                        and g_args.cmp_col == "time") \
-                                       or (g_best_run_time_app[f] 
-                                           and g_best_run_time_app[f] == d
-                                           and g_args.cmp_col == "app") \
-                                       or (g_best_run_time_clapp[f]
-                                           and g_best_run_time_clapp[f] == d
-                                           and g_args.cmp_col == "clone") \
-                                       or (g_best_run_time_sapp[f]
-                                           and g_best_run_time_sapp[f] == d
-                                           and g_args.cmp_col == "sat") \
-                                    else COLOR_NOCOLOR)),
-                        g_run_status[d][idx].rjust(stat_col_width),
-                        str(g_run_time[d][idx]).rjust(time_col_width[d]) \
-                                if idx in g_run_time[d] \
-                                else " - ".rjust(time_col_width[d]),
-                        str(g_run_time_app[d][idx]).rjust(app_col_width[d]) \
-                                if idx in g_run_time_app[d] \
-                                else "-".rjust(app_col_width[d]),
-                        str(g_run_time_clapp[d][idx]).rjust(clapp_col_width[d]) \
-                                if idx in g_run_time_clapp[d] \
-                                else "-".rjust(clapp_col_width[d]),
-                        str(g_run_time_sapp[d][idx]).rjust(sapp_col_width[d]) \
-                                if idx in g_run_time_sapp[d] \
-                                else "-".rjust(sapp_col_width[d]),
-                        color if color != COLOR_NOCOLOR else COLOR_NOCOLOR) \
-                        for d in g_args.dirs),
-                        COLOR_NOCOLOR))
-            else:
-                print ("{}{} | {} |{}".format (
-                    color,
-                    fname.rjust(name_col_width),
-                    " | ".join("{}{}{}{}{}{}{}".format (
-                        color \
-                            if color != COLOR_NOCOLOR \
-                            else (\
-                                COLOR_DIFF \
-                                if (g_best_diff_run_real[f] != None
-                                    and g_best_diff_run_real[f] == d
+                                else COLOR_NOCOLOR)),
+                    g_run_status[d][idx].rjust(stat_col_width),
+                    str(g_run_time[d][idx]).rjust(time_col_width[d]) \
+                            if idx in g_run_time[d] \
+                            else " - ".rjust(time_col_width[d]),
+                    str(g_run_time_app[d][idx]).rjust(app_col_width[d]) \
+                            if idx in g_run_time_app[d] \
+                            else "-".rjust(app_col_width[d]),
+                    str(g_run_time_clapp[d][idx]).rjust(clapp_col_width[d]) \
+                            if idx in g_run_time_clapp[d] \
+                            else "-".rjust(clapp_col_width[d]),
+                    str(g_run_time_sapp[d][idx]).rjust(sapp_col_width[d]) \
+                            if idx in g_run_time_sapp[d] \
+                            else "-".rjust(sapp_col_width[d]),
+                    color if color != COLOR_NOCOLOR else COLOR_NOCOLOR) \
+                    for d in g_args.dirs),
+                    COLOR_NOCOLOR))
+        else:
+            print ("{}{} | {} |{}".format (
+                color,
+                fname.rjust(name_col_width),
+                " | ".join("{}{}{}{}{}{}{}".format (
+                    color \
+                        if color != COLOR_NOCOLOR \
+                        else (\
+                            COLOR_DIFF \
+                            if (g_best_diff_run_real[f] != None
+                                and g_best_diff_run_real[f] == d
+                                and g_args.cmp_col == "real") \
+                               or (g_best_diff_run_time[f]
+                                   and g_best_diff_run_time[f] == d
+                                   and g_args.cmp_col == "time") \
+                               or (g_best_diff_run_space[f]
+                                   and g_best_diff_run_space[f] == d
+                                   and g_args.cmp_col == "space") \
+                            else ( \
+                                COLOR_BEST \
+                                if (g_best_run_real[f] != None
+                                    and g_best_run_real[f] == d
                                     and g_args.cmp_col == "real") \
-                                   or (g_best_diff_run_time[f]
-                                       and g_best_diff_run_time[f] == d
+                                   or (g_best_run_time[f]
+                                       and g_best_run_time[f] == d
                                        and g_args.cmp_col == "time") \
-                                   or (g_best_diff_run_space[f]
-                                       and g_best_diff_run_space[f] == d
+                                   or (g_best_run_space[f]
+                                       and g_best_run_space[f] == d
                                        and g_args.cmp_col == "space") \
-                                else ( \
-                                    COLOR_BEST \
-                                    if (g_best_run_real[f] != None
-                                        and g_best_run_real[f] == d
-                                        and g_args.cmp_col == "real") \
-                                       or (g_best_run_time[f]
-                                           and g_best_run_time[f] == d
-                                           and g_args.cmp_col == "time") \
-                                       or (g_best_run_space[f]
-                                           and g_best_run_space[f] == d
-                                           and g_args.cmp_col == "space") \
-                                    else COLOR_NOCOLOR)),
-                        g_run_status[d][idx].rjust(stat_col_width),
-                        str(g_run_result[d][idx]).rjust(res_col_width),
-                        str(g_run_real[d][idx]).rjust(real_col_width[d]),
-                        str(g_run_time[d][idx]).rjust(time_col_width[d]),
-                        str(g_run_space[d][idx]).rjust(space_col_width[d]),
-                        color if color != COLOR_NOCOLOR else COLOR_NOCOLOR) \
-                        for d in g_args.dirs),
-                        COLOR_NOCOLOR))
+                                else COLOR_NOCOLOR)),
+                    g_run_status[d][idx].rjust(stat_col_width),
+                    str(g_run_result[d][idx]).rjust(res_col_width),
+                    str(g_run_real[d][idx]).rjust(real_col_width[d]),
+                    str(g_run_time[d][idx]).rjust(time_col_width[d]),
+                    str(g_run_space[d][idx]).rjust(space_col_width[d]),
+                    color if color != COLOR_NOCOLOR else COLOR_NOCOLOR) \
+                    for d in g_args.dirs),
+                    COLOR_NOCOLOR))
 
 
 
