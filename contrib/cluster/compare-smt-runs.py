@@ -397,7 +397,6 @@ def _print_data ():
             continue
 
         idx = g_files[f]
-        fname = "".join(p for p in f.rpartition('.')[:-1])[:-1]
         s = [g_run_status[d][g_files[f]] for d in g_args.dirs]
         r = [g_run_result[d][g_files[f]] for d in g_args.dirs]
         color = COLOR_STAT \
@@ -407,7 +406,7 @@ def _print_data ():
         if not g_args.bs:
             print ("{}{} | {} |{}".format (
                 color,
-                fname.rjust(name_col_width),
+                f.rjust(name_col_width),
                 " | ".join("{}{}{}{}{}{}{}".format (
                     color \
                         if color != COLOR_NOCOLOR \
@@ -445,7 +444,7 @@ def _print_data ():
         else:
             print ("{}{} | {} |{}".format (
                 color,
-                fname.rjust(name_col_width),
+                f.rjust(name_col_width),
                 " | ".join("{}{}{}{}{}{}{}{}".format (
                     color \
                         if color != COLOR_NOCOLOR \
