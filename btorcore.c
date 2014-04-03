@@ -1084,7 +1084,7 @@ btor_new_btor (void)
 #ifdef BTOR_CHECK_FAILED
   btor->options.chk_failed_assumptions = 1;
 #endif
-  // btor->options.dual_prop = 1; // TODO debug
+  btor->options.dual_prop            = 1;  // TODO debug
   btor->options.pprint               = 1;
   btor->options.slice_propagation    = 0;
   btor->options.simplify_constraints = 1;
@@ -8344,6 +8344,34 @@ btor_sat_aux_btor (Btor *btor)
   assert (check_all_hash_tables_proxy_free_dbg (btor));
   assert (check_all_hash_tables_simp_free_dbg (btor));
 
+  // FIXME this is a hack to enable old model gen behaviour
+  if (btor->options.model_gen)
+  {
+    BtorHashTableIterator it;
+    BtorNode *tmp;
+    init_node_hash_table_iterator (&it, btor->var_rhs);
+    while (has_next_node_hash_table_iterator (&it))
+    {
+      tmp = next_node_hash_table_iterator (&it);
+      tmp = btor_simplify_exp (btor, tmp);
+      if (BTOR_REAL_ADDR_NODE (tmp)->vread) continue;
+      synthesize_exp (btor, tmp, 0);
+      if (!BTOR_REAL_ADDR_NODE (tmp)->tseitin)
+      {
+        btor_aigvec_to_sat_tseitin (btor->avmgr, BTOR_REAL_ADDR_NODE (tmp)->av);
+        BTOR_REAL_ADDR_NODE (tmp)->tseitin = 1;
+      }
+    }
+    init_node_hash_table_iterator (&it, btor->array_rhs);
+    while (has_next_node_hash_table_iterator (&it))
+    {
+      tmp = next_node_hash_table_iterator (&it);
+      tmp = btor_simplify_exp (btor, tmp);
+      if (BTOR_REAL_ADDR_NODE (tmp)->vread) continue;
+      synthesize_exp (btor, tmp, 0);
+    }
+  }
+  //
 #ifndef NDEBUG
   BtorPtrHashBucket *b;
   for (b = btor->assumptions->first; b; b = b->next)
