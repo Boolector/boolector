@@ -7777,6 +7777,10 @@ new_exp_layer_clone_for_dual_prop (Btor *btor,
                                    BtorNodeMap **exp_map,
                                    BtorNode **root)
 {
+  assert (btor);
+  assert (exp_map);
+  assert (root);
+
   double start;
   Btor *clone;
   BtorNode *cur, *and;
@@ -7842,6 +7846,27 @@ new_exp_layer_clone_for_dual_prop (Btor *btor,
   return clone;
 }
 
+static void
+add_lemma_to_dual_prop_clone (Btor *btor,
+                              Btor *clone,
+                              BtorNode **root,
+                              BtorNodeMap *exp_map)
+{
+  assert (btor);
+  assert (clone);
+
+  BtorNode *lemma, *and;
+
+  lemma = btor_recursively_rebuild_exp_clone (
+      btor, clone, btor->lod_cache->last->key, exp_map);
+  assert (lemma);
+  BTOR_REAL_ADDR_NODE (lemma)->constraint = 0;
+  and                                     = btor_and_exp (clone, *root, lemma);
+  btor_release_exp (clone, lemma);
+  btor_release_exp (clone, *root);
+  *root = and;
+}
+
 static int
 btor_sat_aux_btor (Btor *btor)
 {
@@ -7852,7 +7877,7 @@ btor_sat_aux_btor (Btor *btor)
   BtorAIGMgr *amgr;
   BtorSATMgr *smgr;
   Btor *clone;
-  BtorNode *clone_root, *and, *lemma, *cloned_lemma;
+  BtorNode *clone_root;
   BtorNodeMap *exp_map;
 #ifndef BTOR_CHECK_FAILED
   Btor *faclone = 0;
@@ -7961,21 +7986,7 @@ btor_sat_aux_btor (Btor *btor)
 
     if (!found_conflict) break;
 
-    // TODO move to check_and_resolve_conflicts as soon as clone object
-    // maintains its root
-    if (clone)
-    {
-      lemma = btor->lod_cache->last->key;
-      cloned_lemma =
-          btor_recursively_rebuild_exp_clone (btor, clone, lemma, exp_map);
-      assert (cloned_lemma);
-      // printf ("cloned_lemma: %s\n", node2string (cloned_lemma));
-      BTOR_REAL_ADDR_NODE (cloned_lemma)->constraint = 0;
-      and = btor_and_exp (clone, clone_root, cloned_lemma);
-      btor_release_exp (clone, cloned_lemma);
-      btor_release_exp (clone, clone_root);
-      clone_root = and;
-    }
+    if (clone) add_lemma_to_dual_prop_clone (btor, clone, &clone_root, exp_map);
 
     // TODO: move into function, where lemma is added
     btor->stats.lod_refinements++;
