@@ -8224,15 +8224,19 @@ new_exp_layer_clone_for_dual_prop (Btor *btor,
                                    BtorNodeMap **exp_map,
                                    BtorNode **root)
 {
+  double start;
   Btor *clone;
   BtorNode *cur, *and;
   BtorHashTableIterator it;
-  double start;
+  LGL *lgl;
+  BtorSATMgr *smgr;
 
   start = btor_time_stamp ();
+
   clone = btor_clone_exp_layer (btor, exp_map, 0);
   assert (!clone->synthesized_constraints->count);
   assert (clone->unsynthesized_constraints->count);
+
   btor_disable_model_gen (clone);
   btor_enable_inc_usage (clone);
   btor_enable_force_cleanup (clone);
@@ -8240,6 +8244,12 @@ new_exp_layer_clone_for_dual_prop (Btor *btor,
   btor_set_loglevel_btor (clone, 0);
   btor_set_verbosity_btor (clone, 0);
   clone->options.dual_prop = 0;  // FIXME should be redundant
+
+  smgr = btor_get_sat_mgr_aig_mgr (btor_get_aig_mgr_aigvec_mgr (clone->avmgr));
+  assert (!btor_is_initialized_sat (smgr));
+  btor_init_sat (smgr);
+  lgl = ((BtorLGL *) smgr->solver)->lgl;
+  lglsetopt (lgl, "plain", 1);
 
   init_node_hash_table_iterator (&it, clone->unsynthesized_constraints);
   queue_node_hash_table_iterator (&it, clone->assumptions);
