@@ -3711,6 +3711,7 @@ beta_reduce_applies_on_lambdas (Btor *btor)
 {
   assert (btor);
 
+  int num_applies, num_applies_total = 0, round;
   double start, delta;
   BtorPtrHashTable *apps;
   BtorNode *app, *fun;
@@ -3722,45 +3723,74 @@ beta_reduce_applies_on_lambdas (Btor *btor)
 
   start = btor_time_stamp ();
 
-  mm   = btor->mm;
-  apps = btor_new_ptr_hash_table (mm,
-                                  (BtorHashPtr) btor_hash_exp_by_id,
-                                  (BtorCmpPtr) btor_compare_exp_by_id);
+  mm    = btor->mm;
+  round = 1;
 
-  /* collect function applications */
+  /* NOTE: in some cases substitute_and_rebuild creates applies that can be
+   * beta-reduced. this can happen when parameterized applies become not
+   * parameterized. hence, we beta-reduce applies until fix point.
+   */
+  do
+  {
+    apps = btor_new_ptr_hash_table (mm,
+                                    (BtorHashPtr) btor_hash_exp_by_id,
+                                    (BtorCmpPtr) btor_compare_exp_by_id);
+
+    /* collect function applications */
+    init_node_hash_table_iterator (&h_it, btor->lambdas);
+    while (has_next_node_hash_table_iterator (&h_it))
+    {
+      fun = next_node_hash_table_iterator (&h_it);
+
+      init_apply_parent_iterator (&it, fun);
+      while (has_next_parent_apply_parent_iterator (&it))
+      {
+        app = next_parent_apply_parent_iterator (&it);
+
+        if (btor_find_in_ptr_hash_table (apps, app)) continue;
+
+        if (app->parameterized) continue;
+
+        btor_insert_in_ptr_hash_table (apps, btor_copy_exp (btor, app));
+      }
+    }
+
+    num_applies = apps->count;
+    num_applies_total += num_applies;
+    btor_msg (
+        btor, 1, "eliminate %d applications in round %d", num_applies, round);
+
+    substitute_and_rebuild (btor, apps, 1);
+
+    init_node_hash_table_iterator (&h_it, apps);
+    while (has_next_node_hash_table_iterator (&h_it))
+      btor_release_exp (btor, next_node_hash_table_iterator (&h_it));
+    btor_delete_ptr_hash_table (apps);
+    round++;
+  } while (num_applies > 0);
+
+#ifndef NDEBUG
   init_node_hash_table_iterator (&h_it, btor->lambdas);
   while (has_next_node_hash_table_iterator (&h_it))
   {
     fun = next_node_hash_table_iterator (&h_it);
+
     init_apply_parent_iterator (&it, fun);
     while (has_next_parent_apply_parent_iterator (&it))
     {
       app = next_parent_apply_parent_iterator (&it);
-
-      if (btor_find_in_ptr_hash_table (apps, app)) continue;
-
-      if (app->parameterized) continue;
-
-      btor_insert_in_ptr_hash_table (apps, btor_copy_exp (btor, app));
+      assert (app->parameterized);
     }
   }
-
-  btor_msg (btor,
-            1,
-            "starting to beta reduce %d lamba with %d applications",
-            btor->lambdas->count,
-            apps->count);
-
-  substitute_and_rebuild (btor, apps, 1);
-
-  init_node_hash_table_iterator (&h_it, apps);
-  while (has_next_node_hash_table_iterator (&h_it))
-    btor_release_exp (btor, next_node_hash_table_iterator (&h_it));
-  btor_delete_ptr_hash_table (apps);
+#endif
 
   delta = btor_time_stamp () - start;
   btor->time.betareduce += delta;
-  btor_msg (btor, 1, "beta reduced all lambdas in %.1f seconds", delta);
+  btor_msg (btor,
+            1,
+            "eliminated %d function applications in %.1f seconds",
+            num_applies_total,
+            delta);
 }
 
 static void
@@ -7193,17 +7223,18 @@ DONE:
 }
 
 static BitVector *
-recursively_compute_assignment (Btor *btor, BtorNode *exp)
+recursively_compute_assignment (Btor *btor,
+                                BtorNode *exp,
+                                BtorPtrHashTable *assignments)
 {
   assert (btor);
   assert (exp);
 
   int i;
   BtorMemMgr *mm;
-  BtorNodePtrStack work_stack;
+  BtorNodePtrStack work_stack, cleanup;
   BtorVoidPtrStack arg_stack;
   BtorNode *cur, *real_cur;
-  BtorPtrHashTable *cache;
   BtorPtrHashBucket *b;
   BitVector *result = 0, *inv_result, **e;
 
@@ -7211,9 +7242,7 @@ recursively_compute_assignment (Btor *btor, BtorNode *exp)
 
   BTOR_INIT_STACK (work_stack);
   BTOR_INIT_STACK (arg_stack);
-  cache = btor_new_ptr_hash_table (mm,
-                                   (BtorHashPtr) btor_hash_exp_by_id,
-                                   (BtorCmpPtr) btor_compare_exp_by_id);
+  BTOR_INIT_STACK (cleanup);
 
   BTOR_PUSH_STACK (mm, work_stack, exp);
   assert (!BTOR_REAL_ADDR_NODE (exp)->eval_mark);
@@ -7223,6 +7252,8 @@ recursively_compute_assignment (Btor *btor, BtorNode *exp)
     cur      = BTOR_POP_STACK (work_stack);
     real_cur = BTOR_REAL_ADDR_NODE (cur);
     assert (!real_cur->simplified);
+
+    if (btor_find_in_ptr_hash_table (assignments, real_cur)) goto PUSH_CACHED;
 
     if (real_cur->eval_mark == 0)
     {
@@ -7246,6 +7277,7 @@ recursively_compute_assignment (Btor *btor, BtorNode *exp)
 
       BTOR_PUSH_STACK (mm, work_stack, cur);
       real_cur->eval_mark = 1;
+      BTOR_PUSH_STACK (mm, cleanup, real_cur);
 
       for (i = 0; i < real_cur->arity; i++)
         BTOR_PUSH_STACK (mm, work_stack, real_cur->e[i]);
@@ -7334,8 +7366,8 @@ recursively_compute_assignment (Btor *btor, BtorNode *exp)
           assert (0);
       }
 
-      assert (!btor_find_in_ptr_hash_table (cache, real_cur));
-      btor_insert_in_ptr_hash_table (cache, real_cur)->data.asPtr =
+      assert (!btor_find_in_ptr_hash_table (assignments, real_cur));
+      btor_insert_in_ptr_hash_table (assignments, real_cur)->data.asPtr =
           btor_copy_bv (btor, result);
 
     PUSH_RESULT:
@@ -7351,7 +7383,8 @@ recursively_compute_assignment (Btor *btor, BtorNode *exp)
     else
     {
       assert (real_cur->eval_mark == 2);
-      b = btor_find_in_ptr_hash_table (cache, real_cur);
+    PUSH_CACHED:
+      b = btor_find_in_ptr_hash_table (assignments, real_cur);
       assert (b);
       result = btor_copy_bv (btor, (BitVector *) b->data.asPtr);
       goto PUSH_RESULT;
@@ -7361,16 +7394,15 @@ recursively_compute_assignment (Btor *btor, BtorNode *exp)
   result = BTOR_POP_STACK (arg_stack);
   assert (result);
 
-  for (b = cache->first; b; b = b->next)
+  for (i = 0; i < BTOR_COUNT_STACK (cleanup); i++)
   {
-    real_cur            = (BtorNode *) b->key;
+    real_cur            = BTOR_PEEK_STACK (cleanup, i);
     real_cur->eval_mark = 0;
-    btor_free_bv (btor, (BitVector *) b->data.asPtr);
   }
 
   BTOR_RELEASE_STACK (mm, work_stack);
   BTOR_RELEASE_STACK (mm, arg_stack);
-  btor_delete_ptr_hash_table (cache);
+  BTOR_RELEASE_STACK (mm, cleanup);
 
   return result;
 }
@@ -7385,9 +7417,14 @@ generate_model (Btor *btor)
   BitVector *bv;
   BtorNode *rhs;
   BtorHashTableIterator it;
+  BtorPtrHashTable *assignments;
 
   start = btor_time_stamp ();
   init_model (btor);
+
+  assignments = btor_new_ptr_hash_table (btor->mm,
+                                         (BtorHashPtr) btor_hash_exp_by_id,
+                                         (BtorCmpPtr) btor_compare_exp_by_id);
 
   init_node_hash_table_iterator (&it, btor->var_rhs);
   queue_node_hash_table_iterator (&it, btor->bv_vars);
@@ -7395,7 +7432,7 @@ generate_model (Btor *btor)
   {
     rhs = btor_simplify_exp (btor, next_node_hash_table_iterator (&it));
     rhs = BTOR_REAL_ADDR_NODE (rhs);
-    bv  = recursively_compute_assignment (btor, rhs);
+    bv  = recursively_compute_assignment (btor, rhs, assignments);
     add_to_model (btor, rhs, bv);
     btor_free_bv (btor, bv);
   }
@@ -7403,6 +7440,18 @@ generate_model (Btor *btor)
   // TODO: what about array models?
   //       -> will be automatically encoded due to lazy_synth_and_encode via
   //          propagate
+  //
+  //      instantiate arrays (via writes) with partial model and compute the
+  //      remaining parts?
+
+  init_node_hash_table_iterator (&it, assignments);
+  while (has_next_node_hash_table_iterator (&it))
+  {
+    bv = (BitVector *) it.bucket->data.asPtr;
+    btor_free_bv (btor, bv);
+    (void) next_node_hash_table_iterator (&it);
+  }
+  btor_delete_ptr_hash_table (assignments);
 
   btor->time.model_gen += btor_time_stamp () - start;
 }
@@ -8393,7 +8442,8 @@ check_model (Btor *btor, Btor *clone, BtorPtrHashTable *inputs)
 
   assert (ret != BTOR_UNKNOWN || btor_sat_aux_btor (clone) == BTOR_SAT);
   // TODO: if ret still UNKNOWN dump formula (for rw rule harvesting?)
-  BTOR_ABORT_CORE (ret == BTOR_UNKNOWN, "rewriting needed");
+  // TODO: check if roots have been simplified through aig rewriting
+  // BTOR_ABORT_CORE (ret == BTOR_UNKNOWN, "rewriting needed");
   BTOR_ABORT_CORE (ret == BTOR_UNSAT, "invalid model");
 }
 #endif
