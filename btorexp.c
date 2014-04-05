@@ -1755,21 +1755,24 @@ btor_eq_exp_node (Btor *btor, BtorNode *e0, BtorNode *e1)
   else
   {
     kind = BTOR_BEQ_NODE;
-    if (BTOR_IS_INVERTED_NODE (e0)
-        && BTOR_REAL_ADDR_NODE (e0)->kind == BTOR_BV_VAR_NODE)
+    if (btor->options.rewrite_level > 0)
     {
-    SWAP:
-      e0 = BTOR_INVERT_NODE (e0);
-      e1 = BTOR_INVERT_NODE (e1);
-    }
-    else if (BTOR_IS_INVERTED_NODE (e1)
-             && BTOR_REAL_ADDR_NODE (e1)->kind == BTOR_BV_VAR_NODE
-             && (BTOR_IS_INVERTED_NODE (e0)
-                 || BTOR_REAL_ADDR_NODE (e1)->kind != BTOR_BV_VAR_NODE))
-    {
-      BtorNode *tmp = BTOR_INVERT_NODE (e0);
-      e0            = BTOR_INVERT_NODE (e1);
-      e1            = tmp;
+      if (BTOR_IS_INVERTED_NODE (e0)
+          && BTOR_REAL_ADDR_NODE (e0)->kind == BTOR_BV_VAR_NODE)
+      {
+      SWAP:
+        e0 = BTOR_INVERT_NODE (e0);
+        e1 = BTOR_INVERT_NODE (e1);
+      }
+      else if (BTOR_IS_INVERTED_NODE (e1)
+               && BTOR_REAL_ADDR_NODE (e1)->kind == BTOR_BV_VAR_NODE
+               && (BTOR_IS_INVERTED_NODE (e0)
+                   || BTOR_REAL_ADDR_NODE (e1)->kind != BTOR_BV_VAR_NODE))
+      {
+        BtorNode *tmp = BTOR_INVERT_NODE (e0);
+        e0            = BTOR_INVERT_NODE (e1);
+        e1            = tmp;
+      }
     }
   }
 
