@@ -1934,6 +1934,7 @@ btor_args_exp (Btor *btor, int argc, BtorNode **args)
   {
     assert (cnt_args >= 0);
     assert (cnt_args <= MAX_NUM_CHILDREN);
+    assert (!BTOR_IS_FUN_NODE (BTOR_REAL_ADDR_NODE (args[i])));
     e[cnt_args] = btor_simplify_exp (btor, args[i]);
     len += BTOR_REAL_ADDR_NODE (e[cnt_args])->len;
     cnt_args -= 1;
