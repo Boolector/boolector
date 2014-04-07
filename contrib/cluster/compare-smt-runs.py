@@ -511,9 +511,9 @@ if __name__ == "__main__":
         aparser.add_argument ("-f", metavar="string", dest="filter", type=str, 
                 default=None,
                 help="filter benchmark files by <string>")
-        aparser.add_argument ("-hd", metavar="seconds", dest="diff", type=int,
+        aparser.add_argument ("-hd", metavar="units", dest="diff", type=int,
                 default=5,
-                help="highlight time diff > <seconds> (default: 5)")
+                help="highlight diff > <units> (default: 5)")
         aparser.add_argument ("-bs", action="store_true",
                 help="compare boolector statistics")
         aparser.add_argument ("-t", action="store_true",
