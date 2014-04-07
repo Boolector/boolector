@@ -44,6 +44,8 @@
 #define BTOR_CHECK_DUAL_PROP
 #endif
 
+//#define MARK_FOR_CC
+
 /*------------------------------------------------------------------------*/
 
 #define BTOR_INIT_UNIQUE_TABLE(mm, table) \
@@ -5834,7 +5836,9 @@ search_initial_applies_dual_prop (Btor *btor,
               && !btor_find_in_ptr_hash_table (top_applies, cur_btor))
           {
             BTORLOG ("initial apply: %s", node2string (cur_btor));
-            // btor_insert_in_ptr_hash_table (top_applies, cur_btor);
+#ifndef MARK_FOR_CC
+            btor_insert_in_ptr_hash_table (top_applies, cur_btor);
+#endif
             cur_btor->check = 1;
           }
 
@@ -5854,7 +5858,9 @@ search_initial_applies_dual_prop (Btor *btor,
         cur_btor->aux_mark = 1;
         BTOR_PUSH_STACK (btor->mm, unmark_stack, cur_btor);
         BTORLOG ("initial apply: %s", node2string (cur_btor));
-        // btor_insert_in_ptr_hash_table (top_applies, cur_btor);
+#ifndef MARK_FOR_CC
+        btor_insert_in_ptr_hash_table (top_applies, cur_btor);
+#endif
         cur_btor->check = 1;
       }
     }
@@ -5862,7 +5868,9 @@ search_initial_applies_dual_prop (Btor *btor,
 
   btor->time.search_init_apps_collect += btor_time_stamp () - delta;
 
+#ifdef MARK_FOR_CC
   search_initial_applies (btor, top_applies, 1);
+#endif
 
   /* cleanup */
   while (!BTOR_EMPTY_STACK (unmark_stack))
@@ -7589,9 +7597,11 @@ propagate (Btor *btor,
   PROPAGATE_BETA_REDUCE_PARTIAL:
     btor_assign_args (btor, fun, args);
     assert (to_prop->count == 0);
-    //      fun_value =
-    //	btor_beta_reduce_partial (btor, fun, &evalerr, to_prop, conds);
+#ifndef MARK_FOR_CC
+    fun_value = btor_beta_reduce_partial (btor, fun, &evalerr, to_prop, conds);
+#else
     fun_value = btor_beta_reduce_partial (btor, fun, &evalerr, to_prop, 0);
+#endif
     assert (!BTOR_IS_LAMBDA_NODE (BTOR_REAL_ADDR_NODE (fun_value)));
     btor_unassign_params (btor, fun);
 
@@ -7743,18 +7753,19 @@ propagate (Btor *btor,
         btor->stats.propagations_down++;
         app->propagated = 0;
         BTORLOG ("  propagate down: %s", node2string (app));
-        //      if (btor->options.dual_prop)
-        //	{
-        //	  init_node_hash_table_iterator (&it, conds);
-        //	  while (has_next_node_hash_table_iterator (&it))
-        //	    {
-        //	      cond = next_node_hash_table_iterator (&it);
-        //	      push_applies_from_cond_for_propagation (
-        //		  btor, cond, prop_stack);
-        //	      btor_remove_from_ptr_hash_table (conds, cond, 0, 0);
-        //	      btor_release_exp (btor, cond);
-        //	    }
-        //	}
+#ifndef MARK_FOR_CC
+        if (btor->options.dual_prop)
+        {
+          init_node_hash_table_iterator (&it, conds);
+          while (has_next_node_hash_table_iterator (&it))
+          {
+            cond = next_node_hash_table_iterator (&it);
+            push_applies_from_cond_for_propagation (btor, cond, prop_stack);
+            btor_remove_from_ptr_hash_table (conds, cond, 0, 0);
+            btor_release_exp (btor, cond);
+          }
+        }
+#endif
       }
       else
       {
@@ -7793,18 +7804,19 @@ propagate (Btor *btor,
         }
 
         push_applies_for_propagation (btor, fun_value, lambda, prop_stack);
-        //      if (btor->options.dual_prop)
-        //	{
-        //	  init_node_hash_table_iterator (&it, conds);
-        //	  while (has_next_node_hash_table_iterator (&it))
-        //	    {
-        //	      cond = next_node_hash_table_iterator (&it);
-        //	      push_applies_from_cond_for_propagation (
-        //		  btor, cond, prop_stack);
-        //	      btor_remove_from_ptr_hash_table (conds, cond, 0, 0);
-        //      	      btor_release_exp (btor, cond);
-        //	    }
-        //	}
+#ifndef MARK_FOR_CC
+        if (btor->options.dual_prop)
+        {
+          init_node_hash_table_iterator (&it, conds);
+          while (has_next_node_hash_table_iterator (&it))
+          {
+            cond = next_node_hash_table_iterator (&it);
+            push_applies_from_cond_for_propagation (btor, cond, prop_stack);
+            btor_remove_from_ptr_hash_table (conds, cond, 0, 0);
+            btor_release_exp (btor, cond);
+          }
+        }
+#endif
       }
     }
     else
@@ -7815,18 +7827,19 @@ propagate (Btor *btor,
         goto BETA_REDUCTION_CONFLICT;
 
       push_applies_for_propagation (btor, fun_value, lambda, prop_stack);
-      // if (btor->options.dual_prop)
-      //  {
-      //    init_node_hash_table_iterator (&it, conds);
-      //    while (has_next_node_hash_table_iterator (&it))
-      //      {
-      //        cond = next_node_hash_table_iterator (&it);
-      //        push_applies_from_cond_for_propagation (
-      //            btor, cond, prop_stack);
-      //        btor_remove_from_ptr_hash_table (conds, cond, 0, 0);
-      //    	  btor_release_exp (btor, cond);
-      //      }
-      //  }
+#ifndef MARK_FOR_CC
+      if (btor->options.dual_prop)
+      {
+        init_node_hash_table_iterator (&it, conds);
+        while (has_next_node_hash_table_iterator (&it))
+        {
+          cond = next_node_hash_table_iterator (&it);
+          push_applies_from_cond_for_propagation (btor, cond, prop_stack);
+          btor_remove_from_ptr_hash_table (conds, cond, 0, 0);
+          btor_release_exp (btor, cond);
+        }
+      }
+#endif
     }
 
     btor_release_exp (btor, fun_value);
