@@ -142,25 +142,29 @@
 #define BTORMBT_LOG_USAGE ""
 #endif
 
-#define BTORMBT_USAGE \
-  "usage: btormbt [<option>]\n" \
-  "\n" \
-  "where <option> is one of the following:\n" \
-  "\n" \
-  "  -h, --help                       print this message and exit\n" \
-  "  -v, --verbose                    be verbose\n" \
-  "  -k, --keep-lines                 do not clear output lines\n" \
-  "  -n, --no-modelgen                do not enable model generation \n" \
-  "  -e, --extensionality             use extensionality\n" \
-  "  -s, --shadow                     create and check shadow clone\n" \
-  "\n" \
-  "  -f, --first-bug-only             quit after first bug encountered\n" \
-  "  -m <maxruns>                     quit after <maxruns> rounds\n" \
+#define BTORMBT_USAGE                                                          \
+  "usage: btormbt [<option>]\n"                                                \
+  "\n"                                                                         \
+  "where <option> is one of the following:\n"                                  \
+  "\n"                                                                         \
+  "  -h, --help                       print this message and exit\n"           \
+  "  -ha, --help-advanced             print all options\n"                     \
+  "  -v, --verbose                    be verbose\n"                            \
+  "  -q, --quiet                      be quiet (only print stats)\n"           \
+  "  -k, --keep-lines                 do not clear output lines\n"             \
+  "  -n, --no-modelgen                do not enable model generation \n"       \
+  "  -e, --extensionality             use extensionality\n"                    \
+  "  -s, --shadow                     create and check shadow clone\n"         \
+  "\n"                                                                         \
+  "  -f, --first-bug-only             quit after first bug encountered\n"      \
+  "  -m <maxruns>                     quit after <maxruns> rounds\n"           \
   "  -t <seconds>                     set time limit for calls to boolector\n" \
-  "\n" \
-  "  --bverb <verblevel>              enable boolector verbosity\n" \
-  BTORMBT_LOG_USAGE \
-  "\n" \
+  "\n"                                                                         \
+  "  --bverb <verblevel>              enable boolector "                       \
+  "verbosity\n" BTORMBT_LOG_USAGE
+
+#define BTORMBT_USAGE_ADVANCED \
+  "\nadvanced options:\n" \
   "  --nlits <min> <max>              number of literals\n" \
   "                                   (default: " \
                                       BTORMBT_M2STR (MIN_NLITS) " " \
@@ -509,6 +513,7 @@ typedef struct BtorMBT
   int ppid; /* parent pid */
 
   int verbose;
+  int quiet;
   int terminal;
   int quit_after_first;
   int force_nomgen;
@@ -2701,8 +2706,16 @@ main (int argc, char **argv)
       printf ("%s", BTORMBT_USAGE);
       exit (EXIT_OK);
     }
+    else if (!strcmp (argv[i], "-ha") || !strcmp (argv[i], "--help-advanced"))
+    {
+      printf ("%s", BTORMBT_USAGE);
+      printf ("%s", BTORMBT_USAGE_ADVANCED);
+      exit (EXIT_OK);
+    }
     else if (!strcmp (argv[i], "-v") || !strcmp (argv[i], "--verbose"))
       btormbt->verbose = 1;
+    else if (!strcmp (argv[i], "-q") || !strcmp (argv[i], "--quiet"))
+      btormbt->quiet = 1;
     else if (!strcmp (argv[i], "-k") || !strcmp (argv[i], "--keep-lines"))
       btormbt->terminal = 0;
     else if (!strcmp (argv[i], "-f") || !strcmp (argv[i], "--first-bug-only"))
@@ -3244,9 +3257,12 @@ main (int argc, char **argv)
       btormbt->seed *= 43376579;
       prev = btormbt->seed = abs (btormbt->seed) >> 1;
 
-      if (btormbt->terminal) erase ();
-      printf ("%d %d ", btormbt->round, btormbt->seed);
-      fflush (stdout);
+      if (!btormbt->quiet)
+      {
+        if (btormbt->terminal) erase ();
+        printf ("%d %d ", btormbt->round, btormbt->seed);
+        fflush (stdout);
+      }
 
       /* reset verbose flag for initial run, only print on replay */
       verbose          = btormbt->verbose;
