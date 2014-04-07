@@ -6,11 +6,13 @@ import shlex
 import shutil
 import sys
 import re
+import time
 from optparse import OptionParser
-from subprocess import Popen, PIPE
+from subprocess import Popen, PIPE, TimeoutExpired
 
 g_golden_err_msg = ""
 g_golden_exit_code = 0
+g_golden_runtime = 0
 g_options = object
 g_outfile = ""
 g_tmpfile = "/tmp/ddmbt-" + str(os.getpid()) + ".trace"
@@ -165,8 +167,12 @@ def _run():
     global g_command
     try:
         subproc = Popen(g_command, stdout=PIPE, stderr=PIPE)
-#        subproc.wait()
-        msg_out, msg_err = subproc.communicate()
+        try:
+            timeout = max([g_golden_runtime * 2, 1])
+            msg_out, msg_err = subproc.communicate(timeout=timeout)
+        except TimeoutExpired:
+            subproc.kill()
+            msg_out, msg_err = subproc.communicate()
         return (subproc.returncode, msg_err) 
     except OSError as err:
         _error_and_exit(err)
@@ -394,8 +400,11 @@ def ddmbt_main():
     shutil.copyfile(inputfile, g_tmpfile)
     g_command.append(g_tmpfile)
 
+    start = time.time()
     g_golden_exit_code, g_golden_err_msg = _run()
-    _log(1, "golden exit code: {0:d}".format(g_golden_exit_code))
+    g_golden_runtime = time.time() - start
+    _log(1, "golden exit code: {0:d} in {1:.3f} seconds".format(
+            g_golden_exit_code, g_golden_runtime))
 
     rounds = 0
     pairs = False

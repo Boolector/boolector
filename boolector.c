@@ -20,9 +20,13 @@
 #include "btorcore.h"
 #include "btorexit.h"
 #include "btorhash.h"
+#include "btoriter.h"
 #include "btorutil.h"
 #include "dumper/btordumpbtor.h"
 #include "dumper/btordumpsmt.h"
+#ifndef NDEBUG
+#include "btorbitvec.h"
+#endif
 
 /*------------------------------------------------------------------------*/
 
@@ -742,6 +746,7 @@ static void
 btor_chkclone_tables (Btor *btor)
 {
   BtorPtrHashBucket *b, *cb;
+  BtorHashTableIterator it, cit;
 
   BTOR_CHKCLONE_NODE_PTR_HASH_TABLE (btor->bv_vars, btor->clone->bv_vars);
   BTOR_CHKCLONE_NODE_PTR_HASH_TABLE (btor->array_vars, btor->clone->array_vars);
@@ -763,22 +768,86 @@ btor_chkclone_tables (Btor *btor)
   BTOR_CHKCLONE_NODE_PTR_HASH_TABLE (btor->array_rhs, btor->clone->array_rhs);
   BTOR_CHKCLONE_NODE_PTR_HASH_TABLE (btor->cache, btor->clone->cache);
 
-  if (!btor->parameterized) assert (!btor->clone->parameterized);
-  assert (btor->parameterized->size == btor->clone->parameterized->size);
-  assert (btor->parameterized->count == btor->clone->parameterized->count);
-  assert (btor->parameterized->hash == btor->clone->parameterized->hash);
-  assert (btor->parameterized->cmp == btor->clone->parameterized->cmp);
-  assert (!btor->parameterized->first || btor->clone->parameterized->first);
-  for (b = btor->parameterized->first, cb = btor->clone->parameterized->first;
-       b;
-       b = b->next, cb = cb->next)
+  if (btor->parameterized)
   {
-    assert (cb);
-    BTOR_CHKCLONE_EXPID ((BtorNode *) b->key, (BtorNode *) cb->key);
-    BTOR_CHKCLONE_NODE_PTR_HASH_TABLE ((BtorPtrHashTable *) b->data.asPtr,
-                                       (BtorPtrHashTable *) cb->data.asPtr);
-    assert (!b->next || cb->next);
+    assert (btor->clone->parameterized);
+    assert (btor->parameterized->size == btor->clone->parameterized->size);
+    assert (btor->parameterized->count == btor->clone->parameterized->count);
+    assert (btor->parameterized->hash == btor->clone->parameterized->hash);
+    assert (btor->parameterized->cmp == btor->clone->parameterized->cmp);
+    assert (!btor->parameterized->first || btor->clone->parameterized->first);
+    for (b = btor->parameterized->first, cb = btor->clone->parameterized->first;
+         b;
+         b = b->next, cb = cb->next)
+    {
+      assert (cb);
+      BTOR_CHKCLONE_EXPID ((BtorNode *) b->key, (BtorNode *) cb->key);
+      BTOR_CHKCLONE_NODE_PTR_HASH_TABLE ((BtorPtrHashTable *) b->data.asPtr,
+                                         (BtorPtrHashTable *) cb->data.asPtr);
+      assert (!b->next || cb->next);
+    }
   }
+  else
+    assert (!btor->clone->parameterized);
+
+  if (btor->bv_model)
+  {
+    assert (btor->clone->bv_model);
+    assert (btor->bv_model->size == btor->clone->bv_model->size);
+    assert (btor->bv_model->count == btor->clone->bv_model->count);
+    assert (btor->bv_model->hash == btor->clone->bv_model->hash);
+    assert (btor->bv_model->cmp == btor->clone->bv_model->cmp);
+    init_node_hash_table_iterator (&it, btor->bv_model);
+    init_node_hash_table_iterator (&cit, btor->clone->bv_model);
+    while (has_next_node_hash_table_iterator (&it))
+    {
+      assert (has_next_node_hash_table_iterator (&cit));
+      BTOR_CHKCLONE_EXPID ((BtorNode *) it.cur, (BtorNode *) cit.cur);
+      assert (it.bucket->data.asPtr);
+      assert (cit.bucket->data.asPtr);
+      assert (!btor_compare_bv ((BitVector *) it.bucket->data.asPtr,
+                                (BitVector *) cit.bucket->data.asPtr));
+      (void) next_node_hash_table_iterator (&it);
+      (void) next_node_hash_table_iterator (&cit);
+    }
+    assert (!has_next_node_hash_table_iterator (&cit));
+  }
+  else
+    assert (!btor->clone->bv_model);
+
+  if (btor->array_model)
+  {
+    assert (btor->clone->array_model);
+    assert (btor->array_model->size == btor->clone->array_model->size);
+    assert (btor->array_model->count == btor->clone->array_model->count);
+    assert (btor->array_model->hash == btor->clone->array_model->hash);
+    assert (btor->array_model->cmp == btor->clone->array_model->cmp);
+    for (b = btor->array_model->first, cb = btor->clone->array_model->first; b;
+         b = b->next, cb = cb->next)
+    {
+      assert (cb);
+      BTOR_CHKCLONE_EXPID ((BtorNode *) b->key, (BtorNode *) cb->key);
+      assert (b->data.asPtr);
+      assert (cb->data.asPtr);
+
+      init_hash_table_iterator (&it, (BtorPtrHashTable *) b->data.asPtr);
+      init_hash_table_iterator (&cit, (BtorPtrHashTable *) cb->data.asPtr);
+      while (has_next_hash_table_iterator (&it))
+      {
+        assert (has_next_hash_table_iterator (&cit));
+        assert (!btor_compare_bv ((BitVector *) it.bucket->data.asPtr,
+                                  (BitVector *) cit.bucket->data.asPtr));
+        assert (!btor_compare_bv_tuple ((BitVectorTuple *) it.cur,
+                                        (BitVectorTuple *) cit.cur));
+        (void) next_hash_table_iterator (&it);
+        (void) next_hash_table_iterator (&cit);
+      }
+      assert (!has_next_hash_table_iterator (&cit));
+      assert (!b->next || cb->next);
+    }
+  }
+  else
+    assert (!btor->clone->array_model);
 }
 
 #define BTOR_CHKCLONE()                                                \
@@ -3765,7 +3834,7 @@ boolector_sat (Btor *btor)
 const char *
 boolector_bv_assignment (Btor *btor, BoolectorNode *node)
 {
-  char *ass;
+  const char *ass;
   const char *res;
   BtorNode *exp, *simp;
   BtorBVAssignment *bvass;
@@ -3783,9 +3852,9 @@ boolector_bv_assignment (Btor *btor, BoolectorNode *node)
   BTOR_ABORT_ARRAY_BOOLECTOR (simp);
   BTOR_ABORT_BOOLECTOR (!btor->options.model_gen,
                         "model generation has not been enabled");
-  ass   = btor_bv_assignment_str_exp (btor, simp);
-  bvass = btor_new_bv_assignment (btor->bv_assignments, ass);
-  btor_release_bv_assignment_str_exp (btor, (char *) ass);
+  ass   = btor_bv_assignment_str (btor, simp);
+  bvass = btor_new_bv_assignment (btor->bv_assignments, (char *) ass);
+  btor_release_bv_assignment_str (btor, (char *) ass);
   res = btor_get_bv_assignment_str (bvass);
 #ifndef NDEBUG
   if (btor->clone)
@@ -3847,7 +3916,7 @@ boolector_array_assignment (Btor *btor,
   BTOR_ABORT_BOOLECTOR (!btor->options.model_gen,
                         "model generation has not been enabled");
 
-  btor_array_assignment_str_exp (btor, simp, &ind, &val, size);
+  btor_array_assignment_str (btor, simp, &ind, &val, size);
 
   if (*size)
   {
@@ -3855,8 +3924,8 @@ boolector_array_assignment (Btor *btor,
         btor_new_array_assignment (btor->array_assignments, ind, val, *size);
     for (i = 0; i < *size; i++)
     {
-      btor_release_bv_assignment_str_exp (btor, ind[i]);
-      btor_release_bv_assignment_str_exp (btor, val[i]);
+      btor_release_bv_assignment_str (btor, ind[i]);
+      btor_release_bv_assignment_str (btor, val[i]);
     }
     btor_free (btor->mm, ind, *size * sizeof (*ind));
     btor_free (btor->mm, val, *size * sizeof (*val));

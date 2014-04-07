@@ -814,6 +814,17 @@ assertionFailedCallBack (void* state, int i, int k)
   if (witness) printf ("\n"), printWitness (i, k);
 }
 
+namespace IMC {
+class ReachedAtBoundListener : public virtual BtorIBV::ReachedAtBoundListener
+{
+ public:
+  ~ReachedAtBoundListener () {}
+  void reachedAtBound (int i, int k) { assertionFailedCallBack (0, i, k); }
+};
+}  // namespace IMC
+
+static IMC::ReachedAtBoundListener listener;
+
 int
 main (int argc, char** argv)
 {
@@ -878,7 +889,7 @@ main (int argc, char** argv)
   if (force) ibvm->setForce ();
   if (witness) ibvm->enableTraceGeneration ();
   ibvm->setStop (!multi);
-  ibvm->setReachedAtBoundCallBack (0, assertionFailedCallBack);
+  ibvm->setReachedAtBoundListener (&listener);
   parse ();
   if (close_input == 1) fclose (input);
   if (close_input == 2) pclose (input);
