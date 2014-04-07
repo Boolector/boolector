@@ -3765,7 +3765,7 @@ boolector_sat (Btor *btor)
 const char *
 boolector_bv_assignment (Btor *btor, BoolectorNode *node)
 {
-  char *ass;
+  const char *ass;
   const char *res;
   BtorNode *exp, *simp;
   BtorBVAssignment *bvass;
@@ -3783,9 +3783,9 @@ boolector_bv_assignment (Btor *btor, BoolectorNode *node)
   BTOR_ABORT_ARRAY_BOOLECTOR (simp);
   BTOR_ABORT_BOOLECTOR (!btor->options.model_gen,
                         "model generation has not been enabled");
-  ass   = btor_bv_assignment_str_exp (btor, simp);
-  bvass = btor_new_bv_assignment (btor->bv_assignments, ass);
-  btor_release_bv_assignment_str_exp (btor, (char *) ass);
+  ass   = btor_bv_assignment_str (btor, simp);
+  bvass = btor_new_bv_assignment (btor->bv_assignments, (char *) ass);
+  btor_release_bv_assignment_str (btor, (char *) ass);
   res = btor_get_bv_assignment_str (bvass);
 #ifndef NDEBUG
   if (btor->clone)
@@ -3847,7 +3847,7 @@ boolector_array_assignment (Btor *btor,
   BTOR_ABORT_BOOLECTOR (!btor->options.model_gen,
                         "model generation has not been enabled");
 
-  btor_array_assignment_str_exp (btor, simp, &ind, &val, size);
+  btor_array_assignment_str (btor, simp, &ind, &val, size);
 
   if (*size)
   {
@@ -3855,8 +3855,8 @@ boolector_array_assignment (Btor *btor,
         btor_new_array_assignment (btor->array_assignments, ind, val, *size);
     for (i = 0; i < *size; i++)
     {
-      btor_release_bv_assignment_str_exp (btor, ind[i]);
-      btor_release_bv_assignment_str_exp (btor, val[i]);
+      btor_release_bv_assignment_str (btor, ind[i]);
+      btor_release_bv_assignment_str (btor, val[i]);
     }
     btor_free (btor->mm, ind, *size * sizeof (*ind));
     btor_free (btor->mm, val, *size * sizeof (*val));

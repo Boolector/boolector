@@ -2,7 +2,7 @@
  *
  *  Copyright (C) 2007-2009 Robert Daniel Brummayer.
  *  Copyright (C) 2007-2012 Armin Biere.
- *  Copyright (C) 2013 Aina Niemetz.
+ *  Copyright (C) 2013-2014 Aina Niemetz.
  *
  *  All rights reserved.
  *
@@ -31,7 +31,7 @@ typedef union BtorPtrHashData BtorPtrHashData;
 typedef void *(*BtorCloneKeyPtr) (const void *map, const void *key);
 typedef void (*BtorCloneDataPtr) (BtorMemMgr *mem,
                                   const void *map,
-                                  const void *key,
+                                  const void *data_ptr,
                                   BtorPtrHashData *data);
 
 union BtorPtrHashData
