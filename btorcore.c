@@ -6795,7 +6795,7 @@ add_symbolic_lemma (Btor *btor,
     size_t old_size, new_size;
     old_size = BTOR_SIZE_STACK (btor->stats.lemmas_size);
     BTOR_ENLARGE (btor->mm, btor->stats.lemmas_size.start, old_size, new_size);
-    BTOR_CLRN (btor->stats.lemmas_size.top, new_size - old_size);
+    BTOR_CLRN (btor->stats.lemmas_size.start + old_size, new_size - old_size);
     btor->stats.lemmas_size.end = btor->stats.lemmas_size.start + new_size;
     btor->stats.lemmas_size.top = btor->stats.lemmas_size.end;
   }
