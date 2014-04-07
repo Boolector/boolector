@@ -457,9 +457,9 @@ def _print_data ():
             "BENCHMARK".rjust(name_col_width),
             " | ".join("{}{}{}{}{}".format (
                 "STAT".rjust(stat_col_width),
+                "LODS".rjust(lods_col_width[d]),
                 "TIME[s]".rjust(time_col_width[d]),
                 "APP[s]".rjust(app_col_width[d]),
-                "CLONE[s]".rjust(clapp_col_width[d]),
                 "SAT[s]".rjust(sapp_col_width[d])) 
                 for d in g_args.dirs)))
     else:
@@ -574,12 +574,12 @@ def _print_data ():
                             if (g_best_diff_run_time[f]
                                 and g_best_diff_run_time[f] == d
                                 and g_args.cmp_col == "time")
+                               or (g_best_run_lods[f]
+                                   and g_best_run_lods[f] == d
+                                   and g_args.cmp_col == "lods") \
                                or (g_best_diff_run_time_app[f] 
                                    and g_best_diff_run_time_app[f] == d 
                                    and g_args.cmp_col == "app") \
-                               or (g_best_diff_run_time_clapp[f]
-                                   and g_best_diff_run_time_clapp[f] == d \
-                                   and g_args.cmp_col == "clone") \
                                or (g_best_diff_run_time_sapp[f]
                                    and g_best_diff_run_time_sapp[f] == d 
                                    and g_args.cmp_col == "sat") \
@@ -588,26 +588,26 @@ def _print_data ():
                                 if (g_best_run_time[f]
                                     and g_best_run_time[f] == d
                                     and g_args.cmp_col == "time") \
+                                   or (g_best_run_lods[f]
+                                       and g_best_run_lods[f] == d
+                                       and g_args.cmp_col == "lods") \
                                    or (g_best_run_time_app[f] 
                                        and g_best_run_time_app[f] == d
                                        and g_args.cmp_col == "app") \
-                                   or (g_best_run_time_clapp[f]
-                                       and g_best_run_time_clapp[f] == d
-                                       and g_args.cmp_col == "clone") \
                                    or (g_best_run_time_sapp[f]
                                        and g_best_run_time_sapp[f] == d
                                        and g_args.cmp_col == "sat") \
                                 else COLOR_NOCOLOR)),
                     g_run_status[d][idx].rjust(stat_col_width),
+                    str(g_run_lods[d][idx]).rjust(lods_col_width[d]) \
+                            if idx in g_run_lods[d] \
+                            else " - ".rjust(lods_col_width[d]),
                     str(g_run_time[d][idx]).rjust(time_col_width[d]) \
                             if idx in g_run_time[d] \
                             else " - ".rjust(time_col_width[d]),
                     str(g_run_time_app[d][idx]).rjust(app_col_width[d]) \
                             if idx in g_run_time_app[d] \
                             else "-".rjust(app_col_width[d]),
-                    str(g_run_time_clapp[d][idx]).rjust(clapp_col_width[d]) \
-                            if idx in g_run_time_clapp[d] \
-                            else "-".rjust(clapp_col_width[d]),
                     str(g_run_time_sapp[d][idx]).rjust(sapp_col_width[d]) \
                             if idx in g_run_time_sapp[d] \
                             else "-".rjust(sapp_col_width[d]),
