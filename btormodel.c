@@ -683,7 +683,7 @@ cmp_node_id (const void *p, const void *q)
 {
   BtorNode *a = *(BtorNode **) p;
   BtorNode *b = *(BtorNode **) q;
-  return a->id - b->id;
+  return BTOR_REAL_ADDR_NODE (a)->id - BTOR_REAL_ADDR_NODE (b)->id;
 }
 
 static void
