@@ -2,7 +2,8 @@
  *
  *  Copyright (C) 2007-2009 Robert Daniel Brummayer.
  *  Copyright (C) 2007-2013 Armin Biere.
- *  Copyright (C) 2012-2013 Aina Niemetz, Mathias Preiner.
+ *  Copyright (C) 2012-2014 Aina Niemetz.
+ *  Copyright (C) 2012-2013 Mathias Preiner.
  *
  *  All rights reserved.
  *
@@ -169,6 +170,7 @@ struct Btor
     int muls_normalized;       /* number of mul chains normalizations */
     int read_props_construct;  /* how often have we pushed a read over
                                   write during construction */
+    BtorIntStack lemmas_size;  /* distribution of n-size lemmas */
     long long int lemmas_size_sum;  /* sum of the size of all added lemmas */
     long long int lclause_size_sum; /* sum of the size of all linking clauses */
     ConstraintStats constraints;
