@@ -316,22 +316,30 @@ def _print_data ():
     beta_col_width = {}
     data_col_width = {}
     for d in g_args.dirs:
-        real_col_width[d] = padding + max(len("REAL[s]"),
-                max(len(str(item[1])) for item in g_run_real[d].items()))
-        time_col_width[d] = padding + max(len("TIME[s]"),
-                max(len(str(item[1])) for item in g_run_time[d].items()))
-        space_col_width[d] = padding + max(len("SPACE[s]"),
-                max(len(str(item[1])) for item in g_run_space[d].items()))
-        lods_col_width[d] = padding + max(len("LODS"),
-                max(len(str(item[1])) for item in g_run_lods[d].items()))
-        calls_col_width[d] = padding + max(len("CALLS"),
-                max(len(str(item[1])) for item in g_run_satcalls[d].items()))
-        sat_col_width[d] = padding + max(len("SAT[s]"),
-                max(len(str(item[1])) for item in g_run_time_sat[d].items()))
-        rw_col_width[d] = padding + max(len("RW[s]"),
-                max(len(str(item[1])) for item in g_run_time_rw[d].items()))
-        beta_col_width[d] = padding + max(len("BETA[s]"),
-                max(len(str(item[1])) for item in g_run_time_beta[d].items()))
+        real_col_width[d] = padding + (max(len("REAL[s]"),
+                max(len(str(item[1])) for item in g_run_real[d].items())) \
+                        if len(g_run_real[d]) else len("REAL"))
+        time_col_width[d] = padding + (max(len("TIME[s]"),
+                max(len(str(item[1])) for item in g_run_time[d].items())) \
+                        if len(g_run_time[d]) else len("TIME"))
+        space_col_width[d] = padding + (max(len("SPACE[s]"),
+                max(len(str(item[1])) for item in g_run_space[d].items())) \
+                        if len(g_run_space[d]) else len("SPACE"))
+        lods_col_width[d] = padding + (max(len("LODS"),
+                max(len(str(item[1])) for item in g_run_lods[d].items())) \
+                        if len(g_run_lods[d]) else len("LODS"))
+        calls_col_width[d] = padding + (max(len("CALLS"),
+                max(len(str(item[1])) for item in g_run_satcalls[d].items())) \
+                        if len(g_run_satcalls[d]) else len("CALLS"))
+        sat_col_width[d] = padding + (max(len("SAT[s]"),
+                max(len(str(item[1])) for item in g_run_time_sat[d].items())) \
+                        if len(g_run_time_sat[d]) else len("SAT[s]"))
+        rw_col_width[d] = padding + (max(len("RW[s]"),
+                max(len(str(item[1])) for item in g_run_time_rw[d].items())) \
+                        if len(g_run_time_rw[d]) else len("RW[s]"))
+        beta_col_width[d] = padding + (max(len("BETA[s]"),
+                max(len(str(item[1])) for item in g_run_time_beta[d].items())) \
+                        if len(g_run_time_beta[d]) else len("BETA[s]"))
         data_col_width[d] = stat_col_width + res_col_width \
                             + real_col_width[d] + time_col_width[d] \
                             + space_col_width[d] \
