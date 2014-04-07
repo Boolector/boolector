@@ -263,7 +263,7 @@ next_hash_table_iterator (BtorHashTableIterator *it)
   assert (it->cur);
 
   void *res;
-  res = (BtorNode *) it->cur;
+  res = it->cur;
   if (it->bucket)
     it->bucket = it->reversed ? it->bucket->prev : it->bucket->next;
 
