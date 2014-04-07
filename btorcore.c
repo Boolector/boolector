@@ -7560,7 +7560,9 @@ propagate (Btor *btor,
   PROPAGATE_BETA_REDUCE_PARTIAL:
     btor_assign_args (btor, fun, args);
     assert (to_prop->count == 0);
-    fun_value = btor_beta_reduce_partial (btor, fun, &evalerr, to_prop, conds);
+    //      fun_value =
+    //	btor_beta_reduce_partial (btor, fun, &evalerr, to_prop, conds);
+    fun_value = btor_beta_reduce_partial (btor, fun, &evalerr, to_prop, 0);
     assert (!BTOR_IS_LAMBDA_NODE (BTOR_REAL_ADDR_NODE (fun_value)));
     btor_unassign_params (btor, fun);
 
@@ -7712,17 +7714,18 @@ propagate (Btor *btor,
         btor->stats.propagations_down++;
         app->propagated = 0;
         BTORLOG ("  propagate down: %s", node2string (app));
-        if (btor->options.dual_prop)
-        {
-          init_node_hash_table_iterator (&it, conds);
-          while (has_next_node_hash_table_iterator (&it))
-          {
-            cond = next_node_hash_table_iterator (&it);
-            push_applies_from_cond_for_propagation (btor, cond, prop_stack);
-            btor_remove_from_ptr_hash_table (conds, cond, 0, 0);
-            btor_release_exp (btor, cond);
-          }
-        }
+        //      if (btor->options.dual_prop)
+        //	{
+        //	  init_node_hash_table_iterator (&it, conds);
+        //	  while (has_next_node_hash_table_iterator (&it))
+        //	    {
+        //	      cond = next_node_hash_table_iterator (&it);
+        //	      push_applies_from_cond_for_propagation (
+        //		  btor, cond, prop_stack);
+        //	      btor_remove_from_ptr_hash_table (conds, cond, 0, 0);
+        //	      btor_release_exp (btor, cond);
+        //	    }
+        //	}
       }
       else
       {
@@ -7761,17 +7764,18 @@ propagate (Btor *btor,
         }
 
         push_applies_for_propagation (btor, fun_value, lambda, prop_stack);
-        if (btor->options.dual_prop)
-        {
-          init_node_hash_table_iterator (&it, conds);
-          while (has_next_node_hash_table_iterator (&it))
-          {
-            cond = next_node_hash_table_iterator (&it);
-            push_applies_from_cond_for_propagation (btor, cond, prop_stack);
-            btor_remove_from_ptr_hash_table (conds, cond, 0, 0);
-            btor_release_exp (btor, cond);
-          }
-        }
+        //      if (btor->options.dual_prop)
+        //	{
+        //	  init_node_hash_table_iterator (&it, conds);
+        //	  while (has_next_node_hash_table_iterator (&it))
+        //	    {
+        //	      cond = next_node_hash_table_iterator (&it);
+        //	      push_applies_from_cond_for_propagation (
+        //		  btor, cond, prop_stack);
+        //	      btor_remove_from_ptr_hash_table (conds, cond, 0, 0);
+        //      	      btor_release_exp (btor, cond);
+        //	    }
+        //	}
       }
     }
     else
@@ -7782,17 +7786,18 @@ propagate (Btor *btor,
         goto BETA_REDUCTION_CONFLICT;
 
       push_applies_for_propagation (btor, fun_value, lambda, prop_stack);
-      if (btor->options.dual_prop)
-      {
-        init_node_hash_table_iterator (&it, conds);
-        while (has_next_node_hash_table_iterator (&it))
-        {
-          cond = next_node_hash_table_iterator (&it);
-          push_applies_from_cond_for_propagation (btor, cond, prop_stack);
-          btor_remove_from_ptr_hash_table (conds, cond, 0, 0);
-          btor_release_exp (btor, cond);
-        }
-      }
+      // if (btor->options.dual_prop)
+      //  {
+      //    init_node_hash_table_iterator (&it, conds);
+      //    while (has_next_node_hash_table_iterator (&it))
+      //      {
+      //        cond = next_node_hash_table_iterator (&it);
+      //        push_applies_from_cond_for_propagation (
+      //            btor, cond, prop_stack);
+      //        btor_remove_from_ptr_hash_table (conds, cond, 0, 0);
+      //    	  btor_release_exp (btor, cond);
+      //      }
+      //  }
     }
 
     btor_release_exp (btor, fun_value);
