@@ -518,6 +518,23 @@ clone_aux_btor (Btor *btor,
 
   assert ((allocated = sizeof (Btor)) == clone->mm->allocated);
 
+  BTOR_CNEWN (mm,
+              clone->stats.lemmas_size.start,
+              BTOR_SIZE_STACK (btor->stats.lemmas_size));
+  clone->stats.lemmas_size.end = clone->stats.lemmas_size.start
+                                 + BTOR_SIZE_STACK (btor->stats.lemmas_size);
+  clone->stats.lemmas_size.top = clone->stats.lemmas_size.end;
+  memcpy (clone->stats.lemmas_size.start,
+          btor->stats.lemmas_size.start,
+          BTOR_SIZE_STACK (btor->stats.lemmas_size));
+  assert (
+      (allocated += BTOR_SIZE_STACK (btor->stats.lemmas_size) * sizeof (int))
+      == clone->mm->allocated);
+
+  BTORLOG_TIMESTAMP (delta);
+  clone->bv_assignments =
+      btor_clone_bv_assignment_list (clone->mm, btor->bv_assignments);
+  BTORLOG ("  clone BV assignments: %.3f s", (btor_time_stamp () - delta));
   if (exp_layer_only)
   {
     clone->bv_assignments = btor_new_bv_assignment_list (mm);

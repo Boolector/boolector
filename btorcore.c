@@ -906,6 +906,15 @@ btor_print_stats_btor (Btor *btor)
               " average lemma size: %.1f",
               BTOR_AVERAGE_UTIL (btor->stats.lemmas_size_sum,
                                  btor->stats.lod_refinements));
+    for (i = 1; i < BTOR_SIZE_STACK (btor->stats.lemmas_size); i++)
+    {
+      if (!BTOR_PEEK_STACK (btor->stats.lemmas_size, i)) continue;
+      btor_msg (btor,
+                1,
+                "   lemmas of size %d: %d",
+                i,
+                BTOR_PEEK_STACK (btor->stats.lemmas_size, i));
+    }
     btor_msg (btor,
               1,
               " average linking clause size: %.1f",
@@ -1122,6 +1131,11 @@ btor_new_btor (void)
 
   BTOR_INIT_STACK (btor->arrays_with_model);
 
+  BTOR_CNEWN (mm, btor->stats.lemmas_size.start, 100);
+  btor->stats.lemmas_size.end      = btor->stats.lemmas_size.start + 100;
+  btor->stats.lemmas_size.top      = btor->stats.lemmas_size.end;
+  btor->stats.lemmas_size.start[0] = 0;
+
   btor->true_exp = btor_true_exp (btor);
 
 #ifdef BTOR_CHECK_MODEL
@@ -1279,6 +1293,8 @@ btor_delete_btor (Btor *btor)
   btor_delete_ptr_hash_table (btor->array_vars);
   btor_delete_ptr_hash_table (btor->lambdas);
   btor_delete_ptr_hash_table (btor->parameterized);
+
+  BTOR_RELEASE_STACK (btor->mm, btor->stats.lemmas_size);
 
   btor_delete_aigvec_mgr (btor->avmgr);
 
@@ -4661,7 +4677,7 @@ btor_simplify (Btor *btor)
 
   if (btor->inconsistent) return BTOR_UNSAT;
 
-  //  if (btor->options.rewrite_level <= 1 && !btor->beta_reduce_all)
+  //  if (btor->options.rewrite_level <= 1 && !btor->options.beta_reduce_all)
   //    return;
 
   rounds = 0;
@@ -6718,6 +6734,7 @@ add_symbolic_lemma (Btor *btor,
   assert (!BTOR_REAL_ADDR_NODE (b)->parameterized);
   assert (BTOR_IS_SYNTH_NODE (a));
 
+  int lemma_size = 0;
   BtorNode *cond, *eq, *and, *arg0, *arg1;
   BtorNode *premise = 0, *conclusion = 0, *lemma;
   BtorArgsIterator it0, it1;
@@ -6752,7 +6769,7 @@ add_symbolic_lemma (Btor *btor,
       else
         premise = eq;
 
-      btor->stats.lemmas_size_sum += 1;
+      lemma_size += 1;
     }
   }
   /* else beta reduction conflict */
@@ -6760,9 +6777,21 @@ add_symbolic_lemma (Btor *btor,
   /* encode conclusion a = b */
   conclusion = btor_eq_exp (btor, a, b);
 
-  btor->stats.lemmas_size_sum += 1; /* a == b */
-  btor->stats.lemmas_size_sum += bconds_sel1->count;
-  btor->stats.lemmas_size_sum += bconds_sel2->count;
+  lemma_size += 1; /* a == b */
+  lemma_size += bconds_sel1->count;
+  lemma_size += bconds_sel2->count;
+
+  btor->stats.lemmas_size_sum += lemma_size;
+  if (lemma_size >= BTOR_SIZE_STACK (btor->stats.lemmas_size))
+  {
+    size_t old_size, new_size;
+    old_size = BTOR_SIZE_STACK (btor->stats.lemmas_size);
+    BTOR_ENLARGE (btor->mm, btor->stats.lemmas_size.start, old_size, new_size);
+    BTOR_CLRN (btor->stats.lemmas_size.top, new_size - old_size);
+    btor->stats.lemmas_size.end = btor->stats.lemmas_size.start + new_size;
+    btor->stats.lemmas_size.top = btor->stats.lemmas_size.end;
+  }
+  btor->stats.lemmas_size.start[lemma_size] += 1;
 
   /* premisses bv conditions:
    *   true conditions: c_0, ..., c_k
@@ -8268,6 +8297,7 @@ btor_sat_aux_btor (Btor *btor)
     add_again_assumptions (btor);
     sat_result = btor_timed_sat_sat (btor, -1);
   }
+
   assert (sat_result != BTOR_SAT || BTOR_EMPTY_STACK (prop_stack));
   BTOR_RELEASE_STACK (btor->mm, prop_stack);
 

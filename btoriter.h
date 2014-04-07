@@ -96,6 +96,13 @@ void init_parameterized_iterator (Btor *,
 BtorNode *next_parameterized_iterator (BtorParameterizedIterator *);
 int has_next_parameterized_iterator (BtorParameterizedIterator *);
 
+void init_hash_table_iterator (BtorHashTableIterator *, BtorPtrHashTable *);
+void init_reversed_hash_table_iterator (BtorHashTableIterator *,
+                                        BtorPtrHashTable *);
+void *next_hash_table_iterator (BtorHashTableIterator *);
+int has_next_hash_table_iterator (BtorHashTableIterator *);
+void queue_hash_table_iterator (BtorHashTableIterator *, BtorPtrHashTable *);
+
 void init_node_hash_table_iterator (BtorHashTableIterator *,
                                     BtorPtrHashTable *);
 void init_reversed_node_hash_table_iterator (BtorHashTableIterator *,

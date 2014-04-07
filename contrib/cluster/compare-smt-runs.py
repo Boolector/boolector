@@ -410,7 +410,7 @@ def _print_data ():
                 max(len(str(item[1])) for item in g_run_time_app[d].items())) \
                         if len(g_run_time_app[d]) else len("APP[s]"))
         clapp_col_width[d] = padding + (max(len("CLONE[s]"),
-                max(len(str(item[1])) for item in g_run_time_clapp[d].items())) \
+                max(len(str(item[1])) for item in g_run_time_clapp[d].items()))\
                         if len(g_run_time_clapp[d]) else len("CLONE[s]"))
         sapp_col_width[d] = padding + (max(len("SAT[s]"),
                 max(len(str(item[1])) for item in g_run_time_sapp[d].items())) \
