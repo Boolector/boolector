@@ -1374,18 +1374,13 @@ normalize_binary_comm_ass_exp (Btor *btor,
   qsort (
       stack.start, BTOR_COUNT_STACK (stack), sizeof (BtorNode *), cmp_node_id);
 
-  common = 0;
-  for (i = 0; i < BTOR_COUNT_STACK (stack); i++)
+  common = btor_copy_exp (btor, BTOR_PEEK_STACK (stack, 0));
+  for (i = 1; i < BTOR_COUNT_STACK (stack); i++)
   {
-    cur = BTOR_PEEK_STACK (stack, i);
-    if (common)
-    {
-      temp = fptr (btor, common, cur);
-      btor_release_exp (btor, common);
-      common = temp;
-    }
-    else
-      common = btor_copy_exp (btor, cur);
+    cur  = BTOR_PEEK_STACK (stack, i);
+    temp = fptr (btor, common, cur);
+    btor_release_exp (btor, common);
+    common = temp;
   }
   BTOR_RELEASE_STACK (mm, stack);
 
