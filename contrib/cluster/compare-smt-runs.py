@@ -24,6 +24,7 @@ g_run_time_eval = {}
 g_run_time_app = {}
 g_run_time_clapp = {}
 g_run_time_sapp = {}
+g_run_time_coll = {}
 
 g_run_status = {}
 g_run_result = {}
@@ -42,6 +43,7 @@ g_best_run_time_eval = {}
 g_best_run_time_app = {}
 g_best_run_time_clapp = {}
 g_best_run_time_sapp = {}
+g_best_run_time_coll = {}
 
 g_best_run_status = {}
 g_best_run_result = {}
@@ -58,6 +60,7 @@ g_best_diff_run_time_eval = {}
 g_best_diff_run_time_app = {}
 g_best_diff_run_time_clapp = {}
 g_best_diff_run_time_sapp = {}
+g_best_diff_run_time_coll = {}
 
 g_best_diff_run_status = {}
 g_best_diff_run_result = {}
@@ -99,6 +102,8 @@ def _read_log_file (d, f):
                 g_run_time_sapp[d] = {}
             if d not in g_run_time_app:
                 g_run_time_app[d] = {}
+            if d not in g_run_time_coll:
+                g_run_time_coll[d] = {}
             if b'LOD' in line:
                 g_run_lods[d][idx] = int(line.split()[3])
             elif b'SAT calls' in line:
@@ -117,6 +122,8 @@ def _read_log_file (d, f):
                 g_run_time_sapp[d][idx] = float(line.split()[1])
             elif b'initial applies search' in line:
                 g_run_time_app[d][idx] = float(line.split()[1])
+            elif b'collecting initial applies' in line:
+                g_run_time_coll[d][idx] = float(line.split()[1])
 
 
 def _read_err_file (d, f):
@@ -194,14 +201,14 @@ def _pick_data ():
     global g_best_run_lods, g_best_run_satcalls, g_best_run_time_sat
     global g_best_run_time_rw, g_best_run_time_beta, g_best_run_time_eval
     global g_best_run_time_app, g_best_run_time_clapp
-    global g_best_run_time_sapp
+    global g_best_run_time_sapp, g_best_run_time_coll
     global g_best_run_status, g_best_run_result, g_best_run_real
     global g_best_run_time, g_best_run_space
     global g_best_diff_run_lods, g_best_diff_run_satcalls
     global g_best_diff_run_time_sat, g_best_diff_run_time_rw
     global g_best_diff_run_time_beta, g_best_diff_run_time_eval
     global g_best_diff_run_time_app, g_best_diff_run_clapp
-    global g_best_diff_run_sapp
+    global g_best_diff_run_sapp, g_best_diff_run_coll
     global g_best_diff_run_status, g_best_diff_run_result, g_best_diff_run_real
     global g_best_diff_run_time, g_best_diff_run_space
     
@@ -361,6 +368,19 @@ def _pick_data ():
         except KeyError:
             g_best_run_time_sapp[f] = None
             g_best_diff_run_time_sapp[f] = None
+        try:
+            v = [(g_run_time_coll[d][g_files[f]], d) \
+                    for d in g_args.dirs]
+            v = sorted(v)
+            g_best_run_time_coll[f] = None \
+                    if len(set(iter([t[0] for t in v]))) <= 1 else v[0][1]
+            g_best_diff_run_time_coll[f] = None \
+                    if not g_best_run_time_coll[f] \
+                       or v[0][0] + g_args.diff > v[1][0] \
+                    else v[0][1]
+        except KeyError:
+            g_best_run_time_coll[f] = None
+            g_best_diff_run_time_coll[f] = None
 
         
 def _print_data ():
@@ -380,6 +400,7 @@ def _print_data ():
     app_col_width = {}
     clapp_col_width = {}
     sapp_col_width = {}
+    coll_col_width = {}
     data_col_width = {}
     for d in g_args.dirs:
         real_col_width[d] = padding + (max(len("REAL[s]"),
@@ -415,15 +436,18 @@ def _print_data ():
         sapp_col_width[d] = padding + (max(len("SAT[s]"),
                 max(len(str(item[1])) for item in g_run_time_sapp[d].items())) \
                         if len(g_run_time_sapp[d]) else len("SAT[s]"))
+        coll_col_width[d] = padding + (max(len("COL[s]"),
+                max(len(str(item[1])) for item in g_run_time_coll[d].items())) \
+                        if len(g_run_time_coll[d]) else len("COL[s]"))
         data_col_width[d] = stat_col_width \
                             + lods_col_width[d] + calls_col_width[d] \
                             + sat_col_width[d] + rw_col_width[d] \
                             + beta_col_width[d] \
                             if g_args.bs \
                             else \
-                                (stat_col_width + time_col_width[d] \
-                                 + app_col_width[d] + clapp_col_width[d] \
-                                 + sapp_col_width[d] \
+                                (stat_col_width + lods_col_width[d] \
+                                 + time_col_width[d] + app_col_width[d] \
+                                 + sapp_col_width[d] + coll_col_width[d]\
                                  if g_args.dp else \
                                  stat_col_width + res_col_width \
                                  + real_col_width[d] + time_col_width[d] \
@@ -464,12 +488,13 @@ def _print_data ():
                 for d in g_args.dirs)))
         print ("{} | {} |".format (
             "BENCHMARK".rjust(name_col_width),
-            " | ".join("{}{}{}{}{}".format (
+            " | ".join("{}{}{}{}{}{}".format (
                 "STAT".rjust(stat_col_width),
                 "LODS".rjust(lods_col_width[d]),
                 "TIME[s]".rjust(time_col_width[d]),
                 "APP[s]".rjust(app_col_width[d]),
-                "SAT[s]".rjust(sapp_col_width[d])) 
+                "SAT[s]".rjust(sapp_col_width[d]),
+                "COL[s]".rjust(coll_col_width[d])) 
                 for d in g_args.dirs)))
     else:
         print ("{} | {} |".format (
@@ -575,7 +600,7 @@ def _print_data ():
             print ("{}{} | {} |{}".format (
                 color,
                 f.rjust(name_col_width),
-                " | ".join("{}{}{}{}{}{}{}".format (
+                " | ".join("{}{}{}{}{}{}{}{}".format (
                     color \
                         if color != COLOR_NOCOLOR \
                         else (\
@@ -592,6 +617,9 @@ def _print_data ():
                                or (g_best_diff_run_time_sapp[f]
                                    and g_best_diff_run_time_sapp[f] == d 
                                    and g_args.cmp_col == "sat") \
+                               or (g_best_diff_run_time_coll[f]
+                                   and g_best_diff_run_time_coll[f] == d 
+                                   and g_args.cmp_col == "coll") \
                             else ( \
                                 COLOR_BEST \
                                 if (g_best_run_time[f]
@@ -606,6 +634,9 @@ def _print_data ():
                                    or (g_best_run_time_sapp[f]
                                        and g_best_run_time_sapp[f] == d
                                        and g_args.cmp_col == "sat") \
+                                   or (g_best_run_time_coll[f]
+                                       and g_best_run_time_coll[f] == d
+                                       and g_args.cmp_col == "coll") \
                                 else COLOR_NOCOLOR)),
                     g_run_status[d][idx].rjust(stat_col_width),
                     str(g_run_lods[d][idx]).rjust(lods_col_width[d]) \
@@ -620,6 +651,9 @@ def _print_data ():
                     str(g_run_time_sapp[d][idx]).rjust(sapp_col_width[d]) \
                             if idx in g_run_time_sapp[d] \
                             else "-".rjust(sapp_col_width[d]),
+                    str(g_run_time_coll[d][idx]).rjust(coll_col_width[d]) \
+                            if idx in g_run_time_coll[d] \
+                            else "-".rjust(coll_col_width[d]),
                     color if color != COLOR_NOCOLOR else COLOR_NOCOLOR) \
                     for d in g_args.dirs),
                     COLOR_NOCOLOR))
