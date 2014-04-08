@@ -40,7 +40,6 @@
 #define BTOR_SYMBOLIC_LEMMAS
 #ifndef NDEBUG
 #define BTOR_CHECK_MODEL
-//#define BTOR_CHECK_FAILED
 #define BTOR_CHECK_DUAL_PROP
 #endif
 
@@ -999,11 +998,19 @@ btor_print_stats_btor (Btor *btor)
               1,
               "%.2f seconds SAT solving for initial applies search",
               btor->time.search_init_apps_sat);
-    btor_msg (btor,
-              1,
-              "%.2f seconds collecting initial applies via failed assumptions",
-              btor->time.search_init_apps_collect);
+    btor_msg (
+        btor,
+        1,
+        "%.2f seconds collecting initial applies via failed assumptions (FA)",
+        btor->time.search_init_apps_collect);
+    btor_msg (
+        btor,
+        1,
+        "%.2f seconds cone traversal when collecting initial applies via FA",
+        btor->time.search_init_apps_collect_cone);
   }
+  btor_msg (
+      btor, 1, "%.2f seconds determinig failed assumptions", btor->time.failed);
   btor_msg (btor, 1, "%.2f seconds lemma generation", btor->time.lemma_gen);
   btor_msg (btor,
             1,
@@ -2174,12 +2181,15 @@ btor_failed_exp (Btor *btor, BtorNode *exp)
   assert (exp);
   assert (check_id_table_mark_unset_dbg (btor));
 
-  int i, lit;
+  int i, lit, res;
+  double start;
   BtorAIG *aig;
   BtorNode *real_exp, *cur, *e;
   BtorNodePtrStack work_stack, assumptions;
   BtorSATMgr *smgr;
   BtorAIGMgr *amgr;
+
+  start = btor_time_stamp ();
 
   exp = btor_simplify_exp (btor, exp);
   assert (BTOR_REAL_ADDR_NODE (exp)->btor == btor);
@@ -2188,97 +2198,118 @@ btor_failed_exp (Btor *btor, BtorNode *exp)
   assert (!BTOR_REAL_ADDR_NODE (exp)->parameterized);
   assert (btor_is_assumption_exp (btor, exp));
 
-  if (btor->inconsistent) return 0;
-
-  if (exp == btor->true_exp) return 0;
-
-  if (exp == BTOR_INVERT_NODE (btor->true_exp)) return 1;
-
-  if (BTOR_IS_INVERTED_NODE (exp) || !BTOR_IS_AND_NODE (exp))
+  if (btor->inconsistent)
+  {
+    res = 0;
+  }
+  else if (exp == btor->true_exp)
+  {
+    res = 0;
+  }
+  else if (exp == BTOR_INVERT_NODE (btor->true_exp))
+  {
+    res = 1;
+  }
+  else if (BTOR_IS_INVERTED_NODE (exp) || !BTOR_IS_AND_NODE (exp))
   {
     real_exp = BTOR_REAL_ADDR_NODE (exp);
     assert (btor->found_constraint_false || BTOR_IS_SYNTH_NODE (real_exp));
 
-    if (!BTOR_IS_SYNTH_NODE (real_exp)) return 0;
-
-    if (btor->found_constraint_false)
-      return ((BTOR_IS_INVERTED_NODE (exp)
-               && real_exp->av->aigs[0] == BTOR_AIG_TRUE)
-              || (!BTOR_IS_INVERTED_NODE (exp)
-                  && real_exp->av->aigs[0] == BTOR_AIG_FALSE));
+    if (!BTOR_IS_SYNTH_NODE (real_exp))
+    {
+      res = 0;
+    }
+    else if (btor->found_constraint_false)
+    {
+      res = ((BTOR_IS_INVERTED_NODE (exp)
+              && real_exp->av->aigs[0] == BTOR_AIG_TRUE)
+             || (!BTOR_IS_INVERTED_NODE (exp)
+                 && real_exp->av->aigs[0] == BTOR_AIG_FALSE));
+    }
     else
     {
       if ((BTOR_IS_INVERTED_NODE (exp)
            && real_exp->av->aigs[0] == BTOR_AIG_FALSE)
           || (!BTOR_IS_INVERTED_NODE (exp)
               && real_exp->av->aigs[0] == BTOR_AIG_TRUE))
-        return 0;
-
-      amgr = btor_get_aig_mgr_aigvec_mgr (btor->avmgr);
-      smgr = btor_get_sat_mgr_aig_mgr (amgr);
-
-      lit = exp_to_cnf_lit (btor, exp);
-      if (abs (lit) == smgr->true_lit) return lit < 0 ? 1 : 0;
-      return btor_failed_sat (smgr, lit);
-    }
-  }
-
-  BTOR_INIT_STACK (assumptions);
-  BTOR_INIT_STACK (work_stack);
-  BTOR_PUSH_STACK (btor->mm, work_stack, exp);
-  while (!BTOR_EMPTY_STACK (work_stack))
-  {
-    cur = BTOR_POP_STACK (work_stack);
-    assert (!BTOR_IS_INVERTED_NODE (cur));
-    assert (BTOR_IS_AND_NODE (cur));
-    assert (cur->mark == 0 || cur->mark == 1);
-    if (cur->mark) continue;
-    cur->mark = 1;
-    for (i = 0; i < 2; i++)
-    {
-      e = cur->e[i];
-      if (!BTOR_IS_INVERTED_NODE (e) && BTOR_IS_AND_NODE (e))
-        BTOR_PUSH_STACK (btor->mm, work_stack, e);
+      {
+        res = 0;
+      }
       else
       {
-        if (!BTOR_IS_SYNTH_NODE (BTOR_REAL_ADDR_NODE (e))) continue;
+        amgr = btor_get_aig_mgr_aigvec_mgr (btor->avmgr);
+        smgr = btor_get_sat_mgr_aig_mgr (amgr);
 
-        aig = BTOR_REAL_ADDR_NODE (e)->av->aigs[0];
-        if ((BTOR_IS_INVERTED_NODE (e) && aig == BTOR_AIG_FALSE)
-            || (!BTOR_IS_INVERTED_NODE (e) && aig == BTOR_AIG_TRUE))
-          continue;
-        if ((BTOR_IS_INVERTED_NODE (e) && aig == BTOR_AIG_TRUE)
-            || (!BTOR_IS_INVERTED_NODE (e) && aig == BTOR_AIG_FALSE))
-          goto ASSUMPTION_FAILED;
-        if (btor->found_constraint_false) continue;
-        BTOR_PUSH_STACK (btor->mm, assumptions, e);
+        lit = exp_to_cnf_lit (btor, exp);
+        if (abs (lit) == smgr->true_lit)
+          res = lit < 0 ? 1 : 0;
+        else
+          res = btor_failed_sat (smgr, lit);
       }
     }
   }
-
-  amgr = btor_get_aig_mgr_aigvec_mgr (btor->avmgr);
-  smgr = btor_get_sat_mgr_aig_mgr (amgr);
-  while (!BTOR_EMPTY_STACK (assumptions))
+  else
   {
-    cur = BTOR_POP_STACK (assumptions);
-    assert (BTOR_IS_INVERTED_NODE (cur) || !BTOR_IS_AND_NODE (cur));
-    lit = exp_to_cnf_lit (btor, cur);
-    if (lit == smgr->true_lit) continue;
-    if (lit == -smgr->true_lit) goto ASSUMPTION_FAILED;
-    if (btor_failed_sat (smgr, lit))
+    res = 0;
+    BTOR_INIT_STACK (assumptions);
+    BTOR_INIT_STACK (work_stack);
+    BTOR_PUSH_STACK (btor->mm, work_stack, exp);
+    while (!BTOR_EMPTY_STACK (work_stack))
     {
-    ASSUMPTION_FAILED:
-      BTOR_RELEASE_STACK (btor->mm, work_stack);
-      BTOR_RELEASE_STACK (btor->mm, assumptions);
-      btor_mark_exp (btor, exp, 0);
-      return 1;
+      cur = BTOR_POP_STACK (work_stack);
+      assert (!BTOR_IS_INVERTED_NODE (cur));
+      assert (BTOR_IS_AND_NODE (cur));
+      assert (cur->mark == 0 || cur->mark == 1);
+      if (cur->mark) continue;
+      cur->mark = 1;
+      for (i = 0; i < 2; i++)
+      {
+        e = cur->e[i];
+        if (!BTOR_IS_INVERTED_NODE (e) && BTOR_IS_AND_NODE (e))
+          BTOR_PUSH_STACK (btor->mm, work_stack, e);
+        else
+        {
+          if (!BTOR_IS_SYNTH_NODE (BTOR_REAL_ADDR_NODE (e))) continue;
+
+          aig = BTOR_REAL_ADDR_NODE (e)->av->aigs[0];
+          if ((BTOR_IS_INVERTED_NODE (e) && aig == BTOR_AIG_FALSE)
+              || (!BTOR_IS_INVERTED_NODE (e) && aig == BTOR_AIG_TRUE))
+            continue;
+          if ((BTOR_IS_INVERTED_NODE (e) && aig == BTOR_AIG_TRUE)
+              || (!BTOR_IS_INVERTED_NODE (e) && aig == BTOR_AIG_FALSE))
+            goto ASSUMPTION_FAILED;
+          if (btor->found_constraint_false) continue;
+          BTOR_PUSH_STACK (btor->mm, assumptions, e);
+        }
+      }
     }
+
+    amgr = btor_get_aig_mgr_aigvec_mgr (btor->avmgr);
+    smgr = btor_get_sat_mgr_aig_mgr (amgr);
+    while (!BTOR_EMPTY_STACK (assumptions))
+    {
+      cur = BTOR_POP_STACK (assumptions);
+      assert (BTOR_IS_INVERTED_NODE (cur) || !BTOR_IS_AND_NODE (cur));
+      lit = exp_to_cnf_lit (btor, cur);
+      if (lit == smgr->true_lit) continue;
+      if (lit == -smgr->true_lit) goto ASSUMPTION_FAILED;
+      if (btor_failed_sat (smgr, lit))
+      {
+      ASSUMPTION_FAILED:
+        BTOR_RELEASE_STACK (btor->mm, work_stack);
+        BTOR_RELEASE_STACK (btor->mm, assumptions);
+        btor_mark_exp (btor, exp, 0);
+        res = 1;
+      }
+    }
+    BTOR_RELEASE_STACK (btor->mm, work_stack);
+    BTOR_RELEASE_STACK (btor->mm, assumptions);
+    btor_mark_exp (btor, exp, 0);
   }
 
-  BTOR_RELEASE_STACK (btor->mm, work_stack);
-  BTOR_RELEASE_STACK (btor->mm, assumptions);
-  btor_mark_exp (btor, exp, 0);
-  return 0;
+  btor->time.failed += btor_time_stamp () - start;
+
+  return res;
 }
 
 /*------------------------------------------------------------------------*/
@@ -5670,7 +5701,7 @@ search_initial_applies_dual_prop (Btor *btor,
 
   int i, from, to, upper, lower;
   char *astr, *pastr;
-  double start, delta;
+  double start, delta, delta2;
   BtorNode *cur_btor, *cur_clone, *bv_const, *bv_eq, *slice;
   BtorNodePtrStack stack, unmark_stack;
   BtorNodeMap *key_map, *assumptions;
@@ -5818,6 +5849,7 @@ search_initial_applies_dual_prop (Btor *btor,
       assert (!cur_btor->parameterized);
       if (BTOR_IS_BV_VAR_NODE (cur_btor))
       {
+        delta2 = btor_time_stamp ();
         assert (BTOR_EMPTY_STACK (stack));
         BTOR_PUSH_STACK (btor->mm, stack, cur_btor);
         while (!BTOR_EMPTY_STACK (stack))
@@ -5849,6 +5881,7 @@ search_initial_applies_dual_prop (Btor *btor,
             BTOR_PUSH_STACK (btor->mm, stack, cur_btor);
           }
         }
+        btor->time.search_init_apps_collect_cone += btor_time_stamp () - delta2;
       }
       else
       {
@@ -8162,7 +8195,7 @@ btor_sat_aux_btor (Btor *btor)
   Btor *clone;
   BtorNode *clone_root;
   BtorNodeMap *exp_map;
-#ifndef BTOR_CHECK_FAILED
+#ifdef BTOR_CHECK_FAILED
   Btor *faclone = 0;
 #endif
 
@@ -8185,7 +8218,8 @@ btor_sat_aux_btor (Btor *btor)
     faclone = btor_clone_btor (btor);
     btor_enable_force_cleanup (faclone);
     btor_enable_force_internal_cleanup (faclone);
-    faclone->loglevel                       = 0;
+    btor_set_loglevel_btor (faclone, 0);
+    btor_set_verbosity_btor (faclone, 0);
     faclone->options.chk_failed_assumptions = 0;
     faclone->options.dual_prop              = 0;  // FIXME necessary?
   }

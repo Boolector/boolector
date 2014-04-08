@@ -20,6 +20,9 @@
 #include "btormem.h"
 #include "btorsort.h"
 
+#ifndef NDEBUG
+//#define BTOR_CHECK_FAILED
+#endif
 /*------------------------------------------------------------------------*/
 
 // Currently these are just to hide syntactically the internal nodes.  For
@@ -207,10 +210,12 @@ struct Btor
     double enc_var;
     double find_dfs;
     double reachable;
+    double failed;
     double search_init_apps;
     double search_init_apps_cloning;
     double search_init_apps_sat;
     double search_init_apps_collect;
+    double search_init_apps_collect_cone;
     double lemma_gen;
     double find_nenc_app;
     double find_prop_app;
