@@ -1,9 +1,9 @@
 #!/bin/bash
 
 readonly CONTRIBDIR=$(dirname "$(readlink -f $0)")
-readonly BTORMBT=$CONTRIBDIR/../btormbt
 readonly THREAD_TMP_FILE="/tmp/runparbtormbt$$_"
 readonly MAX_THREADS=$(grep -c processor /proc/cpuinfo)
+BTORMBTDIR=$CONTRIBDIR/../
 
 die ()
 {
@@ -75,6 +75,8 @@ do
 		 ;;
     --max-threads) threads=$MAX_THREADS
 		   ;;
+    --btormbt-dir=*) BTORMBTDIR=$(echo "$1" | sed -e 's,^--btormbt-dir=,,')
+		     ;;
     -*|[0-9]*) opts="$opts $1"
                ;;
     *) break;;
@@ -92,9 +94,9 @@ for ((i = 0; i < threads; i++)); do
   if ((maxtime > 0)); then
     ((maxtime_kill = maxtime + 10))
     timeout -s SIGTERM -k $maxtime_kill $maxtime \
-      $BTORMBT -q $opts > ${files[$i]} 2> /dev/null &
+      $BTORMBTDIR/btormbt -q $opts > ${files[$i]} 2> /dev/null &
   else
-    $BTORMBT -q $opts > ${files[$i]} 2> /dev/null &
+    $BTORMBTDIR/btormbt -q $opts > ${files[$i]} 2> /dev/null &
   fi
   children="$children $!"
 done
