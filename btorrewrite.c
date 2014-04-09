@@ -4765,7 +4765,7 @@ RESTART:
 
         // TODO make this '10' an option ...
         //
-        simp = btor_shallow_subst (btor, lhs, rhs, e_if, 10);
+        simp = btor_shallow_subst (btor, lhs, rhs, e_if, 20);
         if (simp != e_if)
         {
           BTOR_INC_REC_RW_CALL (btor);
