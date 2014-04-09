@@ -5784,6 +5784,8 @@ search_initial_applies_dual_prop (Btor * btor,
 }
 #endif
 
+#define SEARCH_INIT_BFS  // TODO debug
+
 static void
 search_initial_applies_dual_prop (Btor *btor,
                                   Btor *clone,
@@ -5811,6 +5813,9 @@ search_initial_applies_dual_prop (Btor *btor,
   double start, delta, delta2;
   BtorNode *cur_btor, *cur_clone, *bv_const, *bv_eq, *slice;
   BtorNodePtrStack stack, unmark_stack;
+#ifdef SEARCH_INIT_BFS
+  BtorNodePtrQueue queue;
+#endif
   BtorNodeMap *key_map, *assumptions;
   BtorHashTableIterator it;
   BtorNodeMapIterator nit;
@@ -5825,6 +5830,9 @@ search_initial_applies_dual_prop (Btor *btor,
   smgr = btor_get_sat_mgr_aig_mgr (btor_get_aig_mgr_aigvec_mgr (btor->avmgr));
   if (!smgr->inc_required) return;
 
+#ifdef SEARCH_INIT_BFS
+  BTOR_INIT_QUEUE (queue);
+#endif
   BTOR_INIT_STACK (stack);
   BTOR_INIT_STACK (unmark_stack);
   key_map     = btor_new_node_map (btor);
@@ -5854,10 +5862,17 @@ search_initial_applies_dual_prop (Btor *btor,
   {
     cur_btor = next_node_hash_table_iterator (&it);
     // printf ("++ %s\n", node2string (cur_btor));
+#ifdef SEARCH_INIT_BFS
+    BTOR_ENQUEUE (btor->mm, queue, cur_btor);
+    while (!BTOR_EMPTY_QUEUE (queue))
+    {
+      cur_btor = BTOR_REAL_ADDR_NODE (BTOR_DEQUEUE (queue));
+#else
     BTOR_PUSH_STACK (btor->mm, stack, cur_btor);
     while (!BTOR_EMPTY_STACK (stack))
     {
       cur_btor = BTOR_REAL_ADDR_NODE (BTOR_POP_STACK (stack));
+#endif
 
       if (cur_btor->aux_mark) continue;
 
@@ -5919,7 +5934,11 @@ search_initial_applies_dual_prop (Btor *btor,
       }
 
       for (i = 0; i < cur_btor->arity; i++)
+#ifdef SEARCH_INIT_BFS
+        BTOR_ENQUEUE (btor->mm, queue, cur_btor->e[i]);
+#else
         BTOR_PUSH_STACK (btor->mm, stack, cur_btor->e[i]);
+#endif
     }
   }
   /* cleanup */
@@ -6035,6 +6054,9 @@ search_initial_applies_dual_prop (Btor *btor,
     cur_btor->aux_mark = 0;
     cur_btor->check    = 0;
   }
+#ifdef SEARCH_INIT_BFS
+  BTOR_RELEASE_QUEUE (btor->mm, queue);
+#endif
   BTOR_RELEASE_STACK (btor->mm, stack);
   BTOR_RELEASE_STACK (btor->mm, unmark_stack);
   btor_delete_node_map (key_map);
