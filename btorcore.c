@@ -43,7 +43,7 @@
 #define BTOR_CHECK_DUAL_PROP
 #endif
 
-//#define MARK_FOR_CC
+#define MARK_FOR_CC
 
 /*------------------------------------------------------------------------*/
 
@@ -5346,6 +5346,93 @@ update_sat_assignments (Btor *btor)
   return btor_changed_sat (smgr);
 }
 
+#ifndef NBTORLOG
+static int
+count_nodes_below (Btor *btor, BtorNode *exp, int *lambdas, int *applies)
+{
+  assert (btor);
+  assert (exp);
+
+  /* clone_mark is unused here, hence we use it and don't introduce
+   * yet another mark */
+
+  int i, res = 0, lam = 0, app = 0;
+  BtorNode *cur;
+  BtorNodePtrStack stack, unmark_stack;
+
+  BTOR_INIT_STACK (stack);
+  BTOR_INIT_STACK (unmark_stack);
+
+  BTOR_PUSH_STACK (btor->mm, stack, exp);
+  while (!BTOR_EMPTY_STACK (stack))
+  {
+    cur = BTOR_REAL_ADDR_NODE (BTOR_POP_STACK (stack));
+    if (cur->clone_mark) continue;
+    cur->clone_mark = 1;
+    BTOR_PUSH_STACK (btor->mm, unmark_stack, cur);
+    res += 1;
+    if (BTOR_IS_LAMBDA_NODE (cur))
+      lam += 1;
+    else if (BTOR_IS_APPLY_NODE (cur))
+      app += 1;
+    for (i = 0; i < cur->arity; i++)
+      BTOR_PUSH_STACK (btor->mm, stack, cur->e[i]);
+  }
+  while (!BTOR_EMPTY_STACK (unmark_stack))
+    BTOR_POP_STACK (unmark_stack)->clone_mark = 0;
+  BTOR_RELEASE_STACK (btor->mm, stack);
+  BTOR_RELEASE_STACK (btor->mm, unmark_stack);
+  *lambdas = BTOR_IS_LAMBDA_NODE (BTOR_REAL_ADDR_NODE (exp)) ? lam - 1 : lam;
+  *applies = BTOR_IS_APPLY_NODE (BTOR_REAL_ADDR_NODE (exp)) ? app - 1 : app;
+  return res - 1;
+}
+
+static int
+count_nodes_above (Btor *btor, BtorNode *exp, int *lambdas, int *applies)
+{
+  assert (btor);
+  assert (exp);
+
+  /* clone_mark is unused here, hence we use it and don't introduce
+   * yet another mark */
+
+  int res = 0, lam = 0, app = 0;
+  BtorNode *cur;
+  BtorNodeIterator it;
+  BtorNodePtrStack stack, unmark_stack;
+
+  BTOR_INIT_STACK (stack);
+  BTOR_INIT_STACK (unmark_stack);
+
+  BTOR_PUSH_STACK (btor->mm, stack, exp);
+  while (!BTOR_EMPTY_STACK (stack))
+  {
+    cur = BTOR_REAL_ADDR_NODE (BTOR_POP_STACK (stack));
+    if (cur->clone_mark) continue;
+    if (!cur->reachable) continue;
+    cur->clone_mark = 1;
+    BTOR_PUSH_STACK (btor->mm, unmark_stack, cur);
+    res += 1;
+    if (BTOR_IS_LAMBDA_NODE (cur))
+      lam += 1;
+    else if (BTOR_IS_APPLY_NODE (cur))
+      app += 1;
+    init_full_parent_iterator (&it, cur);
+    while (has_next_parent_full_parent_iterator (&it))
+      BTOR_PUSH_STACK (btor->mm, stack, next_parent_full_parent_iterator (&it));
+  }
+  while (!BTOR_EMPTY_STACK (unmark_stack))
+    BTOR_POP_STACK (unmark_stack)->clone_mark = 0;
+  BTOR_RELEASE_STACK (btor->mm, stack);
+  BTOR_RELEASE_STACK (btor->mm, unmark_stack);
+  *lambdas =
+      lam && BTOR_IS_LAMBDA_NODE (BTOR_REAL_ADDR_NODE (exp)) ? lam - 1 : lam;
+  *applies =
+      app && BTOR_IS_APPLY_NODE (BTOR_REAL_ADDR_NODE (exp)) ? app - 1 : app;
+  return res ? res - 1 : res;
+}
+#endif
+
 static void
 search_initial_applies (Btor *btor, BtorPtrHashTable *top_applies, int dp)
 {
@@ -5354,6 +5441,9 @@ search_initial_applies (Btor *btor, BtorPtrHashTable *top_applies, int dp)
   assert (!top_applies->count);
 
   int is_top;
+#ifndef NBTORLOG
+  int lam, app;
+#endif
   double start;
   BtorMemMgr *mm;
   BtorNode *cur, *cur_parent;
@@ -5418,6 +5508,14 @@ search_initial_applies (Btor *btor, BtorPtrHashTable *top_applies, int dp)
               && !btor_find_in_ptr_hash_table (top_applies, cur_parent))
           {
             BTORLOG ("initial apply: %s", node2string (cur_parent));
+            BTORLOG ("  nodes below: %d",
+                     count_nodes_below (btor, cur_parent, &lam, &app));
+            BTORLOG ("    -> lambdas below: %d", lam);
+            BTORLOG ("    -> applies below: %d", app);
+            BTORLOG ("  nodes above: %d",
+                     count_nodes_above (btor, cur_parent, &lam, &app));
+            BTORLOG ("    -> lambdas above: %d", lam);
+            BTORLOG ("    -> applies above: %d", app);
             btor_insert_in_ptr_hash_table (top_applies, cur_parent);
           }
         }
@@ -5431,6 +5529,12 @@ search_initial_applies (Btor *btor, BtorPtrHashTable *top_applies, int dp)
     if ((!dp || cur->check) && !btor_find_in_ptr_hash_table (top_applies, cur))
     {
       BTORLOG ("initial apply: %s", node2string (cur));
+      BTORLOG ("  nodes below: %d", count_nodes_below (btor, cur, &lam, &app));
+      BTORLOG ("    -> lambdas below: %d", lam);
+      BTORLOG ("    -> applies below: %d", app);
+      BTORLOG ("  nodes above: %d", count_nodes_above (btor, cur, &lam, &app));
+      BTORLOG ("    -> lambdas above: %d", lam);
+      BTORLOG ("    -> applies above: %d", app);
       btor_insert_in_ptr_hash_table (top_applies, cur);
     }
   }
@@ -5700,6 +5804,9 @@ search_initial_applies_dual_prop (Btor *btor,
   assert (check_id_table_aux_mark_unset_dbg (btor));
 
   int i, from, to, upper, lower;
+#ifndef NBTORLOG
+  int lam, app;
+#endif
   char *astr, *pastr;
   double start, delta, delta2;
   BtorNode *cur_btor, *cur_clone, *bv_const, *bv_eq, *slice;
@@ -5868,6 +5975,14 @@ search_initial_applies_dual_prop (Btor *btor,
               && !btor_find_in_ptr_hash_table (top_applies, cur_btor))
           {
             BTORLOG ("initial apply: %s", node2string (cur_btor));
+            BTORLOG ("  nodes below: %d",
+                     count_nodes_below (btor, cur_btor, &lam, &app));
+            BTORLOG ("    -> lambdas below: %d", lam);
+            BTORLOG ("    -> applies below: %d", app);
+            BTORLOG ("  nodes above: %d",
+                     count_nodes_above (btor, cur_btor, &lam, &app));
+            BTORLOG ("    -> lambdas above: %d", lam);
+            BTORLOG ("    -> applies above: %d", app);
 #ifndef MARK_FOR_CC
             btor_insert_in_ptr_hash_table (top_applies, cur_btor);
 #endif
@@ -5891,6 +6006,14 @@ search_initial_applies_dual_prop (Btor *btor,
         cur_btor->aux_mark = 1;
         BTOR_PUSH_STACK (btor->mm, unmark_stack, cur_btor);
         BTORLOG ("initial apply: %s", node2string (cur_btor));
+        BTORLOG ("  nodes below: %d",
+                 count_nodes_below (btor, cur_btor, &lam, &app));
+        BTORLOG ("    -> lambdas below: %d", lam);
+        BTORLOG ("    -> applies below: %d", app);
+        BTORLOG ("  nodes above: %d",
+                 count_nodes_above (btor, cur_btor, &lam, &app));
+        BTORLOG ("    -> lambdas above: %d", lam);
+        BTORLOG ("    -> applies above: %d", app);
 #ifndef MARK_FOR_CC
         btor_insert_in_ptr_hash_table (top_applies, cur_btor);
 #endif
