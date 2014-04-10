@@ -5984,6 +5984,7 @@ search_initial_applies_dual_prop (Btor *btor,
 
           if (!cur_btor->reachable) continue;
           if (cur_btor->aux_mark) continue;
+          if (cur_btor->parameterized) continue;
 #ifndef MARK_FOR_CC
           if (BTOR_IS_APPLY_NODE (cur_btor)
               && btor_find_in_ptr_hash_table (top_applies, cur_btor))
