@@ -5984,9 +5984,10 @@ search_initial_applies_dual_prop (Btor *btor,
 
           if (!cur_btor->reachable) continue;
           if (cur_btor->aux_mark) continue;
-          if (BTOR_IS_APPLY_NODE (cur_btor)
-              && btor_find_in_ptr_hash_table (top_applies, cur_btor))
-            continue;
+          //		  if (BTOR_IS_APPLY_NODE (cur_btor)
+          //		      && btor_find_in_ptr_hash_table (top_applies,
+          // cur_btor)) 		    continue;
+          if (cur_btor->check) continue;
 
           cur_btor->aux_mark = 1;
           BTOR_PUSH_STACK (btor->mm, unmark_stack, cur_btor);
