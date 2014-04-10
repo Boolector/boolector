@@ -3326,6 +3326,7 @@ main (int argc, char **argv)
     }
     else if (res == EXIT_ERROR)
     {
+      if (btormbt->quiet) printf ("%d ", btormbt->seed);
       printf ("exit %d\n", res);
     }
 
