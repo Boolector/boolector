@@ -5994,7 +5994,7 @@ search_initial_applies_dual_prop (Btor *btor,
 
           cur_btor->aux_mark = 1;
           BTOR_PUSH_STACK (btor->mm, unmark_stack, cur_btor);
-          if (BTOR_IS_APPLY_NODE (cur_btor) && !cur_btor->parameterized)
+          if (BTOR_IS_APPLY_NODE (cur_btor) && BTOR_IS_SYNTH_NODE (cur_btor))
           //&& !btor_find_in_ptr_hash_table (top_applies, cur_btor))
           {
             BTORLOG ("initial apply: %s", node2string (cur_btor));
