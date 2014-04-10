@@ -43,7 +43,7 @@
 #define BTOR_CHECK_DUAL_PROP
 #endif
 
-#define MARK_FOR_CC
+//#define MARK_FOR_CC
 
 /*------------------------------------------------------------------------*/
 
@@ -5984,15 +5984,18 @@ search_initial_applies_dual_prop (Btor *btor,
 
           if (!cur_btor->reachable) continue;
           if (cur_btor->aux_mark) continue;
-          //		  if (BTOR_IS_APPLY_NODE (cur_btor)
-          //		      && btor_find_in_ptr_hash_table (top_applies,
-          // cur_btor)) 		    continue;
+#ifndef MARK_FOR_CC
+          if (BTOR_IS_APPLY_NODE (cur_btor)
+              && btor_find_in_ptr_hash_table (top_applies, cur_btor))
+            continue;
+#else
           if (cur_btor->check) continue;
+#endif
 
           cur_btor->aux_mark = 1;
           BTOR_PUSH_STACK (btor->mm, unmark_stack, cur_btor);
-          if (BTOR_IS_APPLY_NODE (cur_btor) && !cur_btor->parameterized
-              && !btor_find_in_ptr_hash_table (top_applies, cur_btor))
+          if (BTOR_IS_APPLY_NODE (cur_btor) && !cur_btor->parameterized)
+          //&& !btor_find_in_ptr_hash_table (top_applies, cur_btor))
           {
             BTORLOG ("initial apply: %s", node2string (cur_btor));
             BTORLOG ("  nodes below: %d",
@@ -6005,8 +6008,9 @@ search_initial_applies_dual_prop (Btor *btor,
             BTORLOG ("    -> applies above: %d", app);
 #ifndef MARK_FOR_CC
             btor_insert_in_ptr_hash_table (top_applies, cur_btor);
-#endif
+#else
             cur_btor->check = 1;
+#endif
           }
 
           init_full_parent_iterator (&pit, cur_btor);
@@ -6036,8 +6040,9 @@ search_initial_applies_dual_prop (Btor *btor,
         BTORLOG ("    -> applies above: %d", app);
 #ifndef MARK_FOR_CC
         btor_insert_in_ptr_hash_table (top_applies, cur_btor);
-#endif
+#else
         cur_btor->check = 1;
+#endif
       }
     }
   }
@@ -6053,7 +6058,9 @@ search_initial_applies_dual_prop (Btor *btor,
   {
     cur_btor           = BTOR_POP_STACK (unmark_stack);
     cur_btor->aux_mark = 0;
-    cur_btor->check    = 0;
+#ifdef MARK_FOR_CC
+    cur_btor->check = 0;
+#endif
   }
 #ifdef SEARCH_INIT_BFS
   BTOR_RELEASE_QUEUE (btor->mm, queue);
