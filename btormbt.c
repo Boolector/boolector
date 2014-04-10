@@ -2732,7 +2732,7 @@ main (int argc, char **argv)
       btormbt->shadow = 1;
     else if (!strcmp (argv[i], "-o") || !strcmp (argv[i], "--out"))
     {
-      if (++i == argc) die ("argument to 'o' missing (try '-h')");
+      if (++i == argc) die ("argument to '-o' missing (try '-h')");
       if (argv[i][0] == '-') die ("invalid output directory given (try '-h')");
       btormbt->out = argv[i];
       DIR *dir     = opendir (argv[i]);
