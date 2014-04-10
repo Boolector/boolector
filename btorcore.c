@@ -6008,6 +6008,7 @@ search_initial_applies_dual_prop (Btor *btor,
             BTORLOG ("    -> applies above: %d", app);
 #ifndef MARK_FOR_CC
             btor_insert_in_ptr_hash_table (top_applies, cur_btor);
+            continue;
 #else
             cur_btor->check = 1;
 #endif
