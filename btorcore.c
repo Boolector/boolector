@@ -5784,7 +5784,7 @@ search_initial_applies_dual_prop (Btor * btor,
 }
 #endif
 
-#define SEARCH_INIT_BFS  // TODO debug
+//#define SEARCH_INIT_BFS  // TODO debug
 
 static void
 search_initial_applies_dual_prop (Btor *btor,
@@ -6008,10 +6008,10 @@ search_initial_applies_dual_prop (Btor *btor,
             BTORLOG ("    -> applies above: %d", app);
 #ifndef MARK_FOR_CC
             btor_insert_in_ptr_hash_table (top_applies, cur_btor);
-            continue;
 #else
             cur_btor->check = 1;
 #endif
+            continue;
           }
 
           init_full_parent_iterator (&pit, cur_btor);
