@@ -80,7 +80,7 @@ do
 		   ;;
     --btormbt-dir=*) BTORMBTDIR=$(echo "$1" | sed -e 's,^--btormbt-dir=,,')
 		     ;;
-    -*|[0-9]*) opts="$opts $1"
+    -*|[0-9a-zA-Z]*) opts="$opts $1"
                ;;
     *) break;;
   esac
