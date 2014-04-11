@@ -2853,6 +2853,8 @@ btor_rewrite_add_exp (Btor *btor, BtorNode *e0, BtorNode *e1)
     }
   }
 
+  // TODO: problematic as long we do not do 'addneg normalization'
+  //
   // e0 + e1 == ~(e00 + e01) + e1
   //         == (-(e00 + e01) -1) + e1
   //         == - e00 - e01 - 1 + e1
@@ -2878,37 +2880,31 @@ btor_rewrite_add_exp (Btor *btor, BtorNode *e0, BtorNode *e1)
     return result;
   }
 
+  // TODO: problematic as long we do not do 'addneg normalization'
+  //
   // e0 + e1 == e0 + ~(e10 + e11)
   //         == e0 + (-(e10 + e11) -1)
   //         == e0 - e10 - e11 - 1
   //         == e0 + (~e10 + 1) + (~e11 + 1) - 1
   //         == e0 + ((~e10 + ~e11) + 1)
   //
+  if (btor->options.rewrite_level > 2 && BTOR_IS_INVERTED_NODE (e1)
+      && btor->rec_rw_calls < BTOR_REC_RW_BOUND
+      && (temp = BTOR_REAL_ADDR_NODE (e1))->kind == BTOR_ADD_NODE)
   {
-    static int doit = 0;
-    if (!doit)
-      doit = (getenv ("BTORNORMADDCASE") && atoi (getenv ("BTORNORMADDCASE")))
-                 ? 1
-                 : -1;
-    if (doit > 0 && btor->options.rewrite_level > 2
-        && BTOR_IS_INVERTED_NODE (e1) && btor->rec_rw_calls < BTOR_REC_RW_BOUND
-        && (temp = BTOR_REAL_ADDR_NODE (e1))->kind == BTOR_ADD_NODE)
-    {
-      BtorNode *e10 = temp->e[0];
-      BtorNode *e11 = temp->e[1];
-      BtorNode *one, *sum;
-      BTOR_INC_REC_RW_CALL (btor);
-      one = btor_one_exp (btor, temp->len);
-      temp =
-          btor_add_exp (btor, BTOR_INVERT_NODE (e10), BTOR_INVERT_NODE (e11));
-      sum    = btor_add_exp (btor, temp, one);
-      result = btor_add_exp (btor, e0, sum);
-      BTOR_DEC_REC_RW_CALL (btor);
-      btor_release_exp (btor, sum);
-      btor_release_exp (btor, temp);
-      btor_release_exp (btor, one);
-      return result;
-    }
+    BtorNode *e10 = temp->e[0];
+    BtorNode *e11 = temp->e[1];
+    BtorNode *one, *sum;
+    BTOR_INC_REC_RW_CALL (btor);
+    one  = btor_one_exp (btor, temp->len);
+    temp = btor_add_exp (btor, BTOR_INVERT_NODE (e10), BTOR_INVERT_NODE (e11));
+    sum  = btor_add_exp (btor, temp, one);
+    result = btor_add_exp (btor, e0, sum);
+    BTOR_DEC_REC_RW_CALL (btor);
+    btor_release_exp (btor, sum);
+    btor_release_exp (btor, temp);
+    btor_release_exp (btor, one);
+    return result;
   }
 
   //  e0 + e1 == ~(e00 * e01) + e1
