@@ -1,10 +1,15 @@
 #include "btoribv.h"
 
-#include <cassert>
 #include <cstring>
 #include <iostream>
 #include <map>
 #include <string>
+
+#ifdef NDEBUG
+#undef NDEBUG
+#endif
+
+#include <cassert>
 
 using namespace std;
 
