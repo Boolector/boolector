@@ -1223,7 +1223,7 @@ cmp_node_id (const void *p, const void *q)
 {
   BtorNode *a = *(BtorNode **) p;
   BtorNode *b = *(BtorNode **) q;
-  return a->id - b->id;
+  return BTOR_REAL_ADDR_NODE (a)->id - BTOR_REAL_ADDR_NODE (b)->id;
 }
 
 static void
@@ -1374,15 +1374,14 @@ normalize_binary_comm_ass_exp (Btor *btor,
   qsort (
       stack.start, BTOR_COUNT_STACK (stack), sizeof (BtorNode *), cmp_node_id);
 
-  common = btor_copy_exp (btor, BTOR_POP_STACK (stack));
-  while (!BTOR_EMPTY_STACK (stack))
+  common = btor_copy_exp (btor, BTOR_PEEK_STACK (stack, 0));
+  for (i = 1; i < BTOR_COUNT_STACK (stack); i++)
   {
-    cur  = BTOR_POP_STACK (stack);
+    cur  = BTOR_PEEK_STACK (stack, i);
     temp = fptr (btor, common, cur);
     btor_release_exp (btor, common);
     common = temp;
   }
-
   BTOR_RELEASE_STACK (mm, stack);
 
 #if 0
@@ -2854,6 +2853,8 @@ btor_rewrite_add_exp (Btor *btor, BtorNode *e0, BtorNode *e1)
     }
   }
 
+  // TODO: problematic as long we do not do 'addneg normalization'
+  //
   // e0 + e1 == ~(e00 + e01) + e1
   //         == (-(e00 + e01) -1) + e1
   //         == - e00 - e01 - 1 + e1
@@ -2879,6 +2880,8 @@ btor_rewrite_add_exp (Btor *btor, BtorNode *e0, BtorNode *e1)
     return result;
   }
 
+  // TODO: problematic as long we do not do 'addneg normalization'
+  //
   // e0 + e1 == e0 + ~(e10 + e11)
   //         == e0 + (-(e10 + e11) -1)
   //         == e0 - e10 - e11 - 1
@@ -3004,7 +3007,7 @@ btor_rewrite_add_exp (Btor *btor, BtorNode *e0, BtorNode *e1)
     if (result) return result;
   }
 
-  //  e0 * e1 == ~(e00 * e01) + e1
+  //  e0 + e1 == ~(e00 * e01) + e1
   //
   if (btor->options.rewrite_level > 2 && BTOR_IS_INVERTED_NODE (e0)
       && btor->rec_rw_calls < BTOR_REC_RW_BOUND
@@ -3054,7 +3057,7 @@ btor_rewrite_add_exp (Btor *btor, BtorNode *e0, BtorNode *e1)
     if (result) return result;
   }
 
-  //  e0 * e1 == e0 + ~(e10 * e11)
+  //  e0 + e1 == e0 + ~(e10 * e11)
   //
   if (btor->options.rewrite_level > 2 && BTOR_IS_INVERTED_NODE (e1)
       && btor->rec_rw_calls < BTOR_REC_RW_BOUND

@@ -1,6 +1,6 @@
 /*  Boolector: Satisfiablity Modulo Theories (SMT) solver.
  *
- *  Copyright (C) 2012-2013 Armin Biere.
+ *  Copyright (C) 2012-2014 Armin Biere.
  *
  *  All rights reserved.
  *
@@ -312,7 +312,12 @@ BtorIBV::addConstant (unsigned id, const string& str, unsigned width)
   BtorIBVNode* node;
   assert (0 < id);
   assert (0 < width);  // TODO really?
-  assert (str.size () == width);
+  BTOR_ABORT_BOOLECTOR (
+      str.size () != width,
+      "constant '%s' width %ld does not match width argument %u",
+      str.c_str (),
+      (long) str.size (),
+      width);
   node = new_node (id, width);
   for (size_t i = 0; i < str.size (); i++)
     assert (str[i] == '0' || str[i] == '1' || str[i] == 'x');

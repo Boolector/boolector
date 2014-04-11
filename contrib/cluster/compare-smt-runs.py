@@ -10,6 +10,9 @@ class CmpSMTException (Exception):
     def __str__ (self):
         return "[cmpsmt] Error: {0:s}".format(self.msg)
 
+# required for loading additional resources for --html
+SCRIPTDIR = os.path.dirname(os.path.realpath(__file__))
+
 g_args = None
 
 g_files = {}
@@ -61,6 +64,13 @@ COLOR_DIFF = '\033[32m'
 COLOR_DISC = '\033[31m'
 COLOR_STAT = '\033[33m'
 COLOR_NOCOLOR = '\033[0m'
+
+HTML_CLASS = {
+    COLOR_BEST: 'best',
+    COLOR_DIFF: 'diff',
+    COLOR_DISC: 'disc',
+    COLOR_STAT: 'stat'
+}
 
 def _get_name_and_ext (filename):
     return ("".join(filename.rpartition('.')[:-2]), filename.rpartition('.')[-1])
@@ -298,8 +308,97 @@ def _pick_data ():
             g_best_run_time_eval[f] = None
             g_best_diff_run_time_eval[f] = None
 
- 
-        
+def _format_field(field, width, color=None, colspan=0, classes=[]):
+    field = "-" if field is None else str(field)
+
+    if g_args.html:
+        tag = "td"
+        if color is not None and color != COLOR_NOCOLOR:
+            classes.append(HTML_CLASS[color])
+        if "header" in classes:
+            tag = "th"
+            classes = classes[:]
+            classes.remove("header")
+        c = ' class="{}"'.format(" ".join(classes)) if len(classes) > 0 else ''
+        colspan = ' colspan="{}"'.format(colspan) if colspan > 0 else ''
+        field = "<{0:s}{1:s}{2:s}>{3:s}</{0:s}>".format(tag, c, colspan, field)
+    else:
+        field = field.rjust(width)
+        if color:
+            field = "{}{}{}".format(color, field, COLOR_NOCOLOR)
+
+    return field
+
+
+def _print_row (columns, widths, colors=None, colspans=None, classes=[]):
+    assert(len(columns) == len(widths))
+
+    formatted_cols = []
+    for i in range(len(columns)):
+        column = columns[i]
+        width = widths[i]
+        color = None if colors is None else colors[i]
+        colspan = 0 if colspans is None else colspans[i]
+        clazzes = [] if len(classes) == 0 else classes[i]
+        if isinstance(column, list):
+            assert(isinstance(width, list))
+            assert(isinstance(clazzes, list))
+            cols = []
+            for j in range(len(column)):
+                clz = [] if len(clazzes) == 0 else clazzes[j]
+                cols.append(_format_field(column[j], width[j], color,
+                                          colspan=colspan, classes=clz))
+            column = "".join(cols)
+        else:
+            column = _format_field(column, width, color, colspan, clazzes)
+
+        formatted_cols.append(column)
+
+    if g_args.html:
+        print("<tr>{}</tr>".format("".join(formatted_cols)))
+    else:
+        print("{} |".format(" | ".join(formatted_cols)))
+
+
+def _print_html_header():
+
+    style_css = ""
+    with open("{}/html/style.css".format(SCRIPTDIR), "r") as f:
+        style_css = f.read().replace('\n', '')
+
+    jquery_js = ""
+    with open("{}/html/jquery.js".format(SCRIPTDIR), "r") as f:
+        jquery_js = f.read().replace('\n', '') 
+
+    tableheaders_js = ""
+    with open("{}/html/stickytableheaders.js".format(SCRIPTDIR), "r") as f:
+        tableheaders_js = f.read().replace('\n', '') 
+
+    print("""<html>
+               <head>
+                 <style>{}</style>
+                 <script type="text/javascript">{}</script>
+                 <script type="text/javascript">{}</script>
+                 <script type="text/javascript">
+                    $(function() {{ $("#results").stickyTableHeaders(); }});
+                 </script>
+               </head>
+               <body>""".format(style_css, jquery_js, tableheaders_js))
+    print("""    <table id="legend">
+                   <tr>
+                     <th>LEGEND</th>
+                     <td class="best">best value</td>
+                     <td class="diff">difference of '{}' >= {}</td>
+                     <td class="disc">discrepancy</td>
+                     <td class="stat">status differs</td>
+                   </tr>
+                 </table>
+                 <table id="results">
+                    <thead>""".format(g_args.cmp_col, g_args.diff))
+
+def _print_html_footer():
+    print("<tbody></table></body></html>")
+
 def _print_data ():
     padding = 1
     name_col_width = padding + max(len(f) for f in g_files)
@@ -316,22 +415,30 @@ def _print_data ():
     beta_col_width = {}
     data_col_width = {}
     for d in g_args.dirs:
-        real_col_width[d] = padding + max(len("REAL[s]"),
-                max(len(str(item[1])) for item in g_run_real[d].items()))
-        time_col_width[d] = padding + max(len("TIME[s]"),
-                max(len(str(item[1])) for item in g_run_time[d].items()))
-        space_col_width[d] = padding + max(len("SPACE[s]"),
-                max(len(str(item[1])) for item in g_run_space[d].items()))
-        lods_col_width[d] = padding + max(len("LODS"),
-                max(len(str(item[1])) for item in g_run_lods[d].items()))
-        calls_col_width[d] = padding + max(len("CALLS"),
-                max(len(str(item[1])) for item in g_run_satcalls[d].items()))
-        sat_col_width[d] = padding + max(len("SAT[s]"),
-                max(len(str(item[1])) for item in g_run_time_sat[d].items()))
-        rw_col_width[d] = padding + max(len("RW[s]"),
-                max(len(str(item[1])) for item in g_run_time_rw[d].items()))
-        beta_col_width[d] = padding + max(len("BETA[s]"),
-                max(len(str(item[1])) for item in g_run_time_beta[d].items()))
+        real_col_width[d] = padding + (max(len("REAL[s]"),
+                max(len(str(item[1])) for item in g_run_real[d].items())) \
+                        if len(g_run_real[d]) else len("REAL"))
+        time_col_width[d] = padding + (max(len("TIME[s]"),
+                max(len(str(item[1])) for item in g_run_time[d].items())) \
+                        if len(g_run_time[d]) else len("TIME"))
+        space_col_width[d] = padding + (max(len("SPACE[s]"),
+                max(len(str(item[1])) for item in g_run_space[d].items())) \
+                        if len(g_run_space[d]) else len("SPACE"))
+        lods_col_width[d] = padding + (max(len("LODS"),
+                max(len(str(item[1])) for item in g_run_lods[d].items())) \
+                        if len(g_run_lods[d]) else len("LODS"))
+        calls_col_width[d] = padding + (max(len("CALLS"),
+                max(len(str(item[1])) for item in g_run_satcalls[d].items())) \
+                        if len(g_run_satcalls[d]) else len("CALLS"))
+        sat_col_width[d] = padding + (max(len("SAT[s]"),
+                max(len(str(item[1])) for item in g_run_time_sat[d].items())) \
+                        if len(g_run_time_sat[d]) else len("SAT[s]"))
+        rw_col_width[d] = padding + (max(len("RW[s]"),
+                max(len(str(item[1])) for item in g_run_time_rw[d].items())) \
+                        if len(g_run_time_rw[d]) else len("RW[s]"))
+        beta_col_width[d] = padding + (max(len("BETA[s]"),
+                max(len(str(item[1])) for item in g_run_time_beta[d].items())) \
+                        if len(g_run_time_beta[d]) else len("BETA[s]"))
         data_col_width[d] = stat_col_width + res_col_width \
                             + real_col_width[d] + time_col_width[d] \
                             + space_col_width[d] \
@@ -341,39 +448,68 @@ def _print_data ():
                             + lods_col_width[d] + calls_col_width[d] \
                             + sat_col_width[d] + rw_col_width[d] \
                             + beta_col_width[d]
+
+    if g_args.html:
+        _print_html_header()
     
-    print ("{} | {} |".format (
-        "DIRECTORY".rjust(name_col_width),
-        " | ".join(d.center(max(data_col_width[d], len(d))) 
-            for d in g_args.dirs)))
+    columns = ["DIRECTORY"]
+    columns.extend([os.path.basename(d.rstrip('/')) for d in g_args.dirs])
+    widths = [name_col_width]
+    widths.extend([max(data_col_width[d], len(d)) for d in g_args.dirs])
+    colspans = [0]
+    colspans.extend([(6 if g_args.bs else 5) for d in g_args.dirs])
+    if g_args.show_all:
+        for i in range(1, len(colspans)):
+            colspans[i] = 11
+    classes = [["header"]]
+    classes.extend([["borderleft", "header"] for d in g_args.dirs])
+    _print_row (columns, widths, colspans=colspans, classes=classes)
 
-    print ("{} | {} |\n".format (
-        "OPTIONS".rjust(name_col_width),
-        " | ".join(" ".join(opt for opt in g_run_opts[d]).center(
-                max(data_col_width[d], len(d)))
-            for d in g_args.dirs))) 
+    columns = ["OPTIONS"]
+    widths = [name_col_width]
+    for d in g_args.dirs:
+        columns.append(" ".join(opt for opt in g_run_opts[d]))
+        widths.append(max(data_col_width[d], len(d)))
+    _print_row (columns, widths, colspans=colspans, classes=classes)
 
-    if not g_args.bs:
-        print ("{} | {} |".format (
-            "BENCHMARK".rjust(name_col_width),
-            " | ".join("{}{}{}{}{}".format (
-                "STAT".rjust(stat_col_width),
-                "RESULT".rjust(res_col_width),
-                "REAL[s]".rjust(real_col_width[d]),
-                "TIME[s]".rjust(time_col_width[d]),
-                "SPACE[s]".rjust(space_col_width[d])) 
-                for d in g_args.dirs)))
-    else:
-        print ("{} | {} |".format (
-            "BENCHMARK".rjust(name_col_width),
-            " | ".join("{}{}{}{}{}{}".format (
-                "STAT".rjust(stat_col_width),
-                "LODS".rjust(lods_col_width[d]),
-                "CALLS".rjust(calls_col_width[d]),
-                "SAT[s]".rjust(sat_col_width[d]),
-                "RW[s]".rjust(rw_col_width[d]),
-                "BETA[s]".rjust(beta_col_width[d]))
-                for d in g_args.dirs)))
+    columns = ["BENCHMARK"]
+    widths = [name_col_width]
+    classes = [["header"]]
+
+    if not g_args.bs or g_args.show_all:
+        for d in g_args.dirs:
+            classes.append([["header"] for i in range(5)])
+            classes[-1][0].append("borderleft")
+            columns.append(["STAT", "RESULT", "REAL[s]", "TIME[s]", "SPACE[s]"])
+            widths.append([
+                stat_col_width,
+                res_col_width,
+                real_col_width[d],
+                time_col_width[d],
+                space_col_width[d]
+            ])
+
+    if g_args.bs or g_args.show_all:
+        for d in g_args.dirs:
+            classes.append([["header"] for i in range(6)])
+            classes[-1][0].append("borderleft")
+            columns.append(["STAT", "LODS", "CALLS", "SAT[s]", "RW[s]",
+                            "BETA[s]"])
+            widths.append([
+                stat_col_width,
+                lods_col_width[d],
+                calls_col_width[d],
+                sat_col_width[d],
+                rw_col_width[d],
+                beta_col_width[d]
+            ])
+
+    _print_row (columns, widths, classes=classes)
+
+    if g_args.html:
+        print("</thead><tbody>")
+
+    # print data rows
 
     for f in sorted(g_files.keys()):
         if g_args.t \
@@ -403,11 +539,30 @@ def _print_data ():
                 if len(set(iter(s))) > 1 \
                 else (COLOR_DISC if len(set(iter(r))) > 1 \
                                  else COLOR_NOCOLOR)
-        if not g_args.bs:
-            print ("{}{} | {} |{}".format (
-                color,
-                f.rjust(name_col_width),
-                " | ".join("{}{}{}{}{}{}{}".format (
+
+
+        columns = [f]
+        widths = [name_col_width]
+        colors = [color]
+        classes = [["nowrap"]]
+
+        if not g_args.bs or g_args.show_all:
+            for d in g_args.dirs:
+                columns.append([
+                    g_run_status[d][idx],
+                    g_run_result[d][idx],
+                    g_run_real[d][idx],
+                    g_run_time[d][idx],
+                    g_run_space[d][idx]
+                ])
+                widths.append([
+                    stat_col_width,
+                    res_col_width,
+                    real_col_width[d],
+                    time_col_width[d],
+                    space_col_width[d],
+                ])
+                colors.append(
                     color \
                         if color != COLOR_NOCOLOR \
                         else (\
@@ -432,20 +587,35 @@ def _print_data ():
                                    or (g_best_run_space[f]
                                        and g_best_run_space[f] == d
                                        and g_args.cmp_col == "space") \
-                                else COLOR_NOCOLOR)),
-                    g_run_status[d][idx].rjust(stat_col_width),
-                    str(g_run_result[d][idx]).rjust(res_col_width),
-                    str(g_run_real[d][idx]).rjust(real_col_width[d]),
-                    str(g_run_time[d][idx]).rjust(time_col_width[d]),
-                    str(g_run_space[d][idx]).rjust(space_col_width[d]),
-                    color if color != COLOR_NOCOLOR else COLOR_NOCOLOR) \
-                    for d in g_args.dirs),
-                    COLOR_NOCOLOR))
-        else:
-            print ("{}{} | {} |{}".format (
-                color,
-                f.rjust(name_col_width),
-                " | ".join("{}{}{}{}{}{}{}{}".format (
+                                else COLOR_NOCOLOR))
+                )
+                classes.append([["borderleft"]])
+                classes[-1].extend([[] for i in range(4)])
+
+        if g_args.bs or g_args.show_all:
+            for d in g_args.dirs:
+                columns.append([
+                    g_run_status[d][idx],
+                    g_run_lods[d][idx] \
+                        if idx in g_run_lods[d] else None,
+                    g_run_satcalls[d][idx] \
+                        if idx in g_run_satcalls[d] else None,
+                    g_run_time_sat[d][idx] \
+                        if idx in g_run_time_sat[d] else None,
+                    g_run_time_rw[d][idx] \
+                        if idx in g_run_time_rw[d] else None,
+                    g_run_time_beta[d][idx] \
+                        if idx in g_run_time_beta[d] else None
+                ])
+                widths.append([
+                    stat_col_width,
+                    lods_col_width[d],
+                    calls_col_width[d],
+                    sat_col_width[d],
+                    rw_col_width[d],
+                    beta_col_width[d]
+                ])
+                colors.append(
                     color \
                         if color != COLOR_NOCOLOR \
                         else (\
@@ -482,27 +652,15 @@ def _print_data ():
                                    or (g_best_run_time_beta[f]
                                        and g_best_run_time_beta[f] == d
                                        and g_args.cmp_col == "beta")
-                                else COLOR_NOCOLOR)),
-                    g_run_status[d][idx].rjust(stat_col_width),
-                    str(g_run_lods[d][idx]).rjust(lods_col_width[d]) \
-                            if idx in g_run_lods[d] \
-                            else " - ".rjust(lods_col_width[d]),
-                    str(g_run_satcalls[d][idx]).rjust(calls_col_width[d]) \
-                            if idx in g_run_satcalls[d] \
-                            else "-".rjust(calls_col_width[d]),
-                    str(g_run_time_sat[d][idx]).rjust(sat_col_width[d]) \
-                            if idx in g_run_time_sat[d] \
-                            else "-".rjust(sat_col_width[d]),
-                    str(g_run_time_rw[d][idx]).rjust(rw_col_width[d]) \
-                            if idx in g_run_time_rw[d] \
-                            else "-".rjust(rw_col_width[d]),
-                    str(g_run_time_beta[d][idx]).rjust(beta_col_width[d]) \
-                            if idx in g_run_time_beta[d] \
-                            else "-".rjust(beta_col_width[d]),
-                    color if color != COLOR_NOCOLOR else COLOR_NOCOLOR) \
-                    for d in g_args.dirs),
-                    COLOR_NOCOLOR))
+                                else COLOR_NOCOLOR))
+                )
+                classes.append([["borderleft"]])
+                classes[-1].extend([[] for i in range(5)])
 
+        _print_row(columns, widths, colors, classes=classes)
+
+    if g_args.html:
+        _print_html_footer()
 
 
 if __name__ == "__main__":
@@ -511,9 +669,9 @@ if __name__ == "__main__":
         aparser.add_argument ("-f", metavar="string", dest="filter", type=str, 
                 default=None,
                 help="filter benchmark files by <string>")
-        aparser.add_argument ("-hd", metavar="seconds", dest="diff", type=int,
+        aparser.add_argument ("-hd", metavar="units", dest="diff", type=int,
                 default=5,
-                help="highlight time diff > <seconds> (default: 5)")
+                help="highlight diff > <units> (default: 5)")
         aparser.add_argument ("-bs", action="store_true",
                 help="compare boolector statistics")
         aparser.add_argument ("-t", action="store_true",
@@ -527,6 +685,10 @@ if __name__ == "__main__":
         aparser.add_argument ("-c", metavar="string", dest="cmp_col", 
                 default=None,
                 help="compare by column <string> (default: TIME, LODS if -bs)")
+        aparser.add_argument ("--html", action="store_true",
+                help="generte html output")
+        aparser.add_argument ("--show-all", action="store_true",
+                help="show all statistics")
         aparser.add_argument ("dirs", nargs=REMAINDER,
                 help="two or more smt run directories to compare")
         g_args = aparser.parse_args()
