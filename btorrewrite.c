@@ -4723,8 +4723,11 @@ RESTART:
         {
           if (btor->rec_rw_calls >= BTOR_REC_RW_BOUND)
             goto BTOR_REWRITE_COND_NODE_NO_REWRITE;
-          normalize_binary_comm_ass_exp (
-              btor, e_if, e_else, &e_if_norm, &e_else_norm, fptr, e_if->kind);
+          if (e_if->kind == BTOR_ADD_NODE)
+            normalize_adds_exp (btor, e_if, e_else, &e_if_norm, &e_else_norm);
+          else
+            normalize_binary_comm_ass_exp (
+                btor, e_if, e_else, &e_if_norm, &e_else_norm, fptr, e_if->kind);
           BTOR_INC_REC_RW_CALL (btor);
           result = btor_rewrite_cond_exp (btor, e_cond, e_if_norm, e_else_norm);
           BTOR_DEC_REC_RW_CALL (btor);
