@@ -1,0 +1,108 @@
+#!/bin/bash
+
+readonly CONTRIBDIR=$(dirname "$(readlink -f $0)")
+readonly THREAD_TMP_FILE="/tmp/runparbtormbt$$_"
+readonly MAX_THREADS=$(grep -c processor /proc/cpuinfo)
+BTORMBTDIR=$CONTRIBDIR/../
+
+die ()
+{
+  echo "*** $(basename $0): $*" 1>&2
+  usage
+  exit 1
+}
+
+delete-tmp-files ()
+{
+  for file in ${files[@]}; do
+    echo -e "\n$file"
+    cat $file
+    rm -f $file 
+  done
+}
+
+collect-stats ()
+{
+  num_rounds=0
+  num_bugs=0
+  for file in ${files[@]}; do
+    ((num_bugs += $(grep bugs $file | awk '{print $1}')))
+    rounds=$(grep rounds $file | awk '{print $1}')
+    ((num_rounds += rounds))
+  done
+
+  echo "host: $(hostname)"
+  echo "threads: $threads"
+  echo "bugs found: $num_bugs"
+  echo "total rounds: $num_rounds"
+}
+
+cleanup-and-exit ()
+{
+  kill $(jobs -p) 2> /dev/null
+  wait $(jobs -p)
+  collect-stats
+  delete-tmp-files
+  exit
+}
+
+usage ()
+{
+  echo -n  "usage: $(basename $0) "
+  echo -en "[<option>|<btormbt_options>] <command>"
+  echo
+  echo     "  options:"
+  echo     "    -h,--help            print this message and exit"
+  echo     "    --max-time=<val>     time limit per thread in seconds"
+  echo     "    --threads=<val>      min. 1, max. $MAX_THREADS"
+  echo     "    --btormbt-dir=<dir>  use btormbt in <dir>"
+  echo
+  echo     "  btormbt_options: see btormbt -h"
+  echo
+}
+
+trap "cleanup-and-exit;" SIGHUP SIGINT SIGTERM
+
+maxtime=0
+threads=1
+opts=""
+while [ $# -gt 0 ]
+do
+  case $1 in
+    -h|--help) usage
+               exit
+               ;;
+    --max-time=*) maxtime=$(echo "$1" | sed -e 's,^--max-time=,,')
+		  ;;
+    --threads=*) threads=$(echo "$1" | sed -e 's,^--threads=,,')
+		 ;;
+    --max-threads) threads=$MAX_THREADS
+		   ;;
+    --btormbt-dir=*) BTORMBTDIR=$(echo "$1" | sed -e 's,^--btormbt-dir=,,')
+		     ;;
+    *) opts="$opts $1"
+               ;;
+  esac
+  shift
+done
+
+if ((threads <= 0 || threads > MAX_THREADS)); then
+  echo "invalid value for --threads: $threads"
+  exit
+fi
+
+for ((i = 0; i < threads; i++)); do
+  files[$i]=$THREAD_TMP_FILE$i
+  if ((maxtime > 0)); then
+    ((maxtime_kill = maxtime + 10))
+    timeout -s SIGTERM -k $maxtime_kill $maxtime \
+      $BTORMBTDIR/btormbt -q $opts > ${files[$i]} 2>&1 &
+  else
+    $BTORMBTDIR/btormbt -q $opts > ${files[$i]} 2>&1 &
+  fi
+  children="$children $!"
+done
+
+# wait for all spawned subprocesses
+wait $children
+cleanup-and-exit
