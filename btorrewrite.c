@@ -2195,6 +2195,56 @@ btor_rebuild_top_add (Btor *btor, BtorNode *e, BtorNode *c, BtorNode *r)
   return res;
 }
 
+static void
+normalize_add_exp (Btor *btor, BtorNode **top_ptr)
+{
+  BtorNode *top, *real_top, *node, *res;
+  BtorPtrHashTable *seen;
+  BtorNodePtrStack stack;
+  BtorPtrHashBucket *b;
+  int c, sign;
+  if (btor->options.rewrite_level < 2) return;
+  top      = *top_ptr;
+  real_top = BTOR_REAL_ADDR_NODE (top);
+  if (real_top->kind != BTOR_ADD_NODE) return;
+  seen = btor_new_ptr_hash_table (btor->mm,
+                                  (BtorHashPtr) btor_hash_exp_by_id,
+                                  (BtorCmpPtr) btor_compare_exp_by_id);
+  BTOR_INIT_STACK (stack);
+  c = 0;
+  while (!BTOR_EMPTY_STACK (stack))
+  {
+    node = BTOR_POP_STACK (stack);
+    if (BTOR_IS_INVERTED_NODE (node))
+    {
+      // ~node == -node - 1
+      node = BTOR_REAL_ADDR_NODE (node);
+      sign = -1;
+      c--;
+    }
+    else
+      sign = 1;
+
+    if (node->kind == BTOR_ADD_NODE)
+    {
+    }
+    else
+    {
+      assert (!BTOR_IS_INVERTED_NODE (node));
+      b = btor_find_in_ptr_hash_table (seen, node);
+      if (!b) b = btor_insert_in_ptr_hash_table (seen, node);
+      b->data.asInt += sign;
+    }
+  }
+  BTOR_PUSH_STACK (btor->mm, stack, real_top);
+  BTOR_RELEASE_STACK (btor->mm, stack);
+  btor_delete_ptr_hash_table (seen);
+  if (real_top != top) res = BTOR_INVERT_NODE (res);
+  assert (*top_ptr == top);
+  *top_ptr = res;
+  btor_release_exp (btor, top);
+}
+
 BtorNode *
 btor_rewrite_eq_exp (Btor *btor, BtorNode *e0, BtorNode *e1)
 {
@@ -2230,6 +2280,11 @@ btor_rewrite_eq_exp (Btor *btor, BtorNode *e0, BtorNode *e1)
 
   e0 = normalize_negated_add (btor, e0);
   e1 = normalize_negated_add (btor, e1);
+
+#if 0
+  normalize_add_exp (btor, &e0);
+  normalize_add_exp (btor, &e1);
+#endif
 
   /* ~e0 == ~e1 is the same as e0 == e1 */
   if (BTOR_IS_INVERTED_NODE (e0) && BTOR_IS_INVERTED_NODE (e1))
