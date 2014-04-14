@@ -4946,7 +4946,6 @@ update_reachable (Btor *btor, int check_all_tables)
 
   int i;
   BtorNode *cur;
-  BtorPtrHashBucket *b;
   BtorHashTableIterator it;
 
   assert (check_id_table_mark_unset_dbg (btor));
