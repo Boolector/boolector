@@ -817,7 +817,7 @@ def _print_data ():
                                    and g_args.cmp_col == "sat") \
                                or (g_best_diff_run_time_coll[f]
                                    and g_best_diff_run_time_coll[f] == d 
-                                   and g_args.cmp_col == "coll") \
+                                   and g_args.cmp_col == "col") \
                             else ( \
                                 COLOR_BEST \
                                 if (g_best_run_time[f]
@@ -834,7 +834,7 @@ def _print_data ():
                                        and g_args.cmp_col == "sat") \
                                    or (g_best_run_time_coll[f]
                                        and g_best_run_time_coll[f] == d
-                                       and g_args.cmp_col == "coll") \
+                                       and g_args.cmp_col == "col") \
                                 else COLOR_NOCOLOR))
                     )
                 classes.append([["borderleft"]])
