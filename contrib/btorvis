@@ -11,6 +11,7 @@ pdfreader=unknown
 ps2pdf=unknown
 contribdir=$(dirname "$(readlink -f $0)")
 btor2dot=$(readlink -f "$contribdir/btor2dot.py")
+btor2dotopts=""
 
 trap "rm -f $tmpfile_ps $tmpfile_pdf; exit" SIGHUP SIGINT SIGTERM
 
@@ -32,6 +33,7 @@ do
         -h|--help) echo -n "usage: $(basename $0)"
                    echo -e " [ -h | --help | --ids] [<file>]\n"
                    exit 0;;
+	-*)        btor2dotopts="$btor2dotopts $1" ;;
         *)         break;;
   esac
   shift
@@ -85,7 +87,7 @@ fi
 
 info "temp file: $tmpfile_pdf"
 info "generating dot file"
-cat "$inputfile" | "$btor2dot" | dot -Tps2 > "$tmpfile_ps"
+cat "$inputfile" | "$btor2dot" $btor2dotopts | dot -Tps2 > "$tmpfile_ps"
 
 info "generation pdf file"
 "$ps2pdf" "$tmpfile_ps" "${ps2pdfoutputopt}${tmpfile_pdf}"
