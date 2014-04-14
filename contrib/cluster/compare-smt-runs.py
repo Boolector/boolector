@@ -45,11 +45,11 @@ FILTER_LOG = {
                  False],
   'time_eval':  ['EVAL[s]', b'seconds expression evaluation',
                  lambda x: float(x.split()[1]), False],
-  'time_app':   ['APP[s]', b'initial applies search',
-                 lambda x: float(x.split()[1]), False],
   'time_clapp': ['CLONE[s]', b'cloning for initial applies search',
                  lambda x: float(x.split()[1]), False],
   'time_sapp':  ['SAT[s]', b'SAT solving for initial applies search',
+                 lambda x: float(x.split()[1]), False],
+  'time_app':   ['APP[s]', b'seconds initial applies search',
                  lambda x: float(x.split()[1]), False],
   'time_coll':  ['COL[s]', b'collecting initial applies', 
                  lambda x: float(x.split()[1]), False]
