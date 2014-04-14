@@ -927,13 +927,18 @@ btor_print_stats_btor (Btor *btor)
     btor_msg (
         btor,
         1,
+        "%.2f seconds collecting bv vars and apps for initial applies search",
+        btor->time.search_init_apps_collect_var_apps);
+    btor_msg (
+        btor,
+        1,
         "%.2f seconds collecting initial applies via failed assumptions (FA)",
-        btor->time.search_init_apps_collect);
+        btor->time.search_init_apps_collect_fa);
     btor_msg (
         btor,
         1,
         "%.2f seconds cone traversal when collecting initial applies via FA",
-        btor->time.search_init_apps_collect_cone);
+        btor->time.search_init_apps_collect_fa_cone);
   }
   btor_msg (
       btor, 1, "%.2f seconds determinig failed assumptions", btor->time.failed);
@@ -5699,7 +5704,7 @@ search_initial_applies_dual_prop (Btor * btor,
 	}
     }
 
-  btor->time.search_init_apps_collect += btor_time_stamp () - delta;
+  btor->time.search_init_apps_collect_fa += btor_time_stamp () - delta;
 
   /* cleanup */ 
   while (!BTOR_EMPTY_STACK (unmark_stack))
@@ -5785,6 +5790,7 @@ search_initial_applies_dual_prop (Btor *btor,
 
   /* assume assignments of bv vars and applies, partial assignments are
    * assumed as partial assignment (as slice on resp. var/apply) */
+  delta = btor_time_stamp ();
   init_node_hash_table_iterator (&it, btor->synthesized_constraints);
   queue_node_hash_table_iterator (&it, btor->assumptions);
   while (has_next_node_hash_table_iterator (&it))
@@ -5873,6 +5879,7 @@ search_initial_applies_dual_prop (Btor *btor,
   /* cleanup */
   while (!BTOR_EMPTY_STACK (unmark_stack))
     BTOR_POP_STACK (unmark_stack)->aux_mark = 0;
+  btor->time.search_init_apps_collect_var_apps += btor_time_stamp () - delta;
 
   delta = btor_time_stamp ();
   btor_sat_aux_btor (clone);
@@ -5953,7 +5960,7 @@ search_initial_applies_dual_prop (Btor *btor,
 		      BTOR_PUSH_STACK (btor->mm, stack, cur_btor);
 		    }
 		}
-	      btor->time.search_init_apps_collect_cone += 
+	      btor->time.search_init_apps_collect_fa_cone += 
 		btor_time_stamp () - delta2;
 #endif
       }
@@ -5982,7 +5989,7 @@ search_initial_applies_dual_prop (Btor *btor,
     }
   }
 
-  btor->time.search_init_apps_collect += btor_time_stamp () - delta;
+  btor->time.search_init_apps_collect_fa += btor_time_stamp () - delta;
 
 #ifdef MARK_FOR_CC
   search_initial_applies (btor, top_applies, 1);
@@ -8353,34 +8360,37 @@ btor_sat_aux_btor (Btor *btor)
   assert (check_all_hash_tables_proxy_free_dbg (btor));
   assert (check_all_hash_tables_simp_free_dbg (btor));
 
+#if 0
   // FIXME this is a hack to enable old model gen behaviour
   if (btor->options.model_gen)
-  {
-    BtorHashTableIterator it;
-    BtorNode *tmp;
-    init_node_hash_table_iterator (&it, btor->var_rhs);
-    while (has_next_node_hash_table_iterator (&it))
     {
-      tmp = next_node_hash_table_iterator (&it);
-      tmp = btor_simplify_exp (btor, tmp);
-      if (BTOR_REAL_ADDR_NODE (tmp)->vread) continue;
-      synthesize_exp (btor, tmp, 0);
-      if (!BTOR_REAL_ADDR_NODE (tmp)->tseitin)
-      {
-        btor_aigvec_to_sat_tseitin (btor->avmgr, BTOR_REAL_ADDR_NODE (tmp)->av);
-        BTOR_REAL_ADDR_NODE (tmp)->tseitin = 1;
-      }
+      BtorHashTableIterator it;
+      BtorNode *tmp;
+      init_node_hash_table_iterator (&it, btor->var_rhs);
+      while (has_next_node_hash_table_iterator (&it))
+	{
+	  tmp = next_node_hash_table_iterator (&it);
+	  tmp = btor_simplify_exp (btor, tmp);
+	  if (BTOR_REAL_ADDR_NODE (tmp)->vread) continue;
+	  synthesize_exp (btor, tmp, 0);
+	  if (!BTOR_REAL_ADDR_NODE (tmp)->tseitin)
+	    {
+	      btor_aigvec_to_sat_tseitin (
+		  btor->avmgr, BTOR_REAL_ADDR_NODE (tmp)->av);
+	      BTOR_REAL_ADDR_NODE (tmp)->tseitin = 1;
+	    }
+	}
+      init_node_hash_table_iterator (&it, btor->array_rhs);
+      while (has_next_node_hash_table_iterator (&it))
+	{
+	  tmp = next_node_hash_table_iterator (&it);
+	  tmp = btor_simplify_exp (btor, tmp);
+	  if (BTOR_REAL_ADDR_NODE (tmp)->vread) continue;
+	  synthesize_exp (btor, tmp, 0);
+	}
     }
-    init_node_hash_table_iterator (&it, btor->array_rhs);
-    while (has_next_node_hash_table_iterator (&it))
-    {
-      tmp = next_node_hash_table_iterator (&it);
-      tmp = btor_simplify_exp (btor, tmp);
-      if (BTOR_REAL_ADDR_NODE (tmp)->vread) continue;
-      synthesize_exp (btor, tmp, 0);
-    }
-  }
   //
+#endif
 #ifndef NDEBUG
   BtorPtrHashBucket *b;
   for (b = btor->assumptions->first; b; b = b->next)
