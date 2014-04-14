@@ -949,15 +949,16 @@ btor_new_btor (void)
                                            (BtorHashPtr) btor_hash_exp_by_id,
                                            (BtorCmpPtr) btor_compare_exp_by_id);
 
-  btor->dvn_id                       = 1;
-  btor->dan_id                       = 1;
-  btor->valid_assignments            = 1;
-  btor->options.rewrite_level        = 3;
-  btor->vread_index_id               = 1;
-  btor->msgtick                      = -1;
-  btor->options.pprint               = 1;
-  btor->options.slice_propagation    = 0;
-  btor->options.simplify_constraints = 1;
+  btor->dvn_id                           = 1;
+  btor->dan_id                           = 1;
+  btor->valid_assignments                = 1;
+  btor->options.rewrite_level            = 3;
+  btor->vread_index_id                   = 1;
+  btor->msgtick                          = -1;
+  btor->options.pprint                   = 1;
+  btor->options.slice_propagation        = 0;
+  btor->options.simplify_constraints     = 1;
+  btor->options.rewrite_level_partial_br = 1;
 
   BTOR_PUSH_STACK (btor->mm, btor->nodes_id_table, 0);
 

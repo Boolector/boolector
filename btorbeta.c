@@ -1263,7 +1263,8 @@ btor_beta_reduce_partial_aux (Btor *btor,
   btor->stats.beta_reduce_calls++;
 
   rwl = btor->options.rewrite_level;
-  if (btor->options.rewrite_level > 0) btor->options.rewrite_level = 1;
+  if (btor->options.rewrite_level > 0)
+    btor->options.rewrite_level = btor->options.rewrite_level_partial_br;
 
   mm = btor->mm;
   BTOR_INIT_STACK (stack);
