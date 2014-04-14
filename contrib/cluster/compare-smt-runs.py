@@ -402,6 +402,8 @@ if __name__ == "__main__":
         aparser.add_argument ("-d", metavar="float", dest="diff", type=float,
                 default=0.1,
                 help="highlight difference if greater than <float>")
+        aparser.add_argument ("-bs", action="store_true",
+                help="compare boolector statistics")
         aparser.add_argument ("-t", action="store_true",
                 help="show timeouts only")
         aparser.add_argument ("-m", action="store_true",
@@ -433,6 +435,9 @@ if __name__ == "__main__":
             if not os.path.isdir(d):
                 raise CmpSMTException ("given smt run is not a directory")
 
+        if g_args.bs:
+            g_args.columns = \
+                    "status,lods,calls,time_sat,time_rw,time_beta"
         g_args.columns = g_args.columns.split(',')
         for c in g_args.columns:
             if c not in FILE_STATS_KEYS:
