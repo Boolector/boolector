@@ -4399,7 +4399,8 @@ btor_shallow_subst (
     {
       case BTOR_BV_CONST_NODE:
       case BTOR_BV_VAR_NODE:
-      case BTOR_ARRAY_VAR_NODE: res = btor_copy_exp (btor, real); break;
+      case BTOR_ARRAY_VAR_NODE:
+      case BTOR_PARAM_NODE: res = btor_copy_exp (btor, real); break;
       case BTOR_SLICE_NODE:
         res = btor_slice_exp (btor, s[0], real->upper, real->lower);
         break;
@@ -4412,9 +4413,9 @@ btor_shallow_subst (
       case BTOR_SLL_NODE: res = btor_sll_exp (btor, s[0], s[1]); break;
       case BTOR_SRL_NODE: res = btor_srl_exp (btor, s[0], s[1]); break;
       case BTOR_UDIV_NODE: res = btor_udiv_exp (btor, s[0], s[1]); break;
-      case BTOR_UREM_NODE: res = btor_urem_exp (btor, s[0], s[1]);
-      case BTOR_CONCAT_NODE: res = btor_concat_exp (btor, s[0], s[1]);
-      case BTOR_LAMBDA_NODE: res = btor_lambda_exp (btor, s[0], s[1]);
+      case BTOR_UREM_NODE: res = btor_urem_exp (btor, s[0], s[1]); break;
+      case BTOR_CONCAT_NODE: res = btor_concat_exp (btor, s[0], s[1]); break;
+      case BTOR_LAMBDA_NODE: res = btor_lambda_exp (btor, s[0], s[1]); break;
       default:
         assert (BTOR_IS_BV_COND_NODE (real));
         return btor_cond_exp (btor, s[0], s[1], s[2]);
