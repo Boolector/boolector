@@ -43,6 +43,8 @@
 #define BTOR_CHECK_MODEL
 #endif
 
+//#define BTOR_DO_NOT_LAZY_SYNTHESIZE
+
 /*------------------------------------------------------------------------*/
 
 #define BTOR_INIT_UNIQUE_TABLE(mm, table) \
@@ -961,15 +963,16 @@ btor_new_btor (void)
                                            (BtorHashPtr) btor_hash_exp_by_id,
                                            (BtorCmpPtr) btor_compare_exp_by_id);
 
-  btor->dvn_id                       = 1;
-  btor->dan_id                       = 1;
-  btor->valid_assignments            = 1;
-  btor->options.rewrite_level        = 3;
-  btor->vread_index_id               = 1;
-  btor->msgtick                      = -1;
-  btor->options.pprint               = 1;
-  btor->options.slice_propagation    = 0;
-  btor->options.simplify_constraints = 1;
+  btor->dvn_id                           = 1;
+  btor->dan_id                           = 1;
+  btor->valid_assignments                = 1;
+  btor->options.rewrite_level            = 3;
+  btor->vread_index_id                   = 1;
+  btor->msgtick                          = -1;
+  btor->options.pprint                   = 1;
+  btor->options.slice_propagation        = 0;
+  btor->options.simplify_constraints     = 1;
+  btor->options.rewrite_level_partial_br = 1;
 
   BTOR_PUSH_STACK (btor->mm, btor->nodes_id_table, 0);
 
@@ -4685,6 +4688,10 @@ synthesize_exp (Btor *btor, BtorNode *exp, BtorPtrHashTable *backannotation)
       {
         cur->av = btor_const_aigvec (avmgr, cur->bits);
         BTORLOG ("  synthesized: %s", node2string (cur));
+#ifdef BTOR_DO_NOT_LAZY_SYNTHESIZE
+        cur->tseitin = 1;
+        btor_aigvec_to_sat_tseitin (avmgr, cur->av);
+#endif
       }
       else if (BTOR_IS_BV_VAR_NODE (cur))
       {
@@ -4717,24 +4724,46 @@ synthesize_exp (Btor *btor, BtorNode *exp, BtorPtrHashTable *backannotation)
             b->data.asStr = btor_strdup (mm, name);
           }
         }
+#ifdef BTOR_DO_NOT_LAZY_SYNTHESIZE
+        cur->tseitin = 1;
+        btor_aigvec_to_sat_tseitin (avmgr, cur->av);
+#endif
       }
       else if (BTOR_IS_APPLY_NODE (cur) && !cur->parameterized)
       {
         cur->av = btor_var_aigvec (avmgr, cur->len);
         BTORLOG ("  synthesized: %s", node2string (cur));
+#ifdef BTOR_DO_NOT_LAZY_SYNTHESIZE
+        cur->tseitin = 1;
+        btor_aigvec_to_sat_tseitin (avmgr, cur->av);
+#endif
         assert (BTOR_IS_REGULAR_NODE (cur->e[0]));
         assert (BTOR_IS_FUN_NODE (cur->e[0]));
+#ifdef BTOR_DO_NOT_LAZY_SYNTHESIZE
+        goto PUSH_CHILDREN;
+#endif
       }
+#ifndef BTOR_DO_NOT_LAZY_SYNTHESIZE
       else if (BTOR_IS_FUN_NODE (cur))
       {
         /* we stop at function nodes as they will be lazily synthesized
          * and encoded during consistency checking */
       }
+#endif
       else
       {
+#ifdef BTOR_DO_NOT_LAZY_SYNTHESIZE
+      PUSH_CHILDREN:
+#else
         assert (!BTOR_IS_FUN_NODE (cur));
+#endif
         /* always skip argument nodes and parameterized nodes */
+#ifdef BTOR_DO_NOT_LAZY_SYNTHESIZE
+        if (cur->parameterized || BTOR_IS_ARGS_NODE (cur)
+            || BTOR_IS_FUN_NODE (cur))
+#else
         if (cur->parameterized || BTOR_IS_ARGS_NODE (cur))
+#endif
           cur->synth_mark = 2;
         else
           cur->synth_mark = 1;
@@ -4761,6 +4790,10 @@ synthesize_exp (Btor *btor, BtorNode *exp, BtorPtrHashTable *backannotation)
         cur->av = btor_slice_aigvec (avmgr, av0, cur->upper, cur->lower);
         BTORLOG ("  synthesized: %s", node2string (cur));
         if (invert_av0) btor_invert_aigvec (avmgr, av0);
+#ifdef BTOR_DO_NOT_LAZY_SYNTHESIZE
+        cur->tseitin = 1;
+        btor_aigvec_to_sat_tseitin (avmgr, cur->av);
+#endif
       }
       else if (cur->arity == 2)
       {
@@ -4830,6 +4863,10 @@ synthesize_exp (Btor *btor, BtorNode *exp, BtorPtrHashTable *backannotation)
           if (invert_av0) btor_invert_aigvec (avmgr, av0);
           if (invert_av1) btor_invert_aigvec (avmgr, av1);
         }
+#ifdef BTOR_DO_NOT_LAZY_SYNTHESIZE
+        cur->tseitin = 1;
+        btor_aigvec_to_sat_tseitin (avmgr, cur->av);
+#endif
       }
       else
       {
@@ -4875,6 +4912,10 @@ synthesize_exp (Btor *btor, BtorNode *exp, BtorPtrHashTable *backannotation)
             if (invert_av1) btor_invert_aigvec (avmgr, av1);
             if (invert_av2) btor_invert_aigvec (avmgr, av2);
           }
+#ifdef BTOR_DO_NOT_LAZY_SYNTHESIZE
+          cur->tseitin = 1;
+          btor_aigvec_to_sat_tseitin (avmgr, cur->av);
+#endif
         }
       }
     }
@@ -5441,6 +5482,10 @@ lazy_synthesize_and_encode_var_exp (Btor *btor, BtorNode *var, int force_update)
   int changed_assignments, update;
   BtorAIGVecMgr *avmgr = 0;
 
+#ifdef BTOR_DO_NOT_LAZY_SYNTHESIZE
+  return 0;
+#endif
+
   if (var->tseitin) return 0;
 
   start               = btor_time_stamp ();
@@ -5508,26 +5553,38 @@ lazy_synthesize_and_encode_apply_exp (Btor *btor,
   {
     arg = next_args_iterator (&it);
     assert (!BTOR_IS_FUN_NODE (BTOR_REAL_ADDR_NODE (arg)));
+#ifndef BTOR_DO_NOT_LAZY_SYNTHESIZE
     if (!BTOR_IS_SYNTH_NODE (BTOR_REAL_ADDR_NODE (arg)))
       synthesize_exp (btor, arg, 0);
+#endif
 
     if (!BTOR_REAL_ADDR_NODE (arg)->tseitin)
     {
       update = 1;
+#ifdef BTOR_DO_NOT_LAZY_SYNTHESIZE
+      synthesize_exp (btor, arg, 0);
+#else
       btor_aigvec_to_sat_tseitin (avmgr, BTOR_REAL_ADDR_NODE (arg)->av);
       BTOR_REAL_ADDR_NODE (arg)->tseitin = 1;
+#endif
       BTORLOG ("  encode: %s", node2string (arg));
     }
   }
 
+#ifndef BTOR_DO_NOT_LAZY_SYNTHESIZE
   /* synthesize and encode apply expressions */
   if (!BTOR_IS_SYNTH_NODE (app)) synthesize_exp (btor, app, 0);
+#endif
 
   if (!app->tseitin)
   {
     update = 1;
+#ifdef BTOR_DO_NOT_LAZY_SYNTHESIZE
+    synthesize_exp (btor, app, 0);
+#else
     btor_aigvec_to_sat_tseitin (avmgr, app->av);
     app->tseitin = 1;
+#endif
     BTORLOG ("  encode: %s", node2string (app));
   }
 
@@ -5560,6 +5617,11 @@ lazy_synthesize_and_encode_lambda_exp (Btor *btor,
   BtorNode *cur;
   BtorMemMgr *mm;
   BtorAIGVecMgr *avmgr;
+
+#ifdef BTOR_DO_NOT_LAZY_SYNTHESIZE
+  /* already synthesized and encoded */
+  return 0;
+#endif
 
   // TODO: remove lazy_tseitin
   if (lambda_exp->lazy_tseitin) return 0;

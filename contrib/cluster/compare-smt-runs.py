@@ -44,7 +44,21 @@ FILTER_LOG = {
   'time_beta':  ['BETA[s]', b'beta-reduction', lambda x: float(x.split()[1]),
                  False],
   'time_eval':  ['EVAL[s]', b'seconds expression evaluation',
-                 lambda x: float(x.split()[1]), False]
+                 lambda x: float(x.split()[1]), False],
+  'time_lle':   ['LLE[s]', b'lazy lambda encoding',
+                 lambda x: float(x.split()[1]), False],
+  'time_pas':   ['PAS[s]', b'propagation apply search',
+                 lambda x: float(x.split()[1]), False],
+  'time_neas':  ['NEAS[s]', b'not encoded apply search',
+                 lambda x: float(x.split()[1]), False],
+  'num_beta':   ['BETA', b'beta reductions:',
+                 lambda x: int(x.split()[3]), False],
+  'num_eval':   ['EVAL', b'evaluations:',
+                 lambda x: int(x.split()[3]), False],
+  'num_prop':   ['PROP', b'propagations:',
+                 lambda x: int(x.split()[2]), False],
+  'num_propd':   ['PROPD', b'propagations down:',
+                 lambda x: int(x.split()[3]), False],
 }
 
 def err_extract_status(line):
@@ -98,6 +112,7 @@ def _filter_data(d, file, filters):
         dir_stats_tmp = dict((k, []) for k in DIR_STATS_KEYS) 
         for line in infile:
             for k, f in filters.items():
+                assert(len(f) == 4)
                 val = f[2](line) if f[1] in line else None
                 
                 if k in DIR_STATS_KEYS:
@@ -402,6 +417,8 @@ if __name__ == "__main__":
         aparser.add_argument ("-d", metavar="float", dest="diff", type=float,
                 default=0.1,
                 help="highlight difference if greater than <float>")
+        aparser.add_argument ("-bs", action="store_true",
+                help="compare boolector statistics")
         aparser.add_argument ("-t", action="store_true",
                 help="show timeouts only")
         aparser.add_argument ("-m", action="store_true",
@@ -433,6 +450,9 @@ if __name__ == "__main__":
             if not os.path.isdir(d):
                 raise CmpSMTException ("given smt run is not a directory")
 
+        if g_args.bs:
+            g_args.columns = \
+                    "status,lods,calls,time_sat,time_rw,time_beta"
         g_args.columns = g_args.columns.split(',')
         for c in g_args.columns:
             if c not in FILE_STATS_KEYS:
