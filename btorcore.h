@@ -215,8 +215,9 @@ struct Btor
     double search_init_apps;
     double search_init_apps_cloning;
     double search_init_apps_sat;
-    double search_init_apps_collect;
-    double search_init_apps_collect_cone;
+    double search_init_apps_collect_var_apps;
+    double search_init_apps_collect_fa;
+    double search_init_apps_collect_fa_cone;
     double lemma_gen;
     double find_nenc_app;
     double find_prop_app;
