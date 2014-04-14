@@ -1,5 +1,6 @@
 #!/usr/bin/env python3
 
+from argparse import ArgumentParser
 import sys
 
 def shape(kind):
@@ -31,7 +32,15 @@ def node(id, shape, label, style = "", fillcolor = ""):
     s += "]"
     print(s)
 
+
+# TODO: compact const representation (-c)
 if __name__ == "__main__":
+
+    argparser = ArgumentParser()
+    argparser.add_argument("-s", action="store_true", help="print symbols")
+    argparser.add_argument("-w", action="store_true", help="print bit width")
+    argparser.add_argument("-i", action="store_true", help="print node ids")
+    args = argparser.parse_args()
 
     print("digraph G {")
 
@@ -71,7 +80,11 @@ if __name__ == "__main__":
                 children = []
 
             # set default node label, style
-            label = "{}: {} ({})".format(id, kind, bw)
+            label = "{}".format(kind)
+            if args.i:
+                label = "{}: {}".format(id, label)
+            if args.w:
+                label = "{} ({})".format(label, bw)
             style = ""
             fillcolor = ""
 
@@ -87,11 +100,15 @@ if __name__ == "__main__":
             elif kind in array_nodes:
                 style = "filled"
                 fillcolor = "lightblue"
+                if kind == "array" and args.s and len(t) > 4:
+                    label = "{}\n{}".format(label, t[4])
             elif kind == "apply":
                 style = "filled"
                 fillcolor = "lightyellow"
             elif kind == "param":
                 param_nodes[id] = True
+            elif kind == "var" and args.s and len(t) > 3:
+                label = "{}\n{}".format(label, t[3])
 
             # check if node has parameterized children (stop at lambda)
             if kind != "lambda":
