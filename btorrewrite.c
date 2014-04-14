@@ -3976,7 +3976,7 @@ btor_rewrite_apply_exp (Btor *btor, BtorNode *fun, BtorNode *args)
   inv_result         = 0;
 
   /* function that returns always a constant */
-  if (BTOR_IS_LAMBDA_NODE (fun) && 0)
+  if (BTOR_IS_LAMBDA_NODE (fun) && 0)  // TODO why is this masked out?
   {
     body      = BTOR_LAMBDA_GET_BODY (fun);
     real_body = BTOR_REAL_ADDR_NODE (body);
@@ -4384,6 +4384,12 @@ btor_shallow_subst (
 
   real = BTOR_REAL_ADDR_NODE (node);
 
+  switch (real->kind)
+  {
+    case BTOR_LAMBDA_NODE:
+    case BTOR_ARGS_NODE: return btor_copy_exp (btor, node);
+  }
+
   changed = 0;
   for (i = 0; i < real->arity; i++)
   {
@@ -4415,10 +4421,9 @@ btor_shallow_subst (
       case BTOR_UDIV_NODE: res = btor_udiv_exp (btor, s[0], s[1]); break;
       case BTOR_UREM_NODE: res = btor_urem_exp (btor, s[0], s[1]); break;
       case BTOR_CONCAT_NODE: res = btor_concat_exp (btor, s[0], s[1]); break;
-      case BTOR_LAMBDA_NODE: res = btor_lambda_exp (btor, s[0], s[1]); break;
       default:
         assert (BTOR_IS_BV_COND_NODE (real));
-        return btor_cond_exp (btor, s[0], s[1], s[2]);
+        res = btor_cond_exp (btor, s[0], s[1], s[2]);
         break;
     }
   }
