@@ -5975,54 +5975,58 @@ search_initial_applies_dual_prop (Btor *btor,
       assert (!cur_btor->parameterized);
       if (BTOR_IS_BV_VAR_NODE (cur_btor))
       {
-        delta2 = btor_time_stamp ();
-        assert (BTOR_EMPTY_STACK (stack));
-        BTOR_PUSH_STACK (btor->mm, stack, cur_btor);
-        while (!BTOR_EMPTY_STACK (stack))
-        {
-          cur_btor = BTOR_POP_STACK (stack);
+#if 0
+	      delta2 = btor_time_stamp ();
+	      assert (BTOR_EMPTY_STACK (stack));
+	      BTOR_PUSH_STACK (btor->mm, stack, cur_btor);
+	      while (!BTOR_EMPTY_STACK (stack))
+		{
+		  cur_btor = BTOR_POP_STACK (stack);
 
-          if (!cur_btor->reachable) continue;
-          if (cur_btor->aux_mark) continue;
-          if (cur_btor->parameterized) continue;
+		  if (!cur_btor->reachable) continue;
+		  if (cur_btor->aux_mark) continue;
+		  if (cur_btor->parameterized) continue;
 #ifndef MARK_FOR_CC
-          if (BTOR_IS_APPLY_NODE (cur_btor)
-              && btor_find_in_ptr_hash_table (top_applies, cur_btor))
-            continue;
+		  if (BTOR_IS_APPLY_NODE (cur_btor) 
+		      && btor_find_in_ptr_hash_table (top_applies, cur_btor))
+		    continue;
 #else
-          if (cur_btor->check) continue;
+		  if (cur_btor->check) continue;
 #endif
 
-          cur_btor->aux_mark = 1;
-          BTOR_PUSH_STACK (btor->mm, unmark_stack, cur_btor);
-          if (BTOR_IS_APPLY_NODE (cur_btor) && BTOR_IS_SYNTH_NODE (cur_btor))
-          //&& !btor_find_in_ptr_hash_table (top_applies, cur_btor))
-          {
-            BTORLOG ("initial apply: %s", node2string (cur_btor));
-            BTORLOG ("  nodes below: %d",
-                     count_nodes_below (btor, cur_btor, &lam, &app));
-            BTORLOG ("    -> lambdas below: %d", lam);
-            BTORLOG ("    -> applies below: %d", app);
-            BTORLOG ("  nodes above: %d",
-                     count_nodes_above (btor, cur_btor, &lam, &app));
-            BTORLOG ("    -> lambdas above: %d", lam);
-            BTORLOG ("    -> applies above: %d", app);
+		  cur_btor->aux_mark = 1;
+		  BTOR_PUSH_STACK (btor->mm, unmark_stack, cur_btor);
+		  if (BTOR_IS_APPLY_NODE (cur_btor) 
+		      && BTOR_IS_SYNTH_NODE (cur_btor))
+		      //&& !btor_find_in_ptr_hash_table (top_applies, cur_btor))
+		    {
+		      BTORLOG ("initial apply: %s", node2string (cur_btor));
+		      BTORLOG ("  nodes below: %d", 
+			       count_nodes_below (btor, cur_btor, &lam, &app));
+		      BTORLOG ("    -> lambdas below: %d", lam);
+		      BTORLOG ("    -> applies below: %d", app);
+		      BTORLOG ("  nodes above: %d", 
+			       count_nodes_above (btor, cur_btor, &lam, &app));
+		      BTORLOG ("    -> lambdas above: %d", lam);
+		      BTORLOG ("    -> applies above: %d", app);
 #ifndef MARK_FOR_CC
-            btor_insert_in_ptr_hash_table (top_applies, cur_btor);
+		      btor_insert_in_ptr_hash_table (top_applies, cur_btor);
 #else
-            cur_btor->check = 1;
+		      cur_btor->check = 1;
 #endif
-            continue;
-          }
+		      continue;
+		    }
 
-          init_full_parent_iterator (&pit, cur_btor);
-          while (has_next_parent_full_parent_iterator (&pit))
-          {
-            cur_btor = next_parent_full_parent_iterator (&pit);
-            BTOR_PUSH_STACK (btor->mm, stack, cur_btor);
-          }
-        }
-        btor->time.search_init_apps_collect_cone += btor_time_stamp () - delta2;
+		  init_full_parent_iterator (&pit, cur_btor);
+		  while (has_next_parent_full_parent_iterator (&pit))
+		    {
+		      cur_btor = next_parent_full_parent_iterator (&pit);
+		      BTOR_PUSH_STACK (btor->mm, stack, cur_btor);
+		    }
+		}
+	      btor->time.search_init_apps_collect_cone += 
+		btor_time_stamp () - delta2;
+#endif
       }
       else
       {
@@ -7689,6 +7693,8 @@ propagate (Btor *btor,
 
     *assignments_changed = lazy_synthesize_and_encode_apply_exp (btor, app, 1);
 
+    push_applies_for_propagation (btor, app->e[1], 0, prop_stack);
+
     if (*assignments_changed)
     {
       btor_delete_ptr_hash_table (to_prop);
@@ -8366,6 +8372,21 @@ btor_sat_aux_btor (Btor *btor)
 
   simp_sat_result = btor_simplify (btor);
   update_assumptions (btor);
+
+#if 0
+  if (btor->options.dual_prop)
+    {
+      btor_disable_pretty_print (btor);
+      BtorHashTableIterator it;
+      btor_dump_btor (btor, stdout);
+      init_hash_table_iterator (&it, btor->assumptions);
+      while (has_next_node_hash_table_iterator (&it))
+	{
+	  printf (" ass: \n");
+	  btor_dump_btor_node (btor, stdout, next_node_hash_table_iterator (&it));
+	}
+    }
+#endif
 
 #ifdef BTOR_CHECK_FAILED
   if (btor->options.chk_failed_assumptions)
