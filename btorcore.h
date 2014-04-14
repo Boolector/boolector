@@ -112,7 +112,8 @@ struct Btor
   BtorPtrHashTable *lambdas;
   BtorPtrHashTable *substitutions;
   BtorNode *true_exp;
-  BtorPtrHashTable *model;
+  BtorPtrHashTable *bv_model;
+  BtorPtrHashTable *array_model;
 
   int dvn_id;       /* counter for vars (no symbol) via API */
   int dan_id;       /* counter for arrays (no symbol) via API */

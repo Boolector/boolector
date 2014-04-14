@@ -16,6 +16,7 @@
 
 #include <assert.h>
 #include <ctype.h>
+#include <dirent.h>
 #include <fcntl.h>
 #include <limits.h>
 #include <signal.h>
@@ -25,6 +26,7 @@
 #include <string.h>
 #include <sys/time.h>
 #include <sys/times.h>
+#include <sys/types.h>
 #include <sys/wait.h>
 #include <unistd.h>
 
@@ -142,26 +144,31 @@
 #define BTORMBT_LOG_USAGE ""
 #endif
 
-#define BTORMBT_USAGE \
-  "usage: btormbt [<option>]\n" \
-  "\n" \
-  "where <option> is one of the following:\n" \
-  "\n" \
-  "  -h, --help                       print this message and exit\n" \
-  "  -v, --verbose                    be verbose\n" \
-  "  -k, --keep-lines                 do not clear output lines\n" \
-  "  -n, --no-modelgen                do not enable model generation \n" \
-  "  -e, --extensionality             use extensionality\n" \
-  "  -dp, --dual-prop                 enable dual prop optimization\n" \
-  "  -s, --shadow                     create and check shadow clone\n" \
-  "\n" \
-  "  -f, --quit-after-first           quit after first bug encountered\n" \
-  "  -m <maxruns>                     quit after <maxruns> rounds\n" \
+#define BTORMBT_USAGE                                                          \
+  "usage: btormbt [<option>]\n"                                                \
+  "\n"                                                                         \
+  "where <option> is one of the following:\n"                                  \
+  "\n"                                                                         \
+  "  -h, --help                       print this message and exit\n"           \
+  "  -ha, --help-advanced             print all options\n"                     \
+  "  -v, --verbose                    be verbose\n"                            \
+  "  -q, --quiet                      be quiet (only print stats)\n"           \
+  "  -k, --keep-lines                 do not clear output lines\n"             \
+  "  -n, --no-modelgen                do not enable model generation \n"       \
+  "  -e, --extensionality             use extensionality\n"                    \
+  "  -dp, --dual-prop                 enable dual prop optimization\n"         \
+  "  -s, --shadow                     create and check shadow clone\n"         \
+  "  -o, --out                        output directory for saving traces\n"    \
+  "\n"                                                                         \
+  "  -f, --quit-after-first           quit after first bug encountered\n"      \
+  "  -m <maxruns>                     quit after <maxruns> rounds\n"           \
   "  -t <seconds>                     set time limit for calls to boolector\n" \
-  "\n" \
-  "  --bverb <verblevel>              enable boolector verbosity\n" \
-  BTORMBT_LOG_USAGE \
-  "\n" \
+  "\n"                                                                         \
+  "  --bverb <verblevel>              enable boolector "                       \
+  "verbosity\n" BTORMBT_LOG_USAGE
+
+#define BTORMBT_USAGE_ADVANCED \
+  "\nadvanced options:\n" \
   "  --nlits <min> <max>              number of literals\n" \
   "                                   (default: " \
                                       BTORMBT_M2STR (MIN_NLITS) " " \
@@ -510,12 +517,14 @@ typedef struct BtorMBT
   int ppid; /* parent pid */
 
   int verbose;
+  int quiet;
   int terminal;
   int quit_after_first;
   int force_nomgen;
   int ext;
   int dual_prop;
   int shadow;
+  char *out;
   int time_limit;
 
   int bloglevel;
@@ -2705,8 +2714,16 @@ main (int argc, char **argv)
       printf ("%s", BTORMBT_USAGE);
       exit (EXIT_OK);
     }
+    else if (!strcmp (argv[i], "-ha") || !strcmp (argv[i], "--help-advanced"))
+    {
+      printf ("%s", BTORMBT_USAGE);
+      printf ("%s", BTORMBT_USAGE_ADVANCED);
+      exit (EXIT_OK);
+    }
     else if (!strcmp (argv[i], "-v") || !strcmp (argv[i], "--verbose"))
       btormbt->verbose = 1;
+    else if (!strcmp (argv[i], "-q") || !strcmp (argv[i], "--quiet"))
+      btormbt->quiet = 1;
     else if (!strcmp (argv[i], "-k") || !strcmp (argv[i], "--keep-lines"))
       btormbt->terminal = 0;
     else if (!strcmp (argv[i], "-f") || !strcmp (argv[i], "--quit-after-first"))
@@ -2720,6 +2737,17 @@ main (int argc, char **argv)
       btormbt->dual_prop = 1;
     else if (!strcmp (argv[i], "-s") || !strcmp (argv[i], "--shadow-clone"))
       btormbt->shadow = 1;
+    else if (!strcmp (argv[i], "-o") || !strcmp (argv[i], "--out"))
+    {
+      if (++i == argc) die ("argument to '-o' missing (try '-h')");
+      if (argv[i][0] == '-') die ("invalid output directory given (try '-h')");
+      btormbt->out = argv[i];
+      DIR *dir     = opendir (argv[i]);
+      if (dir)
+        closedir (dir);
+      else
+        die ("given output directory does not exist");
+    }
     else if (!strcmp (argv[i], "-m"))
     {
       if (++i == argc) die ("argument to '-m' missing (try '-h')");
@@ -3251,9 +3279,12 @@ main (int argc, char **argv)
       btormbt->seed *= 43376579;
       prev = btormbt->seed = abs (btormbt->seed) >> 1;
 
-      if (btormbt->terminal) erase ();
-      printf ("%d %d ", btormbt->round, btormbt->seed);
-      fflush (stdout);
+      if (!btormbt->quiet)
+      {
+        if (btormbt->terminal) erase ();
+        printf ("%d %d ", btormbt->round, btormbt->seed);
+        fflush (stdout);
+      }
 
       /* reset verbose flag for initial run, only print on replay */
       verbose          = btormbt->verbose;
@@ -3288,8 +3319,20 @@ main (int argc, char **argv)
         unsetenv ("BTORAPITRACE");
       }
 
-      cmd = malloc (strlen (name) + 80);
-      sprintf (cmd, "cp %s btormbt-bug-%d.trace", name, btormbt->seed);
+      if (btormbt->out)
+      {
+        cmd = malloc (strlen (name) + 80 + strlen (btormbt->out) + 1);
+        sprintf (cmd,
+                 "cp %s %s/btormbt-bug-%d.trace",
+                 name,
+                 btormbt->out,
+                 btormbt->seed);
+      }
+      else
+      {
+        cmd = malloc (strlen (name) + 80);
+        sprintf (cmd, "cp %s btormbt-bug-%d.trace", name, btormbt->seed);
+      }
 
       if (!getenv ("BTORAPITRACE")) free (name);
       if (system (cmd))
@@ -3317,6 +3360,7 @@ main (int argc, char **argv)
     }
     else if (res == EXIT_ERROR)
     {
+      if (btormbt->quiet) printf ("%d ", btormbt->seed);
       printf ("exit %d\n", res);
     }
 

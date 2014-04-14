@@ -1223,7 +1223,7 @@ cmp_node_id (const void *p, const void *q)
 {
   BtorNode *a = *(BtorNode **) p;
   BtorNode *b = *(BtorNode **) q;
-  return a->id - b->id;
+  return BTOR_REAL_ADDR_NODE (a)->id - BTOR_REAL_ADDR_NODE (b)->id;
 }
 
 static void
@@ -1374,15 +1374,14 @@ normalize_binary_comm_ass_exp (Btor *btor,
   qsort (
       stack.start, BTOR_COUNT_STACK (stack), sizeof (BtorNode *), cmp_node_id);
 
-  common = btor_copy_exp (btor, BTOR_POP_STACK (stack));
-  while (!BTOR_EMPTY_STACK (stack))
+  common = btor_copy_exp (btor, BTOR_PEEK_STACK (stack, 0));
+  for (i = 1; i < BTOR_COUNT_STACK (stack); i++)
   {
-    cur  = BTOR_POP_STACK (stack);
+    cur  = BTOR_PEEK_STACK (stack, i);
     temp = fptr (btor, common, cur);
     btor_release_exp (btor, common);
     common = temp;
   }
-
   BTOR_RELEASE_STACK (mm, stack);
 
 #if 0

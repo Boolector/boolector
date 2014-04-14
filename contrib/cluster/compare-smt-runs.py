@@ -1,6 +1,6 @@
 #! /usr/bin/env python3
 
-from argparse import ArgumentParser, REMAINDER
+from argparse import ArgumentParser, REMAINDER, ArgumentDefaultsHelpFormatter
 import os
 import sys
 
@@ -14,62 +14,7 @@ class CmpSMTException (Exception):
 SCRIPTDIR = os.path.dirname(os.path.realpath(__file__))
 
 g_args = None
-
-g_files = {}
-g_idx = 0
-
-g_run_lods = {}
-g_run_satcalls = {}
-g_run_time_sat = {}
-g_run_time_rw = {}
-g_run_time_beta = {}
-g_run_time_eval = {}
-g_run_time_app = {}
-g_run_time_clapp = {}
-g_run_time_sapp = {}
-g_run_time_coll = {}
-
-g_run_status = {}
-g_run_result = {}
-g_run_real = {}
-g_run_time = {}
-g_run_space = {}
-
-g_run_opts = {}
-
-g_best_run_lods = {}
-g_best_run_satcalls = {}
-g_best_run_time_sat = {}
-g_best_run_time_rw = {}
-g_best_run_time_beta = {}
-g_best_run_time_eval = {}
-g_best_run_time_app = {}
-g_best_run_time_clapp = {}
-g_best_run_time_sapp = {}
-g_best_run_time_coll = {}
-
-g_best_run_status = {}
-g_best_run_result = {}
-g_best_run_real = {}
-g_best_run_time = {}
-g_best_run_space = {}
-
-g_best_diff_run_lods = {}
-g_best_diff_run_satcalls = {}
-g_best_diff_run_time_sat = {}
-g_best_diff_run_time_rw = {}
-g_best_diff_run_time_beta = {}
-g_best_diff_run_time_eval = {}
-g_best_diff_run_time_app = {}
-g_best_diff_run_time_clapp = {}
-g_best_diff_run_time_sapp = {}
-g_best_diff_run_time_coll = {}
-
-g_best_diff_run_status = {}
-g_best_diff_run_result = {}
-g_best_diff_run_real = {}
-g_best_diff_run_time = {}
-g_best_diff_run_space = {}
+g_benchmarks = []
 
 COLOR_BEST = '\033[36m'
 COLOR_DIFF = '\033[32m'
@@ -87,106 +32,130 @@ HTML_CLASS = {
 def _get_name_and_ext (filename):
     return ("".join(filename.rpartition('.')[:-2]), filename.rpartition('.')[-1])
 
-def _read_log_file (d, f):
-    global g_run_lods, g_run_satcalls, g_run_time_sat, g_run_time_rw
-    global g_run_time_beta, g_run_time_eval
-    global g_run_time_sapp, g_run_time_clapp, g_run_time_app
-    with open(os.path.join(d, f), 'rb') as infile:
-        for line in infile:
-            idx = g_files[_get_name_and_ext(f)[0]]
-            if d not in g_run_lods:
-                g_run_lods[d] = {}
-            if d not in g_run_satcalls:
-                g_run_satcalls[d] = {}
-            if d not in g_run_time_sat:
-                g_run_time_sat[d] = {}
-            if d not in g_run_time_rw:
-                g_run_time_rw[d] = {}
-            if d not in g_run_time_beta:
-                g_run_time_beta[d] = {}
-            if d not in g_run_time_eval:
-                g_run_time_eval[d] = {}
-            if d not in g_run_time_clapp:
-                g_run_time_clapp[d] = {}
-            if d not in g_run_time_sapp:
-                g_run_time_sapp[d] = {}
-            if d not in g_run_time_app:
-                g_run_time_app[d] = {}
-            if d not in g_run_time_coll:
-                g_run_time_coll[d] = {}
-            if b'LOD' in line:
-                g_run_lods[d][idx] = int(line.split()[3])
-            elif b'SAT calls' in line:
-                g_run_satcalls[d][idx] = int(line.split()[1])
-            elif b'pure SAT' in line:
-                g_run_time_sat[d][idx] = float(line.split()[1])
-            elif b'rewriting engine' in line:
-                g_run_time_rw[d][idx] = float(line.split()[1])
-            elif b'beta-reduction' in line:
-                g_run_time_beta[d][idx] = float(line.split()[1])
-            elif b'seconds expression evaluation' in line:
-                g_run_time_eval[d][idx] = float(line.split()[1])
-            elif b'cloning for initial applies search' in line:
-                g_run_time_clapp[d][idx] = float(line.split()[1])
-            elif b'SAT solving for initial applies search' in line:
-                g_run_time_sapp[d][idx] = float(line.split()[1])
-            elif b'initial applies search' in line:
-                g_run_time_app[d][idx] = float(line.split()[1])
-            elif b'collecting initial applies' in line:
-                g_run_time_coll[d][idx] = float(line.split()[1])
+
+# per directory/file flag
+# column_name : <colname>, <keyword>, <filter>, <is_dir_stat>
+FILTER_LOG = {
+  'lods':       ['LODS', b'LOD', lambda x: int(x.split()[3]), False],
+  'calls':      ['CALLS', b'SAT calls', lambda x: int(x.split()[1]), False],
+  'time_sat':   ['SAT[s]', b'pure SAT', lambda x: float(x.split()[1]), False],
+  'time_rw':    ['RW[s]', b'rewriting engine', lambda x: float(x.split()[1]),
+                 False],
+  'time_beta':  ['BETA[s]', b'beta-reduction', lambda x: float(x.split()[1]),
+                 False],
+  'time_eval':  ['EVAL[s]', b'seconds expression evaluation',
+                 lambda x: float(x.split()[1]), False],
+  'time_app':   ['APP[s]', b'initial applies search',
+                 lambda x: float(x.split()[1]), False],
+  'time_clapp': ['CLONE[s]', b'cloning for initial applies search',
+                 lambda x: float(x.split()[1]), False],
+  'time_sapp':  ['SAT[s]', b'SAT solving for initial applies search',
+                 lambda x: float(x.split()[1]), False],
+  'time_coll':  ['COL[s]', b'collecting initial applies', 
+                 lambda x: float(x.split()[1]), False]
+}
 
 
-def _read_err_file (d, f):
-    global g_run_status, g_run_result, g_run_real, g_run_time, g_run_space
-    with open(os.path.join(d, f), 'rb') as infile:
-        idx = g_files[_get_name_and_ext(f)[0]]
-        g_run_opts[d] = []
+def err_extract_status(line):
+    status = line.split()[2:]
+    if b'ok' == status[0]:
+        return "ok"
+    elif b'time' == status[-1]:
+        return "time"
+    elif b'memory' == status[-1]:
+        return "mem"
+    else:
+        raise CmpSMTException("invalid status")
+
+
+def err_extract_opts(line):
+    opt = str(line.split()[2])
+    if opt[2] == '-':
+        return opt[2:-1]
+    return None 
+
+
+# column_name : <colname>, <keyword>, <filter>, [<is_dir_stat>] (optional)
+FILTER_ERR = {
+  'status':      ['STAT', b'status:', err_extract_status, False],
+  'result':      ['RES', b'result:', lambda x: int(x.split()[2]), False],
+  'time_real':   ['REAL[s]', b'real:', lambda x: float(x.split()[2]), False],
+  'time_time':   ['TIME[s]', b'time:', lambda x: float(x.split()[2]), False],
+  'space':       ['SPACE[MB]', b'space:', lambda x: float(x.split()[2]), False],
+  'opts':        ['OPTIONS', b'argv', err_extract_opts, True] 
+}
+
+
+assert(set(FILTER_LOG.keys()).isdisjoint(set(FILTER_ERR.keys())))
+
+FILE_STATS_KEYS = list(k for k, f in FILTER_LOG.items() if not f[3])
+FILE_STATS_KEYS.extend(list(k for k, f in FILTER_ERR.items() if not f[3]))
+
+DIR_STATS_KEYS = list(k for k, f in FILTER_LOG.items() if f[3])
+DIR_STATS_KEYS.extend(list(k for k, f in FILTER_ERR.items() if f[3]))
+
+g_dir_stats = dict((k, {}) for k in DIR_STATS_KEYS)
+g_file_stats = dict((k, {}) for k in FILE_STATS_KEYS)
+g_best_stats = dict((k, {}) for k in FILE_STATS_KEYS)
+g_diff_stats = dict((k, {}) for k in FILE_STATS_KEYS)
+
+g_dir_stats_init = dict((k, False) for k in DIR_STATS_KEYS)
+
+
+def _filter_data(d, file, filters):
+    global g_file_stats, g_dir_stats_init
+
+    with open(os.path.join(d, file), 'rb') as infile:
+        f_name = _get_name_and_ext(file)[0]
+
+        dir_stats_tmp = dict((k, []) for k in DIR_STATS_KEYS) 
         for line in infile:
-            if b'status:' in line:
-                if d not in g_run_status:
-                    g_run_status[d] = {}
-                status = line.split()[2:]
-                if status[0] == b'ok':
-                    g_run_status[d][idx] = "ok"
-                elif status[0] == b'out':
-                    if status[-1] == b'time':
-                        g_run_status[d][idx] = "time"
-                    elif status[-1] == b'memory':
-                        g_run_status[d][idx] = "mem"
-                    else:
-                        raise CmpSMTException(
-                                "invalid status in run '{}'".format(f))
+            for k, f in filters.items():
+                val = f[2](line) if f[1] in line else None
+                
+                if k in DIR_STATS_KEYS:
+                    if d in g_dir_stats:
+                        continue
+
+                    if val is not None:
+                        dir_stats_tmp[k].append(val)
                 else:
-                    raise CmpSMTException(
-                            "invalid status in run '{}'".format(f))
-            elif b'result:' in line:
-                if d not in g_run_result:
-                    g_run_result[d] = {}
-                g_run_result[d][idx] = int(line.split()[2])
-            elif b'real:' in line:
-                if d not in g_run_real:
-                    g_run_real[d] = {}
-                g_run_real[d][idx] = float(line.split()[2])
-            elif b'time:' in line:
-                if d not in g_run_time:
-                    g_run_time[d] = {}
-                g_run_time[d][idx] = float(line.split()[2])
-            elif b'space:' in line:
-                if d not in g_run_space:
-                    g_run_space[d] = {}
-                g_run_space[d][idx] = float(line.split()[2])
-            elif b'argv' in line:
-                opt = str(line.split()[2])
-                if opt[2] == '-':
-                    g_run_opts[d].append(opt[2:-1])
-    if g_run_status[d][idx] == "ok" \
-       and g_run_result[d][idx] != 10 and g_run_result[d][idx] != 20:
-            g_run_status[d][idx] = "err"
+                    assert(k in FILE_STATS_KEYS)
+                    if d not in g_file_stats[k]:
+                        g_file_stats[k][d] = {}
+
+                    if f_name not in g_file_stats[k][d]:
+                        g_file_stats[k][d][f_name] = None
+
+                    if val is not None:
+                        g_file_stats[k][d][f_name] = val
+
+        for k, vals in dir_stats_tmp.items():
+            g_dir_stats[k][d] = vals
+
+
+def _read_log_file(d, f):
+    _filter_data(d, f, FILTER_LOG)
+
+
+def _read_err_file(d, f):
+    global g_file_stats
+
+    try:
+        _filter_data(d, f, FILTER_ERR)
+    
+        # TODO: move to normalize method or something like that
+        # update status for errors ('err' instead of 'ok')
+        f_name = _get_name_and_ext(f)[0]
+        if g_file_stats['status'][d][f_name] == "ok" \
+           and g_file_stats['result'][d][f_name] not in (10, 20):
+            g_file_stats['status'][d][f_name] = "err"
+    except CmpSMTException as e:
+        raise CmpSMTException("{} in file {}".format(str(e), f))
+
 
 def _read_data (dirs):
-    global g_files, g_idx
     for d in dirs:
-        init_files = g_idx == 0
         for f in os.listdir(d):
             (f_name, f_ext) = _get_name_and_ext (f)
             if f_ext == "log":
@@ -197,200 +166,35 @@ def _read_data (dirs):
                         raise CmpSMTException (
                                 "missing matching .err file for '{}'".format(
                                     "{}{}".format(f_full_log)))
-                    # init g_files
-                    if init_files:
-                        g_files[f_name] = g_idx
-                        g_idx += 1
                     # init data
                     if not g_args.filter or g_args.filter in str(f):
+                        if f_name not in g_benchmarks:
+                            g_benchmarks.append(f_name)
                         _read_log_file (d, f)
                         _read_err_file (d, "{}{}".format(f[:-3], "err"))
 
 
-def _pick_data ():                        
-    global g_best_run_lods, g_best_run_satcalls, g_best_run_time_sat
-    global g_best_run_time_rw, g_best_run_time_beta, g_best_run_time_eval
-    global g_best_run_time_app, g_best_run_time_clapp
-    global g_best_run_time_sapp, g_best_run_time_coll
-    global g_best_run_status, g_best_run_result, g_best_run_real
-    global g_best_run_time, g_best_run_space
-    global g_best_diff_run_lods, g_best_diff_run_satcalls
-    global g_best_diff_run_time_sat, g_best_diff_run_time_rw
-    global g_best_diff_run_time_beta, g_best_diff_run_time_eval
-    global g_best_diff_run_time_app, g_best_diff_run_clapp
-    global g_best_diff_run_sapp, g_best_diff_run_coll
-    global g_best_diff_run_status, g_best_diff_run_result, g_best_diff_run_real
-    global g_best_diff_run_time, g_best_diff_run_space
-    
-    for f in g_files:
-        try:
-            v = [(g_run_real[d][g_files[f]], d) for d in g_args.dirs]
-            v = sorted(v)
-            g_best_run_real[f] = None \
-                    if len(set(iter([t[0] for t in v]))) <= 1  \
-                    or g_run_status[d][g_files[f]] == 'time' else v[0][1]
-            g_best_diff_run_real[f] = None \
-                    if not g_best_run_real[f] \
-                       or v[0][0] + g_args.diff > v[1][0] \
-                    else v[0][1]
-        except KeyError:
-            g_best_run_real[f] = None
-            g_best_diff_run_real[f] = None
-        try:
-            v = [(g_run_time[d][g_files[f]], d) for d in g_args.dirs]
-            v = sorted(v)
-            g_best_run_time[f] = None \
-                    if len(set(iter([t[0] for t in v]))) <= 1 \
-                    or g_run_status[d][g_files[f]] == 'time'  else v[0][1]
-            g_best_diff_run_time[f] = None \
-                    if not g_best_run_time[f] \
-                       or v[0][0] + g_args.diff > v[1][0] \
-                    else v[0][1]
-        except KeyError:
-            g_best_run_time[f] = None
-            g_best_diff_run_time[f] = None
-        try:
-            v = [(g_run_space[d][g_files[f]], d) for d in g_args.dirs]
-            v = sorted(v)
-            g_best_run_space[f] = None \
-                    if len(set(iter([t[0] for t in v]))) <= 1 \
-                    or g_run_status[d][g_files[f]] == 'time'  else v[0][1]
-            g_best_diff_run_space[f] = None \
-                    if not g_best_run_space[f] \
-                       or v[0][0] + g_args.diff > v[1][0] \
-                    else v[0][1]
-        except KeyError:
-            g_best_run_space[f] = None
-            g_best_diff_run_space[f] = None
-        try:
-            v = [(g_run_lods[d][g_files[f]], d) for d in g_args.dirs]
-            v = sorted(v)
-            g_best_run_lods[f] = None \
-                    if len(set(iter([t[0] for t in v]))) <= 1 \
-                    or g_run_status[d][g_files[f]] == 'time'  else v[0][1]
-            g_best_diff_run_lods[f] = None \
-                    if not g_best_run_lods[f] \
-                       or v[0][0] + g_args.diff > v[1][0] \
-                    else v[0][1]
-        except KeyError:
-            g_best_run_lods[f] = None
-            g_best_diff_run_lods[f] = None
-        try:
-            v = [(g_run_satcalls[d][g_files[f]], d) for d in g_args.dirs]
-            v = sorted(v)
-            g_best_run_satcalls[f] = None \
-                    if len(set(iter([t[0] for t in v]))) <= 1 \
-                    or g_run_status[d][g_files[f]] == 'time'  else v[0][1]
-            g_best_diff_run_satcalls[f] = None \
-                    if not g_best_run_satcalls[f] \
-                       or v[0][0] + g_args.diff > v[1][0] \
-                    else v[0][1]
-        except KeyError:
-            g_best_run_satcalls[f] = None
-            g_best_diff_run_satcalls[f] = None
-        try:
-            v = [(g_run_time_sat[d][g_files[f]], d) for d in g_args.dirs]
-            v = sorted(v)
-            g_best_run_time_sat[f] = None \
-                    if len(set(iter([t[0] for t in v]))) <= 1 \
-                    or g_run_status[d][g_files[f]] == 'time' else v[0][1]
-            g_best_diff_run_time_sat[f] = None \
-                    if not g_best_run_time_sat[f] \
-                       or v[0][0] + g_args.diff > v[1][0] \
-                    else v[0][1]
-        except KeyError:
-            g_best_run_time_sat[f] = None
-            g_best_diff_run_time_sat[f] = None
-        try:
-            v = [(g_run_time_rw[d][g_files[f]], d) for d in g_args.dirs]
-            v = sorted(v)
-            g_best_run_time_rw[f] = None \
-                    if len(set(iter([t[0] for t in v]))) <= 1 \
-                    or g_run_status[d][g_files[f]] == 'time'  else v[0][1]
-            g_best_diff_run_time_rw[f] = None \
-                    if not g_best_run_time_rw[f] \
-                       or v[0][0] + g_args.diff > v[1][0] \
-                    else v[0][1]
-        except KeyError:
-            g_best_run_time_rw[f] = None
-            g_best_diff_run_time_rw[f] = None
-        try:
-            v = [(g_run_time_beta[d][g_files[f]], d) for d in g_args.dirs]
-            v = sorted(v)
-            g_best_run_time_beta[f] = None \
-                    if len(set(iter([t[0] for t in v]))) <= 1 \
-                    or g_run_status[d][g_files[f]] == 'time'  else v[0][1]
-            g_best_diff_run_time_beta[f] = None \
-                    if not g_best_run_time_beta[f] \
-                       or v[0][0] + g_args.diff > v[1][0] \
-                    else v[0][1]
-        except KeyError:
-            g_best_run_time_beta[f] = None
-            g_best_diff_run_time_beta[f] = None
-        try:
-            v = [(g_run_time_eval[d][g_files[f]], d) for d in g_args.dirs]
-            v = sorted(v)
-            g_best_run_time_eval[f] = None \
-                    if len(set(iter([t[0] for t in v]))) <= 1 \
-                    or g_run_status[d][g_files[f]] == 'time'  else v[0][1]
-            g_best_diff_run_time_eval[f] = None \
-                    if not g_best_run_time_eval[f] \
-                       or v[0][0] + g_args.diff > v[1][0] \
-                    else v[0][1]
-        except KeyError:
-            g_best_run_time_eval[f] = None
-            g_best_diff_run_time_eval[f] = None
-        try:
-            v = [(g_run_time_app[d][g_files[f]], d) for d in g_args.dirs]
-            v = sorted(v)
-            g_best_run_time_app[f] = None \
-                    if len(set(iter([t[0] for t in v]))) <= 1 else v[0][1]
-            g_best_diff_run_time_app[f] = None \
-                    if not g_best_run_time_app[f] \
-                       or v[0][0] + g_args.diff > v[1][0] \
-                    else v[0][1]
-        except KeyError:
-            g_best_run_time_app[f] = None
-            g_best_diff_run_time_app[f] = None
-        try:
-            v = [(g_run_time_clapp[d][g_files[f]], d) \
-                    for d in g_args.dirs]
-            v = sorted(v)
-            g_best_run_time_clapp[f] = None \
-                    if len(set(iter([t[0] for t in v]))) <= 1 else v[0][1]
-            g_best_diff_run_time_clapp[f] = None \
-                    if not g_best_run_time_clapp[f] \
-                       or v[0][0] + g_args.diff > v[1][0] \
-                    else v[0][1]
-        except KeyError:
-            g_best_run_time_clapp[f] = None
-            g_best_diff_run_time_clapp[f] = None
-        try:
-            v = [(g_run_time_sapp[d][g_files[f]], d) \
-                    for d in g_args.dirs]
-            v = sorted(v)
-            g_best_run_time_sapp[f] = None \
-                    if len(set(iter([t[0] for t in v]))) <= 1 else v[0][1]
-            g_best_diff_run_time_sapp[f] = None \
-                    if not g_best_run_time_sapp[f] \
-                       or v[0][0] + g_args.diff > v[1][0] \
-                    else v[0][1]
-        except KeyError:
-            g_best_run_time_sapp[f] = None
-            g_best_diff_run_time_sapp[f] = None
-        try:
-            v = [(g_run_time_coll[d][g_files[f]], d) \
-                    for d in g_args.dirs]
-            v = sorted(v)
-            g_best_run_time_coll[f] = None \
-                    if len(set(iter([t[0] for t in v]))) <= 1 else v[0][1]
-            g_best_diff_run_time_coll[f] = None \
-                    if not g_best_run_time_coll[f] \
-                       or v[0][0] + g_args.diff > v[1][0] \
-                    else v[0][1]
-        except KeyError:
-            g_best_run_time_coll[f] = None
-            g_best_diff_run_time_coll[f] = None
+def _pick_data():
+    global g_file_stats, g_best_stats, g_diff_stats
+
+    for f in g_benchmarks:
+        for k in g_file_stats.keys():
+            v = sorted([(g_file_stats[k][d][f], d) for d in g_args.dirs \
+                    if g_file_stats[k][d][f]])
+            # strings are not considered for diff/best values
+            if len(v) and isinstance(v[0][0], str):
+                g_best_stats[k][f] = None
+                g_diff_stats[k][f] = None
+                continue
+
+            g_best_stats[k][f] = None \
+                if len(set([t[0] for t in v])) <= 1 \
+                   or g_file_stats['status'][d][f] != 'ok' else v[0][1]
+
+            g_diff_stats[k][f] = None \
+                if g_best_stats[k][f] is None \
+                   or v[0][0] * (1 + g_args.diff) > v[1][0] \
+                else v[0][1]
 
 
 def _format_field(field, width, color=None, colspan=0, classes=[]):
@@ -481,366 +285,124 @@ def _print_html_header():
                  <table id="results">
                     <thead>""".format(g_args.cmp_col, g_args.diff))
 
+
 def _print_html_footer():
     print("<tbody></table></body></html>")
 
 
+def _has_status(status, f):
+    return status in set(g_file_stats['status'][d][f] for d in g_args.dirs)
+
+
+def _get_column_name(key):
+    if key in FILTER_LOG:
+        return FILTER_LOG[key][0]
+    assert(key in FILTER_ERR)
+    return FILTER_ERR[key][0]
+
+
+def _get_color(f, d):
+    global g_diff_stats, g_best_stats
+
+    for k in g_diff_stats.keys():
+        if g_args.cmp_col == k:
+            if g_diff_stats[k][f] == d:
+                return COLOR_DIFF
+            elif g_best_stats[k][f] == d:
+                return COLOR_BEST
+
+    return COLOR_NOCOLOR
+
+
 def _print_data ():
+    global g_file_stats, g_dir_stats
+
     padding = 1
-    name_col_width = padding + max(len(f) for f in g_files)
-    data_col_width = {}
-    stat_col_width = padding + len("STAT") 
-    res_col_width = padding + len("RESULT")
-    real_col_width = {}
-    time_col_width = {}
-    space_col_width = {}
-    lods_col_width = {}
-    calls_col_width = {}
-    sat_col_width = {}
-    rw_col_width = {}
-    beta_col_width = {}
-    app_col_width = {}
-    clapp_col_width = {}
-    sapp_col_width = {}
-    coll_col_width = {}
-    data_col_width = {}
+    benchmark_column_width = padding + max(len(b) for b in g_benchmarks) 
+
+    column_groups = {}
     for d in g_args.dirs:
-        real_col_width[d] = padding + (max(len("REAL[s]"),
-                max(len(str(item[1])) for item in g_run_real[d].items())) \
-                        if len(g_run_real[d]) else len("REAL"))
-        time_col_width[d] = padding + (max(len("TIME[s]"),
-                max(len(str(item[1])) for item in g_run_time[d].items())) \
-                        if len(g_run_time[d]) else len("TIME"))
-        space_col_width[d] = padding + (max(len("SPACE[s]"),
-                max(len(str(item[1])) for item in g_run_space[d].items())) \
-                        if len(g_run_space[d]) else len("SPACE"))
-        lods_col_width[d] = padding + (max(len("LODS"),
-                max(len(str(item[1])) for item in g_run_lods[d].items())) \
-                        if len(g_run_lods[d]) else len("LODS"))
-        calls_col_width[d] = padding + (max(len("CALLS"),
-                max(len(str(item[1])) for item in g_run_satcalls[d].items())) \
-                        if len(g_run_satcalls[d]) else len("CALLS"))
-        sat_col_width[d] = padding + (max(len("SAT[s]"),
-                max(len(str(item[1])) for item in g_run_time_sat[d].items())) \
-                        if len(g_run_time_sat[d]) else len("SAT[s]"))
-        rw_col_width[d] = padding + (max(len("RW[s]"),
-                max(len(str(item[1])) for item in g_run_time_rw[d].items())) \
-                        if len(g_run_time_rw[d]) else len("RW[s]"))
-        beta_col_width[d] = padding + (max(len("BETA[s]"),
-                max(len(str(item[1])) for item in g_run_time_beta[d].items())) \
-                        if len(g_run_time_beta[d]) else len("BETA[s]"))
-        app_col_width[d] = padding + (max(len("APP[s]"),
-                max(len(str(item[1])) for item in g_run_time_app[d].items())) \
-                        if len(g_run_time_app[d]) else len("APP[s]"))
-        clapp_col_width[d] = padding + (max(len("CLONE[s]"),
-                max(len(str(item[1])) for item in g_run_time_clapp[d].items()))\
-                        if len(g_run_time_clapp[d]) else len("CLONE[s]"))
-        sapp_col_width[d] = padding + (max(len("SAT[s]"),
-                max(len(str(item[1])) for item in g_run_time_sapp[d].items())) \
-                        if len(g_run_time_sapp[d]) else len("SAT[s]"))
-        coll_col_width[d] = padding + (max(len("COL[s]"),
-                max(len(str(item[1])) for item in g_run_time_coll[d].items())) \
-                        if len(g_run_time_coll[d]) else len("COL[s]"))
-        data_col_width[d] = stat_col_width \
-                            + lods_col_width[d] + calls_col_width[d] \
-                            + sat_col_width[d] + rw_col_width[d] \
-                            + beta_col_width[d] \
-                            if g_args.bs \
-                            else \
-                                (stat_col_width + lods_col_width[d] \
-                                 + time_col_width[d] + app_col_width[d] \
-                                 + sapp_col_width[d] + coll_col_width[d]\
-                                 if g_args.dp else \
-                                 stat_col_width + res_col_width \
-                                 + real_col_width[d] + time_col_width[d] \
-                                 + space_col_width[d])
+        column_groups[d] = list(g_args.columns)
+
+    data_column_widths = dict((k, {}) for k in g_file_stats.keys())
+    for d in g_args.dirs:
+        for k in g_file_stats.keys():
+            data_column_widths[k][d] = \
+                padding + \
+                max(len(_get_column_name(k)),
+                    max(len(str(val)) for val in g_file_stats[k][d].values()))
+
+    header_column_widths = {} 
+    for d, g in column_groups.items():
+        width = 0
+        for k in g:
+            width += data_column_widths[k][d]
+        header_column_widths[d] = width
+
     if g_args.html:
         _print_html_header()
     
     columns = ["DIRECTORY"]
     columns.extend([os.path.basename(d.rstrip('/')) for d in g_args.dirs])
-    widths = [name_col_width]
-    widths.extend([max(data_col_width[d], len(d)) for d in g_args.dirs])
+    widths = [benchmark_column_width]
+    widths.extend([max(header_column_widths[d], len(d)) for d in g_args.dirs])
     colspans = [0]
-    colspans.extend([(6 if g_args.bs or g_args.dp else 5) for d in g_args.dirs])
-    if g_args.show_all:
-        for i in range(1, len(colspans)):
-            colspans[i] = 17
+    colspans.extend([len(g) for g in column_groups.values()])
+
     classes = [["header"]]
     classes.extend([["borderleft", "header"] for d in g_args.dirs])
     _print_row (columns, widths, colspans=colspans, classes=classes)
 
-    columns = ["OPTIONS"]
-    widths = [name_col_width]
-    for d in g_args.dirs:
-        columns.append(" ".join(opt for opt in g_run_opts[d]))
-        widths.append(max(data_col_width[d], len(d)))
-    _print_row (columns, widths, colspans=colspans, classes=classes)
+    for k in g_dir_stats:
+        columns = [_get_column_name(k)]
+        for d in g_args.dirs:
+            columns.append(" ".join(g_dir_stats[k][d]))
+        _print_row (columns, widths, colspans=colspans, classes=classes)
 
     columns = ["BENCHMARK"]
-    widths = [name_col_width]
+    widths = [benchmark_column_width]
     classes = [["header"]]
 
-    if (not g_args.bs and not g_args.dp) or g_args.show_all:
-        for d in g_args.dirs:
-            classes.append([["header"] for i in range(5)])
-            classes[-1][0].append("borderleft")
-            columns.append(["STAT", "RESULT", "REAL[s]", "TIME[s]", "SPACE[s]"])
-            widths.append([
-                stat_col_width,
-                res_col_width,
-                real_col_width[d],
-                time_col_width[d],
-                space_col_width[d]
-            ])
-
-    if g_args.bs or g_args.show_all:
-        for d in g_args.dirs:
-            classes.append([["header"] for i in range(6)])
-            classes[-1][0].append("borderleft")
-            columns.append(["STAT", "LODS", "CALLS", "SAT[s]", "RW[s]",
-                            "BETA[s]"])
-            widths.append([
-                stat_col_width,
-                lods_col_width[d],
-                calls_col_width[d],
-                sat_col_width[d],
-                rw_col_width[d],
-                beta_col_width[d]
-            ])
-
-    if g_args.dp or g_args.show_all:
-        for d in g_args.dirs:
-            classes.append([["header"] for i in range(6)])
-            classes[-1][0].append("borderleft")
-            columns.append(
-                    ["STAT", "LODS", "TIME[s]", "APP[s]", "SAT[s]", "COL[s]"])
-            widths.append([
-                stat_col_width,
-                lods_col_width[d],
-                time_col_width[d],
-                app_col_width[d],
-                sapp_col_width[d],
-                coll_col_width[d]
-            ])
-
+    for d in g_args.dirs:
+        classes.append([["header"] for k in g_args.columns])
+        classes[-1][0].append("borderleft")
+        columns.append([_get_column_name(k) for k in g_args.columns])
+        widths.append([data_column_widths[k][d] for k in g_args.columns])
     _print_row (columns, widths, classes=classes)
 
     if g_args.html:
         print("</thead><tbody>")
 
     # print data rows
-
-    for f in sorted(g_files.keys()):
-        if g_args.t \
-           and len(set(
-               [g_run_status[d][g_files[f]] 
-                for d in g_args.dirs
-                if g_run_status[d][g_files[f]] == "time"])) < 1:
+    for f in sorted(g_benchmarks, key=lambda s: s.lower()):
+        if g_args.t and not _has_status('time', f):
+            continue
+        if g_args.e and not _has_status('err', f):
+            continue
+        if g_args.o and not _has_status('ok', f):
             continue
 
-        if g_args.e \
-           and len(set(
-               [g_run_status[d][g_files[f]] 
-                for d in g_args.dirs
-                if g_run_status[d][g_files[f]] == "err"])) < 1:
-            continue
-        if g_args.o \
-           and len(set(
-               [g_run_status[d][g_files[f]] 
-                for d in g_args.dirs
-                if g_run_status[d][g_files[f]] != "ok"])) >= 1:
-            continue
+        s = [g_file_stats['status'][d][f] for d in g_args.dirs]
+        r = [g_file_stats['result'][d][f] for d in g_args.dirs]
 
-        idx = g_files[f]
-        s = [g_run_status[d][g_files[f]] for d in g_args.dirs]
-        r = [g_run_result[d][g_files[f]] for d in g_args.dirs]
+        # row color
         color = COLOR_STAT \
-                if len(set(iter(s))) > 1 \
-                else (COLOR_DISC if len(set(iter(r))) > 1 \
-                                 else COLOR_NOCOLOR)
+                if len(set(s)) > 1 \
+                else (COLOR_DISC if len(set(r)) > 1 else COLOR_NOCOLOR)
+
         columns = [f]
-        widths = [name_col_width]
+        widths = [benchmark_column_width]
         colors = [color]
         classes = [["nowrap"]]
 
-        if (not g_args.bs and not g_args.dp) or g_args.show_all:
-            for d in g_args.dirs:
-                columns.append([
-                    g_run_status[d][idx],
-                    g_run_result[d][idx],
-                    g_run_real[d][idx],
-                    g_run_time[d][idx],
-                    g_run_space[d][idx]
-                ])
-                widths.append([
-                    stat_col_width,
-                    res_col_width,
-                    real_col_width[d],
-                    time_col_width[d],
-                    space_col_width[d],
-                ])
-                colors.append(
-                    color \
-                        if color != COLOR_NOCOLOR \
-                        else (\
-                            COLOR_DIFF \
-                            if (g_best_diff_run_real[f] != None
-                                and g_best_diff_run_real[f] == d
-                                and g_args.cmp_col == "real") \
-                               or (g_best_diff_run_time[f]
-                                   and g_best_diff_run_time[f] == d
-                                   and g_args.cmp_col == "time") \
-                               or (g_best_diff_run_space[f]
-                                   and g_best_diff_run_space[f] == d
-                                   and g_args.cmp_col == "space") \
-                            else ( \
-                                COLOR_BEST \
-                                if (g_best_run_real[f] != None
-                                    and g_best_run_real[f] == d
-                                    and g_args.cmp_col == "real") \
-                                   or (g_best_run_time[f]
-                                       and g_best_run_time[f] == d
-                                       and g_args.cmp_col == "time") \
-                                   or (g_best_run_space[f]
-                                       and g_best_run_space[f] == d
-                                       and g_args.cmp_col == "space") \
-                                else COLOR_NOCOLOR))
-                )
-                classes.append([["borderleft"]])
-                classes[-1].extend([[] for i in range(4)])
+        for d in g_args.dirs:
+            classes.append([["borderleft"]])
+            classes[-1].extend([[] for i in range(len(g_args.columns) - 1)])
+            columns.append([g_file_stats[k][d][f] for k in g_args.columns])
+            widths.append([data_column_widths[k][d] for k in g_args.columns])
+            colors.append(color if color != COLOR_NOCOLOR else _get_color(f, d))
 
-        if g_args.bs or g_args.show_all:
-            for d in g_args.dirs:
-                columns.append([
-                    g_run_status[d][idx],
-                    g_run_lods[d][idx] \
-                        if idx in g_run_lods[d] else None,
-                    g_run_satcalls[d][idx] \
-                        if idx in g_run_satcalls[d] else None,
-                    g_run_time_sat[d][idx] \
-                        if idx in g_run_time_sat[d] else None,
-                    g_run_time_rw[d][idx] \
-                        if idx in g_run_time_rw[d] else None,
-                    g_run_time_beta[d][idx] \
-                        if idx in g_run_time_beta[d] else None
-                ])
-                widths.append([
-                    stat_col_width,
-                    lods_col_width[d],
-                    calls_col_width[d],
-                    sat_col_width[d],
-                    rw_col_width[d],
-                    beta_col_width[d]
-                ])
-                colors.append(
-                    color \
-                        if color != COLOR_NOCOLOR \
-                        else (\
-                            COLOR_DIFF
-                            if (g_best_diff_run_lods[f]
-                                and g_best_diff_run_lods[f] == d
-                                and g_args.cmp_col == "lods")
-                               or (g_best_diff_run_satcalls[f] 
-                                   and g_best_diff_run_satcalls[f] == d 
-                                   and g_args.cmp_col == "calls") \
-                               or (g_best_run_time_sat[f]
-                                   and g_best_run_time_sat[f] == d
-                                   and g_args.cmp_col == "sat") \
-                               or (g_best_run_time_rw[f]
-                                   and g_best_run_time_rw[f] == d
-                                   and g_args.cmp_col == "rw") \
-                               or (g_best_diff_run_time_beta[f]
-                                   and g_best_diff_run_time_beta[f] == d
-                                   and g_args.cmp_col == "beta") \
-                            else ( \
-                                COLOR_BEST \
-                                if (g_best_run_lods[f]
-                                    and g_best_run_lods[f] == d
-                                    and g_args.cmp_col == "lods") \
-                                   or (g_best_run_satcalls[f] 
-                                       and g_best_run_satcalls[f] == d
-                                       and g_args.cmp_col == "calls") \
-                                   or (g_best_run_time_sat[f]
-                                       and g_best_run_time_sat[f] == d
-                                       and g_args.cmp_col == "sat") \
-                                   or (g_best_run_time_rw[f]
-                                       and g_best_run_time_rw[f] == d
-                                       and g_args.cmp_col == "rw") \
-                                   or (g_best_run_time_beta[f]
-                                       and g_best_run_time_beta[f] == d
-                                       and g_args.cmp_col == "beta")
-                                else COLOR_NOCOLOR))
-                )
-                classes.append([["borderleft"]])
-                classes[-1].extend([[] for i in range(5)])
-
-        if g_args.dp or g_args.show_all:
-            for d in g_args.dirs:
-                columns.append([
-                    g_run_status[d][idx],
-                    g_run_lods[d][idx] \
-                        if idx in g_run_lods[d] else None,
-                    g_run_time[d][idx] \
-                        if idx in g_run_time[d] else None,
-                    g_run_time_app[d][idx] \
-                        if idx in g_run_time_app[d] else None,
-                    g_run_time_sapp[d][idx] \
-                        if idx in g_run_time_sapp[d] else None,
-                    g_run_time_coll[d][idx] \
-                        if idx in g_run_time_coll[d] else None,
-                ])
-                widths.append([
-                    stat_col_width,
-                    lods_col_width[d],
-                    time_col_width[d],
-                    app_col_width[d],
-                    sapp_col_width[d],
-                    coll_col_width[d]
-                ])
-                colors.append(
-                    color \
-                        if color != COLOR_NOCOLOR \
-                        else (\
-                            COLOR_DIFF
-                            if (g_best_diff_run_time[f]
-                                and g_best_diff_run_time[f] == d
-                                and g_args.cmp_col == "time")
-                               or (g_best_run_lods[f]
-                                   and g_best_run_lods[f] == d
-                                   and g_args.cmp_col == "lods") \
-                               or (g_best_diff_run_time_app[f] 
-                                   and g_best_diff_run_time_app[f] == d 
-                                   and g_args.cmp_col == "app") \
-                               or (g_best_diff_run_time_sapp[f]
-                                   and g_best_diff_run_time_sapp[f] == d 
-                                   and g_args.cmp_col == "sat") \
-                               or (g_best_diff_run_time_coll[f]
-                                   and g_best_diff_run_time_coll[f] == d 
-                                   and g_args.cmp_col == "col") \
-                            else ( \
-                                COLOR_BEST \
-                                if (g_best_run_time[f]
-                                    and g_best_run_time[f] == d
-                                    and g_args.cmp_col == "time") \
-                                   or (g_best_run_lods[f]
-                                       and g_best_run_lods[f] == d
-                                       and g_args.cmp_col == "lods") \
-                                   or (g_best_run_time_app[f] 
-                                       and g_best_run_time_app[f] == d
-                                       and g_args.cmp_col == "app") \
-                                   or (g_best_run_time_sapp[f]
-                                       and g_best_run_time_sapp[f] == d
-                                       and g_args.cmp_col == "sat") \
-                                   or (g_best_run_time_coll[f]
-                                       and g_best_run_time_coll[f] == d
-                                       and g_args.cmp_col == "col") \
-                                else COLOR_NOCOLOR))
-                    )
-                classes.append([["borderleft"]])
-                classes[-1].extend([[] for i in range(5)])
-
-        _print_row(columns, widths, colors, classes=classes)
+        _print_row(columns, widths, colors=colors, classes=classes)
 
     if g_args.html:
         _print_html_footer()
@@ -848,17 +410,17 @@ def _print_data ():
 
 if __name__ == "__main__":
     try:
-        aparser = ArgumentParser ()
+        aparser = ArgumentParser(
+                      formatter_class=ArgumentDefaultsHelpFormatter,
+                      epilog="availabe values for column: {{{}}}".format(", ".join(sorted(FILE_STATS_KEYS))))
         aparser.add_argument ("-f", metavar="string", dest="filter", type=str, 
                 default=None,
                 help="filter benchmark files by <string>")
-        aparser.add_argument ("-hd", metavar="units", dest="diff", type=int,
-                default=5,
-                help="highlight diff > <units> (default: 5)")
-        aparser.add_argument ("-bs", action="store_true",
-                help="compare boolector statistics")
-        aparser.add_argument ("-dp", action="store_true",
-                help = "compare dual prop statistics")
+        aparser.add_argument ("-d", metavar="float", dest="diff", type=float,
+                default=0.1,
+                help="highlight difference if greater than <float>")
+        #aparser.add_argument ("-dp", action="store_true",
+        #        help = "compare dual prop statistics")
         aparser.add_argument ("-t", action="store_true",
                 help="show timeouts only")
         aparser.add_argument ("-m", action="store_true",
@@ -867,13 +429,18 @@ if __name__ == "__main__":
                 help="show errors only")
         aparser.add_argument ("-o", action="store_true",
                 help="show non-errors only")
-        aparser.add_argument ("-c", metavar="string", dest="cmp_col", 
-                default=None,
-                help="compare by column <string> (default: TIME, LODS if -bs)")
+        aparser.add_argument ("-c", metavar="column", dest="cmp_col", 
+                default='time_time',
+                choices=FILE_STATS_KEYS,
+                help="compare results column")
+        aparser.add_argument ("-s", metavar="column[,column ...]",
+                dest="columns",
+                default="status,result,time_real,time_time,space",
+                help="list of columns to print")
+        aparser.add_argument ("-a", dest="show_all", action="store_true",
+                help="print all columns")
         aparser.add_argument ("--html", action="store_true",
                 help="generte html output")
-        aparser.add_argument ("--show-all", action="store_true",
-                help="show all statistics")
         aparser.add_argument ("dirs", nargs=REMAINDER,
                 help="two or more smt run directories to compare")
         g_args = aparser.parse_args()
@@ -885,10 +452,13 @@ if __name__ == "__main__":
             if not os.path.isdir(d):
                 raise CmpSMTException ("given smt run is not a directory")
 
-        if not g_args.cmp_col:
-            g_args.cmp_col = "lods" if g_args.bs else "time"
-        else:
-            g_args.cmp_col = g_args.cmp_col.lower()
+        g_args.columns = g_args.columns.split(',')
+        for c in g_args.columns:
+            if c not in FILE_STATS_KEYS:
+                raise CmpSMTException("column '{}' not available".format(c))
+
+        if g_args.show_all:
+            g_args.columns = FILE_STATS_KEYS
 
         _read_data (g_args.dirs)
         _pick_data ()
