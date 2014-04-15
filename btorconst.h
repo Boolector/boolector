@@ -53,7 +53,7 @@ int btor_is_one_const (const char *str);
 
 int btor_is_ones_const (const char *str);
 
-int btor_is_small_positive_int (const char *str);
+int btor_is_small_positive_int_const (const char *str);
 
 int btor_is_power_of_two_const (const char *str);
 

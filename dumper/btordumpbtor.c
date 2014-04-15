@@ -256,7 +256,7 @@ bdcnode (BtorDumpContext *bdc, BtorNode *node, FILE *file)
         op = "one";
       else if (btor_is_ones_const (node->bits))
         op = "ones";
-      else if ((aspi = btor_is_small_positive_int (node->bits)) > 0)
+      else if ((aspi = btor_is_small_positive_int_const (node->bits)) > 0)
         op = "constd";
       else
         op = "const";

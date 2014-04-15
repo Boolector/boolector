@@ -770,7 +770,7 @@ btor_is_one_const (const char *str)
 }
 
 int
-btor_is_small_positive_int (const char *str)
+btor_is_small_positive_int_const (const char *str)
 {
   const char *p;
   int i, res;
