@@ -1954,11 +1954,16 @@ static BtorNode *binarinorm (Btor *,
                              BtorNode *,
                              BtorNode *,
                              BtorNode *(*) (Btor *, BtorNode *, BtorNode *) );
+static BtorNode *ninarinorm (Btor *,
+                             BtorNode *,
+                             BtorNode *,
+                             BtorNode *(*) (Btor *, BtorNode *, BtorNode *) );
 
 BtorNode *
 btor_rewrite_and_exp (Btor *btor, BtorNode *e0, BtorNode *e1)
 {
-  return binarinorm (btor, e0, e1, btor_rewrite_and_aux_exp);
+  // TODO For some benchmarks it was better not to do 'binarinorm'?  WHY?
+  return ninarinorm (btor, e0, e1, btor_rewrite_and_aux_exp);
 }
 
 /* This function tries to rewrite a * b + a * c into a * (b + c)
@@ -2300,7 +2305,7 @@ normalize_add_exp (Btor *btor, BtorNode **top_ptr)
                                   (BtorHashPtr) btor_hash_exp_by_id,
                                   (BtorCmpPtr) btor_compare_exp_by_id);
   i    = 0;
-  normrecadd (btor, 1, top, &i, 100, seen);
+  normrecadd (btor, 1, top, &i, 10, seen);
   c = btor_int_exp (btor, i, len);
   BTOR_INIT_STACK (stack);
   for (b = seen->first; b; b = b->next)
@@ -2388,6 +2393,15 @@ binarinorm (Btor *btor,
   btor_release_exp (btor, e1);
 
   return result;
+}
+
+static BtorNode *
+ninarinorm (Btor *btor,
+            BtorNode *e0,
+            BtorNode *e1,
+            BtorNode *(*binfun) (Btor *, BtorNode *, BtorNode *) )
+{
+  return binfun (btor, e0, e1);
 }
 
 BtorNode *
