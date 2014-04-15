@@ -222,6 +222,7 @@ bdcid (BtorDumpContext *bdc, BtorNode *node)
 }
 
 #if 1
+
 static void
 bdcnode (BtorDumpContext *bdc, BtorNode *node, FILE *file)
 {

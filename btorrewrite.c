@@ -93,8 +93,9 @@ is_const_zero_exp (Btor *btor, BtorNode *exp)
   return result;
 }
 
+#if 0
 static int
-is_const_ones_exp (Btor *btor, BtorNode *exp)
+is_const_ones_exp (Btor * btor, BtorNode * exp)
 {
   int result;
   BtorNode *real_exp;
@@ -104,18 +105,20 @@ is_const_ones_exp (Btor *btor, BtorNode *exp)
 
   exp = btor_simplify_exp (btor, exp);
 
-  if (!BTOR_IS_BV_CONST_NODE (BTOR_REAL_ADDR_NODE (exp))) return 0;
+  if (!BTOR_IS_BV_CONST_NODE (BTOR_REAL_ADDR_NODE (exp)))
+    return 0;
 
   if (BTOR_IS_INVERTED_NODE (exp))
-  {
-    real_exp = BTOR_REAL_ADDR_NODE (exp);
-    result   = btor_is_zero_const (real_exp->bits);
-  }
+    {
+      real_exp = BTOR_REAL_ADDR_NODE (exp);
+      result = btor_is_zero_const (real_exp->bits);
+    }
   else
     result = btor_is_ones_const (exp->bits);
 
   return result;
 }
+#endif
 
 static int
 is_const_exp (Btor *btor, BtorNode *exp)
@@ -2224,22 +2227,46 @@ normrecadd (Btor *btor,
 static void
 normalize_add_exp (Btor *btor, BtorNode **top_ptr)
 {
-  BtorNode *top, *node, *res;
+  BtorNode *top, *real_top, *node, *res, *c, *f, *tmp, *real_tmp;
   BtorPtrHashTable *seen;
   BtorNodePtrStack stack;
   BtorPtrHashBucket *b;
-  int c;
+  int i, len;
   if (btor->options.rewrite_level < 2) return;
-  top = *top_ptr;
-  if (BTOR_REAL_ADDR_NODE (top)->kind != BTOR_ADD_NODE) return;
+  top      = *top_ptr;
+  real_top = BTOR_REAL_ADDR_NODE (top);
+  if (real_top->kind != BTOR_ADD_NODE) return;
+  len  = real_top->len;
   seen = btor_new_ptr_hash_table (btor->mm,
                                   (BtorHashPtr) btor_hash_exp_by_id,
                                   (BtorCmpPtr) btor_compare_exp_by_id);
-  c    = 0;
-  normrecadd (btor, 1, top, &c, 100, seen);
+  i    = 0;
+  normrecadd (btor, 1, top, &i, 20, seen);
+  c = btor_int_exp (btor, i, len);
   BTOR_INIT_STACK (stack);
+  for (b = seen->first; b; b = b->next)
+  {
+    node = b->key;
+    i    = b->data.asInt;
+    if (!i) continue;
+    f        = btor_int_exp (btor, i, len);
+    tmp      = btor_mul_exp (btor, f, node);
+    real_tmp = BTOR_REAL_ADDR_NODE (tmp);
+    if (real_tmp->kind == BTOR_BV_CONST_NODE)
+    {
+      btor_release_exp (btor, tmp);
+    }
+    else
+      BTOR_PUSH_STACK (btor->mm, stack, tmp);
+  }
+  btor_release_exp (btor, c);
   btor_delete_ptr_hash_table (seen);
   res = btor_copy_exp (btor, top);
+  while (!BTOR_EMPTY_STACK (stack))
+  {
+    node = BTOR_POP_STACK (stack);
+    btor_release_exp (btor, node);
+  }
   BTOR_RELEASE_STACK (btor->mm, stack);
   assert (*top_ptr == top);
   *top_ptr = res;

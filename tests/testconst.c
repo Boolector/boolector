@@ -355,6 +355,38 @@ test_is_special_const (void)
 }
 
 static void
+test_is_small_positive_int_const (void)
+{
+  assert (btor_is_small_positive_int ("000") == 0);
+  assert (btor_is_small_positive_int ("001") == 1);
+  assert (btor_is_small_positive_int ("0010") == 2);
+  assert (btor_is_small_positive_int ("00100") == 4);
+  assert (btor_is_small_positive_int ("001000") == 8);
+  assert (btor_is_small_positive_int ("0010000") == 16);
+  assert (btor_is_small_positive_int ("000100000") == 32);
+  assert (btor_is_small_positive_int ("0001000000") == 64);
+  assert (btor_is_small_positive_int ("00010000000") == 128);
+  assert (btor_is_small_positive_int ("000100000000") == 256);
+  assert (btor_is_small_positive_int ("0001000000000") == 512);
+  assert (btor_is_small_positive_int ("0000010000000000") == 1024);
+  assert (btor_is_small_positive_int ("10000000000000000000000000000")
+          == (1 << 28));
+  assert (btor_is_small_positive_int ("100000000000000000000000000000")
+          == (1 << 29));
+  assert (btor_is_small_positive_int ("1000000000000000000000000000000")
+          == (1 << 30));
+  assert (btor_is_small_positive_int ("01000000000000000000000000000000")
+          == (1 << 30));
+  assert (btor_is_small_positive_int ("10000000000000000000000000000000") < 0);
+  assert (btor_is_small_positive_int ("0010000000000000000000000000000000")
+          < 0);
+  assert (
+      btor_is_small_positive_int (
+          "0000000000000000000000000000000000000000000000000000000000000000")
+      == 0);
+}
+
+static void
 test_int_to_const (void)
 {
   char *result = btor_int_to_const (g_mm, 5, 8);
@@ -1385,6 +1417,7 @@ run_const_tests (int argc, char **argv)
   BTOR_RUN_TEST (is_one_const);
   BTOR_RUN_TEST (is_ones_const);
   BTOR_RUN_TEST (is_special_const);
+  BTOR_RUN_TEST (is_small_positive_int_const);
   BTOR_RUN_TEST (int_to_const);
   BTOR_RUN_TEST (unsigned_to_const);
   BTOR_RUN_TEST (invert_const);
