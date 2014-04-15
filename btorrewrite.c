@@ -4658,11 +4658,11 @@ btor_shallow_subst (
   return res;
 }
 
-BtorNode *
-btor_rewrite_cond_exp (Btor *btor,
-                       BtorNode *e_cond,
-                       BtorNode *e_if,
-                       BtorNode *e_else)
+static BtorNode *
+btor_rewrite_cond_aux_exp (Btor *btor,
+                           BtorNode *e_cond,
+                           BtorNode *e_if,
+                           BtorNode *e_else)
 {
   BtorNode *(*fptr) (Btor *, BtorNode *, BtorNode *);
   BtorNode *result, *tmp1, *tmp2, *tmp3, *tmp4;
@@ -5023,6 +5023,34 @@ RESTART:
   BTOR_REWRITE_COND_NODE_NO_REWRITE:
     result = btor_cond_exp_node (btor, e_cond, e_if, e_else);
   }
+
+  return result;
+}
+
+BtorNode *
+btor_rewrite_cond_exp (Btor *btor,
+                       BtorNode *e_cond,
+                       BtorNode *e_if,
+                       BtorNode *e_else)
+{
+  BtorNode *result;
+
+  e_cond = btor_simplify_exp (btor, e_cond);
+  e_if   = btor_simplify_exp (btor, e_if);
+  e_else = btor_simplify_exp (btor, e_else);
+  assert (btor_precond_cond_exp_dbg (btor, e_cond, e_if, e_else));
+  assert (btor->options.rewrite_level > 0);
+
+  e_if   = btor_copy_exp (btor, e_if);
+  e_else = btor_copy_exp (btor, e_else);
+
+  normalize_add_exp (btor, &e_if);
+  normalize_add_exp (btor, &e_else);
+
+  result = btor_rewrite_cond_aux_exp (btor, e_cond, e_if, e_else);
+
+  btor_release_exp (btor, e_if);
+  btor_release_exp (btor, e_else);
 
   return result;
 }
