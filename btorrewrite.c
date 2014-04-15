@@ -2264,10 +2264,15 @@ normalize_add_exp (Btor *btor, BtorNode **top_ptr)
       btor_release_exp (btor, c);
       c = tmp2;
     }
+    else if (i == 1)
+    {
+      tmp = btor_copy_exp (btor, node);
+      BTOR_PUSH_STACK (btor->mm, stack, tmp);
+    }
     else if (i == -1)
     {
       tmp = BTOR_INVERT_NODE (node);
-      tmp = btor_copy_exp (btor, node);
+      tmp = btor_copy_exp (btor, tmp);
       BTOR_PUSH_STACK (btor->mm, stack, tmp);
 
       one  = btor_one_exp (btor, len);
