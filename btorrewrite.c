@@ -3490,27 +3490,32 @@ btor_rewrite_mul_aux_exp (Btor *btor, BtorNode *e0, BtorNode *e1)
     }
   }
 
+#if 0
+  // TODO: why should we disable this?
+  //
   if (btor->rec_rw_calls < BTOR_REC_RW_BOUND)
-  {
-    if (is_const_ones_exp (btor, e0))
-      result = e1;
-    else if (is_const_ones_exp (btor, e1))
-      result = e0;
-    else
-      result = 0;
-
-    if (result)
     {
-      int len = BTOR_REAL_ADDR_NODE (result)->len;
-      BtorNode *tmp, *one = btor_one_exp (btor, len);
-      BTOR_INC_REC_RW_CALL (btor);
-      tmp = btor_add_exp (btor, BTOR_INVERT_NODE (result), one);
-      BTOR_DEC_REC_RW_CALL (btor);
-      btor_release_exp (btor, one);
-      result = tmp;
-      goto HAVE_RESULT_BUT_MIGHT_NEED_TO_RELEASE_SOMETHING;
+      if (is_const_ones_exp (btor, e0))
+	result = e1;
+      else
+      if (is_const_ones_exp (btor, e1))
+	result = e0;
+      else
+	result = 0;
+	
+      if (result)
+	{
+	  int len = BTOR_REAL_ADDR_NODE (result)->len;
+	  BtorNode * tmp, * one = btor_one_exp (btor, len);
+	  BTOR_INC_REC_RW_CALL (btor);
+	  tmp = btor_add_exp (btor, BTOR_INVERT_NODE (result), one);
+	  BTOR_DEC_REC_RW_CALL (btor);
+	  btor_release_exp (btor, one);
+	  result = tmp;
+	  goto HAVE_RESULT_BUT_MIGHT_NEED_TO_RELEASE_SOMETHING;
+	}
     }
-  }
+#endif
 
   result = rewrite_binary_exp (btor, BTOR_MUL_NODE, e0, e1);
   if (!result)
