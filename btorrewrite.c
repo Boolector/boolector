@@ -2245,7 +2245,7 @@ normalize_add_exp (Btor *btor, BtorNode **top_ptr)
                                   (BtorHashPtr) btor_hash_exp_by_id,
                                   (BtorCmpPtr) btor_compare_exp_by_id);
   i    = 0;
-  normrecadd (btor, 1, top, &i, 20, seen);
+  normrecadd (btor, 1, top, &i, 100, seen);
   c = btor_int_exp (btor, i, len);
   BTOR_INIT_STACK (stack);
   for (b = seen->first; b; b = b->next)
