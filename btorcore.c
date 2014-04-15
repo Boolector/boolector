@@ -89,10 +89,9 @@ static BtorPtrHashTable *map_inputs_check_model (Btor *, Btor *);
 /*------------------------------------------------------------------------*/
 
 const char *const g_btor_op2string[] = {
-    "invalid", "const", "var",    "array", "param", "slice",  "and",
-    "beq",     "aeq",   "add",    "mul",   "ult",   "sll",    "srl",
-    "udiv",    "urem",  "concat", "read",  "apply", "lambda", "write",
-    "bcond",   "acond", "args",   "proxy"};
+    "invalid", "const", "var",    "array", "param", "slice", "and",  "beq",
+    "aeq",     "add",   "mul",    "ult",   "sll",   "srl",   "udiv", "urem",
+    "concat",  "apply", "lambda", "bcond", "acond", "args",  "proxy"};
 
 struct BtorSlice
 {
@@ -780,6 +779,9 @@ btor_print_stats_btor (Btor *btor)
     num_final_ops = number_of_ops (btor);
     assert (num_final_ops >= 0);
     btor_msg (btor, 2, "number of final expressions: %d", num_final_ops);
+    assert (sizeof g_btor_op2string / sizeof *g_btor_op2string
+            == BTOR_NUM_OPS_NODE);
+
     if (num_final_ops > 0)
       for (i = 1; i < BTOR_NUM_OPS_NODE - 1; i++)
         if (btor->ops[i].cur || btor->ops[i].max)
