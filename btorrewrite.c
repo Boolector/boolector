@@ -1963,6 +1963,7 @@ BtorNode *
 btor_rewrite_and_exp (Btor *btor, BtorNode *e0, BtorNode *e1)
 {
   // TODO For some benchmarks it was better not to do 'binarinorm'?  WHY?
+  //
   return ninarinorm (btor, e0, e1, btor_rewrite_and_aux_exp);
 }
 
@@ -3697,7 +3698,7 @@ btor_rewrite_sll_aux_exp (Btor *btor, BtorNode *e0, BtorNode *e1)
 BtorNode *
 btor_rewrite_sll_exp (Btor *btor, BtorNode *e0, BtorNode *e1)
 {
-  return binarinorm (btor, e0, e1, btor_rewrite_sll_aux_exp);
+  return ninarinorm (btor, e0, e1, btor_rewrite_sll_aux_exp);
 }
 
 static BtorNode *
@@ -3762,7 +3763,7 @@ btor_rewrite_srl_aux_exp (Btor *btor, BtorNode *e0, BtorNode *e1)
 BtorNode *
 btor_rewrite_srl_exp (Btor *btor, BtorNode *e0, BtorNode *e1)
 {
-  return binarinorm (btor, e0, e1, btor_rewrite_srl_aux_exp);
+  return ninarinorm (btor, e0, e1, btor_rewrite_srl_aux_exp);
 }
 
 static BtorNode *
@@ -4216,7 +4217,7 @@ btor_rewrite_concat_aux_exp (Btor *btor, BtorNode *e0, BtorNode *e1)
 BtorNode *
 btor_rewrite_concat_exp (Btor *btor, BtorNode *e0, BtorNode *e1)
 {
-  return binarinorm (btor, e0, e1, btor_rewrite_concat_aux_exp);
+  return ninarinorm (btor, e0, e1, btor_rewrite_concat_aux_exp);
 }
 
 static int
