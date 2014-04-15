@@ -41,14 +41,13 @@ BtorNode *btor_rewrite_urem_exp (Btor *btor, BtorNode *e0, BtorNode *e1);
 
 BtorNode *btor_rewrite_concat_exp (Btor *btor, BtorNode *e0, BtorNode *e1);
 
-BtorNode *btor_rewrite_read_exp (Btor *btor,
-                                 BtorNode *e_array,
-                                 BtorNode *e_index);
+#if 0
+BtorNode *btor_rewrite_read_exp (Btor * btor, BtorNode * e_array, 
+				 BtorNode * e_index);
 
-BtorNode *btor_rewrite_write_exp (Btor *btor,
-                                  BtorNode *e_array,
-                                  BtorNode *e_index,
-                                  BtorNode *e_value);
+BtorNode *btor_rewrite_write_exp (Btor * btor, BtorNode * e_array, 
+				  BtorNode * e_index, BtorNode *e_value);
+#endif
 
 BtorNode *btor_rewrite_cond_exp (Btor *btor,
                                  BtorNode *e_cond,

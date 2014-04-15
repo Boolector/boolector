@@ -1961,20 +1961,23 @@ try_rewrite_add_mul_distrib (Btor *btor, BtorNode *e0, BtorNode *e1)
   return result;
 }
 
+#if 0
 static BtorNode *
-normalize_negated_add (Btor *btor, BtorNode *exp)
+normalize_negated_add (Btor * btor, BtorNode * exp)
 {
-  BtorNode *tmp, *res, *one;
-  BtorNode *real_exp;
+  BtorNode * tmp, *res, *one;
+  BtorNode * real_exp;
 
-  if (!BTOR_IS_INVERTED_NODE (exp)) return btor_copy_exp (btor, exp);
+  if (!BTOR_IS_INVERTED_NODE (exp))
+    return btor_copy_exp (btor, exp);
 
   real_exp = BTOR_REAL_ADDR_NODE (exp);
-  if (real_exp->kind != BTOR_ADD_NODE) return btor_copy_exp (btor, exp);
+  if (real_exp->kind != BTOR_ADD_NODE)
+    return btor_copy_exp (btor, exp);
 
   tmp = btor_add_exp (btor,
-                      BTOR_INVERT_NODE (real_exp->e[0]),
-                      BTOR_INVERT_NODE (real_exp->e[1]));
+	  BTOR_INVERT_NODE (real_exp->e[0]),
+	  BTOR_INVERT_NODE (real_exp->e[1]));
   one = btor_one_exp (btor, real_exp->len);
   res = btor_add_exp (btor, tmp, one);
   btor_release_exp (btor, one);
@@ -1982,6 +1985,7 @@ normalize_negated_add (Btor *btor, BtorNode *exp)
 
   return res;
 }
+#endif
 
 #if 0
 static void normalize_eq_adds_exp (Btor * btor,
@@ -2249,23 +2253,32 @@ normalize_add_exp (Btor *btor, BtorNode **top_ptr)
     node = b->key;
     i    = b->data.asInt;
     if (!i) continue;
-    f        = btor_int_exp (btor, i, len);
-    tmp      = btor_mul_exp (btor, f, node);
+    f   = btor_int_exp (btor, i, len);
+    tmp = btor_mul_exp (btor, f, node);
+    btor_release_exp (btor, f);
     real_tmp = BTOR_REAL_ADDR_NODE (tmp);
     if (real_tmp->kind == BTOR_BV_CONST_NODE)
     {
+      BtorNode *tmp2 = btor_add_exp (btor, c, tmp);
       btor_release_exp (btor, tmp);
+      btor_release_exp (btor, c);
+      c = tmp2;
     }
     else
       BTOR_PUSH_STACK (btor->mm, stack, tmp);
   }
-  btor_release_exp (btor, c);
   btor_delete_ptr_hash_table (seen);
-  res = btor_copy_exp (btor, top);
-  while (!BTOR_EMPTY_STACK (stack))
+  BTOR_PUSH_STACK (btor->mm, stack, c);
+  qsort (
+      stack.start, BTOR_COUNT_STACK (stack), sizeof (BtorNode *), cmp_node_id);
+  res = BTOR_PEEK_STACK (stack, 0);
+  for (i = 1; i < BTOR_COUNT_STACK (stack); i++)
   {
-    node = BTOR_POP_STACK (stack);
+    node = BTOR_PEEK_STACK (stack, i);
+    tmp  = btor_add_exp (btor, res, node);
     btor_release_exp (btor, node);
+    btor_release_exp (btor, res);
+    res = tmp;
   }
   BTOR_RELEASE_STACK (btor->mm, stack);
   assert (*top_ptr == top);
@@ -2285,6 +2298,9 @@ btor_rewrite_eq_exp (Btor *btor, BtorNode *e0, BtorNode *e1)
   e1 = btor_simplify_exp (btor, e1);
   assert (btor_precond_eq_exp_dbg (btor, e0, e1));
   assert (btor->options.rewrite_level > 0);
+
+  normalize_add_exp (btor, &e0);
+  normalize_add_exp (btor, &e1);
 
   if (BTOR_IS_FUN_NODE (BTOR_REAL_ADDR_NODE (e0)))
     kind = BTOR_AEQ_NODE;
@@ -2306,12 +2322,9 @@ btor_rewrite_eq_exp (Btor *btor, BtorNode *e0, BtorNode *e1)
     }
 #endif
 
+#if 0
   e0 = normalize_negated_add (btor, e0);
   e1 = normalize_negated_add (btor, e1);
-
-#if 1
-  normalize_add_exp (btor, &e0);
-  normalize_add_exp (btor, &e1);
 #endif
 
   /* ~e0 == ~e1 is the same as e0 == e1 */
@@ -3228,6 +3241,9 @@ btor_rewrite_mul_exp (Btor *btor, BtorNode *e0, BtorNode *e1)
   assert (btor_precond_regular_binary_bv_exp_dbg (btor, e0, e1));
   assert (btor->options.rewrite_level > 0);
 
+  normalize_add_exp (btor, &e0);
+  normalize_add_exp (btor, &e1);
+
   normalized = 0;
 
   /* we do not need the optimization for term * power_of_2_constant as
@@ -3382,6 +3398,9 @@ btor_rewrite_ult_exp (Btor *btor, BtorNode *e0, BtorNode *e1)
   assert (btor_precond_regular_binary_bv_exp_dbg (btor, e0, e1));
   assert (btor->options.rewrite_level > 0);
 
+  normalize_add_exp (btor, &e0);
+  normalize_add_exp (btor, &e1);
+
   normalized = 0;
 
   if (BTOR_IS_INVERTED_NODE (e0) && BTOR_IS_INVERTED_NODE (e1))
@@ -3478,6 +3497,10 @@ btor_rewrite_sll_exp (Btor *btor, BtorNode *e0, BtorNode *e1)
   e0 = btor_simplify_exp (btor, e0);
   e1 = btor_simplify_exp (btor, e1);
   assert (btor_precond_shift_exp_dbg (btor, e0, e1));
+
+  normalize_add_exp (btor, &e0);
+  normalize_add_exp (btor, &e1);
+
   real_e0 = BTOR_REAL_ADDR_NODE (e0);
   real_e1 = BTOR_REAL_ADDR_NODE (e1);
 
@@ -3536,6 +3559,10 @@ btor_rewrite_srl_exp (Btor *btor, BtorNode *e0, BtorNode *e1)
   e0 = btor_simplify_exp (btor, e0);
   e1 = btor_simplify_exp (btor, e1);
   assert (btor_precond_shift_exp_dbg (btor, e0, e1));
+
+  normalize_add_exp (btor, &e0);
+  normalize_add_exp (btor, &e1);
+
   real_e0 = BTOR_REAL_ADDR_NODE (e0);
   real_e1 = BTOR_REAL_ADDR_NODE (e1);
 
@@ -3592,6 +3619,9 @@ btor_rewrite_udiv_exp (Btor *btor, BtorNode *e0, BtorNode *e1)
   e1 = btor_simplify_exp (btor, e1);
   assert (btor_precond_regular_binary_bv_exp_dbg (btor, e0, e1));
   assert (btor->options.rewrite_level > 0);
+
+  normalize_add_exp (btor, &e0);
+  normalize_add_exp (btor, &e1);
 
   normalized = 0;
 
@@ -3687,6 +3717,9 @@ btor_rewrite_urem_exp (Btor *btor, BtorNode *e0, BtorNode *e1)
   assert (btor_precond_regular_binary_bv_exp_dbg (btor, e0, e1));
   assert (btor->options.rewrite_level > 0);
 
+  normalize_add_exp (btor, &e0);
+  normalize_add_exp (btor, &e1);
+
   normalized = 0;
 
   /* we do not need the optimization for term % power_of_2_constant as
@@ -3770,6 +3803,10 @@ btor_rewrite_concat_exp (Btor *btor, BtorNode *e0, BtorNode *e1)
   e1 = btor_simplify_exp (btor, e1);
   assert (btor_precond_concat_exp_dbg (btor, e0, e1));
   assert (btor->options.rewrite_level > 0);
+
+  normalize_add_exp (btor, &e0);
+  normalize_add_exp (btor, &e1);
+
   real_e0 = BTOR_REAL_ADDR_NODE (e0);
   real_e1 = BTOR_REAL_ADDR_NODE (e1);
 
@@ -4535,6 +4572,9 @@ RESTART:
   e_else = btor_simplify_exp (btor, e_else);
   assert (btor_precond_cond_exp_dbg (btor, e_cond, e_if, e_else));
   assert (btor->options.rewrite_level > 0);
+
+  normalize_add_exp (btor, &e_if);
+  normalize_add_exp (btor, &e_else);
 
   result = 0;
 
