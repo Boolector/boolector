@@ -2325,6 +2325,9 @@ btor_rewrite_eq_exp (Btor *btor, BtorNode *e0, BtorNode *e1)
 #if 0
   e0 = normalize_negated_add (btor, e0);
   e1 = normalize_negated_add (btor, e1);
+#else
+  e0 = btor_copy_exp (btor, e0);
+  e1 = btor_copy_exp (btor, e1);
 #endif
 
   /* ~e0 == ~e1 is the same as e0 == e1 */
