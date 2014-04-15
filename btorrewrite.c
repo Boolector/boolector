@@ -3400,12 +3400,14 @@ btor_rewrite_mul_exp (Btor *btor, BtorNode *e0, BtorNode *e1)
     }
   }
 
-  if (!result && btor->rec_rw_calls < BTOR_REC_RW_BOUND)
+  if (btor->rec_rw_calls < BTOR_REC_RW_BOUND)
   {
     if (is_const_ones_exp (btor, e0))
       result = e1;
     else if (is_const_ones_exp (btor, e1))
       result = e0;
+    else
+      result = 0;
 
     if (result)
     {
@@ -3437,8 +3439,8 @@ HAVE_RESULT_BUT_MIGHT_NEED_TO_RELEASE_SOMETHING:
   return result;
 }
 
-BtorNode *
-btor_rewrite_ult_exp (Btor *btor, BtorNode *e0, BtorNode *e1)
+static BtorNode *
+btor_rewrite_ult_aux_exp (Btor *btor, BtorNode *e0, BtorNode *e1)
 {
   BtorNode *result, *e0_norm, *e1_norm, *temp;
   int normalized;
@@ -3536,6 +3538,39 @@ btor_rewrite_ult_exp (Btor *btor, BtorNode *e0, BtorNode *e1)
   }
 
   return result;
+}
+
+static BtorNode *
+binarinorm (Btor *btor,
+            BtorNode *e0,
+            BtorNode *e1,
+            BtorNode *(*binfun) (Btor *, BtorNode *, BtorNode *) )
+{
+  BtorNode *result;
+
+  e0 = btor_simplify_exp (btor, e0);
+  e1 = btor_simplify_exp (btor, e1);
+  assert (btor_precond_regular_binary_bv_exp_dbg (btor, e0, e1));
+  assert (btor->options.rewrite_level > 0);
+
+  e0 = btor_copy_exp (btor, e0);
+  e1 = btor_copy_exp (btor, e1);
+
+  normalize_add_exp (btor, &e0);
+  normalize_add_exp (btor, &e1);
+
+  result = binfun (btor, e0, e1);
+
+  btor_release_exp (btor, e0);
+  btor_release_exp (btor, e1);
+
+  return result;
+}
+
+BtorNode *
+btor_rewrite_ult_exp (Btor *btor, BtorNode *e0, BtorNode *e1)
+{
+  return binarinorm (btor, e0, e1, btor_rewrite_ult_aux_exp);
 }
 
 BtorNode *
