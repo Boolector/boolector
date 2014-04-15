@@ -1550,8 +1550,8 @@ find_and_contradiction_exp (
   return 0;
 }
 
-BtorNode *
-btor_rewrite_and_exp (Btor *btor, BtorNode *e0, BtorNode *e1)
+static BtorNode *
+btor_rewrite_and_aux_exp (Btor *btor, BtorNode *e0, BtorNode *e1)
 {
   BtorNode *real_e0, *real_e1, *result, *e0_norm, *e1_norm, *temp;
   int normalized, calls;
@@ -1904,6 +1904,17 @@ BTOR_NODE_TWO_LEVEL_OPT_TRY_AGAIN:
   }
 
   return result;
+}
+
+static BtorNode *binarinorm (Btor *,
+                             BtorNode *,
+                             BtorNode *,
+                             BtorNode *(*) (Btor *, BtorNode *, BtorNode *) );
+
+BtorNode *
+btor_rewrite_and_exp (Btor *btor, BtorNode *e0, BtorNode *e1)
+{
+  return binarinorm (btor, e0, e1, btor_rewrite_and_aux_exp);
 }
 
 /* This function tries to rewrite a * b + a * c into a * (b + c)
@@ -2307,6 +2318,32 @@ normalize_add_exp (Btor *btor, BtorNode **top_ptr)
   *top_ptr = res;
   btor_release_exp (btor, top);
   BTOR_DEC_REC_RW_CALL (btor);
+}
+
+static BtorNode *
+binarinorm (Btor *btor,
+            BtorNode *e0,
+            BtorNode *e1,
+            BtorNode *(*binfun) (Btor *, BtorNode *, BtorNode *) )
+{
+  BtorNode *result;
+
+  e0 = btor_simplify_exp (btor, e0);
+  e1 = btor_simplify_exp (btor, e1);
+  assert (btor->options.rewrite_level > 0);
+
+  e0 = btor_copy_exp (btor, e0);
+  e1 = btor_copy_exp (btor, e1);
+
+  normalize_add_exp (btor, &e0);
+  normalize_add_exp (btor, &e1);
+
+  result = binfun (btor, e0, e1);
+
+  btor_release_exp (btor, e0);
+  btor_release_exp (btor, e1);
+
+  return result;
 }
 
 BtorNode *
@@ -3256,8 +3293,8 @@ btor_rewrite_add_exp (Btor *btor, BtorNode *e0, BtorNode *e1)
   return result;
 }
 
-BtorNode *
-btor_rewrite_mul_exp (Btor *btor, BtorNode *e0, BtorNode *e1)
+static BtorNode *
+btor_rewrite_mul_aux_exp (Btor *btor, BtorNode *e0, BtorNode *e1)
 {
   BtorNode *result, *left, *right;
   int normalized;
@@ -3266,12 +3303,6 @@ btor_rewrite_mul_exp (Btor *btor, BtorNode *e0, BtorNode *e1)
   e1 = btor_simplify_exp (btor, e1);
   assert (btor_precond_regular_binary_bv_exp_dbg (btor, e0, e1));
   assert (btor->options.rewrite_level > 0);
-
-#if 0
-  // we need a reference to 'e0' and 'e1' to call this function ...
-  normalize_add_exp (btor, &e0);
-  normalize_add_exp (btor, &e1);
-#endif
 
   normalized = 0;
 
@@ -3439,6 +3470,12 @@ HAVE_RESULT_BUT_MIGHT_NEED_TO_RELEASE_SOMETHING:
   return result;
 }
 
+BtorNode *
+btor_rewrite_mul_exp (Btor *btor, BtorNode *e0, BtorNode *e1)
+{
+  return binarinorm (btor, e0, e1, btor_rewrite_mul_aux_exp);
+}
+
 static BtorNode *
 btor_rewrite_ult_aux_exp (Btor *btor, BtorNode *e0, BtorNode *e1)
 {
@@ -3449,12 +3486,6 @@ btor_rewrite_ult_aux_exp (Btor *btor, BtorNode *e0, BtorNode *e1)
   e1 = btor_simplify_exp (btor, e1);
   assert (btor_precond_regular_binary_bv_exp_dbg (btor, e0, e1));
   assert (btor->options.rewrite_level > 0);
-
-#if 0
-  // we need a reference to 'e0' and 'e1' to call this function ...
-  normalize_add_exp (btor, &e0);
-  normalize_add_exp (btor, &e1);
-#endif
 
   normalized = 0;
 
@@ -3540,41 +3571,14 @@ btor_rewrite_ult_aux_exp (Btor *btor, BtorNode *e0, BtorNode *e1)
   return result;
 }
 
-static BtorNode *
-binarinorm (Btor *btor,
-            BtorNode *e0,
-            BtorNode *e1,
-            BtorNode *(*binfun) (Btor *, BtorNode *, BtorNode *) )
-{
-  BtorNode *result;
-
-  e0 = btor_simplify_exp (btor, e0);
-  e1 = btor_simplify_exp (btor, e1);
-  assert (btor_precond_regular_binary_bv_exp_dbg (btor, e0, e1));
-  assert (btor->options.rewrite_level > 0);
-
-  e0 = btor_copy_exp (btor, e0);
-  e1 = btor_copy_exp (btor, e1);
-
-  normalize_add_exp (btor, &e0);
-  normalize_add_exp (btor, &e1);
-
-  result = binfun (btor, e0, e1);
-
-  btor_release_exp (btor, e0);
-  btor_release_exp (btor, e1);
-
-  return result;
-}
-
 BtorNode *
 btor_rewrite_ult_exp (Btor *btor, BtorNode *e0, BtorNode *e1)
 {
   return binarinorm (btor, e0, e1, btor_rewrite_ult_aux_exp);
 }
 
-BtorNode *
-btor_rewrite_sll_exp (Btor *btor, BtorNode *e0, BtorNode *e1)
+static BtorNode *
+btor_rewrite_sll_aux_exp (Btor *btor, BtorNode *e0, BtorNode *e1)
 {
   assert (btor->options.rewrite_level > 0);
 
@@ -3585,12 +3589,6 @@ btor_rewrite_sll_exp (Btor *btor, BtorNode *e0, BtorNode *e1)
   e0 = btor_simplify_exp (btor, e0);
   e1 = btor_simplify_exp (btor, e1);
   assert (btor_precond_shift_exp_dbg (btor, e0, e1));
-
-#if 0
-  // we need a reference to 'e0' and 'e1' to call this function ...
-  normalize_add_exp (btor, &e0);
-  normalize_add_exp (btor, &e1);
-#endif
 
   real_e0 = BTOR_REAL_ADDR_NODE (e0);
   real_e1 = BTOR_REAL_ADDR_NODE (e1);
@@ -3639,7 +3637,13 @@ btor_rewrite_sll_exp (Btor *btor, BtorNode *e0, BtorNode *e1)
 }
 
 BtorNode *
-btor_rewrite_srl_exp (Btor *btor, BtorNode *e0, BtorNode *e1)
+btor_rewrite_sll_exp (Btor *btor, BtorNode *e0, BtorNode *e1)
+{
+  return binarinorm (btor, e0, e1, btor_rewrite_sll_aux_exp);
+}
+
+static BtorNode *
+btor_rewrite_srl_aux_exp (Btor *btor, BtorNode *e0, BtorNode *e1)
 {
   assert (btor->options.rewrite_level > 0);
 
@@ -3650,12 +3654,6 @@ btor_rewrite_srl_exp (Btor *btor, BtorNode *e0, BtorNode *e1)
   e0 = btor_simplify_exp (btor, e0);
   e1 = btor_simplify_exp (btor, e1);
   assert (btor_precond_shift_exp_dbg (btor, e0, e1));
-
-#if 0
-  // we need a reference to 'e0' and 'e1' to call this function ...
-  normalize_add_exp (btor, &e0);
-  normalize_add_exp (btor, &e1);
-#endif
 
   real_e0 = BTOR_REAL_ADDR_NODE (e0);
   real_e1 = BTOR_REAL_ADDR_NODE (e1);
@@ -3704,7 +3702,13 @@ btor_rewrite_srl_exp (Btor *btor, BtorNode *e0, BtorNode *e1)
 }
 
 BtorNode *
-btor_rewrite_udiv_exp (Btor *btor, BtorNode *e0, BtorNode *e1)
+btor_rewrite_srl_exp (Btor *btor, BtorNode *e0, BtorNode *e1)
+{
+  return binarinorm (btor, e0, e1, btor_rewrite_srl_aux_exp);
+}
+
+static BtorNode *
+btor_rewrite_udiv_aux_exp (Btor *btor, BtorNode *e0, BtorNode *e1)
 {
   BtorNode *result, *e0_norm, *e1_norm;
   int normalized, n;
@@ -3713,12 +3717,6 @@ btor_rewrite_udiv_exp (Btor *btor, BtorNode *e0, BtorNode *e1)
   e1 = btor_simplify_exp (btor, e1);
   assert (btor_precond_regular_binary_bv_exp_dbg (btor, e0, e1));
   assert (btor->options.rewrite_level > 0);
-
-#if 0
-  // we need a reference to 'e0' and 'e1' to call this function ...
-  normalize_add_exp (btor, &e0);
-  normalize_add_exp (btor, &e1);
-#endif
 
   normalized = 0;
 
@@ -3804,7 +3802,13 @@ btor_rewrite_udiv_exp (Btor *btor, BtorNode *e0, BtorNode *e1)
 }
 
 BtorNode *
-btor_rewrite_urem_exp (Btor *btor, BtorNode *e0, BtorNode *e1)
+btor_rewrite_udiv_exp (Btor *btor, BtorNode *e0, BtorNode *e1)
+{
+  return binarinorm (btor, e0, e1, btor_rewrite_udiv_aux_exp);
+}
+
+static BtorNode *
+btor_rewrite_urem_aux_exp (Btor *btor, BtorNode *e0, BtorNode *e1)
 {
   BtorNode *result, *e0_norm, *e1_norm;
   int normalized;
@@ -3813,12 +3817,6 @@ btor_rewrite_urem_exp (Btor *btor, BtorNode *e0, BtorNode *e1)
   e1 = btor_simplify_exp (btor, e1);
   assert (btor_precond_regular_binary_bv_exp_dbg (btor, e0, e1));
   assert (btor->options.rewrite_level > 0);
-
-#if 0
-  // we need a reference to 'e0' and 'e1' to call this function ...
-  normalize_add_exp (btor, &e0);
-  normalize_add_exp (btor, &e1);
-#endif
 
   normalized = 0;
 
@@ -3879,6 +3877,12 @@ btor_rewrite_urem_exp (Btor *btor, BtorNode *e0, BtorNode *e1)
   return result;
 }
 
+BtorNode *
+btor_rewrite_urem_exp (Btor *btor, BtorNode *e0, BtorNode *e1)
+{
+  return binarinorm (btor, e0, e1, btor_rewrite_urem_aux_exp);
+}
+
 static int
 btor_concat_simplifiable (BtorNode *exp)
 {
@@ -3891,8 +3895,8 @@ btor_concat_simplifiable (BtorNode *exp)
   return 0;
 }
 
-BtorNode *
-btor_rewrite_concat_exp (Btor *btor, BtorNode *e0, BtorNode *e1)
+static BtorNode *
+btor_rewrite_concat_aux_exp (Btor *btor, BtorNode *e0, BtorNode *e1)
 {
   BtorNode *result, *temp, *cur, *left, *right, *real_e0, *real_e1;
   BtorNodePtrStack stack, po_stack;
@@ -3903,12 +3907,6 @@ btor_rewrite_concat_exp (Btor *btor, BtorNode *e0, BtorNode *e1)
   e1 = btor_simplify_exp (btor, e1);
   assert (btor_precond_concat_exp_dbg (btor, e0, e1));
   assert (btor->options.rewrite_level > 0);
-
-#if 0
-  // we need a reference to 'e0' and 'e1' to call this function ...
-  normalize_add_exp (btor, &e0);
-  normalize_add_exp (btor, &e1);
-#endif
 
   real_e0 = BTOR_REAL_ADDR_NODE (e0);
   real_e1 = BTOR_REAL_ADDR_NODE (e1);
@@ -4155,6 +4153,12 @@ btor_rewrite_concat_exp (Btor *btor, BtorNode *e0, BtorNode *e1)
   }
 
   return result;
+}
+
+BtorNode *
+btor_rewrite_concat_exp (Btor *btor, BtorNode *e0, BtorNode *e1)
+{
+  return binarinorm (btor, e0, e1, btor_rewrite_concat_aux_exp);
 }
 
 static int
@@ -4675,12 +4679,6 @@ RESTART:
   e_else = btor_simplify_exp (btor, e_else);
   assert (btor_precond_cond_exp_dbg (btor, e_cond, e_if, e_else));
   assert (btor->options.rewrite_level > 0);
-
-#if 0
-  // we need a reference to 'e0' and 'e1' to call this function ...
-  normalize_add_exp (btor, &e_if);
-  normalize_add_exp (btor, &e_else);
-#endif
 
   result = 0;
 
