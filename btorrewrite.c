@@ -2231,7 +2231,8 @@ normrecadd (Btor *btor,
 static void
 normalize_add_exp (Btor *btor, BtorNode **top_ptr)
 {
-  BtorNode *top, *real_top, *node, *res, *c, *f, *tmp, *real_tmp;
+  BtorNode *top, *real_top, *node, *res, *c, *f;
+  BtorNode *tmp, *tmp2, *one;
   BtorPtrHashTable *seen;
   BtorNodePtrStack stack;
   BtorPtrHashBucket *b;
@@ -2240,6 +2241,8 @@ normalize_add_exp (Btor *btor, BtorNode **top_ptr)
   top      = *top_ptr;
   real_top = BTOR_REAL_ADDR_NODE (top);
   if (real_top->kind != BTOR_ADD_NODE) return;
+  if (btor->rec_rw_calls >= BTOR_REC_RW_BOUND) return;
+  BTOR_INC_REC_RW_CALL (btor);
   len  = real_top->len;
   seen = btor_new_ptr_hash_table (btor->mm,
                                   (BtorHashPtr) btor_hash_exp_by_id,
@@ -2259,18 +2262,22 @@ normalize_add_exp (Btor *btor, BtorNode **top_ptr)
       f   = btor_int_exp (btor, i, len);
       tmp = btor_mul_exp (btor, f, node);
       btor_release_exp (btor, f);
-      c = tmp;
+      tmp2 = btor_add_exp (btor, c, tmp);
+      btor_release_exp (btor, tmp);
+      btor_release_exp (btor, c);
+      c = tmp2;
     }
     else if (i == -1)
     {
       tmp = BTOR_INVERT_NODE (node);
       tmp = btor_copy_exp (btor, node);
       BTOR_PUSH_STACK (btor->mm, stack, tmp);
-      f   = btor_one_exp (btor, len);
-      tmp = btor_add_exp (btor, f, c);
-      btor_release_exp (btor, f);
+
+      one  = btor_one_exp (btor, len);
+      tmp2 = btor_add_exp (btor, one, c);
+      btor_release_exp (btor, one);
       btor_release_exp (btor, c);
-      c = tmp;
+      c = tmp2;
     }
     else
     {
@@ -2297,6 +2304,7 @@ normalize_add_exp (Btor *btor, BtorNode **top_ptr)
   assert (*top_ptr == top);
   *top_ptr = res;
   btor_release_exp (btor, top);
+  BTOR_DEC_REC_RW_CALL (btor);
 }
 
 BtorNode *
