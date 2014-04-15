@@ -93,9 +93,8 @@ is_const_zero_exp (Btor *btor, BtorNode *exp)
   return result;
 }
 
-#if 0
 static int
-is_const_ones_exp (Btor * btor, BtorNode * exp)
+is_const_ones_exp (Btor *btor, BtorNode *exp)
 {
   int result;
   BtorNode *real_exp;
@@ -105,20 +104,18 @@ is_const_ones_exp (Btor * btor, BtorNode * exp)
 
   exp = btor_simplify_exp (btor, exp);
 
-  if (!BTOR_IS_BV_CONST_NODE (BTOR_REAL_ADDR_NODE (exp)))
-    return 0;
+  if (!BTOR_IS_BV_CONST_NODE (BTOR_REAL_ADDR_NODE (exp))) return 0;
 
   if (BTOR_IS_INVERTED_NODE (exp))
-    {
-      real_exp = BTOR_REAL_ADDR_NODE (exp);
-      result = btor_is_zero_const (real_exp->bits);
-    }
+  {
+    real_exp = BTOR_REAL_ADDR_NODE (exp);
+    result   = btor_is_zero_const (real_exp->bits);
+  }
   else
     result = btor_is_ones_const (exp->bits);
 
   return result;
 }
-#endif
 
 static int
 is_const_exp (Btor *btor, BtorNode *exp)
@@ -3398,6 +3395,26 @@ btor_rewrite_mul_exp (Btor *btor, BtorNode *e0, BtorNode *e1)
     }
   }
 
+  if (!result && btor->rec_rw_calls < BTOR_REC_RW_BOUND)
+  {
+    if (is_const_ones_exp (btor, e0))
+      result = e1;
+    else if (is_const_ones_exp (btor, e1))
+      result = e0;
+
+    if (result)
+    {
+      int len = BTOR_REAL_ADDR_NODE (result)->len;
+      BtorNode *tmp, *one = btor_one_exp (btor, len);
+      BTOR_INC_REC_RW_CALL (btor);
+      tmp = btor_add_exp (btor, BTOR_INVERT_NODE (result), one);
+      BTOR_DEC_REC_RW_CALL (btor);
+      btor_release_exp (btor, one);
+      result = tmp;
+      goto HAVE_RESULT_BUT_MIGHT_NEED_TO_RELEASE_SOMETHING;
+    }
+  }
+
   result = rewrite_binary_exp (btor, BTOR_MUL_NODE, e0, e1);
   if (!result)
   {
@@ -3405,6 +3422,7 @@ btor_rewrite_mul_exp (Btor *btor, BtorNode *e0, BtorNode *e1)
     result = btor_mul_exp_node (btor, e0, e1);
   }
 
+HAVE_RESULT_BUT_MIGHT_NEED_TO_RELEASE_SOMETHING:
   if (normalized)
   {
     btor_release_exp (btor, left);
