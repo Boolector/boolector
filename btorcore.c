@@ -89,9 +89,29 @@ static BtorPtrHashTable *map_inputs_check_model (Btor *, Btor *);
 /*------------------------------------------------------------------------*/
 
 const char *const g_btor_op2string[] = {
-    "invalid", "const", "var",    "array", "param", "slice", "and",  "beq",
-    "aeq",     "add",   "mul",    "ult",   "sll",   "srl",   "udiv", "urem",
-    "concat",  "apply", "lambda", "bcond", "acond", "args",  "proxy"};
+    "invalid",  //  0
+    "const",    //  1
+    "var",      //  2
+    "array",    //  3
+    "param",    //  4
+    "slice",    //  5
+    "and",      //  6
+    "beq",      //  7
+    "aeq",      //  8
+    "add",      //  9
+    "mul",      // 10
+    "ult",      // 11
+    "sll",      // 12
+    "srl",      // 13
+    "udiv",     // 14
+    "urem",     // 15
+    "concat",   // 16
+    "apply",    // 17
+    "lambda",   // 18
+    "bcond",    // 19
+    "args",     // 20
+    "proxy"     // 21
+};
 
 struct BtorSlice
 {
