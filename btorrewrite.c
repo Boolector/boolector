@@ -4709,7 +4709,7 @@ btor_shallow_subst (
 static BtorNode *
 condrewrite (Btor *btor, BtorNode *node, BtorNode *eq)
 {
-  BtorNode *lhs, *rhs;
+  BtorNode *lhs, *rhs, *result;
   int lhsvar, rhsvar;
 
   assert (!BTOR_IS_INVERTED_NODE (eq));
@@ -4733,9 +4733,15 @@ condrewrite (Btor *btor, BtorNode *node, BtorNode *eq)
   assert (!BTOR_IS_INVERTED_NODE (lhs));
   assert (lhs->kind == BTOR_BV_VAR_NODE);
 
-  // TODO make this '20' an option ...
+  BTOR_INC_REC_RW_CALL (btor);
+
+  // TODO make this '10' an option ...
   //
-  return btor_shallow_subst (btor, lhs, rhs, node, 20);
+  result = btor_shallow_subst (btor, lhs, rhs, node, 10);
+
+  BTOR_DEC_REC_RW_CALL (btor);
+
+  return result;
 }
 
 static BtorNode *
