@@ -140,12 +140,8 @@ def _filter_data(d, file, filters):
                     if val is not None:
                         if f_name not in g_file_stats[k][d] \
                            or g_file_stats[k][d][f_name] == None:
-                    #           if k == 'size_models_arr' or k == 'size_models_bvar':
-                    #               print ("--- " + str(line))
-                    #               print ("+++ " + str(val))
                                g_file_stats[k][d][f_name] = val
                         else:
-                            assert (k == 'size_models_arr' or k == 'size_models_bvar')
                             g_file_stats[k][d][f_name] += val
         for k, vals in dir_stats_tmp.items():
             g_dir_stats[k][d] = vals
