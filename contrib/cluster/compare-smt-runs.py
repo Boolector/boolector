@@ -1,8 +1,10 @@
 #! /usr/bin/env python3
 
+
 from argparse import ArgumentParser, REMAINDER, ArgumentDefaultsHelpFormatter
 import os
 import sys
+import re
 
 class CmpSMTException (Exception):
     def __init__ (self, msg):
@@ -36,30 +38,37 @@ def _get_name_and_ext (filename):
 # per directory/file flag
 # column_name : <colname>, <keyword>, <filter>, <is_dir_stat>
 FILTER_LOG = {
-  'lods':       ['LODS', b'LOD', lambda x: int(x.split()[3]), False],
-  'calls':      ['CALLS', b'SAT calls', lambda x: int(x.split()[1]), False],
-  'time_sat':   ['SAT[s]', b'pure SAT', lambda x: float(x.split()[1]), False],
-  'time_rw':    ['RW[s]', b'rewriting engine', lambda x: float(x.split()[1]),
+  'lods':       ['LODS', b'.*LOD', lambda x: int(x.split()[3]), False],
+  'calls':      ['CALLS', b'.*SAT calls', lambda x: int(x.split()[1]), False],
+  'time_sat':   ['SAT[s]', b'.*pure SAT', lambda x: float(x.split()[1]), False],
+  'time_rw':    ['RW[s]', b'.*rewriting engine', lambda x: float(x.split()[1]),
                  False],
-  'time_beta':  ['BETA[s]', b'beta-reduction', lambda x: float(x.split()[1]),
+  'time_beta':  ['BETA[s]', b'.*beta-reduction', lambda x: float(x.split()[1]),
                  False],
-  'time_eval':  ['EVAL[s]', b'seconds expression evaluation',
+  'time_eval':  ['EVAL[s]', b'.*seconds expression evaluation',
                  lambda x: float(x.split()[1]), False],
-  'time_lle':   ['LLE[s]', b'lazy lambda encoding',
+  'time_lle':   ['LLE[s]', b'.*lazy lambda encoding',
                  lambda x: float(x.split()[1]), False],
-  'time_pas':   ['PAS[s]', b'propagation apply search',
+  'time_pas':   ['PAS[s]', b'.*propagation apply search',
                  lambda x: float(x.split()[1]), False],
-  'time_neas':  ['NEAS[s]', b'not encoded apply search',
+  'time_neas':  ['NEAS[s]', b'.*not encoded apply search',
                  lambda x: float(x.split()[1]), False],
-  'num_beta':   ['BETA', b'beta reductions:',
+  'num_beta':   ['BETA', b'.*beta reductions:',
                  lambda x: int(x.split()[3]), False],
-  'num_eval':   ['EVAL', b'evaluations:',
+  'num_eval':   ['EVAL', b'.*evaluations:',
                  lambda x: int(x.split()[3]), False],
-  'num_prop':   ['PROP', b'propagations:',
+  'num_prop':   ['PROP', b'.*propagations:',
                  lambda x: int(x.split()[2]), False],
-  'num_propd':   ['PROPD', b'propagations down:',
+  'num_propd':   ['PROPD', b'.*propagations down:',
                  lambda x: int(x.split()[3]), False],
+  'size_models_arr' : ['MARR', 
+                 b'(?!\s*\[|^c |\s*sat|\s*unsat|\s*unknown|\s*boolector:)', 
+                 lambda x: 1 if re.search(b'\[', x) else 0, False],
+  'size_models_bvar': ['MVAR', 
+                 b'(?!\s*\[|^c |\s*sat|\s*unsat|\s*unknown|\s*boolector:)', 
+                 lambda x: 0 if re.search(b'\[', x) else 1, False]
 }
+
 
 def err_extract_status(line):
     status = line.split()[2:]
@@ -80,12 +89,12 @@ def err_extract_opts(line):
 
 # column_name : <colname>, <keyword>, <filter>, [<is_dir_stat>] (optional)
 FILTER_ERR = {
-  'status':      ['STAT', b'status:', err_extract_status, False],
-  'result':      ['RES', b'result:', lambda x: int(x.split()[2]), False],
-  'time_real':   ['REAL[s]', b'real:', lambda x: float(x.split()[2]), False],
-  'time_time':   ['TIME[s]', b'time:', lambda x: float(x.split()[2]), False],
-  'space':       ['SPACE[MB]', b'space:', lambda x: float(x.split()[2]), False],
-  'opts':        ['OPTIONS', b'argv', err_extract_opts, True] 
+  'status':      ['STAT', b'.*status:', err_extract_status, False],
+  'result':      ['RES', b'.*result:', lambda x: int(x.split()[2]), False],
+  'time_real':   ['REAL[s]', b'.*real:', lambda x: float(x.split()[2]), False],
+  'time_time':   ['TIME[s]', b'.*time:', lambda x: float(x.split()[2]), False],
+  'space':       ['SPACE[MB]', b'.*space:', lambda x: float(x.split()[2]), False],
+  'opts':        ['OPTIONS', b'.*argv', err_extract_opts, True] 
 }
 
 assert(set(FILTER_LOG.keys()).isdisjoint(set(FILTER_ERR.keys())))
@@ -101,10 +110,9 @@ g_file_stats = dict((k, {}) for k in FILE_STATS_KEYS)
 g_best_stats = dict((k, {}) for k in FILE_STATS_KEYS)
 g_diff_stats = dict((k, {}) for k in FILE_STATS_KEYS)
 
-g_dir_stats_init = dict((k, False) for k in DIR_STATS_KEYS)
 
 def _filter_data(d, file, filters):
-    global g_file_stats, g_dir_stats_init
+    global g_file_stats
 
     with open(os.path.join(d, file), 'rb') as infile:
         f_name = _get_name_and_ext(file)[0]
@@ -113,7 +121,7 @@ def _filter_data(d, file, filters):
         for line in infile:
             for k, f in filters.items():
                 assert(len(f) == 4)
-                val = f[2](line) if f[1] in line else None
+                val = f[2](line) if re.match(f[1], line) else None
                 
                 if k in DIR_STATS_KEYS:
                     if d in g_dir_stats:
@@ -130,8 +138,15 @@ def _filter_data(d, file, filters):
                         g_file_stats[k][d][f_name] = None
 
                     if val is not None:
-                        g_file_stats[k][d][f_name] = val
-
+                        if f_name not in g_file_stats[k][d] \
+                           or g_file_stats[k][d][f_name] == None:
+                    #           if k == 'size_models_arr' or k == 'size_models_bvar':
+                    #               print ("--- " + str(line))
+                    #               print ("+++ " + str(val))
+                               g_file_stats[k][d][f_name] = val
+                        else:
+                            assert (k == 'size_models_arr' or k == 'size_models_bvar')
+                            g_file_stats[k][d][f_name] += val
         for k, vals in dir_stats_tmp.items():
             g_dir_stats[k][d] = vals
 
@@ -172,8 +187,8 @@ def _read_data (dirs):
                     if not g_args.filter or g_args.filter in str(f):
                         if f_name not in g_benchmarks:
                             g_benchmarks.append(f_name)
-                        _read_log_file (d, f)
                         _read_err_file (d, "{}{}".format(f[:-3], "err"))
+                        _read_log_file (d, f)
 
 
 def _pick_data():
@@ -410,7 +425,8 @@ if __name__ == "__main__":
     try:
         aparser = ArgumentParser(
                       formatter_class=ArgumentDefaultsHelpFormatter,
-                      epilog="availabe values for column: {{{}}}".format(", ".join(sorted(FILE_STATS_KEYS))))
+                      epilog="availabe values for column: {{{}}}".format(
+                          ", ".join(sorted(FILE_STATS_KEYS))))
         aparser.add_argument ("-f", metavar="string", dest="filter", type=str, 
                 default=None,
                 help="filter benchmark files by <string>")
@@ -419,6 +435,8 @@ if __name__ == "__main__":
                 help="highlight difference if greater than <float>")
         aparser.add_argument ("-bs", action="store_true",
                 help="compare boolector statistics")
+        aparser.add_argument ("-M", action="store_true",
+                help="extract models statistics")
         aparser.add_argument ("-t", action="store_true",
                 help="show timeouts only")
         aparser.add_argument ("-m", action="store_true",
@@ -455,6 +473,10 @@ if __name__ == "__main__":
         if g_args.bs:
             g_args.columns = \
                     "status,lods,calls,time_sat,time_rw,time_beta"
+        elif g_args.M:
+            g_args.columns = \
+                    "status,lods,size_models_bvar,size_models_arr,time_time,time_sat"
+
         g_args.columns = g_args.columns.split(',')
         for c in g_args.columns:
             if c not in FILE_STATS_KEYS:
