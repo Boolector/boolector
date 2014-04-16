@@ -443,7 +443,9 @@ if __name__ == "__main__":
                 help="two or more smt run directories to compare")
         g_args = aparser.parse_args()
 
-        if len(g_args.dirs) < 2:
+        g_args.dirs = set(g_args.dirs)
+
+        if len(g_args.dirs) < 1:
             raise CmpSMTException ("invalid number of dirs given")
 
         for d in g_args.dirs:
