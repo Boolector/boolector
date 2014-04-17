@@ -37,44 +37,123 @@ def _get_name_and_ext (filename):
 
 # per directory/file flag
 # column_name : <colname>, <keyword>, <filter>, <is_dir_stat>
+#FILTER_LOG = {
+#  'lods':       ['LODS', b'.*LOD', lambda x: int(x.split()[3]), False],
+#  'calls':      ['CALLS', b'.*SAT calls', lambda x: int(x.split()[1]), False],
+#  'time_sat':   ['SAT[s]', b'.*pure SAT', lambda x: float(x.split()[1]), False],
+#  'time_rw':    ['RW[s]', b'.*rewriting engine', lambda x: float(x.split()[1]),
+#                 False],
+#  'time_beta':  ['BETA[s]', b'.*beta-reduction', lambda x: float(x.split()[1]),
+#                 False],
+#  'time_eval':  ['EVAL[s]', b'.*seconds expression evaluation',
+#                 lambda x: float(x.split()[1]), False],
+#  'time_lle':   ['LLE[s]', b'.*lazy lambda encoding',
+#                 lambda x: float(x.split()[1]), False],
+#  'time_pas':   ['PAS[s]', b'.*propagation apply search',
+#                 lambda x: float(x.split()[1]), False],
+#  'time_neas':  ['NEAS[s]', b'.*not encoded apply search',
+#                 lambda x: float(x.split()[1]), False],
+#  'num_beta':   ['BETA', b'.*beta reductions:',
+#                 lambda x: int(x.split()[3]), False],
+#  'num_eval':   ['EVAL', b'.*evaluations:',
+#                 lambda x: int(x.split()[3]), False],
+#  'num_prop':   ['PROP', b'.*propagations:',
+#                 lambda x: int(x.split()[2]), False],
+#  'num_propd':   ['PROPD', b'.*propagations down:',
+#                 lambda x: int(x.split()[3]), False],
+#  'size_models_arr' : ['MARR', 
+#                 b'(?!\s*\[|^c |\s*sat|\s*unsat|\s*unknown|\s*boolector:)', 
+#                 lambda x: 1 if re.search(b'\[', x) else 0, False],
+#  'size_models_bvar': ['MVAR', 
+#                 b'(?!\s*\[|^c |\s*sat|\s*unsat|\s*unknown|\s*boolector:)', 
+#                 lambda x: 0 if re.search(b'\[', x) else 1, False]
 FILTER_LOG = {
-  'lods':       ['LODS', b'.*LOD', lambda x: int(x.split()[3]), False],
-  'calls':      ['CALLS', b'.*SAT calls', lambda x: int(x.split()[1]), False],
-  'time_sat':   ['SAT[s]', b'.*pure SAT', lambda x: float(x.split()[1]), False],
-  'time_rw':    ['RW[s]', b'.*rewriting engine', lambda x: float(x.split()[1]),
+  'lods':       ['LODS', 
+                 lambda x: b'LOD' in x, 
+                 lambda x: int(x.split()[3]), 
                  False],
-  'time_beta':  ['BETA[s]', b'.*beta-reduction', lambda x: float(x.split()[1]),
+  'calls':      ['CALLS', 
+                 lambda x: b'SAT calls' in x, 
+                 lambda x: int(x.split()[1]), 
                  False],
-  'time_eval':  ['EVAL[s]', b'.*seconds expression evaluation',
-                 lambda x: float(x.split()[1]), False],
-  'time_lle':   ['LLE[s]', b'.*lazy lambda encoding',
-                 lambda x: float(x.split()[1]), False],
-  'time_pas':   ['PAS[s]', b'.*propagation apply search',
-                 lambda x: float(x.split()[1]), False],
-  'time_neas':  ['NEAS[s]', b'.*not encoded apply search',
-                 lambda x: float(x.split()[1]), False],
-  'num_beta':   ['BETA', b'.*beta reductions:',
-                 lambda x: int(x.split()[3]), False],
-  'num_eval':   ['EVAL', b'.*evaluations:',
-                 lambda x: int(x.split()[3]), False],
-  'num_prop':   ['PROP', b'.*propagations:',
-                 lambda x: int(x.split()[2]), False],
-  'num_propd':   ['PROPD', b'.*propagations down:',
-                 lambda x: int(x.split()[3]), False],
-  'time_clapp': ['CLONE[s]', b'.*cloning for initial applies search',
-                 lambda x: float(x.split()[1]), False],
-  'time_sapp':  ['SATDP[s]', b'.*SAT solving for initial applies search',
-                 lambda x: float(x.split()[1]), False],
-  'time_app':   ['APP[s]', b'.*seconds initial applies search',
-                 lambda x: float(x.split()[1]), False],
-  'time_coll':  ['COL[s]', b'.*collecting initial applies', 
-                 lambda x: float(x.split()[1]), False],
+  'time_sat':   ['SAT[s]', 
+                 lambda x: b'pure SAT' in x, 
+                 lambda x: float(x.split()[1]), 
+                 False],
+  'time_rw':    ['RW[s]', 
+                 lambda x: b'rewriting engine' in x, 
+                 lambda x: float(x.split()[1]),
+                 False],
+  'time_beta':  ['BETA[s]', 
+                 lambda x: b'beta-reduction' in x, 
+                 lambda x: float(x.split()[1]),
+                 False],
+  'time_eval':  ['EVAL[s]', 
+                 lambda x: b'seconds expression evaluation' in x,
+                 lambda x: float(x.split()[1]), 
+                 False],
+  'time_lle':   ['LLE[s]', 
+                 lambda x: b'lazy lambda encoding' in x,
+                 lambda x: float(x.split()[1]), 
+                 False],
+  'time_pas':   ['PAS[s]', 
+                 lambda x: b'propagation apply search' in x,
+                 lambda x: float(x.split()[1]), 
+                 False],
+  'time_neas':  ['NEAS[s]', 
+                 lambda x: b'not encoded apply search' in x,
+                 lambda x: float(x.split()[1]), 
+                 False],
+  'num_beta':   ['BETA', 
+                 lambda x: b'beta reductions:' in x,
+                 lambda x: int(x.split()[3]), 
+                 False],
+  'num_eval':   ['EVAL', 
+                 lambda x: b'evaluations:' in x,
+                 lambda x: int(x.split()[3]), 
+                 False],
+  'num_prop':   ['PROP', 
+                 lambda x: b'propagations:' in x,
+                 lambda x: int(x.split()[2]), 
+                 False],
+  'num_propd':   ['PROPD', 
+                  lambda x: b'propagations down:' in x,
+                  lambda x: int(x.split()[3]), 
+                  False],
+  'time_clapp': ['CLONE[s]', 
+                 lambda x: b'cloning for initial applies search' in x,
+                 lambda x: float(x.split()[1]), 
+                 False],
+  'time_sapp':  ['SATDP[s]', 
+                 lambda x: b'SAT solving for initial applies search' in x,
+                 lambda x: float(x.split()[1]), 
+                 False],
+  'time_app':   ['APP[s]', 
+                 lambda x: b'seconds initial applies search' in x,
+                 lambda x: float(x.split()[1]), 
+                 False],
+  'time_coll':  ['COL[s]', 
+                 lambda x: b'collecting initial applies' in x, 
+                 lambda x: float(x.split()[1]), 
+                 False],
   'size_models_arr' : ['MARR', 
-                 b'(?!\s*\[|^c |\s*sat|\s*unsat|\s*unknown|\s*boolector:)', 
-                 lambda x: 1 if re.search(b'\[', x) else 0, False],
+          lambda x: 
+            0 if x == 'sat' or x == 'unsat' or x == 'unknown' \
+                 or x[0] == '[' or x[0:-2] == 'c ' \
+              else 1,
+          #re.match (
+          #    b'(?!\[|^c |sat|unsat|unknown|boolector:)', x),
+          lambda x: b'[' in x, 
+          False],
   'size_models_bvar': ['MVAR', 
-                 b'(?!\s*\[|^c |\s*sat|\s*unsat|\s*unknown|\s*boolector:)', 
-                 lambda x: 0 if re.search(b'\[', x) else 1, False]
+          lambda x: 
+            0 if x == 'sat' or x == 'unsat' or x == 'unknown' \
+                 or x[0] == '[' or x[0:-2] == 'c ' \
+              else 1,
+          #lambda x: re.match (
+          #    b'(?!\[|^c |sat|unsat|unknown|boolector:)', x), 
+          lambda x: b'['not in x, 
+          False]
 }
 
 
@@ -99,12 +178,18 @@ def err_extract_opts(line):
 
 # column_name : <colname>, <keyword>, <filter>, [<is_dir_stat>] (optional)
 FILTER_ERR = {
-  'status':      ['STAT', b'.*status:', err_extract_status, False],
-  'result':      ['RES', b'.*result:', lambda x: int(x.split()[2]), False],
-  'time_real':   ['REAL[s]', b'.*real:', lambda x: float(x.split()[2]), False],
-  'time_time':   ['TIME[s]', b'.*time:', lambda x: float(x.split()[2]), False],
-  'space':       ['SPACE[MB]', b'.*space:', lambda x: float(x.split()[2]), False],
-  'opts':        ['OPTIONS', b'.*argv', err_extract_opts, True] 
+  'status':    ['STAT', 
+                lambda x: b'status:' in x, err_extract_status, False],
+  'result':    ['RES', 
+                lambda x: b'result:' in x, lambda x: int(x.split()[2]), False],
+  'time_real': ['REAL[s]', 
+                lambda x: b'real:' in x, lambda x: float(x.split()[2]), False],
+  'time_time': ['TIME[s]', 
+                lambda x: b'time:' in x, lambda x: float(x.split()[2]), False],
+  'space':     ['SPACE[MB]', 
+                lambda x: b'space:' in x, lambda x: float(x.split()[2]), False],
+  'opts':      ['OPTIONS', 
+                lambda x: b'.*argv' in x, err_extract_opts, True] 
 }
 
 
@@ -131,10 +216,12 @@ def _filter_data(d, file, filters):
 
         dir_stats_tmp = dict((k, []) for k in DIR_STATS_KEYS) 
         for line in infile:
+            line = line.strip()
             for k, f in filters.items():
                 assert(len(f) == 4)
-                val = f[2](line) if re.match(f[1], line) else None
-                
+                #val = f[2](line) if re.match(f[1], line) else None
+                val = f[2](line) if f[1](line) else None
+
                 if k in DIR_STATS_KEYS:
                     if d in g_dir_stats:
                         continue
