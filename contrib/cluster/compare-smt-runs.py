@@ -489,7 +489,7 @@ if __name__ == "__main__":
                     "status,lods,calls,time_sat,time_rw,time_beta"
         elif g_args.dp:
             g_args.columns = \
-                    "status,lods,time_time,time_app,time_sapp,time_coll"
+                    "status,lods,time_time,time_app,time_sapp"
         elif g_args.M:
             g_args.columns = \
             "status,lods,size_models_bvar,size_models_arr,time_time,time_sat"
