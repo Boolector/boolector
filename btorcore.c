@@ -46,6 +46,7 @@
 
 //#define MARK_FOR_CC
 //#define BTOR_DO_NOT_LAZY_SYNTHESIZE
+#define POP_TOP_APPLIES
 
 /*------------------------------------------------------------------------*/
 
@@ -7949,9 +7950,12 @@ BTOR_CONFLICT_CHECK:
     BTOR_PUSH_STACK (mm, prop_stack, fun);
   }
 
-  //  init_node_hash_table_iterator (&it, top_applies);
-  //  while (has_next_node_hash_table_iterator (&it))
-  while (!BTOR_EMPTY_STACK (top_applies))
+#ifdef POP_TOP_APPLIES
+  init_reversed_node_hash_table_iterator (&it, top_applies);
+#else
+  init_node_hash_table_iterator (&it, top_applies);
+#endif
+  while (has_next_node_hash_table_iterator (&it))
   {
     // app = next_node_hash_table_iterator (&it);
     app = BTOR_POP_STACK (top_applies);
