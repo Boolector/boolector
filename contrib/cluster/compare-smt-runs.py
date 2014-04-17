@@ -37,36 +37,6 @@ def _get_name_and_ext (filename):
 
 # per directory/file flag
 # column_name : <colname>, <keyword>, <filter>, <is_dir_stat>
-#FILTER_LOG = {
-#  'lods':       ['LODS', b'.*LOD', lambda x: int(x.split()[3]), False],
-#  'calls':      ['CALLS', b'.*SAT calls', lambda x: int(x.split()[1]), False],
-#  'time_sat':   ['SAT[s]', b'.*pure SAT', lambda x: float(x.split()[1]), False],
-#  'time_rw':    ['RW[s]', b'.*rewriting engine', lambda x: float(x.split()[1]),
-#                 False],
-#  'time_beta':  ['BETA[s]', b'.*beta-reduction', lambda x: float(x.split()[1]),
-#                 False],
-#  'time_eval':  ['EVAL[s]', b'.*seconds expression evaluation',
-#                 lambda x: float(x.split()[1]), False],
-#  'time_lle':   ['LLE[s]', b'.*lazy lambda encoding',
-#                 lambda x: float(x.split()[1]), False],
-#  'time_pas':   ['PAS[s]', b'.*propagation apply search',
-#                 lambda x: float(x.split()[1]), False],
-#  'time_neas':  ['NEAS[s]', b'.*not encoded apply search',
-#                 lambda x: float(x.split()[1]), False],
-#  'num_beta':   ['BETA', b'.*beta reductions:',
-#                 lambda x: int(x.split()[3]), False],
-#  'num_eval':   ['EVAL', b'.*evaluations:',
-#                 lambda x: int(x.split()[3]), False],
-#  'num_prop':   ['PROP', b'.*propagations:',
-#                 lambda x: int(x.split()[2]), False],
-#  'num_propd':   ['PROPD', b'.*propagations down:',
-#                 lambda x: int(x.split()[3]), False],
-#  'size_models_arr' : ['MARR', 
-#                 b'(?!\s*\[|^c |\s*sat|\s*unsat|\s*unknown|\s*boolector:)', 
-#                 lambda x: 1 if re.search(b'\[', x) else 0, False],
-#  'size_models_bvar': ['MVAR', 
-#                 b'(?!\s*\[|^c |\s*sat|\s*unsat|\s*unknown|\s*boolector:)', 
-#                 lambda x: 0 if re.search(b'\[', x) else 1, False]
 FILTER_LOG = {
   'lods':       ['LODS', 
                  lambda x: b'LOD' in x, 
@@ -125,8 +95,6 @@ FILTER_LOG = {
             0 if x == 'sat' or x == 'unsat' or x == 'unknown' \
                  or x[0] == '[' or x[0:-2] == 'c ' \
               else 1,
-          #re.match (
-          #    b'(?!\[|^c |sat|unsat|unknown|boolector:)', x),
           lambda x: b'[' in x, 
           False],
   'size_models_bvar': ['MVAR', 
@@ -134,8 +102,6 @@ FILTER_LOG = {
             0 if x == 'sat' or x == 'unsat' or x == 'unknown' \
                  or x[0] == '[' or x[0:-2] == 'c ' \
               else 1,
-          #lambda x: re.match (
-          #    b'(?!\[|^c |sat|unsat|unknown|boolector:)', x), 
           lambda x: b'['not in x, 
           False]
 }
@@ -199,7 +165,6 @@ def _filter_data(d, file, filters):
             line = line.strip()
             for k, f in filters.items():
                 assert(len(f) == 4)
-                #val = f[2](line) if re.match(f[1], line) else None
                 val = f[2](line) if f[1](line) else None
 
                 if k in DIR_STATS_KEYS:
