@@ -205,9 +205,9 @@ def _pick_data():
     for f in g_benchmarks:
         for k in g_file_stats.keys():
             v = sorted([(g_file_stats[k][d][f], d) for d in g_args.dirs \
-                    if g_file_stats[k][d][f]])
+                    if g_file_stats[k][d][f] is not None])
             # strings are not considered for diff/best values
-            if len(v) and isinstance(v[0][0], str):
+            if len(v) == 0 or isinstance(v[0][0], str):
                 g_best_stats[k][f] = None
                 g_diff_stats[k][f] = None
                 continue
