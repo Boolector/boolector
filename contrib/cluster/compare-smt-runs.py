@@ -4,7 +4,6 @@
 from argparse import ArgumentParser, REMAINDER, ArgumentDefaultsHelpFormatter
 import os
 import sys
-import re
 
 class CmpSMTException (Exception):
     def __init__ (self, msg):
@@ -105,21 +104,7 @@ FILTER_LOG = {
   'time_coll':  ['COL[s]', 
                  lambda x: b'collecting initial applies' in x, 
                  lambda x: float(x.split()[1]), 
-                 False],
-  'size_models_arr' : ['MARR', 
-          lambda x: 
-            0 if x == 'sat' or x == 'unsat' or x == 'unknown' \
-                 or x[0] == '[' or x[0:-2] == 'c ' \
-              else 1,
-          lambda x: b'[' in x, 
-          False],
-  'size_models_bvar': ['MVAR', 
-          lambda x: 
-            0 if x == 'sat' or x == 'unsat' or x == 'unknown' \
-                 or x[0] == '[' or x[0:-2] == 'c ' \
-              else 1,
-          lambda x: b'['not in x, 
-          False]
+                 False]
 }
 
 
@@ -155,14 +140,24 @@ FILTER_ERR = {
   'space':     ['SPACE[MB]', 
                 lambda x: b'space:' in x, lambda x: float(x.split()[2]), False],
   'opts':      ['OPTIONS', 
-                lambda x: b'.*argv' in x, err_extract_opts, True] 
+                lambda x: b'argv' in x, err_extract_opts, True] 
+}
+
+
+# column_name : <colname>, <keyword>, <filter>, [<is_dir_stat>] (optional)
+FILTER_OUT = {
+  'models_arr':  ['MARR', lambda x: b'[' in x, lambda x: 1, False],
+  'models_bvar': ['MVAR', lambda x: b'[' not in x, lambda x: 1, False]
 }
 
 
 assert(set(FILTER_LOG.keys()).isdisjoint(set(FILTER_ERR.keys())))
+assert(set(FILTER_LOG.keys()).isdisjoint(set(FILTER_OUT.keys())))
+assert(set(FILTER_ERR.keys()).isdisjoint(set(FILTER_OUT.keys())))
 
 FILE_STATS_KEYS = list(k for k, f in FILTER_LOG.items() if not f[3])
 FILE_STATS_KEYS.extend(list(k for k, f in FILTER_ERR.items() if not f[3]))
+FILE_STATS_KEYS.extend(list(k for k, f in FILTER_OUT.items() if not f[3]))
 
 DIR_STATS_KEYS = list(k for k, f in FILTER_LOG.items() if f[3])
 DIR_STATS_KEYS.extend(list(k for k, f in FILTER_ERR.items() if f[3]))
@@ -178,15 +173,24 @@ def _filter_data(d, file, filters):
     global g_file_stats
 
     with open(os.path.join(d, file), 'rb') as infile:
-        f_name = _get_name_and_ext(file)[0]
-
+        (f_name, f_ext) = _get_name_and_ext(file)
         dir_stats_tmp = dict((k, []) for k in DIR_STATS_KEYS) 
+
+        if os.stat(os.path.join(d, file)).st_size == 0:
+            for k in filters:
+                if d not in g_file_stats[k]:
+                    g_file_stats[k][d] = {}
+                if f_name not in g_file_stats[k][d]:
+                    g_file_stats[k][d][f_name] = None
+            return
+        
         for line in infile:
             line = line.strip()
-            for k, f in filters.items():
-                assert(len(f) == 4)
-                val = f[2](line) if f[1](line) else None
 
+            for k, v in filters.items():
+                assert(len(v) == 4)
+                val = v[2](line) if v[1](line) else None
+                
                 if k in DIR_STATS_KEYS:
                     if d in g_dir_stats:
                         continue
@@ -201,14 +205,20 @@ def _filter_data(d, file, filters):
                     if f_name not in g_file_stats[k][d]:
                         g_file_stats[k][d][f_name] = None
 
+                    if f_ext == 'out' \
+                       and line in (b'sat', b'unsat', b'unknown'): 
+                           continue
+            
                     if val is not None:
-                        if f_name not in g_file_stats[k][d] \
-                           or g_file_stats[k][d][f_name] == None:
-                               g_file_stats[k][d][f_name] = val
+                        if g_file_stats[k][d][f_name] == None:
+                            g_file_stats[k][d][f_name] = val
                         else:
                             g_file_stats[k][d][f_name] += val
-        for k, vals in dir_stats_tmp.items():
-            g_dir_stats[k][d] = vals
+
+        for k,v in dir_stats_tmp.items():
+            if d in g_dir_stats[k]:
+                continue
+            g_dir_stats[k][d] = v
 
 
 def _read_log_file(d, f):
@@ -220,7 +230,6 @@ def _read_err_file(d, f):
 
     try:
         _filter_data(d, f, FILTER_ERR)
-    
         # TODO: move to normalize method or something like that
         # update status for errors ('err' instead of 'ok')
         f_name = _get_name_and_ext(f)[0]
@@ -229,6 +238,10 @@ def _read_err_file(d, f):
             g_file_stats['status'][d][f_name] = "err"
     except CmpSMTException as e:
         raise CmpSMTException("{} in file {}".format(str(e), f))
+
+
+def _read_out_file(d, f):
+    _filter_data(d, f, FILTER_OUT)
 
 
 def _read_data (dirs):
@@ -249,6 +262,7 @@ def _read_data (dirs):
                             g_benchmarks.append(f_name)
                         _read_err_file (d, "{}{}".format(f[:-3], "err"))
                         _read_log_file (d, f)
+                        _read_out_file (d, "{}{}".format(f[:-3], "out"))
 
 
 def _pick_data():
@@ -374,8 +388,10 @@ def _has_status(status, f):
 def _get_column_name(key):
     if key in FILTER_LOG:
         return FILTER_LOG[key][0]
-    assert(key in FILTER_ERR)
-    return FILTER_ERR[key][0]
+    elif key in FILTER_ERR:
+        return FILTER_ERR[key][0]
+    assert(key in FILTER_OUT)
+    return FILTER_OUT[key][0]
 
 
 def _get_color(f, d):
@@ -544,7 +560,7 @@ if __name__ == "__main__":
                     "status,lods,time_time,time_app,time_sapp"
         elif g_args.M:
             g_args.columns = \
-            "status,lods,size_models_bvar,size_models_arr,time_time,time_sat"
+                    "status,lods,models_bvar,models_arr,time_time,time_sat"
 
         g_args.columns = g_args.columns.split(',')
         for c in g_args.columns:
