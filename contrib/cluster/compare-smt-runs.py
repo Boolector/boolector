@@ -242,7 +242,8 @@ def _read_data (dirs):
                             g_benchmarks.append(f_name)
                         _read_err_file (d, "{}{}".format(f[:-3], "err"))
                         _read_log_file (d, f)
-                        _read_out_file (d, "{}{}".format(f[:-3], "out"))
+                        if g_args.M:
+                            _read_out_file (d, "{}{}".format(f[:-3], "out"))
 
 
 def _pick_data():
@@ -482,8 +483,10 @@ if __name__ == "__main__":
     try:
         aparser = ArgumentParser(
                       formatter_class=ArgumentDefaultsHelpFormatter,
-                      epilog="availabe values for column: {{{}}}".format(
-                          ", ".join(sorted(FILE_STATS_KEYS))))
+                      epilog="availabe values for column: {{ {} }}, " \
+                             "note: {{ {} }} are enabled for '-M' only.".format(
+                          ", ".join(sorted(FILE_STATS_KEYS)),
+                          ", ".join(sorted(list(FILTER_OUT.keys())))))
         aparser.add_argument ("-f", metavar="string", dest="filter", type=str, 
                 default=None,
                 help="filter benchmark files by <string>")
@@ -533,6 +536,9 @@ if __name__ == "__main__":
         elif g_args.M:
             g_args.columns = \
                     "status,lods,models_bvar,models_arr,time_time,time_sat"
+        else:
+            for x in list(FILTER_OUT.keys()):
+                del g_file_stats[x]
 
         g_args.columns = g_args.columns.split(',')
         for c in g_args.columns:
