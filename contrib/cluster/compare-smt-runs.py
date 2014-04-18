@@ -568,7 +568,8 @@ if __name__ == "__main__":
         elif g_args.M:
             g_args.columns = \
                     "status,lods,models_bvar,models_arr,time_time,time_sat"
-        else:
+        
+        if not g_args.M:
             for x in list(FILTER_OUT.keys()):
                 del g_file_stats[x]
 
