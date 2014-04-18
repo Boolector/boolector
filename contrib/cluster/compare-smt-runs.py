@@ -243,6 +243,10 @@ def _read_data (dirs):
                         _read_err_file (d, "{}{}".format(f[:-3], "err"))
                         _read_log_file (d, f)
                         if g_args.M:
+                            outfile = "{}{}".format(f[:-3], "out")
+                            if not os.path.isfile(os.path.join (d, outfile)):
+                                raise CmpSMTException ("missing '{}'".format (
+                                    os.path.join (d, outfile)))
                             _read_out_file (d, "{}{}".format(f[:-3], "out"))
 
 
