@@ -8020,7 +8020,6 @@ new_exp_layer_clone_for_dual_prop (Btor *btor,
   assert (!clone->synthesized_constraints->count);
   assert (clone->unsynthesized_constraints->count);
 
-  // btor_set_rewrite_level_btor (clone, 1);
   btor_disable_model_gen (clone);
   btor_enable_inc_usage (clone);
   btor_enable_force_cleanup (clone);
@@ -8239,6 +8238,7 @@ DONE:
                    "result must be sat or unsat");
 
   btor->last_sat_result = sat_result;
+
   if (clone)
   {
     assert (exp_map);
