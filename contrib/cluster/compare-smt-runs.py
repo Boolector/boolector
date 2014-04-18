@@ -483,8 +483,9 @@ def _print_data ():
         s = [g_file_stats['status'][d][f] for d in g_args.dirs]
         r = [g_file_stats['result'][d][f] for d in g_args.dirs]
 
-        if g_args.d and not len(set(s)) > 1:
-            continue
+        if g_args.d:
+            r_tmp = [x for x in r if x == 10 or x == 20]
+            if not len(set(r_tmp)) > 1: continue
 
         # row color
         color = COLOR_STAT \
