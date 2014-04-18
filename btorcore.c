@@ -87,6 +87,7 @@
 /*------------------------------------------------------------------------*/
 
 static int btor_sat_aux_btor (Btor *);
+static int btor_sat_aux_btor_dual_prop (Btor *);
 
 #ifdef BTOR_CHECK_MODEL
 static void check_model (Btor *, Btor *, BtorPtrHashTable *);
@@ -5723,7 +5724,7 @@ search_initial_applies_dual_prop (Btor *btor,
   btor->time.search_init_apps_collect_var_apps += btor_time_stamp () - delta;
 
   delta = btor_time_stamp ();
-  btor_sat_aux_btor (clone);
+  btor_sat_aux_btor_dual_prop (clone);
   assert (clone->last_sat_result == BTOR_UNSAT);
   btor->time.search_init_apps_sat += btor_time_stamp () - delta;
 
@@ -8256,6 +8257,90 @@ DONE:
   return sat_result;
 }
 
+static int
+btor_sat_aux_btor_dual_prop (Btor *btor)
+{
+  assert (btor);
+
+  int sat_result;
+  BtorNodePtrStack prop_stack;
+  BtorAIGMgr *amgr;
+  BtorSATMgr *smgr;
+#ifdef BTOR_CHECK_FAILED
+  Btor *faclone = 0;
+#endif
+
+  BTOR_INIT_STACK (prop_stack);
+
+  if (btor->inconsistent) goto DONE;
+
+  btor_msg (btor, 1, "calling SAT");
+
+#ifdef BTOR_CHECK_FAILED
+  if (btor->options.chk_failed_assumptions)
+  {
+    faclone = btor_clone_btor (btor);
+    btor_enable_force_cleanup (faclone);
+    btor_enable_force_internal_cleanup (faclone);
+    btor_set_loglevel_btor (faclone, 0);
+    btor_set_verbosity_btor (faclone, 0);
+    faclone->options.chk_failed_assumptions = 0;
+    faclone->options.dual_prop              = 0;  // FIXME necessary?
+  }
+#endif
+
+  amgr = btor_get_aig_mgr_aigvec_mgr (btor->avmgr);
+  smgr = btor_get_sat_mgr_aig_mgr (amgr);
+
+  if (!btor_is_initialized_sat (smgr)) btor_init_sat (smgr);
+
+  if (btor->valid_assignments == 1) btor_reset_incremental_usage (btor);
+
+  BTOR_ABORT_CORE (btor->ops[BTOR_AEQ_NODE].cur > 0,
+                   "extensionality on arrays/lambdas not yet supported");
+
+  assert (btor->synthesized_constraints->count == 0);
+  assert (btor->unsynthesized_constraints->count == 0);
+  assert (btor->embedded_constraints->count == 0);
+  assert (check_all_hash_tables_proxy_free_dbg (btor));
+  assert (check_all_hash_tables_simp_free_dbg (btor));
+
+#ifndef NDEBUG
+  BtorPtrHashBucket *b;
+  for (b = btor->assumptions->first; b; b = b->next)
+    assert (!BTOR_REAL_ADDR_NODE ((BtorNode *) b->key)->simplified);
+#endif
+
+  update_reachable (btor, 0);
+  assert (check_reachable_flag_dbg (btor));
+
+  add_again_assumptions (btor);
+  assert (check_reachable_flag_dbg (btor));
+
+  sat_result = btor_timed_sat_sat (btor, -1);
+
+  assert (sat_result == BTOR_UNSAT);
+
+  BTOR_RELEASE_STACK (btor->mm, prop_stack);
+
+DONE:
+  sat_result = BTOR_UNSAT;
+  BTOR_RELEASE_STACK (btor->mm, prop_stack);
+  btor->valid_assignments = 1;
+  BTOR_ABORT_CORE (sat_result != BTOR_SAT && sat_result != BTOR_UNSAT,
+                   "result must be sat or unsat");
+
+  btor->last_sat_result = sat_result;
+#ifdef BTOR_CHECK_FAILED
+  if (faclone && btor->options.chk_failed_assumptions)
+  {
+    if (!btor->inconsistent && btor->last_sat_result == BTOR_UNSAT)
+      check_failed_assumptions (btor, faclone);
+    btor_delete_btor (faclone);
+  }
+#endif
+  return sat_result;
+}
 #if 0
 static void
 print_applies_dbg (Btor * btor)
