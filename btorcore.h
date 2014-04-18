@@ -174,6 +174,10 @@ struct Btor
     int muls_normalized;       /* number of mul chains normalizations */
     int read_props_construct;  /* how often have we pushed a read over
                                   write during construction */
+    int dp_failed_vars;        /* number of vars in FA (dual prop) of last
+                                  sat call (final bv skeleton) */
+    int dp_failed_applies;     /* number of applies in FA (dual prop) of last
+                                  sat call (final bv skeleton) */
     BtorIntStack lemmas_size;  /* distribution of n-size lemmas */
     long long int lemmas_size_sum;  /* sum of the size of all added lemmas */
     long long int lclause_size_sum; /* sum of the size of all linking clauses */

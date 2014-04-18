@@ -46,6 +46,7 @@
 
 //#define MARK_FOR_CC
 //#define BTOR_DO_NOT_LAZY_SYNTHESIZE
+//#define SEARCH_INIT_BFS
 #define POP_TOP_APPLIES
 
 /*------------------------------------------------------------------------*/
@@ -900,6 +901,16 @@ btor_print_stats_btor (Btor *btor)
             1,
             "partial beta reduction restarts: %lld",
             btor->stats.partial_beta_reduction_restarts);
+
+  if (btor->options.dual_prop)
+  {
+    btor_msg (
+        btor, 1, "dual prop: failed vars: %d", btor->stats.dp_failed_vars);
+    btor_msg (btor,
+              1,
+              "dual prop: failed applies: %d",
+              btor->stats.dp_failed_applies);
+  }
 
   btor_msg (btor, 1, "");
   btor_msg (btor, 1, "%.2f seconds beta-reduction", btor->time.beta);
@@ -5563,8 +5574,6 @@ bv_assignment_str_exp (Btor *btor, BtorNode *exp)
   return assignment;
 }
 
-//#define SEARCH_INIT_BFS  // TODO debug
-
 static void
 search_initial_applies_dual_prop (Btor *btor,
                                   Btor *clone,
@@ -5604,6 +5613,9 @@ search_initial_applies_dual_prop (Btor *btor,
 
   BTORLOG ("");
   BTORLOG ("*** search initial applies");
+
+  btor->stats.dp_failed_vars    = 0;
+  btor->stats.dp_failed_applies = 0;
 
   smgr = btor_get_sat_mgr_aig_mgr (btor_get_aig_mgr_aigvec_mgr (btor->avmgr));
   if (!smgr->inc_required) return;
@@ -5738,9 +5750,13 @@ search_initial_applies_dual_prop (Btor *btor,
     {
       BTORLOG ("failed: %s", node2string (cur_btor));
       assert (!cur_btor->parameterized);
-      if (BTOR_IS_APPLY_NODE (cur_btor))
+      if (BTOR_IS_BV_VAR_NODE (cur_btor))
+        btor->stats.dp_failed_vars += 1;
+      else
       {
+        assert (BTOR_IS_APPLY_NODE (cur_btor));
         if (cur_btor->aux_mark) continue;
+        btor->stats.dp_failed_applies += 1;
         assert (!btor_find_in_ptr_hash_table (top_applies, cur_btor));
         cur_btor->aux_mark = 1;
         BTOR_PUSH_STACK (btor->mm, unmark_stack, cur_btor);
@@ -8003,6 +8019,7 @@ new_exp_layer_clone_for_dual_prop (Btor *btor,
   assert (!clone->synthesized_constraints->count);
   assert (clone->unsynthesized_constraints->count);
 
+  // btor_set_rewrite_level_btor (clone, 1);
   btor_disable_model_gen (clone);
   btor_enable_inc_usage (clone);
   btor_enable_force_cleanup (clone);
