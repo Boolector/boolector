@@ -16,6 +16,7 @@
 
 #include <assert.h>
 #include <ctype.h>
+#include <dirent.h>
 #include <fcntl.h>
 #include <limits.h>
 #include <signal.h>
@@ -25,6 +26,7 @@
 #include <string.h>
 #include <sys/time.h>
 #include <sys/times.h>
+#include <sys/types.h>
 #include <sys/wait.h>
 #include <unistd.h>
 
@@ -155,6 +157,7 @@
   "  -n, --no-modelgen                do not enable model generation \n"       \
   "  -e, --extensionality             use extensionality\n"                    \
   "  -s, --shadow                     create and check shadow clone\n"         \
+  "  -o, --out                        output directory for saving traces\n"    \
   "\n"                                                                         \
   "  -f, --first-bug-only             quit after first bug encountered\n"      \
   "  -m <maxruns>                     quit after <maxruns> rounds\n"           \
@@ -519,6 +522,7 @@ typedef struct BtorMBT
   int force_nomgen;
   int ext;
   int shadow;
+  char *out;
   int time_limit;
 
   int bloglevel;
@@ -2726,6 +2730,17 @@ main (int argc, char **argv)
       btormbt->ext = 1;
     else if (!strcmp (argv[i], "-s") || !strcmp (argv[i], "--shadow-clone"))
       btormbt->shadow = 1;
+    else if (!strcmp (argv[i], "-o") || !strcmp (argv[i], "--out"))
+    {
+      if (++i == argc) die ("argument to '-o' missing (try '-h')");
+      if (argv[i][0] == '-') die ("invalid output directory given (try '-h')");
+      btormbt->out = argv[i];
+      DIR *dir     = opendir (argv[i]);
+      if (dir)
+        closedir (dir);
+      else
+        die ("given output directory does not exist");
+    }
     else if (!strcmp (argv[i], "-m"))
     {
       if (++i == argc) die ("argument to '-m' missing (try '-h')");
@@ -3297,8 +3312,20 @@ main (int argc, char **argv)
         unsetenv ("BTORAPITRACE");
       }
 
-      cmd = malloc (strlen (name) + 80);
-      sprintf (cmd, "cp %s btormbt-bug-%d.trace", name, btormbt->seed);
+      if (btormbt->out)
+      {
+        cmd = malloc (strlen (name) + 80 + strlen (btormbt->out) + 1);
+        sprintf (cmd,
+                 "cp %s %s/btormbt-bug-%d.trace",
+                 name,
+                 btormbt->out,
+                 btormbt->seed);
+      }
+      else
+      {
+        cmd = malloc (strlen (name) + 80);
+        sprintf (cmd, "cp %s btormbt-bug-%d.trace", name, btormbt->seed);
+      }
 
       if (!getenv ("BTORAPITRACE")) free (name);
       if (system (cmd))
@@ -3326,6 +3353,7 @@ main (int argc, char **argv)
     }
     else if (res == EXIT_ERROR)
     {
+      if (btormbt->quiet) printf ("%d ", btormbt->seed);
       printf ("exit %d\n", res);
     }
 

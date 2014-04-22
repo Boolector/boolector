@@ -35,7 +35,6 @@ def _parse_options():
     p.add_option("-v", action="count", dest="verbosity", default=0, 
                  help="increase verbosity level")
 
-    # TODO: golden exit code
     (options, args) = p.parse_args()
 
     if len(args) != 3:
@@ -163,13 +162,16 @@ def _dump_trace(outfile, lines):
 
         outfile.write("{}\n".format(line))
 
-def _run():
+def _run(initial=False):
     global g_command
     try:
         subproc = Popen(g_command, stdout=PIPE, stderr=PIPE)
         try:
-            timeout = max([g_golden_runtime * 2, 1])
-            msg_out, msg_err = subproc.communicate(timeout=timeout)
+            if initial:
+              msg_out, msg_err = subproc.communicate()
+            else:
+                timeout = max([g_golden_runtime * 2, 1])
+                msg_out, msg_err = subproc.communicate(timeout=timeout)
         except TimeoutExpired:
             subproc.kill()
             msg_out, msg_err = subproc.communicate()
@@ -401,7 +403,7 @@ def ddmbt_main():
     g_command.append(g_tmpfile)
 
     start = time.time()
-    g_golden_exit_code, g_golden_err_msg = _run()
+    g_golden_exit_code, g_golden_err_msg = _run(True)
     g_golden_runtime = time.time() - start
     _log(1, "golden exit code: {0:d} in {1:.3f} seconds".format(
             g_golden_exit_code, g_golden_runtime))
