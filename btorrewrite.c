@@ -93,9 +93,8 @@ is_const_zero_exp (Btor *btor, BtorNode *exp)
   return result;
 }
 
-#if 0
 static int
-is_const_ones_exp (Btor * btor, BtorNode * exp)
+is_const_ones_exp (Btor *btor, BtorNode *exp)
 {
   int result;
   BtorNode *real_exp;
@@ -105,20 +104,18 @@ is_const_ones_exp (Btor * btor, BtorNode * exp)
 
   exp = btor_simplify_exp (btor, exp);
 
-  if (!BTOR_IS_BV_CONST_NODE (BTOR_REAL_ADDR_NODE (exp)))
-    return 0;
+  if (!BTOR_IS_BV_CONST_NODE (BTOR_REAL_ADDR_NODE (exp))) return 0;
 
   if (BTOR_IS_INVERTED_NODE (exp))
-    {
-      real_exp = BTOR_REAL_ADDR_NODE (exp);
-      result = btor_is_zero_const (real_exp->bits);
-    }
+  {
+    real_exp = BTOR_REAL_ADDR_NODE (exp);
+    result   = btor_is_zero_const (real_exp->bits);
+  }
   else
     result = btor_is_ones_const (exp->bits);
 
   return result;
 }
-#endif
 
 static int
 is_const_exp (Btor *btor, BtorNode *exp)
@@ -1483,51 +1480,12 @@ normalize_binary_comm_ass_exp (Btor *btor,
 }
 
 static void
-normalize_add_exp (Btor *btor, BtorNode *e, BtorNode **e_norm_ptr)
-{
-  BtorPtrHashTable *hash;
-  BtorNodePtrStack stack;
-  BtorPtrHashBucket *b;
-  BtorMemMgr *mm = btor->mm;
-  BtorNode *c;
-  BTOR_INIT_STACK (stack);
-  hash = btor_new_ptr_hash_table (mm,
-                                  (BtorHashPtr) btor_hash_exp_by_id,
-                                  (BtorCmpPtr) btor_compare_exp_by_id);
-  BTOR_PUSH_STACK (mm, stack, e);
-  assert (!BTOR_IS_INVERTED_NODE (e));
-  c = btor_zero_exp (btor, e->len);
-  do
-  {
-    BtorNode *cur = BTOR_POP_STACK (stack);
-    if (!BTOR_IS_INVERTED_NODE (cur) && cur->kind == BTOR_ADD_NODE)
-    {
-      BTOR_PUSH_STACK (mm, stack, cur->e[1]);
-      BTOR_PUSH_STACK (mm, stack, cur->e[0]);
-    }
-    else
-    {
-      b = btor_find_in_ptr_hash_table (hash, cur);
-      if (!b)
-        btor_insert_in_ptr_hash_table (hash, cur)->data.asInt = 1;
-      else
-        b->data.asInt++;
-    }
-  } while (!BTOR_EMPTY_STACK (stack));
-  BTOR_RELEASE_STACK (mm, stack);
-  btor_delete_ptr_hash_table (hash);
-  *e_norm_ptr = btor_copy_exp (btor, e);
-  btor_release_exp (btor, c);
-}
-
-static void
 normalize_adds_exp (Btor *btor,
                     BtorNode *e0,
                     BtorNode *e1,
                     BtorNode **e0_norm,
                     BtorNode **e1_norm)
 {
-  BtorNode *t0, *t1;
   assert (btor);
   assert (e0);
   assert (e1);
@@ -1539,12 +1497,8 @@ normalize_adds_exp (Btor *btor,
   assert (!BTOR_IS_INVERTED_NODE (e1));
   assert (e0->kind == BTOR_ADD_NODE);
   assert (e1->kind == BTOR_ADD_NODE);
-  normalize_add_exp (btor, e0, &t0);
-  normalize_add_exp (btor, e1, &t1);
   normalize_binary_comm_ass_exp (
-      btor, t0, t1, e0_norm, e1_norm, btor_rewrite_add_exp, BTOR_ADD_NODE);
-  btor_release_exp (btor, t0);
-  btor_release_exp (btor, t1);
+      btor, e0, e1, e0_norm, e1_norm, btor_rewrite_add_exp, BTOR_ADD_NODE);
 }
 
 static void
