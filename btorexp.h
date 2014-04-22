@@ -49,8 +49,7 @@ enum BtorNodeKind
    * make delta debugging of Heisenbugs in release mode more
    * difficult.
    */
-  BTOR_INVALID_NODE = 0,
-
+  BTOR_INVALID_NODE   = 0,
   BTOR_BV_CONST_NODE  = 1,
   BTOR_BV_VAR_NODE    = 2,
   BTOR_ARRAY_VAR_NODE = 3,
@@ -73,6 +72,8 @@ enum BtorNodeKind
   BTOR_ARGS_NODE      = 20,
   BTOR_PROXY_NODE     = 21, /* simplified expression without children */
   BTOR_NUM_OPS_NODE   = 22
+
+  // NOTE: do not change this without changing 'g_btor_op2string' too ...
 };
 
 typedef enum BtorNodeKind BtorNodeKind;

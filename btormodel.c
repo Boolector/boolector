@@ -234,7 +234,7 @@ recursively_compute_assignment (Btor *btor,
 
     /* check if we already have an assignment for this function application */
     if (BTOR_IS_LAMBDA_NODE (real_cur) && cur_parent
-        && BTOR_IS_APPLY_NODE (cur_parent))
+        && BTOR_IS_APPLY_NODE (cur_parent) && real_cur->eval_mark == 0)
     {
       num_args = ((BtorArgsNode *) cur_parent->e[1])->num_args;
       e        = (BitVector **) arg_stack.top - num_args;
