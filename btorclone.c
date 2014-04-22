@@ -554,15 +554,24 @@ clone_aux_btor (Btor *btor,
 
   assert ((allocated = sizeof (Btor)) == clone->mm->allocated);
 
-  BTOR_CNEWN (mm,
-              clone->stats.lemmas_size.start,
-              BTOR_SIZE_STACK (btor->stats.lemmas_size));
-  clone->stats.lemmas_size.end = clone->stats.lemmas_size.start
-                                 + BTOR_SIZE_STACK (btor->stats.lemmas_size);
-  clone->stats.lemmas_size.top = clone->stats.lemmas_size.end;
-  memcpy (clone->stats.lemmas_size.start,
-          btor->stats.lemmas_size.start,
-          BTOR_SIZE_STACK (btor->stats.lemmas_size));
+  BTOR_INIT_STACK (clone->stats.lemmas_size);
+  if (BTOR_SIZE_STACK (btor->stats.lemmas_size) > 0)
+  {
+    BTOR_CNEWN (mm,
+                clone->stats.lemmas_size.start,
+                BTOR_SIZE_STACK (btor->stats.lemmas_size));
+    clone->stats.lemmas_size.end = clone->stats.lemmas_size.start
+                                   + BTOR_SIZE_STACK (btor->stats.lemmas_size);
+    clone->stats.lemmas_size.top = clone->stats.lemmas_size.start
+                                   + BTOR_COUNT_STACK (btor->stats.lemmas_size);
+    memcpy (clone->stats.lemmas_size.start,
+            btor->stats.lemmas_size.start,
+            BTOR_SIZE_STACK (btor->stats.lemmas_size) * sizeof (int));
+  }
+  assert (BTOR_SIZE_STACK (btor->stats.lemmas_size)
+          == BTOR_SIZE_STACK (clone->stats.lemmas_size));
+  assert (BTOR_COUNT_STACK (btor->stats.lemmas_size)
+          == BTOR_COUNT_STACK (clone->stats.lemmas_size));
   assert (
       (allocated += BTOR_SIZE_STACK (btor->stats.lemmas_size) * sizeof (int))
       == clone->mm->allocated);
