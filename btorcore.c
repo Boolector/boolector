@@ -839,12 +839,12 @@ btor_print_stats_btor (Btor *btor)
                                  btor->stats.lod_refinements));
     for (i = 1; i < BTOR_SIZE_STACK (btor->stats.lemmas_size); i++)
     {
-      if (!BTOR_PEEK_STACK (btor->stats.lemmas_size, i)) continue;
+      if (!btor->stats.lemmas_size.start[i]) continue;
       btor_msg (btor,
                 1,
                 "   lemmas of size %d: %d",
                 i,
-                BTOR_PEEK_STACK (btor->stats.lemmas_size, i));
+                btor->stats.lemmas_size.start[i]);
     }
     btor_msg (btor,
               1,
@@ -1085,11 +1085,7 @@ btor_new_btor (void)
                                (BtorCmpPtr) btor_compare_exp_by_id);
 
   BTOR_INIT_STACK (btor->arrays_with_model);
-
-  BTOR_CNEWN (mm, btor->stats.lemmas_size.start, 100);
-  btor->stats.lemmas_size.end      = btor->stats.lemmas_size.start + 100;
-  btor->stats.lemmas_size.top      = btor->stats.lemmas_size.end;
-  btor->stats.lemmas_size.start[0] = 0;
+  BTOR_INIT_STACK (btor->stats.lemmas_size);
 
   btor->true_exp = btor_true_exp (btor);
 
@@ -6730,14 +6726,7 @@ add_symbolic_lemma (Btor *btor,
 
   btor->stats.lemmas_size_sum += lemma_size;
   if (lemma_size >= BTOR_SIZE_STACK (btor->stats.lemmas_size))
-  {
-    size_t old_size, new_size;
-    old_size = BTOR_SIZE_STACK (btor->stats.lemmas_size);
-    BTOR_ENLARGE (btor->mm, btor->stats.lemmas_size.start, old_size, new_size);
-    BTOR_CLRN (btor->stats.lemmas_size.start + old_size, new_size - old_size);
-    btor->stats.lemmas_size.end = btor->stats.lemmas_size.start + new_size;
-    btor->stats.lemmas_size.top = btor->stats.lemmas_size.end;
-  }
+    BTOR_FIT_STACK (btor->mm, btor->stats.lemmas_size, lemma_size);
   btor->stats.lemmas_size.start[lemma_size] += 1;
 
   /* premisses bv conditions:

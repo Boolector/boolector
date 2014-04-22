@@ -483,6 +483,10 @@ def _print_data ():
         s = [g_file_stats['status'][d][f] for d in g_args.dirs]
         r = [g_file_stats['result'][d][f] for d in g_args.dirs]
 
+        if g_args.d:
+            r_tmp = [x for x in r if x == 10 or x == 20]
+            if not len(set(r_tmp)) > 1: continue
+
         # row color
         color = COLOR_STAT \
                 if len(set(s)) > 1 \
@@ -517,7 +521,7 @@ if __name__ == "__main__":
         aparser.add_argument ("-f", metavar="string", dest="filter", type=str, 
                 default=None,
                 help="filter benchmark files by <string>")
-        aparser.add_argument ("-d", metavar="float", dest="diff", type=float,
+        aparser.add_argument ("-hd", metavar="float", dest="diff", type=float,
                 default=0.1,
                 help="highlight difference if greater than <float>")
         aparser.add_argument ("-bs", action="store_true",
@@ -526,6 +530,8 @@ if __name__ == "__main__":
                 help = "compare dual prop statistics")
         aparser.add_argument ("-M", action="store_true",
                 help="extract models statistics")
+        aparser.add_argument ("-d", action="store_true",
+                help="show discrepancies only")
         aparser.add_argument ("-t", action="store_true",
                 help="show timeouts only")
         aparser.add_argument ("-m", action="store_true",
