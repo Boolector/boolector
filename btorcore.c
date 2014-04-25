@@ -5724,7 +5724,7 @@ search_initial_applies_dual_prop (Btor *btor,
   assert (clone->last_sat_result == BTOR_UNSAT);
   btor->time.search_init_apps_sat += btor_time_stamp () - delta;
 
-  /* partial assignment via failed asusmptions of dual clone */
+  /* partial assignment via failed assumptions of dual clone */
   delta = btor_time_stamp ();
   init_node_map_iterator (&nit, assumptions);
   while (has_next_node_map_iterator (&nit))
