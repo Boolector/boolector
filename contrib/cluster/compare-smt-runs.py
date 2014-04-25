@@ -41,6 +41,18 @@ FILTER_LOG = {
                  lambda x: b'LOD' in x, 
                  lambda x: int(x.split()[3]), 
                  False],
+  'lods_avg':   ['LODS avg',
+                 lambda x: b'average lemma size' in x,
+                 lambda x: float(x.split()[4]),
+                 False],
+  'lods_fc':   ['LODS FC',
+                 lambda x: b'function congruence conf' in x,
+                 lambda x: int(x.split()[4]),
+                 False],
+  'lods_br':   ['LODS BR',
+                 lambda x: b'beta reduction conf' in x,
+                 lambda x: int(x.split()[4]),
+                 False],
   'calls':      ['CALLS', 
                  lambda x: b'SAT calls' in x, 
                  lambda x: int(x.split()[1]), 
@@ -131,6 +143,15 @@ FILTER_OUT = {
   'models_bvar': ['MVAR', lambda x: b'[' not in x, lambda x: 1, False]
 }
 
+TOTALS_OP = {
+  'status':    lambda l: '{}/{}'.format(l.count('ok'), len(l)),
+  'result':    lambda l: '{}/{}'.format(l.count(10), l.count(20)),
+  'time_time': lambda l: round(sum(l), 2),
+  'prop':      lambda l: sum(l),
+  'prop_down': lambda l: sum(l),
+  'lods':      lambda l: sum(l),
+  'lods_avg':  lambda l: round(sum(l)/len(l), 2),
+}
 
 assert(set(FILTER_LOG.keys()).isdisjoint(set(FILTER_ERR.keys())))
 assert(set(FILTER_LOG.keys()).isdisjoint(set(FILTER_OUT.keys())))
@@ -147,6 +168,7 @@ g_dir_stats = dict((k, {}) for k in DIR_STATS_KEYS)
 g_file_stats = dict((k, {}) for k in FILE_STATS_KEYS)
 g_best_stats = dict((k, {}) for k in FILE_STATS_KEYS)
 g_diff_stats = dict((k, {}) for k in FILE_STATS_KEYS)
+g_total_stats = dict((k, {}) for k in FILE_STATS_KEYS)
 
 
 def _filter_data(d, file, filters):
@@ -274,6 +296,13 @@ def _pick_data():
                 else v[0][1]
 
 
+def _compute_totals():
+    for k in g_file_stats.keys():
+        for d in g_file_stats[k].keys():
+            g_total_stats[k][d] = \
+                [v for v in g_file_stats[k][d].values() if v is not None]
+
+
 def _format_field(field, width, color=None, colspan=0, classes=[]):
     field = "-" if field is None else str(field)
 
@@ -350,6 +379,8 @@ def _print_html_header():
                  </script>
                </head>
                <body>""".format(style_css, jquery_js, tableheaders_js))
+
+def _print_result_table():
     print("""    <table id="legend">
                    <tr>
                      <th>LEGEND</th>
@@ -416,6 +447,35 @@ def _print_data ():
 
     if g_args.html:
         _print_html_header()
+        print("<table><thead>")
+
+    columns = ["DIRECTORY"]
+    columns.append([_get_column_name(k) for k in g_args.columns])
+    widths = [benchmark_column_width]
+    widths.append([data_column_widths[k][d] for k in g_args.columns])
+    classes = [["header"]]
+    classes.append([["header"] for k in g_args.columns])
+    _print_row (columns, widths, classes=classes)
+
+    if g_args.html:
+        print("</thead><tbody>")
+
+    for d in g_args.dirs:
+        columns = ([os.path.basename(d.rstrip('/'))])
+        cols = []
+        for k in g_args.columns:
+            if k in TOTALS_OP:
+                cols.append(TOTALS_OP[k](g_total_stats[k][d]))
+            else:
+                cols.append('-')
+        columns.append(cols)
+        classes = [["nowrap"]]
+        classes.append([[] for k in g_args.columns])
+        _print_row (columns, widths, classes=classes)
+
+    if g_args.html:
+        print("</tbody></table><br/><br/>")
+        _print_result_table()
     
     columns = ["DIRECTORY"]
     columns.extend([os.path.basename(d.rstrip('/')) for d in g_args.dirs])
@@ -531,7 +591,12 @@ if __name__ == "__main__":
                 help="two or more smt run directories to compare")
         g_args = aparser.parse_args()
 
-        g_args.dirs = set(g_args.dirs)
+        # do not use a set here as the order of directories should be preserved
+        unique_dirs = []
+        for d in g_args.dirs:
+            if d not in unique_dirs:
+                unique_dirs.append(d)
+        g_args.dirs = unique_dirs
 
         if len(g_args.dirs) < 1:
             raise CmpSMTException ("invalid number of dirs given")
@@ -561,6 +626,7 @@ if __name__ == "__main__":
 
         _read_data (g_args.dirs)
         _pick_data ()
+        _compute_totals()
         _print_data ()
 
     except KeyboardInterrupt as e:
