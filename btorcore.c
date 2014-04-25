@@ -906,12 +906,16 @@ btor_print_stats_btor (Btor *btor)
 
   if (btor->options.dual_prop)
   {
-    btor_msg (
-        btor, 1, "dual prop: failed vars: %d", btor->stats.dp_failed_vars);
     btor_msg (btor,
               1,
-              "dual prop: failed applies: %d",
-              btor->stats.dp_failed_applies);
+              "dual prop. vars (failed/assumed): %d/%d",
+              btor->stats.dp_failed_vars,
+              btor->stats.dp_assumed_vars);
+    btor_msg (btor,
+              1,
+              "dual prop. applies (failed/assumed): %d/%d",
+              btor->stats.dp_failed_applies,
+              btor->stats.dp_assumed_applies);
   }
 
   btor_msg (btor, 1, "");
@@ -5622,8 +5626,10 @@ search_initial_applies_dual_prop (Btor *btor,
   BTORLOG ("");
   BTORLOG ("*** search initial applies");
 
-  btor->stats.dp_failed_vars    = 0;
-  btor->stats.dp_failed_applies = 0;
+  btor->stats.dp_failed_vars     = 0;
+  btor->stats.dp_assumed_vars    = 0;
+  btor->stats.dp_failed_applies  = 0;
+  btor->stats.dp_assumed_applies = 0;
 
   smgr = btor_get_sat_mgr_aig_mgr (btor_get_aig_mgr_aigvec_mgr (btor->avmgr));
   if (!smgr->inc_required) return;
@@ -5753,6 +5759,11 @@ search_initial_applies_dual_prop (Btor *btor,
     assert (cur_btor);
     assert (BTOR_IS_REGULAR_NODE (cur_btor));
     assert (BTOR_IS_BV_VAR_NODE (cur_btor) || BTOR_IS_APPLY_NODE (cur_btor));
+
+    if (BTOR_IS_BV_VAR_NODE (cur_btor))
+      btor->stats.dp_assumed_vars += 1;
+    else
+      btor->stats.dp_assumed_applies += 1;
 
     if (btor_failed_exp (clone, bv_eq))
     {
