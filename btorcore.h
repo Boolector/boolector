@@ -176,9 +176,11 @@ struct Btor
                                   write during construction */
     int dp_failed_vars;        /* number of vars in FA (dual prop) of last
                                   sat call (final bv skeleton) */
-    int dp_failed_applies;     /* number of applies in FA (dual prop) of last
-                                  sat call (final bv skeleton) */
-    BtorIntStack lemmas_size;  /* distribution of n-size lemmas */
+    int dp_assumed_vars;
+    int dp_failed_applies; /* number of applies in FA (dual prop) of last
+                              sat call (final bv skeleton) */
+    int dp_assumed_applies;
+    BtorIntStack lemmas_size;       /* distribution of n-size lemmas */
     long long int lemmas_size_sum;  /* sum of the size of all added lemmas */
     long long int lclause_size_sum; /* sum of the size of all linking clauses */
     ConstraintStats constraints;
