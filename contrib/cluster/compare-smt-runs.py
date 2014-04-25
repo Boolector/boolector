@@ -104,6 +104,14 @@ FILTER_LOG = {
   'time_coll':  ['COL[s]', 
                  lambda x: b'collecting initial applies' in x, 
                  lambda x: float(x.split()[1]), 
+                 False],
+  'num_fvars':  ['FVAR',
+          lambda x: b'dual prop: failed vars:' in x,
+                 lambda x: int(x.split()[5]),
+                 False],
+  'num_fapps':  ['FAPP',
+                 lambda x: b'dual prop: failed applies:' in x,
+                 lambda x: int(x.split()[5]),
                  False]
 }
 
@@ -573,7 +581,8 @@ if __name__ == "__main__":
                     "status,lods,time_time,time_app,time_sapp"
         elif g_args.M:
             g_args.columns = \
-                    "status,lods,models_bvar,models_arr,time_time,time_sat"
+                    "status,lods,models_bvar,models_arr,num_fvars,num_fapps,"\
+                    "time_time,time_sat"
         
         if not g_args.M:
             for x in list(FILTER_OUT.keys()):
