@@ -4036,10 +4036,10 @@ btor_rewrite_apply_exp (Btor *btor, BtorNode *fun, BtorNode *args)
   //  printf ("rewrite apply: %s, %s\n", node2string (cur_fun), node2string
   //  (cur_args));
   // TODO: support for nested lambdas
-  while (BTOR_IS_LAMBDA_NODE (cur_fun) && !cur_fun->parameterized
+  while (!done && BTOR_IS_LAMBDA_NODE (cur_fun) && !cur_fun->parameterized
          && BTOR_IS_BV_COND_NODE (BTOR_REAL_ADDR_NODE (cur_cond))
          && propagations++ < BTOR_APPLY_PROPAGATION_LIMIT
-         && !cur_args->parameterized && !done)
+         && !cur_args->parameterized)
   {
     assert (BTOR_IS_REGULAR_NODE (cur_fun));
     assert (BTOR_IS_REGULAR_NODE (cur_args));

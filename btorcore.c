@@ -48,6 +48,7 @@
 //#define BTOR_DO_NOT_LAZY_SYNTHESIZE
 //#define SEARCH_INIT_BFS
 #define POP_TOP_APPLIES
+#define BTOR_USE_NVSIDS_ORDER_FOR_PROPAGATION
 
 /*------------------------------------------------------------------------*/
 
@@ -5416,11 +5417,13 @@ count_nodes_above (Btor *btor, BtorNode *exp, int *lambdas, int *applies)
 #endif
 
 static void
-search_initial_applies (Btor *btor, BtorPtrHashTable *top_applies, int dp)
+search_initial_applies (Btor *btor, BtorNodePtrStack *top_applies, int dp)
+// search_initial_applies (Btor * btor, BtorPtrHashTable * top_applies, int dp)
 {
   assert (btor);
   assert (top_applies);
-  assert (!top_applies->count);
+  //  assert (!top_applies->count);
+  assert (BTOR_EMPTY_STACK (*top_applies));
 
   int is_top;
 #ifndef NBTORLOG
@@ -5486,8 +5489,10 @@ search_initial_applies (Btor *btor, BtorPtrHashTable *top_applies, int dp)
           BTOR_PUSH_STACK (mm, top, cur_parent);
         else
         {
-          if ((!dp || cur_parent->check)
-              && !btor_find_in_ptr_hash_table (top_applies, cur_parent))
+          //		  if ((!dp || cur_parent->check)
+          //		      && !btor_find_in_ptr_hash_table (top_applies,
+          // cur_parent))
+          if (!dp || cur_parent->check)
           {
             BTORLOG ("initial apply: %s", node2string (cur_parent));
             BTORLOG ("  nodes below: %d",
@@ -5498,7 +5503,9 @@ search_initial_applies (Btor *btor, BtorPtrHashTable *top_applies, int dp)
                      count_nodes_above (btor, cur_parent, &lam, &app));
             BTORLOG ("    -> lambdas above: %d", lam);
             BTORLOG ("    -> applies above: %d", app);
-            btor_insert_in_ptr_hash_table (top_applies, cur_parent);
+            //		      btor_insert_in_ptr_hash_table (top_applies,
+            // cur_parent);
+            BTOR_PUSH_STACK (btor->mm, *top_applies, cur_parent);
           }
         }
       }
@@ -5508,7 +5515,9 @@ search_initial_applies (Btor *btor, BtorPtrHashTable *top_applies, int dp)
   while (!BTOR_EMPTY_STACK (top))
   {
     cur = BTOR_POP_STACK (top);
-    if ((!dp || cur->check) && !btor_find_in_ptr_hash_table (top_applies, cur))
+    //      if ((!dp || cur->check)
+    //	  && !btor_find_in_ptr_hash_table (top_applies, cur))
+    if (!dp || cur->check)
     {
       BTORLOG ("initial apply: %s", node2string (cur));
       BTORLOG ("  nodes below: %d", count_nodes_below (btor, cur, &lam, &app));
@@ -5517,7 +5526,8 @@ search_initial_applies (Btor *btor, BtorPtrHashTable *top_applies, int dp)
       BTORLOG ("  nodes above: %d", count_nodes_above (btor, cur, &lam, &app));
       BTORLOG ("    -> lambdas above: %d", lam);
       BTORLOG ("    -> applies above: %d", app);
-      btor_insert_in_ptr_hash_table (top_applies, cur);
+      //	  btor_insert_in_ptr_hash_table (top_applies, cur);
+      BTOR_PUSH_STACK (btor->mm, *top_applies, cur);
     }
   }
 
@@ -5576,7 +5586,8 @@ search_initial_applies_dual_prop (Btor *btor,
                                   Btor *clone,
                                   BtorNode *clone_root,
                                   BtorNodeMap *exp_map,
-                                  BtorPtrHashTable *top_applies)
+                                  BtorNodePtrStack *top_applies)
+//				  BtorPtrHashTable * top_applies)
 {
   assert (btor);
   assert (clone);
@@ -5754,7 +5765,8 @@ search_initial_applies_dual_prop (Btor *btor,
         assert (BTOR_IS_APPLY_NODE (cur_btor));
         if (cur_btor->aux_mark) continue;
         btor->stats.dp_failed_applies += 1;
-        assert (!btor_find_in_ptr_hash_table (top_applies, cur_btor));
+        //	      assert (!btor_find_in_ptr_hash_table (top_applies,
+        // cur_btor));
         cur_btor->aux_mark = 1;
         BTOR_PUSH_STACK (btor->mm, unmark_stack, cur_btor);
         BTORLOG ("initial apply: %s", node2string (cur_btor));
@@ -5767,7 +5779,8 @@ search_initial_applies_dual_prop (Btor *btor,
         BTORLOG ("    -> lambdas above: %d", lam);
         BTORLOG ("    -> applies above: %d", app);
 #ifndef MARK_FOR_CC
-        btor_insert_in_ptr_hash_table (top_applies, cur_btor);
+        //	      btor_insert_in_ptr_hash_table (top_applies, cur_btor);
+        BTOR_PUSH_STACK (btor->mm, *top_applies, cur_btor);
 #else
         cur_btor->check = 1;
 #endif
@@ -6789,6 +6802,11 @@ add_symbolic_lemma (Btor *btor,
   btor_release_exp (btor, conclusion);
 }
 #else
+
+#ifdef BTOR_USE_NVSIDS_ORDER_FOR_PROPAGATION
+#define BTOR_NVSIDS_DECAY 0.95f
+#endif
+
 static void
 encode_lemma (Btor *btor,
               BtorPtrHashTable *bconds_sel1,
@@ -6830,6 +6848,12 @@ encode_lemma (Btor *btor,
   avmgr = btor->avmgr;
   amgr = btor_get_aig_mgr_aigvec_mgr (avmgr);
   smgr = btor_get_sat_mgr_aig_mgr (amgr);
+
+#ifdef BTOR_USE_NVSIDS_ORDER_FOR_PROPAGATION
+  a->score = a->score * BTOR_NVSIDS_DECAY + 1 - BTOR_NVSIDS_DECAY;
+  if (BTOR_IS_APPLY_NODE (BTOR_REAL_ADDR_NODE (b)))
+    b->score = b->score * BTOR_NVSIDS_DECAY + 1 - BTOR_NVSIDS_DECAY;
+#endif
 
   BTOR_INIT_STACK (linking_clause);
 
@@ -7866,6 +7890,22 @@ reset_applies (Btor *btor)
   }
 }
 
+#ifdef BTOR_USE_NVSIDS_ORDER_FOR_PROPAGATION
+static int
+compare_score (const void *p1, const void *p2)
+{
+  BtorNode *a, *b;
+  a = (BtorNode *) p1;
+  b = (BtorNode *) p2;
+
+  if (a->score < b->score) return 1;
+
+  if (a->score > b->score) return -1;
+
+  return 0;
+}
+#endif
+
 static int
 check_and_resolve_conflicts (Btor *btor,
                              Btor *clone,
@@ -7876,12 +7916,13 @@ check_and_resolve_conflicts (Btor *btor,
   assert (btor);
   assert (btor->ops[BTOR_AEQ_NODE].cur == 0);
 
-  int found_conflict, changed_assignments;
+  int i, found_conflict, changed_assignments;
   BtorMemMgr *mm;
   BtorNode *app, *fun;
   BtorNodePtrStack prop_stack, cleanup_stack;
-  BtorPtrHashTable *top_applies;
-  BtorHashTableIterator it;
+  //  BtorPtrHashTable *top_applies;
+  BtorNodePtrStack top_applies;
+  //  BtorHashTableIterator it;
 
   found_conflict = 0;
   mm             = btor->mm;
@@ -7891,17 +7932,20 @@ BTOR_CONFLICT_CHECK:
   changed_assignments = 0;
   BTOR_INIT_STACK (cleanup_stack);
   BTOR_INIT_STACK (prop_stack);
-  top_applies = btor_new_ptr_hash_table (btor->mm,
-                                         (BtorHashPtr) btor_hash_exp_by_id,
-                                         (BtorCmpPtr) btor_compare_exp_by_id);
+  //  top_applies = btor_new_ptr_hash_table (btor->mm,
+  //      (BtorHashPtr) btor_hash_exp_by_id, (BtorCmpPtr)
+  //      btor_compare_exp_by_id);
+  BTOR_INIT_STACK (top_applies);
 
   // TODO: handle propagation flag cleanup via cleanup_stack?
   reset_applies (btor);
   if (clone)
     search_initial_applies_dual_prop (
-        btor, clone, clone_root, exp_map, top_applies);
+        btor, clone, clone_root, exp_map, &top_applies);
+  //	btor, clone, clone_root, exp_map, top_applies);
   else
-    search_initial_applies (btor, top_applies, 0);
+    search_initial_applies (btor, &top_applies, 0);
+  //    search_initial_applies (btor, top_applies, 0);
 
   while (!BTOR_EMPTY_STACK (*tmp_stack))
   {
@@ -7916,14 +7960,28 @@ BTOR_CONFLICT_CHECK:
     BTOR_PUSH_STACK (mm, prop_stack, fun);
   }
 
-#ifdef POP_TOP_APPLIES
-  init_reversed_node_hash_table_iterator (&it, top_applies);
-#else
-  init_node_hash_table_iterator (&it, top_applies);
+#ifdef BTOR_USE_NVSIDS_ORDER_FOR_PROPAGATION
+  qsort (top_applies.start,
+         BTOR_COUNT_STACK (top_applies),
+         sizeof (BtorNode *),
+         compare_score);
 #endif
-  while (has_next_node_hash_table_iterator (&it))
+
+//#ifdef POP_TOP_APPLIES
+//  init_reversed_node_hash_table_iterator (&it, top_applies);
+//#else
+//  init_node_hash_table_iterator (&it, top_applies);
+//#endif
+//  while (has_next_node_hash_table_iterator (&it))
+//    {
+//      app = next_node_hash_table_iterator (&it);
+#ifdef POP_TOP_APPLIES
+  for (i = BTOR_COUNT_STACK (top_applies) - 1; i >= 0; i--)
+#else
+  for (i = 0; i < BTOR_COUNT_STACK (top_applies); i++)
+#endif
   {
-    app = next_node_hash_table_iterator (&it);
+    app = BTOR_PEEK_STACK (top_applies, i);
     assert (BTOR_IS_REGULAR_NODE (app));
     assert (BTOR_IS_APPLY_NODE (app));
     assert (app->reachable || app->vread);
@@ -7974,7 +8032,8 @@ BTOR_CONFLICT_CHECK:
   }
   BTOR_RELEASE_STACK (mm, cleanup_stack);
   BTOR_RELEASE_STACK (mm, prop_stack);
-  btor_delete_ptr_hash_table (top_applies);
+  //  btor_delete_ptr_hash_table (top_applies);
+  BTOR_RELEASE_STACK (mm, top_applies);
 
   /* restart? (assignments changed during lazy synthesis and encoding) */
   if (changed_assignments)
