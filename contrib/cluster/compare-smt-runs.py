@@ -178,6 +178,8 @@ TOTALS_OP = {
   'prop_down': lambda l: sum(l),
   'lods':      lambda l: sum(l),
   'lods_avg':  lambda l: round(sum(l)/len(l), 2),
+  'time_sat':  lambda l: round(sum(l), 2),
+  'time_sapp': lambda l: round(sum(l), 2),
 }
 
 assert(set(FILTER_LOG.keys()).isdisjoint(set(FILTER_ERR.keys())))
