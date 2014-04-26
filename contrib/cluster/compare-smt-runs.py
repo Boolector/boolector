@@ -100,7 +100,31 @@ FILTER_LOG = {
   'num_propd':   ['PROPD', 
                   lambda x: b'propagations down:' in x,
                   lambda x: int(x.split()[3]), 
-                  False]
+                  False],
+  'time_clapp': ['CLONE[s]', 
+                 lambda x: b'cloning for initial applies search' in x,
+                 lambda x: float(x.split()[1]), 
+                 False],
+  'time_sapp':  ['SATDP[s]', 
+                 lambda x: b'SAT solving for initial applies search' in x,
+                 lambda x: float(x.split()[1]), 
+                 False],
+  'time_app':   ['APP[s]', 
+                 lambda x: b'seconds initial applies search' in x,
+                 lambda x: float(x.split()[1]), 
+                 False],
+  'time_coll':  ['COL[s]', 
+                 lambda x: b'collecting initial applies' in x, 
+                 lambda x: float(x.split()[1]), 
+                 False],
+  'num_fvars':  ['FVAR',
+          lambda x: b'dual prop: failed vars:' in x,
+                 lambda x: int(x.split()[5]),
+                 False],
+  'num_fapps':  ['FAPP',
+                 lambda x: b'dual prop: failed applies:' in x,
+                 lambda x: int(x.split()[5]),
+                 False]
 }
 
 
@@ -115,11 +139,13 @@ def err_extract_status(line):
     else:
         raise CmpSMTException("invalid status")
 
+
 def err_extract_opts(line):
     opt = str(line.split()[2])
     if opt[2] == '-':
         return opt[2:-1]
     return None 
+
 
 # column_name : <colname>, <keyword>, <filter>, [<is_dir_stat>] (optional)
 FILTER_ERR = {
@@ -136,6 +162,7 @@ FILTER_ERR = {
   'opts':      ['OPTIONS', 
                 lambda x: b'argv' in x, err_extract_opts, True] 
 }
+
 
 # column_name : <colname>, <keyword>, <filter>, [<is_dir_stat>] (optional)
 FILTER_OUT = {
@@ -169,6 +196,7 @@ g_file_stats = dict((k, {}) for k in FILE_STATS_KEYS)
 g_best_stats = dict((k, {}) for k in FILE_STATS_KEYS)
 g_diff_stats = dict((k, {}) for k in FILE_STATS_KEYS)
 g_total_stats = dict((k, {}) for k in FILE_STATS_KEYS)
+
 
 
 def _filter_data(d, file, filters):
@@ -278,8 +306,7 @@ def _pick_data():
     for f in g_benchmarks:
         for k in g_file_stats.keys():
             v = sorted([(g_file_stats[k][d][f], d) for d in g_args.dirs \
-                            if g_file_stats[k][d][f] is not None])
-
+                    if g_file_stats[k][d][f] is not None])
             # strings are not considered for diff/best values
             if len(v) == 0 or isinstance(v[0][0], str):
                 g_best_stats[k][f] = None
@@ -393,11 +420,14 @@ def _print_result_table():
                  <table id="results">
                     <thead>""".format(g_args.cmp_col, g_args.diff))
 
+
 def _print_html_footer():
     print("<tbody></table></body></html>")
 
+
 def _has_status(status, f):
     return status in set(g_file_stats['status'][d][f] for d in g_args.dirs)
+
 
 def _get_column_name(key):
     if key in FILTER_LOG:
@@ -406,6 +436,7 @@ def _get_column_name(key):
         return FILTER_ERR[key][0]
     assert(key in FILTER_OUT)
     return FILTER_OUT[key][0]
+
 
 def _get_color(f, d):
     global g_diff_stats, g_best_stats
@@ -563,6 +594,8 @@ if __name__ == "__main__":
                 help="highlight difference if greater than <float>")
         aparser.add_argument ("-bs", action="store_true",
                 help="compare boolector statistics")
+        aparser.add_argument ("-dp", action="store_true",
+                help = "compare dual prop statistics")
         aparser.add_argument ("-M", action="store_true",
                 help="extract models statistics")
         aparser.add_argument ("-d", action="store_true",
@@ -608,9 +641,13 @@ if __name__ == "__main__":
         if g_args.bs:
             g_args.columns = \
                     "status,lods,calls,time_sat,time_rw,time_beta"
+        elif g_args.dp:
+            g_args.columns = \
+                    "status,lods,time_time,time_app,time_sapp"
         elif g_args.M:
             g_args.columns = \
-                    "status,lods,models_bvar,models_arr,time_time,time_sat"
+                    "status,lods,models_bvar,models_arr,num_fvars,num_fapps,"\
+                    "time_time,time_sat"
         
         if not g_args.M:
             for x in list(FILTER_OUT.keys()):
