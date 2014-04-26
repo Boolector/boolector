@@ -482,29 +482,29 @@ def _print_data ():
         _print_html_header()
         print("<table><thead>")
 
-    columns = ["DIRECTORY"]
-    columns.append([_get_column_name(k) for k in g_args.columns])
-    widths = [benchmark_column_width]
-    widths.append([data_column_widths[k][d] for k in g_args.columns])
-    classes = [["header"]]
-    classes.append([["header"] for k in g_args.columns])
-    _print_row (columns, widths, classes=classes)
-
     if g_args.html:
         print("</thead><tbody>")
-
-    for d in g_args.dirs:
-        columns = ([os.path.basename(d.rstrip('/'))])
-        cols = []
-        for k in g_args.columns:
-            if k in TOTALS_OP:
-                cols.append(TOTALS_OP[k](g_total_stats[k][d]))
-            else:
-                cols.append('-')
-        columns.append(cols)
-        classes = [["nowrap"]]
-        classes.append([[] for k in g_args.columns])
+        # print totals
+        columns = ["DIRECTORY"]
+        columns.append([_get_column_name(k) for k in g_args.columns])
+        widths = [benchmark_column_width]
+        widths.append([data_column_widths[k][d] for k in g_args.columns])
+        classes = [["header"]]
+        classes.append([["header"] for k in g_args.columns])
         _print_row (columns, widths, classes=classes)
+
+        for d in g_args.dirs:
+            columns = ([os.path.basename(d.rstrip('/'))])
+            cols = []
+            for k in g_args.columns:
+                if k in TOTALS_OP:
+                    cols.append(TOTALS_OP[k](g_total_stats[k][d]))
+                else:
+                    cols.append('-')
+            columns.append(cols)
+            classes = [["nowrap"]]
+            classes.append([[] for k in g_args.columns])
+            _print_row (columns, widths, classes=classes)
 
     if g_args.html:
         print("</tbody></table><br/><br/>")
