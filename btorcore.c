@@ -571,6 +571,7 @@ void
 btor_enable_dual_prop (Btor *btor)
 {
   assert (btor);
+  assert (!btor->options.just);
   btor->options.dual_prop = 1;
 }
 
@@ -578,6 +579,7 @@ void
 btor_enable_just (Btor *btor)
 {
   assert (btor);
+  assert (!btor->options.dual_prop);
   btor->options.just = 1;
 }
 
