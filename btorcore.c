@@ -5849,12 +5849,10 @@ search_initial_applies_just (Btor *btor, BtorNodePtrStack *top_applies)
   {
     cur = next_node_hash_table_iterator (&it);
     BTOR_PUSH_STACK (btor->mm, stack, cur);
-    printf ("root: %s\n", node2string (cur));
 
     while (!BTOR_EMPTY_STACK (stack))
     {
-      cur = BTOR_POP_STACK (stack);
-      printf ("cur: %s\n", node2string (cur));
+      cur      = BTOR_POP_STACK (stack);
       real_cur = BTOR_REAL_ADDR_NODE (cur);
       assert (!real_cur->parameterized);
       assert (!BTOR_IS_FUN_NODE (real_cur));

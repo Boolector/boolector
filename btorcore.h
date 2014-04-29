@@ -286,6 +286,9 @@ void btor_enable_beta_reduce_all (Btor *btor);
 /* Enable dual propagation optimization of consistency check. */
 void btor_enable_dual_prop (Btor *btor);
 
+/* Enable justificationn optimization of consistency check. */
+void btor_enable_just (Btor *btor);
+
 /* Enable forcing of automatic clenaup of expressions and assignment strings. */
 void btor_enable_force_cleanup (Btor *btor);
 
