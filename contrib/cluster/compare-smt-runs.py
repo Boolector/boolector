@@ -174,10 +174,14 @@ TOTALS_OP = {
   'status':    lambda l: '{}/{}'.format(l.count('ok'), len(l)),
   'result':    lambda l: '{}/{}'.format(l.count(10), l.count(20)),
   'time_time': lambda l: round(sum(l), 2),
-  'prop':      lambda l: sum(l),
-  'prop_down': lambda l: sum(l),
+  'num_prop':  lambda l: sum(l),
+  'num_propd': lambda l: sum(l),
   'lods':      lambda l: sum(l),
+  'lods_br':   lambda l: sum(l),
+  'lods_fc':   lambda l: sum(l),
   'lods_avg':  lambda l: round(sum(l)/len(l), 2),
+  'time_sat':  lambda l: round(sum(l), 2),
+  'time_sapp': lambda l: round(sum(l), 2),
 }
 
 assert(set(FILTER_LOG.keys()).isdisjoint(set(FILTER_ERR.keys())))
@@ -480,29 +484,29 @@ def _print_data ():
         _print_html_header()
         print("<table><thead>")
 
-    columns = ["DIRECTORY"]
-    columns.append([_get_column_name(k) for k in g_args.columns])
-    widths = [benchmark_column_width]
-    widths.append([data_column_widths[k][d] for k in g_args.columns])
-    classes = [["header"]]
-    classes.append([["header"] for k in g_args.columns])
-    _print_row (columns, widths, classes=classes)
-
     if g_args.html:
         print("</thead><tbody>")
-
-    for d in g_args.dirs:
-        columns = ([os.path.basename(d.rstrip('/'))])
-        cols = []
-        for k in g_args.columns:
-            if k in TOTALS_OP:
-                cols.append(TOTALS_OP[k](g_total_stats[k][d]))
-            else:
-                cols.append('-')
-        columns.append(cols)
-        classes = [["nowrap"]]
-        classes.append([[] for k in g_args.columns])
+        # print totals
+        columns = ["DIRECTORY"]
+        columns.append([_get_column_name(k) for k in g_args.columns])
+        widths = [benchmark_column_width]
+        widths.append([data_column_widths[k][d] for k in g_args.columns])
+        classes = [["header"]]
+        classes.append([["header"] for k in g_args.columns])
         _print_row (columns, widths, classes=classes)
+
+        for d in g_args.dirs:
+            columns = ([os.path.basename(d.rstrip('/'))])
+            cols = []
+            for k in g_args.columns:
+                if k in TOTALS_OP:
+                    cols.append(TOTALS_OP[k](g_total_stats[k][d]))
+                else:
+                    cols.append('-')
+            columns.append(cols)
+            classes = [["nowrap"]]
+            classes.append([[] for k in g_args.columns])
+            _print_row (columns, widths, classes=classes)
 
     if g_args.html:
         print("</tbody></table><br/><br/>")
