@@ -1060,7 +1060,7 @@ btor_new_btor (void)
   btor->options.chk_failed_assumptions = 1;
 #endif
   // btor->options.dual_prop = 1; // TODO debug
-  btor->options.just                     = 1;  // TODO debug
+  //  btor->options.just = 1; // TODO debug
   btor->options.pprint                   = 1;
   btor->options.slice_propagation        = 0;
   btor->options.simplify_constraints     = 1;
@@ -5870,13 +5870,14 @@ search_initial_applies_just (Btor *btor, BtorNodePtrStack *top_applies)
 
       if (real_cur->len == 1)
       {
+        // TODO: 'x' value handling correct or is there a better solution?
         switch (real_cur->kind)
         {
           case BTOR_AND_NODE:
             c  = bv_assignment_str_exp (btor, real_cur);
             c0 = bv_assignment_str_exp (btor, real_cur->e[0]);
             c1 = bv_assignment_str_exp (btor, real_cur->e[1]);
-            if (c[0] == '1')  // and = 1
+            if (c[0] == '1' || c[0] == 'x')  // and = 1
             {
               BTOR_PUSH_STACK (btor->mm, stack, real_cur->e[0]);
               BTOR_PUSH_STACK (btor->mm, stack, real_cur->e[1]);
@@ -5898,8 +5899,13 @@ search_initial_applies_just (Btor *btor, BtorNodePtrStack *top_applies)
             c = bv_assignment_str_exp (btor, real_cur->e[0]);
             if (c[0] == '1')  // then
               BTOR_PUSH_STACK (btor->mm, stack, real_cur->e[1]);
-            else  // else
+            else if (c[0] == '0')
               BTOR_PUSH_STACK (btor->mm, stack, real_cur->e[2]);
+            else  // else
+            {
+              BTOR_PUSH_STACK (btor->mm, stack, real_cur->e[1]);
+              BTOR_PUSH_STACK (btor->mm, stack, real_cur->e[2]);
+            }
             btor_release_bv_assignment_str (btor, c);
             break;
 
