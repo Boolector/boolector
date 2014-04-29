@@ -5873,10 +5873,10 @@ search_initial_applies_just (Btor *btor, BtorNodePtrStack *top_applies)
         switch (real_cur->kind)
         {
           case BTOR_AND_NODE:
-            c  = bv_assignment_str_exp (btor, cur);
+            c  = bv_assignment_str_exp (btor, real_cur);
             c0 = bv_assignment_str_exp (btor, real_cur->e[0]);
             c1 = bv_assignment_str_exp (btor, real_cur->e[1]);
-            if (!strcmp (c, "1"))  // and = 1
+            if (c[0] == '1')  // and = 1
             {
               BTOR_PUSH_STACK (btor->mm, stack, real_cur->e[0]);
               BTOR_PUSH_STACK (btor->mm, stack, real_cur->e[1]);
@@ -5884,7 +5884,7 @@ search_initial_applies_just (Btor *btor, BtorNodePtrStack *top_applies)
             else  // and = 0
             {
               // TODO maybe optimize case 0 0
-              if (!strcmp (c0, "0"))
+              if (c0[0] == '0')
                 BTOR_PUSH_STACK (btor->mm, stack, real_cur->e[0]);
               else
                 BTOR_PUSH_STACK (btor->mm, stack, real_cur->e[1]);
@@ -5896,10 +5896,10 @@ search_initial_applies_just (Btor *btor, BtorNodePtrStack *top_applies)
 
           case BTOR_BCOND_NODE:
             c = bv_assignment_str_exp (btor, real_cur->e[0]);
-            if (!strcmp (c, "1"))  // then
+            if (c[0] == '1')  // then
               BTOR_PUSH_STACK (btor->mm, stack, real_cur->e[1]);
             else  // else
-              BTOR_PUSH_STACK (btor->mm, stack, real_cur->e[0]);
+              BTOR_PUSH_STACK (btor->mm, stack, real_cur->e[2]);
             btor_release_bv_assignment_str (btor, c);
             break;
 
