@@ -5856,11 +5856,13 @@ search_initial_applies_just (Btor *btor, BtorNodePtrStack *top_applies)
       cur = BTOR_POP_STACK (stack);
       printf ("cur: %s\n", node2string (cur));
       real_cur = BTOR_REAL_ADDR_NODE (cur);
+      assert (!real_cur->parameterized);
+      assert (!BTOR_IS_FUN_NODE (real_cur));
       if (real_cur->aux_mark) continue;
       real_cur->aux_mark = 1;
       BTOR_PUSH_STACK (btor->mm, unmark_stack, real_cur);
 
-      if (BTOR_IS_APPLY_NODE (cur))
+      if (BTOR_IS_APPLY_NODE (real_cur))
       {
         assert (BTOR_IS_SYNTH_NODE (real_cur));
         BTORLOG ("initial apply: %s", node2string (real_cur));
