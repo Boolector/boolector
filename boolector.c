@@ -195,6 +195,7 @@ btor_chkclone_state (Btor *btor)
   BTOR_CHKCLONE_STATE (msgtick);
   BTOR_CHKCLONE_STATE (last_sat_result);
   BTOR_CHKCLONE_STATE (options.dual_prop);
+  BTOR_CHKCLONE_STATE (options.just);
   BTOR_CHKCLONE_STATE (options.beta_reduce_all);
   BTOR_CHKCLONE_STATE (options.force_cleanup);
   BTOR_CHKCLONE_STATE (options.force_internal_cleanup);
@@ -1079,12 +1080,28 @@ boolector_enable_dual_prop (Btor *btor)
 {
   BTOR_ABORT_ARG_NULL_BOOLECTOR (btor);
   BTOR_TRAPI ("enable_dual_prop");
+  BTOR_ABORT_BOOLECTOR (
+      btor->options.just,
+      "enabling multiple optimization techniques is not allowed");
   btor_enable_dual_prop (btor);
 #ifndef NDEBUG
   BTOR_CHKCLONE_NORES (enable_dual_prop);
 #endif
 }
 
+void
+boolector_enable_justification (Btor *btor)
+{
+  BTOR_ABORT_ARG_NULL_BOOLECTOR (btor);
+  BTOR_TRAPI ("enable_just");
+  BTOR_ABORT_BOOLECTOR (
+      btor->options.dual_prop,
+      "enabling multiple optimization techniques is not allowed");
+  btor_enable_just (btor);
+#ifndef NDEBUG
+  BTOR_CHKCLONE_NORES (enable_justification);
+#endif
+}
 void
 boolector_enable_force_cleanup (Btor *btor)
 {

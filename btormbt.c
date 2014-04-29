@@ -523,6 +523,7 @@ typedef struct BtorMBT
   int force_nomgen;
   int ext;
   int dual_prop;
+  int just;
   int shadow;
   char *out;
   int time_limit;
@@ -1922,6 +1923,8 @@ _opt (BtorMBT *btormbt, unsigned r)
 
   if (btormbt->dual_prop) boolector_enable_dual_prop (btormbt->btor);
 
+  if (btormbt->just) boolector_enable_justification (btormbt->btor);
+
   if (btormbt->bloglevel)
   {
     BTORMBT_LOG (1, "boolector log level: '%d'", btormbt->bloglevel);
@@ -2735,6 +2738,8 @@ main (int argc, char **argv)
     else if (!strcmp (argv[i], "-dp")
              || !strcmp (argv[i], "--enable-dual-prop"))
       btormbt->dual_prop = 1;
+    else if (!strcmp (argv[i], "-ju") || !strcmp (argv[i], "--enable-just"))
+      btormbt->just = 1;
     else if (!strcmp (argv[i], "-s") || !strcmp (argv[i], "--shadow-clone"))
       btormbt->shadow = 1;
     else if (!strcmp (argv[i], "-o") || !strcmp (argv[i], "--out"))

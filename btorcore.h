@@ -236,6 +236,7 @@ struct Btor
   struct
   {
     int dual_prop;              /* dual prop optimization */
+    int just;                   /* justification optimization */
     int beta_reduce_all;        /* eliminate lambda expressions */
     int force_cleanup;          /* force cleanup of exps, assignment strings */
     int force_internal_cleanup; /* force cleanup of exps, assignment strings
