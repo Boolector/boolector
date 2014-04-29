@@ -264,9 +264,13 @@ cdef extern from "boolector.h":
 
     void boolector_release (Btor * btor, BoolectorNode * node)
 
-    void boolector_dump_btor (Btor * btor, FILE * file, BoolectorNode * node)
+    void boolector_dump_btor_node (Btor * btor, FILE * file, BoolectorNode * node)
 
-    void boolector_dump_btor_all (Btor * btor, FILE * file)
+    void boolector_dump_btor (Btor * btor, FILE * file)
+
+    void boolector_dump_smt1 (Btor * btor, FILE * file)
+
+    void boolector_dump_smt2 (Btor * btor, FILE * file)
 
     #void boolector_dump_smt (Btor * btor, FILE * file, BoolectorNode * node)
     #

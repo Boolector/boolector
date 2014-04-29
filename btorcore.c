@@ -8010,8 +8010,8 @@ static int
 compare_score (const void *p1, const void *p2)
 {
   BtorNode *a, *b;
-  a = (BtorNode *) p1;
-  b = (BtorNode *) p2;
+  a = *((BtorNode **) p1);
+  b = *((BtorNode **) p2);
 
   if (a->score < b->score) return 1;
 
