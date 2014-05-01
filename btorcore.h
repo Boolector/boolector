@@ -142,6 +142,8 @@ struct Btor
   BtorNodePtrStack arrays_with_model;
   BtorPtrHashTable *cache;
   BtorPtrHashTable *parameterized;
+  BtorPtrHashTable *score;
+  BtorPtrHashTable *score_depth;
 
   /* shadow clone (debugging only) */
   Btor *clone;

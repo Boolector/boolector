@@ -1475,10 +1475,11 @@ btor_beta_reduce_partial_aux (Btor *btor,
               // TODO: result for real_cur not cached anymore as we
               //       skip the bv_cond
 
-              if (btor->options.dual_prop && conds
+              if (conds
                   && !btor_find_in_ptr_hash_table (conds,
                                                    BTOR_REAL_ADDR_NODE (e[0])))
               {
+                assert (btor->options.dual_prop || btor->options.just);
                 btor_insert_in_ptr_hash_table (
                     conds, btor_copy_exp (btor, BTOR_REAL_ADDR_NODE (e[0])));
               }
