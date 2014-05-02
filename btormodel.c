@@ -259,7 +259,11 @@ recursively_compute_assignment (Btor *btor,
 
     if (real_cur->eval_mark == 0)
     {
-      if (real_cur->tseitin && !BTOR_IS_FUN_NODE (real_cur))
+      if (real_cur->tseitin
+          && !BTOR_IS_FUN_NODE (real_cur)
+          /* always compute values for applies
+           * (must be consistent anyway) */
+          && !BTOR_IS_APPLY_NODE (real_cur))
       {
         assert (BTOR_IS_SYNTH_NODE (real_cur));
         result = btor_assignment_bv (btor, real_cur, 0);
