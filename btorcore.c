@@ -1070,7 +1070,7 @@ btor_new_btor (void)
 #ifdef BTOR_CHECK_FAILED
   btor->options.chk_failed_assumptions = 1;
 #endif
-  btor->options.dual_prop = 1;  // TODO debug
+  // btor->options.dual_prop = 1; // TODO debug
   // btor->options.just = 1; // TODO debug
   btor->options.pprint                   = 1;
   btor->options.slice_propagation        = 0;
@@ -6272,6 +6272,7 @@ search_initial_applies_just (Btor *btor, BtorNodePtrStack *top_applies)
             c  = bv_assignment_str_exp (btor, cur);
             c0 = bv_assignment_str_exp (btor, cur->e[0]);
             c1 = bv_assignment_str_exp (btor, cur->e[1]);
+
             if (c[0] == '1' || c[0] == 'x')  // and = 1
             {
               BTOR_PUSH_STACK (btor->mm, stack, cur->e[0]);
@@ -6293,27 +6294,46 @@ search_initial_applies_just (Btor *btor, BtorNodePtrStack *top_applies)
 #endif
                   if (c0[0] == '0')
                 BTOR_PUSH_STACK (btor->mm, stack, cur->e[0]);
-              else
+              else if (c1[0] == '0')
                 BTOR_PUSH_STACK (btor->mm, stack, cur->e[1]);
+              else if (c0[0] == 'x' && c1[0] == '1')
+                BTOR_PUSH_STACK (btor->mm, stack, cur->e[0]);
+              else if (c0[0] == '1' && c1[0] == 'x')
+                BTOR_PUSH_STACK (btor->mm, stack, cur->e[1]);
+              else
+              {
+                assert (c0[0] == 'x');
+                assert (c1[0] == 'x');
+                BTOR_PUSH_STACK (btor->mm, stack, cur->e[0]);
+                BTOR_PUSH_STACK (btor->mm, stack, cur->e[1]);
+              }
             }
             btor_release_bv_assignment_str (btor, c);
             btor_release_bv_assignment_str (btor, c0);
             btor_release_bv_assignment_str (btor, c1);
             break;
 
-          case BTOR_BCOND_NODE:
-            c = bv_assignment_str_exp (btor, cur->e[0]);
-            if (c[0] == '1')  // then
-              BTOR_PUSH_STACK (btor->mm, stack, cur->e[1]);
-            else if (c[0] == '0')
-              BTOR_PUSH_STACK (btor->mm, stack, cur->e[2]);
-            else  // else
-            {
-              BTOR_PUSH_STACK (btor->mm, stack, cur->e[1]);
-              BTOR_PUSH_STACK (btor->mm, stack, cur->e[2]);
-            }
-            btor_release_bv_assignment_str (btor, c);
-            break;
+            // TODO: what if cur->e[0] contains an apply that is not
+            //       consistent?
+            //       -> choosing if or else branch is in this case not
+            //          allowed
+            // FIX: we need to check if in cur->e[0] is an apply in the
+            //      sub-DAG (we can do that with a flag: apply_below?)
+#if 0
+		  case BTOR_BCOND_NODE:
+		    c = bv_assignment_str_exp (btor, cur->e[0]);
+		    if (c[0] == '1')  // then
+		      BTOR_PUSH_STACK (btor->mm, stack, cur->e[1]);
+		    else if (c[0] == '0')
+		      BTOR_PUSH_STACK (btor->mm, stack, cur->e[2]);
+		    else                   // else
+		      {
+			BTOR_PUSH_STACK (btor->mm, stack, cur->e[1]);
+			BTOR_PUSH_STACK (btor->mm, stack, cur->e[2]);
+		      }
+		    btor_release_bv_assignment_str (btor, c);
+		    break;
+#endif
 
           default: goto PUSH_CHILDREN;
         }
