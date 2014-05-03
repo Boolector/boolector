@@ -5705,9 +5705,6 @@ search_initial_applies_dual_prop (Btor *btor,
 
       if (cur_btor->aux_mark) continue;
 
-      if (BTOR_IS_APPLY_NODE (cur_btor) && !BTOR_IS_SYNTH_NODE (cur_btor))
-        continue;
-
       cur_btor->aux_mark = 1;
       BTOR_PUSH_STACK (btor->mm, unmark_stack, cur_btor);
 
@@ -5760,6 +5757,9 @@ search_initial_applies_dual_prop (Btor *btor,
         btor_release_bv_assignment_str (btor, astr);
         BTOR_DELETEN (btor->mm, pastr, cur_btor->len + 1);
       }
+
+      /* stop at applies (inputs for bv skeleton) */
+      if (BTOR_IS_APPLY_NODE (cur_btor)) continue;
 
       for (i = 0; i < cur_btor->arity; i++)
 #ifdef SEARCH_INIT_BFS
