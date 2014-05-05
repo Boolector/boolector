@@ -6313,14 +6313,9 @@ search_initial_applies_just (Btor *btor, BtorNodePtrStack *top_applies)
             btor_release_bv_assignment_str (btor, c1);
             break;
 
-            // TODO: what if cur->e[0] contains an apply that is not
-            //       consistent?
-            //       -> choosing if or else branch is in this case not
-            //          allowed
-            // FIX: we need to check if in cur->e[0] is an apply in the
-            //      sub-DAG (we can do that with a flag: apply_below?)
 #if 0
 		  case BTOR_BCOND_NODE:
+		    BTOR_PUSH_STACK (btor->mm, stack, cur->e[0]);
 		    c = bv_assignment_str_exp (btor, cur->e[0]);
 		    if (c[0] == '1')  // then
 		      BTOR_PUSH_STACK (btor->mm, stack, cur->e[1]);
