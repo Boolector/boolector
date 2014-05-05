@@ -208,11 +208,15 @@ recursively_compute_assignment (Btor *btor,
   BtorVoidPtrStack arg_stack;
   BtorNode *cur, *real_cur, *next, *cur_parent;
   BtorPtrHashBucket *b;
+  BtorPtrHashTable *assigned;
   BitVector *result = 0, *inv_result, **e;
   BitVectorTuple *t;
 
   mm = btor->mm;
 
+  assigned = btor_new_ptr_hash_table (mm,
+                                      (BtorHashPtr) btor_hash_exp_by_id,
+                                      (BtorCmpPtr) btor_compare_exp_by_id);
   BTOR_INIT_STACK (work_stack);
   BTOR_INIT_STACK (arg_stack);
   BTOR_INIT_STACK (cleanup);
@@ -234,7 +238,11 @@ recursively_compute_assignment (Btor *btor,
 
     /* check if we already have an assignment for this function application */
     if (BTOR_IS_LAMBDA_NODE (real_cur) && cur_parent
-        && BTOR_IS_APPLY_NODE (cur_parent) && real_cur->eval_mark == 0)
+        && BTOR_IS_APPLY_NODE (cur_parent)
+        /* if real_cur was assigned by cur_parent, we are not allowed to use
+         * a cached result, but instead rebuild cur_parent */
+        && (!(b = btor_find_in_ptr_hash_table (assigned, real_cur))
+            || b->data.asPtr != cur_parent))
     {
       num_args = ((BtorArgsNode *) cur_parent->e[1])->num_args;
       e        = (BitVector **) arg_stack.top - num_args;
@@ -249,7 +257,7 @@ recursively_compute_assignment (Btor *btor,
 
       if (result)
       {
-        //	      printf ("CACHED: %s\n", node2string (cur_parent));
+        //	      printf ("CACHED: %s\n", node2string (cur_parent))
         //	      printf ("fun: %s\n", node2string (real_cur));
         //	      printf ("top: %s\n", node2string (BTOR_TOP_STACK
         //(work_stack)));
@@ -288,6 +296,9 @@ recursively_compute_assignment (Btor *btor,
                && BTOR_IS_APPLY_NODE (cur_parent))
       {
         btor_assign_args (btor, real_cur, cur_parent->e[1]);
+        assert (!btor_find_in_ptr_hash_table (assigned, real_cur));
+        btor_insert_in_ptr_hash_table (assigned, real_cur)->data.asPtr =
+            cur_parent;
         //	      printf ("ASSIGN: %s (%s)\n", node2string (real_cur),
         // node2string (cur_parent));
       }
@@ -448,7 +459,9 @@ recursively_compute_assignment (Btor *btor,
       if (BTOR_IS_LAMBDA_NODE (real_cur) && cur_parent
           && BTOR_IS_APPLY_NODE (cur_parent))
       {
+        assert (btor_find_in_ptr_hash_table (assigned, real_cur));
         btor_unassign_params (btor, real_cur);
+        btor_remove_from_ptr_hash_table (assigned, real_cur, 0, 0);
         //	    printf ("UNASSIGN: %s (%s)\n", node2string (real_cur),
         // node2string (cur_parent));
       }
@@ -487,6 +500,7 @@ recursively_compute_assignment (Btor *btor,
   BTOR_RELEASE_STACK (mm, work_stack);
   BTOR_RELEASE_STACK (mm, arg_stack);
   BTOR_RELEASE_STACK (mm, cleanup);
+  btor_delete_ptr_hash_table (assigned);
 
   return result;
 }
