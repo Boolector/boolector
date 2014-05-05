@@ -7609,6 +7609,7 @@ add_lemma (Btor *btor, BtorNode *fun, BtorNode *app0, BtorNode *app1)
   assert (!app1 || BTOR_IS_APPLY_NODE (app1));
 
   double start;
+  int rwl;
 #ifndef NDEBUG
   int evalerr;
 #endif
@@ -7626,6 +7627,15 @@ add_lemma (Btor *btor, BtorNode *fun, BtorNode *app0, BtorNode *app1)
   bconds_sel2 = btor_new_ptr_hash_table (mm,
                                          (BtorHashPtr) btor_hash_exp_by_id,
                                          (BtorCmpPtr) btor_compare_exp_by_id);
+
+  // TODO: right now we have to build lemmas with rwl 1 with the current
+  //	   dual propagation implementation, since cloning the lemma needs to
+  //	   produce the same expressions
+  if (btor->options.dual_prop && btor->options.rewrite_level > 1)
+  {
+    rwl = btor->options.rewrite_level;
+    btor_set_rewrite_level_btor (btor, 1);
+  }
 
   /* function congruence axiom conflict */
   if (app1)
@@ -7680,6 +7690,9 @@ add_lemma (Btor *btor, BtorNode *fun, BtorNode *app0, BtorNode *app1)
   btor_delete_ptr_hash_table (bconds_sel1);
   btor_delete_ptr_hash_table (bconds_sel2);
   btor->time.lemma_gen += btor_time_stamp () - start;
+
+  if (btor->options.dual_prop && btor->options.rewrite_level > 1)
+    btor_set_rewrite_level_btor (btor, rwl);
 }
 
 static void
