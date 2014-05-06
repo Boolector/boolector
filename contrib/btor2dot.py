@@ -40,6 +40,7 @@ if __name__ == "__main__":
     argparser.add_argument("-s", action="store_true", help="print symbols")
     argparser.add_argument("-w", action="store_true", help="print bit width")
     argparser.add_argument("-i", action="store_true", help="print node ids")
+    argparser.add_argument("-c", action="store_true", help="print const values")
     args = argparser.parse_args()
 
     print("digraph G {")
@@ -108,6 +109,8 @@ if __name__ == "__main__":
             elif kind == "param":
                 param_nodes[id] = True
             elif kind == "var" and args.s and len(t) > 3:
+                label = "{}\n{}".format(label, t[3])
+            elif args.c and "const" in kind:
                 label = "{}\n{}".format(label, t[3])
 
             # check if node has parameterized children (stop at lambda)

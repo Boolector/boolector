@@ -4081,12 +4081,10 @@ btor_rewrite_apply_exp (Btor *btor, BtorNode *fun, BtorNode *args)
           result = btor_copy_exp (
               btor,
               btor_param_cur_assignment (BTOR_REAL_ADDR_NODE (cur_branch)));
+          result = BTOR_COND_INVERT_NODE (cur_branch, result);
         }
         else
           result = btor_copy_exp (btor, cur_branch);
-
-        if (BTOR_IS_INVERTED_NODE (cur_branch))
-          result = BTOR_INVERT_NODE (result);
         done = 1;
       }
       /* create apply node for this function and try to propagate down
@@ -4119,14 +4117,15 @@ btor_rewrite_apply_exp (Btor *btor, BtorNode *fun, BtorNode *args)
           assert (BTOR_IS_FUN_NODE (next_fun));
           result = btor_apply_exp_node (btor, next_fun, cur_args);
         }
+        result = BTOR_COND_INVERT_NODE (cur_branch, result);
         // TODO: do not build apply (only build last one
         btor_release_exp (btor, cur_args);
       }
       /* check if we can further propagate down along a conditional */
       else if (BTOR_IS_BV_COND_NODE (BTOR_REAL_ADDR_NODE (cur_branch)))
       {
-        cur_cond    = cur_branch;
-        result      = prev_result;
+        cur_cond    = BTOR_REAL_ADDR_NODE (cur_branch);
+        result      = BTOR_COND_INVERT_NODE (cur_branch, prev_result);
         prev_result = 0;
       }
       /* cur_branch is some other parameterized term that we don't expand */
