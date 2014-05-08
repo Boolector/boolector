@@ -46,7 +46,6 @@
 
 //#define MARK_FOR_CC
 //#define BTOR_DO_NOT_LAZY_SYNTHESIZE
-//#define SEARCH_INIT_BFS
 #define POP_TOP_APPLIES
 #define BTOR_USE_NVSIDS_ORDER_FOR_PROPAGATION
 
@@ -5684,9 +5683,6 @@ search_initial_applies_dual_prop (Btor *btor,
   double start, delta;
   BtorNode *cur_btor, *cur_clone, *bv_const, *bv_eq, *slice;
   BtorNodePtrStack stack, unmark_stack, inputs;
-#ifdef SEARCH_INIT_BFS
-  BtorNodePtrQueue queue;
-#endif
   BtorNodeMap *key_map, *assumptions;
   BtorHashTableIterator it;
   BtorNodeMapIterator nit;
@@ -5705,9 +5701,6 @@ search_initial_applies_dual_prop (Btor *btor,
   smgr = btor_get_sat_mgr_aig_mgr (btor_get_aig_mgr_aigvec_mgr (btor->avmgr));
   if (!smgr->inc_required) return;
 
-#ifdef SEARCH_INIT_BFS
-  BTOR_INIT_QUEUE (queue);
-#endif
   BTOR_INIT_STACK (stack);
   BTOR_INIT_STACK (unmark_stack);
   BTOR_INIT_STACK (inputs);
@@ -5810,94 +5803,6 @@ search_initial_applies_dual_prop (Btor *btor,
     btor_release_bv_assignment_str (btor, astr);
     BTOR_DELETEN (btor->mm, pastr, cur_btor->len + 1);
   }
-
-#if 0
-  while (has_next_node_hash_table_iterator (&it))
-    {
-      cur_btor = next_node_hash_table_iterator (&it);
-#ifdef SEARCH_INIT_BFS
-      BTOR_ENQUEUE (btor->mm, queue, cur_btor);
-      while (!BTOR_EMPTY_QUEUE (queue))
-	{ 
-	  cur_btor = BTOR_REAL_ADDR_NODE (BTOR_DEQUEUE (queue));
-#else
-      BTOR_PUSH_STACK (btor->mm, stack, cur_btor);
-      while (!BTOR_EMPTY_STACK (stack))
-	{ 
-	  cur_btor = BTOR_REAL_ADDR_NODE (BTOR_POP_STACK (stack));
-#endif
-	  
-	  if (cur_btor->aux_mark) continue;
-
-	  cur_btor->aux_mark = 1;
-	  BTOR_PUSH_STACK (btor->mm, unmark_stack, cur_btor);
-
-	  if ((BTOR_IS_BV_VAR_NODE (cur_btor) || BTOR_IS_APPLY_NODE (cur_btor))
-	      && BTOR_IS_SYNTH_NODE (cur_btor))
-	    {
-	      cur_clone = btor_mapped_node (exp_map, cur_btor);
-	      assert (cur_clone);
-	      assert (BTOR_IS_REGULAR_NODE (cur_clone));
-	      assert (!btor_mapped_node (key_map, cur_clone));
-	      btor_map_node (key_map, cur_clone, cur_btor);
-
-	      astr = bv_assignment_str_exp (btor, cur_btor);
-	      BTOR_CNEWN (btor->mm, pastr, cur_btor->len + 1);
-	      for (i = 0; i < cur_btor->len; i++)
-		{
-		  /* upper ... MSB if no 'x' in astr        x110x
-		   * lower ... LSB if no 'x' in astr	     | ^-- lower (to)
-		   * from  ... MSB if no 'x' in astr         ^---- upper (from)
-		   * to    ... LSB if no 'x' in astr  
-		   * Note: upper/lower counts idx from LSB, from/to from MSB */
-		  if (astr[i] != 'x')
-		    {
-		      for (from = i; i < cur_btor->len && astr[i] != 'x'; i++);
-		      to = i == cur_btor->len ? cur_btor->len - 1 : i - 1 ;
-		      upper = cur_btor->len - 1 - from;
-		      lower = cur_btor->len - 1 - to;
-		      memcpy (pastr, astr + from, to - from + 1);
-		      pastr[upper-lower+1] = '\0';
-
-		      bv_const = btor_const_exp (clone, pastr);
-		      /* if len(pastr) != len(astr), generate equality over 
-		       * slice on current exp in order to simulate partial 
-		       * assignment */
-		      if (cur_btor->len == (upper - lower + 1))
-			bv_eq = btor_eq_exp (clone, cur_clone, bv_const);
-		      else
-			{
-			  slice = 
-			    btor_slice_exp (clone, cur_clone, upper, lower);
-			  bv_eq = btor_eq_exp (clone, slice, bv_const);
-			}
-		      assert (!btor_mapped_node (assumptions, bv_eq));
-		      btor_assume_exp (clone, bv_eq);
-		      btor_map_node (assumptions, bv_eq, cur_clone);
-		      btor_release_exp (clone, bv_eq);
-		      btor_release_exp (clone, bv_const);
-		    }
-		}
-	      btor_release_bv_assignment_str (btor, astr);
-	      BTOR_DELETEN (btor->mm, pastr, cur_btor->len + 1);
-	    }
-
-	  /* stop at applies (inputs for bv skeleton) */
-	  if (BTOR_IS_APPLY_NODE (cur_btor))
-	    continue;
-	  
-	  for (i = 0; i < cur_btor->arity; i++)
-#ifdef SEARCH_INIT_BFS
-	    BTOR_ENQUEUE (btor->mm, queue, cur_btor->e[i]);
-#else
-	    BTOR_PUSH_STACK (btor->mm, stack, cur_btor->e[i]);
-#endif
-	}
-    }
-  /* cleanup */ 
-  while (!BTOR_EMPTY_STACK (unmark_stack))
-    BTOR_POP_STACK (unmark_stack)->aux_mark = 0;
-#endif
   btor->time.search_init_apps_collect_var_apps += btor_time_stamp () - delta;
 
   delta = btor_time_stamp ();
@@ -5975,9 +5880,6 @@ search_initial_applies_dual_prop (Btor *btor,
     cur_btor->check = 0;
 #endif
   }
-#ifdef SEARCH_INIT_BFS
-  BTOR_RELEASE_QUEUE (btor->mm, queue);
-#endif
   BTOR_RELEASE_STACK (btor->mm, stack);
   BTOR_RELEASE_STACK (btor->mm, unmark_stack);
   BTOR_RELEASE_STACK (btor->mm, inputs);
