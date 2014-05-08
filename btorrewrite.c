@@ -4124,8 +4124,8 @@ btor_rewrite_apply_exp (Btor *btor, BtorNode *fun, BtorNode *args)
       /* check if we can further propagate down along a conditional */
       else if (BTOR_IS_BV_COND_NODE (BTOR_REAL_ADDR_NODE (cur_branch)))
       {
-        cur_cond    = BTOR_REAL_ADDR_NODE (cur_branch);
-        result      = BTOR_COND_INVERT_NODE (cur_branch, prev_result);
+        cur_cond    = cur_branch;
+        result      = prev_result;
         prev_result = 0;
       }
       /* cur_branch is some other parameterized term that we don't expand */
