@@ -37,7 +37,6 @@
 #define BTOR_DO_NOT_PROCESS_SKELETON
 #endif
 
-#define ENABLE_APPLY_PROP_DOWN 1
 #define BTOR_SYMBOLIC_LEMMAS
 #ifndef NDEBUG
 #define BTOR_CHECK_MODEL
@@ -8194,8 +8193,7 @@ propagate (Btor *btor,
     {
       args_equal = 0;
       // TODO: how can we still propagate negated applies down?
-      if (!BTOR_IS_INVERTED_NODE (fun_value) && BTOR_IS_APPLY_NODE (fun_value)
-          && ENABLE_APPLY_PROP_DOWN)
+      if (!BTOR_IS_INVERTED_NODE (fun_value) && BTOR_IS_APPLY_NODE (fun_value))
         args_equal = BTOR_REAL_ADDR_NODE (fun_value)->e[1] == args;
 
       if (!args_equal)
