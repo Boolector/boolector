@@ -5624,6 +5624,39 @@ bv_assignment_str_exp (Btor *btor, BtorNode *exp)
   return assignment;
 }
 
+static void compute_scores (Btor *);
+
+static int
+compare_scores_qsort (const void *p1, const void *p2)
+{
+  int sa, sb;
+  Btor *btor;
+  BtorNode *a, *b;
+  BtorPtrHashBucket *bucket;
+
+  a = *((BtorNode **) p1);
+  b = *((BtorNode **) p2);
+
+  assert (a->btor == b->btor);
+  btor = a->btor;
+
+  if (!btor->score) return 0;
+
+  bucket = btor_find_in_ptr_hash_table (btor->score, a);
+  assert (bucket);
+  sa = ((BtorPtrHashTable *) bucket->data.asPtr)->count;
+
+  bucket = btor_find_in_ptr_hash_table (btor->score, b);
+  assert (bucket);
+  sb = ((BtorPtrHashTable *) bucket->data.asPtr)->count;
+
+  if (sa < sb) return 1;
+
+  if (sa > sb) return -1;
+
+  return 0;
+}
+
 static void
 search_initial_applies_dual_prop (Btor *btor,
                                   Btor *clone,
@@ -5643,14 +5676,14 @@ search_initial_applies_dual_prop (Btor *btor,
   assert (clone->embedded_constraints->count == 0);
   assert (check_id_table_aux_mark_unset_dbg (btor));
 
-  int i, from, to, upper, lower;
+  int i, j, from, to, upper, lower;
 #ifndef NBTORLOG
   int lam, app;
 #endif
   char *astr, *pastr;
   double start, delta;
   BtorNode *cur_btor, *cur_clone, *bv_const, *bv_eq, *slice;
-  BtorNodePtrStack stack, unmark_stack;
+  BtorNodePtrStack stack, unmark_stack, inputs;
 #ifdef SEARCH_INIT_BFS
   BtorNodePtrQueue queue;
 #endif
@@ -5677,6 +5710,7 @@ search_initial_applies_dual_prop (Btor *btor,
 #endif
   BTOR_INIT_STACK (stack);
   BTOR_INIT_STACK (unmark_stack);
+  BTOR_INIT_STACK (inputs);
   key_map     = btor_new_node_map (btor);
   assumptions = btor_new_node_map (btor);
 
@@ -5686,22 +5720,17 @@ search_initial_applies_dual_prop (Btor *btor,
   /* assume assignments of bv vars and applies, partial assignments are
    * assumed as partial assignment (as slice on resp. var/apply) */
   delta = btor_time_stamp ();
+
   init_node_hash_table_iterator (&it, btor->synthesized_constraints);
   queue_node_hash_table_iterator (&it, btor->assumptions);
   while (has_next_node_hash_table_iterator (&it))
   {
     cur_btor = next_node_hash_table_iterator (&it);
-#ifdef SEARCH_INIT_BFS
-    BTOR_ENQUEUE (btor->mm, queue, cur_btor);
-    while (!BTOR_EMPTY_QUEUE (queue))
-    {
-      cur_btor = BTOR_REAL_ADDR_NODE (BTOR_DEQUEUE (queue));
-#else
     BTOR_PUSH_STACK (btor->mm, stack, cur_btor);
+
     while (!BTOR_EMPTY_STACK (stack))
     {
       cur_btor = BTOR_REAL_ADDR_NODE (BTOR_POP_STACK (stack));
-#endif
 
       if (cur_btor->aux_mark) continue;
 
@@ -5711,67 +5740,164 @@ search_initial_applies_dual_prop (Btor *btor,
       if ((BTOR_IS_BV_VAR_NODE (cur_btor) || BTOR_IS_APPLY_NODE (cur_btor))
           && BTOR_IS_SYNTH_NODE (cur_btor))
       {
-        cur_clone = btor_mapped_node (exp_map, cur_btor);
-        assert (cur_clone);
-        assert (BTOR_IS_REGULAR_NODE (cur_clone));
-        assert (!btor_mapped_node (key_map, cur_clone));
-        btor_map_node (key_map, cur_clone, cur_btor);
-
-        astr = bv_assignment_str_exp (btor, cur_btor);
-        BTOR_CNEWN (btor->mm, pastr, cur_btor->len + 1);
-        for (i = 0; i < cur_btor->len; i++)
-        {
-          /* upper ... MSB if no 'x' in astr        x110x
-           * lower ... LSB if no 'x' in astr	     | ^-- lower (to)
-           * from  ... MSB if no 'x' in astr         ^---- upper (from)
-           * to    ... LSB if no 'x' in astr
-           * Note: upper/lower counts idx from LSB, from/to from MSB */
-          if (astr[i] != 'x')
-          {
-            for (from = i; i < cur_btor->len && astr[i] != 'x'; i++)
-              ;
-            to    = i == cur_btor->len ? cur_btor->len - 1 : i - 1;
-            upper = cur_btor->len - 1 - from;
-            lower = cur_btor->len - 1 - to;
-            memcpy (pastr, astr + from, to - from + 1);
-            pastr[upper - lower + 1] = '\0';
-
-            bv_const = btor_const_exp (clone, pastr);
-            /* if len(pastr) != len(astr), generate equality over
-             * slice on current exp in order to simulate partial
-             * assignment */
-            if (cur_btor->len == (upper - lower + 1))
-              bv_eq = btor_eq_exp (clone, cur_clone, bv_const);
-            else
-            {
-              slice = btor_slice_exp (clone, cur_clone, upper, lower);
-              bv_eq = btor_eq_exp (clone, slice, bv_const);
-            }
-            assert (!btor_mapped_node (assumptions, bv_eq));
-            btor_assume_exp (clone, bv_eq);
-            btor_map_node (assumptions, bv_eq, cur_clone);
-            btor_release_exp (clone, bv_eq);
-            btor_release_exp (clone, bv_const);
-          }
-        }
-        btor_release_bv_assignment_str (btor, astr);
-        BTOR_DELETEN (btor->mm, pastr, cur_btor->len + 1);
+        // TODO: maybe assert is_synth here?
+        BTOR_PUSH_STACK (btor->mm, inputs, cur_btor);
+        continue;
       }
 
-      /* stop at applies (inputs for bv skeleton) */
-      if (BTOR_IS_APPLY_NODE (cur_btor)) continue;
-
       for (i = 0; i < cur_btor->arity; i++)
-#ifdef SEARCH_INIT_BFS
-        BTOR_ENQUEUE (btor->mm, queue, cur_btor->e[i]);
-#else
         BTOR_PUSH_STACK (btor->mm, stack, cur_btor->e[i]);
-#endif
     }
   }
+
   /* cleanup */
   while (!BTOR_EMPTY_STACK (unmark_stack))
     BTOR_POP_STACK (unmark_stack)->aux_mark = 0;
+
+  compute_scores (btor);
+
+  qsort (inputs.start,
+         BTOR_COUNT_STACK (inputs),
+         sizeof (BtorNode *),
+         compare_scores_qsort);
+
+  for (j = 0; j < BTOR_COUNT_STACK (inputs); j++)
+  {
+    cur_btor  = BTOR_PEEK_STACK (inputs, j);
+    cur_clone = btor_mapped_node (exp_map, cur_btor);
+    assert (cur_clone);
+    assert (BTOR_IS_REGULAR_NODE (cur_clone));
+    assert (!btor_mapped_node (key_map, cur_clone));
+    btor_map_node (key_map, cur_clone, cur_btor);
+
+    astr = bv_assignment_str_exp (btor, cur_btor);
+    BTOR_CNEWN (btor->mm, pastr, cur_btor->len + 1);
+    for (i = 0; i < cur_btor->len; i++)
+    {
+      /* upper ... MSB if no 'x' in astr        x110x
+       * lower ... LSB if no 'x' in astr	     | ^-- lower (to)
+       * from  ... MSB if no 'x' in astr         ^---- upper (from)
+       * to    ... LSB if no 'x' in astr
+       * Note: upper/lower counts idx from LSB, from/to from MSB */
+      if (astr[i] != 'x')
+      {
+        for (from = i; i < cur_btor->len && astr[i] != 'x'; i++)
+          ;
+        to    = i == cur_btor->len ? cur_btor->len - 1 : i - 1;
+        upper = cur_btor->len - 1 - from;
+        lower = cur_btor->len - 1 - to;
+        memcpy (pastr, astr + from, to - from + 1);
+        pastr[upper - lower + 1] = '\0';
+
+        bv_const = btor_const_exp (clone, pastr);
+        /* if len(pastr) != len(astr), generate equality over
+         * slice on current exp in order to simulate partial
+         * assignment */
+        if (cur_btor->len == (upper - lower + 1))
+          bv_eq = btor_eq_exp (clone, cur_clone, bv_const);
+        else
+        {
+          slice = btor_slice_exp (clone, cur_clone, upper, lower);
+          bv_eq = btor_eq_exp (clone, slice, bv_const);
+        }
+        assert (!btor_mapped_node (assumptions, bv_eq));
+        btor_assume_exp (clone, bv_eq);
+        btor_map_node (assumptions, bv_eq, cur_clone);
+        btor_release_exp (clone, bv_eq);
+        btor_release_exp (clone, bv_const);
+      }
+    }
+    btor_release_bv_assignment_str (btor, astr);
+    BTOR_DELETEN (btor->mm, pastr, cur_btor->len + 1);
+  }
+
+#if 0
+  while (has_next_node_hash_table_iterator (&it))
+    {
+      cur_btor = next_node_hash_table_iterator (&it);
+#ifdef SEARCH_INIT_BFS
+      BTOR_ENQUEUE (btor->mm, queue, cur_btor);
+      while (!BTOR_EMPTY_QUEUE (queue))
+	{ 
+	  cur_btor = BTOR_REAL_ADDR_NODE (BTOR_DEQUEUE (queue));
+#else
+      BTOR_PUSH_STACK (btor->mm, stack, cur_btor);
+      while (!BTOR_EMPTY_STACK (stack))
+	{ 
+	  cur_btor = BTOR_REAL_ADDR_NODE (BTOR_POP_STACK (stack));
+#endif
+	  
+	  if (cur_btor->aux_mark) continue;
+
+	  cur_btor->aux_mark = 1;
+	  BTOR_PUSH_STACK (btor->mm, unmark_stack, cur_btor);
+
+	  if ((BTOR_IS_BV_VAR_NODE (cur_btor) || BTOR_IS_APPLY_NODE (cur_btor))
+	      && BTOR_IS_SYNTH_NODE (cur_btor))
+	    {
+	      cur_clone = btor_mapped_node (exp_map, cur_btor);
+	      assert (cur_clone);
+	      assert (BTOR_IS_REGULAR_NODE (cur_clone));
+	      assert (!btor_mapped_node (key_map, cur_clone));
+	      btor_map_node (key_map, cur_clone, cur_btor);
+
+	      astr = bv_assignment_str_exp (btor, cur_btor);
+	      BTOR_CNEWN (btor->mm, pastr, cur_btor->len + 1);
+	      for (i = 0; i < cur_btor->len; i++)
+		{
+		  /* upper ... MSB if no 'x' in astr        x110x
+		   * lower ... LSB if no 'x' in astr	     | ^-- lower (to)
+		   * from  ... MSB if no 'x' in astr         ^---- upper (from)
+		   * to    ... LSB if no 'x' in astr  
+		   * Note: upper/lower counts idx from LSB, from/to from MSB */
+		  if (astr[i] != 'x')
+		    {
+		      for (from = i; i < cur_btor->len && astr[i] != 'x'; i++);
+		      to = i == cur_btor->len ? cur_btor->len - 1 : i - 1 ;
+		      upper = cur_btor->len - 1 - from;
+		      lower = cur_btor->len - 1 - to;
+		      memcpy (pastr, astr + from, to - from + 1);
+		      pastr[upper-lower+1] = '\0';
+
+		      bv_const = btor_const_exp (clone, pastr);
+		      /* if len(pastr) != len(astr), generate equality over 
+		       * slice on current exp in order to simulate partial 
+		       * assignment */
+		      if (cur_btor->len == (upper - lower + 1))
+			bv_eq = btor_eq_exp (clone, cur_clone, bv_const);
+		      else
+			{
+			  slice = 
+			    btor_slice_exp (clone, cur_clone, upper, lower);
+			  bv_eq = btor_eq_exp (clone, slice, bv_const);
+			}
+		      assert (!btor_mapped_node (assumptions, bv_eq));
+		      btor_assume_exp (clone, bv_eq);
+		      btor_map_node (assumptions, bv_eq, cur_clone);
+		      btor_release_exp (clone, bv_eq);
+		      btor_release_exp (clone, bv_const);
+		    }
+		}
+	      btor_release_bv_assignment_str (btor, astr);
+	      BTOR_DELETEN (btor->mm, pastr, cur_btor->len + 1);
+	    }
+
+	  /* stop at applies (inputs for bv skeleton) */
+	  if (BTOR_IS_APPLY_NODE (cur_btor))
+	    continue;
+	  
+	  for (i = 0; i < cur_btor->arity; i++)
+#ifdef SEARCH_INIT_BFS
+	    BTOR_ENQUEUE (btor->mm, queue, cur_btor->e[i]);
+#else
+	    BTOR_PUSH_STACK (btor->mm, stack, cur_btor->e[i]);
+#endif
+	}
+    }
+  /* cleanup */ 
+  while (!BTOR_EMPTY_STACK (unmark_stack))
+    BTOR_POP_STACK (unmark_stack)->aux_mark = 0;
+#endif
   btor->time.search_init_apps_collect_var_apps += btor_time_stamp () - delta;
 
   delta = btor_time_stamp ();
@@ -5854,6 +5980,7 @@ search_initial_applies_dual_prop (Btor *btor,
 #endif
   BTOR_RELEASE_STACK (btor->mm, stack);
   BTOR_RELEASE_STACK (btor->mm, unmark_stack);
+  BTOR_RELEASE_STACK (btor->mm, inputs);
   btor_delete_node_map (key_map);
   btor_delete_node_map (assumptions);
 
