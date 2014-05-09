@@ -144,6 +144,7 @@ struct Btor
   BtorPtrHashTable *parameterized;
   BtorPtrHashTable *score;
   BtorPtrHashTable *score_depth;
+  BtorPtrHashTable *searched_applies;
 
   /* shadow clone (debugging only) */
   Btor *clone;

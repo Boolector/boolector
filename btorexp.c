@@ -641,6 +641,10 @@ remove_from_hash_tables (Btor *btor, BtorNode *exp)
     default: break;
   }
 
+  if (btor->searched_applies
+      && btor_find_in_ptr_hash_table (btor->searched_applies, exp))
+    btor_remove_from_ptr_hash_table (btor->searched_applies, exp, 0, 0);
+
   remove_parameterized (btor, exp);
 }
 
@@ -963,6 +967,8 @@ connect_child_exp (Btor *btor, BtorNode *parent, BtorNode *child, int pos)
 
   if (BTOR_REAL_ADDR_NODE (child)->lambda_below) parent->lambda_below = 1;
 
+  if (BTOR_REAL_ADDR_NODE (child)->apply_below) parent->apply_below = 1;
+
   if (BTOR_REAL_ADDR_NODE (child)->parameterized)
     update_parameterized (btor, parent, child);
 
@@ -1025,6 +1031,8 @@ setup_node_and_add_to_id_table (Btor *btor, void *ptr)
   BTOR_PUSH_STACK (btor->mm, btor->nodes_id_table, exp);
   assert (BTOR_COUNT_STACK (btor->nodes_id_table) == exp->id + 1);
   assert (BTOR_PEEK_STACK (btor->nodes_id_table, exp->id) == exp);
+
+  if (BTOR_IS_APPLY_NODE (exp)) exp->apply_below = 1;
 }
 
 static BtorNode *

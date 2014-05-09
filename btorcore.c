@@ -7881,10 +7881,13 @@ push_applies_for_propagation (Btor *btor,
     assert (!cur->parameterized);
     assert (!BTOR_IS_FUN_NODE (cur));
 
-    if (cur->mark) continue;
+    if (cur->mark || !cur->apply_below
+        || btor_find_in_ptr_hash_table (btor->searched_applies, cur))
+      continue;
 
     cur->mark = 1;
     BTOR_PUSH_STACK (btor->mm, unmark, cur);
+    btor_insert_in_ptr_hash_table (btor->searched_applies, cur);
 
     if (BTOR_IS_APPLY_NODE (cur))
     {
@@ -7928,6 +7931,7 @@ push_applies_from_cond_for_propagation (Btor *btor,
   assert (BTOR_IS_REGULAR_NODE (exp));
   assert (prop_stack);
   assert (check_id_table_mark_unset_dbg (btor));
+  assert (btor->searched_applies);
 
   int i;
   double start;
@@ -7945,10 +7949,13 @@ push_applies_from_cond_for_propagation (Btor *btor,
     assert (!cur->parameterized);
     assert (!BTOR_IS_FUN_NODE (cur));
 
-    if (cur->mark) continue;
+    if (cur->mark || !cur->apply_below
+        || btor_find_in_ptr_hash_table (btor->searched_applies, cur))
+      continue;
 
     cur->mark = 1;
     BTOR_PUSH_STACK (btor->mm, unmark, cur);
+    btor_insert_in_ptr_hash_table (btor->searched_applies, cur);
 
     if (BTOR_IS_APPLY_NODE (cur))
     {
@@ -8516,6 +8523,14 @@ BTOR_CONFLICT_CHECK:
   BTOR_INIT_STACK (prop_stack);
   BTOR_INIT_STACK (top_applies);
 
+  if (!btor->searched_applies)
+  {
+    btor->searched_applies =
+        btor_new_ptr_hash_table (btor->mm,
+                                 (BtorHashPtr) btor_hash_exp_by_id,
+                                 (BtorCmpPtr) btor_compare_exp_by_id);
+  }
+
   // TODO: handle propagation flag cleanup via cleanup_stack?
   reset_applies (btor);
   if (clone)
@@ -8607,6 +8622,9 @@ BTOR_CONFLICT_CHECK:
   BTOR_RELEASE_STACK (mm, cleanup_stack);
   BTOR_RELEASE_STACK (mm, prop_stack);
   BTOR_RELEASE_STACK (mm, top_applies);
+
+  btor_delete_ptr_hash_table (btor->searched_applies);
+  btor->searched_applies = 0;
 
   /* restart? (assignments changed during lazy synthesis and encoding) */
   if (changed_assignments)
