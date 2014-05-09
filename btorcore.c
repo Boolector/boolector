@@ -7879,13 +7879,18 @@ push_applies_for_propagation (Btor *btor,
   {
     cur = BTOR_REAL_ADDR_NODE (BTOR_POP_STACK (visit));
     assert (!cur->parameterized);
+    assert (!BTOR_IS_FUN_NODE (cur));
 
-    if (cur->mark || BTOR_IS_FUN_NODE (cur)) continue;
+    if (cur->mark) continue;
 
     cur->mark = 1;
     BTOR_PUSH_STACK (btor->mm, unmark, cur);
 
-    if (BTOR_IS_APPLY_NODE (cur)) BTOR_PUSH_STACK (btor->mm, applies, cur);
+    if (BTOR_IS_APPLY_NODE (cur))
+    {
+      BTOR_PUSH_STACK (btor->mm, applies, cur);
+      continue;
+    }
 
     for (i = 0; i < cur->arity; i++)
       BTOR_PUSH_STACK (btor->mm, visit, cur->e[i]);
@@ -7934,24 +7939,27 @@ push_applies_from_cond_for_propagation (Btor *btor,
   BTOR_INIT_STACK (unmark);
   BTOR_PUSH_STACK (btor->mm, visit, exp);
 
-  while (!BTOR_EMPTY_STACK (visit))
+  do
   {
     cur = BTOR_REAL_ADDR_NODE (BTOR_POP_STACK (visit));
+    assert (!cur->parameterized);
+    assert (!BTOR_IS_FUN_NODE (cur));
 
-    if (cur->mark || BTOR_IS_FUN_NODE (cur)) continue;
+    if (cur->mark) continue;
 
     cur->mark = 1;
     BTOR_PUSH_STACK (btor->mm, unmark, cur);
 
-    if (BTOR_IS_APPLY_NODE (cur) && !cur->parameterized)
+    if (BTOR_IS_APPLY_NODE (cur))
     {
       BTOR_PUSH_STACK (btor->mm, *prop_stack, cur);
       BTOR_PUSH_STACK (btor->mm, *prop_stack, cur->e[0]);
+      continue;
     }
 
     for (i = 0; i < cur->arity; i++)
       BTOR_PUSH_STACK (btor->mm, visit, cur->e[i]);
-  }
+  } while (!BTOR_EMPTY_STACK (visit));
   BTOR_RELEASE_STACK (btor->mm, visit);
 
   while (!BTOR_EMPTY_STACK (unmark))
