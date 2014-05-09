@@ -5729,10 +5729,9 @@ search_initial_applies_dual_prop (Btor *btor,
       cur_btor->aux_mark = 1;
       BTOR_PUSH_STACK (btor->mm, unmark_stack, cur_btor);
 
-      if ((BTOR_IS_BV_VAR_NODE (cur_btor) || BTOR_IS_APPLY_NODE (cur_btor))
-          && BTOR_IS_SYNTH_NODE (cur_btor))
+      if (BTOR_IS_BV_VAR_NODE (cur_btor) || BTOR_IS_APPLY_NODE (cur_btor))
       {
-        // TODO: maybe assert is_synth here?
+        assert (BTOR_IS_SYNTH_NODE (cur_btor));
         BTOR_PUSH_STACK (btor->mm, inputs, cur_btor);
         continue;
       }
