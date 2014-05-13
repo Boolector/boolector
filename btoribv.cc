@@ -2891,39 +2891,43 @@ BtorIBV::translate ()
     if (!n->next) continue;
     for (BtorIBVAtom* at = n->atoms.start; at < n->atoms.top; at++)
     {
-      unsigned lsb = at->range.lsb, msb = at->range.msb;
-      BtorIBVAssignment* as = n->next[lsb];
+      BtorIBVAssignment* as = n->next[at->range.lsb];
       if (!as) continue;
       assert (as->range.id == at->range.id),
           assert (as->range.msb >= at->range.msb),
           assert (as->range.lsb <= at->range.lsb);
-      switch (n->flags[lsb].classified)
+      switch (n->flags[at->range.lsb].classified)
       {
         case BTOR_IBV_CURRENT_STATE:
         {
-          assert (n->flags[lsb].classified == BTOR_IBV_CURRENT_STATE);
           assert (as->nranges == 2);
           assert (boolector_get_width (btor, n->cached)
                   >= (int) as->range.getWidth ());
           BoolectorNode* latch =
-              boolector_slice (btor, n->cached, as->range.msb, as->range.lsb);
+              boolector_slice (btor, n->cached, at->range.msb, at->range.lsb);
           if (as->ranges[0].id)
           {
             BtorIBVNode* initnode = id2node (as->ranges[0].id);
             assert (initnode);
+            unsigned lsb0 = at->range.lsb - as->range.lsb + as->ranges[0].lsb;
+            unsigned msb0 = at->range.msb - as->range.lsb + as->ranges[0].lsb;
+            assert (msb0 < initnode->width);
             assert (initnode->cached);
             assert (n->cached);
-            BoolectorNode* initexp = boolector_slice (
-                btor, initnode->cached, as->ranges[0].msb, as->ranges[0].lsb);
+            BoolectorNode* initexp =
+                boolector_slice (btor, initnode->cached, msb0, lsb0);
             boolector_init (btormc, latch, initexp);
             boolector_release (btor, initexp);
             stats.inits++;
           }
           BtorIBVNode* nextnode = id2node (as->ranges[1].id);
           assert (nextnode);
+          unsigned lsb = at->range.lsb - as->range.lsb + as->ranges[1].lsb;
+          unsigned msb = at->range.msb - as->range.lsb + as->ranges[1].lsb;
+          assert (lsb <= msb), assert (msb < nextnode->width);
           assert (nextnode->cached);
-          BoolectorNode* nextexp = boolector_slice (
-              btor, nextnode->cached, as->ranges[1].msb, as->ranges[1].lsb);
+          BoolectorNode* nextexp =
+              boolector_slice (btor, nextnode->cached, msb, lsb);
           boolector_next (btormc, latch, nextexp);
           boolector_release (btor, latch);
           boolector_release (btor, nextexp);
@@ -2988,9 +2992,9 @@ BtorIBV::translate ()
               "id %u '%s[%u:%u]' classified as '%s' not handled yet",
               n->id,
               n->name,
-              msb,
-              lsb,
-              btor_ibv_classified_to_str (n->flags[lsb].classified));
+              at->range.msb,
+              at->range.lsb,
+              btor_ibv_classified_to_str (n->flags[at->range.lsb].classified));
           break;
       }
     }
