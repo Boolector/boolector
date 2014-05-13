@@ -2902,8 +2902,8 @@ BtorIBV::translate ()
           assert (as->nranges == 2);
           assert (boolector_get_width (btor, n->cached)
                   >= (int) as->range.getWidth ());
-          BoolectorNode* latch = boolector_slice (
-              btor, n->cached, (int) as->range.msb, (int) as->range.lsb);
+          BoolectorNode* latch =
+              boolector_slice (btor, n->cached, as->range.msb, as->range.lsb);
           if (as->ranges[0].id)
           {
             BtorIBVNode* initnode = id2node (as->ranges[0].id);
@@ -2934,13 +2934,21 @@ BtorIBV::translate ()
           BtorIBVNode* nextnode = id2node (as->ranges[0].id);
           assert (nextnode);
           assert (nextnode->flags);
-          assert (nextnode->flags[as->ranges[0].lsb].classified
+          unsigned lsb = at->range.lsb - as->ranges[0].lsb;
+          unsigned msb = at->range.msb - as->ranges[0].lsb;
+          assert (lsb <= msb), assert (msb < nextnode->width);
+          assert (nextnode->flags[lsb].classified
+                  == BTOR_IBV_PHANTOM_NEXT_INPUT);
+          assert (nextnode->flags[msb].classified
                   == BTOR_IBV_PHANTOM_NEXT_INPUT);
           assert (nextnode->cached);
-          BoolectorNode* nextexp = boolector_slice (
-              btor, nextnode->cached, as->ranges[0].msb, as->ranges[0].lsb);
-          boolector_next (btormc, n->cached, nextexp);
+          BoolectorNode* nextexp =
+              boolector_slice (btor, nextnode->cached, msb, lsb);
+          BoolectorNode* curexp =
+              boolector_slice (btor, n->cached, at->range.msb, at->range.lsb);
+          boolector_next (btormc, curexp, nextexp);
           boolector_release (btor, nextexp);
+          boolector_release (btor, curexp);
           stats.nexts++;
         }
         break;
@@ -2951,15 +2959,19 @@ BtorIBV::translate ()
           BtorIBVNode* nextnode = id2node (as->ranges[pos].id);
           assert (nextnode);
           assert (nextnode->flags);
-          assert (nextnode->flags[as->ranges[pos].lsb].classified
-                  == BTOR_IBV_TWO_PHASE_INPUT);
-          assert (nextnode->cached);  // TODO what is this?
-          BoolectorNode* nextexp = boolector_slice (btor,
-                                                    nextnode->cached,
-                                                    (int) as->ranges[pos].msb,
-                                                    (int) as->ranges[pos].lsb);
-          boolector_next (btormc, n->cached, nextexp);
+          unsigned lsb = at->range.lsb - as->ranges[pos].lsb;
+          unsigned msb = at->range.msb - as->ranges[pos].lsb;
+          assert (lsb <= msb), assert (msb < nextnode->width);
+          assert (nextnode->flags[lsb].classified == BTOR_IBV_TWO_PHASE_INPUT);
+          assert (nextnode->flags[msb].classified == BTOR_IBV_TWO_PHASE_INPUT);
+          assert (nextnode->cached);
+          BoolectorNode* nextexp =
+              boolector_slice (btor, nextnode->cached, msb, lsb);
+          BoolectorNode* curexp =
+              boolector_slice (btor, n->cached, at->range.msb, at->range.lsb);
+          boolector_next (btormc, curexp, nextexp);
           boolector_release (btor, nextexp);
+          boolector_release (btor, curexp);
           stats.nexts++;
         }
         break;
