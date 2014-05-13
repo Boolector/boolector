@@ -1687,25 +1687,20 @@ BtorIBV::analyze ()
       assert (next->flags);
       assert (k < next->width);
       if (next->flags[k].classified != BTOR_IBV_TWO_PHASE_INPUT) continue;
-#if 0
-      BTOR_ABORT_BOOLECTOR (1,
-        "next state '%s[%u]' of current state '%s[%u]' became two-phase input",
-         next->name, k,	n->name, i);
-#else
-      warn (
-          "next state '%s[%u]' of current state '%s[%u]' became two-phase "
-          "input",
-          next->name,
-          k,
-          n->name,
-          i);
+      if (verbosity)
+        warn (
+            "next state '%s[%u]' of current state '%s[%u]' became two-phase "
+            "input",
+            next->name,
+            k,
+            n->name,
+            i);
       msg (3,
            "id %d current state '%s[%u]' reclassified as TWO_PHASE_INPUT",
            n->id,
            n->name,
            i);
       n->flags[i].classified = BTOR_IBV_TWO_PHASE_INPUT;
-#endif
     }
   }
 
@@ -1745,7 +1740,7 @@ BtorIBV::analyze ()
             btor_ibv_classified_to_str (c));
         break;
 
-        // TODO next need to handle this one too?
+        // TODO need to handle this one too?
 #if 0
       case BTOR_IBV_ASSIGNED_IMPLICIT_CURRENT:
 #endif
@@ -1956,16 +1951,10 @@ BtorIBV::analyze ()
       if (!n->flags[i].coi) continue;
       if (n->assigned && n->assigned[i]) continue;
       if (n->next && n->next[i]) continue;
-#if 0
-      BTOR_ABORT_BOOLECTOR (!n->prev || !n->prev[i],
-        "undefined '%s[%u]' (neither assigned, nor state, nor non-state)",
-	n->name, i);
-#else
-      if (!n->prev || !n->prev[i])
+      if (verbosity && (!n->prev || !n->prev[i]))
         warn ("undefined '%s[%u]' (neither assigned, nor state, nor non-state)",
               n->name,
               i);
-#endif
     }
   }
 
@@ -2377,7 +2366,7 @@ BtorIBV::translate_atom_conquer (BtorIBVAtom* a, bool forward)
         unsigned pos = (pa->tag == BTOR_IBV_STATE);
         assert (pos < pa->nranges);
         assert (pa->ranges[pos].id == n->id);
-        if (pos)
+        if (pos && verbosity)
         {
           warn ("original next state '%s[%u:%u]' used as two-phase input",
                 n->name,

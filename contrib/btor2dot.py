@@ -45,7 +45,7 @@ if __name__ == "__main__":
     print("digraph G {")
 
     array_nodes = ["array", "acond", "write", "lambda"]
-    leaf_nodes = ["array", "var", "latch", "param", "const", "consth", "constd"]
+    leaf_nodes = ["array", "var", "input", "latch", "param", "const", "consth", "constd"]
     param_nodes = {}
     roots = []
 
