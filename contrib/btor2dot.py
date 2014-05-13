@@ -46,6 +46,7 @@ if __name__ == "__main__":
 
     array_nodes = ["array", "acond", "write", "lambda"]
     leaf_nodes = ["array", "var", "input", "latch", "param", "const", "consth", "constd"]
+    symbolic_nodes = ["var", "input", "latch", "array"]
     param_nodes = {}
     roots = []
 
@@ -92,7 +93,8 @@ if __name__ == "__main__":
             if kind == "root":
                 label = ""
                 roots.append(id)
-            elif kind == "var":
+            #elif kind == "var":
+            elif kind in symbolic_nodes:
                 if len(t) == 4:
                     label = "{}\\n{}".format(label, t[3])
             elif kind == "constd":
@@ -112,8 +114,8 @@ if __name__ == "__main__":
                 fillcolor = "lightyellow"
             elif kind == "param":
                 param_nodes[id] = True
-            elif kind == "var" and args.s and len(t) > 3:
-                label = "{}\n{}".format(label, t[3])
+            #elif kind == "var" and args.s and len(t) > 3:
+            #  label = "{}\n{}".format(label, t[3])
 
             # check if node has parameterized children (stop at lambda)
             if kind != "lambda":
