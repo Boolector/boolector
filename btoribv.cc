@@ -2894,6 +2894,9 @@ BtorIBV::translate ()
       unsigned lsb = at->range.lsb, msb = at->range.msb;
       BtorIBVAssignment* as = n->next[lsb];
       if (!as) continue;
+      assert (as->range.id == at->range.id),
+          assert (as->range.msb >= at->range.msb),
+          assert (as->range.lsb <= at->range.lsb);
       switch (n->flags[lsb].classified)
       {
         case BTOR_IBV_CURRENT_STATE:
@@ -2934,8 +2937,8 @@ BtorIBV::translate ()
           BtorIBVNode* nextnode = id2node (as->ranges[0].id);
           assert (nextnode);
           assert (nextnode->flags);
-          unsigned lsb = at->range.lsb - as->ranges[0].lsb;
-          unsigned msb = at->range.msb - as->ranges[0].lsb;
+          unsigned lsb = at->range.lsb - as->range.lsb + as->ranges[0].lsb;
+          unsigned msb = at->range.msb - as->range.lsb + as->ranges[0].lsb;
           assert (lsb <= msb), assert (msb < nextnode->width);
           assert (nextnode->flags[lsb].classified
                   == BTOR_IBV_PHANTOM_NEXT_INPUT);
@@ -2959,8 +2962,8 @@ BtorIBV::translate ()
           BtorIBVNode* nextnode = id2node (as->ranges[pos].id);
           assert (nextnode);
           assert (nextnode->flags);
-          unsigned lsb = at->range.lsb - as->ranges[pos].lsb;
-          unsigned msb = at->range.msb - as->ranges[pos].lsb;
+          unsigned lsb = at->range.lsb - as->range.lsb + as->ranges[pos].lsb;
+          unsigned msb = at->range.msb - as->range.lsb + as->ranges[pos].lsb;
           assert (lsb <= msb), assert (msb < nextnode->width);
           assert (nextnode->flags[lsb].classified == BTOR_IBV_TWO_PHASE_INPUT);
           assert (nextnode->flags[msb].classified == BTOR_IBV_TWO_PHASE_INPUT);
