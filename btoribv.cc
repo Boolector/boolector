@@ -37,6 +37,7 @@ void
 BtorIBV::warn (const char* fmt, ...)
 {
   va_list ap;
+  if (!verbosity) return;
   btoribv_msghead ();
   fputs ("warning: ", stdout);
   va_start (ap, fmt);
@@ -1687,14 +1688,13 @@ BtorIBV::analyze ()
       assert (next->flags);
       assert (k < next->width);
       if (next->flags[k].classified != BTOR_IBV_TWO_PHASE_INPUT) continue;
-      if (verbosity)
-        warn (
-            "next state '%s[%u]' of current state '%s[%u]' became two-phase "
-            "input",
-            next->name,
-            k,
-            n->name,
-            i);
+      warn (
+          "next state '%s[%u]' of current state '%s[%u]' became two-phase "
+          "input",
+          next->name,
+          k,
+          n->name,
+          i);
       msg (3,
            "id %d current state '%s[%u]' reclassified as TWO_PHASE_INPUT",
            n->id,
@@ -1951,7 +1951,7 @@ BtorIBV::analyze ()
       if (!n->flags[i].coi) continue;
       if (n->assigned && n->assigned[i]) continue;
       if (n->next && n->next[i]) continue;
-      if (verbosity && (!n->prev || !n->prev[i]))
+      if (!n->prev || !n->prev[i])
         warn ("undefined '%s[%u]' (neither assigned, nor state, nor non-state)",
               n->name,
               i);
@@ -2366,13 +2366,11 @@ BtorIBV::translate_atom_conquer (BtorIBVAtom* a, bool forward)
         unsigned pos = (pa->tag == BTOR_IBV_STATE);
         assert (pos < pa->nranges);
         assert (pa->ranges[pos].id == n->id);
-        if (pos && verbosity)
-        {
+        if (pos)
           warn ("original next state '%s[%u:%u]' used as two-phase input",
                 n->name,
                 r.msb,
                 r.lsb);
-        }
         BtorIBVNode* prev = id2node (pa->range.id);
         assert (prev);
         assert (!prev->is_next_state);
