@@ -704,6 +704,13 @@ BtorIBV::addCaseOp (BtorIBVTag tag, BitRange o, const vector<BitRange>& ops)
   msg (3, a, "id %u %u-ary case", on->id, n);
 }
 
+static char
+bit (const char* bits, unsigned pos, unsigned width)
+{
+  assert (pos < width);
+  return bits[width - pos - 1];
+}
+
 void
 BtorIBV::addState (BitRange o, BitRange init, BitRange next)
 {
@@ -718,13 +725,23 @@ BtorIBV::addState (BitRange o, BitRange init, BitRange next)
     assert (init.getWidth () == o.getWidth ());
     BtorIBVNode* in = bitrange2node (init);
     assert (in->is_constant);
+    const char* n = in->name;
+    unsigned w    = in->width;
+    assert (strlen (n) == w);
     unsigned imsb = init.m_nMsb, ilsb = imsb;
+#if 0
     bool isx = (in->name[imsb] != '0' && in->name[imsb] != '1');
-    while (ilsb > init.m_nLsb
-           && (isx == (in->name[ilsb - 1] != '0' && in->name[ilsb - 1] != '1')))
+#else
+    bool isx = (bit (n, imsb, w) != '0' && bit (n, imsb, w) != '1');
+#endif
+    while (ilsb > init.m_nLsb &&
+#if 0
+           (isx == (in->name[ilsb-1] != '0' && in->name[ilsb-1] != '1')))
+#else
+        (isx == (bit (n, ilsb - 1, w) != '0' && bit (n, ilsb - 1, w) != '1')))
+#endif
       ilsb--;
-    if (ilsb > init.m_nLsb)
-    {
+    if (ilsb > init.m_nLsb) {
       unsigned diff = imsb - ilsb;
       {
         BitRange lo (o.m_nId, o.m_nMsb, o.m_nMsb - diff);
