@@ -935,10 +935,12 @@ main (int argc, char** argv)
               k);
       fflush (stdout);
     }
-    if (notfalsified)
+    if (!assertions.size ())
+      msg ("no assertion found");
+    else if (notfalsified)
       msg ("%d assertions not falsified", notfalsified);
     else
-      msg ("all assertions falsified within bound 0 to %d", r);
+      msg ("all assertions falsified within bound 0 to bound %d", r ? k : r);
   }
   delete ibvm;
   return 0;
