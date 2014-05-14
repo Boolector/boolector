@@ -729,19 +729,13 @@ BtorIBV::addState (BitRange o, BitRange init, BitRange next)
     unsigned w    = in->width;
     assert (strlen (n) == w);
     unsigned imsb = init.m_nMsb, ilsb = imsb;
-#if 0
-    bool isx = (in->name[imsb] != '0' && in->name[imsb] != '1');
-#else
     bool isx = (bit (n, imsb, w) != '0' && bit (n, imsb, w) != '1');
-#endif
-    while (ilsb > init.m_nLsb &&
-#if 0
-           (isx == (in->name[ilsb-1] != '0' && in->name[ilsb-1] != '1')))
-#else
-        (isx == (bit (n, ilsb - 1, w) != '0' && bit (n, ilsb - 1, w) != '1')))
-#endif
+    while (ilsb > init.m_nLsb
+           && (isx
+               == (bit (n, ilsb - 1, w) != '0' && bit (n, ilsb - 1, w) != '1')))
       ilsb--;
-    if (ilsb > init.m_nLsb) {
+    if (ilsb > init.m_nLsb)
+    {
       unsigned diff = imsb - ilsb;
       {
         BitRange lo (o.m_nId, o.m_nMsb, o.m_nMsb - diff);
@@ -2555,10 +2549,12 @@ BtorIBV::translate_atom_base (BtorIBVAtom* a)
         char *conststr, *p;
         BTOR_NEWN (btor->mm, conststr, n->width + 1);
         assert (strlen (n->name) == n->width);
-        p = conststr;
+        p = conststr + n->width;
+        ;
+        *p = 0;
         for (unsigned i = 0; i < n->width; i++)
         {
-          char c = n->name[i];
+          char c = bit (n->name, i, n->width);
           if (c != '0' && c != '1')
           {
             if (!n->flags[i].coi)
@@ -2583,9 +2579,9 @@ BtorIBV::translate_atom_base (BtorIBVAtom* a)
                   i,
                   c);
           }
-          *p++ = (c == '1') ? '1' : '0';  // overwrite 'x' not in COI with '0'
+          *--p = (c == '1') ? '1' : '0';  // overwrite 'x' not in COI with '0'
         }
-        *p = 0;
+        assert (p == conststr);
         assert (strlen (conststr) == n->width);
         assert (strlen (conststr) >= (long) r.getWidth ());
         n->cached = boolector_const (btor, conststr);
