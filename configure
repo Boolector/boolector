@@ -294,10 +294,10 @@ else
   if [ $path = allfound ]
   then
     msg "using Druplig in '../druplig' too"
-    yalsat=yes
+    druplig=yes
   else
     msg "not using Druplig"
-    yalsat=no
+    druplig=no
   fi
 
   if [ $druplig = yes ]
@@ -305,7 +305,7 @@ else
     [ X"$LDEPS" = X ] || LDEPS="$LDEPS "
     [ X"$LIBS" = X ] || LIBS="$LIBS "
     LIBS="${LIBS}-L../druplig -ldruplig"
-    LDEPS="${LDEPS}../yalsat/libdruplig.a"
+    LDEPS="${LDEPS}../druplig/libdruplig.a"
   fi
 fi
 
