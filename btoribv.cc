@@ -1368,16 +1368,19 @@ BtorIBV::analyze ()
          a++)
     {
       if (a->tag != BTOR_IBV_STATE) continue;
-      for (unsigned i = a->ranges[1].lsb; i <= a->ranges[1].msb; i++)
+      unsigned w = a->range.msb - a->range.lsb + 1;
+      for (unsigned i = 0; i < w; i++)
       {
-        if (!n->flags[i].used) continue;
-        if (mark_used (id2node (a->ranges[1].id), i)) onlyinnext++, used++;
+        if (!n->flags[a->range.lsb + i].used) continue;
+        if (mark_used (id2node (a->ranges[1].id), a->ranges[1].lsb + i))
+          onlyinnext++, used++;
       }
       if (a->ranges[0].id)
-        for (unsigned i = a->ranges[0].lsb; i <= a->ranges[0].msb; i++)
+        for (unsigned i = 0; i < w; i++)
         {
-          if (!n->flags[i].used) continue;
-          if (mark_used (id2node (a->ranges[0].id), i)) onlyininit++, used++;
+          if (!n->flags[a->range.lsb + i].used) continue;
+          if (mark_used (id2node (a->ranges[0].id), a->ranges[0].lsb + i))
+            onlyininit++, used++;
         }
     }
   }
