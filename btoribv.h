@@ -182,7 +182,7 @@ struct BtorIBVNode
   BitVector::BvVariableSource source;
   BitVector::DirectionKind direction;
   signed char marked, used, coi;
-  BoolectorNode *cached, *forwarded;
+  BoolectorNode *cached;
   char *name;
   BtorIBVFlags *flags;
   BtorIBVAssignment **assigned;
