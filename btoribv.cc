@@ -2024,6 +2024,7 @@ BtorIBV::push_atom_ptr_next (BtorIBVNode* n,
 {
   if (!forward && b->exp) return;
   if (forward && b->next) return;
+  if (b->pushed > 2) return;
   BtorIBVAtomPtrNext apn (b, forward);
   BTOR_PUSH_STACK (btor->mm, *apnwork, apn);
   BtorIBVRange r = b->range;
@@ -2042,7 +2043,7 @@ BtorIBV::push_atom_ptr_next (BtorIBVNode* n,
     long lim = 0;
     if (!b->exp) lim++;
     if (!b->next) lim++;
-    assert (b->pushed <= lim);
+    // assert (b->pushed <= lim);
     assert (b->pushed <= 10);
     b->pushed++;
   }
@@ -2159,19 +2160,11 @@ BtorIBV::translate_atom_divide (BtorIBVAtom* a,
       assert (ass);
       for (unsigned i = 0; i < ass->nranges; i++)
       {
-        BtorIBVRange ar (ass->ranges[i].id,
-                         r.msb - ass->range.lsb + ass->ranges[i].lsb,
-                         r.lsb - ass->range.lsb + ass->ranges[i].lsb);
+        BtorIBVRange ar = ass->ranges[i];
         if (!ar.id) continue;
-        assert (ar.getWidth () == r.getWidth ());
         BtorIBVNode* o = id2node (ar.id);
         for (BtorIBVAtom* b = o->atoms.start; b < o->atoms.top; b++)
-        {
-          assert (b->range.id == o->id);
-          if (ar.msb < b->range.lsb) continue;
-          if (ar.lsb > b->range.msb) continue;
           push_atom_ptr_next (o, b, forward, apnwork);
-        }
       }
     }
     break;
@@ -2266,7 +2259,6 @@ BtorIBV::translate_assignment_conquer (BtorIBVAtom* a,
   {
     BtorIBVRange r        = ass->ranges[i];
     BoolectorNode* argexp = 0;
-
     if (r.id)
     {
       BtorIBVNode* o = id2node (r.id);
@@ -2274,6 +2266,7 @@ BtorIBV::translate_assignment_conquer (BtorIBVAtom* a,
       BoolectorNode* exp = 0;
       for (BtorIBVAtom* b = o->atoms.start; b < o->atoms.top; b++)
       {
+        assert (b->range.id == r.id);
         BoolectorNode* tmp = forward ? b->next : b->exp;
         if (tmp)
           tmp = boolector_copy (btor, tmp);
@@ -2293,7 +2286,6 @@ BtorIBV::translate_assignment_conquer (BtorIBVAtom* a,
       argexp = boolector_slice (btor, exp, (int) r.msb, (int) r.lsb);
       boolector_release (btor, exp);
     }
-
     BTOR_PUSH_STACK (btor->mm, stack, argexp);
   }
 
