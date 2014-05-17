@@ -2136,7 +2136,6 @@ BtorIBV::translate_atom_divide (BtorIBVAtom* a,
           assert (b->range.id == o->id);
           if (ar.msb < b->range.lsb) continue;
           if (ar.lsb > b->range.msb) continue;
-          BTOR_COVER (!(b->range.lsb <= ar.lsb && ar.msb <= b->range.msb));
           BtorIBVAtomPtrNext apn (b, false);
           BTOR_PUSH_STACK (btor->mm, *work, apn);
         }
@@ -3084,7 +3083,7 @@ BtorIBV::translate ()
     BtorIBVNode* n = *p;
     if (!n) continue;
     if (!n->used) continue;
-    uf (n->cached) continue;
+    if (n->cached) continue;
     msg (4, "translate_node_conquer id %u '%s'", n->id, n->name);
 #ifndef NDEBUG
     for (BtorIBVAtom* a = n->atoms.start; a < n->atoms.top; a++)
