@@ -28,40 +28,40 @@ enum BtorIBVTag
 {
 
   BTOR_IBV_IS_UNARY    = 16,
-  BTOR_IBV_BUF         = 16 + 0,
-  BTOR_IBV_NOT         = 16 + 1,
-  BTOR_IBV_ZERO_EXTEND = 16 + 2,
-  BTOR_IBV_SIGN_EXTEND = 16 + 3,
-  BTOR_IBV_REPLICATE   = 16 + 4,
-  BTOR_IBV_NON_STATE   = 16 + 5,
+  BTOR_IBV_BUF         = 16 + 1,
+  BTOR_IBV_NOT         = 16 + 2,
+  BTOR_IBV_ZERO_EXTEND = 16 + 3,
+  BTOR_IBV_SIGN_EXTEND = 16 + 4,
+  BTOR_IBV_REPLICATE   = 16 + 5,
+  BTOR_IBV_NON_STATE   = 16 + 6,
   BTOR_IBV_MAX_UNARY   = BTOR_IBV_NON_STATE,
 
   BTOR_IBV_IS_BINARY   = 32,
-  BTOR_IBV_OR          = 32 + 0,
-  BTOR_IBV_AND         = 32 + 1,
-  BTOR_IBV_XOR         = 32 + 2,
-  BTOR_IBV_LT          = 32 + 3,
-  BTOR_IBV_LE          = 32 + 4,
-  BTOR_IBV_SUM         = 32 + 5,
-  BTOR_IBV_SUB         = 32 + 6,
-  BTOR_IBV_MUL         = 32 + 7,
-  BTOR_IBV_DIV         = 32 + 8,
-  BTOR_IBV_MOD         = 32 + 9,
-  BTOR_IBV_LEFT_SHIFT  = 32 + 10,
-  BTOR_IBV_RIGHT_SHIFT = 32 + 11,
-  BTOR_IBV_EQUAL       = 32 + 12,
-  BTOR_IBV_STATE       = 32 + 13,
+  BTOR_IBV_OR          = 32 + 1,
+  BTOR_IBV_AND         = 32 + 2,
+  BTOR_IBV_XOR         = 32 + 3,
+  BTOR_IBV_LT          = 32 + 4,
+  BTOR_IBV_LE          = 32 + 5,
+  BTOR_IBV_SUM         = 32 + 6,
+  BTOR_IBV_SUB         = 32 + 7,
+  BTOR_IBV_MUL         = 32 + 8,
+  BTOR_IBV_DIV         = 32 + 9,
+  BTOR_IBV_MOD         = 32 + 10,
+  BTOR_IBV_LEFT_SHIFT  = 32 + 11,
+  BTOR_IBV_RIGHT_SHIFT = 32 + 12,
+  BTOR_IBV_EQUAL       = 32 + 13,
+  BTOR_IBV_STATE       = 32 + 14,
   BTOR_IBV_MAX_BINARY  = BTOR_IBV_STATE,
 
   BTOR_IBV_IS_TERNARY  = 64,
-  BTOR_IBV_COND        = 64 + 0,
-  BTOR_IBV_CONDBW      = 64 + 1,
+  BTOR_IBV_COND        = 64 + 1,
+  BTOR_IBV_CONDBW      = 64 + 2,
   BTOR_IBV_MAX_TERNARY = BTOR_IBV_CONDBW,
 
   BTOR_IBV_IS_VARIADIC  = 128,
-  BTOR_IBV_CONCAT       = 128 + 0,
-  BTOR_IBV_CASE         = 128 + 1,
-  BTOR_IBV_PARCASE      = 128 + 2,
+  BTOR_IBV_CONCAT       = 128 + 1,
+  BTOR_IBV_CASE         = 128 + 2,
+  BTOR_IBV_PARCASE      = 128 + 3,
   BTOR_IBV_MAX_VARIADIX = BTOR_IBV_PARCASE,
 
   BTOR_IBV_IS_PREDICATE = 256,
@@ -348,6 +348,11 @@ class BtorIBV : public BitVector
   void msg (int level, const BtorIBVAssignment &, const char *, ...);
 
   void warn (const char *fmt, ...);
+
+  void push_atom_ptr_next (BtorIBVNode *,
+                           BtorIBVAtom *,
+                           bool forward,
+                           BtorIBVAtomPtrNextStack *apnwork);
 
   void translate_atom_divide (BtorIBVAtom *, bool, BtorIBVAtomPtrNextStack *);
   bool translate_atom_conquer (BtorIBVAtom *, bool);

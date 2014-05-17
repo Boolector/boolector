@@ -1,5 +1,5 @@
 addVariable(1,a,1,0)
-addVariable(2,b,1,0)
+addVariable(2,b,1,1)
 addVariable(3,c,1,1)
 addVariable(4,d,1,0)
 
