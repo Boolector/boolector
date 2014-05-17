@@ -2031,7 +2031,8 @@ btor_ibv_push_atom_ptr_next (Btor* btor,
     long lim = 0;
     if (!b->exp) lim++;
     if (!b->next) lim++;
-    assert (b->pushed <= lim);
+    // assert (b->pushed <= lim);
+    assert (b->pushed <= 10);
     b->pushed++;
   }
 #endif
@@ -2620,7 +2621,17 @@ BtorIBV::translate_atom_conquer (BtorIBVAtom* a, bool forward)
       break;
 
     case BTOR_IBV_ASSIGNED_IMPLICIT_NEXT:
-      assert (!forward);
+
+      BTOR_ABORT_BOOLECTOR (
+          forward,
+          "can not forward implict next id %u [%u:%u] '%s[%u:%u]'",
+          r.id,
+          r.msb,
+          r.lsb,
+          id2node (r.id)->name,
+          r.msb,
+          r.lsb);
+
       assert (n->is_next_state);
       {
         assert (n->prev);
