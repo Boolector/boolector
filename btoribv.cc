@@ -2012,6 +2012,27 @@ btor_ibv_check_atoms (BtorIBVNode* n)
 #endif
 }
 
+static void
+btor_ibv_push_atom_ptr_next (Btor* btor,
+                             BtorIBVAtom* b,
+                             bool forward,
+                             BtorIBVAtomPtrNextStack* apnwork)
+{
+  if (!forward && b->exp) return;
+  if (forward && b->next) return;
+  BtorIBVAtomPtrNext apn (b, forward);
+  BTOR_PUSH_STACK (btor->mm, *apnwork, apn);
+#ifndef NDEBUG
+  {
+    long lim = 0;
+    if (!b->exp) lim++;
+    if (!b->next) lim++;
+    assert (b->pushed <= lim);
+    b->pushed++;
+  }
+#endif
+}
+
 void
 BtorIBV::translate_atom_divide (BtorIBVAtom* a,
                                 bool forward,
@@ -2072,11 +2093,7 @@ BtorIBV::translate_atom_divide (BtorIBVAtom* a,
         if (b->range.msb < pr.lsb) continue;
         if (b->range.lsb > pr.msb) continue;
         BTOR_COVER (!(b->range.lsb <= pr.lsb && pr.msb <= b->range.msb));
-        BtorIBVAtomPtrNext apn (b, true);
-        BTOR_PUSH_STACK (btor->mm, *apnwork, apn);
-#ifndef NDEBUG
-        assert (b->pushed <= 2), b->pushed++;
-#endif
+        btor_ibv_push_atom_ptr_next (btor, b, true, apnwork);
       }
     }
     break;
@@ -2105,11 +2122,7 @@ BtorIBV::translate_atom_divide (BtorIBVAtom* a,
           assert (b->range.id == next->id);
           if (nr.msb < b->range.lsb) continue;
           if (nr.lsb > b->range.msb) continue;
-          BtorIBVAtomPtrNext apn (b, false);
-          BTOR_PUSH_STACK (btor->mm, *apnwork, apn);
-#ifndef NDEBUG
-          assert (b->pushed <= 2), b->pushed++;
-#endif
+          btor_ibv_push_atom_ptr_next (btor, b, false, apnwork);
         }
       }
       break;
@@ -2141,11 +2154,7 @@ BtorIBV::translate_atom_divide (BtorIBVAtom* a,
           assert (b->range.id == o->id);
           if (ar.msb < b->range.lsb) continue;
           if (ar.lsb > b->range.msb) continue;
-          BtorIBVAtomPtrNext apn (b, forward);
-          BTOR_PUSH_STACK (btor->mm, *apnwork, apn);
-#ifndef NDEBUG
-          assert (b->pushed <= 3), b->pushed++;
-#endif
+          btor_ibv_push_atom_ptr_next (btor, b, forward, apnwork);
         }
       }
     }
@@ -3021,15 +3030,7 @@ BtorIBV::translate ()
     if (!n->used) continue;
     if (n->cached) continue;
     for (BtorIBVAtom* b = n->atoms.start; b < n->atoms.top; b++)
-    {
-      if (b->exp) continue;
-      BtorIBVAtomPtrNext apn (b, false);
-      BTOR_PUSH_STACK (btor->mm, apnwork, apn);
-#ifndef NDEBUG
-      assert (b->pushed <= 3);
-      b->pushed++;
-#endif
-    }
+      btor_ibv_push_atom_ptr_next (btor, b, false, &apnwork);
     while (!BTOR_EMPTY_STACK (apnwork))
     {
       BtorIBVAtomPtrNext apn = BTOR_TOP_STACK (apnwork);
