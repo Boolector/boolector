@@ -1,4 +1,4 @@
 addVariable(1,a,1,0)
 addVariable(2,b,1,1)
-addCondition(a,0,0,b,0,0,b,0,0,b,0,0)
+addBitAnd(a,0,0,b,0,0,b,0,0)
 addNonState(a,0,0,b,0,0)
