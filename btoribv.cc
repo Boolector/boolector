@@ -446,13 +446,17 @@ BtorIBV::mark_assigned (BtorIBVNode* n, BitRange r)
   assert (r.m_nMsb < n->width);
   for (unsigned i = r.m_nLsb; i <= r.m_nMsb; i++)
   {
+    BTOR_ABORT_BOOLECTOR (n->flags[i].assigned,
+                          "id %u node '%s[%u]' assigned twice",
+                          n->id,
+                          n->name,
+                          i);
     msg (3, "id %u assigning '%s[%u]'", n->id, n->name, i);
     if (n->flags[i].state.current)
       wrn ("id %u bit '%s[%u]' marked current of state and is now assigned",
            n->id,
            n->name,
            i);
-    assert (!n->flags[i].assigned);
     n->flags[i].assigned = 1;
   }
 }
@@ -870,7 +874,7 @@ void
 BtorIBV::analyze ()
 {
   BTOR_ABORT_BOOLECTOR (state == BTOR_IBV_ANALYZED,
-                        "can analyze model a second time");
+                        "can not analyze model a second time");
 
   BTOR_ABORT_BOOLECTOR (state == BTOR_IBV_TRANSLATED,
                         "can not analyze model after translation");
