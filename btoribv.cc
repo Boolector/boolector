@@ -2102,7 +2102,6 @@ BtorIBV::translate_atom_divide (BtorIBVAtom* a,
           assert (b->range.id == next->id);
           if (nr.msb < b->range.lsb) continue;
           if (nr.lsb > b->range.msb) continue;
-          BTOR_COVER (!(b->range.lsb <= nr.lsb && nr.msb <= b->range.msb));
           BtorIBVAtomPtrNext apn (b, false);
           BTOR_PUSH_STACK (btor->mm, *work, apn);
         }

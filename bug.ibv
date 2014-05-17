@@ -1,6 +1,0 @@
-addVariable(1,a,3,0)
-addVariable(2,b,3,0)
-addVariable(3,c,3,0)
-addConstant(4,0x0,3)
-addState(b,2,0,b0_v4,2,0,a,2,0)
-addParallelCase(c,2,0,2,a,0,0,b,2,0)
