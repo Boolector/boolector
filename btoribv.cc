@@ -2015,7 +2015,7 @@ btor_ibv_check_atoms (BtorIBVNode* n)
 void
 BtorIBV::translate_atom_divide (BtorIBVAtom* a,
                                 bool forward,
-                                BtorIBVAtomPtrNextStack* work)
+                                BtorIBVAtomPtrNextStack* apnwork)
 {
   if (!forward && a->exp) return;
   if (forward && a->next) return;
@@ -2073,7 +2073,10 @@ BtorIBV::translate_atom_divide (BtorIBVAtom* a,
         if (b->range.lsb > pr.msb) continue;
         BTOR_COVER (!(b->range.lsb <= pr.lsb && pr.msb <= b->range.msb));
         BtorIBVAtomPtrNext apn (b, true);
-        BTOR_PUSH_STACK (btor->mm, *work, apn);
+        BTOR_PUSH_STACK (btor->mm, *apnwork, apn);
+#ifndef NDEBUG
+        assert (b->pushed <= 2), b->pushed++;
+#endif
       }
     }
     break;
@@ -2103,7 +2106,10 @@ BtorIBV::translate_atom_divide (BtorIBVAtom* a,
           if (nr.msb < b->range.lsb) continue;
           if (nr.lsb > b->range.msb) continue;
           BtorIBVAtomPtrNext apn (b, false);
-          BTOR_PUSH_STACK (btor->mm, *work, apn);
+          BTOR_PUSH_STACK (btor->mm, *apnwork, apn);
+#ifndef NDEBUG
+          assert (b->pushed <= 2), b->pushed++;
+#endif
         }
       }
       break;
@@ -2136,7 +2142,10 @@ BtorIBV::translate_atom_divide (BtorIBVAtom* a,
           if (ar.msb < b->range.lsb) continue;
           if (ar.lsb > b->range.msb) continue;
           BtorIBVAtomPtrNext apn (b, forward);
-          BTOR_PUSH_STACK (btor->mm, *work, apn);
+          BTOR_PUSH_STACK (btor->mm, *apnwork, apn);
+#ifndef NDEBUG
+          assert (b->pushed <= 3), b->pushed++;
+#endif
         }
       }
     }
@@ -2886,51 +2895,6 @@ BtorIBV::translate_atom_base (BtorIBVAtom* a)
 #endif
 }
 
-#if 0
-void BtorIBV::translate_node_divide (BtorIBVNode * n, bool forward,
-                                     BtorIBVAtomPtrNextStack * work) {
-  assert (n);
-  if (forward && n->forwarded) return;
-  if (!forward && n->cached) return;
-
-  msg (4, "translate_node_divide id %u '%s'", n->id, n->name);
-  
-  for (BtorIBVAtom * a = n->atoms.start; a < n->atoms.top; a++)
-    translate_atom_divide (a, forward, work);
-}
-
-bool BtorIBV::translate_node_conquer (BtorIBVNode * n, bool forward) {
-
-  assert (n);
-
-  if (!forward && n->cached) return true;
-  if (forward && n->forwarded) return true;
-
-  BoolectorNode * res = 0;
-
-  for (BtorIBVAtom * a = n->atoms.start; a < n->atoms.top; a++)
-    if (!translate_atom_conquer (a, forward)) return false;
-
-  msg (4, "translate_node_conquer id %u '%s'", n->id, n->name);
-
-  for (BtorIBVAtom * a = n->atoms.start; a < n->atoms.top; a++) {
-    BoolectorNode * exp = forward ? a->next : a->exp;
-    assert (exp);
-    BoolectorNode * tmp = res;
-    if (tmp) {
-      res = boolector_concat (btor, exp, res);
-      boolector_release (btor, tmp);
-    } else res = boolector_copy (btor, exp);
-  }
-  assert (res);
-  assert (boolector_get_width (btor, res) == (int)n->width);
-  if (forward) assert (!n->forwarded), n->forwarded = res;
-  else assert (!n->cached), n->cached = res;
-
-  return true;
-}
-#endif
-
 bool
 BtorIBV::is_phantom_next (BtorIBVNode* n, unsigned i)
 {
@@ -3058,8 +3022,13 @@ BtorIBV::translate ()
     if (n->cached) continue;
     for (BtorIBVAtom* b = n->atoms.start; b < n->atoms.top; b++)
     {
+      if (b->exp) continue;
       BtorIBVAtomPtrNext apn (b, false);
-      BTOR_PUSH_STACK (btor->mm, apnwork, b);
+      BTOR_PUSH_STACK (btor->mm, apnwork, apn);
+#ifndef NDEBUG
+      assert (b->pushed <= 3);
+      b->pushed++;
+#endif
     }
     while (!BTOR_EMPTY_STACK (apnwork))
     {
