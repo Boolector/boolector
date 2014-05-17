@@ -1,16 +1,13 @@
-
 addVariable(1,a,1,0)
-addVariable(2,b,1,1)
+addVariable(2,b,1,0)
 addVariable(3,c,1,0)
 addVariable(4,d,1,1)
-addVariable(5,e,1,0)
 addVariable(6,f,1,0)
 
 addNonState(a,0,0,d,0,0)
 
 addConstant(7,0,1)
-addConstant(8,1,1)
 
 addState(f,0,0,undeclared,0,0,b,0,0)
-addParallelCase(a,0,0,4,0,0,0,e,0,0,f,0,0,b0_v7,0,0)
-addCondition(b,0,0,1,0,0,d,0,0,c,0,0)
+addBitNot(a,0,0,f,0,0)
+addBitAnd(b,0,0,d,0,0,c,0,0)
