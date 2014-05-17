@@ -2749,7 +2749,6 @@ BtorIBV::translate_atom_base (BtorIBVAtom* a)
 
     case BTOR_IBV_CONSTANT:
     {
-      assert (!n->cached);
       if (!n->cached)
       {
         char *conststr, *p;
