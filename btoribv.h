@@ -349,8 +349,12 @@ class BtorIBV : public BitVector
 
   void warn (const char *fmt, ...);
 
-  void push_atom_ptr_next (BtorIBVNode *,
-                           BtorIBVAtom *,
+  bool is_relevant_atom_for_assigned_atom (BtorIBVAtom *lhs,
+                                           unsigned i,
+                                           BtorIBVAtom *rhs,
+                                           BtorIBVAssignment *);
+
+  void push_atom_ptr_next (BtorIBVAtom *,
                            bool forward,
                            BtorIBVAtomPtrNextStack *apnwork);
 

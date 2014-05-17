@@ -2016,9 +2016,64 @@ btor_ibv_check_atoms (BtorIBVNode* n)
 #endif
 }
 
+static bool
+overlaps (BtorIBVRange a, BtorIBVRange b)
+{
+  if (a.msb < b.lsb) return false;
+  if (a.lsb > b.msb) return false;
+  return true;
+}
+
+bool
+BtorIBV::is_relevant_atom_for_assigned_atom (BtorIBVAtom* lhs,
+                                             unsigned i,
+                                             BtorIBVAtom* rhs,
+                                             BtorIBVAssignment* ass)
+{
+  assert (ass->range.id == lhs->range.id);
+  assert (i < ass->nranges);
+  assert (rhs->range.id == ass->ranges[i].id);
+
+  switch (ass->tag)
+  {
+    case BTOR_IBV_BUF:
+    case BTOR_IBV_NOT: assert (i); break;
+    case BTOR_IBV_AND:
+    case BTOR_IBV_DIV:
+    case BTOR_IBV_EQUAL:
+    case BTOR_IBV_LE:
+    case BTOR_IBV_LT:
+    case BTOR_IBV_MOD:
+    case BTOR_IBV_MUL:
+    case BTOR_IBV_OR:
+    case BTOR_IBV_SUB:
+    case BTOR_IBV_SUM:
+    case BTOR_IBV_XOR: assert (i <= 1); break;
+
+    case BTOR_IBV_LEFT_SHIFT:
+
+    case BTOR_IBV_CASE:
+    case BTOR_IBV_CONCAT:
+    case BTOR_IBV_COND:
+    case BTOR_IBV_CONDBW:
+    case BTOR_IBV_PARCASE:
+    case BTOR_IBV_REPLICATE:
+    case BTOR_IBV_RIGHT_SHIFT:
+    case BTOR_IBV_SIGN_EXTEND:
+    case BTOR_IBV_ZERO_EXTEND:
+    default:
+      BTOR_ABORT_BOOLECTOR (1,
+                            "operator '%s%s' (%d) not handled yet",
+                            btor_ibv_tag_to_str (ass->tag),
+                            (ass->tag & BTOR_IBV_IS_PREDICATE) ? "_PRED" : "",
+                            (int) ass->tag);
+      break;
+  }
+  return true;
+}
+
 void
-BtorIBV::push_atom_ptr_next (BtorIBVNode* n,
-                             BtorIBVAtom* b,
+BtorIBV::push_atom_ptr_next (BtorIBVAtom* b,
                              bool forward,
                              BtorIBVAtomPtrNextStack* apnwork)
 {
@@ -2028,13 +2083,12 @@ BtorIBV::push_atom_ptr_next (BtorIBVNode* n,
   BtorIBVAtomPtrNext apn (b, forward);
   BTOR_PUSH_STACK (btor->mm, *apnwork, apn);
   BtorIBVRange r = b->range;
-  assert (n->id == r.id);
   msg (4,
        "btor_ibv_push_atom_ptr_next id %u [%u:%u] '%s[%u:%u]' %d",
        r.id,
        r.msb,
        r.lsb,
-       n->name,
+       id2node (r.id)->name,
        r.msb,
        r.lsb,
        forward);
@@ -2110,7 +2164,7 @@ BtorIBV::translate_atom_divide (BtorIBVAtom* a,
         if (b->range.msb < pr.lsb) continue;
         if (b->range.lsb > pr.msb) continue;
         BTOR_COVER (!(b->range.lsb <= pr.lsb && pr.msb <= b->range.msb));
-        push_atom_ptr_next (prev, b, true, apnwork);
+        push_atom_ptr_next (b, true, apnwork);
       }
     }
     break;
@@ -2139,7 +2193,7 @@ BtorIBV::translate_atom_divide (BtorIBVAtom* a,
           assert (b->range.id == next->id);
           if (nr.msb < b->range.lsb) continue;
           if (nr.lsb > b->range.msb) continue;
-          push_atom_ptr_next (next, b, false, apnwork);
+          push_atom_ptr_next (b, false, apnwork);
         }
       }
       break;
@@ -2164,7 +2218,8 @@ BtorIBV::translate_atom_divide (BtorIBVAtom* a,
         if (!ar.id) continue;
         BtorIBVNode* o = id2node (ar.id);
         for (BtorIBVAtom* b = o->atoms.start; b < o->atoms.top; b++)
-          push_atom_ptr_next (o, b, forward, apnwork);
+          if (is_relevant_atom_for_assigned_atom (a, i, b, ass))
+            push_atom_ptr_next (b, forward, apnwork);
       }
     }
     break;
@@ -2177,8 +2232,7 @@ btor_ibv_atoms_in_range_have_exp (BtorIBVNode* n, BtorIBVRange r, bool forward)
   for (BtorIBVAtom* b = n->atoms.start; b < n->atoms.top; b++)
   {
     assert (b->range.id == r.id);
-    if (b->range.msb < r.lsb) continue;
-    if (b->range.lsb > r.msb) continue;
+    if (!overlaps (b->range, r)) continue;
     if (!forward && !b->exp) return 0;
     if (forward && !b->next) return 0;
   }
@@ -2239,6 +2293,7 @@ BtorIBV::translate_assignment_conquer (BtorIBVAtom* a,
       assert (b->range.id == o->id);
       if (ar.msb < b->range.lsb) continue;
       if (ar.lsb > b->range.msb) continue;
+      if (!is_relevant_atom_for_assigned_atom (a, i, b, ass)) continue;
       if (!forward && !b->exp) return 0;
       if (forward && !b->next) return 0;
     }
@@ -3040,7 +3095,7 @@ BtorIBV::translate ()
     if (!n->used) continue;
     if (n->cached) continue;
     for (BtorIBVAtom* b = n->atoms.start; b < n->atoms.top; b++)
-      push_atom_ptr_next (n, b, false, &apnwork);
+      push_atom_ptr_next (b, false, &apnwork);
     while (!BTOR_EMPTY_STACK (apnwork))
     {
       BtorIBVAtomPtrNext apn = BTOR_TOP_STACK (apnwork);
