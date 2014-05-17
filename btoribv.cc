@@ -2136,7 +2136,7 @@ BtorIBV::translate_atom_divide (BtorIBVAtom* a,
           assert (b->range.id == o->id);
           if (ar.msb < b->range.lsb) continue;
           if (ar.lsb > b->range.msb) continue;
-          BtorIBVAtomPtrNext apn (b, false);
+          BtorIBVAtomPtrNext apn (b, forward);
           BTOR_PUSH_STACK (btor->mm, *work, apn);
         }
       }
@@ -2548,7 +2548,7 @@ BtorIBV::translate_atom_conquer (BtorIBVAtom* a, bool forward)
         BtorIBVNode* prev = id2node (pa->range.id);
         assert (prev);
         assert (!prev->is_next_state);
-        BtorIBVRange pr (pa->range.id,
+        BtorIBVRange pr (prev->id,
                          r.msb - pa->ranges[pos].lsb + pa->range.lsb,
                          r.lsb - pa->ranges[pos].lsb + pa->range.lsb);
 #if 0
@@ -2611,7 +2611,7 @@ BtorIBV::translate_atom_conquer (BtorIBVAtom* a, bool forward)
         BtorIBVNode* prev = id2node (pa->range.id);
         assert (prev);
         assert (!prev->is_next_state);
-        BtorIBVRange pr (pa->range.id,
+        BtorIBVRange pr (prev->id,
                          r.msb - pa->ranges[0].lsb + pa->range.lsb,
                          r.lsb - pa->ranges[0].lsb + pa->range.lsb);
         if (!btor_ibv_atoms_in_range_have_exp (prev, pr, true)) return false;
@@ -2646,7 +2646,7 @@ BtorIBV::translate_atom_conquer (BtorIBVAtom* a, bool forward)
 	  assert (boolector_get_width (btor, a->next) == (int) r.getWidth ());
 	} else a->next = boolector_copy (btor, next->cached);
 #else
-        BtorIBVRange nr (na->range.id,
+        BtorIBVRange nr (next->id,
                          r.msb - na->range.lsb + na->ranges[1].lsb,
                          r.lsb - na->range.lsb + na->ranges[1].lsb);
         if (!btor_ibv_atoms_in_range_have_exp (next, nr, false)) return false;
