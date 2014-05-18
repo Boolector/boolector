@@ -109,17 +109,8 @@ struct BtorIBVAtom
 {
   BtorIBVRange range;
   BoolectorNode *exp, *next;
-#ifndef NDEBUG
   long pushed;
-#endif
-  BtorIBVAtom (const BtorIBVRange &r)
-      : range (r),
-        exp (0),
-        next (0)
-#ifndef NDEBUG
-        ,
-        pushed (0)
-#endif
+  BtorIBVAtom (const BtorIBVRange &r) : range (r), exp (0), next (0), pushed (0)
   {
   }
 };

@@ -1981,10 +1981,10 @@ BtorIBV::analyze ()
 static void
 btor_ibv_check_atom (BtorIBVNode* n, BtorIBVRange r)
 {
+#if 0
 #ifndef NDEBUG
   assert (r.msb < n->width);
-  for (unsigned i = r.lsb + 1; i < r.msb; i++)
-  {
+  for (unsigned i = r.lsb + 1; i < r.msb; i++) {
     assert (n->flags[i].classified == n->flags[r.lsb].classified);
     if (n->assigned) assert (n->assigned[i] == n->assigned[r.lsb]);
     if (n->next) assert (n->next[i] == n->next[r.lsb]);
@@ -1993,24 +1993,28 @@ btor_ibv_check_atom (BtorIBVNode* n, BtorIBVRange r)
 #else
   (void) n, (void) r;
 #endif
+#else
+  (void) n, (void) r;
+#endif
 }
 
 static void
 btor_ibv_check_atoms (BtorIBVNode* n)
 {
+#if 0
 #ifndef NDEBUG
-  BtorIBVAtom* last = 0;
+  BtorIBVAtom * last = 0;
   assert (!BTOR_EMPTY_STACK (n->atoms));
-  for (BtorIBVAtom* a = n->atoms.start; a < n->atoms.top; a++)
-  {
-    if (last)
-      assert (a->range.lsb == last->range.msb + 1);
-    else
-      assert (!a->range.lsb);
+  for (BtorIBVAtom * a = n->atoms.start; a < n->atoms.top; a++) {
+    if (last) assert (a->range.lsb == last->range.msb + 1);
+    else assert (!a->range.lsb);
     last = a;
   }
   assert (last);
   assert (last->range.msb + 1 == n->width);
+#else
+  (void) n;
+#endif
 #else
   (void) n;
 #endif
@@ -2047,7 +2051,9 @@ BtorIBV::is_relevant_atom_for_assigned_atom (BtorIBVAtom* lhs,
     case BTOR_IBV_AND:
     case BTOR_IBV_DIV:
     case BTOR_IBV_LE:
+    case BTOR_IBV_LE | BTOR_IBV_IS_PREDICATE:
     case BTOR_IBV_LT:
+    case BTOR_IBV_LT | BTOR_IBV_IS_PREDICATE:
     case BTOR_IBV_MOD:
     case BTOR_IBV_MUL:
     case BTOR_IBV_OR:
@@ -2079,11 +2085,45 @@ BtorIBV::is_relevant_atom_for_assigned_atom (BtorIBVAtom* lhs,
       return overlaps (r, rhs->range);
 
     case BTOR_IBV_CONCAT:
-    case BTOR_IBV_CONDBW:
+    {
+      unsigned offset = 0;
+      for (unsigned j = 0; j < i; j++) offset += ass->ranges[j].getWidth ();
+      BtorIBVRange s (r.id, r.msb + offset, r.lsb + offset);
+      return overlaps (s, rhs->range);
+    }
+
     case BTOR_IBV_LEFT_SHIFT:
-    case BTOR_IBV_PARCASE:
-    case BTOR_IBV_REPLICATE:
     case BTOR_IBV_RIGHT_SHIFT:
+      return true;  // TODO this is not precise if
+                    // shift amount has < ld (w) bits for
+                    // w the number of bits of the operand.
+                    // Then in certain cases 'rhs' might
+                    // not be relevant.
+    case BTOR_IBV_REPLICATE:
+    case BTOR_IBV_REPLICATE | BTOR_IBV_HAS_ARG:
+      assert (!i);
+      {
+        BtorIBVRange s = rhs->range;
+        unsigned w     = ass->ranges[0].getWidth ();
+        for (unsigned j = 0; j < ass->arg; j++)
+        {
+          if (overlaps (r, s)) return true;
+          s.lsb += w;
+          if (s.lsb > r.msb) return false;
+          s.msb += w;
+        }
+        return false;
+      }
+      break;
+
+    case BTOR_IBV_LEFT_SHIFT | BTOR_IBV_HAS_ARG:
+    case BTOR_IBV_RIGHT_SHIFT | BTOR_IBV_HAS_ARG:
+      return true;  // TODO this is not precise at all since
+                    // shift amount is constant and in principle
+                    // we could calculate relevance.
+
+    case BTOR_IBV_CONDBW:   // TODO not done yet ...
+    case BTOR_IBV_PARCASE:  // TODO not done yet ...
 
     default:
       BTOR_ABORT_BOOLECTOR (1,
@@ -2103,7 +2143,7 @@ BtorIBV::push_atom_ptr_next (BtorIBVAtom* b,
 {
   if (!forward && b->exp) return;
   if (forward && b->next) return;
-  if (b->pushed > 2) return;
+  // if (b->pushed > 2) return;
   BtorIBVAtomPtrNext apn (b, forward);
   BTOR_PUSH_STACK (btor->mm, *apnwork, apn);
   BtorIBVRange r = b->range;
@@ -2116,16 +2156,29 @@ BtorIBV::push_atom_ptr_next (BtorIBVAtom* b,
        r.msb,
        r.lsb,
        forward);
-#ifndef NDEBUG
-  {
-    long lim = 0;
-    if (!b->exp) lim++;
-    if (!b->next) lim++;
-    // assert (b->pushed <= lim);
-    assert (b->pushed <= 10);
-    b->pushed++;
-  }
-#endif
+  b->pushed++;
+  if (b->pushed > 2 && b->pushed < 10)
+    warn (
+        "potential cyclic synthesis for id %u [%u:%u] '%s[%u:%u]' %d (pushed "
+        "%ld)",
+        r.id,
+        r.msb,
+        r.lsb,
+        id2node (r.id)->name,
+        r.msb,
+        r.lsb,
+        forward,
+        b->pushed);
+  BTOR_ABORT_BOOLECTOR (
+      b->pushed > 10,
+      "potential cyclic synthesis for id %u [%u:%u] '%s[%u:%u]' %d (giving up)",
+      r.id,
+      r.msb,
+      r.lsb,
+      id2node (r.id)->name,
+      r.msb,
+      r.lsb,
+      forward);
 }
 
 void
