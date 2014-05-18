@@ -2034,13 +2034,18 @@ BtorIBV::is_relevant_atom_for_assigned_atom (BtorIBVAtom* lhs,
   assert (i < ass->nranges);
   assert (rhs->range.id == ass->ranges[i].id);
 
-  switch (ass->tag)
+  BtorIBVRange r (rhs->range.id,
+                  lhs->range.msb - ass->range.lsb + ass->ranges[i].lsb,
+                  lhs->range.lsb - ass->range.lsb + ass->ranges[i].lsb);
+
+  switch ((int) (ass->tag))
   {
     case BTOR_IBV_BUF:
-    case BTOR_IBV_NOT: assert (i); break;
+    case BTOR_IBV_NOT:
+    case BTOR_IBV_ZERO_EXTEND: assert (!i); return overlaps (r, rhs->range);
+
     case BTOR_IBV_AND:
     case BTOR_IBV_DIV:
-    case BTOR_IBV_EQUAL:
     case BTOR_IBV_LE:
     case BTOR_IBV_LT:
     case BTOR_IBV_MOD:
@@ -2048,19 +2053,38 @@ BtorIBV::is_relevant_atom_for_assigned_atom (BtorIBVAtom* lhs,
     case BTOR_IBV_OR:
     case BTOR_IBV_SUB:
     case BTOR_IBV_SUM:
-    case BTOR_IBV_XOR: assert (i <= 1); break;
+    case BTOR_IBV_XOR: assert (i <= 1); return overlaps (r, rhs->range);
 
-    case BTOR_IBV_LEFT_SHIFT:
+    case BTOR_IBV_COND: assert (i <= 2); return overlaps (r, rhs->range);
+
+    case BTOR_IBV_EQUAL:
+    case BTOR_IBV_EQUAL | BTOR_IBV_IS_PREDICATE: assert (i <= 1); return true;
+
+    case BTOR_IBV_SIGN_EXTEND:
+      assert (!i);
+      if (rhs->range.lsb > r.msb) return false;
+      if (rhs->range.msb >= r.lsb) return true;
+      assert (rhs->range.msb < r.lsb);
+      // now check that 'rhs' contains the sign bit
+      if (rhs->range.msb < ass->ranges[i].msb) return false;
+      if (rhs->range.lsb > ass->ranges[i].msb) return false;
+      return true;
 
     case BTOR_IBV_CASE:
+      if (!(i & 1) && ass->ranges[i].getWidth () == 1)
+      {
+        assert (rhs->range.getWidth () == 1);
+        return 1;
+      }
+      return overlaps (r, rhs->range);
+
     case BTOR_IBV_CONCAT:
-    case BTOR_IBV_COND:
     case BTOR_IBV_CONDBW:
+    case BTOR_IBV_LEFT_SHIFT:
     case BTOR_IBV_PARCASE:
     case BTOR_IBV_REPLICATE:
     case BTOR_IBV_RIGHT_SHIFT:
-    case BTOR_IBV_SIGN_EXTEND:
-    case BTOR_IBV_ZERO_EXTEND:
+
     default:
       BTOR_ABORT_BOOLECTOR (1,
                             "operator '%s%s' (%d) not handled yet",
