@@ -236,8 +236,7 @@ class BtorIBV : public BitVector
   BtorMC *btormc;
 
   bool gentrace;
-  bool force;
-
+  int force;
   int verbosity;
 
   BtorIBVNodePtrStack idtab;
@@ -379,7 +378,7 @@ class BtorIBV : public BitVector
   ~BtorIBV ();
 
   void setRewriteLevel (int rwl);
-  void setForce (bool f = true) { force = f; }
+  void setForce (int f = 1) { force = f; }
 
   void setVerbosity (int verbosity);
 

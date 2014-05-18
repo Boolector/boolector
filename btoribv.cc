@@ -2141,6 +2141,7 @@ BtorIBV::push_atom_ptr_next (BtorIBVAtom* b,
                              bool forward,
                              BtorIBVAtomPtrNextStack* apnwork)
 {
+  const long cycle_limit = 10;
   if (!forward && b->exp) return;
   if (forward && b->next) return;
   // if (b->pushed > 2) return;
@@ -2157,10 +2158,16 @@ BtorIBV::push_atom_ptr_next (BtorIBVAtom* b,
        r.lsb,
        forward);
   b->pushed++;
-  if (b->pushed > 2 && b->pushed < 10)
+  if (b->pushed > cycle_limit && force >= 2)
+  {
+    BoolectorNode* exp = boolector_zero (btor, (int) b->range.getWidth ());
+    if (forward)
+      b->next = exp;
+    else
+      b->exp = exp;
     warn (
-        "potential cyclic synthesis for id %u [%u:%u] '%s[%u:%u]' %d (pushed "
-        "%ld)",
+        "forced cyclic synthesis for id %u [%u:%u] '%s[%u:%u]' %d to zero "
+        "(pushed %ld)",
         r.id,
         r.msb,
         r.lsb,
@@ -2169,16 +2176,33 @@ BtorIBV::push_atom_ptr_next (BtorIBVAtom* b,
         r.lsb,
         forward,
         b->pushed);
-  BTOR_ABORT_BOOLECTOR (
-      b->pushed > 10,
-      "potential cyclic synthesis for id %u [%u:%u] '%s[%u:%u]' %d (giving up)",
-      r.id,
-      r.msb,
-      r.lsb,
-      id2node (r.id)->name,
-      r.msb,
-      r.lsb,
-      forward);
+  }
+  else
+  {
+    BTOR_ABORT_BOOLECTOR (b->pushed > cycle_limit,
+                          "potential cyclic synthesis for id %u [%u:%u] "
+                          "'%s[%u:%u]' %d (giving up)",
+                          r.id,
+                          r.msb,
+                          r.lsb,
+                          id2node (r.id)->name,
+                          r.msb,
+                          r.lsb,
+                          forward);
+    assert (2 <= cycle_limit);
+    if (b->pushed > 2)
+      warn (
+          "potential cyclic synthesis for id %u [%u:%u] '%s[%u:%u]' %d (pushed "
+          "%ld)",
+          r.id,
+          r.msb,
+          r.lsb,
+          id2node (r.id)->name,
+          r.msb,
+          r.lsb,
+          forward,
+          b->pushed);
+  }
 }
 
 void

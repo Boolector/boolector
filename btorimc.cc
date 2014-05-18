@@ -745,7 +745,11 @@ static const char* USAGE =
     "  -h    print this command line option summary\n"
     "  -s    stop checking after first assertion failed\n"
     "  -n    do not print witness even if '-s' is specified\n"
-    "  -f    force translation (replace 'x' by '0')\n"
+    "  -f    force translation:\n"
+    "\n"
+    "           once: replace 'x' by '0'\n"
+    "           twice: terminate forward cycles by '0'\n"
+    "\n"
     "  -d    dump BTOR model\n"
     "  -o    path of dump file (default is stdout)\n"
     "  -i    ignore and do not check properties at initial state\n"
@@ -828,9 +832,9 @@ static IMC::ReachedAtBoundListener listener;
 int
 main (int argc, char** argv)
 {
-  bool dump = false, force = false, ignore = false, multi = true;
+  bool dump = false, ignore = false, multi = true;
   const char* outputname = 0;
-  int k = -1, r, rwl = 3;
+  int k = -1, r, rwl = 3, force = 0;
   for (int i = 1; i < argc; i++)
   {
     if (!strcmp (argv[i], "-h"))
@@ -849,7 +853,7 @@ main (int argc, char** argv)
     else if (!strcmp (argv[i], "-i"))
       ignore = true;
     else if (!strcmp (argv[i], "-f"))
-      force = true;
+      force++;
     else if (!strcmp (argv[i], "-rwl1"))
       rwl = 1;
     else if (!strcmp (argv[i], "-rwl2"))
@@ -886,7 +890,7 @@ main (int argc, char** argv)
   ibvm = new BtorIBV ();
   ibvm->setVerbosity (verbosity);
   ibvm->setRewriteLevel (rwl);
-  if (force) ibvm->setForce ();
+  if (force) ibvm->setForce (force);
   if (witness) ibvm->enableTraceGeneration ();
   ibvm->setStop (!multi);
   ibvm->setReachedAtBoundListener (&listener);
