@@ -105,14 +105,18 @@ extern "C" {
 BTOR_DECLARE_STACK (BtorIBVAssignment, BtorIBVAssignment);
 };
 
+struct BtorIBVExpPushed
+{
+  BoolectorNode *exp;
+  long pushed;
+  BtorIBVExpPushed () : exp (0), pushed (0) {}
+};
+
 struct BtorIBVAtom
 {
   BtorIBVRange range;
-  BoolectorNode *exp, *next;
-  long pushed;
-  BtorIBVAtom (const BtorIBVRange &r) : range (r), exp (0), next (0), pushed (0)
-  {
-  }
+  BtorIBVExpPushed current, next;
+  BtorIBVAtom (const BtorIBVRange &r) : range (r) {}
 };
 
 extern "C" {
