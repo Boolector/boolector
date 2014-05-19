@@ -2141,11 +2141,10 @@ BtorIBV::push_atom_ptr_next (BtorIBVAtom* b,
                              bool forward,
                              BtorIBVAtomPtrNextStack* apnwork)
 {
-  const long cycle_limit = 4;
+  const long cycle_limit = 10;
   long pushed;
   if (!forward && b->current.exp) return;
   if (forward && b->next.exp) return;
-  // if (b->pushed > 2) return;
   BtorIBVAtomPtrNext apn (b, forward);
   BTOR_PUSH_STACK (btor->mm, *apnwork, apn);
   BtorIBVRange r = b->range;
@@ -2194,7 +2193,6 @@ BtorIBV::push_atom_ptr_next (BtorIBVAtom* b,
                           r.msb,
                           r.lsb,
                           forward);
-    assert (2 < cycle_limit);
     if (pushed >= 2)
       warn (
           "potential cyclic synthesis for id %u [%u:%u] '%s[%u:%u]' %d (pushed "
