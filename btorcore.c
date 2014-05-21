@@ -62,6 +62,13 @@
     BTOR_DELETEN (mm, (table).chains, (table).size); \
   } while (0)
 
+#define BTOR_INIT_SORT_UNIQUE_TABLE(mm, table) \
+  do                                           \
+  {                                            \
+    BTOR_INIT_UNIQUE_TABLE (mm, table);        \
+    table.mm = mm;                             \
+  } while (0)
+
 #define BTOR_ABORT_CORE(cond, msg)                   \
   do                                                 \
   {                                                  \
@@ -937,6 +944,7 @@ btor_new_btor (void)
   btor->array_assignments = btor_new_array_assignment_list (mm);
 
   BTOR_INIT_UNIQUE_TABLE (mm, btor->nodes_unique_table);
+  BTOR_INIT_SORT_UNIQUE_TABLE (mm, btor->sorts_unique_table);
 
   btor->avmgr = btor_new_aigvec_mgr (mm);
 

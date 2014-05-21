@@ -18,6 +18,7 @@
  *  along with this program.  If not, see <http://www.gnu.org/licenses/>.
  */
 
+#include "btorsort.h"
 #include "testaig.h"
 #include "testaigvec.h"
 #include "testarithmetic.h"
@@ -151,6 +152,7 @@ main (int argc, char **argv)
   BTOR_RUN_TESTS (modelgen);
   BTOR_RUN_TESTS (parseerror);
   BTOR_RUN_TESTS (mc);
+  BTOR_RUN_TESTS (sort);
   finish_tests ();
   return 0;
 }
