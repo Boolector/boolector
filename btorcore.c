@@ -5655,6 +5655,22 @@ compare_scores_qsort (const void *p1, const void *p2)
   return 0;
 }
 
+static int
+cmp_node_id_asc (const void *p, const void *q)
+{
+  BtorNode *a = *(BtorNode **) p;
+  BtorNode *b = *(BtorNode **) q;
+  return a->id - b->id;
+}
+
+static int
+cmp_node_id_desc (const void *p, const void *q)
+{
+  BtorNode *a = *(BtorNode **) p;
+  BtorNode *b = *(BtorNode **) q;
+  return b->id - a->id;
+}
+
 static void
 search_initial_applies_dual_prop (Btor *btor,
                                   Btor *clone,
@@ -5745,12 +5761,14 @@ search_initial_applies_dual_prop (Btor *btor,
   while (!BTOR_EMPTY_STACK (unmark_stack))
     BTOR_POP_STACK (unmark_stack)->aux_mark = 0;
 
-  compute_scores (btor);
-
+  // TODO try both asc and desc on first sat call
+  //  compute_scores (btor);
+  //
   qsort (inputs.start,
          BTOR_COUNT_STACK (inputs),
          sizeof (BtorNode *),
-         compare_scores_qsort);
+         cmp_node_id);
+  //	 compare_scores_qsort);
 
   for (j = 0; j < BTOR_COUNT_STACK (inputs); j++)
   {
