@@ -262,7 +262,7 @@ def _read_data (dirs):
                             g_benchmarks.append(f_name)
                         _read_err_file (d, "{}{}".format(f[:-3], "err"))
                         _read_log_file (d, f)
-                        if g_args.M:
+                        if g_args.m:
                             outfile = "{}{}".format(f[:-3], "out")
                             if not os.path.isfile(os.path.join (d, outfile)):
                                 raise CmpSMTException ("missing '{}'".format (
@@ -473,11 +473,13 @@ def _print_data ():
 
     # print data rows
     for f in sorted(g_benchmarks, key=lambda s: s.lower()):
-        if g_args.t and not _has_status('time', f):
+        if g_args.time and not _has_status('time', f):
             continue
-        if g_args.e and not _has_status('err', f):
+        if g_args.err and not _has_status('err', f):
             continue
-        if g_args.o and not _has_status('ok', f):
+        if g_args.ok and not _has_status('ok', f):
+            continue
+        if g_args.mem and not _has_status('mem', f):
             continue
 
         s = [g_file_stats['status'][d][f] for d in g_args.dirs]
@@ -524,15 +526,17 @@ if __name__ == "__main__":
                 help="compare boolector statistics")
         aparser.add_argument ("-dp", action="store_true",
                 help = "compare dual prop statistics")
-        aparser.add_argument ("-M", action="store_true",
-                help="extract models statistics")
-        aparser.add_argument ("-t", action="store_true",
-                help="show timeouts only")
         aparser.add_argument ("-m", action="store_true",
+                help="extract models statistics")
+        aparser.add_argument ("-M", action="store_true",
+                help="compare models statistics")
+        aparser.add_argument ("-time", action="store_true",
+                help="show timeouts only")
+        aparser.add_argument ("-mem", action="store_true",
                 help="show memory outs only")
-        aparser.add_argument ("-e", action="store_true",
+        aparser.add_argument ("-err", action="store_true",
                 help="show errors only")
-        aparser.add_argument ("-o", action="store_true",
+        aparser.add_argument ("-ok", action="store_true",
                 help="show non-errors only")
         aparser.add_argument ("-c", metavar="column", dest="cmp_col", 
                 default='time_time',
@@ -568,8 +572,9 @@ if __name__ == "__main__":
         elif g_args.M:
             g_args.columns = \
                     "status,lods,models_bvar,models_arr,time_time,time_sat"
+            g_args.m = True
         
-        if not g_args.M:
+        if not g_args.m:
             for x in list(FILTER_OUT.keys()):
                 del g_file_stats[x]
 
