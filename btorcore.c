@@ -7636,7 +7636,7 @@ add_lemma (Btor *btor, BtorNode *fun, BtorNode *app0, BtorNode *app1)
   assert (!app1 || BTOR_IS_APPLY_NODE (app1));
 
   double start;
-  int rwl;
+  int rwl = -1;
 #ifndef NDEBUG
   int evalerr;
 #endif
@@ -7718,8 +7718,7 @@ add_lemma (Btor *btor, BtorNode *fun, BtorNode *app0, BtorNode *app1)
   btor_delete_ptr_hash_table (bconds_sel2);
   btor->time.lemma_gen += btor_time_stamp () - start;
 
-  if (btor->options.dual_prop && btor->options.rewrite_level > 1)
-    btor_set_rewrite_level_btor (btor, rwl);
+  if (rwl >= 0) btor_set_rewrite_level_btor (btor, rwl);
 }
 
 static void
