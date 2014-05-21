@@ -101,7 +101,7 @@ cdef class BoolectorNode:
     # BoolectorNode methods
 
     def to_btor(self, outfile = ""):
-      btorapi.boolector_dump_btor(self.btor._c_btor, stdout, self._c_node)
+      btorapi.boolector_dump_btor_node(self.btor._c_btor, stdout, self._c_node)
 
     def copy(self):
         r = BoolectorNode(self.btor)
@@ -230,7 +230,13 @@ cdef class Boolector:
     # Dump functions
 
     def Dump_btor(self, outfile = ""):
-      btorapi.boolector_dump_btor_all(self._c_btor, stdout)
+      btorapi.boolector_dump_btor(self._c_btor, stdout)
+
+    def Dump_smt1(self, outfile=""):
+      btorapi.boolector_dump_smt1(self._c_btor, stdout)
+
+    def Dump_smt2(self, outfile=""):
+      btorapi.boolector_dump_smt2(self._c_btor, stdout)
 
     # Boolector API functions (nodes)
 

@@ -103,6 +103,7 @@ typedef struct BtorNodePair BtorNodePair;
     unsigned int bytes : 9;         /* allocated bytes */               \
     unsigned int parameterized : 1; /* param as sub expression ? */     \
     unsigned int lambda_below : 1;  /* lambda as sub expression ? */    \
+    unsigned int apply_below : 1;                                       \
     unsigned int merge : 1;                                             \
     unsigned int is_write : 1;                                          \
     unsigned int is_read : 1;                                           \
@@ -116,6 +117,7 @@ typedef struct BtorNodePair BtorNodePair;
     int ext_refs;           /* external references counter */           \
     int parents;            /* number of parents */                     \
     int arity;              /* arity of operator */                     \
+    float score;            /* nvsids score for apply propagation */    \
     union                                                               \
     {                                                                   \
       BtorAIGVec *av;        /* synthesized AIG vector */               \

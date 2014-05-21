@@ -52,6 +52,7 @@ typedef struct BtorUNT
   int skip;
   int ignore_sat;
   int dual_prop;
+  int just;
   int blog_level;
   char *filename;
 } BtorUNT;
@@ -331,6 +332,7 @@ NEXT:
     btor = boolector_new ();
     if (btorunt->blog_level) boolector_set_loglevel (btor, btorunt->blog_level);
     if (btorunt->dual_prop) boolector_enable_dual_prop (btor);
+    if (btorunt->just) boolector_enable_justification (btor);
   }
   else if (!strcmp (tok, "clone"))
   {
@@ -370,6 +372,11 @@ NEXT:
   {
     PARSE_ARGS0 (tok);
     boolector_enable_dual_prop (btor);
+  }
+  else if (!strcmp (tok, "enable_just"))
+  {
+    PARSE_ARGS0 (tok);
+    boolector_enable_justification (btor);
   }
   else if (!strcmp (tok, "enable_force_cleanup"))
   {
@@ -1141,6 +1148,8 @@ main (int argc, char **argv)
     else if (!strcmp (argv[i], "-dp")
              || !strcmp (argv[i], "--enable-dual-prop"))
       btorunt->dual_prop = 1;
+    else if (!strcmp (argv[i], "-ju") || !strcmp (argv[i], "--enable-just"))
+      btorunt->just = 1;
     else if (!strcmp (argv[i], "--blog"))
     {
       if (++i == argc) die ("argument to '--blog' missing (try '-h')");

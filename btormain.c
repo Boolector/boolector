@@ -2,7 +2,8 @@
  *
  *  Copyright (C) 2007-2009 Robert Daniel Brummayer.
  *  Copyright (C) 2007-2014 Armin Biere.
- *  Copyright (C) 2012-2013 Aina Niemetz, Mathias Preiner.
+ *  Copyright (C) 2012-2014 Aina Niemetz.
+ *  Copyright (C) Mathias Preiner.
  *
  *  All rights reserved.
  *
@@ -77,6 +78,7 @@ struct BtorMainApp
   int incremental;
   int beta_reduce_all;
   int dual_prop;
+  int just;
   int force_cleanup;
   int pprint;
 #ifdef BTOR_USE_LINGELING
@@ -154,6 +156,7 @@ static const char *g_usage =
     "  -rwl<n>, --rewrite-level<n>      set rewrite level [0,3] (default 3)\n"
     "  -bra, --beta-reduce-all          eliminate lambda expressions\n"
     "  -dp, --dual-prop                 enable dual prop optimization\n"
+    "  -ju, --justification             enable justification optimization\n"
     "  -fc, --force-cleanup             force cleanup on exit\n"
     // TODO: -npp|--no-pretty-print ? (debug only?)
     "\n"
@@ -611,7 +614,22 @@ parse_commandline_arguments (BtorMainApp *app)
     else if (!strcmp (app->argv[app->argpos], "-dp")
              || !strcmp (app->argv[app->argpos], "--dual-prop"))
     {
+      if (app->just)
+      {
+        print_err (app, "multiple optimization techniques enabled\n");
+        app->err = 1;
+      }
       app->dual_prop = 1;
+    }
+    else if (!strcmp (app->argv[app->argpos], "-ju")
+             || !strcmp (app->argv[app->argpos], "--justification"))
+    {
+      if (app->dual_prop)
+      {
+        print_err (app, "multiple optimization techniques enabled\n");
+        app->err = 1;
+      }
+      app->just = 1;
     }
     else if (!strcmp (app->argv[app->argpos], "-fc")
              || !strcmp (app->argv[app->argpos], "--force-cleanup"))
@@ -1080,6 +1098,8 @@ boolector_main (int argc, char **argv)
     if (app.beta_reduce_all) boolector_enable_beta_reduce_all (btor);
 
     if (app.dual_prop) boolector_enable_dual_prop (btor);
+
+    if (app.just) boolector_enable_justification (btor);
 
     if (app.force_cleanup) boolector_enable_force_cleanup (btor);
 

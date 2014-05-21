@@ -269,6 +269,22 @@ data_as_node_ptr (BtorMemMgr *mm,
 }
 
 static void
+data_as_int_ptr (BtorMemMgr *mm,
+                 const void *map,
+                 const void *data_ptr,
+                 BtorPtrHashData *data)
+{
+  assert (mm);
+  assert (map);
+  assert (data_ptr);
+  assert (data);
+
+  (void) mm;
+  (void) map;
+  data->asInt = (int) data_ptr;
+}
+
+static void
 data_as_bv_ptr (BtorMemMgr *mm,
                 const void *map,
                 const void *data_ptr,
@@ -554,15 +570,24 @@ clone_aux_btor (Btor *btor,
 
   assert ((allocated = sizeof (Btor)) == clone->mm->allocated);
 
-  BTOR_CNEWN (mm,
-              clone->stats.lemmas_size.start,
-              BTOR_SIZE_STACK (btor->stats.lemmas_size));
-  clone->stats.lemmas_size.end = clone->stats.lemmas_size.start
-                                 + BTOR_SIZE_STACK (btor->stats.lemmas_size);
-  clone->stats.lemmas_size.top = clone->stats.lemmas_size.end;
-  memcpy (clone->stats.lemmas_size.start,
-          btor->stats.lemmas_size.start,
-          BTOR_SIZE_STACK (btor->stats.lemmas_size));
+  BTOR_INIT_STACK (clone->stats.lemmas_size);
+  if (BTOR_SIZE_STACK (btor->stats.lemmas_size) > 0)
+  {
+    BTOR_CNEWN (mm,
+                clone->stats.lemmas_size.start,
+                BTOR_SIZE_STACK (btor->stats.lemmas_size));
+    clone->stats.lemmas_size.end = clone->stats.lemmas_size.start
+                                   + BTOR_SIZE_STACK (btor->stats.lemmas_size);
+    clone->stats.lemmas_size.top = clone->stats.lemmas_size.start
+                                   + BTOR_COUNT_STACK (btor->stats.lemmas_size);
+    memcpy (clone->stats.lemmas_size.start,
+            btor->stats.lemmas_size.start,
+            BTOR_SIZE_STACK (btor->stats.lemmas_size) * sizeof (int));
+  }
+  assert (BTOR_SIZE_STACK (btor->stats.lemmas_size)
+          == BTOR_SIZE_STACK (clone->stats.lemmas_size));
+  assert (BTOR_COUNT_STACK (btor->stats.lemmas_size)
+          == BTOR_COUNT_STACK (clone->stats.lemmas_size));
   assert (
       (allocated += BTOR_SIZE_STACK (btor->stats.lemmas_size) * sizeof (int))
       == clone->mm->allocated);
@@ -831,6 +856,32 @@ clone_aux_btor (Btor *btor,
   }
   assert (allocated == clone->mm->allocated);
 #endif
+
+  if (btor->score)
+  {
+    clone->score = btor_clone_ptr_hash_table (
+        mm, btor->score, mapped_node, data_as_htable_ptr, emap, emap);
+    BTORLOG ("  clone score table: %.3f s", (btor_time_stamp () - delta));
+#ifndef NDEBUG
+    CHKCLONE_MEM_PTR_HASH_TABLE (score);
+    allocated += MEM_PTR_HASH_TABLE (btor->score);
+    for (b = btor->score->first, cb = clone->score->first; b;
+         b = b->next, cb = cb->next)
+    {
+      assert (MEM_PTR_HASH_TABLE ((BtorPtrHashTable *) b->data.asPtr)
+              == MEM_PTR_HASH_TABLE ((BtorPtrHashTable *) cb->data.asPtr));
+      allocated += MEM_PTR_HASH_TABLE ((BtorPtrHashTable *) b->data.asPtr);
+    }
+    assert (allocated == clone->mm->allocated);
+#endif
+  }
+
+  if (btor->score_depth)
+  {
+    CLONE_PTR_HASH_TABLE_ASPTR (score_depth, data_as_int_ptr);
+    assert ((allocated += MEM_PTR_HASH_TABLE (btor->score_depth))
+            == clone->mm->allocated);
+  }
 
   if (exp_layer_only)
   {

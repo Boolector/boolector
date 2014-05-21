@@ -41,6 +41,18 @@ FILTER_LOG = {
                  lambda x: b'LOD' in x, 
                  lambda x: int(x.split()[3]), 
                  False],
+  'lods_avg':   ['LODS avg',
+                 lambda x: b'average lemma size' in x,
+                 lambda x: float(x.split()[4]),
+                 False],
+  'lods_fc':   ['LODS FC',
+                 lambda x: b'function congruence conf' in x,
+                 lambda x: int(x.split()[4]),
+                 False],
+  'lods_br':   ['LODS BR',
+                 lambda x: b'beta reduction conf' in x,
+                 lambda x: int(x.split()[4]),
+                 False],
   'calls':      ['CALLS', 
                  lambda x: b'SAT calls' in x, 
                  lambda x: int(x.split()[1]), 
@@ -68,6 +80,10 @@ FILTER_LOG = {
   'time_pas':   ['PAS[s]', 
                  lambda x: b'propagation apply search' in x,
                  lambda x: float(x.split()[1]), 
+                 False],
+  'time_pacs':   ['PAS[s]',
+                 lambda x: b'propagation apply in conds search' in x,
+                 lambda x: float(x.split()[1]),
                  False],
   'time_neas':  ['NEAS[s]', 
                  lambda x: b'not encoded apply search' in x,
@@ -104,6 +120,14 @@ FILTER_LOG = {
   'time_coll':  ['COL[s]', 
                  lambda x: b'collecting initial applies' in x, 
                  lambda x: float(x.split()[1]), 
+                 False],
+  'num_fvars':  ['FVAR',
+          lambda x: b'dual prop: failed vars:' in x,
+                 lambda x: int(x.split()[5]),
+                 False],
+  'num_fapps':  ['FAPP',
+                 lambda x: b'dual prop: failed applies:' in x,
+                 lambda x: int(x.split()[5]),
                  False]
 }
 
@@ -150,6 +174,19 @@ FILTER_OUT = {
   'models_bvar': ['MVAR', lambda x: b'[' not in x, lambda x: 1, False]
 }
 
+TOTALS_OP = {
+  'status':    lambda l: '{}/{}'.format(l.count('ok'), len(l)),
+  'result':    lambda l: '{}/{}'.format(l.count(10), l.count(20)),
+  'time_time': lambda l: round(sum(l), 2),
+  'num_prop':  lambda l: sum(l),
+  'num_propd': lambda l: sum(l),
+  'lods':      lambda l: sum(l),
+  'lods_br':   lambda l: sum(l),
+  'lods_fc':   lambda l: sum(l),
+  'lods_avg':  lambda l: round(sum(l)/len(l), 2),
+  'time_sat':  lambda l: round(sum(l), 2),
+  'time_sapp': lambda l: round(sum(l), 2),
+}
 
 assert(set(FILTER_LOG.keys()).isdisjoint(set(FILTER_ERR.keys())))
 assert(set(FILTER_LOG.keys()).isdisjoint(set(FILTER_OUT.keys())))
@@ -166,6 +203,7 @@ g_dir_stats = dict((k, {}) for k in DIR_STATS_KEYS)
 g_file_stats = dict((k, {}) for k in FILE_STATS_KEYS)
 g_best_stats = dict((k, {}) for k in FILE_STATS_KEYS)
 g_diff_stats = dict((k, {}) for k in FILE_STATS_KEYS)
+g_total_stats = dict((k, {}) for k in FILE_STATS_KEYS)
 
 
 
@@ -293,6 +331,13 @@ def _pick_data():
                 else v[0][1]
 
 
+def _compute_totals():
+    for k in g_file_stats.keys():
+        for d in g_file_stats[k].keys():
+            g_total_stats[k][d] = \
+                [v for v in g_file_stats[k][d].values() if v is not None]
+
+
 def _format_field(field, width, color=None, colspan=0, classes=[]):
     field = "-" if field is None else str(field)
 
@@ -369,6 +414,8 @@ def _print_html_header():
                  </script>
                </head>
                <body>""".format(style_css, jquery_js, tableheaders_js))
+
+def _print_result_table():
     print("""    <table id="legend">
                    <tr>
                      <th>LEGEND</th>
@@ -439,6 +486,35 @@ def _print_data ():
 
     if g_args.html:
         _print_html_header()
+        print("<table><thead>")
+
+    if g_args.html:
+        print("</thead><tbody>")
+        # print totals
+        columns = ["DIRECTORY"]
+        columns.append([_get_column_name(k) for k in g_args.columns])
+        widths = [benchmark_column_width]
+        widths.append([data_column_widths[k][d] for k in g_args.columns])
+        classes = [["header"]]
+        classes.append([["header"] for k in g_args.columns])
+        _print_row (columns, widths, classes=classes)
+
+        for d in g_args.dirs:
+            columns = ([os.path.basename(d.rstrip('/'))])
+            cols = []
+            for k in g_args.columns:
+                if k in TOTALS_OP:
+                    cols.append(TOTALS_OP[k](g_total_stats[k][d]))
+                else:
+                    cols.append('-')
+            columns.append(cols)
+            classes = [["nowrap"]]
+            classes.append([[] for k in g_args.columns])
+            _print_row (columns, widths, classes=classes)
+
+    if g_args.html:
+        print("</tbody></table><br/><br/>")
+        _print_result_table()
     
     columns = ["DIRECTORY"]
     columns.extend([os.path.basename(d.rstrip('/')) for d in g_args.dirs])
@@ -485,6 +561,10 @@ def _print_data ():
         s = [g_file_stats['status'][d][f] for d in g_args.dirs]
         r = [g_file_stats['result'][d][f] for d in g_args.dirs]
 
+        if g_args.dis:
+            r_tmp = [x for x in r if x == 10 or x == 20]
+            if not len(set(r_tmp)) > 1: continue
+
         # row color
         color = COLOR_STAT \
                 if len(set(s)) > 1 \
@@ -519,7 +599,7 @@ if __name__ == "__main__":
         aparser.add_argument ("-f", metavar="string", dest="filter", type=str, 
                 default=None,
                 help="filter benchmark files by <string>")
-        aparser.add_argument ("-d", metavar="float", dest="diff", type=float,
+        aparser.add_argument ("-hd", metavar="float", dest="diff", type=float,
                 default=0.1,
                 help="highlight difference if greater than <float>")
         aparser.add_argument ("-bs", action="store_true",
@@ -530,6 +610,8 @@ if __name__ == "__main__":
                 help="extract models statistics")
         aparser.add_argument ("-M", action="store_true",
                 help="compare models statistics")
+        aparser.add_argument ("-dis", action="store_true",
+                help="show discrepancies only")
         aparser.add_argument ("-time", action="store_true",
                 help="show timeouts only")
         aparser.add_argument ("-mem", action="store_true",
@@ -554,7 +636,12 @@ if __name__ == "__main__":
                 help="two or more smt run directories to compare")
         g_args = aparser.parse_args()
 
-        g_args.dirs = set(g_args.dirs)
+        # do not use a set here as the order of directories should be preserved
+        unique_dirs = []
+        for d in g_args.dirs:
+            if d not in unique_dirs:
+                unique_dirs.append(d)
+        g_args.dirs = unique_dirs
 
         if len(g_args.dirs) < 1:
             raise CmpSMTException ("invalid number of dirs given")
@@ -571,7 +658,8 @@ if __name__ == "__main__":
                     "status,lods,time_time,time_app,time_sapp"
         elif g_args.M:
             g_args.columns = \
-                    "status,lods,models_bvar,models_arr,time_time,time_sat"
+                    "status,lods,models_bvar,models_arr,num_fvars,num_fapps,"\
+                    "time_time,time_sat"
             g_args.m = True
         
         if not g_args.m:
@@ -588,6 +676,7 @@ if __name__ == "__main__":
 
         _read_data (g_args.dirs)
         _pick_data ()
+        _compute_totals()
         _print_data ()
 
     except KeyboardInterrupt as e:

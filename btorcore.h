@@ -142,6 +142,9 @@ struct Btor
   BtorNodePtrStack arrays_with_model;
   BtorPtrHashTable *cache;
   BtorPtrHashTable *parameterized;
+  BtorPtrHashTable *score;
+  BtorPtrHashTable *score_depth;
+  BtorPtrHashTable *searched_applies;
 
   /* shadow clone (debugging only) */
   Btor *clone;
@@ -176,9 +179,11 @@ struct Btor
                                   write during construction */
     int dp_failed_vars;        /* number of vars in FA (dual prop) of last
                                   sat call (final bv skeleton) */
-    int dp_failed_applies;     /* number of applies in FA (dual prop) of last
-                                  sat call (final bv skeleton) */
-    BtorIntStack lemmas_size;  /* distribution of n-size lemmas */
+    int dp_assumed_vars;
+    int dp_failed_applies; /* number of applies in FA (dual prop) of last
+                              sat call (final bv skeleton) */
+    int dp_assumed_applies;
+    BtorIntStack lemmas_size;       /* distribution of n-size lemmas */
     long long int lemmas_size_sum;  /* sum of the size of all added lemmas */
     long long int lclause_size_sum; /* sum of the size of all linking clauses */
     ConstraintStats constraints;
@@ -234,6 +239,7 @@ struct Btor
   struct
   {
     int dual_prop;              /* dual prop optimization */
+    int just;                   /* justification optimization */
     int beta_reduce_all;        /* eliminate lambda expressions */
     int force_cleanup;          /* force cleanup of exps, assignment strings */
     int force_internal_cleanup; /* force cleanup of exps, assignment strings
@@ -282,6 +288,9 @@ void btor_enable_beta_reduce_all (Btor *btor);
 
 /* Enable dual propagation optimization of consistency check. */
 void btor_enable_dual_prop (Btor *btor);
+
+/* Enable justificationn optimization of consistency check. */
+void btor_enable_just (Btor *btor);
 
 /* Enable forcing of automatic clenaup of expressions and assignment strings. */
 void btor_enable_force_cleanup (Btor *btor);
