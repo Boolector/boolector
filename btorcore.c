@@ -5767,7 +5767,7 @@ search_initial_applies_dual_prop (Btor *btor,
   qsort (inputs.start,
          BTOR_COUNT_STACK (inputs),
          sizeof (BtorNode *),
-         cmp_node_id);
+         cmp_node_id_desc);
   //	 compare_scores_qsort);
 
   for (j = 0; j < BTOR_COUNT_STACK (inputs); j++)
