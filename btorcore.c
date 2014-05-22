@@ -5671,12 +5671,13 @@ cmp_node_id_desc (const void *p, const void *q)
   return b->id - a->id;
 }
 
+#if 0
 static void
-search_initial_applies_dual_prop (Btor *btor,
-                                  Btor *clone,
-                                  BtorNode *clone_root,
-                                  BtorNodeMap *exp_map,
-                                  BtorNodePtrStack *top_applies)
+search_initial_applies_dual_prop (Btor * btor,
+				  Btor * clone, 
+				  BtorNode * clone_root,
+				  BtorNodeMap * exp_map,
+				  BtorNodePtrStack * top_applies)
 {
   assert (btor);
   assert (clone);
@@ -5690,7 +5691,7 @@ search_initial_applies_dual_prop (Btor *btor,
   assert (clone->embedded_constraints->count == 0);
   assert (check_id_table_aux_mark_unset_dbg (btor));
 
-  int i, j, from, to, upper, lower;
+  int i, j, from, to , upper, lower;
 #ifndef NBTORLOG
   int lam, app;
 #endif
@@ -5708,9 +5709,9 @@ search_initial_applies_dual_prop (Btor *btor,
   BTORLOG ("");
   BTORLOG ("*** search initial applies");
 
-  btor->stats.dp_failed_vars     = 0;
-  btor->stats.dp_assumed_vars    = 0;
-  btor->stats.dp_failed_applies  = 0;
+  btor->stats.dp_failed_vars = 0;
+  btor->stats.dp_assumed_vars = 0;
+  btor->stats.dp_failed_applies = 0;
   btor->stats.dp_assumed_applies = 0;
 
   smgr = btor_get_sat_mgr_aig_mgr (btor_get_aig_mgr_aigvec_mgr (btor->avmgr));
@@ -5719,7 +5720,7 @@ search_initial_applies_dual_prop (Btor *btor,
   BTOR_INIT_STACK (stack);
   BTOR_INIT_STACK (unmark_stack);
   BTOR_INIT_STACK (inputs);
-  key_map     = btor_new_node_map (btor);
+  key_map = btor_new_node_map (btor);
   assumptions = btor_new_node_map (btor);
 
   /* assume root */
@@ -5732,47 +5733,200 @@ search_initial_applies_dual_prop (Btor *btor,
   init_node_hash_table_iterator (&it, btor->synthesized_constraints);
   queue_node_hash_table_iterator (&it, btor->assumptions);
   while (has_next_node_hash_table_iterator (&it))
-  {
-    cur_btor = next_node_hash_table_iterator (&it);
-    BTOR_PUSH_STACK (btor->mm, stack, cur_btor);
-
-    while (!BTOR_EMPTY_STACK (stack))
     {
-      cur_btor = BTOR_REAL_ADDR_NODE (BTOR_POP_STACK (stack));
+      cur_btor = next_node_hash_table_iterator (&it);
+      BTOR_PUSH_STACK (btor->mm, stack, cur_btor);
 
-      if (cur_btor->aux_mark) continue;
+      while (!BTOR_EMPTY_STACK (stack))
+	{
+	  cur_btor = BTOR_REAL_ADDR_NODE (BTOR_POP_STACK (stack));
 
-      cur_btor->aux_mark = 1;
-      BTOR_PUSH_STACK (btor->mm, unmark_stack, cur_btor);
+	  if (cur_btor->aux_mark) continue;
 
-      if (BTOR_IS_BV_VAR_NODE (cur_btor) || BTOR_IS_APPLY_NODE (cur_btor))
-      {
-        assert (BTOR_IS_SYNTH_NODE (cur_btor));
-        BTOR_PUSH_STACK (btor->mm, inputs, cur_btor);
-        continue;
-      }
+	  cur_btor->aux_mark = 1;
+	  BTOR_PUSH_STACK (btor->mm, unmark_stack, cur_btor);
 
-      for (i = 0; i < cur_btor->arity; i++)
-        BTOR_PUSH_STACK (btor->mm, stack, cur_btor->e[i]);
+	  if (BTOR_IS_BV_VAR_NODE (cur_btor) || BTOR_IS_APPLY_NODE (cur_btor))
+	    {
+	      assert (BTOR_IS_SYNTH_NODE (cur_btor));
+	      BTOR_PUSH_STACK (btor->mm, inputs, cur_btor);
+	      continue;
+	    }
+
+	  for (i = 0; i < cur_btor->arity; i++)
+	    BTOR_PUSH_STACK (btor->mm, stack, cur_btor->e[i]);
+	}
     }
-  }
 
   /* cleanup */
   while (!BTOR_EMPTY_STACK (unmark_stack))
     BTOR_POP_STACK (unmark_stack)->aux_mark = 0;
 
-  // TODO try both asc and desc on first sat call
-  //  compute_scores (btor);
-  //
-  qsort (inputs.start,
-         BTOR_COUNT_STACK (inputs),
-         sizeof (BtorNode *),
+// TODO try both asc and desc on first sat call
+//  compute_scores (btor);
+//
+  qsort (inputs.start, BTOR_COUNT_STACK (inputs), sizeof (BtorNode *),
          cmp_node_id_desc);
-  //	 compare_scores_qsort);
+//	 compare_scores_qsort);
 
   for (j = 0; j < BTOR_COUNT_STACK (inputs); j++)
+    {
+      cur_btor = BTOR_PEEK_STACK (inputs, j);
+      cur_clone = btor_mapped_node (exp_map, cur_btor);
+      assert (cur_clone);
+      assert (BTOR_IS_REGULAR_NODE (cur_clone));
+      assert (!btor_mapped_node (key_map, cur_clone));
+      btor_map_node (key_map, cur_clone, cur_btor);
+
+      astr = bv_assignment_str_exp (btor, cur_btor);
+      BTOR_CNEWN (btor->mm, pastr, cur_btor->len + 1);
+      for (i = 0; i < cur_btor->len; i++)
+	{
+	  /* upper ... MSB if no 'x' in astr        x110x
+	   * lower ... LSB if no 'x' in astr	     | ^-- lower (to)
+	   * from  ... MSB if no 'x' in astr         ^---- upper (from)
+	   * to    ... LSB if no 'x' in astr
+	   * Note: upper/lower counts idx from LSB, from/to from MSB */
+	  if (astr[i] != 'x')
+	    {
+	      for (from = i; i < cur_btor->len && astr[i] != 'x'; i++);
+	      to = i == cur_btor->len ? cur_btor->len - 1 : i - 1 ;
+	      upper = cur_btor->len - 1 - from;
+	      lower = cur_btor->len - 1 - to;
+	      memcpy (pastr, astr + from, to - from + 1);
+	      pastr[upper-lower+1] = '\0';
+
+	      bv_const = btor_const_exp (clone, pastr);
+	      /* if len(pastr) != len(astr), generate equality over
+	       * slice on current exp in order to simulate partial
+	       * assignment */
+	      if (cur_btor->len == (upper - lower + 1))
+		bv_eq = btor_eq_exp (clone, cur_clone, bv_const);
+	      else
+		{
+		  slice = btor_slice_exp (clone, cur_clone, upper, lower);
+		  bv_eq = btor_eq_exp (clone, slice, bv_const);
+		}
+	      assert (!btor_mapped_node (assumptions, bv_eq));
+	      btor_assume_exp (clone, bv_eq);
+	      btor_map_node (assumptions, bv_eq, cur_clone);
+	      btor_release_exp (clone, bv_eq);
+	      btor_release_exp (clone, bv_const);
+	    }
+	}
+      btor_release_bv_assignment_str (btor, astr);
+      BTOR_DELETEN (btor->mm, pastr, cur_btor->len + 1);
+    }
+  btor->time.search_init_apps_collect_var_apps += btor_time_stamp () - delta;
+
+  delta = btor_time_stamp ();
+  btor_sat_aux_btor_dual_prop (clone);
+  assert (clone->last_sat_result == BTOR_UNSAT);
+  btor->time.search_init_apps_sat += btor_time_stamp () - delta;
+
+  /* partial assignment via failed assumptions of dual clone */
+  delta = btor_time_stamp ();
+  init_node_map_iterator (&nit, assumptions);
+  while (has_next_node_map_iterator (&nit))
+    {
+      bv_eq = next_node_map_iterator (&nit);
+      cur_clone = btor_mapped_node (assumptions, bv_eq);
+      assert (cur_clone);
+      /* Note: node mapping is normalized, revert */
+      if (BTOR_IS_INVERTED_NODE (cur_clone))
+       { 
+	 bv_eq = BTOR_INVERT_NODE (bv_eq);
+	 cur_clone = BTOR_INVERT_NODE (cur_clone);
+       }
+      cur_btor = btor_mapped_node (key_map, cur_clone);
+      assert (cur_btor);
+      assert (BTOR_IS_REGULAR_NODE (cur_btor));
+      assert (BTOR_IS_BV_VAR_NODE (cur_btor) || BTOR_IS_APPLY_NODE (cur_btor));
+
+      if (BTOR_IS_BV_VAR_NODE (cur_btor))
+	btor->stats.dp_assumed_vars += 1;
+      else
+	btor->stats.dp_assumed_applies += 1;
+
+      if (btor_failed_exp (clone, bv_eq))
+	{
+	  BTORLOG ("failed: %s", node2string (cur_btor));
+	  assert (!cur_btor->parameterized);
+	  if (BTOR_IS_BV_VAR_NODE (cur_btor))
+	    btor->stats.dp_failed_vars += 1;
+	  else
+	    {
+	      assert (BTOR_IS_APPLY_NODE (cur_btor));
+	      if (cur_btor->aux_mark) continue;
+	      btor->stats.dp_failed_applies += 1;
+	      cur_btor->aux_mark = 1;
+	      BTOR_PUSH_STACK (btor->mm, unmark_stack, cur_btor);
+	      BTORLOG ("initial apply: %s", node2string (cur_btor));
+	      BTORLOG ("  nodes below: %d", 
+		       count_nodes_below (btor, cur_btor, &lam, &app));
+	      BTORLOG ("    -> lambdas below: %d", lam);
+	      BTORLOG ("    -> applies below: %d", app);
+	      BTORLOG ("  nodes above: %d", 
+		       count_nodes_above (btor, cur_btor, &lam, &app));
+	      BTORLOG ("    -> lambdas above: %d", lam);
+	      BTORLOG ("    -> applies above: %d", app);
+#ifndef MARK_FOR_CC
+	      BTOR_PUSH_STACK (btor->mm, *top_applies, cur_btor);
+#else
+	      cur_btor->check = 1;
+#endif
+	    }
+	}
+    }
+
+  btor->time.search_init_apps_collect_fa += btor_time_stamp () - delta;
+
+#ifdef MARK_FOR_CC
+  search_initial_applies (btor, top_applies, 1);
+#endif
+
+  /* cleanup */ 
+  while (!BTOR_EMPTY_STACK (unmark_stack))
+    {
+      cur_btor = BTOR_POP_STACK (unmark_stack);
+      cur_btor->aux_mark = 0;
+#ifdef MARK_FOR_CC
+      cur_btor->check = 0;
+#endif
+    }
+  BTOR_RELEASE_STACK (btor->mm, stack);
+  BTOR_RELEASE_STACK (btor->mm, unmark_stack);
+  BTOR_RELEASE_STACK (btor->mm, inputs);
+  btor_delete_node_map (key_map);
+  btor_delete_node_map (assumptions);
+
+  btor->time.search_init_apps += btor_time_stamp () - start;
+}
+#endif
+
+static void
+assume_inputs (Btor *btor,
+               Btor *clone,
+               BtorNodePtrStack *inputs,
+               BtorNodeMap *exp_map,
+               BtorNodeMap *key_map,
+               BtorNodeMap *assumptions)
+{
+  assert (btor);
+  assert (clone);
+  assert (inputs);
+  assert (exp_map);
+  assert (key_map);
+  assert (key_map->table->count == 0);
+  assert (assumptions);
+
+  char *astr, *pastr;
+  int i, j, from, to, upper, lower;
+  BtorNode *cur_btor, *cur_clone, *bv_const, *bv_eq, *slice;
+
+  for (j = 0; j < BTOR_COUNT_STACK (*inputs); j++)
   {
-    cur_btor  = BTOR_PEEK_STACK (inputs, j);
+    cur_btor  = BTOR_PEEK_STACK (*inputs, j);
     cur_clone = btor_mapped_node (exp_map, cur_btor);
     assert (cur_clone);
     assert (BTOR_IS_REGULAR_NODE (cur_clone));
@@ -5819,19 +5973,36 @@ search_initial_applies_dual_prop (Btor *btor,
     btor_release_bv_assignment_str (btor, astr);
     BTOR_DELETEN (btor->mm, pastr, cur_btor->len + 1);
   }
-  btor->time.search_init_apps_collect_var_apps += btor_time_stamp () - delta;
+}
 
-  delta = btor_time_stamp ();
-  btor_sat_aux_btor_dual_prop (clone);
-  assert (clone->last_sat_result == BTOR_UNSAT);
-  btor->time.search_init_apps_sat += btor_time_stamp () - delta;
+static void
+collect_applies (Btor *btor,
+                 Btor *clone,
+                 BtorNodeMap *key_map,
+                 BtorNodeMap *assumptions,
+                 BtorNodePtrStack *top_applies)
+{
+  assert (btor);
+  assert (clone);
+  assert (key_map);
+  assert (assumptions);
 
-  /* partial assignment via failed assumptions of dual clone */
-  delta = btor_time_stamp ();
-  init_node_map_iterator (&nit, assumptions);
-  while (has_next_node_map_iterator (&nit))
+  double start;
+  BtorNode *cur_btor, *cur_clone, *bv_eq;
+  BtorNodePtrStack unmark_stack;
+  BtorNodeMapIterator it;
+#ifndef NBTORLOG
+  int lam, app;
+#endif
+
+  start = btor_time_stamp ();
+
+  BTOR_INIT_STACK (unmark_stack);
+
+  init_node_map_iterator (&it, assumptions);
+  while (has_next_node_map_iterator (&it))
   {
-    bv_eq     = next_node_map_iterator (&nit);
+    bv_eq     = next_node_map_iterator (&it);
     cur_clone = btor_mapped_node (assumptions, bv_eq);
     assert (cur_clone);
     /* Note: node mapping is normalized, revert */
@@ -5872,35 +6043,178 @@ search_initial_applies_dual_prop (Btor *btor,
                  count_nodes_above (btor, cur_btor, &lam, &app));
         BTORLOG ("    -> lambdas above: %d", lam);
         BTORLOG ("    -> applies above: %d", app);
-#ifndef MARK_FOR_CC
         BTOR_PUSH_STACK (btor->mm, *top_applies, cur_btor);
-#else
-        cur_btor->check = 1;
-#endif
       }
     }
   }
 
-  btor->time.search_init_apps_collect_fa += btor_time_stamp () - delta;
+  while (!BTOR_EMPTY_STACK (unmark_stack))
+    BTOR_POP_STACK (unmark_stack)->aux_mark = 0;
+  BTOR_RELEASE_STACK (btor->mm, unmark_stack);
 
-#ifdef MARK_FOR_CC
-  search_initial_applies (btor, top_applies, 1);
-#endif
+  btor->time.search_init_apps_collect_fa += btor_time_stamp () - start;
+}
+
+static void
+set_up_dual_and_collect (Btor *btor,
+                         Btor *clone,
+                         BtorNode *clone_root,
+                         BtorNodeMap *exp_map,
+                         BtorNodePtrStack *inputs,
+                         BtorNodePtrStack *top_applies,
+                         int (*dp_cmp_inputs) (const void *, const void *))
+{
+  assert (btor);
+  assert (clone);
+  assert (clone_root);
+  assert (exp_map);
+  assert (inputs);
+  assert (top_applies);
+  assert (dp_cmp_inputs);
+
+  double delta;
+  BtorNodeMap *assumptions, *key_map;
+
+  delta = btor_time_stamp ();
+
+  assumptions = btor_new_node_map (btor);
+  key_map     = btor_new_node_map (btor);
+
+  /* assume root */
+  btor_assume_exp (clone, BTOR_INVERT_NODE (clone_root));
+
+  /* assume assignments of bv vars and applies, partial assignments are
+   * assumed as partial assignment (as slice on resp. var/apply) */
+  qsort (inputs->start,
+         BTOR_COUNT_STACK (*inputs),
+         sizeof (BtorNode *),
+         dp_cmp_inputs);
+  assume_inputs (btor, clone, inputs, exp_map, key_map, assumptions);
+  btor->time.search_init_apps_collect_var_apps += btor_time_stamp () - delta;
+
+  /* let solver determine failed assumptions */
+  delta = btor_time_stamp ();
+  btor_sat_aux_btor_dual_prop (clone);
+  assert (clone->last_sat_result == BTOR_UNSAT);
+  btor->time.search_init_apps_sat += btor_time_stamp () - delta;
+
+  /* extract partial model via failed assumptions */
+  collect_applies (btor, clone, key_map, assumptions, top_applies);
+
+  btor_delete_node_map (assumptions);
+  btor_delete_node_map (key_map);
+}
+
+static void
+search_initial_applies_dual_prop (Btor *btor,
+                                  Btor *clone,
+                                  BtorNode *clone_root,
+                                  BtorNodeMap *exp_map,
+                                  BtorNodePtrStack *top_applies)
+{
+  assert (btor);
+  assert (clone);
+  assert (clone_root);
+  assert (exp_map);
+  assert (top_applies);
+  assert (check_id_table_aux_mark_unset_dbg (btor));
+
+  double start;
+  int i;
+  BtorNode *cur;
+  BtorNodePtrStack stack, unmark_stack, inputs;
+  BtorHashTableIterator it;
+  BtorSATMgr *smgr;
+
+  start = btor_time_stamp ();
+
+  BTORLOG ("");
+  BTORLOG ("*** search initial applies");
+
+  btor->stats.dp_failed_vars     = 0;
+  btor->stats.dp_assumed_vars    = 0;
+  btor->stats.dp_failed_applies  = 0;
+  btor->stats.dp_assumed_applies = 0;
+
+  smgr = btor_get_sat_mgr_aig_mgr (btor_get_aig_mgr_aigvec_mgr (btor->avmgr));
+  if (!smgr->inc_required) return;
+
+  BTOR_INIT_STACK (stack);
+  BTOR_INIT_STACK (unmark_stack);
+  BTOR_INIT_STACK (inputs);
+
+  init_node_hash_table_iterator (&it, btor->synthesized_constraints);
+  queue_node_hash_table_iterator (&it, btor->assumptions);
+  while (has_next_node_hash_table_iterator (&it))
+  {
+    cur = next_node_hash_table_iterator (&it);
+    BTOR_PUSH_STACK (btor->mm, stack, cur);
+
+    while (!BTOR_EMPTY_STACK (stack))
+    {
+      cur = BTOR_REAL_ADDR_NODE (BTOR_POP_STACK (stack));
+
+      if (cur->aux_mark) continue;
+
+      cur->aux_mark = 1;
+      BTOR_PUSH_STACK (btor->mm, unmark_stack, cur);
+
+      if (BTOR_IS_BV_VAR_NODE (cur) || BTOR_IS_APPLY_NODE (cur))
+      {
+        assert (BTOR_IS_SYNTH_NODE (cur));
+        BTOR_PUSH_STACK (btor->mm, inputs, cur);
+        continue;
+      }
+
+      for (i = 0; i < cur->arity; i++)
+        BTOR_PUSH_STACK (btor->mm, stack, cur->e[i]);
+    }
+  }
 
   /* cleanup */
   while (!BTOR_EMPTY_STACK (unmark_stack))
+    BTOR_POP_STACK (unmark_stack)->aux_mark = 0;
+
+  if (!btor->dp_cmp_inputs)
   {
-    cur_btor           = BTOR_POP_STACK (unmark_stack);
-    cur_btor->aux_mark = 0;
-#ifdef MARK_FOR_CC
-    cur_btor->check = 0;
-#endif
+    /* try different strategies and determine best */
+    BtorNodePtrStack tmp_asc, tmp_desc;
+    BTOR_INIT_STACK (tmp_asc);
+    BTOR_INIT_STACK (tmp_desc);
+
+    set_up_dual_and_collect (
+        btor, clone, clone_root, exp_map, &inputs, &tmp_desc, cmp_node_id_desc);
+    set_up_dual_and_collect (
+        btor, clone, clone_root, exp_map, &inputs, &tmp_asc, cmp_node_id_asc);
+
+    if (BTOR_COUNT_STACK (tmp_asc) < BTOR_COUNT_STACK (tmp_desc))
+    {
+      btor->dp_cmp_inputs = cmp_node_id_asc;
+      for (i = 0; i < BTOR_COUNT_STACK (tmp_asc); i++)
+        BTOR_PUSH_STACK (btor->mm, *top_applies, BTOR_PEEK_STACK (tmp_asc, i));
+    }
+    else
+    {
+      btor->dp_cmp_inputs = cmp_node_id_desc;
+      for (i = 0; i < BTOR_COUNT_STACK (tmp_desc); i++)
+        BTOR_PUSH_STACK (btor->mm, *top_applies, BTOR_PEEK_STACK (tmp_desc, i));
+    }
+
+    BTOR_RELEASE_STACK (btor->mm, tmp_asc);
+    BTOR_RELEASE_STACK (btor->mm, tmp_desc);
   }
+  else
+    set_up_dual_and_collect (btor,
+                             clone,
+                             clone_root,
+                             exp_map,
+                             &inputs,
+                             top_applies,
+                             btor->dp_cmp_inputs);
+
   BTOR_RELEASE_STACK (btor->mm, stack);
   BTOR_RELEASE_STACK (btor->mm, unmark_stack);
   BTOR_RELEASE_STACK (btor->mm, inputs);
-  btor_delete_node_map (key_map);
-  btor_delete_node_map (assumptions);
 
   btor->time.search_init_apps += btor_time_stamp () - start;
 }
