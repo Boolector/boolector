@@ -8904,6 +8904,11 @@ BTOR_CONFLICT_CHECK:
       search_initial_applies (btor, &top_applies, 0);
   }
 
+  qsort (inputs->start,
+         BTOR_COUNT_STACK (*inputs),
+         sizeof (BtorNode *),
+         cmp_node_id_desc);
+
   while (!BTOR_EMPTY_STACK (*tmp_stack))
   {
     fun = BTOR_POP_STACK (*tmp_stack);
