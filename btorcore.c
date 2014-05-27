@@ -8904,8 +8904,8 @@ BTOR_CONFLICT_CHECK:
       search_initial_applies (btor, &top_applies, 0);
   }
 
-  qsort (inputs->start,
-         BTOR_COUNT_STACK (*inputs),
+  qsort (top_applies.start,
+         BTOR_COUNT_STACK (top_applies),
          sizeof (BtorNode *),
          cmp_node_id_desc);
 
