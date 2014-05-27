@@ -57,6 +57,13 @@
 
 //#define BTOR_JUST_BRANCH_MIN_DEPTH
 
+#define DP_QSORT_JUST 0
+#define DP_QSORT_ASC 1
+#define DP_QSORT_DESC 2
+#define DP_QSORT_ASC_DESC_FIRST 3
+#define DP_QSORT_ASC_DESC_ALW 4
+#define DP_QSORT DP_QSORT_ASC
+
 /*------------------------------------------------------------------------*/
 
 #define BTOR_INIT_UNIQUE_TABLE(mm, table) \
@@ -6175,7 +6182,26 @@ search_initial_applies_dual_prop (Btor *btor,
   while (!BTOR_EMPTY_STACK (unmark_stack))
     BTOR_POP_STACK (unmark_stack)->aux_mark = 0;
 
+#if DP_QSORT == DP_QSORT_JUST
+  compute_scores (btor);
+  set_up_dual_and_collect (btor,
+                           clone,
+                           clone_root,
+                           exp_map,
+                           &inputs,
+                           top_applies,
+                           compare_scores_qsort);
+#elif DP_QSORT == DP_QSORT_ASC
+  set_up_dual_and_collect (
+      btor, clone, clone_root, exp_map, &inputs, top_applies, cmp_node_id_asc);
+#elif DP_QSORT == DP_QSORT_DESC
+  set_up_dual_and_collect (
+      btor, clone, clone_root, exp_map, &inputs, top_applies, cmp_node_id_desc);
+#else
+
+#if DP_QSORT_ASC_DESC_FIRST
   if (!btor->dp_cmp_inputs)
+#endif
   {
     /* try different strategies and determine best */
     BtorNodePtrStack tmp_asc, tmp_desc;
@@ -6203,6 +6229,7 @@ search_initial_applies_dual_prop (Btor *btor,
     BTOR_RELEASE_STACK (btor->mm, tmp_asc);
     BTOR_RELEASE_STACK (btor->mm, tmp_desc);
   }
+#if DP_QSORT_ASC_DESC_FIRST
   else
     set_up_dual_and_collect (btor,
                              clone,
@@ -6211,6 +6238,8 @@ search_initial_applies_dual_prop (Btor *btor,
                              &inputs,
                              top_applies,
                              btor->dp_cmp_inputs);
+#endif
+#endif
 
   BTOR_RELEASE_STACK (btor->mm, stack);
   BTOR_RELEASE_STACK (btor->mm, unmark_stack);
