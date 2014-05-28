@@ -67,6 +67,7 @@
   {                                            \
     BTOR_INIT_UNIQUE_TABLE (mm, table);        \
     table.mm = mm;                             \
+    table.id = 1;                              \
   } while (0)
 
 #define BTOR_ABORT_CORE(cond, msg)                   \
@@ -955,6 +956,9 @@ btor_new_btor (void)
       btor_new_ptr_hash_table (mm,
                                (BtorHashPtr) btor_hash_exp_by_id,
                                (BtorCmpPtr) btor_compare_exp_by_id);
+  btor->uf      = btor_new_ptr_hash_table (mm,
+                                      (BtorHashPtr) btor_hash_exp_by_id,
+                                      (BtorCmpPtr) btor_compare_exp_by_id);
   btor->lambdas = btor_new_ptr_hash_table (mm,
                                            (BtorHashPtr) btor_hash_exp_by_id,
                                            (BtorCmpPtr) btor_compare_exp_by_id);
@@ -1023,6 +1027,8 @@ btor_delete_btor (Btor *btor)
   BtorPtrHashBucket *b, *b_app;
   BtorMemMgr *mm;
   BtorNode *exp;
+  BtorSort *sort;
+  BtorSortPtrStack sorts;
 
   mm = btor->mm;
 
@@ -1115,6 +1121,22 @@ btor_delete_btor (Btor *btor)
         assert (!BTOR_PEEK_STACK (btor->nodes_id_table, i));
 #endif
   }
+
+  if (btor->options.force_cleanup)
+  {
+    BTOR_INIT_STACK (sorts);
+    btor_sorts_list_sort (mm, &btor->sorts_unique_table, &sorts);
+    for (i = BTOR_COUNT_STACK (sorts) - 1; i >= 0; i--)
+    {
+      sort = BTOR_PEEK_STACK (sorts, i);
+      assert (sort->ext_refs <= sort->refs);
+      sort->refs -= sort->ext_refs;
+      assert (sort->refs > 0);
+      sort->ext_refs = 0;
+      btor_release_sort (&btor->sorts_unique_table, sort);
+    }
+    BTOR_RELEASE_STACK (mm, sorts);
+  }
 #ifndef NDEBUG
   BtorNode *cur;
   if (btor->nodes_unique_table.num_elements)
@@ -1135,6 +1157,7 @@ btor_delete_btor (Btor *btor)
 
   btor_delete_ptr_hash_table (btor->bv_vars);
   btor_delete_ptr_hash_table (btor->array_vars);
+  btor_delete_ptr_hash_table (btor->uf);
   btor_delete_ptr_hash_table (btor->lambdas);
   btor_delete_ptr_hash_table (btor->parameterized);
 
@@ -2375,6 +2398,7 @@ rebuild_exp (Btor *btor, BtorNode *exp)
     case BTOR_BV_VAR_NODE:
     case BTOR_ARRAY_VAR_NODE:
     case BTOR_PARAM_NODE:
+    case BTOR_UF_NODE:
       return btor_copy_exp (btor, btor_simplify_exp (btor, exp));
     case BTOR_SLICE_NODE:
       return btor_slice_exp (btor, exp->e[0], exp->upper, exp->lower);
@@ -5152,6 +5176,7 @@ search_initial_applies (Btor *btor, BtorNodePtrStack *top_applies)
   BTOR_INIT_STACK (top);
 
   init_node_hash_table_iterator (&it, btor->array_vars);
+  queue_node_hash_table_iterator (&it, btor->uf);
   queue_node_hash_table_iterator (&it, btor->lambdas);
 
   while (has_next_node_hash_table_iterator (&it))
@@ -6719,10 +6744,10 @@ propagate (Btor *btor,
     btor_insert_in_ptr_hash_table (fun->rho, args)->data.asPtr = app;
     BTORLOG ("  save app: %s (%s)", node2string (args), node2string (app));
 
-    /* skip array vars */
+    /* skip array vars/uf */
     if (!BTOR_IS_LAMBDA_NODE (fun))
     {
-      assert (BTOR_IS_ARRAY_VAR_NODE (fun));
+      assert (BTOR_IS_ARRAY_VAR_NODE (fun) || BTOR_IS_UF_NODE (fun));
       push_applies_for_propagation (btor, app, 0, prop_stack);
       continue;
     }
@@ -7325,7 +7350,7 @@ btor_fun_sort_check (Btor *btor, int argc, BtorNode **args, BtorNode *fun)
   assert (args);
   assert (fun);
   assert (BTOR_IS_REGULAR_NODE (fun));
-  assert (BTOR_IS_LAMBDA_NODE (fun));
+  assert (btor_is_fun_exp (btor, fun));
   assert (argc == btor_get_fun_arity (btor, fun));
 
   int i;
@@ -7333,16 +7358,24 @@ btor_fun_sort_check (Btor *btor, int argc, BtorNode **args, BtorNode *fun)
   BtorParamNode *param;
   BtorNodeIterator it;
 
-  init_lambda_iterator (&it, fun);
-
-  for (i = 0; i < argc; i++)
+  if (BTOR_IS_LAMBDA_NODE (fun))
   {
-    assert (has_next_lambda_iterator (&it));
-    arg   = BTOR_REAL_ADDR_NODE (args[i]);
-    param = BTOR_LAMBDA_GET_PARAM (next_lambda_iterator (&it));
-    assert (BTOR_IS_REGULAR_NODE (param));
+    init_lambda_iterator (&it, fun);
 
-    if (arg->len != param->len) return i;
+    for (i = 0; i < argc; i++)
+    {
+      assert (has_next_lambda_iterator (&it));
+      arg   = BTOR_REAL_ADDR_NODE (args[i]);
+      param = BTOR_LAMBDA_GET_PARAM (next_lambda_iterator (&it));
+      assert (BTOR_IS_REGULAR_NODE (param));
+
+      if (arg->len != param->len) return i;
+    }
+  }
+  else
+  {
+    assert (BTOR_IS_UF_NODE (fun));
+    // TODO: check sort
   }
   return -1;
 }
@@ -8080,7 +8113,8 @@ rebuild_formula (Btor *btor, int rewrite_level)
     if (cur->arity == 0)
     {
       assert (BTOR_IS_BV_VAR_NODE (cur) || BTOR_IS_ARRAY_VAR_NODE (cur)
-              || BTOR_IS_BV_CONST_NODE (cur) || BTOR_IS_PARAM_NODE (cur));
+              || BTOR_IS_BV_CONST_NODE (cur) || BTOR_IS_PARAM_NODE (cur)
+              || BTOR_IS_UF_NODE (cur));
       btor_insert_in_ptr_hash_table (t, cur);
     }
   }

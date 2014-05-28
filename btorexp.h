@@ -18,6 +18,7 @@
 #include "btoraigvec.h"
 #include "btorhash.h"
 #include "btorqueue.h"
+#include "btorsort.h"
 #include "btorstack.h"
 
 /*------------------------------------------------------------------------*/
@@ -71,8 +72,9 @@ enum BtorNodeKind
   BTOR_LAMBDA_NODE    = 18, /* lambda expression */
   BTOR_BCOND_NODE     = 19, /* conditional on bit vectors */
   BTOR_ARGS_NODE      = 20,
-  BTOR_PROXY_NODE     = 21, /* simplified expression without children */
-  BTOR_NUM_OPS_NODE   = 22
+  BTOR_UF_NODE        = 21,
+  BTOR_PROXY_NODE     = 22, /* simplified expression without children */
+  BTOR_NUM_OPS_NODE   = 23
 };
 
 typedef enum BtorNodeKind BtorNodeKind;
@@ -164,6 +166,16 @@ struct BtorArrayVarNode
 
 typedef struct BtorArrayVarNode BtorArrayVarNode;
 
+struct BtorUFNode
+{
+  BTOR_BV_NODE_STRUCT;
+  char *symbol;
+  BtorSort *sort;
+  int num_params;
+};
+
+typedef struct BtorUFNode BtorUFNode;
+
 struct BtorBVConstNode
 {
   BTOR_BV_NODE_STRUCT;
@@ -233,6 +245,8 @@ typedef struct BtorArgsNode BtorArgsNode;
 
 #define BTOR_IS_LAMBDA_NODE_KIND(kind) ((kind) == BTOR_LAMBDA_NODE)
 
+#define BTOR_IS_UF_NODE_KIND(kind) ((kind) == BTOR_UF_NODE)
+
 #define BTOR_IS_ARGS_NODE_KIND(kind) ((kind) == BTOR_ARGS_NODE)
 
 #define BTOR_IS_APPLY_NODE_KIND(kind) ((kind) == BTOR_APPLY_NODE)
@@ -276,6 +290,8 @@ typedef struct BtorArgsNode BtorArgsNode;
 
 #define BTOR_IS_LAMBDA_NODE(exp) \
   ((exp) && BTOR_IS_LAMBDA_NODE_KIND ((exp)->kind))
+
+#define BTOR_IS_UF_NODE(exp) ((exp) && BTOR_IS_UF_NODE_KIND ((exp)->kind))
 
 #define BTOR_IS_ARGS_NODE(exp) ((exp) && BTOR_IS_ARGS_NODE_KIND ((exp)->kind))
 
@@ -342,8 +358,9 @@ typedef struct BtorArgsNode BtorArgsNode;
   (BTOR_IS_LAMBDA_NODE (exp)              \
    && (((BtorLambdaNode *) exp)->head == (BtorLambdaNode *) exp))
 
-#define BTOR_IS_FUN_NODE(exp) \
-  (BTOR_IS_LAMBDA_NODE (exp) || BTOR_IS_ARRAY_VAR_NODE (exp))
+#define BTOR_IS_FUN_NODE(exp)                                \
+  (BTOR_IS_LAMBDA_NODE (exp) || BTOR_IS_ARRAY_VAR_NODE (exp) \
+   || BTOR_IS_UF_NODE (exp))
 
 #define BTOR_IS_BOUND_PARAM_NODE(exp) (((BtorParamNode *) exp)->lambda_exp != 0)
 
@@ -459,6 +476,10 @@ BtorNode *btor_array_exp (Btor *btor,
                           int elem_len,
                           int index_len,
                           const char *symbol);
+
+/* Uninterpreted function with sort 'sort'.
+ */
+BtorNode *btor_uf_exp (Btor *btor, BtorSort *sort, const char *symbol);
 
 /* One's complement.
  * len(result) = len(exp)
