@@ -62,7 +62,7 @@
 #define DP_QSORT_DESC 2
 #define DP_QSORT_ASC_DESC_FIRST 3
 #define DP_QSORT_ASC_DESC_ALW 4
-#define DP_QSORT DP_QSORT_ASC
+#define DP_QSORT DP_QSORT_JUST
 
 /*------------------------------------------------------------------------*/
 
@@ -6421,7 +6421,7 @@ compare_scores (Btor *btor, BtorNode *a, BtorNode *b)
 }
 
 static void
-compute_scores (Btor *btor)
+compute_scores_aux (Btor *btor, BtorHashTableIterator *it)
 {
   assert (btor);
   assert (check_id_table_aux_mark_unset_dbg (btor));
@@ -6431,7 +6431,7 @@ compute_scores (Btor *btor)
   BtorPtrHashBucket *b;
   BtorPtrHashTable *score, *t, *min_t, *in;
   BtorNodePtrStack stack, unmark_stack;
-  BtorHashTableIterator it, iit;
+  BtorHashTableIterator iit;
 
   BTOR_INIT_STACK (stack);
   BTOR_INIT_STACK (unmark_stack);
@@ -6444,11 +6444,9 @@ compute_scores (Btor *btor)
   }
   score = btor->score;
 
-  init_node_hash_table_iterator (&it, btor->synthesized_constraints);
-  queue_node_hash_table_iterator (&it, btor->assumptions);
-  while (has_next_node_hash_table_iterator (&it))
+  while (has_next_node_hash_table_iterator (it))
   {
-    cur = next_node_hash_table_iterator (&it);
+    cur = next_node_hash_table_iterator (it);
     BTOR_PUSH_STACK (btor->mm, stack, cur);
 
     while (!BTOR_EMPTY_STACK (stack))
@@ -6575,14 +6573,14 @@ compute_scores (Btor *btor)
 #if 0
   printf ("count: %d\n", btor->score->count);
   cnt = 0;
-  init_node_hash_table_iterator (&it, btor->score);
-  while (has_next_node_hash_table_iterator (&it))
+  init_node_hash_table_iterator (it, btor->score);
+  while (has_next_node_hash_table_iterator (it))
     {
-      cnt += ((BtorPtrHashTable *) it.bucket->data.asPtr)->count;
+      cnt += ((BtorPtrHashTable *) it->bucket->data.asPtr)->count;
 //      printf ("cur (%d): %s\n",
-//	      ((BtorPtrHashTable *) it.bucket->data.asPtr)->count,
-//	      node2string (it.cur));
-      cur = next_node_hash_table_iterator (&it);
+//	      ((BtorPtrHashTable *) it->bucket->data.asPtr)->count,
+//	      node2string (it->cur));
+      cur = next_node_hash_table_iterator (it);
     }
   printf ("  count: %d\n", cnt);
   printf ("  avg: %.2f\n", (float) cnt / btor->score->count);
@@ -6593,6 +6591,75 @@ compute_scores (Btor *btor)
 
   while (!BTOR_EMPTY_STACK (unmark_stack))
     BTOR_POP_STACK (unmark_stack)->aux_mark = 0;
+
+  BTOR_RELEASE_STACK (btor->mm, stack);
+  BTOR_RELEASE_STACK (btor->mm, unmark_stack);
+}
+
+static void
+compute_scores (Btor *btor)
+{
+  assert (btor);
+  BtorHashTableIterator it;
+
+  init_node_hash_table_iterator (&it, btor->synthesized_constraints);
+  queue_node_hash_table_iterator (&it, btor->assumptions);
+  compute_scores_aux (btor, &it);
+}
+
+static void
+compute_scores_dual_prop (Btor *btor)
+{
+  assert (btor);
+  assert (check_id_table_aux_mark_unset_dbg (btor));
+
+  int i;
+  BtorNode *cur;
+  BtorNodePtrStack stack, unmark_stack;
+  BtorPtrHashTable *applies;
+  BtorHashTableIterator it;
+
+  BTOR_INIT_STACK (stack);
+  BTOR_INIT_STACK (unmark_stack);
+
+  applies = btor_new_ptr_hash_table (btor->mm,
+                                     (BtorHashPtr) btor_hash_exp_by_id,
+                                     (BtorCmpPtr) btor_compare_exp_by_id);
+
+  /* collect applies in bv skeleton */
+  init_node_hash_table_iterator (&it, btor->synthesized_constraints);
+  queue_node_hash_table_iterator (&it, btor->assumptions);
+  while (has_next_node_hash_table_iterator (&it))
+  {
+    cur = next_node_hash_table_iterator (&it);
+    BTOR_PUSH_STACK (btor->mm, stack, cur);
+    while (!BTOR_EMPTY_STACK (stack))
+    {
+      cur = BTOR_REAL_ADDR_NODE (BTOR_POP_STACK (stack));
+
+      if (cur->aux_mark) continue;
+
+      cur->aux_mark = 1;
+      BTOR_PUSH_STACK (btor->mm, unmark_stack, cur);
+
+      if (BTOR_IS_APPLY_NODE (cur))
+      {
+        assert (!btor_find_in_ptr_hash_table (applies, cur));
+        btor_insert_in_ptr_hash_table (applies, cur);
+        continue;
+      }
+
+      for (i = 0; i < cur->arity; i++)
+        BTOR_PUSH_STACK (btor->mm, stack, cur->e[i]);
+    }
+  }
+
+  while (!BTOR_EMPTY_STACK (unmark_stack))
+    BTOR_POP_STACK (unmark_stack)->aux_mark = 0;
+
+  /* compute scores from applies downwards */
+  init_node_hash_table_iterator (&it, applies);
+  compute_scores_aux (btor, &it);
 
   BTOR_RELEASE_STACK (btor->mm, stack);
   BTOR_RELEASE_STACK (btor->mm, unmark_stack);
