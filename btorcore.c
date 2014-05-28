@@ -1075,7 +1075,7 @@ btor_new_btor (void)
 #ifdef BTOR_CHECK_FAILED
   btor->options.chk_failed_assumptions = 1;
 #endif
-  // btor->options.dual_prop = 1; // TODO debug
+  btor->options.dual_prop = 1;  // TODO debug
   // btor->options.just = 1; // TODO debug
   btor->options.pprint                   = 1;
   btor->options.slice_propagation        = 0;
@@ -5630,6 +5630,7 @@ bv_assignment_str_exp (Btor *btor, BtorNode *exp)
 }
 
 static void compute_scores (Btor *);
+static void compute_scores_dual_prop (Btor *);
 
 static int
 compare_scores_qsort (const void *p1, const void *p2)
@@ -6183,7 +6184,7 @@ search_initial_applies_dual_prop (Btor *btor,
     BTOR_POP_STACK (unmark_stack)->aux_mark = 0;
 
 #if DP_QSORT == DP_QSORT_JUST
-  compute_scores (btor);
+  compute_scores_dual_prop (btor);
   set_up_dual_and_collect (btor,
                            clone,
                            clone_root,
@@ -6616,8 +6617,8 @@ compute_scores_dual_prop (Btor *btor)
   int i;
   BtorNode *cur;
   BtorNodePtrStack stack, unmark_stack;
-  BtorPtrHashTable *applies;
-  BtorHashTableIterator it;
+  BtorPtrHashTable *applies, *t;
+  BtorHashTableIterator it, iit;
 
   BTOR_INIT_STACK (stack);
   BTOR_INIT_STACK (unmark_stack);
@@ -6642,7 +6643,7 @@ compute_scores_dual_prop (Btor *btor)
       cur->aux_mark = 1;
       BTOR_PUSH_STACK (btor->mm, unmark_stack, cur);
 
-      if (BTOR_IS_APPLY_NODE (cur))
+      if (BTOR_IS_APPLY_NODE (cur) || BTOR_IS_BV_VAR_NODE (cur))
       {
         assert (!btor_find_in_ptr_hash_table (applies, cur));
         btor_insert_in_ptr_hash_table (applies, cur);
@@ -6661,6 +6662,24 @@ compute_scores_dual_prop (Btor *btor)
   init_node_hash_table_iterator (&it, applies);
   compute_scores_aux (btor, &it);
 
+  /* cleanup */
+  init_node_hash_table_iterator (&it, btor->score);
+  while (has_next_hash_table_iterator (&it))
+  {
+    t   = (BtorPtrHashTable *) it.bucket->data.asPtr;
+    cur = next_node_hash_table_iterator (&it);
+    assert (BTOR_IS_REGULAR_NODE (cur));
+    if (!BTOR_IS_BV_VAR_NODE (cur) && !BTOR_IS_APPLY_NODE (cur))
+    {
+      btor_release_exp (btor, cur);
+      init_node_hash_table_iterator (&iit, t);
+      while (has_next_node_hash_table_iterator (&iit))
+        btor_release_exp (btor, next_node_hash_table_iterator (&iit));
+      btor_delete_ptr_hash_table (t);
+      btor_remove_from_ptr_hash_table (btor->score, cur, 0, 0);
+    }
+  }
+  btor_delete_ptr_hash_table (applies);
   BTOR_RELEASE_STACK (btor->mm, stack);
   BTOR_RELEASE_STACK (btor->mm, unmark_stack);
 }
