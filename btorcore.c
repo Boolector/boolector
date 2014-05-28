@@ -1075,7 +1075,7 @@ btor_new_btor (void)
 #ifdef BTOR_CHECK_FAILED
   btor->options.chk_failed_assumptions = 1;
 #endif
-  btor->options.dual_prop = 1;  // TODO debug
+  // btor->options.dual_prop = 1; // TODO debug
   // btor->options.just = 1; // TODO debug
   btor->options.pprint                   = 1;
   btor->options.slice_propagation        = 0;
