@@ -206,6 +206,48 @@ test_fun_sort (void)
 }
 
 void
+test_tuple_sort (void)
+{
+  init_sort_test ();
+  BtorSort *a, *b, *c, *d, *e[4], *t0, *t1;
+
+  a = btor_bitvec_sort (g_sorts, 53);
+  b = btor_bitvec_sort (g_sorts, 7);
+  c = btor_bool_sort (g_sorts);
+  d = btor_array_sort (g_sorts, b, a);
+
+  e[0] = a;
+  e[1] = b;
+  e[2] = c;
+  e[3] = d;
+
+  t0 = btor_tuple_sort (g_sorts, e, 4);
+  t1 = btor_tuple_sort (g_sorts, e, 4);
+  assert (t0 == t1);
+  btor_release_sort (g_sorts, t1);
+
+  e[0] = d;
+  e[1] = c;
+  e[2] = b;
+  e[3] = a;
+  t1   = btor_tuple_sort (g_sorts, e, 4);
+  assert (t1 != t0);
+
+  btor_release_sort (g_sorts, t0);
+  t0 = btor_tuple_sort (g_sorts, e, 3);
+  assert (t0 != t1);
+
+  btor_release_sort (g_sorts, a);
+  btor_release_sort (g_sorts, b);
+  btor_release_sort (g_sorts, c);
+  btor_release_sort (g_sorts, d);
+  btor_release_sort (g_sorts, t0);
+  btor_release_sort (g_sorts, t1);
+
+  finish_sort_test ();
+}
+
+void
 run_sort_tests (int argc, char **argv)
 {
   BTOR_RUN_TEST (bool_sort);
@@ -213,6 +255,7 @@ run_sort_tests (int argc, char **argv)
   BTOR_RUN_TEST (array_sort);
   BTOR_RUN_TEST (lst_sort);
   BTOR_RUN_TEST (fun_sort);
+  BTOR_RUN_TEST (tuple_sort);
 }
 
 void
