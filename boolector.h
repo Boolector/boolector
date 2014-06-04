@@ -282,6 +282,10 @@ void boolector_enable_beta_reduce_all (Btor *btor);
  */
 void boolector_enable_force_cleanup (Btor *btor);
 
+#ifndef BTOR_DO_NOT_OPTIMIZE_UNCONSTRAINED
+void boolector_enable_ucopt (Btor *btor);
+#endif
+
 /*------------------------------------------------------------------------*/
 
 /**

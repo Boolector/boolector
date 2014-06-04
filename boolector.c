@@ -206,6 +206,9 @@ btor_chkclone_state (Btor *btor)
 #endif
   BTOR_CHKCLONE_STATE (options.model_gen);
   BTOR_CHKCLONE_STATE (options.pprint);
+#ifndef BTOR_DO_NOT_OPTIMIZE_UNCONSTRAINED
+  BTOR_CHKCLONE_STATE (options.ucopt);
+#endif
   BTOR_CHKCLONE_STATE (options.rewrite_level);
   BTOR_CHKCLONE_STATE (options.simplify_constraints);
   BTOR_CHKCLONE_STATE (options.slice_propagation);
@@ -1112,6 +1115,19 @@ boolector_enable_force_cleanup (Btor *btor)
   BTOR_CHKCLONE_NORES (enable_force_cleanup);
 #endif
 }
+
+#ifndef BTOR_DO_NOT_OPTIMIZE_UNCONSTRAINED
+void
+boolector_enable_ucopt (Btor *btor)
+{
+  BTOR_ABORT_ARG_NULL_BOOLECTOR (btor);
+  BTOR_TRAPI ("enable_ucopt");
+  btor_enable_ucopt (btor);
+#ifndef NDEBUG
+  BTOR_CHKCLONE_NORES (enable_ucopt);
+#endif
+}
+#endif
 
 void
 boolector_set_verbosity (Btor *btor, int verbosity)

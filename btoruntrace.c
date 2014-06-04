@@ -383,6 +383,13 @@ NEXT:
     PARSE_ARGS0 (tok);
     boolector_enable_force_cleanup (btor);
   }
+#ifndef BTOR_DO_NOT_OPTIMIZE_UNCONSTRAINED
+  else if (!strcmp (tok, "enable_ucopt"))
+  {
+    PARSE_ARGS0 (tok);
+    boolector_enable_ucopt (btor);
+  }
+#endif
   else if (!strcmp (tok, "set_verbosity"))
   {
     PARSE_ARGS1 (tok, int);
