@@ -2742,10 +2742,12 @@ btor_parse_bitvec_sort_smt2 (BtorSMT2Parser *parser, int skiplu, int *resptr)
 static int
 btor_declare_fun_smt2 (BtorSMT2Parser *parser)
 {
-  int tag, domain, width;
+  int i, tag, domain, width;
+  BtorIntStack args;
   BtorSMT2Node *fun;
   fun   = 0;
   width = domain = 0;
+
   if (!btor_read_symbol (parser, " after 'declare-fun'", &fun)) return 0;
   assert (fun && fun->tag == BTOR_SYMBOL_TAG_SMT2);
   if (fun->coo.x)
@@ -2756,49 +2758,149 @@ btor_declare_fun_smt2 (BtorSMT2Parser *parser)
                             fun->coo.y);
   fun->coo = parser->coo;
   if (!btor_read_lpar_smt2 (parser, " after function name")) return 0;
-  if (!btor_read_rpar_smt2 (parser,
-                            " (only constants and no uninterpreted functions "
-                            "are supported) after '('"))
-    return 0;
+
+  BTOR_INIT_STACK (args);
+SORTED_VAR:
   tag = btor_read_token_smt2 (parser);
-  if (tag == BTOR_INVALID_TAG_SMT2) return 0;
+  if (tag == BTOR_LPAR_TAG_SMT2)
+  {
+    tag = btor_read_token_smt2 (parser);
+    if (tag != BTOR_UNDERSCORE_TAG_SMT2)
+    {
+      BTOR_RELEASE_STACK (parser->mem, args);
+      return !btor_perr_smt2 (parser, " exptected '_'");
+    }
+    if (!btor_parse_bitvec_sort_smt2 (parser, 1, &width))
+    {
+      BTOR_RELEASE_STACK (parser->mem, args);
+      return 0;
+    }
+    BTOR_PUSH_STACK (parser->mem, args, width);
+    goto SORTED_VAR;
+  }
+  if (tag != BTOR_RPAR_TAG_SMT2)
+  {
+    BTOR_RELEASE_STACK (parser->mem, args);
+    return !btor_perr_smt2 (parser, " expected ')'");
+  }
+  //  if (!btor_read_rpar_smt2 (parser,
+  //  " (only constants and no uninterpreted functions are supported) after
+  //  '('"))
+  //    return 0;
+  tag = btor_read_token_smt2 (parser);
+  if (tag == BTOR_INVALID_TAG_SMT2)
+  {
+    BTOR_RELEASE_STACK (parser->mem, args);
+    return 0;
+  }
   if (tag == EOF)
+  {
+    BTOR_RELEASE_STACK (parser->mem, args);
     return !btor_perr_smt2 (parser,
                             "reached end-of-file but expected '(' or 'Bool'");
+  }
   if (tag == BTOR_BOOL_TAG_SMT2)
   {
     width = 1;
     goto BITVEC;
   }
   else if (tag != BTOR_LPAR_TAG_SMT2)
+  {
+    BTOR_RELEASE_STACK (parser->mem, args);
     return !btor_perr_smt2 (
         parser, "expected '(' or 'Bool' at '%s'", parser->token.start);
+  }
   tag = btor_read_token_smt2 (parser);
-  if (tag == BTOR_INVALID_TAG_SMT2) return 0;
+  if (tag == BTOR_INVALID_TAG_SMT2)
+  {
+    BTOR_RELEASE_STACK (parser->mem, args);
+    return 0;
+  }
   if (tag == EOF)
+  {
+    BTOR_RELEASE_STACK (parser->mem, args);
     return !btor_perr_smt2 (parser,
                             "reached end-of-file expecting '_' or 'Array'");
+  }
   if (tag == BTOR_UNDERSCORE_TAG_SMT2)
   {
-    if (!btor_parse_bitvec_sort_smt2 (parser, 1, &width)) return 0;
+    if (!btor_parse_bitvec_sort_smt2 (parser, 1, &width))
+    {
+      BTOR_RELEASE_STACK (parser->mem, args);
+      return 0;
+    }
   BITVEC:
-    fun->exp = boolector_var (parser->btor, width, fun->name);
-    btor_msg_smt2 (
-        parser,
-        2,
-        "declared '%s' as bit-vector of width %d at line %d column %d",
-        fun->name,
-        width,
-        fun->coo.x,
-        fun->coo.y);
+    if (!BTOR_EMPTY_STACK (args))
+    {
+      BoolectorSort *sort, *sdomain, *scodomain;
+      BoolectorSort *tup[BTOR_COUNT_STACK (args)];
+
+      if (BTOR_COUNT_STACK (args) > 1)
+      {
+        for (i = 0; i < BTOR_COUNT_STACK (args); i++)
+          tup[i] =
+              boolector_bitvec_sort (parser->btor, BTOR_PEEK_STACK (args, i));
+
+        sdomain =
+            boolector_tuple_sort (parser->btor, tup, BTOR_COUNT_STACK (args));
+
+        for (i = 0; i < BTOR_COUNT_STACK (args); i++)
+          boolector_release_sort (parser->btor, tup[i]);
+      }
+      else
+        sdomain = boolector_bitvec_sort (parser->btor, BTOR_TOP_STACK (args));
+
+      scodomain = boolector_bitvec_sort (parser->btor, width);
+      sort      = boolector_fun_sort (parser->btor, sdomain, scodomain);
+      fun->exp  = boolector_uf (parser->btor, sort, fun->name);
+      boolector_release_sort (parser->btor, sdomain);
+      boolector_release_sort (parser->btor, scodomain);
+      boolector_release_sort (parser->btor, sort);
+      btor_msg_smt2 (
+          parser,
+          2,
+          "declared '%s' as uninterpreted function at line %d column %d",
+          fun->name,
+          fun->coo.x,
+          fun->coo.y);
+      parser->need_functions = 1;
+    }
+    else
+    {
+      fun->exp = boolector_var (parser->btor, width, fun->name);
+      btor_msg_smt2 (
+          parser,
+          2,
+          "declared '%s' as bit-vector of width %d at line %d column %d",
+          fun->name,
+          width,
+          fun->coo.x,
+          fun->coo.y);
+    }
   }
   else if (tag == BTOR_ARRAY_TAG_SMT2)
   {
+    assert (BTOR_EMPTY_STACK (args));
     if (parser->commands.set_logic && parser->res->logic == BTOR_LOGIC_QF_BV)
+    {
+      BTOR_RELEASE_STACK (parser->mem, args);
       return !btor_perr_smt2 (parser, "'Array' invalid for logic 'QF_BV'");
-    if (!btor_parse_bitvec_sort_smt2 (parser, 0, &domain)) return 0;
-    if (!btor_parse_bitvec_sort_smt2 (parser, 0, &width)) return 0;
-    if (!btor_read_rpar_smt2 (parser, " after element sort of Array")) return 0;
+    }
+    if (!btor_parse_bitvec_sort_smt2 (parser, 0, &domain))
+    {
+      BTOR_RELEASE_STACK (parser->mem, args);
+      return 0;
+    }
+    if (!btor_parse_bitvec_sort_smt2 (parser, 0, &width))
+    {
+      BTOR_RELEASE_STACK (parser->mem, args);
+      return 0;
+    }
+    if (!btor_read_rpar_smt2 (parser, " after element sort of Array"))
+    {
+      BTOR_RELEASE_STACK (parser->mem, args);
+      return 0;
+    }
     fun->exp = boolector_array (parser->btor, width, domain, fun->name);
     btor_msg_smt2 (parser,
                    2,
@@ -2812,10 +2914,14 @@ btor_declare_fun_smt2 (BtorSMT2Parser *parser)
     parser->need_functions = 1;
   }
   else
+  {
+    BTOR_RELEASE_STACK (parser->mem, args);
     return !btor_perr_smt2 (
         parser, "expected '_' or 'Array' at '%s'", parser->token.start);
+  }
   (void) boolector_copy (parser->btor, fun->exp);
   BTOR_PUSH_STACK (parser->mem, parser->inputs, fun->exp);
+  BTOR_RELEASE_STACK (parser->mem, args);
   return btor_read_rpar_smt2 (parser, " to close declaration");
 }
 

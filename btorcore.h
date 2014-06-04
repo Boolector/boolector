@@ -105,6 +105,7 @@ struct Btor
   BtorAIGVecMgr *avmgr;
   BtorPtrHashTable *bv_vars;
   BtorPtrHashTable *array_vars;
+  BtorPtrHashTable *uf;
   BtorPtrHashTable *lambdas;
   BtorPtrHashTable *substitutions;
   BtorNode *true_exp;

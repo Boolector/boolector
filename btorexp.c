@@ -273,6 +273,33 @@ btor_precond_cond_exp_dbg (const Btor *btor,
   return 1;
 }
 
+int
+btor_precond_apply_exp_dbg (const Btor *btor,
+                            const BtorNode *fun,
+                            const BtorNode *args)
+{
+  assert (btor);
+  assert (fun);
+  assert (args);
+  assert (BTOR_IS_REGULAR_NODE (fun));
+  assert (BTOR_IS_REGULAR_NODE (args));
+  assert (BTOR_IS_FUN_NODE (fun));
+  assert (BTOR_IS_ARGS_NODE (args));
+
+  assert (!BTOR_IS_ARRAY_VAR_NODE (fun)
+          || (((BtorArgsNode *) args)->num_args == 1
+              && args->len == BTOR_ARRAY_INDEX_LEN (fun)));
+  // TODO: sort check
+  assert (!BTOR_IS_UF_NODE (fun)
+          || ((BtorArgsNode *) args)->num_args
+                 == ((BtorUFNode *) fun)->num_params);
+  assert (!BTOR_IS_LAMBDA_NODE (fun)
+          || ((BtorArgsNode *) args)->num_args
+                 == ((BtorLambdaNode *) fun)->num_params);
+
+  return 1;
+}
+
 /*------------------------------------------------------------------------*/
 #endif
 /*------------------------------------------------------------------------*/
@@ -636,6 +663,9 @@ remove_from_hash_tables (Btor *btor, BtorNode *exp)
     case BTOR_LAMBDA_NODE:
       btor_remove_from_ptr_hash_table (btor->lambdas, exp, 0, 0);
       break;
+    case BTOR_UF_NODE:
+      btor_remove_from_ptr_hash_table (btor->uf, exp, 0, 0);
+      break;
     default: break;
   }
 
@@ -718,6 +748,8 @@ erase_local_data_exp (Btor *btor, BtorNode *exp, int free_symbol)
         ((BtorLambdaNode *) exp)->synth_apps = 0;
       }
       goto ERASE_LOCAL_ARRAY_RHO;
+    case BTOR_UF_NODE:
+      btor_release_sort (&btor->sorts_unique_table, ((BtorUFNode *) exp)->sort);
     case BTOR_ARRAY_VAR_NODE:
       if (free_symbol)
       {
@@ -1584,6 +1616,33 @@ btor_array_exp (Btor *btor, int elem_len, int index_len, const char *symbol)
   return (BtorNode *) exp;
 }
 
+BtorNode *
+btor_uf_exp (Btor *btor, BtorSort *sort, const char *symbol)
+{
+  assert (btor);
+  assert (sort);
+  assert (sort->kind == BTOR_FUN_SORT);
+  assert (sort->fun.codomain->kind == BTOR_BITVEC_SORT);
+
+  BtorMemMgr *mm;
+  BtorUFNode *exp;
+
+  mm = btor->mm;
+  BTOR_CNEW (mm, exp);
+  set_kind (btor, (BtorNode *) exp, BTOR_UF_NODE);
+  exp->bytes  = sizeof (*exp);
+  exp->symbol = btor_strdup (mm, symbol);
+  exp->sort   = btor_copy_sort (sort);
+  if (sort->fun.domain->kind == BTOR_TUPLE_SORT)
+    exp->num_params = sort->fun.domain->tuple.num_elements;
+  else
+    exp->num_params = 1;
+  exp->len = sort->fun.codomain->bitvec.len;
+  setup_node_and_add_to_id_table (btor, exp);
+  (void) btor_insert_in_ptr_hash_table (btor->uf, exp);
+  return (BtorNode *) exp;
+}
+
 static BtorNode *
 unary_exp_slice_exp (Btor *btor, BtorNode *exp, int upper, int lower)
 {
@@ -1987,6 +2046,7 @@ btor_apply_exp_node (Btor *btor, BtorNode *fun, BtorNode *args)
   assert (btor);
   assert (fun);
   assert (args);
+  assert (btor_precond_apply_exp_dbg (btor, fun, args));
 
   BtorNode *e[2];
   e[0] = btor_simplify_exp (btor, fun);
@@ -3225,7 +3285,13 @@ btor_is_array_exp (Btor *btor, BtorNode *exp)
   assert (btor);
   assert (exp);
   exp = btor_simplify_exp (btor, exp);
-  return BTOR_IS_FUN_NODE (BTOR_REAL_ADDR_NODE (exp));
+  // TODO: check for array sort?
+  return BTOR_IS_ARRAY_VAR_NODE (BTOR_REAL_ADDR_NODE (exp))
+         || BTOR_IS_LAMBDA_NODE (BTOR_REAL_ADDR_NODE (exp));
+  //         || (BTOR_IS_LAMBDA_NODE (BTOR_REAL_ADDR_NODE (exp))
+  //	     && ((BtorLambdaNode *) exp)->num_params == 1)
+  //	 || (BTOR_IS_UF_NODE (BTOR_REAL_ADDR_NODE (exp))
+  //	     && ((BtorUFNode *) exp)->num_params == 1);
 }
 
 int
@@ -3283,7 +3349,8 @@ btor_is_fun_exp (Btor *btor, BtorNode *exp)
   assert (btor);
   assert (exp);
   exp = btor_simplify_exp (btor, exp);
-  return BTOR_IS_LAMBDA_NODE (BTOR_REAL_ADDR_NODE (exp));
+  return BTOR_IS_LAMBDA_NODE (BTOR_REAL_ADDR_NODE (exp))
+         || BTOR_IS_UF_NODE (BTOR_REAL_ADDR_NODE (exp));
 }
 
 int
@@ -3294,8 +3361,9 @@ btor_get_fun_arity (Btor *btor, BtorNode *exp)
   assert (exp);
   exp = btor_simplify_exp (btor, exp);
   assert (BTOR_IS_REGULAR_NODE (exp));
-  assert (BTOR_IS_LAMBDA_NODE (exp));
-  return ((BtorLambdaNode *) exp)->num_params;
+  if (BTOR_IS_LAMBDA_NODE (exp)) return ((BtorLambdaNode *) exp)->num_params;
+  assert (BTOR_IS_UF_NODE (exp));
+  return ((BtorUFNode *) exp)->num_params;
 }
 
 int
