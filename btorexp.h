@@ -50,7 +50,6 @@ enum BtorNodeKind
    * make delta debugging of Heisenbugs in release mode more
    * difficult.
    */
-<<<<<<< HEAD
   BTOR_INVALID_NODE   = 0,
   BTOR_BV_CONST_NODE  = 1,
   BTOR_BV_VAR_NODE    = 2,
