@@ -1603,14 +1603,15 @@ occurrence_check (Btor *btor, BtorNode *left, BtorNode *right)
   assert (right);
 
   BtorNode *cur, *real_left;
-  BtorNodePtrStack stack, unmark_stack;
+  BtorNodePtrStack unmark_stack;
+  BtorNodePtrQueue queue;
   int is_cyclic, i;
   BtorMemMgr *mm;
 
   is_cyclic = 0;
   mm        = btor->mm;
   real_left = BTOR_REAL_ADDR_NODE (left);
-  BTOR_INIT_STACK (stack);
+  BTOR_INIT_QUEUE (queue);
   BTOR_INIT_STACK (unmark_stack);
 
   cur = BTOR_REAL_ADDR_NODE (right);
@@ -1618,7 +1619,7 @@ occurrence_check (Btor *btor, BtorNode *left, BtorNode *right)
 
   do
   {
-    cur = BTOR_REAL_ADDR_NODE (BTOR_POP_STACK (stack));
+    cur = BTOR_REAL_ADDR_NODE (BTOR_DEQUEUE (queue));
   OCCURRENCE_CHECK_ENTER_WITHOUT_POP:
     assert (cur->occ_mark == 0 || cur->occ_mark == 1);
     if (cur->occ_mark == 0)
@@ -1630,11 +1631,10 @@ occurrence_check (Btor *btor, BtorNode *left, BtorNode *right)
         is_cyclic = 1;
         break;
       }
-      for (i = cur->arity - 1; i >= 0; i--)
-        BTOR_PUSH_STACK (mm, stack, cur->e[i]);
+      for (i = cur->arity - 1; i >= 0; i--) BTOR_ENQUEUE (mm, queue, cur->e[i]);
     }
-  } while (!BTOR_EMPTY_STACK (stack));
-  BTOR_RELEASE_STACK (mm, stack);
+  } while (!BTOR_EMPTY_QUEUE (queue));
+  BTOR_RELEASE_QUEUE (mm, queue);
 
   while (!BTOR_EMPTY_STACK (unmark_stack))
   {
@@ -1644,9 +1644,64 @@ occurrence_check (Btor *btor, BtorNode *left, BtorNode *right)
     cur->occ_mark = 0;
   }
   BTOR_RELEASE_STACK (mm, unmark_stack);
+  return is_cyclic;
+}
+
+#if 0
+static int
+occurrence_check (Btor * btor, BtorNode * left, BtorNode * right)
+{
+  assert (btor);
+  assert (left);
+  assert (right);
+
+  BtorNode *cur, *real_left;
+  BtorNodePtrStack stack, unmark_stack;
+  int is_cyclic, i;
+  BtorMemMgr *mm;
+
+  is_cyclic = 0;
+  mm = btor->mm;
+  real_left = BTOR_REAL_ADDR_NODE (left);
+  BTOR_INIT_STACK (stack);
+  BTOR_INIT_STACK (unmark_stack);
+
+  cur = BTOR_REAL_ADDR_NODE (right);
+  goto OCCURRENCE_CHECK_ENTER_WITHOUT_POP;
+
+  do
+    {
+      cur = BTOR_REAL_ADDR_NODE (BTOR_POP_STACK (stack));
+OCCURRENCE_CHECK_ENTER_WITHOUT_POP:
+      assert (cur->occ_mark == 0 || cur->occ_mark == 1);
+      if (cur->occ_mark == 0)
+	{
+	  cur->occ_mark = 1;
+	  BTOR_PUSH_STACK (mm, unmark_stack, cur);
+	  if (cur == real_left)
+	    {
+	      is_cyclic = 1;
+	      break;
+	    }
+	  for (i = cur->arity - 1; i >= 0; i--)
+	    BTOR_PUSH_STACK (mm, stack, cur->e[i]);
+	}
+    }
+  while (!BTOR_EMPTY_STACK (stack));
+  BTOR_RELEASE_STACK (mm, stack);
+
+  while (!BTOR_EMPTY_STACK (unmark_stack))
+    {
+      cur = BTOR_POP_STACK (unmark_stack);
+      assert (BTOR_IS_REGULAR_NODE (cur));
+      assert (cur->occ_mark == 1);
+      cur->occ_mark = 0;
+    }
+  BTOR_RELEASE_STACK (mm, unmark_stack);
 
   return is_cyclic;
 }
+#endif
 
 /* checks if we can substitute and normalizes arguments to substitution,
  * substitute left_result with right_result, exp is child of AND_NODE */
