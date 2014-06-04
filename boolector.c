@@ -21,6 +21,7 @@
 #include "btorexit.h"
 #include "btorhash.h"
 #include "btoriter.h"
+#include "btorsort.h"
 #include "btorutil.h"
 #include "dumper/btordumpbtor.h"
 #include "dumper/btordumpsmt.h"
@@ -1988,6 +1989,9 @@ boolector_eq (Btor *btor, BoolectorNode *n0, BoolectorNode *n1)
   real_simp1     = BTOR_REAL_ADDR_NODE (simp1);
   is_array_simp0 = BTOR_IS_FUN_NODE (real_simp0);
   is_array_simp1 = BTOR_IS_FUN_NODE (real_simp1);
+  BTOR_ABORT_BOOLECTOR (
+      BTOR_IS_UF_NODE (real_simp0) || BTOR_IS_UF_NODE (real_simp1),
+      "equality of UF not supported yet");
   BTOR_ABORT_BOOLECTOR (is_array_simp0 != is_array_simp1,
                         "array must not be compared to bit-vector");
   BTOR_ABORT_BOOLECTOR (!is_array_simp0 && real_simp0 && real_simp1
@@ -3188,6 +3192,74 @@ boolector_fun (Btor *btor,
 }
 
 BoolectorNode *
+boolector_uf (Btor *btor, BoolectorSort *sort, const char *symbol)
+{
+  BTOR_ABORT_ARG_NULL_BOOLECTOR (btor);
+  BTOR_ABORT_ARG_NULL_BOOLECTOR (sort);
+  BTOR_ABORT_BOOLECTOR (((BtorSort *) sort)->kind != BTOR_FUN_SORT,
+                        "given UF sort is not BTOR_FUN_SORT");
+  BtorNode *res;
+
+  res = btor_uf_exp (btor, (BtorSort *) sort, symbol);
+  res->ext_refs++;
+  btor->external_refs++;
+  return (BoolectorNode *) res;
+}
+
+BoolectorSort *
+boolector_bitvec_sort (Btor *btor, int len)
+{
+  BTOR_ABORT_ARG_NULL_BOOLECTOR (btor);
+  BTOR_ABORT_BOOLECTOR (len <= 0, "'len' must be > 0");
+
+  BtorSort *res;
+  res = btor_bitvec_sort (&btor->sorts_unique_table, len);
+  res->ext_refs++;
+  return (BoolectorSort *) res;
+}
+
+BoolectorSort *
+boolector_tuple_sort (Btor *btor, BoolectorSort **elements, int num_elements)
+{
+  BTOR_ABORT_ARG_NULL_BOOLECTOR (btor);
+  BTOR_ABORT_ARG_NULL_BOOLECTOR (elements);
+  BTOR_ABORT_BOOLECTOR (num_elements <= 1, "'num_elements' must be > 1");
+
+  BtorSort *res;
+  res = btor_tuple_sort (
+      &btor->sorts_unique_table, (BtorSort **) elements, num_elements);
+  res->ext_refs++;
+  return (BoolectorSort *) res;
+}
+
+BoolectorSort *
+boolector_fun_sort (Btor *btor, BoolectorSort *domain, BoolectorSort *codomain)
+{
+  BTOR_ABORT_ARG_NULL_BOOLECTOR (btor);
+  BTOR_ABORT_ARG_NULL_BOOLECTOR (domain);
+  BTOR_ABORT_ARG_NULL_BOOLECTOR (codomain);
+
+  BtorSort *res;
+
+  res = btor_fun_sort (
+      &btor->sorts_unique_table, (BtorSort *) domain, (BtorSort *) codomain);
+  res->ext_refs++;
+  return (BoolectorSort *) res;
+}
+
+void
+boolector_release_sort (Btor *btor, BoolectorSort *sort)
+{
+  BTOR_ABORT_ARG_NULL_BOOLECTOR (btor);
+  BTOR_ABORT_ARG_NULL_BOOLECTOR (sort);
+
+  BtorSort *s = (BtorSort *) sort;
+  assert (s->ext_refs > 0);
+  s->ext_refs--;
+  btor_release_sort (&btor->sorts_unique_table, (BtorSort *) sort);
+}
+
+BoolectorNode *
 boolector_args (Btor *btor, int argc, BoolectorNode **arg_nodes)
 {
   int i, len;
@@ -3254,11 +3326,12 @@ boolector_apply (Btor *btor,
   for (i = 0; i < argc; i++)
   {
     BTOR_ABORT_BOOLECTOR (
-        !BTOR_IS_LAMBDA_NODE (cur),
+        !BTOR_IS_UF_NODE (cur) && !BTOR_IS_LAMBDA_NODE (cur),
         "number of arguments must be <= number of parameters in 'fun'");
     sprintf (
         strtrapi + strlen (strtrapi), NODE_FMT, BTOR_TRAPI_NODE_ID (args[i]));
-    cur = BTOR_REAL_ADDR_NODE (btor_simplify_exp (btor, cur->e[1]));
+    if (!BTOR_IS_UF_NODE (cur))
+      cur = BTOR_REAL_ADDR_NODE (btor_simplify_exp (btor, cur->e[1]));
   }
   sprintf (strtrapi + strlen (strtrapi), NODE_FMT, BTOR_TRAPI_NODE_ID (e_fun));
 
@@ -3269,9 +3342,9 @@ boolector_apply (Btor *btor,
   BTOR_ABORT_BOOLECTOR (argc < 1, "'argc' must not be < 1");
   BTOR_ABORT_BOOLECTOR (argc >= 1 && !args,
                         "no arguments given but argc defined > 0");
-  BTOR_ABORT_BOOLECTOR (
-      !BTOR_IS_LAMBDA_NODE (e_fun) || argc != btor_get_fun_arity (btor, e_fun),
-      "number of arguments does not match arity of 'fun'");
+  BTOR_ABORT_BOOLECTOR (!btor_is_fun_exp (btor, e_fun)
+                            || argc != btor_get_fun_arity (btor, e_fun),
+                        "number of arguments does not match arity of 'fun'");
   i = btor_fun_sort_check (btor, argc, args, e_fun);
   BTOR_ABORT_BOOLECTOR (i >= 0,
                         "sort of argument at position %d does not match given"
@@ -3508,7 +3581,7 @@ boolector_get_fun_arity (Btor *btor, BoolectorNode *node)
   BTOR_ABORT_REFS_NOT_POS_BOOLECTOR (exp);
   BTOR_ABORT_IF_BTOR_DOES_NOT_MATCH (btor, exp);
   simp = btor_simplify_exp (btor, exp);
-  BTOR_ABORT_BOOLECTOR (!BTOR_IS_LAMBDA_NODE (BTOR_REAL_ADDR_NODE (simp)),
+  BTOR_ABORT_BOOLECTOR (!btor_is_fun_exp (btor, simp),
                         "given expression is not a function node");
   res = btor_get_fun_arity (btor, simp);
 #ifndef NDEBUG

@@ -222,10 +222,11 @@ bdcid (BtorDumpContext *bdc, BtorNode *node)
 }
 
 #if 1
+
 static void
 bdcnode (BtorDumpContext *bdc, BtorNode *node, FILE *file)
 {
-  int i;
+  int i, aspi = -1;
   char idbuffer[20];
   const char *op;
 
@@ -255,6 +256,8 @@ bdcnode (BtorDumpContext *bdc, BtorNode *node, FILE *file)
         op = "one";
       else if (btor_is_ones_const (node->bits))
         op = "ones";
+      else if ((aspi = btor_is_small_positive_int_const (node->bits)) > 0)
+        op = "constd";
       else
         op = "const";
       break;
@@ -274,6 +277,8 @@ bdcnode (BtorDumpContext *bdc, BtorNode *node, FILE *file)
   /* print children or const values */
   if (strcmp (op, "const") == 0)
     fprintf (file, " %s", node->bits);
+  else if (strcmp (op, "constd") == 0)
+    fprintf (file, " %d", aspi);
   else if (BTOR_IS_PROXY_NODE (node))
     fprintf (file, " %d", bdcid (bdc, node->simplified));
   else

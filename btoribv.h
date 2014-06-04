@@ -1,6 +1,6 @@
 /*  Boolector: Satisfiablity Modulo Theories (SMT) solver.
  *
- *  Copyright (C) 2012-2013 Armin Biere.
+ *  Copyright (C) 2012-2014 Armin Biere.
  *
  *  All rights reserved.
  *
@@ -28,40 +28,40 @@ enum BtorIBVTag
 {
 
   BTOR_IBV_IS_UNARY    = 16,
-  BTOR_IBV_BUF         = 16 + 0,
-  BTOR_IBV_NOT         = 16 + 1,
-  BTOR_IBV_ZERO_EXTEND = 16 + 2,
-  BTOR_IBV_SIGN_EXTEND = 16 + 3,
-  BTOR_IBV_REPLICATE   = 16 + 4,
-  BTOR_IBV_NON_STATE   = 16 + 5,
+  BTOR_IBV_BUF         = 16 + 1,
+  BTOR_IBV_NOT         = 16 + 2,
+  BTOR_IBV_ZERO_EXTEND = 16 + 3,
+  BTOR_IBV_SIGN_EXTEND = 16 + 4,
+  BTOR_IBV_REPLICATE   = 16 + 5,
+  BTOR_IBV_NON_STATE   = 16 + 6,
   BTOR_IBV_MAX_UNARY   = BTOR_IBV_NON_STATE,
 
   BTOR_IBV_IS_BINARY   = 32,
-  BTOR_IBV_OR          = 32 + 0,
-  BTOR_IBV_AND         = 32 + 1,
-  BTOR_IBV_XOR         = 32 + 2,
-  BTOR_IBV_LT          = 32 + 3,
-  BTOR_IBV_LE          = 32 + 4,
-  BTOR_IBV_SUM         = 32 + 5,
-  BTOR_IBV_SUB         = 32 + 6,
-  BTOR_IBV_MUL         = 32 + 7,
-  BTOR_IBV_DIV         = 32 + 8,
-  BTOR_IBV_MOD         = 32 + 9,
-  BTOR_IBV_LEFT_SHIFT  = 32 + 10,
-  BTOR_IBV_RIGHT_SHIFT = 32 + 11,
-  BTOR_IBV_EQUAL       = 32 + 12,
-  BTOR_IBV_STATE       = 32 + 13,
+  BTOR_IBV_OR          = 32 + 1,
+  BTOR_IBV_AND         = 32 + 2,
+  BTOR_IBV_XOR         = 32 + 3,
+  BTOR_IBV_LT          = 32 + 4,
+  BTOR_IBV_LE          = 32 + 5,
+  BTOR_IBV_SUM         = 32 + 6,
+  BTOR_IBV_SUB         = 32 + 7,
+  BTOR_IBV_MUL         = 32 + 8,
+  BTOR_IBV_DIV         = 32 + 9,
+  BTOR_IBV_MOD         = 32 + 10,
+  BTOR_IBV_LEFT_SHIFT  = 32 + 11,
+  BTOR_IBV_RIGHT_SHIFT = 32 + 12,
+  BTOR_IBV_EQUAL       = 32 + 13,
+  BTOR_IBV_STATE       = 32 + 14,
   BTOR_IBV_MAX_BINARY  = BTOR_IBV_STATE,
 
   BTOR_IBV_IS_TERNARY  = 64,
-  BTOR_IBV_COND        = 64 + 0,
-  BTOR_IBV_CONDBW      = 64 + 1,
+  BTOR_IBV_COND        = 64 + 1,
+  BTOR_IBV_CONDBW      = 64 + 2,
   BTOR_IBV_MAX_TERNARY = BTOR_IBV_CONDBW,
 
   BTOR_IBV_IS_VARIADIC  = 128,
-  BTOR_IBV_CONCAT       = 128 + 0,
-  BTOR_IBV_CASE         = 128 + 1,
-  BTOR_IBV_PARCASE      = 128 + 2,
+  BTOR_IBV_CONCAT       = 128 + 1,
+  BTOR_IBV_CASE         = 128 + 2,
+  BTOR_IBV_PARCASE      = 128 + 3,
   BTOR_IBV_MAX_VARIADIX = BTOR_IBV_PARCASE,
 
   BTOR_IBV_IS_PREDICATE = 256,
@@ -105,11 +105,18 @@ extern "C" {
 BTOR_DECLARE_STACK (BtorIBVAssignment, BtorIBVAssignment);
 };
 
+struct BtorIBVExpPushed
+{
+  BoolectorNode *exp;
+  long pushed;
+  BtorIBVExpPushed () : exp (0), pushed (0) {}
+};
+
 struct BtorIBVAtom
 {
   BtorIBVRange range;
-  BoolectorNode *exp, *next;
-  BtorIBVAtom (const BtorIBVRange &r) : range (r), exp (0), next (0) {}
+  BtorIBVExpPushed current, next;
+  BtorIBVAtom (const BtorIBVRange &r) : range (r) {}
 };
 
 extern "C" {
@@ -131,15 +138,15 @@ BTOR_DECLARE_STACK (BtorIBVRangeName, BtorIBVRangeName);
 
 struct BtorIBVNode;
 
-struct BtorIBVNodePtrNext
+struct BtorIBVAtomPtrNext
 {
-  BtorIBVNode *node;
+  BtorIBVAtom *atom;
   bool next;
-  BtorIBVNodePtrNext (BtorIBVNode *n, bool x = false) : node (n), next (x) {}
+  BtorIBVAtomPtrNext (BtorIBVAtom *a, bool x) : atom (a), next (x) {}
 };
 
 extern "C" {
-BTOR_DECLARE_STACK (BtorIBVNodePtrNext, BtorIBVNodePtrNext);
+BTOR_DECLARE_STACK (BtorIBVAtomPtrNext, BtorIBVAtomPtrNext);
 };
 
 enum BtorIBVClassification
@@ -182,7 +189,7 @@ struct BtorIBVNode
   BitVector::BvVariableSource source;
   BitVector::DirectionKind direction;
   signed char marked, used, coi;
-  BoolectorNode *cached, *forwarded;
+  BoolectorNode *cached;
   char *name;
   BtorIBVFlags *flags;
   BtorIBVAssignment **assigned;
@@ -233,8 +240,7 @@ class BtorIBV : public BitVector
   BtorMC *btormc;
 
   bool gentrace;
-  bool force;
-
+  int force;
   int verbosity;
 
   BtorIBVNodePtrStack idtab;
@@ -337,17 +343,23 @@ class BtorIBV : public BitVector
 
   void warn (const char *fmt, ...);
 
-  void translate_atom_divide (BtorIBVAtom *, bool, BtorIBVNodePtrNextStack *);
-  void translate_atom_conquer (BtorIBVAtom *, bool);
+  bool is_relevant_atom_for_assigned_atom (BtorIBVAtom *lhs,
+                                           unsigned i,
+                                           BtorIBVAtom *rhs,
+                                           BtorIBVAssignment *);
+
+  void push_atom_ptr_next (BtorIBVAtom *,
+                           bool forward,
+                           BtorIBVAtomPtrNextStack *apnwork);
+
+  void translate_atom_divide (BtorIBVAtom *, bool, BtorIBVAtomPtrNextStack *);
+  bool translate_atom_conquer (BtorIBVAtom *, bool);
 
   BoolectorNode *translate_assignment_conquer (BtorIBVAtom *,
                                                bool,
                                                BtorIBVAssignment *);
 
   void translate_atom_base (BtorIBVAtom *);
-
-  void translate_node_divide (BtorIBVNode *, bool, BtorIBVNodePtrNextStack *);
-  void translate_node_conquer (BtorIBVNode *, bool);
 
   bool is_phantom_current (BtorIBVNode *, unsigned);
   bool is_phantom_next (BtorIBVNode *, unsigned);
@@ -370,7 +382,7 @@ class BtorIBV : public BitVector
   ~BtorIBV ();
 
   void setRewriteLevel (int rwl);
-  void setForce (bool f = true) { force = f; }
+  void setForce (int f = 1) { force = f; }
 
   void setVerbosity (int verbosity);
 
@@ -392,6 +404,16 @@ class BtorIBV : public BitVector
   // Second C++ Listener API.
   //
   void setReachedAtBoundListener (ReachedAtBoundListener *);
+
+  // Return the 'k' at which a previous model checking run showed that the
+  // assertion with number 'assertion_number' (counting from 0) has been
+  // violated.  It returns a negative number if the property was not violated
+  // during the last BMC run.
+  //
+  int hasAssertionBeenViolatedAtBound (int assertion_number);
+
+  // TODO do we need BitRange instead of 'assertion_number' both for
+  // 'hasAssertionBeenViolatedAtBound' and the listener?
 
   //------------------------------------------------------------------------
 

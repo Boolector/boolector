@@ -1,5 +1,6 @@
 /*  Boolector: Satisfiablity Modulo Theories (SMT) solver.
- *  Copyright (C) 2007-2012 Robert Daniel Brummayer, Armin Biere
+ *  Copyright (C) 2007-2012 Robert Daniel Brummayer
+ *  Copyright (C) 2007-2014 Armin Biere
  *
  *  This file is part of Boolector.
  *
@@ -352,6 +353,40 @@ test_is_special_const (void)
   assert (btor_is_special_const ("1101") == BTOR_SPECIAL_CONST_NONE);
   assert (btor_is_special_const ("1110") == BTOR_SPECIAL_CONST_NONE);
   assert (btor_is_special_const ("1111") == BTOR_SPECIAL_CONST_ONES);
+}
+
+static void
+test_is_small_positive_int_const (void)
+{
+  assert (btor_is_small_positive_int_const ("000") == 0);
+  assert (btor_is_small_positive_int_const ("001") == 1);
+  assert (btor_is_small_positive_int_const ("0010") == 2);
+  assert (btor_is_small_positive_int_const ("00100") == 4);
+  assert (btor_is_small_positive_int_const ("001000") == 8);
+  assert (btor_is_small_positive_int_const ("0010000") == 16);
+  assert (btor_is_small_positive_int_const ("000100000") == 32);
+  assert (btor_is_small_positive_int_const ("0001000000") == 64);
+  assert (btor_is_small_positive_int_const ("00010000000") == 128);
+  assert (btor_is_small_positive_int_const ("000100000000") == 256);
+  assert (btor_is_small_positive_int_const ("0001000000000") == 512);
+  assert (btor_is_small_positive_int_const ("0000010000000000") == 1024);
+  assert (btor_is_small_positive_int_const ("10000000000000000000000000000")
+          == (1 << 28));
+  assert (btor_is_small_positive_int_const ("100000000000000000000000000000")
+          == (1 << 29));
+  assert (btor_is_small_positive_int_const ("1000000000000000000000000000000")
+          == (1 << 30));
+  assert (btor_is_small_positive_int_const ("01000000000000000000000000000000")
+          == (1 << 30));
+  assert (btor_is_small_positive_int_const ("10000000000000000000000000000000")
+          < 0);
+  assert (
+      btor_is_small_positive_int_const ("0010000000000000000000000000000000")
+      < 0);
+  assert (
+      btor_is_small_positive_int_const (
+          "0000000000000000000000000000000000000000000000000000000000000000")
+      == 0);
 }
 
 static void
@@ -1385,6 +1420,7 @@ run_const_tests (int argc, char **argv)
   BTOR_RUN_TEST (is_one_const);
   BTOR_RUN_TEST (is_ones_const);
   BTOR_RUN_TEST (is_special_const);
+  BTOR_RUN_TEST (is_small_positive_int_const);
   BTOR_RUN_TEST (int_to_const);
   BTOR_RUN_TEST (unsigned_to_const);
   BTOR_RUN_TEST (invert_const);

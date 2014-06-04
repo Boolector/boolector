@@ -21,6 +21,7 @@
 
 typedef struct Btor Btor;
 typedef struct BtorNode BtorNode;
+typedef struct BoolectorSort BoolectorSort;
 
 #ifdef BOOLECTOR_FORCE_API_1
 #define BoolectorNode BtorNode
@@ -1005,6 +1006,27 @@ BoolectorNode *boolector_fun (Btor *btor,
                               int paramc,
                               BoolectorNode **param_nodes,
                               BoolectorNode *node);
+
+/**
+ * Uninterpreted function.
+ * \param btor Boolector instance.
+ * \param sort Sort of the uninterpreted function.
+ */
+BoolectorNode *boolector_uf (Btor *btor,
+                             BoolectorSort *sort,
+                             const char *symbol);
+
+BoolectorSort *boolector_fun_sort (Btor *btor,
+                                   BoolectorSort *domain,
+                                   BoolectorSort *codomain);
+
+BoolectorSort *boolector_bitvec_sort (Btor *btor, int len);
+
+BoolectorSort *boolector_tuple_sort (Btor *btor,
+                                     BoolectorSort **elements,
+                                     int num_elements);
+
+void boolector_release_sort (Btor *btor, BoolectorSort *sort);
 
 /**
  * Creates an argument expression consisting of 'argc' argument expressions

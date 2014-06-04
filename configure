@@ -280,6 +280,33 @@ else
     LIBS="${LIBS}-L../yalsat -lyals"
     LDEPS="${LDEPS}../yalsat/libyals.a"
   fi
+
+  if [ -d ../druplig ]
+  then
+    for path in ../druplig/druplig.h ../druplig/libdruplig.a allfound
+    do
+      [ -f $path ] || break
+    done
+  else
+    path=../druplig
+  fi
+
+  if [ $path = allfound ]
+  then
+    msg "using Druplig in '../druplig' too"
+    druplig=yes
+  else
+    msg "not using Druplig"
+    druplig=no
+  fi
+
+  if [ $druplig = yes ]
+  then
+    [ X"$LDEPS" = X ] || LDEPS="$LDEPS "
+    [ X"$LIBS" = X ] || LIBS="$LIBS "
+    LIBS="${LIBS}-L../druplig -ldruplig"
+    LDEPS="${LDEPS}../druplig/libdruplig.a"
+  fi
 fi
 
 #--------------------------------------------------------------------------#

@@ -66,6 +66,7 @@ then
     btoribv.h \
     btoribv.cc \
     btorimc.cc \
+    testibv.cc \
     ibv.mk \
   $dir/
 fi

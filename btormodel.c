@@ -921,8 +921,7 @@ btor_get_array_model_str (
   BitVector *value;
   BitVectorTuple *t;
 
-  if ((!BTOR_IS_ARRAY_VAR_NODE (exp)
-       && ((BtorLambdaNode *) exp)->num_params > 1)
+  if ((BTOR_IS_LAMBDA_NODE (exp) && ((BtorLambdaNode *) exp)->num_params > 1)
       || !btor->array_model || !btor_has_array_model (btor, exp))
   {
     *size = 0;

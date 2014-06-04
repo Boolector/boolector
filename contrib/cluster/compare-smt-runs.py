@@ -598,7 +598,7 @@ if __name__ == "__main__":
                           ", ".join(sorted(list(FILTER_OUT.keys())))))
         aparser.add_argument ("-f", metavar="string", dest="filter", type=str, 
                 default=None,
-                help="filter benchmark files by <string>")
+            help="filter benchmark files by <string>")
         aparser.add_argument ("-hd", metavar="float", dest="diff", type=float,
                 default=0.1,
                 help="highlight difference if greater than <float>")
@@ -634,6 +634,8 @@ if __name__ == "__main__":
                 help="generte html output")
         aparser.add_argument ("dirs", nargs=REMAINDER,
                 help="two or more smt run directories to compare")
+        aparser.add_argument ("--no-colors", action="store_true",
+                              help="disable colors")
         g_args = aparser.parse_args()
 
         # do not use a set here as the order of directories should be preserved
@@ -658,7 +660,7 @@ if __name__ == "__main__":
                     "status,lods,time_time,time_app,time_sapp"
         elif g_args.M:
             g_args.columns = \
-                    "status,lods,models_bvar,models_arr,num_fvars,num_fapps,"\
+                    "status,lods,models_bvar,models_arr,"\
                     "time_time,time_sat"
             g_args.m = True
         
@@ -673,6 +675,13 @@ if __name__ == "__main__":
 
         if g_args.show_all:
             g_args.columns = FILE_STATS_KEYS
+
+        if g_args.no_colors:
+            COLOR_BEST = ''
+            COLOR_DIFF = ''
+            COLOR_DISC = ''
+            COLOR_STAT = ''
+            COLOR_NOCOLOR = ''
 
         _read_data (g_args.dirs)
         _pick_data ()

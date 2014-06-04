@@ -20,6 +20,7 @@
 #include "btorlog.h"
 #include "btormap.h"
 #include "btorsat.h"
+#include "btorsort.h"
 #include "btorstack.h"
 #include "btorutil.h"
 
@@ -29,6 +30,140 @@
 
 BTOR_DECLARE_STACK (BtorNodePtrStackPtr, BtorNodePtrStack *);
 BTOR_DECLARE_STACK (BtorPtrHashTablePtrPtr, BtorPtrHashTable **);
+
+static BtorSort *
+find_sort (BtorSortUniqueTable *table, BtorSort *sort)
+{
+  assert (table);
+  assert (sort);
+
+  BtorSort *res = 0;
+
+  switch (sort->kind)
+  {
+    case BTOR_BOOL_SORT: res = btor_bool_sort (table); break;
+
+    case BTOR_BITVEC_SORT:
+      res = btor_bitvec_sort (table, sort->bitvec.len);
+      break;
+
+    case BTOR_LST_SORT:
+      res = btor_lst_sort (table, sort->lst.head, sort->lst.tail);
+      break;
+
+    case BTOR_ARRAY_SORT:
+      res = btor_array_sort (table, sort->array.index, sort->array.element);
+      break;
+
+    case BTOR_FUN_SORT:
+      res = btor_fun_sort (table, sort->fun.domain, sort->fun.codomain);
+      break;
+
+    case BTOR_TUPLE_SORT:
+      res = btor_tuple_sort (
+          table, sort->tuple.elements, sort->tuple.num_elements);
+      break;
+
+    default: break;
+  }
+  assert (res);
+  /* NOTE: 'res' must be already in 'table' */
+  assert (res->refs > 1);
+  res->refs--;
+  return res;
+}
+
+static void
+clone_sorts_unique_table (BtorMemMgr *mm,
+                          BtorSortUniqueTable *table,
+                          BtorSortUniqueTable *res)
+{
+  assert (mm);
+  assert (table);
+  assert (res);
+
+  int i, j;
+  BtorSort *sort, *csort;
+  BtorSortPtrStack sorts, csorts, elements;
+
+  BTOR_INIT_STACK (sorts);
+  BTOR_INIT_STACK (csorts);
+  BTOR_INIT_STACK (elements);
+
+  BTOR_CNEWN (mm, res->chains, table->size);
+  res->id           = 1;
+  res->size         = table->size;
+  res->num_elements = 0;
+  res->mm           = mm;
+
+  btor_sorts_list_sort (mm, table, &sorts);
+
+  for (i = 0; i < BTOR_COUNT_STACK (sorts); i++)
+  {
+    sort = BTOR_PEEK_STACK (sorts, i);
+
+    switch (sort->kind)
+    {
+      case BTOR_BOOL_SORT: csort = btor_bool_sort (res); break;
+
+      case BTOR_BITVEC_SORT:
+        csort = btor_bitvec_sort (res, sort->bitvec.len);
+        break;
+
+      case BTOR_LST_SORT:
+        csort = btor_lst_sort (res,
+                               find_sort (res, sort->lst.head),
+                               find_sort (res, sort->lst.tail));
+        break;
+
+      case BTOR_ARRAY_SORT:
+        csort = btor_array_sort (res,
+                                 find_sort (res, sort->array.index),
+                                 find_sort (res, sort->array.element));
+        break;
+
+      case BTOR_FUN_SORT:
+        csort = btor_fun_sort (res,
+                               find_sort (res, sort->fun.domain),
+                               find_sort (res, sort->fun.codomain));
+        break;
+
+      case BTOR_TUPLE_SORT:
+        BTOR_RESET_STACK (elements);
+        for (j = 0; j < sort->tuple.num_elements; j++)
+          BTOR_PUSH_STACK (
+              mm, elements, find_sort (res, sort->tuple.elements[j]));
+        csort =
+            btor_tuple_sort (res, elements.start, BTOR_COUNT_STACK (elements));
+        break;
+
+      default: csort = 0; break;
+    }
+    assert (csort);
+    assert (csort->refs == 1);
+    assert (csort->kind == sort->kind);
+    csort->id = sort->id;
+  }
+
+  /* update sort references (must be the same as in table) */
+  btor_sorts_list_sort (mm, table, &csorts);
+  assert (BTOR_COUNT_STACK (sorts) == BTOR_COUNT_STACK (csorts));
+  for (i = 0; i < BTOR_COUNT_STACK (sorts); i++)
+  {
+    sort  = BTOR_PEEK_STACK (sorts, i);
+    csort = BTOR_PEEK_STACK (sorts, i);
+    assert (sort->id == csort->id);
+    assert (csort->refs <= sort->refs);
+    assert (csort->ext_refs == 0);
+    csort->refs     = sort->refs;
+    csort->ext_refs = sort->ext_refs;
+  }
+  res->id = table->id;
+  assert (res->num_elements == table->num_elements);
+  BTOR_RELEASE_STACK (mm, sorts);
+  BTOR_RELEASE_STACK (mm, csorts);
+  BTOR_RELEASE_STACK (mm, elements);
+}
 
 static BtorNode *
 clone_exp (Btor *clone,
@@ -96,7 +231,8 @@ clone_exp (Btor *clone,
   if (!BTOR_IS_BV_CONST_NODE (exp))
   {
     if (BTOR_IS_BV_VAR_NODE (exp) || BTOR_IS_ARRAY_VAR_NODE (exp)
-        || BTOR_IS_PARAM_NODE (exp) || BTOR_IS_PROXY_NODE (exp))
+        || BTOR_IS_PARAM_NODE (exp) || BTOR_IS_PROXY_NODE (exp)
+        || BTOR_IS_UF_NODE (exp))
     {
       res->symbol = btor_strdup (mm, exp->symbol);
     }
@@ -189,6 +325,13 @@ clone_exp (Btor *clone,
                         mm,
                         *nodes,
                         &((BtorLambdaNode *) res)->body);
+  }
+
+  if (BTOR_IS_UF_NODE (exp))
+  {
+    ((BtorUFNode *) res)->num_params = ((BtorUFNode *) exp)->num_params;
+    ((BtorUFNode *) res)->sort =
+        find_sort (&clone->sorts_unique_table, ((BtorUFNode *) exp)->sort);
   }
 
   res = BTOR_IS_INVERTED_NODE (exp) ? BTOR_INVERT_NODE (res) : res;
@@ -547,6 +690,8 @@ clone_aux_btor (Btor *btor,
   BtorBVAssignment *bvass;
   BtorArrayAssignment *arrass;
   BtorHashTableIterator it;
+  BtorSortPtrStack sorts;
+  BtorSort *sort;
   char **ind, **val;
   amgr = exp_layer_only ? 0 : btor_get_aig_mgr_aigvec_mgr (btor->avmgr);
 #endif
@@ -682,6 +827,25 @@ clone_aux_btor (Btor *btor,
 #endif
   }
 
+  BTORLOG_TIMESTAMP (delta);
+  clone_sorts_unique_table (
+      mm, &btor->sorts_unique_table, &clone->sorts_unique_table);
+  BTORLOG ("  clone sorts unique table: %.3f s", (btor_time_stamp () - delta));
+#ifndef NDEBUG
+  allocated += btor->sorts_unique_table.size * sizeof (BtorSort *)
+               + btor->sorts_unique_table.num_elements * sizeof (BtorSort);
+  BTOR_INIT_STACK (sorts);
+  btor_sorts_list_sort (btor->mm, &btor->sorts_unique_table, &sorts);
+  for (i = 0; i < BTOR_COUNT_STACK (sorts); i++)
+  {
+    sort = BTOR_PEEK_STACK (sorts, i);
+    if (sort->kind != BTOR_TUPLE_SORT) continue;
+    allocated += sort->tuple.num_elements * sizeof (BtorSort *);
+  }
+  BTOR_RELEASE_STACK (btor->mm, sorts);
+  assert (allocated == clone->mm->allocated);
+#endif
+
   emap = btor_new_node_map (clone);
   assert ((allocated += sizeof (*emap) + sizeof (*(emap)->table))
           == clone->mm->allocated);
@@ -711,7 +875,8 @@ clone_aux_btor (Btor *btor,
       allocated += MEM_PTR_HASH_TABLE (cur->rho);
     if (!BTOR_IS_BV_CONST_NODE (cur)
         && (BTOR_IS_BV_VAR_NODE (cur) || BTOR_IS_ARRAY_VAR_NODE (cur)
-            || BTOR_IS_PARAM_NODE (cur) || BTOR_IS_PROXY_NODE (cur)))
+            || BTOR_IS_PARAM_NODE (cur) || BTOR_IS_PROXY_NODE (cur)
+            || BTOR_IS_UF_NODE (cur)))
       allocated += cur->symbol ? strlen (cur->symbol) + 1 : 0;
     if (BTOR_IS_ARRAY_EQ_NODE (cur) && cur->vreads)
       allocated += sizeof (BtorNodePair);
@@ -751,14 +916,14 @@ clone_aux_btor (Btor *btor,
   assert ((allocated += btor->nodes_unique_table.size * sizeof (BtorNode *))
           == clone->mm->allocated);
 
-  // TODO sorts_unique_table (currently unused)
-
   CLONE_PTR_HASH_TABLE (bv_vars);
   assert ((allocated += MEM_PTR_HASH_TABLE (btor->bv_vars))
           == clone->mm->allocated);
   CLONE_PTR_HASH_TABLE (array_vars);
   assert ((allocated += MEM_PTR_HASH_TABLE (btor->array_vars))
           == clone->mm->allocated);
+  CLONE_PTR_HASH_TABLE (uf);
+  assert ((allocated += MEM_PTR_HASH_TABLE (btor->uf)) == clone->mm->allocated);
   CLONE_PTR_HASH_TABLE (lambdas);
   assert ((allocated += MEM_PTR_HASH_TABLE (btor->lambdas))
           == clone->mm->allocated);

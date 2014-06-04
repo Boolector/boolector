@@ -317,7 +317,7 @@ boolector_input (BtorMC *mc, int width, const char *name)
     btor_msg_mc (
         mc, 2, "declared input %d '%s' of width %d", input->id, name, width);
   else
-    btor_msg_mc (mc, 2, "declared input %d of width", input->id, width);
+    btor_msg_mc (mc, 2, "declared input %d of width %d", input->id, width);
   return res;
 }
 
@@ -347,7 +347,7 @@ boolector_latch (BtorMC *mc, int width, const char *name)
   bucket->data.asPtr = latch;
   if (name)
     btor_msg_mc (
-        mc, 2, "declared latch %d width %d named '%s'", latch->id, width, name);
+        mc, 2, "declared latch %d '%s' of width %d", latch->id, name, width);
   else
     btor_msg_mc (mc, 2, "declared latch %d of width %d", latch->id, width);
   return res;
