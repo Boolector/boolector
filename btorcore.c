@@ -37,12 +37,12 @@
 #define BTOR_DO_NOT_PROCESS_SKELETON
 #endif
 
-#define ENABLE_APPLY_PROP_DOWN 1
 #ifndef NDEBUG
 #define BTOR_CHECK_MODEL
 #endif
 
 //#define BTOR_DO_NOT_LAZY_SYNTHESIZE
+#define BTOR_USE_NVSIDS_ORDER_FOR_PROPAGATION
 
 /*------------------------------------------------------------------------*/
 
@@ -6113,6 +6113,10 @@ print_lemma_dbg (Btor * btor,
 }
 #endif
 
+#ifdef BTOR_USE_NVSIDS_ORDER_FOR_PROPAGATION
+#define BTOR_NVSIDS_DECAY 0.95f
+#endif
+
 static void
 encode_lemma (Btor *btor,
               BtorPtrHashTable *bconds_sel1,
@@ -6154,6 +6158,12 @@ encode_lemma (Btor *btor,
   avmgr = btor->avmgr;
   amgr  = btor_get_aig_mgr_aigvec_mgr (avmgr);
   smgr  = btor_get_sat_mgr_aig_mgr (amgr);
+
+#ifdef BTOR_USE_NVSIDS_ORDER_FOR_PROPAGATION
+  a->score = a->score * BTOR_NVSIDS_DECAY + 1 - BTOR_NVSIDS_DECAY;
+  if (BTOR_IS_APPLY_NODE (BTOR_REAL_ADDR_NODE (b)))
+    b->score = b->score * BTOR_NVSIDS_DECAY + 1 - BTOR_NVSIDS_DECAY;
+#endif
 
   BTOR_INIT_STACK (linking_clause);
 
@@ -6807,8 +6817,7 @@ propagate (Btor *btor,
     {
       args_equal = 0;
       // TODO: how can we still propagate negated applies down?
-      if (!BTOR_IS_INVERTED_NODE (fun_value) && BTOR_IS_APPLY_NODE (fun_value)
-          && ENABLE_APPLY_PROP_DOWN)
+      if (!BTOR_IS_INVERTED_NODE (fun_value) && BTOR_IS_APPLY_NODE (fun_value))
         args_equal = BTOR_REAL_ADDR_NODE (fun_value)->e[1] == args;
 
       if (!args_equal)
@@ -7028,6 +7037,22 @@ reset_applies (Btor *btor)
   }
 }
 
+#ifdef BTOR_USE_NVSIDS_ORDER_FOR_PROPAGATION
+static int
+compare_score (const void *p1, const void *p2)
+{
+  BtorNode *a, *b;
+  a = *((BtorNode **) p1);
+  b = *((BtorNode **) p2);
+
+  if (a->score < b->score) return 1;
+
+  if (a->score > b->score) return -1;
+
+  return 0;
+}
+#endif
+
 static int
 check_and_resolve_conflicts (Btor *btor, BtorNodePtrStack *tmp_stack)
 {
@@ -7065,6 +7090,13 @@ BTOR_CONFLICT_CHECK:
     BTOR_PUSH_STACK (mm, prop_stack, app);
     BTOR_PUSH_STACK (mm, prop_stack, fun);
   }
+
+#ifdef BTOR_USE_NVSIDS_ORDER_FOR_PROPAGATION
+  qsort (top_applies.start,
+         BTOR_COUNT_STACK (top_applies),
+         sizeof (BtorNode *),
+         compare_score);
+#endif
 
   while (!BTOR_EMPTY_STACK (top_applies))
   {
