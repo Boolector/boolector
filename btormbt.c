@@ -144,13 +144,6 @@
 #define BTORMBT_LOG_USAGE ""
 #endif
 
-#ifndef BTOR_DO_NOT_OPTIMIZE_UNCONSTRAINED
-#define BTORMBT_UCOPT_USAGE                                  \
-  "  -uc, --enable-ucopt              enable unconstrained " \
-  "optimization\n" #else
-#define BTORMBT_UCOPT_USAGE ""
-#endif
-
 #define BTORMBT_USAGE                                                          \
   "usage: btormbt [<option>]\n"                                                \
   "\n"                                                                         \
@@ -164,8 +157,8 @@
   "  -n, --no-modelgen                do not enable model generation \n"       \
   "  -e, --extensionality             use extensionality\n"                    \
   "  -dp, --dual-prop                 enable dual prop optimization\n"         \
-  "  -ju, --justification             enable justification "                   \
-  "optimization\n" BTORMBT_UCOPT_USAGE                                         \
+  "  -ju, --justification             enable justification optimization\n"     \
+  "  -uc, --enable-ucopt              enable unconstrained optimization\n"     \
   "  -s, --shadow                     create and check shadow clone\n"         \
   "  -o, --out                        output directory for saving traces\n"    \
   "\n"                                                                         \
@@ -533,9 +526,7 @@ typedef struct BtorMBT
   int ext;
   int dual_prop;
   int just;
-#ifndef BTOR_DO_NOT_OPTIMIZE_UNCONSTRAINED
   int ucopt;
-#endif
   int shadow;
   char *out;
   int time_limit;
@@ -1953,10 +1944,7 @@ _opt (BtorMBT *btormbt, unsigned r)
   if (pick (&rng, 0, NORM_VAL - 1) < btormbt->p_dump) btormbt->dump = 1;
 
   btormbt->mgen = 0;
-  if (!btormbt->dump && !btormbt->force_nomgen
-#ifndef BTOR_DO_NOT_OPTIMIZE_UNCONSTRAINED
-      && !btormbt->ucopt
-#endif
+  if (!btormbt->dump && !btormbt->force_nomgen && !btormbt->ucopt
       && pick (&rng, 0, 1))
   {
     BTORMBT_LOG (1, "enable model generation");
@@ -1964,11 +1952,7 @@ _opt (BtorMBT *btormbt, unsigned r)
     btormbt->mgen = 1;
   }
 
-  if (!btormbt->dump
-#ifndef BTOR_DO_NOT_OPTIMIZE_UNCONSTRAINED
-      && !btormbt->ucopt
-#endif
-      && pick (&rng, 0, 1))
+  if (!btormbt->dump && !btormbt->ucopt && pick (&rng, 0, 1))
   {
     BTORMBT_LOG (1, "enable incremental usage");
     boolector_enable_inc_usage (btormbt->btor);

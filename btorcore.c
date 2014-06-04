@@ -37,11 +37,9 @@
 #define BTOR_DO_NOT_PROCESS_SKELETON
 #endif
 
-// #define BTOR_DO_NOT_OPTIMIZE_UNCONSTRAINED
-
 #define BTOR_SYMBOLIC_LEMMAS
 #ifndef NDEBUG
-//#define BTOR_CHECK_MODEL
+#define BTOR_CHECK_MODEL
 #define BTOR_CHECK_DUAL_PROP
 #endif
 
@@ -648,14 +646,12 @@ btor_disable_pretty_print (Btor *btor)
   btor->options.pprint = 0;
 }
 
-#ifndef BTOR_DO_NOT_OPTIMIZE_UNCONSTRAINED
 void
 btor_enable_ucopt (Btor *btor)
 {
   assert (btor);
   btor->options.ucopt = 1;
 }
-#endif
 
 void
 btor_enable_model_gen (Btor *btor)
@@ -848,11 +844,12 @@ btor_print_stats_btor (Btor *btor)
   verbosity = btor->options.verbosity;
 
   report_constraint_stats (btor, 1);
-#ifndef BTOR_DO_NOT_OPTIMIZE_UNCONSTRAINED
-  btor_msg (btor, 1, "unconstrained bv props: %d", btor->stats.bv_uc_props);
-  btor_msg (
-      btor, 1, "unconstrained array props: %d", btor->stats.array_uc_props);
-#endif
+  if (btor->options.ucopt)
+  {
+    btor_msg (btor, 1, "unconstrained bv props: %d", btor->stats.bv_uc_props);
+    btor_msg (
+        btor, 1, "unconstrained array props: %d", btor->stats.array_uc_props);
+  }
   btor_msg (
       btor, 1, "variable substitutions: %d", btor->stats.var_substitutions);
   btor_msg (
@@ -1128,7 +1125,7 @@ btor_new_btor (void)
 #endif
   // btor->options.dual_prop = 1; // TODO debug
   // btor->options.just = 1; // TODO debug
-  // btor->options.ucopt = 1; // TODO debug
+  btor->options.ucopt                    = 1;  // TODO debug
   btor->options.pprint                   = 1;
   btor->options.slice_propagation        = 0;
   btor->options.simplify_constraints     = 1;
@@ -1171,7 +1168,7 @@ btor_new_btor (void)
   btor->true_exp = btor_true_exp (btor);
 
 #ifdef BTOR_CHECK_MODEL
-  btor_enable_model_gen (btor);
+  if (!btor->options.ucopt) btor_enable_model_gen (btor);
 #endif
 
   return btor;
@@ -4831,7 +4828,6 @@ analyze_slices (Btor *btor)
   btor_delete_ptr_hash_table (slices);
 }
 
-#ifndef BTOR_DO_NOT_OPTIMIZE_UNCONSTRAINED
 static BtorNode *
 lambda_array_exp (Btor *btor, int elem_len, int index_len)
 {
@@ -5082,7 +5078,6 @@ optimize_unconstrained (Btor *btor)
   BTOR_RELEASE_STACK (btor->mm, stack);
   BTOR_RELEASE_STACK (btor->mm, roots);
 }
-#endif
 
 int
 btor_simplify (Btor *btor)
@@ -5132,7 +5127,6 @@ btor_simplify (Btor *btor)
       if (btor->varsubst_constraints->count) continue;
     }
 
-#ifndef BTOR_DO_NOT_OPTIMIZE_UNCONSTRAINED
     if (btor->options.ucopt && btor->options.rewrite_level > 2
         && !btor->options.inc_enabled && !btor->options.model_gen)
     {
@@ -5142,7 +5136,6 @@ btor_simplify (Btor *btor)
       assert (check_unique_table_children_proxy_free_dbg (btor));
       if (btor->inconsistent) break;
     }
-#endif
 
 #ifndef BTOR_DO_NOT_ELIMINATE_SLICES
     if (btor->options.rewrite_level > 2 && !btor->options.inc_enabled)
@@ -9860,28 +9853,31 @@ print_applies_dbg (Btor * btor)
 int
 btor_sat_btor (Btor *btor)
 {
-  int res;
   assert (btor);
   assert (btor->btor_sat_btor_called >= 0);
   assert (btor->options.inc_enabled || btor->btor_sat_btor_called == 0);
-#ifndef BTOR_DO_NOT_OPTIMIZE_UNCONSTRAINED
-  int ucres;
+
+  int res;
   Btor *uclone = 0;
+
   if (btor->options.ucopt)
   {
     uclone = btor_clone_btor (btor);
     btor_enable_force_cleanup (uclone);
   }
-#endif
+
 #ifdef BTOR_CHECK_MODEL
   Btor *mclone;
   BtorPtrHashTable *inputs;
-  mclone = btor_clone_btor (btor);
-  btor_set_loglevel_btor (mclone, 0);
-  btor_set_verbosity_btor (mclone, 0);
-  mclone->options.dual_prop = 0;  // FIXME necessary?
-  inputs                    = map_inputs_check_model (btor, mclone);
-  btor_enable_force_cleanup (mclone);
+  if (!btor->options.ucopt)
+  {
+    mclone = btor_clone_btor (btor);
+    btor_set_loglevel_btor (mclone, 0);
+    btor_set_verbosity_btor (mclone, 0);
+    mclone->options.dual_prop = 0;  // FIXME necessary?
+    inputs                    = map_inputs_check_model (btor, mclone);
+    btor_enable_force_cleanup (mclone);
+  }
 #endif
 #ifdef BTOR_CHECK_DUAL_PROP
   Btor *dpclone = 0;
@@ -9899,28 +9895,25 @@ btor_sat_btor (Btor *btor)
   res = btor_sat_aux_btor (btor);
   btor->btor_sat_btor_called++;
 
-#ifndef BTOR_DO_NOT_OPTIMIZE_UNCONSTRAINED
-  if (btor->options.ucopt)
-  {
-    ucres = btor_sat_aux_btor (uclone);
-    assert (ucres == res);
-  }
-#endif
+  if (btor->options.ucopt) assert (btor_sat_aux_btor (uclone) == res);
 
   if (btor->options.model_gen && res == BTOR_SAT) btor_generate_model (btor);
 
 #ifdef BTOR_CHECK_MODEL
-  if (res == BTOR_SAT) check_model (btor, mclone, inputs);
-
-  BtorHashTableIterator it;
-  init_node_hash_table_iterator (&it, inputs);
-  while (has_next_node_hash_table_iterator (&it))
+  if (!btor->options.ucopt)
   {
-    btor_release_exp (btor, (BtorNode *) it.bucket->data.asPtr);
-    btor_release_exp (mclone, next_node_hash_table_iterator (&it));
+    if (res == BTOR_SAT) check_model (btor, mclone, inputs);
+
+    BtorHashTableIterator it;
+    init_node_hash_table_iterator (&it, inputs);
+    while (has_next_node_hash_table_iterator (&it))
+    {
+      btor_release_exp (btor, (BtorNode *) it.bucket->data.asPtr);
+      btor_release_exp (mclone, next_node_hash_table_iterator (&it));
+    }
+    btor_delete_ptr_hash_table (inputs);
+    btor_delete_btor (mclone);
   }
-  btor_delete_ptr_hash_table (inputs);
-  btor_delete_btor (mclone);
 #endif
 #ifdef BTOR_CHECK_DUAL_PROP
   if (btor->options.dual_prop)
