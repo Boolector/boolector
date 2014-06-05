@@ -654,6 +654,13 @@ btor_enable_ucopt (Btor *btor)
 }
 
 void
+btor_disable_ucopt (Btor *btor)
+{
+  assert (btor);
+  btor->options.ucopt = 0;
+}
+
+void
 btor_enable_model_gen (Btor *btor)
 {
   assert (btor);
@@ -9914,6 +9921,7 @@ btor_sat_btor (Btor *btor)
   {
     uclone = btor_clone_btor (btor);
     btor_enable_force_cleanup (uclone);
+    btor_disable_ucopt (uclone);
   }
 
 #ifdef BTOR_CHECK_MODEL

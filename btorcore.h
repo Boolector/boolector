@@ -307,6 +307,8 @@ void btor_disable_pretty_print (Btor *btor);
 
 void btor_enable_ucopt (Btor *btor);
 
+void btor_disable_ucopt (Btor *btor);
+
 int btor_set_sat_solver (Btor *, const char *);
 
 /* Sets verbosity [-1,3] of btor and all sub-components
