@@ -271,6 +271,8 @@ void boolector_delete (Btor *btor);
 
 int boolector_simplify (Btor *btor);
 
+void boolector_disable_pretty_print (Btor *btor);
+
 void boolector_enable_dual_prop (Btor *btor);
 
 void boolector_enable_justification (Btor *btor);

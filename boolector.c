@@ -1003,6 +1003,17 @@ boolector_btor (BoolectorNode *node)
 }
 
 void
+boolector_disable_pretty_print (Btor *btor)
+{
+  BTOR_ABORT_ARG_NULL_BOOLECTOR (btor);
+  BTOR_TRAPI ("disable_pretty_print");
+  btor_disable_pretty_print (btor);
+#ifndef NDEBUG
+  BTOR_CHKCLONE_NORES (disable_pretty_print);
+#endif
+}
+
+void
 boolector_set_rewrite_level (Btor *btor, int rewrite_level)
 {
   BTOR_ABORT_ARG_NULL_BOOLECTOR (btor);

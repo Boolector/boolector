@@ -5255,6 +5255,7 @@ optimize_unconstrained (Btor *btor)
               printf ("cur: %s\n", node2string (cur));
               printf ("hl[0]: %d e[0]: %s\n", hl[0], node2string (cur->e[0]));
               printf ("hl[1]: %d e[1]: %s\n", hl[1], node2string (cur->e[1]));
+              printf ("subst: %s\n", node2string (subst));
               btor_release_exp (btor, subst);
             }
             break;
