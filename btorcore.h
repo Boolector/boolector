@@ -23,6 +23,9 @@
 #ifndef NDEBUG
 //#define BTOR_CHECK_FAILED
 #endif
+
+//#define BTOR_DO_NOT_OPTIMIZE_UNCONSTRAINED
+
 /*------------------------------------------------------------------------*/
 
 // Currently these are just to hide syntactically the internal nodes.  For
@@ -168,8 +171,10 @@ struct Btor
     int synthesis_inconsistency_var;
     int function_congruence_conflicts;
     int beta_reduction_conflicts;
+#ifndef BTOR_DO_NOT_OPTIMIZE_UNCONSTRAINED
     int bv_uc_props;
     int array_uc_props;
+#endif
     int var_substitutions;     /* number substituted vars (non array) */
     int array_substitutions;   /* num substituted array vars */
     int ec_substitutions;      /* embedded constraint substitutions */
@@ -257,7 +262,9 @@ struct Btor
 #endif
     int model_gen; /* model generation enabled */
     int pprint;    /* reindex exps when dumping */
+#ifndef BTOR_DO_NOT_OPTIMIZE_UNCONSTRAINED
     int ucopt;
+#endif
     int rewrite_level;
     int rewrite_level_partial_br;
     int simplify_constraints; /* force constraints to true/false */
@@ -305,9 +312,10 @@ void btor_enable_force_cleanup (Btor *btor);
 /* Disable pretty printing when dumping and rewriting of writes is enabled.  */
 void btor_disable_pretty_print (Btor *btor);
 
+#ifndef BTOR_DO_NOT_OPTIMIZE_UNCONSTRAINED
 void btor_enable_ucopt (Btor *btor);
-
 void btor_disable_ucopt (Btor *btor);
+#endif
 
 int btor_set_sat_solver (Btor *, const char *);
 

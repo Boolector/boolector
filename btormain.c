@@ -158,7 +158,9 @@ static const char *g_usage =
     "  -bra, --beta-reduce-all          eliminate lambda expressions\n"
     "  -dp, --dual-prop                 enable dual prop optimization\n"
     "  -ju, --justification             enable justification optimization\n"
+#ifndef BTOR_DO_NOT_OPTIMIZE_UNCONSTRAINED
     "  -uc, --ucopt			    enable unconstrained optimization\n"
+#endif
     "  -fc, --force-cleanup             force cleanup on exit\n"
     // TODO: -npp|--no-pretty-print ? (debug only?)
     "\n"
@@ -633,11 +635,13 @@ parse_commandline_arguments (BtorMainApp *app)
       }
       app->just = 1;
     }
+#ifndef BTOR_DO_NOT_OPTIMIZE_UNCONSTRAINED
     else if (!strcmp (app->argv[app->argpos], "-uc")
              || !strcmp (app->argv[app->argpos], "--ucopt"))
     {
       app->ucopt = 1;
     }
+#endif
     else if (!strcmp (app->argv[app->argpos], "-fc")
              || !strcmp (app->argv[app->argpos], "--force-cleanup"))
     {
@@ -1108,7 +1112,9 @@ boolector_main (int argc, char **argv)
 
     if (app.just) boolector_enable_justification (btor);
 
+#ifndef BTOR_DO_NOT_OPTIMIZE_UNCONSTRAINED
     if (app.ucopt) boolector_enable_ucopt (btor);
+#endif
 
     if (app.force_cleanup) boolector_enable_force_cleanup (btor);
 
