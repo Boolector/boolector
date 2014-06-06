@@ -355,7 +355,9 @@ btor_beta_reduce (Btor *btor, BtorNode *exp, int mode, int bound)
     BETA_REDUCE_START:
       assert (!BTOR_IS_LAMBDA_NODE (real_cur) || !real_cur->e[0]->simplified);
 
-      if (BTOR_IS_LAMBDA_NODE (real_cur) && !real_cur->parameterized)
+      if (BTOR_IS_LAMBDA_NODE (real_cur) && !real_cur->parameterized
+          && (!BTOR_IS_CURRIED_LAMBDA_NODE (cur)
+              || BTOR_IS_FIRST_CURRIED_LAMBDA (cur)))
         cur_lambda_depth++;
 
       /* stop at given bound */
@@ -363,6 +365,8 @@ btor_beta_reduce (Btor *btor, BtorNode *exp, int mode, int bound)
           && cur_lambda_depth == bound)
       {
         assert (!real_cur->parameterized);
+        assert (!BTOR_IS_CURRIED_LAMBDA_NODE (cur)
+                || BTOR_IS_FIRST_CURRIED_LAMBDA (cur));
         cur_lambda_depth--;
         BTOR_PUSH_STACK (mm, arg_stack, btor_copy_exp (btor, cur));
         continue;
@@ -557,11 +561,20 @@ btor_beta_reduce (Btor *btor, BtorNode *exp, int mode, int bound)
             result = btor_copy_exp (btor, e[1]);
           }
 
-          if (cache && mode == BETA_RED_FULL
+          if (cache
+              && (mode == BETA_RED_FULL
+                  || (!btor->options.beta_reduce_all
+                      && mode == BETA_RED_BOUNDED))
               && BTOR_IS_LAMBDA_NODE (real_cur->e[0])
               /* only cache results of applications on non-parameterized
                * lambdas (all arguments given) */
-              && !real_cur->e[0]->parameterized)
+              && !real_cur->e[0]->parameterized
+              /* if we reached the bound at real_cur->e[0], we push
+               * real_cur->e[0] onto the argument stack. in this case
+               * we are not allowed to cache the result, as we only
+               * cache results for beta reduced lambdas.
+               */
+              && (mode != BETA_RED_BOUNDED || real_cur->e[0] != e[1]))
           {
             assert (!real_cur->e[0]->simplified || cur == exp);
             assert (!BTOR_REAL_ADDR_NODE (real_cur->e[1])->simplified
@@ -626,11 +639,9 @@ btor_beta_reduce (Btor *btor, BtorNode *exp, int mode, int bound)
 #endif
       }
 
-      //	    if (BTOR_IS_LAMBDA_NODE (real_cur)
-      //		&& !real_cur->parameterized
-      //		&& (!BTOR_IS_CURRIED_LAMBDA_NODE (real_cur)
-      //		    || BTOR_IS_FIRST_CURRIED_LAMBDA (real_cur)))
-      if (BTOR_IS_LAMBDA_NODE (real_cur) && !real_cur->parameterized)
+      if (BTOR_IS_LAMBDA_NODE (real_cur) && !real_cur->parameterized
+          && (!BTOR_IS_CURRIED_LAMBDA_NODE (cur)
+              || BTOR_IS_FIRST_CURRIED_LAMBDA (cur)))
         cur_lambda_depth--;
 
     BETA_REDUCE_PUSH_RESULT:
