@@ -10099,7 +10099,9 @@ btor_sat_btor (Btor *btor)
   btor->btor_sat_btor_called++;
 
 #ifdef BTOR_CHECK_UNCONSTRAINED
-  assert (!btor->options.ucopt || btor_sat_aux_btor (uclone) == res);
+  if (btor->options.ucopt && btor->options.rewrite_level > 2
+      && !btor->options.inc_enabled && !btor->options.model_gen)
+    assert (!btor->options.ucopt || btor_sat_aux_btor (uclone) == res);
 #endif
 
   if (btor->options.model_gen && res == BTOR_SAT) btor_generate_model (btor);
