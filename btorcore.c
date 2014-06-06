@@ -5243,7 +5243,7 @@ optimize_unconstrained (Btor *btor)
             // printf ("lambda cur %s hl[1] %d\n", node2string (cur), hl[1]);
             if (((BtorLambdaNode *) cur)->num_params > 1)
               nparams = 1;
-            else if (hl[1])
+            else if (hl[1] && !BTOR_IS_CURRIED_LAMBDA_NODE (cur))
             {
               btor->stats.array_uc_props++;
               btor_insert_in_ptr_hash_table (hls, btor_copy_exp (btor, cur));
