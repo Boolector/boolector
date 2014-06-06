@@ -2931,7 +2931,12 @@ substitute_var_exps (Btor *btor)
       cur = (BtorNode *) b->key;
       assert (BTOR_IS_REGULAR_NODE (cur));
       assert (BTOR_IS_BV_VAR_NODE (cur) || BTOR_IS_ARRAY_VAR_NODE (cur));
-      btor_insert_in_ptr_hash_table (substs, cur)->data.asPtr = b->data.asPtr;
+      right = (BtorNode *) b->data.asPtr;
+      /* NOTE: we need to update 'right' here, since 'right' might have
+       * already been rebuilt in merge_lambdas (in beta reduction part) */
+      btor_insert_in_ptr_hash_table (substs, cur)->data.asPtr =
+          btor_copy_exp (btor, btor_simplify_exp (btor, right));
+      btor_release_exp (btor, right);
       btor_remove_from_ptr_hash_table (varsubst_constraints, cur, 0, 0);
     }
     assert (varsubst_constraints->count == 0u);
@@ -3143,12 +3148,16 @@ all_exps_below_rebuilt (Btor *btor, BtorNode *exp)
   return 1;
 }
 
+/* beta reduction parameter 'bra'
+ * -1 ... full beta reduction
+ *  0 ... no beta reduction
+ * >0 ... bound for bounded beta reduction
+ */
 static void
 substitute_and_rebuild (Btor *btor, BtorPtrHashTable *subst, int bra)
 {
   assert (btor);
   assert (subst);
-  assert (bra == 0 || bra == 1);
   assert (check_id_table_aux_mark_unset_dbg (btor));
 
   int i, refs;
@@ -3242,10 +3251,16 @@ substitute_and_rebuild (Btor *btor, BtorPtrHashTable *subst, int bra)
       // TODO: externalize
       if (bra && BTOR_IS_APPLY_NODE (cur)
           && btor_find_in_ptr_hash_table (subst, cur))
-        rebuilt_exp = btor_beta_reduce_full (btor, cur);
+      {
+        if (bra == -1)
+          rebuilt_exp = btor_beta_reduce_full (btor, cur);
+        else
+          rebuilt_exp = btor_beta_reduce_bounded (btor, cur, bra);
+      }
       else
         rebuilt_exp = rebuild_exp (btor, cur);
 
+// TODO: disable this since we have always subst if we have a substitution
 #if 1
       /* special case if only root is substituted */
       if (cur->constraint && rebuilt_exp == cur
@@ -4064,7 +4079,7 @@ beta_reduce_applies_on_lambdas (Btor *btor)
     btor_msg (
         btor, 1, "eliminate %d applications in round %d", num_applies, round);
 
-    substitute_and_rebuild (btor, apps, 1);
+    substitute_and_rebuild (btor, apps, -1);
 
     init_node_hash_table_iterator (&h_it, apps);
     while (has_next_node_hash_table_iterator (&h_it))
@@ -4113,10 +4128,15 @@ merge_lambdas (Btor *btor)
   BtorHashTableIterator it;
   BtorNodeIterator nit;
   BtorNodePtrStack stack, unmark, visit;
+  BtorPtrHashTable *merged, *apps;
 
   start         = btor_time_stamp ();
   mm            = btor->mm;
   delta_lambdas = btor->lambdas->count;
+
+  merged = btor_new_ptr_hash_table (mm,
+                                    (BtorHashPtr) btor_hash_exp_by_id,
+                                    (BtorCmpPtr) btor_compare_exp_by_id);
 
   btor_init_substitutions (btor);
   BTOR_INIT_STACK (stack);
@@ -4206,6 +4226,9 @@ merge_lambdas (Btor *btor)
     btor_unassign_params (btor, merge);
     btor_insert_substitution (btor, BTOR_LAMBDA_GET_BODY (merge), subst, 0);
     btor_release_exp (btor, subst);
+
+    assert (!btor_find_in_ptr_hash_table (merged, merge));
+    (void) btor_insert_in_ptr_hash_table (merged, btor_copy_exp (btor, merge));
   }
 
   /* cleanup */
@@ -4229,6 +4252,65 @@ merge_lambdas (Btor *btor)
   assert (check_unique_table_merge_unset_dbg (btor));
   delta = btor_time_stamp () - start;
   btor_msg (btor, 1, "merged %d lambdas in %.2f seconds", delta_lambdas, delta);
+
+  if (btor->options.beta_reduce_all) goto RELEASE_MERGED;
+
+  init_cache (btor);
+
+  /* eliminate all non-parameterized applies on lambdas in 'merged',
+   * use bounded beta reduction with bound 2 */
+  apps = btor_new_ptr_hash_table (mm,
+                                  (BtorHashPtr) btor_hash_exp_by_id,
+                                  (BtorCmpPtr) btor_compare_exp_by_id);
+
+  init_node_hash_table_iterator (&it, merged);
+  while (has_next_node_hash_table_iterator (&it))
+  {
+    merge = next_node_hash_table_iterator (&it);
+    merge = btor_simplify_exp (btor, merge);
+    assert (BTOR_IS_REGULAR_NODE (merge));
+    assert (BTOR_IS_LAMBDA_NODE (merge));
+
+    init_full_parent_iterator (&nit, merge);
+    while (has_next_parent_full_parent_iterator (&nit))
+    {
+      cur = next_parent_full_parent_iterator (&nit);
+      assert (BTOR_IS_REGULAR_NODE (cur));
+      assert (BTOR_IS_APPLY_NODE (cur));
+      if (cur->parameterized) continue;
+      (void) btor_insert_in_ptr_hash_table (apps, btor_copy_exp (btor, cur));
+    }
+  }
+
+  start = btor_time_stamp ();
+  btor_msg (btor,
+            1,
+            "eliminate %d applications on %d merged lambdas",
+            apps->count,
+            merged->count);
+
+  substitute_and_rebuild (btor, apps, 2);
+
+  btor_msg (btor,
+            1,
+            "eliminated %d applications on %d merged lambdas"
+            " in %.2f seconds",
+            apps->count,
+            merged->count,
+            btor_time_stamp () - start);
+
+  init_node_hash_table_iterator (&it, apps);
+  while (has_next_node_hash_table_iterator (&it))
+    btor_release_exp (btor, next_node_hash_table_iterator (&it));
+  btor_delete_ptr_hash_table (apps);
+
+  release_cache (btor);
+
+RELEASE_MERGED:
+  init_node_hash_table_iterator (&it, merged);
+  while (has_next_node_hash_table_iterator (&it))
+    btor_release_exp (btor, next_node_hash_table_iterator (&it));
+  btor_delete_ptr_hash_table (merged);
 }
 
 static void
