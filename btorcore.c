@@ -5328,11 +5328,6 @@ btor_simplify (Btor *btor)
     }
 
 #ifndef BTOR_DO_NOT_OPTIMIZE_UNCONSTRAINED
-    printf ("ucopt %d rwl %d inc %d mg %d\n",
-            btor->options.ucopt,
-            btor->options.rewrite_level,
-            btor->options.inc_enabled,
-            btor->options.model_gen);
     if (btor->options.ucopt && btor->options.rewrite_level > 2
         && !btor->options.inc_enabled && !btor->options.model_gen)
     {
