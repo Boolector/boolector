@@ -4993,23 +4993,8 @@ optimize_unconstrained (Btor *btor)
     cur = next_node_hash_table_iterator (&it);
     assert (BTOR_IS_REGULAR_NODE (cur));
     if (cur->parents == 1)
-    //&& !BTOR_REAL_ADDR_NODE (cur->first_parent)->parameterized)
     {
       cur_parent = BTOR_REAL_ADDR_NODE (cur->first_parent);
-      isuc       = 1;
-      init_parameterized_iterator (btor, &parit, cur);
-      while (has_next_parameterized_iterator (&parit))
-      {
-        /* parameterized expressions are possibly unconstrained if the
-         * lambda(s) parameterizing it do not have more than 1 parent */
-        lambda = (BtorLambdaNode *) next_parameterized_iterator (&parit);
-        if (lambda->parents > 1)
-        {
-          isuc = 0;
-          break;
-        }
-      }
-      if (isuc)
       {
         assert (!btor_find_in_ptr_hash_table (hls, cur));
         btor_insert_in_ptr_hash_table (hls, btor_copy_exp (btor, cur));
@@ -5065,6 +5050,22 @@ optimize_unconstrained (Btor *btor)
       assert (cur->mark == 2);
       // printf ("--cur %s\n", node2string (cur));
       cur->mark = 0;
+
+      isuc = 1;
+      init_parameterized_iterator (btor, &parit, cur);
+      while (has_next_parameterized_iterator (&parit))
+      {
+        /* parameterized expressions are possibly unconstrained if the
+         * lambda(s) parameterizing it do not have more than 1 parent */
+        lambda = (BtorLambdaNode *) next_parameterized_iterator (&parit);
+        if (lambda->parents > 1)
+        {
+          isuc = 0;
+          break;
+        }
+      }
+      if (!isuc) continue;
+
       /* propagate headlines */
       if (cur->parents == 0 || cur->parents == 1)
       //	      || BTOR_IS_LAMBDA_NODE (cur))
@@ -5328,6 +5329,9 @@ btor_simplify (Btor *btor)
       if (btor->varsubst_constraints->count) continue;
     }
 
+    // printf ("----\n");
+    // btor_disable_pretty_print (btor);
+    // btor_dump_btor (btor, stdout);
 #ifndef BTOR_DO_NOT_OPTIMIZE_UNCONSTRAINED
     if (btor->options.ucopt && btor->options.rewrite_level > 2
         && !btor->options.inc_enabled && !btor->options.model_gen)
@@ -10102,7 +10106,11 @@ btor_sat_btor (Btor *btor)
 #ifdef BTOR_CHECK_UNCONSTRAINED
   if (btor->options.ucopt && btor->options.rewrite_level > 2
       && !btor->options.inc_enabled && !btor->options.model_gen)
-    assert (!btor->options.ucopt || btor_sat_aux_btor (uclone) == res);
+  {
+    int ucres = btor_sat_aux_btor (uclone);
+    printf ("ucres %d res %d\n", ucres, res);
+    assert (res == ucres);
+  }
 #endif
 
   if (btor->options.model_gen && res == BTOR_SAT) btor_generate_model (btor);
