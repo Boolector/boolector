@@ -18,7 +18,7 @@ cp boolector $dir/bin
 # configuration for QF_BV
 echo "#!/bin/sh
 
-./boolector \$1" > $dir/bin/starexec_run_boolector
+./boolector -bra \$1" > $dir/bin/starexec_run_boolector
 
 # configuration QF_AUFBV justification
 echo "#!/bin/sh
