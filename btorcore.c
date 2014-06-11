@@ -1061,7 +1061,8 @@ btor_print_stats_btor (Btor *btor)
               "%.2f seconds propagation apply in conds search",
               btor->time.find_cond_prop_app);
   btor_msg (btor, 1, "%.2f seconds for cloning", btor->time.cloning);
-  btor_msg (btor, 1, "%.2f beta reduction probing", btor->time.br_probing);
+  btor_msg (
+      btor, 1, "%.2f seconds beta reduction probing", btor->time.br_probing);
   if (btor->options.model_gen)
     btor_msg (btor, 1, "%.2f seconds model generation", btor->time.model_gen);
   btor_msg (btor, 1, "");
@@ -9785,7 +9786,7 @@ add_lemma_to_dual_prop_clone (Btor *btor,
 }
 
 static int
-btor_limited_sat_aux_btor (Btor *btor, int limit)
+btor_limited_sat_aux_btor (Btor *btor, int lod_limit, int sat_limit)
 {
   assert (btor);
 
@@ -9861,8 +9862,8 @@ btor_limited_sat_aux_btor (Btor *btor, int limit)
   add_again_assumptions (btor);
   assert (check_reachable_flag_dbg (btor));
 
-  if (limit > -1)
-    sat_result = btor_timed_sat_sat (btor, limit * 10);
+  if (sat_limit > -1)
+    sat_result = btor_timed_sat_sat (btor, sat_limit);
   else
     sat_result = btor_timed_sat_sat (btor, -1);
 
@@ -9920,7 +9921,7 @@ btor_limited_sat_aux_btor (Btor *btor, int limit)
     add_again_assumptions (btor);
     sat_result = btor_timed_sat_sat (btor, -1);
 
-    if (limit > -1 && btor->stats.lod_refinements >= limit)
+    if (lod_limit > -1 && btor->stats.lod_refinements >= lod_limit)
     {
       sat_result = BTOR_UNKNOWN;
       break;
@@ -9933,9 +9934,9 @@ btor_limited_sat_aux_btor (Btor *btor, int limit)
 DONE:
   BTOR_RELEASE_STACK (btor->mm, prop_stack);
   btor->valid_assignments = 1;
-  BTOR_ABORT_CORE (
-      limit == -1 && sat_result != BTOR_SAT && sat_result != BTOR_UNSAT,
-      "result must be sat or unsat");
+  BTOR_ABORT_CORE (lod_limit == -1 && sat_limit == -1 && sat_result != BTOR_SAT
+                       && sat_result != BTOR_UNSAT,
+                   "result must be sat or unsat");
 
   btor->last_sat_result = sat_result;
 
@@ -9961,7 +9962,7 @@ static int
 btor_sat_aux_btor (Btor *btor)
 {
   assert (btor);
-  return btor_limited_sat_aux_btor (btor, -1);
+  return btor_limited_sat_aux_btor (btor, -1, -1);
 }
 
 static int
@@ -10094,7 +10095,6 @@ br_probe (Btor *btor)
   assert (btor->avmgr->amgr->smgr);
 
   Btor *bclone;
-  BtorSATMgr *smgr;
   int res, num_ops_orig, num_ops_clone;
   double start, delta;
 
@@ -10136,7 +10136,7 @@ br_probe (Btor *btor)
   {
     btor_msg (btor, 1, "  limit refinement iterations to 10");
     // TODO: this 10 also
-    res = btor_limited_sat_aux_btor (bclone, 10);
+    res = btor_limited_sat_aux_btor (bclone, 10, 10000);
   }
 
   if (res != BTOR_UNKNOWN)
