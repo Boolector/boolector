@@ -2294,6 +2294,7 @@ normalize_add_exp (Btor *btor, BtorNode **top_ptr)
   BtorPtrHashTable *seen;
   BtorNodePtrStack stack;
   BtorPtrHashBucket *b;
+  return;  // FIXME: deactived for smtcomp14
   int i, len;
   if (btor->options.rewrite_level < 2) return;
   top      = *top_ptr;
