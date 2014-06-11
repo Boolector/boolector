@@ -9861,7 +9861,10 @@ btor_limited_sat_aux_btor (Btor *btor, int limit)
   add_again_assumptions (btor);
   assert (check_reachable_flag_dbg (btor));
 
-  sat_result = btor_timed_sat_sat (btor, -1);
+  if (limit > -1)
+    sat_result = btor_timed_sat_sat (btor, limit * 10);
+  else
+    sat_result = btor_timed_sat_sat (btor, -1);
 
   if (btor->options.dual_prop && sat_result == BTOR_SAT
       && simp_sat_result != BTOR_SAT)
@@ -10086,13 +10089,20 @@ static int
 br_probe (Btor *btor)
 {
   assert (btor);
+  assert (btor->avmgr);
+  assert (btor->avmgr->amgr);
+  assert (btor->avmgr->amgr->smgr);
 
   Btor *bclone;
+  BtorSATMgr *smgr;
   int res, num_ops_orig, num_ops_clone;
   double start, delta;
 
   if (btor->last_sat_result || btor->options.inc_enabled
-      || btor->options.model_gen || btor->options.beta_reduce_all)
+      || btor->options.model_gen
+      || btor->options.beta_reduce_all
+      /* disable for QF_BV */
+      || !btor->avmgr->amgr->smgr->inc_required)
     return BTOR_UNKNOWN;
 
   start = btor_time_stamp ();
