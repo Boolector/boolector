@@ -4128,15 +4128,18 @@ merge_lambdas (Btor *btor)
   BtorHashTableIterator it;
   BtorNodeIterator nit;
   BtorNodePtrStack stack, unmark, visit;
+#if 0
   BtorPtrHashTable *merged, *apps;
+#endif
 
   start         = btor_time_stamp ();
   mm            = btor->mm;
   delta_lambdas = btor->lambdas->count;
 
-  merged = btor_new_ptr_hash_table (mm,
-                                    (BtorHashPtr) btor_hash_exp_by_id,
-                                    (BtorCmpPtr) btor_compare_exp_by_id);
+#if 0
+  merged = btor_new_ptr_hash_table (mm, (BtorHashPtr) btor_hash_exp_by_id,
+					(BtorCmpPtr) btor_compare_exp_by_id);
+#endif
 
   btor_init_substitutions (btor);
   BTOR_INIT_STACK (stack);
@@ -4226,9 +4229,11 @@ merge_lambdas (Btor *btor)
     btor_unassign_params (btor, merge);
     btor_insert_substitution (btor, BTOR_LAMBDA_GET_BODY (merge), subst, 0);
     btor_release_exp (btor, subst);
-
-    assert (!btor_find_in_ptr_hash_table (merged, merge));
-    (void) btor_insert_in_ptr_hash_table (merged, btor_copy_exp (btor, merge));
+#if 0
+      assert (!btor_find_in_ptr_hash_table (merged, merge));
+      (void) btor_insert_in_ptr_hash_table (merged,
+					    btor_copy_exp (btor, merge));
+#endif
   }
 
   /* cleanup */
@@ -4253,51 +4258,50 @@ merge_lambdas (Btor *btor)
   delta = btor_time_stamp () - start;
   btor_msg (btor, 1, "merged %d lambdas in %.2f seconds", delta_lambdas, delta);
 
-  if (btor->options.beta_reduce_all) goto RELEASE_MERGED;
+#if 0
+  if (btor->options.beta_reduce_all)
+    goto RELEASE_MERGED;
 
   init_cache (btor);
 
   /* eliminate all non-parameterized applies on lambdas in 'merged',
    * use bounded beta reduction with bound 2 */
-  apps = btor_new_ptr_hash_table (mm,
-                                  (BtorHashPtr) btor_hash_exp_by_id,
-                                  (BtorCmpPtr) btor_compare_exp_by_id);
+  apps = btor_new_ptr_hash_table (mm, (BtorHashPtr) btor_hash_exp_by_id,
+				      (BtorCmpPtr) btor_compare_exp_by_id);
 
   init_node_hash_table_iterator (&it, merged);
   while (has_next_node_hash_table_iterator (&it))
-  {
-    merge = next_node_hash_table_iterator (&it);
-    merge = btor_simplify_exp (btor, merge);
-    assert (BTOR_IS_REGULAR_NODE (merge));
-    assert (BTOR_IS_LAMBDA_NODE (merge));
-
-    init_full_parent_iterator (&nit, merge);
-    while (has_next_parent_full_parent_iterator (&nit))
     {
-      cur = next_parent_full_parent_iterator (&nit);
-      assert (BTOR_IS_REGULAR_NODE (cur));
-      assert (BTOR_IS_APPLY_NODE (cur));
-      if (cur->parameterized) continue;
-      (void) btor_insert_in_ptr_hash_table (apps, btor_copy_exp (btor, cur));
+      merge = next_node_hash_table_iterator (&it);
+      merge = btor_simplify_exp (btor, merge);
+      assert (BTOR_IS_REGULAR_NODE (merge));
+      assert (BTOR_IS_LAMBDA_NODE (merge));
+
+      init_full_parent_iterator (&nit, merge);
+      while (has_next_parent_full_parent_iterator (&nit))
+	{
+	  cur = next_parent_full_parent_iterator (&nit);
+	  assert (BTOR_IS_REGULAR_NODE (cur));
+	  assert (BTOR_IS_APPLY_NODE (cur));
+	  if (cur->parameterized)
+	    continue;
+	  (void) btor_insert_in_ptr_hash_table (apps,
+					        btor_copy_exp (btor, cur));
+	}
     }
-  }
 
   start = btor_time_stamp ();
-  btor_msg (btor,
-            1,
-            "eliminate %d applications on %d merged lambdas",
-            apps->count,
-            merged->count);
+  btor_msg (btor, 1, "eliminate %d applications on %d merged lambdas",
+	    apps->count,
+	    merged->count);
 
   substitute_and_rebuild (btor, apps, 2);
 
-  btor_msg (btor,
-            1,
-            "eliminated %d applications on %d merged lambdas"
-            " in %.2f seconds",
-            apps->count,
-            merged->count,
-            btor_time_stamp () - start);
+  btor_msg (btor, 1, "eliminated %d applications on %d merged lambdas"
+		     " in %.2f seconds",
+	    apps->count,
+	    merged->count,
+	    btor_time_stamp () - start);
 
   init_node_hash_table_iterator (&it, apps);
   while (has_next_node_hash_table_iterator (&it))
@@ -4311,6 +4315,7 @@ RELEASE_MERGED:
   while (has_next_node_hash_table_iterator (&it))
     btor_release_exp (btor, next_node_hash_table_iterator (&it));
   btor_delete_ptr_hash_table (merged);
+#endif
 }
 
 static void
