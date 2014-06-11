@@ -859,6 +859,13 @@ btor_print_stats_btor (Btor *btor)
 
   verbosity = btor->options.verbosity;
 
+  // TODO: better unclone
+  if (btor->unclone)
+  {
+    btor = btor->unclone;
+    btor_set_verbosity_btor (btor, verbosity);
+  }
+
   report_constraint_stats (btor, 1);
 #ifndef BTOR_DO_NOT_OPTIMIZE_UNCONSTRAINED
   if (btor->options.ucopt)
@@ -1395,6 +1402,8 @@ btor_delete_btor (Btor *btor)
   BTOR_RELEASE_STACK (btor->mm, btor->stats.lemmas_size);
 
   btor_delete_aigvec_mgr (btor->avmgr);
+
+  if (btor->unclone) btor_delete_btor (btor->unclone);
 
   assert (btor->rec_rw_calls == 0);
   BTOR_DELETE (mm, btor);
@@ -9784,7 +9793,7 @@ add_lemma_to_dual_prop_clone (Btor *btor,
 }
 
 static int
-btor_sat_aux_btor (Btor *btor)
+btor_limited_sat_aux_btor (Btor *btor, int limit)
 {
   assert (btor);
 
@@ -9915,6 +9924,12 @@ btor_sat_aux_btor (Btor *btor)
 #endif
     add_again_assumptions (btor);
     sat_result = btor_timed_sat_sat (btor, -1);
+
+    if (limit > -1 && btor->stats.lod_refinements >= limit)
+    {
+      sat_result = BTOR_UNKNOWN;
+      break;
+    }
   }
 
   assert (sat_result != BTOR_SAT || BTOR_EMPTY_STACK (prop_stack));
@@ -9923,8 +9938,9 @@ btor_sat_aux_btor (Btor *btor)
 DONE:
   BTOR_RELEASE_STACK (btor->mm, prop_stack);
   btor->valid_assignments = 1;
-  BTOR_ABORT_CORE (sat_result != BTOR_SAT && sat_result != BTOR_UNSAT,
-                   "result must be sat or unsat");
+  BTOR_ABORT_CORE (
+      limit == -1 && sat_result != BTOR_SAT && sat_result != BTOR_UNSAT,
+      "result must be sat or unsat");
 
   btor->last_sat_result = sat_result;
 
@@ -9944,6 +9960,13 @@ DONE:
   }
 #endif
   return sat_result;
+}
+
+static int
+btor_sat_aux_btor (Btor *btor)
+{
+  assert (btor);
+  return btor_limited_sat_aux_btor (btor, -1);
 }
 
 static int
@@ -10065,6 +10088,41 @@ btor_sat_btor (Btor *btor)
   assert (btor->options.inc_enabled || btor->btor_sat_btor_called == 0);
 
   int res;
+
+  if (!btor->last_sat_result && !btor->options.inc_enabled
+      && !btor->options.model_gen && !btor->options.beta_reduce_all)
+  {
+    btor_msg (btor, 1, "try full beta reduction");
+    assert (btor->assumptions->count == 0);
+    Btor *bclone;
+    bclone = btor_clone_btor (btor);
+    btor_enable_beta_reduce_all (bclone);
+    btor_set_verbosity_btor (bclone, 0);
+    btor_set_loglevel_btor (bclone, 0);
+    res = btor_simplify (bclone);
+
+    if (res != BTOR_UNKNOWN)
+    {
+      btor_msg (btor, 1, "formula simplified with full beta reduction");
+      btor->unclone = bclone;
+      return res;
+    }
+    else
+    {
+      btor_msg (btor, 1, "limit refinement iterations to 10");
+      res = btor_limited_sat_aux_btor (bclone, 10);
+    }
+
+    if (res != BTOR_UNKNOWN)
+    {
+      btor_msg (btor, 1, "formula solved within 10 refinement iterations");
+      btor->unclone = bclone;
+      return res;
+    }
+
+    btor_delete_btor (bclone);
+    btor_msg (btor, 1, "full beta reduction did not succeed");
+  }
 
 #ifdef BTOR_CHECK_UNCONSTRAINED
   Btor *uclone = 0;
