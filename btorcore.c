@@ -1144,7 +1144,7 @@ btor_new_btor (void)
   // btor->options.dual_prop = 1; // TODO debug
   // btor->options.just = 1; // TODO debug
 #ifndef BTOR_DO_NOT_OPTIMIZE_UNCONSTRAINED
-  // btor->options.ucopt = 1; // TODO debug
+  btor->options.ucopt = 1;  // TODO debug
 #endif
   btor->options.pprint                   = 1;
   btor->options.slice_propagation        = 0;
@@ -5109,11 +5109,6 @@ optimize_unconstrained (Btor *btor)
           case BTOR_ADD_NODE:
             if (hl[0] || hl[1])
             {
-              //			printf ("cur: %s\n", node2string (cur));
-              //			printf ("hl[0]: %d e[0]: %s\n", hl[0],
-              // node2string (cur->e[0]));
-              //			printf ("hl[1]: %d e[1]: %s\n", hl[1],
-              // node2string (cur->e[1]));
               btor->stats.bv_uc_props++;
               btor_insert_in_ptr_hash_table (hls, btor_copy_exp (btor, cur));
               subst = lambda_var_exp (btor, cur->len);
@@ -5208,10 +5203,6 @@ optimize_unconstrained (Btor *btor)
             }
             break;
           case BTOR_BCOND_NODE:
-            // printf ("cur: %s\n", node2string (cur));
-            // printf ("hl[0]: %d e[0]: %s\n", hl[0], node2string (cur->e[0]));
-            // printf ("hl[1]: %d e[1]: %s\n", hl[1], node2string (cur->e[1]));
-            // printf ("hl[2]: %d e[2]: %s\n", hl[2], node2string (cur->e[2]));
             if ((hl[1] && hl[2]) || (hl[0] && (hl[1] || hl[2])))
             {
               btor->stats.bv_uc_props++;
@@ -5231,7 +5222,6 @@ optimize_unconstrained (Btor *btor)
             // prevent multi-param lambdas to be substituted
             // by an array variable (will be substituted by an
             // UF after competition)
-            // printf ("lambda cur %s hl[1] %d\n", node2string (cur), hl[1]);
             if (((BtorLambdaNode *) cur)->num_params > 1)
               nparams = 1;
             else if (hl[1] && !BTOR_IS_CURRIED_LAMBDA_NODE (cur))
@@ -5318,24 +5308,6 @@ btor_simplify (Btor *btor)
       if (btor->varsubst_constraints->count) continue;
     }
 
-    // printf ("----\n");
-    // btor_disable_pretty_print (btor);
-    // btor_dump_btor (btor, stdout);
-#ifndef BTOR_DO_NOT_OPTIMIZE_UNCONSTRAINED
-    if (btor->options.ucopt && btor->options.rewrite_level > 2
-        && !btor->options.inc_enabled && !btor->options.model_gen)
-    {
-      optimize_unconstrained (btor);
-      assert (check_all_hash_tables_proxy_free_dbg (btor));
-      assert (check_all_hash_tables_simp_free_dbg (btor));
-      assert (check_unique_table_children_proxy_free_dbg (btor));
-      if (btor->inconsistent) break;
-    }
-#endif
-    // printf ("====\n");
-    // btor_disable_pretty_print (btor);
-    // btor_dump_btor (btor, stdout);
-
 #ifndef BTOR_DO_NOT_ELIMINATE_SLICES
     if (btor->options.rewrite_level > 2 && !btor->options.inc_enabled)
     {
@@ -5374,6 +5346,24 @@ btor_simplify (Btor *btor)
       if (btor->options.slice_propagation && !btor->options.inc_enabled)
         analyze_slices (btor);
     }
+
+    // printf ("----\n");
+    // btor_disable_pretty_print (btor);
+    // btor_dump_btor (btor, stdout);
+#ifndef BTOR_DO_NOT_OPTIMIZE_UNCONSTRAINED
+    if (btor->options.ucopt && btor->options.rewrite_level > 2
+        && !btor->options.inc_enabled && !btor->options.model_gen)
+    {
+      optimize_unconstrained (btor);
+      assert (check_all_hash_tables_proxy_free_dbg (btor));
+      assert (check_all_hash_tables_simp_free_dbg (btor));
+      assert (check_unique_table_children_proxy_free_dbg (btor));
+      if (btor->inconsistent) break;
+    }
+#endif
+    // printf ("====\n");
+    // btor_disable_pretty_print (btor);
+    // btor_dump_btor (btor, stdout);
 
     if (btor->varsubst_constraints->count) continue;
 
@@ -10100,7 +10090,7 @@ btor_sat_btor (Btor *btor)
       && !btor->options.inc_enabled && !btor->options.model_gen)
   {
     int ucres = btor_sat_aux_btor (uclone);
-    printf ("ucres %d res %d\n", ucres, res);
+    // printf ("ucres %d res %d\n", ucres, res);
     assert (res == ucres);
   }
 #endif
