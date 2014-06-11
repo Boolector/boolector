@@ -155,9 +155,6 @@ struct Btor
 
   /* shadow clone (debugging only) */
   Btor *clone;
-  /* TODO: better unclone
-   *       -> this is now just the clone that solved the formula */
-  Btor *unclone;
 
   FILE *apitrace;
   int closeapitrace;
@@ -248,6 +245,7 @@ struct Btor
     double cloning;
     double synth_exp;
     double model_gen;
+    double br_probing;
   } time;
 
   struct

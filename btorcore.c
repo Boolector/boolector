@@ -859,13 +859,6 @@ btor_print_stats_btor (Btor *btor)
 
   verbosity = btor->options.verbosity;
 
-  // TODO: better unclone
-  if (btor->unclone)
-  {
-    btor = btor->unclone;
-    btor_set_verbosity_btor (btor, verbosity);
-  }
-
   report_constraint_stats (btor, 1);
 #ifndef BTOR_DO_NOT_OPTIMIZE_UNCONSTRAINED
   if (btor->options.ucopt)
@@ -1068,6 +1061,7 @@ btor_print_stats_btor (Btor *btor)
               "%.2f seconds propagation apply in conds search",
               btor->time.find_cond_prop_app);
   btor_msg (btor, 1, "%.2f seconds for cloning", btor->time.cloning);
+  btor_msg (btor, 1, "%.2f beta reduction probing", btor->time.br_probing);
   if (btor->options.model_gen)
     btor_msg (btor, 1, "%.2f seconds model generation", btor->time.model_gen);
   btor_msg (btor, 1, "");
@@ -1402,8 +1396,6 @@ btor_delete_btor (Btor *btor)
   BTOR_RELEASE_STACK (btor->mm, btor->stats.lemmas_size);
 
   btor_delete_aigvec_mgr (btor->avmgr);
-
-  if (btor->unclone) btor_delete_btor (btor->unclone);
 
   assert (btor->rec_rw_calls == 0);
   BTOR_DELETE (mm, btor);
@@ -10080,6 +10072,83 @@ print_applies_dbg (Btor * btor)
 }
 #endif
 
+static int
+sum_ops (Btor *btor)
+{
+  int i, sum = 0;
+
+  for (i = BTOR_BV_CONST_NODE; i < BTOR_PROXY_NODE; i++)
+    sum += btor->ops[i].cur;
+  return sum;
+}
+
+static int
+br_probe (Btor *btor)
+{
+  assert (btor);
+
+  Btor *bclone;
+  int res, num_ops_orig, num_ops_clone;
+  double start, delta;
+
+  if (btor->last_sat_result || btor->options.inc_enabled
+      || btor->options.model_gen || btor->options.beta_reduce_all)
+    return BTOR_UNKNOWN;
+
+  start = btor_time_stamp ();
+
+  btor_msg (btor, 1, "try full beta reduction probing");
+  assert (btor->assumptions->count == 0);
+  bclone = btor_clone_btor (btor);
+  btor_enable_beta_reduce_all (bclone);
+  btor_set_verbosity_btor (bclone, 0);
+  btor_set_loglevel_btor (bclone, 0);
+
+  res           = btor_simplify (bclone);
+  num_ops_orig  = sum_ops (btor);
+  num_ops_clone = sum_ops (bclone);
+  btor_msg (btor,
+            1,
+            "  number of nodes: %d/%d (ratio: %.1f)",
+            num_ops_orig,
+            num_ops_clone,
+            (float) num_ops_clone / num_ops_orig);
+
+  if (res != BTOR_UNKNOWN)
+  {
+    delta = btor_time_stamp () - start;
+    btor_msg (btor, 1, "  simplified in %.2f seconds", delta);
+    btor->time.br_probing += delta;
+    return res;
+  }
+  // TODO: make this 10 an option
+  else if (num_ops_clone < num_ops_orig * 10)
+  {
+    btor_msg (btor, 1, "  limit refinement iterations to 10");
+    // TODO: this 10 also
+    res = btor_limited_sat_aux_btor (bclone, 10);
+  }
+
+  if (res != BTOR_UNKNOWN)
+  {
+    delta = btor_time_stamp () - start;
+    btor_msg (btor,
+              1,
+              "  solved within 10 refinement iterations in"
+              "  %.2f seconds",
+              delta);
+    btor->time.br_probing += delta;
+    return res;
+  }
+
+  btor_delete_btor (bclone);
+  delta = btor_time_stamp () - start;
+  btor_msg (btor, 1, "  probing did not succeed (%.2f seconds)", delta);
+  btor->time.br_probing += delta;
+
+  return BTOR_UNKNOWN;
+}
+
 int
 btor_sat_btor (Btor *btor)
 {
@@ -10089,40 +10158,8 @@ btor_sat_btor (Btor *btor)
 
   int res;
 
-  if (!btor->last_sat_result && !btor->options.inc_enabled
-      && !btor->options.model_gen && !btor->options.beta_reduce_all)
-  {
-    btor_msg (btor, 1, "try full beta reduction");
-    assert (btor->assumptions->count == 0);
-    Btor *bclone;
-    bclone = btor_clone_btor (btor);
-    btor_enable_beta_reduce_all (bclone);
-    btor_set_verbosity_btor (bclone, 0);
-    btor_set_loglevel_btor (bclone, 0);
-    res = btor_simplify (bclone);
-
-    if (res != BTOR_UNKNOWN)
-    {
-      btor_msg (btor, 1, "formula simplified with full beta reduction");
-      btor->unclone = bclone;
-      return res;
-    }
-    else
-    {
-      btor_msg (btor, 1, "limit refinement iterations to 10");
-      res = btor_limited_sat_aux_btor (bclone, 10);
-    }
-
-    if (res != BTOR_UNKNOWN)
-    {
-      btor_msg (btor, 1, "formula solved within 10 refinement iterations");
-      btor->unclone = bclone;
-      return res;
-    }
-
-    btor_delete_btor (bclone);
-    btor_msg (btor, 1, "full beta reduction did not succeed");
-  }
+  res = br_probe (btor);
+  if (res != BTOR_UNKNOWN) return res;
 
 #ifdef BTOR_CHECK_UNCONSTRAINED
   Btor *uclone = 0;
