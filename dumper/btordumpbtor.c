@@ -604,6 +604,7 @@ btor_dump_btor (Btor *btor, FILE *file)
   {
     init_node_hash_table_iterator (&it, btor->unsynthesized_constraints);
     queue_node_hash_table_iterator (&it, btor->synthesized_constraints);
+    queue_node_hash_table_iterator (&it, btor->embedded_constraints);
     while (has_next_node_hash_table_iterator (&it))
       btor_add_root_to_dump_context (bdc, next_node_hash_table_iterator (&it));
   }
