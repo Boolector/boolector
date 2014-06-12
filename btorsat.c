@@ -683,7 +683,7 @@ btor_lingeling_sat (BtorSATMgr *smgr, int limit)
 
   lglsetopt (lgl, "simplify", 1);
 
-  if (smg->inc_required
+  if (smgr->inc_required
       && (smgr->satcalls == 1 || (smgr->satcalls & (smgr->satcalls - 1))))
     lglsetopt (lgl, "simpdelay", BTOR_LGL_SIMP_DELAY);
   else
