@@ -1,6 +1,6 @@
 /*  Boolector: Satisfiablity Modulo Theories (SMT) solver.
  *
- *  Copyright (C) 2012-2013 Armin Biere.
+ *  Copyright (C) 2012-2014 Armin Biere.
  *
  *  All rights reserved.
  *
@@ -37,6 +37,7 @@ void
 BtorIBV::warn (const char* fmt, ...)
 {
   va_list ap;
+  if (!verbosity) return;
   btoribv_msghead ();
   fputs ("warning: ", stdout);
   va_start (ap, fmt);
@@ -179,8 +180,8 @@ BtorIBV::delete_ibv_release_variable (BtorIBVNode* node)
 
   for (BtorIBVAtom* a = node->atoms.start; a < node->atoms.top; a++)
   {
-    if (a->exp) boolector_release (btor, a->exp);
-    if (a->next) boolector_release (btor, a->next);
+    if (a->current.exp) boolector_release (btor, a->current.exp);
+    if (a->next.exp) boolector_release (btor, a->next.exp);
   }
   BTOR_RELEASE_STACK (btor->mm, node->atoms);
 
@@ -202,7 +203,6 @@ BtorIBV::delete_ibv_node (BtorIBVNode* node)
   assert (node->name);
   btor_freestr (btor->mm, node->name);
   if (node->cached) boolector_release (btor, node->cached);
-  if (node->forwarded) boolector_release (btor, node->forwarded);
   delete_ibv_release_variable (node);
   BTOR_DELETEN (btor->mm, node->flags, node->width);
   BTOR_DELETE (btor->mm, node);
@@ -240,6 +240,18 @@ BtorIBV::setReachedAtBoundCallBack (void* state,
                                     void (*fun) (void* state, int i, int k))
 {
   boolector_set_reached_at_bound_call_back_mc (btormc, state, fun);
+}
+
+int
+BtorIBV::hasAssertionBeenViolatedAtBound (int assertion_number)
+{
+  BTOR_ABORT_BOOLECTOR (assertion_number < 0, "negative assertion number");
+  BTOR_ABORT_BOOLECTOR (
+      (int) BTOR_COUNT_STACK (assertions) <= assertion_number,
+      "assertion number %d out of range (only added %d assertions)",
+      assertion_number,
+      (int) BTOR_COUNT_STACK (assertions));
+  return boolector_reached_bad_at_bound_mc (btormc, assertion_number);
 }
 
 static void
@@ -282,11 +294,10 @@ BtorIBV::new_node (unsigned id, unsigned width)
   assert (!BTOR_PEEK_STACK (idtab, id));
   BtorIBVNode* node;
   BTOR_CNEW (btor->mm, node);
-  node->id        = id;
-  node->width     = width;
-  node->cached    = 0;
-  node->forwarded = 0;
-  node->name      = 0;
+  node->id     = id;
+  node->width  = width;
+  node->cached = 0;
+  node->name   = 0;
   BTOR_CNEWN (btor->mm, node->flags, width);
   BTOR_POKE_STACK (idtab, id, node);
   return node;
@@ -300,7 +311,12 @@ BtorIBV::addConstant (unsigned id, const string& str, unsigned width)
   BtorIBVNode* node;
   assert (0 < id);
   assert (0 < width);  // TODO really?
-  assert (str.size () == width);
+  BTOR_ABORT_BOOLECTOR (
+      str.size () != width,
+      "constant '%s' width %ld does not match width argument %u",
+      str.c_str (),
+      (long) str.size (),
+      width);
   node = new_node (id, width);
   for (size_t i = 0; i < str.size (); i++)
     assert (str[i] == '0' || str[i] == '1' || str[i] == 'x');
@@ -430,13 +446,17 @@ BtorIBV::mark_assigned (BtorIBVNode* n, BitRange r)
   assert (r.m_nMsb < n->width);
   for (unsigned i = r.m_nLsb; i <= r.m_nMsb; i++)
   {
+    BTOR_ABORT_BOOLECTOR (n->flags[i].assigned,
+                          "id %u node '%s[%u]' assigned twice",
+                          n->id,
+                          n->name,
+                          i);
     msg (3, "id %u assigning '%s[%u]'", n->id, n->name, i);
     if (n->flags[i].state.current)
       wrn ("id %u bit '%s[%u]' marked current of state and is now assigned",
            n->id,
            n->name,
            i);
-    assert (!n->flags[i].assigned);
     n->flags[i].assigned = 1;
   }
 }
@@ -686,6 +706,13 @@ BtorIBV::addCaseOp (BtorIBVTag tag, BitRange o, const vector<BitRange>& ops)
   msg (3, a, "id %u %u-ary case", on->id, n);
 }
 
+static char
+bit (const char* bits, unsigned pos, unsigned width)
+{
+  assert (pos < width);
+  return bits[width - pos - 1];
+}
+
 void
 BtorIBV::addState (BitRange o, BitRange init, BitRange next)
 {
@@ -700,10 +727,14 @@ BtorIBV::addState (BitRange o, BitRange init, BitRange next)
     assert (init.getWidth () == o.getWidth ());
     BtorIBVNode* in = bitrange2node (init);
     assert (in->is_constant);
+    const char* n = in->name;
+    unsigned w    = in->width;
+    assert (strlen (n) == w);
     unsigned imsb = init.m_nMsb, ilsb = imsb;
-    bool isx = (in->name[imsb] != '0' && in->name[imsb] != '1');
+    bool isx = (bit (n, imsb, w) != '0' && bit (n, imsb, w) != '1');
     while (ilsb > init.m_nLsb
-           && (isx == (in->name[ilsb - 1] != '0' && in->name[ilsb - 1] != '1')))
+           && (isx
+               == (bit (n, ilsb - 1, w) != '0' && bit (n, ilsb - 1, w) != '1')))
       ilsb--;
     if (ilsb > init.m_nLsb)
     {
@@ -843,7 +874,7 @@ void
 BtorIBV::analyze ()
 {
   BTOR_ABORT_BOOLECTOR (state == BTOR_IBV_ANALYZED,
-                        "can analyze model a second time");
+                        "can not analyze model a second time");
 
   BTOR_ABORT_BOOLECTOR (state == BTOR_IBV_TRANSLATED,
                         "can not analyze model after translation");
@@ -1333,16 +1364,19 @@ BtorIBV::analyze ()
          a++)
     {
       if (a->tag != BTOR_IBV_STATE) continue;
-      for (unsigned i = a->ranges[1].lsb; i <= a->ranges[1].msb; i++)
+      unsigned w = a->range.msb - a->range.lsb + 1;
+      for (unsigned i = 0; i < w; i++)
       {
-        if (!n->flags[i].used) continue;
-        if (mark_used (id2node (a->ranges[1].id), i)) onlyinnext++, used++;
+        if (!n->flags[a->range.lsb + i].used) continue;
+        if (mark_used (id2node (a->ranges[1].id), a->ranges[1].lsb + i))
+          onlyinnext++, used++;
       }
       if (a->ranges[0].id)
-        for (unsigned i = a->ranges[0].lsb; i <= a->ranges[0].msb; i++)
+        for (unsigned i = 0; i < w; i++)
         {
-          if (!n->flags[i].used) continue;
-          if (mark_used (id2node (a->ranges[0].id), i)) onlyininit++, used++;
+          if (!n->flags[a->range.lsb + i].used) continue;
+          if (mark_used (id2node (a->ranges[0].id), a->ranges[0].lsb + i))
+            onlyininit++, used++;
         }
     }
   }
@@ -1670,11 +1704,6 @@ BtorIBV::analyze ()
       assert (next->flags);
       assert (k < next->width);
       if (next->flags[k].classified != BTOR_IBV_TWO_PHASE_INPUT) continue;
-#if 0
-      BTOR_ABORT_BOOLECTOR (1,
-        "next state '%s[%u]' of current state '%s[%u]' became two-phase input",
-         next->name, k,	n->name, i);
-#else
       warn (
           "next state '%s[%u]' of current state '%s[%u]' became two-phase "
           "input",
@@ -1688,7 +1717,6 @@ BtorIBV::analyze ()
            n->name,
            i);
       n->flags[i].classified = BTOR_IBV_TWO_PHASE_INPUT;
-#endif
     }
   }
 
@@ -1728,7 +1756,7 @@ BtorIBV::analyze ()
             btor_ibv_classified_to_str (c));
         break;
 
-        // TODO next need to handle this one too?
+        // TODO need to handle this one too?
 #if 0
       case BTOR_IBV_ASSIGNED_IMPLICIT_CURRENT:
 #endif
@@ -1939,16 +1967,10 @@ BtorIBV::analyze ()
       if (!n->flags[i].coi) continue;
       if (n->assigned && n->assigned[i]) continue;
       if (n->next && n->next[i]) continue;
-#if 0
-      BTOR_ABORT_BOOLECTOR (!n->prev || !n->prev[i],
-        "undefined '%s[%u]' (neither assigned, nor state, nor non-state)",
-	n->name, i);
-#else
       if (!n->prev || !n->prev[i])
         warn ("undefined '%s[%u]' (neither assigned, nor state, nor non-state)",
               n->name,
               i);
-#endif
     }
   }
 
@@ -1959,10 +1981,10 @@ BtorIBV::analyze ()
 static void
 btor_ibv_check_atom (BtorIBVNode* n, BtorIBVRange r)
 {
+#if 0
 #ifndef NDEBUG
   assert (r.msb < n->width);
-  for (unsigned i = r.lsb + 1; i < r.msb; i++)
-  {
+  for (unsigned i = r.lsb + 1; i < r.msb; i++) {
     assert (n->flags[i].classified == n->flags[r.lsb].classified);
     if (n->assigned) assert (n->assigned[i] == n->assigned[r.lsb]);
     if (n->next) assert (n->next[i] == n->next[r.lsb]);
@@ -1971,15 +1993,242 @@ btor_ibv_check_atom (BtorIBVNode* n, BtorIBVRange r)
 #else
   (void) n, (void) r;
 #endif
+#else
+  (void) n, (void) r;
+#endif
+}
+
+static void
+btor_ibv_check_atoms (BtorIBVNode* n)
+{
+#if 0
+#ifndef NDEBUG
+  BtorIBVAtom * last = 0;
+  assert (!BTOR_EMPTY_STACK (n->atoms));
+  for (BtorIBVAtom * a = n->atoms.start; a < n->atoms.top; a++) {
+    if (last) assert (a->range.lsb == last->range.msb + 1);
+    else assert (!a->range.lsb);
+    last = a;
+  }
+  assert (last);
+  assert (last->range.msb + 1 == n->width);
+#else
+  (void) n;
+#endif
+#else
+  (void) n;
+#endif
+}
+
+static bool
+overlaps (BtorIBVRange a, BtorIBVRange b)
+{
+  if (a.msb < b.lsb) return false;
+  if (a.lsb > b.msb) return false;
+  return true;
+}
+
+bool
+BtorIBV::is_relevant_atom_for_assigned_atom (BtorIBVAtom* lhs,
+                                             unsigned i,
+                                             BtorIBVAtom* rhs,
+                                             BtorIBVAssignment* ass)
+{
+  assert (ass->range.id == lhs->range.id);
+  assert (i < ass->nranges);
+  assert (rhs->range.id == ass->ranges[i].id);
+
+  BtorIBVRange r (rhs->range.id,
+                  lhs->range.msb - ass->range.lsb + ass->ranges[i].lsb,
+                  lhs->range.lsb - ass->range.lsb + ass->ranges[i].lsb);
+
+  switch ((int) (ass->tag))
+  {
+    case BTOR_IBV_BUF:
+    case BTOR_IBV_NOT:
+    case BTOR_IBV_ZERO_EXTEND: assert (!i); return overlaps (r, rhs->range);
+
+    case BTOR_IBV_AND:
+    case BTOR_IBV_DIV:
+    case BTOR_IBV_LE:
+    case BTOR_IBV_LE | BTOR_IBV_IS_PREDICATE:
+    case BTOR_IBV_LT:
+    case BTOR_IBV_LT | BTOR_IBV_IS_PREDICATE:
+    case BTOR_IBV_MOD:
+    case BTOR_IBV_MUL:
+    case BTOR_IBV_OR:
+    case BTOR_IBV_SUB:
+    case BTOR_IBV_SUM:
+    case BTOR_IBV_XOR: assert (i <= 1); return overlaps (r, rhs->range);
+
+    case BTOR_IBV_COND: assert (i <= 2); return overlaps (r, rhs->range);
+
+    case BTOR_IBV_EQUAL:
+    case BTOR_IBV_EQUAL | BTOR_IBV_IS_PREDICATE: assert (i <= 1); return true;
+
+    case BTOR_IBV_SIGN_EXTEND:
+      assert (!i);
+      if (rhs->range.lsb > r.msb) return false;
+      if (rhs->range.msb >= r.lsb) return true;
+      assert (rhs->range.msb < r.lsb);
+      // now check that 'rhs' contains the sign bit
+      if (rhs->range.msb < ass->ranges[i].msb) return false;
+      if (rhs->range.lsb > ass->ranges[i].msb) return false;
+      return true;
+
+    case BTOR_IBV_CASE:
+      if (!(i & 1) && ass->ranges[i].getWidth () == 1)
+      {
+        assert (rhs->range.getWidth () == 1);
+        return 1;
+      }
+      return overlaps (r, rhs->range);
+
+    case BTOR_IBV_CONCAT:
+    {
+      unsigned offset = 0;
+      for (unsigned j = 0; j < i; j++) offset += ass->ranges[j].getWidth ();
+      BtorIBVRange s (r.id, r.msb + offset, r.lsb + offset);
+      return overlaps (s, rhs->range);
+    }
+
+    case BTOR_IBV_LEFT_SHIFT:
+    case BTOR_IBV_RIGHT_SHIFT:
+      return true;  // TODO this is not precise if
+                    // shift amount has < ld (w) bits for
+                    // w the number of bits of the operand.
+                    // Then in certain cases 'rhs' might
+                    // not be relevant.
+    case BTOR_IBV_REPLICATE:
+    case BTOR_IBV_REPLICATE | BTOR_IBV_HAS_ARG:
+      assert (!i);
+      {
+        BtorIBVRange s = rhs->range;
+        unsigned w     = ass->ranges[0].getWidth ();
+        for (unsigned j = 0; j < ass->arg; j++)
+        {
+          if (overlaps (r, s)) return true;
+          s.lsb += w;
+          if (s.lsb > r.msb) return false;
+          s.msb += w;
+        }
+        return false;
+      }
+      break;
+
+    case BTOR_IBV_LEFT_SHIFT | BTOR_IBV_HAS_ARG:
+    case BTOR_IBV_RIGHT_SHIFT | BTOR_IBV_HAS_ARG:
+      return true;  // TODO this is not precise at all since
+                    // shift amount is constant and in principle
+                    // we could calculate relevance.
+
+    case BTOR_IBV_CONDBW:   // TODO not done yet ...
+    case BTOR_IBV_PARCASE:  // TODO not done yet ...
+
+    default:
+      BTOR_ABORT_BOOLECTOR (1,
+                            "operator '%s%s' (%d) not handled yet",
+                            btor_ibv_tag_to_str (ass->tag),
+                            (ass->tag & BTOR_IBV_IS_PREDICATE) ? "_PRED" : "",
+                            (int) ass->tag);
+      break;
+  }
+  return true;
+}
+
+void
+BtorIBV::push_atom_ptr_next (BtorIBVAtom* b,
+                             bool forward,
+                             BtorIBVAtomPtrNextStack* apnwork)
+{
+  const long cycle_limit = 10;
+  long pushed;
+  if (!forward && b->current.exp) return;
+  if (forward && b->next.exp) return;
+  BtorIBVAtomPtrNext apn (b, forward);
+  BTOR_PUSH_STACK (btor->mm, *apnwork, apn);
+  BtorIBVRange r = b->range;
+  msg (4,
+       "btor_ibv_push_atom_ptr_next id %u [%u:%u] '%s[%u:%u]' %d",
+       r.id,
+       r.msb,
+       r.lsb,
+       id2node (r.id)->name,
+       r.msb,
+       r.lsb,
+       forward);
+  if (forward)
+    pushed = ++b->next.pushed;
+  else
+    pushed = ++b->current.pushed;
+
+  if (pushed >= cycle_limit && force >= 2)
+  {
+    BoolectorNode* exp = boolector_zero (btor, (int) b->range.getWidth ());
+    if (forward)
+      b->next.exp = exp;
+    else
+      b->current.exp = exp;
+    warn (
+        "forced cyclic synthesis for id %u [%u:%u] '%s[%u:%u]' %d to zero "
+        "(pushed %ld)",
+        r.id,
+        r.msb,
+        r.lsb,
+        id2node (r.id)->name,
+        r.msb,
+        r.lsb,
+        forward,
+        pushed);
+  }
+  else
+  {
+    BTOR_ABORT_BOOLECTOR (pushed >= cycle_limit,
+                          "potential cyclic synthesis for id %u [%u:%u] "
+                          "'%s[%u:%u]' %d (giving up)",
+                          r.id,
+                          r.msb,
+                          r.lsb,
+                          id2node (r.id)->name,
+                          r.msb,
+                          r.lsb,
+                          forward);
+    if (pushed >= 2)
+      warn (
+          "potential cyclic synthesis for id %u [%u:%u] '%s[%u:%u]' %d (pushed "
+          "%ld)",
+          r.id,
+          r.msb,
+          r.lsb,
+          id2node (r.id)->name,
+          r.msb,
+          r.lsb,
+          forward,
+          pushed);
+  }
 }
 
 void
 BtorIBV::translate_atom_divide (BtorIBVAtom* a,
                                 bool forward,
-                                BtorIBVNodePtrNextStack* work)
+                                BtorIBVAtomPtrNextStack* apnwork)
 {
+  if (!forward && a->current.exp) return;
+  if (forward && a->next.exp) return;
+
   BtorIBVRange r = a->range;
   BtorIBVNode* n = id2node (r.id);
+
+  msg (4,
+       "translate_atom_divide id %u [%u:%u] '%s[%u:%u]' %d",
+       r.id,
+       r.msb,
+       r.lsb,
+       n->name,
+       r.msb,
+       r.lsb,
+       forward);
+
   btor_ibv_check_atom (n, r);
 
   BtorIBVClassification c = n->flags[r.lsb].classified;
@@ -1994,9 +2243,9 @@ BtorIBV::translate_atom_divide (BtorIBVAtom* a,
 
     case BTOR_IBV_TWO_PHASE_INPUT:
       if (n->is_next_state)
-        assert (!a->exp), assert (!a->next);
+        assert (!a->current.exp), assert (!a->next.exp);
       else
-        assert (a->exp), assert (a->next);
+        assert (a->current.exp), assert (a->next.exp);
       break;
 
     case BTOR_IBV_ASSIGNED_IMPLICIT_NEXT:
@@ -2009,18 +2258,33 @@ BtorIBV::translate_atom_divide (BtorIBVAtom* a,
       assert (ass->nranges == 1);
       assert (ass->ranges[0].id == n->id);
       BtorIBVNode* prev = id2node (ass->range.id);
-      BtorIBVNodePtrNext npn (prev, true);
-      BTOR_PUSH_STACK (btor->mm, *work, npn);
+      BtorIBVRange pr (ass->range.id,
+                       r.msb - ass->ranges[0].lsb + ass->range.lsb,
+                       r.lsb - ass->ranges[0].lsb + ass->range.lsb);
+      assert (pr.getWidth () == r.getWidth ());
+      for (BtorIBVAtom* b = prev->atoms.start; b < prev->atoms.top; b++)
+      {
+        assert (b->range.id == prev->id);
+        if (b->range.msb < pr.lsb) continue;
+        if (b->range.lsb > pr.msb) continue;
+        BTOR_COVER (!(b->range.lsb <= pr.lsb && pr.msb <= b->range.msb));
+#if 1
+        push_atom_ptr_next (b, true, apnwork);
+#else
+        push_atom_ptr_next (
+            b, false, apnwork);     // TODO try NOT to forward to avoid cycle?
+#endif
+      }
     }
     break;
 
     case BTOR_IBV_CONSTANT:
-      assert (a->exp);
-      assert (a->next);
+      assert (a->current.exp);
+      assert (a->next.exp);
       break;
 
     case BTOR_IBV_CURRENT_STATE:
-      assert (a->exp);
+      assert (a->current.exp);
       if (forward)
       {
         BtorIBVAssignment* ass = n->next[r.lsb];
@@ -2028,16 +2292,25 @@ BtorIBV::translate_atom_divide (BtorIBVAtom* a,
         assert (ass->tag == BTOR_IBV_STATE);
         assert (ass->range.id == n->id);
         assert (ass->nranges == 2);
-        BtorIBVNode* next = id2node (ass->ranges[1].id);
-        BtorIBVNodePtrNext npn (next, false);
-        BTOR_PUSH_STACK (btor->mm, *work, npn);
+        BtorIBVRange nr (ass->ranges[1].id,
+                         r.msb - ass->range.lsb + ass->ranges[1].lsb,
+                         r.lsb - ass->range.lsb + ass->ranges[1].lsb);
+        assert (nr.getWidth () == r.getWidth ());
+        BtorIBVNode* next = id2node (nr.id);
+        for (BtorIBVAtom* b = next->atoms.start; b < next->atoms.top; b++)
+        {
+          assert (b->range.id == next->id);
+          if (nr.msb < b->range.lsb) continue;
+          if (nr.lsb > b->range.msb) continue;
+          push_atom_ptr_next (b, false, apnwork);
+        }
       }
       break;
 
     case BTOR_IBV_ONE_PHASE_ONLY_NEXT_INPUT:
     case BTOR_IBV_ONE_PHASE_ONLY_CURRENT_INPUT:
       assert (!forward);
-      assert (a->exp);
+      assert (a->current.exp);
       break;
 
     case BTOR_IBV_PHANTOM_NEXT_INPUT:
@@ -2045,56 +2318,142 @@ BtorIBV::translate_atom_divide (BtorIBVAtom* a,
 
     case BTOR_IBV_ASSIGNED:
     {
-      BtorIBVAssignment* ass = 0;
       assert (n->assigned);
-      if (n->assigned) ass = n->assigned[r.lsb];  // TODO remove 'if'
-      // if (!ass && n->next) ass = n->next[r.lsb]; // TODO remove?
+      BtorIBVAssignment* ass = n->assigned[r.lsb];
       assert (ass);
-      if (ass)
-      {  // TODO remove 'if'
-        for (unsigned i = 0; i < ass->nranges; i++)
-        {
-          BtorIBVRange r = ass->ranges[i];
-          if (!r.id) continue;
-          BtorIBVNode* o = id2node (r.id);
-          const int mask = 3 << (2 * forward);
-          if (!(o->marked & mask))
-          {
-            BtorIBVNodePtrNext npn (o, forward);
-            BTOR_PUSH_STACK (btor->mm, *work, npn);
-          }
-        }
+      for (unsigned i = 0; i < ass->nranges; i++)
+      {
+        BtorIBVRange ar = ass->ranges[i];
+        if (!ar.id) continue;
+        BtorIBVNode* o = id2node (ar.id);
+        for (BtorIBVAtom* b = o->atoms.start; b < o->atoms.top; b++)
+          if (is_relevant_atom_for_assigned_atom (a, i, b, ass))
+            push_atom_ptr_next (b, forward, apnwork);
       }
     }
     break;
   }
 }
 
+static bool
+btor_ibv_atoms_in_range_have_exp (BtorIBVNode* n, BtorIBVRange r, bool forward)
+{
+  for (BtorIBVAtom* b = n->atoms.start; b < n->atoms.top; b++)
+  {
+    assert (b->range.id == r.id);
+    if (!overlaps (b->range, r)) continue;
+    if (!forward && !b->current.exp) return 0;
+    if (forward && !b->next.exp) return 0;
+  }
+  return 1;
+}
+
+static BoolectorNode*
+btor_ibv_atoms_in_range_collect_exp (Btor* btor,
+                                     BtorIBVNode* n,
+                                     BtorIBVRange r,
+                                     bool forward)
+{
+  btor_ibv_check_atoms (n);
+  BoolectorNode* exp = 0;
+  for (BtorIBVAtom* b = n->atoms.start; b < n->atoms.top; b++)
+  {
+    BoolectorNode* tmp;
+    if (b->range.msb < r.lsb || b->range.lsb > r.msb)
+      tmp = 0;
+    else
+      tmp = forward ? b->next.exp : b->current.exp;
+    if (tmp)
+      tmp = boolector_copy (btor, tmp);
+    else
+      tmp = boolector_zero (btor, (int) b->range.getWidth ());
+    if (exp)
+    {
+      BoolectorNode* concat = boolector_concat (btor, tmp, exp);
+      boolector_release (btor, exp);
+      boolector_release (btor, tmp);
+      exp = concat;
+    }
+    else
+      exp = tmp;
+  }
+  assert (exp);
+  return exp;
+}
+
 BoolectorNode*
-BtorIBV::translate_assignment_conquer (BtorIBVAtom* dst,
+BtorIBV::translate_assignment_conquer (BtorIBVAtom* a,
                                        bool forward,
-                                       BtorIBVAssignment* a)
+                                       BtorIBVAssignment* ass)
 {
   BoolectorNodePtrStack stack;
+  BtorIBVRange r = a->range;
   BoolectorNode* res;
-  assert (a);
-  assert (a->range.id == dst->range.id);
-  BTOR_INIT_STACK (stack);
-  for (unsigned i = 0; i < a->nranges; i++)
+  assert (ass);
+  assert (ass->range.id == r.id);
+
+  for (unsigned i = 0; i < ass->nranges; i++)
   {
-    BtorIBVRange r        = a->ranges[i];
+    BtorIBVRange ar = ass->ranges[i];
+    if (!ar.id) continue;
+    BtorIBVNode* o = id2node (ar.id);
+    for (BtorIBVAtom* b = o->atoms.start; b < o->atoms.top; b++)
+    {
+      assert (b->range.id == o->id);
+      if (ar.msb < b->range.lsb) continue;
+      if (ar.lsb > b->range.msb) continue;
+      if (!is_relevant_atom_for_assigned_atom (a, i, b, ass)) continue;
+      if (!forward && !b->current.exp) return 0;
+      if (forward && !b->next.exp) return 0;
+    }
+  }
+
+  msg (4,
+       "translate_assignment_conquer id %u [%u:%u] '%s[%u:%u]' %d",
+       a->range.id,
+       a->range.msb,
+       a->range.lsb,
+       id2node (a->range.id)->name,
+       a->range.msb,
+       a->range.lsb,
+       forward);
+
+  BTOR_INIT_STACK (stack);
+  for (unsigned i = 0; i < ass->nranges; i++)
+  {
+    BtorIBVRange r        = ass->ranges[i];
     BoolectorNode* argexp = 0;
     if (r.id)
     {
       BtorIBVNode* o = id2node (r.id);
-      BoolectorNode* cached;
-      cached = forward ? o->forwarded : o->cached;
-      assert (cached);
-      argexp = boolector_slice (btor, cached, (int) r.msb, (int) r.lsb);
+      btor_ibv_check_atoms (o);
+      BoolectorNode* exp = 0;
+      for (BtorIBVAtom* b = o->atoms.start; b < o->atoms.top; b++)
+      {
+        assert (b->range.id == r.id);
+        BoolectorNode* tmp = forward ? b->next.exp : b->current.exp;
+        if (tmp)
+          tmp = boolector_copy (btor, tmp);
+        else
+          tmp = boolector_zero (btor, (int) b->range.getWidth ());
+        if (exp)
+        {
+          BoolectorNode* concat = boolector_concat (btor, tmp, exp);
+          boolector_release (btor, exp);
+          boolector_release (btor, tmp);
+          exp = concat;
+        }
+        else
+          exp = tmp;
+      }
+      assert (exp);
+      argexp = boolector_slice (btor, exp, (int) r.msb, (int) r.lsb);
+      boolector_release (btor, exp);
     }
     BTOR_PUSH_STACK (btor->mm, stack, argexp);
   }
-  switch ((int) a->tag)
+
+  switch ((int) ass->tag)
   {
     case BTOR_IBV_AND:
       res = boolector_and (
@@ -2104,8 +2463,8 @@ BtorIBV::translate_assignment_conquer (BtorIBVAtom* dst,
       res = boolector_copy (btor, BTOR_PEEK_STACK (stack, 0));
       break;
     case BTOR_IBV_CASE:
-      assert (a->nranges >= 2);
-      assert (!(a->nranges & 1));
+      assert (ass->nranges >= 2);
+      assert (!(ass->nranges & 1));
       {
         int j = BTOR_COUNT_STACK (stack) - 1;
         res   = 0;
@@ -2141,7 +2500,7 @@ BtorIBV::translate_assignment_conquer (BtorIBVAtom* dst,
       break;
     case BTOR_IBV_CONCAT:
     {
-      assert (a->nranges >= 1);
+      assert (ass->nranges >= 1);
       res = 0;
       for (unsigned i = 0; i < BTOR_COUNT_STACK (stack); i++)
       {
@@ -2201,14 +2560,14 @@ BtorIBV::translate_assignment_conquer (BtorIBVAtom* dst,
     case BTOR_IBV_SIGN_EXTEND:
     case BTOR_IBV_ZERO_EXTEND:
     {
-      int dw           = dst->range.getWidth ();
+      int dw           = a->range.getWidth ();
       BoolectorNode* n = BTOR_PEEK_STACK (stack, 0);
       int nw           = boolector_get_width (btor, n);
       if (dw == nw)
         res = boolector_copy (btor, n);
       else if (dw < nw)
         res = boolector_slice (btor, n, dw - 1, 0);
-      else if (a->tag == BTOR_IBV_SIGN_EXTEND)
+      else if (ass->tag == BTOR_IBV_SIGN_EXTEND)
         res = boolector_sext (btor, n, dw - nw);
       else
         res = boolector_uext (btor, n, dw - nw);
@@ -2232,7 +2591,7 @@ BtorIBV::translate_assignment_conquer (BtorIBVAtom* dst,
       res = 0;
       assert (BTOR_COUNT_STACK (stack) == 1);
       BoolectorNode* arg = BTOR_PEEK_STACK (stack, 0);
-      for (unsigned i = 0; i < a->arg; i++)
+      for (unsigned i = 0; i < ass->arg; i++)
       {
         if (res)
         {
@@ -2260,10 +2619,10 @@ BtorIBV::translate_assignment_conquer (BtorIBVAtom* dst,
       else
         e = boolector_copy (btor, arg);
       BoolectorNode* s;
-      if (a->tag & BTOR_IBV_HAS_ARG)
+      if (ass->tag & BTOR_IBV_HAS_ARG)
       {
         assert (BTOR_COUNT_STACK (stack) == 1);
-        unsigned r = a->arg % l;
+        unsigned r = ass->arg % l;
         s          = boolector_unsigned_int (btor, r, d);
       }
       else
@@ -2281,11 +2640,11 @@ BtorIBV::translate_assignment_conquer (BtorIBVAtom* dst,
         }
       }
       BoolectorNode* t;
-      if ((a->tag & ~BTOR_IBV_HAS_ARG) == BTOR_IBV_LEFT_SHIFT)
+      if ((ass->tag & ~BTOR_IBV_HAS_ARG) == BTOR_IBV_LEFT_SHIFT)
         t = boolector_sll (btor, e, s);
       else
       {
-        assert ((a->tag & ~BTOR_IBV_HAS_ARG) == BTOR_IBV_RIGHT_SHIFT);
+        assert ((ass->tag & ~BTOR_IBV_HAS_ARG) == BTOR_IBV_RIGHT_SHIFT);
         t = boolector_srl (btor, e, s);
       }
       boolector_release (btor, e);
@@ -2302,9 +2661,9 @@ BtorIBV::translate_assignment_conquer (BtorIBVAtom* dst,
       res = 0;
       BTOR_ABORT_BOOLECTOR (1,
                             "operator '%s%s' (%d) not handled yet",
-                            btor_ibv_tag_to_str (a->tag),
-                            (a->tag & BTOR_IBV_IS_PREDICATE) ? "_PRED" : "",
-                            (int) a->tag);
+                            btor_ibv_tag_to_str (ass->tag),
+                            (ass->tag & BTOR_IBV_IS_PREDICATE) ? "_PRED" : "",
+                            (int) ass->tag);
       break;
   }
   assert (res);
@@ -2313,28 +2672,35 @@ BtorIBV::translate_assignment_conquer (BtorIBVAtom* dst,
     BoolectorNode* argexp = BTOR_POP_STACK (stack);
     if (argexp) boolector_release (btor, argexp);
   }
-  assert (boolector_get_width (btor, res) >= (int) dst->range.getWidth ());
-  if (boolector_get_width (btor, res) > (int) dst->range.getWidth ())
+  assert (boolector_get_width (btor, res) >= (int) a->range.getWidth ());
+  if (boolector_get_width (btor, res) > (int) a->range.getWidth ())
   {
-    BoolectorNode* tmp =
-        boolector_slice (btor, res, (int) dst->range.msb, (int) dst->range.lsb);
+    unsigned lsb = a->range.lsb - ass->range.lsb;
+    unsigned msb = a->range.msb - ass->range.lsb;
+    assert (lsb <= msb);
+    BoolectorNode* tmp = boolector_slice (btor, res, msb, lsb);
     boolector_release (btor, res);
     res = tmp;
   }
   BTOR_RELEASE_STACK (btor->mm, stack);
-  assert (boolector_get_width (btor, res) == (int) dst->range.getWidth ());
+  assert (boolector_get_width (btor, res) == (int) a->range.getWidth ());
+  assert (res);
   return res;
 }
 
-void
+bool
 BtorIBV::translate_atom_conquer (BtorIBVAtom* a, bool forward)
 {
-  if (forward && a->next) return;
-  if (!forward && a->exp) return;
+  if (!forward && a->current.exp) return true;
+  if (forward && a->next.exp) return true;
+
   BtorIBVRange r = a->range;
   BtorIBVNode* n = id2node (r.id);
+
   btor_ibv_check_atom (n, r);
+
   BtorIBVClassification c = n->flags[r.lsb].classified;
+
   switch (c)
   {
     case BTOR_IBV_PHANTOM_CURRENT_INPUT:
@@ -2343,9 +2709,9 @@ BtorIBV::translate_atom_conquer (BtorIBVAtom* a, bool forward)
     {
       BoolectorNode* exp = boolector_zero (btor, (int) r.getWidth ());
       if (forward)
-        assert (!a->next), a->next = exp;
+        assert (!a->next.exp), a->next.exp = exp;
       else
-        assert (!a->exp), a->exp = exp;
+        assert (!a->current.exp), a->current.exp = exp;
     }
     break;
 
@@ -2360,47 +2726,40 @@ BtorIBV::translate_atom_conquer (BtorIBVAtom* a, bool forward)
         unsigned pos = (pa->tag == BTOR_IBV_STATE);
         assert (pos < pa->nranges);
         assert (pa->ranges[pos].id == n->id);
-        if (pos)
-        {
-          warn ("original next state '%s[%u:%u]' used as two-phase input",
-                n->name,
-                r.msb,
-                r.lsb);
-        }
         BtorIBVNode* prev = id2node (pa->range.id);
         assert (prev);
         assert (!prev->is_next_state);
-        const BtorIBVAtom* b;
-        BtorIBVRange pr (pa->range.id,
+        BtorIBVRange pr (prev->id,
                          r.msb - pa->ranges[pos].lsb + pa->range.lsb,
                          r.lsb - pa->ranges[pos].lsb + pa->range.lsb);
-        assert (pr.getWidth () == r.getWidth ());
-        for (b = prev->atoms.start; b < prev->atoms.top; b++)
-        {
-          assert (b->range.id == prev->id);
-          if (b->range.lsb <= pr.lsb && pr.msb <= b->range.msb) break;
-        }
-#ifndef NDEBUG
-        assert (b != prev->atoms.top);
-        assert (b->range.lsb <= pr.lsb);
-        assert (pr.msb <= b->range.msb);
-        assert (b->exp);
-        assert (b->next);
-        assert (boolector_get_width (btor, b->exp) >= (int) pr.getWidth ());
-        assert (boolector_get_width (btor, b->next) >= (int) pr.getWidth ());
-#endif
-        int msb               = pr.msb - b->range.lsb;
-        int lsb               = pr.lsb - b->range.lsb;
-        BoolectorNode* tmp    = boolector_copy (btor, b->next);
-        BoolectorNode* sliced = boolector_slice (btor, tmp, msb, lsb);
-        boolector_release (btor, tmp);
-        assert (!a->exp);
-        a->exp = sliced;
+        if (!btor_ibv_atoms_in_range_have_exp (prev, pr, true)) return false;
+        if (pos)
+          warn ("next state id %u '%s[%u:%u]' used as two-phase input",
+                n->id,
+                n->name,
+                r.msb,
+                r.lsb);
+        BoolectorNode* forwarded =
+            btor_ibv_atoms_in_range_collect_exp (btor, prev, pr, true);
+        a->current.exp = boolector_slice (btor, forwarded, pr.msb, pr.lsb);
+        assert (boolector_get_width (btor, a->current.exp)
+                == (int) r.getWidth ());
+        boolector_release (btor, forwarded);
       }
       break;
 
     case BTOR_IBV_ASSIGNED_IMPLICIT_NEXT:
-      assert (!forward);
+
+      BTOR_ABORT_BOOLECTOR (
+          forward,
+          "can not forward implict next id %u [%u:%u] '%s[%u:%u]'",
+          r.id,
+          r.msb,
+          r.lsb,
+          id2node (r.id)->name,
+          r.msb,
+          r.lsb);
+
       assert (n->is_next_state);
       {
         assert (n->prev);
@@ -2412,20 +2771,21 @@ BtorIBV::translate_atom_conquer (BtorIBVAtom* a, bool forward)
         BtorIBVNode* prev = id2node (pa->range.id);
         assert (prev);
         assert (!prev->is_next_state);
-        assert (prev->forwarded);
-        assert (pa->ranges[0].getWidth () >= r.getWidth ());
-#ifndef NDEBUG
-        int prevlen = boolector_get_width (btor, prev->forwarded);
-        int rlen    = (int) r.getWidth ();
-        assert (prevlen >= rlen);
+        BtorIBVRange pr (prev->id,
+                         r.msb - pa->ranges[0].lsb + pa->range.lsb,
+                         r.lsb - pa->ranges[0].lsb + pa->range.lsb);
+#if 1
+        const int norward = true;
+#else
+        const int norward = false;  // TODO try NOT to forward to avoid cycle?
 #endif
-        assert (!a->exp);
-        assert (r.msb <= pa->ranges[0].msb);
-        assert (r.lsb >= pa->ranges[0].lsb);
-        int delta = pa->range.lsb - pa->ranges[0].lsb;
-        int msb = r.msb + delta, lsb = r.lsb + delta;
-        a->exp = boolector_slice (btor, prev->forwarded, msb, lsb);
-        assert (boolector_get_width (btor, a->exp) == (int) r.getWidth ());
+        if (!btor_ibv_atoms_in_range_have_exp (prev, pr, norward)) return false;
+        BoolectorNode* forwarded =
+            btor_ibv_atoms_in_range_collect_exp (btor, prev, pr, norward);
+        a->current.exp = boolector_slice (btor, forwarded, pr.msb, pr.lsb);
+        assert (boolector_get_width (btor, a->current.exp)
+                == (int) r.getWidth ());
+        boolector_release (btor, forwarded);
       }
       break;
 
@@ -2441,19 +2801,16 @@ BtorIBV::translate_atom_conquer (BtorIBVAtom* a, bool forward)
         assert (na->range.id == n->id);
         BtorIBVNode* next = id2node (na->ranges[1].id);
         assert (next);
-        assert (next->cached);
-        assert (!a->next);
-        if (boolector_get_width (btor, next->cached) != (int) r.getWidth ())
-        {
-          assert (r.getWidth () < na->ranges[1].getWidth ());
-          a->next = boolector_slice (btor,
-                                     next->cached,
-                                     r.msb - na->range.lsb + na->ranges[1].lsb,
-                                     r.lsb - na->range.lsb + na->ranges[1].lsb);
-          assert (boolector_get_width (btor, a->next) == (int) r.getWidth ());
-        }
-        else
-          a->next = boolector_copy (btor, next->cached);
+        BtorIBVRange nr (next->id,
+                         r.msb - na->range.lsb + na->ranges[1].lsb,
+                         r.lsb - na->range.lsb + na->ranges[1].lsb);
+        if (!btor_ibv_atoms_in_range_have_exp (next, nr, false)) return false;
+        BoolectorNode* cached =
+            btor_ibv_atoms_in_range_collect_exp (btor, next, nr, false);
+        a->next.exp = boolector_slice (btor, cached, nr.msb, nr.lsb);
+        assert (boolector_get_width (btor, a->current.exp)
+                == (int) r.getWidth ());
+        boolector_release (btor, cached);
       }
       break;
 
@@ -2469,19 +2826,32 @@ BtorIBV::translate_atom_conquer (BtorIBVAtom* a, bool forward)
     {
       BoolectorNode* exp;
       exp = translate_assignment_conquer (a, forward, n->assigned[r.lsb]);
+      if (!exp) return false;
       assert (boolector_get_width (btor, exp) == (int) a->range.getWidth ());
       if (forward)
-        assert (!a->next), a->next = exp;
+        assert (!a->next.exp), a->next.exp = exp;
       else
-        assert (!a->exp), a->exp = exp;
+        assert (!a->current.exp), a->current.exp = exp;
     }
     break;
   }
 #ifndef NDEBUG
-  if (a->exp && a->next)
-    assert (boolector_get_width (btor, a->exp)
-            == boolector_get_width (btor, a->next));
+  if (a->current.exp && a->next.exp)
+    assert (boolector_get_width (btor, a->current.exp)
+            == boolector_get_width (btor, a->next.exp));
 #endif
+
+  msg (4,
+       "translate_atom_conquer id %u [%u:%u] '%s[%u:%u]' %d",
+       r.id,
+       r.msb,
+       r.lsb,
+       n->name,
+       r.msb,
+       r.lsb,
+       forward);
+
+  return true;
 }
 
 static char*
@@ -2510,9 +2880,19 @@ void
 BtorIBV::translate_atom_base (BtorIBVAtom* a)
 {
   assert (a);
-  if (a->exp) return;
+  if (a->current.exp) return;
   BtorIBVRange r = a->range;
   BtorIBVNode* n = id2node (r.id);
+
+  msg (4,
+       "translate_atom_base id %u [%u:%u] '%s[%u:%u]'",
+       r.id,
+       r.msb,
+       r.lsb,
+       n->name,
+       r.msb,
+       r.lsb);
+
   btor_ibv_check_atom (n, r);
   BtorIBVClassification c = n->flags[r.lsb].classified;
   switch (c)
@@ -2529,10 +2909,12 @@ BtorIBV::translate_atom_base (BtorIBVAtom* a)
         char *conststr, *p;
         BTOR_NEWN (btor->mm, conststr, n->width + 1);
         assert (strlen (n->name) == n->width);
-        p = conststr;
+        p = conststr + n->width;
+        ;
+        *p = 0;
         for (unsigned i = 0; i < n->width; i++)
         {
-          char c = n->name[i];
+          char c = bit (n->name, i, n->width);
           if (c != '0' && c != '1')
           {
             if (!n->flags[i].coi)
@@ -2557,29 +2939,29 @@ BtorIBV::translate_atom_base (BtorIBVAtom* a)
                   i,
                   c);
           }
-          *p++ = (c == '1') ? '1' : '0';  // overwrite 'x' not in COI with '0'
+          *--p = (c == '1') ? '1' : '0';  // overwrite 'x' not in COI with '0'
         }
-        *p = 0;
+        assert (p == conststr);
         assert (strlen (conststr) == n->width);
         assert (strlen (conststr) >= (long) r.getWidth ());
         n->cached = boolector_const (btor, conststr);
         assert (boolector_get_width (btor, n->cached) == (int) n->width);
         BTOR_DELETEN (btor->mm, conststr, n->width + 1);
-        assert (!n->forwarded);
-        n->forwarded = boolector_copy (btor, n->cached);
       }
-      a->exp = boolector_slice (btor, n->cached, (int) r.msb, (int) r.lsb);
-      assert (boolector_get_width (btor, a->exp) == (int) r.getWidth ());
-      a->next = boolector_copy (btor, a->exp);
+      a->current.exp =
+          boolector_slice (btor, n->cached, (int) r.msb, (int) r.lsb);
+      assert (boolector_get_width (btor, a->current.exp)
+              == (int) r.getWidth ());
+      a->next.exp = boolector_copy (btor, a->current.exp);
     }
     break;
 
     case BTOR_IBV_ONE_PHASE_ONLY_NEXT_INPUT:
     {
       char* nextname = btor_ibv_atom_base_name (btor, n, r, 0);
-      a->exp         = boolector_input (btormc, (int) r.getWidth (), nextname);
+      a->current.exp = boolector_input (btormc, (int) r.getWidth (), nextname);
       btor_freestr (btor->mm, nextname);
-      (void) boolector_copy (btor, a->exp);
+      (void) boolector_copy (btor, a->current.exp);
       stats.inputs++;
     }
     break;
@@ -2588,20 +2970,20 @@ BtorIBV::translate_atom_base (BtorIBVAtom* a)
 
     case BTOR_IBV_ONE_PHASE_ONLY_CURRENT_INPUT:
     {
-      char* name = btor_ibv_atom_base_name (btor, n, r, 0);
-      a->exp     = boolector_latch (btormc, (int) r.getWidth (), name);
+      char* name     = btor_ibv_atom_base_name (btor, n, r, 0);
+      a->current.exp = boolector_latch (btormc, (int) r.getWidth (), name);
       btor_freestr (btor->mm, name);
-      (void) boolector_copy (btor, a->exp);
+      (void) boolector_copy (btor, a->current.exp);
       stats.latches++;
     }
     break;
 
     case BTOR_IBV_PHANTOM_NEXT_INPUT:
     {
-      char* name = btor_ibv_atom_base_name (btor, n, r, 0);
-      a->exp     = boolector_input (btormc, (int) r.getWidth (), name);
+      char* name     = btor_ibv_atom_base_name (btor, n, r, 0);
+      a->current.exp = boolector_input (btormc, (int) r.getWidth (), name);
       btor_freestr (btor->mm, name);
-      (void) boolector_copy (btor, a->exp);
+      (void) boolector_copy (btor, a->current.exp);
       stats.inputs++;
     }
     break;
@@ -2611,9 +2993,10 @@ BtorIBV::translate_atom_base (BtorIBVAtom* a)
       {
         {
           char* currentname = btor_ibv_atom_base_name (btor, n, r, 0);
-          a->exp = boolector_latch (btormc, (int) r.getWidth (), currentname);
+          a->current.exp =
+              boolector_latch (btormc, (int) r.getWidth (), currentname);
           btor_freestr (btor->mm, currentname);
-          (void) boolector_copy (btor, a->exp);
+          (void) boolector_copy (btor, a->current.exp);
           stats.latches++;
         }
         if (n->next)
@@ -2628,18 +3011,19 @@ BtorIBV::translate_atom_base (BtorIBVAtom* a)
                            r.msb - r.lsb + na->ranges[pos].lsb,
                            na->ranges[pos].lsb);
           char* nextname = btor_ibv_atom_base_name (btor, next, nr, 0);
-          a->next = boolector_input (btormc, (int) nr.getWidth (), nextname);
+          a->next.exp =
+              boolector_input (btormc, (int) nr.getWidth (), nextname);
           btor_freestr (btor->mm, nextname);
-          (void) boolector_copy (btor, a->next);
+          (void) boolector_copy (btor, a->next.exp);
           stats.inputs++;
         }
         else
         {
           char* nextname =
               btor_ibv_atom_base_name (btor, n, r, "BtorIBV::past");
-          a->next = boolector_input (btormc, (int) r.getWidth (), nextname);
+          a->next.exp = boolector_input (btormc, (int) r.getWidth (), nextname);
           btor_freestr (btor->mm, nextname);
-          (void) boolector_copy (btor, a->next);
+          (void) boolector_copy (btor, a->next.exp);
           stats.inputs++;
         }
       }
@@ -2647,62 +3031,19 @@ BtorIBV::translate_atom_base (BtorIBVAtom* a)
 
     case BTOR_IBV_CURRENT_STATE:
     {
-      char* name = btor_ibv_atom_base_name (btor, n, r, 0);
-      a->exp     = boolector_latch (btormc, (int) r.getWidth (), name);
+      char* name     = btor_ibv_atom_base_name (btor, n, r, 0);
+      a->current.exp = boolector_latch (btormc, (int) r.getWidth (), name);
       btor_freestr (btor->mm, name);
-      (void) boolector_copy (btor, a->exp);
+      (void) boolector_copy (btor, a->current.exp);
       stats.latches++;
     }
     break;
   }
 #ifndef NDEBUG
-  if (a->exp && a->next)
-    assert (boolector_get_width (btor, a->exp)
-            == boolector_get_width (btor, a->next));
+  if (a->current.exp && a->next.exp)
+    assert (boolector_get_width (btor, a->current.exp)
+            == boolector_get_width (btor, a->next.exp));
 #endif
-}
-
-void
-BtorIBV::translate_node_divide (BtorIBVNode* n,
-                                bool forward,
-                                BtorIBVNodePtrNextStack* work)
-{
-  assert (n);
-  if (forward && n->forwarded) return;
-  if (!forward && n->cached) return;
-
-  for (BtorIBVAtom* a = n->atoms.start; a < n->atoms.top; a++)
-    translate_atom_divide (a, forward, work);
-}
-
-void
-BtorIBV::translate_node_conquer (BtorIBVNode* n, bool forward)
-{
-  assert (n);
-  if (!forward && n->cached) return;
-  if (forward && n->forwarded) return;
-
-  BoolectorNode* res = 0;
-  for (BtorIBVAtom* a = n->atoms.start; a < n->atoms.top; a++)
-  {
-    translate_atom_conquer (a, forward);
-    BoolectorNode* exp = forward ? a->next : a->exp;
-    assert (exp);
-    BoolectorNode* tmp = res;
-    if (tmp)
-    {
-      res = boolector_concat (btor, exp, res);
-      boolector_release (btor, tmp);
-    }
-    else
-      res = boolector_copy (btor, exp);
-  }
-  assert (res);
-  assert (boolector_get_width (btor, res) == (int) n->width);
-  if (forward)
-    assert (!n->forwarded), n->forwarded = res;
-  else
-    assert (!n->cached), n->cached = res;
 }
 
 bool
@@ -2820,47 +3161,62 @@ BtorIBV::translate ()
 
   /*----------------------------------------------------------------------*/
 
-  msg (1, "translating remaining nodes ... ");
-  BtorIBVNodePtrNextStack nnwork;
-  for (BtorIBVNode** p = idtab.start; p < idtab.top; p++)
-    if (*p) (*p)->marked = 0;
-  BTOR_INIT_STACK (nnwork);
+  msg (1, "translating remaining atoms ... ");
+
+  BtorIBVAtomPtrNextStack apnwork;
+  BTOR_INIT_STACK (apnwork);
   for (BtorIBVNode** p = idtab.start; p < idtab.top; p++)
   {
-    BtorIBVNode* root = *p;
-    if (!root) continue;
-    if (!root->used) continue;
-    if (root->cached) continue;
-    BTOR_PUSH_STACK (btor->mm, nnwork, root);
-    while (!BTOR_EMPTY_STACK (nnwork))
+    BtorIBVNode* n = *p;
+    if (!n) continue;
+    if (!n->used) continue;
+    if (n->cached) continue;
+    for (BtorIBVAtom* b = n->atoms.start; b < n->atoms.top; b++)
+      push_atom_ptr_next (b, false, &apnwork);
+    while (!BTOR_EMPTY_STACK (apnwork))
     {
-      BtorIBVNodePtrNext n = BTOR_TOP_STACK (nnwork);
-      const int mask       = 3 << (2 * n.next);
-      const int grey       = 1 << (2 * n.next);
-      if ((n.next && n.node->forwarded) || (!n.next && n.node->cached))
-      {
-        if (!n.node->is_constant) assert ((n.node->marked & mask) == mask);
-        BTOR_POP_STACK (nnwork);
-      }
-      else if ((n.node->marked & mask) == grey)
-      {
-        translate_node_conquer (n.node, n.next);
-        if (n.next)
-          assert (n.node->forwarded);
-        else
-          assert (n.node->cached);
-        n.node->marked |= mask;
-        BTOR_POP_STACK (nnwork);
-      }
+      BtorIBVAtomPtrNext apn = BTOR_TOP_STACK (apnwork);
+      if (translate_atom_conquer (apn.atom, apn.next))
+        BTOR_POP_STACK (apnwork);
       else
-      {
-        assert (!(n.node->marked & mask));
-        n.node->marked |= grey;
-        translate_node_divide (n.node, n.next, &nnwork);
-      }
+        translate_atom_divide (apn.atom, apn.next, &apnwork);
     }
   }
-  BTOR_RELEASE_STACK (btor->mm, nnwork);
+  BTOR_RELEASE_STACK (btor->mm, apnwork);
+
+  /*----------------------------------------------------------------------*/
+
+  msg (1, "translating remaining nodes ... ");
+
+  for (BtorIBVNode** p = idtab.start; p < idtab.top; p++)
+  {
+    BtorIBVNode* n = *p;
+    if (!n) continue;
+    if (!n->used) continue;
+    if (n->cached) continue;
+    msg (4, "translate_node_conquer id %u '%s'", n->id, n->name);
+#ifndef NDEBUG
+    for (BtorIBVAtom* a = n->atoms.start; a < n->atoms.top; a++)
+      assert (translate_atom_conquer (a, false));
+#endif
+    BoolectorNode* res = 0;
+    for (BtorIBVAtom* a = n->atoms.start; a < n->atoms.top; a++)
+    {
+      BoolectorNode* exp = a->current.exp;
+      assert (exp);
+      BoolectorNode* tmp = res;
+      if (tmp)
+      {
+        res = boolector_concat (btor, exp, res);
+        boolector_release (btor, tmp);
+      }
+      else
+        res = boolector_copy (btor, exp);
+    }
+    assert (res);
+    assert (boolector_get_width (btor, res) == (int) n->width);
+    n->cached = res;
+  }
 
   /*----------------------------------------------------------------------*/
 
@@ -2874,36 +3230,43 @@ BtorIBV::translate ()
     if (!n->next) continue;
     for (BtorIBVAtom* at = n->atoms.start; at < n->atoms.top; at++)
     {
-      unsigned lsb = at->range.lsb, msb = at->range.msb;
-      BtorIBVAssignment* as = n->next[lsb];
+      BtorIBVAssignment* as = n->next[at->range.lsb];
       if (!as) continue;
-      switch (n->flags[lsb].classified)
+      assert (as->range.id == at->range.id),
+          assert (as->range.msb >= at->range.msb),
+          assert (as->range.lsb <= at->range.lsb);
+      switch (n->flags[at->range.lsb].classified)
       {
         case BTOR_IBV_CURRENT_STATE:
         {
-          assert (n->flags[lsb].classified == BTOR_IBV_CURRENT_STATE);
           assert (as->nranges == 2);
           assert (boolector_get_width (btor, n->cached)
                   >= (int) as->range.getWidth ());
-          BoolectorNode* latch = boolector_slice (
-              btor, n->cached, (int) as->range.msb, (int) as->range.lsb);
+          BoolectorNode* latch =
+              boolector_slice (btor, n->cached, at->range.msb, at->range.lsb);
           if (as->ranges[0].id)
           {
             BtorIBVNode* initnode = id2node (as->ranges[0].id);
             assert (initnode);
+            unsigned lsb0 = at->range.lsb - as->range.lsb + as->ranges[0].lsb;
+            unsigned msb0 = at->range.msb - as->range.lsb + as->ranges[0].lsb;
+            assert (msb0 < initnode->width);
             assert (initnode->cached);
             assert (n->cached);
-            BoolectorNode* initexp = boolector_slice (
-                btor, initnode->cached, as->ranges[0].msb, as->ranges[0].lsb);
+            BoolectorNode* initexp =
+                boolector_slice (btor, initnode->cached, msb0, lsb0);
             boolector_init (btormc, latch, initexp);
             boolector_release (btor, initexp);
             stats.inits++;
           }
           BtorIBVNode* nextnode = id2node (as->ranges[1].id);
           assert (nextnode);
+          unsigned lsb = at->range.lsb - as->range.lsb + as->ranges[1].lsb;
+          unsigned msb = at->range.msb - as->range.lsb + as->ranges[1].lsb;
+          assert (lsb <= msb), assert (msb < nextnode->width);
           assert (nextnode->cached);
-          BoolectorNode* nextexp = boolector_slice (
-              btor, nextnode->cached, as->ranges[1].msb, as->ranges[1].lsb);
+          BoolectorNode* nextexp =
+              boolector_slice (btor, nextnode->cached, msb, lsb);
           boolector_next (btormc, latch, nextexp);
           boolector_release (btor, latch);
           boolector_release (btor, nextexp);
@@ -2917,13 +3280,21 @@ BtorIBV::translate ()
           BtorIBVNode* nextnode = id2node (as->ranges[0].id);
           assert (nextnode);
           assert (nextnode->flags);
-          assert (nextnode->flags[as->ranges[0].lsb].classified
+          unsigned lsb = at->range.lsb - as->range.lsb + as->ranges[0].lsb;
+          unsigned msb = at->range.msb - as->range.lsb + as->ranges[0].lsb;
+          assert (lsb <= msb), assert (msb < nextnode->width);
+          assert (nextnode->flags[lsb].classified
+                  == BTOR_IBV_PHANTOM_NEXT_INPUT);
+          assert (nextnode->flags[msb].classified
                   == BTOR_IBV_PHANTOM_NEXT_INPUT);
           assert (nextnode->cached);
-          BoolectorNode* nextexp = boolector_slice (
-              btor, nextnode->cached, as->ranges[0].msb, as->ranges[0].lsb);
-          boolector_next (btormc, n->cached, nextexp);
+          BoolectorNode* nextexp =
+              boolector_slice (btor, nextnode->cached, msb, lsb);
+          BoolectorNode* curexp =
+              boolector_slice (btor, n->cached, at->range.msb, at->range.lsb);
+          boolector_next (btormc, curexp, nextexp);
           boolector_release (btor, nextexp);
+          boolector_release (btor, curexp);
           stats.nexts++;
         }
         break;
@@ -2934,15 +3305,19 @@ BtorIBV::translate ()
           BtorIBVNode* nextnode = id2node (as->ranges[pos].id);
           assert (nextnode);
           assert (nextnode->flags);
-          assert (nextnode->flags[as->ranges[pos].lsb].classified
-                  == BTOR_IBV_TWO_PHASE_INPUT);
-          assert (nextnode->cached);  // TODO what is this?
-          BoolectorNode* nextexp = boolector_slice (btor,
-                                                    nextnode->cached,
-                                                    (int) as->ranges[pos].msb,
-                                                    (int) as->ranges[pos].lsb);
-          boolector_next (btormc, n->cached, nextexp);
+          unsigned lsb = at->range.lsb - as->range.lsb + as->ranges[pos].lsb;
+          unsigned msb = at->range.msb - as->range.lsb + as->ranges[pos].lsb;
+          assert (lsb <= msb), assert (msb < nextnode->width);
+          assert (nextnode->flags[lsb].classified == BTOR_IBV_TWO_PHASE_INPUT);
+          assert (nextnode->flags[msb].classified == BTOR_IBV_TWO_PHASE_INPUT);
+          assert (nextnode->cached);
+          BoolectorNode* nextexp =
+              boolector_slice (btor, nextnode->cached, msb, lsb);
+          BoolectorNode* curexp =
+              boolector_slice (btor, n->cached, at->range.msb, at->range.lsb);
+          boolector_next (btormc, curexp, nextexp);
           boolector_release (btor, nextexp);
+          boolector_release (btor, curexp);
           stats.nexts++;
         }
         break;
@@ -2956,9 +3331,9 @@ BtorIBV::translate ()
               "id %u '%s[%u:%u]' classified as '%s' not handled yet",
               n->id,
               n->name,
-              msb,
-              lsb,
-              btor_ibv_classified_to_str (n->flags[lsb].classified));
+              at->range.msb,
+              at->range.lsb,
+              btor_ibv_classified_to_str (n->flags[at->range.lsb].classified));
           break;
       }
     }

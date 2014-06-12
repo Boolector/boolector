@@ -770,6 +770,33 @@ btor_is_one_const (const char *str)
 }
 
 int
+btor_is_small_positive_int_const (const char *str)
+{
+  const char *p;
+  int i, res;
+
+  assert (str != NULL);
+  assert (*str);
+  assert (is_valid_const (str));
+
+  for (p = str; *p; p++)
+    ;
+
+  i = res = 0;
+  while (p > str)
+  {
+    if (*--p != '0')
+    {
+      if (i > 30) return -1;
+      res |= (1 << i);
+    }
+    i++;
+  }
+
+  return res;
+}
+
+int
 btor_is_ones_const (const char *str)
 {
   const char *p;

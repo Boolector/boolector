@@ -720,3 +720,7 @@ nestedfun1 -rwl2 -o log/nestedfun1.log log/nestedfun1.smt2
 regrcollectprem -o log/regrcollectprem.log log/regrcollectprem.btor
 regrlemmaloop_embeddedconstraints -rwl1 -o log/regrlemmaloop_embeddedconstraints.log log/regrlemmaloop_embeddedconstraints.btor
 addnegmul1 -o log/addnegmul1.log log/addnegmul1.btor
+normaddneg0 -o log/normaddneg0.log log/normaddneg0.btor
+normaddneg1 -o log/normaddneg1.log log/normaddneg1.btor
+normaddneg2 -o log/normaddneg2.log log/normaddneg2.btor
+normaddneg3 -o log/normaddneg3.log log/normaddneg3.btor

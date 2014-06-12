@@ -1,7 +1,7 @@
 1 var 32 v1
 2 var 5 v2
 3 srl 32 1 2
-4 const 5 11110
+4 constd 5 30
 5 add 5 -2 -4
 6 sll 32 1 5
 7 and 32 -3 -6

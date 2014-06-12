@@ -6,7 +6,7 @@ import sys
 def shape(kind):
     if kind == "root":
         return "none"
-    elif "const" in kind or kind in ["array", "var", "param"]:
+    elif kind in ["const", "one", "ones", "zero", "constd", "consth", "array", "var", "param"]:
         return "box"
     elif kind == "latch":
         return "octagon"
@@ -40,12 +40,14 @@ if __name__ == "__main__":
     argparser.add_argument("-s", action="store_true", help="print symbols")
     argparser.add_argument("-w", action="store_true", help="print bit width")
     argparser.add_argument("-i", action="store_true", help="print node ids")
+    argparser.add_argument("-c", action="store_true", help="print const values")
     args = argparser.parse_args()
 
     print("digraph G {")
 
     array_nodes = ["array", "acond", "write", "lambda"]
-    leaf_nodes = ["array", "var", "latch", "param", "const", "consth", "constd"]
+    leaf_nodes = ["array", "var", "input", "latch", "param", "const", "consth", "constd"]
+    symbolic_nodes = ["var", "input", "latch", "array"]
     param_nodes = {}
     roots = []
 
@@ -92,6 +94,12 @@ if __name__ == "__main__":
             if kind == "root":
                 label = ""
                 roots.append(id)
+            #elif kind == "var":
+            elif kind in symbolic_nodes:
+                if len(t) == 4:
+                    label = "{}\\n{}".format(label, t[3])
+            elif kind == "constd":
+                label = "{}\\n{}".format(label, t[3])
             elif kind == "slice":
                 upper = children[1]
                 lower = children[2]
@@ -108,6 +116,8 @@ if __name__ == "__main__":
             elif kind == "param":
                 param_nodes[id] = True
             elif kind == "var" and args.s and len(t) > 3:
+                label = "{}\n{}".format(label, t[3])
+            elif args.c and "const" in kind:
                 label = "{}\n{}".format(label, t[3])
 
             # check if node has parameterized children (stop at lambda)
