@@ -3075,6 +3075,7 @@ btor_rewrite_add_exp (Btor *btor, BtorNode *e0, BtorNode *e1)
     }
   }
 
+#if 0
   // TODO: problematic as long we do not do 'addneg normalization'
   //
   // e0 + e1 == ~(e00 + e01) + e1
@@ -3083,24 +3084,26 @@ btor_rewrite_add_exp (Btor *btor, BtorNode *e0, BtorNode *e1)
   //         == (~e00 + 1) + (~e01 + 1) - 1 + e1
   //         == ((~e00 + ~e01) + 1) + e1
   //
-  if (btor->options.rewrite_level > 2 && BTOR_IS_INVERTED_NODE (e0)
-      && btor->rec_rw_calls < BTOR_REC_RW_BOUND
-      && (temp = BTOR_REAL_ADDR_NODE (e0))->kind == BTOR_ADD_NODE)
-  {
-    BtorNode *e00 = temp->e[0];
-    BtorNode *e01 = temp->e[1];
-    BtorNode *one, *sum;
-    BTOR_INC_REC_RW_CALL (btor);
-    one  = btor_one_exp (btor, temp->len);
-    temp = btor_add_exp (btor, BTOR_INVERT_NODE (e00), BTOR_INVERT_NODE (e01));
-    sum  = btor_add_exp (btor, temp, one);
-    result = btor_add_exp (btor, sum, e1);
-    BTOR_DEC_REC_RW_CALL (btor);
-    btor_release_exp (btor, sum);
-    btor_release_exp (btor, temp);
-    btor_release_exp (btor, one);
-    return result;
-  }
+  if (btor->options.rewrite_level > 2 &&
+      BTOR_IS_INVERTED_NODE (e0) &&
+      btor->rec_rw_calls < BTOR_REC_RW_BOUND &&
+      (temp = BTOR_REAL_ADDR_NODE (e0))->kind == BTOR_ADD_NODE)
+    {
+      BtorNode * e00 = temp->e[0];
+      BtorNode * e01 = temp->e[1];
+      BtorNode * one, * sum;
+      BTOR_INC_REC_RW_CALL (btor);
+      one = btor_one_exp (btor, temp->len);
+      temp = btor_add_exp (btor,
+        BTOR_INVERT_NODE (e00), BTOR_INVERT_NODE (e01));
+      sum = btor_add_exp (btor, temp, one);
+      result = btor_add_exp (btor, sum, e1);
+      BTOR_DEC_REC_RW_CALL (btor);
+      btor_release_exp (btor, sum);
+      btor_release_exp (btor, temp);
+      btor_release_exp (btor, one);
+      return result;
+    }
 
   // TODO: problematic as long we do not do 'addneg normalization'
   //
@@ -3110,24 +3113,27 @@ btor_rewrite_add_exp (Btor *btor, BtorNode *e0, BtorNode *e1)
   //         == e0 + (~e10 + 1) + (~e11 + 1) - 1
   //         == e0 + ((~e10 + ~e11) + 1)
   //
-  if (btor->options.rewrite_level > 2 && BTOR_IS_INVERTED_NODE (e1)
-      && btor->rec_rw_calls < BTOR_REC_RW_BOUND
-      && (temp = BTOR_REAL_ADDR_NODE (e1))->kind == BTOR_ADD_NODE)
-  {
-    BtorNode *e10 = temp->e[0];
-    BtorNode *e11 = temp->e[1];
-    BtorNode *one, *sum;
-    BTOR_INC_REC_RW_CALL (btor);
-    one  = btor_one_exp (btor, temp->len);
-    temp = btor_add_exp (btor, BTOR_INVERT_NODE (e10), BTOR_INVERT_NODE (e11));
-    sum  = btor_add_exp (btor, temp, one);
-    result = btor_add_exp (btor, e0, sum);
-    BTOR_DEC_REC_RW_CALL (btor);
-    btor_release_exp (btor, sum);
-    btor_release_exp (btor, temp);
-    btor_release_exp (btor, one);
-    return result;
-  }
+  if (btor->options.rewrite_level > 2 &&
+      BTOR_IS_INVERTED_NODE (e1) &&
+      btor->rec_rw_calls < BTOR_REC_RW_BOUND &&
+      (temp = BTOR_REAL_ADDR_NODE (e1))->kind == BTOR_ADD_NODE)
+    {
+      BtorNode * e10 = temp->e[0];
+      BtorNode * e11 = temp->e[1];
+      BtorNode * one, * sum;
+      BTOR_INC_REC_RW_CALL (btor);
+      one = btor_one_exp (btor, temp->len);
+      temp = btor_add_exp (btor, 
+        BTOR_INVERT_NODE (e10), BTOR_INVERT_NODE (e11));
+      sum = btor_add_exp (btor, temp, one);
+      result = btor_add_exp (btor, e0, sum);
+      BTOR_DEC_REC_RW_CALL (btor);
+      btor_release_exp (btor, sum);
+      btor_release_exp (btor, temp);
+      btor_release_exp (btor, one);
+      return result;
+    }
+#endif
 
   //  e0 + e1 == ~(e00 * e01) + e1
   //
