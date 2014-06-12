@@ -1061,6 +1061,8 @@ btor_print_stats_btor (Btor *btor)
               "%.2f seconds propagation apply in conds search",
               btor->time.find_cond_prop_app);
   btor_msg (btor, 1, "%.2f seconds for cloning", btor->time.cloning);
+  btor_msg (
+      btor, 1, "%.2f seconds beta reduction probing", btor->time.br_probing);
   if (btor->options.model_gen)
     btor_msg (btor, 1, "%.2f seconds model generation", btor->time.model_gen);
   btor_msg (btor, 1, "");
@@ -4128,15 +4130,18 @@ merge_lambdas (Btor *btor)
   BtorHashTableIterator it;
   BtorNodeIterator nit;
   BtorNodePtrStack stack, unmark, visit;
+#if 0
   BtorPtrHashTable *merged, *apps;
+#endif
 
   start         = btor_time_stamp ();
   mm            = btor->mm;
   delta_lambdas = btor->lambdas->count;
 
-  merged = btor_new_ptr_hash_table (mm,
-                                    (BtorHashPtr) btor_hash_exp_by_id,
-                                    (BtorCmpPtr) btor_compare_exp_by_id);
+#if 0
+  merged = btor_new_ptr_hash_table (mm, (BtorHashPtr) btor_hash_exp_by_id,
+					(BtorCmpPtr) btor_compare_exp_by_id);
+#endif
 
   btor_init_substitutions (btor);
   BTOR_INIT_STACK (stack);
@@ -4226,9 +4231,11 @@ merge_lambdas (Btor *btor)
     btor_unassign_params (btor, merge);
     btor_insert_substitution (btor, BTOR_LAMBDA_GET_BODY (merge), subst, 0);
     btor_release_exp (btor, subst);
-
-    assert (!btor_find_in_ptr_hash_table (merged, merge));
-    (void) btor_insert_in_ptr_hash_table (merged, btor_copy_exp (btor, merge));
+#if 0
+      assert (!btor_find_in_ptr_hash_table (merged, merge));
+      (void) btor_insert_in_ptr_hash_table (merged,
+					    btor_copy_exp (btor, merge));
+#endif
   }
 
   /* cleanup */
@@ -4253,51 +4260,50 @@ merge_lambdas (Btor *btor)
   delta = btor_time_stamp () - start;
   btor_msg (btor, 1, "merged %d lambdas in %.2f seconds", delta_lambdas, delta);
 
-  if (btor->options.beta_reduce_all) goto RELEASE_MERGED;
+#if 0
+  if (btor->options.beta_reduce_all)
+    goto RELEASE_MERGED;
 
   init_cache (btor);
 
   /* eliminate all non-parameterized applies on lambdas in 'merged',
    * use bounded beta reduction with bound 2 */
-  apps = btor_new_ptr_hash_table (mm,
-                                  (BtorHashPtr) btor_hash_exp_by_id,
-                                  (BtorCmpPtr) btor_compare_exp_by_id);
+  apps = btor_new_ptr_hash_table (mm, (BtorHashPtr) btor_hash_exp_by_id,
+				      (BtorCmpPtr) btor_compare_exp_by_id);
 
   init_node_hash_table_iterator (&it, merged);
   while (has_next_node_hash_table_iterator (&it))
-  {
-    merge = next_node_hash_table_iterator (&it);
-    merge = btor_simplify_exp (btor, merge);
-    assert (BTOR_IS_REGULAR_NODE (merge));
-    assert (BTOR_IS_LAMBDA_NODE (merge));
-
-    init_full_parent_iterator (&nit, merge);
-    while (has_next_parent_full_parent_iterator (&nit))
     {
-      cur = next_parent_full_parent_iterator (&nit);
-      assert (BTOR_IS_REGULAR_NODE (cur));
-      assert (BTOR_IS_APPLY_NODE (cur));
-      if (cur->parameterized) continue;
-      (void) btor_insert_in_ptr_hash_table (apps, btor_copy_exp (btor, cur));
+      merge = next_node_hash_table_iterator (&it);
+      merge = btor_simplify_exp (btor, merge);
+      assert (BTOR_IS_REGULAR_NODE (merge));
+      assert (BTOR_IS_LAMBDA_NODE (merge));
+
+      init_full_parent_iterator (&nit, merge);
+      while (has_next_parent_full_parent_iterator (&nit))
+	{
+	  cur = next_parent_full_parent_iterator (&nit);
+	  assert (BTOR_IS_REGULAR_NODE (cur));
+	  assert (BTOR_IS_APPLY_NODE (cur));
+	  if (cur->parameterized)
+	    continue;
+	  (void) btor_insert_in_ptr_hash_table (apps,
+					        btor_copy_exp (btor, cur));
+	}
     }
-  }
 
   start = btor_time_stamp ();
-  btor_msg (btor,
-            1,
-            "eliminate %d applications on %d merged lambdas",
-            apps->count,
-            merged->count);
+  btor_msg (btor, 1, "eliminate %d applications on %d merged lambdas",
+	    apps->count,
+	    merged->count);
 
   substitute_and_rebuild (btor, apps, 2);
 
-  btor_msg (btor,
-            1,
-            "eliminated %d applications on %d merged lambdas"
-            " in %.2f seconds",
-            apps->count,
-            merged->count,
-            btor_time_stamp () - start);
+  btor_msg (btor, 1, "eliminated %d applications on %d merged lambdas"
+		     " in %.2f seconds",
+	    apps->count,
+	    merged->count,
+	    btor_time_stamp () - start);
 
   init_node_hash_table_iterator (&it, apps);
   while (has_next_node_hash_table_iterator (&it))
@@ -4311,6 +4317,7 @@ RELEASE_MERGED:
   while (has_next_node_hash_table_iterator (&it))
     btor_release_exp (btor, next_node_hash_table_iterator (&it));
   btor_delete_ptr_hash_table (merged);
+#endif
 }
 
 static void
@@ -9773,7 +9780,7 @@ add_lemma_to_dual_prop_clone (Btor *btor,
 }
 
 static int
-btor_sat_aux_btor (Btor *btor)
+btor_limited_sat_aux_btor (Btor *btor, int lod_limit, int sat_limit)
 {
   assert (btor);
 
@@ -9849,7 +9856,10 @@ btor_sat_aux_btor (Btor *btor)
   add_again_assumptions (btor);
   assert (check_reachable_flag_dbg (btor));
 
-  sat_result = btor_timed_sat_sat (btor, -1);
+  if (sat_limit > -1)
+    sat_result = btor_timed_sat_sat (btor, sat_limit);
+  else
+    sat_result = btor_timed_sat_sat (btor, -1);
 
   if (btor->options.dual_prop && sat_result == BTOR_SAT
       && simp_sat_result != BTOR_SAT)
@@ -9904,6 +9914,12 @@ btor_sat_aux_btor (Btor *btor)
 #endif
     add_again_assumptions (btor);
     sat_result = btor_timed_sat_sat (btor, -1);
+
+    if (lod_limit > -1 && btor->stats.lod_refinements >= lod_limit)
+    {
+      sat_result = BTOR_UNKNOWN;
+      break;
+    }
   }
 
   assert (sat_result != BTOR_SAT || BTOR_EMPTY_STACK (prop_stack));
@@ -9912,7 +9928,8 @@ btor_sat_aux_btor (Btor *btor)
 DONE:
   BTOR_RELEASE_STACK (btor->mm, prop_stack);
   btor->valid_assignments = 1;
-  BTOR_ABORT_CORE (sat_result != BTOR_SAT && sat_result != BTOR_UNSAT,
+  BTOR_ABORT_CORE (lod_limit == -1 && sat_limit == -1 && sat_result != BTOR_SAT
+                       && sat_result != BTOR_UNSAT,
                    "result must be sat or unsat");
 
   btor->last_sat_result = sat_result;
@@ -9933,6 +9950,13 @@ DONE:
   }
 #endif
   return sat_result;
+}
+
+static int
+btor_sat_aux_btor (Btor *btor)
+{
+  assert (btor);
+  return btor_limited_sat_aux_btor (btor, -1, -1);
 }
 
 static int
@@ -10046,6 +10070,89 @@ print_applies_dbg (Btor * btor)
 }
 #endif
 
+static int
+sum_ops (Btor *btor)
+{
+  int i, sum = 0;
+
+  for (i = BTOR_BV_CONST_NODE; i < BTOR_PROXY_NODE; i++)
+    sum += btor->ops[i].cur;
+  return sum;
+}
+
+static int
+br_probe (Btor *btor)
+{
+  assert (btor);
+  assert (btor->avmgr);
+  assert (btor->avmgr->amgr);
+  assert (btor->avmgr->amgr->smgr);
+
+  Btor *bclone;
+  int res, num_ops_orig, num_ops_clone;
+  double start, delta;
+
+  if (btor->last_sat_result || btor->options.inc_enabled
+      || btor->options.model_gen
+      || btor->options.beta_reduce_all
+      /* disable for QF_BV */
+      || !btor->avmgr->amgr->smgr->inc_required)
+    return BTOR_UNKNOWN;
+
+  start = btor_time_stamp ();
+
+  btor_msg (btor, 1, "try full beta reduction probing");
+  assert (btor->assumptions->count == 0);
+  bclone = btor_clone_btor (btor);
+  btor_enable_beta_reduce_all (bclone);
+  btor_set_verbosity_btor (bclone, 0);
+  btor_set_loglevel_btor (bclone, 0);
+
+  res           = btor_simplify (bclone);
+  num_ops_orig  = sum_ops (btor);
+  num_ops_clone = sum_ops (bclone);
+  btor_msg (btor,
+            1,
+            "  number of nodes: %d/%d (ratio: %.1f)",
+            num_ops_orig,
+            num_ops_clone,
+            (float) num_ops_clone / num_ops_orig);
+
+  if (res != BTOR_UNKNOWN)
+  {
+    delta = btor_time_stamp () - start;
+    btor_msg (btor, 1, "  simplified in %.2f seconds", delta);
+    btor->time.br_probing += delta;
+    return res;
+  }
+  // TODO: make this 10 an option
+  else if (num_ops_clone < num_ops_orig * 10)
+  {
+    btor_msg (btor, 1, "  limit refinement iterations to 10");
+    // TODO: this 10 also
+    res = btor_limited_sat_aux_btor (bclone, 10, 10000);
+  }
+
+  if (res != BTOR_UNKNOWN)
+  {
+    delta = btor_time_stamp () - start;
+    btor_msg (btor,
+              1,
+              "  solved within 10 refinement iterations in"
+              "  %.2f seconds",
+              delta);
+    btor->time.br_probing += delta;
+    return res;
+  }
+
+  btor_delete_btor (bclone);
+  delta = btor_time_stamp () - start;
+  btor_msg (btor, 1, "  probing did not succeed (%.2f seconds)", delta);
+  btor->time.br_probing += delta;
+
+  return BTOR_UNKNOWN;
+}
+
 int
 btor_sat_btor (Btor *btor)
 {
@@ -10054,6 +10161,9 @@ btor_sat_btor (Btor *btor)
   assert (btor->options.inc_enabled || btor->btor_sat_btor_called == 0);
 
   int res;
+
+  res = br_probe (btor);
+  if (res != BTOR_UNKNOWN) return res;
 
 #ifdef BTOR_CHECK_UNCONSTRAINED
   Btor *uclone = 0;
