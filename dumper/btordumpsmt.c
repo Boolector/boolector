@@ -2,7 +2,8 @@
  *
  *  Copyright (C) 2007-2009 Robert Daniel Brummayer.
  *  Copyright (C) 2007-2013 Armin Biere.
- *  Copyright (C) 2012-2013 Aina Niemetz, Mathias Preiner.
+ *  Copyright (C) 2012-2013 Mathias Preiner.
+ *  Copyright (C) 2012-2014 Aina Niemetz.
  *
  *  All rights reserved.
  *
@@ -829,6 +830,8 @@ dump_smt_aux (Btor *btor, FILE *file, int version, BtorNode **roots, int nroots)
     if (ret == BTOR_UNKNOWN)
     {
       init_node_hash_table_iterator (&it, btor->unsynthesized_constraints);
+      queue_node_hash_table_iterator (&it, btor->synthesized_constraints);
+      queue_node_hash_table_iterator (&it, btor->embedded_constraints);
       while (has_next_node_hash_table_iterator (&it))
         add_root_to_smt_dump_context (sdc, next_node_hash_table_iterator (&it));
     }

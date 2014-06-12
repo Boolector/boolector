@@ -358,6 +358,11 @@ NEXT:
     PARSE_ARGS0 (tok);
     boolector_generate_model_for_all_reads (btor);
   }
+  else if (!strcmp (tok, "disable_pretty_print"))
+  {
+    PARSE_ARGS0 (tok);
+    boolector_disable_pretty_print (btor);
+  }
   else if (!strcmp (tok, "enable_inc_usage"))
   {
     PARSE_ARGS0 (tok);

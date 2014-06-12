@@ -4970,7 +4970,7 @@ optimize_unconstrained (Btor *btor)
   assert (check_id_table_mark_unset_dbg (btor));
 
   int i, hl[3], nparams, isuc;
-  BtorNode *cur, *cur_parent, *zero, *ne, *subst;
+  BtorNode *cur, *cur_parent, *subst;
   BtorLambdaNode *lambda;
   BtorNodePtrStack stack, roots;
   BtorPtrHashTable *hls; /* headlines */
@@ -5000,31 +5000,15 @@ optimize_unconstrained (Btor *btor)
     cur = next_node_hash_table_iterator (&it);
     assert (BTOR_IS_REGULAR_NODE (cur));
     if (cur->parents == 1)
-    //&& !BTOR_REAL_ADDR_NODE (cur->first_parent)->parameterized)
     {
+      assert (!cur->constraint);
       cur_parent = BTOR_REAL_ADDR_NODE (cur->first_parent);
-      isuc       = 1;
-      init_parameterized_iterator (btor, &parit, cur);
-      while (has_next_parameterized_iterator (&parit))
-      {
-        /* parameterized expressions are possibly unconstrained if the
-         * lambda(s) parameterizing it do not have more than 1 parent */
-        lambda = (BtorLambdaNode *) next_parameterized_iterator (&parit);
-        if (lambda->parents > 1)
-        {
-          isuc = 0;
-          break;
-        }
-      }
-      if (isuc)
-      {
-        assert (!btor_find_in_ptr_hash_table (hls, cur));
-        btor_insert_in_ptr_hash_table (hls, btor_copy_exp (btor, cur));
-        if (BTOR_IS_ARRAY_VAR_NODE (cur)
-            || (cur_parent->kind != BTOR_APPLY_NODE
-                && cur_parent->kind != BTOR_LAMBDA_NODE))
-          BTOR_PUSH_STACK (mm, stack, cur_parent);
-      }
+      assert (!btor_find_in_ptr_hash_table (hls, cur));
+      btor_insert_in_ptr_hash_table (hls, btor_copy_exp (btor, cur));
+      if (BTOR_IS_ARRAY_VAR_NODE (cur)
+          || (cur_parent->kind != BTOR_APPLY_NODE
+              && cur_parent->kind != BTOR_LAMBDA_NODE))
+        BTOR_PUSH_STACK (mm, stack, cur_parent);
     }
   }
   while (!BTOR_EMPTY_STACK (stack))
@@ -5072,8 +5056,25 @@ optimize_unconstrained (Btor *btor)
       assert (cur->mark == 2);
       // printf ("--cur %s\n", node2string (cur));
       cur->mark = 0;
+
+      isuc = 1;
+      init_parameterized_iterator (btor, &parit, cur);
+      while (has_next_parameterized_iterator (&parit))
+      {
+        /* parameterized expressions are possibly unconstrained if the
+         * lambda(s) parameterizing it do not have more than 1 parent */
+        lambda = ((BtorParamNode *) next_parameterized_iterator (&parit))
+                     ->lambda_exp;
+        if (lambda->parents > 1)
+        {
+          isuc = 0;
+          break;
+        }
+      }
+      if (!isuc) continue;
+
       /* propagate headlines */
-      if (cur->parents == 0 || cur->parents == 1)
+      if (cur->parents == 0 || (cur->parents == 1 && !cur->constraint))
       //	      || BTOR_IS_LAMBDA_NODE (cur))
       {
         for (i = cur->arity - 1; i >= 0; i--)
@@ -5089,14 +5090,12 @@ optimize_unconstrained (Btor *btor)
             {
               btor->stats.bv_uc_props++;
               btor_insert_in_ptr_hash_table (hls, btor_copy_exp (btor, cur));
-              subst = BTOR_IS_FUN_NODE (cur)
-                          ? lambda_array_exp (
-                                btor, cur->len, BTOR_ARRAY_INDEX_LEN (cur))
-                          : lambda_var_exp (btor, cur->len);
+              subst = lambda_var_exp (btor, cur->len);
               btor_insert_substitution (btor, cur, subst, 0);
-              printf ("cur: %s\n", node2string (cur));
-              printf ("hl[0]: %d e[0]: %s\n", hl[0], node2string (cur->e[0]));
-              printf ("hl[1]: %d e[1]: %s\n", hl[1], node2string (cur->e[1]));
+              // printf ("cur: %s\n", node2string (cur));
+              // printf ("hl[0]: %d e[0]: %s\n", hl[0], node2string
+              // (cur->e[0]));  printf ("hl[1]: %d e[1]: %s\n", hl[1],
+              // node2string (cur->e[1]));
               btor_release_exp (btor, subst);
             }
             break;
@@ -5105,52 +5104,48 @@ optimize_unconstrained (Btor *btor)
             {
               btor->stats.array_uc_props++;
               btor_insert_in_ptr_hash_table (hls, btor_copy_exp (btor, cur));
-              subst = BTOR_IS_FUN_NODE (cur)
-                          ? lambda_array_exp (
-                                btor, cur->len, BTOR_ARRAY_INDEX_LEN (cur))
-                          : lambda_var_exp (btor, cur->len);
+              subst = lambda_var_exp (btor, cur->len);
               btor_insert_substitution (btor, cur, subst, 0);
-              printf ("cur: %s\n", node2string (cur));
-              printf ("hl[0]: %d e[0]: %s\n", hl[0], node2string (cur->e[0]));
-              printf ("hl[1]: %d e[1]: %s\n", hl[1], node2string (cur->e[1]));
+              // printf ("cur: %s\n", node2string (cur));
+              // printf ("hl[0]: %d e[0]: %s\n", hl[0], node2string
+              // (cur->e[0]));  printf ("hl[1]: %d e[1]: %s\n", hl[1],
+              // node2string (cur->e[1]));
+              btor_release_exp (btor, subst);
+            }
+            break;
+          case BTOR_ADD_NODE:
+            if (hl[0] || hl[1])
+            {
+              btor->stats.bv_uc_props++;
+              btor_insert_in_ptr_hash_table (hls, btor_copy_exp (btor, cur));
+              subst = lambda_var_exp (btor, cur->len);
+              btor_insert_substitution (btor, cur, subst, 0);
+              // printf ("cur: %s\n", node2string (cur));
+              // printf ("hl[0]: %d e[0]: %s\n", hl[0], node2string
+              // (cur->e[0]));  printf ("hl[1]: %d e[1]: %s\n", hl[1],
+              // node2string (cur->e[1]));
               btor_release_exp (btor, subst);
             }
             break;
           case BTOR_BEQ_NODE:
-          case BTOR_ADD_NODE:
-            if (hl[0] || hl[1])
-            {
-              //			printf ("cur: %s\n", node2string (cur));
-              //			printf ("hl[0]: %d e[0]: %s\n", hl[0],
-              // node2string (cur->e[0]));
-              //			printf ("hl[1]: %d e[1]: %s\n", hl[1],
-              // node2string (cur->e[1]));
-              btor->stats.bv_uc_props++;
-              btor_insert_in_ptr_hash_table (hls, btor_copy_exp (btor, cur));
-              subst = BTOR_IS_FUN_NODE (cur)
-                          ? lambda_array_exp (
-                                btor, cur->len, BTOR_ARRAY_INDEX_LEN (cur))
-                          : lambda_var_exp (btor, cur->len);
-              btor_insert_substitution (btor, cur, subst, 0);
-              printf ("cur: %s\n", node2string (cur));
-              printf ("hl[0]: %d e[0]: %s\n", hl[0], node2string (cur->e[0]));
-              printf ("hl[1]: %d e[1]: %s\n", hl[1], node2string (cur->e[1]));
-              btor_release_exp (btor, subst);
-            }
-            break;
           case BTOR_AEQ_NODE:
+            // printf ("--cur: %s\n", node2string (cur));
+            // printf ("--hl[0]: %d e[0]: %s\n", hl[0], node2string
+            // (cur->e[0]));  printf ("--hl[1]: %d e[1]: %s\n", hl[1],
+            // node2string (cur->e[1]));
             if (hl[0] || hl[1])
             {
-              btor->stats.array_uc_props++;
+              if (BTOR_IS_BV_EQ_NODE (cur))
+                btor->stats.bv_uc_props++;
+              else
+                btor->stats.array_uc_props++;
               btor_insert_in_ptr_hash_table (hls, btor_copy_exp (btor, cur));
-              subst = BTOR_IS_FUN_NODE (cur)
-                          ? lambda_array_exp (
-                                btor, cur->len, BTOR_ARRAY_INDEX_LEN (cur))
-                          : lambda_var_exp (btor, cur->len);
+              subst = lambda_var_exp (btor, cur->len);
               btor_insert_substitution (btor, cur, subst, 0);
-              printf ("cur: %s\n", node2string (cur));
-              printf ("hl[0]: %d e[0]: %s\n", hl[0], node2string (cur->e[0]));
-              printf ("hl[1]: %d e[1]: %s\n", hl[1], node2string (cur->e[1]));
+              // printf ("cur: %s\n", node2string (cur));
+              // printf ("hl[0]: %d e[0]: %s\n", hl[0], node2string
+              // (cur->e[0]));  printf ("hl[1]: %d e[1]: %s\n", hl[1],
+              // node2string (cur->e[1]));
               btor_release_exp (btor, subst);
             }
             break;
@@ -5159,45 +5154,47 @@ optimize_unconstrained (Btor *btor)
             {
               btor->stats.bv_uc_props++;
               btor_insert_in_ptr_hash_table (hls, btor_copy_exp (btor, cur));
-              subst = BTOR_IS_FUN_NODE (cur)
-                          ? lambda_array_exp (
-                                btor, cur->len, BTOR_ARRAY_INDEX_LEN (cur))
-                          : lambda_var_exp (btor, cur->len);
+              subst = lambda_var_exp (btor, cur->len);
               btor_insert_substitution (btor, cur, subst, 0);
-              printf ("cur: %s\n", node2string (cur));
-              printf ("hl[0]: %d e[0]: %s\n", hl[0], node2string (cur->e[0]));
-              printf ("hl[1]: %d e[1]: %s\n", hl[1], node2string (cur->e[1]));
+              // printf ("cur: %s\n", node2string (cur));
+              // printf ("hl[0]: %d e[0]: %s\n", hl[0], node2string
+              // (cur->e[0]));  printf ("hl[1]: %d e[1]: %s\n", hl[1],
+              // node2string (cur->e[1]));
               btor_release_exp (btor, subst);
             }
-            else if (hl[0] || hl[1])
-            {
-              i = hl[0] ? 0 : 1;
-              /* if e[i] not zero, propagate headline */
-              zero = btor_zero_exp (btor, BTOR_REAL_ADDR_NODE (cur->e[i])->len);
-              ne   = btor_ne_exp (btor, zero, cur->e[i]);
-              /* is true exp ? */
-              if (BTOR_REAL_ADDR_NODE (ne)->len == 1
-                  && BTOR_IS_BV_CONST_NODE (BTOR_REAL_ADDR_NODE (ne))
-                  && ((BTOR_IS_INVERTED_NODE (ne)
-                       && BTOR_REAL_ADDR_NODE (ne)->bits[0] == '0')
-                      || (!BTOR_IS_INVERTED_NODE (ne)
-                          && BTOR_REAL_ADDR_NODE (ne)->bits[1] == '1')))
-              {
-                btor->stats.bv_uc_props++;
-                btor_insert_in_ptr_hash_table (hls, btor_copy_exp (btor, cur));
-                subst = BTOR_IS_FUN_NODE (cur)
-                            ? lambda_array_exp (
-                                  btor, cur->len, BTOR_ARRAY_INDEX_LEN (cur))
-                            : lambda_var_exp (btor, cur->len);
-                btor_insert_substitution (btor, cur, subst, 0);
-                printf ("cur: %s\n", node2string (cur));
-                printf ("hl[0]: %d e[0]: %s\n", hl[0], node2string (cur->e[0]));
-                printf ("hl[1]: %d e[1]: %s\n", hl[1], node2string (cur->e[1]));
-                btor_release_exp (btor, subst);
-              }
-              btor_release_exp (btor, ne);
-              btor_release_exp (btor, zero);
-            }
+#if 0
+		    else if (hl[0] || hl[1])
+		      {
+			i = hl[0] ? 0 : 1;
+			/* if e[i] not zero, propagate headline */
+			zero = btor_zero_exp (
+			    btor, BTOR_REAL_ADDR_NODE (cur->e[i])->len);
+			ne = btor_ne_exp (btor, zero, cur->e[i]);
+			/* is true exp ? */
+			if (BTOR_REAL_ADDR_NODE (ne)->len == 1
+			    && 
+			    BTOR_IS_BV_CONST_NODE (BTOR_REAL_ADDR_NODE (ne))
+			    && 
+			    ((BTOR_IS_INVERTED_NODE (ne) 
+			      && BTOR_REAL_ADDR_NODE (ne)->bits[0] == '0')
+			     || 
+			     (!BTOR_IS_INVERTED_NODE (ne) 
+			      && BTOR_REAL_ADDR_NODE (ne)->bits[1] == '1')))
+			  {
+			    btor->stats.bv_uc_props++;
+			    btor_insert_in_ptr_hash_table (
+				hls, btor_copy_exp (btor, cur));
+			    subst = lambda_var_exp (btor, cur->len);
+			    btor_insert_substitution (btor, cur, subst, 0);
+			printf ("cur: %s\n", node2string (cur));
+			printf ("hl[0]: %d e[0]: %s\n", hl[0], node2string (cur->e[0]));
+			printf ("hl[1]: %d e[1]: %s\n", hl[1], node2string (cur->e[1]));
+			    btor_release_exp (btor, subst);
+			  }
+			btor_release_exp (btor, ne);
+			btor_release_exp (btor, zero);
+		      }
+#endif
             break;
           case BTOR_CONCAT_NODE:
           case BTOR_AND_NODE:
@@ -5210,35 +5207,27 @@ optimize_unconstrained (Btor *btor)
             {
               btor->stats.bv_uc_props++;
               btor_insert_in_ptr_hash_table (hls, btor_copy_exp (btor, cur));
-              subst = BTOR_IS_FUN_NODE (cur)
-                          ? lambda_array_exp (
-                                btor, cur->len, BTOR_ARRAY_INDEX_LEN (cur))
-                          : lambda_var_exp (btor, cur->len);
+              subst = lambda_var_exp (btor, cur->len);
               btor_insert_substitution (btor, cur, subst, 0);
-              printf ("cur: %s\n", node2string (cur));
-              printf ("hl[0]: %d e[0]: %s\n", hl[0], node2string (cur->e[0]));
-              printf ("hl[1]: %d e[1]: %s\n", hl[1], node2string (cur->e[1]));
+              // printf ("cur: %s\n", node2string (cur));
+              // printf ("hl[0]: %d e[0]: %s\n", hl[0], node2string
+              // (cur->e[0]));  printf ("hl[1]: %d e[1]: %s\n", hl[1],
+              // node2string (cur->e[1]));
               btor_release_exp (btor, subst);
             }
             break;
           case BTOR_BCOND_NODE:
-            // printf ("cur: %s\n", node2string (cur));
-            // printf ("hl[0]: %d e[0]: %s\n", hl[0], node2string (cur->e[0]));
-            // printf ("hl[1]: %d e[1]: %s\n", hl[1], node2string (cur->e[1]));
-            // printf ("hl[2]: %d e[2]: %s\n", hl[2], node2string (cur->e[2]));
             if ((hl[1] && hl[2]) || (hl[0] && (hl[1] || hl[2])))
             {
               btor->stats.bv_uc_props++;
               btor_insert_in_ptr_hash_table (hls, btor_copy_exp (btor, cur));
-              subst = BTOR_IS_FUN_NODE (cur)
-                          ? lambda_array_exp (
-                                btor, cur->len, BTOR_ARRAY_INDEX_LEN (cur))
-                          : lambda_var_exp (btor, cur->len);
+              subst = lambda_var_exp (btor, cur->len);
               btor_insert_substitution (btor, cur, subst, 0);
-              printf ("cur: %s\n", node2string (cur));
-              printf ("hl[0]: %d e[0]: %s\n", hl[0], node2string (cur->e[0]));
-              printf ("hl[1]: %d e[1]: %s\n", hl[1], node2string (cur->e[1]));
-              printf ("hl[2]: %d e[2]: %s\n", hl[2], node2string (cur->e[2]));
+              // printf ("cur: %s\n", node2string (cur));
+              // printf ("hl[0]: %d e[0]: %s\n", hl[0], node2string
+              // (cur->e[0]));  printf ("hl[1]: %d e[1]: %s\n", hl[1],
+              // node2string (cur->e[1]));  printf ("hl[2]: %d e[2]: %s\n",
+              // hl[2], node2string (cur->e[2]));
               btor_release_exp (btor, subst);
             }
             break;
@@ -5247,21 +5236,20 @@ optimize_unconstrained (Btor *btor)
             // prevent multi-param lambdas to be substituted
             // by an array variable (will be substituted by an
             // UF after competition)
-            // printf ("lambda cur %s hl[1] %d\n", node2string (cur), hl[1]);
             if (((BtorLambdaNode *) cur)->num_params > 1)
               nparams = 1;
-            else if (hl[1])
+            else if (hl[1] && !BTOR_IS_CURRIED_LAMBDA_NODE (cur))
             {
               btor->stats.array_uc_props++;
               btor_insert_in_ptr_hash_table (hls, btor_copy_exp (btor, cur));
-              subst = BTOR_IS_FUN_NODE (cur)
-                          ? lambda_array_exp (
-                                btor, cur->len, BTOR_ARRAY_INDEX_LEN (cur))
-                          : lambda_var_exp (btor, cur->len);
+              subst =
+                  lambda_array_exp (btor, cur->len, BTOR_ARRAY_INDEX_LEN (cur));
               btor_insert_substitution (btor, cur, subst, 0);
-              printf ("cur: %s\n", node2string (cur));
-              printf ("hl[0]: %d e[0]: %s\n", hl[0], node2string (cur->e[0]));
-              printf ("hl[1]: %d e[1]: %s\n", hl[1], node2string (cur->e[1]));
+              // printf ("cur: %s\n", node2string (cur));
+              // printf ("hl[0]: %d e[0]: %s\n", hl[0], node2string
+              // (cur->e[0]));  printf ("hl[1]: %d e[1]: %s\n", hl[1],
+              // node2string (cur->e[1]));  printf ("subst: %s\n", node2string
+              // (subst));
               btor_release_exp (btor, subst);
             }
             break;
@@ -5334,18 +5322,6 @@ btor_simplify (Btor *btor)
       if (btor->varsubst_constraints->count) continue;
     }
 
-#ifndef BTOR_DO_NOT_OPTIMIZE_UNCONSTRAINED
-    if (btor->options.ucopt && btor->options.rewrite_level > 2
-        && !btor->options.inc_enabled && !btor->options.model_gen)
-    {
-      optimize_unconstrained (btor);
-      assert (check_all_hash_tables_proxy_free_dbg (btor));
-      assert (check_all_hash_tables_simp_free_dbg (btor));
-      assert (check_unique_table_children_proxy_free_dbg (btor));
-      if (btor->inconsistent) break;
-    }
-#endif
-
 #ifndef BTOR_DO_NOT_ELIMINATE_SLICES
     if (btor->options.rewrite_level > 2 && !btor->options.inc_enabled)
     {
@@ -5384,6 +5360,24 @@ btor_simplify (Btor *btor)
       if (btor->options.slice_propagation && !btor->options.inc_enabled)
         analyze_slices (btor);
     }
+
+    // printf ("----\n");
+    // btor_disable_pretty_print (btor);
+    // btor_dump_btor (btor, stdout);
+#ifndef BTOR_DO_NOT_OPTIMIZE_UNCONSTRAINED
+    if (btor->options.ucopt && btor->options.rewrite_level > 2
+        && !btor->options.inc_enabled && !btor->options.model_gen)
+    {
+      optimize_unconstrained (btor);
+      assert (check_all_hash_tables_proxy_free_dbg (btor));
+      assert (check_all_hash_tables_simp_free_dbg (btor));
+      assert (check_unique_table_children_proxy_free_dbg (btor));
+      if (btor->inconsistent) break;
+    }
+#endif
+    // printf ("====\n");
+    // btor_disable_pretty_print (btor);
+    // btor_dump_btor (btor, stdout);
 
     if (btor->varsubst_constraints->count) continue;
 
@@ -10221,7 +10215,11 @@ btor_sat_btor (Btor *btor)
 #ifdef BTOR_CHECK_UNCONSTRAINED
   if (btor->options.ucopt && btor->options.rewrite_level > 2
       && !btor->options.inc_enabled && !btor->options.model_gen)
-    assert (!btor->options.ucopt || btor_sat_aux_btor (uclone) == res);
+  {
+    int ucres = btor_sat_aux_btor (uclone);
+    printf ("ucres %d res %d\n", ucres, res);
+    assert (res == ucres);
+  }
 #endif
 
   if (btor->options.model_gen && res == BTOR_SAT) btor_generate_model (btor);
