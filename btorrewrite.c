@@ -4684,6 +4684,8 @@ btor_shallow_subst (
     case BTOR_ARGS_NODE: return btor_copy_exp (btor, node);
   }
 
+  s[0] = s[1] = s[2] = 0;
+
   changed = 0;
   for (i = 0; i < real->arity; i++)
   {
