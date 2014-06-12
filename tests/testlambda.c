@@ -1282,18 +1282,19 @@ test_lambda_reduce_nested_lambdas_const_n1000 (void)
   finish_lambda_test ();
 }
 
+#if 0
 /* (lambda x . (lambda y . (x + y))) (a) */
 static void
 test_lambda_partial_reduce_nested_lambdas_add1 (void)
 {
   init_lambda_test ();
-  BtorNode *a         = btor_var_exp (g_btor, g_elem_bw, "a");
-  BtorNode *x         = btor_param_exp (g_btor, g_elem_bw, "x");
-  BtorNode *y         = btor_param_exp (g_btor, g_elem_bw, "y");
-  BtorNode *add       = btor_add_exp (g_btor, x, y);
+  BtorNode *a = btor_var_exp (g_btor, g_elem_bw, "a");
+  BtorNode *x = btor_param_exp (g_btor, g_elem_bw, "x");
+  BtorNode *y = btor_param_exp (g_btor, g_elem_bw, "y");
+  BtorNode *add = btor_add_exp (g_btor, x, y);
   BtorNode *params[2] = {x, y};
-  BtorNode *fun       = btor_fun_exp (g_btor, 2, params, add);
-  BtorNode *result    = btor_apply_and_reduce (g_btor, 1, &a, fun);
+  BtorNode *fun = btor_fun_exp (g_btor, 2, params, add); 
+  BtorNode *result = btor_apply_and_reduce (g_btor, 1, &a, fun);
 
   /* expected: lambda y' . (a + y') */
   assert (BTOR_IS_LAMBDA_NODE (result));
@@ -1311,6 +1312,7 @@ test_lambda_partial_reduce_nested_lambdas_add1 (void)
   btor_release_exp (g_btor, a);
   finish_lambda_test ();
 }
+#endif
 
 /*---------------------------------------------------------------------------
  * additional tests

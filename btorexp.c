@@ -794,11 +794,13 @@ erase_local_data_exp (Btor *btor, BtorNode *exp, int free_symbol)
   exp->erased = 1;
 }
 
+#ifndef NDEBUG
 static int
 is_valid_kind (BtorNodeKind kind)
 {
   return 0 <= (int) kind && kind < BTOR_NUM_OPS_NODE;
 }
+#endif
 
 static void
 set_kind (Btor *btor, BtorNode *exp, BtorNodeKind kind)
