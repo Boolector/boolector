@@ -9834,6 +9834,16 @@ btor_limited_sat_aux_btor (Btor *btor, int lod_limit, int sat_limit)
 
   if (!btor_is_initialized_sat (smgr)) btor_init_sat (smgr);
 
+  /* reset SAT solver to non-incremental if all functions have been
+   * eliminated */
+  if (!btor->options.inc_enabled && smgr->inc_required
+      && btor->lambdas->count == 0 && btor->array_vars->count == 0)
+  {
+    smgr->inc_required = 0;
+    btor_msg (
+        btor, 1, "no functions found, resetting SAT solver to non-incremental");
+  }
+
   if (btor->valid_assignments == 1) btor_reset_incremental_usage (btor);
 
   BTOR_ABORT_CORE (btor->ops[BTOR_AEQ_NODE].cur > 0,
