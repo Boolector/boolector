@@ -2387,7 +2387,9 @@ BtorIBV::translate_assignment_conquer (BtorIBVAtom* a,
                                        BtorIBVAssignment* ass)
 {
   BoolectorNodePtrStack stack;
+#ifndef NDEBUG
   BtorIBVRange r = a->range;
+#endif
   BoolectorNode* res;
   assert (ass);
   assert (ass->range.id == r.id);

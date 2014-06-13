@@ -1439,30 +1439,32 @@ process_unsynthesized_constraints (Btor *btor)
       BtorNode *real_cur = BTOR_REAL_ADDR_NODE (cur);
       if (real_cur->kind == BTOR_BEQ_NODE)
       {
-        BtorNode *left  = real_cur->e[0];
-        BtorNode *right = real_cur->e[1];
-        BtorNode *other;
+#if 0
+	      BtorNode * left = real_cur->e[0];
+	      BtorNode * right = real_cur->e[1];
+	      BtorNode * other;
 
-        if (BTOR_REAL_ADDR_NODE (left)->kind == BTOR_BV_CONST_NODE)
-          other = right;
-        else if (BTOR_REAL_ADDR_NODE (right)->kind == BTOR_BV_CONST_NODE)
-          other = left;
-        else
-          other = 0;
+	      if (BTOR_REAL_ADDR_NODE (left)->kind == BTOR_BV_CONST_NODE)
+	        other = right;
+	      else if (BTOR_REAL_ADDR_NODE (right)->kind == BTOR_BV_CONST_NODE)
+	        other = left;
+	      else
+	        other = 0;
 
-        // FIXME fails with symbolic lemmas (during beta-reduction
-        // rewrite level is forced to 1, hence symbolic lemmas might
-        // not be simplified as much as possible). possible solution:
-        // use rewrite level > 1 for lemma generation.
-        // if (other
-        //    && !BTOR_IS_INVERTED_NODE (other)
-        //    && other->kind == BTOR_ADD_NODE)
-        //  {
-        //    assert (BTOR_REAL_ADDR_NODE (
-        //  	    other->e[0])->kind != BTOR_BV_CONST_NODE);
-        //    assert (BTOR_REAL_ADDR_NODE (
-        //  	    other->e[1])->kind != BTOR_BV_CONST_NODE);
-        //  }
+	      // FIXME fails with symbolic lemmas (during beta-reduction
+	      // rewrite level is forced to 1, hence symbolic lemmas might
+	      // not be simplified as much as possible). possible solution:
+	      // use rewrite level > 1 for lemma generation.
+	      //if (other 
+	      //    && !BTOR_IS_INVERTED_NODE (other) 
+	      //    && other->kind == BTOR_ADD_NODE)
+	      //  {
+	      //    assert (BTOR_REAL_ADDR_NODE (
+	      //  	    other->e[0])->kind != BTOR_BV_CONST_NODE);
+	      //    assert (BTOR_REAL_ADDR_NODE (
+	      //  	    other->e[1])->kind != BTOR_BV_CONST_NODE);
+	      //  }
+#endif
       }
     }
 #endif
@@ -4735,6 +4737,8 @@ analyze_slices (Btor *btor)
   BtorMemMgr *mm;
   BtorSlice *s;
 
+  e[0] = e[1] = e[2] = 0;
+
   mm     = btor->mm;
   limits = btor_new_ptr_hash_table (btor->mm,
                                     (BtorHashPtr) btor_hash_exp_by_id,
@@ -6789,6 +6793,8 @@ search_initial_applies_dual_prop (Btor *btor,
   /* cleanup */
   while (!BTOR_EMPTY_STACK (unmark_stack))
     BTOR_POP_STACK (unmark_stack)->aux_mark = 0;
+
+  (void) cmp_node_id_asc;
 
 #if DP_QSORT == DP_QSORT_JUST
   compute_scores_dual_prop (btor);
@@ -9839,6 +9845,16 @@ btor_limited_sat_aux_btor (Btor *btor, int lod_limit, int sat_limit)
   smgr = btor_get_sat_mgr_aig_mgr (amgr);
 
   if (!btor_is_initialized_sat (smgr)) btor_init_sat (smgr);
+
+  /* reset SAT solver to non-incremental if all functions have been
+   * eliminated */
+  if (!btor->options.inc_enabled && smgr->inc_required
+      && btor->lambdas->count == 0 && btor->array_vars->count == 0)
+  {
+    smgr->inc_required = 0;
+    btor_msg (
+        btor, 1, "no functions found, resetting SAT solver to non-incremental");
+  }
 
   if (btor->valid_assignments == 1) btor_reset_incremental_usage (btor);
 

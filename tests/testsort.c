@@ -178,7 +178,7 @@ void
 test_fun_sort (void)
 {
   init_sort_test ();
-  BtorSort *a, *b, *c, *s0, *s1, *s3, *f0, *f1, *f2;
+  BtorSort *a, *b, *c, *s0, *s1, *f0, *f1, *f2;
 
   a  = btor_bitvec_sort (g_sorts, 53);
   b  = btor_bitvec_sort (g_sorts, 1);

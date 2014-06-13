@@ -18,7 +18,6 @@
  *  along with this program.  If not, see <http://www.gnu.org/licenses/>.
  */
 
-#include "btorsort.h"
 #include "testaig.h"
 #include "testaigvec.h"
 #include "testarithmetic.h"
@@ -42,6 +41,7 @@
 #include "testsat.h"
 #include "testshift.h"
 #include "testsmtaxioms.h"
+#include "testsort.h"
 #include "testspecial.h"
 #include "teststack.h"
 #include "testtestcases.h"

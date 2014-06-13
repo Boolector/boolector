@@ -424,7 +424,7 @@ data_as_int_ptr (BtorMemMgr *mm,
 
   (void) mm;
   (void) map;
-  data->asInt = (int) data_ptr;
+  data->asInt = (int) (long) data_ptr;
 }
 
 static void

@@ -683,7 +683,8 @@ btor_lingeling_sat (BtorSATMgr *smgr, int limit)
 
   lglsetopt (lgl, "simplify", 1);
 
-  if (smgr->satcalls == 1 || (smgr->satcalls & (smgr->satcalls - 1)))
+  if (smgr->inc_required
+      && (smgr->satcalls == 1 || (smgr->satcalls & (smgr->satcalls - 1))))
     lglsetopt (lgl, "simpdelay", BTOR_LGL_SIMP_DELAY);
   else
     lglsetopt (lgl, "simpdelay", 0);
@@ -725,7 +726,12 @@ btor_lingeling_sat (BtorSATMgr *smgr, int limit)
       lglsetprefix (clone, name);
       lglsetout (clone, smgr->output);
 
-      res = lglsat (clone);
+#ifndef NDEBUG
+      res =
+#else
+      (void)
+#endif
+          lglsat (clone);
       if (smgr->verbosity > 0) lglstats (clone);
       bfres = lglunclone (lgl, clone);
       lglrelease (clone);
