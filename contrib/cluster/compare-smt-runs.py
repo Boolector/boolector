@@ -267,7 +267,7 @@ def _read_err_file(d, f):
     global g_file_stats
 
     try:
-        _filter_data(d, f, FILTER_ERR)
+        _filter_data(d, f, dict((k, f) for k, f in FILTER_ERR.items() if not f[3]))
         # TODO: move to normalize method or something like that
         # update status for errors ('err' instead of 'ok')
         f_name = _get_name_and_ext(f)[0]
