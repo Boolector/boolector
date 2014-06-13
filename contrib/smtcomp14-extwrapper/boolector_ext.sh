@@ -1,6 +1,6 @@
 #!/bin/sh
-BOOLECTOR=~/dev/boolector/boolector
-BOOLECTOREXT=~/dev/boolector/contrib/smtcomp14-extwrapper/boolector-1.5.118
+BOOLECTOR=./boolector
+BOOLECTOREXT=./contrib/smtcomp14-extwrapper/boolector-1.5.118
 
 trap "exit 2" SIGHUP SIGINT SIGTERM
 
