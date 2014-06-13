@@ -209,7 +209,7 @@ g_total_stats = dict((k, {}) for k in FILE_STATS_KEYS)
 
 def _filter_data(d, file, filters):
     global g_file_stats
-
+    
     with open(os.path.join(d, file), 'rb') as infile:
         (f_name, f_ext) = _get_name_and_ext(file)
         dir_stats_tmp = dict((k, []) for k in DIR_STATS_KEYS) 
@@ -313,6 +313,9 @@ def _pick_data():
 
     for f in g_benchmarks:
         for k in g_file_stats.keys():
+            for d in g_args.dirs:
+                if f not in g_file_stats[k][d]:
+                    g_file_stats[k][d][f] = None
             v = sorted([(g_file_stats[k][d][f], d) for d in g_args.dirs \
                     if g_file_stats[k][d][f] is not None])
             # strings are not considered for diff/best values
@@ -558,8 +561,10 @@ def _print_data ():
         if g_args.mem and not _has_status('mem', f):
             continue
 
-        s = [g_file_stats['status'][d][f] for d in g_args.dirs]
-        r = [g_file_stats['result'][d][f] for d in g_args.dirs]
+        s = [g_file_stats['status'][d][f] for d in g_args.dirs
+                if g_file_stats['status'][d][f]]
+        r = [g_file_stats['result'][d][f] for d in g_args.dirs
+                if g_file_stats['result'][d][f]]
 
         if g_args.dis:
             r_tmp = [x for x in r if x == 10 or x == 20]
