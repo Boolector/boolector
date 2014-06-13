@@ -246,6 +246,9 @@ struct Btor
     double synth_exp;
     double model_gen;
     double br_probing;
+#ifndef BTOR_DO_NOT_OPTIMIZE_UNCONSTRAINED
+    double ucopt;
+#endif
   } time;
 
   struct

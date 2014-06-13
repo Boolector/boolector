@@ -1063,6 +1063,13 @@ btor_print_stats_btor (Btor *btor)
   btor_msg (btor, 1, "%.2f seconds for cloning", btor->time.cloning);
   btor_msg (
       btor, 1, "%.2f seconds beta reduction probing", btor->time.br_probing);
+#ifndef BTOR_DO_NOT_OPTIMIZE_UNCONSTRAINED
+  if (btor->options.ucopt)
+    btor_msg (btor,
+              1,
+              "%.2f seconds for unconstrained optimization",
+              btor->time.ucopt);
+#endif
   if (btor->options.model_gen)
     btor_msg (btor, 1, "%.2f seconds model generation", btor->time.model_gen);
   btor_msg (btor, 1, "");
@@ -4969,6 +4976,7 @@ optimize_unconstrained (Btor *btor)
   assert (!btor->options.model_gen);
   assert (check_id_table_mark_unset_dbg (btor));
 
+  double start;
   int i, hl[3], nparams, isuc;
   BtorNode *cur, *cur_parent, *subst;
   BtorLambdaNode *lambda;
@@ -4978,6 +4986,8 @@ optimize_unconstrained (Btor *btor)
   BtorNodeIterator pit;
   BtorParameterizedIterator parit;
   BtorMemMgr *mm;
+
+  start = btor_time_stamp ();
 
   if (btor->bv_vars->count == 0 && btor->array_vars->count == 0) return;
 
@@ -5271,6 +5281,8 @@ optimize_unconstrained (Btor *btor)
 
   BTOR_RELEASE_STACK (btor->mm, stack);
   BTOR_RELEASE_STACK (btor->mm, roots);
+
+  btor->time.ucopt += btor_time_stamp () - start;
 }
 #endif
 
