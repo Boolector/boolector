@@ -242,24 +242,28 @@ parse (FILE *file)
   char *arg1_str, *arg2_str, *arg3_str, *ret_str, *exp_str;
   char **res1_pptr, **res2_pptr;
   ;
-  size_t len;
-  char buffer[200], *tok;
+  size_t len, buffer_len;
+  char *buffer, *tok;
   Btor *btor;
   void *ret_ptr;
   BoolectorNode **tmp;
+  BoolectorSort **stmp;
   BtorPtrHashTable *hmap;
   BtorMemMgr *mm;
 
   msg ("reading %s", btorunt->filename);
   exp_ret = RET_NONE;
   ret_ptr = 0, ret_str = 0;
-  buffer[len = 0] = 0;
-  btorunt->line   = 1;
-  arg2_int        = 0;
-  btor            = 0;
-  mm              = btor_new_mem_mgr ();
-  hmap            = btor_new_ptr_hash_table (
+  len           = 0;
+  buffer_len    = 256;
+  btorunt->line = 1;
+  arg2_int      = 0;
+  btor          = 0;
+  mm            = btor_new_mem_mgr ();
+  hmap          = btor_new_ptr_hash_table (
       mm, (BtorHashPtr) btor_hashstr, (BtorCmpPtr) strcmp);
+  buffer    = malloc (buffer_len * sizeof (char));
+  buffer[0] = 0;
 
 NEXT:
   ch = getc (file);
@@ -267,7 +271,12 @@ NEXT:
   if (ch == '\r') goto NEXT;
   if (ch != '\n')
   {
-    if (len + 1 >= sizeof (buffer)) perr ("line buffer exceeded");
+    if (len + 1 >= buffer_len)
+    {
+      buffer_len *= 2;
+      buffer = realloc (buffer, buffer_len * sizeof (char));
+      msg ("doubled buffer");
+    }
     buffer[len++] = ch;
     buffer[len]   = 0;
     goto NEXT;
@@ -443,6 +452,35 @@ NEXT:
     PARSE_ARGS0 (tok);
     boolector_simplify (btor);
   }
+  /* sorts */
+  else if (!strcmp (tok, "bitvec_sort"))
+  {
+    PARSE_ARGS1 (tok, int);
+    ret_ptr = boolector_bitvec_sort (btor, arg1_int);
+    exp_ret = RET_VOIDPTR;
+  }
+  else if (!strcmp (tok, "tuple_sort"))
+  {
+    arg1_int = intarg (tok);                                 /* argc */
+    stmp     = malloc (sizeof (BoolectorSort *) * arg1_int); /* args */
+    for (i = 0; i < arg1_int; i++) stmp[i] = hmap_get (hmap, strarg (tok));
+    ret_ptr = boolector_tuple_sort (btor, stmp, arg1_int);
+    free (stmp);
+    exp_ret = RET_VOIDPTR;
+  }
+  else if (!strcmp (tok, "fun_sort"))
+  {
+    PARSE_ARGS2 (tok, str, str);
+    ret_ptr = boolector_fun_sort (
+        btor, hmap_get (hmap, arg1_str), hmap_get (hmap, arg2_str));
+    exp_ret = RET_VOIDPTR;
+  }
+  else if (!strcmp (tok, "release_sort"))
+  {
+    PARSE_ARGS1 (tok, str);
+    boolector_release_sort (btor, hmap_get (hmap, arg1_str));
+  }
+  /* expressions */
   else if (!strcmp (tok, "const"))
   {
     PARSE_ARGS1 (tok, str);
@@ -501,6 +539,12 @@ NEXT:
   {
     PARSE_ARGS3 (tok, int, int, str);
     ret_ptr = boolector_array (btor, arg1_int, arg2_int, arg3_str);
+    exp_ret = RET_VOIDPTR;
+  }
+  else if (!strcmp (tok, "uf"))
+  {
+    PARSE_ARGS2 (tok, str, str);
+    ret_ptr = boolector_uf (btor, hmap_get (hmap, arg1_str), arg2_str);
     exp_ret = RET_VOIDPTR;
   }
   else if (!strcmp (tok, "not"))
@@ -1027,6 +1071,7 @@ NEXT:
     checklastarg (tok);
     ret_int = boolector_fun_sort_check (
         btor, arg1_int, tmp, hmap_get (hmap, arg1_str));
+    exp_ret = RET_SKIP;
   }
   else if (!strcmp (tok, "get_symbol_of_var"))
   {
