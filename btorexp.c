@@ -754,6 +754,7 @@ erase_local_data_exp (Btor *btor, BtorNode *exp, int free_symbol)
       goto ERASE_LOCAL_ARRAY_RHO;
     case BTOR_UF_NODE:
       btor_release_sort (&btor->sorts_unique_table, ((BtorUFNode *) exp)->sort);
+      ((BtorUFNode *) exp)->sort = 0;
     case BTOR_ARRAY_VAR_NODE:
       if (free_symbol)
       {

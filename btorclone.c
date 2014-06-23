@@ -330,8 +330,8 @@ clone_exp (Btor *clone,
   if (BTOR_IS_UF_NODE (exp))
   {
     ((BtorUFNode *) res)->num_params = ((BtorUFNode *) exp)->num_params;
-    ((BtorUFNode *) res)->sort =
-        find_sort (&clone->sorts_unique_table, ((BtorUFNode *) exp)->sort);
+    ((BtorUFNode *) res)->sort       = btor_copy_sort (
+        find_sort (&clone->sorts_unique_table, ((BtorUFNode *) exp)->sort));
   }
 
   res = BTOR_IS_INVERTED_NODE (exp) ? BTOR_INVERT_NODE (res) : res;
