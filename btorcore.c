@@ -9920,6 +9920,7 @@ br_probe (Btor *btor)
     delta = btor_time_stamp () - start;
     btor_msg (btor, 1, "  simplified in %.2f seconds", delta);
     btor->time.br_probing += delta;
+    btor_delete_btor (bclone);
     return res;
   }
   // TODO: make this 10 an option
@@ -9928,6 +9929,7 @@ br_probe (Btor *btor)
     btor_msg (btor, 1, "  limit refinement iterations to 10");
     // TODO: this 10 also
     res = btor_limited_sat_aux_btor (bclone, 10, 55000);
+    btor_delete_btor (bclone);
   }
 
   if (res != BTOR_UNKNOWN)
@@ -9942,7 +9944,6 @@ br_probe (Btor *btor)
     return res;
   }
 
-  btor_delete_btor (bclone);
   delta = btor_time_stamp () - start;
   btor_msg (btor, 1, "  probing did not succeed (%.2f seconds)", delta);
   btor->time.br_probing += delta;
