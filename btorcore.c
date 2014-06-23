@@ -9925,7 +9925,7 @@ br_probe (Btor *btor)
   {
     btor_msg (btor, 1, "  limit refinement iterations to 10");
     // TODO: this 10 also
-    res = btor_limited_sat_aux_btor (bclone, 10, 10000);
+    res = btor_limited_sat_aux_btor (bclone, 10, 55000);
   }
 
   if (res != BTOR_UNKNOWN)

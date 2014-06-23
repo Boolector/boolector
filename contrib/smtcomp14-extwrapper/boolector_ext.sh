@@ -1,6 +1,6 @@
 #!/bin/sh
 BOOLECTOR=./boolector
-BOOLECTOREXT=./contrib/smtcomp14-extwrapper/boolector-1.5.118
+BOOLECTOREXT=./boolector-1.5.118
 
 trap "exit 2" SIGHUP SIGINT SIGTERM
 
@@ -18,8 +18,9 @@ done
 
 out=`$BOOLECTOR $opts $benchmark`
 ret=$?
-if [ `echo $out | grep "extensionality on arrays/lambdas not yet supported" -c` -gt 0 ]; then 
+if [ `echo $out | grep "extensionality" -c` -gt 0 ]; then 
   $BOOLECTOREXT $benchmark 
+  ret=$?
 else
   if [ $ret -eq 10 ]; then
     echo "sat"
