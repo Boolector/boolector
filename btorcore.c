@@ -1156,7 +1156,7 @@ btor_new_btor (void)
   // btor->options.ucopt = 1; // TODO debug
 #endif
   btor->options.pprint                   = 1;
-  btor->options.slice_propagation        = 0;
+  btor->options.propagate_slices         = 0;
   btor->options.simplify_constraints     = 1;
   btor->options.rewrite_level_partial_br = 1;
 
@@ -5373,7 +5373,7 @@ btor_simplify (Btor *btor)
     {
       merge_lambdas (btor);
 
-      if (btor->options.slice_propagation && !btor->options.inc_enabled)
+      if (btor->options.propagate_slices && !btor->options.inc_enabled)
         analyze_slices (btor);
     }
 
@@ -10919,8 +10919,8 @@ check_model (Btor *btor, Btor *clone, BtorPtrHashTable *inputs)
   reset_varsubst_constraints (clone); /* varsubst not required */
 
   btor_enable_beta_reduce_all (clone);
-  clone->options.slice_propagation = 0;  // TODO: for testing only
-  ret                              = btor_simplify (clone);
+  clone->options.propagate_slices = 0;  // TODO: for testing only
+  ret                             = btor_simplify (clone);
 
   assert (ret != BTOR_UNKNOWN || btor_sat_aux_btor (clone) == BTOR_SAT);
   // TODO: if ret still UNKNOWN dump formula (for rw rule harvesting?)

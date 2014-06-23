@@ -272,7 +272,7 @@ struct Btor
     int rewrite_level;
     int rewrite_level_partial_br;
     int simplify_constraints; /* force constraints to true/false */
-    int slice_propagation;
+    int propagate_slices;
     int verbosity;
 #ifdef BTOR_CHECK_FAILED
     int chk_failed_assumptions;
