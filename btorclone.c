@@ -146,14 +146,13 @@ clone_sorts_unique_table (BtorMemMgr *mm,
   }
 
   /* update sort references (must be the same as in table) */
-  btor_sorts_list_sort (mm, table, &csorts);
+  btor_sorts_list_sort (mm, res, &csorts);
   assert (BTOR_COUNT_STACK (sorts) == BTOR_COUNT_STACK (csorts));
-  for (i = 0; i < BTOR_COUNT_STACK (sorts); i++)
+  for (i = 0; i < BTOR_COUNT_STACK (csorts); i++)
   {
     sort  = BTOR_PEEK_STACK (sorts, i);
-    csort = BTOR_PEEK_STACK (sorts, i);
-    assert (sort->id == csort->id);
-    assert (csort->refs <= sort->refs);
+    csort = BTOR_PEEK_STACK (csorts, i);
+    assert (csort->id == sort->id);
     assert (csort->ext_refs == 0);
     csort->refs     = sort->refs;
     csort->ext_refs = sort->ext_refs;
@@ -330,8 +329,11 @@ clone_exp (Btor *clone,
   if (BTOR_IS_UF_NODE (exp))
   {
     ((BtorUFNode *) res)->num_params = ((BtorUFNode *) exp)->num_params;
-    ((BtorUFNode *) res)->sort       = btor_copy_sort (
-        find_sort (&clone->sorts_unique_table, ((BtorUFNode *) exp)->sort));
+    ((BtorUFNode *) res)->sort =
+        find_sort (&clone->sorts_unique_table, ((BtorUFNode *) exp)->sort);
+    assert (((BtorUFNode *) res)->sort->id == ((BtorUFNode *) exp)->sort->id);
+    assert (((BtorUFNode *) res)->sort->refs
+            == ((BtorUFNode *) exp)->sort->refs);
   }
 
   res = BTOR_IS_INVERTED_NODE (exp) ? BTOR_INVERT_NODE (res) : res;
