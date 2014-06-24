@@ -25,12 +25,12 @@ typedef struct BtorOpt
     assert (val <= max);                         \
     BtorOpt *opt = &btor->opts->lng;             \
     opt->shrt    = shrt;                         \
-    opt->lng     = lng;                          \
+    opt->lng     = #lng;                         \
     opt->dflt = opt->val = val;                  \
     opt->min             = min;                  \
     opt->max             = max;                  \
     opt->desc            = desc;                 \
-    btor_getenv (btor, opt, lng);                \
+    btor_getenv (btor, opt, #lng);               \
   } while (0)
 
 typedef struct BtorOpts
