@@ -72,6 +72,12 @@
 #define MAX_NADDOPFUNS 10
 #define MIN_NADDOPFUNS_INC 1
 #define MAX_NADDOPFUNS_INC 10
+#define MIN_NADDOPUF_INIT 1
+#define MAX_NADDOPUF_INIT 10
+#define MIN_NADDOPUF 1
+#define MAX_NADDOPUF 10
+#define MIN_NADDOPUF_INC 1
+#define MAX_NADDOPUF_INC 10
 #define MIN_NADDOPAFUNS_INIT 0
 #define MAX_NADDOPAFUNS_INIT 5
 #define MIN_NADDOPAFUNS 0
@@ -119,6 +125,7 @@
 #define P_PARAM_EXP 0.5
 #define P_PARAM_ARR_EXP 0.5
 #define P_APPLY_FUN 0.5
+#define P_APPLY_UF 0.5
 #define P_RW 0.66
 #define P_READ 0.5
 #define P_COND 0.33
@@ -296,6 +303,9 @@
   "  --p-apply-fun <val>              choose apply on existing over new\n"\
   "                                    function [" \
                                       BTORMBT_M2STR (P_APPLY_FUN) "]\n" \
+  "  --p-apply-uf <val>               choose apply on existing over new\n"\
+  "                                    uninterpreted function [" \
+                                      BTORMBT_M2STR (P_APPLY_UF) "]\n" \
   "  --p-rw <val>                     choose read/write over eq/ne/cond [" \
                                       BTORMBT_M2STR (P_RW) "]\n" \
   "  --p-read <val>                   choose read over write [" \
@@ -430,6 +440,18 @@ typedef struct ExpStack
   int initlayer;     /* marker for init layer */
 } ExpStack;
 
+typedef struct Sort
+{
+  BoolectorSort *sort;
+} Sort;
+
+typedef struct SortStack
+{
+  Sort *sorts;
+  int size, n;
+  //  int initlayer;
+} SortStack;
+
 typedef struct BtorMBT
 {
   Btor *btor;
@@ -487,68 +509,62 @@ typedef struct BtorMBT
   int g_min_arrays_inc;  /* min number of arrays (reinit inc step) */
   int g_max_arrays_inc;  /* max number of arrays (reinit inc step) */
 
-  int g_min_add_funs_init; /* min number of funs in add op (initial layer) */
-  int g_max_add_funs_init; /* max number of funs in add op (initial layer) */
-  int g_min_add_funs;      /* min no of funs in add op (after init. layer) */
-  int g_max_add_funs;      /* max no of funs in add op (after init. layer) */
-  int g_min_add_funs_inc;  /* min no of funs in add op (reinit inc step) */
-  int g_max_add_funs_inc;  /* max no of funs in add op (reinit inc step) */
+  /* add/release phase options */
+  int g_min_add_funs_init; /* min funs (initial layer) */
+  int g_max_add_funs_init; /* max funs (initial layer) */
+  int g_min_add_funs;      /* min funs (after init. layer) */
+  int g_max_add_funs;      /* max funs (after init. layer) */
+  int g_min_add_funs_inc;  /* min funs (reinit inc step) */
+  int g_max_add_funs_inc;  /* max funs (reinit inc step) */
 
-  int g_min_add_arrayops_init; /* min number of array funs in add op
-                                 (initial layer) */
-  int g_max_add_arrayops_init; /* max number of array funs in add op
-                                 (initial layer) */
-  int g_min_add_arrayops;      /* min number of array funs in add op
-                                 (after init. layer) */
-  int g_max_add_arrayops;      /* max number of array funs in add op
-                                 (after init. layer) */
-  int g_min_add_arrayops_inc;  /* min number of array funs in add op
-                                 (reinit inc step) */
-  int g_max_add_arrayops_inc;  /* max number of array funs in add op
-                                 (reinit inc step) */
+  int g_min_add_uf_init; /* min ufs (initial layer) */
+  int g_max_add_uf_init; /* max ufs (initial layer) */
+  int g_min_add_uf;      /* min ufs (after init. layer) */
+  int g_max_add_uf;      /* max ufs (after init. layer) */
+  int g_min_add_uf_inc;  /* min ufs (reinit inc step) */
+  int g_max_add_uf_inc;  /* max ufs (reinit inc step) */
 
-  int g_min_add_bitvecops_init; /* min number of bv funs in add op
-                                 (initial layer) */
-  int g_max_add_bitvecops_init; /* max number of bv funs in add op
-                                 (initial layer) */
-  int g_min_add_bitvecops;      /* min number of bv funs in add op
-                                 (after init. layer) */
-  int g_max_add_bitvecops;      /* max number of bv funs in add op
-                                 (after init. layer) */
-  int g_min_add_bitvecops_inc;  /* min number of bv funs in add op
-                                 (reinit inc step) */
-  int g_max_add_bitvecops_inc;  /* max number of bv funs in add op
-                                 (reinit inc step) */
+  int g_min_add_arrayops_init; /* min array ops (initial layer) */
+  int g_max_add_arrayops_init; /* max array ops (initial layer) */
+  int g_min_add_arrayops;      /* min array ops (after init. layer) */
+  int g_max_add_arrayops;      /* max array ops (after init. layer) */
+  int g_min_add_arrayops_inc;  /* min array ops (reinit inc step) */
+  int g_max_add_arrayops_inc;  /* max array ops (reinit inc step) */
 
-  int g_min_add_inputs_init; /* min number of inputs in add op (initial layer)
-                              */
-  int g_max_add_inputs_init; /* max number of inputs in add op (initial layer)
-                              */
-  int g_min_add_inputs;     /* min no of inputs in add op (after init. layer) */
-  int g_max_add_inputs;     /* max no of inputs in add op (after init. layer) */
-  int g_min_add_inputs_inc; /* min no of inputs in add op (reinit inc step) */
-  int g_max_add_inputs_inc; /* max no of inputs in add op (reinit inc step) */
+  int g_min_add_bitvecops_init; /* min bv ops (initial layer) */
+  int g_max_add_bitvecops_init; /* max bv ops (initial layer) */
+  int g_min_add_bitvecops;      /* min bv ops (after init. layer) */
+  int g_max_add_bitvecops;      /* max bv ops (after init. layer) */
+  int g_min_add_bitvecops_inc;  /* min bv ops (reinit inc step) */
+  int g_max_add_bitvecops_inc;  /* max bv ops (reinit inc step) */
 
-  int g_min_ops_init; /* min number of operations (initial layer) */
-  int g_max_ops_init; /* max number of operations (initial layer) */
-  int g_min_ops;      /* min number of operations (after init. layer) */
-  int g_max_ops;      /* max number of operations (after init. layer) */
-  int g_min_ops_inc;  /* min number of operations (reinit inc step) */
-  int g_max_ops_inc;  /* max number of operations (reinit inc step) */
+  int g_min_add_inputs_init; /* min inputs (initial layer) */
+  int g_max_add_inputs_init; /* max inputs (initial layer) */
+  int g_min_add_inputs;      /* min inputs (after init. layer) */
+  int g_max_add_inputs;      /* max inputs (after init. layer) */
+  int g_min_add_inputs_inc;  /* min inputs (reinit inc step) */
+  int g_max_add_inputs_inc;  /* max inputs (reinit inc step) */
 
-  int g_min_add_ops_init; /* min number of add ops (initial layer) */
-  int g_max_add_ops_init; /* max number of add ops (initial layer) */
-  int g_min_add_ops;      /* min number of add ops (after init. layer) */
-  int g_max_add_ops;      /* max number of add ops (after init. layer) */
-  int g_min_add_ops_inc;  /* min number of add ops (reinit inc step) */
-  int g_max_add_ops_inc;  /* max number of add ops (reinit inc step) */
+  int g_min_ops_init; /* min operations (initial layer) */
+  int g_max_ops_init; /* max operations (initial layer) */
+  int g_min_ops;      /* min operations (after init. layer) */
+  int g_max_ops;      /* max operations (after init. layer) */
+  int g_min_ops_inc;  /* min operations (reinit inc step) */
+  int g_max_ops_inc;  /* max operations (reinit inc step) */
 
-  int g_min_release_ops_init; /* min number of release ops (initial layer) */
-  int g_max_release_ops_init; /* max number of release ops (initial layer) */
-  int g_min_release_ops;      /* min number of rel. ops (after init. layer) */
-  int g_max_release_ops;      /* max number of rel. ops (after init. layer) */
-  int g_min_release_ops_inc;  /* min number of rel. ops (reinit inc step) */
-  int g_max_release_ops_inc;  /* max number of release ops (reinit inc step) */
+  int g_min_add_ops_init; /* min add ops (initial layer) */
+  int g_max_add_ops_init; /* max add ops (initial layer) */
+  int g_min_add_ops;      /* min add ops (after init. layer) */
+  int g_max_add_ops;      /* max add ops (after init. layer) */
+  int g_min_add_ops_inc;  /* min add ops (reinit inc step) */
+  int g_max_add_ops_inc;  /* max add ops (reinit inc step) */
+
+  int g_min_release_ops_init; /* min release ops (initial layer) */
+  int g_max_release_ops_init; /* max release ops (initial layer) */
+  int g_min_release_ops;      /* min release ops (after init. layer) */
+  int g_max_release_ops;      /* max release ops (after init. layer) */
+  int g_min_release_ops_inc;  /* min release ops (reinit inc step) */
+  int g_max_release_ops_inc;  /* max release ops (reinit inc step) */
 
   int g_max_ops_lower; /* lower bound for current max_ops (for
                            determining max_ass of current round) */
@@ -562,12 +578,15 @@ typedef struct BtorMBT
   int g_max_asserts_upper; /* max number of assertions in a round
                                for max_ops >= g_max_ops_lower */
 
+  /* propability options */
   int p_param_exp;     /* probability of choosing parameterized expressions
                           over non-parameterized expressions */
   int p_param_arr_exp; /* probability of choosing parameterized expressions
                           over non-parameterized array expressions */
   int p_apply_fun;     /* probability of choosing an apply on an existing
                           over an apply on a new function */
+  int p_apply_uf;      /* probability of choosing an apply on an existing
+                          over an apply on a new uninterpreted function */
   int p_rw;            /* probability of choosing read/write over
                           eq/ne/cond */
   int p_read;          /* probability of choosing read over write */
@@ -576,6 +595,7 @@ typedef struct BtorMBT
   int p_inc;           /* probability of choosing an incremental step */
   int p_dump;          /* probability of dumping formula and exit */
 
+  /* round counters */
   int r_add_init;     /* number of add operations (wrt to number of release
                          operations (initial layer) */
   int r_release_init; /* number of release operations (wrt to number of
@@ -602,7 +622,7 @@ typedef struct BtorMBT
   float p_add, p_release;
   /* prob. distribution of functions (without macros and array operations),
    * array operations, macros, inputs in current round */
-  float p_bitvec_fun, p_array_op, p_bitvec_op, p_input;
+  float p_bitvec_fun, p_bitvec_uf, p_array_op, p_bitvec_op, p_input;
   /* prob. distribution of assertions in current round */
   float p_ass;
 
@@ -617,9 +637,10 @@ typedef struct BtorMBT
   int tot_asserts; /* total number of asserts in current round */
 
   ExpStack assumptions;
-  ExpStack bo, bv, arr, fun;
+  ExpStack bo, bv, arr, fun, uf;
   ExpStack *parambo, *parambv, *paramarr;
   ExpStack cnf;
+  SortStack bv_sorts, tuple_sorts, fun_sorts;
 
   RNG rng;
 
@@ -667,6 +688,12 @@ new_btormbt (void)
   btormbt->g_max_add_funs           = MAX_NADDOPFUNS;
   btormbt->g_min_add_funs_inc       = MIN_NADDOPFUNS_INC;
   btormbt->g_max_add_funs_inc       = MAX_NADDOPFUNS_INC;
+  btormbt->g_min_add_uf_init        = MIN_NADDOPUF_INIT;
+  btormbt->g_max_add_uf_init        = MAX_NADDOPUF_INIT;
+  btormbt->g_min_add_uf             = MIN_NADDOPUF;
+  btormbt->g_max_add_uf             = MAX_NADDOPUF;
+  btormbt->g_min_add_uf_inc         = MIN_NADDOPUF_INC;
+  btormbt->g_max_add_uf_inc         = MAX_NADDOPUF_INC;
   btormbt->g_min_add_arrayops_init  = MIN_NADDOPAFUNS_INIT;
   btormbt->g_max_add_arrayops_init  = MAX_NADDOPAFUNS_INIT;
   btormbt->g_min_add_arrayops       = MIN_NADDOPAFUNS;
@@ -710,6 +737,7 @@ new_btormbt (void)
   btormbt->p_param_exp              = P_PARAM_EXP * NORM_VAL;
   btormbt->p_param_arr_exp          = P_PARAM_ARR_EXP * NORM_VAL;
   btormbt->p_apply_fun              = P_APPLY_FUN * NORM_VAL;
+  btormbt->p_apply_uf               = P_APPLY_UF * NORM_VAL;
   btormbt->p_rw                     = P_RW * NORM_VAL;
   btormbt->p_read                   = P_READ * NORM_VAL;
   btormbt->p_cond                   = P_COND * NORM_VAL;
@@ -726,6 +754,71 @@ static BtorMBT *btormbt;
 void boolector_chkclone (Btor *);
 
 /*------------------------------------------------------------------------*/
+
+void
+ss_init (SortStack *ss)
+{
+  memset (ss, 0, sizeof (SortStack));
+}
+
+static void
+ss_push (SortStack *ss, BoolectorSort *sort)
+{
+  assert (ss);
+  assert (sort);
+
+  if (ss->n == ss->size)
+  {
+    ss->size  = ss->size ? ss->size * 2 : 2;
+    ss->sorts = realloc (ss->sorts, ss->size * sizeof *ss->sorts);
+  }
+  ss->sorts[ss->n].sort = sort;
+  ss->n++;
+}
+
+static BoolectorSort *
+ss_pop (SortStack *ss)
+{
+  if (!ss->n) return 0;
+  ss->n -= 1;
+  return ss->sorts[ss->n].sort;
+}
+
+static void
+ss_del (SortStack *ss, int idx)
+{
+  assert (ss);
+  assert (idx >= 0 && idx < ss->n);
+
+  int i;
+
+  for (i = idx; i < ss->n - 1; i++) ss->sorts[i] = ss->sorts[i + 1];
+  ss->n -= 1;
+}
+
+static void
+ss_reset (SortStack *ss)
+{
+  assert (ss);
+  ss->n = 0;
+}
+
+static void
+ss_release (SortStack *ss)
+{
+  if (!ss) return;
+
+  ss->n    = 0;
+  ss->size = 0;
+  free (ss->sorts);
+  ss->sorts = 0;
+}
+
+void
+es_init (ExpStack *es)
+{
+  memset (es, 0, sizeof (ExpStack));
+}
 
 void
 es_push (ExpStack *es, BoolectorNode *exp)
@@ -822,17 +915,19 @@ init_pd_inputs (BtorMBT *btormbt,
 static void
 init_pd_add (BtorMBT *btormbt,
              float ratio_fun,
+             float ratio_uf,
              float ratio_afun,
              float ratio_bfun,
              float ratio_lit)
 {
   float sum;
 
-  sum = ratio_fun + ratio_afun + ratio_lit;
+  sum = ratio_fun + ratio_uf + ratio_afun + ratio_lit;
 
   assert (sum > 0);
 
   btormbt->p_bitvec_fun = (ratio_fun * NORM_VAL) / sum;
+  btormbt->p_bitvec_uf  = (ratio_uf * NORM_VAL) / sum;
   btormbt->p_array_op   = (ratio_afun * NORM_VAL) / sum;
   btormbt->p_bitvec_op  = (ratio_bfun * NORM_VAL) / sum;
   btormbt->p_input      = (ratio_lit * NORM_VAL) / sum;
@@ -981,7 +1076,7 @@ modifybv (
 }
 
 static void
-make_var (BtorMBT *btormbt, RNG *rng, ExpType type)
+create_var (BtorMBT *btormbt, RNG *rng, ExpType type)
 {
   int width;
   if (type == T_BO)
@@ -998,7 +1093,7 @@ make_var (BtorMBT *btormbt, RNG *rng, ExpType type)
 }
 
 static void
-make_const (BtorMBT *btormbt, RNG *rng)
+create_const (BtorMBT *btormbt, RNG *rng)
 {
   int width, val, i;
   ExpStack *es;
@@ -1053,7 +1148,7 @@ make_const (BtorMBT *btormbt, RNG *rng)
 }
 
 static void
-make_arr (BtorMBT *btormbt, RNG *rng)
+create_array (BtorMBT *btormbt, RNG *rng)
 {
   int ew = pick (rng, 1, MAX_BITWIDTH);
   int iw = pick (rng, 1, MAX_INDEXWIDTH);
@@ -1063,7 +1158,7 @@ make_arr (BtorMBT *btormbt, RNG *rng)
 
 /* randomly select variables from bo within the range ifrom - ito */
 static BoolectorNode *
-make_clause (BtorMBT *btormbt, RNG *rng, int ifrom, int ito)
+create_clause (BtorMBT *btormbt, RNG *rng, int ifrom, int ito)
 {
   int i, idx;
   BoolectorNode *e0, *e1;
@@ -1774,6 +1869,164 @@ bitvec_fun (BtorMBT *btormbt, unsigned r, int *nparams, int *width, int nlevel)
   free (args);
 }
 
+static BoolectorSort *
+bitvec_sort (BtorMBT *btormbt, unsigned r)
+{
+  int rand, len;
+  RNG rng;
+  BoolectorNode *bv;
+  BoolectorSort *sort;
+
+  rng  = initrng (r);
+  rand = pick (&rng, 0, NORM_VAL - 1);
+
+  // TODO: option for 0.5 p_sort_bv
+  if (btormbt->bv_sorts.n && rand < 0.5) /* use existing bv sort */
+  {
+    rand = pick (&rng, 0, btormbt->bv_sorts.n - 1);
+    sort = btormbt->bv_sorts.sorts[rand].sort;
+  }
+  else /* create new bv sort */
+  {
+    rand = pick (&rng, 0, btormbt->bv.n - 1);
+    bv   = btormbt->bv.exps[rand].exp;
+    len  = boolector_get_width (btormbt->btor, bv);
+    sort = boolector_bitvec_sort (btormbt->btor, len);
+    ss_push (&btormbt->bv_sorts, sort);
+  }
+  return sort;
+}
+
+static BoolectorSort *
+tuple_sort (BtorMBT *btormbt, unsigned r)
+{
+  int i, rand, num_elements;
+  RNG rng;
+  BoolectorSort *sort, **elements;
+
+  rng  = initrng (r);
+  rand = pick (&rng, 0, NORM_VAL - 1);
+
+  // TODO: option for 0.5 p_sort_tuple
+  if (btormbt->tuple_sorts.n && rand < 0.5) /* use existing tuple sort */
+  {
+    rand = pick (&rng, 0, btormbt->tuple_sorts.n - 1);
+    sort = btormbt->tuple_sorts.sorts[rand].sort;
+  }
+  else /* create new tuple sort */
+  {
+    // TODO: option for 2 sort_tuple_min_elems
+    // TODO: option for 10 sort_tuple_max_elems
+    num_elements = pick (&rng, 2, 10);
+    elements     = malloc (num_elements * sizeof (BoolectorSort *));
+    for (i = 0; i < num_elements; i++) elements[i] = bitvec_sort (btormbt, r);
+
+    sort = boolector_tuple_sort (btormbt->btor, elements, num_elements);
+    ss_push (&btormbt->tuple_sorts, sort);
+    free (elements);
+  }
+  return sort;
+}
+
+static BoolectorSort *
+fun_sort (BtorMBT *btormbt, unsigned r)
+{
+  int rand;
+  RNG rng;
+  BoolectorSort *sort, *domain, *codomain;
+
+  rng  = initrng (r);
+  rand = pick (&rng, 0, NORM_VAL - 1);
+
+  // TODO: option for 0.5 p_sort_fun
+  if (btormbt->fun_sorts.n && rand < 0.5) /* use existing fun sort */
+  {
+    rand = pick (&rng, 0, btormbt->fun_sorts.n - 1);
+    sort = btormbt->fun_sorts.sorts[rand].sort;
+  }
+  else /* create new fun sort */
+  {
+    rand = pick (&rng, 0, NORM_VAL - 1);
+    // TODO: option for 0.1 p_sort_fun_unary?
+    /* only one argument (no tuple needed) */
+    if (rand < 0.1)
+      domain = bitvec_sort (btormbt, r);
+    else
+      domain = tuple_sort (btormbt, r);
+    codomain = bitvec_sort (btormbt, r);
+    sort     = boolector_fun_sort (btormbt->btor, domain, codomain);
+    ss_push (&btormbt->fun_sorts, sort);
+  }
+  return sort;
+}
+
+static void
+bitvec_uf (BtorMBT *btormbt, unsigned r)
+{
+  int i, rand, len;
+  RNG rng;
+  BoolectorNode *uf, *arg, *apply, **args;
+  BoolectorSort *sort;
+  ExpStack stack;
+
+  rng  = initrng (r);
+  rand = pick (&rng, 0, NORM_VAL - 1);
+
+  if (btormbt->uf.n && rand < btormbt->p_apply_uf) /* use existing UF */
+  {
+    rand = pick (&rng, 0, btormbt->uf.n - 1);
+    uf   = btormbt->uf.exps[rand].exp;
+  }
+  else /* create new UF */
+  {
+    sort = fun_sort (btormbt, r);
+    uf   = boolector_uf (btormbt->btor, sort, 0);
+    es_push (&btormbt->uf, uf);
+  }
+
+  /* create apply with sort of UF */
+  es_init (&stack);
+  // TODO: no api function yet for sort handling
+  BtorSort *s = ((BtorUFNode *) uf)->sort->fun.domain;
+  if (s->kind == BTOR_TUPLE_SORT)
+  {
+    for (i = 0; i < s->tuple.num_elements; i++)
+    {
+      assert (s->tuple.elements[i]->kind == BTOR_BITVEC_SORT);
+      len = s->tuple.elements[i]->bitvec.len;
+      arg = selexp (btormbt, &rng, T_BB, 0, 0);
+      es_push (&stack,
+               modifybv (btormbt,
+                         &rng,
+                         arg,
+                         boolector_get_width (btormbt->btor, arg),
+                         len,
+                         0));
+    }
+  }
+  else
+  {
+    assert (s->kind == BTOR_BITVEC_SORT);
+    len = s->bitvec.len;
+    arg = selexp (btormbt, &rng, T_BB, 0, 0);
+    es_push (&stack,
+             modifybv (btormbt,
+                       &rng,
+                       arg,
+                       boolector_get_width (btormbt->btor, arg),
+                       len,
+                       0));
+  }
+
+  /* create apply on UF */
+  args = malloc (stack.n * sizeof (BoolectorNode *));
+  for (i = 0; i < stack.n; i++) args[i] = stack.exps[i].exp;
+  apply = boolector_apply (btormbt->btor, stack.n, args, uf);
+
+  len = boolector_get_width (btormbt->btor, apply);
+  es_push (len == 1 ? &btormbt->bo : &btormbt->bv, apply);
+}
+
 /*------------------------------------------------------------------------*/
 
 /* states */
@@ -1785,6 +2038,7 @@ static void *_add (BtorMBT *, unsigned);
 static void *_bitvec_op (BtorMBT *, unsigned);
 static void *_array_op (BtorMBT *, unsigned);
 static void *_bitvec_fun (BtorMBT *, unsigned);
+static void *_bitvec_uf (BtorMBT *, unsigned);
 static void *_input (BtorMBT *, unsigned);
 static void *_release (BtorMBT *, unsigned);
 static void *_ass (BtorMBT *, unsigned);
@@ -1824,6 +2078,7 @@ _new (BtorMBT *btormbt, unsigned r)
   init_pd_add (
       btormbt,
       pick (&rng, btormbt->g_min_add_funs_init, btormbt->g_max_add_funs_init),
+      pick (&rng, btormbt->g_min_add_uf_init, btormbt->g_max_add_uf_init),
       pick (&rng,
             btormbt->g_min_add_arrayops_init,
             btormbt->g_max_add_arrayops_init),
@@ -1852,25 +2107,37 @@ _opt (BtorMBT *btormbt, unsigned r)
   int rw;
   RNG rng = initrng (r);
 
-  BTORMBT_LOG (1, "enable force cleanup");
+  BTORMBT_LOG (1, "opt: enable force cleanup");
   boolector_enable_force_cleanup (btormbt->btor);
 
-  if (btormbt->dual_prop) boolector_enable_dual_prop (btormbt->btor);
+  if (btormbt->dual_prop)
+  {
+    BTORMBT_LOG (1, "opt: enable dual prop");
+    boolector_enable_dual_prop (btormbt->btor);
+  }
 
-  if (btormbt->just) boolector_enable_justification (btormbt->btor);
+  if (btormbt->just)
+  {
+    BTORMBT_LOG (1, "opt: enable justification");
+    boolector_enable_justification (btormbt->btor);
+  }
 
 #ifndef BTOR_DO_NOT_OPTIMIZE_UNCONSTRAINED
-  if (btormbt->ucopt) boolector_enable_ucopt (btormbt->btor);
+  if (btormbt->ucopt)
+  {
+    BTORMBT_LOG (1, "opt: enable unconstrained optimization");
+    boolector_enable_ucopt (btormbt->btor);
+  }
 #endif
 
   if (btormbt->bloglevel)
   {
-    BTORMBT_LOG (1, "boolector log level: '%d'", btormbt->bloglevel);
+    BTORMBT_LOG (1, "opt: log level: '%d'", btormbt->bloglevel);
     boolector_set_loglevel (btormbt->btor, btormbt->bloglevel);
   }
   if (btormbt->bverblevel)
   {
-    BTORMBT_LOG (1, "boolector verbose level: '%d'", btormbt->bverblevel);
+    BTORMBT_LOG (1, "opt: verbose level: '%d'", btormbt->bverblevel);
     boolector_set_verbosity (btormbt->btor, btormbt->bverblevel);
   }
 
@@ -1883,7 +2150,7 @@ _opt (BtorMBT *btormbt, unsigned r)
 #endif
       && pick (&rng, 0, 1))
   {
-    BTORMBT_LOG (1, "enable model generation");
+    BTORMBT_LOG (1, "opt: enable model generation");
     boolector_enable_model_gen (btormbt->btor);
     btormbt->mgen = 1;
   }
@@ -1894,19 +2161,19 @@ _opt (BtorMBT *btormbt, unsigned r)
 #endif
       && pick (&rng, 0, 1))
   {
-    BTORMBT_LOG (1, "enable incremental usage");
+    BTORMBT_LOG (1, "opt: enable incremental usage");
     boolector_enable_inc_usage (btormbt->btor);
     btormbt->inc = 1;
   }
 
   if (pick (&rng, 0, 9) == 5)
   {
-    BTORMBT_LOG (1, "enable full beta reduction");
+    BTORMBT_LOG (1, "opt: enable full beta reduction");
     boolector_enable_beta_reduce_all (btormbt->btor);
   }
 
   rw = pick (&rng, 0, 3);
-  BTORMBT_LOG (1, "set rewrite level %d", rw);
+  BTORMBT_LOG (1, "opt: set rewrite level %d", rw);
   boolector_set_rewrite_level (btormbt->btor, rw);
 
   return _init;
@@ -1925,9 +2192,9 @@ _init (BtorMBT *btormbt, unsigned r)
 
   /* generate at least one bool-var, one bv-var and one arr;
    * to ensure nonempty expression stacks */
-  if (btormbt->bo.n < 1) make_var (btormbt, &rng, T_BO);
-  if (btormbt->bv.n < 1) make_var (btormbt, &rng, T_BV);
-  if (btormbt->arr.n < 1) make_arr (btormbt, &rng);
+  if (btormbt->bo.n < 1) create_var (btormbt, &rng, T_BO);
+  if (btormbt->bv.n < 1) create_var (btormbt, &rng, T_BV);
+  if (btormbt->arr.n < 1) create_array (btormbt, &rng);
 
   if (btormbt->ops < btormbt->max_ops)
   {
@@ -1940,10 +2207,12 @@ _init (BtorMBT *btormbt, unsigned r)
   }
 
   BTORMBT_LOG (1,
-               "after init: nexps: booleans %d, bitvectors %d, arrays %d",
+               "after init: bool %d, bv %d, array %d, fun %d, uf %d",
                btormbt->bo.n,
                btormbt->bv.n,
-               btormbt->arr.n);
+               btormbt->arr.n,
+               btormbt->fun.n,
+               btormbt->uf.n);
 
   btormbt->bo.initlayer  = btormbt->bo.n;
   btormbt->bv.initlayer  = btormbt->bv.n;
@@ -1975,6 +2244,7 @@ _init (BtorMBT *btormbt, unsigned r)
   init_pd_add (
       btormbt,
       pick (&rng, btormbt->g_min_add_funs, btormbt->g_max_add_funs),
+      pick (&rng, btormbt->g_min_add_uf, btormbt->g_max_add_uf),
       pick (&rng, btormbt->g_min_add_arrayops, btormbt->g_max_add_arrayops),
       pick (&rng, btormbt->g_min_add_bitvecops, btormbt->g_max_add_bitvecops),
       pick (&rng, btormbt->g_min_add_inputs, btormbt->g_max_add_inputs));
@@ -2018,12 +2288,14 @@ _main (BtorMBT *btormbt, unsigned r)
   }
 
   BTORMBT_LOG (1,
-               "after main: nexps: booleans %d, bitvectors %d, arrays %d",
+               "after main: bool %d, bv %d, arrays %d, fun %d, uf %d",
                btormbt->bo.n,
                btormbt->bv.n,
-               btormbt->arr.n);
+               btormbt->arr.n,
+               btormbt->fun.n,
+               btormbt->uf.n);
   BTORMBT_LOG (1,
-               "after main: number of asserts: %d, assumps: %d",
+               "after main: asserts %d, assumes %d",
                btormbt->tot_asserts,
                btormbt->assumes);
 
@@ -2048,6 +2320,9 @@ _add (BtorMBT *btormbt, unsigned r)
   else if (rand
            < btormbt->p_bitvec_fun + btormbt->p_array_op + btormbt->p_bitvec_op)
     next = _bitvec_fun;
+  else if (rand < btormbt->p_bitvec_fun + btormbt->p_array_op
+                      + btormbt->p_bitvec_op + btormbt->p_bitvec_uf)
+    next = _bitvec_uf;
   else
     next = _input;
 
@@ -2132,6 +2407,13 @@ _array_op (BtorMBT *btormbt, unsigned r)
 }
 
 static void *
+_bitvec_uf (BtorMBT *btormbt, unsigned r)
+{
+  bitvec_uf (btormbt, r);
+  return btormbt->is_init ? _main : _init;
+}
+
+static void *
 _bitvec_fun (BtorMBT *btormbt, unsigned r)
 {
   assert (!btormbt->parambo && !btormbt->parambv && !btormbt->paramarr);
@@ -2153,11 +2435,11 @@ _input (BtorMBT *btormbt, unsigned r)
 
   rand = pick (&rng, 0, NORM_VAL - 1);
   if (rand < btormbt->p_var)
-    make_var (btormbt, &rng, T_BB);
+    create_var (btormbt, &rng, T_BB);
   else if (rand < btormbt->p_const + btormbt->p_var)
-    make_const (btormbt, &rng);
+    create_const (btormbt, &rng);
   else
-    make_arr (btormbt, &rng);
+    create_array (btormbt, &rng);
 
   return (btormbt->is_init ? _main : _init);
 }
@@ -2208,7 +2490,7 @@ _ass (BtorMBT *btormbt, unsigned r)
                   && pick (&rng, 0, 4)
               ? btormbt->bo.initlayer - 1
               : 0;
-  node = make_clause (btormbt, &rng, lower, btormbt->bo.n - 1);
+  node = create_clause (btormbt, &rng, lower, btormbt->bo.n - 1);
   assert (!BTOR_REAL_ADDR_NODE (node)->parameterized);
 
   // TODO: use p_ass here?
@@ -2353,6 +2635,7 @@ _inc (BtorMBT *btormbt, unsigned r)
     init_pd_add (
         btormbt,
         pick (&rng, btormbt->g_min_add_funs_inc, btormbt->g_max_add_funs_inc),
+        pick (&rng, btormbt->g_min_add_uf_inc, btormbt->g_max_add_uf_inc),
         pick (&rng,
               btormbt->g_min_add_arrayops_inc,
               btormbt->g_max_add_arrayops_inc),
@@ -2374,6 +2657,24 @@ _inc (BtorMBT *btormbt, unsigned r)
   return _del;
 }
 
+#define RELEASE_EXP_STACK(stack)                                     \
+  do                                                                 \
+  {                                                                  \
+    int i;                                                           \
+    for (i = 0; i < btormbt->stack.n; i++)                           \
+      boolector_release (btormbt->btor, btormbt->stack.exps[i].exp); \
+    es_release (&btormbt->stack);                                    \
+  } while (0)
+
+#define RELEASE_SORT_STACK(stack)                                           \
+  do                                                                        \
+  {                                                                         \
+    int i;                                                                  \
+    for (i = 0; i < btormbt->stack.n; i++)                                  \
+      boolector_release_sort (btormbt->btor, btormbt->stack.sorts[i].sort); \
+    ss_release (&btormbt->stack);                                           \
+  } while (0)
+
 static void *
 _del (BtorMBT *btormbt, unsigned r)
 {
@@ -2381,8 +2682,13 @@ _del (BtorMBT *btormbt, unsigned r)
   assert (btormbt);
   assert (btormbt->btor);
 
-  int i;
-
+  RELEASE_EXP_STACK (bo);
+  RELEASE_EXP_STACK (bv);
+  RELEASE_EXP_STACK (arr);
+  RELEASE_EXP_STACK (fun);
+  RELEASE_EXP_STACK (uf);
+  RELEASE_EXP_STACK (cnf);
+#if 0
   for (i = 0; i < btormbt->bo.n; i++)
     boolector_release (btormbt->btor, btormbt->bo.exps[i].exp);
   es_release (&btormbt->bo);
@@ -2395,10 +2701,28 @@ _del (BtorMBT *btormbt, unsigned r)
   for (i = 0; i < btormbt->fun.n; i++)
     boolector_release (btormbt->btor, btormbt->fun.exps[i].exp);
   es_release (&btormbt->fun);
+  for (i = 0; i < btormbt->uf.n; i++)
+    boolector_release (btormbt->btor, btormbt->uf.exps[i].exp);
+  es_release (&btormbt->uf);
   for (i = 0; i < btormbt->cnf.n; i++)
     boolector_release (btormbt->btor, btormbt->cnf.exps[i].exp);
   es_release (&btormbt->cnf);
+#endif
   es_release (&btormbt->assumptions);
+  RELEASE_SORT_STACK (bv_sorts);
+  RELEASE_SORT_STACK (tuple_sorts);
+  RELEASE_SORT_STACK (fun_sorts);
+#if 0
+  for (i = 0; i < btormbt->bv_sorts.n; i++)
+    boolector_release_sort (btormbt->btor, btormbt->bv_sorts.sorts[i].sort);
+  ss_release (&btormbt->bv_sorts);
+  for (i = 0; i < btormbt->tuple_sorts.n; i++)
+    boolector_release_sort (btormbt->btor, btormbt->tuple_sorts.sorts[i].sort);
+  ss_release (&btormbt->tuple_sorts);
+  for (i = 0; i < btormbt->fun_sorts.n; i++)
+    boolector_release_sort (btormbt->btor, btormbt->fun_sorts.sorts[i].sort);
+  ss_release (&btormbt->fun_sorts);
+#endif
 
   assert (btormbt->parambo == NULL);
   assert (btormbt->parambv == NULL);
@@ -3147,6 +3471,15 @@ main (int argc, char **argv)
       btormbt->p_apply_fun = atof (argv[i]) * NORM_VAL;
       if (btormbt->p_apply_fun > NORM_VAL)
         die ("argument to '--p-apply-fun' must be < 1.0");
+    }
+    else if (!strcmp (argv[i], "--p-apply-uf"))
+    {
+      if (++i == argc) die ("argument to '--p-apply-uf' missing (try '-h')");
+      if (!isfloatnumstr (argv[i]))
+        die ("argument to '--p-apply-uf' is not a number (try '-h')");
+      btormbt->p_apply_uf = atof (argv[i]) * NORM_VAL;
+      if (btormbt->p_apply_uf > NORM_VAL)
+        die ("argument to '--p-apply-uf' must be < 1.0");
     }
     else if (!strcmp (argv[i], "--p-rw"))
     {
