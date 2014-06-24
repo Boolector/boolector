@@ -352,6 +352,11 @@ NEXT:
     PARSE_ARGS1 (tok, int);
     boolector_set_rewrite_level (btor, arg1_int);
   }
+  else if (!strcmp (tok, "set_rewrite_level_pbr"))
+  {
+    PARSE_ARGS1 (tok, int);
+    boolector_set_rewrite_level_pbr (btor, arg1_int);
+  }
   else if (!strcmp (tok, "enable_model_gen"))
   {
     PARSE_ARGS0 (tok);
@@ -362,10 +367,15 @@ NEXT:
     PARSE_ARGS0 (tok);
     boolector_disable_model_gen (btor);
   }
-  else if (!strcmp (tok, "generate_model_for_all_reads"))
+  else if (!strcmp (tok, "enable_generate_model_for_all_reads"))
   {
     PARSE_ARGS0 (tok);
-    boolector_generate_model_for_all_reads (btor);
+    boolector_enable_generate_model_for_all_reads (btor);
+  }
+  else if (!strcmp (tok, "disable_generate_model_for_all_reads"))
+  {
+    PARSE_ARGS0 (tok);
+    boolector_disable_generate_model_for_all_reads (btor);
   }
   else if (!strcmp (tok, "disable_pretty_print"))
   {
@@ -377,33 +387,71 @@ NEXT:
     PARSE_ARGS0 (tok);
     boolector_enable_inc_usage (btor);
   }
+// TODO FIXME
+#if 0
+  else if (!strcmp (tok, "disable_inc_usage"))
+    {
+      PARSE_ARGS0 (tok);
+      boolector_disable_inc_usage (btor);
+    }
+#endif
   else if (!strcmp (tok, "enable_beta_reduce_all"))
   {
     PARSE_ARGS0 (tok);
     boolector_enable_beta_reduce_all (btor);
+  }
+  else if (!strcmp (tok, "disable_beta_reduce_all"))
+  {
+    PARSE_ARGS0 (tok);
+    boolector_disable_beta_reduce_all (btor);
   }
   else if (!strcmp (tok, "enable_dual_prop"))
   {
     PARSE_ARGS0 (tok);
     boolector_enable_dual_prop (btor);
   }
+  else if (!strcmp (tok, "disable_dual_prop"))
+  {
+    PARSE_ARGS0 (tok);
+    boolector_disable_dual_prop (btor);
+  }
   else if (!strcmp (tok, "enable_just"))
   {
     PARSE_ARGS0 (tok);
     boolector_enable_justification (btor);
   }
+  else if (!strcmp (tok, "disable_just"))
+  {
+    PARSE_ARGS0 (tok);
+    boolector_disable_justification (btor);
+  }
+#ifndef BTOR_DO_NOT_OPTIMIZE_UNCONSTRAINED
+  else if (!strcmp (tok, "disable_ucopt"))
+  {
+    PARSE_ARGS0 (tok);
+    boolector_disable_ucopt (btor);
+  }
+#endif
   else if (!strcmp (tok, "enable_force_cleanup"))
   {
     PARSE_ARGS0 (tok);
     boolector_enable_force_cleanup (btor);
   }
-#ifndef BTOR_DO_NOT_OPTIMIZE_UNCONSTRAINED
-  else if (!strcmp (tok, "enable_ucopt"))
+  else if (!strcmp (tok, "disable_force_cleanup"))
   {
     PARSE_ARGS0 (tok);
-    boolector_enable_ucopt (btor);
+    boolector_disable_force_cleanup (btor);
   }
-#endif
+  else if (!strcmp (tok, "enable_pretty_print"))
+  {
+    PARSE_ARGS0 (tok);
+    boolector_enable_pretty_print (btor);
+  }
+  else if (!strcmp (tok, "disable_pretty_print"))
+  {
+    PARSE_ARGS0 (tok);
+    boolector_disable_pretty_print (btor);
+  }
   else if (!strcmp (tok, "set_verbosity"))
   {
     PARSE_ARGS1 (tok, int);

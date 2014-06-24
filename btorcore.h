@@ -18,6 +18,7 @@
 #include "btorass.h"
 #include "btorexp.h"
 #include "btormem.h"
+#include "btoropt.h"
 #include "btorsort.h"
 
 #ifndef NDEBUG
@@ -252,33 +253,7 @@ struct Btor
 #endif
   } time;
 
-  struct
-  {
-    int dual_prop;              /* dual prop optimization */
-    int just;                   /* justification optimization */
-    int beta_reduce_all;        /* eliminate lambda expressions */
-    int force_cleanup;          /* force cleanup of exps, assignment strings */
-    int force_internal_cleanup; /* force cleanup of exps, assignment strings
-                                   (internal references only) */
-    int generate_model_for_all_reads;
-    int inc_enabled; /* incremental usage enabled ? */
-#ifndef NBTORLOG
-    int loglevel;
-#endif
-    int model_gen; /* model generation enabled */
-    int pprint;    /* reindex exps when dumping */
-#ifndef BTOR_DO_NOT_OPTIMIZE_UNCONSTRAINED
-    int ucopt;
-#endif
-    int rewrite_level;
-    int rewrite_level_partial_br;
-    int simplify_constraints; /* force constraints to true/false */
-    int slice_propagation;
-    int verbosity;
-#ifdef BTOR_CHECK_FAILED
-    int chk_failed_assumptions;
-#endif
-  } options;
+  BtorOpts options;
 };
 
 /* Creates new boolector instance. */
@@ -287,6 +262,9 @@ Btor *btor_new_btor (void);
 /* Sets rewrite level [0,2]. */
 void btor_set_rewrite_level_btor (Btor *btor, int rewrite_level);
 
+/* Sets rewrite level [0,2] for partal beta reduction. */
+void btor_set_rewrite_level_pbr (Btor *btor, int rewrite_level);
+
 /* Enables model generation. */
 void btor_enable_model_gen (Btor *btor);
 
@@ -294,7 +272,8 @@ void btor_enable_model_gen (Btor *btor);
 void btor_disable_model_gen (Btor *btor);
 
 /* Forces all reads to be synthesized during model generation. */
-void btor_generate_model_for_all_reads (Btor *btor);
+void btor_enable_generate_model_for_all_reads (Btor *btor);
+void btor_disable_generate_model_for_all_reads (Btor *btor);
 
 /* Enables incremental usage which means that assumptions are enabled
  * and btor_sat_btor can be called more than once. Note that enabling this
@@ -302,17 +281,35 @@ void btor_generate_model_for_all_reads (Btor *btor);
  */
 void btor_enable_inc_usage (Btor *btor);
 
+/* Disables incremental usage.  */
+void btor_disable_inc_usage (Btor *btor);
+
 /* Enable rewriting of reads on lambda expressions. */
 void btor_enable_beta_reduce_all (Btor *btor);
+
+/* Disable rewriting of reads on lambda expressions. */
+void btor_disable_beta_reduce_all (Btor *btor);
 
 /* Enable dual propagation optimization of consistency check. */
 void btor_enable_dual_prop (Btor *btor);
 
+/* Disable dual propagation optimization of consistency check. */
+void btor_disable_dual_prop (Btor *btor);
+
 /* Enable justificationn optimization of consistency check. */
 void btor_enable_just (Btor *btor);
 
-/* Enable forcing of automatic clenaup of expressions and assignment strings. */
+/* Disable justificationn optimization of consistency check. */
+void btor_disable_just (Btor *btor);
+
+/* Enable forcing of automatic cleanup of expressions and assignment strings. */
 void btor_enable_force_cleanup (Btor *btor);
+
+/* Disable forcing of automatic cleanup of expressions and assignment strings.*/
+void btor_disable_force_cleanup (Btor *btor);
+
+/* Enable pretty printing when dumping and rewriting of writes is enabled.  */
+void btor_enable_pretty_print (Btor *btor);
 
 /* Disable pretty printing when dumping and rewriting of writes is enabled.  */
 void btor_disable_pretty_print (Btor *btor);

@@ -1136,8 +1136,9 @@ btor_recursively_rebuild_exp_clone (Btor *btor,
 #endif
 
   // FIXME lemmas are currently built with rwl1 (in parent)
-  rwl = clone->options.rewrite_level;
-  if (clone->options.rewrite_level > 0) btor_set_rewrite_level_btor (clone, 1);
+  rwl = clone->options.rewrite_level.val;
+  if (clone->options.rewrite_level.val > 0)
+    btor_set_rewrite_level_btor (clone, 1);
   //
 
   BTOR_INIT_STACK (work_stack);
