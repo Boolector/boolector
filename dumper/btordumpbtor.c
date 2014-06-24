@@ -59,7 +59,7 @@ btor_new_dump_context (Btor *btor)
                                         (BtorCmpPtr) btor_compare_exp_by_id);
 
   /* set start id for roots */
-  if (!btor->options.pprint)
+  if (!btor->options.pprint.val)
     res->maxid = BTOR_COUNT_STACK (btor->nodes_id_table);
 
   return res;
@@ -211,7 +211,7 @@ bdcid (BtorDumpContext *bdc, BtorNode *node)
   {
     b = btor_insert_in_ptr_hash_table (bdc->idtab,
                                        btor_copy_exp (bdc->btor, node));
-    if (bdc->btor->options.pprint)
+    if (bdc->btor->options.pprint.val)
       b->data.asInt = ++bdc->maxid;
     else
       b->data.asInt = real->id;

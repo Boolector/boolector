@@ -131,17 +131,6 @@ boolector_btor (BoolectorNode *node)
 }
 
 void
-boolector_disable_pretty_print (Btor *btor)
-{
-  BTOR_ABORT_ARG_NULL_BOOLECTOR (btor);
-  BTOR_TRAPI ("disable_pretty_print");
-  btor_disable_pretty_print (btor);
-#ifndef NDEBUG
-  BTOR_CHKCLONE_NORES (disable_pretty_print);
-#endif
-}
-
-void
 boolector_set_rewrite_level (Btor *btor, int rewrite_level)
 {
   BTOR_ABORT_ARG_NULL_BOOLECTOR (btor);
@@ -154,6 +143,19 @@ boolector_set_rewrite_level (Btor *btor, int rewrite_level)
   btor_set_rewrite_level_btor (btor, rewrite_level);
 #ifndef NDEBUG
   BTOR_CHKCLONE_NORES (set_rewrite_level, rewrite_level);
+#endif
+}
+
+void
+boolector_set_rewrite_level_pbr (Btor *btor, int rewrite_level)
+{
+  BTOR_ABORT_ARG_NULL_BOOLECTOR (btor);
+  BTOR_TRAPI ("set_rewrite_level_pbr %d", rewrite_level);
+  BTOR_ABORT_BOOLECTOR (rewrite_level < 0 || rewrite_level > 3,
+                        "'rewrite_level' has to be in [0,3]");
+  btor_set_rewrite_level_pbr (btor, rewrite_level);
+#ifndef NDEBUG
+  BTOR_CHKCLONE_NORES (set_rewrite_level_pbr, rewrite_level);
 #endif
 }
 
@@ -183,13 +185,31 @@ boolector_disable_model_gen (Btor *btor)
 }
 
 void
-boolector_generate_model_for_all_reads (Btor *btor)
+boolector_enable_generate_model_for_all_reads (Btor *btor)
 {
   BTOR_ABORT_ARG_NULL_BOOLECTOR (btor);
-  BTOR_TRAPI ("generate_model_for_all_reads");
-  btor_generate_model_for_all_reads (btor);
+  BTOR_TRAPI ("enable_generate_model_for_all_reads");
+  btor_enable_generate_model_for_all_reads (btor);
 #ifndef NDEBUG
-  BTOR_CHKCLONE_NORES (generate_model_for_all_reads);
+  BTOR_CHKCLONE_NORES (enable_generate_model_for_all_reads);
+#endif
+}
+
+void
+boolector_generate_model_for_all_reads (Btor *btor)
+{
+  BTOR_WARN_DEPRECATED ("boolector_enable_generate_model_for_all_reads");
+  boolector_enable_generate_model_for_all_reads (btor);
+}
+
+void
+boolector_disable_generate_model_for_all_reads (Btor *btor)
+{
+  BTOR_ABORT_ARG_NULL_BOOLECTOR (btor);
+  BTOR_TRAPI ("enable_generate_model_for_all_reads");
+  btor_disable_generate_model_for_all_reads (btor);
+#ifndef NDEBUG
+  BTOR_CHKCLONE_NORES (disable_generate_model_for_all_reads);
 #endif
 }
 
@@ -207,6 +227,22 @@ boolector_enable_inc_usage (Btor *btor)
 #endif
 }
 
+// TODO
+#if 0
+void
+boolector_disable_inc_usage (Btor * btor)
+{
+  BTOR_ABORT_ARG_NULL_BOOLECTOR (btor);
+  BTOR_TRAPI ("disable_inc_usage");
+  BTOR_ABORT_BOOLECTOR (btor->btor_sat_btor_called > 0,
+    "enabling incremental usage must be done before calling 'boolector_sat'");
+  btor_disable_inc_usage (btor);
+#ifndef NDEBUG
+  BTOR_CHKCLONE_NORES (disable_inc_usage);
+#endif
+}
+#endif
+
 void
 boolector_enable_beta_reduce_all (Btor *btor)
 {
@@ -219,16 +255,41 @@ boolector_enable_beta_reduce_all (Btor *btor)
 }
 
 void
+boolector_disable_beta_reduce_all (Btor *btor)
+{
+  BTOR_ABORT_ARG_NULL_BOOLECTOR (btor);
+  BTOR_TRAPI ("disable_beta_reduce_all");
+  btor_disable_beta_reduce_all (btor);
+#ifndef NDEBUG
+  BTOR_CHKCLONE_NORES (disable_beta_reduce_all);
+#endif
+}
+
+void
 boolector_enable_dual_prop (Btor *btor)
 {
   BTOR_ABORT_ARG_NULL_BOOLECTOR (btor);
   BTOR_TRAPI ("enable_dual_prop");
   BTOR_ABORT_BOOLECTOR (
-      btor->options.just,
+      btor->options.just.val,
       "enabling multiple optimization techniques is not allowed");
   btor_enable_dual_prop (btor);
 #ifndef NDEBUG
   BTOR_CHKCLONE_NORES (enable_dual_prop);
+#endif
+}
+
+void
+boolector_disable_dual_prop (Btor *btor)
+{
+  BTOR_ABORT_ARG_NULL_BOOLECTOR (btor);
+  BTOR_TRAPI ("disable_dual_prop");
+  BTOR_ABORT_BOOLECTOR (
+      btor->options.just.val,
+      "enabling multiple optimization techniques is not allowed");
+  btor_disable_dual_prop (btor);
+#ifndef NDEBUG
+  BTOR_CHKCLONE_NORES (disable_dual_prop);
 #endif
 }
 
@@ -238,21 +299,25 @@ boolector_enable_justification (Btor *btor)
   BTOR_ABORT_ARG_NULL_BOOLECTOR (btor);
   BTOR_TRAPI ("enable_just");
   BTOR_ABORT_BOOLECTOR (
-      btor->options.dual_prop,
+      btor->options.dual_prop.val,
       "enabling multiple optimization techniques is not allowed");
   btor_enable_just (btor);
 #ifndef NDEBUG
   BTOR_CHKCLONE_NORES (enable_justification);
 #endif
 }
+
 void
-boolector_enable_force_cleanup (Btor *btor)
+boolector_disable_justification (Btor *btor)
 {
   BTOR_ABORT_ARG_NULL_BOOLECTOR (btor);
-  BTOR_TRAPI ("enable_force_cleanup");
-  btor_enable_force_cleanup (btor);
+  BTOR_TRAPI ("disable_just");
+  BTOR_ABORT_BOOLECTOR (
+      btor->options.dual_prop.val,
+      "enabling multiple optimization techniques is not allowed");
+  btor_disable_just (btor);
 #ifndef NDEBUG
-  BTOR_CHKCLONE_NORES (enable_force_cleanup);
+  BTOR_CHKCLONE_NORES (disable_justification);
 #endif
 }
 
@@ -267,13 +332,72 @@ boolector_enable_ucopt (Btor *btor)
   BTOR_CHKCLONE_NORES (enable_ucopt);
 #endif
 }
+void
+boolector_disable_ucopt (Btor *btor)
+{
+  BTOR_ABORT_ARG_NULL_BOOLECTOR (btor);
+  BTOR_TRAPI ("disable_ucopt");
+  btor_disable_ucopt (btor);
+#ifndef NDEBUG
+  BTOR_CHKCLONE_NORES (disable_ucopt);
+#endif
+}
 #else
 void
 boolector_enable_ucopt (Btor *btor)
 {
   (void) btor;
 }
+void
+boolector_disable_ucopt (Btor *btor)
+{
+  (void) btor;
+}
 #endif
+
+void
+boolector_enable_force_cleanup (Btor *btor)
+{
+  BTOR_ABORT_ARG_NULL_BOOLECTOR (btor);
+  BTOR_TRAPI ("enable_force_cleanup");
+  btor_enable_force_cleanup (btor);
+#ifndef NDEBUG
+  BTOR_CHKCLONE_NORES (enable_force_cleanup);
+#endif
+}
+
+void
+boolector_disable_force_cleanup (Btor *btor)
+{
+  BTOR_ABORT_ARG_NULL_BOOLECTOR (btor);
+  BTOR_TRAPI ("disable_force_cleanup");
+  btor_disable_force_cleanup (btor);
+#ifndef NDEBUG
+  BTOR_CHKCLONE_NORES (disable_force_cleanup);
+#endif
+}
+
+void
+boolector_enable_pretty_print (Btor *btor)
+{
+  BTOR_ABORT_ARG_NULL_BOOLECTOR (btor);
+  BTOR_TRAPI ("enable_pretty_print");
+  btor_enable_pretty_print (btor);
+#ifndef NDEBUG
+  BTOR_CHKCLONE_NORES (enable_pretty_print);
+#endif
+}
+
+void
+boolector_disable_pretty_print (Btor *btor)
+{
+  BTOR_ABORT_ARG_NULL_BOOLECTOR (btor);
+  BTOR_TRAPI ("disable_pretty_print");
+  btor_disable_pretty_print (btor);
+#ifndef NDEBUG
+  BTOR_CHKCLONE_NORES (disable_pretty_print);
+#endif
+}
 
 void
 boolector_set_verbosity (Btor *btor, int verbosity)
@@ -3032,7 +3156,7 @@ boolector_assume (Btor *btor, BoolectorNode *node)
   BTOR_ABORT_ARG_NULL_BOOLECTOR (btor);
   BTOR_ABORT_ARG_NULL_BOOLECTOR (exp);
   BTOR_TRAPI_UNFUN ("assume", exp);
-  BTOR_ABORT_BOOLECTOR (!btor->options.inc_enabled,
+  BTOR_ABORT_BOOLECTOR (!btor->options.inc_enabled.val,
                         "incremental usage has not been enabled");
   BTOR_ABORT_REFS_NOT_POS_BOOLECTOR (exp);
   BTOR_ABORT_IF_BTOR_DOES_NOT_MATCH (btor, exp);
@@ -3062,7 +3186,7 @@ boolector_failed (Btor *btor, BoolectorNode *node)
       "cannot check failed assumptions if input formula is not UNSAT");
   BTOR_ABORT_ARG_NULL_BOOLECTOR (exp);
   BTOR_TRAPI_UNFUN ("failed", exp);
-  BTOR_ABORT_BOOLECTOR (!btor->options.inc_enabled,
+  BTOR_ABORT_BOOLECTOR (!btor->options.inc_enabled.val,
                         "incremental usage has not been enabled");
   BTOR_ABORT_REFS_NOT_POS_BOOLECTOR (exp);
   BTOR_ABORT_IF_BTOR_DOES_NOT_MATCH (btor, exp);
@@ -3088,7 +3212,7 @@ boolector_sat (Btor *btor)
   BTOR_ABORT_ARG_NULL_BOOLECTOR (btor);
   BTOR_TRAPI ("sat");
   BTOR_ABORT_BOOLECTOR (
-      !btor->options.inc_enabled && btor->btor_sat_btor_called > 0,
+      !btor->options.inc_enabled.val && btor->btor_sat_btor_called > 0,
       "incremental usage has not been enabled."
       "'boolector_sat' may only be called once");
   res = btor_sat_btor (btor);
@@ -3118,7 +3242,7 @@ boolector_bv_assignment (Btor *btor, BoolectorNode *node)
   BTOR_ABORT_IF_BTOR_DOES_NOT_MATCH (btor, exp);
   simp = btor_simplify_exp (btor, exp);
   BTOR_ABORT_ARRAY_BOOLECTOR (simp);
-  BTOR_ABORT_BOOLECTOR (!btor->options.model_gen,
+  BTOR_ABORT_BOOLECTOR (!btor->options.model_gen.val,
                         "model generation has not been enabled");
   ass   = btor_bv_assignment_str (btor, simp);
   bvass = btor_new_bv_assignment (btor->bv_assignments, (char *) ass);
@@ -3181,7 +3305,7 @@ boolector_array_assignment (Btor *btor,
   BTOR_ABORT_IF_BTOR_DOES_NOT_MATCH (btor, e_array);
   simp = btor_simplify_exp (btor, e_array);
   BTOR_ABORT_BV_BOOLECTOR (simp);
-  BTOR_ABORT_BOOLECTOR (!btor->options.model_gen,
+  BTOR_ABORT_BOOLECTOR (!btor->options.model_gen.val,
                         "model generation has not been enabled");
 
   btor_array_assignment_str (btor, simp, &ind, &val, size);

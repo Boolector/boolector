@@ -59,7 +59,7 @@ new_smt_dump_context (Btor *btor, FILE *file, int version)
                                         (BtorCmpPtr) btor_compare_exp_by_id);
   sdc->file    = file;
   sdc->maxid   = 1;
-  sdc->pprint  = btor->options.pprint;
+  sdc->pprint  = btor->options.pprint.val;
   sdc->version = version;
 
   BTOR_INIT_STACK (sdc->roots);
@@ -769,8 +769,8 @@ dump_smt_aux (Btor *btor, FILE *file, int version, BtorNode **roots, int nroots)
   assert (btor);
   assert (file);
   assert (version == 1 || version == 2);
-  assert (!btor->options.inc_enabled);
-  //  assert (!btor->options.model_gen);
+  assert (!btor->options.inc_enabled.val);
+  //  assert (!btor->options.model_gen.val);
 
 #ifndef NDEBUG
   Btor *clone;

@@ -11,6 +11,7 @@
 
 #include "btorcore.h"
 #include "btoriter.h"
+#include "btoropt.h"
 #ifndef NDEBUG
 #include "btorbitvec.h"
 #endif
@@ -58,27 +59,27 @@ btor_chkclone_state (Btor *btor)
   BTOR_CHKCLONE_STATE (btor_sat_btor_called);
   BTOR_CHKCLONE_STATE (msgtick);
   BTOR_CHKCLONE_STATE (last_sat_result);
-  BTOR_CHKCLONE_STATE (options.dual_prop);
-  BTOR_CHKCLONE_STATE (options.just);
-  BTOR_CHKCLONE_STATE (options.beta_reduce_all);
-  BTOR_CHKCLONE_STATE (options.force_cleanup);
-  BTOR_CHKCLONE_STATE (options.force_internal_cleanup);
-  BTOR_CHKCLONE_STATE (options.generate_model_for_all_reads);
-  BTOR_CHKCLONE_STATE (options.inc_enabled);
+  BTOR_CHKCLONE_STATE (options.dual_prop.val);
+  BTOR_CHKCLONE_STATE (options.just.val);
+  BTOR_CHKCLONE_STATE (options.beta_reduce_all.val);
+  BTOR_CHKCLONE_STATE (options.force_cleanup.val);
+  BTOR_CHKCLONE_STATE (options.force_internal_cleanup.val);
+  BTOR_CHKCLONE_STATE (options.generate_model_for_all_reads.val);
+  BTOR_CHKCLONE_STATE (options.inc_enabled.val);
 #ifndef NBTORLOG
-  BTOR_CHKCLONE_STATE (options.loglevel);
+  BTOR_CHKCLONE_STATE (options.loglevel.val);
 #endif
-  BTOR_CHKCLONE_STATE (options.model_gen);
-  BTOR_CHKCLONE_STATE (options.pprint);
+  BTOR_CHKCLONE_STATE (options.model_gen.val);
+  BTOR_CHKCLONE_STATE (options.pprint.val);
 #ifndef BTOR_DO_NOT_OPTIMIZE_UNCONSTRAINED
-  BTOR_CHKCLONE_STATE (options.ucopt);
+  BTOR_CHKCLONE_STATE (options.ucopt.val);
 #endif
-  BTOR_CHKCLONE_STATE (options.rewrite_level);
-  BTOR_CHKCLONE_STATE (options.simplify_constraints);
-  BTOR_CHKCLONE_STATE (options.propagate_slices);
-  BTOR_CHKCLONE_STATE (options.verbosity);
+  BTOR_CHKCLONE_STATE (options.rewrite_level.val);
+  BTOR_CHKCLONE_STATE (options.simplify_constraints.val);
+  BTOR_CHKCLONE_STATE (options.propagate_slices.val);
+  BTOR_CHKCLONE_STATE (options.verbosity.val);
 #ifdef BTOR_CHECK_FAILED
-  BTOR_CHKCLONE_STATE (options.chk_failed_assumptions);
+  BTOR_CHKCLONE_STATE (options.chk_failed_assumptions.val);
 #endif
 }
 

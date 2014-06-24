@@ -563,7 +563,7 @@ btor_beta_reduce (Btor *btor, BtorNode *exp, int mode, int bound)
 
           if (cache
               && (mode == BETA_RED_FULL
-                  || (!btor->options.beta_reduce_all
+                  || (!btor->options.beta_reduce_all.val
                       && mode == BETA_RED_BOUNDED))
               && BTOR_IS_LAMBDA_NODE (real_cur->e[0])
               /* only cache results of applications on non-parameterized
@@ -1274,9 +1274,9 @@ btor_beta_reduce_partial_aux (Btor *btor,
   start = btor_time_stamp ();
   btor->stats.beta_reduce_calls++;
 
-  rwl = btor->options.rewrite_level;
-  if (btor->options.rewrite_level > 0)
-    btor->options.rewrite_level = btor->options.rewrite_level_partial_br;
+  rwl = btor->options.rewrite_level.val;
+  if (btor->options.rewrite_level.val > 0)
+    btor->options.rewrite_level.val = btor->options.rewrite_level_pbr.val;
 
   mm = btor->mm;
   BTOR_INIT_STACK (stack);
@@ -1490,7 +1490,7 @@ btor_beta_reduce_partial_aux (Btor *btor,
                   && !btor_find_in_ptr_hash_table (conds,
                                                    BTOR_REAL_ADDR_NODE (e[0])))
               {
-                assert (btor->options.dual_prop || btor->options.just);
+                assert (btor->options.dual_prop.val || btor->options.just.val);
                 btor_insert_in_ptr_hash_table (
                     conds, btor_copy_exp (btor, BTOR_REAL_ADDR_NODE (e[0])));
               }
@@ -1657,7 +1657,7 @@ btor_beta_reduce_partial_aux (Btor *btor,
   BTOR_RELEASE_STACK (mm, arg_stack);
   btor_delete_ptr_hash_table (cache);
   btor_delete_ptr_hash_table (mark);
-  btor->options.rewrite_level = rwl;
+  btor->options.rewrite_level.val = rwl;
 
   BTORLOG ("%s: result %s (%d)",
            __FUNCTION__,
