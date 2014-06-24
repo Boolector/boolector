@@ -252,34 +252,6 @@ struct Btor
 #endif
   } time;
 
-  //  struct
-  //  {
-  //    int dual_prop;               /* dual prop optimization */
-  //    int just;                    /* justification optimization */
-  //    int beta_reduce_all;         /* eliminate lambda expressions */
-  //    int force_cleanup;	         /* force cleanup of exps, assignment
-  //    strings */ int force_internal_cleanup;  /* force cleanup of exps,
-  //    assignment strings
-  //				    (internal references only) */
-  //    int generate_model_for_all_reads;
-  //    int inc_enabled;		 /* incremental usage enabled ? */
-  //#ifndef NBTORLOG
-  //    int loglevel;
-  //#endif
-  //    int model_gen;               /* model generation enabled */
-  //    int pprint;		         /* reindex exps when dumping */
-  //#ifndef BTOR_DO_NOT_OPTIMIZE_UNCONSTRAINED
-  //    int ucopt;
-  //#endif
-  //    int rewrite_level;
-  //    int rewrite_level_pbr;
-  //    int simplify_constraints;  /* force constraints to true/false */
-  //    int propagate_slices;
-  //    int verbosity;
-  //#ifdef BTOR_CHECK_FAILED
-  //    int chk_failed_assumptions;
-  //#endif
-  //  } options;
   BtorOpts options;
 };
 
