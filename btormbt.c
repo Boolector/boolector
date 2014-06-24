@@ -2025,6 +2025,8 @@ bitvec_uf (BtorMBT *btormbt, unsigned r)
 
   len = boolector_get_width (btormbt->btor, apply);
   es_push (len == 1 ? &btormbt->bo : &btormbt->bv, apply);
+  free (args);
+  es_release (&stack);
 }
 
 /*------------------------------------------------------------------------*/
