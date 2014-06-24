@@ -3044,7 +3044,8 @@ substitute_var_exps (Btor *btor)
         cur->mark = 1;
 
         if (BTOR_IS_BV_CONST_NODE (cur) || BTOR_IS_BV_VAR_NODE (cur)
-            || BTOR_IS_ARRAY_VAR_NODE (cur) || BTOR_IS_PARAM_NODE (cur))
+            || BTOR_IS_ARRAY_VAR_NODE (cur) || BTOR_IS_PARAM_NODE (cur)
+            || BTOR_IS_UF_NODE (cur))
         {
           b_temp = btor_find_in_ptr_hash_table (substs, cur);
           if (b_temp)
@@ -3101,7 +3102,8 @@ substitute_var_exps (Btor *btor)
           continue;
 
         if (BTOR_IS_BV_CONST_NODE (cur) || BTOR_IS_BV_VAR_NODE (cur)
-            || BTOR_IS_ARRAY_VAR_NODE (cur) || BTOR_IS_PARAM_NODE (cur))
+            || BTOR_IS_ARRAY_VAR_NODE (cur) || BTOR_IS_PARAM_NODE (cur)
+            || BTOR_IS_UF_NODE (cur))
         {
           assert (btor_find_in_ptr_hash_table (order, cur));
           continue;
@@ -9982,6 +9984,7 @@ br_probe (Btor *btor)
     delta = btor_time_stamp () - start;
     btor_msg (btor, 1, "  simplified in %.2f seconds", delta);
     btor->time.br_probing += delta;
+    btor_delete_btor (bclone);
     return res;
   }
   // TODO: make this 10 an option
@@ -9990,6 +9993,7 @@ br_probe (Btor *btor)
     btor_msg (btor, 1, "  limit refinement iterations to 10");
     // TODO: this 10 also
     res = btor_limited_sat_aux_btor (bclone, 10, 55000);
+    btor_delete_btor (bclone);
   }
 
   if (res != BTOR_UNKNOWN)
@@ -10004,7 +10008,6 @@ br_probe (Btor *btor)
     return res;
   }
 
-  btor_delete_btor (bclone);
   delta = btor_time_stamp () - start;
   btor_msg (btor, 1, "  probing did not succeed (%.2f seconds)", delta);
   btor->time.br_probing += delta;

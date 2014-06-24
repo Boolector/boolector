@@ -15,9 +15,12 @@
 #include <stdio.h>
 
 #define NODE_FMT " e%d"
+#define SORT_FMT " s%d"
 
 #define BTOR_TRAPI_NODE_ID(exp) \
   (BTOR_IS_INVERTED_NODE (exp) ? -BTOR_REAL_ADDR_NODE (exp)->id : exp->id)
+
+#define BTOR_TRAPI_SORT_ID(sort) (sort)->id
 
 #define BTOR_TRAPI(msg, args...)    \
   do                                \
@@ -65,6 +68,12 @@
   do                               \
   {                                \
     BTOR_TRAPI ("return %s", res); \
+  } while (0)
+
+#define BTOR_TRAPI_RETURN_SORT(sort)                            \
+  do                                                            \
+  {                                                             \
+    BTOR_TRAPI ("return " SORT_FMT, BTOR_TRAPI_SORT_ID (sort)); \
   } while (0)
 
 static void

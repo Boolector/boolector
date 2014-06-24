@@ -2465,13 +2465,29 @@ boolector_uf (Btor *btor, BoolectorSort *sort, const char *symbol)
 {
   BTOR_ABORT_ARG_NULL_BOOLECTOR (btor);
   BTOR_ABORT_ARG_NULL_BOOLECTOR (sort);
+
+  char *symb;
+  BtorNode *res;
+
+  symb = (char *) symbol;
+  if (!symb)
+  {
+    BTOR_NEWN (btor->mm, symb, 20);
+    sprintf (symb, "DFN%d", btor->dvn_id++);
+  }
+
+  BTOR_TRAPI (
+      "uf" SORT_FMT " %s", BTOR_TRAPI_SORT_ID ((BtorSort *) sort), symbol);
+
+  if (!symbol) BTOR_DELETEN (btor->mm, symb, 20);
+
   BTOR_ABORT_BOOLECTOR (((BtorSort *) sort)->kind != BTOR_FUN_SORT,
                         "given UF sort is not BTOR_FUN_SORT");
-  BtorNode *res;
 
   res = btor_uf_exp (btor, (BtorSort *) sort, symbol);
   res->ext_refs++;
   btor->external_refs++;
+  BTOR_TRAPI_RETURN_NODE (res);
   return (BoolectorNode *) res;
 }
 
@@ -2479,11 +2495,13 @@ BoolectorSort *
 boolector_bitvec_sort (Btor *btor, int len)
 {
   BTOR_ABORT_ARG_NULL_BOOLECTOR (btor);
+  BTOR_TRAPI ("bitvec_sort %d", len);
   BTOR_ABORT_BOOLECTOR (len <= 0, "'len' must be > 0");
 
   BtorSort *res;
   res = btor_bitvec_sort (&btor->sorts_unique_table, len);
   res->ext_refs++;
+  BTOR_TRAPI_RETURN_SORT (res);
   return (BoolectorSort *) res;
 }
 
@@ -2494,10 +2512,25 @@ boolector_tuple_sort (Btor *btor, BoolectorSort **elements, int num_elements)
   BTOR_ABORT_ARG_NULL_BOOLECTOR (elements);
   BTOR_ABORT_BOOLECTOR (num_elements <= 1, "'num_elements' must be > 1");
 
+  int i, len;
+  char *strtrapi;
   BtorSort *res;
+
+  len = 11 + 10 + num_elements * 20;
+  BTOR_NEWN (btor->mm, strtrapi, len);
+  sprintf (strtrapi, "tuple_sort %d", num_elements);
+
+  for (i = 0; i < num_elements; i++)
+    sprintf (strtrapi + strlen (strtrapi),
+             SORT_FMT,
+             BTOR_TRAPI_SORT_ID ((BtorSort *) elements[i]));
+  BTOR_TRAPI (strtrapi);
+  BTOR_DELETEN (btor->mm, strtrapi, len);
+
   res = btor_tuple_sort (
       &btor->sorts_unique_table, (BtorSort **) elements, num_elements);
   res->ext_refs++;
+  BTOR_TRAPI_RETURN_SORT (res);
   return (BoolectorSort *) res;
 }
 
@@ -2507,12 +2540,16 @@ boolector_fun_sort (Btor *btor, BoolectorSort *domain, BoolectorSort *codomain)
   BTOR_ABORT_ARG_NULL_BOOLECTOR (btor);
   BTOR_ABORT_ARG_NULL_BOOLECTOR (domain);
   BTOR_ABORT_ARG_NULL_BOOLECTOR (codomain);
+  BTOR_TRAPI ("fun_sort " SORT_FMT SORT_FMT,
+              BTOR_TRAPI_SORT_ID ((BtorSort *) domain),
+              BTOR_TRAPI_SORT_ID ((BtorSort *) codomain));
 
   BtorSort *res;
 
   res = btor_fun_sort (
       &btor->sorts_unique_table, (BtorSort *) domain, (BtorSort *) codomain);
   res->ext_refs++;
+  BTOR_TRAPI_RETURN_SORT (res);
   return (BoolectorSort *) res;
 }
 
@@ -2521,6 +2558,7 @@ boolector_release_sort (Btor *btor, BoolectorSort *sort)
 {
   BTOR_ABORT_ARG_NULL_BOOLECTOR (btor);
   BTOR_ABORT_ARG_NULL_BOOLECTOR (sort);
+  BTOR_TRAPI ("release_sort" SORT_FMT, BTOR_TRAPI_SORT_ID ((BtorSort *) sort));
 
   BtorSort *s = (BtorSort *) sort;
   assert (s->ext_refs > 0);
