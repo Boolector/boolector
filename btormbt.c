@@ -2690,41 +2690,11 @@ _del (BtorMBT *btormbt, unsigned r)
   RELEASE_EXP_STACK (fun);
   RELEASE_EXP_STACK (uf);
   RELEASE_EXP_STACK (cnf);
-#if 0
-  for (i = 0; i < btormbt->bo.n; i++)
-    boolector_release (btormbt->btor, btormbt->bo.exps[i].exp);
-  es_release (&btormbt->bo);
-  for (i = 0; i < btormbt->bv.n; i++)
-    boolector_release (btormbt->btor, btormbt->bv.exps[i].exp);
-  es_release (&btormbt->bv);
-  for (i = 0; i < btormbt->arr.n; i++)
-    boolector_release (btormbt->btor, btormbt->arr.exps[i].exp);
-  es_release (&btormbt->arr);
-  for (i = 0; i < btormbt->fun.n; i++)
-    boolector_release (btormbt->btor, btormbt->fun.exps[i].exp);
-  es_release (&btormbt->fun);
-  for (i = 0; i < btormbt->uf.n; i++)
-    boolector_release (btormbt->btor, btormbt->uf.exps[i].exp);
-  es_release (&btormbt->uf);
-  for (i = 0; i < btormbt->cnf.n; i++)
-    boolector_release (btormbt->btor, btormbt->cnf.exps[i].exp);
-  es_release (&btormbt->cnf);
-#endif
   es_release (&btormbt->assumptions);
+
   RELEASE_SORT_STACK (bv_sorts);
   RELEASE_SORT_STACK (tuple_sorts);
   RELEASE_SORT_STACK (fun_sorts);
-#if 0
-  for (i = 0; i < btormbt->bv_sorts.n; i++)
-    boolector_release_sort (btormbt->btor, btormbt->bv_sorts.sorts[i].sort);
-  ss_release (&btormbt->bv_sorts);
-  for (i = 0; i < btormbt->tuple_sorts.n; i++)
-    boolector_release_sort (btormbt->btor, btormbt->tuple_sorts.sorts[i].sort);
-  ss_release (&btormbt->tuple_sorts);
-  for (i = 0; i < btormbt->fun_sorts.n; i++)
-    boolector_release_sort (btormbt->btor, btormbt->fun_sorts.sorts[i].sort);
-  ss_release (&btormbt->fun_sorts);
-#endif
 
   assert (btormbt->parambo == NULL);
   assert (btormbt->parambv == NULL);
