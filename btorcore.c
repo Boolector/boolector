@@ -1414,8 +1414,13 @@ btor_delete_btor (Btor *btor)
     {
       sort = BTOR_PEEK_STACK (sorts, i);
       assert (sort->ext_refs <= sort->refs);
-      sort->refs -= sort->ext_refs;
-      assert (sort->refs > 0);
+      if (sort->ext_refs == sort->refs)
+        sort->refs = 1;
+      else
+      {
+        sort->refs -= sort->ext_refs;
+        assert (sort->refs > 0);
+      }
       sort->ext_refs = 0;
       btor_release_sort (&btor->sorts_unique_table, sort);
     }
