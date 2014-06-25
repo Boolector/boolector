@@ -44,7 +44,7 @@ main (int argc, char **argv)
     return 1;
   }
   btor = boolector_new ();
-  boolector_set_rewrite_level (btor, 0);
+  boolector_set_opt_rewrite_level (btor, 0);
   var       = boolector_var (btor, num_bits, "var");
   var_shift = boolector_copy (btor, var);
   zero      = boolector_zero (btor, num_bits);

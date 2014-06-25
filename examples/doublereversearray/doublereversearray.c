@@ -144,7 +144,7 @@ main (int argc, char **argv)
   }
 
   btor = boolector_new ();
-  boolector_set_rewrite_level (btor, 0);
+  boolector_set_opt_rewrite_level (btor, 0);
 
   orig_mem = boolector_array (btor, 8, 32, "mem");
   mem1     = boolector_copy (btor, orig_mem);

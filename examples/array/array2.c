@@ -21,7 +21,7 @@ main (void)
   int result, size, i;
 
   btor = boolector_new ();
-  boolector_enable_model_gen (btor);
+  boolector_set_opt_model_gen (btor, 1);
 
   zero   = boolector_zero (btor, ARRAY2_EXAMPLE_INDEX_BW);
   one    = boolector_one (btor, ARRAY2_EXAMPLE_INDEX_BW);

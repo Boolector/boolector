@@ -37,7 +37,7 @@ main (int argc, char **argv)
   /* binary search needs log2(size(array)) + 1 iterations in the worst case */
   num_iterations = num_bits_index + 1;
   btor           = boolector_new ();
-  boolector_set_rewrite_level (btor, 0);
+  boolector_set_opt_rewrite_level (btor, 0);
   indices = (BtorNode **) malloc (sizeof (BtorNode *) * num_elements);
   for (i = 0; i < num_elements; i++)
     indices[i] = boolector_int (btor, i, num_bits_index);

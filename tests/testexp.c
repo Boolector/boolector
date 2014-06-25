@@ -1,6 +1,6 @@
 /*  Boolector: Satisfiablity Modulo Theories (SMT) solver.
- *  Copyright (C) 2007-2012 Robert Daniel Brummayer, Armin Biere
- *  Copyright (C) 2012 Aina Niemetz
+ *  Copyright (C) 2007-2012 Robert Daniel Brummayer, Armin Biere.
+ *  Copyright (C) 2012, 2014 Aina Niemetz.
  *
  *  This file is part of Boolector.
  *
@@ -41,7 +41,7 @@ void
 init_exp_test (void)
 {
   g_btor = btor_new_btor ();
-  if (g_rwreads) btor_enable_beta_reduce_all (g_btor);
+  if (g_rwreads) btor_set_opt_beta_reduce_all (g_btor, 1);
 }
 
 void

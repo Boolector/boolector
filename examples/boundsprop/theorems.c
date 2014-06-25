@@ -52,7 +52,7 @@ main (int argc, char **argv)
     return 1;
   }
   btor = boolector_new ();
-  boolector_set_rewrite_level (btor, 0);
+  boolector_set_opt_rewrite_level (btor, 0);
 
   one               = boolector_one (btor, 1);
   zero_num_bits_m_1 = boolector_zero (btor, num_bits - 1);

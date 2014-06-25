@@ -339,128 +339,86 @@ NEXT:
   {
     PARSE_ARGS0 (tok);
     btor = boolector_new ();
-    if (btorunt->blog_level) boolector_set_loglevel (btor, btorunt->blog_level);
-    if (btorunt->dual_prop) boolector_enable_dual_prop (btor);
-    if (btorunt->just) boolector_enable_justification (btor);
+    if (btorunt->blog_level)
+      boolector_set_opt_loglevel (btor, btorunt->blog_level);
+    if (btorunt->dual_prop) boolector_set_opt_dual_prop (btor, 1);
+    if (btorunt->just) boolector_set_opt_justification (btor, 1);
   }
   else if (!strcmp (tok, "clone"))
   {
     /* do nothing, all clone checking via shadow clone */
   }
-  else if (!strcmp (tok, "set_rewrite_level"))
+  else if (!strcmp (tok, "set_opt_rewrite_level"))
   {
     PARSE_ARGS1 (tok, int);
-    boolector_set_rewrite_level (btor, arg1_int);
+    boolector_set_opt_rewrite_level (btor, arg1_int);
   }
-  else if (!strcmp (tok, "set_rewrite_level_pbr"))
+  else if (!strcmp (tok, "set_opt_rewrite_level_pbr"))
   {
     PARSE_ARGS1 (tok, int);
-    boolector_set_rewrite_level_pbr (btor, arg1_int);
+    boolector_set_opt_rewrite_level_pbr (btor, arg1_int);
   }
-  else if (!strcmp (tok, "enable_model_gen"))
+  else if (!strcmp (tok, "set_opt_model_gen"))
   {
-    PARSE_ARGS0 (tok);
-    boolector_enable_model_gen (btor);
+    PARSE_ARGS1 (tok, int);
+    boolector_set_opt_model_gen (btor, arg1_int);
   }
-  else if (!strcmp (tok, "disable_model_gen"))
+  else if (!strcmp (tok, "set_opt_generate_model_for_all_reads"))
   {
-    PARSE_ARGS0 (tok);
-    boolector_disable_model_gen (btor);
+    PARSE_ARGS1 (tok, int);
+    boolector_set_opt_generate_model_for_all_reads (btor, arg1_int);
   }
-  else if (!strcmp (tok, "enable_generate_model_for_all_reads"))
+  else if (!strcmp (tok, "set_opt_pretty_print"))
   {
-    PARSE_ARGS0 (tok);
-    boolector_enable_generate_model_for_all_reads (btor);
+    PARSE_ARGS1 (tok, int);
+    boolector_set_opt_pretty_print (btor, arg1_int);
   }
-  else if (!strcmp (tok, "disable_generate_model_for_all_reads"))
+  else if (!strcmp (tok, "set_opt_inc_usage"))
   {
-    PARSE_ARGS0 (tok);
-    boolector_disable_generate_model_for_all_reads (btor);
+    PARSE_ARGS1 (tok, int);
+    boolector_set_opt_inc_usage (btor, arg1_int);
   }
-  else if (!strcmp (tok, "disable_pretty_print"))
+  else if (!strcmp (tok, "set_opt_beta_reduce_all"))
   {
-    PARSE_ARGS0 (tok);
-    boolector_disable_pretty_print (btor);
+    PARSE_ARGS1 (tok, int);
+    boolector_set_opt_beta_reduce_all (btor, arg1_int);
   }
-  else if (!strcmp (tok, "enable_inc_usage"))
+  else if (!strcmp (tok, "set_opt_dual_prop"))
   {
-    PARSE_ARGS0 (tok);
-    boolector_enable_inc_usage (btor);
+    PARSE_ARGS1 (tok, int);
+    boolector_set_opt_dual_prop (btor, arg1_int);
   }
-// TODO FIXME
-#if 0
-  else if (!strcmp (tok, "disable_inc_usage"))
-    {
-      PARSE_ARGS0 (tok);
-      boolector_disable_inc_usage (btor);
-    }
-#endif
-  else if (!strcmp (tok, "enable_beta_reduce_all"))
+  else if (!strcmp (tok, "set_opt_just"))
   {
-    PARSE_ARGS0 (tok);
-    boolector_enable_beta_reduce_all (btor);
-  }
-  else if (!strcmp (tok, "disable_beta_reduce_all"))
-  {
-    PARSE_ARGS0 (tok);
-    boolector_disable_beta_reduce_all (btor);
-  }
-  else if (!strcmp (tok, "enable_dual_prop"))
-  {
-    PARSE_ARGS0 (tok);
-    boolector_enable_dual_prop (btor);
-  }
-  else if (!strcmp (tok, "disable_dual_prop"))
-  {
-    PARSE_ARGS0 (tok);
-    boolector_disable_dual_prop (btor);
-  }
-  else if (!strcmp (tok, "enable_just"))
-  {
-    PARSE_ARGS0 (tok);
-    boolector_enable_justification (btor);
-  }
-  else if (!strcmp (tok, "disable_just"))
-  {
-    PARSE_ARGS0 (tok);
-    boolector_disable_justification (btor);
+    PARSE_ARGS1 (tok, int);
+    boolector_set_opt_justification (btor, arg1_int);
   }
 #ifndef BTOR_DO_NOT_OPTIMIZE_UNCONSTRAINED
-  else if (!strcmp (tok, "disable_ucopt"))
+  else if (!strcmp (tok, "set_opt_ucopt"))
   {
-    PARSE_ARGS0 (tok);
-    boolector_disable_ucopt (btor);
+    PARSE_ARGS1 (tok, int);
+    boolector_set_opt_ucopt (btor, arg1_int);
   }
 #endif
-  else if (!strcmp (tok, "enable_force_cleanup"))
-  {
-    PARSE_ARGS0 (tok);
-    boolector_enable_force_cleanup (btor);
-  }
-  else if (!strcmp (tok, "disable_force_cleanup"))
-  {
-    PARSE_ARGS0 (tok);
-    boolector_disable_force_cleanup (btor);
-  }
-  else if (!strcmp (tok, "enable_pretty_print"))
-  {
-    PARSE_ARGS0 (tok);
-    boolector_enable_pretty_print (btor);
-  }
-  else if (!strcmp (tok, "disable_pretty_print"))
-  {
-    PARSE_ARGS0 (tok);
-    boolector_disable_pretty_print (btor);
-  }
-  else if (!strcmp (tok, "set_verbosity"))
+  else if (!strcmp (tok, "set_opt_force_cleanup"))
   {
     PARSE_ARGS1 (tok, int);
-    boolector_set_verbosity (btor, arg1_int);
+    boolector_set_opt_force_cleanup (btor, arg1_int);
   }
-  else if (!strcmp (tok, "set_loglevel"))
+  else if (!strcmp (tok, "set_opt_pretty_print"))
   {
     PARSE_ARGS1 (tok, int);
-    boolector_set_loglevel (btor, arg1_int);
+    boolector_set_opt_pretty_print (btor, arg1_int);
+  }
+  else if (!strcmp (tok, "set_opt_verbosity"))
+  {
+    PARSE_ARGS1 (tok, int);
+    boolector_set_opt_verbosity (btor, arg1_int);
+  }
+  else if (!strcmp (tok, "set_opt_loglevel"))
+  {
+    PARSE_ARGS1 (tok, int);
+    boolector_set_opt_loglevel (btor, arg1_int);
   }
   else if (!strcmp (tok, "set_sat_solver"))
   {

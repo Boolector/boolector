@@ -253,10 +253,10 @@ main (int argc, char **argv)
   error = 0;
 
   btor = boolector_new ();
-  boolector_enable_model_gen (btor);
+  boolector_set_opt_model_gen (btor, 1);
   mm = btor->mm;
 
-  if (dump_formula) boolector_set_rewrite_level (btor, 0);
+  if (dump_formula) boolector_set_opt_rewrite_level (btor, 0);
 
   indices = (BtorNode **) malloc (sizeof (BtorNode *) * SUDOKU_NUM_FIELDS);
   for (i = 0; i < SUDOKU_NUM_FIELDS; i++)

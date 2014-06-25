@@ -83,7 +83,7 @@ main (int argc, char **argv)
   num_elements   = size * size;
   num_bits_index = btor_log_2_util (btor_next_power_of_2_util (num_elements));
   btor           = boolector_new ();
-  boolector_set_rewrite_level (btor, 0);
+  boolector_set_opt_rewrite_level (btor, 0);
   indices = (BtorNode **) malloc (sizeof (BtorNode *) * num_elements);
   for (i = 0; i < num_elements; i++)
     indices[i] = boolector_int (btor, i, num_bits_index);

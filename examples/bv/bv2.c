@@ -22,7 +22,7 @@ main (void)
   int result, i;
 
   btor = boolector_new ();
-  boolector_enable_model_gen (btor);
+  boolector_set_opt_model_gen (btor, 1);
 
   v1   = boolector_var (btor, BV2_EXAMPLE_NUM_BITS, NULL);
   v2   = boolector_var (btor, BV2_EXAMPLE_NUM_BITS, NULL);

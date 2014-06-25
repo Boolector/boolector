@@ -1,7 +1,7 @@
 /*  Boolector: Satisfiablity Modulo Theories (SMT) solver.
  *
  *  Copyright (C) 2013 Armin Biere.
- *  Copyright (C) 2013 Aina Niemetz.
+ *  Copyright (C) 2013-2014 Aina Niemetz.
  *
  *  All rights reserved.
  *
@@ -123,7 +123,7 @@ boolector_set_verbosity_mc (BtorMC *mc, int verbosity)
 {
   BTOR_ABORT_ARG_NULL_BOOLECTOR (mc);
   mc->verbosity = verbosity;
-  btor_set_verbosity_btor (mc->btor, verbosity);
+  btor_set_opt_verbosity_btor (mc->btor, verbosity);
 }
 
 void
@@ -741,9 +741,9 @@ initialize_new_forward_frame (BtorMC *mc)
   {
     btor_msg_mc (mc, 1, "new forward manager");
     mc->forward = btor_new_btor ();
-    btor_enable_inc_usage (mc->forward);
-    if (mc->trace_enabled) btor_enable_model_gen (mc->forward);
-    if (mc->verbosity) btor_set_verbosity_btor (mc->forward, mc->verbosity);
+    btor_set_opt_inc_usage (mc->forward, 1);
+    if (mc->trace_enabled) btor_set_opt_model_gen (mc->forward, 1);
+    if (mc->verbosity) btor_set_opt_verbosity_btor (mc->forward, mc->verbosity);
   }
 
   initialize_inputs_of_frame (mc, f);

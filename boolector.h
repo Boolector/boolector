@@ -174,76 +174,6 @@ Btor *boolector_clone (Btor *btor);
 Btor *boolector_btor (BoolectorNode *node);
 
 /**
- * Enables model generation. If you want Boolector to produce
- * a model in the satisfiable case, call this function
- * after \ref boolector_new.
- * \param btor Boolector instance.
- * \see boolector_sat
- */
-void boolector_enable_model_gen (Btor *btor);
-
-/**
- * Disable model generation.
- * \param btor Boolector instance.
- */
-void boolector_disable_model_gen (Btor *btor);
-
-/**
- * By default Boolector only generates assignments for reads
- * in the cone of assertions.  If you require models for all
- * 'reads' you can use this function to force Boolector to
- * synthesize all reads during the next model generation.
- * \param btor Boolector instance.
- */
-void boolector_enable_generate_model_for_all_reads (Btor *btor);
-
-/**
- * By default Boolector only generates assignments for reads
- * in the cone of assertions.  If you require models for all
- * 'reads' you can use this function to force Boolector to
- * synthesize all reads during the next model generation.
- * (Note: This function is deprecated,
- * use boolector_enable_generate_model_for_all_reads instead!)
- * \param btor Boolector instance.
- */
-void boolector_generate_model_for_all_reads (Btor *btor);
-
-/**
- * Disable moel generation for all 'reads'.
- * \param btor Boolector instance.
- */
-void boolector_disable_generate_model_for_all_reads (Btor *btor);
-
-/**
- * Enables incremental usage of Boolector. This allows to add assumptions
- * by \ref boolector_assume and to call \ref boolector_sat multiple times.
- * Note that this mode turns off some optimization techniques that cannot
- * be applied anymore.
- * \param btor Boolector instance.
- */
-void boolector_enable_inc_usage (Btor *btor);
-
-/**
- * Disable incremental usage.
- * \param btor Boolector instance.
- */
-void boolector_disable_inc_usage (Btor *btor);
-
-/**
- * Set level of verbosity.
- * \param btor Boolector instance.
- * \param verbosity Verbosity level.
- */
-void boolector_set_verbosity (Btor *btor, int verbosity);
-
-/**
- * Set log level.
- * \param btor Boolector instance.
- * \param loglevel Log level level.
- */
-void boolector_set_loglevel (Btor *btor, int loglevel);
-
-/**
  * Sets the SAT solver to use.
  * Currently, we support 'Lingeling', 'PicoSAT', and 'MiniSAT' as string
  * value of \para solver ignoring the case of characters.  This is however
@@ -252,35 +182,6 @@ void boolector_set_loglevel (Btor *btor, int loglevel);
  * successful.  Call this function after \ref boolector_new.
  */
 int boolector_set_sat_solver (Btor *btor, const char *solver);
-
-/**
- * Sets the rewrite level of the rewriting engine.
- * Boolector uses rewrite level 3 per default. Call this function
- * before creating any expressions.
- * \param btor Boolector instance.
- * \param rewrite_level Rewrite level ranging from
- * 0 (no rewriting) to 3 (full rewriting).
- */
-void boolector_set_rewrite_level (Btor *btor, int rewrite_level);
-
-/**
- * Sets the rewrite level for partial beta reduction.
- * Boolector uses rewrite level 1 per default.
- * \param btor Boolector instance.
- * \param rewrite_level Rewrite level ranging from
- * 0 (no rewriting) to 3 (full rewriting).
- */
-void boolector_set_rewrite_level_pbr (Btor *btor, int rewrite_level);
-
-/* Reset time statistics.
- * \param btor Boolector instance.
- */
-void boolector_reset_time (Btor *btor);
-
-/* Reset statistics (time statistics not included).
- * \param btor Boolector instance.
- */
-void boolector_reset_stats (Btor *btor);
 
 /**
  * Returns the number of external references to the boolector library.
@@ -304,29 +205,156 @@ void boolector_delete (Btor *btor);
 
 int boolector_simplify (Btor *btor);
 
-void boolector_disable_pretty_print (Btor *btor);
+/*------------------------------------------------------------------------*/
 
-void boolector_enable_dual_prop (Btor *btor);
-void boolector_disable_dual_prop (Btor *btor);
+/**
+ * Enable/disable model generation.
+ * If you want Boolector to produce a model in the satisfiable case,
+ * enable model generation via this function after \ref boolector_new.
+ * \param btor Boolector instance.
+ * \param val 0 to disable, 1 to enable.
+ * \see boolector_sat
+ */
+void boolector_set_opt_model_gen (Btor *btor, int val);
 
-void boolector_enable_justification (Btor *btor);
-void boolector_disable_justification (Btor *btor);
+/**
+ * Enable model generation.
+ * (Note: this function is deprecated,
+ * use boolector_set_opt_model_gen instead!)
+ * \param btor Boolector instance.
+ * \see boolector_set_model_gen
+ */
+void boolector_enable_model_gen (Btor *btor);
 
-void boolector_enable_beta_reduce_all (Btor *btor);
-void boolector_disable_beta_reduce_all (Btor *btor);
+/**
+ * By default Boolector only generates assignments for reads
+ * in the cone of assertions.  If you require models for all
+ * 'reads' you can use this function to force Boolector to
+ * synthesize all reads during the next model generation.
+ * \param btor Boolector instance.
+ * \param val 0 to disable, 1 to enable
+ */
+void boolector_set_opt_generate_model_for_all_reads (Btor *btor, int val);
 
-void boolector_enable_ucopt (Btor *btor);
-void boolector_disable_ucopt (Btor *btor);
+/**
+ * Enable model generation for all reads.
+ * (Note: this function is deprecated,
+ * use boolector_set_opt_generate_model_for_all_reads instead!)
+ * \param btor Boolector instance.
+ * \see boolector_set_opt_generate_model_for_all_reads
+ */
+void boolector_generate_model_for_all_reads (Btor *btor);
 
-void boolector_enable_pretty_print (Btor *btor);
-void boolector_disable_pretty_print (Btor *btor);
+// TODO FIXME disable incremental usage
+/**
+ * Enable/disable incremental usage of Boolector. This allows to add assumptions
+ * by \ref boolector_assume and to call \ref boolector_sat multiple times.
+ * Note that enabling incremental usage turns off some optimization techniques.
+ * Note that disabling incremental usage is currently not supported.
+ * \param btor Boolector instance.
+ * \param val 0 to disable, 1 to enable
+ */
+void boolector_set_opt_inc_usage (Btor *btor, int val);
 
-/* Enables forced automatic cleanup of expressions and assignment string on
- * \ref boolector_delete.
+/**
+ * Enable incremental usage.
+ * (Note: this function is deprecated,
+ * use boolector_set_opt_inc_usage instead!)
+ * \param btor Boolector instance.
+ * \see boolector_set_opt_inc_usage
+ */
+void boolector_enable_inc_usage (Btor *btor);
+
+void boolector_set_opt_dual_prop (Btor *btor, int val);
+
+void boolector_set_opt_justification (Btor *btor, int val);
+
+void boolector_set_opt_ucopt (Btor *btor, int val);
+
+void boolector_set_opt_beta_reduce_all (Btor *btor, int val);
+
+void boolector_set_opt_pretty_print (Btor *btor, int val);
+
+/* Enable/disable forced automatic cleanup of expressions and assignment
+ * string on \ref boolector_delete.
  * \param btor Boolector instance.
  */
-void boolector_enable_force_cleanup (Btor *btor);
-void boolector_disable_force_cleanup (Btor *btor);
+void boolector_set_opt_force_cleanup (Btor *btor, int val);
+
+/**
+ * Set the rewrite level of the rewriting engine.
+ * Boolector uses rewrite level 3 per default. Call this function
+ * before creating any expressions.
+ * \param btor Boolector instance.
+ * \param rewrite_level Rewrite level ranging from
+ * 0 (no rewriting) to 3 (full rewriting).
+ */
+void boolector_set_opt_rewrite_level (Btor *btor, int val);
+/**
+ * Set the rewrite level of the rewriting engine.
+ * (Note: this function is deprecated,
+ * use boolector_set_opt_rewrite_level instead.)
+ * \param btor Boolector instance.
+ * \param val Rewrite level ranging from
+ * 0 (no rewriting) to 3 (full rewriting).
+ * \see boolector_set_opt_rewrite_level
+ */
+void boolector_set_rewrite_level (Btor *btor, int val);
+
+/**
+ * Set the rewrite level for partial beta reduction.
+ * Boolector uses rewrite level 1 per default.
+ * \param btor Boolector instance.
+ * \param rewrite_level Rewrite level ranging from
+ * 0 (no rewriting) to 3 (full rewriting).
+ */
+void boolector_set_opt_rewrite_level_pbr (Btor *btor, int val);
+
+/**
+ * Set level of verbosity.
+ * \param btor Boolector instance.
+ * \param val Verbosity level.
+ */
+void boolector_set_opt_verbosity (Btor *btor, int val);
+
+/**
+ * Set level of verbosity.
+ * (Note: this function is deprecated,
+ * use boolector_set_opt_verbosity instead.)
+ * \param btor Boolector instance.
+ * \param val Verbosity level.
+ * \see boolector_set_opt_verbosity
+ */
+void boolector_set_verbosity (Btor *btor, int val);
+
+/**
+ * Set log level.
+ * \param btor Boolector instance.
+ * \param val Log level.
+ */
+void boolector_set_opt_loglevel (Btor *btor, int val);
+
+/**
+ * Set log level.
+ * (Note: this function is deprecated,
+ * use boolector_set_opt_loglevel instead.)
+ * \param btor Boolector instance.
+ * \param val Log level.
+ * \see boolector_set_opt_loglevel
+ */
+void boolector_set_loglevel (Btor *btor, int val);
+
+/*------------------------------------------------------------------------*/
+
+/* Reset time statistics.
+ * \param btor Boolector instance.
+ */
+void boolector_reset_time (Btor *btor);
+
+/* Reset statistics (time statistics not included).
+ * \param btor Boolector instance.
+ */
+void boolector_reset_stats (Btor *btor);
 
 /*------------------------------------------------------------------------*/
 
