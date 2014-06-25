@@ -2522,7 +2522,8 @@ _dump (BtorMBT *btormbt, unsigned r)
   rng = initrng (r);
 
   rand = pick (&rng, 0, 2);
-  if (rand == 0)
+  // TODO: UF support in BTOR format not yet implemented
+  if (rand == 0 && !btormbt->uf.n)
     boolector_dump_btor (btormbt->btor, stdout);
   else if (rand == 1)
     boolector_dump_smt1 (btormbt->btor, stdout);
