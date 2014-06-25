@@ -2254,12 +2254,13 @@ _init (BtorMBT *btormbt, unsigned r)
       pick (&rng, btormbt->g_min_add_bitvecops, btormbt->g_max_add_bitvecops),
       pick (&rng, btormbt->g_min_add_inputs, btormbt->g_max_add_inputs));
 
-  BTORMBT_LOG (1,
-               "main: pick %d ops (add:rel=%0.1f%%:%0.1f%%)",
-               btormbt->max_ops,
-               btormbt->p_add / 10,
-               btormbt->p_release / 10);
-  BTORMBT_LOG (1, "      make ~%d asserts/assumes", btormbt->max_ass);
+  BTORMBT_LOG (
+      1,
+      "main: pick %d ops (add:rel=%0.1f%%:%0.1f%%), ~%d asserts/assumes",
+      btormbt->max_ops,
+      btormbt->p_add / 10,
+      btormbt->p_release / 10,
+      btormbt->max_ass);
 
   btormbt->is_init = 1;
   return _main;
@@ -2295,7 +2296,7 @@ _main (BtorMBT *btormbt, unsigned r)
 
   BTORMBT_LOG_STATUS (1, "main");
   BTORMBT_LOG (1,
-               "after main: asserts %d, assumes %d",
+               "main: asserts %d, assumes %d",
                btormbt->tot_asserts,
                btormbt->assumes);
 
@@ -2647,11 +2648,12 @@ _inc (BtorMBT *btormbt, unsigned r)
               btormbt->g_min_add_inputs_inc,
               btormbt->g_max_add_inputs_inc));
     BTORMBT_LOG (1,
-                 "inc: pick %d ops(add:rel=%0.1f%%:%0.1f%%)",
+                 "inc: pick %d ops (add:rel=%0.1f%%:%0.1f%%)",
                  btormbt->max_ops,
                  btormbt->p_add / 10,
                  btormbt->p_release / 10);
-    BTORMBT_LOG (btormbt->inc, "number of increments: %d", btormbt->inc - 1);
+    if (btormbt->inc)
+      BTORMBT_LOG (1, "number of increments: %d", btormbt->inc - 1);
 
     return _main;
   }
@@ -2778,9 +2780,7 @@ run (BtorMBT *btormbt)
     if (btormbt->time_limit)
     {
       set_alarm ();
-      BTORMBT_LOG (btormbt->verbose,
-                   "set time limit to %d second(s)",
-                   btormbt->time_limit);
+      BTORMBT_LOG (1, "set time limit to %d second(s)", btormbt->time_limit);
     }
 
     /* redirect output from child to /dev/null if we don't want to have
