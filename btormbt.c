@@ -43,7 +43,7 @@
 #define MIN_NPARAMS 1 /* must be >= 1 */
 #define MAX_NPARAMS 5
 #define MAX_NPARAMOPS 5
-#define MAX_NNESTEDBFUNS 50
+#define MAX_NNESTEDBFUNS 10
 
 #define MIN_NLITS 3
 #define MAX_NLITS 30
@@ -321,16 +321,26 @@
 
 /*------------------------------------------------------------------------*/
 
-#define BTORMBT_LOG(c, fmt, args...) \
+#define BTORMBT_LOG(l, fmt, args...) \
   do                                 \
   {                                  \
-    if ((c) && btormbt->verbose)     \
+    if (l <= btormbt->verbose)       \
     {                                \
       printf ("[btormbt] ");         \
       printf (fmt, ##args);          \
       printf ("\n");                 \
     }                                \
   } while (0)
+
+#define BTORMBT_LOG_STATUS(l, prefix)                                   \
+  BTORMBT_LOG (l,                                                       \
+               prefix " (%d): bool %d, bv %d, array %d, fun %d, uf %d", \
+               btormbt->ops,                                            \
+               btormbt->bo.n,                                           \
+               btormbt->bv.n,                                           \
+               btormbt->arr.n,                                          \
+               btormbt->fun.n,                                          \
+               btormbt->uf.n);
 
 /*------------------------------------------------------------------------*/
 
@@ -643,7 +653,6 @@ typedef struct BtorMBT
   SortStack bv_sorts, tuple_sorts, fun_sorts;
 
   RNG rng;
-
 } BtorMBT;
 
 typedef void *(*State) (BtorMBT *, unsigned rand);
@@ -1793,9 +1802,9 @@ bitvec_fun (BtorMBT *btormbt, unsigned r, int *nparams, int *width, int nlevel)
     /* generate parameterized expressions */
     max_ops = pick (&rng, 0, MAX_NPARAMOPS);
     n       = 0;
+  BFUN_PICK_FUN_TYPE:
     while (n++ < max_ops)
     {
-    BFUN_PICK_FUN_TYPE:
       assert (parambo.n);
       assert (parambv.n);
       assert (paramarr.n);
@@ -2092,7 +2101,7 @@ _new (BtorMBT *btormbt, unsigned r)
             btormbt->g_max_add_inputs_init));
 
   BTORMBT_LOG (1,
-               "init: pick %d ops (add:rel=%0.1f%%:%0.1f%%), %d inputs",
+               "new: pick %d ops (add:rel=%0.1f%%:%0.1f%%), %d inputs",
                btormbt->max_ops,
                btormbt->p_add / 10,
                btormbt->p_release / 10,
@@ -2201,6 +2210,7 @@ _init (BtorMBT *btormbt, unsigned r)
   if (btormbt->ops < btormbt->max_ops)
   {
     btormbt->ops++;
+    BTORMBT_LOG_STATUS (2, "init");
     rand = pick (&rng, 0, NORM_VAL - 1);
     if (rand < btormbt->p_add)
       return _add;
@@ -2208,14 +2218,7 @@ _init (BtorMBT *btormbt, unsigned r)
       return _release;
   }
 
-  BTORMBT_LOG (1,
-               "after init: bool %d, bv %d, array %d, fun %d, uf %d",
-               btormbt->bo.n,
-               btormbt->bv.n,
-               btormbt->arr.n,
-               btormbt->fun.n,
-               btormbt->uf.n);
-
+  BTORMBT_LOG_STATUS (1, "init");
   btormbt->bo.initlayer  = btormbt->bo.n;
   btormbt->bv.initlayer  = btormbt->bv.n;
   btormbt->arr.initlayer = btormbt->arr.n;
@@ -2276,6 +2279,7 @@ _main (BtorMBT *btormbt, unsigned r)
   if (btormbt->ops < btormbt->max_ops)
   {
     btormbt->ops++;
+    BTORMBT_LOG_STATUS (2, "main");
     rand = pick (&rng, 0, NORM_VAL - 1);
     if (rand < btormbt->max_ass * NORM_VAL / btormbt->max_ops)
       return _ass;
@@ -2289,13 +2293,7 @@ _main (BtorMBT *btormbt, unsigned r)
     }
   }
 
-  BTORMBT_LOG (1,
-               "after main: bool %d, bv %d, arrays %d, fun %d, uf %d",
-               btormbt->bo.n,
-               btormbt->bv.n,
-               btormbt->arr.n,
-               btormbt->fun.n,
-               btormbt->uf.n);
+  BTORMBT_LOG_STATUS (1, "main");
   BTORMBT_LOG (1,
                "after main: asserts %d, assumes %d",
                btormbt->tot_asserts,
@@ -2315,15 +2313,15 @@ _add (BtorMBT *btormbt, unsigned r)
 
   rand = pick (&rng, 0, NORM_VAL - 1);
 
-  if (rand < btormbt->p_bitvec_fun)
+  if (rand < btormbt->p_bitvec_op)
     next = _bitvec_op;
-  else if (rand < btormbt->p_bitvec_fun + btormbt->p_array_op)
+  else if (rand < btormbt->p_bitvec_op + btormbt->p_array_op)
     next = _array_op;
   else if (rand
-           < btormbt->p_bitvec_fun + btormbt->p_array_op + btormbt->p_bitvec_op)
+           < btormbt->p_bitvec_op + btormbt->p_array_op + btormbt->p_bitvec_fun)
     next = _bitvec_fun;
-  else if (rand < btormbt->p_bitvec_fun + btormbt->p_array_op
-                      + btormbt->p_bitvec_op + btormbt->p_bitvec_uf)
+  else if (rand < btormbt->p_bitvec_op + btormbt->p_array_op
+                      + btormbt->p_bitvec_fun + btormbt->p_bitvec_uf)
     next = _bitvec_uf;
   else
     next = _input;
@@ -2484,8 +2482,8 @@ static void *
 _ass (BtorMBT *btormbt, unsigned r)
 {
   int lower;
-  RNG rng = initrng (r);
   BoolectorNode *node;
+  RNG rng = initrng (r);
 
   /* select from init layer with lower probability */
   lower = btormbt->bo.initlayer && btormbt->bo.n > btormbt->bo.initlayer
@@ -2970,7 +2968,7 @@ main (int argc, char **argv)
       exit (EXIT_OK);
     }
     else if (!strcmp (argv[i], "-v") || !strcmp (argv[i], "--verbose"))
-      btormbt->verbose = 1;
+      btormbt->verbose++;
     else if (!strcmp (argv[i], "-q") || !strcmp (argv[i], "--quiet"))
       btormbt->quiet = 1;
     else if (!strcmp (argv[i], "-k") || !strcmp (argv[i], "--keep-lines"))
