@@ -2409,18 +2409,19 @@ boolector_uf (Btor *btor, BoolectorSort *sort, const char *symbol)
   if (!symb)
   {
     BTOR_NEWN (btor->mm, symb, 20);
-    sprintf (symb, "DFN%d", btor->dvn_id++);
+    sprintf (symb, "DFN%d", btor->dfn_id++);
   }
 
   BTOR_TRAPI (
       "uf" SORT_FMT " %s", BTOR_TRAPI_SORT_ID ((BtorSort *) sort), symb);
 
-  if (!symbol) BTOR_DELETEN (btor->mm, symb, 20);
-
   BTOR_ABORT_BOOLECTOR (((BtorSort *) sort)->kind != BTOR_FUN_SORT,
                         "given UF sort is not BTOR_FUN_SORT");
 
   res = btor_uf_exp (btor, (BtorSort *) sort, symb);
+
+  if (!symbol) BTOR_DELETEN (btor->mm, symb, 20);
+
   res->ext_refs++;
   btor->external_refs++;
   BTOR_TRAPI_RETURN_NODE (res);
