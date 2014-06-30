@@ -5,6 +5,7 @@
  *  Copyright (C) 2013 Aina Niemetz.
  *
  *  All rights reserved.
+ *
  *  This file is part of Boolector.
  *  See COPYING for more information on using this software.
  */

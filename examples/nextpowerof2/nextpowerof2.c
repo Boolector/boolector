@@ -49,7 +49,7 @@ main (int argc, char **argv)
   const_string = (char *) malloc (sizeof (char) * (num_bits + 1));
   const_string[num_bits] = '\0';
   btor                   = boolector_new ();
-  boolector_set_rewrite_level (btor, 0);
+  boolector_set_opt_rewrite_level (btor, 0);
   for (i = 0; i < num_bits; i++) const_string[i] = '0';
   for (i = 0; i < num_bits; i++)
   {

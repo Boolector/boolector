@@ -13,7 +13,7 @@ main ()
   Btor *btor;
 
   btor = boolector_new ();
-  boolector_enable_inc_usage (btor);
+  boolector_set_opt_inc_usage (btor, 1);
 
   array = boolector_array (
       btor, ARRAY3_EXAMPLE_VALUE_BW, ARRAY3_EXAMPLE_INDEX_BW, NULL);

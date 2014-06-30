@@ -1104,29 +1104,29 @@ boolector_main (int argc, char **argv)
 
     static_btor = btor = boolector_new ();
     static_verbosity   = app.verbosity;
-    boolector_set_rewrite_level (btor, app.rewrite_level);
+    boolector_set_opt_rewrite_level (btor, app.rewrite_level);
 
-    if (app.beta_reduce_all) boolector_enable_beta_reduce_all (btor);
+    if (app.beta_reduce_all) boolector_set_opt_beta_reduce_all (btor, 1);
 
-    if (app.dual_prop) boolector_enable_dual_prop (btor);
+    if (app.dual_prop) boolector_set_opt_dual_prop (btor, 1);
 
-    if (app.just) boolector_enable_justification (btor);
+    if (app.just) boolector_set_opt_justification (btor, 1);
 
 #ifndef BTOR_DO_NOT_OPTIMIZE_UNCONSTRAINED
-    if (app.ucopt) boolector_enable_ucopt (btor);
+    if (app.ucopt) boolector_set_opt_ucopt (btor, 1);
 #endif
 
-    if (app.force_cleanup) boolector_enable_force_cleanup (btor);
+    if (app.force_cleanup) boolector_set_opt_force_cleanup (btor, 1);
 
     // FIXME api
-    if (!app.pprint) btor_disable_pretty_print (btor);
+    if (!app.pprint) btor_set_opt_pretty_print (btor, 0);
 
-    if (app.print_model) boolector_enable_model_gen (btor);
+    if (app.print_model) boolector_set_opt_model_gen (btor, 1);
 
-    boolector_set_verbosity (btor, app.verbosity);
+    boolector_set_opt_verbosity (btor, app.verbosity);
 #ifndef NBTORLOG
     if (!app.loglevel && getenv ("BTORLOG")) app.loglevel = 1;
-    boolector_set_loglevel (btor, app.loglevel);
+    boolector_set_opt_loglevel (btor, app.loglevel);
 #endif
     mem = btor->mm;
 
@@ -1308,7 +1308,7 @@ boolector_main (int argc, char **argv)
 
     if (app.incremental)
     {
-      boolector_enable_inc_usage (btor);
+      boolector_set_opt_inc_usage (btor, 1);
 
       if (app.verbosity > 0) msg_main ("starting incremental BTOR mode\n");
 

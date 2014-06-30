@@ -85,7 +85,7 @@ main (int argc, char **argv)
     die ("negative <len> while 'size_t' is unsigned (try '-s')");
 
   btor = boolector_new ();
-  boolector_set_rewrite_level (btor, 0);
+  boolector_set_opt_rewrite_level (btor, 0);
 
   mem = boolector_array (btor, 8, 32, "mem");
 

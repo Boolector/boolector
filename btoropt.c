@@ -70,97 +70,97 @@ btor_getenv (Btor *btor, BtorOpt *opt, const char *lname)
     BTOR_TRAPI ("set_%s %d", lname, opt->val);
 }
 
-static void
-btor_set_opt_model_gen (Btor *btor, int val)
-{
-  assert (btor);
-  BTOR_SET_OPT_FLAG (model_gen, val);
-}
-
-static void
-btor_set_opt_generate_models_for_all_reads (Btor *btor, int val)
-{
-  assert (btor);
-  BTOR_SET_OPT_FLAG (generate_models_for_all_reads, val);
-}
-
-static void
-btor_set_opt_inc_enabled (Btor *btor, int val)
-{
-  assert (btor);
-  BTOR_SET_OPT_FLAG (inc_usage, val);
-}
-
-static void
-btor_set_opt_beta_reduce_all (Btor *btor, int val)
-{
-  assert (btor);
-  BTOR_SET_OPT_FLAG (beta_reduce_all, val);
-}
-
-static void
-btor_set_opt_dual_prop (Btor *btor, int val)
-{
-  assert (btor);
-  BTOR_SET_OPT_FLAG (dual_prop, val);
-}
-
-static void
-btor_set_opt_justification (Btor *btor, int val)
-{
-  assert (btor);
-  BTOR_SET_OPT_FLAG (justification, val);
-}
-
-#ifndef BTOR_DO_NOT_OPTIMIZE_UNCONSTRAINED
-static void
-btor_set_opt_ucopt (Btor *btor, int val)
-{
-  assert (btor);
-  BTOR_SET_OPT_FLAG (ucopt, val);
-}
-#endif
-
-static void
-btor_set_opt_force_cleanup (Btor *btor, int val)
-{
-  assert (btor);
-  BTOR_SET_OPT_FLAG (force_cleanup, val);
-}
-
-static void
-btor_set_opt_force_internal_cleanup (Btor *btor, int val)
-{
-  assert (btor);
-  BTOR_SET_OPT_FLAG (force_internal_cleanup, val);
-}
-
-static void
-btor_set_opt_rewrite_level (Btor *btor, int val)
-{
-  assert (btor);
-  BTOR_SET_OPT_VAL (rewrite_level, val);
-}
-
-static void
-btor_set_opt_rewrite_level_pbr (Btor *btor, int val)
-{
-  assert (btor);
-  BTOR_SET_OPT_VAL (rewrite_level_pbr, val);
-}
-
-#ifndef NBTOR_LOG
-static void
-btor_set_opt_loglevel (Btor *btor, int val)
-{
-  assert (btor);
-  BTOR_SET_OPT_VAL (loglevel, val);
-}
-#endif
-
-static void
-btor_set_opt_verbosity (Btor *btor, int val)
-{
-  assert (btor);
-  BTOR_SET_OPT_VAL (verbosity, val);
-}
+// static void
+// btor_set_opt_model_gen (Btor * btor, int val)
+//{
+//  assert (btor);
+//  BTOR_SET_OPT_FLAG (model_gen, val);
+//}
+//
+// static void
+// btor_set_opt_generate_models_for_all_reads (Btor * btor, int val)
+//{
+//  assert (btor);
+//  BTOR_SET_OPT_FLAG (generate_models_for_all_reads, val);
+//}
+//
+// static void
+// btor_set_opt_inc_enabled (Btor * btor, int val)
+//{
+//  assert (btor);
+//  BTOR_SET_OPT_FLAG (inc_usage, val);
+//}
+//
+// static void
+// btor_set_opt_beta_reduce_all (Btor * btor, int val)
+//{
+//  assert (btor);
+//  BTOR_SET_OPT_FLAG (beta_reduce_all, val);
+//}
+//
+// static void
+// btor_set_opt_dual_prop (Btor * btor, int val)
+//{
+//  assert (btor);
+//  BTOR_SET_OPT_FLAG (dual_prop, val);
+//}
+//
+// static void
+// btor_set_opt_justification (Btor * btor, int val)
+//{
+//  assert (btor);
+//  BTOR_SET_OPT_FLAG (justification, val);
+//}
+//
+//#ifndef BTOR_DO_NOT_OPTIMIZE_UNCONSTRAINED
+// static void
+// btor_set_opt_ucopt (Btor * btor, int val)
+//{
+//  assert (btor);
+//  BTOR_SET_OPT_FLAG (ucopt, val);
+//}
+//#endif
+//
+// static void
+// btor_set_opt_force_cleanup (Btor * btor, int val)
+//{
+//  assert (btor);
+//  BTOR_SET_OPT_FLAG (force_cleanup, val);
+//}
+//
+// static void
+// btor_set_opt_force_internal_cleanup (Btor * btor, int val)
+//{
+//  assert (btor);
+//  BTOR_SET_OPT_FLAG (force_internal_cleanup, val);
+//}
+//
+// static void
+// btor_set_opt_rewrite_level (Btor * btor, int val)
+//{
+//  assert (btor);
+//  BTOR_SET_OPT_VAL (rewrite_level, val);
+//}
+//
+// static void
+// btor_set_opt_rewrite_level_pbr (Btor * btor, int val)
+//{
+//  assert (btor);
+//  BTOR_SET_OPT_VAL (rewrite_level_pbr, val);
+//}
+//
+//#ifndef NBTOR_LOG
+// static void
+// btor_set_opt_loglevel (Btor * btor, int val)
+//{
+//  assert (btor);
+//  BTOR_SET_OPT_VAL (loglevel, val);
+//}
+//#endif
+//
+// static void
+// btor_set_opt_verbosity (Btor * btor, int val)
+//{
+//  assert (btor);
+//  BTOR_SET_OPT_VAL (verbosity, val);
+//}

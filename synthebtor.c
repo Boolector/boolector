@@ -1,6 +1,7 @@
 /*  Boolector: Satisfiablity Modulo Theories (SMT) solver.
  *
  *  Copyright (C) 2007-2012 Armin Biere.
+ *  Copyright (C) 2014 Aina Niemetz.
  *
  *  All rights reserved.
  *
@@ -113,8 +114,8 @@ main (int argc, char **argv)
 
   btor = btor_new_btor ();
 
-  btor_set_verbosity_btor (btor, verbosity);
-  btor_set_rewrite_level_btor (btor, rwl);
+  btor_set_opt_verbosity_btor (btor, verbosity);
+  btor_set_opt_rewrite_level_btor (btor, rwl);
 
   BTOR_CLR (&parse_opt);
 
