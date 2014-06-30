@@ -785,8 +785,9 @@ ss_push (SortStack *ss, BoolectorSort *sort)
   ss->n++;
 }
 
+#if 0
 static BoolectorSort *
-ss_pop (SortStack *ss)
+ss_pop (SortStack * ss)
 {
   if (!ss->n) return 0;
   ss->n -= 1;
@@ -801,16 +802,18 @@ ss_del (SortStack *ss, int idx)
 
   int i;
 
-  for (i = idx; i < ss->n - 1; i++) ss->sorts[i] = ss->sorts[i + 1];
+  for (i = idx; i < ss->n - 1; i++)
+    ss->sorts[i] = ss->sorts[i + 1];
   ss->n -= 1;
 }
 
 static void
-ss_reset (SortStack *ss)
+ss_reset (SortStack * ss)
 {
   assert (ss);
   ss->n = 0;
 }
+#endif
 
 static void
 ss_release (SortStack *ss)
