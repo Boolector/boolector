@@ -342,7 +342,7 @@ NEXT:
     if (btorunt->blog_level)
       boolector_set_opt_loglevel (btor, btorunt->blog_level);
     if (btorunt->dual_prop) boolector_set_opt_dual_prop (btor, 1);
-    if (btorunt->just) boolector_set_opt_justification (btor, 1);
+    if (btorunt->just) boolector_set_opt_just (btor, 1);
   }
   else if (!strcmp (tok, "clone"))
   {
@@ -363,10 +363,10 @@ NEXT:
     PARSE_ARGS1 (tok, int);
     boolector_set_opt_model_gen (btor, arg1_int);
   }
-  else if (!strcmp (tok, "set_opt_generate_model_for_all_reads"))
+  else if (!strcmp (tok, "set_opt_model_gen_all_reads"))
   {
     PARSE_ARGS1 (tok, int);
-    boolector_set_opt_generate_model_for_all_reads (btor, arg1_int);
+    boolector_set_opt_model_gen_all_reads (btor, arg1_int);
   }
   else if (!strcmp (tok, "set_opt_pretty_print"))
   {
@@ -391,7 +391,7 @@ NEXT:
   else if (!strcmp (tok, "set_opt_just"))
   {
     PARSE_ARGS1 (tok, int);
-    boolector_set_opt_justification (btor, arg1_int);
+    boolector_set_opt_just (btor, arg1_int);
   }
 #ifndef BTOR_DO_NOT_OPTIMIZE_UNCONSTRAINED
   else if (!strcmp (tok, "set_opt_ucopt"))

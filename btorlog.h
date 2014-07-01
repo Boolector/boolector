@@ -19,6 +19,8 @@ void btor_log_end (Btor *);
 #ifndef NBTORLOG
 /*------------------------------------------------------------------------*/
 
+#define BTORLOG_LEVEL_MAX 1 /* at the moment we support en/disabling only */
+
 #define BTORLOG(FMT, ARGS...)                   \
   do                                            \
   {                                             \

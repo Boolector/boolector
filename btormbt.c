@@ -2133,7 +2133,7 @@ _opt (BtorMBT *btormbt, unsigned r)
   if (btormbt->just)
   {
     BTORMBT_LOG (1, "opt: enable justification");
-    boolector_set_opt_justification (btormbt->btor, 1);
+    boolector_set_opt_just (btormbt->btor, 1);
   }
 
 #ifndef BTOR_DO_NOT_OPTIMIZE_UNCONSTRAINED

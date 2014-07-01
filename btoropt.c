@@ -12,34 +12,14 @@
 #include <ctype.h>
 #include "boolector.h"
 #include "btorcore.h"
+#include "btorlog.h"
 #include "btortrapi.h"
 
-#define BTOR_SET_OPT_FLAG(lng, val)   \
-  do                                  \
-  {                                   \
-    if (val)                          \
-      boolector_enable_##lng (btor);  \
-    else                              \
-      boolector_disable_##lng (btor); \
-  } while (0)
-
-#define BTOR_SET_OPT_VAL(lng, val)   \
-  do                                 \
-  {                                  \
-    boolector_set_##lng (btor, val); \
-  } while (0)
-
-static void
-btor_getenv (Btor *btor, BtorOpt *opt, const char *lname)
+static char *
+getenv_value (const char *lname)
 {
-  assert (btor);
-  assert (opt);
-  assert (lname);
-
   char uname[40];
-  const char *valstr;
   size_t i, j;
-  int oldval, newval;
 
   assert (strlen (lname) + 4 + 1 < sizeof (uname));
   uname[0] = 'B';
@@ -47,120 +27,115 @@ btor_getenv (Btor *btor, BtorOpt *opt, const char *lname)
   uname[2] = 'O';
   uname[3] = 'R';
   for (i = 4, j = 0; i < sizeof (uname); i++, j++)
+  {
+    if (lname[j] == '_')
+    {
+      i -= 1;
+      continue;
+    }
     uname[i] = toupper (lname[j]);
+  }
   uname[i] = '\0';
 
-  valstr = getenv (uname);
-  if (!valstr) return;
-
-  oldval = opt->val;
-  newval = atoi (valstr);
-  if (newval < opt->min) newval = opt->min;
-  if (newval > opt->max) newval = opt->max;
-  if (newval == oldval) return;
-
-  // TODO FIXME
-  if (!strcmp (lname, "model_gen") && newval == 0) return;
-  //
-
-  opt->val = newval;
-  if (opt->min == 0 && opt->max == 1)
-    BTOR_TRAPI ("%s_%s", opt->val ? "enable" : "disable", lname);
-  else
-    BTOR_TRAPI ("set_%s %d", lname, opt->val);
+  return getenv (uname);
 }
 
-// static void
-// btor_set_opt_model_gen (Btor * btor, int val)
-//{
-//  assert (btor);
-//  BTOR_SET_OPT_FLAG (model_gen, val);
-//}
-//
-// static void
-// btor_set_opt_generate_models_for_all_reads (Btor * btor, int val)
-//{
-//  assert (btor);
-//  BTOR_SET_OPT_FLAG (generate_models_for_all_reads, val);
-//}
-//
-// static void
-// btor_set_opt_inc_enabled (Btor * btor, int val)
-//{
-//  assert (btor);
-//  BTOR_SET_OPT_FLAG (inc_usage, val);
-//}
-//
-// static void
-// btor_set_opt_beta_reduce_all (Btor * btor, int val)
-//{
-//  assert (btor);
-//  BTOR_SET_OPT_FLAG (beta_reduce_all, val);
-//}
-//
-// static void
-// btor_set_opt_dual_prop (Btor * btor, int val)
-//{
-//  assert (btor);
-//  BTOR_SET_OPT_FLAG (dual_prop, val);
-//}
-//
-// static void
-// btor_set_opt_justification (Btor * btor, int val)
-//{
-//  assert (btor);
-//  BTOR_SET_OPT_FLAG (justification, val);
-//}
-//
-//#ifndef BTOR_DO_NOT_OPTIMIZE_UNCONSTRAINED
-// static void
-// btor_set_opt_ucopt (Btor * btor, int val)
-//{
-//  assert (btor);
-//  BTOR_SET_OPT_FLAG (ucopt, val);
-//}
-//#endif
-//
-// static void
-// btor_set_opt_force_cleanup (Btor * btor, int val)
-//{
-//  assert (btor);
-//  BTOR_SET_OPT_FLAG (force_cleanup, val);
-//}
-//
-// static void
-// btor_set_opt_force_internal_cleanup (Btor * btor, int val)
-//{
-//  assert (btor);
-//  BTOR_SET_OPT_FLAG (force_internal_cleanup, val);
-//}
-//
-// static void
-// btor_set_opt_rewrite_level (Btor * btor, int val)
-//{
-//  assert (btor);
-//  BTOR_SET_OPT_VAL (rewrite_level, val);
-//}
-//
-// static void
-// btor_set_opt_rewrite_level_pbr (Btor * btor, int val)
-//{
-//  assert (btor);
-//  BTOR_SET_OPT_VAL (rewrite_level_pbr, val);
-//}
-//
-//#ifndef NBTOR_LOG
-// static void
-// btor_set_opt_loglevel (Btor * btor, int val)
-//{
-//  assert (btor);
-//  BTOR_SET_OPT_VAL (loglevel, val);
-//}
-//#endif
-//
-// static void
-// btor_set_opt_verbosity (Btor * btor, int val)
-//{
-//  assert (btor);
-//  BTOR_SET_OPT_VAL (verbosity, val);
-//}
+static void
+set_opt_values (BtorOpt *opt,
+                int internal,
+                char *shrt,
+                char *lng,
+                int val,
+                int min,
+                int max,
+                char *desc)
+{
+  assert (opt);
+  assert (min <= val);
+  assert (val <= max);
+
+  opt->internal = internal;
+  opt->shrt     = shrt;
+  opt->lng      = lng;
+  opt->val      = val;
+  opt->min      = min;
+  opt->max      = max;
+  opt->desc     = desc;
+}
+
+#define BTOR_SET_OPT(LNG, VAL)             \
+  do                                       \
+  {                                        \
+    boolector_set_opt_##LNG (btor, VAL);   \
+    printf ("set_opt_%s %d\n", #LNG, VAL); \
+  } while (0)
+
+#define BTOR_SET_OPT_INTL(LNG, VAL) \
+  do                                \
+  {                                 \
+    btor_set_opt_##LNG (btor, VAL); \
+  } while (0)
+
+#define BTOR_OPT(SHRT, LNG, VAL, MIN, MAX, DESC)                             \
+  do                                                                         \
+  {                                                                          \
+    set_opt_values (&btor->options.LNG, 0, SHRT, #LNG, VAL, MIN, MAX, DESC); \
+    valstr = getenv_value (#LNG);                                            \
+    if (valstr == NULL) break;                                               \
+    val = atoi (valstr);                                                     \
+    if (val < opt->min) val = opt->min;                                      \
+    if (val > opt->max) val = opt->max;                                      \
+    if (val == opt->val) break;                                              \
+    BTOR_SET_OPT (LNG, val);                                                 \
+  } while (0)
+
+#define BTOR_OPT_INTL(SHRT, LNG, VAL, MIN, MAX, DESC)                        \
+  do                                                                         \
+  {                                                                          \
+    set_opt_values (&btor->options.LNG, 1, SHRT, #LNG, VAL, MIN, MAX, DESC); \
+    valstr = getenv_value (#LNG);                                            \
+    if (valstr == NULL) break;                                               \
+    val = atoi (valstr);                                                     \
+    if (val < opt->min) val = opt->min;                                      \
+    if (val > opt->max) val = opt->max;                                      \
+    if (val == opt->val) break;                                              \
+    BTOR_SET_OPT_INTL (LNG, val);                                            \
+  } while (0)
+
+void
+btor_init_opts (Btor *btor)
+{
+  BtorOpt *opt = 0;
+  int val;
+  char *valstr;
+
+  BTOR_OPT ("m", model_gen, 0, 0, 1, "print model for satisfiable instances");
+  BTOR_OPT (0, model_gen_all_reads, 0, 0, 1, "generate model for all reads");
+  BTOR_OPT ("i", inc_usage, 0, 0, 1, "incremental usage (SMT1 only)");
+  BTOR_OPT (
+      "bra", beta_reduce_all, 0, 0, 1, "eagerly eliminate lambda expressions");
+  BTOR_OPT ("dp", dual_prop, 0, 0, 1, "enable dual propagation optimization");
+  BTOR_OPT ("ju", just, 0, 0, 1, "enable justification optimization");
+  BTOR_OPT ("uc", ucopt, 0, 0, 1, "enable unconstrained optimization");
+  BTOR_OPT ("fc", force_cleanup, 0, 0, 1, "force cleanup on exit");
+  BTOR_OPT ("p", pretty_print, 1, 0, 1, "pretty print when dumping");
+
+  BTOR_OPT ("rwl", rewrite_level, 3, 0, 3, "set rewrite level");
+  BTOR_OPT (0,
+            rewrite_level_pbr,
+            1,
+            0,
+            3,
+            "set rewrite level for partial beta reduction");
+#ifndef NBTORLOG
+  BTOR_OPT ("l", loglevel, 0, 0, BTORLOG_LEVEL_MAX, "increase loglevel");
+#endif
+  BTOR_OPT ("v", verbosity, 0, 0, BTOR_VERBOSITY_MAX, "increase verbosity");
+
+  BTOR_OPT_INTL (0, simplify_constraints, 1, 0, 1, 0);
+  BTOR_OPT_INTL (0, propagate_slices, 0, 0, 1, 0);
+  BTOR_OPT_INTL (0, force_internal_cleanup, 0, 0, 1, 0);
+#ifdef BTOR_CHECK_FAILED
+  BTOR_OPT_INTL (0, chk_failed_assumptions, 1, 0, 1, 0);
+#endif
+}
