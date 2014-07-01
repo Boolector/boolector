@@ -143,7 +143,7 @@ btor_map_node_internal (Btor *btor, BtorNodeMap *map, BtorNode *exp)
       // ELSE FALL THROUGH!!!
 
     case BTOR_BV_VAR_NODE:
-    case BTOR_ARRAY_VAR_NODE: return btor_copy_exp (btor, exp);
+    case BTOR_UF_NODE: return btor_copy_exp (btor, exp);
     case BTOR_SLICE_NODE:
       return btor_slice_exp (btor, m[0], exp->upper, exp->lower);
     case BTOR_AND_NODE: return btor_and_exp (btor, m[0], m[1]);

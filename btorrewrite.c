@@ -4709,7 +4709,7 @@ btor_shallow_subst (
     {
       case BTOR_BV_CONST_NODE:
       case BTOR_BV_VAR_NODE:
-      case BTOR_ARRAY_VAR_NODE:
+      case BTOR_UF_NODE:
       case BTOR_PARAM_NODE: res = btor_copy_exp (btor, real); break;
       case BTOR_SLICE_NODE:
         res = btor_slice_exp (btor, s[0], real->upper, real->lower);

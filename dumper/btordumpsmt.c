@@ -146,9 +146,7 @@ dump_smt_id (BtorSMTDumpContext *sdc, BtorNode *exp)
       }
       break;
 
-    case BTOR_ARRAY_VAR_NODE: type = "a"; break;
-
-    case BTOR_UF_NODE: type = "uf"; break;
+    case BTOR_UF_NODE: type = BTOR_IS_UF_ARRAY_NODE (u) ? "a" : "uf"; break;
 
     case BTOR_LAMBDA_NODE: type = "f"; break;
 
@@ -234,7 +232,7 @@ dump_sort_smt (BtorSMTDumpContext *sdc, BtorNode *exp)
 
   if (BTOR_IS_UF_NODE (exp))
     sort = ((BtorUFNode *) exp)->sort;
-  else if (BTOR_IS_ARRAY_VAR_NODE (exp))
+  else if (BTOR_IS_UF_ARRAY_NODE (exp))
   {
     index.kind         = BTOR_BITVEC_SORT;
     index.bitvec.len   = BTOR_ARRAY_INDEX_LEN (exp);
@@ -342,7 +340,7 @@ dump_exp_smt (BtorSMTDumpContext *sdc, BtorNode *exp)
     case BTOR_APPLY_NODE:
       fputc ('(', sdc->file);
       /* array select */
-      if (BTOR_IS_ARRAY_VAR_NODE (exp->e[0]))
+      if (BTOR_IS_UF_ARRAY_NODE (exp->e[0]))
       {
         fputs ("select ", sdc->file);
         dump_smt_id (sdc, exp->e[0]);
@@ -583,7 +581,7 @@ dump_declare_fun_smt (BtorSMTDumpContext *sdc, BtorNode *exp)
     fputs ("(declare-fun ", sdc->file);
     dump_smt_id (sdc, exp);
     fputc (' ', sdc->file);
-    if (BTOR_IS_BV_VAR_NODE (exp) || BTOR_IS_ARRAY_VAR_NODE (exp))
+    if (BTOR_IS_BV_VAR_NODE (exp) || BTOR_IS_UF_ARRAY_NODE (exp))
       fputs ("() ", sdc->file);
     dump_sort_smt (sdc, exp);
     fputs (")\n", sdc->file);
@@ -692,7 +690,7 @@ dump_smt (BtorSMTDumpContext *sdc)
       BTOR_PUSH_STACK (mm, consts, cur);
     else if (BTOR_IS_BV_VAR_NODE (cur))
       BTOR_PUSH_STACK (mm, vars, cur);
-    else if (BTOR_IS_ARRAY_VAR_NODE (cur))
+    else if (BTOR_IS_UF_ARRAY_NODE (cur))
       BTOR_PUSH_STACK (mm, arrays, cur);
     else if (BTOR_IS_UF_NODE (cur))
       BTOR_PUSH_STACK (mm, ufs, cur);

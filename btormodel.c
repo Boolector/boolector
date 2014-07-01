@@ -437,7 +437,7 @@ recursively_compute_assignment (Btor *btor,
           result              = e[0];
           btor_free_bv (btor, e[1]);
           goto PUSH_RESULT_AND_UNASSIGN;
-        case BTOR_ARRAY_VAR_NODE:
+        case BTOR_UF_NODE:
           real_cur->eval_mark = 0; /* not inserted into cache */
           result              = btor_assignment_bv (btor, cur_parent, 1);
           goto PUSH_RESULT;
@@ -639,53 +639,6 @@ compute_lambda_model (Btor *btor, BtorNode *exp, BtorPtrHashTable *assignments)
 #endif
 }
 
-#if 0
-static void
-compute_array_model (Btor * btor, BtorNode * exp,
-		     BtorPtrHashTable * assignments)
-{
-  assert (btor);
-  assert (exp);
-  assert (assignments);
-  assert (BTOR_IS_REGULAR_NODE (exp));
-  assert (BTOR_IS_ARRAY_VAR_NODE (exp));
-
-  BitVector *index, *value;
-  BtorNode *parent, *tmp;
-  BtorNodeIterator it;
-  BitVectorTuple *t;
-
-  init_apply_parent_iterator (&it, exp);
-  while (has_next_parent_apply_parent_iterator (&it))
-    {
-      parent = next_parent_apply_parent_iterator (&it);
-
-      if (parent->parameterized)
-	continue;
-
-      value = btor_assignment_bv (btor, parent, 1);
-      add_to_bv_model (btor, parent, value);
-
-      assert (((BtorArgsNode *) parent->e[1])->arity == 1); 
-
-      tmp = ((BtorArgsNode *) parent->e[1])->e[0]; 
-      index = recursively_compute_assignment (btor, tmp, assignments);
-
-      assert (BTOR_IS_BV_CONST_NODE (BTOR_REAL_ADDR_NODE (tmp))
-	      || btor_find_in_ptr_hash_table (assignments,
-		     BTOR_REAL_ADDR_NODE (tmp)));
-
-      t = new_bv_tuple (btor, 1);
-      add_to_bv_tuple (btor, t, index, 0);
-      add_to_array_model (btor, exp, t, value);
-
-      btor_free_bv (btor, index);
-      btor_free_bv (btor, value);
-      free_bv_tuple (btor, t);
-    }
-}
-#endif
-
 static int
 cmp_node_id (const void *p, const void *q)
 {
@@ -695,7 +648,7 @@ cmp_node_id (const void *p, const void *q)
 }
 
 static void
-extract_models_from_array_with_model (Btor *btor)
+extract_models_from_functions_with_model (Btor *btor)
 {
   assert (btor);
 
@@ -706,9 +659,9 @@ extract_models_from_array_with_model (Btor *btor)
   BtorHashTableIterator it;
   BtorArgsIterator ait;
 
-  for (i = 0; i < BTOR_COUNT_STACK (btor->arrays_with_model); i++)
+  for (i = 0; i < BTOR_COUNT_STACK (btor->functions_with_model); i++)
   {
-    cur = BTOR_PEEK_STACK (btor->arrays_with_model, i);
+    cur = BTOR_PEEK_STACK (btor->functions_with_model, i);
     assert (cur->rho);
 
     init_node_hash_table_iterator (&it, cur->rho);
@@ -763,12 +716,11 @@ btor_generate_model (Btor *btor)
                                          (BtorHashPtr) btor_hash_exp_by_id,
                                          (BtorCmpPtr) btor_compare_exp_by_id);
 
-  extract_models_from_array_with_model (btor);
+  extract_models_from_functions_with_model (btor);
 
   init_node_hash_table_iterator (&it, btor->var_rhs);
   queue_node_hash_table_iterator (&it, btor->bv_vars);
   queue_node_hash_table_iterator (&it, btor->array_rhs);
-  queue_node_hash_table_iterator (&it, btor->array_vars);
   while (has_next_node_hash_table_iterator (&it))
   {
     cur = btor_simplify_exp (btor, next_node_hash_table_iterator (&it));
@@ -782,21 +734,11 @@ btor_generate_model (Btor *btor)
   {
     cur = BTOR_PEEK_STACK (stack, i);
 
-    // TODO: may be obsolete
-    if (BTOR_IS_ARRAY_VAR_NODE (cur))
-    {
-      //	  printf ("array: %s\n", node2string (cur));
-      //	  compute_array_model (btor, cur, assignments);
-    }
     // TODO: some parts may be obsolete
-    else if (BTOR_IS_LAMBDA_NODE (cur))
-    {
-      //	  printf ("lambda: %s\n", node2string (cur));
+    if (BTOR_IS_LAMBDA_NODE (cur))
       compute_lambda_model (btor, cur, assignments);
-    }
     else
     {
-      //	  printf ("bv: %s\n", node2string (cur));
       bv = recursively_compute_assignment (btor, cur, assignments);
       add_to_bv_model (btor, cur, bv);
       btor_free_bv (btor, bv);

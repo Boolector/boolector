@@ -33,7 +33,6 @@ node2string (BtorNode *exp)
     case BTOR_INVALID_NODE: name = "invalid"; break;
     case BTOR_BV_CONST_NODE: name = "const"; break;
     case BTOR_BV_VAR_NODE: name = "var"; break;
-    case BTOR_ARRAY_VAR_NODE: name = "array"; break;
     case BTOR_PARAM_NODE: name = "param"; break;
     case BTOR_UF_NODE: name = "uf"; break;
     case BTOR_SLICE_NODE: name = "slice"; break;

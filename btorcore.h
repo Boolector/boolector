@@ -113,7 +113,7 @@ struct Btor
   BtorAIGVecMgr *avmgr;
   BtorPtrHashTable *bv_vars;
   BtorPtrHashTable *array_vars;
-  BtorPtrHashTable *uf;
+  BtorPtrHashTable *ufs;
   BtorPtrHashTable *lambdas;
   BtorPtrHashTable *substitutions;
   BtorNode *true_exp;
@@ -145,7 +145,7 @@ struct Btor
   BtorPtrHashTable *assumptions;
   BtorPtrHashTable *var_rhs;   /* only for model generation */
   BtorPtrHashTable *array_rhs; /* only for model generation */
-  BtorNodePtrStack arrays_with_model;
+  BtorNodePtrStack functions_with_model;
   BtorPtrHashTable *cache;
   BtorPtrHashTable *parameterized;
   BtorPtrHashTable *score;

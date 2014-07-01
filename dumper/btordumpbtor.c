@@ -248,7 +248,9 @@ bdcnode (BtorDumpContext *bdc, BtorNode *node, FILE *file)
     case BTOR_ULT_NODE: op = "ult"; break;
     case BTOR_UREM_NODE: op = "urem"; break;
     case BTOR_SLICE_NODE: op = "slice"; break;
-    case BTOR_ARRAY_VAR_NODE: op = "array"; break;
+    case BTOR_UF_NODE:
+      op = ((BtorUFNode *) node)->is_array ? "array" : "uf";
+      break;
     case BTOR_BV_CONST_NODE:
       if (btor_is_zero_const (node->bits))
         op = "zero";
@@ -271,7 +273,8 @@ bdcnode (BtorDumpContext *bdc, BtorNode *node, FILE *file)
   fprintf (file, "%d %s %d", bdcid (bdc, node), op, node->len);
 
   /* print index bit width of arrays */
-  if (BTOR_IS_ARRAY_VAR_NODE (node) || BTOR_IS_LAMBDA_NODE (node))
+  // TODO: get rid of index_len for lambda exps
+  if (BTOR_IS_UF_ARRAY_NODE (node) || BTOR_IS_LAMBDA_NODE (node))
     fprintf (file, " %d", BTOR_ARRAY_INDEX_LEN (node));
 
   /* print children or const values */
@@ -288,7 +291,7 @@ bdcnode (BtorDumpContext *bdc, BtorNode *node, FILE *file)
   /* print slice limits/var symbols */
   if (node->kind == BTOR_SLICE_NODE)
     fprintf (file, " %d %d", node->upper, node->lower);
-  else if (BTOR_IS_BV_VAR_NODE (node) || BTOR_IS_ARRAY_VAR_NODE (node))
+  else if (BTOR_IS_BV_VAR_NODE (node) || BTOR_IS_UF_NODE (node))
   {
     sprintf (idbuffer, "%d", bdcid (bdc, node));
     if (node->symbol && strcmp (node->symbol, idbuffer))

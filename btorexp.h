@@ -50,30 +50,29 @@ enum BtorNodeKind
    * make delta debugging of Heisenbugs in release mode more
    * difficult.
    */
-  BTOR_INVALID_NODE   = 0,
-  BTOR_BV_CONST_NODE  = 1,
-  BTOR_BV_VAR_NODE    = 2,
-  BTOR_ARRAY_VAR_NODE = 3,
-  BTOR_PARAM_NODE     = 4, /* parameter for lambda expressions */
-  BTOR_SLICE_NODE     = 5,
-  BTOR_AND_NODE       = 6,
-  BTOR_BEQ_NODE       = 7, /* equality on bit vectors */
-  BTOR_AEQ_NODE       = 8, /* equality on arrays */
-  BTOR_ADD_NODE       = 9,
-  BTOR_MUL_NODE       = 10,
-  BTOR_ULT_NODE       = 11,
-  BTOR_SLL_NODE       = 12,
-  BTOR_SRL_NODE       = 13,
-  BTOR_UDIV_NODE      = 14,
-  BTOR_UREM_NODE      = 15,
-  BTOR_CONCAT_NODE    = 16,
-  BTOR_APPLY_NODE     = 17,
-  BTOR_LAMBDA_NODE    = 18, /* lambda expression */
-  BTOR_BCOND_NODE     = 19, /* conditional on bit vectors */
-  BTOR_ARGS_NODE      = 20,
-  BTOR_UF_NODE        = 21,
-  BTOR_PROXY_NODE     = 22, /* simplified expression without children */
-  BTOR_NUM_OPS_NODE   = 23
+  BTOR_INVALID_NODE  = 0,
+  BTOR_BV_CONST_NODE = 1,
+  BTOR_BV_VAR_NODE   = 2,
+  BTOR_PARAM_NODE    = 3, /* parameter for lambda expressions */
+  BTOR_SLICE_NODE    = 4,
+  BTOR_AND_NODE      = 5,
+  BTOR_BEQ_NODE      = 6, /* equality on bit vectors */
+  BTOR_AEQ_NODE      = 7, /* equality on arrays */
+  BTOR_ADD_NODE      = 8,
+  BTOR_MUL_NODE      = 9,
+  BTOR_ULT_NODE      = 10,
+  BTOR_SLL_NODE      = 11,
+  BTOR_SRL_NODE      = 12,
+  BTOR_UDIV_NODE     = 13,
+  BTOR_UREM_NODE     = 14,
+  BTOR_CONCAT_NODE   = 15,
+  BTOR_APPLY_NODE    = 16,
+  BTOR_LAMBDA_NODE   = 17, /* lambda expression */
+  BTOR_BCOND_NODE    = 18, /* conditional on bit vectors */
+  BTOR_ARGS_NODE     = 19,
+  BTOR_UF_NODE       = 20,
+  BTOR_PROXY_NODE    = 21, /* simplified expression without children */
+  BTOR_NUM_OPS_NODE  = 22
 
   // NOTE: do not change this without changing 'g_btor_op2string' too ...
 };
@@ -177,6 +176,7 @@ struct BtorUFNode
   char *symbol;
   BtorSort *sort;
   int num_params;
+  char is_array;
 };
 
 typedef struct BtorUFNode BtorUFNode;
@@ -244,8 +244,6 @@ typedef struct BtorArgsNode BtorArgsNode;
 
 #define BTOR_IS_BV_VAR_NODE_KIND(kind) ((kind) == BTOR_BV_VAR_NODE)
 
-#define BTOR_IS_ARRAY_VAR_NODE_KIND(kind) (kind == BTOR_ARRAY_VAR_NODE)
-
 #define BTOR_IS_PARAM_NODE_KIND(kind) ((kind) == BTOR_PARAM_NODE)
 
 #define BTOR_IS_BV_EQ_NODE_KIND(kind) (kind == BTOR_BEQ_NODE)
@@ -288,9 +286,6 @@ typedef struct BtorArgsNode BtorArgsNode;
 #define BTOR_IS_BV_VAR_NODE(exp) \
   ((exp) && BTOR_IS_BV_VAR_NODE_KIND ((exp)->kind))
 
-#define BTOR_IS_ARRAY_VAR_NODE(exp) \
-  ((exp) && BTOR_IS_ARRAY_VAR_NODE_KIND ((exp)->kind))
-
 #define BTOR_IS_PARAM_NODE(exp) ((exp) && BTOR_IS_PARAM_NODE_KIND ((exp)->kind))
 
 #define BTOR_IS_BV_EQ_NODE(exp) ((exp) && BTOR_IS_BV_EQ_NODE_KIND ((exp)->kind))
@@ -311,9 +306,6 @@ typedef struct BtorArgsNode BtorArgsNode;
 #define BTOR_IS_APPLY_NODE(exp) ((exp) && BTOR_IS_APPLY_NODE_KIND ((exp)->kind))
 
 #define BTOR_IS_WRITE_NODE(exp) ((exp) && BTOR_IS_WRITE_NODE_KIND ((exp)->kind))
-
-#define BTOR_IS_ARRAY_COND_NODE(exp) \
-  ((exp) && BTOR_IS_ARRAY_COND_NODE_KIND ((exp)->kind))
 
 #define BTOR_IS_BV_COND_NODE(exp) \
   ((exp) && BTOR_IS_BV_COND_NODE_KIND ((exp)->kind))
@@ -371,9 +363,11 @@ typedef struct BtorArgsNode BtorArgsNode;
   (BTOR_IS_LAMBDA_NODE (exp)              \
    && (((BtorLambdaNode *) exp)->head == (BtorLambdaNode *) exp))
 
-#define BTOR_IS_FUN_NODE(exp)                                \
-  (BTOR_IS_LAMBDA_NODE (exp) || BTOR_IS_ARRAY_VAR_NODE (exp) \
-   || BTOR_IS_UF_NODE (exp))
+#define BTOR_IS_FUN_NODE(exp) \
+  (BTOR_IS_LAMBDA_NODE (exp) || BTOR_IS_UF_NODE (exp))
+
+#define BTOR_IS_UF_ARRAY_NODE(exp) \
+  ((exp) && BTOR_IS_UF_NODE (exp) && ((BtorUFNode *) exp)->is_array)
 
 #define BTOR_IS_BOUND_PARAM_NODE(exp) (((BtorParamNode *) exp)->lambda_exp != 0)
 
@@ -388,9 +382,10 @@ typedef struct BtorArgsNode BtorArgsNode;
 
 #define BTOR_LAMBDA_GET_BODY(exp) (((BtorLambdaNode *) exp)->body)
 
-#define BTOR_ARRAY_INDEX_LEN(exp)                                        \
-  ((BTOR_IS_ARRAY_VAR_NODE (exp) ? ((BtorArrayVarNode *) exp)->index_len \
-                                 : BTOR_LAMBDA_GET_PARAM (exp)->len))
+#define BTOR_ARRAY_INDEX_LEN(exp)                           \
+  (BTOR_IS_UF_ARRAY_NODE (exp)                              \
+       ? ((BtorUFNode *) exp)->sort->fun.domain->bitvec.len \
+       : BTOR_LAMBDA_GET_PARAM (exp)->len)
 
 /*------------------------------------------------------------------------*/
 

@@ -922,8 +922,8 @@ btor_beta_reduce (Btor *btor, BtorNode *exp, int mode, int bound)
 
       /* copy "leaves" or expression that were cut off */
       if (BTOR_IS_BV_CONST_NODE (real_cur) || BTOR_IS_BV_VAR_NODE (real_cur)
-          || BTOR_IS_ARRAY_VAR_NODE (real_cur)
           || BTOR_IS_PARAM_NODE (real_cur)
+          || BTOR_IS_UF_NODE (real_cur)
           /* we reached given bound */
           || (bound > 0 && BTOR_IS_LAMBDA_NODE (real_cur)
               && BTOR_COUNT_STACK (scopes) >= bound))

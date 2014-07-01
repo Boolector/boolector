@@ -1194,9 +1194,11 @@ boolector_eq (Btor *btor, BoolectorNode *n0, BoolectorNode *n1)
   real_simp1     = BTOR_REAL_ADDR_NODE (simp1);
   is_array_simp0 = BTOR_IS_FUN_NODE (real_simp0);
   is_array_simp1 = BTOR_IS_FUN_NODE (real_simp1);
-  BTOR_ABORT_BOOLECTOR (
-      BTOR_IS_UF_NODE (real_simp0) || BTOR_IS_UF_NODE (real_simp1),
-      "equality of UF not supported yet");
+  BTOR_ABORT_BOOLECTOR (BTOR_IS_UF_NODE (real_simp0)
+                            && BTOR_IS_UF_NODE (real_simp1)
+                            && ((BtorUFNode *) real_simp0)->sort
+                                   != ((BtorUFNode *) real_simp1)->sort,
+                        "UF must have the same sort for equality");
   BTOR_ABORT_BOOLECTOR (is_array_simp0 != is_array_simp1,
                         "array must not be compared to bit-vector");
   BTOR_ABORT_BOOLECTOR (!is_array_simp0 && real_simp0 && real_simp1

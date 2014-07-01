@@ -135,26 +135,25 @@ const char *const g_btor_op2string[] = {
     "invalid",  //  0
     "const",    //  1
     "var",      //  2
-    "array",    //  3
-    "param",    //  4
-    "slice",    //  5
-    "and",      //  6
-    "beq",      //  7
-    "aeq",      //  8
-    "add",      //  9
-    "mul",      // 10
-    "ult",      // 11
-    "sll",      // 12
-    "srl",      // 13
-    "udiv",     // 14
-    "urem",     // 15
-    "concat",   // 16
-    "apply",    // 17
-    "lambda",   // 18
-    "bcond",    // 19
-    "args",     // 20
-    "uf",       // 21
-    "proxy"     // 22
+    "param",    //  3
+    "slice",    //  4
+    "and",      //  5
+    "beq",      //  6
+    "aeq",      //  7
+    "add",      //  8
+    "mul",      //  9
+    "ult",      // 10
+    "sll",      // 11
+    "srl",      // 12
+    "udiv",     // 13
+    "urem",     // 14
+    "concat",   // 15
+    "apply",    // 16
+    "lambda",   // 17
+    "bcond",    // 18
+    "args",     // 19
+    "uf",       // 20
+    "proxy"     // 21
 };
 
 struct BtorSlice
@@ -1148,13 +1147,9 @@ btor_new_btor (void)
   btor->bv_vars = btor_new_ptr_hash_table (mm,
                                            (BtorHashPtr) btor_hash_exp_by_id,
                                            (BtorCmpPtr) btor_compare_exp_by_id);
-  btor->array_vars =
-      btor_new_ptr_hash_table (mm,
-                               (BtorHashPtr) btor_hash_exp_by_id,
-                               (BtorCmpPtr) btor_compare_exp_by_id);
-  btor->uf      = btor_new_ptr_hash_table (mm,
-                                      (BtorHashPtr) btor_hash_exp_by_id,
-                                      (BtorCmpPtr) btor_compare_exp_by_id);
+  btor->ufs     = btor_new_ptr_hash_table (mm,
+                                       (BtorHashPtr) btor_hash_exp_by_id,
+                                       (BtorCmpPtr) btor_compare_exp_by_id);
   btor->lambdas = btor_new_ptr_hash_table (mm,
                                            (BtorHashPtr) btor_hash_exp_by_id,
                                            (BtorCmpPtr) btor_compare_exp_by_id);
@@ -1209,7 +1204,7 @@ btor_new_btor (void)
                                (BtorHashPtr) btor_hash_exp_by_id,
                                (BtorCmpPtr) btor_compare_exp_by_id);
 
-  BTOR_INIT_STACK (btor->arrays_with_model);
+  BTOR_INIT_STACK (btor->functions_with_model);
   BTOR_INIT_STACK (btor->stats.lemmas_size);
 
   btor->true_exp = btor_true_exp (btor);
@@ -1290,9 +1285,9 @@ btor_delete_btor (Btor *btor)
     btor_delete_model (btor);
   }
 
-  for (i = 0; i < BTOR_COUNT_STACK (btor->arrays_with_model); i++)
-    btor_release_exp (btor, btor->arrays_with_model.start[i]);
-  BTOR_RELEASE_STACK (mm, btor->arrays_with_model);
+  for (i = 0; i < BTOR_COUNT_STACK (btor->functions_with_model); i++)
+    btor_release_exp (btor, btor->functions_with_model.start[i]);
+  BTOR_RELEASE_STACK (mm, btor->functions_with_model);
 
   BTOR_INIT_STACK (stack);
   for (b = btor->lambdas->first; b; b = b->next)
@@ -1421,8 +1416,7 @@ btor_delete_btor (Btor *btor)
   BTOR_RELEASE_UNIQUE_TABLE (mm, btor->sorts_unique_table);
 
   btor_delete_ptr_hash_table (btor->bv_vars);
-  btor_delete_ptr_hash_table (btor->array_vars);
-  btor_delete_ptr_hash_table (btor->uf);
+  btor_delete_ptr_hash_table (btor->ufs);
   btor_delete_ptr_hash_table (btor->lambdas);
   btor_delete_ptr_hash_table (btor->parameterized);
 
@@ -1966,8 +1960,7 @@ normalize_substitution (Btor *btor,
   real_right = BTOR_REAL_ADDR_NODE (right);
 
   if (!BTOR_IS_BV_VAR_NODE (real_left) && !BTOR_IS_BV_VAR_NODE (real_right)
-      && !BTOR_IS_ARRAY_VAR_NODE (real_left)
-      && !BTOR_IS_ARRAY_VAR_NODE (real_right))
+      && !BTOR_IS_UF_NODE (real_left) && !BTOR_IS_UF_NODE (real_right))
   {
     if (btor_rewrite_linear_term (btor, left, &fc, left_result, &tmp))
       *right_result = btor_sub_exp (btor, right, tmp);
@@ -1991,8 +1984,7 @@ normalize_substitution (Btor *btor,
   else
   {
     if ((!BTOR_IS_BV_VAR_NODE (real_left) && BTOR_IS_BV_VAR_NODE (real_right))
-        || (!BTOR_IS_ARRAY_VAR_NODE (real_left)
-            && BTOR_IS_ARRAY_VAR_NODE (real_right)))
+        || (!BTOR_IS_UF_NODE (real_left) && BTOR_IS_UF_NODE (real_right)))
     {
       *left_result  = right;
       *right_result = left;
@@ -2158,9 +2150,9 @@ btor_reset_array_models (Btor *btor)
 
   assert (btor);
 
-  for (i = 0; i < BTOR_COUNT_STACK (btor->arrays_with_model); i++)
+  for (i = 0; i < BTOR_COUNT_STACK (btor->functions_with_model); i++)
   {
-    cur = btor->arrays_with_model.start[i];
+    cur = btor->functions_with_model.start[i];
     assert (!BTOR_IS_INVERTED_NODE (cur));
     assert (BTOR_IS_FUN_NODE (cur));
     assert (cur->rho);
@@ -2168,7 +2160,7 @@ btor_reset_array_models (Btor *btor)
     cur->rho = 0;
     btor_release_exp (btor, cur);
   }
-  BTOR_RESET_STACK (btor->arrays_with_model);
+  BTOR_RESET_STACK (btor->functions_with_model);
 }
 
 static void
@@ -2770,7 +2762,6 @@ rebuild_exp (Btor *btor, BtorNode *exp)
     case BTOR_PROXY_NODE:
     case BTOR_BV_CONST_NODE:
     case BTOR_BV_VAR_NODE:
-    case BTOR_ARRAY_VAR_NODE:
     case BTOR_PARAM_NODE:
     case BTOR_UF_NODE:
       return btor_copy_exp (btor, btor_simplify_exp (btor, exp));
@@ -2827,7 +2818,7 @@ substitute_vars_and_rebuild_exps (Btor *btor, BtorPtrHashTable *substs)
   {
     cur = (BtorNode *) b->key;
     assert (BTOR_IS_REGULAR_NODE (cur));
-    assert (BTOR_IS_BV_VAR_NODE (cur) || BTOR_IS_ARRAY_VAR_NODE (cur));
+    assert (BTOR_IS_BV_VAR_NODE (cur) || BTOR_IS_UF_NODE (cur));
     BTOR_PUSH_STACK (mm, stack, cur);
   }
 
@@ -2871,7 +2862,7 @@ substitute_vars_and_rebuild_exps (Btor *btor, BtorPtrHashTable *substs)
     {
       BTOR_PUSH_STACK (mm, stack, cur);
       cur->aux_mark = 2;
-      if (BTOR_IS_BV_VAR_NODE (cur) || BTOR_IS_ARRAY_VAR_NODE (cur))
+      if (BTOR_IS_BV_VAR_NODE (cur) || BTOR_IS_UF_NODE (cur))
       {
         b = btor_find_in_ptr_hash_table (substs, cur);
         assert (b);
@@ -2890,7 +2881,7 @@ substitute_vars_and_rebuild_exps (Btor *btor, BtorPtrHashTable *substs)
     {
       assert (cur->aux_mark == 2);
       cur->aux_mark = 0;
-      if (BTOR_IS_BV_VAR_NODE (cur) || BTOR_IS_ARRAY_VAR_NODE (cur))
+      if (BTOR_IS_BV_VAR_NODE (cur) || BTOR_IS_UF_NODE (cur))
       {
         b = btor_find_in_ptr_hash_table (substs, cur);
         assert (b);
@@ -2967,7 +2958,7 @@ substitute_var_exps (Btor *btor)
       b   = varsubst_constraints->first;
       cur = (BtorNode *) b->key;
       assert (BTOR_IS_REGULAR_NODE (cur));
-      assert (BTOR_IS_BV_VAR_NODE (cur) || BTOR_IS_ARRAY_VAR_NODE (cur));
+      assert (BTOR_IS_BV_VAR_NODE (cur) || BTOR_IS_UF_NODE (cur));
       right = (BtorNode *) b->data.asPtr;
       /* NOTE: we need to update 'right' here, since 'right' might have
        * already been rebuilt in merge_lambdas (in beta reduction part) */
@@ -2984,7 +2975,7 @@ substitute_var_exps (Btor *btor)
     {
       cur = (BtorNode *) b->key;
       assert (BTOR_IS_REGULAR_NODE (cur));
-      assert (BTOR_IS_BV_VAR_NODE (cur) || BTOR_IS_ARRAY_VAR_NODE (cur));
+      assert (BTOR_IS_BV_VAR_NODE (cur) || BTOR_IS_UF_NODE (cur));
       BTOR_PUSH_STACK (mm, stack, (BtorNode *) cur);
 
       while (!BTOR_EMPTY_STACK (stack))
@@ -2995,7 +2986,7 @@ substitute_var_exps (Btor *btor)
         {
           cur = BTOR_POP_STACK (stack); /* left */
           assert (BTOR_IS_REGULAR_NODE (cur));
-          assert (BTOR_IS_BV_VAR_NODE (cur) || BTOR_IS_ARRAY_VAR_NODE (cur));
+          assert (BTOR_IS_BV_VAR_NODE (cur) || BTOR_IS_UF_NODE (cur));
           assert (!btor_find_in_ptr_hash_table (order, cur));
           btor_insert_in_ptr_hash_table (order, cur)->data.asInt = order_num++;
           continue;
@@ -3007,8 +2998,7 @@ substitute_var_exps (Btor *btor)
         cur->mark = 1;
 
         if (BTOR_IS_BV_CONST_NODE (cur) || BTOR_IS_BV_VAR_NODE (cur)
-            || BTOR_IS_ARRAY_VAR_NODE (cur) || BTOR_IS_PARAM_NODE (cur)
-            || BTOR_IS_UF_NODE (cur))
+            || BTOR_IS_PARAM_NODE (cur) || BTOR_IS_UF_NODE (cur))
         {
           b_temp = btor_find_in_ptr_hash_table (substs, cur);
           if (b_temp)
@@ -3040,7 +3030,7 @@ substitute_var_exps (Btor *btor)
     {
       assert (BTOR_IS_REGULAR_NODE ((BtorNode *) b->key));
       assert (BTOR_IS_BV_VAR_NODE ((BtorNode *) b->key)
-              || BTOR_IS_ARRAY_VAR_NODE ((BtorNode *) b->key));
+              || BTOR_IS_UF_NODE ((BtorNode *) b->key));
       btor_mark_exp (btor, (BtorNode *) b->key, 0);
       btor_mark_exp (btor, (BtorNode *) b->data.asPtr, 0);
     }
@@ -3051,7 +3041,7 @@ substitute_var_exps (Btor *btor)
 #ifndef NDEBUG
       cur = (BtorNode *) b->key;
       assert (BTOR_IS_REGULAR_NODE (cur));
-      assert (BTOR_IS_BV_VAR_NODE (cur) || BTOR_IS_ARRAY_VAR_NODE (cur));
+      assert (BTOR_IS_BV_VAR_NODE (cur) || BTOR_IS_UF_NODE (cur));
 #endif
       BTOR_PUSH_STACK (mm, stack, (BtorNode *) b->data.asPtr);
 
@@ -3065,8 +3055,7 @@ substitute_var_exps (Btor *btor)
           continue;
 
         if (BTOR_IS_BV_CONST_NODE (cur) || BTOR_IS_BV_VAR_NODE (cur)
-            || BTOR_IS_ARRAY_VAR_NODE (cur) || BTOR_IS_PARAM_NODE (cur)
-            || BTOR_IS_UF_NODE (cur))
+            || BTOR_IS_PARAM_NODE (cur) || BTOR_IS_UF_NODE (cur))
         {
           assert (btor_find_in_ptr_hash_table (order, cur));
           continue;
@@ -3108,7 +3097,7 @@ substitute_var_exps (Btor *btor)
     {
       left = (BtorNode *) b->key;
       assert (BTOR_IS_REGULAR_NODE (left));
-      assert (BTOR_IS_BV_VAR_NODE (left) || BTOR_IS_ARRAY_VAR_NODE (left));
+      assert (BTOR_IS_BV_VAR_NODE (left) || BTOR_IS_UF_NODE (left));
       right = (BtorNode *) b->data.asPtr;
       btor_mark_exp (btor, left, 0);
       btor_mark_exp (btor, right, 0);
@@ -3128,7 +3117,7 @@ substitute_var_exps (Btor *btor)
     {
       left = BTOR_POP_STACK (stack);
       assert (BTOR_IS_REGULAR_NODE (left));
-      assert (BTOR_IS_BV_VAR_NODE (left) || BTOR_IS_ARRAY_VAR_NODE (left));
+      assert (BTOR_IS_BV_VAR_NODE (left) || BTOR_IS_UF_NODE (left));
       right =
           (BtorNode *) btor_find_in_ptr_hash_table (substs, left)->data.asPtr;
       assert (right);
@@ -4910,7 +4899,6 @@ analyze_slices (Btor *btor)
       default:
         assert (!BTOR_IS_ARGS_NODE (cur));
         assert (!BTOR_IS_ARRAY_EQ_NODE (cur));
-        assert (!BTOR_IS_ARRAY_VAR_NODE (cur));
     }
   }
   BTOR_RELEASE_STACK (mm, visit);
@@ -5021,7 +5009,7 @@ optimize_unconstrained (Btor *btor)
 
   start = btor_time_stamp ();
 
-  if (btor->bv_vars->count == 0 && btor->array_vars->count == 0) return;
+  if (btor->bv_vars->count == 0 && btor->ufs->count == 0) return;
 
   mm      = btor->mm;
   nparams = 0;
@@ -5036,7 +5024,7 @@ optimize_unconstrained (Btor *btor)
 
   /* collect nodes that might contribute to a headline propagation */
   init_node_hash_table_iterator (&it, btor->bv_vars);
-  queue_hash_table_iterator (&it, btor->array_vars);
+  queue_hash_table_iterator (&it, btor->ufs);
   while (has_next_hash_table_iterator (&it))
   {
     cur = next_node_hash_table_iterator (&it);
@@ -5047,7 +5035,7 @@ optimize_unconstrained (Btor *btor)
       cur_parent = BTOR_REAL_ADDR_NODE (cur->first_parent);
       assert (!btor_find_in_ptr_hash_table (hls, cur));
       btor_insert_in_ptr_hash_table (hls, btor_copy_exp (btor, cur));
-      if (BTOR_IS_ARRAY_VAR_NODE (cur)
+      if (BTOR_IS_UF_NODE (cur)
           || (cur_parent->kind != BTOR_APPLY_NODE
               && cur_parent->kind != BTOR_LAMBDA_NODE))
         BTOR_PUSH_STACK (mm, stack, cur_parent);
@@ -5083,7 +5071,7 @@ optimize_unconstrained (Btor *btor)
 
     assert (!BTOR_IS_BV_CONST_NODE (cur));
     assert (!BTOR_IS_BV_VAR_NODE (cur));
-    assert (!BTOR_IS_ARRAY_VAR_NODE (cur));
+    assert (!BTOR_IS_UF_NODE (cur));
     assert (!BTOR_IS_PARAM_NODE (cur));
 
     if (cur->mark == 1)
@@ -6139,8 +6127,7 @@ search_initial_applies (Btor *btor, BtorNodePtrStack *top_applies, int dp)
   mm = btor->mm;
   BTOR_INIT_STACK (top);
 
-  init_node_hash_table_iterator (&it, btor->array_vars);
-  queue_node_hash_table_iterator (&it, btor->uf);
+  init_node_hash_table_iterator (&it, btor->ufs);
   queue_node_hash_table_iterator (&it, btor->lambdas);
   while (has_next_node_hash_table_iterator (&it))
   {
@@ -6754,7 +6741,7 @@ compute_scores (Btor *btor)
         assert (cur->aux_mark == 1);
         assert (cur->arity > 0);
 #ifndef BTOR_JUST_BRANCH_MIN_DEPTH_BV_SKELETON
-        assert (!BTOR_IS_ARRAY_VAR_NODE (cur));
+        assert (!BTOR_IS_UF_NODE (cur));
 #endif
         cur->aux_mark = 2;
 
@@ -8968,12 +8955,12 @@ propagate (Btor *btor,
     BTORLOG ("  save app: %s (%s)", node2string (args), node2string (app));
 
     /* skip array vars/uf */
-    if (!BTOR_IS_LAMBDA_NODE (fun))
+    if (BTOR_IS_UF_NODE (fun))
     {
-      assert (BTOR_IS_ARRAY_VAR_NODE (fun) || BTOR_IS_UF_NODE (fun));
       push_applies_for_propagation (btor, app, 0, prop_stack);
       continue;
     }
+    assert (BTOR_IS_LAMBDA_NODE (fun));
 
     lambda = (BtorLambdaNode *) fun;
 
@@ -9046,17 +9033,6 @@ propagate (Btor *btor,
       prev_fun_value = 0;
     }
 #endif
-
-    if (BTOR_IS_ARRAY_VAR_NODE (BTOR_REAL_ADDR_NODE (fun_value)))
-    {
-      // TODO: can this happen? check lambda construction
-      //	   -> right now workaround for uf lambda -> lambda -> array
-      BTOR_PUSH_STACK (mm, *prop_stack, app);
-      BTOR_PUSH_STACK (mm, *prop_stack, fun_value);
-      btor_release_exp (btor, fun_value);
-      if (prev_fun_value) btor_release_exp (btor, prev_fun_value);
-      continue;
-    }
 
     if (!BTOR_REAL_ADDR_NODE (fun_value)->tseitin)
     {
@@ -9476,7 +9452,8 @@ BTOR_CONFLICT_CHECK:
     {
       /* remember arrays for incremental usage (and prevent premature
        * release in case that array is released via API call) */
-      BTOR_PUSH_STACK (mm, btor->arrays_with_model, btor_copy_exp (btor, fun));
+      BTOR_PUSH_STACK (
+          mm, btor->functions_with_model, btor_copy_exp (btor, fun));
     }
   }
   BTOR_RELEASE_STACK (mm, cleanup_stack);
@@ -9645,7 +9622,7 @@ btor_limited_sat_aux_btor (Btor *btor, int lod_limit, int sat_limit)
   /* reset SAT solver to non-incremental if all functions have been
    * eliminated */
   if (!btor->options.inc_enabled.val && smgr->inc_required
-      && btor->lambdas->count == 0 && btor->array_vars->count == 0)
+      && btor->lambdas->count == 0 && btor->ufs->count == 0)
   {
     smgr->inc_required = 0;
     btor_msg (
@@ -10770,12 +10747,12 @@ map_inputs_check_model (Btor *btor, Btor *clone)
         ->data.asPtr = btor_copy_exp (btor, (BtorNode *) b->key);
   }
 
-  init_node_hash_table_iterator (&it, clone->array_vars);
+  init_node_hash_table_iterator (&it, clone->ufs);
   while (has_next_node_hash_table_iterator (&it))
   {
     cur = next_node_hash_table_iterator (&it);
     if (!cur->reachable) continue;
-    b = btor_find_in_ptr_hash_table (btor->array_vars, cur);
+    b = btor_find_in_ptr_hash_table (btor->ufs, cur);
     assert (b);
 
     assert (!btor_find_in_ptr_hash_table (inputs, cur));
@@ -10835,9 +10812,8 @@ rebuild_formula (Btor *btor, int rewrite_level)
 
     if (cur->arity == 0)
     {
-      assert (BTOR_IS_BV_VAR_NODE (cur) || BTOR_IS_ARRAY_VAR_NODE (cur)
-              || BTOR_IS_BV_CONST_NODE (cur) || BTOR_IS_PARAM_NODE (cur)
-              || BTOR_IS_UF_NODE (cur));
+      assert (BTOR_IS_BV_VAR_NODE (cur) || BTOR_IS_BV_CONST_NODE (cur)
+              || BTOR_IS_PARAM_NODE (cur) || BTOR_IS_UF_NODE (cur));
       btor_insert_in_ptr_hash_table (t, cur);
     }
   }
@@ -10890,7 +10866,7 @@ check_model (Btor *btor, Btor *clone, BtorPtrHashTable *inputs)
         || btor_find_in_ptr_hash_table (clone->substitutions, real_simp))
       continue;
 
-    if (BTOR_IS_ARRAY_VAR_NODE (real_simp) || BTOR_IS_LAMBDA_NODE (real_simp))
+    if (BTOR_IS_FUN_NODE (real_simp))
     {
       size    = 0;
       indices = 0;

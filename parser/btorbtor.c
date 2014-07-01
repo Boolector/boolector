@@ -1001,14 +1001,16 @@ parse_compare_and_overflow (BtorBTORParser *parser,
         goto RELEASE_L_AND_R_AND_RETURN_ZERO;
       }
 
-      if (boolector_is_fun (parser->btor, l)
-          || boolector_is_fun (parser->btor, r))
-      {
-        (void) btor_perr_btor (parser,
-                               "extensionality on lambdas not supported");
+#if 0
+	  if (boolector_is_fun (parser->btor, l)
+	      || boolector_is_fun (parser->btor, r))
+	    {
+	      (void) btor_perr_btor (
+		       parser, "extensionality on lambdas not supported");
 
-        goto RELEASE_L_AND_R_AND_RETURN_ZERO;
-      }
+	      goto RELEASE_L_AND_R_AND_RETURN_ZERO;
+	    }
+#endif
 
       parser->found_aeq = 1;
     }

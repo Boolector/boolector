@@ -229,9 +229,8 @@ clone_exp (Btor *clone,
   /* ------------ BTOR_BV_ADDITIONAL_VAR_NODE_STRUCT (all nodes) ----------> */
   if (!BTOR_IS_BV_CONST_NODE (exp))
   {
-    if (BTOR_IS_BV_VAR_NODE (exp) || BTOR_IS_ARRAY_VAR_NODE (exp)
-        || BTOR_IS_PARAM_NODE (exp) || BTOR_IS_PROXY_NODE (exp)
-        || BTOR_IS_UF_NODE (exp))
+    if (BTOR_IS_BV_VAR_NODE (exp) || BTOR_IS_PARAM_NODE (exp)
+        || BTOR_IS_PROXY_NODE (exp) || BTOR_IS_UF_NODE (exp))
     {
       res->symbol = btor_strdup (mm, exp->symbol);
     }
@@ -876,9 +875,8 @@ clone_aux_btor (Btor *btor,
     else if (cur->rho)
       allocated += MEM_PTR_HASH_TABLE (cur->rho);
     if (!BTOR_IS_BV_CONST_NODE (cur)
-        && (BTOR_IS_BV_VAR_NODE (cur) || BTOR_IS_ARRAY_VAR_NODE (cur)
-            || BTOR_IS_PARAM_NODE (cur) || BTOR_IS_PROXY_NODE (cur)
-            || BTOR_IS_UF_NODE (cur)))
+        && (BTOR_IS_BV_VAR_NODE (cur) || BTOR_IS_PARAM_NODE (cur)
+            || BTOR_IS_PROXY_NODE (cur) || BTOR_IS_UF_NODE (cur)))
       allocated += cur->symbol ? strlen (cur->symbol) + 1 : 0;
     if (BTOR_IS_ARRAY_EQ_NODE (cur) && cur->vreads)
       allocated += sizeof (BtorNodePair);
@@ -921,11 +919,9 @@ clone_aux_btor (Btor *btor,
   CLONE_PTR_HASH_TABLE (bv_vars);
   assert ((allocated += MEM_PTR_HASH_TABLE (btor->bv_vars))
           == clone->mm->allocated);
-  CLONE_PTR_HASH_TABLE (array_vars);
-  assert ((allocated += MEM_PTR_HASH_TABLE (btor->array_vars))
+  CLONE_PTR_HASH_TABLE (ufs);
+  assert ((allocated += MEM_PTR_HASH_TABLE (btor->ufs))
           == clone->mm->allocated);
-  CLONE_PTR_HASH_TABLE (uf);
-  assert ((allocated += MEM_PTR_HASH_TABLE (btor->uf)) == clone->mm->allocated);
   CLONE_PTR_HASH_TABLE (lambdas);
   assert ((allocated += MEM_PTR_HASH_TABLE (btor->lambdas))
           == clone->mm->allocated);
@@ -997,10 +993,10 @@ clone_aux_btor (Btor *btor,
 
   BTORLOG_TIMESTAMP (delta);
   clone_node_ptr_stack (
-      mm, &btor->arrays_with_model, &clone->arrays_with_model, emap);
-  BTORLOG ("  clone arrays_with_model: %.3f s", (btor_time_stamp () - delta));
+      mm, &btor->functions_with_model, &clone->functions_with_model, emap);
+  BTORLOG ("  clone functions_with_model: %.3f s", btor_time_stamp () - delta);
   assert ((allocated +=
-           BTOR_SIZE_STACK (btor->arrays_with_model) * sizeof (BtorNode *))
+           BTOR_SIZE_STACK (btor->functions_with_model) * sizeof (BtorNode *))
           == clone->mm->allocated);
 
   CLONE_PTR_HASH_TABLE_ASPTR (cache, data_as_node_ptr);
@@ -1180,14 +1176,15 @@ btor_recursively_rebuild_exp_clone (Btor *btor,
         case BTOR_BV_VAR_NODE:
           cur_clone = btor_var_exp (clone, cur->len, cur->symbol);
           break;
-        case BTOR_ARRAY_VAR_NODE:
-          cur_clone = btor_array_exp (clone,
-                                      cur->len,
-                                      ((BtorArrayVarNode *) cur)->index_len,
-                                      cur->symbol);
-          break;
         case BTOR_PARAM_NODE:
           cur_clone = btor_param_exp (clone, cur->len, cur->symbol);
+          break;
+        case BTOR_UF_NODE:
+          cur_clone = btor_uf_exp (clone,
+                                   find_sort (&clone->sorts_unique_table,
+                                              ((BtorUFNode *) cur)->sort),
+                                   cur->symbol);
+          break;
         case BTOR_SLICE_NODE:
           cur_clone = btor_slice_exp (clone, e[0], cur->upper, cur->lower);
           break;

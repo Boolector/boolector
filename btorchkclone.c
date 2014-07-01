@@ -408,7 +408,7 @@ btor_chkclone_exp (BtorNode *exp, BtorNode *clone)
     assert (!real_clone->symbol
             || !strcmp (real_exp->symbol, real_clone->symbol));
 
-    if (!BTOR_IS_BV_VAR_NODE (real_exp) && !BTOR_IS_ARRAY_VAR_NODE (real_exp)
+    if (!BTOR_IS_BV_VAR_NODE (real_exp) && !BTOR_IS_UF_NODE (real_exp)
         && !BTOR_IS_PARAM_NODE (real_exp))
     {
       if (real_exp->arity)
@@ -624,7 +624,6 @@ btor_chkclone_tables (Btor *btor)
   BtorHashTableIterator it, cit;
 
   BTOR_CHKCLONE_NODE_PTR_HASH_TABLE (btor->bv_vars, btor->clone->bv_vars);
-  BTOR_CHKCLONE_NODE_PTR_HASH_TABLE (btor->array_vars, btor->clone->array_vars);
   BTOR_CHKCLONE_NODE_PTR_HASH_TABLE (btor->lambdas, btor->clone->lambdas);
   BTOR_CHKCLONE_NODE_PTR_HASH_TABLE (btor->substitutions,
                                      btor->clone->substitutions);
@@ -744,7 +743,7 @@ btor_chkclone (Btor *btor)
                                btor->clone->nodes_id_table);
   BTOR_CHKCLONE_NODE_UNIQUE_TABLE (btor->nodes_unique_table,
                                    btor->clone->nodes_unique_table);
-  BTOR_CHKCLONE_NODE_PTR_STACK (btor->arrays_with_model,
-                                btor->clone->arrays_with_model);
+  BTOR_CHKCLONE_NODE_PTR_STACK (btor->functions_with_model,
+                                btor->clone->functions_with_model);
   btor_chkclone_tables (btor);
 }
