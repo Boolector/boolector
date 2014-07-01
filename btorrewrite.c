@@ -919,7 +919,7 @@ rewrite_binary_exp (Btor *btor, BtorNodeKind kind, BtorNode *e0, BtorNode *e1)
     }
   }
   else if (real_e0 == real_e1
-           && (kind == BTOR_BEQ_NODE || kind == BTOR_AEQ_NODE
+           && (kind == BTOR_BEQ_NODE || kind == BTOR_FEQ_NODE
                || kind == BTOR_ADD_NODE))
   {
     if (kind == BTOR_BEQ_NODE)
@@ -929,7 +929,7 @@ rewrite_binary_exp (Btor *btor, BtorNodeKind kind, BtorNode *e0, BtorNode *e1)
       else
         result = btor_false_exp (btor); /* x == ~x */
     }
-    else if (kind == BTOR_AEQ_NODE)
+    else if (kind == BTOR_FEQ_NODE)
     {
       /* arrays must not be negated */
       assert (e0 == e1);
@@ -988,14 +988,14 @@ rewrite_binary_exp (Btor *btor, BtorNodeKind kind, BtorNode *e0, BtorNode *e1)
                || 0  // TODO references instead?
                )
            && (kind == BTOR_ULT_NODE || kind == BTOR_BEQ_NODE
-               || kind == BTOR_AEQ_NODE || kind == BTOR_ADD_NODE
+               || kind == BTOR_FEQ_NODE || kind == BTOR_ADD_NODE
                || kind == BTOR_UDIV_NODE))
   {
     switch (kind)
     {
       case BTOR_ULT_NODE: fptr = btor_rewrite_ult_exp; break;
       case BTOR_BEQ_NODE:
-      case BTOR_AEQ_NODE: fptr = btor_rewrite_eq_exp; break;
+      case BTOR_FEQ_NODE: fptr = btor_rewrite_eq_exp; break;
       case BTOR_ADD_NODE: fptr = btor_rewrite_add_exp; break;
       default:
         assert (kind == BTOR_UDIV_NODE);
@@ -2436,14 +2436,14 @@ btor_rewrite_eq_exp (Btor *btor, BtorNode *e0, BtorNode *e1)
   normalize_add_exp (btor, &e1);
 
   if (BTOR_IS_FUN_NODE (BTOR_REAL_ADDR_NODE (e0)))
-    kind = BTOR_AEQ_NODE;
+    kind = BTOR_FEQ_NODE;
   else
     kind = BTOR_BEQ_NODE;
 
     /* write (a, i, e1) = write (a, i, e2) ----> e1 = e2 */
 #if 0
   // TODO: no writes anymore
-  if (kind == BTOR_AEQ_NODE &&
+  if (kind == BTOR_FEQ_NODE &&
       BTOR_IS_WRITE_NODE (e0) &&
       BTOR_IS_WRITE_NODE (e1) &&
       e0->e[0] == e1->e[0] &&
@@ -4716,7 +4716,7 @@ btor_shallow_subst (
         break;
       case BTOR_AND_NODE: res = btor_and_exp (btor, s[0], s[1]); break;
       case BTOR_BEQ_NODE:
-      case BTOR_AEQ_NODE: res = btor_eq_exp (btor, s[0], s[1]); break;
+      case BTOR_FEQ_NODE: res = btor_eq_exp (btor, s[0], s[1]); break;
       case BTOR_ADD_NODE: res = btor_add_exp (btor, s[0], s[1]); break;
       case BTOR_MUL_NODE: res = btor_mul_exp (btor, s[0], s[1]); break;
       case BTOR_ULT_NODE: res = btor_ult_exp (btor, s[0], s[1]); break;

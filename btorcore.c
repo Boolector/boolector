@@ -895,7 +895,7 @@ btor_print_stats_btor (Btor *btor)
             btor->stats.ec_substitutions);
   btor_msg (btor, 1, "assumptions: %u", btor->assumptions->count);
 
-  if (btor->ops[BTOR_AEQ_NODE].cur)
+  if (btor->ops[BTOR_FEQ_NODE].cur)
     btor_msg (btor, 1, "virtual reads: %d", btor->stats.vreads);
 
   if (verbosity > 0)
@@ -2769,7 +2769,7 @@ rebuild_exp (Btor *btor, BtorNode *exp)
       return btor_slice_exp (btor, exp->e[0], exp->upper, exp->lower);
     case BTOR_AND_NODE: return btor_and_exp (btor, exp->e[0], exp->e[1]);
     case BTOR_BEQ_NODE:
-    case BTOR_AEQ_NODE: return btor_eq_exp (btor, exp->e[0], exp->e[1]);
+    case BTOR_FEQ_NODE: return btor_eq_exp (btor, exp->e[0], exp->e[1]);
     case BTOR_ADD_NODE: return btor_add_exp (btor, exp->e[0], exp->e[1]);
     case BTOR_MUL_NODE: return btor_mul_exp (btor, exp->e[0], exp->e[1]);
     case BTOR_ULT_NODE: return btor_ult_exp (btor, exp->e[0], exp->e[1]);
@@ -5158,7 +5158,7 @@ optimize_unconstrained (Btor *btor)
             }
             break;
           case BTOR_BEQ_NODE:
-          case BTOR_AEQ_NODE:
+          case BTOR_FEQ_NODE:
             // printf ("--cur: %s\n", node2string (cur));
             // printf ("--hl[0]: %d e[0]: %s\n", hl[0], node2string
             // (cur->e[0]));  printf ("--hl[1]: %d e[1]: %s\n", hl[1],
@@ -8832,7 +8832,7 @@ propagate (Btor *btor,
   assert (prop_stack);
   assert (cleanup_stack);
   // TODO: extensionality for write lambdas
-  assert (btor->ops[BTOR_AEQ_NODE].cur == 0);
+  assert (btor->ops[BTOR_FEQ_NODE].cur == 0);
 
 #ifndef NDEBUG
   int num_restarts;
@@ -9336,7 +9336,7 @@ check_and_resolve_conflicts (Btor *btor,
                              BtorNodePtrStack *tmp_stack)
 {
   assert (btor);
-  assert (btor->ops[BTOR_AEQ_NODE].cur == 0);
+  assert (btor->ops[BTOR_FEQ_NODE].cur == 0);
 
   int i, found_conflict, changed_assignments;
   BtorMemMgr *mm;
@@ -9631,7 +9631,7 @@ btor_limited_sat_aux_btor (Btor *btor, int lod_limit, int sat_limit)
 
   if (btor->valid_assignments == 1) btor_reset_incremental_usage (btor);
 
-  BTOR_ABORT_CORE (btor->ops[BTOR_AEQ_NODE].cur > 0,
+  BTOR_ABORT_CORE (btor->ops[BTOR_FEQ_NODE].cur > 0,
                    "extensionality on arrays/lambdas not yet supported");
 
   process_unsynthesized_constraints (btor);
@@ -9799,7 +9799,7 @@ btor_sat_aux_btor_dual_prop (Btor *btor)
 
   if (btor->valid_assignments == 1) btor_reset_incremental_usage (btor);
 
-  BTOR_ABORT_CORE (btor->ops[BTOR_AEQ_NODE].cur > 0,
+  BTOR_ABORT_CORE (btor->ops[BTOR_FEQ_NODE].cur > 0,
                    "extensionality on arrays/lambdas not yet supported");
 
   assert (btor->synthesized_constraints->count == 0);

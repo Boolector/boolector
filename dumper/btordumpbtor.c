@@ -239,7 +239,7 @@ bdcnode (BtorDumpContext *bdc, BtorNode *node, FILE *file)
     case BTOR_CONCAT_NODE: op = "concat"; break;
     case BTOR_BCOND_NODE: op = "cond"; break;
     case BTOR_BEQ_NODE:
-    case BTOR_AEQ_NODE: op = "eq"; break;
+    case BTOR_FEQ_NODE: op = "eq"; break;
     case BTOR_MUL_NODE: op = "mul"; break;
     case BTOR_PROXY_NODE: op = "proxy"; break;
     case BTOR_SLL_NODE: op = "sll"; break;
@@ -325,7 +325,7 @@ bdcnode (BtorDumpContext *bdc, BtorNode *node, FILE *file)
     case BTOR_CONCAT_NODE: op = "concat"; goto PRINT;
     case BTOR_BCOND_NODE: op = "cond"; goto PRINT;
     case BTOR_BEQ_NODE:
-    case BTOR_AEQ_NODE: op = "eq"; goto PRINT;
+    case BTOR_FEQ_NODE: op = "eq"; goto PRINT;
     case BTOR_MUL_NODE: op = "mul"; goto PRINT;
     case BTOR_PROXY_NODE: op = "proxy"; goto PRINT;
     case BTOR_SLL_NODE: op = "sll"; goto PRINT;

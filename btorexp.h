@@ -57,7 +57,7 @@ enum BtorNodeKind
   BTOR_SLICE_NODE    = 4,
   BTOR_AND_NODE      = 5,
   BTOR_BEQ_NODE      = 6, /* equality on bit vectors */
-  BTOR_AEQ_NODE      = 7, /* equality on arrays */
+  BTOR_FEQ_NODE      = 7, /* equality on arrays */
   BTOR_ADD_NODE      = 8,
   BTOR_MUL_NODE      = 9,
   BTOR_ULT_NODE      = 10,
@@ -248,7 +248,7 @@ typedef struct BtorArgsNode BtorArgsNode;
 
 #define BTOR_IS_BV_EQ_NODE_KIND(kind) (kind == BTOR_BEQ_NODE)
 
-#define BTOR_IS_ARRAY_EQ_NODE_KIND(kind) (kind == BTOR_AEQ_NODE)
+#define BTOR_IS_ARRAY_EQ_NODE_KIND(kind) (kind == BTOR_FEQ_NODE)
 
 #define BTOR_IS_LAMBDA_NODE_KIND(kind) ((kind) == BTOR_LAMBDA_NODE)
 

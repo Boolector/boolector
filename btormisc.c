@@ -38,7 +38,7 @@ node2string (BtorNode *exp)
     case BTOR_SLICE_NODE: name = "slice"; break;
     case BTOR_AND_NODE: name = "and"; break;
     case BTOR_BEQ_NODE:
-    case BTOR_AEQ_NODE: name = "eq"; break;
+    case BTOR_FEQ_NODE: name = "eq"; break;
     case BTOR_ADD_NODE: name = "add"; break;
     case BTOR_MUL_NODE: name = "mul"; break;
     case BTOR_ULT_NODE: name = "ult"; break;

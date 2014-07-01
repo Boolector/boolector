@@ -148,7 +148,7 @@ btor_map_node_internal (Btor *btor, BtorNodeMap *map, BtorNode *exp)
       return btor_slice_exp (btor, m[0], exp->upper, exp->lower);
     case BTOR_AND_NODE: return btor_and_exp (btor, m[0], m[1]);
     case BTOR_BEQ_NODE:
-    case BTOR_AEQ_NODE: return btor_eq_exp (btor, m[0], m[1]);
+    case BTOR_FEQ_NODE: return btor_eq_exp (btor, m[0], m[1]);
     case BTOR_ADD_NODE: return btor_add_exp (btor, m[0], m[1]);
     case BTOR_MUL_NODE: return btor_mul_exp (btor, m[0], m[1]);
     case BTOR_ULT_NODE: return btor_ult_exp (btor, m[0], m[1]);

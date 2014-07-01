@@ -770,7 +770,7 @@ erase_local_data_exp (Btor *btor, BtorNode *exp, int free_symbol)
         exp->symbol = 0;
       }
       break;
-    case BTOR_AEQ_NODE:
+    case BTOR_FEQ_NODE:
       if (exp->vreads)
       {
         BTOR_DELETE (mm, exp->vreads);
@@ -941,7 +941,7 @@ btor_set_to_proxy_exp (Btor *btor, BtorNode *exp)
   int i;
   BtorNode *e[3];
 
-  if (exp->kind == BTOR_AEQ_NODE && exp->vreads)
+  if (exp->kind == BTOR_FEQ_NODE && exp->vreads)
   {
     btor_release_exp (btor, exp->vreads->exp2);
     btor_release_exp (btor, exp->vreads->exp1);
@@ -1116,7 +1116,7 @@ new_aeq_exp_node (Btor *btor, BtorNode *e0, BtorNode *e1)
   assert (e0);
   assert (e1);
   BTOR_CNEW (btor->mm, exp);
-  set_kind (btor, exp, BTOR_AEQ_NODE);
+  set_kind (btor, exp, BTOR_FEQ_NODE);
   exp->bytes = sizeof *exp;
   exp->arity = 2;
   exp->len   = 1;
@@ -1746,7 +1746,7 @@ create_exp (Btor *btor, BtorNodeKind kind, int arity, BtorNode **e, int len)
 
     switch (kind)
     {
-      case BTOR_AEQ_NODE:
+      case BTOR_FEQ_NODE:
         assert (arity == 2);
         *lookup = new_aeq_exp_node (btor, e[0], e[1]);
         break;
@@ -1840,7 +1840,7 @@ btor_eq_exp_node (Btor *btor, BtorNode *e0, BtorNode *e1)
   assert (btor_precond_eq_exp_dbg (btor, e0, e1));
 
   if (BTOR_IS_FUN_NODE (BTOR_REAL_ADDR_NODE (e0)))
-    kind = BTOR_AEQ_NODE;
+    kind = BTOR_FEQ_NODE;
   else
   {
     kind = BTOR_BEQ_NODE;

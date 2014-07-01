@@ -483,7 +483,7 @@ btor_beta_reduce (Btor *btor, BtorNode *exp, int mode, int bound)
           btor_release_exp (btor, e[1]);
           break;
         case BTOR_BEQ_NODE:
-        case BTOR_AEQ_NODE:
+        case BTOR_FEQ_NODE:
           result = btor_eq_exp (btor, e[1], e[0]);
           btor_release_exp (btor, e[0]);
           btor_release_exp (btor, e[1]);
@@ -953,7 +953,7 @@ btor_beta_reduce (Btor *btor, BtorNode *exp, int mode, int bound)
             btor_release_exp (btor, e[1]);
             break;
           case BTOR_BEQ_NODE:
-          case BTOR_AEQ_NODE:
+          case BTOR_FEQ_NODE:
             result = btor_eq_exp (btor, e[1], e[0]);
             btor_release_exp (btor, e[0]);
             btor_release_exp (btor, e[1]);
@@ -1387,7 +1387,7 @@ btor_beta_reduce_partial_aux (Btor *btor,
           btor_release_exp (btor, e[1]);
           break;
         case BTOR_BEQ_NODE:
-        case BTOR_AEQ_NODE:
+        case BTOR_FEQ_NODE:
           result = btor_eq_exp (btor, e[1], e[0]);
           btor_release_exp (btor, e[0]);
           btor_release_exp (btor, e[1]);

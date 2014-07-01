@@ -1190,7 +1190,7 @@ btor_recursively_rebuild_exp_clone (Btor *btor,
           break;
         case BTOR_AND_NODE: cur_clone = btor_and_exp (clone, e[0], e[1]); break;
         case BTOR_BEQ_NODE:
-        case BTOR_AEQ_NODE: cur_clone = btor_eq_exp (clone, e[0], e[1]); break;
+        case BTOR_FEQ_NODE: cur_clone = btor_eq_exp (clone, e[0], e[1]); break;
         case BTOR_ADD_NODE: cur_clone = btor_add_exp (clone, e[0], e[1]); break;
         case BTOR_MUL_NODE: cur_clone = btor_mul_exp (clone, e[0], e[1]); break;
         case BTOR_ULT_NODE: cur_clone = btor_ult_exp (clone, e[0], e[1]); break;
