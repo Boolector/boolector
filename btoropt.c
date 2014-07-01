@@ -35,7 +35,6 @@ getenv_value (const char *lname)
     }
     uname[i] = toupper (lname[j]);
   }
-  uname[i] = '\0';
 
   return getenv (uname);
 }
