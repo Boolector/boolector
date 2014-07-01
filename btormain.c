@@ -81,7 +81,7 @@ struct BtorMainApp
   int just;
   int ucopt;
   int force_cleanup;
-  int pprint;
+  int pretty_print;
 #ifdef BTOR_USE_LINGELING
   int nofork;
 #endif
@@ -650,7 +650,7 @@ parse_commandline_arguments (BtorMainApp *app)
     else if (!strcmp (app->argv[app->argpos], "-npp")
              || !strcmp (app->argv[app->argpos], "--no-pretty-print"))
     {
-      app->pprint = 0;
+      app->pretty_print = 0;
     }
     else if (!strcmp (app->argv[app->argpos], "-v")
              || !strcmp (app->argv[app->argpos], "--verbose"))
@@ -1064,7 +1064,7 @@ boolector_main (int argc, char **argv)
   app.argv            = argv;
   app.basis           = BTOR_BINARY_BASIS;
   app.rewrite_level   = 3;
-  app.pprint          = 1;
+  app.pretty_print    = 1;
   static_set_alarm    = 0;
 
   parse_commandline_arguments (&app);
@@ -1110,7 +1110,7 @@ boolector_main (int argc, char **argv)
 
     if (app.dual_prop) boolector_set_opt_dual_prop (btor, 1);
 
-    if (app.just) boolector_set_opt_justification (btor, 1);
+    if (app.just) boolector_set_opt_just (btor, 1);
 
 #ifndef BTOR_DO_NOT_OPTIMIZE_UNCONSTRAINED
     if (app.ucopt) boolector_set_opt_ucopt (btor, 1);
@@ -1119,7 +1119,7 @@ boolector_main (int argc, char **argv)
     if (app.force_cleanup) boolector_set_opt_force_cleanup (btor, 1);
 
     // FIXME api
-    if (!app.pprint) btor_set_opt_pretty_print (btor, 0);
+    if (!app.pretty_print) btor_set_opt_pretty_print (btor, 0);
 
     if (app.print_model) boolector_set_opt_model_gen (btor, 1);
 

@@ -34,7 +34,7 @@ struct BtorSMTDumpContext
   BtorNodePtrStack roots;
   FILE *file;
   int maxid;
-  int pprint;
+  int pretty_print;
   int version;
   int open_lets;
 };
@@ -48,20 +48,20 @@ new_smt_dump_context (Btor *btor, FILE *file, int version)
   BtorSMTDumpContext *sdc;
   BTOR_CNEW (btor->mm, sdc);
 
-  sdc->btor    = btor;
-  sdc->dump    = btor_new_ptr_hash_table (btor->mm,
+  sdc->btor         = btor;
+  sdc->dump         = btor_new_ptr_hash_table (btor->mm,
                                        (BtorHashPtr) btor_hash_exp_by_id,
                                        (BtorCmpPtr) btor_compare_exp_by_id);
-  sdc->mark    = btor_new_ptr_hash_table (btor->mm,
+  sdc->mark         = btor_new_ptr_hash_table (btor->mm,
                                        (BtorHashPtr) btor_hash_exp_by_id,
                                        (BtorCmpPtr) btor_compare_exp_by_id);
-  sdc->idtab   = btor_new_ptr_hash_table (btor->mm,
+  sdc->idtab        = btor_new_ptr_hash_table (btor->mm,
                                         (BtorHashPtr) btor_hash_exp_by_id,
                                         (BtorCmpPtr) btor_compare_exp_by_id);
-  sdc->file    = file;
-  sdc->maxid   = 1;
-  sdc->pprint  = btor->options.pprint.val;
-  sdc->version = version;
+  sdc->file         = file;
+  sdc->maxid        = 1;
+  sdc->pretty_print = btor->options.pretty_print.val;
+  sdc->version      = version;
 
   BTOR_INIT_STACK (sdc->roots);
   return sdc;
@@ -104,7 +104,7 @@ smt_id (BtorSMTDumpContext *sdc, BtorNode *exp)
 
   BtorPtrHashBucket *b;
 
-  if (sdc->pprint)
+  if (sdc->pretty_print)
   {
     b = btor_find_in_ptr_hash_table (sdc->idtab, exp);
 
@@ -841,7 +841,7 @@ dump_smt_aux (Btor *btor, FILE *file, int version, BtorNode **roots, int nroots)
   assert (btor);
   assert (file);
   assert (version == 1 || version == 2);
-  assert (!btor->options.inc_enabled.val);
+  assert (!btor->options.inc_usage.val);
   //  assert (!btor->options.model_gen.val);
 
 #ifndef NDEBUG

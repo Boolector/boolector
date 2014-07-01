@@ -21,6 +21,12 @@
 #include "btoropt.h"
 #include "btorsort.h"
 
+/*------------------------------------------------------------------------*/
+
+#define BTOR_VERBOSITY_MAX 3
+
+/*------------------------------------------------------------------------*/
+
 #ifndef NDEBUG
 //#define BTOR_CHECK_FAILED
 #endif
@@ -269,7 +275,7 @@ const char *btor_version (Btor *btor);
 void btor_print_stats_btor (Btor *btor);
 
 /* Sets rewrite level [0,2]. */
-void btor_set_opt_rewrite_level_btor (Btor *btor, int val);
+void btor_set_opt_rewrite_level (Btor *btor, int val);
 
 /* Sets rewrite level [0,2] for partal beta reduction. */
 void btor_set_opt_rewrite_level_pbr (Btor *btor, int val);
@@ -278,7 +284,7 @@ void btor_set_opt_rewrite_level_pbr (Btor *btor, int val);
 void btor_set_opt_model_gen (Btor *btor, int val);
 
 /* Force all reads to be synthesized during model generation if enabled. */
-void btor_set_opt_generate_model_for_all_reads (Btor *btor, int val);
+void btor_set_opt_model_gen_all_reads (Btor *btor, int val);
 
 /* Enable/disable incremental usage which means that assumptions are enabled
  * and btor_sat_btor can be called more than once. Note that enabling this
@@ -292,7 +298,7 @@ void btor_set_opt_beta_reduce_all (Btor *btor, int val);
 /* Enable/disable dual propagation optimization of consistency check. */
 void btor_set_opt_dual_prop (Btor *btor, int val);
 
-/* Enable/disable justificationn optimization of consistency check. */
+/* Enable/disable justification optimization of consistency check. */
 void btor_set_opt_just (Btor *btor, int val);
 
 /* Enable/disable forcing of automatic cleanup of expressions and assignment
@@ -311,10 +317,14 @@ void btor_set_opt_ucopt (Btor *btor, int val);
  * if verbosity is set to -1, then boolector is in "quiet mode" and
  * does not print any output.
  */
-void btor_set_opt_verbosity_btor (Btor *btor, int val);
+void btor_set_opt_verbosity (Btor *btor, int val);
 
 /* Set log level. */
-void btor_set_opt_loglevel_btor (Btor *btor, int val);
+void btor_set_opt_loglevel (Btor *btor, int val);
+
+void btor_set_opt_simplify_constraints (Btor *btor, int val);
+void btor_set_opt_propagate_slices (Btor *btor, int val);
+void btor_set_opt_force_internal_cleanup (Btor *btor, int val);
 
 /* Reset time statistics. */
 void btor_reset_time_btor (Btor *btor);

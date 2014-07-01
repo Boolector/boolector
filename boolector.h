@@ -220,7 +220,7 @@ void boolector_set_opt_model_gen (Btor *btor, int val);
 /**
  * Enable model generation.
  * (Note: this function is deprecated,
- * use boolector_set_opt_model_gen instead!)
+ * use \ref boolector_set_opt_model_gen instead!)
  * \param btor Boolector instance.
  * \see boolector_set_model_gen
  */
@@ -234,14 +234,14 @@ void boolector_enable_model_gen (Btor *btor);
  * \param btor Boolector instance.
  * \param val 0 to disable, 1 to enable
  */
-void boolector_set_opt_generate_model_for_all_reads (Btor *btor, int val);
+void boolector_set_opt_model_gen_all_reads (Btor *btor, int val);
 
 /**
  * Enable model generation for all reads.
  * (Note: this function is deprecated,
- * use boolector_set_opt_generate_model_for_all_reads instead!)
+ * use \ref boolector_set_opt_model_gen_all_reads instead!)
  * \param btor Boolector instance.
- * \see boolector_set_opt_generate_model_for_all_reads
+ * \see boolector_set_opt_model_gen_all_reads
  */
 void boolector_generate_model_for_all_reads (Btor *btor);
 
@@ -259,7 +259,7 @@ void boolector_set_opt_inc_usage (Btor *btor, int val);
 /**
  * Enable incremental usage.
  * (Note: this function is deprecated,
- * use boolector_set_opt_inc_usage instead!)
+ * use \ref boolector_set_opt_inc_usage instead!)
  * \param btor Boolector instance.
  * \see boolector_set_opt_inc_usage
  */
@@ -267,7 +267,7 @@ void boolector_enable_inc_usage (Btor *btor);
 
 void boolector_set_opt_dual_prop (Btor *btor, int val);
 
-void boolector_set_opt_justification (Btor *btor, int val);
+void boolector_set_opt_just (Btor *btor, int val);
 
 void boolector_set_opt_ucopt (Btor *btor, int val);
 
@@ -293,7 +293,7 @@ void boolector_set_opt_rewrite_level (Btor *btor, int val);
 /**
  * Set the rewrite level of the rewriting engine.
  * (Note: this function is deprecated,
- * use boolector_set_opt_rewrite_level instead.)
+ * use \ref boolector_set_opt_rewrite_level instead.)
  * \param btor Boolector instance.
  * \param val Rewrite level ranging from
  * 0 (no rewriting) to 3 (full rewriting).
@@ -320,7 +320,7 @@ void boolector_set_opt_verbosity (Btor *btor, int val);
 /**
  * Set level of verbosity.
  * (Note: this function is deprecated,
- * use boolector_set_opt_verbosity instead.)
+ * use \ref boolector_set_opt_verbosity instead.)
  * \param btor Boolector instance.
  * \param val Verbosity level.
  * \see boolector_set_opt_verbosity
@@ -337,7 +337,7 @@ void boolector_set_opt_loglevel (Btor *btor, int val);
 /**
  * Set log level.
  * (Note: this function is deprecated,
- * use boolector_set_opt_loglevel instead.)
+ * use \ref boolector_set_opt_loglevel instead.)
  * \param btor Boolector instance.
  * \param val Log level.
  * \see boolector_set_opt_loglevel

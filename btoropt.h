@@ -13,31 +13,21 @@
 
 typedef struct BtorOpt
 {
-  char shrt;
-  const char *lng, *desc;
-  int dflt, val, min, max;
+  int internal;     /* internal option? */
+  const char *shrt; /* short option identifier (may be 0) */
+  const char *lng;  /* long option identifier */
+  const char *desc; /* description */
+  int val;          /* value */
+  int dflt;         /* default value */
+  int min;          /* min value */
+  int max;          /* max value */
 } BtorOpt;
-
-#define BTOR_OPT(shrt, lng, val, min, max, desc) \
-  do                                             \
-  {                                              \
-    assert (min <= val);                         \
-    assert (val <= max);                         \
-    BtorOpt *opt = &btor->opts->lng;             \
-    opt->shrt    = shrt;                         \
-    opt->lng     = #lng;                         \
-    opt->dflt = opt->val = val;                  \
-    opt->min             = min;                  \
-    opt->max             = max;                  \
-    opt->desc            = desc;                 \
-    btor_getenv (btor, opt, #lng);               \
-  } while (0)
 
 typedef struct BtorOpts
 {
-  BtorOpt model_gen; /* model generation enabled */
-  BtorOpt generate_model_for_all_reads;
-  BtorOpt inc_enabled; /* incremental usage */
+  BtorOpt model_gen;           /* model generation enabled */
+  BtorOpt model_gen_all_reads; /* generate model for all reads */
+  BtorOpt inc_usage;           /* incremental usage */
 
   BtorOpt rewrite_level;
   BtorOpt rewrite_level_pbr;
@@ -50,7 +40,7 @@ typedef struct BtorOpts
 #endif
 
   BtorOpt force_cleanup; /* force cleanup of exps, assignm. strings */
-  BtorOpt pprint;        /* reindex exps when dumping */
+  BtorOpt pretty_print;  /* reindex exps when dumping */
 #ifndef NBTORLOG
   BtorOpt loglevel;
 #endif
@@ -66,5 +56,8 @@ typedef struct BtorOpts
 #endif
 
 } BtorOpts;
+
+typedef struct Btor Btor;
+void btor_init_opts (Btor *btor);
 
 #endif

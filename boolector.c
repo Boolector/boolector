@@ -138,7 +138,10 @@ boolector_set_opt_model_gen (Btor *btor, int val)
   BTOR_ABORT_ARG_NULL_BOOLECTOR (btor);
   BTOR_TRAPI ("set_opt_model_gen %d", val);
   BTOR_ABORT_BOOLECTOR (
-      !val || BTOR_COUNT_STACK (btor->nodes_id_table) > 2,
+      !val,  // TODO
+      "disabling model generation is currently not supported");
+  BTOR_ABORT_BOOLECTOR (
+      BTOR_COUNT_STACK (btor->nodes_id_table) > 2,
       "enabling model generation must be done before creating expressions");
   btor_set_opt_model_gen (btor, val);
 #ifndef NDEBUG
@@ -154,21 +157,21 @@ boolector_enable_model_gen (Btor *btor)
 }
 
 void
-boolector_set_opt_generate_model_for_all_reads (Btor *btor, int val)
+boolector_set_opt_model_gen_all_reads (Btor *btor, int val)
 {
   BTOR_ABORT_ARG_NULL_BOOLECTOR (btor);
-  BTOR_TRAPI ("set_opt_generate_model_for_all_reads %d", val);
-  btor_set_opt_generate_model_for_all_reads (btor, val);
+  BTOR_TRAPI ("set_opt_model_gen_all_reads %d", val);
+  btor_set_opt_model_gen_all_reads (btor, val);
 #ifndef NDEBUG
-  BTOR_CHKCLONE_NORES (set_opt_generate_model_for_all_reads, val);
+  BTOR_CHKCLONE_NORES (set_opt_model_gen_all_reads, val);
 #endif
 }
 
 void
 boolector_generate_model_for_all_reads (Btor *btor)
 {
-  BTOR_WARN_DEPRECATED ("boolector_set_opt_generate_model_for_all_reads");
-  boolector_set_opt_generate_model_for_all_reads (btor, 1);
+  BTOR_WARN_DEPRECATED ("boolector_set_opt_model_gen_all_reads");
+  boolector_set_opt_model_gen_all_reads (btor, 1);
 }
 
 void
@@ -210,7 +213,7 @@ boolector_set_opt_dual_prop (Btor *btor, int val)
 }
 
 void
-boolector_set_opt_justification (Btor *btor, int val)
+boolector_set_opt_just (Btor *btor, int val)
 {
   BTOR_ABORT_ARG_NULL_BOOLECTOR (btor);
   BTOR_TRAPI ("set_opt_just %d", val);
@@ -219,7 +222,7 @@ boolector_set_opt_justification (Btor *btor, int val)
       "enabling multiple optimization techniques is not allowed");
   btor_set_opt_just (btor, val);
 #ifndef NDEBUG
-  BTOR_CHKCLONE_NORES (set_opt_justification, val);
+  BTOR_CHKCLONE_NORES (set_opt_just, val);
 #endif
 }
 
@@ -293,7 +296,7 @@ boolector_set_opt_rewrite_level (Btor *btor, int val)
   BTOR_ABORT_BOOLECTOR (
       BTOR_COUNT_STACK (btor->nodes_id_table) > 2,
       "setting rewrite level must be done before creating expressions");
-  btor_set_opt_rewrite_level_btor (btor, val);
+  btor_set_opt_rewrite_level (btor, val);
 #ifndef NDEBUG
   BTOR_CHKCLONE_NORES (set_opt_rewrite_level, val);
 #endif
@@ -324,7 +327,7 @@ boolector_set_opt_verbosity (Btor *btor, int val)
 {
   BTOR_ABORT_ARG_NULL_BOOLECTOR (btor);
   BTOR_TRAPI ("set_opt_verbosity %d", val);
-  btor_set_opt_verbosity_btor (btor, val);
+  btor_set_opt_verbosity (btor, val);
 #ifndef NDEBUG
   BTOR_CHKCLONE_NORES (set_opt_verbosity, val);
 #endif
@@ -343,7 +346,7 @@ boolector_set_opt_loglevel (Btor *btor, int val)
 #ifndef NBTORLOG
   BTOR_ABORT_ARG_NULL_BOOLECTOR (btor);
   BTOR_TRAPI ("set_opt_loglevel %d", val);
-  btor_set_opt_loglevel_btor (btor, val);
+  btor_set_opt_loglevel (btor, val);
 #ifndef NDEBUG
   BTOR_CHKCLONE_NORES (set_opt_loglevel, val);
 #endif
@@ -3133,7 +3136,7 @@ boolector_assume (Btor *btor, BoolectorNode *node)
   BTOR_ABORT_ARG_NULL_BOOLECTOR (btor);
   BTOR_ABORT_ARG_NULL_BOOLECTOR (exp);
   BTOR_TRAPI_UNFUN ("assume", exp);
-  BTOR_ABORT_BOOLECTOR (!btor->options.inc_enabled.val,
+  BTOR_ABORT_BOOLECTOR (!btor->options.inc_usage.val,
                         "incremental usage has not been enabled");
   BTOR_ABORT_REFS_NOT_POS_BOOLECTOR (exp);
   BTOR_ABORT_IF_BTOR_DOES_NOT_MATCH (btor, exp);
@@ -3163,7 +3166,7 @@ boolector_failed (Btor *btor, BoolectorNode *node)
       "cannot check failed assumptions if input formula is not UNSAT");
   BTOR_ABORT_ARG_NULL_BOOLECTOR (exp);
   BTOR_TRAPI_UNFUN ("failed", exp);
-  BTOR_ABORT_BOOLECTOR (!btor->options.inc_enabled.val,
+  BTOR_ABORT_BOOLECTOR (!btor->options.inc_usage.val,
                         "incremental usage has not been enabled");
   BTOR_ABORT_REFS_NOT_POS_BOOLECTOR (exp);
   BTOR_ABORT_IF_BTOR_DOES_NOT_MATCH (btor, exp);
@@ -3189,7 +3192,7 @@ boolector_sat (Btor *btor)
   BTOR_ABORT_ARG_NULL_BOOLECTOR (btor);
   BTOR_TRAPI ("sat");
   BTOR_ABORT_BOOLECTOR (
-      !btor->options.inc_enabled.val && btor->btor_sat_btor_called > 0,
+      !btor->options.inc_usage.val && btor->btor_sat_btor_called > 0,
       "incremental usage has not been enabled."
       "'boolector_sat' may only be called once");
   res = btor_sat_btor (btor);

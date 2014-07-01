@@ -64,13 +64,13 @@ btor_chkclone_state (Btor *btor)
   BTOR_CHKCLONE_STATE (options.beta_reduce_all.val);
   BTOR_CHKCLONE_STATE (options.force_cleanup.val);
   BTOR_CHKCLONE_STATE (options.force_internal_cleanup.val);
-  BTOR_CHKCLONE_STATE (options.generate_model_for_all_reads.val);
-  BTOR_CHKCLONE_STATE (options.inc_enabled.val);
+  BTOR_CHKCLONE_STATE (options.model_gen_all_reads.val);
+  BTOR_CHKCLONE_STATE (options.inc_usage.val);
 #ifndef NBTORLOG
   BTOR_CHKCLONE_STATE (options.loglevel.val);
 #endif
   BTOR_CHKCLONE_STATE (options.model_gen.val);
-  BTOR_CHKCLONE_STATE (options.pprint.val);
+  BTOR_CHKCLONE_STATE (options.pretty_print.val);
 #ifndef BTOR_DO_NOT_OPTIMIZE_UNCONSTRAINED
   BTOR_CHKCLONE_STATE (options.ucopt.val);
 #endif
