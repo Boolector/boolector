@@ -46,6 +46,20 @@ def _is_node(s):
     m = re.match('^e-?\d+', s)
     return m is not None
 
+def _sort_bw(tokens):
+    sort = tokens[0]
+
+    if sort == "bitvec_sort":
+        return [int(tokens[1])]
+    elif sort == "tuple_sort":
+        pass
+    elif sort == "fun_sort":
+        return _sort_bw(tokens[2])
+    elif sort == "bool_sort":
+        pass
+    
+    return [-1]
+
 def _tokens_children(tokens):
     return [c for c in tokens if _is_node(c)]
 
@@ -70,6 +84,11 @@ def _tokens_bw(tokens, nodes_bw):
                   "ugt", "sgt", "ugte", "sgte",
                   "uaddo", "saddo", "usubo", "ssubo", "sdivo"]:
         return [1]
+    # TODO: sort handling
+    elif kind == "uf":
+        return [-1]
+    elif "_sort" in kind:
+        return _sort_bw(tokens)
     else:
         children = _tokens_children(tokens)
         cbw = [nodes_bw[c] for c in children]
@@ -100,6 +119,7 @@ def _tokens_bw(tokens, nodes_bw):
         elif kind == "copy":
             return cbw[0]
         else:
+            print(tokens)
             assert(len(cbw) == 2)
             assert(cbw[0] == cbw[1])
             return cbw[0]
@@ -155,7 +175,21 @@ def _dump_trace(outfile, lines):
     global g_subst_lines
 
     for i in range(len(lines)):
-        if i in g_subst_lines:
+        # TODO: sort handling
+        # skip sort lines for now
+        skip = False
+        m = re.search('_sort$', lines[i].split()[0])
+        if m is not None:
+            skip = True
+        if not skip:
+            m = re.match('^return s\d+', lines[i])
+            if m is not None:
+                skip = True
+
+        if skip:
+            skip = True
+
+        if i in g_subst_lines and not skip:
             line = g_subst_lines[i]
         else:
             line = lines[i]
