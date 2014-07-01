@@ -470,7 +470,7 @@ typedef struct BtorMBT
 
   int seed;
   int seeded;
-  int round;
+  int rounds;
   int bugs;
   int forked;
   int ppid; /* parent pid */
@@ -2899,8 +2899,8 @@ stats (BtorMBT *btormbt)
   double t = get_time ();
   printf ("finished after %0.2f seconds\n", t);
   printf ("%d rounds = %0.2f rounds per second\n",
-          btormbt->round,
-          average (btormbt->round, t));
+          btormbt->rounds,
+          average (btormbt->rounds, t));
   printf ("%d bugs = %0.2f bugs per second\n",
           btormbt->bugs,
           average (btormbt->bugs, t));
@@ -3522,8 +3522,8 @@ main (int argc, char **argv)
   set_sig_handlers ();
 
   mac = hashmac ();
-  for (btormbt->round = 0; btormbt->round < btormbt->g_max_rounds;
-       btormbt->round++)
+  for (btormbt->rounds = 0; btormbt->rounds < btormbt->g_max_rounds;
+       btormbt->rounds++)
   {
     if (!(prev & 1)) prev++;
 
@@ -3542,7 +3542,7 @@ main (int argc, char **argv)
       if (!btormbt->quiet)
       {
         if (btormbt->terminal) erase ();
-        printf ("%d %d ", btormbt->round, btormbt->seed);
+        printf ("%d %d ", btormbt->rounds, btormbt->seed);
         fflush (stdout);
       }
 
