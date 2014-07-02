@@ -9,13 +9,13 @@
  *  See COPYING for more information on using this software.
  */
 
+#ifndef NDEBUG
+
+#include "btorchkclone.h"
+#include "btorbitvec.h"
 #include "btorcore.h"
 #include "btoriter.h"
 #include "btoropt.h"
-#ifndef NDEBUG
-#include "btorbitvec.h"
-#endif
-#include "btorchkclone.h"
 
 #define BTOR_CHKCLONE_STATE(field)        \
   do                                      \
@@ -747,3 +747,4 @@ btor_chkclone (Btor *btor)
                                 btor->clone->functions_with_model);
   btor_chkclone_tables (btor);
 }
+#endif
