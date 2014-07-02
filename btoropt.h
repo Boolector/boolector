@@ -25,6 +25,8 @@ typedef struct BtorOpt
 
 typedef struct BtorOpts
 {
+  BtorOpt first; /* dummy for iterating through options */
+  /* ----------------------------------------------------------------------- */
   BtorOpt model_gen;           /* model generation enabled */
   BtorOpt model_gen_all_reads; /* generate model for all reads */
   BtorOpt incremental;         /* incremental usage */
@@ -54,8 +56,13 @@ typedef struct BtorOpts
 #ifdef BTOR_CHECK_FAILED
   BtorOpt chk_failed_assumptions;
 #endif
+  /* ----------------------------------------------------------------------- */
+  BtorOpt last; /* dummy for iterating through options */
 
 } BtorOpts;
+
+#define BTOR_FIRST_OPT(btor) (&(btor)->opts->first + 1)
+#define BTOR_LAST_OPT(btor) (&(btor)->opts->last - 1)
 
 typedef struct Btor Btor;
 void btor_init_opts (Btor *btor);
