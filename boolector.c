@@ -175,27 +175,27 @@ boolector_generate_model_for_all_reads (Btor *btor)
 }
 
 void
-boolector_set_opt_inc_usage (Btor *btor, int val)
+boolector_set_opt_incremental (Btor *btor, int val)
 {
   BTOR_ABORT_ARG_NULL_BOOLECTOR (btor);
-  BTOR_TRAPI ("set_opt_inc_usage %d", val);
+  BTOR_TRAPI ("set_opt_incremental %d", val);
   // TODO
   BTOR_ABORT_BOOLECTOR (
       val == 0, "disabling incremental usage is currently not supported");
   BTOR_ABORT_BOOLECTOR (
       btor->btor_sat_btor_called > 0,
       "enabling incremental usage must be done before calling 'boolector_sat'");
-  btor_set_opt_inc_usage (btor, val);
+  btor_set_opt_incremental (btor, val);
 #ifndef NDEBUG
-  BTOR_CHKCLONE_NORES (set_opt_inc_usage, val);
+  BTOR_CHKCLONE_NORES (set_opt_incremental, val);
 #endif
 }
 
 void
 boolector_enable_inc_usage (Btor *btor)
 {
-  BTOR_WARN_DEPRECATED ("boolector_set_opt_inc_usage");
-  boolector_set_opt_inc_usage (btor, 1);
+  BTOR_WARN_DEPRECATED ("boolector_set_opt_incremental");
+  boolector_set_opt_incremental (btor, 1);
 }
 
 void
@@ -3134,7 +3134,7 @@ boolector_assume (Btor *btor, BoolectorNode *node)
   BTOR_ABORT_ARG_NULL_BOOLECTOR (btor);
   BTOR_ABORT_ARG_NULL_BOOLECTOR (exp);
   BTOR_TRAPI_UNFUN ("assume", exp);
-  BTOR_ABORT_BOOLECTOR (!btor->options.inc_usage.val,
+  BTOR_ABORT_BOOLECTOR (!btor->options.incremental.val,
                         "incremental usage has not been enabled");
   BTOR_ABORT_REFS_NOT_POS_BOOLECTOR (exp);
   BTOR_ABORT_IF_BTOR_DOES_NOT_MATCH (btor, exp);
@@ -3164,7 +3164,7 @@ boolector_failed (Btor *btor, BoolectorNode *node)
       "cannot check failed assumptions if input formula is not UNSAT");
   BTOR_ABORT_ARG_NULL_BOOLECTOR (exp);
   BTOR_TRAPI_UNFUN ("failed", exp);
-  BTOR_ABORT_BOOLECTOR (!btor->options.inc_usage.val,
+  BTOR_ABORT_BOOLECTOR (!btor->options.incremental.val,
                         "incremental usage has not been enabled");
   BTOR_ABORT_REFS_NOT_POS_BOOLECTOR (exp);
   BTOR_ABORT_IF_BTOR_DOES_NOT_MATCH (btor, exp);
@@ -3190,7 +3190,7 @@ boolector_sat (Btor *btor)
   BTOR_ABORT_ARG_NULL_BOOLECTOR (btor);
   BTOR_TRAPI ("sat");
   BTOR_ABORT_BOOLECTOR (
-      !btor->options.inc_usage.val && btor->btor_sat_btor_called > 0,
+      !btor->options.incremental.val && btor->btor_sat_btor_called > 0,
       "incremental usage has not been enabled."
       "'boolector_sat' may only be called once");
   res = btor_sat_btor (btor);

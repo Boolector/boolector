@@ -110,7 +110,7 @@ btor_init_opts (Btor *btor)
 
   BTOR_OPT ("m", model_gen, 0, 0, 1, "print model for satisfiable instances");
   BTOR_OPT (0, model_gen_all_reads, 0, 0, 1, "generate model for all reads");
-  BTOR_OPT ("i", inc_usage, 0, 0, 1, "incremental usage (SMT1 only)");
+  BTOR_OPT ("i", incremental, 0, 0, 1, "incremental usage (SMT1 only)");
   BTOR_OPT (
       "bra", beta_reduce_all, 0, 0, 1, "eagerly eliminate lambda expressions");
   BTOR_OPT ("dp", dual_prop, 0, 0, 1, "enable dual propagation optimization");

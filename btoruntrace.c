@@ -373,10 +373,10 @@ NEXT:
     PARSE_ARGS1 (tok, int);
     boolector_set_opt_pretty_print (btor, arg1_int);
   }
-  else if (!strcmp (tok, "set_opt_inc_usage"))
+  else if (!strcmp (tok, "set_opt_incremental"))
   {
     PARSE_ARGS1 (tok, int);
-    boolector_set_opt_inc_usage (btor, arg1_int);
+    boolector_set_opt_incremental (btor, arg1_int);
   }
   else if (!strcmp (tok, "set_opt_beta_reduce_all"))
   {

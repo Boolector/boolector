@@ -741,7 +741,7 @@ initialize_new_forward_frame (BtorMC *mc)
   {
     btor_msg_mc (mc, 1, "new forward manager");
     mc->forward = btor_new_btor ();
-    btor_set_opt_inc_usage (mc->forward, 1);
+    btor_set_opt_incremental (mc->forward, 1);
     if (mc->trace_enabled) btor_set_opt_model_gen (mc->forward, 1);
     if (mc->verbosity) btor_set_opt_verbosity (mc->forward, mc->verbosity);
   }

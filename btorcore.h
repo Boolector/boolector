@@ -290,7 +290,7 @@ void btor_set_opt_model_gen_all_reads (Btor *btor, int val);
  * and btor_sat_btor can be called more than once. Note that enabling this
  * feature turns off some optimizations which are not possible anymore.
  */
-void btor_set_opt_inc_usage (Btor *btor, int val);
+void btor_set_opt_incremental (Btor *btor, int val);
 
 /* Enable/disable rewriting of reads on lambda expressions. */
 void btor_set_opt_beta_reduce_all (Btor *btor, int val);

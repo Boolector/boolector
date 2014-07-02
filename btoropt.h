@@ -27,7 +27,7 @@ typedef struct BtorOpts
 {
   BtorOpt model_gen;           /* model generation enabled */
   BtorOpt model_gen_all_reads; /* generate model for all reads */
-  BtorOpt inc_usage;           /* incremental usage */
+  BtorOpt incremental;         /* incremental usage */
 
   BtorOpt rewrite_level;
   BtorOpt rewrite_level_pbr;
