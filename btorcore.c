@@ -43,9 +43,7 @@
 #ifndef BTOR_DO_NOT_OPTIMIZE_UNCONSTRAINED
 #define BTOR_CHECK_UNCONSTRAINED
 #endif
-#ifdef BTOR_DO_NOT_OPTIMIZE_UNCONSTRAINED
 #define BTOR_CHECK_MODEL
-#endif
 #define BTOR_CHECK_DUAL_PROP
 #endif
 
@@ -483,35 +481,13 @@ void
 btor_set_opt_model_gen (Btor *btor, int val)
 {
   assert (btor);
-  assert (!val || BTOR_COUNT_STACK (btor->nodes_id_table) == 2);
-
-  BtorHashTableIterator it;
 
   if (val && !btor->options.model_gen.val)
-  {
     btor->options.model_gen.val = 1;
-
-    btor->var_rhs =
-        btor_new_ptr_hash_table (btor->mm,
-                                 (BtorHashPtr) btor_hash_exp_by_id,
-                                 (BtorCmpPtr) btor_compare_exp_by_id);
-
-    btor->array_rhs =
-        btor_new_ptr_hash_table (btor->mm,
-                                 (BtorHashPtr) btor_hash_exp_by_id,
-                                 (BtorCmpPtr) btor_compare_exp_by_id);
-  }
   else if (!val && btor->options.model_gen.val)
   {
     btor->options.model_gen.val = 0;
-    init_node_hash_table_iterator (&it, btor->var_rhs);
-    queue_node_hash_table_iterator (&it, btor->array_rhs);
-    while (has_next_node_hash_table_iterator (&it))
-      btor_release_exp (btor, next_node_hash_table_iterator (&it));
-    btor_delete_ptr_hash_table (btor->var_rhs);
-    btor_delete_ptr_hash_table (btor->array_rhs);
-    btor->var_rhs   = 0;
-    btor->array_rhs = 0;
+    btor_delete_model (btor);
   }
 }
 
@@ -1145,10 +1121,6 @@ btor_new_btor (void)
 
   btor_init_opts (btor);
 
-#ifdef BTOR_CHECK_MODEL
-  btor_set_opt_model_gen (btor, 1);
-#endif
-
   btor->bv_assignments    = btor_new_bv_assignment_list (mm);
   btor->array_assignments = btor_new_array_assignment_list (mm);
 
@@ -1204,6 +1176,14 @@ btor_new_btor (void)
       btor_new_ptr_hash_table (mm,
                                (BtorHashPtr) btor_hash_exp_by_id,
                                (BtorCmpPtr) btor_compare_exp_by_id);
+  btor->var_rhs = btor_new_ptr_hash_table (btor->mm,
+                                           (BtorHashPtr) btor_hash_exp_by_id,
+                                           (BtorCmpPtr) btor_compare_exp_by_id);
+
+  btor->array_rhs =
+      btor_new_ptr_hash_table (btor->mm,
+                               (BtorHashPtr) btor_hash_exp_by_id,
+                               (BtorCmpPtr) btor_compare_exp_by_id);
 
   BTOR_INIT_STACK (btor->functions_with_model);
   BTOR_INIT_STACK (btor->stats.lemmas_size);
@@ -1224,8 +1204,9 @@ btor_delete_btor (Btor *btor)
   BtorPtrHashBucket *b, *b_app;
   BtorMemMgr *mm;
   BtorNode *exp;
+  BtorHashTableIterator it;
 #ifdef BTOR_JUST_USE_HEURISTIC
-  BtorHashTableIterator it, iit;
+  BtorHashTableIterator iit;
 #endif
   BtorSort *sort;
   BtorSortPtrStack sorts;
@@ -1254,6 +1235,7 @@ btor_delete_btor (Btor *btor)
   }
   btor_delete_ptr_hash_table (btor->varsubst_constraints);
 
+  // TODO: use hash table iterator
   for (b = btor->embedded_constraints->first; b; b = b->next)
     btor_release_exp (btor, (BtorNode *) b->key);
   btor_delete_ptr_hash_table (btor->embedded_constraints);
@@ -1270,17 +1252,15 @@ btor_delete_btor (Btor *btor)
     btor_release_exp (btor, (BtorNode *) b->key);
   btor_delete_ptr_hash_table (btor->assumptions);
 
-  if (btor->options.model_gen.val)
-  {
-    for (b = btor->var_rhs->first; b; b = b->next)
-      btor_release_exp (btor, (BtorNode *) b->key);
-    btor_delete_ptr_hash_table (btor->var_rhs);
+  init_node_hash_table_iterator (&it, btor->var_rhs);
+  queue_node_hash_table_iterator (&it, btor->array_rhs);
+  while (has_next_node_hash_table_iterator (&it))
+    btor_release_exp (btor, next_node_hash_table_iterator (&it));
 
-    for (b = btor->array_rhs->first; b; b = b->next)
-      btor_release_exp (btor, (BtorNode *) b->key);
-    btor_delete_ptr_hash_table (btor->array_rhs);
-    btor_delete_model (btor);
-  }
+  btor_delete_ptr_hash_table (btor->var_rhs);
+  btor_delete_ptr_hash_table (btor->array_rhs);
+
+  if (btor->options.model_gen.val) btor_delete_model (btor);
 
   for (i = 0; i < BTOR_COUNT_STACK (btor->functions_with_model); i++)
     btor_release_exp (btor, btor->functions_with_model.start[i]);
@@ -1619,15 +1599,13 @@ insert_varsubst_constraint (Btor *btor, BtorNode *left, BtorNode *right)
 
   if (!bucket)
   {
-    if (btor->options.model_gen.val
-        && !BTOR_IS_FUN_NODE (BTOR_REAL_ADDR_NODE (right))
+    if (!BTOR_IS_FUN_NODE (BTOR_REAL_ADDR_NODE (right))
         && !btor_find_in_ptr_hash_table (btor->var_rhs, left))
     {
       btor_insert_in_ptr_hash_table (btor->var_rhs, btor_copy_exp (btor, left));
     }
 
-    if (btor->options.model_gen.val
-        && BTOR_IS_FUN_NODE (BTOR_REAL_ADDR_NODE (right))
+    if (BTOR_IS_FUN_NODE (BTOR_REAL_ADDR_NODE (right))
         && !btor_find_in_ptr_hash_table (btor->array_rhs, left))
     {
       btor_insert_in_ptr_hash_table (btor->array_rhs,
@@ -9602,7 +9580,7 @@ btor_limited_sat_aux_btor (Btor *btor, int lod_limit, int sat_limit)
     faclone = btor_clone_btor (btor);
     btor_set_opt_force_cleanup (faclone, 1);
     btor_set_opt_force_internal_cleanup (faclone, 1);
-    btor_set_loglevel_btor (faclone, 0);
+    btor_set_opt_loglevel (faclone, 0);
     btor_set_opt_verbosity (faclone, 0);
     faclone->options.chk_failed_assumptions.val = 0;
     faclone->options.dual_prop.val              = 0;  // FIXME necessary?
@@ -9782,7 +9760,7 @@ btor_sat_aux_btor_dual_prop (Btor *btor)
     faclone = btor_clone_btor (btor);
     btor_set_opt_force_cleanup (faclone, 1);
     btor_set_opt_force_internal_cleanup (faclone, 1);
-    btor_set_loglevel_btor (faclone, 0);
+    btor_set_opt_loglevel (faclone, 0);
     btor_set_opt_verbosity (faclone, 0);
     faclone->options.chk_failed_assumptions.val = 0;
     faclone->options.dual_prop.val              = 0;  // FIXME necessary?
@@ -9978,8 +9956,9 @@ btor_sat_btor (Btor *btor)
 #ifdef BTOR_CHECK_MODEL
   Btor *mclone;
   BtorPtrHashTable *inputs;
+  btor_set_opt_model_gen (btor, 1);
   mclone = btor_clone_btor (btor);
-  btor_set_loglevel_btor (mclone, 0);
+  btor_set_opt_loglevel (mclone, 0);
   btor_set_opt_verbosity (mclone, 0);
   mclone->options.dual_prop.val = 0;  // FIXME necessary?
   inputs                        = map_inputs_check_model (btor, mclone);
@@ -10014,7 +9993,12 @@ btor_sat_btor (Btor *btor)
     btor_generate_model (btor);
 
 #ifdef BTOR_CHECK_MODEL
-  if (res == BTOR_SAT) check_model (btor, mclone, inputs);
+  if (res == BTOR_SAT && !btor->options.ucopt.val)
+  {
+    if (!btor->options.model_gen.val) btor_generate_model (btor);
+    check_model (btor, mclone, inputs);
+    if (!btor->options.model_gen.val) btor_delete_model (btor);
+  }
 
   BtorHashTableIterator it;
   init_node_hash_table_iterator (&it, inputs);
@@ -10662,7 +10646,6 @@ btor_bv_assignment_str (Btor *btor, BtorNode *exp)
 {
   assert (btor);
   assert (exp);
-  assert (btor->options.model_gen.val);
   assert (btor->last_sat_result == BTOR_SAT);
   assert (btor->bv_model);
 
