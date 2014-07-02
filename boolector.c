@@ -251,6 +251,9 @@ boolector_sat (Btor *btor)
   return res;
 }
 
+// TODO: we cannot use btor_limited_sat_btor here, as every check in
+// btor_sat_btor is not executed in btor_limited_sat_btor
+// we need a uniform handling of this (ma)
 int
 boolector_limited_sat (Btor *btor, int lod_limit, int sat_limit)
 {
@@ -317,9 +320,6 @@ boolector_set_opt (Btor *btor, const char *opt, int val)
     BTOR_ABORT_BOOLECTOR (
         !val,  // TODO
         "disabling model generation is currently not supported");
-    BTOR_ABORT_BOOLECTOR (
-        BTOR_COUNT_STACK (btor->nodes_id_table) > 2,
-        "enabling model generation must be done before creating expressions");
   }
   else if (!strcmp (opt, "i") || !strcmp (opt, "incremental"))
   {

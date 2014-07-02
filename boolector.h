@@ -74,8 +74,7 @@ typedef struct BoolectorNode BoolectorNode;
  * They can be obtained for arbitrary expressions.
  * Finally, Boolector supports incremental usage with assumptions analogously
  * to MiniSAT. The incremental usage can be enabled
- * via \ref boolector_set_opt_incremental. Assumptions can be added by
- * \ref boolector_assume.
+ * via \ref boolector_set_opt Assumptions can be added by \ref boolector_assume.
  *
  * \section Internals
  * Internally, Boolector manages an expression DAG. This means that each
@@ -217,7 +216,7 @@ void boolector_assert (Btor *btor, BoolectorNode *node);
 /**
  * Adds assumption. Use this function to assume 'node'.
  * You must enable Boolector's incremental usage via
- * \ref boolector_set_opt_incremental before.
+ * \ref boolector_set_opt before.
  * In contrast to \ref boolector_assert the assumptions are
  * discarded after each call to \ref boolector_sat. Assumptions
  * and assertions are logically combined by boolean 'and'.
@@ -240,7 +239,7 @@ int boolector_failed (Btor *btor, BoolectorNode *node);
  * by \ref boolector_assert and \ref boolector_assume. Note that
  * assertions and assumptions are combined by boolean 'and'.
  * If you want to call this function multiple times then you must enable
- * Boolector's incremental usage mode via \ref boolector_set_opt_incremental
+ * Boolector's incremental usage mode via \ref boolector_set_opt
  * before. Otherwise, this function can only * be called once.
  * \param btor Boolector instance.
  * \return It returns \ref BOOLECTOR_SAT if the instance is satisfiable and
@@ -1442,9 +1441,9 @@ void boolector_generate_model_for_all_reads (Btor *btor);
 /**
  * Enable incremental usage.
  * (Note: this function is deprecated,
- * use \ref boolector_set_opt_incremental instead!)
+ * use \ref boolector_set_opt instead!
  * \param btor Boolector instance.
- * \see boolector_set_opt_incremental
+ * \see boolector_set_opt
  */
 void boolector_enable_inc_usage (Btor *btor);
 
