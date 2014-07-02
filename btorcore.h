@@ -274,58 +274,6 @@ const char *btor_version (Btor *btor);
 /* Prints statistics. */
 void btor_print_stats_btor (Btor *btor);
 
-/* Sets rewrite level [0,2]. */
-void btor_set_opt_rewrite_level (Btor *btor, int val);
-
-/* Sets rewrite level [0,2] for partal beta reduction. */
-void btor_set_opt_rewrite_level_pbr (Btor *btor, int val);
-
-/* Enable/disable model generation. */
-void btor_set_opt_model_gen (Btor *btor, int val);
-
-/* Force all reads to be synthesized during model generation if enabled. */
-void btor_set_opt_model_gen_all_reads (Btor *btor, int val);
-
-/* Enable/disable incremental usage which means that assumptions are enabled
- * and btor_sat_btor can be called more than once. Note that enabling this
- * feature turns off some optimizations which are not possible anymore.
- */
-void btor_set_opt_incremental (Btor *btor, int val);
-
-/* Enable/disable rewriting of reads on lambda expressions. */
-void btor_set_opt_beta_reduce_all (Btor *btor, int val);
-
-/* Enable/disable dual propagation optimization of consistency check. */
-void btor_set_opt_dual_prop (Btor *btor, int val);
-
-/* Enable/disable justification optimization of consistency check. */
-void btor_set_opt_just (Btor *btor, int val);
-
-/* Enable/disable forcing of automatic cleanup of expressions and assignment
- * strings. */
-void btor_set_opt_force_cleanup (Btor *btor, int val);
-
-/* Enable/disable pretty printing when dumping and rewriting of writes is
- * enabled.  */
-void btor_set_opt_pretty_print (Btor *btor, int val);
-
-#ifndef BTOR_DO_NOT_OPTIMIZE_UNCONSTRAINED
-void btor_set_opt_ucopt (Btor *btor, int val);
-#endif
-
-/* Sets verbosity [-1,3] of btor and all sub-components
- * if verbosity is set to -1, then boolector is in "quiet mode" and
- * does not print any output.
- */
-void btor_set_opt_verbosity (Btor *btor, int val);
-
-/* Set log level. */
-void btor_set_opt_loglevel (Btor *btor, int val);
-
-void btor_set_opt_simplify_constraints (Btor *btor, int val);
-void btor_set_opt_propagate_slices (Btor *btor, int val);
-void btor_set_opt_force_internal_cleanup (Btor *btor, int val);
-
 /* Reset time statistics. */
 void btor_reset_time_btor (Btor *btor);
 

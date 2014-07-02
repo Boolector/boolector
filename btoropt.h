@@ -11,6 +11,8 @@
 #ifndef BTOROPTS_H_INCLUDED
 #define BTOROPTS_H_INCLUDED
 
+typedef struct Btor Btor;
+
 typedef struct BtorOpt
 {
   int internal;     /* internal option? */
@@ -61,10 +63,13 @@ typedef struct BtorOpts
 
 } BtorOpts;
 
-#define BTOR_FIRST_OPT(btor) (&(btor)->opts->first + 1)
-#define BTOR_LAST_OPT(btor) (&(btor)->opts->last - 1)
-
-typedef struct Btor Btor;
 void btor_init_opts (Btor *btor);
+
+BtorOpt *btor_get_opt (Btor *btor, const char *opt);
+void btor_set_opt (Btor *btor, const char *opt, int val);
+
+BtorOpt *btor_first_opt (Btor *btor);
+BtorOpt *btor_last_opt (Btor *btor);
+BtorOpt *btor_next_opt (Btor *btor, BtorOpt *cur);
 
 #endif

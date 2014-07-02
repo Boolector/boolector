@@ -12,6 +12,7 @@
 #include <ctype.h>
 #include "boolector.h"
 #include "btorcore.h"
+#include "btoriter.h"
 #include "btorlog.h"
 #include "btortrapi.h"
 
@@ -65,14 +66,14 @@ set_opt_values (BtorOpt *opt,
 #define BTOR_SET_OPT(LNG, VAL)             \
   do                                       \
   {                                        \
-    boolector_set_opt_##LNG (btor, VAL);   \
+    boolector_set_opt (btor, #LNG, VAL);   \
     printf ("set_opt_%s %d\n", #LNG, VAL); \
   } while (0)
 
 #define BTOR_SET_OPT_INTL(LNG, VAL) \
   do                                \
   {                                 \
-    btor_set_opt_##LNG (btor, VAL); \
+    btor_set_opt (btor, #LNG, VAL); \
   } while (0)
 
 #define BTOR_OPT(SHRT, LNG, VAL, MIN, MAX, DESC)                             \
@@ -137,4 +138,109 @@ btor_init_opts (Btor *btor)
 #ifdef BTOR_CHECK_FAILED
   BTOR_OPT_INTL (0, chk_failed_assumptions, 1, 0, 1, 0);
 #endif
+}
+
+#define BTOR_FIRST_OPT(btor) (&(btor)->options.first + 1)
+#define BTOR_LAST_OPT(btor) (&(btor)->options.last - 1)
+
+BtorOpt *
+btor_get_opt (Btor *btor, const char *oname)
+{
+  assert (btor);
+  assert (oname);
+
+  BtorOpt *o;
+
+  for (o = BTOR_FIRST_OPT (btor); o <= BTOR_LAST_OPT (btor); o++)
+    if ((o->shrt && !strcmp (o->shrt, oname)) || !strcmp (o->lng, oname))
+      return o;
+
+  return 0;
+}
+
+void
+btor_set_opt (Btor *btor, const char *oname, int val)
+{
+  assert (btor);
+  assert (oname);
+
+  int oldval;
+  BtorOpt *o;
+  BtorHashTableIterator it;
+  BtorAIGVecMgr *avmgr;
+  BtorAIGMgr *amgr;
+  BtorSATMgr *smgr;
+
+#ifdef NBTORLOG
+  return;
+#endif
+
+  o = btor_get_opt (btor, oname);
+  assert (o);
+  oldval = o->val;
+  o->val = val;
+
+  if (!strcmp (oname, "m") || !strcmp (oname, "model_gen"))
+  {
+    if (!val && btor->options.model_gen.val) btor_delete_model (btor);
+  }
+  else if (!strcmp (oname, "i") || !strcmp (oname, "incremental"))
+  {
+    assert (val > 0);
+    assert (btor->btor_sat_btor_called == 0);
+    // TODO reset incremental usage, meltall if inc is disabled
+  }
+  else if (!strcmp (oname, "dp") || !strcmp (oname, "dual_prop"))
+  {
+    assert (!val || !btor->options.just.val);
+  }
+  else if (!strcmp (oname, "ju") || !strcmp (oname, "just"))
+  {
+    assert (!val || !btor->options.dual_prop.val);
+  }
+  else if (!strcmp (oname, "v") || !strcmp (oname, "verbosity"))
+  {
+    assert (oldval >= -1);
+
+    avmgr = btor->avmgr;
+    amgr  = btor_get_aig_mgr_aigvec_mgr (avmgr);
+    smgr  = btor_get_sat_mgr_aig_mgr (amgr);
+    btor_set_verbosity_aigvec_mgr (avmgr, val);
+    btor_set_verbosity_aig_mgr (amgr, val);
+    btor_set_verbosity_sat_mgr (smgr, val);
+  }
+  else if (!strcmp (oname, "rwl") || !strcmp (oname, "rewrite_level"))
+  {
+    assert (val >= 0 && val <= 3);
+    assert (oldval >= 0 && oldval <= 3);
+  }
+  else if (!strcmp (oname, "rewrite_level_pbr"))
+  {
+    assert (val >= 0 && val <= 3);
+    assert (oldval >= 0 && oldval <= 3);
+  }
+}
+
+BtorOpt *
+btor_first_opt (Btor *btor)
+{
+  assert (btor);
+  return BTOR_FIRST_OPT (btor);
+}
+
+BtorOpt *
+btor_last_opt (Btor *btor)
+{
+  assert (btor);
+  return BTOR_LAST_OPT (btor);
+}
+
+BtorOpt *
+btor_next_opt (Btor *btor, BtorOpt *cur)
+{
+  assert (btor);
+  assert (cur);
+
+  if (cur + 1 > BTOR_LAST_OPT (btor)) return 0;
+  return cur + 1;
 }

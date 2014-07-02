@@ -288,99 +288,70 @@ int boolector_simplify (Btor *btor);
 int boolector_set_sat_solver (Btor *btor, const char *solver);
 
 /**
- * Enable/disable model generation.
- * If you want Boolector to produce a model in the satisfiable case,
- * enable model generation via this function after \ref boolector_new.
+ * Set option.
  * \param btor Boolector instance.
- * \param val 0 to disable, 1 to enable.
+ * \param name Option name.
+ * \param val  Option value..
  * \see boolector_sat
+ *
+ * List of options:
+ *
+ * - 'm' or 'model_gen':
+ *	Enable (1) or disable (0) generation of a model for satisifiable
+ *	instances.
+ *
+ * - 'model_gen_all_reads':
+ *	Enable (1) or disable (0) generation of a model for all reads.
+ *	By default boolector generates assignments for reads within the
+ *	cone of assertions, only. This options forces the generation of
+ *	assignments for all reads during model generation.
+ *
+ * - 'i' or 'incremental':
+ *	Enable (1) incremental mode. Note that incremental usage turns
+ *	off some optimization techniques. Disabling incremental usage is
+ *	currently not supported.
+ *
+ * - 'dp' or 'dual_prop':
+ *	Enable (1) or disable (0) dual propagation optimization.
+ *
+ * - 'ju' or 'just':
+ *	Enable (1) or disable (0) justification optimization.
+ *
+ * - 'uc' or 'ucopt':
+ *	Enable (1) or disable (0) unconstrained optimization.
+ *
+ * - 'bra' or 'beta_reduce_all':
+ *	Enable (1) or disable (0) the eager elimination of lambda expressions
+ *	via beta reduction.
+ *
+ * - 'p' or 'pretty_print':
+ *      Enable (1) or disable (0) pretty printing when dumping.
+ *
+ * - 'fc' or 'force_cleanup':
+ *      Enable (1) or disable (0) forced automatic cleanup of expressions and
+ *      assignment strings on \ref boolector_delete.
+ *
+ * - 'rwl' or 'rewrite_level':
+ *      Set the rewrite level (0-3) of the rewriting engine. Boolector uses
+ *      rewrite level 3 by default. Do not alter the rewrite level after
+ *      creating expressions.
+ *      (0 ... no rewriting, 3 ... full rewriting)
+ *
+ * - 'rewrite_level_pbr':
+ *	Set the rewrite level (0-3) for partial beta reduction. Boolector uses
+ *	rewrite level 1 by default.
+ *      (0 ... no rewriting, 3 ... full rewriting)
+ *
+ * - 'v' or 'verbosity':
+ *	Set the level of verbosity.
+ *	(0 ... do not be verbose, x ... increase verbosity)
+ *
+ * - 'l' or 'loglevel':
+ *	Set log level (0-3).
+ *	(0 ... no logging, 3 ... full logging)
+ *
  */
-void boolector_set_opt_model_gen (Btor *btor, int val);
-
-/**
- * By default Boolector only generates assignments for reads
- * in the cone of assertions.  If you require models for all
- * 'reads' you can use this function to force Boolector to
- * synthesize all reads during the next model generation.
- * \param btor Boolector instance.
- * \param val 0 to disable, 1 to enable
- */
-void boolector_set_opt_model_gen_all_reads (Btor *btor, int val);
-
-// TODO FIXME disable incremental usage
-/**
- * Enable/disable incremental usage of Boolector. This allows to add assumptions
- * by \ref boolector_assume and to call \ref boolector_sat multiple times.
- * Note that enabling incremental usage turns off some optimization techniques.
- * Note that disabling incremental usage is currently not supported.
- * \param btor Boolector instance.
- * \param val 0 to disable, 1 to enable
- */
-void boolector_set_opt_incremental (Btor *btor, int val);
-
-/**
- * TODO
- */
-void boolector_set_opt_dual_prop (Btor *btor, int val);
-
-/**
- * TODO
- */
-void boolector_set_opt_just (Btor *btor, int val);
-
-/**
- * TODO
- */
-void boolector_set_opt_ucopt (Btor *btor, int val);
-
-/**
- * TODO
- */
-void boolector_set_opt_beta_reduce_all (Btor *btor, int val);
-
-/**
- * TODO
- */
-void boolector_set_opt_pretty_print (Btor *btor, int val);
-
-/* Enable/disable forced automatic cleanup of expressions and assignment
- * string on \ref boolector_delete.
- * \param btor Boolector instance.
- */
-void boolector_set_opt_force_cleanup (Btor *btor, int val);
-
-/**
- * Set the rewrite level of the rewriting engine.
- * Boolector uses rewrite level 3 per default. Call this function
- * before creating any expressions.
- * \param btor Boolector instance.
- * \param rewrite_level Rewrite level ranging from
- * 0 (no rewriting) to 3 (full rewriting).
- */
-void boolector_set_opt_rewrite_level (Btor *btor, int val);
-
-/**
- * Set the rewrite level for partial beta reduction.
- * Boolector uses rewrite level 1 per default.
- * \param btor Boolector instance.
- * \param rewrite_level Rewrite level ranging from
- * 0 (no rewriting) to 3 (full rewriting).
- */
-void boolector_set_opt_rewrite_level_pbr (Btor *btor, int val);
-
-/**
- * Set level of verbosity.
- * \param btor Boolector instance.
- * \param val Verbosity level.
- */
-void boolector_set_opt_verbosity (Btor *btor, int val);
-
-/**
- * Set log level.
- * \param btor Boolector instance.
- * \param val Log level.
- */
-void boolector_set_opt_loglevel (Btor *btor, int val);
+void boolector_set_opt (Btor *btor, const char *opt, int val);
 
 /*------------------------------------------------------------------------*/
 

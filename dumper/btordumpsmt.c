@@ -869,7 +869,7 @@ dump_smt_aux (Btor *btor, FILE *file, int version, BtorNode **roots, int nroots)
   {
 #ifndef NDEBUG
     clone = btor_clone_btor (btor);
-    btor_set_opt_force_cleanup (clone, 1);
+    btor_set_opt (clone, "force_cleanup", 1);
 
     /* update roots if already added */
     for (i = 0; i < nroots; i++)
@@ -885,7 +885,7 @@ dump_smt_aux (Btor *btor, FILE *file, int version, BtorNode **roots, int nroots)
 #endif
     // FIXME: do not beta reduce all lambdas, but eliminate nested ones (new
     //        function)
-    btor_set_opt_beta_reduce_all (btor, 1);
+    btor_set_opt (btor, "beta_reduce_all", 1);
   }
 
   sdc = new_smt_dump_context (btor, file, version);

@@ -28,7 +28,7 @@ static void
 init_inc_test (void)
 {
   g_btor = boolector_new ();
-  if (g_rwreads) boolector_set_opt_beta_reduce_all (g_btor, 1);
+  if (g_rwreads) boolector_set_opt (g_btor, "beta_reduce_all", 1);
 }
 
 static void
@@ -48,7 +48,7 @@ test_inc_true_false (void)
 
   ff = boolector_false (g_btor);
   tt = boolector_true (g_btor);
-  boolector_set_opt_incremental (g_btor, 1);
+  boolector_set_opt (g_btor, "incremental", 1);
   boolector_assume (g_btor, tt);
   res = boolector_sat (g_btor);
   assert (res == BOOLECTOR_SAT);
@@ -75,7 +75,7 @@ test_inc_counter (int w, int nondet)
 
   init_inc_test ();
 
-  boolector_set_opt_incremental (g_btor, 1);
+  boolector_set_opt (g_btor, "incremental", 1);
   one     = boolector_one (g_btor, w);
   current = boolector_zero (g_btor, w);
   i       = 0;
@@ -197,7 +197,7 @@ test_inc_lt (int w)
   assert (w > 0);
 
   init_inc_test ();
-  boolector_set_opt_incremental (g_btor, 1);
+  boolector_set_opt (g_btor, "incremental", 1);
 
   i    = 0;
   prev = 0;
@@ -269,8 +269,8 @@ test_inc_assume_assert1 (void)
   BoolectorNode *array, *index1, *index2, *read1, *read2, *eq_index, *ne_read;
 
   init_inc_test ();
-  boolector_set_opt_incremental (g_btor, 1);
-  boolector_set_opt_rewrite_level (g_btor, 0);
+  boolector_set_opt (g_btor, "incremental", 1);
+  boolector_set_opt (g_btor, "rewrite_level", 0);
   array    = boolector_array (g_btor, 1, 1, "array1");
   index1   = boolector_var (g_btor, 1, "index1");
   index2   = boolector_var (g_btor, 1, "index2");
@@ -305,8 +305,8 @@ test_inc_lemmas_on_demand_1 ()
   BoolectorNode *array, *index1, *index2, *read1, *read2, *eq, *ne;
 
   init_inc_test ();
-  boolector_set_opt_incremental (g_btor, 1);
-  boolector_set_opt_rewrite_level (g_btor, 0);
+  boolector_set_opt (g_btor, "incremental", 1);
+  boolector_set_opt (g_btor, "rewrite_level", 0);
   array  = boolector_array (g_btor, 1, 1, "array1");
   index1 = boolector_var (g_btor, 1, "index1");
   index2 = boolector_var (g_btor, 1, "index2");

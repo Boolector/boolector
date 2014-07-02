@@ -307,184 +307,70 @@ boolector_set_sat_solver (Btor *btor, const char *solver)
 }
 
 void
-boolector_set_opt_model_gen (Btor *btor, int val)
+boolector_set_opt (Btor *btor, const char *opt, int val)
 {
   BTOR_ABORT_ARG_NULL_BOOLECTOR (btor);
-  BTOR_TRAPI ("set_opt_model_gen %d", val);
-  BTOR_ABORT_BOOLECTOR (
-      !val,  // TODO
-      "disabling model generation is currently not supported");
-  BTOR_ABORT_BOOLECTOR (
-      BTOR_COUNT_STACK (btor->nodes_id_table) > 2,
-      "enabling model generation must be done before creating expressions");
-  btor_set_opt_model_gen (btor, val);
-#ifndef NDEBUG
-  BTOR_CHKCLONE_NORES (set_opt_model_gen, val);
-#endif
-}
+  BTOR_TRAPI ("set_opt %s %d", opt, val);
 
-void
-boolector_set_opt_model_gen_all_reads (Btor *btor, int val)
-{
-  BTOR_ABORT_ARG_NULL_BOOLECTOR (btor);
-  BTOR_TRAPI ("set_opt_model_gen_all_reads %d", val);
-  btor_set_opt_model_gen_all_reads (btor, val);
-#ifndef NDEBUG
-  BTOR_CHKCLONE_NORES (set_opt_model_gen_all_reads, val);
+  if (!strcmp (opt, "m") || !strcmp (opt, "model_gen"))
+  {
+    BTOR_ABORT_BOOLECTOR (
+        !val,  // TODO
+        "disabling model generation is currently not supported");
+    BTOR_ABORT_BOOLECTOR (
+        BTOR_COUNT_STACK (btor->nodes_id_table) > 2,
+        "enabling model generation must be done before creating expressions");
+  }
+  else if (!strcmp (opt, "i") || !strcmp (opt, "incremental"))
+  {
+    // TODO
+    BTOR_ABORT_BOOLECTOR (
+        val == 0, "disabling incremental usage is currently not supported");
+    BTOR_ABORT_BOOLECTOR (btor->btor_sat_btor_called > 0,
+                          "enabling incremental usage must be done before "
+                          "calling 'boolector_sat'");
+  }
+  else if (!strcmp (opt, "dp") || !strcmp (opt, "dual_prop"))
+  {
+    BTOR_ABORT_BOOLECTOR (
+        val && btor->options.just.val,
+        "enabling multiple optimization techniques is not allowed");
+  }
+  else if (!strcmp (opt, "ju") || !strcmp (opt, "just"))
+  {
+    BTOR_ABORT_BOOLECTOR (
+        val && btor->options.dual_prop.val,
+        "enabling multiple optimization techniques is not allowed");
+  }
+#ifdef BTOR_DO_NOT_OPTIMIZE_UNCONSTRAINED
+  else if (!strcmp (opt, "uc") || !strcmp (opt, "ucopt"))
+  {
+    return;
+  }
 #endif
-}
-
-void
-boolector_set_opt_incremental (Btor *btor, int val)
-{
-  BTOR_ABORT_ARG_NULL_BOOLECTOR (btor);
-  BTOR_TRAPI ("set_opt_incremental %d", val);
-  // TODO
-  BTOR_ABORT_BOOLECTOR (
-      val == 0, "disabling incremental usage is currently not supported");
-  BTOR_ABORT_BOOLECTOR (
-      btor->btor_sat_btor_called > 0,
-      "enabling incremental usage must be done before calling 'boolector_sat'");
-  btor_set_opt_incremental (btor, val);
-#ifndef NDEBUG
-  BTOR_CHKCLONE_NORES (set_opt_incremental, val);
-#endif
-}
-
-void
-boolector_set_opt_dual_prop (Btor *btor, int val)
-{
-  BTOR_ABORT_ARG_NULL_BOOLECTOR (btor);
-  BTOR_TRAPI ("set_opt_dual_prop %d", val);
-  BTOR_ABORT_BOOLECTOR (
-      val && btor->options.just.val,
-      "enabling multiple optimization techniques is not allowed");
-  btor_set_opt_dual_prop (btor, val);
-#ifndef NDEBUG
-  BTOR_CHKCLONE_NORES (set_opt_dual_prop, val);
-#endif
-}
-
-void
-boolector_set_opt_just (Btor *btor, int val)
-{
-  BTOR_ABORT_ARG_NULL_BOOLECTOR (btor);
-  BTOR_TRAPI ("set_opt_just %d", val);
-  BTOR_ABORT_BOOLECTOR (
-      val && btor->options.dual_prop.val,
-      "enabling multiple optimization techniques is not allowed");
-  btor_set_opt_just (btor, val);
-#ifndef NDEBUG
-  BTOR_CHKCLONE_NORES (set_opt_just, val);
-#endif
-}
-
-#ifndef BTOR_DO_NOT_OPTIMIZE_UNCONSTRAINED
-void
-boolector_set_opt_ucopt (Btor *btor, int val)
-{
-  BTOR_ABORT_ARG_NULL_BOOLECTOR (btor);
-  BTOR_TRAPI ("set_opt_ucopt %d", val);
-  btor_set_opt_ucopt (btor, val);
-#ifndef NDEBUG
-  BTOR_CHKCLONE_NORES (set_opt_ucopt, val);
-#endif
-}
-#else
-void
-boolector_set_opt_ucopt (Btor *btor, int val)
-{
-  (void) btor;
-  (void) val;
-}
+  else if (!strcmp (opt, "rwl") || !strcmp (opt, "rewrite_level"))
+  {
+    BTOR_ABORT_BOOLECTOR (val < 0 || val > 3,
+                          "'rewrite_level' must be in [0,3]");
+    BTOR_ABORT_BOOLECTOR (
+        BTOR_COUNT_STACK (btor->nodes_id_table) > 2,
+        "setting rewrite level must be done before creating expressions");
+  }
+  else if (!strcmp (opt, "rewrite_level_pbr"))
+  {
+    BTOR_ABORT_BOOLECTOR (val < 0 || val > 3,
+                          "'rewrite_level_pbr' must be in [0,3]");
+  }
+#ifdef NBTORLOG
+  else if (!strcmp (opt, "l") || !strcmp (opt, "loglevel"))
+  {
+    return;
+  }
 #endif
 
-void
-boolector_set_opt_beta_reduce_all (Btor *btor, int val)
-{
-  BTOR_ABORT_ARG_NULL_BOOLECTOR (btor);
-  BTOR_TRAPI ("set_opt_beta_reduce_all %d", val);
-  btor_set_opt_beta_reduce_all (btor, val);
+  btor_set_opt (btor, opt, val);
 #ifndef NDEBUG
-  BTOR_CHKCLONE_NORES (set_opt_beta_reduce_all, val);
-#endif
-}
-
-void
-boolector_set_opt_pretty_print (Btor *btor, int val)
-{
-  BTOR_ABORT_ARG_NULL_BOOLECTOR (btor);
-  BTOR_TRAPI ("set_opt_pretty_print %d", val);
-  btor_set_opt_pretty_print (btor, val);
-#ifndef NDEBUG
-  BTOR_CHKCLONE_NORES (set_opt_pretty_print, val);
-#endif
-}
-
-void
-boolector_set_opt_force_cleanup (Btor *btor, int val)
-{
-  BTOR_ABORT_ARG_NULL_BOOLECTOR (btor);
-  BTOR_TRAPI ("set_opt_force_cleanup %d", val);
-  btor_set_opt_force_cleanup (btor, val);
-#ifndef NDEBUG
-  BTOR_CHKCLONE_NORES (set_opt_force_cleanup, val);
-#endif
-}
-
-void
-boolector_set_opt_rewrite_level (Btor *btor, int val)
-{
-  BTOR_ABORT_ARG_NULL_BOOLECTOR (btor);
-  BTOR_TRAPI ("set_opt_rewrite_level %d", val);
-  BTOR_ABORT_BOOLECTOR (val < 0 || val > 3,
-                        "'rewrite_level' has to be in [0,3]");
-  BTOR_ABORT_BOOLECTOR (
-      BTOR_COUNT_STACK (btor->nodes_id_table) > 2,
-      "setting rewrite level must be done before creating expressions");
-  btor_set_opt_rewrite_level (btor, val);
-#ifndef NDEBUG
-  BTOR_CHKCLONE_NORES (set_opt_rewrite_level, val);
-#endif
-}
-
-void
-boolector_set_opt_rewrite_level_pbr (Btor *btor, int val)
-{
-  BTOR_ABORT_ARG_NULL_BOOLECTOR (btor);
-  BTOR_TRAPI ("set_opt_rewrite_level_pbr %d", val);
-  BTOR_ABORT_BOOLECTOR (val < 0 || val > 3,
-                        "'rewrite_level' has to be in [0,3]");
-  btor_set_opt_rewrite_level_pbr (btor, val);
-#ifndef NDEBUG
-  BTOR_CHKCLONE_NORES (set_opt_rewrite_level_pbr, val);
-#endif
-}
-
-void
-boolector_set_opt_verbosity (Btor *btor, int val)
-{
-  BTOR_ABORT_ARG_NULL_BOOLECTOR (btor);
-  BTOR_TRAPI ("set_opt_verbosity %d", val);
-  btor_set_opt_verbosity (btor, val);
-#ifndef NDEBUG
-  BTOR_CHKCLONE_NORES (set_opt_verbosity, val);
-#endif
-}
-
-void
-boolector_set_opt_loglevel (Btor *btor, int val)
-{
-#ifndef NBTORLOG
-  BTOR_ABORT_ARG_NULL_BOOLECTOR (btor);
-  BTOR_TRAPI ("set_opt_loglevel %d", val);
-  btor_set_opt_loglevel (btor, val);
-#ifndef NDEBUG
-  BTOR_CHKCLONE_NORES (set_opt_loglevel, val);
-#endif
-#else
-  (void) btor;
-  (void) val;
+  BTOR_CHKCLONE_NORES (set_opt, opt, val);
 #endif
 }
 
@@ -3350,41 +3236,41 @@ boolector_dump_smt2 (Btor *btor, FILE *file)
 void
 boolector_enable_model_gen (Btor *btor)
 {
-  BTOR_WARN_DEPRECATED ("boolector_set_opt_model_gen");
-  boolector_set_opt_model_gen (btor, 1);
+  BTOR_WARN_DEPRECATED ("boolector_set_opt");
+  boolector_set_opt (btor, "model_gen", 1);
 }
 
 void
 boolector_generate_model_for_all_reads (Btor *btor)
 {
-  BTOR_WARN_DEPRECATED ("boolector_set_opt_model_gen_all_reads");
-  boolector_set_opt_model_gen_all_reads (btor, 1);
+  BTOR_WARN_DEPRECATED ("boolector_set_opt");
+  boolector_set_opt (btor, "model_gen_all_reads", 1);
 }
 
 void
 boolector_enable_inc_usage (Btor *btor)
 {
-  BTOR_WARN_DEPRECATED ("boolector_set_opt_incremental");
-  boolector_set_opt_incremental (btor, 1);
+  BTOR_WARN_DEPRECATED ("boolector_set_opt");
+  boolector_set_opt (btor, "incremental", 1);
 }
 
 void
 boolector_set_rewrite_level (Btor *btor, int val)
 {
-  BTOR_WARN_DEPRECATED ("boolector_set_opt_rewrite_level");
-  boolector_set_opt_rewrite_level (btor, val);
+  BTOR_WARN_DEPRECATED ("boolector_set_opt");
+  boolector_set_opt (btor, "rewrite_level", val);
 }
 
 void
 boolector_set_verbosity (Btor *btor, int val)
 {
-  BTOR_WARN_DEPRECATED ("boolector_set_opt_verbosity");
-  boolector_set_opt_verbosity (btor, val);
+  BTOR_WARN_DEPRECATED ("boolector_set_opt");
+  boolector_set_opt (btor, "verbosity", val);
 }
 
 void
 boolector_set_loglevel (Btor *btor, int val)
 {
-  BTOR_WARN_DEPRECATED ("boolector_set_opt_loglevel");
-  boolector_set_opt_loglevel (btor, val);
+  BTOR_WARN_DEPRECATED ("boolector_set_opt");
+  boolector_set_opt (btor, "loglevel", val);
 }

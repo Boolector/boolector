@@ -2122,37 +2122,37 @@ _opt (BtorMBT *btormbt, unsigned r)
   RNG rng = initrng (r);
 
   BTORMBT_LOG (1, "opt: enable force cleanup");
-  boolector_set_opt_force_cleanup (btormbt->btor, 1);
+  boolector_set_opt (btormbt->btor, "force_cleanup", 1);
 
   if (btormbt->dual_prop)
   {
     BTORMBT_LOG (1, "opt: enable dual prop");
-    boolector_set_opt_dual_prop (btormbt->btor, 1);
+    boolector_set_opt (btormbt->btor, "dual_prop", 1);
   }
 
   if (btormbt->just)
   {
     BTORMBT_LOG (1, "opt: enable justification");
-    boolector_set_opt_just (btormbt->btor, 1);
+    boolector_set_opt (btormbt->btor, "just", 1);
   }
 
 #ifndef BTOR_DO_NOT_OPTIMIZE_UNCONSTRAINED
   if (btormbt->ucopt)
   {
     BTORMBT_LOG (1, "opt: enable unconstrained optimization");
-    boolector_set_opt_ucopt (btormbt->btor, 1);
+    boolector_set_opt (btormbt->btor, "ucopt", 1);
   }
 #endif
 
   if (btormbt->bloglevel)
   {
     BTORMBT_LOG (1, "opt: log level: '%d'", btormbt->bloglevel);
-    boolector_set_opt_loglevel (btormbt->btor, btormbt->bloglevel);
+    boolector_set_opt (btormbt->btor, "loglevel", btormbt->bloglevel);
   }
   if (btormbt->bverblevel)
   {
     BTORMBT_LOG (1, "opt: verbose level: '%d'", btormbt->bverblevel);
-    boolector_set_opt_verbosity (btormbt->btor, btormbt->bverblevel);
+    boolector_set_opt (btormbt->btor, "verbosity", btormbt->bverblevel);
   }
 
   if (pick (&rng, 0, NORM_VAL - 1) < btormbt->p_dump) btormbt->dump = 1;
@@ -2165,7 +2165,7 @@ _opt (BtorMBT *btormbt, unsigned r)
       && pick (&rng, 0, 1))
   {
     BTORMBT_LOG (1, "opt: enable model generation");
-    boolector_set_opt_model_gen (btormbt->btor, 1);
+    boolector_set_opt (btormbt->btor, "model_gen", 1);
     btormbt->mgen = 1;
   }
 
@@ -2176,19 +2176,19 @@ _opt (BtorMBT *btormbt, unsigned r)
       && pick (&rng, 0, 1))
   {
     BTORMBT_LOG (1, "opt: enable incremental usage");
-    boolector_set_opt_incremental (btormbt->btor, 1);
+    boolector_set_opt (btormbt->btor, "incremental", 1);
     btormbt->inc = 1;
   }
 
   if (pick (&rng, 0, 9) == 5)
   {
     BTORMBT_LOG (1, "opt: enable full beta reduction");
-    boolector_set_opt_beta_reduce_all (btormbt->btor, 1);
+    boolector_set_opt (btormbt->btor, "beta_reduce_all", 1);
   }
 
   rw = pick (&rng, 0, 3);
   BTORMBT_LOG (1, "opt: set rewrite level %d", rw);
-  boolector_set_opt_rewrite_level (btormbt->btor, rw);
+  boolector_set_opt (btormbt->btor, "rewrite_level", rw);
 
   return _init;
 }

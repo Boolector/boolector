@@ -23,6 +23,7 @@
 #include "btorlog.h"
 #include "btorlogic.h"
 #include "btormem.h"
+#include "btoropt.h"
 #include "btorparse.h"
 #include "btorsat.h"
 #include "btorstack.h"
@@ -44,27 +45,21 @@
 
 /*------------------------------------------------------------------------*/
 
-enum BtorBasis
+typedef enum BtorBasis
 {
   BTOR_BINARY_BASIS = 0,
   BTOR_DECIMAL_BASIS,
   BTOR_HEXADECIMAL_BASIS
-};
+} BtorBasis;
 
-typedef enum BtorBasis BtorBasis;
-
-typedef enum BtorPrintModel BtorPrintModel;
-
-enum BtorDumpMode
+typedef enum BtorDumpMode
 {
   BTOR_DUMP_BTOR = 1,
   BTOR_DUMP_SMT1,
   BTOR_DUMP_SMT2
-};
+} BtorDumpMode;
 
-typedef enum BtorDumpMode BtorDumpMode;
-
-struct BtorMainApp
+typedef struct BtorMainApp
 {
   FILE *output_file;
   int close_output_file;
@@ -110,9 +105,7 @@ struct BtorMainApp
 #ifdef BTOR_USE_MINISAT
   int force_minisat;
 #endif
-};
-
-typedef struct BtorMainApp BtorMainApp;
+} BtorMainApp;
 
 /*------------------------------------------------------------------------*/
 
@@ -1104,29 +1097,29 @@ boolector_main (int argc, char **argv)
 
     static_btor = btor = boolector_new ();
     static_verbosity   = app.verbosity;
-    boolector_set_opt_rewrite_level (btor, app.rewrite_level);
+    boolector_set_opt (btor, "rewrite_level", app.rewrite_level);
 
-    if (app.beta_reduce_all) boolector_set_opt_beta_reduce_all (btor, 1);
+    if (app.beta_reduce_all) boolector_set_opt (btor, "beta_reduce_all", 1);
 
-    if (app.dual_prop) boolector_set_opt_dual_prop (btor, 1);
+    if (app.dual_prop) boolector_set_opt (btor, "dual_prop", 1);
 
-    if (app.just) boolector_set_opt_just (btor, 1);
+    if (app.just) boolector_set_opt (btor, "just", 1);
 
 #ifndef BTOR_DO_NOT_OPTIMIZE_UNCONSTRAINED
-    if (app.ucopt) boolector_set_opt_ucopt (btor, 1);
+    if (app.ucopt) boolector_set_opt (btor, "ucopt", 1);
 #endif
 
-    if (app.force_cleanup) boolector_set_opt_force_cleanup (btor, 1);
+    if (app.force_cleanup) boolector_set_opt (btor, "force_cleanup", 1);
 
     // FIXME api
-    if (!app.pretty_print) btor_set_opt_pretty_print (btor, 0);
+    if (!app.pretty_print) boolector_set_opt (btor, "pretty_print", 0);
 
-    if (app.print_model) boolector_set_opt_model_gen (btor, 1);
+    if (app.print_model) boolector_set_opt (btor, "model_gen", 1);
 
-    boolector_set_opt_verbosity (btor, app.verbosity);
+    boolector_set_opt (btor, "verbosity", app.verbosity);
 #ifndef NBTORLOG
     if (!app.loglevel && getenv ("BTORLOG")) app.loglevel = 1;
-    boolector_set_opt_loglevel (btor, app.loglevel);
+    boolector_set_opt (btor, "loglevel", app.loglevel);
 #endif
     mem = btor->mm;
 
@@ -1308,7 +1301,7 @@ boolector_main (int argc, char **argv)
 
     if (app.incremental)
     {
-      boolector_set_opt_incremental (btor, 1);
+      boolector_set_opt (btor, "incremental", 1);
 
       if (app.verbosity > 0) msg_main ("starting incremental BTOR mode\n");
 
