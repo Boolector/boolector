@@ -841,7 +841,7 @@ dump_smt_aux (Btor *btor, FILE *file, int version, BtorNode **roots, int nroots)
   assert (btor);
   assert (file);
   assert (version == 1 || version == 2);
-  assert (!btor->options.inc_usage.val);
+  assert (!btor->options.incremental.val);
   //  assert (!btor->options.model_gen.val);
 
 #ifndef NDEBUG

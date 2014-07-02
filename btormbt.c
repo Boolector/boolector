@@ -2176,7 +2176,7 @@ _opt (BtorMBT *btormbt, unsigned r)
       && pick (&rng, 0, 1))
   {
     BTORMBT_LOG (1, "opt: enable incremental usage");
-    boolector_set_opt_inc_usage (btormbt->btor, 1);
+    boolector_set_opt_incremental (btormbt->btor, 1);
     btormbt->inc = 1;
   }
 

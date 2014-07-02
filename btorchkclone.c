@@ -65,7 +65,7 @@ btor_chkclone_state (Btor *btor)
   BTOR_CHKCLONE_STATE (options.force_cleanup.val);
   BTOR_CHKCLONE_STATE (options.force_internal_cleanup.val);
   BTOR_CHKCLONE_STATE (options.model_gen_all_reads.val);
-  BTOR_CHKCLONE_STATE (options.inc_usage.val);
+  BTOR_CHKCLONE_STATE (options.incremental.val);
 #ifndef NBTORLOG
   BTOR_CHKCLONE_STATE (options.loglevel.val);
 #endif

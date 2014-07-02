@@ -1308,7 +1308,7 @@ boolector_main (int argc, char **argv)
 
     if (app.incremental)
     {
-      boolector_set_opt_inc_usage (btor, 1);
+      boolector_set_opt_incremental (btor, 1);
 
       if (app.verbosity > 0) msg_main ("starting incremental BTOR mode\n");
 
