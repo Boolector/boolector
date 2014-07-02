@@ -10038,6 +10038,12 @@ btor_sat_btor (Btor *btor)
 }
 
 int
+btor_limited_sat_btor (Btor *btor, int lod_limit, int sat_limit)
+{
+  return btor_limited_sat_aux_btor (btor, lod_limit, sat_limit);
+}
+
+int
 btor_fun_sort_check (Btor *btor, int argc, BtorNode **args, BtorNode *fun)
 {
   (void) btor;

@@ -1371,6 +1371,26 @@ int boolector_failed (Btor *btor, BoolectorNode *node);
 int boolector_sat (Btor *btor);
 
 /**
+ * Solves SAT instance represented by constraints and assumptions added
+ * by \ref boolector_assert and \ref boolector_assume. The search can be
+ * limited by the number of lemmas generated 'lod_limit' and the number of
+ * conflicts produced by the underlying SAT solver 'sat_limit'. Note that
+ * assertions and assumptions are combined by boolean 'and'.
+ * If you want to call this function multiple times then you must enable
+ * Boolector's incremental usage mode by calling
+ * \ref boolector_enable_inc_usage before. Otherwise, this function can only
+ * be called once.
+ * \param btor Boolector instance.
+ * \param lod_limit Limit for lemmas on demand (-1 unlimited).
+ * \param sat_limit Conflict limit for SAT solver (-1 unlimited).
+ * \return It returns \ref BOOLECTOR_SAT if the instance is satisfiable and
+ * \ref BOOLECTOR_UNSAT if the instance is unsatisfiable.
+ * \see boolector_bv_assignment
+ * \see boolector_array_assignment
+ **/
+int boolector_limited_sat (Btor *btor, int lod_limit, int sat_limit);
+
+/**
  * Builds assignment string for bit-vector expression if \ref boolector_sat
  * has returned \ref BOOLECTOR_SAT and model generation has been enabled.
  * The expression can be an arbitrary

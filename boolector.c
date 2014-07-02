@@ -3203,6 +3203,24 @@ boolector_sat (Btor *btor)
   return res;
 }
 
+int
+boolector_limited_sat (Btor *btor, int lod_limit, int sat_limit)
+{
+  int res;
+  BTOR_ABORT_ARG_NULL_BOOLECTOR (btor);
+  BTOR_TRAPI ("limited_sat %d %d", lod_limit, sat_limit);
+  BTOR_ABORT_BOOLECTOR (
+      !btor->options.inc_usage.val && btor->btor_sat_btor_called > 0,
+      "incremental usage has not been enabled."
+      "'boolector_limited_sat' may only be called once");
+  res = btor_limited_sat_btor (btor, lod_limit, sat_limit);
+#ifndef NDEBUG
+  BTOR_CHKCLONE_RES (res, limited_sat, lod_limit, sat_limit);
+#endif
+  BTOR_TRAPI_RETURN (res);
+  return res;
+}
+
 const char *
 boolector_bv_assignment (Btor *btor, BoolectorNode *node)
 {
