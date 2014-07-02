@@ -2,6 +2,7 @@
  *
  *  Copyright (C) 2013 Armin Biere.
  *  Copyright (C) 2013-2014 Aina Niemetz.
+ *  Copyright (C) 2014 Mathias Preiner.
  *
  *  All rights reserved.
  *
@@ -10,6 +11,7 @@
  */
 
 #include "btormc.h"
+#include "boolector.h"
 #include "btorabort.h"
 #include "btorconst.h"
 #include "btorexp.h"
@@ -960,7 +962,7 @@ btor_mc_forward2const_mapper (Btor *btor, void *state, BoolectorNode *node)
 
   assert (mc);
   assert (mc->btor == btor);
-  assert (mc->forward == boolector_btor (node));
+  assert (mc->forward == boolector_get_btor (node));
   (void) btor;
 
   res = 0;
@@ -1016,7 +1018,7 @@ btor_mc_model2const_mapper (Btor *btor, void *state, BoolectorNode *node)
   mc = mapper->mc;
   assert (mc);
   assert (mc->btor == btor);
-  assert (mc->btor == boolector_btor (node));
+  assert (mc->btor == boolector_get_btor (node));
   (void) btor;
   time = mapper->time;
 
@@ -1139,7 +1141,7 @@ boolector_mc_assignment (BtorMC *mc, BoolectorNode *node, int time)
     const_node = btor_mc_model2const (mc, node, time);
     assert (const_node);
     assert (boolector_is_const (mc->btor, const_node));
-    assert (boolector_btor (const_node) == mc->btor);
+    assert (boolector_get_btor (const_node) == mc->btor);
     bits = boolector_get_bits (mc->btor, const_node);
     res  = btor_strdup (mc->btor->mm, bits);
   }

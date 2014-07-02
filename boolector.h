@@ -2,7 +2,7 @@
  *
  *  Copyright (C) 2007-2009 Robert Daniel Brummayer.
  *  Copyright (C) 2007-2012 Armin Biere.
- *  Copyright (C) 2012 Mathias Preiner.
+ *  Copyright (C) 2012-2014 Mathias Preiner.
  *  Copyright (C) 2013-2014 Aina Niemetz.
  *
  *  All rights reserved.
@@ -151,14 +151,6 @@ typedef struct BoolectorNode BoolectorNode;
 /*------------------------------------------------------------------------*/
 
 /**
- * Set and get the output API trace file.
- */
-void boolector_set_trapi (Btor *btor, FILE *apitrace);
-FILE *boolector_get_trapi (Btor *btor);
-
-/*------------------------------------------------------------------------*/
-
-/**
  * Creates new instance of Boolector.
  * \return New Boolector instance.
  */
@@ -171,17 +163,14 @@ Btor *boolector_new (void);
  */
 Btor *boolector_clone (Btor *btor);
 
-Btor *boolector_btor (BoolectorNode *node);
-
 /**
- * Sets the SAT solver to use.
- * Currently, we support 'Lingeling', 'PicoSAT', and 'MiniSAT' as string
- * value of \para solver ignoring the case of characters.  This is however
- * only possible if at compile time the corresponding solvers were enabled.
- * The return value is non-zero if setting the SAT solver call was
- * successful.  Call this function after \ref boolector_new.
+ * Deletes boolector instance and frees its resources.
+ * \param btor Boolector instance.
+ * \remarks Expressions that have not been release properly will not be
+ * deleted from memory. Use \ref boolector_get_refs to debug reference
+ * counting.
  */
-int boolector_set_sat_solver (Btor *btor, const char *solver);
+void boolector_delete (Btor *btor);
 
 /**
  * Returns the number of external references to the boolector library.
@@ -194,18 +183,109 @@ int boolector_set_sat_solver (Btor *btor, const char *solver);
  */
 int boolector_get_refs (Btor *btor);
 
-/**
- * Deletes boolector instance and frees its resources.
+/* Reset time statistics.
  * \param btor Boolector instance.
- * \remarks Expressions that have not been release properly will not be
- * deleted from memory. Use \ref boolector_get_refs to debug reference
- * counting.
  */
-void boolector_delete (Btor *btor);
+void boolector_reset_time (Btor *btor);
 
+/* Reset statistics (time statistics not included).
+ * \param btor Boolector instance.
+ */
+void boolector_reset_stats (Btor *btor);
+
+/**
+ * Set and get the output API trace file.
+ */
+void boolector_set_trapi (Btor *btor, FILE *apitrace);
+
+/**
+ * TODO
+ */
+FILE *boolector_get_trapi (Btor *btor);
+
+/*------------------------------------------------------------------------*/
+
+/**
+ * Adds constraint. Use this function to assert 'node'.
+ * Added constraints can not be deleted anymore. After 'node' has
+ * been asserted, it can be safely released by \ref boolector_release.
+ * \param btor Boolector instance.
+ * \param node Bit-vector expression with bit-width one.
+ */
+void boolector_assert (Btor *btor, BoolectorNode *node);
+
+/**
+ * Adds assumption. Use this function to assume 'node'.
+ * You must enable Boolector's incremental usage via
+ * \ref boolector_set_opt_incremental before.
+ * In contrast to \ref boolector_assert the assumptions are
+ * discarded after each call to \ref boolector_sat. Assumptions
+ * and assertions are logically combined by boolean 'and'.
+ * This is the same way of using assumptions as in MiniSAT.
+ * \param btor Boolector instance.
+ * \param node Bit-vector expression with bit-width one.
+ */
+void boolector_assume (Btor *btor, BoolectorNode *node);
+
+/**
+ * Determine if assumption 'node' is a failed assumption.
+ * \param btor Boolector instance.
+ * \param node Bit-vector expression with bit-width one.
+ * \return 1 if assumption is failed, and 0 otherwise.
+ */
+int boolector_failed (Btor *btor, BoolectorNode *node);
+
+/**
+ * Solves SAT instance represented by constraints and assumptions added
+ * by \ref boolector_assert and \ref boolector_assume. Note that
+ * assertions and assumptions are combined by boolean 'and'.
+ * If you want to call this function multiple times then you must enable
+ * Boolector's incremental usage mode via \ref boolector_set_opt_incremental
+ * before. Otherwise, this function can only * be called once.
+ * \param btor Boolector instance.
+ * \return It returns \ref BOOLECTOR_SAT if the instance is satisfiable and
+ * \ref BOOLECTOR_UNSAT if the instance is unsatisfiable.
+ * \see boolector_bv_assignment
+ * \see boolector_array_assignment
+ **/
+int boolector_sat (Btor *btor);
+
+/**
+ * Solves SAT instance represented by constraints and assumptions added
+ * by \ref boolector_assert and \ref boolector_assume. The search can be
+ * limited by the number of lemmas generated 'lod_limit' and the number of
+ * conflicts produced by the underlying SAT solver 'sat_limit'. Note that
+ * assertions and assumptions are combined by boolean 'and'.
+ * If you want to call this function multiple times then you must enable
+ * Boolector's incremental usage mode by calling
+ * \ref boolector_enable_inc_usage before. Otherwise, this function can only
+ * be called once.
+ * \param btor Boolector instance.
+ * \param lod_limit Limit for lemmas on demand (-1 unlimited).
+ * \param sat_limit Conflict limit for SAT solver (-1 unlimited).
+ * \return It returns \ref BOOLECTOR_SAT if the instance is satisfiable and
+ * \ref BOOLECTOR_UNSAT if the instance is unsatisfiable.
+ * \see boolector_bv_assignment
+ * \see boolector_array_assignment
+ **/
+int boolector_limited_sat (Btor *btor, int lod_limit, int sat_limit);
+
+/**
+ * TODO
+ */
 int boolector_simplify (Btor *btor);
 
 /*------------------------------------------------------------------------*/
+
+/**
+ * Sets the SAT solver to use.
+ * Currently, we support 'Lingeling', 'PicoSAT', and 'MiniSAT' as string
+ * value of \para solver ignoring the case of characters.  This is however
+ * only possible if at compile time the corresponding solvers were enabled.
+ * The return value is non-zero if setting the SAT solver call was
+ * successful.  Call this function after \ref boolector_new.
+ */
+int boolector_set_sat_solver (Btor *btor, const char *solver);
 
 /**
  * Enable/disable model generation.
@@ -218,15 +298,6 @@ int boolector_simplify (Btor *btor);
 void boolector_set_opt_model_gen (Btor *btor, int val);
 
 /**
- * Enable model generation.
- * (Note: this function is deprecated,
- * use \ref boolector_set_opt_model_gen instead!)
- * \param btor Boolector instance.
- * \see boolector_set_model_gen
- */
-void boolector_enable_model_gen (Btor *btor);
-
-/**
  * By default Boolector only generates assignments for reads
  * in the cone of assertions.  If you require models for all
  * 'reads' you can use this function to force Boolector to
@@ -235,15 +306,6 @@ void boolector_enable_model_gen (Btor *btor);
  * \param val 0 to disable, 1 to enable
  */
 void boolector_set_opt_model_gen_all_reads (Btor *btor, int val);
-
-/**
- * Enable model generation for all reads.
- * (Note: this function is deprecated,
- * use \ref boolector_set_opt_model_gen_all_reads instead!)
- * \param btor Boolector instance.
- * \see boolector_set_opt_model_gen_all_reads
- */
-void boolector_generate_model_for_all_reads (Btor *btor);
 
 // TODO FIXME disable incremental usage
 /**
@@ -257,22 +319,28 @@ void boolector_generate_model_for_all_reads (Btor *btor);
 void boolector_set_opt_incremental (Btor *btor, int val);
 
 /**
- * Enable incremental usage.
- * (Note: this function is deprecated,
- * use \ref boolector_set_opt_incremental instead!)
- * \param btor Boolector instance.
- * \see boolector_set_opt_incremental
+ * TODO
  */
-void boolector_enable_inc_usage (Btor *btor);
-
 void boolector_set_opt_dual_prop (Btor *btor, int val);
 
+/**
+ * TODO
+ */
 void boolector_set_opt_just (Btor *btor, int val);
 
+/**
+ * TODO
+ */
 void boolector_set_opt_ucopt (Btor *btor, int val);
 
+/**
+ * TODO
+ */
 void boolector_set_opt_beta_reduce_all (Btor *btor, int val);
 
+/**
+ * TODO
+ */
 void boolector_set_opt_pretty_print (Btor *btor, int val);
 
 /* Enable/disable forced automatic cleanup of expressions and assignment
@@ -290,16 +358,6 @@ void boolector_set_opt_force_cleanup (Btor *btor, int val);
  * 0 (no rewriting) to 3 (full rewriting).
  */
 void boolector_set_opt_rewrite_level (Btor *btor, int val);
-/**
- * Set the rewrite level of the rewriting engine.
- * (Note: this function is deprecated,
- * use \ref boolector_set_opt_rewrite_level instead.)
- * \param btor Boolector instance.
- * \param val Rewrite level ranging from
- * 0 (no rewriting) to 3 (full rewriting).
- * \see boolector_set_opt_rewrite_level
- */
-void boolector_set_rewrite_level (Btor *btor, int val);
 
 /**
  * Set the rewrite level for partial beta reduction.
@@ -318,45 +376,28 @@ void boolector_set_opt_rewrite_level_pbr (Btor *btor, int val);
 void boolector_set_opt_verbosity (Btor *btor, int val);
 
 /**
- * Set level of verbosity.
- * (Note: this function is deprecated,
- * use \ref boolector_set_opt_verbosity instead.)
- * \param btor Boolector instance.
- * \param val Verbosity level.
- * \see boolector_set_opt_verbosity
- */
-void boolector_set_verbosity (Btor *btor, int val);
-
-/**
  * Set log level.
  * \param btor Boolector instance.
  * \param val Log level.
  */
 void boolector_set_opt_loglevel (Btor *btor, int val);
 
+/*------------------------------------------------------------------------*/
+
 /**
- * Set log level.
- * (Note: this function is deprecated,
- * use \ref boolector_set_opt_loglevel instead.)
+ * Copies expression (increments reference counter).
  * \param btor Boolector instance.
- * \param val Log level.
- * \see boolector_set_opt_loglevel
+ * \param node Operand.
+ * \return The expression 'node'.
  */
-void boolector_set_loglevel (Btor *btor, int val);
+BoolectorNode *boolector_copy (Btor *btor, BoolectorNode *node);
 
-/*------------------------------------------------------------------------*/
-
-/* Reset time statistics.
+/**
+ * Releases expression (decrements reference counter).
  * \param btor Boolector instance.
+ * \param node Operand.
  */
-void boolector_reset_time (Btor *btor);
-
-/* Reset statistics (time statistics not included).
- * \param btor Boolector instance.
- */
-void boolector_reset_stats (Btor *btor);
-
-/*------------------------------------------------------------------------*/
+void boolector_release (Btor *btor, BoolectorNode *node);
 
 /**
  * Bit-vector constant representing the bit-vector 'bits'.
@@ -366,10 +407,6 @@ void boolector_reset_stats (Btor *btor);
  * \return Bit-vector constant with bit-width strlen('bits').
  */
 BoolectorNode *boolector_const (Btor *btor, const char *bits);
-
-int boolector_is_const (Btor *btor, BoolectorNode *node);
-
-const char *boolector_get_bits (Btor *, BoolectorNode *node);
 
 /**
  * Bit-vector constant zero.
@@ -446,8 +483,6 @@ BoolectorNode *boolector_int (Btor *btor, int i, int width);
  * just pass NULL as symbol.
  */
 BoolectorNode *boolector_var (Btor *btor, int width, const char *symbol);
-
-int boolector_is_var (Btor *btor, BoolectorNode *node);
 
 /**
  * One-dimensional bit-vector array of size 2 ^ 'index_width' with elements of
@@ -1085,18 +1120,6 @@ BoolectorNode *boolector_uf (Btor *btor,
                              BoolectorSort *sort,
                              const char *symbol);
 
-BoolectorSort *boolector_fun_sort (Btor *btor,
-                                   BoolectorSort *domain,
-                                   BoolectorSort *codomain);
-
-BoolectorSort *boolector_bitvec_sort (Btor *btor, int len);
-
-BoolectorSort *boolector_tuple_sort (Btor *btor,
-                                     BoolectorSort **elements,
-                                     int num_elements);
-
-void boolector_release_sort (Btor *btor, BoolectorSort *sort);
-
 /**
  * Creates an argument expression consisting of 'argc' argument expressions
  * given as 'arg_nodes'.
@@ -1144,6 +1167,30 @@ BoolectorNode *boolector_inc (Btor *btor, BoolectorNode *node);
  * \result Bit-vector with the same bit-width as 'node'.
  */
 BoolectorNode *boolector_dec (Btor *btor, BoolectorNode *node);
+
+/*------------------------------------------------------------------------*/
+
+/**
+ * Returns the Boolector instance to which 'node' belongs.
+ * \param node Boolector node.
+ * \return Boolector instance.
+ */
+Btor *boolector_get_btor (BoolectorNode *node);
+
+/**
+ * TODO
+ */
+int boolector_is_const (Btor *btor, BoolectorNode *node);
+
+/**
+ * TODO
+ */
+int boolector_is_var (Btor *btor, BoolectorNode *node);
+
+/**
+ * TODO
+ */
+const char *boolector_get_bits (Btor *, BoolectorNode *node);
 
 /**
  * Determines if expression is an array. If not, expression is a bit-vector.
@@ -1251,145 +1298,6 @@ int boolector_fun_sort_check (Btor *btor,
 const char *boolector_get_symbol_of_var (Btor *btor, BoolectorNode *var);
 
 /**
- * Copies expression (increments reference counter).
- * \param btor Boolector instance.
- * \param node Operand.
- * \return The expression 'node'.
- */
-BoolectorNode *boolector_copy (Btor *btor, BoolectorNode *node);
-
-/**
- * Releases expression (decrements reference counter).
- * \param btor Boolector instance.
- * \param node Operand.
- */
-void boolector_release (Btor *btor, BoolectorNode *node);
-
-/**
- * Recursively dumps expression to file.
- *<a href="http://fmv.jku.at/papers/BrummayerBiereLonsing-BPR08.pdf">BTOR</a> is
- * used as format.
- *
- * \param btor Boolector instance.
- * \param file File to which the expression should be dumped.
- * The file must be have been opened by the user before.
- * \param node The expression which should be dumped.
- */
-void boolector_dump_btor_node (Btor *btor, FILE *file, BoolectorNode *node);
-
-/**
- * Dumps formula to file in BTOR format.
- *
- * \param btor Boolector instance.
- * \param file File to which the formula should be dumped.
- * The file must be have been opened by the user before.
- */
-void boolector_dump_btor (Btor *btor, FILE *file);
-
-/**
- * Recursively dumps expression to file.
- *<a href="http://smtlib.cs.uiowa.edu/papers/format-v1.2-r06.08.30.pdf">SMT-LIB
- * \param btor Boolector instance.
- * \param file File to which the expression should be dumped.
- * The file must be have been opened by the user before.
- * \param node The expression which should be dumped.
- */
-void boolector_dump_smt1_node (Btor *btor, FILE *file, BoolectorNode *node);
-
-/**
- * Dumps formula to file in SMT-LIB format.
- *<a href="http://smtlib.cs.uiowa.edu/papers/format-v1.2-r06.08.30.pdf">SMT-LIB
- * \param btor Boolector instance.
- * \param btor Boolector instance
- * \param file Output file.
- */
-void boolector_dump_smt1 (Btor *btor, FILE *file);
-
-/**
- * Recursively dumps expression to file.
- *<a
- *href="http://smtlib.cs.uiowa.edu/papers/smt-lib-reference-v2.0-r12.09.09.pdf">SMT-LIB
- *2.0</a> is used as format. \param btor Boolector instance. \param file File to
- *which the expression should be dumped. The file must be have been opened by
- *the user before. \param node The expression which should be dumped.
- */
-void boolector_dump_smt2_node (Btor *btor, FILE *file, BoolectorNode *node);
-
-/**
- * Dumps formula to file in SMT-LIB format.
- *<a
- *href="http://smtlib.cs.uiowa.edu/papers/smt-lib-reference-v2.0-r12.09.09.pdf">SMT-LIB
- *2.0</a> is used as format. \param btor Boolector instance. \param btor
- *Boolector instance \param file Output file.
- */
-void boolector_dump_smt2 (Btor *btor, FILE *file);
-
-/**
- * Adds constraint. Use this function to assert 'node'.
- * Added constraints can not be deleted anymore. After 'node' has
- * been asserted, it can be safely released by \ref boolector_release.
- * \param btor Boolector instance.
- * \param node Bit-vector expression with bit-width one.
- */
-void boolector_assert (Btor *btor, BoolectorNode *node);
-
-/**
- * Adds assumption. Use this function to assume 'node'.
- * You must enable Boolector's incremental usage via
- * \ref boolector_set_opt_incremental before.
- * In contrast to \ref boolector_assert the assumptions are
- * discarded after each call to \ref boolector_sat. Assumptions
- * and assertions are logically combined by boolean 'and'.
- * This is the same way of using assumptions as in MiniSAT.
- * \param btor Boolector instance.
- * \param node Bit-vector expression with bit-width one.
- */
-void boolector_assume (Btor *btor, BoolectorNode *node);
-
-/**
- * Determine if assumption 'node' is a failed assumption.
- * \param btor Boolector instance.
- * \param node Bit-vector expression with bit-width one.
- * \return 1 if assumption is failed, and 0 otherwise.
- */
-int boolector_failed (Btor *btor, BoolectorNode *node);
-
-/**
- * Solves SAT instance represented by constraints and assumptions added
- * by \ref boolector_assert and \ref boolector_assume. Note that
- * assertions and assumptions are combined by boolean 'and'.
- * If you want to call this function multiple times then you must enable
- * Boolector's incremental usage mode via \ref boolector_set_opt_incremental
- * before. Otherwise, this function can only * be called once.
- * \param btor Boolector instance.
- * \return It returns \ref BOOLECTOR_SAT if the instance is satisfiable and
- * \ref BOOLECTOR_UNSAT if the instance is unsatisfiable.
- * \see boolector_bv_assignment
- * \see boolector_array_assignment
- **/
-int boolector_sat (Btor *btor);
-
-/**
- * Solves SAT instance represented by constraints and assumptions added
- * by \ref boolector_assert and \ref boolector_assume. The search can be
- * limited by the number of lemmas generated 'lod_limit' and the number of
- * conflicts produced by the underlying SAT solver 'sat_limit'. Note that
- * assertions and assumptions are combined by boolean 'and'.
- * If you want to call this function multiple times then you must enable
- * Boolector's incremental usage mode by calling
- * \ref boolector_enable_inc_usage before. Otherwise, this function can only
- * be called once.
- * \param btor Boolector instance.
- * \param lod_limit Limit for lemmas on demand (-1 unlimited).
- * \param sat_limit Conflict limit for SAT solver (-1 unlimited).
- * \return It returns \ref BOOLECTOR_SAT if the instance is satisfiable and
- * \ref BOOLECTOR_UNSAT if the instance is unsatisfiable.
- * \see boolector_bv_assignment
- * \see boolector_array_assignment
- **/
-int boolector_limited_sat (Btor *btor, int lod_limit, int sat_limit);
-
-/**
  * Builds assignment string for bit-vector expression if \ref boolector_sat
  * has returned \ref BOOLECTOR_SAT and model generation has been enabled.
  * The expression can be an arbitrary
@@ -1452,5 +1360,152 @@ void boolector_free_array_assignment (Btor *btor,
                                       char **indices,
                                       char **values,
                                       int size);
+
+/*------------------------------------------------------------------------*/
+
+/**
+ * TODO
+ */
+BoolectorSort *boolector_fun_sort (Btor *btor,
+                                   BoolectorSort *domain,
+                                   BoolectorSort *codomain);
+
+/**
+ * TODO
+ */
+BoolectorSort *boolector_bitvec_sort (Btor *btor, int len);
+
+/**
+ * TODO
+ */
+BoolectorSort *boolector_tuple_sort (Btor *btor,
+                                     BoolectorSort **elements,
+                                     int num_elements);
+
+/**
+ * TODO
+ */
+void boolector_release_sort (Btor *btor, BoolectorSort *sort);
+
+/*------------------------------------------------------------------------*/
+
+/**
+ * Recursively dumps expression to file.
+ *<a href="http://fmv.jku.at/papers/BrummayerBiereLonsing-BPR08.pdf">BTOR</a> is
+ * used as format.
+ *
+ * \param btor Boolector instance.
+ * \param file File to which the expression should be dumped.
+ * The file must be have been opened by the user before.
+ * \param node The expression which should be dumped.
+ */
+void boolector_dump_btor_node (Btor *btor, FILE *file, BoolectorNode *node);
+
+/**
+ * Dumps formula to file in BTOR format.
+ *
+ * \param btor Boolector instance.
+ * \param file File to which the formula should be dumped.
+ * The file must be have been opened by the user before.
+ */
+void boolector_dump_btor (Btor *btor, FILE *file);
+
+/**
+ * Recursively dumps expression to file.
+ *<a href="http://smtlib.cs.uiowa.edu/papers/format-v1.2-r06.08.30.pdf">SMT-LIB
+ * \param btor Boolector instance.
+ * \param file File to which the expression should be dumped.
+ * The file must be have been opened by the user before.
+ * \param node The expression which should be dumped.
+ */
+void boolector_dump_smt1_node (Btor *btor, FILE *file, BoolectorNode *node);
+
+/**
+ * Dumps formula to file in SMT-LIB format.
+ *<a href="http://smtlib.cs.uiowa.edu/papers/format-v1.2-r06.08.30.pdf">SMT-LIB
+ * \param btor Boolector instance.
+ * \param btor Boolector instance
+ * \param file Output file.
+ */
+void boolector_dump_smt1 (Btor *btor, FILE *file);
+
+/**
+ * Recursively dumps expression to file.
+ *<a
+ *href="http://smtlib.cs.uiowa.edu/papers/smt-lib-reference-v2.0-r12.09.09.pdf">SMT-LIB
+ *2.0</a> is used as format. \param btor Boolector instance. \param file File to
+ *which the expression should be dumped. The file must be have been opened by
+ *the user before. \param node The expression which should be dumped.
+ */
+void boolector_dump_smt2_node (Btor *btor, FILE *file, BoolectorNode *node);
+
+/**
+ * Dumps formula to file in SMT-LIB format.
+ *<a
+ *href="http://smtlib.cs.uiowa.edu/papers/smt-lib-reference-v2.0-r12.09.09.pdf">SMT-LIB
+ *2.0</a> is used as format. \param btor Boolector instance. \param btor
+ *Boolector instance \param file Output file.
+ */
+void boolector_dump_smt2 (Btor *btor, FILE *file);
+
+/* DEPRECATED API */
+
+/**
+ * Enable model generation.
+ * (Note: this function is deprecated,
+ * use \ref boolector_set_opt_model_gen instead!)
+ * \param btor Boolector instance.
+ * \see boolector_set_model_gen
+ */
+void boolector_enable_model_gen (Btor *btor);
+
+/**
+ * Enable model generation for all reads.
+ * (Note: this function is deprecated,
+ * use \ref boolector_set_opt_model_gen_all_reads instead!)
+ * \param btor Boolector instance.
+ * \see boolector_set_opt_model_gen_all_reads
+ */
+void boolector_generate_model_for_all_reads (Btor *btor);
+
+/**
+ * Enable incremental usage.
+ * (Note: this function is deprecated,
+ * use \ref boolector_set_opt_incremental instead!)
+ * \param btor Boolector instance.
+ * \see boolector_set_opt_incremental
+ */
+void boolector_enable_inc_usage (Btor *btor);
+
+/**
+ * Set the rewrite level of the rewriting engine.
+ * (Note: this function is deprecated,
+ * use \ref boolector_set_opt_rewrite_level instead.)
+ * \param btor Boolector instance.
+ * \param val Rewrite level ranging from
+ * 0 (no rewriting) to 3 (full rewriting).
+ * \see boolector_set_opt_rewrite_level
+ */
+void boolector_set_rewrite_level (Btor *btor, int val);
+
+/**
+ * Set level of verbosity.
+ * (Note: this function is deprecated,
+ * use \ref boolector_set_opt_verbosity instead.)
+ * \param btor Boolector instance.
+ * \param val Verbosity level.
+ * \see boolector_set_opt_verbosity
+ */
+void boolector_set_verbosity (Btor *btor, int val);
+
+/**
+ * Set log level.
+ * (Note: this function is deprecated,
+ * use \ref boolector_set_opt_loglevel instead.)
+ * \param btor Boolector instance.
+ * \param val Log level.
+ * \see boolector_set_opt_loglevel
+ */
+void boolector_set_loglevel (Btor *btor, int val);
 
 #endif
