@@ -382,7 +382,7 @@ print_opt (BtorMainApp *app, BtorOpt *opt)
   if (!strcmp (opt->lng, "look_ahead") || !strcmp (opt->lng, "in_depth")
       || !strcmp (opt->lng, "interval"))
     sprintf (paramstr, "<w>");
-  else if (!strcmp (opt->lng, "timelimit"))
+  else if (!strcmp (opt->lng, "time"))
     sprintf (paramstr, "<seconds>");
   else if (!strcmp (opt->lng, "output"))
     sprintf (paramstr, "<file>");
