@@ -70,10 +70,10 @@
     BTOR_TRAPI ("return %s", res); \
   } while (0)
 
-#define BTOR_TRAPI_RETURN_SORT(sort)                            \
-  do                                                            \
-  {                                                             \
-    BTOR_TRAPI ("return " SORT_FMT, BTOR_TRAPI_SORT_ID (sort)); \
+#define BTOR_TRAPI_RETURN_SORT(sort)                           \
+  do                                                           \
+  {                                                            \
+    BTOR_TRAPI ("return" SORT_FMT, BTOR_TRAPI_SORT_ID (sort)); \
   } while (0)
 
 static void
