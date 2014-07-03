@@ -15,6 +15,7 @@
 #include "boolector.h"
 #include "btorexit.h"
 #include "btoropt.h"
+#include "btorsat.h"
 
 #include <assert.h>
 #include <stdarg.h>
@@ -132,53 +133,61 @@ btormain_delete_mem_mgr (BtorMainMemMgr *mm)
 
 /*------------------------------------------------------------------------*/
 
+typedef struct BtorMainApp BtorMainApp;
+
+typedef struct BtorMainOpt
+{
+  BtorOpt opts;
+  void (*fun) (BtorMainApp *app);
+} BtorMainOpt;
+
 typedef struct BtorMainGenOpts
 {
-  BtorOpt first; /* dummy for iteration */
+  BtorMainOpt first; /* dummy for iteration */
   /* ------------------------------------ */
-  BtorOpt help;
-  BtorOpt copyright;
-  BtorOpt version;
-  BtorOpt timelimit;
+  BtorMainOpt help;
+  BtorMainOpt copyright;
+  BtorMainOpt version;
+  BtorMainOpt timelimit;
   /* ------------------------------------ */
-  BtorOpt last; /* dummy for iteration */
+  BtorMainOpt last; /* dummy for iteration */
 } BtorMainGenOpts;
 
 typedef struct BtorMainInputOpts
 {
-  BtorOpt first; /* dummy for iteration */
+  BtorMainOpt first; /* dummy for iteration */
   /* ------------------------------------ */
-  BtorOpt btor;
-  BtorOpt smt1;
-  BtorOpt smt2;
+  BtorMainOpt btor;
+  BtorMainOpt smt1;
+  BtorMainOpt smt2;
   /* ------------------------------------ */
-  BtorOpt last; /* dummy for iteration */
+  BtorMainOpt last; /* dummy for iteration */
 } BtorMainInputOpts;
 
 typedef struct BtorMainOutputOpts
 {
-  BtorOpt first; /* dummy for iteration */
+  BtorMainOpt first; /* dummy for iteration */
   /* ------------------------------------ */
-  BtorOpt output;
-  BtorOpt hex;
-  BtorOpt decimal;
-  BtorOpt dump_btor;
-  BtorOpt dump_smt1;
-  BtorOpt dump_smt2;
+  BtorMainOpt output;
+  BtorMainOpt hex;
+  BtorMainOpt decimal;
+  BtorMainOpt dump_btor;
+  BtorMainOpt dump_smt1;
+  BtorMainOpt dump_smt2;
   /* ------------------------------------ */
-  BtorOpt last; /* dummy for iteration */
+  BtorMainOpt last; /* dummy for iteration */
 } BtorMainOutputOpts;
 
 typedef struct BtorMainIncOpts
 {
-  BtorOpt first; /* dummy for iteration */
+  BtorMainOpt first; /* dummy for iteration */
   /* ------------------------------------ */
-  BtorOpt all;
-  BtorOpt look_ahead;
-  BtorOpt in_depth;
-  BtorOpt interval;
+  BtorMainOpt all;
+  BtorMainOpt look_ahead;
+  BtorMainOpt in_depth;
+  BtorMainOpt interval;
   /* ------------------------------------ */
-  BtorOpt last; /* dummy for iteration */
+  BtorMainOpt last; /* dummy for iteration */
 } BtorMainIncOpts;
 
 typedef struct BtorMainOpts
@@ -192,16 +201,17 @@ typedef struct BtorMainOpts
 #define BTORMAIN_FIRST_OPT(OPTS) (&OPTS.first + 1)
 #define BTORMAIN_LAST_OPT(OPTS) (&OPTS.last - 1)
 
-#define BTORMAIN_INIT_OPT(OPT, INTL, SHRT, LNG, VAL, MIN, MAX, DESC) \
-  do                                                                 \
-  {                                                                  \
-    OPT.internal = INTL;                                             \
-    OPT.shrt     = SHRT;                                             \
-    OPT.lng      = LNG;                                              \
-    OPT.dflt = OPT.val = VAL;                                        \
-    OPT.min            = MIN;                                        \
-    OPT.max            = MAX;                                        \
-    OPT.desc           = DESC;                                       \
+#define BTORMAIN_INIT_OPT(OPT, INTL, SHRT, LNG, VAL, MIN, MAX, DESC, FUN) \
+  do                                                                      \
+  {                                                                       \
+    OPT.opts.internal = INTL;                                             \
+    OPT.opts.shrt     = SHRT;                                             \
+    OPT.opts.lng      = LNG;                                              \
+    OPT.opts.dflt = OPT.opts.val = VAL;                                   \
+    OPT.opts.min                 = MIN;                                   \
+    OPT.opts.max                 = MAX;                                   \
+    OPT.opts.desc                = DESC;                                  \
+    OPT.fun                      = FUN;                                   \
   } while (0)
 
 /*------------------------------------------------------------------------*/
@@ -211,6 +221,8 @@ typedef struct BtorMainApp
   Btor *btor;
   BtorMainMemMgr *mm;
   BtorMainOpts opts;
+  int done;
+  int err;
 } BtorMainApp;
 
 static BtorMainApp *
@@ -234,9 +246,96 @@ btormain_delete_btormain (BtorMainApp *app)
   assert (app);
   BtorMainMemMgr *mm = app->mm;
 
-  btor_delete_btor (app->btor);
+  boolector_delete (app->btor);
   BTORMAIN_DELETEN (mm, app, 1);
   btormain_delete_mem_mgr (mm);
+}
+
+/*------------------------------------------------------------------------*/
+
+static void
+set_gen_help (BtorMainApp *app)
+{
+}
+
+static void
+set_gen_copyright (BtorMainApp *app)
+{
+}
+
+static void
+set_gen_version (BtorMainApp *app)
+{
+}
+
+static void
+set_gen_time (BtorMainApp *app)
+{
+}
+
+static void
+set_input_btor (BtorMainApp *app)
+{
+}
+
+static void
+set_input_smt1 (BtorMainApp *app)
+{
+}
+
+static void
+set_input_smt2 (BtorMainApp *app)
+{
+}
+
+static void
+set_output_output (BtorMainApp *app)
+{
+}
+
+static void
+set_output_hex (BtorMainApp *app)
+{
+}
+
+static void
+set_output_decimal (BtorMainApp *app)
+{
+}
+
+static void
+set_output_dump_btor (BtorMainApp *app)
+{
+}
+
+static void
+set_output_dump_smt1 (BtorMainApp *app)
+{
+}
+
+static void
+set_output_dump_smt2 (BtorMainApp *app)
+{
+}
+
+static void
+set_inc_all (BtorMainApp *app)
+{
+}
+
+static void
+set_inc_look_ahead (BtorMainApp *app)
+{
+}
+
+static void
+set_inc_in_depth (BtorMainApp *app)
+{
+}
+
+static void
+set_inc_interval (BtorMainApp *app)
+{
 }
 
 /*------------------------------------------------------------------------*/
@@ -257,7 +356,8 @@ init_main_opts (BtorMainApp *app)
                      0,
                      0,
                      1,
-                     "print this message and exit");
+                     "print this message and exit",
+                     set_gen_help);
   BTORMAIN_INIT_OPT (opts->gen_opts.copyright,
                      1,
                      "c",
@@ -265,7 +365,8 @@ init_main_opts (BtorMainApp *app)
                      0,
                      0,
                      1,
-                     "print copyright and exit");
+                     "print copyright and exit",
+                     set_gen_copyright);
   BTORMAIN_INIT_OPT (opts->gen_opts.version,
                      1,
                      "V",
@@ -273,12 +374,27 @@ init_main_opts (BtorMainApp *app)
                      0,
                      0,
                      1,
-                     "print version and exit");
-  BTORMAIN_INIT_OPT (
-      opts->gen_opts.timelimit, 1, "t", "time", 0, 0, -1, "set time limit");
+                     "print version and exit",
+                     set_gen_version);
+  BTORMAIN_INIT_OPT (opts->gen_opts.timelimit,
+                     1,
+                     "t",
+                     "time",
+                     0,
+                     0,
+                     -1,
+                     "set time limit",
+                     set_gen_time);
 
-  BTORMAIN_INIT_OPT (
-      opts->input_opts.btor, 1, 0, "btor", 0, 0, 1, "force BTOR input");
+  BTORMAIN_INIT_OPT (opts->input_opts.btor,
+                     1,
+                     0,
+                     "btor",
+                     0,
+                     0,
+                     1,
+                     "force BTOR input",
+                     set_input_btor);
   BTORMAIN_INIT_OPT (opts->input_opts.smt1,
                      1,
                      0,
@@ -286,7 +402,8 @@ init_main_opts (BtorMainApp *app)
                      0,
                      0,
                      1,
-                     "force SMT-LIB version 1 input");
+                     "force SMT-LIB version 1 input",
+                     set_input_smt1);
   BTORMAIN_INIT_OPT (opts->input_opts.smt2,
                      1,
                      0,
@@ -294,7 +411,8 @@ init_main_opts (BtorMainApp *app)
                      0,
                      0,
                      1,
-                     "force SMT-LIB version 2 input");
+                     "force SMT-LIB version 2 input",
+                     set_input_smt2);
 
   BTORMAIN_INIT_OPT (opts->output_opts.output,
                      1,
@@ -303,11 +421,26 @@ init_main_opts (BtorMainApp *app)
                      0,
                      0,
                      -1,
-                     "set output file for dumping");
-  BTORMAIN_INIT_OPT (
-      opts->output_opts.hex, 1, "x", "hex", 0, 0, 1, "hexadecimal output");
-  BTORMAIN_INIT_OPT (
-      opts->output_opts.decimal, 1, "d", "dec", 0, 0, 1, "decimal output");
+                     "set output file for dumping",
+                     set_output_output);
+  BTORMAIN_INIT_OPT (opts->output_opts.hex,
+                     1,
+                     "x",
+                     "hex",
+                     0,
+                     0,
+                     1,
+                     "hexadecimal output",
+                     set_output_hex);
+  BTORMAIN_INIT_OPT (opts->output_opts.decimal,
+                     1,
+                     "d",
+                     "dec",
+                     0,
+                     0,
+                     1,
+                     "decimal output",
+                     set_output_decimal);
   BTORMAIN_INIT_OPT (opts->output_opts.dump_btor,
                      1,
                      "db",
@@ -315,15 +448,8 @@ init_main_opts (BtorMainApp *app)
                      0,
                      0,
                      1,
-                     "dump formula in BTOR format");
-  BTORMAIN_INIT_OPT (opts->output_opts.dump_smt2,
-                     1,
-                     "ds",
-                     "dump_smt",
-                     0,
-                     0,
-                     1,
-                     "dump formula in SMT-LIB v2 format");
+                     "dump formula in BTOR format",
+                     set_output_dump_btor);
   BTORMAIN_INIT_OPT (opts->output_opts.dump_smt1,
                      1,
                      "ds1",
@@ -331,7 +457,17 @@ init_main_opts (BtorMainApp *app)
                      0,
                      0,
                      1,
-                     "dump formula in SMT-LIB v1 format");
+                     "dump formula in SMT-LIB v1 format",
+                     set_output_dump_smt1);
+  BTORMAIN_INIT_OPT (opts->output_opts.dump_smt2,
+                     1,
+                     "ds",
+                     "dump_smt",
+                     0,
+                     0,
+                     1,
+                     "dump formula in SMT-LIB v2 format",
+                     set_output_dump_smt2);
 
   BTORMAIN_INIT_OPT (opts->inc_opts.all,
                      1,
@@ -340,7 +476,8 @@ init_main_opts (BtorMainApp *app)
                      0,
                      0,
                      1,
-                     "same as '-i' but solve all formulas");
+                     "same as '-i' but solve all formulas",
+                     set_inc_all);
   BTORMAIN_INIT_OPT (opts->inc_opts.look_ahead,
                      1,
                      0,
@@ -348,7 +485,8 @@ init_main_opts (BtorMainApp *app)
                      0,
                      0,
                      -1,
-                     "incremental lookahead mode width <w>");
+                     "incremental lookahead mode width <w>",
+                     set_inc_look_ahead);
   BTORMAIN_INIT_OPT (opts->inc_opts.in_depth,
                      1,
                      0,
@@ -356,7 +494,8 @@ init_main_opts (BtorMainApp *app)
                      0,
                      0,
                      -1,
-                     "incremental in-depth mode width <w>");
+                     "incremental in-depth mode width <w>",
+                     set_inc_in_depth);
   BTORMAIN_INIT_OPT (opts->inc_opts.interval,
                      1,
                      0,
@@ -364,7 +503,8 @@ init_main_opts (BtorMainApp *app)
                      0,
                      0,
                      -1,
-                     "incremental interval mode width <w>");
+                     "incremental interval mode width <w>",
+                     set_inc_interval);
 }
 
 static void
@@ -428,7 +568,8 @@ print_help (BtorMainApp *app)
 {
   assert (app);
 
-  BtorOpt *o, *oo;
+  BtorOpt *bo;
+  BtorMainOpt *o;
   BtorMainOpts *opts = &app->opts;
 
   printf ("usage: boolector [<option>...][<input>]\n");
@@ -439,38 +580,38 @@ print_help (BtorMainApp *app)
   for (o = BTORMAIN_FIRST_OPT (opts->gen_opts);
        o <= BTORMAIN_LAST_OPT (opts->gen_opts);
        o++)
-    print_opt (app, o);
+    print_opt (app, &o->opts);
   printf ("\n");
 
   for (o = BTORMAIN_FIRST_OPT (opts->input_opts);
        o <= BTORMAIN_LAST_OPT (opts->input_opts);
        o++)
-    print_opt (app, o);
+    print_opt (app, &o->opts);
   printf ("\n");
 
-  for (o = btor_first_opt (app->btor); o <= btor_last_opt (app->btor); o++)
+  for (bo = btor_first_opt (app->btor); bo <= btor_last_opt (app->btor); bo++)
   {
-    if (o->internal) continue;
-    if (!strcmp (o->lng, "incremental") || !strcmp (o->lng, "pretty_print"))
+    if (bo->internal) continue;
+    if (!strcmp (bo->lng, "incremental") || !strcmp (bo->lng, "pretty_print"))
       printf ("\n");
-    print_opt (app, o);
-    if (!strcmp (o->lng, "incremental"))
+    print_opt (app, bo);
+    if (!strcmp (bo->lng, "incremental"))
     {
-      for (oo = BTORMAIN_FIRST_OPT (opts->inc_opts);
-           oo <= BTORMAIN_LAST_OPT (opts->inc_opts);
-           oo++)
-        print_opt (app, oo);
+      for (o = BTORMAIN_FIRST_OPT (opts->inc_opts);
+           o <= BTORMAIN_LAST_OPT (opts->inc_opts);
+           o++)
+        print_opt (app, &o->opts);
       printf ("\n");
     }
-    else if (!strcmp (o->lng, "pretty_print"))
+    else if (!strcmp (bo->lng, "pretty_print"))
     {
-      for (oo = BTORMAIN_FIRST_OPT (opts->output_opts);
-           oo <= BTORMAIN_LAST_OPT (opts->output_opts);
-           oo++)
-        print_opt (app, oo);
+      for (o = BTORMAIN_FIRST_OPT (opts->output_opts);
+           o <= BTORMAIN_LAST_OPT (opts->output_opts);
+           o++)
+        print_opt (app, &o->opts);
       printf ("\n");
     }
-    else if (!strcmp (o->lng, "rewrite_level_pbr"))
+    else if (!strcmp (bo->lng, "rewrite_level_pbr"))
       printf ("\n");
   }
 }
@@ -478,12 +619,30 @@ print_help (BtorMainApp *app)
 int
 boolector_main (int argc, char **argv)
 {
+  int i, res;
   BtorMainApp *app;
+
+  res = BTOR_UNKNOWN_EXIT;
 
   app = btormain_new_btormain (boolector_new ());
 
   init_main_opts (app);
-  print_help (app);
 
+  //  for (i = 1; i < argc; i++)
+  //    {
+  //      if (!strcmp (argv[i], "-h") || !strcmp (argv[i], "--help"))
+  //	{
+  print_help (app);
+  res = BTOR_SUCC_EXIT;
+  goto DONE;
+  //	}
+  //
+  //
+  //    }
+
+DONE:
+  assert (res == BTOR_ERR_EXIT || res == BTOR_SUCC_EXIT || res == BTOR_SAT
+          || res == BTOR_UNSAT || res == BTOR_UNKNOWN);
   btormain_delete_btormain (app);
+  return res;
 }
