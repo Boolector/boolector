@@ -967,11 +967,11 @@ clone_aux_btor (Btor *btor,
 #endif
   assert ((allocated += MEM_PTR_HASH_TABLE (btor->bv_model))
           == clone->mm->allocated);
-  CLONE_PTR_HASH_TABLE_ASPTR (array_model, data_as_bv_htable_ptr);
+  CLONE_PTR_HASH_TABLE_ASPTR (fun_model, data_as_bv_htable_ptr);
 #ifndef NDEBUG
-  if (btor->array_model)
+  if (btor->fun_model)
   {
-    for (b = btor->array_model->first, cb = clone->array_model->first; b;
+    for (b = btor->fun_model->first, cb = clone->fun_model->first; b;
          b = b->next, cb = cb->next)
     {
       assert (MEM_PTR_HASH_TABLE ((BtorPtrHashTable *) b->data.asPtr)
@@ -988,7 +988,7 @@ clone_aux_btor (Btor *btor,
     }
   }
 #endif
-  assert ((allocated += MEM_PTR_HASH_TABLE (btor->array_model))
+  assert ((allocated += MEM_PTR_HASH_TABLE (btor->fun_model))
           == clone->mm->allocated);
 
   BTORLOG_TIMESTAMP (delta);

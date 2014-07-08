@@ -689,14 +689,14 @@ btor_chkclone_tables (Btor *btor)
   else
     assert (!btor->clone->bv_model);
 
-  if (btor->array_model)
+  if (btor->fun_model)
   {
-    assert (btor->clone->array_model);
-    assert (btor->array_model->size == btor->clone->array_model->size);
-    assert (btor->array_model->count == btor->clone->array_model->count);
-    assert (btor->array_model->hash == btor->clone->array_model->hash);
-    assert (btor->array_model->cmp == btor->clone->array_model->cmp);
-    for (b = btor->array_model->first, cb = btor->clone->array_model->first; b;
+    assert (btor->clone->fun_model);
+    assert (btor->fun_model->size == btor->clone->fun_model->size);
+    assert (btor->fun_model->count == btor->clone->fun_model->count);
+    assert (btor->fun_model->hash == btor->clone->fun_model->hash);
+    assert (btor->fun_model->cmp == btor->clone->fun_model->cmp);
+    for (b = btor->fun_model->first, cb = btor->clone->fun_model->first; b;
          b = b->next, cb = cb->next)
     {
       assert (cb);
@@ -721,7 +721,7 @@ btor_chkclone_tables (Btor *btor)
     }
   }
   else
-    assert (!btor->clone->array_model);
+    assert (!btor->clone->fun_model);
 }
 
 void

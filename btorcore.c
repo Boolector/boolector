@@ -1959,7 +1959,7 @@ btor_reset_assumptions (Btor *btor)
 }
 
 static void
-btor_reset_array_models (Btor *btor)
+btor_reset_functions_with_model (Btor *btor)
 {
   BtorNode *cur;
   int i;
@@ -1985,7 +1985,7 @@ btor_reset_incremental_usage (Btor *btor)
   assert (btor);
 
   btor_reset_assumptions (btor);
-  btor_reset_array_models (btor);
+  btor_reset_functions_with_model (btor);
   btor->valid_assignments = 0;
   btor_delete_model (btor);
 }
@@ -10503,7 +10503,7 @@ btor_bv_assignment_str (Btor *btor, BtorNode *exp)
   return assignment;
 }
 
-// TODO: eliminate function, use btor_get_array_model_str instead
+// TODO: eliminate function, use btor_get_fun_model_str instead
 void
 btor_array_assignment_str (
     Btor *btor, BtorNode *exp, char ***indices, char ***values, int *size)
@@ -10518,8 +10518,8 @@ btor_array_assignment_str (
 
   exp = btor_simplify_exp (btor, exp);
   assert (BTOR_IS_FUN_NODE (exp));
-  assert (btor_has_array_model (btor, exp) || !exp->rho);
-  btor_get_array_model_str (btor, exp, indices, values, size);
+  assert (btor_has_fun_model (btor, exp) || !exp->rho);
+  btor_get_fun_model_str (btor, exp, indices, values, size);
 }
 
 void
@@ -10692,12 +10692,18 @@ check_model (Btor *btor, Btor *clone, BtorPtrHashTable *inputs)
         || btor_find_in_ptr_hash_table (clone->substitutions, real_simp))
       continue;
 
+    // TODO: UF support
+    //       UF models (incl. array models)
+    //       fun models
     if (BTOR_IS_FUN_NODE (real_simp))
     {
       size    = 0;
       indices = 0;
       values  = 0;
 
+      // TODO: get fun model
+      // &args, &values
+      // args still a space separated string
       btor_array_assignment_str (btor, exp, &indices, &values, &size);
 
       if (size == 0) continue;
@@ -10705,6 +10711,7 @@ check_model (Btor *btor, Btor *clone, BtorPtrHashTable *inputs)
       assert (indices);
       assert (values);
 
+      // TODO: UF or array
       w = btor_array_exp (
           clone, real_simp->len, BTOR_ARRAY_INDEX_LEN (real_simp), "");
       for (i = 0; i < size; i++)
@@ -10746,7 +10753,7 @@ check_model (Btor *btor, Btor *clone, BtorPtrHashTable *inputs)
     }
   }
 
-  btor_reset_array_models (clone);
+  btor_reset_functions_with_model (clone);
   substitute_and_rebuild (clone, clone->substitutions, 0);
   btor_delete_substitutions (clone);
   reset_varsubst_constraints (clone); /* varsubst not required */
