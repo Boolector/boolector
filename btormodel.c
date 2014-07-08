@@ -792,7 +792,7 @@ btor_has_fun_model (Btor *btor, BtorNode *exp)
   return btor_find_in_ptr_hash_table (btor->fun_model, exp) != 0;
 }
 
-static BitVector *
+const BitVector *
 btor_get_bv_model (Btor *btor, BtorNode *exp)
 {
   assert (btor);
@@ -805,15 +805,12 @@ btor_get_bv_model (Btor *btor, BtorNode *exp)
 
   if (!b) return 0;
 
-  if (BTOR_IS_INVERTED_NODE (exp))
-    result = btor_not_bv (btor, (BitVector *) b->data.asPtr);
-  else
-    result = btor_copy_bv (btor, (BitVector *) b->data.asPtr);
-
+  result = (BitVector *) b->data.asPtr;
+  if (BTOR_IS_INVERTED_NODE (exp)) result = BTOR_INVERT_BV (result);
   return result;
 }
 
-static BtorPtrHashTable *
+const BtorPtrHashTable *
 btor_get_fun_model (Btor *btor, BtorNode *exp)
 {
   assert (btor);
@@ -836,12 +833,11 @@ btor_get_bv_model_str (Btor *btor, BtorNode *exp)
   assert (btor_has_bv_model (btor, exp));
 
   const char *res;
-  BitVector *bv;
+  const BitVector *bv;
   // TODO: return 'xxxxx' if we do not have a model for exp
 
   bv  = btor_get_bv_model (btor, exp);
   res = btor_bv_to_char_bv (btor, bv);
-  btor_free_bv (btor, bv);
   return res;
 }
 
@@ -860,7 +856,7 @@ btor_get_fun_model_str (
   char *arg, *tmp, *bv;
   int i, j, len;
   BtorHashTableIterator it;
-  BtorPtrHashTable *model;
+  const BtorPtrHashTable *model;
   BitVector *value;
   BitVectorTuple *t;
 
@@ -887,9 +883,9 @@ btor_get_fun_model_str (
 
     /* build assignment string for all arguments */
     t   = (BitVectorTuple *) next_hash_table_iterator (&it);
-    len = 0;
+    len = t->arity;
     for (j = 0; j < t->arity; j++) len += t->bv[j]->width;
-    BTOR_NEWN (btor->mm, arg, len + t->arity);
+    BTOR_NEWN (btor->mm, arg, len);
     tmp = arg;
 
     bv = (char *) btor_bv_to_char_bv (btor, t->bv[0]);
@@ -903,6 +899,7 @@ btor_get_fun_model_str (
       strcat (tmp, bv);
       btor_release_bv_assignment_str (btor, bv);
     }
+    assert ((int) strlen (arg) == len - 1);
 
     (*args)[i]   = arg;
     (*values)[i] = (char *) btor_bv_to_char_bv (btor, value);

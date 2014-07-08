@@ -23,6 +23,9 @@ void btor_delete_model (Btor *);
 int btor_has_bv_model (Btor *, BtorNode *);
 int btor_has_fun_model (Btor *, BtorNode *);
 
+const BitVector *btor_get_bv_model (Btor *, BtorNode *);
+const BtorPtrHashTable *btor_get_fun_model (Btor *, BtorNode *);
+
 const char *btor_get_bv_model_str (Btor *, BtorNode *);
 void btor_get_fun_model_str (Btor *, BtorNode *, char ***, char ***, int *);
 

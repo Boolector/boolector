@@ -9797,7 +9797,6 @@ btor_sat_btor (Btor *btor)
 #ifdef BTOR_CHECK_MODEL
   Btor *mclone;
   BtorPtrHashTable *inputs;
-  btor_set_opt (btor, "model_gen", 1);
   mclone = btor_clone_btor (btor);
   btor_set_opt (mclone, "loglevel", 0);
   btor_set_opt (mclone, "verbosity", 0);
@@ -10648,6 +10647,177 @@ rebuild_formula (Btor *btor, int rewrite_level)
   btor_delete_ptr_hash_table (t);
 }
 
+/* util function for creating function sorts from function expressions, will
+ * be obsolete as soon as we implement sorts for all expressions */
+static BtorSort *
+fun_sort_from_fun (Btor *btor, BtorNode *fun)
+{
+  assert (btor);
+  assert (fun);
+  assert (BTOR_IS_REGULAR_NODE (fun));
+  assert (BTOR_IS_FUN_NODE (fun));
+
+  BtorNode *lambda, *param;
+  BtorSort *sort, *domain, *codomain;
+  BtorSortPtrStack sorts;
+  BtorNodeIterator it;
+
+  if (BTOR_IS_UF_NODE (fun)) return btor_copy_sort (((BtorUFNode *) fun)->sort);
+
+  assert (BTOR_IS_LAMBDA_NODE (fun));
+
+  BTOR_INIT_STACK (sorts);
+  init_lambda_iterator (&it, fun);
+  while (has_next_lambda_iterator (&it))
+  {
+    lambda = next_lambda_iterator (&it);
+    param  = lambda->e[0];
+    assert (BTOR_IS_PARAM_NODE (param));
+    sort = btor_bitvec_sort (&btor->sorts_unique_table, param->len);
+    BTOR_PUSH_STACK (btor->mm, sorts, sort);
+  }
+
+  if (BTOR_COUNT_STACK (sorts) > 1)
+    domain = btor_tuple_sort (
+        &btor->sorts_unique_table, sorts.start, BTOR_COUNT_STACK (sorts));
+  else
+    domain = btor_copy_sort (BTOR_PEEK_STACK (sorts, 0));
+  codomain = btor_bitvec_sort (&btor->sorts_unique_table, fun->len);
+  sort     = btor_fun_sort (&btor->sorts_unique_table, domain, codomain);
+
+  btor_release_sort (&btor->sorts_unique_table, domain);
+  btor_release_sort (&btor->sorts_unique_table, codomain);
+  while (!BTOR_EMPTY_STACK (sorts))
+    btor_release_sort (&btor->sorts_unique_table, BTOR_POP_STACK (sorts));
+  BTOR_RELEASE_STACK (btor->mm, sorts);
+
+  return sort;
+}
+
+static BtorNode *
+const_from_bv (Btor *btor, BitVector *bv)
+{
+  assert (btor);
+  assert (bv);
+
+  char *val;
+  BtorNode *res;
+
+  val = btor_bv_to_char_bv (btor, bv);
+  res = btor_const_exp (btor, val);
+  btor_release_bv_assignment_str (btor, val);
+  return res;
+}
+
+static BtorNode *
+generate_lambda_model_from_fun_model (Btor *btor,
+                                      BtorNode *exp,
+                                      const BtorPtrHashTable *model)
+{
+  assert (btor);
+  assert (exp);
+  assert (model);
+  assert (BTOR_IS_REGULAR_NODE (exp));
+  assert (BTOR_IS_FUN_NODE (exp));
+
+  int i;
+  BtorUFNode *uf;
+  BtorNode *res, *c, *p, *cond, *e_if, *e_else, *tmp, *eq, *ite;
+  BtorHashTableIterator it;
+  BtorSort *sort, *domain;
+  BtorNodePtrStack params, consts;
+  BitVector *value;
+  BitVectorTuple *args;
+
+  BTOR_INIT_STACK (params);
+  BTOR_INIT_STACK (consts);
+
+  sort = fun_sort_from_fun (btor, exp);
+  uf   = (BtorUFNode *) btor_uf_exp (btor, sort, "");
+  btor_release_sort (&btor->sorts_unique_table, sort);
+  domain = sort->fun.domain;
+
+  /* generate params */
+  if (uf->num_params > 1)
+  {
+    assert (domain->kind == BTOR_TUPLE_SORT);
+    for (i = 0; i < domain->tuple.num_elements; i++)
+    {
+      p = btor_param_exp (btor, domain->tuple.elements[i]->bitvec.len, "");
+      BTOR_PUSH_STACK (btor->mm, params, p);
+    }
+  }
+  else
+  {
+    assert (domain->kind == BTOR_BITVEC_SORT);
+    p = btor_param_exp (btor, domain->bitvec.len, "");
+    BTOR_PUSH_STACK (btor->mm, params, p);
+  }
+
+  e_else = btor_apply_exps (
+      btor, BTOR_COUNT_STACK (params), params.start, (BtorNode *) uf);
+  btor_release_exp (btor, (BtorNode *) uf);
+
+  /* generate ITEs */
+  init_hash_table_iterator (&it, (BtorPtrHashTable *) model);
+  while (has_next_hash_table_iterator (&it))
+  {
+    value = (BitVector *) it.bucket->data.asPtr;
+    args  = next_hash_table_iterator (&it);
+
+    /* create condition */
+    assert (uf->num_params == args->arity);
+    assert (BTOR_EMPTY_STACK (consts));
+    assert (BTOR_COUNT_STACK (params) == args->arity);
+    for (i = 0; i < args->arity; i++)
+    {
+      c = const_from_bv (btor, args->bv[i]);
+      assert (BTOR_REAL_ADDR_NODE (c)->len == BTOR_PEEK_STACK (params, i)->len);
+      assert (args->arity <= 1
+              || BTOR_REAL_ADDR_NODE (c)->len
+                     == domain->tuple.elements[i]->bitvec.len);
+      assert (args->arity > 1
+              || BTOR_REAL_ADDR_NODE (c)->len == domain->bitvec.len);
+      BTOR_PUSH_STACK (btor->mm, consts, c);
+    }
+
+    assert (!BTOR_EMPTY_STACK (params));
+    assert (BTOR_COUNT_STACK (params) == BTOR_COUNT_STACK (consts));
+    cond = btor_eq_exp (
+        btor, BTOR_PEEK_STACK (params, 0), BTOR_PEEK_STACK (consts, 0));
+    for (i = 1; i < BTOR_COUNT_STACK (params); i++)
+    {
+      eq = btor_eq_exp (
+          btor, BTOR_PEEK_STACK (params, i), BTOR_PEEK_STACK (consts, i));
+      tmp = btor_and_exp (btor, cond, eq);
+      btor_release_exp (btor, cond);
+      btor_release_exp (btor, eq);
+      cond = tmp;
+    }
+
+    while (!BTOR_EMPTY_STACK (consts))
+      btor_release_exp (btor, BTOR_POP_STACK (consts));
+
+    /* create ITE */
+    e_if = const_from_bv (btor, value);
+    ite  = btor_cond_exp (btor, cond, e_if, e_else);
+    btor_release_exp (btor, cond);
+    btor_release_exp (btor, e_if);
+    btor_release_exp (btor, e_else);
+    e_else = ite;
+  }
+
+  res = btor_fun_exp (btor, BTOR_COUNT_STACK (params), params.start, ite);
+
+  btor_release_exp (btor, ite);
+  while (!BTOR_EMPTY_STACK (params))
+    btor_release_exp (btor, BTOR_POP_STACK (params));
+  BTOR_RELEASE_STACK (btor->mm, params);
+  BTOR_RELEASE_STACK (btor->mm, consts);
+
+  return res;
+}
+
 static void
 check_model (Btor *btor, Btor *clone, BtorPtrHashTable *inputs)
 {
@@ -10656,10 +10826,11 @@ check_model (Btor *btor, Btor *clone, BtorPtrHashTable *inputs)
   assert (clone);
   assert (inputs);
 
-  int i, ret, size;
-  char *a, **indices, **values;
-  BtorNode *cur, *exp, *val, *idx, *w, *tmp, *simp, *real_simp;
+  int ret;
+  char *a;
+  BtorNode *cur, *exp, *simp, *real_simp, *subst;
   BtorHashTableIterator it;
+  const BtorPtrHashTable *fmodel;
 
   if (clone->valid_assignments) btor_reset_incremental_usage (clone);
 
@@ -10692,65 +10863,27 @@ check_model (Btor *btor, Btor *clone, BtorPtrHashTable *inputs)
         || btor_find_in_ptr_hash_table (clone->substitutions, real_simp))
       continue;
 
-    // TODO: UF support
-    //       UF models (incl. array models)
-    //       fun models
-    if (BTOR_IS_FUN_NODE (real_simp))
-    {
-      size    = 0;
-      indices = 0;
-      values  = 0;
-
-      // TODO: get fun model
-      // &args, &values
-      // args still a space separated string
-      btor_array_assignment_str (btor, exp, &indices, &values, &size);
-
-      if (size == 0) continue;
-
-      assert (indices);
-      assert (values);
-
-      // TODO: UF or array
-      w = btor_array_exp (
-          clone, real_simp->len, BTOR_ARRAY_INDEX_LEN (real_simp), "");
-      for (i = 0; i < size; i++)
-      {
-        a = indices[i];
-        init_x_values (a);
-        idx = btor_const_exp (clone, a);
-        a   = values[i];
-        init_x_values (a);
-        val = btor_const_exp (clone, a);
-        tmp = btor_write_exp (clone, w, idx, val);
-        btor_release_exp (clone, w);
-        w = tmp;
-
-        btor_release_exp (clone, val);
-        btor_release_exp (clone, idx);
-        btor_release_bv_assignment_str (btor, indices[i]);
-        btor_release_bv_assignment_str (btor, values[i]);
-      }
-
-      assert (!btor_find_in_ptr_hash_table (clone->substitutions, real_simp));
-      btor_insert_substitution (clone, real_simp, w, 0);
-      btor_release_exp (clone, w);
-      btor_free (btor->mm, indices, sizeof (*indices) * size);
-      btor_free (btor->mm, values, sizeof (*values) * size);
-    }
-    else if (BTOR_IS_BV_VAR_NODE (real_simp))
+    if (BTOR_IS_BV_VAR_NODE (real_simp))
     {
       assert (!BTOR_IS_FUN_NODE (real_simp));
       /* we need to invert the assignment if simplified is inverted */
-      a   = (char *) btor_bv_assignment_str (btor,
+      a     = (char *) btor_bv_assignment_str (btor,
                                            BTOR_COND_INVERT_NODE (simp, exp));
-      val = btor_const_exp (clone, a);
+      subst = btor_const_exp (clone, a);
       btor_release_bv_assignment_str (btor, a);
-
-      assert (!btor_find_in_ptr_hash_table (clone->substitutions, real_simp));
-      btor_insert_substitution (clone, real_simp, val, 0);
-      btor_release_exp (clone, val);
     }
+    else
+    {
+      assert (BTOR_IS_FUN_NODE (real_simp));
+      fmodel = btor_get_fun_model (btor, exp);
+
+      if (!fmodel) continue;
+
+      subst = generate_lambda_model_from_fun_model (clone, exp, fmodel);
+    }
+    assert (!btor_find_in_ptr_hash_table (clone->substitutions, real_simp));
+    btor_insert_substitution (clone, real_simp, subst, 0);
+    btor_release_exp (clone, subst);
   }
 
   btor_reset_functions_with_model (clone);
