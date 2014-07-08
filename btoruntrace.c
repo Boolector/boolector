@@ -391,6 +391,12 @@ NEXT:
     PARSE_ARGS0 (tok);
     boolector_simplify (btor);
   }
+  else if (!strcmp (tok, "file_exists"))
+  {
+    PARSE_ARGS1 (tok, str);
+    ret_int = boolector_file_exists (btor, arg1_str);
+    exp_ret = RET_INT;
+  }
   /* sorts */
   else if (!strcmp (tok, "bitvec_sort"))
   {

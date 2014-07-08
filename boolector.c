@@ -64,6 +64,8 @@ boolector_chkclone (Btor *btor)
                           : BTOR_PEEK_STACK (btor->clone->nodes_id_table,    \
                                              BTOR_REAL_ADDR_NODE (exp)->id)) \
                 : 0))
+#else
+#define BTOR_CLONED_EXP (EXP) 0
 #endif
 
 /*------------------------------------------------------------------------*/
@@ -150,6 +152,23 @@ boolector_get_trapi (Btor *btor)
 {
   BTOR_ABORT_ARG_NULL_BOOLECTOR (btor);
   return btor->apitrace;
+}
+
+/*------------------------------------------------------------------------*/
+
+int
+boolector_file_exists (Btor *btor, const char *path)
+{
+  int res;
+
+  BTOR_ABORT_ARG_NULL_BOOLECTOR (btor);
+  BTOR_TRAPI ("file_exists");
+  res = btor_file_exists (path);
+#ifndef NDEBUG
+  BTOR_CHKCLONE_RES (res, get_refs);
+#endif
+  BTOR_TRAPI_RETURN (res);
+  return res;
 }
 
 /*------------------------------------------------------------------------*/

@@ -205,6 +205,10 @@ FILE *boolector_get_trapi (Btor *btor);
 
 /*------------------------------------------------------------------------*/
 
+int boolector_file_exists (Btor *btor, const char *path);
+
+/*------------------------------------------------------------------------*/
+
 /**
  * Adds constraint. Use this function to assert 'node'.
  * Added constraints can not be deleted anymore. After 'node' has
