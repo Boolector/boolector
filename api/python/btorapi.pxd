@@ -1,6 +1,6 @@
 # Boolector: Satisfiablity Modulo Theories (SMT) solver.
 #
-# Copyright (C) 2013 Mathias Preiner.
+# Copyright (C) 2013-2014 Mathias Preiner.
 #
 # All rights reserved.
 #
@@ -15,31 +15,44 @@ cdef extern from "boolector.h":
         pass
     ctypedef struct Btor:
         pass
-
-    #void boolector_set_trapi (Btor * btor, FILE * apitrace)
-    #FILE *boolector_get_trapi (Btor * btor)
+    ctypedef struct BoolectorSort:
+        pass
 
     Btor *boolector_new ()
 
     Btor *boolector_clone (Btor * btor)
 
-    void boolector_enable_model_gen (Btor * btor)
-
-    void boolector_generate_model_for_all_reads (Btor * btor)
-
-    void boolector_enable_inc_usage (Btor * btor)
-
-    int boolector_set_sat_solver (Btor * btor, const char * solver)
-
-    void boolector_set_rewrite_level (Btor * btor, int rewrite_level)
+    void boolector_delete (Btor * btor)
 
     int boolector_get_refs (Btor * btor)
 
-    void boolector_delete (Btor * btor)
+    void boolector_reset_time (Btor * btor)
+
+    void boolector_reset_stats (Btor * btor)
+
+#    void boolector_set_trapi (Btor * btor, FILE * apitrace)
+
+#    FILE *boolector_get_trapi (Btor * btor)
+
+    void boolector_assert (Btor * btor, BoolectorNode * node)
+
+    void boolector_assume (Btor * btor, BoolectorNode * node)
+
+    int boolector_failed (Btor * btor, BoolectorNode * node)
+
+    int boolector_sat (Btor * btor)
+
+    int boolector_limited_sat (Btor * btor, int lod_limit, int sat_limit)
 
     int boolector_simplify (Btor * btor)
 
-    void boolector_enable_beta_reduce_all (Btor * btor)
+    int boolector_set_sat_solver (Btor * btor, const char * solver)
+
+    void boolector_set_opt (Btor * btor, const char * opt, int val)
+
+    BoolectorNode *boolector_copy (Btor * btor, BoolectorNode * node)
+
+    void boolector_release (Btor * btor, BoolectorNode * node)
 
     BoolectorNode *boolector_const (Btor * btor, const char *bits)
 
@@ -218,21 +231,31 @@ cdef extern from "boolector.h":
                                   BoolectorNode ** param_nodes, 
                                   BoolectorNode * node) 
 
-# NOTE: not required
+    BoolectorNode *boolector_uf (Btor * btor, BoolectorSort * sort,
+                                 const char * symbol)
+
 #    BoolectorNode *boolector_args (
 #        Btor * btor, int argc, BoolectorNode ** arg_nodes)
 
     BoolectorNode *boolector_apply (
-        Btor * btor, int argc, BoolectorNode ** arg_nodes,
-        BoolectorNode * n_fun)
+        Btor * btor, int argc, BoolectorNode ** arg_nodes, BoolectorNode * n_fun)
 
-# NOTE: not required
 #    BoolectorNode *boolector_apply_args (
 #        Btor * btor, BoolectorNode * n_args, BoolectorNode * n_fun)
 
     BoolectorNode *boolector_inc (Btor * btor, BoolectorNode *node)
 
     BoolectorNode *boolector_dec (Btor * btor, BoolectorNode *node)
+
+
+    Btor *boolector_get_btor (BoolectorNode * node)
+
+
+    int boolector_is_const (Btor *btor, BoolectorNode * node)
+
+    int boolector_is_var (Btor * btor, BoolectorNode * node)
+
+    const char * boolector_get_bits (Btor *, BoolectorNode * node)
 
     int boolector_is_array (Btor * btor, BoolectorNode * node)
 
@@ -246,41 +269,18 @@ cdef extern from "boolector.h":
 
     int boolector_get_fun_arity (Btor * btor, BoolectorNode * node)
 
-# NOTE: not required
 #    int boolector_is_args (Btor * btor, BoolectorNode * node)
-#
+
 #    int boolector_get_args_arity (Btor * btor, BoolectorNode * node)
 
     int boolector_get_width (Btor * btor, BoolectorNode * node)
 
     int boolector_get_index_width (Btor * btor, BoolectorNode * n_array)
 
-    #int boolector_fun_sort_check (
-    #    Btor * btor, int argc, BoolectorNode ** arg_nodes, BoolectorNode * n_fun)
+#    int boolector_fun_sort_check (
+#        Btor * btor, int argc, BoolectorNode ** arg_nodes, BoolectorNode * n_fun)
 
     const char *boolector_get_symbol_of_var (Btor * btor, BoolectorNode * var)
-
-    BoolectorNode *boolector_copy (Btor * btor, BoolectorNode * node)
-
-    void boolector_release (Btor * btor, BoolectorNode * node)
-
-    void boolector_dump_btor_node (Btor * btor, FILE * file, BoolectorNode * node)
-
-    void boolector_dump_btor (Btor * btor, FILE * file)
-
-    void boolector_dump_smt1 (Btor * btor, FILE * file)
-
-    void boolector_dump_smt2 (Btor * btor, FILE * file)
-
-    #void boolector_dump_smt (Btor * btor, FILE * file, BoolectorNode * node)
-    #
-    #void boolector_dump_smt2 (Btor * btor, FILE * file, BoolectorNode * node)
-
-    void boolector_assert (Btor * btor, BoolectorNode * node)
-
-    void boolector_assume (Btor * btor, BoolectorNode * node)
-
-    int boolector_sat (Btor * btor)
 
     const char *boolector_bv_assignment (Btor * btor, BoolectorNode * node)
 
@@ -294,3 +294,28 @@ cdef extern from "boolector.h":
 
     void boolector_free_array_assignment (
         Btor * btor, char ** indices, char ** values, int size)
+
+
+    BoolectorSort *boolector_fun_sort (Btor * btor,
+                                       BoolectorSort * domain,
+                                       BoolectorSort * codomain)
+
+    BoolectorSort *boolector_bitvec_sort (Btor * btor, int len)
+
+    BoolectorSort *boolector_tuple_sort (Btor * btor, BoolectorSort ** elements,
+                                        int num_elements)
+
+    void boolector_release_sort (Btor * btor, BoolectorSort * sort)
+
+    void boolector_dump_btor_node (Btor * btor, FILE * file, BoolectorNode * node)
+
+    void boolector_dump_btor (Btor * btor, FILE * file)
+
+    void boolector_dump_smt1_node (Btor * btor, FILE * file, BoolectorNode * node)
+
+    void boolector_dump_smt1 (Btor * btor, FILE * file)
+
+    void boolector_dump_smt2_node (Btor * btor, FILE * file, BoolectorNode * node)
+
+    void boolector_dump_smt2 (Btor * btor, FILE * file)
+
