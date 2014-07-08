@@ -351,7 +351,7 @@ NEXT:
   else if (!strcmp (tok, "set_opt"))
   {
     PARSE_ARGS2 (tok, str, int);
-    boolector_set_opt (btor, arg1_str, arg1_int);
+    boolector_set_opt (btor, arg1_str, arg2_int);
   }
   else if (!strcmp (tok, "set_sat_solver"))
   {
