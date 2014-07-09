@@ -313,11 +313,14 @@ NEXT:
       }
       else if (exp_ret == RET_ARRASS)
       {
-        assert (res1_pptr);
-        assert (res2_pptr);
+        assert (!ret_int || res1_pptr);
+        assert (!ret_int || res2_pptr);
         PARSE_ARGS3 (tok, str, str, int);
-        hmap_add (hmap, arg1_str, res1_pptr);
-        hmap_add (hmap, arg2_str, res2_pptr);
+        if (ret_int)
+        {
+          hmap_add (hmap, arg1_str, res1_pptr);
+          hmap_add (hmap, arg2_str, res2_pptr);
+        }
         if (arg3_int != ret_int)
           die ("expected return value %d but got %d", arg2_int, ret_int);
       }
