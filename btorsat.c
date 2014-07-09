@@ -3,7 +3,7 @@
  *  Copyright (C) 2007-2009 Robert Daniel Brummayer.
  *  Copyright (C) 2007-2013 Armin Biere.
  *  Copyright (C) 2012 Mathias Preiner.
- *  Copyright (C) 2013 Aina Niemetz.
+ *  Copyright (C) 2013-2014 Aina Niemetz.
  *
  *  All rights reserved.
  *
@@ -950,5 +950,44 @@ btor_enable_minisat_sat (BtorSATMgr *smgr)
 }
 
 #endif
+
+int
+btor_set_sat_solver (BtorSATMgr *smgr, const char *solver)
+{
+  assert (smgr);
+  assert (solver);
+
+  if (!strcasecmp (solver, "lingeling"))
+#ifdef BTOR_USE_LINGELING
+  {
+    btor_enable_lingeling_sat (smgr, 0, 0);
+    return 1;
+  }
+#else
+    return 0;
+#endif
+
+  if (!strcasecmp (solver, "minisat"))
+#ifdef BTOR_USE_MINISAT
+  {
+    btor_enable_minisat_sat (smgr);
+    return 1;
+  }
+#else
+    return 0;
+#endif
+
+  if (!strcasecmp (solver, "picosat"))
+#ifdef BTOR_USE_PICOSAT
+  {
+    btor_enable_picosat_sat (smgr);
+    return 1;
+  }
+#else
+    return 0;
+#endif
+
+  return 0;
+}
 
 /*------------------------------------------------------------------------*/

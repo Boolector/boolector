@@ -2,7 +2,7 @@
  *
  *  Copyright (C) 2007-2009 Robert Daniel Brummayer.
  *  Copyright (C) 2007-2012 Armin Biere.
- *  Copyright (C) 2013 Aina Niemetz.
+ *  Copyright (C) 2013-2014 Aina Niemetz.
  *
  *  All rights reserved.
  *
@@ -205,6 +205,9 @@ int btor_enable_lingeling_sat (BtorSATMgr *smgr,
 /* Enables MiniSAT as SAT preprocessor. */
 void btor_enable_minisat_sat (BtorSATMgr *smgr);
 #endif
+
+/* Wrapper for btor_enable_(picosat|lingeling|minisat). */
+int btor_set_sat_solver (BtorSATMgr *smgr, const char *solver);
 
 /* Only used for debugging purposes at this point */
 int btor_provides_incremental_sat (BtorSATMgr *smgr);

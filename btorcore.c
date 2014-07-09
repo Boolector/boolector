@@ -527,65 +527,18 @@ btor_version (Btor *btor)
   return BTOR_VERSION;
 }
 
-BtorMemMgr *
-btor_get_mem_mgr_btor (const Btor *btor)
+static BtorAIGMgr *
+btor_get_aig_mgr_btor (const Btor *btor)
 {
   assert (btor);
-  return btor->mm;
+  return btor_get_aig_mgr_aigvec_mgr (btor->avmgr);
 }
 
-BtorAIGVecMgr *
-btor_get_aigvec_mgr_btor (const Btor *btor)
+BtorSATMgr *
+btor_get_sat_mgr_btor (const Btor *btor)
 {
   assert (btor);
-  return btor->avmgr;
-}
-
-int
-btor_set_sat_solver (Btor *btor, const char *solver)
-{
-  BtorAIGVecMgr *avmgr;
-  BtorAIGMgr *amgr;
-  BtorSATMgr *smgr;
-
-  assert (btor);
-  assert (solver);
-
-  avmgr = btor->avmgr;
-  amgr  = btor_get_aig_mgr_aigvec_mgr (avmgr);
-  smgr  = btor_get_sat_mgr_aig_mgr (amgr);
-
-  if (!strcasecmp (solver, "lingeling"))
-#ifdef BTOR_USE_LINGELING
-  {
-    btor_enable_lingeling_sat (smgr, 0, 0);
-    return 1;
-  }
-#else
-    return 0;
-#endif
-
-  if (!strcasecmp (solver, "minisat"))
-#ifdef BTOR_USE_MINISAT
-  {
-    btor_enable_minisat_sat (smgr);
-    return 1;
-  }
-#else
-    return 0;
-#endif
-
-  if (!strcasecmp (solver, "picosat"))
-#ifdef BTOR_USE_PICOSAT
-  {
-    btor_enable_picosat_sat (smgr);
-    return 1;
-  }
-#else
-    return 0;
-#endif
-
-  return 0;
+  return btor_get_sat_mgr_aig_mgr (btor_get_aig_mgr_btor (btor));
 }
 
 void
@@ -1262,7 +1215,7 @@ process_unsynthesized_constraints (Btor *btor)
 
   uc   = btor->unsynthesized_constraints;
   sc   = btor->synthesized_constraints;
-  amgr = btor_get_aig_mgr_aigvec_mgr (btor->avmgr);
+  amgr = btor_get_aig_mgr_btor (btor);
 
   while (uc->count > 0)
   {
@@ -2083,8 +2036,8 @@ exp_to_cnf_lit (Btor *btor, BtorNode *exp)
 
   aig = btor_exp_to_aig (btor, exp);
 
-  amgr = btor_get_aig_mgr_aigvec_mgr (btor->avmgr);
-  smgr = btor_get_sat_mgr_aig_mgr (amgr);
+  amgr = btor_get_aig_mgr_btor (btor);
+  smgr = btor_get_sat_mgr_btor (btor);
 
   if (BTOR_IS_CONST_AIG (aig))
   {
@@ -2175,7 +2128,6 @@ btor_failed_exp (Btor *btor, BtorNode *exp)
   BtorNode *real_exp, *cur, *e;
   BtorNodePtrStack work_stack, assumptions;
   BtorSATMgr *smgr;
-  BtorAIGMgr *amgr;
 
   start = btor_time_stamp ();
 
@@ -2225,10 +2177,8 @@ btor_failed_exp (Btor *btor, BtorNode *exp)
       }
       else
       {
-        amgr = btor_get_aig_mgr_aigvec_mgr (btor->avmgr);
-        smgr = btor_get_sat_mgr_aig_mgr (amgr);
-
-        lit = exp_to_cnf_lit (btor, exp);
+        smgr = btor_get_sat_mgr_btor (btor);
+        lit  = exp_to_cnf_lit (btor, exp);
         if (abs (lit) == smgr->true_lit)
           res = lit < 0 ? 1 : 0;
         else
@@ -2272,8 +2222,7 @@ btor_failed_exp (Btor *btor, BtorNode *exp)
       }
     }
 
-    amgr = btor_get_aig_mgr_aigvec_mgr (btor->avmgr);
-    smgr = btor_get_sat_mgr_aig_mgr (amgr);
+    smgr = btor_get_sat_mgr_btor (btor);
     while (!BTOR_EMPTY_STACK (assumptions))
     {
       cur = BTOR_POP_STACK (assumptions);
@@ -3514,7 +3463,6 @@ btor_fixed_exp (Btor *btor, BtorNode *exp)
 {
   BtorNode *real_exp;
   BtorSATMgr *smgr;
-  BtorAIGMgr *amgr;
   BtorAIG *aig;
   int res, id;
 
@@ -3533,8 +3481,7 @@ btor_fixed_exp (Btor *btor, BtorNode *exp)
   {
     id = BTOR_GET_CNF_ID_AIG (aig);
     if (!id) return 0;
-    amgr = btor_get_aig_mgr_aigvec_mgr (btor->avmgr);
-    smgr = btor_get_sat_mgr_aig_mgr (amgr);
+    smgr = btor_get_sat_mgr_btor (btor);
     res  = btor_fixed_sat (smgr, id);
   }
   if (BTOR_IS_INVERTED_NODE (exp)) res = -res;
@@ -5727,8 +5674,8 @@ add_again_assumptions (Btor *btor)
   BtorSATMgr *smgr;
   BtorAIGMgr *amgr;
 
-  amgr = btor_get_aig_mgr_aigvec_mgr (btor->avmgr);
-  smgr = btor_get_sat_mgr_aig_mgr (amgr);
+  amgr = btor_get_aig_mgr_btor (btor);
+  smgr = btor_get_sat_mgr_btor (btor);
 
   BTOR_INIT_STACK (stack);
   BTOR_INIT_STACK (unmark_stack);
@@ -5799,7 +5746,7 @@ btor_timed_sat_sat (Btor *btor, int limit)
   double start, delta;
   BtorSATMgr *smgr;
   int res;
-  smgr  = btor_get_sat_mgr_aig_mgr (btor_get_aig_mgr_aigvec_mgr (btor->avmgr));
+  smgr  = btor_get_sat_mgr_btor (btor);
   start = btor_time_stamp ();
   res   = btor_sat_sat (smgr, limit);
   delta = btor_time_stamp () - start;
@@ -5818,7 +5765,7 @@ update_sat_assignments (Btor *btor)
 
   BtorSATMgr *smgr;
 
-  smgr = btor_get_sat_mgr_aig_mgr (btor_get_aig_mgr_aigvec_mgr (btor->avmgr));
+  smgr = btor_get_sat_mgr_btor (btor);
   add_again_assumptions (btor);
 #ifndef NDEBUG
   int result;
@@ -6354,7 +6301,7 @@ search_initial_applies_dual_prop (Btor *btor,
   btor->stats.dp_failed_applies  = 0;
   btor->stats.dp_assumed_applies = 0;
 
-  smgr = btor_get_sat_mgr_aig_mgr (btor_get_aig_mgr_aigvec_mgr (btor->avmgr));
+  smgr = btor_get_sat_mgr_btor (btor);
   if (!smgr->inc_required) return;
 
   BTOR_INIT_STACK (stack);
@@ -7042,7 +6989,6 @@ compare_assignments (BtorNode *exp1, BtorNode *exp2)
 {
   int return_val, val1, val2, i, len;
   Btor *btor;
-  BtorAIGVecMgr *avmgr;
   BtorAIGMgr *amgr;
   BtorAIGVec *av1, *av2;
   BtorAIG *aig1, *aig2;
@@ -7056,8 +7002,7 @@ compare_assignments (BtorNode *exp1, BtorNode *exp2)
   btor = BTOR_REAL_ADDR_NODE (exp1)->btor;
   assert (btor);
   return_val = 0;
-  avmgr      = btor->avmgr;
-  amgr       = btor_get_aig_mgr_aigvec_mgr (avmgr);
+  amgr       = btor_get_aig_mgr_btor (btor);
   av1        = BTOR_REAL_ADDR_NODE (exp1)->av;
   av2        = BTOR_REAL_ADDR_NODE (exp2)->av;
   assert (av1->len == av2->len);
@@ -7601,8 +7546,6 @@ collect_premisses (Btor *btor,
 static int
 assignment_always_unequal (Btor *btor, BtorNode *exp1, BtorNode *exp2)
 {
-  BtorAIGVecMgr *avmgr;
-  BtorAIGMgr *amgr;
   BtorSATMgr *smgr;
   int i, len, val1, val2;
   BtorAIGVec *av1, *av2;
@@ -7614,9 +7557,7 @@ assignment_always_unequal (Btor *btor, BtorNode *exp1, BtorNode *exp2)
 
   if (!BTOR_IS_SYNTH_NODE (exp2)) return 0;
 
-  avmgr = btor->avmgr;
-  amgr  = btor_get_aig_mgr_aigvec_mgr (avmgr);
-  smgr  = btor_get_sat_mgr_aig_mgr (amgr);
+  smgr = btor_get_sat_mgr_btor (btor);
 
   assert (!BTOR_IS_FUN_NODE (BTOR_REAL_ADDR_NODE (exp1)));
   assert (!BTOR_IS_FUN_NODE (BTOR_REAL_ADDR_NODE (exp2)));
@@ -7662,8 +7603,6 @@ assignment_always_unequal (Btor *btor, BtorNode *exp1, BtorNode *exp2)
 static int
 assignment_always_equal (Btor *btor, BtorNode *exp1, BtorNode *exp2)
 {
-  BtorAIGVecMgr *avmgr;
-  BtorAIGMgr *amgr;
   BtorSATMgr *smgr;
   int i, len, val1, val2;
   BtorAIGVec *av1, *av2;
@@ -7675,9 +7614,7 @@ assignment_always_equal (Btor *btor, BtorNode *exp1, BtorNode *exp2)
 
   if (!BTOR_IS_SYNTH_NODE (exp2)) return 0;
 
-  avmgr = btor->avmgr;
-  amgr  = btor_get_aig_mgr_aigvec_mgr (avmgr);
-  smgr  = btor_get_sat_mgr_aig_mgr (amgr);
+  smgr = btor_get_sat_mgr_btor (btor);
 
   assert (!BTOR_IS_FUN_NODE (BTOR_REAL_ADDR_NODE (exp1)));
   assert (!BTOR_IS_FUN_NODE (BTOR_REAL_ADDR_NODE (exp2)));
@@ -7733,13 +7670,11 @@ add_new_exp_to_clause (Btor *btor,
 
   int lit, false_lit, true_lit;
   BtorMemMgr *mm;
-  BtorAIGMgr *amgr;
   BtorSATMgr *smgr;
   BtorNode *real_exp;
 
   mm        = btor->mm;
-  amgr      = btor_get_aig_mgr_aigvec_mgr (btor->avmgr);
-  smgr      = btor_get_sat_mgr_aig_mgr (amgr);
+  smgr      = btor_get_sat_mgr_btor (btor);
   true_lit  = smgr->true_lit;
   false_lit = -true_lit;
   exp       = btor_simplify_exp (btor, exp);
@@ -8057,8 +7992,6 @@ encode_lemma (Btor *btor,
 
   int k, val;
   BtorMemMgr *mm;
-  BtorAIGVecMgr *avmgr;
-  BtorAIGMgr *amgr;
   BtorSATMgr *smgr;
   BtorNode *arg0, *arg1;
   BtorNode *cond;
@@ -8067,9 +8000,7 @@ encode_lemma (Btor *btor,
   BtorArgsIterator it0, it1;
 
   mm = btor->mm;
-  avmgr = btor->avmgr;
-  amgr = btor_get_aig_mgr_aigvec_mgr (avmgr);
-  smgr = btor_get_sat_mgr_aig_mgr (amgr);
+  smgr = btor_get_sat_mgr_btor (btor);
 
 #ifdef BTOR_USE_NVSIDS_ORDER_FOR_PROPAGATION
   a->score = a->score * BTOR_NVSIDS_DECAY + 1 - BTOR_NVSIDS_DECAY;
@@ -8175,7 +8106,6 @@ encode_array_inequality_virtual_reads (Btor * btor, BtorNode * aeq)
   BtorAIG *aig1, *aig2;
   BtorAIGVecMgr *avmgr;
   BtorMemMgr *mm;
-  BtorAIGMgr *amgr;
   BtorSATMgr *smgr;
   int len, k, d_k, r1_k, r2_k, e;
   BtorIntStack diffs;
@@ -8187,8 +8117,7 @@ encode_array_inequality_virtual_reads (Btor * btor, BtorNode * aeq)
   assert (aeq->vreads);
   mm = btor->mm;
   avmgr = btor->avmgr;
-  amgr = btor_get_aig_mgr_aigvec_mgr (avmgr);
-  smgr = btor_get_sat_mgr_aig_mgr (amgr);
+  smgr = btor_get_sat_mgr_btor (btor);
   vreads = aeq->vreads;
 
   read1 = vreads->exp1;
@@ -9321,7 +9250,7 @@ new_exp_layer_clone_for_dual_prop (Btor *btor,
   btor_set_opt (clone, "dual_prop", 0);        // FIXME should be redundant
   btor_set_opt (clone, "no_pretty_print", 1);  // TODO debug
 
-  smgr = btor_get_sat_mgr_aig_mgr (btor_get_aig_mgr_aigvec_mgr (clone->avmgr));
+  smgr = btor_get_sat_mgr_btor (clone);
   assert (!btor_is_initialized_sat (smgr));
   btor_init_sat (smgr);
   lgl = ((BtorLGL *) smgr->solver)->lgl;
@@ -9393,7 +9322,6 @@ btor_limited_sat_aux_btor (Btor *btor, int lod_limit, int sat_limit)
 
   int sat_result, simp_sat_result, found_conflict, refinements;
   BtorNodePtrStack prop_stack;
-  BtorAIGMgr *amgr;
   BtorSATMgr *smgr;
   Btor *clone;
   BtorNode *clone_root;
@@ -9430,8 +9358,7 @@ btor_limited_sat_aux_btor (Btor *btor, int lod_limit, int sat_limit)
 
   if (btor->inconsistent) goto UNSAT;
 
-  amgr = btor_get_aig_mgr_aigvec_mgr (btor->avmgr);
-  smgr = btor_get_sat_mgr_aig_mgr (amgr);
+  smgr = btor_get_sat_mgr_btor (btor);
 
   if (!btor_is_initialized_sat (smgr)) btor_init_sat (smgr);
 
@@ -9583,7 +9510,6 @@ btor_sat_aux_btor_dual_prop (Btor *btor)
 
   int sat_result;
   BtorNodePtrStack prop_stack;
-  BtorAIGMgr *amgr;
   BtorSATMgr *smgr;
 #ifdef BTOR_CHECK_FAILED
   Btor *faclone = 0;
@@ -9608,8 +9534,7 @@ btor_sat_aux_btor_dual_prop (Btor *btor)
   }
 #endif
 
-  amgr = btor_get_aig_mgr_aigvec_mgr (btor->avmgr);
-  smgr = btor_get_sat_mgr_aig_mgr (amgr);
+  smgr = btor_get_sat_mgr_btor (btor);
 
   if (!btor_is_initialized_sat (smgr)) btor_init_sat (smgr);
 
@@ -9977,7 +9902,6 @@ synthesize_array_equality (Btor * btor, BtorNode * aeq)
 BtorAIG *
 btor_exp_to_aig (Btor *btor, BtorNode *exp)
 {
-  BtorAIGVecMgr *avmgr;
   BtorAIGMgr *amgr;
   BtorAIGVec *av;
   BtorAIG *result;
@@ -9987,8 +9911,7 @@ btor_exp_to_aig (Btor *btor, BtorNode *exp)
   assert (BTOR_REAL_ADDR_NODE (exp)->len == 1);
   assert (!BTOR_REAL_ADDR_NODE (exp)->parameterized);
 
-  avmgr = btor->avmgr;
-  amgr  = btor_get_aig_mgr_aigvec_mgr (avmgr);
+  amgr = btor_get_aig_mgr_btor (btor);
 
   synthesize_exp (btor, exp, 0);
   av = BTOR_REAL_ADDR_NODE (exp)->av;

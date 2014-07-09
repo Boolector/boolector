@@ -318,7 +318,7 @@ boolector_set_sat_solver (Btor *btor, const char *solver)
   BTOR_ABORT_BOOLECTOR (
       btor->btor_sat_btor_called > 0,
       "setting the SAT solver must be done before calling 'boolector_sat'");
-  res = btor_set_sat_solver (btor, solver);
+  res = btor_set_sat_solver (btor_get_sat_mgr_btor (btor), solver);
 #ifndef NDEBUG
   BTOR_CHKCLONE_RES (res, set_sat_solver, solver);
 #endif

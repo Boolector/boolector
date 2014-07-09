@@ -19,6 +19,7 @@
 #include "btorexp.h"
 #include "btormem.h"
 #include "btoropt.h"
+#include "btorsat.h"
 #include "btorsort.h"
 
 /*------------------------------------------------------------------------*/
@@ -280,8 +281,6 @@ void btor_reset_time_btor (Btor *btor);
 /* Reset other statistics. */
 void btor_reset_stats_btor (Btor *btor);
 
-int btor_set_sat_solver (Btor *, const char *);
-
 /* Adds top level constraint. */
 void btor_assert_exp (Btor *btor, BtorNode *exp);
 
@@ -296,6 +295,8 @@ int btor_failed_exp (Btor *btor, BtorNode *exp);
 
 /* Solves SAT instance. */
 int btor_sat_btor (Btor *btor);
+
+BtorSATMgr *btor_get_sat_mgr_btor (const Btor *btor);
 
 /* Solves instance, but with lemmas on demand limit 'lod_limit' and conflict
  * limit for the underlying SAT solver 'sat_limit'. */
