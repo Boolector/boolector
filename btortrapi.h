@@ -106,12 +106,12 @@ btor_open_apitrace (Btor *btor, const char *name)
     len += 20;
     BTOR_NEWN (btor->mm, cmd, len);
     sprintf (cmd, "gzip -c > %s", name);
-    if ((file = popen (cmd, "w"))) btor->closeapitrace = 2;
+    if ((file = popen (cmd, "w"))) btor->close_apitrace = 2;
     BTOR_DELETEN (btor->mm, cmd, len);
   }
   else
   {
-    if ((file = fopen (name, "w"))) btor->closeapitrace = 1;
+    if ((file = fopen (name, "w"))) btor->close_apitrace = 1;
   }
 
   if (file)

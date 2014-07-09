@@ -1077,9 +1077,9 @@ clone_aux_btor (Btor *btor,
     BTOR_RELEASE_STACK (btor->mm, stack);
   }
 
-  clone->clone         = NULL;
-  clone->apitrace      = NULL;
-  clone->closeapitrace = 0;
+  clone->clone          = NULL;
+  clone->apitrace       = NULL;
+  clone->close_apitrace = 0;
 
   if (aig_map)
     *aig_map = amap;

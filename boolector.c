@@ -94,9 +94,9 @@ boolector_delete (Btor *btor)
 {
   BTOR_ABORT_ARG_NULL_BOOLECTOR (btor);
   BTOR_TRAPI ("delete");
-  if (btor->closeapitrace == 1)
+  if (btor->close_apitrace == 1)
     fclose (btor->apitrace);
-  else if (btor->closeapitrace == 2)
+  else if (btor->close_apitrace == 2)
     pclose (btor->apitrace);
   if (btor->clone) boolector_delete (btor->clone);
   btor_delete_btor (btor);
@@ -324,6 +324,8 @@ boolector_set_sat_solver (Btor *btor, const char *solver)
   BTOR_TRAPI_RETURN (res);
   return res;
 }
+
+/*------------------------------------------------------------------------*/
 
 void
 boolector_set_opt (Btor *btor, const char *opt, int val)

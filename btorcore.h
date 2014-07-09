@@ -165,7 +165,7 @@ struct Btor
   Btor *clone;
 
   FILE *apitrace;
-  int closeapitrace;
+  int close_apitrace;
 
   /* statistics */
   struct

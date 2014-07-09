@@ -22,6 +22,7 @@
 typedef struct Btor Btor;
 typedef struct BtorNode BtorNode;
 typedef struct BoolectorSort BoolectorSort;
+typedef struct BtorOpt BtorOpt;
 
 #ifdef BOOLECTOR_FORCE_API_1
 #define BoolectorNode BtorNode
@@ -290,6 +291,8 @@ int boolector_simplify (Btor *btor);
  * successful.  Call this function after \ref boolector_new.
  */
 int boolector_set_sat_solver (Btor *btor, const char *solver);
+
+/*------------------------------------------------------------------------*/
 
 /**
  * Set option.
