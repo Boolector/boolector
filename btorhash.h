@@ -86,8 +86,8 @@ BtorPtrHashTable *btor_clone_ptr_hash_table (BtorMemMgr *mem,
                                              BtorPtrHashTable *table,
                                              BtorCloneKeyPtr ckey,
                                              BtorCloneDataPtr cdata,
-                                             void *key_map,
-                                             void *data_map);
+                                             const void *key_map,
+                                             const void *data_map);
 
 void btor_delete_ptr_hash_table (BtorPtrHashTable *);
 

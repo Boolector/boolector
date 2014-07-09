@@ -75,8 +75,8 @@ btor_clone_ptr_hash_table (BtorMemMgr *mem,
                            BtorPtrHashTable *table,
                            BtorCloneKeyPtr ckey,
                            BtorCloneDataPtr cdata,
-                           void *key_map,
-                           void *data_map)
+                           const void *key_map,
+                           const void *data_map)
 {
   assert (mem);
   assert (ckey);

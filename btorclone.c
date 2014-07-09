@@ -439,11 +439,19 @@ data_as_bv_ptr (BtorMemMgr *mm,
   assert (data_ptr);
   assert (data);
 
-  BtorNodeMap *exp_map;
+  Btor *btor;
 
   (void) mm;
-  exp_map     = (BtorNodeMap *) map;
-  data->asPtr = btor_copy_bv (exp_map->btor, (BitVector *) data_ptr);
+  btor        = ((BtorNodeMap *) map)->btor;
+  data->asPtr = btor_copy_bv (btor, (BitVector *) data_ptr);
+}
+
+static void *
+copy_bv_tuple (const void *map, const void *t)
+{
+  Btor *btor;
+  btor = ((BtorNodeMap *) map)->btor;
+  return btor_copy_bv_tuple (btor, (BitVectorTuple *) t);
 }
 
 static void
@@ -457,28 +465,10 @@ data_as_bv_htable_ptr (BtorMemMgr *mm,
   assert (data_ptr);
   assert (data);
 
-  BtorPtrHashTable *t;
-  BtorHashTableIterator it;
-  BtorNodeMap *exp_map;
-  BitVectorTuple *key;
-  BitVector *value;
-
-  exp_map = (BtorNodeMap *) map;
-
-  t = btor_new_ptr_hash_table (
-      mm, (BtorHashPtr) btor_hash_bv_tuple, (BtorCmpPtr) btor_compare_bv_tuple);
-
-  init_hash_table_iterator (&it, (BtorPtrHashTable *) data_ptr);
-  while (has_next_hash_table_iterator (&it))
-  {
-    value = btor_copy_bv (exp_map->btor, (BitVector *) it.bucket->data.asPtr);
-    key   = btor_copy_bv_tuple (
-        exp_map->btor, (BitVectorTuple *) next_hash_table_iterator (&it));
-
-    btor_insert_in_ptr_hash_table (t, key)->data.asPtr = value;
-  }
-
-  data->asPtr = t;
+  BtorPtrHashTable *table;
+  table       = (BtorPtrHashTable *) data_ptr;
+  data->asPtr = btor_clone_ptr_hash_table (
+      mm, table, copy_bv_tuple, data_as_bv_ptr, map, map);
 }
 
 static void
