@@ -1161,7 +1161,7 @@ new_lambda_exp_node (Btor *btor, BtorNode *e_param, BtorNode *e_exp)
       ((BtorLambdaNode *) exp)->head = lambda_exp;
     }
     lambda_exp->num_params += ((BtorLambdaNode *) e_exp)->num_params;
-    lambda_exp->body = BTOR_LAMBDA_GET_BODY (e_exp);
+    lambda_exp->body = btor_simplify_exp (btor, BTOR_LAMBDA_GET_BODY (e_exp));
   }
   else
     lambda_exp->body = e_exp;
@@ -1172,6 +1172,7 @@ new_lambda_exp_node (Btor *btor, BtorNode *e_param, BtorNode *e_exp)
   if (is_parameterized (btor, (BtorNode *) lambda_exp))
     lambda_exp->parameterized = 1;
 
+  assert (!BTOR_REAL_ADDR_NODE (lambda_exp->body)->simplified);
   assert (!BTOR_IS_LAMBDA_NODE (BTOR_REAL_ADDR_NODE (lambda_exp->body)));
   assert (!btor_find_in_ptr_hash_table (btor->lambdas, lambda_exp));
   (void) btor_insert_in_ptr_hash_table (btor->lambdas, lambda_exp);
