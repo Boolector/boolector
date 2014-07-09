@@ -22,6 +22,7 @@
 #include "btorexit.h"
 #include "btorhash.h"
 #include "btoriter.h"
+#include "btorsat.h"
 #include "btorsort.h"
 #include "btortrapi.h"
 #include "btorutil.h"
@@ -393,6 +394,63 @@ boolector_set_opt (Btor *btor, const char *opt, int val)
 #ifndef NDEBUG
   BTOR_CHKCLONE_NORES (set_opt, opt, val);
 #endif
+}
+
+const BtorOpt *
+boolector_get_opt (Btor *btor, const char *opt)
+{
+  BtorOpt *res;
+  BTOR_ABORT_ARG_NULL_BOOLECTOR (btor);
+  BTOR_TRAPI ("get_opt%s", opt);
+  res = btor_get_opt (btor, opt);
+#ifndef NDEBUG
+  BTOR_CHKCLONE_RES_OPT (res, get_opt, opt);
+#endif
+  BTOR_TRAPI_RETURN_PTR (res);
+  return res;
+}
+
+const BtorOpt *
+boolector_first_opt (Btor *btor)
+{
+  BtorOpt *res;
+  BTOR_ABORT_ARG_NULL_BOOLECTOR (btor);
+  BTOR_TRAPI ("first_opt");
+  res = btor_first_opt (btor);
+#ifndef NDEBUG
+  BTOR_CHKCLONE_RES_OPT (res, first_opt);
+#endif
+  BTOR_TRAPI_RETURN_PTR (res);
+  return res;
+}
+
+const BtorOpt *
+boolector_last_opt (Btor *btor)
+{
+  BtorOpt *res;
+  BTOR_ABORT_ARG_NULL_BOOLECTOR (btor);
+  BTOR_TRAPI ("last_opt");
+  res = btor_last_opt (btor);
+#ifndef NDEBUG
+  BTOR_CHKCLONE_RES_OPT (res, last_opt);
+#endif
+  BTOR_TRAPI_RETURN_PTR (res);
+  return res;
+}
+
+const BtorOpt *
+boolector_next_opt (Btor *btor, const BtorOpt *opt)
+{
+  BtorOpt *res;
+  BTOR_ABORT_ARG_NULL_BOOLECTOR (btor);
+  BTOR_ABORT_ARG_NULL_BOOLECTOR (opt);
+  BTOR_TRAPI ("next_opt %p", opt);
+  res = btor_next_opt (btor, opt);
+#ifndef NDEBUG
+  BTOR_CHKCLONE_RES_OPT (res, next_opt, opt);
+#endif
+  BTOR_TRAPI_RETURN_PTR (res);
+  return res;
 }
 
 /*------------------------------------------------------------------------*/

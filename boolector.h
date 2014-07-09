@@ -360,6 +360,14 @@ int boolector_set_sat_solver (Btor *btor, const char *solver);
  */
 void boolector_set_opt (Btor *btor, const char *opt, int val);
 
+const BtorOpt *boolector_get_opt (Btor *btor, const char *opt);
+
+const BtorOpt *boolector_first_opt (Btor *btor);
+
+const BtorOpt *boolector_last_opt (Btor *btor);
+
+const BtorOpt *boolector_next_opt (Btor *btor, const BtorOpt *opt);
+
 /*------------------------------------------------------------------------*/
 
 /**
