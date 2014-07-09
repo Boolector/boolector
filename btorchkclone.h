@@ -11,12 +11,16 @@
 #ifndef BTORCHKCLONE_H_INCLUDED
 #define BTORCHKCLONE_H_INCLUDED
 
+/*------------------------------------------------------------------------*/
 #ifndef NDEBUG
+/*------------------------------------------------------------------------*/
 
 #include "btorcore.h"
+#include "btoropt.h"
 
 void btor_chkclone (Btor *btor);
 void btor_chkclone_exp (BtorNode *exp, BtorNode *clone);
+void btor_chkclone_opt (const BtorOpt *opt, const BtorOpt *clone);
 
 #define BTOR_CHKCLONE_NORES(fun, args...)  \
   do                                       \
@@ -57,6 +61,17 @@ void btor_chkclone_exp (BtorNode *exp, BtorNode *clone);
     btor_chkclone (btor);                                         \
   } while (0)
 
+#define BTOR_CHKCLONE_RES_OPT(res, fun, args...)                     \
+  do                                                                 \
+  {                                                                  \
+    if (!btor->clone) break;                                         \
+    const BtorOpt *cloneres = boolector_##fun (btor->clone, ##args); \
+    (void) cloneres;                                                 \
+    btor_chkclone_opt (cloneres, res);                               \
+  } while (0)
+
+/*------------------------------------------------------------------------*/
 #endif
+/*------------------------------------------------------------------------*/
 
 #endif

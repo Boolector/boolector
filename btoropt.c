@@ -14,6 +14,7 @@
 #include "btorcore.h"
 #include "btoriter.h"
 #include "btorlog.h"
+#include "btormodel.h"
 #include "btortrapi.h"
 
 static char *
@@ -52,7 +53,7 @@ set_opt_values (BtorOpt *opt,
 {
   assert (opt);
   assert (min <= val);
-  assert (val <= max);
+  assert (max == -1 || val <= max);
 
   opt->internal = internal;
   opt->shrt     = shrt;
@@ -111,14 +112,52 @@ btor_init_opts (Btor *btor)
 
   BTOR_OPT ("m", model_gen, 0, 0, 1, "print model for satisfiable instances");
   BTOR_OPT (0, model_gen_all_reads, 0, 0, 1, "generate model for all reads");
+
   BTOR_OPT ("i", incremental, 0, 0, 1, "incremental usage (SMT1 only)");
-  BTOR_OPT (
-      "bra", beta_reduce_all, 0, 0, 1, "eagerly eliminate lambda expressions");
-  BTOR_OPT ("dp", dual_prop, 0, 0, 1, "enable dual propagation optimization");
-  BTOR_OPT ("ju", just, 0, 0, 1, "enable justification optimization");
-  BTOR_OPT ("uc", ucopt, 0, 0, 1, "enable unconstrained optimization");
-  BTOR_OPT ("fc", force_cleanup, 0, 0, 1, "force cleanup on exit");
-  BTOR_OPT ("p", pretty_print, 1, 0, 1, "pretty print when dumping");
+  BTOR_OPT ("I",
+            incremental_all,
+            0,
+            0,
+            1,
+            "incremental usage, solve all (SMT1 only)");
+  BTOR_OPT (0,
+            incremental_in_depth,
+            0,
+            0,
+            1,
+            "incremental in-depth mode width (SMT1 only)");
+  BTOR_OPT (0,
+            incremental_look_ahead,
+            0,
+            0,
+            1,
+            "incremental look-ahead width (SMT1 only)");
+  BTOR_OPT (0,
+            incremental_interval,
+            0,
+            0,
+            1,
+            "incremental interval mode width (SMT1 only)");
+
+  BTOR_OPT (0,
+            input_format,
+            BTOR_INPUT_FORMAT_BTOR,
+            BTOR_INPUT_FORMAT_BTOR,
+            BTOR_INPUT_FORMAT_SMT2,
+            "input file format");
+
+  BTOR_OPT (0,
+            output_number_format,
+            BTOR_OUTPUT_BASE_BIN,
+            BTOR_OUTPUT_BASE_BIN,
+            BTOR_OUTPUT_BASE_DEC,
+            "output number format");
+  BTOR_OPT (0,
+            output_format,
+            BTOR_OUTPUT_FORMAT_BTOR,
+            BTOR_OUTPUT_FORMAT_BTOR,
+            BTOR_OUTPUT_FORMAT_SMT2,
+            "output file format");
 
   BTOR_OPT ("rwl", rewrite_level, 3, 0, 3, "set rewrite level");
   BTOR_OPT (0,
@@ -127,6 +166,15 @@ btor_init_opts (Btor *btor)
             0,
             3,
             "set rewrite level for partial beta reduction");
+
+  BTOR_OPT (
+      "bra", beta_reduce_all, 0, 0, 1, "eagerly eliminate lambda expressions");
+  BTOR_OPT ("dp", dual_prop, 0, 0, 1, "enable dual propagation optimization");
+  BTOR_OPT ("ju", just, 0, 0, 1, "enable justification optimization");
+  BTOR_OPT ("uc", ucopt, 0, 0, 1, "enable unconstrained optimization");
+
+  BTOR_OPT ("fc", force_cleanup, 0, 0, 1, "force cleanup on exit");
+  BTOR_OPT ("p", no_pretty_print, 0, 0, 1, "do not pretty print when dumping");
 #ifndef NBTORLOG
   BTOR_OPT ("l", loglevel, 0, 0, BTORLOG_LEVEL_MAX, "increase loglevel");
 #endif
@@ -152,7 +200,8 @@ btor_get_opt (Btor *btor, const char *oname)
   BtorOpt *o;
 
   for (o = BTOR_FIRST_OPT (btor); o <= BTOR_LAST_OPT (btor); o++)
-    if ((o->shrt && !strcmp (o->shrt, oname)) || !strcmp (o->lng, oname))
+    if ((o->shrt && !strcmp (o->shrt, oname))
+        || (o->lng && !strcmp (o->lng, oname)))
       return o;
 
   return 0;
@@ -166,7 +215,6 @@ btor_set_opt (Btor *btor, const char *oname, int val)
 
   int oldval;
   BtorOpt *o;
-  BtorHashTableIterator it;
   BtorAIGVecMgr *avmgr;
   BtorAIGMgr *amgr;
   BtorSATMgr *smgr;
@@ -236,11 +284,11 @@ btor_last_opt (Btor *btor)
 }
 
 BtorOpt *
-btor_next_opt (Btor *btor, BtorOpt *cur)
+btor_next_opt (Btor *btor, const BtorOpt *cur)
 {
   assert (btor);
   assert (cur);
 
   if (cur + 1 > BTOR_LAST_OPT (btor)) return 0;
-  return cur + 1;
+  return ((BtorOpt *) cur) + 1;
 }

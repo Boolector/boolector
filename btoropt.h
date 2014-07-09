@@ -11,6 +11,18 @@
 #ifndef BTOROPTS_H_INCLUDED
 #define BTOROPTS_H_INCLUDED
 
+#define BTOR_INPUT_FORMAT_BTOR -1
+#define BTOR_INPUT_FORMAT_SMT1 1
+#define BTOR_INPUT_FORMAT_SMT2 2
+
+#define BTOR_OUTPUT_BASE_BIN 0
+#define BTOR_OUTPUT_BASE_HEX 1
+#define BTOR_OUTPUT_BASE_DEC 2
+
+#define BTOR_OUTPUT_FORMAT_BTOR 0
+#define BTOR_OUTPUT_FORMAT_SMT1 1
+#define BTOR_OUTPUT_FORMAT_SMT2 2
+
 typedef struct Btor Btor;
 
 typedef struct BtorOpt
@@ -31,7 +43,17 @@ typedef struct BtorOpts
   /* ----------------------------------------------------------------------- */
   BtorOpt model_gen;           /* model generation enabled */
   BtorOpt model_gen_all_reads; /* generate model for all reads */
-  BtorOpt incremental;         /* incremental usage */
+
+  BtorOpt incremental;            /* incremental usage */
+  BtorOpt incremental_all;        /* incremental usage, solve all */
+  BtorOpt incremental_in_depth;   /* incremental usage, in-depth mode */
+  BtorOpt incremental_look_ahead; /* incremental usage, look-ahead mode */
+  BtorOpt incremental_interval;   /* incremental usage, interval mode */
+
+  BtorOpt input_format; /* force input format */
+
+  BtorOpt output_number_format; /* output number format */
+  BtorOpt output_format;        /* output file format */
 
   BtorOpt rewrite_level;
   BtorOpt rewrite_level_pbr;
@@ -43,8 +65,8 @@ typedef struct BtorOpts
   BtorOpt ucopt; /* unconstrained optimization */
 #endif
 
-  BtorOpt force_cleanup; /* force cleanup of exps, assignm. strings */
-  BtorOpt pretty_print;  /* reindex exps when dumping */
+  BtorOpt force_cleanup;   /* force cleanup of exps, assignm. strings */
+  BtorOpt no_pretty_print; /* do not reindex exps when dumping */
 #ifndef NBTORLOG
   BtorOpt loglevel;
 #endif
@@ -65,11 +87,11 @@ typedef struct BtorOpts
 
 void btor_init_opts (Btor *btor);
 
-BtorOpt *btor_get_opt (Btor *btor, const char *opt);
 void btor_set_opt (Btor *btor, const char *opt, int val);
+BtorOpt *btor_get_opt (Btor *btor, const char *opt);
 
 BtorOpt *btor_first_opt (Btor *btor);
 BtorOpt *btor_last_opt (Btor *btor);
-BtorOpt *btor_next_opt (Btor *btor, BtorOpt *cur);
+BtorOpt *btor_next_opt (Btor *btor, const BtorOpt *cur);
 
 #endif

@@ -9,7 +9,9 @@
  *  See COPYING for more information on using this software.
  */
 
+/*------------------------------------------------------------------------*/
 #ifndef NDEBUG
+/*------------------------------------------------------------------------*/
 
 #include "btorchkclone.h"
 #include "btorbitvec.h"
@@ -59,25 +61,41 @@ btor_chkclone_state (Btor *btor)
   BTOR_CHKCLONE_STATE (btor_sat_btor_called);
   BTOR_CHKCLONE_STATE (msgtick);
   BTOR_CHKCLONE_STATE (last_sat_result);
+
+  BTOR_CHKCLONE_STATE (options.model_gen.val);
+  BTOR_CHKCLONE_STATE (options.model_gen_all_reads.val);
+
+  BTOR_CHKCLONE_STATE (options.incremental.val);
+  BTOR_CHKCLONE_STATE (options.incremental_all.val);
+  BTOR_CHKCLONE_STATE (options.incremental_in_depth.val);
+  BTOR_CHKCLONE_STATE (options.incremental_look_ahead.val);
+  BTOR_CHKCLONE_STATE (options.incremental_interval.val);
+
+  BTOR_CHKCLONE_STATE (options.input_format.val);
+
+  BTOR_CHKCLONE_STATE (options.output_number_format.val);
+  BTOR_CHKCLONE_STATE (options.output_format.val);
+
+  BTOR_CHKCLONE_STATE (options.rewrite_level.val);
+  BTOR_CHKCLONE_STATE (options.rewrite_level_pbr.val);
+
+  BTOR_CHKCLONE_STATE (options.beta_reduce_all.val);
   BTOR_CHKCLONE_STATE (options.dual_prop.val);
   BTOR_CHKCLONE_STATE (options.just.val);
-  BTOR_CHKCLONE_STATE (options.beta_reduce_all.val);
-  BTOR_CHKCLONE_STATE (options.force_cleanup.val);
-  BTOR_CHKCLONE_STATE (options.force_internal_cleanup.val);
-  BTOR_CHKCLONE_STATE (options.model_gen_all_reads.val);
-  BTOR_CHKCLONE_STATE (options.incremental.val);
-#ifndef NBTORLOG
-  BTOR_CHKCLONE_STATE (options.loglevel.val);
-#endif
-  BTOR_CHKCLONE_STATE (options.model_gen.val);
-  BTOR_CHKCLONE_STATE (options.pretty_print.val);
 #ifndef BTOR_DO_NOT_OPTIMIZE_UNCONSTRAINED
   BTOR_CHKCLONE_STATE (options.ucopt.val);
 #endif
-  BTOR_CHKCLONE_STATE (options.rewrite_level.val);
+
+  BTOR_CHKCLONE_STATE (options.force_cleanup.val);
+  BTOR_CHKCLONE_STATE (options.no_pretty_print.val);
+#ifndef NBTORLOG
+  BTOR_CHKCLONE_STATE (options.loglevel.val);
+#endif
+  BTOR_CHKCLONE_STATE (options.verbosity.val);
+
   BTOR_CHKCLONE_STATE (options.simplify_constraints.val);
   BTOR_CHKCLONE_STATE (options.propagate_slices.val);
-  BTOR_CHKCLONE_STATE (options.verbosity.val);
+  BTOR_CHKCLONE_STATE (options.force_internal_cleanup.val);
 #ifdef BTOR_CHECK_FAILED
   BTOR_CHKCLONE_STATE (options.chk_failed_assumptions.val);
 #endif
@@ -725,6 +743,19 @@ btor_chkclone_tables (Btor *btor)
 }
 
 void
+btor_chkclone_opt (const BtorOpt *opt, const BtorOpt *clone)
+{
+  assert (opt->internal == clone->internal);
+  assert (!strcmp (opt->shrt, clone->shrt));
+  assert (!strcmp (opt->lng, clone->lng));
+  assert (!strcmp (opt->desc, clone->desc));
+  assert (opt->val == clone->val);
+  assert (opt->dflt == clone->dflt);
+  assert (opt->min == clone->min);
+  assert (opt->max == clone->max);
+}
+
+void
 btor_chkclone (Btor *btor)
 {
   if (!btor->clone) return;
@@ -747,4 +778,7 @@ btor_chkclone (Btor *btor)
                                 btor->clone->functions_with_model);
   btor_chkclone_tables (btor);
 }
+
+/*------------------------------------------------------------------------*/
 #endif
+/*------------------------------------------------------------------------*/

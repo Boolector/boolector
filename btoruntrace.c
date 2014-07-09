@@ -351,7 +351,31 @@ NEXT:
   else if (!strcmp (tok, "set_opt"))
   {
     PARSE_ARGS2 (tok, str, int);
-    boolector_set_opt (btor, arg1_str, arg1_int);
+    boolector_set_opt (btor, arg1_str, arg2_int);
+  }
+  else if (!strcmp (tok, "get_opt"))
+  {
+    PARSE_ARGS1 (tok, str);
+    ret_ptr = (void *) boolector_get_opt (btor, arg1_str);
+    exp_ret = RET_VOIDPTR;
+  }
+  else if (!strcmp (tok, "first_opt"))
+  {
+    PARSE_ARGS0 (tok);
+    ret_ptr = (void *) boolector_first_opt (btor);
+    exp_ret = RET_VOIDPTR;
+  }
+  else if (!strcmp (tok, "last_opt"))
+  {
+    PARSE_ARGS0 (tok);
+    ret_ptr = (void *) boolector_last_opt (btor);
+    exp_ret = RET_VOIDPTR;
+  }
+  else if (!strcmp (tok, "next_opt"))
+  {
+    PARSE_ARGS1 (tok, str);
+    ret_ptr = (void *) boolector_next_opt (btor, hmap_get (hmap, arg1_str));
+    exp_ret = RET_VOIDPTR;
   }
   else if (!strcmp (tok, "set_sat_solver"))
   {
