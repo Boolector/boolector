@@ -22,6 +22,8 @@ cdef extern from "boolector.h":
 
     Btor *boolector_clone (Btor * btor)
 
+#    BoolectorNode *boolector_find_node (Btor * btor, BoolectorNode * node)
+
     void boolector_delete (Btor * btor)
 
     int boolector_get_refs (Btor * btor)
