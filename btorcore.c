@@ -10530,18 +10530,6 @@ btor_release_bv_assignment_str (Btor *btor, char *assignment)
 }
 
 #ifdef BTOR_CHECK_MODEL
-static void
-init_x_values (char *a)
-{
-  assert (a);
-
-  int i, len;
-
-  len = strlen (a);
-  for (i = 0; i < len; i++)
-    if (a[i] == 'x') a[i] = '1';
-}
-
 BtorPtrHashTable *
 map_inputs_check_model (Btor *btor, Btor *clone)
 {
