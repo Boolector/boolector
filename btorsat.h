@@ -207,7 +207,9 @@ void btor_enable_minisat_sat (BtorSATMgr *smgr);
 #endif
 
 /* Wrapper for btor_enable_(picosat|lingeling|minisat). */
-int btor_set_sat_solver (BtorSATMgr *smgr, const char *solver);
+int btor_set_sat_solver (BtorSATMgr *smgr,
+                         const char *solver,
+                         const char *optstr);
 
 /* Only used for debugging purposes at this point */
 int btor_provides_incremental_sat (BtorSATMgr *smgr);

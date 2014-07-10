@@ -82,7 +82,7 @@ void btor_enable_picosat_sat (BtorSATMgr *);
 void btor_enable_minisat_sat (BtorSATMgr *);
 #define btor_enable_default_sat btor_enable_minisat_sat
 #else
-#error "no usable SAT solver configured"
+#error "no SAT solver configured"
 #endif
 
 /*------------------------------------------------------------------------*/
@@ -952,7 +952,7 @@ btor_enable_minisat_sat (BtorSATMgr *smgr)
 #endif
 
 int
-btor_set_sat_solver (BtorSATMgr *smgr, const char *solver)
+btor_set_sat_solver (BtorSATMgr *smgr, const char *solver, const char *optstr)
 {
   assert (smgr);
   assert (solver);
@@ -960,7 +960,7 @@ btor_set_sat_solver (BtorSATMgr *smgr, const char *solver)
   if (!strcasecmp (solver, "lingeling"))
 #ifdef BTOR_USE_LINGELING
   {
-    btor_enable_lingeling_sat (smgr, 0, 0);
+    btor_enable_lingeling_sat (smgr, optstr, 0);
     return 1;
   }
 #else

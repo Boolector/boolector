@@ -285,12 +285,17 @@ int boolector_simplify (Btor *btor);
 /**
  * Sets the SAT solver to use.
  * Currently, we support 'Lingeling', 'PicoSAT', and 'MiniSAT' as string
- * value of \para solver ignoring the case of characters.  This is however
- * only possible if at compile time the corresponding solvers were enabled.
+ * value of \param solver (case insensitive).  This is however
+ * only possible if the corresponding solvers were enabled at compile time.
  * The return value is non-zero if setting the SAT solver call was
  * successful.  Call this function after \ref boolector_new.
+ * \param btor Boolector instance
+ * \param solver Solver identifier string.
+ * \param opt_str Solver options string.
  */
-int boolector_set_sat_solver (Btor *btor, const char *solver);
+int boolector_set_sat_solver (Btor *btor,
+                              const char *solver,
+                              const char *optstr);
 
 /*------------------------------------------------------------------------*/
 

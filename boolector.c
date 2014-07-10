@@ -308,7 +308,7 @@ boolector_simplify (Btor *btor)
 /*------------------------------------------------------------------------*/
 
 int
-boolector_set_sat_solver (Btor *btor, const char *solver)
+boolector_set_sat_solver (Btor *btor, const char *solver, const char *optstr)
 {
   int res;
 
@@ -318,9 +318,9 @@ boolector_set_sat_solver (Btor *btor, const char *solver)
   BTOR_ABORT_BOOLECTOR (
       btor->btor_sat_btor_called > 0,
       "setting the SAT solver must be done before calling 'boolector_sat'");
-  res = btor_set_sat_solver (btor_get_sat_mgr_btor (btor), solver);
+  res = btor_set_sat_solver (btor_get_sat_mgr_btor (btor), solver, optstr);
 #ifndef NDEBUG
-  BTOR_CHKCLONE_RES (res, set_sat_solver, solver);
+  BTOR_CHKCLONE_RES (res, set_sat_solver, solver, optstr);
 #endif
   BTOR_TRAPI_RETURN (res);
   return res;
@@ -333,7 +333,7 @@ boolector_set_opt (Btor *btor, const char *opt, int val)
 {
   BTOR_ABORT_ARG_NULL_BOOLECTOR (btor);
   BTOR_TRAPI ("set_opt %s %d", opt, val);
-
+  BTOR_ABORT_BOOLECTOR (!btor_get_opt (btor, opt), "invalid option '%s'", opt);
   if (!strcmp (opt, "m") || !strcmp (opt, "model_gen"))
   {
     BTOR_ABORT_BOOLECTOR (

@@ -128,6 +128,17 @@ typedef struct BtorMainOpts
   BtorOpt version;
   BtorOpt time;
   BtorOpt output;
+#ifdef BTOR_USE_LINGELING
+  BtorOpt lingeling;
+  BtorOpt lgl_no_fork;
+  BtorOpt lgl_opts;
+#endif
+#ifdef BTOR_USE_PICOSAT
+  BtorOpt picosat;
+#endif
+#ifdef BTOR_USE_MINISAT
+  BtorOpt minisat;
+#endif
   /* ------------------------------------ */
   BtorOpt last; /* dummy for iteration */
 } BtorMainOpts;
@@ -171,8 +182,10 @@ btormain_new_btormain (Btor *btor)
 
   mm = btormain_new_mem_mgr ();
   BTORMAIN_CNEWN (mm, res, 1);
-  res->mm   = mm;
-  res->btor = btor;
+  res->mm      = mm;
+  res->btor    = btor;
+  res->infile  = stdin;
+  res->outfile = stdout;
   return res;
 }
 
@@ -207,13 +220,59 @@ btormain_init_opts (BtorMainApp *app)
   BTORMAIN_INIT_OPT (
       app->opts.time, 0, "t", "time", 0, 0, -1, "set time limit");
   BTORMAIN_INIT_OPT (app->opts.output,
-                     0,
+                     1,
                      "o",
                      "output",
                      0,
                      0,
                      0,
                      "set output file for dumping");
+#if defined(BTOR_USE_LINGELING)
+  BTORMAIN_INIT_OPT (app->opts.lingeling,
+                     1,
+                     0,
+                     "lingeling",
+                     0,
+                     0,
+                     1,
+                     "force Lingeling as SAT solver");
+  BTORMAIN_INIT_OPT (app->opts.lgl_opts,
+                     1,
+                     0,
+                     "lgl_opts",
+                     0,
+                     0,
+                     0,
+                     "set lingeling option(s) '--<opt>=<val>'");
+  BTORMAIN_INIT_OPT (app->opts.lgl_no_fork,
+                     1,
+                     0,
+                     "lgl_no_fork",
+                     0,
+                     0,
+                     0,
+                     "do not use 'fork/clone' for Lingeling");
+#endif
+#ifdef BTOR_USE_PICOSAT
+  BTORMAIN_INIT_OPT (app->opts.picosat,
+                     1,
+                     0,
+                     "picosat",
+                     0,
+                     0,
+                     1,
+                     "force PicoSAT as SAT solver");
+#endif
+#ifdef BTOR_USE_MINISAT
+  BTORMAIN_INIT_OPT (app->opts.minisat,
+                     1,
+                     0,
+                     "minisat",
+                     0,
+                     0,
+                     1,
+                     "force MiniSAT as SAT solver");
+#endif
 }
 
 /*------------------------------------------------------------------------*/
@@ -253,17 +312,20 @@ btormain_error (BtorMainApp *app, char *msg, ...)
 
 /*------------------------------------------------------------------------*/
 
+#define LEN_OPTSTR 35
+#define LEN_PARAMSTR 16
+
 static void
 print_opt (BtorMainApp *app, BtorOpt *opt)
 {
   assert (app);
   assert (opt);
 
-  char optstr[35], paramstr[10], *lngstr;
+  char optstr[LEN_OPTSTR], paramstr[LEN_PARAMSTR], *lngstr;
   int i, len;
 
-  memset (optstr, ' ', 35 * sizeof (char));
-  optstr[34] = '\0';
+  memset (optstr, ' ', LEN_OPTSTR * sizeof (char));
+  optstr[LEN_OPTSTR - 1] = '\0';
 
   if (!strcmp (opt->lng, "look_ahead") || !strcmp (opt->lng, "in_depth")
       || !strcmp (opt->lng, "interval"))
@@ -274,14 +336,18 @@ print_opt (BtorMainApp *app, BtorOpt *opt)
     sprintf (paramstr, "<file>");
   else if (!strcmp (opt->lng, "rewrite_level"))
     sprintf (paramstr, "<n>");
+  else if (!strcmp (opt->lng, "lgl_opts"))
+    sprintf (paramstr, "[,<opt>=<val>]+");
   else
     paramstr[0] = '\0';
 
   assert (
-      (opt->shrt
-       && 2 * strlen (paramstr) + strlen (opt->shrt) + strlen (opt->lng) + 7
-              <= 35)
-      || (!opt->shrt && 2 * strlen (paramstr) + strlen (opt->lng) + 7 <= 35));
+      !strcmp (opt->lng, "lgl_opts")
+      || (opt->shrt
+          && 2 * strlen (paramstr) + strlen (opt->shrt) + strlen (opt->lng) + 7
+                 <= LEN_OPTSTR)
+      || (!opt->shrt
+          && 2 * strlen (paramstr) + strlen (opt->lng) + 7 <= LEN_OPTSTR));
 
   len = strlen (opt->lng);
   BTORMAIN_NEWN (app->mm, lngstr, len + 1);
@@ -302,10 +368,11 @@ print_opt (BtorMainApp *app, BtorOpt *opt)
   BTORMAIN_DELETEN (app->mm, lngstr, len + 1);
 
   len = strlen (optstr);
-  for (i = len; i < 34; i++) optstr[i] = ' ';
-  optstr[34] = '\0';
+  for (i = len; i < LEN_OPTSTR - 1; i++) optstr[i] = ' ';
+  optstr[LEN_OPTSTR - 1] = '\0';
 
   fprintf (app->outfile, "%s %s\n", optstr, opt->desc);
+
   // TODO default values
 }
 
@@ -326,13 +393,16 @@ print_help (BtorMainApp *app)
   for (o = BTORMAIN_FIRST_OPT (app->opts); o <= BTORMAIN_LAST_OPT (app->opts);
        o++)
   {
+    if (o->internal) continue;
     if (!strcmp (o->lng, "time") || !strcmp (o->lng, "output"))
       fprintf (out, "\n");
     print_opt (app, o);
   }
   fprintf (out, "\n");
 
-  for (o = btor_first_opt (app->btor); o <= btor_last_opt (app->btor); o++)
+  for (o = (BtorOpt *) boolector_first_opt (app->btor);
+       o <= (BtorOpt *) boolector_last_opt (app->btor);
+       o++)
   {
     if (o->internal) continue;
     if (!strcmp (o->lng, "incremental") || !strcmp (o->lng, "beta_reduce_all")
@@ -357,6 +427,7 @@ print_help (BtorMainApp *app)
     }
     else if (!strcmp (o->lng, "output_number_format"))
     {
+      print_opt (app, &app->opts.output);
       fprintf (app->outfile, "\n");
       to.shrt = "x";
       to.lng  = "hex";
@@ -387,6 +458,19 @@ print_help (BtorMainApp *app)
     else
       print_opt (app, o);
   }
+
+#if defined(BTOR_USE_LINGELING)
+  fprintf (app->outfile, "\n");
+  print_opt (app, &app->opts.lingeling);
+  print_opt (app, &app->opts.lgl_no_fork);
+  print_opt (app, &app->opts.lgl_opts);
+#elif defined(BTOR_USE_PICOSAT)
+  print_opt (app, &app->opts.picosat);
+#elif defined(BTOR_USE_MINISAT)
+  print_opt (app, &app->opts.minisat);
+#else
+#error "no SAT solver configured"
+#endif
   app->done = 1;
 }
 
@@ -452,12 +536,15 @@ has_suffix (const char *str, const char *suffix)
 int
 boolector_main (int argc, char **argv)
 {
-  int i, j, k, len, shrt, res, val, log, verb;
-  char opt[50], *cmd;
+  int res;
+  int i, j, k, len, shrt, readval, val, log, verb, forced_sat_solver;
+  char opt[50], *cmd, *valstr, *lgl_opts;
   BtorMainApp *app;
   BtorOpt *o;
 
-  res = BTOR_UNKNOWN_EXIT;
+  verb = 0;
+  log  = 0;
+  res  = BTOR_UNKNOWN_EXIT;
 
   app = btormain_new_btormain (boolector_new ());
 
@@ -501,14 +588,20 @@ boolector_main (int argc, char **argv)
       continue;
     }
 
-    k    = 0;
-    val  = -1;
-    len  = strlen (argv[i]);
-    shrt = argv[i][1] == '-' ? 0 : 1;
+    k       = 0;
+    val     = 0;
+    readval = 0;
+    len     = strlen (argv[i]);
+    shrt    = argv[i][1] == '-' ? 0 : 1;
     for (j = shrt ? 1 : 2; j < len && argv[i][j] != '='; j++, k++)
       opt[k] = argv[i][j] == '-' ? '_' : argv[i][j];
     opt[k] = '\0';
-    if (argv[i][j] == '=') val = atoi (argv[i] + j + 1);
+    valstr = argv[i] + j + 1;
+    if (argv[i][j] == '=')
+    {
+      val     = atoi (valstr);
+      readval = 1;
+    }
 
     if ((shrt && !strcmp (opt, app->opts.help.shrt))
         || !strcmp (opt, app->opts.help.lng))
@@ -531,18 +624,7 @@ boolector_main (int argc, char **argv)
     else if ((shrt && !strcmp (opt, app->opts.time.shrt))
              || !strcmp (opt, app->opts.time.lng))
     {
-      if (++i < argc)
-      {
-        static_set_alarm = atoi (argv[i]);
-        if (static_set_alarm <= 0)
-        {
-          btormain_error (
-              app, "invalid argument for '%s'", app->opts.time.shrt);
-          goto DONE;
-        }
-        boolector_set_opt (app->btor, "time", static_set_alarm);
-      }
-      else
+      if (!readval && ++i >= argc)
       {
         btormain_error (app,
                         "missing argument for '-%s', '--%s'",
@@ -550,26 +632,24 @@ boolector_main (int argc, char **argv)
                         app->opts.time.lng);
         goto DONE;
       }
+      else if (!readval)
+        val = atoi (argv[i]);
+
+      static_set_alarm = val;
+      if (static_set_alarm <= 0)
+      {
+        btormain_error (app,
+                        "invalid argument for '-%s', '--%s'",
+                        app->opts.time.shrt,
+                        app->opts.time.lng);
+        goto DONE;
+      }
+      boolector_set_opt (app->btor, "time", static_set_alarm);
     }
     else if ((shrt && !strcmp (opt, app->opts.output.shrt))
              || !strcmp (opt, app->opts.output.lng))
     {
-      if (++i < argc)
-      {
-        if (app->close_outfile)
-        {
-          btormain_error (app, "multiple output files");
-          goto DONE;
-        }
-        app->outfile = fopen (argv[i], "w");
-        if (!app->outfile)
-        {
-          btormain_error (app, "can not create '%s'", argv[i]);
-          goto DONE;
-        }
-        app->close_outfile = 1;
-      }
-      else
+      if (!readval && ++i > argc)
       {
         btormain_error (app,
                         "missing argument for '-%s', '--%s'",
@@ -577,7 +657,37 @@ boolector_main (int argc, char **argv)
                         app->opts.output.lng);
         goto DONE;
       }
+
+      if (app->close_outfile)
+      {
+        btormain_error (app, "multiple output files");
+        goto DONE;
+      }
+
+      app->outfile = fopen (argv[i], "w");
+      if (!app->outfile)
+      {
+        btormain_error (app, "can not create '%s'", argv[i]);
+        goto DONE;
+      }
+      app->close_outfile = 1;
     }
+#ifdef BTOR_USE_LINGELING
+    else if ((shrt && !strcmp (opt, app->opts.lgl_opts.shrt))
+             || !strcmp (opt, app->opts.lgl_opts.lng))
+    {
+      if (!readval && ++i > argc)
+      {
+        btormain_error (app,
+                        "missing argument for '-%s', '--%s'",
+                        app->opts.lgl_opts.shrt,
+                        app->opts.lgl_opts.lng);
+        goto DONE;
+      }
+
+      lgl_opts = valstr;
+    }
+#endif
     else
     {
       if (!strcmp (opt, "btor"))
@@ -641,7 +751,7 @@ boolector_main (int argc, char **argv)
                   && !strcmp (o->shrt, app->btor->options.rewrite_level.shrt))
                  || !strcmp (o->lng, app->btor->options.rewrite_level.lng))
         {
-          if (val < 0 && ++i > argc)
+          if (!readval && ++i >= argc)
           {
             btormain_error (app,
                             "missing argument for '-%s', '--%s'",
@@ -649,7 +759,7 @@ boolector_main (int argc, char **argv)
                             app->btor->options.rewrite_level.lng);
             goto DONE;
           }
-          else if (val < 0)
+          else if (!readval)
             val = atoi (argv[i]);
 
           if (val > 3 || val < 0)
@@ -662,24 +772,23 @@ boolector_main (int argc, char **argv)
         }
         else if (!strcmp (o->lng, app->btor->options.rewrite_level_pbr.lng))
         {
-          if (++i < argc)
-          {
-            val = atoi (argv[i]);
-            if (val > 3 || val < 0)
-            {
-              btormain_error (app, "rewrite level not in [0,3]");
-              goto DONE;
-            }
-            boolector_set_opt (app->btor, o->lng, val);
-          }
-          else
+          if (!readval && ++i >= argc)
           {
             btormain_error (app,
-                            "missing argument for '-%s', '--%s'",
-                            app->btor->options.rewrite_level_pbr.shrt,
+                            "missing argument for '--%s'",
                             app->btor->options.rewrite_level_pbr.lng);
             goto DONE;
           }
+          else if (!readval)
+            val = atoi (argv[i]);
+
+          if (val > 3 || val < 0)
+          {
+            btormain_error (app, "rewrite level not in [0,3]");
+            goto DONE;
+          }
+
+          boolector_set_opt (app->btor, o->lng, val);
         }
 #ifndef NBTORLOG
         else if ((o->shrt
@@ -705,6 +814,57 @@ boolector_main (int argc, char **argv)
   boolector_set_opt (app->btor, "loglevel", log);
 #endif
   boolector_set_opt (app->btor, "verbosity", verb);
+
+  forced_sat_solver = 0;
+#if defined(BTOR_USE_LINGELING)
+  if (app->opts.lingeling.val)
+  {
+    if (forced_sat_solver++)
+    {
+      btormain_error (app, "multiple sat solvers forced");
+      goto DONE;
+    }
+    if (!boolector_set_sat_solver (
+            app->btor, app->opts.lingeling.lng, lgl_opts))
+      btormain_error (app, "invalid options to Lingeling: '%s'", lgl_opts);
+  }
+#elif defined(BTOR_USE_PICOSAT)
+  if (app->opts.picosat.val)
+  {
+    if (forced_sat_solver++)
+    {
+      btormain_error (app, "multiple sat solvers forced");
+      goto DONE;
+    }
+    boolector_set_sat_solver (app->btor, app->opts.picosat.lng, 0);
+  }
+#elif defined(BTOR_USE_MINISAT)
+  if (app->opts.minisat.val)
+  {
+    if (forced_sat_solver++)
+    {
+      btormain_error (app, "multiple sat solvers forced");
+      goto DONE;
+    }
+    boolector_set_sat_solver (app->btor, app->opts.minisat.lng, 0);
+  }
+#else
+#error "no SAT solver configured"
+#endif
+  if (!forced_sat_solver)
+  {
+#if defined(BTOR_USE_LINGELING)
+    if (!boolector_set_sat_solver (
+            app->btor, app->opts.lingeling.lng, lgl_opts))
+      btormain_error (app, "invalid options to Lingeling: '%s'", lgl_opts);
+#elif defined(BTOR_USE_PICOSAT)
+    boolector_set_sat_solver (app->btor, app->opts.picosat.lng, 0);
+#elif defined(BTOR_USE_MINISAT)
+    boolector_set_sat_solver (app->btor, app->opts.minisat.lng, 0);
+#else
+#error "no SAT solver configured"
+#endif
+  }
 
 DONE:
   if (app->done)
