@@ -1068,7 +1068,6 @@ clone_aux_btor (Btor *btor,
   }
 
   clone->clone         = NULL;
-  clone->apitrace      = NULL;
   clone->closeapitrace = 0;
 
   if (aig_map)
