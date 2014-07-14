@@ -25,8 +25,6 @@
 #include <stdlib.h>
 #include <string.h>
 
-// TODO get rid of app->btor->options.* dereferences
-
 int static_set_alarm;
 static void print_error (char *msg, ...);
 
@@ -739,27 +737,20 @@ boolector_main (int argc, char **argv)
           goto DONE;
         }
 
-        if ((o->shrt && !strcmp (o->shrt, app->btor->options.incremental.shrt))
-            || !strcmp (o->lng, app->btor->options.incremental.lng))
+        if (!strcmp (o->shrt, "i") || !strcmp (o->lng, "incremental"))
         {
           boolector_set_opt (
               app->btor, o->lng, BTOR_PARSE_MODE_BASIC_INCREMENTAL);
         }
-        else if ((o->shrt
-                  && !strcmp (o->shrt, app->btor->options.incremental_all.shrt))
-                 || !strcmp (o->lng, app->btor->options.incremental_all.lng))
+        else if (!strcmp (o->shrt, "I") || !strcmp (o->lng, "incremental_all"))
         {
           boolector_set_opt (
               app->btor, o->lng, BTOR_PARSE_MODE_INCREMENTAL_BUT_CONTINUE);
         }
-        else if ((o->shrt
-                  && !strcmp (o->shrt,
-                              app->btor->options.incremental_in_depth.shrt))
-                 || !strcmp (o->lng,
-                             app->btor->options.incremental_in_depth.lng))
+        else if (!strcmp (o->lng, "incremental_in_depth"))
         {
-          if (app->btor->options.incremental_look_ahead.val
-              || app->btor->options.incremental_interval.val)
+          if (boolector_get_opt (app->btor, "incremental_look_ahead")->val
+              || boolector_get_opt (app->btor, "incremental_interval")->val)
           {
             btormain_error (app,
                             "Can only use one out of '--%s', '--%s', or '--%s'",
@@ -771,10 +762,8 @@ boolector_main (int argc, char **argv)
 
           if (!readval && ++i >= argc)
           {
-            btormain_error (app,
-                            "missing argument for '-%s', '--%s'",
-                            app->btor->options.rewrite_level.shrt,
-                            app->btor->options.rewrite_level.lng);
+            btormain_error (
+                app, "missing argument for '-%s', '--%s'", o->shrt, o->lng);
             goto DONE;
           }
           else if (!readval)
@@ -788,14 +777,10 @@ boolector_main (int argc, char **argv)
 
           boolector_set_opt (app->btor, o->lng, val);
         }
-        else if ((o->shrt
-                  && !strcmp (o->shrt,
-                              app->btor->options.incremental_look_ahead.shrt))
-                 || !strcmp (o->lng,
-                             app->btor->options.incremental_look_ahead.lng))
+        else if (!strcmp (o->lng, "incremental_look_ahead"))
         {
-          if (app->btor->options.incremental_in_depth.val
-              || app->btor->options.incremental_interval.val)
+          if (boolector_get_opt (app->btor, "incremental_in_depth")->val
+              || boolector_get_opt (app->btor, "incremental_interval")->val)
           {
             btormain_error (app,
                             "Can only use one out of '--%s', '--%s', or '--%s'",
@@ -807,10 +792,8 @@ boolector_main (int argc, char **argv)
 
           if (!readval && ++i >= argc)
           {
-            btormain_error (app,
-                            "missing argument for '-%s', '--%s'",
-                            app->btor->options.rewrite_level.shrt,
-                            app->btor->options.rewrite_level.lng);
+            btormain_error (
+                app, "missing argument for '-%s', '--%s'", o->shrt, o->lng);
             goto DONE;
           }
           else if (!readval)
@@ -824,14 +807,10 @@ boolector_main (int argc, char **argv)
 
           boolector_set_opt (app->btor, o->lng, val);
         }
-        else if ((o->shrt
-                  && !strcmp (o->shrt,
-                              app->btor->options.incremental_interval.shrt))
-                 || !strcmp (o->lng,
-                             app->btor->options.incremental_interval.lng))
+        else if (!strcmp (o->lng, "incremental_inverval"))
         {
-          if (app->btor->options.incremental_in_depth.val
-              || app->btor->options.incremental_look_ahead.val)
+          if (boolector_get_opt (app->btor, "incremental_in_depth")->val
+              || boolector_get_opt (app->btor, "incremental_look_ahead")->val)
           {
             btormain_error (app,
                             "Can only use one out of '--%s', '--%s', or '--%s'",
@@ -843,10 +822,8 @@ boolector_main (int argc, char **argv)
 
           if (!readval && ++i >= argc)
           {
-            btormain_error (app,
-                            "missing argument for '-%s', '--%s'",
-                            app->btor->options.rewrite_level.shrt,
-                            app->btor->options.rewrite_level.lng);
+            btormain_error (
+                app, "missing argument for '-%s', '--%s'", o->shrt, o->lng);
             goto DONE;
           }
           else if (!readval)
@@ -860,11 +837,9 @@ boolector_main (int argc, char **argv)
 
           boolector_set_opt (app->btor, o->lng, val);
         }
-        else if ((o->shrt
-                  && !strcmp (o->shrt, app->btor->options.dual_prop.shrt))
-                 || !strcmp (o->lng, app->btor->options.dual_prop.lng))
+        else if (!strcmp (o->shrt, "dp") || !strcmp (o->lng, "dual_prop"))
         {
-          if (boolector_get_opt (app->btor, app->btor->options.just.lng)->val)
+          if (boolector_get_opt (app->btor, "just")->val)
           {
             btormain_error (
                 app, "multiple exclusive optimization techniques enabled");
@@ -872,11 +847,9 @@ boolector_main (int argc, char **argv)
           }
           boolector_set_opt (app->btor, o->lng, 1);
         }
-        else if ((o->shrt && !strcmp (o->shrt, app->btor->options.just.shrt))
-                 || !strcmp (o->lng, app->btor->options.just.lng))
+        else if (!strcmp (o->shrt, "ju") || !strcmp (o->lng, "just"))
         {
-          if (boolector_get_opt (app->btor, app->btor->options.dual_prop.lng)
-                  ->val)
+          if (boolector_get_opt (app->btor, "dual_prop")->val)
           {
             btormain_error (
                 app, "multiple exclusive optimization techniques enabled");
@@ -884,16 +857,12 @@ boolector_main (int argc, char **argv)
           }
           boolector_set_opt (app->btor, o->lng, 1);
         }
-        else if ((o->shrt
-                  && !strcmp (o->shrt, app->btor->options.rewrite_level.shrt))
-                 || !strcmp (o->lng, app->btor->options.rewrite_level.lng))
+        else if (!strcmp (o->shrt, "rwl") || !strcmp (o->lng, "rewrite_level"))
         {
           if (!readval && ++i >= argc)
           {
-            btormain_error (app,
-                            "missing argument for '-%s', '--%s'",
-                            app->btor->options.rewrite_level.shrt,
-                            app->btor->options.rewrite_level.lng);
+            btormain_error (
+                app, "missing argument for '-%s', '--%s'", o->shrt, o->lng);
             goto DONE;
           }
           else if (!readval)
@@ -907,13 +876,11 @@ boolector_main (int argc, char **argv)
 
           boolector_set_opt (app->btor, o->lng, val);
         }
-        else if (!strcmp (o->lng, app->btor->options.rewrite_level_pbr.lng))
+        else if (!strcmp (o->lng, "rewrite_level_pbr"))
         {
           if (!readval && ++i >= argc)
           {
-            btormain_error (app,
-                            "missing argument for '--%s'",
-                            app->btor->options.rewrite_level_pbr.lng);
+            btormain_error (app, "missing argument for '--%s'", o->lng);
             goto DONE;
           }
           else if (!readval)
@@ -928,16 +895,12 @@ boolector_main (int argc, char **argv)
           boolector_set_opt (app->btor, o->lng, val);
         }
 #ifndef NBTORLOG
-        else if ((o->shrt
-                  && !strcmp (o->shrt, app->btor->options.loglevel.shrt))
-                 || !strcmp (o->lng, app->btor->options.loglevel.lng))
+        else if (!strcmp (o->shrt, "l") || !strcmp (o->lng, "loglevel"))
         {
           log += 1;
         }
 #endif
-        else if ((o->shrt
-                  && !strcmp (o->shrt, app->btor->options.verbosity.shrt))
-                 || !strcmp (o->lng, app->btor->options.verbosity.lng))
+        else if (!strcmp (o->shrt, "v") || !strcmp (o->lng, "verbosity"))
         {
           verb += 1;
         }
@@ -952,10 +915,10 @@ boolector_main (int argc, char **argv)
 #endif
   boolector_set_opt (app->btor, "verbosity", verb);
 
-  if (!app->btor->options.incremental.val
-      && (app->btor->options.incremental_in_depth.val
-          || app->btor->options.incremental_look_ahead.val
-          || app->btor->options.incremental_interval.val))
+  if (!boolector_get_opt (app->btor, "incremental")->val
+      && (boolector_get_opt (app->btor, "incremental_in_depth")->val
+          || boolector_get_opt (app->btor, "incremental_look_ahead")->val
+          || boolector_get_opt (app->btor, "incremental_interval")->val))
     boolector_set_opt (
         app->btor, "incremental", BTOR_PARSE_MODE_BASIC_INCREMENTAL);
 
@@ -1010,24 +973,24 @@ boolector_main (int argc, char **argv)
 #endif
   }
 
-  if (app->btor->options.verbosity.val > 0
-      && app->btor->options.incremental.val)
-    btormain_msg (app, "incremental mode through command line option");
-  if (app->btor->options.verbosity.val > 0
-      && app->btor->options.incremental_in_depth.val)
-    btormain_msg (app,
-                  "incremental in-depth window of %d",
-                  app->btor->options.incremental_in_depth.val);
-  if (app->btor->options.verbosity.val > 0
-      && app->btor->options.incremental_look_ahead.val)
-    btormain_msg (app,
-                  "incremental look-ahead window of %d",
-                  app->btor->options.incremental_look_ahead);
-  if (app->btor->options.verbosity.val > 0
-      && app->btor->options.incremental_interval.val)
-    btormain_msg (app,
-                  "incremental interval window of %d",
-                  app->btor->options.incremental_interval);
+  if (boolector_get_opt (app->btor, "verbosity")->val > 0)
+  {
+    if (boolector_get_opt (app->btor, "incremental")->val)
+      btormain_msg (app, "incremental mode through command line option");
+    if (boolector_get_opt (app->btor, "incremental_in_depth")->val)
+      btormain_msg (app,
+                    "incremental in-depth window of %d",
+                    boolector_get_opt (app->btor, "incremental_in_depth")->val);
+    if (boolector_get_opt (app->btor, "incremental_look_ahead")->val)
+      btormain_msg (
+          app,
+          "incremental look-ahead window of %d",
+          boolector_get_opt (app->btor, "incremental_look_ahead")->val);
+    if (boolector_get_opt (app->btor, "incremental_interval")->val)
+      btormain_msg (app,
+                    "incremental interval window of %d",
+                    boolector_get_opt (app->btor, "incremental_interval")->val);
+  }
 
 DONE:
   if (app->done)
