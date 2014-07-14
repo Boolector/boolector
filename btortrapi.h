@@ -14,75 +14,75 @@
 #include <btorcore.h>
 #include <stdio.h>
 
-#define NODE_FMT " e%d"
-#define SORT_FMT " s%d"
+#define NODE_FMT "e%d "
+#define SORT_FMT "s%d "
 
 #define BTOR_TRAPI_NODE_ID(exp) \
   (BTOR_IS_INVERTED_NODE (exp) ? -BTOR_REAL_ADDR_NODE (exp)->id : exp->id)
 
 #define BTOR_TRAPI_SORT_ID(sort) (sort)->id
 
-#define BTOR_TRAPI(msg, args...)    \
-  do                                \
-  {                                 \
-    if (!btor->apitrace) break;     \
-    btor_trapi (btor, msg, ##args); \
+#define BTOR_TRAPI(args...)                  \
+  do                                         \
+  {                                          \
+    if (!btor->apitrace) break;              \
+    btor_trapi (btor, __FUNCTION__, ##args); \
   } while (0)
 
-#define BTOR_TRAPI_UNFUN_EXT(name, exp, fmt, args...) \
-  BTOR_TRAPI (name NODE_FMT " " fmt, BTOR_TRAPI_NODE_ID (exp), ##args)
+#define BTOR_TRAPI_RETURN(args...) \
+  do                               \
+  {                                \
+    if (!btor->apitrace) break;    \
+    btor_trapi (btor, 0, ##args);  \
+  } while (0)
 
-#define BTOR_TRAPI_UNFUN(name, exp) \
-  BTOR_TRAPI (name NODE_FMT, BTOR_TRAPI_NODE_ID (exp))
+#define BTOR_TRAPI_UNFUN_EXT(exp, fmt, args...) \
+  BTOR_TRAPI (NODE_FMT fmt, BTOR_TRAPI_NODE_ID (exp), ##args)
 
-#define BTOR_TRAPI_BINFUN(name, e0, e1) \
-  BTOR_TRAPI (name NODE_FMT NODE_FMT,   \
-              BTOR_TRAPI_NODE_ID (e0),  \
-              BTOR_TRAPI_NODE_ID (e1))
+#define BTOR_TRAPI_UNFUN(exp) BTOR_TRAPI (NODE_FMT, BTOR_TRAPI_NODE_ID (exp))
 
-#define BTOR_TRAPI_TERFUN(name, e0, e1, e2)    \
-  BTOR_TRAPI (name NODE_FMT NODE_FMT NODE_FMT, \
-              BTOR_TRAPI_NODE_ID (e0),         \
-              BTOR_TRAPI_NODE_ID (e1),         \
+#define BTOR_TRAPI_BINFUN(e0, e1) \
+  BTOR_TRAPI (                    \
+      NODE_FMT NODE_FMT, BTOR_TRAPI_NODE_ID (e0), BTOR_TRAPI_NODE_ID (e1))
+
+#define BTOR_TRAPI_TERFUN(e0, e1, e2)     \
+  BTOR_TRAPI (NODE_FMT NODE_FMT NODE_FMT, \
+              BTOR_TRAPI_NODE_ID (e0),    \
+              BTOR_TRAPI_NODE_ID (e1),    \
               BTOR_TRAPI_NODE_ID (e2))
 
-#define BTOR_TRAPI_RETURN(res)     \
-  do                               \
-  {                                \
-    BTOR_TRAPI ("return %d", res); \
-  } while (0)
+#define BTOR_TRAPI_RETURN_NODE(res) \
+  BTOR_TRAPI_RETURN (NODE_FMT, BTOR_TRAPI_NODE_ID (res))
 
-#define BTOR_TRAPI_RETURN_NODE(res)                           \
-  do                                                          \
-  {                                                           \
-    BTOR_TRAPI ("return" NODE_FMT, BTOR_TRAPI_NODE_ID (res)); \
-  } while (0)
+#define BTOR_TRAPI_RETURN_PTR(res) BTOR_TRAPI_RETURN ("%p", res)
 
-#define BTOR_TRAPI_RETURN_PTR(res) \
-  do                               \
-  {                                \
-    BTOR_TRAPI ("return %p", res); \
-  } while (0)
+#define BTOR_TRAPI_RETURN_STR(res) BTOR_TRAPI_RETURN ("%s", res)
 
-#define BTOR_TRAPI_RETURN_STR(res) \
-  do                               \
-  {                                \
-    BTOR_TRAPI ("return %s", res); \
-  } while (0)
+#define BTOR_TRAPI_RETURN_INT(res) BTOR_TRAPI_RETURN ("%d", res)
 
-#define BTOR_TRAPI_RETURN_SORT(sort)                           \
-  do                                                           \
-  {                                                            \
-    BTOR_TRAPI ("return" SORT_FMT, BTOR_TRAPI_SORT_ID (sort)); \
-  } while (0)
+#define BTOR_TRAPI_RETURN_SORT(sort) \
+  BTOR_TRAPI_RETURN (SORT_FMT, BTOR_TRAPI_SORT_ID (sort))
 
 static void
-btor_trapi (Btor *btor, const char *msg, ...)
+btor_trapi (Btor *btor, const char *fname, const char *msg, ...)
 {
   assert (btor);
   assert (btor->apitrace);
 
   va_list args;
+
+  if (fname)
+  {
+    /* skip boolector_ prefix */
+    fprintf (btor->apitrace, "%s", fname + 10);
+    /* skip functions that do not have 'btor' as argument */
+    if (strcmp (fname, "boolector_new") && strcmp (fname, "boolector_get_btor"))
+      fprintf (btor->apitrace, " %p", btor);
+  }
+  else
+    fputs ("return", btor->apitrace);
+
+  if (strlen (msg) > 0) fputc (' ', btor->apitrace);
 
   va_start (args, msg);
   vfprintf (btor->apitrace, msg, args);
