@@ -137,7 +137,7 @@ typedef struct BoolectorNode BoolectorNode;
  * Preprocessor constant representing status 'unknown'.
  * \see boolector_sat, boolector_simplify
  */
-#define BOOLECTOR_UNKOWN 0
+#define BOOLECTOR_UNKNOWN 0
 /**
  * Preprocessor constant representing status 'satisfiable'.
  * \see boolector_sat, boolector_simplify

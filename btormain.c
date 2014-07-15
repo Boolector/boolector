@@ -15,9 +15,9 @@
 #include "boolector.h"
 #include "btorconfig.h"
 #include "btorexit.h"
+#include "btormem.h"
 #include "btoropt.h"
 #include "btorparse.h"
-#include "btorsat.h"
 
 #include <assert.h>
 #include <stdarg.h>
@@ -998,8 +998,8 @@ DONE:
   else if (app->err)
     res = BTOR_ERR_EXIT;
 
-  assert (res == BTOR_ERR_EXIT || res == BTOR_SUCC_EXIT || res == BTOR_SAT
-          || res == BTOR_UNSAT || res == BTOR_UNKNOWN);
+  assert (res == BTOR_ERR_EXIT || res == BTOR_SUCC_EXIT || res == BOOLECTOR_SAT
+          || res == BOOLECTOR_UNSAT || res == BOOLECTOR_UNKNOWN);
   btormain_delete_btormain (app);
   return res;
 }
