@@ -399,6 +399,11 @@ NEXT:
     PARSE_ARGS0 (tok);
     boolector_reset_stats (btor);
   }
+  else if (!strcmp (tok, "print_stats"))
+  {
+    PARSE_ARGS0 (tok);
+    boolector_print_stats (btor);
+  }
   else if (!strcmp (tok, "get_refs"))
   {
     PARSE_ARGS0 (tok);

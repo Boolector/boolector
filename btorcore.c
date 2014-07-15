@@ -649,7 +649,7 @@ btor_print_stats_btor (Btor *btor)
 {
   int num_final_ops, verbosity, i;
 
-  assert (btor);
+  if (!btor) return;
 
   verbosity = btor->options.verbosity.val;
 
@@ -900,6 +900,7 @@ btor_print_stats_btor (Btor *btor)
             btor->time.skel,
             percent (btor->time.skel, btor->time.rewrite));
 #endif
+  btor_msg (btor, 1, "%.1f MB\n", btor->mm->maxallocated / (double) (1 << 20));
 }
 
 Btor *

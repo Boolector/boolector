@@ -152,6 +152,18 @@ boolector_reset_stats (Btor *btor)
 }
 
 void
+boolector_print_stats (Btor *btor)
+{
+  BTOR_ABORT_ARG_NULL_BOOLECTOR (btor);
+  BTOR_TRAPI ("print_stats");
+  btor_print_stats_sat (btor_get_sat_mgr_btor (btor));
+  btor_print_stats_btor (btor);
+#ifndef NDEBUG
+  BTOR_CHKCLONE_NORES (print_stats);
+#endif
+}
+
+void
 boolector_set_trapi (Btor *btor, FILE *apitrace)
 {
   BTOR_ABORT_ARG_NULL_BOOLECTOR (btor);

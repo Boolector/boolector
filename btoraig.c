@@ -1713,8 +1713,7 @@ btor_add_toplevel_aig_to_sat (BtorAIGMgr *amgr, BtorAIG *root)
 BtorSATMgr *
 btor_get_sat_mgr_aig_mgr (const BtorAIGMgr *amgr)
 {
-  assert (amgr);
-  return (amgr->smgr);
+  return amgr ? amgr->smgr : 0;
 }
 
 int

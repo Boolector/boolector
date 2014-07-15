@@ -741,8 +741,7 @@ btor_delete_aigvec_mgr (BtorAIGVecMgr *avmgr)
 BtorAIGMgr *
 btor_get_aig_mgr_aigvec_mgr (const BtorAIGVecMgr *avmgr)
 {
-  assert (avmgr);
-  return avmgr->amgr;
+  return avmgr ? avmgr->amgr : 0;
 }
 
 char *

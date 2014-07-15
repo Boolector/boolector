@@ -235,8 +235,7 @@ btor_enable_verbosity_sat (BtorSATMgr *smgr, int level)
 void
 btor_print_stats_sat (BtorSATMgr *smgr)
 {
-  assert (smgr != NULL);
-  if (!smgr->initialized) return;
+  if (!smgr || !smgr->initialized) return;
   smgr->api.stats (smgr);
   btor_msg_sat (
       smgr, 0, "%d SAT calls in %.1f seconds", smgr->satcalls, smgr->sat_time);

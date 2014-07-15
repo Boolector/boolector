@@ -201,6 +201,11 @@ void boolector_reset_time (Btor *btor);
  */
 void boolector_reset_stats (Btor *btor);
 
+/* Print statistics.
+ * \param btor Boolector instance.
+ */
+void boolector_print_stats (Btor *btor);
+
 /**
  * Set and get the output API trace file.
  */
