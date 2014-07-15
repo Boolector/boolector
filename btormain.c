@@ -26,94 +26,6 @@
 #include <string.h>
 
 int static_set_alarm;
-static void print_error (char *msg, ...);
-
-/*------------------------------------------------------------------------*/
-
-typedef struct BtorMainMemMgr
-{
-  size_t allocated;
-} BtorMainMemMgr;
-
-static BtorMainMemMgr *
-btormain_new_mem_mgr (void)
-{
-  BtorMainMemMgr *mm = (BtorMainMemMgr *) malloc (sizeof (BtorMainMemMgr));
-  if (!mm)
-  {
-    print_error ("out of memory in 'btormain_new_mem_mgr'");
-    exit (BTOR_ERR_EXIT);
-  }
-  mm->allocated = 0;
-  return mm;
-}
-
-static void *
-btormain_malloc (BtorMainMemMgr *mm, size_t size)
-{
-  void *result;
-  if (!size) return 0;
-  assert (mm);
-  if (!(result = malloc (size)))
-  {
-    print_error ("out of memory in 'btormain_malloc'");
-    exit (BTOR_ERR_EXIT);
-  }
-  mm->allocated += size;
-  return result;
-}
-
-void *
-btormain_calloc (BtorMainMemMgr *mm, size_t nobj, size_t size)
-{
-  size_t bytes = nobj * size;
-  void *result;
-  assert (mm);
-  result = calloc (nobj, size);
-  if (!mm)
-  {
-    print_error ("out of memory in 'btor_calloc'");
-    exit (BTOR_ERR_EXIT);
-  }
-  mm->allocated += bytes;
-  return result;
-}
-
-#define BTORMAIN_NEWN(mm, ptr, nelems)                                      \
-  do                                                                        \
-  {                                                                         \
-    (ptr) = (typeof(ptr)) btormain_malloc ((mm), (nelems) * sizeof *(ptr)); \
-  } while (0)
-
-#define BTORMAIN_CNEWN(mm, ptr, nelems)                                    \
-  do                                                                       \
-  {                                                                        \
-    (ptr) = (typeof(ptr)) btormain_calloc ((mm), (nelems), sizeof *(ptr)); \
-  } while (0)
-
-void
-btormain_free (BtorMainMemMgr *mm, void *p, size_t freed)
-{
-  assert (mm);
-  assert (!p == !freed);
-  assert (mm->allocated >= freed);
-  mm->allocated -= freed;
-  free (p);
-}
-
-void
-btormain_delete_mem_mgr (BtorMainMemMgr *mm)
-{
-  assert (mm);
-  assert (!mm->allocated);
-  free (mm);
-}
-
-#define BTORMAIN_DELETEN(mm, ptr, nelems)                  \
-  do                                                       \
-  {                                                        \
-    btormain_free ((mm), (ptr), (nelems) * sizeof *(ptr)); \
-  } while (0)
 
 /*------------------------------------------------------------------------*/
 
@@ -161,7 +73,7 @@ typedef struct BtorMainOpts
 typedef struct BtorMainApp
 {
   Btor *btor;
-  BtorMainMemMgr *mm;
+  BtorMemMgr *mm;
   BtorMainOpts opts;
   int done;
   int err;
@@ -178,10 +90,10 @@ btormain_new_btormain (Btor *btor)
   assert (btor);
 
   BtorMainApp *res;
-  BtorMainMemMgr *mm;
+  BtorMemMgr *mm;
 
-  mm = btormain_new_mem_mgr ();
-  BTORMAIN_CNEWN (mm, res, 1);
+  mm = btor_new_mem_mgr ();
+  BTOR_CNEWN (mm, res, 1);
   res->mm      = mm;
   res->btor    = btor;
   res->infile  = stdin;
@@ -193,11 +105,11 @@ static void
 btormain_delete_btormain (BtorMainApp *app)
 {
   assert (app);
-  BtorMainMemMgr *mm = app->mm;
+  BtorMemMgr *mm = app->mm;
 
   boolector_delete (app->btor);
-  BTORMAIN_DELETEN (mm, app, 1);
-  btormain_delete_mem_mgr (mm);
+  BTOR_DELETEN (mm, app, 1);
+  btor_delete_mem_mgr (mm);
 }
 
 static void
@@ -278,34 +190,15 @@ btormain_init_opts (BtorMainApp *app)
 /*------------------------------------------------------------------------*/
 
 static void
-vprint_error (char *msg, va_list list)
-{
-  assert (list);
-
-  fputs ("boolector: ", stderr);
-  vfprintf (stderr, msg, list);
-  fprintf (stderr, "\n");
-}
-
-static void
-print_error (char *msg, ...)
-{
-  assert (msg);
-
-  va_list list;
-  va_start (list, msg);
-  vprint_error (msg, list);
-  va_end (list);
-}
-
-static void
 btormain_error (BtorMainApp *app, char *msg, ...)
 {
   assert (app);
 
   va_list list;
   va_start (list, msg);
-  vprint_error (msg, list);
+  fputs ("boolector: ", stderr);
+  vfprintf (stderr, msg, list);
+  fprintf (stderr, "\n");
   va_end (list);
   app->err = BTOR_ERR_EXIT;
 }
@@ -362,7 +255,7 @@ print_opt (BtorMainApp *app, BtorOpt *opt)
           && 2 * strlen (paramstr) + strlen (opt->lng) + 7 <= LEN_OPTSTR));
 
   len = strlen (opt->lng);
-  BTORMAIN_NEWN (app->mm, lngstr, len + 1);
+  BTOR_NEWN (app->mm, lngstr, len + 1);
   for (i = 0; i < len; i++) lngstr[i] = opt->lng[i] == '_' ? '-' : opt->lng[i];
   lngstr[len] = '\0';
 
@@ -377,7 +270,7 @@ print_opt (BtorMainApp *app, BtorOpt *opt)
            strlen (paramstr) > 0 ? "=" : "",
            paramstr);
 
-  BTORMAIN_DELETEN (app->mm, lngstr, len + 1);
+  BTOR_DELETEN (app->mm, lngstr, len + 1);
 
   len = strlen (optstr);
   for (i = len; i < LEN_OPTSTR - 1; i++) optstr[i] = ' ';
@@ -579,7 +472,7 @@ boolector_main (int argc, char **argv)
                || has_suffix (app->infile_name, ".bz2")
                || has_suffix (app->infile_name, "7z"))
       {
-        BTORMAIN_NEWN (app->mm, cmd, strlen (app->infile_name + 40));
+        BTOR_NEWN (app->mm, cmd, strlen (app->infile_name + 40));
         if (has_suffix (app->infile_name, ".gz"))
           sprintf (cmd, "gunzip -c %s", app->infile_name);
         else if (has_suffix (app->infile_name, ".bz2"))
@@ -587,7 +480,7 @@ boolector_main (int argc, char **argv)
         else if (has_suffix (app->infile_name, ".7z"))
           sprintf (cmd, "7z x -so %s 2>/dev/null", app->infile_name);
         if ((app->infile = popen (cmd, "r"))) app->close_infile = 2;
-        BTORMAIN_DELETEN (app->mm, cmd, strlen (app->infile_name + 40));
+        BTOR_DELETEN (app->mm, cmd, strlen (app->infile_name + 40));
       }
       else if ((app->infile = fopen (app->infile_name, "r")))
         app->close_infile = 1;
