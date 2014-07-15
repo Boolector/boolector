@@ -140,8 +140,9 @@ struct Btor
   int found_constraint_false;
   int external_refs;        /* external references (library mode) */
   int btor_sat_btor_called; /* how often is btor_sat_btor been called */
-  int msgtick;              /* message tick in incremental mode */
   int last_sat_result;      /* status of last SAT call (SAT/UNSAT) */
+
+  char *msg_prefix; /* verbosity message prefix */
 
   BtorPtrHashTable *lod_cache;
 
@@ -271,6 +272,9 @@ void btor_delete_btor (Btor *btor);
 
 /* Gets version. */
 const char *btor_version (Btor *btor);
+
+/* Set verbosity message prefix. */
+void btor_set_msg_prefix_btor (Btor *btor, const char *prefix);
 
 /* Prints statistics. */
 void btor_print_stats_btor (Btor *btor);

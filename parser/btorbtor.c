@@ -44,6 +44,7 @@ struct Info
 };
 
 BTOR_DECLARE_STACK (BtorInfo, Info);
+BTOR_DECLARE_STACK (BoolectorNodePtr, BoolectorNode *);
 
 struct BtorBTORParser
 {
@@ -264,13 +265,22 @@ parse_non_zero_int (BtorBTORParser *parser, int *res_ptr)
 }
 
 static BoolectorNode *
-parse_exp (BtorBTORParser *parser, int expected_len, int can_be_array)
+parse_exp (BtorBTORParser *parser,
+           int expected_len,
+           int can_be_array,
+           int can_be_inverted)
 {
   int lit, idx, len_res;
   BoolectorNode *res;
 
   lit = 0;
   if (parse_non_zero_int (parser, &lit)) return 0;
+
+  if (!can_be_inverted && lit < 0)
+  {
+    (void) btor_perr_btor (parser, "positive literal expected");
+    return 0;
+  }
 
   idx = abs (lit);
   assert (idx);
@@ -417,7 +427,7 @@ parse_param_exp (BtorBTORParser *parser, int len)
 {
   BoolectorNode *res;
 
-  res = parse_exp (parser, len, 0);
+  res = parse_exp (parser, len, 0, 0);
   if (!res) return 0;
 
   if (boolector_is_param (parser->btor, res)) return res;
@@ -454,7 +464,7 @@ parse_array_exp (BtorBTORParser *parser, int len)
 {
   BoolectorNode *res;
 
-  res = parse_exp (parser, len, 1);
+  res = parse_exp (parser, len, 1, 0);
   if (!res) return 0;
 
   if (boolector_is_array (parser->btor, res)) return res;
@@ -661,7 +671,7 @@ parse_root (BtorBTORParser *parser, int len)
 
   if (parse_space (parser)) return 0;
 
-  if (!(res = parse_exp (parser, len, 0))) return 0;
+  if (!(res = parse_exp (parser, len, 0, 1))) return 0;
 
   BTOR_PUSH_STACK (parser->mem, parser->outputs, res);
 
@@ -676,7 +686,7 @@ parse_unary (BtorBTORParser *parser, int len, Unary f)
   assert (len);
   if (parse_space (parser)) return 0;
 
-  if (!(tmp = parse_exp (parser, len, 0))) return 0;
+  if (!(tmp = parse_exp (parser, len, 0, 1))) return 0;
 
   res = f (parser->btor, tmp);
   boolector_release (parser->btor, tmp);
@@ -725,7 +735,7 @@ parse_redunary (BtorBTORParser *parser, int len, Unary f)
 
   if (parse_space (parser)) return 0;
 
-  if (!(tmp = parse_exp (parser, 0, 0))) return 0;
+  if (!(tmp = parse_exp (parser, 0, 0, 1))) return 0;
 
   if (boolector_get_width (parser->btor, tmp) == 1)
   {
@@ -769,7 +779,7 @@ parse_binary (BtorBTORParser *parser, int len, Binary f)
 
   if (parse_space (parser)) return 0;
 
-  if (!(l = parse_exp (parser, len, 0))) return 0;
+  if (!(l = parse_exp (parser, len, 0, 1))) return 0;
 
   if (parse_space (parser))
   {
@@ -778,7 +788,7 @@ parse_binary (BtorBTORParser *parser, int len, Binary f)
     return 0;
   }
 
-  if (!(r = parse_exp (parser, len, 0))) goto RELEASE_L_AND_RETURN_ERROR;
+  if (!(r = parse_exp (parser, len, 0, 1))) goto RELEASE_L_AND_RETURN_ERROR;
 
   res = f (parser->btor, l, r);
   boolector_release (parser->btor, r);
@@ -885,7 +895,7 @@ parse_logical (BtorBTORParser *parser, int len, Binary f)
 
   if (parse_space (parser)) return 0;
 
-  if (!(l = parse_exp (parser, 0, 0))) return 0;
+  if (!(l = parse_exp (parser, 0, 0, 1))) return 0;
 
   if (boolector_get_width (parser->btor, l) != 1)
   {
@@ -898,7 +908,7 @@ parse_logical (BtorBTORParser *parser, int len, Binary f)
 
   if (parse_space (parser)) goto RELEASE_L_AND_RETURN_ERROR;
 
-  if (!(r = parse_exp (parser, 0, 0))) goto RELEASE_L_AND_RETURN_ERROR;
+  if (!(r = parse_exp (parser, 0, 0, 1))) goto RELEASE_L_AND_RETURN_ERROR;
 
   if (boolector_get_width (parser->btor, r) != 1)
   {
@@ -944,7 +954,7 @@ parse_compare_and_overflow (BtorBTORParser *parser,
 
   if (parse_space (parser)) return 0;
 
-  if (!(l = parse_exp (parser, 0, can_be_array))) return 0;
+  if (!(l = parse_exp (parser, 0, can_be_array, 1))) return 0;
 
   if (parse_space (parser))
   {
@@ -953,7 +963,7 @@ parse_compare_and_overflow (BtorBTORParser *parser,
     return 0;
   }
 
-  if (!(r = parse_exp (parser, 0, can_be_array)))
+  if (!(r = parse_exp (parser, 0, can_be_array, 1)))
     goto RELEASE_L_AND_RETURN_ERROR;
 
   llen = boolector_get_width (parser->btor, l);
@@ -1136,7 +1146,7 @@ parse_concat (BtorBTORParser *parser, int len)
 
   if (parse_space (parser)) return 0;
 
-  if (!(l = parse_exp (parser, 0, 0))) return 0;
+  if (!(l = parse_exp (parser, 0, 0, 1))) return 0;
 
   if (parse_space (parser))
   {
@@ -1145,7 +1155,7 @@ parse_concat (BtorBTORParser *parser, int len)
     return 0;
   }
 
-  if (!(r = parse_exp (parser, 0, 0))) goto RELEASE_L_AND_RETURN_ERROR;
+  if (!(r = parse_exp (parser, 0, 0, 1))) goto RELEASE_L_AND_RETURN_ERROR;
 
   llen = boolector_get_width (parser->btor, l);
   rlen = boolector_get_width (parser->btor, r);
@@ -1188,7 +1198,7 @@ parse_shift (BtorBTORParser *parser, int len, Shift f)
 
   if (parse_space (parser)) return 0;
 
-  if (!(l = parse_exp (parser, len, 0))) return 0;
+  if (!(l = parse_exp (parser, len, 0, 1))) return 0;
 
   if (parse_space (parser))
   {
@@ -1197,7 +1207,7 @@ parse_shift (BtorBTORParser *parser, int len, Shift f)
     return 0;
   }
 
-  if (!(r = parse_exp (parser, rlen, 0))) goto RELEASE_L_AND_RETURN_ERROR;
+  if (!(r = parse_exp (parser, rlen, 0, 1))) goto RELEASE_L_AND_RETURN_ERROR;
 
   res = f (parser->btor, l, r);
   boolector_release (parser->btor, r);
@@ -1244,7 +1254,7 @@ parse_cond (BtorBTORParser *parser, int len)
 
   if (parse_space (parser)) return 0;
 
-  if (!(c = parse_exp (parser, 1, 0))) return 0;
+  if (!(c = parse_exp (parser, 1, 0, 1))) return 0;
 
   if (parse_space (parser))
   {
@@ -1253,7 +1263,7 @@ parse_cond (BtorBTORParser *parser, int len)
     return 0;
   }
 
-  if (!(t = parse_exp (parser, len, 0))) goto RELEASE_C_AND_RETURN_ERROR;
+  if (!(t = parse_exp (parser, len, 0, 1))) goto RELEASE_C_AND_RETURN_ERROR;
 
   if (parse_space (parser))
   {
@@ -1262,7 +1272,8 @@ parse_cond (BtorBTORParser *parser, int len)
     goto RELEASE_C_AND_RETURN_ERROR;
   }
 
-  if (!(e = parse_exp (parser, len, 0))) goto RELEASE_C_AND_T_AND_RETURN_ERROR;
+  if (!(e = parse_exp (parser, len, 0, 1)))
+    goto RELEASE_C_AND_T_AND_RETURN_ERROR;
 
   res = boolector_cond (parser->btor, c, t, e);
   boolector_release (parser->btor, e);
@@ -1284,7 +1295,7 @@ parse_acond (BtorBTORParser *parser, int len)
 
   if (parse_space (parser)) return 0;
 
-  if (!(c = parse_exp (parser, 1, 0))) return 0;
+  if (!(c = parse_exp (parser, 1, 0, 1))) return 0;
 
   if (parse_space (parser))
   {
@@ -1333,7 +1344,7 @@ parse_slice (BtorBTORParser *parser, int len)
 
   if (parse_space (parser)) return 0;
 
-  if (!(arg = parse_exp (parser, 0, 0))) return 0;
+  if (!(arg = parse_exp (parser, 0, 0, 1))) return 0;
 
   if (parse_space (parser))
   {
@@ -1400,7 +1411,7 @@ parse_read (BtorBTORParser *parser, int len)
   }
 
   idxlen = boolector_get_index_width (parser->btor, array);
-  if (!(idx = parse_exp (parser, idxlen, 0)))
+  if (!(idx = parse_exp (parser, idxlen, 0, 1)))
     goto RELEASE_ARRAY_AND_RETURN_ERROR;
 
   res = boolector_read (parser->btor, array, idx);
@@ -1431,7 +1442,7 @@ parse_write (BtorBTORParser *parser, int len)
     return 0;
   }
 
-  if (!(idx = parse_exp (parser, idxlen, 0)))
+  if (!(idx = parse_exp (parser, idxlen, 0, 1)))
     goto RELEASE_ARRAY_AND_RETURN_ERROR;
 
   if (parse_space (parser))
@@ -1442,7 +1453,7 @@ parse_write (BtorBTORParser *parser, int len)
   }
 
   vallen = boolector_get_width (parser->btor, array);
-  if (!(val = parse_exp (parser, vallen, 0)))
+  if (!(val = parse_exp (parser, vallen, 0, 1)))
     goto RELEASE_ARRAY_AND_IDX_AND_RETURN_ERROR;
 
   res = boolector_write (parser->btor, array, idx, val);
@@ -1466,14 +1477,8 @@ parse_lambda (BtorBTORParser *parser, int len)
 
   if (parse_space (parser)) return 0;
 
-  BTOR_NEW (parser->btor->mm, params);
+  BTOR_NEW (parser->mem, params);
   if (!(params[0] = parse_param_exp (parser, paramlen))) return 0;
-
-  if (BTOR_IS_INVERTED_NODE (params[0]))
-  {
-    btor_perr_btor (parser, "negated params in lambda definitions not allowed");
-    goto RELEASE_PARAM_AND_RETURN_ERROR;
-  }
 
   if (boolector_is_bound_param (parser->btor, params[0]))
   {
@@ -1488,12 +1493,13 @@ parse_lambda (BtorBTORParser *parser, int len)
     return 0;
   }
 
-  if (!(exp = parse_exp (parser, len, 1))) goto RELEASE_PARAM_AND_RETURN_ERROR;
+  if (!(exp = parse_exp (parser, len, 1, 1)))
+    goto RELEASE_PARAM_AND_RETURN_ERROR;
 
   res = boolector_fun (parser->btor, 1, params, exp);
 
   boolector_release (parser->btor, params[0]);
-  BTOR_DELETE (parser->btor->mm, params);
+  BTOR_DELETE (parser->mem, params);
   boolector_release (parser->btor, exp);
 
   parser->found_lambdas = 1;
@@ -1522,7 +1528,7 @@ parse_apply (BtorBTORParser *parser, int len)
   argslen = boolector_get_index_width (parser->btor, fun);
   // TODO: we ignore argslen for now
   (void) argslen;
-  if (!(args = parse_exp (parser, 0, 0))) goto RELEASE_FUN_AND_RETURN_ERROR;
+  if (!(args = parse_exp (parser, 0, 0, 1))) goto RELEASE_FUN_AND_RETURN_ERROR;
 
   if (!boolector_is_args (parser->btor, args))
   {
@@ -1569,10 +1575,10 @@ parse_args (BtorBTORParser *parser, int len)
   {
     if (parse_space (parser)) return 0;
 
-    if (!(arg = parse_exp (parser, 0, 0))) return 0;
+    if (!(arg = parse_exp (parser, 0, 0, 1))) return 0;
 
     BTOR_PUSH_STACK (parser->mem, args, arg);
-    i -= BTOR_REAL_ADDR_NODE (arg)->len;
+    i -= boolector_get_width (parser->btor, arg);
   }
 
   res = boolector_args (parser->btor, BTOR_COUNT_STACK (args), args.start);
@@ -1595,7 +1601,7 @@ parse_ext (BtorBTORParser *parser, int len, Extend f)
 
   if (parse_space (parser)) return 0;
 
-  if (!(arg = parse_exp (parser, 0, 0))) return 0;
+  if (!(arg = parse_exp (parser, 0, 0, 1))) return 0;
 
   alen = boolector_get_width (parser->btor, arg);
 
@@ -1687,7 +1693,7 @@ find_parser (BtorBTORParser *parser, const char *op)
 static BtorBTORParser *
 btor_new_btor_parser (Btor *btor, BtorParseOpt *opts)
 {
-  BtorMemMgr *mem = btor->mm;
+  BtorMemMgr *mem = btor_new_mem_mgr ();
   BtorBTORParser *res;
 
   (void) opts->incremental;  // TODO what about incremental?

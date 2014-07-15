@@ -348,6 +348,11 @@ NEXT:
   {
     /* do nothing, all clone checking via shadow clone */
   }
+  else if (!strcmp (tok, "set_msg_prefix"))
+  {
+    PARSE_ARGS1 (tok, str);
+    boolector_set_msg_prefix (btor, arg1_str);
+  }
   else if (!strcmp (tok, "set_opt"))
   {
     PARSE_ARGS2 (tok, str, int);

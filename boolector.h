@@ -152,20 +152,20 @@ typedef struct BoolectorNode BoolectorNode;
 /*------------------------------------------------------------------------*/
 
 /**
- * Creates new instance of Boolector.
+ * Create a new instance of Boolector.
  * \return New Boolector instance.
  */
 Btor *boolector_new (void);
 
 /**
- * Clones an instance of Boolector.
+ * Clone an instance of Boolector.
  * \param btor original Boolector instance.
  * \return New Boolector instance.
  */
 Btor *boolector_clone (Btor *btor);
 
 /**
- * Deletes boolector instance and frees its resources.
+ * Delete a boolector instance and frees its resources.
  * \param btor Boolector instance.
  * \remarks Expressions that have not been release properly will not be
  * deleted from memory. Use \ref boolector_get_refs to debug reference
@@ -174,7 +174,14 @@ Btor *boolector_clone (Btor *btor);
 void boolector_delete (Btor *btor);
 
 /**
- * Returns the number of external references to the boolector library.
+ * Set a verbosity message prefix.
+ * \param btor Boolector instance.
+ * \param msg Prefix string.
+ */
+void boolector_set_msg_prefix (Btor *btor, const char *prefix);
+
+/**
+ * Return the number of external references to the boolector library.
  * Internally, Boolector manages an expression DAG with reference counting. Use
  * \ref boolector_release to properly release an expression. Before
  * you finally call \ref boolector_delete, \ref boolector_get_refs should
@@ -211,7 +218,7 @@ int boolector_file_exists (Btor *btor, const char *path);
 /*------------------------------------------------------------------------*/
 
 /**
- * Adds constraint. Use this function to assert 'node'.
+ * Add a constraint. Use this function to assert 'node'.
  * Added constraints can not be deleted anymore. After 'node' has
  * been asserted, it can be safely released by \ref boolector_release.
  * \param btor Boolector instance.
@@ -220,7 +227,7 @@ int boolector_file_exists (Btor *btor, const char *path);
 void boolector_assert (Btor *btor, BoolectorNode *node);
 
 /**
- * Adds assumption. Use this function to assume 'node'.
+ * Add an assumption. Use this function to assume 'node'.
  * You must enable Boolector's incremental usage via
  * \ref boolector_set_opt_incremental before.
  * In contrast to \ref boolector_assert the assumptions are
@@ -241,7 +248,7 @@ void boolector_assume (Btor *btor, BoolectorNode *node);
 int boolector_failed (Btor *btor, BoolectorNode *node);
 
 /**
- * Solves SAT instance represented by constraints and assumptions added
+ * Solve an instance represented by constraints and assumptions added
  * by \ref boolector_assert and \ref boolector_assume. Note that
  * assertions and assumptions are combined by boolean 'and'.
  * If you want to call this function multiple times then you must enable
@@ -256,7 +263,7 @@ int boolector_failed (Btor *btor, BoolectorNode *node);
 int boolector_sat (Btor *btor);
 
 /**
- * Solves SAT instance represented by constraints and assumptions added
+ * Solve an instance represented by constraints and assumptions added
  * by \ref boolector_assert and \ref boolector_assume. The search can be
  * limited by the number of lemmas generated 'lod_limit' and the number of
  * conflicts produced by the underlying SAT solver 'sat_limit'. Note that
@@ -283,7 +290,7 @@ int boolector_simplify (Btor *btor);
 /*------------------------------------------------------------------------*/
 
 /**
- * Sets the SAT solver to use.
+ * Set the SAT solver to use.
  * Currently, we support 'Lingeling', 'PicoSAT', and 'MiniSAT' as string
  * value of \param solver (case insensitive).  This is however
  * only possible if the corresponding solvers were enabled at compile time.
@@ -376,7 +383,7 @@ const BtorOpt *boolector_next_opt (Btor *btor, const BtorOpt *opt);
 /*------------------------------------------------------------------------*/
 
 /**
- * Copies expression (increments reference counter).
+ * Copy expression (increments reference counter).
  * \param btor Boolector instance.
  * \param node Operand.
  * \return The expression 'node'.
@@ -384,7 +391,7 @@ const BtorOpt *boolector_next_opt (Btor *btor, const BtorOpt *opt);
 BoolectorNode *boolector_copy (Btor *btor, BoolectorNode *node);
 
 /**
- * Releases expression (decrements reference counter).
+ * Release expression (decrements reference counter).
  * \param btor Boolector instance.
  * \param node Operand.
  */
@@ -1122,7 +1129,7 @@ BoolectorNode *boolector_uf (Btor *btor,
 BoolectorNode *boolector_args (Btor *btor, int argc, BoolectorNode **arg_nodes);
 
 /**
- * Creates a function application expression.
+ * Create a function application expression.
  * \param btor Boolector instance.
  * \param argc Number of arguments to be applied.
  * \param arg_nodes Arguments to be applied.
@@ -1134,7 +1141,7 @@ BoolectorNode *boolector_apply (Btor *btor,
                                 BoolectorNode **arg_nodes,
                                 BoolectorNode *n_fun);
 
-/* Applies argument expression 'n_args' to function 'n_fun'.
+/* Apply argument expression 'n_args' to function 'n_fun'.
  * \param btor Boolector instance.
  * \param n_args Argument expression.
  * \param n_fun Function expression.
@@ -1144,7 +1151,7 @@ BoolectorNode *boolector_apply_args (Btor *btor,
                                      BoolectorNode *n_fun);
 
 /**
- * Increments bit-vector by one.
+ * Increment bit-vector by one.
  * \param btor Boolector instance.
  * \param node Bit-vector operand.
  * \result Bit-vector with the same bit-width as 'node'.
@@ -1152,7 +1159,7 @@ BoolectorNode *boolector_apply_args (Btor *btor,
 BoolectorNode *boolector_inc (Btor *btor, BoolectorNode *node);
 
 /**
- * Decrements bit-vector by one.
+ * Decrement bit-vector by one.
  * \param btor Boolector instance.
  * \param node Bit-vector operand.
  * \result Bit-vector with the same bit-width as 'node'.
@@ -1162,7 +1169,7 @@ BoolectorNode *boolector_dec (Btor *btor, BoolectorNode *node);
 /*------------------------------------------------------------------------*/
 
 /**
- * Returns the Boolector instance to which 'node' belongs.
+ * Return the Boolector instance to which 'node' belongs.
  * \param node Boolector node.
  * \return Boolector instance.
  */
@@ -1184,7 +1191,7 @@ int boolector_is_var (Btor *btor, BoolectorNode *node);
 const char *boolector_get_bits (Btor *, BoolectorNode *node);
 
 /**
- * Determines if expression is an array. If not, expression is a bit-vector.
+ * Determine if expression is an array. If not, expression is a bit-vector.
  * \param btor Boolector instance.
  * \param node Operand.
  * \result True if expression is an array, and false otherwise.
@@ -1192,7 +1199,7 @@ const char *boolector_get_bits (Btor *, BoolectorNode *node);
 int boolector_is_array (Btor *btor, BoolectorNode *node);
 
 /**
- * Determines if expression is an array variable.
+ * Determine if expression is an array variable.
  * \param btor Boolector instance.
  * \param node Operand.
  * \result True if expression is an array variable, and false otherwise.
@@ -1200,7 +1207,7 @@ int boolector_is_array (Btor *btor, BoolectorNode *node);
 int boolector_is_array_var (Btor *btor, BoolectorNode *node);
 
 /**
- * Determines if given node is a parameter expression.
+ * Determine if given node is a parameter expression.
  * \param btor Boolector instance.
  * \param node Operand.
  * \result True if expression is a parameter, and false otherwise.
@@ -1208,7 +1215,7 @@ int boolector_is_array_var (Btor *btor, BoolectorNode *node);
 int boolector_is_param (Btor *btor, BoolectorNode *node);
 
 /**
- * Determines if given parameter node is bound by a function.
+ * Determine if given parameter node is bound by a function.
  * \param btor Boolector instance.
  * \param node Parameter node.
  * \result True if paramter is bound, and false otherwise.
@@ -1216,7 +1223,7 @@ int boolector_is_param (Btor *btor, BoolectorNode *node);
 int boolector_is_bound_param (Btor *btor, BoolectorNode *node);
 
 /**
- * Determines if expression is a function.
+ * Determine if expression is a function.
  * \param btor Boolector instance.
  * \param node Operand.
  * \result True if epxression is a function, and false otherwise.
@@ -1224,7 +1231,7 @@ int boolector_is_bound_param (Btor *btor, BoolectorNode *node);
 int boolector_is_fun (Btor *btor, BoolectorNode *node);
 
 /**
- * Gets the arity of function 'node'.
+ * Get the arity of function 'node'.
  * \param btor Boolector instance.
  * \param node Function.
  * \return arity of 'node'.
@@ -1232,7 +1239,7 @@ int boolector_is_fun (Btor *btor, BoolectorNode *node);
 int boolector_get_fun_arity (Btor *btor, BoolectorNode *node);
 
 /**
- * Determines if expression is an argument expression.
+ * Determine if expression is an argument expression.
  * \param btor Boolector instance.
  * \param node Operand.
  * \result True if epxression is an argument, and false otherwise.
@@ -1240,7 +1247,7 @@ int boolector_get_fun_arity (Btor *btor, BoolectorNode *node);
 int boolector_is_args (Btor *btor, BoolectorNode *node);
 
 /**
- * Gets the arity of argument 'node'.
+ * Get the arity of argument 'node'.
  * \param btor Boolector instance.
  * \param node Argument expression.
  * \return arity of 'node'.
@@ -1248,7 +1255,7 @@ int boolector_is_args (Btor *btor, BoolectorNode *node);
 int boolector_get_args_arity (Btor *btor, BoolectorNode *node);
 
 /**
- * Gets the bit-width of an expression. If the expression
+ * Get the bit-width of an expression. If the expression
  * is an array, it returns the bit-width of the array elements.
  * \param btor Boolector instance.
  * \param node Operand.
@@ -1257,7 +1264,7 @@ int boolector_get_args_arity (Btor *btor, BoolectorNode *node);
 int boolector_get_width (Btor *btor, BoolectorNode *node);
 
 /**
- * Gets the bit-width of indices of 'n_array'.
+ * Get the bit-width of indices of 'n_array'.
  * \param btor Boolector instance.
  * \param n_array Array operand.
  * \return bit-width of indices of 'n_array'.
@@ -1265,7 +1272,7 @@ int boolector_get_width (Btor *btor, BoolectorNode *node);
 int boolector_get_index_width (Btor *btor, BoolectorNode *n_array);
 
 /**
- * Checks if sorts of given arguments matches the function signature.
+ * Check if sorts of given arguments matches the function signature.
  * \param btor Boolector instance.
  * \param argc Number of arguments to be checked.
  * \param arg_nodes Arguments to be checked.
@@ -1279,7 +1286,7 @@ int boolector_fun_sort_check (Btor *btor,
                               BoolectorNode *n_fun);
 
 /**
- * Gets the symbol of a variable.
+ * Get the symbol of a variable.
  * \param btor Boolector instance.
  * \param var Array or bit-vector variable.
  * \return Symbol of variable.
@@ -1289,7 +1296,7 @@ int boolector_fun_sort_check (Btor *btor,
 const char *boolector_get_symbol_of_var (Btor *btor, BoolectorNode *var);
 
 /**
- * Builds assignment string for bit-vector expression if \ref boolector_sat
+ * Generate an assignment string for bit-vector expression if \ref boolector_sat
  * has returned \ref BOOLECTOR_SAT and model generation has been enabled.
  * The expression can be an arbitrary
  * bit-vector expression which occurs in an assertion or current assumption.
@@ -1305,7 +1312,7 @@ const char *boolector_get_symbol_of_var (Btor *btor, BoolectorNode *var);
 const char *boolector_bv_assignment (Btor *btor, BoolectorNode *node);
 
 /**
- * Frees an assignment string for bit-vectors.
+ * Free an assignment string for bit-vectors.
  * \param btor Boolector instance.
  * \param assignment String which has to be freed.
  * \see boolector_bv_assignment
@@ -1313,7 +1320,7 @@ const char *boolector_bv_assignment (Btor *btor, BoolectorNode *node);
 void boolector_free_bv_assignment (Btor *btor, const char *assignment);
 
 /**
- * Builds a model for an array expression.
+ * Generate a model for an array expression.
  * if \ref boolector_sat
  * has returned \ref BOOLECTOR_SAT and model generation has been enabled.
  * The function creates and stores
@@ -1340,7 +1347,7 @@ void boolector_array_assignment (Btor *btor,
                                  int *size);
 
 /**
- * Frees an assignment string for arrays of bit-vectors.
+ * Free an assignment string for arrays of bit-vectors.
  * \param btor Boolector instance.
  * \param indices Array of index strings of size
  * \param array of index strings of size
@@ -1381,7 +1388,7 @@ void boolector_release_sort (Btor *btor, BoolectorSort *sort);
 /*------------------------------------------------------------------------*/
 
 /**
- * Recursively dumps expression to file.
+ * Recursively dump expression to file.
  *<a href="http://fmv.jku.at/papers/BrummayerBiereLonsing-BPR08.pdf">BTOR</a> is
  * used as format.
  *
@@ -1393,7 +1400,7 @@ void boolector_release_sort (Btor *btor, BoolectorSort *sort);
 void boolector_dump_btor_node (Btor *btor, FILE *file, BoolectorNode *node);
 
 /**
- * Dumps formula to file in BTOR format.
+ * Dump formula to file in BTOR format.
  *
  * \param btor Boolector instance.
  * \param file File to which the formula should be dumped.
@@ -1402,7 +1409,7 @@ void boolector_dump_btor_node (Btor *btor, FILE *file, BoolectorNode *node);
 void boolector_dump_btor (Btor *btor, FILE *file);
 
 /**
- * Recursively dumps expression to file.
+ * Recursively dump expression to file.
  *<a href="http://smtlib.cs.uiowa.edu/papers/format-v1.2-r06.08.30.pdf">SMT-LIB
  * \param btor Boolector instance.
  * \param file File to which the expression should be dumped.
@@ -1412,7 +1419,7 @@ void boolector_dump_btor (Btor *btor, FILE *file);
 void boolector_dump_smt1_node (Btor *btor, FILE *file, BoolectorNode *node);
 
 /**
- * Dumps formula to file in SMT-LIB format.
+ * Dump formula to file in SMT-LIB v1 format.
  *<a href="http://smtlib.cs.uiowa.edu/papers/format-v1.2-r06.08.30.pdf">SMT-LIB
  * \param btor Boolector instance.
  * \param btor Boolector instance
@@ -1421,7 +1428,7 @@ void boolector_dump_smt1_node (Btor *btor, FILE *file, BoolectorNode *node);
 void boolector_dump_smt1 (Btor *btor, FILE *file);
 
 /**
- * Recursively dumps expression to file.
+ * Recursively dump expression to file.
  *<a
  *href="http://smtlib.cs.uiowa.edu/papers/smt-lib-reference-v2.0-r12.09.09.pdf">SMT-LIB
  *2.0</a> is used as format. \param btor Boolector instance. \param file File to
@@ -1431,7 +1438,7 @@ void boolector_dump_smt1 (Btor *btor, FILE *file);
 void boolector_dump_smt2_node (Btor *btor, FILE *file, BoolectorNode *node);
 
 /**
- * Dumps formula to file in SMT-LIB format.
+ * Dumps formula to file in SMT-LIB v2 format.
  *<a
  *href="http://smtlib.cs.uiowa.edu/papers/smt-lib-reference-v2.0-r12.09.09.pdf">SMT-LIB
  *2.0</a> is used as format. \param btor Boolector instance. \param btor

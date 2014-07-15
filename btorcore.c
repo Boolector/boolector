@@ -479,8 +479,8 @@ btor_msg (Btor *btor, int level, char *fmt, ...)
   va_list ap;
   if (btor->options.verbosity.val < level) return;
   fputs ("[btorcore] ", stdout);
-  if (btor->options.incremental.val && btor->msgtick >= 0)
-    printf ("%d : ", (int) btor->msgtick);
+  if (btor->options.incremental.val && btor->msg_prefix)
+    printf ("%s : ", btor->msg_prefix);
   va_start (ap, fmt);
   vfprintf (stdout, fmt, ap);
   va_end (ap);
@@ -938,7 +938,6 @@ btor_new_btor (void)
   btor->valid_assignments         = 1;
   btor->options.rewrite_level.val = 3;
   btor->vread_index_id            = 1;
-  btor->msgtick                   = -1;
 
   BTOR_PUSH_STACK (btor->mm, btor->nodes_id_table, 0);
 
@@ -1198,6 +1197,15 @@ btor_delete_btor (Btor *btor)
   assert (btor->rec_rw_calls == 0);
   BTOR_DELETE (mm, btor);
   btor_delete_mem_mgr (mm);
+}
+
+void
+btor_set_msg_prefix_btor (Btor *btor, const char *prefix)
+{
+  assert (btor);
+
+  btor_freestr (btor->mm, btor->msg_prefix);
+  btor->msg_prefix = prefix ? btor_strdup (btor->mm, prefix) : (char *) prefix;
 }
 
 /* synthesizes unsynthesized constraints and updates constraints tables. */

@@ -682,6 +682,8 @@ clone_aux_btor (Btor *btor,
   BtorAIGMap *amap  = 0;
   BtorMemMgr *mm;
   double start, delta;
+  int len;
+  char *prefix, *clone_prefix;
 #ifndef NDEBUG
   int i;
   size_t allocated, amap_size = 0, amap_count = 0, emap_size, emap_count;
@@ -1080,6 +1082,17 @@ clone_aux_btor (Btor *btor,
   clone->clone          = NULL;
   clone->apitrace       = NULL;
   clone->close_apitrace = 0;
+
+  clone_prefix = "clone ";
+  len          = btor->msg_prefix ? strlen (btor->msg_prefix) : 0;
+  len += strlen (clone_prefix);
+  BTOR_NEWN (clone->mm, prefix, len + 1);
+  sprintf (prefix,
+           "[%s] %s",
+           clone_prefix,
+           btor->msg_prefix ? btor->msg_prefix : "");
+  btor_set_msg_prefix_btor (clone, prefix);
+  BTOR_DELETEN (clone->mm, prefix, len + 1);
 
   if (aig_map)
     *aig_map = amap;

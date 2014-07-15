@@ -59,7 +59,6 @@ btor_chkclone_state (Btor *btor)
   BTOR_CHKCLONE_STATE (found_constraint_false);
   BTOR_CHKCLONE_STATE (external_refs);
   BTOR_CHKCLONE_STATE (btor_sat_btor_called);
-  BTOR_CHKCLONE_STATE (msgtick);
   BTOR_CHKCLONE_STATE (last_sat_result);
 
   BTOR_CHKCLONE_STATE (options.model_gen.val);

@@ -12,7 +12,7 @@
 #ifndef BTORPARSE_H_INCLUDED
 #define BTORPARSE_H_INCLUDED
 
-#include "btorcore.h"
+#include "boolector.h"
 #include "btorlogic.h"
 #include "btorstack.h"
 

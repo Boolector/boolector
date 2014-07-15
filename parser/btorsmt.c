@@ -1,7 +1,7 @@
 /*  Boolector: Satisfiablity Modulo Theories (SMT) solver.
  *
  *  Copyright (C) 2007-2013 Armin Biere.
- *  Copyright (C) 2013 Aina Niemetz.
+ *  Copyright (C) 2013-2014 Aina Niemetz.
  *
  *  All rights reserved.
  *
@@ -18,6 +18,8 @@
 #include <assert.h>
 #include <ctype.h>
 #include <stdarg.h>
+
+BTOR_DECLARE_STACK (BoolectorNodePtr, BoolectorNode *);
 
 /*------------------------------------------------------------------------*/
 
@@ -662,11 +664,12 @@ static BtorSMTParser *
 btor_new_smt_parser (Btor *btor, BtorParseOpt *opts)
 {
   BtorSMTSymbol *bind, *translated;
-  BtorMemMgr *mem = btor->mm;
+  BtorMemMgr *mem;
   BtorSMTParser *res;
   unsigned char type;
   int ch;
 
+  mem = btor_new_mem_mgr ();
   BTOR_NEW (mem, res);
   BTOR_CLR (res);
 
@@ -674,8 +677,6 @@ btor_new_smt_parser (Btor *btor, BtorParseOpt *opts)
   res->incremental     = opts->incremental;
   res->max_window_size = opts->window;
   res->model           = opts->need_model;
-
-  if (opts->incremental) btor->msgtick = 0;
 
   btor_smt_message (res, 2, "initializing SMT parser");
   if (opts->incremental
@@ -2581,8 +2582,8 @@ btor_smt_parser_inc_add_release_sat (BtorSMTParser *parser,
                                      BtorParseResult *res,
                                      BoolectorNode *exp)
 {
-  char formula[40];
-  int satres, maxformula, checked;
+  char formula[40], *prefix;
+  int satres, maxformula, checked, ndigits;
   assert (parser->formulas.checked < parser->formulas.parsed);
   if (parser->incremental & BTOR_PARSE_MODE_INCREMENTAL_INTERVAL)
   {
@@ -2612,28 +2613,31 @@ btor_smt_parser_inc_add_release_sat (BtorSMTParser *parser,
   }
   boolector_release (parser->btor, exp);
 
-  satres = btor_sat_btor (parser->btor);
-  if (satres == BTOR_SAT)
+  satres = boolector_sat (parser->btor);
+  if (satres == BOOLECTOR_SAT)
   {
     btor_smt_message (parser, 1, "':formula' %s SAT", formula);
     res->result = BTOR_PARSE_SAT_STATUS_SAT;
   }
   else
   {
-    assert (satres == BTOR_UNSAT);
+    assert (satres == BOOLECTOR_UNSAT);
     btor_smt_message (parser, 1, "':formula' %s UNSAT", formula);
     if (res->result == BTOR_PARSE_SAT_STATUS_UNKNOWN)
       res->result = BTOR_PARSE_SAT_STATUS_UNSAT;
   }
   if (parser->verbosity >= 2) btor_print_stats_btor (parser->btor);
 
-  assert (parser->btor->msgtick == parser->formulas.checked);
-
   parser->formulas.checked += checked;
-  parser->btor->msgtick += checked;
 
-  if (parser->btor->msgtick == parser->formulas.parsed)
-    parser->btor->msgtick = -1;
+  ndigits = btor_num_digits_util (parser->formulas.checked);
+  BTOR_NEWN (parser->mem, prefix, ndigits + 1);
+  sprintf (prefix, "%d", parser->formulas.checked);
+  boolector_set_msg_prefix (parser->btor, prefix);
+  BTOR_DELETEN (parser->mem, prefix, ndigits + 1);
+
+  if (parser->formulas.checked == parser->formulas.parsed)
+    boolector_set_msg_prefix (parser->btor, 0);
 }
 
 static int

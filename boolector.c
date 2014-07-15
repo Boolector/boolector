@@ -103,6 +103,17 @@ boolector_delete (Btor *btor)
   btor_delete_btor (btor);
 }
 
+void
+boolector_set_msg_prefix (Btor *btor, const char *prefix)
+{
+  BTOR_ABORT_ARG_NULL_BOOLECTOR (btor);
+  BTOR_TRAPI ("set_msg_prefix %s", prefix);
+  btor_set_msg_prefix_btor (btor, prefix);
+#ifndef NDEBUG
+  BTOR_CHKCLONE_NORES (set_msg_prefix, prefix);
+#endif
+}
+
 int
 boolector_get_refs (Btor *btor)
 {
