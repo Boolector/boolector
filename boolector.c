@@ -3242,6 +3242,83 @@ boolector_release_sort (Btor *btor, BoolectorSort *sort)
 }
 
 /*------------------------------------------------------------------------*/
+// FIXME get rid of BtorParseResult
+typedef struct BtorParseResult BtorParseResult;
+//
+
+const char *
+boolector_parse (Btor *btor,
+                 FILE *file,
+                 const char *file_name,
+                 BtorParseResult *parse_res)
+{
+  const char *res;
+
+  BTOR_ABORT_ARG_NULL_BOOLECTOR (btor);
+  BTOR_ABORT_ARG_NULL_BOOLECTOR (file);
+  BTOR_ABORT_ARG_NULL_BOOLECTOR (file_name);
+  BTOR_ABORT_ARG_NULL_BOOLECTOR (parse_res);
+  // TODO TRAPI
+  res = btor_parse (btor, file, file_name, parse_res);
+  // TODO CHKCLONE
+  return res;
+}
+
+const char *
+boolector_parse_btor (Btor *btor,
+                      FILE *file,
+                      const char *file_name,
+                      BtorParseResult *parse_res)
+{
+  const char *res;
+
+  BTOR_ABORT_ARG_NULL_BOOLECTOR (btor);
+  BTOR_ABORT_ARG_NULL_BOOLECTOR (file);
+  BTOR_ABORT_ARG_NULL_BOOLECTOR (file_name);
+  BTOR_ABORT_ARG_NULL_BOOLECTOR (parse_res);
+  // TODO TRAPI
+  res = btor_parse_btor (btor, file, file_name, parse_res);
+  // TODO CHKCLONE
+  return res;
+}
+
+const char *
+boolector_parse_smt1 (Btor *btor,
+                      FILE *file,
+                      const char *file_name,
+                      BtorParseResult *parse_res)
+{
+  const char *res;
+
+  BTOR_ABORT_ARG_NULL_BOOLECTOR (btor);
+  BTOR_ABORT_ARG_NULL_BOOLECTOR (file);
+  BTOR_ABORT_ARG_NULL_BOOLECTOR (file_name);
+  BTOR_ABORT_ARG_NULL_BOOLECTOR (parse_res);
+  // TODO TRAPI
+  res = btor_parse_smt1 (btor, file, file_name, parse_res);
+  // TODO CHKCLONE
+  return res;
+}
+
+const char *
+boolector_parse_smt2 (Btor *btor,
+                      FILE *file,
+                      const char *file_name,
+                      BtorParseResult *parse_res)
+{
+  const char *res;
+
+  BTOR_ABORT_ARG_NULL_BOOLECTOR (btor);
+  BTOR_ABORT_ARG_NULL_BOOLECTOR (file);
+  BTOR_ABORT_ARG_NULL_BOOLECTOR (file_name);
+  BTOR_ABORT_ARG_NULL_BOOLECTOR (parse_res);
+  // TODO TRAPI
+  res = btor_parse_smt2 (btor, file, file_name, parse_res);
+  // TODO CHKCLONE
+  return res;
+}
+
+/*------------------------------------------------------------------------*/
 
 void
 boolector_dump_btor_node (Btor *btor, FILE *file, BoolectorNode *node)

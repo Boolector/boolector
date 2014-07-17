@@ -1920,6 +1920,7 @@ check_lambdas_consistent (BtorBTORParser * parser)
 }
 #endif
 
+// FIXME get rid of prefix
 static const char *
 btor_parse_btor_parser (BtorBTORParser *parser,
                         BtorCharStack *prefix,

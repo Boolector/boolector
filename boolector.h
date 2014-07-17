@@ -1392,6 +1392,30 @@ void boolector_release_sort (Btor *btor, BoolectorSort *sort);
 
 /*------------------------------------------------------------------------*/
 
+typedef struct BtorParseResult BtorParseResult;  // FIXME get rid of
+
+const char *boolector_parse (Btor *btor,
+                             FILE *file,
+                             const char *file_name,
+                             BtorParseResult *parse_res);
+
+const char *boolector_parse_btor (Btor *btor,
+                                  FILE *file,
+                                  const char *file_name,
+                                  BtorParseResult *parse_res);
+
+const char *boolector_parse_smt1 (Btor *btor,
+                                  FILE *file,
+                                  const char *file_name,
+                                  BtorParseResult *parse_res);
+
+const char *boolector_parse_smt2 (Btor *btor,
+                                  FILE *file,
+                                  const char *file_name,
+                                  BtorParseResult *parse_res);
+
+/*------------------------------------------------------------------------*/
+
 /**
  * Recursively dump expression to file.
  *<a href="http://fmv.jku.at/papers/BrummayerBiereLonsing-BPR08.pdf">BTOR</a> is

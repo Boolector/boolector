@@ -84,4 +84,21 @@ struct BtorParserAPI
   BtorParse parse;
 };
 
+const char *btor_parse (Btor *btor,
+                        FILE *file,
+                        const char *file_name,
+                        BtorParseResult *parse_res);
+const char *btor_parse_btor (Btor *btor,
+                             FILE *file,
+                             const char *file_name,
+                             BtorParseResult *parse_res);
+const char *btor_parse_smt1 (Btor *btor,
+                             FILE *file,
+                             const char *file_name,
+                             BtorParseResult *parse_res);
+const char *btor_parse_smt2 (Btor *btor,
+                             FILE *file,
+                             const char *file_name,
+                             BtorParseResult *parse_res);
+
 #endif

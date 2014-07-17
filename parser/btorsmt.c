@@ -3088,6 +3088,7 @@ set_last_occurrence_of_symbols (BtorSMTParser *parser, BtorSMTNode *top)
   btor_smt_message (parser, 1, "found %d occurrences of symbols", occs);
 }
 
+// FIXME get rid of prefix
 static const char *
 parse (BtorSMTParser *parser,
        BtorCharStack *prefix,
