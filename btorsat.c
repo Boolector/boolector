@@ -187,22 +187,6 @@ btor_delete_sat_mgr (BtorSATMgr *smgr)
 /*------------------------------------------------------------------------*/
 
 void
-btor_init_sat (BtorSATMgr *smgr)
-{
-  assert (smgr != NULL);
-  assert (!smgr->initialized);
-
-  smgr->solver                         = smgr->api.init (smgr);
-  smgr->initialized                    = 1;
-  smgr->inc_required                   = 1;
-  smgr->sat_time                       = 0;
-  smgr->used_that_inc_was_not_required = 0;
-  smgr->true_lit                       = btor_next_cnf_id_sat_mgr (smgr);
-  btor_add_sat (smgr, smgr->true_lit);
-  btor_add_sat (smgr, 0);
-}
-
-void
 btor_set_output_sat (BtorSATMgr *smgr, FILE *output)
 {
   char *prefix, *q;
@@ -221,6 +205,23 @@ btor_set_output_sat (BtorSATMgr *smgr, FILE *output)
   for (p = smgr->name; *p; p++) *q++ = tolower (*p);
   smgr->api.set_prefix (smgr, prefix);
   btor_free (smgr->mm, prefix, strlen (smgr->name) + 4);
+}
+
+void
+btor_init_sat (BtorSATMgr *smgr)
+{
+  assert (smgr != NULL);
+  assert (!smgr->initialized);
+
+  smgr->solver                         = smgr->api.init (smgr);
+  smgr->initialized                    = 1;
+  smgr->inc_required                   = 1;
+  smgr->sat_time                       = 0;
+  smgr->used_that_inc_was_not_required = 0;
+  smgr->true_lit                       = btor_next_cnf_id_sat_mgr (smgr);
+  btor_add_sat (smgr, smgr->true_lit);
+  btor_add_sat (smgr, 0);
+  btor_set_output_sat (smgr, stdout);
 }
 
 void
