@@ -384,9 +384,9 @@ NEXT:
   }
   else if (!strcmp (tok, "set_sat_solver"))
   {
-    PARSE_ARGS2 (tok, str, str);
+    PARSE_ARGS3 (tok, str, str, int);
     ret_int = boolector_set_sat_solver (
-        btor, arg1_str, !strcmp (arg2_str, "(nil)") ? 0 : arg2_str);
+        btor, arg1_str, !strcmp (arg2_str, "(nil)") ? 0 : arg2_str, arg3_int);
     exp_ret = RET_INT;
   }
   else if (!strcmp (tok, "reset_time"))

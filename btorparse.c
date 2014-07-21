@@ -48,7 +48,7 @@ static const char *
 btor_parse_aux (Btor *btor,
                 FILE *file,
                 const char *file_name,
-                BtorParserAPI *parser_api,
+                const BtorParserAPI *parser_api,
                 BtorParseResult *parse_res,
                 char *msg)
 {

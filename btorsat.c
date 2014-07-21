@@ -951,7 +951,10 @@ btor_enable_minisat_sat (BtorSATMgr *smgr)
 #endif
 
 int
-btor_set_sat_solver (BtorSATMgr *smgr, const char *solver, const char *optstr)
+btor_set_sat_solver (BtorSATMgr *smgr,
+                     const char *solver,
+                     const char *optstr,
+                     int nofork)
 {
   assert (smgr);
   assert (solver);
@@ -959,7 +962,7 @@ btor_set_sat_solver (BtorSATMgr *smgr, const char *solver, const char *optstr)
   if (!strcasecmp (solver, "lingeling"))
 #ifdef BTOR_USE_LINGELING
   {
-    btor_enable_lingeling_sat (smgr, optstr, 0);
+    btor_enable_lingeling_sat (smgr, optstr, nofork);
     return 1;
   }
 #else

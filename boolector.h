@@ -307,7 +307,22 @@ int boolector_simplify (Btor *btor);
  */
 int boolector_set_sat_solver (Btor *btor,
                               const char *solver,
-                              const char *optstr);
+                              const char *optstr,
+                              int nofork);
+
+#ifdef BTOR_USE_LINGELING
+int boolector_set_sat_solver_lingeling (Btor *btor,
+                                        const char *optstr,
+                                        int nofork);
+#endif
+
+#ifdef BTOR_USE_PICOSAT
+int boolector_set_sat_solver_picosat (Btor *btor);
+#endif
+
+#ifdef BTOR_USE_MINISAT
+int boolector_set_sat_solver_minisat (Btor *btor);
+#endif
 
 /*------------------------------------------------------------------------*/
 
