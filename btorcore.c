@@ -10462,6 +10462,108 @@ btor_release_bv_assignment_str (Btor *btor, char *assignment)
   btor_freestr (btor->mm, assignment);
 }
 
+/* Note: do not forget to free result string! */
+static char *
+format_assignment_str (Btor *btor, const char *assignment)
+{
+  assert (btor);
+  assert (assignment);
+
+  char *pretty, *ground;
+  int base;
+
+  base = btor_get_opt (btor, "output_number_format")->val;
+
+  if (base == BTOR_OUTPUT_BASE_HEX || base == BTOR_OUTPUT_BASE_DEC)
+  {
+    ground = btor_ground_const_3vl (btor->mm, assignment);
+    if (base == BTOR_OUTPUT_BASE_HEX)
+      pretty = btor_const_to_hex (btor->mm, ground);
+    else
+    {
+      assert (base == BTOR_OUTPUT_BASE_DEC);
+      pretty = btor_const_to_decimal (btor->mm, ground);
+    }
+    btor_delete_const (btor->mm, ground);
+  }
+  else
+    pretty = btor_copy_const (btor->mm, assignment);
+  return pretty;
+}
+
+static void
+print_bv_assignment (Btor *btor, BtorNode *node, FILE *file)
+{
+  assert (btor);
+  assert (node);
+
+  char *pretty;
+  const char *assignment;
+
+  assignment = btor_bv_assignment_str (btor, node);
+  pretty     = format_assignment_str (btor, assignment);
+  fprintf (file, "%s %s\n", btor_get_symbol_exp (btor, node), pretty);
+  btor_freestr (btor->mm, pretty);
+  btor_release_bv_assignment_str (btor, (char *) assignment);
+}
+
+static void
+print_array_assignment (Btor *btor, BtorNode *node, FILE *file)
+{
+  assert (btor);
+  assert (node);
+
+  char **ind, **val;
+  char *pretty_ind, *pretty_val;
+  int i, size;
+
+  btor_array_assignment_str (btor, node, &ind, &val, &size);
+  if (size > 0)
+  {
+    for (i = 0; i < size; i++)
+    {
+      pretty_ind = format_assignment_str (btor, ind[i]);
+      pretty_val = format_assignment_str (btor, val[i]);
+      fprintf (file,
+               "%s[%s] %s\n",
+               btor_get_symbol_exp (btor, node),
+               pretty_ind,
+               pretty_val);
+      btor_freestr (btor->mm, pretty_ind);
+      btor_freestr (btor->mm, pretty_val);
+    }
+    btor_release_array_assignment (btor->array_assignments, ind, val, size);
+  }
+}
+
+void
+btor_print_model (Btor *btor, FILE *file)
+{
+  assert (btor);
+  assert (file);
+
+  BtorNode *cur;
+  BtorHashTableIterator it;
+
+  init_node_hash_table_iterator (&it, btor->bv_vars);
+  queue_node_hash_table_iterator (&it, btor->array_vars);
+  queue_node_hash_table_iterator (&it, btor->ufs);
+  while (has_next_node_hash_table_iterator (&it))
+  {
+    cur = next_node_hash_table_iterator (&it);
+    if (!cur->is_input) continue;
+    if (BTOR_IS_UF_ARRAY_NODE (cur))
+      print_array_assignment (btor, cur, file);
+    else if (BTOR_IS_BV_VAR_NODE (cur))
+      print_bv_assignment (btor, cur, file);
+    else
+    {
+      assert (BTOR_IS_UF_ARRAY_NODE (cur));
+      // TODO PRINT UF ASSIGNMENT @mathias
+    }
+  }
+}
+
 #ifdef BTOR_CHECK_MODEL
 static void
 init_x_values (char *a)

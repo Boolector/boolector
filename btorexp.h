@@ -107,6 +107,7 @@ typedef struct BtorNodePair BtorNodePair;
     unsigned int lambda_below : 1;  /* lambda as sub expression ? */       \
     unsigned int apply_below : 1;                                          \
     unsigned int merge : 1;                                                \
+    unsigned int is_input : 1;                                             \
     unsigned int is_write : 1;                                             \
     unsigned int is_read : 1;                                              \
     unsigned int propagated : 1;                                           \

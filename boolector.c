@@ -13,6 +13,9 @@
 
 /*------------------------------------------------------------------------*/
 
+// TODO will have to fix newly introduced api functions for new TRAPI and
+// CHKCLONE functionality after merge @aina
+
 #include "boolector.h"
 #include "btorabort.h"
 #include "btorchkclone.h"
@@ -719,6 +722,7 @@ boolector_var (Btor *btor, int width, const char *symbol)
     res = btor_var_exp (btor, width, symbol);
   }
 
+  BTOR_REAL_ADDR_NODE (res)->is_input = 1;
   BTOR_REAL_ADDR_NODE (res)->ext_refs += 1;
 
   if (symbol == NULL) BTOR_DELETEN (btor->mm, symb, 20);
@@ -758,6 +762,7 @@ boolector_array (Btor *btor,
     btor->external_refs++;
     res = btor_array_exp (btor, elem_width, index_width, symbol);
   }
+  BTOR_REAL_ADDR_NODE (res)->is_input = 1;
   BTOR_REAL_ADDR_NODE (res)->ext_refs += 1;
   if (symbol == NULL) BTOR_DELETEN (btor->mm, symb, 20);
 #ifndef NDEBUG
@@ -2450,9 +2455,11 @@ boolector_uf (Btor *btor, BoolectorSort *sort, const char *symbol)
                         "given UF sort is not BTOR_FUN_SORT");
 
   res = btor_uf_exp (btor, (BtorSort *) sort, symb);
+  assert (BTOR_IS_REGULAR_NODE (res));
 
   if (!symbol) BTOR_DELETEN (btor->mm, symb, 20);
 
+  res->is_input = 1;
   res->ext_refs++;
   btor->external_refs++;
   BTOR_TRAPI_RETURN_NODE (res);
@@ -3008,7 +3015,7 @@ boolector_fun_sort_check (Btor *btor,
 }
 
 const char *
-boolector_get_symbol_of_var (Btor *btor, BoolectorNode *node)
+boolector_get_symbol (Btor *btor, BoolectorNode *node)
 {
   const char *res;
   BtorNode *exp;
@@ -3025,6 +3032,13 @@ boolector_get_symbol_of_var (Btor *btor, BoolectorNode *node)
 #endif
   BTOR_TRAPI_RETURN_STR (res);
   return res;
+}
+
+const char *
+boolector_get_symbol_of_var (Btor *btor, BoolectorNode *node)
+{
+  BTOR_WARN_DEPRECATED ("boolector_get_symbol");
+  return boolector_get_symbol (btor, node);
 }
 
 const char *
@@ -3190,6 +3204,18 @@ boolector_free_array_assignment (Btor *btor,
       btor->array_assignments, indices, values, size);
 #ifndef NDEBUG
   BTOR_CHKCLONE_NORES (free_array_assignment, cindices, cvalues, size);
+#endif
+}
+
+void
+boolector_print_model (Btor *btor, FILE *file)
+{
+  BTOR_ABORT_ARG_NULL_BOOLECTOR (btor);
+  BTOR_ABORT_ARG_NULL_BOOLECTOR (file);
+  BTOR_TRAPI ("print_model");
+  btor_print_model (btor, file);
+#ifndef NDEBUG
+  BTOR_CHKCLONE_NORES (print_model, file);
 #endif
 }
 

@@ -60,6 +60,9 @@ btor_parse_aux (Btor *btor,
 
   BtorParser *parser;
   BtorParseOpt parse_opt;
+  BoolectorNode *root;
+  char *error_msg;
+  int i, root_len;
 
   parse_opt.verbosity   = boolector_get_opt (btor, "verbosity")->val;
   parse_opt.incremental = boolector_get_opt (btor, "incremental")->val;
@@ -82,7 +85,31 @@ btor_parse_aux (Btor *btor,
 
   btor_msg_parse ("%s", msg);
   parser = parser_api->init (btor, &parse_opt);
-  return parser_api->parse (parser, 0, file, file_name, parse_res);
+
+  error_msg = parser_api->parse (parser, 0, file, file_name, parse_res);
+
+  /* assert root(s) */
+  if (!error_msg)
+  {
+    for (i = 0; i < parse_res->noutputs; i++)
+    {
+      root     = parse_res->outputs[i];
+      root_len = boolector_get_width (btor, root);
+      assert (root_len >= 1);
+      if (root_len > 1)
+        root = boolector_redor (btor, root);
+      else
+        root = boolector_copy (btor, root);
+      boolector_assert (btor, root);
+      boolector_release (btor, root);
+    }
+  }
+
+  /* cleanup */
+  parser_api->reset (parser);
+  parser_api = 0;
+
+  return error_msg;
 }
 
 const char *
@@ -98,12 +125,13 @@ btor_parse (Btor *btor,
 
   const BtorParserAPI *parser_api;
   int first, second;
-  char ch, *msg;
+  char ch, *msg, *error_msg;
   BtorCharStack prefix;
   BtorMemMgr *mem;
 
-  msg = "";
-  mem = btor_new_mem_mgr ();
+  msg       = "";
+  error_msg = 0;
+  mem       = btor_new_mem_mgr ();
 
   if (has_compressed_suffix (file_name, ".btor"))
     parser_api = btor_btor_parser_api ();
@@ -162,7 +190,10 @@ btor_parse (Btor *btor,
       }
     }
   }
-  return btor_parse_aux (btor, file, file_name, parser_api, parse_res, msg);
+  error_msg = (char *) btor_parse_aux (
+      btor, file, file_name, parser_api, parse_res, msg);
+
+  return error_msg;
 }
 
 const char *

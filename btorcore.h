@@ -351,4 +351,6 @@ const char *btor_bv_assignment_str (Btor *btor, BtorNode *exp);
 /* Frees BV assignment obtained by calling 'btor_assignment_exp' */
 void btor_release_bv_assignment_str (Btor *btor, char *assignment);
 
+void btor_print_model (Btor *btor, FILE *file);
+
 #endif

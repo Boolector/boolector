@@ -1307,6 +1307,8 @@ int boolector_fun_sort_check (Btor *btor,
 
 /**
  * Get the symbol of a variable.
+ * (Note: this function is deprecated,
+ * use \ref boolector_get_symbol instead!)
  * \param btor Boolector instance.
  * \param var Array or bit-vector variable.
  * \return Symbol of variable.
@@ -1315,6 +1317,17 @@ int boolector_fun_sort_check (Btor *btor,
  */
 const char *boolector_get_symbol_of_var (Btor *btor, BoolectorNode *var);
 
+/**
+ * Get the symbol of an expression (array or bit-vector variable, uninterpreted
+ * function).
+ * \param btor Boolector instance.
+ * \param var Array or bit-vector variable, or uninterpreted function.
+ * \return Symbol of expression.
+ * \see boolector_var
+ * \see boolector_array
+ * \see boolector_uf
+ */
+const char *boolector_get_symbol (Btor *btor, BoolectorNode *var);
 /**
  * Generate an assignment string for bit-vector expression if \ref boolector_sat
  * has returned \ref BOOLECTOR_SAT and model generation has been enabled.
@@ -1378,6 +1391,11 @@ void boolector_free_array_assignment (Btor *btor,
                                       char **indices,
                                       char **values,
                                       int size);
+
+/**
+ * TODO
+ */
+void boolector_print_model (Btor *btor, FILE *file);
 
 /*------------------------------------------------------------------------*/
 
