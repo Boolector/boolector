@@ -9906,6 +9906,94 @@ btor_fun_sort_check (Btor *btor, int argc, BtorNode **args, BtorNode *fun)
   return -1;
 }
 
+/* util function for creating function sorts from function expressions, will
+ * be obsolete as soon as we implement sorts for all expressions */
+static BtorSort *
+fun_sort_from_fun (Btor *btor, BtorNode *fun)
+{
+  assert (btor);
+  assert (fun);
+  assert (BTOR_IS_REGULAR_NODE (fun));
+  assert (BTOR_IS_FUN_NODE (fun));
+
+  BtorNode *lambda, *param;
+  BtorSort *sort, *domain, *codomain;
+  BtorSortPtrStack sorts;
+  BtorNodeIterator it;
+
+  if (BTOR_IS_UF_NODE (fun)) return btor_copy_sort (((BtorUFNode *) fun)->sort);
+
+  assert (BTOR_IS_LAMBDA_NODE (fun));
+
+  BTOR_INIT_STACK (sorts);
+  init_lambda_iterator (&it, fun);
+  while (has_next_lambda_iterator (&it))
+  {
+    lambda = next_lambda_iterator (&it);
+    param  = lambda->e[0];
+    assert (BTOR_IS_PARAM_NODE (param));
+    sort = btor_bitvec_sort (&btor->sorts_unique_table, param->len);
+    BTOR_PUSH_STACK (btor->mm, sorts, sort);
+  }
+
+  if (BTOR_COUNT_STACK (sorts) > 1)
+    domain = btor_tuple_sort (
+        &btor->sorts_unique_table, sorts.start, BTOR_COUNT_STACK (sorts));
+  else
+    domain = btor_copy_sort (BTOR_PEEK_STACK (sorts, 0));
+  codomain = btor_bitvec_sort (&btor->sorts_unique_table, fun->len);
+  sort     = btor_fun_sort (&btor->sorts_unique_table, domain, codomain);
+
+  btor_release_sort (&btor->sorts_unique_table, domain);
+  btor_release_sort (&btor->sorts_unique_table, codomain);
+  while (!BTOR_EMPTY_STACK (sorts))
+    btor_release_sort (&btor->sorts_unique_table, BTOR_POP_STACK (sorts));
+  BTOR_RELEASE_STACK (btor->mm, sorts);
+
+  return sort;
+}
+
+static BtorSort *
+create_or_get_sort (Btor *btor, BtorNode *exp)
+{
+  assert (btor);
+  assert (exp);
+  assert (BTOR_IS_REGULAR_NODE (exp));
+
+  BtorSort *sort;
+
+  if (BTOR_IS_UF_ARRAY_NODE (exp))
+  {
+    sort = btor_array_sort (&btor->sorts_unique_table,
+                            ((BtorUFNode *) exp)->sort->fun.domain,
+                            ((BtorUFNode *) exp)->sort->fun.codomain);
+    return sort;
+  }
+
+  if (BTOR_IS_FUN_NODE (exp)) return fun_sort_from_fun (btor, exp);
+
+  sort = btor_bitvec_sort (&btor->sorts_unique_table, exp->len);
+  return sort;
+}
+
+int
+btor_equal_sort (Btor *btor, BtorNode *e0, BtorNode *e1)
+{
+  assert (btor);
+  assert (e0);
+  assert (e1);
+
+  int res;
+  BtorSort *s0, *s1;
+
+  s0  = create_or_get_sort (btor, BTOR_REAL_ADDR_NODE (e0));
+  s1  = create_or_get_sort (btor, BTOR_REAL_ADDR_NODE (e1));
+  res = s0 == s1;
+  btor_release_sort (&btor->sorts_unique_table, s0);
+  btor_release_sort (&btor->sorts_unique_table, s1);
+  return res;
+}
+
 #if 0
 static BtorNode *
 vread_index_exp (Btor * btor, int len)
@@ -10633,53 +10721,6 @@ rebuild_formula (Btor *btor, int rewrite_level)
 
   substitute_and_rebuild (btor, t, 0);
   btor_delete_ptr_hash_table (t);
-}
-
-/* util function for creating function sorts from function expressions, will
- * be obsolete as soon as we implement sorts for all expressions */
-static BtorSort *
-fun_sort_from_fun (Btor *btor, BtorNode *fun)
-{
-  assert (btor);
-  assert (fun);
-  assert (BTOR_IS_REGULAR_NODE (fun));
-  assert (BTOR_IS_FUN_NODE (fun));
-
-  BtorNode *lambda, *param;
-  BtorSort *sort, *domain, *codomain;
-  BtorSortPtrStack sorts;
-  BtorNodeIterator it;
-
-  if (BTOR_IS_UF_NODE (fun)) return btor_copy_sort (((BtorUFNode *) fun)->sort);
-
-  assert (BTOR_IS_LAMBDA_NODE (fun));
-
-  BTOR_INIT_STACK (sorts);
-  init_lambda_iterator (&it, fun);
-  while (has_next_lambda_iterator (&it))
-  {
-    lambda = next_lambda_iterator (&it);
-    param  = lambda->e[0];
-    assert (BTOR_IS_PARAM_NODE (param));
-    sort = btor_bitvec_sort (&btor->sorts_unique_table, param->len);
-    BTOR_PUSH_STACK (btor->mm, sorts, sort);
-  }
-
-  if (BTOR_COUNT_STACK (sorts) > 1)
-    domain = btor_tuple_sort (
-        &btor->sorts_unique_table, sorts.start, BTOR_COUNT_STACK (sorts));
-  else
-    domain = btor_copy_sort (BTOR_PEEK_STACK (sorts, 0));
-  codomain = btor_bitvec_sort (&btor->sorts_unique_table, fun->len);
-  sort     = btor_fun_sort (&btor->sorts_unique_table, domain, codomain);
-
-  btor_release_sort (&btor->sorts_unique_table, domain);
-  btor_release_sort (&btor->sorts_unique_table, codomain);
-  while (!BTOR_EMPTY_STACK (sorts))
-    btor_release_sort (&btor->sorts_unique_table, BTOR_POP_STACK (sorts));
-  BTOR_RELEASE_STACK (btor->mm, sorts);
-
-  return sort;
 }
 
 static BtorNode *

@@ -95,37 +95,37 @@ btor_precond_regular_unary_bv_exp_dbg (const Btor *btor, const BtorNode *exp)
   return 1;
 }
 
+// TODO: add proper sort check
 int
 btor_precond_eq_exp_dbg (const Btor *btor,
                          const BtorNode *e0,
                          const BtorNode *e1)
 {
-  int is_array_e0, is_array_e1;
   BtorNode *real_e0, *real_e1;
 
   assert (btor);
   assert (e0);
   assert (e1);
 
-  real_e0     = BTOR_REAL_ADDR_NODE (e0);
-  real_e1     = BTOR_REAL_ADDR_NODE (e1);
-  is_array_e0 = BTOR_IS_FUN_NODE (real_e0);
-  is_array_e1 = BTOR_IS_FUN_NODE (real_e1);
-
-  assert (real_e0->btor == btor);
-  assert (real_e1->btor == btor);
+  real_e0 = BTOR_REAL_ADDR_NODE (e0);
+  real_e1 = BTOR_REAL_ADDR_NODE (e1);
 
   assert (real_e0);
   assert (real_e1);
+  assert (real_e0->btor == btor);
+  assert (real_e1->btor == btor);
   assert (!real_e0->simplified);
   assert (!real_e1->simplified);
+  assert (btor_equal_sort ((Btor *) btor, (BtorNode *) e0, (BtorNode *) e1));
+#if 0
   assert (is_array_e0 == is_array_e1);
   assert (real_e0->len == real_e1->len);
   assert (real_e0->len > 0);
   assert (!is_array_e0
-          || BTOR_ARRAY_INDEX_LEN (real_e0) == BTOR_ARRAY_INDEX_LEN (real_e1));
+	  || BTOR_ARRAY_INDEX_LEN (real_e0) == BTOR_ARRAY_INDEX_LEN (real_e1));
   assert (!is_array_e0 || BTOR_ARRAY_INDEX_LEN (real_e0) > 0);
-  assert (!is_array_e0
+#endif
+  assert (!BTOR_IS_FUN_NODE (real_e0)
           || (BTOR_IS_REGULAR_NODE (e0) && BTOR_IS_REGULAR_NODE (e1)));
   return 1;
 }
