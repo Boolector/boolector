@@ -1788,29 +1788,33 @@ static void
 btor_delete_btor_parser (BtorBTORParser *parser)
 {
   BoolectorNode *e;
+  BtorMemMgr *mm;
   int i;
 
   for (i = 0; i < BTOR_COUNT_STACK (parser->exps); i++)
     if ((e = parser->exps.start[i]))
       boolector_release (parser->btor, parser->exps.start[i]);
 
-  BTOR_RELEASE_STACK (parser->mem, parser->exps);
-  BTOR_RELEASE_STACK (parser->mem, parser->info);
-  BTOR_RELEASE_STACK (parser->mem, parser->inputs);
-  BTOR_RELEASE_STACK (parser->mem, parser->outputs);
-  BTOR_RELEASE_STACK (parser->mem, parser->regs);
-  BTOR_RELEASE_STACK (parser->mem, parser->lambdas);
-  BTOR_RELEASE_STACK (parser->mem, parser->params);
+  mm = parser->mem;
 
-  BTOR_RELEASE_STACK (parser->mem, parser->op);
-  BTOR_RELEASE_STACK (parser->mem, parser->constant);
-  BTOR_RELEASE_STACK (parser->mem, parser->symbol);
+  BTOR_RELEASE_STACK (mm, parser->exps);
+  BTOR_RELEASE_STACK (mm, parser->info);
+  BTOR_RELEASE_STACK (mm, parser->inputs);
+  BTOR_RELEASE_STACK (mm, parser->outputs);
+  BTOR_RELEASE_STACK (mm, parser->regs);
+  BTOR_RELEASE_STACK (mm, parser->lambdas);
+  BTOR_RELEASE_STACK (mm, parser->params);
 
-  BTOR_DELETEN (parser->mem, parser->parsers, SIZE_PARSERS);
-  BTOR_DELETEN (parser->mem, parser->ops, SIZE_PARSERS);
+  BTOR_RELEASE_STACK (mm, parser->op);
+  BTOR_RELEASE_STACK (mm, parser->constant);
+  BTOR_RELEASE_STACK (mm, parser->symbol);
 
-  btor_freestr (parser->mem, parser->error);
-  BTOR_DELETE (parser->mem, parser);
+  BTOR_DELETEN (mm, parser->parsers, SIZE_PARSERS);
+  BTOR_DELETEN (mm, parser->ops, SIZE_PARSERS);
+
+  btor_freestr (mm, parser->error);
+  BTOR_DELETE (mm, parser);
+  btor_delete_mem_mgr (mm);
 }
 
 static const char *
