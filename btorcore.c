@@ -10519,7 +10519,7 @@ print_array_assignment (Btor *btor, BtorNode *node, FILE *file)
   char *pretty_ind, *pretty_val;
   int i, size;
 
-  btor_array_assignment_str (btor, node, &ind, &val, &size);
+  btor_get_array_model_str (btor, node, &ind, &val, &size);
   if (size > 0)
   {
     for (i = 0; i < size; i++)
@@ -10532,9 +10532,12 @@ print_array_assignment (Btor *btor, BtorNode *node, FILE *file)
                pretty_ind,
                pretty_val);
       btor_freestr (btor->mm, pretty_ind);
+      btor_freestr (btor->mm, ind[i]);
       btor_freestr (btor->mm, pretty_val);
+      btor_freestr (btor->mm, val[i]);
     }
-    btor_release_array_assignment (btor->array_assignments, ind, val, size);
+    btor_free (btor->mm, ind, size * sizeof (*ind));
+    btor_free (btor->mm, val, size * sizeof (*val));
   }
 }
 
@@ -10542,6 +10545,7 @@ void
 btor_print_model (Btor *btor, FILE *file)
 {
   assert (btor);
+  assert (btor->last_sat_result == BTOR_SAT);
   assert (file);
 
   BtorNode *cur;
