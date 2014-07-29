@@ -1007,6 +1007,8 @@ btor_delete_btor (Btor *btor)
 
   mm = btor->mm;
 
+  btor_freestr (mm, btor->msg_prefix);
+
   btor_release_exp (btor, btor->true_exp);
 
   btor_delete_bv_assignment_list (
@@ -10546,7 +10548,6 @@ btor_print_model (Btor *btor, FILE *file)
   BtorHashTableIterator it;
 
   init_node_hash_table_iterator (&it, btor->bv_vars);
-  queue_node_hash_table_iterator (&it, btor->array_vars);
   queue_node_hash_table_iterator (&it, btor->ufs);
   while (has_next_node_hash_table_iterator (&it))
   {

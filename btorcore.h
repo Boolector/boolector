@@ -119,7 +119,6 @@ struct Btor
   BtorSortUniqueTable sorts_unique_table;
   BtorAIGVecMgr *avmgr;
   BtorPtrHashTable *bv_vars;
-  BtorPtrHashTable *array_vars;
   BtorPtrHashTable *ufs;
   BtorPtrHashTable *lambdas;
   BtorPtrHashTable *substitutions;
