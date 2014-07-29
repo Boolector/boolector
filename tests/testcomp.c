@@ -2,7 +2,7 @@
  *
  *  Copyright (C) 2007-2010 Robert Daniel Brummayer.
  *  Copyright (C) 2007-2012 Armin Biere.
- *  Copyright (C) 2012 Aina Niemetz.
+ *  Copyright (C) 2012, 2014 Aina Niemetz.
  *
  *  All rights reserved.
  *
@@ -30,7 +30,7 @@
 #define BTOR_TEST_COMP_LOW 1
 #define BTOR_TEST_COMP_HIGH 4
 
-static int g_argc    = 5;
+static int g_argc    = 6;
 static char **g_argv = NULL;
 
 void
@@ -49,9 +49,10 @@ init_comp_tests (void)
   g_argv = (char **) malloc (g_argc * sizeof (char *));
 
   g_argv[0] = "./boolector";
-  g_argv[1] = "-rwl1";
-  g_argv[2] = "-o";
-  g_argv[3] = "/dev/null";
+  g_argv[1] = "-rwl";
+  g_argv[2] = "1";
+  g_argv[3] = "-o";
+  g_argv[4] = "/dev/null";
 
   if (g_rwreads) g_argv[pos_rwr] = "-bra";
 
@@ -301,7 +302,8 @@ void
 run_comp_tests (int argc, char **argv)
 {
   run_all_tests (argc, argv);
-  g_argv[1] = "-rwl0";
+  g_argv[1] = "-rwl";
+  g_argv[2] = "0";
   run_all_tests (argc, argv);
 }
 
