@@ -14,6 +14,7 @@
 #include "btorcore.h"
 #include "btoriter.h"
 #include "btorlog.h"
+#include "btormodel.h"
 #include "btortrapi.h"
 
 static char *
