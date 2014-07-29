@@ -1085,7 +1085,7 @@ clone_aux_btor (Btor *btor,
 
   clone_prefix = "clone ";
   len          = btor->msg_prefix ? strlen (btor->msg_prefix) : 0;
-  len += strlen (clone_prefix);
+  len += strlen (clone_prefix) + 3;
   BTOR_NEWN (clone->mm, prefix, len + 1);
   sprintf (prefix,
            "[%s] %s",
