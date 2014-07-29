@@ -30,6 +30,12 @@ typedef struct BoolectorSort BoolectorSort;
 typedef struct BoolectorNode BoolectorNode;
 #endif
 
+#ifdef __GNUC__
+#define BTOR_DEPRECATED(f) f __attribute__ ((deprecated))
+#else
+#define BTOR_DEPRECATED(f) f
+#endif
+
 /*------------------------------------------------------------------------*/
 
 /**
@@ -1427,7 +1433,7 @@ void boolector_dump_smt2 (Btor *btor, FILE *file);
  * \param btor Boolector instance.
  * \see boolector_set_model_gen
  */
-void boolector_enable_model_gen (Btor *btor);
+BTOR_DEPRECATED (void boolector_enable_model_gen (Btor *btor));
 
 /**
  * Enable model generation for all reads.
@@ -1436,7 +1442,7 @@ void boolector_enable_model_gen (Btor *btor);
  * \param btor Boolector instance.
  * \see boolector_set_opt_model_gen_all_reads
  */
-void boolector_generate_model_for_all_reads (Btor *btor);
+BTOR_DEPRECATED (void boolector_generate_model_for_all_reads (Btor *btor));
 
 /**
  * Enable incremental usage.
@@ -1445,7 +1451,7 @@ void boolector_generate_model_for_all_reads (Btor *btor);
  * \param btor Boolector instance.
  * \see boolector_set_opt
  */
-void boolector_enable_inc_usage (Btor *btor);
+BTOR_DEPRECATED (void boolector_enable_inc_usage (Btor *btor));
 
 /**
  * Set the rewrite level of the rewriting engine.
@@ -1456,7 +1462,7 @@ void boolector_enable_inc_usage (Btor *btor);
  * 0 (no rewriting) to 3 (full rewriting).
  * \see boolector_set_opt_rewrite_level
  */
-void boolector_set_rewrite_level (Btor *btor, int val);
+BTOR_DEPRECATED (void boolector_set_rewrite_level (Btor *btor, int val));
 
 /**
  * Set level of verbosity.
@@ -1466,7 +1472,7 @@ void boolector_set_rewrite_level (Btor *btor, int val);
  * \param val Verbosity level.
  * \see boolector_set_opt_verbosity
  */
-void boolector_set_verbosity (Btor *btor, int val);
+BTOR_DEPRECATED (void boolector_set_verbosity (Btor *btor, int val));
 
 /**
  * Set log level.
@@ -1476,6 +1482,6 @@ void boolector_set_verbosity (Btor *btor, int val);
  * \param val Log level.
  * \see boolector_set_opt_loglevel
  */
-void boolector_set_loglevel (Btor *btor, int val);
+BTOR_DEPRECATED (void boolector_set_loglevel (Btor *btor, int val));
 
 #endif
