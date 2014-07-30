@@ -250,10 +250,7 @@ static const char *btor_printable_ascii_chars_smt2 =
     "[\\]^_`"
     "abcdefghijklmnopqrstuvwxyz"
     "{|}~"
-    " \t\r\n"
-    "“”"  // quickfix for SMT14, "carning for sharing" benchmarks include
-          // quotes non-printable
-    ;
+    " \t\r\n";
 
 static const char *btor_letters_smt2 =
     "ABCDEFGHIJKLMNOPQRSTUVWXYZ"
