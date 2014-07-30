@@ -10551,12 +10551,10 @@ btor_print_model (Btor *btor, FILE *file)
   BtorNode *cur;
   BtorHashTableIterator it;
 
-  init_node_hash_table_iterator (&it, btor->bv_vars);
-  queue_node_hash_table_iterator (&it, btor->ufs);
+  init_node_hash_table_iterator (&it, btor->inputs);
   while (has_next_node_hash_table_iterator (&it))
   {
     cur = next_node_hash_table_iterator (&it);
-    if (!cur->is_input) continue;
     if (BTOR_IS_UF_ARRAY_NODE (cur))
       print_array_assignment (btor, cur, file);
     else if (BTOR_IS_BV_VAR_NODE (cur))

@@ -1587,6 +1587,7 @@ btor_var_exp (Btor *btor, int len, const char *symbol)
   setup_node_and_add_to_id_table (btor, exp);
   exp->bits = btor_x_const_3vl (btor->mm, len);
   (void) btor_insert_in_ptr_hash_table (btor->bv_vars, exp);
+  (void) btor_insert_in_ptr_hash_table (btor->inputs, exp);
   return (BtorNode *) exp;
 }
 
@@ -1666,6 +1667,7 @@ btor_uf_exp (Btor *btor, BtorSort *sort, const char *symbol)
   exp->len = sort->fun.codomain->bitvec.len;
   setup_node_and_add_to_id_table (btor, exp);
   (void) btor_insert_in_ptr_hash_table (btor->ufs, exp);
+  (void) btor_insert_in_ptr_hash_table (btor->inputs, exp);
   return (BtorNode *) exp;
 }
 

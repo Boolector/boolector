@@ -118,6 +118,7 @@ struct Btor
   BtorNodeUniqueTable nodes_unique_table;
   BtorSortUniqueTable sorts_unique_table;
   BtorAIGVecMgr *avmgr;
+  BtorPtrHashTable *inputs;
   BtorPtrHashTable *bv_vars;
   BtorPtrHashTable *ufs;
   BtorPtrHashTable *lambdas;

@@ -722,7 +722,6 @@ boolector_var (Btor *btor, int width, const char *symbol)
     res = btor_var_exp (btor, width, symbol);
   }
 
-  BTOR_REAL_ADDR_NODE (res)->is_input = 1;
   BTOR_REAL_ADDR_NODE (res)->ext_refs += 1;
 
   if (symbol == NULL) BTOR_DELETEN (btor->mm, symb, 20);
@@ -762,7 +761,6 @@ boolector_array (Btor *btor,
     btor->external_refs++;
     res = btor_array_exp (btor, elem_width, index_width, symbol);
   }
-  BTOR_REAL_ADDR_NODE (res)->is_input = 1;
   BTOR_REAL_ADDR_NODE (res)->ext_refs += 1;
   if (symbol == NULL) BTOR_DELETEN (btor->mm, symb, 20);
 #ifndef NDEBUG
@@ -2459,7 +2457,6 @@ boolector_uf (Btor *btor, BoolectorSort *sort, const char *symbol)
 
   if (!symbol) BTOR_DELETEN (btor->mm, symb, 20);
 
-  res->is_input = 1;
   res->ext_refs++;
   btor->external_refs++;
   BTOR_TRAPI_RETURN_NODE (res);
@@ -3313,6 +3310,9 @@ boolector_parse (Btor *btor,
   BTOR_ABORT_ARG_NULL_BOOLECTOR (file);
   BTOR_ABORT_ARG_NULL_BOOLECTOR (file_name);
   BTOR_ABORT_ARG_NULL_BOOLECTOR (parse_res);
+  BTOR_ABORT_BOOLECTOR (
+      BTOR_COUNT_STACK (btor->nodes_id_table) > 2,
+      "file parsing must be done before creating expressions");
   // TODO TRAPI
   res = btor_parse (btor, file, file_name, parse_res);
   // TODO CHKCLONE
@@ -3331,6 +3331,9 @@ boolector_parse_btor (Btor *btor,
   BTOR_ABORT_ARG_NULL_BOOLECTOR (file);
   BTOR_ABORT_ARG_NULL_BOOLECTOR (file_name);
   BTOR_ABORT_ARG_NULL_BOOLECTOR (parse_res);
+  BTOR_ABORT_BOOLECTOR (
+      BTOR_COUNT_STACK (btor->nodes_id_table) > 2,
+      "file parsing must be done before creating expressions");
   // TODO TRAPI
   res = btor_parse_btor (btor, file, file_name, parse_res);
   // TODO CHKCLONE
@@ -3349,6 +3352,9 @@ boolector_parse_smt1 (Btor *btor,
   BTOR_ABORT_ARG_NULL_BOOLECTOR (file);
   BTOR_ABORT_ARG_NULL_BOOLECTOR (file_name);
   BTOR_ABORT_ARG_NULL_BOOLECTOR (parse_res);
+  BTOR_ABORT_BOOLECTOR (
+      BTOR_COUNT_STACK (btor->nodes_id_table) > 2,
+      "file parsing must be done before creating expressions");
   // TODO TRAPI
   res = btor_parse_smt1 (btor, file, file_name, parse_res);
   // TODO CHKCLONE
@@ -3367,6 +3373,9 @@ boolector_parse_smt2 (Btor *btor,
   BTOR_ABORT_ARG_NULL_BOOLECTOR (file);
   BTOR_ABORT_ARG_NULL_BOOLECTOR (file_name);
   BTOR_ABORT_ARG_NULL_BOOLECTOR (parse_res);
+  BTOR_ABORT_BOOLECTOR (
+      BTOR_COUNT_STACK (btor->nodes_id_table) > 2,
+      "file parsing must be done before creating expressions");
   // TODO TRAPI
   res = btor_parse_smt2 (btor, file, file_name, parse_res);
   // TODO CHKCLONE
