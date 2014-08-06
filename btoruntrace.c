@@ -101,7 +101,7 @@ perr (const char *fmt, ...)
            "*** btoruntrace: parse error in '%s' line %d: ",
            btorunt->filename,
            btorunt->line);
-  va_start (ap, fmt);  // TODO recheck again
+  va_start (ap, fmt);
   vfprintf (stderr, fmt, ap);
   va_end (ap);
   fputc ('\n', stderr);

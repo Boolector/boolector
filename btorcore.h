@@ -320,9 +320,6 @@ BtorAIGVec *btor_exp_to_aigvec (Btor *btor,
                                 BtorNode *exp,
                                 BtorPtrHashTable *table);
 
-// TODO: make static
-BtorAIG *btor_exp_to_aig (Btor *btor, BtorNode *exp);
-
 /* Checks for existing substitutions, finds most simplified expression and
  * shortens path to it */
 BtorNode *btor_simplify_exp (Btor *btor, BtorNode *exp);

@@ -114,6 +114,7 @@
 
 static int btor_sat_aux_btor (Btor *, int, int);
 static int btor_sat_aux_btor_dual_prop (Btor *);
+static BtorAIG *exp_to_aig (Btor *, BtorNode *);
 
 #ifdef BTOR_CHECK_MODEL
 static void check_model (Btor *, Btor *, BtorPtrHashTable *);
@@ -1266,7 +1267,7 @@ process_unsynthesized_constraints (Btor *btor)
 
     if (!btor_find_in_ptr_hash_table (sc, cur))
     {
-      aig = btor_exp_to_aig (btor, cur);
+      aig = exp_to_aig (btor, cur);
       if (aig == BTOR_AIG_FALSE)
       {
         btor->found_constraint_false = 1;
@@ -2039,7 +2040,7 @@ exp_to_cnf_lit (Btor *btor, BtorNode *exp)
     sign *= -1;
   }
 
-  aig = btor_exp_to_aig (btor, exp);
+  aig = exp_to_aig (btor, exp);
 
   amgr = btor_get_aig_mgr_aigvec_mgr (btor->avmgr);
   smgr = btor_get_sat_mgr_aig_mgr (amgr);
@@ -3062,16 +3063,6 @@ substitute_and_rebuild (Btor *btor, BtorPtrHashTable *subst, int bra)
       else
         rebuilt_exp = rebuild_exp (btor, cur);
 
-// TODO: disable this since we have always subst if we have a substitution
-#if 1
-      /* special case if only root is substituted */
-      if (cur->constraint && rebuilt_exp == cur
-          && btor_find_substitution (btor, cur))
-      {
-        goto SET_SIMPLIFIED_EXP;
-      }
-#endif
-
       assert (rebuilt_exp);
       if (rebuilt_exp != cur)
       {
@@ -3996,7 +3987,7 @@ merge_lambdas (Btor *btor)
       BTOR_PUSH_STACK (mm, unmark, cur);
 
       /* we can only merge non-paremeterized lambdas */
-      // TODO: remove paraemterized if we handle btorparamcache differently
+      // TODO: remove parameterized if we handle btorparamcache differently
       if (BTOR_IS_LAMBDA_NODE (cur) && !cur->merge && !cur->parameterized)
       {
         merge = cur;
@@ -4685,7 +4676,6 @@ synthesize_exp (Btor *btor, BtorNode *exp, BtorPtrHashTable *backannotation)
         BTORLOG ("  synthesized: %s", node2string (cur));
         if (backannotation)
         {
-          // TODO param handling?
           name = btor_get_symbol_exp (btor, cur);
           len  = (int) strlen (name) + 40;
           if (cur->len > 1)
@@ -4916,32 +4906,6 @@ synthesize_exp (Btor *btor, BtorNode *exp, BtorPtrHashTable *backannotation)
   btor->time.synth_exp += btor_time_stamp () - start;
 }
 
-// TODO: no reads anymore -> check is_read of apply nodes instead
-// static void
-// synthesize_all_reads (Btor * btor)
-//{
-//  BtorNode *n;
-//  int i;
-//  for (i = 0; i < btor->nodes_unique_table.size; i++)
-//    for (n = btor->nodes_unique_table.chains[i]; n; n = n->next)
-//      if (BTOR_IS_READ_NODE (n))
-//	synthesize_exp (btor, n, 0);
-//}
-
-// TODO: check if needed
-#if 0
-static void
-synthesize_all_applies (Btor * btor)
-{
-  BtorNode *n;
-  int i;
-  for (i = 0; i < btor->nodes_unique_table.size; i++)
-    for (n = btor->nodes_unique_table.chains[i]; n; n = n->next)
-      if (BTOR_IS_APPLY_NODE (n))
-	synthesize_exp (btor, n, 0);
-}
-#endif
-
 /* Mark all reachable expressions as reachable, reset reachable flag for all
  * previously reachable expressions that became unreachable due to rewriting. */
 static void
@@ -5112,7 +5076,7 @@ add_again_assumptions (Btor *btor)
     cur = (BtorNode *) b->key;
     assert (BTOR_REAL_ADDR_NODE (cur)->len == 1);
     assert (!BTOR_REAL_ADDR_NODE (cur)->simplified);
-    aig = btor_exp_to_aig (btor, cur);
+    aig = exp_to_aig (btor, cur);
     btor_aig_to_sat (amgr, aig);
     if (aig == BTOR_AIG_TRUE) continue;
     assert (BTOR_GET_CNF_ID_AIG (aig) != 0);
@@ -5289,7 +5253,6 @@ search_initial_applies (Btor *btor, BtorNodePtrStack *top_applies, int dp)
     /* we only consider reachable nodes */
     if (!cur->reachable) continue;
 
-    // TODO: use temporary stack and push applies on it
     is_top = 1;
     init_full_parent_iterator (&pit, cur);
     while (has_next_parent_full_parent_iterator (&pit))
@@ -5307,8 +5270,6 @@ search_initial_applies (Btor *btor, BtorNodePtrStack *top_applies, int dp)
       }
     }
 
-    // TODO: create BTOR_EXTEND_STACK (stack, stack), which concatenates two
-    //       stacks
     init_full_parent_iterator (&pit, cur);
     while (has_next_parent_full_parent_iterator (&pit))
     {
@@ -6286,7 +6247,6 @@ search_initial_applies_just (Btor *btor, BtorNodePtrStack *top_applies)
 
       if (cur->len == 1)
       {
-        // TODO: 'x' value handling correct or is there a better solution?
         switch (cur->kind)
         {
           case BTOR_AND_NODE:
@@ -7068,6 +7028,7 @@ add_symbolic_lemma (Btor *btor,
   //  add_constraint (btor, lemma);
   btor_release_exp (btor, lemma);
   btor_release_exp (btor, conclusion);
+  btor->stats.lod_refinements++;
 }
 
 #if 0
@@ -8325,9 +8286,6 @@ btor_sat_aux_btor (Btor *btor, int lod_limit, int sat_limit)
 
     if (clone) add_lemma_to_dual_prop_clone (btor, clone, &clone_root, exp_map);
 
-    // TODO: move into function, where lemma is added
-    btor->stats.lod_refinements++;
-
     if (btor->options.verbosity.val == 1)
     {
       refinements = btor->stats.lod_refinements;
@@ -8889,8 +8847,8 @@ synthesize_array_equality (Btor * btor, BtorNode * aeq)
 }
 #endif
 
-BtorAIG *
-btor_exp_to_aig (Btor *btor, BtorNode *exp)
+static BtorAIG *
+exp_to_aig (Btor *btor, BtorNode *exp)
 {
   BtorAIGVecMgr *avmgr;
   BtorAIGMgr *amgr;

@@ -561,6 +561,7 @@ update_parameterized (Btor *btor, BtorNode *parent, BtorNode *child)
   BtorNode *param;
   BtorPtrHashTable *t;
   BtorPtrHashBucket *b;
+  BtorParameterizedIterator it;
 
   child = BTOR_REAL_ADDR_NODE (child);
 
@@ -585,13 +586,10 @@ update_parameterized (Btor *btor, BtorNode *parent, BtorNode *child)
   }
   else
   {
-    // TODO: use iterator
-    b = btor_find_in_ptr_hash_table (btor->parameterized, child);
-    assert (b);
-    assert (b->data.asPtr);
-    for (b = ((BtorPtrHashTable *) b->data.asPtr)->first; b; b = b->next)
+    init_parameterized_iterator (btor, &it, child);
+    while (has_next_parameterized_iterator (&it))
     {
-      param = (BtorNode *) b->key;
+      param = next_parameterized_iterator (&it);
       assert (BTOR_IS_REGULAR_NODE (param));
       assert (BTOR_IS_PARAM_NODE (param));
       if (!btor_find_in_ptr_hash_table (t, param))
