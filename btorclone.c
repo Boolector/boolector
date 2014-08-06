@@ -918,6 +918,9 @@ clone_aux_btor (Btor *btor,
   assert ((allocated += btor->nodes_unique_table.size * sizeof (BtorNode *))
           == clone->mm->allocated);
 
+  CLONE_PTR_HASH_TABLE (inputs);
+  assert ((allocated += MEM_PTR_HASH_TABLE (btor->inputs))
+          == clone->mm->allocated);
   CLONE_PTR_HASH_TABLE (bv_vars);
   assert ((allocated += MEM_PTR_HASH_TABLE (btor->bv_vars))
           == clone->mm->allocated);
