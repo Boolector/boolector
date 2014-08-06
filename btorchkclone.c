@@ -76,7 +76,6 @@ btor_chkclone_state (Btor *btor)
 #endif
   BTOR_CHKCLONE_STATE (options.rewrite_level.val);
   BTOR_CHKCLONE_STATE (options.simplify_constraints.val);
-  BTOR_CHKCLONE_STATE (options.propagate_slices.val);
   BTOR_CHKCLONE_STATE (options.verbosity.val);
 #ifdef BTOR_CHECK_FAILED
   BTOR_CHKCLONE_STATE (options.chk_failed_assumptions.val);

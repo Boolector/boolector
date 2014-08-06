@@ -134,7 +134,6 @@ btor_init_opts (Btor *btor)
   BTOR_OPT ("v", verbosity, 0, 0, BTOR_VERBOSITY_MAX, "increase verbosity");
 
   BTOR_OPT_INTL (0, simplify_constraints, 1, 0, 1, 0);
-  BTOR_OPT_INTL (0, propagate_slices, 0, 0, 1, 0);
   BTOR_OPT_INTL (0, force_internal_cleanup, 0, 0, 1, 0);
 #ifdef BTOR_CHECK_FAILED
   BTOR_OPT_INTL (0, chk_failed_assumptions, 1, 0, 1, 0);

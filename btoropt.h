@@ -51,8 +51,7 @@ typedef struct BtorOpts
   BtorOpt verbosity;
 
   /* internal */
-  BtorOpt simplify_constraints; /* force constraints to true/false */
-  BtorOpt propagate_slices;
+  BtorOpt simplify_constraints;   /* force constraints to true/false */
   BtorOpt force_internal_cleanup; /* force cleanup of exps, assignm. strings
                                      (internal references only) */
 #ifdef BTOR_CHECK_FAILED
