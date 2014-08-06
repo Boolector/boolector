@@ -924,6 +924,9 @@ btor_new_btor (void)
 
   btor->avmgr = btor_new_aigvec_mgr (mm);
 
+  btor->inputs  = btor_new_ptr_hash_table (mm,
+                                          (BtorHashPtr) btor_hash_exp_by_id,
+                                          (BtorCmpPtr) btor_compare_exp_by_id);
   btor->bv_vars = btor_new_ptr_hash_table (mm,
                                            (BtorHashPtr) btor_hash_exp_by_id,
                                            (BtorCmpPtr) btor_compare_exp_by_id);
