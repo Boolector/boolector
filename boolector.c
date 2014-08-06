@@ -3294,90 +3294,95 @@ boolector_release_sort (Btor *btor, BoolectorSort *sort)
 }
 
 /*------------------------------------------------------------------------*/
-// FIXME get rid of BtorParseResult
-typedef struct BtorParseResult BtorParseResult;
-//
 
-const char *
+int
 boolector_parse (Btor *btor,
                  FILE *file,
                  const char *file_name,
-                 BtorParseResult *parse_res)
+                 char **error_msg,
+                 int *status)
 {
-  const char *res;
+  int res;
 
   BTOR_ABORT_ARG_NULL_BOOLECTOR (btor);
   BTOR_ABORT_ARG_NULL_BOOLECTOR (file);
   BTOR_ABORT_ARG_NULL_BOOLECTOR (file_name);
-  BTOR_ABORT_ARG_NULL_BOOLECTOR (parse_res);
+  BTOR_ABORT_ARG_NULL_BOOLECTOR (error_msg);
+  BTOR_ABORT_ARG_NULL_BOOLECTOR (status);
   BTOR_ABORT_BOOLECTOR (
       BTOR_COUNT_STACK (btor->nodes_id_table) > 2,
       "file parsing must be done before creating expressions");
   // TODO TRAPI
-  res = btor_parse (btor, file, file_name, parse_res);
+  res = btor_parse (btor, file, file_name, error_msg, status);
   // TODO CHKCLONE
   return res;
 }
 
-const char *
+int
 boolector_parse_btor (Btor *btor,
                       FILE *file,
                       const char *file_name,
-                      BtorParseResult *parse_res)
+                      char **error_msg,
+                      int *status)
 {
-  const char *res;
+  int res;
 
   BTOR_ABORT_ARG_NULL_BOOLECTOR (btor);
   BTOR_ABORT_ARG_NULL_BOOLECTOR (file);
   BTOR_ABORT_ARG_NULL_BOOLECTOR (file_name);
-  BTOR_ABORT_ARG_NULL_BOOLECTOR (parse_res);
+  BTOR_ABORT_ARG_NULL_BOOLECTOR (error_msg);
+  BTOR_ABORT_ARG_NULL_BOOLECTOR (status);
   BTOR_ABORT_BOOLECTOR (
       BTOR_COUNT_STACK (btor->nodes_id_table) > 2,
       "file parsing must be done before creating expressions");
   // TODO TRAPI
-  res = btor_parse_btor (btor, file, file_name, parse_res);
+  res = btor_parse_btor (btor, file, file_name, error_msg, status);
   // TODO CHKCLONE
   return res;
 }
 
-const char *
+int
 boolector_parse_smt1 (Btor *btor,
                       FILE *file,
                       const char *file_name,
-                      BtorParseResult *parse_res)
+                      char **error_msg,
+                      int *status)
 {
-  const char *res;
+  int res;
 
   BTOR_ABORT_ARG_NULL_BOOLECTOR (btor);
   BTOR_ABORT_ARG_NULL_BOOLECTOR (file);
   BTOR_ABORT_ARG_NULL_BOOLECTOR (file_name);
-  BTOR_ABORT_ARG_NULL_BOOLECTOR (parse_res);
+  BTOR_ABORT_ARG_NULL_BOOLECTOR (error_msg);
+  BTOR_ABORT_ARG_NULL_BOOLECTOR (status);
   BTOR_ABORT_BOOLECTOR (
       BTOR_COUNT_STACK (btor->nodes_id_table) > 2,
       "file parsing must be done before creating expressions");
   // TODO TRAPI
-  res = btor_parse_smt1 (btor, file, file_name, parse_res);
+  res = btor_parse_smt1 (btor, file, file_name, error_msg, status);
   // TODO CHKCLONE
   return res;
 }
 
-const char *
+int
 boolector_parse_smt2 (Btor *btor,
                       FILE *file,
                       const char *file_name,
-                      BtorParseResult *parse_res)
+                      char **error_msg,
+                      int *status)
 {
-  const char *res;
+  int res;
 
   BTOR_ABORT_ARG_NULL_BOOLECTOR (btor);
   BTOR_ABORT_ARG_NULL_BOOLECTOR (file);
   BTOR_ABORT_ARG_NULL_BOOLECTOR (file_name);
-  BTOR_ABORT_ARG_NULL_BOOLECTOR (parse_res);
+  BTOR_ABORT_ARG_NULL_BOOLECTOR (error_msg);
+  BTOR_ABORT_ARG_NULL_BOOLECTOR (status);
   BTOR_ABORT_BOOLECTOR (
       BTOR_COUNT_STACK (btor->nodes_id_table) > 2,
       "file parsing must be done before creating expressions");
   // TODO TRAPI
-  res = btor_parse_smt2 (btor, file, file_name, parse_res);
+  res = btor_parse_smt2 (btor, file, file_name, error_msg, status);
   // TODO CHKCLONE
   return res;
 }

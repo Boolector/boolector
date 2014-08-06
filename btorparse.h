@@ -35,15 +35,6 @@ typedef char *(*BtorParse) (BtorParser *,
                             const char *,
                             BtorParseResult *);
 
-enum BtorParseSATStatus
-{
-  BTOR_PARSE_SAT_STATUS_UNKNOWN,
-  BTOR_PARSE_SAT_STATUS_SAT,
-  BTOR_PARSE_SAT_STATUS_UNSAT
-};
-
-typedef enum BtorParseSATStatus BtorParseSATStatus;
-
 enum BtorParseMode
 {
   BTOR_PARSE_MODE_BASIC_INCREMENTAL        = 1,
@@ -67,8 +58,8 @@ struct BtorParseOpt
 struct BtorParseResult
 {
   BtorLogic logic;
-  BtorParseSATStatus status;
-  BtorParseSATStatus result;
+  int status;
+  int result;
 
   int ninputs;
   BoolectorNode **inputs;
@@ -84,21 +75,28 @@ struct BtorParserAPI
   BtorParse parse;
 };
 
-const char *btor_parse (Btor *btor,
-                        FILE *file,
-                        const char *file_name,
-                        BtorParseResult *parse_res);
-const char *btor_parse_btor (Btor *btor,
-                             FILE *file,
-                             const char *file_name,
-                             BtorParseResult *parse_res);
-const char *btor_parse_smt1 (Btor *btor,
-                             FILE *file,
-                             const char *file_name,
-                             BtorParseResult *parse_res);
-const char *btor_parse_smt2 (Btor *btor,
-                             FILE *file,
-                             const char *file_name,
-                             BtorParseResult *parse_res);
+int btor_parse (Btor *btor,
+                FILE *file,
+                const char *file_name,
+                char **error_msg,
+                int *status);
+
+int btor_parse_btor (Btor *btor,
+                     FILE *file,
+                     const char *file_name,
+                     char **error_msg,
+                     int *status);
+
+int btor_parse_smt1 (Btor *btor,
+                     FILE *file,
+                     const char *file_name,
+                     char **error_msg,
+                     int *status);
+
+int btor_parse_smt2 (Btor *btor,
+                     FILE *file,
+                     const char *file_name,
+                     char **error_msg,
+                     int *status);
 
 #endif

@@ -1008,6 +1008,7 @@ btor_delete_btor (Btor *btor)
   mm = btor->mm;
 
   btor_freestr (mm, btor->msg_prefix);
+  if (btor->parse_error_msg) btor_freestr (mm, btor->parse_error_msg);
 
   btor_release_exp (btor, btor->true_exp);
 

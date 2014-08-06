@@ -148,7 +148,11 @@ typedef struct BoolectorNode BoolectorNode;
  * \see boolector_sat, boolector_simplify
  */
 #define BOOLECTOR_UNSAT 20
-
+/**
+ * Preprocessor constant representing status 'parse error'.
+ * \see boolector_parse
+ */
+#define BOOLECTOR_PARSE_ERROR 1
 /*------------------------------------------------------------------------*/
 
 /**
@@ -1425,27 +1429,31 @@ void boolector_release_sort (Btor *btor, BoolectorSort *sort);
 
 /*------------------------------------------------------------------------*/
 
-typedef struct BtorParseResult BtorParseResult;  // FIXME get rid of
+// TODO COMMENTS @aina
+//
+int boolector_parse (Btor *btor,
+                     FILE *file,
+                     const char *file_name,
+                     char **error_msg,
+                     int *status);
 
-const char *boolector_parse (Btor *btor,
-                             FILE *file,
-                             const char *file_name,
-                             BtorParseResult *parse_res);
+int boolector_parse_btor (Btor *btor,
+                          FILE *file,
+                          const char *file_name,
+                          char **error_msg,
+                          int *status);
 
-const char *boolector_parse_btor (Btor *btor,
-                                  FILE *file,
-                                  const char *file_name,
-                                  BtorParseResult *parse_res);
+int boolector_parse_smt1 (Btor *btor,
+                          FILE *file,
+                          const char *file_name,
+                          char **error_msg,
+                          int *status);
 
-const char *boolector_parse_smt1 (Btor *btor,
-                                  FILE *file,
-                                  const char *file_name,
-                                  BtorParseResult *parse_res);
-
-const char *boolector_parse_smt2 (Btor *btor,
-                                  FILE *file,
-                                  const char *file_name,
-                                  BtorParseResult *parse_res);
+int boolector_parse_smt2 (Btor *btor,
+                          FILE *file,
+                          const char *file_name,
+                          char **error_msg,
+                          int *status);
 
 /*------------------------------------------------------------------------*/
 

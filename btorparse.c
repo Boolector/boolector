@@ -13,6 +13,7 @@
 
 #include "btorparse.h"
 #include "boolector.h"
+#include "btorcore.h"
 #include "btormem.h"
 #include "btoropt.h"
 #include "btorstack.h"
@@ -44,56 +45,68 @@ has_compressed_suffix (const char *str, const char *suffix)
   return 0;
 }
 
-static const char *
+/* return BOOLECTOR_(SAT|UNSAT|UNKNOWN|PARSE_ERROR) */
+static int
 btor_parse_aux (Btor *btor,
                 FILE *file,
                 const char *file_name,
                 const BtorParserAPI *parser_api,
-                BtorParseResult *parse_res,
+                char **error_msg,
+                int *status,
                 char *msg)
 {
   assert (btor);
   assert (file);
   assert (file_name);
   assert (parser_api);
-  assert (parse_res);
+  assert (error_msg);
+  assert (status);
 
   BtorParser *parser;
   BtorParseOpt parse_opt;
+  BtorParseResult parse_res;
   BoolectorNode *root;
-  char *error_msg;
-  int i, root_len;
+  int i, root_len, res;
+  char *emsg;
 
-  parse_opt.verbosity   = boolector_get_opt (btor, "verbosity")->val;
-  parse_opt.incremental = boolector_get_opt (btor, "incremental")->val;
-  if (boolector_get_opt (btor, "incremental_in_depth")->val)
+  res                   = BOOLECTOR_UNKNOWN;
+  parse_opt.verbosity   = btor_get_opt (btor, "verbosity")->val;
+  parse_opt.incremental = btor_get_opt (btor, "incremental")->val;
+  if (btor_get_opt (btor, "incremental_in_depth")->val)
   {
     parse_opt.incremental |= BTOR_PARSE_MODE_INCREMENTAL_IN_DEPTH;
-    parse_opt.window = boolector_get_opt (btor, "incremental_in_depth")->val;
+    parse_opt.window = btor_get_opt (btor, "incremental_in_depth")->val;
   }
-  else if (boolector_get_opt (btor, "incremental_look_ahead")->val)
+  else if (btor_get_opt (btor, "incremental_look_ahead")->val)
   {
     parse_opt.incremental |= BTOR_PARSE_MODE_INCREMENTAL_LOOK_AHEAD;
-    parse_opt.window = boolector_get_opt (btor, "incremental_look_ahead")->val;
+    parse_opt.window = btor_get_opt (btor, "incremental_look_ahead")->val;
   }
-  else if (boolector_get_opt (btor, "incremental_look_ahead")->val)
+  else if (btor_get_opt (btor, "incremental_look_ahead")->val)
   {
     parse_opt.incremental |= BTOR_PARSE_MODE_INCREMENTAL_INTERVAL;
-    parse_opt.window = boolector_get_opt (btor, "incremental_interval")->val;
+    parse_opt.window = btor_get_opt (btor, "incremental_interval")->val;
   }
-  parse_opt.need_model = boolector_get_opt (btor, "model_gen")->val;
+  parse_opt.need_model = btor_get_opt (btor, "model_gen")->val;
 
-  btor_msg_parse ("%s", msg);
+  if (parse_opt.verbosity) btor_msg_parse ("%s", msg);
   parser = parser_api->init (btor, &parse_opt);
 
-  error_msg = parser_api->parse (parser, 0, file, file_name, parse_res);
-
-  /* assert root(s) */
-  if (!error_msg)
+  if ((emsg = parser_api->parse (parser, 0, file, file_name, &parse_res)))
   {
-    for (i = 0; i < parse_res->noutputs; i++)
+    res                   = BOOLECTOR_PARSE_ERROR;
+    btor->parse_error_msg = btor_strdup (btor->mm, emsg);
+    *error_msg            = btor->parse_error_msg;
+  }
+  else
+  {
+    res = parse_res.result;
+
+    /* assert root(s)
+     * Note: we have to do this via API calls for API tracing!!! */
+    for (i = 0; i < parse_res.noutputs; i++)
     {
-      root     = parse_res->outputs[i];
+      root     = parse_res.outputs[i];
       root_len = boolector_get_width (btor, root);
       assert (root_len >= 1);
       if (root_len > 1)
@@ -103,35 +116,65 @@ btor_parse_aux (Btor *btor,
       boolector_assert (btor, root);
       boolector_release (btor, root);
     }
+
+    if (parse_opt.verbosity)
+    {
+      btor_msg_parse ("parsed %d inputs and %d outputs",
+                      parse_res.ninputs,
+                      parse_res.noutputs);
+
+      if (parse_res.logic == BTOR_LOGIC_QF_BV)
+        btor_msg_parse ("logic QF_BV");
+      else
+      {
+        assert (parse_res.logic == BTOR_LOGIC_QF_AUFBV);
+        btor_msg_parse ("logic QF_AUFBV");
+      }
+
+      if (parse_res.status == BOOLECTOR_SAT)
+        btor_msg_parse ("status sat");
+      else if (parse_res.status == BOOLECTOR_UNSAT)
+        btor_msg_parse ("status unsat");
+      else
+      {
+        assert (parse_res.status == BOOLECTOR_UNKNOWN);
+        btor_msg_parse ("status unknown");
+      }
+    }
+
+    if (parse_opt.verbosity > 1)
+      btor_msg_parse ("added %d outputs (100%)", parse_res.noutputs);
   }
+
+  if (status) *status = parse_res.status;
 
   /* cleanup */
   parser_api->reset (parser);
-  parser_api = 0;
 
-  return error_msg;
+  return res;
 }
 
-const char *
+int
 btor_parse (Btor *btor,
             FILE *file,
             const char *file_name,
-            BtorParseResult *parse_res)
+            char **error_msg,
+            int *status)
 {
   assert (btor);
   assert (file);
   assert (file_name);
-  assert (parse_res);
+  assert (error_msg);
+  assert (status);
 
   const BtorParserAPI *parser_api;
   int first, second;
-  char ch, *msg, *error_msg;
+  char ch, *msg;
   BtorCharStack prefix;
   BtorMemMgr *mem;
 
-  msg       = "";
-  error_msg = 0;
-  mem       = btor_new_mem_mgr ();
+  msg = "";
+  mem = btor_new_mem_mgr ();
 
   if (has_compressed_suffix (file_name, ".btor"))
     parser_api = btor_btor_parser_api ();
@@ -142,10 +185,10 @@ btor_parse (Btor *btor,
     first = second = 0;
     BTOR_INIT_STACK (prefix);
     parser_api = btor_btor_parser_api ();
+    msg        = "assuming BTOR input";
     for (;;)
     {
-      msg = "assuming BTOR input";
-      ch  = getc (file);
+      ch = getc (file);
       BTOR_PUSH_STACK (mem, prefix, ch);
       if (!ch || ch == EOF) break;
       if (ch == ' ' || ch == '\t' || ch == '\r' || ch == '\n')
@@ -189,57 +232,67 @@ btor_parse (Btor *btor,
         }
       }
     }
+    BTOR_RELEASE_STACK (mem, prefix);
+    rewind (file);
   }
-  error_msg = (char *) btor_parse_aux (
-      btor, file, file_name, parser_api, parse_res, msg);
 
-  return error_msg;
+  return btor_parse_aux (
+      btor, file, file_name, parser_api, error_msg, status, msg);
 }
 
-const char *
+int
 btor_parse_btor (Btor *btor,
                  FILE *file,
                  const char *file_name,
-                 BtorParseResult *parse_res)
+                 char **error_msg,
+                 int *status)
 {
   assert (btor);
   assert (file);
   assert (file_name);
-  assert (parse_res);
+  assert (error_msg);
+  assert (status);
 
   const BtorParserAPI *parser_api;
   parser_api = btor_btor_parser_api ();
-  return btor_parse_aux (btor, file, file_name, parser_api, parse_res, 0);
+  return btor_parse_aux (
+      btor, file, file_name, parser_api, error_msg, status, 0);
 }
 
-const char *
+int
 btor_parse_smt1 (Btor *btor,
                  FILE *file,
                  const char *file_name,
-                 BtorParseResult *parse_res)
+                 char **error_msg,
+                 int *status)
 {
   assert (btor);
   assert (file);
   assert (file_name);
-  assert (parse_res);
+  assert (error_msg);
+  assert (status);
 
   const BtorParserAPI *parser_api;
   parser_api = btor_smt_parser_api ();
-  return btor_parse_aux (btor, file, file_name, parser_api, parse_res, 0);
+  return btor_parse_aux (
+      btor, file, file_name, parser_api, error_msg, status, 0);
 }
 
-const char *
+int
 btor_parse_smt2 (Btor *btor,
                  FILE *file,
                  const char *file_name,
-                 BtorParseResult *parse_res)
+                 char **error_msg,
+                 int *status)
 {
   assert (btor);
   assert (file);
   assert (file_name);
-  assert (parse_res);
+  assert (error_msg);
+  assert (status);
 
   const BtorParserAPI *parser_api;
   parser_api = btor_smt2_parser_api ();
-  return btor_parse_aux (btor, file, file_name, parser_api, parse_res, 0);
+  return btor_parse_aux (
+      btor, file, file_name, parser_api, error_msg, status, 0);
 }

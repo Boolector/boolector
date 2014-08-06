@@ -166,6 +166,8 @@ struct Btor
   /* shadow clone (debugging only) */
   Btor *clone;
 
+  char *parse_error_msg;
+
   FILE *apitrace;
   int close_apitrace;
 
