@@ -998,7 +998,6 @@ btor_delete_btor (Btor *btor)
   int i;
   BtorNodePtrStack stack;
   BtorPtrHashTable *t;
-  BtorPtrHashBucket *b, *b_app;
   BtorMemMgr *mm;
   BtorNode *exp;
   BtorHashTableIterator it;
@@ -1011,6 +1010,7 @@ btor_delete_btor (Btor *btor)
   mm = btor->mm;
 
   btor_freestr (mm, btor->msg_prefix);
+
   if (btor->parse_error_msg) btor_freestr (mm, btor->parse_error_msg);
 
   btor_release_exp (btor, btor->true_exp);
@@ -1024,39 +1024,32 @@ btor_delete_btor (Btor *btor)
       btor->options.force_cleanup.val
           || btor->options.force_internal_cleanup.val);
 
-  for (b = btor->lod_cache->first; b; b = b->next)
-    btor_release_exp (btor, (BtorNode *) b->key);
-  btor_delete_ptr_hash_table (btor->lod_cache);
-
-  for (b = btor->varsubst_constraints->first; b; b = b->next)
+  init_node_hash_table_iterator (&it, btor->varsubst_constraints);
+  while (has_next_node_hash_table_iterator (&it))
   {
-    btor_release_exp (btor, (BtorNode *) b->key);
-    btor_release_exp (btor, (BtorNode *) b->data.asPtr);
+    btor_release_exp (btor, it.bucket->data.asPtr);
+    exp = next_node_hash_table_iterator (&it);
+    btor_release_exp (btor, exp);
   }
   btor_delete_ptr_hash_table (btor->varsubst_constraints);
 
-  // TODO: use hash table iterator
-  for (b = btor->embedded_constraints->first; b; b = b->next)
-    btor_release_exp (btor, (BtorNode *) b->key);
-  btor_delete_ptr_hash_table (btor->embedded_constraints);
-
-  for (b = btor->unsynthesized_constraints->first; b; b = b->next)
-    btor_release_exp (btor, (BtorNode *) b->key);
-  btor_delete_ptr_hash_table (btor->unsynthesized_constraints);
-
-  for (b = btor->synthesized_constraints->first; b; b = b->next)
-    btor_release_exp (btor, (BtorNode *) b->key);
-  btor_delete_ptr_hash_table (btor->synthesized_constraints);
-
-  for (b = btor->assumptions->first; b; b = b->next)
-    btor_release_exp (btor, (BtorNode *) b->key);
-  btor_delete_ptr_hash_table (btor->assumptions);
-
-  init_node_hash_table_iterator (&it, btor->var_rhs);
+  init_node_hash_table_iterator (&it, btor->inputs);
+  queue_node_hash_table_iterator (&it, btor->lod_cache);
+  queue_node_hash_table_iterator (&it, btor->embedded_constraints);
+  queue_node_hash_table_iterator (&it, btor->unsynthesized_constraints);
+  queue_node_hash_table_iterator (&it, btor->synthesized_constraints);
+  queue_node_hash_table_iterator (&it, btor->assumptions);
+  queue_node_hash_table_iterator (&it, btor->var_rhs);
   queue_node_hash_table_iterator (&it, btor->array_rhs);
   while (has_next_node_hash_table_iterator (&it))
     btor_release_exp (btor, next_node_hash_table_iterator (&it));
 
+  btor_delete_ptr_hash_table (btor->inputs);
+  btor_delete_ptr_hash_table (btor->lod_cache);
+  btor_delete_ptr_hash_table (btor->embedded_constraints);
+  btor_delete_ptr_hash_table (btor->unsynthesized_constraints);
+  btor_delete_ptr_hash_table (btor->synthesized_constraints);
+  btor_delete_ptr_hash_table (btor->assumptions);
   btor_delete_ptr_hash_table (btor->var_rhs);
   btor_delete_ptr_hash_table (btor->array_rhs);
 
@@ -1067,14 +1060,17 @@ btor_delete_btor (Btor *btor)
   BTOR_RELEASE_STACK (mm, btor->functions_with_model);
 
   BTOR_INIT_STACK (stack);
-  for (b = btor->lambdas->first; b; b = b->next)
+  init_node_hash_table_iterator (&it, btor->lambdas);
+  while (has_next_node_hash_table_iterator (&it))
   {
-    t = ((BtorLambdaNode *) b->key)->synth_apps;
+    exp = next_node_hash_table_iterator (&it);
+    t   = ((BtorLambdaNode *) exp)->synth_apps;
     if (t)
     {
-      for (b_app = t->first; b_app; b_app = b_app->next)
-        BTOR_PUSH_STACK (mm, stack, (BtorNode *) b_app->key);
-      ((BtorLambdaNode *) b->key)->synth_apps = 0;
+      init_node_hash_table_iterator (&iit, t);
+      while (has_next_node_hash_table_iterator (&iit))
+        BTOR_PUSH_STACK (mm, stack, next_node_hash_table_iterator (&iit));
+      ((BtorLambdaNode *) exp)->synth_apps = 0;
       btor_delete_ptr_hash_table (t);
     }
   }

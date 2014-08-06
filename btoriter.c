@@ -13,20 +13,14 @@
 
 #include "btoriter.h"
 
+/*------------------------------------------------------------------------*/
+
 void
 init_apply_parent_iterator (BtorNodeIterator *it, BtorNode *exp)
 {
   assert (it);
   assert (exp);
   it->cur = BTOR_REAL_ADDR_NODE (exp)->last_parent;
-}
-
-void
-init_full_parent_iterator (BtorNodeIterator *it, BtorNode *exp)
-{
-  assert (it);
-  assert (exp);
-  it->cur = BTOR_REAL_ADDR_NODE (exp)->first_parent;
 }
 
 BtorNode *
@@ -40,6 +34,24 @@ next_parent_apply_parent_iterator (BtorNodeIterator *it)
   assert (BTOR_IS_REGULAR_NODE (result));
   assert (BTOR_IS_APPLY_NODE (result));
   return result;
+}
+
+int
+has_next_parent_apply_parent_iterator (BtorNodeIterator *it)
+{
+  assert (it);
+  /* function child of apply is at position 0, so cur is not tagged */
+  return it->cur && BTOR_IS_APPLY_NODE (it->cur);
+}
+
+/*------------------------------------------------------------------------*/
+
+void
+init_full_parent_iterator (BtorNodeIterator *it, BtorNode *exp)
+{
+  assert (it);
+  assert (exp);
+  it->cur = BTOR_REAL_ADDR_NODE (exp)->first_parent;
 }
 
 BtorNode *
@@ -56,19 +68,13 @@ next_parent_full_parent_iterator (BtorNodeIterator *it)
 }
 
 int
-has_next_parent_apply_parent_iterator (BtorNodeIterator *it)
-{
-  assert (it);
-  /* function child of apply is at position 0, so cur is not tagged */
-  return it->cur && BTOR_IS_APPLY_NODE (it->cur);
-}
-
-int
 has_next_parent_full_parent_iterator (BtorNodeIterator *it)
 {
   assert (it);
   return it->cur != 0;
 }
+
+/*------------------------------------------------------------------------*/
 
 void
 init_args_iterator (BtorArgsIterator *it, BtorNode *exp)
@@ -122,6 +128,8 @@ has_next_args_iterator (BtorArgsIterator *it)
   return it->cur != 0;
 }
 
+/*------------------------------------------------------------------------*/
+
 void
 init_lambda_iterator (BtorNodeIterator *it, BtorNode *exp)
 {
@@ -152,6 +160,8 @@ has_next_lambda_iterator (BtorNodeIterator *it)
   assert (it->cur);
   return BTOR_IS_LAMBDA_NODE (BTOR_REAL_ADDR_NODE (it->cur));
 }
+
+/*------------------------------------------------------------------------*/
 
 void
 init_parameterized_iterator (Btor *btor,
@@ -208,6 +218,8 @@ has_next_parameterized_iterator (BtorParameterizedIterator *it)
   assert (it);
   return it->cur != 0;
 }
+
+/*------------------------------------------------------------------------*/
 
 void
 init_reversed_hash_table_iterator (BtorHashTableIterator *it,
@@ -282,6 +294,8 @@ has_next_hash_table_iterator (BtorHashTableIterator *it)
   return it->cur != 0;
 }
 
+/*------------------------------------------------------------------------*/
+
 void
 init_reversed_node_hash_table_iterator (BtorHashTableIterator *it,
                                         BtorPtrHashTable *t)
@@ -324,6 +338,8 @@ has_next_node_hash_table_iterator (BtorHashTableIterator *it)
   return has_next_hash_table_iterator (it);
 }
 
+/*------------------------------------------------------------------------*/
+
 void
 init_node_map_iterator (BtorNodeMapIterator *it, BtorNodeMap *map)
 {
@@ -356,3 +372,5 @@ has_next_node_map_iterator (BtorNodeMapIterator *it)
 {
   return has_next_node_hash_table_iterator (&it->it);
 }
+
+/*------------------------------------------------------------------------*/
