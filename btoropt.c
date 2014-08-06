@@ -141,7 +141,7 @@ btor_init_opts (Btor *btor)
 
   BTOR_OPT (0,
             input_format,
-            BTOR_INPUT_FORMAT_BTOR,
+            0,
             BTOR_INPUT_FORMAT_BTOR,
             BTOR_INPUT_FORMAT_SMT2,
             "input file format");
