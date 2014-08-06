@@ -247,7 +247,7 @@ boolector_sat (Btor *btor)
       !btor->options.incremental.val && btor->btor_sat_btor_called > 0,
       "incremental usage has not been enabled."
       "'boolector_sat' may only be called once");
-  res = btor_sat_btor (btor);
+  res = btor_sat_btor (btor, -1, -1);
 #ifndef NDEBUG
   BTOR_CHKCLONE_RES (res, sat);
 #endif
@@ -255,9 +255,6 @@ boolector_sat (Btor *btor)
   return res;
 }
 
-// TODO: we cannot use btor_limited_sat_btor here, as every check in
-// btor_sat_btor is not executed in btor_limited_sat_btor
-// we need a uniform handling of this (ma)
 int
 boolector_limited_sat (Btor *btor, int lod_limit, int sat_limit)
 {
@@ -268,7 +265,7 @@ boolector_limited_sat (Btor *btor, int lod_limit, int sat_limit)
       !btor->options.incremental.val && btor->btor_sat_btor_called > 0,
       "incremental usage has not been enabled."
       "'boolector_limited_sat' may only be called once");
-  res = btor_limited_sat_btor (btor, lod_limit, sat_limit);
+  res = btor_sat_btor (btor, lod_limit, sat_limit);
 #ifndef NDEBUG
   BTOR_CHKCLONE_RES (res, limited_sat, lod_limit, sat_limit);
 #endif

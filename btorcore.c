@@ -112,7 +112,7 @@
 
 /*------------------------------------------------------------------------*/
 
-static int btor_sat_aux_btor (Btor *);
+static int btor_sat_aux_btor (Btor *, int, int);
 static int btor_sat_aux_btor_dual_prop (Btor *);
 
 #ifdef BTOR_CHECK_MODEL
@@ -8219,7 +8219,7 @@ add_lemma_to_dual_prop_clone (Btor *btor,
 }
 
 static int
-btor_limited_sat_aux_btor (Btor *btor, int lod_limit, int sat_limit)
+btor_sat_aux_btor (Btor *btor, int lod_limit, int sat_limit)
 {
   assert (btor);
 
@@ -8400,13 +8400,6 @@ DONE:
 }
 
 static int
-btor_sat_aux_btor (Btor *btor)
-{
-  assert (btor);
-  return btor_limited_sat_aux_btor (btor, -1, -1);
-}
-
-static int
 btor_sat_aux_btor_dual_prop (Btor *btor)
 {
   assert (btor);
@@ -8552,7 +8545,7 @@ br_probe (Btor *btor)
   {
     btor_msg (btor, 1, "  limit refinement iterations to 10");
     // TODO: this 10 also
-    res = btor_limited_sat_aux_btor (bclone, 10, 55000);
+    res = btor_sat_aux_btor (bclone, 10, 55000);
     btor_delete_btor (bclone);
   }
 
@@ -8576,7 +8569,7 @@ br_probe (Btor *btor)
 }
 
 int
-btor_sat_btor (Btor *btor)
+btor_sat_btor (Btor *btor, int lod_limit, int sat_limit)
 {
   assert (btor);
   assert (btor->btor_sat_btor_called >= 0);
@@ -8584,8 +8577,11 @@ btor_sat_btor (Btor *btor)
 
   int res;
 
-  res = br_probe (btor);
-  if (res != BTOR_UNKNOWN) return res;
+  if (lod_limit == -1 && sat_limit == -1)
+  {
+    res = br_probe (btor);
+    if (res != BTOR_UNKNOWN) return res;
+  }
 
 #ifdef BTOR_CHECK_UNCONSTRAINED
   Btor *uclone = 0;
@@ -8621,14 +8617,14 @@ btor_sat_btor (Btor *btor)
   }
 #endif
 
-  res = btor_sat_aux_btor (btor);
+  res = btor_sat_aux_btor (btor, lod_limit, sat_limit);
   btor->btor_sat_btor_called++;
 
 #ifdef BTOR_CHECK_UNCONSTRAINED
   if (btor->options.ucopt.val && btor->options.rewrite_level.val > 2
       && !btor->options.incremental.val && !btor->options.model_gen.val)
   {
-    int ucres = btor_sat_aux_btor (uclone);
+    int ucres = btor_sat_aux_btor (uclone, lod_limit, sat_limit);
     assert (res == ucres);
   }
 #endif
@@ -8663,12 +8659,6 @@ btor_sat_btor (Btor *btor)
   }
 #endif
   return res;
-}
-
-int
-btor_limited_sat_btor (Btor *btor, int lod_limit, int sat_limit)
-{
-  return btor_limited_sat_aux_btor (btor, lod_limit, sat_limit);
 }
 
 int
@@ -9536,7 +9526,7 @@ check_model (Btor *btor, Btor *clone, BtorPtrHashTable *inputs)
   btor_set_opt (clone, "beta_reduce_all", 1);
   ret = btor_simplify (clone);
 
-  assert (ret != BTOR_UNKNOWN || btor_sat_aux_btor (clone) == BTOR_SAT);
+  assert (ret != BTOR_UNKNOWN || btor_sat_aux_btor (clone, -1, -1) == BTOR_SAT);
   // TODO: if ret still UNKNOWN dump formula (for rw rule harvesting?)
   // TODO: check if roots have been simplified through aig rewriting
   // BTOR_ABORT_CORE (ret == BTOR_UNKNOWN, "rewriting needed");
@@ -9584,7 +9574,7 @@ check_failed_assumptions (Btor *btor, Btor *clone)
                                (BtorHashPtr) btor_hash_exp_by_id,
                                (BtorCmpPtr) btor_compare_exp_by_id);
 
-  assert (btor_sat_aux_btor (clone) == BTOR_UNSAT);
+  assert (btor_sat_aux_btor (clone, -1, -1) == BTOR_UNSAT);
 }
 #endif
 
@@ -9596,7 +9586,7 @@ check_dual_prop (Btor *btor, Btor *clone)
   assert (btor->options.dual_prop.val);
   assert (clone);
 
-  btor_sat_aux_btor (clone);
+  btor_sat_aux_btor (clone, -1, -1);
   assert (btor->last_sat_result == clone->last_sat_result);
 }
 #endif
