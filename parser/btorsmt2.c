@@ -1,7 +1,7 @@
 /*  Boolector: Satisfiablity Modulo Theories (SMT) solver.
  *
  *  Copyright (C) 2011-2013 Armin Biere.
- *  Copyright (C) 2013 Aina Niemetz.
+ *  Copyright (C) 2013-2014 Aina Niemetz.
  *  Copyright (C) 2013-2014 Mathias Preiner.
  *
  *  All rights reserved.
@@ -3119,11 +3119,11 @@ btor_set_info_smt2 (BtorSMT2Parser *parser)
       return !btor_perr_smt2 (
           parser, "invalid value '%s' after ':status'", parser->token.start);
     if (!strcmp (parser->token.start, "sat"))
-      parser->res->status = BTOR_PARSE_SAT_STATUS_SAT;
+      parser->res->status = BOOLECTOR_SAT;
     else if (!strcmp (parser->token.start, "unsat"))
-      parser->res->status = BTOR_PARSE_SAT_STATUS_UNSAT;
+      parser->res->status = BOOLECTOR_UNSAT;
     else if (!strcmp (parser->token.start, "unknown"))
-      parser->res->status = BTOR_PARSE_SAT_STATUS_UNKNOWN;
+      parser->res->status = BOOLECTOR_UNKNOWN;
     else
       goto INVALID_STATUS_VALUE;
 

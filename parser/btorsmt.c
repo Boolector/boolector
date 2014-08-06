@@ -2617,16 +2617,15 @@ btor_smt_parser_inc_add_release_sat (BtorSMTParser *parser,
   if (satres == BOOLECTOR_SAT)
   {
     btor_smt_message (parser, 1, "':formula' %s SAT", formula);
-    res->result = BTOR_PARSE_SAT_STATUS_SAT;
+    res->result = BOOLECTOR_SAT;
   }
   else
   {
     assert (satres == BOOLECTOR_UNSAT);
     btor_smt_message (parser, 1, "':formula' %s UNSAT", formula);
-    if (res->result == BTOR_PARSE_SAT_STATUS_UNKNOWN)
-      res->result = BTOR_PARSE_SAT_STATUS_UNSAT;
+    if (res->result == BOOLECTOR_UNKNOWN) res->result = BOOLECTOR_UNSAT;
   }
-  if (parser->verbosity >= 2) btor_print_stats_btor (parser->btor);
+  if (parser->verbosity >= 2) boolector_print_stats (parser->btor);
 
   parser->formulas.checked += checked;
 
@@ -2643,7 +2642,7 @@ btor_smt_parser_inc_add_release_sat (BtorSMTParser *parser,
 static int
 continue_parsing (BtorSMTParser *parser, BtorParseResult *res)
 {
-  if (res->result != BTOR_PARSE_SAT_STATUS_SAT) return 1;
+  if (res->result != BOOLECTOR_SAT) return 1;
   return parser->incremental & BTOR_PARSE_MODE_INCREMENTAL_BUT_CONTINUE;
 }
 
@@ -2764,11 +2763,11 @@ translate_benchmark (BtorSMTParser *parser,
     status = symbol->token;
 
     if (status == BTOR_SMTOK_SAT)
-      res->status = BTOR_PARSE_SAT_STATUS_SAT;
+      res->status = BOOLECTOR_SAT;
     else if (status == BTOR_SMTOK_UNSAT)
-      res->status = BTOR_PARSE_SAT_STATUS_UNSAT;
+      res->status = BOOLECTOR_UNSAT;
     else if (status == BTOR_SMTOK_UNKNOWN)
-      res->status = BTOR_PARSE_SAT_STATUS_UNKNOWN;
+      res->status = BOOLECTOR_UNKNOWN;
     else
       goto INVALID_STATUS_ARGUMENT;
   }
@@ -2964,7 +2963,7 @@ translate_benchmark (BtorSMTParser *parser,
   {
     assert (parser->incremental & BTOR_PARSE_MODE_INCREMENTAL_WINDOW);
     if ((parser->incremental & BTOR_PARSE_MODE_INCREMENTAL_BUT_CONTINUE)
-        || res->result != BTOR_PARSE_SAT_STATUS_SAT)
+        || res->result != BOOLECTOR_SAT)
     {
       btor_smt_message (parser,
                         1,
@@ -2978,7 +2977,7 @@ translate_benchmark (BtorSMTParser *parser,
       while (
           !BTOR_EMPTY_STACK (parser->window)
           && ((parser->incremental & BTOR_PARSE_MODE_INCREMENTAL_BUT_CONTINUE)
-              || res->result != BTOR_PARSE_SAT_STATUS_SAT))
+              || res->result != BOOLECTOR_SAT))
       {
         BoolectorNode *next;
         if (interval)
@@ -3088,7 +3087,7 @@ set_last_occurrence_of_symbols (BtorSMTParser *parser, BtorSMTNode *top)
   btor_smt_message (parser, 1, "found %d occurrences of symbols", occs);
 }
 
-// FIXME get rid of prefix
+// FIXME get rid of prefix @aina
 static const char *
 parse (BtorSMTParser *parser,
        BtorCharStack *prefix,
@@ -3115,8 +3114,8 @@ parse (BtorSMTParser *parser,
 
   BTOR_CLR (res);
 
-  res->status = BTOR_PARSE_SAT_STATUS_UNKNOWN;
-  res->result = BTOR_PARSE_SAT_STATUS_UNKNOWN;
+  res->status = BOOLECTOR_UNKNOWN;
+  res->result = BOOLECTOR_UNKNOWN;
 
   assert (BTOR_EMPTY_STACK (parser->stack));
   assert (BTOR_EMPTY_STACK (parser->heads));

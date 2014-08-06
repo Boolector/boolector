@@ -3,7 +3,7 @@
  *  Copyright (C) 2007-2009 Robert Daniel Brummayer.
  *  Copyright (C) 2007-2012 Armin Biere.
  *  Copyright (C) 2013-2014 Mathias Preiner.
- *  Copyright (C) 2013 Aina Niemetz.
+ *  Copyright (C) 2013-2014 Aina Niemetz.
  *
  *  All rights reserved.
  *
@@ -1980,7 +1980,7 @@ NEXT:
         res->logic = BTOR_LOGIC_QF_AUFBV;
       else
         res->logic = BTOR_LOGIC_QF_BV;
-      res->status = BTOR_PARSE_SAT_STATUS_UNKNOWN;
+      res->status = BOOLECTOR_UNKNOWN;
 
       res->ninputs = BTOR_COUNT_STACK (parser->inputs);
       res->inputs  = parser->inputs.start;
