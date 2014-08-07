@@ -569,21 +569,25 @@ static void
 btor_delete_smt_parser (BtorSMTParser *parser)
 {
   BoolectorNode **p;
+  BtorMemMgr *mm;
+
+  mm = parser->mem;
 
   btor_release_smt_internals (parser);
 
-  btor_freestr (parser->mem, parser->error);
+  btor_freestr (mm, parser->error);
   btor_release_smt_vars (parser);
 
   for (p = parser->outputs.start; p != parser->outputs.top; p++)
     boolector_release (parser->btor, *p);
-  BTOR_RELEASE_STACK (parser->mem, parser->outputs);
+  BTOR_RELEASE_STACK (mm, parser->outputs);
 
   for (p = parser->window.start; p != parser->window.top; p++)
     boolector_release (parser->btor, *p);
-  BTOR_RELEASE_STACK (parser->mem, parser->window);
+  BTOR_RELEASE_STACK (mm, parser->window);
 
-  BTOR_DELETE (parser->mem, parser);
+  BTOR_DELETE (mm, parser);
+  btor_delete_mem_mgr (mm);
 }
 
 static char *

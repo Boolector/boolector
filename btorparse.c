@@ -235,6 +235,7 @@ btor_parse (Btor *btor,
     BTOR_RELEASE_STACK (mem, prefix);
     rewind (file);
   }
+  btor_delete_mem_mgr (mem);
 
   return btor_parse_aux (
       btor, file, file_name, parser_api, error_msg, status, msg);
