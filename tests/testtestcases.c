@@ -2,7 +2,7 @@
  *
  *  Copyright (C) 2007-2010 Robert Daniel Brummayer.
  *  Copyright (C) 2007-2012 Armin Biere.
- *  Copyright (C) 2012 Aina Niemetz
+ *  Copyright (C) 2012, 2014 Aina Niemetz
  *
  *  All rights reserved.
  *
@@ -29,7 +29,22 @@ static BtorCharPtrStack g_args;
 static void
 test_testcase (void)
 {
-  (void) boolector_main (BTOR_COUNT_STACK (g_args), g_args.start);
+  int i, len;
+  char *syscall_string;
+
+  /* Note: skip testcases name */
+  for (i = 1, len = 0; i < BTOR_COUNT_STACK (g_args); i++)
+    len += strlen (BTOR_PEEK_STACK (g_args, i));
+  syscall_string = (char *) malloc (sizeof (char *) * len);
+  sprintf (syscall_string, "./boolector ");
+  len = strlen ("./boolector ");
+  for (i = 1; i < BTOR_COUNT_STACK (g_args); i++)
+  {
+    sprintf (syscall_string + len, "%s ", BTOR_PEEK_STACK (g_args, i));
+    len += strlen (BTOR_PEEK_STACK (g_args, i)) + 1;
+  }
+  (void) system (syscall_string);
+  free (syscall_string);
 }
 
 void

@@ -1,6 +1,6 @@
-regsmtparse0 -o log/regsmtparse0.log log/regsmtparse0.smt
-regsmtparse1 -o log/regsmtparse1.log log/regsmtparse1.smt
-regsmtparse2 -o log/regsmtparse2.log log/regsmtparse2.smt
+regsmtparse0 log/regsmtparse0.smt > log/regsmtparse0.log 2>&1
+regsmtparse1 log/regsmtparse1.smt > log/regsmtparse1.log 2>&1
+regsmtparse2 log/regsmtparse2.smt > log/regsmtparse2.log 2>&1
 smttrue -m -o log/smttrue.log log/smttrue.smt
 smtfalse -m -o log/smtfalse.log log/smtfalse.smt
 smtvar -m -o log/smtvar.log log/smtvar.smt
