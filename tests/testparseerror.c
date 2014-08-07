@@ -2,6 +2,7 @@
  *
  *  Copyright (C) 2007-2010 Robert Daniel Brummayer.
  *  Copyright (C) 2007-2012 Armin Biere.
+ *  Copyright (C) 2014 Aina Niemetz.
  *
  *  All rights reserved.
  *
@@ -48,26 +49,35 @@ run_smt_parse_error_test (void)
   char *argv[5];
   char *name       = g_name;
   char *smt_suffix = (g_smtlib == 1) ? "smt" : "smt2";
-  char *smt_opt    = (g_smtlib == 1) ? "--smt" : "--smt2";
-  int res;
-  inpath  = malloc (strlen (name) + 20);
-  logpath = malloc (strlen (name) + 20);
+  char *smt_opt    = (g_smtlib == 1) ? "--smt1" : "--smt2";
+  char *syscall_string;
+  int res, name_len;
+
+  name_len = strlen (name);
+  inpath   = malloc (name_len + 20);
   sprintf (inpath, "log/%s.%s", name, smt_suffix);
   assert (file_exists (inpath));
+
+  logpath = malloc (name_len + 20);
   sprintf (logpath, "log/%s.log", name);
-  argv[0] = "test_parse_error_smt_test";
-  argv[1] = inpath;
-  argv[2] = smt_opt;
-  argv[3] = "-o";
-  argv[4] = logpath;
-  res     = boolector_main (5, argv);
-  if (res != 1)
+
+  syscall_string = (char *) malloc (
+      sizeof (char *)
+          * (strlen ("./boolector ") + strlen (smt_opt) + 1 + strlen (inpath)
+             + 1 + strlen (logpath) + 1 + strlen ("> ") + strlen ("2>&1"))
+      + 1);
+  sprintf (
+      syscall_string, "./boolector %s %s > %s 2>&1", smt_opt, inpath, logpath);
+
+  if ((res = WEXITSTATUS (system (syscall_string))) != 1)
   {
     FILE *file = fopen (logpath, "a");
     fprintf (
         file, "test_parse_error_%s_test: exit code %d != 1\n", smt_suffix, res);
     fclose (file);
   }
+
+  free (syscall_string);
   free (inpath);
   free (logpath);
 }

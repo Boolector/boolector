@@ -1,1 +1,1 @@
-log/smt2perr124.smt2:2:16: symbol 'f' to be bound already declared as function at line 1 column 14
+boolector: log/smt2perr124.smt2:2:16: symbol 'f' to be bound already declared as function at line 1 column 14

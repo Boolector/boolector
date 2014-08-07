@@ -33,7 +33,7 @@ test_testcase (void)
   char *syscall_string;
 
   /* Note: skip testcases name */
-  for (i = 1, len = 0; i < BTOR_COUNT_STACK (g_args); i++)
+  for (i = 1, len = 1; i < BTOR_COUNT_STACK (g_args); i++)
     len += strlen (BTOR_PEEK_STACK (g_args, i));
   syscall_string = (char *) malloc (sizeof (char *) * len);
   sprintf (syscall_string, "./boolector ");
