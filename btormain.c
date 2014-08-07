@@ -338,7 +338,7 @@ print_help (BtorMainApp *app)
       to.desc = "force BTOR input format";
       print_opt (app, &to);
       to.shrt = 0;
-      to.lng  = "smt";
+      to.lng  = "smt2";
       to.desc = "force SMT-LIB v2 input format";
       print_opt (app, &to);
       to.shrt = 0;
@@ -368,7 +368,7 @@ print_help (BtorMainApp *app)
       to.desc = "dump formula in BTOR format";
       print_opt (app, &to);
       to.shrt = "ds";
-      to.lng  = "dump_smt";
+      to.lng  = "dump_smt2";
       to.desc = "dump formula in SMT-LIB v2 format";
       print_opt (app, &to);
       to.shrt = "ds1";
@@ -740,7 +740,7 @@ boolector_main (int argc, char **argv)
       if (!strcmp (opt, "btor"))
         boolector_set_opt (
             static_app->btor, "input_format", BTOR_INPUT_FORMAT_BTOR);
-      else if (!strcmp (opt, "smt"))
+      else if (!strcmp (opt, "smt2"))
         boolector_set_opt (
             static_app->btor, "input_format", BTOR_INPUT_FORMAT_SMT2);
       else if (!strcmp (opt, "smt1"))
@@ -757,7 +757,7 @@ boolector_main (int argc, char **argv)
         dump = BTOR_OUTPUT_FORMAT_BTOR;
         boolector_set_opt (static_app->btor, "output_format", dump);
       }
-      else if (!strcmp (opt, "ds") || !strcmp (opt, "dump_smt"))
+      else if (!strcmp (opt, "ds") || !strcmp (opt, "dump_smt2"))
       {
         dump = BTOR_OUTPUT_FORMAT_SMT2;
         boolector_set_opt (static_app->btor, "output_format", dump);
