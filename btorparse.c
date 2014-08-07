@@ -70,25 +70,24 @@ btor_parse_aux (Btor *btor,
   char *emsg;
 
   res                   = BOOLECTOR_UNKNOWN;
-  parse_opt.verbosity   = btor_get_opt (btor, BTOR_OPT_VERBOSITY)->val;
-  parse_opt.incremental = btor_get_opt (btor, BTOR_OPT_INCREMENTAL)->val;
-  if (btor_get_opt (btor, BTOR_OPT_INCREMENTAL_IN_DEPTH)->val)
+  parse_opt.verbosity   = btor_get_opt_val (btor, BTOR_OPT_VERBOSITY);
+  parse_opt.incremental = btor_get_opt_val (btor, BTOR_OPT_INCREMENTAL);
+  if (btor_get_opt_val (btor, BTOR_OPT_INCREMENTAL_IN_DEPTH))
   {
     parse_opt.incremental |= BTOR_PARSE_MODE_INCREMENTAL_IN_DEPTH;
-    parse_opt.window = btor_get_opt (btor, BTOR_OPT_INCREMENTAL_IN_DEPTH)->val;
+    parse_opt.window = btor_get_opt_val (btor, BTOR_OPT_INCREMENTAL_IN_DEPTH);
   }
-  else if (btor_get_opt (btor, BTOR_OPT_INCREMENTAL_LOOK_AHEAD)->val)
+  else if (btor_get_opt_val (btor, BTOR_OPT_INCREMENTAL_LOOK_AHEAD))
   {
     parse_opt.incremental |= BTOR_PARSE_MODE_INCREMENTAL_LOOK_AHEAD;
-    parse_opt.window =
-        btor_get_opt (btor, BTOR_OPT_INCREMENTAL_LOOK_AHEAD)->val;
+    parse_opt.window = btor_get_opt_val (btor, BTOR_OPT_INCREMENTAL_LOOK_AHEAD);
   }
-  else if (btor_get_opt (btor, BTOR_OPT_INCREMENTAL_INTERVAL)->val)
+  else if (btor_get_opt_val (btor, BTOR_OPT_INCREMENTAL_INTERVAL))
   {
     parse_opt.incremental |= BTOR_PARSE_MODE_INCREMENTAL_INTERVAL;
-    parse_opt.window = btor_get_opt (btor, BTOR_OPT_INCREMENTAL_INTERVAL)->val;
+    parse_opt.window = btor_get_opt_val (btor, BTOR_OPT_INCREMENTAL_INTERVAL);
   }
-  parse_opt.need_model = btor_get_opt (btor, BTOR_OPT_MODEL_GEN)->val;
+  parse_opt.need_model = btor_get_opt_val (btor, BTOR_OPT_MODEL_GEN);
 
   if (parse_opt.verbosity) btor_msg_parse ("%s", msg);
   parser = parser_api->init (btor, &parse_opt);

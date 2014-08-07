@@ -453,6 +453,22 @@ boolector_get_opt (Btor *btor, const char *opt)
   return res;
 }
 
+int
+boolector_get_opt_val (Btor *btor, const char *opt)
+{
+  int res;
+  BTOR_ABORT_ARG_NULL_BOOLECTOR (btor);
+  BTOR_TRAPI ("%s", opt);
+  BTOR_ABORT_BOOLECTOR (
+      btor_get_opt_aux (btor, opt) == 0, "invalid option '%s'", opt);
+  res = btor_get_opt_val (btor, opt);
+#ifndef NDEBUG
+  BTOR_CHKCLONE_RES (res, get_opt_val, opt);
+#endif
+  BTOR_TRAPI_RETURN_INT (res);
+  return res;
+}
+
 const BtorOpt *
 boolector_first_opt (Btor *btor)
 {

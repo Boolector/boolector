@@ -191,34 +191,40 @@ btor_init_opts (Btor *btor)
 #define BTOR_LAST_OPT(btor) (&(btor)->options.last - 1)
 
 BtorOpt *
-btor_get_opt_aux (Btor *btor, const char *oname)
+btor_get_opt_aux (Btor *btor, const char *name)
 {
   assert (btor);
-  assert (oname);
+  assert (name);
 
   BtorOpt *o;
 
   for (o = BTOR_FIRST_OPT (btor); o <= BTOR_LAST_OPT (btor); o++)
-    if ((o->shrt && !strcmp (o->shrt, oname))
-        || (o->lng && !strcmp (o->lng, oname)))
+    if ((o->shrt && !strcmp (o->shrt, name))
+        || (o->lng && !strcmp (o->lng, name)))
       return o;
 
   return 0;
 }
 
 BtorOpt *
-btor_get_opt (Btor *btor, const char *oname)
+btor_get_opt (Btor *btor, const char *name)
 {
-  BtorOpt *o = btor_get_opt_aux (btor, oname);
+  BtorOpt *o = btor_get_opt_aux (btor, name);
   assert (o);
   return o;
 }
 
+int
+btor_get_opt_val (Btor *btor, const char *name)
+{
+  return btor_get_opt (btor, name)->val;
+}
+
 void
-btor_set_opt (Btor *btor, const char *oname, int val)
+btor_set_opt (Btor *btor, const char *name, int val)
 {
   assert (btor);
-  assert (oname);
+  assert (name);
 
   int oldval;
   BtorOpt *o;
@@ -230,30 +236,30 @@ btor_set_opt (Btor *btor, const char *oname, int val)
   return;
 #endif
 
-  o = btor_get_opt (btor, oname);
+  o = btor_get_opt (btor, name);
   assert (o);
   oldval = o->val;
   o->val = val;
 
-  if (!strcmp (oname, "m") || !strcmp (oname, "model_gen"))
+  if (!strcmp (name, "m") || !strcmp (name, "model_gen"))
   {
     if (!val && btor->options.model_gen.val) btor_delete_model (btor);
   }
-  else if (!strcmp (oname, "i") || !strcmp (oname, "incremental"))
+  else if (!strcmp (name, "i") || !strcmp (name, "incremental"))
   {
     assert (val > 0);
     assert (btor->btor_sat_btor_called == 0);
     // TODO reset incremental usage, meltall if inc is disabled
   }
-  else if (!strcmp (oname, "dp") || !strcmp (oname, "dual_prop"))
+  else if (!strcmp (name, "dp") || !strcmp (name, "dual_prop"))
   {
     assert (!val || !btor->options.just.val);
   }
-  else if (!strcmp (oname, "ju") || !strcmp (oname, "just"))
+  else if (!strcmp (name, "ju") || !strcmp (name, "just"))
   {
     assert (!val || !btor->options.dual_prop.val);
   }
-  else if (!strcmp (oname, "v") || !strcmp (oname, "verbosity"))
+  else if (!strcmp (name, "v") || !strcmp (name, "verbosity"))
   {
     assert (oldval >= -1);
 
@@ -264,12 +270,12 @@ btor_set_opt (Btor *btor, const char *oname, int val)
     btor_set_verbosity_aig_mgr (amgr, val);
     btor_set_verbosity_sat_mgr (smgr, val);
   }
-  else if (!strcmp (oname, "rwl") || !strcmp (oname, "rewrite_level"))
+  else if (!strcmp (name, "rwl") || !strcmp (name, "rewrite_level"))
   {
     assert (val >= 0 && val <= 3);
     assert (oldval >= 0 && oldval <= 3);
   }
-  else if (!strcmp (oname, "rewrite_level_pbr"))
+  else if (!strcmp (name, "rewrite_level_pbr"))
   {
     assert (val >= 0 && val <= 3);
     assert (oldval >= 0 && oldval <= 3);

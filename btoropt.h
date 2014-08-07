@@ -116,13 +116,15 @@ typedef struct BtorOpts
 
 void btor_init_opts (Btor *btor);
 
-void btor_set_opt (Btor *btor, const char *opt, int val);
+void btor_set_opt (Btor *btor, const char *name, int val);
 
-/* does not assert existing opt with name 'opt',
+/* does not assert existing opt with name 'name',
  * not for boolector internal use */
-BtorOpt *btor_get_opt_aux (Btor *btor, const char *opt);
+BtorOpt *btor_get_opt_aux (Btor *btor, const char *name);
 /* asserts existing opt with name 'opt' */
-BtorOpt *btor_get_opt (Btor *btor, const char *opt);
+BtorOpt *btor_get_opt (Btor *btor, const char *name);
+
+int btor_get_opt_val (Btor *btor, const char *name);
 
 BtorOpt *btor_first_opt (Btor *btor);
 BtorOpt *btor_last_opt (Btor *btor);

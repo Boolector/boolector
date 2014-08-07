@@ -9136,7 +9136,7 @@ format_assignment_str (Btor *btor, const char *assignment)
   char *pretty, *ground;
   int base;
 
-  base = btor_get_opt (btor, BTOR_OPT_OUTPUT_NUMBER_FORMAT)->val;
+  base = btor_get_opt_val (btor, BTOR_OPT_OUTPUT_NUMBER_FORMAT);
 
   if (base == BTOR_OUTPUT_BASE_HEX || base == BTOR_OUTPUT_BASE_DEC)
   {

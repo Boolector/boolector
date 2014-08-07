@@ -379,6 +379,12 @@ NEXT:
       ret_ptr = (void *) boolector_get_opt (btor, arg1_str);
       exp_ret = RET_VOIDPTR;
     }
+    else if (!strcmp (tok, "get_opt_val"))
+    {
+      PARSE_ARGS1 (tok, int);
+      ret_ptr = (void *) boolector_get_opt_val (btor, arg1_int);
+      exp_ret = RET_INT;
+    }
     else if (!strcmp (tok, "first_opt"))
     {
       PARSE_ARGS0 (tok);

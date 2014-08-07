@@ -904,7 +904,7 @@ boolector_main (int argc, char **argv)
         else if ((shrt && o->shrt && !strcmp (o->shrt, "dp"))
                  || !strcmp (o->lng, "dual_prop"))
         {
-          if (boolector_get_opt (static_app->btor, "just")->val)
+          if (boolector_get_opt_val (static_app->btor, "just"))
           {
             btormain_error (
                 static_app,
@@ -916,7 +916,7 @@ boolector_main (int argc, char **argv)
         else if ((shrt && o->shrt && !strcmp (o->shrt, "ju"))
                  || !strcmp (o->lng, "just"))
         {
-          if (boolector_get_opt (static_app->btor, "dual_prop")->val)
+          if (boolector_get_opt_val (static_app->btor, "dual_prop"))
           {
             btormain_error (
                 static_app,
@@ -1059,15 +1059,15 @@ boolector_main (int argc, char **argv)
     if (incid)
       btormain_msg (
           "incremental in-depth window of %d",
-          boolector_get_opt (static_app->btor, "incremental_in_depth")->val);
+          boolector_get_opt_val (static_app->btor, "incremental_in_depth"));
     if (incla)
       btormain_msg (
           "incremental look-ahead window of %d",
-          boolector_get_opt (static_app->btor, "incremental_look_ahead")->val);
+          boolector_get_opt_val (static_app->btor, "incremental_look_ahead"));
     if (incint)
       btormain_msg (
           "incremental interval window of %d",
-          boolector_get_opt (static_app->btor, "incremental_interval")->val);
+          boolector_get_opt_val (static_app->btor, "incremental_interval"));
 
     btormain_msg ("Boolector Version %s %s", BTOR_VERSION, BTOR_ID);
     btormain_msg ("%s", BTOR_CFLAGS);
@@ -1090,7 +1090,7 @@ boolector_main (int argc, char **argv)
 
   if (inc && static_verbosity) btormain_msg ("starting incremental mode");
 
-  if ((val = boolector_get_opt (static_app->btor, "input_format")->val))
+  if ((val = boolector_get_opt_val (static_app->btor, "input_format")))
   {
     switch (val)
     {
@@ -1153,7 +1153,7 @@ boolector_main (int argc, char **argv)
 
     print_sat_result (static_app, sat_res);
 
-    if (boolector_get_opt (static_app->btor, "model_gen")->val
+    if (boolector_get_opt_val (static_app->btor, "model_gen")
         && sat_res == BOOLECTOR_SAT)
       boolector_print_model (static_app->btor, static_app->outfile);
 
@@ -1195,7 +1195,7 @@ boolector_main (int argc, char **argv)
   else
     print_sat_result (static_app, sat_res);
 
-  if (boolector_get_opt (static_app->btor, "model_gen")->val
+  if (boolector_get_opt_val (static_app->btor, "model_gen")
       && sat_res == BOOLECTOR_SAT)
     boolector_print_model (static_app->btor, static_app->outfile);
 
