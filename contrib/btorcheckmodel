@@ -198,7 +198,7 @@ id = id + 1
 fout.write(str(id) + " root 1 -" + str(lastid) + "\n")
 fout.close()
 
-ret = os.popen (boolector + " -rwl0 " + foutname)
+ret = os.popen (boolector + " -rwl 0 " + foutname)
 result = ret.readline().strip()
 if result == "sat":
   print "Invalid"

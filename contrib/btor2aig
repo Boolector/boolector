@@ -11,7 +11,7 @@ if [[ $# -eq 1 ]]; then
     echo $usage
     exit 1
   fi
-  rw='-rwl0'
+  rw='-rwl 0'
 fi
 
 boolector=`which boolector`

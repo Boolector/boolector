@@ -21,8 +21,8 @@ do
       filebtor=$file".btor"
       filesmt=$file".smt"
       ./fifoeqcheck $bw $power > $temp 
-      boolector $temp -rwl1 -bmc-base-only -bmc-maxk=$k -bmc-replay $filebtor
-      boolector -rwl0 $filebtor -ds | while read line 
+      boolector $temp -rwl 1 -bmc-base-only -bmc-maxk=$k -bmc-replay $filebtor
+      boolector -rwl 0 $filebtor -ds | while read line 
       do
         if [[ $header -eq 1 ]]; then
           echo "(benchmark $filesmt" > $filesmt

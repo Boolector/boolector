@@ -11,7 +11,7 @@ do
     sizestring=$size
   fi
   filename=nextpoweroftwo$sizestring".smt"
-  ./nextpowerof2 $size | boolector -rwl0 -ds | while read line
+  ./nextpowerof2 $size | boolector -rwl 0 -ds | while read line
   do
     if [[ $header -eq 1 ]]; then
       echo "(benchmark $filename" > $filename

@@ -150,7 +150,7 @@ if [[ "$add" -eq 1 ]]; then
     reducedfile="$covdir${line}.red"
     csfile="$covdir${line}.cs"
     cp $reducedfile ~/boolector/log/covtest$testid".btor"
-    boolector -rwl0 "$reducedfile" \
+    boolector -rwl 0 "$reducedfile" \
     1> ~/boolector/log/covtest$testid".out" 2> /dev/null
     testcasesline=covtest$testid" "`cat "$csfile"`" -o log/covtest$testid"".log log/covtest$testid"".btor"
     echo "$testcasesline" >> ~/boolector/testcases

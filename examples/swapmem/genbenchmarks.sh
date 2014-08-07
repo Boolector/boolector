@@ -23,7 +23,7 @@ for ((overlap=0;overlap<=1;overlap+=1))
     else
       filename=swapmem$sizestring"ue.smt"
     fi
-    ./swapmem $size $overlaparg | boolector -rwl0 -ds | while read line
+    ./swapmem $size $overlaparg | boolector -rwl 0 -ds | while read line
     do
       if [[ $header -eq 1 ]]; then
         echo "(benchmark $filename" > $filename

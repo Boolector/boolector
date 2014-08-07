@@ -14,7 +14,7 @@ readonly infile=$1
 #tmp=/tmp/wrapperz3-$$.smt
 
 # convert input file to smt format
-#$BOOLECTOR -rwl0 -ds $infile > $tmp
+#$BOOLECTOR -rwl 0 -ds $infile > $tmp
 
 res=$($Z3 $infile | head -n1)
 

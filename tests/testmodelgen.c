@@ -46,11 +46,11 @@ modelgen_test (const char *fname, int rwl)
 
   syscall_string = (char *) malloc (sizeof (char)
                                     * (+len + 5 + len + 4
-                                       + strlen ("./boolector -rwl3 -m log/")
+                                       + strlen ("./boolector -rwl 3 -m log/")
                                        + strlen (" -o log/") + 1));
 
   sprintf (syscall_string,
-           "./boolector -rwl%d -m log/%s -o log/%s",
+           "./boolector -rwl %d -m log/%s -o log/%s",
            rwl,
            btor_fname,
            log_fname);

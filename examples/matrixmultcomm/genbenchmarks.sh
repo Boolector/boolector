@@ -9,7 +9,7 @@ do
     sizestring=$size
   fi
   filename=matrixmultcomm$sizestring".smt"
-  ./matrixmultcomm $numbits $size | boolector -rwl0 -ds | while read line
+  ./matrixmultcomm $numbits $size | boolector -rwl 0 -ds | while read line
   do
     if [[ $header -eq 1 ]]; then
       echo "(benchmark $filename" > $filename

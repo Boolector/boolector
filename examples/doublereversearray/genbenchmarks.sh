@@ -12,7 +12,7 @@ do
     sizestring=$size
   fi
   filename=dubreva$sizestring"ue.smt"
-  ./doublereversearray $size | boolector -rwl0 -ds | while read line
+  ./doublereversearray $size | boolector -rwl 0 -ds | while read line
   do
     if [[ $header -eq 1 ]]; then
       echo "(benchmark $filename" > $filename

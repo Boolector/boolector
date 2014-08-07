@@ -6,7 +6,7 @@ refinementlimit=100000
 while true 
 do 
   ((i++))
-  rwl=rwl2
+  rwl="rwl 2"
   echo -n "Test $i $rwl: "
   btorgen -n 50 2> /dev/null > $file 
   boolector -$rwl -rl $refinementlimit $file
@@ -24,7 +24,7 @@ do
     status=unsat
   fi
 
-  for rwl in rwl1 rwl0
+  for rwl in "rwl 1" "rwl 0"
   do
     echo -n "Test $i $rwl: "
     boolector -$rwl -rl $refinementlimit $file 
@@ -37,7 +37,7 @@ do
     fi 
   done
 
-  boolector $file -rwl0 -ds > $smtfile
+  boolector $file -rwl 0 -ds > $smtfile
 
   cvc3result="`cvc3 -lang smtlib $smtfile`"
   echo "Test $i CVC3: $cvc3result"

@@ -72,7 +72,7 @@ count=1
 while true
 do
   rm -f "$tmp"
-  "$FUZZSMT" "$logic" "$opts" |"$BOOLECTOR" -rwl0 -de > $tmp 2> /dev/null
+  "$FUZZSMT" "$logic" "$opts" |"$BOOLECTOR" -rwl 0 -de > $tmp 2> /dev/null
   buglines=`wc -l "$tmp"|awk '{print $1}'`
 
   echo -en "runs: $count"

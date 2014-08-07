@@ -9,7 +9,7 @@ do
     sizestring="0"$size
   fi
   filename=selsort$sizestring"un.smt"
-  ./selectionsortmem $size | boolector -rwl0 -ds | while read line
+  ./selectionsortmem $size | boolector -rwl 0 -ds | while read line
   do
     if [[ $header -eq 1 ]]; then
       echo "(benchmark $filename" > $filename
