@@ -714,6 +714,8 @@ boolector_var (Btor *btor, int width, const char *symbol)
   BTOR_CHKCLONE_RES_PTR (res, var, width, symbol);
 #endif
   BTOR_TRAPI_RETURN_NODE (res);
+  (void) btor_insert_in_ptr_hash_table (btor->inputs,
+                                        btor_copy_exp (btor, res));
   return BTOR_EXPORT_BOOLECTOR_NODE (res);
 }
 
@@ -752,6 +754,8 @@ boolector_array (Btor *btor,
   BTOR_CHKCLONE_RES_PTR (res, array, elem_width, index_width, symbol);
 #endif
   BTOR_TRAPI_RETURN_NODE (res);
+  (void) btor_insert_in_ptr_hash_table (btor->inputs,
+                                        btor_copy_exp (btor, res));
   return BTOR_EXPORT_BOOLECTOR_NODE (res);
 }
 
@@ -2423,6 +2427,8 @@ boolector_uf (Btor *btor, BoolectorSort *sort, const char *symbol)
   res->ext_refs++;
   btor->external_refs++;
   BTOR_TRAPI_RETURN_NODE (res);
+  (void) btor_insert_in_ptr_hash_table (btor->inputs,
+                                        btor_copy_exp (btor, res));
   return (BoolectorNode *) res;
 }
 
