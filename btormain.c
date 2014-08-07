@@ -445,7 +445,7 @@ print_static_stats (void)
 {
 #ifdef BTOR_HAVE_GETRUSAGE
   double delta_time = delta_time = btor_time_stamp () - static_start_time;
-  btormain_msg ("%.1f seconds\n", delta_time);
+  btormain_msg ("%.1f seconds", delta_time);
 #else
   btormain_msg ("can not determine run-time in seconds (no getrusage)");
 #endif
@@ -523,7 +523,7 @@ catch_alarm (int sig)
   assert (sig == SIGALRM);
   if (static_set_alarm > 0)
   {
-    btormain_msg ("ALARM TRIGGERED: time limit %d seconds reached\n",
+    btormain_msg ("ALARM TRIGGERED: time limit %d seconds reached",
                   static_set_alarm);
     fputs ("unknown\n", stdout);
     fflush (stdout);
@@ -1067,11 +1067,11 @@ boolector_main (int argc, char **argv)
           "incremental interval window of %d",
           boolector_get_opt (static_app->btor, "incremental_interval")->val);
 
-    btormain_msg ("Boolector Version %s %s\n", BTOR_VERSION, BTOR_ID);
-    btormain_msg ("%s\n", BTOR_CFLAGS);
-    btormain_msg ("released %s\n", BTOR_RELEASED);
-    btormain_msg ("compiled %s\n", BTOR_COMPILED);
-    if (*BTOR_CC) btormain_msg ("%s\n", BTOR_CC);
+    btormain_msg ("Boolector Version %s %s", BTOR_VERSION, BTOR_ID);
+    btormain_msg ("%s", BTOR_CFLAGS);
+    btormain_msg ("released %s", BTOR_RELEASED);
+    btormain_msg ("compiled %s", BTOR_COMPILED);
+    if (*BTOR_CC) btormain_msg ("%s", BTOR_CC);
 
     btormain_msg ("setting signal handlers");
   }
@@ -1080,7 +1080,7 @@ boolector_main (int argc, char **argv)
   if (static_set_alarm)
   {
     if (static_verbosity)
-      btormain_msg ("setting time limit to %d seconds\n", static_set_alarm);
+      btormain_msg ("setting time limit to %d seconds", static_set_alarm);
     set_alarm ();
   }
   else if (static_verbosity)
@@ -1156,6 +1156,7 @@ boolector_main (int argc, char **argv)
       boolector_print_model (static_app->btor, static_app->outfile);
 
     if (static_verbosity) boolector_print_stats (static_app->btor);
+    goto DONE;
   }
   else if (dump)
   {
@@ -1187,7 +1188,7 @@ boolector_main (int argc, char **argv)
                     static_app->infile_name);
   else if (sat_res == BOOLECTOR_UNSAT && parse_status == BOOLECTOR_SAT)
     btormain_error (static_app,
-                    "'unsat' but status of benchmark in '%s' is 'sat'\n",
+                    "'unsat' but status of benchmark in '%s' is 'sat'",
                     static_app->infile_name);
   else
     print_sat_result (static_app, sat_res);
