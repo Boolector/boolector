@@ -188,23 +188,6 @@ boolector_get_trapi (Btor *btor)
 
 /*------------------------------------------------------------------------*/
 
-int
-boolector_file_exists (Btor *btor, const char *path)
-{
-  int res;
-
-  BTOR_ABORT_ARG_NULL_BOOLECTOR (btor);
-  BTOR_TRAPI ("");
-  res = btor_file_exists (path);
-#ifndef NDEBUG
-  BTOR_CHKCLONE_RES (res, get_refs);
-#endif
-  BTOR_TRAPI_RETURN (res);
-  return res;
-}
-
-/*------------------------------------------------------------------------*/
-
 void
 boolector_assert (Btor *btor, BoolectorNode *node)
 {

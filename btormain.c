@@ -594,7 +594,7 @@ boolector_main (int argc, char **argv)
         goto DONE;
       }
       static_app->infile_name = argv[i];
-      if (!boolector_file_exists (static_app->btor, static_app->infile_name))
+      if (!btor_file_exists (static_app->infile_name))
         static_app->infile = 0;
       else if (has_suffix (static_app->infile_name, ".gz")
                || has_suffix (static_app->infile_name, ".bz2")
