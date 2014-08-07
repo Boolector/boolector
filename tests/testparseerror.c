@@ -46,7 +46,6 @@ static void
 run_smt_parse_error_test (void)
 {
   char *inpath, *logpath;
-  char *argv[5];
   char *name       = g_name;
   char *smt_suffix = (g_smtlib == 1) ? "smt" : "smt2";
   char *smt_opt    = (g_smtlib == 1) ? "--smt1" : "--smt2";
