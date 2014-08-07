@@ -125,7 +125,7 @@ struct Btor
   BtorPtrHashTable *substitutions;
   BtorNode *true_exp;
   BtorPtrHashTable *bv_model;
-  BtorPtrHashTable *array_model;
+  BtorPtrHashTable *fun_model;
 
   int dvn_id;       /* counter for vars (no symbol) via API */
   int dan_id;       /* counter for arrays (no symbol) via API */
@@ -299,14 +299,11 @@ int btor_is_assumption_exp (Btor *btor, BtorNode *exp);
 /* Determines if assumption is a failed assumption. */
 int btor_failed_exp (Btor *btor, BtorNode *exp);
 
-/* Solves SAT instance. */
-int btor_sat_btor (Btor *btor);
-
-BtorSATMgr *btor_get_sat_mgr_btor (const Btor *btor);
-
 /* Solves instance, but with lemmas on demand limit 'lod_limit' and conflict
  * limit for the underlying SAT solver 'sat_limit'. */
-int btor_limited_sat_btor (Btor *btor, int lod_limit, int sat_limit);
+int btor_sat_btor (Btor *btor, int lod_limit, int sat_limit);
+
+BtorSATMgr *btor_get_sat_mgr_btor (const Btor *btor);
 
 /* Run rewriting engine */
 int btor_simplify (Btor *btor);
@@ -330,15 +327,14 @@ BtorAIGVec *btor_exp_to_aigvec (Btor *btor,
                                 BtorNode *exp,
                                 BtorPtrHashTable *table);
 
-// TODO: make static
-BtorAIG *btor_exp_to_aig (Btor *btor, BtorNode *exp);
-
 /* Checks for existing substitutions, finds most simplified expression and
  * shortens path to it */
 BtorNode *btor_simplify_exp (Btor *btor, BtorNode *exp);
 
 /* Finds most simplified expression and shortens path to it */
 BtorNode *btor_pointer_chase_simplified_exp (Btor *btor, BtorNode *exp);
+
+int btor_equal_sort (Btor *btor, BtorNode *e0, BtorNode *e1);
 
 /* Builds current assignment string of expression (in the SAT case)
  * and returns it.

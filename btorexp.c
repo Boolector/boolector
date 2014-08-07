@@ -95,37 +95,37 @@ btor_precond_regular_unary_bv_exp_dbg (const Btor *btor, const BtorNode *exp)
   return 1;
 }
 
+// TODO: add proper sort check
 int
 btor_precond_eq_exp_dbg (const Btor *btor,
                          const BtorNode *e0,
                          const BtorNode *e1)
 {
-  int is_array_e0, is_array_e1;
   BtorNode *real_e0, *real_e1;
 
   assert (btor);
   assert (e0);
   assert (e1);
 
-  real_e0     = BTOR_REAL_ADDR_NODE (e0);
-  real_e1     = BTOR_REAL_ADDR_NODE (e1);
-  is_array_e0 = BTOR_IS_FUN_NODE (real_e0);
-  is_array_e1 = BTOR_IS_FUN_NODE (real_e1);
-
-  assert (real_e0->btor == btor);
-  assert (real_e1->btor == btor);
+  real_e0 = BTOR_REAL_ADDR_NODE (e0);
+  real_e1 = BTOR_REAL_ADDR_NODE (e1);
 
   assert (real_e0);
   assert (real_e1);
+  assert (real_e0->btor == btor);
+  assert (real_e1->btor == btor);
   assert (!real_e0->simplified);
   assert (!real_e1->simplified);
+  assert (btor_equal_sort ((Btor *) btor, (BtorNode *) e0, (BtorNode *) e1));
+#if 0
   assert (is_array_e0 == is_array_e1);
   assert (real_e0->len == real_e1->len);
   assert (real_e0->len > 0);
   assert (!is_array_e0
-          || BTOR_ARRAY_INDEX_LEN (real_e0) == BTOR_ARRAY_INDEX_LEN (real_e1));
+	  || BTOR_ARRAY_INDEX_LEN (real_e0) == BTOR_ARRAY_INDEX_LEN (real_e1));
   assert (!is_array_e0 || BTOR_ARRAY_INDEX_LEN (real_e0) > 0);
-  assert (!is_array_e0
+#endif
+  assert (!BTOR_IS_FUN_NODE (real_e0)
           || (BTOR_IS_REGULAR_NODE (e0) && BTOR_IS_REGULAR_NODE (e1)));
   return 1;
 }
@@ -561,6 +561,7 @@ update_parameterized (Btor *btor, BtorNode *parent, BtorNode *child)
   BtorNode *param;
   BtorPtrHashTable *t;
   BtorPtrHashBucket *b;
+  BtorParameterizedIterator it;
 
   child = BTOR_REAL_ADDR_NODE (child);
 
@@ -585,13 +586,10 @@ update_parameterized (Btor *btor, BtorNode *parent, BtorNode *child)
   }
   else
   {
-    // TODO: use iterator
-    b = btor_find_in_ptr_hash_table (btor->parameterized, child);
-    assert (b);
-    assert (b->data.asPtr);
-    for (b = ((BtorPtrHashTable *) b->data.asPtr)->first; b; b = b->next)
+    init_parameterized_iterator (btor, &it, child);
+    while (has_next_parameterized_iterator (&it))
     {
-      param = (BtorNode *) b->key;
+      param = next_parameterized_iterator (&it);
       assert (BTOR_IS_REGULAR_NODE (param));
       assert (BTOR_IS_PARAM_NODE (param));
       if (!btor_find_in_ptr_hash_table (t, param))
@@ -1161,7 +1159,7 @@ new_lambda_exp_node (Btor *btor, BtorNode *e_param, BtorNode *e_exp)
       ((BtorLambdaNode *) exp)->head = lambda_exp;
     }
     lambda_exp->num_params += ((BtorLambdaNode *) e_exp)->num_params;
-    lambda_exp->body = BTOR_LAMBDA_GET_BODY (e_exp);
+    lambda_exp->body = btor_simplify_exp (btor, BTOR_LAMBDA_GET_BODY (e_exp));
   }
   else
     lambda_exp->body = e_exp;
@@ -1172,6 +1170,7 @@ new_lambda_exp_node (Btor *btor, BtorNode *e_param, BtorNode *e_exp)
   if (is_parameterized (btor, (BtorNode *) lambda_exp))
     lambda_exp->parameterized = 1;
 
+  assert (!BTOR_REAL_ADDR_NODE (lambda_exp->body)->simplified);
   assert (!BTOR_IS_LAMBDA_NODE (BTOR_REAL_ADDR_NODE (lambda_exp->body)));
   assert (!btor_find_in_ptr_hash_table (btor->lambdas, lambda_exp));
   (void) btor_insert_in_ptr_hash_table (btor->lambdas, lambda_exp);

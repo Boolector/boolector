@@ -4,6 +4,7 @@ debug=unknown
 check=no
 log=unknown
 flto=no
+fPIC=no
 static=no
 lingeling=yes
 minisat=unknown
@@ -42,6 +43,7 @@ where <option> is one of the following:
   -l                compile with logging support (default for '-g')
   -c                check assertions even in optimized compilation
   -m{32,64}         force 32-bit or 64-bit compilation
+  -fPIC             required for building python API
 
 By default all supported SAT solvers are used and linked into
 the binary if they can be found in the parent directory.
@@ -77,6 +79,7 @@ do
     -m32|--m32) arch=32;;
     -m64|--m64) arch=64;;
     -flto) flto=yes;;
+    -fPIC) fPIC=yes;;
     -static) static=yes;;
     -picosat|--picosat) picosat=yes;;
     -no-picosat|--no-picosat) picosat=no;;
@@ -124,6 +127,7 @@ then
   [ $arch = 32 ] && CFLAGS="$CFLAGS -m32"
   [ $arch = 64 ] && CFLAGS="$CFLAGS -m64"
   [ $static = yes ] && CFLAGS="$CFLAGS -static"
+  [ $fPIC = yes ] && CFLAGS="$CFLAGS -fPIC"
   if [ $debug = yes ]
   then
     CFLAGS="$CFLAGS -g3 -ggdb"
