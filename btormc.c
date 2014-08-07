@@ -458,7 +458,7 @@ timed_symbol (Btor *btor, BoolectorNode *node, int time)
   assert (node);
   assert (time >= 0);
   assert (BTOR_IS_REGULAR_NODE (node));
-  symbol = boolector_get_symbol_of_var (btor, node);
+  symbol = boolector_get_symbol (btor, node);
   if (!symbol) return 0;
   sprintf (suffix, "@%d", time);
   symlen = strlen (symbol);
@@ -1048,7 +1048,7 @@ btor_mc_model2const_mapper (Btor *btor, void *state, BoolectorNode *node)
     if (!boolector_is_var (mc->btor, node))
       sym = 0;
     else
-      sym = boolector_get_symbol_of_var (mc->btor, node);
+      sym = boolector_get_symbol (mc->btor, node);
     if (sym)
       BTOR_ABORT_BOOLECTOR (
           !bucket, "variable '%s' not a latch nor an input", sym);

@@ -1062,13 +1062,13 @@ NEXT:
           btor, arg1_int, tmp, hmap_get (hmap, arg1_str));
       exp_ret = RET_SKIP;
     }
-    else if (!strcmp (tok, "get_symbol_of_var"))
+    else if (!strcmp (tok, "get_symbol"))
     {
       PARSE_ARGS1 (tok, str);
       if (!btorunt->skip)
       {
-        ret_str = (char *) boolector_get_symbol_of_var (
-            btor, hmap_get (hmap, arg1_str));
+        ret_str =
+            (char *) boolector_get_symbol (btor, hmap_get (hmap, arg1_str));
         exp_ret = RET_CHARPTR;
       }
       else
