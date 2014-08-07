@@ -115,8 +115,8 @@ main (int argc, char **argv)
 
   btor = btor_new_btor ();
 
-  btor_set_opt (btor, "verbosity", verbosity);
-  btor_set_opt (btor, "rewrite_level", rwl);
+  btor_set_opt (btor, BTOR_OPT_VERBOSITY, verbosity);
+  btor_set_opt (btor, BTOR_OPT_REWRITE_LEVEL, rwl);
 
   BTOR_CLR (&parse_opt);
 

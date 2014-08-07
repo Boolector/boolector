@@ -191,7 +191,7 @@ btor_init_opts (Btor *btor)
 #define BTOR_LAST_OPT(btor) (&(btor)->options.last - 1)
 
 BtorOpt *
-btor_get_opt (Btor *btor, const char *oname)
+btor_get_opt_aux (Btor *btor, const char *oname)
 {
   assert (btor);
   assert (oname);
@@ -204,6 +204,14 @@ btor_get_opt (Btor *btor, const char *oname)
       return o;
 
   return 0;
+}
+
+BtorOpt *
+btor_get_opt (Btor *btor, const char *oname)
+{
+  BtorOpt *o = btor_get_opt_aux (btor, oname);
+  assert (o);
+  return o;
 }
 
 void

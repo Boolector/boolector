@@ -4497,7 +4497,7 @@ btor_simplify (Btor *btor)
     }
 
     // printf ("----\n");
-    // btor_set_opt (btor, "no_pretty_print", 1);
+    // btor_set_opt (btor, BTOR_OPT_NO_PRETTY_PRINT, 1);
     // btor_dump_btor (btor, stdout);
 #ifndef BTOR_DO_NOT_OPTIMIZE_UNCONSTRAINED
     if (btor->options.ucopt.val && btor->options.rewrite_level.val > 2
@@ -4511,7 +4511,7 @@ btor_simplify (Btor *btor)
     }
 #endif
     // printf ("====\n");
-    // btor_set_opt (btor, "no_pretty_print", 1);
+    // btor_set_opt (btor, BTOR_OPT_NO_PRETTY_PRINT, 1);
     // btor_dump_btor (btor, stdout);
 
     if (btor->varsubst_constraints->count) continue;
@@ -7144,7 +7144,7 @@ add_lemma (Btor *btor, BtorNode *fun, BtorNode *app0, BtorNode *app1)
   if (btor->options.dual_prop.val && btor->options.rewrite_level.val > 1)
   {
     rwl = btor->options.rewrite_level.val;
-    btor_set_opt (btor, "rewrite_level", 1);
+    btor_set_opt (btor, BTOR_OPT_REWRITE_LEVEL, 1);
   }
 
   /* function congruence axiom conflict */
@@ -7191,7 +7191,7 @@ add_lemma (Btor *btor, BtorNode *fun, BtorNode *app0, BtorNode *app1)
   btor_delete_ptr_hash_table (bconds_sel2);
   btor->time.lemma_gen += btor_time_stamp () - start;
 
-  if (rwl >= 0) btor_set_opt (btor, "rewrite_level", rwl);
+  if (rwl >= 0) btor_set_opt (btor, BTOR_OPT_REWRITE_LEVEL, rwl);
 }
 
 static void
@@ -8059,14 +8059,14 @@ new_exp_layer_clone_for_dual_prop (Btor *btor,
   assert (!clone->synthesized_constraints->count);
   assert (clone->unsynthesized_constraints->count);
 
-  btor_set_opt (clone, "model_gen", 0);
-  btor_set_opt (clone, "incremental", 1);
-  btor_set_opt (clone, "force_cleanup", 1);
-  btor_set_opt (clone, "force_internal_cleanup", 1);
-  btor_set_opt (clone, "loglevel", 0);
-  btor_set_opt (clone, "verbosity", 0);
-  btor_set_opt (clone, "dual_prop", 0);        // FIXME should be redundant
-  btor_set_opt (clone, "no_pretty_print", 1);  // TODO debug
+  btor_set_opt (clone, BTOR_OPT_MODEL_GEN, 0);
+  btor_set_opt (clone, BTOR_OPT_INCREMENTAL, 1);
+  btor_set_opt (clone, BTOR_OPT_FORCE_CLEANUP, 1);
+  btor_set_opt (clone, BTOR_OPT_FORCE_INTERNAL_CLEANUP, 1);
+  btor_set_opt (clone, BTOR_OPT_LOGLEVEL, 0);
+  btor_set_opt (clone, BTOR_OPT_VERBOSITY, 0);
+  btor_set_opt (clone, BTOR_OPT_DUAL_PROP, 0);  // FIXME should be redundant
+  btor_set_opt (clone, BTOR_OPT_NO_PRETTY_PRINT, 1);  // TODO debug
 
   smgr = btor_get_sat_mgr_btor (clone);
   assert (!btor_is_initialized_sat (smgr));
@@ -8165,10 +8165,10 @@ btor_sat_aux_btor (Btor *btor, int lod_limit, int sat_limit)
   if (btor->options.chk_failed_assumptions.val)
   {
     faclone = btor_clone_btor (btor);
-    btor_set_opt (faclone, "force_cleanup", 1);
-    btor_set_opt (faclone, "force_internal_cleanup", 1);
-    btor_set_opt (faclone, "loglevel", 0);
-    btor_set_opt (faclone, "verbosity", 0);
+    btor_set_opt (faclone, BTOR_OPT_FORCE_CLEANUP, 1);
+    btor_set_opt (faclone, BTOR_OPT_FORCE_INTERNAL_CLEANUP, 1);
+    btor_set_opt (faclone, BTOR_OPT_LOGLEVEL, 0);
+    btor_set_opt (faclone, BTOR_OPT_VERBOSITY, 0);
     faclone->options.chk_failed_assumptions.val = 0;
     faclone->options.dual_prop.val              = 0;  // FIXME necessary?
   }
@@ -8331,10 +8331,10 @@ btor_sat_aux_btor_dual_prop (Btor *btor)
   if (btor->options.chk_failed_assumptions.val)
   {
     faclone = btor_clone_btor (btor);
-    btor_set_opt (faclone, "force_cleanup", 1);
-    btor_set_opt (faclone, "force_internal_cleanup", 1);
-    btor_set_opt (faclone, "loglevel", 0);
-    btor_set_opt (faclone, "verbosity", 0);
+    btor_set_opt (faclone, BTOR_OPT_FORCE_CLEANUP, 1);
+    btor_set_opt (faclone, BTOR_OPT_FORCE_INTERNAL_CLEANUP, 1);
+    btor_set_opt (faclone, BTOR_OPT_LOGLEVEL, 0);
+    btor_set_opt (faclone, BTOR_OPT_VERBOSITY, 0);
     faclone->options.chk_failed_assumptions.val = 0;
     faclone->options.dual_prop.val              = 0;  // FIXME necessary?
   }
@@ -8426,9 +8426,9 @@ br_probe (Btor *btor)
   btor_msg (btor, 1, "try full beta reduction probing");
   assert (btor->assumptions->count == 0);
   bclone = btor_clone_btor (btor);
-  btor_set_opt (bclone, "beta_reduce_all", 1);
-  btor_set_opt (bclone, "verbosity", 0);
-  btor_set_opt (bclone, "loglevel", 0);
+  btor_set_opt (bclone, BTOR_OPT_BETA_REDUCE_ALL, 1);
+  btor_set_opt (bclone, BTOR_OPT_VERBOSITY, 0);
+  btor_set_opt (bclone, BTOR_OPT_LOGLEVEL, 0);
 
   res           = btor_simplify (bclone);
   num_ops_orig  = sum_ops (btor);
@@ -8497,8 +8497,8 @@ btor_sat_btor (Btor *btor, int lod_limit, int sat_limit)
       && !btor->options.incremental.val && !btor->options.model_gen.val)
   {
     uclone = btor_clone_btor (btor);
-    btor_set_opt (uclone, "force_cleanup", 1);
-    btor_set_opt (uclone, "ucopt", 0);
+    btor_set_opt (uclone, BTOR_OPT_FORCE_CLEANUP, 1);
+    btor_set_opt (uclone, BTOR_OPT_UCOPT, 0);
   }
 #endif
 
@@ -8506,22 +8506,22 @@ btor_sat_btor (Btor *btor, int lod_limit, int sat_limit)
   Btor *mclone;
   BtorPtrHashTable *inputs;
   mclone = btor_clone_btor (btor);
-  btor_set_opt (mclone, "loglevel", 0);
-  btor_set_opt (mclone, "verbosity", 0);
-  btor_set_opt (mclone, "dual_prop", 0);  // FIXME necessary?
+  btor_set_opt (mclone, BTOR_OPT_LOGLEVEL, 0);
+  btor_set_opt (mclone, BTOR_OPT_VERBOSITY, 0);
+  btor_set_opt (mclone, BTOR_OPT_DUAL_PROP, 0);  // FIXME necessary?
   inputs = map_inputs_check_model (btor, mclone);
-  btor_set_opt (mclone, "force_cleanup", 1);
+  btor_set_opt (mclone, BTOR_OPT_FORCE_CLEANUP, 1);
 #endif
 #ifdef BTOR_CHECK_DUAL_PROP
   Btor *dpclone = 0;
   if (btor->options.dual_prop.val)
   {
     dpclone = btor_clone_btor (btor);
-    btor_set_opt (dpclone, "loglevel", 0);
-    btor_set_opt (dpclone, "verbosity", 0);
-    btor_set_opt (dpclone, "force_cleanup", 1);
-    btor_set_opt (dpclone, "force_internal_cleanup", 1);
-    btor_set_opt (dpclone, "dual_prop", 0);
+    btor_set_opt (dpclone, BTOR_OPT_LOGLEVEL, 0);
+    btor_set_opt (dpclone, BTOR_OPT_VERBOSITY, 0);
+    btor_set_opt (dpclone, BTOR_OPT_FORCE_CLEANUP, 1);
+    btor_set_opt (dpclone, BTOR_OPT_FORCE_INTERNAL_CLEANUP, 1);
+    btor_set_opt (dpclone, BTOR_OPT_DUAL_PROP, 0);
   }
 #endif
 
@@ -9136,7 +9136,7 @@ format_assignment_str (Btor *btor, const char *assignment)
   char *pretty, *ground;
   int base;
 
-  base = btor_get_opt (btor, "output_number_format")->val;
+  base = btor_get_opt (btor, BTOR_OPT_OUTPUT_NUMBER_FORMAT)->val;
 
   if (base == BTOR_OUTPUT_BASE_HEX || base == BTOR_OUTPUT_BASE_DEC)
   {
@@ -9527,7 +9527,7 @@ check_model (Btor *btor, Btor *clone, BtorPtrHashTable *inputs)
   btor_delete_substitutions (clone);
   reset_varsubst_constraints (clone); /* varsubst not required */
 
-  btor_set_opt (clone, "beta_reduce_all", 1);
+  btor_set_opt (clone, BTOR_OPT_BETA_REDUCE_ALL, 1);
   ret = btor_simplify (clone);
 
   assert (ret != BTOR_UNKNOWN || btor_sat_aux_btor (clone, -1, -1) == BTOR_SAT);

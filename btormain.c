@@ -18,6 +18,7 @@
 #include "btormem.h"
 #include "btoropt.h"
 #include "btorparse.h"
+#include "btorutil.h"
 
 #include <assert.h>
 #include <signal.h>
@@ -249,8 +250,9 @@ print_opt (BtorMainApp *app, BtorOpt *opt)
   memset (optstr, ' ', LEN_OPTSTR * sizeof (char));
   optstr[LEN_OPTSTR - 1] = '\0';
 
-  if (!strcmp (opt->lng, "look_ahead") || !strcmp (opt->lng, "in_depth")
-      || !strcmp (opt->lng, "interval"))
+  if (!strcmp (opt->lng, "incremental_look_ahead")
+      || !strcmp (opt->lng, "incremental_in_depth")
+      || !strcmp (opt->lng, "incremental_interval"))
     sprintf (paramstr, "<w>");
   else if (!strcmp (opt->lng, "time"))
     sprintf (paramstr, "<seconds>");
@@ -831,7 +833,7 @@ boolector_main (int argc, char **argv)
           }
 
           boolector_set_opt (static_app->btor, o->lng, val);
-          incid = 1;
+          incid = val;
         }
         else if (!strcmp (o->lng, "incremental_look_ahead"))
         {
@@ -864,9 +866,9 @@ boolector_main (int argc, char **argv)
           }
 
           boolector_set_opt (static_app->btor, o->lng, val);
-          incla = 1;
+          incla = val;
         }
-        else if (!strcmp (o->lng, "incremental_inverval"))
+        else if (!strcmp (o->lng, "incremental_interval"))
         {
           if (incid || incla)
           {
@@ -897,7 +899,7 @@ boolector_main (int argc, char **argv)
           }
 
           boolector_set_opt (static_app->btor, o->lng, val);
-          incint = 1;
+          incint = val;
         }
         else if ((shrt && o->shrt && !strcmp (o->shrt, "dp"))
                  || !strcmp (o->lng, "dual_prop"))

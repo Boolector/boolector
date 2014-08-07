@@ -442,7 +442,10 @@ boolector_get_opt (Btor *btor, const char *opt)
   BtorOpt *res;
   BTOR_ABORT_ARG_NULL_BOOLECTOR (btor);
   BTOR_TRAPI ("%s", opt);
-  res = btor_get_opt (btor, opt);
+  /* Note: we can't use btor_get_opt here (asserts that option with given
+   * name indeed exists) but want to issue an abort if necessary */
+  res = btor_get_opt_aux (btor, opt);
+  BTOR_ABORT_BOOLECTOR (res == 0, "invalid option '%s'", opt);
 #ifndef NDEBUG
   BTOR_CHKCLONE_RES_OPT (res, get_opt, opt);
 #endif

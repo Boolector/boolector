@@ -37,6 +37,36 @@ typedef struct BtorOpt
   int max;          /* max value */
 } BtorOpt;
 
+#define BTOR_OPT_MODEL_GEN "model_gen"
+#define BTOR_OPT_MODEL_GEN_ALL_READS "model_gen_all_reads"
+#define BTOR_OPT_INCREMENTAL "incremental"
+#define BTOR_OPT_INCREMENTAL_ALL "incremental_all"
+#define BTOR_OPT_INCREMENTAL_IN_DEPTH "incremental_in_depth"
+#define BTOR_OPT_INCREMENTAL_LOOK_AHEAD "incremental_look_ahead"
+#define BTOR_OPT_INCREMENTAL_INTERVAL "incremental_interval"
+#define BTOR_OPT_INPUT_FORMAT "input_format"
+#define BTOR_OPT_OUTPUT_NUMBER_FORMAT "output_number_format"
+#define BTOR_OPT_OUTPUT_FORMAT "output_format"
+#define BTOR_OPT_REWRITE_LEVEL "rewrite_level"
+#define BTOR_OPT_REWRITE_LEVEL_PBR "rewrite_level_pbr"
+#define BTOR_OPT_BETA_REDUCE_ALL "beta_reduce_all"
+#define BTOR_OPT_DUAL_PROP "dual_prop"
+#define BTOR_OPT_JUST "just"
+#ifndef BTOR_DO_NOT_OPTIMIZE_UNCONSTRAINED
+#define BTOR_OPT_UCOPT "ucopt"
+#endif
+#define BTOR_OPT_FORCE_CLEANUP "force_cleanup"
+#define BTOR_OPT_NO_PRETTY_PRINT "no_pretty_print"
+#ifndef NBTORLOG
+#define BTOR_OPT_LOGLEVEL "loglevel"
+#endif
+#define BTOR_OPT_VERBOSITY "verbosity"
+#define BTOR_OPT_SIMPLIFY_CONSTRAINTS "simplify_constraints"
+#define BTOR_OPT_FORCE_INTERNAL_CLEANUP "force_internal_cleanup"
+#ifdef BTOR_CHECK_FAILED
+#define BTOR_OPT_CHK_FAILED_ASSUMPTIONS "chk_failed_assumptions"
+#endif
+
 typedef struct BtorOpts
 {
   BtorOpt first; /* dummy for iteration */
@@ -87,6 +117,11 @@ typedef struct BtorOpts
 void btor_init_opts (Btor *btor);
 
 void btor_set_opt (Btor *btor, const char *opt, int val);
+
+/* does not assert existing opt with name 'opt',
+ * not for boolector internal use */
+BtorOpt *btor_get_opt_aux (Btor *btor, const char *opt);
+/* asserts existing opt with name 'opt' */
 BtorOpt *btor_get_opt (Btor *btor, const char *opt);
 
 BtorOpt *btor_first_opt (Btor *btor);
