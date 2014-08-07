@@ -48,10 +48,10 @@ udiv8castdown6 -o log/udiv8castdown6.log log/udiv8castdown6.btor
 udiv8castdown7 -o log/udiv8castdown7.log log/udiv8castdown7.btor
 udiv16castdown8 -o log/udiv16castdown8.log log/udiv16castdown8.btor
 lazyreadwritebug1 -o log/lazyreadwritebug1.log log/lazyreadwritebug1.btor
-arrayand -o log/arrayand.log log/arrayand.btor
-arrayeqerr0 -o log/arrayeqerr0.log log/arrayeqerr0.btor
-arrayeqerr1 -o log/arrayeqerr1.log log/arrayeqerr1.btor
-arrayeqerr2 -o log/arrayeqerr2.log log/arrayeqerr2.btor
+arrayand log/arrayand.btor > log/arrayand.log 2>&1
+arrayeqerr0 log/arrayeqerr0.btor > log/arrayeqerr0.log 2>&1
+arrayeqerr1 log/arrayeqerr1.btor > log/arrayeqerr1.log 2>&1
+arrayeqerr2 log/arrayeqerr2.btor > log/arrayeqerr2.log 2>&1
 dumpbtor1 -rwl 0 -db -o log/dumpbtor1.log log/dumpbtor1.btor
 dumpbtor2 -rwl 0 -db -o log/dumpbtor2.log log/dumpbtor2.btor
 dumpbtor3 -db -o log/dumpbtor3.log log/dumpbtor3.btor
