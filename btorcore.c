@@ -10557,7 +10557,7 @@ btor_print_model (Btor *btor, FILE *file)
     cur = next_node_hash_table_iterator (&it);
     if (BTOR_IS_UF_ARRAY_NODE (cur))
       print_uf_array_assignment (btor, cur, file);
-    else if (BTOR_IS_BV_VAR_NODE (cur))
+    else
       print_bv_assignment (btor, cur, file);
   }
 }
