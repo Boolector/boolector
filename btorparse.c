@@ -102,19 +102,22 @@ btor_parse_aux (Btor *btor,
   {
     res = parse_res.result;
 
-    /* assert root(s)
-     * Note: we have to do this via API calls for API tracing!!! */
-    for (i = 0; i < parse_res.noutputs; i++)
+    if (!parse_opt.incremental)
     {
-      root     = parse_res.outputs[i];
-      root_len = boolector_get_width (btor, root);
-      assert (root_len >= 1);
-      if (root_len > 1)
-        root = boolector_redor (btor, root);
-      else
-        root = boolector_copy (btor, root);
-      boolector_assert (btor, root);
-      boolector_release (btor, root);
+      /* assert root(s) if not incremental
+       * Note: we have to do this via API calls for API tracing!!! */
+      for (i = 0; i < parse_res.noutputs; i++)
+      {
+        root     = parse_res.outputs[i];
+        root_len = boolector_get_width (btor, root);
+        assert (root_len >= 1);
+        if (root_len > 1)
+          root = boolector_redor (btor, root);
+        else
+          root = boolector_copy (btor, root);
+        boolector_assert (btor, root);
+        boolector_release (btor, root);
+      }
     }
 
     if (parse_opt.verbosity)

@@ -992,6 +992,7 @@ boolector_main (int argc, char **argv)
 
   if (!inc && (incid || incla || incint))
   {
+    inc = 1;
     boolector_set_opt (
         static_app->btor, "incremental", BTOR_PARSE_MODE_BASIC_INCREMENTAL);
   }
@@ -1056,18 +1057,9 @@ boolector_main (int argc, char **argv)
   if (static_verbosity)
   {
     if (inc) btormain_msg ("incremental mode through command line option");
-    if (incid)
-      btormain_msg (
-          "incremental in-depth window of %d",
-          boolector_get_opt_val (static_app->btor, "incremental_in_depth"));
-    if (incla)
-      btormain_msg (
-          "incremental look-ahead window of %d",
-          boolector_get_opt_val (static_app->btor, "incremental_look_ahead"));
-    if (incint)
-      btormain_msg (
-          "incremental interval window of %d",
-          boolector_get_opt_val (static_app->btor, "incremental_interval"));
+    if (incid) btormain_msg ("incremental in-depth window of %d", incid);
+    if (incla) btormain_msg ("incremental look-ahead window of %d", incla);
+    if (incint) btormain_msg ("incremental interval window of %d", incint);
 
     btormain_msg ("Boolector Version %s %s", BTOR_VERSION, BTOR_ID);
     btormain_msg ("%s", BTOR_CFLAGS);
