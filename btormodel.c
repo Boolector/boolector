@@ -790,7 +790,6 @@ btor_get_fun_model_str (
   assert (values);
   assert (size);
   assert (BTOR_IS_REGULAR_NODE (exp));
-  assert (BTOR_IS_FUN_NODE (exp));
 
   char *arg, *tmp, *bv;
   int i, j, len;
@@ -798,6 +797,9 @@ btor_get_fun_model_str (
   const BtorPtrHashTable *model;
   BitVector *value;
   BitVectorTuple *t;
+
+  exp = btor_simplify_exp (btor, exp);
+  assert (BTOR_IS_FUN_NODE (exp));
 
   if ((BTOR_IS_LAMBDA_NODE (exp) && ((BtorLambdaNode *) exp)->num_params > 1)
       || !btor->fun_model || !btor_has_fun_model (btor, exp))
