@@ -1924,7 +1924,8 @@ check_lambdas_consistent (BtorBTORParser * parser)
 }
 #endif
 
-// FIXME get rid of prefix
+/* Note: we need prefix in case of stdin as input (also applies to compressed
+ * input files). */
 static const char *
 btor_parse_btor_parser (BtorBTORParser *parser,
                         BtorCharStack *prefix,

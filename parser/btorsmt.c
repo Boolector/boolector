@@ -3091,7 +3091,8 @@ set_last_occurrence_of_symbols (BtorSMTParser *parser, BtorSMTNode *top)
   btor_smt_message (parser, 1, "found %d occurrences of symbols", occs);
 }
 
-// FIXME get rid of prefix @aina
+/* Note: we need prefix in case of stdin as input (also applies to compressed
+ * input files). */
 static const char *
 parse (BtorSMTParser *parser,
        BtorCharStack *prefix,

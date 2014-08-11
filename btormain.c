@@ -111,10 +111,11 @@ btormain_new_btormain (Btor *btor)
 
   mm = btor_new_mem_mgr ();
   BTOR_CNEWN (mm, res, 1);
-  res->mm      = mm;
-  res->btor    = btor;
-  res->infile  = stdin;
-  res->outfile = stdout;
+  res->mm          = mm;
+  res->btor        = btor;
+  res->infile      = stdin;
+  res->infile_name = "<stdin>";
+  res->outfile     = stdout;
   return res;
 }
 
