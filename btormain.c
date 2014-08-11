@@ -603,7 +603,7 @@ boolector_main (int argc, char **argv)
                || has_suffix (static_app->infile_name, ".bz2")
                || has_suffix (static_app->infile_name, "7z"))
       {
-        BTOR_NEWN (static_app->mm, cmd, strlen (static_app->infile_name + 40));
+        BTOR_NEWN (static_app->mm, cmd, strlen (static_app->infile_name) + 40);
         if (has_suffix (static_app->infile_name, ".gz"))
           sprintf (cmd, "gunzip -c %s", static_app->infile_name);
         else if (has_suffix (static_app->infile_name, ".bz2"))
@@ -613,7 +613,7 @@ boolector_main (int argc, char **argv)
         if ((static_app->infile = popen (cmd, "r")))
           static_app->close_infile = 2;
         BTOR_DELETEN (
-            static_app->mm, cmd, strlen (static_app->infile_name + 40));
+            static_app->mm, cmd, strlen (static_app->infile_name) + 40);
       }
       else if ((static_app->infile = fopen (static_app->infile_name, "r")))
         static_app->close_infile = 1;
