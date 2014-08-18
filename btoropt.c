@@ -59,6 +59,7 @@ set_opt_values (BtorOpt *opt,
   opt->shrt     = shrt;
   opt->lng      = lng;
   opt->val      = val;
+  opt->dflt     = val;
   opt->min      = min;
   opt->max      = max;
   opt->desc     = desc;

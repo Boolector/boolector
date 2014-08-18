@@ -238,6 +238,7 @@ btormain_msg (char *msg, ...)
 
 #define LEN_OPTSTR 35
 #define LEN_PARAMSTR 16
+#define LEN_DEFSTR 80
 
 static void
 print_opt (BtorMainApp *app, BtorOpt *opt)
@@ -245,11 +246,13 @@ print_opt (BtorMainApp *app, BtorOpt *opt)
   assert (app);
   assert (opt);
 
-  char optstr[LEN_OPTSTR], paramstr[LEN_PARAMSTR], *lngstr;
+  char optstr[LEN_OPTSTR], paramstr[LEN_PARAMSTR], defstr[LEN_DEFSTR], *lngstr;
   int i, len;
 
   memset (optstr, ' ', LEN_OPTSTR * sizeof (char));
   optstr[LEN_OPTSTR - 1] = '\0';
+  memset (defstr, ' ', LEN_DEFSTR * sizeof (char));
+  optstr[LEN_DEFSTR - 1] = '\0';
 
   if (!strcmp (opt->lng, "incremental_look_ahead")
       || !strcmp (opt->lng, "incremental_in_depth")
@@ -260,6 +263,8 @@ print_opt (BtorMainApp *app, BtorOpt *opt)
   else if (!strcmp (opt->lng, "output"))
     sprintf (paramstr, "<file>");
   else if (!strcmp (opt->lng, "rewrite_level"))
+    sprintf (paramstr, "<n>");
+  else if (!strcmp (opt->lng, "rewrite_level_pbr"))
     sprintf (paramstr, "<n>");
   else if (!strcmp (opt->lng, "lingeling_opts"))
     sprintf (paramstr, "[,<opt>=<val>]+");
@@ -296,9 +301,16 @@ print_opt (BtorMainApp *app, BtorOpt *opt)
   for (i = len; i < LEN_OPTSTR - 1; i++) optstr[i] = ' ';
   optstr[LEN_OPTSTR - 1] = '\0';
 
-  fprintf (app->outfile, "%s %s\n", optstr, opt->desc);
+  if (!strcmp (opt->lng, "rewrite_level")
+      || !strcmp (opt->lng, "rewrite_level_pbr"))
+  {
+    defstr[0] = '\n';
+    sprintf (defstr + LEN_OPTSTR, " (default: %d)", opt->dflt);
+  }
+  else
+    defstr[0] = '\0';
 
-  // TODO default values
+  fprintf (app->outfile, "%s %s%s\n", optstr, opt->desc, defstr);
 }
 
 static void
