@@ -13,9 +13,6 @@
 
 /*------------------------------------------------------------------------*/
 
-// TODO will have to fix newly introduced api functions for new TRAPI and
-// CHKCLONE functionality after merge @aina
-
 #include "boolector.h"
 #include "btorabort.h"
 #include "btorchkclone.h"
