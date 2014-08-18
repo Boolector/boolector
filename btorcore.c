@@ -38,7 +38,7 @@
 #define BTOR_DO_NOT_PROCESS_SKELETON
 #endif
 
-#ifndef NDEBUG
+#if !defined(NDEBUG) && defined(BTOR_USE_LINGELING)
 #ifndef BTOR_DO_NOT_OPTIMIZE_UNCONSTRAINED
 #define BTOR_CHECK_UNCONSTRAINED
 #endif
@@ -8162,7 +8162,8 @@ btor_sat_aux_btor (Btor *btor, int lod_limit, int sat_limit)
   update_assumptions (btor);
 
 #ifdef BTOR_CHECK_FAILED
-  if (btor->options.chk_failed_assumptions.val)
+  if (btor_has_clone_support_sat_mgr (btor_get_sat_mgr_btor (btor))
+      && btor->options.chk_failed_assumptions.val)
   {
     faclone = btor_clone_btor (btor);
     btor_set_opt (faclone, BTOR_OPT_FORCE_CLEANUP, 1);
@@ -8328,7 +8329,8 @@ btor_sat_aux_btor_dual_prop (Btor *btor)
   btor_msg (btor, 1, "calling SAT");
 
 #ifdef BTOR_CHECK_FAILED
-  if (btor->options.chk_failed_assumptions.val)
+  if (btor_has_clone_support_sat_mgr (btor_get_sat_mgr_btor (btor))
+      && btor->options.chk_failed_assumptions.val)
   {
     faclone = btor_clone_btor (btor);
     btor_set_opt (faclone, BTOR_OPT_FORCE_CLEANUP, 1);
@@ -8402,6 +8404,7 @@ sum_ops (Btor *btor)
   return sum;
 }
 
+#ifdef BTOR_USE_LINGELING
 static int
 br_probe (Btor *btor)
 {
@@ -8409,6 +8412,7 @@ br_probe (Btor *btor)
   assert (btor->avmgr);
   assert (btor->avmgr->amgr);
   assert (btor->avmgr->amgr->smgr);
+  assert (btor_has_clone_support_sat_mgr (btor_get_sat_mgr_btor (btor)));
 
   Btor *bclone;
   int res, num_ops_orig, num_ops_clone;
@@ -8475,6 +8479,7 @@ br_probe (Btor *btor)
 
   return BTOR_UNKNOWN;
 }
+#endif
 
 int
 btor_sat_btor (Btor *btor, int lod_limit, int sat_limit)
@@ -8485,15 +8490,19 @@ btor_sat_btor (Btor *btor, int lod_limit, int sat_limit)
 
   int res;
 
-  if (lod_limit == -1 && sat_limit == -1)
+#ifdef BTOR_USE_LINGELING
+  if (btor_has_clone_support_sat_mgr (btor_get_sat_mgr_btor (btor))
+      && lod_limit == -1 && sat_limit == -1)
   {
     res = br_probe (btor);
     if (res != BTOR_UNKNOWN) return res;
   }
+#endif
 
 #ifdef BTOR_CHECK_UNCONSTRAINED
   Btor *uclone = 0;
-  if (btor->options.ucopt.val && btor->options.rewrite_level.val > 2
+  if (btor_has_clone_support_sat_mgr (btor_get_sat_mgr_btor (btor))
+      && btor->options.ucopt.val && btor->options.rewrite_level.val > 2
       && !btor->options.incremental.val && !btor->options.model_gen.val)
   {
     uclone = btor_clone_btor (btor);
@@ -8503,18 +8512,22 @@ btor_sat_btor (Btor *btor, int lod_limit, int sat_limit)
 #endif
 
 #ifdef BTOR_CHECK_MODEL
-  Btor *mclone;
-  BtorPtrHashTable *inputs;
-  mclone = btor_clone_btor (btor);
-  btor_set_opt (mclone, BTOR_OPT_LOGLEVEL, 0);
-  btor_set_opt (mclone, BTOR_OPT_VERBOSITY, 0);
-  btor_set_opt (mclone, BTOR_OPT_DUAL_PROP, 0);  // FIXME necessary?
-  inputs = map_inputs_check_model (btor, mclone);
-  btor_set_opt (mclone, BTOR_OPT_FORCE_CLEANUP, 1);
+  Btor *mclone             = 0;
+  BtorPtrHashTable *inputs = 0;
+  if (btor_has_clone_support_sat_mgr (btor_get_sat_mgr_btor (btor)))
+  {
+    mclone = btor_clone_btor (btor);
+    btor_set_opt (mclone, BTOR_OPT_LOGLEVEL, 0);
+    btor_set_opt (mclone, BTOR_OPT_VERBOSITY, 0);
+    btor_set_opt (mclone, BTOR_OPT_DUAL_PROP, 0);  // FIXME necessary?
+    inputs = map_inputs_check_model (btor, mclone);
+    btor_set_opt (mclone, BTOR_OPT_FORCE_CLEANUP, 1);
+  }
 #endif
 #ifdef BTOR_CHECK_DUAL_PROP
   Btor *dpclone = 0;
-  if (btor->options.dual_prop.val)
+  if (btor_has_clone_support_sat_mgr (btor_get_sat_mgr_btor (btor))
+      && btor->options.dual_prop.val)
   {
     dpclone = btor_clone_btor (btor);
     btor_set_opt (dpclone, BTOR_OPT_LOGLEVEL, 0);
@@ -8529,9 +8542,12 @@ btor_sat_btor (Btor *btor, int lod_limit, int sat_limit)
   btor->btor_sat_btor_called++;
 
 #ifdef BTOR_CHECK_UNCONSTRAINED
-  if (btor->options.ucopt.val && btor->options.rewrite_level.val > 2
-      && !btor->options.incremental.val && !btor->options.model_gen.val)
+  if (uclone)
   {
+    assert (btor->options.ucopt.val);
+    assert (btor->options.rewrite_level.val > 2);
+    assert (!btor->options.incremental.val);
+    assert (!btor->options.model_gen.val);
     int ucres = btor_sat_aux_btor (uclone, lod_limit, sat_limit);
     assert (res == ucres);
   }
@@ -8541,26 +8557,30 @@ btor_sat_btor (Btor *btor, int lod_limit, int sat_limit)
     btor_generate_model (btor);
 
 #ifdef BTOR_CHECK_MODEL
-  if (res == BTOR_SAT && !btor->options.ucopt.val)
+  if (mclone)
   {
-    if (!btor->options.model_gen.val) btor_generate_model (btor);
-    check_model (btor, mclone, inputs);
-    if (!btor->options.model_gen.val) btor_delete_model (btor);
-  }
+    assert (inputs);
+    if (res == BTOR_SAT && !btor->options.ucopt.val)
+    {
+      if (!btor->options.model_gen.val) btor_generate_model (btor);
+      check_model (btor, mclone, inputs);
+      if (!btor->options.model_gen.val) btor_delete_model (btor);
+    }
 
-  BtorHashTableIterator it;
-  init_node_hash_table_iterator (&it, inputs);
-  while (has_next_node_hash_table_iterator (&it))
-  {
-    btor_release_exp (btor, (BtorNode *) it.bucket->data.asPtr);
-    btor_release_exp (mclone, next_node_hash_table_iterator (&it));
+    BtorHashTableIterator it;
+    init_node_hash_table_iterator (&it, inputs);
+    while (has_next_node_hash_table_iterator (&it))
+    {
+      btor_release_exp (btor, (BtorNode *) it.bucket->data.asPtr);
+      btor_release_exp (mclone, next_node_hash_table_iterator (&it));
+    }
+    btor_delete_ptr_hash_table (inputs);
+    btor_delete_btor (mclone);
   }
-  btor_delete_ptr_hash_table (inputs);
-  btor_delete_btor (mclone);
 #endif
 
 #ifdef BTOR_CHECK_DUAL_PROP
-  if (btor->options.dual_prop.val)
+  if (dpclone && btor->options.dual_prop.val)
   {
     check_dual_prop (btor, dpclone);
     btor_delete_btor (dpclone);

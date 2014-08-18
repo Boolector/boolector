@@ -92,6 +92,11 @@ Btor *
 boolector_clone (Btor *btor)
 {
   Btor *clone;
+
+  BTOR_ABORT_ARG_NULL_BOOLECTOR (btor);
+#ifndef BTOR_USE_LINGELING
+  BTOR_ABORT_BOOLECTOR (1, "cloning requires Lingeling as SAT solver");
+#endif
   BTOR_TRAPI ("");
   clone = btor_clone_btor (btor);
   BTOR_TRAPI_RETURN_PTR (clone);

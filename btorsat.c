@@ -102,6 +102,13 @@ btor_new_sat_mgr (BtorMemMgr *mm)
   return smgr;
 }
 
+int
+btor_has_clone_support_sat_mgr (BtorSATMgr *smgr)
+{
+  assert (smgr);
+  return (!strcmp (smgr->name, "Lingeling"));
+}
+
 // FIXME log output handling, in particular: sat manager name output
 // (see btor_lingeling_sat) should be unique, which is not the case for
 // clones
@@ -109,7 +116,7 @@ BtorSATMgr *
 btor_clone_sat_mgr (BtorSATMgr *smgr, BtorMemMgr *mm)
 {
   assert (smgr);
-  assert (!strcmp (smgr->name, "Lingeling"));
+  assert (btor_has_clone_support_sat_mgr (smgr));
   assert (mm);
 
   BtorSATMgr *res;
