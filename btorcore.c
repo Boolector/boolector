@@ -9210,14 +9210,15 @@ btor_print_model (Btor *btor, FILE *file)
   assert (btor->last_sat_result == BTOR_SAT);
   assert (file);
 
-  BtorNode *cur;
+  BtorNode *cur, *simp;
   BtorHashTableIterator it;
 
   init_node_hash_table_iterator (&it, btor->inputs);
   while (has_next_node_hash_table_iterator (&it))
   {
-    cur = next_node_hash_table_iterator (&it);
-    if (BTOR_IS_UF_ARRAY_NODE (cur))
+    cur  = next_node_hash_table_iterator (&it);
+    simp = btor_simplify_exp (btor, cur);
+    if (BTOR_IS_FUN_NODE (BTOR_REAL_ADDR_NODE (simp)))
       print_uf_array_assignment (btor, cur, file);
     else
       print_bv_assignment (btor, cur, file);

@@ -10,8 +10,11 @@
 
 cimport btorapi
 from libc.stdlib cimport malloc, free
-from libc.stdio cimport stdout, FILE
-import math
+from libc.stdio cimport stdout, FILE, fopen, fclose
+import math, os
+
+g_tunable_options = {"rewrite_level", "rewrite_level_pbr", "beta_reduce_all",
+                     "dual_prop", "just", "ucopt"}
 
 class BoolectorException(Exception):
     
@@ -20,6 +23,57 @@ class BoolectorException(Exception):
 
     def __str__(self):
         return "[pybtor] {}".format(self.msg)
+
+cdef class BoolectorOpt:
+    cdef Boolector btor
+    cdef const btorapi.BtorOpt* _c_opt
+
+    def __init__(self, Boolector boolector):
+        self.btor = boolector
+
+    property internal:
+        def __get__(self):
+            return self._c_opt.internal == 1
+
+    property shrt:
+        def __get__(self):
+            cdef bytes py_str = self._c_opt.shrt
+            return py_str.decode()
+
+    property lng:
+        def __get__(self):
+            cdef bytes py_str = self._c_opt.lng
+            return py_str.decode()
+
+    property desc:
+        def __get__(self):
+            cdef bytes py_str = self._c_opt.desc
+            return py_str.decode()
+
+    property val:
+        def __get__(self):
+            return self._c_opt.val
+
+    property dflt:
+        def __get__(self):
+            return self._c_opt.dflt
+
+    property min:
+        def __get__(self):
+            return self._c_opt.min
+
+    property max:
+        def __get__(self):
+            return self._c_opt.max
+
+    property tunable:
+        def __get__(self):
+            return self.lng in g_tunable_options
+
+    def __str__(self):
+        return "{}, {}, [{}, {}], default: {}".format(self.lng, self.tunable,
+                                                      self.min, self.max,
+                                                      self.dflt)
 
 cdef class BoolectorSort:
     cdef Boolector btor
@@ -53,12 +107,6 @@ cdef class BoolectorNode:
             raise BoolectorException("opcode '{}' not implemented for "\
                                      "__richcmp__".format(opcode))
 
-    # TODO: __copy__ needs to be implemented in each subclass?
-    def __copy__(self):
-        r = BoolectorNode(self.btor)
-        r._c_node = btorapi.boolector_copy(self.btor._c_btor, self._c_node)
-        return r
-
     def dump(self, format="btor", outfile = ""):
         if format.lower() == "btor":
             btorapi.boolector_dump_btor_node(self.btor._c_btor, stdout,
@@ -75,7 +123,7 @@ cdef class BoolectorNode:
     def symbol(self):
         cdef bytes py_str = btorapi.boolector_get_symbol_of_var(
                                 self.btor._c_btor, self._c_node)
-        return py_str
+        return py_str.decode()
 
     def assignment(self):
         cdef char** c_str_i
@@ -146,7 +194,6 @@ cdef class BoolectorBVNode(BoolectorNode):
         return self.btor.Not(self)
 
     def __add__(x, y):
-#        return x.btor.Add(x, y)
         assert(isinstance(x, BoolectorBVNode) or isinstance(y, BoolectorBVNode))
         if isinstance(x, int):
             x, y = y, x
@@ -155,7 +202,6 @@ cdef class BoolectorBVNode(BoolectorNode):
         return (<BoolectorBVNode> x).btor.Add(x, y)
 
     def __sub__(x, y):
-#        return x.btor.Sub(x, y)
         assert(isinstance(x, BoolectorBVNode) or isinstance(y, BoolectorBVNode))
         if isinstance(x, int):
             x, y = y, x
@@ -164,7 +210,6 @@ cdef class BoolectorBVNode(BoolectorNode):
         return (<BoolectorBVNode> x).btor.Sub(x, y)
 
     def __mul__(x, y):
-#        return x.btor.Mul(x, y)
         assert(isinstance(x, BoolectorBVNode) or isinstance(y, BoolectorBVNode))
         if isinstance(x, int):
             x, y = y, x
@@ -173,7 +218,6 @@ cdef class BoolectorBVNode(BoolectorNode):
         return (<BoolectorBVNode> x).btor.Mul(x, y)
 
     def __div__(x, y):
-#        return x.btor.Sdiv(x, y)
         assert(isinstance(x, BoolectorBVNode) or isinstance(y, BoolectorBVNode))
         if isinstance(x, int):
             x, y = y, x
@@ -182,7 +226,6 @@ cdef class BoolectorBVNode(BoolectorNode):
         return (<BoolectorBVNode> x).btor.Sdiv(x, y)
 
     def __mod__(x, y):
-#        return x.btor.Srem(x, y)
         assert(isinstance(x, BoolectorBVNode) or isinstance(y, BoolectorBVNode))
         if isinstance(x, int):
             x, y = y, x
@@ -191,7 +234,6 @@ cdef class BoolectorBVNode(BoolectorNode):
         return (<BoolectorBVNode> x).btor.Srem(x, y)
 
     def __lshift__(x, y):
-#        return x.btor.Sll(x, y)
         assert(isinstance(x, BoolectorBVNode) or isinstance(y, BoolectorBVNode))
         if isinstance(x, int):
             x = (<BoolectorBVNode> y).btor.Int(x,
@@ -202,7 +244,6 @@ cdef class BoolectorBVNode(BoolectorNode):
         return (<BoolectorBVNode> x).btor.Sll(x, y)
 
     def __rshift__(x, y):
-#        return x.btor.Srl(x, y)
         assert(isinstance(x, BoolectorBVNode) or isinstance(y, BoolectorBVNode))
         if isinstance(x, int):
             x, y = y, x
@@ -211,7 +252,6 @@ cdef class BoolectorBVNode(BoolectorNode):
         return (<BoolectorBVNode> x).btor.Srl(x, y)
 
     def __and__(x, y):
-#        return x.btor.And(x, y)
         assert(isinstance(x, BoolectorBVNode) or isinstance(y, BoolectorBVNode))
         if isinstance(x, int):
             x, y = y, x
@@ -220,7 +260,6 @@ cdef class BoolectorBVNode(BoolectorNode):
         return (<BoolectorBVNode> x).btor.And(x, y)
 
     def __or__(x, y):
-#        return x.btor.Or(x, y)
         assert(isinstance(x, BoolectorBVNode) or isinstance(y, BoolectorBVNode))
         if isinstance(x, int):
             x, y = y, x
@@ -229,7 +268,6 @@ cdef class BoolectorBVNode(BoolectorNode):
         return (<BoolectorBVNode> x).btor.Or(x, y)
 
     def __xor__(x, y):
-#        return x.btor.Xor(x, y)
         assert(isinstance(x, BoolectorBVNode) or isinstance(y, BoolectorBVNode))
         if isinstance(x, int):
             x, y = y, x
@@ -318,24 +356,108 @@ cdef class Boolector:
         cdef const char* c_str = b_str
         btorapi.boolector_set_opt(self._c_btor, c_str, value)
 
-    def Set_sat_solver(self, str solver):
+    def Get_opt(self, str opt):
+        cdef bytes b_str = opt.encode()
+        cdef const char* c_str = b_str
+        r = BoolectorOpt(self)
+        r._c_opt = btorapi.boolector_get_opt(self._c_btor, c_str)
+        return r
+
+    def Options(self):
+        opts = []
+        cdef const btorapi.BtorOpt* c_opt
+        cdef const btorapi.BtorOpt* c_last_opt
+        c_opt = btorapi.boolector_first_opt(self._c_btor)
+        c_last_opt = btorapi.boolector_last_opt(self._c_btor)
+        while c_opt != c_last_opt:
+            o = BoolectorOpt(self)
+            o._c_opt = c_opt
+            if not o.internal:
+                opts.append(o)
+            c_opt = btorapi.boolector_next_opt(self._c_btor, c_opt)
+        return opts
+
+    def Set_sat_solver(self, str solver, str optstr="", int nofork=0):
         cdef bytes b_str = solver.encode()
         cdef char* c_str = b_str
-        btorapi.boolector_set_sat_solver(self._c_btor, c_str)
+        cdef bytes b_optstr = optstr.encode()
+        cdef const char* c_optstr = b_optstr
+        if optstr == "":
+            c_optstr = NULL
+        btorapi.boolector_set_sat_solver(self._c_btor, c_str, c_optstr, nofork)
 
-    # Dump functions
+    def Set_msg_prefix(self, str prefix):
+        cdef bytes b_str = prefix.encode()
+        cdef char* c_str = b_str
+        btorapi.boolector_set_msg_prefix(self._c_btor, c_str)
+
+    def Print_model(self, outfile=""):
+        cdef FILE* c_file
+        cdef bytes b_str = outfile.encode()
+        cdef char* c_str = b_str
+
+        if outfile == "":
+            c_file = stdout
+        else:
+            if os.path.isfile(outfile):
+                raise BoolectorException(
+                        "Outfile '{}' already exists".format(outfile)) 
+            elif os.path.isdir(outfile):
+                raise BoolectorException(
+                        "Outfile '{}' is a directory".format(outfile)) 
+            c_file = fopen(c_str, "w")
+
+        btorapi.boolector_print_model(self._c_btor, c_file)
+
+        if outfile != "":
+            fclose(c_file)
+
+    def Parse(self, str file):
+        cdef FILE* c_file
+        cdef bytes b_str = file.encode()
+        cdef char* c_str = b_str
+        cdef int res
+        cdef char* err_msg
+        cdef int status
+
+        if not os.path.isfile(file):
+            raise BoolectorException("File '{}' does not exist".format(file))
+
+        c_file = fopen(c_str, "r")
+        res = btorapi.boolector_parse(self._c_btor, c_file, c_str, &err_msg,
+                                      &status)
+        fclose(c_file)
+        cdef bytes b_err_msg = err_msg
+        return (res, status, b_err_msg.decode())
 
     def Dump(self, format = "btor", outfile = ""):
+        cdef FILE* c_file
+        cdef bytes b_str = outfile.encode()
+        cdef char* c_str = b_str 
+
+        if outfile == "":
+            c_file = stdout
+        else:
+            if os.path.isfile(outfile):
+                raise BoolectorException(
+                        "Outfile '{}' already exists".format(outfile)) 
+            elif os.path.isdir(outfile):
+                raise BoolectorException(
+                        "Outfile '{}' is a directory".format(outfile)) 
+            c_file = fopen(c_str, "w")
+
         if format.lower() == "btor":
-            btorapi.boolector_dump_btor(self._c_btor, stdout)
+            btorapi.boolector_dump_btor(self._c_btor, c_file)
         elif format.lower() == "smt1":
-            btorapi.boolector_dump_smt1(self._c_btor, stdout)
+            btorapi.boolector_dump_smt1(self._c_btor, c_file)
         elif format.lower() == "smt2":
-            btorapi.boolector_dump_smt2(self._c_btor, stdout)
+            btorapi.boolector_dump_smt2(self._c_btor, c_file)
         else:
             raise BoolectorException("invalid dump format '{}'".format(format)) 
+        if outfile != "":
+            fclose(c_file)
 
-    # Boolector API functions (nodes)
+    # Boolector nodes
 
     def Const(self, str bits):
         cdef bytes b_str = bits.encode()
