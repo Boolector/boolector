@@ -398,6 +398,7 @@ int boolector_set_sat_solver_minisat (Btor *btor);
 void boolector_set_opt (Btor *btor, const char *opt, int val);
 
 const BtorOpt *boolector_get_opt (Btor *btor, const char *opt);
+int boolector_get_opt_val (Btor *btor, const char *opt);
 
 const BtorOpt *boolector_first_opt (Btor *btor);
 

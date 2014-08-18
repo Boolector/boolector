@@ -381,8 +381,8 @@ NEXT:
     }
     else if (!strcmp (tok, "get_opt_val"))
     {
-      PARSE_ARGS1 (tok, int);
-      ret_ptr = (void *) boolector_get_opt_val (btor, arg1_int);
+      PARSE_ARGS1 (tok, str);
+      ret_int = boolector_get_opt_val (btor, arg1_str);
       exp_ret = RET_INT;
     }
     else if (!strcmp (tok, "first_opt"))
