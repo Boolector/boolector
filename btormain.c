@@ -690,7 +690,6 @@ boolector_main (int argc, char **argv)
             shrt ? static_app->opts.time.shrt : static_app->opts.time.lng);
         goto DONE;
       }
-      boolector_set_opt (static_app->btor, "time", static_set_alarm);
     }
     else if ((shrt && static_app->opts.output.shrt
               && !strcmp (opt, static_app->opts.output.shrt))
