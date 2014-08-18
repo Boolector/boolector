@@ -157,7 +157,7 @@ btormain_init_opts (BtorMainApp *app)
                      0,
                      0,
                      "set output file for dumping");
-#if defined(BTOR_USE_LINGELING)
+#ifdef BTOR_USE_LINGELING
   BTORMAIN_INIT_OPT (app->opts.lingeling,
                      1,
                      0,
@@ -384,17 +384,17 @@ print_help (BtorMainApp *app)
       print_opt (app, o);
   }
 
-#if defined(BTOR_USE_LINGELING)
+#ifdef BTOR_USE_LINGELING
   fprintf (app->outfile, "\n");
   print_opt (app, &app->opts.lingeling);
   print_opt (app, &app->opts.lingeling_nofork);
   print_opt (app, &app->opts.lingeling_opts);
-#elif defined(BTOR_USE_PICOSAT)
+#endif
+#ifdef BTOR_USE_PICOSAT
   print_opt (app, &app->opts.picosat);
-#elif defined(BTOR_USE_MINISAT)
+#endif
+#ifdef BTOR_USE_MINISAT
   print_opt (app, &app->opts.minisat);
-#else
-#error "no SAT solver configured"
 #endif
   app->done = 1;
 }
@@ -721,6 +721,12 @@ boolector_main (int argc, char **argv)
       static_app->close_outfile = 1;
     }
 #ifdef BTOR_USE_LINGELING
+    else if ((shrt && static_app->opts.lingeling.shrt
+              && !strcmp (opt, static_app->opts.lingeling.shrt))
+             || !strcmp (opt, static_app->opts.lingeling.lng))
+    {
+      static_app->opts.lingeling.val = 1;
+    }
     else if ((shrt && static_app->opts.lingeling_opts.shrt
               && !strcmp (opt, static_app->opts.lingeling_opts.shrt))
              || !strcmp (opt, static_app->opts.lingeling_opts.lng))
@@ -736,6 +742,22 @@ boolector_main (int argc, char **argv)
       }
 
       lingeling_opts = valstr;
+    }
+#endif
+#ifdef BTOR_USE_PICOSAT
+    else if ((shrt && static_app->opts.picosat.shrt
+              && !strcmp (opt, static_app->opts.picosat.shrt))
+             || !strcmp (opt, static_app->opts.picosat.lng))
+    {
+      static_app->opts.picosat.val = 1;
+    }
+#endif
+#ifdef BTOR_USE_MINISAT
+    else if ((shrt && static_app->opts.minisat.shrt
+              && !strcmp (opt, static_app->opts.minisat.shrt))
+             || !strcmp (opt, static_app->opts.minisat.lng))
+    {
+      static_app->opts.minisat.val = 1;
     }
 #endif
     else
