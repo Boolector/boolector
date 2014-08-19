@@ -238,7 +238,7 @@ btormain_msg (char *msg, ...)
 
 #define LEN_OPTSTR 35
 #define LEN_PARAMSTR 16
-#define LEN_DEFSTR 80
+#define LEN_HELPSTR 80
 
 static void
 print_opt (BtorMainApp *app, BtorOpt *opt)
@@ -246,13 +246,9 @@ print_opt (BtorMainApp *app, BtorOpt *opt)
   assert (app);
   assert (opt);
 
-  char optstr[LEN_OPTSTR], paramstr[LEN_PARAMSTR], defstr[LEN_DEFSTR], *lngstr;
-  int i, len;
-
-  memset (optstr, ' ', LEN_OPTSTR * sizeof (char));
-  optstr[LEN_OPTSTR - 1] = '\0';
-  memset (defstr, ' ', LEN_DEFSTR * sizeof (char));
-  optstr[LEN_DEFSTR - 1] = '\0';
+  char optstr[LEN_OPTSTR], paramstr[LEN_PARAMSTR], defstr[LEN_HELPSTR];
+  char *desc, **descs, descstr[LEN_HELPSTR], *lngstr;
+  int i, j, n, len;
 
   if (!strcmp (opt->lng, "incremental_look_ahead")
       || !strcmp (opt->lng, "incremental_in_depth")
@@ -279,8 +275,11 @@ print_opt (BtorMainApp *app, BtorOpt *opt)
       || (!opt->shrt
           && 2 * strlen (paramstr) + strlen (opt->lng) + 7 <= LEN_OPTSTR));
 
-  len = strlen (opt->lng);
-  BTOR_NEWN (app->mm, lngstr, len + 1);
+  /* option string */
+  memset (optstr, ' ', LEN_OPTSTR * sizeof (char));
+  optstr[LEN_OPTSTR - 1] = '\0';
+  len                    = strlen (opt->lng);
+  BTOR_NEWN (app->mm, lngstr, (len + 1) * sizeof (char));
   for (i = 0; i < len; i++) lngstr[i] = opt->lng[i] == '_' ? '-' : opt->lng[i];
   lngstr[len] = '\0';
 
@@ -301,16 +300,81 @@ print_opt (BtorMainApp *app, BtorOpt *opt)
   for (i = len; i < LEN_OPTSTR - 1; i++) optstr[i] = ' ';
   optstr[LEN_OPTSTR - 1] = '\0';
 
-  if (!strcmp (opt->lng, "rewrite_level")
-      || !strcmp (opt->lng, "rewrite_level_pbr"))
+  /* formatted description */
+  len = strlen (opt->desc);
+  /* Note: do not use btor_strdup for desc (' ' will be replaced by 0 but
+   *       btor_freestr relies on 0 to determine string length). */
+  BTOR_CNEWN (app->mm, desc, len + 1);
+  n = 0;
+  i = 0;
+  while (i < len && opt->desc[i] == ' ') desc[i++] = 0;
+  for (; i < len; n++)
   {
-    defstr[0] = '\n';
-    sprintf (defstr + LEN_OPTSTR, " (default: %d)", opt->dflt);
+    while (i < len && opt->desc[i] != ' ') desc[i++] = opt->desc[i];
+    while (i < len && opt->desc[i] == ' ') desc[i++] = 0;
+  }
+  BTOR_NEWN (app->mm, descs, n);
+  for (i = 0, j = 0; i < len; i++, j++)
+  {
+    while (i < len && desc[i] == 0) i += 1;
+    if (i >= len) break;
+    descs[j] = btor_strdup (app->mm, desc + i);
+    while (i < len && desc[i] != 0) i += 1;
+  }
+  BTOR_DELETEN (app->mm, desc, len + 1);
+
+  fprintf (app->outfile, "%s ", optstr);
+
+  memset (descstr, 0, LEN_HELPSTR * sizeof (char));
+  for (i = 0, j = 0, len = strlen (descs[i]);
+       i < n && LEN_HELPSTR - LEN_OPTSTR - 1 - j > len;
+       i++)
+  {
+    len = strlen (descs[i]);
+    strcpy (descstr + j, descs[i]);
+    j += len;
+    descstr[j++] = ' ';
+  }
+  descstr[j - 1] = i < n ? '\n' : 0;
+  fprintf (app->outfile, "%s", descstr);
+
+  while (i < n)
+  {
+    memset (descstr, 0, LEN_HELPSTR * sizeof (char));
+    memset (descstr, ' ', LEN_OPTSTR * sizeof (char));
+    for (j = LEN_OPTSTR, len = strlen (descs[i]);
+         i < n && LEN_HELPSTR - 1 - j > len;
+         i++)
+    {
+      len = strlen (descs[i]);
+      strcpy (descstr + j, descs[i]);
+      j += len;
+      descstr[j++] = ' ';
+    }
+    descstr[j - 1] = i < n ? '\n' : 0;
+    fprintf (app->outfile, "%s", descstr);
+  }
+
+  /* cleanup */
+  for (i = 0; i < n; i++) btor_freestr (app->mm, descs[i]);
+  BTOR_DELETEN (app->mm, descs, n);
+
+  /* default value */
+  memset (defstr, ' ', LEN_HELPSTR * sizeof (char));
+  defstr[LEN_HELPSTR - 1] = '\0';
+  if (!strcmp (opt->lng, "rewrite_level")
+      || !strcmp (opt->lng, "rewrite_level_pbr")
+      || !strcmp (opt->lng, "pbra_lod_limit")
+      || !strcmp (opt->lng, "pbra_sat_limit")
+      || !strcmp (opt->lng, "pbra_ops_factor"))
+  {
+    sprintf (defstr + LEN_OPTSTR, "(default: %d)", opt->dflt);
+    fprintf (app->outfile, "\n");
   }
   else
     defstr[0] = '\0';
 
-  fprintf (app->outfile, "%s %s%s\n", optstr, opt->desc, defstr);
+  fprintf (app->outfile, "%s\n", defstr);
 }
 
 static void
@@ -343,7 +407,7 @@ print_help (BtorMainApp *app)
   {
     if (o->internal) continue;
     if (!strcmp (o->lng, "incremental") || !strcmp (o->lng, "beta_reduce_all")
-        || !strcmp (o->lng, "no_pretty_print"))
+        || !strcmp (o->lng, "no_pretty_print") || !strcmp (o->lng, "dual_prop"))
       fprintf (out, "\n");
     if (!strcmp (o->lng, "input_format"))
     {

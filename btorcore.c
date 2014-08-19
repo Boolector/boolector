@@ -8428,12 +8428,12 @@ br_probe (Btor *btor)
     btor_delete_btor (bclone);
     return res;
   }
-  // TODO: make this 10 an option
-  else if (num_ops_clone < num_ops_orig * 10)
+  else if (num_ops_clone < num_ops_orig * btor->options.pbra_ops_factor.val)
   {
     btor_msg (btor, 1, "  limit refinement iterations to 10");
-    // TODO: this 10 also
-    res = btor_sat_aux_btor (bclone, 10, 55000);
+    res = btor_sat_aux_btor (bclone,
+                             btor->options.pbra_lod_limit.val,
+                             btor->options.pbra_sat_limit.val);
     btor_delete_btor (bclone);
   }
 
@@ -8468,7 +8468,8 @@ btor_sat_btor (Btor *btor, int lod_limit, int sat_limit)
 
 #ifdef BTOR_USE_LINGELING
   if (btor_has_clone_support_sat_mgr (btor_get_sat_mgr_btor (btor))
-      && lod_limit == -1 && sat_limit == -1)
+      && btor->options.probe_beta_reduce_all.val && lod_limit == -1
+      && sat_limit == -1)
   {
     res = br_probe (btor);
     if (res != BTOR_UNKNOWN) return res;
