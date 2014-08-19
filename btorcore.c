@@ -90,7 +90,15 @@
   {                                            \
     BTOR_INIT_UNIQUE_TABLE (mm, table);        \
     table.mm = mm;                             \
-    table.id = 1;                              \
+    BTOR_INIT_STACK (table.id2sort);           \
+    BTOR_PUSH_STACK (mm, table.id2sort, 0);    \
+  } while (0)
+
+#define BTOR_RELEASE_SORT_UNIQUE_TABLE(mm, table) \
+  do                                              \
+  {                                               \
+    BTOR_RELEASE_UNIQUE_TABLE (mm, table);        \
+    BTOR_RELEASE_STACK (mm, table.id2sort);       \
   } while (0)
 
 #define BTOR_ABORT_CORE(cond, msg)                   \
@@ -964,7 +972,6 @@ btor_delete_btor (Btor *btor)
   BtorHashTableIterator iit;
 #endif
   BtorSort *sort;
-  BtorSortPtrStack sorts;
 
   mm = btor->mm;
 
@@ -1110,23 +1117,16 @@ btor_delete_btor (Btor *btor)
 
   if (btor->options.force_cleanup.val)
   {
-    BTOR_INIT_STACK (sorts);
-    btor_sorts_list_sort (mm, &btor->sorts_unique_table, &sorts);
-    for (i = BTOR_COUNT_STACK (sorts) - 1; i >= 0; i--)
+    for (i = BTOR_COUNT_STACK (btor->sorts_unique_table.id2sort) - 1; i >= 0;
+         i--)
     {
-      sort = BTOR_PEEK_STACK (sorts, i);
+      sort = BTOR_PEEK_STACK (btor->sorts_unique_table.id2sort, i);
+      if (!sort) continue;
+      assert (sort->refs);
       assert (sort->ext_refs <= sort->refs);
-      if (sort->ext_refs == sort->refs)
-        sort->refs = 1;
-      else
-      {
-        sort->refs -= sort->ext_refs;
-        assert (sort->refs > 0);
-      }
-      sort->ext_refs = 0;
+      sort->refs = 1;
       btor_release_sort (&btor->sorts_unique_table, sort);
     }
-    BTOR_RELEASE_STACK (mm, sorts);
   }
 
 #ifndef NDEBUG
@@ -1145,7 +1145,7 @@ btor_delete_btor (Btor *btor)
 
   assert (getenv ("BTORLEAK") || getenv ("BTORLEAKSORT")
           || btor->sorts_unique_table.num_elements == 0);
-  BTOR_RELEASE_UNIQUE_TABLE (mm, btor->sorts_unique_table);
+  BTOR_RELEASE_SORT_UNIQUE_TABLE (mm, btor->sorts_unique_table);
 
   btor_delete_ptr_hash_table (btor->bv_vars);
   btor_delete_ptr_hash_table (btor->ufs);
@@ -8619,15 +8619,15 @@ fun_sort_from_fun (Btor *btor, BtorNode *fun)
   assert (BTOR_IS_FUN_NODE (fun));
 
   BtorNode *lambda, *param;
-  BtorSort *sort, *domain, *codomain;
-  BtorSortPtrStack sorts;
+  BtorSort *sort, *codomain;
+  BtorSortPtrStack domain;
   BtorNodeIterator it;
 
   if (BTOR_IS_UF_NODE (fun)) return btor_copy_sort (((BtorUFNode *) fun)->sort);
 
   assert (BTOR_IS_LAMBDA_NODE (fun));
 
-  BTOR_INIT_STACK (sorts);
+  BTOR_INIT_STACK (domain);
   init_lambda_iterator (&it, fun);
   while (has_next_lambda_iterator (&it))
   {
@@ -8635,22 +8635,19 @@ fun_sort_from_fun (Btor *btor, BtorNode *fun)
     param  = lambda->e[0];
     assert (BTOR_IS_PARAM_NODE (param));
     sort = btor_bitvec_sort (&btor->sorts_unique_table, param->len);
-    BTOR_PUSH_STACK (btor->mm, sorts, sort);
+    BTOR_PUSH_STACK (btor->mm, domain, sort);
   }
 
-  if (BTOR_COUNT_STACK (sorts) > 1)
-    domain = btor_tuple_sort (
-        &btor->sorts_unique_table, sorts.start, BTOR_COUNT_STACK (sorts));
-  else
-    domain = btor_copy_sort (BTOR_PEEK_STACK (sorts, 0));
   codomain = btor_bitvec_sort (&btor->sorts_unique_table, fun->len);
-  sort     = btor_fun_sort (&btor->sorts_unique_table, domain, codomain);
+  sort     = btor_fun_sort (&btor->sorts_unique_table,
+                        domain.start,
+                        BTOR_COUNT_STACK (domain),
+                        codomain);
 
-  btor_release_sort (&btor->sorts_unique_table, domain);
   btor_release_sort (&btor->sorts_unique_table, codomain);
-  while (!BTOR_EMPTY_STACK (sorts))
-    btor_release_sort (&btor->sorts_unique_table, BTOR_POP_STACK (sorts));
-  BTOR_RELEASE_STACK (btor->mm, sorts);
+  while (!BTOR_EMPTY_STACK (domain))
+    btor_release_sort (&btor->sorts_unique_table, BTOR_POP_STACK (domain));
+  BTOR_RELEASE_STACK (btor->mm, domain);
 
   return sort;
 }

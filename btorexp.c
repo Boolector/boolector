@@ -1631,7 +1631,7 @@ btor_array_exp (Btor *btor, int elem_len, int index_len, const char *symbol)
 
   index_sort = btor_bitvec_sort (&btor->sorts_unique_table, index_len);
   elem_sort  = btor_bitvec_sort (&btor->sorts_unique_table, elem_len);
-  sort       = btor_fun_sort (&btor->sorts_unique_table, index_sort, elem_sort);
+  sort = btor_fun_sort (&btor->sorts_unique_table, &index_sort, 1, elem_sort);
 
   res                            = btor_uf_exp (btor, sort, symbol);
   ((BtorUFNode *) res)->is_array = 1;
