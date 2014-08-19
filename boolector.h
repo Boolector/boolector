@@ -398,6 +398,7 @@ int boolector_set_sat_solver_minisat (Btor *btor);
 void boolector_set_opt (Btor *btor, const char *opt, int val);
 
 const BtorOpt *boolector_get_opt (Btor *btor, const char *opt);
+int boolector_get_opt_val (Btor *btor, const char *opt);
 
 const BtorOpt *boolector_first_opt (Btor *btor);
 
@@ -1441,26 +1442,56 @@ void boolector_release_sort (Btor *btor, BoolectorSort *sort);
 
 /*------------------------------------------------------------------------*/
 
-// TODO COMMENTS @aina
-//
+/* Parse input file. Input file format may be either BTOR, SMT-LIB v1, or
+ * SMT-LIB v2 and is determined automatically.
+ * If the parser encounters an error, an explanation of that error is stored
+ * in 'error_msg'. If the input file specifies a (known) status of the input
+ * formula (either sat or unsat), that status is stored in 'status'.
+ * \param btor Boolector instance.
+ * \param file Input file.
+ * \param file_name Input file name.
+ * \param error_msg Error message.
+ * \param status Status of the input formula.
+ */
 int boolector_parse (Btor *btor,
                      FILE *file,
                      const char *file_name,
                      char **error_msg,
                      int *status);
 
+/* Parse input file in BTOR format. See \ref boolector_parse.
+ * \param btor Boolector instance.
+ * \param file Input file.
+ * \param file_name Input file name.
+ * \param error_msg Error message.
+ * \param status Status of the input formula.
+ */
 int boolector_parse_btor (Btor *btor,
                           FILE *file,
                           const char *file_name,
                           char **error_msg,
                           int *status);
 
+/* Parse input file in SMT-LIB v1 format. See \ref boolector_parse.
+ * \param btor Boolector instance.
+ * \param file Input file.
+ * \param file_name Input file name.
+ * \param error_msg Error message.
+ * \param status Status of the input formula.
+ */
 int boolector_parse_smt1 (Btor *btor,
                           FILE *file,
                           const char *file_name,
                           char **error_msg,
                           int *status);
 
+/* Parse input file in SMT-LIB v2 format. See \ref boolector_parse.
+ * \param btor Boolector instance.
+ * \param file Input file.
+ * \param file_name Input file name.
+ * \param error_msg Error message.
+ * \param status Status of the input formula.
+ */
 int boolector_parse_smt2 (Btor *btor,
                           FILE *file,
                           const char *file_name,

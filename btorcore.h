@@ -28,7 +28,7 @@
 
 /*------------------------------------------------------------------------*/
 
-#ifndef NDEBUG
+#if !defined(NDEBUG) && defined(BTOR_USE_LINGELING)
 //#define BTOR_CHECK_FAILED
 #endif
 

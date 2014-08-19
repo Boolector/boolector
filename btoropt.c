@@ -59,6 +59,7 @@ set_opt_values (BtorOpt *opt,
   opt->shrt     = shrt;
   opt->lng      = lng;
   opt->val      = val;
+  opt->dflt     = val;
   opt->min      = min;
   opt->max      = max;
   opt->desc     = desc;
@@ -169,6 +170,27 @@ btor_init_opts (Btor *btor)
 
   BTOR_OPT (
       "bra", beta_reduce_all, 0, 0, 1, "eagerly eliminate lambda expressions");
+  BTOR_OPT ("pbra",
+            probe_beta_reduce_all,
+            0,
+            0,
+            1,
+            "probe '-bra' until given LOD or SAT limit");
+  BTOR_OPT (0, pbra_lod_limit, 10, 0, -1, "LOD limit for '-pbra'");
+  BTOR_OPT (0,
+            pbra_sat_limit,
+            55000,
+            0,
+            -1,
+            "SAT limit (number of conflicts) for '-pbra'");
+  BTOR_OPT (0,
+            pbra_ops_factor,
+            10,
+            0,
+            -1,
+            "factor by which the size of the red. formula may be greater than "
+            "the original formula");
+
   BTOR_OPT ("dp", dual_prop, 0, 0, 1, "enable dual propagation optimization");
   BTOR_OPT ("ju", just, 0, 0, 1, "enable justification optimization");
   BTOR_OPT ("uc", ucopt, 0, 0, 1, "enable unconstrained optimization");
