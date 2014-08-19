@@ -450,14 +450,9 @@ typedef struct ExpStack
   int initlayer;     /* marker for init layer */
 } ExpStack;
 
-typedef struct Sort
-{
-  BoolectorSort *sort;
-} Sort;
-
 typedef struct SortStack
 {
-  Sort *sorts;
+  BoolectorSort **sorts;
   int size, n;
   //  int initlayer;
 } SortStack;
@@ -650,7 +645,7 @@ typedef struct BtorMBT
   ExpStack bo, bv, arr, fun, uf;
   ExpStack *parambo, *parambv, *paramarr;
   ExpStack cnf;
-  SortStack bv_sorts, tuple_sorts, fun_sorts;
+  SortStack bv_sorts, fun_sorts;
 
   RNG rng;
 } BtorMBT;
@@ -781,7 +776,7 @@ ss_push (SortStack *ss, BoolectorSort *sort)
     ss->size  = ss->size ? ss->size * 2 : 2;
     ss->sorts = realloc (ss->sorts, ss->size * sizeof *ss->sorts);
   }
-  ss->sorts[ss->n].sort = sort;
+  ss->sorts[ss->n] = sort;
   ss->n++;
 }
 
@@ -791,7 +786,7 @@ ss_pop (SortStack * ss)
 {
   if (!ss->n) return 0;
   ss->n -= 1;
-  return ss->sorts[ss->n].sort;
+  return ss->sorts[ss->n];
 }
 
 static void
@@ -1896,7 +1891,7 @@ bitvec_sort (BtorMBT *btormbt, unsigned r)
   if (btormbt->bv_sorts.n && rand < 0.5) /* use existing bv sort */
   {
     rand = pick (&rng, 0, btormbt->bv_sorts.n - 1);
-    sort = btormbt->bv_sorts.sorts[rand].sort;
+    sort = btormbt->bv_sorts.sorts[rand];
   }
   else /* create new bv sort */
   {
@@ -1909,35 +1904,26 @@ bitvec_sort (BtorMBT *btormbt, unsigned r)
   return sort;
 }
 
-static BoolectorSort *
-tuple_sort (BtorMBT *btormbt, unsigned r)
+static void
+init_domain (BtorMBT *btormbt, unsigned r, SortStack *ss)
 {
-  int i, rand, num_elements;
+  int i, arity, rand;
   RNG rng;
-  BoolectorSort *sort, **elements;
 
   rng  = initrng (r);
   rand = pick (&rng, 0, NORM_VAL - 1);
 
-  // TODO: option for 0.5 p_sort_tuple
-  if (btormbt->tuple_sorts.n && rand < 0.5) /* use existing tuple sort */
+  // TODO: option for 0.1 p_sort_fun_unary?
+  if (rand < 0.1)
   {
-    rand = pick (&rng, 0, btormbt->tuple_sorts.n - 1);
-    sort = btormbt->tuple_sorts.sorts[rand].sort;
+    ss_push (ss, bitvec_sort (btormbt, r));
+    return;
   }
-  else /* create new tuple sort */
-  {
-    // TODO: option for 2 sort_tuple_min_elems
-    // TODO: option for 10 sort_tuple_max_elems
-    num_elements = pick (&rng, 2, 10);
-    elements     = malloc (num_elements * sizeof (BoolectorSort *));
-    for (i = 0; i < num_elements; i++) elements[i] = bitvec_sort (btormbt, r);
 
-    sort = boolector_tuple_sort (btormbt->btor, elements, num_elements);
-    ss_push (&btormbt->tuple_sorts, sort);
-    free (elements);
-  }
-  return sort;
+  // TODO: option for 2 sort_fun_min_arity
+  // TODO: option for 10 sort_fun_max_arity
+  arity = pick (&rng, 2, 10);
+  for (i = 0; i < arity; i++) ss_push (ss, bitvec_sort (btormbt, r));
 }
 
 static BoolectorSort *
@@ -1945,7 +1931,8 @@ fun_sort (BtorMBT *btormbt, unsigned r)
 {
   int rand;
   RNG rng;
-  BoolectorSort *sort, *domain, *codomain;
+  BoolectorSort *sort, *codomain;
+  SortStack domain;
 
   rng  = initrng (r);
   rand = pick (&rng, 0, NORM_VAL - 1);
@@ -1954,20 +1941,16 @@ fun_sort (BtorMBT *btormbt, unsigned r)
   if (btormbt->fun_sorts.n && rand < 0.5) /* use existing fun sort */
   {
     rand = pick (&rng, 0, btormbt->fun_sorts.n - 1);
-    sort = btormbt->fun_sorts.sorts[rand].sort;
+    sort = btormbt->fun_sorts.sorts[rand];
   }
   else /* create new fun sort */
   {
-    rand = pick (&rng, 0, NORM_VAL - 1);
-    // TODO: option for 0.1 p_sort_fun_unary?
-    /* only one argument (no tuple needed) */
-    if (rand < 0.1)
-      domain = bitvec_sort (btormbt, r);
-    else
-      domain = tuple_sort (btormbt, r);
+    ss_init (&domain);
+    init_domain (btormbt, r, &domain);
     codomain = bitvec_sort (btormbt, r);
-    sort     = boolector_fun_sort (btormbt->btor, domain, codomain);
+    sort = boolector_fun_sort (btormbt->btor, domain.sorts, domain.n, codomain);
     ss_push (&btormbt->fun_sorts, sort);
+    ss_release (&domain);
   }
   return sort;
 }
@@ -2672,13 +2655,13 @@ _inc (BtorMBT *btormbt, unsigned r)
     es_release (&btormbt->stack);                                    \
   } while (0)
 
-#define RELEASE_SORT_STACK(stack)                                           \
-  do                                                                        \
-  {                                                                         \
-    int i;                                                                  \
-    for (i = 0; i < btormbt->stack.n; i++)                                  \
-      boolector_release_sort (btormbt->btor, btormbt->stack.sorts[i].sort); \
-    ss_release (&btormbt->stack);                                           \
+#define RELEASE_SORT_STACK(stack)                                      \
+  do                                                                   \
+  {                                                                    \
+    int i;                                                             \
+    for (i = 0; i < btormbt->stack.n; i++)                             \
+      boolector_release_sort (btormbt->btor, btormbt->stack.sorts[i]); \
+    ss_release (&btormbt->stack);                                      \
   } while (0)
 
 static void *
@@ -2697,7 +2680,6 @@ _del (BtorMBT *btormbt, unsigned r)
   es_release (&btormbt->assumptions);
 
   RELEASE_SORT_STACK (bv_sorts);
-  RELEASE_SORT_STACK (tuple_sorts);
   RELEASE_SORT_STACK (fun_sorts);
 
   assert (btormbt->parambo == NULL);
