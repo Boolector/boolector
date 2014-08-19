@@ -120,7 +120,6 @@ typedef struct BtorNodePair BtorNodePair;
     int ext_refs;           /* external references counter */              \
     int parents;            /* number of parents */                        \
     int arity;              /* arity of operator */                        \
-    float score;            /* nvsids score for apply propagation */       \
     union                                                                  \
     {                                                                      \
       BtorAIGVec *av;        /* synthesized AIG vector */                  \

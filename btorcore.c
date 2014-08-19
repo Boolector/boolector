@@ -49,7 +49,6 @@
 //#define MARK_FOR_CC
 //#define BTOR_DO_NOT_LAZY_SYNTHESIZE
 #define POP_TOP_APPLIES
-//#define BTOR_USE_NVSIDS_ORDER_FOR_PROPAGATION
 
 /* justification heuristics */
 #define BTOR_JUST_USE_HEURISTIC
@@ -7875,22 +7874,6 @@ reset_applies (Btor *btor)
   }
 }
 
-#ifdef BTOR_USE_NVSIDS_ORDER_FOR_PROPAGATION
-static int
-compare_score (const void *p1, const void *p2)
-{
-  BtorNode *a, *b;
-  a = *((BtorNode **) p1);
-  b = *((BtorNode **) p2);
-
-  if (a->score < b->score) return 1;
-
-  if (a->score > b->score) return -1;
-
-  return 0;
-}
-#endif
-
 static int
 check_and_resolve_conflicts (Btor *btor,
                              Btor *clone,
@@ -7954,13 +7937,6 @@ BTOR_CONFLICT_CHECK:
     assert (BTOR_IS_APPLY_NODE (app));
     BTOR_PUSH_STACK (mm, top_applies, app);
   }
-
-#ifdef BTOR_USE_NVSIDS_ORDER_FOR_PROPAGATION
-  qsort (top_applies.start,
-         BTOR_COUNT_STACK (top_applies),
-         sizeof (BtorNode *),
-         compare_score);
-#endif
 
 #ifdef POP_TOP_APPLIES
   for (i = BTOR_COUNT_STACK (top_applies) - 1; i >= 0; i--)
