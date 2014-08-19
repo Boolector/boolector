@@ -310,11 +310,7 @@ print_opt (BtorMainApp *app, BtorOpt *opt)
   while (i < len && opt->desc[i] == ' ') desc[i++] = 0;
   while (i < len)
   {
-    while (i < len && opt->desc[i] != ' ')
-    {
-      desc[i] = opt->desc[i];
-      i++;
-    }
+    while (i < len && opt->desc[i] != ' ') desc[i] = opt->desc[i++];
     while (i < len && opt->desc[i] == ' ') desc[i++] = 0;
     n += 1;
   }
