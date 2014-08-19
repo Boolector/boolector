@@ -34,15 +34,6 @@
     }                                                \
   } while (0)
 
-static int
-compare_sorts (const void *p1, const void *p2)
-{
-  BtorSort *a, *b;
-  a = *((BtorSort **) p1);
-  b = *((BtorSort **) p2);
-  return a->id - b->id;
-}
-
 static void
 inc_sort_ref_counter (BtorSort *sort)
 {
@@ -52,7 +43,7 @@ inc_sort_ref_counter (BtorSort *sort)
 }
 
 static unsigned
-compute_hash_sort (BtorSort *sort, int table_size)
+compute_hash_sort (const BtorSort *sort, int table_size)
 {
   assert (sort);
   assert (table_size);
@@ -189,7 +180,7 @@ equal_sort (const BtorSort *a, const BtorSort *b)
 }
 
 static BtorSort **
-find_sort (BtorSortUniqueTable *table, BtorSort *pattern)
+find_sort (BtorSortUniqueTable *table, const BtorSort *pattern)
 {
   assert (table);
   assert (pattern);
@@ -254,27 +245,46 @@ release_sort (BtorSortUniqueTable *table, BtorSort *sort)
     default: break;
 
     case BTOR_LST_SORT:
+#ifndef NDEBUG
+      sort->lst.head->parents--;
+      sort->lst.tail->parents--;
+#endif
       release_sort (table, sort->lst.head);
       release_sort (table, sort->lst.tail);
       break;
 
     case BTOR_ARRAY_SORT:
+#ifndef NDEBUG
+      sort->array.index->parents--;
+      sort->array.element->parents--;
+#endif
       release_sort (table, sort->array.index);
       release_sort (table, sort->array.element);
       break;
 
     case BTOR_FUN_SORT:
+#ifndef NDEBUG
+      sort->fun.domain->parents--;
+      sort->fun.codomain->parents--;
+#endif
       release_sort (table, sort->fun.domain);
       release_sort (table, sort->fun.codomain);
       break;
 
     case BTOR_TUPLE_SORT:
       for (i = 0; i < sort->tuple.num_elements; i++)
+      {
+#ifndef NDEBUG
+        sort->tuple.elements[i]->parents--;
+#endif
         release_sort (table, sort->tuple.elements[i]);
+      }
       BTOR_DELETEN (table->mm, sort->tuple.elements, sort->tuple.num_elements);
       break;
   }
 
+  assert (BTOR_PEEK_STACK (table->id2sort, sort->id) == sort);
+  BTOR_POKE_STACK (table->id2sort, sort->id, 0);
   BTOR_DELETE (table->mm, sort);
 }
 
@@ -316,26 +326,32 @@ create_sort (BtorSortUniqueTable *table, BtorSort *pattern)
 
     case BTOR_ARRAY_SORT:
       res->kind          = BTOR_ARRAY_SORT;
-      res->array.index   = pattern->array.index;
-      res->array.element = pattern->array.element;
-      inc_sort_ref_counter (pattern->array.index);
-      inc_sort_ref_counter (pattern->array.element);
+      res->array.index   = btor_copy_sort (pattern->array.index);
+      res->array.element = btor_copy_sort (pattern->array.element);
+#ifndef NDEBUG
+      res->array.index->parents++;
+      res->array.element->parents++;
+#endif
       break;
 
     case BTOR_LST_SORT:
       res->kind     = BTOR_LST_SORT;
-      res->lst.head = pattern->lst.head;
-      res->lst.tail = pattern->lst.tail;
-      inc_sort_ref_counter (pattern->lst.head);
-      inc_sort_ref_counter (pattern->lst.tail);
+      res->lst.head = btor_copy_sort (pattern->lst.head);
+      res->lst.tail = btor_copy_sort (pattern->lst.tail);
+#ifndef NDEBUG
+      res->lst.head->parents++;
+      res->lst.tail->parents++;
+#endif
       break;
 
     case BTOR_FUN_SORT:
       res->kind         = BTOR_FUN_SORT;
-      res->fun.domain   = pattern->fun.domain;
-      res->fun.codomain = pattern->fun.codomain;
-      inc_sort_ref_counter (pattern->fun.domain);
-      inc_sort_ref_counter (pattern->fun.codomain);
+      res->fun.domain   = btor_copy_sort (pattern->fun.domain);
+      res->fun.codomain = btor_copy_sort (pattern->fun.codomain);
+#ifndef NDEBUG
+      res->fun.domain->parents++;
+      res->fun.codomain->parents++;
+#endif
       break;
 
     case BTOR_TUPLE_SORT:
@@ -343,14 +359,26 @@ create_sort (BtorSortUniqueTable *table, BtorSort *pattern)
       res->tuple.num_elements = pattern->tuple.num_elements;
       BTOR_NEWN (table->mm, res->tuple.elements, res->tuple.num_elements);
       for (i = 0; i < res->tuple.num_elements; i++)
+      {
         res->tuple.elements[i] = btor_copy_sort (pattern->tuple.elements[i]);
+#ifndef NDEBUG
+        res->tuple.elements[i]->parents++;
+#endif
+      }
       break;
 
     default: break;
   }
   assert (res->kind);
-  res->id = table->id++;
+  res->id = BTOR_COUNT_STACK (table->id2sort);
+  BTOR_PUSH_STACK (table->mm, table->id2sort, res);
+  assert (BTOR_COUNT_STACK (table->id2sort) == res->id + 1);
+  assert (BTOR_PEEK_STACK (table->id2sort, res->id) == res);
+
   table->num_elements++;
+#ifndef NDEBUG
+  res->table = table;
+#endif
 
   return res;
 }
@@ -423,6 +451,8 @@ btor_array_sort (BtorSortUniqueTable *table, BtorSort *index, BtorSort *element)
   assert (index->refs > 0);
   assert (element);
   assert (element->refs > 0);
+  assert (index->table == table);
+  assert (element->table == table);
 
   BtorSort *res, **pos, pattern;
 
@@ -458,6 +488,8 @@ btor_lst_sort (BtorSortUniqueTable *table, BtorSort *head, BtorSort *tail)
   assert (head->refs > 0);
   assert (tail);
   assert (tail->refs > 0);
+  assert (head->table == table);
+  assert (tail->table == table);
 
   BtorSort *res, **pos, pattern;
 
@@ -486,19 +518,35 @@ btor_lst_sort (BtorSortUniqueTable *table, BtorSort *head, BtorSort *tail)
 }
 
 BtorSort *
-btor_fun_sort (BtorSortUniqueTable *table, BtorSort *domain, BtorSort *codomain)
+btor_fun_sort (BtorSortUniqueTable *table,
+               BtorSort **domain,
+               int arity,
+               BtorSort *codomain)
 {
   assert (table);
   assert (domain);
-  assert (domain->refs > 0);
+  assert (arity > 0);
   assert (codomain);
   assert (codomain->refs > 0);
+  assert (codomain->table == table);
+
+#ifndef NDEBUG
+  int i;
+  for (i = 0; i < arity; i++)
+  {
+    assert (domain[i]->refs > 0);
+    assert (domain[i]->table == table);
+  }
+#endif
 
   BtorSort *res, **pos, pattern;
 
   BTOR_CLR (&pattern);
-  pattern.kind         = BTOR_FUN_SORT;
-  pattern.fun.domain   = domain;
+  pattern.kind = BTOR_FUN_SORT;
+  if (arity > 1)
+    pattern.fun.domain = btor_tuple_sort (table, domain, arity);
+  else
+    pattern.fun.domain = *domain;
   pattern.fun.codomain = codomain;
   pos                  = find_sort (table, &pattern);
   assert (pos);
@@ -513,10 +561,14 @@ btor_fun_sort (BtorSortUniqueTable *table, BtorSort *domain, BtorSort *codomain)
       res = *pos;
       assert (!res);
     }
-    res  = create_sort (table, &pattern);
-    *pos = res;
+    res            = create_sort (table, &pattern);
+    res->fun.arity = arity;
+    *pos           = res;
   }
   inc_sort_ref_counter (res);
+
+  if (arity > 1) btor_release_sort (table, pattern.fun.domain);
+
   return res;
 }
 
@@ -528,6 +580,11 @@ btor_tuple_sort (BtorSortUniqueTable *table,
   assert (table);
   assert (elements);
   assert (num_elements > 1);
+
+#ifndef NDEBUG
+  int i;
+  for (i = 0; i < num_elements; i++) assert (elements[i]->table == table);
+#endif
 
   BtorSort *res, **pos, pattern;
 
@@ -553,28 +610,4 @@ btor_tuple_sort (BtorSortUniqueTable *table,
   }
   inc_sort_ref_counter (res);
   return res;
-}
-
-void
-btor_sorts_list_sort (BtorMemMgr *mm,
-                      BtorSortUniqueTable *table,
-                      BtorSortPtrStack *sorts)
-{
-  assert (table);
-  assert (sorts);
-
-  int i;
-  BtorSort *sort;
-
-  for (i = 0; i < table->size; i++)
-  {
-    if (!table->chains[i]) continue;
-    for (sort = table->chains[i]; sort; sort = sort->next)
-      BTOR_PUSH_STACK (mm, *sorts, sort);
-  }
-
-  qsort ((*sorts).start,
-         BTOR_COUNT_STACK (*sorts),
-         sizeof (BtorSort *),
-         compare_sorts);
 }

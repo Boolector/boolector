@@ -169,27 +169,27 @@ void
 test_fun_sort (void)
 {
   init_sort_test ();
-  BtorSort *a, *b, *c, *s0, *s1, *f0, *f1, *f2;
+  BtorSort *a, *b, *c, *s0[2], *s1[2], *f0, *f1, *f2;
 
-  a  = btor_bitvec_sort (g_sorts, 53);
-  b  = btor_bitvec_sort (g_sorts, 1);
-  c  = btor_bool_sort (g_sorts);
-  s0 = btor_lst_sort (g_sorts, a, b);
-  f0 = btor_fun_sort (g_sorts, s0, c);
+  a     = btor_bitvec_sort (g_sorts, 53);
+  b     = btor_bitvec_sort (g_sorts, 1);
+  c     = btor_bool_sort (g_sorts);
+  s0[0] = a;
+  s0[1] = b;
+  f0    = btor_fun_sort (g_sorts, s0, 2, c);
 
-  s1 = btor_lst_sort (g_sorts, b, a);
-  f1 = btor_fun_sort (g_sorts, s1, c);
+  s1[0] = b;
+  s1[1] = a;
+  f1    = btor_fun_sort (g_sorts, s1, 2, c);
   assert (f0 != f1);
 
-  f2 = btor_fun_sort (g_sorts, s0, c);
+  f2 = btor_fun_sort (g_sorts, s0, 2, c);
   assert (f0 == f2);
 
   btor_release_sort (g_sorts, a);
   btor_release_sort (g_sorts, b);
   btor_release_sort (g_sorts, c);
-  btor_release_sort (g_sorts, s0);
   btor_release_sort (g_sorts, f0);
-  btor_release_sort (g_sorts, s1);
   btor_release_sort (g_sorts, f1);
   btor_release_sort (g_sorts, f2);
 

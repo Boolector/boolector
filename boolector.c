@@ -3209,6 +3209,19 @@ boolector_print_model (Btor *btor, FILE *file)
 /*------------------------------------------------------------------------*/
 
 BoolectorSort *
+boolector_bool_sort (Btor *btor)
+{
+  BTOR_ABORT_ARG_NULL_BOOLECTOR (btor);
+  BTOR_TRAPI ("");
+
+  BtorSort *res;
+  res = btor_bool_sort (&btor->sorts_unique_table);
+  res->ext_refs++;
+  BTOR_TRAPI_RETURN_SORT (res);
+  return (BoolectorSort *) res;
+}
+
+BoolectorSort *
 boolector_bitvec_sort (Btor *btor, int len)
 {
   BTOR_ABORT_ARG_NULL_BOOLECTOR (btor);
@@ -3223,7 +3236,26 @@ boolector_bitvec_sort (Btor *btor, int len)
 }
 
 BoolectorSort *
-boolector_tuple_sort (Btor *btor, BoolectorSort **elements, int num_elements)
+boolector_array_sort (Btor *btor, BoolectorSort *index, BoolectorSort *elem)
+{
+  BTOR_ABORT_ARG_NULL_BOOLECTOR (btor);
+  BTOR_TRAPI (SORT_FMT SORT_FMT,
+              BTOR_TRAPI_SORT_ID ((BtorSort *) index),
+              BTOR_TRAPI_SORT_ID ((BtorSort *) elem));
+  BTOR_ABORT_ARG_NULL_BOOLECTOR (index);
+  BTOR_ABORT_ARG_NULL_BOOLECTOR (elem);
+
+  BtorSort *res;
+  res = btor_array_sort (
+      &btor->sorts_unique_table, (BtorSort *) index, (BtorSort *) elem);
+  res->ext_refs++;
+  BTOR_TRAPI_RETURN_SORT (res);
+  return (BoolectorSort *) res;
+}
+
+#if 0
+BoolectorSort *
+boolector_tuple_sort (Btor * btor, BoolectorSort ** elements, int num_elements)
 {
   BTOR_ABORT_ARG_NULL_BOOLECTOR (btor);
   BTOR_ABORT_ARG_NULL_BOOLECTOR (elements);
@@ -3238,33 +3270,52 @@ boolector_tuple_sort (Btor *btor, BoolectorSort **elements, int num_elements)
   sprintf (strtrapi, "%d", num_elements);
 
   for (i = 0; i < num_elements; i++)
-    sprintf (strtrapi + strlen (strtrapi),
-             SORT_FMT,
-             BTOR_TRAPI_SORT_ID ((BtorSort *) elements[i]));
+    sprintf (strtrapi + strlen (strtrapi), SORT_FMT,
+	     BTOR_TRAPI_SORT_ID ((BtorSort *) elements[i])); 
   BTOR_TRAPI (strtrapi);
   BTOR_DELETEN (btor->mm, strtrapi, len);
 
-  res = btor_tuple_sort (
-      &btor->sorts_unique_table, (BtorSort **) elements, num_elements);
+  res = btor_tuple_sort (&btor->sorts_unique_table,
+			 (BtorSort **) elements, num_elements);
   res->ext_refs++;
   BTOR_TRAPI_RETURN_SORT (res);
   return (BoolectorSort *) res;
 }
+#endif
 
 BoolectorSort *
-boolector_fun_sort (Btor *btor, BoolectorSort *domain, BoolectorSort *codomain)
+boolector_fun_sort (Btor *btor,
+                    BoolectorSort **domain,
+                    int arity,
+                    BoolectorSort *codomain)
 {
   BTOR_ABORT_ARG_NULL_BOOLECTOR (btor);
   BTOR_ABORT_ARG_NULL_BOOLECTOR (domain);
   BTOR_ABORT_ARG_NULL_BOOLECTOR (codomain);
-  BTOR_TRAPI (SORT_FMT SORT_FMT,
-              BTOR_TRAPI_SORT_ID ((BtorSort *) domain),
-              BTOR_TRAPI_SORT_ID ((BtorSort *) codomain));
+  BTOR_ABORT_BOOLECTOR (arity <= 0, "'arity' must be > 0");
 
+  int i, len;
   BtorSort *res;
+  char *strtrapi;
 
-  res = btor_fun_sort (
-      &btor->sorts_unique_table, (BtorSort *) domain, (BtorSort *) codomain);
+  len = 8 + 10 + (arity + 1) * 20;
+  BTOR_NEWN (btor->mm, strtrapi, len);
+
+  sprintf (strtrapi, SORT_FMT, BTOR_TRAPI_SORT_ID ((BtorSort *) domain[0]));
+  for (i = 1; i < arity; i++)
+    sprintf (strtrapi + strlen (strtrapi),
+             SORT_FMT,
+             BTOR_TRAPI_SORT_ID ((BtorSort *) domain[i]));
+  sprintf (strtrapi + strlen (strtrapi),
+           SORT_FMT,
+           BTOR_TRAPI_SORT_ID ((BtorSort *) codomain));
+  BTOR_TRAPI (strtrapi);
+  BTOR_DELETEN (btor->mm, strtrapi, len);
+
+  res = btor_fun_sort (&btor->sorts_unique_table,
+                       (BtorSort **) domain,
+                       arity,
+                       (BtorSort *) codomain);
   res->ext_refs++;
   BTOR_TRAPI_RETURN_SORT (res);
   return (BoolectorSort *) res;

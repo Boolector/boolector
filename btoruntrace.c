@@ -19,6 +19,7 @@
 #include <string.h>
 #include "boolector.h"
 #include "btorhash.h"
+#include "btorstack.h"
 
 /*------------------------------------------------------------------------*/
 
@@ -233,6 +234,8 @@ hmap_clear (BtorPtrHashTable *hmap)
 #define RET_ARRASS 4
 #define RET_SKIP -1
 
+BTOR_DECLARE_STACK (BoolectorSortPtr, BoolectorSort *);
+
 void
 parse (FILE *file)
 {
@@ -250,6 +253,9 @@ parse (FILE *file)
   BoolectorSort **stmp;
   BtorPtrHashTable *hmap;
   BtorMemMgr *mm;
+  BtorIntStack arg_int;
+  BtorCharPtrStack arg_str;
+  BoolectorSortPtrStack sort_stack;
 
   msg ("reading %s", btorunt->filename);
   exp_ret = RET_NONE;
@@ -265,7 +271,14 @@ parse (FILE *file)
   buffer    = malloc (buffer_len * sizeof (char));
   buffer[0] = 0;
 
+  BTOR_INIT_STACK (arg_int);
+  BTOR_INIT_STACK (arg_str);
+  BTOR_INIT_STACK (sort_stack);
+
 NEXT:
+  BTOR_RESET_STACK (arg_int);
+  BTOR_RESET_STACK (arg_str);
+  BTOR_RESET_STACK (sort_stack);
   ch = getc (file);
   if (ch == EOF) goto DONE;
   if (ch == '\r') goto NEXT;
@@ -447,26 +460,34 @@ NEXT:
       boolector_simplify (btor);
     }
     /* sorts */
+    else if (!strcmp (tok, "bool_sort"))
+    {
+      PARSE_ARGS0 (tok);
+      ret_ptr = boolector_bool_sort (btor);
+      exp_ret = RET_VOIDPTR;
+    }
     else if (!strcmp (tok, "bitvec_sort"))
     {
       PARSE_ARGS1 (tok, int);
       ret_ptr = boolector_bitvec_sort (btor, arg1_int);
       exp_ret = RET_VOIDPTR;
     }
-    else if (!strcmp (tok, "tuple_sort"))
+    else if (!strcmp (tok, "array_sort"))
     {
-      arg1_int = intarg (tok);                                 /* argc */
-      stmp     = malloc (sizeof (BoolectorSort *) * arg1_int); /* args */
-      for (i = 0; i < arg1_int; i++) stmp[i] = hmap_get (hmap, strarg (tok));
-      ret_ptr = boolector_tuple_sort (btor, stmp, arg1_int);
-      free (stmp);
+      PARSE_ARGS2 (tok, str, str);
+      ret_ptr = boolector_array_sort (
+          btor, hmap_get (hmap, arg1_str), hmap_get (hmap, arg2_str));
       exp_ret = RET_VOIDPTR;
     }
     else if (!strcmp (tok, "fun_sort"))
     {
-      PARSE_ARGS2 (tok, str, str);
-      ret_ptr = boolector_fun_sort (
-          btor, hmap_get (hmap, arg1_str), hmap_get (hmap, arg2_str));
+      while ((tok = strtok (0, " ")))
+        BTOR_PUSH_STACK (mm, sort_stack, hmap_get (hmap, tok));
+      assert (BTOR_COUNT_STACK (sort_stack) >= 2);
+      ret_ptr = boolector_fun_sort (btor,
+                                    sort_stack.start,
+                                    BTOR_COUNT_STACK (sort_stack) - 1,
+                                    BTOR_TOP_STACK (sort_stack));
       exp_ret = RET_VOIDPTR;
     }
     else if (!strcmp (tok, "release_sort"))
@@ -1187,6 +1208,10 @@ NEXT:
   goto NEXT;
 DONE:
   msg ("done %s", btorunt->filename);
+  BTOR_RELEASE_STACK (mm, arg_int);
+  BTOR_RELEASE_STACK (mm, arg_str);
+  BTOR_RELEASE_STACK (mm, sort_stack);
+  free (buffer);
   hmap_clear (hmap);
   btor_delete_ptr_hash_table (hmap);
   btor_delete_mem_mgr (mm);

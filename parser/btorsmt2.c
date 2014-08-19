@@ -2832,28 +2832,25 @@ SORTED_VAR:
   BITVEC:
     if (!BTOR_EMPTY_STACK (args))
     {
-      BoolectorSort *sort, *sdomain, *scodomain;
-      BoolectorSort *tup[BTOR_COUNT_STACK (args)];
+      BoolectorSort *sort, *scodomain;
+      BoolectorSort *sdomain[BTOR_COUNT_STACK (args)];
 
       if (BTOR_COUNT_STACK (args) > 1)
       {
         for (i = 0; i < BTOR_COUNT_STACK (args); i++)
-          tup[i] =
+          sdomain[i] =
               boolector_bitvec_sort (parser->btor, BTOR_PEEK_STACK (args, i));
-
-        sdomain =
-            boolector_tuple_sort (parser->btor, tup, BTOR_COUNT_STACK (args));
-
-        for (i = 0; i < BTOR_COUNT_STACK (args); i++)
-          boolector_release_sort (parser->btor, tup[i]);
       }
       else
-        sdomain = boolector_bitvec_sort (parser->btor, BTOR_TOP_STACK (args));
+        sdomain[0] =
+            boolector_bitvec_sort (parser->btor, BTOR_TOP_STACK (args));
 
       scodomain = boolector_bitvec_sort (parser->btor, width);
-      sort      = boolector_fun_sort (parser->btor, sdomain, scodomain);
-      fun->exp  = boolector_uf (parser->btor, sort, fun->name);
-      boolector_release_sort (parser->btor, sdomain);
+      sort      = boolector_fun_sort (
+          parser->btor, sdomain, BTOR_COUNT_STACK (args), scodomain);
+      fun->exp = boolector_uf (parser->btor, sort, fun->name);
+      for (i = 0; i < BTOR_COUNT_STACK (args); i++)
+        boolector_release_sort (parser->btor, sdomain[i]);
       boolector_release_sort (parser->btor, scodomain);
       boolector_release_sort (parser->btor, sort);
       btor_msg_smt2 (

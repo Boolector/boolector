@@ -1405,12 +1405,7 @@ void boolector_print_model (Btor *btor, FILE *file);
 
 /*------------------------------------------------------------------------*/
 
-/**
- * TODO
- */
-BoolectorSort *boolector_fun_sort (Btor *btor,
-                                   BoolectorSort *domain,
-                                   BoolectorSort *codomain);
+BoolectorSort *boolector_bool_sort (Btor *btor);
 
 /**
  * TODO
@@ -1420,9 +1415,25 @@ BoolectorSort *boolector_bitvec_sort (Btor *btor, int len);
 /**
  * TODO
  */
-BoolectorSort *boolector_tuple_sort (Btor *btor,
-                                     BoolectorSort **elements,
-                                     int num_elements);
+BoolectorSort *boolector_array_sort (Btor *btor,
+                                     BoolectorSort *index,
+                                     BoolectorSort *elem);
+
+/**
+ * TODO
+ */
+BoolectorSort *boolector_fun_sort (Btor *btor,
+                                   BoolectorSort **domain,
+                                   int arity,
+                                   BoolectorSort *codomain);
+
+#if 0
+/**
+ * TODO
+ */
+BoolectorSort *boolector_tuple_sort (Btor * btor, BoolectorSort ** elements,
+				    int num_elements);
+#endif
 
 /**
  * TODO

@@ -54,6 +54,7 @@ struct BtorLstSort
 
 struct BtorFunSort
 {
+  int arity;
   BtorSort *domain;
   BtorSort *codomain;
 };
@@ -64,6 +65,8 @@ struct BtorTupleSort
   BtorSort **elements;
 };
 
+typedef struct BtorSortUniqueTable BtorSortUniqueTable;
+
 struct BtorSort
 {
   BtorSortKind kind;  // what kind of sort
@@ -71,6 +74,10 @@ struct BtorSort
   int refs;           // reference counter
   int ext_refs;       // reference counter for API references
   BtorSort *next;     // collision chain for unique table
+#ifndef NDEBUG
+  BtorSortUniqueTable *table;
+  int parents;
+#endif
   union
   {
     BtorBitVecSort bitvec;
@@ -81,18 +88,16 @@ struct BtorSort
   };
 };
 
+BTOR_DECLARE_STACK (BtorSortPtr, BtorSort *);
+
 struct BtorSortUniqueTable
 {
-  unsigned id;
   int size;
   int num_elements;
   BtorSort **chains;
   BtorMemMgr *mm;
+  BtorSortPtrStack id2sort;
 };
-
-typedef struct BtorSortUniqueTable BtorSortUniqueTable;
-
-BTOR_DECLARE_STACK (BtorSortPtr, BtorSort *);
 
 BtorSort *btor_bool_sort (BtorSortUniqueTable *);
 
@@ -102,15 +107,11 @@ BtorSort *btor_array_sort (BtorSortUniqueTable *, BtorSort *, BtorSort *);
 
 BtorSort *btor_lst_sort (BtorSortUniqueTable *, BtorSort *, BtorSort *);
 
-BtorSort *btor_fun_sort (BtorSortUniqueTable *, BtorSort *, BtorSort *);
+BtorSort *btor_fun_sort (BtorSortUniqueTable *, BtorSort **, int, BtorSort *);
 
 BtorSort *btor_tuple_sort (BtorSortUniqueTable *, BtorSort **, int);
 
 BtorSort *btor_copy_sort (BtorSort *);
-
-void btor_sorts_list_sort (BtorMemMgr *,
-                           BtorSortUniqueTable *,
-                           BtorSortPtrStack *);
 
 void btor_release_sort (BtorSortUniqueTable *, BtorSort *);
 
