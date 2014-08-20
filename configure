@@ -365,6 +365,7 @@ else
     LDEPS="${LDEPS}../minisat/build/release/lib/libminisat.a"
     LIBSTDCPP=yes
     LIBZ=yes
+    LIBM=yes
     INCS="${INCS}-I../minisat"
   fi
 
