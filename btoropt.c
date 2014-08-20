@@ -310,7 +310,7 @@ btor_set_opt (Btor *btor, const char *name, int val)
     assert (val >= 0 && val <= 3);
     assert (oldval >= 0 && oldval <= 3);
   }
-#ifdef NBTORLOG
+#ifndef NBTORLOG
   else if (!strcmp (name, BTOR_OPT_LOGLEVEL))
     return;
 #endif

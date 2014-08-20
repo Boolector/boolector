@@ -5349,9 +5349,6 @@ collect_applies (Btor *btor,
   BtorNode *cur_btor, *cur_clone, *bv_eq;
   BtorNodePtrStack unmark_stack;
   BtorNodeMapIterator it;
-#ifndef NBTORLOG
-  int lam, app;
-#endif
 
   start = btor_time_stamp ();
 
@@ -7923,7 +7920,9 @@ new_exp_layer_clone_for_dual_prop (Btor *btor,
   btor_set_opt (clone, BTOR_OPT_INCREMENTAL, 1);
   btor_set_opt (clone, BTOR_OPT_FORCE_CLEANUP, 1);
   btor_set_opt (clone, BTOR_OPT_FORCE_INTERNAL_CLEANUP, 1);
+#ifndef NBTORLOG
   btor_set_opt (clone, BTOR_OPT_LOGLEVEL, 0);
+#endif
   btor_set_opt (clone, BTOR_OPT_VERBOSITY, 0);
   btor_set_opt (clone, BTOR_OPT_DUAL_PROP, 0);     // FIXME should be redundant
   btor_set_opt (clone, BTOR_OPT_PRETTY_PRINT, 1);  // TODO debug
@@ -8305,7 +8304,9 @@ br_probe (Btor *btor)
   bclone = btor_clone_btor (btor);
   btor_set_opt (bclone, BTOR_OPT_BETA_REDUCE_ALL, 1);
   btor_set_opt (bclone, BTOR_OPT_VERBOSITY, 0);
+#ifndef NBTORLOG
   btor_set_opt (bclone, BTOR_OPT_LOGLEVEL, 0);
+#endif
 
   res           = btor_simplify (bclone);
   num_ops_orig  = sum_ops (btor);

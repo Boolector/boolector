@@ -435,7 +435,7 @@ boolector_set_opt (Btor *btor, const char *opt, int val)
     BTOR_ABORT_BOOLECTOR (val < 0 || val > 3,
                           "'rewrite_level_pbr' must be in [0,3]");
   }
-#ifdef NBTORLOG
+#ifndef NBTORLOG
   else if (!strcmp (opt, BTOR_OPT_LOGLEVEL))
   {
     return;

@@ -968,6 +968,10 @@ btor_set_sat_solver (BtorSATMgr *smgr,
 {
   assert (smgr);
   assert (solver);
+#ifndef BTOR_USE_LINGELING
+  (void) optstr;
+  (void) nofork;
+#endif
 
   if (!strcasecmp (solver, "lingeling"))
 #ifdef BTOR_USE_LINGELING
