@@ -665,7 +665,7 @@ boolector_main (int argc, char **argv)
   int i, j, k, len, shrt, disable, readval, val, log, forced_sat_solver;
   int inc, incid, incla, incint, dump;
   int parse_result, parse_status;
-  char opt[50], *cmd, *valstr, *lingeling_opts, *parse_error_msg;
+  char opt[50], *cmd, *valstr, *lingeling_opts, *parse_error_msg, *tmp;
   BtorOpt *o;
 
 #ifdef BTOR_HAVE_GETRUSAGE
@@ -737,17 +737,30 @@ boolector_main (int argc, char **argv)
     valstr = argv[i] + j + 1;
     if (argv[i][j] == '=')
     {
-      val     = atoi (valstr);
-      readval = 1;
+      if (valstr[0] != 0)
+      {
+        val = (int) strtol (valstr, &tmp, 10);
+        if (!tmp) readval = 1;
+      }
+    }
+    else if (i + 1 < argc && argv[i + 1][0] != '-')
+    {
+      val = (int) strtol (argv[i + 1], &tmp, 10);
+      if (!tmp)
+      {
+        readval = 1;
+        i += 1;
+      }
     }
 
     if ((shrt && static_app->opts.help.shrt
          && !strcmp (opt, static_app->opts.help.shrt))
-        || !strcmp (opt, static_app->opts.help.lng))
+        || (!shrt && !strcmp (opt, static_app->opts.help.lng)))
     {
       if (disable)
       {
-        btormain_error (static_app, "invalid option '%s'", argv[i]);
+        btormain_error (
+            static_app, "invalid option '%sno-%s'", shrt ? "-" : "--", opt);
         goto DONE;
       }
       print_help (static_app);
@@ -755,11 +768,12 @@ boolector_main (int argc, char **argv)
     }
     else if ((shrt && static_app->opts.copyright.shrt
               && !strcmp (opt, static_app->opts.copyright.shrt))
-             || !strcmp (opt, static_app->opts.copyright.lng))
+             || (!shrt && !strcmp (opt, static_app->opts.copyright.lng)))
     {
       if (disable)
       {
-        btormain_error (static_app, "invalid option '%s'", argv[i]);
+        btormain_error (
+            static_app, "invalid option '%sno-%s'", shrt ? "-" : "--", opt);
         goto DONE;
       }
       print_copyright (static_app);
@@ -767,11 +781,12 @@ boolector_main (int argc, char **argv)
     }
     else if ((shrt && static_app->opts.version.shrt
               && !strcmp (opt, static_app->opts.version.shrt))
-             || !strcmp (opt, static_app->opts.version.lng))
+             || (!shrt && !strcmp (opt, static_app->opts.version.lng)))
     {
       if (disable)
       {
-        btormain_error (static_app, "invalid option '%s'", argv[i]);
+        btormain_error (
+            static_app, "invalid option '%sno-%s'", shrt ? "-" : "--", opt);
         goto DONE;
       }
       print_version (static_app);
@@ -779,42 +794,45 @@ boolector_main (int argc, char **argv)
     }
     else if ((shrt && static_app->opts.time.shrt
               && !strcmp (opt, static_app->opts.time.shrt))
-             || !strcmp (opt, static_app->opts.time.lng))
+             || (!shrt && !strcmp (opt, static_app->opts.time.lng)))
     {
       if (disable)
       {
-        btormain_error (static_app, "invalid option '%s'", argv[i]);
+        btormain_error (
+            static_app, "invalid option '%sno-%s'", shrt ? "-" : "--", opt);
         goto DONE;
       }
 
-      if (!readval && ++i >= argc)
+      if (!readval)
       {
-        btormain_error (static_app, "missing argument for '%s'", argv[i]);
+        btormain_error (
+            static_app, "missing argument for '%s%s'", shrt ? "-" : "--", opt);
         goto DONE;
       }
-      else if (!readval)
-        val = atoi (argv[i]);
 
       static_set_alarm = val;
       if (static_set_alarm <= 0)
       {
-        btormain_error (static_app, "invalid argument for '%s'", argv[i]);
+        btormain_error (
+            static_app, "invalid argument for '%s%s'", shrt ? "-" : "--", opt);
         goto DONE;
       }
     }
     else if ((shrt && static_app->opts.output.shrt
               && !strcmp (opt, static_app->opts.output.shrt))
-             || !strcmp (opt, static_app->opts.output.lng))
+             || (!shrt && !strcmp (opt, static_app->opts.output.lng)))
     {
       if (disable)
       {
-        btormain_error (static_app, "invalid option '%s'", argv[i]);
+        btormain_error (
+            static_app, "invalid option '%sno-%s'", shrt ? "-" : "--", opt);
         goto DONE;
       }
 
-      if (!readval && ++i > argc)
+      if (++i > argc)
       {
-        btormain_error (static_app, "missing argument for '%s'", argv[i]);
+        btormain_error (
+            static_app, "missing argument for '%s%s'", shrt ? "-" : "--", opt);
         goto DONE;
       }
 
@@ -835,28 +853,31 @@ boolector_main (int argc, char **argv)
 #ifdef BTOR_USE_LINGELING
     else if ((shrt && static_app->opts.lingeling.shrt
               && !strcmp (opt, static_app->opts.lingeling.shrt))
-             || !strcmp (opt, static_app->opts.lingeling.lng))
+             || (!shrt && !strcmp (opt, static_app->opts.lingeling.lng)))
     {
       if (disable)
       {
-        btormain_error (static_app, "invalid option '%s'", argv[i]);
+        btormain_error (
+            static_app, "invalid option '%sno-%s'", shrt ? "-" : "--", opt);
         goto DONE;
       }
       static_app->opts.lingeling.val = 1;
     }
     else if ((shrt && static_app->opts.lingeling_opts.shrt
               && !strcmp (opt, static_app->opts.lingeling_opts.shrt))
-             || !strcmp (opt, static_app->opts.lingeling_opts.lng))
+             || (!shrt && !strcmp (opt, static_app->opts.lingeling_opts.lng)))
     {
       if (disable)
       {
-        btormain_error (static_app, "invalid option '%s'", argv[i]);
+        btormain_error (
+            static_app, "invalid option '%sno-%s'", shrt ? "-" : "--", opt);
         goto DONE;
       }
 
-      if (!readval && ++i > argc)
+      if (!valstr)
       {
-        btormain_error (static_app, "missing argument for '%s'", argv[i]);
+        btormain_error (
+            static_app, "missing argument for '%s%s'", shrt ? "-" : "--", opt);
         goto DONE;
       }
 
@@ -866,11 +887,12 @@ boolector_main (int argc, char **argv)
 #ifdef BTOR_USE_PICOSAT
     else if ((shrt && static_app->opts.picosat.shrt
               && !strcmp (opt, static_app->opts.picosat.shrt))
-             || !strcmp (opt, static_app->opts.picosat.lng))
+             || (!shrt && !strcmp (opt, static_app->opts.picosat.lng)))
     {
       if (disable)
       {
-        btormain_error (static_app, "invalid option '%s'", argv[i]);
+        btormain_error (
+            static_app, "invalid option '%sno-%s'", shrt ? "-" : "--", opt);
         goto DONE;
       }
       static_app->opts.picosat.val = 1;
@@ -879,11 +901,12 @@ boolector_main (int argc, char **argv)
 #ifdef BTOR_USE_MINISAT
     else if ((shrt && static_app->opts.minisat.shrt
               && !strcmp (opt, static_app->opts.minisat.shrt))
-             || !strcmp (opt, static_app->opts.minisat.lng))
+             || (!shrt && !strcmp (opt, static_app->opts.minisat.lng)))
     {
       if (disable)
       {
-        btormain_error (static_app, "invalid option '%s'", argv[i]);
+        btormain_error (
+            static_app, "invalid option '%sno-%s'", shrt ? "-" : "--", opt);
         goto DONE;
       }
       static_app->opts.minisat.val = 1;
@@ -895,7 +918,8 @@ boolector_main (int argc, char **argv)
       {
         if (disable)
         {
-          btormain_error (static_app, "invalid option '%s'", argv[i]);
+          btormain_error (
+              static_app, "invalid option '%sno-%s'", shrt ? "-" : "--", opt);
           goto DONE;
         }
         boolector_set_opt (
@@ -905,7 +929,8 @@ boolector_main (int argc, char **argv)
       {
         if (disable)
         {
-          btormain_error (static_app, "invalid option '%s'", argv[i]);
+          btormain_error (
+              static_app, "invalid option '%sno-%s'", shrt ? "-" : "--", opt);
           goto DONE;
         }
         boolector_set_opt (
@@ -915,7 +940,8 @@ boolector_main (int argc, char **argv)
       {
         if (disable)
         {
-          btormain_error (static_app, "invalid option '%s'", argv[i]);
+          btormain_error (
+              static_app, "invalid option '%sno-%s'", shrt ? "-" : "--", opt);
           goto DONE;
         }
         boolector_set_opt (
@@ -925,7 +951,8 @@ boolector_main (int argc, char **argv)
       {
         if (disable)
         {
-          btormain_error (static_app, "invalid option '%s'", argv[i]);
+          btormain_error (
+              static_app, "invalid option '%sno-%s'", shrt ? "-" : "--", opt);
           goto DONE;
         }
         boolector_set_opt (
@@ -935,7 +962,8 @@ boolector_main (int argc, char **argv)
       {
         if (disable)
         {
-          btormain_error (static_app, "invalid option '%s'", argv[i]);
+          btormain_error (
+              static_app, "invalid option '%sno-%s'", shrt ? "-" : "--", opt);
           goto DONE;
         }
         boolector_set_opt (
@@ -945,7 +973,8 @@ boolector_main (int argc, char **argv)
       {
         if (disable)
         {
-          btormain_error (static_app, "invalid option '%s'", argv[i]);
+          btormain_error (
+              static_app, "invalid option '%sno-%s'", shrt ? "-" : "--", opt);
           goto DONE;
         }
         dump = BTOR_OUTPUT_FORMAT_BTOR;
@@ -955,7 +984,8 @@ boolector_main (int argc, char **argv)
       {
         if (disable)
         {
-          btormain_error (static_app, "invalid option '%s'", argv[i]);
+          btormain_error (
+              static_app, "invalid option '%sno-%s'", shrt ? "-" : "--", opt);
           goto DONE;
         }
         dump = BTOR_OUTPUT_FORMAT_SMT2;
@@ -965,7 +995,8 @@ boolector_main (int argc, char **argv)
       {
         if (disable)
         {
-          btormain_error (static_app, "invalid option '%s'", argv[i]);
+          btormain_error (
+              static_app, "invalid option '%sno-%s'", shrt ? "-" : "--", opt);
           goto DONE;
         }
         dump = BTOR_OUTPUT_FORMAT_SMT1;
@@ -978,18 +1009,19 @@ boolector_main (int argc, char **argv)
              o++)
         {
           if ((shrt && o->shrt && !strcmp (o->shrt, opt))
-              || !strcmp (o->lng, opt))
+              || (!shrt && !strcmp (o->lng, opt)))
             break;
         }
 
         if (o > btor_last_opt (static_app->btor))
         {
-          btormain_error (static_app, "invalid option '%s'", argv[i]);
+          btormain_error (
+              static_app, "invalid option '%s%s'", shrt ? "-" : "--", opt);
           goto DONE;
         }
 
         if ((shrt && o->shrt && !strcmp (o->shrt, "i"))
-            || !strcmp (o->lng, "incremental"))
+            || (!shrt && !strcmp (o->lng, "incremental")))
         {
           if (disable || (readval && val == 0))
             inc = 0;
@@ -998,7 +1030,7 @@ boolector_main (int argc, char **argv)
           boolector_set_opt (static_app->btor, o->lng, inc);
         }
         else if ((shrt && o->shrt && !strcmp (o->shrt, "I"))
-                 || !strcmp (o->lng, "incremental_all"))
+                 || (!shrt && !strcmp (o->lng, "incremental_all")))
         {
           if (disable || (readval && val == 0))
             boolector_set_opt (static_app->btor, o->lng, 0);
@@ -1011,13 +1043,15 @@ boolector_main (int argc, char **argv)
             boolector_set_opt (static_app->btor, "incremental", inc);
           }
         }
-        else if (!strcmp (o->lng, "incremental_in_depth"))
+        else if ((!shrt && !strcmp (o->lng, "incremental_in_depth")))
         {
           if (disable)
           {
-            btormain_error (static_app, "invalid option '%s'", argv[i]);
+            btormain_error (
+                static_app, "invalid option '%sno-%s'", shrt ? "-" : "--", opt);
             goto DONE;
           }
+
           if (incla || incint)
           {
             btormain_error (static_app,
@@ -1028,13 +1062,14 @@ boolector_main (int argc, char **argv)
             goto DONE;
           }
 
-          if (!readval && ++i >= argc)
+          if (!readval)
           {
-            btormain_error (static_app, "missing argument for '%s'", argv[i]);
+            btormain_error (static_app,
+                            "missing argument for '%s%s'",
+                            shrt ? "-" : "--",
+                            opt);
             goto DONE;
           }
-          else if (!readval)
-            val = atoi (argv[i]);
 
           if (val < 1)
           {
@@ -1046,13 +1081,15 @@ boolector_main (int argc, char **argv)
           boolector_set_opt (static_app->btor, o->lng, val);
           incid = val;
         }
-        else if (!strcmp (o->lng, "incremental_look_ahead"))
+        else if ((!shrt && !strcmp (o->lng, "incremental_look_ahead")))
         {
           if (disable)
           {
-            btormain_error (static_app, "invalid option '%s'", argv[i]);
+            btormain_error (
+                static_app, "invalid option '%sno-%s'", shrt ? "-" : "--", opt);
             goto DONE;
           }
+
           if (incid || incint)
           {
             btormain_error (static_app,
@@ -1063,13 +1100,14 @@ boolector_main (int argc, char **argv)
             goto DONE;
           }
 
-          if (!readval && ++i >= argc)
+          if (!readval)
           {
-            btormain_error (static_app, "missing argument for '%s'", argv[i]);
+            btormain_error (static_app,
+                            "missing argument for '%s%s'",
+                            shrt ? "-" : "--",
+                            opt);
             goto DONE;
           }
-          else if (!readval)
-            val = atoi (argv[i]);
 
           if (val < 1)
           {
@@ -1081,13 +1119,15 @@ boolector_main (int argc, char **argv)
           boolector_set_opt (static_app->btor, o->lng, val);
           incla = val;
         }
-        else if (!strcmp (o->lng, "incremental_interval"))
+        else if ((!shrt && !strcmp (o->lng, "incremental_interval")))
         {
           if (disable)
           {
-            btormain_error (static_app, "invalid option '%s'", argv[i]);
+            btormain_error (
+                static_app, "invalid option '%sno-%s'", shrt ? "-" : "--", opt);
             goto DONE;
           }
+
           if (incid || incla)
           {
             btormain_error (static_app,
@@ -1098,13 +1138,14 @@ boolector_main (int argc, char **argv)
             goto DONE;
           }
 
-          if (!readval && ++i >= argc)
+          if (!readval)
           {
-            btormain_error (static_app, "missing argument for '%s'", argv[i]);
+            btormain_error (static_app,
+                            "missing argument for '%s%s'",
+                            shrt ? "-" : "--",
+                            opt);
             goto DONE;
           }
-          else if (!readval)
-            val = atoi (argv[i]);
 
           if (val < 1)
           {
@@ -1117,20 +1158,22 @@ boolector_main (int argc, char **argv)
           incint = val;
         }
         else if ((shrt && o->shrt && !strcmp (o->shrt, "rwl"))
-                 || !strcmp (o->lng, "rewrite_level"))
+                 || (!shrt && !strcmp (o->lng, "rewrite_level")))
         {
           if (disable)
           {
-            btormain_error (static_app, "invalid option '%s'", argv[i]);
+            btormain_error (
+                static_app, "invalid option '%sno-%s'", shrt ? "-" : "--", opt);
             goto DONE;
           }
-          if (!readval && ++i >= argc)
+          if (!readval)
           {
-            btormain_error (static_app, "missing argument for '%s'", argv[i]);
+            btormain_error (static_app,
+                            "missing argument for '%s%s'",
+                            shrt ? "-" : "--",
+                            opt);
             goto DONE;
           }
-          else if (!readval)
-            val = atoi (argv[i]);
 
           if (val > 3 || val < 0)
           {
@@ -1140,15 +1183,16 @@ boolector_main (int argc, char **argv)
 
           boolector_set_opt (static_app->btor, o->lng, val);
         }
-        else if (!strcmp (o->lng, "rewrite_level_pbr"))
+        else if ((!shrt && !strcmp (o->lng, "rewrite_level_pbr")))
         {
-          if (!readval && ++i >= argc)
+          if (!readval)
           {
-            btormain_error (static_app, "missing argument for '--%s'", o->lng);
+            btormain_error (static_app,
+                            "missing argument for '%s%s'",
+                            shrt ? "-" : "--",
+                            opt);
             goto DONE;
           }
-          else if (!readval)
-            val = atoi (argv[i]);
 
           if (val > 3 || val < 0)
           {
@@ -1160,7 +1204,7 @@ boolector_main (int argc, char **argv)
         }
 #ifndef NBTORLOG
         else if ((shrt && o->shrt && !strcmp (o->shrt, "l"))
-                 || !strcmp (o->lng, "loglevel"))
+                 || (!shrt && !strcmp (o->lng, "loglevel")))
         {
           if (disable || (readval && val == 0))
             log = 0;
@@ -1169,7 +1213,7 @@ boolector_main (int argc, char **argv)
         }
 #endif
         else if ((shrt && o->shrt && !strcmp (o->shrt, "v"))
-                 || !strcmp (o->lng, "verbosity"))
+                 || (!shrt && !strcmp (o->lng, "verbosity")))
         {
           if (disable || (readval && val == 0))
             static_verbosity = 0;
@@ -1178,8 +1222,16 @@ boolector_main (int argc, char **argv)
         }
         else
         {
+          if (disable && readval)
+          {
+            btormain_error (static_app,
+                            "'%sno-%s' does not take an argument",
+                            shrt ? "-" : "--",
+                            opt);
+            goto DONE;
+          }
           if (((shrt && o->shrt && !strcmp (o->shrt, "dp"))
-               || !strcmp (o->lng, "dual_prop"))
+               || (!shrt && !strcmp (o->lng, "dual_prop")))
               && boolector_get_opt_val (static_app->btor, "just"))
           {
             btormain_error (
@@ -1188,7 +1240,7 @@ boolector_main (int argc, char **argv)
             goto DONE;
           }
           else if (((shrt && o->shrt && !strcmp (o->shrt, "ju"))
-                    || !strcmp (o->lng, "just"))
+                    || (!shrt && !strcmp (o->lng, "just")))
                    && boolector_get_opt_val (static_app->btor, "dual_prop"))
           {
             btormain_error (
