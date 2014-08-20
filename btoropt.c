@@ -194,6 +194,7 @@ btor_init_opts (Btor *btor)
 #ifndef BTOR_DO_NOT_OPTIMIZE_UNCONSTRAINED
   BTOR_OPT ("uc", ucopt, 0, 0, 1, "enable unconstrained optimization");
 #endif
+  BTOR_OPT ("ls", lazy_synthesize, 1, 0, 1, "lazily synthesize expressions");
   BTOR_OPT ("fc", force_cleanup, 0, 0, 1, "force cleanup on exit");
   BTOR_OPT ("p", pretty_print, 1, 0, 1, "pretty print when dumping");
 #ifndef NBTORLOG

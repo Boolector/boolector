@@ -99,6 +99,7 @@ typedef struct BtorOpts
 #ifndef BTOR_DO_NOT_OPTIMIZE_UNCONSTRAINED
   BtorOpt ucopt; /* unconstrained optimization */
 #endif
+  BtorOpt lazy_synthesize; /* lazily synthesize expressions */
 
   BtorOpt force_cleanup; /* force cleanup of exps, assignm. strings */
   BtorOpt pretty_print;  /* reindex exps and sorts when dumping */
