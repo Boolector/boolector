@@ -8649,8 +8649,8 @@ fun_sort_from_fun (Btor *btor, BtorNode *fun)
   return sort;
 }
 
-static BtorSort *
-create_or_get_sort (Btor *btor, BtorNode *exp)
+BtorSort *
+btor_create_or_get_sort (Btor *btor, BtorNode *exp)
 {
   assert (btor);
   assert (exp);
@@ -8669,6 +8669,11 @@ create_or_get_sort (Btor *btor, BtorNode *exp)
 #endif
 
   if (BTOR_IS_FUN_NODE (exp)) return fun_sort_from_fun (btor, exp);
+#if 0
+  else if (BTOR_IS_BV_EQ_NODE (exp)
+	   || BTOR_IS_ULT_NODE (exp))
+    return btor_bool_sort (&btor->sorts_unique_table);
+#endif
 
   sort = btor_bitvec_sort (&btor->sorts_unique_table, exp->len);
   return sort;
@@ -8684,8 +8689,8 @@ btor_equal_sort (Btor *btor, BtorNode *e0, BtorNode *e1)
   int res;
   BtorSort *s0, *s1;
 
-  s0  = create_or_get_sort (btor, BTOR_REAL_ADDR_NODE (e0));
-  s1  = create_or_get_sort (btor, BTOR_REAL_ADDR_NODE (e1));
+  s0  = btor_create_or_get_sort (btor, BTOR_REAL_ADDR_NODE (e0));
+  s1  = btor_create_or_get_sort (btor, BTOR_REAL_ADDR_NODE (e1));
   res = s0 == s1;
   btor_release_sort (&btor->sorts_unique_table, s0);
   btor_release_sort (&btor->sorts_unique_table, s1);
@@ -8702,7 +8707,7 @@ btor_has_bitvec_sort (Btor * btor, BtorNode * exp)
   int res;
   BtorSort *s;
 
-  s = create_or_get_sort (btor, BTOR_REAL_ADDR_NODE (exp));
+  s = btor_create_or_get_sort (btor, BTOR_REAL_ADDR_NODE (exp));
   res = s->kind == BTOR_BITVEC_SORT;
   btor_release_sort (&btor->sorts_unique_table, s);
   return res;
@@ -8717,7 +8722,7 @@ btor_has_array_sort (Btor * btor, BtorNode * exp)
   int res;
   BtorSort *s;
 
-  s = create_or_get_sort (btor, BTOR_REAL_ADDR_NODE (exp));
+  s = btor_create_or_get_sort (btor, BTOR_REAL_ADDR_NODE (exp));
   res = s->kind == BTOR_ARRAY_SORT;
   btor_release_sort (&btor->sorts_unique_table, s);
   return res;

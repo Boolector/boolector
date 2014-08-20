@@ -3454,7 +3454,19 @@ boolector_dump_btor (Btor *btor, FILE *file)
   BTOR_TRAPI ("");
   BTOR_ABORT_ARG_NULL_BOOLECTOR (btor);
   BTOR_ABORT_ARG_NULL_BOOLECTOR (file);
-  btor_dump_btor (btor, file);
+  btor_dump_btor (btor, file, 1);
+#ifndef NDEBUG
+  BTOR_CHKCLONE_NORES (dump_btor, file);
+#endif
+}
+
+void
+boolector_dump_btor2 (Btor *btor, FILE *file)
+{
+  BTOR_TRAPI ("");
+  BTOR_ABORT_ARG_NULL_BOOLECTOR (btor);
+  BTOR_ABORT_ARG_NULL_BOOLECTOR (file);
+  btor_dump_btor (btor, file, 2);
 #ifndef NDEBUG
   BTOR_CHKCLONE_NORES (dump_btor, file);
 #endif

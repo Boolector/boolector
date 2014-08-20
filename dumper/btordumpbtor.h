@@ -29,6 +29,6 @@ void btor_add_root_to_dump_context (BtorDumpContext *, BtorNode *);
 void btor_dump_btor_bdc (BtorDumpContext *, FILE *file);
 void btor_dump_btor_node (Btor *, FILE *, BtorNode *);
 void btor_dump_btor_nodes (Btor *, FILE *, BtorNode **, int);
-void btor_dump_btor (Btor *, FILE *);
+void btor_dump_btor (Btor *, FILE *, int);
 
 #endif
