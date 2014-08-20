@@ -18,7 +18,7 @@
 #include "btorhash.h"
 #include "btoriter.h"
 #include "btorsort.h"
-#ifndef NDEBUG
+#if !defined(NDEBUG) && defined(BTOR_ENABLE_CLONING)
 #include "btorclone.h"
 #endif
 
@@ -844,7 +844,7 @@ dump_smt_aux (Btor *btor, FILE *file, int version, BtorNode **roots, int nroots)
   assert (!btor->options.incremental.val);
   //  assert (!btor->options.model_gen.val);
 
-#ifndef NDEBUG
+#if !defined(NDEBUG) && defined(BTOR_ENABLE_CLONING)
   Btor *clone;
   BtorNode *old, *new;
 #endif
@@ -867,7 +867,7 @@ dump_smt_aux (Btor *btor, FILE *file, int version, BtorNode **roots, int nroots)
 
   if (nested_funs || version == 1)
   {
-#ifndef NDEBUG
+#if !defined(NDEBUG) && defined(BTOR_ENABLE_CLONING)
     clone = btor_clone_btor (btor);
     btor_set_opt (clone, BTOR_OPT_FORCE_CLEANUP, 1);
 
@@ -919,7 +919,7 @@ dump_smt_aux (Btor *btor, FILE *file, int version, BtorNode **roots, int nroots)
   dump_smt (sdc);
   delete_smt_dump_context (sdc);
 
-#ifndef NDEBUG
+#if !defined(NDEBUG) && defined(BTOR_ENABLE_CLONING)
   /* delete clone */
   if (nested_funs) btor_delete_btor (btor);
 #endif

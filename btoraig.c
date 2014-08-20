@@ -1030,6 +1030,7 @@ btor_new_aig_mgr (BtorMemMgr *mm)
   return amgr;
 }
 
+#ifdef BTOR_ENABLE_CLONING
 BtorAIGMgr *
 btor_clone_aig_mgr (BtorMemMgr *mm, BtorAIGMgr *amgr)
 {
@@ -1214,6 +1215,7 @@ btor_cloned_aig (BtorMemMgr *mm, BtorAIG *aig, BtorAIGMap *aig_map)
   assert (caig);
   return caig;
 }
+#endif
 
 void
 btor_set_verbosity_aig_mgr (BtorAIGMgr *amgr, int verbosity)

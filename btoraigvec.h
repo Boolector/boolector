@@ -44,8 +44,10 @@ struct BtorAIGVecMgr
  */
 BtorAIGVecMgr *btor_new_aigvec_mgr (BtorMemMgr *mm);
 
+#ifdef BTOR_ENABLE_CLONING
 /* Clones AIG vector manager. */
 BtorAIGVecMgr *btor_clone_aigvec_mgr (BtorMemMgr *mm, BtorAIGVecMgr *avmgr);
+#endif
 
 /* Sets verbosity [-1,3] */
 void btor_set_verbosity_aigvec_mgr (BtorAIGVecMgr *avmgr, int verbosity);
@@ -185,10 +187,12 @@ BtorAIGVec *btor_cond_aigvec (BtorAIGVecMgr *avmgr,
  */
 BtorAIGVec *btor_copy_aigvec (BtorAIGVecMgr *avmgr, BtorAIGVec *av);
 
+#ifdef BTOR_ENABLE_CLONING
 /* Clones an existing AIG vector. All aigs referenced must already be cloned. */
 BtorAIGVec *btor_clone_aigvec (BtorAIGVec *av,
                                BtorAIGVecMgr *avmgr,
                                struct BtorAIGMap *aig_map);
+#endif
 
 /* Translates every AIG of the AIG vector into SAT in both phases  */
 void btor_aigvec_to_sat_tseitin (BtorAIGVecMgr *avmgr, BtorAIGVec *av);
