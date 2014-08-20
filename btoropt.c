@@ -65,11 +65,10 @@ set_opt_values (BtorOpt *opt,
   opt->desc     = desc;
 }
 
-#define BTOR_SET_OPT(LNG, VAL)             \
-  do                                       \
-  {                                        \
-    boolector_set_opt (btor, #LNG, VAL);   \
-    printf ("set_opt_%s %d\n", #LNG, VAL); \
+#define BTOR_SET_OPT(LNG, VAL)           \
+  do                                     \
+  {                                      \
+    boolector_set_opt (btor, #LNG, VAL); \
   } while (0)
 
 #define BTOR_SET_OPT_INTL(LNG, VAL) \
@@ -85,9 +84,9 @@ set_opt_values (BtorOpt *opt,
     valstr = getenv_value (#LNG);                                            \
     if (valstr == NULL) break;                                               \
     val = atoi (valstr);                                                     \
-    if (val < opt->min) val = opt->min;                                      \
-    if (val > opt->max) val = opt->max;                                      \
-    if (val == opt->val) break;                                              \
+    if (val < btor->options.LNG.min) val = btor->options.LNG.min;            \
+    if (val > btor->options.LNG.max) val = btor->options.LNG.max;            \
+    if (val == btor->options.LNG.val) break;                                 \
     BTOR_SET_OPT (LNG, val);                                                 \
   } while (0)
 
@@ -98,16 +97,15 @@ set_opt_values (BtorOpt *opt,
     valstr = getenv_value (#LNG);                                            \
     if (valstr == NULL) break;                                               \
     val = atoi (valstr);                                                     \
-    if (val < opt->min) val = opt->min;                                      \
-    if (val > opt->max) val = opt->max;                                      \
-    if (val == opt->val) break;                                              \
+    if (val < btor->options.LNG.min) val = btor->options.LNG.min;            \
+    if (val > btor->options.LNG.max) val = btor->options.LNG.max;            \
+    if (val == btor->options.LNG.val) break;                                 \
     BTOR_SET_OPT_INTL (LNG, val);                                            \
   } while (0)
 
 void
 btor_init_opts (Btor *btor)
 {
-  BtorOpt *opt = 0;
   int val;
   char *valstr;
 
