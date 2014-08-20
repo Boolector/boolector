@@ -258,25 +258,25 @@ btor_set_opt (Btor *btor, const char *name, int val)
   oldval = o->val;
   o->val = val;
 
-  if (!strcmp (name, "m") || !strcmp (name, "model_gen"))
+  if (!strcmp (name, "m") || !strcmp (name, BTOR_OPT_MODEL_GEN))
   {
     if (!val && btor->options.model_gen.val) btor_delete_model (btor);
   }
-  else if (!strcmp (name, "i") || !strcmp (name, "incremental"))
+  else if (!strcmp (name, "i") || !strcmp (name, BTOR_OPT_INCREMENTAL))
   {
     assert (val > 0);
     assert (btor->btor_sat_btor_called == 0);
     // TODO reset incremental usage, meltall if inc is disabled
   }
-  else if (!strcmp (name, "dp") || !strcmp (name, "dual_prop"))
+  else if (!strcmp (name, "dp") || !strcmp (name, BTOR_OPT_DUAL_PROP))
   {
     assert (!val || !btor->options.just.val);
   }
-  else if (!strcmp (name, "ju") || !strcmp (name, "just"))
+  else if (!strcmp (name, "ju") || !strcmp (name, BTOR_OPT_JUST))
   {
     assert (!val || !btor->options.dual_prop.val);
   }
-  else if (!strcmp (name, "v") || !strcmp (name, "verbosity"))
+  else if (!strcmp (name, "v") || !strcmp (name, BTOR_OPT_VERBOSITY))
   {
     assert (oldval >= -1);
 
@@ -287,18 +287,18 @@ btor_set_opt (Btor *btor, const char *name, int val)
     btor_set_verbosity_aig_mgr (amgr, val);
     btor_set_verbosity_sat_mgr (smgr, val);
   }
-  else if (!strcmp (name, "rwl") || !strcmp (name, "rewrite_level"))
+  else if (!strcmp (name, "rwl") || !strcmp (name, BTOR_OPT_REWRITE_LEVEL))
   {
     assert (val >= 0 && val <= 3);
     assert (oldval >= 0 && oldval <= 3);
   }
-  else if (!strcmp (name, "rewrite_level_pbr"))
+  else if (!strcmp (name, BTOR_OPT_REWRITE_LEVEL_PBR))
   {
     assert (val >= 0 && val <= 3);
     assert (oldval >= 0 && oldval <= 3);
   }
 #ifdef NBTORLOG
-  else if (!strcmp (name, "loglevel"))
+  else if (!strcmp (name, BTOR_OPT_LOGLEVEL))
     return;
 #endif
 }
