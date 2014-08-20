@@ -379,40 +379,40 @@ boolector_set_opt (Btor *btor, const char *opt, int val)
   BTOR_TRAPI ("%s %d", opt, val);
   BTOR_ABORT_BOOLECTOR (!btor_get_opt (btor, opt), "invalid option '%s'", opt);
 
-  if (!strcmp (opt, "m") || !strcmp (opt, "model_gen"))
+  if (!strcmp (opt, BTOR_OPT_MODEL_GEN))
   {
     BTOR_ABORT_BOOLECTOR (
-        !val,  // TODO
+        !val,  // TODO enable
         "disabling model generation is currently not supported");
   }
-  else if (!strcmp (opt, "i") || !strcmp (opt, "incremental"))
+  else if (!strcmp (opt, BTOR_OPT_INCREMENTAL))
   {
-    // TODO
+    // TODO enable
     BTOR_ABORT_BOOLECTOR (
         val == 0, "disabling incremental usage is currently not supported");
     BTOR_ABORT_BOOLECTOR (btor->btor_sat_btor_called > 0,
                           "enabling incremental usage must be done before "
                           "calling 'boolector_sat'");
   }
-  else if (!strcmp (opt, "dp") || !strcmp (opt, "dual_prop"))
+  else if (!strcmp (opt, BTOR_OPT_DUAL_PROP))
   {
     BTOR_ABORT_BOOLECTOR (
         val && btor->options.just.val,
         "enabling multiple optimization techniques is not allowed");
   }
-  else if (!strcmp (opt, "ju") || !strcmp (opt, "just"))
+  else if (!strcmp (opt, BTOR_OPT_JUST))
   {
     BTOR_ABORT_BOOLECTOR (
         val && btor->options.dual_prop.val,
         "enabling multiple optimization techniques is not allowed");
   }
 #ifdef BTOR_DO_NOT_OPTIMIZE_UNCONSTRAINED
-  else if (!strcmp (opt, "uc") || !strcmp (opt, "ucopt"))
+  else if (!strcmp (opt, BTOR_OPT_UCOPT))
   {
     return;
   }
 #endif
-  else if (!strcmp (opt, "rwl") || !strcmp (opt, "rewrite_level"))
+  else if (!strcmp (opt, BTOR_OPT_REWRITE_LEVEL))
   {
     BTOR_ABORT_BOOLECTOR (val < 0 || val > 3,
                           "'rewrite_level' must be in [0,3]");
@@ -420,13 +420,13 @@ boolector_set_opt (Btor *btor, const char *opt, int val)
         BTOR_COUNT_STACK (btor->nodes_id_table) > 2,
         "setting rewrite level must be done before creating expressions");
   }
-  else if (!strcmp (opt, "rewrite_level_pbr"))
+  else if (!strcmp (opt, BTOR_OPT_REWRITE_LEVEL_PBR))
   {
     BTOR_ABORT_BOOLECTOR (val < 0 || val > 3,
                           "'rewrite_level_pbr' must be in [0,3]");
   }
 #ifdef NBTORLOG
-  else if (!strcmp (opt, "l") || !strcmp (opt, "loglevel"))
+  else if (!strcmp (opt, BTOR_OPT_LOGLEVEL))
   {
     return;
   }
