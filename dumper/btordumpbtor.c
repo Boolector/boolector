@@ -52,6 +52,7 @@ btor_new_dump_context (Btor *btor)
   BtorDumpContext *res;
   BTOR_CNEW (btor->mm, res);
   res->btor    = btor;
+  res->version = 1;
   res->inputs  = btor_new_ptr_hash_table (btor->mm,
                                          (BtorHashPtr) btor_hash_exp_by_id,
                                          (BtorCmpPtr) btor_compare_exp_by_id);
@@ -624,8 +625,6 @@ btor_dump_btor_node (Btor *btor, FILE *file, BtorNode *exp)
   BtorDumpContext *bdc;
 
   bdc = btor_new_dump_context (btor);
-  // TODO: we need an argument with version
-  bdc->version = 2;
   btor_add_root_to_dump_context (bdc, exp);
   btor_dump_btor_bdc (bdc, file);
   btor_delete_dump_context (bdc);
@@ -643,8 +642,6 @@ btor_dump_btor_nodes (Btor *btor, FILE *file, BtorNode **roots, int nroots)
   BtorDumpContext *bdc;
 
   bdc = btor_new_dump_context (btor);
-  // TODO: we need an argument with version
-  bdc->version = 2;
 
   for (i = 0; i < nroots; i++) btor_add_root_to_dump_context (bdc, roots[i]);
 
