@@ -351,4 +351,7 @@ void btor_release_bv_assignment_str (Btor *btor, char *assignment);
 
 void btor_print_model (Btor *btor, FILE *file);
 
+// TODO: eliminate when we have full sort support (ma)
+BtorSort *btor_create_or_get_sort (Btor *, BtorNode *);
+
 #endif

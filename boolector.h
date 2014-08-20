@@ -1522,6 +1522,15 @@ void boolector_dump_btor_node (Btor *btor, FILE *file, BoolectorNode *node);
 void boolector_dump_btor (Btor *btor, FILE *file);
 
 /**
+ * Dump formula to file in BTOR 2.0 format.
+ *
+ * \param btor Boolector instance.
+ * \param file File to which the formula should be dumped.
+ * The file must be have been opened by the user before.
+ */
+void boolector_dump_btor2 (Btor *btor, FILE *file);
+
+/**
  * Recursively dump expression to file.
  *<a href="http://smtlib.cs.uiowa.edu/papers/format-v1.2-r06.08.30.pdf">SMT-LIB
  * \param btor Boolector instance.

@@ -192,7 +192,7 @@ btor_chkclone_opts (Btor *btor)
 #endif
 
   BTOR_CHKCLONE_OPT (force_cleanup);
-  BTOR_CHKCLONE_OPT (no_pretty_print);
+  BTOR_CHKCLONE_OPT (pretty_print);
 #ifndef NBTORLOG
   BTOR_CHKCLONE_OPT (loglevel);
 #endif

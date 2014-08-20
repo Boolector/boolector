@@ -195,7 +195,7 @@ btor_init_opts (Btor *btor)
   BTOR_OPT ("uc", ucopt, 0, 0, 1, "enable unconstrained optimization");
 #endif
   BTOR_OPT ("fc", force_cleanup, 0, 0, 1, "force cleanup on exit");
-  BTOR_OPT ("p", no_pretty_print, 0, 0, 1, "do not pretty print when dumping");
+  BTOR_OPT ("p", pretty_print, 1, 0, 1, "pretty print when dumping");
 #ifndef NBTORLOG
   BTOR_OPT ("l", loglevel, 0, 0, BTORLOG_LEVEL_MAX, "increase loglevel");
 #endif

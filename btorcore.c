@@ -46,7 +46,6 @@
 #define BTOR_CHECK_DUAL_PROP
 #endif
 
-//#define MARK_FOR_CC
 //#define BTOR_DO_NOT_LAZY_SYNTHESIZE
 #define POP_TOP_APPLIES
 
@@ -4496,7 +4495,7 @@ btor_simplify (Btor *btor)
     }
 
     // printf ("----\n");
-    // btor_set_opt (btor, BTOR_OPT_NO_PRETTY_PRINT, 1);
+    // btor_set_opt (btor, BTOR_OPT_PRETTY_PRINT, 1);
     // btor_dump_btor (btor, stdout);
 #ifndef BTOR_DO_NOT_OPTIMIZE_UNCONSTRAINED
     if (btor->options.ucopt.val && btor->options.rewrite_level.val > 2
@@ -4510,7 +4509,7 @@ btor_simplify (Btor *btor)
     }
 #endif
     // printf ("====\n");
-    // btor_set_opt (btor, BTOR_OPT_NO_PRETTY_PRINT, 1);
+    // btor_set_opt (btor, BTOR_OPT_PRETTY_PRINT, 1);
     // btor_dump_btor (btor, stdout);
 
     if (btor->varsubst_constraints->count) continue;
@@ -5181,9 +5180,6 @@ search_initial_applies (Btor *btor, BtorNodePtrStack *top_applies, int dp)
   assert (BTOR_EMPTY_STACK (*top_applies));
 
   int is_top;
-#ifndef NBTORLOG
-  int lam, app;
-#endif
   double start;
   BtorMemMgr *mm;
   BtorNode *cur, *cur_parent;
@@ -5239,22 +5235,8 @@ search_initial_applies (Btor *btor, BtorNodePtrStack *top_applies, int dp)
          * first */
         if (is_top)
           BTOR_PUSH_STACK (mm, top, cur_parent);
-        else
-        {
-          if (!dp || cur_parent->check)
-          {
-            BTORLOG ("initial apply: %s", node2string (cur_parent));
-            BTORLOG ("  nodes below: %d",
-                     count_nodes_below (btor, cur_parent, &lam, &app));
-            BTORLOG ("    -> lambdas below: %d", lam);
-            BTORLOG ("    -> applies below: %d", app);
-            BTORLOG ("  nodes above: %d",
-                     count_nodes_above (btor, cur_parent, &lam, &app));
-            BTORLOG ("    -> lambdas above: %d", lam);
-            BTORLOG ("    -> applies above: %d", app);
-            BTOR_PUSH_STACK (btor->mm, *top_applies, cur_parent);
-          }
-        }
+        else if (!dp)
+          BTOR_PUSH_STACK (btor->mm, *top_applies, cur_parent);
       }
     }
   }
@@ -5262,17 +5244,7 @@ search_initial_applies (Btor *btor, BtorNodePtrStack *top_applies, int dp)
   while (!BTOR_EMPTY_STACK (top))
   {
     cur = BTOR_POP_STACK (top);
-    if (!dp || cur->check)
-    {
-      BTORLOG ("initial apply: %s", node2string (cur));
-      BTORLOG ("  nodes below: %d", count_nodes_below (btor, cur, &lam, &app));
-      BTORLOG ("    -> lambdas below: %d", lam);
-      BTORLOG ("    -> applies below: %d", app);
-      BTORLOG ("  nodes above: %d", count_nodes_above (btor, cur, &lam, &app));
-      BTORLOG ("    -> lambdas above: %d", lam);
-      BTORLOG ("    -> applies above: %d", app);
-      BTOR_PUSH_STACK (btor->mm, *top_applies, cur);
-    }
+    if (!dp) BTOR_PUSH_STACK (btor->mm, *top_applies, cur);
   }
 
   BTOR_RELEASE_STACK (mm, top);
@@ -7614,11 +7586,7 @@ propagate (Btor *btor,
   PROPAGATE_BETA_REDUCE_PARTIAL:
     btor_assign_args (btor, fun, args);
     assert (to_prop->count == 0);
-#ifndef MARK_FOR_CC
     fun_value = btor_beta_reduce_partial (btor, fun, &evalerr, to_prop, conds);
-#else
-    fun_value = btor_beta_reduce_partial (btor, fun, &evalerr, to_prop, 0);
-#endif
     assert (!BTOR_IS_LAMBDA_NODE (BTOR_REAL_ADDR_NODE (fun_value)));
     btor_unassign_params (btor, fun);
 
@@ -7758,7 +7726,6 @@ propagate (Btor *btor,
         btor->stats.propagations_down++;
         app->propagated = 0;
         BTORLOG ("  propagate down: %s", node2string (app));
-#ifndef MARK_FOR_CC
         if (check_conds)
         {
           init_node_hash_table_iterator (&it, conds);
@@ -7770,7 +7737,6 @@ propagate (Btor *btor,
             btor_release_exp (btor, cond);
           }
         }
-#endif
       }
       else
       {
@@ -7809,7 +7775,6 @@ propagate (Btor *btor,
         }
 
         push_applies_for_propagation (btor, fun_value, lambda, prop_stack);
-#ifndef MARK_FOR_CC
         if (check_conds)
         {
           init_node_hash_table_iterator (&it, conds);
@@ -7821,7 +7786,6 @@ propagate (Btor *btor,
             btor_release_exp (btor, cond);
           }
         }
-#endif
       }
     }
     else
@@ -7832,7 +7796,6 @@ propagate (Btor *btor,
         goto BETA_REDUCTION_CONFLICT;
 
       push_applies_for_propagation (btor, fun_value, lambda, prop_stack);
-#ifndef MARK_FOR_CC
       if (check_conds)
       {
         init_node_hash_table_iterator (&it, conds);
@@ -7844,7 +7807,6 @@ propagate (Btor *btor,
           btor_release_exp (btor, cond);
         }
       }
-#endif
     }
 
     btor_release_exp (btor, fun_value);
@@ -8041,8 +8003,8 @@ new_exp_layer_clone_for_dual_prop (Btor *btor,
   btor_set_opt (clone, BTOR_OPT_FORCE_INTERNAL_CLEANUP, 1);
   btor_set_opt (clone, BTOR_OPT_LOGLEVEL, 0);
   btor_set_opt (clone, BTOR_OPT_VERBOSITY, 0);
-  btor_set_opt (clone, BTOR_OPT_DUAL_PROP, 0);  // FIXME should be redundant
-  btor_set_opt (clone, BTOR_OPT_NO_PRETTY_PRINT, 1);  // TODO debug
+  btor_set_opt (clone, BTOR_OPT_DUAL_PROP, 0);     // FIXME should be redundant
+  btor_set_opt (clone, BTOR_OPT_PRETTY_PRINT, 1);  // TODO debug
 
   smgr = btor_get_sat_mgr_btor (clone);
   assert (!btor_is_initialized_sat (smgr));
@@ -8649,8 +8611,8 @@ fun_sort_from_fun (Btor *btor, BtorNode *fun)
   return sort;
 }
 
-static BtorSort *
-create_or_get_sort (Btor *btor, BtorNode *exp)
+BtorSort *
+btor_create_or_get_sort (Btor *btor, BtorNode *exp)
 {
   assert (btor);
   assert (exp);
@@ -8669,6 +8631,11 @@ create_or_get_sort (Btor *btor, BtorNode *exp)
 #endif
 
   if (BTOR_IS_FUN_NODE (exp)) return fun_sort_from_fun (btor, exp);
+#if 0
+  else if (BTOR_IS_BV_EQ_NODE (exp)
+	   || BTOR_IS_ULT_NODE (exp))
+    return btor_bool_sort (&btor->sorts_unique_table);
+#endif
 
   sort = btor_bitvec_sort (&btor->sorts_unique_table, exp->len);
   return sort;
@@ -8684,8 +8651,8 @@ btor_equal_sort (Btor *btor, BtorNode *e0, BtorNode *e1)
   int res;
   BtorSort *s0, *s1;
 
-  s0  = create_or_get_sort (btor, BTOR_REAL_ADDR_NODE (e0));
-  s1  = create_or_get_sort (btor, BTOR_REAL_ADDR_NODE (e1));
+  s0  = btor_create_or_get_sort (btor, BTOR_REAL_ADDR_NODE (e0));
+  s1  = btor_create_or_get_sort (btor, BTOR_REAL_ADDR_NODE (e1));
   res = s0 == s1;
   btor_release_sort (&btor->sorts_unique_table, s0);
   btor_release_sort (&btor->sorts_unique_table, s1);
@@ -8702,7 +8669,7 @@ btor_has_bitvec_sort (Btor * btor, BtorNode * exp)
   int res;
   BtorSort *s;
 
-  s = create_or_get_sort (btor, BTOR_REAL_ADDR_NODE (exp));
+  s = btor_create_or_get_sort (btor, BTOR_REAL_ADDR_NODE (exp));
   res = s->kind == BTOR_BITVEC_SORT;
   btor_release_sort (&btor->sorts_unique_table, s);
   return res;
@@ -8717,7 +8684,7 @@ btor_has_array_sort (Btor * btor, BtorNode * exp)
   int res;
   BtorSort *s;
 
-  s = create_or_get_sort (btor, BTOR_REAL_ADDR_NODE (exp));
+  s = btor_create_or_get_sort (btor, BTOR_REAL_ADDR_NODE (exp));
   res = s->kind == BTOR_ARRAY_SORT;
   btor_release_sort (&btor->sorts_unique_table, s);
   return res;

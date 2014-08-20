@@ -323,14 +323,18 @@ cdef extern from "boolector.h":
 
     void boolector_print_model (Btor * btor, FILE * file)
 
-    BoolectorSort *boolector_fun_sort (Btor * btor,
-                                       BoolectorSort * domain,
-                                       BoolectorSort * codomain)
+    BoolectorSort *boolector_bool_sort (Btor * btor)
 
     BoolectorSort *boolector_bitvec_sort (Btor * btor, int len)
 
-    BoolectorSort *boolector_tuple_sort (Btor * btor, BoolectorSort ** elements,
-                                        int num_elements)
+    BoolectorSort *boolector_array_sort (Btor * btor,
+                                         BoolectorSort * index,
+                                         BoolectorSort * element)
+
+    BoolectorSort *boolector_fun_sort (Btor * btor,
+                                       BoolectorSort ** domain,
+                                       int arity,
+                                       BoolectorSort * codomain)
 
     void boolector_release_sort (Btor * btor, BoolectorSort * sort)
 

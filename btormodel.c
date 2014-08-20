@@ -816,7 +816,7 @@ btor_get_fun_model_str (
   BTOR_NEWN (btor->mm, *values, *size);
 
   i = 0;
-  init_hash_table_iterator (&it, model);
+  init_hash_table_iterator (&it, (BtorPtrHashTable *) model);
   while (has_next_hash_table_iterator (&it))
   {
     value = (BitVector *) it.bucket->data.asPtr;

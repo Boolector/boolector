@@ -886,29 +886,35 @@ cdef class Boolector:
 
     # Sorts
 
+    def BoolSort(self):
+        r = BoolectorSort(self)
+        r._c_sort = btorapi.boolector_bool_sort(self._c_btor)
+        return r
+
     def BitVecSort(self, int width):
         r = BoolectorSort(self)
         r._c_sort = btorapi.boolector_bitvec_sort(self._c_btor, width)
         return r
 
-    def TupleSort(self, list sorts):
-        cdef int num_elements = len(sorts)
-        cdef btorapi.BoolectorSort** c_sorts = \
-            <btorapi.BoolectorSort**> \
-                malloc(num_elements * sizeof(btorapi.BoolectorSort*))
-
-        for i in range(num_elements):
-            assert(isinstance(sorts[i], BoolectorSort))
-            c_sorts[i] = (<BoolectorSort> sorts[i])._c_sort
-
+    def ArraySort(self, BoolectorSort index, BoolectorSort element):
         r = BoolectorSort(self)
-        r._c_sort = \
-            btorapi.boolector_tuple_sort(self._c_btor, c_sorts, num_elements)
-        free(c_sorts)
+        r._c_sort = btorapi.boolector_array_sort(
+                        self._c_btor, index._c_sort, element._c_sort)
         return r
 
-    def FunSort(self, BoolectorSort domain, BoolectorSort codomain):
+    def FunSort(self, list domain, BoolectorSort codomain):
+        cdef int arity = len(domain)
+        cdef btorapi.BoolectorSort** c_domain = \
+            <btorapi.BoolectorSort**> \
+                malloc(arity * sizeof(btorapi.BoolectorSort*))
+
+        for i in range(arity):
+            if not isinstance(domain[i], BoolectorSort):
+                raise BoolectorException("function domain contains objects" \
+                                         "different from 'BoolectorSort'")
+            c_domain[i] = (<BoolectorSort> domain[i])._c_sort
+
         r = BoolectorSort(self)
-        r._c_sort = btorapi.boolector_fun_sort(self._c_btor, domain._c_sort,
-                                               codomain._c_sort)
+        r._c_sort = btorapi.boolector_fun_sort(
+                        self._c_btor, c_domain, arity, codomain._c_sort)
         return r
