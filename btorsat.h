@@ -29,7 +29,7 @@ struct BtorSATMgr
 
   BtorMemMgr *mm;
   const char *name;
-  const char *optstr;
+  char *optstr;
   int verbosity;
   int inc_required;
   int used_that_inc_was_not_required;
