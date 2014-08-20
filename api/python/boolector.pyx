@@ -13,8 +13,10 @@ from libc.stdlib cimport malloc, free
 from libc.stdio cimport stdout, FILE, fopen, fclose
 import math, os
 
-g_tunable_options = {"rewrite_level", "rewrite_level_pbr", "beta_reduce_all",
-                     "dual_prop", "just", "ucopt"}
+g_tunable_options = {"rewrite_level", "rewrite_level_pbr",
+                     "beta_reduce_all", "probe_beta_reduce_all",
+                     "pbra_lod_limit", "pbra_sat_limit", "pbra_ops_factor",
+                     "dual_prop", "just", "ucopt", }
 
 class BoolectorException(Exception):
     
