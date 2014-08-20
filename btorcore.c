@@ -32,8 +32,6 @@
 
 /*------------------------------------------------------------------------*/
 
-// #define BTOR_DO_NOT_ELIMINATE_SLICES
-
 #ifndef BTOR_USE_LINGELING
 #define BTOR_DO_NOT_PROCESS_SKELETON
 #endif
@@ -850,13 +848,12 @@ btor_print_stats_btor (Btor *btor)
             "%.2f seconds in beta reduction during rewriting (%.0f%%)",
             btor->time.betareduce,
             percent (btor->time.betareduce, btor->time.rewrite));
-#ifndef BTOR_DO_NOT_ELIMINATE_SLICES
-  btor_msg (btor,
-            1,
-            "%.2f seconds in slicing during rewriting (%.0f%%)",
-            btor->time.slicing,
-            percent (btor->time.slicing, btor->time.rewrite));
-#endif
+  if (btor->options.eliminate_slices.val)
+    btor_msg (btor,
+              1,
+              "%.2f seconds in slicing during rewriting (%.0f%%)",
+              btor->time.slicing,
+              percent (btor->time.slicing, btor->time.rewrite));
 #ifndef BTOR_DO_NOT_PROCESS_SKELETON
   btor_msg (btor,
             1,
@@ -864,7 +861,7 @@ btor_print_stats_btor (Btor *btor)
             btor->time.skel,
             percent (btor->time.skel, btor->time.rewrite));
 #endif
-  btor_msg (btor, 1, "%.1f MB\n", btor->mm->maxallocated / (double) (1 << 20));
+  btor_msg (btor, 1, "%.1f MB", btor->mm->maxallocated / (double) (1 << 20));
 }
 
 Btor *
@@ -3129,8 +3126,6 @@ process_embedded_constraints (Btor *btor)
 }
 
 /*------------------------------------------------------------------------*/
-#ifndef BTOR_DO_NOT_ELIMINATE_SLICES
-/*------------------------------------------------------------------------*/
 
 static BtorSlice *
 new_slice (Btor *btor, int upper, int lower)
@@ -3405,8 +3400,6 @@ eliminate_slices_on_bv_vars (Btor *btor)
   btor_msg (btor, 1, "sliced %d variables in %1.f seconds", count, delta);
 }
 
-/*------------------------------------------------------------------------*/
-#endif /* BTOR_DO_NOT_ELIMINATE_SLICES */
 /*------------------------------------------------------------------------*/
 
 /*------------------------------------------------------------------------*/
@@ -4457,8 +4450,9 @@ btor_simplify (Btor *btor)
       if (btor->varsubst_constraints->count) continue;
     }
 
-#ifndef BTOR_DO_NOT_ELIMINATE_SLICES
-    if (btor->options.rewrite_level.val > 2 && !btor->options.incremental.val)
+    if (btor->options.eliminate_slices.val
+        && btor->options.rewrite_level.val > 2
+        && !btor->options.incremental.val)
     {
       eliminate_slices_on_bv_vars (btor);
       if (btor->inconsistent) break;
@@ -4467,7 +4461,6 @@ btor_simplify (Btor *btor)
 
       if (btor->embedded_constraints->count) continue;
     }
-#endif
 
 #ifndef BTOR_DO_NOT_PROCESS_SKELETON
     if (btor->options.rewrite_level.val > 2)

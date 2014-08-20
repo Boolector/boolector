@@ -189,12 +189,13 @@ btor_init_opts (Btor *btor)
             "factor by which the size of the red. formula may be greater than "
             "the original formula");
 
-  BTOR_OPT ("dp", dual_prop, 0, 0, 1, "enable dual propagation optimization");
-  BTOR_OPT ("ju", just, 0, 0, 1, "enable justification optimization");
+  BTOR_OPT ("dp", dual_prop, 0, 0, 1, "dual propagation optimization");
+  BTOR_OPT ("ju", just, 0, 0, 1, "justification optimization");
 #ifndef BTOR_DO_NOT_OPTIMIZE_UNCONSTRAINED
-  BTOR_OPT ("uc", ucopt, 0, 0, 1, "enable unconstrained optimization");
+  BTOR_OPT ("uc", ucopt, 0, 0, 1, "unconstrained optimization");
 #endif
   BTOR_OPT ("ls", lazy_synthesize, 1, 0, 1, "lazily synthesize expressions");
+  BTOR_OPT ("es", eliminate_slices, 1, 0, 1, "eliminate slices on variables");
   BTOR_OPT ("fc", force_cleanup, 0, 0, 1, "force cleanup on exit");
   BTOR_OPT ("p", pretty_print, 1, 0, 1, "pretty print when dumping");
 #ifndef NBTORLOG
