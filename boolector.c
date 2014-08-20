@@ -2514,7 +2514,7 @@ boolector_apply (Btor *btor,
 
   len = 7 + 10 + argc * 20 + 20;
   BTOR_NEWN (btor->mm, strtrapi, len);
-  sprintf (strtrapi, "%d", argc);
+  sprintf (strtrapi, "%d ", argc);
 
   cur = BTOR_REAL_ADDR_NODE (btor_simplify_exp (btor, e_fun));
   for (i = 0; i < argc; i++)
