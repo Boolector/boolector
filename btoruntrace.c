@@ -250,7 +250,6 @@ parse (FILE *file)
   Btor *btor;
   void *ret_ptr;
   BoolectorNode **tmp;
-  BoolectorSort **stmp;
   BtorPtrHashTable *hmap;
   BtorMemMgr *mm;
   BtorIntStack arg_int;
