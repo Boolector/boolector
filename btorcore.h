@@ -32,6 +32,12 @@
 //#define BTOR_CHECK_FAILED
 #endif
 
+/* enable features that only work with lingeling (for cloning) */
+#ifdef BTOR_USE_LINGELING
+#define BTOR_ENABLE_DUAL_PROPAGATION
+#define BTOR_ENABLE_BETA_REDUCTION_PROBING
+#endif
+
 //#define BTOR_DO_NOT_OPTIMIZE_UNCONSTRAINED
 
 /*------------------------------------------------------------------------*/

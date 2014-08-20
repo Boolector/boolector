@@ -168,6 +168,7 @@ btor_init_opts (Btor *btor)
 
   BTOR_OPT (
       "bra", beta_reduce_all, 0, 0, 1, "eagerly eliminate lambda expressions");
+#ifdef BTOR_ENABLE_BETA_REDUCTION_PROBING
   BTOR_OPT ("pbra",
             probe_beta_reduce_all,
             0,
@@ -188,8 +189,11 @@ btor_init_opts (Btor *btor)
             -1,
             "factor by which the size of the red. formula may be greater than "
             "the original formula");
+#endif
 
+#ifdef BTOR_ENABLE_DUAL_PROPAGATION
   BTOR_OPT ("dp", dual_prop, 0, 0, 1, "dual propagation optimization");
+#endif
   BTOR_OPT ("ju", just, 0, 0, 1, "justification optimization");
 #ifndef BTOR_DO_NOT_OPTIMIZE_UNCONSTRAINED
   BTOR_OPT ("uc", ucopt, 0, 0, 1, "unconstrained optimization");
@@ -273,13 +277,17 @@ btor_set_opt (Btor *btor, const char *name, int val)
     assert (btor->btor_sat_btor_called == 0);
     // TODO reset incremental usage, meltall if inc is disabled
   }
+#ifdef BTOR_ENABLE_DUAL_PROPAGATION
   else if (!strcmp (name, "dp") || !strcmp (name, BTOR_OPT_DUAL_PROP))
   {
     assert (!val || !btor->options.just.val);
   }
+#endif
   else if (!strcmp (name, "ju") || !strcmp (name, BTOR_OPT_JUST))
   {
+#ifdef BTOR_ENABLE_DUAL_PROPAGATION
     assert (!val || !btor->options.dual_prop.val);
+#endif
   }
   else if (!strcmp (name, "v") || !strcmp (name, BTOR_OPT_VERBOSITY))
   {

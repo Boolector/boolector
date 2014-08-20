@@ -180,12 +180,16 @@ btor_chkclone_opts (Btor *btor)
   BTOR_CHKCLONE_OPT (rewrite_level_pbr);
 
   BTOR_CHKCLONE_OPT (beta_reduce_all);
+#ifdef BTOR_ENABLE_BETA_REDUCTION_PROBING
   BTOR_CHKCLONE_OPT (probe_beta_reduce_all);
   BTOR_CHKCLONE_OPT (pbra_lod_limit);
   BTOR_CHKCLONE_OPT (pbra_sat_limit);
   BTOR_CHKCLONE_OPT (pbra_ops_factor);
+#endif
 
+#ifdef BTOR_ENABLE_DUAL_PROPAGATION
   BTOR_CHKCLONE_OPT (dual_prop);
+#endif
   BTOR_CHKCLONE_OPT (just);
 #ifndef BTOR_DO_NOT_OPTIMIZE_UNCONSTRAINED
   BTOR_CHKCLONE_OPT (ucopt);

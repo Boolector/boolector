@@ -16,19 +16,21 @@
 #include "boolector.h"
 #include "btorabort.h"
 #include "btorchkclone.h"
-#include "btorclone.h"
 #include "btorconst.h"
 #include "btorcore.h"
 #include "btorexit.h"
-#include "btorhash.h"
 #include "btoriter.h"
-#include "btorparse.h"
-#include "btorsat.h"
-#include "btorsort.h"
 #include "btortrapi.h"
 #include "btorutil.h"
 #include "dumper/btordumpbtor.h"
 #include "dumper/btordumpsmt.h"
+#ifdef BTOR_USE_LINGELING
+#include "btorclone.h"
+#endif
+#include "btorhash.h"
+#include "btorparse.h"
+#include "btorsat.h"
+#include "btorsort.h"
 
 /*------------------------------------------------------------------------*/
 
