@@ -248,7 +248,6 @@ btor_set_opt (Btor *btor, const char *name, int val)
   assert (btor);
   assert (name);
 
-  int oldval;
   BtorOpt *o;
   BtorAIGVecMgr *avmgr;
   BtorAIGMgr *amgr;
@@ -256,7 +255,11 @@ btor_set_opt (Btor *btor, const char *name, int val)
 
   o = btor_get_opt (btor, name);
   assert (o);
-  oldval = o->val;
+#ifndef NDEBUG
+  int oldval = o->val;
+#endif
+  if (val > o->max) val = o->max;
+  if (val < o->min) val = o->min;
   o->val = val;
 
   if (!strcmp (name, "m") || !strcmp (name, BTOR_OPT_MODEL_GEN))

@@ -340,7 +340,7 @@ int boolector_set_sat_solver_minisat (Btor *btor);
  *
  * List of options:
  *
- * - 'm' or 'model_gen':
+ * - 'model_gen':
  *	Enable (1) or disable (0) generation of a model for satisifiable
  *	instances.
  *
@@ -350,32 +350,45 @@ int boolector_set_sat_solver_minisat (Btor *btor);
  *	cone of assertions, only. This options forces the generation of
  *	assignments for all reads during model generation.
  *
- * - 'i' or 'incremental':
+ * - 'incremental':
  *	Enable (1) incremental mode. Note that incremental usage turns
  *	off some optimization techniques. Disabling incremental usage is
  *	currently not supported.
  *
- * - 'dp' or 'dual_prop':
- *	Enable (1) or disable (0) dual propagation optimization.
+ * - 'incremental_all':
+ *	Enable (1) or disable (0) incremental solving of all formulas (when
+ *	parsing an input file). Note that currently, incremental mode is only
+ *	supported for SMT-LIB v1 input.
  *
- * - 'ju' or 'just':
- *	Enable (1) or disable (0) justification optimization.
+ * - 'incremental_in_depth':
+ *	Set incremental in-depth mode width (when parsing an input file).
+ *	Note that currently, incremental mode is only supported for SMT-LIB v1
+ *	input.
  *
- * - 'uc' or 'ucopt':
- *	Enable (1) or disable (0) unconstrained optimization.
+ * - 'incremental_look_ahead':
+ *	Set incremental look-ahead mode width (when parsing an input file).
+ *	Note that currently, incremental mode is only supported for SMT-LIB v1
+ *	input.
  *
- * - 'bra' or 'beta_reduce_all':
- *	Enable (1) or disable (0) the eager elimination of lambda expressions
- *	via beta reduction.
+ * - 'incremental_interval':
+ *	Set incremental interval mode width (when parsing an input file).
+ *	Note that currently, incremental mode is only supported for SMT-LIB v1
+ *	input.
  *
- * - 'p' or 'pretty_print':
- *      Enable (1) or disable (0) pretty printing when dumping.
+ * - 'input_format':
+ *	Force input file format (Btor: -1, SMT-LIB v1: 1, SMT-LIB v2: 2) when
+ *	parsing an input file. If unspecified, Boolector determines the
+ *	input file format while parsing.
  *
- * - 'fc' or 'force_cleanup':
- *      Enable (1) or disable (0) forced automatic cleanup of expressions and
- *      assignment strings on \ref boolector_delete.
+ * - 'output_number_format':
+ *	Force output number format (binary: 0, hexadecimal: 1, decimal: 2).
+ *	Boolector uses binary by default.
  *
- * - 'rwl' or 'rewrite_level':
+ * - 'output_format':
+ *	Force output file format (Btor: -1, SMT-LIB v1: 1, SMT-LIB v2: 2).
+ *	Boolector uses Btor by default.
+ *
+ * - 'rewrite_level':
  *      Set the rewrite level (0-3) of the rewriting engine. Boolector uses
  *      rewrite level 3 by default. Do not alter the rewrite level after
  *      creating expressions.
@@ -386,11 +399,45 @@ int boolector_set_sat_solver_minisat (Btor *btor);
  *	rewrite level 1 by default.
  *      (0 ... no rewriting, 3 ... full rewriting)
  *
- * - 'v' or 'verbosity':
+ * - 'beta_reduce_all':
+ *	Enable (1) or disable (0) the eager elimination of lambda expressions
+ *	via beta reduction.
+ *
+ * - 'probe_beta_reduce_all':
+ *	Enable (1) or disable (0) probing of 'beta_reduce_all' (until a given
+ *	LOD or SAT conflicts limit.
+ *
+ * - 'pbra_lod_limit':
+ *      Set LOD limit for 'probe_beta_reduce_all'.
+ *
+ * - 'pbra_sat_limit':
+ *	Set SAT conflicts limit for 'probe_beta_reduce_all'.
+ *
+ * - 'pbra_ops_factor':
+ *	Set factor by which the size of the beta reduced formula may be greater
+ *	than the original formula (for 'probe_beta_reduce_all').
+ *
+ * - 'dual_prop':
+ *	Enable (1) or disable (0) dual propagation optimization.
+ *
+ * - 'just':
+ *	Enable (1) or disable (0) justification optimization.
+ *
+ * - 'ucopt':
+ *	Enable (1) or disable (0) unconstrained optimization.
+ *
+ * - 'force_cleanup':
+ *      Enable (1) or disable (0) forced automatic cleanup of expressions and
+ *      assignment strings on \ref boolector_delete.
+ *
+ * - 'pretty_print':
+ *      Enable (1) or disable (0) pretty printing when dumping.
+ *
+ * - 'verbosity':
  *	Set the level of verbosity.
  *	(0 ... do not be verbose, x ... increase verbosity)
  *
- * - 'l' or 'loglevel':
+ * - 'loglevel':
  *	Set log level (0-3).
  *	(0 ... no logging, 3 ... full logging)
  *
