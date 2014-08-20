@@ -4495,7 +4495,7 @@ btor_simplify (Btor *btor)
     }
 
     // printf ("----\n");
-    // btor_set_opt (btor, BTOR_OPT_NO_PRETTY_PRINT, 1);
+    // btor_set_opt (btor, BTOR_OPT_PRETTY_PRINT, 1);
     // btor_dump_btor (btor, stdout);
 #ifndef BTOR_DO_NOT_OPTIMIZE_UNCONSTRAINED
     if (btor->options.ucopt.val && btor->options.rewrite_level.val > 2
@@ -4509,7 +4509,7 @@ btor_simplify (Btor *btor)
     }
 #endif
     // printf ("====\n");
-    // btor_set_opt (btor, BTOR_OPT_NO_PRETTY_PRINT, 1);
+    // btor_set_opt (btor, BTOR_OPT_PRETTY_PRINT, 1);
     // btor_dump_btor (btor, stdout);
 
     if (btor->varsubst_constraints->count) continue;
@@ -8003,8 +8003,8 @@ new_exp_layer_clone_for_dual_prop (Btor *btor,
   btor_set_opt (clone, BTOR_OPT_FORCE_INTERNAL_CLEANUP, 1);
   btor_set_opt (clone, BTOR_OPT_LOGLEVEL, 0);
   btor_set_opt (clone, BTOR_OPT_VERBOSITY, 0);
-  btor_set_opt (clone, BTOR_OPT_DUAL_PROP, 0);  // FIXME should be redundant
-  btor_set_opt (clone, BTOR_OPT_NO_PRETTY_PRINT, 1);  // TODO debug
+  btor_set_opt (clone, BTOR_OPT_DUAL_PROP, 0);     // FIXME should be redundant
+  btor_set_opt (clone, BTOR_OPT_PRETTY_PRINT, 1);  // TODO debug
 
   smgr = btor_get_sat_mgr_btor (clone);
   assert (!btor_is_initialized_sat (smgr));

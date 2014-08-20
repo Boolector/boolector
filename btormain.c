@@ -426,7 +426,7 @@ print_help (BtorMainApp *app)
   {
     if (o->internal) continue;
     if (!strcmp (o->lng, "incremental") || !strcmp (o->lng, "beta_reduce_all")
-        || !strcmp (o->lng, "no_pretty_print") || !strcmp (o->lng, "dual_prop"))
+        || !strcmp (o->lng, "pretty_print") || !strcmp (o->lng, "dual_prop"))
       fprintf (out, "\n");
     if (!strcmp (o->lng, "input_format"))
     {

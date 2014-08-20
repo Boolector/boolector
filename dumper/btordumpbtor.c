@@ -65,7 +65,7 @@ btor_new_dump_context (Btor *btor)
   res->sorts   = btor_new_ptr_hash_table (btor->mm, 0, 0);
 
   /* set start id for roots */
-  if (btor->options.no_pretty_print.val)
+  if (!btor->options.pretty_print.val)
     res->maxid = BTOR_COUNT_STACK (btor->nodes_id_table);
 
   return res;
@@ -223,7 +223,7 @@ bdcid (BtorDumpContext *bdc, BtorNode *node)
   {
     b = btor_insert_in_ptr_hash_table (bdc->idtab,
                                        btor_copy_exp (bdc->btor, node));
-    if (!bdc->btor->options.no_pretty_print.val)
+    if (bdc->btor->options.pretty_print.val)
       b->data.asInt = ++bdc->maxid;
     else
       b->data.asInt = real->id;
@@ -366,7 +366,7 @@ bdcsort (BtorDumpContext *bdc, BtorSort *sort, FILE *file)
   }
 
   id = sort->id;
-  if (!bdc->btor->options.no_pretty_print.val) id = ++bdc->maxsortid;
+  if (bdc->btor->options.pretty_print.val) id = ++bdc->maxsortid;
 
   fprintf (file, "%d sort %s", id, kind);
 

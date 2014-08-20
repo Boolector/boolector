@@ -56,7 +56,7 @@ typedef struct BtorOpt
 #define BTOR_OPT_UCOPT "ucopt"
 #endif
 #define BTOR_OPT_FORCE_CLEANUP "force_cleanup"
-#define BTOR_OPT_NO_PRETTY_PRINT "no_pretty_print"
+#define BTOR_OPT_PRETTY_PRINT "pretty_print"
 #ifndef NBTORLOG
 #define BTOR_OPT_LOGLEVEL "loglevel"
 #endif
@@ -100,8 +100,8 @@ typedef struct BtorOpts
   BtorOpt ucopt; /* unconstrained optimization */
 #endif
 
-  BtorOpt force_cleanup;   /* force cleanup of exps, assignm. strings */
-  BtorOpt no_pretty_print; /* do not reindex exps when dumping */
+  BtorOpt force_cleanup; /* force cleanup of exps, assignm. strings */
+  BtorOpt pretty_print;  /* reindex exps and sorts when dumping */
 #ifndef NBTORLOG
   BtorOpt loglevel;
 #endif
