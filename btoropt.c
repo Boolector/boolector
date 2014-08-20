@@ -253,10 +253,6 @@ btor_set_opt (Btor *btor, const char *name, int val)
   BtorAIGMgr *amgr;
   BtorSATMgr *smgr;
 
-#ifdef NBTORLOG
-  return;
-#endif
-
   o = btor_get_opt (btor, name);
   assert (o);
   oldval = o->val;
@@ -301,6 +297,10 @@ btor_set_opt (Btor *btor, const char *name, int val)
     assert (val >= 0 && val <= 3);
     assert (oldval >= 0 && oldval <= 3);
   }
+#ifdef NBTORLOG
+  else if (!strcmp (name, "loglevel"))
+    return;
+#endif
 }
 
 BtorOpt *
