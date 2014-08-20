@@ -188,6 +188,7 @@ btor_delete_sat_mgr (BtorSATMgr *smgr)
    * reset_sat has not been called
    */
   if (smgr->initialized) btor_reset_sat (smgr);
+  if (smgr->optstr) btor_freestr (smgr->mm, smgr->optstr);
   BTOR_DELETE (smgr->mm, smgr);
 }
 
@@ -302,7 +303,12 @@ btor_reset_sat (BtorSATMgr *smgr)
   assert (smgr->initialized);
   btor_msg_sat (smgr, 2, "resetting %s", smgr->name);
   smgr->api.reset (smgr);
-  smgr->solver      = 0;
+  smgr->solver = 0;
+  if (smgr->optstr)
+  {
+    btor_freestr (smgr->mm, smgr->optstr);
+    smgr->optstr = 0;
+  }
   smgr->initialized = 0;
 }
 
@@ -883,8 +889,8 @@ btor_enable_lingeling_sat (BtorSATMgr *smgr, const char *optstr, int nofork)
   BTOR_ABORT_SAT (smgr->initialized,
                   "'btor_init_sat' called before 'btor_enable_lingeling_sat'");
 
-  if ((smgr->optstr = optstr)
-      && !btor_passdown_lingeling_options (smgr, optstr, 0))
+  smgr->optstr = btor_strdup (smgr->mm, optstr);
+  if (smgr->optstr && !btor_passdown_lingeling_options (smgr, optstr, 0))
     return 0;
 
   smgr->name   = "Lingeling";
