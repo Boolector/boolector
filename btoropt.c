@@ -191,8 +191,9 @@ btor_init_opts (Btor *btor)
 
   BTOR_OPT ("dp", dual_prop, 0, 0, 1, "enable dual propagation optimization");
   BTOR_OPT ("ju", just, 0, 0, 1, "enable justification optimization");
+#ifndef BTOR_DO_NOT_OPTIMIZE_UNCONSTRAINED
   BTOR_OPT ("uc", ucopt, 0, 0, 1, "enable unconstrained optimization");
-
+#endif
   BTOR_OPT ("fc", force_cleanup, 0, 0, 1, "force cleanup on exit");
   BTOR_OPT ("p", no_pretty_print, 0, 0, 1, "do not pretty print when dumping");
 #ifndef NBTORLOG
