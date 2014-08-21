@@ -10,6 +10,8 @@
  *  See COPYING for more information on using this software.
  */
 
+#ifdef BTOR_ENABLE_CLONING
+
 #include "btoraig.h"
 #include "btoraigvec.h"
 #include "btorbeta.h"
@@ -1240,3 +1242,4 @@ btor_recursively_rebuild_exp_clone (Btor *btor,
 #endif
   return btor_copy_exp (clone, btor_mapped_node (exp_map, exp));
 }
+#endif

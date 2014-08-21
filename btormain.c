@@ -662,10 +662,16 @@ int
 boolector_main (int argc, char **argv)
 {
   int res, sat_res;
-  int i, j, k, len, shrt, disable, readval, val, log, forced_sat_solver;
+  int i, j, k, len, shrt, disable, readval, val, forced_sat_solver;
+#ifndef NBTORLOG
+  int log = 0;
+#endif
   int inc, incid, incla, incint, dump;
   int parse_result, parse_status;
-  char opt[50], *cmd, *valstr, *lingeling_opts, *parse_error_msg, *tmp;
+  char opt[50], *cmd, *valstr, *parse_error_msg, *tmp;
+#ifdef BTOR_USE_LINGELING
+  char *lingeling_opts = 0;
+#endif
   BtorOpt *o;
 
 #ifdef BTOR_HAVE_GETRUSAGE
@@ -674,9 +680,8 @@ boolector_main (int argc, char **argv)
   res              = BTOR_UNKNOWN_EXIT;
   sat_res          = BOOLECTOR_UNKNOWN;
   static_verbosity = 0;
-  log              = 0;
-  lingeling_opts   = 0;
   inc = incid = incla = incint = dump = 0;
+  parse_result                        = BOOLECTOR_UNKNOWN;
 
   static_app = btormain_new_btormain (boolector_new ());
 

@@ -168,6 +168,7 @@ btor_init_opts (Btor *btor)
 
   BTOR_OPT (
       "bra", beta_reduce_all, 0, 0, 1, "eagerly eliminate lambda expressions");
+#ifdef BTOR_ENABLE_BETA_REDUCTION_PROBING
   BTOR_OPT ("pbra",
             probe_beta_reduce_all,
             0,
@@ -188,12 +189,17 @@ btor_init_opts (Btor *btor)
             -1,
             "factor by which the size of the red. formula may be greater than "
             "the original formula");
-
-  BTOR_OPT ("dp", dual_prop, 0, 0, 1, "enable dual propagation optimization");
-  BTOR_OPT ("ju", just, 0, 0, 1, "enable justification optimization");
-#ifndef BTOR_DO_NOT_OPTIMIZE_UNCONSTRAINED
-  BTOR_OPT ("uc", ucopt, 0, 0, 1, "enable unconstrained optimization");
 #endif
+
+#ifdef BTOR_ENABLE_DUAL_PROPAGATION
+  BTOR_OPT ("dp", dual_prop, 0, 0, 1, "dual propagation optimization");
+#endif
+  BTOR_OPT ("ju", just, 0, 0, 1, "justification optimization");
+#ifndef BTOR_DO_NOT_OPTIMIZE_UNCONSTRAINED
+  BTOR_OPT ("uc", ucopt, 0, 0, 1, "unconstrained optimization");
+#endif
+  BTOR_OPT ("ls", lazy_synthesize, 1, 0, 1, "lazily synthesize expressions");
+  BTOR_OPT ("es", eliminate_slices, 1, 0, 1, "eliminate slices on variables");
   BTOR_OPT ("fc", force_cleanup, 0, 0, 1, "force cleanup on exit");
   BTOR_OPT ("p", pretty_print, 1, 0, 1, "pretty print when dumping");
 #ifndef NBTORLOG
@@ -271,13 +277,17 @@ btor_set_opt (Btor *btor, const char *name, int val)
     assert (btor->btor_sat_btor_called == 0);
     // TODO reset incremental usage, meltall if inc is disabled
   }
+#ifdef BTOR_ENABLE_DUAL_PROPAGATION
   else if (!strcmp (name, "dp") || !strcmp (name, BTOR_OPT_DUAL_PROP))
   {
     assert (!val || !btor->options.just.val);
   }
+#endif
   else if (!strcmp (name, "ju") || !strcmp (name, BTOR_OPT_JUST))
   {
+#ifdef BTOR_ENABLE_DUAL_PROPAGATION
     assert (!val || !btor->options.dual_prop.val);
+#endif
   }
   else if (!strcmp (name, "v") || !strcmp (name, BTOR_OPT_VERBOSITY))
   {
@@ -300,7 +310,7 @@ btor_set_opt (Btor *btor, const char *name, int val)
     assert (val >= 0 && val <= 3);
     assert (oldval >= 0 && oldval <= 3);
   }
-#ifdef NBTORLOG
+#ifndef NBTORLOG
   else if (!strcmp (name, BTOR_OPT_LOGLEVEL))
     return;
 #endif

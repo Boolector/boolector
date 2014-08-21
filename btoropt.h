@@ -88,17 +88,23 @@ typedef struct BtorOpts
   BtorOpt rewrite_level;
   BtorOpt rewrite_level_pbr;
 
-  BtorOpt beta_reduce_all;       /* eagerly eliminate lambda expressions */
+  BtorOpt beta_reduce_all; /* eagerly eliminate lambda expressions */
+#ifdef BTOR_ENABLE_BETA_REDUCTION_PROBING
   BtorOpt probe_beta_reduce_all; /* probe until given LOD or SAT limit */
   BtorOpt pbra_lod_limit;        /* LOD limit for BR probing */
   BtorOpt pbra_sat_limit;        /* SAT limit for BR probing */
   BtorOpt pbra_ops_factor;       /* factor by which the beta reduced formula
                                     may be greater than the original */
-  BtorOpt dual_prop;             /* dual prop optimization */
-  BtorOpt just;                  /* justification optimization */
+#endif
+#ifdef BTOR_ENABLE_DUAL_PROPAGATION
+  BtorOpt dual_prop; /* dual prop optimization */
+#endif
+  BtorOpt just; /* justification optimization */
 #ifndef BTOR_DO_NOT_OPTIMIZE_UNCONSTRAINED
   BtorOpt ucopt; /* unconstrained optimization */
 #endif
+  BtorOpt lazy_synthesize;  /* lazily synthesize expressions */
+  BtorOpt eliminate_slices; /* eliminate slices on variables */
 
   BtorOpt force_cleanup; /* force cleanup of exps, assignm. strings */
   BtorOpt pretty_print;  /* reindex exps and sorts when dumping */

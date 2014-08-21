@@ -14,15 +14,17 @@
 #include "btorcore.h"
 #include "btorbeta.h"
 #include "btorbitvec.h"
-#include "btorclone.h"
 #include "btorconfig.h"
 #include "btorconst.h"
+#include "btoropt.h"
+#ifdef BTOR_ENABLE_DUAL_PROPAGATION
+#include "btorclone.h"
+#endif
 #include "btorexit.h"
 #include "btoriter.h"
 #include "btorlog.h"
 #include "btormisc.h"
 #include "btormodel.h"
-#include "btoropt.h"
 #include "btorparamcache.h"
 #include "btorrewrite.h"
 #include "btorsat.h"
@@ -31,8 +33,6 @@
 #include <limits.h>
 
 /*------------------------------------------------------------------------*/
-
-// #define BTOR_DO_NOT_ELIMINATE_SLICES
 
 #ifndef BTOR_USE_LINGELING
 #define BTOR_DO_NOT_PROCESS_SKELETON
@@ -46,7 +46,6 @@
 #define BTOR_CHECK_DUAL_PROP
 #endif
 
-//#define BTOR_DO_NOT_LAZY_SYNTHESIZE
 #define POP_TOP_APPLIES
 
 /* justification heuristics */
@@ -119,7 +118,9 @@
 /*------------------------------------------------------------------------*/
 
 static int btor_sat_aux_btor (Btor *, int, int);
+#ifdef BTOR_ENABLE_DUAL_PROPAGATION
 static int btor_sat_aux_btor_dual_prop (Btor *);
+#endif
 static BtorAIG *exp_to_aig (Btor *, BtorNode *);
 
 #ifdef BTOR_CHECK_MODEL
@@ -748,6 +749,7 @@ btor_print_stats_btor (Btor *btor)
             "partial beta reduction restarts: %lld",
             btor->stats.partial_beta_reduction_restarts);
 
+#ifdef BTOR_ENABLE_DUAL_PROPAGATION
   if (btor->options.dual_prop.val)
   {
     btor_msg (btor,
@@ -761,6 +763,7 @@ btor_print_stats_btor (Btor *btor)
               btor->stats.dp_failed_applies,
               btor->stats.dp_assumed_applies);
   }
+#endif
 
   btor_msg (btor, 1, "");
   btor_msg (btor, 1, "%.2f seconds beta-reduction", btor->time.beta);
@@ -777,6 +780,7 @@ btor_print_stats_btor (Btor *btor)
             1,
             "%.2f seconds initial applies search",
             btor->time.search_init_apps);
+#ifdef BTOR_ENABLE_DUAL_PROPAGATION
   if (btor->options.dual_prop.val)
   {
     btor_msg (btor,
@@ -803,6 +807,7 @@ btor_print_stats_btor (Btor *btor)
         "%.2f seconds cone traversal when collecting initial applies via FA",
         btor->time.search_init_apps_collect_fa_cone);
   }
+#endif
   btor_msg (
       btor, 1, "%.2f seconds determinig failed assumptions", btor->time.failed);
   btor_msg (btor, 1, "%.2f seconds lemma generation", btor->time.lemma_gen);
@@ -814,11 +819,13 @@ btor_print_stats_btor (Btor *btor)
             1,
             "%.2f seconds propagation apply search",
             btor->time.find_prop_app);
+#ifdef BTOR_ENABLE_DUAL_PROPAGATION
   if (btor->options.dual_prop.val)
     btor_msg (btor,
               1,
               "%.2f seconds propagation apply in conds search",
               btor->time.find_cond_prop_app);
+#endif
   btor_msg (btor, 1, "%.2f seconds for cloning", btor->time.cloning);
   btor_msg (
       btor, 1, "%.2f seconds beta reduction probing", btor->time.br_probing);
@@ -851,13 +858,12 @@ btor_print_stats_btor (Btor *btor)
             "%.2f seconds in beta reduction during rewriting (%.0f%%)",
             btor->time.betareduce,
             percent (btor->time.betareduce, btor->time.rewrite));
-#ifndef BTOR_DO_NOT_ELIMINATE_SLICES
-  btor_msg (btor,
-            1,
-            "%.2f seconds in slicing during rewriting (%.0f%%)",
-            btor->time.slicing,
-            percent (btor->time.slicing, btor->time.rewrite));
-#endif
+  if (btor->options.eliminate_slices.val)
+    btor_msg (btor,
+              1,
+              "%.2f seconds in slicing during rewriting (%.0f%%)",
+              btor->time.slicing,
+              percent (btor->time.slicing, btor->time.rewrite));
 #ifndef BTOR_DO_NOT_PROCESS_SKELETON
   btor_msg (btor,
             1,
@@ -865,7 +871,7 @@ btor_print_stats_btor (Btor *btor)
             btor->time.skel,
             percent (btor->time.skel, btor->time.rewrite));
 #endif
-  btor_msg (btor, 1, "%.1f MB\n", btor->mm->maxallocated / (double) (1 << 20));
+  btor_msg (btor, 1, "%.1f MB", btor->mm->maxallocated / (double) (1 << 20));
 }
 
 Btor *
@@ -2406,9 +2412,11 @@ simplify_constraint_exp (Btor *btor, BtorNode *exp)
 
   real_exp = BTOR_REAL_ADDR_NODE (exp);
 
+#ifdef BTOR_ENABLE_DUAL_PROPAGATION
   /* Do not simplify top-level constraint applies (we need the implication
    * dependencies for determining top applies when dual prop enabled) */
   if (btor->options.dual_prop.val && BTOR_IS_APPLY_NODE (real_exp)) return exp;
+#endif
 
   not_exp = BTOR_INVERT_NODE (real_exp);
 
@@ -3130,8 +3138,6 @@ process_embedded_constraints (Btor *btor)
 }
 
 /*------------------------------------------------------------------------*/
-#ifndef BTOR_DO_NOT_ELIMINATE_SLICES
-/*------------------------------------------------------------------------*/
 
 static BtorSlice *
 new_slice (Btor *btor, int upper, int lower)
@@ -3406,8 +3412,6 @@ eliminate_slices_on_bv_vars (Btor *btor)
   btor_msg (btor, 1, "sliced %d variables in %1.f seconds", count, delta);
 }
 
-/*------------------------------------------------------------------------*/
-#endif /* BTOR_DO_NOT_ELIMINATE_SLICES */
 /*------------------------------------------------------------------------*/
 
 /*------------------------------------------------------------------------*/
@@ -4458,8 +4462,9 @@ btor_simplify (Btor *btor)
       if (btor->varsubst_constraints->count) continue;
     }
 
-#ifndef BTOR_DO_NOT_ELIMINATE_SLICES
-    if (btor->options.rewrite_level.val > 2 && !btor->options.incremental.val)
+    if (btor->options.eliminate_slices.val
+        && btor->options.rewrite_level.val > 2
+        && !btor->options.incremental.val)
     {
       eliminate_slices_on_bv_vars (btor);
       if (btor->inconsistent) break;
@@ -4468,7 +4473,6 @@ btor_simplify (Btor *btor)
 
       if (btor->embedded_constraints->count) continue;
     }
-#endif
 
 #ifndef BTOR_DO_NOT_PROCESS_SKELETON
     if (btor->options.rewrite_level.val > 2)
@@ -4621,10 +4625,11 @@ synthesize_exp (Btor *btor, BtorNode *exp, BtorPtrHashTable *backannotation)
       {
         cur->av = btor_const_aigvec (avmgr, cur->bits);
         BTORLOG ("  synthesized: %s", node2string (cur));
-#ifdef BTOR_DO_NOT_LAZY_SYNTHESIZE
-        cur->tseitin = 1;
-        btor_aigvec_to_sat_tseitin (avmgr, cur->av);
-#endif
+        if (!btor->options.lazy_synthesize.val)
+        {
+          cur->tseitin = 1;
+          btor_aigvec_to_sat_tseitin (avmgr, cur->av);
+        }
       }
       else if (BTOR_IS_BV_VAR_NODE (cur))
       {
@@ -4656,46 +4661,37 @@ synthesize_exp (Btor *btor, BtorNode *exp, BtorPtrHashTable *backannotation)
             b->data.asStr = btor_strdup (mm, name);
           }
         }
-#ifdef BTOR_DO_NOT_LAZY_SYNTHESIZE
-        cur->tseitin = 1;
-        btor_aigvec_to_sat_tseitin (avmgr, cur->av);
-#endif
+        if (!btor->options.lazy_synthesize.val)
+        {
+          cur->tseitin = 1;
+          btor_aigvec_to_sat_tseitin (avmgr, cur->av);
+        }
       }
       else if (BTOR_IS_APPLY_NODE (cur) && !cur->parameterized)
       {
         cur->av = btor_var_aigvec (avmgr, cur->len);
         BTORLOG ("  synthesized: %s", node2string (cur));
-#ifdef BTOR_DO_NOT_LAZY_SYNTHESIZE
-        cur->tseitin = 1;
-        btor_aigvec_to_sat_tseitin (avmgr, cur->av);
-#endif
+        if (!btor->options.lazy_synthesize.val)
+        {
+          cur->tseitin = 1;
+          btor_aigvec_to_sat_tseitin (avmgr, cur->av);
+        }
         assert (BTOR_IS_REGULAR_NODE (cur->e[0]));
         assert (BTOR_IS_FUN_NODE (cur->e[0]));
-#ifdef BTOR_DO_NOT_LAZY_SYNTHESIZE
-        goto PUSH_CHILDREN;
-#endif
+        if (!btor->options.lazy_synthesize.val) goto PUSH_CHILDREN;
       }
-#ifndef BTOR_DO_NOT_LAZY_SYNTHESIZE
-      else if (BTOR_IS_FUN_NODE (cur))
+      else if (btor->options.lazy_synthesize.val && BTOR_IS_FUN_NODE (cur))
       {
         /* we stop at function nodes as they will be lazily synthesized
          * and encoded during consistency checking */
       }
-#endif
       else
       {
-#ifdef BTOR_DO_NOT_LAZY_SYNTHESIZE
       PUSH_CHILDREN:
-#else
-        assert (!BTOR_IS_FUN_NODE (cur));
-#endif
+        assert (!btor->options.lazy_synthesize.val || !BTOR_IS_FUN_NODE (cur));
         /* always skip argument nodes and parameterized nodes */
-#ifdef BTOR_DO_NOT_LAZY_SYNTHESIZE
         if (cur->parameterized || BTOR_IS_ARGS_NODE (cur)
             || BTOR_IS_FUN_NODE (cur))
-#else
-        if (cur->parameterized || BTOR_IS_ARGS_NODE (cur))
-#endif
           cur->synth_mark = 2;
         else
           cur->synth_mark = 1;
@@ -4722,10 +4718,11 @@ synthesize_exp (Btor *btor, BtorNode *exp, BtorPtrHashTable *backannotation)
         cur->av = btor_slice_aigvec (avmgr, av0, cur->upper, cur->lower);
         BTORLOG ("  synthesized: %s", node2string (cur));
         if (invert_av0) btor_invert_aigvec (avmgr, av0);
-#ifdef BTOR_DO_NOT_LAZY_SYNTHESIZE
-        cur->tseitin = 1;
-        btor_aigvec_to_sat_tseitin (avmgr, cur->av);
-#endif
+        if (!btor->options.lazy_synthesize.val)
+        {
+          cur->tseitin = 1;
+          btor_aigvec_to_sat_tseitin (avmgr, cur->av);
+        }
       }
       else if (cur->arity == 2)
       {
@@ -4795,10 +4792,11 @@ synthesize_exp (Btor *btor, BtorNode *exp, BtorPtrHashTable *backannotation)
           if (invert_av0) btor_invert_aigvec (avmgr, av0);
           if (invert_av1) btor_invert_aigvec (avmgr, av1);
         }
-#ifdef BTOR_DO_NOT_LAZY_SYNTHESIZE
-        cur->tseitin = 1;
-        btor_aigvec_to_sat_tseitin (avmgr, cur->av);
-#endif
+        if (!btor->options.lazy_synthesize.val)
+        {
+          cur->tseitin = 1;
+          btor_aigvec_to_sat_tseitin (avmgr, cur->av);
+        }
       }
       else
       {
@@ -4844,10 +4842,11 @@ synthesize_exp (Btor *btor, BtorNode *exp, BtorPtrHashTable *backannotation)
             if (invert_av1) btor_invert_aigvec (avmgr, av1);
             if (invert_av2) btor_invert_aigvec (avmgr, av2);
           }
-#ifdef BTOR_DO_NOT_LAZY_SYNTHESIZE
-          cur->tseitin = 1;
-          btor_aigvec_to_sat_tseitin (avmgr, cur->av);
-#endif
+          if (!btor->options.lazy_synthesize.val)
+          {
+            cur->tseitin = 1;
+            btor_aigvec_to_sat_tseitin (avmgr, cur->av);
+          }
         }
       }
     }
@@ -5085,93 +5084,6 @@ update_sat_assignments (Btor *btor)
   return btor_changed_sat (smgr);
 }
 
-#ifndef NBTORLOG
-static int
-count_nodes_below (Btor *btor, BtorNode *exp, int *lambdas, int *applies)
-{
-  assert (btor);
-  assert (exp);
-
-  /* clone_mark is unused here, hence we use it and don't introduce
-   * yet another mark */
-
-  int i, res = 0, lam = 0, app = 0;
-  BtorNode *cur;
-  BtorNodePtrStack stack, unmark_stack;
-
-  BTOR_INIT_STACK (stack);
-  BTOR_INIT_STACK (unmark_stack);
-
-  BTOR_PUSH_STACK (btor->mm, stack, exp);
-  while (!BTOR_EMPTY_STACK (stack))
-  {
-    cur = BTOR_REAL_ADDR_NODE (BTOR_POP_STACK (stack));
-    if (cur->clone_mark) continue;
-    cur->clone_mark = 1;
-    BTOR_PUSH_STACK (btor->mm, unmark_stack, cur);
-    res += 1;
-    if (BTOR_IS_LAMBDA_NODE (cur))
-      lam += 1;
-    else if (BTOR_IS_APPLY_NODE (cur))
-      app += 1;
-    for (i = 0; i < cur->arity; i++)
-      BTOR_PUSH_STACK (btor->mm, stack, cur->e[i]);
-  }
-  while (!BTOR_EMPTY_STACK (unmark_stack))
-    BTOR_POP_STACK (unmark_stack)->clone_mark = 0;
-  BTOR_RELEASE_STACK (btor->mm, stack);
-  BTOR_RELEASE_STACK (btor->mm, unmark_stack);
-  *lambdas = BTOR_IS_LAMBDA_NODE (BTOR_REAL_ADDR_NODE (exp)) ? lam - 1 : lam;
-  *applies = BTOR_IS_APPLY_NODE (BTOR_REAL_ADDR_NODE (exp)) ? app - 1 : app;
-  return res - 1;
-}
-
-static int
-count_nodes_above (Btor *btor, BtorNode *exp, int *lambdas, int *applies)
-{
-  assert (btor);
-  assert (exp);
-
-  /* clone_mark is unused here, hence we use it and don't introduce
-   * yet another mark */
-
-  int res = 0, lam = 0, app = 0;
-  BtorNode *cur;
-  BtorNodeIterator it;
-  BtorNodePtrStack stack, unmark_stack;
-
-  BTOR_INIT_STACK (stack);
-  BTOR_INIT_STACK (unmark_stack);
-
-  BTOR_PUSH_STACK (btor->mm, stack, exp);
-  while (!BTOR_EMPTY_STACK (stack))
-  {
-    cur = BTOR_REAL_ADDR_NODE (BTOR_POP_STACK (stack));
-    if (cur->clone_mark) continue;
-    if (!cur->reachable) continue;
-    cur->clone_mark = 1;
-    BTOR_PUSH_STACK (btor->mm, unmark_stack, cur);
-    res += 1;
-    if (BTOR_IS_LAMBDA_NODE (cur))
-      lam += 1;
-    else if (BTOR_IS_APPLY_NODE (cur))
-      app += 1;
-    init_full_parent_iterator (&it, cur);
-    while (has_next_parent_full_parent_iterator (&it))
-      BTOR_PUSH_STACK (btor->mm, stack, next_parent_full_parent_iterator (&it));
-  }
-  while (!BTOR_EMPTY_STACK (unmark_stack))
-    BTOR_POP_STACK (unmark_stack)->clone_mark = 0;
-  BTOR_RELEASE_STACK (btor->mm, stack);
-  BTOR_RELEASE_STACK (btor->mm, unmark_stack);
-  *lambdas =
-      lam && BTOR_IS_LAMBDA_NODE (BTOR_REAL_ADDR_NODE (exp)) ? lam - 1 : lam;
-  *applies =
-      app && BTOR_IS_APPLY_NODE (BTOR_REAL_ADDR_NODE (exp)) ? app - 1 : app;
-  return res ? res - 1 : res;
-}
-#endif
-
 static void
 search_initial_applies (Btor *btor, BtorNodePtrStack *top_applies, int dp)
 {
@@ -5298,6 +5210,7 @@ bv_assignment_str_exp (Btor *btor, BtorNode *exp)
 }
 
 static void compute_scores (Btor *);
+#ifdef BTOR_ENABLE_DUAL_PROPAGATION
 static void compute_scores_dual_prop (Btor *);
 
 static int
@@ -5330,14 +5243,7 @@ compare_scores_qsort (const void *p1, const void *p2)
 
   return 0;
 }
-
-static int
-cmp_node_id_asc (const void *p, const void *q)
-{
-  BtorNode *a = *(BtorNode **) p;
-  BtorNode *b = *(BtorNode **) q;
-  return a->id - b->id;
-}
+#endif
 
 static int
 cmp_node_id_desc (const void *p, const void *q)
@@ -5345,6 +5251,15 @@ cmp_node_id_desc (const void *p, const void *q)
   BtorNode *a = *(BtorNode **) p;
   BtorNode *b = *(BtorNode **) q;
   return b->id - a->id;
+}
+
+#ifdef BTOR_ENABLE_DUAL_PROPAGATION
+static int
+cmp_node_id_asc (const void *p, const void *q)
+{
+  BtorNode *a = *(BtorNode **) p;
+  BtorNode *b = *(BtorNode **) q;
+  return a->id - b->id;
 }
 
 static void
@@ -5434,9 +5349,6 @@ collect_applies (Btor *btor,
   BtorNode *cur_btor, *cur_clone, *bv_eq;
   BtorNodePtrStack unmark_stack;
   BtorNodeMapIterator it;
-#ifndef NBTORLOG
-  int lam, app;
-#endif
 
   start = btor_time_stamp ();
 
@@ -5477,15 +5389,6 @@ collect_applies (Btor *btor,
         btor->stats.dp_failed_applies += 1;
         cur_btor->aux_mark = 1;
         BTOR_PUSH_STACK (btor->mm, unmark_stack, cur_btor);
-        BTORLOG ("initial apply: %s", node2string (cur_btor));
-        BTORLOG ("  nodes below: %d",
-                 count_nodes_below (btor, cur_btor, &lam, &app));
-        BTORLOG ("    -> lambdas below: %d", lam);
-        BTORLOG ("    -> applies below: %d", app);
-        BTORLOG ("  nodes above: %d",
-                 count_nodes_above (btor, cur_btor, &lam, &app));
-        BTORLOG ("    -> lambdas above: %d", lam);
-        BTORLOG ("    -> applies above: %d", app);
         BTOR_PUSH_STACK (btor->mm, *top_applies, cur_btor);
       }
     }
@@ -5685,6 +5588,7 @@ search_initial_applies_dual_prop (Btor *btor,
 
   btor->time.search_init_apps += btor_time_stamp () - start;
 }
+#endif
 
 // TODO: score function for min score approximation
 //       (applies counter with decay for shared sub applies)
@@ -6045,6 +5949,7 @@ compute_scores (Btor *btor)
   compute_scores_aux (btor, &it);
 }
 
+#ifdef BTOR_ENABLE_DUAL_PROPAGATION
 static void
 compute_scores_dual_prop (Btor *btor)
 {
@@ -6120,6 +6025,7 @@ compute_scores_dual_prop (Btor *btor)
   BTOR_RELEASE_STACK (btor->mm, stack);
   BTOR_RELEASE_STACK (btor->mm, unmark_stack);
 }
+#endif
 #endif
 
 static void
@@ -6440,9 +6346,7 @@ lazy_synthesize_and_encode_var_exp (Btor *btor, BtorNode *var, int force_update)
   int changed_assignments, update;
   BtorAIGVecMgr *avmgr = 0;
 
-#ifdef BTOR_DO_NOT_LAZY_SYNTHESIZE
-  return 0;
-#endif
+  if (!btor->options.lazy_synthesize.val) return 0;
 
   if (var->tseitin) return 0;
 
@@ -6511,38 +6415,38 @@ lazy_synthesize_and_encode_apply_exp (Btor *btor,
   {
     arg = next_args_iterator (&it);
     assert (!BTOR_IS_FUN_NODE (BTOR_REAL_ADDR_NODE (arg)));
-#ifndef BTOR_DO_NOT_LAZY_SYNTHESIZE
-    if (!BTOR_IS_SYNTH_NODE (BTOR_REAL_ADDR_NODE (arg)))
+    if (btor->options.lazy_synthesize.val
+        && !BTOR_IS_SYNTH_NODE (BTOR_REAL_ADDR_NODE (arg)))
       synthesize_exp (btor, arg, 0);
-#endif
 
     if (!BTOR_REAL_ADDR_NODE (arg)->tseitin)
     {
       update = 1;
-#ifdef BTOR_DO_NOT_LAZY_SYNTHESIZE
-      synthesize_exp (btor, arg, 0);
-#else
-      btor_aigvec_to_sat_tseitin (avmgr, BTOR_REAL_ADDR_NODE (arg)->av);
-      BTOR_REAL_ADDR_NODE (arg)->tseitin = 1;
-#endif
+      if (!btor->options.lazy_synthesize.val)
+        synthesize_exp (btor, arg, 0);
+      else
+      {
+        btor_aigvec_to_sat_tseitin (avmgr, BTOR_REAL_ADDR_NODE (arg)->av);
+        BTOR_REAL_ADDR_NODE (arg)->tseitin = 1;
+      }
       BTORLOG ("  encode: %s", node2string (arg));
     }
   }
 
-#ifndef BTOR_DO_NOT_LAZY_SYNTHESIZE
   /* synthesize and encode apply expressions */
-  if (!BTOR_IS_SYNTH_NODE (app)) synthesize_exp (btor, app, 0);
-#endif
+  if (btor->options.lazy_synthesize.val && !BTOR_IS_SYNTH_NODE (app))
+    synthesize_exp (btor, app, 0);
 
   if (!app->tseitin)
   {
     update = 1;
-#ifdef BTOR_DO_NOT_LAZY_SYNTHESIZE
-    synthesize_exp (btor, app, 0);
-#else
-    btor_aigvec_to_sat_tseitin (avmgr, app->av);
-    app->tseitin = 1;
-#endif
+    if (!btor->options.lazy_synthesize.val)
+      synthesize_exp (btor, app, 0);
+    else
+    {
+      btor_aigvec_to_sat_tseitin (avmgr, app->av);
+      app->tseitin = 1;
+    }
     BTORLOG ("  encode: %s", node2string (app));
   }
 
@@ -6576,10 +6480,11 @@ lazy_synthesize_and_encode_lambda_exp (Btor *btor,
   BtorMemMgr *mm;
   BtorAIGVecMgr *avmgr;
 
-#ifdef BTOR_DO_NOT_LAZY_SYNTHESIZE
-  /* already synthesized and encoded */
-  return 0;
-#endif
+  if (!btor->options.lazy_synthesize.val)
+  {
+    /* already synthesized and encoded */
+    return 0;
+  }
 
   // TODO: remove lazy_tseitin
   if (lambda_exp->lazy_tseitin) return 0;
@@ -7109,6 +7014,7 @@ add_lemma (Btor *btor, BtorNode *fun, BtorNode *app0, BtorNode *app1)
                                          (BtorHashPtr) btor_hash_exp_by_id,
                                          (BtorCmpPtr) btor_compare_exp_by_id);
 
+#ifdef BTOR_ENABLE_DUAL_PROPAGATION
   // TODO: right now we have to build lemmas with rwl 1 with the current
   //	   dual propagation implementation, since cloning the lemma needs to
   //	   produce the same expressions
@@ -7117,6 +7023,7 @@ add_lemma (Btor *btor, BtorNode *fun, BtorNode *app0, BtorNode *app1)
     rwl = btor->options.rewrite_level.val;
     btor_set_opt (btor, BTOR_OPT_REWRITE_LEVEL, 1);
   }
+#endif
 
   /* function congruence axiom conflict */
   if (app1)
@@ -7452,12 +7359,16 @@ propagate (Btor *btor,
 
   BTOR_INIT_STACK (param_apps);
 
-  mm          = btor->mm;
+  mm = btor->mm;
+#ifdef BTOR_ENABLE_DUAL_PROPAGATION
   check_conds = btor->options.dual_prop.val || btor->options.just.val;
-  to_prop     = btor_new_ptr_hash_table (mm,
+#else
+  check_conds = btor->options.just.val;
+#endif
+  to_prop = btor_new_ptr_hash_table (mm,
                                      (BtorHashPtr) btor_hash_exp_by_id,
                                      (BtorCmpPtr) btor_compare_exp_by_id);
-  conds       = check_conds
+  conds   = check_conds
               ? btor_new_ptr_hash_table (mm,
                                          (BtorHashPtr) btor_hash_exp_by_id,
                                          (BtorCmpPtr) btor_compare_exp_by_id)
@@ -7845,6 +7756,11 @@ check_and_resolve_conflicts (Btor *btor,
 {
   assert (btor);
   assert (btor->ops[BTOR_FEQ_NODE].cur == 0);
+#ifndef BTOR_ENABLE_DUAL_PROPAGATION
+  (void) clone;
+  (void) clone_root;
+  (void) exp_map;
+#endif
 
   int i, found_conflict, changed_assignments;
   BtorMemMgr *mm;
@@ -7872,10 +7788,12 @@ BTOR_CONFLICT_CHECK:
 
   // TODO: handle propagation flag cleanup via cleanup_stack?
   reset_applies (btor);
+#ifdef BTOR_ENABLE_DUAL_PROPAGATION
   if (clone)
     search_initial_applies_dual_prop (
         btor, clone, clone_root, exp_map, &top_applies);
   else
+#endif
   {
     if (btor->options.just.val)
       search_initial_applies_just (btor, &top_applies);
@@ -7975,6 +7893,7 @@ BTOR_CONFLICT_CHECK:
   return found_conflict;
 }
 
+#ifdef BTOR_ENABLE_DUAL_PROPAGATION
 static Btor *
 new_exp_layer_clone_for_dual_prop (Btor *btor,
                                    BtorNodeMap **exp_map,
@@ -8001,7 +7920,9 @@ new_exp_layer_clone_for_dual_prop (Btor *btor,
   btor_set_opt (clone, BTOR_OPT_INCREMENTAL, 1);
   btor_set_opt (clone, BTOR_OPT_FORCE_CLEANUP, 1);
   btor_set_opt (clone, BTOR_OPT_FORCE_INTERNAL_CLEANUP, 1);
+#ifndef NBTORLOG
   btor_set_opt (clone, BTOR_OPT_LOGLEVEL, 0);
+#endif
   btor_set_opt (clone, BTOR_OPT_VERBOSITY, 0);
   btor_set_opt (clone, BTOR_OPT_DUAL_PROP, 0);     // FIXME should be redundant
   btor_set_opt (clone, BTOR_OPT_PRETTY_PRINT, 1);  // TODO debug
@@ -8070,18 +7991,22 @@ add_lemma_to_dual_prop_clone (Btor *btor,
   btor_release_exp (clone, *root);
   *root = and;
 }
+#endif
 
 static int
 btor_sat_aux_btor (Btor *btor, int lod_limit, int sat_limit)
 {
   assert (btor);
 
-  int sat_result, simp_sat_result, found_conflict, refinements;
+  int sat_result, found_conflict, refinements;
   BtorNodePtrStack prop_stack;
   BtorSATMgr *smgr;
   Btor *clone;
   BtorNode *clone_root;
   BtorNodeMap *exp_map;
+#ifdef BTOR_ENABLE_DUAL_PROPAGATION
+  int simp_sat_result;
+#endif
 #ifdef BTOR_CHECK_FAILED
   Btor *faclone = 0;
 #endif
@@ -8096,7 +8021,10 @@ btor_sat_aux_btor (Btor *btor, int lod_limit, int sat_limit)
 
   btor_msg (btor, 1, "calling SAT");
 
-  simp_sat_result = btor_simplify (btor);
+#ifdef BTOR_ENABLE_DUAL_PROPAGATION
+  simp_sat_result =
+#endif
+      btor_simplify (btor);
   update_assumptions (btor);
 
 #ifdef BTOR_CHECK_FAILED
@@ -8162,11 +8090,13 @@ btor_sat_aux_btor (Btor *btor, int lod_limit, int sat_limit)
   else
     sat_result = btor_timed_sat_sat (btor, -1);
 
+#ifdef BTOR_ENABLE_DUAL_PROPAGATION
   if (btor->options.dual_prop.val && sat_result == BTOR_SAT
       && simp_sat_result != BTOR_SAT)
   {
     clone = new_exp_layer_clone_for_dual_prop (btor, &exp_map, &clone_root);
   }
+#endif
 
   while (sat_result == BTOR_SAT)
   {
@@ -8175,7 +8105,9 @@ btor_sat_aux_btor (Btor *btor, int lod_limit, int sat_limit)
 
     if (!found_conflict) break;
 
+#ifdef BTOR_ENABLE_DUAL_PROPAGATION
     if (clone) add_lemma_to_dual_prop_clone (btor, clone, &clone_root, exp_map);
+#endif
 
     if (btor->options.verbosity.val == 1)
     {
@@ -8248,6 +8180,7 @@ DONE:
   return sat_result;
 }
 
+#ifdef BTOR_ENABLE_DUAL_PROPAGATION
 static int
 btor_sat_aux_btor_dual_prop (Btor *btor)
 {
@@ -8331,7 +8264,9 @@ DONE:
 #endif
   return sat_result;
 }
+#endif
 
+#ifdef BTOR_ENABLE_BETA_REDUCTION_PROBING
 static int
 sum_ops (Btor *btor)
 {
@@ -8342,7 +8277,6 @@ sum_ops (Btor *btor)
   return sum;
 }
 
-#ifdef BTOR_USE_LINGELING
 static int
 br_probe (Btor *btor)
 {
@@ -8370,7 +8304,9 @@ br_probe (Btor *btor)
   bclone = btor_clone_btor (btor);
   btor_set_opt (bclone, BTOR_OPT_BETA_REDUCE_ALL, 1);
   btor_set_opt (bclone, BTOR_OPT_VERBOSITY, 0);
+#ifndef NBTORLOG
   btor_set_opt (bclone, BTOR_OPT_LOGLEVEL, 0);
+#endif
 
   res           = btor_simplify (bclone);
   num_ops_orig  = sum_ops (btor);
@@ -8428,7 +8364,7 @@ btor_sat_btor (Btor *btor, int lod_limit, int sat_limit)
 
   int res;
 
-#ifdef BTOR_USE_LINGELING
+#ifdef BTOR_ENABLE_BETA_REDUCTION_PROBING
   if (btor_has_clone_support_sat_mgr (btor_get_sat_mgr_btor (btor))
       && btor->options.probe_beta_reduce_all.val && lod_limit == -1
       && sat_limit == -1)

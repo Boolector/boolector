@@ -16,19 +16,21 @@
 #include "boolector.h"
 #include "btorabort.h"
 #include "btorchkclone.h"
-#include "btorclone.h"
 #include "btorconst.h"
 #include "btorcore.h"
 #include "btorexit.h"
-#include "btorhash.h"
 #include "btoriter.h"
-#include "btorparse.h"
-#include "btorsat.h"
-#include "btorsort.h"
 #include "btortrapi.h"
 #include "btorutil.h"
 #include "dumper/btordumpbtor.h"
 #include "dumper/btordumpsmt.h"
+#ifdef BTOR_USE_LINGELING
+#include "btorclone.h"
+#endif
+#include "btorhash.h"
+#include "btorparse.h"
+#include "btorsat.h"
+#include "btorsort.h"
 
 /*------------------------------------------------------------------------*/
 
@@ -42,14 +44,16 @@ void
 boolector_chkclone (Btor *btor)
 {
   BTOR_ABORT_ARG_NULL_BOOLECTOR (btor);
-#ifndef BTOR_USE_LINGELING
+  BTOR_TRAPI ("");
+#ifndef BTOR_ENABLE_CLONING
   BTOR_ABORT_BOOLECTOR (1, "cloning requires lingeling as SAT solver");
 #endif
-  BTOR_TRAPI ("");
 #ifndef NDEBUG
   if (btor->clone) btor_delete_btor (btor->clone);
   btor->clone = btor; /* mark clone as going-to-be shadow clone */
+#ifdef BTOR_ENABLE_CLONING
   btor->clone = btor_clone_btor (btor);
+#endif
   assert (btor->clone->mm);
   assert (btor->clone->avmgr);
   btor_chkclone (btor);
@@ -91,11 +95,13 @@ boolector_clone (Btor *btor)
   Btor *clone;
 
   BTOR_ABORT_ARG_NULL_BOOLECTOR (btor);
-#ifndef BTOR_USE_LINGELING
-  BTOR_ABORT_BOOLECTOR (1, "cloning requires Lingeling as SAT solver");
-#endif
   BTOR_TRAPI ("");
+#ifdef BTOR_ENABLE_CLONING
   clone = btor_clone_btor (btor);
+#else
+  BTOR_ABORT_BOOLECTOR (1, "cloning requires Lingeling as SAT solver");
+  clone = 0;
+#endif
   BTOR_TRAPI_RETURN_PTR (clone);
   return clone;
 }
@@ -394,17 +400,21 @@ boolector_set_opt (Btor *btor, const char *opt, int val)
                           "enabling incremental usage must be done before "
                           "calling 'boolector_sat'");
   }
+#ifdef BTOR_ENABLE_DUAL_PROPAGATION
   else if (!strcmp (opt, BTOR_OPT_DUAL_PROP))
   {
     BTOR_ABORT_BOOLECTOR (
         val && btor->options.just.val,
         "enabling multiple optimization techniques is not allowed");
   }
+#endif
   else if (!strcmp (opt, BTOR_OPT_JUST))
   {
+#ifdef BTOR_ENABLE_DUAL_PROPAGATION
     BTOR_ABORT_BOOLECTOR (
         val && btor->options.dual_prop.val,
         "enabling multiple optimization techniques is not allowed");
+#endif
   }
 #ifdef BTOR_DO_NOT_OPTIMIZE_UNCONSTRAINED
   else if (!strcmp (opt, BTOR_OPT_UCOPT))
@@ -425,7 +435,7 @@ boolector_set_opt (Btor *btor, const char *opt, int val)
     BTOR_ABORT_BOOLECTOR (val < 0 || val > 3,
                           "'rewrite_level_pbr' must be in [0,3]");
   }
-#ifdef NBTORLOG
+#ifndef NBTORLOG
   else if (!strcmp (opt, BTOR_OPT_LOGLEVEL))
   {
     return;

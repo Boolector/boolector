@@ -251,7 +251,7 @@ else
     [ X"$LDEPS" = X ] || LDEPS="$LDEPS "
     [ X"$LIBS" = X ] || LIBS="$LIBS "
     [ X"$INCS" = X ] || INCS="$INCS "
-    CFLAGS="${CFLAGS}-DBTOR_USE_LINGELING"
+    CFLAGS="${CFLAGS}-DBTOR_USE_LINGELING -DBTOR_ENABLE_CLONING -DBTOR_ENABLE_DUAL_PROPAGATION -DBTOR_ENABLE_BETA_REDUCTION_PROBING"
     LIBS="${LIBS}-L../lingeling -llgl"
     LDEPS="${LDEPS}../lingeling/liblgl.a"
     LIBM=yes
@@ -365,6 +365,7 @@ else
     LDEPS="${LDEPS}../minisat/build/release/lib/libminisat.a"
     LIBSTDCPP=yes
     LIBZ=yes
+    LIBM=yes
     INCS="${INCS}-I../minisat"
   fi
 

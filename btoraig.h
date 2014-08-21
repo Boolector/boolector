@@ -99,6 +99,7 @@ typedef struct BtorAIGMgr BtorAIGMgr;
  */
 BtorAIGMgr *btor_new_aig_mgr (BtorMemMgr *mm);
 
+#ifdef BTOR_ENABLE_CLONING
 /* Clones AIG manager. */
 BtorAIGMgr *btor_clone_aig_mgr (BtorMemMgr *mm, BtorAIGMgr *amgr);
 
@@ -113,6 +114,7 @@ void btor_clone_aigs (BtorAIGMgr *amgr,
 BtorAIG *btor_cloned_aig (BtorMemMgr *mm,
                           BtorAIG *aig,
                           struct BtorAIGMap *aig_map);
+#endif
 
 /* Sets verbosity [-1,3] */
 void btor_set_verbosity_aig_mgr (BtorAIGMgr *amgr, int verbosity);
