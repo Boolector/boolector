@@ -9413,7 +9413,6 @@ check_model (Btor *btor, Btor *clone, BtorPtrHashTable *inputs)
   ret = btor_simplify (clone);
 
   assert (ret != BTOR_UNKNOWN || btor_sat_aux_btor (clone, -1, -1) == BTOR_SAT);
-  // TODO: if ret still UNKNOWN dump formula (for rw rule harvesting?)
   // TODO: check if roots have been simplified through aig rewriting
   // BTOR_ABORT_CORE (ret == BTOR_UNKNOWN, "rewriting needed");
   BTOR_ABORT_CORE (ret == BTOR_UNSAT, "invalid model");
