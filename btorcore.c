@@ -5590,10 +5590,6 @@ search_initial_applies_dual_prop (Btor *btor,
 }
 #endif
 
-// TODO: score function for min score approximation
-//       (applies counter with decay for shared sub applies)
-// TODO: score function for min depth to input
-
 #ifdef BTOR_JUST_BRANCH_MIN_DEPTH
 static int
 compare_scores (Btor *btor, BtorNode *a, BtorNode *b)
