@@ -17,7 +17,7 @@
 #include "btorconfig.h"
 #include "btorconst.h"
 #include "btoropt.h"
-#ifdef BTOR_ENABLE_DUAL_PROPAGATION
+#ifdef BTOR_ENABLE_CLONING
 #include "btorclone.h"
 #endif
 #include "btorexit.h"
