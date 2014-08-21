@@ -6586,7 +6586,6 @@ collect_premisses (Btor *btor,
   int i;
   BtorMemMgr *mm;
   BtorNode *fun, *result, *cond, *param, *arg;
-  BtorNodePtrStack prop_stack;
   BtorPtrHashTable *cond_sel1, *cond_sel2, *c, *r;
   BtorPtrHashBucket *b;
   BtorParamCacheTuple *t;
@@ -6609,13 +6608,10 @@ collect_premisses (Btor *btor,
     assert (BTOR_IS_REGULAR_NODE (to));
     assert (BTOR_IS_FUN_NODE (to));
 
-    // TODO: get rid of stack
-    BTOR_INIT_STACK (prop_stack);
-    BTOR_PUSH_STACK (mm, prop_stack, from->e[0]);
+    fun = from->e[0];
 
-    while (!BTOR_EMPTY_STACK (prop_stack))
+    for (;;)
     {
-      fun = BTOR_POP_STACK (prop_stack);
       assert (BTOR_IS_REGULAR_NODE (fun));
       assert (BTOR_IS_FUN_NODE (fun));
 
@@ -6636,11 +6632,9 @@ collect_premisses (Btor *btor,
       assert (BTOR_IS_APPLY_NODE (result));
       assert (result->e[1] == args);
 
-      BTOR_PUSH_STACK (mm, prop_stack, result->e[0]);
+      fun = result->e[0];
       btor_release_exp (btor, result);
     }
-
-    BTOR_RELEASE_STACK (mm, prop_stack);
   }
   else
   {
