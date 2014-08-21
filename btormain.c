@@ -745,13 +745,13 @@ boolector_main (int argc, char **argv)
       if (valstr[0] != 0)
       {
         val = (int) strtol (valstr, &tmp, 10);
-        if (!tmp) readval = 1;
+        if (tmp[0] == 0) readval = 1;
       }
     }
     else if (i + 1 < argc && argv[i + 1][0] != '-')
     {
       val = (int) strtol (argv[i + 1], &tmp, 10);
-      if (!tmp)
+      if (tmp[0] == 0)
       {
         readval = 1;
         i += 1;

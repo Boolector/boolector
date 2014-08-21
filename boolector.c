@@ -3404,6 +3404,7 @@ boolector_parse (Btor *btor,
   int res;
 
   BTOR_ABORT_ARG_NULL_BOOLECTOR (btor);
+  BTOR_TRAPI ("%s", file_name);
   BTOR_ABORT_ARG_NULL_BOOLECTOR (file);
   BTOR_ABORT_ARG_NULL_BOOLECTOR (file_name);
   BTOR_ABORT_ARG_NULL_BOOLECTOR (error_msg);
@@ -3411,9 +3412,22 @@ boolector_parse (Btor *btor,
   BTOR_ABORT_BOOLECTOR (
       BTOR_COUNT_STACK (btor->nodes_id_table) > 2,
       "file parsing must be done before creating expressions");
-  // TODO TRAPI
   res = btor_parse (btor, file, file_name, error_msg, status);
-  // TODO CHKCLONE
+#ifndef NDEBUG
+  if (btor->clone)
+  {
+    char *cerror_msg;
+    int cstatus;
+    FILE *cfile = fopen (file_name, "r");
+
+    boolector_parse (btor->clone, cfile, file_name, &cerror_msg, &cstatus);
+    assert (cstatus == *status);
+    assert (!strcmp (cerror_msg, *error_msg));
+    btor_chkclone (btor);
+  }
+#endif
+  /* special case: we treat out parameters as return values for btoruntrace */
+  BTOR_TRAPI_RETURN ("%d %s %d", res, error_msg, status);
   return res;
 }
 
@@ -3427,6 +3441,7 @@ boolector_parse_btor (Btor *btor,
   int res;
 
   BTOR_ABORT_ARG_NULL_BOOLECTOR (btor);
+  BTOR_TRAPI ("%s", file_name);
   BTOR_ABORT_ARG_NULL_BOOLECTOR (file);
   BTOR_ABORT_ARG_NULL_BOOLECTOR (file_name);
   BTOR_ABORT_ARG_NULL_BOOLECTOR (error_msg);
@@ -3434,9 +3449,21 @@ boolector_parse_btor (Btor *btor,
   BTOR_ABORT_BOOLECTOR (
       BTOR_COUNT_STACK (btor->nodes_id_table) > 2,
       "file parsing must be done before creating expressions");
-  // TODO TRAPI
   res = btor_parse_btor (btor, file, file_name, error_msg, status);
-  // TODO CHKCLONE
+#ifndef NDEBUG
+  if (btor->clone)
+  {
+    char *cerror_msg;
+    int cstatus;
+    FILE *cfile = fopen (file_name, "r");
+
+    boolector_parse (btor->clone, cfile, file_name, &cerror_msg, &cstatus);
+    assert (cstatus == *status);
+    assert (!strcmp (cerror_msg, *error_msg));
+    btor_chkclone (btor);
+  }
+#endif
+  BTOR_TRAPI_RETURN ("%d %s %d", res, error_msg, status);
   return res;
 }
 
@@ -3450,6 +3477,7 @@ boolector_parse_smt1 (Btor *btor,
   int res;
 
   BTOR_ABORT_ARG_NULL_BOOLECTOR (btor);
+  BTOR_TRAPI ("%s", file_name);
   BTOR_ABORT_ARG_NULL_BOOLECTOR (file);
   BTOR_ABORT_ARG_NULL_BOOLECTOR (file_name);
   BTOR_ABORT_ARG_NULL_BOOLECTOR (error_msg);
@@ -3457,9 +3485,21 @@ boolector_parse_smt1 (Btor *btor,
   BTOR_ABORT_BOOLECTOR (
       BTOR_COUNT_STACK (btor->nodes_id_table) > 2,
       "file parsing must be done before creating expressions");
-  // TODO TRAPI
   res = btor_parse_smt1 (btor, file, file_name, error_msg, status);
-  // TODO CHKCLONE
+#ifndef NDEBUG
+  if (btor->clone)
+  {
+    char *cerror_msg;
+    int cstatus;
+    FILE *cfile = fopen (file_name, "r");
+
+    boolector_parse (btor->clone, cfile, file_name, &cerror_msg, &cstatus);
+    assert (cstatus == *status);
+    assert (!strcmp (cerror_msg, *error_msg));
+    btor_chkclone (btor);
+  }
+#endif
+  BTOR_TRAPI_RETURN ("%d %s %d", res, error_msg, status);
   return res;
 }
 
@@ -3473,6 +3513,7 @@ boolector_parse_smt2 (Btor *btor,
   int res;
 
   BTOR_ABORT_ARG_NULL_BOOLECTOR (btor);
+  BTOR_TRAPI ("%s", file_name);
   BTOR_ABORT_ARG_NULL_BOOLECTOR (file);
   BTOR_ABORT_ARG_NULL_BOOLECTOR (file_name);
   BTOR_ABORT_ARG_NULL_BOOLECTOR (error_msg);
@@ -3480,9 +3521,21 @@ boolector_parse_smt2 (Btor *btor,
   BTOR_ABORT_BOOLECTOR (
       BTOR_COUNT_STACK (btor->nodes_id_table) > 2,
       "file parsing must be done before creating expressions");
-  // TODO TRAPI
   res = btor_parse_smt2 (btor, file, file_name, error_msg, status);
-  // TODO CHKCLONE
+#ifndef NDEBUG
+  if (btor->clone)
+  {
+    char *cerror_msg;
+    int cstatus;
+    FILE *cfile = fopen (file_name, "r");
+
+    boolector_parse (btor->clone, cfile, file_name, &cerror_msg, &cstatus);
+    assert (cstatus == *status);
+    assert (!strcmp (cerror_msg, *error_msg));
+    btor_chkclone (btor);
+  }
+#endif
+  BTOR_TRAPI_RETURN ("%d %s %d", res, error_msg, status);
   return res;
 }
 
