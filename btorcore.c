@@ -7323,12 +7323,12 @@ push_applies_from_cond_for_propagation (Btor *btor,
 static int
 propagate (Btor *btor,
            BtorNodePtrStack *prop_stack,
-           BtorNodePtrStack *cleanup_stack,
+           BtorPtrHashTable *cleanup_table,
            int *assignments_changed)
 {
   assert (btor);
   assert (prop_stack);
-  assert (cleanup_stack);
+  assert (cleanup_table);
   // TODO: extensionality for write lambdas
   assert (btor->ops[BTOR_FEQ_NODE].cur == 0);
 
@@ -7381,6 +7381,8 @@ propagate (Btor *btor,
     if (app->propagated) continue;
 
     app->propagated = 1;
+    if (!btor_find_in_ptr_hash_table (cleanup_table, app))
+      btor_insert_in_ptr_hash_table (cleanup_table, app);
     btor->stats.propagations++;
 
     BTORLOG ("propagate");
@@ -7414,7 +7416,8 @@ propagate (Btor *btor,
           btor_new_ptr_hash_table (mm,
                                    (BtorHashPtr) hash_assignment,
                                    (BtorCmpPtr) compare_argument_assignments);
-      BTOR_PUSH_STACK (mm, *cleanup_stack, fun);
+      if (!btor_find_in_ptr_hash_table (cleanup_table, fun))
+        btor_insert_in_ptr_hash_table (cleanup_table, fun);
     }
     else
     {
@@ -7719,24 +7722,6 @@ propagate (Btor *btor,
   return 0;
 }
 
-static void
-reset_applies (Btor *btor)
-{
-  assert (btor);
-
-  int i;
-  BtorNode *cur;
-
-  for (i = 0; i < btor->nodes_unique_table.size; i++)
-  {
-    for (cur = btor->nodes_unique_table.chains[i]; cur; cur = cur->next)
-    {
-      if (!BTOR_IS_APPLY_NODE (cur)) continue;
-      cur->propagated = 0;
-    }
-  }
-}
-
 static int
 check_and_resolve_conflicts (Btor *btor,
                              Btor *clone,
@@ -7754,17 +7739,20 @@ check_and_resolve_conflicts (Btor *btor,
 
   int i, found_conflict, changed_assignments;
   BtorMemMgr *mm;
-  BtorNode *app, *fun;
-  BtorNodePtrStack prop_stack, cleanup_stack;
+  BtorNode *app, *fun, *cur;
+  BtorNodePtrStack prop_stack;
   BtorNodePtrStack top_applies;
-
+  BtorPtrHashTable *cleanup_table;
+  BtorHashTableIterator it;
   found_conflict = 0;
   mm             = btor->mm;
 
 BTOR_CONFLICT_CHECK:
   assert (!found_conflict);
   changed_assignments = 0;
-  BTOR_INIT_STACK (cleanup_stack);
+  cleanup_table       = btor_new_ptr_hash_table (mm,
+                                           (BtorHashPtr) btor_hash_exp_by_id,
+                                           (BtorCmpPtr) btor_compare_exp_by_id);
   BTOR_INIT_STACK (prop_stack);
   BTOR_INIT_STACK (top_applies);
 
@@ -7776,8 +7764,6 @@ BTOR_CONFLICT_CHECK:
                                  (BtorCmpPtr) btor_compare_exp_by_id);
   }
 
-  // TODO: handle propagation flag cleanup via cleanup_stack?
-  reset_applies (btor);
 #ifdef BTOR_ENABLE_DUAL_PROPAGATION
   if (clone)
     search_initial_applies_dual_prop (
@@ -7825,7 +7811,7 @@ BTOR_CONFLICT_CHECK:
     BTOR_PUSH_STACK (mm, prop_stack, app);
     BTOR_PUSH_STACK (mm, prop_stack, app->e[0]);
     found_conflict =
-        propagate (btor, &prop_stack, &cleanup_stack, &changed_assignments);
+        propagate (btor, &prop_stack, cleanup_table, &changed_assignments);
     if (found_conflict || changed_assignments) break;
   }
 
@@ -7845,27 +7831,36 @@ BTOR_CONFLICT_CHECK:
     }
   }
 
-  while (!BTOR_EMPTY_STACK (cleanup_stack))
+  init_node_hash_table_iterator (&it, cleanup_table);
+  while (has_next_node_hash_table_iterator (&it))
   {
-    fun = BTOR_POP_STACK (cleanup_stack);
-    assert (BTOR_IS_REGULAR_NODE (fun));
-    assert (BTOR_IS_FUN_NODE (fun));
-    assert (fun->rho);
-
-    if (found_conflict || changed_assignments)
+    cur = next_node_hash_table_iterator (&it);
+    assert (BTOR_IS_REGULAR_NODE (cur));
+    if (BTOR_IS_APPLY_NODE (cur))
     {
-      btor_delete_ptr_hash_table (fun->rho);
-      fun->rho = 0;
+      assert (cur->propagated);
+      cur->propagated = 0;
     }
     else
     {
-      /* remember arrays for incremental usage (and prevent premature
-       * release in case that array is released via API call) */
-      BTOR_PUSH_STACK (
-          mm, btor->functions_with_model, btor_copy_exp (btor, fun));
+      assert (BTOR_IS_FUN_NODE (cur));
+      assert (cur->rho);
+
+      if (found_conflict || changed_assignments)
+      {
+        btor_delete_ptr_hash_table (cur->rho);
+        cur->rho = 0;
+      }
+      else
+      {
+        /* remember arrays for incremental usage (and prevent premature
+         * release in case that array is released via API call) */
+        BTOR_PUSH_STACK (
+            mm, btor->functions_with_model, btor_copy_exp (btor, cur));
+      }
     }
   }
-  BTOR_RELEASE_STACK (mm, cleanup_stack);
+  btor_delete_ptr_hash_table (cleanup_table);
   BTOR_RELEASE_STACK (mm, prop_stack);
   BTOR_RELEASE_STACK (mm, top_applies);
 
