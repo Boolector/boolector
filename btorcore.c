@@ -7909,8 +7909,7 @@ new_exp_layer_clone_for_dual_prop (Btor *btor,
   btor_set_opt (clone, BTOR_OPT_LOGLEVEL, 0);
 #endif
   btor_set_opt (clone, BTOR_OPT_VERBOSITY, 0);
-  btor_set_opt (clone, BTOR_OPT_DUAL_PROP, 0);     // FIXME should be redundant
-  btor_set_opt (clone, BTOR_OPT_PRETTY_PRINT, 1);  // TODO debug
+  btor_set_opt (clone, BTOR_OPT_DUAL_PROP, 0);
 
   smgr = btor_get_sat_mgr_btor (clone);
   assert (!btor_is_initialized_sat (smgr));
