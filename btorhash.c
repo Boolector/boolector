@@ -11,6 +11,7 @@
  */
 
 #include "btorhash.h"
+#include "btoriter.h"
 
 static unsigned
 btor_hash_ptr (const void *p)
@@ -83,8 +84,9 @@ btor_clone_ptr_hash_table (BtorMemMgr *mem,
   assert (key_map);
 
   BtorPtrHashTable *res;
+  BtorHashTableIterator it;
   BtorPtrHashBucket *b, *cloned_b;
-  void *cloned_key;
+  void *key, *cloned_key;
 
   if (!table) return NULL;
 
@@ -92,9 +94,12 @@ btor_clone_ptr_hash_table (BtorMemMgr *mem,
   while (res->size < table->size) btor_enlarge_ptr_hash_table (res);
   assert (res->size == table->size);
 
-  for (b = table->first; b; b = b->next)
+  init_hash_table_iterator (&it, table);
+  while (has_next_hash_table_iterator (&it))
   {
-    cloned_key = ckey (key_map, b->key);
+    b          = it.bucket;
+    key        = next_hash_table_iterator (&it);
+    cloned_key = ckey (key_map, key);
     assert (cloned_key);
     cloned_b = btor_insert_in_ptr_hash_table (res, cloned_key);
     if (!cdata)

@@ -516,6 +516,7 @@ remove_parameterized (Btor *btor, BtorNode *exp)
 
   BtorPtrHashTable *t;
   BtorPtrHashBucket *b;
+  BtorHashTableIterator it;
 
   b = btor_find_in_ptr_hash_table (btor->parameterized, exp);
   if (!b) return;
@@ -523,8 +524,9 @@ remove_parameterized (Btor *btor, BtorNode *exp)
   t = (BtorPtrHashTable *) b->data.asPtr;
 
   /* release params */
-  for (b = t->first; b; b = b->next)
-    btor_release_exp (btor, (BtorNode *) b->key);
+  init_node_hash_table_iterator (&it, t);
+  while (has_next_node_hash_table_iterator (&it))
+    btor_release_exp (btor, next_node_hash_table_iterator (&it));
   btor_delete_ptr_hash_table (t);
 
   btor_remove_from_ptr_hash_table (btor->parameterized, exp, 0, 0);
@@ -710,10 +712,6 @@ disconnect_children_exp (Btor *btor, BtorNode *exp)
 static void
 erase_local_data_exp (Btor *btor, BtorNode *exp, int free_symbol)
 {
-  BtorMemMgr *mm;
-  BtorPtrHashTable *synth_apps;
-  BtorPtrHashBucket *bucket;
-
   assert (btor);
   assert (exp);
 
@@ -723,6 +721,10 @@ erase_local_data_exp (Btor *btor, BtorNode *exp, int free_symbol)
   assert (!exp->erased);
   assert (!exp->disconnected);
   assert (!BTOR_IS_INVALID_NODE (exp));
+
+  BtorMemMgr *mm;
+  BtorPtrHashTable *synth_apps;
+  BtorHashTableIterator it;
 
   mm = btor->mm;
   //  BTORLOG ("%s: %s", __FUNCTION__, node2string (exp));
@@ -738,8 +740,9 @@ erase_local_data_exp (Btor *btor, BtorNode *exp, int free_symbol)
       synth_apps = ((BtorLambdaNode *) exp)->synth_apps;
       if (synth_apps)
       {
-        for (bucket = synth_apps->last; bucket; bucket = bucket->prev)
-          btor_release_exp (btor, (BtorNode *) bucket->key);
+        init_node_hash_table_iterator (&it, synth_apps);
+        while (has_next_node_hash_table_iterator (&it))
+          btor_release_exp (btor, next_node_hash_table_iterator (&it));
         btor_delete_ptr_hash_table (synth_apps);
         ((BtorLambdaNode *) exp)->synth_apps = 0;
       }
