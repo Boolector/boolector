@@ -3413,6 +3413,8 @@ boolector_parse (Btor *btor,
       BTOR_COUNT_STACK (btor->nodes_id_table) > 2,
       "file parsing must be done before creating expressions");
   res = btor_parse (btor, file, file_name, error_msg, status);
+  /* special case: we treat out parameters as return values for btoruntrace */
+  BTOR_TRAPI_RETURN ("%d %s %d", res, error_msg, status);
 #ifndef NDEBUG
   if (btor->clone)
   {
@@ -3426,8 +3428,6 @@ boolector_parse (Btor *btor,
     btor_chkclone (btor);
   }
 #endif
-  /* special case: we treat out parameters as return values for btoruntrace */
-  BTOR_TRAPI_RETURN ("%d %s %d", res, error_msg, status);
   return res;
 }
 
@@ -3450,6 +3450,7 @@ boolector_parse_btor (Btor *btor,
       BTOR_COUNT_STACK (btor->nodes_id_table) > 2,
       "file parsing must be done before creating expressions");
   res = btor_parse_btor (btor, file, file_name, error_msg, status);
+  BTOR_TRAPI_RETURN ("%d %s %d", res, error_msg, status);
 #ifndef NDEBUG
   if (btor->clone)
   {
@@ -3463,7 +3464,6 @@ boolector_parse_btor (Btor *btor,
     btor_chkclone (btor);
   }
 #endif
-  BTOR_TRAPI_RETURN ("%d %s %d", res, error_msg, status);
   return res;
 }
 
@@ -3486,6 +3486,7 @@ boolector_parse_smt1 (Btor *btor,
       BTOR_COUNT_STACK (btor->nodes_id_table) > 2,
       "file parsing must be done before creating expressions");
   res = btor_parse_smt1 (btor, file, file_name, error_msg, status);
+  BTOR_TRAPI_RETURN ("%d %s %d", res, error_msg, status);
 #ifndef NDEBUG
   if (btor->clone)
   {
@@ -3499,7 +3500,6 @@ boolector_parse_smt1 (Btor *btor,
     btor_chkclone (btor);
   }
 #endif
-  BTOR_TRAPI_RETURN ("%d %s %d", res, error_msg, status);
   return res;
 }
 
@@ -3522,6 +3522,7 @@ boolector_parse_smt2 (Btor *btor,
       BTOR_COUNT_STACK (btor->nodes_id_table) > 2,
       "file parsing must be done before creating expressions");
   res = btor_parse_smt2 (btor, file, file_name, error_msg, status);
+  BTOR_TRAPI_RETURN ("%d %s %d", res, error_msg, status);
 #ifndef NDEBUG
   if (btor->clone)
   {
@@ -3535,7 +3536,6 @@ boolector_parse_smt2 (Btor *btor,
     btor_chkclone (btor);
   }
 #endif
-  BTOR_TRAPI_RETURN ("%d %s %d", res, error_msg, status);
   return res;
 }
 
