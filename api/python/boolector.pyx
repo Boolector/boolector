@@ -123,7 +123,7 @@ cdef class BoolectorNode:
             raise BoolectorException("invalid dump format '{}'".format(format)) 
 
     def symbol(self):
-        cdef bytes py_str = btorapi.boolector_get_symbol_of_var(
+        cdef bytes py_str = btorapi.boolector_get_symbol(
                                 self.btor._c_btor, self._c_node)
         return py_str.decode()
 
