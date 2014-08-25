@@ -801,6 +801,48 @@ btor_chkclone_opt (const BtorOpt *opt, const BtorOpt *clone)
 }
 
 void
+btor_chkclone_sort (const BtorSort *sort, const BtorSort *clone)
+{
+  int i;
+  assert (sort->id == clone->id);
+  assert (sort->kind == clone->kind);
+  assert (sort->refs == clone->refs);
+  assert (sort->ext_refs == clone->ext_refs);
+  assert (sort->parents == clone->parents);
+
+  switch (sort->kind)
+  {
+    case BTOR_BITVEC_SORT:
+      assert (sort->bitvec.len == clone->bitvec.len);
+      break;
+
+    case BTOR_ARRAY_SORT:
+      assert (sort->array.index->id == clone->array.index->id);
+      assert (sort->array.element->id == clone->array.element->id);
+      break;
+
+    case BTOR_FUN_SORT:
+      assert (sort->fun.arity == clone->fun.arity);
+      assert (sort->fun.domain->id == clone->fun.domain->id);
+      assert (sort->fun.codomain->id == clone->fun.codomain->id);
+      break;
+
+    case BTOR_TUPLE_SORT:
+      assert (sort->tuple.num_elements == clone->tuple.num_elements);
+      for (i = 0; i < sort->tuple.num_elements; i++)
+        assert (sort->tuple.elements[i]->id == clone->tuple.elements[i]->id);
+      break;
+
+    case BTOR_LST_SORT:
+      assert (sort->lst.head->id == clone->lst.head->id);
+      assert (sort->lst.tail->id == clone->lst.tail->id);
+      break;
+
+    default: break;
+  }
+}
+
+void
 btor_chkclone (Btor *btor)
 {
   if (!btor->clone) return;

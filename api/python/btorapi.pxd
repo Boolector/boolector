@@ -306,7 +306,7 @@ cdef extern from "boolector.h":
 #    int boolector_fun_sort_check (
 #        Btor * btor, int argc, BoolectorNode ** arg_nodes, BoolectorNode * n_fun)
 
-    const char *boolector_get_symbol_of_var (Btor * btor, BoolectorNode * var)
+    const char *boolector_get_symbol (Btor * btor, BoolectorNode * node)
 
     const char *boolector_bv_assignment (Btor * btor, BoolectorNode * node)
 

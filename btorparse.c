@@ -71,6 +71,7 @@ btor_parse_aux (Btor *btor,
   char *emsg;
 
   res                   = BOOLECTOR_UNKNOWN;
+  *error_msg            = 0;
   parse_opt.verbosity   = btor_get_opt_val (btor, BTOR_OPT_VERBOSITY);
   parse_opt.incremental = btor_get_opt_val (btor, BTOR_OPT_INCREMENTAL);
   if (btor_get_opt_val (btor, BTOR_OPT_INCREMENTAL_IN_DEPTH))

@@ -1359,18 +1359,6 @@ int boolector_fun_sort_check (Btor *btor,
                               BoolectorNode *n_fun);
 
 /**
- * Get the symbol of a variable.
- * (Note: this function is deprecated,
- * use \ref boolector_get_symbol instead!)
- * \param btor Boolector instance.
- * \param var Array or bit-vector variable.
- * \return Symbol of variable.
- * \see boolector_var
- * \see boolector_array
- */
-const char *boolector_get_symbol_of_var (Btor *btor, BoolectorNode *var);
-
-/**
  * Get the symbol of an expression (array or bit-vector variable, uninterpreted
  * function).
  * \param btor Boolector instance.
@@ -1674,5 +1662,18 @@ BTOR_DEPRECATED (void boolector_set_verbosity (Btor *btor, int val));
  * \see boolector_set_opt_loglevel
  */
 BTOR_DEPRECATED (void boolector_set_loglevel (Btor *btor, int val));
+
+/**
+ * Get the symbol of a variable.
+ * (Note: this function is deprecated,
+ * use \ref boolector_get_symbol instead!)
+ * \param btor Boolector instance.
+ * \param var Array or bit-vector variable.
+ * \return Symbol of variable.
+ * \see boolector_var
+ * \see boolector_array
+ */
+BTOR_DEPRECATED (const char *boolector_get_symbol_of_var (Btor *btor,
+                                                          BoolectorNode *var));
 
 #endif
