@@ -12,7 +12,10 @@
  */
 
 #include "btoriter.h"
+#include "btorhash.h"
 
+/*------------------------------------------------------------------------*/
+/* node iterators					                  */
 /*------------------------------------------------------------------------*/
 
 void
@@ -21,6 +24,14 @@ init_apply_parent_iterator (BtorNodeIterator *it, BtorNode *exp)
   assert (it);
   assert (exp);
   it->cur = BTOR_REAL_ADDR_NODE (exp)->last_parent;
+}
+
+int
+has_next_parent_apply_parent_iterator (BtorNodeIterator *it)
+{
+  assert (it);
+  /* function child of apply is at position 0, so cur is not tagged */
+  return it->cur && BTOR_IS_APPLY_NODE (it->cur);
 }
 
 BtorNode *
@@ -36,14 +47,6 @@ next_parent_apply_parent_iterator (BtorNodeIterator *it)
   return result;
 }
 
-int
-has_next_parent_apply_parent_iterator (BtorNodeIterator *it)
-{
-  assert (it);
-  /* function child of apply is at position 0, so cur is not tagged */
-  return it->cur && BTOR_IS_APPLY_NODE (it->cur);
-}
-
 /*------------------------------------------------------------------------*/
 
 void
@@ -52,6 +55,13 @@ init_full_parent_iterator (BtorNodeIterator *it, BtorNode *exp)
   assert (it);
   assert (exp);
   it->cur = BTOR_REAL_ADDR_NODE (exp)->first_parent;
+}
+
+int
+has_next_parent_full_parent_iterator (BtorNodeIterator *it)
+{
+  assert (it);
+  return it->cur != 0;
 }
 
 BtorNode *
@@ -67,13 +77,6 @@ next_parent_full_parent_iterator (BtorNodeIterator *it)
   return BTOR_REAL_ADDR_NODE (result);
 }
 
-int
-has_next_parent_full_parent_iterator (BtorNodeIterator *it)
-{
-  assert (it);
-  return it->cur != 0;
-}
-
 /*------------------------------------------------------------------------*/
 
 void
@@ -87,6 +90,13 @@ init_args_iterator (BtorArgsIterator *it, BtorNode *exp)
   it->pos = 0;
   it->exp = exp;
   it->cur = exp->e[0];
+}
+
+int
+has_next_args_iterator (BtorArgsIterator *it)
+{
+  assert (it);
+  return it->cur != 0;
 }
 
 BtorNode *
@@ -119,13 +129,6 @@ next_args_iterator (BtorArgsIterator *it)
 
   assert (!BTOR_IS_ARGS_NODE (BTOR_REAL_ADDR_NODE (result)));
   return result;
-}
-
-int
-has_next_args_iterator (BtorArgsIterator *it)
-{
-  assert (it);
-  return it->cur != 0;
 }
 
 /*------------------------------------------------------------------------*/
@@ -220,6 +223,21 @@ has_next_parameterized_iterator (BtorParameterizedIterator *it)
 }
 
 /*------------------------------------------------------------------------*/
+/* hash table iterators						          */
+/*------------------------------------------------------------------------*/
+
+void
+init_hash_table_iterator (BtorHashTableIterator *it, BtorPtrHashTable *t)
+{
+  assert (it);
+  assert (t);
+
+  it->bucket     = t->first;
+  it->cur        = it->bucket ? it->bucket->key : 0;
+  it->reversed   = 0;
+  it->num_queued = 0;
+  it->pos        = 0;
+}
 
 void
 init_reversed_hash_table_iterator (BtorHashTableIterator *it,
@@ -231,19 +249,6 @@ init_reversed_hash_table_iterator (BtorHashTableIterator *it,
   it->bucket     = t->last;
   it->cur        = it->bucket ? it->bucket->key : 0;
   it->reversed   = 1;
-  it->num_queued = 0;
-  it->pos        = 0;
-}
-
-void
-init_hash_table_iterator (BtorHashTableIterator *it, BtorPtrHashTable *t)
-{
-  assert (it);
-  assert (t);
-
-  it->bucket     = t->first;
-  it->cur        = it->bucket ? it->bucket->key : 0;
-  it->reversed   = 0;
   it->num_queued = 0;
   it->pos        = 0;
 }
@@ -267,6 +272,13 @@ queue_hash_table_iterator (BtorHashTableIterator *it, BtorPtrHashTable *t)
   }
 }
 
+int
+has_next_hash_table_iterator (BtorHashTableIterator *it)
+{
+  assert (it);
+  return it->cur != 0;
+}
+
 void *
 next_hash_table_iterator (BtorHashTableIterator *it)
 {
@@ -287,14 +299,37 @@ next_hash_table_iterator (BtorHashTableIterator *it)
   return res;
 }
 
-int
-has_next_hash_table_iterator (BtorHashTableIterator *it)
+BtorPtrHashData *
+next_data_hash_table_iterator (BtorHashTableIterator *it)
 {
   assert (it);
-  return it->cur != 0;
+  assert (it->bucket);
+  assert (it->cur);
+
+  void *res;
+
+  res = &it->bucket->data;
+
+  if (it->bucket)
+    it->bucket = it->reversed ? it->bucket->prev : it->bucket->next;
+
+  while (!it->bucket && it->pos < it->num_queued)
+    it->bucket =
+        it->reversed ? it->stack[it->pos++]->last : it->stack[it->pos++]->first;
+
+  it->cur = it->bucket ? it->bucket->key : 0;
+  return res;
 }
 
 /*------------------------------------------------------------------------*/
+
+void
+init_node_hash_table_iterator (BtorHashTableIterator *it, BtorPtrHashTable *t)
+{
+  assert (it);
+  assert (t);
+  init_hash_table_iterator (it, t);
+}
 
 void
 init_reversed_node_hash_table_iterator (BtorHashTableIterator *it,
@@ -306,20 +341,19 @@ init_reversed_node_hash_table_iterator (BtorHashTableIterator *it,
 }
 
 void
-init_node_hash_table_iterator (BtorHashTableIterator *it, BtorPtrHashTable *t)
-{
-  assert (it);
-  assert (t);
-  init_hash_table_iterator (it, t);
-}
-
-void
 queue_node_hash_table_iterator (BtorHashTableIterator *it, BtorPtrHashTable *t)
 {
   assert (it);
   assert (t);
   assert (it->num_queued < BTOR_HASH_TABLE_ITERATOR_STACK_SIZE);
   queue_hash_table_iterator (it, t);
+}
+
+int
+has_next_node_hash_table_iterator (BtorHashTableIterator *it)
+{
+  assert (it);
+  return has_next_hash_table_iterator (it);
 }
 
 BtorNode *
@@ -331,13 +365,17 @@ next_node_hash_table_iterator (BtorHashTableIterator *it)
   return (BtorNode *) next_hash_table_iterator (it);
 }
 
-int
-has_next_node_hash_table_iterator (BtorHashTableIterator *it)
+BtorPtrHashData *
+next_data_node_hash_table_iterator (BtorHashTableIterator *it)
 {
   assert (it);
-  return has_next_hash_table_iterator (it);
+  assert (it->bucket);
+  assert (it->cur);
+  return next_data_hash_table_iterator (it);
 }
 
+/*------------------------------------------------------------------------*/
+/* map iterators							  */
 /*------------------------------------------------------------------------*/
 
 void
@@ -354,6 +392,12 @@ init_reversed_node_map_iterator (BtorNodeMapIterator *it, BtorNodeMap *map)
   init_reversed_node_hash_table_iterator (&it->it, map->table);
 }
 
+int
+has_next_node_map_iterator (BtorNodeMapIterator *it)
+{
+  return has_next_node_hash_table_iterator (&it->it);
+}
+
 void
 queue_node_map_iterator (BtorNodeMapIterator *it, BtorNodeMap *map)
 {
@@ -367,10 +411,10 @@ next_node_map_iterator (BtorNodeMapIterator *it)
   return next_node_hash_table_iterator (&it->it);
 }
 
-int
-has_next_node_map_iterator (BtorNodeMapIterator *it)
+BtorPtrHashData *
+next_data_node_map_iterator (BtorNodeMapIterator *it)
 {
-  return has_next_node_hash_table_iterator (&it->it);
+  return next_data_node_hash_table_iterator (&it->it);
 }
 
 /*------------------------------------------------------------------------*/
