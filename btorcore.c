@@ -9027,25 +9027,55 @@ format_assignment_str (Btor *btor, const char *assignment)
   assert (btor);
   assert (assignment);
 
-  char *pretty, *ground;
-  int base;
+  BtorCharPtrStack values;
+  char *pretty, *ground, *tok;
+  int i, base, len, orig_len;
 
   base = btor_get_opt_val (btor, BTOR_OPT_OUTPUT_NUMBER_FORMAT);
+  BTOR_INIT_STACK (values);
 
-  if (base == BTOR_OUTPUT_BASE_HEX || base == BTOR_OUTPUT_BASE_DEC)
+  /* assignment may contain multiple values (in case of functions) */
+  len      = 0;
+  pretty   = btor_strdup (btor->mm, assignment);
+  orig_len = strlen (pretty) + 1;
+  tok      = strtok (pretty, " ");
+  do
   {
-    ground = btor_ground_const_3vl (btor->mm, assignment);
-    if (base == BTOR_OUTPUT_BASE_HEX)
-      pretty = btor_const_to_hex (btor->mm, ground);
+    if (base == BTOR_OUTPUT_BASE_HEX || base == BTOR_OUTPUT_BASE_DEC)
+    {
+      ground = btor_ground_const_3vl (btor->mm, tok);
+      if (base == BTOR_OUTPUT_BASE_HEX)
+        tok = btor_const_to_hex (btor->mm, ground);
+      else
+      {
+        assert (base == BTOR_OUTPUT_BASE_DEC);
+        tok = btor_const_to_decimal (btor->mm, ground);
+      }
+      btor_delete_const (btor->mm, ground);
+    }
+    else
+      tok = btor_copy_const (btor->mm, tok);
+    len += strlen (tok) + 1;
+    BTOR_PUSH_STACK (btor->mm, values, tok);
+  } while ((tok = strtok (0, " ")));
+  btor_free (btor->mm, pretty, orig_len * sizeof (char));
+
+  /* concat formatted assignment strings */
+  BTOR_NEWN (btor->mm, pretty, len);
+  assert (!BTOR_EMPTY_STACK (values));
+  for (i = 0; i < BTOR_COUNT_STACK (values); i++)
+  {
+    tok = BTOR_PEEK_STACK (values, i);
+    if (i == 0)
+      strcpy (pretty, tok);
     else
     {
-      assert (base == BTOR_OUTPUT_BASE_DEC);
-      pretty = btor_const_to_decimal (btor->mm, ground);
+      strcat (pretty, " ");
+      strcat (pretty, tok);
     }
-    btor_delete_const (btor->mm, ground);
+    btor_freestr (btor->mm, tok);
   }
-  else
-    pretty = btor_copy_const (btor->mm, assignment);
+  BTOR_RELEASE_STACK (btor->mm, values);
   return pretty;
 }
 
@@ -9066,33 +9096,35 @@ print_bv_assignment (Btor *btor, BtorNode *node, FILE *file)
 }
 
 static void
-print_uf_array_assignment (Btor *btor, BtorNode *node, FILE *file)
+print_uf_assignment (Btor *btor, BtorNode *node, FILE *file)
 {
   assert (btor);
   assert (node);
 
-  char **ind, **val;
-  char *pretty_ind, *pretty_val;
+  char **args, **val;
+  char *pretty_args, *pretty_val;
   int i, size;
 
-  btor_get_fun_model_str (btor, node, &ind, &val, &size);
+  btor_get_fun_model_str (btor, node, &args, &val, &size);
   if (size > 0)
   {
     for (i = 0; i < size; i++)
     {
-      pretty_ind = format_assignment_str (btor, ind[i]);
-      pretty_val = format_assignment_str (btor, val[i]);
+      pretty_args = format_assignment_str (btor, args[i]);
+      pretty_val  = format_assignment_str (btor, val[i]);
+      // TODO: distinguish between functions and arrays (ma)
+      //       needs proper sort handling
       fprintf (file,
                "%s[%s] %s\n",
                btor_get_symbol_exp (btor, node),
-               pretty_ind,
+               pretty_args,
                pretty_val);
-      btor_freestr (btor->mm, pretty_ind);
-      btor_freestr (btor->mm, ind[i]);
+      btor_freestr (btor->mm, pretty_args);
+      btor_freestr (btor->mm, args[i]);
       btor_freestr (btor->mm, pretty_val);
       btor_freestr (btor->mm, val[i]);
     }
-    btor_free (btor->mm, ind, size * sizeof (*ind));
+    btor_free (btor->mm, args, size * sizeof (*args));
     btor_free (btor->mm, val, size * sizeof (*val));
   }
 }
@@ -9113,7 +9145,7 @@ btor_print_model (Btor *btor, FILE *file)
     cur  = next_node_hash_table_iterator (&it);
     simp = btor_simplify_exp (btor, cur);
     if (BTOR_IS_FUN_NODE (BTOR_REAL_ADDR_NODE (simp)))
-      print_uf_array_assignment (btor, cur, file);
+      print_uf_assignment (btor, cur, file);
     else
       print_bv_assignment (btor, cur, file);
   }
