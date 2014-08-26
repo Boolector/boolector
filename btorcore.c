@@ -8468,31 +8468,36 @@ btor_fun_sort_check (Btor *btor, int argc, BtorNode **args, BtorNode *fun)
   assert (btor_is_fun_exp (btor, fun));
   assert (argc == btor_get_fun_arity (btor, fun));
 
-  int i;
-  BtorNode *arg;
-  BtorParamNode *param;
-  BtorNodeIterator it;
+  int i, pos = -1;
+  BtorSort *sort;
 
-  if (BTOR_IS_LAMBDA_NODE (fun))
+  sort = btor_create_or_get_sort (btor, fun);
+
+  if (btor_get_fun_arity (btor, fun) == 1)
   {
-    init_lambda_iterator (&it, fun);
-
-    for (i = 0; i < argc; i++)
-    {
-      assert (has_next_lambda_iterator (&it));
-      arg   = BTOR_REAL_ADDR_NODE (args[i]);
-      param = BTOR_LAMBDA_GET_PARAM (next_lambda_iterator (&it));
-      assert (BTOR_IS_REGULAR_NODE (param));
-
-      if (arg->len != param->len) return i;
-    }
+    assert (sort->fun.domain->kind == BTOR_BITVEC_SORT);
+    assert (argc == 1);
+    if (sort->fun.domain->bitvec.len != BTOR_REAL_ADDR_NODE (args[0])->len)
+      pos = 0;
   }
   else
   {
-    assert (BTOR_IS_UF_NODE (fun));
-    // TODO: check sort
+    assert (btor_get_fun_arity (btor, fun) > 1);
+    assert (sort->fun.domain->kind == BTOR_TUPLE_SORT);
+    assert (argc == sort->fun.domain->tuple.num_elements);
+    for (i = 0; i < argc; i++)
+    {
+      assert (sort->fun.domain->tuple.elements[i]->kind == BTOR_BITVEC_SORT);
+      if (sort->fun.domain->tuple.elements[i]->bitvec.len
+          != BTOR_REAL_ADDR_NODE (args[i])->len)
+      {
+        pos = i;
+        break;
+      }
+    }
   }
-  return -1;
+  btor_release_sort (&btor->sorts_unique_table, sort);
+  return pos;
 }
 
 /* util function for creating function sorts from function expressions, will
