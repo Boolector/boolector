@@ -8276,7 +8276,7 @@ br_probe (Btor *btor)
   assert (btor->avmgr->amgr->smgr);
   assert (btor_has_clone_support_sat_mgr (btor_get_sat_mgr_btor (btor)));
 
-  Btor *bclone;
+  Btor *clone;
   int res, num_ops_orig, num_ops_clone;
   double start, delta;
 
@@ -8291,16 +8291,16 @@ br_probe (Btor *btor)
 
   btor_msg (btor, 1, "try full beta reduction probing");
   assert (btor->assumptions->count == 0);
-  bclone = btor_clone_btor (btor);
-  btor_set_opt (bclone, BTOR_OPT_BETA_REDUCE_ALL, 1);
-  btor_set_opt (bclone, BTOR_OPT_VERBOSITY, 0);
+  clone = btor_clone_btor (btor);
+  btor_set_opt (clone, BTOR_OPT_BETA_REDUCE_ALL, 1);
+  btor_set_opt (clone, BTOR_OPT_VERBOSITY, 0);
 #ifndef NBTORLOG
-  btor_set_opt (bclone, BTOR_OPT_LOGLEVEL, 0);
+  btor_set_opt (clone, BTOR_OPT_LOGLEVEL, 0);
 #endif
 
-  res           = btor_simplify (bclone);
+  res           = btor_simplify (clone);
   num_ops_orig  = sum_ops (btor);
-  num_ops_clone = sum_ops (bclone);
+  num_ops_clone = sum_ops (clone);
   btor_msg (btor,
             1,
             "  number of nodes: %d/%d (ratio: %.1f)",
@@ -8313,16 +8313,16 @@ br_probe (Btor *btor)
     delta = btor_time_stamp () - start;
     btor_msg (btor, 1, "  simplified in %.2f seconds", delta);
     btor->time.br_probing += delta;
-    btor_delete_btor (bclone);
+    btor_delete_btor (clone);
     return res;
   }
   else if (num_ops_clone < num_ops_orig * btor->options.pbra_ops_factor.val)
   {
     btor_msg (btor, 1, "  limit refinement iterations to 10");
-    res = btor_sat_aux_btor (bclone,
+    res = btor_sat_aux_btor (clone,
                              btor->options.pbra_lod_limit.val,
                              btor->options.pbra_sat_limit.val);
-    btor_delete_btor (bclone);
+    btor_delete_btor (clone);
   }
 
   if (res != BTOR_UNKNOWN)
