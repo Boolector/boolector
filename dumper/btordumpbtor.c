@@ -266,15 +266,24 @@ bdcnode (BtorDumpContext *bdc, BtorNode *node, FILE *file)
   int i, aspi = -1;
   char idbuffer[20];
   const char *op;
+  BtorNode *n;
+  BtorArgsIterator ait;
+  BtorNodeIterator nit;
 
   node = BTOR_REAL_ADDR_NODE (node);
+
+  if (bdc->version == 2
+      && (BTOR_IS_ARGS_NODE (node)
+          || (!BTOR_IS_FIRST_CURRIED_LAMBDA (node)
+              && BTOR_IS_CURRIED_LAMBDA_NODE (node))))
+    return;
 
   switch (node->kind)
   {
     case BTOR_ADD_NODE: op = "add"; break;
     case BTOR_AND_NODE: op = "and"; break;
     case BTOR_CONCAT_NODE: op = "concat"; break;
-    case BTOR_BCOND_NODE: op = "cond"; break;
+    case BTOR_BCOND_NODE: op = bdc->version == 1 ? "cond" : "ite"; break;
     case BTOR_BEQ_NODE:
     case BTOR_FEQ_NODE: op = "eq"; break;
     case BTOR_MUL_NODE: op = "mul"; break;
@@ -301,24 +310,56 @@ bdcnode (BtorDumpContext *bdc, BtorNode *node, FILE *file)
         op = "const";
       break;
     case BTOR_PARAM_NODE: op = "param"; break;
-    case BTOR_LAMBDA_NODE: op = "lambda"; break;
+    case BTOR_LAMBDA_NODE:
+      if (bdc->version == 1 || btor_get_fun_arity (bdc->btor, node) == 1)
+        op = "lambda";
+      else
+        op = "fun";
+      break;
     case BTOR_APPLY_NODE: op = "apply"; break;
     case BTOR_ARGS_NODE: op = "args"; break;
     default: assert (node->kind == BTOR_BV_VAR_NODE); op = "var";
   }
 
-  fprintf (
-      file,
-      "%d %s %d",
-      bdcid (bdc, node),
-      op,
-      bdc->version == 1 ? node->len : bdcsortid (bdc, get_sort (bdc, node)));
+  /* print id, operator and sort */
+  if (bdc->version == 1)
+  {
+    fprintf (file, "%d %s %d", bdcid (bdc, node), op, node->len);
 
-  /* print index bit width of arrays */
-  // TODO: get rid of index_len for lambda exps
-  if (bdc->version == 1
-      && (BTOR_IS_UF_ARRAY_NODE (node) || BTOR_IS_LAMBDA_NODE (node)))
-    fprintf (file, " %d", BTOR_ARRAY_INDEX_LEN (node));
+    /* print index bit width of arrays */
+    if (BTOR_IS_UF_ARRAY_NODE (node) || BTOR_IS_LAMBDA_NODE (node))
+      fprintf (file, " %d", BTOR_ARRAY_INDEX_LEN (node));
+  }
+  else
+  {
+    fprintf (file,
+             "%d %s %d",
+             bdcid (bdc, node),
+             op,
+             bdcsortid (bdc, get_sort (bdc, node)));
+
+    if (BTOR_IS_APPLY_NODE (node))
+    {
+      fprintf (file, " %d", bdcid (bdc, node->e[0]));
+      init_args_iterator (&ait, node->e[1]);
+      while (has_next_args_iterator (&ait))
+        fprintf (file, " %d", bdcid (bdc, next_args_iterator (&ait)));
+      goto DONE;
+    }
+    else if (strcmp (op, "fun") == 0)
+    {
+      assert (BTOR_IS_FIRST_CURRIED_LAMBDA (node));
+      init_lambda_iterator (&nit, node);
+      while (has_next_lambda_iterator (&nit))
+      {
+        n = next_lambda_iterator (&nit);
+        fprintf (
+            file, " %d", bdcid (bdc, (BtorNode *) BTOR_LAMBDA_GET_PARAM (n)));
+      }
+      fprintf (file, " %d", bdcid (bdc, BTOR_LAMBDA_GET_BODY (node)));
+      goto DONE;
+    }
+  }
 
   /* print children or const values */
   if (strcmp (op, "const") == 0)
@@ -339,11 +380,8 @@ bdcnode (BtorDumpContext *bdc, BtorNode *node, FILE *file)
     sprintf (idbuffer, "%d", bdcid (bdc, node));
     if (node->symbol && strcmp (node->symbol, idbuffer))
       fprintf (file, " %s", node->symbol);
-    else
-    {
-      // TODO want to print nothing here, right?
-    }
   }
+DONE:
   fputc ('\n', file);
 }
 
@@ -360,7 +398,7 @@ bdcsort (BtorDumpContext *bdc, BtorSort *sort, FILE *file)
   {
     default:
     case BTOR_BOOL_SORT: kind = "bool"; break;
-    case BTOR_BITVEC_SORT: kind = "bitvec"; break;
+    case BTOR_BITVEC_SORT: kind = "bv"; break;
     case BTOR_ARRAY_SORT: kind = "array"; break;
     case BTOR_FUN_SORT: kind = "fun"; break;
   }

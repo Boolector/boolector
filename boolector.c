@@ -2581,6 +2581,8 @@ boolector_apply (Btor *btor,
   return BTOR_EXPORT_BOOLECTOR_NODE (res);
 }
 
+// TODO: remove (ma)
+#if 1
 BoolectorNode *
 boolector_apply_args (Btor *btor, BoolectorNode *n_args, BoolectorNode *n_fun)
 {
@@ -2611,6 +2613,7 @@ boolector_apply_args (Btor *btor, BoolectorNode *n_args, BoolectorNode *n_fun)
 #endif
   return BTOR_EXPORT_BOOLECTOR_NODE (res);
 }
+#endif
 
 BoolectorNode *
 boolector_inc (Btor *btor, BoolectorNode *node)

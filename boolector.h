@@ -479,6 +479,8 @@ void boolector_release (Btor *btor, BoolectorNode *node);
  */
 BoolectorNode *boolector_const (Btor *btor, const char *bits);
 
+// TODO: what about boolector_constd (Btor * btor, const char * num)?
+
 /**
  * Bit-vector constant zero.
  * \param btor Boolector instance.
