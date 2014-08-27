@@ -138,25 +138,24 @@ btor_init_opts (Btor *btor)
             1,
             "incremental interval mode width (SMT1 only)");
 
-  BTOR_OPT (0,
-            input_format,
-            0,
-            BTOR_INPUT_FORMAT_BTOR,
-            BTOR_INPUT_FORMAT_SMT2,
-            "input file format");
-
-  BTOR_OPT (0,
-            output_number_format,
-            BTOR_OUTPUT_BASE_BIN,
-            BTOR_OUTPUT_BASE_BIN,
-            BTOR_OUTPUT_BASE_DEC,
-            "output number format");
-  BTOR_OPT (0,
-            output_format,
-            BTOR_OUTPUT_FORMAT_BTOR,
-            BTOR_OUTPUT_FORMAT_BTOR,
-            BTOR_OUTPUT_FORMAT_SMT2,
-            "output file format");
+  BTOR_OPT_INTL (0,
+                 input_format,
+                 0,
+                 BTOR_INPUT_FORMAT_BTOR,
+                 BTOR_INPUT_FORMAT_SMT2,
+                 "input file format");
+  BTOR_OPT_INTL (0,
+                 output_number_format,
+                 BTOR_OUTPUT_BASE_BIN,
+                 BTOR_OUTPUT_BASE_BIN,
+                 BTOR_OUTPUT_BASE_DEC,
+                 "output number format");
+  BTOR_OPT_INTL (0,
+                 output_format,
+                 BTOR_OUTPUT_FORMAT_BTOR,
+                 BTOR_OUTPUT_FORMAT_BTOR,
+                 BTOR_OUTPUT_FORMAT_SMT2,
+                 "output file format");
 
   BTOR_OPT ("rwl", rewrite_level, 3, 0, 3, "set rewrite level");
   BTOR_OPT (0,
@@ -310,7 +309,7 @@ btor_set_opt (Btor *btor, const char *name, int val)
     assert (val >= 0 && val <= 3);
     assert (oldval >= 0 && oldval <= 3);
   }
-#ifndef NBTORLOG
+#ifdef NBTORLOG
   else if (!strcmp (name, BTOR_OPT_LOGLEVEL))
     return;
 #endif

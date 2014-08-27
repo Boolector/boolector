@@ -177,7 +177,7 @@ btormain_init_opts (BtorMainApp *app)
   BTORMAIN_INIT_OPT (app->opts.lingeling_nofork,
                      1,
                      0,
-                     "lingeing_nofork",
+                     "lingeling_nofork",
                      0,
                      0,
                      0,
@@ -416,8 +416,51 @@ print_help (BtorMainApp *app)
       fprintf (out, "\n");
     print_opt (app, o);
   }
-  fprintf (out, "\n");
 
+  print_opt (app, &app->opts.output);
+  fprintf (app->outfile, "\n");
+  to.shrt = "x";
+  to.lng  = "hex";
+  to.desc = "force hexadecimal number output";
+  print_opt (app, &to);
+  to.shrt = "d";
+  to.lng  = "dec";
+  to.desc = "force decimal number output";
+  print_opt (app, &to);
+
+  fprintf (app->outfile, "\n");
+  to.shrt = 0;
+  to.lng  = "btor";
+  to.desc = "force BTOR input format";
+  print_opt (app, &to);
+  to.shrt = 0;
+  to.lng  = "smt2";
+  to.desc = "force SMT-LIB v2 input format";
+  print_opt (app, &to);
+  to.shrt = 0;
+  to.lng  = "smt1";
+  to.desc = "force SMT-LIB v1 input format";
+  print_opt (app, &to);
+  fprintf (app->outfile, "\n");
+
+  to.shrt = "db";
+  to.lng  = "dump_btor";
+  to.desc = "dump formula in BTOR format";
+  print_opt (app, &to);
+  to.shrt = "db2";
+  to.lng  = "dump_btor2";
+  to.desc = "dump formula in BTOR 2.0 format";
+  print_opt (app, &to);
+  to.shrt = "ds";
+  to.lng  = "dump_smt2";
+  to.desc = "dump formula in SMT-LIB v2 format";
+  print_opt (app, &to);
+  to.shrt = "ds1";
+  to.lng  = "dump_smt1";
+  to.desc = "dump formula in SMT-LIB v1 format";
+  print_opt (app, &to);
+
+  fprintf (out, "\n");
   fprintf (out, BOOLECTOR_OPTS_INFO_MSG);
 
   for (o = (BtorOpt *) boolector_first_opt (app->btor);
@@ -428,57 +471,6 @@ print_help (BtorMainApp *app)
     if (!strcmp (o->lng, "incremental") || !strcmp (o->lng, "beta_reduce_all")
         || !strcmp (o->lng, "pretty_print") || !strcmp (o->lng, "dual_prop"))
       fprintf (out, "\n");
-    if (!strcmp (o->lng, "input_format"))
-    {
-      fprintf (app->outfile, "\n");
-      to.shrt = 0;
-      to.lng  = "btor";
-      to.desc = "force BTOR input format";
-      print_opt (app, &to);
-      to.shrt = 0;
-      to.lng  = "smt2";
-      to.desc = "force SMT-LIB v2 input format";
-      print_opt (app, &to);
-      to.shrt = 0;
-      to.lng  = "smt1";
-      to.desc = "force SMT-LIB v1 input format";
-      print_opt (app, &to);
-      fprintf (app->outfile, "\n");
-    }
-    else if (!strcmp (o->lng, "output_number_format"))
-    {
-      print_opt (app, &app->opts.output);
-      fprintf (app->outfile, "\n");
-      to.shrt = "x";
-      to.lng  = "hex";
-      to.desc = "force hexadecimal number output";
-      print_opt (app, &to);
-      to.shrt = "d";
-      to.lng  = "dec";
-      to.desc = "force decimal number output";
-      print_opt (app, &to);
-    }
-    else if (!strcmp (o->lng, "output_format"))
-    {
-      fprintf (app->outfile, "\n");
-      to.shrt = "db";
-      to.lng  = "dump_btor";
-      to.desc = "dump formula in BTOR format";
-      print_opt (app, &to);
-      to.shrt = "db2";
-      to.lng  = "dump_btor2";
-      to.desc = "dump formula in BTOR 2.0 format";
-      print_opt (app, &to);
-      to.shrt = "ds";
-      to.lng  = "dump_smt2";
-      to.desc = "dump formula in SMT-LIB v2 format";
-      print_opt (app, &to);
-      to.shrt = "ds1";
-      to.lng  = "dump_smt1";
-      to.desc = "dump formula in SMT-LIB v1 format";
-      print_opt (app, &to);
-      fprintf (app->outfile, "\n");
-    }
     else
       print_opt (app, o);
   }
@@ -668,7 +660,7 @@ boolector_main (int argc, char **argv)
   int res, sat_res;
   int i, j, k, len, shrt, disable, readval, val, forced_sat_solver;
 #ifndef NBTORLOG
-  int log = 0;
+  int log;
 #endif
   int inc, incid, incla, incint, dump;
   int parse_result, parse_status;
@@ -681,15 +673,19 @@ boolector_main (int argc, char **argv)
 #ifdef BTOR_HAVE_GETRUSAGE
   static_start_time = btor_time_stamp ();
 #endif
-  res              = BTOR_UNKNOWN_EXIT;
-  sat_res          = BOOLECTOR_UNKNOWN;
-  static_verbosity = 0;
+  res     = BTOR_UNKNOWN_EXIT;
+  sat_res = BOOLECTOR_UNKNOWN;
   inc = incid = incla = incint = dump = 0;
   parse_result                        = BOOLECTOR_UNKNOWN;
 
   static_app = btormain_new_btormain (boolector_new ());
 
   btormain_init_opts (static_app);
+#ifndef NBTORLOG
+  log = boolector_get_opt_val (static_app->btor, BTOR_OPT_LOGLEVEL);
+#endif
+  static_verbosity =
+      boolector_get_opt_val (static_app->btor, BTOR_OPT_VERBOSITY);
 
   for (i = 1; i < argc; i++)
   {

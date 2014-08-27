@@ -883,7 +883,8 @@ btor_new_btor (void)
   mm = btor_new_mem_mgr ();
   BTOR_CNEW (mm, btor);
 
-  btor->mm = mm;
+  btor->mm    = mm;
+  btor->avmgr = btor_new_aigvec_mgr (mm);
 
   btor_init_opts (btor);
 
@@ -892,8 +893,6 @@ btor_new_btor (void)
 
   BTOR_INIT_UNIQUE_TABLE (mm, btor->nodes_unique_table);
   BTOR_INIT_SORT_UNIQUE_TABLE (mm, btor->sorts_unique_table);
-
-  btor->avmgr = btor_new_aigvec_mgr (mm);
 
   btor->inputs  = btor_new_ptr_hash_table (mm,
                                           (BtorHashPtr) btor_hash_exp_by_id,
@@ -908,11 +907,10 @@ btor_new_btor (void)
                                            (BtorHashPtr) btor_hash_exp_by_id,
                                            (BtorCmpPtr) btor_compare_exp_by_id);
 
-  btor->dvn_id                    = 1;
-  btor->dan_id                    = 1;
-  btor->valid_assignments         = 1;
-  btor->options.rewrite_level.val = 3;
-  btor->vread_index_id            = 1;
+  btor->dvn_id            = 1;
+  btor->dan_id            = 1;
+  btor->valid_assignments = 1;
+  btor->vread_index_id    = 1;
 
   BTOR_PUSH_STACK (btor->mm, btor->nodes_id_table, 0);
 
