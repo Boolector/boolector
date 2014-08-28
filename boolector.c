@@ -727,6 +727,7 @@ boolector_var (Btor *btor, int width, const char *symbol)
   BtorNode *res;
   char *symb;
 
+  // TODO abort if symbol does already exist @aina
   if ((symb = (char *) symbol) == NULL)
   {
     BTOR_NEWN (btor->mm, symb, 20);
@@ -2358,6 +2359,7 @@ boolector_param (Btor *btor, int width, const char *symbol)
 
   BTOR_ABORT_ARG_NULL_BOOLECTOR (btor);
 
+  // TODO abort if symbol does already exist @aina
   if ((symb = (char *) symbol) == NULL)
   {
     BTOR_NEWN (btor->mm, symb, 20);
@@ -2443,6 +2445,7 @@ boolector_uf (Btor *btor, BoolectorSort *sort, const char *symbol)
   char *symb;
   BtorNode *res;
 
+  // TODO abort if symbol does already exist @aina
   symb = (char *) symbol;
   if (!symb)
   {

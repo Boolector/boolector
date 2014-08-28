@@ -72,7 +72,7 @@ with open (sys.argv[2], "r") as fin:
   origline = fin.readline()
 
   if origline.strip() != "sat":
-    print "Forumula is not SAT"
+    print "Formula is not SAT"
     sys.exit(2)
 
   for origline in fin:
@@ -82,6 +82,8 @@ with open (sys.argv[2], "r") as fin:
     if opos == -1:
       #bv model
       modelid= words[0]
+      if modelid.find("_btor_id_", 0) == 0:
+        modelid = modelid[9:]
       #check if modelid is really an integer or an identifier
       try:
         temp = int(modelid)
@@ -119,6 +121,8 @@ with open (sys.argv[2], "r") as fin:
         sys.exit(2)
 
       aid=line[0:opos]
+      if aid.find("_btor_id_", 0) == 0:
+        aid = aid[9:]
       #check if array id is really an integer or an identifier
       try:
         temp = int(aid)

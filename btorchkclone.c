@@ -468,9 +468,6 @@ btor_chkclone_exp (BtorNode *exp, BtorNode *clone)
 
   if (!BTOR_IS_BV_CONST_NODE (real_exp))
   {
-    assert (!real_clone->symbol
-            || !strcmp (real_exp->symbol, real_clone->symbol));
-
     if (!BTOR_IS_BV_VAR_NODE (real_exp) && !BTOR_IS_UF_NODE (real_exp)
         && !BTOR_IS_PARAM_NODE (real_exp))
     {
@@ -687,6 +684,7 @@ btor_chkclone_tables (Btor *btor)
 {
   BtorHashTableIterator it, cit, nit, cnit;
 
+  // TODO check symbols, node2symbol @aina
   BTOR_CHKCLONE_NODE_PTR_HASH_TABLE (btor->bv_vars, btor->clone->bv_vars);
   BTOR_CHKCLONE_NODE_PTR_HASH_TABLE (btor->lambdas, btor->clone->lambdas);
   BTOR_CHKCLONE_NODE_PTR_HASH_TABLE (btor->substitutions,

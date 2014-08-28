@@ -138,8 +138,8 @@ dump_smt_id (BtorSMTDumpContext *sdc, BtorNode *exp)
     case BTOR_PARAM_NODE:
       type = "p";
     VAR_PARAM_NODE:
-      sym = u->symbol;
-      if (!isdigit (sym[0]))
+      sym = btor_get_symbol_exp (sdc->btor, u);
+      if (sym && !isdigit (sym[0]))
       {
         fputs (sym, sdc->file);
         goto CLOSE;

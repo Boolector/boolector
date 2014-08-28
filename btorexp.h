@@ -136,8 +136,7 @@ typedef struct BtorNodePair BtorNodePair;
   {                                                                   \
     struct                                                            \
     {                                                                 \
-      char *symbol; /* symbol for output */                           \
-      int upper;    /* upper index for slices */                      \
+      int upper; /* upper index for slices */                         \
       union                                                           \
       {                                                               \
         int lower;            /* lower index for slices */            \
@@ -153,7 +152,6 @@ typedef struct BtorNodePair BtorNodePair;
 struct BtorBVVarNode
 {
   BTOR_BV_NODE_STRUCT;
-  char *symbol;
 };
 
 typedef struct BtorBVVarNode BtorBVVarNode;
@@ -161,7 +159,6 @@ typedef struct BtorBVVarNode BtorBVVarNode;
 struct BtorArrayVarNode
 {
   BTOR_BV_NODE_STRUCT;
-  char *symbol;
   int index_len;
 };
 
@@ -170,7 +167,6 @@ typedef struct BtorArrayVarNode BtorArrayVarNode;
 struct BtorUFNode
 {
   BTOR_BV_NODE_STRUCT;
-  char *symbol;
   BtorSort *sort;
   int num_params;
   char is_array;
@@ -215,7 +211,6 @@ typedef struct BtorLambdaNode BtorLambdaNode;
 struct BtorParamNode
 {
   BTOR_BV_NODE_STRUCT;
-  char *symbol;
   BtorLambdaNode *lambda_exp; /* 1:1 relation param:lambda_exp */
   BtorNode *assigned_exp;
 };

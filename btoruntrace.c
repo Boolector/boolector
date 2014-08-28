@@ -266,7 +266,7 @@ parse (FILE *file)
   btor          = 0;
   mm            = btor_new_mem_mgr ();
   hmap          = btor_new_ptr_hash_table (
-      mm, (BtorHashPtr) btor_hashstr, (BtorCmpPtr) strcmp);
+      mm, (BtorHashPtr) btor_hash_str, (BtorCmpPtr) strcmp);
   buffer    = malloc (buffer_len * sizeof (char));
   buffer[0] = 0;
 

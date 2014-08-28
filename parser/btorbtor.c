@@ -354,7 +354,7 @@ SKIP:
 static int
 parse_symbol (BtorBTORParser *parser)
 {
-  char buffer[20];
+  char buffer[30];
   const char *p;
   int ch;
 
@@ -372,7 +372,7 @@ parse_symbol (BtorBTORParser *parser)
 
   if (ch == '\n')
   {
-    sprintf (buffer, "%d", parser->idx);
+    sprintf (buffer, "_btor_id_%d", parser->idx);
     for (p = buffer; *p; p++) BTOR_PUSH_STACK (parser->mem, parser->symbol, *p);
   }
   else

@@ -897,6 +897,13 @@ btor_new_btor (void)
 
   btor->avmgr = btor_new_aigvec_mgr (mm);
 
+  btor->symbols = btor_new_ptr_hash_table (
+      mm, (BtorHashPtr) btor_hash_str, (BtorCmpPtr) strcmp);
+  btor->node2symbol =
+      btor_new_ptr_hash_table (mm,
+                               (BtorHashPtr) btor_hash_exp_by_id,
+                               (BtorCmpPtr) btor_compare_exp_by_id);
+
   btor->inputs  = btor_new_ptr_hash_table (mm,
                                           (BtorHashPtr) btor_hash_exp_by_id,
                                           (BtorCmpPtr) btor_compare_exp_by_id);
@@ -1152,6 +1159,12 @@ btor_delete_btor (Btor *btor)
   assert (getenv ("BTORLEAK") || getenv ("BTORLEAKSORT")
           || btor->sorts_unique_table.num_elements == 0);
   BTOR_RELEASE_SORT_UNIQUE_TABLE (mm, btor->sorts_unique_table);
+
+  btor_delete_ptr_hash_table (btor->node2symbol);
+  init_hash_table_iterator (&it, btor->symbols);
+  while (has_next_hash_table_iterator (&it))
+    btor_freestr (btor->mm, (char *) next_hash_table_iterator (&it));
+  btor_delete_ptr_hash_table (btor->symbols);
 
   btor_delete_ptr_hash_table (btor->bv_vars);
   btor_delete_ptr_hash_table (btor->ufs);
@@ -1432,7 +1445,8 @@ lambda_var_exp (Btor *btor, int len)
   string_len = btor_num_digits_util (id) + 11;
   BTOR_NEWN (mm, name, string_len);
   // FIXME: there is no guarantee that the new symbol does not exist
-  sprintf (name, "bvlambda_%d_", id);
+  // @aina
+  sprintf (name, "_bvlambda_%d_", id);
   result = btor_var_exp (btor, len, name);
   assert (BTOR_IS_REGULAR_NODE (result));
   assert (result->id == id);
@@ -3323,12 +3337,12 @@ eliminate_slices_on_bv_vars (Btor *btor)
 
           if (min == s1->lower)
           {
-            btor_remove_from_ptr_hash_table (slices, s1, NULL, NULL);
+            btor_remove_from_ptr_hash_table (slices, s1, 0, 0);
             delete_slice (btor, s1);
           }
           else
           {
-            btor_remove_from_ptr_hash_table (slices, s2, NULL, NULL);
+            btor_remove_from_ptr_hash_table (slices, s2, 0, 0);
             delete_slice (btor, s2);
           }
           goto BTOR_SPLIT_SLICES_RESTART;
@@ -3346,7 +3360,7 @@ eliminate_slices_on_bv_vars (Btor *btor)
             delete_slice (btor, new_s1);
           if (max == s1->upper)
           {
-            btor_remove_from_ptr_hash_table (slices, s1, NULL, NULL);
+            btor_remove_from_ptr_hash_table (slices, s1, 0, 0);
             delete_slice (btor, s1);
           }
           else
@@ -3366,7 +3380,7 @@ eliminate_slices_on_bv_vars (Btor *btor)
         new_s1 = new_slice (btor, vals[3], vals[2] + 1);
         new_s2 = new_slice (btor, vals[2], vals[1]);
         new_s3 = new_slice (btor, vals[1] - 1, vals[0]);
-        btor_remove_from_ptr_hash_table (slices, s1, NULL, NULL);
+        btor_remove_from_ptr_hash_table (slices, s1, 0, 0);
         btor_remove_from_ptr_hash_table (slices, s2, NULL, NULL);
         delete_slice (btor, s1);
         delete_slice (btor, s2);
@@ -4105,6 +4119,7 @@ lambda_array_exp (Btor *btor, int elem_len, int index_len)
   string_len = btor_num_digits_util (id) + 14;
   BTOR_NEWN (btor->mm, name, string_len);
   // FIXME: there is no guarantee that the new symbol does not exist
+  // @aina
   sprintf (name, "arraylambda_%d_", id);
   res = btor_array_exp (btor, elem_len, index_len, name);
   assert (res->id == id);
@@ -6278,7 +6293,7 @@ hash_assignment_aux (BtorNode *exp)
   invert_av = BTOR_IS_INVERTED_NODE (exp);
   if (invert_av) btor_invert_aigvec (avmgr, av);
   assignment = btor_assignment_aigvec (avmgr, av);
-  hash       = btor_hashstr (assignment);
+  hash       = btor_hash_str (assignment);
   btor_freestr (btor->mm, assignment);
   /* invert back if necessary */
   if (invert_av) btor_invert_aigvec (avmgr, av);
@@ -6314,7 +6329,7 @@ hash_args (BtorNode *exp)
     assert (av);
     if (invert_av) btor_invert_aigvec (avmgr, av);
     assignment = btor_assignment_aigvec (avmgr, av);
-    hash += btor_hashstr (assignment);
+    hash += btor_hash_str (assignment);
     btor_freestr (btor->mm, assignment);
     if (invert_av) btor_invert_aigvec (avmgr, av);
   }
