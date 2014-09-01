@@ -100,7 +100,7 @@ btor_chkclone_stats (Btor *btor)
   BTOR_CHKCLONE_STATS (function_congruence_conflicts);
   BTOR_CHKCLONE_STATS (beta_reduction_conflicts);
   BTOR_CHKCLONE_STATS (var_substitutions);
-  BTOR_CHKCLONE_STATS (array_substitutions);
+  BTOR_CHKCLONE_STATS (uf_substitutions);
   BTOR_CHKCLONE_STATS (ec_substitutions);
   BTOR_CHKCLONE_STATS (vreads);
   BTOR_CHKCLONE_STATS (linear_equations);
@@ -701,7 +701,7 @@ btor_chkclone_tables (Btor *btor)
   BTOR_CHKCLONE_NODE_PTR_HASH_TABLE (btor->assumptions,
                                      btor->clone->assumptions);
   BTOR_CHKCLONE_NODE_PTR_HASH_TABLE (btor->var_rhs, btor->clone->var_rhs);
-  BTOR_CHKCLONE_NODE_PTR_HASH_TABLE (btor->array_rhs, btor->clone->array_rhs);
+  BTOR_CHKCLONE_NODE_PTR_HASH_TABLE (btor->fun_rhs, btor->clone->fun_rhs);
   BTOR_CHKCLONE_NODE_PTR_HASH_TABLE (btor->cache, btor->clone->cache);
 
   if (btor->parameterized)

@@ -657,8 +657,8 @@ btor_generate_model (Btor *btor)
 
   extract_models_from_functions_with_model (btor);
 
-  /* NOTE: adding array_rhs is only needed for extensional benchmarks */
-  init_node_hash_table_iterator (&it, btor->array_rhs);
+  /* NOTE: adding fun_rhs is only needed for extensional benchmarks */
+  init_node_hash_table_iterator (&it, btor->fun_rhs);
   while (has_next_node_hash_table_iterator (&it))
   {
     cur = btor_simplify_exp (btor, next_node_hash_table_iterator (&it));

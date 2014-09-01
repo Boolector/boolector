@@ -630,8 +630,10 @@ btor_print_stats_btor (Btor *btor)
 #endif
   btor_msg (
       btor, 1, "variable substitutions: %d", btor->stats.var_substitutions);
-  btor_msg (
-      btor, 1, "array substitutions: %d", btor->stats.array_substitutions);
+  btor_msg (btor,
+            1,
+            "uninterpreted function substitutions: %d",
+            btor->stats.uf_substitutions);
   btor_msg (btor,
             1,
             "embedded constraint substitutions: %d",
@@ -946,10 +948,9 @@ btor_new_btor (void)
                                            (BtorHashPtr) btor_hash_exp_by_id,
                                            (BtorCmpPtr) btor_compare_exp_by_id);
 
-  btor->array_rhs =
-      btor_new_ptr_hash_table (btor->mm,
-                               (BtorHashPtr) btor_hash_exp_by_id,
-                               (BtorCmpPtr) btor_compare_exp_by_id);
+  btor->fun_rhs = btor_new_ptr_hash_table (btor->mm,
+                                           (BtorHashPtr) btor_hash_exp_by_id,
+                                           (BtorCmpPtr) btor_compare_exp_by_id);
 
   BTOR_INIT_STACK (btor->functions_with_model);
   BTOR_INIT_STACK (btor->stats.lemmas_size);
@@ -1008,7 +1009,7 @@ btor_delete_btor (Btor *btor)
   queue_node_hash_table_iterator (&it, btor->synthesized_constraints);
   queue_node_hash_table_iterator (&it, btor->assumptions);
   queue_node_hash_table_iterator (&it, btor->var_rhs);
-  queue_node_hash_table_iterator (&it, btor->array_rhs);
+  queue_node_hash_table_iterator (&it, btor->fun_rhs);
   while (has_next_node_hash_table_iterator (&it))
     btor_release_exp (btor, next_node_hash_table_iterator (&it));
 
@@ -1019,7 +1020,7 @@ btor_delete_btor (Btor *btor)
   btor_delete_ptr_hash_table (btor->synthesized_constraints);
   btor_delete_ptr_hash_table (btor->assumptions);
   btor_delete_ptr_hash_table (btor->var_rhs);
-  btor_delete_ptr_hash_table (btor->array_rhs);
+  btor_delete_ptr_hash_table (btor->fun_rhs);
 
   if (btor->options.model_gen.val) btor_delete_model (btor);
 
@@ -1372,10 +1373,9 @@ insert_varsubst_constraint (Btor *btor, BtorNode *left, BtorNode *right)
     }
 
     if (BTOR_IS_FUN_NODE (BTOR_REAL_ADDR_NODE (right))
-        && !btor_find_in_ptr_hash_table (btor->array_rhs, left))
+        && !btor_find_in_ptr_hash_table (btor->fun_rhs, left))
     {
-      btor_insert_in_ptr_hash_table (btor->array_rhs,
-                                     btor_copy_exp (btor, left));
+      btor_insert_in_ptr_hash_table (btor->fun_rhs, btor_copy_exp (btor, left));
     }
 
     BTORLOG ("varsubst: %s -> %s", node2string (left), node2string (right));
@@ -2631,7 +2631,7 @@ substitute_vars_and_rebuild_exps (Btor *btor, BtorPtrHashTable *substs)
         if (BTOR_IS_BV_VAR_NODE (cur))
           btor->stats.var_substitutions++;
         else
-          btor->stats.array_substitutions++;
+          btor->stats.uf_substitutions++;
       }
       else
         rebuilt_exp = rebuild_exp (btor, cur);
@@ -4900,28 +4900,6 @@ update_reachable (Btor *btor, int check_all_tables)
     cur = next_node_hash_table_iterator (&it);
     btor_mark_exp (btor, cur, 1);
   }
-
-#if 0
-  /* in case of models, var_rhs and array_rhs are also marked as reachable */
-  if (btor->options.model_gen.val && 0)
-    {
-      for (b = btor->var_rhs->first; b; b = b->next)
-        {
-          cur = (BtorNode *) b->key;
-          cur = BTOR_REAL_ADDR_NODE (btor_simplify_exp (btor, cur));
-          if (cur->vread)
-            continue;
-          btor_mark_exp (btor, cur, 1);
-        }
-      for (b = btor->array_rhs->first; b; b = b->next)
-        {
-          cur = (BtorNode *) b->key;
-          cur = BTOR_REAL_ADDR_NODE (btor_simplify_exp (btor, cur));
-          assert (BTOR_IS_FUN_NODE (cur));
-          btor_mark_exp (btor, cur, 1);
-        }
-    }
-#endif
 
   for (i = 1; i < BTOR_COUNT_STACK (btor->nodes_id_table); i++)
   {
