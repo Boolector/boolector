@@ -57,9 +57,7 @@ typedef struct BtorOpt
 #endif
 #define BTOR_OPT_FORCE_CLEANUP "force_cleanup"
 #define BTOR_OPT_PRETTY_PRINT "pretty_print"
-#ifndef NBTORLOG
 #define BTOR_OPT_LOGLEVEL "loglevel"
-#endif
 #define BTOR_OPT_VERBOSITY "verbosity"
 #define BTOR_OPT_SIMPLIFY_CONSTRAINTS "simplify_constraints"
 #define BTOR_OPT_FORCE_INTERNAL_CLEANUP "force_internal_cleanup"
