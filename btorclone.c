@@ -705,6 +705,7 @@ clone_aux_btor (Btor *btor,
   BtorSort *sort;
   char **ind, **val;
   amgr = exp_layer_only ? 0 : btor_get_aig_mgr_aigvec_mgr (btor->avmgr);
+  BtorPtrHashData *data, *cdata;
 #endif
 
   BTORLOG ("start cloning btor %p ...", btor);
@@ -990,15 +991,15 @@ clone_aux_btor (Btor *btor,
 #ifndef NDEBUG
   if (btor->bv_model)
   {
-    init_node_hash_table_iterator (&it, btor->bv_model);
-    init_node_hash_table_iterator (&cit, clone->bv_model);
+    init_hash_table_iterator (&it, btor->bv_model);
+    init_hash_table_iterator (&cit, clone->bv_model);
     while (has_next_node_hash_table_iterator (&it))
     {
-      assert (btor_size_bv ((BitVector *) it.bucket->data.asPtr)
-              == btor_size_bv ((BitVector *) cit.bucket->data.asPtr));
-      allocated += btor_size_bv ((BitVector *) cit.bucket->data.asPtr);
-      (void) next_node_hash_table_iterator (&it);
-      (void) next_node_hash_table_iterator (&cit);
+      data  = next_data_hash_table_iterator (&it);
+      cdata = next_data_hash_table_iterator (&cit);
+      assert (btor_size_bv ((BitVector *) data->asPtr)
+              == btor_size_bv ((BitVector *) cdata->asPtr));
+      allocated += btor_size_bv ((BitVector *) cdata->asPtr);
     }
   }
 #endif
@@ -1008,27 +1009,23 @@ clone_aux_btor (Btor *btor,
 #ifndef NDEBUG
   if (btor->fun_model)
   {
-    init_node_hash_table_iterator (&it, btor->fun_model);
-    init_node_hash_table_iterator (&cit, clone->fun_model);
-    while (has_next_node_hash_table_iterator (&it))
+    init_hash_table_iterator (&it, btor->fun_model);
+    init_hash_table_iterator (&cit, clone->fun_model);
+    while (has_next_hash_table_iterator (&it))
     {
-      assert (
-          MEM_PTR_HASH_TABLE ((BtorPtrHashTable *) it.bucket->data.asPtr)
-          == MEM_PTR_HASH_TABLE ((BtorPtrHashTable *) cit.bucket->data.asPtr));
-      allocated +=
-          MEM_PTR_HASH_TABLE ((BtorPtrHashTable *) cit.bucket->data.asPtr);
+      data  = next_data_hash_table_iterator (&it);
+      cdata = next_data_hash_table_iterator (&cit);
+      assert (MEM_PTR_HASH_TABLE ((BtorPtrHashTable *) data->asPtr)
+              == MEM_PTR_HASH_TABLE ((BtorPtrHashTable *) cdata->asPtr));
+      allocated += MEM_PTR_HASH_TABLE ((BtorPtrHashTable *) data->asPtr);
 
-      init_hash_table_iterator (&ncit,
-                                ((BtorPtrHashTable *) cit.bucket->data.asPtr));
+      init_hash_table_iterator (&ncit, ((BtorPtrHashTable *) data->asPtr));
       while (has_next_hash_table_iterator (&ncit))
       {
         allocated += btor_size_bv ((BitVector *) ncit.bucket->data.asPtr);
         allocated += btor_size_bv_tuple (
             (BitVectorTuple *) next_hash_table_iterator (&ncit));
       }
-
-      (void) next_node_hash_table_iterator (&it);
-      (void) next_node_hash_table_iterator (&cit);
     }
   }
 #endif
@@ -1160,6 +1157,15 @@ clone_aux_btor (Btor *btor,
 
   btor->time.cloning += btor_time_stamp () - start;
   BTORLOG ("cloning total: %.3f s", btor->time.cloning);
+
+  assert (btor->mm->allocated
+              - (btor->msg_prefix
+                     ? (strlen (btor->msg_prefix) + 1) * sizeof (char)
+                     : 0)
+          == clone->mm->allocated
+                 - (clone->msg_prefix
+                        ? (strlen (clone->msg_prefix) + 1) * sizeof (char)
+                        : 0));
 
   return clone;
 }
