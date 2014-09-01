@@ -1135,7 +1135,7 @@ clone_aux_btor (Btor *btor,
   clone->close_apitrace = 0;
 
   clone->msg_prefix = NULL;
-  clone_prefix      = "clone ";
+  clone_prefix      = "clone";
   len               = btor->msg_prefix ? strlen (btor->msg_prefix) : 0;
   len += strlen (clone_prefix) + 3;
   BTOR_NEWN (clone->mm, prefix, len + 1);
