@@ -358,7 +358,6 @@ btor_chkclone_aig (BtorAIG *aig, BtorAIG *clone)
             == BTOR_GET_TAG_NODE (real_clone->field)); \
   } while (0)
 
-/* Note: no hash table to be cloned uses data->asInt (check data->asPtr only) */
 #define BTOR_CHKCLONE_NODE_PTR_HASH_TABLE(table, clone)                  \
   do                                                                     \
   {                                                                      \
@@ -372,6 +371,7 @@ btor_chkclone_aig (BtorAIG *aig, BtorAIG *clone)
     assert ((table)->count == (clone)->count);                           \
     assert ((table)->hash == (clone)->hash);                             \
     assert ((table)->cmp == (clone)->cmp);                               \
+    assert (!(table)->first || !(clone)->first);                         \
     for (bb = (table)->first, cbb = (clone)->first; bb;                  \
          bb = bb->next, cbb = cbb->next)                                 \
     {                                                                    \
@@ -683,8 +683,57 @@ static void
 btor_chkclone_tables (Btor *btor)
 {
   BtorHashTableIterator it, cit, nit, cnit;
+  char *sym, *csym;
 
-  // TODO check symbols, node2symbol @aina
+  if (btor->symbols)
+  {
+    assert (btor->clone->symbols);
+    assert (btor->symbols->size == btor->clone->symbols->size);
+    assert (btor->symbols->count == btor->clone->symbols->count);
+    assert (btor->symbols->hash == btor->clone->symbols->hash);
+    assert (btor->symbols->cmp == btor->clone->symbols->cmp);
+    assert (!btor->symbols->first || btor->clone->symbols->first);
+    init_hash_table_iterator (&it, btor->symbols);
+    init_hash_table_iterator (&cit, btor->clone->symbols);
+    while (has_next_hash_table_iterator (&it))
+    {
+      assert (has_next_hash_table_iterator (&cit));
+      assert (!strcmp ((char *) next_hash_table_iterator (&it),
+                       (char *) next_hash_table_iterator (&cit)));
+    }
+    assert (!has_next_hash_table_iterator (&cit));
+  }
+  else
+    assert (!btor->clone->symbols);
+
+  if (btor->node2symbol)
+  {
+    assert (btor->clone->node2symbol);
+    assert (btor->node2symbol->size == btor->clone->node2symbol->size);
+    assert (btor->node2symbol->count == btor->clone->node2symbol->count);
+    assert (btor->node2symbol->hash == btor->clone->node2symbol->hash);
+    assert (btor->node2symbol->cmp == btor->clone->node2symbol->cmp);
+    assert (!btor->node2symbol->first || btor->clone->node2symbol->first);
+    init_node_hash_table_iterator (&it, btor->node2symbol);
+    init_node_hash_table_iterator (&cit, btor->clone->node2symbol);
+    while (has_next_node_hash_table_iterator (&it))
+    {
+      assert (has_next_node_hash_table_iterator (&cit));
+      sym  = it.bucket->data.asStr;
+      csym = cit.bucket->data.asStr;
+      assert (!strcmp (sym, csym));
+      assert (btor_find_in_ptr_hash_table (btor->node2symbol, sym));
+      assert (!btor_find_in_ptr_hash_table (btor->node2symbol, csym));
+      assert (btor_find_in_ptr_hash_table (btor->clone->node2symbol, csym));
+      assert (!btor_find_in_ptr_hash_table (btor->clone->node2symbol, sym));
+      BTOR_CHKCLONE_EXPID (next_node_hash_table_iterator (&it),
+                           next_node_hash_table_iterator (&cit));
+    }
+    assert (!has_next_node_hash_table_iterator (&cit));
+  }
+  else
+    assert (!btor->clone->node2symbol);
+
   BTOR_CHKCLONE_NODE_PTR_HASH_TABLE (btor->bv_vars, btor->clone->bv_vars);
   BTOR_CHKCLONE_NODE_PTR_HASH_TABLE (btor->lambdas, btor->clone->lambdas);
   BTOR_CHKCLONE_NODE_PTR_HASH_TABLE (btor->substitutions,
@@ -723,7 +772,7 @@ btor_chkclone_tables (Btor *btor)
       BTOR_CHKCLONE_EXPID (next_node_hash_table_iterator (&it),
                            next_node_hash_table_iterator (&cit));
     }
-    assert (!has_next_hash_table_iterator (&cit));
+    assert (!has_next_node_hash_table_iterator (&cit));
   }
   else
     assert (!btor->clone->parameterized);
@@ -785,7 +834,7 @@ btor_chkclone_tables (Btor *btor)
       BTOR_CHKCLONE_EXPID (next_node_hash_table_iterator (&it),
                            next_node_hash_table_iterator (&cit));
     }
-    assert (!has_next_hash_table_iterator (&cit));
+    assert (!has_next_node_hash_table_iterator (&cit));
   }
   else
     assert (!btor->clone->fun_model);
