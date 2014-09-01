@@ -371,7 +371,6 @@ btor_chkclone_aig (BtorAIG *aig, BtorAIG *clone)
     assert ((table)->count == (clone)->count);                           \
     assert ((table)->hash == (clone)->hash);                             \
     assert ((table)->cmp == (clone)->cmp);                               \
-    assert (!(table)->first || !(clone)->first);                         \
     for (bb = (table)->first, cbb = (clone)->first; bb;                  \
          bb = bb->next, cbb = cbb->next)                                 \
     {                                                                    \
@@ -721,11 +720,10 @@ btor_chkclone_tables (Btor *btor)
       assert (has_next_node_hash_table_iterator (&cit));
       sym  = it.bucket->data.asStr;
       csym = cit.bucket->data.asStr;
+      assert (sym != csym);
       assert (!strcmp (sym, csym));
-      assert (btor_find_in_ptr_hash_table (btor->node2symbol, sym));
-      assert (!btor_find_in_ptr_hash_table (btor->node2symbol, csym));
-      assert (btor_find_in_ptr_hash_table (btor->clone->node2symbol, csym));
-      assert (!btor_find_in_ptr_hash_table (btor->clone->node2symbol, sym));
+      assert (btor_find_in_ptr_hash_table (btor->symbols, sym));
+      assert (btor_find_in_ptr_hash_table (btor->clone->symbols, sym));
       BTOR_CHKCLONE_EXPID (next_node_hash_table_iterator (&it),
                            next_node_hash_table_iterator (&cit));
     }
