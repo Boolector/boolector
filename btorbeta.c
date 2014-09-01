@@ -287,22 +287,6 @@ btor_beta_reduce (Btor *btor, BtorNode *exp, int mode, int bound)
       cur = btor_simplify_exp (btor, cur);
     real_cur = BTOR_REAL_ADDR_NODE (cur);
 
-#if 0
-      if (real_cur->beta_mark == 0)
-      printf ("visit: %s (%d)\n", node2string (real_cur), real_cur->beta_mark);
-      else if (real_cur->beta_mark == 1)
-      printf ("\e[1;32mvisit: %s (%d)\n\e[0;39m", node2string (real_cur), real_cur->beta_mark);
-      else
-      printf ("\e[1;31mvisit: %s (%d)\n\e[0;39m", node2string (real_cur), real_cur->beta_mark);
-
-      printf ("cnt: %d\n", BTOR_COUNT_STACK (arg_stack));
-      printf ("  cnt: %d\n", BTOR_COUNT_STACK (arg_stack));
-      if (BTOR_IS_LAMBDA_NODE (real_cur))
-      printf ("  cur_assignment: %s\n", node2string (btor_param_cur_assignment (real_cur->e[0])));
-      if (!BTOR_EMPTY_STACK (arg_stack))
-	printf ("  top: %s\n", node2string (BTOR_TOP_STACK (arg_stack)));
-#endif
-    //      printf ("cur_lambda_depth: %d\n", cur_lambda_depth);
     if (real_cur->beta_mark == 0)
     {
     BETA_REDUCE_START:
@@ -352,26 +336,6 @@ btor_beta_reduce (Btor *btor, BtorNode *exp, int mode, int bound)
         BTOR_PUSH_STACK (mm, arg_stack, btor_copy_exp (btor, next));
         continue;
       }
-#if 0
-	  /* constant lambda expression */
-	  else if (BTOR_IS_LAMBDA_NODE (real_cur)
-		   && !BTOR_REAL_ADDR_NODE (se[1])->parameterized
-		   && !BTOR_REAL_ADDR_NODE (se[1])->lambda_below)
-	    {
-	      BTOR_PUSH_STACK (mm, arg_stack, btor_copy_exp (btor, se[1]));
-	      continue;
-	    }
-	  /* parameters of lambda not assigned */
-	  else if (BTOR_IS_LAMBDA_NODE (real_cur)
-		   && !btor_param_cur_assignment (se[0])
-		   && BTOR_EMPTY_STACK (arg_stack)
-		   && BTOR_REAL_ADDR_NODE (se[1])->parameterized)
-	    {
-	    printf ("push: %s\n", node2string (cur));
-	      BTOR_PUSH_STACK (mm, arg_stack, btor_copy_exp (btor, cur));
-	      continue;
-	    }
-#endif
       /* assign params of lambda expression */
       else if (BTOR_IS_LAMBDA_NODE (real_cur)
                && BTOR_IS_APPLY_NODE (cur_parent)
