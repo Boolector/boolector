@@ -1178,38 +1178,6 @@ boolector_main (int argc, char **argv)
           boolector_set_opt (static_app->btor, o->lng, val);
           incint = val;
         }
-        else if ((shrt && o->shrt && !strcmp (o->shrt, "rwl"))
-                 || (!shrt && !strcmp (o->lng, BTOR_OPT_REWRITE_LEVEL)))
-        {
-          // TODO (ma): --no-rewrite-level?
-          if (disable)
-          {
-            btormain_error (
-                static_app, "invalid option '%sno-%s'", shrt ? "-" : "--", opt);
-            goto DONE;
-          }
-          if (!readval)
-          {
-            btormain_error (static_app,
-                            "missing argument for '%s%s'",
-                            shrt ? "-" : "--",
-                            opt);
-            goto DONE;
-          }
-          boolector_set_opt (static_app->btor, o->lng, val);
-        }
-        else if ((!shrt && !strcmp (o->lng, BTOR_OPT_REWRITE_LEVEL_PBR)))
-        {
-          if (!readval)
-          {
-            btormain_error (static_app,
-                            "missing argument for '%s%s'",
-                            shrt ? "-" : "--",
-                            opt);
-            goto DONE;
-          }
-          boolector_set_opt (static_app->btor, o->lng, val);
-        }
         else if ((shrt && o->shrt && !strcmp (o->shrt, "m")))
         {
           if (disable || (readval && val == 0))
@@ -1245,30 +1213,26 @@ boolector_main (int argc, char **argv)
                             opt);
             goto DONE;
           }
-          if (((shrt && o->shrt && !strcmp (o->shrt, "dp"))
-               || (!shrt && !strcmp (o->lng, BTOR_OPT_DUAL_PROP)))
-              && boolector_get_opt_val (static_app->btor, BTOR_OPT_JUST))
+
+          if ((!strcmp (o->lng, BTOR_OPT_DUAL_PROP)
+               && boolector_get_opt_val (static_app->btor, BTOR_OPT_JUST))
+              || (!strcmp (o->lng, BTOR_OPT_JUST)
+                  && boolector_get_opt_val (static_app->btor,
+                                            BTOR_OPT_DUAL_PROP)))
           {
-            btormain_error (
-                static_app,
-                "multiple exclusive optimization techniques enabled");
-            goto DONE;
-          }
-          else if (((shrt && o->shrt && !strcmp (o->shrt, "ju"))
-                    || (!shrt && !strcmp (o->lng, BTOR_OPT_JUST)))
-                   && boolector_get_opt_val (static_app->btor,
-                                             BTOR_OPT_DUAL_PROP))
-          {
-            btormain_error (
-                static_app,
-                "multiple exclusive optimization techniques enabled");
+            btormain_error (static_app,
+                            "Can only use one out of '--%s' or '--%s'",
+                            BTOR_OPT_DUAL_PROP,
+                            BTOR_OPT_JUST);
             goto DONE;
           }
 
           if (disable || (readval && val == 0))
             boolector_set_opt (static_app->btor, o->lng, 0);
-          else
+          else if (!readval)
             boolector_set_opt (static_app->btor, o->lng, 1);
+          else
+            boolector_set_opt (static_app->btor, o->lng, val);
         }
       }
     }
