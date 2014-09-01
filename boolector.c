@@ -731,7 +731,7 @@ boolector_var (Btor *btor, int width, const char *symbol)
   if ((symb = (char *) symbol) == NULL)
   {
     BTOR_NEWN (btor->mm, symb, 20);
-    sprintf (symb, "DVN%d", btor->dvn_id++);
+    sprintf (symb, "_DVN%d", btor->dvn_id++);
     BTOR_TRAPI ("%d %s", width, symb);
     BTOR_ABORT_BOOLECTOR (width < 1, "'width' must not be < 1");
     btor->external_refs++;
@@ -769,7 +769,7 @@ boolector_array (Btor *btor,
   if ((symb = (char *) symbol) == NULL)
   {
     BTOR_NEWN (btor->mm, symb, 20);
-    sprintf (symb, "DAN%d", btor->dan_id++);
+    sprintf (symb, "_DAN%d", btor->dan_id++);
     BTOR_TRAPI ("%d %d %s", elem_width, index_width, symb);
     BTOR_ABORT_BOOLECTOR (elem_width < 1, "'elem_width' must not be < 1");
     BTOR_ABORT_BOOLECTOR (index_width < 1, "'index_width' must not be < 1");
@@ -2363,7 +2363,7 @@ boolector_param (Btor *btor, int width, const char *symbol)
   if ((symb = (char *) symbol) == NULL)
   {
     BTOR_NEWN (btor->mm, symb, 20);
-    sprintf (symb, "DPN%d", btor->dpn_id++);
+    sprintf (symb, "_DPN%d", btor->dpn_id++);
     BTOR_TRAPI ("%d %s", width, symb);
     BTOR_ABORT_BOOLECTOR (width < 1, "'width' must not be < 1");
     btor->external_refs++;
@@ -2450,7 +2450,7 @@ boolector_uf (Btor *btor, BoolectorSort *sort, const char *symbol)
   if (!symb)
   {
     BTOR_NEWN (btor->mm, symb, 20);
-    sprintf (symb, "DFN%d", btor->dfn_id++);
+    sprintf (symb, "_DFN%d", btor->dfn_id++);
   }
 
   BTOR_TRAPI (SORT_FMT "%s",
