@@ -8281,10 +8281,8 @@ br_probe (Btor *btor)
   double start, delta;
 
   if (btor->last_sat_result || btor->options.incremental.val
-      || btor->options.model_gen.val
-      || btor->options.beta_reduce_all.val
-      /* disable for QF_BV */
-      || !btor->avmgr->amgr->smgr->inc_required)
+      || btor->options.model_gen.val || btor->options.beta_reduce_all.val
+      || (btor->lambdas->count == 0 && btor->ufs->count == 0))
     return BTOR_UNKNOWN;
 
   start = btor_time_stamp ();
@@ -8303,10 +8301,11 @@ br_probe (Btor *btor)
   num_ops_clone = sum_ops (clone);
   btor_msg (btor,
             1,
-            "  number of nodes: %d/%d (ratio: %.1f)",
+            "  number of nodes: %d/%d (factor: %.1f, max: %d)",
             num_ops_orig,
             num_ops_clone,
-            (float) num_ops_clone / num_ops_orig);
+            (float) num_ops_clone / num_ops_orig,
+            btor->options.pbra_ops_factor.val);
 
   if (res != BTOR_UNKNOWN)
   {
@@ -8318,7 +8317,10 @@ br_probe (Btor *btor)
   }
   else if (num_ops_clone < num_ops_orig * btor->options.pbra_ops_factor.val)
   {
-    btor_msg (btor, 1, "  limit refinement iterations to 10");
+    btor_msg (btor,
+              1,
+              "  limit refinement iterations to 10 and SAT conflicts to %d",
+              btor->options.pbra_sat_limit.val);
     res = btor_sat_aux_btor (clone,
                              btor->options.pbra_lod_limit.val,
                              btor->options.pbra_sat_limit.val);
@@ -8328,11 +8330,7 @@ br_probe (Btor *btor)
   if (res != BTOR_UNKNOWN)
   {
     delta = btor_time_stamp () - start;
-    btor_msg (btor,
-              1,
-              "  solved within 10 refinement iterations in"
-              "  %.2f seconds",
-              delta);
+    btor_msg (btor, 1, "  probing succeeded (%.2f seconds)", delta);
     btor->time.br_probing += delta;
     return res;
   }
@@ -8389,6 +8387,7 @@ btor_sat_btor (Btor *btor, int lod_limit, int sat_limit)
     btor_set_opt (mclone, BTOR_OPT_FORCE_CLEANUP, 1);
   }
 #endif
+
 #ifdef BTOR_CHECK_DUAL_PROP
   Btor *dpclone = 0;
   if (btor_has_clone_support_sat_mgr (btor_get_sat_mgr_btor (btor))
