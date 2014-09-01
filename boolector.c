@@ -727,25 +727,22 @@ boolector_var (Btor *btor, int width, const char *symbol)
   BtorNode *res;
   char *symb;
 
-  // TODO abort if symbol does already exist @aina
-  if ((symb = (char *) symbol) == NULL)
+  symb = (char *) symbol;
+  if (!symb)
   {
     BTOR_NEWN (btor->mm, symb, 20);
     sprintf (symb, "_DVN%d", btor->dvn_id++);
-    BTOR_TRAPI ("%d %s", width, symb);
-    BTOR_ABORT_BOOLECTOR (width < 1, "'width' must not be < 1");
-    btor->external_refs++;
-    res = btor_var_exp (btor, width, symb);
   }
-  else
-  {
-    BTOR_TRAPI ("%d %s", width, symbol);
-    BTOR_ABORT_BOOLECTOR (width < 1, "'width' must not be < 1");
-    btor->external_refs++;
-    res = btor_var_exp (btor, width, symbol);
-  }
+  BTOR_TRAPI ("%d %s", width, symb);
+  BTOR_ABORT_BOOLECTOR (width < 1, "'width' must not be < 1");
+  BTOR_ABORT_BOOLECTOR (
+      symb[0] != 0 && btor_find_in_ptr_hash_table (btor->symbols, symb),
+      "symbol '%s' is already in use",
+      symb);
+  btor->external_refs++;
+  res = btor_var_exp (btor, width, symb);
   BTOR_REAL_ADDR_NODE (res)->ext_refs += 1;
-  if (symbol == NULL) BTOR_DELETEN (btor->mm, symb, 20);
+  if (!symbol) BTOR_DELETEN (btor->mm, symb, 20);
   BTOR_TRAPI_RETURN_NODE (res);
   (void) btor_insert_in_ptr_hash_table (btor->inputs,
                                         btor_copy_exp (btor, res));
@@ -766,26 +763,23 @@ boolector_array (Btor *btor,
 
   BTOR_ABORT_ARG_NULL_BOOLECTOR (btor);
 
-  if ((symb = (char *) symbol) == NULL)
+  symb = (char *) symbol;
+  if (!symb)
   {
     BTOR_NEWN (btor->mm, symb, 20);
     sprintf (symb, "_DAN%d", btor->dan_id++);
-    BTOR_TRAPI ("%d %d %s", elem_width, index_width, symb);
-    BTOR_ABORT_BOOLECTOR (elem_width < 1, "'elem_width' must not be < 1");
-    BTOR_ABORT_BOOLECTOR (index_width < 1, "'index_width' must not be < 1");
-    btor->external_refs++;
-    res = btor_array_exp (btor, elem_width, index_width, symb);
   }
-  else
-  {
-    BTOR_TRAPI ("%d %d %s", elem_width, index_width, symbol);
-    BTOR_ABORT_BOOLECTOR (elem_width < 1, "'elem_width' must not be < 1");
-    BTOR_ABORT_BOOLECTOR (index_width < 1, "'index_width' must not be < 1");
-    btor->external_refs++;
-    res = btor_array_exp (btor, elem_width, index_width, symbol);
-  }
+  BTOR_TRAPI ("%d %d %s", elem_width, index_width, symb);
+  BTOR_ABORT_BOOLECTOR (elem_width < 1, "'elem_width' must not be < 1");
+  BTOR_ABORT_BOOLECTOR (index_width < 1, "'index_width' must not be < 1");
+  BTOR_ABORT_BOOLECTOR (
+      symb[0] != 0 && btor_find_in_ptr_hash_table (btor->symbols, symb),
+      "symbol '%s' is already in use",
+      symb);
+  btor->external_refs++;
+  res = btor_array_exp (btor, elem_width, index_width, symb);
   BTOR_REAL_ADDR_NODE (res)->ext_refs += 1;
-  if (symbol == NULL) BTOR_DELETEN (btor->mm, symb, 20);
+  if (!symbol) BTOR_DELETEN (btor->mm, symb, 20);
   BTOR_TRAPI_RETURN_NODE (res);
   (void) btor_insert_in_ptr_hash_table (btor->inputs,
                                         btor_copy_exp (btor, res));
@@ -2359,26 +2353,23 @@ boolector_param (Btor *btor, int width, const char *symbol)
 
   BTOR_ABORT_ARG_NULL_BOOLECTOR (btor);
 
-  // TODO abort if symbol does already exist @aina
-  if ((symb = (char *) symbol) == NULL)
+  symb = (char *) symbol;
+  if (!symb)
   {
     BTOR_NEWN (btor->mm, symb, 20);
     sprintf (symb, "_DPN%d", btor->dpn_id++);
-    BTOR_TRAPI ("%d %s", width, symb);
-    BTOR_ABORT_BOOLECTOR (width < 1, "'width' must not be < 1");
-    btor->external_refs++;
-    res = btor_param_exp (btor, width, symb);
   }
-  else
-  {
-    BTOR_TRAPI ("%d %s", width, symbol);
-    BTOR_ABORT_BOOLECTOR (width < 1, "'width' must not be < 1");
-    btor->external_refs++;
-    res = btor_param_exp (btor, width, symbol);
-  }
+  BTOR_TRAPI ("%d %s", width, symb);
+  BTOR_ABORT_BOOLECTOR (width < 1, "'width' must not be < 1");
+  BTOR_ABORT_BOOLECTOR (
+      symb[0] != 0 && btor_find_in_ptr_hash_table (btor->symbols, symb),
+      "symbol '%s' is already in use",
+      symb);
+  btor->external_refs++;
+  res = btor_param_exp (btor, width, symb);
   BTOR_REAL_ADDR_NODE (res)->ext_refs += 1;
 
-  if (symbol == NULL) BTOR_DELETEN (btor->mm, symb, 20);
+  if (!symbol) BTOR_DELETEN (btor->mm, symb, 20);
   BTOR_TRAPI_RETURN_NODE (res);
 #ifndef NDEBUG
   BTOR_CHKCLONE_RES_PTR (res, param, width, symbol);
@@ -2445,7 +2436,6 @@ boolector_uf (Btor *btor, BoolectorSort *sort, const char *symbol)
   char *symb;
   BtorNode *res;
 
-  // TODO abort if symbol does already exist @aina
   symb = (char *) symbol;
   if (!symb)
   {
@@ -2459,12 +2449,14 @@ boolector_uf (Btor *btor, BoolectorSort *sort, const char *symbol)
   BTOR_ABORT_BOOLECTOR (
       BTOR_IMPORT_BOOLECTOR_SORT (sort)->kind != BTOR_FUN_SORT,
       "given UF sort is not BTOR_FUN_SORT");
+  BTOR_ABORT_BOOLECTOR (
+      symb[0] != 0 && btor_find_in_ptr_hash_table (btor->symbols, symb),
+      "symbol '%s' is already in use",
+      symb);
 
   res = btor_uf_exp (btor, BTOR_IMPORT_BOOLECTOR_SORT (sort), symb);
   assert (BTOR_IS_REGULAR_NODE (res));
-
   if (!symbol) BTOR_DELETEN (btor->mm, symb, 20);
-
   res->ext_refs++;
   btor->external_refs++;
   (void) btor_insert_in_ptr_hash_table (btor->inputs,
