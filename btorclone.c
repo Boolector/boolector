@@ -943,10 +943,20 @@ clone_aux_btor (Btor *btor,
                                                   emap,
                                                   clone->symbols);
   assert (clone->symbols->count == tab_count);
+#ifndef NDEBUG
   /* data_as_str_ptr might cause hash table enlargement if size == count */
   allocated += (clone->symbols->size - tab_size) * sizeof (BtorPtrHashBucket *);
   assert ((allocated += MEM_PTR_HASH_TABLE (btor->node2symbol))
           == clone->mm->allocated);
+  /* btor_find_in_ptr_hash_table in data_as_str_ptr might have enlarged the
+   * cloned symbols table but we have to make sure that after cloning, the
+   * mem footprint of both instances is equal (except for the msg prefix). */
+  while (btor->symbols->size < clone->symbols->size)
+  {
+    /* random query to trigger enlargement */
+    btor_find_in_ptr_hash_table (btor->symbols, "");
+  }
+#endif
 
   CLONE_PTR_HASH_TABLE (inputs);
   assert ((allocated += MEM_PTR_HASH_TABLE (btor->inputs))
