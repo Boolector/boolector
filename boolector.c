@@ -3655,8 +3655,8 @@ boolector_enable_model_gen (Btor *btor)
   boolector_set_opt (btor, "model_gen", 1);
 }
 
-/* NOTE: This option is not needed anymore since Boolector now generates models
- * for all expressions. */
+/* NOTE: for generating a model for all created expressions use --model-gen=2
+ *	 instead */
 void
 boolector_generate_model_for_all_reads (Btor *btor)
 {

@@ -367,11 +367,14 @@ print_opt (BtorMainApp *app, BtorOpt *opt)
   /* default value */
   memset (defstr, ' ', LEN_HELPSTR * sizeof (char));
   defstr[LEN_HELPSTR - 1] = '\0';
-  if (!strcmp (opt->lng, "rewrite_level")
-      || !strcmp (opt->lng, "rewrite_level_pbr")
-      || !strcmp (opt->lng, "pbra_lod_limit")
-      || !strcmp (opt->lng, "pbra_sat_limit")
-      || !strcmp (opt->lng, "pbra_ops_factor"))
+  if (!strcmp (opt->lng, BTOR_OPT_REWRITE_LEVEL)
+      || !strcmp (opt->lng, BTOR_OPT_REWRITE_LEVEL_PBR)
+      || !strcmp (opt->lng, BTOR_OPT_PBRA_LOD_LIMIT)
+      || !strcmp (opt->lng, BTOR_OPT_PBRA_SAT_LIMIT)
+      || !strcmp (opt->lng, BTOR_OPT_PBRA_OPS_FACTOR)
+      || !strcmp (opt->lng, BTOR_OPT_UCOPT)
+      || !strcmp (opt->lng, BTOR_OPT_LAZY_SYNTHESIZE)
+      || !strcmp (opt->lng, BTOR_OPT_ELIMINATE_SLICES))
   {
     sprintf (defstr + LEN_OPTSTR, "(default: %d)", opt->dflt);
     fprintf (app->outfile, "\n");
@@ -471,8 +474,7 @@ print_help (BtorMainApp *app)
     if (!strcmp (o->lng, "incremental") || !strcmp (o->lng, "beta_reduce_all")
         || !strcmp (o->lng, "pretty_print") || !strcmp (o->lng, "dual_prop"))
       fprintf (out, "\n");
-    else
-      print_opt (app, o);
+    print_opt (app, o);
   }
 
 #ifdef BTOR_USE_LINGELING
@@ -657,7 +659,7 @@ has_suffix (const char *str, const char *suffix)
 int
 boolector_main (int argc, char **argv)
 {
-  int res, sat_res;
+  int res, sat_res, model_gen;
   int i, j, k, len, shrt, disable, readval, val, forced_sat_solver;
 #ifndef NBTORLOG
   int log;
@@ -686,6 +688,7 @@ boolector_main (int argc, char **argv)
 #endif
   static_verbosity =
       boolector_get_opt_val (static_app->btor, BTOR_OPT_VERBOSITY);
+  model_gen = boolector_get_opt_val (static_app->btor, BTOR_OPT_MODEL_GEN);
 
   for (i = 1; i < argc; i++)
   {
@@ -1178,6 +1181,7 @@ boolector_main (int argc, char **argv)
         else if ((shrt && o->shrt && !strcmp (o->shrt, "rwl"))
                  || (!shrt && !strcmp (o->lng, BTOR_OPT_REWRITE_LEVEL)))
         {
+          // TODO (ma): --no-rewrite-level?
           if (disable)
           {
             btormain_error (
@@ -1192,13 +1196,6 @@ boolector_main (int argc, char **argv)
                             opt);
             goto DONE;
           }
-
-          if (val > 3 || val < 0)
-          {
-            btormain_error (static_app, "rewrite level not in [0,3]");
-            goto DONE;
-          }
-
           boolector_set_opt (static_app->btor, o->lng, val);
         }
         else if ((!shrt && !strcmp (o->lng, BTOR_OPT_REWRITE_LEVEL_PBR)))
@@ -1211,14 +1208,14 @@ boolector_main (int argc, char **argv)
                             opt);
             goto DONE;
           }
-
-          if (val > 3 || val < 0)
-          {
-            btormain_error (static_app, "rewrite level not in [0,3]");
-            goto DONE;
-          }
-
           boolector_set_opt (static_app->btor, o->lng, val);
+        }
+        else if ((shrt && o->shrt && !strcmp (o->shrt, "m")))
+        {
+          if (disable || (readval && val == 0))
+            model_gen = 0;
+          else
+            model_gen += 1;
         }
 #ifndef NBTORLOG
         else if ((shrt && o->shrt && !strcmp (o->shrt, "l"))
@@ -1283,6 +1280,9 @@ boolector_main (int argc, char **argv)
   boolector_set_opt (static_app->btor, BTOR_OPT_LOGLEVEL, log);
 #endif
   boolector_set_opt (static_app->btor, BTOR_OPT_VERBOSITY, static_verbosity);
+  // TODO: disabling model gen not yet supported (ma)
+  if (model_gen > 0)
+    boolector_set_opt (static_app->btor, BTOR_OPT_MODEL_GEN, model_gen);
 
   if (!inc && (incid || incla || incint))
   {

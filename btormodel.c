@@ -659,20 +659,28 @@ btor_generate_model (Btor *btor)
 
   /* NOTE: adding fun_rhs is only needed for extensional benchmarks */
   init_node_hash_table_iterator (&it, btor->fun_rhs);
+  if (btor->options.model_gen.val == 1)
+  {
+    queue_node_hash_table_iterator (&it, btor->var_rhs);
+    queue_node_hash_table_iterator (&it, btor->bv_vars);
+  }
   while (has_next_node_hash_table_iterator (&it))
   {
     cur = btor_simplify_exp (btor, next_node_hash_table_iterator (&it));
     BTOR_PUSH_STACK (btor->mm, stack, BTOR_REAL_ADDR_NODE (cur));
   }
 
-  /* add all nodes to generate models for all created nodes */
-  for (i = 1; i < BTOR_COUNT_STACK (btor->nodes_id_table); i++)
+  /* generate model for all expressions (includes non-reachable also) */
+  if (btor->options.model_gen.val > 1)
   {
-    cur = BTOR_PEEK_STACK (btor->nodes_id_table, i);
-    if (!cur || BTOR_IS_FUN_NODE (cur) || BTOR_IS_ARGS_NODE (cur)
-        || BTOR_IS_PROXY_NODE (cur) || cur->parameterized)
-      continue;
-    BTOR_PUSH_STACK (btor->mm, stack, cur);
+    for (i = 1; i < BTOR_COUNT_STACK (btor->nodes_id_table); i++)
+    {
+      cur = BTOR_PEEK_STACK (btor->nodes_id_table, i);
+      if (!cur || BTOR_IS_FUN_NODE (cur) || BTOR_IS_ARGS_NODE (cur)
+          || BTOR_IS_PROXY_NODE (cur) || cur->parameterized)
+        continue;
+      BTOR_PUSH_STACK (btor->mm, stack, cur);
+    }
   }
 
   qsort (
