@@ -358,26 +358,28 @@ btor_chkclone_aig (BtorAIG *aig, BtorAIG *clone)
             == BTOR_GET_TAG_NODE (real_clone->field)); \
   } while (0)
 
-#define BTOR_CHKCLONE_NODE_PTR_HASH_TABLE(table, clone)                  \
-  do                                                                     \
-  {                                                                      \
-    BtorPtrHashBucket *bb, *cbb;                                         \
-    if (!(table))                                                        \
-    {                                                                    \
-      assert (!(clone));                                                 \
-      break;                                                             \
-    }                                                                    \
-    assert ((table)->size == (clone)->size);                             \
-    assert ((table)->count == (clone)->count);                           \
-    assert ((table)->hash == (clone)->hash);                             \
-    assert ((table)->cmp == (clone)->cmp);                               \
-    for (bb = (table)->first, cbb = (clone)->first; bb;                  \
-         bb = bb->next, cbb = cbb->next)                                 \
-    {                                                                    \
-      assert (cbb);                                                      \
-      BTOR_CHKCLONE_EXPID ((BtorNode *) bb->key, (BtorNode *) cbb->key); \
-      assert (!bb->next || cbb->next);                                   \
-    }                                                                    \
+#define BTOR_CHKCLONE_NODE_PTR_HASH_TABLE(table, clone)             \
+  do                                                                \
+  {                                                                 \
+    BtorHashTableIterator iter, citer;                              \
+    if (!(table))                                                   \
+    {                                                               \
+      assert (!(clone));                                            \
+      break;                                                        \
+    }                                                               \
+    assert ((table)->size == (clone)->size);                        \
+    assert ((table)->count == (clone)->count);                      \
+    assert ((table)->hash == (clone)->hash);                        \
+    assert ((table)->cmp == (clone)->cmp);                          \
+    init_node_hash_table_iterator (&iter, (table));                 \
+    init_node_hash_table_iterator (&citer, (clone));                \
+    while (has_next_node_hash_table_iterator (&iter))               \
+    {                                                               \
+      assert (has_next_node_hash_table_iterator (&citer));          \
+      BTOR_CHKCLONE_EXPID (next_node_hash_table_iterator (&iter),   \
+                           next_node_hash_table_iterator (&citer)); \
+    }                                                               \
+    assert (!has_next_node_hash_table_iterator (&citer));           \
   } while (0)
 
 void
