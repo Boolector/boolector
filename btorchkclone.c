@@ -163,7 +163,6 @@ btor_chkclone_opts (Btor *btor)
   assert (clone);
 
   BTOR_CHKCLONE_OPT (model_gen);
-  BTOR_CHKCLONE_OPT (model_gen_all_reads);
 
   BTOR_CHKCLONE_OPT (incremental);
   BTOR_CHKCLONE_OPT (incremental_all);

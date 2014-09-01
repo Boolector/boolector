@@ -39,7 +39,6 @@ typedef struct BtorOpt
 } BtorOpt;
 
 #define BTOR_OPT_MODEL_GEN "model_gen"
-#define BTOR_OPT_MODEL_GEN_ALL_READS "model_gen_all_reads"
 #define BTOR_OPT_INCREMENTAL "incremental"
 #define BTOR_OPT_INCREMENTAL_ALL "incremental_all"
 #define BTOR_OPT_INCREMENTAL_IN_DEPTH "incremental_in_depth"
@@ -72,8 +71,7 @@ typedef struct BtorOpts
 {
   BtorOpt first; /* dummy for iteration */
   /* ----------------------------------------------------------------------- */
-  BtorOpt model_gen;           /* model generation enabled */
-  BtorOpt model_gen_all_reads; /* generate model for all reads */
+  BtorOpt model_gen; /* model generation enabled */
 
   BtorOpt incremental;            /* incremental usage */
   BtorOpt incremental_all;        /* incremental usage, solve all */

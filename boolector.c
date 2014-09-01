@@ -3655,11 +3655,12 @@ boolector_enable_model_gen (Btor *btor)
   boolector_set_opt (btor, "model_gen", 1);
 }
 
+/* NOTE: This option is not needed anymore since Boolector now generates models
+ * for all expressions. */
 void
 boolector_generate_model_for_all_reads (Btor *btor)
 {
-  BTOR_WARN_DEPRECATED ("boolector_set_opt");
-  boolector_set_opt (btor, "model_gen_all_reads", 1);
+  (void) btor;
 }
 
 void

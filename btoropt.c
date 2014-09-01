@@ -110,7 +110,6 @@ btor_init_opts (Btor *btor)
   char *valstr;
 
   BTOR_OPT ("m", model_gen, 0, 0, 1, "print model for satisfiable instances");
-  BTOR_OPT (0, model_gen_all_reads, 0, 0, 1, "generate model for all reads");
 
   BTOR_OPT ("i", incremental, 0, 0, 1, "incremental usage (SMT1 only)");
   BTOR_OPT ("I",
