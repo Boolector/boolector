@@ -511,14 +511,14 @@ void
 btor_reset_time_btor (Btor *btor)
 {
   assert (btor);
-  memset (&btor->time, 0, sizeof (btor->time));
+  BTOR_CLR (&btor->time);
 }
 
 void
 btor_reset_stats_btor (Btor *btor)
 {
   assert (btor);
-  memset (&btor->stats, 0, sizeof (btor->stats));
+  BTOR_CLR (&btor->stats);
 }
 
 static int

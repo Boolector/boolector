@@ -943,7 +943,7 @@ btor_set_to_proxy_exp (Btor *btor, BtorNode *exp)
   /* also updates op stats */
   erase_local_data_exp (btor, exp, 0);
   assert (exp->arity <= 3);
-  memset (e, 0, sizeof e);
+  BTOR_CLR (e);
   for (i = 0; i < exp->arity; i++) e[i] = exp->e[i];
   remove_from_hash_tables (btor, exp);
   disconnect_children_exp (btor, exp);
