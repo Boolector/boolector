@@ -246,9 +246,10 @@ print_opt (BtorMainApp *app, BtorOpt *opt)
   assert (app);
   assert (opt);
 
-  char optstr[LEN_OPTSTR], paramstr[LEN_PARAMSTR], defstr[LEN_HELPSTR];
-  char *desc, **descs, descstr[LEN_HELPSTR], *lngstr;
-  int i, j, n, len;
+  char optstr[LEN_OPTSTR], paramstr[LEN_PARAMSTR];
+  char *desc, descstr[LEN_HELPSTR], *lngstr, *word;
+  int i, j, len;
+  BtorCharPtrStack words;
 
   if (!strcmp (opt->lng, BTOR_OPT_INCREMENTAL_LOOK_AHEAD)
       || !strcmp (opt->lng, BTOR_OPT_INCREMENTAL_IN_DEPTH)
@@ -303,88 +304,69 @@ print_opt (BtorMainApp *app, BtorOpt *opt)
   optstr[LEN_OPTSTR - 1] = '\0';
 
   /* formatted description */
-  len = strlen (opt->desc);
-  /* Note: do not use btor_strdup for desc (' ' will be replaced by 0 but
-   *       btor_freestr relies on 0 to determine string length). */
-  BTOR_CNEWN (app->mm, desc, len + 1);
-  n = 0;
-  i = 0;
-  while (i < len && opt->desc[i] == ' ') desc[i++] = 0;
-  while (i < len)
-  {
-    while (i < len && opt->desc[i] != ' ')
-    {
-      desc[i] = opt->desc[i];
-      i += 1;
-    }
-    while (i < len && opt->desc[i] == ' ') desc[i++] = 0;
-    n += 1;
-  }
-  BTOR_NEWN (app->mm, descs, n);
-  for (i = 0, j = 0; i < len; i++, j++)
-  {
-    while (i < len && desc[i] == 0) i += 1;
-    if (i >= len) break;
-    descs[j] = btor_strdup (app->mm, desc + i);
-    while (i < len && desc[i] != 0) i += 1;
-  }
-  BTOR_DELETEN (app->mm, desc, len + 1);
 
-  fprintf (app->outfile, "%s ", optstr);
-
-  memset (descstr, 0, LEN_HELPSTR * sizeof (char));
-  for (i = 0, j = 0, len = strlen (descs[i]);
-       i < n && LEN_HELPSTR - LEN_OPTSTR - 1 - j > len;
-       i++)
-  {
-    len = strlen (descs[i]);
-    strcpy (descstr + j, descs[i]);
-    j += len;
-    descstr[j++] = ' ';
-  }
-  descstr[j - 1] = i < n ? '\n' : 0;
-  fprintf (app->outfile, "%s", descstr);
-
-  while (i < n)
-  {
-    memset (descstr, 0, LEN_HELPSTR * sizeof (char));
-    memset (descstr, ' ', LEN_OPTSTR * sizeof (char));
-    for (j = LEN_OPTSTR, len = strlen (descs[i]);
-         i < n && LEN_HELPSTR - 1 - j > len;
-         i++)
-    {
-      len = strlen (descs[i]);
-      strcpy (descstr + j, descs[i]);
-      j += len;
-      descstr[j++] = ' ';
-    }
-    descstr[j - 1] = i < n ? '\n' : 0;
-    fprintf (app->outfile, "%s", descstr);
-  }
-
-  /* cleanup */
-  for (i = 0; i < n; i++) btor_freestr (app->mm, descs[i]);
-  BTOR_DELETEN (app->mm, descs, n);
-
-  /* default value */
-  memset (defstr, ' ', LEN_HELPSTR * sizeof (char));
-  defstr[LEN_HELPSTR - 1] = '\0';
+  /* append default value to description */
   if (!strcmp (opt->lng, BTOR_OPT_REWRITE_LEVEL)
       || !strcmp (opt->lng, BTOR_OPT_REWRITE_LEVEL_PBR)
       || !strcmp (opt->lng, BTOR_OPT_PBRA_LOD_LIMIT)
       || !strcmp (opt->lng, BTOR_OPT_PBRA_SAT_LIMIT)
       || !strcmp (opt->lng, BTOR_OPT_PBRA_OPS_FACTOR)
-      || !strcmp (opt->lng, BTOR_OPT_UCOPT)
+      || !strcmp (opt->lng, BTOR_OPT_DUAL_PROP)
+      || !strcmp (opt->lng, BTOR_OPT_JUST) || !strcmp (opt->lng, BTOR_OPT_UCOPT)
       || !strcmp (opt->lng, BTOR_OPT_LAZY_SYNTHESIZE)
-      || !strcmp (opt->lng, BTOR_OPT_ELIMINATE_SLICES))
+      || !strcmp (opt->lng, BTOR_OPT_ELIMINATE_SLICES)
+      || !strcmp (opt->lng, BTOR_OPT_PRETTY_PRINT)
+      || !strcmp (opt->lng, BTOR_OPT_VERBOSITY)
+      || !strcmp (opt->lng, BTOR_OPT_LOGLEVEL))
   {
-    sprintf (defstr + LEN_OPTSTR, "(default: %d)", opt->dflt);
-    fprintf (app->outfile, "\n");
+    len = strlen (opt->desc) + 3 + btor_num_digits_util (opt->dflt);
+    BTOR_CNEWN (app->mm, desc, len + 1);
+    sprintf (desc, "%s [%d]", opt->desc, opt->dflt);
   }
   else
-    defstr[0] = '\0';
+  {
+    len = strlen (opt->desc);
+    BTOR_CNEWN (app->mm, desc, len + 1);
+    sprintf (desc, "%s", opt->desc);
+  }
 
-  fprintf (app->outfile, "%s\n", defstr);
+  BTOR_INIT_STACK (words);
+  word = strtok (desc, " ");
+  while (word)
+  {
+    BTOR_PUSH_STACK (app->mm, words, btor_strdup (app->mm, word));
+    word = strtok (0, " ");
+  }
+  BTOR_DELETEN (app->mm, desc, len + 1);
+
+  BTOR_CLRN (descstr, LEN_HELPSTR);
+  sprintf (descstr, "%s ", optstr);
+  i = 0;
+  do
+  {
+    j = LEN_OPTSTR;
+    for (; i < BTOR_COUNT_STACK (words); i++)
+    {
+      word = BTOR_PEEK_STACK (words, i);
+      len  = strlen (word);
+
+      /* word does not fit into remaining line */
+      if (j + 1 + len >= LEN_HELPSTR) break;
+
+      strcpy (descstr + j, word);
+      j += len;
+      descstr[j++] = ' ';
+    }
+    descstr[j] = 0;
+    fprintf (app->outfile, "%s\n", descstr);
+    BTOR_CLRN (descstr, LEN_HELPSTR);
+    memset (descstr, ' ', LEN_OPTSTR * sizeof (char));
+  } while (i < BTOR_COUNT_STACK (words));
+
+  /* cleanup */
+  while (!BTOR_EMPTY_STACK (words))
+    btor_freestr (app->mm, BTOR_POP_STACK (words));
+  BTOR_RELEASE_STACK (app->mm, words);
 }
 
 #define BOOLECTOR_OPTS_INFO_MSG                                                \

@@ -156,13 +156,9 @@ btor_init_opts (Btor *btor)
                  BTOR_OUTPUT_FORMAT_SMT2,
                  "output file format");
 
-  BTOR_OPT ("rwl", rewrite_level, 3, 0, 3, "set rewrite level");
-  BTOR_OPT (0,
-            rewrite_level_pbr,
-            1,
-            0,
-            3,
-            "set rewrite level for partial beta reduction");
+  BTOR_OPT ("rwl", rewrite_level, 3, 0, 3, "rewrite level");
+  BTOR_OPT (
+      0, rewrite_level_pbr, 1, 0, 3, "rewrite level partial beta reduction");
 
   BTOR_OPT (
       "bra", beta_reduce_all, 0, 0, 1, "eagerly eliminate lambda expressions");
@@ -173,13 +169,9 @@ btor_init_opts (Btor *btor)
             0,
             1,
             "probe '-bra' until given LOD or SAT limit");
-  BTOR_OPT (0, pbra_lod_limit, 10, 0, -1, "LOD limit for '-pbra'");
-  BTOR_OPT (0,
-            pbra_sat_limit,
-            55000,
-            0,
-            -1,
-            "SAT limit (number of conflicts) for '-pbra'");
+  BTOR_OPT (0, pbra_lod_limit, 10, 0, -1, "LOD limit (#lemmas) for -pbra");
+  BTOR_OPT (
+      0, pbra_sat_limit, 55000, 0, -1, "SAT limit (#conflicts) for -pbra");
   BTOR_OPT (0,
             pbra_ops_factor,
             10,
