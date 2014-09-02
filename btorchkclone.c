@@ -54,10 +54,6 @@ btor_chkclone_state (Btor *btor)
   clone = btor->clone;
   assert (clone);
 
-  BTOR_CHKCLONE_STATE (dvn_id);
-  BTOR_CHKCLONE_STATE (dan_id);
-  BTOR_CHKCLONE_STATE (dpn_id);
-  BTOR_CHKCLONE_STATE (dfn_id);
   BTOR_CHKCLONE_STATE (rec_rw_calls);
   BTOR_CHKCLONE_STATE (rec_read_acond_calls);
   BTOR_CHKCLONE_STATE (valid_assignments);

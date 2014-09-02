@@ -131,10 +131,6 @@ struct Btor
   BtorPtrHashTable *bv_model;
   BtorPtrHashTable *fun_model;
 
-  int dvn_id;       /* counter for vars (no symbol) via API */
-  int dan_id;       /* counter for arrays (no symbol) via API */
-  int dpn_id;       /* counter for params (no symbol) via API */
-  int dfn_id;       /* counter for uf (no symbol) via API */
   int rec_rw_calls; /* calls for recursive rewriting */
   int rec_read_acond_calls;
   int valid_assignments;

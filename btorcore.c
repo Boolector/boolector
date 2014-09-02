@@ -917,8 +917,6 @@ btor_new_btor (void)
                                            (BtorHashPtr) btor_hash_exp_by_id,
                                            (BtorCmpPtr) btor_compare_exp_by_id);
 
-  btor->dvn_id                    = 1;
-  btor->dan_id                    = 1;
   btor->valid_assignments         = 1;
   btor->options.rewrite_level.val = 3;
   btor->vread_index_id            = 1;
@@ -1431,26 +1429,17 @@ reverse_subst_comp_kind (Btor *btor, BtorSubstCompKind comp)
 static BtorNode *
 lambda_var_exp (Btor *btor, int len)
 {
-  BtorNode *result;
-  char *name;
-  int id, string_len;
-  BtorMemMgr *mm;
-
   assert (btor);
   assert (len > 0);
 
-  mm = btor->mm;
+  BtorNode *result;
+#ifndef NDEBUG
+  int id = BTOR_COUNT_STACK (btor->nodes_id_table);
+#endif
 
-  id         = BTOR_COUNT_STACK (btor->nodes_id_table);
-  string_len = btor_num_digits_util (id) + 11;
-  BTOR_NEWN (mm, name, string_len);
-  // FIXME: there is no guarantee that the new symbol does not exist
-  // @aina
-  sprintf (name, "_bvlambda_%d_", id);
-  result = btor_var_exp (btor, len, name);
+  result = btor_var_exp (btor, len, "");
   assert (BTOR_IS_REGULAR_NODE (result));
   assert (result->id == id);
-  BTOR_DELETEN (mm, name, string_len);
   return result;
 }
 
