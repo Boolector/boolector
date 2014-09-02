@@ -633,7 +633,7 @@ extract_models_from_functions_with_model (Btor *btor)
 }
 
 void
-btor_generate_model (Btor *btor)
+btor_generate_model (Btor *btor, int model_for_all_nodes)
 {
   assert (btor);
   assert (btor->last_sat_result == BTOR_SAT);
@@ -659,7 +659,7 @@ btor_generate_model (Btor *btor)
 
   /* NOTE: adding fun_rhs is only needed for extensional benchmarks */
   init_node_hash_table_iterator (&it, btor->fun_rhs);
-  if (btor->options.model_gen.val == 1)
+  if (!model_for_all_nodes)
   {
     queue_node_hash_table_iterator (&it, btor->var_rhs);
     queue_node_hash_table_iterator (&it, btor->bv_vars);
@@ -671,7 +671,7 @@ btor_generate_model (Btor *btor)
   }
 
   /* generate model for all expressions (includes non-reachable also) */
-  if (btor->options.model_gen.val > 1)
+  if (model_for_all_nodes)
   {
     for (i = 1; i < BTOR_COUNT_STACK (btor->nodes_id_table); i++)
     {

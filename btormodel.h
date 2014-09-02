@@ -16,7 +16,7 @@
 #include "btorexp.h"
 #include "btorhash.h"
 
-void btor_generate_model (Btor *);
+void btor_generate_model (Btor *, int);
 void btor_delete_model (Btor *);
 
 // TODO: these functions may be obsolete in the future

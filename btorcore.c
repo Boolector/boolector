@@ -8108,7 +8108,7 @@ btor_sat_btor (Btor *btor, int lod_limit, int sat_limit)
 #endif
 
   if (btor->options.model_gen.val && res == BTOR_SAT)
-    btor_generate_model (btor);
+    btor_generate_model (btor, btor->options.model_gen.val == 2);
 
 #ifdef BTOR_CHECK_MODEL
   if (mclone)
@@ -8116,7 +8116,7 @@ btor_sat_btor (Btor *btor, int lod_limit, int sat_limit)
     assert (inputs);
     if (res == BTOR_SAT && !btor->options.ucopt.val)
     {
-      if (!btor->options.model_gen.val) btor_generate_model (btor);
+      if (!btor->options.model_gen.val) btor_generate_model (btor, 0);
       check_model (btor, mclone, inputs);
       if (!btor->options.model_gen.val) btor_delete_model (btor);
     }
