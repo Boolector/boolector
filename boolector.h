@@ -1558,6 +1558,7 @@ void boolector_dump_btor_node (Btor *btor, FILE *file, BoolectorNode *node);
  */
 void boolector_dump_btor (Btor *btor, FILE *file);
 
+#if 0
 /**
  * Dump formula to file in BTOR 2.0 format.
  *
@@ -1565,7 +1566,8 @@ void boolector_dump_btor (Btor *btor, FILE *file);
  * \param file File to which the formula should be dumped.
  * The file must be have been opened by the user before.
  */
-void boolector_dump_btor2 (Btor *btor, FILE *file);
+void boolector_dump_btor2 (Btor * btor, FILE * file);
+#endif
 
 /**
  * Recursively dump expression to file.

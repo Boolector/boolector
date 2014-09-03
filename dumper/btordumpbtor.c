@@ -295,7 +295,7 @@ bdcnode (BtorDumpContext *bdc, BtorNode *node, FILE *file)
     case BTOR_UREM_NODE: op = "urem"; break;
     case BTOR_SLICE_NODE: op = "slice"; break;
     case BTOR_UF_NODE:
-      op = ((BtorUFNode *) node)->is_array ? "array" : "uf";
+      op = BTOR_IS_UF_ARRAY_NODE (node) ? "array" : "uf";
       break;
     case BTOR_BV_CONST_NODE:
       if (btor_is_zero_const (node->bits))
@@ -316,7 +316,12 @@ bdcnode (BtorDumpContext *bdc, BtorNode *node, FILE *file)
       else
         op = "fun";
       break;
-    case BTOR_APPLY_NODE: op = "apply"; break;
+    case BTOR_APPLY_NODE:
+      if (BTOR_IS_UF_ARRAY_NODE (node->e[0]))
+        op = "read";
+      else
+        op = "apply";
+      break;
     case BTOR_ARGS_NODE: op = "args"; break;
     default: assert (node->kind == BTOR_BV_VAR_NODE); op = "var";
   }
@@ -706,7 +711,7 @@ btor_dump_btor (Btor *btor, FILE *file, int version)
 
   ret          = btor_simplify (btor);
   bdc          = btor_new_dump_context (btor);
-  bdc->version = version;
+  bdc->version = 1;  // NOTE: version 2 not yet supported
 
   if (ret == BTOR_UNKNOWN)
   {
@@ -726,4 +731,19 @@ btor_dump_btor (Btor *btor, FILE *file, int version)
 
   btor_dump_btor_bdc (bdc, file);
   btor_delete_dump_context (bdc);
+}
+
+int
+btor_can_be_dumped (Btor *btor)
+{
+  BtorNode *cur;
+  BtorHashTableIterator it;
+
+  init_node_hash_table_iterator (&it, btor->ufs);
+  while (has_next_node_hash_table_iterator (&it))
+  {
+    cur = next_node_hash_table_iterator (&it);
+    if (!BTOR_IS_UF_ARRAY_NODE (cur)) return 0;
+  }
+  return 1;
 }

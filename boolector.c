@@ -3568,14 +3568,18 @@ boolector_dump_btor (Btor *btor, FILE *file)
   BTOR_TRAPI ("");
   BTOR_ABORT_ARG_NULL_BOOLECTOR (btor);
   BTOR_ABORT_ARG_NULL_BOOLECTOR (file);
+  BTOR_ABORT_BOOLECTOR (!btor_can_be_dumped (btor),
+                        "formula cannot be dumped in BTOR format as it does "
+                        "not yet support uninterpreted functions.");
   btor_dump_btor (btor, file, 1);
 #ifndef NDEBUG
   BTOR_CHKCLONE_NORES (dump_btor, file);
 #endif
 }
 
+#if 0
 void
-boolector_dump_btor2 (Btor *btor, FILE *file)
+boolector_dump_btor2 (Btor * btor, FILE * file)
 {
   BTOR_TRAPI ("");
   BTOR_ABORT_ARG_NULL_BOOLECTOR (btor);
@@ -3585,6 +3589,7 @@ boolector_dump_btor2 (Btor *btor, FILE *file)
   BTOR_CHKCLONE_NORES (dump_btor, file);
 #endif
 }
+#endif
 
 void
 boolector_dump_smt1_node (Btor *btor, FILE *file, BoolectorNode *node)

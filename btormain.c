@@ -434,10 +434,11 @@ print_help (BtorMainApp *app)
   to.lng  = "dump_btor";
   to.desc = "dump formula in BTOR format";
   print_opt (app, &to);
-  to.shrt = "db2";
-  to.lng  = "dump_btor2";
+#if 0
+  to.shrt = "db2"; to.lng = "dump_btor2";
   to.desc = "dump formula in BTOR 2.0 format";
   print_opt (app, &to);
+#endif
   to.shrt = "ds";
   to.lng  = "dump_smt2";
   to.desc = "dump formula in SMT-LIB v2 format";
@@ -977,17 +978,20 @@ boolector_main (int argc, char **argv)
         dump = BTOR_OUTPUT_FORMAT_BTOR;
         boolector_set_opt (static_app->btor, BTOR_OPT_OUTPUT_FORMAT, dump);
       }
-      else if (!strcmp (opt, "db2") || !strcmp (opt, "dump_btor2"))
-      {
-        if (disable)
-        {
-          btormain_error (
-              static_app, "invalid option '%sno-%s'", shrt ? "-" : "--", opt);
-          goto DONE;
-        }
-        dump = BTOR_OUTPUT_FORMAT_BTOR2;
-        boolector_set_opt (static_app->btor, BTOR_OPT_OUTPUT_FORMAT, dump);
-      }
+#if 0
+	  else if (!strcmp (opt, "db2") || !strcmp (opt, "dump_btor2"))
+	    {
+	      if (disable)
+		{
+		  btormain_error (static_app, "invalid option '%sno-%s'", 
+		      shrt ? "-" : "--", opt);
+		  goto DONE;
+		}
+	      dump = BTOR_OUTPUT_FORMAT_BTOR2;
+	      boolector_set_opt (static_app->btor, 
+		  BTOR_OPT_OUTPUT_FORMAT, dump);
+	    }
+#endif
       else if (!strcmp (opt, "ds") || !strcmp (opt, "dump_smt2"))
       {
         if (disable)
@@ -1416,10 +1420,13 @@ boolector_main (int argc, char **argv)
         if (static_verbosity) btormain_msg ("dumping BTOR expressions");
         boolector_dump_btor (static_app->btor, static_app->outfile);
         break;
-      case BTOR_OUTPUT_FORMAT_BTOR2:
-        if (static_verbosity) btormain_msg ("dumping BTOR 2.0 expressions");
-        boolector_dump_btor2 (static_app->btor, static_app->outfile);
-        break;
+#if 0
+	  case BTOR_OUTPUT_FORMAT_BTOR2:
+	    if (static_verbosity)
+	      btormain_msg ("dumping BTOR 2.0 expressions");
+	    boolector_dump_btor2 (static_app->btor, static_app->outfile);
+	    break;
+#endif
       case BTOR_OUTPUT_FORMAT_SMT1:
         if (static_verbosity) btormain_msg ("dumping in SMT-LIB v1 format");
         boolector_dump_smt1 (static_app->btor, static_app->outfile);
