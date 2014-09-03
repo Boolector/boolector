@@ -272,6 +272,9 @@ bdcnode (BtorDumpContext *bdc, BtorNode *node, FILE *file)
 
   node = BTOR_REAL_ADDR_NODE (node);
 
+  /* argument nodes will not be dumped as they are purely internal nodes */
+  if (BTOR_IS_ARGS_NODE (node)) return;
+
   if (bdc->version == 2
       && (BTOR_IS_ARGS_NODE (node)
           || (!BTOR_IS_FIRST_CURRIED_LAMBDA (node)
@@ -334,6 +337,15 @@ bdcnode (BtorDumpContext *bdc, BtorNode *node, FILE *file)
     /* print index bit width of arrays */
     if (BTOR_IS_UF_ARRAY_NODE (node) || BTOR_IS_LAMBDA_NODE (node))
       fprintf (file, " %d", BTOR_ARRAY_INDEX_LEN (node));
+
+    if (BTOR_IS_APPLY_NODE (node))
+    {
+      fprintf (file, " %d", bdcid (bdc, node->e[0]));
+      init_args_iterator (&ait, node->e[1]);
+      while (has_next_args_iterator (&ait))
+        fprintf (file, " %d", bdcid (bdc, next_args_iterator (&ait)));
+      goto DONE;
+    }
   }
   else
   {

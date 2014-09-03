@@ -1511,83 +1511,43 @@ parse_lambda (BtorBTORParser *parser, int len)
 static BoolectorNode *
 parse_apply (BtorBTORParser *parser, int len)
 {
-  int argslen;
-  BoolectorNode *res, *fun, *args;
+  int i, arity;
+  BoolectorNode *res, *fun, *arg;
+  BoolectorNodePtrStack args;
 
   if (parse_space (parser)) return 0;
 
   if (!(fun = parse_array_exp (parser, len))) return 0;
 
+  BTOR_INIT_STACK (args);
+
   if (parse_space (parser))
   {
   RELEASE_FUN_AND_RETURN_ERROR:
+    while (!BTOR_EMPTY_STACK (args))
+      boolector_release (parser->btor, BTOR_POP_STACK (args));
+    BTOR_RELEASE_STACK (parser->mem, args);
     boolector_release (parser->btor, fun);
     return 0;
   }
 
-  argslen = boolector_get_index_width (parser->btor, fun);
-  // TODO: we ignore argslen for now
-  (void) argslen;
-  if (!(args = parse_exp (parser, 0, 0, 1))) goto RELEASE_FUN_AND_RETURN_ERROR;
-
-  if (!boolector_is_args (parser->btor, args))
+  arity = boolector_get_fun_arity (parser->btor, fun);
+  for (i = 0; i < arity; i++)
   {
-    boolector_release (parser->btor, args);
-    btor_perr_btor (parser,
-                    "apply only takes a function and arguments as children");
-    goto RELEASE_FUN_AND_RETURN_ERROR;
-  }
+    arg = parse_exp (parser, 0, 0, 1);
+    if (!arg) goto RELEASE_FUN_AND_RETURN_ERROR;
 
-  if (boolector_is_array_var (parser->btor, fun)
-      && boolector_get_args_arity (parser->btor, args) != 1)
-  {
-    boolector_release (parser->btor, args);
-    btor_perr_btor (parser, "invalid number of arguments for apply");
-    goto RELEASE_FUN_AND_RETURN_ERROR;
-  }
-
-  if (!boolector_is_array_var (parser->btor, fun)
-      && boolector_get_fun_arity (parser->btor, fun)
-             != boolector_get_args_arity (parser->btor, args))
-  {
-    boolector_release (parser->btor, args);
-    btor_perr_btor (parser, "invalid number of arguments for apply");
-    goto RELEASE_FUN_AND_RETURN_ERROR;
-  }
-
-  res = boolector_apply_args (parser->btor, args, fun);
-  boolector_release (parser->btor, fun);
-  boolector_release (parser->btor, args);
-
-  return res;
-}
-
-static BoolectorNode *
-parse_args (BtorBTORParser *parser, int len)
-{
-  int i;
-  BoolectorNode *res, *arg;
-  BoolectorNodePtrStack args;
-
-  BTOR_INIT_STACK (args);
-  i = len;
-  while (i > 0)
-  {
-    if (parse_space (parser)) return 0;
-
-    if (!(arg = parse_exp (parser, 0, 0, 1))) return 0;
+    if (i < arity - 1)
+      if (parse_space (parser)) goto RELEASE_FUN_AND_RETURN_ERROR;
 
     BTOR_PUSH_STACK (parser->mem, args, arg);
-    i -= boolector_get_width (parser->btor, arg);
   }
 
-  res = boolector_args (parser->btor, BTOR_COUNT_STACK (args), args.start);
+  res = boolector_apply (parser->btor, arity, args.start, fun);
+  boolector_release (parser->btor, fun);
 
   while (!BTOR_EMPTY_STACK (args))
-  {
-    arg = BTOR_POP_STACK (args);
-    boolector_release (parser->btor, arg);
-  }
+    boolector_release (parser->btor, BTOR_POP_STACK (args));
   BTOR_RELEASE_STACK (parser->mem, args);
 
   return res;
@@ -1777,7 +1737,6 @@ btor_new_btor_parser (Btor *btor, BtorParseOpt *opts)
   new_parser (res, parse_param, "param");
   new_parser (res, parse_lambda, "lambda");
   new_parser (res, parse_apply, "apply");
-  new_parser (res, parse_args, "args");
 
   res->verbosity = opts->verbosity;
 
