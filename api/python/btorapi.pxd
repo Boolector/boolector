@@ -260,14 +260,8 @@ cdef extern from "boolector.h":
     BoolectorNode *boolector_uf (Btor * btor, BoolectorSort * sort,
                                  const char * symbol)
 
-#    BoolectorNode *boolector_args (
-#        Btor * btor, int argc, BoolectorNode ** arg_nodes)
-
     BoolectorNode *boolector_apply (
         Btor * btor, int argc, BoolectorNode ** arg_nodes, BoolectorNode * n_fun)
-
-#    BoolectorNode *boolector_apply_args (
-#        Btor * btor, BoolectorNode * n_args, BoolectorNode * n_fun)
 
     BoolectorNode *boolector_inc (Btor * btor, BoolectorNode *node)
 
@@ -294,10 +288,6 @@ cdef extern from "boolector.h":
     int boolector_is_fun (Btor * btor, BoolectorNode * node)
 
     int boolector_get_fun_arity (Btor * btor, BoolectorNode * node)
-
-#    int boolector_is_args (Btor * btor, BoolectorNode * node)
-
-#    int boolector_get_args_arity (Btor * btor, BoolectorNode * node)
 
     int boolector_get_width (Btor * btor, BoolectorNode * node)
 
