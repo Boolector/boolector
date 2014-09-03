@@ -354,8 +354,6 @@ SKIP:
 static int
 parse_symbol (BtorBTORParser *parser)
 {
-  char buffer[30];
-  const char *p;
   int ch;
 
   while ((ch = btor_nextch_btor (parser)) == ' ' || ch == '\t')
@@ -370,28 +368,21 @@ parse_symbol (BtorBTORParser *parser)
 
   assert (BTOR_EMPTY_STACK (parser->symbol));
 
-  if (ch == '\n')
-  {
-    sprintf (buffer, "_btor_id_%d", parser->idx);
-    for (p = buffer; *p; p++) BTOR_PUSH_STACK (parser->mem, parser->symbol, *p);
-  }
-  else
+  if (ch != '\n')
   {
     BTOR_PUSH_STACK (parser->mem, parser->symbol, ch);
 
     while (!isspace (ch = btor_nextch_btor (parser)))
     {
+      if (!isprint (ch)) btor_perr_btor (parser, "invalid character");
       if (ch == EOF) goto UNEXPECTED_EOF;
-
       BTOR_PUSH_STACK (parser->mem, parser->symbol, ch);
     }
   }
 
   btor_savech_btor (parser, ch);
-
   BTOR_PUSH_STACK (parser->mem, parser->symbol, 0);
   BTOR_RESET_STACK (parser->symbol);
-
   return 1;
 }
 
@@ -402,7 +393,8 @@ parse_var (BtorBTORParser *parser, int len)
 
   if (!parse_symbol (parser)) return 0;
 
-  res = boolector_var (parser->btor, len, parser->symbol.start);
+  res = boolector_var (
+      parser->btor, len, parser->symbol.start[0] ? parser->symbol.start : 0);
   BTOR_PUSH_STACK (parser->mem, parser->inputs, res);
   parser->info.start[parser->idx].var = 1;
 
@@ -416,7 +408,8 @@ parse_param (BtorBTORParser *parser, int len)
 
   if (!parse_symbol (parser)) return 0;
 
-  res = boolector_param (parser->btor, len, parser->symbol.start);
+  res = boolector_param (
+      parser->btor, len, parser->symbol.start[0] ? parser->symbol.start : 0);
   BTOR_PUSH_STACK (parser->mem, parser->params, res);
 
   return res;
@@ -450,7 +443,10 @@ parse_array (BtorBTORParser *parser, int len)
 
   if (!parse_symbol (parser)) return 0;
 
-  res = boolector_array (parser->btor, len, idx_len, parser->symbol.start);
+  res = boolector_array (parser->btor,
+                         len,
+                         idx_len,
+                         parser->symbol.start[0] ? parser->symbol.start : 0);
   BTOR_PUSH_STACK (parser->mem, parser->inputs, res);
   parser->info.start[parser->idx].array = 1;
 

@@ -337,7 +337,7 @@ bdcnode (BtorDumpContext *bdc, BtorNode *node, FILE *file)
   else if (BTOR_IS_BV_VAR_NODE (node) || BTOR_IS_UF_NODE (node))
   {
     symbol = btor_get_symbol_exp (bdc->btor, node);
-    if (symbol && strncmp (symbol, "_btor_id_", strlen ("_btor_id_")))
+    if (symbol)
       fprintf (file, " %s", symbol);
     else
     {

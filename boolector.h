@@ -115,11 +115,11 @@ typedef struct BoolectorNode BoolectorNode;
  * The functions of Boolector's public interface are guarded by
  * public assertions. Public assertions are always enabled. They check if
  * the functions have been correctly called by the user.
- * If not, then an error message is printed out and 'abort' is called.
- * For example, we call \ref boolector_var and
- * pass NULL as symbol name. Then, we obtain the following error message:
+ * If not, then an error message is printed and 'abort' is called.
+ * For example, we call \ref boolector_var and pass a bit width < 1. This
+ * yields the following error message:
  *
- * \verbatim [boolector] boolector_var: 'symbol' must not be NULL \endverbatim
+ * \verbatim [boolector] boolector_var: 'width' must not be < 1 \endverbatim
  *
  * This is not a bug. The user has violated the pre-conditions of the function,
  * and therefore Boolector aborts.
@@ -547,11 +547,11 @@ BoolectorNode *boolector_int (Btor *btor, int i, int width);
  * \return Bit-vector variable with bit-width 'width' and symbol 'symbol'.
  * \remarks Internally, variables are \e not uniquely hashed.
  * Therefore, every call to this function returns a fresh variable.
- * The symbol is only used as a simple way to identify variables
- * in file dumps of \ref boolector_dump_btor and \ref boolector_dump_smt.
- * The user has to make sure that the symbols are unique. Otherwise, the
- * dump may be incorrect. If you are not interested in dumping expressions,
- * just pass NULL as symbol.
+ * The symbol is used as a simple way to identify variables in file dumps
+ * (\see boolector_dump_btor, \see boolector_dump_smt,
+ *  \see boolector_dump_smt1) and models for satisfiable instances.
+ * Symbols must be unique but may be NULL in case that no symbol should be
+ * assigned.
  */
 BoolectorNode *boolector_var (Btor *btor, int width, const char *symbol);
 
@@ -569,12 +569,11 @@ BoolectorNode *boolector_var (Btor *btor, int width, const char *symbol);
  * \remarks Internally, array variables are \e not uniquely hashed. Therefore,
  * each call to \ref boolector_array with the same arguments will return
  * a fresh variable.
- ** The symbol is only used as a simple way to identify variables
- * in file dumps of \ref boolector_dump_btor and \ref boolector_dump_smt.
- * The user has to make sure that the symbols are unique. Otherwise, the
- * dump may be incorrect.
- * If you are not interested in dumping expressions,
- * just pass NULL as symbol.
+ * The symbol is used as a simple way to identify variables in file dumps
+ * (\see boolector_dump_btor, \see boolector_dump_smt,
+ *  \see boolector_dump_smt1) and models for satisfiable instances.
+ * Symbols must be unique but may be NULL in case that no symbol should be
+ * assigned.
  */
 BoolectorNode *boolector_array (Btor *btor,
                                 int elem_width,

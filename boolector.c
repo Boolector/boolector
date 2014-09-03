@@ -727,11 +727,11 @@ boolector_var (Btor *btor, int width, const char *symbol)
   BtorNode *res;
   char *symb;
 
-  symb = symbol ? (char *) symbol : "";
-  BTOR_TRAPI ("%d %s", width, symb);
+  symb = (char *) symbol;
+  BTOR_TRAPI ("%d %s", width, symb ? symb : "");
   BTOR_ABORT_BOOLECTOR (width < 1, "'width' must not be < 1");
   BTOR_ABORT_BOOLECTOR (
-      symb[0] != 0 && btor_find_in_ptr_hash_table (btor->symbols, symb),
+      symb && btor_find_in_ptr_hash_table (btor->symbols, (char *) symb),
       "symbol '%s' is already in use",
       symb);
   btor->external_refs++;
@@ -752,17 +752,17 @@ boolector_array (Btor *btor,
                  int index_width,
                  const char *symbol)
 {
+  BTOR_ABORT_ARG_NULL_BOOLECTOR (btor);
+
   BtorNode *res;
   char *symb;
 
-  BTOR_ABORT_ARG_NULL_BOOLECTOR (btor);
-
-  symb = symbol ? (char *) symbol : "";
-  BTOR_TRAPI ("%d %d %s", elem_width, index_width, symb);
+  symb = (char *) symbol;
+  BTOR_TRAPI ("%d %d %s", elem_width, index_width, symb ? symb : "");
   BTOR_ABORT_BOOLECTOR (elem_width < 1, "'elem_width' must not be < 1");
   BTOR_ABORT_BOOLECTOR (index_width < 1, "'index_width' must not be < 1");
   BTOR_ABORT_BOOLECTOR (
-      symb[0] != 0 && btor_find_in_ptr_hash_table (btor->symbols, symb),
+      symb && btor_find_in_ptr_hash_table (btor->symbols, symb),
       "symbol '%s' is already in use",
       symb);
   btor->external_refs++;
@@ -2336,16 +2336,16 @@ boolector_cond (Btor *btor,
 BoolectorNode *
 boolector_param (Btor *btor, int width, const char *symbol)
 {
+  BTOR_ABORT_ARG_NULL_BOOLECTOR (btor);
+
   BtorNode *res;
   char *symb;
 
-  BTOR_ABORT_ARG_NULL_BOOLECTOR (btor);
-
-  symb = symbol ? (char *) symbol : "";
-  BTOR_TRAPI ("%d %s", width, symb);
+  symb = (char *) symbol;
+  BTOR_TRAPI ("%d %s", width, symb ? symb : "");
   BTOR_ABORT_BOOLECTOR (width < 1, "'width' must not be < 1");
   BTOR_ABORT_BOOLECTOR (
-      symb[0] != 0 && btor_find_in_ptr_hash_table (btor->symbols, symb),
+      symb && btor_find_in_ptr_hash_table (btor->symbols, symb),
       "symbol '%s' is already in use",
       symb);
   btor->external_refs++;
@@ -2415,18 +2415,18 @@ boolector_uf (Btor *btor, BoolectorSort *sort, const char *symbol)
   BTOR_ABORT_ARG_NULL_BOOLECTOR (btor);
   BTOR_ABORT_ARG_NULL_BOOLECTOR (sort);
 
-  char *symb;
   BtorNode *res;
+  char *symb;
 
-  symb = symbol ? (char *) symbol : "";
+  symb = (char *) symbol;
   BTOR_TRAPI (SORT_FMT "%s",
               BTOR_TRAPI_SORT_ID (BTOR_IMPORT_BOOLECTOR_SORT (sort)),
-              symb);
+              symb ? symb : "");
   BTOR_ABORT_BOOLECTOR (
       BTOR_IMPORT_BOOLECTOR_SORT (sort)->kind != BTOR_FUN_SORT,
       "given UF sort is not BTOR_FUN_SORT");
   BTOR_ABORT_BOOLECTOR (
-      symb[0] != 0 && btor_find_in_ptr_hash_table (btor->symbols, symb),
+      symb && btor_find_in_ptr_hash_table (btor->symbols, symb),
       "symbol '%s' is already in use",
       symb);
 

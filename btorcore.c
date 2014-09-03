@@ -1437,7 +1437,7 @@ lambda_var_exp (Btor *btor, int len)
   int id = BTOR_COUNT_STACK (btor->nodes_id_table);
 #endif
 
-  result = btor_var_exp (btor, len, "");
+  result = btor_var_exp (btor, len, 0);
   assert (BTOR_IS_REGULAR_NODE (result));
   assert (result->id == id);
   return result;
@@ -4101,18 +4101,11 @@ lambda_array_exp (Btor *btor, int elem_len, int index_len)
   assert (index_len > 0);
 
   BtorNode *res;
-  char *name;
-  int id, string_len;
-
-  id         = BTOR_COUNT_STACK (btor->nodes_id_table);
-  string_len = btor_num_digits_util (id) + 14;
-  BTOR_NEWN (btor->mm, name, string_len);
-  // FIXME: there is no guarantee that the new symbol does not exist
-  // @aina
-  sprintf (name, "arraylambda_%d_", id);
-  res = btor_array_exp (btor, elem_len, index_len, name);
+#ifndef NDEBUG
+  int id = BTOR_COUNT_STACK (btor->nodes_id_table);
+#endif
+  res = btor_array_exp (btor, elem_len, index_len, 0);
   assert (res->id == id);
-  BTOR_DELETEN (btor->mm, name, string_len);
   return res;
 }
 
@@ -9269,7 +9262,7 @@ generate_lambda_model_from_fun_model (Btor *btor,
   BTOR_INIT_STACK (consts);
 
   sort = fun_sort_from_fun (btor, exp);
-  uf   = (BtorUFNode *) btor_uf_exp (btor, sort, "");
+  uf   = (BtorUFNode *) btor_uf_exp (btor, sort, 0);
   btor_release_sort (&btor->sorts_unique_table, sort);
   domain = sort->fun.domain;
 
@@ -9279,14 +9272,14 @@ generate_lambda_model_from_fun_model (Btor *btor,
     assert (domain->kind == BTOR_TUPLE_SORT);
     for (i = 0; i < domain->tuple.num_elements; i++)
     {
-      p = btor_param_exp (btor, domain->tuple.elements[i]->bitvec.len, "");
+      p = btor_param_exp (btor, domain->tuple.elements[i]->bitvec.len, 0);
       BTOR_PUSH_STACK (btor->mm, params, p);
     }
   }
   else
   {
     assert (domain->kind == BTOR_BITVEC_SORT);
-    p = btor_param_exp (btor, domain->bitvec.len, "");
+    p = btor_param_exp (btor, domain->bitvec.len, 0);
     BTOR_PUSH_STACK (btor->mm, params, p);
   }
 

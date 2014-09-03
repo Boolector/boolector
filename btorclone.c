@@ -954,7 +954,7 @@ clone_aux_btor (Btor *btor,
   while (btor->symbols->size < clone->symbols->size)
   {
     /* random query to trigger enlargement */
-    btor_find_in_ptr_hash_table (btor->symbols, "");
+    (void) btor_find_in_ptr_hash_table (btor->symbols, "");
   }
 #endif
 
