@@ -932,16 +932,6 @@ NEXT:
       free (tmp);
       exp_ret = RET_VOIDPTR;
     }
-    else if (!strcmp (tok, "args"))
-    {
-      arg1_int = intarg (tok);                                 /* argc */
-      tmp      = malloc (sizeof (BoolectorNode *) * arg1_int); /* args */
-      for (i = 0; i < arg1_int; i++) tmp[i] = hmap_get (hmap, strarg (tok));
-      checklastarg (tok);
-      ret_ptr = boolector_args (btor, arg1_int, tmp);
-      free (tmp);
-      exp_ret = RET_VOIDPTR;
-    }
     else if (!strcmp (tok, "apply"))
     {
       arg1_int = intarg (tok);                                 /* argc */
@@ -952,13 +942,6 @@ NEXT:
       ret_ptr =
           boolector_apply (btor, arg1_int, tmp, hmap_get (hmap, arg1_str));
       free (tmp);
-      exp_ret = RET_VOIDPTR;
-    }
-    else if (!strcmp (tok, "apply_args"))
-    {
-      PARSE_ARGS2 (tok, str, str);
-      ret_ptr = boolector_apply_args (
-          btor, hmap_get (hmap, arg1_str), hmap_get (hmap, arg2_str));
       exp_ret = RET_VOIDPTR;
     }
     else if (!strcmp (tok, "inc"))
@@ -1045,28 +1028,6 @@ NEXT:
       if (!btorunt->skip)
       {
         ret_int = boolector_get_fun_arity (btor, hmap_get (hmap, arg1_str));
-        exp_ret = RET_INT;
-      }
-      else
-        exp_ret = RET_SKIP;
-    }
-    else if (!strcmp (tok, "is_args"))
-    {
-      PARSE_ARGS1 (tok, str);
-      if (!btorunt->skip)
-      {
-        ret_int = boolector_is_args (btor, hmap_get (hmap, arg1_str));
-        exp_ret = RET_INT;
-      }
-      else
-        exp_ret = RET_SKIP;
-    }
-    else if (!strcmp (tok, "get_args_arity"))
-    {
-      PARSE_ARGS1 (tok, str);
-      if (!btorunt->skip)
-      {
-        ret_int = boolector_get_args_arity (btor, hmap_get (hmap, arg1_str));
         exp_ret = RET_INT;
       }
       else

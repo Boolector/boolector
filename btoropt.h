@@ -19,6 +19,7 @@
 #define BTOR_OUTPUT_BASE_HEX 1
 #define BTOR_OUTPUT_BASE_DEC 2
 
+#define BTOR_OUTPUT_FORMAT_BTOR2 -2
 #define BTOR_OUTPUT_FORMAT_BTOR -1
 #define BTOR_OUTPUT_FORMAT_SMT1 1
 #define BTOR_OUTPUT_FORMAT_SMT2 2
@@ -38,7 +39,6 @@ typedef struct BtorOpt
 } BtorOpt;
 
 #define BTOR_OPT_MODEL_GEN "model_gen"
-#define BTOR_OPT_MODEL_GEN_ALL_READS "model_gen_all_reads"
 #define BTOR_OPT_INCREMENTAL "incremental"
 #define BTOR_OPT_INCREMENTAL_ALL "incremental_all"
 #define BTOR_OPT_INCREMENTAL_IN_DEPTH "incremental_in_depth"
@@ -57,22 +57,26 @@ typedef struct BtorOpt
 #endif
 #define BTOR_OPT_FORCE_CLEANUP "force_cleanup"
 #define BTOR_OPT_PRETTY_PRINT "pretty_print"
-#ifndef NBTORLOG
 #define BTOR_OPT_LOGLEVEL "loglevel"
-#endif
 #define BTOR_OPT_VERBOSITY "verbosity"
 #define BTOR_OPT_SIMPLIFY_CONSTRAINTS "simplify_constraints"
 #define BTOR_OPT_FORCE_INTERNAL_CLEANUP "force_internal_cleanup"
 #ifdef BTOR_CHECK_FAILED
 #define BTOR_OPT_CHK_FAILED_ASSUMPTIONS "chk_failed_assumptions"
 #endif
+#define BTOR_OPT_PBRA "pbra_beta_reduce_all"
+#define BTOR_OPT_PBRA_LOD_LIMIT "pbra_lod_limit"
+#define BTOR_OPT_PBRA_SAT_LIMIT "pbra_sat_limit"
+#define BTOR_OPT_PBRA_OPS_FACTOR "pbra_ops_factor"
+#define BTOR_OPT_UCOPT "ucopt"
+#define BTOR_OPT_LAZY_SYNTHESIZE "lazy_synthesize"
+#define BTOR_OPT_ELIMINATE_SLICES "eliminate_slices"
 
 typedef struct BtorOpts
 {
   BtorOpt first; /* dummy for iteration */
   /* ----------------------------------------------------------------------- */
-  BtorOpt model_gen;           /* model generation enabled */
-  BtorOpt model_gen_all_reads; /* generate model for all reads */
+  BtorOpt model_gen; /* model generation enabled */
 
   BtorOpt incremental;            /* incremental usage */
   BtorOpt incremental_all;        /* incremental usage, solve all */

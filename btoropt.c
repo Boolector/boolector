@@ -109,8 +109,7 @@ btor_init_opts (Btor *btor)
   int val;
   char *valstr;
 
-  BTOR_OPT ("m", model_gen, 0, 0, 1, "print model for satisfiable instances");
-  BTOR_OPT (0, model_gen_all_reads, 0, 0, 1, "generate model for all reads");
+  BTOR_OPT ("m", model_gen, 0, 0, 2, "print model for satisfiable instances");
 
   BTOR_OPT ("i", incremental, 0, 0, 1, "incremental usage (SMT1 only)");
   BTOR_OPT ("I",
@@ -138,33 +137,28 @@ btor_init_opts (Btor *btor)
             1,
             "incremental interval mode width (SMT1 only)");
 
-  BTOR_OPT (0,
-            input_format,
-            0,
-            BTOR_INPUT_FORMAT_BTOR,
-            BTOR_INPUT_FORMAT_SMT2,
-            "input file format");
+  BTOR_OPT_INTL (0,
+                 input_format,
+                 0,
+                 BTOR_INPUT_FORMAT_BTOR,
+                 BTOR_INPUT_FORMAT_SMT2,
+                 "input file format");
+  BTOR_OPT_INTL (0,
+                 output_number_format,
+                 BTOR_OUTPUT_BASE_BIN,
+                 BTOR_OUTPUT_BASE_BIN,
+                 BTOR_OUTPUT_BASE_DEC,
+                 "output number format");
+  BTOR_OPT_INTL (0,
+                 output_format,
+                 BTOR_OUTPUT_FORMAT_BTOR,
+                 BTOR_OUTPUT_FORMAT_BTOR,
+                 BTOR_OUTPUT_FORMAT_SMT2,
+                 "output file format");
 
-  BTOR_OPT (0,
-            output_number_format,
-            BTOR_OUTPUT_BASE_BIN,
-            BTOR_OUTPUT_BASE_BIN,
-            BTOR_OUTPUT_BASE_DEC,
-            "output number format");
-  BTOR_OPT (0,
-            output_format,
-            BTOR_OUTPUT_FORMAT_BTOR,
-            BTOR_OUTPUT_FORMAT_BTOR,
-            BTOR_OUTPUT_FORMAT_SMT2,
-            "output file format");
-
-  BTOR_OPT ("rwl", rewrite_level, 3, 0, 3, "set rewrite level");
-  BTOR_OPT (0,
-            rewrite_level_pbr,
-            1,
-            0,
-            3,
-            "set rewrite level for partial beta reduction");
+  BTOR_OPT ("rwl", rewrite_level, 3, 0, 3, "rewrite level");
+  BTOR_OPT (
+      0, rewrite_level_pbr, 1, 0, 3, "rewrite level partial beta reduction");
 
   BTOR_OPT (
       "bra", beta_reduce_all, 0, 0, 1, "eagerly eliminate lambda expressions");
@@ -175,13 +169,9 @@ btor_init_opts (Btor *btor)
             0,
             1,
             "probe '-bra' until given LOD or SAT limit");
-  BTOR_OPT (0, pbra_lod_limit, 10, 0, -1, "LOD limit for '-pbra'");
-  BTOR_OPT (0,
-            pbra_sat_limit,
-            55000,
-            0,
-            -1,
-            "SAT limit (number of conflicts) for '-pbra'");
+  BTOR_OPT (0, pbra_lod_limit, 10, 0, -1, "LOD limit (#lemmas) for -pbra");
+  BTOR_OPT (
+      0, pbra_sat_limit, 55000, 0, -1, "SAT limit (#conflicts) for -pbra");
   BTOR_OPT (0,
             pbra_ops_factor,
             10,
@@ -200,7 +190,7 @@ btor_init_opts (Btor *btor)
 #endif
   BTOR_OPT ("ls", lazy_synthesize, 1, 0, 1, "lazily synthesize expressions");
   BTOR_OPT ("es", eliminate_slices, 1, 0, 1, "eliminate slices on variables");
-  BTOR_OPT ("fc", force_cleanup, 0, 0, 1, "force cleanup on exit");
+  BTOR_OPT_INTL ("fc", force_cleanup, 0, 0, 1, "force cleanup on exit");
   BTOR_OPT ("p", pretty_print, 1, 0, 1, "pretty print when dumping");
 #ifndef NBTORLOG
   BTOR_OPT ("l", loglevel, 0, 0, BTORLOG_LEVEL_MAX, "increase loglevel");
@@ -310,7 +300,7 @@ btor_set_opt (Btor *btor, const char *name, int val)
     assert (val >= 0 && val <= 3);
     assert (oldval >= 0 && oldval <= 3);
   }
-#ifndef NBTORLOG
+#ifdef NBTORLOG
   else if (!strcmp (name, BTOR_OPT_LOGLEVEL))
     return;
 #endif

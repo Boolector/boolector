@@ -117,14 +117,6 @@ btor_precond_eq_exp_dbg (const Btor *btor,
   assert (!real_e0->simplified);
   assert (!real_e1->simplified);
   assert (btor_equal_sort ((Btor *) btor, (BtorNode *) e0, (BtorNode *) e1));
-#if 0
-  assert (is_array_e0 == is_array_e1);
-  assert (real_e0->len == real_e1->len);
-  assert (real_e0->len > 0);
-  assert (!is_array_e0
-	  || BTOR_ARRAY_INDEX_LEN (real_e0) == BTOR_ARRAY_INDEX_LEN (real_e1));
-  assert (!is_array_e0 || BTOR_ARRAY_INDEX_LEN (real_e0) > 0);
-#endif
   assert (!BTOR_IS_FUN_NODE (real_e0)
           || (BTOR_IS_REGULAR_NODE (e0) && BTOR_IS_REGULAR_NODE (e1)));
   return 1;
@@ -972,7 +964,7 @@ btor_set_to_proxy_exp (Btor *btor, BtorNode *exp)
   /* also updates op stats */
   erase_local_data_exp (btor, exp);
   assert (exp->arity <= 3);
-  memset (e, 0, sizeof e);
+  BTOR_CLR (e);
   for (i = 0; i < exp->arity; i++) e[i] = exp->e[i];
   remove_from_hash_tables (btor, exp, 1);
   disconnect_children_exp (btor, exp);

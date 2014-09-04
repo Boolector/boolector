@@ -177,7 +177,7 @@ btormain_init_opts (BtorMainApp *app)
   BTORMAIN_INIT_OPT (app->opts.lingeling_nofork,
                      1,
                      0,
-                     "lingeing_nofork",
+                     "lingeling_nofork",
                      0,
                      0,
                      0,
@@ -246,21 +246,24 @@ print_opt (BtorMainApp *app, BtorOpt *opt)
   assert (app);
   assert (opt);
 
-  char optstr[LEN_OPTSTR], paramstr[LEN_PARAMSTR], defstr[LEN_HELPSTR];
-  char *desc, **descs, descstr[LEN_HELPSTR], *lngstr;
-  int i, j, n, len;
+  char optstr[LEN_OPTSTR], paramstr[LEN_PARAMSTR];
+  char *desc, descstr[LEN_HELPSTR], *lngstr, *word;
+  int i, j, len;
+  BtorCharPtrStack words;
 
-  if (!strcmp (opt->lng, "incremental_look_ahead")
-      || !strcmp (opt->lng, "incremental_in_depth")
-      || !strcmp (opt->lng, "incremental_interval"))
+  if (!strcmp (opt->lng, BTOR_OPT_INCREMENTAL_LOOK_AHEAD)
+      || !strcmp (opt->lng, BTOR_OPT_INCREMENTAL_IN_DEPTH)
+      || !strcmp (opt->lng, BTOR_OPT_INCREMENTAL_INTERVAL))
     sprintf (paramstr, "<w>");
   else if (!strcmp (opt->lng, "time"))
     sprintf (paramstr, "<seconds>");
   else if (!strcmp (opt->lng, "output"))
     sprintf (paramstr, "<file>");
-  else if (!strcmp (opt->lng, "rewrite_level"))
-    sprintf (paramstr, "<n>");
-  else if (!strcmp (opt->lng, "rewrite_level_pbr"))
+  else if (!strcmp (opt->lng, BTOR_OPT_REWRITE_LEVEL)
+           || !strcmp (opt->lng, BTOR_OPT_REWRITE_LEVEL_PBR)
+           || !strcmp (opt->lng, BTOR_OPT_PBRA_LOD_LIMIT)
+           || !strcmp (opt->lng, BTOR_OPT_PBRA_SAT_LIMIT)
+           || !strcmp (opt->lng, BTOR_OPT_PBRA_OPS_FACTOR))
     sprintf (paramstr, "<n>");
   else if (!strcmp (opt->lng, "lingeling_opts"))
     sprintf (paramstr, "[,<opt>=<val>]+");
@@ -301,85 +304,69 @@ print_opt (BtorMainApp *app, BtorOpt *opt)
   optstr[LEN_OPTSTR - 1] = '\0';
 
   /* formatted description */
-  len = strlen (opt->desc);
-  /* Note: do not use btor_strdup for desc (' ' will be replaced by 0 but
-   *       btor_freestr relies on 0 to determine string length). */
-  BTOR_CNEWN (app->mm, desc, len + 1);
-  n = 0;
-  i = 0;
-  while (i < len && opt->desc[i] == ' ') desc[i++] = 0;
-  while (i < len)
+
+  /* append default value to description */
+  if (!strcmp (opt->lng, BTOR_OPT_REWRITE_LEVEL)
+      || !strcmp (opt->lng, BTOR_OPT_REWRITE_LEVEL_PBR)
+      || !strcmp (opt->lng, BTOR_OPT_PBRA_LOD_LIMIT)
+      || !strcmp (opt->lng, BTOR_OPT_PBRA_SAT_LIMIT)
+      || !strcmp (opt->lng, BTOR_OPT_PBRA_OPS_FACTOR)
+      || !strcmp (opt->lng, BTOR_OPT_DUAL_PROP)
+      || !strcmp (opt->lng, BTOR_OPT_JUST) || !strcmp (opt->lng, BTOR_OPT_UCOPT)
+      || !strcmp (opt->lng, BTOR_OPT_LAZY_SYNTHESIZE)
+      || !strcmp (opt->lng, BTOR_OPT_ELIMINATE_SLICES)
+      || !strcmp (opt->lng, BTOR_OPT_PRETTY_PRINT)
+      || !strcmp (opt->lng, BTOR_OPT_VERBOSITY)
+      || !strcmp (opt->lng, BTOR_OPT_LOGLEVEL))
   {
-    while (i < len && opt->desc[i] != ' ')
-    {
-      desc[i] = opt->desc[i];
-      i += 1;
-    }
-    while (i < len && opt->desc[i] == ' ') desc[i++] = 0;
-    n += 1;
+    len = strlen (opt->desc) + 3 + btor_num_digits_util (opt->dflt);
+    BTOR_CNEWN (app->mm, desc, len + 1);
+    sprintf (desc, "%s [%d]", opt->desc, opt->dflt);
   }
-  BTOR_NEWN (app->mm, descs, n);
-  for (i = 0, j = 0; i < len; i++, j++)
+  else
   {
-    while (i < len && desc[i] == 0) i += 1;
-    if (i >= len) break;
-    descs[j] = btor_strdup (app->mm, desc + i);
-    while (i < len && desc[i] != 0) i += 1;
+    len = strlen (opt->desc);
+    BTOR_CNEWN (app->mm, desc, len + 1);
+    sprintf (desc, "%s", opt->desc);
+  }
+
+  BTOR_INIT_STACK (words);
+  word = strtok (desc, " ");
+  while (word)
+  {
+    BTOR_PUSH_STACK (app->mm, words, btor_strdup (app->mm, word));
+    word = strtok (0, " ");
   }
   BTOR_DELETEN (app->mm, desc, len + 1);
 
-  fprintf (app->outfile, "%s ", optstr);
-
-  memset (descstr, 0, LEN_HELPSTR * sizeof (char));
-  for (i = 0, j = 0, len = strlen (descs[i]);
-       i < n && LEN_HELPSTR - LEN_OPTSTR - 1 - j > len;
-       i++)
+  BTOR_CLRN (descstr, LEN_HELPSTR);
+  sprintf (descstr, "%s ", optstr);
+  i = 0;
+  do
   {
-    len = strlen (descs[i]);
-    strcpy (descstr + j, descs[i]);
-    j += len;
-    descstr[j++] = ' ';
-  }
-  descstr[j - 1] = i < n ? '\n' : 0;
-  fprintf (app->outfile, "%s", descstr);
-
-  while (i < n)
-  {
-    memset (descstr, 0, LEN_HELPSTR * sizeof (char));
-    memset (descstr, ' ', LEN_OPTSTR * sizeof (char));
-    for (j = LEN_OPTSTR, len = strlen (descs[i]);
-         i < n && LEN_HELPSTR - 1 - j > len;
-         i++)
+    j = LEN_OPTSTR;
+    for (; i < BTOR_COUNT_STACK (words); i++)
     {
-      len = strlen (descs[i]);
-      strcpy (descstr + j, descs[i]);
+      word = BTOR_PEEK_STACK (words, i);
+      len  = strlen (word);
+
+      /* word does not fit into remaining line */
+      if (j + 1 + len >= LEN_HELPSTR) break;
+
+      strcpy (descstr + j, word);
       j += len;
       descstr[j++] = ' ';
     }
-    descstr[j - 1] = i < n ? '\n' : 0;
-    fprintf (app->outfile, "%s", descstr);
-  }
+    descstr[j] = 0;
+    fprintf (app->outfile, "%s\n", descstr);
+    BTOR_CLRN (descstr, LEN_HELPSTR);
+    memset (descstr, ' ', LEN_OPTSTR * sizeof (char));
+  } while (i < BTOR_COUNT_STACK (words));
 
   /* cleanup */
-  for (i = 0; i < n; i++) btor_freestr (app->mm, descs[i]);
-  BTOR_DELETEN (app->mm, descs, n);
-
-  /* default value */
-  memset (defstr, ' ', LEN_HELPSTR * sizeof (char));
-  defstr[LEN_HELPSTR - 1] = '\0';
-  if (!strcmp (opt->lng, "rewrite_level")
-      || !strcmp (opt->lng, "rewrite_level_pbr")
-      || !strcmp (opt->lng, "pbra_lod_limit")
-      || !strcmp (opt->lng, "pbra_sat_limit")
-      || !strcmp (opt->lng, "pbra_ops_factor"))
-  {
-    sprintf (defstr + LEN_OPTSTR, "(default: %d)", opt->dflt);
-    fprintf (app->outfile, "\n");
-  }
-  else
-    defstr[0] = '\0';
-
-  fprintf (app->outfile, "%s\n", defstr);
+  while (!BTOR_EMPTY_STACK (words))
+    btor_freestr (app->mm, BTOR_POP_STACK (words));
+  BTOR_RELEASE_STACK (app->mm, words);
 }
 
 #define BOOLECTOR_OPTS_INFO_MSG                                                \
@@ -416,8 +403,52 @@ print_help (BtorMainApp *app)
       fprintf (out, "\n");
     print_opt (app, o);
   }
-  fprintf (out, "\n");
 
+  print_opt (app, &app->opts.output);
+  fprintf (app->outfile, "\n");
+  to.shrt = "x";
+  to.lng  = "hex";
+  to.desc = "force hexadecimal number output";
+  print_opt (app, &to);
+  to.shrt = "d";
+  to.lng  = "dec";
+  to.desc = "force decimal number output";
+  print_opt (app, &to);
+
+  fprintf (app->outfile, "\n");
+  to.shrt = 0;
+  to.lng  = "btor";
+  to.desc = "force BTOR input format";
+  print_opt (app, &to);
+  to.shrt = 0;
+  to.lng  = "smt2";
+  to.desc = "force SMT-LIB v2 input format";
+  print_opt (app, &to);
+  to.shrt = 0;
+  to.lng  = "smt1";
+  to.desc = "force SMT-LIB v1 input format";
+  print_opt (app, &to);
+  fprintf (app->outfile, "\n");
+
+  to.shrt = "db";
+  to.lng  = "dump_btor";
+  to.desc = "dump formula in BTOR format";
+  print_opt (app, &to);
+#if 0
+  to.shrt = "db2"; to.lng = "dump_btor2";
+  to.desc = "dump formula in BTOR 2.0 format";
+  print_opt (app, &to);
+#endif
+  to.shrt = "ds";
+  to.lng  = "dump_smt2";
+  to.desc = "dump formula in SMT-LIB v2 format";
+  print_opt (app, &to);
+  to.shrt = "ds1";
+  to.lng  = "dump_smt1";
+  to.desc = "dump formula in SMT-LIB v1 format";
+  print_opt (app, &to);
+
+  fprintf (out, "\n");
   fprintf (out, BOOLECTOR_OPTS_INFO_MSG);
 
   for (o = (BtorOpt *) boolector_first_opt (app->btor);
@@ -425,58 +456,13 @@ print_help (BtorMainApp *app)
        o++)
   {
     if (o->internal) continue;
-    if (!strcmp (o->lng, "incremental") || !strcmp (o->lng, "beta_reduce_all")
-        || !strcmp (o->lng, "pretty_print") || !strcmp (o->lng, "dual_prop"))
+    if (!strcmp (o->lng, BTOR_OPT_INCREMENTAL)
+        || !strcmp (o->lng, BTOR_OPT_REWRITE_LEVEL)
+        || !strcmp (o->lng, BTOR_OPT_BETA_REDUCE_ALL)
+        || !strcmp (o->lng, BTOR_OPT_PRETTY_PRINT)
+        || !strcmp (o->lng, BTOR_OPT_DUAL_PROP))
       fprintf (out, "\n");
-    if (!strcmp (o->lng, "input_format"))
-    {
-      fprintf (app->outfile, "\n");
-      to.shrt = 0;
-      to.lng  = "btor";
-      to.desc = "force BTOR input format";
-      print_opt (app, &to);
-      to.shrt = 0;
-      to.lng  = "smt2";
-      to.desc = "force SMT-LIB v2 input format";
-      print_opt (app, &to);
-      to.shrt = 0;
-      to.lng  = "smt1";
-      to.desc = "force SMT-LIB v1 input format";
-      print_opt (app, &to);
-      fprintf (app->outfile, "\n");
-    }
-    else if (!strcmp (o->lng, "output_number_format"))
-    {
-      print_opt (app, &app->opts.output);
-      fprintf (app->outfile, "\n");
-      to.shrt = "x";
-      to.lng  = "hex";
-      to.desc = "force hexadecimal number output";
-      print_opt (app, &to);
-      to.shrt = "d";
-      to.lng  = "dec";
-      to.desc = "force decimal number output";
-      print_opt (app, &to);
-    }
-    else if (!strcmp (o->lng, "output_format"))
-    {
-      fprintf (app->outfile, "\n");
-      to.shrt = "db";
-      to.lng  = "dump_btor";
-      to.desc = "dump formula in BTOR format";
-      print_opt (app, &to);
-      to.shrt = "ds";
-      to.lng  = "dump_smt2";
-      to.desc = "dump formula in SMT-LIB v2 format";
-      print_opt (app, &to);
-      to.shrt = "ds1";
-      to.lng  = "dump_smt1";
-      to.desc = "dump formula in SMT-LIB v1 format";
-      print_opt (app, &to);
-      fprintf (app->outfile, "\n");
-    }
-    else
-      print_opt (app, o);
+    print_opt (app, o);
   }
 
 #ifdef BTOR_USE_LINGELING
@@ -661,10 +647,10 @@ has_suffix (const char *str, const char *suffix)
 int
 boolector_main (int argc, char **argv)
 {
-  int res, sat_res;
+  int res, sat_res, model_gen;
   int i, j, k, len, shrt, disable, readval, val, forced_sat_solver;
 #ifndef NBTORLOG
-  int log = 0;
+  int log;
 #endif
   int inc, incid, incla, incint, dump;
   int parse_result, parse_status;
@@ -677,15 +663,20 @@ boolector_main (int argc, char **argv)
 #ifdef BTOR_HAVE_GETRUSAGE
   static_start_time = btor_time_stamp ();
 #endif
-  res              = BTOR_UNKNOWN_EXIT;
-  sat_res          = BOOLECTOR_UNKNOWN;
-  static_verbosity = 0;
+  res     = BTOR_UNKNOWN_EXIT;
+  sat_res = BOOLECTOR_UNKNOWN;
   inc = incid = incla = incint = dump = 0;
   parse_result                        = BOOLECTOR_UNKNOWN;
 
   static_app = btormain_new_btormain (boolector_new ());
 
   btormain_init_opts (static_app);
+#ifndef NBTORLOG
+  log = boolector_get_opt_val (static_app->btor, BTOR_OPT_LOGLEVEL);
+#endif
+  static_verbosity =
+      boolector_get_opt_val (static_app->btor, BTOR_OPT_VERBOSITY);
+  model_gen = boolector_get_opt_val (static_app->btor, BTOR_OPT_MODEL_GEN);
 
   for (i = 1; i < argc; i++)
   {
@@ -987,6 +978,20 @@ boolector_main (int argc, char **argv)
         dump = BTOR_OUTPUT_FORMAT_BTOR;
         boolector_set_opt (static_app->btor, BTOR_OPT_OUTPUT_FORMAT, dump);
       }
+#if 0
+	  else if (!strcmp (opt, "db2") || !strcmp (opt, "dump_btor2"))
+	    {
+	      if (disable)
+		{
+		  btormain_error (static_app, "invalid option '%sno-%s'", 
+		      shrt ? "-" : "--", opt);
+		  goto DONE;
+		}
+	      dump = BTOR_OUTPUT_FORMAT_BTOR2;
+	      boolector_set_opt (static_app->btor, 
+		  BTOR_OPT_OUTPUT_FORMAT, dump);
+	    }
+#endif
       else if (!strcmp (opt, "ds") || !strcmp (opt, "dump_smt2"))
       {
         if (disable)
@@ -1164,50 +1169,12 @@ boolector_main (int argc, char **argv)
           boolector_set_opt (static_app->btor, o->lng, val);
           incint = val;
         }
-        else if ((shrt && o->shrt && !strcmp (o->shrt, "rwl"))
-                 || (!shrt && !strcmp (o->lng, BTOR_OPT_REWRITE_LEVEL)))
+        else if ((shrt && o->shrt && !strcmp (o->shrt, "m")))
         {
-          if (disable)
-          {
-            btormain_error (
-                static_app, "invalid option '%sno-%s'", shrt ? "-" : "--", opt);
-            goto DONE;
-          }
-          if (!readval)
-          {
-            btormain_error (static_app,
-                            "missing argument for '%s%s'",
-                            shrt ? "-" : "--",
-                            opt);
-            goto DONE;
-          }
-
-          if (val > 3 || val < 0)
-          {
-            btormain_error (static_app, "rewrite level not in [0,3]");
-            goto DONE;
-          }
-
-          boolector_set_opt (static_app->btor, o->lng, val);
-        }
-        else if ((!shrt && !strcmp (o->lng, BTOR_OPT_REWRITE_LEVEL_PBR)))
-        {
-          if (!readval)
-          {
-            btormain_error (static_app,
-                            "missing argument for '%s%s'",
-                            shrt ? "-" : "--",
-                            opt);
-            goto DONE;
-          }
-
-          if (val > 3 || val < 0)
-          {
-            btormain_error (static_app, "rewrite level not in [0,3]");
-            goto DONE;
-          }
-
-          boolector_set_opt (static_app->btor, o->lng, val);
+          if (disable || (readval && val == 0))
+            model_gen = 0;
+          else
+            model_gen += 1;
         }
 #ifndef NBTORLOG
         else if ((shrt && o->shrt && !strcmp (o->shrt, "l"))
@@ -1237,30 +1204,36 @@ boolector_main (int argc, char **argv)
                             opt);
             goto DONE;
           }
-          if (((shrt && o->shrt && !strcmp (o->shrt, "dp"))
-               || (!shrt && !strcmp (o->lng, BTOR_OPT_DUAL_PROP)))
-              && boolector_get_opt_val (static_app->btor, BTOR_OPT_JUST))
+
+          if ((!strcmp (o->lng, BTOR_OPT_DUAL_PROP)
+               && boolector_get_opt_val (static_app->btor, BTOR_OPT_JUST))
+              || (!strcmp (o->lng, BTOR_OPT_JUST)
+                  && boolector_get_opt_val (static_app->btor,
+                                            BTOR_OPT_DUAL_PROP)))
           {
-            btormain_error (
-                static_app,
-                "multiple exclusive optimization techniques enabled");
+            btormain_error (static_app,
+                            "Can only use one out of '--%s' or '--%s'",
+                            BTOR_OPT_DUAL_PROP,
+                            BTOR_OPT_JUST);
             goto DONE;
           }
-          else if (((shrt && o->shrt && !strcmp (o->shrt, "ju"))
-                    || (!shrt && !strcmp (o->lng, BTOR_OPT_JUST)))
-                   && boolector_get_opt_val (static_app->btor,
-                                             BTOR_OPT_DUAL_PROP))
+          else if (!readval
+                   && (!strcmp (o->lng, BTOR_OPT_REWRITE_LEVEL)
+                       || !strcmp (o->lng, BTOR_OPT_REWRITE_LEVEL_PBR)))
           {
-            btormain_error (
-                static_app,
-                "multiple exclusive optimization techniques enabled");
+            btormain_error (static_app,
+                            "missing argument for '%s%s'",
+                            shrt ? "-" : "--",
+                            opt);
             goto DONE;
           }
 
           if (disable || (readval && val == 0))
             boolector_set_opt (static_app->btor, o->lng, 0);
-          else
+          else if (!readval)
             boolector_set_opt (static_app->btor, o->lng, 1);
+          else
+            boolector_set_opt (static_app->btor, o->lng, val);
         }
       }
     }
@@ -1272,6 +1245,9 @@ boolector_main (int argc, char **argv)
   boolector_set_opt (static_app->btor, BTOR_OPT_LOGLEVEL, log);
 #endif
   boolector_set_opt (static_app->btor, BTOR_OPT_VERBOSITY, static_verbosity);
+  // TODO: disabling model gen not yet supported (ma)
+  if (model_gen > 0)
+    boolector_set_opt (static_app->btor, BTOR_OPT_MODEL_GEN, model_gen);
 
   if (!inc && (incid || incla || incint))
   {
@@ -1444,6 +1420,13 @@ boolector_main (int argc, char **argv)
         if (static_verbosity) btormain_msg ("dumping BTOR expressions");
         boolector_dump_btor (static_app->btor, static_app->outfile);
         break;
+#if 0
+	  case BTOR_OUTPUT_FORMAT_BTOR2:
+	    if (static_verbosity)
+	      btormain_msg ("dumping BTOR 2.0 expressions");
+	    boolector_dump_btor2 (static_app->btor, static_app->outfile);
+	    break;
+#endif
       case BTOR_OUTPUT_FORMAT_SMT1:
         if (static_verbosity) btormain_msg ("dumping in SMT-LIB v1 format");
         boolector_dump_smt1 (static_app->btor, static_app->outfile);

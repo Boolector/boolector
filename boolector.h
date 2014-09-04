@@ -479,6 +479,8 @@ void boolector_release (Btor *btor, BoolectorNode *node);
  */
 BoolectorNode *boolector_const (Btor *btor, const char *bits);
 
+// TODO: what about boolector_constd (Btor * btor, const char * num)?
+
 /**
  * Bit-vector constant zero.
  * \param btor Boolector instance.
@@ -1191,16 +1193,6 @@ BoolectorNode *boolector_uf (Btor *btor,
                              const char *symbol);
 
 /**
- * Creates an argument expression consisting of 'argc' argument expressions
- * given as 'arg_nodes'.
- * \param btor Boolector instance.
- * \param argc Argument count.
- * \param arg_nodes Argument nodes.
- * \result Argument expression.
- */
-BoolectorNode *boolector_args (Btor *btor, int argc, BoolectorNode **arg_nodes);
-
-/**
  * Create a function application expression.
  * \param btor Boolector instance.
  * \param argc Number of arguments to be applied.
@@ -1212,15 +1204,6 @@ BoolectorNode *boolector_apply (Btor *btor,
                                 int argc,
                                 BoolectorNode **arg_nodes,
                                 BoolectorNode *n_fun);
-
-/* Apply argument expression 'n_args' to function 'n_fun'.
- * \param btor Boolector instance.
- * \param n_args Argument expression.
- * \param n_fun Function expression.
- */
-BoolectorNode *boolector_apply_args (Btor *btor,
-                                     BoolectorNode *n_args,
-                                     BoolectorNode *n_fun);
 
 /**
  * Increment bit-vector by one.
@@ -1309,22 +1292,6 @@ int boolector_is_fun (Btor *btor, BoolectorNode *node);
  * \return arity of 'node'.
  */
 int boolector_get_fun_arity (Btor *btor, BoolectorNode *node);
-
-/**
- * Determine if expression is an argument expression.
- * \param btor Boolector instance.
- * \param node Operand.
- * \result True if epxression is an argument, and false otherwise.
- */
-int boolector_is_args (Btor *btor, BoolectorNode *node);
-
-/**
- * Get the arity of argument 'node'.
- * \param btor Boolector instance.
- * \param node Argument expression.
- * \return arity of 'node'.
- */
-int boolector_get_args_arity (Btor *btor, BoolectorNode *node);
 
 /**
  * Get the bit-width of an expression. If the expression
@@ -1555,6 +1522,7 @@ void boolector_dump_btor_node (Btor *btor, FILE *file, BoolectorNode *node);
  */
 void boolector_dump_btor (Btor *btor, FILE *file);
 
+#if 0
 /**
  * Dump formula to file in BTOR 2.0 format.
  *
@@ -1562,7 +1530,8 @@ void boolector_dump_btor (Btor *btor, FILE *file);
  * \param file File to which the formula should be dumped.
  * The file must be have been opened by the user before.
  */
-void boolector_dump_btor2 (Btor *btor, FILE *file);
+void boolector_dump_btor2 (Btor * btor, FILE * file);
+#endif
 
 /**
  * Recursively dump expression to file.

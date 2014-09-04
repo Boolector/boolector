@@ -31,4 +31,8 @@ void btor_dump_btor_node (Btor *, FILE *, BtorNode *);
 void btor_dump_btor_nodes (Btor *, FILE *, BtorNode **, int);
 void btor_dump_btor (Btor *, FILE *, int);
 
+/* FIXME: right now we cannot dump UF in BTOR as the format does not support UF
+ *        yet */
+int btor_can_be_dumped (Btor *);
+
 #endif

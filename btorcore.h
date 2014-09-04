@@ -111,6 +111,7 @@ enum BtorUAEnc
 
 typedef enum BtorUAEnc BtorUAEnc;
 
+// TODO (ma): array_assignments -> fun_assignments
 struct Btor
 {
   BtorMemMgr *mm;
@@ -151,8 +152,8 @@ struct Btor
   BtorPtrHashTable *unsynthesized_constraints;
   BtorPtrHashTable *synthesized_constraints;
   BtorPtrHashTable *assumptions;
-  BtorPtrHashTable *var_rhs;   /* only for model generation */
-  BtorPtrHashTable *array_rhs; /* only for model generation */
+  BtorPtrHashTable *var_rhs;
+  BtorPtrHashTable *fun_rhs;
   BtorNodePtrStack functions_with_model;
   BtorPtrHashTable *cache;
   BtorPtrHashTable *parameterized;
@@ -187,8 +188,8 @@ struct Btor
     int bv_uc_props;
     int array_uc_props;
 #endif
-    int var_substitutions;     /* number substituted vars (non array) */
-    int array_substitutions;   /* num substituted array vars */
+    int var_substitutions;     /* number substituted vars */
+    int uf_substitutions;      /* num substituted uninterpreted functions */
     int ec_substitutions;      /* embedded constraint substitutions */
     int vreads;                /* number of virtual reads */
     int linear_equations;      /* number of linear equations */
