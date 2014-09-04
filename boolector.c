@@ -2658,10 +2658,10 @@ boolector_get_btor (BoolectorNode *node)
   Btor *btor;
   BTOR_ABORT_ARG_NULL_BOOLECTOR (node);
   exp = BTOR_IMPORT_BOOLECTOR_NODE (node);
-  BTOR_ABORT_REFS_NOT_POS_BOOLECTOR (exp);
-  real_exp = BTOR_REAL_ADDR_NODE (exp);
-  btor     = real_exp->btor;
   BTOR_TRAPI_UNFUN (exp);
+  BTOR_ABORT_REFS_NOT_POS_BOOLECTOR (exp);
+  real_exp  = BTOR_REAL_ADDR_NODE (exp);
+  btor      = real_exp->btor;
   simp      = btor_simplify_exp (real_exp->btor, exp);
   real_simp = BTOR_REAL_ADDR_NODE (simp);
   assert (btor == real_simp->btor);
@@ -2722,15 +2722,16 @@ boolector_is_var (Btor *btor, BoolectorNode *node)
   return res;
 }
 
-// TODO: trapi
 const char *
 boolector_get_bits (Btor *btor, BoolectorNode *node)
 {
   BtorNode *exp, *simp, *real;
   const char *res;
-  BTOR_ABORT_ARG_NULL_BOOLECTOR (btor);
-  BTOR_ABORT_ARG_NULL_BOOLECTOR (node);
+
   exp = BTOR_IMPORT_BOOLECTOR_NODE (node);
+  BTOR_ABORT_ARG_NULL_BOOLECTOR (btor);
+  BTOR_TRAPI_UNFUN (exp);
+  BTOR_ABORT_ARG_NULL_BOOLECTOR (node);
   BTOR_ABORT_REFS_NOT_POS_BOOLECTOR (exp);
   BTOR_ABORT_IF_BTOR_DOES_NOT_MATCH (btor, exp);
   simp = btor_simplify_exp (btor, exp);
@@ -2745,6 +2746,7 @@ boolector_get_bits (Btor *btor, BoolectorNode *node)
   }
   else
     res = simp->bits;
+  BTOR_TRAPI_RETURN_STR (res);
 #ifndef NDEBUG
   if (btor->clone)
   {
