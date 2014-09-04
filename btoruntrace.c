@@ -555,20 +555,23 @@ NEXT:
     else if (!strcmp (tok, "var"))
     {
       PARSE_ARGS2 (tok, int, str);
-      ret_ptr = boolector_var (btor, arg1_int, arg2_str);
-      exp_ret = RET_VOIDPTR;
+      arg2_str = !strcmp (arg2_str, "(null)") ? 0 : arg2_str;
+      ret_ptr  = boolector_var (btor, arg1_int, arg2_str);
+      exp_ret  = RET_VOIDPTR;
     }
     else if (!strcmp (tok, "array"))
     {
       PARSE_ARGS3 (tok, int, int, str);
-      ret_ptr = boolector_array (btor, arg1_int, arg2_int, arg3_str);
-      exp_ret = RET_VOIDPTR;
+      arg2_str = !strcmp (arg3_str, "(null)") ? 0 : arg3_str;
+      ret_ptr  = boolector_array (btor, arg1_int, arg2_int, arg3_str);
+      exp_ret  = RET_VOIDPTR;
     }
     else if (!strcmp (tok, "uf"))
     {
       PARSE_ARGS2 (tok, str, str);
-      ret_ptr = boolector_uf (btor, hmap_get (hmap, arg1_str), arg2_str);
-      exp_ret = RET_VOIDPTR;
+      arg2_str = !strcmp (arg2_str, "(null)") ? 0 : arg2_str;
+      ret_ptr  = boolector_uf (btor, hmap_get (hmap, arg1_str), arg2_str);
+      exp_ret  = RET_VOIDPTR;
     }
     else if (!strcmp (tok, "not"))
     {
@@ -920,8 +923,9 @@ NEXT:
     else if (!strcmp (tok, "param"))
     {
       PARSE_ARGS2 (tok, int, str);
-      ret_ptr = boolector_param (btor, arg1_int, arg2_str);
-      exp_ret = RET_VOIDPTR;
+      arg2_str = !strcmp (arg2_str, "(null)") ? 0 : arg2_str;
+      ret_ptr  = boolector_param (btor, arg1_int, arg2_str);
+      exp_ret  = RET_VOIDPTR;
     }
     else if (!strcmp (tok, "fun"))
     {

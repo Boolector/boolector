@@ -747,7 +747,7 @@ boolector_var (Btor *btor, int width, const char *symbol)
   char *symb;
 
   symb = (char *) symbol;
-  BTOR_TRAPI ("%d %s", width, symb ? symb : "");
+  BTOR_TRAPI ("%d %s", width, symb);
   BTOR_ABORT_BOOLECTOR (width < 1, "'width' must not be < 1");
   BTOR_ABORT_BOOLECTOR (
       symb && btor_find_in_ptr_hash_table (btor->symbols, (char *) symb),
@@ -777,7 +777,7 @@ boolector_array (Btor *btor,
   char *symb;
 
   symb = (char *) symbol;
-  BTOR_TRAPI ("%d %d %s", elem_width, index_width, symb ? symb : "");
+  BTOR_TRAPI ("%d %d %s", elem_width, index_width, symb);
   BTOR_ABORT_BOOLECTOR (elem_width < 1, "'elem_width' must not be < 1");
   BTOR_ABORT_BOOLECTOR (index_width < 1, "'index_width' must not be < 1");
   BTOR_ABORT_BOOLECTOR (
@@ -808,7 +808,7 @@ boolector_uf (Btor *btor, BoolectorSort *sort, const char *symbol)
   symb = (char *) symbol;
   BTOR_TRAPI (SORT_FMT "%s",
               BTOR_TRAPI_SORT_ID (BTOR_IMPORT_BOOLECTOR_SORT (sort)),
-              symb ? symb : "");
+              symb);
   BTOR_ABORT_BOOLECTOR (
       BTOR_IMPORT_BOOLECTOR_SORT (sort)->kind != BTOR_FUN_SORT,
       "given UF sort is not BTOR_FUN_SORT");
@@ -2396,7 +2396,7 @@ boolector_param (Btor *btor, int width, const char *symbol)
   char *symb;
 
   symb = (char *) symbol;
-  BTOR_TRAPI ("%d %s", width, symb ? symb : "");
+  BTOR_TRAPI ("%d %s", width, symb);
   BTOR_ABORT_BOOLECTOR (width < 1, "'width' must not be < 1");
   BTOR_ABORT_BOOLECTOR (
       symb && btor_find_in_ptr_hash_table (btor->symbols, symb),
