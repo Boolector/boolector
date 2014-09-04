@@ -157,15 +157,6 @@ struct BtorBVVarNode
 
 typedef struct BtorBVVarNode BtorBVVarNode;
 
-struct BtorArrayVarNode
-{
-  BTOR_BV_NODE_STRUCT;
-  int btor_id; /* id as defined in btor input */
-  int index_len;
-};
-
-typedef struct BtorArrayVarNode BtorArrayVarNode;
-
 struct BtorUFNode
 {
   BTOR_BV_NODE_STRUCT;
