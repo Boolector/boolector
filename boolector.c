@@ -89,7 +89,7 @@ boolector_set_btor_id (Btor *btor, BoolectorNode *node, int id)
 
   exp = BTOR_IMPORT_BOOLECTOR_NODE (node);
   BTOR_ABORT_ARG_NULL_BOOLECTOR (btor);
-  BTOR_TRAPI ("%d", id);
+  BTOR_TRAPI_UNFUN_EXT (exp, "%d", id);
   BTOR_ABORT_BOOLECTOR (
       !btor_is_bv_var_exp (btor, exp) && !btor_is_uf_array_var_exp (btor, exp),
       "'exp' is neither BV/array variable nor UF");
