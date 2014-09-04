@@ -2714,7 +2714,7 @@ boolector_is_var (Btor *btor, BoolectorNode *node)
   BTOR_ABORT_IF_BTOR_DOES_NOT_MATCH (btor, exp);
   simp = btor_simplify_exp (btor, exp);
   real = BTOR_REAL_ADDR_NODE (simp);
-  res  = BTOR_IS_BV_VAR_NODE (real);
+  res  = btor_is_bv_var_exp (btor, real);
   BTOR_TRAPI_RETURN_INT (res);
 #ifndef NDEBUG
   BTOR_CHKCLONE_RES (res, is_const, BTOR_CLONED_EXP (exp));
