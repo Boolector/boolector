@@ -876,9 +876,11 @@ btor_print_stats_btor (Btor *btor)
   btor_msg (btor, 1, "%.1f MB", btor->mm->maxallocated / (double) (1 << 20));
 }
 
-Btor *
-btor_new_btor (void)
+static Btor *
+btor_new_aux_btor (int init_opts)
 {
+  assert (init_opts == 0 || init_opts == 1);
+
   BtorMemMgr *mm;
   Btor *btor;
 
@@ -888,7 +890,7 @@ btor_new_btor (void)
   btor->mm    = mm;
   btor->avmgr = btor_new_aigvec_mgr (mm);
 
-  btor_init_opts (btor);
+  if (init_opts) btor_init_opts (btor);
 
   btor->bv_assignments    = btor_new_bv_assignment_list (mm);
   btor->array_assignments = btor_new_array_assignment_list (mm);
@@ -958,6 +960,18 @@ btor_new_btor (void)
   btor->true_exp = btor_true_exp (btor);
 
   return btor;
+}
+
+Btor *
+btor_new_btor (void)
+{
+  return btor_new_aux_btor (1);
+}
+
+Btor *
+btor_new_btor_no_init (void)
+{
+  return btor_new_aux_btor (0);
 }
 
 void

@@ -87,11 +87,11 @@ boolector_new (void)
 {
   char *trname;
   Btor *btor;
-
-  btor = btor_new_btor ();
+  btor = btor_new_btor_no_init ();
   if ((trname = getenv ("BTORAPITRACE"))) btor_open_apitrace (btor, trname);
   BTOR_TRAPI ("");
   BTOR_TRAPI_RETURN_PTR (btor);
+  btor_init_opts (btor);
   return btor;
 }
 
