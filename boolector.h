@@ -583,6 +583,15 @@ BoolectorNode *boolector_array (Btor *btor,
                                 const char *symbol);
 
 /**
+ * Uninterpreted function.
+ * \param btor Boolector instance.
+ * \param sort Sort of the uninterpreted function.
+ */
+BoolectorNode *boolector_uf (Btor *btor,
+                             BoolectorSort *sort,
+                             const char *symbol);
+
+/**
  * One's complement.
  * \param btor Boolector instance.
  * \param node Bit-vector operand.
@@ -1184,15 +1193,6 @@ BoolectorNode *boolector_fun (Btor *btor,
                               BoolectorNode *node);
 
 /**
- * Uninterpreted function.
- * \param btor Boolector instance.
- * \param sort Sort of the uninterpreted function.
- */
-BoolectorNode *boolector_uf (Btor *btor,
-                             BoolectorSort *sort,
-                             const char *symbol);
-
-/**
  * Create a function application expression.
  * \param btor Boolector instance.
  * \param argc Number of arguments to be applied.
@@ -1231,6 +1231,48 @@ BoolectorNode *boolector_dec (Btor *btor, BoolectorNode *node);
 Btor *boolector_get_btor (BoolectorNode *node);
 
 /**
+ * Get the symbol of an expression (array or bit-vector variable, uninterpreted
+ * function).
+ * \param btor Boolector instance.
+ * \param var Array or bit-vector variable, or uninterpreted function.
+ * \return Symbol of expression.
+ * \see boolector_var
+ * \see boolector_array
+ * \see boolector_uf
+ */
+const char *boolector_get_symbol (Btor *btor, BoolectorNode *var);
+
+/**
+ * Get the bit-width of an expression. If the expression
+ * is an array, it returns the bit-width of the array elements.
+ * \param btor Boolector instance.
+ * \param node Operand.
+ * \return bit-width of 'node'.
+ */
+int boolector_get_width (Btor *btor, BoolectorNode *node);
+
+/**
+ * Get the bit-width of indices of 'n_array'.
+ * \param btor Boolector instance.
+ * \param n_array Array operand.
+ * \return bit-width of indices of 'n_array'.
+ */
+int boolector_get_index_width (Btor *btor, BoolectorNode *n_array);
+
+/**
+ * TODO
+ */
+const char *boolector_get_bits (Btor *, BoolectorNode *node);
+
+/**
+ * Get the arity of function 'node'.
+ * \param btor Boolector instance.
+ * \param node Function.
+ * \return arity of 'node'.
+ */
+int boolector_get_fun_arity (Btor *btor, BoolectorNode *node);
+
+/**
  * TODO
  */
 int boolector_is_const (Btor *btor, BoolectorNode *node);
@@ -1239,11 +1281,6 @@ int boolector_is_const (Btor *btor, BoolectorNode *node);
  * TODO
  */
 int boolector_is_var (Btor *btor, BoolectorNode *node);
-
-/**
- * TODO
- */
-const char *boolector_get_bits (Btor *, BoolectorNode *node);
 
 /**
  * Determine if expression is an array. If not, expression is a bit-vector.
@@ -1286,31 +1323,6 @@ int boolector_is_bound_param (Btor *btor, BoolectorNode *node);
 int boolector_is_fun (Btor *btor, BoolectorNode *node);
 
 /**
- * Get the arity of function 'node'.
- * \param btor Boolector instance.
- * \param node Function.
- * \return arity of 'node'.
- */
-int boolector_get_fun_arity (Btor *btor, BoolectorNode *node);
-
-/**
- * Get the bit-width of an expression. If the expression
- * is an array, it returns the bit-width of the array elements.
- * \param btor Boolector instance.
- * \param node Operand.
- * \return bit-width of 'node'.
- */
-int boolector_get_width (Btor *btor, BoolectorNode *node);
-
-/**
- * Get the bit-width of indices of 'n_array'.
- * \param btor Boolector instance.
- * \param n_array Array operand.
- * \return bit-width of indices of 'n_array'.
- */
-int boolector_get_index_width (Btor *btor, BoolectorNode *n_array);
-
-/**
  * Check if sorts of given arguments matches the function signature.
  * \param btor Boolector instance.
  * \param argc Number of arguments to be checked.
@@ -1324,17 +1336,6 @@ int boolector_fun_sort_check (Btor *btor,
                               BoolectorNode **arg_nodes,
                               BoolectorNode *n_fun);
 
-/**
- * Get the symbol of an expression (array or bit-vector variable, uninterpreted
- * function).
- * \param btor Boolector instance.
- * \param var Array or bit-vector variable, or uninterpreted function.
- * \return Symbol of expression.
- * \see boolector_var
- * \see boolector_array
- * \see boolector_uf
- */
-const char *boolector_get_symbol (Btor *btor, BoolectorNode *var);
 /**
  * Generate an assignment string for bit-vector expression if \ref boolector_sat
  * has returned \ref BOOLECTOR_SAT and model generation has been enabled.
