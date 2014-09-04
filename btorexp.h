@@ -152,6 +152,7 @@ typedef struct BtorNodePair BtorNodePair;
 struct BtorBVVarNode
 {
   BTOR_BV_NODE_STRUCT;
+  int btor_id; /* id as defined in btor input */
 };
 
 typedef struct BtorBVVarNode BtorBVVarNode;
@@ -159,6 +160,7 @@ typedef struct BtorBVVarNode BtorBVVarNode;
 struct BtorArrayVarNode
 {
   BTOR_BV_NODE_STRUCT;
+  int btor_id; /* id as defined in btor input */
   int index_len;
 };
 
@@ -167,6 +169,7 @@ typedef struct BtorArrayVarNode BtorArrayVarNode;
 struct BtorUFNode
 {
   BTOR_BV_NODE_STRUCT;
+  int btor_id; /* id as defined in btor input */
   BtorSort *sort;
   int num_params;
   char is_array;
@@ -402,6 +405,10 @@ int btor_compare_exp_by_id (BtorNode *exp0, BtorNode *exp1);
 
 /* Hashes expression by ID */
 unsigned int btor_hash_exp_by_id (BtorNode *exp);
+
+/*------------------------------------------------------------------------*/
+
+void btor_set_btor_id (Btor *btor, BtorNode *exp, int id);
 
 /*------------------------------------------------------------------------*/
 /* Implicit precondition of all functions taking expressions as inputs:
@@ -829,8 +836,11 @@ int btor_get_exp_len (Btor *btor, BtorNode *exp);
 /* Determines if expression is an array or not. */
 int btor_is_array_exp (Btor *btor, BtorNode *exp);
 
-/* Determines if expression is an array variable or not. */
-int btor_is_array_var_exp (Btor *btor, BtorNode *exp);
+/* Determines if expression is an uf or array variable or not. */
+int btor_is_uf_array_var_exp (Btor *btor, BtorNode *exp);
+
+/* Determines if expression is a bv variable or not. */
+int btor_is_bv_var_exp (Btor *btor, BtorNode *exp);
 
 /* Gets the number of bits used by indices on 'e_array'. */
 int btor_get_index_exp_len (Btor *btor, BtorNode *e_array);

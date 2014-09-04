@@ -82,23 +82,23 @@ with open (sys.argv[2], "r") as fin:
     if opos == -1:
       #bv model
       modelid= words[0]
-      if modelid.find("_btor_id_", 0) == 0:
-        modelid = modelid[9:]
       #check if modelid is really an integer or an identifier
       try:
         temp = int(modelid)
       except:
-        # modelid is an identifier, we have to get the id
-        ret = os.popen ("grep \"\<" + modelid + "\>\" " + sys.argv[1] + \
-                        "| awk '{print $1}'")
-        lines = ret.readlines()
-        if len(lines) > 1:
-          print "BV identifier is not unique"
-          sys.exit(1)
-        if len(lines) == 0:
-          print "Cannot find BV identifier"
-          sys.exit(1)
-        modelid = lines[0].strip()
+        print "invalid identifier"
+        sys.exit(2)
+        ## modelid is an identifier, we have to get the id
+        #ret = os.popen ("grep \"\<" + modelid + "\>\" " + sys.argv[1] + \
+        #                "| awk '{print $1}'")
+        #lines = ret.readlines()
+        #if len(lines) > 1:
+        #  print "BV identifier is not unique"
+        #  sys.exit(1)
+        #if len(lines) == 0:
+        #  print "Cannot find BV identifier"
+        #  sys.exit(1)
+        #modelid = lines[0].strip()
 
       ass = words[1]
       assl = len(ass)
@@ -121,23 +121,23 @@ with open (sys.argv[2], "r") as fin:
         sys.exit(2)
 
       aid=line[0:opos]
-      if aid.find("_btor_id_", 0) == 0:
-        aid = aid[9:]
       #check if array id is really an integer or an identifier
       try:
         temp = int(aid)
       except:
-        # aid is an identifier, we have to get the id
-        ret = os.popen ("grep \"\<" + aid + "\>\" " + sys.argv[1] + \
-                        "| awk '{print $1}'")
-        lines = ret.readlines()
-        if len(lines) > 1:
-          print "Array identifier is not unique"
-          sys.exit(1)
-        if len(lines) == 0:
-          print "Cannot find array identifier"
-          sys.exit(1)
-        aid = lines[0].strip()
+        print "invalid identifier"
+        sys.exit(2)
+        ## aid is an identifier, we have to get the id
+        #ret = os.popen ("grep \"\<" + aid + "\>\" " + sys.argv[1] + \
+        #                "| awk '{print $1}'")
+        #lines = ret.readlines()
+        #if len(lines) > 1:
+        #  print "Array identifier is not unique"
+        #  sys.exit(1)
+        #if len(lines) == 0:
+        #  print "Cannot find array identifier"
+        #  sys.exit(1)
+        #aid = lines[0].strip()
 
       iass=line[opos + 1:cpos]
       iassl=len(iass)

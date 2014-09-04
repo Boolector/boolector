@@ -45,6 +45,10 @@
 
 /*------------------------------------------------------------------------*/
 
+void boolector_chkclone (Btor *);
+void boolector_set_btor_id (Btor *, BoolectorNode *, int);
+
+/*------------------------------------------------------------------------*/
 typedef struct BtorUNT
 {
   int verbose;
@@ -76,8 +80,6 @@ delete_btorunt (BtorUNT *btorunt)
 {
   free (btorunt);
 }
-
-void boolector_chkclone (Btor *);
 
 /*------------------------------------------------------------------------*/
 
@@ -375,6 +377,11 @@ NEXT:
       exp_ret = RET_VOIDPTR;
       ret_ptr = boolector_clone (btor);
     }
+    else if (!strcmp (tok, "set_btor_id"))
+    {
+      PARSE_ARGS2 (tok, str, int);
+      boolector_set_btor_id (btor, hmap_get (hmap, arg1_str), arg2_int);
+    }
     else if (!strcmp (tok, "set_msg_prefix"))
     {
       PARSE_ARGS1 (tok, str);
@@ -383,18 +390,18 @@ NEXT:
     else if (!strcmp (tok, "set_opt"))
     {
       PARSE_ARGS2 (tok, str, int);
-      boolector_set_opt (btor, arg1_str, arg2_int);
+      boolector_set_opt (btor, hmap_get (hmap, arg1_str), arg2_int);
     }
     else if (!strcmp (tok, "get_opt"))
     {
       PARSE_ARGS1 (tok, str);
-      ret_ptr = (void *) boolector_get_opt (btor, arg1_str);
+      ret_ptr = (void *) boolector_get_opt (btor, hmap_get (hmap, arg1_str));
       exp_ret = RET_VOIDPTR;
     }
     else if (!strcmp (tok, "get_opt_val"))
     {
       PARSE_ARGS1 (tok, str);
-      ret_int = boolector_get_opt_val (btor, arg1_str);
+      ret_int = boolector_get_opt_val (btor, hmap_get (hmap, arg1_str));
       exp_ret = RET_INT;
     }
     else if (!strcmp (tok, "first_opt"))

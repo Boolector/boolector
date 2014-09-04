@@ -303,6 +303,27 @@ btor_precond_apply_exp_dbg (const Btor *btor,
 #endif
 /*------------------------------------------------------------------------*/
 
+void
+btor_set_btor_id (Btor *btor, BtorNode *exp, int id)
+{
+  assert (btor);
+  assert (exp);
+  assert (id);
+  assert (btor_is_bv_var_exp (btor, exp)
+          || btor_is_uf_array_var_exp (btor, exp));
+
+  BtorNode *real_exp;
+
+  real_exp = BTOR_REAL_ADDR_NODE (exp);
+
+  if (BTOR_IS_BV_VAR_NODE (real_exp))
+    ((BtorBVVarNode *) real_exp)->btor_id = id;
+  else if (BTOR_IS_UF_NODE (real_exp))
+    ((BtorUFNode *) real_exp)->btor_id = id;
+}
+
+/*------------------------------------------------------------------------*/
+
 /* Creates an expression pair which can be compared with
  * other expression pairs via the function
  * 'compare_exp_pair'
@@ -3350,12 +3371,21 @@ btor_is_array_exp (Btor *btor, BtorNode *exp)
 }
 
 int
-btor_is_array_var_exp (Btor *btor, BtorNode *exp)
+btor_is_uf_array_var_exp (Btor *btor, BtorNode *exp)
 {
   assert (btor);
   assert (exp);
   exp = btor_simplify_exp (btor, exp);
   return BTOR_IS_UF_ARRAY_NODE (BTOR_REAL_ADDR_NODE (exp));
+}
+
+int
+btor_is_bv_var_exp (Btor *btor, BtorNode *exp)
+{
+  assert (btor);
+  assert (exp);
+  exp = btor_simplify_exp (btor, exp);
+  return BTOR_IS_BV_VAR_NODE (BTOR_REAL_ADDR_NODE (exp));
 }
 
 int

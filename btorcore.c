@@ -9053,12 +9053,16 @@ print_bv_assignment (Btor *btor, BtorNode *node, FILE *file)
   assert (btor);
   assert (node);
 
-  char *pretty;
+  int id;
+  char *pretty, *symbol;
   const char *assignment;
 
   assignment = btor_bv_assignment_str (btor, node);
   pretty     = format_assignment_str (btor, assignment);
-  fprintf (file, "%s %s\n", btor_get_symbol_exp (btor, node), pretty);
+  symbol     = btor_get_symbol_exp (btor, node);
+  id         = ((BtorBVVarNode *) node)->btor_id;
+  fprintf (
+      file, "%d %s %s\n", id ? id : node->id, pretty, symbol ? symbol : "");
   btor_freestr (btor->mm, pretty);
   btor_release_bv_assignment_str (btor, (char *) assignment);
 }
@@ -9069,7 +9073,8 @@ print_uf_array_assignment (Btor *btor, BtorNode *node, FILE *file)
   assert (btor);
   assert (node);
 
-  char **ind, **val;
+  int id;
+  char **ind, **val, *symbol;
   char *pretty_ind, *pretty_val;
   int i, size;
 
@@ -9080,11 +9085,14 @@ print_uf_array_assignment (Btor *btor, BtorNode *node, FILE *file)
     {
       pretty_ind = format_assignment_str (btor, ind[i]);
       pretty_val = format_assignment_str (btor, val[i]);
+      symbol     = btor_get_symbol_exp (btor, node);
+      id         = ((BtorUFNode *) node)->btor_id;
       fprintf (file,
-               "%s[%s] %s\n",
-               btor_get_symbol_exp (btor, node),
+               "%d[%s] %s %s\n",
+               id ? id : node->id,
                pretty_ind,
-               pretty_val);
+               pretty_val,
+               symbol ? symbol : "");
       btor_freestr (btor->mm, pretty_ind);
       btor_freestr (btor->mm, ind[i]);
       btor_freestr (btor->mm, pretty_val);
