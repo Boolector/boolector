@@ -154,13 +154,6 @@ btor_find_in_ptr_hash_table (BtorPtrHashTable *p2iht, void *key)
   return res;
 }
 
-// BtorPtrHashBucket *
-// btor_find_in_ptr_hash_table (BtorPtrHashTable * p2iht, void *key)
-//{
-//  BtorPtrHashBucket **p = btor_findpos_in_ptr_hash_table_pos (p2iht, key);
-//  return p ? *p : 0;
-//}
-
 static BtorPtrHashBucket **
 btor_findpos_in_ptr_hash_table_pos (BtorPtrHashTable *p2iht, void *key)
 {
