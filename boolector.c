@@ -418,9 +418,8 @@ boolector_set_opt (Btor *btor, const char *opt, int val)
   }
   else if (!strcmp (opt, BTOR_OPT_INCREMENTAL))
   {
-    // TODO enable
-    BTOR_ABORT_BOOLECTOR (
-        val == 0, "disabling incremental usage is currently not supported");
+    BTOR_ABORT_BOOLECTOR (val == 0,
+                          "disabling incremental usage is not allowed");
     BTOR_ABORT_BOOLECTOR (btor->btor_sat_btor_called > 0,
                           "enabling incremental usage must be done before "
                           "calling 'boolector_sat'");
