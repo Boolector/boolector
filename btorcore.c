@@ -627,7 +627,7 @@ btor_print_stats_btor (Btor *btor)
   {
     btor_msg (btor, 1, "unconstrained bv props: %d", btor->stats.bv_uc_props);
     btor_msg (
-        btor, 1, "unconstrained array props: %d", btor->stats.array_uc_props);
+        btor, 1, "unconstrained array props: %d", btor->stats.fun_uc_props);
   }
 #endif
   btor_msg (
@@ -878,9 +878,11 @@ btor_print_stats_btor (Btor *btor)
   btor_msg (btor, 1, "%.1f MB", btor->mm->maxallocated / (double) (1 << 20));
 }
 
-Btor *
-btor_new_btor (void)
+static Btor *
+btor_new_aux_btor (int init_opts)
 {
+  assert (init_opts == 0 || init_opts == 1);
+
   BtorMemMgr *mm;
   Btor *btor;
 
@@ -890,7 +892,7 @@ btor_new_btor (void)
   btor->mm    = mm;
   btor->avmgr = btor_new_aigvec_mgr (mm);
 
-  btor_init_opts (btor);
+  if (init_opts) btor_init_opts (btor);
 
   btor->bv_assignments    = btor_new_bv_assignment_list (mm);
   btor->array_assignments = btor_new_array_assignment_list (mm);
@@ -965,6 +967,18 @@ btor_new_btor (void)
   btor->true_exp = btor_true_exp (btor);
 
   return btor;
+}
+
+Btor *
+btor_new_btor (void)
+{
+  return btor_new_aux_btor (1);
+}
+
+Btor *
+btor_new_btor_no_init (void)
+{
+  return btor_new_aux_btor (0);
 }
 
 void
@@ -3958,22 +3972,6 @@ merge_lambdas (Btor *btor)
 }
 
 #ifndef BTOR_DO_NOT_OPTIMIZE_UNCONSTRAINED
-static BtorNode *
-lambda_array_exp (Btor *btor, int elem_len, int index_len)
-{
-  assert (btor);
-  assert (elem_len > 0);
-  assert (index_len > 0);
-
-  BtorNode *res;
-#ifndef NDEBUG
-  int id = BTOR_COUNT_STACK (btor->nodes_id_table);
-#endif
-  res = btor_array_exp (btor, elem_len, index_len, 0);
-  assert (res->id == id);
-  return res;
-}
-
 static void
 optimize_unconstrained (Btor *btor)
 {
@@ -3984,7 +3982,7 @@ optimize_unconstrained (Btor *btor)
   assert (check_id_table_mark_unset_dbg (btor));
 
   double start;
-  int i, hl[3], nparams, isuc;
+  int i, hl[3], isuc;
   BtorNode *cur, *cur_parent, *subst;
   BtorLambdaNode *lambda;
   BtorNodePtrStack stack, roots;
@@ -3993,14 +3991,13 @@ optimize_unconstrained (Btor *btor)
   BtorNodeIterator pit;
   BtorParameterizedIterator parit;
   BtorMemMgr *mm;
+  BtorSort *sort;
 
   start = btor_time_stamp ();
 
   if (btor->bv_vars->count == 0 && btor->ufs->count == 0) return;
 
-  mm      = btor->mm;
-  nparams = 0;
-
+  mm = btor->mm;
   BTOR_INIT_STACK (stack);
   BTOR_INIT_STACK (roots);
 
@@ -4018,7 +4015,6 @@ optimize_unconstrained (Btor *btor)
     assert (BTOR_IS_REGULAR_NODE (cur));
     if (cur->parents == 1)
     {
-      assert (!cur->constraint);
       cur_parent = BTOR_REAL_ADDR_NODE (cur->first_parent);
       assert (!btor_find_in_ptr_hash_table (hls, cur));
       btor_insert_in_ptr_hash_table (hls, btor_copy_exp (btor, cur));
@@ -4071,7 +4067,6 @@ optimize_unconstrained (Btor *btor)
     else
     {
       assert (cur->mark == 2);
-      // printf ("--cur %s\n", node2string (cur));
       cur->mark = 0;
 
       isuc = 1;
@@ -4080,8 +4075,10 @@ optimize_unconstrained (Btor *btor)
       {
         /* parameterized expressions are possibly unconstrained if the
          * lambda(s) parameterizing it do not have more than 1 parent */
-        lambda = ((BtorParamNode *) next_parameterized_iterator (&parit))
-                     ->lambda_exp;
+        lambda =
+            BTOR_PARAM_GET_LAMBDA_NODE (next_parameterized_iterator (&parit));
+        if (BTOR_IS_CURRIED_LAMBDA_NODE (lambda))
+          lambda = BTOR_LAMBDA_GET_HEAD (lambda);
         if (lambda->parents > 1)
         {
           isuc = 0;
@@ -4119,7 +4116,7 @@ optimize_unconstrained (Btor *btor)
           case BTOR_APPLY_NODE:
             if (hl[0])
             {
-              btor->stats.array_uc_props++;
+              btor->stats.fun_uc_props++;
               btor_insert_in_ptr_hash_table (hls, btor_copy_exp (btor, cur));
               subst = lambda_var_exp (btor, cur->len);
               btor_insert_substitution (btor, cur, subst, 0);
@@ -4155,7 +4152,7 @@ optimize_unconstrained (Btor *btor)
               if (BTOR_IS_BV_EQ_NODE (cur))
                 btor->stats.bv_uc_props++;
               else
-                btor->stats.array_uc_props++;
+                btor->stats.fun_uc_props++;
               btor_insert_in_ptr_hash_table (hls, btor_copy_exp (btor, cur));
               subst = lambda_var_exp (btor, cur->len);
               btor_insert_substitution (btor, cur, subst, 0);
@@ -4253,14 +4250,15 @@ optimize_unconstrained (Btor *btor)
             // prevent multi-param lambdas to be substituted
             // by an array variable (will be substituted by an
             // UF after competition)
-            if (((BtorLambdaNode *) cur)->num_params > 1)
-              nparams = 1;
-            else if (hl[1] && !BTOR_IS_CURRIED_LAMBDA_NODE (cur))
+            if (hl[1]
+                && (!BTOR_IS_CURRIED_LAMBDA_NODE (cur)
+                    || BTOR_IS_FIRST_CURRIED_LAMBDA (cur)))
             {
-              btor->stats.array_uc_props++;
+              btor->stats.fun_uc_props++;
               btor_insert_in_ptr_hash_table (hls, btor_copy_exp (btor, cur));
-              subst =
-                  lambda_array_exp (btor, cur->len, BTOR_ARRAY_INDEX_LEN (cur));
+              sort  = btor_create_or_get_sort (btor, cur);
+              subst = btor_uf_exp (btor, sort, 0);
+              btor_release_sort (&btor->sorts_unique_table, sort);
               btor_insert_substitution (btor, cur, subst, 0);
               // printf ("cur: %s\n", node2string (cur));
               // printf ("hl[0]: %d e[0]: %s\n", hl[0], node2string
@@ -4276,8 +4274,7 @@ optimize_unconstrained (Btor *btor)
     }
   }
 
-  if (!nparams)  // FIXME nparams = 1: emergency abort
-    substitute_and_rebuild (btor, btor->substitutions, 0);
+  substitute_and_rebuild (btor, btor->substitutions, 0);
 
   /* cleanup */
   btor_delete_substitutions (btor);

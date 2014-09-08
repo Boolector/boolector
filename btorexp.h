@@ -362,7 +362,7 @@ typedef struct BtorArgsNode BtorArgsNode;
 #define BTOR_PARAM_SET_LAMBDA_NODE(param, lambda) \
   (((BtorParamNode *) BTOR_REAL_ADDR_NODE (param))->lambda_exp = lambda)
 
-#define BTOR_LAMBDA_GET_NESTED(exp) (((BtorLambdaNode *) exp)->head)
+#define BTOR_LAMBDA_GET_HEAD(exp) (((BtorLambdaNode *) exp)->head)
 
 #define BTOR_LAMBDA_GET_PARAM(exp) (((BtorParamNode *) exp->e[0]))
 

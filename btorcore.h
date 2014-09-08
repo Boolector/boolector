@@ -186,7 +186,7 @@ struct Btor
     int beta_reduction_conflicts;
 #ifndef BTOR_DO_NOT_OPTIMIZE_UNCONSTRAINED
     int bv_uc_props;
-    int array_uc_props;
+    int fun_uc_props;
 #endif
     int var_substitutions;     /* number substituted vars */
     int uf_substitutions;      /* num substituted uninterpreted functions */
@@ -269,6 +269,9 @@ struct Btor
 
 /* Creates new boolector instance. */
 Btor *btor_new_btor (void);
+
+/* Creates new boolector instance without initializing options. */
+Btor *btor_new_btor_no_init (void);
 
 /* Deletes boolector. */
 void btor_delete_btor (Btor *btor);
