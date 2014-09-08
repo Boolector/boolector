@@ -16,7 +16,8 @@ import math, os
 g_tunable_options = {"rewrite_level", "rewrite_level_pbr",
                      "beta_reduce_all", "probe_beta_reduce_all",
                      "pbra_lod_limit", "pbra_sat_limit", "pbra_ops_factor",
-                     "dual_prop", "just", "ucopt", }
+                     "dual_prop", "just", "ucopt", "lazy_synthesize",
+                     "eliminate_slices"}
 
 class BoolectorException(Exception):
     
