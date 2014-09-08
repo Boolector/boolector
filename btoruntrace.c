@@ -19,6 +19,7 @@
 #include <string.h>
 #include "boolector.h"
 #include "btorhash.h"
+#include "btormem.h"
 #include "btorstack.h"
 
 /*------------------------------------------------------------------------*/
@@ -51,6 +52,7 @@ void boolector_set_btor_id (Btor *, BoolectorNode *, int);
 /*------------------------------------------------------------------------*/
 typedef struct BtorUNT
 {
+  BtorMemMgr *mm;
   int verbose;
   int exit_on_abort;
   int line;
@@ -68,9 +70,12 @@ static BtorUNT *
 new_btorunt (void)
 {
   BtorUNT *btorunt;
+  BtorMemMgr *mm;
 
-  btorunt = malloc (sizeof (BtorUNT));
-  memset (btorunt, 0, sizeof (BtorUNT));
+  mm = btor_new_mem_mgr ();
+  BTOR_CNEW (mm, btorunt);
+  btorunt->mm   = mm;
+  btorunt->line = 1;
 
   return btorunt;
 }
@@ -78,7 +83,9 @@ new_btorunt (void)
 static void
 delete_btorunt (BtorUNT *btorunt)
 {
-  free (btorunt);
+  BtorMemMgr *mm = btorunt->mm;
+  BTOR_DELETE (mm, btorunt);
+  btor_delete_mem_mgr (mm);
 }
 
 /*------------------------------------------------------------------------*/
@@ -241,36 +248,42 @@ BTOR_DECLARE_STACK (BoolectorSortPtr, BoolectorSort *);
 void
 parse (FILE *file)
 {
-  int i, ch, delete = 1;
-  int exp_ret;
-  int arg1_int, arg2_int, arg3_int, ret_int;
-  char *arg1_str, *arg2_str, *arg3_str, *ret_str, *exp_str;
-  char **res1_pptr, **res2_pptr;
-  ;
+  int i, ch, delete;
   size_t len, buffer_len;
   char *buffer, *tok;
-  Btor *btor;
-  void *ret_ptr;
   BoolectorNode **tmp;
   BtorPtrHashTable *hmap;
-  BtorMemMgr *mm;
+
+  Btor *btor;
+
+  int exp_ret;                   /* expected return value */
+  int ret_int;                   /* actual return value */
+  char *ret_str;                 /* actual return string */
+  void *ret_ptr;                 /* actual return string */
+  char **res1_pptr, **res2_pptr; /* result pointer */
+
+  char *exp_str; /* expression string (pointer) */
+  int arg1_int, arg2_int, arg3_int;
+  char *arg1_str, *arg2_str, *arg3_str;
   BtorIntStack arg_int;
   BtorCharPtrStack arg_str;
   BoolectorSortPtrStack sort_stack;
 
   msg ("reading %s", btorunt->filename);
+
+  delete = 1;
+
   exp_ret = RET_NONE;
   ret_ptr = 0, ret_str = 0;
-  len           = 0;
-  buffer_len    = 256;
-  btorunt->line = 1;
-  arg2_int      = 0;
-  btor          = 0;
-  mm            = btor_new_mem_mgr ();
-  hmap          = btor_new_ptr_hash_table (
-      mm, (BtorHashPtr) btor_hash_str, (BtorCmpPtr) strcmp);
-  buffer    = malloc (buffer_len * sizeof (char));
-  buffer[0] = 0;
+  len        = 0;
+  buffer_len = 256;
+  arg2_int   = 0;
+  btor       = 0;
+
+  hmap = btor_new_ptr_hash_table (
+      btorunt->mm, (BtorHashPtr) btor_hash_str, (BtorCmpPtr) strcmp);
+
+  BTOR_CNEWN (btorunt->mm, buffer, buffer_len);
 
   BTOR_INIT_STACK (arg_int);
   BTOR_INIT_STACK (arg_str);
@@ -287,9 +300,9 @@ NEXT:
   {
     if (len + 1 >= buffer_len)
     {
+      BTOR_REALLOC (btorunt->mm, buffer, buffer_len, buffer_len * 2);
       buffer_len *= 2;
-      buffer = realloc (buffer, buffer_len * sizeof (char));
-      msg ("doubled buffer");
+      msg ("buffer resized");
     }
     buffer[len++] = ch;
     buffer[len]   = 0;
@@ -929,25 +942,25 @@ NEXT:
     }
     else if (!strcmp (tok, "fun"))
     {
-      arg1_int = intarg (tok);                                 /* paramc */
-      tmp      = malloc (sizeof (BoolectorNode *) * arg1_int); /* params */
+      arg1_int = intarg (tok);                /* paramc */
+      BTOR_NEWN (btorunt->mm, tmp, arg1_int); /* params */
       for (i = 0; i < arg1_int; i++) tmp[i] = hmap_get (hmap, strarg (tok));
       arg1_str = strarg (tok); /* function body */
       checklastarg (tok);
       ret_ptr = boolector_fun (btor, arg1_int, tmp, hmap_get (hmap, arg1_str));
-      free (tmp);
+      BTOR_DELETEN (btorunt->mm, tmp, arg1_int);
       exp_ret = RET_VOIDPTR;
     }
     else if (!strcmp (tok, "apply"))
     {
-      arg1_int = intarg (tok);                                 /* argc */
-      tmp      = malloc (sizeof (BoolectorNode *) * arg1_int); /* args */
+      arg1_int = intarg (tok);                /* argc */
+      BTOR_NEWN (btorunt->mm, tmp, arg1_int); /* args */
       for (i = 0; i < arg1_int; i++) tmp[i] = hmap_get (hmap, strarg (tok));
       arg1_str = strarg (tok); /* function */
       checklastarg (tok);
       ret_ptr =
           boolector_apply (btor, arg1_int, tmp, hmap_get (hmap, arg1_str));
-      free (tmp);
+      BTOR_DELETEN (btorunt->mm, tmp, arg1_int);
       exp_ret = RET_VOIDPTR;
     }
     else if (!strcmp (tok, "inc"))
@@ -1099,7 +1112,7 @@ NEXT:
     else if (!strcmp (tok, "fun_sort_check"))
     {
       arg1_int = intarg (tok); /* argc */
-      tmp      = malloc (sizeof (BoolectorNode *) * arg1_int);
+      BTOR_NEWN (btorunt->mm, tmp, arg1_int);
       for (i = 0; i < arg1_int; i++) /* args */
         tmp[i] = hmap_get (hmap, strarg (tok));
       arg1_str = strarg (tok); /* function body */
@@ -1107,6 +1120,7 @@ NEXT:
       ret_int = boolector_fun_sort_check (
           btor, arg1_int, tmp, hmap_get (hmap, arg1_str));
       exp_ret = RET_SKIP;
+      BTOR_DELETEN (btorunt->mm, tmp, arg1_int);
     }
     else if (!strcmp (tok, "bv_assignment"))
     {
@@ -1161,7 +1175,7 @@ NEXT:
     else if (!strcmp (tok, "fun_sort"))
     {
       while ((tok = strtok (0, " ")))
-        BTOR_PUSH_STACK (mm, sort_stack, hmap_get (hmap, tok));
+        BTOR_PUSH_STACK (btorunt->mm, sort_stack, hmap_get (hmap, tok));
       assert (BTOR_COUNT_STACK (sort_stack) >= 2);
       ret_ptr = boolector_fun_sort (btor,
                                     sort_stack.start,
@@ -1212,13 +1226,12 @@ NEXT:
   goto NEXT;
 DONE:
   msg ("done %s", btorunt->filename);
-  BTOR_RELEASE_STACK (mm, arg_int);
-  BTOR_RELEASE_STACK (mm, arg_str);
-  BTOR_RELEASE_STACK (mm, sort_stack);
-  free (buffer);
+  BTOR_RELEASE_STACK (btorunt->mm, arg_int);
+  BTOR_RELEASE_STACK (btorunt->mm, arg_str);
+  BTOR_RELEASE_STACK (btorunt->mm, sort_stack);
+  BTOR_DELETEN (btorunt->mm, buffer, buffer_len);
   hmap_clear (hmap);
   btor_delete_ptr_hash_table (hmap);
-  btor_delete_mem_mgr (mm);
   if (delete) boolector_delete (btor);
 }
 
