@@ -410,13 +410,7 @@ boolector_set_opt (Btor *btor, const char *opt, int val)
   BTOR_TRAPI ("%s %d", opt, val);
   BTOR_ABORT_BOOLECTOR (!btor_get_opt (btor, opt), "invalid option '%s'", opt);
 
-  if (!strcmp (opt, BTOR_OPT_MODEL_GEN))
-  {
-    BTOR_ABORT_BOOLECTOR (
-        !val,  // TODO enable
-        "disabling model generation is currently not supported");
-  }
-  else if (!strcmp (opt, BTOR_OPT_INCREMENTAL))
+  if (!strcmp (opt, BTOR_OPT_INCREMENTAL))
   {
     BTOR_ABORT_BOOLECTOR (val == 0,
                           "disabling incremental usage is not allowed");
