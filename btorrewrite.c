@@ -14,6 +14,7 @@
 #include "btorrewrite.h"
 #include "btorbeta.h"
 #include "btorconst.h"
+#include "btoriter.h"
 #include "btormem.h"
 #include "btorutil.h"
 
@@ -1242,12 +1243,6 @@ normalize_binary_comm_ass_exp (Btor *btor,
                                                   BtorNode *),
                                BtorNodeKind kind)
 {
-  BtorNode *cur, *result, *temp, *common;
-  BtorNodePtrStack stack;
-  BtorMemMgr *mm;
-  int i;
-  BtorPtrHashTable *left, *right, *comm;
-  BtorPtrHashBucket *b;
   assert (btor);
   assert (e0);
   assert (e1);
@@ -1265,6 +1260,14 @@ normalize_binary_comm_ass_exp (Btor *btor,
 
   assert (kind == BTOR_ADD_NODE || kind == BTOR_AND_NODE
           || kind == BTOR_MUL_NODE);
+
+  BtorNode *cur, *result, *temp, *common;
+  BtorNodePtrStack stack;
+  BtorMemMgr *mm;
+  int i;
+  BtorPtrHashTable *left, *right, *comm;
+  BtorPtrHashBucket *b;
+  BtorHashTableIterator it;
 
   mm    = btor->mm;
   left  = btor_new_ptr_hash_table (mm,
@@ -1392,9 +1395,11 @@ normalize_binary_comm_ass_exp (Btor *btor,
 #if 0
   /* normalize left side */
   result = btor_copy_exp (btor, common);
-  for (b = left->first; b; b = b->next)
+  init_node_hash_table_iterator (&it, left);
+  while (has_next_node_hash_table_iterator (&it))
     {
-      cur = b->key;
+      b = it.bucket;
+      cur = next_node_hash_table_iterator (&it);
       for (i = 0; i < b->data.asInt; i++)
 	{
 	  temp = fptr (btor, result, cur);
@@ -1406,9 +1411,11 @@ normalize_binary_comm_ass_exp (Btor *btor,
 
   /* normalize right side */
   result = btor_copy_exp (btor, common);
-  for (b = right->first; b; b = b->next)
+  init_node_hash_table_iterator (&it, right);
+  while (has_next_node_hash_table_iterator (&it))
     {
-      cur = b->key;
+      b = it.bucket;
+      cur = next_node_hash_table_iterator (&it);
       for (i = 0; i < b->data.asInt; i++)
 	{
 	  temp = fptr (btor, result, cur);
@@ -1421,9 +1428,11 @@ normalize_binary_comm_ass_exp (Btor *btor,
   /* Bubble up common part.
    */
   result = 0;
-  for (b = left->first; b; b = b->next)
+  init_node_hash_table_iterator (&it, left);
+  while (has_next_node_hash_table_iterator (&it))
   {
-    cur = b->key;
+    b   = it.bucket;
+    cur = next_node_hash_table_iterator (&it);
     for (i = 0; i < b->data.asInt; i++)
     {
       if (result)
@@ -1449,9 +1458,11 @@ normalize_binary_comm_ass_exp (Btor *btor,
   *e0_norm = result;
 
   result = 0;
-  for (b = right->first; b; b = b->next)
+  init_node_hash_table_iterator (&it, right);
+  while (has_next_node_hash_table_iterator (&it))
   {
-    cur = b->key;
+    b   = it.bucket;
+    cur = next_node_hash_table_iterator (&it);
     for (i = 0; i < b->data.asInt; i++)
     {
       if (result)
@@ -2297,10 +2308,11 @@ normalize_add_exp (Btor *btor, BtorNode **top_ptr)
   BtorNode *top, *real_top, *node, *res, *c, *f;
   BtorNode *tmp, *tmp2, *one;
   BtorPtrHashTable *seen;
+  BtorHashTableIterator it;
   BtorNodePtrStack stack;
-  BtorPtrHashBucket *b;
   return;  // FIXME: deactived for smtcomp14
   int i, len;
+
   if (btor->options.rewrite_level.val < 2) return;
   top      = *top_ptr;
   real_top = BTOR_REAL_ADDR_NODE (top);
@@ -2315,11 +2327,12 @@ normalize_add_exp (Btor *btor, BtorNode **top_ptr)
   normrecadd (btor, 1, top, &i, 10, seen);
   c = btor_int_exp (btor, i, len);
   BTOR_INIT_STACK (stack);
-  for (b = seen->first; b; b = b->next)
+  init_node_hash_table_iterator (&it, seen);
+  while (has_next_node_hash_table_iterator (&it))
   {
-    i = b->data.asInt;
+    i = it.bucket->data.asInt;
     if (!i) continue;
-    node = b->key;
+    node = next_node_hash_table_iterator (&it);
     assert (!BTOR_IS_INVERTED_NODE (node));
     if (node->kind == BTOR_BV_CONST_NODE)
     {

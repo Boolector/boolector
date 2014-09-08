@@ -66,7 +66,7 @@ test_traverse_hash_str2i (void)
   char buffer[20];
   int i;
 
-  ht = btor_new_ptr_hash_table (mem, btor_hashstr, btor_cmpstr);
+  ht = btor_new_ptr_hash_table (mem, btor_hash_str, btor_cmpstr);
 
   for (i = 0; i < 40; i++)
   {
@@ -102,7 +102,7 @@ test_hash_str2str (void)
   void *key;
   int i;
 
-  ht = btor_new_ptr_hash_table (mem, btor_hashstr, btor_cmpstr);
+  ht = btor_new_ptr_hash_table (mem, btor_hash_str, btor_cmpstr);
 
   for (i = 0; i < 10; i++)
   {

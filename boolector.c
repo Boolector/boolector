@@ -82,6 +82,25 @@ boolector_chkclone (Btor *btor)
 
 /*------------------------------------------------------------------------*/
 
+void
+boolector_set_btor_id (Btor *btor, BoolectorNode *node, int id)
+{
+  BtorNode *exp;
+
+  exp = BTOR_IMPORT_BOOLECTOR_NODE (node);
+  BTOR_ABORT_ARG_NULL_BOOLECTOR (btor);
+  BTOR_TRAPI_UNFUN_EXT (exp, "%d", id);
+  BTOR_ABORT_BOOLECTOR (
+      !btor_is_bv_var_exp (btor, exp) && !btor_is_uf_array_var_exp (btor, exp),
+      "'exp' is neither BV/array variable nor UF");
+  btor_set_btor_id (btor, exp, id);
+#ifndef NDEBUG
+  BTOR_CHKCLONE_NORES (set_btor_id, BTOR_CLONED_EXP (exp), id);
+#endif
+}
+
+/*------------------------------------------------------------------------*/
+
 Btor *
 boolector_new (void)
 {
@@ -727,24 +746,16 @@ boolector_var (Btor *btor, int width, const char *symbol)
   BtorNode *res;
   char *symb;
 
-  if ((symb = (char *) symbol) == NULL)
-  {
-    BTOR_NEWN (btor->mm, symb, 20);
-    sprintf (symb, "DVN%d", btor->dvn_id++);
-    BTOR_TRAPI ("%d %s", width, symb);
-    BTOR_ABORT_BOOLECTOR (width < 1, "'width' must not be < 1");
-    btor->external_refs++;
-    res = btor_var_exp (btor, width, symb);
-  }
-  else
-  {
-    BTOR_TRAPI ("%d %s", width, symbol);
-    BTOR_ABORT_BOOLECTOR (width < 1, "'width' must not be < 1");
-    btor->external_refs++;
-    res = btor_var_exp (btor, width, symbol);
-  }
+  symb = (char *) symbol;
+  BTOR_TRAPI ("%d %s", width, symb);
+  BTOR_ABORT_BOOLECTOR (width < 1, "'width' must not be < 1");
+  BTOR_ABORT_BOOLECTOR (
+      symb && btor_find_in_ptr_hash_table (btor->symbols, (char *) symb),
+      "symbol '%s' is already in use",
+      symb);
+  btor->external_refs++;
+  res = btor_var_exp (btor, width, symb);
   BTOR_REAL_ADDR_NODE (res)->ext_refs += 1;
-  if (symbol == NULL) BTOR_DELETEN (btor->mm, symb, 20);
   BTOR_TRAPI_RETURN_NODE (res);
   (void) btor_insert_in_ptr_hash_table (btor->inputs,
                                         btor_copy_exp (btor, res));
@@ -760,36 +771,62 @@ boolector_array (Btor *btor,
                  int index_width,
                  const char *symbol)
 {
+  BTOR_ABORT_ARG_NULL_BOOLECTOR (btor);
+
   BtorNode *res;
   char *symb;
 
-  BTOR_ABORT_ARG_NULL_BOOLECTOR (btor);
-
-  if ((symb = (char *) symbol) == NULL)
-  {
-    BTOR_NEWN (btor->mm, symb, 20);
-    sprintf (symb, "DAN%d", btor->dan_id++);
-    BTOR_TRAPI ("%d %d %s", elem_width, index_width, symb);
-    BTOR_ABORT_BOOLECTOR (elem_width < 1, "'elem_width' must not be < 1");
-    BTOR_ABORT_BOOLECTOR (index_width < 1, "'index_width' must not be < 1");
-    btor->external_refs++;
-    res = btor_array_exp (btor, elem_width, index_width, symb);
-  }
-  else
-  {
-    BTOR_TRAPI ("%d %d %s", elem_width, index_width, symbol);
-    BTOR_ABORT_BOOLECTOR (elem_width < 1, "'elem_width' must not be < 1");
-    BTOR_ABORT_BOOLECTOR (index_width < 1, "'index_width' must not be < 1");
-    btor->external_refs++;
-    res = btor_array_exp (btor, elem_width, index_width, symbol);
-  }
+  symb = (char *) symbol;
+  BTOR_TRAPI ("%d %d %s", elem_width, index_width, symb);
+  BTOR_ABORT_BOOLECTOR (elem_width < 1, "'elem_width' must not be < 1");
+  BTOR_ABORT_BOOLECTOR (index_width < 1, "'index_width' must not be < 1");
+  BTOR_ABORT_BOOLECTOR (
+      symb && btor_find_in_ptr_hash_table (btor->symbols, symb),
+      "symbol '%s' is already in use",
+      symb);
+  btor->external_refs++;
+  res = btor_array_exp (btor, elem_width, index_width, symb);
   BTOR_REAL_ADDR_NODE (res)->ext_refs += 1;
-  if (symbol == NULL) BTOR_DELETEN (btor->mm, symb, 20);
   BTOR_TRAPI_RETURN_NODE (res);
   (void) btor_insert_in_ptr_hash_table (btor->inputs,
                                         btor_copy_exp (btor, res));
 #ifndef NDEBUG
   BTOR_CHKCLONE_RES_PTR (res, array, elem_width, index_width, symbol);
+#endif
+  return BTOR_EXPORT_BOOLECTOR_NODE (res);
+}
+
+BoolectorNode *
+boolector_uf (Btor *btor, BoolectorSort *sort, const char *symbol)
+{
+  BTOR_ABORT_ARG_NULL_BOOLECTOR (btor);
+  BTOR_ABORT_ARG_NULL_BOOLECTOR (sort);
+
+  BtorNode *res;
+  char *symb;
+
+  symb = (char *) symbol;
+  BTOR_TRAPI (SORT_FMT "%s",
+              BTOR_TRAPI_SORT_ID (BTOR_IMPORT_BOOLECTOR_SORT (sort)),
+              symb);
+  BTOR_ABORT_BOOLECTOR (
+      BTOR_IMPORT_BOOLECTOR_SORT (sort)->kind != BTOR_FUN_SORT,
+      "given UF sort is not BTOR_FUN_SORT");
+  BTOR_ABORT_BOOLECTOR (
+      symb && btor_find_in_ptr_hash_table (btor->symbols, symb),
+      "symbol '%s' is already in use",
+      symb);
+
+  res = btor_uf_exp (btor, BTOR_IMPORT_BOOLECTOR_SORT (sort), symb);
+  assert (BTOR_IS_REGULAR_NODE (res));
+  res->ext_refs++;
+  btor->external_refs++;
+  (void) btor_insert_in_ptr_hash_table (btor->inputs,
+                                        btor_copy_exp (btor, res));
+  BTOR_TRAPI_RETURN_NODE (res);
+#ifndef NDEBUG
+  BTOR_CHKCLONE_RES_PTR (
+      res, uf, BTOR_CLONED_SORT (BTOR_IMPORT_BOOLECTOR_SORT (sort)), symbol);
 #endif
   return BTOR_EXPORT_BOOLECTOR_NODE (res);
 }
@@ -2353,30 +2390,22 @@ boolector_cond (Btor *btor,
 BoolectorNode *
 boolector_param (Btor *btor, int width, const char *symbol)
 {
+  BTOR_ABORT_ARG_NULL_BOOLECTOR (btor);
+
   BtorNode *res;
   char *symb;
 
-  BTOR_ABORT_ARG_NULL_BOOLECTOR (btor);
-
-  if ((symb = (char *) symbol) == NULL)
-  {
-    BTOR_NEWN (btor->mm, symb, 20);
-    sprintf (symb, "DPN%d", btor->dpn_id++);
-    BTOR_TRAPI ("%d %s", width, symb);
-    BTOR_ABORT_BOOLECTOR (width < 1, "'width' must not be < 1");
-    btor->external_refs++;
-    res = btor_param_exp (btor, width, symb);
-  }
-  else
-  {
-    BTOR_TRAPI ("%d %s", width, symbol);
-    BTOR_ABORT_BOOLECTOR (width < 1, "'width' must not be < 1");
-    btor->external_refs++;
-    res = btor_param_exp (btor, width, symbol);
-  }
+  symb = (char *) symbol;
+  BTOR_TRAPI ("%d %s", width, symb);
+  BTOR_ABORT_BOOLECTOR (width < 1, "'width' must not be < 1");
+  BTOR_ABORT_BOOLECTOR (
+      symb && btor_find_in_ptr_hash_table (btor->symbols, symb),
+      "symbol '%s' is already in use",
+      symb);
+  btor->external_refs++;
+  res = btor_param_exp (btor, width, symb);
   BTOR_REAL_ADDR_NODE (res)->ext_refs += 1;
 
-  if (symbol == NULL) BTOR_DELETEN (btor->mm, symb, 20);
   BTOR_TRAPI_RETURN_NODE (res);
 #ifndef NDEBUG
   BTOR_CHKCLONE_RES_PTR (res, param, width, symbol);
@@ -2430,46 +2459,6 @@ boolector_fun (Btor *btor,
   for (i = 0; btor->clone && i < paramc; i++)
     cparam_nodes[i] = BTOR_CLONED_EXP (params[i]);
   BTOR_CHKCLONE_RES_PTR (res, fun, paramc, cparam_nodes, BTOR_CLONED_EXP (exp));
-#endif
-  return BTOR_EXPORT_BOOLECTOR_NODE (res);
-}
-
-BoolectorNode *
-boolector_uf (Btor *btor, BoolectorSort *sort, const char *symbol)
-{
-  BTOR_ABORT_ARG_NULL_BOOLECTOR (btor);
-  BTOR_ABORT_ARG_NULL_BOOLECTOR (sort);
-
-  char *symb;
-  BtorNode *res;
-
-  symb = (char *) symbol;
-  if (!symb)
-  {
-    BTOR_NEWN (btor->mm, symb, 20);
-    sprintf (symb, "DFN%d", btor->dfn_id++);
-  }
-
-  BTOR_TRAPI (SORT_FMT "%s",
-              BTOR_TRAPI_SORT_ID (BTOR_IMPORT_BOOLECTOR_SORT (sort)),
-              symb);
-  BTOR_ABORT_BOOLECTOR (
-      BTOR_IMPORT_BOOLECTOR_SORT (sort)->kind != BTOR_FUN_SORT,
-      "given UF sort is not BTOR_FUN_SORT");
-
-  res = btor_uf_exp (btor, BTOR_IMPORT_BOOLECTOR_SORT (sort), symb);
-  assert (BTOR_IS_REGULAR_NODE (res));
-
-  if (!symbol) BTOR_DELETEN (btor->mm, symb, 20);
-
-  res->ext_refs++;
-  btor->external_refs++;
-  (void) btor_insert_in_ptr_hash_table (btor->inputs,
-                                        btor_copy_exp (btor, res));
-  BTOR_TRAPI_RETURN_NODE (res);
-#ifndef NDEBUG
-  BTOR_CHKCLONE_RES_PTR (
-      res, uf, BTOR_CLONED_SORT (BTOR_IMPORT_BOOLECTOR_SORT (sort)), symbol);
 #endif
   return BTOR_EXPORT_BOOLECTOR_NODE (res);
 }
@@ -2617,6 +2606,127 @@ boolector_get_btor (BoolectorNode *node)
   return btor;
 }
 
+const char *
+boolector_get_symbol (Btor *btor, BoolectorNode *node)
+{
+  const char *res;
+  BtorNode *exp;
+
+  exp = BTOR_IMPORT_BOOLECTOR_NODE (node);
+  BTOR_ABORT_ARG_NULL_BOOLECTOR (btor);
+  BTOR_ABORT_ARG_NULL_BOOLECTOR (exp);
+  BTOR_TRAPI_UNFUN (exp);
+  BTOR_ABORT_REFS_NOT_POS_BOOLECTOR (exp);
+  BTOR_ABORT_IF_BTOR_DOES_NOT_MATCH (btor, exp);
+  res = (const char *) btor_get_symbol_exp (btor, exp);
+  BTOR_TRAPI_RETURN_STR (res);
+#ifndef NDEBUG
+  BTOR_CHKCLONE_RES_STR (res, get_symbol, BTOR_CLONED_EXP (exp));
+#endif
+  return res;
+}
+
+int
+boolector_get_width (Btor *btor, BoolectorNode *node)
+{
+  int res;
+  BtorNode *exp;
+
+  exp = BTOR_IMPORT_BOOLECTOR_NODE (node);
+  BTOR_ABORT_ARG_NULL_BOOLECTOR (btor);
+  BTOR_ABORT_ARG_NULL_BOOLECTOR (exp);
+  BTOR_TRAPI_UNFUN (exp);
+  BTOR_ABORT_REFS_NOT_POS_BOOLECTOR (exp);
+  BTOR_ABORT_IF_BTOR_DOES_NOT_MATCH (btor, exp);
+  res = btor_get_exp_len (btor, exp);
+  BTOR_TRAPI_RETURN_INT (res);
+#ifndef NDEBUG
+  BTOR_CHKCLONE_RES (res, get_width, BTOR_CLONED_EXP (exp));
+#endif
+  return res;
+}
+
+int
+boolector_get_index_width (Btor *btor, BoolectorNode *n_array)
+{
+  int res;
+  BtorNode *e_array, *simp_array;
+
+  e_array = BTOR_IMPORT_BOOLECTOR_NODE (n_array);
+  BTOR_ABORT_ARG_NULL_BOOLECTOR (btor);
+  BTOR_ABORT_ARG_NULL_BOOLECTOR (e_array);
+  BTOR_TRAPI_UNFUN (e_array);
+  BTOR_ABORT_REFS_NOT_POS_BOOLECTOR (e_array);
+  BTOR_ABORT_IF_BTOR_DOES_NOT_MATCH (btor, e_array);
+  simp_array = btor_simplify_exp (btor, e_array);
+  BTOR_ABORT_BV_BOOLECTOR (simp_array);
+  res = btor_get_index_exp_len (btor, simp_array);
+  BTOR_TRAPI_RETURN_INT (res);
+#ifndef NDEBUG
+  BTOR_CHKCLONE_RES (res, get_index_width, BTOR_CLONED_EXP (e_array));
+#endif
+  return res;
+}
+
+const char *
+boolector_get_bits (Btor *btor, BoolectorNode *node)
+{
+  BtorNode *exp, *simp, *real;
+  const char *res;
+
+  exp = BTOR_IMPORT_BOOLECTOR_NODE (node);
+  BTOR_ABORT_ARG_NULL_BOOLECTOR (btor);
+  BTOR_TRAPI_UNFUN (exp);
+  BTOR_ABORT_ARG_NULL_BOOLECTOR (node);
+  BTOR_ABORT_REFS_NOT_POS_BOOLECTOR (exp);
+  BTOR_ABORT_IF_BTOR_DOES_NOT_MATCH (btor, exp);
+  simp = btor_simplify_exp (btor, exp);
+  real = BTOR_REAL_ADDR_NODE (simp);
+  BTOR_ABORT_BOOLECTOR (!BTOR_IS_BV_CONST_NODE (real),
+                        "argument is not a constant node");
+  if (BTOR_IS_INVERTED_NODE (simp))
+  {
+    if (!real->invbits)
+      real->invbits = btor_not_const_3vl (btor->mm, real->bits);
+    res = real->invbits;
+  }
+  else
+    res = simp->bits;
+  BTOR_TRAPI_RETURN_STR (res);
+#ifndef NDEBUG
+  if (btor->clone)
+  {
+    const char *cloned_res =
+        boolector_get_bits (btor->clone, BTOR_CLONED_EXP (node));
+    assert (!strcmp (cloned_res, res));
+  }
+#endif
+  return res;
+}
+
+int
+boolector_get_fun_arity (Btor *btor, BoolectorNode *node)
+{
+  int res;
+  BtorNode *exp, *simp;
+
+  exp = BTOR_IMPORT_BOOLECTOR_NODE (node);
+  BTOR_ABORT_ARG_NULL_BOOLECTOR (btor);
+  BTOR_ABORT_ARG_NULL_BOOLECTOR (exp);
+  BTOR_TRAPI_UNFUN (exp);
+  BTOR_ABORT_REFS_NOT_POS_BOOLECTOR (exp);
+  BTOR_ABORT_IF_BTOR_DOES_NOT_MATCH (btor, exp);
+  simp = btor_simplify_exp (btor, exp);
+  BTOR_ABORT_BOOLECTOR (!btor_is_fun_exp (btor, simp),
+                        "given expression is not a function node");
+  res = btor_get_fun_arity (btor, simp);
+  BTOR_TRAPI_RETURN_INT (res);
+#ifndef NDEBUG
+  BTOR_CHKCLONE_RES (res, get_fun_arity, BTOR_CLONED_EXP (exp));
+#endif
+  return res;
+}
+
 int
 boolector_is_const (Btor *btor, BoolectorNode *node)
 {
@@ -2651,44 +2761,10 @@ boolector_is_var (Btor *btor, BoolectorNode *node)
   BTOR_ABORT_IF_BTOR_DOES_NOT_MATCH (btor, exp);
   simp = btor_simplify_exp (btor, exp);
   real = BTOR_REAL_ADDR_NODE (simp);
-  res  = BTOR_IS_BV_VAR_NODE (real);
+  res  = btor_is_bv_var_exp (btor, real);
   BTOR_TRAPI_RETURN_INT (res);
 #ifndef NDEBUG
   BTOR_CHKCLONE_RES (res, is_const, BTOR_CLONED_EXP (exp));
-#endif
-  return res;
-}
-
-// TODO: trapi
-const char *
-boolector_get_bits (Btor *btor, BoolectorNode *node)
-{
-  BtorNode *exp, *simp, *real;
-  const char *res;
-  BTOR_ABORT_ARG_NULL_BOOLECTOR (btor);
-  BTOR_ABORT_ARG_NULL_BOOLECTOR (node);
-  exp = BTOR_IMPORT_BOOLECTOR_NODE (node);
-  BTOR_ABORT_REFS_NOT_POS_BOOLECTOR (exp);
-  BTOR_ABORT_IF_BTOR_DOES_NOT_MATCH (btor, exp);
-  simp = btor_simplify_exp (btor, exp);
-  real = BTOR_REAL_ADDR_NODE (simp);
-  BTOR_ABORT_BOOLECTOR (!BTOR_IS_BV_CONST_NODE (real),
-                        "argument is not a constant node");
-  if (BTOR_IS_INVERTED_NODE (simp))
-  {
-    if (!real->invbits)
-      real->invbits = btor_not_const_3vl (btor->mm, real->bits);
-    res = real->invbits;
-  }
-  else
-    res = simp->bits;
-#ifndef NDEBUG
-  if (btor->clone)
-  {
-    const char *cloned_res =
-        boolector_get_bits (btor->clone, BTOR_CLONED_EXP (node));
-    assert (!strcmp (cloned_res, res));
-  }
 #endif
   return res;
 }
@@ -2727,7 +2803,7 @@ boolector_is_array_var (Btor *btor, BoolectorNode *node)
   BTOR_ABORT_REFS_NOT_POS_BOOLECTOR (exp);
   BTOR_ABORT_IF_BTOR_DOES_NOT_MATCH (btor, exp);
   simp = btor_simplify_exp (btor, exp);
-  res  = btor_is_array_var_exp (btor, simp);
+  res  = btor_is_uf_array_var_exp (btor, simp);
   BTOR_TRAPI_RETURN_INT (res);
 #ifndef NDEBUG
   BTOR_CHKCLONE_RES (res, is_array_var, BTOR_CLONED_EXP (exp));
@@ -2801,71 +2877,6 @@ boolector_is_fun (Btor *btor, BoolectorNode *node)
 }
 
 int
-boolector_get_fun_arity (Btor *btor, BoolectorNode *node)
-{
-  int res;
-  BtorNode *exp, *simp;
-
-  exp = BTOR_IMPORT_BOOLECTOR_NODE (node);
-  BTOR_ABORT_ARG_NULL_BOOLECTOR (btor);
-  BTOR_ABORT_ARG_NULL_BOOLECTOR (exp);
-  BTOR_TRAPI_UNFUN (exp);
-  BTOR_ABORT_REFS_NOT_POS_BOOLECTOR (exp);
-  BTOR_ABORT_IF_BTOR_DOES_NOT_MATCH (btor, exp);
-  simp = btor_simplify_exp (btor, exp);
-  BTOR_ABORT_BOOLECTOR (!btor_is_fun_exp (btor, simp),
-                        "given expression is not a function node");
-  res = btor_get_fun_arity (btor, simp);
-  BTOR_TRAPI_RETURN_INT (res);
-#ifndef NDEBUG
-  BTOR_CHKCLONE_RES (res, get_fun_arity, BTOR_CLONED_EXP (exp));
-#endif
-  return res;
-}
-
-int
-boolector_get_width (Btor *btor, BoolectorNode *node)
-{
-  int res;
-  BtorNode *exp;
-
-  exp = BTOR_IMPORT_BOOLECTOR_NODE (node);
-  BTOR_ABORT_ARG_NULL_BOOLECTOR (btor);
-  BTOR_ABORT_ARG_NULL_BOOLECTOR (exp);
-  BTOR_TRAPI_UNFUN (exp);
-  BTOR_ABORT_REFS_NOT_POS_BOOLECTOR (exp);
-  BTOR_ABORT_IF_BTOR_DOES_NOT_MATCH (btor, exp);
-  res = btor_get_exp_len (btor, exp);
-  BTOR_TRAPI_RETURN_INT (res);
-#ifndef NDEBUG
-  BTOR_CHKCLONE_RES (res, get_width, BTOR_CLONED_EXP (exp));
-#endif
-  return res;
-}
-
-int
-boolector_get_index_width (Btor *btor, BoolectorNode *n_array)
-{
-  int res;
-  BtorNode *e_array, *simp_array;
-
-  e_array = BTOR_IMPORT_BOOLECTOR_NODE (n_array);
-  BTOR_ABORT_ARG_NULL_BOOLECTOR (btor);
-  BTOR_ABORT_ARG_NULL_BOOLECTOR (e_array);
-  BTOR_TRAPI_UNFUN (e_array);
-  BTOR_ABORT_REFS_NOT_POS_BOOLECTOR (e_array);
-  BTOR_ABORT_IF_BTOR_DOES_NOT_MATCH (btor, e_array);
-  simp_array = btor_simplify_exp (btor, e_array);
-  BTOR_ABORT_BV_BOOLECTOR (simp_array);
-  res = btor_get_index_exp_len (btor, simp_array);
-  BTOR_TRAPI_RETURN_INT (res);
-#ifndef NDEBUG
-  BTOR_CHKCLONE_RES (res, get_index_width, BTOR_CLONED_EXP (e_array));
-#endif
-  return res;
-}
-
-int
 boolector_fun_sort_check (Btor *btor,
                           int argc,
                           BoolectorNode **arg_nodes,
@@ -2907,26 +2918,6 @@ boolector_fun_sort_check (Btor *btor,
     carg_nodes[i] = BTOR_CLONED_EXP (args[i]);
   BTOR_CHKCLONE_RES (
       res, fun_sort_check, argc, carg_nodes, BTOR_CLONED_EXP (e_fun));
-#endif
-  return res;
-}
-
-const char *
-boolector_get_symbol (Btor *btor, BoolectorNode *node)
-{
-  const char *res;
-  BtorNode *exp;
-
-  exp = BTOR_IMPORT_BOOLECTOR_NODE (node);
-  BTOR_ABORT_ARG_NULL_BOOLECTOR (btor);
-  BTOR_ABORT_ARG_NULL_BOOLECTOR (exp);
-  BTOR_TRAPI_UNFUN (exp);
-  BTOR_ABORT_REFS_NOT_POS_BOOLECTOR (exp);
-  BTOR_ABORT_IF_BTOR_DOES_NOT_MATCH (btor, exp);
-  res = (const char *) btor_get_symbol_exp (btor, exp);
-  BTOR_TRAPI_RETURN_STR (res);
-#ifndef NDEBUG
-  BTOR_CHKCLONE_RES_STR (res, get_symbol, BTOR_CLONED_EXP (exp));
 #endif
   return res;
 }
@@ -3270,6 +3261,8 @@ boolector_release_sort (Btor *btor, BoolectorSort *sort)
 
 /*------------------------------------------------------------------------*/
 
+/* Note: no need to trace parse function calls!! */
+
 int
 boolector_parse (Btor *btor,
                  FILE *file,
@@ -3280,7 +3273,6 @@ boolector_parse (Btor *btor,
   int res;
 
   BTOR_ABORT_ARG_NULL_BOOLECTOR (btor);
-  BTOR_TRAPI ("%s", file_name);
   BTOR_ABORT_ARG_NULL_BOOLECTOR (file);
   BTOR_ABORT_ARG_NULL_BOOLECTOR (file_name);
   BTOR_ABORT_ARG_NULL_BOOLECTOR (error_msg);
@@ -3289,8 +3281,6 @@ boolector_parse (Btor *btor,
       BTOR_COUNT_STACK (btor->nodes_id_table) > 2,
       "file parsing must be done before creating expressions");
   res = btor_parse (btor, file, file_name, error_msg, status);
-  /* special case: we treat out parameters as return values for btoruntrace */
-  BTOR_TRAPI_RETURN ("%d %s %d", res, error_msg, status);
 #ifndef NDEBUG
   if (btor->clone)
   {
@@ -3317,7 +3307,6 @@ boolector_parse_btor (Btor *btor,
   int res;
 
   BTOR_ABORT_ARG_NULL_BOOLECTOR (btor);
-  BTOR_TRAPI ("%s", file_name);
   BTOR_ABORT_ARG_NULL_BOOLECTOR (file);
   BTOR_ABORT_ARG_NULL_BOOLECTOR (file_name);
   BTOR_ABORT_ARG_NULL_BOOLECTOR (error_msg);
@@ -3326,7 +3315,6 @@ boolector_parse_btor (Btor *btor,
       BTOR_COUNT_STACK (btor->nodes_id_table) > 2,
       "file parsing must be done before creating expressions");
   res = btor_parse_btor (btor, file, file_name, error_msg, status);
-  BTOR_TRAPI_RETURN ("%d %s %d", res, error_msg, status);
 #ifndef NDEBUG
   if (btor->clone)
   {
@@ -3353,7 +3341,6 @@ boolector_parse_smt1 (Btor *btor,
   int res;
 
   BTOR_ABORT_ARG_NULL_BOOLECTOR (btor);
-  BTOR_TRAPI ("%s", file_name);
   BTOR_ABORT_ARG_NULL_BOOLECTOR (file);
   BTOR_ABORT_ARG_NULL_BOOLECTOR (file_name);
   BTOR_ABORT_ARG_NULL_BOOLECTOR (error_msg);
@@ -3362,7 +3349,6 @@ boolector_parse_smt1 (Btor *btor,
       BTOR_COUNT_STACK (btor->nodes_id_table) > 2,
       "file parsing must be done before creating expressions");
   res = btor_parse_smt1 (btor, file, file_name, error_msg, status);
-  BTOR_TRAPI_RETURN ("%d %s %d", res, error_msg, status);
 #ifndef NDEBUG
   if (btor->clone)
   {
@@ -3389,7 +3375,6 @@ boolector_parse_smt2 (Btor *btor,
   int res;
 
   BTOR_ABORT_ARG_NULL_BOOLECTOR (btor);
-  BTOR_TRAPI ("%s", file_name);
   BTOR_ABORT_ARG_NULL_BOOLECTOR (file);
   BTOR_ABORT_ARG_NULL_BOOLECTOR (file_name);
   BTOR_ABORT_ARG_NULL_BOOLECTOR (error_msg);
@@ -3398,7 +3383,6 @@ boolector_parse_smt2 (Btor *btor,
       BTOR_COUNT_STACK (btor->nodes_id_table) > 2,
       "file parsing must be done before creating expressions");
   res = btor_parse_smt2 (btor, file, file_name, error_msg, status);
-  BTOR_TRAPI_RETURN ("%d %s %d", res, error_msg, status);
 #ifndef NDEBUG
   if (btor->clone)
   {

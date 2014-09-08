@@ -10,6 +10,7 @@
  */
 
 #include "btormap.h"
+#include "btoriter.h"
 
 /*------------------------------------------------------------------------*/
 
@@ -35,15 +36,17 @@ btor_delete_node_map (BtorNodeMap *map)
 {
   assert (map);
 
-  BtorPtrHashBucket *bucket;
+  BtorHashTableIterator it;
+  BtorNode *cur;
 
-  for (bucket = map->table->first; bucket; bucket = bucket->next)
+  init_node_hash_table_iterator (&it, map->table);
+  while (has_next_node_hash_table_iterator (&it))
   {
-    btor_release_exp (BTOR_REAL_ADDR_NODE ((BtorNode *) bucket->key)->btor,
-                      bucket->key);
     btor_release_exp (
-        BTOR_REAL_ADDR_NODE ((BtorNode *) bucket->data.asPtr)->btor,
-        bucket->data.asPtr);
+        BTOR_REAL_ADDR_NODE ((BtorNode *) it.bucket->data.asPtr)->btor,
+        it.bucket->data.asPtr);
+    cur = next_node_hash_table_iterator (&it);
+    btor_release_exp (BTOR_REAL_ADDR_NODE (cur)->btor, cur);
   }
   btor_delete_ptr_hash_table (map->table);
   BTOR_DELETE (map->btor->mm, map);
@@ -382,14 +385,15 @@ btor_delete_aig_map (BtorAIGMap *map)
   assert (map);
 
   Btor *btor;
-  BtorPtrHashBucket *bucket;
+  BtorHashTableIterator it;
 
   btor = map->btor;
 
-  for (bucket = map->table->first; bucket; bucket = bucket->next)
+  init_hash_table_iterator (&it, map->table);
+  while (has_next_hash_table_iterator (&it))
   {
-    btor_release_aig (map->amgr_src, bucket->key);
-    btor_release_aig (map->amgr_dst, bucket->data.asPtr);
+    btor_release_aig (map->amgr_dst, it.bucket->data.asPtr);
+    btor_release_aig (map->amgr_src, next_hash_table_iterator (&it));
   }
   btor_delete_ptr_hash_table (map->table);
   BTOR_DELETE (btor->mm, map);

@@ -1237,7 +1237,7 @@ test_lambda_reduce_nested_lambdas_const_n1000 (void)
   BtorNode *result;
   BtorNode **params;
   BtorNode **indices;
-  BtorNode *var = btor_var_exp (g_btor, g_elem_bw, "");
+  BtorNode *var = btor_var_exp (g_btor, g_elem_bw, 0);
   BtorNode *fun;
 
   params  = btor_malloc (g_btor->mm, size);
@@ -1245,8 +1245,8 @@ test_lambda_reduce_nested_lambdas_const_n1000 (void)
 
   for (i = nesting_lvl - 1; i >= 0; i--)
   {
-    indices[i] = btor_var_exp (g_btor, g_index_bw, "");
-    params[i]  = btor_param_exp (g_btor, g_index_bw, "");
+    indices[i] = btor_var_exp (g_btor, g_index_bw, 0);
+    params[i]  = btor_param_exp (g_btor, g_index_bw, 0);
   }
   fun = btor_fun_exp (g_btor, nesting_lvl, params, var);
 
@@ -1326,7 +1326,7 @@ test_lambda_define_fun (void)
   ands    = btor_malloc (g_btor->mm, size - sizeof (BtorNode *));
 
   for (i = 0; i < nesting_lvl; i++)
-    params[i] = btor_param_exp (g_btor, g_elem_bw, "");
+    params[i] = btor_param_exp (g_btor, g_elem_bw, 0);
 
   assert (nesting_lvl > 1);
   left  = params[0];

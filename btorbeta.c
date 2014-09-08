@@ -175,38 +175,6 @@ btor_unassign_params (Btor *btor, BtorNode *lambda)
   } while (BTOR_IS_LAMBDA_NODE (lambda));
 }
 
-#define BETA_REDUCE_OPEN_NEW_SCOPE(lambda)                                     \
-  do                                                                           \
-  {                                                                            \
-    BTOR_PUSH_STACK (mm, scopes, cur_scope);                                   \
-    BTOR_PUSH_STACK (mm, scope_results, cur_scope_results);                    \
-    BTOR_PUSH_STACK (mm, scope_lambdas, cur_scope_lambda);                     \
-    cur_scope = btor_new_ptr_hash_table (mm,                                   \
-                                         (BtorHashPtr) btor_hash_exp_by_id,    \
-                                         (BtorCmpPtr) btor_compare_exp_by_id); \
-    cur_scope_results =                                                        \
-        btor_new_ptr_hash_table (mm,                                           \
-                                 (BtorHashPtr) btor_hash_exp_by_id,            \
-                                 (BtorCmpPtr) btor_compare_exp_by_id);         \
-    cur_scope_lambda = lambda;                                                 \
-  } while (0)
-
-#define BETA_REDUCE_CLOSE_SCOPE()                                            \
-  do                                                                         \
-  {                                                                          \
-    assert (cur_scope);                                                      \
-    assert (cur_scope_lambda);                                               \
-    /* delete current scope */                                               \
-    btor_delete_ptr_hash_table (cur_scope);                                  \
-    for (b = cur_scope_results->first; b; b = b->next)                       \
-      btor_release_exp (btor, (BtorNode *) b->data.asPtr);                   \
-    btor_delete_ptr_hash_table (cur_scope_results);                          \
-    /* pop previous scope */                                                 \
-    cur_scope         = (BtorPtrHashTable *) BTOR_POP_STACK (scopes);        \
-    cur_scope_results = (BtorPtrHashTable *) BTOR_POP_STACK (scope_results); \
-    cur_scope_lambda  = BTOR_POP_STACK (scope_lambdas);                      \
-  } while (0)
-
 #define BETA_REDUCE_PUSH_RESULT_IF_CACHED(lambda, assignment)              \
   {                                                                        \
     cached = cached_beta_result (btor, lambda, assignment);                \
@@ -251,6 +219,7 @@ btor_beta_reduce (Btor *btor, BtorNode *exp, int mode, int bound)
   BtorPtrHashTable *param_cache;
   BtorParamCacheTuple *t;
   BtorPtrHashBucket *b;
+  BtorHashTableIterator it;
 #ifndef NDEBUG
   BtorNodePtrStack unassign_stack;
   BTOR_INIT_STACK (unassign_stack);
@@ -616,13 +585,14 @@ btor_beta_reduce (Btor *btor, BtorNode *exp, int mode, int bound)
   assert (result);
 
   /* release cache and reset beta_mark flags */
-  for (b = param_cache->first; b; b = b->next)
+  init_hash_table_iterator (&it, param_cache);
+  while (has_next_hash_table_iterator (&it))
   {
-    t        = (BtorParamCacheTuple *) b->key;
+    btor_release_exp (btor, (BtorNode *) it.bucket->data.asPtr);
+    t        = (BtorParamCacheTuple *) next_node_hash_table_iterator (&it);
     real_cur = t->exp;
     assert (BTOR_IS_REGULAR_NODE (real_cur));
     btor_delete_param_cache_tuple (btor, t);
-    btor_release_exp (btor, (BtorNode *) b->data.asPtr);
   }
 
   while (!BTOR_EMPTY_STACK (cleanup_stack))
@@ -1046,14 +1016,15 @@ btor_beta_reduce_partial_aux (Btor *btor,
   assert (result);
 
   /* release cache and reset beta_mark flags */
-  for (b = cache->first; b; b = b->next)
+  init_hash_table_iterator (&it, cache);
+  while (has_next_node_hash_table_iterator (&it))
   {
-    t0       = (BtorParamCacheTuple *) b->key;
+    btor_release_exp (btor, (BtorNode *) it.bucket->data.asPtr);
+    t0       = (BtorParamCacheTuple *) next_node_hash_table_iterator (&it);
     real_cur = t0->exp;
     assert (BTOR_IS_REGULAR_NODE (real_cur));
     real_cur->beta_mark = 0;
     btor_delete_param_cache_tuple (btor, t0);
-    btor_release_exp (btor, (BtorNode *) b->data.asPtr);
   }
 
   /* check if result contains bv conditions that couldn't be evaluated */

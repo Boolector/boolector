@@ -2,7 +2,7 @@
  *
  *  Copyright (C) 2007-2009 Robert Daniel Brummayer.
  *  Copyright (C) 2007-2012 Armin Biere.
- *  Copyright (C) 2013 Aina Niemetz.
+ *  Copyright (C) 2013-2014 Aina Niemetz.
  *
  *  All rights reserved.
  *
@@ -11,6 +11,7 @@
  */
 
 #include "btorhash.h"
+#include "btoriter.h"
 
 static unsigned
 btor_hash_ptr (const void *p)
@@ -80,11 +81,11 @@ btor_clone_ptr_hash_table (BtorMemMgr *mem,
 {
   assert (mem);
   assert (ckey);
-  assert (key_map);
 
   BtorPtrHashTable *res;
+  BtorHashTableIterator it;
   BtorPtrHashBucket *b, *cloned_b;
-  void *cloned_key;
+  void *key, *cloned_key;
 
   if (!table) return NULL;
 
@@ -92,9 +93,12 @@ btor_clone_ptr_hash_table (BtorMemMgr *mem,
   while (res->size < table->size) btor_enlarge_ptr_hash_table (res);
   assert (res->size == table->size);
 
-  for (b = table->first; b; b = b->next)
+  init_hash_table_iterator (&it, table);
+  while (has_next_hash_table_iterator (&it))
   {
-    cloned_key = ckey (key_map, b->key);
+    b          = it.bucket;
+    key        = next_hash_table_iterator (&it);
+    cloned_key = ckey (mem, key_map, key);
     assert (cloned_key);
     cloned_b = btor_insert_in_ptr_hash_table (res, cloned_key);
     if (!cdata)
@@ -177,7 +181,7 @@ static unsigned btor_hash_primes[] = {111130391, 22237357, 33355519, 444476887};
 #define BTOR_HASH_PRIMES ((sizeof btor_hash_primes) / sizeof *btor_hash_primes)
 
 unsigned
-btor_hashstr (const void *str)
+btor_hash_str (const void *str)
 {
   const char *p = (const char *) str;
   unsigned res, i;

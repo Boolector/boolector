@@ -264,7 +264,7 @@ static void
 bdcnode (BtorDumpContext *bdc, BtorNode *node, FILE *file)
 {
   int i, aspi = -1;
-  char idbuffer[20];
+  char *symbol;
   const char *op;
   BtorNode *n;
   BtorArgsIterator ait;
@@ -394,9 +394,8 @@ bdcnode (BtorDumpContext *bdc, BtorNode *node, FILE *file)
     fprintf (file, " %d %d", node->upper, node->lower);
   else if (BTOR_IS_BV_VAR_NODE (node) || BTOR_IS_UF_NODE (node))
   {
-    sprintf (idbuffer, "%d", bdcid (bdc, node));
-    if (node->symbol && strcmp (node->symbol, idbuffer))
-      fprintf (file, " %s", node->symbol);
+    symbol = btor_get_symbol_exp (bdc->btor, node);
+    if (symbol) fprintf (file, " %s", symbol);
   }
 DONE:
   fputc ('\n', file);
@@ -552,6 +551,7 @@ btor_dump_btor_bdc (BtorDumpContext *bdc, FILE *file)
 {
   BtorHashTableIterator it;
   int i;
+  char *symbol;
 
   init_node_hash_table_iterator (&it, bdc->inputs);
   while (has_next_node_hash_table_iterator (&it))
@@ -563,7 +563,8 @@ btor_dump_btor_bdc (BtorDumpContext *bdc, FILE *file)
     assert (BTOR_IS_BV_VAR_NODE (node));
     id = bdcid (bdc, node);
     fprintf (file, "%d input %d", id, node->len);
-    if (node->symbol) fprintf (file, " %s", node->symbol);
+    if ((symbol = btor_get_symbol_exp (bdc->btor, node)))
+      fprintf (file, " %s", symbol);
     fputc ('\n', file);
   }
 
@@ -577,7 +578,8 @@ btor_dump_btor_bdc (BtorDumpContext *bdc, FILE *file)
     assert (BTOR_IS_BV_VAR_NODE (node));
     id = bdcid (bdc, node);
     fprintf (file, "%d latch %d", id, node->len);
-    if (node->symbol) fprintf (file, " %s", node->symbol);
+    if ((symbol = btor_get_symbol_exp (bdc->btor, node)))
+      fprintf (file, " %s", symbol);
     fputc ('\n', file);
   }
 

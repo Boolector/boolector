@@ -136,8 +136,7 @@ typedef struct BtorNodePair BtorNodePair;
   {                                                                   \
     struct                                                            \
     {                                                                 \
-      char *symbol; /* symbol for output */                           \
-      int upper;    /* upper index for slices */                      \
+      int upper; /* upper index for slices */                         \
       union                                                           \
       {                                                               \
         int lower;            /* lower index for slices */            \
@@ -153,24 +152,15 @@ typedef struct BtorNodePair BtorNodePair;
 struct BtorBVVarNode
 {
   BTOR_BV_NODE_STRUCT;
-  char *symbol;
+  int btor_id; /* id as defined in btor input */
 };
 
 typedef struct BtorBVVarNode BtorBVVarNode;
 
-struct BtorArrayVarNode
-{
-  BTOR_BV_NODE_STRUCT;
-  char *symbol;
-  int index_len;
-};
-
-typedef struct BtorArrayVarNode BtorArrayVarNode;
-
 struct BtorUFNode
 {
   BTOR_BV_NODE_STRUCT;
-  char *symbol;
+  int btor_id; /* id as defined in btor input */
   BtorSort *sort;
   int num_params;
   char is_array;
@@ -215,7 +205,6 @@ typedef struct BtorLambdaNode BtorLambdaNode;
 struct BtorParamNode
 {
   BTOR_BV_NODE_STRUCT;
-  char *symbol;
   BtorLambdaNode *lambda_exp; /* 1:1 relation param:lambda_exp */
   BtorNode *assigned_exp;
 };
@@ -407,6 +396,10 @@ int btor_compare_exp_by_id (BtorNode *exp0, BtorNode *exp1);
 
 /* Hashes expression by ID */
 unsigned int btor_hash_exp_by_id (BtorNode *exp);
+
+/*------------------------------------------------------------------------*/
+
+void btor_set_btor_id (Btor *btor, BtorNode *exp, int id);
 
 /*------------------------------------------------------------------------*/
 /* Implicit precondition of all functions taking expressions as inputs:
@@ -834,8 +827,11 @@ int btor_get_exp_len (Btor *btor, BtorNode *exp);
 /* Determines if expression is an array or not. */
 int btor_is_array_exp (Btor *btor, BtorNode *exp);
 
-/* Determines if expression is an array variable or not. */
-int btor_is_array_var_exp (Btor *btor, BtorNode *exp);
+/* Determines if expression is an uf or array variable or not. */
+int btor_is_uf_array_var_exp (Btor *btor, BtorNode *exp);
+
+/* Determines if expression is a bv variable or not. */
+int btor_is_bv_var_exp (Btor *btor, BtorNode *exp);
 
 /* Gets the number of bits used by indices on 'e_array'. */
 int btor_get_index_exp_len (Btor *btor, BtorNode *e_array);

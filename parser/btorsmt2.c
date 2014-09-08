@@ -2925,12 +2925,14 @@ SORTED_VAR:
 static int
 btor_define_fun_smt2 (BtorSMT2Parser *parser)
 {
-  int tag, domain, width, nargs = 0;
+  int tag, domain, width, nargs = 0, len;
   BoolectorNode *exp = 0;
   BtorSMT2Coo coo;
   BtorSMT2Item *item;
   BtorSMT2Node *fun, *arg;
   BoolectorNodePtrStack args;
+  char *psym;
+
   fun   = 0;
   arg   = 0;
   width = domain = 0;
@@ -2964,7 +2966,11 @@ SORTED_VAR:
     if (!btor_parse_bitvec_sort_smt2 (parser, 0, &width)) return 0;
 
     nargs++;
-    arg->exp   = boolector_param (parser->btor, width, arg->name);
+    len = strlen (fun->name) + strlen (arg->name) + 3;
+    BTOR_CNEWN (parser->mem, psym, len);
+    sprintf (psym, "_%s_%s", fun->name, arg->name);
+    arg->exp = boolector_param (parser->btor, width, psym);
+    BTOR_DELETEN (parser->mem, psym, len);
     item       = btor_push_item_smt2 (parser, arg->tag);
     item->node = arg;
 
