@@ -265,7 +265,6 @@ btor_set_opt (Btor *btor, const char *name, int val)
   {
     assert (val > 0);
     assert (btor->btor_sat_btor_called == 0);
-    // TODO reset incremental usage, meltall if inc is disabled
   }
 #ifdef BTOR_ENABLE_DUAL_PROPAGATION
   else if (!strcmp (name, "dp") || !strcmp (name, BTOR_OPT_DUAL_PROP))

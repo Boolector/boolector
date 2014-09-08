@@ -252,33 +252,7 @@ clone_exp (Btor *clone,
       }
     }
   }
-  /* <----------------------------------------------------------------------
-   */
-
-#if 0
-  /* ---------------- BTOR_ARRAY_VAR_NODE_STRUCT (all nodes) --------------> */
-  if (BTOR_IS_FUN_NODE (exp) || BTOR_IS_ARRAY_EQ_NODE (exp))
-    {
-      BTOR_PUSH_STACK_IF (exp->first_aeq_acond_parent,
-                          mm, *parents, &res->first_aeq_acond_parent);
-      BTOR_PUSH_STACK_IF (exp->last_aeq_acond_parent,
-                          mm, *parents, &res->last_aeq_acond_parent);
-
-      /* ----------- BTOR_ARRAY_ADDITIONAL_NODE_STRUCT (all nodes) -------> */
-      if (!BTOR_IS_ARRAY_VAR_NODE (exp))
-        {
-          for (i = 0; i < exp->arity; i++)
-            {
-              BTOR_PUSH_STACK_IF (exp->prev_aeq_acond_parent[i],
-                  mm, *parents, &res->prev_aeq_acond_parent[i]);
-              BTOR_PUSH_STACK_IF (exp->next_aeq_acond_parent[i],
-                  mm, *parents, &res->next_aeq_acond_parent[i]);
-            }
-        }
-      /* <------------------------------------------------------------------ */
-    }
   /* <---------------------------------------------------------------------- */
-#endif
 
   if (BTOR_IS_PARAM_NODE (exp))
   {
@@ -819,7 +793,7 @@ clone_aux_btor (Btor *btor,
     amap = btor_new_aig_map (clone,
                              btor_get_aig_mgr_aigvec_mgr (btor->avmgr),
                              btor_get_aig_mgr_aigvec_mgr (clone->avmgr));
-    assert ((allocated += sizeof (*amap) + sizeof (*(amap->table)))
+    assert ((allocated += sizeof (*amap) + MEM_PTR_HASH_TABLE (amap->table))
             == clone->mm->allocated);
 
     BTORLOG_TIMESTAMP (delta);
@@ -828,7 +802,8 @@ clone_aux_btor (Btor *btor,
                      amap);
     BTORLOG ("  clone AIGs: %.3f s", (btor_time_stamp () - delta));
 #ifndef NDEBUG
-    assert ((allocated += amap->table->size * sizeof (BtorPtrHashBucket *)
+    /* Note: hash table is initialized with size 1 */
+    assert ((allocated += (amap->table->size - 1) * sizeof (BtorPtrHashBucket *)
                           + amap->table->count * sizeof (BtorPtrHashBucket)
                           + amap->table->count * sizeof (BtorAIG)
                           + amgr->table.size * sizeof (BtorAIG *)
@@ -858,7 +833,7 @@ clone_aux_btor (Btor *btor,
 #endif
 
   emap = btor_new_node_map (clone);
-  assert ((allocated += sizeof (*emap) + sizeof (*(emap)->table))
+  assert ((allocated += sizeof (*emap) + MEM_PTR_HASH_TABLE (emap->table))
           == clone->mm->allocated);
 
   BTORLOG_TIMESTAMP (delta);
@@ -900,7 +875,8 @@ clone_aux_btor (Btor *btor,
       allocated += (amap->table->count - amap_count)
                    * (sizeof (BtorPtrHashBucket) + sizeof (BtorAIG));
   }
-  allocated += emap->table->size * sizeof (BtorPtrHashBucket *)
+  /* Note: hash table is initialized with size 1 */
+  allocated += (emap->table->size - 1) * sizeof (BtorPtrHashBucket *)
                + emap->table->count * sizeof (BtorPtrHashBucket)
                + BTOR_SIZE_STACK (btor->nodes_id_table) * sizeof (BtorNode *);
   assert (allocated == clone->mm->allocated);
@@ -911,10 +887,6 @@ clone_aux_btor (Btor *btor,
   clone->true_exp = btor_mapped_node (emap, btor->true_exp);
   assert (clone->true_exp);
   assert (emap->table->count == emap_count);
-  /* btor_mapped_node might cause hash table enlargement if size == count */
-  assert ((allocated +=
-           (emap->table->size - emap_size) * sizeof (BtorPtrHashBucket *))
-          == clone->mm->allocated);
 
   BTORLOG_TIMESTAMP (delta);
   clone_nodes_unique_table (
@@ -944,18 +916,8 @@ clone_aux_btor (Btor *btor,
                                                   clone->symbols);
   assert (clone->symbols->count == tab_count);
 #ifndef NDEBUG
-  /* data_as_str_ptr might cause hash table enlargement if size == count */
-  allocated += (clone->symbols->size - tab_size) * sizeof (BtorPtrHashBucket *);
   assert ((allocated += MEM_PTR_HASH_TABLE (btor->node2symbol))
           == clone->mm->allocated);
-  /* btor_find_in_ptr_hash_table in data_as_str_ptr might have enlarged the
-   * cloned symbols table but we have to make sure that after cloning, the
-   * mem footprint of both instances is equal (except for the msg prefix). */
-  while (btor->symbols->size < clone->symbols->size)
-  {
-    /* random query to trigger enlargement */
-    (void) btor_find_in_ptr_hash_table (btor->symbols, "");
-  }
 #endif
 
   CLONE_PTR_HASH_TABLE (inputs);

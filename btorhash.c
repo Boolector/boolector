@@ -25,21 +25,6 @@ btor_cmp_ptr (const void *p, const void *q)
   return ((long) p) - ((long) q);
 }
 
-BtorPtrHashTable *
-btor_new_ptr_hash_table (BtorMemMgr *mem, BtorHashPtr hash, BtorCmpPtr cmp)
-{
-  BtorPtrHashTable *res;
-
-  BTOR_NEW (mem, res);
-  BTOR_CLR (res);
-
-  res->mem  = mem;
-  res->hash = hash ? hash : btor_hash_ptr;
-  res->cmp  = cmp ? cmp : btor_cmp_ptr;
-
-  return res;
-}
-
 static void
 btor_enlarge_ptr_hash_table (BtorPtrHashTable *p2iht)
 {
@@ -69,6 +54,23 @@ btor_enlarge_ptr_hash_table (BtorPtrHashTable *p2iht)
 
   p2iht->size  = new_size;
   p2iht->table = new_table;
+}
+
+BtorPtrHashTable *
+btor_new_ptr_hash_table (BtorMemMgr *mem, BtorHashPtr hash, BtorCmpPtr cmp)
+{
+  BtorPtrHashTable *res;
+
+  BTOR_NEW (mem, res);
+  BTOR_CLR (res);
+
+  res->mem  = mem;
+  res->hash = hash ? hash : btor_hash_ptr;
+  res->cmp  = cmp ? cmp : btor_cmp_ptr;
+
+  btor_enlarge_ptr_hash_table (res);
+
+  return res;
 }
 
 BtorPtrHashTable *
@@ -127,6 +129,31 @@ btor_delete_ptr_hash_table (BtorPtrHashTable *p2iht)
   BTOR_DELETE (p2iht->mem, p2iht);
 }
 
+BtorPtrHashBucket *
+btor_find_in_ptr_hash_table (BtorPtrHashTable *p2iht, void *key)
+{
+  BtorPtrHashBucket *res, **p, *b;
+  unsigned i, h;
+
+  assert (p2iht->size > 0);
+
+  res = 0;
+  h   = p2iht->hash (key);
+  h &= p2iht->size - 1;
+
+  for (i = 0, p = p2iht->table + h; i < p2iht->count; i++, p = &b->chain)
+  {
+    if (!(b = *p)) break;
+    if (!p2iht->cmp (b->key, key))
+    {
+      res = b;
+      break;
+    }
+  }
+
+  return res;
+}
+
 static BtorPtrHashBucket **
 btor_findpos_in_ptr_hash_table_pos (BtorPtrHashTable *p2iht, void *key)
 {
@@ -145,12 +172,6 @@ btor_findpos_in_ptr_hash_table_pos (BtorPtrHashTable *p2iht, void *key)
     ;
 
   return p;
-}
-
-BtorPtrHashBucket *
-btor_find_in_ptr_hash_table (BtorPtrHashTable *p2iht, void *key)
-{
-  return *btor_findpos_in_ptr_hash_table_pos (p2iht, key);
 }
 
 BtorPtrHashBucket *
