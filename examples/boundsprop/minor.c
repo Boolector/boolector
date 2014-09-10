@@ -1,6 +1,6 @@
 #include "minor.h"
-#include "../../boolector.h"
-#include "../../btorutil.h"
+#include "boolector.h"
+#include "btorutil.h"
 
 #include <assert.h>
 #include <stdio.h>
@@ -8,21 +8,21 @@
 
 /* minOR algorithm from hacker's delight, page 59 */
 
-BtorNode *
+BoolectorNode *
 btor_minor (Btor *btor,
-            BtorNode *a_in,
-            BtorNode *b_in,
-            BtorNode *c_in,
-            BtorNode *d_in,
-            BtorNode *m_in,
+            BoolectorNode *a_in,
+            BoolectorNode *b_in,
+            BoolectorNode *c_in,
+            BoolectorNode *d_in,
+            BoolectorNode *m_in,
             int num_bits)
 {
-  BtorNode *temp_1, *temp_2, *m, *zero;
-  BtorNode *tmp, *a, *b, *c, *d, *not_a, *not_c, *neg_m;
-  BtorNode *not_a_and_c, *not_a_and_c_and_m, *a_or_m, *temp_1_ulte_b;
-  BtorNode *a_and_not_c, *a_and_not_c_and_m, *c_or_m, *temp_2_ulte_d;
-  BtorNode *not_a_and_c_and_m_ne_zero, *a_and_not_c_and_m_ne_zero, *result;
-  BtorNode *cond_if, *cond_else_1, *cond_else_2, *one_log_bits;
+  BoolectorNode *temp_1, *temp_2, *m, *zero;
+  BoolectorNode *tmp, *a, *b, *c, *d, *not_a, *not_c, *neg_m;
+  BoolectorNode *not_a_and_c, *not_a_and_c_and_m, *a_or_m, *temp_1_ulte_b;
+  BoolectorNode *a_and_not_c, *a_and_not_c_and_m, *c_or_m, *temp_2_ulte_d;
+  BoolectorNode *not_a_and_c_and_m_ne_zero, *a_and_not_c_and_m_ne_zero, *result;
+  BoolectorNode *cond_if, *cond_else_1, *cond_else_2, *one_log_bits;
   int i;
 
   assert (btor != NULL);

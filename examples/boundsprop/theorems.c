@@ -1,5 +1,5 @@
-#include "../../boolector.h"
-#include "../../btorutil.h"
+#include "boolector.h"
+#include "btorutil.h"
 #include "maxand.h"
 #include "maxor.h"
 #include "maxxor.h"
@@ -15,10 +15,12 @@ int
 main (int argc, char **argv)
 {
   Btor *btor;
-  BtorNode *one, *zero_num_bits_m_1, *a, *b, *c, *d, *m, *formula, *tmp;
-  BtorNode *not_a, *not_b, *not_c, *not_d, *min_and, *max_and, *min_or, *max_or;
-  BtorNode *min_and_1, *min_and_2, * or, *min_xor, *max_xor, *eq, *premisse;
-  BtorNode *a_ulte_b, *c_ulte_d, *max_and_1, *max_and_2, *zero;
+  BoolectorNode *one, *zero_num_bits_m_1, *a, *b, *c, *d, *m, *formula, *tmp;
+  BoolectorNode *not_a, *not_b, *not_c, *not_d;
+  BoolectorNode *min_and, *max_and, *min_or, *max_or;
+  BoolectorNode *min_and_1, *min_and_2, * or, *min_xor, *max_xor, *eq,
+      *premisse;
+  BoolectorNode *a_ulte_b, *c_ulte_d, *max_and_1, *max_and_2, *zero;
   int theorem_number, num_bits;
   if (argc != 3)
   {
@@ -52,7 +54,7 @@ main (int argc, char **argv)
     return 1;
   }
   btor = boolector_new ();
-  boolector_set_opt_rewrite_level (btor, 0);
+  boolector_set_opt (btor, "rewrite_level", 0);
 
   one               = boolector_one (btor, 1);
   zero_num_bits_m_1 = boolector_zero (btor, num_bits - 1);
@@ -150,7 +152,7 @@ main (int argc, char **argv)
   tmp = boolector_not (btor, formula);
   boolector_release (btor, formula);
   formula = tmp;
-  boolector_dump_btor (btor, stdout, formula);
+  boolector_dump_btor_node (btor, stdout, formula);
 
   boolector_release (btor, a_ulte_b);
   boolector_release (btor, c_ulte_d);

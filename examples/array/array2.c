@@ -1,7 +1,7 @@
 #include <assert.h>
 #include <stdio.h>
 #include <stdlib.h>
-#include "../../boolector.h"
+#include "boolector.h"
 
 #define ARRAY2_EXAMPLE_VALUE_BW 8
 #define ARRAY2_EXAMPLE_INDEX_BW 1
@@ -15,13 +15,13 @@ int
 main (void)
 {
   Btor *btor;
-  BtorNode *array1, *array2, *zero, *one, *val1, *val2;
-  BtorNode *write1, *write2, *formula;
+  BoolectorNode *array1, *array2, *zero, *one, *val1, *val2;
+  BoolectorNode *write1, *write2, *formula;
   char **indices, **values;
   int result, size, i;
 
   btor = boolector_new ();
-  boolector_set_opt_model_gen (btor, 1);
+  boolector_set_opt (btor, "model_gen", 1);
 
   zero   = boolector_zero (btor, ARRAY2_EXAMPLE_INDEX_BW);
   one    = boolector_one (btor, ARRAY2_EXAMPLE_INDEX_BW);

@@ -1,4 +1,4 @@
-#include "../../boolector.h"
+#include "boolector.h"
 
 #include <ctype.h>
 #include <stdarg.h>
@@ -36,10 +36,10 @@ isint (const char *str)
 int
 main (int argc, char **argv)
 {
-  BtorNode *src, *dst, *eos, *eod, *p, *q, *tmp, *n, *j, *zero, *one;
-  BtorNode *mem, *assumption, *alternative, *cmp, *root, *v;
+  BoolectorNode *src, *dst, *eos, *eod, *p, *q, *tmp, *n, *j, *zero, *one;
+  BoolectorNode *mem, *assumption, *alternative, *cmp, *root, *v;
   int i, len, havelen, overlapping, signed_size_t;
-  BtorNode *old, *new;
+  BoolectorNode *old, *new;
   Btor *btor;
 
   len           = 0;
@@ -85,7 +85,7 @@ main (int argc, char **argv)
     die ("negative <len> while 'size_t' is unsigned (try '-s')");
 
   btor = boolector_new ();
-  boolector_set_opt_rewrite_level (btor, 0);
+  boolector_set_opt (btor, "rewrite_level", 0);
 
   mem = boolector_array (btor, 8, 32, "mem");
 
@@ -181,7 +181,7 @@ main (int argc, char **argv)
   boolector_release (btor, assumption);
   boolector_release (btor, cmp);
 
-  boolector_dump_btor (btor, stdout, root);
+  boolector_dump_btor_node (btor, stdout, root);
 
   boolector_release (btor, root);
   boolector_release (btor, p);

@@ -1,7 +1,7 @@
 #include <assert.h>
 #include <stdio.h>
 #include <stdlib.h>
-#include "../../boolector.h"
+#include "boolector.h"
 
 #define BV2_EXAMPLE_NUM_BITS 8
 
@@ -16,13 +16,13 @@ int
 main (void)
 {
   Btor *btor;
-  BtorNode *v1, *v2, *add, *zero, *vars_sgt_zero, *impl;
-  BtorNode *v1_sgt_zero, *v2_sgt_zero, *add_sgt_zero, *formula;
-  char *assignments[10];
+  BoolectorNode *v1, *v2, *add, *zero, *vars_sgt_zero, *impl;
+  BoolectorNode *v1_sgt_zero, *v2_sgt_zero, *add_sgt_zero, *formula;
+  const char *assignments[10];
   int result, i;
 
   btor = boolector_new ();
-  boolector_set_opt_model_gen (btor, 1);
+  boolector_set_opt (btor, "model_gen", 1);
 
   v1   = boolector_var (btor, BV2_EXAMPLE_NUM_BITS, NULL);
   v2   = boolector_var (btor, BV2_EXAMPLE_NUM_BITS, NULL);

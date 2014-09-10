@@ -1,7 +1,7 @@
 #include <stdio.h>
 #include <stdlib.h>
-#include "../../boolector.h"
-#include "../../btorutil.h"
+#include "boolector.h"
+#include "btorutil.h"
 
 /* We verify that the following algorithm is equal to (x & (x - 1)) == 0
  * we assume x > 0
@@ -25,8 +25,8 @@ main (int argc, char **argv)
 {
   int num_bits, i;
   Btor *btor;
-  BtorNode *var, *var_shift, *zero, *one, *onelog, *formula;
-  BtorNode *result1, *result2, *and, *temp, *sgt, *eq, *ne;
+  BoolectorNode *var, *var_shift, *zero, *one, *onelog, *formula;
+  BoolectorNode *result1, *result2, *and, *temp, *sgt, *eq, *ne;
   if (argc != 2)
   {
     printf ("Usage: ./ispowerof2 <num-bits>\n");
@@ -44,7 +44,7 @@ main (int argc, char **argv)
     return 1;
   }
   btor = boolector_new ();
-  boolector_set_opt_rewrite_level (btor, 0);
+  boolector_set_opt (btor, "rewrite_leve", 0);
   var       = boolector_var (btor, num_bits, "var");
   var_shift = boolector_copy (btor, var);
   zero      = boolector_zero (btor, num_bits);
@@ -92,7 +92,7 @@ main (int argc, char **argv)
   boolector_release (btor, formula);
   formula = temp;
 
-  boolector_dump_btor (btor, stdout, formula);
+  boolector_dump_btor_node (btor, stdout, formula);
 
   /* clean up */
   boolector_release (btor, sgt);

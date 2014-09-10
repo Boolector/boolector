@@ -1,18 +1,18 @@
 #include <stdio.h>
 #include <stdlib.h>
-#include "../../boolector.h"
-#include "../../btorutil.h"
+#include "boolector.h"
+#include "btorutil.h"
 
 int
 main (int argc, char **argv)
 {
   int num_elements, i, j;
   Btor *btor;
-  BtorNode *mem, *ne, *ugte, *ulte, *ult, *temp, *read1;
-  BtorNode *read2, *sorted, *pos, *pos_p_1, *min_index;
-  BtorNode *no_diff_element, *formula, *index, *old_element;
-  BtorNode *num_elements_exp, *start, *top, *one, *range_index;
-  BtorNode *implies, *i_pos, *j_pos, *cur_element, *min_element;
+  BoolectorNode *mem, *ne, *ugte, *ulte, *ult, *temp, *read1;
+  BoolectorNode *read2, *sorted, *pos, *pos_p_1, *min_index;
+  BoolectorNode *no_diff_element, *formula, *index, *old_element;
+  BoolectorNode *num_elements_exp, *start, *top, *one, *range_index;
+  BoolectorNode *implies, *i_pos, *j_pos, *cur_element, *min_element;
   if (argc != 2)
   {
     printf ("Usage: ./selectionsortmem <num-elements>\n");
@@ -26,7 +26,7 @@ main (int argc, char **argv)
   }
 
   btor = boolector_new ();
-  boolector_set_opt_rewrite_level (btor, 0);
+  boolector_set_opt (btor, "rewrite_level", 0);
   one = boolector_one (btor, 32);
 
   mem = boolector_array (btor, 8, 32, "array");
@@ -163,7 +163,7 @@ main (int argc, char **argv)
   temp = boolector_not (btor, formula);
   boolector_release (btor, formula);
   formula = temp;
-  boolector_dump_btor (btor, stdout, formula);
+  boolector_dump_btor_node (btor, stdout, formula);
 
   /* clean up */
   boolector_release (btor, formula);

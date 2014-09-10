@@ -1,5 +1,5 @@
-#include "../../boolector.h"
-#include "../../btorutil.h"
+#include "boolector.h"
+#include "btorutil.h"
 #include "maxor.h"
 
 #include <stdio.h>
@@ -10,10 +10,9 @@ main (int argc, char **argv)
 {
   int num_bits;
   Btor *btor;
-  BtorNode *formula, *zero_num_bits_m_1, *tmp, *a, *b, *c, *d, *m;
-  BtorNode *result, *one, *x_or_y;
-  BtorNode *premisse, *a_ulte_x, *x_ulte_b, *c_ulte_y, *y_ulte_d, *x, *y,
-      *concl;
+  BoolectorNode *formula, *zero_num_bits_m_1, *tmp, *a, *b, *c, *d, *m;
+  BoolectorNode *result, *one, *x_or_y, *premisse;
+  BoolectorNode *a_ulte_x, *x_ulte_b, *c_ulte_y, *y_ulte_d, *x, *y, *concl;
 
   if (argc != 2)
   {
@@ -33,7 +32,7 @@ main (int argc, char **argv)
   }
 
   btor = boolector_new ();
-  boolector_set_opt_rewrite_level (btor, 0);
+  boolector_set_opt (btor, "rewrite_level", 0);
 
   one               = boolector_one (btor, 1);
   zero_num_bits_m_1 = boolector_zero (btor, num_bits - 1);
@@ -68,7 +67,7 @@ main (int argc, char **argv)
   tmp = boolector_not (btor, formula);
   boolector_release (btor, formula);
   formula = tmp;
-  boolector_dump_btor (btor, stdout, formula);
+  boolector_dump_btor_node (btor, stdout, formula);
 
   /* clean up */
   boolector_release (btor, result);

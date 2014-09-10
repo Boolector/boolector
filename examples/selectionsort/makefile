@@ -1,5 +1,5 @@
 include ../makefile.common
 all:
-	$(CC) $(CFLAGS) -o selectionsort selectionsort.c $(LIBS)
+	$(CC) $(CFLAGS) $(INC) -o selectionsort selectionsort.c $(LIBS)
 clean:
 	rm -f selectionsort
