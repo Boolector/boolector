@@ -631,7 +631,7 @@ NEXT:
     else if (!strcmp (tok, "array"))
     {
       PARSE_ARGS3 (tok, int, int, str);
-      arg2_str = !strcmp (arg3_str, "(null)") ? 0 : arg3_str;
+      arg3_str = !strcmp (arg3_str, "(null)") ? 0 : arg3_str;
       ret_ptr  = boolector_array (btor, arg1_int, arg2_int, arg3_str);
       exp_ret  = RET_VOIDPTR;
     }
