@@ -1595,7 +1595,6 @@ BoolectorSort *boolector_array_sort (Btor *btor,
  * uninterpreted functions.
  * \see boolector_uf
  */
-// TODO: uniform handling of arrays and their length
 BoolectorSort *boolector_fun_sort (Btor *btor,
                                    BoolectorSort **domain,
                                    int arity,
