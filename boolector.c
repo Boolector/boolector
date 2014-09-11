@@ -2619,6 +2619,24 @@ boolector_get_symbol (Btor *btor, BoolectorNode *node)
   return res;
 }
 
+void
+boolector_set_symbol (Btor *btor, BoolectorNode *node, const char *symbol)
+{
+  BtorNode *exp;
+
+  exp = BTOR_IMPORT_BOOLECTOR_NODE (node);
+  BTOR_ABORT_ARG_NULL_BOOLECTOR (btor);
+  BTOR_ABORT_ARG_NULL_BOOLECTOR (exp);
+  BTOR_ABORT_ARG_NULL_BOOLECTOR (symbol);
+  BTOR_TRAPI_UNFUN_EXT (exp, "%s", symbol);
+  BTOR_ABORT_REFS_NOT_POS_BOOLECTOR (exp);
+  BTOR_ABORT_IF_BTOR_DOES_NOT_MATCH (btor, exp);
+  btor_set_symbol_exp (btor, exp, symbol);
+#ifndef NDEBUG
+  BTOR_CHKCLONE_NORES (set_symbol, BTOR_CLONED_EXP (exp), symbol);
+#endif
+}
+
 int
 boolector_get_width (Btor *btor, BoolectorNode *node)
 {

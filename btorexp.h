@@ -836,8 +836,11 @@ int btor_is_bv_var_exp (Btor *btor, BtorNode *exp);
 /* Gets the number of bits used by indices on 'e_array'. */
 int btor_get_index_exp_len (Btor *btor, BtorNode *e_array);
 
-/* Gets the symbol of a variable. */
+/* Gets the symbol of an expression. */
 char *btor_get_symbol_exp (Btor *btor, BtorNode *exp);
+
+/* Sets the symbol of an expression. */
+void btor_set_symbol_exp (Btor *btor, BtorNode *exp, const char *symbol);
 
 /* Determines if expression is a param or not. */
 int btor_is_param_exp (Btor *btor, BtorNode *exp);

@@ -1353,10 +1353,10 @@ BoolectorNode *boolector_dec (Btor *btor, BoolectorNode *node);
 Btor *boolector_get_btor (BoolectorNode *node);
 
 /**
- * Get the symbol of an expression (array or bit vector variable, uninterpreted
- * function).
+ * Get the symbol of an expression. Expression must be either an array or
+ * bit vector variable, a parameter, or an uninterpreted function.
  * \param btor Boolector instance.
- * \param var Array or bit vector variable, or uninterpreted function.
+ * \param var Array or bit vector variable, parameter, uninterpreted function.
  * \return Symbol of expression.
  * \see boolector_var
  * \see boolector_array
@@ -1364,6 +1364,19 @@ Btor *boolector_get_btor (BoolectorNode *node);
  * \see boolector_param
  */
 const char *boolector_get_symbol (Btor *btor, BoolectorNode *var);
+
+/**
+ * Set the symbol of an expression. Expression must be either an array or
+ * bit vector variable, a parameter, or an uninterpreted function).
+ * \param btor Boolector instance.
+ * \param var Array or bit vector variable, parameter, uninterpreted function.
+ * \return Symbol of expression.
+ * \see boolector_var
+ * \see boolector_array
+ * \see boolector_uf
+ * \see boolector_param
+ */
+void boolector_set_symbol (Btor *btor, BoolectorNode *var, const char *symbol);
 
 /**
  * Get the bit width of an expression. If the expression
