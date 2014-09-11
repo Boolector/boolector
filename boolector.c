@@ -3113,18 +3113,18 @@ boolector_bool_sort (Btor *btor)
 }
 
 BoolectorSort *
-boolector_bitvec_sort (Btor *btor, int len)
+boolector_bitvec_sort (Btor *btor, int width)
 {
   BTOR_ABORT_ARG_NULL_BOOLECTOR (btor);
-  BTOR_TRAPI ("%d", len);
-  BTOR_ABORT_BOOLECTOR (len <= 0, "'len' must be > 0");
+  BTOR_TRAPI ("%d", width);
+  BTOR_ABORT_BOOLECTOR (width <= 0, "'width' must be > 0");
 
   BtorSort *res;
-  res = btor_bitvec_sort (&btor->sorts_unique_table, len);
+  res = btor_bitvec_sort (&btor->sorts_unique_table, width);
   res->ext_refs++;
   BTOR_TRAPI_RETURN_SORT (res);
 #ifndef NDEBUG
-  BTOR_CHKCLONE_RES_SORT (res, bitvec_sort, len);
+  BTOR_CHKCLONE_RES_SORT (res, bitvec_sort, width);
 #endif
   return BTOR_EXPORT_BOOLECTOR_SORT (res);
 }
@@ -3138,6 +3138,7 @@ boolector_array_sort (Btor *btor, BoolectorSort *index, BoolectorSort *elem)
               BTOR_TRAPI_SORT_ID (BTOR_IMPORT_BOOLECTOR_SORT (elem)));
   BTOR_ABORT_ARG_NULL_BOOLECTOR (index);
   BTOR_ABORT_ARG_NULL_BOOLECTOR (elem);
+  // TODO: check that index and elem are bitvec sorts
 
   BtorSort *res, *i, *e;
   i   = BTOR_IMPORT_BOOLECTOR_SORT (index);
@@ -3151,36 +3152,6 @@ boolector_array_sort (Btor *btor, BoolectorSort *index, BoolectorSort *elem)
 #endif
   return BTOR_EXPORT_BOOLECTOR_SORT (res);
 }
-
-#if 0
-BoolectorSort *
-boolector_tuple_sort (Btor * btor, BoolectorSort ** elements, int num_elements)
-{
-  BTOR_ABORT_ARG_NULL_BOOLECTOR (btor);
-  BTOR_ABORT_ARG_NULL_BOOLECTOR (elements);
-  BTOR_ABORT_BOOLECTOR (num_elements <= 1, "'num_elements' must be > 1");
-
-  int i, len;
-  char *strtrapi;
-  BtorSort *res;
-
-  len = 11 + 10 + num_elements * 20;
-  BTOR_NEWN (btor->mm, strtrapi, len);
-  sprintf (strtrapi, "%d", num_elements);
-
-  for (i = 0; i < num_elements; i++)
-    sprintf (strtrapi + strlen (strtrapi), SORT_FMT,
-	     BTOR_TRAPI_SORT_ID ((BtorSort *) elements[i])); 
-  BTOR_TRAPI (strtrapi);
-  BTOR_DELETEN (btor->mm, strtrapi, len);
-
-  res = btor_tuple_sort (&btor->sorts_unique_table,
-			 (BtorSort **) elements, num_elements);
-  res->ext_refs++;
-  BTOR_TRAPI_RETURN_SORT (res);
-  return (BoolectorSort *) res;
-}
-#endif
 
 BoolectorSort *
 boolector_fun_sort (Btor *btor,
@@ -3420,7 +3391,7 @@ boolector_dump_btor (Btor *btor, FILE *file)
   BTOR_ABORT_ARG_NULL_BOOLECTOR (file);
   BTOR_ABORT_BOOLECTOR (!btor_can_be_dumped (btor),
                         "formula cannot be dumped in BTOR format as it does "
-                        "not yet support uninterpreted functions.");
+                        "not support uninterpreted functions yet.");
   btor_dump_btor (btor, file, 1);
 #ifndef NDEBUG
   BTOR_CHKCLONE_NORES (dump_btor, file);
