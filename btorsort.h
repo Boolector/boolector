@@ -115,4 +115,12 @@ BtorSort *btor_copy_sort (BtorSort *);
 
 void btor_release_sort (BtorSortUniqueTable *, BtorSort *);
 
+#define BTOR_IS_BOOL_SORT(sort) ((sort) && (sort->kind == BTOR_BOOL_SORT))
+
+#define BTOR_IS_BITVEC_SORT(sort) ((sort) && (sort->kind == BTOR_BITVEC_SORT))
+
+#define BTOR_IS_ARRAY_SORT(sort) ((sort) && (sort->kind == BTOR_ARRAY_SORT))
+
+#define BTOR_IS_FUN_SORT(sort) ((sort) && (sort->kind == BTOR_FUN_SORT))
+
 #endif

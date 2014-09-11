@@ -835,9 +835,8 @@ boolector_uf (Btor *btor, BoolectorSort *sort, const char *symbol)
   BTOR_TRAPI (SORT_FMT "%s",
               BTOR_TRAPI_SORT_ID (BTOR_IMPORT_BOOLECTOR_SORT (sort)),
               symb);
-  BTOR_ABORT_BOOLECTOR (
-      BTOR_IMPORT_BOOLECTOR_SORT (sort)->kind != BTOR_FUN_SORT,
-      "given UF sort is not BTOR_FUN_SORT");
+  BTOR_ABORT_BOOLECTOR (!BTOR_IS_FUN_SORT (BTOR_IMPORT_BOOLECTOR_SORT (sort)),
+                        "'sort' must be a function sort");
   BTOR_ABORT_BOOLECTOR (
       symb && btor_find_in_ptr_hash_table (btor->symbols, symb),
       "symbol '%s' is already in use",
@@ -3189,7 +3188,12 @@ boolector_array_sort (Btor *btor, BoolectorSort *index, BoolectorSort *elem)
               BTOR_TRAPI_SORT_ID (BTOR_IMPORT_BOOLECTOR_SORT (elem)));
   BTOR_ABORT_ARG_NULL_BOOLECTOR (index);
   BTOR_ABORT_ARG_NULL_BOOLECTOR (elem);
-  // TODO: check that index and elem are bitvec sorts
+  BTOR_ABORT_BOOLECTOR (
+      !BTOR_IS_BITVEC_SORT (BTOR_IMPORT_BOOLECTOR_SORT (index)),
+      "'index' sort must be a bit vector sort");
+  BTOR_ABORT_BOOLECTOR (
+      !BTOR_IS_BITVEC_SORT (BTOR_IMPORT_BOOLECTOR_SORT (elem)),
+      "'elem' sort msut be a bit vector sort");
 
   BtorSort *res, *i, *e;
   i   = BTOR_IMPORT_BOOLECTOR_SORT (index);
@@ -3234,6 +3238,15 @@ boolector_fun_sort (Btor *btor,
            BTOR_TRAPI_SORT_ID ((BtorSort *) codomain));
   BTOR_TRAPI (strtrapi);
   BTOR_DELETEN (btor->mm, strtrapi, len);
+
+  for (i = 0; i < arity; i++)
+    BTOR_ABORT_BOOLECTOR (
+        !BTOR_IS_BITVEC_SORT (BTOR_IMPORT_BOOLECTOR_SORT (domain[i])),
+        "'domain' sort at position %d must be a bit vector sort",
+        i);
+  BTOR_ABORT_BOOLECTOR (
+      !BTOR_IS_BITVEC_SORT (BTOR_IMPORT_BOOLECTOR_SORT (codomain)),
+      "'codomain' sort must be a bit vector sort");
 
   res = btor_fun_sort (&btor->sorts_unique_table,
                        (BtorSort **) domain,
