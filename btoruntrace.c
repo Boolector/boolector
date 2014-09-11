@@ -497,11 +497,31 @@ NEXT:
     }
     else if (!strcmp (tok, "set_sat_solver"))
     {
-      PARSE_ARGS3 (tok, str, str, int);
-      arg2_str = strcmp (arg2_str, "(null)") ? arg2_str : 0;
-      ret_int  = boolector_set_sat_solver (btor, arg1_str, arg2_str, arg3_int);
-      exp_ret  = RET_INT;
+      PARSE_ARGS1 (tok, str);
+      ret_int = boolector_set_sat_solver (btor, arg1_str);
+      exp_ret = RET_INT;
     }
+#ifdef BTOR_USE_LINGELING
+    else if (!strcmp (tok, "set_sat_solver_lingeling"))
+    {
+      PARSE_ARGS2 (tok, str, int);
+      ret_int = boolector_set_sat_solver_lingeling (btor, arg1_str, arg2_int);
+    }
+#endif
+#ifdef BTOR_USE_PICOSAT
+    else if (!strcmp (tok, "set_sat_solver_picosat"))
+    {
+      PARSE_ARGS0 (tok);
+      ret_int = boolector_set_sat_solver_picosat (btor);
+    }
+#endif
+#ifdef BTOR_USE_MINISAT
+    else if (!strcmp (tok, "set_sat_solver_minisat"))
+    {
+      PARSE_ARGS0 (tok);
+      ret_int = boolector_set_sat_solver_minisat (btor);
+    }
+#endif
     else if (!strcmp (tok, "set_opt"))
     {
       PARSE_ARGS2 (tok, str, int);

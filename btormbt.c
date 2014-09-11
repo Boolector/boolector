@@ -2101,7 +2101,7 @@ _new (BtorMBT *btormbt, unsigned r)
 static void *
 _opt (BtorMBT *btormbt, unsigned r)
 {
-  int rw;
+  int rw, set_sat_solver = 1;
   RNG rng = initrng (r);
 
   BTORMBT_LOG (1, "opt: enable force cleanup");
@@ -2139,6 +2139,26 @@ _opt (BtorMBT *btormbt, unsigned r)
   }
 
   if (pick (&rng, 0, NORM_VAL - 1) < btormbt->p_dump) btormbt->dump = 1;
+
+    /* set random sat solver */
+#ifdef BTOR_USE_LINGELING
+  if (pick (&rng, 0, 1) && set_sat_solver)
+  {
+    boolector_set_sat_solver_lingeling (btormbt->btor, 0, 0);
+    set_sat_solver = 0;
+  }
+#endif
+#ifdef BTOR_USE_PICOSAT
+  if (pick (&rng, 0, 1) && set_sat_solver)
+  {
+    boolector_set_sat_solver_picosat (btormbt->btor);
+    set_sat_solver = 0;
+  }
+#endif
+#ifdef BTOR_USE_MINISAT
+  if (pick (&rng, 0, 1) && set_sat_solver)
+    boolector_set_sat_solver_minisat (btormbt->btor);
+#endif
 
   btormbt->mgen = 0;
   if (!btormbt->dump && !btormbt->force_nomgen

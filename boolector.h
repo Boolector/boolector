@@ -339,11 +339,7 @@ int boolector_simplify (Btor *btor);
  * \param solver Solver identifier string.
  * \return Non-zero value if setting the SAT solver was successful.
  */
-// TODO: remove optstr, nofork -> only required for lingeling
-int boolector_set_sat_solver (Btor *btor,
-                              const char *solver,
-                              const char *optstr,
-                              int nofork);
+int boolector_set_sat_solver (Btor *btor, const char *solver);
 
 #ifdef BTOR_USE_LINGELING
 /**
