@@ -506,6 +506,7 @@ NEXT:
     {
       PARSE_ARGS2 (tok, str, int);
       ret_int = boolector_set_sat_solver_lingeling (btor, arg1_str, arg2_int);
+      exp_ret = RET_INT;
     }
 #endif
 #ifdef BTOR_USE_PICOSAT
@@ -513,6 +514,7 @@ NEXT:
     {
       PARSE_ARGS0 (tok);
       ret_int = boolector_set_sat_solver_picosat (btor);
+      exp_ret = RET_INT;
     }
 #endif
 #ifdef BTOR_USE_MINISAT
@@ -520,6 +522,7 @@ NEXT:
     {
       PARSE_ARGS0 (tok);
       ret_int = boolector_set_sat_solver_minisat (btor);
+      exp_ret = RET_INT;
     }
 #endif
     else if (!strcmp (tok, "set_opt"))
