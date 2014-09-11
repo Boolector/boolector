@@ -1048,7 +1048,7 @@ NEXT:
       arg1_str = strarg (tok); /* function body */
       checklastarg (tok);
       ret_ptr = boolector_fun (
-          btor, arg1_int, tmp, hmap_get (hmap, btor_str, arg1_str));
+          btor, tmp, arg1_int, hmap_get (hmap, btor_str, arg1_str));
       BTOR_DELETEN (btorunt->mm, tmp, arg1_int);
       exp_ret = RET_VOIDPTR;
     }
@@ -1061,7 +1061,7 @@ NEXT:
       arg1_str = strarg (tok); /* function */
       checklastarg (tok);
       ret_ptr = boolector_apply (
-          btor, arg1_int, tmp, hmap_get (hmap, btor_str, arg1_str));
+          btor, tmp, arg1_int, hmap_get (hmap, btor_str, arg1_str));
       BTOR_DELETEN (btorunt->mm, tmp, arg1_int);
       exp_ret = RET_VOIDPTR;
     }
@@ -1235,7 +1235,7 @@ NEXT:
       arg1_str = strarg (tok); /* function body */
       checklastarg (tok);
       ret_int = boolector_fun_sort_check (
-          btor, arg1_int, tmp, hmap_get (hmap, btor_str, arg1_str));
+          btor, tmp, arg1_int, hmap_get (hmap, btor_str, arg1_str));
       exp_ret = RET_SKIP;
       BTOR_DELETEN (btorunt->mm, tmp, arg1_int);
     }

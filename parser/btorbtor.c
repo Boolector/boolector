@@ -1506,7 +1506,7 @@ parse_lambda (BtorBTORParser *parser, int len)
   if (!(exp = parse_exp (parser, len, 1, 1)))
     goto RELEASE_PARAM_AND_RETURN_ERROR;
 
-  res = boolector_fun (parser->btor, 1, params, exp);
+  res = boolector_fun (parser->btor, params, 1, exp);
 
   boolector_release (parser->btor, params[0]);
   BTOR_DELETE (parser->mem, params);
@@ -1553,7 +1553,7 @@ parse_apply (BtorBTORParser *parser, int len)
     BTOR_PUSH_STACK (parser->mem, args, arg);
   }
 
-  res = boolector_apply (parser->btor, arity, args.start, fun);
+  res = boolector_apply (parser->btor, args.start, arity, fun);
   boolector_release (parser->btor, fun);
 
   while (!BTOR_EMPTY_STACK (args))

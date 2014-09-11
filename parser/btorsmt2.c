@@ -1799,7 +1799,7 @@ btor_parse_term_smt2 (BtorSMT2Parser *parser,
           BTOR_RELEASE_STACK (parser->mem, fargs);
           return !btor_perr_smt2 (parser, "invalid number of arguments");
         }
-        i = boolector_fun_sort_check (parser->btor, nargs, fargs.start, tmp);
+        i = boolector_fun_sort_check (parser->btor, fargs.start, nargs, tmp);
         if (i >= 0)
         {
           BTOR_RELEASE_STACK (parser->mem, fargs);
@@ -1808,7 +1808,7 @@ btor_parse_term_smt2 (BtorSMT2Parser *parser,
         }
         parser->work.top = p;
         l->tag           = BTOR_EXP_TAG_SMT2;
-        l->exp = boolector_apply (parser->btor, nargs, fargs.start, tmp);
+        l->exp = boolector_apply (parser->btor, fargs.start, nargs, tmp);
         for (i = 0; i <= nargs; i++) boolector_release (parser->btor, p[i].exp);
         BTOR_RELEASE_STACK (parser->mem, fargs);
       }
@@ -3082,7 +3082,7 @@ SORTED_VAR:
     parser->work.top -= nargs;
     assert (BTOR_EMPTY_STACK (parser->work));
 
-    fun->exp = boolector_fun (parser->btor, nargs, args.start, exp);
+    fun->exp = boolector_fun (parser->btor, args.start, nargs, exp);
     while (!BTOR_EMPTY_STACK (args))
       boolector_release (parser->btor, BTOR_POP_STACK (args));
     boolector_release (parser->btor, exp);

@@ -857,7 +857,7 @@ cdef class Boolector:
 
         r = BoolectorFunNode(self)
         r._c_node = \
-            btorapi.boolector_fun(self._c_btor, paramc, c_params,
+            btorapi.boolector_fun(self._c_btor, c_params, paramc,
                                      body._c_node)
 
         free(c_params)
@@ -885,7 +885,7 @@ cdef class Boolector:
 
         r = BoolectorBVNode(self)
         r._c_node = \
-            btorapi.boolector_apply(self._c_btor, argc, c_args, fun._c_node)
+            btorapi.boolector_apply(self._c_btor, c_args, argc, fun._c_node)
         free(c_args)
         return r
 

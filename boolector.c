@@ -2441,8 +2441,8 @@ boolector_param (Btor *btor, int width, const char *symbol)
 
 BoolectorNode *
 boolector_fun (Btor *btor,
-               int paramc,
                BoolectorNode **param_nodes,
+               int paramc,
                BoolectorNode *node)
 {
   int i, len;
@@ -2484,15 +2484,15 @@ boolector_fun (Btor *btor,
   BoolectorNode *cparam_nodes[paramc];
   for (i = 0; btor->clone && i < paramc; i++)
     cparam_nodes[i] = BTOR_CLONED_EXP (params[i]);
-  BTOR_CHKCLONE_RES_PTR (res, fun, paramc, cparam_nodes, BTOR_CLONED_EXP (exp));
+  BTOR_CHKCLONE_RES_PTR (res, fun, cparam_nodes, paramc, BTOR_CLONED_EXP (exp));
 #endif
   return BTOR_EXPORT_BOOLECTOR_NODE (res);
 }
 
 BoolectorNode *
 boolector_apply (Btor *btor,
-                 int argc,
                  BoolectorNode **arg_nodes,
+                 int argc,
                  BoolectorNode *n_fun)
 {
   int i, len;
@@ -2548,7 +2548,7 @@ boolector_apply (Btor *btor,
   BoolectorNode *carg_nodes[argc];
   for (i = 0; btor->clone && i < argc; i++)
     carg_nodes[i] = BTOR_CLONED_EXP (args[i]);
-  BTOR_CHKCLONE_RES_PTR (res, apply, argc, carg_nodes, BTOR_CLONED_EXP (e_fun));
+  BTOR_CHKCLONE_RES_PTR (res, apply, carg_nodes, argc, BTOR_CLONED_EXP (e_fun));
 #endif
   return BTOR_EXPORT_BOOLECTOR_NODE (res);
 }
@@ -2922,8 +2922,8 @@ boolector_is_fun (Btor *btor, BoolectorNode *node)
 
 int
 boolector_fun_sort_check (Btor *btor,
-                          int argc,
                           BoolectorNode **arg_nodes,
+                          int argc,
                           BoolectorNode *n_fun)
 {
   BtorNode **args, *e_fun, *simp;
@@ -2961,7 +2961,7 @@ boolector_fun_sort_check (Btor *btor,
   for (i = 0; btor->clone && i < argc; i++)
     carg_nodes[i] = BTOR_CLONED_EXP (args[i]);
   BTOR_CHKCLONE_RES (
-      res, fun_sort_check, argc, carg_nodes, BTOR_CLONED_EXP (e_fun));
+      res, fun_sort_check, carg_nodes, argc, BTOR_CLONED_EXP (e_fun));
 #endif
   return res;
 }

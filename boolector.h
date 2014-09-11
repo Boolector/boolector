@@ -1299,28 +1299,28 @@ BoolectorNode *boolector_param (Btor *btor, int width, const char *symbol);
  * re-used in other functions. Calling a function is done via applies created
  * via \ref boolector_apply.
  * \param btor Boolector instance.
- * \param paramc Number of parameters.
  * \param param_nodes Parameters of function.
+ * \param paramc Number of parameters.
  * \param node Parameterized Function body.
  * \return Function over parameterized expression 'node'.
  * \see boolector_apply, boolector_param
  */
 BoolectorNode *boolector_fun (Btor *btor,
-                              int paramc,
                               BoolectorNode **param_nodes,
+                              int paramc,
                               BoolectorNode *node);
 
 /**
  * Create function application on function 'n_fun' with arguments 'arg_nodes'.
  * \param btor Boolector instance.
- * \param argc Number of arguments to be applied.
  * \param arg_nodes Arguments to be applied.
+ * \param argc Number of arguments to be applied.
  * \param n_fun Function expression.
  * \return Function application on function 'n_fun' with arguments 'arg_nodes'.
  */
 BoolectorNode *boolector_apply (Btor *btor,
-                                int argc,
                                 BoolectorNode **arg_nodes,
+                                int argc,
                                 BoolectorNode *n_fun);
 
 /**
@@ -1466,15 +1466,15 @@ int boolector_is_fun (Btor *btor, BoolectorNode *node);
 /**
  * Check if sorts of given arguments matches the function signature.
  * \param btor Boolector instance.
- * \param argc Number of arguments to be checked.
  * \param arg_nodes Arguments to be checked.
+ * \param argc Number of arguments to be checked.
  * \param n_fun Function expression.
  * \return -1 if all sorts are correct, otherwise it returns the position of
  * the incorrect argument.
  */
 int boolector_fun_sort_check (Btor *btor,
-                              int argc,
                               BoolectorNode **arg_nodes,
+                              int argc,
                               BoolectorNode *n_fun);
 
 /**

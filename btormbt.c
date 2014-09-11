@@ -1831,7 +1831,7 @@ bitvec_fun (BtorMBT *btormbt, unsigned r, int *nparams, int *width, int nlevel)
                    : &parambv;
     assert (es->n);
     rand = pick (&rng, 0, es->n - 1);
-    fun  = boolector_fun (btormbt->btor, *nparams, params, es->exps[rand].exp);
+    fun  = boolector_fun (btormbt->btor, params, *nparams, es->exps[rand].exp);
     es_push (&btormbt->fun, fun);
 
     /* reset scope for arguments to apply node */
@@ -1865,7 +1865,7 @@ bitvec_fun (BtorMBT *btormbt, unsigned r, int *nparams, int *width, int nlevel)
                         ip);
   }
 
-  tmp = boolector_apply (btormbt->btor, *nparams, args, fun);
+  tmp = boolector_apply (btormbt->btor, args, *nparams, fun);
   es_push (boolector_get_width (btormbt->btor, fun) == 1
                ? (BTOR_REAL_ADDR_NODE (tmp)->parameterized ? btormbt->parambo
                                                            : &btormbt->bo)
@@ -2016,7 +2016,7 @@ bitvec_uf (BtorMBT *btormbt, unsigned r)
   /* create apply on UF */
   args = malloc (stack.n * sizeof (BoolectorNode *));
   for (i = 0; i < stack.n; i++) args[i] = stack.exps[i].exp;
-  apply = boolector_apply (btormbt->btor, stack.n, args, uf);
+  apply = boolector_apply (btormbt->btor, args, stack.n, uf);
 
   len = boolector_get_width (btormbt->btor, apply);
   es_push (len == 1 ? &btormbt->bo : &btormbt->bv, apply);
