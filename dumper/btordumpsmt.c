@@ -868,7 +868,7 @@ dump_smt_aux (Btor *btor, FILE *file, int version, BtorNode **roots, int nroots)
   if (nested_funs || version == 1)
   {
 #if !defined(NDEBUG) && defined(BTOR_ENABLE_CLONING)
-    clone = btor_clone_btor (btor);
+    clone = btor_clone_exp_layer (btor, 0, 0);
     btor_set_opt (clone, BTOR_OPT_FORCE_CLEANUP, 1);
 
     /* update roots if already added */

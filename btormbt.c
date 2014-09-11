@@ -1831,7 +1831,7 @@ bitvec_fun (BtorMBT *btormbt, unsigned r, int *nparams, int *width, int nlevel)
                    : &parambv;
     assert (es->n);
     rand = pick (&rng, 0, es->n - 1);
-    fun  = boolector_fun (btormbt->btor, *nparams, params, es->exps[rand].exp);
+    fun  = boolector_fun (btormbt->btor, params, *nparams, es->exps[rand].exp);
     es_push (&btormbt->fun, fun);
 
     /* reset scope for arguments to apply node */
@@ -1865,7 +1865,7 @@ bitvec_fun (BtorMBT *btormbt, unsigned r, int *nparams, int *width, int nlevel)
                         ip);
   }
 
-  tmp = boolector_apply (btormbt->btor, *nparams, args, fun);
+  tmp = boolector_apply (btormbt->btor, args, *nparams, fun);
   es_push (boolector_get_width (btormbt->btor, fun) == 1
                ? (BTOR_REAL_ADDR_NODE (tmp)->parameterized ? btormbt->parambo
                                                            : &btormbt->bo)
@@ -2016,7 +2016,7 @@ bitvec_uf (BtorMBT *btormbt, unsigned r)
   /* create apply on UF */
   args = malloc (stack.n * sizeof (BoolectorNode *));
   for (i = 0; i < stack.n; i++) args[i] = stack.exps[i].exp;
-  apply = boolector_apply (btormbt->btor, stack.n, args, uf);
+  apply = boolector_apply (btormbt->btor, args, stack.n, uf);
 
   len = boolector_get_width (btormbt->btor, apply);
   es_push (len == 1 ? &btormbt->bo : &btormbt->bv, apply);
@@ -2101,7 +2101,7 @@ _new (BtorMBT *btormbt, unsigned r)
 static void *
 _opt (BtorMBT *btormbt, unsigned r)
 {
-  int rw;
+  int rw, set_sat_solver = 1;
   RNG rng = initrng (r);
 
   BTORMBT_LOG (1, "opt: enable force cleanup");
@@ -2139,6 +2139,26 @@ _opt (BtorMBT *btormbt, unsigned r)
   }
 
   if (pick (&rng, 0, NORM_VAL - 1) < btormbt->p_dump) btormbt->dump = 1;
+
+    /* set random sat solver */
+#ifdef BTOR_USE_LINGELING
+  if (pick (&rng, 0, 1) && set_sat_solver)
+  {
+    boolector_set_sat_solver_lingeling (btormbt->btor, 0, 0);
+    set_sat_solver = 0;
+  }
+#endif
+#ifdef BTOR_USE_PICOSAT
+  if (pick (&rng, 0, 1) && set_sat_solver)
+  {
+    boolector_set_sat_solver_picosat (btormbt->btor);
+    set_sat_solver = 0;
+  }
+#endif
+#ifdef BTOR_USE_MINISAT
+  if (pick (&rng, 0, 1) && set_sat_solver)
+    boolector_set_sat_solver_minisat (btormbt->btor);
+#endif
 
   btormbt->mgen = 0;
   if (!btormbt->dump && !btormbt->force_nomgen

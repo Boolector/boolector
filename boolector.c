@@ -356,24 +356,20 @@ boolector_simplify (Btor *btor)
 /*------------------------------------------------------------------------*/
 
 int
-boolector_set_sat_solver (Btor *btor,
-                          const char *solver,
-                          const char *optstr,
-                          int nofork)
+boolector_set_sat_solver (Btor *btor, const char *solver)
 {
   int res;
 
   BTOR_ABORT_ARG_NULL_BOOLECTOR (btor);
-  BTOR_TRAPI ("%s %s %d", solver, optstr, nofork);
+  BTOR_TRAPI ("%s", solver);
   BTOR_ABORT_ARG_NULL_BOOLECTOR (solver);
   BTOR_ABORT_BOOLECTOR (
       btor->btor_sat_btor_called > 0,
       "setting the SAT solver must be done before calling 'boolector_sat'");
-  res = btor_set_sat_solver (
-      btor_get_sat_mgr_btor (btor), solver, optstr, nofork);
+  res = btor_set_sat_solver (btor_get_sat_mgr_btor (btor), solver, 0, 0);
   BTOR_TRAPI_RETURN_INT (res);
 #ifndef NDEBUG
-  BTOR_CHKCLONE_RES (res, set_sat_solver, solver, optstr, nofork);
+  BTOR_CHKCLONE_RES (res, set_sat_solver, solver);
 #endif
   return res;
 }
@@ -382,7 +378,20 @@ boolector_set_sat_solver (Btor *btor,
 int
 boolector_set_sat_solver_lingeling (Btor *btor, const char *optstr, int nofork)
 {
-  return boolector_set_sat_solver (btor, "lingeling", optstr, nofork);
+  int res;
+
+  BTOR_ABORT_ARG_NULL_BOOLECTOR (btor);
+  BTOR_TRAPI ("%s %d", optstr, nofork);
+  BTOR_ABORT_BOOLECTOR (
+      btor->btor_sat_btor_called > 0,
+      "setting the SAT solver must be done before calling 'boolector_sat'");
+  res = btor_set_sat_solver (
+      btor_get_sat_mgr_btor (btor), "lingeling", optstr, nofork);
+  BTOR_TRAPI_RETURN_INT (res);
+#ifndef NDEBUG
+  BTOR_CHKCLONE_RES (res, set_sat_solver_lingeling, optstr, nofork);
+#endif
+  return res;
 }
 #endif
 
@@ -390,7 +399,19 @@ boolector_set_sat_solver_lingeling (Btor *btor, const char *optstr, int nofork)
 int
 boolector_set_sat_solver_picosat (Btor *btor)
 {
-  return boolector_set_sat_solver (btor, "picosat", 0, 0);
+  int res;
+
+  BTOR_ABORT_ARG_NULL_BOOLECTOR (btor);
+  BTOR_TRAPI ("");
+  BTOR_ABORT_BOOLECTOR (
+      btor->btor_sat_btor_called > 0,
+      "setting the SAT solver must be done before calling 'boolector_sat'");
+  res = btor_set_sat_solver (btor_get_sat_mgr_btor (btor), "picosat", 0, 0);
+  BTOR_TRAPI_RETURN_INT (res);
+#ifndef NDEBUG
+  BTOR_CHKCLONE_RES (res, set_sat_solver_picosat);
+#endif
+  return res;
 }
 #endif
 
@@ -398,7 +419,19 @@ boolector_set_sat_solver_picosat (Btor *btor)
 int
 boolector_set_sat_solver_minisat (Btor *btor)
 {
-  return boolector_set_sat_solver (btor, "minisat", 0, 0);
+  int res;
+
+  BTOR_ABORT_ARG_NULL_BOOLECTOR (btor);
+  BTOR_TRAPI ("");
+  BTOR_ABORT_BOOLECTOR (
+      btor->btor_sat_btor_called > 0,
+      "setting the SAT solver must be done before calling 'boolector_sat'");
+  res = btor_set_sat_solver (btor_get_sat_mgr_btor (btor), "minisat", 0, 0);
+  BTOR_TRAPI_RETURN_INT (res);
+#ifndef NDEBUG
+  BTOR_CHKCLONE_RES (res, set_sat_solver_minisat);
+#endif
+  return res;
 }
 #endif
 
@@ -803,9 +836,8 @@ boolector_uf (Btor *btor, BoolectorSort *sort, const char *symbol)
   BTOR_TRAPI (SORT_FMT "%s",
               BTOR_TRAPI_SORT_ID (BTOR_IMPORT_BOOLECTOR_SORT (sort)),
               symb);
-  BTOR_ABORT_BOOLECTOR (
-      BTOR_IMPORT_BOOLECTOR_SORT (sort)->kind != BTOR_FUN_SORT,
-      "given UF sort is not BTOR_FUN_SORT");
+  BTOR_ABORT_BOOLECTOR (!BTOR_IS_FUN_SORT (BTOR_IMPORT_BOOLECTOR_SORT (sort)),
+                        "'sort' must be a function sort");
   BTOR_ABORT_BOOLECTOR (
       symb && btor_find_in_ptr_hash_table (btor->symbols, symb),
       "symbol '%s' is already in use",
@@ -2410,8 +2442,8 @@ boolector_param (Btor *btor, int width, const char *symbol)
 
 BoolectorNode *
 boolector_fun (Btor *btor,
-               int paramc,
                BoolectorNode **param_nodes,
+               int paramc,
                BoolectorNode *node)
 {
   int i, len;
@@ -2453,15 +2485,15 @@ boolector_fun (Btor *btor,
   BoolectorNode *cparam_nodes[paramc];
   for (i = 0; btor->clone && i < paramc; i++)
     cparam_nodes[i] = BTOR_CLONED_EXP (params[i]);
-  BTOR_CHKCLONE_RES_PTR (res, fun, paramc, cparam_nodes, BTOR_CLONED_EXP (exp));
+  BTOR_CHKCLONE_RES_PTR (res, fun, cparam_nodes, paramc, BTOR_CLONED_EXP (exp));
 #endif
   return BTOR_EXPORT_BOOLECTOR_NODE (res);
 }
 
 BoolectorNode *
 boolector_apply (Btor *btor,
-                 int argc,
                  BoolectorNode **arg_nodes,
+                 int argc,
                  BoolectorNode *n_fun)
 {
   int i, len;
@@ -2517,7 +2549,7 @@ boolector_apply (Btor *btor,
   BoolectorNode *carg_nodes[argc];
   for (i = 0; btor->clone && i < argc; i++)
     carg_nodes[i] = BTOR_CLONED_EXP (args[i]);
-  BTOR_CHKCLONE_RES_PTR (res, apply, argc, carg_nodes, BTOR_CLONED_EXP (e_fun));
+  BTOR_CHKCLONE_RES_PTR (res, apply, carg_nodes, argc, BTOR_CLONED_EXP (e_fun));
 #endif
   return BTOR_EXPORT_BOOLECTOR_NODE (res);
 }
@@ -2891,8 +2923,8 @@ boolector_is_fun (Btor *btor, BoolectorNode *node)
 
 int
 boolector_fun_sort_check (Btor *btor,
-                          int argc,
                           BoolectorNode **arg_nodes,
+                          int argc,
                           BoolectorNode *n_fun)
 {
   BtorNode **args, *e_fun, *simp;
@@ -2930,7 +2962,7 @@ boolector_fun_sort_check (Btor *btor,
   for (i = 0; btor->clone && i < argc; i++)
     carg_nodes[i] = BTOR_CLONED_EXP (args[i]);
   BTOR_CHKCLONE_RES (
-      res, fun_sort_check, argc, carg_nodes, BTOR_CLONED_EXP (e_fun));
+      res, fun_sort_check, carg_nodes, argc, BTOR_CLONED_EXP (e_fun));
 #endif
   return res;
 }
@@ -3158,7 +3190,12 @@ boolector_array_sort (Btor *btor, BoolectorSort *index, BoolectorSort *elem)
               BTOR_TRAPI_SORT_ID (BTOR_IMPORT_BOOLECTOR_SORT (elem)));
   BTOR_ABORT_ARG_NULL_BOOLECTOR (index);
   BTOR_ABORT_ARG_NULL_BOOLECTOR (elem);
-  // TODO: check that index and elem are bitvec sorts
+  BTOR_ABORT_BOOLECTOR (
+      !BTOR_IS_BITVEC_SORT (BTOR_IMPORT_BOOLECTOR_SORT (index)),
+      "'index' sort must be a bit vector sort");
+  BTOR_ABORT_BOOLECTOR (
+      !BTOR_IS_BITVEC_SORT (BTOR_IMPORT_BOOLECTOR_SORT (elem)),
+      "'elem' sort msut be a bit vector sort");
 
   BtorSort *res, *i, *e;
   i   = BTOR_IMPORT_BOOLECTOR_SORT (index);
@@ -3203,6 +3240,15 @@ boolector_fun_sort (Btor *btor,
            BTOR_TRAPI_SORT_ID ((BtorSort *) codomain));
   BTOR_TRAPI (strtrapi);
   BTOR_DELETEN (btor->mm, strtrapi, len);
+
+  for (i = 0; i < arity; i++)
+    BTOR_ABORT_BOOLECTOR (
+        !BTOR_IS_BITVEC_SORT (BTOR_IMPORT_BOOLECTOR_SORT (domain[i])),
+        "'domain' sort at position %d must be a bit vector sort",
+        i);
+  BTOR_ABORT_BOOLECTOR (
+      !BTOR_IS_BITVEC_SORT (BTOR_IMPORT_BOOLECTOR_SORT (codomain)),
+      "'codomain' sort must be a bit vector sort");
 
   res = btor_fun_sort (&btor->sorts_unique_table,
                        (BtorSort **) domain,
