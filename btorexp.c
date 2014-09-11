@@ -1588,9 +1588,7 @@ btor_var_exp (Btor *btor, int len, const char *symbol)
   assert (!symbol
           || !btor_find_in_ptr_hash_table (btor->symbols, (char *) symbol));
 
-  char *sym;
   BtorBVVarNode *exp;
-  BtorPtrHashBucket *b;
 
   BTOR_CNEW (btor->mm, exp);
   set_kind (btor, (BtorNode *) exp, BTOR_BV_VAR_NODE);
@@ -1599,17 +1597,7 @@ btor_var_exp (Btor *btor, int len, const char *symbol)
   setup_node_and_add_to_id_table (btor, exp);
   exp->bits = btor_x_const_3vl (btor->mm, len);
   (void) btor_insert_in_ptr_hash_table (btor->bv_vars, exp);
-
-  if (symbol)
-  {
-    b   = btor_find_in_ptr_hash_table (btor->symbols, (char *) symbol);
-    sym = btor_strdup (btor->mm, symbol);
-    (void) btor_insert_in_ptr_hash_table (btor->symbols, sym);
-    assert (sym);
-    b             = btor_insert_in_ptr_hash_table (btor->node2symbol, exp);
-    b->data.asStr = sym;
-  }
-
+  if (symbol) btor_set_symbol_exp (btor, (BtorNode *) exp, symbol);
   return (BtorNode *) exp;
 }
 
@@ -1621,8 +1609,6 @@ btor_param_exp (Btor *btor, int len, const char *symbol)
   assert (!symbol
           || !btor_find_in_ptr_hash_table (btor->symbols, (char *) symbol));
 
-  char *sym;
-  BtorPtrHashBucket *b;
   BtorParamNode *exp;
 
   BTOR_CNEW (btor->mm, exp);
@@ -1631,17 +1617,7 @@ btor_param_exp (Btor *btor, int len, const char *symbol)
   exp->len           = len;
   exp->parameterized = 1;
   setup_node_and_add_to_id_table (btor, exp);
-
-  if (symbol)
-  {
-    b   = btor_find_in_ptr_hash_table (btor->symbols, (char *) symbol);
-    sym = btor_strdup (btor->mm, symbol);
-    (void) btor_insert_in_ptr_hash_table (btor->symbols, sym);
-    assert (sym);
-    b             = btor_insert_in_ptr_hash_table (btor->node2symbol, exp);
-    b->data.asStr = sym;
-  }
-
+  if (symbol) btor_set_symbol_exp (btor, (BtorNode *) exp, symbol);
   return (BtorNode *) exp;
 }
 
@@ -1678,8 +1654,6 @@ btor_uf_exp (Btor *btor, BtorSort *sort, const char *symbol)
   assert (!symbol
           || !btor_find_in_ptr_hash_table (btor->symbols, (char *) symbol));
 
-  char *sym;
-  BtorPtrHashBucket *b;
   BtorUFNode *exp;
 
   BTOR_CNEW (btor->mm, exp);
@@ -1693,17 +1667,7 @@ btor_uf_exp (Btor *btor, BtorSort *sort, const char *symbol)
   exp->len = sort->fun.codomain->bitvec.len;
   setup_node_and_add_to_id_table (btor, exp);
   (void) btor_insert_in_ptr_hash_table (btor->ufs, exp);
-
-  if (symbol)
-  {
-    b   = btor_find_in_ptr_hash_table (btor->symbols, (char *) symbol);
-    sym = btor_strdup (btor->mm, symbol);
-    (void) btor_insert_in_ptr_hash_table (btor->symbols, sym);
-    assert (sym);
-    b             = btor_insert_in_ptr_hash_table (btor->node2symbol, exp);
-    b->data.asStr = sym;
-  }
-
+  if (symbol) btor_set_symbol_exp (btor, (BtorNode *) exp, symbol);
   return (BtorNode *) exp;
 }
 
@@ -3400,6 +3364,24 @@ btor_get_symbol_exp (Btor *btor, BtorNode *exp)
   BtorPtrHashBucket *b = btor_find_in_ptr_hash_table (btor->node2symbol, exp);
   if (b) return b->data.asStr;
   return 0;
+}
+
+void
+btor_set_symbol_exp (Btor *btor, BtorNode *exp, const char *symbol)
+{
+  /* do not pointer-chase! */
+  assert (btor);
+  assert (exp);
+  assert (symbol);
+  assert (!btor_find_in_ptr_hash_table (btor->symbols, (char *) symbol));
+
+  BtorPtrHashBucket *b;
+  char *sym;
+
+  sym = btor_strdup (btor->mm, symbol);
+  (void) btor_insert_in_ptr_hash_table (btor->symbols, sym);
+  b             = btor_insert_in_ptr_hash_table (btor->node2symbol, exp);
+  b->data.asStr = sym;
 }
 
 int

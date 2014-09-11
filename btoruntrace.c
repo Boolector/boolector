@@ -393,7 +393,7 @@ NEXT:
     {
       exp_str = strarg (tok);
       len     = strlen (exp_str);
-      for (i = 0; i < len; i++) btor_str[i] = exp_str[i];
+      for (i = 0; (size_t) i < len; i++) btor_str[i] = exp_str[i];
       btor_str[i] = 0;
       btor        = hmap_get (hmap, 0, btor_str);
       assert (btor);
@@ -1086,6 +1086,12 @@ NEXT:
       }
       else
         exp_ret = RET_SKIP;
+    }
+    else if (!strcmp (tok, "set_symbol"))
+    {
+      PARSE_ARGS2 (tok, str, str);
+      boolector_set_symbol (
+          btor, hmap_get (hmap, btor_str, arg1_str), arg2_str);
     }
     else if (!strcmp (tok, "get_width"))
     {
