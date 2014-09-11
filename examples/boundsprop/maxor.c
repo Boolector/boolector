@@ -1,6 +1,6 @@
 #include "maxor.h"
-#include "../../boolector.h"
-#include "../../btorutil.h"
+#include "boolector.h"
+#include "btorutil.h"
 
 #include <assert.h>
 #include <stdio.h>
@@ -8,21 +8,21 @@
 
 /* maxOR algorithm from hacker's delight, page 60 */
 
-BtorNode *
+BoolectorNode *
 btor_maxor (Btor *btor,
-            BtorNode *a_in,
-            BtorNode *b_in,
-            BtorNode *c_in,
-            BtorNode *d_in,
-            BtorNode *m_in,
+            BoolectorNode *a_in,
+            BoolectorNode *b_in,
+            BoolectorNode *c_in,
+            BoolectorNode *d_in,
+            BoolectorNode *m_in,
             int num_bits)
 {
-  BtorNode *temp_1, *temp_2, *m, *zero;
-  BtorNode *tmp, *a, *b, *c, *d, *m_minus_1, *b_minus_m;
-  BtorNode *d_minus_m, *one_log_bits, *b_and_d;
-  BtorNode *b_and_d_and_m, *temp_1_ugte_a, *temp_2_ugte_c;
-  BtorNode *b_and_d_and_m_ne_zero, *cond_1, *cond_2, *result;
-  BtorNode *and_break, *cond_3, *cond_4, *_break;
+  BoolectorNode *temp_1, *temp_2, *m, *zero;
+  BoolectorNode *tmp, *a, *b, *c, *d, *m_minus_1, *b_minus_m;
+  BoolectorNode *d_minus_m, *one_log_bits, *b_and_d;
+  BoolectorNode *b_and_d_and_m, *temp_1_ugte_a, *temp_2_ugte_c;
+  BoolectorNode *b_and_d_and_m_ne_zero, *cond_1, *cond_2, *result;
+  BoolectorNode *and_break, *cond_3, *cond_4, *_break;
   int i;
 
   assert (btor != NULL);

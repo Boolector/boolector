@@ -1,16 +1,16 @@
 #include <stdio.h>
 #include <stdlib.h>
-#include "../../boolector.h"
-#include "../../btorutil.h"
+#include "boolector.h"
+#include "btorutil.h"
 
 int
 main (int argc, char **argv)
 {
   int num_bits, num_bits_index, num_elements, i, j;
   Btor *btor;
-  BtorNode **indices, *array, *min_index, *min_element, *cur_element;
-  BtorNode *old_element, *index, *ne, *ult, *ulte, *temp, *read1, *read2;
-  BtorNode *no_diff_element, *sorted, *formula;
+  BoolectorNode **indices, *array, *min_index, *min_element, *cur_element;
+  BoolectorNode *old_element, *index, *ne, *ult, *ulte, *temp, *read1, *read2;
+  BoolectorNode *no_diff_element, *sorted, *formula;
   if (argc != 3)
   {
     printf ("Usage: ./selectionsort <num-bits> <num-elements>\n");
@@ -35,8 +35,8 @@ main (int argc, char **argv)
   }
   num_bits_index = btor_log_2_util (num_elements);
   btor           = boolector_new ();
-  boolector_set_opt_rewrite_level (btor, 0);
-  indices = (BtorNode **) malloc (sizeof (BtorNode *) * num_elements);
+  boolector_set_opt (btor, "rewrite_level", 0);
+  indices = (BoolectorNode **) malloc (sizeof (BoolectorNode *) * num_elements);
   for (i = 0; i < num_elements; i++)
     indices[i] = boolector_int (btor, i, num_bits_index);
   array = boolector_array (btor, num_bits, num_bits_index, "array");
@@ -116,7 +116,7 @@ main (int argc, char **argv)
   temp = boolector_not (btor, formula);
   boolector_release (btor, formula);
   formula = temp;
-  boolector_dump_btor (btor, stdout, formula);
+  boolector_dump_btor_node (btor, stdout, formula);
   /* clean up */
   for (i = 0; i < num_elements; i++) boolector_release (btor, indices[i]);
   boolector_release (btor, old_element);

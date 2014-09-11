@@ -227,7 +227,6 @@ BtorOpt *
 btor_get_opt (Btor *btor, const char *name)
 {
   BtorOpt *o = btor_get_opt_aux (btor, name);
-  assert (o);
   return o;
 }
 

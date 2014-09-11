@@ -669,8 +669,7 @@ clone_aux_btor (Btor *btor,
   char *prefix, *clone_prefix;
 #ifndef NDEBUG
   int i;
-  size_t allocated, amap_size = 0, amap_count = 0, emap_size, emap_count;
-  size_t tab_size, tab_count;
+  size_t allocated, amap_size = 0, amap_count = 0;
   BtorNode *cur;
   BtorAIGMgr *amgr;
   BtorBVAssignment *bvass;
@@ -880,13 +879,10 @@ clone_aux_btor (Btor *btor,
                + emap->table->count * sizeof (BtorPtrHashBucket)
                + BTOR_SIZE_STACK (btor->nodes_id_table) * sizeof (BtorNode *);
   assert (allocated == clone->mm->allocated);
-  emap_size  = emap->table->size;
-  emap_count = emap->table->count;
 #endif
 
   clone->true_exp = btor_mapped_node (emap, btor->true_exp);
   assert (clone->true_exp);
-  assert (emap->table->count == emap_count);
 
   BTORLOG_TIMESTAMP (delta);
   clone_nodes_unique_table (
@@ -905,8 +901,6 @@ clone_aux_btor (Btor *btor,
         (strlen ((char *) next_hash_table_iterator (&it)) + 1) * sizeof (char);
   assert ((allocated += MEM_PTR_HASH_TABLE (btor->symbols) + str_bytes)
           == clone->mm->allocated);
-  tab_count = clone->symbols->count;
-  tab_size  = clone->symbols->size;
 #endif
   clone->node2symbol = btor_clone_ptr_hash_table (mm,
                                                   btor->node2symbol,
@@ -914,7 +908,6 @@ clone_aux_btor (Btor *btor,
                                                   data_as_str_ptr,
                                                   emap,
                                                   clone->symbols);
-  assert (clone->symbols->count == tab_count);
 #ifndef NDEBUG
   assert ((allocated += MEM_PTR_HASH_TABLE (btor->node2symbol))
           == clone->mm->allocated);

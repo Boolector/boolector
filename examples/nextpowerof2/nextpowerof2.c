@@ -1,7 +1,7 @@
 #include <stdio.h>
 #include <stdlib.h>
-#include "../../boolector.h"
-#include "../../btorutil.h"
+#include "boolector.h"
+#include "btorutil.h"
 
 /* We verifiy that the next power of 2 algorithm
  * from the book "hacker's delight" (Warren Jr., Henry)
@@ -22,9 +22,9 @@ main (int argc, char **argv)
 {
   int i, num_bits, num_bits_log_2;
   Btor *btor;
-  BtorNode *formula, *next_power, *next_smallest_power, *one, *temp;
-  BtorNode *shift, *cur_const, *x, *eq, *gte, *lte, *gt;
-  BtorNode **powers;
+  BoolectorNode *formula, *next_power, *next_smallest_power, *one, *temp;
+  BoolectorNode *shift, *cur_const, *x, *eq, *gte, *lte, *gt;
+  BoolectorNode **powers;
   char *const_string;
   if (argc != 2)
   {
@@ -45,11 +45,11 @@ main (int argc, char **argv)
 
   num_bits_log_2 = btor_log_2_util (num_bits);
 
-  powers       = (BtorNode **) malloc (sizeof (BtorNode *) * num_bits);
-  const_string = (char *) malloc (sizeof (char) * (num_bits + 1));
+  powers = (BoolectorNode **) malloc (sizeof (BoolectorNode *) * num_bits);
+  const_string           = (char *) malloc (sizeof (char) * (num_bits + 1));
   const_string[num_bits] = '\0';
   btor                   = boolector_new ();
-  boolector_set_opt_rewrite_level (btor, 0);
+  boolector_set_opt (btor, "rewrite_level", 0);
   for (i = 0; i < num_bits; i++) const_string[i] = '0';
   for (i = 0; i < num_bits; i++)
   {
@@ -112,7 +112,7 @@ main (int argc, char **argv)
   temp = boolector_not (btor, formula);
   boolector_release (btor, formula);
   formula = temp;
-  boolector_dump_btor (btor, stdout, formula);
+  boolector_dump_btor_node (btor, stdout, formula);
   /* clean up */
   for (i = 0; i < num_bits; i++) boolector_release (btor, powers[i]);
   boolector_release (btor, lte);

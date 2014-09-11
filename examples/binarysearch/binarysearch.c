@@ -1,16 +1,16 @@
 #include <stdio.h>
 #include <stdlib.h>
-#include "../../boolector.h"
-#include "../../btorutil.h"
+#include "boolector.h"
+#include "btorutil.h"
 
 int
 main (int argc, char **argv)
 {
   int num_bits, num_bits_index, num_elements, i, num_iterations;
   Btor *btor;
-  BtorNode **indices, *array, *eq, *ult, *ulte, *ugt, *temp, *read1;
-  BtorNode *read2, *formula, *val, *index, *found, *sorted, *low, *high;
-  BtorNode *two, *one, *mid, *sub, *udiv, *inc, *dec;
+  BoolectorNode **indices, *array, *eq, *ult, *ulte, *ugt, *temp, *read1;
+  BoolectorNode *read2, *formula, *val, *index, *found, *sorted, *low, *high;
+  BoolectorNode *two, *one, *mid, *sub, *udiv, *inc, *dec;
   if (argc != 3)
   {
     printf ("Usage: ./binarysearch <num-bits> <num-elements>\n");
@@ -37,8 +37,8 @@ main (int argc, char **argv)
   /* binary search needs log2(size(array)) + 1 iterations in the worst case */
   num_iterations = num_bits_index + 1;
   btor           = boolector_new ();
-  boolector_set_opt_rewrite_level (btor, 0);
-  indices = (BtorNode **) malloc (sizeof (BtorNode *) * num_elements);
+  boolector_set_opt (btor, "rewrite_level", 0);
+  indices = (BoolectorNode **) malloc (sizeof (BtorNode *) * num_elements);
   for (i = 0; i < num_elements; i++)
     indices[i] = boolector_int (btor, i, num_bits_index);
   array = boolector_array (btor, num_bits, num_bits_index, "array");
@@ -110,7 +110,7 @@ main (int argc, char **argv)
   temp = boolector_not (btor, formula);
   boolector_release (btor, formula);
   formula = temp;
-  boolector_dump_btor (btor, stdout, formula);
+  boolector_dump_btor_node (btor, stdout, formula);
   /* clean up */
   for (i = 0; i < num_elements; i++) boolector_release (btor, indices[i]);
   boolector_release (btor, formula);
