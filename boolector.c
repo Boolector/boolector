@@ -93,6 +93,7 @@ boolector_set_btor_id (Btor *btor, BoolectorNode *node, int id)
   BTOR_ABORT_BOOLECTOR (
       !btor_is_bv_var_exp (btor, exp) && !btor_is_uf_array_var_exp (btor, exp),
       "'exp' is neither BV/array variable nor UF");
+  BTOR_ABORT_IF_BTOR_DOES_NOT_MATCH (btor, exp);
   btor_set_btor_id (btor, exp, id);
 #ifndef NDEBUG
   BTOR_CHKCLONE_NORES (set_btor_id, BTOR_CLONED_EXP (exp), id);
@@ -926,6 +927,7 @@ boolector_redand (Btor *btor, BoolectorNode *node)
   BTOR_ABORT_ARG_NULL_BOOLECTOR (exp);
   BTOR_TRAPI_UNFUN (exp);
   BTOR_ABORT_REFS_NOT_POS_BOOLECTOR (exp);
+  BTOR_ABORT_IF_BTOR_DOES_NOT_MATCH (btor, exp);
   simp = btor_simplify_exp (btor, exp);
   BTOR_ABORT_ARRAY_BOOLECTOR (simp);
   btor->external_refs++;
