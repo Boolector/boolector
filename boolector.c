@@ -2661,6 +2661,8 @@ boolector_match_node_by_id (Btor *btor, int id)
   BTOR_ABORT_BOOLECTOR (id <= 0, "node id must be > 0");
   BTOR_TRAPI ("%d", id);
   res = btor_match_node_by_id (btor, id);
+  btor->external_refs++;
+  BTOR_REAL_ADDR_NODE (res)->ext_refs += 1;
   BTOR_TRAPI_RETURN_PTR (res);
 #ifndef NDEBUG
   BTOR_CHKCLONE_RES_PTR (res, match_node_by_id, id);
@@ -2679,6 +2681,8 @@ boolector_match_node (Btor *btor, BoolectorNode *node)
   BTOR_ABORT_REFS_NOT_POS_BOOLECTOR (exp);
   BTOR_ABORT_IF_BTOR_DOES_NOT_MATCH (btor, exp);
   res = btor_match_node (btor, exp);
+  btor->external_refs++;
+  BTOR_REAL_ADDR_NODE (res)->ext_refs += 1;
   BTOR_TRAPI_RETURN_PTR (res);
 #ifndef NDEBUG
   BTOR_CHKCLONE_RES_PTR (res, match_node, node);
