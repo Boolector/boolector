@@ -20,6 +20,7 @@ all: libboolector.a $(TARGETS)
 -include test.mk
 -include ibv.mk
 -include mbt.mk
+-include python.mk
 
 %.o: %.c
 	$(CC) $(CFLAGS) $(INCS) -c $< -o $@
@@ -64,5 +65,7 @@ clean:
 	rm -f log/*.log *.tmp
 	rm -f *.a $(foreach d,$(SRCDIRS),$(d)/*.o)
 	rm -f btormbt btoruntrace
+	rm -rf build
+	rm -f python.mk setup.py api/python/*.c *.so
 
 .PHONY: all analyze clean
