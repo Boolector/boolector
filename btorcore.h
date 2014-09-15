@@ -28,10 +28,6 @@
 
 /*------------------------------------------------------------------------*/
 
-#if !defined(NDEBUG) && defined(BTOR_USE_LINGELING)
-//#define BTOR_CHECK_FAILED
-#endif
-
 //#define BTOR_DO_NOT_OPTIMIZE_UNCONSTRAINED
 
 /*------------------------------------------------------------------------*/

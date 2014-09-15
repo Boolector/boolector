@@ -252,6 +252,7 @@ else
     [ X"$LIBS" = X ] || LIBS="$LIBS "
     [ X"$INCS" = X ] || INCS="$INCS "
     CFLAGS="${CFLAGS}-DBTOR_USE_LINGELING -DBTOR_ENABLE_CLONING -DBTOR_ENABLE_DUAL_PROPAGATION -DBTOR_ENABLE_BETA_REDUCTION_PROBING"
+    [ $debug = yes ] && CFLAGS="$CFLAGS -DBTOR_CHECK_FAILED"
     LIBS="${LIBS}-L../lingeling -llgl"
     LDEPS="${LDEPS}../lingeling/liblgl.a"
     LIBM=yes
