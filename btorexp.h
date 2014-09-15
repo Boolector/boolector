@@ -839,14 +839,16 @@ int btor_get_index_exp_len (Btor *btor, BtorNode *e_array);
 /* Get the id of an expression. */
 int btor_get_id (Btor *btor, BtorNode *exp);
 
-/* Get the exp corresponding to the given id. */
+/* Retrieve the exp (belonging to instance 'btor') that matches given id.
+ * (Note: increases ref counter of returned match!) */
 BtorNode *btor_match_node_by_id (Btor *btor, int id);
 
-/* Get the exp belonging to a given Btor instance, that corresponds to the
- * given expression by id. This is intended to be used for handling
- * expressions of a cloned instance (in a clone and its parent, expressions
+/* Retrieve the exp (belonging to instance 'btor') that matches given
+ * expression by id. This is intended to be used for handling expressions
+ * of a cloned instance (in a clone and its parent, expressions
  * with the same id correspond to each other, i.e. initially, the cloned
- * expression is an identical copy of the parent expression). */
+ * expression is an identical copy of the parent expression).
+ * (Note: increases ref counter of return match!) */
 BtorNode *btor_match_node (Btor *btor, BtorNode *exp);
 
 /* Gets the symbol of an expression. */

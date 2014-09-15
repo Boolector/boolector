@@ -3596,11 +3596,13 @@ btor_match_node (Btor *btor, BtorNode *exp)
   assert (exp);
 
   int id;
+  BtorNode *res;
 
   id = BTOR_REAL_ADDR_NODE (exp)->id;
   assert (id > 0);
   if (id >= BTOR_COUNT_STACK (btor->nodes_id_table)) return 0;
-  return btor_copy_exp (btor, BTOR_PEEK_STACK (btor->nodes_id_table, id));
+  res = btor_copy_exp (btor, BTOR_PEEK_STACK (btor->nodes_id_table, id));
+  return BTOR_IS_INVERTED_NODE (exp) ? BTOR_INVERT_NODE (res) : res;
 }
 
 char *
