@@ -2633,6 +2633,59 @@ boolector_get_btor (BoolectorNode *node)
   return btor;
 }
 
+int
+boolector_get_id (Btor *btor, BoolectorNode *node)
+{
+  int res;
+  BtorNode *exp;
+
+  exp = BTOR_IMPORT_BOOLECTOR_NODE (node);
+  BTOR_ABORT_ARG_NULL_BOOLECTOR (btor);
+  BTOR_ABORT_ARG_NULL_BOOLECTOR (node);
+  BTOR_TRAPI_UNFUN (exp);
+  BTOR_ABORT_REFS_NOT_POS_BOOLECTOR (exp);
+  BTOR_ABORT_IF_BTOR_DOES_NOT_MATCH (btor, exp);
+  res = btor_get_id (btor, exp);
+  BTOR_TRAPI_RETURN_INT (res);
+#ifndef NDEBUG
+  BTOR_CHKCLONE_RES (res, get_id, BTOR_CLONED_EXP (exp));
+#endif
+  return res;
+}
+
+BoolectorNode *
+boolector_match_node_by_id (Btor *btor, int id)
+{
+  BtorNode *res;
+  BTOR_ABORT_ARG_NULL_BOOLECTOR (btor);
+  BTOR_ABORT_BOOLECTOR (id <= 0, "node id must be > 0");
+  BTOR_TRAPI ("%d", id);
+  res = btor_match_node_by_id (btor, id);
+  BTOR_TRAPI_RETURN_PTR (res);
+#ifndef NDEBUG
+  BTOR_CHKCLONE_RES_PTR (res, match_node_by_id, id);
+#endif
+  return BTOR_EXPORT_BOOLECTOR_NODE (res);
+}
+
+BoolectorNode *
+boolector_match_node (Btor *btor, BoolectorNode *node)
+{
+  BtorNode *res, *exp;
+
+  exp = BTOR_IMPORT_BOOLECTOR_NODE (node);
+  BTOR_ABORT_ARG_NULL_BOOLECTOR (btor);
+  BTOR_TRAPI_UNFUN (exp);
+  BTOR_ABORT_REFS_NOT_POS_BOOLECTOR (exp);
+  BTOR_ABORT_IF_BTOR_DOES_NOT_MATCH (btor, exp);
+  res = btor_match_node (btor, exp);
+  BTOR_TRAPI_RETURN_PTR (res);
+#ifndef NDEBUG
+  BTOR_CHKCLONE_RES_PTR (res, match_node, node);
+#endif
+  return BTOR_EXPORT_BOOLECTOR_NODE (res);
+}
+
 const char *
 boolector_get_symbol (Btor *btor, BoolectorNode *node)
 {

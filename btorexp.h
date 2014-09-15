@@ -836,6 +836,19 @@ int btor_is_bv_var_exp (Btor *btor, BtorNode *exp);
 /* Gets the number of bits used by indices on 'e_array'. */
 int btor_get_index_exp_len (Btor *btor, BtorNode *e_array);
 
+/* Get the id of an expression. */
+int btor_get_id (Btor *btor, BtorNode *exp);
+
+/* Get the exp corresponding to the given id. */
+BtorNode *btor_match_node_by_id (Btor *btor, int id);
+
+/* Get the exp belonging to a given Btor instance, that corresponds to the
+ * given expression by id. This is intended to be used for handling
+ * expressions of a cloned instance (in a clone and its parent, expressions
+ * with the same id correspond to each other, i.e. initially, the cloned
+ * expression is an identical copy of the parent expression). */
+BtorNode *btor_match_node (Btor *btor, BtorNode *exp);
+
 /* Gets the symbol of an expression. */
 char *btor_get_symbol_exp (Btor *btor, BtorNode *exp);
 

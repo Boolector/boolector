@@ -9114,13 +9114,6 @@ check_model (Btor *btor, Btor *clone, BtorPtrHashTable *inputs)
 #endif
 
 #ifdef BTOR_CHECK_FAILED
-#define BTOR_CLONED_EXP(clone, exp)                                         \
-  (BTOR_IS_INVERTED_NODE (exp)                                              \
-       ? BTOR_INVERT_NODE (BTOR_PEEK_STACK (clone->nodes_id_table,          \
-                                            BTOR_REAL_ADDR_NODE (exp)->id)) \
-       : BTOR_PEEK_STACK (clone->nodes_id_table,                            \
-                          BTOR_REAL_ADDR_NODE (exp)->id))
-
 static void
 check_failed_assumptions (Btor *btor, Btor *clone)
 {
@@ -9137,7 +9130,7 @@ check_failed_assumptions (Btor *btor, Btor *clone)
     ass = next_node_hash_table_iterator (&it);
     if (btor_failed_exp (btor, ass))
     {
-      ass = BTOR_CLONED_EXP (clone, ass);
+      ass = btor_match_node (clone, ass);
       assert (ass);
       btor_assert_exp (clone, ass);
     }

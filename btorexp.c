@@ -3571,6 +3571,38 @@ btor_get_index_exp_len (Btor *btor, BtorNode *e_array)
   return BTOR_ARRAY_INDEX_LEN (e_array);
 }
 
+int
+btor_get_id (Btor *btor, BtorNode *exp)
+{
+  assert (btor);
+  assert (exp);
+  assert (btor == BTOR_REAL_ADDR_NODE (exp)->btor);
+  return BTOR_REAL_ADDR_NODE (exp)->id;
+}
+
+BtorNode *
+btor_match_node_by_id (Btor *btor, int id)
+{
+  assert (btor);
+  assert (id > 0);
+  if (id >= BTOR_COUNT_STACK (btor->nodes_id_table)) return 0;
+  return btor_copy_exp (btor, BTOR_PEEK_STACK (btor->nodes_id_table, id));
+}
+
+BtorNode *
+btor_match_node (Btor *btor, BtorNode *exp)
+{
+  assert (btor);
+  assert (exp);
+
+  int id;
+
+  id = BTOR_REAL_ADDR_NODE (exp)->id;
+  assert (id > 0);
+  if (id >= BTOR_COUNT_STACK (btor->nodes_id_table)) return 0;
+  return btor_copy_exp (btor, BTOR_PEEK_STACK (btor->nodes_id_table, id));
+}
+
 char *
 btor_get_symbol_exp (Btor *btor, BtorNode *exp)
 {
