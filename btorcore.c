@@ -7552,10 +7552,7 @@ BTOR_CONFLICT_CHECK:
     cur = next_node_hash_table_iterator (&it);
     assert (BTOR_IS_REGULAR_NODE (cur));
     if (BTOR_IS_APPLY_NODE (cur))
-    {
-      assert (cur->propagated);
       cur->propagated = 0;
-    }
     else
     {
       assert (BTOR_IS_FUN_NODE (cur));
