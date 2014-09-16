@@ -7934,7 +7934,7 @@ btor_sat_aux_btor_dual_prop (Btor *btor)
   init_node_hash_table_iterator (&it, btor->assumptions);
   while (has_next_node_hash_table_iterator (&it))
     assert (
-        !BTOR_REAL_ADDR_NODE (next_node_hash_table_iterator (&it)->simplified));
+        !BTOR_REAL_ADDR_NODE (next_node_hash_table_iterator (&it))->simplified);
 #endif
 
   update_reachable (btor, 0);
