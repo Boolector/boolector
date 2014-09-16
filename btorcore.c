@@ -1111,7 +1111,6 @@ btor_delete_btor (Btor *btor)
         btor_release_exp (btor, exp);
       }
     }
-    assert (btor->external_refs == 0);
     if (!btor->options.force_internal_cleanup.val && !getenv ("BTORLEAK")
         && !getenv ("BTORLEAKEXP"))
     {
@@ -1139,7 +1138,7 @@ btor_delete_btor (Btor *btor)
       assert (!BTOR_PEEK_STACK (btor->nodes_id_table, i));
   }
 
-  if (btor->options.force_cleanup.val)
+  if (btor->options.force_cleanup.val && btor->external_refs)
   {
     for (i = BTOR_COUNT_STACK (btor->sorts_unique_table.id2sort) - 1; i >= 0;
          i--)
@@ -1148,10 +1147,14 @@ btor_delete_btor (Btor *btor)
       if (!sort) continue;
       assert (sort->refs);
       assert (sort->ext_refs <= sort->refs);
-      sort->refs = 1;
+      sort->refs = sort->refs - sort->ext_refs + 1;
+      btor->external_refs -= sort->ext_refs;
+      assert (sort->refs > 0);
+      sort->ext_refs = 0;
       btor_release_sort (&btor->sorts_unique_table, sort);
     }
   }
+  assert (btor->external_refs == 0);
 
 #ifndef NDEBUG
   BtorNode *cur;
