@@ -1108,10 +1108,8 @@ clone_aux_btor (Btor *btor,
 
   if (aig_map)
     *aig_map = amap;
-  else
-  {
-    if (!exp_layer_only) btor_delete_aig_map (amap);
-  }
+  else if (!exp_layer_only)
+    btor_delete_aig_map (amap);
 
   if (exp_map)
     *exp_map = emap;
@@ -1120,16 +1118,6 @@ clone_aux_btor (Btor *btor,
 
   btor->time.cloning += btor_time_stamp () - start;
   BTORLOG ("cloning total: %.3f s", btor->time.cloning);
-
-  assert (btor->mm->allocated
-              - (btor->msg_prefix
-                     ? (strlen (btor->msg_prefix) + 1) * sizeof (char)
-                     : 0)
-          == clone->mm->allocated
-                 - (clone->msg_prefix
-                        ? (strlen (clone->msg_prefix) + 1) * sizeof (char)
-                        : 0));
-
   return clone;
 }
 
