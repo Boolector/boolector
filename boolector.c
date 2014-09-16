@@ -871,9 +871,19 @@ boolector_uf (Btor *btor, BoolectorSort *sort, const char *symbol)
   s    = BTOR_IMPORT_BOOLECTOR_SORT (sort);
   BTOR_TRAPI (SORT_FMT "%s", BTOR_TRAPI_SORT_ID (s), symb);
   BTOR_ABORT_BOOLECTOR (s->table == &btor->sorts_unique_table,
-                        "'sort' does not belong to 'btor'");
+                        "%ssort%s%s%s%s does not belong to 'btor'",
+                        symbol ? "" : "'",
+                        symbol ? "" : "'",
+                        symbol ? " '" : "",
+                        symbol ? symbol : "",
+                        symbol ? "'" : "");
   BTOR_ABORT_BOOLECTOR (!BTOR_IS_FUN_SORT (BTOR_IMPORT_BOOLECTOR_SORT (sort)),
-                        "'sort' must be a function sort");
+                        "%ssort%s%s%s%s must be a function sort",
+                        symbol ? "" : "'",
+                        symbol ? "" : "'",
+                        symbol ? " '" : "",
+                        symbol ? symbol : "",
+                        symbol ? "'" : "");
   BTOR_ABORT_BOOLECTOR (
       symb && btor_find_in_ptr_hash_table (btor->symbols, symb),
       "symbol '%s' is already in use",
