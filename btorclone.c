@@ -1088,8 +1088,6 @@ clone_aux_btor (Btor *btor,
       if (!btor_find_in_ptr_hash_table (clone->synthesized_constraints, exp))
         btor_insert_in_ptr_hash_table (clone->unsynthesized_constraints, exp);
     }
-    assert (clone->unsynthesized_constraints->count
-            || clone->embedded_constraints->count);
     BTOR_RELEASE_STACK (btor->mm, stack);
   }
 
