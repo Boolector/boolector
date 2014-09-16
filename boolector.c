@@ -870,7 +870,7 @@ boolector_uf (Btor *btor, BoolectorSort *sort, const char *symbol)
   symb = (char *) symbol;
   s    = BTOR_IMPORT_BOOLECTOR_SORT (sort);
   BTOR_TRAPI (SORT_FMT "%s", BTOR_TRAPI_SORT_ID (s), symb);
-  BTOR_ABORT_BOOLECTOR (s->table == &btor->sorts_unique_table,
+  BTOR_ABORT_BOOLECTOR (s->table != &btor->sorts_unique_table,
                         "%ssort%s%s%s%s does not belong to 'btor'",
                         symbol ? "" : "'",
                         symbol ? "" : "'",
