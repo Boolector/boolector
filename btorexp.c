@@ -1691,6 +1691,7 @@ btor_uf_exp (Btor *btor, BtorSort *sort, const char *symbol)
 {
   assert (btor);
   assert (sort);
+  assert (sort->table == &btor->sorts_unique_table);
   assert (sort->kind == BTOR_FUN_SORT);
   assert (sort->fun.codomain->kind == BTOR_BITVEC_SORT);
   assert (!symbol

@@ -9091,7 +9091,7 @@ check_model (Btor *btor, Btor *clone, BtorPtrHashTable *inputs)
 
       if (!fmodel) continue;
 
-      subst = generate_lambda_model_from_fun_model (clone, exp, fmodel);
+      subst = generate_lambda_model_from_fun_model (clone, cur, fmodel);
     }
     assert (!btor_find_in_ptr_hash_table (clone->substitutions, real_simp));
     btor_insert_substitution (clone, real_simp, subst, 0);
