@@ -2,6 +2,7 @@
  *
  *  Copyright (C) 2012-2013 Armin Biere.
  *  Copyright (C) 2013-2014 Mathias Preiner.
+ *  Copyright (C) 2014 Aina Niemetz.
  *
  *  All rights reserved.
  *
@@ -376,9 +377,7 @@ create_sort (BtorSortUniqueTable *table, BtorSort *pattern)
   assert (BTOR_PEEK_STACK (table->id2sort, res->id) == res);
 
   table->num_elements++;
-#ifndef NDEBUG
   res->table = table;
-#endif
 
   return res;
 }

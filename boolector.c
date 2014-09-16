@@ -864,12 +864,14 @@ boolector_uf (Btor *btor, BoolectorSort *sort, const char *symbol)
   BTOR_ABORT_ARG_NULL_BOOLECTOR (sort);
 
   BtorNode *res;
+  BtorSort *s;
   char *symb;
 
   symb = (char *) symbol;
-  BTOR_TRAPI (SORT_FMT "%s",
-              BTOR_TRAPI_SORT_ID (BTOR_IMPORT_BOOLECTOR_SORT (sort)),
-              symb);
+  s    = BTOR_IMPORT_BOOLECTOR_SORT (sort);
+  BTOR_TRAPI (SORT_FMT "%s", BTOR_TRAPI_SORT_ID (s), symb);
+  BTOR_ABORT_BOOLECTOR (s->table == &btor->sorts_unique_table,
+                        "'sort' does not belong to 'btor'");
   BTOR_ABORT_BOOLECTOR (!BTOR_IS_FUN_SORT (BTOR_IMPORT_BOOLECTOR_SORT (sort)),
                         "'sort' must be a function sort");
   BTOR_ABORT_BOOLECTOR (
