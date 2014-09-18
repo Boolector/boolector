@@ -689,6 +689,9 @@ clone_aux_btor (Btor *btor,
   memcpy (clone, btor, sizeof (Btor));
   clone->mm = mm;
 
+  /* always auto cleanup external references (dangling, not held from extern) */
+  clone->options.auto_cleanup.val = 1;
+
   if (exp_layer_only)
   {
     /* reset */
