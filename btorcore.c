@@ -1007,12 +1007,12 @@ btor_delete_btor (Btor *btor)
 
   btor_delete_bv_assignment_list (
       btor->bv_assignments,
-      btor->options.force_cleanup.val
-          || btor->options.force_internal_cleanup.val);
+      btor->options.auto_cleanup.val
+          || btor->options.auto_cleanup_internal.val);
   btor_delete_array_assignment_list (
       btor->array_assignments,
-      btor->options.force_cleanup.val
-          || btor->options.force_internal_cleanup.val);
+      btor->options.auto_cleanup.val
+          || btor->options.auto_cleanup_internal.val);
 
   init_node_hash_table_iterator (&it, btor->varsubst_constraints);
   while (has_next_node_hash_table_iterator (&it))
@@ -1096,7 +1096,7 @@ btor_delete_btor (Btor *btor)
   }
 #endif
 
-  if (btor->options.force_cleanup.val && btor->external_refs)
+  if (btor->options.auto_cleanup.val && btor->external_refs)
   {
     for (i = BTOR_COUNT_STACK (btor->nodes_id_table) - 1; i >= 0; i--)
     {
@@ -1111,7 +1111,7 @@ btor_delete_btor (Btor *btor)
         btor_release_exp (btor, exp);
       }
     }
-    if (!btor->options.force_internal_cleanup.val && !getenv ("BTORLEAK")
+    if (!btor->options.auto_cleanup_internal.val && !getenv ("BTORLEAK")
         && !getenv ("BTORLEAKEXP"))
     {
       for (i = BTOR_COUNT_STACK (btor->nodes_id_table) - 1; i >= 0; i--)
@@ -1119,7 +1119,7 @@ btor_delete_btor (Btor *btor)
     }
   }
 
-  if (btor->options.force_internal_cleanup.val)
+  if (btor->options.auto_cleanup_internal.val)
   {
     for (i = BTOR_COUNT_STACK (btor->nodes_id_table) - 1; i >= 0; i--)
     {
@@ -1138,7 +1138,7 @@ btor_delete_btor (Btor *btor)
       assert (!BTOR_PEEK_STACK (btor->nodes_id_table, i));
   }
 
-  if (btor->options.force_cleanup.val && btor->external_refs)
+  if (btor->options.auto_cleanup.val && btor->external_refs)
   {
     for (i = BTOR_COUNT_STACK (btor->sorts_unique_table.id2sort) - 1; i >= 0;
          i--)
@@ -7615,8 +7615,8 @@ new_exp_layer_clone_for_dual_prop (Btor *btor,
 
   btor_set_opt (clone, BTOR_OPT_MODEL_GEN, 0);
   btor_set_opt (clone, BTOR_OPT_INCREMENTAL, 1);
-  btor_set_opt (clone, BTOR_OPT_FORCE_CLEANUP, 1);
-  btor_set_opt (clone, BTOR_OPT_FORCE_INTERNAL_CLEANUP, 1);
+  btor_set_opt (clone, BTOR_OPT_AUTO_CLEANUP, 1);
+  btor_set_opt (clone, BTOR_OPT_AUTO_CLEANUP_INTERNAL, 1);
 #ifndef NBTORLOG
   btor_set_opt (clone, BTOR_OPT_LOGLEVEL, 0);
 #endif
@@ -7728,8 +7728,8 @@ btor_sat_aux_btor (Btor *btor, int lod_limit, int sat_limit)
       && btor->options.chk_failed_assumptions.val)
   {
     faclone = btor_clone_btor (btor);
-    btor_set_opt (faclone, BTOR_OPT_FORCE_CLEANUP, 1);
-    btor_set_opt (faclone, BTOR_OPT_FORCE_INTERNAL_CLEANUP, 1);
+    btor_set_opt (faclone, BTOR_OPT_AUTO_CLEANUP, 1);
+    btor_set_opt (faclone, BTOR_OPT_AUTO_CLEANUP_INTERNAL, 1);
     btor_set_opt (faclone, BTOR_OPT_LOGLEVEL, 0);
     btor_set_opt (faclone, BTOR_OPT_VERBOSITY, 0);
     faclone->options.chk_failed_assumptions.val = 0;
@@ -7902,8 +7902,8 @@ btor_sat_aux_btor_dual_prop (Btor *btor)
       && btor->options.chk_failed_assumptions.val)
   {
     faclone = btor_clone_btor (btor);
-    btor_set_opt (faclone, BTOR_OPT_FORCE_CLEANUP, 1);
-    btor_set_opt (faclone, BTOR_OPT_FORCE_INTERNAL_CLEANUP, 1);
+    btor_set_opt (faclone, BTOR_OPT_AUTO_CLEANUP, 1);
+    btor_set_opt (faclone, BTOR_OPT_AUTO_CLEANUP_INTERNAL, 1);
     btor_set_opt (faclone, BTOR_OPT_LOGLEVEL, 0);
     btor_set_opt (faclone, BTOR_OPT_VERBOSITY, 0);
     faclone->options.chk_failed_assumptions.val = 0;
@@ -8079,7 +8079,7 @@ btor_sat_btor (Btor *btor, int lod_limit, int sat_limit)
       && !btor->options.incremental.val && !btor->options.model_gen.val)
   {
     uclone = btor_clone_btor (btor);
-    btor_set_opt (uclone, BTOR_OPT_FORCE_CLEANUP, 1);
+    btor_set_opt (uclone, BTOR_OPT_AUTO_CLEANUP, 1);
     btor_set_opt (uclone, BTOR_OPT_UCOPT, 0);
   }
 #endif
@@ -8094,7 +8094,7 @@ btor_sat_btor (Btor *btor, int lod_limit, int sat_limit)
     btor_set_opt (mclone, BTOR_OPT_VERBOSITY, 0);
     btor_set_opt (mclone, BTOR_OPT_DUAL_PROP, 0);  // FIXME necessary?
     inputs = map_inputs_check_model (btor, mclone);
-    btor_set_opt (mclone, BTOR_OPT_FORCE_CLEANUP, 1);
+    btor_set_opt (mclone, BTOR_OPT_AUTO_CLEANUP, 1);
   }
 #endif
 
@@ -8106,8 +8106,8 @@ btor_sat_btor (Btor *btor, int lod_limit, int sat_limit)
     dpclone = btor_clone_btor (btor);
     btor_set_opt (dpclone, BTOR_OPT_LOGLEVEL, 0);
     btor_set_opt (dpclone, BTOR_OPT_VERBOSITY, 0);
-    btor_set_opt (dpclone, BTOR_OPT_FORCE_CLEANUP, 1);
-    btor_set_opt (dpclone, BTOR_OPT_FORCE_INTERNAL_CLEANUP, 1);
+    btor_set_opt (dpclone, BTOR_OPT_AUTO_CLEANUP, 1);
+    btor_set_opt (dpclone, BTOR_OPT_AUTO_CLEANUP_INTERNAL, 1);
     btor_set_opt (dpclone, BTOR_OPT_DUAL_PROP, 0);
   }
 #endif

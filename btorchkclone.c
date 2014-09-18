@@ -190,7 +190,7 @@ btor_chkclone_opts (Btor *btor)
   BTOR_CHKCLONE_OPT (ucopt);
 #endif
 
-  BTOR_CHKCLONE_OPT (force_cleanup);
+  BTOR_CHKCLONE_OPT (auto_cleanup);
   BTOR_CHKCLONE_OPT (pretty_print);
 #ifndef NBTORLOG
   BTOR_CHKCLONE_OPT (loglevel);
@@ -198,7 +198,7 @@ btor_chkclone_opts (Btor *btor)
   BTOR_CHKCLONE_OPT (verbosity);
 
   BTOR_CHKCLONE_OPT (simplify_constraints);
-  BTOR_CHKCLONE_OPT (force_internal_cleanup);
+  BTOR_CHKCLONE_OPT (auto_cleanup_internal);
 #ifdef BTOR_CHECK_FAILED
   BTOR_CHKCLONE_OPT (chk_failed_assumptions);
 #endif

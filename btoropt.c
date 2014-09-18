@@ -190,7 +190,7 @@ btor_init_opts (Btor *btor)
 #endif
   BTOR_OPT ("ls", lazy_synthesize, 1, 0, 1, "lazily synthesize expressions");
   BTOR_OPT ("es", eliminate_slices, 1, 0, 1, "eliminate slices on variables");
-  BTOR_OPT_INTL ("fc", force_cleanup, 0, 0, 1, "force cleanup on exit");
+  BTOR_OPT_INTL ("fc", auto_cleanup, 0, 0, 1, "force cleanup on exit");
   BTOR_OPT ("p", pretty_print, 1, 0, 1, "pretty print when dumping");
 #ifndef NBTORLOG
   BTOR_OPT ("l", loglevel, 0, 0, BTORLOG_LEVEL_MAX, "increase loglevel");
@@ -198,7 +198,7 @@ btor_init_opts (Btor *btor)
   BTOR_OPT ("v", verbosity, 0, 0, BTOR_VERBOSITY_MAX, "increase verbosity");
 
   BTOR_OPT_INTL (0, simplify_constraints, 1, 0, 1, 0);
-  BTOR_OPT_INTL (0, force_internal_cleanup, 0, 0, 1, 0);
+  BTOR_OPT_INTL (0, auto_cleanup_internal, 0, 0, 1, 0);
 #ifdef BTOR_CHECK_FAILED
   BTOR_OPT_INTL (0, chk_failed_assumptions, 1, 0, 1, 0);
 #endif

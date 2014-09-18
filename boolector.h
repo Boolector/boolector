@@ -199,7 +199,7 @@ Btor *boolector_clone (Btor *btor);
  * \param btor Boolector instance.
  * \remarks Expressions that have not been released properly will not be
  * deleted from memory. Use \ref boolector_get_refs to debug reference
- * counting. You can also set option 'force_cleanup' via \ref boolector_set_opt
+ * counting. You can also set option 'auto_cleanup' via \ref boolector_set_opt
  * in order to do the cleanup automatically.
  */
 void boolector_delete (Btor *btor);
@@ -495,7 +495,7 @@ int boolector_set_sat_solver_minisat (Btor *btor);
  *
  *     Enable (1) or disable (0) slice elimination on bit vector variables.
  *
- *   - force_cleanup
+ *   - auto_cleanup
  *
  *     Enable (1) or disable (0) forced automatic cleanup of expressions and
  *     assignment strings on \ref boolector_delete.

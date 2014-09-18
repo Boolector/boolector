@@ -2104,8 +2104,8 @@ _opt (BtorMBT *btormbt, unsigned r)
   int rw, set_sat_solver = 1;
   RNG rng = initrng (r);
 
-  BTORMBT_LOG (1, "opt: enable force cleanup");
-  boolector_set_opt (btormbt->btor, "force_cleanup", 1);
+  BTORMBT_LOG (1, "opt: enable auto cleanup");
+  boolector_set_opt (btormbt->btor, "auto_cleanup", 1);
 
   if (btormbt->dual_prop)
   {
