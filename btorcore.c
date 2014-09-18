@@ -981,6 +981,58 @@ btor_new_btor_no_init (void)
   return btor_new_aux_btor (0);
 }
 
+static void
+btor_release_all_ext_exp_refs (Btor *btor)
+{
+  assert (btor);
+
+  int i;
+  BtorNode *exp;
+
+  for (i = BTOR_COUNT_STACK (btor->nodes_id_table) - 1; i >= 0; i--)
+  {
+    if (!(exp = BTOR_PEEK_STACK (btor->nodes_id_table, i))) continue;
+    if (exp->ext_refs)
+    {
+      assert (exp->ext_refs <= exp->refs);
+      exp->refs = exp->refs - exp->ext_refs + 1;
+      btor->external_refs -= exp->ext_refs;
+      assert (exp->refs > 0);
+      exp->ext_refs = 0;
+      btor_release_exp (btor, exp);
+    }
+  }
+}
+
+static void
+btor_release_all_ext_sort_refs (Btor *btor)
+{
+  assert (btor);
+
+  int i;
+  BtorSort *sort;
+
+  for (i = BTOR_COUNT_STACK (btor->sorts_unique_table.id2sort) - 1; i >= 0; i--)
+  {
+    sort = BTOR_PEEK_STACK (btor->sorts_unique_table.id2sort, i);
+    if (!sort) continue;
+    assert (sort->refs);
+    assert (sort->ext_refs <= sort->refs);
+    sort->refs = sort->refs - sort->ext_refs + 1;
+    btor->external_refs -= sort->ext_refs;
+    assert (sort->refs > 0);
+    sort->ext_refs = 0;
+    btor_release_sort (&btor->sorts_unique_table, sort);
+  }
+}
+
+void
+btor_release_all_ext_refs (Btor *btor)
+{
+  btor_release_all_ext_exp_refs (btor);
+  btor_release_all_ext_sort_refs (btor);
+}
+
 void
 btor_delete_btor (Btor *btor)
 {
@@ -995,7 +1047,6 @@ btor_delete_btor (Btor *btor)
 #ifdef BTOR_JUST_USE_HEURISTIC
   BtorHashTableIterator iit;
 #endif
-  BtorSort *sort;
 
   mm = btor->mm;
 
@@ -1098,19 +1149,8 @@ btor_delete_btor (Btor *btor)
 
   if (btor->options.auto_cleanup.val && btor->external_refs)
   {
-    for (i = BTOR_COUNT_STACK (btor->nodes_id_table) - 1; i >= 0; i--)
-    {
-      if (!(exp = BTOR_PEEK_STACK (btor->nodes_id_table, i))) continue;
-      if (exp->ext_refs)
-      {
-        assert (exp->ext_refs <= exp->refs);
-        exp->refs = exp->refs - exp->ext_refs + 1;
-        btor->external_refs -= exp->ext_refs;
-        assert (exp->refs > 0);
-        exp->ext_refs = 0;
-        btor_release_exp (btor, exp);
-      }
-    }
+    btor_release_all_ext_exp_refs (btor);
+
     if (!btor->options.auto_cleanup_internal.val && !getenv ("BTORLEAK")
         && !getenv ("BTORLEAKEXP"))
     {
@@ -1139,21 +1179,8 @@ btor_delete_btor (Btor *btor)
   }
 
   if (btor->options.auto_cleanup.val && btor->external_refs)
-  {
-    for (i = BTOR_COUNT_STACK (btor->sorts_unique_table.id2sort) - 1; i >= 0;
-         i--)
-    {
-      sort = BTOR_PEEK_STACK (btor->sorts_unique_table.id2sort, i);
-      if (!sort) continue;
-      assert (sort->refs);
-      assert (sort->ext_refs <= sort->refs);
-      sort->refs = sort->refs - sort->ext_refs + 1;
-      btor->external_refs -= sort->ext_refs;
-      assert (sort->refs > 0);
-      sort->ext_refs = 0;
-      btor_release_sort (&btor->sorts_unique_table, sort);
-    }
-  }
+    btor_release_all_ext_sort_refs (btor);
+
   assert (btor->external_refs == 0);
 
 #ifndef NDEBUG

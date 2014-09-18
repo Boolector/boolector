@@ -574,6 +574,11 @@ NEXT:
       PARSE_ARGS1 (tok, str);
       boolector_release (btor, hmap_get (hmap, btor_str, arg1_str));
     }
+    else if (!strcmp (tok, "release_all"))
+    {
+      PARSE_ARGS0 (tok);
+      boolector_release_all (btor);
+    }
     /* expressions */
     else if (!strcmp (tok, "const"))
     {

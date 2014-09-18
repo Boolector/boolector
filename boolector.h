@@ -574,6 +574,13 @@ BoolectorNode *boolector_copy (Btor *btor, BoolectorNode *node);
 void boolector_release (Btor *btor, BoolectorNode *node);
 
 /**
+ * Release all expressions and sorts
+ * (\see boolector_release and \see boolector_release_sort).
+ * \param btor Boolector instance.
+ */
+void boolector_release_all (Btor *btor);
+
+/**
  * Create bit vector constant representing the bit vector 'bits'.
  * \param btor Boolector instance.
  * \param bits Non-empty and terminated string consisting of zeroes and/or ones.
