@@ -190,7 +190,24 @@ btor_chkclone_opts (Btor *btor)
   BTOR_CHKCLONE_OPT (ucopt);
 #endif
 
-  BTOR_CHKCLONE_OPT (auto_cleanup);
+  /* Note: auto_cleanup.val = 1 in clone! */
+  BTOR_CHKCLONE_STATE (options.auto_cleanup.internal);
+  assert (
+      (!btor->options.auto_cleanup.shrt && !clone->options.auto_cleanup.shrt)
+      || (btor->options.auto_cleanup.shrt
+          && !strcmp (clone->options.auto_cleanup.shrt,
+                      btor->options.auto_cleanup.shrt)));
+  assert (!strcmp (clone->options.auto_cleanup.lng,
+                   btor->options.auto_cleanup.lng));
+  assert (
+      (!btor->options.auto_cleanup.desc && !clone->options.auto_cleanup.desc)
+      || (btor->options.auto_cleanup.desc
+          && !strcmp (clone->options.auto_cleanup.desc,
+                      btor->options.auto_cleanup.desc)));
+  BTOR_CHKCLONE_STATE (options.auto_cleanup.dflt);
+  BTOR_CHKCLONE_STATE (options.auto_cleanup.min);
+  BTOR_CHKCLONE_STATE (options.auto_cleanup.max);
+
   BTOR_CHKCLONE_OPT (pretty_print);
 #ifndef NBTORLOG
   BTOR_CHKCLONE_OPT (loglevel);

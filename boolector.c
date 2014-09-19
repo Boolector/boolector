@@ -666,6 +666,17 @@ boolector_release (Btor *btor, BoolectorNode *node)
 #endif
 }
 
+void
+boolector_release_all (Btor *btor)
+{
+  BTOR_ABORT_ARG_NULL_BOOLECTOR (btor);
+  BTOR_TRAPI ("");
+  btor_release_all_ext_refs (btor);
+#ifndef NDEBUG
+  BTOR_CHKCLONE_NORES (release_all);
+#endif
+}
+
 BoolectorNode *
 boolector_const (Btor *btor, const char *bits)
 {
