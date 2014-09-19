@@ -55,12 +55,12 @@ typedef struct BtorOpt
 #ifndef BTOR_DO_NOT_OPTIMIZE_UNCONSTRAINED
 #define BTOR_OPT_UCOPT "ucopt"
 #endif
-#define BTOR_OPT_FORCE_CLEANUP "force_cleanup"
+#define BTOR_OPT_AUTO_CLEANUP "auto_cleanup"
 #define BTOR_OPT_PRETTY_PRINT "pretty_print"
 #define BTOR_OPT_LOGLEVEL "loglevel"
 #define BTOR_OPT_VERBOSITY "verbosity"
 #define BTOR_OPT_SIMPLIFY_CONSTRAINTS "simplify_constraints"
-#define BTOR_OPT_FORCE_INTERNAL_CLEANUP "force_internal_cleanup"
+#define BTOR_OPT_AUTO_CLEANUP_INTERNAL "auto_cleanup_internal"
 #ifdef BTOR_CHECK_FAILED
 #define BTOR_OPT_CHK_FAILED_ASSUMPTIONS "chk_failed_assumptions"
 #endif
@@ -110,16 +110,17 @@ typedef struct BtorOpts
   BtorOpt lazy_synthesize;  /* lazily synthesize expressions */
   BtorOpt eliminate_slices; /* eliminate slices on variables */
 
-  BtorOpt force_cleanup; /* force cleanup of exps, assignm. strings */
-  BtorOpt pretty_print;  /* reindex exps and sorts when dumping */
+  BtorOpt auto_cleanup; /* automatic cleanup of exps, assignment
+                           strings (external references only) */
+  BtorOpt pretty_print; /* reindex exps and sorts when dumping */
 #ifndef NBTORLOG
   BtorOpt loglevel;
 #endif
   BtorOpt verbosity;
 
   /* internal */
-  BtorOpt simplify_constraints;   /* force constraints to true/false */
-  BtorOpt force_internal_cleanup; /* force cleanup of exps, assignm. strings
+  BtorOpt simplify_constraints;  /* force constraints to true/false */
+  BtorOpt auto_cleanup_internal; /* force cleanup of exps, assignm. strings
                                      (internal references only) */
 #ifdef BTOR_CHECK_FAILED
   BtorOpt chk_failed_assumptions;

@@ -2,6 +2,7 @@
  *
  *  Copyright (C) 2012-2013 Armin Biere.
  *  Copyright (C) 2013 Mathias Preiner.
+ *  Copyright (C) 2014 Aina Niemetz.
  *
  *  All rights reserved.
  *
@@ -74,8 +75,8 @@ struct BtorSort
   int refs;           // reference counter
   int ext_refs;       // reference counter for API references
   BtorSort *next;     // collision chain for unique table
-#ifndef NDEBUG
   BtorSortUniqueTable *table;
+#ifndef NDEBUG
   int parents;
 #endif
   union

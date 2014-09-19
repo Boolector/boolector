@@ -2104,9 +2104,6 @@ _opt (BtorMBT *btormbt, unsigned r)
   int rw, set_sat_solver = 1;
   RNG rng = initrng (r);
 
-  BTORMBT_LOG (1, "opt: enable force cleanup");
-  boolector_set_opt (btormbt->btor, "force_cleanup", 1);
-
   if (btormbt->dual_prop)
   {
     BTORMBT_LOG (1, "opt: enable dual prop");
@@ -2142,21 +2139,21 @@ _opt (BtorMBT *btormbt, unsigned r)
 
     /* set random sat solver */
 #ifdef BTOR_USE_LINGELING
-  if (pick (&rng, 0, 1) && set_sat_solver)
+  if (!btormbt->shadow && pick (&rng, 0, 1) && set_sat_solver)
   {
     boolector_set_sat_solver_lingeling (btormbt->btor, 0, 0);
     set_sat_solver = 0;
   }
 #endif
 #ifdef BTOR_USE_PICOSAT
-  if (pick (&rng, 0, 1) && set_sat_solver)
+  if (!btormbt->shadow && pick (&rng, 0, 1) && set_sat_solver)
   {
     boolector_set_sat_solver_picosat (btormbt->btor);
     set_sat_solver = 0;
   }
 #endif
 #ifdef BTOR_USE_MINISAT
-  if (pick (&rng, 0, 1) && set_sat_solver)
+  if (!btormbt->shadow && pick (&rng, 0, 1) && set_sat_solver)
     boolector_set_sat_solver_minisat (btormbt->btor);
 #endif
 

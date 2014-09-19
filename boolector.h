@@ -186,7 +186,9 @@ Btor *boolector_new (void);
 
 /**
  * Clone an instance of Boolector. The resulting Boolector instance is an
- * exact copy of given Boolector instance 'btor'.
+ * exact copy of given Boolector instance 'btor', i.e. in a clone and its
+ * parent, nodes with the same id correspond to each other.
+ * Use \ref boolector_match_node to match corresponding nodes.
  * \param btor original Boolector instance.
  * \return New Boolector instance.
  */
@@ -197,7 +199,7 @@ Btor *boolector_clone (Btor *btor);
  * \param btor Boolector instance.
  * \remarks Expressions that have not been released properly will not be
  * deleted from memory. Use \ref boolector_get_refs to debug reference
- * counting. You can also set option 'force_cleanup' via \ref boolector_set_opt
+ * counting. You can also set option 'auto_cleanup' via \ref boolector_set_opt
  * in order to do the cleanup automatically.
  */
 void boolector_delete (Btor *btor);
@@ -493,7 +495,7 @@ int boolector_set_sat_solver_minisat (Btor *btor);
  *
  *     Enable (1) or disable (0) slice elimination on bit vector variables.
  *
- *   - force_cleanup
+ *   - auto_cleanup
  *
  *     Enable (1) or disable (0) forced automatic cleanup of expressions and
  *     assignment strings on \ref boolector_delete.
@@ -1347,6 +1349,34 @@ BoolectorNode *boolector_dec (Btor *btor, BoolectorNode *node);
  * \return Boolector instance.
  */
 Btor *boolector_get_btor (BoolectorNode *node);
+
+int boolector_get_id (Btor *btor, BoolectorNode *node);
+// TODO don't forget, returned node is a copy, must be released
+
+/* Retrieve the node belonging to Boolector instance 'btor' that matches
+ * given 'id'.
+ * \remark Note that matching a node against another increases the reference
+ * count of the returned match, which must therefore be released appropriately
+ * (\see boolector_release).
+ * \param btor Boolector instance.
+ * \param node Boolector node.
+ * \return The Boolector node that matches given 'node' in Boolector instance
+ * 'btor by id.
+ */
+BoolectorNode *boolector_match_node_by_id (Btor *btor, int id);
+
+/* Retrieve the node belonging to Boolector instance 'btor' that matches
+ * given BoolectorNode 'node' by id. This is intended to be used for handling
+ * expressions of a cloned instance (\see boolector_clone).
+ * \remark Note that matching a node against another increases the reference
+ * count of the returned match, which must therefore be released appropriately
+ * (\see boolector_release).
+ * \param btor Boolector instance.
+ * \param node Boolector node.
+ * \return The Boolector node that matches given 'node' in Boolector instance
+ * 'btor by id.
+ */
+BoolectorNode *boolector_match_node (Btor *btor, BoolectorNode *node);
 
 /**
  * Get the symbol of an expression. Expression must be either an array or

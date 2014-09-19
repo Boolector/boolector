@@ -150,7 +150,7 @@ checklastarg (char *op)
 {
   if (strtok (0, " "))
   {
-    perr ("to many arguments for '%s'", op);
+    perr ("too many arguments for '%s'", op);
   }
 }
 
@@ -403,12 +403,6 @@ NEXT:
       PARSE_ARGS0 (tok);
       boolector_chkclone (btor);
     }
-    else if (!strcmp (tok, "set_btor_id"))
-    {
-      PARSE_ARGS2 (tok, str, int);
-      boolector_set_btor_id (
-          btor, hmap_get (hmap, btor_str, arg1_str), arg2_int);
-    }
     else if (!strcmp (tok, "new"))
     {
       PARSE_ARGS0 (tok);
@@ -425,27 +419,35 @@ NEXT:
       exp_ret = RET_VOIDPTR;
       ret_ptr = boolector_clone (btor);
     }
+    else if (!strcmp (tok, "match_node_by_id"))
+    {
+      PARSE_ARGS1 (tok, int);
+      ret_ptr = boolector_match_node_by_id (btor, arg1_int);
+      exp_ret = RET_VOIDPTR;
+    }
+    else if (!strcmp (tok, "match_node"))
+    {
+      PARSE_ARGS1 (tok, str);
+      ret_ptr =
+          boolector_match_node (btor, hmap_get (hmap, btor_str, arg1_str));
+      exp_ret = RET_VOIDPTR;
+    }
     else if (!strcmp (tok, "delete"))
     {
       PARSE_ARGS0 (tok);
       boolector_delete (btor);
       delete = 0;
     }
+    else if (!strcmp (tok, "set_btor_id"))
+    {
+      PARSE_ARGS2 (tok, str, int);
+      boolector_set_btor_id (
+          btor, hmap_get (hmap, btor_str, arg1_str), arg2_int);
+    }
     else if (!strcmp (tok, "set_msg_prefix"))
     {
       PARSE_ARGS1 (tok, str);
       boolector_set_msg_prefix (btor, arg1_str);
-    }
-    else if (!strcmp (tok, "get_refs"))
-    {
-      PARSE_ARGS0 (tok);
-      if (!btorunt->skip)
-      {
-        ret_int = boolector_get_refs (btor);
-        exp_ret = RET_INT;
-      }
-      else
-        exp_ret = RET_SKIP;
     }
     else if (!strcmp (tok, "reset_time"))
     {
@@ -1078,6 +1080,28 @@ NEXT:
       exp_ret = RET_VOIDPTR;
     }
     /* getter */
+    else if (!strcmp (tok, "get_refs"))
+    {
+      PARSE_ARGS0 (tok);
+      if (!btorunt->skip)
+      {
+        ret_int = boolector_get_refs (btor);
+        exp_ret = RET_INT;
+      }
+      else
+        exp_ret = RET_SKIP;
+    }
+    else if (!strcmp (tok, "get_id"))
+    {
+      PARSE_ARGS1 (tok, str);
+      if (!btorunt->skip)
+      {
+        ret_int = boolector_get_id (btor, hmap_get (hmap, btor_str, arg1_str));
+        exp_ret = RET_INT;
+      }
+      else
+        exp_ret = RET_SKIP;
+    }
     else if (!strcmp (tok, "get_symbol"))
     {
       PARSE_ARGS1 (tok, str);
