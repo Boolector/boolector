@@ -3189,11 +3189,13 @@ boolector_array_sort (Btor *btor, BoolectorSort *index, BoolectorSort *elem)
   BTOR_ABORT_ARG_NULL_BOOLECTOR (index);
   BTOR_ABORT_ARG_NULL_BOOLECTOR (elem);
   BTOR_ABORT_BOOLECTOR (
-      !BTOR_IS_BITVEC_SORT (BTOR_IMPORT_BOOLECTOR_SORT (index)),
-      "'index' sort must be a bit vector sort");
+      !BTOR_IS_BITVEC_SORT (BTOR_IMPORT_BOOLECTOR_SORT (index))
+          && !BTOR_IS_BOOL_SORT (BTOR_IMPORT_BOOLECTOR_SORT (index)),
+      "'index' sort must be a bool or bit vector sort");
   BTOR_ABORT_BOOLECTOR (
-      !BTOR_IS_BITVEC_SORT (BTOR_IMPORT_BOOLECTOR_SORT (elem)),
-      "'elem' sort msut be a bit vector sort");
+      !BTOR_IS_BITVEC_SORT (BTOR_IMPORT_BOOLECTOR_SORT (elem))
+          && !BTOR_IS_BOOL_SORT (BTOR_IMPORT_BOOLECTOR_SORT (elem)),
+      "'elem' sort must be a bool or bit vector sort");
 
   BtorSort *res, *i, *e;
   i   = BTOR_IMPORT_BOOLECTOR_SORT (index);
@@ -3241,12 +3243,14 @@ boolector_fun_sort (Btor *btor,
 
   for (i = 0; i < arity; i++)
     BTOR_ABORT_BOOLECTOR (
-        !BTOR_IS_BITVEC_SORT (BTOR_IMPORT_BOOLECTOR_SORT (domain[i])),
-        "'domain' sort at position %d must be a bit vector sort",
+        !BTOR_IS_BITVEC_SORT (BTOR_IMPORT_BOOLECTOR_SORT (domain[i]))
+            && !BTOR_IS_BOOL_SORT (BTOR_IMPORT_BOOLECTOR_SORT (domain[i])),
+        "'domain' sort at position %d must be a bool or bit vector sort",
         i);
   BTOR_ABORT_BOOLECTOR (
-      !BTOR_IS_BITVEC_SORT (BTOR_IMPORT_BOOLECTOR_SORT (codomain)),
-      "'codomain' sort must be a bit vector sort");
+      !BTOR_IS_BITVEC_SORT (BTOR_IMPORT_BOOLECTOR_SORT (codomain))
+          && !BTOR_IS_BOOL_SORT (BTOR_IMPORT_BOOLECTOR_SORT (codomain)),
+      "'codomain' sort must be a bool or bit vector sort");
 
   res = btor_fun_sort (&btor->sorts_unique_table,
                        (BtorSort **) domain,

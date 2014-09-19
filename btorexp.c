@@ -1650,7 +1650,8 @@ btor_uf_exp (Btor *btor, BtorSort *sort, const char *symbol)
   assert (btor);
   assert (sort);
   assert (sort->kind == BTOR_FUN_SORT);
-  assert (sort->fun.codomain->kind == BTOR_BITVEC_SORT);
+  assert (BTOR_IS_BITVEC_SORT (sort->fun.codomain)
+          || BTOR_IS_BOOL_SORT (sort->fun.codomain));
   assert (!symbol
           || !btor_find_in_ptr_hash_table (btor->symbols, (char *) symbol));
 
@@ -1664,7 +1665,10 @@ btor_uf_exp (Btor *btor, BtorSort *sort, const char *symbol)
     exp->num_params = sort->fun.domain->tuple.num_elements;
   else
     exp->num_params = 1;
-  exp->len = sort->fun.codomain->bitvec.len;
+  if (BTOR_IS_BITVEC_SORT (sort->fun.codomain))
+    exp->len = sort->fun.codomain->bitvec.len;
+  else
+    exp->len = 1;
   setup_node_and_add_to_id_table (btor, exp);
   (void) btor_insert_in_ptr_hash_table (btor->ufs, exp);
   if (symbol) btor_set_symbol_exp (btor, (BtorNode *) exp, symbol);

@@ -1572,6 +1572,7 @@ BoolectorSort *boolector_bool_sort (Btor *btor);
  */
 BoolectorSort *boolector_bitvec_sort (Btor *btor, int width);
 
+// TODO: not needed at the moment -> disable for release
 /**
  * Create array sort with index sort 'sort' and element sort 'elem'.
  * \param btor Boolector instance.
