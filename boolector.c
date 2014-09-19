@@ -2679,7 +2679,6 @@ boolector_match_node (Btor *btor, BoolectorNode *node)
   BTOR_ABORT_ARG_NULL_BOOLECTOR (btor);
   BTOR_TRAPI_UNFUN (exp);
   BTOR_ABORT_REFS_NOT_POS_BOOLECTOR (exp);
-  BTOR_ABORT_IF_BTOR_DOES_NOT_MATCH (btor, exp);
   res = btor_match_node (btor, exp);
   inc_exp_ext_ref_counter (btor, res);
   BTOR_TRAPI_RETURN_PTR (res);
