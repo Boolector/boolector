@@ -8,6 +8,8 @@
 # See COPYING for more information on using this software.
 #
 
+# TODO: check functions that are implemented
+
 from libc.stdio cimport FILE
 
 cdef extern from "btoropt.h":
@@ -61,8 +63,10 @@ cdef extern from "boolector.h":
 
     int boolector_simplify (Btor * btor)
 
-    int boolector_set_sat_solver (Btor * btor, const char * solver,
-                                  const char * optstr, int nofork)
+    int boolector_set_sat_solver (Btor * btor, const char * solver)
+
+    int boolector_set_sat_solver_lingeling (Btor * btor, const char * optstr,
+                                            int nofork)
 
     void boolector_set_opt (Btor * btor, const char * opt, int val)
 
@@ -267,25 +271,23 @@ cdef extern from "boolector.h":
 
     BoolectorNode *boolector_dec (Btor * btor, BoolectorNode *node)
 
-
     Btor *boolector_get_btor (BoolectorNode * node)
 
+#    int boolector_is_const (Btor *btor, BoolectorNode * node)
 
-    int boolector_is_const (Btor *btor, BoolectorNode * node)
+#    int boolector_is_var (Btor * btor, BoolectorNode * node)
 
-    int boolector_is_var (Btor * btor, BoolectorNode * node)
+#    const char * boolector_get_bits (Btor *, BoolectorNode * node)
 
-    const char * boolector_get_bits (Btor *, BoolectorNode * node)
+#    int boolector_is_array (Btor * btor, BoolectorNode * node)
 
-    int boolector_is_array (Btor * btor, BoolectorNode * node)
+#    int boolector_is_array_var (Btor * btor, BoolectorNode * node)
 
-    int boolector_is_array_var (Btor * btor, BoolectorNode * node)
+#    int boolector_is_param (Btor * btor, BoolectorNode * node)
 
-    int boolector_is_param (Btor * btor, BoolectorNode * node)
+#    int boolector_is_bound_param (Btor * btor, BoolectorNode * node)
 
-    int boolector_is_bound_param (Btor * btor, BoolectorNode * node)
-
-    int boolector_is_fun (Btor * btor, BoolectorNode * node)
+#    int boolector_is_fun (Btor * btor, BoolectorNode * node)
 
     int boolector_get_fun_arity (Btor * btor, BoolectorNode * node)
 

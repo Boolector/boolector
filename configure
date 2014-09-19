@@ -365,8 +365,14 @@ else
     [ X"$INCS" = X ] || INCS="$INCS "
     CFLAGS="${CFLAGS}-DBTOR_USE_MINISAT"
     OBJS="${OBJS}btorminisat.o"
-    LIBS="${LIBS}-L../minisat/build/release/lib -lminisat"
-    LDEPS="${LDEPS}../minisat/build/release/lib/libminisat.a"
+    if [ $python = yes ]
+    then
+      LIBS="${LIBS}-L../minisat/build/dynamic/lib -lminisat"
+      LDEPS="${LDEPS}../minisat/build/dynamic/lib/libminisat.so"
+    else
+      LIBS="${LIBS}-L../minisat/build/release/lib -lminisat"
+      LDEPS="${LDEPS}../minisat/build/release/lib/libminisat.a"
+    fi
     LIBSTDCPP=yes
     LIBZ=yes
     LIBM=yes
@@ -420,7 +426,7 @@ then
   fi
   if [ $minisat = yes ]; then
     py_libraries="$py_libraries minisat"
-    py_library_dirs="$py_library_dirs ../minisat/build/release/lib"
+    py_library_dirs="$py_library_dirs ../minisat/build/dynamic/lib"
   fi
 
   cat > setup.py <<EOF
