@@ -43,7 +43,6 @@ typedef enum BtorSMT2TagClass
 
 typedef enum BtorSMT2Tag
 {
-
   BTOR_INVALID_TAG_SMT2       = 0 + BTOR_OTHER_TAG_CLASS_SMT2,
   BTOR_PARENT_TAG_SMT2        = 1 + BTOR_OTHER_TAG_CLASS_SMT2,
   BTOR_LPAR_TAG_SMT2          = 2 + BTOR_OTHER_TAG_CLASS_SMT2,
@@ -1984,8 +1983,9 @@ btor_parse_term_smt2 (BtorSMT2Parser *parser,
           parser->perrcoo = p->coo;
           return !btor_perr_smt2 (
               parser,
-              "first (array) argument of 'select' has index bit-width %d "
-              "but the second (index) argument has bit-width %d",
+              "first (array) argument of 'select' has index "
+              "bit-width %d but the second (index) argument "
+              "has bit-width %d",
               domain,
               width);
         }
@@ -2020,8 +2020,9 @@ btor_parse_term_smt2 (BtorSMT2Parser *parser,
           parser->perrcoo = p->coo;
           return !btor_perr_smt2 (
               parser,
-              "first (array) argument of 'store' has index bit-width %d "
-              "but the second (index) argument has bit-width %d",
+              "first (array) argument of 'store' has index "
+              "bit-width %d but the second (index) argument "
+              "has bit-width %d",
               domain,
               width);
         }
@@ -2032,8 +2033,9 @@ btor_parse_term_smt2 (BtorSMT2Parser *parser,
           parser->perrcoo = p->coo;
           return !btor_perr_smt2 (
               parser,
-              "first (array) argument of 'store' has element bit-width %d "
-              "but the third (stored bit-vector) argument has bit-width %d",
+              "first (array) argument of 'store' has element "
+              "bit-width %d but the third (stored bit-vector) "
+              "argument has bit-width %d",
               width,
               len);
         }
@@ -2371,24 +2373,27 @@ btor_parse_term_smt2 (BtorSMT2Parser *parser,
           tag             = btor_read_token_smt2 (parser);
           if (tag == BTOR_INVALID_TAG_SMT2) return 0;
           if (tag == EOF)
-            return !btor_perr_smt2 (parser,
-                                    "expected symbol to be bound after '(' at "
-                                    "line %d column %d but reached end-of-file",
-                                    p->coo.x,
-                                    p->coo.y);
+            return !btor_perr_smt2 (
+                parser,
+                "expected symbol to be bound after '(' at line %d "
+                "column %d but reached end-of-file",
+                p->coo.x,
+                p->coo.y);
           if (tag != BTOR_SYMBOL_TAG_SMT2)
-            return !btor_perr_smt2 (parser,
-                                    "expected symbol to be bound at '%s' after "
-                                    "'(' at line %d column %d",
-                                    parser->token.start,
-                                    p->coo.x,
-                                    p->coo.y);
+            return !btor_perr_smt2 (
+                parser,
+                "expected symbol to be bound at '%s' after '(' at "
+                "line %d column %d",
+                parser->token.start,
+                p->coo.x,
+                p->coo.y);
           s = parser->last_node;
           assert (s);
           if (s->coo.x)
             return !btor_perr_smt2 (
                 parser,
-                "symbol '%s' to be bound already %s at line %d column %d",
+                "symbol '%s' to be bound already %s at line %d "
+                "column %d",
                 s->name,
                 s->bound ? "bound with 'let'" : "declared as function",
                 s->coo.x,
@@ -2537,12 +2542,13 @@ btor_parse_term_smt2 (BtorSMT2Parser *parser,
               if (len > width)
               {
                 parser->perrcoo = coo;
-                (void) btor_perr_smt2 (parser,
-                                       "decimal constant '%s' needs %d bits "
-                                       "which exceeds bit-width '%d'",
-                                       decstr,
-                                       len,
-                                       width);
+                (void) btor_perr_smt2 (
+                    parser,
+                    "decimal constant '%s' needs %d bits which "
+                    "exceeds bit-width '%d'",
+                    decstr,
+                    len,
+                    width);
               }
               else if (len == width)
                 exp = boolector_const (parser->btor, constr);
@@ -2560,7 +2566,6 @@ btor_parse_term_smt2 (BtorSMT2Parser *parser,
               btor_delete_const (parser->mem, constr);
               if (!exp) return 0;
               assert (boolector_get_width (parser->btor, exp) == width);
-
               assert (p > parser->work.start);
               p--, parser->work.top--;
               assert (p->tag == BTOR_LPAR_TAG_SMT2);
@@ -2568,7 +2573,6 @@ btor_parse_term_smt2 (BtorSMT2Parser *parser,
               open--;
               p->tag = BTOR_EXP_TAG_SMT2;
               p->exp = exp;
-
               if (!btor_read_rpar_smt2 (parser, " to close '(_ bv..'"))
                 return 0;
             }
@@ -2635,7 +2639,8 @@ btor_parse_term_smt2 (BtorSMT2Parser *parser,
       else if (tag == BTOR_HEXADECIMAL_CONSTANT_TAG_SMT2)
       {
         char *constr = btor_hex_to_const (parser->mem, parser->token.start + 2);
-        int len = strlen (constr), width = strlen (parser->token.start + 2) * 4;
+        int len      = strlen (constr);
+        int width    = strlen (parser->token.start + 2) * 4;
         char *uconstr;
         assert (len <= width);
         if (len == width)
