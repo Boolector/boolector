@@ -46,14 +46,14 @@ typedef struct BoolectorNode BoolectorNode;
  * - a link to our discussion platform
  * - news
  *
- * Boolector can be used as stand-alone SMT solver which reads either
- *<a href="http://fmv.jku.at/papers/BrummayerBiereLonsing-BPR08.pdf">BTOR</a>,
+ * Boolector supports
+ * <a href="http://fmv.jku.at/papers/BrummayerBiereLonsing-BPR08.pdf">BTOR</a>,
  * <a
  *href="http://smtlib.cs.uiowa.edu/papers/format-v1.2-r06.08.30.pdf">SMT-LIB 1.2</a>,
- *and <a
+ * and <a
  *href="http://smtlib.cs.uiowa.edu/papers/smt-lib-reference-v2.0-r12.09.09.pdf">SMT-LIB
- *2.0</a>. Furthermore, Boolector provides a public API in order to use
- *Boolector as backend in other tools.
+ *2.0</a> as input format and can be either used as a stand-alone SMT solver, or
+ *as backend for other tools via its public API.
  *
  * \section Interface
  * The public interface is defined in \ref boolector.h.
