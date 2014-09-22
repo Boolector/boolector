@@ -1609,20 +1609,6 @@ BoolectorSort *boolector_bool_sort (Btor *btor);
  */
 BoolectorSort *boolector_bitvec_sort (Btor *btor, int width);
 
-// TODO: not needed at the moment -> disable for release
-/**
- * Create array sort with index sort 'sort' and element sort 'elem'.
- * \param btor Boolector instance.
- * \param index Sort of index (must be of sort bit vector or bool).
- * \param elem Sort of elements (must be of sort bit vector or bool).
- * \remark Right now sorts in Boolector are only used to create sorts for
- * uninterpreted functions.
- * \see boolector_uf
- */
-BoolectorSort *boolector_array_sort (Btor *btor,
-                                     BoolectorSort *index,
-                                     BoolectorSort *elem);
-
 /**
  * Create function sort.
  * \param btor Boolector instance.

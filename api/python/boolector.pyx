@@ -1060,12 +1060,6 @@ cdef class Boolector:
         r._c_sort = btorapi.boolector_bitvec_sort(self._c_btor, width)
         return r
 
-    def ArraySort(self, _BoolectorSort index, _BoolectorSort element):
-        r = _BoolectorSort(self)
-        r._c_sort = btorapi.boolector_array_sort(
-                        self._c_btor, index._c_sort, element._c_sort)
-        return r
-
     def FunSort(self, list domain, _BoolectorSort codomain):
         cdef int arity = len(domain)
         cdef btorapi.BoolectorSort ** c_domain = \

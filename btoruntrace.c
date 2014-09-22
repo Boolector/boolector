@@ -1318,14 +1318,6 @@ NEXT:
       ret_ptr = boolector_bitvec_sort (btor, arg1_int);
       exp_ret = RET_VOIDPTR;
     }
-    else if (!strcmp (tok, "array_sort"))
-    {
-      PARSE_ARGS2 (tok, str, str);
-      ret_ptr = boolector_array_sort (btor,
-                                      hmap_get (hmap, btor_str, arg1_str),
-                                      hmap_get (hmap, btor_str, arg2_str));
-      exp_ret = RET_VOIDPTR;
-    }
     else if (!strcmp (tok, "fun_sort"))
     {
       while ((tok = strtok (0, " ")))
