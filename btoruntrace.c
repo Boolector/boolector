@@ -495,7 +495,8 @@ NEXT:
     else if (!strcmp (tok, "simplify"))
     {
       PARSE_ARGS0 (tok);
-      boolector_simplify (btor);
+      ret_int = boolector_simplify (btor);
+      exp_ret = RET_INT;
     }
     else if (!strcmp (tok, "set_sat_solver"))
     {
@@ -1114,6 +1115,7 @@ NEXT:
       {
         ret_str = (char *) boolector_get_symbol (
             btor, hmap_get (hmap, btor_str, arg1_str));
+        if (!ret_str) ret_str = "(null)";
         exp_ret = RET_CHARPTR;
       }
       else
