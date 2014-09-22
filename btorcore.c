@@ -8228,28 +8228,37 @@ btor_fun_sort_check (Btor *btor, int argc, BtorNode **args, BtorNode *fun)
   assert (btor_is_fun_exp (btor, fun));
   assert (argc == btor_get_fun_arity (btor, fun));
 
-  int i, pos = -1;
-  BtorSort *sort;
+  int i, width, pos = -1;
+  BtorSort *sort, *s;
 
   sort = btor_create_or_get_sort (btor, fun);
 
-  if (btor_get_fun_arity (btor, fun) == 1)
+  if (argc == 1)
   {
-    assert (sort->fun.domain->kind == BTOR_BITVEC_SORT);
-    assert (argc == 1);
-    if (sort->fun.domain->bitvec.len != BTOR_REAL_ADDR_NODE (args[0])->len)
-      pos = 0;
+    if (BTOR_IS_BOOL_SORT (sort->fun.domain))
+      width = 1;
+    else
+    {
+      assert (BTOR_IS_BITVEC_SORT (sort->fun.domain));
+      width = sort->fun.domain->bitvec.len;
+    }
+    if (width != BTOR_REAL_ADDR_NODE (args[0])->len) pos = 0;
   }
   else
   {
-    assert (btor_get_fun_arity (btor, fun) > 1);
     assert (sort->fun.domain->kind == BTOR_TUPLE_SORT);
     assert (argc == sort->fun.domain->tuple.num_elements);
     for (i = 0; i < argc; i++)
     {
-      assert (sort->fun.domain->tuple.elements[i]->kind == BTOR_BITVEC_SORT);
-      if (sort->fun.domain->tuple.elements[i]->bitvec.len
-          != BTOR_REAL_ADDR_NODE (args[i])->len)
+      s = sort->fun.domain->tuple.elements[i];
+      if (BTOR_IS_BOOL_SORT (s))
+        width = 1;
+      else
+      {
+        assert (BTOR_IS_BITVEC_SORT (s));
+        width = s->bitvec.len;
+      }
+      if (width != BTOR_REAL_ADDR_NODE (args[i])->len)
       {
         pos = i;
         break;
