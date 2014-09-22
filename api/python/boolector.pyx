@@ -75,7 +75,7 @@ def _is_power2(int num):
 
 cdef _to_node(x, y):
     if isinstance(x, _BoolectorBVNode) and isinstance(y, _BoolectorBVNode):
-        if (<_BoolectorBVNode> x).Width() != (<_BoolectorBVNode> y).Width():
+        if (<_BoolectorBVNode> x).width != (<_BoolectorBVNode> y).width:
             raise _BoolectorException(
                       "Both operands must have the same bit width")
         return x, y
@@ -85,11 +85,11 @@ cdef _to_node(x, y):
                                  "type '_BoolectorBVNode'") 
     if isinstance(x, _BoolectorBVNode):
         btor = (<_BoolectorBVNode> x).btor
-        width = (<_BoolectorBVNode> x).Width()
+        width = (<_BoolectorBVNode> x).width
     else:
         assert(isinstance(y, _BoolectorBVNode))
         btor = (<_BoolectorBVNode> y).btor
-        width = (<_BoolectorBVNode> y).Width()
+        width = (<_BoolectorBVNode> y).width
 
     x = _const_to_node(btor, x, width)
     y = _const_to_node(btor, y, width)
@@ -97,7 +97,7 @@ cdef _to_node(x, y):
 
 cdef int _get_argument_width(_BoolectorFunNode fun, int pos):
     if fun._params:
-        return (<_BoolectorNode> fun._params[pos]).Width()
+        return (<_BoolectorNode> fun._params[pos]).width
     else:
         assert(fun._sort)
         assert(fun._sort._domain)
@@ -109,16 +109,16 @@ cdef int _get_argument_width(_BoolectorFunNode fun, int pos):
             return (<_BoolectorBitVecSort> sort)._width
 
 def _check_precond_shift(_BoolectorBVNode a, _BoolectorBVNode b):
-    if not _is_power2(a.Width()):
+    if not _is_power2(a.width):
         raise _BoolectorException(
                   "Bit width of operand 'a' must be a power of 2")
-    if int(math.log(a.Width(), 2)) != b.Width():
+    if int(math.log(a.width, 2)) != b.width:
         raise _BoolectorException(
                   "Bit width of operand 'b' must be equal to "\
                   "log2(bit width of a)") 
 
 def _check_precond_slice(_BoolectorBVNode a, int upper, int lower):
-        if upper >= a.Width():
+        if upper >= a.width:
             raise _BoolectorException(
                       "Upper limit of slice must be lower than the bit width "\
                       "of the bit vector")
@@ -233,6 +233,50 @@ cdef class _BoolectorNode:
             raise _BoolectorException("Opcode '{}' not implemented for "\
                                      "__richcmp__".format(opcode))
 
+    property symbol:
+        def __get__(self):
+            return _to_str(btorapi.boolector_get_symbol(self.btor._c_btor,
+                                                        self._c_node))
+
+        def __set__(self, str symbol):
+            btorapi.boolector_set_symbol(self.btor._c_btor, self._c_node,
+                                         _ChPtr(symbol)._c_str)
+
+    property width:
+        def __get__(self):
+            return btorapi.boolector_get_width(self.btor._c_btor, self._c_node)
+
+    property assignment:
+        def __get__(self):
+            cdef char** c_str_i
+            cdef char** c_str_v
+            cdef int size
+            cdef const char* c_str
+            cdef bytes py_str
+
+            if isinstance(self, _BoolectorFunNode) or \
+               isinstance(self, _BoolectorArrayNode):
+                btorapi.boolector_array_assignment(self.btor._c_btor,
+                                                   self._c_node,
+                                                   &c_str_i, &c_str_v, &size) 
+                model = []
+                if size > 0:
+                    for i in range(size):
+                        index = _to_str(c_str_i[i])
+                        value = _to_str(c_str_v[i])
+                        model.append((index, value))
+                    btorapi.boolector_free_array_assignment(self.btor._c_btor,
+                                                            c_str_i, c_str_v,
+                                                            size) 
+                return model
+            else:
+                c_str = \
+                    btorapi.boolector_bv_assignment(self.btor._c_btor,
+                                                       self._c_node)
+                value = _to_str(c_str)
+                btorapi.boolector_free_bv_assignment(self.btor._c_btor, c_str)
+                return value
+
     def Dump(self, format="btor", outfile = ""):
         if format.lower() == "btor":
             btorapi.boolector_dump_btor_node(self.btor._c_btor, stdout,
@@ -245,43 +289,6 @@ cdef class _BoolectorNode:
                                              self._c_node)
         else:
             raise _BoolectorException("Invalid dump format '{}'".format(format)) 
-
-    def Symbol(self):
-        return _to_str(btorapi.boolector_get_symbol(self.btor._c_btor,
-                                                    self._c_node))
-
-    def Assignment(self):
-        cdef char** c_str_i
-        cdef char** c_str_v
-        cdef int size
-        cdef const char* c_str
-        cdef bytes py_str
-
-        if isinstance(self, _BoolectorFunNode) or \
-           isinstance(self, _BoolectorArrayNode):
-            btorapi.boolector_array_assignment(self.btor._c_btor,
-                                               self._c_node,
-                                               &c_str_i, &c_str_v, &size) 
-            model = []
-            if size > 0:
-                for i in range(size):
-                    index = _to_str(c_str_i[i])
-                    value = _to_str(c_str_v[i])
-                    model.append((index, value))
-                btorapi.boolector_free_array_assignment(self.btor._c_btor,
-                                                        c_str_i, c_str_v, size) 
-            return model
-        else:
-            c_str = \
-                btorapi.boolector_bv_assignment(self.btor._c_btor,
-                                                   self._c_node)
-            value = _to_str(c_str)
-            btorapi.boolector_free_bv_assignment(self.btor._c_btor, c_str)
-            return value 
-
-    def Width(self):
-        return btorapi.boolector_get_width(self.btor._c_btor, self._c_node)
-
 
 cdef class _BoolectorBVNode(_BoolectorNode):
     def __richcmp__(x, y, opcode):
@@ -360,7 +367,7 @@ cdef class _BoolectorBVNode(_BoolectorNode):
                 raise _BoolectorException(
                           "Step of 'slice' not suppored on bit vectors")
             if upper is None:
-                upper = self.Width() - 1
+                upper = self.width - 1
             if lower is None:
                 lower = 0
             if not isinstance(upper, int):
@@ -374,8 +381,8 @@ cdef class _BoolectorBVNode(_BoolectorNode):
         elif isinstance(x, int):
             return self.btor.Slice(self, x, x)
         else:
-            raise _BoolectorException("Expected 'int' or 'slice'.")
-            
+            raise _BoolectorException("Expected 'int' or 'slice'")
+
 
 cdef class _BoolectorArrayNode(_BoolectorNode):
     # TODO: allow slices on arrays
@@ -384,9 +391,10 @@ cdef class _BoolectorArrayNode(_BoolectorNode):
     def __getitem__(self, index):
         return self.btor.Read(self, index)
 
-    def Index_width(self):
-        return btorapi.boolector_get_index_width(self.btor._c_btor,
-                   self._c_node)
+    property index_width:
+        def __get__(self):
+            return btorapi.boolector_get_index_width(self.btor._c_btor,
+                       self._c_node)
 
 
 cdef class _BoolectorFunNode(_BoolectorNode):
@@ -396,9 +404,11 @@ cdef class _BoolectorFunNode(_BoolectorNode):
     def __call__(self, *args):
         return self.btor.Apply(list(args), self)
 
-    def Arity(self):
-        return \
-            btorapi.boolector_get_fun_arity(self.btor._c_btor, self._c_node)
+    property arity:
+        def __get__(self):
+            return \
+                btorapi.boolector_get_fun_arity(self.btor._c_btor, self._c_node)
+
 
 cdef class _BoolectorParamNode(_BoolectorBVNode):
     pass
@@ -426,17 +436,17 @@ cdef class Boolector:
     # Boolector API functions (general)
 
     def Assert(self, _BoolectorNode n):
-        if n.Width() > 1:
+        if n.width > 1:
             raise _BoolectorException("Asserted term must be of bit width one")
         btorapi.boolector_assert(self._c_btor, n._c_node)
 
     def Assume(self, _BoolectorNode n):
-        if n.Width() > 1:
+        if n.width > 1:
             raise _BoolectorException("Assumed termed must be of bit width one")
         btorapi.boolector_assume(self._c_btor, n._c_node)
 
     def Failed(self, _BoolectorNode n):
-        if n.Width() > 1:
+        if n.width > 1:
             raise _BoolectorException("Term must be of bit width one")
         return btorapi.boolector_failed(self._c_btor, n._c_node) == 1
 
@@ -451,6 +461,16 @@ cdef class Boolector:
 
     def Clone(self):
         return Boolector(self)
+
+    # BoolectorNode methods
+    def Match(self, _BoolectorNode n):
+        node_type = type(n)
+        r = node_type(self)
+        (<_BoolectorNode> r)._c_node = \
+            btorapi.boolector_match_node(self._c_btor, n._c_node)
+        if (<_BoolectorNode> r)._c_node is NULL:
+            raise _BoolectorException("Could not match given node 'n'")
+        return r
 
     # Boolector options
     def Set_opt(self, str opt, int value):
@@ -830,7 +850,7 @@ cdef class Boolector:
         return r
 
     def Sll(self, _BoolectorBVNode a, b):
-        b = _const_to_node(self, b, math.ceil(math.log(a.Width(), 2))) 
+        b = _const_to_node(self, b, math.ceil(math.log(a.width, 2)))
         _check_precond_shift(a, b)
         r = _BoolectorBVNode(self)
         r._c_node = btorapi.boolector_sll(self._c_btor,
@@ -838,7 +858,7 @@ cdef class Boolector:
         return r
 
     def Srl(self, _BoolectorBVNode a, b):
-        b = _const_to_node(self, b, math.ceil(math.log(a.Width(), 2))) 
+        b = _const_to_node(self, b, math.ceil(math.log(a.width, 2)))
         _check_precond_shift(a, b)
         r = _BoolectorBVNode(self)
         r._c_node = btorapi.boolector_srl(self._c_btor,
@@ -846,7 +866,7 @@ cdef class Boolector:
         return r
 
     def Sra(self, _BoolectorBVNode a, b):
-        b = _const_to_node(self, b, math.ceil(math.log(a.Width(), 2))) 
+        b = _const_to_node(self, b, math.ceil(math.log(a.width, 2)))
         _check_precond_shift(a, b)
         r = _BoolectorBVNode(self)
         r._c_node = btorapi.boolector_sra(self._c_btor,
@@ -854,7 +874,7 @@ cdef class Boolector:
         return r
 
     def Rol(self, _BoolectorBVNode a, b):
-        b = _const_to_node(self, b, math.ceil(math.log(a.Width(), 2))) 
+        b = _const_to_node(self, b, math.ceil(math.log(a.width, 2)))
         _check_precond_shift(a, b)
         r = _BoolectorBVNode(self)
         r._c_node = btorapi.boolector_rol(self._c_btor,
@@ -862,7 +882,7 @@ cdef class Boolector:
         return r
 
     def Ror(self, _BoolectorBVNode a, b):
-        b = _const_to_node(self, b, math.ceil(math.log(a.Width(), 2))) 
+        b = _const_to_node(self, b, math.ceil(math.log(a.width, 2)))
         _check_precond_shift(a, b)
         r = _BoolectorBVNode(self)
         r._c_node = btorapi.boolector_ror(self._c_btor,
@@ -940,7 +960,7 @@ cdef class Boolector:
         return r
 
     def Read(self, _BoolectorArrayNode a, b):
-        b = _const_to_node(self, b, a.Index_width())
+        b = _const_to_node(self, b, a.index_width)
         r = _BoolectorBVNode(self)
         r._c_node = \
             btorapi.boolector_read(self._c_btor, _c_node(a), _c_node(b))
@@ -949,8 +969,8 @@ cdef class Boolector:
     # Ternary operators
 
     def Write(self, _BoolectorArrayNode array, index, value):
-        index = _const_to_node(self, index, array.Index_width())
-        value = _const_to_node(self, value, array.Width())
+        index = _const_to_node(self, index, array.index_width)
+        value = _const_to_node(self, value, array.width)
 
         r = _BoolectorArrayNode(self)
         r._c_node = \

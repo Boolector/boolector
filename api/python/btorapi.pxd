@@ -271,7 +271,13 @@ cdef extern from "boolector.h":
 
     BoolectorNode *boolector_dec (Btor * btor, BoolectorNode *node)
 
-    Btor *boolector_get_btor (BoolectorNode * node)
+#    Btor *boolector_get_btor (BoolectorNode * node)
+
+#    int boolector_get_id (Btor * btor, BoolectorNode * node)
+
+#    BoolectorNode *boolector_match_node_by_id (Btor * btor, int id)
+
+    BoolectorNode *boolector_match_node (Btor * btor, BoolectorNode * node)
 
 #    int boolector_is_const (Btor *btor, BoolectorNode * node)
 
@@ -296,6 +302,9 @@ cdef extern from "boolector.h":
     int boolector_get_index_width (Btor * btor, BoolectorNode * n_array)
 
     const char *boolector_get_symbol (Btor * btor, BoolectorNode * node)
+
+    void boolector_set_symbol (Btor * btor, BoolectorNode * var,
+                               const char * symbol)
 
     const char *boolector_bv_assignment (Btor * btor, BoolectorNode * node)
 
