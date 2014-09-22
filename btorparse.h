@@ -14,6 +14,7 @@
 
 #include "boolector.h"
 #include "btorlogic.h"
+#include "btormsg.h"
 #include "btorstack.h"
 
 #include <stdio.h>
@@ -99,4 +100,5 @@ int btor_parse_smt2 (Btor *btor,
                      char **error_msg,
                      int *status);
 
+BtorMsg *boolector_get_btor_msg (Btor *btor);
 #endif

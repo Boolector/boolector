@@ -699,41 +699,36 @@ btor_release_delete_aigvec (BtorAIGVecMgr *avmgr, BtorAIGVec *av)
 }
 
 BtorAIGVecMgr *
-btor_new_aigvec_mgr (BtorMemMgr *mm)
+btor_new_aigvec_mgr (BtorMemMgr *mm, BtorMsg *msg)
 {
-  BtorAIGVecMgr *avmgr;
   assert (mm);
+  assert (msg);
+
+  BtorAIGVecMgr *avmgr;
   BTOR_NEW (mm, avmgr);
-  avmgr->mm        = mm;
-  avmgr->verbosity = 0;
-  avmgr->amgr      = btor_new_aig_mgr (mm);
+  avmgr->mm   = mm;
+  avmgr->msg  = msg;
+  avmgr->amgr = btor_new_aig_mgr (mm, avmgr->msg);
   return avmgr;
 }
 
 #ifdef BTOR_ENABLE_CLONING
 BtorAIGVecMgr *
-btor_clone_aigvec_mgr (BtorMemMgr *mm, BtorAIGVecMgr *avmgr)
+btor_clone_aigvec_mgr (BtorMemMgr *mm, BtorMsg *msg, BtorAIGVecMgr *avmgr)
 {
-  assert (avmgr);
   assert (mm);
+  assert (msg);
+  assert (avmgr);
 
   BtorAIGVecMgr *res;
   BTOR_NEW (mm, res);
 
-  res->mm        = mm;
-  res->verbosity = avmgr->verbosity;
-  res->amgr      = btor_clone_aig_mgr (mm, avmgr->amgr);
+  res->mm   = mm;
+  res->msg  = msg;
+  res->amgr = btor_clone_aig_mgr (mm, msg, avmgr->amgr);
   return res;
 }
 #endif
-
-void
-btor_set_verbosity_aigvec_mgr (BtorAIGVecMgr *avmgr, int verbosity)
-{
-  assert (avmgr);
-  assert (verbosity >= -1);
-  avmgr->verbosity = verbosity;
-}
 
 void
 btor_delete_aigvec_mgr (BtorAIGVecMgr *avmgr)

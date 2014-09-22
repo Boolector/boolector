@@ -21,6 +21,7 @@
 #include "btoriter.h"
 #include "btorlog.h"
 #include "btormap.h"
+#include "btormsg.h"
 #include "btorsat.h"
 #include "btorsort.h"
 #include "btorstack.h"
@@ -703,6 +704,9 @@ clone_aux_btor (Btor *btor,
 
   assert ((allocated = sizeof (Btor)) == clone->mm->allocated);
 
+  clone->msg = btor_new_btor_msg (clone->mm, &clone->options.verbosity.val);
+  assert ((allocated += sizeof (BtorMsg)) == clone->mm->allocated);
+
   BTOR_INIT_STACK (clone->stats.lemmas_size);
   if (BTOR_SIZE_STACK (btor->stats.lemmas_size) > 0)
   {
@@ -775,7 +779,7 @@ clone_aux_btor (Btor *btor,
 
   if (exp_layer_only)
   {
-    clone->avmgr = btor_new_aigvec_mgr (mm);
+    clone->avmgr = btor_new_aigvec_mgr (mm, clone->msg);
     assert ((allocated += sizeof (BtorAIGVecMgr) + sizeof (BtorAIGMgr)
                           + sizeof (BtorSATMgr)
                           + sizeof (BtorAIG *)) /* BtorAIGUniqueTable chains */
@@ -784,7 +788,7 @@ clone_aux_btor (Btor *btor,
   else
   {
     BTORLOG_TIMESTAMP (delta);
-    clone->avmgr = btor_clone_aigvec_mgr (mm, btor->avmgr);
+    clone->avmgr = btor_clone_aigvec_mgr (mm, clone->msg, btor->avmgr);
     BTORLOG ("  clone AIG mgr: %.3f s", (btor_time_stamp () - delta));
     assert ((allocated +=
              sizeof (BtorAIGVecMgr) + sizeof (BtorAIGMgr) + sizeof (BtorSATMgr)
@@ -1097,15 +1101,14 @@ clone_aux_btor (Btor *btor,
   clone->clone          = NULL;
   clone->close_apitrace = 0;
 
-  clone->msg_prefix = NULL;
-  clone_prefix      = "clone";
-  len               = btor->msg_prefix ? strlen (btor->msg_prefix) : 0;
+  clone_prefix = "clone";
+  len          = btor->msg->prefix ? strlen (btor->msg->prefix) : 0;
   len += strlen (clone_prefix) + 3;
   BTOR_NEWN (clone->mm, prefix, len + 1);
   sprintf (prefix,
            "[%s] %s",
            clone_prefix,
-           btor->msg_prefix ? btor->msg_prefix : "");
+           btor->msg->prefix ? btor->msg->prefix : "");
   btor_set_msg_prefix_btor (clone, prefix);
   BTOR_DELETEN (clone->mm, prefix, len + 1);
 
