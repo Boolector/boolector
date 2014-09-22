@@ -26,14 +26,15 @@ btor_chkclone_mem (Btor *btor)
   assert (btor->clone);
   assert (btor->mm);
   assert (btor->clone->mm);
-  assert (btor->mm->allocated
-              - (btor->msg_prefix
-                     ? (strlen (btor->msg_prefix) + 1) * sizeof (char)
-                     : 0)
-          == btor->clone->mm->allocated
-                 - (btor->clone->msg_prefix
-                        ? (strlen (btor->clone->msg_prefix) + 1) * sizeof (char)
-                        : 0));
+  assert (
+      btor->mm->allocated
+          - (btor->msg->prefix
+                 ? (strlen (btor->msg->prefix) + 1) * sizeof (char)
+                 : 0)
+      == btor->clone->mm->allocated
+             - (btor->clone->msg->prefix
+                    ? (strlen (btor->clone->msg->prefix) + 1) * sizeof (char)
+                    : 0));
   assert (btor->mm->sat_allocated == btor->clone->mm->sat_allocated);
   /* Note: both maxallocated and sat_maxallocated may differ! */
 }

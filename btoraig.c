@@ -63,18 +63,6 @@
 
 /*------------------------------------------------------------------------*/
 
-static void
-btor_msg_aig (char *msg, ...)
-{
-  va_list ap;
-  assert (msg);
-  fprintf (stdout, "[btoraig] ");
-  va_start (ap, msg);
-  vfprintf (stdout, msg, ap);
-  va_end (ap);
-  fflush (stdout);
-}
-
 static BtorAIG *
 new_and_aig (BtorAIGMgr *amgr, BtorAIG *left, BtorAIG *right)
 {
@@ -1016,35 +1004,38 @@ btor_dump_aiger (BtorAIGMgr *amgr,
 }
 
 BtorAIGMgr *
-btor_new_aig_mgr (BtorMemMgr *mm)
+btor_new_aig_mgr (BtorMemMgr *mm, BtorMsg *msg)
 {
-  BtorAIGMgr *amgr;
   assert (mm);
+
+  BtorAIGMgr *amgr;
+
   BTOR_NEW (mm, amgr);
-  amgr->mm = mm;
+  amgr->mm  = mm;
+  amgr->msg = msg;
   BTOR_INIT_AIG_UNIQUE_TABLE (mm, amgr->table);
-  amgr->id        = 1;
-  amgr->verbosity = 0;
-  amgr->smgr      = btor_new_sat_mgr (mm);
+  amgr->id   = 1;
+  amgr->smgr = btor_new_sat_mgr (mm, amgr->msg);
   BTOR_INIT_STACK (amgr->id2aig);
   return amgr;
 }
 
 #ifdef BTOR_ENABLE_CLONING
 BtorAIGMgr *
-btor_clone_aig_mgr (BtorMemMgr *mm, BtorAIGMgr *amgr)
+btor_clone_aig_mgr (BtorMemMgr *mm, BtorMsg *msg, BtorAIGMgr *amgr)
 {
-  assert (amgr);
   assert (mm);
+  assert (msg);
+  assert (amgr);
 
   BtorAIGMgr *res;
 
   BTOR_CNEW (mm, res);
-  res->mm = mm;
+  res->mm  = mm;
+  res->msg = msg;
 
-  res->id        = amgr->id;
-  res->verbosity = amgr->verbosity;
-  res->smgr      = btor_clone_sat_mgr (amgr->smgr, mm);
+  res->id   = amgr->id;
+  res->smgr = btor_clone_sat_mgr (mm, msg, amgr->smgr);
   /* Note: we do not yet clone aigs here (we need the clone of the aig
    *       manager for that). */
   return res;
@@ -1216,14 +1207,6 @@ btor_cloned_aig (BtorMemMgr *mm, BtorAIG *aig, BtorAIGMap *aig_map)
   return caig;
 }
 #endif
-
-void
-btor_set_verbosity_aig_mgr (BtorAIGMgr *amgr, int verbosity)
-{
-  assert (amgr);
-  assert (verbosity >= -1);
-  amgr->verbosity = verbosity;
-}
 
 void
 btor_delete_aig_mgr (BtorAIGMgr *amgr)
@@ -1611,8 +1594,8 @@ aig_to_sat_tseitin (BtorAIGMgr *amgr, BtorAIG *aig)
 {
   assert (amgr);
   assert (!BTOR_IS_CONST_AIG (aig));
-  if (amgr->verbosity > 3)
-    btor_msg_aig ("transforming AIG into CNF using Tseitin transformation\n");
+  BTOR_MSG (
+      amgr->msg, 3, "transforming AIG into CNF using Tseitin transformation\n");
   btor_aig_to_sat_tseitin (amgr, aig);
 }
 

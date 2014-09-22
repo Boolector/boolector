@@ -21,18 +21,6 @@
 #include "parser/btorsmt.h"
 #include "parser/btorsmt2.h"
 
-static void
-btor_msg_parse (char *fmt, ...)
-{
-  va_list ap;
-  fprintf (stdout, "[btorparse] ");
-  va_start (ap, fmt);
-  vfprintf (stdout, fmt, ap);
-  va_end (ap);
-  fputc ('\n', stdout);
-  fflush (stdout);
-}
-
 static int
 has_compressed_suffix (const char *str, const char *suffix)
 {
@@ -91,7 +79,7 @@ btor_parse_aux (Btor *btor,
   }
   parse_opt.need_model = btor_get_opt_val (btor, BTOR_OPT_MODEL_GEN);
 
-  if (parse_opt.verbosity) btor_msg_parse ("%s", msg);
+  BTOR_MSG (btor->msg, 1, "%s", msg);
   parser = parser_api->init (btor, &parse_opt);
 
   if ((emsg = parser_api->parse (parser, prefix, file, file_name, &parse_res)))
@@ -122,33 +110,30 @@ btor_parse_aux (Btor *btor,
       }
     }
 
-    if (parse_opt.verbosity)
+    BTOR_MSG (btor->msg,
+              1,
+              "parsed %d inputs and %d outputs",
+              parse_res.ninputs,
+              parse_res.noutputs);
+    if (parse_res.logic == BTOR_LOGIC_QF_BV)
+      BTOR_MSG (btor->msg, 1, "logic QF_BV");
+    else
     {
-      btor_msg_parse ("parsed %d inputs and %d outputs",
-                      parse_res.ninputs,
-                      parse_res.noutputs);
-
-      if (parse_res.logic == BTOR_LOGIC_QF_BV)
-        btor_msg_parse ("logic QF_BV");
-      else
-      {
-        assert (parse_res.logic == BTOR_LOGIC_QF_AUFBV);
-        btor_msg_parse ("logic QF_AUFBV");
-      }
-
-      if (parse_res.status == BOOLECTOR_SAT)
-        btor_msg_parse ("status sat");
-      else if (parse_res.status == BOOLECTOR_UNSAT)
-        btor_msg_parse ("status unsat");
-      else
-      {
-        assert (parse_res.status == BOOLECTOR_UNKNOWN);
-        btor_msg_parse ("status unknown");
-      }
+      assert (parse_res.logic == BTOR_LOGIC_QF_AUFBV);
+      BTOR_MSG (btor->msg, 1, "logic QF_AUFBV");
     }
 
-    if (parse_opt.verbosity > 1)
-      btor_msg_parse ("added %d outputs (100%)", parse_res.noutputs);
+    if (parse_res.status == BOOLECTOR_SAT)
+      BTOR_MSG (btor->msg, 1, "status sat");
+    else if (parse_res.status == BOOLECTOR_UNSAT)
+      BTOR_MSG (btor->msg, 1, "status unsat");
+    else
+    {
+      assert (parse_res.status == BOOLECTOR_UNKNOWN);
+      BTOR_MSG (btor->msg, 1, "status unknown");
+    }
+
+    BTOR_MSG (btor->msg, 2, "added %d outputs (100%)", parse_res.noutputs);
   }
 
   if (status) *status = parse_res.status;

@@ -128,6 +128,8 @@ boolector_chkclone (Btor *btor)
 
 /*------------------------------------------------------------------------*/
 
+/* for internal use (parser), only */
+
 void
 boolector_set_btor_id (Btor *btor, BoolectorNode *node, int id)
 {
@@ -144,6 +146,18 @@ boolector_set_btor_id (Btor *btor, BoolectorNode *node, int id)
 #ifndef NDEBUG
   BTOR_CHKCLONE_NORES (set_btor_id, BTOR_CLONED_EXP (exp), id);
 #endif
+}
+
+BtorMsg *
+boolector_get_btor_msg (Btor *btor)
+{
+  BtorMsg *res;
+  /* do not trace, clutters the trace unnecessarily */
+  res = btor->msg;
+#ifndef NDEBUG
+  BTOR_CHKCLONE_NORES (get_btor_msg);
+#endif
+  return res;
 }
 
 /*------------------------------------------------------------------------*/

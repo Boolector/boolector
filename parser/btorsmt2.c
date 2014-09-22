@@ -14,6 +14,7 @@
 #include "btorconst.h"
 #include "btorcore.h"
 #include "btormem.h"
+#include "btormsg.h"
 #include "btorutil.h"
 
 #include <ctype.h>
@@ -831,19 +832,6 @@ btor_delete_smt2_parser (BtorSMT2Parser *parser)
   BTOR_RELEASE_STACK (mem, parser->token);
 
   BTOR_DELETE (mem, parser);
-}
-
-static void
-btor_msg_smt2 (BtorSMT2Parser *parser, int level, const char *fmt, ...)
-{
-  va_list ap;
-  if (parser->verbosity < level) return;
-  printf ("[btorsmt2] ");
-  va_start (ap, fmt);
-  vprintf (fmt, ap);
-  va_end (ap);
-  printf ("\n");
-  fflush (stdout);
 }
 
 static int
@@ -2735,7 +2723,10 @@ btor_parse_bitvec_sort_smt2 (BtorSMT2Parser *parser, int skiplu, int *resptr)
   res = 0;
   if (!btor_str2int32_smt2 (parser, 1, parser->token.start, &res)) return 0;
   *resptr = res;
-  btor_msg_smt2 (parser, 3, "parsed bit-vector sort of width %d", res);
+  BTOR_MSG (boolector_get_btor_msg (parser->btor),
+            3,
+            "parsed bit-vector sort of width %d",
+            res);
   return btor_read_rpar_smt2 (parser, " to close bit-vector sort");
 }
 
@@ -2853,26 +2844,24 @@ SORTED_VAR:
         boolector_release_sort (parser->btor, sdomain[i]);
       boolector_release_sort (parser->btor, scodomain);
       boolector_release_sort (parser->btor, sort);
-      btor_msg_smt2 (
-          parser,
-          2,
-          "declared '%s' as uninterpreted function at line %d column %d",
-          fun->name,
-          fun->coo.x,
-          fun->coo.y);
+      BTOR_MSG (boolector_get_btor_msg (parser->btor),
+                2,
+                "declared '%s' as uninterpreted function at line %d column %d",
+                fun->name,
+                fun->coo.x,
+                fun->coo.y);
       parser->need_functions = 1;
     }
     else
     {
       fun->exp = boolector_var (parser->btor, width, fun->name);
-      btor_msg_smt2 (
-          parser,
-          2,
-          "declared '%s' as bit-vector of width %d at line %d column %d",
-          fun->name,
-          width,
-          fun->coo.x,
-          fun->coo.y);
+      BTOR_MSG (boolector_get_btor_msg (parser->btor),
+                2,
+                "declared '%s' as bit-vector of width %d at line %d column %d",
+                fun->name,
+                width,
+                fun->coo.x,
+                fun->coo.y);
     }
   }
   else if (tag == BTOR_ARRAY_TAG_SMT2)
@@ -2899,15 +2888,15 @@ SORTED_VAR:
       return 0;
     }
     fun->exp = boolector_array (parser->btor, width, domain, fun->name);
-    btor_msg_smt2 (parser,
-                   2,
-                   "declared bit-vector array '%s' "
-                   "index element width %d %d at line %d column %d",
-                   fun->name,
-                   domain,
-                   width,
-                   fun->coo.x,
-                   fun->coo.y);
+    BTOR_MSG (boolector_get_btor_msg (parser->btor),
+              2,
+              "declared bit-vector array '%s' "
+              "index element width %d %d at line %d column %d",
+              fun->name,
+              domain,
+              width,
+              fun->coo.x,
+              fun->coo.y);
     parser->need_functions = 1;
   }
   else
@@ -3002,14 +2991,13 @@ SORTED_VAR:
   {
     if (!btor_parse_bitvec_sort_smt2 (parser, 1, &width)) return 0;
   BITVEC:
-    btor_msg_smt2 (
-        parser,
-        2,
-        "defined '%s' as bit-vector of width %d at line %d column %d",
-        fun->name,
-        width,
-        fun->coo.x,
-        fun->coo.y);
+    BTOR_MSG (boolector_get_btor_msg (parser->btor),
+              2,
+              "defined '%s' as bit-vector of width %d at line %d column %d",
+              fun->name,
+              width,
+              fun->coo.x,
+              fun->coo.y);
   }
   else if (tag == BTOR_ARRAY_TAG_SMT2)
   {
@@ -3024,15 +3012,15 @@ SORTED_VAR:
     if (!btor_parse_bitvec_sort_smt2 (parser, 0, &width)) return 0;
     if (!btor_read_rpar_smt2 (parser, " after element sort of Array")) return 0;
 
-    btor_msg_smt2 (parser,
-                   2,
-                   "defined bit-vector array '%s' "
-                   "index element width %d %d at line %d column %d",
-                   fun->name,
-                   domain,
-                   width,
-                   fun->coo.x,
-                   fun->coo.y);
+    BTOR_MSG (boolector_get_btor_msg (parser->btor),
+              2,
+              "defined bit-vector array '%s' "
+              "index element width %d %d at line %d column %d",
+              fun->name,
+              domain,
+              width,
+              fun->coo.x,
+              fun->coo.y);
     parser->need_functions = 1;
   }
   else
@@ -3127,7 +3115,10 @@ btor_set_info_smt2 (BtorSMT2Parser *parser)
     else
       goto INVALID_STATUS_VALUE;
 
-    btor_msg_smt2 (parser, 2, "parsed status '%s'", parser->token.start);
+    BTOR_MSG (boolector_get_btor_msg (parser->btor),
+              2,
+              "parsed status '%s'",
+              parser->token.start);
     return btor_read_rpar_smt2 (parser, " after 'set-logic'");
   }
   return btor_skip_sexprs (parser, 1);
@@ -3163,10 +3154,10 @@ btor_read_command_smt2 (BtorSMT2Parser *parser)
   {
     case BTOR_SET_LOGIC_TAG_SMT2:
       if (parser->commands.all)
-        btor_msg_smt2 (parser,
-                       1,
-                       "WARNING 'set-logic' not first command in '%s'",
-                       parser->name);
+        BTOR_MSG (boolector_get_btor_msg (parser->btor),
+                  1,
+                  "WARNING 'set-logic' not first command in '%s'",
+                  parser->name);
       tag = btor_read_token_smt2 (parser);
       if (tag == EOF)
       {
@@ -3190,16 +3181,23 @@ btor_read_command_smt2 (BtorSMT2Parser *parser)
       else
         return !btor_perr_smt2 (
             parser, "unsupported logic '%s'", parser->token.start);
-      btor_msg_smt2 (parser, 2, "logic %s", parser->token.start);
+      BTOR_MSG (boolector_get_btor_msg (parser->btor),
+                2,
+                "logic %s",
+                parser->token.start);
       if (!btor_read_rpar_smt2 (parser, " after logic")) return 0;
       if (parser->commands.set_logic++)
-        btor_msg_smt2 (parser, 1, "WARNING additional 'set-logic' command");
+        BTOR_MSG (boolector_get_btor_msg (parser->btor),
+                  1,
+                  "WARNING additional 'set-logic' command");
       break;
 
     case BTOR_CHECK_SAT_TAG_SMT2:
       if (!btor_read_rpar_smt2 (parser, " after 'check-sat'")) return 0;
       if (parser->commands.check_sat++)
-        btor_msg_smt2 (parser, 1, "WARNING additional 'check-sat' command");
+        BTOR_MSG (boolector_get_btor_msg (parser->btor),
+                  1,
+                  "WARNING additional 'check-sat' command");
       break;
 
     case BTOR_DECLARE_FUN_TAG_SMT2:
@@ -3247,7 +3245,9 @@ btor_read_command_smt2 (BtorSMT2Parser *parser)
 
     case BTOR_GET_MODEL_TAG_SMT2:
       if (!btor_read_rpar_smt2 (parser, " after 'get-model'")) return 0;
-      btor_msg_smt2 (parser, 1, "WARNING ignoring 'get-model' command");
+      BTOR_MSG (boolector_get_btor_msg (parser->btor),
+                1,
+                "WARNING ignoring 'get-model' command");
       break;
 
     case BTOR_SET_INFO_TAG_SMT2:
@@ -3285,25 +3285,32 @@ btor_parse_smt2_parser (BtorSMT2Parser *parser,
     ;
   if (parser->error) return parser->error;
   if (!parser->commands.all)
-    btor_msg_smt2 (parser, 1, "WARNING no commands in '%s'", parser->name);
+    BTOR_MSG (boolector_get_btor_msg (parser->btor),
+              1,
+              "WARNING no commands in '%s'",
+              parser->name);
   else
   {
     if (!parser->commands.set_logic)
-      btor_msg_smt2 (parser,
-                     1,
-                     "WARNING 'set-logic' command missing in '%s'",
-                     parser->name);
+      BTOR_MSG (boolector_get_btor_msg (parser->btor),
+                1,
+                "WARNING 'set-logic' command missing in '%s'",
+                parser->name);
     if (!parser->commands.asserts)
-      btor_msg_smt2 (
-          parser, 1, "WARNING no 'assert' command in '%s'", parser->name);
+      BTOR_MSG (boolector_get_btor_msg (parser->btor),
+                1,
+                "WARNING no 'assert' command in '%s'",
+                parser->name);
     if (!parser->commands.check_sat)
-      btor_msg_smt2 (parser,
-                     1,
-                     "WARNING 'check-sat' command missing in '%s'",
-                     parser->name);
+      BTOR_MSG (boolector_get_btor_msg (parser->btor),
+                1,
+                "WARNING 'check-sat' command missing in '%s'",
+                parser->name);
     if (!parser->commands.exits)
-      btor_msg_smt2 (
-          parser, 1, "WARNING no 'exit' command at end of '%s'", parser->name);
+      BTOR_MSG (boolector_get_btor_msg (parser->btor),
+                1,
+                "WARNING no 'exit' command at end of '%s'",
+                parser->name);
   }
   parser->res->inputs   = parser->inputs.start;
   parser->res->outputs  = parser->outputs.start;
@@ -3311,15 +3318,17 @@ btor_parse_smt2_parser (BtorSMT2Parser *parser,
   parser->res->noutputs = BTOR_COUNT_STACK (parser->outputs);
   delta                 = btor_time_stamp () - start;
   if (delta < 0) delta = 0;
-  btor_msg_smt2 (parser,
-                 1,
-                 "parsed %d commands in %.2f seconds",
-                 parser->commands.all,
-                 delta);
+  BTOR_MSG (boolector_get_btor_msg (parser->btor),
+            1,
+            "parsed %d commands in %.2f seconds",
+            parser->commands.all,
+            delta);
 
   if (parser->need_functions && parser->res->logic == BTOR_LOGIC_QF_BV)
   {
-    btor_msg_smt2 (parser, 1, "found functions thus using 'QF_AUFBV' logic");
+    BTOR_MSG (boolector_get_btor_msg (parser->btor),
+              1,
+              "found functions thus using 'QF_AUFBV' logic");
     parser->res->logic = BTOR_LOGIC_QF_AUFBV;
   }
   else if (parser->commands.set_logic)
@@ -3328,8 +3337,9 @@ btor_parse_smt2_parser (BtorSMT2Parser *parser,
             || parser->res->logic == BTOR_LOGIC_QF_AUFBV);
     if (!parser->need_functions && parser->res->logic == BTOR_LOGIC_QF_AUFBV)
     {
-      btor_msg_smt2 (
-          parser, 1, "no functions found thus restricting logic to 'QF_BV'");
+      BTOR_MSG (boolector_get_btor_msg (parser->btor),
+                1,
+                "no functions found thus restricting logic to 'QF_BV'");
       parser->res->logic = BTOR_LOGIC_QF_BV;
     }
   }

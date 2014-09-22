@@ -243,9 +243,6 @@ btor_set_opt (Btor *btor, const char *name, int val)
   assert (name);
 
   BtorOpt *o;
-  BtorAIGVecMgr *avmgr;
-  BtorAIGMgr *amgr;
-  BtorSATMgr *smgr;
 
   o = btor_get_opt (btor, name);
   assert (o);
@@ -276,17 +273,6 @@ btor_set_opt (Btor *btor, const char *name, int val)
 #ifdef BTOR_ENABLE_DUAL_PROPAGATION
     assert (!val || !btor->options.dual_prop.val);
 #endif
-  }
-  else if (!strcmp (name, "v") || !strcmp (name, BTOR_OPT_VERBOSITY))
-  {
-    assert (oldval >= -1);
-
-    avmgr = btor->avmgr;
-    amgr  = btor_get_aig_mgr_aigvec_mgr (avmgr);
-    smgr  = btor_get_sat_mgr_aig_mgr (amgr);
-    btor_set_verbosity_aigvec_mgr (avmgr, val);
-    btor_set_verbosity_aig_mgr (amgr, val);
-    btor_set_verbosity_sat_mgr (smgr, val);
   }
   else if (!strcmp (name, "rwl") || !strcmp (name, BTOR_OPT_REWRITE_LEVEL))
   {

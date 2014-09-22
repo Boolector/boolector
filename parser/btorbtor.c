@@ -14,6 +14,7 @@
 #include "btorbtor.h"
 #include "btorconst.h"
 #include "btormem.h"
+#include "btormsg.h"
 #include "btorparse.h"
 #include "btorstack.h"
 #include "btorutil.h"
@@ -91,18 +92,6 @@ struct BtorBTORParser
 };
 
 /*------------------------------------------------------------------------*/
-
-static void
-btor_msg_btor (char *fmt, ...)
-{
-  va_list ap;
-  fprintf (stdout, "[btorbtor] ");
-  va_start (ap, fmt);
-  vfprintf (stdout, fmt, ap);
-  va_end (ap);
-  fputc ('\n', stdout);
-  fflush (stdout);
-}
 
 static const char *
 btor_perr_btor (BtorBTORParser *parser, const char *fmt, ...)
@@ -1909,7 +1898,7 @@ btor_parse_btor_parser (BtorBTORParser *parser,
   assert (name);
   assert (file);
 
-  if (parser->verbosity > 0) btor_msg_btor ("parsing %s", name);
+  BTOR_MSG (boolector_get_btor_msg (parser->btor), 1, "parsing %s", name);
 
   parser->nprefix = 0;
   parser->prefix  = prefix;
@@ -1958,11 +1947,14 @@ NEXT:
       res->noutputs = BTOR_COUNT_STACK (parser->outputs);
       res->outputs  = parser->outputs.start;
 
-      if (parser->verbosity > 0)
-      {
-        btor_msg_btor ("parsed %d inputs", res->ninputs);
-        btor_msg_btor ("parsed %d outputs", res->noutputs);
-      }
+      BTOR_MSG (boolector_get_btor_msg (parser->btor),
+                1,
+                "parsed %d inputs",
+                res->ninputs);
+      BTOR_MSG (boolector_get_btor_msg (parser->btor),
+                1,
+                "parsed %d outputs",
+                res->noutputs);
     }
 
     return 0;

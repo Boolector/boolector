@@ -18,6 +18,7 @@
 #include "btorass.h"
 #include "btorexp.h"
 #include "btormem.h"
+#include "btormsg.h"
 #include "btoropt.h"
 #include "btorsat.h"
 #include "btorsort.h"
@@ -111,6 +112,7 @@ typedef enum BtorUAEnc BtorUAEnc;
 struct Btor
 {
   BtorMemMgr *mm;
+
   BtorBVAssignmentList *bv_assignments;
   BtorArrayAssignmentList *array_assignments;
   BtorNodePtrStack nodes_id_table;
@@ -138,8 +140,6 @@ struct Btor
   int external_refs;        /* external references (library mode) */
   int btor_sat_btor_called; /* how often is btor_sat_btor been called */
   int last_sat_result;      /* status of last SAT call (SAT/UNSAT) */
-
-  char *msg_prefix; /* verbosity message prefix */
 
   BtorPtrHashTable *lod_cache;
 
@@ -261,6 +261,7 @@ struct Btor
   } time;
 
   BtorOpts options;
+  BtorMsg *msg;
 };
 
 /* Creates new boolector instance. */
