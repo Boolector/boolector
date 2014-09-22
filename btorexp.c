@@ -3617,7 +3617,8 @@ btor_get_symbol_exp (Btor *btor, BtorNode *exp)
   assert (btor);
   assert (exp);
   assert (btor == BTOR_REAL_ADDR_NODE (exp)->btor);
-  BtorPtrHashBucket *b = btor_find_in_ptr_hash_table (btor->node2symbol, exp);
+  BtorPtrHashBucket *b = btor_find_in_ptr_hash_table (
+      btor->node2symbol, BTOR_REAL_ADDR_NODE (exp));
   if (b) return b->data.asStr;
   return 0;
 }
@@ -3635,9 +3636,19 @@ btor_set_symbol_exp (Btor *btor, BtorNode *exp, const char *symbol)
   BtorPtrHashBucket *b;
   char *sym;
 
+  exp = BTOR_REAL_ADDR_NODE (exp);
   sym = btor_strdup (btor->mm, symbol);
   (void) btor_insert_in_ptr_hash_table (btor->symbols, sym);
-  b             = btor_insert_in_ptr_hash_table (btor->node2symbol, exp);
+  b = btor_find_in_ptr_hash_table (btor->node2symbol, exp);
+
+  if (b)
+  {
+    btor_remove_from_ptr_hash_table (btor->symbols, b->data.asStr, 0, 0);
+    btor_freestr (btor->mm, b->data.asStr);
+  }
+  else
+    b = btor_insert_in_ptr_hash_table (btor->node2symbol, exp);
+
   b->data.asStr = sym;
 }
 
