@@ -126,6 +126,19 @@ typedef struct BoolectorNode BoolectorNode;
  * Following from that, it is safe to release an expression as soon as you
  * asserted it, as long as you don't need it for further querying.
  *
+ * \subsection Operators
+ * Boolector internally describes expressions by means of a set of base
+ * operators as documented in
+ *<a href="http://fmv.jku.at/papers/BrummayerBiereLonsing-BPR08.pdf">BTOR:
+ Bit-Precise Modelling of Word-Level Problems for Model Checking</a>.
+ * Boolector's API, however, provides a richer set of operators for
+ * convenience, where non-base operators are internally rewritten to use
+ * base operators only.
+ * E.g., two's complement (\ref boolector_neg) is rewritten as one's complement
+ * and addition of 1.
+ * Note that this behaviour is not influenced by the rewrite level chosen.
+ *
+ * \subsection Rewriting
  * Boolector simplifies expressions and the expression DAG by means of
  * rewriting and supports three so-called rewrite levels.
  * Increasing rewrite levels increase the extent of rewriting performed,
@@ -136,15 +149,6 @@ typedef struct BoolectorNode BoolectorNode;
  * You can force Boolector to initiate rewriting and simplify the expression
  * DAG via \ref boolector_simplify.
  * The rewrite level can be configured via \ref boolector_set_opt.
- *
- * Boolector internally uses a set of base operators.
- * The set is documented in
- *<a href="http://fmv.jku.at/papers/BrummayerBiereLonsing-BPR08.pdf">BTOR:
- Bit-Precise Modelling of Word-Level Problems for Model Checking</a>.
- * Many operators that are available in the API are rewritten as combination
- * of base operators internally. For example, two's complement is rewritten
- * as one's complement and addition of 1.  This behavior is not
- * influenced by the rewrite level.
  *
  * \subsection Assertions
  * Boolector uses two different kinds of assertions. Internally, Boolector
