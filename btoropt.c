@@ -244,6 +244,10 @@ btor_set_opt (Btor *btor, const char *name, int val)
 
   BtorOpt *o;
 
+#ifdef NBTORLOG
+  if (!strcmp (name, BTOR_OPT_LOGLEVEL)) return;
+#endif
+
   o = btor_get_opt (btor, name);
   assert (o);
 #ifndef NDEBUG
@@ -284,10 +288,6 @@ btor_set_opt (Btor *btor, const char *name, int val)
     assert (val >= 0 && val <= 3);
     assert (oldval >= 0 && oldval <= 3);
   }
-#ifdef NBTORLOG
-  else if (!strcmp (name, BTOR_OPT_LOGLEVEL))
-    return;
-#endif
 }
 
 BtorOpt *
