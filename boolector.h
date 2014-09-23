@@ -150,27 +150,10 @@ typedef struct BoolectorNode BoolectorNode;
  * DAG via \ref boolector_simplify.
  * The rewrite level can be configured via \ref boolector_set_opt.
  *
- * \subsection Assertions
- * Boolector uses two different kinds of assertions. Internally, Boolector
- * heavily uses assertions provided by the standard C library.
- * To increase performance, these assertions are disabled in releases.
- *
- * The functions of Boolector's public interface are guarded by
- * public assertions. Public assertions are always enabled. They check if
- * the functions have been correctly called by the user.
- * If not, then an error message is printed and 'abort' is called.
- * For example, we call \ref boolector_var and pass a bit width < 1. This
- * yields the following error message:
- *
- * \verbatim [boolector] boolector_var: 'width' must not be < 1 \endverbatim
- *
- * This is not a bug. The user has violated the pre-conditions of the function,
- * and therefore Boolector aborts.
- *
  * \section Examples
- * In the section <a href="examples.html">examples</a> you can
- * find bit vector and array examples. They demonstrate
- * how Boolector's public interface can be used.
+ * See section <a href="examples.html">examples</a> for
+ * bit vector and array examples to demonstrate
+ * how Boolector's public interface is used.
  * \example bv1.c
  * \example bv2.c
  * \example array1.c
