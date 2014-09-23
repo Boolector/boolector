@@ -325,10 +325,6 @@ cdef extern from "boolector.h":
 
     BoolectorSort *boolector_bitvec_sort (Btor * btor, int len)
 
-    BoolectorSort *boolector_array_sort (Btor * btor,
-                                         BoolectorSort * index,
-                                         BoolectorSort * element)
-
     BoolectorSort *boolector_fun_sort (Btor * btor,
                                        BoolectorSort ** domain,
                                        int arity,

@@ -3251,37 +3251,6 @@ boolector_bitvec_sort (Btor *btor, int width)
 }
 
 BoolectorSort *
-boolector_array_sort (Btor *btor, BoolectorSort *index, BoolectorSort *elem)
-{
-  BTOR_ABORT_ARG_NULL_BOOLECTOR (btor);
-  BTOR_TRAPI (SORT_FMT SORT_FMT,
-              BTOR_TRAPI_SORT_ID (BTOR_IMPORT_BOOLECTOR_SORT (index)),
-              BTOR_TRAPI_SORT_ID (BTOR_IMPORT_BOOLECTOR_SORT (elem)));
-  BTOR_ABORT_ARG_NULL_BOOLECTOR (index);
-  BTOR_ABORT_ARG_NULL_BOOLECTOR (elem);
-  BTOR_ABORT_BOOLECTOR (
-      !BTOR_IS_BITVEC_SORT (BTOR_IMPORT_BOOLECTOR_SORT (index))
-          && !BTOR_IS_BOOL_SORT (BTOR_IMPORT_BOOLECTOR_SORT (index)),
-      "'index' sort must be a bool or bit vector sort");
-  BTOR_ABORT_BOOLECTOR (
-      !BTOR_IS_BITVEC_SORT (BTOR_IMPORT_BOOLECTOR_SORT (elem))
-          && !BTOR_IS_BOOL_SORT (BTOR_IMPORT_BOOLECTOR_SORT (elem)),
-      "'elem' sort must be a bool or bit vector sort");
-
-  BtorSort *res, *i, *e;
-  i   = BTOR_IMPORT_BOOLECTOR_SORT (index);
-  e   = BTOR_IMPORT_BOOLECTOR_SORT (elem);
-  res = btor_array_sort (&btor->sorts_unique_table, i, e);
-  inc_sort_ext_ref_counter (btor, res);
-  BTOR_TRAPI_RETURN_SORT (res);
-#ifndef NDEBUG
-  BTOR_CHKCLONE_RES_SORT (
-      res, array_sort, BTOR_CLONED_SORT (i), BTOR_CLONED_SORT (e));
-#endif
-  return BTOR_EXPORT_BOOLECTOR_SORT (res);
-}
-
-BoolectorSort *
 boolector_fun_sort (Btor *btor,
                     BoolectorSort **domain,
                     int arity,

@@ -19,7 +19,6 @@ g_tunable_options = {"rewrite_level", "rewrite_level_pbr",
                      "dual_prop", "just", "ucopt", "lazy_synthesize",
                      "eliminate_slices"}
 
-# TODO: uniform code style
 # TODO: exception checks
 
 class _BoolectorException(Exception):
@@ -31,11 +30,11 @@ class _BoolectorException(Exception):
 
 # utility functions
 
-cdef btorapi.BoolectorNode* _c_node(x):
+cdef btorapi.BoolectorNode * _c_node(x):
     assert(isinstance(x, _BoolectorNode))
     return (<_BoolectorNode> x)._c_node
 
-cdef _BoolectorBVNode _const_to_node(btor, x, int width=1):
+cdef _BoolectorBVNode _const_to_node(btor, x, int width = 1):
     if isinstance(x, int):
         if x > 0 and int(math.log(x, 2)) + 1 > width:
             raise _BoolectorException(
@@ -141,8 +140,8 @@ def _check_precond_cond(cond, a, b):
 
 cdef class _BoolectorSort:
     cdef Boolector btor
-    cdef btorapi.Btor* _c_btor
-    cdef btorapi.BoolectorSort* _c_sort
+    cdef btorapi.Btor * _c_btor
+    cdef btorapi.BoolectorSort * _c_sort
 
     def __init__(self, Boolector boolector):
         self.btor = boolector
@@ -165,7 +164,7 @@ cdef class _BoolectorBoolSort(_BoolectorSort):
 
 cdef class _BoolectorOpt:
     cdef Boolector btor
-    cdef const btorapi.BtorOpt* _c_opt
+    cdef const btorapi.BtorOpt * _c_opt
 
     def __init__(self, Boolector boolector):
         self.btor = boolector
@@ -214,8 +213,8 @@ cdef class _BoolectorOpt:
 
 cdef class _BoolectorNode:
     cdef Boolector btor
-    cdef btorapi.Btor* _c_btor
-    cdef btorapi.BoolectorNode* _c_node
+    cdef btorapi.Btor * _c_btor
+    cdef btorapi.BoolectorNode * _c_node
 
     def __init__(self, Boolector boolector):
         self.btor = boolector
@@ -248,10 +247,10 @@ cdef class _BoolectorNode:
 
     property assignment:
         def __get__(self):
-            cdef char** c_str_i
-            cdef char** c_str_v
+            cdef char ** c_str_i
+            cdef char ** c_str_v
             cdef int size
-            cdef const char* c_str
+            cdef const char * c_str
             cdef bytes py_str
 
             if isinstance(self, _BoolectorFunNode) or \
@@ -277,7 +276,7 @@ cdef class _BoolectorNode:
                 btorapi.boolector_free_bv_assignment(self.btor._c_btor, c_str)
                 return value
 
-    def Dump(self, format="btor", outfile = ""):
+    def Dump(self, format = "btor", outfile = ""):
         if format.lower() == "btor":
             btorapi.boolector_dump_btor_node(self.btor._c_btor, stdout,
                                              self._c_node)
@@ -331,10 +330,6 @@ cdef class _BoolectorBVNode(_BoolectorNode):
     def __truediv__(x, y):
         x, y = _to_node(x, y)
         return (<_BoolectorBVNode> x).btor.Udiv(x, y)
-
-#    def __div__(x, y):
-#        x, y = _to_node(x, y)
-#        return (<_BoolectorBVNode> x).btor.Udiv(x, y)
 
     def __mod__(x, y):
         x, y = _to_node(x, y)
@@ -416,7 +411,7 @@ cdef class _BoolectorParamNode(_BoolectorBVNode):
 # wrapper class for Boolector itself
 
 cdef class Boolector:
-    cdef btorapi.Btor* _c_btor
+    cdef btorapi.Btor * _c_btor
     UNKNOWN = 0
     SAT = 10
     UNSAT = 20
@@ -483,8 +478,8 @@ cdef class Boolector:
 
     def Options(self):
         opts = []
-        cdef const btorapi.BtorOpt* c_opt
-        cdef const btorapi.BtorOpt* c_last_opt
+        cdef const btorapi.BtorOpt * c_opt
+        cdef const btorapi.BtorOpt * c_last_opt
         c_opt = btorapi.boolector_first_opt(self._c_btor)
         c_last_opt = btorapi.boolector_last_opt(self._c_btor)
         while c_opt != c_last_opt:
@@ -495,7 +490,7 @@ cdef class Boolector:
             c_opt = btorapi.boolector_next_opt(self._c_btor, c_opt)
         return opts
 
-    def Set_sat_solver(self, str solver, str optstr=None, int nofork=0):
+    def Set_sat_solver(self, str solver, str optstr = None, int nofork = 0):
         solver = solver.strip().lower()
         if solver == "lingeling":
             btorapi.boolector_set_sat_solver_lingeling(self._c_btor,
@@ -508,8 +503,8 @@ cdef class Boolector:
     def Set_msg_prefix(self, str prefix):
         btorapi.boolector_set_msg_prefix(self._c_btor, _ChPtr(prefix)._c_str)
 
-    def Print_model(self, outfile=None):
-        cdef FILE* c_file
+    def Print_model(self, outfile = None):
+        cdef FILE * c_file
 
         if outfile is None:
             c_file = stdout
@@ -528,9 +523,9 @@ cdef class Boolector:
             fclose(c_file)
 
     def Parse(self, str file):
-        cdef FILE* c_file
+        cdef FILE * c_file
         cdef int res
-        cdef char* err_msg
+        cdef char * err_msg
         cdef int status
 
         if not os.path.isfile(file):
@@ -542,8 +537,8 @@ cdef class Boolector:
         fclose(c_file)
         return (res, status, _to_str(err_msg))
 
-    def Dump(self, format = "btor", outfile=None):
-        cdef FILE* c_file
+    def Dump(self, format = "btor", outfile = None):
+        cdef FILE * c_file
 
         if outfile is None:
             c_file = stdout
@@ -609,19 +604,19 @@ cdef class Boolector:
         r._c_node = btorapi.boolector_int(self._c_btor, i, width)
         return r
 
-    def Var(self, int width, str symbol=None):
+    def Var(self, int width, str symbol = None):
         r = _BoolectorBVNode(self)
         r._c_node = btorapi.boolector_var(self._c_btor, width,
                                           _ChPtr(symbol)._c_str)
         return r
 
-    def Param(self, int width, str symbol=None):
+    def Param(self, int width, str symbol = None):
         r = _BoolectorParamNode(self)
         r._c_node = btorapi.boolector_param(self._c_btor, width,
                                             _ChPtr(symbol)._c_str)
         return r
 
-    def Array(self, int elem_width, int index_width, str symbol=None):
+    def Array(self, int elem_width, int index_width, str symbol = None):
         r = _BoolectorArrayNode(self)
         r._c_node = btorapi.boolector_array(self._c_btor, elem_width,
                                             index_width, _ChPtr(symbol)._c_str)
@@ -997,9 +992,9 @@ cdef class Boolector:
 
     def Fun(self, list params, _BoolectorBVNode body):
         cdef int paramc = len(params)
-        cdef btorapi.BoolectorNode** c_params = \
-            <btorapi.BoolectorNode**> \
-                malloc(paramc * sizeof(btorapi.BoolectorNode*))
+        cdef btorapi.BoolectorNode ** c_params = \
+            <btorapi.BoolectorNode **> \
+                malloc(paramc * sizeof(btorapi.BoolectorNode *))
 
         # copy params into array
         for i in range(paramc):
@@ -1015,7 +1010,7 @@ cdef class Boolector:
         free(c_params)
         return r
 
-    def UF(self, _BoolectorSort sort, str symbol=None):
+    def UF(self, _BoolectorSort sort, str symbol = None):
         if not isinstance(sort, _BoolectorFunSort):
             raise _BoolectorException(
                      "Sort must be of sort '_BoolectorFunSort'")
@@ -1027,9 +1022,9 @@ cdef class Boolector:
 
     def Apply(self, list args, _BoolectorFunNode fun):
         cdef int argc = len(args)
-        cdef btorapi.BoolectorNode** c_args = \
-            <btorapi.BoolectorNode**> \
-	      malloc(argc * sizeof(btorapi.BoolectorNode*))
+        cdef btorapi.BoolectorNode ** c_args = \
+            <btorapi.BoolectorNode **> \
+	      malloc(argc * sizeof(btorapi.BoolectorNode *))
 
         # copy arguments into array
         arg_nodes = []
@@ -1065,17 +1060,11 @@ cdef class Boolector:
         r._c_sort = btorapi.boolector_bitvec_sort(self._c_btor, width)
         return r
 
-    def ArraySort(self, _BoolectorSort index, _BoolectorSort element):
-        r = _BoolectorSort(self)
-        r._c_sort = btorapi.boolector_array_sort(
-                        self._c_btor, index._c_sort, element._c_sort)
-        return r
-
     def FunSort(self, list domain, _BoolectorSort codomain):
         cdef int arity = len(domain)
-        cdef btorapi.BoolectorSort** c_domain = \
-            <btorapi.BoolectorSort**> \
-                malloc(arity * sizeof(btorapi.BoolectorSort*))
+        cdef btorapi.BoolectorSort ** c_domain = \
+            <btorapi.BoolectorSort **> \
+                malloc(arity * sizeof(btorapi.BoolectorSort *))
 
         for i in range(arity):
             if not isinstance(domain[i], _BoolectorSort):
