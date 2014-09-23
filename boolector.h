@@ -78,15 +78,16 @@ typedef struct BoolectorNode BoolectorNode;
  *
  * \subsection Options
  *
- * All Boolector options can be either set via \ref boolector_set_opt or
- * environment variables. For a list of available options see \ref
- * boolector_set_opt.
- * In case you want to use environment variables to set options Boolector uses
- * the following option naming scheme:
- * BTOR<capitalized option name without '_'>=<int>.
- * For example, option 'model_gen' as an environment variable is written as
+ * Boolector can be configured either via \ref boolector_set_opt,
+ * or via environment variables of the form
+ * <i>BTOR<capitalized option name without '_'>=<int></i>.
+ * For a list and detailed descriptions of all available options,
+ * see \ref boolector_set_opt.
  *
- * \verbatim BTORMODELGEN=<int> \endverbatim
+ * E.g. given a Boolector instance 'btor', model generation is enabled either
+ * via \verbatim boolector_set_opt (btor, "model_gen", 1) \endverbatim
+ * or via setting the environment variable
+ * \verbatim BTORMODELGEN=1 \endverbatim
  *
  * \subsection tracing API Tracing
  * API tracing allows to record every call to Boolector's public API. The
