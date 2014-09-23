@@ -1574,6 +1574,14 @@ void boolector_free_array_assignment (Btor *btor,
                                       char **values,
                                       int size);
 
+void boolector_uf_assignment (
+    Btor *btor, BoolectorNode *n_uf, char ***args, char ***values, int *size);
+
+void boolector_free_uf_assignment (Btor *btor,
+                                   char **args,
+                                   char **values,
+                                   int size);
+
 /**
  * Print model to output file. This function prints the model for all inputs
  * to the output file 'file'.

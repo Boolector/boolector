@@ -255,18 +255,26 @@ cdef class _BoolectorNode:
 
             if isinstance(self, _BoolectorFunNode) or \
                isinstance(self, _BoolectorArrayNode):
-                btorapi.boolector_array_assignment(self.btor._c_btor,
-                                                   self._c_node,
-                                                   &c_str_i, &c_str_v, &size) 
+                if isinstance(self, _BoolectorArrayNode):
+                    btorapi.boolector_array_assignment(
+                        self.btor._c_btor, self._c_node, &c_str_i, &c_str_v,
+                        &size) 
+                else:
+                    btorapi.boolector_uf_assignment(
+                        self.btor._c_btor, self._c_node, &c_str_i, &c_str_v,
+                        &size) 
                 model = []
                 if size > 0:
                     for i in range(size):
                         index = _to_str(c_str_i[i])
                         value = _to_str(c_str_v[i])
                         model.append((index, value))
-                    btorapi.boolector_free_array_assignment(self.btor._c_btor,
-                                                            c_str_i, c_str_v,
-                                                            size) 
+                    if isinstance(self, _BoolectorArrayNode):
+                        btorapi.boolector_free_array_assignment(
+                            self.btor._c_btor, c_str_i, c_str_v, size) 
+                    else:
+                        btorapi.boolector_free_uf_assignment(
+                            self.btor._c_btor, c_str_i, c_str_v, size) 
                 return model
             else:
                 c_str = \

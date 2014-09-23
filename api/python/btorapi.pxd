@@ -312,12 +312,21 @@ cdef extern from "boolector.h":
 
     void boolector_array_assignment (Btor * btor, 
                                      BoolectorNode * n_array, 
-                                     char ***indices, 
-                                     char ***values, 
-                                     int *size)
+                                     char *** indices, 
+                                     char *** values, 
+                                     int * size)
 
     void boolector_free_array_assignment (
         Btor * btor, char ** indices, char ** values, int size)
+
+    void boolector_uf_assignment (Btor * btor, 
+                                  BoolectorNode * n_array, 
+                                  char *** args, 
+                                  char *** values, 
+                                  int * size)
+
+    void boolector_free_uf_assignment (
+        Btor * btor, char ** args, char ** values, int size)
 
     void boolector_print_model (Btor * btor, FILE * file)
 

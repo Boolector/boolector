@@ -2598,6 +2598,13 @@ _mgen (BtorMBT *btormbt, unsigned r)
     if (size > 0)
       boolector_free_array_assignment (btormbt->btor, indices, values, size);
   }
+  for (i = 0; i < btormbt->uf.n; i++)
+  {
+    boolector_uf_assignment (
+        btormbt->btor, btormbt->uf.exps[i].exp, &indices, &values, &size);
+    if (size > 0)
+      boolector_free_uf_assignment (btormbt->btor, indices, values, size);
+  }
   return _inc;
 }
 

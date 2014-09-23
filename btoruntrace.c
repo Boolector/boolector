@@ -1300,6 +1300,24 @@ NEXT:
                                        hmap_get (hmap, btor_str, arg2_str),
                                        arg3_int);
     }
+    else if (!strcmp (tok, "uf_assignment"))
+    {
+      PARSE_ARGS1 (tok, str);
+      boolector_uf_assignment (btor,
+                               hmap_get (hmap, btor_str, arg1_str),
+                               &res1_pptr,
+                               &res2_pptr,
+                               &ret_int);
+      exp_ret = RET_ARRASS;
+    }
+    else if (!strcmp (tok, "free_uf_assignment"))
+    {
+      PARSE_ARGS3 (tok, str, str, int);
+      boolector_free_uf_assignment (btor,
+                                    hmap_get (hmap, btor_str, arg1_str),
+                                    hmap_get (hmap, btor_str, arg2_str),
+                                    arg3_int);
+    }
     else if (!strcmp (tok, "print_model"))
     {
       PARSE_ARGS0 (tok);
