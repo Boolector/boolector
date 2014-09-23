@@ -54,22 +54,27 @@ typedef struct BoolectorNode BoolectorNode;
  * \section Interface
  * The public interface is defined in \ref boolector.h.
  *
- * First of all, the user has to create
- * a Boolector instance by calling \ref boolector_new. This instance
- * is needed by all other functions. After creating an instance, the
- * rewrite level of the rewriting engine can be set by \ref boolector_set_opt.
- * Then, the user can build expressions of bit vectors and arrays. As the
- * design of Boolector was motivated by real hardware, we do not distinguish
- * between the type 'boolean' and the type 'bit vector of bit width one'.
- * After building expressions the user can assert them by \ref
- * boolector_assert. The resulting instance can be decided by \ref
- * boolector_sat. If model generation has been enabled and the instance is
- * satisfiable, the user can obtain assignments to bit vectors resp. arrays by
- * \ref boolector_bv_assignment resp. \ref boolector_array_assignment. The
- * assignments are not limited to variables. They can be obtained for
- * arbitrary expressions.  Finally, Boolector supports incremental usage with
- * assumptions analogously to MiniSAT. The incremental usage can be enabled via
- * \ref boolector_set_opt. Assumptions can be added by \ref boolector_assume.
+ * \subsection Quickstart
+ * First, create a Boolector instance via \ref boolector_new. You can configure
+ * this instance via \ref boolector_set_opt, for a detailed description of all
+ * configurable options, see \ref boolector_set_opt.
+ * Next you can either parse an input file, and/or generate expressions to
+ * be either asserted via \ref boolector_assert, or, if incremental usage is
+ * enabled, assumed via \ref boolector_assume (analogously to MiniSAT).
+ * Note that Boolector's internal design is motivated by hardware design,
+ * hence we do not distinguish between type 'Boolean' and type 'bit vector
+ * of length 1'.
+ * After parsing an input file and/or asserting/assuming expressions,
+ * the satifiability of the resulting formula can be determined via
+ * \ref boolector_sat. If the resulting formula is satisfiable and model
+ * generation has been enabled via \ref boolector_set_opt, you can either
+ * print the resulting model via \ref boolector_print_model,
+ * or query assignments
+ * of bit vector and array variables or uninterpreted functions via
+ * \ref boolector_bv_assignment, \ref boolector_array_assignment and
+ * \ref boolector_uf_assignment..
+ * Note that querying assignments is not limited to variables---you can query
+ * the assignment of any arbitrary expression.
  *
  * \subsection Options
  *
