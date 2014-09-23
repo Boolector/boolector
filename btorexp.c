@@ -305,6 +305,7 @@ btor_set_btor_id (Btor *btor, BtorNode *exp, int id)
   assert (btor_is_bv_var_exp (btor, exp)
           || btor_is_uf_array_var_exp (btor, exp));
 
+  (void) btor;
   BtorNode *real_exp;
 
   real_exp = BTOR_REAL_ADDR_NODE (exp);
@@ -3582,6 +3583,7 @@ btor_get_id (Btor *btor, BtorNode *exp)
   assert (btor);
   assert (exp);
   assert (btor == BTOR_REAL_ADDR_NODE (exp)->btor);
+  (void) btor;
   return BTOR_REAL_ADDR_NODE (exp)->id;
 }
 

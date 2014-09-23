@@ -2793,12 +2793,10 @@ substitute_var_exps (Btor *btor)
     init_node_hash_table_iterator (&it, substs);
     while (has_next_node_hash_table_iterator (&it))
     {
-      b = it.bucket;
-#ifndef NDEBUG
+      b   = it.bucket;
       cur = next_node_hash_table_iterator (&it);
       assert (BTOR_IS_REGULAR_NODE (cur));
       assert (BTOR_IS_BV_VAR_NODE (cur) || BTOR_IS_UF_NODE (cur));
-#endif
       BTOR_PUSH_STACK (mm, stack, (BtorNode *) b->data.asPtr);
 
       /* we assume that there are no direct loops
