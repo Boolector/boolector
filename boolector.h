@@ -79,24 +79,26 @@ typedef struct BoolectorNode BoolectorNode;
  * \subsection Options
  *
  * Boolector can be configured either via \ref boolector_set_opt,
- * or via environment variables of the form
- * <i>BTOR<capitalized option name without '_'>=<int></i>.
+ * or via environment variables of the form:
+ * \verbatim BTOR<capitalized option name without '_'>=<value> \endverbatim
  * For a list and detailed descriptions of all available options,
  * see \ref boolector_set_opt.
  *
- * E.g. given a Boolector instance 'btor', model generation is enabled either
+ * E.g., given a Boolector instance 'btor', model generation is enabled either
  * via \verbatim boolector_set_opt (btor, "model_gen", 1) \endverbatim
  * or via setting the environment variable
  * \verbatim BTORMODELGEN=1 \endverbatim
  *
  * \subsection tracing API Tracing
  * API tracing allows to record every call to Boolector's public API. The
- * resulting trace can be replayed and behaves exactly like the original
- * Boolector run. This is particularly useful for debugging Boolector by
- * replaying erroneous behavior. API tracing can be either enabled via the
- * environment variable BTORAPITRACE or \ref boolector_set_trapi.
+ * resulting trace can be replayed and the replayed sequence behaves exactly
+ * like the original Boolector run.
+ * This is particularly useful for debugging purposes, as it enables replaying
+ * erroneous behaviour.
+ * API tracing can be enabled either via \ref boolector_set_trapi or by
+ * setting the environment variable BTORAPITRACE=<filename>.
  *
- * For example, enabling API tracing via BTORAPITRACE is done as follows:
+ * E.g., enabling API tracing via BTORAPITRACE is done as follows:
  * \verbatim BTORAPITRACE="error.trace" boolector file.btor \endverbatim
  *
  * An API trace is also recorded if BTORAPITRACE is set and Boolector is used
