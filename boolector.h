@@ -85,7 +85,7 @@ typedef struct BoolectorNode BoolectorNode;
  * see \ref boolector_set_opt.
  *
  * E.g., given a Boolector instance 'btor', model generation is enabled either
- * via \verbatim boolector_set_opt (btor, "model_gen", 1) \endverbatim
+ * via \verbatim boolector_set_opt (btor, "model_gen", 1); \endverbatim
  * or via setting the environment variable
  * \verbatim BTORMODELGEN=1 \endverbatim
  *
@@ -98,8 +98,13 @@ typedef struct BoolectorNode BoolectorNode;
  * API tracing can be enabled either via \ref boolector_set_trapi or by
  * setting the environment variable BTORAPITRACE=<filename>.
  *
- * E.g., enabling API tracing via BTORAPITRACE is done as follows:
- * \verbatim BTORAPITRACE="error.trace" boolector file.btor \endverbatim
+ * E.g., given a Boolector instance 'btor', enabling API tracing is done as
+ * follows:
+ * \verbatim
+ * FILE *fd = fopen (filename, "r");
+ * boolector_set_trapi (btor, fd);
+ * or
+ * \verbatim BTORAPITRACE="error.trace" \endverbatim
  *
  * An API trace is also recorded if BTORAPITRACE is set and Boolector is used
  * as a library.
