@@ -105,13 +105,23 @@ typedef struct BoolectorNode BoolectorNode;
  * as a library.
  *
  * \section Internals
- * Internally, Boolector manages an expression DAG. This means that each
- * expression has a reference counter, which is initially set to one.
- * Each sharing increments the reference counter. An expression can be
- * copied by \ref boolector_copy, which simply increments the reference counter.
- * An expression can be released by \ref boolector_release which decreases
- * the reference counter. If the reference counter reaches zero, then
- * the expression node is deleted from memory.
+ * Boolector internally maintains a directed acyclic graph (DAG) of
+ * expressions. As a consequence, each expression maintains a reference
+ * counter, which is initially set to 1.
+ * Each time an expression is shared, i.e. for each API call that returns
+ * an expression (a BoolectorNode), its reference counter is incremented
+ * by 1. Not considering API calls that generate expressions, this mainly
+ * applies to \ref boolector_copy, which simply increments the reference
+ * counter of an expression, and \ref boolector_match_node resp.
+ * \ref boolector_match_node_by_id, which retrieve nodes of a given Boolector
+ * instance by id resp. a given node's id.
+ * Expressions are released via \ref boolector_release, and if its
+ * reference counter is decremented to zero, it is deleted from memory.
+ * Note that by asserting an expression, it will be permanently added to the
+ * formula, i.e. Boolector internally holds its reference until it is either
+ * eliminated via rewriting, or the Boolector instance is deleted.
+ * Following from that, it is safe to release an expression as soon as you
+ * asserted it, as long as you don't need it for further querying.
  *
  * Already during construction of the expression DAG,
  * rewriting is performed. This rewriting should simplify the DAG already
