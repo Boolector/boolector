@@ -717,6 +717,7 @@ btor_dump_btor (Btor *btor, FILE *file, int version)
   //        model_gen -> ??
   //  assert (!btor->inc_enabled);
   //  assert (!btor->model_gen);
+  (void) version;
 
   int ret;
   BtorNode *temp;
