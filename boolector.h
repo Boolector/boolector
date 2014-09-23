@@ -54,56 +54,79 @@ typedef struct BoolectorNode BoolectorNode;
  * \section Interface
  * The public interface is defined in \ref boolector.h.
  *
- * First of all, the user has to create
- * a Boolector instance by calling \ref boolector_new. This instance
- * is needed by all other functions. After creating an instance, the
- * rewrite level of the rewriting engine can be set by \ref boolector_set_opt.
- * Then, the user can build expressions of bit vectors and arrays. As the
- * design of Boolector was motivated by real hardware, we do not distinguish
- * between the type 'boolean' and the type 'bit vector of bit width one'.
- * After building expressions the user can assert them by \ref
- * boolector_assert. The resulting instance can be decided by \ref
- * boolector_sat. If model generation has been enabled and the instance is
- * satisfiable, the user can obtain assignments to bit vectors resp. arrays by
- * \ref boolector_bv_assignment resp. \ref boolector_array_assignment. The
- * assignments are not limited to variables. They can be obtained for
- * arbitrary expressions.  Finally, Boolector supports incremental usage with
- * assumptions analogously to MiniSAT. The incremental usage can be enabled via
- * \ref boolector_set_opt. Assumptions can be added by \ref boolector_assume.
+ * \subsection Quickstart
+ * First, create a Boolector instance via \ref boolector_new. You can configure
+ * this instance via \ref boolector_set_opt, for a detailed description of all
+ * configurable options, see \ref boolector_set_opt.
+ * Next you can either parse an input file, and/or generate expressions to
+ * be either asserted via \ref boolector_assert, or, if incremental usage is
+ * enabled, assumed via \ref boolector_assume (analogously to MiniSAT).
+ * Note that Boolector's internal design is motivated by hardware design,
+ * hence we do not distinguish between type 'Boolean' and type 'bit vector
+ * of length 1'.
+ * After parsing an input file and/or asserting/assuming expressions,
+ * the satifiability of the resulting formula can be determined via
+ * \ref boolector_sat. If the resulting formula is satisfiable and model
+ * generation has been enabled via \ref boolector_set_opt, you can either
+ * print the resulting model via \ref boolector_print_model,
+ * or query assignments
+ * of bit vector and array variables or uninterpreted functions via
+ * \ref boolector_bv_assignment, \ref boolector_array_assignment and
+ * \ref boolector_uf_assignment..
+ * Note that querying assignments is not limited to variables---you can query
+ * the assignment of any arbitrary expression.
  *
  * \subsection Options
  *
- * All Boolector options can be either set via \ref boolector_set_opt or
- * environment variables. For a list of available options see \ref
- * boolector_set_opt.
- * In case you want to use environment variables to set options Boolector uses
- * the following option naming scheme:
- * BTOR<capitalized option name without '_'>=<int>.
- * For example, option 'model_gen' as an environment variable is written as
+ * Boolector can be configured either via \ref boolector_set_opt,
+ * or via environment variables of the form:
+ * \verbatim BTOR<capitalized option name without '_'>=<value> \endverbatim
+ * For a list and detailed descriptions of all available options,
+ * see \ref boolector_set_opt.
  *
- * \verbatim BTORMODELGEN=<int> \endverbatim
+ * E.g., given a Boolector instance 'btor', model generation is enabled either
+ * via \verbatim boolector_set_opt (btor, "model_gen", 1); \endverbatim
+ * or via setting the environment variable
+ * \verbatim BTORMODELGEN=1 \endverbatim
  *
  * \subsection tracing API Tracing
  * API tracing allows to record every call to Boolector's public API. The
- * resulting trace can be replayed and behaves exactly like the original
- * Boolector run. This is particularly useful for debugging Boolector by
- * replaying erroneous behavior. API tracing can be either enabled via the
- * environment variable BTORAPITRACE or \ref boolector_set_trapi.
+ * resulting trace can be replayed and the replayed sequence behaves exactly
+ * like the original Boolector run.
+ * This is particularly useful for debugging purposes, as it enables replaying
+ * erroneous behaviour.
+ * API tracing can be enabled either via \ref boolector_set_trapi or by
+ * setting the environment variable BTORAPITRACE=<filename>.
  *
- * For example, enabling API tracing via BTORAPITRACE is done as follows:
- * \verbatim BTORAPITRACE="error.trace" boolector file.btor \endverbatim
+ * E.g., given a Boolector instance 'btor', enabling API tracing is done as
+ * follows:
+ * \verbatim
+ * FILE *fd = fopen (filename, "r");
+ * boolector_set_trapi (btor, fd);
+ * or
+ * \verbatim BTORAPITRACE="error.trace" \endverbatim
  *
  * An API trace is also recorded if BTORAPITRACE is set and Boolector is used
  * as a library.
  *
  * \section Internals
- * Internally, Boolector manages an expression DAG. This means that each
- * expression has a reference counter, which is initially set to one.
- * Each sharing increments the reference counter. An expression can be
- * copied by \ref boolector_copy, which simply increments the reference counter.
- * An expression can be released by \ref boolector_release which decreases
- * the reference counter. If the reference counter reaches zero, then
- * the expression node is deleted from memory.
+ * Boolector internally maintains a directed acyclic graph (DAG) of
+ * expressions. As a consequence, each expression maintains a reference
+ * counter, which is initially set to 1.
+ * Each time an expression is shared, i.e. for each API call that returns
+ * an expression (a BoolectorNode), its reference counter is incremented
+ * by 1. Not considering API calls that generate expressions, this mainly
+ * applies to \ref boolector_copy, which simply increments the reference
+ * counter of an expression, and \ref boolector_match_node resp.
+ * \ref boolector_match_node_by_id, which retrieve nodes of a given Boolector
+ * instance by id resp. a given node's id.
+ * Expressions are released via \ref boolector_release, and if its
+ * reference counter is decremented to zero, it is deleted from memory.
+ * Note that by asserting an expression, it will be permanently added to the
+ * formula, i.e. Boolector internally holds its reference until it is either
+ * eliminated via rewriting, or the Boolector instance is deleted.
+ * Following from that, it is safe to release an expression as soon as you
+ * asserted it, as long as you don't need it for further querying.
  *
  * Already during construction of the expression DAG,
  * rewriting is performed. This rewriting should simplify the DAG already
