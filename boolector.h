@@ -126,12 +126,16 @@ typedef struct BoolectorNode BoolectorNode;
  * Following from that, it is safe to release an expression as soon as you
  * asserted it, as long as you don't need it for further querying.
  *
- * Already during construction of the expression DAG,
- * rewriting is performed. This rewriting should simplify the DAG already
- * during construction. When \ref boolector_sat is called, Boolector
- * starts an extra rewriting phase to simplify the DAG (this rewriting phase
- * can also be called separately via \ref boolector_simplify).
- * The rewrite level can be configured by \ref boolector_set_opt.
+ * Boolector simplifies expressions and the expression DAG by means of
+ * rewriting and supports three so-called rewrite levels.
+ * Increasing rewrite levels increase the extent of rewriting performed,
+ * and a rewrite level of 0 is equivalent to disabling rewriting at all.
+ * Note that Boolector not only simplifies expressions during construction
+ * of the expression DAG---for each call to \ref boolector_sat,
+ * various simplification techniques and rewriting phases are initiated.
+ * You can force Boolector to initiate rewriting and simplify the expression
+ * DAG via \ref boolector_simplify.
+ * The rewrite level can be configured via \ref boolector_set_opt.
  *
  * Boolector internally uses a set of base operators.
  * The set is documented in
