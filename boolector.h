@@ -42,14 +42,15 @@ typedef struct BoolectorNode BoolectorNode;
  * It supports
  * <a href="http://fmv.jku.at/papers/BrummayerBiereLonsing-BPR08.pdf">BTOR</a>,
  * <a
- *href="http://smtlib.cs.uiowa.edu/papers/format-v1.2-r06.08.30.pdf">SMT-LIB 1.2</a>,
+ href="http://smtlib.cs.uiowa.edu/papers/format-v1.2-r06.08.30.pdf">SMT-LIB 1.2</a>,
  * and <a
- *href="http://smtlib.cs.uiowa.edu/papers/smt-lib-reference-v2.0-r12.09.09.pdf">SMT-LIB
- *2.0</a> as input format and can be either used as a stand-alone SMT solver, or
- *as backend for other tools via its public API. This is the documentation of
- *Boolector's public <b>C interface</b>. For further information and the latest
- *version of Boolector, please refer to <a
- *href="http://fmv.jku.at/boolector">http://fmv.jku.at/boolector</a>.
+ href="http://smtlib.cs.uiowa.edu/papers/smt-lib-reference-v2.0-r12.09.09.pdf">SMT-LIB
+ 2.0</a> as input format and
+ * can be either used as a stand-alone SMT solver, or as backend
+ * for other tools via its public API.
+ * This is the documentation of Boolector's public <b>C interface</b>.
+ * For further information and the latest version of Boolector, please refer
+ * to <a href="http://fmv.jku.at/boolector">http://fmv.jku.at/boolector</a>.
  *
  * \section Interface
  * The public interface is defined in \ref boolector.h.
@@ -101,13 +102,10 @@ typedef struct BoolectorNode BoolectorNode;
  * E.g., given a Boolector instance 'btor', enabling API tracing is done as
  * follows:
  * \verbatim
- * FILE *fd = fopen (filename, "r");
- * boolector_set_trapi (btor, fd);
+   FILE *fd = fopen ("error.trace", "r");
+   boolector_set_trapi (btor, fd); \endverbatim
  * or
  * \verbatim BTORAPITRACE="error.trace" \endverbatim
- *
- * An API trace is also recorded if BTORAPITRACE is set and Boolector is used
- * as a library.
  *
  * \section Internals
  * Boolector internally maintains a directed acyclic graph (DAG) of
@@ -138,11 +136,11 @@ typedef struct BoolectorNode BoolectorNode;
  * Boolector internally uses a set of base operators.
  * The set is documented in
  *<a href="http://fmv.jku.at/papers/BrummayerBiereLonsing-BPR08.pdf">BTOR:
- *Bit-Precise Modelling of Word-Level Problems for Model Checking</a>. Many
- *operators that are available in the API are rewritten as combination of base
- *operators internally. For example, two's complement is rewritten as one's
- *complement and addition of 1.  This behavior is not influenced by the rewrite
- *level.
+ Bit-Precise Modelling of Word-Level Problems for Model Checking</a>.
+ * Many operators that are available in the API are rewritten as combination
+ * of base operators internally. For example, two's complement is rewritten
+ * as one's complement and addition of 1.  This behavior is not
+ * influenced by the rewrite level.
  *
  * \subsection Assertions
  * Boolector uses two different kinds of assertions. Internally, Boolector
