@@ -33,27 +33,23 @@ typedef struct BoolectorNode BoolectorNode;
 
 /*------------------------------------------------------------------------*/
 
+// TODO mention PYTHON API!
 /**
  * \mainpage Boolector Documentation
  * \section Introduction
- * This is the documentation of Boolector's public interface. Boolector
- * is an SMT solver for the quantifier-free theory of bit vectors
- * in combination with the quantifier-free extensional theory of arrays.
- * Please visit our <a href="http://fmv.jku.at/boolector">website</a>.
- * It contains:
- * - the latest version
- * - publications related to Boolector
- * - a link to our discussion platform
- * - news
- *
- * Boolector supports
+ * <a href="http://fmv.jku.at/boolector">Boolector</a> is an SMT solver for
+ * the quantifier-free theory of bit vectors with arrays.
+ * It supports
  * <a href="http://fmv.jku.at/papers/BrummayerBiereLonsing-BPR08.pdf">BTOR</a>,
  * <a
  *href="http://smtlib.cs.uiowa.edu/papers/format-v1.2-r06.08.30.pdf">SMT-LIB 1.2</a>,
  * and <a
  *href="http://smtlib.cs.uiowa.edu/papers/smt-lib-reference-v2.0-r12.09.09.pdf">SMT-LIB
  *2.0</a> as input format and can be either used as a stand-alone SMT solver, or
- *as backend for other tools via its public API.
+ *as backend for other tools via its public API. This is the documentation of
+ *Boolector's public <b>C interface</b>. For further information and the latest
+ *version of Boolector, please refer to <a
+ *href="http://fmv.jku.at/boolector">http://fmv.jku.at/boolector</a>.
  *
  * \section Interface
  * The public interface is defined in \ref boolector.h.
