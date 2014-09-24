@@ -122,11 +122,11 @@ typedef struct BtorOpts
   BtorOpt simplify_constraints;  /* force constraints to true/false */
   BtorOpt auto_cleanup_internal; /* force cleanup of exps, assignm. strings
                                      (internal references only) */
+  /* ----------------------------------------------------------------------- */
+  BtorOpt last; /* dummy for iteration */
 #ifdef BTOR_CHECK_FAILED
   BtorOpt chk_failed_assumptions;
 #endif
-  /* ----------------------------------------------------------------------- */
-  BtorOpt last; /* dummy for iteration */
 
 } BtorOpts;
 
@@ -136,14 +136,18 @@ void btor_set_opt (Btor *btor, const char *name, int val);
 
 /* does not assert existing opt with name 'name',
  * not for boolector internal use */
-BtorOpt *btor_get_opt_aux (Btor *btor, const char *name);
+BtorOpt *btor_get_opt_aux (Btor *btor, const char *name, int skip_internal);
 /* asserts existing opt with name 'opt' */
 BtorOpt *btor_get_opt (Btor *btor, const char *name);
 
 int btor_get_opt_val (Btor *btor, const char *name);
+int btor_get_opt_min (Btor *btor, const char *name);
+int btor_get_opt_max (Btor *btor, const char *name);
+int btor_get_opt_dflt (Btor *btor, const char *name);
+const char *btor_get_opt_shrt (Btor *btor, const char *name);
+const char *btor_get_opt_desc (Btor *btor, const char *name);
 
-BtorOpt *btor_first_opt (Btor *btor);
-BtorOpt *btor_last_opt (Btor *btor);
-BtorOpt *btor_next_opt (Btor *btor, const BtorOpt *cur);
-
+const char *btor_first_opt (Btor *btor);
+const char *btor_last_opt (Btor *btor);
+const char *btor_next_opt (Btor *btor, const char *cur);
 #endif

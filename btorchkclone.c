@@ -854,19 +854,6 @@ btor_chkclone_tables (Btor *btor)
 }
 
 void
-btor_chkclone_opt (const BtorOpt *opt, const BtorOpt *clone)
-{
-  assert (opt->internal == clone->internal);
-  assert (!strcmp (opt->shrt, clone->shrt));
-  assert (!strcmp (opt->lng, clone->lng));
-  assert (!strcmp (opt->desc, clone->desc));
-  assert (opt->val == clone->val);
-  assert (opt->dflt == clone->dflt);
-  assert (opt->min == clone->min);
-  assert (opt->max == clone->max);
-}
-
-void
 btor_chkclone_sort (const BtorSort *sort, const BtorSort *clone)
 {
   int i;

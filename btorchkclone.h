@@ -20,7 +20,6 @@
 
 void btor_chkclone (Btor *btor);
 void btor_chkclone_exp (BtorNode *exp, BtorNode *clone);
-void btor_chkclone_opt (const BtorOpt *opt, const BtorOpt *clone);
 void btor_chkclone_sort (const BtorSort *sort, const BtorSort *clone);
 
 #define BTOR_CHKCLONE_NORES(fun, args...)  \
@@ -60,15 +59,6 @@ void btor_chkclone_sort (const BtorSort *sort, const BtorSort *clone);
     (void) cloneres;                                              \
     assert (!strcmp (cloneres, res));                             \
     btor_chkclone (btor);                                         \
-  } while (0)
-
-#define BTOR_CHKCLONE_RES_OPT(res, fun, args...)                     \
-  do                                                                 \
-  {                                                                  \
-    if (!btor->clone) break;                                         \
-    const BtorOpt *cloneres = boolector_##fun (btor->clone, ##args); \
-    (void) cloneres;                                                 \
-    btor_chkclone_opt (cloneres, res);                               \
   } while (0)
 
 #define BTOR_CHKCLONE_RES_SORT(res, fun, args...)                           \

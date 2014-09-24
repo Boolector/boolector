@@ -137,24 +137,24 @@ btor_init_opts (Btor *btor)
             1,
             "incremental interval mode width (SMT1 only)");
 
-  BTOR_OPT_INTL (0,
-                 input_format,
-                 0,
-                 BTOR_INPUT_FORMAT_BTOR,
-                 BTOR_INPUT_FORMAT_SMT2,
-                 "input file format");
-  BTOR_OPT_INTL (0,
-                 output_number_format,
-                 BTOR_OUTPUT_BASE_BIN,
-                 BTOR_OUTPUT_BASE_BIN,
-                 BTOR_OUTPUT_BASE_DEC,
-                 "output number format");
-  BTOR_OPT_INTL (0,
-                 output_format,
-                 BTOR_OUTPUT_FORMAT_BTOR,
-                 BTOR_OUTPUT_FORMAT_BTOR,
-                 BTOR_OUTPUT_FORMAT_SMT2,
-                 "output file format");
+  BTOR_OPT (0,
+            input_format,
+            0,
+            BTOR_INPUT_FORMAT_BTOR,
+            BTOR_INPUT_FORMAT_SMT2,
+            "input file format");
+  BTOR_OPT (0,
+            output_number_format,
+            BTOR_OUTPUT_BASE_BIN,
+            BTOR_OUTPUT_BASE_BIN,
+            BTOR_OUTPUT_BASE_DEC,
+            "output number format");
+  BTOR_OPT (0,
+            output_format,
+            BTOR_OUTPUT_FORMAT_BTOR,
+            BTOR_OUTPUT_FORMAT_BTOR,
+            BTOR_OUTPUT_FORMAT_SMT2,
+            "output file format");
 
   BTOR_OPT ("rwl", rewrite_level, 3, 0, 3, "rewrite level");
   BTOR_OPT (
@@ -190,7 +190,7 @@ btor_init_opts (Btor *btor)
 #endif
   BTOR_OPT ("ls", lazy_synthesize, 1, 0, 1, "lazily synthesize expressions");
   BTOR_OPT ("es", eliminate_slices, 1, 0, 1, "eliminate slices on variables");
-  BTOR_OPT_INTL ("fc", auto_cleanup, 0, 0, 1, "force cleanup on exit");
+  BTOR_OPT ("ac", auto_cleanup, 0, 0, 1, "auto cleanup on exit");
   BTOR_OPT ("p", pretty_print, 1, 0, 1, "pretty print when dumping");
 #ifndef NBTORLOG
   BTOR_OPT ("l", loglevel, 0, 0, BTORLOG_LEVEL_MAX, "increase loglevel");
@@ -208,7 +208,7 @@ btor_init_opts (Btor *btor)
 #define BTOR_LAST_OPT(btor) (&(btor)->options.last - 1)
 
 BtorOpt *
-btor_get_opt_aux (Btor *btor, const char *name)
+btor_get_opt_aux (Btor *btor, const char *name, int skip_internal)
 {
   assert (btor);
   assert (name);
@@ -218,7 +218,10 @@ btor_get_opt_aux (Btor *btor, const char *name)
   for (o = BTOR_FIRST_OPT (btor); o <= BTOR_LAST_OPT (btor); o++)
     if ((o->shrt && !strcmp (o->shrt, name))
         || (o->lng && !strcmp (o->lng, name)))
+    {
+      if (skip_internal && o->internal) continue;
       return o;
+    }
 
   return 0;
 }
@@ -226,7 +229,7 @@ btor_get_opt_aux (Btor *btor, const char *name)
 BtorOpt *
 btor_get_opt (Btor *btor, const char *name)
 {
-  BtorOpt *o = btor_get_opt_aux (btor, name);
+  BtorOpt *o = btor_get_opt_aux (btor, name, 0);
   return o;
 }
 
@@ -234,6 +237,36 @@ int
 btor_get_opt_val (Btor *btor, const char *name)
 {
   return btor_get_opt (btor, name)->val;
+}
+
+int
+btor_get_opt_min (Btor *btor, const char *name)
+{
+  return btor_get_opt (btor, name)->min;
+}
+
+int
+btor_get_opt_max (Btor *btor, const char *name)
+{
+  return btor_get_opt (btor, name)->max;
+}
+
+int
+btor_get_opt_dflt (Btor *btor, const char *name)
+{
+  return btor_get_opt (btor, name)->dflt;
+}
+
+const char *
+btor_get_opt_shrt (Btor *btor, const char *name)
+{
+  return (const char *) btor_get_opt (btor, name)->shrt;
+}
+
+const char *
+btor_get_opt_desc (Btor *btor, const char *name)
+{
+  return (const char *) btor_get_opt (btor, name)->desc;
 }
 
 void
@@ -290,26 +323,31 @@ btor_set_opt (Btor *btor, const char *name, int val)
   }
 }
 
-BtorOpt *
+const char *
 btor_first_opt (Btor *btor)
 {
   assert (btor);
-  return BTOR_FIRST_OPT (btor);
+  return (const char *) BTOR_FIRST_OPT (btor)->lng;
 }
 
-BtorOpt *
+const char *
 btor_last_opt (Btor *btor)
 {
   assert (btor);
-  return BTOR_LAST_OPT (btor);
+  return (const char *) BTOR_LAST_OPT (btor)->lng;
 }
 
-BtorOpt *
-btor_next_opt (Btor *btor, const BtorOpt *cur)
+const char *
+btor_next_opt (Btor *btor, const char *cur)
 {
   assert (btor);
   assert (cur);
 
-  if (cur + 1 > BTOR_LAST_OPT (btor)) return 0;
-  return ((BtorOpt *) cur) + 1;
+  BtorOpt *cur_opt;
+
+  cur_opt = btor_get_opt (btor, cur) + 1;
+  /* skip internal options */
+  while (cur_opt <= BTOR_LAST_OPT (btor) && cur_opt->internal) cur_opt += 1;
+  if (cur_opt > BTOR_LAST_OPT (btor)) return 0;
+  return (const char *) cur_opt->lng;
 }

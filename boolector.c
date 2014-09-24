@@ -560,31 +560,16 @@ boolector_set_opt (Btor *btor, const char *opt, int val)
 #endif
 }
 
-const BtorOpt *
-boolector_get_opt (Btor *btor, const char *opt)
-{
-  BtorOpt *res;
-  BTOR_ABORT_ARG_NULL_BOOLECTOR (btor);
-  BTOR_TRAPI ("%s", opt);
-  /* Note: we can't use btor_get_opt here (asserts that option with given
-   * name indeed exists) but want to issue an abort if necessary */
-  res = btor_get_opt_aux (btor, opt);
-  BTOR_ABORT_BOOLECTOR (res == 0, "invalid option '%s'", opt);
-  BTOR_TRAPI_RETURN_PTR (res);
-#ifndef NDEBUG
-  BTOR_CHKCLONE_RES_OPT (res, get_opt, opt);
-#endif
-  return res;
-}
-
 int
 boolector_get_opt_val (Btor *btor, const char *opt)
 {
   int res;
   BTOR_ABORT_ARG_NULL_BOOLECTOR (btor);
   BTOR_TRAPI ("%s", opt);
+  /* Note: we can't use btor_get_opt here (asserts that option with given
+   * name indeed exists) but want to issue an abort if necessary */
   BTOR_ABORT_BOOLECTOR (
-      btor_get_opt_aux (btor, opt) == 0, "invalid option '%s'", opt);
+      btor_get_opt_aux (btor, opt, 1) == 0, "invalid option '%s'", opt);
   res = btor_get_opt_val (btor, opt);
   BTOR_TRAPI_RETURN_INT (res);
 #ifndef NDEBUG
@@ -593,45 +578,135 @@ boolector_get_opt_val (Btor *btor, const char *opt)
   return res;
 }
 
-const BtorOpt *
+int
+boolector_get_opt_min (Btor *btor, const char *opt)
+{
+  int res;
+  BTOR_ABORT_ARG_NULL_BOOLECTOR (btor);
+  BTOR_TRAPI ("%s", opt);
+  /* Note: we can't use btor_get_opt here (asserts that option with given
+   * name indeed exists) but want to issue an abort if necessary */
+  BTOR_ABORT_BOOLECTOR (
+      btor_get_opt_aux (btor, opt, 1) == 0, "invalid option '%s'", opt);
+  res = btor_get_opt_min (btor, opt);
+  BTOR_TRAPI_RETURN_INT (res);
+#ifndef NDEBUG
+  BTOR_CHKCLONE_RES (res, get_opt_min, opt);
+#endif
+  return res;
+}
+
+int
+boolector_get_opt_max (Btor *btor, const char *opt)
+{
+  int res;
+  BTOR_ABORT_ARG_NULL_BOOLECTOR (btor);
+  BTOR_TRAPI ("%s", opt);
+  /* Note: we can't use btor_get_opt here (asserts that option with given
+   * name indeed exists) but want to issue an abort if necessary */
+  BTOR_ABORT_BOOLECTOR (
+      btor_get_opt_aux (btor, opt, 1) == 0, "invalid option '%s'", opt);
+  res = btor_get_opt_max (btor, opt);
+  BTOR_TRAPI_RETURN_INT (res);
+#ifndef NDEBUG
+  BTOR_CHKCLONE_RES (res, get_opt_max, opt);
+#endif
+  return res;
+}
+
+int
+boolector_get_opt_dflt (Btor *btor, const char *opt)
+{
+  int res;
+  BTOR_ABORT_ARG_NULL_BOOLECTOR (btor);
+  BTOR_TRAPI ("%s", opt);
+  /* Note: we can't use btor_get_opt here (asserts that option with given
+   * name indeed exists) but want to issue an abort if necessary */
+  BTOR_ABORT_BOOLECTOR (
+      btor_get_opt_aux (btor, opt, 1) == 0, "invalid option '%s'", opt);
+  res = btor_get_opt_dflt (btor, opt);
+  BTOR_TRAPI_RETURN_INT (res);
+#ifndef NDEBUG
+  BTOR_CHKCLONE_RES (res, get_opt_dflt, opt);
+#endif
+  return res;
+}
+
+const char *
+boolector_get_opt_shrt (Btor *btor, const char *opt)
+{
+  const char *res;
+  BTOR_ABORT_ARG_NULL_BOOLECTOR (btor);
+  BTOR_TRAPI ("%s", opt);
+  /* Note: we can't use btor_get_opt here (asserts that option with given
+   * name indeed exists) but want to issue an abort if necessary */
+  BTOR_ABORT_BOOLECTOR (
+      btor_get_opt_aux (btor, opt, 1) == 0, "invalid option '%s'", opt);
+  res = btor_get_opt_shrt (btor, opt);
+  BTOR_TRAPI_RETURN_INT (res);
+#ifndef NDEBUG
+  BTOR_CHKCLONE_RES_STR (res, get_opt_shrt, opt);
+#endif
+  return res;
+}
+
+const char *
+boolector_get_opt_desc (Btor *btor, const char *opt)
+{
+  const char *res;
+  BTOR_ABORT_ARG_NULL_BOOLECTOR (btor);
+  BTOR_TRAPI ("%s", opt);
+  /* Note: we can't use btor_get_opt here (asserts that option with given
+   * name indeed exists) but want to issue an abort if necessary */
+  BTOR_ABORT_BOOLECTOR (
+      btor_get_opt_aux (btor, opt, 1) == 0, "invalid option '%s'", opt);
+  res = btor_get_opt_desc (btor, opt);
+  BTOR_TRAPI_RETURN_INT (res);
+#ifndef NDEBUG
+  BTOR_CHKCLONE_RES_STR (res, get_opt_desc, opt);
+#endif
+  return res;
+}
+
+const char *
 boolector_first_opt (Btor *btor)
 {
-  BtorOpt *res;
+  const char *res;
   BTOR_ABORT_ARG_NULL_BOOLECTOR (btor);
   BTOR_TRAPI ("");
   res = btor_first_opt (btor);
   BTOR_TRAPI_RETURN_PTR (res);
 #ifndef NDEBUG
-  BTOR_CHKCLONE_RES_OPT (res, first_opt);
+  BTOR_CHKCLONE_RES_STR (res, first_opt);
 #endif
   return res;
 }
 
-const BtorOpt *
+const char *
 boolector_last_opt (Btor *btor)
 {
-  BtorOpt *res;
+  const char *res;
   BTOR_ABORT_ARG_NULL_BOOLECTOR (btor);
   BTOR_TRAPI ("");
   res = btor_last_opt (btor);
   BTOR_TRAPI_RETURN_PTR (res);
 #ifndef NDEBUG
-  BTOR_CHKCLONE_RES_OPT (res, last_opt);
+  BTOR_CHKCLONE_RES_STR (res, last_opt);
 #endif
   return res;
 }
 
-const BtorOpt *
-boolector_next_opt (Btor *btor, const BtorOpt *opt)
+const char *
+boolector_next_opt (Btor *btor, const char *opt)
 {
-  BtorOpt *res;
+  const char *res;
   BTOR_ABORT_ARG_NULL_BOOLECTOR (btor);
   BTOR_ABORT_ARG_NULL_BOOLECTOR (opt);
   BTOR_TRAPI ("%p", opt);
   res = btor_next_opt (btor, opt);
   BTOR_TRAPI_RETURN_PTR (res);
 #ifndef NDEBUG
-  BTOR_CHKCLONE_RES_OPT (res, next_opt, opt);
+  BTOR_CHKCLONE_RES_STR (res, next_opt, opt);
 #endif
   return res;
 }

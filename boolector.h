@@ -22,7 +22,7 @@
 typedef struct Btor Btor;
 typedef struct BtorNode BtorNode;
 typedef struct BoolectorSort BoolectorSort;
-typedef struct BtorOpt BtorOpt;
+typedef struct BoolectorOpt BoolectorOpt;
 
 #ifdef BOOLECTOR_FORCE_API_1
 #define BoolectorNode BtorNode
@@ -526,15 +526,6 @@ int boolector_set_sat_solver_minisat (Btor *btor);
 void boolector_set_opt (Btor *btor, const char *opt, int val);
 
 /**
- * Get Boolector option object.
- * \param btor Btor instance.
- * \param opt Option name.
- * \return Boolector option object. See \ref btoropt.h for more details on the
- * structure of the option object.
- */
-const BtorOpt *boolector_get_opt (Btor *btor, const char *opt);
-
-/**
  * Get the current value of an option.
  * \param btor Btor instance.
  * \param opt Option name.
@@ -543,26 +534,67 @@ const BtorOpt *boolector_get_opt (Btor *btor, const char *opt);
 int boolector_get_opt_val (Btor *btor, const char *opt);
 
 /**
- * Get the first option in Boolector's option list.
+ * Get the min value of an option.
  * \param btor Btor instance.
- * \return First option in Boolector's option list.
+ * \param opt Option name.
+ * \return Min value of \ref opt.
  */
-const BtorOpt *boolector_first_opt (Btor *btor);
+int boolector_get_opt_min (Btor *btor, const char *opt);
 
 /**
- * Get the last option in Boolector's option list.
+ * Get the max value of an option.
  * \param btor Btor instance.
- * \return Last option in Boolector's option list.
+ * \param opt Option name.
+ * \return Max value of \ref opt.
  */
-const BtorOpt *boolector_last_opt (Btor *btor);
+int boolector_get_opt_max (Btor *btor, const char *opt);
 
 /**
- * Get the next option in Boolector's option list after option 'opt'.
+ * Get the default value of an option.
  * \param btor Btor instance.
- * \param opt Boolector option object.
- * \return Next option in Boolector's option list.
+ * \param opt Option name.
+ * \return Default value of \ref opt.
  */
-const BtorOpt *boolector_next_opt (Btor *btor, const BtorOpt *opt);
+int boolector_get_opt_dflt (Btor *btor, const char *opt);
+
+/**
+ * Get the short name of an option.
+ * \param btor Btor instance.
+ * \param opt Option name.
+ * \return Short name of \ref opt.
+ */
+const char *boolector_get_opt_shrt (Btor *btor, const char *opt);
+
+/**
+ * Get the description of an option.
+ * \param btor Btor instance.
+ * \param opt Option name.
+ * \return Description of \ref opt.
+ */
+const char *boolector_get_opt_desc (Btor *btor, const char *opt);
+
+/**
+ * Get the name of the first option in Boolector's option list.
+ * \param btor Btor instance.
+ * \return Name of the first option in Boolector's option list.
+ */
+const char *boolector_first_opt (Btor *btor);
+
+/**
+ * Get the name of the last option in Boolector's option list.
+ * \param btor Btor instance.
+ * \return Name of the last option in Boolector's option list.
+ */
+const char *boolector_last_opt (Btor *btor);
+
+/**
+ * Get the name of the next option after the option with name 'opt'
+ * in Boolector's option list.
+ * \param btor Btor instance.
+ * \param opt Option name.
+ * \return Name of the next option in Boolector's option list.
+ */
+const char *boolector_next_opt (Btor *btor, const char *opt);
 
 /*------------------------------------------------------------------------*/
 

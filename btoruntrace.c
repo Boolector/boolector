@@ -533,36 +533,104 @@ NEXT:
       PARSE_ARGS2 (tok, str, int);
       boolector_set_opt (btor, arg1_str, arg2_int);
     }
-    else if (!strcmp (tok, "get_opt"))
-    {
-      PARSE_ARGS1 (tok, str);
-      ret_ptr = (void *) boolector_get_opt (btor, arg1_str);
-      exp_ret = RET_VOIDPTR;
-    }
     else if (!strcmp (tok, "get_opt_val"))
     {
-      PARSE_ARGS1 (tok, str);
-      ret_int = boolector_get_opt_val (btor, arg1_str);
-      exp_ret = RET_INT;
+      if (!btorunt->skip)
+      {
+        PARSE_ARGS1 (tok, str);
+        ret_int = boolector_get_opt_val (btor, arg1_str);
+        exp_ret = RET_INT;
+      }
+      else
+        exp_ret = RET_SKIP;
+    }
+    else if (!strcmp (tok, "get_opt_min"))
+    {
+      if (!btorunt->skip)
+      {
+        PARSE_ARGS1 (tok, str);
+        ret_int = boolector_get_opt_min (btor, arg1_str);
+        exp_ret = RET_INT;
+      }
+      else
+        exp_ret = RET_SKIP;
+    }
+    else if (!strcmp (tok, "get_opt_max"))
+    {
+      if (!btorunt->skip)
+      {
+        PARSE_ARGS1 (tok, str);
+        ret_int = boolector_get_opt_max (btor, arg1_str);
+        exp_ret = RET_INT;
+      }
+      else
+        exp_ret = RET_SKIP;
+    }
+    else if (!strcmp (tok, "get_opt_dflt"))
+    {
+      if (!btorunt->skip)
+      {
+        PARSE_ARGS1 (tok, str);
+        ret_int = boolector_get_opt_dflt (btor, arg1_str);
+        exp_ret = RET_INT;
+      }
+      else
+        exp_ret = RET_SKIP;
+    }
+    else if (!strcmp (tok, "get_opt_shrt"))
+    {
+      if (!btorunt->skip)
+      {
+        PARSE_ARGS1 (tok, str);
+        ret_ptr = (void *) boolector_get_opt_shrt (btor, arg1_str);
+        exp_ret = RET_CHARPTR;
+      }
+      else
+        exp_ret = RET_SKIP;
+    }
+    else if (!strcmp (tok, "get_opt_desc"))
+    {
+      if (!btorunt->skip)
+      {
+        PARSE_ARGS1 (tok, str);
+        ret_ptr = (void *) boolector_get_opt_desc (btor, arg1_str);
+        exp_ret = RET_CHARPTR;
+      }
+      else
+        exp_ret = RET_SKIP;
     }
     else if (!strcmp (tok, "first_opt"))
     {
-      PARSE_ARGS0 (tok);
-      ret_ptr = (void *) boolector_first_opt (btor);
-      exp_ret = RET_VOIDPTR;
+      if (!btorunt->skip)
+      {
+        PARSE_ARGS0 (tok);
+        ret_ptr = (void *) boolector_first_opt (btor);
+        exp_ret = RET_CHARPTR;
+      }
+      else
+        exp_ret = RET_SKIP;
     }
     else if (!strcmp (tok, "last_opt"))
     {
-      PARSE_ARGS0 (tok);
-      ret_ptr = (void *) boolector_last_opt (btor);
-      exp_ret = RET_VOIDPTR;
+      if (!btorunt->skip)
+      {
+        PARSE_ARGS0 (tok);
+        ret_ptr = (void *) boolector_last_opt (btor);
+        exp_ret = RET_CHARPTR;
+      }
+      else
+        exp_ret = RET_SKIP;
     }
     else if (!strcmp (tok, "next_opt"))
     {
-      PARSE_ARGS1 (tok, str);
-      ret_ptr = (void *) boolector_next_opt (
-          btor, hmap_get (hmap, btor_str, arg1_str));
-      exp_ret = RET_VOIDPTR;
+      if (!btorunt->skip)
+      {
+        PARSE_ARGS1 (tok, str);
+        ret_ptr = (void *) boolector_next_opt (btor, arg1_str);
+        exp_ret = RET_CHARPTR;
+      }
+      else
+        exp_ret = RET_SKIP;
     }
     else if (!strcmp (tok, "copy"))
     {
