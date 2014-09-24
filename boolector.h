@@ -42,14 +42,15 @@ typedef struct BoolectorNode BoolectorNode;
  * It supports
  * <a href="http://fmv.jku.at/papers/BrummayerBiereLonsing-BPR08.pdf">BTOR</a>,
  * <a
- *href="http://smtlib.cs.uiowa.edu/papers/format-v1.2-r06.08.30.pdf">SMT-LIB 1.2</a>,
+ href="http://smtlib.cs.uiowa.edu/papers/format-v1.2-r06.08.30.pdf">SMT-LIB 1.2</a>,
  * and <a
- *href="http://smtlib.cs.uiowa.edu/papers/smt-lib-reference-v2.0-r12.09.09.pdf">SMT-LIB
- *2.0</a> as input format and can be either used as a stand-alone SMT solver, or
- *as backend for other tools via its public API. This is the documentation of
- *Boolector's public <b>C interface</b>. For further information and the latest
- *version of Boolector, please refer to <a
- *href="http://fmv.jku.at/boolector">http://fmv.jku.at/boolector</a>.
+ href="http://smtlib.cs.uiowa.edu/papers/smt-lib-reference-v2.0-r12.09.09.pdf">SMT-LIB
+ 2.0</a> as input format and
+ * can be either used as a stand-alone SMT solver, or as backend
+ * for other tools via its public API.
+ * This is the documentation of Boolector's public <b>C interface</b>.
+ * For further information and the latest version of Boolector, please refer
+ * to <a href="http://fmv.jku.at/boolector">http://fmv.jku.at/boolector</a>.
  *
  * \section Interface
  * The public interface is defined in \ref boolector.h.
@@ -101,13 +102,10 @@ typedef struct BoolectorNode BoolectorNode;
  * E.g., given a Boolector instance 'btor', enabling API tracing is done as
  * follows:
  * \verbatim
- * FILE *fd = fopen (filename, "r");
- * boolector_set_trapi (btor, fd);
+   FILE *fd = fopen ("error.trace", "r");
+   boolector_set_trapi (btor, fd); \endverbatim
  * or
  * \verbatim BTORAPITRACE="error.trace" \endverbatim
- *
- * An API trace is also recorded if BTORAPITRACE is set and Boolector is used
- * as a library.
  *
  * \section Internals
  * Boolector internally maintains a directed acyclic graph (DAG) of
@@ -128,43 +126,34 @@ typedef struct BoolectorNode BoolectorNode;
  * Following from that, it is safe to release an expression as soon as you
  * asserted it, as long as you don't need it for further querying.
  *
- * Already during construction of the expression DAG,
- * rewriting is performed. This rewriting should simplify the DAG already
- * during construction. When \ref boolector_sat is called, Boolector
- * starts an extra rewriting phase to simplify the DAG (this rewriting phase
- * can also be called separately via \ref boolector_simplify).
- * The rewrite level can be configured by \ref boolector_set_opt.
- *
- * Boolector internally uses a set of base operators.
- * The set is documented in
+ * \subsection Operators
+ * Boolector internally describes expressions by means of a set of base
+ * operators as documented in
  *<a href="http://fmv.jku.at/papers/BrummayerBiereLonsing-BPR08.pdf">BTOR:
- *Bit-Precise Modelling of Word-Level Problems for Model Checking</a>. Many
- *operators that are available in the API are rewritten as combination of base
- *operators internally. For example, two's complement is rewritten as one's
- *complement and addition of 1.  This behavior is not influenced by the rewrite
- *level.
+ Bit-Precise Modelling of Word-Level Problems for Model Checking</a>.
+ * Boolector's API, however, provides a richer set of operators for
+ * convenience, where non-base operators are internally rewritten to use
+ * base operators only.
+ * E.g., two's complement (\ref boolector_neg) is rewritten as one's complement
+ * and addition of 1.
+ * Note that this behaviour is not influenced by the rewrite level chosen.
  *
- * \subsection Assertions
- * Boolector uses two different kinds of assertions. Internally, Boolector
- * heavily uses assertions provided by the standard C library.
- * To increase performance, these assertions are disabled in releases.
- *
- * The functions of Boolector's public interface are guarded by
- * public assertions. Public assertions are always enabled. They check if
- * the functions have been correctly called by the user.
- * If not, then an error message is printed and 'abort' is called.
- * For example, we call \ref boolector_var and pass a bit width < 1. This
- * yields the following error message:
- *
- * \verbatim [boolector] boolector_var: 'width' must not be < 1 \endverbatim
- *
- * This is not a bug. The user has violated the pre-conditions of the function,
- * and therefore Boolector aborts.
+ * \subsection Rewriting
+ * Boolector simplifies expressions and the expression DAG by means of
+ * rewriting and supports three so-called rewrite levels.
+ * Increasing rewrite levels increase the extent of rewriting performed,
+ * and a rewrite level of 0 is equivalent to disabling rewriting at all.
+ * Note that Boolector not only simplifies expressions during construction
+ * of the expression DAG---for each call to \ref boolector_sat,
+ * various simplification techniques and rewriting phases are initiated.
+ * You can force Boolector to initiate rewriting and simplify the expression
+ * DAG via \ref boolector_simplify.
+ * The rewrite level can be configured via \ref boolector_set_opt.
  *
  * \section Examples
- * In the section <a href="examples.html">examples</a> you can
- * find bit vector and array examples. They demonstrate
- * how Boolector's public interface can be used.
+ * See section <a href="examples.html">examples</a> for
+ * bit vector and array examples to demonstrate
+ * how Boolector's public interface is used.
  * \example bv1.c
  * \example bv2.c
  * \example array1.c
