@@ -1576,7 +1576,7 @@ void boolector_free_bv_assignment (Btor *btor, const char *assignment);
  * Array operand for which the array model should be built. \param indices
  * Pointer to array of index strings. \param values Pointer to array of value
  * strings. \param size Pointer to size. \see For enabling model generation see
- * boolector_set_opt
+ * \ref boolector_set_opt.
  */
 void boolector_array_assignment (Btor *btor,
                                  BoolectorNode *n_array,
@@ -1587,9 +1587,9 @@ void boolector_array_assignment (Btor *btor,
 /**
  * Free an assignment string for arrays of bit vectors.
  * \param btor Boolector instance.
- * \param indices Array of index strings of size
- * \param array of index strings of size
- * \param array of values strings of size
+ * \param indices Array of index strings of size 'size'.
+ * \param values Array of values strings of size 'size'.
+ * \param size Size of arrays 'indices' and 'values'.
  * \see boolector_array_assignment
  */
 void boolector_free_array_assignment (Btor *btor,
@@ -1597,9 +1597,37 @@ void boolector_free_array_assignment (Btor *btor,
                                       char **values,
                                       int size);
 
+/**
+ * Generate a model for an uninterpreted function.
+ * The function creates and stores the assignments of the function's arguments
+ * to array 'args' and the function's return values to array 'values'.
+ * Arrays 'args' and 'values' represent assignment pairs of arguments and
+ * values, i.e., instantiating a function with args[i] yields value values[i].
+ * For functions with arity > 1 args[i] contains a space separated string of
+ * argument assignments, where the order of the assignment strings corresponds
+ * to the order of the function's arguments.
+ * \param n_uf Uninterpreted function node.
+ * \param args Pointer to array of argument assignment strings.
+ * \param values Pointer to array of value assignment strings.
+ * \param size Size of arrays 'args' and 'values'.
+ *
+ * \remarks
+ * This function can only be called if \ref boolector_sat returned
+ * \ref BOOLECTOR_SAT and model generation was enabled.
+ *
+ * \see For enabling model generation see \ref boolector_set_opt.
+ */
 void boolector_uf_assignment (
     Btor *btor, BoolectorNode *n_uf, char ***args, char ***values, int *size);
 
+/**
+ * Free assignment strings for uninterpreted functions.
+ * \param Boolector instance.
+ * \param args Array of argument strings of size 'size'.
+ * \param values Array of value string of size 'size'.
+ * \param size Size of arrays 'args' and 'values'.
+ * \see boolector_uf_assignment
+ */
 void boolector_free_uf_assignment (Btor *btor,
                                    char **args,
                                    char **values,
