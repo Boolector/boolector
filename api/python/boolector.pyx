@@ -34,23 +34,6 @@ cdef btorapi.BoolectorNode * _c_node(x):
     assert(isinstance(x, _BoolectorNode))
     return (<_BoolectorNode> x)._c_node
 
-cdef _BoolectorBVNode _const_to_node(btor, x, int width = 1):
-    if isinstance(x, int):
-        if x > 0 and int(math.log(x, 2)) + 1 > width:
-            raise _BoolectorException(
-                      "Value of constant {} exceeds bit width of {}".format(
-                          x, width))
-        return btor.Int(x, width)
-    elif isinstance(x, bool):
-        if x:
-            return btor.TRUE()
-        else:
-            return btor.FALSE()
-    elif isinstance(x, _BoolectorNode):
-        return x
-    else:
-        raise _BoolectorException(
-                  "Cannot convert type '{}' to bit vector".format(type(x)))
 cdef class _ChPtr:
     cdef char * _c_str
     cdef bytes _py_str
@@ -90,8 +73,8 @@ cdef _to_node(x, y):
         btor = (<_BoolectorBVNode> y).btor
         width = (<_BoolectorBVNode> y).width
 
-    x = _const_to_node(btor, x, width)
-    y = _const_to_node(btor, y, width)
+    x = btor.Const(x, width)
+    y = btor.Const(y, width)
     return x, y
 
 cdef int _get_argument_width(_BoolectorFunNode fun, int pos):
@@ -298,6 +281,12 @@ cdef class _BoolectorNode:
             raise _BoolectorException("Invalid dump format '{}'".format(format)) 
 
 cdef class _BoolectorBVNode(_BoolectorNode):
+
+    property bits:
+        def __get__(self):
+            return _to_str(btorapi.boolector_get_bits(self.btor._c_btor,
+                                                      self._c_node))
+
     def __richcmp__(x, y, opcode):
         x, y = _to_node(x, y)
         b = (<_BoolectorBVNode> x).btor
@@ -572,45 +561,43 @@ cdef class Boolector:
 
     # Boolector nodes
 
-    def Const(self, str bits):
-        r = _BoolectorBVNode(self)
-        r._c_node = btorapi.boolector_const(self._c_btor, _ChPtr(bits)._c_str)
-        return r
-
-    def Zero(self, int width):
-        r = _BoolectorBVNode(self)
-        r._c_node = btorapi.boolector_zero(self._c_btor, width)
-        return r
-
-    def Ones(self, int width):
-        r = _BoolectorBVNode(self)
-        r._c_node = btorapi.boolector_ones(self._c_btor, width)
-        return r
-
-    def TRUE(self):
-        r = _BoolectorBVNode(self)
-        r._c_node = btorapi.boolector_true(self._c_btor)
-        return r
-
-    def FALSE(self):
-        r = _BoolectorBVNode(self)
-        r._c_node = btorapi.boolector_false(self._c_btor)
-        return r
-
-    def One(self, int width):
-        r = _BoolectorBVNode(self)
-        r._c_node = btorapi.boolector_one(self._c_btor, width)
-        return r
-
-    def Uint(self, unsigned int i, int width):
-        r = _BoolectorBVNode(self)
-        r._c_node = btorapi.boolector_unsigned_int(self._c_btor, i, width)
-        return r
-
-    def Int(self, int i, int width):
-        r = _BoolectorBVNode(self)
-        r._c_node = btorapi.boolector_int(self._c_btor, i, width)
-        return r
+    def Const(self, c, int width = 1):
+        cdef _BoolectorBVNode r
+        if isinstance(c, int):
+            if c != 0 and c.bit_length() > width:
+                raise _BoolectorException(
+                          "Value of constant {} (bit width {}) exceeds bit "\
+                          "width of {}".format(c, c.bit_length(), width))
+            const_str = "{{0:0>{}b}}".format(width).format(abs(c))
+            r = _BoolectorBVNode(self)
+            r._c_node = \
+                btorapi.boolector_const(self._c_btor, _ChPtr(const_str)._c_str)
+            if c < 0:
+                r = -r
+            return r
+        elif isinstance(c, bool):
+            r = _BoolectorBVNode(self)
+            if c:
+                r._c_node = btorapi.boolector_true(self._c_btor)
+            else:
+                r._c_node = btorapi.boolector_false(self._c_btor)
+            return r
+        elif isinstance(c, str):
+            try:
+                int(c, 2)
+            except ValueError:
+                raise _BoolectorException("Given constant string is not in"\
+                                          "binary format")
+            r = _BoolectorBVNode(self)
+            r._c_node = \
+                btorapi.boolector_const(self._c_btor, _ChPtr(c)._c_str)
+            return r
+        elif isinstance(c, _BoolectorNode):
+            return c 
+        else:
+            raise _BoolectorException(
+                      "Cannot convert type '{}' to bit vector".format(
+                          type(c)))
 
     def Var(self, int width, str symbol = None):
         r = _BoolectorBVNode(self)
@@ -661,7 +648,7 @@ cdef class Boolector:
         _check_precond_slice(n, upper, lower)
         r = _BoolectorBVNode(self)
         r._c_node = btorapi.boolector_slice(self._c_btor, n._c_node,
-                                                 upper, lower)
+                                            upper, lower)
         return r
                                                                 
     def Uext(self, _BoolectorBVNode n, int width):
@@ -853,7 +840,7 @@ cdef class Boolector:
         return r
 
     def Sll(self, _BoolectorBVNode a, b):
-        b = _const_to_node(self, b, math.ceil(math.log(a.width, 2)))
+        b = self.Const(b, math.ceil(math.log(a.width, 2)))
         _check_precond_shift(a, b)
         r = _BoolectorBVNode(self)
         r._c_node = btorapi.boolector_sll(self._c_btor,
@@ -861,7 +848,8 @@ cdef class Boolector:
         return r
 
     def Srl(self, _BoolectorBVNode a, b):
-        b = _const_to_node(self, b, math.ceil(math.log(a.width, 2)))
+        b = self.Const(b, math.ceil(math.log(a.width, 2)))
+        _check_precond_shift(a, b)
         _check_precond_shift(a, b)
         r = _BoolectorBVNode(self)
         r._c_node = btorapi.boolector_srl(self._c_btor,
@@ -869,7 +857,8 @@ cdef class Boolector:
         return r
 
     def Sra(self, _BoolectorBVNode a, b):
-        b = _const_to_node(self, b, math.ceil(math.log(a.width, 2)))
+        b = self.Const(b, math.ceil(math.log(a.width, 2)))
+        _check_precond_shift(a, b)
         _check_precond_shift(a, b)
         r = _BoolectorBVNode(self)
         r._c_node = btorapi.boolector_sra(self._c_btor,
@@ -877,7 +866,7 @@ cdef class Boolector:
         return r
 
     def Rol(self, _BoolectorBVNode a, b):
-        b = _const_to_node(self, b, math.ceil(math.log(a.width, 2)))
+        b = self.Const(b, math.ceil(math.log(a.width, 2)))
         _check_precond_shift(a, b)
         r = _BoolectorBVNode(self)
         r._c_node = btorapi.boolector_rol(self._c_btor,
@@ -885,7 +874,7 @@ cdef class Boolector:
         return r
 
     def Ror(self, _BoolectorBVNode a, b):
-        b = _const_to_node(self, b, math.ceil(math.log(a.width, 2)))
+        b = self.Const(b, math.ceil(math.log(a.width, 2)))
         _check_precond_shift(a, b)
         r = _BoolectorBVNode(self)
         r._c_node = btorapi.boolector_ror(self._c_btor,
@@ -963,7 +952,7 @@ cdef class Boolector:
         return r
 
     def Read(self, _BoolectorArrayNode a, b):
-        b = _const_to_node(self, b, a.index_width)
+        b = self.Const(b, a.index_width)
         r = _BoolectorBVNode(self)
         r._c_node = \
             btorapi.boolector_read(self._c_btor, _c_node(a), _c_node(b))
@@ -972,8 +961,8 @@ cdef class Boolector:
     # Ternary operators
 
     def Write(self, _BoolectorArrayNode array, index, value):
-        index = _const_to_node(self, index, array.index_width)
-        value = _const_to_node(self, value, array.width)
+        index = self.Const(index, array.index_width)
+        value = self.Const(value, array.width)
 
         r = _BoolectorArrayNode(self)
         r._c_node = \
@@ -983,7 +972,7 @@ cdef class Boolector:
 
     def Cond(self, cond, a, b):
         _check_precond_cond(cond, a, b)
-        cond = _const_to_node(self, cond, width=1)
+        cond = self.Const(cond, width=1)
         if isinstance(a, _BoolectorBVNode) or isinstance(b, _BoolectorBVNode):
             r = _BoolectorBVNode(self)
             a, b = _to_node(a, b)
@@ -1042,7 +1031,7 @@ cdef class Boolector:
                 if not (isinstance(a, int) or isinstance(a, bool)):
                     raise _BoolectorException(
                               "Invalid type of argument {}".format(i))
-                a = _const_to_node(self, a, _get_argument_width(fun, i))
+                a = self.Const(a, _get_argument_width(fun, i))
             assert(isinstance(a, _BoolectorNode))
             arg_nodes.append(a)
 

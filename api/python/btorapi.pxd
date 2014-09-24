@@ -84,19 +84,19 @@ cdef extern from "boolector.h":
 
     BoolectorNode *boolector_const (Btor * btor, const char *bits)
 
-    BoolectorNode *boolector_zero (Btor * btor, int width)
+#    BoolectorNode *boolector_zero (Btor * btor, int width)
 
     BoolectorNode *boolector_false (Btor * btor)
 
-    BoolectorNode *boolector_ones (Btor * btor, int width)
+#    BoolectorNode *boolector_ones (Btor * btor, int width)
 
     BoolectorNode *boolector_true (Btor * btor)
 
-    BoolectorNode *boolector_one (Btor * btor, int width)
+#    BoolectorNode *boolector_one (Btor * btor, int width)
 
-    BoolectorNode *boolector_unsigned_int (Btor * btor, unsigned u, int width)
+#    BoolectorNode *boolector_unsigned_int (Btor * btor, unsigned u, int width)
 
-    BoolectorNode *boolector_int (Btor * btor, int i, int width)
+#    BoolectorNode *boolector_int (Btor * btor, int i, int width)
 
     BoolectorNode *boolector_var (Btor * btor, int width, const char *symbol)
 
@@ -283,7 +283,7 @@ cdef extern from "boolector.h":
 
 #    int boolector_is_var (Btor * btor, BoolectorNode * node)
 
-#    const char * boolector_get_bits (Btor *, BoolectorNode * node)
+    const char * boolector_get_bits (Btor *, BoolectorNode * node)
 
 #    int boolector_is_array (Btor * btor, BoolectorNode * node)
 
