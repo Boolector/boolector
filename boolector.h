@@ -22,7 +22,6 @@
 typedef struct Btor Btor;
 typedef struct BtorNode BtorNode;
 typedef struct BoolectorSort BoolectorSort;
-typedef struct BoolectorOpt BoolectorOpt;
 
 #ifdef BOOLECTOR_FORCE_API_1
 #define BoolectorNode BtorNode
@@ -46,7 +45,7 @@ typedef struct BoolectorNode BoolectorNode;
  * and <a
  href="http://smtlib.cs.uiowa.edu/papers/smt-lib-reference-v2.0-r12.09.09.pdf">SMT-LIB
  2.0</a> as input format and
- * can be either used as a stand-alone SMT solver, or as backend
+ * can be either used as a stand-alone SMT solver, or as back end
  * for other tools via its public API.
  * This is the documentation of Boolector's public <b>C interface</b>.
  * For further information and the latest version of Boolector, please refer
@@ -66,7 +65,7 @@ typedef struct BoolectorNode BoolectorNode;
  * hence we do not distinguish between type 'Boolean' and type 'bit vector
  * of length 1'.
  * After parsing an input file and/or asserting/assuming expressions,
- * the satifiability of the resulting formula can be determined via
+ * the satisfiability of the resulting formula can be determined via
  * \ref boolector_sat. If the resulting formula is satisfiable and model
  * generation has been enabled via \ref boolector_set_opt, you can either
  * print the resulting model via \ref boolector_print_model,
