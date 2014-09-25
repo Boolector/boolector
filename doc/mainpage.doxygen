@@ -51,7 +51,7 @@
  * is stored in \e status.
  *
  * As an example for generating and asserting expressions via
- * \boolector_assert, consider the following example:
+ * \ref boolector_assert, consider the following example:
  * \verbatim 0 < x <= 100, 0 < y <= 100, x * y < 100 \endverbatim
  * Given the Boolector instance created above, we generate and assert
  * the following expressions:
@@ -105,7 +105,7 @@
  * @code
    int result = boolector_sat (btor);
    @endcode
- * Now you can print the resulting model via \ref boolector_model:
+ * Now you can print the resulting model via \ref boolector_print_model :
  * @code
    boolector_print_model (btor, stdout);
    @endcode

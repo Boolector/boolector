@@ -84,7 +84,7 @@ void boolector_delete (Btor *btor);
 /**
  * Set a verbosity message prefix.
  * \param btor Boolector instance.
- * \param msg Prefix string.
+ * \param prefix Prefix string.
  */
 void boolector_set_msg_prefix (Btor *btor, const char *prefix);
 
@@ -184,14 +184,15 @@ int boolector_sat (Btor *btor);
  * conflicts produced by the underlying SAT solver \e sat_limit. Note that
  * assertions and assumptions are combined by boolean 'and'.
  * If you want to call this function multiple times then you must enable
- * Boolector's incremental usage mode via \ref boolectdor_set_opt before.
+ * Boolector's incremental usage mode via \ref boolector_set_opt before.
  * Otherwise, this function can only be called once.
  * \param btor Boolector instance.
  * \param lod_limit Limit for lemmas on demand (-1 unlimited).
  * \param sat_limit Conflict limit for SAT solver (-1 unlimited).
  * \return \ref BOOLECTOR_SAT if the instance is satisfiable,
  * \ref BOOLECTOR_UNSAT if the instance is unsatisfiable, and
- * \ref BTOR_UNKNOWN if the instance could not be solved within given limits.
+ * \ref BOOLECTOR_UNKNOWN if the instance could not be solved within given
+ * limits.
  * \see boolector_bv_assignment
  * \see boolector_array_assignment
  **/
@@ -392,55 +393,55 @@ int boolector_set_sat_solver_minisat (Btor *btor);
  *     (0 ... no logging, 3 ... full logging)
  *
  */
-void boolector_set_opt (Btor *btor, const char *opt, int val);
+void boolector_set_opt (Btor *btor, const char *name, int val);
 
 /**
  * Get the current value of an option.
  * \param btor Btor instance.
- * \param opt Option name.
- * \return Current value of \e opt.
+ * \param name Option name.
+ * \return Current value of \e name.
  */
-int boolector_get_opt_val (Btor *btor, const char *opt);
+int boolector_get_opt_val (Btor *btor, const char *name);
 
 /**
  * Get the min value of an option.
  * \param btor Btor instance.
- * \param opt Option name.
- * \return Min value of \e opt.
+ * \param name Option name.
+ * \return Min value of \e name.
  */
-int boolector_get_opt_min (Btor *btor, const char *opt);
+int boolector_get_opt_min (Btor *btor, const char *name);
 
 /**
  * Get the max value of an option.
  * \param btor Btor instance.
- * \param opt Option name.
- * \return Max value of \e opt.
+ * \param name Option name.
+ * \return Max value of \e name.
  */
-int boolector_get_opt_max (Btor *btor, const char *opt);
+int boolector_get_opt_max (Btor *btor, const char *name);
 
 /**
  * Get the default value of an option.
  * \param btor Btor instance.
- * \param opt Option name.
- * \return Default value of \e opt.
+ * \param name Option name.
+ * \return Default value of \e name.
  */
-int boolector_get_opt_dflt (Btor *btor, const char *opt);
+int boolector_get_opt_dflt (Btor *btor, const char *name);
 
 /**
  * Get the short name of an option.
  * \param btor Btor instance.
- * \param opt Option name.
- * \return Short name of \e opt.
+ * \param name Option name.
+ * \return Short name of \e name.
  */
-const char *boolector_get_opt_shrt (Btor *btor, const char *opt);
+const char *boolector_get_opt_shrt (Btor *btor, const char *name);
 
 /**
  * Get the description of an option.
  * \param btor Btor instance.
- * \param opt Option name.
- * \return Description of \e opt.
+ * \param name Option name.
+ * \return Description of \e name.
  */
-const char *boolector_get_opt_desc (Btor *btor, const char *opt);
+const char *boolector_get_opt_desc (Btor *btor, const char *name);
 
 /**
  * Get the name of the first option in Boolector's option list.
@@ -457,7 +458,7 @@ const char *boolector_get_opt_desc (Btor *btor, const char *opt);
 const char *boolector_first_opt (Btor *btor);
 
 /**
- * Given current option \e opt, get the name of the next option in Boolector's
+ * Given current option \e name, get the name of the next option in Boolector's
  * option list.
  * Given a Boolector instance \e btor, you can use this in combination
  * with \ref boolector_first_opt in order to iterate over Boolector options
@@ -467,11 +468,11 @@ const char *boolector_first_opt (Btor *btor);
  {...}
    @endcode
  * \param btor Btor instance.
- * \param opt Option name.
+ * \param name Option name.
  * \return Name of the next option in Boolector's option list, or 0 if no
  * such next option does exist.
  */
-const char *boolector_next_opt (Btor *btor, const char *opt);
+const char *boolector_next_opt (Btor *btor, const char *name);
 
 /*------------------------------------------------------------------------*/
 
@@ -1278,6 +1279,7 @@ Btor *boolector_get_btor (BoolectorNode *node);
 
 /**
  * Get the id of a given node.
+ * \param btor Boolector instance.
  * \param node Boolector node.
  * \return Id of \e node.
  */
@@ -1326,7 +1328,7 @@ const char *boolector_get_symbol (Btor *btor, BoolectorNode *var);
  * bit vector variable, a parameter, or an uninterpreted function).
  * \param btor Boolector instance.
  * \param var Array or bit vector variable, parameter, uninterpreted function.
- * \return Symbol of expression.
+ * \param symbol The symbol to be set.
  * \see boolector_var
  * \see boolector_array
  * \see boolector_uf
@@ -1357,7 +1359,7 @@ int boolector_get_index_width (Btor *btor, BoolectorNode *n_array);
  * \param node Constant node.
  * \return String representing the bits of \e node.
  */
-const char *boolector_get_bits (Btor *, BoolectorNode *node);
+const char *boolector_get_bits (Btor *btor, BoolectorNode *node);
 
 /**
  * Get the arity of function \e node.
@@ -1510,6 +1512,7 @@ void boolector_free_array_assignment (Btor *btor,
  * For functions with arity > 1 args[i] contains a space separated string of
  * argument assignments, where the order of the assignment strings corresponds
  * to the order of the function's arguments.
+ * \param btor Boolector instance.
  * \param n_uf Uninterpreted function node.
  * \param args Pointer to array of argument assignment strings.
  * \param values Pointer to array of value assignment strings.
@@ -1526,7 +1529,7 @@ void boolector_uf_assignment (
 
 /**
  * Free assignment strings for uninterpreted functions.
- * \param Boolector instance.
+ * \param btor Boolector instance.
  * \param args Array of argument strings of size \e size.
  * \param values Array of value string of size \e size.
  * \param size Size of arrays \e args and \e values.
@@ -1560,7 +1563,7 @@ BoolectorSort *boolector_bool_sort (Btor *btor);
 /**
  * Create bit vector sort of width \e width.
  * \param btor Boolector instance.
- * \param len Bit width.
+ * \param width Bit width.
  * \return Bit vector sort of width \e width.
  * \remark Right now sorts in Boolector are only used to create sorts for
  * uninterpreted functions.
@@ -1801,11 +1804,12 @@ boolector_set_rewrite_level (Btor *btor, int val);
 /**
  * \deprecated
  * Set level of verbosity.
- * (Note: this function is deprecated,
- * use \ref boolector_set_opt_verbosity instead.)
  * \param btor Boolector instance.
  * \param val Verbosity level.
  * \see boolector_set_opt
+ * \remark
+ * This function is deprecated, use \ref boolector_set_opt with
+ * verbosity=<int> instead.
  */
 #ifdef __GNUC__
 __attribute__ ((deprecated))
