@@ -367,7 +367,7 @@ else
     OBJS="${OBJS}btorminisat.o"
     if [ $python = yes ]
     then
-      LIBS="${LIBS}-L../minisat/build/dynamic/lib -lminisat"
+      LIBS="${LIBS}-L../minisat/build/dynamic/lib -Wl\,-rpath=$(pwd)/../minisat/build/dynamic/lib -lminisat"
       LDEPS="${LDEPS}../minisat/build/dynamic/lib/libminisat.so"
     else
       LIBS="${LIBS}-L../minisat/build/release/lib -lminisat"
