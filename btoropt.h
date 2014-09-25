@@ -148,6 +148,5 @@ const char *btor_get_opt_shrt (Btor *btor, const char *name);
 const char *btor_get_opt_desc (Btor *btor, const char *name);
 
 const char *btor_first_opt (Btor *btor);
-const char *btor_last_opt (Btor *btor);
 const char *btor_next_opt (Btor *btor, const char *cur);
 #endif
