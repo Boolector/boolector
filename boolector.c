@@ -675,7 +675,7 @@ boolector_first_opt (Btor *btor)
   BTOR_ABORT_ARG_NULL_BOOLECTOR (btor);
   BTOR_TRAPI ("");
   res = btor_first_opt (btor);
-  BTOR_TRAPI_RETURN_PTR (res);
+  BTOR_TRAPI_RETURN_STR (res);
 #ifndef NDEBUG
   BTOR_CHKCLONE_RES_STR (res, first_opt);
 #endif
@@ -702,9 +702,9 @@ boolector_next_opt (Btor *btor, const char *opt)
   const char *res;
   BTOR_ABORT_ARG_NULL_BOOLECTOR (btor);
   BTOR_ABORT_ARG_NULL_BOOLECTOR (opt);
-  BTOR_TRAPI ("%p", opt);
+  BTOR_TRAPI ("%s", opt);
   res = btor_next_opt (btor, opt);
-  BTOR_TRAPI_RETURN_PTR (res);
+  BTOR_TRAPI_RETURN_STR (res);
 #ifndef NDEBUG
   BTOR_CHKCLONE_RES_STR (res, next_opt, opt);
 #endif

@@ -604,7 +604,7 @@ NEXT:
       if (!btorunt->skip)
       {
         PARSE_ARGS0 (tok);
-        ret_ptr = (void *) boolector_first_opt (btor);
+        ret_str = (char *) boolector_first_opt (btor);
         exp_ret = RET_CHARPTR;
       }
       else
@@ -626,7 +626,8 @@ NEXT:
       if (!btorunt->skip)
       {
         PARSE_ARGS1 (tok, str);
-        ret_ptr = (void *) boolector_next_opt (btor, arg1_str);
+        ret_str = (char *) boolector_next_opt (btor, arg1_str);
+        if (!ret_str) ret_str = "(null)";
         exp_ret = RET_CHARPTR;
       }
       else
