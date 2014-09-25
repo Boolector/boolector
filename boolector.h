@@ -56,7 +56,7 @@ typedef struct BoolectorNode BoolectorNode;
  *
  * \subsection Quickstart
  * First, create a Boolector instance via \ref boolector_new:
- * \verbatim btor = boolector_new () \endverbatim
+ * \verbatim Btor *btor = boolector_new () \endverbatim
  * You can configure this instance via \ref boolector_set_opt.
  * E.g., if you want to enable model generation:
  * \verbatim boolector_set_opt (btor, "model_gen", 1); \endverbatim
