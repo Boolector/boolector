@@ -327,14 +327,8 @@ const char *
 btor_first_opt (Btor *btor)
 {
   assert (btor);
+  assert (BTOR_FIRST_OPT (btor));
   return (const char *) BTOR_FIRST_OPT (btor)->lng;
-}
-
-const char *
-btor_last_opt (Btor *btor)
-{
-  assert (btor);
-  return (const char *) BTOR_LAST_OPT (btor)->lng;
 }
 
 const char *

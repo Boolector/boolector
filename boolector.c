@@ -683,20 +683,6 @@ boolector_first_opt (Btor *btor)
 }
 
 const char *
-boolector_last_opt (Btor *btor)
-{
-  const char *res;
-  BTOR_ABORT_ARG_NULL_BOOLECTOR (btor);
-  BTOR_TRAPI ("");
-  res = btor_last_opt (btor);
-  BTOR_TRAPI_RETURN_PTR (res);
-#ifndef NDEBUG
-  BTOR_CHKCLONE_RES_STR (res, last_opt);
-#endif
-  return res;
-}
-
-const char *
 boolector_next_opt (Btor *btor, const char *opt)
 {
   const char *res;

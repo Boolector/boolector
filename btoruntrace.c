@@ -610,17 +610,6 @@ NEXT:
       else
         exp_ret = RET_SKIP;
     }
-    else if (!strcmp (tok, "last_opt"))
-    {
-      if (!btorunt->skip)
-      {
-        PARSE_ARGS0 (tok);
-        ret_ptr = (void *) boolector_last_opt (btor);
-        exp_ret = RET_CHARPTR;
-      }
-      else
-        exp_ret = RET_SKIP;
-    }
     else if (!strcmp (tok, "next_opt"))
     {
       if (!btorunt->skip)

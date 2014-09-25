@@ -574,24 +574,25 @@ const char *boolector_get_opt_desc (Btor *btor, const char *opt);
 
 /**
  * Get the name of the first option in Boolector's option list.
- * \param btor Btor instance.
- * \return Name of the first option in Boolector's option list.
+ * Given a Boolector instance \p btor, you can use this in combination
+ * with \ref boolector_next_opt in order to iterate over Boolector options
+ * as follows:
+ * \verbatim for (s = boolector_first_opt (btor); s; s = boolector_next_opt
+ * (btor, s)) {...} \endverbatim \param btor Btor instance. \return Name of the
+ * first option in Boolector's option list.
  */
 const char *boolector_first_opt (Btor *btor);
 
 /**
- * Get the name of the last option in Boolector's option list.
- * \param btor Btor instance.
- * \return Name of the last option in Boolector's option list.
- */
-const char *boolector_last_opt (Btor *btor);
-
-/**
- * Get the name of the next option after the option with name \p opt
- * in Boolector's option list.
- * \param btor Btor instance.
- * \param opt Option name.
- * \return Name of the next option in Boolector's option list.
+ * Given current option \p opt, get the name of the next option in Boolector's
+ * option list.
+ * Given a Boolector instance \p btor, you can use this in combination
+ * with \ref boolector_first_opt in order to iterate over Boolector options
+ * as follows:
+ * \verbatim for (s = boolector_first_opt (btor); s; s = boolector_next_opt
+ * (btor, s)) {...} \endverbatim \param btor Btor instance. \param opt Option
+ * name. \return Name of the next option in Boolector's option list, or 0 if no
+ * such next option does exist.
  */
 const char *boolector_next_opt (Btor *btor, const char *opt);
 
