@@ -55,15 +55,67 @@ typedef struct BoolectorNode BoolectorNode;
  * The public interface is defined in \ref boolector.h.
  *
  * \subsection Quickstart
- * First, create a Boolector instance via \ref boolector_new. You can configure
- * this instance via \ref boolector_set_opt, for a detailed description of all
- * configurable options, see \ref boolector_set_opt.
+ * First, create a Boolector instance via \ref boolector_new:
+ * \verbatim btor = boolector_new () \endverbatim
+ * You can configure this instance via \ref boolector_set_opt.
+ * E.g., if you want to enable model generation:
+ * \verbatim boolector_set_opt (btor, "model_gen", 1); \endverbatim
+ * For a detailed description of all configurable options, see
+ * \ref boolector_set_opt.
+ *
  * Next you can either parse an input file, and/or generate expressions to
  * be either asserted via \ref boolector_assert, or, if incremental usage is
  * enabled, assumed via \ref boolector_assume (analogously to MiniSAT).
  * Note that Boolector's internal design is motivated by hardware design,
  * hence we do not distinguish between type 'Boolean' and type 'bit vector
  * of length 1'.
+ *
+ * E.g., if you want to parse an input file "example.btor", you can either
+ * use \ref boolector_parse or \ref boolector_parse_btor :
+ * \verbatim
+   char *error_msg;
+   int status;
+   FILE *fd = fopen ("example.btor", "r");
+   boolector_parse_btor (btor, fd, "example.btor", &error_msg, &status);
+   \endverbatim
+ * If the parser encounters an error, an explanation of that error is
+ * stored in \p error_msg. If the input file specifies a (known) status
+ * of the input formula (either satisfiable or unsatisfiable), that status
+ * is stored in \p status.
+ *
+ * As an example for generating and asserting expressions via
+ * \boolector_assert, consider the following example:
+ * \verbatim 0 < x <= 100, 0 < y <= 100, x * y < 100 \endverbatim
+ * Given the Boolector instance created above, we generate and assert
+ * the following expressions:
+ * \verbatim
+   BtorNode *x = boolector_var (btor, 8, "X");
+   BtorNode *y = boolector_var (btor, 8, "Y");
+   BtorNode *zero = boolector_zero (btor, 8);
+   BtorNode *hundred = boolector_int (btor, 100, 8);
+   // 0 < x
+   BoolectorNode *sltx = boolector_slt (btor, zero, x);
+   boolector_assert (btor, slt_x);
+   // x <= 100
+   BtorNode *slte_x = boolector_slte (btor, x, hundred);
+   boolector_assert (btor, slte_x);
+   // 0 < y
+   BtorNode *slt_y = boolector_slt (btor, zero, y);
+   boolector_assert (btor, slt_y);
+   // y <= 100
+   BtorNode *slte_y = boolector_slte (btor, y, hundred);
+   boolector_assert (btor, slte_y);
+   // x * y
+   BtorNode *mul = boolector_mul (btor, x, y);
+   // x * y < 100
+   BtorNode *slt = boolector_slt (btor, mul, hundred);
+   boolector_assert (btor, slt);
+   // prevent overflow
+   BtorNode *smulo = boolector_smulo (btor, x, y);
+   BtorNode *nsmulo = boolector_not (btor, smulo);
+   boolector_assert (btor, nsmulo)
+   \endverbatim
+ *
  * After parsing an input file and/or asserting/assuming expressions,
  * the satisfiability of the resulting formula can be determined via
  * \ref boolector_sat. If the resulting formula is satisfiable and model
@@ -72,9 +124,31 @@ typedef struct BoolectorNode BoolectorNode;
  * or query assignments
  * of bit vector and array variables or uninterpreted functions via
  * \ref boolector_bv_assignment, \ref boolector_array_assignment and
- * \ref boolector_uf_assignment..
+ * \ref boolector_uf_assignment.
  * Note that querying assignments is not limited to variables---you can query
  * the assignment of any arbitrary expression.
+ *
+ * E.g., given the example above, we first determine if the formula is
+ * satisfiable via \ref boolector_sat (which it is):
+ * \verbatim int result = boolector_sat (btor); \endverbatim
+ * Now you can print the resulting model via \ref boolector_model:
+ * \verbatim boolector_print_model (btor, stdout); \endverbatim
+ * A possible model would be:
+ * \verbatim
+   2 00001001 X
+   3 00000010 Y
+   \endverbatim
+ * which in this case indicates the assignments of bit vector variables
+ * X and Y. Note that the first column indicates the id of an input,
+ * the second column its assignment, and the third column its name (or symbol)
+ * if any.
+ * In the case that the formula includes arrays as input, their values at a
+ * certain index are indicated as follows:
+ * \verbatim 4[0] 1 A \endverbatim
+ * where A has id 4 and is an array with index and element bit width of 1,
+ * and its value at index 0 is 1.
+ *
+ *
  *
  * \subsection Options
  *
