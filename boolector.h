@@ -55,11 +55,15 @@ typedef struct BoolectorNode BoolectorNode;
  * The public interface is defined in \ref boolector.h.
  *
  * \subsection Quickstart
- * First, create a Boolector instance via \ref boolector_new:
- * \verbatim Btor *btor = boolector_new () \endverbatim
+ * First, create a Boolector instance via \ref boolector_new :
+ * @code
+   Btor *btor = boolector_new ()
+   @endcode
  * You can configure this instance via \ref boolector_set_opt.
  * E.g., if you want to enable model generation:
- * \verbatim boolector_set_opt (btor, "model_gen", 1); \endverbatim
+ * @code
+    boolector_set_opt (btor, "model_gen", 1);
+   @endcode
  * For a detailed description of all configurable options, see
  * \ref boolector_set_opt.
  *
@@ -72,12 +76,12 @@ typedef struct BoolectorNode BoolectorNode;
  *
  * E.g., if you want to parse an input file "example.btor", you can either
  * use \ref boolector_parse or \ref boolector_parse_btor :
- * \verbatim
+ * @code
    char *error_msg;
    int status;
    FILE *fd = fopen ("example.btor", "r");
    boolector_parse_btor (btor, fd, "example.btor", &error_msg, &status);
-   \endverbatim
+   @endcode
  * If the parser encounters an error, an explanation of that error is
  * stored in \p error_msg. If the input file specifies a (known) status
  * of the input formula (either satisfiable or unsatisfiable), that status
@@ -88,7 +92,7 @@ typedef struct BoolectorNode BoolectorNode;
  * \verbatim 0 < x <= 100, 0 < y <= 100, x * y < 100 \endverbatim
  * Given the Boolector instance created above, we generate and assert
  * the following expressions:
- * \verbatim
+ * @code
    BtorNode *x = boolector_var (btor, 8, "X");
    BtorNode *y = boolector_var (btor, 8, "Y");
    BtorNode *zero = boolector_zero (btor, 8);
@@ -114,7 +118,7 @@ typedef struct BoolectorNode BoolectorNode;
    BtorNode *smulo = boolector_smulo (btor, x, y);
    BtorNode *nsmulo = boolector_not (btor, smulo);
    boolector_assert (btor, nsmulo)
-   \endverbatim
+   @endcode
  *
  * After parsing an input file and/or asserting/assuming expressions,
  * the satisfiability of the resulting formula can be determined via
@@ -130,9 +134,13 @@ typedef struct BoolectorNode BoolectorNode;
  *
  * E.g., given the example above, we first determine if the formula is
  * satisfiable via \ref boolector_sat (which it is):
- * \verbatim int result = boolector_sat (btor); \endverbatim
+ * @code
+   int result = boolector_sat (btor);
+   @endcode
  * Now you can print the resulting model via \ref boolector_model:
- * \verbatim boolector_print_model (btor, stdout); \endverbatim
+ * @code
+   boolector_print_model (btor, stdout);
+   @endcode
  * A possible model would be:
  * \verbatim
    2 00001001 X
@@ -148,8 +156,6 @@ typedef struct BoolectorNode BoolectorNode;
  * where A has id 4 and is an array with index and element bit width of 1,
  * and its value at index 0 is 1.
  *
- *
- *
  * \subsection Options
  *
  * Boolector can be configured either via \ref boolector_set_opt,
@@ -159,7 +165,10 @@ typedef struct BoolectorNode BoolectorNode;
  * see \ref boolector_set_opt.
  *
  * E.g., given a Boolector instance 'btor', model generation is enabled either
- * via \verbatim boolector_set_opt (btor, "model_gen", 1); \endverbatim
+ * via
+ * @code
+   boolector_set_opt (btor, "model_gen", 1);
+   @endcode
  * or via setting the environment variable
  * \verbatim BTORMODELGEN=1 \endverbatim
  *
@@ -174,9 +183,10 @@ typedef struct BoolectorNode BoolectorNode;
  *
  * E.g., given a Boolector instance 'btor', enabling API tracing is done as
  * follows:
- * \verbatim
+ * @code
    FILE *fd = fopen ("error.trace", "r");
-   boolector_set_trapi (btor, fd); \endverbatim
+   boolector_set_trapi (btor, fd);
+   @endcode
  * or
  * \verbatim BTORAPITRACE="error.trace" \endverbatim
  *
@@ -651,9 +661,12 @@ const char *boolector_get_opt_desc (Btor *btor, const char *opt);
  * Given a Boolector instance \p btor, you can use this in combination
  * with \ref boolector_next_opt in order to iterate over Boolector options
  * as follows:
- * \verbatim for (s = boolector_first_opt (btor); s; s = boolector_next_opt
- * (btor, s)) {...} \endverbatim \param btor Btor instance. \return Name of the
- * first option in Boolector's option list.
+ * @code
+   for (s = boolector_first_opt (btor); s; s = boolector_next_opt (btor, s))
+ {...}
+   @endcode
+ * \param btor Btor instance.
+ * \return Name of the first option in Boolector's option list.
  */
 const char *boolector_first_opt (Btor *btor);
 
@@ -663,9 +676,13 @@ const char *boolector_first_opt (Btor *btor);
  * Given a Boolector instance \p btor, you can use this in combination
  * with \ref boolector_first_opt in order to iterate over Boolector options
  * as follows:
- * \verbatim for (s = boolector_first_opt (btor); s; s = boolector_next_opt
- * (btor, s)) {...} \endverbatim \param btor Btor instance. \param opt Option
- * name. \return Name of the next option in Boolector's option list, or 0 if no
+ * @code
+   for (s = boolector_first_opt (btor); s; s = boolector_next_opt (btor, s))
+ {...}
+   @endcode
+ * \param btor Btor instance.
+ * \param opt Option name.
+ * \return Name of the next option in Boolector's option list, or 0 if no
  * such next option does exist.
  */
 const char *boolector_next_opt (Btor *btor, const char *opt);
