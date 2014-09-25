@@ -1,0 +1,243 @@
+// TODO mention PYTHON API!
+/**
+ * \mainpage Boolector Documentation
+ * \section Introduction
+ * <a href="http://fmv.jku.at/boolector">Boolector</a> is an SMT solver for 
+ * the quantifier-free theory of bit vectors with arrays.
+ * It supports
+ * <a href="http://fmv.jku.at/papers/BrummayerBiereLonsing-BPR08.pdf">BTOR</a>,
+ * <a href="http://smtlib.cs.uiowa.edu/papers/format-v1.2-r06.08.30.pdf">SMT-LIB 1.2</a>,
+ * and <a href="http://smtlib.cs.uiowa.edu/papers/smt-lib-reference-v2.0-r12.09.09.pdf">SMT-LIB 2.0</a> as input format and
+ * can be either used as a stand-alone SMT solver, or as back end
+ * for other tools via its public API.
+ * This is the documentation of Boolector's public <b>C interface</b>.
+ * For further information and the latest version of Boolector, please refer
+ * to <a href="http://fmv.jku.at/boolector">http://fmv.jku.at/boolector</a>.
+ *
+ * \section Interface
+ * The public interface is defined in \ref boolector.h.
+ *
+ * \subsection Quickstart
+ * First, create a Boolector instance via \ref boolector_new :
+ * @code 
+   Btor *btor = boolector_new () 
+   @endcode
+ * You can configure this instance via \ref boolector_set_opt.
+ * E.g., if you want to enable model generation:
+ * @code
+    boolector_set_opt (btor, "model_gen", 1);
+   @endcode
+ * For a detailed description of all configurable options, see
+ * \ref boolector_set_opt.
+ *
+ * Next you can either parse an input file, and/or generate expressions to 
+ * be either asserted via \ref boolector_assert, or, if incremental usage is 
+ * enabled, assumed via \ref boolector_assume (analogously to MiniSAT). 
+ * Note that Boolector's internal design is motivated by hardware design,
+ * hence we do not distinguish between type 'Boolean' and type 'bit vector
+ * of length 1'. 
+ *
+ * E.g., if you want to parse an input file "example.btor", you can either
+ * use \ref boolector_parse or \ref boolector_parse_btor :
+ * @code
+   char *error_msg; 
+   int status;
+   FILE *fd = fopen ("example.btor", "r");
+   boolector_parse_btor (btor, fd, "example.btor", &error_msg, &status);
+   @endcode
+ * If the parser encounters an error, an explanation of that error is 
+ * stored in \e error_msg. If the input file specifies a (known) status
+ * of the input formula (either satisfiable or unsatisfiable), that status
+ * is stored in \e status.
+ *
+ * As an example for generating and asserting expressions via
+ * \boolector_assert, consider the following example:
+ * \verbatim 0 < x <= 100, 0 < y <= 100, x * y < 100 \endverbatim
+ * Given the Boolector instance created above, we generate and assert
+ * the following expressions:
+ * @code
+   BtorNode *x = boolector_var (btor, 8, "X");
+   BtorNode *y = boolector_var (btor, 8, "Y");
+   BtorNode *zero = boolector_zero (btor, 8);
+   BtorNode *hundred = boolector_int (btor, 100, 8);
+
+   // 0 < x
+   BoolectorNode *sltx = boolector_slt (btor, zero, x);
+   boolector_assert (btor, slt_x);
+
+   // x <= 100
+   BtorNode *slte_x = boolector_slte (btor, x, hundred);
+   boolector_assert (btor, slte_x);
+
+   // 0 < y
+   BtorNode *slt_y = boolector_slt (btor, zero, y);
+   boolector_assert (btor, slt_y);
+   
+   // y <= 100
+   BtorNode *slte_y = boolector_slte (btor, y, hundred);
+   boolector_assert (btor, slte_y);
+   
+   // x * y
+   BtorNode *mul = boolector_mul (btor, x, y);
+   
+   // x * y < 100
+   BtorNode *slt = boolector_slt (btor, mul, hundred);
+   boolector_assert (btor, slt);
+   BtorNode *smulo = boolector_smulo (btor, x, y);
+   BtorNode *nsmulo = boolector_not (btor, smulo);  // prevent overflow
+   boolector_assert (btor, nsmulo)
+   @endcode
+ *
+ * After parsing an input file and/or asserting/assuming expressions,
+ * the satisfiability of the resulting formula can be determined via
+ * \ref boolector_sat. If the resulting formula is satisfiable and model 
+ * generation has been enabled via \ref boolector_set_opt, you can either
+ * print the resulting model via \ref boolector_print_model,
+ * or query assignments
+ * of bit vector and array variables or uninterpreted functions via
+ * \ref boolector_bv_assignment, \ref boolector_array_assignment and
+ * \ref boolector_uf_assignment.
+ * Note that querying assignments is not limited to variables---you can query 
+ * the assignment of any arbitrary expression.
+ *
+ * E.g., given the example above, we first determine if the formula is
+ * satisfiable via \ref boolector_sat (which it is):
+ * @code
+   int result = boolector_sat (btor);
+   @endcode
+ * Now you can print the resulting model via \ref boolector_model:
+ * @code
+   boolector_print_model (btor, stdout);
+   @endcode
+ * A possible model would be:
+ * \verbatim 
+   2 00001001 X
+   3 00000010 Y
+   \endverbatim
+ * which in this case indicates the assignments of bit vector variables 
+ * X and Y. Note that the first column indicates the id of an input, 
+ * the second column its assignment, and the third column its name (or symbol)
+ * if any. 
+ * In the case that the formula includes arrays as input, their values at a
+ * certain index are indicated as follows:
+ * \verbatim 4[0] 1 A \endverbatim
+ * where A has id 4 and is an array with index and element bit width of 1, 
+ * and its value at index 0 is 1.
+ *
+ * Finally, in case that you generated expressions, you have to clean up, 
+ * i.e., release those expressions 
+ * (see \ref Internals and \ref boolector_release), 
+ * and delete Boolector instance \e btor via \ref boolector_delete.
+ * E.g., following from the example above, we proceed as follows:
+ * @code
+   boolector_release (btor, x);
+   boolector_release (btor, y);
+   boolector_release (btor, zero);
+   boolector_release (btor, hundred);
+   boolector_release (btor, slt_x);
+   boolector_release (btor, slte_x);
+   boolector_release (btor, slt_y);
+   boolector_release (btor, slte_y);
+   boolector_release (btor, mul);
+   boolector_release (btor, slt);
+   boolector_release (btor, nsmulo);
+   boolector_release (btor, smulo);
+   boolector_delete (btor);
+   @endcode
+ * Note that in case you generated assignment strings, e.g.
+   @code
+   char *xstr = boolector_bv_assignment (btor, x);
+   @endcode
+ * you have to release them as well:
+   @code
+   boolector_free_bv_assignment (btor, xstr);
+   @endcode
+ *
+ * \subsection Options
+ *
+ * Boolector can be configured either via \ref boolector_set_opt, 
+ * or via environment variables of the form:
+ * \verbatim BTOR<capitalized option name without '_'>=<value> \endverbatim
+ * For a list and detailed descriptions of all available options, 
+ * see \ref boolector_set_opt.
+ *
+ * E.g., given a Boolector instance 'btor', model generation is enabled either 
+ * via 
+ * @code 
+   boolector_set_opt (btor, "model_gen", 1);
+   @endcode
+ * or via setting the environment variable 
+ * \verbatim BTORMODELGEN=1 \endverbatim
+ *
+ * \subsection tracing API Tracing
+ * API tracing allows to record every call to Boolector's public API. The
+ * resulting trace can be replayed and the replayed sequence behaves exactly 
+ * like the original Boolector run.
+ * This is particularly useful for debugging purposes, as it enables replaying
+ * erroneous behaviour.
+ * API tracing can be enabled either via \ref boolector_set_trapi or by
+ * setting the environment variable BTORAPITRACE=<filename>.
+ *
+ * E.g., given a Boolector instance 'btor', enabling API tracing is done as
+ * follows:
+ * @code 
+   FILE *fd = fopen ("error.trace", "r");
+   boolector_set_trapi (btor, fd);
+   @endcode
+ * or
+ * \verbatim BTORAPITRACE="error.trace" \endverbatim
+ *
+ * \section Internals
+ * Boolector internally maintains a directed acyclic graph (DAG) of
+ * expressions. As a consequence, each expression maintains a reference
+ * counter, which is initially set to 1. 
+ * Each time an expression is shared, i.e. for each API call that returns
+ * an expression (a BoolectorNode), its reference counter is incremented
+ * by 1. Not considering API calls that generate expressions, this mainly
+ * applies to \ref boolector_copy, which simply increments the reference
+ * counter of an expression, and \ref boolector_match_node resp.
+ * \ref boolector_match_node_by_id, which retrieve nodes of a given Boolector
+ * instance by id resp. a given node's id.
+ * Expressions are released via \ref boolector_release, and if its
+ * reference counter is decremented to zero, it is deleted from memory.
+ * Note that by asserting an expression, it will be permanently added to the
+ * formula, i.e. Boolector internally holds its reference until it is either
+ * eliminated via rewriting, or the Boolector instance is deleted. 
+ * Following from that, it is safe to release an expression as soon as you
+ * asserted it, as long as you don't need it for further querying.
+ *
+ * \subsection Operators
+ * Boolector internally describes expressions by means of a set of base
+ * operators as documented in
+ *<a href="http://fmv.jku.at/papers/BrummayerBiereLonsing-BPR08.pdf">BTOR: Bit-Precise Modelling of Word-Level Problems for Model Checking</a>.
+ * Boolector's API, however, provides a richer set of operators for
+ * convenience, where non-base operators are internally rewritten to use
+ * base operators only.
+ * E.g., two's complement (\ref boolector_neg) is rewritten as one's complement
+ * and addition of 1. 
+ * Note that this behaviour is not influenced by the rewrite level chosen.
+ *
+ * \subsection Rewriting
+ * Boolector simplifies expressions and the expression DAG by means of 
+ * rewriting and supports three so-called rewrite levels.
+ * Increasing rewrite levels increase the extent of rewriting performed,
+ * and a rewrite level of 0 is equivalent to disabling rewriting at all.
+ * Note that Boolector not only simplifies expressions during construction
+ * of the expression DAG---for each call to \ref boolector_sat,
+ * various simplification techniques and rewriting phases are initiated.
+ * You can force Boolector to initiate rewriting and simplify the expression
+ * DAG via \ref boolector_simplify.
+ * The rewrite level can be configured via \ref boolector_set_opt.
+ *
+ * \section Examples
+ * See section <a href="examples.html">examples</a> for
+ * bit vector and array examples to demonstrate
+ * how Boolector's public interface is used.
+ * \example bv1.c
+ * \example bv2.c
+ * \example array1.c
+ * \example array2.c
+ * \example array3.c
+ *
+ */
+
