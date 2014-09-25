@@ -12,23 +12,14 @@
 
 from libc.stdio cimport FILE
 
-cdef extern from "btoropt.h":
-    cdef struct BtorOpt:
-        int internal
-        const char* shrt
-        const char* lng
-        const char* desc
-        int val
-        int dflt
-        int min
-        int max
-
 cdef extern from "boolector.h":
     ctypedef struct BoolectorNode:
         pass
     ctypedef struct Btor:
         pass
     ctypedef struct BoolectorSort:
+        pass
+    ctypedef struct BtorOpt:
         pass
 
     Btor *boolector_new ()
@@ -70,13 +61,21 @@ cdef extern from "boolector.h":
 
     void boolector_set_opt (Btor * btor, const char * opt, int val)
 
-    const BtorOpt *boolector_get_opt (Btor * btor, const char * opt)
+    int boolector_get_opt_val (Btor * btor, const char * opt)
 
-    const BtorOpt *boolector_first_opt (Btor * btor)
+    int boolector_get_opt_min (Btor * btor, const char * opt)
 
-    const BtorOpt *boolector_last_opt (Btor * btor)
+    int boolector_get_opt_max (Btor * btor, const char * opt)
 
-    const BtorOpt *boolector_next_opt (Btor * btor, const BtorOpt * opt)
+    int boolector_get_opt_dflt (Btor * btor, const char * opt)
+
+    const char * boolector_get_opt_shrt (Btor * btor, const char * opt)
+
+    const char * boolector_get_opt_desc (Btor * btor, const char * opt)
+
+    const char * boolector_first_opt (Btor * btor)
+
+    const char * boolector_next_opt (Btor * btor, const char * opt)
 
     BoolectorNode *boolector_copy (Btor * btor, BoolectorNode * node)
 
@@ -279,7 +278,7 @@ cdef extern from "boolector.h":
 
     BoolectorNode *boolector_match_node (Btor * btor, BoolectorNode * node)
 
-#    int boolector_is_const (Btor *btor, BoolectorNode * node)
+    int boolector_is_const (Btor *btor, BoolectorNode * node)
 
 #    int boolector_is_var (Btor * btor, BoolectorNode * node)
 
@@ -347,23 +346,23 @@ cdef extern from "boolector.h":
                          char ** error_msg,
                          int * status)
 
-    int boolector_parse_btor (Btor * btor,
-                              FILE * file, 
-                              const char * file_name, 
-                              char ** error_msg,
-                              int * status)
-
-    int boolector_parse_smt1 (Btor * btor, 
-                              FILE * file, 
-                              const char * file_name, 
-                              char ** error_msg,
-                              int * status)
-
-    int boolector_parse_smt2 (Btor * btor, 
-                              FILE * file, 
-                              const char * file_name, 
-                              char ** error_msg,
-                              int * status)
+#    int boolector_parse_btor (Btor * btor,
+#                              FILE * file, 
+#                              const char * file_name, 
+#                              char ** error_msg,
+#                              int * status)
+#
+#    int boolector_parse_smt1 (Btor * btor, 
+#                              FILE * file, 
+#                              const char * file_name, 
+#                              char ** error_msg,
+#                              int * status)
+#
+#    int boolector_parse_smt2 (Btor * btor, 
+#                              FILE * file, 
+#                              const char * file_name, 
+#                              char ** error_msg,
+#                              int * status)
 
     void boolector_dump_btor_node (Btor * btor, FILE * file,
                                    BoolectorNode * node)

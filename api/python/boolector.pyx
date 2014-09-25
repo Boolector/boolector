@@ -11,6 +11,7 @@
 cimport btorapi
 from libc.stdlib cimport malloc, free
 from libc.stdio cimport stdout, FILE, fopen, fclose
+from cpython cimport bool
 import math, os
 
 g_tunable_options = {"rewrite_level", "rewrite_level_pbr",
@@ -38,7 +39,6 @@ cdef class _ChPtr:
     cdef char * _c_str
     cdef bytes _py_str
     def __init__(self, str string):
-        cdef bytes b_str
         if string is None:
             self._py_str = None
             self._c_str = NULL
@@ -143,46 +143,85 @@ cdef class _BoolectorBitVecSort(_BoolectorSort):
 cdef class _BoolectorBoolSort(_BoolectorSort):
     pass
 
-# option wrapper class
+# option wrapper classes
+
+cdef class _BoolectorOptions:
+    cdef Boolector btor
+    cdef _BoolectorOpt __cur
+
+    def __init__(self, Boolector btor):
+        self.btor = btor
+        self.__cur = _BoolectorOpt(btor,
+                         _to_str(btorapi.boolector_first_opt(btor._c_btor)))
+
+    def __iter__(self):
+        return self
+
+    def __next__(self):
+        if self.__cur is None:
+            raise StopIteration
+        next = self.__cur
+        name = _to_str(btorapi.boolector_next_opt(self.btor._c_btor,
+                                                  next.__chptr._c_str))
+        if name is None:
+            self.__cur = None
+        else:
+            self.__cur = _BoolectorOpt(self.btor, name)
+        return next
+
 
 cdef class _BoolectorOpt:
     cdef Boolector btor
-    cdef const btorapi.BtorOpt * _c_opt
+    cdef _ChPtr __chptr
+    cdef str name
 
-    def __init__(self, Boolector boolector):
+    def __init__(self, Boolector boolector, str name):
         self.btor = boolector
+        self.name = name
+        self.__chptr = _ChPtr(name)
 
-    property internal:
-        def __get__(self):
-            return self._c_opt.internal == 1
+    def __richcmp__(_BoolectorOpt opt0, _BoolectorOpt opt1, opcode):
+        if opcode == 2:
+            return opt0.name == opt1.name
+        elif opcode == 3:
+            return opt0.name != opt1.name
+        else:
+            raise _BoolectorException("Opcode '{}' not implemented for "\
+                                     "__richcmp__".format(opcode))
 
     property shrt:
         def __get__(self):
-            return _to_str(self._c_opt.shrt)
+            return _to_str(btorapi.boolector_get_opt_shrt(self.btor._c_btor,
+                                                          self.__chtpr._c_str))
 
     property lng:
         def __get__(self):
-            return _to_str(self._c_opt.lng)
+            return self.name
 
     property desc:
         def __get__(self):
-            return _to_str(self._c_opt.desc)
+            return _to_str(btorapi.boolector_get_opt_desc(self.btor._c_btor,
+                                                          self.__chptr._c_str))
 
     property val:
         def __get__(self):
-            return self._c_opt.val
+            return btorapi.boolector_get_opt_val(self.btor._c_btor,
+                                                 self.__chptr._c_str)
 
     property dflt:
         def __get__(self):
-            return self._c_opt.dflt
+            return btorapi.boolector_get_opt_dflt(self.btor._c_btor,
+                                                  self.__chptr._c_str)
 
     property min:
         def __get__(self):
-            return self._c_opt.min
+            return btorapi.boolector_get_opt_min(self.btor._c_btor,
+                                                 self.__chptr._c_str)
 
     property max:
         def __get__(self):
-            return self._c_opt.max
+            return btorapi.boolector_get_opt_max(self.btor._c_btor,
+                                                 self.__chptr._c_str)
 
     property tunable:
         def __get__(self):
@@ -284,8 +323,12 @@ cdef class _BoolectorBVNode(_BoolectorNode):
 
     property bits:
         def __get__(self):
+            if not self.__is_const():
+                raise _BoolectorException("Given node is not a constant")
             return _to_str(btorapi.boolector_get_bits(self.btor._c_btor,
                                                       self._c_node))
+    def __is_const(self):
+        return btorapi.boolector_is_const(self.btor._c_btor, self._c_node) == 1
 
     def __richcmp__(x, y, opcode):
         x, y = _to_node(x, y)
@@ -469,23 +512,10 @@ cdef class Boolector:
         btorapi.boolector_set_opt(self._c_btor, _ChPtr(opt)._c_str, value)
 
     def Get_opt(self, str opt):
-        r = _BoolectorOpt(self)
-        r._c_opt = btorapi.boolector_get_opt(self._c_btor, _ChPtr(opt)._c_str)
-        return r
+        return _BoolectorOpt(self, opt)
 
     def Options(self):
-        opts = []
-        cdef const btorapi.BtorOpt * c_opt
-        cdef const btorapi.BtorOpt * c_last_opt
-        c_opt = btorapi.boolector_first_opt(self._c_btor)
-        c_last_opt = btorapi.boolector_last_opt(self._c_btor)
-        while c_opt != c_last_opt:
-            o = _BoolectorOpt(self)
-            o._c_opt = c_opt
-            if not o.internal:
-                opts.append(o)
-            c_opt = btorapi.boolector_next_opt(self._c_btor, c_opt)
-        return opts
+        return _BoolectorOptions(self)
 
     def Set_sat_solver(self, str solver, str optstr = None, int nofork = 0):
         solver = solver.strip().lower()
