@@ -512,6 +512,27 @@ boolector_set_opt (Btor *btor, const char *opt, int val)
                           "enabling incremental usage must be done before "
                           "calling 'boolector_sat'");
   }
+  else if (!strcmp (opt, BTOR_OPT_MODEL_GEN))
+  {
+#ifndef BTOR_DO_NOT_OPTIMIZE_UNCONSTRAINED
+    BTOR_ABORT_BOOLECTOR (btor->options.ucopt.val,
+                          "Unconstrained optimization cannot be enabled "
+                          "if model generation is enabled");
+#endif
+#ifdef BTOR_ENABLE_BETA_REDUCTION_PROBING
+    BTOR_ABORT_BOOLECTOR (btor->options.probe_beta_reduce_all.val,
+                          "Beta reduction probing cannot be enabled if "
+                          "model generation is enabled");
+#endif
+  }
+#ifdef BTOR_ENABLE_BETA_REDUCTION_PROBING
+  else if (!strcmp (opt, BTOR_OPT_PBRA))
+  {
+    BTOR_ABORT_BOOLECTOR (btor->options.model_gen.val,
+                          "Beta reduction probing cannot be enabled if "
+                          "model generation is enabled");
+  }
+#endif
 #ifdef BTOR_ENABLE_DUAL_PROPAGATION
   else if (!strcmp (opt, BTOR_OPT_DUAL_PROP))
   {
@@ -528,12 +549,16 @@ boolector_set_opt (Btor *btor, const char *opt, int val)
         "enabling multiple optimization techniques is not allowed");
 #endif
   }
-#ifdef BTOR_DO_NOT_OPTIMIZE_UNCONSTRAINED
   else if (!strcmp (opt, BTOR_OPT_UCOPT))
   {
+#ifdef BTOR_DO_NOT_OPTIMIZE_UNCONSTRAINED
     return;
-  }
+#else
+    BTOR_ABORT_BOOLECTOR (btor->options.model_gen.val,
+                          "Unconstrained optimization cannot be enabled "
+                          "if model generation is enabled");
 #endif
+  }
   else if (!strcmp (opt, BTOR_OPT_REWRITE_LEVEL))
   {
     BTOR_ABORT_BOOLECTOR (val < 0 || val > 3,

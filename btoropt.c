@@ -293,6 +293,10 @@ btor_set_opt (Btor *btor, const char *name, int val)
   if (!strcmp (name, "m") || !strcmp (name, BTOR_OPT_MODEL_GEN))
   {
     if (!val && btor->options.model_gen.val) btor_delete_model (btor);
+    assert (!val || !btor->options.ucopt.val);
+#ifdef BTOR_ENABLE_BETA_REDUCTION_PROBING
+    assert (!val || !btor->options.probe_beta_reduce_all.val);
+#endif
   }
   else if (!strcmp (name, "i") || !strcmp (name, BTOR_OPT_INCREMENTAL))
   {

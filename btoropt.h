@@ -64,7 +64,7 @@ typedef struct BtorOpt
 #ifdef BTOR_CHECK_FAILED
 #define BTOR_OPT_CHK_FAILED_ASSUMPTIONS "chk_failed_assumptions"
 #endif
-#define BTOR_OPT_PBRA "pbra_beta_reduce_all"
+#define BTOR_OPT_PBRA "probe_beta_reduce_all"
 #define BTOR_OPT_PBRA_LOD_LIMIT "pbra_lod_limit"
 #define BTOR_OPT_PBRA_SAT_LIMIT "pbra_sat_limit"
 #define BTOR_OPT_PBRA_OPS_FACTOR "pbra_ops_factor"
