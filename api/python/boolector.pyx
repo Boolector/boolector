@@ -190,7 +190,7 @@ cdef class _BoolectorOpt:
     property shrt:
         def __get__(self):
             return _to_str(btorapi.boolector_get_opt_shrt(self.btor._c_btor,
-                                                          self.__chtpr._c_str))
+                                                          self.__chptr._c_str))
 
     property lng:
         def __get__(self):
