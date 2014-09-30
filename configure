@@ -186,6 +186,7 @@ if [ $shared = yes ]
 then
   LIBS="-Wl\,-rpath=$(pwd)/."
   LDEPS="libboolector.so"
+  LIBSTDCPP=yes
 fi
 
 #--------------------------------------------------------------------------#
