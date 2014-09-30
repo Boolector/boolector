@@ -96,6 +96,13 @@ tar cf - \
   examples/makefile.common | \
 ( cd $dir; tar xf -; )
 
+# remove tabs from source files and replace them with whitespaces
+# one tab -> 8 whitespaces
+for f in `find $dir -type f -and \( -name "*.c" -o -name "*.h" -o  -name "*.cc" \)`
+do
+  sed -i 's/\t/        /g' $f
+done
+
 if [ $intel = yes ]
 then
 intelfilter=""
