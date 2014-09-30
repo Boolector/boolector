@@ -51,7 +51,7 @@ btorconfig.h: makefile VERSION mkconfig
 SONAME=-Xlinker -soname -Xlinker libboolector.so
 SHOBJS=$(filter-out ./btormbt.o ./btoruntrace.o ./btormain, $(LIBOBJ))
 libboolector.so: $(SHOBJS)
-	$(CC) $(CFLAGS) -shared -o $@ $(SHOBJS) $(SONAME)
+	$(CC) $(CFLAGS) -shared -o $@ $(SHOBJS) $(LIBS) $(SONAME)
 
 clean:
 	rm -f $(TARGETS)
