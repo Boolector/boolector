@@ -196,6 +196,14 @@ clone_exp (Btor *clone,
     res->bits[len] = '\0';
   }
 
+  if (exp->invbits)
+  {
+    len = strlen (exp->invbits);
+    BTOR_NEWN (mm, res->invbits, len + 1);
+    for (i = 0; i < len; i++) res->invbits[i] = exp->invbits[i];
+    res->invbits[len] = '\0';
+  }
+
   /* Note: no need to cache aig vectors here (exp->av is unique to exp). */
   if (!BTOR_IS_FUN_NODE (exp) && exp->av)
     res->av = btor_clone_aigvec (exp->av, clone->avmgr, aig_map);
@@ -858,6 +866,7 @@ clone_aux_btor (Btor *btor,
     }
     allocated += cur->bytes;
     if (cur->bits) allocated += strlen (cur->bits) + 1;
+    if (cur->invbits) allocated += strlen (cur->invbits) + 1;
     if (!BTOR_IS_FUN_NODE (cur) && cur->av)
     {
       if (!exp_layer_only)
@@ -1201,6 +1210,7 @@ btor_recursively_rebuild_exp_clone (Btor *btor,
       {
         case BTOR_BV_CONST_NODE:
           cur_clone = btor_const_exp (clone, cur->bits);
+
           break;
         case BTOR_BV_VAR_NODE:
           symbol =
