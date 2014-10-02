@@ -3076,6 +3076,7 @@ SORTED_VAR:
     assert (BTOR_EMPTY_STACK (parser->work));
 
     fun->exp = boolector_fun (parser->btor, args.start, nargs, exp);
+    boolector_set_symbol (parser->btor, fun->exp, fun->name);
     while (!BTOR_EMPTY_STACK (args))
       boolector_release (parser->btor, BTOR_POP_STACK (args));
     boolector_release (parser->btor, exp);
