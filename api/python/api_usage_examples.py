@@ -3,6 +3,8 @@ from boolector import Boolector
 if __name__ == "__main__":
     b = Boolector() 
 
+### Creating Boolector nodes
+
     # Constants
     _const = b.Const("10010101")
     _zero  = b.Const(0, 128)
@@ -245,6 +247,8 @@ if __name__ == "__main__":
     _apply4   = b.Apply([1, False, 3, 42], _uf)
     _apply5   = _uf(1, False, 3, 42)
 
+### Node attributes and methods
+
     # Get symbol
     s = _var.symbol
     s = _apply4.symbol
@@ -274,6 +278,8 @@ if __name__ == "__main__":
 #    _apply4.Dump("smt2")
     # Dump to file 'dump.smt2'
 #    _apply4.Dump("smt2", "dump.smt2")
+
+### Boolector methods
 
     # Available options
     b.Options()
@@ -310,6 +316,8 @@ if __name__ == "__main__":
 #    res = b.Sat(100, 10000)
 #    res = b.Sat(lod_limit=100, sat_limit=10000)
 
+
+    # Get model or query assignments for nodes
     if res == b.SAT:
         # Get model and print to stdout
         b.Print_model()
