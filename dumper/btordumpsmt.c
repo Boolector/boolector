@@ -133,11 +133,11 @@ dump_smt_id (BtorSMTDumpContext *sdc, BtorNode *exp)
 
   switch (u->kind)
   {
-    case BTOR_BV_VAR_NODE: type = "v"; goto VAR_PARAM_NODE;
+    case BTOR_BV_VAR_NODE: type = "v"; goto DUMP_SYMBOL;
 
     case BTOR_PARAM_NODE:
       type = "p";
-    VAR_PARAM_NODE:
+    DUMP_SYMBOL:
       sym = btor_get_symbol_exp (sdc->btor, u);
       if (sym && !isdigit (sym[0]))
       {
@@ -146,9 +146,11 @@ dump_smt_id (BtorSMTDumpContext *sdc, BtorNode *exp)
       }
       break;
 
-    case BTOR_UF_NODE: type = BTOR_IS_UF_ARRAY_NODE (u) ? "a" : "uf"; break;
+    case BTOR_UF_NODE:
+      type = BTOR_IS_UF_ARRAY_NODE (u) ? "a" : "uf";
+      goto DUMP_SYMBOL;
 
-    case BTOR_LAMBDA_NODE: type = "f"; break;
+    case BTOR_LAMBDA_NODE: type = "f"; goto DUMP_SYMBOL;
 
     default: type = sdc->version == 1 ? "?e" : "$e";
   }
@@ -230,9 +232,7 @@ dump_sort_smt (BtorSMTDumpContext *sdc, BtorNode *exp)
 
   exp = BTOR_REAL_ADDR_NODE (exp);
 
-  if (BTOR_IS_UF_NODE (exp))
-    sort = ((BtorUFNode *) exp)->sort;
-  else if (BTOR_IS_UF_ARRAY_NODE (exp))
+  if (BTOR_IS_UF_ARRAY_NODE (exp))
   {
     index.kind         = BTOR_BITVEC_SORT;
     index.bitvec.len   = BTOR_ARRAY_INDEX_LEN (exp);
@@ -243,6 +243,8 @@ dump_sort_smt (BtorSMTDumpContext *sdc, BtorNode *exp)
     tmp.array.element  = &element;
     sort               = &tmp;
   }
+  else if (BTOR_IS_UF_NODE (exp))
+    sort = ((BtorUFNode *) exp)->sort;
   else
   {
     tmp.kind       = BTOR_BITVEC_SORT;
@@ -856,7 +858,9 @@ dump_smt_aux (Btor *btor, FILE *file, int version, BtorNode **roots, int nroots)
   init_node_hash_table_iterator (&it, btor->lambdas);
   while (has_next_node_hash_table_iterator (&it))
   {
-    if (next_node_hash_table_iterator (&it)->parameterized)
+    temp = next_node_hash_table_iterator (&it);
+
+    if (temp->parameterized && !BTOR_IS_CURRIED_LAMBDA_NODE (temp))
     {
       nested_funs = 1;
       break;
