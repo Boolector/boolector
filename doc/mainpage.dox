@@ -17,7 +17,7 @@
    \section Interface
    The public interface is defined in \ref boolector.h.
   
-   \subsection Quickstart
+   \subsection start Quick Start
    First, create a Boolector instance via \ref boolector_new :
    @code 
    Btor *btor = boolector_new () 
@@ -42,10 +42,15 @@
    @code
    char *error_msg; 
    int status;
+   int result;
    FILE *fd = fopen ("example.btor", "r");
-   boolector_parse_btor (btor, fd, "example.btor", &error_msg, &status);
+   result = boolector_parse_btor (btor, fd, "example.btor", &error_msg, &status);
    @endcode
-   If the parser encounters an error, an explanation of that error is 
+   Incremental usage is not enabled, hence, if the parser does not encounter
+   an error, it returns \ref BOOLECTOR_UNKNOWN (for a more detailed description
+   of the parsers return values, see \ref boolector_parse).
+   However, if the parser encounters an error, it returns 
+   \ref BOOLECTOR_PARSE_ERROR and an explanation of that error is 
    stored in \e error_msg. If the input file specifies a (known) status
    of the input formula (either satisfiable or unsatisfiable), that status
    is stored in \e status.
@@ -62,7 +67,7 @@
    BtorNode *hundred = boolector_int (btor, 100, 8);
  
    // 0 < x
-   BoolectorNode *sltx = boolector_slt (btor, zero, x);
+   BoolectorNode *slt_x = boolector_slt (btor, zero, x);
    boolector_assert (btor, slt_x);
  
    // x <= 100
@@ -123,7 +128,7 @@
    \verbatim 4[0] 1 A \endverbatim
    where A has id 4 and is an array with index and element bit width of 1, 
    and its value at index 0 is 1.
-  
+
    Finally, in case that you generated expressions, you have to clean up, 
    i.e., release those expressions 
    (see \ref Internals and \ref boolector_release), 

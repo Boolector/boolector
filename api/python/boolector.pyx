@@ -1,6 +1,7 @@
 # Boolector: Satisfiablity Modulo Theories (SMT) solver.
 #
 # Copyright (C) 2013-2014 Mathias Preiner.
+# Copyright (C) 2014 Aina Niemetz.
 #
 # All rights reserved.
 #
@@ -464,10 +465,14 @@ cdef class _BoolectorParamNode(_BoolectorBVNode):
 # wrapper class for Boolector itself
 
 cdef class Boolector:
+    """
+    """
     cdef btorapi.Btor * _c_btor
+
     UNKNOWN = 0
     SAT = 10
     UNSAT = 20
+    PARSE_ERROR = 1
 
     def __init__(self, Boolector parent = None):
         if parent is None:
