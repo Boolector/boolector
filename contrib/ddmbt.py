@@ -65,6 +65,9 @@ def _tokens_children(tokens):
 
 def _tokens_bw(tokens, nodes_bw):
 
+    t = tokens[:]
+    del[t[1]]
+    tokens = t
     kind = tokens[0]
     if kind in ["var", "param", "zero", "one", "ones"]:
         return [int(tokens[1])]

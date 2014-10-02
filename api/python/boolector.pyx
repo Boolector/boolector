@@ -20,8 +20,6 @@ g_tunable_options = {"rewrite_level", "rewrite_level_pbr",
                      "dual_prop", "just", "ucopt", "lazy_synthesize",
                      "eliminate_slices"}
 
-# TODO: exception checks
-
 class _BoolectorException(Exception):
     def __init__(self, msg):
         self.msg = msg
@@ -192,7 +190,7 @@ cdef class _BoolectorOpt:
     property shrt:
         def __get__(self):
             return _to_str(btorapi.boolector_get_opt_shrt(self.btor._c_btor,
-                                                          self.__chtpr._c_str))
+                                                          self.__chptr._c_str))
 
     property lng:
         def __get__(self):
@@ -228,7 +226,7 @@ cdef class _BoolectorOpt:
             return self.lng in g_tunable_options
 
     def __str__(self):
-        return "{}, {}, [{}, {}], default: {}".format(self.lng, self.tunable,
+        return "{}, [{}, {}], default: {}".format(self.lng,
                                                       self.min, self.max,
                                                       self.dflt)
 # wrapper classes for BoolectorNode
@@ -306,18 +304,33 @@ cdef class _BoolectorNode:
                 btorapi.boolector_free_bv_assignment(self.btor._c_btor, c_str)
                 return value
 
-    def Dump(self, format = "btor", outfile = ""):
+    def Dump(self, format = "btor", outfile = None):
+        cdef FILE * c_file
+
+        if outfile is None:
+            c_file = stdout
+        else:
+            if os.path.isfile(outfile):
+                raise _BoolectorException(
+                        "Outfile '{}' already exists".format(outfile)) 
+            elif os.path.isdir(outfile):
+                raise _BoolectorException(
+                        "Outfile '{}' is a directory".format(outfile)) 
+            c_file = fopen(_ChPtr(outfile)._c_str, "w")
+
         if format.lower() == "btor":
-            btorapi.boolector_dump_btor_node(self.btor._c_btor, stdout,
+            btorapi.boolector_dump_btor_node(self.btor._c_btor, c_file,
                                              self._c_node)
         elif format.lower() == "smt1":
-            btorapi.boolector_dump_smt1_node(self.btor._c_btor, stdout,
+            btorapi.boolector_dump_smt1_node(self.btor._c_btor, c_file,
                                              self._c_node)
         elif format.lower() == "smt2":
-            btorapi.boolector_dump_smt2_node(self.btor._c_btor, stdout,
+            btorapi.boolector_dump_smt2_node(self.btor._c_btor, c_file,
                                              self._c_node)
         else:
             raise _BoolectorException("Invalid dump format '{}'".format(format)) 
+        if outfile is not None:
+            fclose(c_file)
 
 cdef class _BoolectorBVNode(_BoolectorNode):
 

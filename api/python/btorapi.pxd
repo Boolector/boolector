@@ -19,8 +19,6 @@ cdef extern from "boolector.h":
         pass
     ctypedef struct BoolectorSort:
         pass
-    ctypedef struct BtorOpt:
-        pass
 
     Btor *boolector_new ()
 

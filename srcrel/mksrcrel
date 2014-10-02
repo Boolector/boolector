@@ -59,6 +59,13 @@ do
   cp -p $subdir/*.[ch] $dir/$subdir/
 done
 
+mkdir $dir/api/
+mkdir $dir/api/python
+for file in boolector.pyx btorapi.pxd api_usage_examples.py README
+do
+  cp -p api/python/$file $dir/api/python/
+done
+
 if [ $intel = yes ]
 then
   cp -p \
@@ -83,11 +90,18 @@ EOF
 fi
 
 tar cf - \
-  examples/array \
-  examples/bv \
+  examples/array/* \
+  examples/bv/* \
   examples/Makefile \
   examples/makefile.common | \
 ( cd $dir; tar xf -; )
+
+# remove tabs from source files and replace them with whitespaces
+# one tab -> 8 whitespaces
+for f in `find $dir -type f -and \( -name "*.c" -o -name "*.h" -o  -name "*.cc" \)`
+do
+  sed -i 's/\t/        /g' $f
+done
 
 if [ $intel = yes ]
 then

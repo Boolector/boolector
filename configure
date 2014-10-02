@@ -123,6 +123,11 @@ fi
 
 #--------------------------------------------------------------------------#
 
+TARGETS="boolector"
+[ $shared = yes ] && TARGETS="$TARGETS libboolector.so"
+
+#--------------------------------------------------------------------------#
+
 if [ X"$CFLAGS" = X ]
 then
   [ $debug = unknown ] && debug=no
@@ -177,6 +182,12 @@ INCS=""
 LIBZ=no
 LIBM=no
 LIBSTDCPP=no
+if [ $shared = yes ]
+then
+  LIBS="-Wl\,-rpath=$(pwd)/."
+  LDEPS="libboolector.so"
+  LIBSTDCPP=yes
+fi
 
 #--------------------------------------------------------------------------#
 
@@ -198,7 +209,6 @@ else
   if [ $path = allfound ]
   then
     msg "using PicoSAT in '../picosat'"
-    [ X"$OBJS" = X ] || OBJS="$OBJS "
     picosat=yes
   elif [ $picosat = yes ]
   then
@@ -211,10 +221,12 @@ else
   if [ $picosat = yes ]
   then
     [ X"$CFLAGS" = X ] || CFLAGS="$CFLAGS "
-    [ X"$OBJS" = X ] || OBJS="$OBJS "
     [ X"$INCS" = X ] || INCS="$INCS "
+    [ X"$LDEPS" = X ] || LDEPS="$LDEPS "
+    [ X"$LIBS" = X ] || LIBS="$LIBS "
     CFLAGS="${CFLAGS}-DBTOR_USE_PICOSAT"
-    OBJS="${OBJS}../picosat/picosat.o ../picosat/version.o"
+    LIBS="${LIBS}-L../picosat -Wl\,-rpath=$(pwd)/../picosat/ -lpicosat"
+    LDEPS="${LDEPS}../picosat/libpicosat.a"
     INCS="${INCS}-I../picosat"
   fi
 fi
@@ -365,7 +377,7 @@ else
     [ X"$INCS" = X ] || INCS="$INCS "
     CFLAGS="${CFLAGS}-DBTOR_USE_MINISAT"
     OBJS="${OBJS}btorminisat.o"
-    if [ $python = yes ]
+    if [ $shared = yes ]
     then
       LIBS="${LIBS}-L../minisat/build/dynamic/lib -Wl\,-rpath=$(pwd)/../minisat/build/dynamic/lib -lminisat"
       LDEPS="${LDEPS}../minisat/build/dynamic/lib/libminisat.so"
@@ -441,8 +453,8 @@ ext_modules=[
               include_dirs=[cwd],
               library_dirs=[cwd+"/"+s for s in "$py_library_dirs".split()],
               libraries="$py_libraries".split(),
-              extra_objects=[cwd+"/"+s for s in "libboolector.a $LDEPS".split()],
-              extra_compile_args=[s for s in "$CFLAGS".split() if "-D" in s]
+              extra_compile_args=[s for s in "$CFLAGS".split() if "-D" in s],
+	      extra_link_args=["-Wl,-rpath="+":".join([cwd+"/"+s for s in "$py_library_dirs".split()])]
     )
 ]
 setup(cmdclass={'build_ext': build_ext}, ext_modules=ext_modules)
@@ -458,7 +470,13 @@ python: setup.py
 
 python-clean:
 	rm -rf build
-	rm -f api/python/*.c api/python/*.so
+	rm -f api/python/*.c boolector.cpython*.so
+
+python-clean-mk:
+	rm -f python.mk setup.py
+
+clean: python-clean python-clean-mk
+
 EOF
 else
   touch python.mk
@@ -482,5 +500,6 @@ sed \
   -e "s,@LIBS@,$LIBS," \
   -e "s,@LDEPS@,$LDEPS," \
   -e "s,@OBJS@,$OBJS," \
+  -e "s,@TARGETS@,$TARGETS," \
   makefile.in > makefile
 msg "makefile generated"
