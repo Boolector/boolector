@@ -1400,6 +1400,25 @@ btor_check_arg_sorts_match_smt2 (BtorSMT2Parser *parser,
             len);
     }
   }
+  else if (boolector_is_fun (parser->btor, p[1].exp))
+  {
+    for (i = 2; i <= nargs; i++)
+    {
+      if (!boolector_is_fun (parser->btor, p[i].exp))
+        return !btor_perr_smt2 (
+            parser,
+            "first argument of '%s' is a function but argument %d not",
+            p->node->name,
+            i);
+      if (!boolector_is_equal_sort (parser->btor, p[1].exp, p[i].exp))
+        return !btor_perr_smt2 (
+            parser,
+            "sort of argument %d does not match with sort of first "
+            "argument of '%s'",
+            i,
+            p->node->name);
+    }
+  }
   else
   {
     for (i = 1; i <= nargs; i++)
@@ -1408,6 +1427,12 @@ btor_check_arg_sorts_match_smt2 (BtorSMT2Parser *parser,
         return !btor_perr_smt2 (
             parser,
             "argument %d of '%s' is an array but first argument not",
+            i,
+            p->node->name);
+      if (boolector_is_fun (parser->btor, p[i].exp))
+        return !btor_perr_smt2 (
+            parser,
+            "argument %d of '%s' is a function but first argument not",
             i,
             p->node->name);
       if ((len = boolector_get_width (parser->btor, p[i].exp)) != width)
