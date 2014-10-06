@@ -1405,7 +1405,11 @@ boolector_main (int argc, char **argv)
 
   if (parse_result == BOOLECTOR_PARSE_ERROR)
   {
-    btormain_error (static_app, parse_error_msg);
+    /* NOTE: do not use btormain_error here as 'parse_error_msg' must not be
+     * treated as format string --- it might contain unescaped '%' due to
+     * invalid user input. */
+    fprintf (stderr, "boolector: %s\n", parse_error_msg);
+    static_app->err = BTOR_ERR_EXIT;
     goto DONE;
   }
 
