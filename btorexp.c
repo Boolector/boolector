@@ -3537,7 +3537,8 @@ btor_is_array_exp (Btor *btor, BtorNode *exp)
 
   exp = btor_simplify_exp (btor, exp);
   // TODO: check for array sort?
-  return BTOR_IS_LAMBDA_NODE (BTOR_REAL_ADDR_NODE (exp))
+  return (BTOR_IS_LAMBDA_NODE (BTOR_REAL_ADDR_NODE (exp))
+          && ((BtorLambdaNode *) exp)->num_params == 1)
          || BTOR_IS_UF_ARRAY_NODE (BTOR_REAL_ADDR_NODE (exp));
   //         || (BTOR_IS_LAMBDA_NODE (BTOR_REAL_ADDR_NODE (exp))
   //	     && ((BtorLambdaNode *) exp)->num_params == 1)
