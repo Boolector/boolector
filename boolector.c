@@ -1450,7 +1450,7 @@ boolector_eq (Btor *btor, BoolectorNode *n0, BoolectorNode *n1)
   BTOR_ABORT_IF_BTOR_DOES_NOT_MATCH (btor, e1);
   simp0 = btor_simplify_exp (btor, e0);
   simp1 = btor_simplify_exp (btor, e1);
-  BTOR_ABORT_BOOLECTOR (!btor_equal_sort (btor, e0, e1),
+  BTOR_ABORT_BOOLECTOR (!btor_is_equal_sort (btor, e0, e1),
                         "nodes must have equal sorts");
   res = btor_eq_exp (btor, simp0, simp1);
   inc_exp_ext_ref_counter (btor, res);
@@ -3521,6 +3521,33 @@ boolector_release_sort (Btor *btor, BoolectorSort *sort)
 #ifndef NDEBUG
   BTOR_CHKCLONE_NORES (release_sort, cs);
 #endif
+}
+
+int
+boolector_is_equal_sort (Btor *btor, BoolectorNode *n0, BoolectorNode *n1)
+{
+  int res;
+  BtorNode *e0, *e1, *simp0, *simp1;
+
+  e0 = BTOR_IMPORT_BOOLECTOR_NODE (n0);
+  e1 = BTOR_IMPORT_BOOLECTOR_NODE (n1);
+  BTOR_ABORT_ARG_NULL_BOOLECTOR (btor);
+  BTOR_ABORT_ARG_NULL_BOOLECTOR (e0);
+  BTOR_ABORT_ARG_NULL_BOOLECTOR (e1);
+  BTOR_TRAPI_BINFUN (e0, e1);
+  BTOR_ABORT_REFS_NOT_POS_BOOLECTOR (e0);
+  BTOR_ABORT_REFS_NOT_POS_BOOLECTOR (e1);
+  BTOR_ABORT_IF_BTOR_DOES_NOT_MATCH (btor, e0);
+  BTOR_ABORT_IF_BTOR_DOES_NOT_MATCH (btor, e1);
+  simp0 = btor_simplify_exp (btor, e0);
+  simp1 = btor_simplify_exp (btor, e1);
+  res   = btor_is_equal_sort (btor, simp0, simp1);
+  BTOR_TRAPI_RETURN_INT (res);
+#ifndef NDEBUG
+  BTOR_CHKCLONE_RES (
+      res, is_equal_sort, BTOR_CLONED_EXP (e0), BTOR_CLONED_EXP (e1));
+#endif
+  return res;
 }
 
 /*------------------------------------------------------------------------*/

@@ -8342,7 +8342,7 @@ btor_create_or_get_sort (Btor *btor, BtorNode *exp)
 }
 
 int
-btor_equal_sort (Btor *btor, BtorNode *e0, BtorNode *e1)
+btor_is_equal_sort (Btor *btor, BtorNode *e0, BtorNode *e1)
 {
   assert (btor);
   assert (e0);
