@@ -765,13 +765,14 @@ static BtorSMT2Parser *
 btor_new_smt2_parser (Btor *btor, BtorParseOpt *opts)
 {
   BtorSMT2Parser *res;
-  BTOR_NEW (btor->mm, res);
+  BtorMemMgr *mem = btor_new_mem_mgr ();
+  BTOR_NEW (mem, res);
   BTOR_CLR (res);
   res->verbosity   = opts->verbosity;
   res->incremental = opts->incremental;
   res->model       = opts->need_model;
   res->btor        = btor;
-  res->mem         = btor->mm;
+  res->mem         = mem;
 
   btor_init_char_classes_smt2 (res);
 
@@ -831,6 +832,7 @@ btor_delete_smt2_parser (BtorSMT2Parser *parser)
   BTOR_RELEASE_STACK (mem, parser->token);
 
   BTOR_DELETE (mem, parser);
+  btor_delete_mem_mgr (mem);
 }
 
 static int
