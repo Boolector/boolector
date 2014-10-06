@@ -886,7 +886,7 @@ btor_savech_smt (BtorSMTParser *parser, int ch)
 static unsigned char
 int2type (BtorSMTParser *parser, int ch)
 {
-  assert (0 <= ch && ch < 256);
+  if (0 > ch || ch >= 256) return 0;
   return parser->types[ch];
 }
 
