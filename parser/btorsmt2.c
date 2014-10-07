@@ -765,13 +765,14 @@ static BtorSMT2Parser *
 btor_new_smt2_parser (Btor *btor, BtorParseOpt *opts)
 {
   BtorSMT2Parser *res;
-  BTOR_NEW (btor->mm, res);
+  BtorMemMgr *mem = btor_new_mem_mgr ();
+  BTOR_NEW (mem, res);
   BTOR_CLR (res);
   res->verbosity   = opts->verbosity;
   res->incremental = opts->incremental;
   res->model       = opts->need_model;
   res->btor        = btor;
-  res->mem         = btor->mm;
+  res->mem         = mem;
 
   btor_init_char_classes_smt2 (res);
 
@@ -831,6 +832,7 @@ btor_delete_smt2_parser (BtorSMT2Parser *parser)
   BTOR_RELEASE_STACK (mem, parser->token);
 
   BTOR_DELETE (mem, parser);
+  btor_delete_mem_mgr (mem);
 }
 
 static int
@@ -1224,7 +1226,7 @@ btor_str2int32_smt2 (BtorSMT2Parser *parser,
   assert (sizeof (int) == 4);
   for (p = str; (ch = *p); p++)
   {
-    if (res > INT_MAX / 10)
+    if (res > INT_MAX / 10 || ch < '0' || ch > '9')
     INVALID:
       return !btor_perr_smt2 (parser, "invalid 32-bit integer '%s'", str);
     assert ('0' <= ch && ch <= '9');
@@ -1398,6 +1400,25 @@ btor_check_arg_sorts_match_smt2 (BtorSMT2Parser *parser,
             len);
     }
   }
+  else if (boolector_is_fun (parser->btor, p[1].exp))
+  {
+    for (i = 2; i <= nargs; i++)
+    {
+      if (!boolector_is_fun (parser->btor, p[i].exp))
+        return !btor_perr_smt2 (
+            parser,
+            "first argument of '%s' is a function but argument %d not",
+            p->node->name,
+            i);
+      if (!boolector_is_equal_sort (parser->btor, p[1].exp, p[i].exp))
+        return !btor_perr_smt2 (
+            parser,
+            "sort of argument %d does not match with sort of first "
+            "argument of '%s'",
+            i,
+            p->node->name);
+    }
+  }
   else
   {
     for (i = 1; i <= nargs; i++)
@@ -1406,6 +1427,12 @@ btor_check_arg_sorts_match_smt2 (BtorSMT2Parser *parser,
         return !btor_perr_smt2 (
             parser,
             "argument %d of '%s' is an array but first argument not",
+            i,
+            p->node->name);
+      if (boolector_is_fun (parser->btor, p[i].exp))
+        return !btor_perr_smt2 (
+            parser,
+            "argument %d of '%s' is a function but first argument not",
             i,
             p->node->name);
       if ((len = boolector_get_width (parser->btor, p[i].exp)) != width)
@@ -2717,14 +2744,14 @@ btor_parse_bitvec_sort_smt2 (BtorSMT2Parser *parser, int skiplu, int *resptr)
     return !btor_perr_smt2 (
         parser, "expected bit-width at '%s'", parser->token.start);
   assert (parser->token.start[0] != '-');
+  if (strchr (parser->token.start, '.'))
+    return !btor_perr_smt2 (
+        parser, "invalid floating point bit-width '%s'", parser->token.start);
   if (parser->token.start[0] == '0')
   {
     assert (!parser->token.start[1]);
     return !btor_perr_smt2 (parser, "invalid zero bit-width");
   }
-  if (strchr (parser->token.start, '.'))
-    return !btor_perr_smt2 (
-        parser, "invalid floating point bit-width '%s'", parser->token.start);
   res = 0;
   if (!btor_str2int32_smt2 (parser, 1, parser->token.start, &res)) return 0;
   *resptr = res;

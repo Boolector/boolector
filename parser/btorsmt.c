@@ -2,6 +2,7 @@
  *
  *  Copyright (C) 2007-2013 Armin Biere.
  *  Copyright (C) 2013-2014 Aina Niemetz.
+ *  Copyright (C) 2014 Mathias Preiner.
  *
  *  All rights reserved.
  *
@@ -886,7 +887,7 @@ btor_savech_smt (BtorSMTParser *parser, int ch)
 static unsigned char
 int2type (BtorSMTParser *parser, int ch)
 {
-  assert (0 <= ch && ch < 256);
+  if (0 > ch || ch >= 256) return 0;
   return parser->types[ch];
 }
 

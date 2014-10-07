@@ -1411,6 +1411,14 @@ NEXT:
       PARSE_ARGS1 (tok, str);
       boolector_release_sort (btor, hmap_get (hmap, btor_str, arg1_str));
     }
+    else if (!strcmp (tok, "equal_sort"))
+    {
+      PARSE_ARGS2 (tok, str, str);
+      ret_int = boolector_is_equal_sort (btor,
+                                         hmap_get (hmap, btor_str, arg1_str),
+                                         hmap_get (hmap, btor_str, arg2_str));
+      exp_ret = RET_INT;
+    }
     else if (!strcmp (tok, "dump_btor_node"))
     {
       PARSE_ARGS1 (tok, str);

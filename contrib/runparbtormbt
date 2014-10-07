@@ -86,7 +86,7 @@ do
   shift
 done
 
-if ((threads <= 0 || threads > MAX_THREADS)); then
+if ((threads <= 0)); then
   echo "invalid value for --threads: $threads"
   exit
 fi

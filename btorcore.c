@@ -8240,7 +8240,10 @@ btor_fun_sort_check (Btor *btor, int argc, BtorNode **args, BtorNode *fun)
       assert (BTOR_IS_BITVEC_SORT (sort->fun.domain));
       width = sort->fun.domain->bitvec.len;
     }
-    if (width != BTOR_REAL_ADDR_NODE (args[0])->len) pos = 0;
+    /* NOTE: we do not allow functions or arrays as arguments yet */
+    if (btor_is_fun_exp (btor, args[0]) || btor_is_array_exp (btor, args[0])
+        || width != BTOR_REAL_ADDR_NODE (args[0])->len)
+      pos = 0;
   }
   else
   {
@@ -8256,7 +8259,9 @@ btor_fun_sort_check (Btor *btor, int argc, BtorNode **args, BtorNode *fun)
         assert (BTOR_IS_BITVEC_SORT (s));
         width = s->bitvec.len;
       }
-      if (width != BTOR_REAL_ADDR_NODE (args[i])->len)
+      /* NOTE: we do not allow functions or arrays as arguments yet */
+      if (btor_is_fun_exp (btor, args[i]) || btor_is_array_exp (btor, args[i])
+          || width != BTOR_REAL_ADDR_NODE (args[i])->len)
       {
         pos = i;
         break;
@@ -8342,7 +8347,7 @@ btor_create_or_get_sort (Btor *btor, BtorNode *exp)
 }
 
 int
-btor_equal_sort (Btor *btor, BtorNode *e0, BtorNode *e1)
+btor_is_equal_sort (Btor *btor, BtorNode *e0, BtorNode *e1)
 {
   assert (btor);
   assert (e0);

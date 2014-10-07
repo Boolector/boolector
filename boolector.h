@@ -1904,6 +1904,15 @@ BoolectorSort *boolector_fun_sort (Btor *btor,
  */
 void boolector_release_sort (Btor *btor, BoolectorSort *sort);
 
+/**
+ * Determine if 'n0' and 'n1' have the same sort or not.
+ * \param btor Boolector instance.
+ * \param n0 First operand.
+ * \param n1 Second operand.
+ * \return True if \e n0 and \e n1 have the same sort, and false otherwise.
+ */
+int boolector_is_equal_sort (Btor *btor, BoolectorNode *n0, BoolectorNode *n1);
+
 /*------------------------------------------------------------------------*/
 
 /**

@@ -116,7 +116,7 @@ btor_precond_eq_exp_dbg (const Btor *btor,
   assert (real_e1->btor == btor);
   assert (!real_e0->simplified);
   assert (!real_e1->simplified);
-  assert (btor_equal_sort ((Btor *) btor, (BtorNode *) e0, (BtorNode *) e1));
+  assert (btor_is_equal_sort ((Btor *) btor, (BtorNode *) e0, (BtorNode *) e1));
   assert (!BTOR_IS_FUN_NODE (real_e0)
           || (BTOR_IS_REGULAR_NODE (e0) && BTOR_IS_REGULAR_NODE (e1)));
   return 1;
@@ -3537,7 +3537,8 @@ btor_is_array_exp (Btor *btor, BtorNode *exp)
 
   exp = btor_simplify_exp (btor, exp);
   // TODO: check for array sort?
-  return BTOR_IS_LAMBDA_NODE (BTOR_REAL_ADDR_NODE (exp))
+  return (BTOR_IS_LAMBDA_NODE (BTOR_REAL_ADDR_NODE (exp))
+          && ((BtorLambdaNode *) exp)->num_params == 1)
          || BTOR_IS_UF_ARRAY_NODE (BTOR_REAL_ADDR_NODE (exp));
   //         || (BTOR_IS_LAMBDA_NODE (BTOR_REAL_ADDR_NODE (exp))
   //	     && ((BtorLambdaNode *) exp)->num_params == 1)

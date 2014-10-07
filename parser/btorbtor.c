@@ -475,6 +475,22 @@ parse_array_exp (BtorBTORParser *parser, int len)
 }
 
 static BoolectorNode *
+parse_fun_exp (BtorBTORParser *parser, int len)
+{
+  BoolectorNode *res;
+
+  res = parse_exp (parser, len, 1, 0);
+  if (!res) return 0;
+
+  if (boolector_is_fun (parser->btor, res)) return res;
+
+  (void) btor_perr_btor (parser, "expected function expression");
+  boolector_release (parser->btor, res);
+
+  return 0;
+}
+
+static BoolectorNode *
 parse_const (BtorBTORParser *parser, int len)
 {
   BoolectorNode *res;
@@ -1516,7 +1532,7 @@ parse_apply (BtorBTORParser *parser, int len)
 
   if (parse_space (parser)) return 0;
 
-  if (!(fun = parse_array_exp (parser, len))) return 0;
+  if (!(fun = parse_fun_exp (parser, len))) return 0;
 
   BTOR_INIT_STACK (args);
 

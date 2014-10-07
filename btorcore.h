@@ -335,7 +335,7 @@ BtorNode *btor_simplify_exp (Btor *btor, BtorNode *exp);
 /* Finds most simplified expression and shortens path to it */
 BtorNode *btor_pointer_chase_simplified_exp (Btor *btor, BtorNode *exp);
 
-int btor_equal_sort (Btor *btor, BtorNode *e0, BtorNode *e1);
+int btor_is_equal_sort (Btor *btor, BtorNode *e0, BtorNode *e1);
 
 /* Builds current assignment string of expression (in the SAT case)
  * and returns it.
