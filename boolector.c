@@ -2619,16 +2619,12 @@ boolector_apply (Btor *btor,
   sprintf (strtrapi, "%d ", argc);
 
   cur = BTOR_REAL_ADDR_NODE (btor_simplify_exp (btor, e_fun));
+  BTOR_ABORT_BOOLECTOR (
+      argc != btor_get_fun_arity (btor, cur),
+      "number of arguments must be <= number of parameters in 'fun'");
   for (i = 0; i < argc; i++)
-  {
-    BTOR_ABORT_BOOLECTOR (
-        !BTOR_IS_UF_NODE (cur) && !BTOR_IS_LAMBDA_NODE (cur),
-        "number of arguments must be <= number of parameters in 'fun'");
     sprintf (
         strtrapi + strlen (strtrapi), NODE_FMT, BTOR_TRAPI_NODE_ID (args[i]));
-    if (!BTOR_IS_UF_NODE (cur))
-      cur = BTOR_REAL_ADDR_NODE (btor_simplify_exp (btor, cur->e[1]));
-  }
   sprintf (strtrapi + strlen (strtrapi), NODE_FMT, BTOR_TRAPI_NODE_ID (e_fun));
 
   BTOR_TRAPI (strtrapi);
