@@ -1414,7 +1414,7 @@ NEXT:
     else if (!strcmp (tok, "equal_sort"))
     {
       PARSE_ARGS2 (tok, str, str);
-      ret_ptr = boolector_is_equal_sort (btor,
+      ret_int = boolector_is_equal_sort (btor,
                                          hmap_get (hmap, btor_str, arg1_str),
                                          hmap_get (hmap, btor_str, arg2_str));
       exp_ret = RET_INT;
