@@ -1226,7 +1226,7 @@ btor_str2int32_smt2 (BtorSMT2Parser *parser,
   assert (sizeof (int) == 4);
   for (p = str; (ch = *p); p++)
   {
-    if (res > INT_MAX / 10)
+    if (res > INT_MAX / 10 || ch < '0' || ch > '9')
     INVALID:
       return !btor_perr_smt2 (parser, "invalid 32-bit integer '%s'", str);
     assert ('0' <= ch && ch <= '9');
