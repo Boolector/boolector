@@ -2744,14 +2744,14 @@ btor_parse_bitvec_sort_smt2 (BtorSMT2Parser *parser, int skiplu, int *resptr)
     return !btor_perr_smt2 (
         parser, "expected bit-width at '%s'", parser->token.start);
   assert (parser->token.start[0] != '-');
+  if (strchr (parser->token.start, '.'))
+    return !btor_perr_smt2 (
+        parser, "invalid floating point bit-width '%s'", parser->token.start);
   if (parser->token.start[0] == '0')
   {
     assert (!parser->token.start[1]);
     return !btor_perr_smt2 (parser, "invalid zero bit-width");
   }
-  if (strchr (parser->token.start, '.'))
-    return !btor_perr_smt2 (
-        parser, "invalid floating point bit-width '%s'", parser->token.start);
   res = 0;
   if (!btor_str2int32_smt2 (parser, 1, parser->token.start, &res)) return 0;
   *resptr = res;
