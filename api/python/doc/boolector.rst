@@ -11,3 +11,5 @@ Module Index: boolector
 .. autoclass:: _BoolectorNode
    :members:
    :undoc-members:
+
+.. autoclass:: _BoolectorSort

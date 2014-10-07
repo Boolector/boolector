@@ -2464,7 +2464,7 @@ boolector_write (Btor *btor,
 BoolectorNode *
 boolector_cond (Btor *btor,
                 BoolectorNode *n_cond,
-                BoolectorNode *n_if,
+                BoolectorNode *n_then,
                 BoolectorNode *n_else)
 {
   BtorNode *e_cond, *e_if, *e_else;
@@ -2473,7 +2473,7 @@ boolector_cond (Btor *btor,
   int is_array_simp_if, is_array_simp_else;
 
   e_cond = BTOR_IMPORT_BOOLECTOR_NODE (n_cond);
-  e_if   = BTOR_IMPORT_BOOLECTOR_NODE (n_if);
+  e_if   = BTOR_IMPORT_BOOLECTOR_NODE (n_then);
   e_else = BTOR_IMPORT_BOOLECTOR_NODE (n_else);
   BTOR_ABORT_ARG_NULL_BOOLECTOR (btor);
   BTOR_ABORT_ARG_NULL_BOOLECTOR (e_cond);
