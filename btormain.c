@@ -422,6 +422,7 @@ print_help (BtorMainApp *app)
 
   PRINT_MAIN_OPT (app, &app->opts.output);
   fprintf (app->outfile, "\n");
+  to.dflt = 0;
   to.shrt = "x";
   to.lng  = "hex";
   to.desc = "force hexadecimal number output";
