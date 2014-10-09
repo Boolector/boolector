@@ -273,7 +273,7 @@ BTOR_DECLARE_STACK (BoolectorSortPtr, BoolectorSort *);
 void
 parse (FILE *file)
 {
-  int i, ch, delete;
+  int i, ch, delete, clone;
   size_t len, buffer_len;
   char *buffer, *tok;
   BoolectorNode **tmp;
@@ -350,7 +350,7 @@ NEXT:
       {
         exp_str = strarg ("return");
         checklastarg ("return");
-        hmap_add (hmap, btor_str, exp_str, ret_ptr);
+        hmap_add (hmap, clone ? 0 : btor_str, exp_str, ret_ptr);
       }
       else if (exp_ret == RET_INT)
       {
@@ -385,9 +385,11 @@ NEXT:
       perr ("return expected");
     }
     exp_ret = RET_NONE;
+    clone   = 0;
   }
   else
   {
+    clone = 0;
     /* get btor object for all functions except for 'new' and 'get_btor' */
     if (strcmp (tok, "new") && strcmp (tok, "get_btor"))
     {
@@ -418,6 +420,7 @@ NEXT:
     {
       exp_ret = RET_VOIDPTR;
       ret_ptr = boolector_clone (btor);
+      clone   = 1;
     }
     else if (!strcmp (tok, "match_node_by_id"))
     {
