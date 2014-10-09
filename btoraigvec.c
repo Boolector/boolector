@@ -642,7 +642,6 @@ btor_copy_aigvec (BtorAIGVecMgr *avmgr, BtorAIGVec *av)
   return result;
 }
 
-#ifdef BTOR_ENABLE_CLONING
 BtorAIGVec *
 btor_clone_aigvec (BtorAIGVec *av, BtorAIGVecMgr *avmgr, BtorAIGMap *aig_map)
 {
@@ -667,7 +666,6 @@ btor_clone_aigvec (BtorAIGVec *av, BtorAIGVecMgr *avmgr, BtorAIGMap *aig_map)
   }
   return res;
 }
-#endif
 
 void
 btor_aigvec_to_sat_tseitin (BtorAIGVecMgr *avmgr, BtorAIGVec *av)
@@ -712,7 +710,6 @@ btor_new_aigvec_mgr (BtorMemMgr *mm, BtorMsg *msg)
   return avmgr;
 }
 
-#ifdef BTOR_ENABLE_CLONING
 BtorAIGVecMgr *
 btor_clone_aigvec_mgr (BtorMemMgr *mm, BtorMsg *msg, BtorAIGVecMgr *avmgr)
 {
@@ -728,7 +725,6 @@ btor_clone_aigvec_mgr (BtorMemMgr *mm, BtorMsg *msg, BtorAIGVecMgr *avmgr)
   res->amgr = btor_clone_aig_mgr (mm, msg, avmgr->amgr);
   return res;
 }
-#endif
 
 void
 btor_delete_aigvec_mgr (BtorAIGVecMgr *avmgr)

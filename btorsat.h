@@ -104,10 +104,8 @@ BtorSATMgr *btor_new_sat_mgr (BtorMemMgr *mm, BtorMsg *msg);
 
 int btor_has_clone_support_sat_mgr (BtorSATMgr *smgr);
 
-#ifdef BTOR_ENABLE_CLONING
 /* Clones existing SAT manager (and underlying SAT solver). */
 BtorSATMgr *btor_clone_sat_mgr (BtorMemMgr *mm, BtorMsg *msg, BtorSATMgr *smgr);
-#endif
 
 BtorMemMgr *btor_mem_mgr_sat (BtorSATMgr *smgr);
 

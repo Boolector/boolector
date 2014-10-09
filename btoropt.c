@@ -181,9 +181,7 @@ btor_init_opts (Btor *btor)
             "the original formula");
 #endif
 
-#ifdef BTOR_ENABLE_DUAL_PROPAGATION
   BTOR_OPT ("dp", dual_prop, 0, 0, 1, "dual propagation optimization");
-#endif
   BTOR_OPT ("ju", just, 0, 0, 1, "justification optimization");
 #ifndef BTOR_DO_NOT_OPTIMIZE_UNCONSTRAINED
   BTOR_OPT ("uc", ucopt, 0, 0, 1, "unconstrained optimization");
@@ -303,17 +301,13 @@ btor_set_opt (Btor *btor, const char *name, int val)
     assert (val > 0);
     assert (btor->btor_sat_btor_called == 0);
   }
-#ifdef BTOR_ENABLE_DUAL_PROPAGATION
   else if (!strcmp (name, "dp") || !strcmp (name, BTOR_OPT_DUAL_PROP))
   {
     assert (!val || !btor->options.just.val);
   }
-#endif
   else if (!strcmp (name, "ju") || !strcmp (name, BTOR_OPT_JUST))
   {
-#ifdef BTOR_ENABLE_DUAL_PROPAGATION
     assert (!val || !btor->options.dual_prop.val);
-#endif
   }
   else if (!strcmp (name, "rwl") || !strcmp (name, BTOR_OPT_REWRITE_LEVEL))
   {

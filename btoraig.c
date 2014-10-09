@@ -1021,7 +1021,6 @@ btor_new_aig_mgr (BtorMemMgr *mm, BtorMsg *msg)
   return amgr;
 }
 
-#ifdef BTOR_ENABLE_CLONING
 BtorAIGMgr *
 btor_clone_aig_mgr (BtorMemMgr *mm, BtorMsg *msg, BtorAIGMgr *amgr)
 {
@@ -1207,7 +1206,6 @@ btor_cloned_aig (BtorMemMgr *mm, BtorAIG *aig, BtorAIGMap *aig_map)
   assert (caig);
   return caig;
 }
-#endif
 
 void
 btor_delete_aig_mgr (BtorAIGMgr *amgr)

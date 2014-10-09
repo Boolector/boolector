@@ -16,21 +16,19 @@
 #include "boolector.h"
 #include "btorabort.h"
 #include "btorchkclone.h"
+#include "btorclone.h"
 #include "btorconst.h"
 #include "btorcore.h"
 #include "btorexit.h"
+#include "btorhash.h"
 #include "btoriter.h"
+#include "btorparse.h"
+#include "btorsat.h"
+#include "btorsort.h"
 #include "btortrapi.h"
 #include "btorutil.h"
 #include "dumper/btordumpbtor.h"
 #include "dumper/btordumpsmt.h"
-#ifdef BTOR_ENABLE_CLONING
-#include "btorclone.h"
-#endif
-#include "btorhash.h"
-#include "btorparse.h"
-#include "btorsat.h"
-#include "btorsort.h"
 
 /*------------------------------------------------------------------------*/
 
@@ -91,15 +89,10 @@ boolector_chkclone (Btor *btor)
 {
   BTOR_ABORT_ARG_NULL_BOOLECTOR (btor);
   BTOR_TRAPI ("");
-#ifndef BTOR_ENABLE_CLONING
-  BTOR_ABORT_BOOLECTOR (1, "cloning requires lingeling as SAT solver");
-#endif
 #ifndef NDEBUG
   if (btor->clone) btor_delete_btor (btor->clone);
   btor->clone = btor; /* mark clone as going-to-be shadow clone */
-#ifdef BTOR_ENABLE_CLONING
-  btor->clone = btor_clone_btor (btor);
-#endif
+  btor->clone = boolector_clone (btor);
   assert (btor->clone->mm);
   assert (btor->clone->avmgr);
   btor_chkclone (btor);
@@ -179,15 +172,17 @@ Btor *
 boolector_clone (Btor *btor)
 {
   Btor *clone;
+  BtorSATMgr *smgr;
 
   BTOR_ABORT_ARG_NULL_BOOLECTOR (btor);
   BTOR_TRAPI ("");
-#ifdef BTOR_ENABLE_CLONING
+  smgr = btor_get_sat_mgr_btor (btor);
+  BTOR_ABORT_BOOLECTOR (
+      btor->btor_sat_btor_called > 0 && !btor_has_clone_support_sat_mgr (smgr),
+      "Cannot clone Boolector after 'boolector_sat' call since SAT solver '%s' "
+      "does not support cloning",
+      smgr->name);
   clone = btor_clone_btor (btor);
-#else
-  BTOR_ABORT_BOOLECTOR (1, "cloning requires Lingeling as SAT solver");
-  clone = 0;
-#endif
   BTOR_TRAPI_RETURN_PTR (clone);
   return clone;
 }
@@ -534,21 +529,17 @@ boolector_set_opt (Btor *btor, const char *name, int val)
                           "model generation is enabled");
   }
 #endif
-#ifdef BTOR_ENABLE_DUAL_PROPAGATION
   else if (!strcmp (name, BTOR_OPT_DUAL_PROP))
   {
     BTOR_ABORT_BOOLECTOR (
         val && btor->options.just.val,
         "enabling multiple optimization techniques is not allowed");
   }
-#endif
   else if (!strcmp (name, BTOR_OPT_JUST))
   {
-#ifdef BTOR_ENABLE_DUAL_PROPAGATION
     BTOR_ABORT_BOOLECTOR (
         val && btor->options.dual_prop.val,
         "enabling multiple optimization techniques is not allowed");
-#endif
   }
   else if (!strcmp (name, BTOR_OPT_UCOPT))
   {
