@@ -91,8 +91,8 @@ boolector_chkclone (Btor *btor)
   BTOR_TRAPI ("");
 #ifndef NDEBUG
   if (btor->clone) btor_delete_btor (btor->clone);
-  btor->clone = btor; /* mark clone as going-to-be shadow clone */
-  btor->clone = boolector_clone (btor);
+  btor->clone           = btor_clone_btor (btor);
+  btor->clone->apitrace = 0; /* disable tracing of shadow clone */
   assert (btor->clone->mm);
   assert (btor->clone->avmgr);
   btor_chkclone (btor);
@@ -3331,8 +3331,8 @@ boolector_uf_assignment (
   {
     char **cargs, **cvalues;
     int i, csize;
-    boolector_array_assignment (
-        btor, BTOR_CLONED_EXP (e_uf), &cargs, &cvalues, &csize);
+    boolector_uf_assignment (
+        btor->clone, BTOR_CLONED_EXP (e_uf), &cargs, &cvalues, &csize);
     assert (csize == *size);
     for (i = 0; i < *size; i++)
     {
