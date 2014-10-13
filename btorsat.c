@@ -94,7 +94,6 @@ btor_has_clone_support_sat_mgr (BtorSATMgr *smgr)
   return (!strcmp (smgr->name, "Lingeling"));
 }
 
-#ifdef BTOR_ENABLE_CLONING
 // FIXME log output handling, in particular: sat manager name output
 // (see btor_lingeling_sat) should be unique, which is not the case for
 // clones
@@ -120,7 +119,6 @@ btor_clone_sat_mgr (BtorMemMgr *mm, BtorMsg *msg, BtorSATMgr *smgr)
           (char *) smgr + sizeof (*smgr) - (char *) &smgr->inc_required);
   return res;
 }
-#endif
 
 int
 btor_is_initialized_sat (BtorSATMgr *smgr)

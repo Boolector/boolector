@@ -252,12 +252,11 @@ cdef class BoolectorNode:
     cdef btorapi.BoolectorNode * _c_node
 
     def __init__(self, Boolector boolector):
-        # TODO @mathias
-        # assertion: user may not create BoolectorNode
         self.btor = boolector
 
     def __dealloc__(self):
-        assert(self._c_node is not NULL)
+        if self._c_node is NULL:
+            raise _BoolectorException("BoolectorNode not initialized correctly")
         btorapi.boolector_release(self.btor._c_btor, self._c_node)
 
     def __richcmp__(BoolectorNode x, BoolectorNode y, opcode):
@@ -330,10 +329,10 @@ cdef class BoolectorNode:
                 model = []
                 if size > 0:
                     for i in range(size):
-                        # TODO @mathias
-                        # split index in case of functions
                         index = _to_str(c_str_i[i])
                         value = _to_str(c_str_v[i])
+                        if isinstance(self, _BoolectorFunNode):
+                            index = index.split()
                         model.append((index, value))
                     if isinstance(self, _BoolectorArrayNode):
                         btorapi.boolector_free_array_assignment(
@@ -524,6 +523,7 @@ cdef class Boolector:
     The class representing a Boolector instance.
     """
     cdef btorapi.Btor * _c_btor
+    cdef list _option_names
 
     UNKNOWN = 0
     SAT = 10
@@ -535,6 +535,7 @@ cdef class Boolector:
             self._c_btor = btorapi.boolector_new()
         else:
             self._c_btor = btorapi.boolector_clone(parent._c_btor)
+        self._option_names = [o.lng for o in self.Options()]
         if self._c_btor is NULL:
             raise MemoryError()
 
@@ -834,6 +835,8 @@ cdef class Boolector:
             :param value: Option value.
             :type value:  int
         """
+        if opt not in self._option_names:
+            raise _BoolectorException("Invalid Boolector option name")
         btorapi.boolector_set_opt(self._c_btor, _ChPtr(opt)._c_str, value)
 
     def Get_opt(self, str opt):
@@ -849,6 +852,8 @@ cdef class Boolector:
             :return: Option with name ``opt``.
             :rtype: :class:`~boolector.BoolectorOpt`
         """
+        if opt not in self._option_names:
+            raise _BoolectorException("Invalid Boolector option name")
         return BoolectorOpt(self, opt)
 
     def Options(self):
@@ -868,9 +873,7 @@ cdef class Boolector:
         """
         return BoolectorOptions(self)
 
-    # TODO nofork bool
-    # TODO return value
-    def Set_sat_solver(self, str solver, str optstr = None, int nofork = 0):
+    def Set_sat_solver(self, str solver, str optstr = None, bool clone = True):
         """ Set_sat_solver(solver, optstr = None, nofork = 0)
 
             Set the SAT solver to use.
@@ -898,12 +901,11 @@ cdef class Boolector:
         """
         solver = solver.strip().lower()
         if solver == "lingeling":
-            btorapi.boolector_set_sat_solver_lingeling(self._c_btor,
-                                                       _ChPtr(optstr)._c_str,
-                                                       nofork)
+            return btorapi.boolector_set_sat_solver_lingeling(
+                        self._c_btor, _ChPtr(optstr)._c_str, not clone) == 1
         else:
-            btorapi.boolector_set_sat_solver(self._c_btor,
-                                             _ChPtr(solver)._c_str)
+            return btorapi.boolector_set_sat_solver(
+                        self._c_btor, _ChPtr(solver)._c_str) == 1
 
     def Set_msg_prefix(self, str prefix):
         """ Set_msg_prefix(prefix)

@@ -14,18 +14,16 @@
 #include "btorcore.h"
 #include "btorbeta.h"
 #include "btorbitvec.h"
+#include "btorclone.h"
 #include "btorconfig.h"
 #include "btorconst.h"
-#include "btoropt.h"
-#ifdef BTOR_ENABLE_CLONING
-#include "btorclone.h"
-#endif
 #include "btorexit.h"
 #include "btoriter.h"
 #include "btorlog.h"
 #include "btormisc.h"
 #include "btormodel.h"
 #include "btormsg.h"
+#include "btoropt.h"
 #include "btorparamcache.h"
 #include "btorrewrite.h"
 #include "btorsat.h"
@@ -119,9 +117,7 @@
 /*------------------------------------------------------------------------*/
 
 static int btor_sat_aux_btor (Btor *, int, int);
-#ifdef BTOR_ENABLE_DUAL_PROPAGATION
 static int btor_sat_aux_btor_dual_prop (Btor *);
-#endif
 static BtorAIG *exp_to_aig (Btor *, BtorNode *);
 
 #ifdef BTOR_CHECK_MODEL
@@ -753,7 +749,6 @@ btor_print_stats_btor (Btor *btor)
             "partial beta reduction restarts: %lld",
             btor->stats.partial_beta_reduction_restarts);
 
-#ifdef BTOR_ENABLE_DUAL_PROPAGATION
   if (btor->options.dual_prop.val)
   {
     BTOR_MSG (btor->msg,
@@ -767,7 +762,6 @@ btor_print_stats_btor (Btor *btor)
               btor->stats.dp_failed_applies,
               btor->stats.dp_assumed_applies);
   }
-#endif
 
   BTOR_MSG (btor->msg, 1, "");
   BTOR_MSG (btor->msg, 1, "%.2f seconds beta-reduction", btor->time.beta);
@@ -789,7 +783,6 @@ btor_print_stats_btor (Btor *btor)
             1,
             "%.2f seconds initial applies search",
             btor->time.search_init_apps);
-#ifdef BTOR_ENABLE_DUAL_PROPAGATION
   if (btor->options.dual_prop.val)
   {
     BTOR_MSG (btor->msg,
@@ -816,7 +809,6 @@ btor_print_stats_btor (Btor *btor)
         "%.2f seconds cone traversal when collecting initial applies via FA",
         btor->time.search_init_apps_collect_fa_cone);
   }
-#endif
   BTOR_MSG (btor->msg,
             1,
             "%.2f seconds determinig failed assumptions",
@@ -831,13 +823,11 @@ btor_print_stats_btor (Btor *btor)
             1,
             "%.2f seconds propagation apply search",
             btor->time.find_prop_app);
-#ifdef BTOR_ENABLE_DUAL_PROPAGATION
   if (btor->options.dual_prop.val)
     BTOR_MSG (btor->msg,
               1,
               "%.2f seconds propagation apply in conds search",
               btor->time.find_cond_prop_app);
-#endif
   BTOR_MSG (btor->msg, 1, "%.2f seconds for cloning", btor->time.cloning);
   BTOR_MSG (btor->msg,
             1,
@@ -2419,11 +2409,9 @@ simplify_constraint_exp (Btor *btor, BtorNode *exp)
 
   real_exp = BTOR_REAL_ADDR_NODE (exp);
 
-#ifdef BTOR_ENABLE_DUAL_PROPAGATION
   /* Do not simplify top-level constraint applies (we need the implication
    * dependencies for determining top applies when dual prop enabled) */
   if (btor->options.dual_prop.val && BTOR_IS_APPLY_NODE (real_exp)) return exp;
-#endif
 
   not_exp = BTOR_INVERT_NODE (real_exp);
 
@@ -5115,7 +5103,6 @@ bv_assignment_str_exp (Btor *btor, BtorNode *exp)
 }
 
 static void compute_scores (Btor *);
-#ifdef BTOR_ENABLE_DUAL_PROPAGATION
 static void compute_scores_dual_prop (Btor *);
 
 static int
@@ -5148,7 +5135,6 @@ compare_scores_qsort (const void *p1, const void *p2)
 
   return 0;
 }
-#endif
 
 static int
 cmp_node_id_desc (const void *p, const void *q)
@@ -5158,7 +5144,6 @@ cmp_node_id_desc (const void *p, const void *q)
   return b->id - a->id;
 }
 
-#ifdef BTOR_ENABLE_DUAL_PROPAGATION
 static int
 cmp_node_id_asc (const void *p, const void *q)
 {
@@ -5493,7 +5478,6 @@ search_initial_applies_dual_prop (Btor *btor,
 
   btor->time.search_init_apps += btor_time_stamp () - start;
 }
-#endif
 
 #ifdef BTOR_JUST_BRANCH_MIN_DEPTH
 static int
@@ -5812,7 +5796,6 @@ compute_scores (Btor *btor)
   compute_scores_aux (btor, &it);
 }
 
-#ifdef BTOR_ENABLE_DUAL_PROPAGATION
 static void
 compute_scores_dual_prop (Btor *btor)
 {
@@ -5888,7 +5871,6 @@ compute_scores_dual_prop (Btor *btor)
   BTOR_RELEASE_STACK (btor->mm, stack);
   BTOR_RELEASE_STACK (btor->mm, unmark_stack);
 }
-#endif
 #endif
 
 static void
@@ -6757,7 +6739,6 @@ add_lemma (Btor *btor, BtorNode *fun, BtorNode *app0, BtorNode *app1)
                                          (BtorHashPtr) btor_hash_exp_by_id,
                                          (BtorCmpPtr) btor_compare_exp_by_id);
 
-#ifdef BTOR_ENABLE_DUAL_PROPAGATION
   // TODO: right now we have to build lemmas with rwl 1 with the current
   //	   dual propagation implementation, since cloning the lemma needs to
   //	   produce the same expressions
@@ -6766,7 +6747,6 @@ add_lemma (Btor *btor, BtorNode *fun, BtorNode *app0, BtorNode *app1)
     rwl = btor->options.rewrite_level.val;
     btor_set_opt (btor, BTOR_OPT_REWRITE_LEVEL, 1);
   }
-#endif
 
   /* function congruence axiom conflict */
   if (app1)
@@ -7102,16 +7082,12 @@ propagate (Btor *btor,
 
   BTOR_INIT_STACK (param_apps);
 
-  mm = btor->mm;
-#ifdef BTOR_ENABLE_DUAL_PROPAGATION
+  mm          = btor->mm;
   check_conds = btor->options.dual_prop.val || btor->options.just.val;
-#else
-  check_conds = btor->options.just.val;
-#endif
-  to_prop = btor_new_ptr_hash_table (mm,
+  to_prop     = btor_new_ptr_hash_table (mm,
                                      (BtorHashPtr) btor_hash_exp_by_id,
                                      (BtorCmpPtr) btor_compare_exp_by_id);
-  conds   = check_conds
+  conds       = check_conds
               ? btor_new_ptr_hash_table (mm,
                                          (BtorHashPtr) btor_hash_exp_by_id,
                                          (BtorCmpPtr) btor_compare_exp_by_id)
@@ -7484,11 +7460,6 @@ check_and_resolve_conflicts (Btor *btor,
 {
   assert (btor);
   assert (btor->ops[BTOR_FEQ_NODE].cur == 0);
-#ifndef BTOR_ENABLE_DUAL_PROPAGATION
-  (void) clone;
-  (void) clone_root;
-  (void) exp_map;
-#endif
 
   int i, found_conflict, changed_assignments;
   BtorMemMgr *mm;
@@ -7520,12 +7491,10 @@ BTOR_CONFLICT_CHECK:
                                  (BtorCmpPtr) btor_compare_exp_by_id);
   }
 
-#ifdef BTOR_ENABLE_DUAL_PROPAGATION
   if (clone)
     search_initial_applies_dual_prop (
         btor, clone, clone_root, exp_map, &top_applies);
   else
-#endif
   {
     if (btor->options.just.val)
       search_initial_applies_just (btor, &top_applies);
@@ -7635,7 +7604,6 @@ BTOR_CONFLICT_CHECK:
   return found_conflict;
 }
 
-#ifdef BTOR_ENABLE_DUAL_PROPAGATION
 static Btor *
 new_exp_layer_clone_for_dual_prop (Btor *btor,
                                    BtorNodeMap **exp_map,
@@ -7734,7 +7702,6 @@ add_lemma_to_dual_prop_clone (Btor *btor,
   btor_release_exp (clone, *root);
   *root = and;
 }
-#endif
 
 static int
 btor_sat_aux_btor (Btor *btor, int lod_limit, int sat_limit)
@@ -7747,9 +7714,7 @@ btor_sat_aux_btor (Btor *btor, int lod_limit, int sat_limit)
   Btor *clone;
   BtorNode *clone_root;
   BtorNodeMap *exp_map;
-#ifdef BTOR_ENABLE_DUAL_PROPAGATION
   int simp_sat_result;
-#endif
 #ifdef BTOR_CHECK_FAILED
   Btor *faclone = 0;
 #endif
@@ -7764,10 +7729,7 @@ btor_sat_aux_btor (Btor *btor, int lod_limit, int sat_limit)
 
   BTOR_MSG (btor->msg, 1, "calling SAT");
 
-#ifdef BTOR_ENABLE_DUAL_PROPAGATION
-  simp_sat_result =
-#endif
-      btor_simplify (btor);
+  simp_sat_result = btor_simplify (btor);
   update_assumptions (btor);
 
 #ifdef BTOR_CHECK_FAILED
@@ -7839,13 +7801,11 @@ btor_sat_aux_btor (Btor *btor, int lod_limit, int sat_limit)
   else
     sat_result = btor_timed_sat_sat (btor, -1);
 
-#ifdef BTOR_ENABLE_DUAL_PROPAGATION
   if (btor->options.dual_prop.val && sat_result == BTOR_SAT
       && simp_sat_result != BTOR_SAT)
   {
     clone = new_exp_layer_clone_for_dual_prop (btor, &exp_map, &clone_root);
   }
-#endif
 
   while (sat_result == BTOR_SAT)
   {
@@ -7854,9 +7814,7 @@ btor_sat_aux_btor (Btor *btor, int lod_limit, int sat_limit)
 
     if (!found_conflict) break;
 
-#ifdef BTOR_ENABLE_DUAL_PROPAGATION
     if (clone) add_lemma_to_dual_prop_clone (btor, clone, &clone_root, exp_map);
-#endif
 
     if (btor->options.verbosity.val == 1)
     {
@@ -7929,7 +7887,6 @@ DONE:
   return sat_result;
 }
 
-#ifdef BTOR_ENABLE_DUAL_PROPAGATION
 static int
 btor_sat_aux_btor_dual_prop (Btor *btor)
 {
@@ -8015,7 +7972,6 @@ DONE:
 #endif
   return sat_result;
 }
-#endif
 
 #ifdef BTOR_ENABLE_BETA_REDUCTION_PROBING
 static int

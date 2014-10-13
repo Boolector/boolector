@@ -100,10 +100,8 @@ typedef struct BtorOpts
   BtorOpt pbra_ops_factor;       /* factor by which the beta reduced formula
                                     may be greater than the original */
 #endif
-#ifdef BTOR_ENABLE_DUAL_PROPAGATION
   BtorOpt dual_prop; /* dual prop optimization */
-#endif
-  BtorOpt just; /* justification optimization */
+  BtorOpt just;      /* justification optimization */
 #ifndef BTOR_DO_NOT_OPTIMIZE_UNCONSTRAINED
   BtorOpt ucopt; /* unconstrained optimization */
 #endif

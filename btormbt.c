@@ -2095,6 +2095,12 @@ _new (BtorMBT *btormbt, unsigned r)
 
   btormbt->btor = boolector_new ();
   assert (btormbt->btor);
+  if (btormbt->shadow)
+  {
+    BTORMBT_LOG (1, "initial shadow clone...");
+    /* cleanup done by boolector */
+    boolector_chkclone (btormbt->btor);
+  }
   return _opt;
 }
 

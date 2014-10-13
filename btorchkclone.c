@@ -183,9 +183,7 @@ btor_chkclone_opts (Btor *btor)
   BTOR_CHKCLONE_OPT (pbra_ops_factor);
 #endif
 
-#ifdef BTOR_ENABLE_DUAL_PROPAGATION
   BTOR_CHKCLONE_OPT (dual_prop);
-#endif
   BTOR_CHKCLONE_OPT (just);
 #ifndef BTOR_DO_NOT_OPTIMIZE_UNCONSTRAINED
   BTOR_CHKCLONE_OPT (ucopt);

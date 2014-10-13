@@ -870,11 +870,7 @@ btor_beta_reduce_partial_aux (Btor *btor,
                   && !btor_find_in_ptr_hash_table (conds,
                                                    BTOR_REAL_ADDR_NODE (e[0])))
               {
-#ifdef BTOR_ENABLE_DUAL_PROPAGATION
                 assert (btor->options.dual_prop.val || btor->options.just.val);
-#else
-                assert (btor->options.just.val);
-#endif
                 btor_insert_in_ptr_hash_table (
                     conds, btor_copy_exp (btor, BTOR_REAL_ADDR_NODE (e[0])));
               }
