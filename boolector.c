@@ -3388,6 +3388,8 @@ boolector_print_model (Btor *btor, FILE *file)
   BTOR_ABORT_ARG_NULL_BOOLECTOR (btor);
   BTOR_ABORT_ARG_NULL_BOOLECTOR (file);
   BTOR_TRAPI ("");
+  BTOR_ABORT_BOOLECTOR (!btor->options.model_gen.val,
+                        "model generation has not been enabled");
   btor_print_model (btor, file);
 #ifndef NDEBUG
   BTOR_CHKCLONE_NORES (print_model, file);
