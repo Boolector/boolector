@@ -5268,7 +5268,9 @@ collect_applies (Btor *btor,
 
     if (btor_failed_exp (clone, bv_eq))
     {
-      BTORLOG ("failed: %s", node2string (cur_btor));
+      BTORLOG ("failed: %s (%s)",
+               node2string (cur_btor),
+               btor_get_symbol_exp (btor, cur_btor));
       assert (!cur_btor->parameterized);
       if (BTOR_IS_BV_VAR_NODE (cur_btor))
         btor->stats.dp_failed_vars += 1;
