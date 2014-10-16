@@ -1575,6 +1575,7 @@ BoolectorNode *boolector_match_node_by_id (Btor *btor, int id);
  * \remark Note that matching a node against another increases the reference
  * count of the returned match, which must therefore be released appropriately
  * (\ref boolector_release).
+ * Only nodes created before the \ref boolector_clone call can be matched.
  */
 BoolectorNode *boolector_match_node (Btor *btor, BoolectorNode *node);
 
@@ -1614,6 +1615,8 @@ void boolector_set_symbol (Btor *btor, BoolectorNode *var, const char *symbol);
  *
  * If the expression
  * is an array, it returns the bit width of the array elements.
+ * If the expression
+ * is a function, it returns the bit width of the function's return value.
  *
  * \param btor Boolector instance.
  * \param node Boolector node.
