@@ -93,7 +93,7 @@ Quickstart
   print the resulting model via :func:`~boolector.Boolector.Print_model`,
   or query assignments
   of bit vector and array variables or uninterpreted functions via
-  :data:`~boolector._BoolectorNode.assignment`. 
+  :data:`~boolector.BoolectorNode.assignment`. 
   Note that querying assignments is not limited to variables---you can query 
   the assignment of any arbitrary expression.
  
