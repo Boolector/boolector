@@ -119,9 +119,9 @@ Quickstart
     2 00000100 x
     3 00010101 y
   
-  which in this case indicates the assignments of bit vector variables 
+  which in this case prints the assignments of bit vector variables 
   ``x`` and ``y``. Note that the first column indicates the id of an input, 
-  the second column its assignment, and the third column its name (or symbol)
+  the second column its assignment, and the third column its name (symbol),
   if any. 
   In the case that the formula includes arrays as input, their values at a
   certain index are indicated as follows: ::
