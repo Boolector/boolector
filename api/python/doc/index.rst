@@ -32,12 +32,12 @@ Quickstart
 
   First, create a Boolector instance: ::
     
-    btor = Boolector () 
+    btor = Boolector() 
 
   You can configure this instance via :func:`~boolector.Boolector.Set_opt`.
   E.g., if you want to enable model generation: ::
    
-    btor.Set_opt ("model_gen", 1)
+    btor.Set_opt("model_gen", 1)
   
   For a detailed description of all configurable options, see
   :func:`~boolector.Boolector.Set_opt`.
@@ -73,37 +73,18 @@ Quickstart
   Given the Boolector instance created above, we generate and assert
   the following expressions: ::
   
-    x = btor.Var(8, "X")
-    y = btor.Var(8, "Y")
-    zero = btor.Const(0, 8)
-    hundred = btor.Const(100, 8)
- 
-    # 0 < x
-    slt_x = btor.Slt(zero, x)
-    btor.Assert(slt_x)
- 
-    # x <= 100
-    slte_x = btor.Slte(x, hundred)
-    btor.Assert(slte_x)
- 
-    # 0 < y
-    slt_y = btor.Slt(zero, y)
-    btor.Assert(slt_y)
-  
-    # y <= 100
-    slte_y = btor.Slte(y, hundred)
-    btor.Assert(slte_y)
-  
-    # x * y
-    mul = btor.Mul(x, y)
-  
-    # x * y < 100
-    slt = btor.Slt(mul, hundred)
-    btor.Assert(slt)
-    smulo = btor.Smulo(x, y)
-    nsmulo = btor.Not(smulo)  # prevent overflow
-    btor.Assert(nsmulo)
- 
+    x = btor.Var(8, "x")
+    y = btor.Var(8, "y")
+
+    btor.Assert(0 < x)
+    btor.Assert(x <= 100)
+    btor.Assert(0 < y)
+    btor.Assert(y <= 100)
+    btor.Assert(x * y < 100)
+
+    umulo = btor.Umulo(x, y)  # overflow bit of x * y
+    btor.Assert(~umulo)       # do not allow overflows
+
   After parsing an input file and/or asserting/assuming expressions,
   the satisfiability of the resulting formula can be determined via
   :func:`~boolector.Boolector.Sat`.
@@ -121,12 +102,12 @@ Quickstart
   
    result = btor.Sat()
   
-  Now you can either query the assignments of variables ``X`` and ``Y`` ::
+  Now you can either query the assignments of variables ``x`` and ``y`` ::
 
-    print (x.assignment);  # prints: 00001001
-    print (y.assignment);  # prints: 00000010
-    print ("{} {}".format(x.symbol, x.assignment))  # prints: X 00001001
-    print ("{} {}".format(y.symbol, y.assignment))  # prints: Y 00000010
+    print(x.assignment)  # prints: 00000100
+    print(y.assignment)  # prints: 00010101
+    print("{} {}".format(x.symbol, x.assignment))  # prints: x 00000100
+    print("{} {}".format(y.symbol, y.assignment))  # prints: y 00010101 
 
   or print the resulting model to stdout via 
   :func:`~boolector.Boolector.Print_model` : ::
@@ -135,21 +116,140 @@ Quickstart
   
   A possible model would be: ::
   
-    2 00001001 X
-    3 00000010 Y
+    2 00000100 x
+    3 00010101 y
   
   which in this case indicates the assignments of bit vector variables 
-  X and Y. Note that the first column indicates the id of an input, 
+  ``x`` and ``y``. Note that the first column indicates the id of an input, 
   the second column its assignment, and the third column its name (or symbol)
   if any. 
   In the case that the formula includes arrays as input, their values at a
   certain index are indicated as follows: ::
 
-    4[0] 1 A \endverbatim
+    4[00] 01 A
   
-  where A has id 4 and is an array with index and element bit width of 1, 
+  where A has id 4 and is an array with index and element bit width of 2, 
   and its value at index 0 is 1.
 
+
+.. _operator-overloading:
+
+Python Operator Overloading
+^^^^^^^^^^^^^^^^^^^^^^^^^^^
+  For convenience the Boolector Python API provides the following overloaded
+  operators on bit vectors (:class:`~boolector.BoolectorBVNode`):
+
+  **Arithmetic operators:** ``+ - * / %`` ::
+
+    x = btor.Var(32)
+    y = btor.Var(32)
+
+    bvadd  = x + y  # btor.Add(x, y)
+    bvsub  = x - y  # btor.Sub(x, y)
+    bvmul  = x * y  # btor.Mul(x, y)
+    bvudiv = x / y  # btor.Udiv(x, y)
+    bvurem = x % y  # btor.Urem(x, y)
+    bvneg  = -x     # btor.Neg(x)
+
+  **Bitwise operators:** ``~ & | ^ << >>`` ::
+
+    z = btor.Var(5)
+
+    bvnot = ~x      # btor.Not(x)
+    bvand = x & y   # btor.And(x, y)
+    bvor  = x | y   # btor.Or(x, y)
+    bvxor = x ^ y   # btor.Xor(x, y)
+    bvshl = x << z  # btor.Sll(x, z) 
+    bvshr = x >> z  # btor.Srl(x, z) 
+
+  **Comparison operators:** ``< <= == != >= >`` ::
+
+    lt   = x < y   # btor.Ult(x, y)
+    lte  = x <= y  # btor.Ulte(x, y)
+    eq   = x == y  # btor.Eq(x, y)
+    ne   = x != y  # btor.Ne(x, y)
+    ugte = x >= y  # btor.Ugte(x, y)
+    ugt  = x > y   # btor.Ugt(x, y)
+
+  **Python slices:**
+  It is possible to use Python slices on bit vectors (see 
+  :func:`~boolector.Boolector.Slice`), e.g.: ::
+
+    slice_5_2  = x[5:2]  # btor.Slice(x, 5, 2)
+    slice_5_0  = x[5:]   # btor.Slice(x, 5, 0)
+    slice_31_5 = x[:5]   # btor.Slice(x, x.width - 1, 5)
+    slice_31_0 = x[:]    # btor.Slice(x, x.width - 1, 0) -- copies variable 'x'
+
+  Further, the API also provides convenient ways to create reads
+  (see :func:`~boolector.Boolector.Read`) on arrays and function applications
+  (see :func:`~boolector.Boolector.Apply`).
+
+  **Reads on arrays:** ::
+
+    a = btor.Array(8, 32)
+
+    read = a[x]  # btor.Read(a, x) 
+
+  **Function applications:** ::
+  
+    bv8 = btor.BitVecSort(8)
+    bv32 = btor.BitVecSort(32)
+    f = btor.UF(btor.FunSort([bv32, bv32], bv8))
+
+    app = f(x, y)  # btor.Apply([x, y], f)
+
+
+.. _const-conversion:
+
+Automatic Constant Conversion
+^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
+                                          
+  For almost every method of :class:`~boolector.Boolector` that creates nodes,
+  the Python API allows to also pass constants as arguments instead of
+  :class:`~boolector.BoolectorNode`. The only requirement is that it must
+  be possible to derive the bit width of the constant operands from the
+  remaining operands. For example, binary operators like
+  :func:`~boolector.Boolector.Add`
+  require that both operands have the same bit width. Hence, one of their
+  operands may be a constant, whose bit width will be derived from the other
+  non-constant operand, e.g.: ::
+
+    btor.Add(x, 42)         # btor.Add(x, btor.Const(42, x.width))
+    btor.And(0x2a, x)       # btor.And(btor.Const(0x2a, x.width), x)
+    btor.Udiv(0b101010, x)  # btor.Udiv(btor.Const(0b101010, x.width), x)
+           
+  For all shift operations it is possible to define the shift width as
+  constant, e.g.: ::
+
+    btor.Sll(x, 5)  # btor.Sll(x, btor.Const(5, math.ceil(math.log(x.width, 2)))) 
+    btor.Ror(x, 5)  # btor.Ror(x, btor.Const(5, math.ceil(math.log(x.width, 2)))) 
+
+  For operations on arrays all arguments may be constant (except the array
+  itself) since the bit width of the operands can be derived from the array,
+  e.g.: ::
+
+    btor.Read(a, 42)       # btor.Read(a, btor.Const(42, a.index_with))
+    btor.Write(a, 42, 10)  # btor.Write(a, btor.Const(42, a.index_width), btor.Const(10, a.width))
+
+  This also applies to the arguments of function applications, which can be
+  derived from the function's signature, e.g.: ::
+
+    btor.Apply([42, 10], f)  # btor.Apply([btor.Const(42, ...), btor.Const(10, ...)], f)
+
+  .. note::
+    Automatic constant conversion is not possible for the following operators:
+    :func:`~boolector.Boolector.Not`,
+    :func:`~boolector.Boolector.Neg`,
+    :func:`~boolector.Boolector.Redor`,
+    :func:`~boolector.Boolector.Redxor`,
+    :func:`~boolector.Boolector.Redand`,
+    :func:`~boolector.Boolector.Slice`,
+    :func:`~boolector.Boolector.Uext`,
+    :func:`~boolector.Boolector.Sext`,
+    :func:`~boolector.Boolector.Inc`,
+    :func:`~boolector.Boolector.Dec`, and
+    :func:`~boolector.Boolector.Concat`
+    as the bit with of the resulting node cannot be determined.
 
 Options
 -------
@@ -165,7 +265,7 @@ Options
   E.g., given a Boolector instance ``btor``, model generation is enabled either 
   via ::
   
-    btor.Set_opt ("model_gen", 1)
+    btor.Set_opt("model_gen", 1)
   
   or via setting the environment variable ::
 
@@ -187,7 +287,7 @@ API Tracing
   follows: ::
    
     BTORAPITRACE="error.trace"
- 
+
 
 Internals
 ---------

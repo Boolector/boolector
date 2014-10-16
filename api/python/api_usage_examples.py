@@ -244,8 +244,8 @@ if __name__ == "__main__":
     _apply2   = _fun(1, 2)
     _apply3   = b.Apply([_true, _false, _var, _var], _uf)
     _apply4   = b.Apply([1, True, 3, 42], _uf)
-    _apply4   = b.Apply([1, False, 3, 42], _uf)
-    _apply5   = _uf(1, False, 3, 42)
+    _apply5   = b.Apply([1, False, 3, 42], _uf)
+    _apply6   = _uf(1, False, 3, 42)
 
 ### Node attributes and methods
 
@@ -300,9 +300,14 @@ if __name__ == "__main__":
 #    print(o.max)  # max value
 #    print(o.dflt) # default value
 #    print(o.val)  # current value
+
+    # Set SAT solver (can only be done before the first Sat() call)
+    # Lingeling is the default SAT solver
+    b.Set_sat_solver("MiniSAT")
     
     # Assert formulas
     b.Assert(_cond0[1])
+    b.Assert(_apply5 != _apply3)
 
     # Assume formulas
     b.Assume(_cond1[1])
@@ -310,12 +315,14 @@ if __name__ == "__main__":
     # Run simplification separately
     res = b.Simplify()
 
+    # Clone boolector instance 'b'
+    bb = b.Clone()
+
     # Check sat
     res = b.Sat()
     # Check sat with limits
 #    res = b.Sat(100, 10000)
 #    res = b.Sat(lod_limit=100, sat_limit=10000)
-
 
     # Get model or query assignments for nodes
     if res == b.SAT:
@@ -328,9 +335,8 @@ if __name__ == "__main__":
 #        print("Query assignments:")
 #        print("{} {}".format(_var.symbol, _var.assignment))
 #        print("{} {}".format(_array.symbol, _array.assignment))
+#        print("{} {}".format(_uf.symbol, _uf.assignment))
 
-    # Clone boolector instance 'b'
-    bb = b.Clone()
     # Get matching node of _cond0 in clone 'bb'
     _cond0_matched = bb.Match(_cond0)
     # Assume

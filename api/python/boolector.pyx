@@ -21,7 +21,8 @@ g_tunable_options = {"rewrite_level", "rewrite_level_pbr",
                      "dual_prop", "just", "ucopt", "lazy_synthesize",
                      "eliminate_slices"}
 
-class _BoolectorException(Exception):
+class BoolectorException(Exception):
+    """ The class representing a Boolector exception."""
     def __init__(self, msg):
         self.msg = msg
 
@@ -55,28 +56,28 @@ def _is_power2(int num):
     return num != 0 and (num & (num - 1)) == 0
 
 cdef _to_node(x, y):
-    if isinstance(x, _BoolectorBVNode) and isinstance(y, _BoolectorBVNode):
-        if (<_BoolectorBVNode> x).width != (<_BoolectorBVNode> y).width:
-            raise _BoolectorException(
+    if isinstance(x, BoolectorBVNode) and isinstance(y, BoolectorBVNode):
+        if (<BoolectorBVNode> x).width != (<BoolectorBVNode> y).width:
+            raise BoolectorException(
                       "Both operands must have the same bit width")
         return x, y
-    elif not (isinstance(x, _BoolectorBVNode) or
-              isinstance(y, _BoolectorBVNode)):
-        raise _BoolectorException("At least one of the operands must be of "\
-                                 "type '_BoolectorBVNode'") 
-    if isinstance(x, _BoolectorBVNode):
-        btor = (<_BoolectorBVNode> x).btor
-        width = (<_BoolectorBVNode> x).width
+    elif not (isinstance(x, BoolectorBVNode) or
+              isinstance(y, BoolectorBVNode)):
+        raise BoolectorException("At least one of the operands must be of "\
+                                 "type 'BoolectorBVNode'") 
+    if isinstance(x, BoolectorBVNode):
+        btor = (<BoolectorBVNode> x).btor
+        width = (<BoolectorBVNode> x).width
     else:
-        assert(isinstance(y, _BoolectorBVNode))
-        btor = (<_BoolectorBVNode> y).btor
-        width = (<_BoolectorBVNode> y).width
+        assert(isinstance(y, BoolectorBVNode))
+        btor = (<BoolectorBVNode> y).btor
+        width = (<BoolectorBVNode> y).width
 
     x = btor.Const(x, width)
     y = btor.Const(y, width)
     return x, y
 
-cdef int _get_argument_width(_BoolectorFunNode fun, int pos):
+cdef int _get_argument_width(BoolectorFunNode fun, int pos):
     if fun._params:
         return (<BoolectorNode> fun._params[pos]).width
     else:
@@ -89,33 +90,33 @@ cdef int _get_argument_width(_BoolectorFunNode fun, int pos):
             assert(isinstance(sort, _BoolectorBitVecSort))
             return (<_BoolectorBitVecSort> sort)._width
 
-def _check_precond_shift(_BoolectorBVNode a, _BoolectorBVNode b):
+def _check_precond_shift(BoolectorBVNode a, BoolectorBVNode b):
     if not _is_power2(a.width):
-        raise _BoolectorException(
+        raise BoolectorException(
                   "Bit width of operand 'a' must be a power of 2")
     if int(math.log(a.width, 2)) != b.width:
-        raise _BoolectorException(
+        raise BoolectorException(
                   "Bit width of operand 'b' must be equal to "\
                   "log2(bit width of a)") 
 
-def _check_precond_slice(_BoolectorBVNode a, int upper, int lower):
+def _check_precond_slice(BoolectorBVNode a, int upper, int lower):
         if upper >= a.width:
-            raise _BoolectorException(
+            raise BoolectorException(
                       "Upper limit of slice must be lower than the bit width "\
                       "of the bit vector")
         if lower < 0 or lower > upper:
-            raise _BoolectorException("Lower limit must be within the bounds "\
+            raise BoolectorException("Lower limit must be within the bounds "\
                                       "of [upper:0]")
 
 def _check_precond_cond(cond, a, b):
     if isinstance(cond, int) and (cond > 1 or cond < 0):
-        raise _BoolectorException(
+        raise BoolectorException(
                   "'cond' needs to either boolean or an integer of 0 or 1")
-    if not (isinstance(a, _BoolectorBVNode) or
-            isinstance(b, _BoolectorBVNode)) and \
-       not (isinstance(a, _BoolectorArrayNode) and
-            isinstance(b, _BoolectorArrayNode)):
-        raise _BoolectorException(
+    if not (isinstance(a, BoolectorBVNode) or
+            isinstance(b, BoolectorBVNode)) and \
+       not (isinstance(a, BoolectorArrayNode) and
+            isinstance(b, BoolectorArrayNode)):
+        raise BoolectorException(
                   "At least one of the operands must be a bit vector")
 
 # sort wrapper classes
@@ -196,39 +197,53 @@ cdef class BoolectorOpt:
         elif opcode == 3:
             return opt0.name != opt1.name
         else:
-            raise _BoolectorException("Opcode '{}' not implemented for "\
+            raise BoolectorException("Opcode '{}' not implemented for "\
                                      "__richcmp__".format(opcode))
 
     property shrt:
+        """ The short name of a Boolector option. 
+        """
         def __get__(self):
             return _to_str(btorapi.boolector_get_opt_shrt(self.btor._c_btor,
                                                           self.__chptr._c_str))
 
     property lng:
+        """ The long name of a Boolector option.
+        """
         def __get__(self):
             return self.name
 
     property desc:
+        """ The description of a Boolector option. 
+        """
         def __get__(self):
             return _to_str(btorapi.boolector_get_opt_desc(self.btor._c_btor,
                                                           self.__chptr._c_str))
 
     property val:
+        """ The current value of a Boolector option. 
+        """
         def __get__(self):
             return btorapi.boolector_get_opt_val(self.btor._c_btor,
                                                  self.__chptr._c_str)
 
     property dflt:
+        """ The default value of a Boolector option. 
+        """
         def __get__(self):
             return btorapi.boolector_get_opt_dflt(self.btor._c_btor,
                                                   self.__chptr._c_str)
 
     property min:
+        """ The minimum value of a Boolector option. 
+        """
         def __get__(self):
             return btorapi.boolector_get_opt_min(self.btor._c_btor,
                                                  self.__chptr._c_str)
 
     property max:
+        """ The maximum value of a Boolector option. 
+        """
         def __get__(self):
             return btorapi.boolector_get_opt_max(self.btor._c_btor,
                                                  self.__chptr._c_str)
@@ -256,7 +271,7 @@ cdef class BoolectorNode:
 
     def __dealloc__(self):
         if self._c_node is NULL:
-            raise _BoolectorException("BoolectorNode not initialized correctly")
+            raise BoolectorException("BoolectorNode not initialized correctly")
         btorapi.boolector_release(self.btor._c_btor, self._c_node)
 
     def __richcmp__(BoolectorNode x, BoolectorNode y, opcode):
@@ -265,7 +280,7 @@ cdef class BoolectorNode:
         elif opcode == 3:
             return x.btor.Ne(x, y)
         else:
-            raise _BoolectorException("Opcode '{}' not implemented for "\
+            raise BoolectorException("Opcode '{}' not implemented for "\
                                      "__richcmp__".format(opcode))
 
     property symbol:
@@ -290,6 +305,8 @@ cdef class BoolectorNode:
 
             If the node is an array,
             this indicates the bit width of the array elements.
+            If the node is a function,
+            this indicates the bit with of the function's return value.
         """
         def __get__(self):
             return btorapi.boolector_get_width(self.btor._c_btor, self._c_node)
@@ -316,9 +333,9 @@ cdef class BoolectorNode:
             cdef const char * c_str
             cdef bytes py_str
 
-            if isinstance(self, _BoolectorFunNode) or \
-               isinstance(self, _BoolectorArrayNode):
-                if isinstance(self, _BoolectorArrayNode):
+            if isinstance(self, BoolectorFunNode) or \
+               isinstance(self, BoolectorArrayNode):
+                if isinstance(self, BoolectorArrayNode):
                     btorapi.boolector_array_assignment(
                         self.btor._c_btor, self._c_node, &c_str_i, &c_str_v,
                         &size) 
@@ -331,10 +348,10 @@ cdef class BoolectorNode:
                     for i in range(size):
                         index = _to_str(c_str_i[i])
                         value = _to_str(c_str_v[i])
-                        if isinstance(self, _BoolectorFunNode):
+                        if isinstance(self, BoolectorFunNode):
                             index = index.split()
                         model.append((index, value))
-                    if isinstance(self, _BoolectorArrayNode):
+                    if isinstance(self, BoolectorArrayNode):
                         btorapi.boolector_free_array_assignment(
                             self.btor._c_btor, c_str_i, c_str_v, size) 
                     else:
@@ -350,14 +367,14 @@ cdef class BoolectorNode:
                 return value
 
     def Dump(self, format = "btor", outfile = None):
-        """ Dump (format = "btor", outfile)
+        """ Dump (format = "btor", outfile = None)
 
             Dump node to output file.
 
             :param format: A file format identifier string (use "btor" for BTOR_, "smt1" for `SMT-LIB v1`_, and "smt2" for `SMT-LIB v2`_).
             :type format: str
-            :param outile: Output file name (default: stdout).
-            :type format: str.
+            :param outfile: Output file name (default: stdout).
+            :type outfile: str
             
         """
         cdef FILE * c_file
@@ -366,10 +383,10 @@ cdef class BoolectorNode:
             c_file = stdout
         else:
             if os.path.isfile(outfile):
-                raise _BoolectorException(
+                raise BoolectorException(
                         "Outfile '{}' already exists".format(outfile)) 
             elif os.path.isdir(outfile):
-                raise _BoolectorException(
+                raise BoolectorException(
                         "Outfile '{}' is a directory".format(outfile)) 
             c_file = fopen(_ChPtr(outfile)._c_str, "w")
 
@@ -383,24 +400,17 @@ cdef class BoolectorNode:
             btorapi.boolector_dump_smt2_node(self.btor._c_btor, c_file,
                                              self._c_node)
         else:
-            raise _BoolectorException("Invalid dump format '{}'".format(format)) 
+            raise BoolectorException("Invalid dump format '{}'".format(format)) 
         if outfile is not None:
             fclose(c_file)
 
-cdef class _BoolectorBVNode(BoolectorNode):
-
-    property bits:
-        def __get__(self):
-            if not self.__is_const():
-                raise _BoolectorException("Given node is not a constant")
-            return _to_str(btorapi.boolector_get_bits(self.btor._c_btor,
-                                                      self._c_node))
-    def __is_const(self):
-        return btorapi.boolector_is_const(self.btor._c_btor, self._c_node) == 1
-
+cdef class BoolectorBVNode(BoolectorNode):
+    """
+    The class representing a Boolector bit vector node.
+    """
     def __richcmp__(x, y, opcode):
         x, y = _to_node(x, y)
-        b = (<_BoolectorBVNode> x).btor
+        b = (<BoolectorBVNode> x).btor
         if opcode == 0:
             return b.Ult(x, y)
         elif opcode == 1:
@@ -414,7 +424,7 @@ cdef class _BoolectorBVNode(BoolectorNode):
         elif opcode == 5:
             return b.Ugte(x, y)
         else:
-            raise _BoolectorException("Opcode '{}' not implemented for "\
+            raise BoolectorException("Opcode '{}' not implemented for "\
                                      "__richcmp__".format(opcode))
 
     def __neg__(self):
@@ -425,41 +435,41 @@ cdef class _BoolectorBVNode(BoolectorNode):
 
     def __add__(x, y):
         x, y = _to_node(x, y)
-        return (<_BoolectorBVNode> x).btor.Add(x, y)
+        return (<BoolectorBVNode> x).btor.Add(x, y)
 
     def __sub__(x, y):
         x, y = _to_node(x, y)
-        return (<_BoolectorBVNode> x).btor.Sub(x, y)
+        return (<BoolectorBVNode> x).btor.Sub(x, y)
 
     def __mul__(x, y):
         x, y = _to_node(x, y)
-        return (<_BoolectorBVNode> x).btor.Mul(x, y)
+        return (<BoolectorBVNode> x).btor.Mul(x, y)
 
     def __truediv__(x, y):
         x, y = _to_node(x, y)
-        return (<_BoolectorBVNode> x).btor.Udiv(x, y)
+        return (<BoolectorBVNode> x).btor.Udiv(x, y)
 
     def __mod__(x, y):
         x, y = _to_node(x, y)
-        return (<_BoolectorBVNode> x).btor.Urem(x, y)
+        return (<BoolectorBVNode> x).btor.Urem(x, y)
 
-    def __lshift__(_BoolectorBVNode x, y):
+    def __lshift__(BoolectorBVNode x, y):
         return x.btor.Sll(x, y)
 
-    def __rshift__(_BoolectorBVNode x, y):
+    def __rshift__(BoolectorBVNode x, y):
         return x.btor.Srl(x, y)
 
     def __and__(x, y):
         x, y = _to_node(x, y)
-        return (<_BoolectorBVNode> x).btor.And(x, y)
+        return (<BoolectorBVNode> x).btor.And(x, y)
 
     def __or__(x, y):
         x, y = _to_node(x, y)
-        return (<_BoolectorBVNode> x).btor.Or(x, y)
+        return (<BoolectorBVNode> x).btor.Or(x, y)
 
     def __xor__(x, y):
         x, y = _to_node(x, y)
-        return (<_BoolectorBVNode> x).btor.Xor(x, y)
+        return (<BoolectorBVNode> x).btor.Xor(x, y)
 
     def __getitem__(self, x):
         # Use python slice notation for bit vector slicing
@@ -467,27 +477,46 @@ cdef class _BoolectorBVNode(BoolectorNode):
             upper = x.start
             lower = x.stop
             if x.step is not None:
-                raise _BoolectorException(
+                raise BoolectorException(
                           "Step of 'slice' not suppored on bit vectors")
             if upper is None:
                 upper = self.width - 1
             if lower is None:
                 lower = 0
             if not isinstance(upper, int):
-                raise _BoolectorException(
+                raise BoolectorException(
                           "Upper limit of slice must be an integer")
             if not isinstance(lower, int):
-                raise _BoolectorException(
+                raise BoolectorException(
                           "Lower limit of slice must be an integer")
             return self.btor.Slice(self, upper, lower)
         # Extract single bit
         elif isinstance(x, int):
             return self.btor.Slice(self, x, x)
         else:
-            raise _BoolectorException("Expected 'int' or 'slice'")
+            raise BoolectorException("Expected 'int' or 'slice'")
 
 
-cdef class _BoolectorArrayNode(BoolectorNode):
+cdef class BoolectorConstNode(BoolectorBVNode):
+    """
+        The class representing Boolector constant nodes.
+    """
+    property bits:
+        """ The bit string of a Boolector constant node.
+        """
+        def __get__(self):
+            if not self.__is_const():
+                raise BoolectorException("Given node is not a constant")
+            return _to_str(btorapi.boolector_get_bits(self.btor._c_btor,
+                                                      self._c_node))
+    def __is_const(self):
+        return btorapi.boolector_is_const(self.btor._c_btor, self._c_node) == 1
+
+
+cdef class BoolectorArrayNode(BoolectorNode):
+    """
+    The class representing a Boolector array node.
+    """
     # TODO: allow slices on arrays
     #       array[2:4] -> memcpy from index 2 to 4 
     #       array[:] -> copy whole array
@@ -495,12 +524,17 @@ cdef class _BoolectorArrayNode(BoolectorNode):
         return self.btor.Read(self, index)
 
     property index_width:
+        """ The bit with of the Boolector array node indices.
+        """
         def __get__(self):
             return btorapi.boolector_get_index_width(self.btor._c_btor,
                        self._c_node)
 
 
-cdef class _BoolectorFunNode(BoolectorNode):
+cdef class BoolectorFunNode(BoolectorNode):
+    """
+    The class representing a Boolector function node.
+    """
     cdef list _params
     cdef _BoolectorFunSort _sort
 
@@ -508,12 +542,14 @@ cdef class _BoolectorFunNode(BoolectorNode):
         return self.btor.Apply(list(args), self)
 
     property arity:
+        """ The arity of a Boolector function node.
+        """
         def __get__(self):
             return \
                 btorapi.boolector_get_fun_arity(self.btor._c_btor, self._c_node)
 
 
-cdef class _BoolectorParamNode(_BoolectorBVNode):
+cdef class _BoolectorParamNode(BoolectorBVNode):
     pass
 
 # wrapper class for Boolector itself
@@ -557,7 +593,7 @@ cdef class Boolector:
             :type n:  :class:`~boolector.BoolectorNode`
         """
         if n.width > 1:
-            raise _BoolectorException("Asserted term must be of bit width one")
+            raise BoolectorException("Asserted term must be of bit width one")
         btorapi.boolector_assert(self._c_btor, n._c_node)
 
     def Assume(self, BoolectorNode n):
@@ -581,7 +617,7 @@ cdef class Boolector:
             :type n:  :class:`~boolector.BoolectorNode`
         """
         if n.width > 1:
-            raise _BoolectorException("Assumed termed must be of bit width one")
+            raise BoolectorException("Assumed termed must be of bit width one")
         btorapi.boolector_assume(self._c_btor, n._c_node)
 
     def Failed(self, BoolectorNode n):
@@ -598,11 +634,11 @@ cdef class Boolector:
 
             :param n: Bit vector expression with bit width 1.
             :type n:  :class:`~boolector.BoolectorNode`
-            :return:  1 if assumption is failed, and 0 otherwise.
+            :return:  True if assumption is failed, and false otherwise.
             :rtype:   int
         """
         if n.width > 1:
-            raise _BoolectorException("Term must be of bit width one")
+            raise BoolectorException("Term must be of bit width one")
         return btorapi.boolector_failed(self._c_btor, n._c_node) == 1
 
     def Sat(self, int lod_limit = -1, int sat_limit = -1):
@@ -614,8 +650,9 @@ cdef class Boolector:
             :func:`~boolector.Boolector.Assert`.
             You can guide the search for a solution to an input formula by
             making assumptions via :func:`~boolector.Boolector.Assume`.
-            Note that assertions and assumptions are combined via Boolean
-            *and*.
+
+            .. note::
+                Assertions and assumptions are combined via Boolean *and*.
 
             If you want to call this function multiple times, you must
             enable Boolector's incremental usage mode via 
@@ -645,8 +682,9 @@ cdef class Boolector:
 
             Simplify current input formula.
 
-            Note that each call to :func:`~boolector.Boolector.Sat` 
-            simplifies the input formula as a preprocessing step.
+            .. note::
+                Each call to :func:`~boolector.Boolector.Sat` 
+                simplifies the input formula as a preprocessing step.
 
             :return: :data:`~boolector.Boolector.SAT` if the input formula was simplified to true, :data:`~boolector.Boolector.UNSAT` if it was simplified to false, and :data:`~boolector.Boolector.UNKNOWN`, otherwise.
         """
@@ -686,6 +724,10 @@ cdef class Boolector:
               clone = btor.Clone()
               v_cloned = clone.Match(v)
 
+            .. note::
+                Only nodes created before the
+                :func:`~boolector.Boolector.Clone` call can be matched.
+
             :param n: Boolector node.
             :type n:  :class:`~boolector.BoolectorNode`
             :return:  The Boolector node that matches given node ``n`` by id.
@@ -696,12 +738,12 @@ cdef class Boolector:
         (<BoolectorNode> r)._c_node = \
             btorapi.boolector_match_node(self._c_btor, n._c_node)
         if (<BoolectorNode> r)._c_node is NULL:
-            raise _BoolectorException("Could not match given node 'n'")
+            raise BoolectorException("Could not match given node 'n'")
         return r
 
     # Boolector options
     def Set_opt(self, str opt, int value):
-        """ Set_opt(opt, value).
+        """ Set_opt(opt, value)
 
             Set option.
 
@@ -713,7 +755,7 @@ cdef class Boolector:
               | There are two modes for model generation: 
 
               * generate model for asserted expressions only (``value``: 1)
-              * generate model for all expressions (``value``: 2).
+              * generate model for all expressions (``value``: 2)
 
             * **incremental**
 
@@ -836,7 +878,7 @@ cdef class Boolector:
             :type value:  int
         """
         if opt not in self._option_names:
-            raise _BoolectorException("Invalid Boolector option name")
+            raise BoolectorException("Invalid Boolector option name")
         btorapi.boolector_set_opt(self._c_btor, _ChPtr(opt)._c_str, value)
 
     def Get_opt(self, str opt):
@@ -853,7 +895,7 @@ cdef class Boolector:
             :rtype: :class:`~boolector.BoolectorOpt`
         """
         if opt not in self._option_names:
-            raise _BoolectorException("Invalid Boolector option name")
+            raise BoolectorException("Invalid Boolector option name")
         return BoolectorOpt(self, opt)
 
     def Options(self):
@@ -874,7 +916,7 @@ cdef class Boolector:
         return BoolectorOptions(self)
 
     def Set_sat_solver(self, str solver, str optstr = None, bool clone = True):
-        """ Set_sat_solver(solver, optstr = None, nofork = 0)
+        """ Set_sat_solver(solver, optstr = None, clone = True)
 
             Set the SAT solver to use.
 
@@ -883,19 +925,21 @@ cdef class Boolector:
               btor = Boolector()
               btor.Set_sat_solver("MiniSAT")
       
-            Option ``nofork`` enables non-incremental SAT solver usage
+            Option ``clone`` enables non-incremental SAT solver usage
             (for every SAT call) by means of internal SAT solver cloning. 
             Use this option with caution (might have a positive or negative
             impact on overall performance).
 
-            Parameters ``optstr`` and ``nofork`` are currently only supported
-            by Lingeling.
+            .. note::
+                Parameters ``optstr`` and ``clone`` are currently only supported
+                by Lingeling.
 
             :param solver: Solver identifier string.
             :type solver:  str
             :param optstr: Solver option string.
             :type optstr:  str
-            :param nofork: Force non-incremental SAT solver usage.
+            :param clone: Force non-incremental SAT solver usage.
+            :type clone:  bool
             :return: True if setting the SAT solver was successful and False otherwise. 
             :rtype: bool
         """
@@ -906,16 +950,6 @@ cdef class Boolector:
         else:
             return btorapi.boolector_set_sat_solver(
                         self._c_btor, _ChPtr(solver)._c_str) == 1
-
-    def Set_msg_prefix(self, str prefix):
-        """ Set_msg_prefix(prefix)
-
-            Set a verbosity message prefix.
-
-            :param prefix: Prefix string.
-            :type prefix: str
-        """
-        btorapi.boolector_set_msg_prefix(self._c_btor, _ChPtr(prefix)._c_str)
 
     def Print_model(self, outfile = None):
         """ Print_model(outfile = None)
@@ -934,10 +968,10 @@ cdef class Boolector:
             c_file = stdout
         else:
             if os.path.isfile(outfile):
-                raise _BoolectorException(
+                raise BoolectorException(
                         "Outfile '{}' already exists".format(outfile)) 
             elif os.path.isdir(outfile):
-                raise _BoolectorException(
+                raise BoolectorException(
                         "Outfile '{}' is a directory".format(outfile)) 
             c_file = fopen(_ChPtr(outfile)._c_str, "w")
 
@@ -969,7 +1003,7 @@ cdef class Boolector:
         cdef int status
 
         if not os.path.isfile(file):
-            raise _BoolectorException("File '{}' does not exist".format(file))
+            raise BoolectorException("File '{}' does not exist".format(file))
 
         c_file = fopen(_ChPtr(file)._c_str, "r")
         res = btorapi.boolector_parse(self._c_btor, c_file, _ChPtr(file)._c_str,
@@ -994,10 +1028,10 @@ cdef class Boolector:
             c_file = stdout
         else:
             if os.path.isfile(outfile):
-                raise _BoolectorException(
+                raise BoolectorException(
                         "Outfile '{}' already exists".format(outfile)) 
             elif os.path.isdir(outfile):
-                raise _BoolectorException(
+                raise BoolectorException(
                         "Outfile '{}' is a directory".format(outfile)) 
             c_file = fopen(_ChPtr(outfile)._c_str, "w")
 
@@ -1008,7 +1042,7 @@ cdef class Boolector:
         elif format.lower() == "smt2":
             btorapi.boolector_dump_smt2(self._c_btor, c_file)
         else:
-            raise _BoolectorException("Invalid dump format '{}'".format(format)) 
+            raise BoolectorException("Invalid dump format '{}'".format(format)) 
         if outfile is not None:
             fclose(c_file)
 
@@ -1019,28 +1053,30 @@ cdef class Boolector:
         
             Create a bit vector constant of value ``c`` and bit width ``width``.
 
+            .. note::
+                ``width`` is only required if ``c`` is an integer.
+
             :param c: Value of the constant.
-            :type  c: int, bool, str, BoolectorNode
+            :type  c: int, bool, str
             :param width: Bit width of the constant.
             :type width:  int
             :return: A bit vector constant of value ``c`` and bit width ``width``.
             :rtype: :class:`~boolector.BoolectorNode`
         """
-        cdef _BoolectorBVNode r
+        cdef BoolectorConstNode r
         if isinstance(c, int):
             if c != 0 and c.bit_length() > width:
-                raise _BoolectorException(
+                raise BoolectorException(
                           "Value of constant {} (bit width {}) exceeds bit "\
                           "width of {}".format(c, c.bit_length(), width))
-            const_str = "{{0:0>{}b}}".format(width).format(abs(c))
-            r = _BoolectorBVNode(self)
+            bitmask = int('0b'+ width * '1', 2)
+            const_str = "{{0:0>{}b}}".format(width).format(c & bitmask)
+            r = BoolectorConstNode(self)
             r._c_node = \
                 btorapi.boolector_const(self._c_btor, _ChPtr(const_str)._c_str)
-            if c < 0:
-                r = -r
             return r
         elif isinstance(c, bool):
-            r = _BoolectorBVNode(self)
+            r = BoolectorConstNode(self)
             if c:
                 r._c_node = btorapi.boolector_true(self._c_btor)
             else:
@@ -1050,16 +1086,16 @@ cdef class Boolector:
             try:
                 int(c, 2)
             except ValueError:
-                raise _BoolectorException("Given constant string is not in"\
+                raise BoolectorException("Given constant string is not in"\
                                           "binary format")
-            r = _BoolectorBVNode(self)
+            r = BoolectorConstNode(self)
             r._c_node = \
                 btorapi.boolector_const(self._c_btor, _ChPtr(c)._c_str)
             return r
         elif isinstance(c, BoolectorNode):
             return c 
         else:
-            raise _BoolectorException(
+            raise BoolectorException(
                       "Cannot convert type '{}' to bit vector".format(
                           type(c)))
 
@@ -1068,19 +1104,19 @@ cdef class Boolector:
 
             Create a bit vector variable with bit width ``width``.
 
-            Note that in contrast to composite expressions, which are 
-            maintained uniquely w.r.t. to their kind, inputs (and consequently,
-            bit width), variables are not.
-            Hence, each call to this function returns a fresh bit vector
-            variable.
-
             A variable's symbol is used as a simple means of identfication,
             either when printing a model via 
             :func:`~boolector.Boolector.Print_model`,
             or generating file dumps via 
             :func:`~boolector.Boolector.Dump`.
-            Note that a symbol must be unique but may be None in case that no
+            A symbol must be unique but may be None in case that no
             symbol should be assigned.
+
+            .. note::
+                In contrast to composite expressions, which are maintained
+                uniquely w.r.t. to their kind, inputs (and consequently, bit
+                width), variables are not.  Hence, each call to this
+                function returns a fresh bit vector variable.
             
             :param width: Bit width of the variable.
             :type width: int
@@ -1089,7 +1125,7 @@ cdef class Boolector:
             :return: A bit vector variable with bit width ``width``.
             :rtype: :class:`~boolector.BoolectorNode`
         """
-        r = _BoolectorBVNode(self)
+        r = BoolectorBVNode(self)
         r._c_node = btorapi.boolector_var(self._c_btor, width,
                                           _ChPtr(symbol)._c_str)
         return r
@@ -1125,63 +1161,76 @@ cdef class Boolector:
             Create a one-dimensional bit vector array variable of size
             2** ``index_width`` with elements of bit width ``elem_width``.
 
-            Note that in contrast to composite expressions, which are 
-            maintained uniquely w.r.t. to their kind, inputs (and consequently,
-            bit width), array variables are not.
-            Hence, each call to this function returns a fresh bit vector
-            array variable.
-
             An array variable's symbol is used as a simple means of
             identfication, either when printing a model via 
             :func:`~boolector.Boolector.Print_model`,
             or generating file dumps via 
             :func:`~boolector.Boolector.Dump`.
-            Note that a symbol must be unique but may be None in case that no
+            A symbol must be unique but may be None in case that no
             symbol should be assigned.
             
-            :param width: Bit width of the variable.
+            .. note::
+                In contrast to composite expressions, which are 
+                maintained uniquely w.r.t. to their kind, inputs (and
+                consequently, bit width), array variables are not.
+                Hence, each call to this function returns a fresh bit vector
+                array variable.
+
+            :param elem_width: Bit width of the array elements.
             :type width: int
-            :param symbol: Symbol of the variable.
+            :param index_width: Bit width of the array indices.
+            :type width: int
+            :param symbol: Symbol of the array variable.
             :type symbol: str
             :return: An array variable of size 2** ``index_width`` with elements of bit width ``elem_width``.
             :rtype: :class:`~boolector.BoolectorNode`
         """
-        r = _BoolectorArrayNode(self)
+        r = BoolectorArrayNode(self)
         r._c_node = btorapi.boolector_array(self._c_btor, elem_width,
                                             index_width, _ChPtr(symbol)._c_str)
         return r
 
     # Unary operators
 
-    def Not(self, _BoolectorBVNode n):
+    def Not(self, BoolectorBVNode n):
         """ Not(n)
 
             Create the one's complement of bit vector node ``n``.
+
+            It is also possible to create the one's complement as follows
+            (see :ref:`operator-overloading`): ::
+                
+                bvnot = ~n
 
             :param n: A bit vector node.
             :type n:  :class:`~boolector.BoolectorNode`
             :return:  The one's complement of bit vector node ``n``.
             :rtype:  :class:`~boolector.BoolectorNode`
         """
-        r = _BoolectorBVNode(self)
+        r = BoolectorBVNode(self)
         r._c_node = btorapi.boolector_not(self._c_btor, n._c_node)
         return r
 
-    def Neg(self, _BoolectorBVNode n):
+    def Neg(self, BoolectorBVNode n):
         """ Neg(n)
 
             Create the two's complement of bit vector node ``n``.
 
+            It is also possible to create the two's complement as follows
+            (see :ref:`operator-overloading`): ::
+                
+                bvneg = -n
+            
             :param n: A bit vector node.
             :type n:  :class:`~boolector.BoolectorNode`
             :return:  The two's complement of bit vector node ``n``.
             :rtype: :class:`~boolector.BoolectorNode`
             """
-        r = _BoolectorBVNode(self)
+        r = BoolectorBVNode(self)
         r._c_node = btorapi.boolector_neg(self._c_btor, n._c_node)
         return r
 
-    def Redor(self, _BoolectorBVNode n):
+    def Redor(self, BoolectorBVNode n):
         """ Redor(n)
 
             Create an *or* reduction of node ``n``.
@@ -1193,11 +1242,11 @@ cdef class Boolector:
             :return:  The *or* reduction of node ``n``.
             :rtype: :class:`~boolector.BoolectorNode`
             """
-        r = _BoolectorBVNode(self)
+        r = BoolectorBVNode(self)
         r._c_node = btorapi.boolector_redor(self._c_btor, n._c_node)
         return r
 
-    def Redxor(self, _BoolectorBVNode n):
+    def Redxor(self, BoolectorBVNode n):
         """ Redxor(n)
 
             Create an *xor* reduction of node ``n``.
@@ -1209,11 +1258,11 @@ cdef class Boolector:
             :return:  The *xor* reduction of node ``n``.
             :rtype: :class:`~boolector.BoolectorNode`
             """
-        r = _BoolectorBVNode(self)
+        r = BoolectorBVNode(self)
         r._c_node = btorapi.boolector_redxor(self._c_btor, n._c_node)
         return r
 
-    def Redand(self, _BoolectorBVNode n):
+    def Redand(self, BoolectorBVNode n):
         """ Redand(n)
 
             Create an *and* reduction of node ``n``.
@@ -1225,15 +1274,23 @@ cdef class Boolector:
             :return:  The *and* reduction of node ``n``.
             :rtype: :class:`~boolector.BoolectorNode`
             """
-        r = _BoolectorBVNode(self)
+        r = BoolectorBVNode(self)
         r._c_node = btorapi.boolector_redand(self._c_btor, n._c_node)
         return r
 
-    def Slice(self, _BoolectorBVNode n, int upper, int lower):
+    def Slice(self, BoolectorBVNode n, int upper, int lower):
         """ Slice(n, upper, lower)
 
-            Create a bit vector slice of node ``n`` from index ``uppper``
+            Create a bit vector slice of node ``n`` from index ``upper``
             to index ``lower``.
+
+            It is also possible to use Python slices on bit vectors as
+            follows: ::
+
+              n[upper:lower]  # creates slice with upper limit 'upper' and lower limit 'lower'
+              n[upper:]       # creates slice with upper limit 'upper' and lower limit 0
+              n[:lower]       # creates slice with upper limit 'n.width - 1' and lower limit 'lower'
+              n[:]            # creates copy of node 'n' 
 
             :param n: A bit vector node.
             :type n:  :class:`~boolector.BoolectorNode`
@@ -1243,14 +1300,15 @@ cdef class Boolector:
             :type lower: int
             :return: A Bit vector with bit width ``upper`` - ``lower`` + 1.
             :rtype: :class:`~boolector.BoolectorNode`
-            """
+
+        """
         _check_precond_slice(n, upper, lower)
-        r = _BoolectorBVNode(self)
+        r = BoolectorBVNode(self)
         r._c_node = btorapi.boolector_slice(self._c_btor, n._c_node,
                                             upper, lower)
         return r
                                                                 
-    def Uext(self, _BoolectorBVNode n, int width):
+    def Uext(self, BoolectorBVNode n, int width):
         """ Uext(n, width)
 
             Create unsigned extension.
@@ -1264,11 +1322,11 @@ cdef class Boolector:
             :return: A bit vector extended by ``width`` zeroes.
             :rtype: :class:`~boolector.BoolectorNode`
         """
-        r = _BoolectorBVNode(self)
+        r = BoolectorBVNode(self)
         r._c_node = btorapi.boolector_uext(self._c_btor, n._c_node, width)
         return r
 
-    def Sext(self, _BoolectorBVNode n, int width):
+    def Sext(self, BoolectorBVNode n, int width):
         """ Sext(n, width)
 
             Create signed extension.
@@ -1284,11 +1342,11 @@ cdef class Boolector:
             :return: A bit vector extended by ``width`` bits.
             :rtype: :class:`~boolector.BoolectorNode`
         """
-        r = _BoolectorBVNode(self)
+        r = BoolectorBVNode(self)
         r._c_node = btorapi.boolector_sext(self._c_btor, n._c_node, width)
         return r
 
-    def Inc(self, _BoolectorBVNode n):
+    def Inc(self, BoolectorBVNode n):
         """ Inc(n)
 
             Create a bit vector expression that increments bit vector ``n``
@@ -1299,11 +1357,11 @@ cdef class Boolector:
             :return: A bit vector with the same bit width as ``n``, incremented by one.
             :rtype: :class:`~boolector.BoolectorNode`
         """
-        r = _BoolectorBVNode(self)
+        r = BoolectorBVNode(self)
         r._c_node = btorapi.boolector_inc(self._c_btor, n._c_node)
         return r
 
-    def Dec(self, _BoolectorBVNode n):
+    def Dec(self, BoolectorBVNode n):
         """ Dec(n)
 
             Create a bit vector expression that decrements bit vector ``n``
@@ -1314,7 +1372,7 @@ cdef class Boolector:
             :return: A bit vector with the same bit width as ``n``, decremented by one.
             :rtype: :class:`~boolector.BoolectorNode`
         """
-        r = _BoolectorBVNode(self)
+        r = BoolectorBVNode(self)
         r._c_node = btorapi.boolector_dec(self._c_btor, n._c_node)
         return r
 
@@ -1325,7 +1383,8 @@ cdef class Boolector:
           
             Create a Boolean implication.
 
-            Parameters ``a`` and ``b`` must have bit width one.
+            Parameters ``a`` and ``b`` must have bit width one
+            (see :ref:`const-conversion`).
 
             :param a: Bit vector node representing the premise.
             :type a:  :class:`~boolector.BoolectorNode`
@@ -1335,7 +1394,7 @@ cdef class Boolector:
             :rtype: :class:`~boolector.BoolectorNode`
         """
         a, b = _to_node(a, b)
-        r = _BoolectorBVNode(self)
+        r = BoolectorBVNode(self)
         r._c_node = btorapi.boolector_implies(self._c_btor,
                                               _c_node(a), _c_node(b))
         return r
@@ -1345,7 +1404,8 @@ cdef class Boolector:
           
             Create a Boolean equivalence.
 
-            Parameters ``a`` and ``b`` must have bit width one.
+            Parameters ``a`` and ``b`` must have bit width one
+            (see :ref:`const-conversion`).
 
             :param a: First bit vector operand.
             :type a:  :class:`~boolector.BoolectorNode`
@@ -1355,7 +1415,7 @@ cdef class Boolector:
             :rtype: :class:`~boolector.BoolectorNode`
         """
         a, b = _to_node(a, b)
-        r = _BoolectorBVNode(self)
+        r = BoolectorBVNode(self)
         r._c_node = btorapi.boolector_iff(self._c_btor,
                                           _c_node(a), _c_node(b))
         return r
@@ -1365,7 +1425,13 @@ cdef class Boolector:
           
             Create a bit vector *xor*.
 
-            Parameters ``a`` and ``b`` must have the same bit width.
+            Parameters ``a`` and ``b`` must have the same bit width
+            (see :ref:`const-conversion`).
+
+            It is also possible to create an *xor* as follows
+            (see :ref:`operator-overloading`): ::
+                
+                bvxor = a ^ b
 
             :param a: First bit vector operand.
             :type a:  :class:`~boolector.BoolectorNode`
@@ -1375,7 +1441,7 @@ cdef class Boolector:
             :rtype: :class:`~boolector.BoolectorNode`
         """
         a, b = _to_node(a, b)
-        r = _BoolectorBVNode(self)
+        r = BoolectorBVNode(self)
         r._c_node = btorapi.boolector_xor(self._c_btor,
                                           _c_node(a), _c_node(b))
         return r
@@ -1385,7 +1451,8 @@ cdef class Boolector:
           
             Create a bit vector *xnor*.
 
-            Parameters ``a`` and ``b`` must have the same bit width.
+            Parameters ``a`` and ``b`` must have the same bit width
+            (see :ref:`const-conversion`).
 
             :param a: First bit vector operand.
             :type a:  :class:`~boolector.BoolectorNode`
@@ -1395,7 +1462,7 @@ cdef class Boolector:
             :rtype: :class:`~boolector.BoolectorNode`
         """
         a, b = _to_node(a, b)
-        r = _BoolectorBVNode(self)
+        r = BoolectorBVNode(self)
         r._c_node = \
             btorapi.boolector_xnor(self._c_btor, _c_node(a), _c_node(b))
         return r
@@ -1405,7 +1472,13 @@ cdef class Boolector:
           
             Create a bit vector *and*.
 
-            Parameters ``a`` and ``b`` must have the same bit width.
+            Parameters ``a`` and ``b`` must have the same bit width
+            (see :ref:`const-conversion`).
+
+            It is also possible to create an *and* as follows
+            (see :ref:`operator-overloading`): ::
+                
+                bvand = a & b
 
             :param a: First bit vector operand.
             :type a:  :class:`~boolector.BoolectorNode`
@@ -1415,7 +1488,7 @@ cdef class Boolector:
             :rtype: :class:`~boolector.BoolectorNode`
         """
         a, b = _to_node(a, b)
-        r = _BoolectorBVNode(self)
+        r = BoolectorBVNode(self)
         r._c_node = btorapi.boolector_and(self._c_btor,
                                           _c_node(a), _c_node(b))
         return r
@@ -1425,7 +1498,8 @@ cdef class Boolector:
           
             Create a bit vector *nand*.
 
-            Parameters ``a`` and ``b`` must have the same bit width.
+            Parameters ``a`` and ``b`` must have the same bit width
+            (see :ref:`const-conversion`).
 
             :param a: First bit vector operand.
             :type a:  :class:`~boolector.BoolectorNode`
@@ -1435,7 +1509,7 @@ cdef class Boolector:
             :rtype: :class:`~boolector.BoolectorNode`
         """
         a, b = _to_node(a, b)
-        r = _BoolectorBVNode(self)
+        r = BoolectorBVNode(self)
         r._c_node = \
             btorapi.boolector_nand(self._c_btor, _c_node(a), _c_node(b))
         return r
@@ -1445,7 +1519,13 @@ cdef class Boolector:
           
             Create a bit vector *or*.
 
-            Parameters ``a`` and ``b`` must have the same bit width.
+            Parameters ``a`` and ``b`` must have the same bit width
+            (see :ref:`const-conversion`).
+
+            It is also possible to create an *or* as follows
+            (see :ref:`operator-overloading`): ::
+                
+                bvor = a | b
 
             :param a: First bit vector operand.
             :type a:  :class:`~boolector.BoolectorNode`
@@ -1455,7 +1535,7 @@ cdef class Boolector:
             :rtype: :class:`~boolector.BoolectorNode`
         """
         a, b = _to_node(a, b)
-        r = _BoolectorBVNode(self)
+        r = BoolectorBVNode(self)
         r._c_node = btorapi.boolector_or(self._c_btor,
                                          _c_node(a), _c_node(b))
         return r
@@ -1465,7 +1545,8 @@ cdef class Boolector:
           
             Create a bit vector *nor*.
 
-            Parameters ``a`` and ``b`` must have the same bit width.
+            Parameters ``a`` and ``b`` must have the same bit width
+            (see :ref:`const-conversion`).
 
             :param a: First bit vector operand.
             :type a:  :class:`~boolector.BoolectorNode`
@@ -1475,7 +1556,7 @@ cdef class Boolector:
             :rtype: :class:`~boolector.BoolectorNode`
         """
         a, b = _to_node(a, b)
-        r = _BoolectorBVNode(self)
+        r = BoolectorBVNode(self)
         r._c_node = btorapi.boolector_nor(self._c_btor,
                                           _c_node(a), _c_node(b))
         return r
@@ -1486,7 +1567,12 @@ cdef class Boolector:
             Create a bit vector or array equality.
 
             Parameters ``a`` and ``b`` are either bit vectors with the same bit
-            width, or arrays of the same type.
+            width, or arrays of the same type (see :ref:`const-conversion`).
+
+            It is also possible to create an equality as follows
+            (see :ref:`operator-overloading`): ::
+                
+                eq = a == b
 
             :param a: First bit vector operand.
             :type a:  :class:`~boolector.BoolectorNode`
@@ -1496,7 +1582,7 @@ cdef class Boolector:
             :rtype: :class:`~boolector.BoolectorNode`
         """
         a, b = _to_node(a, b)
-        r = _BoolectorBVNode(self)
+        r = BoolectorBVNode(self)
         r._c_node = btorapi.boolector_eq(self._c_btor, _c_node(a), _c_node(b))
         return r
 
@@ -1506,7 +1592,12 @@ cdef class Boolector:
             Create a bit vector or array inequality.
 
             Parameters ``a`` and ``b`` are either bit vectors with the same bit
-            width, or arrays of the same type.
+            width, or arrays of the same type (see :ref:`const-conversion`).
+
+            It is also possible to create an inequality as follows
+            (see :ref:`operator-overloading`): ::
+                
+                ne = a != b
 
             :param a: First bit vector operand.
             :type a:  :class:`~boolector.BoolectorNode`
@@ -1516,7 +1607,7 @@ cdef class Boolector:
             :rtype: :class:`~boolector.BoolectorNode`
         """
         a, b = _to_node(a, b)
-        r = _BoolectorBVNode(self)
+        r = BoolectorBVNode(self)
         r._c_node = btorapi.boolector_ne(self._c_btor, _c_node(a), _c_node(b))
         return r
 
@@ -1525,7 +1616,13 @@ cdef class Boolector:
           
             Create a bit vector addition.
 
-            Parameters ``a`` and ``b`` must have the same bit width.
+            Parameters ``a`` and ``b`` must have the same bit width
+            (see :ref:`const-conversion`).
+
+            It is also possible to create an addition as follows
+            (see :ref:`operator-overloading`): ::
+                
+                bvadd = a + b
 
             :param a: First bit vector operand.
             :type a:  :class:`~boolector.BoolectorNode`
@@ -1535,7 +1632,7 @@ cdef class Boolector:
             :rtype: :class:`~boolector.BoolectorNode`
         """
         a, b = _to_node(a, b)
-        r = _BoolectorBVNode(self)
+        r = BoolectorBVNode(self)
         r._c_node = btorapi.boolector_add(self._c_btor, _c_node(a),
                                           _c_node(b))
         return r
@@ -1545,7 +1642,8 @@ cdef class Boolector:
           
             Create an unsigned  bit vector addition overflow detection.
 
-            Parameters ``a`` and ``b`` must have the same bit width.
+            Parameters ``a`` and ``b`` must have the same bit width
+            (see :ref:`const-conversion`).
 
             :param a: First bit vector operand.
             :type a:  :class:`~boolector.BoolectorNode`
@@ -1555,7 +1653,7 @@ cdef class Boolector:
             :rtype: :class:`~boolector.BoolectorNode`
         """
         a, b = _to_node(a, b)
-        r = _BoolectorBVNode(self)
+        r = BoolectorBVNode(self)
         r._c_node = \
             btorapi.boolector_uaddo(self._c_btor, _c_node(a), _c_node(b))
         return r
@@ -1563,9 +1661,10 @@ cdef class Boolector:
     def Saddo(self, a, b):
         """ Saddo(a, b)
           
-            Create an signed  bit vector addition overflow detection.
+            Create a signed bit vector addition overflow detection.
 
-            Parameters ``a`` and ``b`` must have the same bit width.
+            Parameters ``a`` and ``b`` must have the same bit width
+            (see :ref:`const-conversion`).
 
             :param a: First bit vector operand.
             :type a:  :class:`~boolector.BoolectorNode`
@@ -1575,7 +1674,7 @@ cdef class Boolector:
             :rtype: :class:`~boolector.BoolectorNode`
             """
         a, b = _to_node(a, b)
-        r = _BoolectorBVNode(self)
+        r = BoolectorBVNode(self)
         r._c_node = \
             btorapi.boolector_saddo(self._c_btor, _c_node(a), _c_node(b))
         return r
@@ -1585,7 +1684,13 @@ cdef class Boolector:
           
             Create a bit vector multiplication.
 
-            Parameters ``a`` and ``b`` must have the same bit width.
+            Parameters ``a`` and ``b`` must have the same bit width
+            (see :ref:`const-conversion`).
+
+            It is also possible to create a multiplication as follows
+            (see :ref:`operator-overloading`): ::
+                
+                bvmul = a * b
 
             :param a: First bit vector operand.
             :type a:  :class:`~boolector.BoolectorNode`
@@ -1595,7 +1700,7 @@ cdef class Boolector:
             :rtype: :class:`~boolector.BoolectorNode`
         """
         a, b = _to_node(a, b)
-        r = _BoolectorBVNode(self)
+        r = BoolectorBVNode(self)
         r._c_node = btorapi.boolector_mul(self._c_btor,
                                           _c_node(a), _c_node(b))
         return r
@@ -1605,7 +1710,8 @@ cdef class Boolector:
           
             Create an unsigned  bit vector multiplication overflow detection.
 
-            Parameters ``a`` and ``b`` must have the same bit width.
+            Parameters ``a`` and ``b`` must have the same bit width
+            (see :ref:`const-conversion`).
 
             :param a: First bit vector operand.
             :type a:  :class:`~boolector.BoolectorNode`
@@ -1615,7 +1721,7 @@ cdef class Boolector:
             :rtype: :class:`~boolector.BoolectorNode`
         """
         a, b = _to_node(a, b)
-        r = _BoolectorBVNode(self)
+        r = BoolectorBVNode(self)
         r._c_node = \
             btorapi.boolector_umulo(self._c_btor, _c_node(a), _c_node(b))
         return r
@@ -1623,9 +1729,10 @@ cdef class Boolector:
     def Smulo(self, a, b):
         """ Smulo(a, b)
           
-            Create an signed  bit vector multiplication overflow detection.
+            Create a signed bit vector multiplication overflow detection.
 
-            Parameters ``a`` and ``b`` must have the same bit width.
+            Parameters ``a`` and ``b`` must have the same bit width
+            (see :ref:`const-conversion`).
 
             :param a: First bit vector operand.
             :type a:  :class:`~boolector.BoolectorNode`
@@ -1635,7 +1742,7 @@ cdef class Boolector:
             :rtype: :class:`~boolector.BoolectorNode`
         """
         a, b = _to_node(a, b)
-        r = _BoolectorBVNode(self)
+        r = BoolectorBVNode(self)
         r._c_node = \
             btorapi.boolector_smulo(self._c_btor, _c_node(a), _c_node(b))
         return r
@@ -1645,7 +1752,13 @@ cdef class Boolector:
           
             Create an unsigned less than.
 
-            Parameters ``a`` and ``b`` must have the same bit width.
+            Parameters ``a`` and ``b`` must have the same bit width
+            (see :ref:`const-conversion`).
+
+            It is also possible to create an unsigned less than as follows
+            (see :ref:`operator-overloading`): ::
+                
+                lt = a < b
 
             :param a: First bit vector operand.
             :type a:  :class:`~boolector.BoolectorNode`
@@ -1655,7 +1768,7 @@ cdef class Boolector:
             :rtype: :class:`~boolector.BoolectorNode`
         """
         a, b = _to_node(a, b)
-        r = _BoolectorBVNode(self)
+        r = BoolectorBVNode(self)
         r._c_node = btorapi.boolector_ult(self._c_btor,
                                           _c_node(a), _c_node(b))
         return r
@@ -1663,9 +1776,10 @@ cdef class Boolector:
     def Slt(self, a, b):
         """ Slt(a, b)
           
-            Create an signed less than.
+            Create a signed less than.
 
-            Parameters ``a`` and ``b`` must have the same bit width.
+            Parameters ``a`` and ``b`` must have the same bit width
+            (see :ref:`const-conversion`).
 
             :param a: First bit vector operand.
             :type a:  :class:`~boolector.BoolectorNode`
@@ -1675,7 +1789,7 @@ cdef class Boolector:
             :rtype: :class:`~boolector.BoolectorNode`
         """
         a, b = _to_node(a, b)
-        r = _BoolectorBVNode(self)
+        r = BoolectorBVNode(self)
         r._c_node = btorapi.boolector_slt(self._c_btor,
                                           _c_node(a), _c_node(b))
         return r
@@ -1685,7 +1799,13 @@ cdef class Boolector:
           
             Create an unsigned less than or equal.
 
-            Parameters ``a`` and ``b`` must have the same bit width.
+            Parameters ``a`` and ``b`` must have the same bit width
+            (see :ref:`const-conversion`).
+
+            It is also possible to create an unsigned less than or equal as
+            follows (see :ref:`operator-overloading`): ::
+                
+                lte = a <= b
 
             :param a: First bit vector operand.
             :type a:  :class:`~boolector.BoolectorNode`
@@ -1695,7 +1815,7 @@ cdef class Boolector:
             :rtype: :class:`~boolector.BoolectorNode`
         """
         a, b = _to_node(a, b)
-        r = _BoolectorBVNode(self)
+        r = BoolectorBVNode(self)
         r._c_node = \
             btorapi.boolector_ulte(self._c_btor, _c_node(a), _c_node(b))
         return r
@@ -1703,9 +1823,10 @@ cdef class Boolector:
     def Slte(self, a, b):
         """ Slte(a, b)
           
-            Create an signed less than or equal.
+            Create a signed less than or equal.
 
-            Parameters ``a`` and ``b`` must have the same bit width.
+            Parameters ``a`` and ``b`` must have the same bit width
+            (see :ref:`const-conversion`).
 
             :param a: First bit vector operand.
             :type a:  :class:`~boolector.BoolectorNode`
@@ -1715,7 +1836,7 @@ cdef class Boolector:
             :rtype: :class:`~boolector.BoolectorNode`
         """
         a, b = _to_node(a, b)
-        r = _BoolectorBVNode(self)
+        r = BoolectorBVNode(self)
         r._c_node = \
             btorapi.boolector_slte(self._c_btor, _c_node(a), _c_node(b))
         return r
@@ -1725,7 +1846,13 @@ cdef class Boolector:
           
             Create an unsigned greater than.
 
-            Parameters ``a`` and ``b`` must have the same bit width.
+            Parameters ``a`` and ``b`` must have the same bit width
+            (see :ref:`const-conversion`).
+
+            It is also possible to create an unsigned greater than as follows
+            (see :ref:`operator-overloading`): ::
+                
+                ugt = a > b
 
             :param a: First bit vector operand.
             :type a:  :class:`~boolector.BoolectorNode`
@@ -1735,7 +1862,7 @@ cdef class Boolector:
             :rtype: :class:`~boolector.BoolectorNode`
         """
         a, b = _to_node(a, b)
-        r = _BoolectorBVNode(self)
+        r = BoolectorBVNode(self)
         r._c_node = btorapi.boolector_ugt(self._c_btor,
                                           _c_node(a), _c_node(b))
         return r
@@ -1743,9 +1870,10 @@ cdef class Boolector:
     def Sgt(self, a, b):
         """ Sgt(a, b)
           
-            Create an signed greater than.
+            Create a signed greater than.
 
-            Parameters ``a`` and ``b`` must have the same bit width.
+            Parameters ``a`` and ``b`` must have the same bit width
+            (see :ref:`const-conversion`).
 
             :param a: First bit vector operand.
             :type a:  :class:`~boolector.BoolectorNode`
@@ -1755,7 +1883,7 @@ cdef class Boolector:
             :rtype: :class:`~boolector.BoolectorNode`
         """
         a, b = _to_node(a, b)
-        r = _BoolectorBVNode(self)
+        r = BoolectorBVNode(self)
         r._c_node = btorapi.boolector_sgt(self._c_btor,
                                           _c_node(a), _c_node(b))
         return r
@@ -1765,7 +1893,13 @@ cdef class Boolector:
           
             Create an unsigned greater than or equal.
 
-            Parameters ``a`` and ``b`` must have the same bit width.
+            Parameters ``a`` and ``b`` must have the same bit width
+            (see :ref:`const-conversion`).
+
+            It is also possible to create an unsigned greater than or equal as
+            follows (see :ref:`operator-overloading`): ::
+                
+                ugte = a >= b
 
             :param a: First bit vector operand.
             :type a:  :class:`~boolector.BoolectorNode`
@@ -1775,7 +1909,7 @@ cdef class Boolector:
             :rtype: :class:`~boolector.BoolectorNode`
         """
         a, b = _to_node(a, b)
-        r = _BoolectorBVNode(self)
+        r = BoolectorBVNode(self)
         r._c_node = \
             btorapi.boolector_ugte(self._c_btor, _c_node(a), _c_node(b))
         return r
@@ -1783,9 +1917,10 @@ cdef class Boolector:
     def Sgte(self, a, b):
         """ Sgte(a, b)
           
-            Create an signed greater than or equal.
+            Create a signed greater than or equal.
 
-            Parameters ``a`` and ``b`` must have the same bit width.
+            Parameters ``a`` and ``b`` must have the same bit width
+            (see :ref:`const-conversion`).
 
             :param a: First bit vector operand.
             :type a:  :class:`~boolector.BoolectorNode`
@@ -1795,44 +1930,57 @@ cdef class Boolector:
             :rtype: :class:`~boolector.BoolectorNode`
         """
         a, b = _to_node(a, b)
-        r = _BoolectorBVNode(self)
+        r = BoolectorBVNode(self)
         r._c_node = \
             btorapi.boolector_sgte(self._c_btor, _c_node(a), _c_node(b))
         return r
 
-    def Sll(self, _BoolectorBVNode a, b):
+    def Sll(self, BoolectorBVNode a, b):
         """ Sll(a, b)
           
             Create a logical shift left.
 
             Given bit vector node ``b``, the value it represents is the 
-            number of zeroes shifted into node ``a`` from the right.
+            number of zeroes shifted into node ``a`` from the right
+            (see :ref:`const-conversion`).
+
+
+            It is also possible to create a logical shift left as follows
+            (see :ref:`operator-overloading`): ::
+                
+                bvshl = a << b
 
             :param a: First bit vector operand where the bit width is a power of two and greater than 1.
             :type a:  :class:`~boolector.BoolectorNode`
-            :param b: Second bit vector operand with bit width log2 of the bit width of ``a``..
+            :param b: Second bit vector operand with bit width log2 of the bit width of ``a``.
             :type b:  :class:`~boolector.BoolectorNode`
             :return:  A bit vector node with the same bit width as ``a``.
             :rtype: :class:`~boolector.BoolectorNode`
         """
         b = self.Const(b, math.ceil(math.log(a.width, 2)))
         _check_precond_shift(a, b)
-        r = _BoolectorBVNode(self)
+        r = BoolectorBVNode(self)
         r._c_node = btorapi.boolector_sll(self._c_btor,
                                           _c_node(a), _c_node(b))
         return r
 
-    def Srl(self, _BoolectorBVNode a, b):
+    def Srl(self, BoolectorBVNode a, b):
         """ Srl(a, b)
           
             Create a logical shift right.
 
             Given bit vector node ``b``, the value it represents is the 
-            number of zeroes shifted into node ``a`` from the left.
+            number of zeroes shifted into node ``a`` from the left
+            (see :ref:`const-conversion`).
+
+            It is also possible to create a logical shift right as follows
+            (see :ref:`operator-overloading`): ::
+                
+                bvshr = a >> b
 
             :param a: First bit vector operand where the bit width is a power of two and greater than 1.
             :type a:  :class:`~boolector.BoolectorNode`
-            :param b: Second bit vector operand with bit width log2 of the bit width of ``a``..
+            :param b: Second bit vector operand with bit width log2 of the bit width of ``a``.
             :type b:  :class:`~boolector.BoolectorNode`
             :return:  A bit vector node with the same bit width as ``a``.
             :rtype: :class:`~boolector.BoolectorNode`
@@ -1840,23 +1988,23 @@ cdef class Boolector:
         b = self.Const(b, math.ceil(math.log(a.width, 2)))
         _check_precond_shift(a, b)
         _check_precond_shift(a, b)
-        r = _BoolectorBVNode(self)
+        r = BoolectorBVNode(self)
         r._c_node = btorapi.boolector_srl(self._c_btor,
                                           _c_node(a), _c_node(b))
         return r
 
-    def Sra(self, _BoolectorBVNode a, b):
+    def Sra(self, BoolectorBVNode a, b):
         """ Sra(a, b)
           
             Create an arithmetic shift right.
 
             Analogously to :func:`~boolector.Boolector.Srl`, but whether
             zeroes or ones are shifted in depends on the most significant
-            bit of node ``a``.
+            bit of node ``a`` (see :ref:`const-conversion`).
 
             :param a: First bit vector operand where the bit width is a power of two and greater than 1.
             :type a:  :class:`~boolector.BoolectorNode`
-            :param b: Second bit vector operand with bit width log2 of the bit width of ``a``..
+            :param b: Second bit vector operand with bit width log2 of the bit width of ``a``.
             :type b:  :class:`~boolector.BoolectorNode`
             :return:  A bit vector node with the same bit width as ``a``.
             :rtype: :class:`~boolector.BoolectorNode`
@@ -1864,51 +2012,53 @@ cdef class Boolector:
         b = self.Const(b, math.ceil(math.log(a.width, 2)))
         _check_precond_shift(a, b)
         _check_precond_shift(a, b)
-        r = _BoolectorBVNode(self)
+        r = BoolectorBVNode(self)
         r._c_node = btorapi.boolector_sra(self._c_btor,
                                           _c_node(a), _c_node(b))
         return r
 
-    def Rol(self, _BoolectorBVNode a, b):
+    def Rol(self, BoolectorBVNode a, b):
         """ Rol(a, b)
           
             Create a rotate left.
 
             Given bit vector node ``b``, the value it represents is the 
-            number of bits by which node ``a`` is rotated to the left.
+            number of bits by which node ``a`` is rotated to the left
+            (see :ref:`const-conversion`).
 
             :param a: First bit vector operand where the bit width is a power of two and greater than 1.
             :type a:  :class:`~boolector.BoolectorNode`
-            :param b: Second bit vector operand with bit width log2 of the bit width of ``a``..
+            :param b: Second bit vector operand with bit width log2 of the bit width of ``a``.
             :type b:  :class:`~boolector.BoolectorNode`
             :return:  A bit vector node with the same bit width as ``a``.
             :rtype: :class:`~boolector.BoolectorNode`
         """
         b = self.Const(b, math.ceil(math.log(a.width, 2)))
         _check_precond_shift(a, b)
-        r = _BoolectorBVNode(self)
+        r = BoolectorBVNode(self)
         r._c_node = btorapi.boolector_rol(self._c_btor,
                                           _c_node(a), _c_node(b))
         return r
 
-    def Ror(self, _BoolectorBVNode a, b):
+    def Ror(self, BoolectorBVNode a, b):
         """ Ror(a, b)
           
             Create a rotate right.
 
             Given bit vector node ``b``, the value it represents is the 
-            number of bits by which node ``a`` is rotated to the right.
+            number of bits by which node ``a`` is rotated to the right
+            (see :ref:`const-conversion`).
 
             :param a: First bit vector operand where the bit width is a power of two and greater than 1.
             :type a:  :class:`~boolector.BoolectorNode`
-            :param b: Second bit vector operand with bit width log2 of the bit width of ``a``..
+            :param b: Second bit vector operand with bit width log2 of the bit width of ``a``.
             :type b:  :class:`~boolector.BoolectorNode`
             :return:  A bit vector node with the same bit width as ``a``.
             :rtype: :class:`~boolector.BoolectorNode`
         """
         b = self.Const(b, math.ceil(math.log(a.width, 2)))
         _check_precond_shift(a, b)
-        r = _BoolectorBVNode(self)
+        r = BoolectorBVNode(self)
         r._c_node = btorapi.boolector_ror(self._c_btor,
                                           _c_node(a), _c_node(b))
         return r
@@ -1918,7 +2068,13 @@ cdef class Boolector:
           
             Create a bit vector subtraction.
 
-            Parameters ``a`` and ``b`` must have the same bit width.
+            Parameters ``a`` and ``b`` must have the same bit width
+            (see :ref:`const-conversion`).
+
+            It is also possible to create a subtraction as follows
+            (see :ref:`operator-overloading`): ::
+                
+                bvsub = a - b
 
             :param a: First bit vector operand.
             :type a:  :class:`~boolector.BoolectorNode`
@@ -1928,7 +2084,7 @@ cdef class Boolector:
             :rtype: :class:`~boolector.BoolectorNode`
         """
         a, b = _to_node(a, b)
-        r = _BoolectorBVNode(self)
+        r = BoolectorBVNode(self)
         r._c_node = btorapi.boolector_sub(self._c_btor,
                                           _c_node(a), _c_node(b))
         return r
@@ -1938,7 +2094,8 @@ cdef class Boolector:
           
             Create an unsigned  bit vector subtraction overflow detection.
 
-            Parameters ``a`` and ``b`` must have the same bit width.
+            Parameters ``a`` and ``b`` must have the same bit width
+            (see :ref:`const-conversion`).
 
             :param a: First bit vector operand.
             :type a:  :class:`~boolector.BoolectorNode`
@@ -1948,7 +2105,7 @@ cdef class Boolector:
             :rtype: :class:`~boolector.BoolectorNode`
         """
         a, b = _to_node(a, b)
-        r = _BoolectorBVNode(self)
+        r = BoolectorBVNode(self)
         r._c_node = \
             btorapi.boolector_usubo(self._c_btor, _c_node(a), _c_node(b))
         return r
@@ -1958,7 +2115,8 @@ cdef class Boolector:
           
             Create a signed  bit vector subtraction overflow detection.
 
-            Parameters ``a`` and ``b`` must have the same bit width.
+            Parameters ``a`` and ``b`` must have the same bit width
+            (see :ref:`const-conversion`).
 
             :param a: First bit vector operand.
             :type a:  :class:`~boolector.BoolectorNode`
@@ -1968,7 +2126,7 @@ cdef class Boolector:
             :rtype: :class:`~boolector.BoolectorNode`
         """
         a, b = _to_node(a, b)
-        r = _BoolectorBVNode(self)
+        r = BoolectorBVNode(self)
         r._c_node = \
             btorapi.boolector_ssubo(self._c_btor, _c_node(a), _c_node(b))
         return r
@@ -1978,14 +2136,21 @@ cdef class Boolector:
           
             Create an unsigned  bit vector division.
 
-            Parameters ``a`` and ``b`` must have the same bit width.
+            Parameters ``a`` and ``b`` must have the same bit width
+            (see :ref:`const-conversion`).
             If ``a`` is 0, the division's result is -1.
 
-            Note that this behavior (division by zero returns -1) does not
-            exactly comply with the SMT-LIB v1 and v2 standards, where division
-            by zero is handled as an uninterpreted function.
-            Our semantics are motivated by real circuits where division by zero
-            cannot be uninterpreted and consequently returns a result.
+            It is also possible to create an unsigned division as follows
+            (see :ref:`operator-overloading`): ::
+                
+                bvudiv = a / b
+
+            .. note::
+                This behavior (division by zero returns -1) does not exactly
+                comply with the SMT-LIB v1 and v2 standards, where division by
+                zero is handled as an uninterpreted function.  Our semantics
+                are motivated by real circuits where division by zero cannot be
+                uninterpreted and consequently returns a result.
 
             :param a: First bit vector operand.
             :type a:  :class:`~boolector.BoolectorNode`
@@ -1995,7 +2160,7 @@ cdef class Boolector:
             :rtype: :class:`~boolector.BoolectorNode`
         """
         a, b = _to_node(a, b)
-        r = _BoolectorBVNode(self)
+        r = BoolectorBVNode(self)
         r._c_node = \
             btorapi.boolector_udiv(self._c_btor, _c_node(a), _c_node(b))
         return r
@@ -2005,15 +2170,16 @@ cdef class Boolector:
           
             Create a signed  bit vector division.
 
-            Parameters ``a`` and ``b`` must have the same bit width.
+            Parameters ``a`` and ``b`` must have the same bit width
+            (see :ref:`const-conversion`).
             
-            Note that signed division is expressed by means of unsigned
-            division, where either node is normalized in case that its 
-            sign bit is 1. 
-            If the sign bits of ``a`` and ``b`` do not match, two's complement
-            is performed on the result of the previous unsigned division.
-            Hence, the behavior in case of a division by zero depends on
-            :func:`~boolector.Boolector.Udiv`.
+            .. note::
+                Signed division is expressed by means of unsigned division,
+                where either node is normalized in case that its sign bit is 1.
+                If the sign bits of ``a`` and ``b`` do not match, two's
+                complement is performed on the result of the previous unsigned
+                division.  Hence, the behavior in case of a division by zero
+                depends on :func:`~boolector.Boolector.Udiv`.
 
             :param a: First bit vector operand.
             :type a:  :class:`~boolector.BoolectorNode`
@@ -2023,7 +2189,7 @@ cdef class Boolector:
             :rtype: :class:`~boolector.BoolectorNode`
         """
         a, b = _to_node(a, b)
-        r = _BoolectorBVNode(self)
+        r = BoolectorBVNode(self)
         r._c_node = \
             btorapi.boolector_sdiv(self._c_btor, _c_node(a), _c_node(b))
         return r
@@ -2033,11 +2199,13 @@ cdef class Boolector:
           
             Create a signed  bit vector division overflow detection.
 
-            Parameters ``a`` and ``b`` must have the same bit width.
-            An overflow can occur, if ``a`` represents INT_MIN and ``b``
+            Parameters ``a`` and ``b`` must have the same bit width
+            (see :ref:`const-conversion`).
+            An overflow can occur if ``a`` represents INT_MIN and ``b``
             represents -1.
 
-            Note that unsigned bit vector division does not overflow.
+            .. note::
+                Unsigned bit vector division does not overflow.
 
             :param a: First bit vector operand.
             :type a:  :class:`~boolector.BoolectorNode`
@@ -2047,7 +2215,7 @@ cdef class Boolector:
             :rtype: :class:`~boolector.BoolectorNode`
         """
         a, b = _to_node(a, b)
-        r = _BoolectorBVNode(self)
+        r = BoolectorBVNode(self)
         r._c_node = \
             btorapi.boolector_sdivo(self._c_btor, _c_node(a), _c_node(b))
         return r
@@ -2057,14 +2225,21 @@ cdef class Boolector:
           
             Create an unsigned remainder.
 
-            Parameters ``a`` and ``b`` must have the same bit width.
+            Parameters ``a`` and ``b`` must have the same bit width
+            (see :ref:`const-conversion`).
             If ``b`` is 0, the result of the unsigned remainder is ``a``.
+
+            It is also possible to create an unsigned remainder as follows
+            (see :ref:`operator-overloading`): ::
+                
+                bvurem = a % b
             
-            As in :func:`~boolector.Boolector.Udiv`, the behavior if ``b``
-            is 0 does not exactly comply to the SMT-LIB v1 and v2 standards,
-            where the result ist handled as uninterpreted function.
-            Our semantics are motivated by real circuits, where result 
-            can not be uninterpreted.
+            .. note::
+                As in :func:`~boolector.Boolector.Udiv`, the behavior if ``b``
+                is 0 does not exactly comply to the SMT-LIB v1 and v2 standards,
+                where the result ist handled as uninterpreted function.
+                Our semantics are motivated by real circuits, where result 
+                can not be uninterpreted.
 
             :param a: First bit vector operand.
             :type a:  :class:`~boolector.BoolectorNode`
@@ -2074,7 +2249,7 @@ cdef class Boolector:
             :rtype: :class:`~boolector.BoolectorNode`
         """
         a, b = _to_node(a, b)
-        r = _BoolectorBVNode(self)
+        r = BoolectorBVNode(self)
         r._c_node = \
             btorapi.boolector_urem(self._c_btor, _c_node(a), _c_node(b))
         return r
@@ -2084,7 +2259,9 @@ cdef class Boolector:
           
             Create a signed remainder.
 
-            Parameters ``a`` and ``b`` must have the same bit width.
+            Parameters ``a`` and ``b`` must have the same bit width
+            (see :ref:`const-conversion`).
+            If ``b`` is 0, the result of the unsigned remainder is ``a``.
             If ``b`` is 0, the result of the unsigned remainder is ``a``.
             
             Analogously to :func:`~boolector.Boolector.Sdiv`, the signed
@@ -2101,7 +2278,7 @@ cdef class Boolector:
             :rtype: :class:`~boolector.BoolectorNode`
         """
         a, b = _to_node(a, b)
-        r = _BoolectorBVNode(self)
+        r = BoolectorBVNode(self)
         r._c_node = \
             btorapi.boolector_srem(self._c_btor, _c_node(a), _c_node(b))
         return r
@@ -2112,7 +2289,8 @@ cdef class Boolector:
             Create a signed remainder where its sign matches the sign of the
             divisor.
 
-            Parameters ``a`` and ``b`` must have the same bit width.
+            Parameters ``a`` and ``b`` must have the same bit width
+            (see :ref:`const-conversion`).
             
             If ``b`` is zero, the result depends on 
             :func:`~boolector.Boolector.Urem`.
@@ -2125,12 +2303,12 @@ cdef class Boolector:
             :rtype: :class:`~boolector.BoolectorNode`
         """
         a, b = _to_node(a, b)
-        r = _BoolectorBVNode(self)
+        r = BoolectorBVNode(self)
         r._c_node = \
             btorapi.boolector_smod(self._c_btor, _c_node(a), _c_node(b))
         return r
 
-    def Concat(self, _BoolectorBVNode a, _BoolectorBVNode b):
+    def Concat(self, BoolectorBVNode a, BoolectorBVNode b):
         """ Concat(a,b)
           
             Create the concatenation of two bit vectors.
@@ -2143,16 +2321,22 @@ cdef class Boolector:
             :rtype: :class:`~boolector.BoolectorNode`
         """
         a, b = _to_node(a, b)
-        r = _BoolectorBVNode(self)
+        r = BoolectorBVNode(self)
         r._c_node = \
             btorapi.boolector_concat(self._c_btor, _c_node(a), _c_node(b))
         return r
 
-    def Read(self, _BoolectorArrayNode a, b):
+    def Read(self, BoolectorArrayNode a, b):
 
         """ Read(a,b)
           
-            Create a read on array ``a`` at position ``b``.
+            Create a read on array ``a`` at position ``b``
+            (see :ref:`const-conversion`).
+
+            It is also possible to create a read as follows
+            (see :ref:`operator-overloading`): ::
+                
+                read = a[b]
 
             :param a: Array operand.
             :type a:  :class:`~boolector.BoolectorNode`
@@ -2162,18 +2346,18 @@ cdef class Boolector:
             :rtype: :class:`~boolector.BoolectorNode`
         """
         b = self.Const(b, a.index_width)
-        r = _BoolectorBVNode(self)
+        r = BoolectorBVNode(self)
         r._c_node = \
             btorapi.boolector_read(self._c_btor, _c_node(a), _c_node(b))
         return r
 
     # Ternary operators
 
-    def Write(self, _BoolectorArrayNode array, index, value):
+    def Write(self, BoolectorArrayNode array, index, value):
         """ Write(array,index, value)
           
-            Create a read on array ``array`` at position ``index`` with value
-            ``value``.
+            Create a write on array ``array`` at position ``index`` with value
+            ``value`` (see :ref:`const-conversion`).
 
             The array is updated at exactly one position, all other elements
             remain unchanged.
@@ -2194,7 +2378,7 @@ cdef class Boolector:
         index = self.Const(index, array.index_width)
         value = self.Const(value, array.width)
 
-        r = _BoolectorArrayNode(self)
+        r = BoolectorArrayNode(self)
         r._c_node = \
             btorapi.boolector_write(self._c_btor, array._c_node,
                                     _c_node(index), _c_node(value))
@@ -2207,8 +2391,8 @@ cdef class Boolector:
             
             If condition ``cond`` is true, then ``a`` is returned, else ``b``
             is returned.
-            Nodes ``a`` and ``b`` must be either both arrays or both bit
-            vectors.
+            ``a`` and ``b`` must be either both arrays or both bit
+            vectors (see :ref:`const-conversion`).
 
             :param cond: Bit vector condition with bit width one.
             :type cond:  :class:`~boolector.BoolectorNode`
@@ -2221,13 +2405,13 @@ cdef class Boolector:
         """
         _check_precond_cond(cond, a, b)
         cond = self.Const(cond, width=1)
-        if isinstance(a, _BoolectorBVNode) or isinstance(b, _BoolectorBVNode):
-            r = _BoolectorBVNode(self)
+        if isinstance(a, BoolectorBVNode) or isinstance(b, BoolectorBVNode):
+            r = BoolectorBVNode(self)
             a, b = _to_node(a, b)
         else:
-            assert(isinstance(a, _BoolectorArrayNode))
-            assert(isinstance(b, _BoolectorArrayNode))
-            r = _BoolectorArrayNode(self)
+            assert(isinstance(a, BoolectorArrayNode))
+            assert(isinstance(b, BoolectorArrayNode))
+            r = BoolectorArrayNode(self)
         r._c_node = \
             btorapi.boolector_cond(self._c_btor, _c_node(cond), _c_node(a),
                                       _c_node(b))
@@ -2235,7 +2419,7 @@ cdef class Boolector:
 
     # Functions
 
-    def Fun(self, list params, _BoolectorBVNode body):
+    def Fun(self, list params, BoolectorBVNode body):
         """ Fun(params, body)
           
             Create a function with function body ``body``, parameterized
@@ -2243,15 +2427,17 @@ cdef class Boolector:
             
             This kind of node is similar to macros in the `SMT-LIB v2`_
             standard.
-            Note that as soon as a parameter is bound to a function, it can
-            not be reused in other functions. 
-            Call a function via :func:`~boolector.Boolector.Apply`.
+
+            .. note::
+                As soon as a parameter is bound to a function, it can
+                not be reused in other functions. 
+                Call a function via :func:`~boolector.Boolector.Apply`.
 
             See :func:`~boolector.Boolector.Param`,
             :func:`~boolector.Boolector.Apply`.
 
             :param params: A list of function parameters.
-            :type cond:  :class:`~boolector.BoolectorNode`
+            :type params: list
             :param body: Function body parameterized over ``params``.
             :type body:  :class:`~boolector.BoolectorNode`
             :return:  A function over parameterized expression ``body``.
@@ -2265,11 +2451,11 @@ cdef class Boolector:
         # copy params into array
         for i in range(paramc):
             if not isinstance(params[i], _BoolectorParamNode):
-                raise _BoolectorException(
+                raise BoolectorException(
                           "Operand at position {} is not a parameter".format(i))
             c_params[i] = _c_node(params[i])
 
-        r = _BoolectorFunNode(self)
+        r = BoolectorFunNode(self)
         r._params = params
         r._c_node = \
             btorapi.boolector_fun(self._c_btor, c_params, paramc, body._c_node)
@@ -2281,20 +2467,20 @@ cdef class Boolector:
           
             Create an uninterpreted function with sort ``sort`` and symbol
             ``symbol``.
-            
-            Note that in contrast to composite expressions, which are 
-            maintained uniquely w.r.t. to their kind, inputs (and consequently,
-            bit width), uninterpreted functions are not.
-            Hence, each call to this function returns a fresh uninterpreted
-            function.
 
             An uninterpreted function's symbol is used as a simple means of 
             identfication, either when printing a model via 
             :func:`~boolector.Boolector.Print_model`,
             or generating file dumps via 
             :func:`~boolector.Boolector.Dump`.
-            Note that a symbol must be unique but may be None in case that no
+            A symbol must be unique but may be None in case that no
             symbol should be assigned.
+
+            .. note::
+                In contrast to composite expressions, which are maintained
+                uniquely w.r.t. to their kind, inputs (and consequently, bit
+                width), uninterpreted functions are not.  Hence, each
+                call to this function returns a fresh uninterpreted function.
 
             See :func:`~boolector.Boolector.Apply`,
             :func:`~boolector.Boolector.FunSort`.
@@ -2307,21 +2493,26 @@ cdef class Boolector:
             :rtype: :class:`~boolector.BoolectorNode`
         """
         if not isinstance(sort, _BoolectorFunSort):
-            raise _BoolectorException(
+            raise BoolectorException(
                      "Sort must be of sort '_BoolectorFunSort'")
-        r = _BoolectorFunNode(self)
+        r = BoolectorFunNode(self)
         r._sort = sort
         r._c_node = btorapi.boolector_uf(self._c_btor, sort._c_sort,
                                          _ChPtr(symbol)._c_str)
         return r
 
 
-    def Apply(self, list args, _BoolectorFunNode fun):
+    def Apply(self, list args, BoolectorFunNode fun):
         """ Apply(args,fun)
           
             Create a function application on function ``fun`` with arguments
-            ``args``.
+            ``args`` (see :ref:`const-conversion`).
             
+            It is also possible to create a function application as follows
+            (see :ref:`operator-overloading`): ::
+                
+                app = fun(arg_0, ..., arg_n)
+
             See :func:`~boolector.Boolector.Fun`,
             :func:`~boolector.Boolector.UF`.
 
@@ -2343,7 +2534,7 @@ cdef class Boolector:
             a = args[i]
             if not isinstance(a, BoolectorNode):
                 if not (isinstance(a, int) or isinstance(a, bool)):
-                    raise _BoolectorException(
+                    raise BoolectorException(
                               "Invalid type of argument {}".format(i))
                 a = self.Const(a, _get_argument_width(fun, i))
             assert(isinstance(a, BoolectorNode))
@@ -2352,7 +2543,7 @@ cdef class Boolector:
         for i in range(len(arg_nodes)):
             c_args[i] = _c_node(arg_nodes[i])
 
-        r = _BoolectorBVNode(self)
+        r = BoolectorBVNode(self)
         r._c_node = \
             btorapi.boolector_apply(self._c_btor, c_args, argc, fun._c_node)
         free(c_args)
@@ -2421,7 +2612,7 @@ cdef class Boolector:
 
         for i in range(arity):
             if not isinstance(domain[i], BoolectorSort):
-                raise _BoolectorException("Function domain contains non-sort "\
+                raise BoolectorException("Function domain contains non-sort "\
                                           "objects")
             c_domain[i] = (<BoolectorSort> domain[i])._c_sort
 

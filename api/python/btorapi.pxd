@@ -26,7 +26,7 @@ cdef extern from "boolector.h":
 
     void boolector_delete (Btor * btor)
 
-    void boolector_set_msg_prefix (Btor * btor, const char * prefix)
+#    void boolector_set_msg_prefix (Btor * btor, const char * prefix)
 
     int boolector_get_refs (Btor * btor)
 
