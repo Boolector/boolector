@@ -142,7 +142,7 @@ int
 btor_minisat_sat (BtorSATMgr *smgr, int limit)
 {
   BtorMiniSAT *solver = (BtorMiniSAT *) BTOR_GET_SOLVER_SAT (smgr);
-  (void) limit;
+  solver->setConfBudget (limit);
   return solver->sat (!smgr->inc_required);
 }
 
