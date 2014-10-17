@@ -180,7 +180,7 @@ Python Operator Overloading
     slice_31_0 = x[:]    # btor.Slice(x, x.width - 1, 0) -- copies variable 'x'
 
   Further, the API also provides convenient ways to create reads
-  (see :func:`~boolector.Boolector.Read`) on arrays and function applications
+  (see :func:`~boolector.Boolector.Read`) on arrays, and function applications
   (see :func:`~boolector.Boolector.Apply`).
 
   **Reads on arrays:** ::
@@ -204,13 +204,12 @@ Automatic Constant Conversion
 ^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
                                           
   For almost every method of :class:`~boolector.Boolector` that creates nodes,
-  the Python API allows to also pass constants as arguments instead of
-  :class:`~boolector.BoolectorNode`. The only requirement is that it must
-  be possible to derive the bit width of the constant operands from the
-  remaining operands. For example, binary operators like
-  :func:`~boolector.Boolector.Add`
-  require that both operands have the same bit width. Hence, one of their
-  operands may be a constant, whose bit width will be derived from the other
+  instead of passing arguments of the type :class:`~boolector.BoolectorNode`,
+  the Python API allows to pass constants as arguments.
+  The only requirement is that it must be possible to derive the bit width of
+  the constant operands from the remaining operands.
+  For example, binary operators like :func:`~boolector.Boolector.Add`
+  operands may be a constant, and its bit width will be derived from the other
   non-constant operand, e.g.: ::
 
     btor.Add(x, 42)         # btor.Add(x, btor.Const(42, x.width))

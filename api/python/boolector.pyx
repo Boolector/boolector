@@ -371,7 +371,7 @@ cdef class BoolectorNode:
 
             Dump node to output file.
 
-            :param format: A file format identifier string (use "btor" for BTOR_, "smt1" for `SMT-LIB v1`_, and "smt2" for `SMT-LIB v2`_).
+            :param format: A file format identifier string (use 'btor' for BTOR_, 'smt1' for `SMT-LIB v1`_, and 'smt2' for `SMT-LIB v2`_).
             :type format: str
             :param outfile: Output file name (default: stdout).
             :type outfile: str
@@ -908,7 +908,7 @@ cdef class Boolector:
               btor = Boolector()
               options = btor.Options()
               for o in options:
-                # do something
+                  # do something
       
             :return: An iterator to iterate over all Boolector options.
             :rtype: :class:`~boolector.BoolectorOptions`
@@ -957,7 +957,23 @@ cdef class Boolector:
             Print model to output file.
 
             This function prints the model for all inputs to output file
-            ``outfile``.
+            ``outfile``, e.g. ::
+
+              btor.Print_model()
+
+            A possible model would be: ::
+  
+              2 00000100 x
+              3 00010101 y
+              4[00] 01 A
+  
+            which in this case prints the assignments of array variable ``A``,
+            and bit vector variables ``x`` and ``y``.
+            For bit vector variables, the first column indicates the id of an
+            input, the second column its assignment, and the third column its
+            name (symbol), if any. Array variable ``A``, on the other hand,
+            has id 4, is an array with index and element bit width of 2, 
+            and its value at index 0 is 1.
 
             :param outfile: Output file name (default: stdout).
             :type outfile:  str
@@ -1054,7 +1070,7 @@ cdef class Boolector:
             Create a bit vector constant of value ``c`` and bit width ``width``.
 
             .. note::
-                ``width`` is only required if ``c`` is an integer.
+                Parameter ``width`` is only required if ``c`` is an integer.
 
             :param c: Value of the constant.
             :type  c: int, bool, str
