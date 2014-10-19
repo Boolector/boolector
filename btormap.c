@@ -1,7 +1,8 @@
 /*  Boolector: Satisfiablity Modulo Theories (SMT) solver.
  *
- *  Copyright (C) 2013 - 2014 Armin Biere.
- *  Copyright (C) 2013 Aina Niemetz.
+ *  Copyright (C) 2013-2014 Armin Biere.
+ *  Copyright (C) 2013-2014 Aina Niemetz.
+ *  Copyright (C) 2014 Mathias Preiner.
  *
  *  All rights reserved.
  *
