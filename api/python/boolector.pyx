@@ -1175,7 +1175,7 @@ cdef class Boolector:
         """ Array(elem_width, index_width, symbol = None)
 
             Create a one-dimensional bit vector array variable of size
-            2** ``index_width`` with elements of bit width ``elem_width``.
+            ``2**index_width`` with elements of bit width ``elem_width``.
 
             An array variable's symbol is used as a simple means of
             identfication, either when printing a model via 
@@ -1198,7 +1198,7 @@ cdef class Boolector:
             :type width: int
             :param symbol: Symbol of the array variable.
             :type symbol: str
-            :return: An array variable of size 2** ``index_width`` with elements of bit width ``elem_width``.
+            :return: An array variable of size ``2**index_width`` with elements of bit width ``elem_width``.
             :rtype: :class:`~boolector.BoolectorNode`
         """
         r = BoolectorArrayNode(self)
