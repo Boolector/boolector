@@ -305,6 +305,7 @@ parse (FILE *file)
   buffer_len        = 256;
   arg2_int          = 0;
   btor              = 0;
+  clone             = 0;
 
   hmap = btor_new_ptr_hash_table (
       btorunt->mm, (BtorHashPtr) btor_hash_str, (BtorCmpPtr) strcmp);
