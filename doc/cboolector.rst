@@ -6,18 +6,6 @@ Boolector C API documentation
 .. _SMT-LIB v1: http://smtlib.cs.uiowa.edu/papers/format-v1.2-r06.08.30.pdf
 .. _SMT-LIB v2: http://smtlib.cs.uiowa.edu/papers/smt-lib-reference-v2.0-r12.09.09.pdf
 
-..
-    Introduction
-    ------------
-
-      Boolector_ is an SMT solver for the quantifier-free theory of bit vectors
-      with arrays. It supports BTOR_, `SMT-LIB v1`_, and `SMT-LIB v2`_
-      as input format and can be either used as a stand-alone SMT solver, or as
-      back end for other tools via its public API.
-      This is the documentation of Boolector's public **C interface**.
-      For further information and the latest version of Boolector, please refer
-      to http://fmv.jku.at/boolector.
-
 Interface
 ---------
 
@@ -25,10 +13,6 @@ Interface
     :maxdepth: 2
 
     cboolector_index
-
-* :ref:`search`
-
-
 
 
 Quickstart
@@ -293,10 +277,21 @@ Rewriting
 Examples
 --------
 
-  See section TODO: examples for bit vector and array examples to demonstrate
-  how Boolector's public interface is used.
-  \example bv1.c
-  \example bv2.c
-  \example array1.c
-  \example array2.c
-  \example array3.c
+Bit vector examples
+^^^^^^^^^^^^^^^^^^^
+  .. literalinclude:: ../examples/bv/bv1.c
+     :language: c
+
+  .. literalinclude:: ../examples/bv/bv2.c
+     :language: c
+
+Array examples
+^^^^^^^^^^^^^^
+  .. literalinclude:: ../examples/array/array1.c
+     :language: c
+
+  .. literalinclude:: ../examples/array/array2.c
+     :language: c
+
+  .. literalinclude:: ../examples/array/array3.c
+     :language: c

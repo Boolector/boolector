@@ -19,15 +19,11 @@ Introduction
   .. _SMT-LIB v2: http://smtlib.cs.uiowa.edu/papers/smt-lib-reference-v2.0-r12.09.09.pdf
 
 
-Interface
----------
+API Documentations
+------------------
 
 .. toctree::
-    :maxdepth: 1
+    :maxdepth: 2
 
     cboolector
     pyboolector
-
-.. * :ref:`genindex`
-.. * :ref:`modindex`
-* :ref:`search`

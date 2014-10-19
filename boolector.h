@@ -93,7 +93,13 @@ Btor *boolector_new (void);
   nodes.
 
   :param btor: Original Boolector instance.
-  :return: A Boolector instance that is the exact copy of ``btor``.
+  :return: The exact (but disjunct) copy of the Boolector instance ``btor``.
+
+  .. note::
+    If Lingeling is used as SAT solver, Boolector can be cloned at any time,
+    since Lingeling also supports cloning. However, if you use boolector_clone
+    with MiniSAT or PicoSAT (no cloning suppport), Boolector can only be cloned
+    prior to the first boolector_sat call.
 */
 Btor *boolector_clone (Btor *btor);
 
@@ -188,13 +194,12 @@ void boolector_assert (Btor *btor, BoolectorNode *node);
 /*!
   Add an assumption.
 
-  Use this function to assume ``node``.  You must enable Boolector's
-  incremental usage via
-  boolector_set_opt before you can add assumptions.
-  In contrast to assertions added via boolector_assert,
-  assumptions are discarded after each call to boolector_sat.
-  Assumptions and assertions are logically combined via Boolean ``and``.
-  Assumption handling in Boolector is analogous to assumptions in MiniSAT.
+  Use this function to assume ``node``. You must enable Boolector's
+  incremental usage via boolector_set_opt before you can add assumptions.  In
+  contrast to assertions added via boolector_assert, assumptions are discarded
+  after each call to boolector_sat. Assumptions and assertions are logically
+  combined via Boolean ``and``. Assumption handling in Boolector is analogous
+  to assumptions in MiniSAT.
 
   :param btor: Boolector instance.
   :param node: Bit vector expression with bit width one.

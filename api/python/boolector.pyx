@@ -651,9 +651,6 @@ cdef class Boolector:
             You can guide the search for a solution to an input formula by
             making assumptions via :func:`~boolector.Boolector.Assume`.
 
-            .. note::
-                Assertions and assumptions are combined via Boolean *and*.
-
             If you want to call this function multiple times, you must
             enable Boolector's incremental usage mode via 
             :func:`~boolector.Boolector.Set_opt`.
@@ -663,14 +660,17 @@ cdef class Boolector:
             (``lod_limit``) and the number of conflicts encountered by
             the underlying SAT solver (``sat_limit``).
 
-            See :data:`~boolector.BoolectorNode.assignment`. 
-
             :param lod_limit: Limit for Lemmas on Demand (-1: unlimited).
             :type lod_limit:  int
             :param sat_limit: Conflict limit for the SAT solver (-1: unlimited).
             :type sat_limit:  int
             :return: :data:`~boolector.Boolector.SAT` if the input formula is satisfiable (under possibly given assumptions), :data:`~boolector.Boolector.UNSAT` if it is unsatisfiable, and :data:`~boolector.Boolector.UNKNOWN` if the instance could not be solved within given limits.
 
+            .. note::
+                Assertions and assumptions are combined via Boolean *and*.
+
+            .. seealso::
+                :data:`~boolector.BoolectorNode.assignment`
         """
         if lod_limit > 0 or sat_limit > 0:
             return btorapi.boolector_limited_sat(self._c_btor, lod_limit,
@@ -682,11 +682,11 @@ cdef class Boolector:
 
             Simplify current input formula.
 
+            :return: :data:`~boolector.Boolector.SAT` if the input formula was simplified to true, :data:`~boolector.Boolector.UNSAT` if it was simplified to false, and :data:`~boolector.Boolector.UNKNOWN`, otherwise.
+
             .. note::
                 Each call to :func:`~boolector.Boolector.Sat` 
                 simplifies the input formula as a preprocessing step.
-
-            :return: :data:`~boolector.Boolector.SAT` if the input formula was simplified to true, :data:`~boolector.Boolector.UNSAT` if it was simplified to false, and :data:`~boolector.Boolector.UNKNOWN`, otherwise.
         """
         return btorapi.boolector_simplify(self._c_btor)
 
@@ -695,16 +695,20 @@ cdef class Boolector:
 
             Clone an instance of Boolector.
 
-            The resulting Boolector instance is an exact (but disjunct)
-            copy of its parent instance.
-            Consequently, in a clone and its parent, nodes with the same
-            id correspond to each other.
-            Use :func:`~boolector.Boolector.Match` to match
-            corresponding nodes.
+            The resulting Boolector instance is an exact (but disjunct) copy of
+            its parent instance.  Consequently, in a clone and its parent,
+            nodes with the same id correspond to each other.  Use
+            :func:`~boolector.Boolector.Match` to match corresponding nodes.
 
             :return: The exact (but disjunct) copy of a Boolector instance.
             :rtype: :class:`~boolector.Boolector`
 
+            .. note::
+                If Lingeling is used as SAT solver, Boolector can be cloned at
+                any time, since Lingeling also supports cloning. However, if
+                you use :func:`~boolector.Boolector.Clone` with MiniSAT or
+                PicoSAT (no cloning suppport), Boolector can only be cloned
+                prior to the first :func:`~boolector.Boolector.Sat` call.
         """
         return Boolector(self)
 
@@ -724,14 +728,14 @@ cdef class Boolector:
               clone = btor.Clone()
               v_cloned = clone.Match(v)
 
-            .. note::
-                Only nodes created before the
-                :func:`~boolector.Boolector.Clone` call can be matched.
-
             :param n: Boolector node.
             :type n:  :class:`~boolector.BoolectorNode`
             :return:  The Boolector node that matches given node ``n`` by id.
             :rtype: :class:`~boolector.BoolectorNode`
+
+            .. note::
+                Only nodes created before the
+                :func:`~boolector.Boolector.Clone` call can be matched.
         """
         node_type = type(n)
         r = node_type(self)
@@ -930,10 +934,6 @@ cdef class Boolector:
             Use this option with caution (might have a positive or negative
             impact on overall performance).
 
-            .. note::
-                Parameters ``optstr`` and ``clone`` are currently only supported
-                by Lingeling.
-
             :param solver: Solver identifier string.
             :type solver:  str
             :param optstr: Solver option string.
@@ -942,6 +942,10 @@ cdef class Boolector:
             :type clone:  bool
             :return: True if setting the SAT solver was successful and False otherwise. 
             :rtype: bool
+
+            .. note::
+                Parameters ``optstr`` and ``clone`` are currently only supported
+                by Lingeling.
         """
         solver = solver.strip().lower()
         if solver == "lingeling":
@@ -1032,7 +1036,7 @@ cdef class Boolector:
 
             Dump input formula to output file.
 
-            :param format: A file format identifier string (use "btor" for BTOR_, "smt1" for `SMT-LIB v1`_, and "smt2" for `SMT-LIB v2`_).
+            :param format: A file format identifier string (use 'btor' for BTOR_, 'smt1' for `SMT-LIB v1`_, and 'smt2' for `SMT-LIB v2`_).
             :type format: str
             :param outile: Output file name (default: stdout).
             :type format: str.
@@ -1069,15 +1073,15 @@ cdef class Boolector:
         
             Create a bit vector constant of value ``c`` and bit width ``width``.
 
-            .. note::
-                Parameter ``width`` is only required if ``c`` is an integer.
-
             :param c: Value of the constant.
             :type  c: int, bool, str
             :param width: Bit width of the constant.
             :type width:  int
             :return: A bit vector constant of value ``c`` and bit width ``width``.
             :rtype: :class:`~boolector.BoolectorNode`
+
+            .. note::
+                Parameter ``width`` is only required if ``c`` is an integer.
         """
         cdef BoolectorConstNode r
         if isinstance(c, int):
@@ -1128,18 +1132,18 @@ cdef class Boolector:
             A symbol must be unique but may be None in case that no
             symbol should be assigned.
 
-            .. note::
-                In contrast to composite expressions, which are maintained
-                uniquely w.r.t. to their kind, inputs (and consequently, bit
-                width), variables are not.  Hence, each call to this
-                function returns a fresh bit vector variable.
-            
             :param width: Bit width of the variable.
             :type width: int
             :param symbol: Symbol of the variable.
             :type symbol: str
             :return: A bit vector variable with bit width ``width``.
             :rtype: :class:`~boolector.BoolectorNode`
+
+            .. note::
+                In contrast to composite expressions, which are maintained
+                uniquely w.r.t. to their kind, inputs (and consequently, bit
+                width), variables are not.  Hence, each call to this
+                function returns a fresh bit vector variable.
         """
         r = BoolectorBVNode(self)
         r._c_node = btorapi.boolector_var(self._c_btor, width,
@@ -1185,13 +1189,6 @@ cdef class Boolector:
             A symbol must be unique but may be None in case that no
             symbol should be assigned.
             
-            .. note::
-                In contrast to composite expressions, which are 
-                maintained uniquely w.r.t. to their kind, inputs (and
-                consequently, bit width), array variables are not.
-                Hence, each call to this function returns a fresh bit vector
-                array variable.
-
             :param elem_width: Bit width of the array elements.
             :type width: int
             :param index_width: Bit width of the array indices.
@@ -1200,6 +1197,13 @@ cdef class Boolector:
             :type symbol: str
             :return: An array variable of size ``2**index_width`` with elements of bit width ``elem_width``.
             :rtype: :class:`~boolector.BoolectorNode`
+
+            .. note::
+                In contrast to composite expressions, which are 
+                maintained uniquely w.r.t. to their kind, inputs (and
+                consequently, bit width), array variables are not.
+                Hence, each call to this function returns a fresh bit vector
+                array variable.
         """
         r = BoolectorArrayNode(self)
         r._c_node = btorapi.boolector_array(self._c_btor, elem_width,
@@ -2161,19 +2165,19 @@ cdef class Boolector:
                 
                 bvudiv = a / b
 
-            .. note::
-                This behavior (division by zero returns -1) does not exactly
-                comply with the SMT-LIB v1 and v2 standards, where division by
-                zero is handled as an uninterpreted function.  Our semantics
-                are motivated by real circuits where division by zero cannot be
-                uninterpreted and consequently returns a result.
-
             :param a: First bit vector operand.
             :type a:  :class:`~boolector.BoolectorNode`
             :param b: Second bit vector operand.
             :type b:  :class:`~boolector.BoolectorNode`
             :return:  A bit vector node with the same bit width as ``a`` and ``b``.
             :rtype: :class:`~boolector.BoolectorNode`
+
+            .. note::
+                This behavior (division by zero returns -1) does not exactly
+                comply with the SMT-LIB v1 and v2 standards, where division by
+                zero is handled as an uninterpreted function.  Our semantics
+                are motivated by real circuits where division by zero cannot be
+                uninterpreted and consequently returns a result.
         """
         a, b = _to_node(a, b)
         r = BoolectorBVNode(self)
@@ -2189,6 +2193,13 @@ cdef class Boolector:
             Parameters ``a`` and ``b`` must have the same bit width
             (see :ref:`const-conversion`).
             
+            :param a: First bit vector operand.
+            :type a:  :class:`~boolector.BoolectorNode`
+            :param b: Second bit vector operand.
+            :type b:  :class:`~boolector.BoolectorNode`
+            :return:  A bit vector node with the same bit width as ``a`` and ``b``.
+            :rtype: :class:`~boolector.BoolectorNode`
+
             .. note::
                 Signed division is expressed by means of unsigned division,
                 where either node is normalized in case that its sign bit is 1.
@@ -2196,13 +2207,6 @@ cdef class Boolector:
                 complement is performed on the result of the previous unsigned
                 division.  Hence, the behavior in case of a division by zero
                 depends on :func:`~boolector.Boolector.Udiv`.
-
-            :param a: First bit vector operand.
-            :type a:  :class:`~boolector.BoolectorNode`
-            :param b: Second bit vector operand.
-            :type b:  :class:`~boolector.BoolectorNode`
-            :return:  A bit vector node with the same bit width as ``a`` and ``b``.
-            :rtype: :class:`~boolector.BoolectorNode`
         """
         a, b = _to_node(a, b)
         r = BoolectorBVNode(self)
@@ -2220,15 +2224,15 @@ cdef class Boolector:
             An overflow can occur if ``a`` represents INT_MIN and ``b``
             represents -1.
 
-            .. note::
-                Unsigned bit vector division does not overflow.
-
             :param a: First bit vector operand.
             :type a:  :class:`~boolector.BoolectorNode`
             :param b: Second bit vector operand.
             :type b:  :class:`~boolector.BoolectorNode`
             :return:  A bit vector node with bit width one, which indicates if the division of ``a`` and ``b`` overflows in case both operands are treated as signed.
             :rtype: :class:`~boolector.BoolectorNode`
+
+            .. note::
+                Unsigned bit vector division does not overflow.
         """
         a, b = _to_node(a, b)
         r = BoolectorBVNode(self)
@@ -2249,13 +2253,6 @@ cdef class Boolector:
             (see :ref:`operator-overloading`): ::
                 
                 bvurem = a % b
-            
-            .. note::
-                As in :func:`~boolector.Boolector.Udiv`, the behavior if ``b``
-                is 0 does not exactly comply to the SMT-LIB v1 and v2 standards,
-                where the result ist handled as uninterpreted function.
-                Our semantics are motivated by real circuits, where result 
-                can not be uninterpreted.
 
             :param a: First bit vector operand.
             :type a:  :class:`~boolector.BoolectorNode`
@@ -2263,6 +2260,13 @@ cdef class Boolector:
             :type b:  :class:`~boolector.BoolectorNode`
             :return:  A bit vector node with the same bit width as ``a`` and ``b``.
             :rtype: :class:`~boolector.BoolectorNode`
+            
+            .. note::
+                As in :func:`~boolector.Boolector.Udiv`, the behavior if ``b``
+                is 0 does not exactly comply to the SMT-LIB v1 and v2 standards,
+                where the result ist handled as uninterpreted function.
+                Our semantics are motivated by real circuits, where result 
+                can not be uninterpreted.
         """
         a, b = _to_node(a, b)
         r = BoolectorBVNode(self)
@@ -2444,11 +2448,6 @@ cdef class Boolector:
             This kind of node is similar to macros in the `SMT-LIB v2`_
             standard.
 
-            .. note::
-                As soon as a parameter is bound to a function, it can
-                not be reused in other functions. 
-                Call a function via :func:`~boolector.Boolector.Apply`.
-
             See :func:`~boolector.Boolector.Param`,
             :func:`~boolector.Boolector.Apply`.
 
@@ -2458,6 +2457,11 @@ cdef class Boolector:
             :type body:  :class:`~boolector.BoolectorNode`
             :return:  A function over parameterized expression ``body``.
             :rtype: :class:`~boolector.BoolectorNode`
+
+            .. note::
+                As soon as a parameter is bound to a function, it can
+                not be reused in other functions. 
+                Call a function via :func:`~boolector.Boolector.Apply`.
         """
         cdef int paramc = len(params)
         cdef btorapi.BoolectorNode ** c_params = \
@@ -2492,12 +2496,6 @@ cdef class Boolector:
             A symbol must be unique but may be None in case that no
             symbol should be assigned.
 
-            .. note::
-                In contrast to composite expressions, which are maintained
-                uniquely w.r.t. to their kind, inputs (and consequently, bit
-                width), uninterpreted functions are not.  Hence, each
-                call to this function returns a fresh uninterpreted function.
-
             See :func:`~boolector.Boolector.Apply`,
             :func:`~boolector.Boolector.FunSort`.
 
@@ -2507,6 +2505,12 @@ cdef class Boolector:
             :type symbol: str
             :return:  A function over parameterized expression ``body``.
             :rtype: :class:`~boolector.BoolectorNode`
+
+            .. note::
+                In contrast to composite expressions, which are maintained
+                uniquely w.r.t. to their kind, inputs (and consequently, bit
+                width), uninterpreted functions are not.  Hence, each
+                call to this function returns a fresh uninterpreted function.
         """
         if not isinstance(sort, _BoolectorFunSort):
             raise BoolectorException(

@@ -164,11 +164,6 @@ if __name__ == "__main__":
         file.write("C Interface\n")
         file.write("===========\n\n")
 
-#        file.write("""
-#.. _BTOR: http://fmv.jku.at/papers/BrummayerBiereLonsing-BPR08.pdf
-#.. _SMT-LIB v1: http://smtlib.cs.uiowa.edu/papers/format-v1.2-r06.08.30.pdf
-#.. _SMT-LIB v2: http://smtlib.cs.uiowa.edu/papers/smt-lib-reference-v2.0-r12.09.09.pd\n\n""")
-#
         file.write("Macros\n")
         file.write("^^^^^^\n\n")
         for m in sorted(macros.keys()):

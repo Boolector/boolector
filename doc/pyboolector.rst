@@ -6,24 +6,13 @@ Boolector Python API documentation
 .. _SMT-LIB v1: http://smtlib.cs.uiowa.edu/papers/format-v1.2-r06.08.30.pdf
 .. _SMT-LIB v2: http://smtlib.cs.uiowa.edu/papers/smt-lib-reference-v2.0-r12.09.09.pdf
 
-..
-    Introduction
-    ------------
-
-      Boolector_ is an SMT solver for the quantifier-free theory of bit vectors
-      with arrays. It supports BTOR_, `SMT-LIB v1`_, and `SMT-LIB v2`_
-      as input format and can be either used as a stand-alone SMT solver, or as
-      back end for other tools via its public API.
-      This is the documentation of Boolector's public **Python interface**.
-      For further information and the latest version of Boolector, please refer
-      to http://fmv.jku.at/boolector.
-
 Interface
 ---------
 
-* :ref:`genindex`
-* :ref:`modindex`
-* :ref:`search`
+.. toctree::
+    :maxdepth: 1
+
+    Python interface <boolector>
 
 
 Quickstart
@@ -324,3 +313,8 @@ Rewriting
   You can force Boolector to initiate rewriting and simplify the expression
   DAG via :func:`~boolector.Boolector.Simplify`.
   The rewrite level can be configured via :func:`~boolector.Boolector.Set_opt`.
+
+Examples
+--------
+
+  .. literalinclude:: ../api/python/api_usage_examples.py
