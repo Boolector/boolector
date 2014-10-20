@@ -101,8 +101,10 @@ EOF
 fi
 
 tar cf - \
-  examples/array/* \
-  examples/bv/* \
+  examples/array/*.c \
+  examples/array/makefile \
+  examples/bv/*.c \
+  examples/bv/makefile \
   examples/Makefile \
   examples/makefile.common | \
 ( cd $dir; tar xf -; )
