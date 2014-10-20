@@ -592,6 +592,7 @@ initialize_next_state_functions_of_frame (BtorMC *mc,
   BtorMcLatch *latch;
   BtorHashTableIterator it;
   int nextstates, i;
+  (void) node;
 
   assert (mc);
   assert (map);
