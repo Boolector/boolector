@@ -271,11 +271,11 @@ if __name__ == "__main__":
     bits = _const.bits
 
     # Dump nodes to stdout or files (default format is BTOR) 
-#    _apply4.Dump()
+    _apply4.Dump()
     # Dump to file 'dump.btor'
-#    _apply4.Dump(outfile="dump.btor")
-#    _apply4.Dump("smt1")
-#    _apply4.Dump("smt2")
+    _apply4.Dump(outfile="dump.btor")
+    _apply4.Dump("smt1")
+    _apply4.Dump("smt2")
     # Dump to file 'dump.smt2'
 #    _apply4.Dump("smt2", "dump.smt2")
 
@@ -284,8 +284,8 @@ if __name__ == "__main__":
     # Available options
     b.Options()
     # Print available options
-#    print("Available Boolector options:")
-#    print("\n".join(["  " + str(o) for o in b.Options()]))
+    print("Available Boolector options:")
+    print("\n".join(["  " + str(o) for o in b.Options()]))
 
     # Set options
     b.Set_opt("incremental", 1)
@@ -347,6 +347,6 @@ if __name__ == "__main__":
 
     if res == b.UNSAT:
         # Check if assumptions are failed
-        bb.Failed(_cond0_matched[1])
+        bb.Failed(~_cond0_matched[1])
         bb.Failed(_cond0_matched[2])
 
