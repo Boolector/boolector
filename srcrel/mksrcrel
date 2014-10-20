@@ -23,6 +23,10 @@ do
   shift
 done
 
+if [ ! -d doc/_build/html ]; then
+  die "can not find documentation. generate documentation with 'make html' in directory ../doc/"
+fi
+
 date=`date +%y%m%d`
 version=`cat VERSION`
 gitid=`./getgitid|sed -e 's,^.*\.,,' -e 's,\",,' -e 's,^\(.......\).*,\1,'`
@@ -43,6 +47,7 @@ cp -p \
   VERSION \
   COPYING \
   NEWS \
+  README \
   configure \
   boolector.[ch] \
   boolectormain.[ch] \
@@ -50,7 +55,6 @@ cp -p \
   `ls btor*.cc |grep -v btoribv|grep -v btorimc` \
   deltabtor.c \
   synthebtor.c \
-  Doxyfile \
 $dir/
 
 for subdir in dumper parser
@@ -65,6 +69,12 @@ for file in boolector.pyx btorapi.pxd api_usage_examples.py README
 do
   cp -p api/python/$file $dir/api/python/
 done
+
+mkdir $dir/doc
+cp -pr \
+  doc/_build/html/* \
+$dir/doc/
+
 
 if [ $intel = yes ]
 then
