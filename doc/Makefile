@@ -41,8 +41,8 @@ help:
 	@echo "  doctest    to run all doctests embedded in the documentation (if enabled)"
 
 clean:
-	-rm -rf $(BUILDDIR)/*
-	-rm cboolector_index.rst
+	-rm -rf $(BUILDDIR) $(STATICDIR) $(TEMPLATESDIR)
+	-rm -f cboolector_index.rst
 
 dirs:
 	-mkdir -p $(BUILDDIR)
