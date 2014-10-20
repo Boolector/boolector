@@ -1,15 +1,21 @@
-This is a release of Boolector which is an efficient SMT solver for
-the quantifier-free theory of bit-vectors in combination with
-the quantifier-free extensional theory of arrays.
-Boolector can either be used as stand-alone SMT solver or as 
-library in a backend. For a documentation of Boolector and its public 
-interface see 'doc/html/index.html'.
+These are the sources of the SMT solver Boolector. To compile issue
+'./configure && make'. This will build the library 'libboolector.a' and the
+solver 'boolector'. The python API can be compiled by issuing
+'./configure -python && make', for further details please refer to
+'api/python/README'.
 
-The directory 'include' contains the header file of Boolector's 
-public interface. You can find the compiled library 
-in the directory 'lib'. Finally, you can find examples in 'examples'.
+For a documentation of Boolector and its public APIs see 'doc/index.html'.
 
-The website of Boolector is http://fmv.jku.at/boolector.
+The file VERSION contains the current version number.
 
-Unless there are other written agreements see COPYING for
-rights to use this software.
+The file NEWS lists history and latest changes.
+
+THESE SOURCES ARE FOR ACADEMIC USE ONLY.
+USE IN COMPETITIONS IS RESTRICTED TOO.
+SEE 'COPYING' FOR MORE DETAILS.
+
+a more recent version of Boolector might be found at
+
+  http://fmv.jku.at/boolector
+
+This site may also contain more documentation.
