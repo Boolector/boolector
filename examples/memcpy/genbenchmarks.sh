@@ -9,7 +9,7 @@ do
     sizestring=$size
   fi
   filename=memcpy$sizestring".smt"
-  ./memcpy $size | boolector -rwl0 -ds | while read line
+  ./memcpy $size | boolector -rwl 0 -ds | while read line
   do
     if [[ $header -eq 1 ]]; then
       echo "(benchmark $filename" > $filename

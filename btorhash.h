@@ -28,7 +28,9 @@ typedef int (*BtorCmpPtr) (const void *a, const void *b);
 
 typedef union BtorPtrHashData BtorPtrHashData;
 
-typedef void *(*BtorCloneKeyPtr) (const void *map, const void *key);
+typedef void *(*BtorCloneKeyPtr) (BtorMemMgr *mem,
+                                  const void *map,
+                                  const void *key);
 typedef void (*BtorCloneDataPtr) (BtorMemMgr *mem,
                                   const void *map,
                                   const void *data_ptr,
@@ -86,8 +88,8 @@ BtorPtrHashTable *btor_clone_ptr_hash_table (BtorMemMgr *mem,
                                              BtorPtrHashTable *table,
                                              BtorCloneKeyPtr ckey,
                                              BtorCloneDataPtr cdata,
-                                             void *key_map,
-                                             void *data_map);
+                                             const void *key_map,
+                                             const void *data_map);
 
 void btor_delete_ptr_hash_table (BtorPtrHashTable *);
 
@@ -107,7 +109,7 @@ void btor_remove_from_ptr_hash_table (BtorPtrHashTable *,
                                       void **stored_key_ptr,
                                       BtorPtrHashData *stored_data_ptr);
 
-unsigned btor_hashstr (const void *str);
+unsigned btor_hash_str (const void *str);
 
 #define btor_cmpstr ((BtorCmpPtr) strcmp)
 

@@ -1,20 +1,11 @@
 /*  Boolector: Satisfiablity Modulo Theories (SMT) solver.
+ *
  *  Copyright (C) 2014 Mathias Preiner
  *
+ *  All rights reserved.
+ *
  *  This file is part of Boolector.
- *
- *  Boolector is free software: you can redistribute it and/or modify
- *  it under the terms of the GNU General Public License as published by
- *  the Free Software Foundation, either version 3 of the License, or
- *  (at your option) any later version.
- *
- *  Boolector is distributed in the hope that it will be useful,
- *  but WITHOUT ANY WARRANTY; without even the implied warranty of
- *  MERCHANTABILITY or FITNESS FOR A PARTICULAR PURPOSE.  See the
- *  GNU General Public License for more details.
- *
- *  You should have received a copy of the GNU General Public License
- *  along with this program.  If not, see <http://www.gnu.org/licenses/>.
+ *  See COPYING for more information on using this software.
  */
 
 #include "testsort.h"
@@ -178,27 +169,27 @@ void
 test_fun_sort (void)
 {
   init_sort_test ();
-  BtorSort *a, *b, *c, *s0, *s1, *s3, *f0, *f1, *f2;
+  BtorSort *a, *b, *c, *s0[2], *s1[2], *f0, *f1, *f2;
 
-  a  = btor_bitvec_sort (g_sorts, 53);
-  b  = btor_bitvec_sort (g_sorts, 1);
-  c  = btor_bool_sort (g_sorts);
-  s0 = btor_lst_sort (g_sorts, a, b);
-  f0 = btor_fun_sort (g_sorts, s0, c);
+  a     = btor_bitvec_sort (g_sorts, 53);
+  b     = btor_bitvec_sort (g_sorts, 1);
+  c     = btor_bool_sort (g_sorts);
+  s0[0] = a;
+  s0[1] = b;
+  f0    = btor_fun_sort (g_sorts, s0, 2, c);
 
-  s1 = btor_lst_sort (g_sorts, b, a);
-  f1 = btor_fun_sort (g_sorts, s1, c);
+  s1[0] = b;
+  s1[1] = a;
+  f1    = btor_fun_sort (g_sorts, s1, 2, c);
   assert (f0 != f1);
 
-  f2 = btor_fun_sort (g_sorts, s0, c);
+  f2 = btor_fun_sort (g_sorts, s0, 2, c);
   assert (f0 == f2);
 
   btor_release_sort (g_sorts, a);
   btor_release_sort (g_sorts, b);
   btor_release_sort (g_sorts, c);
-  btor_release_sort (g_sorts, s0);
   btor_release_sort (g_sorts, f0);
-  btor_release_sort (g_sorts, s1);
   btor_release_sort (g_sorts, f1);
   btor_release_sort (g_sorts, f2);
 

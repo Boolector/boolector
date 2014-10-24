@@ -44,49 +44,47 @@ For additionally using MiniSAT as back-end do the following:
   cd minisat
   make
 
+Note that using MiniSAT will force 'libboolector.a' to depend not only on
+'libz.so' but also on 'libstdc++.so'. Thus, if you want to link
+'libboolector.a' with MiniSAT backend against your own programs,
+you need to use '-lz -lstdc++' as linking options.
+
+
 You need Lingeling, while PicoSAT and MiniSAT are optional.
 
-Then issue
+To compile Boolector issue:
 
   ./configure
   make
 
-Using MiniSAT will force 'libboolector.a' to depend not only on
-'libz.so' but also on 'libstdc++.so'.  Thus if you want to link
-'libboolector.a' with MiniSAT backend against your own programs,
-then you need to use '-lz -lstdc++' as linking options.
-
-This will produce the library 'libboolector.a' with its API
-'boolector.h', the stand-alone SMT solver 'boolector', a
-simple delta debugger 'deltabtor', and a small tool 'synthebtor',
-which can be used to synthesize AIGs in Aiger format from BV.
+This will build the library 'libboolector.a', the stand-alone SMT solver
+'boolector', and a small tool 'synthebtor', which can be used to synthesize
+AIGs in AIGER format from BV. The python API can be compiled by issuing
+'./configure -python && make', for further details on the python API see 
+'api/python/README'.
 
 In the 'examples' sub-directory you find two examples for using
-the API, which are also described in the API documentation.  You 
-can generate the documentation on the API with 'doxygen'.  Run
+the API, which are also described in the API documentation.
 
-  doxygen
+For a documentation of Boolector and its public APIs see 'doc/index.html'.
 
-in the top level source directory.  Then point your browser at
 
-  doc/html/index.html 
+THESE SOURCES ARE FOR ACADEMIC USE ONLY.
+USE IN COMPETITIONS IS RESTRICTED TOO.
+SEE 'COPYING' FOR MORE DETAILS.
 
-You may find more information on Booleactor at the website
 
- http://fmv.jku.at/boolector
+A more recent version of Boolector might be found at
 
-See the COPYING file for license and copying information.
+  http://fmv.jku.at/boolector
 
-In particular, this version of Boolector uses GPL. 
-In essence you can not distribute a program that uses
-this version of Boolector unless you make your program
-available under GPL as well.  If you need another license
-in order to use Boolector as part of a program which
-is not going to be distributed under GPL, please contact
-Armin Biere <biere@jku.at>.
+This site may also contain more information.
+
 
 Armin Biere,
-Robert Daniel Brummayer
+Robert Daniel Brummayer,
+Aina Niemetz,
+Mathias Preiner
 Institute for Formal Models and Verification
 Johannes Kepler University, Linz, Austria
-October 2013.
+October 2014.

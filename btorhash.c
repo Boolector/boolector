@@ -2,7 +2,7 @@
  *
  *  Copyright (C) 2007-2009 Robert Daniel Brummayer.
  *  Copyright (C) 2007-2012 Armin Biere.
- *  Copyright (C) 2013 Aina Niemetz.
+ *  Copyright (C) 2013-2014 Aina Niemetz.
  *
  *  All rights reserved.
  *
@@ -11,6 +11,7 @@
  */
 
 #include "btorhash.h"
+#include "btoriter.h"
 
 static unsigned
 btor_hash_ptr (const void *p)
@@ -22,21 +23,6 @@ static int
 btor_cmp_ptr (const void *p, const void *q)
 {
   return ((long) p) - ((long) q);
-}
-
-BtorPtrHashTable *
-btor_new_ptr_hash_table (BtorMemMgr *mem, BtorHashPtr hash, BtorCmpPtr cmp)
-{
-  BtorPtrHashTable *res;
-
-  BTOR_NEW (mem, res);
-  BTOR_CLR (res);
-
-  res->mem  = mem;
-  res->hash = hash ? hash : btor_hash_ptr;
-  res->cmp  = cmp ? cmp : btor_cmp_ptr;
-
-  return res;
 }
 
 static void
@@ -71,20 +57,37 @@ btor_enlarge_ptr_hash_table (BtorPtrHashTable *p2iht)
 }
 
 BtorPtrHashTable *
+btor_new_ptr_hash_table (BtorMemMgr *mem, BtorHashPtr hash, BtorCmpPtr cmp)
+{
+  BtorPtrHashTable *res;
+
+  BTOR_NEW (mem, res);
+  BTOR_CLR (res);
+
+  res->mem  = mem;
+  res->hash = hash ? hash : btor_hash_ptr;
+  res->cmp  = cmp ? cmp : btor_cmp_ptr;
+
+  btor_enlarge_ptr_hash_table (res);
+
+  return res;
+}
+
+BtorPtrHashTable *
 btor_clone_ptr_hash_table (BtorMemMgr *mem,
                            BtorPtrHashTable *table,
                            BtorCloneKeyPtr ckey,
                            BtorCloneDataPtr cdata,
-                           void *key_map,
-                           void *data_map)
+                           const void *key_map,
+                           const void *data_map)
 {
   assert (mem);
   assert (ckey);
-  assert (key_map);
 
   BtorPtrHashTable *res;
+  BtorHashTableIterator it;
   BtorPtrHashBucket *b, *cloned_b;
-  void *cloned_key;
+  void *key, *cloned_key;
 
   if (!table) return NULL;
 
@@ -92,9 +95,12 @@ btor_clone_ptr_hash_table (BtorMemMgr *mem,
   while (res->size < table->size) btor_enlarge_ptr_hash_table (res);
   assert (res->size == table->size);
 
-  for (b = table->first; b; b = b->next)
+  init_hash_table_iterator (&it, table);
+  while (has_next_hash_table_iterator (&it))
   {
-    cloned_key = ckey (key_map, b->key);
+    b          = it.bucket;
+    key        = next_hash_table_iterator (&it);
+    cloned_key = ckey (mem, key_map, key);
     assert (cloned_key);
     cloned_b = btor_insert_in_ptr_hash_table (res, cloned_key);
     if (!cdata)
@@ -123,6 +129,31 @@ btor_delete_ptr_hash_table (BtorPtrHashTable *p2iht)
   BTOR_DELETE (p2iht->mem, p2iht);
 }
 
+BtorPtrHashBucket *
+btor_find_in_ptr_hash_table (BtorPtrHashTable *p2iht, void *key)
+{
+  BtorPtrHashBucket *res, **p, *b;
+  unsigned i, h;
+
+  assert (p2iht->size > 0);
+
+  res = 0;
+  h   = p2iht->hash (key);
+  h &= p2iht->size - 1;
+
+  for (i = 0, p = p2iht->table + h; i < p2iht->count; i++, p = &b->chain)
+  {
+    if (!(b = *p)) break;
+    if (!p2iht->cmp (b->key, key))
+    {
+      res = b;
+      break;
+    }
+  }
+
+  return res;
+}
+
 static BtorPtrHashBucket **
 btor_findpos_in_ptr_hash_table_pos (BtorPtrHashTable *p2iht, void *key)
 {
@@ -141,12 +172,6 @@ btor_findpos_in_ptr_hash_table_pos (BtorPtrHashTable *p2iht, void *key)
     ;
 
   return p;
-}
-
-BtorPtrHashBucket *
-btor_find_in_ptr_hash_table (BtorPtrHashTable *p2iht, void *key)
-{
-  return *btor_findpos_in_ptr_hash_table_pos (p2iht, key);
 }
 
 BtorPtrHashBucket *
@@ -177,7 +202,7 @@ static unsigned btor_hash_primes[] = {111130391, 22237357, 33355519, 444476887};
 #define BTOR_HASH_PRIMES ((sizeof btor_hash_primes) / sizeof *btor_hash_primes)
 
 unsigned
-btor_hashstr (const void *str)
+btor_hash_str (const void *str)
 {
   const char *p = (const char *) str;
   unsigned res, i;

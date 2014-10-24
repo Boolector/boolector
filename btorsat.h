@@ -2,7 +2,7 @@
  *
  *  Copyright (C) 2007-2009 Robert Daniel Brummayer.
  *  Copyright (C) 2007-2012 Armin Biere.
- *  Copyright (C) 2013 Aina Niemetz.
+ *  Copyright (C) 2013-2014 Aina Niemetz.
  *
  *  All rights reserved.
  *
@@ -14,6 +14,7 @@
 #define BTORSAT_H_INCLUDED
 
 #include "btormem.h"
+#include "btormsg.h"
 
 #include <stdio.h>
 
@@ -28,9 +29,11 @@ struct BtorSATMgr
   void *solver;
 
   BtorMemMgr *mm;
+  BtorMsg *msg;
   const char *name;
-  const char *optstr;
-  int verbosity;
+  char *optstr;
+  /* Note: do not change order! (btor_clone_sat_mgr relies on inc_required
+   * to come first of all fields following below.) */
   int inc_required;
   int used_that_inc_was_not_required;
 #ifdef BTOR_USE_LINGELING
@@ -97,19 +100,16 @@ struct BtorLGL
 /* Creates new SAT manager.
  * A SAT manager is used by nearly all functions of the SAT layer.
  */
-BtorSATMgr *btor_new_sat_mgr (BtorMemMgr *mm);
+BtorSATMgr *btor_new_sat_mgr (BtorMemMgr *mm, BtorMsg *msg);
+
+int btor_has_clone_support_sat_mgr (BtorSATMgr *smgr);
 
 /* Clones existing SAT manager (and underlying SAT solver). */
-BtorSATMgr *btor_clone_sat_mgr (BtorSATMgr *smgr, BtorMemMgr *mm);
+BtorSATMgr *btor_clone_sat_mgr (BtorMemMgr *mm, BtorMsg *msg, BtorSATMgr *smgr);
 
 BtorMemMgr *btor_mem_mgr_sat (BtorSATMgr *smgr);
 
 void *btor_get_solver_sat (BtorSATMgr *smgr);
-
-void btor_msg_sat (BtorSATMgr *, int, const char *, ...);
-
-/* Sets verbosity [-1,3] */
-void btor_set_verbosity_sat_mgr (BtorSATMgr *smgr, int verbosity);
 
 /* Returns if the SAT solver has already been initialized */
 int btor_is_initialized_sat (BtorSATMgr *smgr);
@@ -132,9 +132,6 @@ void btor_init_sat (BtorSATMgr *smgr);
 
 /* Sets the output file of the SAT solver. */
 void btor_set_output_sat (BtorSATMgr *smgr, FILE *output);
-
-/* Enables verbosity mode of SAT solver. */
-void btor_enable_verbosity_sat (BtorSATMgr *smgr, int);
 
 /* Prints statistics of SAT solver. */
 void btor_print_stats_sat (BtorSATMgr *smgr);
@@ -205,6 +202,12 @@ int btor_enable_lingeling_sat (BtorSATMgr *smgr,
 /* Enables MiniSAT as SAT preprocessor. */
 void btor_enable_minisat_sat (BtorSATMgr *smgr);
 #endif
+
+/* Wrapper for btor_enable_(picosat|lingeling|minisat). */
+int btor_set_sat_solver (BtorSATMgr *smgr,
+                         const char *solver,
+                         const char *optstr,
+                         int nofork);
 
 /* Only used for debugging purposes at this point */
 int btor_provides_incremental_sat (BtorSATMgr *smgr);

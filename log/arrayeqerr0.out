@@ -1,1 +1,1 @@
-log/arrayeqerr0.btor:3: first operand is array and second not
+boolector: log/arrayeqerr0.btor:3: first operand is array and second not

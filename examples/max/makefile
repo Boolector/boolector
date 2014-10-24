@@ -1,5 +1,5 @@
 include ../makefile.common
 all:
-	$(CC) $(CFLAGS) -o max max.c $(LIBS)
+	$(CC) $(CFLAGS) $(INC) -o max max.c $(LIBS)
 clean:
 	rm -f max

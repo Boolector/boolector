@@ -12,8 +12,9 @@
 #ifndef BTORPARSE_H_INCLUDED
 #define BTORPARSE_H_INCLUDED
 
-#include "btorcore.h"
+#include "boolector.h"
 #include "btorlogic.h"
+#include "btormsg.h"
 #include "btorstack.h"
 
 #include <stdio.h>
@@ -34,15 +35,6 @@ typedef char *(*BtorParse) (BtorParser *,
                             FILE *,
                             const char *,
                             BtorParseResult *);
-
-enum BtorParseSATStatus
-{
-  BTOR_PARSE_SAT_STATUS_UNKNOWN,
-  BTOR_PARSE_SAT_STATUS_SAT,
-  BTOR_PARSE_SAT_STATUS_UNSAT
-};
-
-typedef enum BtorParseSATStatus BtorParseSATStatus;
 
 enum BtorParseMode
 {
@@ -67,8 +59,8 @@ struct BtorParseOpt
 struct BtorParseResult
 {
   BtorLogic logic;
-  BtorParseSATStatus status;
-  BtorParseSATStatus result;
+  int status;
+  int result;
 
   int ninputs;
   BoolectorNode **inputs;
@@ -84,4 +76,29 @@ struct BtorParserAPI
   BtorParse parse;
 };
 
+int btor_parse (Btor *btor,
+                FILE *file,
+                const char *file_name,
+                char **error_msg,
+                int *status);
+
+int btor_parse_btor (Btor *btor,
+                     FILE *file,
+                     const char *file_name,
+                     char **error_msg,
+                     int *status);
+
+int btor_parse_smt1 (Btor *btor,
+                     FILE *file,
+                     const char *file_name,
+                     char **error_msg,
+                     int *status);
+
+int btor_parse_smt2 (Btor *btor,
+                     FILE *file,
+                     const char *file_name,
+                     char **error_msg,
+                     int *status);
+
+BtorMsg *boolector_get_btor_msg (Btor *btor);
 #endif

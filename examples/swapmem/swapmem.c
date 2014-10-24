@@ -2,16 +2,16 @@
 #include <stdio.h>
 #include <stdlib.h>
 #include <string.h>
-#include "../../boolector.h"
+#include "boolector.h"
 
-static BtorNode *
+static BoolectorNode *
 swap_with_xor (Btor *btor,
-               BtorNode *mem,
+               BoolectorNode *mem,
                int num_elements,
-               BtorNode *start1,
-               BtorNode *start2)
+               BoolectorNode *start1,
+               BoolectorNode *start2)
 {
-  BtorNode *x, *y, *result, *temp, *xor, *pos1, *pos2, *one;
+  BoolectorNode *x, *y, *result, *temp, *xor, *pos1, *pos2, *one;
   int i;
   assert (btor != NULL);
   assert (mem != NULL);
@@ -75,9 +75,9 @@ main (int argc, char **argv)
 {
   int num_elements, overlap;
   Btor *btor;
-  BtorNode *mem, *orig_mem, *formula, *start1, *start2, *num_elements_exp;
-  BtorNode *add1, *add2, *ugte1, *ugte2, *temp, * or, *uaddo1, *uaddo2;
-  BtorNode *not_uaddo1, *not_uaddo2, *premisse_part1, *premisse_part2;
+  BoolectorNode *mem, *orig_mem, *formula, *start1, *start2, *num_elements_exp;
+  BoolectorNode *add1, *add2, *ugte1, *ugte2, *temp, * or, *uaddo1, *uaddo2;
+  BoolectorNode *not_uaddo1, *not_uaddo2, *premisse_part1, *premisse_part2;
   if ((argc != 2 && argc != 3)
       || (argc == 2
           && (strcmp (argv[1], "-h") == 0 || strcmp (argv[1], "--help") == 0))
@@ -99,7 +99,7 @@ main (int argc, char **argv)
     overlap = 0;
 
   btor = boolector_new ();
-  boolector_set_rewrite_level (btor, 0);
+  boolector_set_opt (btor, "rewrite_level", 0);
 
   mem      = boolector_array (btor, 8, 32, "mem");
   orig_mem = boolector_copy (btor, mem);
@@ -158,7 +158,7 @@ main (int argc, char **argv)
   temp = boolector_not (btor, formula);
   boolector_release (btor, formula);
   formula = temp;
-  boolector_dump_btor (btor, stdout, formula);
+  boolector_dump_btor_node (btor, stdout, formula);
   /* clean up */
   boolector_release (btor, formula);
   boolector_release (btor, mem);

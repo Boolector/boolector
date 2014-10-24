@@ -32,7 +32,7 @@ do
   echo -n "$boolectorresult"
 
   z3result=""
-  z3result="`boolector -rwl0 $file -de | boolector -rwl0 -ds | $z32008 | tr -d '\r'`"
+  z3result="`boolector -rwl 0 $file -de | boolector -rwl 0 -ds | $z32008 | tr -d '\r'`"
   echo -e "\t\tZ3:\t$z3result"
 
   if [[ "x$z3result" = x ]]; then

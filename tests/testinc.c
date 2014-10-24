@@ -1,21 +1,13 @@
 /*  Boolector: Satisfiablity Modulo Theories (SMT) solver.
- *  Copyright (C) 2007-2012 Robert Daniel Brummayer, Armin Biere
- *  Copyright (C) 2012-2013 Aina Niemetz
+ *
+ *  Copyright (C) 2007-2010 Robert Daniel Brummayer.
+ *  Copyright (C) 2007-2012 Armin Biere.
+ *  Copyright (C) 2012-2014 Aina Niemetz
+ *
+ *  All rights reserved.
  *
  *  This file is part of Boolector.
- *
- *  Boolector is free software: you can redistribute it and/or modify
- *  it under the terms of the GNU General Public License as published by
- *  the Free Software Foundation, either version 3 of the License, or
- *  (at your option) any later version.
- *
- *  Boolector is distributed in the hope that it will be useful,
- *  but WITHOUT ANY WARRANTY; without even the implied warranty of
- *  MERCHANTABILITY or FITNESS FOR A PARTICULAR PURPOSE.  See the
- *  GNU General Public License for more details.
- *
- *  You should have received a copy of the GNU General Public License
- *  along with this program.  If not, see <http://www.gnu.org/licenses/>.
+ *  See COPYING for more information on using this software.
  */
 
 #include "testinc.h"
@@ -36,7 +28,7 @@ static void
 init_inc_test (void)
 {
   g_btor = boolector_new ();
-  if (g_rwreads) boolector_enable_beta_reduce_all (g_btor);
+  if (g_rwreads) boolector_set_opt (g_btor, "beta_reduce_all", 1);
 }
 
 static void
@@ -56,7 +48,7 @@ test_inc_true_false (void)
 
   ff = boolector_false (g_btor);
   tt = boolector_true (g_btor);
-  boolector_enable_inc_usage (g_btor);
+  boolector_set_opt (g_btor, "incremental", 1);
   boolector_assume (g_btor, tt);
   res = boolector_sat (g_btor);
   assert (res == BOOLECTOR_SAT);
@@ -83,7 +75,7 @@ test_inc_counter (int w, int nondet)
 
   init_inc_test ();
 
-  boolector_enable_inc_usage (g_btor);
+  boolector_set_opt (g_btor, "incremental", 1);
   one     = boolector_one (g_btor, w);
   current = boolector_zero (g_btor, w);
   i       = 0;
@@ -205,7 +197,7 @@ test_inc_lt (int w)
   assert (w > 0);
 
   init_inc_test ();
-  boolector_enable_inc_usage (g_btor);
+  boolector_set_opt (g_btor, "incremental", 1);
 
   i    = 0;
   prev = 0;
@@ -277,8 +269,8 @@ test_inc_assume_assert1 (void)
   BoolectorNode *array, *index1, *index2, *read1, *read2, *eq_index, *ne_read;
 
   init_inc_test ();
-  boolector_enable_inc_usage (g_btor);
-  boolector_set_rewrite_level (g_btor, 0);
+  boolector_set_opt (g_btor, "incremental", 1);
+  boolector_set_opt (g_btor, "rewrite_level", 0);
   array    = boolector_array (g_btor, 1, 1, "array1");
   index1   = boolector_var (g_btor, 1, "index1");
   index2   = boolector_var (g_btor, 1, "index2");
@@ -313,8 +305,8 @@ test_inc_lemmas_on_demand_1 ()
   BoolectorNode *array, *index1, *index2, *read1, *read2, *eq, *ne;
 
   init_inc_test ();
-  boolector_enable_inc_usage (g_btor);
-  boolector_set_rewrite_level (g_btor, 0);
+  boolector_set_opt (g_btor, "incremental", 1);
+  boolector_set_opt (g_btor, "rewrite_level", 0);
   array  = boolector_array (g_btor, 1, 1, "array1");
   index1 = boolector_var (g_btor, 1, "index1");
   index2 = boolector_var (g_btor, 1, "index2");

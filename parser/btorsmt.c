@@ -1,7 +1,8 @@
 /*  Boolector: Satisfiablity Modulo Theories (SMT) solver.
  *
  *  Copyright (C) 2007-2013 Armin Biere.
- *  Copyright (C) 2013 Aina Niemetz.
+ *  Copyright (C) 2013-2014 Aina Niemetz.
+ *  Copyright (C) 2014 Mathias Preiner.
  *
  *  All rights reserved.
  *
@@ -18,6 +19,8 @@
 #include <assert.h>
 #include <ctype.h>
 #include <stdarg.h>
+
+BTOR_DECLARE_STACK (BoolectorNodePtr, BoolectorNode *);
 
 /*------------------------------------------------------------------------*/
 
@@ -567,21 +570,25 @@ static void
 btor_delete_smt_parser (BtorSMTParser *parser)
 {
   BoolectorNode **p;
+  BtorMemMgr *mm;
+
+  mm = parser->mem;
 
   btor_release_smt_internals (parser);
 
-  btor_freestr (parser->mem, parser->error);
+  btor_freestr (mm, parser->error);
   btor_release_smt_vars (parser);
 
   for (p = parser->outputs.start; p != parser->outputs.top; p++)
     boolector_release (parser->btor, *p);
-  BTOR_RELEASE_STACK (parser->mem, parser->outputs);
+  BTOR_RELEASE_STACK (mm, parser->outputs);
 
   for (p = parser->window.start; p != parser->window.top; p++)
     boolector_release (parser->btor, *p);
-  BTOR_RELEASE_STACK (parser->mem, parser->window);
+  BTOR_RELEASE_STACK (mm, parser->window);
 
-  BTOR_DELETE (parser->mem, parser);
+  BTOR_DELETE (mm, parser);
+  btor_delete_mem_mgr (mm);
 }
 
 static char *
@@ -662,11 +669,12 @@ static BtorSMTParser *
 btor_new_smt_parser (Btor *btor, BtorParseOpt *opts)
 {
   BtorSMTSymbol *bind, *translated;
-  BtorMemMgr *mem = btor->mm;
+  BtorMemMgr *mem;
   BtorSMTParser *res;
   unsigned char type;
   int ch;
 
+  mem = btor_new_mem_mgr ();
   BTOR_NEW (mem, res);
   BTOR_CLR (res);
 
@@ -674,8 +682,6 @@ btor_new_smt_parser (Btor *btor, BtorParseOpt *opts)
   res->incremental     = opts->incremental;
   res->max_window_size = opts->window;
   res->model           = opts->need_model;
-
-  if (opts->incremental) btor->msgtick = 0;
 
   btor_smt_message (res, 2, "initializing SMT parser");
   if (opts->incremental
@@ -881,7 +887,7 @@ btor_savech_smt (BtorSMTParser *parser, int ch)
 static unsigned char
 int2type (BtorSMTParser *parser, int ch)
 {
-  assert (0 <= ch && ch < 256);
+  if (0 > ch || ch >= 256) return 0;
   return parser->types[ch];
 }
 
@@ -2581,8 +2587,8 @@ btor_smt_parser_inc_add_release_sat (BtorSMTParser *parser,
                                      BtorParseResult *res,
                                      BoolectorNode *exp)
 {
-  char formula[40];
-  int satres, maxformula, checked;
+  char formula[40], *prefix;
+  int satres, maxformula, checked, ndigits;
   assert (parser->formulas.checked < parser->formulas.parsed);
   if (parser->incremental & BTOR_PARSE_MODE_INCREMENTAL_INTERVAL)
   {
@@ -2612,34 +2618,36 @@ btor_smt_parser_inc_add_release_sat (BtorSMTParser *parser,
   }
   boolector_release (parser->btor, exp);
 
-  satres = btor_sat_btor (parser->btor);
-  if (satres == BTOR_SAT)
+  satres = boolector_sat (parser->btor);
+  if (satres == BOOLECTOR_SAT)
   {
     btor_smt_message (parser, 1, "':formula' %s SAT", formula);
-    res->result = BTOR_PARSE_SAT_STATUS_SAT;
+    res->result = BOOLECTOR_SAT;
   }
   else
   {
-    assert (satres == BTOR_UNSAT);
+    assert (satres == BOOLECTOR_UNSAT);
     btor_smt_message (parser, 1, "':formula' %s UNSAT", formula);
-    if (res->result == BTOR_PARSE_SAT_STATUS_UNKNOWN)
-      res->result = BTOR_PARSE_SAT_STATUS_UNSAT;
+    if (res->result == BOOLECTOR_UNKNOWN) res->result = BOOLECTOR_UNSAT;
   }
-  if (parser->verbosity >= 2) btor_print_stats_btor (parser->btor);
-
-  assert (parser->btor->msgtick == parser->formulas.checked);
+  if (parser->verbosity >= 2) boolector_print_stats (parser->btor);
 
   parser->formulas.checked += checked;
-  parser->btor->msgtick += checked;
 
-  if (parser->btor->msgtick == parser->formulas.parsed)
-    parser->btor->msgtick = -1;
+  ndigits = btor_num_digits_util (parser->formulas.checked);
+  BTOR_NEWN (parser->mem, prefix, ndigits + 1);
+  sprintf (prefix, "%d", parser->formulas.checked);
+  boolector_set_msg_prefix (parser->btor, prefix);
+  BTOR_DELETEN (parser->mem, prefix, ndigits + 1);
+
+  if (parser->formulas.checked == parser->formulas.parsed)
+    boolector_set_msg_prefix (parser->btor, 0);
 }
 
 static int
 continue_parsing (BtorSMTParser *parser, BtorParseResult *res)
 {
-  if (res->result != BTOR_PARSE_SAT_STATUS_SAT) return 1;
+  if (res->result != BOOLECTOR_SAT) return 1;
   return parser->incremental & BTOR_PARSE_MODE_INCREMENTAL_BUT_CONTINUE;
 }
 
@@ -2760,11 +2768,11 @@ translate_benchmark (BtorSMTParser *parser,
     status = symbol->token;
 
     if (status == BTOR_SMTOK_SAT)
-      res->status = BTOR_PARSE_SAT_STATUS_SAT;
+      res->status = BOOLECTOR_SAT;
     else if (status == BTOR_SMTOK_UNSAT)
-      res->status = BTOR_PARSE_SAT_STATUS_UNSAT;
+      res->status = BOOLECTOR_UNSAT;
     else if (status == BTOR_SMTOK_UNKNOWN)
-      res->status = BTOR_PARSE_SAT_STATUS_UNKNOWN;
+      res->status = BOOLECTOR_UNKNOWN;
     else
       goto INVALID_STATUS_ARGUMENT;
   }
@@ -2960,7 +2968,7 @@ translate_benchmark (BtorSMTParser *parser,
   {
     assert (parser->incremental & BTOR_PARSE_MODE_INCREMENTAL_WINDOW);
     if ((parser->incremental & BTOR_PARSE_MODE_INCREMENTAL_BUT_CONTINUE)
-        || res->result != BTOR_PARSE_SAT_STATUS_SAT)
+        || res->result != BOOLECTOR_SAT)
     {
       btor_smt_message (parser,
                         1,
@@ -2974,7 +2982,7 @@ translate_benchmark (BtorSMTParser *parser,
       while (
           !BTOR_EMPTY_STACK (parser->window)
           && ((parser->incremental & BTOR_PARSE_MODE_INCREMENTAL_BUT_CONTINUE)
-              || res->result != BTOR_PARSE_SAT_STATUS_SAT))
+              || res->result != BOOLECTOR_SAT))
       {
         BoolectorNode *next;
         if (interval)
@@ -3084,6 +3092,8 @@ set_last_occurrence_of_symbols (BtorSMTParser *parser, BtorSMTNode *top)
   btor_smt_message (parser, 1, "found %d occurrences of symbols", occs);
 }
 
+/* Note: we need prefix in case of stdin as input (also applies to compressed
+ * input files). */
 static const char *
 parse (BtorSMTParser *parser,
        BtorCharStack *prefix,
@@ -3110,8 +3120,8 @@ parse (BtorSMTParser *parser,
 
   BTOR_CLR (res);
 
-  res->status = BTOR_PARSE_SAT_STATUS_UNKNOWN;
-  res->result = BTOR_PARSE_SAT_STATUS_UNKNOWN;
+  res->status = BOOLECTOR_UNKNOWN;
+  res->result = BOOLECTOR_UNKNOWN;
 
   assert (BTOR_EMPTY_STACK (parser->stack));
   assert (BTOR_EMPTY_STACK (parser->heads));

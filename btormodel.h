@@ -16,14 +16,17 @@
 #include "btorexp.h"
 #include "btorhash.h"
 
-void btor_generate_model (Btor *);
+void btor_generate_model (Btor *, int);
 void btor_delete_model (Btor *);
 
 // TODO: these functions may be obsolete in the future
 int btor_has_bv_model (Btor *, BtorNode *);
-int btor_has_array_model (Btor *, BtorNode *);
+int btor_has_fun_model (Btor *, BtorNode *);
+
+const BitVector *btor_get_bv_model (Btor *, BtorNode *);
+const BtorPtrHashTable *btor_get_fun_model (Btor *, BtorNode *);
 
 const char *btor_get_bv_model_str (Btor *, BtorNode *);
-void btor_get_array_model_str (Btor *, BtorNode *, char ***, char ***, int *);
+void btor_get_fun_model_str (Btor *, BtorNode *, char ***, char ***, int *);
 
 #endif

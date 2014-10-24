@@ -4,6 +4,7 @@ debug=unknown
 check=no
 log=unknown
 flto=no
+shared=no
 static=no
 lingeling=yes
 minisat=unknown
@@ -15,6 +16,7 @@ onlyminisat=no
 onlypicosat=no
 gcov=no
 gprof=no
+python=no
 
 #--------------------------------------------------------------------------#
 
@@ -42,6 +44,8 @@ where <option> is one of the following:
   -l                compile with logging support (default for '-g')
   -c                check assertions even in optimized compilation
   -m{32,64}         force 32-bit or 64-bit compilation
+  -shared           shared library
+  -python           compile python API
 
 By default all supported SAT solvers are used and linked into
 the binary if they can be found in the parent directory.
@@ -77,6 +81,7 @@ do
     -m32|--m32) arch=32;;
     -m64|--m64) arch=64;;
     -flto) flto=yes;;
+    -shared) shared=yes;;
     -static) static=yes;;
     -picosat|--picosat) picosat=yes;;
     -no-picosat|--no-picosat) picosat=no;;
@@ -90,6 +95,7 @@ do
     -h|-help|--help) usage;;
     -gcov) gcov=yes;;
     -gprof) gprof=yes;;
+    -python) python=yes;shared=yes;;
     -*) die "invalid option '$1' (try '-h')";;
   esac
   shift
@@ -117,6 +123,11 @@ fi
 
 #--------------------------------------------------------------------------#
 
+TARGETS="boolector"
+[ $shared = yes ] && TARGETS="$TARGETS libboolector.so"
+
+#--------------------------------------------------------------------------#
+
 if [ X"$CFLAGS" = X ]
 then
   [ $debug = unknown ] && debug=no
@@ -124,6 +135,7 @@ then
   [ $arch = 32 ] && CFLAGS="$CFLAGS -m32"
   [ $arch = 64 ] && CFLAGS="$CFLAGS -m64"
   [ $static = yes ] && CFLAGS="$CFLAGS -static"
+  [ $shared = yes ] && CFLAGS="$CFLAGS -fPIC"
   if [ $debug = yes ]
   then
     CFLAGS="$CFLAGS -g3 -ggdb"
@@ -170,6 +182,12 @@ INCS=""
 LIBZ=no
 LIBM=no
 LIBSTDCPP=no
+if [ $shared = yes ]
+then
+  LIBS="-Wl\,-rpath=$(pwd)/."
+  LDEPS="libboolector.so"
+  LIBSTDCPP=yes
+fi
 
 #--------------------------------------------------------------------------#
 
@@ -191,7 +209,6 @@ else
   if [ $path = allfound ]
   then
     msg "using PicoSAT in '../picosat'"
-    [ X"$OBJS" = X ] || OBJS="$OBJS "
     picosat=yes
   elif [ $picosat = yes ]
   then
@@ -204,10 +221,12 @@ else
   if [ $picosat = yes ]
   then
     [ X"$CFLAGS" = X ] || CFLAGS="$CFLAGS "
-    [ X"$OBJS" = X ] || OBJS="$OBJS "
     [ X"$INCS" = X ] || INCS="$INCS "
+    [ X"$LDEPS" = X ] || LDEPS="$LDEPS "
+    [ X"$LIBS" = X ] || LIBS="$LIBS "
     CFLAGS="${CFLAGS}-DBTOR_USE_PICOSAT"
-    OBJS="${OBJS}../picosat/picosat.o ../picosat/version.o"
+    LIBS="${LIBS}-L../picosat -Wl\,-rpath=$(pwd)/../picosat/ -lpicosat"
+    LDEPS="${LDEPS}../picosat/libpicosat.a"
     INCS="${INCS}-I../picosat"
   fi
 fi
@@ -247,7 +266,8 @@ else
     [ X"$LDEPS" = X ] || LDEPS="$LDEPS "
     [ X"$LIBS" = X ] || LIBS="$LIBS "
     [ X"$INCS" = X ] || INCS="$INCS "
-    CFLAGS="${CFLAGS}-DBTOR_USE_LINGELING"
+    CFLAGS="${CFLAGS}-DBTOR_USE_LINGELING -DBTOR_ENABLE_BETA_REDUCTION_PROBING"
+    [ $debug = yes ] && CFLAGS="$CFLAGS -DBTOR_CHECK_FAILED"
     LIBS="${LIBS}-L../lingeling -llgl"
     LDEPS="${LDEPS}../lingeling/liblgl.a"
     LIBM=yes
@@ -357,10 +377,17 @@ else
     [ X"$INCS" = X ] || INCS="$INCS "
     CFLAGS="${CFLAGS}-DBTOR_USE_MINISAT"
     OBJS="${OBJS}btorminisat.o"
-    LIBS="${LIBS}-L../minisat/build/release/lib -lminisat"
-    LDEPS="${LDEPS}../minisat/build/release/lib/libminisat.a"
+    if [ $shared = yes ]
+    then
+      LIBS="${LIBS}-L../minisat/build/dynamic/lib -Wl\,-rpath=$(pwd)/../minisat/build/dynamic/lib -lminisat"
+      LDEPS="${LDEPS}../minisat/build/dynamic/lib/libminisat.so"
+    else
+      LIBS="${LIBS}-L../minisat/build/release/lib -lminisat"
+      LDEPS="${LDEPS}../minisat/build/release/lib/libminisat.a"
+    fi
     LIBSTDCPP=yes
     LIBZ=yes
+    LIBM=yes
     INCS="${INCS}-I../minisat"
   fi
 
@@ -397,6 +424,66 @@ fi
 
 #--------------------------------------------------------------------------#
 
+if [ $python = yes ]
+then
+  py_libraries="boolector"
+  py_library_dirs="."
+  if [ $lingeling = yes ]; then
+    py_libraries="$py_libraries lgl"
+    py_library_dirs="$py_library_dirs ../lingeling"
+  fi
+  if [ $picosat = yes ]; then
+    py_libraries="$py_libraries picosat"
+    py_library_dirs="$py_library_dirs ../picosat"
+  fi
+  if [ $minisat = yes ]; then
+    py_libraries="$py_libraries minisat"
+    py_library_dirs="$py_library_dirs ../minisat/build/dynamic/lib"
+  fi
+
+  cat > setup.py <<EOF
+import os
+from distutils.core import setup
+from distutils.extension import Extension
+from Cython.Distutils import build_ext
+cwd=os.getcwd()
+ext_modules=[
+    Extension("boolector",
+              sources=[cwd+"/api/python/boolector.pyx"],
+              include_dirs=[cwd],
+              library_dirs=[cwd+"/"+s for s in "$py_library_dirs".split()],
+              libraries="$py_libraries".split(),
+              extra_compile_args=[s for s in "$CFLAGS".split() if "-D" in s],
+	      extra_link_args=["-Wl,-rpath="+":".join([cwd+"/"+s for s in "$py_library_dirs".split()])]
+    )
+]
+setup(cmdclass={'build_ext': build_ext}, ext_modules=ext_modules)
+EOF
+
+cat > python.mk <<EOF
+
+all: python
+
+python: setup.py
+	python setup.py build_ext -i
+	@echo "Compiled Boolector python module. Please read api/python/README on how to use the module"
+
+python-clean:
+	rm -rf build
+	rm -f api/python/*.c boolector.cpython*.so
+
+python-clean-mk:
+	rm -f python.mk setup.py
+
+clean: python-clean python-clean-mk
+
+EOF
+else
+  touch python.mk
+fi
+
+#--------------------------------------------------------------------------#
+
 [ "X$CC" = X ] && CC=gcc
 
 msg "CC=$CC"
@@ -413,5 +500,6 @@ sed \
   -e "s,@LIBS@,$LIBS," \
   -e "s,@LDEPS@,$LDEPS," \
   -e "s,@OBJS@,$OBJS," \
+  -e "s,@TARGETS@,$TARGETS," \
   makefile.in > makefile
 msg "makefile generated"

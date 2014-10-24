@@ -1,7 +1,7 @@
 #include <assert.h>
 #include <stdio.h>
 #include <stdlib.h>
-#include "../../boolector.h"
+#include "boolector.h"
 
 #define ARRAY1_EXAMPLE_VALUE_BW 8
 #define ARRAY1_EXAMPLE_INDEX_BW 3
@@ -31,8 +31,8 @@ int
 main (void)
 {
   Btor *btor;
-  BtorNode *array, *read, *max, *temp, *ugt, *formula, *index;
-  BtorNode *indices[ARRAY1_EXAMPLE_ARRAY_SIZE];
+  BoolectorNode *array, *read, *max, *temp, *ugt, *formula, *index;
+  BoolectorNode *indices[ARRAY1_EXAMPLE_ARRAY_SIZE];
   int i, result;
 
   btor = boolector_new ();

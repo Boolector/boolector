@@ -1,6 +1,7 @@
 /*  Boolector: Satisfiablity Modulo Theories (SMT) solver.
  *
  *  Copyright (C) 2011-2012 Armin Biere.
+ *  Copyright (C) 2014 Mathias Preiner.
  *
  *  All rights reserved.
  *
@@ -86,10 +87,10 @@ class BtorMiniSAT : public SimpSolver
   {
     calls++;
     reset ();
-    bool res = solve (assumptions, simp);
+    lbool res = solveLimited (assumptions, simp);
     assumptions.clear ();
-    nomodel = !res;
-    return res ? 10 : 20;
+    nomodel = res != l_True;
+    return res == l_Undef ? 0 : (res == l_True ? 10 : 20);
   }
   int failed (int lit)
   {
@@ -142,7 +143,10 @@ int
 btor_minisat_sat (BtorSATMgr *smgr, int limit)
 {
   BtorMiniSAT *solver = (BtorMiniSAT *) BTOR_GET_SOLVER_SAT (smgr);
-  (void) limit;
+  if (limit < 0)
+    solver->budgetOff ();
+  else
+    solver->setConfBudget (limit);
   return solver->sat (!smgr->inc_required);
 }
 

@@ -1,7 +1,8 @@
 /*  Boolector: Satisfiablity Modulo Theories (SMT) solver.
  *
- *  Copyright (C) 2013 - 2014 Armin Biere.
- *  Copyright (C) 2013 Aina Niemetz.
+ *  Copyright (C) 2013-2014 Armin Biere.
+ *  Copyright (C) 2013-2014 Aina Niemetz.
+ *  Copyright (C) 2014 Mathias Preiner.
  *
  *  All rights reserved.
  *
@@ -10,6 +11,7 @@
  */
 
 #include "btormap.h"
+#include "btoriter.h"
 
 /*------------------------------------------------------------------------*/
 
@@ -35,15 +37,17 @@ btor_delete_node_map (BtorNodeMap *map)
 {
   assert (map);
 
-  BtorPtrHashBucket *bucket;
+  BtorHashTableIterator it;
+  BtorNode *cur;
 
-  for (bucket = map->table->first; bucket; bucket = bucket->next)
+  init_node_hash_table_iterator (&it, map->table);
+  while (has_next_node_hash_table_iterator (&it))
   {
-    btor_release_exp (BTOR_REAL_ADDR_NODE ((BtorNode *) bucket->key)->btor,
-                      bucket->key);
     btor_release_exp (
-        BTOR_REAL_ADDR_NODE ((BtorNode *) bucket->data.asPtr)->btor,
-        bucket->data.asPtr);
+        BTOR_REAL_ADDR_NODE ((BtorNode *) it.bucket->data.asPtr)->btor,
+        it.bucket->data.asPtr);
+    cur = next_node_hash_table_iterator (&it);
+    btor_release_exp (BTOR_REAL_ADDR_NODE (cur)->btor, cur);
   }
   btor_delete_ptr_hash_table (map->table);
   BTOR_DELETE (map->btor->mm, map);
@@ -143,12 +147,12 @@ btor_map_node_internal (Btor *btor, BtorNodeMap *map, BtorNode *exp)
       // ELSE FALL THROUGH!!!
 
     case BTOR_BV_VAR_NODE:
-    case BTOR_ARRAY_VAR_NODE: return btor_copy_exp (btor, exp);
+    case BTOR_UF_NODE: return btor_copy_exp (btor, exp);
     case BTOR_SLICE_NODE:
       return btor_slice_exp (btor, m[0], exp->upper, exp->lower);
     case BTOR_AND_NODE: return btor_and_exp (btor, m[0], m[1]);
     case BTOR_BEQ_NODE:
-    case BTOR_AEQ_NODE: return btor_eq_exp (btor, m[0], m[1]);
+    case BTOR_FEQ_NODE: return btor_eq_exp (btor, m[0], m[1]);
     case BTOR_ADD_NODE: return btor_add_exp (btor, m[0], m[1]);
     case BTOR_MUL_NODE: return btor_mul_exp (btor, m[0], m[1]);
     case BTOR_ULT_NODE: return btor_ult_exp (btor, m[0], m[1]);
@@ -382,14 +386,15 @@ btor_delete_aig_map (BtorAIGMap *map)
   assert (map);
 
   Btor *btor;
-  BtorPtrHashBucket *bucket;
+  BtorHashTableIterator it;
 
   btor = map->btor;
 
-  for (bucket = map->table->first; bucket; bucket = bucket->next)
+  init_hash_table_iterator (&it, map->table);
+  while (has_next_hash_table_iterator (&it))
   {
-    btor_release_aig (map->amgr_src, bucket->key);
-    btor_release_aig (map->amgr_dst, bucket->data.asPtr);
+    btor_release_aig (map->amgr_dst, it.bucket->data.asPtr);
+    btor_release_aig (map->amgr_src, next_hash_table_iterator (&it));
   }
   btor_delete_ptr_hash_table (map->table);
   BTOR_DELETE (btor->mm, map);

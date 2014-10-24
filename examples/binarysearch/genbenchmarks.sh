@@ -11,7 +11,7 @@ do
     sizestring=$size
   fi
   filename=binarysearch32s$sizestring".smt"
-  ./binarysearch 32 $size | boolector -rwl0 -ds | while read line
+  ./binarysearch 32 $size | boolector -rwl 0 -ds | while read line
   do
     if [[ $header -eq 1 ]]; then
       echo "(benchmark $filename" > $filename

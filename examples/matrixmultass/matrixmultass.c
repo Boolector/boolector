@@ -1,22 +1,22 @@
 #include <assert.h>
 #include <stdio.h>
 #include <stdlib.h>
-#include "../../boolector.h"
-#include "../../btorutil.h"
+#include "boolector.h"
+#include "btorutil.h"
 
-BtorNode **indices;
+BoolectorNode **indices;
 
-static BtorNode *
+static BoolectorNode *
 matrix_mult (Btor *btor,
-             BtorNode *m1,
-             BtorNode *m2,
+             BoolectorNode *m1,
+             BoolectorNode *m2,
              int size,
              int num_bits,
              int num_bits_index,
              const char *symbol)
 {
   int i, j, k;
-  BtorNode *temp, *result, *zero, *read1, *read2, *read3, *mult, *add;
+  BoolectorNode *temp, *result, *zero, *read1, *read2, *read3, *mult, *add;
   assert (btor != NULL);
   assert (m1 != NULL);
   assert (m2 != NULL);
@@ -62,7 +62,7 @@ main (int argc, char **argv)
 {
   int num_bits, num_bits_index, size, i, num_elements;
   Btor *btor;
-  BtorNode *A, *B, *C, *A_x_B, *B_x_C, *AB_x_C, *A_x_BC, *formula, *temp;
+  BoolectorNode *A, *B, *C, *A_x_B, *B_x_C, *AB_x_C, *A_x_BC, *formula, *temp;
   if (argc != 3)
   {
     printf ("Usage: ./matrixmultass <num-bits> <size>\n");
@@ -83,8 +83,8 @@ main (int argc, char **argv)
   num_elements   = size * size;
   num_bits_index = btor_log_2_util (btor_next_power_of_2_util (num_elements));
   btor           = boolector_new ();
-  boolector_set_rewrite_level (btor, 0);
-  indices = (BtorNode **) malloc (sizeof (BtorNode *) * num_elements);
+  boolector_set_opt (btor, "rewrite_level", 0);
+  indices = (BoolectorNode **) malloc (sizeof (BoolectorNode *) * num_elements);
   for (i = 0; i < num_elements; i++)
     indices[i] = boolector_int (btor, i, num_bits_index);
   A      = boolector_array (btor, num_bits, num_bits_index, "A");
@@ -100,7 +100,7 @@ main (int argc, char **argv)
   temp = boolector_not (btor, formula);
   boolector_release (btor, formula);
   formula = temp;
-  boolector_dump_btor (btor, stdout, formula);
+  boolector_dump_btor_node (btor, stdout, formula);
   /* clean up */
   for (i = 0; i < num_elements; i++) boolector_release (btor, indices[i]);
   boolector_release (btor, formula);

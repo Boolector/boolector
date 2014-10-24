@@ -1,6 +1,6 @@
 /*  Boolector: Satisfiablity Modulo Theories (SMT) solver.
  *
- *  Copyright (C) 2013 Mathias Preiner.
+ *  Copyright (C) 2013-2014 Mathias Preiner.
  *
  *  All rights reserved.
  *
@@ -27,6 +27,10 @@ struct BitVector
 
 typedef struct BitVector BitVector;
 
+#define BTOR_INVERT_BV(bv) ((BitVector *) (1ul ^ (unsigned long int) (bv)))
+#define BTOR_IS_INVERTED_BV(bv) (1ul & (unsigned long int) (bv))
+#define BTOR_REAL_ADDR_BV(bv) ((BitVector *) (~3ul & (unsigned long int) (bv)))
+
 BitVector *btor_new_bv (Btor *, int);
 BitVector *btor_char_to_bv (Btor *, char *);
 BitVector *btor_uint64_to_bv (Btor *, uint64_t, int);
@@ -39,9 +43,9 @@ unsigned int btor_hash_bv (BitVector *);
 
 void btor_print_bv (BitVector *);
 void btor_print_all_bv (BitVector *);
-char *btor_bv_to_char_bv (Btor *, BitVector *);
+char *btor_bv_to_char_bv (Btor *, const BitVector *);
 uint64_t btor_bv_to_uint64_bv (BitVector *);
-int btor_get_bit_bv (BitVector *, int);
+int btor_get_bit_bv (const BitVector *, int);
 int btor_is_true_bv (BitVector *);
 int btor_is_false_bv (BitVector *);
 

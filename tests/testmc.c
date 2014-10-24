@@ -3,6 +3,7 @@
  *  Copyright (C) 2013 Armin Biere.
  *
  *  All rights reserved.
+ *
  *  This file is part of Boolector.
  *  See COPYING for more information on using this software.
  */
@@ -215,17 +216,18 @@ test_mccount2resetenable ()
   finish_mc_test ();
 }
 
+#if 0
 static void
-test_mctwostepsmodel ()
+test_mctwostepsmodel () 
 {
-  FILE *file;
+  FILE * file;
   int k, i;
 
-  BoolectorNode *zero, *one;
-  BoolectorNode *a, *b, *t, *n, * or, *xor;
-  BoolectorNode *nexta, *nexta1, *nexta2;
-  BoolectorNode *nextb, *nextb1, *nextb2;
-  BoolectorNode *bad, *bada, *badb;
+  BoolectorNode * zero, * one;
+  BoolectorNode * a, * b, * t, * n, * or, * xor;
+  BoolectorNode * nexta, * nexta1, * nexta2;
+  BoolectorNode * nextb, * nextb1, * nextb2;
+  BoolectorNode * bad, * bada, *badb;
 
   init_mc_test ();
 
@@ -235,10 +237,10 @@ test_mctwostepsmodel ()
   a = boolector_latch (g_mc, 1, "a");
   b = boolector_latch (g_mc, 1, "b");
 
-  or  = boolector_or (g_btor, a, b);   // dangling ...
-  xor = boolector_xor (g_btor, a, b);  // dangling ...
+  or = boolector_or (g_btor, a, b);	// dangling ...
+  xor = boolector_xor (g_btor, a, b);	// dangling ...
 
-  one  = boolector_ones (g_btor, 1);
+  one = boolector_ones (g_btor, 1);
   zero = boolector_zero (g_btor, 1);
 
   boolector_init (g_mc, a, zero);
@@ -249,29 +251,28 @@ test_mctwostepsmodel ()
 
   nexta1 = boolector_nor (g_btor, t, a);
   nexta2 = boolector_implies (g_btor, n, a);
-  nexta  = boolector_and (g_btor, nexta1, nexta2);
+  nexta = boolector_and (g_btor, nexta1, nexta2);
 
   nextb1 = boolector_nor (g_btor, n, b);
   nextb2 = boolector_implies (g_btor, t, b);
-  nextb  = boolector_and (g_btor, nextb1, nextb2);
+  nextb = boolector_and (g_btor, nextb1, nextb2);
 
   boolector_next (g_mc, a, nexta);
   boolector_next (g_mc, b, nextb);
 
   bada = boolector_eq (g_btor, a, one);
   badb = boolector_eq (g_btor, b, one);
-  bad  = boolector_and (g_btor, bada, badb);
+  bad = boolector_and (g_btor, bada, badb);
 
   boolector_bad (g_mc, bad);
 
   k = boolector_bmc (g_mc, 0, 2);
-  assert (k == 2);  // can reach bad within k=2 steps
+  assert (k == 2);			// can reach bad within k=2 steps
 
   file = fopen ("log/mctwostepsmodel.log", "w");
   assert (file);
   fprintf (file, "Bad state property satisfied at k = %d:\n", k);
-  for (i = 0; i <= k; i++)
-  {
+  for (i = 0; i <= k; i++) {
     fprintf (file, "\n");
     fprintf (file, "[ state at time %d ]\n", i);
     fprintf (file, "\n");
@@ -322,6 +323,7 @@ test_mctwostepsmodel ()
 
   finish_mc_test ();
 }
+#endif
 
 static int test_mccount2multi_reached[4];
 

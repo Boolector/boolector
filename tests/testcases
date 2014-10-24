@@ -1,6 +1,6 @@
-regsmtparse0 -o log/regsmtparse0.log log/regsmtparse0.smt
-regsmtparse1 -o log/regsmtparse1.log log/regsmtparse1.smt
-regsmtparse2 -o log/regsmtparse2.log log/regsmtparse2.smt
+regsmtparse0 log/regsmtparse0.smt > log/regsmtparse0.log 2>&1
+regsmtparse1 log/regsmtparse1.smt > log/regsmtparse1.log 2>&1
+regsmtparse2 log/regsmtparse2.smt > log/regsmtparse2.log 2>&1
 smttrue -m -o log/smttrue.log log/smttrue.smt
 smtfalse -m -o log/smtfalse.log log/smtfalse.smt
 smtvar -m -o log/smtvar.log log/smtvar.smt
@@ -48,15 +48,15 @@ udiv8castdown6 -o log/udiv8castdown6.log log/udiv8castdown6.btor
 udiv8castdown7 -o log/udiv8castdown7.log log/udiv8castdown7.btor
 udiv16castdown8 -o log/udiv16castdown8.log log/udiv16castdown8.btor
 lazyreadwritebug1 -o log/lazyreadwritebug1.log log/lazyreadwritebug1.btor
-arrayand -o log/arrayand.log log/arrayand.btor
-arrayeqerr0 -o log/arrayeqerr0.log log/arrayeqerr0.btor
-arrayeqerr1 -o log/arrayeqerr1.log log/arrayeqerr1.btor
-arrayeqerr2 -o log/arrayeqerr2.log log/arrayeqerr2.btor
-dumpbtor1 -rwl0 -db -o log/dumpbtor1.log log/dumpbtor1.btor
-dumpbtor2 -rwl0 -db -o log/dumpbtor2.log log/dumpbtor2.btor
+arrayand log/arrayand.btor > log/arrayand.log 2>&1
+arrayeqerr0 log/arrayeqerr0.btor > log/arrayeqerr0.log 2>&1
+arrayeqerr1 log/arrayeqerr1.btor > log/arrayeqerr1.log 2>&1
+arrayeqerr2 log/arrayeqerr2.btor > log/arrayeqerr2.log 2>&1
+dumpbtor1 -rwl 0 -db -o log/dumpbtor1.log log/dumpbtor1.btor
+dumpbtor2 -rwl 0 -db -o log/dumpbtor2.log log/dumpbtor2.btor
 dumpbtor3 -db -o log/dumpbtor3.log log/dumpbtor3.btor
-dumpsmt1 -rwl0 -ds -o log/dumpsmt1.log log/dumpsmt1.btor
-dumpsmt2 -rwl0 -ds -o log/dumpsmt2.log log/dumpsmt2.btor
+dumpsmt1 -rwl 0 -ds -o log/dumpsmt1.log log/dumpsmt1.btor
+dumpsmt2 -rwl 0 -ds -o log/dumpsmt2.log log/dumpsmt2.btor
 smtextarrayaxiom1uf -o log/smtextarrayaxiom1uf.log log/smtextarrayaxiom1uf.smt
 smtextarrayaxiom1 -o log/smtextarrayaxiom1.log log/smtextarrayaxiom1.smt
 smtextarray1sat0 -o log/smtextarray1sat0.log log/smtextarray1sat0.smt
@@ -90,10 +90,10 @@ rwpropindexplusconst1 -o log/rwpropindexplusconst1.log log/rwpropindexplusconst1
 rwpropindexplusconst2 -o log/rwpropindexplusconst2.log log/rwpropindexplusconst2.btor
 rwpropindexplusconst3 -o log/rwpropindexplusconst3.log log/rwpropindexplusconst3.btor
 rwpropindexplusconst4 -o log/rwpropindexplusconst4.log log/rwpropindexplusconst4.btor
-rwpropindexplusconst1 -rwl0 -o log/rwpropindexplusconst1.log log/rwpropindexplusconst1.btor
-rwpropindexplusconst2 -rwl0 -o log/rwpropindexplusconst2.log log/rwpropindexplusconst2.btor
-rwpropindexplusconst3 -rwl0 -o log/rwpropindexplusconst3.log log/rwpropindexplusconst3.btor
-rwpropindexplusconst4 -rwl0 -o log/rwpropindexplusconst4.log log/rwpropindexplusconst4.btor
+rwpropindexplusconst1 -rwl 0 -o log/rwpropindexplusconst1.log log/rwpropindexplusconst1.btor
+rwpropindexplusconst2 -rwl 0 -o log/rwpropindexplusconst2.log log/rwpropindexplusconst2.btor
+rwpropindexplusconst3 -rwl 0 -o log/rwpropindexplusconst3.log log/rwpropindexplusconst3.btor
+rwpropindexplusconst4 -rwl 0 -o log/rwpropindexplusconst4.log log/rwpropindexplusconst4.btor
 rwpropindexpluszero1 -o log/rwpropindexpluszero1.log log/rwpropindexpluszero1.btor
 rwpropindexpluszero2 -o log/rwpropindexpluszero2.log log/rwpropindexpluszero2.btor
 rwpropindexpluszero3 -o log/rwpropindexpluszero3.log log/rwpropindexpluszero3.btor
@@ -102,401 +102,401 @@ rwpropindexpluszero5 -o log/rwpropindexpluszero5.log log/rwpropindexpluszero5.bt
 rwpropindexpluszero6 -o log/rwpropindexpluszero6.log log/rwpropindexpluszero6.btor
 rwpropindexpluszero7 -o log/rwpropindexpluszero7.log log/rwpropindexpluszero7.btor
 rwpropindexpluszero8 -o log/rwpropindexpluszero8.log log/rwpropindexpluszero8.btor
-rwpropindexpluszero1 -rwl0 -o log/rwpropindexpluszero1.log log/rwpropindexpluszero1.btor
-rwpropindexpluszero2 -rwl0 -o log/rwpropindexpluszero2.log log/rwpropindexpluszero2.btor
-rwpropindexpluszero3 -rwl0 -o log/rwpropindexpluszero3.log log/rwpropindexpluszero3.btor
-rwpropindexpluszero4 -rwl0 -o log/rwpropindexpluszero4.log log/rwpropindexpluszero4.btor
-rwpropindexpluszero5 -rwl0 -o log/rwpropindexpluszero5.log log/rwpropindexpluszero5.btor
-rwpropindexpluszero6 -rwl0 -o log/rwpropindexpluszero6.log log/rwpropindexpluszero6.btor
-rwpropindexpluszero7 -rwl0 -o log/rwpropindexpluszero7.log log/rwpropindexpluszero7.btor
-rwpropindexpluszero8 -rwl0 -o log/rwpropindexpluszero8.log log/rwpropindexpluszero8.btor
-arraycondconst -rwl0 -o log/arraycondconst.log log/arraycondconst.btor
-arraycondconstaig -rwl0 -o log/arraycondconstaig.log log/arraycondconstaig.btor
+rwpropindexpluszero1 -rwl 0 -o log/rwpropindexpluszero1.log log/rwpropindexpluszero1.btor
+rwpropindexpluszero2 -rwl 0 -o log/rwpropindexpluszero2.log log/rwpropindexpluszero2.btor
+rwpropindexpluszero3 -rwl 0 -o log/rwpropindexpluszero3.log log/rwpropindexpluszero3.btor
+rwpropindexpluszero4 -rwl 0 -o log/rwpropindexpluszero4.log log/rwpropindexpluszero4.btor
+rwpropindexpluszero5 -rwl 0 -o log/rwpropindexpluszero5.log log/rwpropindexpluszero5.btor
+rwpropindexpluszero6 -rwl 0 -o log/rwpropindexpluszero6.log log/rwpropindexpluszero6.btor
+rwpropindexpluszero7 -rwl 0 -o log/rwpropindexpluszero7.log log/rwpropindexpluszero7.btor
+rwpropindexpluszero8 -rwl 0 -o log/rwpropindexpluszero8.log log/rwpropindexpluszero8.btor
+arraycondconst -rwl 0 -o log/arraycondconst.log log/arraycondconst.btor
+arraycondconstaig -rwl 0 -o log/arraycondconstaig.log log/arraycondconstaig.btor
 random1 -o log/random1.log log/random1.btor
 random2 -o log/random2.log log/random2.btor
 random3 -o log/random3.log log/random3.btor
 random4 -o log/random4.log log/random4.btor
-random5 -rwl0 -o log/random5.log log/random5.btor
-random5 -rwl1 -o log/random5.log log/random5.btor
-rw16 -rwl0 -o log/rw16.log log/rw16.btor
-rw16 -rwl1 -o log/rw16.log log/rw16.btor
-rw17 -rwl0 -o log/rw17.log log/rw17.btor
-rw17 -rwl1 -o log/rw17.log log/rw17.btor
-rw18 -rwl0 -o log/rw18.log log/rw18.btor
-rw18 -rwl1 -o log/rw18.log log/rw18.btor
-rw19 -rwl0 -o log/rw19.log log/rw19.btor
-rw19 -rwl1 -o log/rw19.log log/rw19.btor
-rw20 -rwl0 -o log/rw20.log log/rw20.btor
-rw20 -rwl1 -o log/rw20.log log/rw20.btor
-rw21 -rwl0 -o log/rw21.log log/rw21.btor
-rw21 -rwl1 -o log/rw21.log log/rw21.btor
-rw22 -rwl0 -o log/rw22.log log/rw22.btor
-rw22 -rwl1 -o log/rw22.log log/rw22.btor
-rw23 -rwl0 -o log/rw23.log log/rw23.btor
-rw23 -rwl1 -o log/rw23.log log/rw23.btor
-rw24 -rwl0 -o log/rw24.log log/rw24.btor
-rw24 -rwl1 -o log/rw24.log log/rw24.btor
-rw25 -rwl0 -o log/rw25.log log/rw25.btor
-rw25 -rwl1 -o log/rw25.log log/rw25.btor
-rw26 -rwl0 -o log/rw26.log log/rw26.btor
-rw26 -rwl1 -o log/rw26.log log/rw26.btor
-rw27 -rwl0 -o log/rw27.log log/rw27.btor
-rw27 -rwl1 -o log/rw27.log log/rw27.btor
-rw28 -rwl0 -o log/rw28.log log/rw28.btor
-rw28 -rwl1 -o log/rw28.log log/rw28.btor
-rw29 -rwl0 -o log/rw29.log log/rw29.btor
-rw29 -rwl1 -o log/rw29.log log/rw29.btor
-rw30 -rwl0 -o log/rw30.log log/rw30.btor
-rw30 -rwl1 -o log/rw30.log log/rw30.btor
-rw31 -rwl0 -o log/rw31.log log/rw31.btor
-rw31 -rwl1 -o log/rw31.log log/rw31.btor
-rw32 -rwl0 -o log/rw32.log log/rw32.btor
-rw32 -rwl1 -o log/rw32.log log/rw32.btor
-rw33 -rwl0 -o log/rw33.log log/rw33.btor
-rw33 -rwl1 -o log/rw33.log log/rw33.btor
-rw34 -rwl0 -o log/rw34.log log/rw34.btor
-rw34 -rwl1 -o log/rw34.log log/rw34.btor
-rw35 -rwl0 -o log/rw35.log log/rw35.btor
-rw35 -rwl1 -o log/rw35.log log/rw35.btor
-rw36 -rwl0 -o log/rw36.log log/rw36.btor
-rw36 -rwl1 -o log/rw36.log log/rw36.btor
-rw37 -rwl0 -o log/rw37.log log/rw37.btor
-rw37 -rwl1 -o log/rw37.log log/rw37.btor
-rw38 -rwl0 -o log/rw38.log log/rw38.btor
-rw38 -rwl1 -o log/rw38.log log/rw38.btor
-rw39 -rwl0 -o log/rw39.log log/rw39.btor
-rw39 -rwl1 -o log/rw39.log log/rw39.btor
-rw40 -rwl0 -o log/rw40.log log/rw40.btor
-rw40 -rwl1 -o log/rw40.log log/rw40.btor
-rw41 -rwl0 -o log/rw41.log log/rw41.btor
-rw41 -rwl1 -o log/rw41.log log/rw41.btor
-rw42 -rwl0 -o log/rw42.log log/rw42.btor
-rw42 -rwl1 -o log/rw42.log log/rw42.btor
-rw43 -rwl0 -o log/rw43.log log/rw43.btor
-rw43 -rwl1 -o log/rw43.log log/rw43.btor
-rw44 -rwl0 -o log/rw44.log log/rw44.btor
-rw44 -rwl1 -o log/rw44.log log/rw44.btor
-rw45 -rwl0 -o log/rw45.log log/rw45.btor
-rw45 -rwl1 -o log/rw45.log log/rw45.btor
+random5 -rwl 0 -o log/random5.log log/random5.btor
+random5 -rwl 1 -o log/random5.log log/random5.btor
+rw16 -rwl 0 -o log/rw16.log log/rw16.btor
+rw16 -rwl 1 -o log/rw16.log log/rw16.btor
+rw17 -rwl 0 -o log/rw17.log log/rw17.btor
+rw17 -rwl 1 -o log/rw17.log log/rw17.btor
+rw18 -rwl 0 -o log/rw18.log log/rw18.btor
+rw18 -rwl 1 -o log/rw18.log log/rw18.btor
+rw19 -rwl 0 -o log/rw19.log log/rw19.btor
+rw19 -rwl 1 -o log/rw19.log log/rw19.btor
+rw20 -rwl 0 -o log/rw20.log log/rw20.btor
+rw20 -rwl 1 -o log/rw20.log log/rw20.btor
+rw21 -rwl 0 -o log/rw21.log log/rw21.btor
+rw21 -rwl 1 -o log/rw21.log log/rw21.btor
+rw22 -rwl 0 -o log/rw22.log log/rw22.btor
+rw22 -rwl 1 -o log/rw22.log log/rw22.btor
+rw23 -rwl 0 -o log/rw23.log log/rw23.btor
+rw23 -rwl 1 -o log/rw23.log log/rw23.btor
+rw24 -rwl 0 -o log/rw24.log log/rw24.btor
+rw24 -rwl 1 -o log/rw24.log log/rw24.btor
+rw25 -rwl 0 -o log/rw25.log log/rw25.btor
+rw25 -rwl 1 -o log/rw25.log log/rw25.btor
+rw26 -rwl 0 -o log/rw26.log log/rw26.btor
+rw26 -rwl 1 -o log/rw26.log log/rw26.btor
+rw27 -rwl 0 -o log/rw27.log log/rw27.btor
+rw27 -rwl 1 -o log/rw27.log log/rw27.btor
+rw28 -rwl 0 -o log/rw28.log log/rw28.btor
+rw28 -rwl 1 -o log/rw28.log log/rw28.btor
+rw29 -rwl 0 -o log/rw29.log log/rw29.btor
+rw29 -rwl 1 -o log/rw29.log log/rw29.btor
+rw30 -rwl 0 -o log/rw30.log log/rw30.btor
+rw30 -rwl 1 -o log/rw30.log log/rw30.btor
+rw31 -rwl 0 -o log/rw31.log log/rw31.btor
+rw31 -rwl 1 -o log/rw31.log log/rw31.btor
+rw32 -rwl 0 -o log/rw32.log log/rw32.btor
+rw32 -rwl 1 -o log/rw32.log log/rw32.btor
+rw33 -rwl 0 -o log/rw33.log log/rw33.btor
+rw33 -rwl 1 -o log/rw33.log log/rw33.btor
+rw34 -rwl 0 -o log/rw34.log log/rw34.btor
+rw34 -rwl 1 -o log/rw34.log log/rw34.btor
+rw35 -rwl 0 -o log/rw35.log log/rw35.btor
+rw35 -rwl 1 -o log/rw35.log log/rw35.btor
+rw36 -rwl 0 -o log/rw36.log log/rw36.btor
+rw36 -rwl 1 -o log/rw36.log log/rw36.btor
+rw37 -rwl 0 -o log/rw37.log log/rw37.btor
+rw37 -rwl 1 -o log/rw37.log log/rw37.btor
+rw38 -rwl 0 -o log/rw38.log log/rw38.btor
+rw38 -rwl 1 -o log/rw38.log log/rw38.btor
+rw39 -rwl 0 -o log/rw39.log log/rw39.btor
+rw39 -rwl 1 -o log/rw39.log log/rw39.btor
+rw40 -rwl 0 -o log/rw40.log log/rw40.btor
+rw40 -rwl 1 -o log/rw40.log log/rw40.btor
+rw41 -rwl 0 -o log/rw41.log log/rw41.btor
+rw41 -rwl 1 -o log/rw41.log log/rw41.btor
+rw42 -rwl 0 -o log/rw42.log log/rw42.btor
+rw42 -rwl 1 -o log/rw42.log log/rw42.btor
+rw43 -rwl 0 -o log/rw43.log log/rw43.btor
+rw43 -rwl 1 -o log/rw43.log log/rw43.btor
+rw44 -rwl 0 -o log/rw44.log log/rw44.btor
+rw44 -rwl 1 -o log/rw44.log log/rw44.btor
+rw45 -rwl 0 -o log/rw45.log log/rw45.btor
+rw45 -rwl 1 -o log/rw45.log log/rw45.btor
 rw46 -o log/rw46.log log/rw46.btor
 rw47 -o log/rw47.log log/rw47.btor
 rw48 -o log/rw48.log log/rw48.btor
 rw49 -o log/rw49.log log/rw49.btor
 rw50 -o log/rw50.log log/rw50.btor
 rw51 -o log/rw51.log log/rw51.btor
-rw52 -rwl0 -o log/rw52.log log/rw52.btor
-rw52 -rwl1 -o log/rw52.log log/rw52.btor
-rw53 -rwl0 -o log/rw53.log log/rw53.btor
-rw53 -rwl3 -o log/rw53.log log/rw53.btor
-rw54 -rwl0 -o log/rw54.log log/rw54.btor
-rw54 -rwl3 -o log/rw54.log log/rw54.btor
-rw55 -rwl0 -o log/rw55.log log/rw55.btor
-rw55 -rwl3 -o log/rw55.log log/rw55.btor
-rw56 -rwl0 -o log/rw56.log log/rw56.btor
-rw56 -rwl3 -o log/rw56.log log/rw56.btor
-rw57 -rwl0 -o log/rw57.log log/rw57.btor
-rw57 -rwl3 -o log/rw57.log log/rw57.btor
-rw58 -rwl0 -o log/rw58.log log/rw58.btor
-rw58 -rwl3 -o log/rw58.log log/rw58.btor
-rw59 -rwl0 -o log/rw59.log log/rw59.btor
-rw59 -rwl3 -o log/rw59.log log/rw59.btor
+rw52 -rwl 0 -o log/rw52.log log/rw52.btor
+rw52 -rwl 1 -o log/rw52.log log/rw52.btor
+rw53 -rwl 0 -o log/rw53.log log/rw53.btor
+rw53 -rwl 3 -o log/rw53.log log/rw53.btor
+rw54 -rwl 0 -o log/rw54.log log/rw54.btor
+rw54 -rwl 3 -o log/rw54.log log/rw54.btor
+rw55 -rwl 0 -o log/rw55.log log/rw55.btor
+rw55 -rwl 3 -o log/rw55.log log/rw55.btor
+rw56 -rwl 0 -o log/rw56.log log/rw56.btor
+rw56 -rwl 3 -o log/rw56.log log/rw56.btor
+rw57 -rwl 0 -o log/rw57.log log/rw57.btor
+rw57 -rwl 3 -o log/rw57.log log/rw57.btor
+rw58 -rwl 0 -o log/rw58.log log/rw58.btor
+rw58 -rwl 3 -o log/rw58.log log/rw58.btor
+rw59 -rwl 0 -o log/rw59.log log/rw59.btor
+rw59 -rwl 3 -o log/rw59.log log/rw59.btor
 rw60 -o log/rw60.log log/rw60.btor
-rw61 -rwl0 -o log/rw61.log log/rw61.btor
-rw61 -rwl1 -o log/rw61.log log/rw61.btor
-rw62 -rwl0 -o log/rw62.log log/rw62.btor
-rw62 -rwl1 -o log/rw62.log log/rw62.btor
-rw63 -rwl0 -o log/rw63.log log/rw63.btor
-rw63 -rwl1 -o log/rw63.log log/rw63.btor
-rw64 -rwl0 -o log/rw64.log log/rw64.btor
-rw64 -rwl1 -o log/rw64.log log/rw64.btor
-rw65 -rwl0 -o log/rw65.log log/rw65.btor
-rw65 -rwl1 -o log/rw65.log log/rw65.btor
-rw66 -rwl0 -o log/rw66.log log/rw66.btor
-rw66 -rwl1 -o log/rw66.log log/rw66.btor
-rw67 -rwl0 -o log/rw67.log log/rw67.btor
-rw67 -rwl1 -o log/rw67.log log/rw67.btor
-rw68 -rwl0 -o log/rw68.log log/rw68.btor
-rw68 -rwl1 -o log/rw68.log log/rw68.btor
-rw69 -rwl0 -o log/rw69.log log/rw69.btor
-rw69 -rwl3 -o log/rw69.log log/rw69.btor
-rw70 -rwl0 -o log/rw70.log log/rw70.btor
-rw70 -rwl3 -o log/rw70.log log/rw70.btor
-rw71 -rwl0 -o log/rw71.log log/rw71.btor
-rw71 -rwl3 -o log/rw71.log log/rw71.btor
-rw72 -rwl0 -o log/rw72.log log/rw72.btor
-rw72 -rwl3 -o log/rw72.log log/rw72.btor
-rw73 -rwl0 -o log/rw73.log log/rw73.btor
-rw73 -rwl3 -o log/rw73.log log/rw73.btor
-rw74 -rwl0 -o log/rw74.log log/rw74.btor
-rw74 -rwl3 -o log/rw74.log log/rw74.btor
-rw75 -rwl0 -o log/rw75.log log/rw75.btor
-rw75 -rwl3 -o log/rw75.log log/rw75.btor
-rw76 -rwl0 -o log/rw76.log log/rw76.btor
-rw76 -rwl3 -o log/rw76.log log/rw76.btor
-rw77 -rwl0 -o log/rw77.log log/rw77.btor
-rw77 -rwl3 -o log/rw77.log log/rw77.btor
-rw78 -rwl0 -o log/rw78.log log/rw78.btor
-rw78 -rwl3 -o log/rw78.log log/rw78.btor
-rw79 -rwl0 -o log/rw79.log log/rw79.btor
-rw79 -rwl3 -o log/rw79.log log/rw79.btor
-rw80 -rwl0 -o log/rw80.log log/rw80.btor
-rw80 -rwl3 -o log/rw80.log log/rw80.btor
-rw81 -rwl0 -o log/rw81.log log/rw81.btor
-rw81 -rwl1 -o log/rw81.log log/rw81.btor
-rw82 -rwl0 -o log/rw82.log log/rw82.btor
-rw82 -rwl1 -o log/rw82.log log/rw82.btor
-rw83 -rwl0 -o log/rw83.log log/rw83.btor
-rw83 -rwl1 -o log/rw83.log log/rw83.btor
-rw84 -rwl0 -o log/rw84.log log/rw84.btor
-rw84 -rwl1 -o log/rw84.log log/rw84.btor
-rw85 -rwl0 -o log/rw85.log log/rw85.btor
-rw85 -rwl1 -o log/rw85.log log/rw85.btor
-rw86 -rwl0 -o log/rw86.log log/rw86.btor
-rw86 -rwl1 -o log/rw86.log log/rw86.btor
-rw87 -rwl0 -o log/rw87.log log/rw87.btor
-rw87 -rwl1 -o log/rw87.log log/rw87.btor
-rw88 -rwl0 -o log/rw88.log log/rw88.btor
-rw88 -rwl1 -o log/rw88.log log/rw88.btor
-rw89 -rwl0 -o log/rw89.log log/rw89.btor
-rw89 -rwl1 -o log/rw89.log log/rw89.btor
-rw90 -rwl0 -o log/rw90.log log/rw90.btor
-rw90 -rwl1 -o log/rw90.log log/rw90.btor
-rw91 -rwl0 -o log/rw91.log log/rw91.btor
-rw91 -rwl1 -o log/rw91.log log/rw91.btor
-rw92 -rwl0 -o log/rw92.log log/rw92.btor
-rw92 -rwl1 -o log/rw92.log log/rw92.btor
-rw93 -rwl0 -o log/rw93.log log/rw93.btor
-rw93 -rwl1 -o log/rw93.log log/rw93.btor
-rw94 -rwl0 -o log/rw94.log log/rw94.btor
-rw94 -rwl1 -o log/rw94.log log/rw94.btor
-rw95 -rwl0 -o log/rw95.log log/rw95.btor
-rw95 -rwl1 -o log/rw95.log log/rw95.btor
-rw96 -rwl0 -o log/rw96.log log/rw96.btor
-rw96 -rwl1 -o log/rw96.log log/rw96.btor
-rw97 -rwl0 -o log/rw97.log log/rw97.btor
-rw97 -rwl1 -o log/rw97.log log/rw97.btor
-rw98 -rwl0 -o log/rw98.log log/rw98.btor
-rw98 -rwl1 -o log/rw98.log log/rw98.btor
-rw99 -rwl0 -o log/rw99.log log/rw99.btor
-rw99 -rwl1 -o log/rw99.log log/rw99.btor
-rw100 -rwl0 -o log/rw100.log log/rw100.btor
-rw100 -rwl1 -o log/rw100.log log/rw100.btor
-rw101 -rwl0 -o log/rw101.log log/rw101.btor
-rw101 -rwl1 -o log/rw101.log log/rw101.btor
-rw102 -rwl0 -o log/rw102.log log/rw102.btor
-rw102 -rwl1 -o log/rw102.log log/rw102.btor
-rw103 -rwl0 -o log/rw103.log log/rw103.btor
-rw103 -rwl1 -o log/rw103.log log/rw103.btor
-rw104 -rwl0 -o log/rw104.log log/rw104.btor
-rw104 -rwl1 -o log/rw104.log log/rw104.btor
-rw105 -rwl0 -o log/rw105.log log/rw105.btor
-rw105 -rwl1 -o log/rw105.log log/rw105.btor
-rw106 -rwl0 -o log/rw106.log log/rw106.btor
-rw106 -rwl1 -o log/rw106.log log/rw106.btor
-rw107 -rwl0 -o log/rw107.log log/rw107.btor
-rw107 -rwl1 -o log/rw107.log log/rw107.btor
-rw108 -rwl0 -o log/rw108.log log/rw108.btor
-rw108 -rwl1 -o log/rw108.log log/rw108.btor
-rw109 -rwl0 -o log/rw109.log log/rw109.btor
-rw109 -rwl1 -o log/rw109.log log/rw109.btor
-rw110 -rwl0 -o log/rw110.log log/rw110.btor
-rw110 -rwl1 -o log/rw110.log log/rw110.btor
-rw111 -rwl0 -o log/rw111.log log/rw111.btor
-rw111 -rwl1 -o log/rw111.log log/rw111.btor
-rw112 -rwl0 -o log/rw112.log log/rw112.btor
-rw112 -rwl1 -o log/rw112.log log/rw112.btor
-rw113 -rwl0 -o log/rw113.log log/rw113.btor
-rw113 -rwl1 -o log/rw113.log log/rw113.btor
-rw114 -rwl0 -o log/rw114.log log/rw114.btor
-rw114 -rwl1 -o log/rw114.log log/rw114.btor
-rw115 -rwl0 -o log/rw115.log log/rw115.btor
-rw115 -rwl1 -o log/rw115.log log/rw115.btor
-rw116 -rwl0 -o log/rw116.log log/rw116.btor
-rw116 -rwl1 -o log/rw116.log log/rw116.btor
-rw117 -rwl0 -o log/rw117.log log/rw117.btor
-rw117 -rwl1 -o log/rw117.log log/rw117.btor
-rw118 -rwl0 -o log/rw118.log log/rw118.btor
-rw118 -rwl1 -o log/rw118.log log/rw118.btor
-rw119 -rwl0 -o log/rw119.log log/rw119.btor
-rw119 -rwl1 -o log/rw119.log log/rw119.btor
-rw120 -rwl0 -o log/rw120.log log/rw120.btor
-rw120 -rwl1 -o log/rw120.log log/rw120.btor
-rw121 -rwl0 -o log/rw121.log log/rw121.btor
-rw121 -rwl1 -o log/rw121.log log/rw121.btor
-rw122 -rwl0 -o log/rw122.log log/rw122.btor
-rw122 -rwl1 -o log/rw122.log log/rw122.btor
-rw123 -rwl0 -o log/rw123.log log/rw123.btor
-rw123 -rwl1 -o log/rw123.log log/rw123.btor
-rw124 -rwl0 -o log/rw124.log log/rw124.btor
-rw124 -rwl1 -o log/rw124.log log/rw124.btor
-rw125 -rwl0 -o log/rw125.log log/rw125.btor
-rw125 -rwl3 -o log/rw125.log log/rw125.btor
-rw126 -rwl0 -o log/rw126.log log/rw126.btor
-rw126 -rwl3 -o log/rw126.log log/rw126.btor
-rw127 -rwl0 -o log/rw127.log log/rw127.btor
-rw127 -rwl3 -o log/rw127.log log/rw127.btor
-rw128 -rwl0 -o log/rw128.log log/rw128.btor
-rw128 -rwl3 -o log/rw128.log log/rw128.btor
-rw129 -rwl0 -o log/rw129.log log/rw129.btor
-rw129 -rwl3 -o log/rw129.log log/rw129.btor
-rw130 -rwl0 -o log/rw130.log log/rw130.btor
-rw130 -rwl1 -o log/rw130.log log/rw130.btor
-rw131 -rwl0 -o log/rw131.log log/rw131.btor
-rw131 -rwl1 -o log/rw131.log log/rw131.btor
-rw132 -rwl0 -o log/rw132.log log/rw132.btor
-rw132 -rwl1 -o log/rw132.log log/rw132.btor
-rw133 -rwl0 -o log/rw133.log log/rw133.btor
-rw133 -rwl1 -o log/rw133.log log/rw133.btor
-rw134 -rwl0 -o log/rw134.log log/rw134.btor
-rw134 -rwl3 -o log/rw134.log log/rw134.btor
-rw135 -rwl0 -o log/rw135.log log/rw135.btor
-rw135 -rwl3 -o log/rw135.log log/rw135.btor
-rw136 -rwl0 -o log/rw136.log log/rw136.btor
-rw136 -rwl3 -o log/rw136.log log/rw136.btor
-rw137 -rwl0 -o log/rw137.log log/rw137.btor
-rw137 -rwl3 -o log/rw137.log log/rw137.btor
-rw138 -rwl0 -o log/rw138.log log/rw138.btor
-rw138 -rwl3 -o log/rw138.log log/rw138.btor
-rw139 -rwl0 -o log/rw139.log log/rw139.btor
-rw139 -rwl3 -o log/rw139.log log/rw139.btor
-rw140 -rwl0 -o log/rw140.log log/rw140.btor
-rw140 -rwl3 -o log/rw140.log log/rw140.btor
-rw141 -rwl0 -o log/rw141.log log/rw141.btor
-rw141 -rwl3 -o log/rw141.log log/rw141.btor
-rw142 -rwl0 -o log/rw142.log log/rw142.btor
-rw142 -rwl3 -o log/rw142.log log/rw142.btor
-rw143 -rwl0 -o log/rw143.log log/rw143.btor
-rw143 -rwl3 -o log/rw143.log log/rw143.btor
-rw144 -rwl0 -o log/rw144.log log/rw144.btor
-rw144 -rwl3 -o log/rw144.log log/rw144.btor
-rw145 -rwl0 -o log/rw145.log log/rw145.btor
-rw145 -rwl3 -o log/rw145.log log/rw145.btor
-rw146 -rwl0 -o log/rw146.log log/rw146.btor
-rw146 -rwl3 -o log/rw146.log log/rw146.btor
-rw147 -rwl0 -o log/rw147.log log/rw147.btor
-rw147 -rwl3 -o log/rw147.log log/rw147.btor
-rw148 -rwl0 -o log/rw148.log log/rw148.btor
-rw148 -rwl3 -o log/rw148.log log/rw148.btor
-rw149 -rwl0 -o log/rw149.log log/rw149.btor
-rw149 -rwl3 -o log/rw149.log log/rw149.btor
-rw150 -rwl0 -o log/rw150.log log/rw150.btor
-rw150 -rwl3 -o log/rw150.log log/rw150.btor
-rw151 -rwl0 -o log/rw151.log log/rw151.btor
-rw151 -rwl3 -o log/rw151.log log/rw151.btor
-rw152 -rwl0 -o log/rw152.log log/rw152.btor
-rw152 -rwl3 -o log/rw152.log log/rw152.btor
-rw153 -rwl0 -o log/rw153.log log/rw153.btor
-rw153 -rwl3 -o log/rw153.log log/rw153.btor
-rw154 -rwl0 -o log/rw154.log log/rw154.btor
-rw154 -rwl1 -o log/rw154.log log/rw154.btor
-rw155 -rwl0 -o log/rw155.log log/rw155.btor
-rw155 -rwl1 -o log/rw155.log log/rw155.btor
-rw156 -rwl0 -o log/rw156.log log/rw156.btor
-rw156 -rwl1 -o log/rw156.log log/rw156.btor
+rw61 -rwl 0 -o log/rw61.log log/rw61.btor
+rw61 -rwl 1 -o log/rw61.log log/rw61.btor
+rw62 -rwl 0 -o log/rw62.log log/rw62.btor
+rw62 -rwl 1 -o log/rw62.log log/rw62.btor
+rw63 -rwl 0 -o log/rw63.log log/rw63.btor
+rw63 -rwl 1 -o log/rw63.log log/rw63.btor
+rw64 -rwl 0 -o log/rw64.log log/rw64.btor
+rw64 -rwl 1 -o log/rw64.log log/rw64.btor
+rw65 -rwl 0 -o log/rw65.log log/rw65.btor
+rw65 -rwl 1 -o log/rw65.log log/rw65.btor
+rw66 -rwl 0 -o log/rw66.log log/rw66.btor
+rw66 -rwl 1 -o log/rw66.log log/rw66.btor
+rw67 -rwl 0 -o log/rw67.log log/rw67.btor
+rw67 -rwl 1 -o log/rw67.log log/rw67.btor
+rw68 -rwl 0 -o log/rw68.log log/rw68.btor
+rw68 -rwl 1 -o log/rw68.log log/rw68.btor
+rw69 -rwl 0 -o log/rw69.log log/rw69.btor
+rw69 -rwl 3 -o log/rw69.log log/rw69.btor
+rw70 -rwl 0 -o log/rw70.log log/rw70.btor
+rw70 -rwl 3 -o log/rw70.log log/rw70.btor
+rw71 -rwl 0 -o log/rw71.log log/rw71.btor
+rw71 -rwl 3 -o log/rw71.log log/rw71.btor
+rw72 -rwl 0 -o log/rw72.log log/rw72.btor
+rw72 -rwl 3 -o log/rw72.log log/rw72.btor
+rw73 -rwl 0 -o log/rw73.log log/rw73.btor
+rw73 -rwl 3 -o log/rw73.log log/rw73.btor
+rw74 -rwl 0 -o log/rw74.log log/rw74.btor
+rw74 -rwl 3 -o log/rw74.log log/rw74.btor
+rw75 -rwl 0 -o log/rw75.log log/rw75.btor
+rw75 -rwl 3 -o log/rw75.log log/rw75.btor
+rw76 -rwl 0 -o log/rw76.log log/rw76.btor
+rw76 -rwl 3 -o log/rw76.log log/rw76.btor
+rw77 -rwl 0 -o log/rw77.log log/rw77.btor
+rw77 -rwl 3 -o log/rw77.log log/rw77.btor
+rw78 -rwl 0 -o log/rw78.log log/rw78.btor
+rw78 -rwl 3 -o log/rw78.log log/rw78.btor
+rw79 -rwl 0 -o log/rw79.log log/rw79.btor
+rw79 -rwl 3 -o log/rw79.log log/rw79.btor
+rw80 -rwl 0 -o log/rw80.log log/rw80.btor
+rw80 -rwl 3 -o log/rw80.log log/rw80.btor
+rw81 -rwl 0 -o log/rw81.log log/rw81.btor
+rw81 -rwl 1 -o log/rw81.log log/rw81.btor
+rw82 -rwl 0 -o log/rw82.log log/rw82.btor
+rw82 -rwl 1 -o log/rw82.log log/rw82.btor
+rw83 -rwl 0 -o log/rw83.log log/rw83.btor
+rw83 -rwl 1 -o log/rw83.log log/rw83.btor
+rw84 -rwl 0 -o log/rw84.log log/rw84.btor
+rw84 -rwl 1 -o log/rw84.log log/rw84.btor
+rw85 -rwl 0 -o log/rw85.log log/rw85.btor
+rw85 -rwl 1 -o log/rw85.log log/rw85.btor
+rw86 -rwl 0 -o log/rw86.log log/rw86.btor
+rw86 -rwl 1 -o log/rw86.log log/rw86.btor
+rw87 -rwl 0 -o log/rw87.log log/rw87.btor
+rw87 -rwl 1 -o log/rw87.log log/rw87.btor
+rw88 -rwl 0 -o log/rw88.log log/rw88.btor
+rw88 -rwl 1 -o log/rw88.log log/rw88.btor
+rw89 -rwl 0 -o log/rw89.log log/rw89.btor
+rw89 -rwl 1 -o log/rw89.log log/rw89.btor
+rw90 -rwl 0 -o log/rw90.log log/rw90.btor
+rw90 -rwl 1 -o log/rw90.log log/rw90.btor
+rw91 -rwl 0 -o log/rw91.log log/rw91.btor
+rw91 -rwl 1 -o log/rw91.log log/rw91.btor
+rw92 -rwl 0 -o log/rw92.log log/rw92.btor
+rw92 -rwl 1 -o log/rw92.log log/rw92.btor
+rw93 -rwl 0 -o log/rw93.log log/rw93.btor
+rw93 -rwl 1 -o log/rw93.log log/rw93.btor
+rw94 -rwl 0 -o log/rw94.log log/rw94.btor
+rw94 -rwl 1 -o log/rw94.log log/rw94.btor
+rw95 -rwl 0 -o log/rw95.log log/rw95.btor
+rw95 -rwl 1 -o log/rw95.log log/rw95.btor
+rw96 -rwl 0 -o log/rw96.log log/rw96.btor
+rw96 -rwl 1 -o log/rw96.log log/rw96.btor
+rw97 -rwl 0 -o log/rw97.log log/rw97.btor
+rw97 -rwl 1 -o log/rw97.log log/rw97.btor
+rw98 -rwl 0 -o log/rw98.log log/rw98.btor
+rw98 -rwl 1 -o log/rw98.log log/rw98.btor
+rw99 -rwl 0 -o log/rw99.log log/rw99.btor
+rw99 -rwl 1 -o log/rw99.log log/rw99.btor
+rw100 -rwl 0 -o log/rw100.log log/rw100.btor
+rw100 -rwl 1 -o log/rw100.log log/rw100.btor
+rw101 -rwl 0 -o log/rw101.log log/rw101.btor
+rw101 -rwl 1 -o log/rw101.log log/rw101.btor
+rw102 -rwl 0 -o log/rw102.log log/rw102.btor
+rw102 -rwl 1 -o log/rw102.log log/rw102.btor
+rw103 -rwl 0 -o log/rw103.log log/rw103.btor
+rw103 -rwl 1 -o log/rw103.log log/rw103.btor
+rw104 -rwl 0 -o log/rw104.log log/rw104.btor
+rw104 -rwl 1 -o log/rw104.log log/rw104.btor
+rw105 -rwl 0 -o log/rw105.log log/rw105.btor
+rw105 -rwl 1 -o log/rw105.log log/rw105.btor
+rw106 -rwl 0 -o log/rw106.log log/rw106.btor
+rw106 -rwl 1 -o log/rw106.log log/rw106.btor
+rw107 -rwl 0 -o log/rw107.log log/rw107.btor
+rw107 -rwl 1 -o log/rw107.log log/rw107.btor
+rw108 -rwl 0 -o log/rw108.log log/rw108.btor
+rw108 -rwl 1 -o log/rw108.log log/rw108.btor
+rw109 -rwl 0 -o log/rw109.log log/rw109.btor
+rw109 -rwl 1 -o log/rw109.log log/rw109.btor
+rw110 -rwl 0 -o log/rw110.log log/rw110.btor
+rw110 -rwl 1 -o log/rw110.log log/rw110.btor
+rw111 -rwl 0 -o log/rw111.log log/rw111.btor
+rw111 -rwl 1 -o log/rw111.log log/rw111.btor
+rw112 -rwl 0 -o log/rw112.log log/rw112.btor
+rw112 -rwl 1 -o log/rw112.log log/rw112.btor
+rw113 -rwl 0 -o log/rw113.log log/rw113.btor
+rw113 -rwl 1 -o log/rw113.log log/rw113.btor
+rw114 -rwl 0 -o log/rw114.log log/rw114.btor
+rw114 -rwl 1 -o log/rw114.log log/rw114.btor
+rw115 -rwl 0 -o log/rw115.log log/rw115.btor
+rw115 -rwl 1 -o log/rw115.log log/rw115.btor
+rw116 -rwl 0 -o log/rw116.log log/rw116.btor
+rw116 -rwl 1 -o log/rw116.log log/rw116.btor
+rw117 -rwl 0 -o log/rw117.log log/rw117.btor
+rw117 -rwl 1 -o log/rw117.log log/rw117.btor
+rw118 -rwl 0 -o log/rw118.log log/rw118.btor
+rw118 -rwl 1 -o log/rw118.log log/rw118.btor
+rw119 -rwl 0 -o log/rw119.log log/rw119.btor
+rw119 -rwl 1 -o log/rw119.log log/rw119.btor
+rw120 -rwl 0 -o log/rw120.log log/rw120.btor
+rw120 -rwl 1 -o log/rw120.log log/rw120.btor
+rw121 -rwl 0 -o log/rw121.log log/rw121.btor
+rw121 -rwl 1 -o log/rw121.log log/rw121.btor
+rw122 -rwl 0 -o log/rw122.log log/rw122.btor
+rw122 -rwl 1 -o log/rw122.log log/rw122.btor
+rw123 -rwl 0 -o log/rw123.log log/rw123.btor
+rw123 -rwl 1 -o log/rw123.log log/rw123.btor
+rw124 -rwl 0 -o log/rw124.log log/rw124.btor
+rw124 -rwl 1 -o log/rw124.log log/rw124.btor
+rw125 -rwl 0 -o log/rw125.log log/rw125.btor
+rw125 -rwl 3 -o log/rw125.log log/rw125.btor
+rw126 -rwl 0 -o log/rw126.log log/rw126.btor
+rw126 -rwl 3 -o log/rw126.log log/rw126.btor
+rw127 -rwl 0 -o log/rw127.log log/rw127.btor
+rw127 -rwl 3 -o log/rw127.log log/rw127.btor
+rw128 -rwl 0 -o log/rw128.log log/rw128.btor
+rw128 -rwl 3 -o log/rw128.log log/rw128.btor
+rw129 -rwl 0 -o log/rw129.log log/rw129.btor
+rw129 -rwl 3 -o log/rw129.log log/rw129.btor
+rw130 -rwl 0 -o log/rw130.log log/rw130.btor
+rw130 -rwl 1 -o log/rw130.log log/rw130.btor
+rw131 -rwl 0 -o log/rw131.log log/rw131.btor
+rw131 -rwl 1 -o log/rw131.log log/rw131.btor
+rw132 -rwl 0 -o log/rw132.log log/rw132.btor
+rw132 -rwl 1 -o log/rw132.log log/rw132.btor
+rw133 -rwl 0 -o log/rw133.log log/rw133.btor
+rw133 -rwl 1 -o log/rw133.log log/rw133.btor
+rw134 -rwl 0 -o log/rw134.log log/rw134.btor
+rw134 -rwl 3 -o log/rw134.log log/rw134.btor
+rw135 -rwl 0 -o log/rw135.log log/rw135.btor
+rw135 -rwl 3 -o log/rw135.log log/rw135.btor
+rw136 -rwl 0 -o log/rw136.log log/rw136.btor
+rw136 -rwl 3 -o log/rw136.log log/rw136.btor
+rw137 -rwl 0 -o log/rw137.log log/rw137.btor
+rw137 -rwl 3 -o log/rw137.log log/rw137.btor
+rw138 -rwl 0 -o log/rw138.log log/rw138.btor
+rw138 -rwl 3 -o log/rw138.log log/rw138.btor
+rw139 -rwl 0 -o log/rw139.log log/rw139.btor
+rw139 -rwl 3 -o log/rw139.log log/rw139.btor
+rw140 -rwl 0 -o log/rw140.log log/rw140.btor
+rw140 -rwl 3 -o log/rw140.log log/rw140.btor
+rw141 -rwl 0 -o log/rw141.log log/rw141.btor
+rw141 -rwl 3 -o log/rw141.log log/rw141.btor
+rw142 -rwl 0 -o log/rw142.log log/rw142.btor
+rw142 -rwl 3 -o log/rw142.log log/rw142.btor
+rw143 -rwl 0 -o log/rw143.log log/rw143.btor
+rw143 -rwl 3 -o log/rw143.log log/rw143.btor
+rw144 -rwl 0 -o log/rw144.log log/rw144.btor
+rw144 -rwl 3 -o log/rw144.log log/rw144.btor
+rw145 -rwl 0 -o log/rw145.log log/rw145.btor
+rw145 -rwl 3 -o log/rw145.log log/rw145.btor
+rw146 -rwl 0 -o log/rw146.log log/rw146.btor
+rw146 -rwl 3 -o log/rw146.log log/rw146.btor
+rw147 -rwl 0 -o log/rw147.log log/rw147.btor
+rw147 -rwl 3 -o log/rw147.log log/rw147.btor
+rw148 -rwl 0 -o log/rw148.log log/rw148.btor
+rw148 -rwl 3 -o log/rw148.log log/rw148.btor
+rw149 -rwl 0 -o log/rw149.log log/rw149.btor
+rw149 -rwl 3 -o log/rw149.log log/rw149.btor
+rw150 -rwl 0 -o log/rw150.log log/rw150.btor
+rw150 -rwl 3 -o log/rw150.log log/rw150.btor
+rw151 -rwl 0 -o log/rw151.log log/rw151.btor
+rw151 -rwl 3 -o log/rw151.log log/rw151.btor
+rw152 -rwl 0 -o log/rw152.log log/rw152.btor
+rw152 -rwl 3 -o log/rw152.log log/rw152.btor
+rw153 -rwl 0 -o log/rw153.log log/rw153.btor
+rw153 -rwl 3 -o log/rw153.log log/rw153.btor
+rw154 -rwl 0 -o log/rw154.log log/rw154.btor
+rw154 -rwl 1 -o log/rw154.log log/rw154.btor
+rw155 -rwl 0 -o log/rw155.log log/rw155.btor
+rw155 -rwl 1 -o log/rw155.log log/rw155.btor
+rw156 -rwl 0 -o log/rw156.log log/rw156.btor
+rw156 -rwl 1 -o log/rw156.log log/rw156.btor
 rw157 -o log/rw157.log log/rw157.btor
-rw158 -rwl1 -o log/rw158.log log/rw158.btor
-rw159 -rwl1 -o log/rw159.log log/rw159.btor
-rw160 -rwl1 -o log/rw160.log log/rw160.btor
-rw161 -rwl1 -o log/rw161.log log/rw161.btor
-rw162 -rwl1 -o log/rw162.log log/rw162.btor
-rw163 -rwl1 -o log/rw163.log log/rw163.btor
-rw164 -rwl1 -o log/rw164.log log/rw164.btor
-rw165 -rwl1 -o log/rw165.log log/rw165.btor
-rw166 -rwl1 -o log/rw166.log log/rw166.btor
-rw167 -rwl1 -o log/rw167.log log/rw167.btor
-rw168 -rwl1 -o log/rw168.log log/rw168.btor
-rw169 -rwl1 -o log/rw169.log log/rw169.btor
-rw170 -rwl1 -o log/rw170.log log/rw170.btor
-rw171 -rwl1 -o log/rw171.log log/rw171.btor
-rw172 -rwl1 -o log/rw172.log log/rw172.btor
-rw173 -rwl1 -o log/rw173.log log/rw173.btor
-rw174 -rwl1 -o log/rw174.log log/rw174.btor
-rw175 -rwl1 -o log/rw175.log log/rw175.btor
-rw176 -rwl1 -o log/rw176.log log/rw176.btor
-rw177 -rwl1 -o log/rw177.log log/rw177.btor
-rw178 -rwl3 -o log/rw178.log log/rw178.btor
-rw179 -rwl3 -o log/rw179.log log/rw179.btor
-rw180 -rwl3 -o log/rw180.log log/rw180.btor
-rw181 -rwl3 -o log/rw181.log log/rw181.btor
-rw182 -rwl3 -o log/rw182.log log/rw182.btor
-rw183 -rwl3 -o log/rw183.log log/rw183.btor
-rw184 -rwl3 -o log/rw184.log log/rw184.btor
-rw185 -rwl3 -o log/rw185.log log/rw185.btor
-rw186 -rwl3 -o log/rw186.log log/rw186.btor
-rw187 -rwl3 -o log/rw187.log log/rw187.btor
-rw188 -rwl3 -o log/rw188.log log/rw188.btor
-rw189 -rwl3 -o log/rw189.log log/rw189.btor
-rw190 -rwl3 -o log/rw190.log log/rw190.btor
-rw191 -rwl3 -o log/rw191.log log/rw191.btor
-rw192 -rwl3 -o log/rw192.log log/rw192.btor
-rw193 -rwl3 -o log/rw193.log log/rw193.btor
-rw194 -rwl3 -o log/rw194.log log/rw194.btor
-rw195 -rwl3 -o log/rw195.log log/rw195.btor
-rw196 -rwl3 -o log/rw196.log log/rw196.btor
-rw197 -rwl3 -o log/rw197.log log/rw197.btor
-rw198 -rwl3 -o log/rw198.log log/rw198.btor
-rw199 -rwl3 -o log/rw199.log log/rw199.btor
-rw200 -rwl3 -o log/rw200.log log/rw200.btor
-rw201 -rwl3 -o log/rw201.log log/rw201.btor
-rw202 -rwl3 -o log/rw202.log log/rw202.btor
-rw203 -rwl3 -o log/rw203.log log/rw203.btor
-rw204 -rwl3 -o log/rw204.log log/rw204.btor
-rw205 -rwl3 -o log/rw205.log log/rw205.btor
-rw206 -rwl3 -o log/rw206.log log/rw206.btor
-rw207 -rwl3 -o log/rw207.log log/rw207.btor
-rw208 -rwl3 -o log/rw208.log log/rw208.btor
-rw209 -rwl3 -o log/rw209.log log/rw209.btor
-rw210 -rwl3 -o log/rw210.log log/rw210.btor
-rw211 -rwl3 -o log/rw211.log log/rw211.btor
-rw212 -rwl3 -o log/rw212.log log/rw212.smt
-rw213 -rwl3 -o log/rw213.log log/rw213.smt
-rw214 -rwl3 -o log/rw214.log log/rw214.smt
-rw215 -rwl3 -o log/rw215.log log/rw215.smt
-rw216 -rwl3 -o log/rw216.log log/rw216.smt
-rw217 -rwl3 -o log/rw217.log log/rw217.smt2
-rw218 -rwl3 -o log/rw218.log log/rw218.smt2
-rw217 -rwl3 -o log/rw217.log log/rw217.smt2
-rw219 -rwl3 -o log/rw219.log log/rw219.smt2
-rw220 -rwl3 -o log/rw220.log log/rw220.smt2
-rw221 -rwl3 -o log/rw221.log log/rw221.smt2
-rww1 -rwl3 -o log/rww1.log log/rww1.btor
-rwr1 -rwl3 -bra -o log/rwr1.log log/rwr1.btor
-hd1 -rwl0 -o log/hd1.log log/hd1.btor
-hd1 -rwl1 -o log/hd1.log log/hd1.btor
-hd2 -rwl0 -o log/hd2.log log/hd2.btor
-hd2 -rwl1 -o log/hd2.log log/hd2.btor
-hd3 -rwl0 -o log/hd3.log log/hd3.btor
-hd3 -rwl1 -o log/hd3.log log/hd3.btor
-hd4 -rwl0 -o log/hd4.log log/hd4.btor
-hd4 -rwl1 -o log/hd4.log log/hd4.btor
-hd5 -rwl0 -o log/hd5.log log/hd5.btor
-hd5 -rwl1 -o log/hd5.log log/hd5.btor
-hd6 -rwl0 -o log/hd6.log log/hd6.btor
-hd6 -rwl1 -o log/hd6.log log/hd6.btor
-hd7 -rwl0 -o log/hd7.log log/hd7.btor
-hd7 -rwl1 -o log/hd7.log log/hd7.btor
-hd8 -rwl0 -o log/hd8.log log/hd8.btor
-hd8 -rwl1 -o log/hd8.log log/hd8.btor
-hd9 -rwl0 -o log/hd9.log log/hd9.btor
-hd9 -rwl1 -o log/hd9.log log/hd9.btor
-hd10 -rwl0 -o log/hd10.log log/hd10.btor
-hd10 -rwl1 -o log/hd10.log log/hd10.btor
-hd11 -rwl0 -o log/hd11.log log/hd11.btor
-hd11 -rwl1 -o log/hd11.log log/hd11.btor
-hd12 -rwl0 -o log/hd12.log log/hd12.btor
-hd12 -rwl1 -o log/hd12.log log/hd12.btor
-hd13 -rwl0 -o log/hd13.log log/hd13.btor
-hd13 -rwl1 -o log/hd13.log log/hd13.btor
-hd14 -rwl0 -o log/hd14.log log/hd14.btor
-hd14 -rwl1 -o log/hd14.log log/hd14.btor
-hd15 -rwl0 -o log/hd15.log log/hd15.btor
-hd15 -rwl1 -o log/hd15.log log/hd15.btor
-hd16 -rwl0 -o log/hd16.log log/hd16.btor
-hd16 -rwl1 -o log/hd16.log log/hd16.btor
-hd17 -rwl0 -o log/hd17.log log/hd17.btor
-hd17 -rwl1 -o log/hd17.log log/hd17.btor
-hd18 -rwl0 -o log/hd18.log log/hd18.btor
-hd18 -rwl1 -o log/hd18.log log/hd18.btor
+rw158 -rwl 1 -o log/rw158.log log/rw158.btor
+rw159 -rwl 1 -o log/rw159.log log/rw159.btor
+rw160 -rwl 1 -o log/rw160.log log/rw160.btor
+rw161 -rwl 1 -o log/rw161.log log/rw161.btor
+rw162 -rwl 1 -o log/rw162.log log/rw162.btor
+rw163 -rwl 1 -o log/rw163.log log/rw163.btor
+rw164 -rwl 1 -o log/rw164.log log/rw164.btor
+rw165 -rwl 1 -o log/rw165.log log/rw165.btor
+rw166 -rwl 1 -o log/rw166.log log/rw166.btor
+rw167 -rwl 1 -o log/rw167.log log/rw167.btor
+rw168 -rwl 1 -o log/rw168.log log/rw168.btor
+rw169 -rwl 1 -o log/rw169.log log/rw169.btor
+rw170 -rwl 1 -o log/rw170.log log/rw170.btor
+rw171 -rwl 1 -o log/rw171.log log/rw171.btor
+rw172 -rwl 1 -o log/rw172.log log/rw172.btor
+rw173 -rwl 1 -o log/rw173.log log/rw173.btor
+rw174 -rwl 1 -o log/rw174.log log/rw174.btor
+rw175 -rwl 1 -o log/rw175.log log/rw175.btor
+rw176 -rwl 1 -o log/rw176.log log/rw176.btor
+rw177 -rwl 1 -o log/rw177.log log/rw177.btor
+rw178 -rwl 3 -o log/rw178.log log/rw178.btor
+rw179 -rwl 3 -o log/rw179.log log/rw179.btor
+rw180 -rwl 3 -o log/rw180.log log/rw180.btor
+rw181 -rwl 3 -o log/rw181.log log/rw181.btor
+rw182 -rwl 3 -o log/rw182.log log/rw182.btor
+rw183 -rwl 3 -o log/rw183.log log/rw183.btor
+rw184 -rwl 3 -o log/rw184.log log/rw184.btor
+rw185 -rwl 3 -o log/rw185.log log/rw185.btor
+rw186 -rwl 3 -o log/rw186.log log/rw186.btor
+rw187 -rwl 3 -o log/rw187.log log/rw187.btor
+rw188 -rwl 3 -o log/rw188.log log/rw188.btor
+rw189 -rwl 3 -o log/rw189.log log/rw189.btor
+rw190 -rwl 3 -o log/rw190.log log/rw190.btor
+rw191 -rwl 3 -o log/rw191.log log/rw191.btor
+rw192 -rwl 3 -o log/rw192.log log/rw192.btor
+rw193 -rwl 3 -o log/rw193.log log/rw193.btor
+rw194 -rwl 3 -o log/rw194.log log/rw194.btor
+rw195 -rwl 3 -o log/rw195.log log/rw195.btor
+rw196 -rwl 3 -o log/rw196.log log/rw196.btor
+rw197 -rwl 3 -o log/rw197.log log/rw197.btor
+rw198 -rwl 3 -o log/rw198.log log/rw198.btor
+rw199 -rwl 3 -o log/rw199.log log/rw199.btor
+rw200 -rwl 3 -o log/rw200.log log/rw200.btor
+rw201 -rwl 3 -o log/rw201.log log/rw201.btor
+rw202 -rwl 3 -o log/rw202.log log/rw202.btor
+rw203 -rwl 3 -o log/rw203.log log/rw203.btor
+rw204 -rwl 3 -o log/rw204.log log/rw204.btor
+rw205 -rwl 3 -o log/rw205.log log/rw205.btor
+rw206 -rwl 3 -o log/rw206.log log/rw206.btor
+rw207 -rwl 3 -o log/rw207.log log/rw207.btor
+rw208 -rwl 3 -o log/rw208.log log/rw208.btor
+rw209 -rwl 3 -o log/rw209.log log/rw209.btor
+rw210 -rwl 3 -o log/rw210.log log/rw210.btor
+rw211 -rwl 3 -o log/rw211.log log/rw211.btor
+rw212 -rwl 3 -o log/rw212.log log/rw212.smt
+rw213 -rwl 3 -o log/rw213.log log/rw213.smt
+rw214 -rwl 3 -o log/rw214.log log/rw214.smt
+rw215 -rwl 3 -o log/rw215.log log/rw215.smt
+rw216 -rwl 3 -o log/rw216.log log/rw216.smt
+rw217 -rwl 3 -o log/rw217.log log/rw217.smt2
+rw218 -rwl 3 -o log/rw218.log log/rw218.smt2
+rw217 -rwl 3 -o log/rw217.log log/rw217.smt2
+rw219 -rwl 3 -o log/rw219.log log/rw219.smt2
+rw220 -rwl 3 -o log/rw220.log log/rw220.smt2
+rw221 -rwl 3 -o log/rw221.log log/rw221.smt2
+rww1 -rwl 3 -o log/rww1.log log/rww1.btor
+rwr1 -rwl 3 -bra -o log/rwr1.log log/rwr1.btor
+hd1 -rwl 0 -o log/hd1.log log/hd1.btor
+hd1 -rwl 1 -o log/hd1.log log/hd1.btor
+hd2 -rwl 0 -o log/hd2.log log/hd2.btor
+hd2 -rwl 1 -o log/hd2.log log/hd2.btor
+hd3 -rwl 0 -o log/hd3.log log/hd3.btor
+hd3 -rwl 1 -o log/hd3.log log/hd3.btor
+hd4 -rwl 0 -o log/hd4.log log/hd4.btor
+hd4 -rwl 1 -o log/hd4.log log/hd4.btor
+hd5 -rwl 0 -o log/hd5.log log/hd5.btor
+hd5 -rwl 1 -o log/hd5.log log/hd5.btor
+hd6 -rwl 0 -o log/hd6.log log/hd6.btor
+hd6 -rwl 1 -o log/hd6.log log/hd6.btor
+hd7 -rwl 0 -o log/hd7.log log/hd7.btor
+hd7 -rwl 1 -o log/hd7.log log/hd7.btor
+hd8 -rwl 0 -o log/hd8.log log/hd8.btor
+hd8 -rwl 1 -o log/hd8.log log/hd8.btor
+hd9 -rwl 0 -o log/hd9.log log/hd9.btor
+hd9 -rwl 1 -o log/hd9.log log/hd9.btor
+hd10 -rwl 0 -o log/hd10.log log/hd10.btor
+hd10 -rwl 1 -o log/hd10.log log/hd10.btor
+hd11 -rwl 0 -o log/hd11.log log/hd11.btor
+hd11 -rwl 1 -o log/hd11.log log/hd11.btor
+hd12 -rwl 0 -o log/hd12.log log/hd12.btor
+hd12 -rwl 1 -o log/hd12.log log/hd12.btor
+hd13 -rwl 0 -o log/hd13.log log/hd13.btor
+hd13 -rwl 1 -o log/hd13.log log/hd13.btor
+hd14 -rwl 0 -o log/hd14.log log/hd14.btor
+hd14 -rwl 1 -o log/hd14.log log/hd14.btor
+hd15 -rwl 0 -o log/hd15.log log/hd15.btor
+hd15 -rwl 1 -o log/hd15.log log/hd15.btor
+hd16 -rwl 0 -o log/hd16.log log/hd16.btor
+hd16 -rwl 1 -o log/hd16.log log/hd16.btor
+hd17 -rwl 0 -o log/hd17.log log/hd17.btor
+hd17 -rwl 1 -o log/hd17.log log/hd17.btor
+hd18 -rwl 0 -o log/hd18.log log/hd18.btor
+hd18 -rwl 1 -o log/hd18.log log/hd18.btor
 hd19 -o log/hd19.log log/hd19.btor
 hd20 -o log/hd20.log log/hd20.btor
 hd21 -o log/hd21.log log/hd21.btor
@@ -536,8 +536,8 @@ regprim11simp -o log/regprim11simp.log log/regprim11simp.btor
 #nextarray6 -o log/nextarray6.log log/nextarray6.btor
 #nextarray7 -o log/nextarray7.log log/nextarray7.btor
 #nextarray8 -o log/nextarray8.log log/nextarray8.btor
-#nextarray8 -rwl0 -o log/nextarray8.log log/nextarray8.btor
-#nextarrayinput1 -rwl0 -o log/nextarrayinput1.log log/nextarrayinput1.btor
+#nextarray8 -rwl 0 -o log/nextarray8.log log/nextarray8.btor
+#nextarrayinput1 -rwl 0 -o log/nextarrayinput1.log log/nextarrayinput1.btor
 regpicoprepsqrt4 -o log/regpicoprepsqrt4.log log/regpicoprepsqrt4.btor
 substcyclic1 -o log/substcyclic1.log log/substcyclic1.btor
 lin0 -o log/lin0.log log/lin0.btor
@@ -547,142 +547,142 @@ lin3 -o log/lin3.log log/lin3.btor
 lin4 -o log/lin4.log log/lin4.btor
 twocomplementassub -o log/twocomplementassub.log log/twocomplementassub.btor
 regsubslapd149921red -o log/regsubslapd149921red.log log/regsubslapd149921red.btor
-inc -rwl0 -o log/inc.log log/inc.btor
+inc -rwl 0 -o log/inc.log log/inc.btor
 inc -o log/inc.log log/inc.btor
-dec -rwl0 -o log/dec.log log/dec.btor
+dec -rwl 0 -o log/dec.log log/dec.btor
 dec -o log/dec.log log/dec.btor
-regrembeddedconstraint1 -rwl0 -o log/regrembeddedconstraint1.log log/regrembeddedconstraint1.btor
-regrembeddedconstraint1 -rwl1 -o log/regrembeddedconstraint1.log log/regrembeddedconstraint1.btor
-regrembeddedconstraint1 -rwl2 -o log/regrembeddedconstraint1.log log/regrembeddedconstraint1.btor
-regrembeddedconstraint1 -rwl3 -o log/regrembeddedconstraint1.log log/regrembeddedconstraint1.btor
-regrembeddedconstraint2 -rwl0 -o log/regrembeddedconstraint2.log log/regrembeddedconstraint2.btor
-regrembeddedconstraint2 -rwl1 -o log/regrembeddedconstraint2.log log/regrembeddedconstraint2.btor
-regrembeddedconstraint2 -rwl2 -o log/regrembeddedconstraint2.log log/regrembeddedconstraint2.btor
-regrembeddedconstraint2 -rwl3 -o log/regrembeddedconstraint2.log log/regrembeddedconstraint2.btor
-regrembeddedconstraint3 -rwl0 -o log/regrembeddedconstraint3.log log/regrembeddedconstraint3.btor
-regrembeddedconstraint3 -rwl1 -o log/regrembeddedconstraint3.log log/regrembeddedconstraint3.btor
-regrembeddedconstraint3 -rwl2 -o log/regrembeddedconstraint3.log log/regrembeddedconstraint3.btor
-regrembeddedconstraint3 -rwl3 -o log/regrembeddedconstraint3.log log/regrembeddedconstraint3.btor
-regrembeddedconstraint4 -rwl0 -o log/regrembeddedconstraint4.log log/regrembeddedconstraint4.btor
-regrembeddedconstraint4 -rwl1 -o log/regrembeddedconstraint4.log log/regrembeddedconstraint4.btor
-regrembeddedconstraint4 -rwl2 -o log/regrembeddedconstraint4.log log/regrembeddedconstraint4.btor
-regrembeddedconstraint4 -rwl3 -o log/regrembeddedconstraint4.log log/regrembeddedconstraint4.btor
-regrembeddedconstraint5 -rwl0 -o log/regrembeddedconstraint5.log log/regrembeddedconstraint5.btor
-regrembeddedconstraint5 -rwl1 -o log/regrembeddedconstraint5.log log/regrembeddedconstraint5.btor
-regrembeddedconstraint5 -rwl2 -o log/regrembeddedconstraint5.log log/regrembeddedconstraint5.btor
-regrembeddedconstraint5 -rwl3 -o log/regrembeddedconstraint5.log log/regrembeddedconstraint5.btor
-regrembeddedconstraint6 -rwl0 -o log/regrembeddedconstraint6.log log/regrembeddedconstraint6.btor
-regrembeddedconstraint6 -rwl1 -o log/regrembeddedconstraint6.log log/regrembeddedconstraint6.btor
-regrembeddedconstraint6 -rwl2 -o log/regrembeddedconstraint6.log log/regrembeddedconstraint6.btor
-regrembeddedconstraint6 -rwl3 -o log/regrembeddedconstraint6.log log/regrembeddedconstraint6.btor
-regrembeddedconstraint7 -rwl0 -o log/regrembeddedconstraint7.log log/regrembeddedconstraint7.btor
-regrembeddedconstraint7 -rwl1 -o log/regrembeddedconstraint7.log log/regrembeddedconstraint7.btor
-regrembeddedconstraint7 -rwl2 -o log/regrembeddedconstraint7.log log/regrembeddedconstraint7.btor
-regrembeddedconstraint7 -rwl3 -o log/regrembeddedconstraint7.log log/regrembeddedconstraint7.btor
-regrembeddedconstraint8 -rwl0 -o log/regrembeddedconstraint8.log log/regrembeddedconstraint8.btor
-regrembeddedconstraint8 -rwl1 -o log/regrembeddedconstraint8.log log/regrembeddedconstraint8.btor
-regrembeddedconstraint8 -rwl2 -o log/regrembeddedconstraint8.log log/regrembeddedconstraint8.btor
-regrembeddedconstraint8 -rwl3 -o log/regrembeddedconstraint8.log log/regrembeddedconstraint8.btor
-regrembeddedconstraint9 -rwl0 -o log/regrembeddedconstraint9.log log/regrembeddedconstraint9.btor
-regrembeddedconstraint9 -rwl1 -o log/regrembeddedconstraint9.log log/regrembeddedconstraint9.btor
-regrembeddedconstraint9 -rwl2 -o log/regrembeddedconstraint9.log log/regrembeddedconstraint9.btor
-regrembeddedconstraint9 -rwl3 -o log/regrembeddedconstraint9.log log/regrembeddedconstraint9.btor
-regrembeddedconstraint10 -rwl0 -o log/regrembeddedconstraint10.log log/regrembeddedconstraint10.btor
-regrembeddedconstraint10 -rwl1 -o log/regrembeddedconstraint10.log log/regrembeddedconstraint10.btor
-regrembeddedconstraint10 -rwl2 -o log/regrembeddedconstraint10.log log/regrembeddedconstraint10.btor
-regrembeddedconstraint10 -rwl3 -o log/regrembeddedconstraint10.log log/regrembeddedconstraint10.btor
-regrembeddedconstraint11 -rwl0 -o log/regrembeddedconstraint11.log log/regrembeddedconstraint11.btor
-regrembeddedconstraint11 -rwl1 -o log/regrembeddedconstraint11.log log/regrembeddedconstraint11.btor
-regrembeddedconstraint11 -rwl2 -o log/regrembeddedconstraint11.log log/regrembeddedconstraint11.btor
-regrembeddedconstraint11 -rwl3 -o log/regrembeddedconstraint11.log log/regrembeddedconstraint11.btor
-regrembeddedconstraint12 -rwl0 -o log/regrembeddedconstraint12.log log/regrembeddedconstraint12.btor
-regrembeddedconstraint12 -rwl1 -o log/regrembeddedconstraint12.log log/regrembeddedconstraint12.btor
-regrembeddedconstraint12 -rwl2 -o log/regrembeddedconstraint12.log log/regrembeddedconstraint12.btor
-regrembeddedconstraint12 -rwl3 -o log/regrembeddedconstraint12.log log/regrembeddedconstraint12.btor
-regrembeddedconstraint13 -rwl0 -o log/regrembeddedconstraint13.log log/regrembeddedconstraint13.btor
-regrembeddedconstraint13 -rwl1 -o log/regrembeddedconstraint13.log log/regrembeddedconstraint13.btor
-regrembeddedconstraint13 -rwl2 -o log/regrembeddedconstraint13.log log/regrembeddedconstraint13.btor
-regrembeddedconstraint13 -rwl3 -o log/regrembeddedconstraint13.log log/regrembeddedconstraint13.btor
-regrembeddedconstraint14 -rwl0 -o log/regrembeddedconstraint14.log log/regrembeddedconstraint14.btor
-regrembeddedconstraint14 -rwl1 -o log/regrembeddedconstraint14.log log/regrembeddedconstraint14.btor
-regrembeddedconstraint14 -rwl2 -o log/regrembeddedconstraint14.log log/regrembeddedconstraint14.btor
-regrembeddedconstraint14 -rwl3 -o log/regrembeddedconstraint14.log log/regrembeddedconstraint14.btor
-regrbfs1 -rwl3 -o log/regrbfs1.log log/regrbfs1.btor
-regrbfs1 -rwl2 -o log/regrbfs1.log log/regrbfs1.btor
-regrbfs1 -rwl1 -o log/regrbfs1.log log/regrbfs1.btor
-regrbfs1 -rwl0 -o log/regrbfs1.log log/regrbfs1.btor
-regrmark1 -rwl3 -o log/regrmark1.log log/regrmark1.btor
-regrmark1 -rwl2 -o log/regrmark1.log log/regrmark1.btor
-regrmark1 -rwl1 -o log/regrmark1.log log/regrmark1.btor
-regrmark1 -rwl0 -o log/regrmark1.log log/regrmark1.btor
-regrmark2 -rwl3 -o log/regrmark2.log log/regrmark2.btor
-regrmark2 -rwl2 -o log/regrmark2.log log/regrmark2.btor
-regrmark2 -rwl1 -o log/regrmark2.log log/regrmark2.btor
-regrmark2 -rwl0 -o log/regrmark2.log log/regrmark2.btor
-regrmark3 -rwl3 -o log/regrmark3.log log/regrmark3.btor
-regrmark3 -rwl2 -o log/regrmark3.log log/regrmark3.btor
-regrmark3 -rwl1 -o log/regrmark3.log log/regrmark3.btor
-regrmark3 -rwl0 -o log/regrmark3.log log/regrmark3.btor
-regr3vl1 -rwl3 -o log/regr3vl1.log log/regr3vl1.btor
-regr3vl1 -rwl2 -o log/regr3vl1.log log/regr3vl1.btor
-regr3vl1 -rwl1 -o log/regr3vl1.log log/regr3vl1.btor
-regr3vl1 -rwl0 -o log/regr3vl1.log log/regr3vl1.btor
-regr3vl2 -rwl3 -o log/regr3vl2.log log/regr3vl2.btor
-regr3vl2 -rwl2 -o log/regr3vl2.log log/regr3vl2.btor
-regr3vl2 -rwl1 -o log/regr3vl2.log log/regr3vl2.btor
-regr3vl2 -rwl0 -o log/regr3vl2.log log/regr3vl2.btor
-regr3vl3 -rwl3 -o log/regr3vl3.log log/regr3vl3.btor
-regr3vl3 -rwl2 -o log/regr3vl3.log log/regr3vl3.btor
-regr3vl3 -rwl1 -o log/regr3vl3.log log/regr3vl3.btor
-regr3vl3 -rwl0 -o log/regr3vl3.log log/regr3vl3.btor
-regr3vl4 -rwl3 -o log/regr3vl4.log log/regr3vl4.btor
-regr3vl4 -rwl2 -o log/regr3vl4.log log/regr3vl4.btor
-regr3vl4 -rwl1 -o log/regr3vl4.log log/regr3vl4.btor
-regr3vl4 -rwl0 -o log/regr3vl4.log log/regr3vl4.btor
-regrexpleak1 -rwl3 -o log/regrexpleak1.log log/regrexpleak1.btor
-regrexpleak1 -rwl2 -o log/regrexpleak1.log log/regrexpleak1.btor
-regrexpleak1 -rwl1 -o log/regrexpleak1.log log/regrexpleak1.btor
-regrexpleak1 -rwl0 -o log/regrexpleak1.log log/regrexpleak1.btor
-regrexpleak2 -rwl3 -o log/regrexpleak2.log log/regrexpleak2.btor
-regrexpleak2 -rwl2 -o log/regrexpleak2.log log/regrexpleak2.btor
-regrexpleak2 -rwl1 -o log/regrexpleak2.log log/regrexpleak2.btor
-regrexpleak2 -rwl0 -o log/regrexpleak2.log log/regrexpleak2.btor
+regrembeddedconstraint1 -rwl 0 -o log/regrembeddedconstraint1.log log/regrembeddedconstraint1.btor
+regrembeddedconstraint1 -rwl 1 -o log/regrembeddedconstraint1.log log/regrembeddedconstraint1.btor
+regrembeddedconstraint1 -rwl 2 -o log/regrembeddedconstraint1.log log/regrembeddedconstraint1.btor
+regrembeddedconstraint1 -rwl 3 -o log/regrembeddedconstraint1.log log/regrembeddedconstraint1.btor
+regrembeddedconstraint2 -rwl 0 -o log/regrembeddedconstraint2.log log/regrembeddedconstraint2.btor
+regrembeddedconstraint2 -rwl 1 -o log/regrembeddedconstraint2.log log/regrembeddedconstraint2.btor
+regrembeddedconstraint2 -rwl 2 -o log/regrembeddedconstraint2.log log/regrembeddedconstraint2.btor
+regrembeddedconstraint2 -rwl 3 -o log/regrembeddedconstraint2.log log/regrembeddedconstraint2.btor
+regrembeddedconstraint3 -rwl 0 -o log/regrembeddedconstraint3.log log/regrembeddedconstraint3.btor
+regrembeddedconstraint3 -rwl 1 -o log/regrembeddedconstraint3.log log/regrembeddedconstraint3.btor
+regrembeddedconstraint3 -rwl 2 -o log/regrembeddedconstraint3.log log/regrembeddedconstraint3.btor
+regrembeddedconstraint3 -rwl 3 -o log/regrembeddedconstraint3.log log/regrembeddedconstraint3.btor
+regrembeddedconstraint4 -rwl 0 -o log/regrembeddedconstraint4.log log/regrembeddedconstraint4.btor
+regrembeddedconstraint4 -rwl 1 -o log/regrembeddedconstraint4.log log/regrembeddedconstraint4.btor
+regrembeddedconstraint4 -rwl 2 -o log/regrembeddedconstraint4.log log/regrembeddedconstraint4.btor
+regrembeddedconstraint4 -rwl 3 -o log/regrembeddedconstraint4.log log/regrembeddedconstraint4.btor
+regrembeddedconstraint5 -rwl 0 -o log/regrembeddedconstraint5.log log/regrembeddedconstraint5.btor
+regrembeddedconstraint5 -rwl 1 -o log/regrembeddedconstraint5.log log/regrembeddedconstraint5.btor
+regrembeddedconstraint5 -rwl 2 -o log/regrembeddedconstraint5.log log/regrembeddedconstraint5.btor
+regrembeddedconstraint5 -rwl 3 -o log/regrembeddedconstraint5.log log/regrembeddedconstraint5.btor
+regrembeddedconstraint6 -rwl 0 -o log/regrembeddedconstraint6.log log/regrembeddedconstraint6.btor
+regrembeddedconstraint6 -rwl 1 -o log/regrembeddedconstraint6.log log/regrembeddedconstraint6.btor
+regrembeddedconstraint6 -rwl 2 -o log/regrembeddedconstraint6.log log/regrembeddedconstraint6.btor
+regrembeddedconstraint6 -rwl 3 -o log/regrembeddedconstraint6.log log/regrembeddedconstraint6.btor
+regrembeddedconstraint7 -rwl 0 -o log/regrembeddedconstraint7.log log/regrembeddedconstraint7.btor
+regrembeddedconstraint7 -rwl 1 -o log/regrembeddedconstraint7.log log/regrembeddedconstraint7.btor
+regrembeddedconstraint7 -rwl 2 -o log/regrembeddedconstraint7.log log/regrembeddedconstraint7.btor
+regrembeddedconstraint7 -rwl 3 -o log/regrembeddedconstraint7.log log/regrembeddedconstraint7.btor
+regrembeddedconstraint8 -rwl 0 -o log/regrembeddedconstraint8.log log/regrembeddedconstraint8.btor
+regrembeddedconstraint8 -rwl 1 -o log/regrembeddedconstraint8.log log/regrembeddedconstraint8.btor
+regrembeddedconstraint8 -rwl 2 -o log/regrembeddedconstraint8.log log/regrembeddedconstraint8.btor
+regrembeddedconstraint8 -rwl 3 -o log/regrembeddedconstraint8.log log/regrembeddedconstraint8.btor
+regrembeddedconstraint9 -rwl 0 -o log/regrembeddedconstraint9.log log/regrembeddedconstraint9.btor
+regrembeddedconstraint9 -rwl 1 -o log/regrembeddedconstraint9.log log/regrembeddedconstraint9.btor
+regrembeddedconstraint9 -rwl 2 -o log/regrembeddedconstraint9.log log/regrembeddedconstraint9.btor
+regrembeddedconstraint9 -rwl 3 -o log/regrembeddedconstraint9.log log/regrembeddedconstraint9.btor
+regrembeddedconstraint10 -rwl 0 -o log/regrembeddedconstraint10.log log/regrembeddedconstraint10.btor
+regrembeddedconstraint10 -rwl 1 -o log/regrembeddedconstraint10.log log/regrembeddedconstraint10.btor
+regrembeddedconstraint10 -rwl 2 -o log/regrembeddedconstraint10.log log/regrembeddedconstraint10.btor
+regrembeddedconstraint10 -rwl 3 -o log/regrembeddedconstraint10.log log/regrembeddedconstraint10.btor
+regrembeddedconstraint11 -rwl 0 -o log/regrembeddedconstraint11.log log/regrembeddedconstraint11.btor
+regrembeddedconstraint11 -rwl 1 -o log/regrembeddedconstraint11.log log/regrembeddedconstraint11.btor
+regrembeddedconstraint11 -rwl 2 -o log/regrembeddedconstraint11.log log/regrembeddedconstraint11.btor
+regrembeddedconstraint11 -rwl 3 -o log/regrembeddedconstraint11.log log/regrembeddedconstraint11.btor
+regrembeddedconstraint12 -rwl 0 -o log/regrembeddedconstraint12.log log/regrembeddedconstraint12.btor
+regrembeddedconstraint12 -rwl 1 -o log/regrembeddedconstraint12.log log/regrembeddedconstraint12.btor
+regrembeddedconstraint12 -rwl 2 -o log/regrembeddedconstraint12.log log/regrembeddedconstraint12.btor
+regrembeddedconstraint12 -rwl 3 -o log/regrembeddedconstraint12.log log/regrembeddedconstraint12.btor
+regrembeddedconstraint13 -rwl 0 -o log/regrembeddedconstraint13.log log/regrembeddedconstraint13.btor
+regrembeddedconstraint13 -rwl 1 -o log/regrembeddedconstraint13.log log/regrembeddedconstraint13.btor
+regrembeddedconstraint13 -rwl 2 -o log/regrembeddedconstraint13.log log/regrembeddedconstraint13.btor
+regrembeddedconstraint13 -rwl 3 -o log/regrembeddedconstraint13.log log/regrembeddedconstraint13.btor
+regrembeddedconstraint14 -rwl 0 -o log/regrembeddedconstraint14.log log/regrembeddedconstraint14.btor
+regrembeddedconstraint14 -rwl 1 -o log/regrembeddedconstraint14.log log/regrembeddedconstraint14.btor
+regrembeddedconstraint14 -rwl 2 -o log/regrembeddedconstraint14.log log/regrembeddedconstraint14.btor
+regrembeddedconstraint14 -rwl 3 -o log/regrembeddedconstraint14.log log/regrembeddedconstraint14.btor
+regrbfs1 -rwl 3 -o log/regrbfs1.log log/regrbfs1.btor
+regrbfs1 -rwl 2 -o log/regrbfs1.log log/regrbfs1.btor
+regrbfs1 -rwl 1 -o log/regrbfs1.log log/regrbfs1.btor
+regrbfs1 -rwl 0 -o log/regrbfs1.log log/regrbfs1.btor
+regrmark1 -rwl 3 -o log/regrmark1.log log/regrmark1.btor
+regrmark1 -rwl 2 -o log/regrmark1.log log/regrmark1.btor
+regrmark1 -rwl 1 -o log/regrmark1.log log/regrmark1.btor
+regrmark1 -rwl 0 -o log/regrmark1.log log/regrmark1.btor
+regrmark2 -rwl 3 -o log/regrmark2.log log/regrmark2.btor
+regrmark2 -rwl 2 -o log/regrmark2.log log/regrmark2.btor
+regrmark2 -rwl 1 -o log/regrmark2.log log/regrmark2.btor
+regrmark2 -rwl 0 -o log/regrmark2.log log/regrmark2.btor
+regrmark3 -rwl 3 -o log/regrmark3.log log/regrmark3.btor
+regrmark3 -rwl 2 -o log/regrmark3.log log/regrmark3.btor
+regrmark3 -rwl 1 -o log/regrmark3.log log/regrmark3.btor
+regrmark3 -rwl 0 -o log/regrmark3.log log/regrmark3.btor
+regr3vl1 -rwl 3 -o log/regr3vl1.log log/regr3vl1.btor
+regr3vl1 -rwl 2 -o log/regr3vl1.log log/regr3vl1.btor
+regr3vl1 -rwl 1 -o log/regr3vl1.log log/regr3vl1.btor
+regr3vl1 -rwl 0 -o log/regr3vl1.log log/regr3vl1.btor
+regr3vl2 -rwl 3 -o log/regr3vl2.log log/regr3vl2.btor
+regr3vl2 -rwl 2 -o log/regr3vl2.log log/regr3vl2.btor
+regr3vl2 -rwl 1 -o log/regr3vl2.log log/regr3vl2.btor
+regr3vl2 -rwl 0 -o log/regr3vl2.log log/regr3vl2.btor
+regr3vl3 -rwl 3 -o log/regr3vl3.log log/regr3vl3.btor
+regr3vl3 -rwl 2 -o log/regr3vl3.log log/regr3vl3.btor
+regr3vl3 -rwl 1 -o log/regr3vl3.log log/regr3vl3.btor
+regr3vl3 -rwl 0 -o log/regr3vl3.log log/regr3vl3.btor
+regr3vl4 -rwl 3 -o log/regr3vl4.log log/regr3vl4.btor
+regr3vl4 -rwl 2 -o log/regr3vl4.log log/regr3vl4.btor
+regr3vl4 -rwl 1 -o log/regr3vl4.log log/regr3vl4.btor
+regr3vl4 -rwl 0 -o log/regr3vl4.log log/regr3vl4.btor
+regrexpleak1 -rwl 3 -o log/regrexpleak1.log log/regrexpleak1.btor
+regrexpleak1 -rwl 2 -o log/regrexpleak1.log log/regrexpleak1.btor
+regrexpleak1 -rwl 1 -o log/regrexpleak1.log log/regrexpleak1.btor
+regrexpleak1 -rwl 0 -o log/regrexpleak1.log log/regrexpleak1.btor
+regrexpleak2 -rwl 3 -o log/regrexpleak2.log log/regrexpleak2.btor
+regrexpleak2 -rwl 2 -o log/regrexpleak2.log log/regrexpleak2.btor
+regrexpleak2 -rwl 1 -o log/regrexpleak2.log log/regrexpleak2.btor
+regrexpleak2 -rwl 0 -o log/regrexpleak2.log log/regrexpleak2.btor
 regrpointerchasing1 -o log/regrpointerchasing1.log log/regrpointerchasing1.btor
-3vl1 -rwl2 -o log/3vl1.log log/3vl1.btor
-3vl1 -rwl0 -o log/3vl1.log log/3vl1.btor
-3vl2 -rwl2 -o log/3vl2.log log/3vl2.btor
-3vl2 -rwl0 -o log/3vl2.log log/3vl2.btor
-3vl3 -rwl2 -o log/3vl3.log log/3vl3.btor
-3vl3 -rwl0 -o log/3vl3.log log/3vl3.btor
-3vl4 -rwl2 -o log/3vl4.log log/3vl4.btor
-3vl4 -rwl0 -o log/3vl4.log log/3vl4.btor
-3vl5 -rwl2 -o log/3vl5.log log/3vl5.btor
-3vl5 -rwl0 -o log/3vl5.log log/3vl5.btor
-3vl6 -rwl2 -o log/3vl6.log log/3vl6.btor
-3vl6 -rwl0 -o log/3vl6.log log/3vl6.btor
+3vl1 -rwl 2 -o log/3vl1.log log/3vl1.btor
+3vl1 -rwl 0 -o log/3vl1.log log/3vl1.btor
+3vl2 -rwl 2 -o log/3vl2.log log/3vl2.btor
+3vl2 -rwl 0 -o log/3vl2.log log/3vl2.btor
+3vl3 -rwl 2 -o log/3vl3.log log/3vl3.btor
+3vl3 -rwl 0 -o log/3vl3.log log/3vl3.btor
+3vl4 -rwl 2 -o log/3vl4.log log/3vl4.btor
+3vl4 -rwl 0 -o log/3vl4.log log/3vl4.btor
+3vl5 -rwl 2 -o log/3vl5.log log/3vl5.btor
+3vl5 -rwl 0 -o log/3vl5.log log/3vl5.btor
+3vl6 -rwl 2 -o log/3vl6.log log/3vl6.btor
+3vl6 -rwl 0 -o log/3vl6.log log/3vl6.btor
 udivtheorem1 -o log/udivtheorem1.log log/udivtheorem1.btor
 uremtheorem1 -o log/uremtheorem1.log log/uremtheorem1.btor
 ulttheorem1 -o log/ulttheorem1.log log/ulttheorem1.btor
-ultsubst1 -rwl0 -o log/ultsubst1.log log/ultsubst1.btor
-ultsubst1 -rwl2 -o log/ultsubst1.log log/ultsubst1.btor
-ultsubst2 -rwl0 -o log/ultsubst2.log log/ultsubst2.btor
-ultsubst2 -rwl2 -o log/ultsubst2.log log/ultsubst2.btor
-ultsubst3 -rwl0 -o log/ultsubst3.log log/ultsubst3.btor
-ultsubst3 -rwl2 -o log/ultsubst3.log log/ultsubst3.btor
-ultsubst4 -rwl0 -o log/ultsubst4.log log/ultsubst4.btor
-ultsubst4 -rwl2 -o log/ultsubst4.log log/ultsubst4.btor
-ultsubst5 -rwl0 -o log/ultsubst5.log log/ultsubst5.btor
-ultsubst5 -rwl2 -o log/ultsubst5.log log/ultsubst5.btor
-ultsubst6 -rwl0 -o log/ultsubst6.log log/ultsubst6.btor
-ultsubst6 -rwl2 -o log/ultsubst6.log log/ultsubst6.btor
-ultsubst7 -rwl0 -o log/ultsubst7.log log/ultsubst7.btor
-ultsubst7 -rwl2 -o log/ultsubst7.log log/ultsubst7.btor
-ultsubst8 -rwl0 -o log/ultsubst8.log log/ultsubst8.btor
-ultsubst8 -rwl2 -o log/ultsubst8.log log/ultsubst8.btor
-ultsubst9 -rwl0 -o log/ultsubst9.log log/ultsubst9.btor
-ultsubst9 -rwl2 -o log/ultsubst9.log log/ultsubst9.btor
-slicesubst1 -rwl0 -o log/slicesubst1.log log/slicesubst1.btor
-slicesubst1 -rwl2 -o log/slicesubst1.log log/slicesubst1.btor
+ultsubst1 -rwl 0 -o log/ultsubst1.log log/ultsubst1.btor
+ultsubst1 -rwl 2 -o log/ultsubst1.log log/ultsubst1.btor
+ultsubst2 -rwl 0 -o log/ultsubst2.log log/ultsubst2.btor
+ultsubst2 -rwl 2 -o log/ultsubst2.log log/ultsubst2.btor
+ultsubst3 -rwl 0 -o log/ultsubst3.log log/ultsubst3.btor
+ultsubst3 -rwl 2 -o log/ultsubst3.log log/ultsubst3.btor
+ultsubst4 -rwl 0 -o log/ultsubst4.log log/ultsubst4.btor
+ultsubst4 -rwl 2 -o log/ultsubst4.log log/ultsubst4.btor
+ultsubst5 -rwl 0 -o log/ultsubst5.log log/ultsubst5.btor
+ultsubst5 -rwl 2 -o log/ultsubst5.log log/ultsubst5.btor
+ultsubst6 -rwl 0 -o log/ultsubst6.log log/ultsubst6.btor
+ultsubst6 -rwl 2 -o log/ultsubst6.log log/ultsubst6.btor
+ultsubst7 -rwl 0 -o log/ultsubst7.log log/ultsubst7.btor
+ultsubst7 -rwl 2 -o log/ultsubst7.log log/ultsubst7.btor
+ultsubst8 -rwl 0 -o log/ultsubst8.log log/ultsubst8.btor
+ultsubst8 -rwl 2 -o log/ultsubst8.log log/ultsubst8.btor
+ultsubst9 -rwl 0 -o log/ultsubst9.log log/ultsubst9.btor
+ultsubst9 -rwl 2 -o log/ultsubst9.log log/ultsubst9.btor
+slicesubst1 -rwl 0 -o log/slicesubst1.log log/slicesubst1.btor
+slicesubst1 -rwl 2 -o log/slicesubst1.log log/slicesubst1.btor
 regrdomabst1 -o log/regrdomabst1.log log/regrdomabst1.btor
 regrdomabst2 -o log/regrdomabst2.log log/regrdomabst2.btor
 regrdomabst3 -o log/regrdomabst3.log log/regrdomabst3.btor
@@ -701,24 +701,24 @@ redand3twice -o log/redand3twice.log log/redand3twice.btor
 painc -I -o log/painc.log log/painc.smt
 sult -o log/sult.log log/sult.btor
 sult2 -o log/sult2.log log/sult2.btor
-count02inc -look-ahead=2 -o log/count02inc.log log/count02inc.smt
-count02incuns -interval=4 -o log/count02incuns.log log/count02incuns.smt
-count03inc -in-depth=3 -o log/count03inc.log log/count03inc.smt
-count03to6 -interval=3 -o log/count03to6.log log/count03to6.smt
-count03plus2inc -interval=2 -o log/count03plus2inc.log log/count03plus2inc.smt
-concatslice1 -rwl1 -db -o log/concatslice1.log log/concatslice1.btor
-concatslice2 -rwl1 -db -o log/concatslice2.log log/concatslice2.btor
+count02inc --incremental-look-ahead=2 -o log/count02inc.log log/count02inc.smt
+count02incuns --incremental-interval=4 -o log/count02incuns.log log/count02incuns.smt
+count03inc --incremental-in-depth=3 -o log/count03inc.log log/count03inc.smt
+count03to6 --incremental-interval=3 -o log/count03to6.log log/count03to6.smt
+count03plus2inc --incremental-interval=2 -o log/count03plus2inc.log log/count03plus2inc.smt
+concatslice1 -rwl 1 -db -o log/concatslice1.log log/concatslice1.btor
+concatslice2 -rwl 1 -db -o log/concatslice2.log log/concatslice2.btor
 regaddnorm1 -db -o log/regaddnorm1.log log/regaddnorm1.btor
 regaddnorm2 -db -o log/regaddnorm2.log log/regaddnorm2.btor
 regnegadd1 -db -o log/regnegadd1.log log/regnegadd1.btor
 sc12fuzzcheck2 -o log/sc12fuzzcheck2.log log/sc12fuzzcheck2.smt2
-regmismatch -o log/regmismatch.log log/regmismatch.smt2
+regmismatch log/regmismatch.smt2 > log/regmismatch.log 2>&1
 regrbetacache1 -bra -o log/regrbetacache1.log log/regrbetacache1.btor
 regrbetacache2 -bra -o log/regrbetacache2.log log/regrbetacache2.btor
 regrencparamapps -o log/regrencparamapps.log log/regrencparamapps.smt2
-nestedfun1 -rwl2 -o log/nestedfun1.log log/nestedfun1.smt2
+nestedfun1 -rwl 2 -o log/nestedfun1.log log/nestedfun1.smt2
 regrcollectprem -o log/regrcollectprem.log log/regrcollectprem.btor
-regrlemmaloop_embeddedconstraints -rwl1 -o log/regrlemmaloop_embeddedconstraints.log log/regrlemmaloop_embeddedconstraints.btor
+regrlemmaloop_embeddedconstraints -rwl 1 -o log/regrlemmaloop_embeddedconstraints.log log/regrlemmaloop_embeddedconstraints.btor
 addnegmul1 -o log/addnegmul1.log log/addnegmul1.btor
 normaddneg0 -o log/normaddneg0.log log/normaddneg0.btor
 normaddneg1 -o log/normaddneg1.log log/normaddneg1.btor

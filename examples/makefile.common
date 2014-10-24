@@ -1,3 +1,4 @@
 CC=gcc
 CFLAGS=-g -Wall -W -Wextra
 LIBS=-L../.. -lboolector $(shell sed -e '/^LIBS=/!d' -e 's,^LIBS=,,' -e 's,-L,-L../../,g' ../../makefile)
+INC=-I../../

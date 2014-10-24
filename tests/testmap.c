@@ -5,6 +5,7 @@
  *  Copyright (C) 2013 Aina Niemetz.
  *
  *  All rights reserved.
+ *
  *  This file is part of Boolector.
  *  See COPYING for more information on using this software.
  */
@@ -100,12 +101,14 @@ test_map0 ()
 static BtorNode *
 test_map1_mapper (Btor *btor, void *state, BtorNode *node)
 {
+  char *symbol;
   (void) state;
   assert (btor == g_btor);
   assert (BTOR_IS_REGULAR_NODE (node));
   if (!BTOR_IS_BV_VAR_NODE (node)) return 0;
-  assert (node->symbol);
-  return btor_int_exp (btor, atoi (node->symbol), 8);
+  symbol = btor_get_symbol_exp (btor, node);
+  assert (symbol);
+  return btor_int_exp (btor, atoi (symbol), 8);
 }
 
 void

@@ -2,7 +2,7 @@
  *
  *  Copyright (C) 2007-2009 Robert Daniel Brummayer.
  *  Copyright (C) 2007-2013 Armin Biere.
- *  Copyright (C) 2012-2013 Aina Niemetz, Mathias Preiner.
+ *  Copyright (C) 2012-2014 Aina Niemetz, Mathias Preiner.
  *
  *  All rights reserved.
  *
@@ -33,13 +33,12 @@ node2string (BtorNode *exp)
     case BTOR_INVALID_NODE: name = "invalid"; break;
     case BTOR_BV_CONST_NODE: name = "const"; break;
     case BTOR_BV_VAR_NODE: name = "var"; break;
-    case BTOR_ARRAY_VAR_NODE: name = "array"; break;
     case BTOR_PARAM_NODE: name = "param"; break;
     case BTOR_UF_NODE: name = "uf"; break;
     case BTOR_SLICE_NODE: name = "slice"; break;
     case BTOR_AND_NODE: name = "and"; break;
     case BTOR_BEQ_NODE:
-    case BTOR_AEQ_NODE: name = "eq"; break;
+    case BTOR_FEQ_NODE: name = "eq"; break;
     case BTOR_ADD_NODE: name = "add"; break;
     case BTOR_MUL_NODE: name = "mul"; break;
     case BTOR_ULT_NODE: name = "ult"; break;

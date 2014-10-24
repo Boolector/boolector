@@ -1,6 +1,7 @@
 /*  Boolector: Satisfiablity Modulo Theories (SMT) solver.
  *
  *  Copyright (C) 2012-2014 Armin Biere.
+ *  Copyright (C) 2014 Aina niemetz.
  *
  *  All rights reserved.
  *
@@ -275,7 +276,7 @@ BtorIBV::setRewriteLevel (int rwl)
 {
   BTOR_ABORT_BOOLECTOR (rwl < 1, "rewrite level has to be at least 1");
   BTOR_ABORT_BOOLECTOR (rwl > 3, "rewrite level has to be at most 3");
-  boolector_set_rewrite_level (btor, rwl);
+  boolector_set_opt (btor, "rewrite_level", rwl);
 }
 
 void
@@ -2387,7 +2388,9 @@ BtorIBV::translate_assignment_conquer (BtorIBVAtom* a,
                                        BtorIBVAssignment* ass)
 {
   BoolectorNodePtrStack stack;
+#ifndef NDEBUG
   BtorIBVRange r = a->range;
+#endif
   BoolectorNode* res;
   assert (ass);
   assert (ass->range.id == r.id);
