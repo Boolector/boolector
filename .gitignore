@@ -3,6 +3,7 @@
 *.gcov
 *.tmp
 *.o
+*.so
 *.a
 *.baf
 *.gch
@@ -37,3 +38,5 @@ btormbt
 .vimrc
 api/python/*.c
 api/python/*.so
+python.mk
+setup.py

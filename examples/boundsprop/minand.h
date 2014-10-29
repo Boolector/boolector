@@ -1,14 +1,14 @@
 #ifndef MINAND_H_INCLUDED
 #define MINAND_H_INCLUDED
 
-#include "../../boolector.h"
+#include "boolector.h"
 
-BtorNode *btor_minand (Btor *btor,
-                       BtorNode *a_in,
-                       BtorNode *b_in,
-                       BtorNode *c_in,
-                       BtorNode *d_in,
-                       BtorNode *m_in,
-                       int num_bits);
+BoolectorNode *btor_minand (Btor *btor,
+                            BoolectorNode *a_in,
+                            BoolectorNode *b_in,
+                            BoolectorNode *c_in,
+                            BoolectorNode *d_in,
+                            BoolectorNode *m_in,
+                            int num_bits);
 
 #endif

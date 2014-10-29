@@ -1,1 +1,1 @@
-log/arrayand.btor:2: literal '1' refers to an unexpected array expression
+boolector: log/arrayand.btor:2: literal '1' refers to an unexpected array expression

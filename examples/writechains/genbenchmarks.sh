@@ -24,7 +24,7 @@ do
     else
       filename=wchains$numbitsstring"se.smt"
     fi
-    ./writechains $aarg $numbits | boolector -rwl0 -ds | while read line
+    ./writechains $aarg $numbits | boolector -rwl 0 -ds | while read line
     do
       if [[ $header -eq 1 ]]; then
         echo "(benchmark $filename" > $filename

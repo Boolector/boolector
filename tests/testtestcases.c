@@ -1,21 +1,13 @@
 /*  Boolector: Satisfiablity Modulo Theories (SMT) solver.
- *  Copyright (C) 2007-2012 Robert Daniel Brummayer, Armin Biere
- *  Copyright (C) 2012 Aina Niemetz
+ *
+ *  Copyright (C) 2007-2010 Robert Daniel Brummayer.
+ *  Copyright (C) 2007-2012 Armin Biere.
+ *  Copyright (C) 2012, 2014 Aina Niemetz
+ *
+ *  All rights reserved.
  *
  *  This file is part of Boolector.
- *
- *  Boolector is free software: you can redistribute it and/or modify
- *  it under the terms of the GNU General Public License as published by
- *  the Free Software Foundation, either version 3 of the License, or
- *  (at your option) any later version.
- *
- *  Boolector is distributed in the hope that it will be useful,
- *  but WITHOUT ANY WARRANTY; without even the implied warranty of
- *  MERCHANTABILITY or FITNESS FOR A PARTICULAR PURPOSE.  See the
- *  GNU General Public License for more details.
- *
- *  You should have received a copy of the GNU General Public License
- *  along with this program.  If not, see <http://www.gnu.org/licenses/>.
+ *  See COPYING for more information on using this software.
  */
 
 #ifdef NDEBUG
@@ -37,7 +29,22 @@ static BtorCharPtrStack g_args;
 static void
 test_testcase (void)
 {
-  (void) boolector_main (BTOR_COUNT_STACK (g_args), g_args.start);
+  int i, len;
+  char *syscall_string;
+
+  /* Note: skip testcases name */
+  for (i = 1, len = 1; i < BTOR_COUNT_STACK (g_args); i++)
+    len += strlen (BTOR_PEEK_STACK (g_args, i));
+  syscall_string = (char *) malloc (sizeof (char *) * len);
+  sprintf (syscall_string, "./boolector ");
+  len = strlen ("./boolector ");
+  for (i = 1; i < BTOR_COUNT_STACK (g_args); i++)
+  {
+    sprintf (syscall_string + len, "%s ", BTOR_PEEK_STACK (g_args, i));
+    len += strlen (BTOR_PEEK_STACK (g_args, i)) + 1;
+  }
+  (void) system (syscall_string);
+  free (syscall_string);
 }
 
 void

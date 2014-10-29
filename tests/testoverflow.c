@@ -1,21 +1,13 @@
 /*  Boolector: Satisfiablity Modulo Theories (SMT) solver.
- *  Copyright (C) 2007-2012 Robert Daniel Brummayer, Armin Biere
- *  Copyright (C) 2012 Aina Niemetz
+ *
+ *  Copyright (C) 2007-2010 Robert Daniel Brummayer.
+ *  Copyright (C) 2007-2012 Armin Biere.
+ *  Copyright (C) 2012, 2014 Aina Niemetz
+ *
+ *  All rights reserved.
  *
  *  This file is part of Boolector.
- *
- *  Boolector is free software: you can redistribute it and/or modify
- *  it under the terms of the GNU General Public License as published by
- *  the Free Software Foundation, either version 3 of the License, or
- *  (at your option) any later version.
- *
- *  Boolector is distributed in the hope that it will be useful,
- *  but WITHOUT ANY WARRANTY; without even the implied warranty of
- *  MERCHANTABILITY or FITNESS FOR A PARTICULAR PURPOSE.  See the
- *  GNU General Public License for more details.
- *
- *  You should have received a copy of the GNU General Public License
- *  along with this program.  If not, see <http://www.gnu.org/licenses/>.
+ *  See COPYING for more information on using this software.
  */
 
 #include "testoverflow.h"
@@ -38,7 +30,7 @@
 #define BTOR_TEST_OVERFLOW_LOW 1
 #define BTOR_TEST_OVERFLOW_HIGH 4
 
-static int g_argc    = 5;
+static int g_argc    = 6;
 static char **g_argv = NULL;
 
 void
@@ -57,9 +49,10 @@ init_overflow_tests (void)
   g_argv = (char **) malloc (g_argc * sizeof (char *));
 
   g_argv[0] = "./boolector";
-  g_argv[1] = "-rwl1";
-  g_argv[2] = "-o";
-  g_argv[3] = "/dev/null";
+  g_argv[1] = "-rwl";
+  g_argv[2] = "1";
+  g_argv[3] = "-o";
+  g_argv[4] = "/dev/null";
 
   if (g_rwreads) g_argv[pos_rwr] = "-bra";
 
@@ -283,7 +276,8 @@ void
 run_overflow_tests (int argc, char **argv)
 {
   run_all_tests (argc, argv);
-  g_argv[1] = "-rwl0";
+  g_argv[1] = "-rwl";
+  g_argv[2] = "0";
   run_all_tests (argc, argv);
 }
 

@@ -2,7 +2,7 @@
  *
  *  Copyright (C) 2007-2009 Robert Daniel Brummayer.
  *  Copyright (C) 2007-2013 Armin Biere.
- *  Copyright (C) 2013 Aina Niemetz.
+ *  Copyright (C) 2013-2014 Aina Niemetz.
  *
  *  All rights reserved.
  *
@@ -64,6 +64,36 @@
     BTOR_ENLARGE ((mm), (stack).start, old_size, new_size); \
     (stack).top = (stack).start + old_count;                \
     (stack).end = (stack).start + new_size;                 \
+  } while (0)
+
+#define BTOR_ENLARGE_STACK_TO_SIZE(mm, stack, new_size)     \
+  do                                                        \
+  {                                                         \
+    size_t old_size  = BTOR_SIZE_STACK (stack);             \
+    size_t old_count = BTOR_COUNT_STACK (stack);            \
+    BTOR_REALLOC ((mm), (stack).start, old_size, new_size); \
+    (stack).top = (stack).start + old_count;                \
+    (stack).end = (stack).start + new_size;                 \
+  } while (0)
+
+/* adjust count and size of stack2 to count and size of stack1, new
+ * stack elements in stack2 are cleared */
+#define BTOR_ADJUST_STACK(mm, stack1, stack2)                   \
+  do                                                            \
+  {                                                             \
+    size_t stack1_size  = BTOR_SIZE_STACK (stack1);             \
+    size_t stack2_size  = BTOR_SIZE_STACK (stack2);             \
+    size_t stack1_count = BTOR_COUNT_STACK (stack1);            \
+    size_t stack2_count = BTOR_COUNT_STACK (stack2);            \
+    assert (stack1_size >= stack2_size);                        \
+    assert (stack1_count >= stack2_count);                      \
+    if (stack1_size > stack2_size)                              \
+      BTOR_ENLARGE_STACK_TO_SIZE (mm, (stack2), (stack1_size)); \
+    if (stack1_count > stack2_count)                            \
+    {                                                           \
+      memset ((stack2).top, 0, stack1_count - stack2_count);    \
+      (stack2).top += stack1_count - stack2_count;              \
+    }                                                           \
   } while (0)
 
 #define BTOR_FIT_STACK(mm, stack, idx)                              \

@@ -2,7 +2,8 @@
  *
  *  Copyright (C) 2007-2009 Robert Daniel Brummayer.
  *  Copyright (C) 2007-2012 Armin Biere.
- *  Copyright (C) 2013 Aina Niemetz.
+ *  Copyright (C) 2013-2014 Aina Niemetz.
+ *  Copyright (C) 2014 Mathias Preiner.
  *
  *  All rights reserved.
  *
@@ -33,8 +34,8 @@ typedef struct BtorAIGVecMgr BtorAIGVecMgr;
 struct BtorAIGVecMgr
 {
   BtorMemMgr *mm;
+  BtorMsg *msg;
   BtorAIGMgr *amgr;
-  int verbosity;
 };
 
 /*------------------------------------------------------------------------*/
@@ -42,13 +43,12 @@ struct BtorAIGVecMgr
 /* Creates new AIG vector manager. An AIG vector manager is used by nearly
  * all functions of the AIG vector layer.
  */
-BtorAIGVecMgr *btor_new_aigvec_mgr (BtorMemMgr *mm);
+BtorAIGVecMgr *btor_new_aigvec_mgr (BtorMemMgr *mm, BtorMsg *msg);
 
 /* Clones AIG vector manager. */
-BtorAIGVecMgr *btor_clone_aigvec_mgr (BtorMemMgr *mm, BtorAIGVecMgr *avmgr);
-
-/* Sets verbosity [-1,3] */
-void btor_set_verbosity_aigvec_mgr (BtorAIGVecMgr *avmgr, int verbosity);
+BtorAIGVecMgr *btor_clone_aigvec_mgr (BtorMemMgr *mm,
+                                      BtorMsg *msg,
+                                      BtorAIGVecMgr *avmgr);
 
 /* Returns AIG manager of the AIG vector manager. */
 BtorAIGMgr *btor_get_aig_mgr_aigvec_mgr (const BtorAIGVecMgr *avmgr);

@@ -1,6 +1,7 @@
 /*  Boolector: Satisfiablity Modulo Theories (SMT) solver.
  *
  *  Copyright (C) 2007-2012 Armin Biere.
+ *  Copyright (C) 2014 Aina Niemetz.
  *
  *  All rights reserved.
  *
@@ -9,7 +10,9 @@
  */
 #include "btoraig.h"
 #include "btoraigvec.h"
+#include "btorcore.h"
 #include "btorhash.h"
+#include "btoriter.h"
 #include "parser/btorbtor.h"
 #include "stdio.h"
 
@@ -43,7 +46,7 @@ main (int argc, char **argv)
   BtorPtrHashTable *back_annotation;
   const char *input_name;
   const char *parse_error;
-  BtorPtrHashBucket *b;
+  BtorHashTableIterator it;
   BtorParseResult model;
   BtorAIGVecMgr *avmgr;
   BtorAIGPtrStack regs;
@@ -113,8 +116,8 @@ main (int argc, char **argv)
 
   btor = btor_new_btor ();
 
-  btor_set_verbosity_btor (btor, verbosity);
-  btor_set_rewrite_level_btor (btor, rwl);
+  btor_set_opt (btor, BTOR_OPT_VERBOSITY, verbosity);
+  btor_set_opt (btor, BTOR_OPT_REWRITE_LEVEL, rwl);
 
   BTOR_CLR (&parse_opt);
 
@@ -189,8 +192,12 @@ main (int argc, char **argv)
   for (p = nexts.start; p < nexts.top; p++) btor_release_aig (amgr, *p);
   BTOR_RELEASE_STACK (mem, nexts);
 
-  for (b = back_annotation->first; b; b = b->next)
-    btor_freestr (mem, b->data.asStr);
+  init_hash_table_iterator (&it, back_annotation);
+  while (has_next_hash_table_iterator (&it))
+  {
+    btor_freestr (mem, it.bucket->data.asStr);
+    (void) next_hash_table_iterator (&it);
+  }
 
   btor_delete_ptr_hash_table (back_annotation);
 

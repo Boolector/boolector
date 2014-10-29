@@ -28,7 +28,7 @@ if [[ -z "$btor2aig" ]]; then
 fi
 
 if [[ $rw -eq 0 ]]; then
-  $boolector -rwl0 -de | $btor2aig --no-rewriting
+  $boolector -rwl 0 -de | $btor2aig --no-rewriting
 else
-  $boolector -rwl0 -de | $btor2aig
+  $boolector -rwl 0 -de | $btor2aig
 fi

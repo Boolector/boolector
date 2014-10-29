@@ -1,1 +1,1 @@
-log/smt2perr003.smt2:1:1: expected '(' at ')'
+boolector: log/smt2perr003.smt2:1:1: expected '(' at ')'

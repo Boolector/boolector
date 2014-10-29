@@ -2,7 +2,8 @@
  *
  *  Copyright (C) 2007-2009 Robert Daniel Brummayer.
  *  Copyright (C) 2007-2012 Armin Biere.
- *  Copyright (C) 2013 Aina Niemetz.
+ *  Copyright (C) 2013-2014 Aina Niemetz.
+ *  Copyright (C) 2013-2014 Mathias Preiner.
  *
  *  All rights reserved.
  *
@@ -646,10 +647,11 @@ btor_clone_aigvec (BtorAIGVec *av, BtorAIGVecMgr *avmgr, BtorAIGMap *aig_map)
 {
   assert (av);
   assert (avmgr);
-  assert (aig_map);
 
   int i;
   BtorAIGVec *res;
+
+  if (!aig_map) return 0;
 
   res = new_aigvec (avmgr, av->len);
   for (i = 0; i < av->len; i++)
@@ -695,38 +697,33 @@ btor_release_delete_aigvec (BtorAIGVecMgr *avmgr, BtorAIGVec *av)
 }
 
 BtorAIGVecMgr *
-btor_new_aigvec_mgr (BtorMemMgr *mm)
+btor_new_aigvec_mgr (BtorMemMgr *mm, BtorMsg *msg)
 {
-  BtorAIGVecMgr *avmgr;
   assert (mm);
+  assert (msg);
+
+  BtorAIGVecMgr *avmgr;
   BTOR_NEW (mm, avmgr);
-  avmgr->mm        = mm;
-  avmgr->verbosity = 0;
-  avmgr->amgr      = btor_new_aig_mgr (mm);
+  avmgr->mm   = mm;
+  avmgr->msg  = msg;
+  avmgr->amgr = btor_new_aig_mgr (mm, avmgr->msg);
   return avmgr;
 }
 
 BtorAIGVecMgr *
-btor_clone_aigvec_mgr (BtorMemMgr *mm, BtorAIGVecMgr *avmgr)
+btor_clone_aigvec_mgr (BtorMemMgr *mm, BtorMsg *msg, BtorAIGVecMgr *avmgr)
 {
-  assert (avmgr);
   assert (mm);
+  assert (msg);
+  assert (avmgr);
 
   BtorAIGVecMgr *res;
   BTOR_NEW (mm, res);
 
-  res->mm        = mm;
-  res->verbosity = avmgr->verbosity;
-  res->amgr      = btor_clone_aig_mgr (mm, avmgr->amgr);
+  res->mm   = mm;
+  res->msg  = msg;
+  res->amgr = btor_clone_aig_mgr (mm, msg, avmgr->amgr);
   return res;
-}
-
-void
-btor_set_verbosity_aigvec_mgr (BtorAIGVecMgr *avmgr, int verbosity)
-{
-  assert (avmgr);
-  assert (verbosity >= -1);
-  avmgr->verbosity = verbosity;
 }
 
 void
@@ -740,8 +737,7 @@ btor_delete_aigvec_mgr (BtorAIGVecMgr *avmgr)
 BtorAIGMgr *
 btor_get_aig_mgr_aigvec_mgr (const BtorAIGVecMgr *avmgr)
 {
-  assert (avmgr);
-  return avmgr->amgr;
+  return avmgr ? avmgr->amgr : 0;
 }
 
 char *

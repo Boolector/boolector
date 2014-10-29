@@ -12,7 +12,7 @@ SRCDIRS=. parser dumper
 LIBOBJ=$(patsubst %.c,%.o,$(foreach d,$(SRCDIRS),$(wildcard $(d)/btor[a-z]*.c)))
 LIBOBJ+=boolector.o $(OBJS)
 SRC=$(foreach d,$(SRCDIRS),$(wildcard $(d)/*.[c|h|cc]))
-TARGETS=boolector synthebtor deltabtor btorfmt.o btor2horn
+TARGETS=@TARGETS@
 
 all: libboolector.a $(TARGETS)
 
@@ -20,6 +20,9 @@ all: libboolector.a $(TARGETS)
 -include test.mk
 -include ibv.mk
 -include mbt.mk
+-include python.mk
+-include synthebtor.mk
+-include btor2horn.mk
 
 %.o: %.c
 	$(CC) $(CFLAGS) $(INCS) -c $< -o $@
@@ -35,16 +38,7 @@ dependencies: btorconfig.h $(SRC) makefile
 	$(CC) $(CFLAGS) $(INCS) -MM $$srcdir/*.[ch] $$srcdir/*.cc 2>/dev/null | \
 	sed -e 's,\(.*\):,'$$srcdir/'\1: makefile,' >>$@; done
 boolector: boolectormain.o libboolector.a $(LDEPS)
-	$(CC) $(CFLAGS) $(INCS) -o $@ boolectormain.o -L. -lboolector $(LIBS)
-
-synthebtor: synthebtor.o libboolector.a $(LDEPS)
-	$(CC) $(CFLAGS) $(INCS) -o $@ synthebtor.o -L. -lboolector $(LIBS)
-
-deltabtor: deltabtor.c makefile $(LDEPS)
-	$(CC) $(CFLAGS) $(INCS) -o $@ deltabtor.c
-
-btor2horn: btor2horn.o btorfmt.o makefile
-	$(CC) $(CFLAGS) $(INCS) -o $@ btor2horn.o btorfmt.o
+	$(CC) $(CFLAGS) $(INCS) -o $@ boolectormain.o -L. -lboolector $(LIBS) $(LDEPS)
 
 libboolector.a: $(LIBOBJ)
 	rm -f $@
@@ -53,6 +47,11 @@ libboolector.a: $(LIBOBJ)
 
 btorconfig.h: makefile VERSION mkconfig
 	rm -f $@; ./mkconfig > $@
+
+SONAME=-Xlinker -soname -Xlinker libboolector.so
+SHOBJS=$(filter-out ./btormbt.o ./btoruntrace.o ./btormain, $(LIBOBJ))
+libboolector.so: $(SHOBJS)
+	$(CC) $(CFLAGS) -shared -o $@ $(SHOBJS) $(LIBS) $(SONAME)
 
 clean:
 	rm -f $(TARGETS)
@@ -63,6 +62,5 @@ clean:
 	rm -f dumper/*.gcda dumper/*.gcno dumper/*.gcov
 	rm -f log/*.log *.tmp
 	rm -f *.a $(foreach d,$(SRCDIRS),$(d)/*.o)
-	rm -f btormbt btoruntrace
 
 .PHONY: all analyze clean

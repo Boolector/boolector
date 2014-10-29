@@ -9,11 +9,11 @@ int
 main ()
 {
   int sat_result;
-  BtorNode *array, *index1, *index2, *read1, *read2, *eq, *ne;
+  BoolectorNode *array, *index1, *index2, *read1, *read2, *eq, *ne;
   Btor *btor;
 
   btor = boolector_new ();
-  boolector_enable_inc_usage (btor);
+  boolector_set_opt (btor, "incremental", 1);
 
   array = boolector_array (
       btor, ARRAY3_EXAMPLE_VALUE_BW, ARRAY3_EXAMPLE_INDEX_BW, NULL);

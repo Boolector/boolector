@@ -11,38 +11,20 @@
 11 eq 1 10 9
 12 slice 37 1 38 2
 13 param 1
-14 var 1 v144
-15 eq 1 14 13
-16 var 37 v150
-17 array 37 1 DAN3
-18 args 1 13
-;19 apply 37 17 18
-19 var 37
-20 cond 37 15 16 19
-21 lambda 37 1 13 19 
-22 args 1 9
-23 apply 37 21 22
-24 cond 37 11 12 23
-25 lambda 37 1 9 24
-26 param 37
-27 param 37
-28 param 37
-29 var 72 v1265
-30 lambda 72 37 28 29
-31 lambda 72 37 27 30
-32 lambda 72 37 26 29
-33 var 37 v1295
-34 var 37 v1443
-35 args 37 12
-36 apply 72 32 35
-37 slice 1 36 15 15
-38 args 1 37
-39 apply 37 25 38
-40 slice 19 39 35 17
-41 args 19 40
-42 apply 1 8 41
-43 lambda 1 94 1 42
-44 var 94 v1630
-45 args 94 44
-46 apply 1 43 45
-47 root 1 -46
+14 var 37 19
+15 lambda 37 1 13 14
+17 apply 37 15 9
+18 cond 37 11 12 17
+19 lambda 37 1 9 18
+20 param 37
+21 var 72 v1265
+22 lambda 72 37 20 21
+24 apply 72 22 12
+25 slice 1 24 15 15
+27 apply 37 19 25
+28 slice 19 27 35 17
+30 apply 1 8 28
+31 lambda 1 94 1 30
+32 var 94 v1630
+34 apply 1 31 32
+35 root 1 -34

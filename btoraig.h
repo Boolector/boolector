@@ -2,7 +2,8 @@
  *
  *  Copyright (C) 2007-2009 Robert Daniel Brummayer.
  *  Copyright (C) 2007-2012 Armin Biere.
- *  Copyright (C) 2013 Aina Niemetz.
+ *  Copyright (C) 2013-2014 Aina Niemetz.
+ *  Copyright (C) 2014 Mathias Preiner.
  *
  *  All rights reserved.
  *
@@ -52,6 +53,7 @@ typedef struct BtorAIGUniqueTable BtorAIGUniqueTable;
 struct BtorAIGMgr
 {
   BtorMemMgr *mm;
+  BtorMsg *msg;
   BtorAIGUniqueTable table;
   int id;
   int verbosity;
@@ -97,10 +99,10 @@ typedef struct BtorAIGMgr BtorAIGMgr;
 /* Creates new AIG manager. An AIG manager is used by nearly all functions
  * of the AIG layer.
  */
-BtorAIGMgr *btor_new_aig_mgr (BtorMemMgr *mm);
+BtorAIGMgr *btor_new_aig_mgr (BtorMemMgr *mm, BtorMsg *msg);
 
 /* Clones AIG manager. */
-BtorAIGMgr *btor_clone_aig_mgr (BtorMemMgr *mm, BtorAIGMgr *amgr);
+BtorAIGMgr *btor_clone_aig_mgr (BtorMemMgr *mm, BtorMsg *msg, BtorAIGMgr *amgr);
 
 /* Clone all aigs managed by the AIG manager. This needs to be done after
  * cloning the aig manager, as aig_map needs an associated aig manager clone. */

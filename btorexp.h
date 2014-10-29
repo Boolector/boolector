@@ -2,7 +2,7 @@
  *
  *  Copyright (C) 2007-2009 Robert Daniel Brummayer.
  *  Copyright (C) 2007-2013 Armin Biere.
- *  Copyright (C) 2012-2013 Aina Niemetz.
+ *  Copyright (C) 2012-2014 Aina Niemetz.
  *  Copyright (C) 2012-2014 Mathias Preiner.
  *
  *  All rights reserved.
@@ -50,30 +50,29 @@ enum BtorNodeKind
    * make delta debugging of Heisenbugs in release mode more
    * difficult.
    */
-  BTOR_INVALID_NODE   = 0,
-  BTOR_BV_CONST_NODE  = 1,
-  BTOR_BV_VAR_NODE    = 2,
-  BTOR_ARRAY_VAR_NODE = 3,
-  BTOR_PARAM_NODE     = 4, /* parameter for lambda expressions */
-  BTOR_SLICE_NODE     = 5,
-  BTOR_AND_NODE       = 6,
-  BTOR_BEQ_NODE       = 7, /* equality on bit vectors */
-  BTOR_AEQ_NODE       = 8, /* equality on arrays */
-  BTOR_ADD_NODE       = 9,
-  BTOR_MUL_NODE       = 10,
-  BTOR_ULT_NODE       = 11,
-  BTOR_SLL_NODE       = 12,
-  BTOR_SRL_NODE       = 13,
-  BTOR_UDIV_NODE      = 14,
-  BTOR_UREM_NODE      = 15,
-  BTOR_CONCAT_NODE    = 16,
-  BTOR_APPLY_NODE     = 17,
-  BTOR_LAMBDA_NODE    = 18, /* lambda expression */
-  BTOR_BCOND_NODE     = 19, /* conditional on bit vectors */
-  BTOR_ARGS_NODE      = 20,
-  BTOR_UF_NODE        = 21,
-  BTOR_PROXY_NODE     = 22, /* simplified expression without children */
-  BTOR_NUM_OPS_NODE   = 23
+  BTOR_INVALID_NODE  = 0,
+  BTOR_BV_CONST_NODE = 1,
+  BTOR_BV_VAR_NODE   = 2,
+  BTOR_PARAM_NODE    = 3, /* parameter for lambda expressions */
+  BTOR_SLICE_NODE    = 4,
+  BTOR_AND_NODE      = 5,
+  BTOR_BEQ_NODE      = 6, /* equality on bit vectors */
+  BTOR_FEQ_NODE      = 7, /* equality on arrays */
+  BTOR_ADD_NODE      = 8,
+  BTOR_MUL_NODE      = 9,
+  BTOR_ULT_NODE      = 10,
+  BTOR_SLL_NODE      = 11,
+  BTOR_SRL_NODE      = 12,
+  BTOR_UDIV_NODE     = 13,
+  BTOR_UREM_NODE     = 14,
+  BTOR_CONCAT_NODE   = 15,
+  BTOR_APPLY_NODE    = 16,
+  BTOR_LAMBDA_NODE   = 17, /* lambda expression */
+  BTOR_BCOND_NODE    = 18, /* conditional on bit vectors */
+  BTOR_ARGS_NODE     = 19,
+  BTOR_UF_NODE       = 20,
+  BTOR_PROXY_NODE    = 21, /* simplified expression without children */
+  BTOR_NUM_OPS_NODE  = 22
 
   // NOTE: do not change this without changing 'g_btor_op2string' too ...
 };
@@ -93,6 +92,7 @@ typedef struct BtorNodePair BtorNodePair;
     unsigned int beta_mark : 2;  /* mark for beta_reduce */             \
     unsigned int eval_mark : 2;  /* mark for eval_exp */                \
     unsigned int synth_mark : 2; /* mark for synthesize_exp */          \
+    unsigned int clone_mark : 2; /* mark for clone_exp_tree */          \
     unsigned int reachable : 1;  /* reachable from root ? */            \
     unsigned int tseitin : 1;    /* tseitin encoded into SAT ? */       \
     unsigned int lazy_tseitin : 1;                                      \
@@ -105,6 +105,7 @@ typedef struct BtorNodePair BtorNodePair;
     unsigned int bytes : 9;         /* allocated bytes */               \
     unsigned int parameterized : 1; /* param as sub expression ? */     \
     unsigned int lambda_below : 1;  /* lambda as sub expression ? */    \
+    unsigned int apply_below : 1;                                       \
     unsigned int merge : 1;                                             \
     unsigned int is_write : 1;                                          \
     unsigned int is_read : 1;                                           \
@@ -117,7 +118,6 @@ typedef struct BtorNodePair BtorNodePair;
     int ext_refs;  /* external references counter */                    \
     int parents;   /* number of parents */                              \
     int arity;     /* arity of operator */                              \
-    float score;   /* nvsids score for apply propagation */             \
     union                                                               \
     {                                                                   \
       BtorAIGVec *av;        /* synthesized AIG vector */               \
@@ -136,8 +136,7 @@ typedef struct BtorNodePair BtorNodePair;
   {                                                                   \
     struct                                                            \
     {                                                                 \
-      char *symbol; /* symbol for output */                           \
-      int upper;    /* upper index for slices */                      \
+      int upper; /* upper index for slices */                         \
       union                                                           \
       {                                                               \
         int lower;            /* lower index for slices */            \
@@ -153,26 +152,18 @@ typedef struct BtorNodePair BtorNodePair;
 struct BtorBVVarNode
 {
   BTOR_BV_NODE_STRUCT;
-  char *symbol;
+  int btor_id; /* id as defined in btor input */
 };
 
 typedef struct BtorBVVarNode BtorBVVarNode;
 
-struct BtorArrayVarNode
-{
-  BTOR_BV_NODE_STRUCT;
-  char *symbol;
-  int index_len;
-};
-
-typedef struct BtorArrayVarNode BtorArrayVarNode;
-
 struct BtorUFNode
 {
   BTOR_BV_NODE_STRUCT;
-  char *symbol;
+  int btor_id; /* id as defined in btor input */
   BtorSort *sort;
   int num_params;
+  char is_array;
 };
 
 typedef struct BtorUFNode BtorUFNode;
@@ -214,7 +205,6 @@ typedef struct BtorLambdaNode BtorLambdaNode;
 struct BtorParamNode
 {
   BTOR_BV_NODE_STRUCT;
-  char *symbol;
   BtorLambdaNode *lambda_exp; /* 1:1 relation param:lambda_exp */
   BtorNode *assigned_exp;
 };
@@ -230,19 +220,21 @@ struct BtorArgsNode
 
 typedef struct BtorArgsNode BtorArgsNode;
 
+#define BTOR_IS_INVALID_NODE_KIND(kind) ((kind) == BTOR_INVALID_NODE)
+
 #define BTOR_IS_AND_NODE_KIND(kind) ((kind) == BTOR_AND_NODE)
+
+#define BTOR_IS_SLICE_NODE_KIND(kind) ((kind) == BTOR_SLICE_NODE)
 
 #define BTOR_IS_BV_CONST_NODE_KIND(kind) ((kind) == BTOR_BV_CONST_NODE)
 
 #define BTOR_IS_BV_VAR_NODE_KIND(kind) ((kind) == BTOR_BV_VAR_NODE)
 
-#define BTOR_IS_ARRAY_VAR_NODE_KIND(kind) (kind == BTOR_ARRAY_VAR_NODE)
-
 #define BTOR_IS_PARAM_NODE_KIND(kind) ((kind) == BTOR_PARAM_NODE)
 
 #define BTOR_IS_BV_EQ_NODE_KIND(kind) (kind == BTOR_BEQ_NODE)
 
-#define BTOR_IS_ARRAY_EQ_NODE_KIND(kind) (kind == BTOR_AEQ_NODE)
+#define BTOR_IS_ARRAY_EQ_NODE_KIND(kind) (kind == BTOR_FEQ_NODE)
 
 #define BTOR_IS_LAMBDA_NODE_KIND(kind) ((kind) == BTOR_LAMBDA_NODE)
 
@@ -268,16 +260,17 @@ typedef struct BtorArgsNode BtorArgsNode;
 
 #define BTOR_IS_TERNARY_NODE_KIND(kind) (((kind) >= BTOR_BCOND_NODE))
 
+#define BTOR_IS_INVALID_NODE(exp) \
+  ((exp) && BTOR_IS_INVALID_NODE_KIND ((exp)->kind))
+
 #define BTOR_IS_AND_NODE(exp) ((exp) && BTOR_IS_AND_NODE_KIND ((exp)->kind))
 
+#define BTOR_IS_SLICE_NODE(exp) ((exp) && BTOR_IS_SLICE_NODE_KIND ((exp)->kind))
 #define BTOR_IS_BV_CONST_NODE(exp) \
   ((exp) && BTOR_IS_BV_CONST_NODE_KIND ((exp)->kind))
 
 #define BTOR_IS_BV_VAR_NODE(exp) \
   ((exp) && BTOR_IS_BV_VAR_NODE_KIND ((exp)->kind))
-
-#define BTOR_IS_ARRAY_VAR_NODE(exp) \
-  ((exp) && BTOR_IS_ARRAY_VAR_NODE_KIND ((exp)->kind))
 
 #define BTOR_IS_PARAM_NODE(exp) ((exp) && BTOR_IS_PARAM_NODE_KIND ((exp)->kind))
 
@@ -299,9 +292,6 @@ typedef struct BtorArgsNode BtorArgsNode;
 #define BTOR_IS_APPLY_NODE(exp) ((exp) && BTOR_IS_APPLY_NODE_KIND ((exp)->kind))
 
 #define BTOR_IS_WRITE_NODE(exp) ((exp) && BTOR_IS_WRITE_NODE_KIND ((exp)->kind))
-
-#define BTOR_IS_ARRAY_COND_NODE(exp) \
-  ((exp) && BTOR_IS_ARRAY_COND_NODE_KIND ((exp)->kind))
 
 #define BTOR_IS_BV_COND_NODE(exp) \
   ((exp) && BTOR_IS_BV_COND_NODE_KIND ((exp)->kind))
@@ -359,9 +349,11 @@ typedef struct BtorArgsNode BtorArgsNode;
   (BTOR_IS_LAMBDA_NODE (exp)              \
    && (((BtorLambdaNode *) exp)->head == (BtorLambdaNode *) exp))
 
-#define BTOR_IS_FUN_NODE(exp)                                \
-  (BTOR_IS_LAMBDA_NODE (exp) || BTOR_IS_ARRAY_VAR_NODE (exp) \
-   || BTOR_IS_UF_NODE (exp))
+#define BTOR_IS_FUN_NODE(exp) \
+  (BTOR_IS_LAMBDA_NODE (exp) || BTOR_IS_UF_NODE (exp))
+
+#define BTOR_IS_UF_ARRAY_NODE(exp) \
+  ((exp) && BTOR_IS_UF_NODE (exp) && ((BtorUFNode *) exp)->is_array)
 
 #define BTOR_IS_BOUND_PARAM_NODE(exp) (((BtorParamNode *) exp)->lambda_exp != 0)
 
@@ -370,15 +362,16 @@ typedef struct BtorArgsNode BtorArgsNode;
 #define BTOR_PARAM_SET_LAMBDA_NODE(param, lambda) \
   (((BtorParamNode *) BTOR_REAL_ADDR_NODE (param))->lambda_exp = lambda)
 
-#define BTOR_LAMBDA_GET_NESTED(exp) (((BtorLambdaNode *) exp)->head)
+#define BTOR_LAMBDA_GET_HEAD(exp) (((BtorLambdaNode *) exp)->head)
 
 #define BTOR_LAMBDA_GET_PARAM(exp) (((BtorParamNode *) exp->e[0]))
 
 #define BTOR_LAMBDA_GET_BODY(exp) (((BtorLambdaNode *) exp)->body)
 
-#define BTOR_ARRAY_INDEX_LEN(exp)                                        \
-  ((BTOR_IS_ARRAY_VAR_NODE (exp) ? ((BtorArrayVarNode *) exp)->index_len \
-                                 : BTOR_LAMBDA_GET_PARAM (exp)->len))
+#define BTOR_ARRAY_INDEX_LEN(exp)                           \
+  (BTOR_IS_UF_ARRAY_NODE (exp)                              \
+       ? ((BtorUFNode *) exp)->sort->fun.domain->bitvec.len \
+       : BTOR_LAMBDA_GET_PARAM (exp)->len)
 
 /*------------------------------------------------------------------------*/
 
@@ -403,6 +396,10 @@ int btor_compare_exp_by_id (BtorNode *exp0, BtorNode *exp1);
 
 /* Hashes expression by ID */
 unsigned int btor_hash_exp_by_id (BtorNode *exp);
+
+/*------------------------------------------------------------------------*/
+
+void btor_set_btor_id (Btor *btor, BtorNode *exp, int id);
 
 /*------------------------------------------------------------------------*/
 /* Implicit precondition of all functions taking expressions as inputs:
@@ -830,14 +827,35 @@ int btor_get_exp_len (Btor *btor, BtorNode *exp);
 /* Determines if expression is an array or not. */
 int btor_is_array_exp (Btor *btor, BtorNode *exp);
 
-/* Determines if expression is an array variable or not. */
-int btor_is_array_var_exp (Btor *btor, BtorNode *exp);
+/* Determines if expression is an uf or array variable or not. */
+int btor_is_uf_array_var_exp (Btor *btor, BtorNode *exp);
+
+/* Determines if expression is a bv variable or not. */
+int btor_is_bv_var_exp (Btor *btor, BtorNode *exp);
 
 /* Gets the number of bits used by indices on 'e_array'. */
 int btor_get_index_exp_len (Btor *btor, BtorNode *e_array);
 
-/* Gets the symbol of a variable. */
+/* Get the id of an expression. */
+int btor_get_id (Btor *btor, BtorNode *exp);
+
+/* Retrieve the exp (belonging to instance 'btor') that matches given id.
+ * (Note: increases ref counter of returned match!) */
+BtorNode *btor_match_node_by_id (Btor *btor, int id);
+
+/* Retrieve the exp (belonging to instance 'btor') that matches given
+ * expression by id. This is intended to be used for handling expressions
+ * of a cloned instance (in a clone and its parent, expressions
+ * with the same id correspond to each other, i.e. initially, the cloned
+ * expression is an identical copy of the parent expression).
+ * (Note: increases ref counter of return match!) */
+BtorNode *btor_match_node (Btor *btor, BtorNode *exp);
+
+/* Gets the symbol of an expression. */
 char *btor_get_symbol_exp (Btor *btor, BtorNode *exp);
+
+/* Sets the symbol of an expression. */
+void btor_set_symbol_exp (Btor *btor, BtorNode *exp, const char *symbol);
 
 /* Determines if expression is a param or not. */
 int btor_is_param_exp (Btor *btor, BtorNode *exp);
@@ -866,6 +884,10 @@ void btor_release_exp (Btor *btor, BtorNode *exp);
 /* Convert 'exp' to a proxy expression.
  * NOTE: 'exp' must be already simplified */
 void btor_set_to_proxy_exp (Btor *btor, BtorNode *exp);
+
+/* Return a pointer to the unique table location of 'exp', if present.
+ * Else, result pointer is the location where 'exp' may be inserted. */
+BtorNode **btor_find_unique_exp (Btor *btor, BtorNode *exp);
 
 /*------------------------------------------------------------------------*/
 

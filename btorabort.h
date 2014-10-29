@@ -2,7 +2,7 @@
  *
  *  Copyright (C) 2007-2009 Robert Daniel Brummayer.
  *  Copyright (C) 2007-2013 Armin Biere.
- *  Copyright (C) 2013 Aina Niemetz
+ *  Copyright (C) 2013-2014 Aina Niemetz
  *
  *  All rights reserved.
  *
@@ -17,6 +17,19 @@
 #include "btorexit.h"
 
 #include <stdlib.h>
+
+/*------------------------------------------------------------------------*/
+
+#define BTOR_WARN_DEPRECATED(msg...)                             \
+  do                                                             \
+  {                                                              \
+    fprintf (stderr,                                             \
+             "[%s] function %s is deprected, use %s instead \n", \
+             __FILE__,                                           \
+             __FUNCTION__,                                       \
+             ##msg);                                             \
+    fflush (stderr);                                             \
+  } while (0)
 
 /*------------------------------------------------------------------------*/
 

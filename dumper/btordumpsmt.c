@@ -2,7 +2,8 @@
  *
  *  Copyright (C) 2007-2009 Robert Daniel Brummayer.
  *  Copyright (C) 2007-2013 Armin Biere.
- *  Copyright (C) 2012-2013 Aina Niemetz, Mathias Preiner.
+ *  Copyright (C) 2012-2013 Mathias Preiner.
+ *  Copyright (C) 2012-2014 Aina Niemetz.
  *
  *  All rights reserved.
  *
@@ -16,6 +17,7 @@
 #include "btorexit.h"
 #include "btorhash.h"
 #include "btoriter.h"
+#include "btorsort.h"
 #ifndef NDEBUG
 #include "btorclone.h"
 #endif
@@ -32,7 +34,7 @@ struct BtorSMTDumpContext
   BtorNodePtrStack roots;
   FILE *file;
   int maxid;
-  int pprint;
+  int pretty_print;
   int version;
   int open_lets;
 };
@@ -46,20 +48,20 @@ new_smt_dump_context (Btor *btor, FILE *file, int version)
   BtorSMTDumpContext *sdc;
   BTOR_CNEW (btor->mm, sdc);
 
-  sdc->btor    = btor;
-  sdc->dump    = btor_new_ptr_hash_table (btor->mm,
+  sdc->btor         = btor;
+  sdc->dump         = btor_new_ptr_hash_table (btor->mm,
                                        (BtorHashPtr) btor_hash_exp_by_id,
                                        (BtorCmpPtr) btor_compare_exp_by_id);
-  sdc->mark    = btor_new_ptr_hash_table (btor->mm,
+  sdc->mark         = btor_new_ptr_hash_table (btor->mm,
                                        (BtorHashPtr) btor_hash_exp_by_id,
                                        (BtorCmpPtr) btor_compare_exp_by_id);
-  sdc->idtab   = btor_new_ptr_hash_table (btor->mm,
+  sdc->idtab        = btor_new_ptr_hash_table (btor->mm,
                                         (BtorHashPtr) btor_hash_exp_by_id,
                                         (BtorCmpPtr) btor_compare_exp_by_id);
-  sdc->file    = file;
-  sdc->maxid   = 1;
-  sdc->pprint  = btor->options.pprint;
-  sdc->version = version;
+  sdc->file         = file;
+  sdc->maxid        = 1;
+  sdc->pretty_print = btor->options.pretty_print.val;
+  sdc->version      = version;
 
   BTOR_INIT_STACK (sdc->roots);
   return sdc;
@@ -102,7 +104,7 @@ smt_id (BtorSMTDumpContext *sdc, BtorNode *exp)
 
   BtorPtrHashBucket *b;
 
-  if (sdc->pprint)
+  if (sdc->pretty_print)
   {
     b = btor_find_in_ptr_hash_table (sdc->idtab, exp);
 
@@ -131,22 +133,24 @@ dump_smt_id (BtorSMTDumpContext *sdc, BtorNode *exp)
 
   switch (u->kind)
   {
-    case BTOR_BV_VAR_NODE: type = "v"; goto VAR_PARAM_NODE;
+    case BTOR_BV_VAR_NODE: type = "v"; goto DUMP_SYMBOL;
 
     case BTOR_PARAM_NODE:
       type = "p";
-    VAR_PARAM_NODE:
-      sym = u->symbol;
-      if (!isdigit (sym[0]))
+    DUMP_SYMBOL:
+      sym = btor_get_symbol_exp (sdc->btor, u);
+      if (sym && !isdigit (sym[0]))
       {
         fputs (sym, sdc->file);
         goto CLOSE;
       }
       break;
 
-    case BTOR_ARRAY_VAR_NODE: type = "a"; break;
+    case BTOR_UF_NODE:
+      type = BTOR_IS_UF_ARRAY_NODE (u) ? "a" : "uf";
+      goto DUMP_SYMBOL;
 
-    case BTOR_LAMBDA_NODE: type = "f"; break;
+    case BTOR_LAMBDA_NODE: type = "f"; goto DUMP_SYMBOL;
 
     default: type = sdc->version == 1 ? "?e" : "$e";
   }
@@ -168,26 +172,86 @@ dump_bit_smt (BtorSMTDumpContext *sdc, int bit)
 }
 
 static void
+dump_sort_smt_aux (BtorSMTDumpContext *sdc, BtorSort *sort)
+{
+  int i;
+  const char *fmt;
+
+  switch (sort->kind)
+  {
+    case BTOR_BOOL_SORT: fputs ("Bool", sdc->file); break;
+
+    case BTOR_BITVEC_SORT:
+      fmt = sdc->version == 1 ? "BitVec[%d]" : "(_ BitVec %d)";
+      fprintf (sdc->file, fmt, sort->bitvec.len);
+      break;
+
+    case BTOR_ARRAY_SORT:
+      fmt = sdc->version == 1 ? "Array[%d:%d]"
+                              : "(Array (_ BitVec %d) (_ BitVec %d))";
+      assert (sort->array.index->kind == BTOR_BITVEC_SORT);
+      assert (sort->array.element->kind == BTOR_BITVEC_SORT);
+      fprintf (sdc->file,
+               fmt,
+               sort->array.index->bitvec.len,
+               sort->array.element->bitvec.len);
+      break;
+
+    case BTOR_FUN_SORT:
+      /* print domain */
+      if (sdc->version == 2) fputc ('(', sdc->file);
+      if (sort->fun.domain->kind == BTOR_TUPLE_SORT)
+      {
+        for (i = 0; i < sort->fun.domain->tuple.num_elements; i++)
+        {
+          dump_sort_smt_aux (sdc, sort->fun.domain->tuple.elements[i]);
+          if (i < sort->fun.domain->tuple.num_elements - 1)
+            fputc (' ', sdc->file);
+        }
+      }
+      else
+        dump_sort_smt_aux (sdc, sort->fun.domain);
+      if (sdc->version == 2) fputc (')', sdc->file);
+      fputc (' ', sdc->file);
+
+      /* print co-domain */
+      dump_sort_smt_aux (sdc, sort->fun.codomain);
+      break;
+
+    default: assert (0);
+  }
+}
+
+static void
 dump_sort_smt (BtorSMTDumpContext *sdc, BtorNode *exp)
 {
   assert (sdc);
   assert (exp);
 
-  const char *fmt;
+  BtorSort *sort, tmp, index, element;
+
   exp = BTOR_REAL_ADDR_NODE (exp);
 
-  if (BTOR_IS_ARRAY_VAR_NODE (exp))
+  if (BTOR_IS_UF_ARRAY_NODE (exp))
   {
-    fmt = sdc->version == 1 ? "Array[%d:%d]"
-                            : "(Array (_ BitVec %d) (_ BitVec %d))";
-    fprintf (sdc->file, fmt, BTOR_ARRAY_INDEX_LEN (exp), exp->len);
+    index.kind         = BTOR_BITVEC_SORT;
+    index.bitvec.len   = BTOR_ARRAY_INDEX_LEN (exp);
+    element.kind       = BTOR_BITVEC_SORT;
+    element.bitvec.len = exp->len;
+    tmp.kind           = BTOR_ARRAY_SORT;
+    tmp.array.index    = &index;
+    tmp.array.element  = &element;
+    sort               = &tmp;
   }
-  // TODO: bool?
+  else if (BTOR_IS_UF_NODE (exp))
+    sort = ((BtorUFNode *) exp)->sort;
   else
   {
-    fmt = sdc->version == 1 ? "BitVec[%d]" : "(_ BitVec %d)";
-    fprintf (sdc->file, fmt, exp->len);
+    tmp.kind       = BTOR_BITVEC_SORT;
+    tmp.bitvec.len = exp->len;
+    sort           = &tmp;
   }
+  dump_sort_smt_aux (sdc, sort);
 }
 
 static void
@@ -278,7 +342,7 @@ dump_exp_smt (BtorSMTDumpContext *sdc, BtorNode *exp)
     case BTOR_APPLY_NODE:
       fputc ('(', sdc->file);
       /* array select */
-      if (BTOR_IS_ARRAY_VAR_NODE (exp->e[0]))
+      if (BTOR_IS_UF_ARRAY_NODE (exp->e[0]))
       {
         fputs ("select ", sdc->file);
         dump_smt_id (sdc, exp->e[0]);
@@ -502,10 +566,10 @@ dump_fun_smt2 (BtorSMTDumpContext *sdc, BtorNode *fun)
   btor_delete_ptr_hash_table (mark);
 }
 
-// TODO: needs to be extended for UF
 static void
 dump_declare_fun_smt (BtorSMTDumpContext *sdc, BtorNode *exp)
 {
+  assert (!btor_find_in_ptr_hash_table (sdc->mark, exp));
   if (sdc->version == 1)
   {
     fputs (":extrafuns ((", sdc->file);
@@ -518,17 +582,12 @@ dump_declare_fun_smt (BtorSMTDumpContext *sdc, BtorNode *exp)
   {
     fputs ("(declare-fun ", sdc->file);
     dump_smt_id (sdc, exp);
-    fputs (" () ", sdc->file);
+    fputc (' ', sdc->file);
+    if (BTOR_IS_BV_VAR_NODE (exp) || BTOR_IS_UF_ARRAY_NODE (exp))
+      fputs ("() ", sdc->file);
     dump_sort_smt (sdc, exp);
     fputs (")\n", sdc->file);
   }
-}
-
-static void
-dump_var_smt (BtorSMTDumpContext *sdc, BtorNode *exp)
-{
-  assert (!btor_find_in_ptr_hash_table (sdc->mark, exp));
-  dump_declare_fun_smt (sdc, exp);
   btor_insert_in_ptr_hash_table (sdc->mark, exp);
 }
 
@@ -588,7 +647,7 @@ dump_smt (BtorSMTDumpContext *sdc)
   int i, j;
   BtorNode *e, *cur;
   BtorMemMgr *mm;
-  BtorNodePtrStack visit, consts, vars, arrays, funs, rem;
+  BtorNodePtrStack visit, consts, vars, arrays, funs, rem, ufs;
   BtorPtrHashTable *roots;
 
   mm = sdc->btor->mm;
@@ -598,6 +657,7 @@ dump_smt (BtorSMTDumpContext *sdc)
   BTOR_INIT_STACK (vars);
   BTOR_INIT_STACK (arrays);
   BTOR_INIT_STACK (funs);
+  BTOR_INIT_STACK (ufs);
 
   roots = btor_new_ptr_hash_table (mm,
                                    (BtorHashPtr) btor_hash_exp_by_id,
@@ -632,8 +692,10 @@ dump_smt (BtorSMTDumpContext *sdc)
       BTOR_PUSH_STACK (mm, consts, cur);
     else if (BTOR_IS_BV_VAR_NODE (cur))
       BTOR_PUSH_STACK (mm, vars, cur);
-    else if (BTOR_IS_ARRAY_VAR_NODE (cur))
+    else if (BTOR_IS_UF_ARRAY_NODE (cur))
       BTOR_PUSH_STACK (mm, arrays, cur);
+    else if (BTOR_IS_UF_NODE (cur))
+      BTOR_PUSH_STACK (mm, ufs, cur);
     else if (BTOR_IS_LAMBDA_NODE (cur) && !cur->parameterized
              && (!BTOR_IS_CURRIED_LAMBDA_NODE (cur)
                  || BTOR_IS_FIRST_CURRIED_LAMBDA (cur)))
@@ -645,7 +707,13 @@ dump_smt (BtorSMTDumpContext *sdc)
 
   /* begin dump */
   if (sdc->version == 1) fputs ("(benchmark dump\n", sdc->file);
-  set_logic_smt (sdc, BTOR_EMPTY_STACK (arrays) ? "QF_BV" : "QF_AUFBV");
+
+  if (BTOR_EMPTY_STACK (arrays) && BTOR_EMPTY_STACK (ufs))
+    set_logic_smt (sdc, "QF_BV");
+  else if (BTOR_EMPTY_STACK (arrays))
+    set_logic_smt (sdc, "QF_UFBV");
+  else
+    set_logic_smt (sdc, "QF_AUFBV");
 
   if (vars.start)
     qsort (vars.start, BTOR_COUNT_STACK (vars), sizeof e, cmp_node_id);
@@ -653,7 +721,16 @@ dump_smt (BtorSMTDumpContext *sdc)
   for (i = 0; i < BTOR_COUNT_STACK (vars); i++)
   {
     cur = BTOR_PEEK_STACK (vars, i);
-    dump_var_smt (sdc, cur);
+    dump_declare_fun_smt (sdc, cur);
+  }
+
+  if (ufs.start)
+    qsort (ufs.start, BTOR_COUNT_STACK (ufs), sizeof e, cmp_node_id);
+
+  for (i = 0; i < BTOR_COUNT_STACK (ufs); i++)
+  {
+    cur = BTOR_PEEK_STACK (ufs, i);
+    dump_declare_fun_smt (sdc, cur);
   }
 
   if (arrays.start)
@@ -662,7 +739,7 @@ dump_smt (BtorSMTDumpContext *sdc)
   for (i = 0; i < BTOR_COUNT_STACK (arrays); i++)
   {
     cur = BTOR_PEEK_STACK (arrays, i);
-    dump_var_smt (sdc, cur);
+    dump_declare_fun_smt (sdc, cur);
   }
 
   if (sdc->version == 1) fputs (":formula\n", sdc->file);
@@ -711,10 +788,7 @@ dump_smt (BtorSMTDumpContext *sdc)
     {
       e = BTOR_PEEK_STACK (sdc->roots, i);
       fputs (" (and ", sdc->file);
-      if (BTOR_REAL_ADDR_NODE (e)->len > 1)
-        WRAP_NON_BOOL_ROOT (e);
-      else
-        dump_smt_id (sdc, e);
+      WRAP_NON_BOOL_ROOT (e);
       open_left_par++;
     }
     fputc (' ', sdc->file);
@@ -752,6 +826,7 @@ dump_smt (BtorSMTDumpContext *sdc)
   BTOR_RELEASE_STACK (mm, vars);
   BTOR_RELEASE_STACK (mm, arrays);
   BTOR_RELEASE_STACK (mm, funs);
+  BTOR_RELEASE_STACK (mm, ufs);
   btor_delete_ptr_hash_table (roots);
 
   if (sdc->version == 2)
@@ -768,8 +843,8 @@ dump_smt_aux (Btor *btor, FILE *file, int version, BtorNode **roots, int nroots)
   assert (btor);
   assert (file);
   assert (version == 1 || version == 2);
-  assert (!btor->options.inc_enabled);
-  //  assert (!btor->options.model_gen);
+  assert (!btor->options.incremental.val);
+  //  assert (!btor->options.model_gen.val);
 
 #ifndef NDEBUG
   Btor *clone;
@@ -783,7 +858,9 @@ dump_smt_aux (Btor *btor, FILE *file, int version, BtorNode **roots, int nroots)
   init_node_hash_table_iterator (&it, btor->lambdas);
   while (has_next_node_hash_table_iterator (&it))
   {
-    if (next_node_hash_table_iterator (&it)->parameterized)
+    temp = next_node_hash_table_iterator (&it);
+
+    if (temp->parameterized && !BTOR_IS_CURRIED_LAMBDA_NODE (temp))
     {
       nested_funs = 1;
       break;
@@ -795,8 +872,8 @@ dump_smt_aux (Btor *btor, FILE *file, int version, BtorNode **roots, int nroots)
   if (nested_funs || version == 1)
   {
 #ifndef NDEBUG
-    clone = btor_clone_btor (btor);
-    btor_enable_force_cleanup (clone);
+    clone = btor_clone_exp_layer (btor, 0, 0);
+    btor_set_opt (clone, BTOR_OPT_AUTO_CLEANUP, 1);
 
     /* update roots if already added */
     for (i = 0; i < nroots; i++)
@@ -812,7 +889,7 @@ dump_smt_aux (Btor *btor, FILE *file, int version, BtorNode **roots, int nroots)
 #endif
     // FIXME: do not beta reduce all lambdas, but eliminate nested ones (new
     //        function)
-    btor_enable_beta_reduce_all (btor);
+    btor_set_opt (btor, BTOR_OPT_BETA_REDUCE_ALL, 1);
   }
 
   sdc = new_smt_dump_context (btor, file, version);
@@ -829,6 +906,8 @@ dump_smt_aux (Btor *btor, FILE *file, int version, BtorNode **roots, int nroots)
     if (ret == BTOR_UNKNOWN)
     {
       init_node_hash_table_iterator (&it, btor->unsynthesized_constraints);
+      queue_node_hash_table_iterator (&it, btor->synthesized_constraints);
+      queue_node_hash_table_iterator (&it, btor->embedded_constraints);
       while (has_next_node_hash_table_iterator (&it))
         add_root_to_smt_dump_context (sdc, next_node_hash_table_iterator (&it));
     }

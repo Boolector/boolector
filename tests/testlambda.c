@@ -1,20 +1,12 @@
 /*  Boolector: Satisfiablity Modulo Theories (SMT) solver.
- *  Copyright (C) 2012 Aina Niemetz, Mathias Preiner
+ *
+ *  Copyright (C) 2012 Mathias Preiner.
+ *  Copyright (C) 2012, 2014 Aina Niemetz.
+ *
+ *  All rights reserved.
  *
  *  This file is part of Boolector.
- *
- *  Boolector is free software: you can redistribute it and/or modify
- *  it under the terms of the GNU General Public License as published by
- *  the Free Software Foundation, either version 3 of the License, or
- *  (at your option) any later version.
- *
- *  Boolector is distributed in the hope that it will be useful,
- *  but WITHOUT ANY WARRANTY; without even the implied warranty of
- *  MERCHANTABILITY or FITNESS FOR A PARTICULAR PURPOSE.  See the
- *  GNU General Public License for more details.
- *
- *  You should have received a copy of the GNU General Public License
- *  along with this program.  If not, see <http://www.gnu.org/licenses/>.
+ *  See COPYING for more information on using this software.
  */
 
 #include "btorbeta.h"
@@ -38,7 +30,7 @@ void
 init_lambda_test (void)
 {
   g_btor = btor_new_btor ();
-  if (g_rwreads) btor_enable_beta_reduce_all (g_btor);
+  if (g_rwreads) btor_set_opt (g_btor, BTOR_OPT_BETA_REDUCE_ALL, 1);
 }
 
 void
@@ -1245,7 +1237,7 @@ test_lambda_reduce_nested_lambdas_const_n1000 (void)
   BtorNode *result;
   BtorNode **params;
   BtorNode **indices;
-  BtorNode *var = btor_var_exp (g_btor, g_elem_bw, "");
+  BtorNode *var = btor_var_exp (g_btor, g_elem_bw, 0);
   BtorNode *fun;
 
   params  = btor_malloc (g_btor->mm, size);
@@ -1253,8 +1245,8 @@ test_lambda_reduce_nested_lambdas_const_n1000 (void)
 
   for (i = nesting_lvl - 1; i >= 0; i--)
   {
-    indices[i] = btor_var_exp (g_btor, g_index_bw, "");
-    params[i]  = btor_param_exp (g_btor, g_index_bw, "");
+    indices[i] = btor_var_exp (g_btor, g_index_bw, 0);
+    params[i]  = btor_param_exp (g_btor, g_index_bw, 0);
   }
   fun = btor_fun_exp (g_btor, nesting_lvl, params, var);
 
@@ -1282,18 +1274,19 @@ test_lambda_reduce_nested_lambdas_const_n1000 (void)
   finish_lambda_test ();
 }
 
+#if 0
 /* (lambda x . (lambda y . (x + y))) (a) */
 static void
 test_lambda_partial_reduce_nested_lambdas_add1 (void)
 {
   init_lambda_test ();
-  BtorNode *a         = btor_var_exp (g_btor, g_elem_bw, "a");
-  BtorNode *x         = btor_param_exp (g_btor, g_elem_bw, "x");
-  BtorNode *y         = btor_param_exp (g_btor, g_elem_bw, "y");
-  BtorNode *add       = btor_add_exp (g_btor, x, y);
+  BtorNode *a = btor_var_exp (g_btor, g_elem_bw, "a");
+  BtorNode *x = btor_param_exp (g_btor, g_elem_bw, "x");
+  BtorNode *y = btor_param_exp (g_btor, g_elem_bw, "y");
+  BtorNode *add = btor_add_exp (g_btor, x, y);
   BtorNode *params[2] = {x, y};
-  BtorNode *fun       = btor_fun_exp (g_btor, 2, params, add);
-  BtorNode *result    = btor_apply_and_reduce (g_btor, 1, &a, fun);
+  BtorNode *fun = btor_fun_exp (g_btor, 2, params, add); 
+  BtorNode *result = btor_apply_and_reduce (g_btor, 1, &a, fun);
 
   /* expected: lambda y' . (a + y') */
   assert (BTOR_IS_LAMBDA_NODE (result));
@@ -1311,6 +1304,7 @@ test_lambda_partial_reduce_nested_lambdas_add1 (void)
   btor_release_exp (g_btor, a);
   finish_lambda_test ();
 }
+#endif
 
 /*---------------------------------------------------------------------------
  * additional tests
@@ -1332,7 +1326,7 @@ test_lambda_define_fun (void)
   ands    = btor_malloc (g_btor->mm, size - sizeof (BtorNode *));
 
   for (i = 0; i < nesting_lvl; i++)
-    params[i] = btor_param_exp (g_btor, g_elem_bw, "");
+    params[i] = btor_param_exp (g_btor, g_elem_bw, 0);
 
   assert (nesting_lvl > 1);
   left  = params[0];

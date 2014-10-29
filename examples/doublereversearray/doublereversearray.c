@@ -2,17 +2,17 @@
 #include <stdio.h>
 #include <stdlib.h>
 #include <string.h>
-#include "../../boolector.h"
-#include "../../btorutil.h"
+#include "boolector.h"
+#include "btorutil.h"
 
-static BtorNode *
+static BoolectorNode *
 reverse_array_mem_xor (Btor *btor,
-                       BtorNode *mem,
+                       BoolectorNode *mem,
                        int num_elements,
-                       BtorNode *start)
+                       BoolectorNode *start)
 {
-  BtorNode *num_elements_m_1, *one, *bottom_exp, *top_exp;
-  BtorNode *temp, *result, *x, *y, *xor;
+  BoolectorNode *num_elements_m_1, *one, *bottom_exp, *top_exp;
+  BoolectorNode *temp, *result, *x, *y, *xor;
   int top, bottom;
   assert (btor != NULL);
   assert (mem != NULL);
@@ -72,11 +72,14 @@ reverse_array_mem_xor (Btor *btor,
   return result;
 }
 
-static BtorNode *
-reverse_array_mem (Btor *btor, BtorNode *mem, int num_elements, BtorNode *start)
+static BoolectorNode *
+reverse_array_mem (Btor *btor,
+                   BoolectorNode *mem,
+                   int num_elements,
+                   BoolectorNode *start)
 {
-  BtorNode *num_elements_m_1, *one, *bottom_exp, *top_exp;
-  BtorNode *temp, *result, *x, *y;
+  BoolectorNode *num_elements_m_1, *one, *bottom_exp, *top_exp;
+  BoolectorNode *temp, *result, *x, *y;
   int top, bottom;
   assert (btor != NULL);
   assert (mem != NULL);
@@ -130,7 +133,7 @@ main (int argc, char **argv)
   int num_elements, i;
   char *string;
   Btor *btor;
-  BtorNode *mem1, *mem2, *orig_mem, *formula, *start;
+  BoolectorNode *mem1, *mem2, *orig_mem, *formula, *start;
   if (argc != 2)
   {
     printf ("Usage: ./doublereversearray <num-elements>\n");
@@ -144,7 +147,7 @@ main (int argc, char **argv)
   }
 
   btor = boolector_new ();
-  boolector_set_rewrite_level (btor, 0);
+  boolector_set_opt (btor, "rewrite_level", 0);
 
   orig_mem = boolector_array (btor, 8, 32, "mem");
   mem1     = boolector_copy (btor, orig_mem);
@@ -163,7 +166,7 @@ main (int argc, char **argv)
   /* memory has to be equal */
   /* we show this by showing that the negation is unsat */
   formula = boolector_ne (btor, mem1, mem2);
-  boolector_dump_btor (btor, stdout, formula);
+  boolector_dump_btor_node (btor, stdout, formula);
   /* clean up */
   boolector_release (btor, formula);
   boolector_release (btor, mem1);

@@ -1,3 +1,59 @@
+news for release 2.0.0 since 1.6.0
+--------------------------------------
+* General:
+  + Boolector python API
+  + cloning support
+  + support for uninterpreted functions
+  + new improved model generation, supports two modes now:
+    - --model-gen=1 or -m:
+	generate model for all asserted expressions
+	(same as model generation in previous versions)
+    - --model-gen=2 or -m -m:
+	generate model for all created expressions
+  + fixed several rewriting bugs
+  + refactored a lot of code 
+  + new output format for models
+* Optimizations:
+  + re-enabled and fixed unconstrained optimization
+  + don't care reasoning on bit vector skeleton
+    - dual propagation optimization
+    - justification optimization
+* API changes:
+  + API functions return node of type BoolectorNode instead of BtorNode
+  + new option handling
+    + can be set via environment variables
+    + set options via boolector_set_opt
+  + new options
+    - for a complete list of options please refer to the documentation of
+      boolector_set_opt
+  + deprecated functions:
+    - boolector_get_symbol_of_var
+      -> use boolector_get_symbol (...)
+    the following functions are obsolete with boolector_set_opt
+    - boolector_enable_model_gen
+      -> use boolector_set_opt ("model_gen", 1)
+    - boolector_generate_model_for_all_reads
+      -> use boolector_set_opt ("model_gen", 2)
+    - boolector_enable_inc_usage 
+      -> use boolector_set_opt ("incremental", 1)
+    - boolector_set_rewrite_level 
+      -> use boolector_set_opt ("rewrite_level", ...)
+    - boolector_set_verbosity
+      -> use boolector_set_opt ("verbosity", ...)
+    - boolector_set_loglevel
+      -> use boolector_set_opt ("loglevel", ...)
+  + new API functions to create uninterpreted functions
+    - boolector_uf
+    - boolector_bool_sort
+    - boolector_bitvec_sort
+    - boolector_fun_sort
+  + limited boolector_sat calls
+    - set lemmas on demand limit
+    - set conflict limit for SAT solver
+* Notes:
+  + If uninterpreted functions occur in the formula it is not possible to
+    dump the formula to BTOR 1.2 format (this will be fixed with BTOR 2.0).
+
 news for release 1.6.0 since 1.5.119
 --------------------------------------
 * extensionality support disabled

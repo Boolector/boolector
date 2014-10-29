@@ -413,7 +413,7 @@ def parse_model(inputfile):
 
 # TODO: 
 #       * formula file should be original btor/smt/smt2
-#         - convert formula to btor with boolector -de -rwl0
+#         - convert formula to btor with boolector -de -rwl 0
 #       * formula fully solvable with rewriting (no sat call required)
 #       * allow model from stdin for piping models directly
 if __name__ == "__main__":
