@@ -724,3 +724,4 @@ normaddneg0 -o log/normaddneg0.log log/normaddneg0.btor
 normaddneg1 -o log/normaddneg1.log log/normaddneg1.btor
 normaddneg2 -o log/normaddneg2.log log/normaddneg2.btor
 normaddneg3 -o log/normaddneg3.log log/normaddneg3.btor
+exactlyone -o log/exactlyone.log log/exactlyone.btor
