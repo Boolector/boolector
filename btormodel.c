@@ -667,6 +667,10 @@ btor_generate_model (Btor *btor, int model_for_all_nodes)
   while (has_next_node_hash_table_iterator (&it))
   {
     cur = btor_simplify_exp (btor, next_node_hash_table_iterator (&it));
+    /* models for UFs are constructed from 'rho' via
+     * 'extract_models_from_functions_with_model' and hence, don't need to be
+     * pushed onto 'stack' */
+    if (BTOR_IS_UF_NODE (BTOR_REAL_ADDR_NODE (cur))) continue;
     BTOR_PUSH_STACK (btor->mm, stack, BTOR_REAL_ADDR_NODE (cur));
   }
 
@@ -689,6 +693,7 @@ btor_generate_model (Btor *btor, int model_for_all_nodes)
   for (i = 0; i < BTOR_COUNT_STACK (stack); i++)
   {
     cur = BTOR_PEEK_STACK (stack, i);
+    assert (!BTOR_IS_UF_NODE (cur));
 
     // TODO: only required in extensional case (not fully supported yet)
     if (BTOR_IS_LAMBDA_NODE (cur))

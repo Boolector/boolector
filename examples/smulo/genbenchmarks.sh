@@ -9,7 +9,7 @@ do
     bitsstring=$bits
   fi
   filename=smulov1bw$bitsstring".smt"
-  ./smulov1 $bits | boolector -rwl 0 -ds | while read line
+  ./smulov1 $bits | boolector -rwl0 -ds1 | while read line
   do
     if [[ $header -eq 1 ]]; then
       echo "(benchmark $filename" > $filename
