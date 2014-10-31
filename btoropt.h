@@ -25,8 +25,6 @@
 #define BTOR_OUTPUT_FORMAT_SMT1 1
 #define BTOR_OUTPUT_FORMAT_SMT2 2
 
-typedef struct Btor Btor;
-
 typedef struct BtorOpt
 {
   int internal;     /* internal option? */
@@ -129,23 +127,27 @@ typedef struct BtorOpts
 
 } BtorOpts;
 
-void btor_init_opts (Btor *btor);
+struct Btor;
 
-void btor_set_opt (Btor *btor, const char *name, int val);
+void btor_init_opts (struct Btor *btor);
+
+void btor_set_opt (struct Btor *btor, const char *name, int val);
 
 /* does not assert existing opt with name 'name',
  * not for boolector internal use */
-BtorOpt *btor_get_opt_aux (Btor *btor, const char *name, int skip_internal);
+BtorOpt *btor_get_opt_aux (struct Btor *btor,
+                           const char *name,
+                           int skip_internal);
 /* asserts existing opt with name 'opt' */
-BtorOpt *btor_get_opt (Btor *btor, const char *name);
+BtorOpt *btor_get_opt (struct Btor *btor, const char *name);
 
-int btor_get_opt_val (Btor *btor, const char *name);
-int btor_get_opt_min (Btor *btor, const char *name);
-int btor_get_opt_max (Btor *btor, const char *name);
-int btor_get_opt_dflt (Btor *btor, const char *name);
-const char *btor_get_opt_shrt (Btor *btor, const char *name);
-const char *btor_get_opt_desc (Btor *btor, const char *name);
+int btor_get_opt_val (struct Btor *btor, const char *name);
+int btor_get_opt_min (struct Btor *btor, const char *name);
+int btor_get_opt_max (struct Btor *btor, const char *name);
+int btor_get_opt_dflt (struct Btor *btor, const char *name);
+const char *btor_get_opt_shrt (struct Btor *btor, const char *name);
+const char *btor_get_opt_desc (struct Btor *btor, const char *name);
 
-const char *btor_first_opt (Btor *btor);
-const char *btor_next_opt (Btor *btor, const char *cur);
+const char *btor_first_opt (struct Btor *btor);
+const char *btor_next_opt (struct Btor *btor, const char *cur);
 #endif
