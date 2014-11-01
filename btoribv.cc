@@ -3013,7 +3013,8 @@ BtorIBV::translate_atom_base (BtorIBVAtom* a)
           BtorIBVRange nr (na->ranges[pos].id,
                            r.msb - r.lsb + na->ranges[pos].lsb,
                            na->ranges[pos].lsb);
-          char* nextname = btor_ibv_atom_base_name (btor, next, nr, 0);
+          char* nextname =
+              btor_ibv_atom_base_name (btor, next, nr, "BtorIBV::past1");
           a->next.exp =
               boolector_input (btormc, (int) nr.getWidth (), nextname);
           btor_freestr (btor->mm, nextname);
@@ -3022,8 +3023,8 @@ BtorIBV::translate_atom_base (BtorIBVAtom* a)
         }
         else
         {
-          char* nextname =
-              btor_ibv_atom_base_name (btor, n, r, "BtorIBV::past");
+          char* nextname = btor_ibv_atom_base_name (
+              btor, n, r, "BtorIBV::past2");  // TODO Why?
           a->next.exp = boolector_input (btormc, (int) r.getWidth (), nextname);
           btor_freestr (btor->mm, nextname);
           (void) boolector_copy (btor, a->next.exp);
