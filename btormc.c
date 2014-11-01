@@ -131,7 +131,7 @@ boolector_set_verbosity_mc (BtorMC *mc, int verbosity)
 {
   BTOR_ABORT_ARG_NULL_BOOLECTOR (mc);
   mc->verbosity = verbosity;
-  boolector_set_opt (mc->btor, "verbosity", verbosity > 0 ? verbosity - 1 : 0);
+  boolector_set_opt (mc->btor, "verbosity", verbosity);
 }
 
 void
@@ -781,8 +781,8 @@ initialize_new_forward_frame (BtorMC *mc)
     mc->forward = btor_new_btor ();
     boolector_set_opt (mc->forward, "incremental", 1);
     if (mc->trace_enabled) boolector_set_opt (mc->forward, "model_gen", 1);
-    if (mc->verbosity > 0)
-      boolector_set_opt (mc->forward, "verbosity", mc->verbosity - 1);
+    if (mc->verbosity)
+      boolector_set_opt (mc->forward, "verbosity", mc->verbosity);
   }
 
   initialize_inputs_of_frame (mc, f);
