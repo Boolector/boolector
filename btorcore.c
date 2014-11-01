@@ -1,7 +1,7 @@
 /*  Boolector: Satisfiablity Modulo Theories (SMT) solver.
  *
  *  Copyright (C) 2007-2009 Robert Daniel Brummayer.
- *  Copyright (C) 2007-2013 Armin Biere.
+ *  Copyright (C) 2007-2014 Armin Biere.
  *  Copyright (C) 2012-2014 Mathias Preiner.
  *  Copyright (C) 2012-2014 Aina Niemetz.
  *
@@ -4546,10 +4546,9 @@ synthesize_exp (Btor *btor, BtorNode *exp, BtorPtrHashTable *backannotation)
       {
         cur->av = btor_var_aigvec (avmgr, cur->len);
         BTORLOG ("  synthesized: %s", node2string (cur));
-        if (backannotation)
+        if (backannotation && (name = btor_get_symbol_exp (btor, cur)))
         {
-          name = btor_get_symbol_exp (btor, cur);
-          len  = (int) strlen (name) + 40;
+          len = (int) strlen (name) + 40;
           if (cur->len > 1)
           {
             indexed_name = btor_malloc (mm, len);
