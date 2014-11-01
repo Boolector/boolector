@@ -227,7 +227,7 @@ BtorIBV::setVerbosity (int v)
 {
   assert (v >= 0);
   verbosity = v;
-  boolector_set_verbosity_mc (btormc, v);
+  boolector_set_verbosity_mc (btormc, v > 0 ? v - 1 : 0);
 }
 
 void
