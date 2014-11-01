@@ -643,7 +643,10 @@ btor_lingeling_init (BtorSATMgr *smgr)
                        (lglalloc) btor_sat_malloc,
                        (lglrealloc) btor_sat_realloc,
                        (lgldealloc) btor_sat_free);
-  if (*smgr->msg->verbosity <= 0) lglsetopt (res->lgl, "verbose", -1);
+  if (*smgr->msg->verbosity <= 0)
+    lglsetopt (res->lgl, "verbose", -1);
+  else if (*smgr->msg->verbosity >= 2)
+    lglsetopt (res->lgl, "verbose", *smgr->msg->verbosity - 1);
   res->blimit = BTOR_LGL_MIN_BLIMIT;
   assert (res);
   if (smgr->optstr)

@@ -3641,7 +3641,7 @@ process_skeleton (Btor *btor)
   lgl = lglinit ();
   lglsetprefix (lgl, "[lglskel] ");
 
-  if (btor->options.verbosity.val)
+  if (btor->options.verbosity.val >= 2)
   {
     lglsetopt (lgl, "verbose", btor->options.verbosity.val - 1);
     lglbnr ("Lingeling", "[lglskel] ", stdout);
