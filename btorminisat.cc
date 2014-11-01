@@ -121,9 +121,11 @@ class BtorMiniSAT : public SimpSolver
 };
 
 void *
-btor_minisat_init (BtorSATMgr *)
+btor_minisat_init (BtorSATMgr *smgr)
 {
-  return new BtorMiniSAT ();
+  BtorMiniSAT *res = new BtorMiniSAT ();
+  if (*smgr->msg->verbosity >= 2) res->verbosity = *smgr->msg->verbosity - 1;
+  return res;
 }
 
 const char *

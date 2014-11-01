@@ -354,6 +354,8 @@ btor_picosat_init (BtorSATMgr *smgr)
                        (picosat_free) btor_sat_free);
 
   picosat_set_global_default_phase (res, 0);
+  if (*smgr->msg->verbosity >= 2)
+    picosat_set_verbosity (res, *smgr->msg->verbosity - 1);
 
   return res;
 }
