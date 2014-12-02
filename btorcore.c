@@ -4053,7 +4053,7 @@ optimize_unconstrained (Btor *btor)
       assert (!btor_find_in_ptr_hash_table (hls, cur));
       btor_insert_in_ptr_hash_table (hls, btor_copy_exp (btor, cur));
       if (BTOR_IS_UF_NODE (cur)
-          || (cur_parent->kind != BTOR_APPLY_NODE
+          || (cur_parent->kind != BTOR_ARGS_NODE
               && cur_parent->kind != BTOR_LAMBDA_NODE))
         BTOR_PUSH_STACK (mm, stack, cur_parent);
     }
