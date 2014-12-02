@@ -679,17 +679,16 @@ btor_generate_model (Btor *btor, int model_for_all_nodes)
     BTOR_PUSH_STACK (btor->mm, stack, BTOR_REAL_ADDR_NODE (cur));
   }
 
-  /* generate model for all expressions (includes non-reachable also) */
-  if (model_for_all_nodes)
+  for (i = 1; i < BTOR_COUNT_STACK (btor->nodes_id_table); i++)
   {
-    for (i = 1; i < BTOR_COUNT_STACK (btor->nodes_id_table); i++)
-    {
-      cur = BTOR_PEEK_STACK (btor->nodes_id_table, i);
-      if (!cur || BTOR_IS_FUN_NODE (cur) || BTOR_IS_ARGS_NODE (cur)
-          || BTOR_IS_PROXY_NODE (cur) || cur->parameterized)
-        continue;
-      BTOR_PUSH_STACK (btor->mm, stack, cur);
-    }
+    cur = BTOR_PEEK_STACK (btor->nodes_id_table, i);
+    if (!cur || BTOR_IS_FUN_NODE (cur) || BTOR_IS_ARGS_NODE (cur)
+        || BTOR_IS_PROXY_NODE (cur)
+        || cur->parameterized
+        /* generate model for all expressions (includes non-reachable) */
+        || (!model_for_all_nodes && !cur->reachable))
+      continue;
+    BTOR_PUSH_STACK (btor->mm, stack, cur);
   }
 
   qsort (
@@ -732,7 +731,7 @@ btor_delete_model (Btor *btor)
   delete_fun_model (btor);
 }
 
-int
+static int
 btor_has_bv_model (Btor *btor, BtorNode *exp)
 {
   assert (btor);
@@ -745,7 +744,7 @@ btor_has_bv_model (Btor *btor, BtorNode *exp)
          != 0;
 }
 
-int
+static int
 btor_has_fun_model (Btor *btor, BtorNode *exp)
 {
   assert (btor);
@@ -784,6 +783,8 @@ btor_get_fun_model (Btor *btor, BtorNode *exp)
 
   BtorPtrHashBucket *b;
 
+  exp = btor_simplify_exp (btor, exp);
+  assert (BTOR_IS_FUN_NODE (exp));
   b = btor_find_in_ptr_hash_table (btor->fun_model, exp);
 
   if (!b) return 0;
@@ -920,11 +921,14 @@ btor_get_bv_model_str (Btor *btor, BtorNode *exp)
 {
   assert (btor);
   assert (exp);
-  assert (btor_has_bv_model (btor, exp));
 
   const char *res;
   const BitVector *bv;
-  // TODO: return 'xxxxx' if we do not have a model for exp
+
+  exp = btor_simplify_exp (btor, exp);
+
+  if (!btor_has_bv_model (btor, exp))
+    return btor_x_const_3vl (btor->mm, BTOR_REAL_ADDR_NODE (exp)->len);
 
   bv  = btor_get_bv_model (btor, exp);
   res = btor_bv_to_char_bv (btor, bv);

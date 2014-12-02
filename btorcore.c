@@ -8496,46 +8496,6 @@ EVAL_EXP_CLEANUP_EXIT:
   return res;
 }
 
-const char *
-btor_bv_assignment_str (Btor *btor, BtorNode *exp)
-{
-  assert (btor);
-  assert (exp);
-  assert (btor->last_sat_result == BTOR_SAT);
-  assert (btor->bv_model);
-
-  const char *assignment;
-
-  exp = btor_simplify_exp (btor, exp);
-  assert (!BTOR_IS_FUN_NODE (BTOR_REAL_ADDR_NODE (exp)));
-
-  if (btor_has_bv_model (btor, exp))
-    assignment = btor_get_bv_model_str (btor, exp);
-  else
-    assignment = bv_assignment_str_exp (btor, exp);
-
-  return assignment;
-}
-
-// TODO: eliminate function, use btor_get_fun_model_str instead
-void
-btor_array_assignment_str (
-    Btor *btor, BtorNode *exp, char ***indices, char ***values, int *size)
-{
-  assert (btor);
-  assert (btor->last_sat_result == BTOR_SAT);
-  assert (exp);
-  assert (BTOR_IS_REGULAR_NODE (exp));
-  assert (indices);
-  assert (values);
-  assert (size);
-
-  exp = btor_simplify_exp (btor, exp);
-  assert (BTOR_IS_FUN_NODE (exp));
-  assert (btor_has_fun_model (btor, exp) || !exp->rho);
-  btor_get_fun_model_str (btor, exp, indices, values, size);
-}
-
 void
 btor_release_bv_assignment_str (Btor *btor, char *assignment)
 {
@@ -8699,8 +8659,8 @@ check_model (Btor *btor, Btor *clone, BtorPtrHashTable *inputs)
     {
       assert (!BTOR_IS_FUN_NODE (real_simp));
       /* we need to invert the assignment if simplified is inverted */
-      a     = (char *) btor_bv_assignment_str (btor,
-                                           BTOR_COND_INVERT_NODE (simp, exp));
+      a     = (char *) btor_get_bv_model_str (btor,
+                                          BTOR_COND_INVERT_NODE (simp, exp));
       subst = btor_const_exp (clone, a);
       btor_release_bv_assignment_str (btor, a);
     }

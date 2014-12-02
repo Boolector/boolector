@@ -20,10 +20,6 @@
 void btor_generate_model (Btor *, int);
 void btor_delete_model (Btor *);
 
-// TODO: these functions may be obsolete in the future
-int btor_has_bv_model (Btor *, BtorNode *);
-int btor_has_fun_model (Btor *, BtorNode *);
-
 const BitVector *btor_get_bv_model (Btor *, BtorNode *);
 const BtorPtrHashTable *btor_get_fun_model (Btor *, BtorNode *);
 BtorNode *btor_generate_lambda_model_from_fun_model (

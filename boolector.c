@@ -3132,7 +3132,7 @@ boolector_bv_assignment (Btor *btor, BoolectorNode *node)
   BTOR_ABORT_ARRAY_BOOLECTOR (simp);
   BTOR_ABORT_BOOLECTOR (!btor->options.model_gen.val,
                         "model generation has not been enabled");
-  ass   = btor_bv_assignment_str (btor, simp);
+  ass   = btor_get_bv_model_str (btor, simp);
   bvass = btor_new_bv_assignment (btor->bv_assignments, (char *) ass);
   btor_release_bv_assignment_str (btor, (char *) ass);
   res = btor_get_bv_assignment_str (bvass);
@@ -3190,7 +3190,7 @@ fun_assignment (Btor *btor,
   assert (BTOR_IS_REGULAR_NODE (simp));
   assert (BTOR_IS_FUN_NODE (simp));
 
-  btor_array_assignment_str (btor, simp, &a, &v, size);
+  btor_get_fun_model_str (btor, simp, &a, &v, size);
 
   if (*size)
   {
