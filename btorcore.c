@@ -1047,10 +1047,7 @@ btor_delete_btor (Btor *btor)
   BtorPtrHashTable *t;
   BtorMemMgr *mm;
   BtorNode *exp;
-  BtorHashTableIterator it;
-#ifdef BTOR_JUST_USE_HEURISTIC
-  BtorHashTableIterator iit;
-#endif
+  BtorHashTableIterator it, iit;
 
   mm = btor->mm;
 
