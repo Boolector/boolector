@@ -490,7 +490,7 @@ btor_chkclone_exp (BtorNode *exp, BtorNode *clone)
       else
       {
         BTOR_CHKCLONE_EXP (upper);
-        if (!BTOR_IS_ARRAY_EQ_NODE (real_exp))
+        if (!BTOR_IS_FEQ_NODE (real_exp))
           BTOR_CHKCLONE_EXP (lower);
         else
         {

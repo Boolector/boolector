@@ -912,7 +912,7 @@ recursively_release_exp (Btor *btor, BtorNode *root)
         cur->simplified = 0;
       }
 
-      if (BTOR_IS_ARRAY_EQ_NODE (cur) && cur->vreads)
+      if (BTOR_IS_FEQ_NODE (cur) && cur->vreads)
       {
         BTOR_PUSH_STACK (mm, stack, cur->vreads->exp2);
         BTOR_PUSH_STACK (mm, stack, cur->vreads->exp1);
