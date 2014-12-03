@@ -4016,11 +4016,11 @@ optimize_unconstrained (Btor *btor)
   assert (check_id_table_mark_unset_dbg (btor));
 
   double start;
-  int i, hl[3], isuc;
+  int i, uc[3], isuc;
   BtorNode *cur, *cur_parent, *subst;
   BtorLambdaNode *lambda;
   BtorNodePtrStack stack, roots;
-  BtorPtrHashTable *hls; /* headlines */
+  BtorPtrHashTable *ucs; /* unconstrained (candidate) nodes */
   BtorHashTableIterator it;
   BtorNodeIterator pit;
   BtorParameterizedIterator parit;
@@ -4035,12 +4035,13 @@ optimize_unconstrained (Btor *btor)
   BTOR_INIT_STACK (stack);
   BTOR_INIT_STACK (roots);
 
-  hls = btor_new_ptr_hash_table (mm,
+  ucs = btor_new_ptr_hash_table (mm,
                                  (BtorHashPtr) btor_hash_exp_by_id,
                                  (BtorCmpPtr) btor_compare_exp_by_id);
   btor_init_substitutions (btor);
 
-  /* collect nodes that might contribute to a headline propagation */
+  /* collect nodes that might contribute to a unconstrained candidate
+   * propagation */
   init_node_hash_table_iterator (&it, btor->bv_vars);
   queue_hash_table_iterator (&it, btor->ufs);
   while (has_next_hash_table_iterator (&it))
@@ -4050,8 +4051,8 @@ optimize_unconstrained (Btor *btor)
     if (cur->parents == 1)
     {
       cur_parent = BTOR_REAL_ADDR_NODE (cur->first_parent);
-      assert (!btor_find_in_ptr_hash_table (hls, cur));
-      btor_insert_in_ptr_hash_table (hls, btor_copy_exp (btor, cur));
+      assert (!btor_find_in_ptr_hash_table (ucs, cur));
+      btor_insert_in_ptr_hash_table (ucs, btor_copy_exp (btor, cur));
       if (BTOR_IS_UF_NODE (cur)
           || (cur_parent->kind != BTOR_ARGS_NODE
               && cur_parent->kind != BTOR_LAMBDA_NODE))
@@ -4076,7 +4077,7 @@ optimize_unconstrained (Btor *btor)
     }
   }
 
-  /* identify headlines */
+  /* identify unconstrained candidates */
   for (i = 0; i < BTOR_COUNT_STACK (roots); i++)
     BTOR_PUSH_STACK (mm, stack, BTOR_PEEK_STACK (roots, i));
   while (!BTOR_EMPTY_STACK (stack))
@@ -4121,71 +4122,47 @@ optimize_unconstrained (Btor *btor)
       }
       if (!isuc) continue;
 
-      /* propagate headlines */
+      /* propagate unconstrained candidates */
       if (cur->parents == 0 || (cur->parents == 1 && !cur->constraint))
       {
         for (i = cur->arity - 1; i >= 0; i--)
-          hl[i] = (btor_find_in_ptr_hash_table (
-                      hls, BTOR_REAL_ADDR_NODE (cur->e[i])))
+          uc[i] = (btor_find_in_ptr_hash_table (
+                      ucs, BTOR_REAL_ADDR_NODE (cur->e[i])))
                       ? 1
                       : 0;
 
         switch (cur->kind)
         {
           case BTOR_SLICE_NODE:
-            if (hl[0])
-            {
-              btor->stats.bv_uc_props++;
-              btor_insert_in_ptr_hash_table (hls, btor_copy_exp (btor, cur));
-              subst = lambda_var_exp (btor, cur->len);
-              btor_insert_substitution (btor, cur, subst, 0);
-              btor_release_exp (btor, subst);
-            }
-            break;
           case BTOR_APPLY_NODE:
-            if (hl[0])
+            if (uc[0])
             {
-              btor->stats.fun_uc_props++;
-              btor_insert_in_ptr_hash_table (hls, btor_copy_exp (btor, cur));
+              if (BTOR_IS_SLICE_NODE (cur))
+                btor->stats.bv_uc_props++;
+              else
+                btor->stats.fun_uc_props++;
+              btor_insert_in_ptr_hash_table (ucs, btor_copy_exp (btor, cur));
               subst = lambda_var_exp (btor, cur->len);
               btor_insert_substitution (btor, cur, subst, 0);
               btor_release_exp (btor, subst);
             }
             break;
           case BTOR_ADD_NODE:
-            if (hl[0] || hl[1])
-            {
-              btor->stats.bv_uc_props++;
-              btor_insert_in_ptr_hash_table (hls, btor_copy_exp (btor, cur));
-              subst = lambda_var_exp (btor, cur->len);
-              btor_insert_substitution (btor, cur, subst, 0);
-              btor_release_exp (btor, subst);
-            }
-            break;
           case BTOR_BEQ_NODE:
           case BTOR_FEQ_NODE:
-            if (hl[0] || hl[1])
+            if (uc[0] || uc[1])
             {
-              if (BTOR_IS_BV_EQ_NODE (cur))
+              if (BTOR_IS_ADD_NODE (cur) || BTOR_IS_BV_EQ_NODE (cur))
                 btor->stats.bv_uc_props++;
               else
                 btor->stats.fun_uc_props++;
-              btor_insert_in_ptr_hash_table (hls, btor_copy_exp (btor, cur));
+              btor_insert_in_ptr_hash_table (ucs, btor_copy_exp (btor, cur));
               subst = lambda_var_exp (btor, cur->len);
               btor_insert_substitution (btor, cur, subst, 0);
               btor_release_exp (btor, subst);
             }
             break;
           case BTOR_ULT_NODE:
-            if (hl[0] && hl[1])
-            {
-              btor->stats.bv_uc_props++;
-              btor_insert_in_ptr_hash_table (hls, btor_copy_exp (btor, cur));
-              subst = lambda_var_exp (btor, cur->len);
-              btor_insert_substitution (btor, cur, subst, 0);
-              btor_release_exp (btor, subst);
-            }
-            break;
           case BTOR_CONCAT_NODE:
           case BTOR_AND_NODE:
           case BTOR_MUL_NODE:
@@ -4193,32 +4170,32 @@ optimize_unconstrained (Btor *btor)
           case BTOR_SRL_NODE:
           case BTOR_UDIV_NODE:
           case BTOR_UREM_NODE:
-            if (hl[0] && hl[1])
+            if (uc[0] && uc[1])
             {
               btor->stats.bv_uc_props++;
-              btor_insert_in_ptr_hash_table (hls, btor_copy_exp (btor, cur));
+              btor_insert_in_ptr_hash_table (ucs, btor_copy_exp (btor, cur));
               subst = lambda_var_exp (btor, cur->len);
               btor_insert_substitution (btor, cur, subst, 0);
               btor_release_exp (btor, subst);
             }
             break;
           case BTOR_BCOND_NODE:
-            if ((hl[1] && hl[2]) || (hl[0] && (hl[1] || hl[2])))
+            if ((uc[1] && uc[2]) || (uc[0] && (uc[1] || uc[2])))
             {
               btor->stats.bv_uc_props++;
-              btor_insert_in_ptr_hash_table (hls, btor_copy_exp (btor, cur));
+              btor_insert_in_ptr_hash_table (ucs, btor_copy_exp (btor, cur));
               subst = lambda_var_exp (btor, cur->len);
               btor_insert_substitution (btor, cur, subst, 0);
               btor_release_exp (btor, subst);
             }
             break;
           case BTOR_LAMBDA_NODE:
-            if (hl[1]
+            if (uc[1]
                 && (!BTOR_IS_CURRIED_LAMBDA_NODE (cur)
                     || BTOR_IS_FIRST_CURRIED_LAMBDA (cur)))
             {
               btor->stats.fun_uc_props++;
-              btor_insert_in_ptr_hash_table (hls, btor_copy_exp (btor, cur));
+              btor_insert_in_ptr_hash_table (ucs, btor_copy_exp (btor, cur));
               sort  = btor_create_or_get_sort (btor, cur);
               subst = btor_uf_exp (btor, sort, 0);
               btor_release_sort (&btor->sorts_unique_table, sort);
@@ -4236,10 +4213,10 @@ optimize_unconstrained (Btor *btor)
 
   /* cleanup */
   btor_delete_substitutions (btor);
-  init_hash_table_iterator (&it, hls);
+  init_hash_table_iterator (&it, ucs);
   while (has_next_hash_table_iterator (&it))
     btor_release_exp (btor, next_node_hash_table_iterator (&it));
-  btor_delete_ptr_hash_table (hls);
+  btor_delete_ptr_hash_table (ucs);
 
   BTOR_RELEASE_STACK (btor->mm, stack);
   BTOR_RELEASE_STACK (btor->mm, roots);

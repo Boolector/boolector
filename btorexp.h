@@ -236,6 +236,8 @@ typedef struct BtorArgsNode BtorArgsNode;
 
 #define BTOR_IS_ARRAY_EQ_NODE_KIND(kind) (kind == BTOR_FEQ_NODE)
 
+#define BTOR_IS_ADD_NODE_KIND(kind) ((kind) == BTOR_ADD_NODE)
+
 #define BTOR_IS_LAMBDA_NODE_KIND(kind) ((kind) == BTOR_LAMBDA_NODE)
 
 #define BTOR_IS_UF_NODE_KIND(kind) ((kind) == BTOR_UF_NODE)
@@ -281,6 +283,8 @@ typedef struct BtorArgsNode BtorArgsNode;
 
 #define BTOR_IS_ARRAY_OR_BV_EQ_NODE(exp) \
   (BTOR_IS_ARRAY_EQ_NODE (exp) || BTOR_IS_BV_EQ_NODE (exp))
+
+#define BTOR_IS_ADD_NODE(exp) ((exp) && BTOR_IS_ADD_NODE_KIND ((exp)->kind))
 
 #define BTOR_IS_LAMBDA_NODE(exp) \
   ((exp) && BTOR_IS_LAMBDA_NODE_KIND ((exp)->kind))
