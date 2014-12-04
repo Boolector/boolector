@@ -31,6 +31,32 @@
     }                                                 \
   } while (0)
 
+static int
+btor_has_bv_model (Btor *btor, BtorNode *exp)
+{
+  assert (btor);
+  assert (exp);
+  assert (!BTOR_IS_FUN_NODE (BTOR_REAL_ADDR_NODE (exp)));
+
+  if (!btor->bv_model) return 0;
+
+  return btor_find_in_ptr_hash_table (btor->bv_model, BTOR_REAL_ADDR_NODE (exp))
+         != 0;
+}
+
+static int
+btor_has_fun_model (Btor *btor, BtorNode *exp)
+{
+  assert (btor);
+  assert (exp);
+  assert (BTOR_IS_REGULAR_NODE (exp));
+  assert (BTOR_IS_FUN_NODE (exp));
+
+  if (!btor->fun_model) return 0;
+
+  return btor_find_in_ptr_hash_table (btor->fun_model, exp) != 0;
+}
+
 static void
 delete_bv_model (Btor *btor)
 {
@@ -198,11 +224,12 @@ recursively_compute_assignment (Btor *btor,
 
   int i, num_args;
   BtorMemMgr *mm;
-  BtorNodePtrStack work_stack, cleanup;
+  BtorNodePtrStack work_stack, cleanup, reset;
   BtorVoidPtrStack arg_stack;
   BtorNode *cur, *real_cur, *next, *cur_parent;
+  BtorPtrHashData d;
   BtorPtrHashBucket *b;
-  BtorPtrHashTable *assigned;
+  BtorPtrHashTable *assigned, *reset_st;
   BitVector *result = 0, *inv_result, **e;
   BitVectorTuple *t;
 
@@ -211,9 +238,18 @@ recursively_compute_assignment (Btor *btor,
   assigned = btor_new_ptr_hash_table (mm,
                                       (BtorHashPtr) btor_hash_exp_by_id,
                                       (BtorCmpPtr) btor_compare_exp_by_id);
+
+  /* 'reset_st' remembers the stack position of 'reset' in case a lambda is
+   * assigned. when the resp. lambda is unassigned, the 'eval_mark' flag of all
+   * parameterized nodes up to the saved position of stack 'reset' will be
+   * reset to 0. */
+  reset_st = btor_new_ptr_hash_table (mm,
+                                      (BtorHashPtr) btor_hash_exp_by_id,
+                                      (BtorCmpPtr) btor_compare_exp_by_id);
   BTOR_INIT_STACK (work_stack);
   BTOR_INIT_STACK (arg_stack);
   BTOR_INIT_STACK (cleanup);
+  BTOR_INIT_STACK (reset);
 
   BTOR_PUSH_STACK (mm, work_stack, exp);
   BTOR_PUSH_STACK (mm, work_stack, 0);
@@ -282,6 +318,9 @@ recursively_compute_assignment (Btor *btor,
         assert (!btor_find_in_ptr_hash_table (assigned, real_cur));
         btor_insert_in_ptr_hash_table (assigned, real_cur)->data.asPtr =
             cur_parent;
+        /* save 'reset' stack position */
+        btor_insert_in_ptr_hash_table (reset_st, real_cur)->data.asInt =
+            BTOR_COUNT_STACK (reset);
       }
 
       BTOR_PUSH_STACK (mm, work_stack, cur);
@@ -424,14 +463,12 @@ recursively_compute_assignment (Btor *btor,
           BTOR_ABORT_MODEL (1, "invalid node type");
       }
     CACHE_AND_PUSH_RESULT:
-      if (!real_cur->parameterized)
-      {
-        assert (!btor_find_in_ptr_hash_table (assignments, real_cur));
-        btor_insert_in_ptr_hash_table (assignments, real_cur)->data.asPtr =
-            btor_copy_bv (btor, result);
-      }
-      else
-        real_cur->eval_mark = 0;
+      /* remember parameterized nodes for resetting 'eval_mark' later */
+      if (real_cur->parameterized) BTOR_PUSH_STACK (mm, reset, real_cur);
+
+      assert (!btor_find_in_ptr_hash_table (assignments, real_cur));
+      btor_insert_in_ptr_hash_table (assignments, real_cur)->data.asPtr =
+          btor_copy_bv (btor, result);
 
     PUSH_RESULT_AND_UNASSIGN:
       if (BTOR_IS_LAMBDA_NODE (real_cur) && cur_parent
@@ -440,8 +477,18 @@ recursively_compute_assignment (Btor *btor,
         assert (btor_find_in_ptr_hash_table (assigned, real_cur));
         btor_unassign_params (btor, real_cur);
         btor_remove_from_ptr_hash_table (assigned, real_cur, 0, 0);
-      }
 
+        /* reset 'eval_mark' of all parameterized nodes instantiated by
+         * 'real_cur' */
+        btor_remove_from_ptr_hash_table (reset_st, real_cur, 0, &d);
+        while (BTOR_COUNT_STACK (reset) > d.asInt)
+        {
+          next = BTOR_POP_STACK (reset);
+          assert (BTOR_IS_REGULAR_NODE (next));
+          assert (next->parameterized);
+          next->eval_mark = 0;
+        }
+      }
     PUSH_RESULT:
       if (BTOR_IS_INVERTED_NODE (cur))
       {
@@ -474,7 +521,9 @@ recursively_compute_assignment (Btor *btor,
   BTOR_RELEASE_STACK (mm, work_stack);
   BTOR_RELEASE_STACK (mm, arg_stack);
   BTOR_RELEASE_STACK (mm, cleanup);
+  BTOR_RELEASE_STACK (mm, reset);
   btor_delete_ptr_hash_table (assigned);
+  btor_delete_ptr_hash_table (reset_st);
 
   return result;
 }
@@ -729,32 +778,6 @@ btor_delete_model (Btor *btor)
   assert (btor);
   delete_bv_model (btor);
   delete_fun_model (btor);
-}
-
-static int
-btor_has_bv_model (Btor *btor, BtorNode *exp)
-{
-  assert (btor);
-  assert (exp);
-  assert (!BTOR_IS_FUN_NODE (BTOR_REAL_ADDR_NODE (exp)));
-
-  if (!btor->bv_model) return 0;
-
-  return btor_find_in_ptr_hash_table (btor->bv_model, BTOR_REAL_ADDR_NODE (exp))
-         != 0;
-}
-
-static int
-btor_has_fun_model (Btor *btor, BtorNode *exp)
-{
-  assert (btor);
-  assert (exp);
-  assert (BTOR_IS_REGULAR_NODE (exp));
-  assert (BTOR_IS_FUN_NODE (exp));
-
-  if (!btor->fun_model) return 0;
-
-  return btor_find_in_ptr_hash_table (btor->fun_model, exp) != 0;
 }
 
 const BitVector *
