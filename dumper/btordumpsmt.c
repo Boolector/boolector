@@ -727,6 +727,8 @@ dump_smt (BtorSMTDumpContext *sdc)
     set_logic_smt (sdc, "QF_BV");
   else if (BTOR_EMPTY_STACK (arrays))
     set_logic_smt (sdc, "QF_UFBV");
+  else if (BTOR_EMPTY_STACK (ufs))
+    set_logic_smt (sdc, "QF_ABV");
   else
     set_logic_smt (sdc, "QF_AUFBV");
 
