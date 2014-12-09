@@ -69,6 +69,7 @@ typedef struct BtorMainOpts
   BtorMainOpt version;
   BtorMainOpt time;
   BtorMainOpt output;
+  BtorMainOpt smt2_model;
 #ifdef BTOR_USE_LINGELING
   BtorMainOpt lingeling;
   BtorMainOpt lingeling_nofork;
@@ -169,6 +170,15 @@ btormain_init_opts (BtorMainApp *app)
                      0,
                      0,
                      "set output file for dumping");
+  BTORMAIN_INIT_OPT (
+      app->opts.smt2_model,
+      1,
+      0,
+      "smt2_model",
+      0,
+      0,
+      1,
+      "print model in SMT-LIB v2 format if model generation is enabled");
 #ifdef BTOR_USE_LINGELING
   BTORMAIN_INIT_OPT (app->opts.lingeling,
                      1,
@@ -466,6 +476,9 @@ print_help (BtorMainApp *app)
   PRINT_MAIN_OPT (app, &to);
 
   fprintf (out, "\n");
+  PRINT_MAIN_OPT (app, &app->opts.smt2_model);
+  fprintf (out, "\n");
+
   fprintf (out, BOOLECTOR_OPTS_INFO_MSG);
 
   for (o = (char *) boolector_first_opt (app->btor); o;
@@ -868,6 +881,12 @@ boolector_main (int argc, char **argv)
         goto DONE;
       }
       static_app->close_outfile = 1;
+    }
+    else if ((shrt && static_app->opts.smt2_model.shrt
+              && !strcmp (opt, static_app->opts.smt2_model.shrt))
+             || (!shrt && !strcmp (opt, static_app->opts.smt2_model.lng)))
+    {
+      static_app->opts.smt2_model.val = 1;
     }
 #ifdef BTOR_USE_LINGELING
     else if ((shrt && static_app->opts.lingeling.shrt
@@ -1433,7 +1452,9 @@ boolector_main (int argc, char **argv)
 
     if (boolector_get_opt_val (static_app->btor, BTOR_OPT_MODEL_GEN)
         && sat_res == BOOLECTOR_SAT)
-      boolector_print_model (static_app->btor, static_app->outfile);
+      boolector_print_model (static_app->btor,
+                             static_app->opts.smt2_model.val ? "smt2" : "btor",
+                             static_app->outfile);
 
     if (static_verbosity) boolector_print_stats (static_app->btor);
     goto DONE;
@@ -1482,7 +1503,9 @@ boolector_main (int argc, char **argv)
 
   if (boolector_get_opt_val (static_app->btor, BTOR_OPT_MODEL_GEN)
       && sat_res == BOOLECTOR_SAT)
-    boolector_print_model (static_app->btor, static_app->outfile);
+    boolector_print_model (static_app->btor,
+                           static_app->opts.smt2_model.val ? "smt2" : "btor",
+                           static_app->outfile);
 
   if (static_verbosity)
   {

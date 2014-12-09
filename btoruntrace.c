@@ -1382,8 +1382,8 @@ NEXT:
     }
     else if (!strcmp (tok, "print_model"))
     {
-      PARSE_ARGS0 (tok);
-      boolector_print_model (btor, stdout);
+      PARSE_ARGS1 (tok, str);
+      boolector_print_model (btor, arg1_str, stdout);
     }
     /* sorts */
     else if (!strcmp (tok, "bool_sort"))

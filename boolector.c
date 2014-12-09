@@ -22,6 +22,7 @@
 #include "btorexit.h"
 #include "btorhash.h"
 #include "btoriter.h"
+#include "btormodel.h"
 #include "btorparse.h"
 #include "btorsat.h"
 #include "btorsort.h"
@@ -3383,16 +3384,20 @@ boolector_free_uf_assignment (Btor *btor, char **args, char **values, int size)
 }
 
 void
-boolector_print_model (Btor *btor, FILE *file)
+boolector_print_model (Btor *btor, char *format, FILE *file)
 {
   BTOR_ABORT_ARG_NULL_BOOLECTOR (btor);
+  BTOR_TRAPI ("%s", format);
+  BTOR_ABORT_ARG_NULL_BOOLECTOR (format);
   BTOR_ABORT_ARG_NULL_BOOLECTOR (file);
-  BTOR_TRAPI ("");
+  BTOR_ABORT_BOOLECTOR (strcmp (format, "btor") && strcmp (format, "smt2"),
+                        "invalid model output format: %s",
+                        format);
   BTOR_ABORT_BOOLECTOR (!btor->options.model_gen.val,
                         "model generation has not been enabled");
-  btor_print_model (btor, file);
+  btor_print_model (btor, format, file);
 #ifndef NDEBUG
-  BTOR_CHKCLONE_NORES (print_model, file);
+  BTOR_CHKCLONE_NORES (print_model, format, file);
 #endif
 }
 

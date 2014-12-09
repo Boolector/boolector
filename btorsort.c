@@ -12,6 +12,8 @@
 
 #include "btorsort.h"
 #include "btorexit.h"
+#include "btorexp.h"
+#include "btoriter.h"
 #include "btorutil.h"
 
 #include <assert.h>
@@ -569,6 +571,48 @@ btor_fun_sort (BtorSortUniqueTable *table,
   if (arity > 1) btor_release_sort (table, pattern.fun.domain);
 
   return res;
+}
+
+/* util function for creating function sorts from function expressions, will
+ * be obsolete as soon as we implement sorts for all expressions */
+BtorSort *
+btor_fun_sort_from_fun (BtorSortUniqueTable *table, BtorNode *fun)
+{
+  assert (table);
+  assert (fun);
+  assert (BTOR_IS_REGULAR_NODE (fun));
+  assert (BTOR_IS_FUN_NODE (fun));
+
+  BtorNode *lambda, *param;
+  BtorSort *sort, *codomain;
+  BtorSortPtrStack domain;
+  BtorNodeIterator it;
+
+  if (BTOR_IS_UF_NODE (fun)) return btor_copy_sort (((BtorUFNode *) fun)->sort);
+
+  assert (BTOR_IS_LAMBDA_NODE (fun));
+
+  BTOR_INIT_STACK (domain);
+  init_lambda_iterator (&it, fun);
+  while (has_next_lambda_iterator (&it))
+  {
+    lambda = next_lambda_iterator (&it);
+    param  = lambda->e[0];
+    assert (BTOR_IS_PARAM_NODE (param));
+    sort = btor_bitvec_sort (table, param->len);
+    BTOR_PUSH_STACK (table->mm, domain, sort);
+  }
+
+  codomain = btor_bitvec_sort (table, fun->len);
+  sort =
+      btor_fun_sort (table, domain.start, BTOR_COUNT_STACK (domain), codomain);
+
+  btor_release_sort (table, codomain);
+  while (!BTOR_EMPTY_STACK (domain))
+    btor_release_sort (table, BTOR_POP_STACK (domain));
+  BTOR_RELEASE_STACK (table->mm, domain);
+
+  return sort;
 }
 
 BtorSort *

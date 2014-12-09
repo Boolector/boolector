@@ -1840,12 +1840,40 @@ void boolector_free_uf_assignment (Btor *btor,
 
 /*!
   Print model to output file. This function prints the model for all inputs
-  to the output file ``file``.
+  to the output file ``file``. Supported output formats for the model to be
+  printed are:
+
+  * **btor**
+
+    Use boolector's own output format for printing models.
+
+    .. code-block:: c
+
+      boolector_print_model (btor, "btor", stdout);
+
+    A possible model would be: ::
+
+      2 00000100 x
+      3 00010101 y
+      4[00] 01 A
+
+    where the first column indicates the id of an input, the second column
+    its assignment, and the thrid column its name (or symbol), if any.
+    Note that in case that an input is an uninterpreted function or an
+    array variable,
+    values in square brackets indicate parameter resp. index values.
+
+  * **smt2**
+
+    Use `SMT-LIB v2`_ format for printing models.
+    TODO TODO TODO TODO
+    also TODO: update quickstart
 
   :param btor: Boolector instance.
+  :param format: A string identifying the output format.
   :param file: Output file.
 */
-void boolector_print_model (Btor *btor, FILE *file);
+void boolector_print_model (Btor *btor, char *format, FILE *file);
 
 /*------------------------------------------------------------------------*/
 

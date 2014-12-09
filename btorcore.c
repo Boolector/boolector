@@ -8132,48 +8132,6 @@ btor_fun_sort_check (Btor *btor, int argc, BtorNode **args, BtorNode *fun)
 
 /* util function for creating function sorts from function expressions, will
  * be obsolete as soon as we implement sorts for all expressions */
-static BtorSort *
-fun_sort_from_fun (Btor *btor, BtorNode *fun)
-{
-  assert (btor);
-  assert (fun);
-  assert (BTOR_IS_REGULAR_NODE (fun));
-  assert (BTOR_IS_FUN_NODE (fun));
-
-  BtorNode *lambda, *param;
-  BtorSort *sort, *codomain;
-  BtorSortPtrStack domain;
-  BtorNodeIterator it;
-
-  if (BTOR_IS_UF_NODE (fun)) return btor_copy_sort (((BtorUFNode *) fun)->sort);
-
-  assert (BTOR_IS_LAMBDA_NODE (fun));
-
-  BTOR_INIT_STACK (domain);
-  init_lambda_iterator (&it, fun);
-  while (has_next_lambda_iterator (&it))
-  {
-    lambda = next_lambda_iterator (&it);
-    param  = lambda->e[0];
-    assert (BTOR_IS_PARAM_NODE (param));
-    sort = btor_bitvec_sort (&btor->sorts_unique_table, param->len);
-    BTOR_PUSH_STACK (btor->mm, domain, sort);
-  }
-
-  codomain = btor_bitvec_sort (&btor->sorts_unique_table, fun->len);
-  sort     = btor_fun_sort (&btor->sorts_unique_table,
-                        domain.start,
-                        BTOR_COUNT_STACK (domain),
-                        codomain);
-
-  btor_release_sort (&btor->sorts_unique_table, codomain);
-  while (!BTOR_EMPTY_STACK (domain))
-    btor_release_sort (&btor->sorts_unique_table, BTOR_POP_STACK (domain));
-  BTOR_RELEASE_STACK (btor->mm, domain);
-
-  return sort;
-}
-
 BtorSort *
 btor_create_or_get_sort (Btor *btor, BtorNode *exp)
 {
@@ -8193,7 +8151,8 @@ btor_create_or_get_sort (Btor *btor, BtorNode *exp)
     }
 #endif
 
-  if (BTOR_IS_FUN_NODE (exp)) return fun_sort_from_fun (btor, exp);
+  if (BTOR_IS_FUN_NODE (exp))
+    return btor_fun_sort_from_fun (&btor->sorts_unique_table, exp);
 #if 0
   else if (BTOR_IS_BV_EQ_NODE (exp)
 	   || BTOR_IS_ULT_NODE (exp))
@@ -8691,130 +8650,6 @@ rebuild_formula (Btor *btor, int rewrite_level)
   btor_delete_ptr_hash_table (t);
 }
 
-static BtorNode *
-const_from_bv (Btor *btor, BitVector *bv)
-{
-  assert (btor);
-  assert (bv);
-
-  char *val;
-  BtorNode *res;
-
-  val = btor_bv_to_char_bv (btor, bv);
-  res = btor_const_exp (btor, val);
-  btor_release_bv_assignment_str (btor, val);
-  return res;
-}
-
-static BtorNode *
-generate_lambda_model_from_fun_model (Btor *btor,
-                                      BtorNode *exp,
-                                      const BtorPtrHashTable *model)
-{
-  assert (btor);
-  assert (exp);
-  assert (model);
-  assert (BTOR_IS_REGULAR_NODE (exp));
-  assert (BTOR_IS_FUN_NODE (exp));
-
-  int i;
-  BtorUFNode *uf;
-  BtorNode *res, *c, *p, *cond, *e_if, *e_else, *tmp, *eq, *ite;
-  BtorHashTableIterator it;
-  BtorSort *sort, *domain;
-  BtorNodePtrStack params, consts;
-  BitVector *value;
-  BitVectorTuple *args;
-
-  BTOR_INIT_STACK (params);
-  BTOR_INIT_STACK (consts);
-
-  sort = fun_sort_from_fun (btor, exp);
-  uf   = (BtorUFNode *) btor_uf_exp (btor, sort, 0);
-  btor_release_sort (&btor->sorts_unique_table, sort);
-  domain = sort->fun.domain;
-
-  /* generate params */
-  if (uf->num_params > 1)
-  {
-    assert (domain->kind == BTOR_TUPLE_SORT);
-    for (i = 0; i < domain->tuple.num_elements; i++)
-    {
-      p = btor_param_exp (btor, domain->tuple.elements[i]->bitvec.len, 0);
-      BTOR_PUSH_STACK (btor->mm, params, p);
-    }
-  }
-  else
-  {
-    assert (domain->kind == BTOR_BITVEC_SORT);
-    p = btor_param_exp (btor, domain->bitvec.len, 0);
-    BTOR_PUSH_STACK (btor->mm, params, p);
-  }
-
-  e_else = btor_apply_exps (
-      btor, BTOR_COUNT_STACK (params), params.start, (BtorNode *) uf);
-  btor_release_exp (btor, (BtorNode *) uf);
-
-  /* generate ITEs */
-  init_hash_table_iterator (&it, (BtorPtrHashTable *) model);
-  while (has_next_hash_table_iterator (&it))
-  {
-    value = (BitVector *) it.bucket->data.asPtr;
-    args  = next_hash_table_iterator (&it);
-
-    /* create condition */
-    assert (uf->num_params == args->arity);
-    assert (BTOR_EMPTY_STACK (consts));
-    assert (BTOR_COUNT_STACK (params) == args->arity);
-    for (i = 0; i < args->arity; i++)
-    {
-      c = const_from_bv (btor, args->bv[i]);
-      assert (BTOR_REAL_ADDR_NODE (c)->len == BTOR_PEEK_STACK (params, i)->len);
-      assert (args->arity <= 1
-              || BTOR_REAL_ADDR_NODE (c)->len
-                     == domain->tuple.elements[i]->bitvec.len);
-      assert (args->arity > 1
-              || BTOR_REAL_ADDR_NODE (c)->len == domain->bitvec.len);
-      BTOR_PUSH_STACK (btor->mm, consts, c);
-    }
-
-    assert (!BTOR_EMPTY_STACK (params));
-    assert (BTOR_COUNT_STACK (params) == BTOR_COUNT_STACK (consts));
-    cond = btor_eq_exp (
-        btor, BTOR_PEEK_STACK (params, 0), BTOR_PEEK_STACK (consts, 0));
-    for (i = 1; i < BTOR_COUNT_STACK (params); i++)
-    {
-      eq = btor_eq_exp (
-          btor, BTOR_PEEK_STACK (params, i), BTOR_PEEK_STACK (consts, i));
-      tmp = btor_and_exp (btor, cond, eq);
-      btor_release_exp (btor, cond);
-      btor_release_exp (btor, eq);
-      cond = tmp;
-    }
-
-    while (!BTOR_EMPTY_STACK (consts))
-      btor_release_exp (btor, BTOR_POP_STACK (consts));
-
-    /* create ITE */
-    e_if = const_from_bv (btor, value);
-    ite  = btor_cond_exp (btor, cond, e_if, e_else);
-    btor_release_exp (btor, cond);
-    btor_release_exp (btor, e_if);
-    btor_release_exp (btor, e_else);
-    e_else = ite;
-  }
-
-  res = btor_fun_exp (btor, BTOR_COUNT_STACK (params), params.start, ite);
-
-  btor_release_exp (btor, ite);
-  while (!BTOR_EMPTY_STACK (params))
-    btor_release_exp (btor, BTOR_POP_STACK (params));
-  BTOR_RELEASE_STACK (btor->mm, params);
-  BTOR_RELEASE_STACK (btor->mm, consts);
-
-  return res;
-}
-
 static void
 check_model (Btor *btor, Btor *clone, BtorPtrHashTable *inputs)
 {
@@ -8876,7 +8711,7 @@ check_model (Btor *btor, Btor *clone, BtorPtrHashTable *inputs)
 
       if (!fmodel) continue;
 
-      subst = generate_lambda_model_from_fun_model (clone, cur, fmodel);
+      subst = btor_generate_lambda_model_from_fun_model (clone, cur, fmodel);
     }
     assert (!btor_find_in_ptr_hash_table (clone->substitutions, real_simp));
     btor_insert_substitution (clone, real_simp, subst, 0);
