@@ -162,13 +162,37 @@ CLOSE:
 }
 
 static void
-dump_bit_smt (BtorSMTDumpContext *sdc, int bit)
+dump_const_value_smt (BtorSMTDumpContext *sdc, const char *bits)
 {
-  assert (bit == 0 || bit == 1);
+  assert (sdc);
+  assert (bits);
 
+  int format;
+  char *val;
   const char *fmt;
-  fmt = sdc->version == 1 ? "bv%d[1]" : "#b%d";
-  fprintf (sdc->file, fmt, bit);
+
+  format = sdc->btor->options.output_number_format.val;
+
+  /* SMT-LIB v1.2 only supports decimal output */
+  if (sdc->version == 1) goto PRINT_DEC;
+
+  if (format == BTOR_OUTPUT_BASE_BIN)
+    fprintf (sdc->file, "#b%s", bits);
+  else if (format == BTOR_OUTPUT_BASE_DEC)
+  {
+  PRINT_DEC:
+    val = btor_const_to_decimal (sdc->btor->mm, bits);
+    fmt = sdc->version == 1 ? "bv%s[%d]" : "(_ bv%s %d)";
+    fprintf (sdc->file, fmt, val, strlen (bits));
+    btor_freestr (sdc->btor->mm, val);
+  }
+  else
+  {
+    assert (format == BTOR_OUTPUT_BASE_HEX);
+    val = btor_const_to_hex (sdc->btor->mm, bits);
+    fprintf (sdc->file, "#x%s", val);
+    btor_freestr (sdc->btor->mm, val);
+  }
 }
 
 static void
@@ -262,22 +286,13 @@ dump_exp_smt (BtorSMTDumpContext *sdc, BtorNode *exp)
   assert (!btor_find_in_ptr_hash_table (sdc->mark, exp));
 
   int pad, i;
-  char *val;
   const char *op, *fmt;
   BtorNode *arg;
-  BtorMemMgr *mm;
   BtorArgsIterator it;
-
-  mm = sdc->btor->mm;
 
   switch (exp->kind)
   {
-    case BTOR_BV_CONST_NODE:
-      val = btor_const_to_decimal (mm, exp->bits);
-      fmt = sdc->version == 1 ? "bv%s[%d]" : "(_ bv%s %d)";
-      fprintf (sdc->file, fmt, val, exp->len);
-      btor_freestr (mm, val);
-      break;
+    case BTOR_BV_CONST_NODE: dump_const_value_smt (sdc, exp->bits); break;
 
     case BTOR_SLICE_NODE:
       fmt = sdc->version == 1 ? "(extract[%d:%d] " : "((_ extract %d %d) ";
@@ -311,7 +326,7 @@ dump_exp_smt (BtorSMTDumpContext *sdc, BtorNode *exp)
 
     case BTOR_BCOND_NODE:
       fputs ("(ite (= ", sdc->file);
-      dump_bit_smt (sdc, 1);
+      dump_const_value_smt (sdc, "1");
       fputc (' ', sdc->file);
       dump_smt_id (sdc, exp->e[0]);
       fputs (") ", sdc->file);
@@ -333,9 +348,9 @@ dump_exp_smt (BtorSMTDumpContext *sdc, BtorNode *exp)
       fputc (' ', sdc->file);
       dump_smt_id (sdc, exp->e[1]);
       fputs (") ", sdc->file);
-      dump_bit_smt (sdc, 1);
+      dump_const_value_smt (sdc, "1");
       fputc (' ', sdc->file);
-      dump_bit_smt (sdc, 0);
+      dump_const_value_smt (sdc, "0");
       fputc (')', sdc->file);
       break;
 
