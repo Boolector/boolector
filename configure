@@ -65,6 +65,13 @@ Disable compilation of specific SAT solver back-ends:
   --only-lingeling  only use Lingeling
   --only-picosat    only use PicoSAT
   --only-minisat    only use MiniSAT
+
+You might also want to sue the environment variables
+CC and CXX to specify the used C and C++ compiler, as in
+
+  CC=gcc-4.4 CXX=g++-4.4 ./configure
+
+which forces to use 'gcc-4.4' and 'g++-4.4'.
 EOF
   exit 0
 }
@@ -485,6 +492,7 @@ fi
 #--------------------------------------------------------------------------#
 
 [ "X$CC" = X ] && CC=gcc
+[ "X$CXX" = X ] && CXX=g++
 
 msg "CC=$CC"
 msg "CFLAGS=$CFLAGS"
@@ -495,6 +503,7 @@ msg "INCS=$INCS"
 rm -f makefile
 sed \
   -e "s,@CC@,$CC," \
+  -e "s,@CXX@,$CXX," \
   -e "s,@INCS@,$INCS," \
   -e "s,@CFLAGS@,$CFLAGS," \
   -e "s,@LIBS@,$LIBS," \

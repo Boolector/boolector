@@ -99,7 +99,7 @@ typedef struct BtorMainOpts
     OPT.desc           = DESC;                                      \
   } while (0)
 
-typedef struct BtorMainApp
+struct BtorMainApp
 {
   Btor *btor;
   BtorMemMgr *mm;
@@ -111,7 +111,7 @@ typedef struct BtorMainApp
   int close_infile;
   FILE *outfile;
   int close_outfile;
-} BtorMainApp;
+};
 
 static BtorMainApp *
 btormain_new_btormain (Btor *btor)

@@ -1594,7 +1594,7 @@ aig_to_sat_tseitin (BtorAIGMgr *amgr, BtorAIG *aig)
   assert (amgr);
   assert (!BTOR_IS_CONST_AIG (aig));
   BTOR_MSG (
-      amgr->msg, 3, "transforming AIG into CNF using Tseitin transformation\n");
+      amgr->msg, 3, "transforming AIG into CNF using Tseitin transformation");
   btor_aig_to_sat_tseitin (amgr, aig);
 }
 

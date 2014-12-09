@@ -1,7 +1,7 @@
 /*  Boolector: Satisfiablity Modulo Theories (SMT) solver.
  *
  *  Copyright (C) 2007-2009 Robert Daniel Brummayer.
- *  Copyright (C) 2007-2013 Armin Biere.
+ *  Copyright (C) 2007-2014 Armin Biere.
  *  Copyright (C) 2012-2014 Mathias Preiner.
  *  Copyright (C) 2013-2014 Aina Niemetz.
  *
@@ -33,6 +33,12 @@
 #include <stdarg.h>
 #include <stdlib.h>
 
+/*------------------------------------------------------------------------*/
+// #define BTOR_PRINT_DIMACS_FOR_LINGELING // enable to print dimacs files
+#ifdef BTOR_PRINT_DIMACS_FOR_LINGELING
+#include <sys/types.h>  // for getpid
+#include <unistd.h>     // for getpid
+#endif
 /*------------------------------------------------------------------------*/
 
 #define BTOR_ABORT_SAT(cond, msg)                   \
@@ -354,6 +360,8 @@ btor_picosat_init (BtorSATMgr *smgr)
                        (picosat_free) btor_sat_free);
 
   picosat_set_global_default_phase (res, 0);
+  if (*smgr->msg->verbosity >= 2)
+    picosat_set_verbosity (res, *smgr->msg->verbosity - 1);
 
   return res;
 }
@@ -643,7 +651,10 @@ btor_lingeling_init (BtorSATMgr *smgr)
                        (lglalloc) btor_sat_malloc,
                        (lglrealloc) btor_sat_realloc,
                        (lgldealloc) btor_sat_free);
-  if (*smgr->msg->verbosity <= 0) lglsetopt (res->lgl, "verbose", -1);
+  if (*smgr->msg->verbosity <= 0)
+    lglsetopt (res->lgl, "verbose", -1);
+  else if (*smgr->msg->verbosity >= 2)
+    lglsetopt (res->lgl, "verbose", *smgr->msg->verbosity - 1);
   res->blimit = BTOR_LGL_MIN_BLIMIT;
   assert (res);
   if (smgr->optstr)
@@ -670,6 +681,19 @@ btor_lingeling_sat (BtorSATMgr *smgr, int limit)
   assert (smgr->satcalls >= 1);
 
   lglsetopt (lgl, "simplify", 1);
+
+#ifdef BTOR_PRINT_DIMACS_FOR_LINGELING
+  {
+    static int count = 0;
+    char name[80];
+    FILE *file;
+    sprintf (name, "/tmp/btor_lingeling_sat_%05d_%08d.cnf", getpid (), count++);
+    file = fopen (name, "w");
+    lglprint (lgl, file);
+    fclose (file);
+    BTOR_MSG (smgr->msg, 0, "wrote %s", name);
+  }
+#endif
 
   if (smgr->inc_required
       && (smgr->satcalls == 1 || (smgr->satcalls & (smgr->satcalls - 1))))

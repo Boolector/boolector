@@ -1,6 +1,6 @@
 /*  Boolector: Satisfiablity Modulo Theories (SMT) solver.
  *
- *  Copyright (C) 2011-2012 Armin Biere.
+ *  Copyright (C) 2011-2014 Armin Biere.
  *  Copyright (C) 2014 Mathias Preiner.
  *
  *  All rights reserved.
@@ -121,9 +121,11 @@ class BtorMiniSAT : public SimpSolver
 };
 
 void *
-btor_minisat_init (BtorSATMgr *)
+btor_minisat_init (BtorSATMgr *smgr)
 {
-  return new BtorMiniSAT ();
+  BtorMiniSAT *res = new BtorMiniSAT ();
+  if (*smgr->msg->verbosity >= 2) res->verbosity = *smgr->msg->verbosity - 1;
+  return res;
 }
 
 const char *
