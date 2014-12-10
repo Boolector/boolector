@@ -89,6 +89,7 @@ typedef enum BtorSMT2Tag
   BTOR_GET_INFO_TAG_SMT2       = 17 + BTOR_COMMAND_TAG_CLASS_SMT2,
   BTOR_EXIT_TAG_SMT2           = 18 + BTOR_COMMAND_TAG_CLASS_SMT2,
   BTOR_GET_MODEL_TAG_SMT2      = 19 + BTOR_COMMAND_TAG_CLASS_SMT2,
+  BTOR_MODEL_TAG_SMT2          = 20 + BTOR_COMMAND_TAG_CLASS_SMT2,
 
   BTOR_ALL_STATISTICS_TAG_SMT2         = 0 + BTOR_KEYWORD_TAG_CLASS_SMT2,
   BTOR_AUTHORS_TAG_SMT2                = 1 + BTOR_KEYWORD_TAG_CLASS_SMT2,
@@ -279,31 +280,28 @@ typedef struct BtorSMT2Parser
   Btor *btor;
   BtorMemMgr *mem;
   int verbosity, incremental, model, need_functions;
-  char *name;
-  BtorSMT2Coo coo, lastcoo, nextcoo, perrcoo;
-  FILE *file;
-  int saved;
-  int savedch;
+  int saved, savedch;
   int last_end_of_line_ycoo;
-  BtorSMT2Node *last_node;
   int nprefix;
-  BtorCharStack *prefix;
-  char *error;
+  int binding, expecting_let_body;
+  char *name, *error;
+  unsigned char cc[256];
+  FILE *file;
+  BtorCharStack *prefix, token;
+  BoolectorNodePtrStack outputs, inputs;
+  BtorSMT2ItemStack work;
+  BtorSMT2Coo coo, lastcoo, nextcoo, perrcoo;
+  BtorSMT2Node *last_node;
+  BtorParseResult *res;
   struct
   {
     unsigned size, count;
     BtorSMT2Node **table;
   } symbol;
-  unsigned char cc[256];
-  BoolectorNodePtrStack outputs, inputs;
-  BtorCharStack token;
-  BtorSMT2ItemStack work;
-  BtorParseResult *res;
   struct
   {
-    int all, set_logic, asserts, check_sat, exits;
+    int all, set_logic, asserts, check_sat, exits, model;
   } commands;
-  int binding, expecting_let_body;
 } BtorSMT2Parser;
 
 static int
@@ -661,6 +659,7 @@ btor_insert_commands_smt2 (BtorSMT2Parser *parser)
   INSERT ("get-proof", BTOR_GET_PROOF_TAG_SMT2);
   INSERT ("get-unsat-core", BTOR_GET_UNSAT_CORE_TAG_SMT2);
   INSERT ("get-value", BTOR_GET_VALUE_TAG_SMT2);
+  INSERT ("model", BTOR_MODEL_TAG_SMT2);
   INSERT ("pop", BTOR_POP_TAG_SMT2);
   INSERT ("push", BTOR_PUSH_TAG_SMT2);
   INSERT ("set-logic", BTOR_SET_LOGIC_TAG_SMT2);
@@ -2943,11 +2942,16 @@ SORTED_VAR:
   return btor_read_rpar_smt2 (parser, " to close declaration");
 }
 
+/* Note: if we're currently parsing a model, define-fun for sorted vars
+ *	   have to be transformed into assertions of the form
+ *       assert (= var assignment), define-funs for funs with args >= 1
+ *       have to be built before asserting.
+ *       Further, all symbols we parse are already defined -> check sort. */
 static int
 btor_define_fun_smt2 (BtorSMT2Parser *parser)
 {
   int tag, domain, width, nargs = 0, len;
-  BoolectorNode *exp = 0;
+  BoolectorNode *eq, *tmp, *exp = 0;
   BtorSMT2Coo coo;
   BtorSMT2Item *item;
   BtorSMT2Node *fun, *arg;
@@ -2958,20 +2962,33 @@ btor_define_fun_smt2 (BtorSMT2Parser *parser)
   arg   = 0;
   width = domain = 0;
   coo.x = coo.y = 0;
+
   if (!btor_read_symbol (parser, " after 'define-fun'", &fun)) return 0;
   assert (fun && fun->tag == BTOR_SYMBOL_TAG_SMT2);
-  if (fun->coo.x)
+
+  if (fun->coo.x && !parser->commands.model)
+  {
     return !btor_perr_smt2 (parser,
                             "symbol '%s' already defined at line %d column %d",
                             fun->name,
                             fun->coo.x,
                             fun->coo.y);
-  fun->coo = parser->coo;
+  }
+  else if (!fun->coo.x && parser->commands.model)
+  {
+    return !btor_perr_smt2 (parser, "symbol '%s' undefined");
+  }
+  else /* do not redefine during model parsing */
+  {
+    fun->coo = parser->coo;
+  }
+
   if (!btor_read_lpar_smt2 (parser, " after function name")) return 0;
 
 SORTED_VAR:
   tag = btor_read_token_smt2 (parser);
-  if (tag == BTOR_LPAR_TAG_SMT2)
+
+  if (tag == BTOR_LPAR_TAG_SMT2) /* parse function arguments */
   {
     if (!btor_read_symbol (parser, " after '('", &arg)) return 0;
     assert (arg && arg->tag == BTOR_SYMBOL_TAG_SMT2);
@@ -2998,6 +3015,7 @@ SORTED_VAR:
     if (!btor_read_rpar_smt2 (parser, " after argument sort")) return 0;
     goto SORTED_VAR;
   }
+
   if (tag != BTOR_RPAR_TAG_SMT2)
     return !btor_perr_smt2 (parser, " expected ')'");
 
@@ -3023,13 +3041,30 @@ SORTED_VAR:
   {
     if (!btor_parse_bitvec_sort_smt2 (parser, 1, &width)) return 0;
   BITVEC:
-    BTOR_MSG (boolector_get_btor_msg (parser->btor),
-              2,
-              "defined '%s' as bit-vector of width %d at line %d column %d",
-              fun->name,
-              width,
-              fun->coo.x,
-              fun->coo.y);
+    if (!parser->commands.model)
+      BTOR_MSG (boolector_get_btor_msg (parser->btor),
+                2,
+                "defined '%s' as bit-vector of width %d at line %d column %d",
+                fun->name,
+                width,
+                fun->coo.x,
+                fun->coo.y);
+    else
+    {
+      if (boolector_get_width (parser->btor, fun->exp) != width)
+        return !btor_perr_smt2 (
+            parser,
+            "invalid sort, expected bit-width '%d' but was '%d'",
+            boolector_get_width (parser->btor, fun->exp),
+            width);
+      BTOR_MSG (boolector_get_btor_msg (parser->btor),
+                2,
+                "parsed '%s' as bit-vector of width %d at line %d column %d",
+                fun->name,
+                width,
+                fun->coo.x,
+                fun->coo.y);
+    }
   }
   else if (tag == BTOR_ARRAY_TAG_SMT2)
   {
@@ -3044,16 +3079,45 @@ SORTED_VAR:
     if (!btor_parse_bitvec_sort_smt2 (parser, 0, &width)) return 0;
     if (!btor_read_rpar_smt2 (parser, " after element sort of Array")) return 0;
 
-    BTOR_MSG (boolector_get_btor_msg (parser->btor),
-              2,
-              "defined bit-vector array '%s' "
-              "index element width %d %d at line %d column %d",
-              fun->name,
-              domain,
-              width,
-              fun->coo.x,
-              fun->coo.y);
-    parser->need_functions = 1;
+    if (!parser->commands.model)
+    {
+      BTOR_MSG (boolector_get_btor_msg (parser->btor),
+                2,
+                "defined bit-vector array '%s' "
+                "index element width %d %d at line %d column %d",
+                fun->name,
+                domain,
+                width,
+                fun->coo.x,
+                fun->coo.y);
+      parser->need_functions = 1;
+    }
+    else
+    {
+      if (!boolector_is_array (parser->btor, fun->exp))
+        return !btor_perr_smt2 (parser, "sort Array expected");
+      if (!boolector_get_index_width (parser->btor, fun->exp) != domain)
+        return !btor_perr_smt2 (
+            parser,
+            "expected index bit-width '%d' but was '%d'",
+            boolector_get_index_width (parser->btor, fun->exp),
+            domain);
+      if (!boolector_get_width (parser->btor, fun->exp) != width)
+        return !btor_perr_smt2 (parser,
+                                "expected element bit-width '%d' but was '%d'",
+                                boolector_get_width (parser->btor, fun->exp),
+                                width);
+      BTOR_MSG (boolector_get_btor_msg (parser->btor),
+                2,
+                "parsed bit-vector array '%s' "
+                "index element width %d %d at line %d column %d",
+                fun->name,
+                domain,
+                width,
+                fun->coo.x,
+                fun->coo.y);
+      assert (parser->need_functions);
+    }
   }
   else
     return !btor_perr_smt2 (
@@ -3083,6 +3147,7 @@ SORTED_VAR:
   }
 
   assert (nargs == BTOR_COUNT_STACK (parser->work));
+
   if (nargs)
   {
     BTOR_INIT_STACK (args);
@@ -3101,18 +3166,35 @@ SORTED_VAR:
     }
     parser->work.top -= nargs;
     assert (BTOR_EMPTY_STACK (parser->work));
-
-    fun->exp = boolector_fun (parser->btor, args.start, nargs, exp);
-    boolector_set_symbol (parser->btor, fun->exp, fun->name);
+    tmp = boolector_fun (parser->btor, args.start, nargs, exp);
+    if (parser->commands.model)
+    {
+      eq = boolector_eq (parser->btor, fun->exp, tmp);
+      boolector_assert (parser->btor, eq);
+      boolector_release (parser->btor, eq);
+    }
+    else
+    {
+      fun->exp = tmp;
+      boolector_set_symbol (parser->btor, fun->exp, fun->name);
+      parser->need_functions = 1;
+    }
     while (!BTOR_EMPTY_STACK (args))
       boolector_release (parser->btor, BTOR_POP_STACK (args));
     boolector_release (parser->btor, exp);
     BTOR_RELEASE_STACK (parser->mem, args);
-    parser->need_functions = 1;
   }
   else
   {
-    fun->exp = exp;
+    if (parser->commands.model)
+    {
+      assert (boolector_is_const (parser->btor, exp));  // TODO REMOVE
+      eq = boolector_eq (parser->btor, fun->exp, exp);
+      boolector_assert (parser->btor, eq);
+      boolector_release (parser->btor, eq);
+    }
+    else
+      fun->exp = exp;
   }
 
   return btor_read_rpar_smt2 (parser, " to close definition");
@@ -3165,24 +3247,32 @@ btor_read_command_smt2 (BtorSMT2Parser *parser)
   int tag;
   coo.x = coo.y = 0;
   tag           = btor_read_token_smt2 (parser);
+  if (parser->commands.model && BTOR_RPAR_TAG_SMT2) return 0;
   if (tag == EOF || tag == BTOR_INVALID_TAG_SMT2) return 0;
   if (tag != BTOR_LPAR_TAG_SMT2)
     return !btor_perr_smt2 (
         parser, "expected '(' at '%s'", parser->token.start);
   tag = btor_read_token_smt2 (parser);
+
   if (tag == EOF)
   {
     parser->perrcoo = parser->lastcoo;
     return !btor_perr_smt2 (parser, "unexpected end-of-file after '('");
   }
+
   if (tag == BTOR_INVALID_TAG_SMT2)
   {
     assert (parser->error);
     return 0;
   }
+
   if (!(tag & BTOR_COMMAND_TAG_CLASS_SMT2))
     return !btor_perr_smt2 (
         parser, "expected command at '%s'", parser->token.start);
+
+  if (parser->commands.model && tag != BTOR_DEFINE_FUN_TAG_SMT2)
+    return !btor_perr_smt2 (parser, "'define-fun' command expected");
+
   switch (tag)
   {
     case BTOR_SET_LOGIC_TAG_SMT2:
@@ -3281,6 +3371,14 @@ btor_read_command_smt2 (BtorSMT2Parser *parser)
       BTOR_MSG (boolector_get_btor_msg (parser->btor),
                 1,
                 "WARNING ignoring 'get-model' command");
+      break;
+
+    case BTOR_MODEL_TAG_SMT2:
+      if (parser->commands.model)
+        return !btor_perr_smt2 (parser, "nesting models is invalid");
+      parser->commands.model = 1;
+      while (btor_read_command_smt2 (parser))
+        ;
       break;
 
     case BTOR_SET_INFO_TAG_SMT2:
