@@ -18,6 +18,8 @@
 #include "btormem.h"
 #include "btorutil.h"
 
+//#define BTOR_PRINT_MODEL_SMT2_ASSERT 1
+
 #define BTOR_ABORT_MODEL(cond, msg)                   \
   do                                                  \
   {                                                   \
@@ -1068,6 +1070,7 @@ print_formatted_bv_smt2 (
 
   if (base == BTOR_OUTPUT_BASE_HEX)
   {
+    if (len % 4) goto BASE_BIN;
     fmt = btor_const_to_hex (btor->mm, assignment);
     fprintf (file, "#x%s", fmt);
   }
@@ -1077,6 +1080,7 @@ print_formatted_bv_smt2 (
     fprintf (file, "(_ bv%s %d)", fmt, len);
   }
   else
+  BASE_BIN:
     fprintf (file, "#b%s", assignment);
 
   if (fmt) btor_freestr (btor->mm, fmt);
@@ -1106,12 +1110,17 @@ print_bv_assignment (
   }
   else
   {
+#ifdef BTOR_PRINT_MODEL_SMT2_ASSERT
+    fprintf (file, "(assert (= %s ", symbol);
+    print_formatted_bv_smt2 (btor, node->len, base, assignment, file);
+    fprintf (file, "))\n");
+#else
     fprintf (file, "  (define-fun ");
     fprintf (file, "%s () (_ BitVec %d) ", symbol, node->len);
     print_formatted_bv_smt2 (btor, node->len, base, assignment, file);
     fprintf (file, ")\n");
+#endif
   }
-
   btor_release_bv_assignment_str (btor, (char *) assignment);
 }
 
@@ -1177,6 +1186,11 @@ print_uf_assignment_smt2 (Btor *btor, BtorNode *node, int base, FILE *file)
   //     btor, node, btor_get_fun_model (btor, node));
   // btor_dump_smt2_nodes (btor, file, &lambda, 1);
 
+  assert (btor);
+  assert (node);
+  assert (((BtorUFNode *) node)->num_params >= 1);
+  assert (file);
+
   BtorPtrHashTable *fun_model;
   BtorHashTableIterator it;
   BitVectorTuple *args;
@@ -1185,14 +1199,45 @@ print_uf_assignment_smt2 (Btor *btor, BtorNode *node, int base, FILE *file)
   int x, i, n, len;
   char *symbol, *tmp;
 
-  x      = 0;
-  symbol = btor_get_symbol_exp (btor, node);
+  x         = 0;
+  symbol    = btor_get_symbol_exp (btor, node);
+  fun_model = (BtorPtrHashTable *) btor_get_fun_model (btor, node);
 
+#ifdef BTOR_PRINT_MODEL_SMT2_ASSERT
+
+  init_hash_table_iterator (&it, fun_model);
+  while (has_next_hash_table_iterator (&it))
+  {
+    fprintf (file, "(assert (= (%s ", symbol);
+    val  = it.bucket->data.asPtr;
+    args = next_hash_table_iterator (&it);
+    if (args->arity > 1)
+    {
+      for (i = 0; i < args->arity; i++, x++)
+      {
+        tmp = btor_bv_to_char_bv (btor, args->bv[i]);
+        print_formatted_bv_smt2 (btor, args->bv[0]->width, base, tmp, file);
+        if (i + 1 < args->arity) fprintf (file, " ");
+        btor_freestr (btor->mm, tmp);
+      }
+    }
+    else
+    {
+      tmp = btor_bv_to_char_bv (btor, args->bv[0]);
+      print_formatted_bv_smt2 (btor, args->bv[0]->width, base, tmp, file);
+      btor_freestr (btor->mm, tmp);
+    }
+    fprintf (file, ") ");
+    tmp = btor_bv_to_char_bv (btor, val);
+    print_formatted_bv_smt2 (btor, val->width, base, tmp, file);
+    btor_freestr (btor->mm, tmp);
+    fprintf (file, "))\n");
+  }
+#else
   fprintf (file, "  (define-fun ");
   fprintf (file, "%s (", symbol);
 
   /* args sorts */
-  assert (((BtorUFNode *) node)->num_params >= 1);
   sort = ((BtorUFNode *) node)->sort;
   if (sort->fun.domain->kind != BTOR_TUPLE_SORT)
   {
@@ -1212,12 +1257,11 @@ print_uf_assignment_smt2 (Btor *btor, BtorNode *node, int base, FILE *file)
   fprintf (file, "\n");
 
   /* model as ite over args -> assignments */
-  n         = 0;
-  fun_model = (BtorPtrHashTable *) btor_get_fun_model (btor, node);
+  n = 0;
   init_hash_table_iterator (&it, fun_model);
   while (has_next_hash_table_iterator (&it))
   {
-    val  = it.bucket->data.asPtr;
+    val = it.bucket->data.asPtr;
     args = next_hash_table_iterator (&it);
 
     fprintf (file, "    (ite ");
@@ -1262,6 +1306,7 @@ print_uf_assignment_smt2 (Btor *btor, BtorNode *node, int base, FILE *file)
 
   for (i = 1; i < n; i++) fprintf (file, ")");
   fprintf (file, ")\n");
+#endif
 }
 
 static void
@@ -1293,7 +1338,9 @@ btor_print_model (Btor *btor, char *format, FILE *file)
 
   base = btor_get_opt_val (btor, BTOR_OPT_OUTPUT_NUMBER_FORMAT);
 
+#ifndef BTOR_PRINT_MODEL_SMT2_ASSERT
   if (!strcmp (format, "smt2")) fprintf (file, "(model\n");
+#endif
 
   init_node_hash_table_iterator (&it, btor->inputs);
   while (has_next_node_hash_table_iterator (&it))
@@ -1306,5 +1353,7 @@ btor_print_model (Btor *btor, char *format, FILE *file)
       print_bv_assignment (btor, cur, format, base, file);
   }
 
+#ifndef BTOR_PRINT_MODEL_SMT2_ASSERT
   if (!strcmp (format, "smt2")) fprintf (file, ")\n");
+#endif
 }
