@@ -1165,13 +1165,16 @@ print_bv_or_bool_sort (BtorSort *sort, FILE *file)
     assert (BTOR_IS_BOOL_SORT (sort));
     len = 1;
   }
-  fprintf (file, "(_ Bitvec %d)", len);
+  fprintf (file, "(_ BitVec %d)", len);
 }
 
 static void
-print_bv_or_bool_param (int param_index, BtorSort *sort, FILE *file)
+print_bv_or_bool_param (char *symbol,
+                        int param_index,
+                        BtorSort *sort,
+                        FILE *file)
 {
-  fprintf (file, "(x%d ", param_index);
+  fprintf (file, "(%s_x%d ", symbol, param_index);
   print_bv_or_bool_sort (sort, file);
   fprintf (file, ")");
 }
@@ -1242,14 +1245,15 @@ print_uf_assignment_smt2 (Btor *btor, BtorNode *node, int base, FILE *file)
   if (sort->fun.domain->kind != BTOR_TUPLE_SORT)
   {
     fprintf (file, "\n   ");
-    print_bv_or_bool_param (x, sort->fun.domain, file);
+    print_bv_or_bool_param (symbol, x, sort->fun.domain, file);
   }
   else
   {
     for (i = 0; i < sort->fun.domain->tuple.num_elements; i++, x++)
     {
       fprintf (file, "\n   ");
-      print_bv_or_bool_param (x, sort->fun.domain->tuple.elements[i], file);
+      print_bv_or_bool_param (
+          symbol, x, sort->fun.domain->tuple.elements[i], file);
     }
   }
   fprintf (file, ") ");
@@ -1273,7 +1277,7 @@ print_uf_assignment_smt2 (Btor *btor, BtorNode *node, int base, FILE *file)
       for (i = 0; i < args->arity; i++, x++)
       {
         tmp = btor_bv_to_char_bv (btor, args->bv[i]);
-        fprintf (file, "\n        (= x%d ", x);
+        fprintf (file, "\n        (= %s_x%d ", symbol, x);
         print_formatted_bv_smt2 (btor, args->bv[i]->width, base, tmp, file);
         fprintf (file, ")%s", i + 1 == args->arity ? "" : " ");
         btor_freestr (btor->mm, tmp);
@@ -1284,7 +1288,7 @@ print_uf_assignment_smt2 (Btor *btor, BtorNode *node, int base, FILE *file)
     else
     {
       tmp = btor_bv_to_char_bv (btor, args->bv[0]);
-      fprintf (file, "(= x%d ", x);
+      fprintf (file, "(= %s_x%d ", symbol, x);
       print_formatted_bv_smt2 (btor, args->bv[0]->width, base, tmp, file);
       fprintf (file, ") ");
       btor_freestr (btor->mm, tmp);
