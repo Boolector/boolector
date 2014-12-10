@@ -1308,7 +1308,7 @@ print_uf_assignment_smt2 (Btor *btor, BtorNode *node, int base, FILE *file)
   print_formatted_bv_smt2 (btor, val->width, base, tmp, file);
   BTOR_DELETEN (btor->mm, tmp, len);
 
-  for (i = 1; i < n; i++) fprintf (file, ")");
+  for (i = 0; i < n; i++) fprintf (file, ")");
   fprintf (file, ")\n");
 #endif
 }
