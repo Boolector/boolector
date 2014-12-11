@@ -14,6 +14,7 @@
 #include "btorhash.h"
 #include "btoriter.h"
 #include "btormodel.h"
+#include "dumper/btordumpsmt.h"
 
 const char *
 btor_get_bv_model_str (Btor *btor, BtorNode *exp)
@@ -100,7 +101,7 @@ btor_get_fun_model_str (
 }
 
 static void
-print_formatted_bv_btor (Btor *btor, int base, char *assignment, FILE *file)
+print_fmt_bv_model_btor (Btor *btor, int base, char *assignment, FILE *file)
 {
   assert (btor);
   assert (assignment);
@@ -159,37 +160,7 @@ print_formatted_bv_btor (Btor *btor, int base, char *assignment, FILE *file)
 }
 
 static void
-print_formatted_bv_smt2 (
-    Btor *btor, int len, int base, char *assignment, FILE *file)
-{
-  assert (btor);
-  assert (len);
-  assert (assignment);
-  assert (file);
-
-  char *fmt = 0;
-
-  if (base == BTOR_OUTPUT_BASE_HEX)
-  {
-    if (len % 4) goto BASE_BIN;
-    fmt = btor_const_to_hex (btor->mm, assignment);
-    fprintf (file, "#x%s", fmt);
-  }
-  else if (base == BTOR_OUTPUT_BASE_DEC)
-  {
-    fmt = btor_const_to_decimal (btor->mm, assignment);
-    fprintf (file, "(_ bv%s %d)", fmt, len);
-  }
-  else
-  BASE_BIN:
-    fprintf (file, "#b%s", assignment);
-
-  if (fmt) btor_freestr (btor->mm, fmt);
-}
-
-static void
-print_bv_assignment (
-    Btor *btor, BtorNode *node, char *format, int base, FILE *file)
+print_bv_model (Btor *btor, BtorNode *node, char *format, int base, FILE *file)
 {
   assert (btor);
   assert (format);
@@ -197,197 +168,167 @@ print_bv_assignment (
 
   int id;
   char *symbol;
-  char *assignment;
+  char *ass;
 
-  assignment = (char *) btor_get_bv_model_str (btor, node);
-  symbol     = btor_get_symbol_exp (btor, node);
+  ass    = (char *) btor_get_bv_model_str (btor, node);
+  symbol = btor_get_symbol_exp (btor, node);
 
   if (!strcmp (format, "btor"))
   {
     id = ((BtorBVVarNode *) node)->btor_id;
     fprintf (file, "%d ", id ? id : node->id);
-    print_formatted_bv_btor (btor, base, assignment, file);
+    print_fmt_bv_model_btor (btor, base, ass, file);
     fprintf (file, "%s%s\n", symbol ? " " : "", symbol ? symbol : "");
   }
   else
   {
-    fprintf (file, "  (define-fun ");
-    fprintf (file, "%s () (_ BitVec %d) ", symbol, node->len);
-    print_formatted_bv_smt2 (btor, node->len, base, assignment, file);
+    fprintf (file, "%2c(define-fun %s () ", ' ', symbol);
+    btor_dump_sort_smt_node (node, 2, file);
+    fprintf (file, " ");
+    btor_dump_const_value_smt (btor, ass, base, 2, file);
     fprintf (file, ")\n");
   }
-  btor_release_bv_assignment_str (btor, (char *) assignment);
+  btor_release_bv_assignment_str (btor, (char *) ass);
 }
 
 static void
-print_uf_assignment_btor (Btor *btor, BtorNode *node, int base, FILE *file)
+print_param_smt2 (char *symbol, int param_index, BtorSort *sort, FILE *file)
 {
-  char **args, **val, *symbol;
-  int i, size, id;
+  assert (symbol);
+  assert (sort);
+  assert (file);
 
-  btor_get_fun_model_str (btor, node, &args, &val, &size);
-
-  if (size > 0)
-  {
-    for (i = 0; i < size; i++)
-    {
-      symbol = btor_get_symbol_exp (btor, node);
-      id     = ((BtorUFNode *) node)->btor_id;
-      // TODO: distinguish between functions and arrays (ma)
-      //       needs proper sort handling
-      fprintf (file, "%d[", id ? id : node->id);
-      print_formatted_bv_btor (btor, base, args[i], file);
-      fprintf (file, "] ");
-      print_formatted_bv_btor (btor, base, val[i], file);
-      fprintf (file, "%s%s\n", symbol ? " " : "", symbol ? symbol : "");
-      btor_freestr (btor->mm, args[i]);
-      btor_freestr (btor->mm, val[i]);
-    }
-    btor_free (btor->mm, args, size * sizeof (*args));
-    btor_free (btor->mm, val, size * sizeof (*val));
-  }
-}
-
-static void
-print_bv_or_bool_sort (BtorSort *sort, FILE *file)
-{
-  int len;
-
-  if (BTOR_IS_BITVEC_SORT (sort))
-    len = sort->bitvec.len;
-  else
-  {
-    assert (BTOR_IS_BOOL_SORT (sort));
-    len = 1;
-  }
-  fprintf (file, "(_ BitVec %d)", len);
-}
-
-static void
-print_bv_or_bool_param (char *symbol,
-                        int param_index,
-                        BtorSort *sort,
-                        FILE *file)
-{
   fprintf (file, "(%s_x%d ", symbol, param_index);
-  print_bv_or_bool_sort (sort, file);
+  btor_dump_sort_smt (sort, 2, file);
   fprintf (file, ")");
 }
 
 static void
-print_uf_assignment_smt2 (Btor *btor, BtorNode *node, int base, FILE *file)
+print_fun_model_smt2 (Btor *btor, BtorNode *node, int base, FILE *file)
 {
-  // FIXME: dumper currently too messy to be used for dumping the model
-  // use dumper as soon as this is fixed?
-  // BtorNode *lambda;
-  // lambda = btor_generate_lambda_model_from_fun_model (
-  //     btor, node, btor_get_fun_model (btor, node));
-  // btor_dump_smt2_nodes (btor, file, &lambda, 1);
-
-  assert (btor);
-  assert (node);
-  assert (((BtorUFNode *) node)->num_params >= 1);
-  assert (file);
-
+  char *symbol, *ass;
+  int i, x, n, len;
   BtorPtrHashTable *fun_model;
   BtorHashTableIterator it;
   BitVectorTuple *args;
-  BitVector *val;
+  BitVector *assignment;
   BtorSort *sort;
-  int x, i, n, len;
-  char *symbol, *tmp;
 
-  x         = 0;
   symbol    = btor_get_symbol_exp (btor, node);
   fun_model = (BtorPtrHashTable *) btor_get_fun_model (btor, node);
 
-  fprintf (file, "  (define-fun ");
-  fprintf (file, "%s (", symbol);
+  fprintf (file, "%2c(define-fun %s (", ' ', symbol);
 
-  /* args sorts */
+  /* fun param sorts */
+  x    = 0;
   sort = ((BtorUFNode *) node)->sort;
-  if (sort->fun.domain->kind != BTOR_TUPLE_SORT)
+  if (sort->fun.domain->kind != BTOR_TUPLE_SORT) /* one parameter */
   {
-    fprintf (file, "\n   ");
-    print_bv_or_bool_param (symbol, x, sort->fun.domain, file);
+    fprintf (file, "\n%3c", ' ');
+    print_param_smt2 (symbol, x, sort->fun.domain, file);
   }
   else
   {
     for (i = 0; i < sort->fun.domain->tuple.num_elements; i++, x++)
     {
-      fprintf (file, "\n   ");
-      print_bv_or_bool_param (
-          symbol, x, sort->fun.domain->tuple.elements[i], file);
+      fprintf (file, "\n%3c", ' ');
+      print_param_smt2 (symbol, x, sort->fun.domain->tuple.elements[i], file);
     }
   }
   fprintf (file, ") ");
-  print_bv_or_bool_sort (sort->fun.codomain, file);
+  btor_dump_sort_smt (sort->fun.codomain, 2, file);
   fprintf (file, "\n");
 
-  /* model as ite over args -> assignments */
+  /* fun model as ite over args and assignments */
   n = 0;
   init_hash_table_iterator (&it, fun_model);
   while (has_next_hash_table_iterator (&it))
   {
-    val  = it.bucket->data.asPtr;
-    args = next_hash_table_iterator (&it);
-
-    fprintf (file, "    (ite ");
-
-    x = 0;
+    fprintf (file, "%4c(ite ", ' ');
+    assignment = it.bucket->data.asPtr;
+    args       = next_hash_table_iterator (&it);
+    x          = 0;
     if (args->arity > 1)
     {
-      fprintf (file, "\n      (and ");
+      fprintf (file, "\n%6c(and ", ' ');
       for (i = 0; i < args->arity; i++, x++)
       {
-        tmp = btor_bv_to_char_bv (btor, args->bv[i]);
-        fprintf (file, "\n        (= %s_x%d ", symbol, x);
-        print_formatted_bv_smt2 (btor, args->bv[i]->width, base, tmp, file);
+        ass = btor_bv_to_char_bv (btor, args->bv[i]);
+        fprintf (file, "\n%8c(= %s_x%d ", ' ', symbol, x);
+        btor_dump_const_value_smt (btor, ass, base, 2, file);
         fprintf (file, ")%s", i + 1 == args->arity ? "" : " ");
-        btor_freestr (btor->mm, tmp);
+        btor_freestr (btor->mm, ass);
       }
       fprintf (file, ") ");
-      fprintf (file, "\n      ");
+      fprintf (file, "\n%6c", ' ');
     }
     else
     {
-      tmp = btor_bv_to_char_bv (btor, args->bv[0]);
+      ass = btor_bv_to_char_bv (btor, args->bv[0]);
       fprintf (file, "(= %s_x%d ", symbol, x);
-      print_formatted_bv_smt2 (btor, args->bv[0]->width, base, tmp, file);
+      btor_dump_const_value_smt (btor, ass, base, 2, file);
       fprintf (file, ") ");
-      btor_freestr (btor->mm, tmp);
+      btor_freestr (btor->mm, ass);
     }
-    tmp = btor_bv_to_char_bv (btor, val);
-    print_formatted_bv_smt2 (btor, val->width, base, tmp, file);
+    ass = btor_bv_to_char_bv (btor, assignment);
+    btor_dump_const_value_smt (btor, ass, base, 2, file);
     fprintf (file, "\n");
-    btor_freestr (btor->mm, tmp);
+    btor_freestr (btor->mm, ass);
     n += 1;
   }
 
-  fprintf (file, "      ");
-  len = val->width + 1;
-  BTOR_NEWN (btor->mm, tmp, len);
-  memset (tmp, '0', len - 1);
-  tmp[len - 1] = 0;
-  print_formatted_bv_smt2 (btor, val->width, base, tmp, file);
-  BTOR_DELETEN (btor->mm, tmp, len);
+  fprintf (file, "%6c", ' ');
+  len = assignment->width + 1;
+  BTOR_NEWN (btor->mm, ass, len);
+  memset (ass, '0', len - 1);
+  ass[len - 1] = 0;
+  btor_dump_const_value_smt (btor, ass, base, 2, file);
+  BTOR_DELETEN (btor->mm, ass, len);
 
   for (i = 0; i < n; i++) fprintf (file, ")");
   fprintf (file, ")\n");
 }
 
 static void
-print_uf_assignment (
-    Btor *btor, BtorNode *node, char *format, int base, FILE *file)
+print_fun_model_btor (Btor *btor, BtorNode *node, int base, FILE *file)
+{
+  char **args, **val, *symbol;
+  int i, size, id;
+
+  btor_get_fun_model_str (btor, node, &args, &val, &size);
+
+  if (!size) return;
+
+  for (i = 0; i < size; i++)
+  {
+    symbol = btor_get_symbol_exp (btor, node);
+    id     = ((BtorUFNode *) node)->btor_id;
+    // TODO: distinguish between functions and arrays (ma)
+    //       needs proper sort handling
+    fprintf (file, "%d[", id ? id : node->id);
+    print_fmt_bv_model_btor (btor, base, args[i], file);
+    fprintf (file, "] ");
+    print_fmt_bv_model_btor (btor, base, val[i], file);
+    fprintf (file, "%s%s\n", symbol ? " " : "", symbol ? symbol : "");
+    btor_freestr (btor->mm, args[i]);
+    btor_freestr (btor->mm, val[i]);
+  }
+  btor_free (btor->mm, args, size * sizeof (*args));
+  btor_free (btor->mm, val, size * sizeof (*val));
+}
+
+static void
+print_fun_model (Btor *btor, BtorNode *node, char *format, int base, FILE *file)
 {
   assert (btor);
   assert (node);
   assert (format);
+  assert (file);
 
   if (!strcmp (format, "btor"))
-    print_uf_assignment_btor (btor, node, base, file);
+    print_fun_model_btor (btor, node, base, file);
   else
-    print_uf_assignment_smt2 (btor, node, base, file);
+    print_fun_model_smt2 (btor, node, base, file);
 }
 
 void
@@ -413,9 +354,9 @@ btor_print_model (Btor *btor, char *format, FILE *file)
     cur  = next_node_hash_table_iterator (&it);
     simp = btor_simplify_exp (btor, cur);
     if (BTOR_IS_FUN_NODE (BTOR_REAL_ADDR_NODE (simp)))
-      print_uf_assignment (btor, cur, format, base, file);
+      print_fun_model (btor, cur, format, base, file);
     else
-      print_bv_assignment (btor, cur, format, base, file);
+      print_bv_model (btor, cur, format, base, file);
   }
 
   if (!strcmp (format, "smt2")) fprintf (file, ")\n");
