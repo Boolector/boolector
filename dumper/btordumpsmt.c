@@ -177,37 +177,38 @@ CLOSE:
   if (u != exp) fputc (')', sdc->file);
 }
 
-// TODO: remove format again?
-static void
-dump_const_value_smt (BtorSMTDumpContext *sdc, const char *bits, int format)
+// TODO: remove base again?
+void
+btor_dump_const_value_smt (
+    Btor *btor, const char *bits, int base, int version, FILE *file)
 {
-  assert (sdc);
+  assert (btor);
   assert (bits);
-  assert (format == BTOR_OUTPUT_BASE_BIN || format == BTOR_OUTPUT_BASE_DEC
-          || format == BTOR_OUTPUT_BASE_HEX);
+  assert (base == BTOR_OUTPUT_BASE_BIN || base == BTOR_OUTPUT_BASE_DEC
+          || base == BTOR_OUTPUT_BASE_HEX);
 
   char *val;
   const char *fmt;
 
   /* SMT-LIB v1.2 only supports decimal output */
-  if (format == BTOR_OUTPUT_BASE_DEC || sdc->version == 1)
+  if (base == BTOR_OUTPUT_BASE_DEC || version == 1)
   {
-    val = btor_const_to_decimal (sdc->btor->mm, bits);
-    fmt = sdc->version == 1 ? "bv%s[%d]" : "(_ bv%s %d)";
-    fprintf (sdc->file, fmt, val, strlen (bits));
-    btor_freestr (sdc->btor->mm, val);
+    val = btor_const_to_decimal (btor->mm, bits);
+    fmt = version == 1 ? "bv%s[%d]" : "(_ bv%s %d)";
+    fprintf (file, fmt, val, strlen (bits));
+    btor_freestr (btor->mm, val);
   }
-  else if (format == BTOR_OUTPUT_BASE_HEX && strlen (bits) % 4 == 0)
+  else if (base == BTOR_OUTPUT_BASE_HEX && strlen (bits) % 4 == 0)
   {
-    assert (sdc->version == 2);
-    val = btor_const_to_hex (sdc->btor->mm, bits);
-    fprintf (sdc->file, "#x%s", val);
-    btor_freestr (sdc->btor->mm, val);
+    assert (version == 2);
+    val = btor_const_to_hex (btor->mm, bits);
+    fprintf (file, "#x%s", val);
+    btor_freestr (btor->mm, val);
   }
   else
   {
-    assert (sdc->version == 2);
-    fprintf (sdc->file, "#b%s", bits);
+    assert (version == 2);
+    fprintf (file, "#b%s", bits);
   }
 }
 
@@ -396,13 +397,19 @@ recursively_dump_exp_smt (BtorSMTDumpContext *sdc,
       if (BTOR_IS_INVERTED_NODE (exp))
       {
         inv_bits = btor_not_const (sdc->btor->mm, real_exp->bits);
-        dump_const_value_smt (
-            sdc, inv_bits, sdc->btor->options.output_number_format.val);
+        btor_dump_const_value_smt (sdc->btor,
+                                   inv_bits,
+                                   sdc->btor->options.output_number_format.val,
+                                   sdc->version,
+                                   sdc->file);
         btor_freestr (sdc->btor->mm, inv_bits);
       }
       else
-        dump_const_value_smt (
-            sdc, real_exp->bits, sdc->btor->options.output_number_format.val);
+        btor_dump_const_value_smt (sdc->btor,
+                                   real_exp->bits,
+                                   sdc->btor->options.output_number_format.val,
+                                   sdc->version,
+                                   sdc->file);
       break;
 
     case BTOR_SLICE_NODE:
@@ -438,7 +445,8 @@ recursively_dump_exp_smt (BtorSMTDumpContext *sdc,
     // TODO (ma): do not wrap condition if not required (if eq, ult, bool)
     case BTOR_BCOND_NODE:
       fputs ("(ite (= ", sdc->file);
-      dump_const_value_smt (sdc, "1", BTOR_OUTPUT_BASE_BIN);
+      btor_dump_const_value_smt (
+          sdc->btor, "1", BTOR_OUTPUT_BASE_BIN, sdc->version, sdc->file);
       fputc (' ', sdc->file);
       DUMP_EXP_SMT (real_exp->e[0]);
       fputs (") ", sdc->file);
@@ -467,9 +475,11 @@ recursively_dump_exp_smt (BtorSMTDumpContext *sdc,
       if (!is_root (sdc, exp))
       {
         fputc (' ', sdc->file);
-        dump_const_value_smt (sdc, "1", BTOR_OUTPUT_BASE_BIN);
+        btor_dump_const_value_smt (
+            sdc->btor, "1", BTOR_OUTPUT_BASE_BIN, sdc->version, sdc->file);
         fputc (' ', sdc->file);
-        dump_const_value_smt (sdc, "0", BTOR_OUTPUT_BASE_BIN);
+        btor_dump_const_value_smt (
+            sdc->btor, "0", BTOR_OUTPUT_BASE_BIN, sdc->version, sdc->file);
         fputc (')', sdc->file);
       }
       break;

@@ -30,6 +30,9 @@ void btor_dump_smt2_nodes (Btor* btor,
 
 void btor_dump_smt2 (Btor* btor, FILE* file);
 
+void btor_dump_const_value_smt (
+    Btor* btor, const char* bits, int base, int version, FILE* file);
+
 void btor_dump_sort_smt_node (BtorNode* exp, int version, FILE* file);
 void btor_dump_sort_smt (BtorSort* sort, int version, FILE* file);
 #endif
