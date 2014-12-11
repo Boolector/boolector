@@ -25,6 +25,7 @@
 #include "btormsg.h"
 #include "btoropt.h"
 #include "btorparamcache.h"
+#include "btorprintmodel.h"
 #include "btorrewrite.h"
 #include "btorsat.h"
 #include "btorutil.h"
