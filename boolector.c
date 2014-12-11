@@ -24,6 +24,7 @@
 #include "btoriter.h"
 #include "btormodel.h"
 #include "btorparse.h"
+#include "btorprintmodel.h"
 #include "btorsat.h"
 #include "btorsort.h"
 #include "btortrapi.h"
