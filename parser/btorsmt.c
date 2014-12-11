@@ -2738,7 +2738,7 @@ translate_benchmark (BtorSMTParser *parser,
   logic = strip (node);
   if (!strcmp (logic->name, "QF_BV"))
     res->logic = BTOR_LOGIC_QF_BV;
-  else if (!strcmp (logic->name, "QF_AUFBV"))
+  else if (!strcmp (logic->name, "QF_AUFBV") || !strcmp (logic->name, "QF_ABV"))
     res->logic = BTOR_LOGIC_QF_AUFBV;
   else
     return btor_perr_smt (parser, "unsupported logic '%s'", logic->name);
