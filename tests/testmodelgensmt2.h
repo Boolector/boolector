@@ -10,8 +10,8 @@
  *  See COPYING for more information on using this software.
  */
 
-#ifndef TESTMODELGEN_H_INCLUDED
-#define TESTMODELGEN_H_INCLUDED
+#ifndef TESTMODELGENSMT2_H_INCLUDED
+#define TESTMODELGENSMT2_H_INCLUDED
 
 void init_modelgensmt2_tests (void);
 

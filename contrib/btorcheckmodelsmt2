@@ -40,7 +40,7 @@ done
 
 MODEL="$*"
 
-cat $INFILE | sed 's/(exit)//' >> $TMPFILE
+cat $INFILE | sed -r 's/\(check-sat\)|\(exit\)//' >> $TMPFILE
 cat $MODEL | sed 's/sat//' >> $TMPFILE
 echo "(check-sat)" >> $TMPFILE
 echo "(exit)" >> $TMPFILE
