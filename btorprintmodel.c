@@ -53,7 +53,6 @@ btor_get_fun_model_str (
   assert (BTOR_IS_FUN_NODE (exp));
 
   model = btor_get_fun_model (btor, exp);
-  assert (model->count > 0);
 
   if ((BTOR_IS_LAMBDA_NODE (exp) && ((BtorLambdaNode *) exp)->num_params > 1)
       || !btor->fun_model || !model)
@@ -61,6 +60,8 @@ btor_get_fun_model_str (
     *size = 0;
     return;
   }
+
+  assert (model->count > 0);
 
   *size = (int) model->count;
   BTOR_NEWN (btor->mm, *args, *size);
