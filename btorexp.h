@@ -234,6 +234,10 @@ typedef struct BtorArgsNode BtorArgsNode;
 
 #define BTOR_IS_BV_EQ_NODE_KIND(kind) (kind == BTOR_BEQ_NODE)
 
+#define BTOR_IS_FUN_EQ_NODE_KIND(kind) (kind == BTOR_FEQ_NODE)
+
+#define BTOR_IS_ULT_NODE_KIND(kind) (kind == BTOR_ULT_NODE)
+
 #define BTOR_IS_FEQ_NODE_KIND(kind) (kind == BTOR_FEQ_NODE)
 
 #define BTOR_IS_ADD_NODE_KIND(kind) ((kind) == BTOR_ADD_NODE)
@@ -277,6 +281,11 @@ typedef struct BtorArgsNode BtorArgsNode;
 #define BTOR_IS_PARAM_NODE(exp) ((exp) && BTOR_IS_PARAM_NODE_KIND ((exp)->kind))
 
 #define BTOR_IS_BV_EQ_NODE(exp) ((exp) && BTOR_IS_BV_EQ_NODE_KIND ((exp)->kind))
+
+#define BTOR_IS_FUN_EQ_NODE(exp) \
+  ((exp) && BTOR_IS_FUN_EQ_NODE_KIND ((exp)->kind))
+
+#define BTOR_IS_ULT_NODE(exp) ((exp) && BTOR_IS_ULT_NODE_KIND ((exp)->kind))
 
 #define BTOR_IS_FEQ_NODE(exp) ((exp) && BTOR_IS_FEQ_NODE_KIND ((exp)->kind))
 
