@@ -666,7 +666,7 @@ dump_fun_smt2 (BtorSMTDumpContext *sdc, BtorNode *fun)
   dump_smt_id (sdc, fun);
   fputs (" (", sdc->file);
 
-  // TODO (ma): add space between parameters
+  i = 0;
   init_lambda_iterator (&it, fun);
   while (has_next_lambda_iterator (&it))
   {
@@ -675,11 +675,13 @@ dump_fun_smt2 (BtorSMTDumpContext *sdc, BtorNode *fun)
     btor_insert_in_ptr_hash_table (sdc->mark, cur);
     btor_insert_in_ptr_hash_table (sdc->mark, param);
 
+    if (i > 0) fputc (' ', sdc->file);
     fputc ('(', sdc->file);
     dump_smt_id (sdc, param);
     fputc (' ', sdc->file);
     dump_sort_smt (sdc, param);
     fputc (')', sdc->file);
+    i++;
   }
   fputs (") ", sdc->file);
 
