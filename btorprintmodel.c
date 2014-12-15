@@ -171,7 +171,9 @@ print_bv_model (Btor *btor, BtorNode *node, char *format, int base, FILE *file)
   char *symbol;
   char *ass;
 
-  ass    = (char *) btor_get_bv_model_str (btor, node);
+  ass = (char *) btor_get_bv_model_str (btor, node);
+  if (!btor_is_const_2vl (btor->mm, ass)) return;
+
   symbol = btor_get_symbol_exp (btor, node);
 
   if (!strcmp (format, "btor"))
@@ -229,6 +231,9 @@ print_fun_model_smt2 (Btor *btor, BtorNode *node, int base, FILE *file)
   BitVector *assignment;
   BtorSort *sort;
 
+  fun_model = (BtorPtrHashTable *) btor_get_fun_model (btor, node);
+  if (!fun_model) return;
+
   if ((symbol = btor_get_symbol_exp (btor, node)))
     s = symbol;
   else
@@ -240,8 +245,6 @@ print_fun_model_smt2 (Btor *btor, BtorNode *node, int base, FILE *file)
              ((BtorUFNode *) node)->btor_id ? ((BtorUFNode *) node)->btor_id
                                             : node->id);
   }
-
-  fun_model = (BtorPtrHashTable *) btor_get_fun_model (btor, node);
 
   fprintf (file, "%2c(define-fun %s (", ' ', s);
 
