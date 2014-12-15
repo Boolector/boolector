@@ -165,6 +165,7 @@ print_bv_model (Btor *btor, BtorNode *node, char *format, int base, FILE *file)
   assert (btor);
   assert (format);
   assert (node);
+  assert (BTOR_IS_REGULAR_NODE (node));
 
   int id;
   char *symbol;
@@ -182,7 +183,16 @@ print_bv_model (Btor *btor, BtorNode *node, char *format, int base, FILE *file)
   }
   else
   {
-    fprintf (file, "%2c(define-fun %s () ", ' ', symbol);
+    if (symbol)
+      fprintf (file, "%2c(define-fun %s () ", ' ', symbol);
+    else
+      fprintf (file,
+               "%2c(define-fun v%d () ",
+               ' ',
+               ((BtorBVVarNode *) node)->btor_id
+                   ? ((BtorBVVarNode *) node)->btor_id
+                   : node->id);
+
     btor_dump_sort_smt_node (node, 2, file);
     fprintf (file, " ");
     btor_dump_const_value_smt (btor, ass, base, 2, file);
@@ -206,7 +216,12 @@ print_param_smt2 (char *symbol, int param_index, BtorSort *sort, FILE *file)
 static void
 print_fun_model_smt2 (Btor *btor, BtorNode *node, int base, FILE *file)
 {
-  char *symbol, *ass;
+  assert (btor);
+  assert (node);
+  assert (BTOR_IS_REGULAR_NODE (node));
+  assert (file);
+
+  char *s, *symbol, *ass;
   int i, x, n, len;
   BtorPtrHashTable *fun_model;
   BtorHashTableIterator it;
@@ -214,10 +229,21 @@ print_fun_model_smt2 (Btor *btor, BtorNode *node, int base, FILE *file)
   BitVector *assignment;
   BtorSort *sort;
 
-  symbol    = btor_get_symbol_exp (btor, node);
+  if ((symbol = btor_get_symbol_exp (btor, node)))
+    s = symbol;
+  else
+  {
+    BTOR_NEWN (btor->mm, s, 40);
+    sprintf (s,
+             "%s%d",
+             BTOR_IS_UF_ARRAY_NODE (node) ? "a" : "uf",
+             ((BtorUFNode *) node)->btor_id ? ((BtorUFNode *) node)->btor_id
+                                            : node->id);
+  }
+
   fun_model = (BtorPtrHashTable *) btor_get_fun_model (btor, node);
 
-  fprintf (file, "%2c(define-fun %s (", ' ', symbol);
+  fprintf (file, "%2c(define-fun %s (", ' ', s);
 
   /* fun param sorts */
   x    = 0;
@@ -225,14 +251,14 @@ print_fun_model_smt2 (Btor *btor, BtorNode *node, int base, FILE *file)
   if (sort->fun.domain->kind != BTOR_TUPLE_SORT) /* one parameter */
   {
     fprintf (file, "\n%3c", ' ');
-    print_param_smt2 (symbol, x, sort->fun.domain, file);
+    print_param_smt2 (s, x, sort->fun.domain, file);
   }
   else
   {
     for (i = 0; i < sort->fun.domain->tuple.num_elements; i++, x++)
     {
       fprintf (file, "\n%3c", ' ');
-      print_param_smt2 (symbol, x, sort->fun.domain->tuple.elements[i], file);
+      print_param_smt2 (s, x, sort->fun.domain->tuple.elements[i], file);
     }
   }
   fprintf (file, ") ");
@@ -254,7 +280,7 @@ print_fun_model_smt2 (Btor *btor, BtorNode *node, int base, FILE *file)
       for (i = 0; i < args->arity; i++, x++)
       {
         ass = btor_bv_to_char_bv (btor, args->bv[i]);
-        fprintf (file, "\n%8c(= %s_x%d ", ' ', symbol, x);
+        fprintf (file, "\n%8c(= %s_x%d ", ' ', s, x);
         btor_dump_const_value_smt (btor, ass, base, 2, file);
         fprintf (file, ")%s", i + 1 == args->arity ? "" : " ");
         btor_freestr (btor->mm, ass);
@@ -265,7 +291,7 @@ print_fun_model_smt2 (Btor *btor, BtorNode *node, int base, FILE *file)
     else
     {
       ass = btor_bv_to_char_bv (btor, args->bv[0]);
-      fprintf (file, "(= %s_x%d ", symbol, x);
+      fprintf (file, "(= %s_x%d ", s, x);
       btor_dump_const_value_smt (btor, ass, base, 2, file);
       fprintf (file, ") ");
       btor_freestr (btor->mm, ass);
@@ -287,11 +313,18 @@ print_fun_model_smt2 (Btor *btor, BtorNode *node, int base, FILE *file)
 
   for (i = 0; i < n; i++) fprintf (file, ")");
   fprintf (file, ")\n");
+
+  if (!symbol) BTOR_DELETEN (btor->mm, s, 40);
 }
 
 static void
 print_fun_model_btor (Btor *btor, BtorNode *node, int base, FILE *file)
 {
+  assert (btor);
+  assert (node);
+  assert (BTOR_IS_REGULAR_NODE (node));
+  assert (file);
+
   char **args, **val, *symbol;
   int i, size, id;
 
@@ -326,9 +359,9 @@ print_fun_model (Btor *btor, BtorNode *node, char *format, int base, FILE *file)
   assert (file);
 
   if (!strcmp (format, "btor"))
-    print_fun_model_btor (btor, node, base, file);
+    print_fun_model_btor (btor, BTOR_REAL_ADDR_NODE (node), base, file);
   else
-    print_fun_model_smt2 (btor, node, base, file);
+    print_fun_model_smt2 (btor, BTOR_REAL_ADDR_NODE (node), base, file);
 }
 
 void
