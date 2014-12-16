@@ -15,6 +15,7 @@
 #include "btorcore.h"
 #include "btormem.h"
 #include "btormsg.h"
+#include "btoropt.h"
 #include "btorutil.h"
 
 #include <ctype.h>
@@ -124,6 +125,34 @@ typedef enum BtorSMT2Tag
   BTOR_VALUES_TAG_SMT2                 = 30 + BTOR_KEYWORD_TAG_CLASS_SMT2,
   BTOR_VERBOSITY_TAG_SMT2              = 31 + BTOR_KEYWORD_TAG_CLASS_SMT2,
   BTOR_VERSION_TAG_SMT2                = 32 + BTOR_KEYWORD_TAG_CLASS_SMT2,
+  /* we define Boolector options as keywords, too ------------------------- */
+  BTOR_OPT_MODEL_GEN_TAG_SMT2              = 33 + BTOR_KEYWORD_TAG_CLASS_SMT2,
+  BTOR_OPT_INCREMENTAL_TAG_SMT2            = 34 + BTOR_KEYWORD_TAG_CLASS_SMT2,
+  BTOR_OPT_INCREMENTAL_ALL_TAG_SMT2        = 35 + BTOR_KEYWORD_TAG_CLASS_SMT2,
+  BTOR_OPT_INCREMENTAL_IN_DEPTH_TAG_SMT2   = 36 + BTOR_KEYWORD_TAG_CLASS_SMT2,
+  BTOR_OPT_INCREMENTAL_LOOK_AHEAD_TAG_SMT2 = 37 + BTOR_KEYWORD_TAG_CLASS_SMT2,
+  BTOR_OPT_INCREMENTAL_INTERVAL_TAG_SMT2   = 38 + BTOR_KEYWORD_TAG_CLASS_SMT2,
+  BTOR_OPT_INPUT_FORMAT_TAG_SMT2           = 39 + BTOR_KEYWORD_TAG_CLASS_SMT2,
+  BTOR_OPT_OUTPUT_NUMBER_FORMAT_TAG_SMT2   = 40 + BTOR_KEYWORD_TAG_CLASS_SMT2,
+  BTOR_OPT_OUTPUT_FORMAT_TAG_SMT2          = 41 + BTOR_KEYWORD_TAG_CLASS_SMT2,
+  BTOR_OPT_REWRITE_LEVEL_TAG_SMT2          = 42 + BTOR_KEYWORD_TAG_CLASS_SMT2,
+  BTOR_OPT_REWRITE_LEVEL_PBR_TAG_SMT2      = 43 + BTOR_KEYWORD_TAG_CLASS_SMT2,
+  BTOR_OPT_BETA_REDUCE_ALL_TAG_SMT2        = 44 + BTOR_KEYWORD_TAG_CLASS_SMT2,
+  BTOR_OPT_DUAL_PROP_TAG_SMT2              = 45 + BTOR_KEYWORD_TAG_CLASS_SMT2,
+  BTOR_OPT_JUST_TAG_SMT2                   = 46 + BTOR_KEYWORD_TAG_CLASS_SMT2,
+#ifndef BTOR_DO_NOT_OPTIMIZE_UNCONSTRAINED
+  BTOR_OPT_UCOPT_TAG_SMT2 = 47 + BTOR_KEYWORD_TAG_CLASS_SMT2,
+#endif
+  BTOR_OPT_AUTO_CLEANUP_TAG_SMT2     = 48 + BTOR_KEYWORD_TAG_CLASS_SMT2,
+  BTOR_OPT_PRETTY_PRINT_TAG_SMT2     = 49 + BTOR_KEYWORD_TAG_CLASS_SMT2,
+  BTOR_OPT_LOGLEVEL_TAG_SMT2         = 50 + BTOR_KEYWORD_TAG_CLASS_SMT2,
+  BTOR_OPT_PBRA_TAG_SMT2             = 51 + BTOR_KEYWORD_TAG_CLASS_SMT2,
+  BTOR_OPT_PBRA_LOD_LIMIT_TAG_SMT2   = 52 + BTOR_KEYWORD_TAG_CLASS_SMT2,
+  BTOR_OPT_PBRA_SAT_LIMIT_TAG_SMT2   = 53 + BTOR_KEYWORD_TAG_CLASS_SMT2,
+  BTOR_OPT_PBRA_OPS_FACTOR_TAG_SMT2  = 54 + BTOR_KEYWORD_TAG_CLASS_SMT2,
+  BTOR_OPT_LAZY_SYNTHESIZE_TAG_SMT2  = 55 + BTOR_KEYWORD_TAG_CLASS_SMT2,
+  BTOR_OPT_ELIMINATE_SLICES_TAG_SMT2 = 56 + BTOR_KEYWORD_TAG_CLASS_SMT2,
+  /* ---------------------------------------------------------------------- */
 
   BTOR_BOOL_TAG_SMT2     = 0 + BTOR_CORE_TAG_CLASS_SMT2,
   BTOR_TRUE_TAG_SMT2     = 1 + BTOR_CORE_TAG_CLASS_SMT2,
@@ -592,6 +621,8 @@ btor_init_char_classes_smt2 (BtorSMT2Parser *parser)
 static void
 btor_insert_keywords_smt2 (BtorSMT2Parser *parser)
 {
+  char s[50];
+
   INSERT (":all-statistics", BTOR_ALL_STATISTICS_TAG_SMT2);
   INSERT (":authors", BTOR_AUTHORS_TAG_SMT2);
   INSERT (":axioms", BTOR_AXIOMS_TAG_SMT2);
@@ -625,6 +656,57 @@ btor_insert_keywords_smt2 (BtorSMT2Parser *parser)
   INSERT (":values", BTOR_VALUES_TAG_SMT2);
   INSERT (":verbosity", BTOR_VERBOSITY_TAG_SMT2);
   INSERT (":version", BTOR_VERSION_TAG_SMT2);
+  /* we define Boolector options as keywords, too */
+  sprintf (s, ":%s", BTOR_OPT_MODEL_GEN);
+  INSERT (s, BTOR_OPT_MODEL_GEN_TAG_SMT2);
+  sprintf (s, ":%s", BTOR_OPT_INCREMENTAL);
+  INSERT (s, BTOR_OPT_INCREMENTAL_TAG_SMT2);
+  sprintf (s, ":%s", BTOR_OPT_INCREMENTAL_ALL);
+  INSERT (s, BTOR_OPT_INCREMENTAL_ALL_TAG_SMT2);
+  sprintf (s, ":%s", BTOR_OPT_INCREMENTAL_IN_DEPTH);
+  INSERT (s, BTOR_OPT_INCREMENTAL_IN_DEPTH_TAG_SMT2);
+  sprintf (s, ":%s", BTOR_OPT_INCREMENTAL_LOOK_AHEAD);
+  INSERT (s, BTOR_OPT_INCREMENTAL_LOOK_AHEAD_TAG_SMT2);
+  sprintf (s, ":%s", BTOR_OPT_INCREMENTAL_INTERVAL);
+  INSERT (s, BTOR_OPT_INCREMENTAL_INTERVAL_TAG_SMT2);
+  sprintf (s, ":%s", BTOR_OPT_INPUT_FORMAT);
+  INSERT (s, BTOR_OPT_INPUT_FORMAT_TAG_SMT2);
+  sprintf (s, ":%s", BTOR_OPT_OUTPUT_NUMBER_FORMAT);
+  INSERT (s, BTOR_OPT_OUTPUT_NUMBER_FORMAT_TAG_SMT2);
+  sprintf (s, ":%s", BTOR_OPT_OUTPUT_FORMAT);
+  INSERT (s, BTOR_OPT_OUTPUT_FORMAT_TAG_SMT2);
+  sprintf (s, ":%s", BTOR_OPT_REWRITE_LEVEL);
+  INSERT (s, BTOR_OPT_REWRITE_LEVEL_TAG_SMT2);
+  sprintf (s, ":%s", BTOR_OPT_REWRITE_LEVEL_PBR);
+  INSERT (s, BTOR_OPT_REWRITE_LEVEL_PBR_TAG_SMT2);
+  sprintf (s, ":%s", BTOR_OPT_BETA_REDUCE_ALL);
+  INSERT (s, BTOR_OPT_BETA_REDUCE_ALL_TAG_SMT2);
+  sprintf (s, ":%s", BTOR_OPT_DUAL_PROP);
+  INSERT (s, BTOR_OPT_DUAL_PROP_TAG_SMT2);
+  sprintf (s, ":%s", BTOR_OPT_JUST);
+  INSERT (s, BTOR_OPT_JUST_TAG_SMT2);
+#ifndef BTOR_DO_NOT_OPTIMIZE_UNCONSTRAINED
+  sprintf (s, ":%s", BTOR_OPT_UCOPT);
+  INSERT (s, BTOR_OPT_UCOPT_TAG_SMT2);
+#endif
+  sprintf (s, ":%s", BTOR_OPT_AUTO_CLEANUP);
+  INSERT (s, BTOR_OPT_AUTO_CLEANUP_TAG_SMT2);
+  sprintf (s, ":%s", BTOR_OPT_PRETTY_PRINT);
+  INSERT (s, BTOR_OPT_PRETTY_PRINT_TAG_SMT2);
+  sprintf (s, ":%s", BTOR_OPT_LOGLEVEL);
+  INSERT (s, BTOR_OPT_LOGLEVEL_TAG_SMT2);
+  sprintf (s, ":%s", BTOR_OPT_PBRA);
+  INSERT (s, BTOR_OPT_PBRA_TAG_SMT2);
+  sprintf (s, ":%s", BTOR_OPT_PBRA_LOD_LIMIT);
+  INSERT (s, BTOR_OPT_PBRA_LOD_LIMIT_TAG_SMT2);
+  sprintf (s, ":%s", BTOR_OPT_PBRA_SAT_LIMIT);
+  INSERT (s, BTOR_OPT_PBRA_SAT_LIMIT_TAG_SMT2);
+  sprintf (s, ":%s", BTOR_OPT_PBRA_OPS_FACTOR);
+  INSERT (s, BTOR_OPT_PBRA_OPS_FACTOR_TAG_SMT2);
+  sprintf (s, ":%s", BTOR_OPT_LAZY_SYNTHESIZE);
+  INSERT (s, BTOR_OPT_LAZY_SYNTHESIZE_TAG_SMT2);
+  sprintf (s, ":%s", BTOR_OPT_ELIMINATE_SLICES);
+  INSERT (s, BTOR_OPT_ELIMINATE_SLICES_TAG_SMT2);
 }
 
 static void
@@ -2943,7 +3025,7 @@ SORTED_VAR:
 }
 
 /* Note: if we're currently parsing a model, define-fun for sorted vars
- *	   have to be transformed into assertions of the form
+ *	 have to be transformed into assertions of the form
  *       assert (= var assignment), define-funs for funs with args >= 1
  *       have to be built before asserting.
  *       Further, all symbols we parse are already defined -> check sort. */
@@ -3240,6 +3322,81 @@ btor_set_info_smt2 (BtorSMT2Parser *parser)
 }
 
 static int
+btor_set_option_smt2 (BtorSMT2Parser *parser)
+{
+  int tag, val;
+  char *opt;
+
+  tag = btor_read_token_smt2 (parser);
+  if (tag == BTOR_INVALID_TAG_SMT2) return 0;
+  if (tag == EOF)
+    return !btor_perr_smt2 (parser,
+                            "unexpected end-of-file after 'set-option'");
+  if (tag == BTOR_RPAR_TAG_SMT2)
+    return !btor_perr_smt2 (parser, "keyword after 'set-option' missing");
+
+  switch (tag)
+  {
+    case BTOR_PRODUCE_MODELS_TAG_SMT2:
+    case BTOR_OPT_MODEL_GEN_TAG_SMT2: opt = BTOR_OPT_MODEL_GEN; break;
+    case BTOR_VERBOSITY_TAG_SMT2: opt = BTOR_OPT_VERBOSITY; break;
+    case BTOR_OPT_INCREMENTAL_TAG_SMT2: opt = BTOR_OPT_INCREMENTAL; break;
+    case BTOR_OPT_INCREMENTAL_ALL_TAG_SMT2: opt = BTOR_OPT_INCREMENTAL_ALL;
+    case BTOR_OPT_INCREMENTAL_IN_DEPTH_TAG_SMT2:
+      opt = BTOR_OPT_INCREMENTAL_IN_DEPTH;
+      break;
+    case BTOR_OPT_INCREMENTAL_LOOK_AHEAD_TAG_SMT2:
+      opt = BTOR_OPT_INCREMENTAL_LOOK_AHEAD;
+      break;
+    case BTOR_OPT_INCREMENTAL_INTERVAL_TAG_SMT2:
+      opt = BTOR_OPT_INCREMENTAL_INTERVAL;
+      break;
+    case BTOR_OPT_INPUT_FORMAT_TAG_SMT2: opt = BTOR_OPT_INPUT_FORMAT; break;
+    case BTOR_OPT_OUTPUT_NUMBER_FORMAT_TAG_SMT2:
+      opt = BTOR_OPT_OUTPUT_NUMBER_FORMAT;
+      break;
+    case BTOR_OPT_OUTPUT_FORMAT_TAG_SMT2: opt = BTOR_OPT_OUTPUT_FORMAT; break;
+    case BTOR_OPT_REWRITE_LEVEL_TAG_SMT2: opt = BTOR_OPT_REWRITE_LEVEL; break;
+    case BTOR_OPT_REWRITE_LEVEL_PBR_TAG_SMT2:
+      opt = BTOR_OPT_REWRITE_LEVEL_PBR;
+      break;
+    case BTOR_OPT_BETA_REDUCE_ALL_TAG_SMT2:
+      opt = BTOR_OPT_BETA_REDUCE_ALL;
+      break;
+    case BTOR_OPT_DUAL_PROP_TAG_SMT2: opt = BTOR_OPT_DUAL_PROP; break;
+    case BTOR_OPT_JUST_TAG_SMT2: opt = BTOR_OPT_JUST; break;
+#ifndef BTOR_DO_NOT_OPTIMIZE_UNCONSTRAINED
+    case BTOR_OPT_UCOPT_TAG_SMT2: opt = BTOR_OPT_UCOPT; break;
+#endif
+    case BTOR_OPT_AUTO_CLEANUP_TAG_SMT2: opt = BTOR_OPT_AUTO_CLEANUP; break;
+    case BTOR_OPT_PRETTY_PRINT_TAG_SMT2: opt = BTOR_OPT_PRETTY_PRINT; break;
+    case BTOR_OPT_LOGLEVEL_TAG_SMT2: opt = BTOR_OPT_LOGLEVEL; break;
+    case BTOR_OPT_PBRA_TAG_SMT2: opt = BTOR_OPT_PBRA; break;
+    case BTOR_OPT_PBRA_LOD_LIMIT_TAG_SMT2: opt = BTOR_OPT_PBRA_LOD_LIMIT; break;
+    case BTOR_OPT_PBRA_SAT_LIMIT_TAG_SMT2: opt = BTOR_OPT_PBRA_SAT_LIMIT; break;
+    case BTOR_OPT_PBRA_OPS_FACTOR_TAG_SMT2:
+      opt = BTOR_OPT_PBRA_OPS_FACTOR;
+      break;
+    case BTOR_OPT_LAZY_SYNTHESIZE_TAG_SMT2:
+      opt = BTOR_OPT_LAZY_SYNTHESIZE;
+      break;
+    case BTOR_OPT_ELIMINATE_SLICES_TAG_SMT2: opt = BTOR_OPT_ELIMINATE_SLICES;
+    default: opt = 0;
+  }
+  if (opt)
+  {
+    tag = btor_read_token_smt2 (parser);
+    if (tag != BTOR_TRUE_TAG_SMT2 && tag != BTOR_FALSE_TAG_SMT2)
+      return !btor_perr_smt2 (parser,
+                              "Boolean value after 'set-option' missing");
+    val = tag == BTOR_TRUE_TAG_SMT2 ? 1 : 0;
+    boolector_set_opt (parser->btor, opt, val);
+  }
+  // TODO else read attribute
+  return btor_skip_sexprs (parser, 1);
+}
+
+static int
 btor_read_command_smt2 (BtorSMT2Parser *parser)
 {
   BoolectorNode *exp = 0;
@@ -3251,7 +3408,7 @@ btor_read_command_smt2 (BtorSMT2Parser *parser)
   if (tag == EOF || tag == BTOR_INVALID_TAG_SMT2) return 0;
   if (tag != BTOR_LPAR_TAG_SMT2)
     return !btor_perr_smt2 (
-        parser, "expected '(' at '%s'", parser->token.start);
+        parser, "expectedx '(' at '%s'", parser->token.start);
   tag = btor_read_token_smt2 (parser);
 
   if (tag == EOF)
@@ -3383,6 +3540,10 @@ btor_read_command_smt2 (BtorSMT2Parser *parser)
 
     case BTOR_SET_INFO_TAG_SMT2:
       if (!btor_set_info_smt2 (parser)) return 0;
+      break;
+
+    case BTOR_SET_OPTION_TAG_SMT2:
+      if (!btor_set_option_smt2 (parser)) return 0;
       break;
 
     default:
