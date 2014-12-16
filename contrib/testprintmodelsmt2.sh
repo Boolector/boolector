@@ -29,6 +29,7 @@ do
   $boolector -m --smt2-model $infile > $modelfile
   ret=$?
   if [[ $ret != 10 && $ret != 20 ]]; then
+    echo "not sat or unsat: ${seed}"
     break
   fi
   if [[ $ret = 10 ]]; then
