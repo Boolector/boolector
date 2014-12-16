@@ -98,7 +98,9 @@ Quickstart
     print("{} {}".format(x.symbol, x.assignment))  # prints: x 00000100
     print("{} {}".format(y.symbol, y.assignment))  # prints: y 00010101 
 
-  or print the resulting model via :func:`~boolector.Boolector.Print_model` : ::
+  or print the resulting model via :func:`~boolector.Boolector.Print_model`.
+  Boolector supports printing models in its own format ("btor", the default) 
+  or in `SMT-LIB v2`_ format ("smt2"): ::
   
     btor.Print_model()
   
@@ -119,6 +121,20 @@ Quickstart
   where A has id 4 and is an array with index and element bit width of 2, 
   and its value at index 0 is 1.
 
+  Printing the above model in `SMT-LIB v2`_ format: ::
+
+    btor.print_model (format="smt2")
+
+  A possible model would be: ::
+
+    (model
+      (define-fun x () (_ BitVec 8) #b00000100)
+      (define-fun y () (_ BitVec 8) #b00010101)
+      (define-fun y (
+       (y_x0 (_ BitVec 2)))
+       (ite (= y_x0 #b00) #b01
+         #00))
+    )
 
 .. _operator-overloading:
 

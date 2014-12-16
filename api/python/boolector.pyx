@@ -955,13 +955,16 @@ cdef class Boolector:
             return btorapi.boolector_set_sat_solver(
                         self._c_btor, _ChPtr(solver)._c_str) == 1
 
-    def Print_model(self, outfile = None):
-        """ Print_model(outfile = None)
+    def Print_model(self, str format = "btor", outfile = None):
+        """ Print_model(format = "btor", outfile = None)
   
             Print model to output file.
 
+            Supported model formats are Boolector's own model format ("btor")
+            and `SMT-LIB v2`_ ("smt2").
+
             This function prints the model for all inputs to output file
-            ``outfile``, e.g. ::
+            ``outfile``, e.g.::
 
               btor.Print_model()
 
@@ -979,10 +982,29 @@ cdef class Boolector:
             has id 4, is an array with index and element bit width of 2, 
             and its value at index 0 is 1.
 
+            The corresponding model in `SMT-LIB v2`_ format would be: ::
+
+              btor.Print_model(format="smt2")
+            
+            ::
+
+              (model
+                (define-fun x () (_ BitVec 8) #b00000100)
+                (define-fun y () (_ BitVec 8) #b00010101)
+                (define-fun y (
+                 (y_x0 (_ BitVec 2)))
+                 (ite (= y_x0 #b00) #b01
+                   #00))
+              )
+
+            :param format:  Model output format (default: "btor").
             :param outfile: Output file name (default: stdout).
             :type outfile:  str
         """
         cdef FILE * c_file
+
+        if format != "btor" and format != "smt2":
+            raise BoolectorException("Invalid model format '{}'".format(format))
 
         if outfile is None:
             c_file = stdout
@@ -995,7 +1017,8 @@ cdef class Boolector:
                         "Outfile '{}' is a directory".format(outfile)) 
             c_file = fopen(_ChPtr(outfile)._c_str, "w")
 
-        btorapi.boolector_print_model(self._c_btor, c_file)
+        btorapi.boolector_print_model(
+            self._c_btor, _ChPtr(format)._c_str, c_file)
 
         if outfile is not None:
             fclose(c_file)
@@ -2546,7 +2569,7 @@ cdef class Boolector:
         cdef int argc = len(args)
         cdef btorapi.BoolectorNode ** c_args = \
             <btorapi.BoolectorNode **> \
-	      malloc(argc * sizeof(btorapi.BoolectorNode *))
+              malloc(argc * sizeof(btorapi.BoolectorNode *))
 
         # copy arguments into array
         arg_nodes = []
