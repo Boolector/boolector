@@ -453,8 +453,11 @@ recursively_dump_exp_smt (BtorSMTDumpContext *sdc, BtorNode *exp, int wrap_bool)
       if (!is_boolean (sdc, real_exp->e[0]))
       {
         fputs ("(= ", sdc->file);
-        btor_dump_const_value_smt (
-            sdc->btor, "1", BTOR_OUTPUT_BASE_BIN, sdc->version, sdc->file);
+        btor_dump_const_value_smt (sdc->btor,
+                                   "1",
+                                   sdc->btor->options.output_number_format.val,
+                                   sdc->version,
+                                   sdc->file);
         fputc (' ', sdc->file);
       }
       recursively_dump_exp_smt (sdc, real_exp->e[0], 0);
@@ -580,13 +583,13 @@ DONE:
     fputc (' ', sdc->file);
     btor_dump_const_value_smt (sdc->btor,
                                "1",
-                               sdc->btor->options.output_format.val,
+                               sdc->btor->options.output_number_format.val,
                                sdc->version,
                                sdc->file);
     fputc (' ', sdc->file);
     btor_dump_const_value_smt (sdc->btor,
                                "0",
-                               sdc->btor->options.output_format.val,
+                               sdc->btor->options.output_number_format.val,
                                sdc->version,
                                sdc->file);
     fputc (')', sdc->file);
