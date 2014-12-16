@@ -56,6 +56,8 @@ BtorNode *btor_rewrite_cond_exp (Btor *btor,
 
 BtorNode *btor_rewrite_apply_exp (Btor *btor, BtorNode *fun, BtorNode *args);
 
+BtorNode *btor_rewrite_lambda_exp (Btor *btor, BtorNode *param, BtorNode *body);
+
 int btor_rewrite_linear_term (
     Btor *btor, BtorNode *term, char **fp, BtorNode **lp, BtorNode **rp);
 #endif

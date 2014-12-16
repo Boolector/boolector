@@ -2008,18 +2008,8 @@ btor_concat_exp_node (Btor *btor, BtorNode *e0, BtorNode *e1)
 }
 
 BtorNode *
-btor_lambda_exp (Btor *btor, BtorNode *e_param, BtorNode *e_exp)
+btor_lambda_exp_node (Btor *btor, BtorNode *e_param, BtorNode *e_exp)
 {
-  assert (btor);
-  assert (BTOR_IS_REGULAR_NODE (e_param));
-  assert (btor == e_param->btor);
-  assert (BTOR_IS_PARAM_NODE (e_param));
-  assert (BTOR_REAL_ADDR_NODE (e_param)->len > 0);
-  assert (!BTOR_REAL_ADDR_NODE (e_param)->simplified);
-  assert (e_exp);
-  assert (btor == BTOR_REAL_ADDR_NODE (e_exp)->btor);
-  assert (BTOR_REAL_ADDR_NODE (e_exp)->len > 0);
-
   BtorNode *result;
   int elem_len;
 
@@ -2032,6 +2022,24 @@ btor_lambda_exp (Btor *btor, BtorNode *e_param, BtorNode *e_exp)
     BTOR_PARAM_SET_LAMBDA_NODE (e_param, (BtorLambdaNode *) result);
   // else lambda_exp is an already existing one
   return result;
+}
+
+BtorNode *
+btor_lambda_exp (Btor *btor, BtorNode *e_param, BtorNode *e_exp)
+{
+  assert (btor);
+  assert (BTOR_IS_REGULAR_NODE (e_param));
+  assert (btor == e_param->btor);
+  assert (BTOR_IS_PARAM_NODE (e_param));
+  assert (BTOR_REAL_ADDR_NODE (e_param)->len > 0);
+  assert (!BTOR_REAL_ADDR_NODE (e_param)->simplified);
+  assert (e_exp);
+  assert (btor == BTOR_REAL_ADDR_NODE (e_exp)->btor);
+  assert (BTOR_REAL_ADDR_NODE (e_exp)->len > 0);
+
+  if (btor->options.rewrite_level.val > 0)
+    return btor_rewrite_lambda_exp (btor, e_param, e_exp);
+  return btor_lambda_exp_node (btor, e_param, e_exp);
 }
 
 BtorNode *
@@ -3442,6 +3450,8 @@ btor_read_exp (Btor *btor, BtorNode *e_array, BtorNode *e_index)
   assert (btor_precond_read_exp_dbg (btor, e_array, e_index));
 
   result = btor_apply_exps (btor, 1, &e_index, e_array);
+
+  // TODO (ma): why do reads have bits?
   if (BTOR_IS_APPLY_NODE (BTOR_REAL_ADDR_NODE (result)))
   {
     BTOR_REAL_ADDR_NODE (result)->is_read = 1;

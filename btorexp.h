@@ -936,6 +936,8 @@ BtorNode *btor_cond_exp_node (Btor *btor,
 
 BtorNode *btor_apply_exp_node (Btor *btor, BtorNode *fun, BtorNode *args);
 
+BtorNode *btor_lambda_exp_node (Btor *btor, BtorNode *param, BtorNode *body);
+
 /*------------------------------------------------------------------------*/
 #ifndef NDEBUG
 /*------------------------------------------------------------------------*/

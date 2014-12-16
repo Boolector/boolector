@@ -16,6 +16,7 @@
 #include "btorconst.h"
 #include "btoriter.h"
 #include "btormem.h"
+#include "btormisc.h"
 #include "btorutil.h"
 
 #include <assert.h>
@@ -4250,6 +4251,23 @@ btor_rewrite_concat_exp (Btor *btor, BtorNode *e0, BtorNode *e1)
   return ninarinorm (btor, e0, e1, btor_rewrite_concat_aux_exp);
 }
 
+BtorNode *
+btor_rewrite_lambda_exp (Btor *btor, BtorNode *param, BtorNode *body)
+{
+  assert (btor);
+  assert (param);
+  assert (body);
+  assert (BTOR_IS_REGULAR_NODE (param));
+  assert (BTOR_IS_PARAM_NODE (param));
+
+  if (BTOR_IS_REGULAR_NODE (body) && BTOR_IS_APPLY_NODE (body)
+      && body->parameterized && ((BtorArgsNode *) body->e[1])->num_args == 1
+      && body->e[1]->e[0] == param)
+    return btor_copy_exp (btor, body->e[0]);
+
+  return btor_lambda_exp_node (btor, param, body);
+}
+
 static int
 is_true_cond (BtorNode *cond)
 {
@@ -4353,8 +4371,6 @@ btor_rewrite_apply_exp (Btor *btor, BtorNode *fun, BtorNode *args)
   cur_args = args;
   cur_cond = BTOR_IS_LAMBDA_NODE (cur_fun) ? BTOR_LAMBDA_GET_BODY (cur_fun) : 0;
 
-  //  printf ("rewrite apply: %s, %s\n", node2string (cur_fun), node2string
-  //  (cur_args));
   // TODO: support for nested lambdas
   while (!done && BTOR_IS_LAMBDA_NODE (cur_fun) && !cur_fun->parameterized
          && BTOR_IS_BV_COND_NODE (BTOR_REAL_ADDR_NODE (cur_cond))
