@@ -850,6 +850,8 @@ btor_generate_lambda_model_from_fun_model (Btor *btor,
   btor_release_exp (btor, (BtorNode *) uf);
 
   /* generate ITEs */
+  ite = 0;
+  res = 0;
   init_hash_table_iterator (&it, (BtorPtrHashTable *) model);
   while (has_next_hash_table_iterator (&it))
   {
@@ -898,9 +900,13 @@ btor_generate_lambda_model_from_fun_model (Btor *btor,
     e_else = ite;
   }
 
-  res = btor_fun_exp (btor, BTOR_COUNT_STACK (params), params.start, ite);
+  assert (ite);
+  if (ite) /* get rid of compiler warning */
+  {
+    res = btor_fun_exp (btor, BTOR_COUNT_STACK (params), params.start, ite);
+    btor_release_exp (btor, ite);
+  }
 
-  btor_release_exp (btor, ite);
   while (!BTOR_EMPTY_STACK (params))
     btor_release_exp (btor, BTOR_POP_STACK (params));
   BTOR_RELEASE_STACK (btor->mm, params);

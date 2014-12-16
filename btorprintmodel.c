@@ -269,7 +269,8 @@ print_fun_model_smt2 (Btor *btor, BtorNode *node, int base, FILE *file)
   fprintf (file, "\n");
 
   /* fun model as ite over args and assignments */
-  n = 0;
+  n          = 0;
+  assignment = 0;
   init_hash_table_iterator (&it, fun_model);
   while (has_next_hash_table_iterator (&it))
   {
@@ -306,13 +307,17 @@ print_fun_model_smt2 (Btor *btor, BtorNode *node, int base, FILE *file)
     n += 1;
   }
 
-  fprintf (file, "%6c", ' ');
-  len = assignment->width + 1;
-  BTOR_NEWN (btor->mm, ass, len);
-  memset (ass, '0', len - 1);
-  ass[len - 1] = 0;
-  btor_dump_const_value_smt (btor, ass, base, 2, file);
-  BTOR_DELETEN (btor->mm, ass, len);
+  assert (assignment);
+  if (assignment) /* get rid of compiler warning */
+  {
+    fprintf (file, "%6c", ' ');
+    len = assignment->width + 1;
+    BTOR_NEWN (btor->mm, ass, len);
+    memset (ass, '0', len - 1);
+    ass[len - 1] = 0;
+    btor_dump_const_value_smt (btor, ass, base, 2, file);
+    BTOR_DELETEN (btor->mm, ass, len);
+  }
 
   for (i = 0; i < n; i++) fprintf (file, ")");
   fprintf (file, ")\n");
