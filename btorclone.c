@@ -239,7 +239,7 @@ clone_exp (Btor *clone,
       }
       else
       {
-        if (BTOR_IS_ARRAY_EQ_NODE (exp) && exp->vreads)
+        if (BTOR_IS_FEQ_NODE (exp) && exp->vreads)
         {
           assert (btor_mapped_node (exp_map, exp->vreads->exp1));
           assert (btor_mapped_node (exp_map, exp->vreads->exp2));
@@ -874,7 +874,7 @@ clone_aux_btor (Btor *btor,
     }
     else if (cur->rho)
       allocated += MEM_PTR_HASH_TABLE (cur->rho);
-    if (BTOR_IS_ARRAY_EQ_NODE (cur) && cur->vreads)
+    if (BTOR_IS_FEQ_NODE (cur) && cur->vreads)
       allocated += sizeof (BtorNodePair);
     if (!exp_layer_only && BTOR_IS_LAMBDA_NODE (cur)
         && ((BtorLambdaNode *) cur)->synth_apps)
