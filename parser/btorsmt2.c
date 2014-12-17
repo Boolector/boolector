@@ -621,8 +621,6 @@ btor_init_char_classes_smt2 (BtorSMT2Parser *parser)
 static void
 btor_insert_keywords_smt2 (BtorSMT2Parser *parser)
 {
-  char s[50];
-
   INSERT (":all-statistics", BTOR_ALL_STATISTICS_TAG_SMT2);
   INSERT (":authors", BTOR_AUTHORS_TAG_SMT2);
   INSERT (":axioms", BTOR_AXIOMS_TAG_SMT2);
@@ -657,56 +655,32 @@ btor_insert_keywords_smt2 (BtorSMT2Parser *parser)
   INSERT (":verbosity", BTOR_VERBOSITY_TAG_SMT2);
   INSERT (":version", BTOR_VERSION_TAG_SMT2);
   /* we define Boolector options as keywords, too */
-  sprintf (s, ":%s", BTOR_OPT_MODEL_GEN);
-  INSERT (s, BTOR_OPT_MODEL_GEN_TAG_SMT2);
-  sprintf (s, ":%s", BTOR_OPT_INCREMENTAL);
-  INSERT (s, BTOR_OPT_INCREMENTAL_TAG_SMT2);
-  sprintf (s, ":%s", BTOR_OPT_INCREMENTAL_ALL);
-  INSERT (s, BTOR_OPT_INCREMENTAL_ALL_TAG_SMT2);
-  sprintf (s, ":%s", BTOR_OPT_INCREMENTAL_IN_DEPTH);
-  INSERT (s, BTOR_OPT_INCREMENTAL_IN_DEPTH_TAG_SMT2);
-  sprintf (s, ":%s", BTOR_OPT_INCREMENTAL_LOOK_AHEAD);
-  INSERT (s, BTOR_OPT_INCREMENTAL_LOOK_AHEAD_TAG_SMT2);
-  sprintf (s, ":%s", BTOR_OPT_INCREMENTAL_INTERVAL);
-  INSERT (s, BTOR_OPT_INCREMENTAL_INTERVAL_TAG_SMT2);
-  sprintf (s, ":%s", BTOR_OPT_INPUT_FORMAT);
-  INSERT (s, BTOR_OPT_INPUT_FORMAT_TAG_SMT2);
-  sprintf (s, ":%s", BTOR_OPT_OUTPUT_NUMBER_FORMAT);
-  INSERT (s, BTOR_OPT_OUTPUT_NUMBER_FORMAT_TAG_SMT2);
-  sprintf (s, ":%s", BTOR_OPT_OUTPUT_FORMAT);
-  INSERT (s, BTOR_OPT_OUTPUT_FORMAT_TAG_SMT2);
-  sprintf (s, ":%s", BTOR_OPT_REWRITE_LEVEL);
-  INSERT (s, BTOR_OPT_REWRITE_LEVEL_TAG_SMT2);
-  sprintf (s, ":%s", BTOR_OPT_REWRITE_LEVEL_PBR);
-  INSERT (s, BTOR_OPT_REWRITE_LEVEL_PBR_TAG_SMT2);
-  sprintf (s, ":%s", BTOR_OPT_BETA_REDUCE_ALL);
-  INSERT (s, BTOR_OPT_BETA_REDUCE_ALL_TAG_SMT2);
-  sprintf (s, ":%s", BTOR_OPT_DUAL_PROP);
-  INSERT (s, BTOR_OPT_DUAL_PROP_TAG_SMT2);
-  sprintf (s, ":%s", BTOR_OPT_JUST);
-  INSERT (s, BTOR_OPT_JUST_TAG_SMT2);
+  INSERT (":model-gen", BTOR_OPT_MODEL_GEN_TAG_SMT2);
+  INSERT (":incremental", BTOR_OPT_INCREMENTAL_TAG_SMT2);
+  INSERT (":incremental-all", BTOR_OPT_INCREMENTAL_ALL_TAG_SMT2);
+  INSERT (":incremental-in-depth", BTOR_OPT_INCREMENTAL_IN_DEPTH_TAG_SMT2);
+  INSERT (":incremental-look-ahead", BTOR_OPT_INCREMENTAL_LOOK_AHEAD_TAG_SMT2);
+  INSERT (":incremental-look-interval", BTOR_OPT_INCREMENTAL_INTERVAL_TAG_SMT2);
+  INSERT (":input-format", BTOR_OPT_INPUT_FORMAT_TAG_SMT2);
+  INSERT (":output-number-format", BTOR_OPT_OUTPUT_NUMBER_FORMAT_TAG_SMT2);
+  INSERT (":output-format", BTOR_OPT_OUTPUT_FORMAT_TAG_SMT2);
+  INSERT (":rewrite-level", BTOR_OPT_REWRITE_LEVEL_TAG_SMT2);
+  INSERT (":rewrite-level-pbr", BTOR_OPT_REWRITE_LEVEL_PBR_TAG_SMT2);
+  INSERT (":beta-reduce-all", BTOR_OPT_BETA_REDUCE_ALL_TAG_SMT2);
+  INSERT (":dual-prop", BTOR_OPT_DUAL_PROP_TAG_SMT2);
+  INSERT (":just", BTOR_OPT_JUST_TAG_SMT2);
 #ifndef BTOR_DO_NOT_OPTIMIZE_UNCONSTRAINED
-  sprintf (s, ":%s", BTOR_OPT_UCOPT);
-  INSERT (s, BTOR_OPT_UCOPT_TAG_SMT2);
+  INSERT (":ucopt", BTOR_OPT_UCOPT_TAG_SMT2);
 #endif
-  sprintf (s, ":%s", BTOR_OPT_AUTO_CLEANUP);
-  INSERT (s, BTOR_OPT_AUTO_CLEANUP_TAG_SMT2);
-  sprintf (s, ":%s", BTOR_OPT_PRETTY_PRINT);
-  INSERT (s, BTOR_OPT_PRETTY_PRINT_TAG_SMT2);
-  sprintf (s, ":%s", BTOR_OPT_LOGLEVEL);
-  INSERT (s, BTOR_OPT_LOGLEVEL_TAG_SMT2);
-  sprintf (s, ":%s", BTOR_OPT_PBRA);
-  INSERT (s, BTOR_OPT_PBRA_TAG_SMT2);
-  sprintf (s, ":%s", BTOR_OPT_PBRA_LOD_LIMIT);
-  INSERT (s, BTOR_OPT_PBRA_LOD_LIMIT_TAG_SMT2);
-  sprintf (s, ":%s", BTOR_OPT_PBRA_SAT_LIMIT);
-  INSERT (s, BTOR_OPT_PBRA_SAT_LIMIT_TAG_SMT2);
-  sprintf (s, ":%s", BTOR_OPT_PBRA_OPS_FACTOR);
-  INSERT (s, BTOR_OPT_PBRA_OPS_FACTOR_TAG_SMT2);
-  sprintf (s, ":%s", BTOR_OPT_LAZY_SYNTHESIZE);
-  INSERT (s, BTOR_OPT_LAZY_SYNTHESIZE_TAG_SMT2);
-  sprintf (s, ":%s", BTOR_OPT_ELIMINATE_SLICES);
-  INSERT (s, BTOR_OPT_ELIMINATE_SLICES_TAG_SMT2);
+  INSERT (":auto-cleanup", BTOR_OPT_AUTO_CLEANUP_TAG_SMT2);
+  INSERT (":pretty-print", BTOR_OPT_PRETTY_PRINT_TAG_SMT2);
+  INSERT (":loglevel", BTOR_OPT_LOGLEVEL_TAG_SMT2);
+  INSERT (":pbra", BTOR_OPT_PBRA_TAG_SMT2);
+  INSERT (":pbra-lod-limit", BTOR_OPT_PBRA_LOD_LIMIT_TAG_SMT2);
+  INSERT (":pbra-sat-limit", BTOR_OPT_PBRA_SAT_LIMIT_TAG_SMT2);
+  INSERT (":pbra-ops-factor", BTOR_OPT_PBRA_OPS_FACTOR_TAG_SMT2);
+  INSERT (":lazy-synthesize", BTOR_OPT_LAZY_SYNTHESIZE_TAG_SMT2);
+  INSERT (":eliminate-slices", BTOR_OPT_ELIMINATE_SLICES_TAG_SMT2);
 }
 
 static void
@@ -3324,7 +3298,7 @@ btor_set_info_smt2 (BtorSMT2Parser *parser)
 static int
 btor_set_option_smt2 (BtorSMT2Parser *parser)
 {
-  int tag, val;
+  int tag, val, verb = 0;
   char *opt;
 
   tag = btor_read_token_smt2 (parser);
@@ -3339,7 +3313,10 @@ btor_set_option_smt2 (BtorSMT2Parser *parser)
   {
     case BTOR_PRODUCE_MODELS_TAG_SMT2:
     case BTOR_OPT_MODEL_GEN_TAG_SMT2: opt = BTOR_OPT_MODEL_GEN; break;
-    case BTOR_VERBOSITY_TAG_SMT2: opt = BTOR_OPT_VERBOSITY; break;
+    case BTOR_VERBOSITY_TAG_SMT2:
+      opt  = BTOR_OPT_VERBOSITY;
+      verb = 1;
+      break;
     case BTOR_OPT_INCREMENTAL_TAG_SMT2: opt = BTOR_OPT_INCREMENTAL; break;
     case BTOR_OPT_INCREMENTAL_ALL_TAG_SMT2: opt = BTOR_OPT_INCREMENTAL_ALL;
     case BTOR_OPT_INCREMENTAL_IN_DEPTH_TAG_SMT2:
@@ -3383,16 +3360,22 @@ btor_set_option_smt2 (BtorSMT2Parser *parser)
     case BTOR_OPT_ELIMINATE_SLICES_TAG_SMT2: opt = BTOR_OPT_ELIMINATE_SLICES;
     default: opt = 0;
   }
+
   if (opt)
   {
     tag = btor_read_token_smt2 (parser);
-    if (tag != BTOR_TRUE_TAG_SMT2 && tag != BTOR_FALSE_TAG_SMT2)
-      return !btor_perr_smt2 (parser,
-                              "Boolean value after 'set-option' missing");
-    val = tag == BTOR_TRUE_TAG_SMT2 ? 1 : 0;
+    val = boolector_get_opt_val (parser->btor, opt);
+    if (tag == BTOR_FALSE_TAG_SMT2)
+      val = 0;
+    else if (tag == BTOR_TRUE_TAG_SMT2)
+      val = 1;
+    else
+      val =
+          verb ? val + atoi (parser->token.start) : atoi (parser->token.start);
     boolector_set_opt (parser->btor, opt, val);
   }
-  // TODO else read attribute
+  else
+    return !btor_perr_smt2 (parser, "unsupported option");
   return btor_skip_sexprs (parser, 1);
 }
 
