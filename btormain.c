@@ -1507,8 +1507,6 @@ boolector_main (int argc, char **argv)
     btormain_error (static_app,
                     "'unsat' but status of benchmark in '%s' is 'sat'",
                     static_app->infile_name);
-  else
-    print_sat_result (static_app, sat_res);
 
   if (print_model && sat_res == BOOLECTOR_SAT)
   {
@@ -1523,6 +1521,8 @@ boolector_main (int argc, char **argv)
     boolector_print_stats (static_app->btor);
     print_static_stats ();
   }
+
+  print_sat_result (static_app, sat_res);
 
 DONE:
   if (static_app->done)
