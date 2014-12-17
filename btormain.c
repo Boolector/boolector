@@ -1499,7 +1499,10 @@ boolector_main (int argc, char **argv)
     goto DONE;
   }
 
-  sat_res = boolector_sat (static_app->btor);
+  if (parse_result != BOOLECTOR_SAT && parse_result != BOOLECTOR_UNSAT)
+    sat_res = boolector_sat (static_app->btor);
+  else
+    sat_res = parse_result;
   assert (sat_res != BOOLECTOR_UNKNOWN);
 
   /* check if status is equal to benchmark status */
