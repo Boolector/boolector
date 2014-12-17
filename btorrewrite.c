@@ -29,7 +29,7 @@
 /* iterative rewriting bounds */
 #define BTOR_WRITE_CHAIN_NODE_RW_BOUND (1 << 5)
 #define BTOR_READ_OVER_WRITE_DOWN_PROPAGATION_LIMIT (1 << 11)
-#define BTOR_APPLY_PROPAGATION_LIMIT (1 << 12)
+#define BTOR_APPLY_PROPAGATION_LIMIT (1 << 13)
 
 /* other rewriting bounds */
 #define BTOR_FIND_AND_NODE_CONTRADICTION_LIMIT (1 << 4)
@@ -4269,6 +4269,49 @@ btor_rewrite_lambda_exp (Btor *btor, BtorNode *param, BtorNode *body)
 }
 
 static int
+is_write_exp (BtorNode *exp,
+              BtorNode **array,
+              BtorNode **index,
+              BtorNode **value)
+{
+  assert (exp);
+  assert (BTOR_IS_REGULAR_NODE (exp));
+  assert (array);
+  assert (index);
+  assert (value);
+
+  BtorNode *param, *body, *eq, *app;
+
+  if (!BTOR_IS_LAMBDA_NODE (exp) || ((BtorLambdaNode *) exp)->num_params > 1)
+    return 0;
+
+  param = (BtorNode *) BTOR_LAMBDA_GET_PARAM (exp);
+  body  = BTOR_LAMBDA_GET_BODY (exp);
+
+  if (BTOR_IS_INVERTED_NODE (body) || !BTOR_IS_BV_COND_NODE (body)) return 0;
+
+  /* check condition */
+  eq = body->e[0];
+  if (BTOR_IS_INVERTED_NODE (eq) || !BTOR_IS_BV_EQ_NODE (eq)
+      || !eq->parameterized || (eq->e[0] != param && eq->e[1] != param))
+    return 0;
+
+  /* check value */
+  if (BTOR_REAL_ADDR_NODE (body->e[1])->parameterized) return 0;
+
+  /* check apply on unmodified array */
+  app = body->e[2];
+  if (BTOR_IS_INVERTED_NODE (app) || !BTOR_IS_APPLY_NODE (app)
+      || ((BtorArgsNode *) app->e[1])->num_args > 1 || app->e[1]->e[0] != param)
+    return 0;
+
+  *array = app->e[0];
+  *index = eq->e[1] == param ? eq->e[0] : eq->e[1];
+  *value = body->e[1];
+  return 1;
+}
+
+static int
 is_true_cond (BtorNode *cond)
 {
   assert (cond);
@@ -4298,6 +4341,7 @@ btor_rewrite_apply_exp (Btor *btor, BtorNode *fun, BtorNode *args)
 
   BtorNode *result, *prev_result, *cur_fun, *cur_args, *e_cond;
   BtorNode *beta_cond, *cur_cond, *cur_branch, *next_fun, *body, *real_body;
+  BtorNode *index, *cur_index, *value;
   int propagations, apply_propagations, done, inv_result, release_args = 0;
 
   fun                = btor_simplify_exp (btor, fun);
@@ -4369,10 +4413,33 @@ btor_rewrite_apply_exp (Btor *btor, BtorNode *fun, BtorNode *args)
 
   cur_fun  = fun;
   cur_args = args;
+
+  if (!cur_args->parameterized)
+  {
+    index = cur_args->e[0];
+    value = 0;
+    while (is_write_exp (cur_fun, &next_fun, &cur_index, &value)
+           && apply_propagations < BTOR_APPLY_PROPAGATION_LIMIT)
+    {
+      if (index == cur_index)
+      {
+        done   = 1;
+        result = btor_copy_exp (btor, value);
+        break;
+      }
+      if (!is_always_unequal (btor, index, cur_index)) break;
+      assert (cur_fun != next_fun);
+      /* propagate down to 'next_fun' */
+      cur_fun = next_fun;
+      apply_propagations++;
+    }
+  }
+
   cur_cond = BTOR_IS_LAMBDA_NODE (cur_fun) ? BTOR_LAMBDA_GET_BODY (cur_fun) : 0;
 
   // TODO: support for nested lambdas
-  while (!done && BTOR_IS_LAMBDA_NODE (cur_fun) && !cur_fun->parameterized
+  while (!done && cur_cond && BTOR_IS_LAMBDA_NODE (cur_fun)
+         && !cur_fun->parameterized
          && BTOR_IS_BV_COND_NODE (BTOR_REAL_ADDR_NODE (cur_cond))
          && propagations++ < BTOR_APPLY_PROPAGATION_LIMIT
          && !cur_args->parameterized)
