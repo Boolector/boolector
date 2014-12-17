@@ -1430,6 +1430,10 @@ boolector_main (int argc, char **argv)
                                     &parse_error_msg,
                                     &parse_status);
 
+  /* verbosity may have been increased via input (set-option) */
+  static_verbosity =
+      boolector_get_opt_val (static_app->btor, BTOR_OPT_VERBOSITY);
+
   if (parse_result == BOOLECTOR_PARSE_ERROR)
   {
     /* NOTE: do not use btormain_error here as 'parse_error_msg' must not be
