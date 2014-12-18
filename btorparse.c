@@ -94,6 +94,8 @@ btor_parse_aux (Btor *btor,
 
     if (!parse_opt.incremental)
     {
+      // FIXME this is only used for non-incremental smt1 and btor
+      // maybe move root handling into respective parsers??
       /* assert root(s) if not incremental
        * Note: we have to do this via API calls for API tracing!!! */
       for (i = 0; i < parse_res.noutputs; i++)
