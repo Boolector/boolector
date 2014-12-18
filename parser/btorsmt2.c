@@ -3474,7 +3474,6 @@ btor_read_command_smt2 (BtorSMT2Parser *parser)
 
     case BTOR_ASSERT_TAG_SMT2:
       if (!btor_parse_term_smt2 (parser, &exp, &coo)) return 0;
-      // BTOR_PUSH_STACK (parser->mem, parser->outputs, exp);
       if (boolector_is_array (parser->btor, exp))
       {
         parser->perrcoo = coo;
@@ -3511,8 +3510,6 @@ btor_read_command_smt2 (BtorSMT2Parser *parser)
 
     case BTOR_GET_MODEL_TAG_SMT2:
       if (!btor_read_rpar_smt2 (parser, " after 'get-model'")) return 0;
-      // BTOR_MSG (boolector_get_btor_msg (parser->btor), 1,
-      //  "WARNING ignoring 'get-model' command");
       boolector_print_model (parser->btor, "smt2", stdout);
       break;
 
