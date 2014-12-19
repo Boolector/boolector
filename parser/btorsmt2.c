@@ -3394,7 +3394,7 @@ btor_read_command_smt2 (BtorSMT2Parser *parser)
 {
   BoolectorNode *exp = 0;
   BtorSMT2Coo coo;
-  int tag;
+  int n, tag;
   coo.x = coo.y = 0;
   tag           = btor_read_token_smt2 (parser);
   if (parser->commands.model && tag == BTOR_RPAR_TAG_SMT2)
@@ -3542,18 +3542,22 @@ btor_read_command_smt2 (BtorSMT2Parser *parser)
 
     case BTOR_GET_VALUE_TAG_SMT2:
       if (!btor_read_lpar_smt2 (parser, " after 'get-model'")) return 0;
+      n   = 0;
       tag = 0;
       if (!btor_parse_term_smt2 (parser, 0, 0, &exp, &coo)) return 0;
+      fprintf (stdout, "(\n ");
       boolector_print_value (parser->btor, exp, "smt2", stdout);
       boolector_release (parser->btor, exp);
       tag = btor_read_token_smt2 (parser);
       while (tag != EOF && tag != BTOR_RPAR_TAG_SMT2)
       {
         if (!btor_parse_term_smt2 (parser, 1, tag, &exp, &coo)) return 0;
+        fprintf (stdout, "\n ");
         boolector_print_value (parser->btor, exp, "smt2", stdout);
         boolector_release (parser->btor, exp);
         tag = btor_read_token_smt2 (parser);
       }
+      fprintf (stdout, "\n)\n");
       if (tag != BTOR_RPAR_TAG_SMT2)
         return !btor_perr_smt2 (
             parser, "expected ')' after 'get-value' at end-of-file");
