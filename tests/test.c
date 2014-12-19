@@ -2,7 +2,8 @@
  *
  *  Copyright (C) 2007-2010 Robert Daniel Brummayer.
  *  Copyright (C) 2007-2012 Armin Biere.
- *  Copyright (C) 2012 Aina Niemetz, Mathias Preiner.
+ *  Copyright (C) 2012, 2014 Aina Niemetz.
+ *  Copyright (C) 2012 Mathias Preiner.
  *
  *  All rights reserved.
  *
@@ -26,6 +27,7 @@
 #include "testmem.h"
 #include "testmisc.h"
 #include "testmodelgen.h"
+#include "testmodelgensmt2.h"
 #include "testoverflow.h"
 #include "testparseerror.h"
 #include "testqueue.h"
@@ -70,8 +72,8 @@
   "    a valid pattern is a substring of an existing test case out of the\n" \
   "    following test case sets:\n"                                          \
   "      aig, aigvec, arithmetic, comp, const, exp, hash, inc, logic,\n"     \
-  "      mem, misc, modelgen, overflow, parseerror, queue, sat, shift,\n"    \
-  "      smtaxioms, special, stack, util, testcases\n\n"
+  "      mem, misc, modelgen, modelgensmt2, overflow, parseerror, queue,\n " \
+  "      sat, shift, smtaxioms, special, stack, util, testcases\n\n"
 
 int
 main (int argc, char **argv)
@@ -142,6 +144,7 @@ main (int argc, char **argv)
   BTOR_RUN_TESTS (smtaxioms);
   BTOR_RUN_TESTS (inc);
   BTOR_RUN_TESTS (modelgen);
+  BTOR_RUN_TESTS (modelgensmt2);
   BTOR_RUN_TESTS (parseerror);
   BTOR_RUN_TESTS (mc);
   BTOR_RUN_TESTS (sort);
