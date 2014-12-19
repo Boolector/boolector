@@ -328,6 +328,11 @@ cdef extern from "boolector.h":
 
     void boolector_print_model (Btor * btor, char * format, FILE * file)
 
+    void boolector_print_value (Btor * btor, 
+				BoolectorNode * node, 
+				char * format, 
+				FILE * file)
+
     BoolectorSort *boolector_bool_sort (Btor * btor)
 
     BoolectorSort *boolector_bitvec_sort (Btor * btor, int len)

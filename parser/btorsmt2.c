@@ -1774,6 +1774,8 @@ btor_rotate_right_smt2 (Btor *btor, BoolectorNode *exp, int shift)
 
 static int
 btor_parse_term_smt2 (BtorSMT2Parser *parser,
+                      int have_look_ahead,
+                      int look_ahead,
                       BoolectorNode **resptr,
                       BtorSMT2Coo *cooptr)
 {
@@ -1789,7 +1791,13 @@ btor_parse_term_smt2 (BtorSMT2Parser *parser,
   work_cnt = BTOR_COUNT_STACK (parser->work);
   do
   {
-    tag = btor_read_token_smt2 (parser);
+    if (have_look_ahead)
+    {
+      tag             = look_ahead;
+      have_look_ahead = 0;
+    }
+    else
+      tag = btor_read_token_smt2 (parser);
     if (tag == BTOR_INVALID_TAG_SMT2) return 0;
     if (tag == EOF)
     {
@@ -3179,7 +3187,7 @@ SORTED_VAR:
     return !btor_perr_smt2 (
         parser, "expected '_' at '%s'", parser->token.start);
 
-  if (!btor_parse_term_smt2 (parser, &exp, &coo)) return 0;
+  if (!btor_parse_term_smt2 (parser, 0, 0, &exp, &coo)) return 0;
 
   if (boolector_get_width (parser->btor, exp) != width)
   {
@@ -3228,6 +3236,7 @@ SORTED_VAR:
       eq = boolector_eq (parser->btor, fun->exp, tmp);
       boolector_assert (parser->btor, eq);
       boolector_release (parser->btor, eq);
+      boolector_release (parser->btor, tmp);
     }
     else
     {
@@ -3248,6 +3257,7 @@ SORTED_VAR:
       eq = boolector_eq (parser->btor, fun->exp, exp);
       boolector_assert (parser->btor, eq);
       boolector_release (parser->btor, eq);
+      boolector_release (parser->btor, exp);
     }
     else
       fun->exp = exp;
@@ -3387,11 +3397,19 @@ btor_read_command_smt2 (BtorSMT2Parser *parser)
   int tag;
   coo.x = coo.y = 0;
   tag           = btor_read_token_smt2 (parser);
-  if (parser->commands.model && BTOR_RPAR_TAG_SMT2) return 0;
+  if (parser->commands.model && tag == BTOR_RPAR_TAG_SMT2)
+  {
+    parser->commands.model = 0;
+    return 0;
+  }
+  if (parser->commands.model && tag == EOF)
+    return !btor_perr_smt2 (parser,
+                            "expected ')' after 'model' at end-of-file");
+
   if (tag == EOF || tag == BTOR_INVALID_TAG_SMT2) return 0;
   if (tag != BTOR_LPAR_TAG_SMT2)
     return !btor_perr_smt2 (
-        parser, "expectedx '(' at '%s'", parser->token.start);
+        parser, "expected '(' at '%s'", parser->token.start);
   tag = btor_read_token_smt2 (parser);
 
   if (tag == EOF)
@@ -3405,6 +3423,9 @@ btor_read_command_smt2 (BtorSMT2Parser *parser)
     assert (parser->error);
     return 0;
   }
+
+  if (parser->commands.model && tag != BTOR_DEFINE_FUN_TAG_SMT2)
+    return !btor_perr_smt2 (parser, "expected 'define-fun' after 'model'");
 
   if (!(tag & BTOR_COMMAND_TAG_CLASS_SMT2))
     return !btor_perr_smt2 (
@@ -3473,21 +3494,27 @@ btor_read_command_smt2 (BtorSMT2Parser *parser)
       break;
 
     case BTOR_ASSERT_TAG_SMT2:
-      if (!btor_parse_term_smt2 (parser, &exp, &coo)) return 0;
+      if (!btor_parse_term_smt2 (parser, 0, 0, &exp, &coo)) return 0;
       if (boolector_is_array (parser->btor, exp))
       {
         parser->perrcoo = coo;
+        boolector_release (parser->btor, exp);
         return !btor_perr_smt2 (
             parser, "assert argument is an array and not a formula");
       }
       if (boolector_get_width (parser->btor, exp) != 1)
       {
         parser->perrcoo = coo;
+        boolector_release (parser->btor, exp);
         return !btor_perr_smt2 (parser,
                                 "assert argument is a bit-vector of length %d",
                                 boolector_get_width (parser->btor, exp));
       }
-      if (!btor_read_rpar_smt2 (parser, " after asserted expression")) return 0;
+      if (!btor_read_rpar_smt2 (parser, " after asserted expression"))
+      {
+        boolector_release (parser->btor, exp);
+        return 0;
+      }
       boolector_assert (parser->btor, exp);
       boolector_release (parser->btor, exp);
       assert (!parser->error);
@@ -3511,6 +3538,26 @@ btor_read_command_smt2 (BtorSMT2Parser *parser)
     case BTOR_GET_MODEL_TAG_SMT2:
       if (!btor_read_rpar_smt2 (parser, " after 'get-model'")) return 0;
       boolector_print_model (parser->btor, "smt2", stdout);
+      break;
+
+    case BTOR_GET_VALUE_TAG_SMT2:
+      if (!btor_read_lpar_smt2 (parser, " after 'get-model'")) return 0;
+      tag = 0;
+      if (!btor_parse_term_smt2 (parser, 0, 0, &exp, &coo)) return 0;
+      boolector_print_value (parser->btor, exp, "smt2", stdout);
+      boolector_release (parser->btor, exp);
+      tag = btor_read_token_smt2 (parser);
+      while (tag != EOF && tag != BTOR_RPAR_TAG_SMT2)
+      {
+        if (!btor_parse_term_smt2 (parser, 1, tag, &exp, &coo)) return 0;
+        boolector_print_value (parser->btor, exp, "smt2", stdout);
+        boolector_release (parser->btor, exp);
+        tag = btor_read_token_smt2 (parser);
+      }
+      if (tag != BTOR_RPAR_TAG_SMT2)
+        return !btor_perr_smt2 (
+            parser, "expected ')' after 'get-value' at end-of-file");
+      if (!btor_read_rpar_smt2 (parser, " after 'get-value'")) return 0;
       break;
 
     case BTOR_MODEL_TAG_SMT2:

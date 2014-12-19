@@ -1386,6 +1386,12 @@ NEXT:
       PARSE_ARGS1 (tok, str);
       boolector_print_model (btor, arg1_str, stdout);
     }
+    else if (!strcmp (tok, "print_value"))
+    {
+      PARSE_ARGS2 (tok, str, str);
+      boolector_print_value (
+          btor, hmap_get (hmap, btor_str, arg1_str), arg2_str, stdout);
+    }
     /* sorts */
     else if (!strcmp (tok, "bool_sort"))
     {

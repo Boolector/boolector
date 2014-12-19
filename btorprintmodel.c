@@ -376,12 +376,12 @@ void
 btor_print_model (Btor *btor, char *format, FILE *file)
 {
   assert (btor);
+  assert (btor->last_sat_result == BTOR_SAT);
   assert (format);
   assert (!strcmp (format, "btor") || !strcmp (format, "smt2"));
-  assert (btor->last_sat_result == BTOR_SAT);
   assert (file);
 
-  BtorNode *cur, *simp;
+  BtorNode *cur;
   BtorHashTableIterator it;
   int base;
 
@@ -392,13 +392,31 @@ btor_print_model (Btor *btor, char *format, FILE *file)
   init_node_hash_table_iterator (&it, btor->inputs);
   while (has_next_node_hash_table_iterator (&it))
   {
-    cur  = next_node_hash_table_iterator (&it);
-    simp = btor_simplify_exp (btor, cur);
-    if (BTOR_IS_FUN_NODE (BTOR_REAL_ADDR_NODE (simp)))
+    cur = next_node_hash_table_iterator (&it);
+    if (BTOR_IS_FUN_NODE (BTOR_REAL_ADDR_NODE (btor_simplify_exp (btor, cur))))
       print_fun_model (btor, cur, format, base, file);
     else
       print_bv_model (btor, cur, format, base, file);
   }
 
   if (!strcmp (format, "smt2")) fprintf (file, ")\n");
+}
+
+void
+btor_print_value (Btor *btor, BtorNode *exp, char *format, FILE *file)
+{
+  assert (btor);
+  assert (btor->last_sat_result == BTOR_SAT);
+  assert (exp);
+  assert (format);
+  assert (!strcmp (format, "btor") || !strcmp (format, "smt2"));
+  assert (file);
+
+  int base;
+
+  base = btor_get_opt_val (btor, BTOR_OPT_OUTPUT_NUMBER_FORMAT);
+  if (BTOR_IS_FUN_NODE (BTOR_REAL_ADDR_NODE (btor_simplify_exp (btor, exp))))
+    print_fun_model (btor, exp, format, base, file);
+  else
+    print_bv_model (btor, exp, format, base, file);
 }
