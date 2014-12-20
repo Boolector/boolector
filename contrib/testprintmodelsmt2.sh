@@ -19,6 +19,7 @@ cleanup-and-exit ()
 }
 
 trap "cleanup-and-exit;" SIGHUP SIGINT SIGTERM
+#trap exit 1 SIGHUP SIGINT SIGTERM
 
 while true
 do
@@ -32,6 +33,7 @@ do
     echo "(check-sat)" >> $tmpfile
     echo "(exit)" >> $tmpfile
     $boolector $tmpfile > /dev/null
+    ret=$?
     if [[ $ret != 10 ]]; then
       echo "found bug: ${seed}"
       cp $tracefile testprintmodelsmt2-error-${seed}.trace

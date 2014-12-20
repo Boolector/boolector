@@ -1023,58 +1023,6 @@ cdef class Boolector:
         if outfile is not None:
             fclose(c_file)
 
-    def Print_value(self, BoolectorNode n, str format = "btor", outfile = None):
-        """ Print_value(n, format = "btor", outfile = None)
-  
-            Print model of given node ``n`` to output file ``outfile``.
-
-            Supported model formats are Boolector's own model format ("btor")
-            and `SMT-LIB v2`_ ("smt2").
-
-            E.g.::
-
-              btor.Print_value(x)
-
-            A possible model would be: ::
-  
-              2 00000100 x
-  
-
-            The corresponding model in `SMT-LIB v2`_ format would be: ::
-
-              btor.Print_value(x, format="smt2")
-            
-            ::
-
-	      (define-fun x () (_ BitVec 8) #b00000100)
-
-	    :param n:       Boolector node.
-            :type n:        :class:`~boolector.BoolectorNode`
-            :param format:  Model output format (default: "btor").
-            :param outfile: Output file name (default: stdout).
-            :type outfile:  str
-        """
-        cdef FILE * c_file
-
-        if format != "btor" and format != "smt2":
-            raise BoolectorException("Invalid model format '{}'".format(format))
-
-        if outfile is None:
-            c_file = stdout
-        else:
-            if os.path.isfile(outfile):
-                raise BoolectorException(
-                        "Outfile '{}' already exists".format(outfile)) 
-            elif os.path.isdir(outfile):
-                raise BoolectorException(
-                        "Outfile '{}' is a directory".format(outfile)) 
-            c_file = fopen(_ChPtr(outfile)._c_str, "w")
-
-        btorapi.boolector_print_value(
-            self._c_btor, n._c_node, _ChPtr(format)._c_str, c_file)
-
-        if outfile is not None:
-            fclose(c_file)
     def Parse(self, str file):
         """ Parse(file)
 

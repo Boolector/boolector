@@ -1888,47 +1888,6 @@ void boolector_free_uf_assignment (Btor *btor,
 */
 void boolector_print_model (Btor *btor, char *format, FILE *file);
 
-/*!
-  Print model of a given expression to output file.
-  Supported output formats are:
-
-  * **btor**
-
-    Use boolector's own output format.
-
-    .. code-block:: c
-
-      boolector_print_value (btor, x, "btor", stdout);
-
-    A possible model would be: ::
-
-      2 00000100 x
-
-  * **smt2**
-
-    Use `SMT-LIB v2`_ format.
-
-    .. code-block:: c
-
-      boolector_print_value (btor, x, "smt2", stdout);
-
-    A possible model would be: ::
-
-      (define-fun x () (_ BitVec 8) #b00000100)
-
-  .. seealso::
-    boolector_print_model
-
-  :param btor: Boolector instance.
-  :param node: Boolector node.
-  :param format: A string identifying the output format.
-  :param file: Output file.
-*/
-void boolector_print_value (Btor *btor,
-                            BoolectorNode *node,
-                            char *format,
-                            FILE *file);
-
 /*------------------------------------------------------------------------*/
 
 /*!
