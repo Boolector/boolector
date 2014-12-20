@@ -1818,6 +1818,8 @@ btor_parse_term_smt2_aux (BtorSMT2Parser *parser,
       t = BTOR_COUNT_STACK (*tokens) ? BTOR_TOP_STACK (*tokens) : 0;
       if (!c && t == '(') continue;
       if (c == ')' && t == ' ') (void) BTOR_POP_STACK (*tokens);
+      if (t == ')' && c == '(')
+        BTOR_PUSH_STACK (parser->btor->mm, *tokens, ' ');
       BTOR_PUSH_STACK (parser->btor->mm, *tokens, c ? c : ' ');
     }
 
@@ -3611,17 +3613,19 @@ btor_read_command_smt2 (BtorSMT2Parser *parser)
       }
       fprintf (stdout, "(\n ");
       boolector_print_value (parser->btor, exp, tokens.start, "smt2", stdout);
+      BTOR_RESET_STACK (tokens);
       boolector_release (parser->btor, exp);
       tag = btor_read_token_smt2 (parser);
       while (tag != EOF && tag != BTOR_RPAR_TAG_SMT2)
       {
-        if (!btor_parse_term_smt2_aux (parser, 1, tag, &exp, &coo, 0))
+        if (!btor_parse_term_smt2_aux (parser, 1, tag, &exp, &coo, &tokens))
         {
           BTOR_RELEASE_STACK (parser->btor->mm, tokens);
           return 0;
         }
         fprintf (stdout, "\n ");
         boolector_print_value (parser->btor, exp, tokens.start, "smt2", stdout);
+        BTOR_RESET_STACK (tokens);
         boolector_release (parser->btor, exp);
         tag = btor_read_token_smt2 (parser);
       }
