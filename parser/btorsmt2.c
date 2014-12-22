@@ -3628,6 +3628,7 @@ btor_read_command_smt2 (BtorSMT2Parser *parser)
       if (!btor_read_rpar_smt2 (parser, " after 'get-model'")) return 0;
       if (!boolector_get_opt_val (parser->btor, "model_gen"))
         return !btor_perr_smt2 (parser, "model generation is not enabled");
+      if (parser->res->result != BOOLECTOR_SAT) break;
       boolector_print_model (parser->btor, "smt2", stdout);
       break;
 
@@ -3635,6 +3636,7 @@ btor_read_command_smt2 (BtorSMT2Parser *parser)
       if (!btor_read_lpar_smt2 (parser, " after 'get-model'")) return 0;
       if (!boolector_get_opt_val (parser->btor, "model_gen"))
         return !btor_perr_smt2 (parser, "model generation is not enabled");
+      if (parser->res->result != BOOLECTOR_SAT) break;
       tag = 0;
       BTOR_INIT_STACK (tokens);
       if (!btor_parse_term_smt2_aux (parser, 0, 0, &exp, &coo, &tokens))
