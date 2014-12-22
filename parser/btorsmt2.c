@@ -1378,10 +1378,28 @@ btor_prev_item_was_lpar_smt2 (BtorSMT2Parser *parser)
       parser, "expected '(' before '%s'", parser->token.start);
 }
 
+/* Note: we need tokens string only for get-value (for printing the originally
+ *	 parsed, non-simplified expression) */
 static int
-btor_parse_int32_smt2 (BtorSMT2Parser *parser, int posonly, int *resptr)
+btor_parse_int32_smt2 (BtorSMT2Parser *parser,
+                       int posonly,
+                       int *resptr,
+                       BtorCharStack *tokens)
 {
-  int tag = btor_read_token_smt2 (parser);
+  int i, tag;
+  char c, t;
+
+  tag = btor_read_token_smt2 (parser);
+  for (i = 0; tokens && i < BTOR_COUNT_STACK (parser->token); i++)
+  {
+    c = BTOR_PEEK_STACK (parser->token, i);
+    t = BTOR_COUNT_STACK (*tokens) ? BTOR_TOP_STACK (*tokens) : 0;
+    if (!c && t == '(') continue;
+    if (c == ')' && t == ' ') (void) BTOR_POP_STACK (*tokens);
+    if (t == ')' && c == '(') BTOR_PUSH_STACK (parser->btor->mm, *tokens, ' ');
+    BTOR_PUSH_STACK (parser->btor->mm, *tokens, c ? c : ' ');
+  }
+
   if (tag == BTOR_INVALID_TAG_SMT2) return 0;
   if (tag == EOF)
     return !btor_perr_smt2 (
@@ -1777,8 +1795,9 @@ btor_rotate_right_smt2 (Btor *btor, BoolectorNode *exp, int shift)
   return btor_translate_rotate_smt2 (btor, exp, shift, 0);
 }
 
-/* Note: we need look ahead and tokens string only for get-value (for parsing
- * a term list and printing the originally parsed, non-simplified expression */
+/* Note: we need look ahead and tokens string only for get-value
+ *	 (for parsing a term list and printing the originally parsed,
+ *	 non-simplified expression) */
 static int
 btor_parse_term_smt2_aux (BtorSMT2Parser *parser,
                           int have_look_ahead,
@@ -2603,7 +2622,7 @@ btor_parse_term_smt2_aux (BtorSMT2Parser *parser,
                     node->name);
               }
               l = p - 1;
-              if (!btor_parse_int32_smt2 (parser, 0, &l->num)) return 0;
+              if (!btor_parse_int32_smt2 (parser, 0, &l->num, tokens)) return 0;
               l->tag           = tag;
               l->node          = node;
               parser->work.top = p;
@@ -2640,9 +2659,9 @@ btor_parse_term_smt2_aux (BtorSMT2Parser *parser,
                   || parser->work.top[-3].tag != BTOR_LPAR_TAG_SMT2)
                 goto ONE_FIXED_NUM_PARAMETRIC;
               l = p - 1;
-              if (!btor_parse_int32_smt2 (parser, 0, &l->hi)) return 0;
+              if (!btor_parse_int32_smt2 (parser, 0, &l->hi, tokens)) return 0;
               firstcoo = parser->coo;
-              if (!btor_parse_int32_smt2 (parser, 0, &l->lo)) return 0;
+              if (!btor_parse_int32_smt2 (parser, 0, &l->lo, tokens)) return 0;
               if (l->hi < l->lo)
               {
                 parser->perrcoo = firstcoo;
@@ -2673,7 +2692,7 @@ btor_parse_term_smt2_aux (BtorSMT2Parser *parser,
                   btor_decimal_to_const (parser->mem, parser->token.start + 2);
               coo = parser->coo;
               coo.y += 2;
-              if (!btor_parse_int32_smt2 (parser, 1, &width))
+              if (!btor_parse_int32_smt2 (parser, 1, &width, tokens))
                 goto UNDERSCORE_DONE;
               len = (int) strlen (constr);
               if (len > width)
