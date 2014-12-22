@@ -761,6 +761,12 @@ btor_get_bv_model (Btor *btor, BtorNode *exp)
 
   b = btor_find_in_ptr_hash_table (btor->bv_model, BTOR_REAL_ADDR_NODE (exp));
 
+  /* if exp has no assignment, regenerate model in case that it is an exp
+   * that previously existed but was simplified (i.e. the original exp is now
+   * a proxy and was therefore regenerated when querying it's assignment via
+   * get-value in SMT-LIB v2) */
+  if (!b) btor_generate_model (btor, 1);
+  b = btor_find_in_ptr_hash_table (btor->bv_model, exp);
   if (!b) return 0;
 
   result = (BitVector *) b->data.asPtr;
@@ -780,6 +786,12 @@ btor_get_fun_model (Btor *btor, BtorNode *exp)
   assert (BTOR_IS_FUN_NODE (exp));
   b = btor_find_in_ptr_hash_table (btor->fun_model, exp);
 
+  /* if exp has no assignment, regenerate model in case that it is an exp
+   * that previously existed but was simplified (i.e. the original exp is now
+   * a proxy and was therefore regenerated when querying it's assignment via
+   * get-value in SMT-LIB v2) */
+  if (!b) btor_generate_model (btor, 0);
+  b = btor_find_in_ptr_hash_table (btor->fun_model, exp);
   if (!b) return 0;
 
   return (BtorPtrHashTable *) b->data.asPtr;
@@ -850,6 +862,8 @@ btor_generate_lambda_model_from_fun_model (Btor *btor,
   btor_release_exp (btor, (BtorNode *) uf);
 
   /* generate ITEs */
+  ite = 0;
+  res = 0;
   init_hash_table_iterator (&it, (BtorPtrHashTable *) model);
   while (has_next_hash_table_iterator (&it))
   {
@@ -898,9 +912,13 @@ btor_generate_lambda_model_from_fun_model (Btor *btor,
     e_else = ite;
   }
 
-  res = btor_fun_exp (btor, BTOR_COUNT_STACK (params), params.start, ite);
+  assert (ite);
+  if (ite) /* get rid of compiler warning */
+  {
+    res = btor_fun_exp (btor, BTOR_COUNT_STACK (params), params.start, ite);
+    btor_release_exp (btor, ite);
+  }
 
-  btor_release_exp (btor, ite);
   while (!BTOR_EMPTY_STACK (params))
     btor_release_exp (btor, BTOR_POP_STACK (params));
   BTOR_RELEASE_STACK (btor->mm, params);

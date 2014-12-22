@@ -19,5 +19,7 @@ const char *btor_get_bv_model_str (Btor *, BtorNode *);
 void btor_get_fun_model_str (Btor *, BtorNode *, char ***, char ***, int *);
 
 void btor_print_model (Btor *btor, char *format, FILE *file);
+void btor_print_value (
+    Btor *btor, BtorNode *exp, char *exp_str, char *format, FILE *file);
 
 #endif

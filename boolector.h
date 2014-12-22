@@ -1866,8 +1866,21 @@ void boolector_free_uf_assignment (Btor *btor,
   * **smt2**
 
     Use `SMT-LIB v2`_ format for printing models.
-    TODO TODO TODO TODO
-    also TODO: update quickstart
+
+    .. code-block:: c
+
+      boolector_print_model (btor, "smt2", stdout);
+
+    A possible model would be: ::
+
+      (model
+        (define-fun x () (_ BitVec 8) #b00000100)
+        (define-fun y () (_ BitVec 8) #b00010101)
+        (define-fun y (
+         (y_x0 (_ BitVec 2)))
+          (ite (= y_x0 #b00) #b01
+            #00))
+      )
 
   :param btor: Boolector instance.
   :param format: A string identifying the output format.
