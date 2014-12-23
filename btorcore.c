@@ -8646,6 +8646,7 @@ check_model (Btor *btor, Btor *clone, BtorPtrHashTable *inputs)
     cur = next_node_hash_table_iterator (&it);
     assert (BTOR_IS_REGULAR_NODE (cur));
     assert (cur->btor == clone);
+    // TODO (ma) why pointer_chase instead of btor_simplify_exp?
     simp      = btor_pointer_chase_simplified_exp (clone, cur);
     real_simp = BTOR_REAL_ADDR_NODE (simp);
 

@@ -62,6 +62,6 @@ clean:
 	rm -f parser/*.gcda parser/*.gcno parser/*.gcov
 	rm -f dumper/*.gcda dumper/*.gcno dumper/*.gcov
 	rm -f log/*.log *.tmp
-	rm -f *.a $(foreach d,$(SRCDIRS),$(d)/*.o)
+	rm -f *.a *.so $(foreach d,$(SRCDIRS),$(d)/*.o)
 
 .PHONY: all analyze clean

@@ -129,11 +129,14 @@ Quickstart
     char *xstr = boolector_bv_assignment (btor, x);  // returns "00000100"
     char *ystr = boolector_bv_assignment (btor, y);  // returns "00010101"
 
-  or print the resulting model via :c:func:`boolector_print_model`:
+  or print the resulting model via :c:func:`boolector_print_model`. 
+  Boolector supports printing models in its own format ("btor") or in
+  `SMT-LIB v2`_ format ("smt2"). Printing the resulting model in 
+  Boolector's own format:
 
   .. code-block:: c
 
-    boolector_print_model (btor, stdout);
+    boolector_print_model (btor, "btor", stdout);
 
   A possible model would be: ::
 
@@ -151,6 +154,27 @@ Quickstart
 
   where A has id 4 and is an array with index and element bit width of 2, 
   and its value at index 0 is 1.
+
+  Printing the above model in `SMT-LIB v2`_ format:
+
+  .. code-block:: c
+
+    boolector_print_model (btor, "smt2", stdout);
+
+  A possible model would be: ::
+
+    (model
+      (define-fun x () (_ BitVec 8) #b00000100)
+      (define-fun y () (_ BitVec 8) #b00010101)
+      (define-fun y (
+       (y_x0 (_ BitVec 2)))
+       (ite (= y_x0 #b00) #b01
+         #00))
+    )
+
+  Note that Boolector internally represents arrays as uninterpreted functions,
+  hence array models are printed as models for UF (without an explicit
+  typecast).
 
   Finally, in case that you generated expressions, you have to clean up, 
   i.e., release those expressions 

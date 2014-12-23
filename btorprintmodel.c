@@ -269,7 +269,8 @@ print_fun_model_smt2 (Btor *btor, BtorNode *node, int base, FILE *file)
   fprintf (file, "\n");
 
   /* fun model as ite over args and assignments */
-  n = 0;
+  n          = 0;
+  assignment = 0;
   init_hash_table_iterator (&it, fun_model);
   while (has_next_hash_table_iterator (&it))
   {
@@ -306,13 +307,18 @@ print_fun_model_smt2 (Btor *btor, BtorNode *node, int base, FILE *file)
     n += 1;
   }
 
-  fprintf (file, "%6c", ' ');
-  len = assignment->width + 1;
-  BTOR_NEWN (btor->mm, ass, len);
-  memset (ass, '0', len - 1);
-  ass[len - 1] = 0;
-  btor_dump_const_value_smt (btor, ass, base, 2, file);
-  BTOR_DELETEN (btor->mm, ass, len);
+  /* print default value */
+  assert (assignment);
+  if (assignment) /* get rid of compiler warning */
+  {
+    fprintf (file, "%6c", ' ');
+    len = assignment->width + 1;
+    BTOR_NEWN (btor->mm, ass, len);
+    memset (ass, '0', len - 1);
+    ass[len - 1] = 0;
+    btor_dump_const_value_smt (btor, ass, base, 2, file);
+    BTOR_DELETEN (btor->mm, ass, len);
+  }
 
   for (i = 0; i < n; i++) fprintf (file, ")");
   fprintf (file, ")\n");
@@ -371,12 +377,12 @@ void
 btor_print_model (Btor *btor, char *format, FILE *file)
 {
   assert (btor);
+  assert (btor->last_sat_result == BTOR_SAT);
   assert (format);
   assert (!strcmp (format, "btor") || !strcmp (format, "smt2"));
-  assert (btor->last_sat_result == BTOR_SAT);
   assert (file);
 
-  BtorNode *cur, *simp;
+  BtorNode *cur;
   BtorHashTableIterator it;
   int base;
 
@@ -387,13 +393,167 @@ btor_print_model (Btor *btor, char *format, FILE *file)
   init_node_hash_table_iterator (&it, btor->inputs);
   while (has_next_node_hash_table_iterator (&it))
   {
-    cur  = next_node_hash_table_iterator (&it);
-    simp = btor_simplify_exp (btor, cur);
-    if (BTOR_IS_FUN_NODE (BTOR_REAL_ADDR_NODE (simp)))
+    cur = next_node_hash_table_iterator (&it);
+    if (BTOR_IS_FUN_NODE (BTOR_REAL_ADDR_NODE (btor_simplify_exp (btor, cur))))
       print_fun_model (btor, cur, format, base, file);
     else
       print_bv_model (btor, cur, format, base, file);
   }
 
   if (!strcmp (format, "smt2")) fprintf (file, ")\n");
+}
+
+static void
+print_bv_value (Btor *btor,
+                BtorNode *node,
+                char *exp_str,
+                char *format,
+                int base,
+                FILE *file)
+{
+  assert (btor);
+  assert (format);
+  assert (node);
+  assert (BTOR_IS_REGULAR_NODE (node));
+
+  char *symbol;
+  char *ass;
+
+  ass = (char *) btor_get_bv_model_str (btor, node);
+  if (!btor_is_const_2vl (btor->mm, ass)) return;
+
+  symbol = exp_str ? exp_str : btor_get_symbol_exp (btor, node);
+
+  if (!strcmp (format, "btor"))
+    print_bv_model (btor, node, format, base, file);
+  else
+  {
+    if (symbol)
+      fprintf (file, "(%s ", symbol);
+    else
+      fprintf (file,
+               "(v%d ",
+               ((BtorBVVarNode *) node)->btor_id
+                   ? ((BtorBVVarNode *) node)->btor_id
+                   : node->id);
+
+    btor_dump_const_value_smt (btor, ass, base, 2, file);
+    fprintf (file, ")");
+  }
+  btor_release_bv_assignment_str (btor, (char *) ass);
+}
+
+static void
+print_fun_value_smt2 (
+    Btor *btor, BtorNode *node, char *exp_str, int base, FILE *file)
+{
+  assert (btor);
+  assert (node);
+  assert (BTOR_IS_REGULAR_NODE (node));
+  assert (file);
+
+  int i, n;
+  char *s, *symbol, *ass;
+  BtorPtrHashTable *fun_model;
+  BtorHashTableIterator it;
+  BitVectorTuple *args;
+  BitVector *assignment;
+
+  fun_model = (BtorPtrHashTable *) btor_get_fun_model (btor, node);
+  if (!fun_model) return;
+
+  if (exp_str)
+    symbol = exp_str;
+  else if ((symbol = btor_get_symbol_exp (btor, node)))
+    s = symbol;
+  else
+  {
+    BTOR_NEWN (btor->mm, s, 40);
+    sprintf (s,
+             "%s%d",
+             BTOR_IS_UF_ARRAY_NODE (node) ? "a" : "uf",
+             ((BtorUFNode *) node)->btor_id ? ((BtorUFNode *) node)->btor_id
+                                            : node->id);
+  }
+
+  fprintf (file, "(");
+
+  n = 0;
+  init_hash_table_iterator (&it, fun_model);
+  while (has_next_hash_table_iterator (&it))
+  {
+    fprintf (file, "%s((%s ", n++ ? "\n  " : "", symbol);
+    assignment = it.bucket->data.asPtr;
+    args       = next_hash_table_iterator (&it);
+    if (args->arity > 1)
+    {
+      for (i = 0; i < args->arity; i++)
+      {
+        ass = btor_bv_to_char_bv (btor, args->bv[i]);
+        btor_dump_const_value_smt (btor, ass, base, 2, file);
+        fprintf (file, ")%s", i + 1 == args->arity ? "" : " ");
+        btor_freestr (btor->mm, ass);
+      }
+      fprintf (file, ") ");
+    }
+    else
+    {
+      ass = btor_bv_to_char_bv (btor, args->bv[0]);
+      btor_dump_const_value_smt (btor, ass, base, 2, file);
+      fprintf (file, ") ");
+      btor_freestr (btor->mm, ass);
+    }
+    ass = btor_bv_to_char_bv (btor, assignment);
+    btor_dump_const_value_smt (btor, ass, base, 2, file);
+    btor_freestr (btor->mm, ass);
+    fprintf (file, ")");
+  }
+
+  fprintf (file, ")");
+}
+
+static void
+print_fun_value_btor (Btor *btor, BtorNode *node, int base, FILE *file)
+{
+  print_fun_model_btor (btor, node, base, file);
+}
+
+static void
+print_fun_value (Btor *btor,
+                 BtorNode *node,
+                 char *exp_str,
+                 char *format,
+                 int base,
+                 FILE *file)
+{
+  assert (btor);
+  assert (node);
+  assert (format);
+  assert (file);
+
+  if (!strcmp (format, "btor"))
+    print_fun_value_btor (btor, BTOR_REAL_ADDR_NODE (node), base, file);
+  else
+    print_fun_value_smt2 (
+        btor, BTOR_REAL_ADDR_NODE (node), exp_str, base, file);
+}
+
+void
+btor_print_value (
+    Btor *btor, BtorNode *exp, char *exp_str, char *format, FILE *file)
+{
+  assert (btor);
+  assert (btor->last_sat_result == BTOR_SAT);
+  assert (exp);
+  assert (format);
+  assert (!strcmp (format, "btor") || !strcmp (format, "smt2"));
+  assert (file);
+
+  int base;
+
+  base = btor_get_opt_val (btor, BTOR_OPT_OUTPUT_NUMBER_FORMAT);
+  if (BTOR_IS_FUN_NODE (BTOR_REAL_ADDR_NODE (btor_simplify_exp (btor, exp))))
+    print_fun_value (btor, exp, exp_str, format, base, file);
+  else
+    print_bv_value (btor, exp, exp_str, format, base, file);
 }

@@ -155,6 +155,29 @@ boolector_get_btor_msg (Btor *btor)
   return res;
 }
 
+void
+boolector_print_value (
+    Btor *btor, BoolectorNode *node, char *node_str, char *format, FILE *file)
+{
+  BtorNode *exp;
+
+  exp = BTOR_IMPORT_BOOLECTOR_NODE (node);
+  BTOR_ABORT_ARG_NULL_BOOLECTOR (btor);
+  BTOR_TRAPI_UNFUN_EXT (exp, "%s", format);
+  BTOR_ABORT_ARG_NULL_BOOLECTOR (format);
+  BTOR_ABORT_ARG_NULL_BOOLECTOR (file);
+  BTOR_ABORT_BOOLECTOR (strcmp (format, "btor") && strcmp (format, "smt2"),
+                        "invalid model output format: %s",
+                        format);
+  BTOR_ABORT_BOOLECTOR (!btor->options.model_gen.val,
+                        "model generation has not been enabled");
+  btor_print_value (btor, exp, node_str, format, file);
+#ifndef NDEBUG
+  BTOR_CHKCLONE_NORES (
+      print_value, BTOR_CLONED_EXP (exp), node_str, format, file);
+#endif
+}
+
 /*------------------------------------------------------------------------*/
 
 Btor *
@@ -3388,8 +3411,8 @@ void
 boolector_print_model (Btor *btor, char *format, FILE *file)
 {
   BTOR_ABORT_ARG_NULL_BOOLECTOR (btor);
-  BTOR_TRAPI ("%s", format);
   BTOR_ABORT_ARG_NULL_BOOLECTOR (format);
+  BTOR_TRAPI ("%s", format);
   BTOR_ABORT_ARG_NULL_BOOLECTOR (file);
   BTOR_ABORT_BOOLECTOR (strcmp (format, "btor") && strcmp (format, "smt2"),
                         "invalid model output format: %s",
