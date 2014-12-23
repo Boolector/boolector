@@ -1855,7 +1855,11 @@ btor_parse_term_smt2_aux (BtorSMT2Parser *parser,
       BTOR_PUSH_STACK (parser->btor->mm, *tokens, c ? c : ' ');
     }
 
-    if (tag == BTOR_INVALID_TAG_SMT2) return 0;
+    if (tag == BTOR_INVALID_TAG_SMT2)
+    {
+      assert (parser->error);
+      return 0;
+    }
     if (tag == EOF)
     {
       l = btor_last_lpar_smt2 (parser);
@@ -3477,6 +3481,11 @@ btor_set_option_smt2 (BtorSMT2Parser *parser)
   if (opt)
   {
     tag = btor_read_token_smt2 (parser);
+    if (tag == BTOR_INVALID_TAG_SMT2)
+    {
+      assert (parser->error);
+      return 0;
+    }
     val = boolector_get_opt_val (parser->btor, opt);
     if (tag == BTOR_FALSE_TAG_SMT2)
       val = 0;
@@ -3602,6 +3611,7 @@ btor_read_command_smt2 (BtorSMT2Parser *parser)
 
     case BTOR_ASSERT_TAG_SMT2:
       if (!btor_parse_term_smt2 (parser, &exp, &coo)) return 0;
+      assert (!parser->error);
       if (boolector_is_array (parser->btor, exp))
       {
         parser->perrcoo = coo;
