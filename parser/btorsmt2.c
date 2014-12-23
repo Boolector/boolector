@@ -3304,8 +3304,6 @@ SORTED_VAR:
                             width);
   }
 
-  assert (nargs == BTOR_COUNT_STACK (parser->work));
-
   if (nargs)
   {
     BTOR_INIT_STACK (args);
@@ -3334,7 +3332,7 @@ SORTED_VAR:
           boolector_release (parser->btor, BTOR_POP_STACK (args));
         boolector_release (parser->btor, exp);
         BTOR_RELEASE_STACK (parser->mem, args);
-        return !btor_perr_smt2 (parser, "model  must have equal sort");
+        return !btor_perr_smt2 (parser, "model must have equal sort");
       }
       eq = boolector_eq (parser->btor, fun->exp, tmp);
       boolector_assert (parser->btor, eq);
@@ -3359,7 +3357,7 @@ SORTED_VAR:
       if (!boolector_is_equal_sort (parser->btor, fun->exp, exp))
       {
         boolector_release (parser->btor, exp);
-        return !btor_perr_smt2 (parser, "model  must have equal sort");
+        return !btor_perr_smt2 (parser, "model must have equal sort");
       }
       eq = boolector_eq (parser->btor, fun->exp, exp);
       boolector_assert (parser->btor, eq);
