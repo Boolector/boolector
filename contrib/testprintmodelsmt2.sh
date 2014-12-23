@@ -28,7 +28,7 @@ do
   $boolector -m --smt2-model $infile > $modelfile
   ret=$?
   if [[ $ret = 10 ]]; then
-    cat $infile | sed -r 's/\(check-sat\)|\(exit\)//' >> $tmpfile
+    cat $infile | sed -r 's/\(check-sat\)|\(exit\)//' > $tmpfile
     cat $modelfile | sed 's/sat//' >> $tmpfile
     echo "(check-sat)" >> $tmpfile
     echo "(exit)" >> $tmpfile

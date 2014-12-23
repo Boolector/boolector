@@ -1623,18 +1623,26 @@ btor_check_nargs_smt2 (BtorSMT2Parser *parser,
 }
 
 static int
-btor_check_not_array_args_smt2 (BtorSMT2Parser *parser,
-                                BtorSMT2Item *p,
-                                int nargs)
+btor_check_not_array_or_uf_args_smt2 (BtorSMT2Parser *parser,
+                                      BtorSMT2Item *p,
+                                      int nargs)
 {
   int i;
   for (i = 1; i <= nargs; i++)
+  {
     if (boolector_is_array (parser->btor, p[i].exp))
     {
       parser->perrcoo = p[i].coo;
       return !btor_perr_smt2 (
           parser, "argument %d of '%s' is an array", i, p->node->name);
     }
+    if (boolector_is_fun (parser->btor, p[i].exp))
+    {
+      parser->perrcoo = p[i].coo;
+      return !btor_perr_smt2 (
+          parser, "argument %d of '%s' is a function", i, p->node->name);
+    }
+  }
   return 1;
 }
 
@@ -2180,14 +2188,14 @@ btor_parse_term_smt2_aux (BtorSMT2Parser *parser,
       else if (tag == BTOR_CONCAT_TAG_SMT2)
       {
         if (!btor_check_nargs_smt2 (parser, p, nargs, 2)) return 0;
-        if (!btor_check_not_array_args_smt2 (parser, p, nargs)) return 0;
+        if (!btor_check_not_array_or_uf_args_smt2 (parser, p, nargs)) return 0;
         exp = boolector_concat (parser->btor, p[1].exp, p[2].exp);
         goto RELEASE_EXP_AND_OVERWRITE;
       }
       else if (tag == BTOR_EXTRACT_TAG_SMT2)
       {
         if (!btor_check_nargs_smt2 (parser, p, nargs, 1)) return 0;
-        if (!btor_check_not_array_args_smt2 (parser, p, nargs)) return 0;
+        if (!btor_check_not_array_or_uf_args_smt2 (parser, p, nargs)) return 0;
         width = boolector_get_width (parser->btor, p[1].exp);
         if (width <= p->hi)
         {
@@ -2207,7 +2215,7 @@ btor_parse_term_smt2_aux (BtorSMT2Parser *parser,
         unaryfun = boolector_not;
       UNARY_BV_FUN:
         if (!btor_check_nargs_smt2 (parser, p, nargs, 1)) return 0;
-        if (!btor_check_not_array_args_smt2 (parser, p, nargs)) return 0;
+        if (!btor_check_not_array_or_uf_args_smt2 (parser, p, nargs)) return 0;
         exp = unaryfun (parser->btor, p[1].exp);
         goto RELEASE_EXP_AND_OVERWRITE;
       }
@@ -2217,7 +2225,7 @@ btor_parse_term_smt2_aux (BtorSMT2Parser *parser,
       BINARY_BV_FUN:
         if (!btor_check_nargs_smt2 (parser, p, nargs, 2)) return 0;
         if (!btor_check_arg_sorts_match_smt2 (parser, p, 2)) return 0;
-        if (!btor_check_not_array_args_smt2 (parser, p, nargs)) return 0;
+        if (!btor_check_not_array_or_uf_args_smt2 (parser, p, nargs)) return 0;
         exp = binfun (parser->btor, p[1].exp, p[2].exp);
         goto RELEASE_EXP_AND_OVERWRITE;
       }
@@ -2319,7 +2327,7 @@ btor_parse_term_smt2_aux (BtorSMT2Parser *parser,
       else if (tag == BTOR_REPEAT_TAG_SMT2)
       {
         if (!btor_check_nargs_smt2 (parser, p, nargs, 1)) return 0;
-        if (!btor_check_not_array_args_smt2 (parser, p, nargs)) return 0;
+        if (!btor_check_not_array_or_uf_args_smt2 (parser, p, nargs)) return 0;
         width = boolector_get_width (parser->btor, p[1].exp);
         if (p->num && ((INT_MAX / p->num) < width))
         {
@@ -2341,7 +2349,7 @@ btor_parse_term_smt2_aux (BtorSMT2Parser *parser,
         extfun = boolector_uext;
       EXTEND_BV_FUN:
         if (!btor_check_nargs_smt2 (parser, p, nargs, 1)) return 0;
-        if (!btor_check_not_array_args_smt2 (parser, p, nargs)) return 0;
+        if (!btor_check_not_array_or_uf_args_smt2 (parser, p, nargs)) return 0;
         width = boolector_get_width (parser->btor, p[1].exp);
         if (INT_MAX - p->num < width)
         {
@@ -2362,7 +2370,7 @@ btor_parse_term_smt2_aux (BtorSMT2Parser *parser,
         rotatefun = btor_rotate_left_smt2;
       ROTATE_BV_FUN:
         if (!btor_check_nargs_smt2 (parser, p, nargs, 1)) return 0;
-        if (!btor_check_not_array_args_smt2 (parser, p, nargs)) return 0;
+        if (!btor_check_not_array_or_uf_args_smt2 (parser, p, nargs)) return 0;
         width = boolector_get_width (parser->btor, p[1].exp);
         exp   = rotatefun (parser->btor, p[1].exp, p->num % width);
         goto RELEASE_EXP_AND_OVERWRITE;
@@ -3618,11 +3626,15 @@ btor_read_command_smt2 (BtorSMT2Parser *parser)
 
     case BTOR_GET_MODEL_TAG_SMT2:
       if (!btor_read_rpar_smt2 (parser, " after 'get-model'")) return 0;
+      if (!boolector_get_opt_val (parser->btor, "model_gen"))
+        return !btor_perr_smt2 (parser, "model generation is not enabled");
       boolector_print_model (parser->btor, "smt2", stdout);
       break;
 
     case BTOR_GET_VALUE_TAG_SMT2:
       if (!btor_read_lpar_smt2 (parser, " after 'get-model'")) return 0;
+      if (!boolector_get_opt_val (parser->btor, "model_gen"))
+        return !btor_perr_smt2 (parser, "model generation is not enabled");
       tag = 0;
       BTOR_INIT_STACK (tokens);
       if (!btor_parse_term_smt2_aux (parser, 0, 0, &exp, &coo, &tokens))

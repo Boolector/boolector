@@ -766,7 +766,7 @@ btor_get_bv_model (Btor *btor, BtorNode *exp)
    * a proxy and was therefore regenerated when querying it's assignment via
    * get-value in SMT-LIB v2) */
   if (!b) btor_generate_model (btor, 1);
-  b = btor_find_in_ptr_hash_table (btor->bv_model, exp);
+  b = btor_find_in_ptr_hash_table (btor->bv_model, BTOR_REAL_ADDR_NODE (exp));
   if (!b) return 0;
 
   result = (BitVector *) b->data.asPtr;
