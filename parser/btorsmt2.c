@@ -3323,6 +3323,15 @@ SORTED_VAR:
     tmp = boolector_fun (parser->btor, args.start, nargs, exp);
     if (parser->commands.model)
     {
+      if (!boolector_is_equal_sort (parser->btor, fun->exp, tmp))
+      {
+        boolector_release (parser->btor, tmp);
+        while (!BTOR_EMPTY_STACK (args))
+          boolector_release (parser->btor, BTOR_POP_STACK (args));
+        boolector_release (parser->btor, exp);
+        BTOR_RELEASE_STACK (parser->mem, args);
+        return !btor_perr_smt2 (parser, "model  must have equal sort");
+      }
       eq = boolector_eq (parser->btor, fun->exp, tmp);
       boolector_assert (parser->btor, eq);
       boolector_release (parser->btor, eq);
@@ -3343,7 +3352,11 @@ SORTED_VAR:
   {
     if (parser->commands.model)
     {
-      assert (boolector_is_const (parser->btor, exp));  // TODO REMOVE
+      if (!boolector_is_equal_sort (parser->btor, fun->exp, exp))
+      {
+        boolector_release (parser->btor, exp);
+        return !btor_perr_smt2 (parser, "model  must have equal sort");
+      }
       eq = boolector_eq (parser->btor, fun->exp, exp);
       boolector_assert (parser->btor, eq);
       boolector_release (parser->btor, eq);
