@@ -330,7 +330,7 @@ typedef struct BtorArgsNode BtorArgsNode;
                  ^ (unsigned long int) (exp)))
 
 #define BTOR_REAL_ADDR_NODE(exp) \
-  ((BtorNode *) (~3ul & (unsigned long int) (exp)))
+  ((struct BtorNode *) (~3ul & (unsigned long int) (exp)))
 
 #define BTOR_GET_ID_NODE(exp) \
   (BTOR_IS_INVERTED_NODE (exp) ? -BTOR_REAL_ADDR_NODE (exp)->id : exp->id)
