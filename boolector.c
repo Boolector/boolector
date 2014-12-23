@@ -163,7 +163,7 @@ boolector_print_value (
 
   exp = BTOR_IMPORT_BOOLECTOR_NODE (node);
   BTOR_ABORT_ARG_NULL_BOOLECTOR (btor);
-  BTOR_TRAPI_UNFUN_EXT (exp, "%s", format);
+  BTOR_TRAPI_UNFUN_EXT (exp, "%s %s", node_str, format);
   BTOR_ABORT_ARG_NULL_BOOLECTOR (format);
   BTOR_ABORT_ARG_NULL_BOOLECTOR (file);
   BTOR_ABORT_BOOLECTOR (strcmp (format, "btor") && strcmp (format, "smt2"),
@@ -171,6 +171,7 @@ boolector_print_value (
                         format);
   BTOR_ABORT_BOOLECTOR (!btor->options.model_gen.val,
                         "model generation has not been enabled");
+  BTOR_ABORT_IF_BTOR_DOES_NOT_MATCH (btor, exp);
   btor_print_value (btor, exp, node_str, format, file);
 #ifndef NDEBUG
   BTOR_CHKCLONE_NORES (

@@ -48,6 +48,8 @@
 
 void boolector_chkclone (Btor *);
 void boolector_set_btor_id (Btor *, BoolectorNode *, int);
+void boolector_get_btor_msg (Btor *);
+void boolector_print_value (Btor *, BoolectorNode *, char *, char *, FILE *);
 
 /*------------------------------------------------------------------------*/
 typedef struct BtorUNT
@@ -447,6 +449,11 @@ NEXT:
       PARSE_ARGS2 (tok, str, int);
       boolector_set_btor_id (
           btor, hmap_get (hmap, btor_str, arg1_str), arg2_int);
+    }
+    else if (!strcmp (tok, "get_btor_msg"))
+    {
+      PARSE_ARGS0 (tok);
+      boolector_get_btor_msg (btor);
     }
     else if (!strcmp (tok, "set_msg_prefix"))
     {
@@ -1385,6 +1392,15 @@ NEXT:
     {
       PARSE_ARGS1 (tok, str);
       boolector_print_model (btor, arg1_str, stdout);
+    }
+    else if (!strcmp (tok, "print_value"))
+    {
+      PARSE_ARGS3 (tok, str, str, str);
+      boolector_print_value (btor,
+                             hmap_get (hmap, btor_str, arg1_str),
+                             arg2_str,
+                             arg3_str,
+                             stdout);
     }
     /* sorts */
     else if (!strcmp (tok, "bool_sort"))
