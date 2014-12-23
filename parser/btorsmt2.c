@@ -1538,6 +1538,11 @@ btor_check_ite_args_sorts_match_smt2 (BtorSMT2Parser *parser, BtorSMT2Item *p)
     parser->perrcoo = p[1].coo;
     return !btor_perr_smt2 (parser, "first argument of 'ite' is an array");
   }
+  if (boolector_is_fun (parser->btor, p[1].exp))
+  {
+    parser->perrcoo = p[1].coo;
+    return !btor_perr_smt2 (parser, "first argument of 'ite' is a function");
+  }
   if ((len = boolector_get_width (parser->btor, p[1].exp)) != 1)
   {
     parser->perrcoo = p[1].coo;
