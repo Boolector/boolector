@@ -7510,6 +7510,17 @@ btor_sat_btor (Btor *btor, int lod_limit, int sat_limit)
   return res;
 }
 
+static int
+is_valid_argument (Btor *btor, BtorNode *exp)
+{
+  exp = BTOR_REAL_ADDR_NODE (exp);
+  if (btor_is_fun_exp (btor, exp)) return 0;
+  if (btor_is_array_exp (btor, exp)) return 0;
+  /* scope of bound parmaters already closed (cannot be used anymore) */
+  if (BTOR_IS_PARAM_NODE (exp) && BTOR_IS_BOUND_PARAM_NODE (exp)) return 0;
+  return 1;
+}
+
 int
 btor_fun_sort_check (Btor *btor, int argc, BtorNode **args, BtorNode *fun)
 {
@@ -7537,7 +7548,7 @@ btor_fun_sort_check (Btor *btor, int argc, BtorNode **args, BtorNode *fun)
       width = sort->fun.domain->bitvec.len;
     }
     /* NOTE: we do not allow functions or arrays as arguments yet */
-    if (btor_is_fun_exp (btor, args[0]) || btor_is_array_exp (btor, args[0])
+    if (!is_valid_argument (btor, args[0])
         || width != BTOR_REAL_ADDR_NODE (args[0])->len)
       pos = 0;
   }
@@ -7556,7 +7567,7 @@ btor_fun_sort_check (Btor *btor, int argc, BtorNode **args, BtorNode *fun)
         width = s->bitvec.len;
       }
       /* NOTE: we do not allow functions or arrays as arguments yet */
-      if (btor_is_fun_exp (btor, args[i]) || btor_is_array_exp (btor, args[i])
+      if (!is_valid_argument (btor, args[i])
           || width != BTOR_REAL_ADDR_NODE (args[i])->len)
       {
         pos = i;
