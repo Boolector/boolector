@@ -2771,7 +2771,11 @@ all_exps_below_rebuilt (Btor *btor, BtorNode *exp)
   BtorNode *subst;
 
   subst = btor_find_substitution (btor, exp);
-  if (subst) return BTOR_REAL_ADDR_NODE (subst)->aux_mark == 0;
+  if (subst)
+  {
+    subst = btor_simplify_exp (btor, subst);
+    return BTOR_REAL_ADDR_NODE (subst)->aux_mark == 0;
+  }
 
   exp = BTOR_REAL_ADDR_NODE (exp);
   for (i = 0; i < exp->arity; i++)
@@ -2792,9 +2796,9 @@ substitute_and_rebuild (Btor *btor, BtorPtrHashTable *subst, int bra)
   assert (subst);
   assert (check_id_table_aux_mark_unset_dbg (btor));
 
-  int i, refs;
+  int i;
   BtorMemMgr *mm;
-  BtorNode *cur, *cur_parent, *rebuilt_exp, *simplified;
+  BtorNode *cur, *cur_parent, *rebuilt_exp, *simplified, *sub;
   BtorNodePtrStack roots;
   BtorNodePtrQueue queue;
   BtorHashTableIterator hit;
@@ -2853,14 +2857,17 @@ substitute_and_rebuild (Btor *btor, BtorPtrHashTable *subst, int bra)
     assert (BTOR_IS_REGULAR_NODE (cur));
     assert (!BTOR_IS_PROXY_NODE (cur));
     assert (cur->aux_mark == 2);
-    refs = cur->refs;
-    btor_release_exp (btor, cur);
 
-    if (refs == 1) continue;
+    if (cur->refs == 1)
+    {
+      btor_release_exp (btor, cur);
+      continue;
+    }
 
     if (all_exps_below_rebuilt (btor, cur))
     {
       cur->aux_mark = 0;
+      btor_release_exp (btor, cur);
 
       /* traverse upwards and enqueue all parents that are not yet
        * in the queue. */
@@ -2868,21 +2875,21 @@ substitute_and_rebuild (Btor *btor, BtorPtrHashTable *subst, int bra)
       while (has_next_parent_full_parent_iterator (&it))
       {
         cur_parent = next_parent_full_parent_iterator (&it);
-        if (cur_parent->aux_mark == 2) continue;
+        if (cur_parent->aux_mark == 2
+            || !all_exps_below_rebuilt (btor, cur_parent))
+          continue;
         assert (cur_parent->aux_mark == 0 || cur_parent->aux_mark == 1);
         cur_parent->aux_mark = 2;
         BTOR_ENQUEUE (mm, queue, btor_copy_exp (btor, cur_parent));
       }
 
-      if (btor_find_substitution (btor, cur))
+      if ((sub = btor_find_substitution (btor, cur)))
       {
-        rebuilt_exp = btor_copy_exp (btor, cur);
-        goto SET_SIMPLIFIED_EXP;
+        rebuilt_exp = btor_copy_exp (btor, sub);
       }
-
       // TODO: externalize
-      if (bra && BTOR_IS_APPLY_NODE (cur)
-          && btor_find_in_ptr_hash_table (subst, cur))
+      else if (bra && BTOR_IS_APPLY_NODE (cur)
+               && btor_find_in_ptr_hash_table (subst, cur))
       {
         if (bra == -1)
           rebuilt_exp = btor_beta_reduce_full (btor, cur);
@@ -2895,7 +2902,6 @@ substitute_and_rebuild (Btor *btor, BtorPtrHashTable *subst, int bra)
       assert (rebuilt_exp);
       if (rebuilt_exp != cur)
       {
-      SET_SIMPLIFIED_EXP:
         simplified = btor_simplify_exp (btor, rebuilt_exp);
         // TODO: only push new roots? use hash table for roots instead of
         // stack?
@@ -2909,8 +2915,8 @@ substitute_and_rebuild (Btor *btor, BtorPtrHashTable *subst, int bra)
     /* not all children rebuilt, enqueue again */
     else
     {
-      cur->aux_mark = 2;
-      BTOR_ENQUEUE (mm, queue, btor_copy_exp (btor, cur));
+      assert (cur->aux_mark == 2);
+      BTOR_ENQUEUE (mm, queue, cur);
     }
   }
 
