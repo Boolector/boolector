@@ -119,24 +119,25 @@ btor_init_opts (Btor *btor)
             0,
             1,
             "incremental usage, solve all (SMT1 only)");
-  BTOR_OPT (0,
-            incremental_in_depth,
-            0,
-            0,
-            1,
-            "incremental in-depth mode width (SMT1 only)");
-  BTOR_OPT (0,
-            incremental_look_ahead,
-            0,
-            0,
-            1,
-            "incremental look-ahead width (SMT1 only)");
-  BTOR_OPT (0,
-            incremental_interval,
-            0,
-            0,
-            1,
-            "incremental interval mode width (SMT1 only)");
+
+  BTOR_OPT_INTL (0,
+                 incremental_in_depth,
+                 0,
+                 0,
+                 1,
+                 "incremental in-depth mode width (SMT1 only)");
+  BTOR_OPT_INTL (0,
+                 incremental_look_ahead,
+                 0,
+                 0,
+                 1,
+                 "incremental look-ahead width (SMT1 only)");
+  BTOR_OPT_INTL (0,
+                 incremental_interval,
+                 0,
+                 0,
+                 1,
+                 "incremental interval mode width (SMT1 only)");
 
   BTOR_OPT (0,
             input_format,

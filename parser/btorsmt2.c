@@ -1538,6 +1538,11 @@ btor_check_ite_args_sorts_match_smt2 (BtorSMT2Parser *parser, BtorSMT2Item *p)
     parser->perrcoo = p[1].coo;
     return !btor_perr_smt2 (parser, "first argument of 'ite' is an array");
   }
+  if (boolector_is_fun (parser->btor, p[1].exp))
+  {
+    parser->perrcoo = p[1].coo;
+    return !btor_perr_smt2 (parser, "first argument of 'ite' is a function");
+  }
   if ((len = boolector_get_width (parser->btor, p[1].exp)) != 1)
   {
     parser->perrcoo = p[1].coo;
@@ -1850,7 +1855,11 @@ btor_parse_term_smt2_aux (BtorSMT2Parser *parser,
       BTOR_PUSH_STACK (parser->btor->mm, *tokens, c ? c : ' ');
     }
 
-    if (tag == BTOR_INVALID_TAG_SMT2) return 0;
+    if (tag == BTOR_INVALID_TAG_SMT2)
+    {
+      assert (parser->error);
+      return 0;
+    }
     if (tag == EOF)
     {
       l = btor_last_lpar_smt2 (parser);
@@ -3295,8 +3304,6 @@ SORTED_VAR:
                             width);
   }
 
-  assert (nargs == BTOR_COUNT_STACK (parser->work));
-
   if (nargs)
   {
     BTOR_INIT_STACK (args);
@@ -3318,6 +3325,15 @@ SORTED_VAR:
     tmp = boolector_fun (parser->btor, args.start, nargs, exp);
     if (parser->commands.model)
     {
+      if (!boolector_is_equal_sort (parser->btor, fun->exp, tmp))
+      {
+        boolector_release (parser->btor, tmp);
+        while (!BTOR_EMPTY_STACK (args))
+          boolector_release (parser->btor, BTOR_POP_STACK (args));
+        boolector_release (parser->btor, exp);
+        BTOR_RELEASE_STACK (parser->mem, args);
+        return !btor_perr_smt2 (parser, "model must have equal sort");
+      }
       eq = boolector_eq (parser->btor, fun->exp, tmp);
       boolector_assert (parser->btor, eq);
       boolector_release (parser->btor, eq);
@@ -3338,7 +3354,11 @@ SORTED_VAR:
   {
     if (parser->commands.model)
     {
-      assert (boolector_is_const (parser->btor, exp));  // TODO REMOVE
+      if (!boolector_is_equal_sort (parser->btor, fun->exp, exp))
+      {
+        boolector_release (parser->btor, exp);
+        return !btor_perr_smt2 (parser, "model must have equal sort");
+      }
       eq = boolector_eq (parser->btor, fun->exp, exp);
       boolector_assert (parser->btor, eq);
       boolector_release (parser->btor, eq);
@@ -3459,6 +3479,11 @@ btor_set_option_smt2 (BtorSMT2Parser *parser)
   if (opt)
   {
     tag = btor_read_token_smt2 (parser);
+    if (tag == BTOR_INVALID_TAG_SMT2)
+    {
+      assert (parser->error);
+      return 0;
+    }
     val = boolector_get_opt_val (parser->btor, opt);
     if (tag == BTOR_FALSE_TAG_SMT2)
       val = 0;
@@ -3584,6 +3609,7 @@ btor_read_command_smt2 (BtorSMT2Parser *parser)
 
     case BTOR_ASSERT_TAG_SMT2:
       if (!btor_parse_term_smt2 (parser, &exp, &coo)) return 0;
+      assert (!parser->error);
       if (boolector_is_array (parser->btor, exp))
       {
         parser->perrcoo = coo;
@@ -3628,6 +3654,7 @@ btor_read_command_smt2 (BtorSMT2Parser *parser)
       if (!btor_read_rpar_smt2 (parser, " after 'get-model'")) return 0;
       if (!boolector_get_opt_val (parser->btor, "model_gen"))
         return !btor_perr_smt2 (parser, "model generation is not enabled");
+      if (parser->res->result != BOOLECTOR_SAT) break;
       boolector_print_model (parser->btor, "smt2", stdout);
       break;
 
@@ -3635,6 +3662,7 @@ btor_read_command_smt2 (BtorSMT2Parser *parser)
       if (!btor_read_lpar_smt2 (parser, " after 'get-model'")) return 0;
       if (!boolector_get_opt_val (parser->btor, "model_gen"))
         return !btor_perr_smt2 (parser, "model generation is not enabled");
+      if (parser->res->result != BOOLECTOR_SAT) break;
       tag = 0;
       BTOR_INIT_STACK (tokens);
       if (!btor_parse_term_smt2_aux (parser, 0, 0, &exp, &coo, &tokens))
