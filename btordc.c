@@ -263,7 +263,7 @@ btor_compute_scores_dual_prop (Btor *btor)
   assert (btor);
   assert (check_id_table_aux_mark_unset_dbg (btor));
 
-  int i;
+  int i, h;
   BtorNode *cur;
   BtorNodePtrStack stack, unmark_stack;
   BtorPtrHashTable *applies, *t;
@@ -312,20 +312,25 @@ btor_compute_scores_dual_prop (Btor *btor)
   compute_scores_aux (btor, &it);
 
   /* cleanup */
-  init_node_hash_table_iterator (&it, btor->score);
-  while (has_next_hash_table_iterator (&it))
+  h = btor_get_opt_val (btor, BTOR_OPT_JUST_USE_HEURISTIC);
+  if (h == BTOR_JUST_HEUR_BRANCH_MIN_APP
+      || h == BTOR_JUST_HEUR_BRANCH_MIN_APP_BVSKEL)
   {
-    t   = (BtorPtrHashTable *) it.bucket->data.asPtr;
-    cur = next_node_hash_table_iterator (&it);
-    assert (BTOR_IS_REGULAR_NODE (cur));
-    if (!BTOR_IS_BV_VAR_NODE (cur) && !BTOR_IS_APPLY_NODE (cur))
+    init_node_hash_table_iterator (&it, btor->score);
+    while (has_next_hash_table_iterator (&it))
     {
-      btor_release_exp (btor, cur);
-      init_node_hash_table_iterator (&iit, t);
-      while (has_next_node_hash_table_iterator (&iit))
-        btor_release_exp (btor, next_node_hash_table_iterator (&iit));
-      btor_delete_ptr_hash_table (t);
-      btor_remove_from_ptr_hash_table (btor->score, cur, 0, 0);
+      t   = (BtorPtrHashTable *) it.bucket->data.asPtr;
+      cur = next_node_hash_table_iterator (&it);
+      assert (BTOR_IS_REGULAR_NODE (cur));
+      if (!BTOR_IS_BV_VAR_NODE (cur) && !BTOR_IS_APPLY_NODE (cur))
+      {
+        btor_release_exp (btor, cur);
+        init_node_hash_table_iterator (&iit, t);
+        while (has_next_node_hash_table_iterator (&iit))
+          btor_release_exp (btor, next_node_hash_table_iterator (&iit));
+        btor_delete_ptr_hash_table (t);
+        btor_remove_from_ptr_hash_table (btor->score, cur, 0, 0);
+      }
     }
   }
   btor_delete_ptr_hash_table (applies);
@@ -410,11 +415,11 @@ btor_compare_scores_qsort (const void *p1, const void *p2)
 
     bucket = btor_find_in_ptr_hash_table (btor->score_depth, a);
     assert (bucket);
-    sa = ((BtorPtrHashTable *) bucket->data.asPtr)->count;
+    sa = bucket->data.asInt;
 
     bucket = btor_find_in_ptr_hash_table (btor->score_depth, b);
     assert (bucket);
-    sb = ((BtorPtrHashTable *) bucket->data.asPtr)->count;
+    sb = bucket->data.asInt;
   }
 
   if (sa < sb) return 1;
