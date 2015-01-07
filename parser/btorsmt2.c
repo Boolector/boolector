@@ -1,7 +1,7 @@
 /*  Boolector: Satisfiablity Modulo Theories (SMT) solver.
  *
  *  Copyright (C) 2011-2013 Armin Biere.
- *  Copyright (C) 2013-2014 Aina Niemetz.
+ *  Copyright (C) 2013-2015 Aina Niemetz.
  *  Copyright (C) 2013-2014 Mathias Preiner.
  *
  *  All rights reserved.
@@ -3502,7 +3502,7 @@ btor_set_option_smt2 (BtorSMT2Parser *parser)
 static int
 btor_read_command_smt2 (BtorSMT2Parser *parser)
 {
-  int tag;
+  int tag, width;
   BoolectorNode *exp = 0;
   BtorSMT2Coo coo;
   BtorCharStack tokens; /* for get-value (printing the originally parsed
@@ -3617,13 +3617,12 @@ btor_read_command_smt2 (BtorSMT2Parser *parser)
         return !btor_perr_smt2 (
             parser, "assert argument is an array and not a formula");
       }
-      if (boolector_get_width (parser->btor, exp) != 1)
+      if ((width = boolector_get_width (parser->btor, exp)) != 1)
       {
         parser->perrcoo = coo;
         boolector_release (parser->btor, exp);
-        return !btor_perr_smt2 (parser,
-                                "assert argument is a bit-vector of length %d",
-                                boolector_get_width (parser->btor, exp));
+        return !btor_perr_smt2 (
+            parser, "assert argument is a bit-vector of length %d", width);
       }
       if (!btor_read_rpar_smt2 (parser, " after asserted expression"))
       {
