@@ -1,6 +1,6 @@
 /*  Boolector: Satisfiablity Modulo Theories (SMT) solver.
  *
- *  Copyright (C) 2014 Aina Niemetz.
+ *  Copyright (C) 2014-2015 Aina Niemetz.
  *  Copyright (C) 2014 Mathias Preiner.
  *  Copyright (C) 2014 Armin Biere.
  *
@@ -25,6 +25,12 @@
 #define BTOR_OUTPUT_FORMAT_BTOR -1
 #define BTOR_OUTPUT_FORMAT_SMT1 1
 #define BTOR_OUTPUT_FORMAT_SMT2 2
+
+#define BTOR_JUST_HEUR_LEFT 0
+#define BTOR_JUST_HEUR_BRANCH_MIN_APP 2
+#define BTOR_JUST_HEUR_BRANCH_MIN_APP_BVSKEL 3
+#define BTOR_JUST_HEUR_BRANCH_MIN_DEP 4
+#define BTOR_JUST_HEUR_BRANCH_MIN_DEP_BVSKEL 5
 
 typedef struct BtorOpt
 {
@@ -71,6 +77,7 @@ typedef struct BtorOpt
 #define BTOR_OPT_UCOPT "ucopt"
 #define BTOR_OPT_LAZY_SYNTHESIZE "lazy_synthesize"
 #define BTOR_OPT_ELIMINATE_SLICES "eliminate_slices"
+#define BTOR_OPT_JUST_USE_HEURISTIC "just_use_heuristic"
 
 typedef struct BtorOpts
 {
@@ -78,11 +85,8 @@ typedef struct BtorOpts
   /* ----------------------------------------------------------------------- */
   BtorOpt model_gen; /* model generation enabled */
 
-  BtorOpt incremental;            /* incremental usage */
-  BtorOpt incremental_all;        /* incremental usage, solve all */
-  BtorOpt incremental_in_depth;   /* incremental usage, in-depth mode */
-  BtorOpt incremental_look_ahead; /* incremental usage, look-ahead mode */
-  BtorOpt incremental_interval;   /* incremental usage, interval mode */
+  BtorOpt incremental;     /* incremental usage */
+  BtorOpt incremental_all; /* incremental usage, solve all */
 
   BtorOpt input_format; /* force input format */
 
@@ -119,7 +123,14 @@ typedef struct BtorOpts
   /* internal */
   BtorOpt simplify_constraints;  /* force constraints to true/false */
   BtorOpt auto_cleanup_internal; /* force cleanup of exps, assignm. strings
-                                     (internal references only) */
+                                    (internal references only) */
+
+  BtorOpt incremental_in_depth;   /* incremental usage, in-depth mode */
+  BtorOpt incremental_look_ahead; /* incremental usage, look-ahead mode */
+  BtorOpt incremental_interval;   /* incremental usage, interval mode */
+
+  BtorOpt just_use_heuristic; /* use heuristic (else: input [0] if both
+                                 are controlling) */
   /* ----------------------------------------------------------------------- */
   BtorOpt last; /* dummy for iteration */
 #ifdef BTOR_CHECK_FAILED

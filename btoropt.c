@@ -1,6 +1,6 @@
 /*  Boolector: Satisfiablity Modulo Theories (SMT) solver.
  *
- *  Copyright (C) 2014 Aina Niemetz.
+ *  Copyright (C) 2014-2015 Aina Niemetz.
  *  Copyright (C) 2014 Mathias Preiner.
  *
  *  All rights reserved.
@@ -120,25 +120,6 @@ btor_init_opts (Btor *btor)
             1,
             "incremental usage, solve all (SMT1 only)");
 
-  BTOR_OPT_INTL (0,
-                 incremental_in_depth,
-                 0,
-                 0,
-                 1,
-                 "incremental in-depth mode width (SMT1 only)");
-  BTOR_OPT_INTL (0,
-                 incremental_look_ahead,
-                 0,
-                 0,
-                 1,
-                 "incremental look-ahead width (SMT1 only)");
-  BTOR_OPT_INTL (0,
-                 incremental_interval,
-                 0,
-                 0,
-                 1,
-                 "incremental interval mode width (SMT1 only)");
-
   BTOR_OPT (0,
             input_format,
             0,
@@ -202,6 +183,30 @@ btor_init_opts (Btor *btor)
 #ifdef BTOR_CHECK_FAILED
   BTOR_OPT_INTL (0, chk_failed_assumptions, 1, 0, 1, 0);
 #endif
+  BTOR_OPT_INTL (0,
+                 incremental_in_depth,
+                 0,
+                 0,
+                 1,
+                 "incremental in-depth mode width (SMT1 only)");
+  BTOR_OPT_INTL (0,
+                 incremental_look_ahead,
+                 0,
+                 0,
+                 1,
+                 "incremental look-ahead width (SMT1 only)");
+  BTOR_OPT_INTL (0,
+                 incremental_interval,
+                 0,
+                 0,
+                 1,
+                 "incremental interval mode width (SMT1 only)");
+  BTOR_OPT_INTL (0,
+                 just_use_heuristic,
+                 BTOR_JUST_HEUR_BRANCH_MIN_APP,
+                 BTOR_JUST_HEUR_LEFT,
+                 BTOR_JUST_HEUR_BRANCH_MIN_DEP_BVSKEL,
+                 "use heuristic for justification");
 }
 
 #define BTOR_FIRST_OPT(btor) (&(btor)->options.first + 1)
