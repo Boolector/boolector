@@ -3617,17 +3617,17 @@ btor_read_command_smt2 (BtorSMT2Parser *parser)
         return !btor_perr_smt2 (
             parser, "assert argument is an array and not a formula");
       }
+      if (!btor_read_rpar_smt2 (parser, " after asserted expression"))
+      {
+        boolector_release (parser->btor, exp);
+        return 0;
+      }
       if ((width = boolector_get_width (parser->btor, exp)) != 1)
       {
         parser->perrcoo = coo;
         boolector_release (parser->btor, exp);
         return !btor_perr_smt2 (
             parser, "assert argument is a bit-vector of length %d", width);
-      }
-      if (!btor_read_rpar_smt2 (parser, " after asserted expression"))
-      {
-        boolector_release (parser->btor, exp);
-        return 0;
       }
       boolector_assert (parser->btor, exp);
       boolector_release (parser->btor, exp);
