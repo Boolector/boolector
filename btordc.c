@@ -17,12 +17,11 @@
 static void
 compute_score_node_just_heur_branch_min_app (Btor *btor,
                                              BtorPtrHashTable *score,
-                                             BtorPtrHashTable *in,
                                              BtorNode *cur)
 {
   BtorNode *e;
   BtorPtrHashBucket *b;
-  BtorPtrHashTable *t, *min_t;
+  BtorPtrHashTable *in, *t, *min_t;
   BtorHashTableIterator iit;
   int i, h, cnt, min_cnt;
 
@@ -227,7 +226,7 @@ compute_scores_aux (Btor *btor, BtorHashTableIterator *it)
          *            bv skeleton only) */
         if (h == BTOR_JUST_HEUR_BRANCH_MIN_APP
             || h == BTOR_JUST_HEUR_BRANCH_MIN_APP_BVSKEL)
-          compute_score_node_just_heur_branch_min_app (btor, score, in, cur);
+          compute_score_node_just_heur_branch_min_app (btor, score, cur);
         /* heuristic: minimum depth to the inputs (considering the whole
          *            formula or the bv skeleton, only) */
         else if (h == BTOR_JUST_HEUR_BRANCH_MIN_DEP
