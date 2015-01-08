@@ -2638,7 +2638,7 @@ boolector_apply (Btor *btor,
   cur = BTOR_REAL_ADDR_NODE (btor_simplify_exp (btor, e_fun));
   BTOR_ABORT_BOOLECTOR (
       argc != btor_get_fun_arity (btor, cur),
-      "number of arguments must be <= number of parameters in 'fun'");
+      "number of arguments must be equal to the number of parameters in 'fun'");
   for (i = 0; i < argc; i++)
     sprintf (
         strtrapi + strlen (strtrapi), NODE_FMT, BTOR_TRAPI_NODE_ID (args[i]));
