@@ -77,7 +77,7 @@ typedef struct BtorOpt
 #define BTOR_OPT_UCOPT "ucopt"
 #define BTOR_OPT_LAZY_SYNTHESIZE "lazy_synthesize"
 #define BTOR_OPT_ELIMINATE_SLICES "eliminate_slices"
-#define BTOR_OPT_JUST_USE_HEURISTIC "just_use_heuristic"
+#define BTOR_OPT_JUST_HEURISTIC "just_heuristic"
 
 typedef struct BtorOpts
 {
@@ -104,8 +104,10 @@ typedef struct BtorOpts
   BtorOpt pbra_ops_factor;       /* factor by which the beta reduced formula
                                     may be greater than the original */
 #endif
-  BtorOpt dual_prop; /* dual prop optimization */
-  BtorOpt just;      /* justification optimization */
+  BtorOpt dual_prop;      /* dual prop optimization */
+  BtorOpt just;           /* justification optimization */
+  BtorOpt just_heuristic; /* use heuristic (else: input [0] if both
+                             are controlling) */
 #ifndef BTOR_DO_NOT_OPTIMIZE_UNCONSTRAINED
   BtorOpt ucopt; /* unconstrained optimization */
 #endif
@@ -129,8 +131,6 @@ typedef struct BtorOpts
   BtorOpt incremental_look_ahead; /* incremental usage, look-ahead mode */
   BtorOpt incremental_interval;   /* incremental usage, interval mode */
 
-  BtorOpt just_use_heuristic; /* use heuristic (else: input [0] if both
-                                 are controlling) */
   /* ----------------------------------------------------------------------- */
   BtorOpt last; /* dummy for iteration */
 #ifdef BTOR_CHECK_FAILED

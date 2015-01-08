@@ -166,6 +166,12 @@ btor_init_opts (Btor *btor)
 
   BTOR_OPT ("dp", dual_prop, 0, 0, 1, "dual propagation optimization");
   BTOR_OPT ("ju", just, 0, 0, 1, "justification optimization");
+  BTOR_OPT (0,
+            just_heuristic,
+            BTOR_JUST_HEUR_BRANCH_MIN_APP,
+            BTOR_JUST_HEUR_LEFT,
+            BTOR_JUST_HEUR_BRANCH_MIN_DEP_BVSKEL,
+            "justification heuristic");
 #ifndef BTOR_DO_NOT_OPTIMIZE_UNCONSTRAINED
   BTOR_OPT ("uc", ucopt, 0, 0, 1, "unconstrained optimization");
 #endif
@@ -201,12 +207,6 @@ btor_init_opts (Btor *btor)
                  0,
                  1,
                  "incremental interval mode width (SMT1 only)");
-  BTOR_OPT_INTL (0,
-                 just_use_heuristic,
-                 BTOR_JUST_HEUR_BRANCH_MIN_APP,
-                 BTOR_JUST_HEUR_LEFT,
-                 BTOR_JUST_HEUR_BRANCH_MIN_DEP_BVSKEL,
-                 "use heuristic for justification");
 }
 
 #define BTOR_FIRST_OPT(btor) (&(btor)->options.first + 1)

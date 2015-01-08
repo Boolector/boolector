@@ -333,7 +333,7 @@ print_opt (BtorMainApp *app,
       || !strcmp (lng, BTOR_OPT_PBRA_SAT_LIMIT)
       || !strcmp (lng, BTOR_OPT_PBRA_OPS_FACTOR)
       || !strcmp (lng, BTOR_OPT_DUAL_PROP) || !strcmp (lng, BTOR_OPT_JUST)
-      || !strcmp (lng, BTOR_OPT_UCOPT)
+      || !strcmp (lng, BTOR_OPT_JUST_HEURISTIC) || !strcmp (lng, BTOR_OPT_UCOPT)
       || !strcmp (lng, BTOR_OPT_LAZY_SYNTHESIZE)
       || !strcmp (lng, BTOR_OPT_ELIMINATE_SLICES)
       || !strcmp (lng, BTOR_OPT_PRETTY_PRINT)
