@@ -207,6 +207,7 @@ btor_init_opts (Btor *btor)
                  0,
                  1,
                  "incremental interval mode width (SMT1 only)");
+  BTOR_OPT_INTL (0, parse_interactive, 1, 0, 1, "interactive parse mode");
 }
 
 #define BTOR_FIRST_OPT(btor) (&(btor)->options.first + 1)

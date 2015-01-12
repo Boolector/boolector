@@ -1388,6 +1388,8 @@ boolector_main (int argc, char **argv)
   else if (static_verbosity)
     btormain_msg ("no time limit given");
 
+  if (dump) boolector_set_opt (static_app->btor, BTOR_OPT_PARSE_INTERACTIVE, 0);
+
   if (inc && static_verbosity) btormain_msg ("starting incremental mode");
 
   if ((val = boolector_get_opt_val (static_app->btor, "input_format")))

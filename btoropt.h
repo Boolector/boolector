@@ -78,6 +78,7 @@ typedef struct BtorOpt
 #define BTOR_OPT_LAZY_SYNTHESIZE "lazy_synthesize"
 #define BTOR_OPT_ELIMINATE_SLICES "eliminate_slices"
 #define BTOR_OPT_JUST_HEURISTIC "just_heuristic"
+#define BTOR_OPT_PARSE_INTERACTIVE "parse_interactive"
 
 typedef struct BtorOpts
 {
@@ -130,6 +131,7 @@ typedef struct BtorOpts
   BtorOpt incremental_in_depth;   /* incremental usage, in-depth mode */
   BtorOpt incremental_look_ahead; /* incremental usage, look-ahead mode */
   BtorOpt incremental_interval;   /* incremental usage, interval mode */
+  BtorOpt parse_interactive;      /* interactive parse mode */
 
   /* ----------------------------------------------------------------------- */
   BtorOpt last; /* dummy for iteration */
