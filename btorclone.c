@@ -1,6 +1,6 @@
 /*  Boolector: Satisfiablity Modulo Theories (SMT) solver.
  *
- *  Copyright (C) 2013-2014 Aina Niemetz.
+ *  Copyright (C) 2013-2015 Aina Niemetz.
  *  Copyright (C) 2014 Mathias Preiner.
  *  Copyright (C) 2014 Armin Biere.
  *
@@ -173,6 +173,8 @@ clone_exp (Btor *clone,
 
   int i, len;
   BtorNode *res;
+  BtorParamNode *param;
+  BtorLambdaNode *lambda;
   BtorMemMgr *mm;
 
   mm = clone->mm;
@@ -211,14 +213,24 @@ clone_exp (Btor *clone,
     BTOR_PUSH_STACK_IF (exp->rho, mm, *rhos, &exp->rho);
   }
 
+  assert (!exp->next || !BTOR_IS_INVALID_NODE (exp->next));
   BTOR_PUSH_STACK_IF (exp->next, mm, *nodes, &res->next);
 
   /* Note: parent node used during BFS only, pointer is not reset after bfs,
-   *	   do not clone do avoid access to invalid nodes */
+   *	   do not clone to avoid access to invalid nodes */
   res->parent = 0;
 
+  assert (!exp->simplified
+          || !BTOR_IS_INVALID_NODE (BTOR_REAL_ADDR_NODE (exp->simplified)));
   BTOR_PUSH_STACK_IF (exp->simplified, mm, *nodes, &res->simplified);
+
   res->btor = clone;
+
+  assert (!exp->first_parent
+          || !BTOR_IS_INVALID_NODE (BTOR_REAL_ADDR_NODE (exp->first_parent)));
+  assert (!exp->last_parent
+          || !BTOR_IS_INVALID_NODE (BTOR_REAL_ADDR_NODE (exp->last_parent)));
+
   BTOR_PUSH_STACK_IF (exp->first_parent, mm, *parents, &res->first_parent);
   BTOR_PUSH_STACK_IF (exp->last_parent, mm, *parents, &res->last_parent);
   /* <---------------------------------------------------------------------- */
@@ -252,6 +264,13 @@ clone_exp (Btor *clone,
 
       for (i = 0; i < exp->arity; i++)
       {
+        assert (!exp->prev_parent[i]
+                || !BTOR_IS_INVALID_NODE (
+                       BTOR_REAL_ADDR_NODE (exp->prev_parent[i])));
+        assert (!exp->next_parent[i]
+                || !BTOR_IS_INVALID_NODE (
+                       BTOR_REAL_ADDR_NODE (exp->next_parent[i])));
+
         BTOR_PUSH_STACK_IF (
             exp->prev_parent[i], mm, *parents, &res->prev_parent[i]);
         BTOR_PUSH_STACK_IF (
@@ -263,11 +282,18 @@ clone_exp (Btor *clone,
 
   if (BTOR_IS_PARAM_NODE (exp))
   {
-    BTOR_PUSH_STACK_IF (((BtorParamNode *) exp)->lambda_exp,
+    param = (BtorParamNode *) exp;
+    assert (!param->lambda_exp
+            || !BTOR_IS_INVALID_NODE (BTOR_REAL_ADDR_NODE (param->lambda_exp)));
+    assert (
+        !param->assigned_exp
+        || !BTOR_IS_INVALID_NODE (BTOR_REAL_ADDR_NODE (param->assigned_exp)));
+
+    BTOR_PUSH_STACK_IF (param->lambda_exp,
                         mm,
                         *nodes,
                         (BtorNode **) &((BtorParamNode *) res)->lambda_exp);
-    BTOR_PUSH_STACK_IF (((BtorParamNode *) exp)->assigned_exp,
+    BTOR_PUSH_STACK_IF (param->assigned_exp,
                         mm,
                         *nodes,
                         (BtorNode **) &((BtorParamNode *) res)->assigned_exp);
@@ -275,11 +301,17 @@ clone_exp (Btor *clone,
 
   if (BTOR_IS_LAMBDA_NODE (exp))
   {
-    if (((BtorLambdaNode *) exp)->synth_apps)
+    lambda = (BtorLambdaNode *) exp;
+    if (lambda->synth_apps)
     {
       BTOR_PUSH_STACK (mm, *sapps, &((BtorLambdaNode *) res)->synth_apps);
       BTOR_PUSH_STACK (mm, *sapps, &((BtorLambdaNode *) exp)->synth_apps);
     }
+
+    assert (!lambda->head || !BTOR_IS_INVALID_NODE (lambda->head));
+    assert (!lambda->body
+            || !BTOR_IS_INVALID_NODE (BTOR_REAL_ADDR_NODE (lambda->body)));
+
     BTOR_PUSH_STACK_IF (((BtorLambdaNode *) exp)->head,
                         mm,
                         *nodes,
@@ -300,7 +332,6 @@ clone_exp (Btor *clone,
             == ((BtorUFNode *) exp)->sort->refs);
   }
 
-  res = BTOR_IS_INVERTED_NODE (exp) ? BTOR_INVERT_NODE (res) : res;
   btor_map_node (exp_map, exp, res);
 
   return res;
