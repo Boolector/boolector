@@ -333,7 +333,7 @@ print_opt (BtorMainApp *app,
       || !strcmp (lng, BTOR_OPT_PBRA_SAT_LIMIT)
       || !strcmp (lng, BTOR_OPT_PBRA_OPS_FACTOR)
       || !strcmp (lng, BTOR_OPT_DUAL_PROP) || !strcmp (lng, BTOR_OPT_JUST)
-      || !strcmp (lng, BTOR_OPT_UCOPT)
+      || !strcmp (lng, BTOR_OPT_JUST_HEURISTIC) || !strcmp (lng, BTOR_OPT_UCOPT)
       || !strcmp (lng, BTOR_OPT_LAZY_SYNTHESIZE)
       || !strcmp (lng, BTOR_OPT_ELIMINATE_SLICES)
       || !strcmp (lng, BTOR_OPT_PRETTY_PRINT)
@@ -1387,6 +1387,8 @@ boolector_main (int argc, char **argv)
   }
   else if (static_verbosity)
     btormain_msg ("no time limit given");
+
+  if (dump) boolector_set_opt (static_app->btor, BTOR_OPT_PARSE_INTERACTIVE, 0);
 
   if (inc && static_verbosity) btormain_msg ("starting incremental mode");
 

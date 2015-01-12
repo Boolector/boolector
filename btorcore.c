@@ -954,7 +954,7 @@ btor_delete_btor (Btor *btor)
     btor_release_exp (btor, BTOR_POP_STACK (stack));
   BTOR_RELEASE_STACK (mm, stack);
 
-  if (btor_get_opt_val (btor, BTOR_OPT_JUST_USE_HEURISTIC))
+  if (btor_get_opt_val (btor, BTOR_OPT_JUST_HEURISTIC))
   {
     if (btor->score)
     {
@@ -5249,7 +5249,7 @@ search_initial_applies_just (Btor *btor, BtorNodePtrStack *top_applies)
               assert (c[0] == '0');
 
               if (c0[0] == '0' && c1[0] == '0'
-                  && btor_get_opt_val (btor, BTOR_OPT_JUST_USE_HEURISTIC))
+                  && btor_get_opt_val (btor, BTOR_OPT_JUST_HEURISTIC))
               {
                 if (btor_compare_scores (btor, cur->e[0], cur->e[1]))
                   BTOR_PUSH_STACK (btor->mm, stack, cur->e[0]);

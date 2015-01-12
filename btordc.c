@@ -24,7 +24,7 @@ compute_score_node_min_app (Btor *btor, BtorPtrHashTable *score, BtorNode *cur)
   int i, h, cnt, min_cnt;
 
   b = btor_find_in_ptr_hash_table (score, cur);
-  h = btor_get_opt_val (btor, BTOR_OPT_JUST_USE_HEURISTIC);
+  h = btor_get_opt_val (btor, BTOR_OPT_JUST_HEURISTIC);
   assert (h == BTOR_JUST_HEUR_BRANCH_MIN_APP
           || h == BTOR_JUST_HEUR_BRANCH_MIN_APP_BVSKEL);
 
@@ -144,7 +144,7 @@ compute_scores_aux (Btor *btor, BtorHashTableIterator *it)
   BTOR_INIT_STACK (stack);
   BTOR_INIT_STACK (unmark_stack);
 
-  if (!(h = btor_get_opt_val (btor, BTOR_OPT_JUST_USE_HEURISTIC))) return;
+  if (!(h = btor_get_opt_val (btor, BTOR_OPT_JUST_HEURISTIC))) return;
 
   if (h == BTOR_JUST_HEUR_BRANCH_MIN_APP
       || h == BTOR_JUST_HEUR_BRANCH_MIN_APP_BVSKEL)
@@ -363,7 +363,7 @@ btor_compute_scores (Btor *btor)
 
   BtorHashTableIterator it;
 
-  if (!btor_get_opt_val (btor, BTOR_OPT_JUST_USE_HEURISTIC)) return;
+  if (!btor_get_opt_val (btor, BTOR_OPT_JUST_HEURISTIC)) return;
   init_node_hash_table_iterator (&it, btor->synthesized_constraints);
   queue_node_hash_table_iterator (&it, btor->assumptions);
   compute_scores_aux (btor, &it);
@@ -424,7 +424,7 @@ btor_compute_scores_dual_prop (Btor *btor)
   compute_scores_aux (btor, &it);
 
   /* cleanup */
-  h = btor_get_opt_val (btor, BTOR_OPT_JUST_USE_HEURISTIC);
+  h = btor_get_opt_val (btor, BTOR_OPT_JUST_HEURISTIC);
   if (h == BTOR_JUST_HEUR_BRANCH_MIN_APP
       || h == BTOR_JUST_HEUR_BRANCH_MIN_APP_BVSKEL)
   {
@@ -460,7 +460,7 @@ btor_compare_scores (Btor *btor, BtorNode *a, BtorNode *b)
   int h, sa, sb;
   BtorPtrHashBucket *bucket;
 
-  h  = btor_get_opt_val (btor, BTOR_OPT_JUST_USE_HEURISTIC);
+  h  = btor_get_opt_val (btor, BTOR_OPT_JUST_HEURISTIC);
   a  = BTOR_REAL_ADDR_NODE (a);
   b  = BTOR_REAL_ADDR_NODE (b);
   sa = sb = 0;
@@ -507,7 +507,7 @@ btor_compare_scores_qsort (const void *p1, const void *p2)
   assert (a->btor == b->btor);
   btor = a->btor;
 
-  h = btor_get_opt_val (btor, BTOR_OPT_JUST_USE_HEURISTIC);
+  h = btor_get_opt_val (btor, BTOR_OPT_JUST_HEURISTIC);
 
   if (h == BTOR_JUST_HEUR_BRANCH_MIN_APP)
   {

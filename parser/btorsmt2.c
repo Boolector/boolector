@@ -313,7 +313,7 @@ typedef struct BtorSMT2Parser
 {
   Btor *btor;
   BtorMemMgr *mem;
-  int verbosity, incremental, model, need_functions;
+  int verbosity, incremental, model, need_functions, interactive, done;
   int saved, savedch;
   int last_end_of_line_ycoo;
   int nprefix;
@@ -830,7 +830,9 @@ btor_new_smt2_parser (Btor *btor, BtorParseOpt *opts)
   BTOR_CLR (res);
   res->verbosity   = opts->verbosity;
   res->incremental = opts->incremental;
+  res->interactive = opts->interactive;
   res->model       = opts->need_model;
+  res->done        = 0;
   res->btor        = btor;
   res->mem         = mem;
 
@@ -3433,7 +3435,9 @@ btor_set_option_smt2 (BtorSMT2Parser *parser)
       verb = 1;
       break;
     case BTOR_OPT_INCREMENTAL_TAG_SMT2: opt = BTOR_OPT_INCREMENTAL; break;
-    case BTOR_OPT_INCREMENTAL_ALL_TAG_SMT2: opt = BTOR_OPT_INCREMENTAL_ALL;
+    case BTOR_OPT_INCREMENTAL_ALL_TAG_SMT2:
+      opt = BTOR_OPT_INCREMENTAL_ALL;
+      break;
     case BTOR_OPT_INCREMENTAL_IN_DEPTH_TAG_SMT2:
       opt = BTOR_OPT_INCREMENTAL_IN_DEPTH;
       break;
@@ -3472,7 +3476,9 @@ btor_set_option_smt2 (BtorSMT2Parser *parser)
     case BTOR_OPT_LAZY_SYNTHESIZE_TAG_SMT2:
       opt = BTOR_OPT_LAZY_SYNTHESIZE;
       break;
-    case BTOR_OPT_ELIMINATE_SLICES_TAG_SMT2: opt = BTOR_OPT_ELIMINATE_SLICES;
+    case BTOR_OPT_ELIMINATE_SLICES_TAG_SMT2:
+      opt = BTOR_OPT_ELIMINATE_SLICES;
+      break;
     default: opt = 0;
   }
 
@@ -3596,7 +3602,16 @@ btor_read_command_smt2 (BtorSMT2Parser *parser)
         BTOR_MSG (boolector_get_btor_msg (parser->btor),
                   1,
                   "WARNING additional 'check-sat' command");
-      parser->res->result = boolector_sat (parser->btor);
+      if (parser->interactive)
+        parser->res->result = boolector_sat (parser->btor);
+      else
+      {
+        BTOR_MSG (boolector_get_btor_msg (parser->btor),
+                  1,
+                  "parser not interactive, aborted on first "
+                  "'check-sat' command");
+        parser->done = 1;
+      }
       break;
 
     case BTOR_DECLARE_FUN_TAG_SMT2:
@@ -3745,7 +3760,8 @@ btor_parse_smt2_parser (BtorSMT2Parser *parser,
   parser->saved     = 0;
   BTOR_CLR (res);
   parser->res = res;
-  while (btor_read_command_smt2 (parser))
+  while (btor_read_command_smt2 (parser)
+         && (parser->interactive || !parser->done))
     ;
   if (parser->error) return parser->error;
   if (!parser->commands.all)
@@ -3776,7 +3792,8 @@ btor_parse_smt2_parser (BtorSMT2Parser *parser,
                 "WARNING no 'exit' command at end of '%s'",
                 parser->name);
   }
-  parser->res->inputs   = parser->inputs.start;
+  parser->res->inputs = parser->inputs.start;
+  // TODO (ma): this stack is not used anymore for SMT2
   parser->res->outputs  = parser->outputs.start;
   parser->res->ninputs  = BTOR_COUNT_STACK (parser->inputs);
   parser->res->noutputs = BTOR_COUNT_STACK (parser->outputs);
