@@ -62,6 +62,7 @@ btor_parse_aux (Btor *btor,
   *error_msg            = 0;
   parse_opt.verbosity   = btor_get_opt_val (btor, BTOR_OPT_VERBOSITY);
   parse_opt.incremental = btor_get_opt_val (btor, BTOR_OPT_INCREMENTAL);
+  parse_opt.interactive = btor_get_opt_val (btor, BTOR_OPT_PARSE_INTERACTIVE);
   if (btor_get_opt_val (btor, BTOR_OPT_INCREMENTAL_IN_DEPTH))
   {
     parse_opt.incremental |= BTOR_PARSE_MODE_INCREMENTAL_IN_DEPTH;
