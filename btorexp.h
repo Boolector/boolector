@@ -2,7 +2,7 @@
  *
  *  Copyright (C) 2007-2009 Robert Daniel Brummayer.
  *  Copyright (C) 2007-2013 Armin Biere.
- *  Copyright (C) 2012-2014 Aina Niemetz.
+ *  Copyright (C) 2012-2015 Aina Niemetz.
  *  Copyright (C) 2012-2014 Mathias Preiner.
  *
  *  All rights reserved.
@@ -333,7 +333,7 @@ typedef struct BtorArgsNode BtorArgsNode;
   ((struct BtorNode *) (~3ul & (unsigned long int) (exp)))
 
 #define BTOR_GET_ID_NODE(exp) \
-  (BTOR_IS_INVERTED_NODE (exp) ? -BTOR_REAL_ADDR_NODE (exp)->id : exp->id)
+  (BTOR_IS_INVERTED_NODE (exp) ? -BTOR_REAL_ADDR_NODE (exp)->id : (exp)->id)
 
 #define BTOR_AIGVEC_NODE(btor, exp)                                     \
   (BTOR_IS_INVERTED_NODE (exp)                                          \
