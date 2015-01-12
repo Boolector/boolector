@@ -297,13 +297,14 @@ compute_scores_aux (Btor *btor, BtorHashTableIterator *it)
               while (has_next_parent_full_parent_iterator (&nit))
               {
                 p = next_parent_full_parent_iterator (&nit);
-                if (BTOR_IS_AND_NODE (p))
+                if (BTOR_IS_AND_NODE (p) && !p->parameterized)
                 {
                   has_and_parent = 1;
                   break;
                 }
               }
-              if (!has_and_parent)
+              if (e->parameterized
+                  || (!has_and_parent && !BTOR_IS_APPLY_NODE (e)))
               {
                 b = btor_find_in_ptr_hash_table (score, e);
                 if (!b) continue;
@@ -319,7 +320,7 @@ compute_scores_aux (Btor *btor, BtorHashTableIterator *it)
               }
             }
           }
-          if (cur->parents == 0 && cur->constraint)
+          if (cur->parents == 0 && cur->constraint && !BTOR_IS_APPLY_NODE (cur))
           {
             b = btor_find_in_ptr_hash_table (score, cur);
             assert (b);
