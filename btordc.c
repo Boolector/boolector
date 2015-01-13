@@ -473,7 +473,8 @@ btor_compare_scores (Btor *btor, BtorNode *a, BtorNode *b)
   b  = BTOR_REAL_ADDR_NODE (b);
   sa = sb = 0;
 
-  if (h == BTOR_JUST_HEUR_BRANCH_MIN_APP)
+  if (h == BTOR_JUST_HEUR_BRANCH_MIN_APP
+      || h == BTOR_JUST_HEUR_BRANCH_MIN_APP_BVSKEL)
   {
     if (!btor->score) return 0;
 
@@ -485,7 +486,8 @@ btor_compare_scores (Btor *btor, BtorNode *a, BtorNode *b)
     assert (bucket);
     sb = ((BtorPtrHashTable *) bucket->data.asPtr)->count;
   }
-  else if (h == BTOR_JUST_HEUR_BRANCH_MIN_DEP)
+  else if (h == BTOR_JUST_HEUR_BRANCH_MIN_DEP h
+           == BTOR_JUST_HEUR_BRANCH_MIN_DEP_BVSKEL)
   {
     if (!btor->score_depth) return 0;
 
