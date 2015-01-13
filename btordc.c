@@ -303,8 +303,7 @@ compute_scores_aux (Btor *btor, BtorHashTableIterator *it)
                   break;
                 }
               }
-              if (e->parameterized
-                  || (!has_and_parent && !BTOR_IS_APPLY_NODE (e)))
+              if (e->parameterized || !has_and_parent)
               {
                 b = btor_find_in_ptr_hash_table (score, e);
                 if (!b) continue;
@@ -320,7 +319,7 @@ compute_scores_aux (Btor *btor, BtorHashTableIterator *it)
               }
             }
           }
-          if (cur->parents == 0 && cur->constraint && !BTOR_IS_APPLY_NODE (cur))
+          if (cur->parents == 0 && cur->constraint)
           {
             b = btor_find_in_ptr_hash_table (score, cur);
             assert (b);
