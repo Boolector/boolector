@@ -13,6 +13,7 @@
 #include "btordbg.h"
 #include "btorhash.h"
 #include "btoriter.h"
+#include "btorutil.h"
 
 static void
 compute_score_node_min_app (Btor *btor, BtorPtrHashTable *score, BtorNode *cur)
@@ -20,8 +21,9 @@ compute_score_node_min_app (Btor *btor, BtorPtrHashTable *score, BtorNode *cur)
   BtorNode *e;
   BtorPtrHashBucket *b;
   BtorPtrHashTable *in, *t, *min_t;
-  BtorHashTableIterator iit;
+  BtorHashTableIterator it;
   int i, h, cnt, min_cnt;
+  double delta;
 
   b = btor_find_in_ptr_hash_table (score, cur);
   h = btor_get_opt_val (btor, BTOR_OPT_JUST_HEURISTIC);
@@ -63,10 +65,10 @@ compute_score_node_min_app (Btor *btor, BtorPtrHashTable *score, BtorNode *cur)
       if (BTOR_IS_AND_NODE (cur))
       {
         cnt = 0;
-        init_node_hash_table_iterator (&iit, t);
-        while (has_next_node_hash_table_iterator (&iit))
+        init_node_hash_table_iterator (&it, t);
+        while (has_next_node_hash_table_iterator (&it))
         {
-          e = next_node_hash_table_iterator (&iit);
+          e = next_node_hash_table_iterator (&it);
           if (!btor_find_in_ptr_hash_table (in, e)) cnt++;
         }
         if (min_t == 0 || cnt < min_cnt)
@@ -78,13 +80,18 @@ compute_score_node_min_app (Btor *btor, BtorPtrHashTable *score, BtorNode *cur)
       /* no branching: get union of all paths */
       else
       {
-        init_node_hash_table_iterator (&iit, t);
-        while (has_next_node_hash_table_iterator (&iit))
+        delta = btor_time_stamp ();
+
+        init_node_hash_table_iterator (&it, t);
+        while (has_next_node_hash_table_iterator (&it))
         {
-          e = next_node_hash_table_iterator (&iit);
+          e = next_node_hash_table_iterator (&it);
           if (btor_find_in_ptr_hash_table (in, e)) continue;
           btor_insert_in_ptr_hash_table (in, btor_copy_exp (btor, e));
         }
+
+        btor->time.search_init_apps_compute_scores_merge_applies +=
+            btor_time_stamp () - delta;
       }
     }
   }
@@ -92,10 +99,10 @@ compute_score_node_min_app (Btor *btor, BtorPtrHashTable *score, BtorNode *cur)
   if (min_t)
   {
     assert (BTOR_IS_AND_NODE (cur));
-    init_node_hash_table_iterator (&iit, min_t);
-    while (has_next_node_hash_table_iterator (&iit))
+    init_node_hash_table_iterator (&it, min_t);
+    while (has_next_node_hash_table_iterator (&it))
     {
-      cur = next_node_hash_table_iterator (&iit);
+      cur = next_node_hash_table_iterator (&it);
       if (btor_find_in_ptr_hash_table (in, cur)) continue;
 
       btor_insert_in_ptr_hash_table (in, btor_copy_exp (btor, cur));
@@ -281,6 +288,7 @@ compute_scores_aux (Btor *btor, BtorHashTableIterator *it)
             || h == BTOR_JUST_HEUR_BRANCH_MIN_APP_BVSKEL)
         {
           compute_score_node_min_app (btor, score, cur);
+
           /* garbage collection */
           for (i = 0; i < cur->arity; i++)
           {

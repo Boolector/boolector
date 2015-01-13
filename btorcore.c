@@ -618,6 +618,18 @@ btor_print_stats_btor (Btor *btor)
             1,
             "%.2f seconds initial applies search",
             btor->time.search_init_apps);
+  if (btor->options.just.val || btor->options.dual_prop.val)
+  {
+    BTOR_MSG (btor->msg,
+              1,
+              "%.2f seconds compute scores for initial applies search",
+              btor->time.search_init_apps_compute_scores);
+    BTOR_MSG (
+        btor->msg,
+        1,
+        "%.2f seconds merge applies in compute scores for init apps search",
+        btor->time.search_init_apps_compute_scores_merge_applies);
+  }
   if (btor->options.dual_prop.val)
   {
     BTOR_MSG (btor->msg,
@@ -5056,7 +5068,7 @@ search_initial_applies_dual_prop (Btor *btor,
   assert (top_applies);
   assert (check_id_table_aux_mark_unset_dbg (btor));
 
-  double start;
+  double start, delta;
   int i;
   BtorNode *cur;
   BtorNodePtrStack stack, unmark_stack, inputs;
@@ -5115,7 +5127,9 @@ search_initial_applies_dual_prop (Btor *btor,
   (void) cmp_node_id_asc;
 
 #if DP_QSORT == DP_QSORT_JUST
+  delta = btor_time_stamp ();
   btor_compute_scores_dual_prop (btor);
+  btor->time.search_init_apps_compute_scores += btor_time_stamp () - delta;
   set_up_dual_and_collect (btor,
                            clone,
                            clone_root,
@@ -5191,7 +5205,7 @@ search_initial_applies_just (Btor *btor, BtorNodePtrStack *top_applies)
 
   int i;
   char *c, *c0, *c1;
-  double start;
+  double start, delta;
   BtorNode *cur;
   BtorHashTableIterator it;
   BtorNodePtrStack stack, unmark_stack;
@@ -5204,7 +5218,9 @@ search_initial_applies_just (Btor *btor, BtorNodePtrStack *top_applies)
   BTOR_INIT_STACK (stack);
   BTOR_INIT_STACK (unmark_stack);
 
+  delta = btor_time_stamp ();
   btor_compute_scores (btor);
+  btor->time.search_init_apps_compute_scores += btor_time_stamp () - delta;
 
   init_node_hash_table_iterator (&it, btor->synthesized_constraints);
   queue_node_hash_table_iterator (&it, btor->assumptions);
