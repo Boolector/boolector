@@ -18,7 +18,7 @@
 #include "btorconfig.h"
 #include "btorconst.h"
 #include "btordbg.h"
-#include "btordc.h"
+#include "btordcr.h"
 #include "btorexit.h"
 #include "btoriter.h"
 #include "btorlog.h"
