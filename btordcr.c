@@ -253,18 +253,79 @@ compute_scores_aux_min_app (Btor *btor, BtorHashTableIterator *it)
    * of AND nodes, second to determine their post-order (dfs). This can NOT
    * be done within one pass! */
 
+#if 0
   /* mark children of AND nodes (separate pass) */
   /* preinitalize iterator as clone of given iterator */
-  cit.bucket     = it->bucket;
-  cit.cur        = it->cur;
-  cit.reversed   = it->reversed;
+  cit.bucket = it->bucket;
+  cit.cur = it->cur;
+  cit.reversed = it->reversed;
   cit.num_queued = it->num_queued;
-  cit.pos        = it->pos;
-  for (i = 0; i < cit.num_queued; i++) cit.stack[i] = it->stack[i];
+  cit.pos = it->pos;
+  for (i = 0; i < cit.num_queued; i++)
+    cit.stack[i] = it->stack[i];
   /* mark */
   while (has_next_node_hash_table_iterator (&cit))
+    {
+      cur = next_node_hash_table_iterator (&cit);
+      BTOR_PUSH_STACK (btor->mm, stack, cur);
+      while (!BTOR_EMPTY_STACK (stack))
+	{
+	  cur = BTOR_REAL_ADDR_NODE (BTOR_POP_STACK (stack));
+	  if (cur->aux_mark) continue;
+	  cur->aux_mark = 1;
+	  BTOR_PUSH_STACK (btor->mm, unmark_stack, cur);
+	  for (i = 0; i < cur->arity; i++)
+	    {
+	      e = BTOR_REAL_ADDR_NODE (cur->e[i]);
+	      if (!cur->parameterized 
+		  && BTOR_IS_AND_NODE (cur)
+		  && !btor_find_in_ptr_hash_table (marked, e))
+		btor_insert_in_ptr_hash_table (marked, e);
+	      BTOR_PUSH_STACK (btor->mm, stack, e);
+	    }
+	}
+    }
+
+  /* cleanup */
+  while (!BTOR_EMPTY_STACK (unmark_stack))
+    BTOR_POP_STACK (unmark_stack)->aux_mark = 0;
+  
+  /* collect children of AND nodes in post-order (DFS) */
+  while (has_next_node_hash_table_iterator (it))
+    {
+      cur = next_node_hash_table_iterator (it);
+      BTOR_PUSH_STACK (btor->mm, stack, cur);
+      while (!BTOR_EMPTY_STACK (stack))
+	{
+	  cur = BTOR_REAL_ADDR_NODE (BTOR_POP_STACK (stack));
+	  if (cur->aux_mark == 2) continue;
+	  if (cur->aux_mark == 0)
+	    {
+	      cur->aux_mark = 1;
+	      BTOR_PUSH_STACK (btor->mm, stack, cur);
+	      BTOR_PUSH_STACK (btor->mm, unmark_stack, cur);
+	      for (i = 0; i < cur->arity; i++)
+		BTOR_PUSH_STACK (btor->mm, stack, cur->e[i]);
+	    }
+	  else
+	    {
+	      assert (cur->aux_mark == 1);
+	      cur->aux_mark = 2;
+	      if (btor_find_in_ptr_hash_table (marked, cur)
+		  && !btor_find_in_ptr_hash_table (btor->score, cur))
+		{
+		  btor_insert_in_ptr_hash_table (
+		      btor->score, btor_copy_exp (btor, cur));
+		  /* push onto working stack */
+		  BTOR_PUSH_STACK (btor->mm, score, cur);
+		}
+	    }
+	}
+    }
+#else
+  while (has_next_node_hash_table_iterator (it))
   {
-    cur = next_node_hash_table_iterator (&cit);
+    cur = next_node_hash_table_iterator (it);
     BTOR_PUSH_STACK (btor->mm, stack, cur);
     while (!BTOR_EMPTY_STACK (stack))
     {
@@ -276,51 +337,21 @@ compute_scores_aux_min_app (Btor *btor, BtorHashTableIterator *it)
       {
         e = BTOR_REAL_ADDR_NODE (cur->e[i]);
         if (!cur->parameterized && BTOR_IS_AND_NODE (cur)
-            && !btor_find_in_ptr_hash_table (marked, e))
+            && !btor_find_in_ptr_hash_table (btor->score, e))
         {
-          btor_insert_in_ptr_hash_table (marked, e);
+          btor_insert_in_ptr_hash_table (btor->score, btor_copy_exp (btor, e));
+          /* push onto working stack */
+          BTOR_PUSH_STACK (btor->mm, score, e);
         }
         BTOR_PUSH_STACK (btor->mm, stack, e);
       }
     }
   }
-
-  /* cleanup */
-  while (!BTOR_EMPTY_STACK (unmark_stack))
-    BTOR_POP_STACK (unmark_stack)->aux_mark = 0;
-
-  /* collect children of AND nodes in post-order (DFS) */
-  while (has_next_node_hash_table_iterator (it))
-  {
-    cur = next_node_hash_table_iterator (it);
-    BTOR_PUSH_STACK (btor->mm, stack, cur);
-    while (!BTOR_EMPTY_STACK (stack))
-    {
-      cur = BTOR_REAL_ADDR_NODE (BTOR_POP_STACK (stack));
-      if (cur->aux_mark == 2) continue;
-      if (cur->aux_mark == 0)
-      {
-        cur->aux_mark = 1;
-        BTOR_PUSH_STACK (btor->mm, stack, cur);
-        BTOR_PUSH_STACK (btor->mm, unmark_stack, cur);
-        for (i = 0; i < cur->arity; i++)
-          BTOR_PUSH_STACK (btor->mm, stack, cur->e[i]);
-      }
-      else
-      {
-        assert (cur->aux_mark == 1);
-        cur->aux_mark = 2;
-        if (btor_find_in_ptr_hash_table (marked, cur)
-            && !btor_find_in_ptr_hash_table (btor->score, cur))
-        {
-          btor_insert_in_ptr_hash_table (btor->score,
-                                         btor_copy_exp (btor, cur));
-          /* push onto working stack */
-          BTOR_PUSH_STACK (btor->mm, score, cur);
-        }
-      }
-    }
-  }
+  qsort (score.start,
+         BTOR_COUNT_STACK (score),
+         sizeof (BtorNode *),
+         btor_cmp_exp_by_id_qsort_asc);
+#endif
 
   /* cleanup */
   while (!BTOR_EMPTY_STACK (unmark_stack))
