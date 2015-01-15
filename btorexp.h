@@ -901,6 +901,8 @@ void btor_set_to_proxy_exp (Btor *btor, BtorNode *exp);
  * Else, result pointer is the location where 'exp' may be inserted. */
 BtorNode **btor_find_unique_exp (Btor *btor, BtorNode *exp);
 
+int btor_cmp_exp_by_id_qsort_desc (const void *p, const void *q);
+int btor_cmp_exp_by_id_qsort_asc (const void *p, const void *q);
 /*------------------------------------------------------------------------*/
 
 BtorNode *btor_slice_exp_node (Btor *btor, BtorNode *exp, int upper, int lower);

@@ -4847,22 +4847,6 @@ bv_assignment_str_exp (Btor *btor, BtorNode *exp)
   return assignment;
 }
 
-static int
-cmp_node_id_desc (const void *p, const void *q)
-{
-  BtorNode *a = *(BtorNode **) p;
-  BtorNode *b = *(BtorNode **) q;
-  return b->id - a->id;
-}
-
-static int
-cmp_node_id_asc (const void *p, const void *q)
-{
-  BtorNode *a = *(BtorNode **) p;
-  BtorNode *b = *(BtorNode **) q;
-  return a->id - b->id;
-}
-
 static void
 assume_inputs (Btor *btor,
                Btor *clone,
@@ -5124,7 +5108,7 @@ search_initial_applies_dual_prop (Btor *btor,
   while (!BTOR_EMPTY_STACK (unmark_stack))
     BTOR_POP_STACK (unmark_stack)->aux_mark = 0;
 
-  (void) cmp_node_id_asc;
+  (void) btor_cmp_exp_by_id_qsort_asc;
 
 #if DP_QSORT == DP_QSORT_JUST
   delta = btor_time_stamp ();
@@ -5138,11 +5122,21 @@ search_initial_applies_dual_prop (Btor *btor,
                            top_applies,
                            btor_compare_scores_qsort);
 #elif DP_QSORT == DP_QSORT_ASC
-  set_up_dual_and_collect (
-      btor, clone, clone_root, exp_map, &inputs, top_applies, cmp_node_id_asc);
+  set_up_dual_and_collect (btor,
+                           clone,
+                           clone_root,
+                           exp_map,
+                           &inputs,
+                           top_applies,
+                           btor_cmp_exp_by_id_qsort_asc);
 #elif DP_QSORT == DP_QSORT_DESC
-  set_up_dual_and_collect (
-      btor, clone, clone_root, exp_map, &inputs, top_applies, cmp_node_id_desc);
+  set_up_dual_and_collect (btor,
+                           clone,
+                           clone_root,
+                           exp_map,
+                           &inputs,
+                           top_applies,
+                           btor_cmp_exp_by_id_qsort_desc);
 #else
 
 #if DP_QSORT_ASC_DESC_FIRST
@@ -5154,20 +5148,30 @@ search_initial_applies_dual_prop (Btor *btor,
     BTOR_INIT_STACK (tmp_asc);
     BTOR_INIT_STACK (tmp_desc);
 
-    set_up_dual_and_collect (
-        btor, clone, clone_root, exp_map, &inputs, &tmp_desc, cmp_node_id_desc);
-    set_up_dual_and_collect (
-        btor, clone, clone_root, exp_map, &inputs, &tmp_asc, cmp_node_id_asc);
+    set_up_dual_and_collect (btor,
+                             clone,
+                             clone_root,
+                             exp_map,
+                             &inputs,
+                             &tmp_desc,
+                             btor_cmp_exp_by_id_qsort_desc);
+    set_up_dual_and_collect (btor,
+                             clone,
+                             clone_root,
+                             exp_map,
+                             &inputs,
+                             &tmp_asc,
+                             btor_cmp_exp_by_id_qsort_asc);
 
     if (BTOR_COUNT_STACK (tmp_asc) < BTOR_COUNT_STACK (tmp_desc))
     {
-      btor->dp_cmp_inputs = cmp_node_id_asc;
+      btor->dp_cmp_inputs = btor_cmp_exp_by_id_qsort_asc;
       for (i = 0; i < BTOR_COUNT_STACK (tmp_asc); i++)
         BTOR_PUSH_STACK (btor->mm, *top_applies, BTOR_PEEK_STACK (tmp_asc, i));
     }
     else
     {
-      btor->dp_cmp_inputs = cmp_node_id_desc;
+      btor->dp_cmp_inputs = btor_cmp_exp_by_id_qsort_desc;
       for (i = 0; i < BTOR_COUNT_STACK (tmp_desc); i++)
         BTOR_PUSH_STACK (btor->mm, *top_applies, BTOR_PEEK_STACK (tmp_desc, i));
     }
@@ -6824,7 +6828,7 @@ BTOR_CONFLICT_CHECK:
   qsort (top_applies.start,
          BTOR_COUNT_STACK (top_applies),
          sizeof (BtorNode *),
-         cmp_node_id_desc);
+         btor_cmp_exp_by_id_qsort_desc);
 
   while (!BTOR_EMPTY_STACK (*tmp_stack))
   {
