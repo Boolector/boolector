@@ -128,7 +128,7 @@ compute_scores_aux_min_app (Btor *btor, BtorHashTableIterator *it)
   BtorNodePtrStack stack, unmark_stack, score;
   BtorHashTableIterator hit;
   BtorPtrHashBucket *b;
-  BtorPtrHashTable *marked, *in, *t, *min_t;
+  BtorPtrHashTable *in, *t, *min_t;
 
   if (!(h = btor_get_opt_val (btor, BTOR_OPT_JUST_HEURISTIC))) return;
 
@@ -136,10 +136,6 @@ compute_scores_aux_min_app (Btor *btor, BtorHashTableIterator *it)
     btor->score = btor_new_ptr_hash_table (btor->mm,
                                            (BtorHashPtr) btor_hash_exp_by_id,
                                            (BtorCmpPtr) btor_compare_exp_by_id);
-
-  marked = btor_new_ptr_hash_table (btor->mm,
-                                    (BtorHashPtr) btor_hash_exp_by_id,
-                                    (BtorCmpPtr) btor_compare_exp_by_id);
 
   BTOR_INIT_STACK (stack);
   BTOR_INIT_STACK (unmark_stack);
@@ -183,6 +179,7 @@ compute_scores_aux_min_app (Btor *btor, BtorHashTableIterator *it)
   while (!BTOR_EMPTY_STACK (unmark_stack))
     BTOR_POP_STACK (unmark_stack)->aux_mark = 0;
 
+  /* compute score */
   for (k = 0; k < BTOR_COUNT_STACK (score); k++)
   {
     cur = BTOR_PEEK_STACK (score, k);
@@ -263,8 +260,6 @@ compute_scores_aux_min_app (Btor *btor, BtorHashTableIterator *it)
   BTOR_RELEASE_STACK (btor->mm, stack);
   BTOR_RELEASE_STACK (btor->mm, unmark_stack);
   BTOR_RELEASE_STACK (btor->mm, score);
-
-  btor_delete_ptr_hash_table (marked);
 }
 
 static void
