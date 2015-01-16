@@ -306,7 +306,7 @@ btor_compute_scores_dual_prop (Btor *btor)
   assert (btor);
   assert (check_id_table_aux_mark_unset_dbg (btor));
 
-  int i, h;
+  int i;
   BtorNode *cur;
   BtorNodePtrStack stack, unmark_stack, nodes;
   BtorHashTableIterator it;
