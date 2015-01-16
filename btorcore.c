@@ -1739,10 +1739,13 @@ btor_reset_functions_with_model (Btor *btor)
   {
     cur = btor->functions_with_model.start[i];
     assert (!BTOR_IS_INVERTED_NODE (cur));
-    assert (BTOR_IS_FUN_NODE (cur));
-    assert (cur->rho);
-    btor_delete_ptr_hash_table (cur->rho);
-    cur->rho = 0;
+    if (!BTOR_IS_PROXY_NODE (cur))
+    {
+      assert (BTOR_IS_FUN_NODE (cur));
+      assert (cur->rho);
+      btor_delete_ptr_hash_table (cur->rho);
+      cur->rho = 0;
+    }
     btor_release_exp (btor, cur);
   }
   BTOR_RESET_STACK (btor->functions_with_model);
