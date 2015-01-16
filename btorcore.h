@@ -3,7 +3,7 @@
  *  Copyright (C) 2007-2009 Robert Daniel Brummayer.
  *  Copyright (C) 2007-2013 Armin Biere.
  *  Copyright (C) 2012-2014 Mathias Preiner.
- *  Copyright (C) 2012-2014 Aina Niemetz.
+ *  Copyright (C) 2012-2015 Aina Niemetz.
  *
  *  All rights reserved.
  *
@@ -33,13 +33,16 @@
 
 /*------------------------------------------------------------------------*/
 
-// Currently these are just to hide syntactically the internal nodes.  For
-// now we continue to assume that 'BtorNode' and 'BoolectorNode' are the
-// same structs and internal 'btor_...' functions work the same way as
-// external counter parts 'boolector_...', except for tracing and contract
-// checking.  If this stops to hold we need to provide real containers for
-// the external 'BoolectorNode', currently actually only 'BoolectorNodeMap'
-// needs to be fixed.
+// Currently, 'BoolectorNode' (external) vs. 'BtorNode' (internal)
+// syntactically hides internal nodes.  Hence, we assume that both structs
+// 'BoolectorNode' and 'BtorNode' have/ the same structure and provide the
+// following macros for type conversion (via typecasting).  We further assume
+// that external 'boolector_xxx' functions provide the same functionality as
+// their internal counter part 'btor_xxx' (except for API tracing and contract
+// checks).
+//
+// If the assumption above does not hold, we have to provide
+// real containers for 'BoolectorNode' (cf. 'BoolectorNodeMap').
 
 #define BTOR_IMPORT_BOOLECTOR_NODE(node) (((BtorNode *) (node)))
 #define BTOR_IMPORT_BOOLECTOR_NODE_ARRAY(array) (((BtorNode **) (array)))
@@ -242,6 +245,8 @@ struct Btor
     double reachable;
     double failed;
     double search_init_apps;
+    double search_init_apps_compute_scores;
+    double search_init_apps_compute_scores_merge_applies;
     double search_init_apps_cloning;
     double search_init_apps_sat;
     double search_init_apps_collect_var_apps;

@@ -18,7 +18,7 @@
 #include "btorconfig.h"
 #include "btorconst.h"
 #include "btordbg.h"
-#include "btordc.h"
+#include "btordcr.h"
 #include "btorexit.h"
 #include "btoriter.h"
 #include "btorlog.h"
@@ -618,6 +618,18 @@ btor_print_stats_btor (Btor *btor)
             1,
             "%.2f seconds initial applies search",
             btor->time.search_init_apps);
+  if (btor->options.just.val || btor->options.dual_prop.val)
+  {
+    BTOR_MSG (btor->msg,
+              1,
+              "%.2f seconds compute scores for initial applies search",
+              btor->time.search_init_apps_compute_scores);
+    BTOR_MSG (
+        btor->msg,
+        1,
+        "%.2f seconds merge applies in compute scores for init apps search",
+        btor->time.search_init_apps_compute_scores_merge_applies);
+  }
   if (btor->options.dual_prop.val)
   {
     BTOR_MSG (btor->msg,
@@ -1727,10 +1739,13 @@ btor_reset_functions_with_model (Btor *btor)
   {
     cur = btor->functions_with_model.start[i];
     assert (!BTOR_IS_INVERTED_NODE (cur));
-    assert (BTOR_IS_FUN_NODE (cur));
-    assert (cur->rho);
-    btor_delete_ptr_hash_table (cur->rho);
-    cur->rho = 0;
+    if (!BTOR_IS_PROXY_NODE (cur))
+    {
+      assert (BTOR_IS_FUN_NODE (cur));
+      assert (cur->rho);
+      btor_delete_ptr_hash_table (cur->rho);
+      cur->rho = 0;
+    }
     btor_release_exp (btor, cur);
   }
   BTOR_RESET_STACK (btor->functions_with_model);
@@ -4835,22 +4850,6 @@ bv_assignment_str_exp (Btor *btor, BtorNode *exp)
   return assignment;
 }
 
-static int
-cmp_node_id_desc (const void *p, const void *q)
-{
-  BtorNode *a = *(BtorNode **) p;
-  BtorNode *b = *(BtorNode **) q;
-  return b->id - a->id;
-}
-
-static int
-cmp_node_id_asc (const void *p, const void *q)
-{
-  BtorNode *a = *(BtorNode **) p;
-  BtorNode *b = *(BtorNode **) q;
-  return a->id - b->id;
-}
-
 static void
 assume_inputs (Btor *btor,
                Btor *clone,
@@ -5056,7 +5055,7 @@ search_initial_applies_dual_prop (Btor *btor,
   assert (top_applies);
   assert (check_id_table_aux_mark_unset_dbg (btor));
 
-  double start;
+  double start, delta;
   int i;
   BtorNode *cur;
   BtorNodePtrStack stack, unmark_stack, inputs;
@@ -5112,10 +5111,12 @@ search_initial_applies_dual_prop (Btor *btor,
   while (!BTOR_EMPTY_STACK (unmark_stack))
     BTOR_POP_STACK (unmark_stack)->aux_mark = 0;
 
-  (void) cmp_node_id_asc;
+  (void) btor_cmp_exp_by_id_qsort_asc;
 
 #if DP_QSORT == DP_QSORT_JUST
+  delta = btor_time_stamp ();
   btor_compute_scores_dual_prop (btor);
+  btor->time.search_init_apps_compute_scores += btor_time_stamp () - delta;
   set_up_dual_and_collect (btor,
                            clone,
                            clone_root,
@@ -5124,11 +5125,21 @@ search_initial_applies_dual_prop (Btor *btor,
                            top_applies,
                            btor_compare_scores_qsort);
 #elif DP_QSORT == DP_QSORT_ASC
-  set_up_dual_and_collect (
-      btor, clone, clone_root, exp_map, &inputs, top_applies, cmp_node_id_asc);
+  set_up_dual_and_collect (btor,
+                           clone,
+                           clone_root,
+                           exp_map,
+                           &inputs,
+                           top_applies,
+                           btor_cmp_exp_by_id_qsort_asc);
 #elif DP_QSORT == DP_QSORT_DESC
-  set_up_dual_and_collect (
-      btor, clone, clone_root, exp_map, &inputs, top_applies, cmp_node_id_desc);
+  set_up_dual_and_collect (btor,
+                           clone,
+                           clone_root,
+                           exp_map,
+                           &inputs,
+                           top_applies,
+                           btor_cmp_exp_by_id_qsort_desc);
 #else
 
 #if DP_QSORT_ASC_DESC_FIRST
@@ -5140,20 +5151,30 @@ search_initial_applies_dual_prop (Btor *btor,
     BTOR_INIT_STACK (tmp_asc);
     BTOR_INIT_STACK (tmp_desc);
 
-    set_up_dual_and_collect (
-        btor, clone, clone_root, exp_map, &inputs, &tmp_desc, cmp_node_id_desc);
-    set_up_dual_and_collect (
-        btor, clone, clone_root, exp_map, &inputs, &tmp_asc, cmp_node_id_asc);
+    set_up_dual_and_collect (btor,
+                             clone,
+                             clone_root,
+                             exp_map,
+                             &inputs,
+                             &tmp_desc,
+                             btor_cmp_exp_by_id_qsort_desc);
+    set_up_dual_and_collect (btor,
+                             clone,
+                             clone_root,
+                             exp_map,
+                             &inputs,
+                             &tmp_asc,
+                             btor_cmp_exp_by_id_qsort_asc);
 
     if (BTOR_COUNT_STACK (tmp_asc) < BTOR_COUNT_STACK (tmp_desc))
     {
-      btor->dp_cmp_inputs = cmp_node_id_asc;
+      btor->dp_cmp_inputs = btor_cmp_exp_by_id_qsort_asc;
       for (i = 0; i < BTOR_COUNT_STACK (tmp_asc); i++)
         BTOR_PUSH_STACK (btor->mm, *top_applies, BTOR_PEEK_STACK (tmp_asc, i));
     }
     else
     {
-      btor->dp_cmp_inputs = cmp_node_id_desc;
+      btor->dp_cmp_inputs = btor_cmp_exp_by_id_qsort_desc;
       for (i = 0; i < BTOR_COUNT_STACK (tmp_desc); i++)
         BTOR_PUSH_STACK (btor->mm, *top_applies, BTOR_PEEK_STACK (tmp_desc, i));
     }
@@ -5191,7 +5212,7 @@ search_initial_applies_just (Btor *btor, BtorNodePtrStack *top_applies)
 
   int i;
   char *c, *c0, *c1;
-  double start;
+  double start, delta;
   BtorNode *cur;
   BtorHashTableIterator it;
   BtorNodePtrStack stack, unmark_stack;
@@ -5204,7 +5225,9 @@ search_initial_applies_just (Btor *btor, BtorNodePtrStack *top_applies)
   BTOR_INIT_STACK (stack);
   BTOR_INIT_STACK (unmark_stack);
 
+  delta = btor_time_stamp ();
   btor_compute_scores (btor);
+  btor->time.search_init_apps_compute_scores += btor_time_stamp () - delta;
 
   init_node_hash_table_iterator (&it, btor->synthesized_constraints);
   queue_node_hash_table_iterator (&it, btor->assumptions);
@@ -6808,7 +6831,7 @@ BTOR_CONFLICT_CHECK:
   qsort (top_applies.start,
          BTOR_COUNT_STACK (top_applies),
          sizeof (BtorNode *),
-         cmp_node_id_desc);
+         btor_cmp_exp_by_id_qsort_desc);
 
   while (!BTOR_EMPTY_STACK (*tmp_stack))
   {

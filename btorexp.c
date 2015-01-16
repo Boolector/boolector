@@ -1307,6 +1307,22 @@ btor_compare_exp_by_id (BtorNode *exp0, BtorNode *exp1)
   return 0;
 }
 
+int
+btor_cmp_exp_by_id_qsort_desc (const void *p, const void *q)
+{
+  BtorNode *a = *(BtorNode **) p;
+  BtorNode *b = *(BtorNode **) q;
+  return b->id - a->id;
+}
+
+int
+btor_cmp_exp_by_id_qsort_asc (const void *p, const void *q)
+{
+  BtorNode *a = *(BtorNode **) p;
+  BtorNode *b = *(BtorNode **) q;
+  return a->id - b->id;
+}
+
 /* Search for constant expression in hash table. Returns 0 if not found. */
 static BtorNode **
 find_const_exp (Btor *btor, const char *bits, int len)
