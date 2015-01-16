@@ -83,9 +83,7 @@ compute_scores_aux_min_dep (Btor *btor, BtorHashTableIterator *it)
         BTOR_PUSH_STACK (btor->mm, unmark_stack, cur);
         BTOR_PUSH_STACK (btor->mm, stack, cur);
 
-        if (cur->arity == 0
-            || (h == BTOR_JUST_HEUR_BRANCH_MIN_DEP_BVSKEL
-                && BTOR_IS_APPLY_NODE (cur)))
+        if (cur->arity == 0)
         {
           assert (!btor_find_in_ptr_hash_table (score, cur));
           b = btor_insert_in_ptr_hash_table (score, btor_copy_exp (btor, cur));
@@ -278,8 +276,7 @@ compute_scores_aux (Btor *btor, BtorHashTableIterator *it)
 
   if (h == BTOR_JUST_HEUR_BRANCH_MIN_APP)
     compute_scores_aux_min_app (btor, it);
-  else if (h == BTOR_JUST_HEUR_BRANCH_MIN_DEP
-           || h == BTOR_JUST_HEUR_BRANCH_MIN_DEP_BVSKEL)
+  else if (h == BTOR_JUST_HEUR_BRANCH_MIN_DEP)
     compute_scores_aux_min_dep (btor, it);
 }
 
@@ -402,8 +399,7 @@ btor_compare_scores (Btor *btor, BtorNode *a, BtorNode *b)
     assert (bucket);
     sb = ((BtorPtrHashTable *) bucket->data.asPtr)->count;
   }
-  else if (h == BTOR_JUST_HEUR_BRANCH_MIN_DEP
-           || h == BTOR_JUST_HEUR_BRANCH_MIN_DEP_BVSKEL)
+  else if (h == BTOR_JUST_HEUR_BRANCH_MIN_DEP)
   {
     if (!btor->score_depth) return 0;
 

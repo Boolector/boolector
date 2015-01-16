@@ -170,7 +170,7 @@ btor_init_opts (Btor *btor)
             just_heuristic,
             BTOR_JUST_HEUR_BRANCH_MIN_APP,
             BTOR_JUST_HEUR_LEFT,
-            BTOR_JUST_HEUR_BRANCH_MIN_DEP_BVSKEL,
+            BTOR_JUST_HEUR_BRANCH_MIN_DEP,
             "justification heuristic");
 #ifndef BTOR_DO_NOT_OPTIMIZE_UNCONSTRAINED
   BTOR_OPT ("uc", ucopt, 0, 0, 1, "unconstrained optimization");
