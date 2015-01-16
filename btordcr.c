@@ -141,10 +141,10 @@ compute_scores_aux_min_app (Btor *btor, BtorHashTableIterator *it)
   BTOR_INIT_STACK (unmark_stack);
   BTOR_INIT_STACK (score);
 
-  /* Collect all children of AND nodes (the only nodes we actually later
-   * need the score for). Note: we need 2 passes, first to mark all children
-   * of AND nodes, second to determine their post-order (dfs). This can NOT
-   * be done within one pass! */
+  /* Collect all nodes we actually later need the score for.
+   * If just is enabled, we only need the children of AND nodes. If dual prop
+   * is enabled, we only need APPLY nodes (BV var nodes always have score 0 and
+   * are treated as such in compare_scores). */
 
   dp = btor_get_opt_val (btor, BTOR_OPT_DUAL_PROP);
 
