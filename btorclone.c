@@ -705,10 +705,10 @@ clone_aux_btor (Btor *btor,
   BtorAIGMap *amap  = 0;
   BtorMemMgr *mm;
   double start, delta;
-  int len;
+  int len, h;
   char *prefix, *clone_prefix;
 #ifndef NDEBUG
-  int i, h;
+  int i;
   size_t allocated, amap_size = 0, amap_count = 0;
   BtorNode *cur;
   BtorAIGMgr *amgr;
@@ -1080,9 +1080,7 @@ clone_aux_btor (Btor *btor,
 
   if (btor->score)
   {
-#ifndef NDEBUG
     h = btor_get_opt_val (btor, BTOR_OPT_JUST_HEURISTIC);
-#endif
     if (h == BTOR_JUST_HEUR_BRANCH_MIN_APP)
     {
       clone->score = btor_clone_ptr_hash_table (
@@ -1104,6 +1102,7 @@ clone_aux_btor (Btor *btor,
         (void) next_node_hash_table_iterator (&cit);
       }
       assert (allocated == clone->mm->allocated);
+#endif
     }
     else
     {
@@ -1112,7 +1111,6 @@ clone_aux_btor (Btor *btor,
       assert ((allocated += MEM_PTR_HASH_TABLE (btor->score))
               == clone->mm->allocated);
     }
-#endif
   }
 
   if (exp_layer_only)
