@@ -708,7 +708,7 @@ clone_aux_btor (Btor *btor,
   int len;
   char *prefix, *clone_prefix;
 #ifndef NDEBUG
-  int i;
+  int i, h;
   size_t allocated, amap_size = 0, amap_count = 0;
   BtorNode *cur;
   BtorAIGMgr *amgr;
@@ -1080,33 +1080,39 @@ clone_aux_btor (Btor *btor,
 
   if (btor->score)
   {
-    clone->score = btor_clone_ptr_hash_table (
-        mm, btor->score, mapped_node, data_as_htable_ptr, emap, emap);
-    BTORLOG ("  clone score table: %.3f s", (btor_time_stamp () - delta));
 #ifndef NDEBUG
-    CHKCLONE_MEM_PTR_HASH_TABLE (score);
-    allocated += MEM_PTR_HASH_TABLE (btor->score);
-    init_node_hash_table_iterator (&it, btor->score);
-    init_node_hash_table_iterator (&cit, clone->score);
-    while (has_next_node_hash_table_iterator (&it))
-    {
-      assert (
-          MEM_PTR_HASH_TABLE ((BtorPtrHashTable *) it.bucket->data.asPtr)
-          == MEM_PTR_HASH_TABLE ((BtorPtrHashTable *) cit.bucket->data.asPtr));
-      allocated +=
-          MEM_PTR_HASH_TABLE ((BtorPtrHashTable *) it.bucket->data.asPtr);
-      (void) next_node_hash_table_iterator (&it);
-      (void) next_node_hash_table_iterator (&cit);
-    }
-    assert (allocated == clone->mm->allocated);
+    h = btor_get_opt_val (btor, BTOR_OPT_JUST_HEURISTIC);
 #endif
-  }
-
-  if (btor->score_depth)
-  {
-    CLONE_PTR_HASH_TABLE_ASPTR (score_depth, data_as_int_ptr);
-    assert ((allocated += MEM_PTR_HASH_TABLE (btor->score_depth))
-            == clone->mm->allocated);
+    if (h == BTOR_JUST_HEUR_BRANCH_MIN_APP)
+    {
+      clone->score = btor_clone_ptr_hash_table (
+          mm, btor->score, mapped_node, data_as_htable_ptr, emap, emap);
+      BTORLOG ("  clone score table: %.3f s", (btor_time_stamp () - delta));
+#ifndef NDEBUG
+      CHKCLONE_MEM_PTR_HASH_TABLE (score);
+      allocated += MEM_PTR_HASH_TABLE (btor->score);
+      init_node_hash_table_iterator (&it, btor->score);
+      init_node_hash_table_iterator (&cit, clone->score);
+      while (has_next_node_hash_table_iterator (&it))
+      {
+        assert (MEM_PTR_HASH_TABLE ((BtorPtrHashTable *) it.bucket->data.asPtr)
+                == MEM_PTR_HASH_TABLE (
+                       (BtorPtrHashTable *) cit.bucket->data.asPtr));
+        allocated +=
+            MEM_PTR_HASH_TABLE ((BtorPtrHashTable *) it.bucket->data.asPtr);
+        (void) next_node_hash_table_iterator (&it);
+        (void) next_node_hash_table_iterator (&cit);
+      }
+      assert (allocated == clone->mm->allocated);
+    }
+    else
+    {
+      assert (h == BTOR_JUST_HEUR_BRANCH_MIN_DEP);
+      CLONE_PTR_HASH_TABLE_ASPTR (score, data_as_int_ptr);
+      assert ((allocated += MEM_PTR_HASH_TABLE (btor->score))
+              == clone->mm->allocated);
+    }
+#endif
   }
 
   if (exp_layer_only)
