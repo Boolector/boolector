@@ -16,66 +16,40 @@
 #include "btoriter.h"
 #include "btorutil.h"
 
-static void
-compute_score_node_min_dep (Btor *btor, BtorPtrHashTable *score, BtorNode *cur)
-{
-  int i, min_depth;
-  BtorNode *e;
-  BtorPtrHashBucket *b;
-
-  min_depth = -1;
-  for (i = 0; i < cur->arity; i++)
-  {
-    e = BTOR_REAL_ADDR_NODE (cur->e[i]);
-    b = btor_find_in_ptr_hash_table (score, e);
-    assert (b);
-    if (min_depth == -1 || b->data.asInt < min_depth) min_depth = b->data.asInt;
-  }
-
-  assert (min_depth >= 0);
-  assert (!btor_find_in_ptr_hash_table (score, cur));
-  btor_insert_in_ptr_hash_table (score, btor_copy_exp (btor, cur))->data.asInt =
-      min_depth + 1;
-}
-
-// TODO get rid of score_depth
 /* heuristic: minimum depth to the inputs
  *            (considering the whole formula or the bv skeleton, only) */
 static void
-compute_scores_aux_min_dep (Btor *btor, BtorHashTableIterator *it)
+compute_scores_aux_min_dep (Btor *btor, BtorNodePtrStack *nodes)
 {
   assert (btor);
   assert (check_id_table_aux_mark_unset_dbg (btor));
+  assert (nodes);
 
-  int i, h;
+  int i, j, min_depth;
   BtorNodePtrStack stack, unmark_stack;
-  BtorNode *cur;
+  BtorNode *cur, *e;
   BtorPtrHashTable *score;
   BtorPtrHashBucket *b;
-
-  if (!(h = btor_get_opt_val (btor, BTOR_OPT_JUST_HEURISTIC))) return;
 
   BTOR_INIT_STACK (stack);
   BTOR_INIT_STACK (unmark_stack);
 
-  if (!btor->score_depth)
-    btor->score_depth =
-        btor_new_ptr_hash_table (btor->mm,
-                                 (BtorHashPtr) btor_hash_exp_by_id,
-                                 (BtorCmpPtr) btor_compare_exp_by_id);
+  if (!btor->score)
+    btor->score = btor_new_ptr_hash_table (btor->mm,
+                                           (BtorHashPtr) btor_hash_exp_by_id,
+                                           (BtorCmpPtr) btor_compare_exp_by_id);
 
-  score = btor->score_depth;
+  score = btor->score;
 
-  while (has_next_node_hash_table_iterator (it))
+  for (j = 0; j < BTOR_COUNT_STACK (*nodes); j++)
   {
-    cur = next_node_hash_table_iterator (it);
+    cur = BTOR_PEEK_STACK (*nodes, j);
     BTOR_PUSH_STACK (btor->mm, stack, cur);
     while (!BTOR_EMPTY_STACK (stack))
     {
       cur = BTOR_REAL_ADDR_NODE (BTOR_POP_STACK (stack));
 
-      if (cur->aux_mark == 2 || btor_find_in_ptr_hash_table (score, cur))
-        continue;
+      if (cur->aux_mark == 2) continue;
 
       if (cur->aux_mark == 0)
       {
@@ -85,9 +59,11 @@ compute_scores_aux_min_dep (Btor *btor, BtorHashTableIterator *it)
 
         if (cur->arity == 0)
         {
-          assert (!btor_find_in_ptr_hash_table (score, cur));
-          b = btor_insert_in_ptr_hash_table (score, btor_copy_exp (btor, cur));
+          if (!(b = btor_find_in_ptr_hash_table (score, cur)))
+            b = btor_insert_in_ptr_hash_table (score,
+                                               btor_copy_exp (btor, cur));
           b->data.asInt = 1;
+          cur->aux_mark = 2;
           continue;
         }
 
@@ -98,10 +74,22 @@ compute_scores_aux_min_dep (Btor *btor, BtorHashTableIterator *it)
       {
         assert (cur->aux_mark == 1);
         assert (cur->arity > 0);
-        assert (h != BTOR_JUST_HEUR_BRANCH_MIN_DEP || !BTOR_IS_UF_NODE (cur));
+        assert (!BTOR_IS_UF_NODE (cur));
         cur->aux_mark = 2;
 
-        compute_score_node_min_dep (btor, score, cur);
+        min_depth = -1;
+        for (i = 0; i < cur->arity; i++)
+        {
+          e = BTOR_REAL_ADDR_NODE (cur->e[i]);
+          b = btor_find_in_ptr_hash_table (score, e);
+          assert (b);
+          if (min_depth == -1 || b->data.asInt < min_depth)
+            min_depth = b->data.asInt;
+        }
+        assert (min_depth >= 0);
+        if (!(b = btor_find_in_ptr_hash_table (score, cur)))
+          b = btor_insert_in_ptr_hash_table (score, btor_copy_exp (btor, cur));
+        b->data.asInt = min_depth + 1;
       }
     }
   }
@@ -116,73 +104,32 @@ compute_scores_aux_min_dep (Btor *btor, BtorHashTableIterator *it)
 /* heuristic: minimum number of unique applies on a path to the inputs
  *            (considering the whole formula, or the bv skeleton only) */
 static void
-compute_scores_aux_min_app (Btor *btor, BtorHashTableIterator *it)
+compute_scores_aux_min_app (Btor *btor, BtorNodePtrStack *nodes)
 {
   assert (btor);
   assert (check_id_table_aux_mark_unset_dbg (btor));
-  assert (it);
+  assert (nodes);
 
   double delta;
-  int i, j, k, h;
+  int i, j, k;
   BtorNode *cur, *e;
-  BtorNodePtrStack stack, unmark_stack, score;
-  BtorHashTableIterator hit;
+  BtorNodePtrStack stack, unmark_stack;
+  BtorHashTableIterator it;
   BtorPtrHashBucket *b;
   BtorPtrHashTable *in, *t, *min_t;
 
-  if (!(h = btor_get_opt_val (btor, BTOR_OPT_JUST_HEURISTIC))) return;
-
-  if (!btor->score)
-    btor->score = btor_new_ptr_hash_table (btor->mm,
-                                           (BtorHashPtr) btor_hash_exp_by_id,
-                                           (BtorCmpPtr) btor_compare_exp_by_id);
-
   BTOR_INIT_STACK (stack);
   BTOR_INIT_STACK (unmark_stack);
-  BTOR_INIT_STACK (score);
 
-  /* Collect all children of AND nodes (the only nodes we actually later
-   * need the score for). Note: we need 2 passes, first to mark all children
-   * of AND nodes, second to determine their post-order (dfs). This can NOT
-   * be done within one pass! */
-
-  while (has_next_node_hash_table_iterator (it))
-  {
-    cur = next_node_hash_table_iterator (it);
-    BTOR_PUSH_STACK (btor->mm, stack, cur);
-    while (!BTOR_EMPTY_STACK (stack))
-    {
-      cur = BTOR_REAL_ADDR_NODE (BTOR_POP_STACK (stack));
-      if (cur->aux_mark) continue;
-      cur->aux_mark = 1;
-      BTOR_PUSH_STACK (btor->mm, unmark_stack, cur);
-      for (i = 0; i < cur->arity; i++)
-      {
-        e = BTOR_REAL_ADDR_NODE (cur->e[i]);
-        if (!cur->parameterized && BTOR_IS_AND_NODE (cur)
-            && !btor_find_in_ptr_hash_table (btor->score, e))
-        {
-          btor_insert_in_ptr_hash_table (btor->score, btor_copy_exp (btor, e));
-          /* push onto working stack */
-          BTOR_PUSH_STACK (btor->mm, score, e);
-        }
-        BTOR_PUSH_STACK (btor->mm, stack, e);
-      }
-    }
-  }
-  qsort (score.start,
-         BTOR_COUNT_STACK (score),
+  qsort (nodes->start,
+         BTOR_COUNT_STACK (*nodes),
          sizeof (BtorNode *),
          btor_cmp_exp_by_id_qsort_asc);
 
-  /* cleanup */
-  while (!BTOR_EMPTY_STACK (unmark_stack))
-    BTOR_POP_STACK (unmark_stack)->aux_mark = 0;
-
   /* compute score */
-  for (k = 0; k < BTOR_COUNT_STACK (score); k++)
+  for (k = 0; k < BTOR_COUNT_STACK (*nodes); k++)
   {
-    cur = BTOR_PEEK_STACK (score, k);
+    cur = BTOR_PEEK_STACK (*nodes, k);
     b   = btor_find_in_ptr_hash_table (btor->score, cur);
     assert (b);
     assert (!b->data.asPtr);
@@ -206,10 +153,10 @@ compute_scores_aux_min_app (Btor *btor, BtorHashTableIterator *it)
         if (!min_t || t->count < min_t->count) min_t = t;
       }
       assert (min_t);
-      init_node_hash_table_iterator (&hit, min_t);
-      while (has_next_node_hash_table_iterator (&hit))
+      init_node_hash_table_iterator (&it, min_t);
+      while (has_next_node_hash_table_iterator (&it))
       {
-        e = next_node_hash_table_iterator (&hit);
+        e = next_node_hash_table_iterator (&it);
         assert (!btor_find_in_ptr_hash_table (in, e));
         btor_insert_in_ptr_hash_table (in, btor_copy_exp (btor, e));
       }
@@ -224,10 +171,10 @@ compute_scores_aux_min_app (Btor *btor, BtorHashTableIterator *it)
         {
           /* merge tables */
           delta = btor_time_stamp ();
-          init_node_hash_table_iterator (&hit, t);
-          while (has_next_node_hash_table_iterator (&hit))
+          init_node_hash_table_iterator (&it, t);
+          while (has_next_node_hash_table_iterator (&it))
           {
-            e = next_node_hash_table_iterator (&hit);
+            e = next_node_hash_table_iterator (&it);
             if (!btor_find_in_ptr_hash_table (in, e))
               btor_insert_in_ptr_hash_table (in, btor_copy_exp (btor, e));
           }
@@ -259,32 +206,83 @@ compute_scores_aux_min_app (Btor *btor, BtorHashTableIterator *it)
 
   BTOR_RELEASE_STACK (btor->mm, stack);
   BTOR_RELEASE_STACK (btor->mm, unmark_stack);
-  BTOR_RELEASE_STACK (btor->mm, score);
 }
 
 static void
-compute_scores_aux (Btor *btor, BtorHashTableIterator *it)
+compute_scores_aux (Btor *btor, BtorNodePtrStack *nodes)
 {
   int h;
 
   if (!(h = btor_get_opt_val (btor, BTOR_OPT_JUST_HEURISTIC))) return;
 
   if (h == BTOR_JUST_HEUR_BRANCH_MIN_APP)
-    compute_scores_aux_min_app (btor, it);
+    compute_scores_aux_min_app (btor, nodes);
   else if (h == BTOR_JUST_HEUR_BRANCH_MIN_DEP)
-    compute_scores_aux_min_dep (btor, it);
+    compute_scores_aux_min_dep (btor, nodes);
 }
 
 void
 btor_compute_scores (Btor *btor)
 {
   assert (btor);
+  assert (check_id_table_aux_mark_unset_dbg (btor));
 
+  int i;
+  BtorNode *cur, *e;
   BtorHashTableIterator it;
+  BtorNodePtrStack stack, unmark_stack, nodes;
+
+  /* Collect all nodes we actually need the score for.
+   * If just is enabled, we only need the children of AND nodes. If dual prop
+   * is enabled, we only need APPLY nodes (BV var nodes always have score 0 and
+   * are treated as such in compare_scores).
+   * -> see btor_compute_scores_dual_prop */
+
+  BTOR_INIT_STACK (stack);
+  BTOR_INIT_STACK (unmark_stack);
+  BTOR_INIT_STACK (nodes);
+
+  if (!btor->score)
+    btor->score = btor_new_ptr_hash_table (btor->mm,
+                                           (BtorHashPtr) btor_hash_exp_by_id,
+                                           (BtorCmpPtr) btor_compare_exp_by_id);
 
   init_node_hash_table_iterator (&it, btor->synthesized_constraints);
   queue_node_hash_table_iterator (&it, btor->assumptions);
-  compute_scores_aux (btor, &it);
+  while (has_next_node_hash_table_iterator (&it))
+  {
+    cur = next_node_hash_table_iterator (&it);
+    BTOR_PUSH_STACK (btor->mm, stack, cur);
+    while (!BTOR_EMPTY_STACK (stack))
+    {
+      cur = BTOR_REAL_ADDR_NODE (BTOR_POP_STACK (stack));
+      if (cur->aux_mark) continue;
+      cur->aux_mark = 1;
+      BTOR_PUSH_STACK (btor->mm, unmark_stack, cur);
+      for (i = 0; i < cur->arity; i++)
+      {
+        e = BTOR_REAL_ADDR_NODE (cur->e[i]);
+        if (!cur->parameterized && BTOR_IS_AND_NODE (cur)
+            && !btor_find_in_ptr_hash_table (btor->score, e))
+        {
+          btor_insert_in_ptr_hash_table (btor->score, btor_copy_exp (btor, e));
+          /* push onto working stack */
+          BTOR_PUSH_STACK (btor->mm, nodes, e);
+        }
+        BTOR_PUSH_STACK (btor->mm, stack, e);
+      }
+    }
+  }
+
+  /* cleanup */
+  while (!BTOR_EMPTY_STACK (unmark_stack))
+    BTOR_POP_STACK (unmark_stack)->aux_mark = 0;
+  BTOR_RELEASE_STACK (btor->mm, stack);
+  BTOR_RELEASE_STACK (btor->mm, unmark_stack);
+
+  compute_scores_aux (btor, &nodes);
+
+  BTOR_RELEASE_STACK (btor->mm, nodes);
 }
 
 void
@@ -293,18 +291,26 @@ btor_compute_scores_dual_prop (Btor *btor)
   assert (btor);
   assert (check_id_table_aux_mark_unset_dbg (btor));
 
-  int i, h;
+  int i;
   BtorNode *cur;
-  BtorNodePtrStack stack, unmark_stack;
-  BtorPtrHashTable *applies, *t;
-  BtorHashTableIterator it, iit;
+  BtorNodePtrStack stack, unmark_stack, nodes;
+  BtorHashTableIterator it;
 
   BTOR_INIT_STACK (stack);
   BTOR_INIT_STACK (unmark_stack);
 
-  applies = btor_new_ptr_hash_table (btor->mm,
-                                     (BtorHashPtr) btor_hash_exp_by_id,
-                                     (BtorCmpPtr) btor_compare_exp_by_id);
+  /* Collect all nodes we actually need the score for.
+   * If just is enabled, we only need the children of AND nodes. If dual prop
+   * is enabled, we only need APPLY nodes (BV var nodes always have score 0 and
+   * are treated as such in compare_scores).
+   * -> see btor_compute_scores */
+
+  BTOR_INIT_STACK (nodes);
+
+  if (!btor->score)
+    btor->score = btor_new_ptr_hash_table (btor->mm,
+                                           (BtorHashPtr) btor_hash_exp_by_id,
+                                           (BtorCmpPtr) btor_compare_exp_by_id);
 
   /* collect applies in bv skeleton */
   init_node_hash_table_iterator (&it, btor->synthesized_constraints);
@@ -316,16 +322,20 @@ btor_compute_scores_dual_prop (Btor *btor)
     while (!BTOR_EMPTY_STACK (stack))
     {
       cur = BTOR_REAL_ADDR_NODE (BTOR_POP_STACK (stack));
-
       if (cur->aux_mark) continue;
-
       cur->aux_mark = 1;
       BTOR_PUSH_STACK (btor->mm, unmark_stack, cur);
 
-      if (BTOR_IS_APPLY_NODE (cur) || BTOR_IS_BV_VAR_NODE (cur))
+      if (BTOR_IS_APPLY_NODE (cur))
       {
-        assert (!btor_find_in_ptr_hash_table (applies, cur));
-        btor_insert_in_ptr_hash_table (applies, cur);
+        assert (!cur->parameterized);
+        if (!btor_find_in_ptr_hash_table (btor->score, cur))
+        {
+          btor_insert_in_ptr_hash_table (btor->score,
+                                         btor_copy_exp (btor, cur));
+          /* push onto working stack */
+          BTOR_PUSH_STACK (btor->mm, nodes, cur);
+        }
         continue;
       }
 
@@ -334,37 +344,16 @@ btor_compute_scores_dual_prop (Btor *btor)
     }
   }
 
+  /* cleanup */
   while (!BTOR_EMPTY_STACK (unmark_stack))
     BTOR_POP_STACK (unmark_stack)->aux_mark = 0;
-
-  /* compute scores from applies downwards */
-  init_node_hash_table_iterator (&it, applies);
-  compute_scores_aux (btor, &it);
-
-  /* cleanup */
-  h = btor_get_opt_val (btor, BTOR_OPT_JUST_HEURISTIC);
-  if (h == BTOR_JUST_HEUR_BRANCH_MIN_APP)
-  {
-    init_node_hash_table_iterator (&it, btor->score);
-    while (has_next_hash_table_iterator (&it))
-    {
-      t   = (BtorPtrHashTable *) it.bucket->data.asPtr;
-      cur = next_node_hash_table_iterator (&it);
-      assert (BTOR_IS_REGULAR_NODE (cur));
-      if (!BTOR_IS_BV_VAR_NODE (cur) && !BTOR_IS_APPLY_NODE (cur))
-      {
-        btor_release_exp (btor, cur);
-        init_node_hash_table_iterator (&iit, t);
-        while (has_next_node_hash_table_iterator (&iit))
-          btor_release_exp (btor, next_node_hash_table_iterator (&iit));
-        btor_delete_ptr_hash_table (t);
-        btor_remove_from_ptr_hash_table (btor->score, cur, 0, 0);
-      }
-    }
-  }
-  btor_delete_ptr_hash_table (applies);
   BTOR_RELEASE_STACK (btor->mm, stack);
   BTOR_RELEASE_STACK (btor->mm, unmark_stack);
+
+  /* compute scores from applies downwards */
+  compute_scores_aux (btor, &nodes);
+
+  BTOR_RELEASE_STACK (btor->mm, nodes);
 }
 
 int
@@ -382,27 +371,35 @@ btor_compare_scores (Btor *btor, BtorNode *a, BtorNode *b)
   b  = BTOR_REAL_ADDR_NODE (b);
   sa = sb = 0;
 
+  if (!btor->score) return 0;
+
   if (h == BTOR_JUST_HEUR_BRANCH_MIN_APP)
   {
-    if (!btor->score) return 0;
+    if (BTOR_IS_BV_VAR_NODE (a))
+      sa = 0;
+    else
+    {
+      bucket = btor_find_in_ptr_hash_table (btor->score, a);
+      assert (bucket);
+      sa = ((BtorPtrHashTable *) bucket->data.asPtr)->count;
+    }
 
-    bucket = btor_find_in_ptr_hash_table (btor->score, a);
-    assert (bucket);
-    sa = ((BtorPtrHashTable *) bucket->data.asPtr)->count;
-
-    bucket = btor_find_in_ptr_hash_table (btor->score, b);
-    assert (bucket);
-    sb = ((BtorPtrHashTable *) bucket->data.asPtr)->count;
+    if (BTOR_IS_BV_VAR_NODE (b))
+      sb = 0;
+    else
+    {
+      bucket = btor_find_in_ptr_hash_table (btor->score, b);
+      assert (bucket);
+      sb = ((BtorPtrHashTable *) bucket->data.asPtr)->count;
+    }
   }
   else if (h == BTOR_JUST_HEUR_BRANCH_MIN_DEP)
   {
-    if (!btor->score_depth) return 0;
-
-    bucket = btor_find_in_ptr_hash_table (btor->score_depth, a);
+    bucket = btor_find_in_ptr_hash_table (btor->score, a);
     assert (bucket);
     sa = bucket->data.asInt;
 
-    bucket = btor_find_in_ptr_hash_table (btor->score_depth, b);
+    bucket = btor_find_in_ptr_hash_table (btor->score, b);
     assert (bucket);
     sb = bucket->data.asInt;
   }
@@ -426,27 +423,35 @@ btor_compare_scores_qsort (const void *p1, const void *p2)
 
   h = btor_get_opt_val (btor, BTOR_OPT_JUST_HEURISTIC);
 
+  if (!btor->score) return 0;
+
   if (h == BTOR_JUST_HEUR_BRANCH_MIN_APP)
   {
-    if (!btor->score) return 0;
+    if (BTOR_IS_BV_VAR_NODE (a))
+      sa = 0;
+    else
+    {
+      bucket = btor_find_in_ptr_hash_table (btor->score, a);
+      assert (bucket);
+      sa = ((BtorPtrHashTable *) bucket->data.asPtr)->count;
+    }
 
-    bucket = btor_find_in_ptr_hash_table (btor->score, a);
-    assert (bucket);
-    sa = ((BtorPtrHashTable *) bucket->data.asPtr)->count;
-
-    bucket = btor_find_in_ptr_hash_table (btor->score, b);
-    assert (bucket);
-    sb = ((BtorPtrHashTable *) bucket->data.asPtr)->count;
+    if (BTOR_IS_BV_VAR_NODE (b))
+      sb = 0;
+    else
+    {
+      bucket = btor_find_in_ptr_hash_table (btor->score, b);
+      assert (bucket);
+      sb = ((BtorPtrHashTable *) bucket->data.asPtr)->count;
+    }
   }
   else if (h == BTOR_JUST_HEUR_BRANCH_MIN_DEP)
   {
-    if (!btor->score_depth) return 0;
-
-    bucket = btor_find_in_ptr_hash_table (btor->score_depth, a);
+    bucket = btor_find_in_ptr_hash_table (btor->score, a);
     assert (bucket);
     sa = bucket->data.asInt;
 
-    bucket = btor_find_in_ptr_hash_table (btor->score_depth, b);
+    bucket = btor_find_in_ptr_hash_table (btor->score, b);
     assert (bucket);
     sb = bucket->data.asInt;
   }

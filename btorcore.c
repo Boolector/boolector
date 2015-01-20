@@ -973,24 +973,26 @@ btor_delete_btor (Btor *btor)
       init_node_hash_table_iterator (&it, btor->score);
       while (has_next_node_hash_table_iterator (&it))
       {
-        t   = (BtorPtrHashTable *) it.bucket->data.asPtr;
-        exp = next_node_hash_table_iterator (&it);
-        btor_release_exp (btor, exp);
+        if (btor_get_opt_val (btor, BTOR_OPT_JUST_HEURISTIC)
+            == BTOR_JUST_HEUR_BRANCH_MIN_APP)
+        {
+          t   = (BtorPtrHashTable *) it.bucket->data.asPtr;
+          exp = next_node_hash_table_iterator (&it);
+          btor_release_exp (btor, exp);
 
-        init_node_hash_table_iterator (&iit, t);
-        while (has_next_node_hash_table_iterator (&iit))
-          btor_release_exp (btor, next_node_hash_table_iterator (&iit));
-        btor_delete_ptr_hash_table (t);
+          init_node_hash_table_iterator (&iit, t);
+          while (has_next_node_hash_table_iterator (&iit))
+            btor_release_exp (btor, next_node_hash_table_iterator (&iit));
+          btor_delete_ptr_hash_table (t);
+        }
+        else
+        {
+          assert (btor_get_opt_val (btor, BTOR_OPT_JUST_HEURISTIC)
+                  == BTOR_JUST_HEUR_BRANCH_MIN_DEP);
+          btor_release_exp (btor, next_node_hash_table_iterator (&it));
+        }
       }
       btor_delete_ptr_hash_table (btor->score);
-    }
-
-    if (btor->score_depth)
-    {
-      init_node_hash_table_iterator (&it, btor->score_depth);
-      while (has_next_node_hash_table_iterator (&it))
-        btor_release_exp (btor, next_node_hash_table_iterator (&it));
-      btor_delete_ptr_hash_table (btor->score_depth);
     }
   }
 
