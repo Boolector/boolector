@@ -1085,6 +1085,7 @@ setup_node_and_add_to_id_table (Btor *btor, void *ptr)
   BTOR_PUSH_STACK (btor->mm, btor->nodes_id_table, exp);
   assert (BTOR_COUNT_STACK (btor->nodes_id_table) == exp->id + 1);
   assert (BTOR_PEEK_STACK (btor->nodes_id_table, exp->id) == exp);
+  btor->stats.node_bytes_alloc += exp->bytes;
 
   if (BTOR_IS_APPLY_NODE (exp)) exp->apply_below = 1;
 }
