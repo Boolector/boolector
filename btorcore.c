@@ -478,6 +478,10 @@ btor_print_stats_btor (Btor *btor)
     assert (sizeof g_btor_op2string / sizeof *g_btor_op2string
             == BTOR_NUM_OPS_NODE);
 
+    BTOR_MSG (btor->msg,
+              1,
+              "memory allocated for nodes: %.2f MB",
+              btor->stats.node_bytes_alloc / (double) (1 << 20));
     if (num_final_ops > 0)
       for (i = 1; i < BTOR_NUM_OPS_NODE - 1; i++)
         if (btor->ops[i].cur || btor->ops[i].max)
