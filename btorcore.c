@@ -48,8 +48,6 @@
 #define BTOR_CHECK_DUAL_PROP
 #endif
 
-#define POP_TOP_APPLIES
-
 #define DP_QSORT_JUST 0
 #define DP_QSORT_ASC 1
 #define DP_QSORT_DESC 2
@@ -6789,7 +6787,7 @@ check_and_resolve_conflicts (Btor *btor,
   assert (btor);
   assert (btor->ops[BTOR_FEQ_NODE].cur == 0);
 
-  int i, found_conflict, changed_assignments;
+  int found_conflict, changed_assignments;
   BtorMemMgr *mm;
   BtorNode *app, *cur;
 #ifndef NDEBUG
@@ -6851,13 +6849,9 @@ BTOR_CONFLICT_CHECK:
     BTOR_PUSH_STACK (mm, top_applies, app);
   }
 
-#ifdef POP_TOP_APPLIES
-  for (i = BTOR_COUNT_STACK (top_applies) - 1; i >= 0; i--)
-#else
-  for (i = 0; i < BTOR_COUNT_STACK (top_applies); i++)
-#endif
+  while (!BTOR_EMPTY_STACK (top_applies))
   {
-    app = BTOR_PEEK_STACK (top_applies, i);
+    app = BTOR_POP_STACK (top_applies);
     assert (BTOR_IS_REGULAR_NODE (app));
     assert (BTOR_IS_APPLY_NODE (app));
     assert (app->reachable || app->vread);
