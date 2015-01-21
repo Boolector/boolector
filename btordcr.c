@@ -213,7 +213,7 @@ compute_scores_aux (Btor *btor, BtorNodePtrStack *nodes)
 {
   int h;
 
-  if (!(h = btor_get_opt_val (btor, BTOR_OPT_JUST_HEURISTIC))) return;
+  if (!(h = btor->options.just_heuristic.val)) return;
 
   if (h == BTOR_JUST_HEUR_BRANCH_MIN_APP)
     compute_scores_aux_min_app (btor, nodes);
@@ -375,7 +375,7 @@ btor_compare_scores (Btor *btor, BtorNode *a, BtorNode *b)
   int h, sa, sb;
   BtorPtrHashBucket *bucket;
 
-  h  = btor_get_opt_val (btor, BTOR_OPT_JUST_HEURISTIC);
+  h  = btor->options.just_heuristic.val;
   a  = BTOR_REAL_ADDR_NODE (a);
   b  = BTOR_REAL_ADDR_NODE (b);
   sa = sb = 0;
@@ -430,7 +430,7 @@ btor_compare_scores_qsort (const void *p1, const void *p2)
   assert (a->btor == b->btor);
   btor = a->btor;
 
-  h = btor_get_opt_val (btor, BTOR_OPT_JUST_HEURISTIC);
+  h = btor->options.just_heuristic.val;
 
   if (!btor->score) return 0;
 

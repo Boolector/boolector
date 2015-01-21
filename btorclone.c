@@ -1080,7 +1080,7 @@ clone_aux_btor (Btor *btor,
 
   if (btor->score)
   {
-    h = btor_get_opt_val (btor, BTOR_OPT_JUST_HEURISTIC);
+    h = btor->options.just_heuristic.val;
     if (h == BTOR_JUST_HEUR_BRANCH_MIN_APP)
     {
       clone->score = btor_clone_ptr_hash_table (

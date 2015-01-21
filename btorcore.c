@@ -964,15 +964,14 @@ btor_delete_btor (Btor *btor)
     btor_release_exp (btor, BTOR_POP_STACK (stack));
   BTOR_RELEASE_STACK (mm, stack);
 
-  if (btor_get_opt_val (btor, BTOR_OPT_JUST_HEURISTIC))
+  if (btor->options.just_heuristic.val)
   {
     if (btor->score)
     {
       init_node_hash_table_iterator (&it, btor->score);
       while (has_next_node_hash_table_iterator (&it))
       {
-        if (btor_get_opt_val (btor, BTOR_OPT_JUST_HEURISTIC)
-            == BTOR_JUST_HEUR_BRANCH_MIN_APP)
+        if (btor->options.just_heuristic.val == BTOR_JUST_HEUR_BRANCH_MIN_APP)
         {
           t   = (BtorPtrHashTable *) it.bucket->data.asPtr;
           exp = next_node_hash_table_iterator (&it);
@@ -985,7 +984,7 @@ btor_delete_btor (Btor *btor)
         }
         else
         {
-          assert (btor_get_opt_val (btor, BTOR_OPT_JUST_HEURISTIC)
+          assert (btor->options.just_heuristic.val
                   == BTOR_JUST_HEUR_BRANCH_MIN_DEP);
           btor_release_exp (btor, next_node_hash_table_iterator (&it));
         }
@@ -5268,7 +5267,7 @@ search_initial_applies_just (Btor *btor, BtorNodePtrStack *top_applies)
               assert (c[0] == '0');
 
               if (c0[0] == '0' && c1[0] == '0'
-                  && btor_get_opt_val (btor, BTOR_OPT_JUST_HEURISTIC))
+                  && btor->options.just_heuristic.val)
               {
                 if (btor_compare_scores (btor, cur->e[0], cur->e[1]))
                   BTOR_PUSH_STACK (btor->mm, stack, cur->e[0]);
