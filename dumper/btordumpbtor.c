@@ -260,6 +260,20 @@ get_sort (BtorDumpContext *bdc, BtorNode *node)
   return sort;
 }
 
+static int
+has_lambda_parent (BtorNode *exp)
+{
+  BtorNode *p;
+  BtorNodeIterator it;
+  init_full_parent_iterator (&it, exp);
+  while (has_next_parent_full_parent_iterator (&it))
+  {
+    p = next_parent_full_parent_iterator (&it);
+    if (BTOR_IS_LAMBDA_NODE (p)) return 1;
+  }
+  return 0;
+}
+
 static void
 bdcnode (BtorDumpContext *bdc, BtorNode *node, FILE *file)
 {
@@ -275,11 +289,13 @@ bdcnode (BtorDumpContext *bdc, BtorNode *node, FILE *file)
   /* argument nodes will not be dumped as they are purely internal nodes */
   if (BTOR_IS_ARGS_NODE (node)) return;
 
+#if 0
   if (bdc->version == 2
       && (BTOR_IS_ARGS_NODE (node)
-          || (!BTOR_IS_FIRST_CURRIED_LAMBDA (node)
-              && BTOR_IS_CURRIED_LAMBDA_NODE (node))))
+	  || (!BTOR_IS_FIRST_CURRIED_LAMBDA (node)
+	      && BTOR_IS_CURRIED_LAMBDA_NODE (node))))
     return;
+#endif
 
   switch (node->kind)
   {
@@ -365,7 +381,7 @@ bdcnode (BtorDumpContext *bdc, BtorNode *node, FILE *file)
     }
     else if (strcmp (op, "fun") == 0)
     {
-      assert (BTOR_IS_FIRST_CURRIED_LAMBDA (node));
+      assert (!has_lambda_parent (node));
       init_lambda_iterator (&nit, node);
       while (has_next_lambda_iterator (&nit))
       {

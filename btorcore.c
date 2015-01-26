@@ -245,9 +245,8 @@ btor_insert_substitution (Btor *btor,
 
   if (exp == BTOR_REAL_ADDR_NODE (subst)) return;
 
-  assert (update || !btor_find_in_ptr_hash_table (btor->substitutions, exp));
-
-  if (update && (b = btor_find_in_ptr_hash_table (btor->substitutions, exp)))
+  b = btor_find_in_ptr_hash_table (btor->substitutions, exp);
+  if (update && b)
   {
     assert (b->data.asPtr);
     /* release data of current bucket */
@@ -256,6 +255,14 @@ btor_insert_substitution (Btor *btor,
     /* release key of current bucket */
     btor_release_exp (btor, exp);
   }
+#ifndef NDEBUG
+  else
+  {
+    assert (!b || (BtorNode *) b->data.asPtr == subst);
+    /* substitution already inserted */
+    return;
+  }
+#endif
 
   simp = btor_find_substitution (btor, subst);
 
@@ -3777,9 +3784,7 @@ merge_lambdas (Btor *btor)
     BTOR_PUSH_STACK (mm, unmark, lambda);
 
     /* skip curried lambdas */
-    if (BTOR_IS_CURRIED_LAMBDA_NODE (lambda)
-        && !BTOR_IS_FIRST_CURRIED_LAMBDA (lambda))
-      continue;
+    if (BTOR_IS_LAMBDA_NODE (lambda->first_parent)) continue;
 
     /* search upwards for top-most lambda */
     merge = 0;
@@ -3868,8 +3873,7 @@ optimize_unconstrained (Btor *btor)
 
   double start;
   int i, uc[3], isuc;
-  BtorNode *cur, *cur_parent, *subst;
-  BtorLambdaNode *lambda;
+  BtorNode *cur, *cur_parent, *subst, *lambda;
   BtorNodePtrStack stack, roots;
   BtorPtrHashTable *ucs; /* unconstrained (candidate) nodes */
   BtorHashTableIterator it;
@@ -3961,10 +3965,15 @@ optimize_unconstrained (Btor *btor)
       {
         /* parameterized expressions are possibly unconstrained if the
          * lambda(s) parameterizing it do not have more than 1 parent */
-        lambda =
-            BTOR_PARAM_GET_LAMBDA_NODE (next_parameterized_iterator (&parit));
-        if (BTOR_IS_CURRIED_LAMBDA_NODE (lambda))
-          lambda = BTOR_LAMBDA_GET_HEAD (lambda);
+        lambda = (BtorNode *) BTOR_PARAM_GET_LAMBDA_NODE (
+            next_parameterized_iterator (&parit));
+        /* get head lambda of function */
+        while (lambda->parents == 1)
+        {
+          if (!BTOR_IS_LAMBDA_NODE (lambda->first_parent)) break;
+          lambda = lambda->first_parent;
+        }
+        assert (BTOR_IS_LAMBDA_NODE (lambda));
         if (lambda->parents > 1)
         {
           isuc = 0;
@@ -4041,9 +4050,11 @@ optimize_unconstrained (Btor *btor)
             }
             break;
           case BTOR_LAMBDA_NODE:
+            assert (cur->parents <= 1);
             if (uc[1]
-                && (!BTOR_IS_CURRIED_LAMBDA_NODE (cur)
-                    || BTOR_IS_FIRST_CURRIED_LAMBDA (cur)))
+                /* only consider head lambda of curried lambdas */
+                && (!cur->first_parent
+                    || !BTOR_IS_LAMBDA_NODE (cur->first_parent)))
             {
               btor->stats.fun_uc_props++;
               btor_insert_in_ptr_hash_table (ucs, btor_copy_exp (btor, cur));

@@ -106,7 +106,7 @@ btor_clone_ptr_hash_table (BtorMemMgr *mem,
     if (!cdata)
       assert (b->data.asPtr == 0);
     else
-      cdata (mem, data_map, b->data.asPtr, &cloned_b->data);
+      cdata (mem, data_map, &b->data, &cloned_b->data);
   }
 
   assert (table->count == res->count);

@@ -724,9 +724,14 @@ dump_fun_smt2 (BtorSMTDumpContext *sdc, BtorNode *fun)
   {
     cur   = next_lambda_iterator (&it);
     param = (BtorNode *) BTOR_LAMBDA_GET_PARAM (cur);
-    btor_insert_in_ptr_hash_table (sdc->dumped, cur);
-    btor_insert_in_ptr_hash_table (sdc->dumped, param);
-
+    /* in case lambdas are shared it might be possible that 'cur' and
+     * 'param' were already dumped previously. */
+    if (!btor_find_in_ptr_hash_table (sdc->dumped, cur))
+    {
+      btor_insert_in_ptr_hash_table (sdc->dumped, cur);
+      assert (!btor_find_in_ptr_hash_table (sdc->dumped, param));
+      btor_insert_in_ptr_hash_table (sdc->dumped, param);
+    }
     if (i > 0) fputc (' ', sdc->file);
     fputc ('(', sdc->file);
     dump_smt_id (sdc, param);
@@ -871,6 +876,34 @@ get_references (BtorSMTDumpContext *sdc, BtorNode *exp)
   return refs;
 }
 
+static int
+has_lambda_parent (BtorNode *exp)
+{
+  BtorNode *p;
+  BtorNodeIterator it;
+  init_full_parent_iterator (&it, exp);
+  while (has_next_parent_full_parent_iterator (&it))
+  {
+    p = next_parent_full_parent_iterator (&it);
+    if (BTOR_IS_LAMBDA_NODE (p)) return 1;
+  }
+  return 0;
+}
+
+static int
+has_lambda_parents_only (BtorNode *exp)
+{
+  BtorNode *p;
+  BtorNodeIterator it;
+  init_full_parent_iterator (&it, exp);
+  while (has_next_parent_full_parent_iterator (&it))
+  {
+    p = next_parent_full_parent_iterator (&it);
+    if (!BTOR_IS_LAMBDA_NODE (p)) return 0;
+  }
+  return 1;
+}
+
 static void
 dump_smt (BtorSMTDumpContext *sdc)
 {
@@ -917,8 +950,7 @@ dump_smt (BtorSMTDumpContext *sdc)
     else if (BTOR_IS_UF_NODE (cur))
       BTOR_PUSH_STACK (mm, ufs, cur);
     else if (BTOR_IS_LAMBDA_NODE (cur) && !cur->parameterized
-             && (!BTOR_IS_CURRIED_LAMBDA_NODE (cur)
-                 || BTOR_IS_FIRST_CURRIED_LAMBDA (cur)))
+             && !has_lambda_parents_only (cur))
       BTOR_PUSH_STACK (mm, shared, cur);
 
     for (j = 0; j < cur->arity; j++)
@@ -1143,7 +1175,7 @@ dump_smt_aux (Btor *btor, FILE *file, int version, BtorNode **roots, int nroots)
   {
     temp = next_node_hash_table_iterator (&it);
 
-    if (temp->parameterized && !BTOR_IS_CURRIED_LAMBDA_NODE (temp))
+    if (temp->parameterized && !has_lambda_parent (temp))
     {
       nested_funs = 1;
       break;
