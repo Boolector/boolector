@@ -213,7 +213,7 @@ compute_scores_aux (Btor *btor, BtorNodePtrStack *nodes)
 {
   int h;
 
-  if (!(h = btor_get_opt_val (btor, BTOR_OPT_JUST_HEURISTIC))) return;
+  if (!(h = btor->options.just_heuristic.val)) return;
 
   if (h == BTOR_JUST_HEUR_BRANCH_MIN_APP)
     compute_scores_aux_min_app (btor, nodes);
@@ -228,6 +228,7 @@ btor_compute_scores (Btor *btor)
   assert (check_id_table_aux_mark_unset_dbg (btor));
 
   int i;
+  double start;
   BtorNode *cur, *e;
   BtorHashTableIterator it;
   BtorNodePtrStack stack, unmark_stack, nodes;
@@ -238,6 +239,7 @@ btor_compute_scores (Btor *btor)
    * are treated as such in compare_scores).
    * -> see btor_compute_scores_dual_prop */
 
+  start = btor_time_stamp ();
   BTOR_INIT_STACK (stack);
   BTOR_INIT_STACK (unmark_stack);
   BTOR_INIT_STACK (nodes);
@@ -283,6 +285,8 @@ btor_compute_scores (Btor *btor)
   compute_scores_aux (btor, &nodes);
 
   BTOR_RELEASE_STACK (btor->mm, nodes);
+
+  btor->time.search_init_apps_compute_scores += btor_time_stamp () - start;
 }
 
 void
@@ -292,9 +296,12 @@ btor_compute_scores_dual_prop (Btor *btor)
   assert (check_id_table_aux_mark_unset_dbg (btor));
 
   int i;
+  double start;
   BtorNode *cur;
   BtorNodePtrStack stack, unmark_stack, nodes;
   BtorHashTableIterator it;
+
+  start = btor_time_stamp ();
 
   BTOR_INIT_STACK (stack);
   BTOR_INIT_STACK (unmark_stack);
@@ -354,6 +361,8 @@ btor_compute_scores_dual_prop (Btor *btor)
   compute_scores_aux (btor, &nodes);
 
   BTOR_RELEASE_STACK (btor->mm, nodes);
+
+  btor->time.search_init_apps_compute_scores += btor_time_stamp () - start;
 }
 
 int
@@ -366,7 +375,7 @@ btor_compare_scores (Btor *btor, BtorNode *a, BtorNode *b)
   int h, sa, sb;
   BtorPtrHashBucket *bucket;
 
-  h  = btor_get_opt_val (btor, BTOR_OPT_JUST_HEURISTIC);
+  h  = btor->options.just_heuristic.val;
   a  = BTOR_REAL_ADDR_NODE (a);
   b  = BTOR_REAL_ADDR_NODE (b);
   sa = sb = 0;
@@ -421,7 +430,7 @@ btor_compare_scores_qsort (const void *p1, const void *p2)
   assert (a->btor == b->btor);
   btor = a->btor;
 
-  h = btor_get_opt_val (btor, BTOR_OPT_JUST_HEURISTIC);
+  h = btor->options.just_heuristic.val;
 
   if (!btor->score) return 0;
 
