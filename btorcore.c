@@ -48,8 +48,6 @@
 #define BTOR_CHECK_DUAL_PROP
 #endif
 
-#define POP_TOP_APPLIES
-
 #define DP_QSORT_JUST 0
 #define DP_QSORT_ASC 1
 #define DP_QSORT_DESC 2
@@ -966,15 +964,14 @@ btor_delete_btor (Btor *btor)
     btor_release_exp (btor, BTOR_POP_STACK (stack));
   BTOR_RELEASE_STACK (mm, stack);
 
-  if (btor_get_opt_val (btor, BTOR_OPT_JUST_HEURISTIC))
+  if (btor->options.just_heuristic.val)
   {
     if (btor->score)
     {
       init_node_hash_table_iterator (&it, btor->score);
       while (has_next_node_hash_table_iterator (&it))
       {
-        if (btor_get_opt_val (btor, BTOR_OPT_JUST_HEURISTIC)
-            == BTOR_JUST_HEUR_BRANCH_MIN_APP)
+        if (btor->options.just_heuristic.val == BTOR_JUST_HEUR_BRANCH_MIN_APP)
         {
           t   = (BtorPtrHashTable *) it.bucket->data.asPtr;
           exp = next_node_hash_table_iterator (&it);
@@ -987,7 +984,7 @@ btor_delete_btor (Btor *btor)
         }
         else
         {
-          assert (btor_get_opt_val (btor, BTOR_OPT_JUST_HEURISTIC)
+          assert (btor->options.just_heuristic.val
                   == BTOR_JUST_HEUR_BRANCH_MIN_DEP);
           btor_release_exp (btor, next_node_hash_table_iterator (&it));
         }
@@ -5057,7 +5054,7 @@ search_initial_applies_dual_prop (Btor *btor,
   assert (top_applies);
   assert (check_id_table_aux_mark_unset_dbg (btor));
 
-  double start, delta;
+  double start;
   int i;
   BtorNode *cur;
   BtorNodePtrStack stack, unmark_stack, inputs;
@@ -5116,9 +5113,7 @@ search_initial_applies_dual_prop (Btor *btor,
   (void) btor_cmp_exp_by_id_qsort_asc;
 
 #if DP_QSORT == DP_QSORT_JUST
-  delta = btor_time_stamp ();
   btor_compute_scores_dual_prop (btor);
-  btor->time.search_init_apps_compute_scores += btor_time_stamp () - delta;
   set_up_dual_and_collect (btor,
                            clone,
                            clone_root,
@@ -5214,7 +5209,7 @@ search_initial_applies_just (Btor *btor, BtorNodePtrStack *top_applies)
 
   int i;
   char *c, *c0, *c1;
-  double start, delta;
+  double start;
   BtorNode *cur;
   BtorHashTableIterator it;
   BtorNodePtrStack stack, unmark_stack;
@@ -5227,9 +5222,7 @@ search_initial_applies_just (Btor *btor, BtorNodePtrStack *top_applies)
   BTOR_INIT_STACK (stack);
   BTOR_INIT_STACK (unmark_stack);
 
-  delta = btor_time_stamp ();
   btor_compute_scores (btor);
-  btor->time.search_init_apps_compute_scores += btor_time_stamp () - delta;
 
   init_node_hash_table_iterator (&it, btor->synthesized_constraints);
   queue_node_hash_table_iterator (&it, btor->assumptions);
@@ -5274,7 +5267,7 @@ search_initial_applies_just (Btor *btor, BtorNodePtrStack *top_applies)
               assert (c[0] == '0');
 
               if (c0[0] == '0' && c1[0] == '0'
-                  && btor_get_opt_val (btor, BTOR_OPT_JUST_HEURISTIC))
+                  && btor->options.just_heuristic.val)
               {
                 if (btor_compare_scores (btor, cur->e[0], cur->e[1]))
                   BTOR_PUSH_STACK (btor->mm, stack, cur->e[0]);
@@ -6789,7 +6782,7 @@ check_and_resolve_conflicts (Btor *btor,
   assert (btor);
   assert (btor->ops[BTOR_FEQ_NODE].cur == 0);
 
-  int i, found_conflict, changed_assignments;
+  int found_conflict, changed_assignments;
   BtorMemMgr *mm;
   BtorNode *app, *cur;
 #ifndef NDEBUG
@@ -6851,13 +6844,9 @@ BTOR_CONFLICT_CHECK:
     BTOR_PUSH_STACK (mm, top_applies, app);
   }
 
-#ifdef POP_TOP_APPLIES
-  for (i = BTOR_COUNT_STACK (top_applies) - 1; i >= 0; i--)
-#else
-  for (i = 0; i < BTOR_COUNT_STACK (top_applies); i++)
-#endif
+  while (!BTOR_EMPTY_STACK (top_applies))
   {
-    app = BTOR_PEEK_STACK (top_applies, i);
+    app = BTOR_POP_STACK (top_applies);
     assert (BTOR_IS_REGULAR_NODE (app));
     assert (BTOR_IS_APPLY_NODE (app));
     assert (app->reachable || app->vread);
