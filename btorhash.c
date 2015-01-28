@@ -2,7 +2,7 @@
  *
  *  Copyright (C) 2007-2009 Robert Daniel Brummayer.
  *  Copyright (C) 2007-2012 Armin Biere.
- *  Copyright (C) 2013-2014 Aina Niemetz.
+ *  Copyright (C) 2013-2015 Aina Niemetz.
  *
  *  All rights reserved.
  *
@@ -22,7 +22,7 @@ btor_hash_ptr (const void *p)
 static int
 btor_cmp_ptr (const void *p, const void *q)
 {
-  return ((long) p) - ((long) q);
+  return ((long) p) != ((long) q);
 }
 
 static void
