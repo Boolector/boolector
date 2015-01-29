@@ -375,7 +375,8 @@ recursively_dump_exp_smt (BtorSMTDumpContext *sdc, BtorNode *exp, int wrap_bool)
   if (is_bool && wrap_bool && !BTOR_IS_BV_CONST_NODE (real_exp))
     fputs ("(ite ", sdc->file);
 
-  if (btor_find_in_ptr_hash_table (sdc->dumped, real_exp)
+  if ((btor_find_in_ptr_hash_table (sdc->dumped, real_exp)
+       || BTOR_IS_FUN_NODE (real_exp))
       /* always dump constants and function applictions */
       && !BTOR_IS_BV_CONST_NODE (real_exp) && !BTOR_IS_APPLY_NODE (real_exp))
   {
