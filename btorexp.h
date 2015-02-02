@@ -2,7 +2,7 @@
  *
  *  Copyright (C) 2007-2009 Robert Daniel Brummayer.
  *  Copyright (C) 2007-2013 Armin Biere.
- *  Copyright (C) 2012-2014 Aina Niemetz.
+ *  Copyright (C) 2012-2015 Aina Niemetz.
  *  Copyright (C) 2012-2014 Mathias Preiner.
  *
  *  All rights reserved.
@@ -194,9 +194,7 @@ struct BtorLambdaNode
   BTOR_BV_NODE_STRUCT;
   BTOR_BV_ADDITIONAL_NODE_STRUCT;
   BtorPtrHashTable *synth_apps;
-  struct BtorLambdaNode *head; /* points to first lambda in the curried lambda
-                                  chain */
-  BtorNode *body;              /* function body */
+  BtorNode *body; /* function body (short-cut for curried lambdas) */
   int num_params; /* number of params (> 1 in case of curried lambdas) */
 };
 
@@ -234,7 +232,13 @@ typedef struct BtorArgsNode BtorArgsNode;
 
 #define BTOR_IS_BV_EQ_NODE_KIND(kind) (kind == BTOR_BEQ_NODE)
 
-#define BTOR_IS_ARRAY_EQ_NODE_KIND(kind) (kind == BTOR_FEQ_NODE)
+#define BTOR_IS_FUN_EQ_NODE_KIND(kind) (kind == BTOR_FEQ_NODE)
+
+#define BTOR_IS_ULT_NODE_KIND(kind) (kind == BTOR_ULT_NODE)
+
+#define BTOR_IS_FEQ_NODE_KIND(kind) (kind == BTOR_FEQ_NODE)
+
+#define BTOR_IS_ADD_NODE_KIND(kind) ((kind) == BTOR_ADD_NODE)
 
 #define BTOR_IS_LAMBDA_NODE_KIND(kind) ((kind) == BTOR_LAMBDA_NODE)
 
@@ -276,11 +280,17 @@ typedef struct BtorArgsNode BtorArgsNode;
 
 #define BTOR_IS_BV_EQ_NODE(exp) ((exp) && BTOR_IS_BV_EQ_NODE_KIND ((exp)->kind))
 
-#define BTOR_IS_ARRAY_EQ_NODE(exp) \
-  ((exp) && BTOR_IS_ARRAY_EQ_NODE_KIND ((exp)->kind))
+#define BTOR_IS_FUN_EQ_NODE(exp) \
+  ((exp) && BTOR_IS_FUN_EQ_NODE_KIND ((exp)->kind))
+
+#define BTOR_IS_ULT_NODE(exp) ((exp) && BTOR_IS_ULT_NODE_KIND ((exp)->kind))
+
+#define BTOR_IS_FEQ_NODE(exp) ((exp) && BTOR_IS_FEQ_NODE_KIND ((exp)->kind))
 
 #define BTOR_IS_ARRAY_OR_BV_EQ_NODE(exp) \
-  (BTOR_IS_ARRAY_EQ_NODE (exp) || BTOR_IS_BV_EQ_NODE (exp))
+  (BTOR_IS_FEQ_NODE (exp) || BTOR_IS_BV_EQ_NODE (exp))
+
+#define BTOR_IS_ADD_NODE(exp) ((exp) && BTOR_IS_ADD_NODE_KIND ((exp)->kind))
 
 #define BTOR_IS_LAMBDA_NODE(exp) \
   ((exp) && BTOR_IS_LAMBDA_NODE_KIND ((exp)->kind))
@@ -318,10 +328,10 @@ typedef struct BtorArgsNode BtorArgsNode;
                  ^ (unsigned long int) (exp)))
 
 #define BTOR_REAL_ADDR_NODE(exp) \
-  ((BtorNode *) (~3ul & (unsigned long int) (exp)))
+  ((struct BtorNode *) (~3ul & (unsigned long int) (exp)))
 
 #define BTOR_GET_ID_NODE(exp) \
-  (BTOR_IS_INVERTED_NODE (exp) ? -BTOR_REAL_ADDR_NODE (exp)->id : exp->id)
+  (BTOR_IS_INVERTED_NODE (exp) ? -BTOR_REAL_ADDR_NODE (exp)->id : (exp)->id)
 
 #define BTOR_AIGVEC_NODE(btor, exp)                                     \
   (BTOR_IS_INVERTED_NODE (exp)                                          \
@@ -342,13 +352,6 @@ typedef struct BtorArgsNode BtorArgsNode;
 
 #define BTOR_IS_SYNTH_NODE(exp) ((exp)->av != 0)
 
-#define BTOR_IS_CURRIED_LAMBDA_NODE(exp) \
-  (BTOR_IS_LAMBDA_NODE (exp) && ((BtorLambdaNode *) exp)->head)
-
-#define BTOR_IS_FIRST_CURRIED_LAMBDA(exp) \
-  (BTOR_IS_LAMBDA_NODE (exp)              \
-   && (((BtorLambdaNode *) exp)->head == (BtorLambdaNode *) exp))
-
 #define BTOR_IS_FUN_NODE(exp) \
   (BTOR_IS_LAMBDA_NODE (exp) || BTOR_IS_UF_NODE (exp))
 
@@ -361,8 +364,6 @@ typedef struct BtorArgsNode BtorArgsNode;
 
 #define BTOR_PARAM_SET_LAMBDA_NODE(param, lambda) \
   (((BtorParamNode *) BTOR_REAL_ADDR_NODE (param))->lambda_exp = lambda)
-
-#define BTOR_LAMBDA_GET_HEAD(exp) (((BtorLambdaNode *) exp)->head)
 
 #define BTOR_LAMBDA_GET_PARAM(exp) (((BtorParamNode *) exp->e[0]))
 
@@ -889,6 +890,8 @@ void btor_set_to_proxy_exp (Btor *btor, BtorNode *exp);
  * Else, result pointer is the location where 'exp' may be inserted. */
 BtorNode **btor_find_unique_exp (Btor *btor, BtorNode *exp);
 
+int btor_cmp_exp_by_id_qsort_desc (const void *p, const void *q);
+int btor_cmp_exp_by_id_qsort_asc (const void *p, const void *q);
 /*------------------------------------------------------------------------*/
 
 BtorNode *btor_slice_exp_node (Btor *btor, BtorNode *exp, int upper, int lower);
@@ -926,6 +929,8 @@ BtorNode *btor_cond_exp_node (Btor *btor,
                               BtorNode *e_else);
 
 BtorNode *btor_apply_exp_node (Btor *btor, BtorNode *fun, BtorNode *args);
+
+BtorNode *btor_lambda_exp_node (Btor *btor, BtorNode *param, BtorNode *body);
 
 /*------------------------------------------------------------------------*/
 #ifndef NDEBUG

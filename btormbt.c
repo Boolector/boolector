@@ -132,6 +132,8 @@
 #define P_EQ 0.5
 #define P_INC 0.33
 #define P_DUMP 0.1
+#define P_PRINT_MODEL 0.1
+#define P_MODEL_FORMAT 0.5
 
 #define EXIT_OK 0
 #define EXIT_ERROR 1
@@ -317,7 +319,14 @@
   "  --p-inc <val>                    choose an incremental step [" \
          			      BTORMBT_M2STR (P_INC) "]\n" \
   "  --p-dump <val>                   dump formula [" \
-  				      BTORMBT_M2STR (P_DUMP) "]\n"
+  				      BTORMBT_M2STR (P_DUMP) "]\n" \
+  "  --p-print-model <val>            print model [" \
+				      BTORMBT_M2STR (P_PRINT_MODEL) "]\n" \
+  "  --p-model-format <val>           model format (btor:smt2) [" \
+				      BTORMBT_M2STR (P_MODEL_FORMAT) "]\n" \
+  "\n other options:\n" \
+  "  --output-format <string>         force dump/model output format\n" \
+  "                                    (btor,smt1,smt2)\n"
 
 /*------------------------------------------------------------------------*/
 
@@ -599,6 +608,11 @@ typedef struct BtorMBT
   int p_eq;            /* probability of choosing eq over ne */
   int p_inc;           /* probability of choosing an incremental step */
   int p_dump;          /* probability of dumping formula and exit */
+  int p_print_model;   /* probability of printing the model after a sat call */
+  int p_model_format;  /* probability of using btor over smt2 format when
+                          printing a model */
+  /* other options */
+  char *output_format; /* force output format for dumping/printing models */
 
   /* round counters */
   int r_add_init;     /* number of add operations (wrt to number of release
@@ -620,6 +634,7 @@ typedef struct BtorMBT
   int inc;
   int mgen;
   int dump;
+  int print_model;
 
   /* prob. distribution of variables, constants, arrays in current round */
   float p_var, p_const, p_array;
@@ -748,6 +763,8 @@ new_btormbt (void)
   btormbt->p_eq                     = P_EQ * NORM_VAL;
   btormbt->p_inc                    = P_INC * NORM_VAL;
   btormbt->p_dump                   = P_DUMP * NORM_VAL;
+  btormbt->p_print_model            = P_PRINT_MODEL * NORM_VAL;
+  btormbt->p_model_format           = P_MODEL_FORMAT * NORM_VAL;
   return btormbt;
 }
 
@@ -2175,6 +2192,12 @@ _opt (BtorMBT *btormbt, unsigned r)
     btormbt->mgen = 1;
   }
 
+  if (btormbt->mgen && pick (&rng, 0, NORM_VAL - 1) < btormbt->p_print_model)
+  {
+    btormbt->print_model = 1;
+    boolector_set_opt (btormbt->btor, "pretty_print", 0);
+  }
+
   if (!btormbt->dump
 #ifndef BTOR_DO_NOT_OPTIMIZE_UNCONSTRAINED
       && !btormbt->ucopt
@@ -2529,14 +2552,26 @@ _dump (BtorMBT *btormbt, unsigned r)
   RNG rng;
   rng = initrng (r);
 
-  rand = pick (&rng, 0, 2);
   // TODO: UF support in BTOR format not yet implemented
-  if (rand == 0 && !btormbt->uf.n)
-    boolector_dump_btor (btormbt->btor, stdout);
-  else if (rand == 1)
-    boolector_dump_smt1 (btormbt->btor, stdout);
+  if (btormbt->output_format)
+  {
+    if (!strcmp (btormbt->output_format, "btor") && !btormbt->uf.n)
+      boolector_dump_btor (btormbt->btor, stdout);
+    else if (!strcmp (btormbt->output_format, "smt1"))
+      boolector_dump_smt1 (btormbt->btor, stdout);
+    else if (!strcmp (btormbt->output_format, "smt2"))
+      boolector_dump_smt2 (btormbt->btor, stdout);
+  }
   else
-    boolector_dump_smt2 (btormbt->btor, stdout);
+  {
+    rand = pick (&rng, 0, 2);
+    if (rand == 0 && !btormbt->uf.n)
+      boolector_dump_btor (btormbt->btor, stdout);
+    else if (rand == 1)
+      boolector_dump_smt1 (btormbt->btor, stdout);
+    else
+      boolector_dump_smt2 (btormbt->btor, stdout);
+  }
   return _del;
 }
 
@@ -2561,7 +2596,16 @@ _sat (BtorMBT *btormbt, unsigned r)
   if (res == BOOLECTOR_UNSAT)
     BTORMBT_LOG (1, "unsat");
   else if (res == BOOLECTOR_SAT)
+  {
     BTORMBT_LOG (1, "sat");
+    if (btormbt->print_model)
+    {
+      if (pick (&rng, 0, NORM_VAL - 1) < btormbt->p_model_format)
+        boolector_print_model (btormbt->btor, "btor", stdout);
+      else
+        boolector_print_model (btormbt->btor, "smt2", stdout);
+    }
+  }
   else
     BTORMBT_LOG (1, "sat call returned %d", res);
 
@@ -3517,7 +3561,34 @@ main (int argc, char **argv)
         die ("argument to '--p-dump' is not a number (try '-h')");
       btormbt->p_dump = atof (argv[i]) * NORM_VAL;
       if (btormbt->p_dump > NORM_VAL)
-        die ("argument to '--p-inc' must be < 1.0");
+        die ("argument to '--p-dump' must be < 1.0");
+    }
+    else if (!strcmp (argv[i], "--p-print-model"))
+    {
+      if (++i == argc) die ("argument to '--p-print-model' missing (try '-h')");
+      if (!isfloatnumstr (argv[i]))
+        die ("argument to '--p-print-model' is not a number (try '-h')");
+      btormbt->p_print_model = atof (argv[i]) * NORM_VAL;
+      if (btormbt->p_print_model > NORM_VAL)
+        die ("argument to '--p-print-model' must be < 1.0");
+    }
+    else if (!strcmp (argv[i], "--p-model-format"))
+    {
+      if (++i == argc)
+        die ("argument to '--p-model-format' missing (try '-h')");
+      if (!isfloatnumstr (argv[i]))
+        die ("argument to '--p-model-format' is not a number (try '-h')");
+      btormbt->p_model_format = atof (argv[i]) * NORM_VAL;
+      if (btormbt->p_print_model > NORM_VAL)
+        die ("argument to '--p-model-format' must be < 1.0");
+    }
+    else if (!strcmp (argv[i], "--output-format"))
+    {
+      if (++i == argc) die ("argument to '--output-format' missing (try '-h')");
+      if (strcmp (argv[i], "btor") && strcmp (argv[i], "smt1")
+          && strcmp (argv[i], "smt2"))
+        die ("argument to '--output-format' is invalid (try '-h')");
+      btormbt->output_format = argv[i];
     }
     else if (!isnumstr (argv[i]))
     {

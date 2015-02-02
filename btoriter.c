@@ -3,7 +3,7 @@
  *  Copyright (C) 2007-2009 Robert Daniel Brummayer.
  *  Copyright (C) 2007-2012 Armin Biere.
  *  Copyright (C) 2012-2014 Mathias Preiner.
- *  Copyright (C) 2014 Aina Niemetz.
+ *  Copyright (C) 2014-2015 Aina Niemetz.
  *
  *  All rights reserved.
  *
@@ -220,6 +220,48 @@ has_next_parameterized_iterator (BtorParameterizedIterator *it)
 {
   assert (it);
   return it->cur != 0;
+}
+
+/*------------------------------------------------------------------------*/
+
+static void
+find_next_unique_node (BtorNodeIterator *it)
+{
+  while (!it->cur && it->pos < it->btor->nodes_unique_table.size)
+    it->cur = it->btor->nodes_unique_table.chains[it->pos++];
+}
+
+void
+init_unique_table_iterator (Btor *btor, BtorNodeIterator *it)
+{
+  assert (btor);
+  assert (it);
+
+  it->btor = btor;
+  it->pos  = 0;
+  it->cur  = btor->nodes_unique_table.chains[it->pos++];
+  find_next_unique_node (it);
+}
+
+int
+has_next_unique_table_iterator (BtorNodeIterator *it)
+{
+  assert (it);
+  return it->cur != 0 || it->pos < it->btor->nodes_unique_table.size;
+}
+
+BtorNode *
+next_unique_table_iterator (BtorNodeIterator *it)
+{
+  assert (it);
+  assert (it->cur);
+
+  BtorNode *result;
+
+  result  = it->cur;
+  it->cur = it->cur->next;
+  find_next_unique_node (it);
+  return result;
 }
 
 /*------------------------------------------------------------------------*/

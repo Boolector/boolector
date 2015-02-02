@@ -60,24 +60,25 @@ btor_parse_aux (Btor *btor,
 
   res                   = BOOLECTOR_UNKNOWN;
   *error_msg            = 0;
-  parse_opt.verbosity   = btor_get_opt_val (btor, BTOR_OPT_VERBOSITY);
-  parse_opt.incremental = btor_get_opt_val (btor, BTOR_OPT_INCREMENTAL);
-  if (btor_get_opt_val (btor, BTOR_OPT_INCREMENTAL_IN_DEPTH))
+  parse_opt.verbosity   = btor->options.verbosity.val;
+  parse_opt.incremental = btor->options.incremental.val;
+  parse_opt.interactive = btor->options.parse_interactive.val;
+  if (btor->options.incremental_in_depth.val)
   {
     parse_opt.incremental |= BTOR_PARSE_MODE_INCREMENTAL_IN_DEPTH;
-    parse_opt.window = btor_get_opt_val (btor, BTOR_OPT_INCREMENTAL_IN_DEPTH);
+    parse_opt.window = btor->options.incremental_in_depth.val;
   }
-  else if (btor_get_opt_val (btor, BTOR_OPT_INCREMENTAL_LOOK_AHEAD))
+  else if (btor->options.incremental_look_ahead.val)
   {
     parse_opt.incremental |= BTOR_PARSE_MODE_INCREMENTAL_LOOK_AHEAD;
-    parse_opt.window = btor_get_opt_val (btor, BTOR_OPT_INCREMENTAL_LOOK_AHEAD);
+    parse_opt.window = btor->options.incremental_look_ahead.val;
   }
-  else if (btor_get_opt_val (btor, BTOR_OPT_INCREMENTAL_INTERVAL))
+  else if (btor->options.incremental_interval.val)
   {
     parse_opt.incremental |= BTOR_PARSE_MODE_INCREMENTAL_INTERVAL;
-    parse_opt.window = btor_get_opt_val (btor, BTOR_OPT_INCREMENTAL_INTERVAL);
+    parse_opt.window = btor->options.incremental_interval.val;
   }
-  parse_opt.need_model = btor_get_opt_val (btor, BTOR_OPT_MODEL_GEN);
+  parse_opt.need_model = btor->options.model_gen.val;
 
   BTOR_MSG (btor->msg, 1, "%s", msg);
   parser = parser_api->init (btor, &parse_opt);
@@ -94,6 +95,8 @@ btor_parse_aux (Btor *btor,
 
     if (!parse_opt.incremental)
     {
+      // FIXME this is only used for non-incremental smt1 and btor
+      // maybe move root handling into respective parsers??
       /* assert root(s) if not incremental
        * Note: we have to do this via API calls for API tracing!!! */
       for (i = 0; i < parse_res.noutputs; i++)

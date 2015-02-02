@@ -136,6 +136,7 @@ btor_map_node_internal (Btor *btor, BtorNodeMap *map, BtorNode *exp)
   {
     case BTOR_BV_CONST_NODE:
 
+      // FIXME real_exp = exp weil BTOR_IS_REGULAR_NODE (exp)
       real_exp = BTOR_REAL_ADDR_NODE (exp);
       if (real_exp->btor != btor)
       {

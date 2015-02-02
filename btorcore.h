@@ -3,7 +3,7 @@
  *  Copyright (C) 2007-2009 Robert Daniel Brummayer.
  *  Copyright (C) 2007-2013 Armin Biere.
  *  Copyright (C) 2012-2014 Mathias Preiner.
- *  Copyright (C) 2012-2014 Aina Niemetz.
+ *  Copyright (C) 2012-2015 Aina Niemetz.
  *
  *  All rights reserved.
  *
@@ -33,13 +33,16 @@
 
 /*------------------------------------------------------------------------*/
 
-// Currently these are just to hide syntactically the internal nodes.  For
-// now we continue to assume that 'BtorNode' and 'BoolectorNode' are the
-// same structs and internal 'btor_...' functions work the same way as
-// external counter parts 'boolector_...', except for tracing and contract
-// checking.  If this stops to hold we need to provide real containers for
-// the external 'BoolectorNode', currently actually only 'BoolectorNodeMap'
-// needs to be fixed.
+// Currently, 'BoolectorNode' (external) vs. 'BtorNode' (internal)
+// syntactically hides internal nodes.  Hence, we assume that both structs
+// 'BoolectorNode' and 'BtorNode' have/ the same structure and provide the
+// following macros for type conversion (via typecasting).  We further assume
+// that external 'boolector_xxx' functions provide the same functionality as
+// their internal counter part 'btor_xxx' (except for API tracing and contract
+// checks).
+//
+// If the assumption above does not hold, we have to provide
+// real containers for 'BoolectorNode' (cf. 'BoolectorNodeMap').
 
 #define BTOR_IMPORT_BOOLECTOR_NODE(node) (((BtorNode *) (node)))
 #define BTOR_IMPORT_BOOLECTOR_NODE_ARRAY(array) (((BtorNode **) (array)))
@@ -154,7 +157,6 @@ struct Btor
   BtorPtrHashTable *cache;
   BtorPtrHashTable *parameterized;
   BtorPtrHashTable *score;
-  BtorPtrHashTable *score_depth;
   BtorPtrHashTable *searched_applies;
 
   /* compare fun for sorting the inputs in search_inital_applies_dual_prop */
@@ -217,6 +219,7 @@ struct Btor
     long long propagations_down;
     long long apply_props_construct;
     long long partial_beta_reduction_restarts;
+    size_t node_bytes_alloc;
   } stats;
 
   struct
@@ -242,6 +245,8 @@ struct Btor
     double reachable;
     double failed;
     double search_init_apps;
+    double search_init_apps_compute_scores;
+    double search_init_apps_compute_scores_merge_applies;
     double search_init_apps_cloning;
     double search_init_apps_sat;
     double search_init_apps_collect_var_apps;
@@ -337,20 +342,8 @@ BtorNode *btor_pointer_chase_simplified_exp (Btor *btor, BtorNode *exp);
 
 int btor_is_equal_sort (Btor *btor, BtorNode *e0, BtorNode *e1);
 
-/* Builds current assignment string of expression (in the SAT case)
- * and returns it.
- * Do not call before calling btor_sat_exp.
- * strlen(result) = len(exp)
- */
-void btor_array_assignment_str (
-    Btor *btor, BtorNode *exp, char ***indices, char ***values, int *size);
-
-const char *btor_bv_assignment_str (Btor *btor, BtorNode *exp);
-
 /* Frees BV assignment obtained by calling 'btor_assignment_exp' */
 void btor_release_bv_assignment_str (Btor *btor, char *assignment);
-
-void btor_print_model (Btor *btor, FILE *file);
 
 void btor_release_all_ext_refs (Btor *btor);
 

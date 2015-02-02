@@ -22,7 +22,9 @@
 #include "btorexit.h"
 #include "btorhash.h"
 #include "btoriter.h"
+#include "btormodel.h"
 #include "btorparse.h"
+#include "btorprintmodel.h"
 #include "btorsat.h"
 #include "btorsort.h"
 #include "btortrapi.h"
@@ -151,6 +153,30 @@ boolector_get_btor_msg (Btor *btor)
   BTOR_CHKCLONE_NORES (get_btor_msg);
 #endif
   return res;
+}
+
+void
+boolector_print_value (
+    Btor *btor, BoolectorNode *node, char *node_str, char *format, FILE *file)
+{
+  BtorNode *exp;
+
+  exp = BTOR_IMPORT_BOOLECTOR_NODE (node);
+  BTOR_ABORT_ARG_NULL_BOOLECTOR (btor);
+  BTOR_TRAPI_UNFUN_EXT (exp, "%s %s", node_str, format);
+  BTOR_ABORT_ARG_NULL_BOOLECTOR (format);
+  BTOR_ABORT_ARG_NULL_BOOLECTOR (file);
+  BTOR_ABORT_BOOLECTOR (strcmp (format, "btor") && strcmp (format, "smt2"),
+                        "invalid model output format: %s",
+                        format);
+  BTOR_ABORT_BOOLECTOR (!btor->options.model_gen.val,
+                        "model generation has not been enabled");
+  BTOR_ABORT_IF_BTOR_DOES_NOT_MATCH (btor, exp);
+  btor_print_value (btor, exp, node_str, format, file);
+#ifndef NDEBUG
+  BTOR_CHKCLONE_NORES (
+      print_value, BTOR_CLONED_EXP (exp), node_str, format, file);
+#endif
 }
 
 /*------------------------------------------------------------------------*/
@@ -2594,7 +2620,7 @@ boolector_apply (Btor *btor,
 {
   int i, len;
   char *strtrapi;
-  BtorNode **args, *e_fun, *res, *cur;
+  BtorNode **args, *e_fun, *res;
 
   args  = BTOR_IMPORT_BOOLECTOR_NODE_ARRAY (arg_nodes);
   e_fun = BTOR_IMPORT_BOOLECTOR_NODE (n_fun);
@@ -2609,10 +2635,6 @@ boolector_apply (Btor *btor,
   BTOR_NEWN (btor->mm, strtrapi, len);
   sprintf (strtrapi, "%d ", argc);
 
-  cur = BTOR_REAL_ADDR_NODE (btor_simplify_exp (btor, e_fun));
-  BTOR_ABORT_BOOLECTOR (
-      argc != btor_get_fun_arity (btor, cur),
-      "number of arguments must be <= number of parameters in 'fun'");
   for (i = 0; i < argc; i++)
     sprintf (
         strtrapi + strlen (strtrapi), NODE_FMT, BTOR_TRAPI_NODE_ID (args[i]));
@@ -2622,6 +2644,9 @@ boolector_apply (Btor *btor,
   BTOR_DELETEN (btor->mm, strtrapi, len);
 
   e_fun = btor_simplify_exp (btor, e_fun);
+  BTOR_ABORT_BOOLECTOR (
+      argc != btor_get_fun_arity (btor, e_fun),
+      "number of arguments must be equal to the number of parameters in 'fun'");
   BTOR_ABORT_BOOLECTOR (argc < 1, "'argc' must not be < 1");
   BTOR_ABORT_BOOLECTOR (argc >= 1 && !args,
                         "no arguments given but argc defined > 0");
@@ -3131,7 +3156,7 @@ boolector_bv_assignment (Btor *btor, BoolectorNode *node)
   BTOR_ABORT_ARRAY_BOOLECTOR (simp);
   BTOR_ABORT_BOOLECTOR (!btor->options.model_gen.val,
                         "model generation has not been enabled");
-  ass   = btor_bv_assignment_str (btor, simp);
+  ass   = btor_get_bv_model_str (btor, simp);
   bvass = btor_new_bv_assignment (btor->bv_assignments, (char *) ass);
   btor_release_bv_assignment_str (btor, (char *) ass);
   res = btor_get_bv_assignment_str (bvass);
@@ -3189,7 +3214,7 @@ fun_assignment (Btor *btor,
   assert (BTOR_IS_REGULAR_NODE (simp));
   assert (BTOR_IS_FUN_NODE (simp));
 
-  btor_array_assignment_str (btor, simp, &a, &v, size);
+  btor_get_fun_model_str (btor, simp, &a, &v, size);
 
   if (*size)
   {
@@ -3383,16 +3408,20 @@ boolector_free_uf_assignment (Btor *btor, char **args, char **values, int size)
 }
 
 void
-boolector_print_model (Btor *btor, FILE *file)
+boolector_print_model (Btor *btor, char *format, FILE *file)
 {
   BTOR_ABORT_ARG_NULL_BOOLECTOR (btor);
+  BTOR_ABORT_ARG_NULL_BOOLECTOR (format);
+  BTOR_TRAPI ("%s", format);
   BTOR_ABORT_ARG_NULL_BOOLECTOR (file);
-  BTOR_TRAPI ("");
+  BTOR_ABORT_BOOLECTOR (strcmp (format, "btor") && strcmp (format, "smt2"),
+                        "invalid model output format: %s",
+                        format);
   BTOR_ABORT_BOOLECTOR (!btor->options.model_gen.val,
                         "model generation has not been enabled");
-  btor_print_model (btor, file);
+  btor_print_model (btor, format, file);
 #ifndef NDEBUG
-  BTOR_CHKCLONE_NORES (print_model, file);
+  BTOR_CHKCLONE_NORES (print_model, format, file);
 #endif
 }
 

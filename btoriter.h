@@ -24,6 +24,8 @@
 
 typedef struct BtorNodeIterator
 {
+  Btor *btor; /* required for unique table iterator */
+  int pos;    /* required for unique table iterator */
   BtorNode *cur;
 } BtorNodeIterator;
 
@@ -44,6 +46,10 @@ BtorNode *next_parent_full_parent_iterator (BtorNodeIterator *);
 void init_lambda_iterator (BtorNodeIterator *, BtorNode *);
 int has_next_lambda_iterator (BtorNodeIterator *);
 BtorNode *next_lambda_iterator (BtorNodeIterator *);
+
+void init_unique_table_iterator (Btor *btor, BtorNodeIterator *);
+int has_next_unique_table_iterator (BtorNodeIterator *);
+BtorNode *next_unique_table_iterator (BtorNodeIterator *);
 
 /*------------------------------------------------------------------------*/
 

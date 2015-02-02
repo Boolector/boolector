@@ -54,6 +54,7 @@ struct BtorParseOpt
   int verbosity;
   int need_model;
   int window;
+  int interactive;
 };
 
 struct BtorParseResult

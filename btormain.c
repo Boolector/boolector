@@ -69,6 +69,7 @@ typedef struct BtorMainOpts
   BtorMainOpt version;
   BtorMainOpt time;
   BtorMainOpt output;
+  BtorMainOpt smt2_model;
 #ifdef BTOR_USE_LINGELING
   BtorMainOpt lingeling;
   BtorMainOpt lingeling_nofork;
@@ -169,6 +170,15 @@ btormain_init_opts (BtorMainApp *app)
                      0,
                      0,
                      "set output file for dumping");
+  BTORMAIN_INIT_OPT (
+      app->opts.smt2_model,
+      1,
+      0,
+      "smt2_model",
+      0,
+      0,
+      1,
+      "print model in SMT-LIB v2 format if model generation is enabled");
 #ifdef BTOR_USE_LINGELING
   BTORMAIN_INIT_OPT (app->opts.lingeling,
                      1,
@@ -323,7 +333,7 @@ print_opt (BtorMainApp *app,
       || !strcmp (lng, BTOR_OPT_PBRA_SAT_LIMIT)
       || !strcmp (lng, BTOR_OPT_PBRA_OPS_FACTOR)
       || !strcmp (lng, BTOR_OPT_DUAL_PROP) || !strcmp (lng, BTOR_OPT_JUST)
-      || !strcmp (lng, BTOR_OPT_UCOPT)
+      || !strcmp (lng, BTOR_OPT_JUST_HEURISTIC) || !strcmp (lng, BTOR_OPT_UCOPT)
       || !strcmp (lng, BTOR_OPT_LAZY_SYNTHESIZE)
       || !strcmp (lng, BTOR_OPT_ELIMINATE_SLICES)
       || !strcmp (lng, BTOR_OPT_PRETTY_PRINT)
@@ -466,6 +476,9 @@ print_help (BtorMainApp *app)
   PRINT_MAIN_OPT (app, &to);
 
   fprintf (out, "\n");
+  PRINT_MAIN_OPT (app, &app->opts.smt2_model);
+  fprintf (out, "\n");
+
   fprintf (out, BOOLECTOR_OPTS_INFO_MSG);
 
   for (o = (char *) boolector_first_opt (app->btor); o;
@@ -669,7 +682,7 @@ has_suffix (const char *str, const char *suffix)
 int
 boolector_main (int argc, char **argv)
 {
-  int res, sat_res, model_gen;
+  int res, sat_res, model_gen, print_model;
   int i, j, k, len, shrt, disable, readval, val, forced_sat_solver;
 #ifndef NBTORLOG
   int log;
@@ -686,8 +699,9 @@ boolector_main (int argc, char **argv)
 #ifdef BTOR_HAVE_GETRUSAGE
   static_start_time = btor_time_stamp ();
 #endif
-  res     = BTOR_UNKNOWN_EXIT;
-  sat_res = BOOLECTOR_UNKNOWN;
+  res         = BTOR_UNKNOWN_EXIT;
+  sat_res     = BOOLECTOR_UNKNOWN;
+  print_model = 0;
   inc = incid = incla = incint = dump = 0;
   parse_result                        = BOOLECTOR_UNKNOWN;
 
@@ -868,6 +882,12 @@ boolector_main (int argc, char **argv)
         goto DONE;
       }
       static_app->close_outfile = 1;
+    }
+    else if ((shrt && static_app->opts.smt2_model.shrt
+              && !strcmp (opt, static_app->opts.smt2_model.shrt))
+             || (!shrt && !strcmp (opt, static_app->opts.smt2_model.lng)))
+    {
+      static_app->opts.smt2_model.val = 1;
     }
 #ifdef BTOR_USE_LINGELING
     else if ((shrt && static_app->opts.lingeling.shrt
@@ -1194,9 +1214,15 @@ boolector_main (int argc, char **argv)
         else if ((shrt && oshrt && !strcmp (oshrt, "m")))
         {
           if (disable || (readval && val == 0))
-            model_gen = 0;
+          {
+            model_gen   = 0;
+            print_model = 0;
+          }
           else
+          {
             model_gen += 1;
+            print_model = 1;
+          }
         }
 #ifndef NBTORLOG
         else if ((shrt && oshrt && !strcmp (oshrt, "l"))
@@ -1362,6 +1388,8 @@ boolector_main (int argc, char **argv)
   else if (static_verbosity)
     btormain_msg ("no time limit given");
 
+  if (dump) boolector_set_opt (static_app->btor, BTOR_OPT_PARSE_INTERACTIVE, 0);
+
   if (inc && static_verbosity) btormain_msg ("starting incremental mode");
 
   if ((val = boolector_get_opt_val (static_app->btor, "input_format")))
@@ -1404,6 +1432,10 @@ boolector_main (int argc, char **argv)
                                     &parse_error_msg,
                                     &parse_status);
 
+  /* verbosity may have been increased via input (set-option) */
+  static_verbosity =
+      boolector_get_opt_val (static_app->btor, BTOR_OPT_VERBOSITY);
+
   if (parse_result == BOOLECTOR_PARSE_ERROR)
   {
     /* NOTE: do not use btormain_error here as 'parse_error_msg' must not be
@@ -1431,9 +1463,13 @@ boolector_main (int argc, char **argv)
 
     print_sat_result (static_app, sat_res);
 
-    if (boolector_get_opt_val (static_app->btor, BTOR_OPT_MODEL_GEN)
-        && sat_res == BOOLECTOR_SAT)
-      boolector_print_model (static_app->btor, static_app->outfile);
+    if (print_model && sat_res == BOOLECTOR_SAT)
+    {
+      assert (boolector_get_opt_val (static_app->btor, BTOR_OPT_MODEL_GEN));
+      boolector_print_model (static_app->btor,
+                             static_app->opts.smt2_model.val ? "smt2" : "btor",
+                             static_app->outfile);
+    }
 
     if (static_verbosity) boolector_print_stats (static_app->btor);
     goto DONE;
@@ -1465,7 +1501,10 @@ boolector_main (int argc, char **argv)
     goto DONE;
   }
 
-  sat_res = boolector_sat (static_app->btor);
+  if (parse_result != BOOLECTOR_SAT && parse_result != BOOLECTOR_UNSAT)
+    sat_res = boolector_sat (static_app->btor);
+  else
+    sat_res = parse_result;
   assert (sat_res != BOOLECTOR_UNKNOWN);
 
   /* check if status is equal to benchmark status */
@@ -1477,18 +1516,22 @@ boolector_main (int argc, char **argv)
     btormain_error (static_app,
                     "'unsat' but status of benchmark in '%s' is 'sat'",
                     static_app->infile_name);
-  else
-    print_sat_result (static_app, sat_res);
 
-  if (boolector_get_opt_val (static_app->btor, BTOR_OPT_MODEL_GEN)
-      && sat_res == BOOLECTOR_SAT)
-    boolector_print_model (static_app->btor, static_app->outfile);
+  if (print_model && sat_res == BOOLECTOR_SAT)
+  {
+    assert (boolector_get_opt_val (static_app->btor, BTOR_OPT_MODEL_GEN));
+    boolector_print_model (static_app->btor,
+                           static_app->opts.smt2_model.val ? "smt2" : "btor",
+                           static_app->outfile);
+  }
 
   if (static_verbosity)
   {
     boolector_print_stats (static_app->btor);
     print_static_stats ();
   }
+
+  print_sat_result (static_app, sat_res);
 
 DONE:
   if (static_app->done)

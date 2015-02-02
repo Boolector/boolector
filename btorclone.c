@@ -1,6 +1,6 @@
 /*  Boolector: Satisfiablity Modulo Theories (SMT) solver.
  *
- *  Copyright (C) 2013-2014 Aina Niemetz.
+ *  Copyright (C) 2013-2015 Aina Niemetz.
  *  Copyright (C) 2014 Mathias Preiner.
  *  Copyright (C) 2014 Armin Biere.
  *
@@ -173,6 +173,8 @@ clone_exp (Btor *clone,
 
   int i, len;
   BtorNode *res;
+  BtorParamNode *param;
+  BtorLambdaNode *lambda;
   BtorMemMgr *mm;
 
   mm = clone->mm;
@@ -211,14 +213,24 @@ clone_exp (Btor *clone,
     BTOR_PUSH_STACK_IF (exp->rho, mm, *rhos, &exp->rho);
   }
 
+  assert (!exp->next || !BTOR_IS_INVALID_NODE (exp->next));
   BTOR_PUSH_STACK_IF (exp->next, mm, *nodes, &res->next);
 
   /* Note: parent node used during BFS only, pointer is not reset after bfs,
-   *	   do not clone do avoid access to invalid nodes */
+   *	   do not clone to avoid access to invalid nodes */
   res->parent = 0;
 
+  assert (!exp->simplified
+          || !BTOR_IS_INVALID_NODE (BTOR_REAL_ADDR_NODE (exp->simplified)));
   BTOR_PUSH_STACK_IF (exp->simplified, mm, *nodes, &res->simplified);
+
   res->btor = clone;
+
+  assert (!exp->first_parent
+          || !BTOR_IS_INVALID_NODE (BTOR_REAL_ADDR_NODE (exp->first_parent)));
+  assert (!exp->last_parent
+          || !BTOR_IS_INVALID_NODE (BTOR_REAL_ADDR_NODE (exp->last_parent)));
+
   BTOR_PUSH_STACK_IF (exp->first_parent, mm, *parents, &res->first_parent);
   BTOR_PUSH_STACK_IF (exp->last_parent, mm, *parents, &res->last_parent);
   /* <---------------------------------------------------------------------- */
@@ -239,7 +251,7 @@ clone_exp (Btor *clone,
       }
       else
       {
-        if (BTOR_IS_ARRAY_EQ_NODE (exp) && exp->vreads)
+        if (BTOR_IS_FEQ_NODE (exp) && exp->vreads)
         {
           assert (btor_mapped_node (exp_map, exp->vreads->exp1));
           assert (btor_mapped_node (exp_map, exp->vreads->exp2));
@@ -252,6 +264,13 @@ clone_exp (Btor *clone,
 
       for (i = 0; i < exp->arity; i++)
       {
+        assert (!exp->prev_parent[i]
+                || !BTOR_IS_INVALID_NODE (
+                       BTOR_REAL_ADDR_NODE (exp->prev_parent[i])));
+        assert (!exp->next_parent[i]
+                || !BTOR_IS_INVALID_NODE (
+                       BTOR_REAL_ADDR_NODE (exp->next_parent[i])));
+
         BTOR_PUSH_STACK_IF (
             exp->prev_parent[i], mm, *parents, &res->prev_parent[i]);
         BTOR_PUSH_STACK_IF (
@@ -263,11 +282,18 @@ clone_exp (Btor *clone,
 
   if (BTOR_IS_PARAM_NODE (exp))
   {
-    BTOR_PUSH_STACK_IF (((BtorParamNode *) exp)->lambda_exp,
+    param = (BtorParamNode *) exp;
+    assert (!param->lambda_exp
+            || !BTOR_IS_INVALID_NODE (BTOR_REAL_ADDR_NODE (param->lambda_exp)));
+    assert (
+        !param->assigned_exp
+        || !BTOR_IS_INVALID_NODE (BTOR_REAL_ADDR_NODE (param->assigned_exp)));
+
+    BTOR_PUSH_STACK_IF (param->lambda_exp,
                         mm,
                         *nodes,
                         (BtorNode **) &((BtorParamNode *) res)->lambda_exp);
-    BTOR_PUSH_STACK_IF (((BtorParamNode *) exp)->assigned_exp,
+    BTOR_PUSH_STACK_IF (param->assigned_exp,
                         mm,
                         *nodes,
                         (BtorNode **) &((BtorParamNode *) res)->assigned_exp);
@@ -275,15 +301,19 @@ clone_exp (Btor *clone,
 
   if (BTOR_IS_LAMBDA_NODE (exp))
   {
-    if (((BtorLambdaNode *) exp)->synth_apps)
+    lambda = (BtorLambdaNode *) exp;
+    if (lambda->synth_apps)
     {
       BTOR_PUSH_STACK (mm, *sapps, &((BtorLambdaNode *) res)->synth_apps);
       BTOR_PUSH_STACK (mm, *sapps, &((BtorLambdaNode *) exp)->synth_apps);
     }
-    BTOR_PUSH_STACK_IF (((BtorLambdaNode *) exp)->head,
-                        mm,
-                        *nodes,
-                        (BtorNode **) &((BtorLambdaNode *) res)->head);
+
+    //      assert (!lambda->head || !BTOR_IS_INVALID_NODE (lambda->head));
+    assert (!lambda->body
+            || !BTOR_IS_INVALID_NODE (BTOR_REAL_ADDR_NODE (lambda->body)));
+
+    //      BTOR_PUSH_STACK_IF (((BtorLambdaNode *) exp)->head, mm, *nodes,
+    //			  (BtorNode **) &((BtorLambdaNode *) res)->head);
     BTOR_PUSH_STACK_IF (((BtorLambdaNode *) exp)->body,
                         mm,
                         *nodes,
@@ -300,7 +330,6 @@ clone_exp (Btor *clone,
             == ((BtorUFNode *) exp)->sort->refs);
   }
 
-  res = BTOR_IS_INVERTED_NODE (exp) ? BTOR_INVERT_NODE (res) : res;
   btor_map_node (exp_map, exp, res);
 
   return res;
@@ -370,79 +399,79 @@ clone_str_key (BtorMemMgr *mm, const void *map, const void *key)
 static void
 data_as_node_ptr (BtorMemMgr *mm,
                   const void *map,
-                  const void *data_ptr,
-                  BtorPtrHashData *data)
+                  BtorPtrHashData *data,
+                  BtorPtrHashData *cloned_data)
 {
   assert (mm);
   assert (map);
-  assert (data_ptr);
   assert (data);
+  assert (cloned_data);
 
   BtorNode *exp, *cloned_exp;
   BtorNodeMap *exp_map;
 
   (void) mm;
-  exp        = (BtorNode *) data_ptr;
+  exp        = (BtorNode *) data->asPtr;
   exp_map    = (BtorNodeMap *) map;
   cloned_exp = btor_mapped_node (exp_map, exp);
   assert (cloned_exp);
-  data->asPtr = cloned_exp;
+  cloned_data->asPtr = cloned_exp;
 }
 
 static void
 data_as_str_ptr (BtorMemMgr *mm,
                  const void *str_table,
-                 const void *data_ptr,
-                 BtorPtrHashData *data)
+                 BtorPtrHashData *data,
+                 BtorPtrHashData *cloned_data)
 {
   assert (mm);
   assert (str_table);
-  assert (data_ptr);
   assert (data);
+  assert (cloned_data);
 
   char *str;
 
   (void) mm;
-  str = (char *) data_ptr;
+  str = data->asStr;
   assert (btor_find_in_ptr_hash_table ((BtorPtrHashTable *) str_table, str));
 
-  data->asStr =
+  cloned_data->asStr =
       (char *) btor_find_in_ptr_hash_table ((BtorPtrHashTable *) str_table, str)
           ->key;
 }
 
 static void
-data_as_int_ptr (BtorMemMgr *mm,
-                 const void *map,
-                 const void *data_ptr,
-                 BtorPtrHashData *data)
+data_as_int (BtorMemMgr *mm,
+             const void *map,
+             BtorPtrHashData *data,
+             BtorPtrHashData *cloned_data)
 {
   assert (mm);
   assert (map);
-  assert (data_ptr);
   assert (data);
+  assert (cloned_data);
 
   (void) mm;
   (void) map;
-  data->asInt = (int) (long) data_ptr;
+  cloned_data->asInt = data->asInt;
 }
 
 static void
 data_as_bv_ptr (BtorMemMgr *mm,
                 const void *map,
-                const void *data_ptr,
-                BtorPtrHashData *data)
+                BtorPtrHashData *data,
+                BtorPtrHashData *cloned_data)
 {
   assert (mm);
   assert (map);
-  assert (data_ptr);
   assert (data);
+  assert (cloned_data);
 
   Btor *btor;
 
   (void) mm;
-  btor        = ((BtorNodeMap *) map)->btor;
-  data->asPtr = btor_copy_bv (btor, (BitVector *) data_ptr);
+  btor               = ((BtorNodeMap *) map)->btor;
+  cloned_data->asPtr = btor_copy_bv (btor, (BitVector *) data->asPtr);
 }
 
 static void *
@@ -457,38 +486,38 @@ copy_bv_tuple (BtorMemMgr *mm, const void *map, const void *t)
 static void
 data_as_bv_htable_ptr (BtorMemMgr *mm,
                        const void *map,
-                       const void *data_ptr,
-                       BtorPtrHashData *data)
+                       BtorPtrHashData *data,
+                       BtorPtrHashData *cloned_data)
 {
   assert (mm);
   assert (map);
-  assert (data_ptr);
   assert (data);
+  assert (cloned_data);
 
   BtorPtrHashTable *table;
-  table       = (BtorPtrHashTable *) data_ptr;
-  data->asPtr = btor_clone_ptr_hash_table (
+  table              = (BtorPtrHashTable *) data->asPtr;
+  cloned_data->asPtr = btor_clone_ptr_hash_table (
       mm, table, copy_bv_tuple, data_as_bv_ptr, map, map);
 }
 
 static void
 data_as_htable_ptr (BtorMemMgr *mm,
                     const void *map,
-                    const void *data_ptr,
-                    BtorPtrHashData *data)
+                    BtorPtrHashData *data,
+                    BtorPtrHashData *cloned_data)
 {
   assert (mm);
   assert (map);
-  assert (data_ptr);
   assert (data);
+  assert (cloned_data);
 
   BtorPtrHashTable *table;
   BtorNodeMap *exp_map;
 
-  table   = (BtorPtrHashTable *) data_ptr;
+  table   = (BtorPtrHashTable *) data->asPtr;
   exp_map = (BtorNodeMap *) map;
 
-  data->asPtr =
+  cloned_data->asPtr =
       btor_clone_ptr_hash_table (mm, table, mapped_node, 0, exp_map, 0);
 }
 
@@ -648,15 +677,15 @@ clone_nodes_unique_table (BtorMemMgr *mm,
     CHKCLONE_MEM_PTR_HASH_TABLE (table);                                      \
   } while (0)
 
-#define CLONE_PTR_HASH_TABLE_ASPTR(table, data_ptr_func)          \
-  do                                                              \
-  {                                                               \
-    BTORLOG_TIMESTAMP (delta);                                    \
-    clone->table = btor_clone_ptr_hash_table (                    \
-        mm, btor->table, mapped_node, data_ptr_func, emap, emap); \
-    BTORLOG ("  clone " #table " table: %.3f s",                  \
-             (btor_time_stamp () - delta));                       \
-    CHKCLONE_MEM_PTR_HASH_TABLE (table);                          \
+#define CLONE_PTR_HASH_TABLE_DATA(table, data_func)           \
+  do                                                          \
+  {                                                           \
+    BTORLOG_TIMESTAMP (delta);                                \
+    clone->table = btor_clone_ptr_hash_table (                \
+        mm, btor->table, mapped_node, data_func, emap, emap); \
+    BTORLOG ("  clone " #table " table: %.3f s",              \
+             (btor_time_stamp () - delta));                   \
+    CHKCLONE_MEM_PTR_HASH_TABLE (table);                      \
   } while (0)
 
 static Btor *
@@ -674,7 +703,7 @@ clone_aux_btor (Btor *btor,
   BtorAIGMap *amap  = 0;
   BtorMemMgr *mm;
   double start, delta;
-  int len;
+  int len, h;
   char *prefix, *clone_prefix;
 #ifndef NDEBUG
   int i;
@@ -874,7 +903,7 @@ clone_aux_btor (Btor *btor,
     }
     else if (cur->rho)
       allocated += MEM_PTR_HASH_TABLE (cur->rho);
-    if (BTOR_IS_ARRAY_EQ_NODE (cur) && cur->vreads)
+    if (BTOR_IS_FEQ_NODE (cur) && cur->vreads)
       allocated += sizeof (BtorNodePair);
     if (!exp_layer_only && BTOR_IS_LAMBDA_NODE (cur)
         && ((BtorLambdaNode *) cur)->synth_apps)
@@ -938,16 +967,16 @@ clone_aux_btor (Btor *btor,
   CLONE_PTR_HASH_TABLE (ufs);
   assert ((allocated += MEM_PTR_HASH_TABLE (btor->ufs))
           == clone->mm->allocated);
-  CLONE_PTR_HASH_TABLE (lambdas);
+  CLONE_PTR_HASH_TABLE_DATA (lambdas, data_as_int);
   assert ((allocated += MEM_PTR_HASH_TABLE (btor->lambdas))
           == clone->mm->allocated);
-  CLONE_PTR_HASH_TABLE_ASPTR (substitutions, data_as_node_ptr);
+  CLONE_PTR_HASH_TABLE_DATA (substitutions, data_as_node_ptr);
   assert ((allocated += MEM_PTR_HASH_TABLE (btor->substitutions))
           == clone->mm->allocated);
   CLONE_PTR_HASH_TABLE (lod_cache);
   assert ((allocated += MEM_PTR_HASH_TABLE (btor->lod_cache))
           == clone->mm->allocated);
-  CLONE_PTR_HASH_TABLE_ASPTR (varsubst_constraints, data_as_node_ptr);
+  CLONE_PTR_HASH_TABLE_DATA (varsubst_constraints, data_as_node_ptr);
   assert ((allocated += MEM_PTR_HASH_TABLE (btor->varsubst_constraints))
           == clone->mm->allocated);
   CLONE_PTR_HASH_TABLE (embedded_constraints);
@@ -968,7 +997,7 @@ clone_aux_btor (Btor *btor,
   CLONE_PTR_HASH_TABLE (fun_rhs);
   assert ((allocated += MEM_PTR_HASH_TABLE (btor->fun_rhs))
           == clone->mm->allocated);
-  CLONE_PTR_HASH_TABLE_ASPTR (bv_model, data_as_bv_ptr);
+  CLONE_PTR_HASH_TABLE_DATA (bv_model, data_as_bv_ptr);
 #ifndef NDEBUG
   if (btor->bv_model)
   {
@@ -986,7 +1015,7 @@ clone_aux_btor (Btor *btor,
 #endif
   assert ((allocated += MEM_PTR_HASH_TABLE (btor->bv_model))
           == clone->mm->allocated);
-  CLONE_PTR_HASH_TABLE_ASPTR (fun_model, data_as_bv_htable_ptr);
+  CLONE_PTR_HASH_TABLE_DATA (fun_model, data_as_bv_htable_ptr);
 #ifndef NDEBUG
   if (btor->fun_model)
   {
@@ -1021,7 +1050,7 @@ clone_aux_btor (Btor *btor,
            BTOR_SIZE_STACK (btor->functions_with_model) * sizeof (BtorNode *))
           == clone->mm->allocated);
 
-  CLONE_PTR_HASH_TABLE_ASPTR (cache, data_as_node_ptr);
+  CLONE_PTR_HASH_TABLE_DATA (cache, data_as_node_ptr);
   assert ((allocated += MEM_PTR_HASH_TABLE (btor->cache))
           == clone->mm->allocated);
 
@@ -1049,33 +1078,37 @@ clone_aux_btor (Btor *btor,
 
   if (btor->score)
   {
-    clone->score = btor_clone_ptr_hash_table (
-        mm, btor->score, mapped_node, data_as_htable_ptr, emap, emap);
-    BTORLOG ("  clone score table: %.3f s", (btor_time_stamp () - delta));
-#ifndef NDEBUG
-    CHKCLONE_MEM_PTR_HASH_TABLE (score);
-    allocated += MEM_PTR_HASH_TABLE (btor->score);
-    init_node_hash_table_iterator (&it, btor->score);
-    init_node_hash_table_iterator (&cit, clone->score);
-    while (has_next_node_hash_table_iterator (&it))
+    h = btor->options.just_heuristic.val;
+    if (h == BTOR_JUST_HEUR_BRANCH_MIN_APP)
     {
-      assert (
-          MEM_PTR_HASH_TABLE ((BtorPtrHashTable *) it.bucket->data.asPtr)
-          == MEM_PTR_HASH_TABLE ((BtorPtrHashTable *) cit.bucket->data.asPtr));
-      allocated +=
-          MEM_PTR_HASH_TABLE ((BtorPtrHashTable *) it.bucket->data.asPtr);
-      (void) next_node_hash_table_iterator (&it);
-      (void) next_node_hash_table_iterator (&cit);
-    }
-    assert (allocated == clone->mm->allocated);
+      clone->score = btor_clone_ptr_hash_table (
+          mm, btor->score, mapped_node, data_as_htable_ptr, emap, emap);
+      BTORLOG ("  clone score table: %.3f s", (btor_time_stamp () - delta));
+#ifndef NDEBUG
+      CHKCLONE_MEM_PTR_HASH_TABLE (score);
+      allocated += MEM_PTR_HASH_TABLE (btor->score);
+      init_node_hash_table_iterator (&it, btor->score);
+      init_node_hash_table_iterator (&cit, clone->score);
+      while (has_next_node_hash_table_iterator (&it))
+      {
+        assert (MEM_PTR_HASH_TABLE ((BtorPtrHashTable *) it.bucket->data.asPtr)
+                == MEM_PTR_HASH_TABLE (
+                       (BtorPtrHashTable *) cit.bucket->data.asPtr));
+        allocated +=
+            MEM_PTR_HASH_TABLE ((BtorPtrHashTable *) it.bucket->data.asPtr);
+        (void) next_node_hash_table_iterator (&it);
+        (void) next_node_hash_table_iterator (&cit);
+      }
+      assert (allocated == clone->mm->allocated);
 #endif
-  }
-
-  if (btor->score_depth)
-  {
-    CLONE_PTR_HASH_TABLE_ASPTR (score_depth, data_as_int_ptr);
-    assert ((allocated += MEM_PTR_HASH_TABLE (btor->score_depth))
-            == clone->mm->allocated);
+    }
+    else
+    {
+      assert (h == BTOR_JUST_HEUR_BRANCH_MIN_DEP);
+      CLONE_PTR_HASH_TABLE_DATA (score, data_as_int);
+      assert ((allocated += MEM_PTR_HASH_TABLE (btor->score))
+              == clone->mm->allocated);
+    }
   }
 
   if (exp_layer_only)

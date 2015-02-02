@@ -490,7 +490,7 @@ btor_chkclone_exp (BtorNode *exp, BtorNode *clone)
       else
       {
         BTOR_CHKCLONE_EXP (upper);
-        if (!BTOR_IS_ARRAY_EQ_NODE (real_exp))
+        if (!BTOR_IS_FEQ_NODE (real_exp))
           BTOR_CHKCLONE_EXP (lower);
         else
         {
@@ -577,15 +577,17 @@ btor_chkclone_exp (BtorNode *exp, BtorNode *clone)
       assert (!has_next_hash_table_iterator (&cit));
     }
 
-    if (((BtorLambdaNode *) real_exp)->head)
-    {
-      assert (((BtorLambdaNode *) real_exp)->head
-              != ((BtorLambdaNode *) real_clone)->head);
-      BTOR_CHKCLONE_EXPID (((BtorLambdaNode *) real_exp)->head,
-                           ((BtorLambdaNode *) real_clone)->head);
-    }
-    else
-      assert (!((BtorLambdaNode *) real_clone)->head);
+#if 0
+      if (((BtorLambdaNode *) real_exp)->head)
+	{
+	  assert (((BtorLambdaNode *) real_exp)->head
+		  != ((BtorLambdaNode *) real_clone)->head);
+	  BTOR_CHKCLONE_EXPID (((BtorLambdaNode *) real_exp)->head,
+			    ((BtorLambdaNode *) real_clone)->head);
+	}
+      else
+	assert (!((BtorLambdaNode *) real_clone)->head);
+#endif
 
     if (((BtorLambdaNode *) real_exp)->body)
     {

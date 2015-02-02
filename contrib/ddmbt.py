@@ -16,16 +16,32 @@ g_golden_runtime = 0
 g_options = object
 g_outfile = ""
 g_tmpfile = "/tmp/ddmbt-" + str(os.getpid()) + ".trace"
+g_tmpbin = "/tmp/ddmbt-bin-" + str(os.getpid())
 g_command = [] 
 g_num_tests = 0
 g_lines = []
 g_subst_lines = {}
 g_line_tokens = []
 g_id2line = {}
-g_ids = []
+g_node_map = {}
+g_node_bw = {}
+g_sort_map = {}
 
-SKIP_SUBST_LIST = ["return", "release", "get_index_width", "bv_assignment", \
-                   "free_bv_assignment", "get_width", "get_fun_arity"]
+CONST_NODE_KINDS = ["const", "zero", "false", "ones", "true", "one",
+                    "unsigned_int", "int"]
+
+NODE_KINDS = ["copy", "const", "zero", "false", "ones", "true", "one",
+              "unsigned_int", "int", "var", "array", "uf", "not", "neg",
+              "redor", "redxor", "redand", "slice", "uext", "sext", "implies",
+              "iff", "xor", "xnor", "and", "nand", "or", "nor", "eq", "ne",
+              "add", "uaddo", "saddo", "mul", "umulo", "smulo", "ult", "slt",
+              "ulte", "slte", "ugt", "sgt", "ugte", "sgte", "sll", "srl",
+              "sra", "rol", "ror", "sub", "usubo", "ssubo", "udiv", "sdiv",
+              "sdivo", "urem", "srem", "smod", "concat", "read", "write",
+              "cond", "param", "fun", "apply", "inc", "dec"]
+
+SORT_KINDS = ["bool_sort", "bitvec_sort", "fun_sort", "array_sort",
+              "tuple_sort"]
 
 def _parse_options():
     usage_fmt = "%prog [options] INFILE OUTFILE \"CMD [options]\""
@@ -42,43 +58,48 @@ def _parse_options():
 
     return (options, args)
 
-def _is_node(s):
-    m = re.match('^e-?\d+', s)
-    return m is not None
+def _is_node(id):
+    global g_node_map
+    return id in g_node_map
 
-def _sort_bw(tokens):
-    sort = tokens[0]
+def _sort_bw(id):
+    global g_sort_map
 
-    if sort == "bitvec_sort":
-        return [int(tokens[1])]
+    t = g_sort_map[id][:]
+    del[t[1]]
+    sort = t[0]
+
+    if sort == "bool_sort":
+        return 1
+    elif sort == "bitvec_sort":
+        return int(t[1])
+    elif sort == "fun_sort":
+        return [_sort_bw(s) for s in t[1:]]
     elif sort == "tuple_sort":
         pass
-    elif sort == "fun_sort":
-        return _sort_bw(tokens[2])
-    elif sort == "bool_sort":
+    elif sort == "array_sort":
         pass
-    
-    return [-1]
+    return 0
 
 def _tokens_children(tokens):
     return [c for c in tokens if _is_node(c)]
 
-def _tokens_bw(tokens, nodes_bw):
+def _node_bw(tokens):
+    global g_nodes_bw
 
     t = tokens[:]
     del[t[1]]
     tokens = t
     kind = tokens[0]
+    bw = 0
     if kind in ["var", "param", "zero", "one", "ones"]:
-        return [int(tokens[1])]
+        bw = int(tokens[1])
     elif kind in ["int", "unsigned_int"]:
-        return [int(tokens[2])]
+        bw = int(tokens[2])
     elif kind == "array":
-        return [int(tokens[1]), int(tokens[2])]
+        bw = [int(tokens[1]), int(tokens[2])]
     elif kind == "slice":
-        return [int(tokens[2]) - int(tokens[3]) + 1]
-    elif kind in ["zero", "ones", "one"]:
-        return [int(tokens[1])]
+        bw = int(tokens[2]) - int(tokens[3]) + 1
     elif kind in ["true", "false",
                   "redor", "redand", "redxor",
                   "implies", "iff",
@@ -86,53 +107,64 @@ def _tokens_bw(tokens, nodes_bw):
                   "ult", "slt", "ulte", "slte",
                   "ugt", "sgt", "ugte", "sgte",
                   "uaddo", "saddo", "usubo", "ssubo", "sdivo"]:
-        return [1]
-    # TODO: sort handling
+        bw = 1 
     elif kind == "uf":
-        return [-1]
-    elif "_sort" in kind:
-        return _sort_bw(tokens)
+        bw = _sort_bw(tokens[1])
     else:
         children = _tokens_children(tokens)
-        cbw = [nodes_bw[c] for c in children]
+        cbw = [g_node_bw[c] for c in children]
         if kind == "cond":
             assert(cbw[1] == cbw[2])
-            return cbw[1]
+            bw = cbw[1]
         elif kind == "read":
             assert(len(cbw[0]) == 2)
-            return [cbw[0][0]]
+            bw = cbw[0][0]
+            assert(not isinstance(bw, list))
         elif kind == "write":
             assert(len(cbw[0]) == 2)
-            return cbw[0]
+            bw = cbw[0]
         elif kind in ["not", "inc", "dec"]:
             assert(len(cbw) == 1)
-            return cbw[0]
+            bw = cbw[0]
         elif kind in ["sext", "uext"]:
             assert(len(cbw) == 1)
-            return [cbw[0][0] + int(tokens[2])]
-        elif kind in ["fun", "apply"]:
-            return cbw[-1]
+            bw = cbw[0] + int(tokens[2])
+        elif kind == "fun":
+            bw = cbw
+        elif kind == "apply":
+            bw = cbw[-1][-1]
+            assert(not isinstance(bw, list))
         elif kind in ["rol", "ror", "neg", "sll", "srl", "sra"]:
-            return cbw[0]
+            bw = cbw[0]
         elif kind == "concat":
             assert(len(cbw) == 2)
-            return [cbw[0][0] + cbw[1][0]]
+            bw = cbw[0] + cbw[1]
         elif kind == "const":
-            return [len(tokens[1])]
+            bw = len(tokens[1])
         elif kind == "copy":
-            return cbw[0]
+            bw = cbw[0]
         else:
-            print(tokens)
             assert(len(cbw) == 2)
             assert(cbw[0] == cbw[1])
-            return cbw[0]
+            bw = cbw[0]
+            assert(not isinstance(bw, list))
+    return bw
+
+def _is_node_id(s):
+    m = re.match('^e-?\d+', s)
+    return m is not None
+
+def _is_sort_id(s):
+    m = re.match('^s\d+', s)
+    return m is not None
 
 def _build_graph():
-    global g_lines, g_line_tokens, g_ids, g_id2line
+    global g_lines, g_line_tokens, g_id2line, g_node_map, g_node_bw, g_sort_map
 
     g_line_tokens = [] 
-    node_map = {}
-    nodes_bw = {}
+    g_node_map = {}
+    g_node_bw = {}
+    g_sort_map = {}
     prev_tokens = []
     for i in range(len(g_lines)):
         tokens = g_lines[i].split()
@@ -140,16 +172,17 @@ def _build_graph():
         nid = "" 
 
         if tokens[0] == "return" and not "assignment" in prev_tokens[0]:
-            if _is_node(tokens[1]):
-                nid = tokens[1]
-                g_ids.append(nid)
-                node_map[nid] = prev_tokens 
-                bw = _tokens_bw(prev_tokens, nodes_bw) 
-                nodes_bw[nid] = bw
+            id = tokens[1]
+            if prev_tokens[0] in NODE_KINDS and _is_node_id(id):
+                g_node_map[id] = prev_tokens 
+                bw = _node_bw(prev_tokens)
+                g_node_bw[id] = bw
                 assert(i > 0)
-                g_line_tokens[i - 1][0] = nid
+                g_line_tokens[i - 1][0] = id
                 g_line_tokens[i - 1][1] = bw
-                g_id2line[nid] = i - 1
+                g_id2line[id] = i - 1
+            elif prev_tokens[0] in SORT_KINDS and _is_sort_id(id):
+                g_sort_map[id] = prev_tokens
 
         prev_tokens = tokens
         g_line_tokens.append(["", [], tokens])
@@ -230,6 +263,7 @@ def _save(lines):
 
 def _cleanup():
     os.remove(g_tmpfile)
+    os.remove(g_tmpbin)
 
 def _log(verbosity, msg, update=False):
     global g_options
@@ -294,16 +328,19 @@ def _compact_graph():
 
     # insert vars
     for i in range(len(g_line_tokens)):
-        nid = g_line_tokens[i][0]
-        bw = g_line_tokens[i][1]
+        id = g_line_tokens[i][0]
         tokens = g_line_tokens[i][2]
         kind = tokens[0]
 
-        if kind in ["var", "fun", "param"] or nid == "" or len(bw) > 1:
+        if kind in CONST_NODE_KINDS or \
+           kind in ["var", "param", "uf", "fun"] or not _is_node(id):
             continue
 
+        btor = tokens[1]
+        bw = g_line_tokens[i][1]
+
         _log(1, "  insert var at line {}, {}".format(i, num_substs), True)
-        g_subst_lines[i] = "var {} v{}".format(bw[0], i) 
+        g_subst_lines[i] = "var {} {} v{}".format(btor, bw, i) 
         _open_file_dump_trace(g_tmpfile, g_lines)
 
         if _test():
@@ -364,6 +401,7 @@ def _swap_ids():
                         _save(g_lines)
                         g_lines[i] = g_subst_lines[i]
                         num_substs += 1
+                        break
                     else:
                         t[j] = old
 
@@ -438,6 +476,12 @@ def ddmbt_main():
     # copy inputfile to tmpfile
     shutil.copyfile(inputfile, g_tmpfile)
     g_command.append(g_tmpfile)
+    # copy binary to tmpfile
+    shutil.copyfile(g_command[0], g_tmpbin)
+    # copy permissons of binary
+    shutil.copymode(g_command[0], g_tmpbin)
+    # replace binary with temporary one
+    g_command[0] = g_tmpbin
 
     start = time.time()
     g_golden_exit_code, g_golden_err_msg = _run(True)

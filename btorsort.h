@@ -16,6 +16,8 @@
 #include "btormem.h"
 #include "btorstack.h"
 
+typedef struct BtorNode BtorNode;
+
 enum BtorSortKind
 {
   BTOR_INVALID_SORT = 0,
@@ -109,6 +111,8 @@ BtorSort *btor_array_sort (BtorSortUniqueTable *, BtorSort *, BtorSort *);
 BtorSort *btor_lst_sort (BtorSortUniqueTable *, BtorSort *, BtorSort *);
 
 BtorSort *btor_fun_sort (BtorSortUniqueTable *, BtorSort **, int, BtorSort *);
+
+BtorSort *btor_fun_sort_from_fun (BtorSortUniqueTable *table, BtorNode *fun);
 
 BtorSort *btor_tuple_sort (BtorSortUniqueTable *, BtorSort **, int);
 

@@ -19,8 +19,8 @@
 
 struct BitVector
 {
-  int width;
-  int len;
+  int width; /* length of bit vector */
+  int len;   /* length of 'bits' array */
   /* spare bits at the beginning are zeroed out */
   BTOR_BV_TYPE *bits;
 };
