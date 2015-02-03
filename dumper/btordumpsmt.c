@@ -375,7 +375,8 @@ recursively_dump_exp_smt (BtorSMTDumpContext *sdc, BtorNode *exp, int wrap_bool)
   if (is_bool && wrap_bool && !BTOR_IS_BV_CONST_NODE (real_exp))
     fputs ("(ite ", sdc->file);
 
-  if (btor_find_in_ptr_hash_table (sdc->dumped, real_exp)
+  if ((btor_find_in_ptr_hash_table (sdc->dumped, real_exp)
+       || BTOR_IS_FUN_NODE (real_exp))
       /* always dump constants and function applictions */
       && !BTOR_IS_BV_CONST_NODE (real_exp) && !BTOR_IS_APPLY_NODE (real_exp))
   {
@@ -658,10 +659,10 @@ dump_fun_smt2 (BtorSMTDumpContext *sdc, BtorNode *fun)
   assert (!btor_find_in_ptr_hash_table (sdc->dumped, fun));
 
   int i, refs;
-  BtorNode *cur, *param, *index = 0, *value = 0, *array = 0, *fun_body;
+  BtorNode *cur, *param, *index = 0, *value = 0, *array = 0, *fun_body, *p;
   BtorMemMgr *mm = sdc->btor->mm;
   BtorNodePtrStack visit, shared;
-  BtorNodeIterator it;
+  BtorNodeIterator it, iit;
   BtorPtrHashTable *mark;
   BtorPtrHashBucket *b;
 
@@ -683,9 +684,8 @@ dump_fun_smt2 (BtorSMTDumpContext *sdc, BtorNode *fun)
     }
 #endif
 
-  fun_body = BTOR_LAMBDA_GET_BODY (fun);
   /* collect shared parameterized expressions in function body */
-  BTOR_PUSH_STACK (mm, visit, BTOR_REAL_ADDR_NODE (fun_body));
+  BTOR_PUSH_STACK (mm, visit, fun);
   while (!BTOR_EMPTY_STACK (visit))
   {
     cur = BTOR_POP_STACK (visit);
@@ -702,8 +702,8 @@ dump_fun_smt2 (BtorSMTDumpContext *sdc, BtorNode *fun)
     /* args and params are handled differently */
     /* collect shared parameterized expressions in function body.
      * arguments, parameters, and constants are excluded. */
-    if (!BTOR_IS_ARGS_NODE (cur)
-        && !BTOR_IS_PARAM_NODE (cur)
+    if (!BTOR_IS_ARGS_NODE (cur) && !BTOR_IS_PARAM_NODE (cur)
+        && !BTOR_IS_LAMBDA_NODE (cur)
         /* constants are always printed */
         && !BTOR_IS_BV_CONST_NODE (cur) && cur->parameterized && refs > 1)
       BTOR_PUSH_STACK (mm, shared, cur);
@@ -718,31 +718,26 @@ dump_fun_smt2 (BtorSMTDumpContext *sdc, BtorNode *fun)
   dump_smt_id (sdc, fun);
   fputs (" (", sdc->file);
 
-  i = 0;
   init_lambda_iterator (&it, fun);
   while (has_next_lambda_iterator (&it))
   {
     cur   = next_lambda_iterator (&it);
     param = (BtorNode *) BTOR_LAMBDA_GET_PARAM (cur);
-    /* in case lambdas are shared it might be possible that 'cur' and
-     * 'param' were already dumped previously. */
-    if (!btor_find_in_ptr_hash_table (sdc->dumped, cur))
-    {
-      btor_insert_in_ptr_hash_table (sdc->dumped, cur);
-      assert (!btor_find_in_ptr_hash_table (sdc->dumped, param));
-      btor_insert_in_ptr_hash_table (sdc->dumped, param);
-    }
-    if (i > 0) fputc (' ', sdc->file);
+    assert (btor_find_in_ptr_hash_table (mark, cur));
+    assert (btor_find_in_ptr_hash_table (mark, param));
+    btor_insert_in_ptr_hash_table (sdc->dumped, cur);
+    btor_insert_in_ptr_hash_table (sdc->dumped, param);
+    if (fun != cur) fputc (' ', sdc->file);
     fputc ('(', sdc->file);
     dump_smt_id (sdc, param);
     fputc (' ', sdc->file);
     btor_dump_sort_smt_node (param, sdc->version, sdc->file);
     fputc (')', sdc->file);
-    i++;
   }
   fputs (") ", sdc->file);
 
   // TODO (ma): again wait for aina merge for dump_sort_smt
+  fun_body = BTOR_LAMBDA_GET_BODY (fun);
   if (is_boolean (sdc, fun_body))
     fputs ("Bool", sdc->file);
   else
@@ -775,10 +770,45 @@ dump_fun_smt2 (BtorSMTDumpContext *sdc, BtorNode *fun)
   /* close define-fun */
   fputs (")\n", sdc->file);
 
+  /* due to lambda hashing it is possible that a lambda in 'fun' is shared in
+   * different functions. hence, we have to check if all lambda parents of
+   * the resp. lambda have already been dumped as otherwise all expressions
+   * below have to be removed from 'sdc->dumped' as they will be dumped
+   * again in a different function definition. */
+  init_lambda_iterator (&it, fun);
+  while (has_next_lambda_iterator (&it))
+  {
+    cur = next_lambda_iterator (&it);
+    init_full_parent_iterator (&iit, cur);
+    while (has_next_parent_full_parent_iterator (&iit))
+    {
+      p = next_parent_full_parent_iterator (&iit);
+      if (btor_find_in_ptr_hash_table (sdc->dump, p)
+          && !btor_find_in_ptr_hash_table (sdc->dumped, p)
+          && BTOR_IS_LAMBDA_NODE (p))
+      {
+        BTOR_PUSH_STACK (mm, visit, cur);
+        while (!BTOR_EMPTY_STACK (visit))
+        {
+          cur = BTOR_REAL_ADDR_NODE (BTOR_POP_STACK (visit));
+          assert (BTOR_IS_REGULAR_NODE (cur));
+
+          if (!btor_find_in_ptr_hash_table (mark, cur)
+              || !btor_find_in_ptr_hash_table (sdc->dumped, cur))
+            continue;
+
+          btor_remove_from_ptr_hash_table (sdc->dumped, cur, 0, 0);
+          for (i = 0; i < cur->arity; i++)
+            BTOR_PUSH_STACK (mm, visit, cur->e[i]);
+        }
+        break;
+      }
+    }
+  }
+
   BTOR_RELEASE_STACK (mm, shared);
   BTOR_RELEASE_STACK (mm, visit);
   btor_delete_ptr_hash_table (mark);
-  assert (btor_find_in_ptr_hash_table (sdc->dumped, fun));
 }
 
 static void

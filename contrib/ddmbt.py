@@ -16,6 +16,7 @@ g_golden_runtime = 0
 g_options = object
 g_outfile = ""
 g_tmpfile = "/tmp/ddmbt-" + str(os.getpid()) + ".trace"
+g_tmpbin = "/tmp/ddmbt-bin-" + str(os.getpid())
 g_command = [] 
 g_num_tests = 0
 g_lines = []
@@ -262,6 +263,7 @@ def _save(lines):
 
 def _cleanup():
     os.remove(g_tmpfile)
+    os.remove(g_tmpbin)
 
 def _log(verbosity, msg, update=False):
     global g_options
@@ -474,6 +476,12 @@ def ddmbt_main():
     # copy inputfile to tmpfile
     shutil.copyfile(inputfile, g_tmpfile)
     g_command.append(g_tmpfile)
+    # copy binary to tmpfile
+    shutil.copyfile(g_command[0], g_tmpbin)
+    # copy permissons of binary
+    shutil.copymode(g_command[0], g_tmpbin)
+    # replace binary with temporary one
+    g_command[0] = g_tmpbin
 
     start = time.time()
     g_golden_exit_code, g_golden_err_msg = _run(True)
