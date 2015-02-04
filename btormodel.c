@@ -705,7 +705,7 @@ btor_generate_model (Btor *btor, int model_for_all_nodes)
   qsort (stack.start,
          BTOR_COUNT_STACK (stack),
          sizeof (BtorNode *),
-         btor_cmp_exp_by_id_asc);
+         btor_cmp_exp_by_id_qsort_asc);
 
   for (i = 0; i < BTOR_COUNT_STACK (stack); i++)
   {
