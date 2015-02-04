@@ -33,8 +33,8 @@ typedef void *(*BtorCloneKeyPtr) (BtorMemMgr *mem,
                                   const void *key);
 typedef void (*BtorCloneDataPtr) (BtorMemMgr *mem,
                                   const void *map,
-                                  const void *data_ptr,
-                                  BtorPtrHashData *data);
+                                  BtorPtrHashData *data,
+                                  BtorPtrHashData *cloned_data);
 
 union BtorPtrHashData
 {

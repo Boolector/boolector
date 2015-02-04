@@ -219,6 +219,7 @@ struct Btor
     long long propagations_down;
     long long apply_props_construct;
     long long partial_beta_reduction_restarts;
+    size_t node_bytes_alloc;
   } stats;
 
   struct

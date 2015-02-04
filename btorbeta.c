@@ -261,9 +261,10 @@ btor_beta_reduce (Btor *btor, BtorNode *exp, int mode, int bound)
     BETA_REDUCE_START:
       assert (!BTOR_IS_LAMBDA_NODE (real_cur) || !real_cur->e[0]->simplified);
 
-      if (BTOR_IS_LAMBDA_NODE (real_cur) && !real_cur->parameterized
-          && (!BTOR_IS_CURRIED_LAMBDA_NODE (cur)
-              || BTOR_IS_FIRST_CURRIED_LAMBDA (cur)))
+      if (BTOR_IS_LAMBDA_NODE (real_cur)
+          && !real_cur->parameterized
+          /* only count head lambdas (in case of curried lambdas) */
+          && (!cur_parent || !BTOR_IS_LAMBDA_NODE (cur_parent)))
         cur_lambda_depth++;
 
       /* stop at given bound */
@@ -271,8 +272,7 @@ btor_beta_reduce (Btor *btor, BtorNode *exp, int mode, int bound)
           && cur_lambda_depth == bound)
       {
         assert (!real_cur->parameterized);
-        assert (!BTOR_IS_CURRIED_LAMBDA_NODE (cur)
-                || BTOR_IS_FIRST_CURRIED_LAMBDA (cur));
+        assert (!cur_parent || !BTOR_IS_LAMBDA_NODE (cur_parent));
         cur_lambda_depth--;
         BTOR_PUSH_STACK (mm, arg_stack, btor_copy_exp (btor, cur));
         continue;
@@ -283,9 +283,10 @@ btor_beta_reduce (Btor *btor, BtorNode *exp, int mode, int bound)
                /* do not stop at parameterized lambdas, otherwise the
                 * result may contain parameters that are not bound by any
                 * lambda anymore */
-               && !real_cur->parameterized)
+               && !real_cur->parameterized
+               /* do not stop at non-parameterized curried lambdas */
+               && (!cur_parent || !BTOR_IS_LAMBDA_NODE (cur_parent)))
       {
-        assert (!real_cur->parameterized);
         cur_lambda_depth--;
         BTOR_PUSH_STACK (mm, arg_stack, btor_copy_exp (btor, cur));
         continue;
@@ -523,9 +524,10 @@ btor_beta_reduce (Btor *btor, BtorNode *exp, int mode, int bound)
 #endif
       }
 
-      if (BTOR_IS_LAMBDA_NODE (real_cur) && !real_cur->parameterized
-          && (!BTOR_IS_CURRIED_LAMBDA_NODE (cur)
-              || BTOR_IS_FIRST_CURRIED_LAMBDA (cur)))
+      if (BTOR_IS_LAMBDA_NODE (real_cur)
+          && !real_cur->parameterized
+          /* only count head lambdas (in case of curried lambdas) */
+          && (!cur_parent || !BTOR_IS_LAMBDA_NODE (cur_parent)))
         cur_lambda_depth--;
 
     BETA_REDUCE_PUSH_RESULT:
@@ -544,10 +546,7 @@ btor_beta_reduce (Btor *btor, BtorNode *exp, int mode, int bound)
           args = 0;
           /* we do not need to assign parameters of curried lambdas
            * that are not the first one */
-          // CHECK: is it enough to check if lambda has assignment?
-          // we can then assert condition below
-          if (BTOR_IS_FIRST_CURRIED_LAMBDA (real_cur)
-              || !BTOR_IS_CURRIED_LAMBDA_NODE (real_cur))
+          if (!cur_parent || !BTOR_IS_LAMBDA_NODE (cur_parent))
           {
             assert (!btor_param_cur_assignment (real_cur->e[0]));
             args = BTOR_TOP_STACK (arg_stack);

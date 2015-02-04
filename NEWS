@@ -1,3 +1,7 @@
++ fixed bug in compare function for pointer hashing
++ fixed performance issues when computing scores for don't care reasoning
++ added smt2 models (get-value, get-model)
+
 news for release 2.0.3 since 2.0.0
 --------------------------------------
 * fixed segmentation fault in back annotation for 'synthebtor'
