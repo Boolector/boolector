@@ -103,6 +103,7 @@ typedef struct BtorOpts
   BtorOpt pbra_ops_factor;       /* factor by which the beta reduced formula
                                     may be greater than the original */
 #endif
+  BtorOpt sls;
   BtorOpt dual_prop;      /* dual prop optimization */
   BtorOpt just;           /* justification optimization */
   BtorOpt just_heuristic; /* use heuristic (else: input [0] if both

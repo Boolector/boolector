@@ -648,7 +648,6 @@ void
 btor_generate_model (Btor *btor, int model_for_all_nodes)
 {
   assert (btor);
-  assert (btor->last_sat_result == BTOR_SAT);
 
   int i;
   double start;
@@ -724,6 +723,97 @@ btor_delete_model (Btor *btor)
   assert (btor);
   delete_bv_model (btor);
   delete_fun_model (btor);
+}
+
+void
+btor_update_model (Btor *btor,
+                   BtorNode *exp,
+                   BitVector *assignment,
+                   int model_for_all_nodes)
+{
+  assert (btor);
+  // TODO we currently support QF_BV only
+  assert (btor->lambdas->count == 0 && btor->ufs->count == 0);
+  assert (check_id_table_mark_unset_dbg (btor));
+  assert (exp);
+  assert (assignment);
+
+  BitVector *bv;
+  BtorPtrHashBucket *b;
+  BtorNodePtrStack stack, nodes;
+  BtorNodeIterator nit;
+  BtorNode *cur;
+
+  exp = BTOR_REAL_ADDR_NODE (exp);
+
+  BTOR_INIT_STACK (stack);
+  BTOR_INIT_STACK (nodes);
+
+  bv = btor_get_bv_model (btor, exp);
+  assert (bv->width == assignment->width);
+  assert (bv->len == assignment->len);
+  assert (btor_compare_bv (bv, assignment));
+
+  b = btor_find_in_ptr_hash_table (btor->bv_model, exp);
+  assert (b->data.asPtr);
+  btor_free_bv (btor, b->data.asPtr);
+  b->data.asPtr = assignment;
+
+  /* determine cone */
+  init_full_parent_iterator (&nit, exp);
+  while (has_next_parent_full_parent_iterator (&nit))
+    BTOR_PUSH_STACK (btor->mm, stack, next_parent_full_parent_iterator (&nit));
+
+  while (!BTOR_EMPTY_STACK (stack))
+  {
+    cur = BTOR_REAL_ADDR_NODE (BTOR_POP_STACK (stack));
+    if (cur->mark) continue;
+    cur->mark = 1;
+
+    BTOR_PUSH_STACK (btor->mm, nodes, cur);
+
+    /* reset previous assignment */
+    b = btor_find_in_ptr_hash_table (btor->bv_model, cur);
+    if (b)
+    {
+      btor_free_bv (btor, b->data.asPtr);
+      btor_remove_from_ptr_hash_table (btor->bv_model, cur, 0, 0);
+    }
+
+    /* push parents */
+    init_full_parent_iterator (&nit, cur);
+    while (has_next_parent_full_parent_iterator (&nit))
+      BTOR_PUSH_STACK (
+          btor->mm, stack, next_parent_full_parent_iterator (&nit));
+  }
+  qsort (nodes.start,
+         BTOR_COUNT_STACK (nodes),
+         sizeof (BtorNode *),
+         btor_cmp_exp_by_id_qsort_asc);
+
+  /* cleanup */
+  for (i = 0; i < BTOR_COUNT_STACK (nodes); i++)
+    BTOR_PEEK_STACK (nodes, i)->mark = 0;
+
+  /* update model */
+  while (!BTOR_EMPTY_STACK (nodes))
+  {
+    cur = BTOR_POP_STACK (nodes);
+    assert (BTOR_IS_REGULAR_NODE (cur));
+    // TODO we currently support QF_BV only
+    assert (!BTOR_IS_FUN_NODE (cur));
+
+    if (BTOR_IS_ARGS_NODE (cur) || BTOR_IS_PROXY_NODE (cur)
+        || cur->parameterized
+        /* generate model for all expressions (includes non-reachable) */
+        || (!model_for_all_nodes && !cur->reachable))
+      continue;
+
+    bv = recursively_compute_assignment (btor, cur);
+  }
+
+  BTOR_RELEASE_STACK (btor->mm, stack);
+  BTOR_RELEASE_STACK (btor->mm, nodes);
 }
 
 const BitVector *

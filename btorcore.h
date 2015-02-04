@@ -302,6 +302,8 @@ void btor_assume_exp (Btor *btor, BtorNode *exp);
 /* Determines if expression has been previously assumed. */
 int btor_is_assumption_exp (Btor *btor, BtorNode *exp);
 
+void btor_update_assumptions (Btor *btor);
+
 /* Determines if assumption is a failed assumption. */
 int btor_failed_exp (Btor *btor, BtorNode *exp);
 

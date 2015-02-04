@@ -30,6 +30,7 @@
 #include "btorprintmodel.h"
 #include "btorrewrite.h"
 #include "btorsat.h"
+#include "btorsls.h"
 #include "btorutil.h"
 
 #include <limits.h>
@@ -1172,8 +1173,8 @@ process_unsynthesized_constraints (Btor *btor)
   }
 }
 
-static void
-update_assumptions (Btor *btor)
+void
+btor_update_assumptions (Btor *btor)
 {
   assert (btor);
   assert (check_id_table_mark_unset_dbg (btor));
@@ -7064,7 +7065,7 @@ btor_sat_aux_btor (Btor *btor, int lod_limit, int sat_limit)
   BTOR_MSG (btor->msg, 1, "calling SAT");
 
   simp_sat_result = btor_simplify (btor);
-  update_assumptions (btor);
+  btor_update_assumptions (btor);
 
 #ifdef BTOR_CHECK_FAILED
   if (btor_has_clone_support_sat_mgr (btor_get_sat_mgr_btor (btor))
@@ -7441,19 +7442,27 @@ btor_sat_btor (Btor *btor, int lod_limit, int sat_limit)
 
 #ifdef BTOR_CHECK_DUAL_PROP
   Btor *dpclone = 0;
-  if (btor_has_clone_support_sat_mgr (btor_get_sat_mgr_btor (btor))
-      && btor->options.dual_prop.val)
-  {
-    dpclone = btor_clone_btor (btor);
-    btor_set_opt (dpclone, BTOR_OPT_LOGLEVEL, 0);
-    btor_set_opt (dpclone, BTOR_OPT_VERBOSITY, 0);
-    btor_set_opt (dpclone, BTOR_OPT_AUTO_CLEANUP, 1);
-    btor_set_opt (dpclone, BTOR_OPT_AUTO_CLEANUP_INTERNAL, 1);
-    btor_set_opt (dpclone, BTOR_OPT_DUAL_PROP, 0);
-  }
 #endif
 
-  res = btor_sat_aux_btor (btor, lod_limit, sat_limit);
+  if (btor->options.sls.val)
+    res = btor_sat_aux_btor_sls (btor);
+  else
+  {
+#ifdef BTOR_CHECK_DUAL_PROP
+    if (btor_has_clone_support_sat_mgr (btor_get_sat_mgr_btor (btor))
+        && btor->options.dual_prop.val)
+    {
+      dpclone = btor_clone_btor (btor);
+      btor_set_opt (dpclone, BTOR_OPT_LOGLEVEL, 0);
+      btor_set_opt (dpclone, BTOR_OPT_VERBOSITY, 0);
+      btor_set_opt (dpclone, BTOR_OPT_AUTO_CLEANUP, 1);
+      btor_set_opt (dpclone, BTOR_OPT_AUTO_CLEANUP_INTERNAL, 1);
+      btor_set_opt (dpclone, BTOR_OPT_DUAL_PROP, 0);
+    }
+#endif
+    res = btor_sat_aux_btor (btor, lod_limit, sat_limit);
+  }
+
   btor->btor_sat_btor_called++;
 
 #ifdef BTOR_CHECK_UNCONSTRAINED

@@ -17,12 +17,17 @@
 #include "btorexp.h"
 #include "btorhash.h"
 
-void btor_generate_model (Btor *, int);
-void btor_delete_model (Btor *);
+void btor_generate_model (Btor* btor, int model_for_all_reads);
+void btor_delete_model (Btor* btor);
+void btor_update_model (Btor* btor,
+                        BtorNode* exp,
+                        BitVector* assignment,
+                        int model_for_all_nodes)
 
-const BitVector *btor_get_bv_model (Btor *, BtorNode *);
-const BtorPtrHashTable *btor_get_fun_model (Btor *, BtorNode *);
-BtorNode *btor_generate_lambda_model_from_fun_model (
-    Btor *btor, BtorNode *exp, const BtorPtrHashTable *model);
+    const BitVector* btor_get_bv_model (Btor* btor, BtorNode* exp);
+const BtorPtrHashTable* btor_get_fun_model (Btor* btor, BtorNode* exp);
+
+BtorNode* btor_generate_lambda_model_from_fun_model (
+    Btor* btor, BtorNode* exp, const BtorPtrHashTable* model);
 
 #endif

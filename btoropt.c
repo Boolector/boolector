@@ -164,6 +164,7 @@ btor_init_opts (Btor *btor)
             "the original formula");
 #endif
 
+  BTOR_OPT ("sls", sls, 0, 0, 1, "enable sls engine (SAT only)");
   BTOR_OPT ("dp", dual_prop, 0, 0, 1, "dual propagation optimization");
   BTOR_OPT ("ju", just, 0, 0, 1, "justification optimization");
   BTOR_OPT (0,
