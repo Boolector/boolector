@@ -140,6 +140,8 @@ def err_extract_status(line):
         return "time"
     elif b'memory' == status[-1]:
         return "mem"
+    elif b'segmentation' == status[-2]:
+        return "segfault"
     else:
         raise CmpSMTException("invalid status")
 

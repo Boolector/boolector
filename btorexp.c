@@ -2,7 +2,7 @@
  *
  *  Copyright (C) 2007-2009 Robert Daniel Brummayer.
  *  Copyright (C) 2007-2014 Armin Biere.
- *  Copyright (C) 2012-2014 Aina Niemetz.
+ *  Copyright (C) 2012-2015 Aina Niemetz.
  *  Copyright (C) 2012-2014 Mathias Preiner.
  *
  *  All rights reserved.
@@ -1384,16 +1384,16 @@ btor_compare_exp_by_id (BtorNode *exp0, BtorNode *exp1)
 int
 btor_cmp_exp_by_id_qsort_desc (const void *p, const void *q)
 {
-  BtorNode *a = *(BtorNode **) p;
-  BtorNode *b = *(BtorNode **) q;
+  BtorNode *a = BTOR_REAL_ADDR_NODE (*(BtorNode **) p);
+  BtorNode *b = BTOR_REAL_ADDR_NODE (*(BtorNode **) q);
   return b->id - a->id;
 }
 
 int
 btor_cmp_exp_by_id_qsort_asc (const void *p, const void *q)
 {
-  BtorNode *a = *(BtorNode **) p;
-  BtorNode *b = *(BtorNode **) q;
+  BtorNode *a = BTOR_REAL_ADDR_NODE (*(BtorNode **) p);
+  BtorNode *b = BTOR_REAL_ADDR_NODE (*(BtorNode **) q);
   return a->id - b->id;
 }
 
