@@ -1,7 +1,7 @@
 /*  Boolector: Satisfiablity Modulo Theories (SMT) solver.
  *
  *  Copyright (C) 2014 Mathias Preiner.
- *  Copyright (C) 2014 Aina Niemetz.
+ *  Copyright (C) 2014-2015 Aina Niemetz.
  *
  *  All rights reserved.
  *
@@ -602,14 +602,6 @@ compute_lambda_model (Btor *btor, BtorNode *exp, BtorPtrHashTable *assignments)
   BTOR_RELEASE_STACK (btor->mm, candidates);
 }
 
-static int
-cmp_node_id (const void *p, const void *q)
-{
-  BtorNode *a = *(BtorNode **) p;
-  BtorNode *b = *(BtorNode **) q;
-  return BTOR_REAL_ADDR_NODE (a)->id - BTOR_REAL_ADDR_NODE (b)->id;
-}
-
 static void
 extract_models_from_functions_with_model (Btor *btor)
 {
@@ -710,8 +702,10 @@ btor_generate_model (Btor *btor, int model_for_all_nodes)
     BTOR_PUSH_STACK (btor->mm, stack, cur);
   }
 
-  qsort (
-      stack.start, BTOR_COUNT_STACK (stack), sizeof (BtorNode *), cmp_node_id);
+  qsort (stack.start,
+         BTOR_COUNT_STACK (stack),
+         sizeof (BtorNode *),
+         btor_cmp_exp_by_id_asc);
 
   for (i = 0; i < BTOR_COUNT_STACK (stack); i++)
   {
