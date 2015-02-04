@@ -2114,32 +2114,10 @@ btor_eq_exp_node (Btor *btor, BtorNode *e0, BtorNode *e1)
   e0 = btor_simplify_exp (btor, e0);
   e1 = btor_simplify_exp (btor, e1);
   assert (btor_precond_eq_exp_dbg (btor, e0, e1));
-
   if (BTOR_IS_FUN_NODE (BTOR_REAL_ADDR_NODE (e0)))
     kind = BTOR_FEQ_NODE;
   else
-  {
     kind = BTOR_BEQ_NODE;
-    if (btor->options.rewrite_level.val > 1)
-    {
-      if (BTOR_IS_INVERTED_NODE (e0)
-          && BTOR_REAL_ADDR_NODE (e0)->kind == BTOR_BV_VAR_NODE)
-      {
-        e0 = BTOR_INVERT_NODE (e0);
-        e1 = BTOR_INVERT_NODE (e1);
-      }
-      else if (BTOR_IS_INVERTED_NODE (e1)
-               && BTOR_REAL_ADDR_NODE (e1)->kind == BTOR_BV_VAR_NODE
-               && (BTOR_IS_INVERTED_NODE (e0)
-                   || BTOR_REAL_ADDR_NODE (e1)->kind != BTOR_BV_VAR_NODE))
-      {
-        BtorNode *tmp = BTOR_INVERT_NODE (e0);
-        e0            = BTOR_INVERT_NODE (e1);
-        e1            = tmp;
-      }
-    }
-  }
-
   return binary_exp (btor, kind, e0, e1, 1);
 }
 
@@ -2252,7 +2230,7 @@ btor_lambda_exp (Btor *btor, BtorNode *e_param, BtorNode *e_exp)
 
   BtorNode *result;
   if (btor->options.rewrite_level.val > 0)
-    result = btor_rewrite_lambda_exp (btor, e_param, e_exp);
+    result = btor_rewrite_binary_exp (btor, BTOR_LAMBDA_NODE, e_param, e_exp);
   else
     result = btor_lambda_exp_node (btor, e_param, e_exp);
   assert (BTOR_IS_LAMBDA_NODE (BTOR_REAL_ADDR_NODE (result)));
@@ -2401,7 +2379,7 @@ btor_apply_exp (Btor *btor, BtorNode *fun, BtorNode *args)
   }
 
   if (btor->options.rewrite_level.val > 0)
-    return btor_rewrite_apply_exp (btor, fun, args);
+    return btor_rewrite_binary_exp (btor, BTOR_APPLY_NODE, fun, args);
 
   return btor_apply_exp_node (btor, fun, args);
 }
@@ -2457,7 +2435,8 @@ btor_bv_cond_exp_node (Btor *btor,
   assert (btor == BTOR_REAL_ADDR_NODE (e_else)->btor);
 
   if (btor->options.rewrite_level.val > 0)
-    return btor_rewrite_cond_exp (btor, e_cond, e_if, e_else);
+    return btor_rewrite_ternary_exp (
+        btor, BTOR_BCOND_NODE, e_cond, e_if, e_else);
 
   return btor_cond_exp_node (btor, e_cond, e_if, e_else);
 }
@@ -2524,7 +2503,7 @@ btor_add_exp (Btor *btor, BtorNode *e0, BtorNode *e1)
   assert (btor_precond_regular_binary_bv_exp_dbg (btor, e0, e1));
 
   if (btor->options.rewrite_level.val > 0)
-    result = btor_rewrite_add_exp (btor, e0, e1);
+    result = btor_rewrite_binary_exp (btor, BTOR_ADD_NODE, e0, e1);
   else
     result = btor_add_exp_node (btor, e0, e1);
 
@@ -2592,8 +2571,10 @@ btor_eq_exp (Btor *btor, BtorNode *e0, BtorNode *e1)
   e1 = btor_simplify_exp (btor, e1);
   assert (btor_precond_eq_exp_dbg (btor, e0, e1));
 
+  // TODO (ma): it is ok to pass BEQ or FEQ here as the same
+  //	        rewriting function will be triggered
   if (btor->options.rewrite_level.val > 0)
-    result = btor_rewrite_eq_exp (btor, e0, e1);
+    result = btor_rewrite_binary_exp (btor, BTOR_BEQ_NODE, e0, e1);
   else
     result = btor_eq_exp_node (btor, e0, e1);
 
@@ -2614,7 +2595,7 @@ btor_and_exp (Btor *btor, BtorNode *e0, BtorNode *e1)
   assert (btor_precond_regular_binary_bv_exp_dbg (btor, e0, e1));
 
   if (btor->options.rewrite_level.val > 0)
-    result = btor_rewrite_and_exp (btor, e0, e1);
+    result = btor_rewrite_binary_exp (btor, BTOR_AND_NODE, e0, e1);
   else
     result = btor_and_exp_node (btor, e0, e1);
 
@@ -2667,7 +2648,7 @@ btor_concat_exp (Btor *btor, BtorNode *e0, BtorNode *e1)
   assert (btor_precond_concat_exp_dbg (btor, e0, e1));
 
   if (btor->options.rewrite_level.val > 0)
-    result = btor_rewrite_concat_exp (btor, e0, e1);
+    result = btor_rewrite_binary_exp (btor, BTOR_CONCAT_NODE, e0, e1);
   else
     result = btor_concat_exp_node (btor, e0, e1);
 
@@ -2932,7 +2913,7 @@ btor_mul_exp (Btor *btor, BtorNode *e0, BtorNode *e1)
   assert (btor_precond_regular_binary_bv_exp_dbg (btor, e0, e1));
 
   if (btor->options.rewrite_level.val > 0)
-    result = btor_rewrite_mul_exp (btor, e0, e1);
+    result = btor_rewrite_binary_exp (btor, BTOR_MUL_NODE, e0, e1);
   else
     result = btor_mul_exp_node (btor, e0, e1);
 
@@ -3092,7 +3073,7 @@ btor_ult_exp (Btor *btor, BtorNode *e0, BtorNode *e1)
   assert (btor_precond_regular_binary_bv_exp_dbg (btor, e0, e1));
 
   if (btor->options.rewrite_level.val > 0)
-    result = btor_rewrite_ult_exp (btor, e0, e1);
+    result = btor_rewrite_binary_exp (btor, BTOR_ULT_NODE, e0, e1);
   else
     result = btor_ult_exp_node (btor, e0, e1);
 
@@ -3250,7 +3231,7 @@ btor_sll_exp (Btor *btor, BtorNode *e0, BtorNode *e1)
   assert (btor_precond_shift_exp_dbg (btor, e0, e1));
 
   if (btor->options.rewrite_level.val > 0)
-    result = btor_rewrite_sll_exp (btor, e0, e1);
+    result = btor_rewrite_binary_exp (btor, BTOR_SLL_NODE, e0, e1);
   else
     result = btor_sll_exp_node (btor, e0, e1);
 
@@ -3271,7 +3252,7 @@ btor_srl_exp (Btor *btor, BtorNode *e0, BtorNode *e1)
   assert (btor_precond_shift_exp_dbg (btor, e0, e1));
 
   if (btor->options.rewrite_level.val > 0)
-    result = btor_rewrite_srl_exp (btor, e0, e1);
+    result = btor_rewrite_binary_exp (btor, BTOR_SRL_NODE, e0, e1);
   else
     result = btor_srl_exp_node (btor, e0, e1);
 
@@ -3442,7 +3423,7 @@ btor_udiv_exp (Btor *btor, BtorNode *e0, BtorNode *e1)
   assert (btor_precond_regular_binary_bv_exp_dbg (btor, e0, e1));
 
   if (btor->options.rewrite_level.val > 0)
-    result = btor_rewrite_udiv_exp (btor, e0, e1);
+    result = btor_rewrite_binary_exp (btor, BTOR_UDIV_NODE, e0, e1);
   else
     result = btor_udiv_exp_node (btor, e0, e1);
 
@@ -3531,7 +3512,7 @@ btor_urem_exp (Btor *btor, BtorNode *e0, BtorNode *e1)
   assert (btor_precond_regular_binary_bv_exp_dbg (btor, e0, e1));
 
   if (btor->options.rewrite_level.val > 0)
-    result = btor_rewrite_urem_exp (btor, e0, e1);
+    result = btor_rewrite_binary_exp (btor, BTOR_UREM_NODE, e0, e1);
   else
     result = btor_urem_exp_node (btor, e0, e1);
 

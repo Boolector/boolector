@@ -240,6 +240,12 @@ typedef struct BtorArgsNode BtorArgsNode;
 
 #define BTOR_IS_ADD_NODE_KIND(kind) ((kind) == BTOR_ADD_NODE)
 
+#define BTOR_IS_MUL_NODE_KIND(kind) ((kind) == BTOR_MUL_NODE)
+
+#define BTOR_IS_UDIV_NODE_KIND(kind) ((kind) == BTOR_UDIV_NODE)
+
+#define BTOR_IS_UREM_NODE_KIND(kind) ((kind) == BTOR_UREM_NODE)
+
 #define BTOR_IS_LAMBDA_NODE_KIND(kind) ((kind) == BTOR_LAMBDA_NODE)
 
 #define BTOR_IS_UF_NODE_KIND(kind) ((kind) == BTOR_UF_NODE)
@@ -291,6 +297,12 @@ typedef struct BtorArgsNode BtorArgsNode;
   (BTOR_IS_FEQ_NODE (exp) || BTOR_IS_BV_EQ_NODE (exp))
 
 #define BTOR_IS_ADD_NODE(exp) ((exp) && BTOR_IS_ADD_NODE_KIND ((exp)->kind))
+
+#define BTOR_IS_MUL_NODE(exp) ((exp) && BTOR_IS_MUL_NODE_KIND ((exp)->kind))
+
+#define BTOR_IS_UDIV_NODE(exp) ((exp) && BTOR_IS_UDIV_NODE_KIND ((exp)->kind))
+
+#define BTOR_IS_UREM_NODE(exp) ((exp) && BTOR_IS_UREM_NODE_KIND ((exp)->kind))
 
 #define BTOR_IS_LAMBDA_NODE(exp) \
   ((exp) && BTOR_IS_LAMBDA_NODE_KIND ((exp)->kind))
@@ -973,6 +985,10 @@ int btor_precond_cond_exp_dbg (const Btor *btor,
                                const BtorNode *e_cond,
                                const BtorNode *e_if,
                                const BtorNode *e_else);
+
+int btor_precond_apply_exp_dbg (const Btor *btor,
+                                const BtorNode *fun,
+                                const BtorNode *args);
 /*------------------------------------------------------------------------*/
 #endif
 /*------------------------------------------------------------------------*/
