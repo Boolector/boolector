@@ -19,9 +19,55 @@
 #define BTOR_SLS_MAXSTEPS(i) \
   (BTOR_SLS_MAXSTEPS_CFACTOR * ((i) &1u ? 1 : 1 << ((i) >> 1)))
 
+static int
+hamming_distance (BitVector *bv1, BitVector *bv2)
+{
+  assert (bv1);
+  assert (bv2);
+  assert (bv1->width == bv2->width);
+  assert (bv1->len == bv2->len);
+
+  int res;
+  BitVector *bv, *bvdec = 0, *zero, *ones, *tmp;
+
+  zero = btor_new_bv (btor, bv1->width);
+  ones = btor_not_bv (btor, zero);
+  bv   = btor_xor_bv (btor, bv1, bv2);
+  for (res = 0; !btor_compare_bv (bv, zero); res++)
+  {
+    bvdec = btor_add_bv (btor, bv, ones);
+    tmp   = bv;
+    bv    = btor_and_bv (btor, bv, bvdec);
+    btor_free_bv (btor, tmp);
+  }
+  if (bvdec) btor_free_bv (btor, bvdec);
+  btor_free_bv (btor, bv);
+  btor_free_bv (btor, ones);
+  btor_free_bv (btor, zero);
+  return res;
+}
+
+// score
+//
+// bw m == 1:
+//   s (e[1], A) = A (e[1])
+//
+// bw m > 1:
+//
+//   s (e1[m] /\ ... /\ en[m], A) = 1/n * (s (e1[m], A) + ... + s (en[m], A))
+//
+//   s (e1[m] = e2[m], A)         = (A (e1) == A (e2))
+//				    ? 1
+//				    : c1 * (1 - (h (A(e1), A(e2)) / m)
+//
+//   s (e1[m] < e2[m], A)         = (A (e1) == A (e2))
+//				    ? 1
+//				    : c1 * (1 - (A(e2) - A(e1)) / 2^m)
+//
+
 // TODO failed assumptions -> no handling necessary, sls only works for SAT
 int
-btor_sat_aux_btor_sls (Btor* btor)
+btor_sat_aux_btor_sls (Btor *btor)
 {
   assert (btor);
   // TODO we currently support QF_BV only

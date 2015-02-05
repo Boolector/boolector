@@ -1,6 +1,7 @@
 /*  Boolector: Satisfiablity Modulo Theories (SMT) solver.
  *
  *  Copyright (C) 2013-2014 Mathias Preiner.
+ *  Copyright (C) 2015 Aina Niemetz.
  *
  *  All rights reserved.
  *
@@ -501,6 +502,27 @@ btor_and_bv (Btor *btor, BitVector *a, BitVector *b)
 
   res = btor_new_bv (btor, a->width);
   for (i = a->len - 1; i >= 0; i--) res->bits[i] = a->bits[i] & b->bits[i];
+
+  assert (rem_bits_zero_dbg (res));
+  return res;
+}
+
+BitVector *
+btor_xor_bv (Btor *btor, BitVector *a, BitVector *b)
+{
+  assert (btor);
+  assert (a);
+  assert (b);
+  assert (!BTOR_IS_INVERTED_BV (a));
+  assert (!BTOR_IS_INVERTED_BV (b));
+  assert (a->len == b->len);
+  assert (a->width == b->width);
+
+  int i;
+  BitVector *res;
+
+  res = btor_new_bv (btor, a->width);
+  for (i = a->len - 1; i >= 0; i--) res->bits[i] = a->bits[i] ^ b->bits[i];
 
   assert (rem_bits_zero_dbg (res));
   return res;

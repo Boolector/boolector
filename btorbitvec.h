@@ -53,6 +53,7 @@ BitVector *btor_neg_bv (Btor *, BitVector *);
 BitVector *btor_not_bv (Btor *, BitVector *);
 BitVector *btor_add_bv (Btor *, BitVector *, BitVector *);
 BitVector *btor_and_bv (Btor *, BitVector *, BitVector *);
+BitVector *btor_xor_bv (Btor *, BitVector *, BitVector *);
 BitVector *btor_eq_bv (Btor *, BitVector *, BitVector *);
 BitVector *btor_ult_bv (Btor *, BitVector *, BitVector *);
 BitVector *btor_sll_bv (Btor *, BitVector *, BitVector *);
