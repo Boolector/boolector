@@ -2654,10 +2654,7 @@ boolector_apply (Btor *btor,
                             || argc != btor_get_fun_arity (btor, e_fun),
                         "number of arguments does not match arity of 'fun'");
   i = btor_fun_sort_check (btor, argc, args, e_fun);
-  BTOR_ABORT_BOOLECTOR (i >= 0,
-                        "sort of argument at position %d does not match given"
-                        " function signature",
-                        i);
+  BTOR_ABORT_BOOLECTOR (i >= 0, "invalid argument given at position %d", i);
   res = btor_apply_exps (btor, argc, args, e_fun);
   inc_exp_ext_ref_counter (btor, res);
   BTOR_TRAPI_RETURN_NODE (res);
