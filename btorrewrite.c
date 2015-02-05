@@ -4139,7 +4139,7 @@ apply_prop_apply (Btor *btor, BtorNode *e0, BtorNode *e1)
   inv_result_tmp     = 0;
 
   cur_fun  = e0;
-  cur_args = e1;
+  cur_args = btor_copy_exp (btor, e1);
 
   /* try to propagate apply over bv conditionals were conditions evaluate to
    * true if beta reduced with 'cur_args'. */
@@ -4307,6 +4307,7 @@ apply_prop_apply (Btor *btor, BtorNode *e0, BtorNode *e1)
     }
     assert (!result || done);
   }
+  btor_release_exp (btor, cur_args);
 
   if (result && inv_result) result = BTOR_INVERT_NODE (result);
 
