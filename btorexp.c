@@ -1508,7 +1508,10 @@ compare_lambda_exp (Btor *btor,
         || real_cur0->parameterized != real_cur1->parameterized
         || real_cur0->len != real_cur1->len
         /* arity might be differnt in case of BTOR_ARGS_NODE */
-        || real_cur0->arity != real_cur1->arity)
+        || real_cur0->arity != real_cur1->arity
+        || (BTOR_IS_SLICE_NODE (real_cur0)
+            && (real_cur0->upper != real_cur1->upper
+                || real_cur0->lower != real_cur1->lower)))
     {
       equal = 0;
       break;
