@@ -34,6 +34,7 @@ struct BtorSMTDumpContext
   BtorPtrHashTable *stores;
   BtorPtrHashTable *idtab;
   BtorPtrHashTable *roots;
+  BtorPtrHashTable *const_cache;
   FILE *file;
   int maxid;
   int pretty_print;
@@ -50,22 +51,24 @@ new_smt_dump_context (Btor *btor, FILE *file, int version)
   BtorSMTDumpContext *sdc;
   BTOR_CNEW (btor->mm, sdc);
 
-  sdc->btor    = btor;
-  sdc->dump    = btor_new_ptr_hash_table (btor->mm,
+  sdc->btor        = btor;
+  sdc->dump        = btor_new_ptr_hash_table (btor->mm,
                                        (BtorHashPtr) btor_hash_exp_by_id,
                                        (BtorCmpPtr) btor_compare_exp_by_id);
-  sdc->dumped  = btor_new_ptr_hash_table (btor->mm,
+  sdc->dumped      = btor_new_ptr_hash_table (btor->mm,
                                          (BtorHashPtr) btor_hash_exp_by_id,
                                          (BtorCmpPtr) btor_compare_exp_by_id);
-  sdc->boolean = btor_new_ptr_hash_table (btor->mm,
+  sdc->boolean     = btor_new_ptr_hash_table (btor->mm,
                                           (BtorHashPtr) btor_hash_exp_by_id,
                                           (BtorCmpPtr) btor_compare_exp_by_id);
-  sdc->stores  = btor_new_ptr_hash_table (btor->mm,
+  sdc->stores      = btor_new_ptr_hash_table (btor->mm,
                                          (BtorHashPtr) btor_hash_exp_by_id,
                                          (BtorCmpPtr) btor_compare_exp_by_id);
-  sdc->idtab   = btor_new_ptr_hash_table (btor->mm,
+  sdc->idtab       = btor_new_ptr_hash_table (btor->mm,
                                         (BtorHashPtr) btor_hash_exp_by_id,
                                         (BtorCmpPtr) btor_compare_exp_by_id);
+  sdc->const_cache = btor_new_ptr_hash_table (
+      btor->mm, (BtorHashPtr) btor_hash_str, (BtorCmpPtr) strcmp);
   /* use pointer for hashing and comparison */
   sdc->roots        = btor_new_ptr_hash_table (btor->mm, 0, 0);
   sdc->file         = file;
@@ -91,6 +94,14 @@ delete_smt_dump_context (BtorSMTDumpContext *sdc)
     btor_release_exp (sdc->btor, next_node_hash_table_iterator (&it));
   btor_delete_ptr_hash_table (sdc->roots);
 
+  init_hash_table_iterator (&it, sdc->const_cache);
+  while (has_next_hash_table_iterator (&it))
+  {
+    assert (it.bucket->data.asStr);
+    btor_freestr (sdc->btor->mm, it.bucket->data.asStr);
+    btor_freestr (sdc->btor->mm, (char *) next_hash_table_iterator (&it));
+  }
+  btor_delete_ptr_hash_table (sdc->const_cache);
   BTOR_DELETE (sdc->btor->mm, sdc);
 }
 
@@ -213,6 +224,64 @@ btor_dump_const_value_smt (
     assert (version == 2);
     fprintf (file, "#b%s", bits);
   }
+}
+
+static void
+dump_const_value_aux_smt (BtorSMTDumpContext *sdc, const char *bits)
+{
+  assert (sdc);
+  assert (bits);
+
+  int base, version;
+  FILE *file;
+  char *val;
+  const char *fmt;
+  BtorPtrHashBucket *b;
+
+  base    = sdc->btor->options.output_number_format.val;
+  version = sdc->version;
+  file    = sdc->file;
+
+  /* converting consts to decimal/hex is costly. we now always dump the value of
+   * constants. in order to avoid computing the same value again we cache
+   * the result of the first computation and print the cached value in
+   * subsequent calls. */
+  if (base == BTOR_OUTPUT_BASE_DEC || version == 1)
+  {
+    if ((b = btor_find_in_ptr_hash_table (sdc->const_cache, (char *) bits)))
+    {
+      val = b->data.asStr;
+      assert (val);
+    }
+    else
+    {
+      val = btor_const_to_decimal (sdc->btor->mm, bits);
+      btor_insert_in_ptr_hash_table (sdc->const_cache,
+                                     btor_strdup (sdc->btor->mm, bits))
+          ->data.asStr = val;
+    }
+    fmt = version == 1 ? "bv%s[%d]" : "(_ bv%s %d)";
+    fprintf (file, fmt, val, strlen (bits));
+  }
+  else if (base == BTOR_OUTPUT_BASE_HEX && strlen (bits) % 4 == 0)
+  {
+    assert (version == 2);
+    if ((b = btor_find_in_ptr_hash_table (sdc->const_cache, (char *) bits)))
+    {
+      val = b->data.asStr;
+      assert (val);
+    }
+    else
+    {
+      val = btor_const_to_hex (sdc->btor->mm, bits);
+      btor_insert_in_ptr_hash_table (sdc->const_cache,
+                                     btor_strdup (sdc->btor->mm, bits))
+          ->data.asStr = val;
+    }
+    fprintf (file, "#x%s", val);
+  }
+  else
+    btor_dump_const_value_smt (sdc->btor, bits, base, version, file);
 }
 
 void
@@ -402,19 +471,11 @@ recursively_dump_exp_smt (BtorSMTDumpContext *sdc, BtorNode *exp, int wrap_bool)
       else if (BTOR_IS_INVERTED_NODE (exp))
       {
         inv_bits = btor_not_const (sdc->btor->mm, real_exp->bits);
-        btor_dump_const_value_smt (sdc->btor,
-                                   inv_bits,
-                                   sdc->btor->options.output_number_format.val,
-                                   sdc->version,
-                                   sdc->file);
+        dump_const_value_aux_smt (sdc, inv_bits);
         btor_freestr (sdc->btor->mm, inv_bits);
       }
       else
-        btor_dump_const_value_smt (sdc->btor,
-                                   real_exp->bits,
-                                   sdc->btor->options.output_number_format.val,
-                                   sdc->version,
-                                   sdc->file);
+        dump_const_value_aux_smt (sdc, real_exp->bits);
       break;
 
     case BTOR_SLICE_NODE:
@@ -454,11 +515,7 @@ recursively_dump_exp_smt (BtorSMTDumpContext *sdc, BtorNode *exp, int wrap_bool)
       if (!is_boolean (sdc, real_exp->e[0]))
       {
         fputs ("(= ", sdc->file);
-        btor_dump_const_value_smt (sdc->btor,
-                                   "1",
-                                   sdc->btor->options.output_number_format.val,
-                                   sdc->version,
-                                   sdc->file);
+        dump_const_value_aux_smt (sdc, "1");
         fputc (' ', sdc->file);
       }
       recursively_dump_exp_smt (sdc, real_exp->e[0], 0);
@@ -582,17 +639,9 @@ DONE:
   if (is_bool && wrap_bool && !BTOR_IS_BV_CONST_NODE (real_exp))
   {
     fputc (' ', sdc->file);
-    btor_dump_const_value_smt (sdc->btor,
-                               "1",
-                               sdc->btor->options.output_number_format.val,
-                               sdc->version,
-                               sdc->file);
+    dump_const_value_aux_smt (sdc, "1");
     fputc (' ', sdc->file);
-    btor_dump_const_value_smt (sdc->btor,
-                               "0",
-                               sdc->btor->options.output_number_format.val,
-                               sdc->version,
-                               sdc->file);
+    dump_const_value_aux_smt (sdc, "0");
     fputc (')', sdc->file);
   }
 

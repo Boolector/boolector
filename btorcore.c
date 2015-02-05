@@ -2172,6 +2172,10 @@ set_simplified_exp (Btor *btor, BtorNode *exp, BtorNode *simplified)
   assert (!BTOR_REAL_ADDR_NODE (simplified)->simplified);
   assert (exp->arity <= 3);
   assert (exp->len == BTOR_REAL_ADDR_NODE (simplified)->len);
+  assert (exp->parameterized
+          || !BTOR_REAL_ADDR_NODE (simplified)->parameterized);
+  assert (!BTOR_REAL_ADDR_NODE (simplified)->parameterized
+          || exp->parameterized);
 
   if (exp->simplified) btor_release_exp (btor, exp->simplified);
 
@@ -2180,6 +2184,9 @@ set_simplified_exp (Btor *btor, BtorNode *exp, BtorNode *simplified)
   if (exp->constraint) update_constraints (btor, exp);
 
   btor_set_to_proxy_exp (btor, exp);
+
+  /* if simplified is parameterized, exp was also parameterized */
+  if (BTOR_REAL_ADDR_NODE (simplified)->parameterized) exp->parameterized = 1;
 }
 
 /* Finds most simplified expression and shortens path to it */
@@ -2772,7 +2779,11 @@ all_exps_below_rebuilt (Btor *btor, BtorNode *exp)
   BtorNode *subst;
 
   subst = btor_find_substitution (btor, exp);
-  if (subst) return BTOR_REAL_ADDR_NODE (subst)->aux_mark == 0;
+  if (subst)
+  {
+    subst = btor_simplify_exp (btor, subst);
+    return BTOR_REAL_ADDR_NODE (subst)->aux_mark == 0;
+  }
 
   exp = BTOR_REAL_ADDR_NODE (exp);
   for (i = 0; i < exp->arity; i++)
@@ -2793,9 +2804,9 @@ substitute_and_rebuild (Btor *btor, BtorPtrHashTable *subst, int bra)
   assert (subst);
   assert (check_id_table_aux_mark_unset_dbg (btor));
 
-  int i, refs;
+  int i;
   BtorMemMgr *mm;
-  BtorNode *cur, *cur_parent, *rebuilt_exp, *simplified;
+  BtorNode *cur, *cur_parent, *rebuilt_exp, *simplified, *sub;
   BtorNodePtrStack roots;
   BtorNodePtrQueue queue;
   BtorHashTableIterator hit;
@@ -2854,14 +2865,17 @@ substitute_and_rebuild (Btor *btor, BtorPtrHashTable *subst, int bra)
     assert (BTOR_IS_REGULAR_NODE (cur));
     assert (!BTOR_IS_PROXY_NODE (cur));
     assert (cur->aux_mark == 2);
-    refs = cur->refs;
-    btor_release_exp (btor, cur);
 
-    if (refs == 1) continue;
+    if (cur->refs == 1)
+    {
+      btor_release_exp (btor, cur);
+      continue;
+    }
 
     if (all_exps_below_rebuilt (btor, cur))
     {
       cur->aux_mark = 0;
+      btor_release_exp (btor, cur);
 
       /* traverse upwards and enqueue all parents that are not yet
        * in the queue. */
@@ -2869,21 +2883,21 @@ substitute_and_rebuild (Btor *btor, BtorPtrHashTable *subst, int bra)
       while (has_next_parent_full_parent_iterator (&it))
       {
         cur_parent = next_parent_full_parent_iterator (&it);
-        if (cur_parent->aux_mark == 2) continue;
+        if (cur_parent->aux_mark == 2
+            || !all_exps_below_rebuilt (btor, cur_parent))
+          continue;
         assert (cur_parent->aux_mark == 0 || cur_parent->aux_mark == 1);
         cur_parent->aux_mark = 2;
         BTOR_ENQUEUE (mm, queue, btor_copy_exp (btor, cur_parent));
       }
 
-      if (btor_find_substitution (btor, cur))
+      if ((sub = btor_find_substitution (btor, cur)))
       {
-        rebuilt_exp = btor_copy_exp (btor, cur);
-        goto SET_SIMPLIFIED_EXP;
+        rebuilt_exp = btor_copy_exp (btor, sub);
       }
-
       // TODO: externalize
-      if (bra && BTOR_IS_APPLY_NODE (cur)
-          && btor_find_in_ptr_hash_table (subst, cur))
+      else if (bra && BTOR_IS_APPLY_NODE (cur)
+               && btor_find_in_ptr_hash_table (subst, cur))
       {
         if (bra == -1)
           rebuilt_exp = btor_beta_reduce_full (btor, cur);
@@ -2896,7 +2910,6 @@ substitute_and_rebuild (Btor *btor, BtorPtrHashTable *subst, int bra)
       assert (rebuilt_exp);
       if (rebuilt_exp != cur)
       {
-      SET_SIMPLIFIED_EXP:
         simplified = btor_simplify_exp (btor, rebuilt_exp);
         // TODO: only push new roots? use hash table for roots instead of
         // stack?
@@ -2910,8 +2923,8 @@ substitute_and_rebuild (Btor *btor, BtorPtrHashTable *subst, int bra)
     /* not all children rebuilt, enqueue again */
     else
     {
-      cur->aux_mark = 2;
-      BTOR_ENQUEUE (mm, queue, btor_copy_exp (btor, cur));
+      assert (cur->aux_mark == 2);
+      BTOR_ENQUEUE (mm, queue, cur);
     }
   }
 
@@ -7513,6 +7526,17 @@ btor_sat_btor (Btor *btor, int lod_limit, int sat_limit)
   return res;
 }
 
+static int
+is_valid_argument (Btor *btor, BtorNode *exp)
+{
+  exp = BTOR_REAL_ADDR_NODE (exp);
+  if (btor_is_fun_exp (btor, exp)) return 0;
+  if (btor_is_array_exp (btor, exp)) return 0;
+  /* scope of bound parmaters already closed (cannot be used anymore) */
+  if (BTOR_IS_PARAM_NODE (exp) && BTOR_IS_BOUND_PARAM_NODE (exp)) return 0;
+  return 1;
+}
+
 int
 btor_fun_sort_check (Btor *btor, int argc, BtorNode **args, BtorNode *fun)
 {
@@ -7540,7 +7564,7 @@ btor_fun_sort_check (Btor *btor, int argc, BtorNode **args, BtorNode *fun)
       width = sort->fun.domain->bitvec.len;
     }
     /* NOTE: we do not allow functions or arrays as arguments yet */
-    if (btor_is_fun_exp (btor, args[0]) || btor_is_array_exp (btor, args[0])
+    if (!is_valid_argument (btor, args[0])
         || width != BTOR_REAL_ADDR_NODE (args[0])->len)
       pos = 0;
   }
@@ -7559,7 +7583,7 @@ btor_fun_sort_check (Btor *btor, int argc, BtorNode **args, BtorNode *fun)
         width = s->bitvec.len;
       }
       /* NOTE: we do not allow functions or arrays as arguments yet */
-      if (btor_is_fun_exp (btor, args[i]) || btor_is_array_exp (btor, args[i])
+      if (!is_valid_argument (btor, args[i])
           || width != BTOR_REAL_ADDR_NODE (args[i])->len)
       {
         pos = i;

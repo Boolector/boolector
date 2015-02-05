@@ -1,6 +1,7 @@
 /*  Boolector: Satisfiablity Modulo Theories (SMT) solver.
  *
  *  Copyright (C) 2013-2014 Mathias Preiner.
+ *  Copyright (C) 2015 Aina Niemetz.
  *
  *  All rights reserved.
  *
@@ -21,7 +22,16 @@ struct BitVector
 {
   int width; /* length of bit vector */
   int len;   /* length of 'bits' array */
-  /* spare bits at the beginning are zeroed out */
+
+  /* 'bits' represents the bit vector in 32-bit chunks, first bit of 32-bit bv
+   * in bits[0] is MSB, bit vector is 'filled' from LSB, hence spare bits (if
+   * any) come in front of the MSB and are zeroed out.
+   * E.g., for a bit vector of width 31, representing value 1:
+   *
+   *    bits[0] = 0 0000....1
+   *              ^ ^--- MSB
+   *              |--- spare bit
+   * */
   BTOR_BV_TYPE *bits;
 };
 
