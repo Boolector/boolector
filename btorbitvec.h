@@ -56,6 +56,7 @@ void btor_print_all_bv (BitVector *);
 char *btor_bv_to_char_bv (Btor *, const BitVector *);
 uint64_t btor_bv_to_uint64_bv (BitVector *);
 int btor_get_bit_bv (const BitVector *, int);
+void btor_set_bit_bv (BitVector *, int, int);
 int btor_is_true_bv (BitVector *);
 int btor_is_false_bv (BitVector *);
 

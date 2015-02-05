@@ -2,7 +2,7 @@
  *
  *  Copyright (C) 2007-2009 Robert Daniel Brummayer.
  *  Copyright (C) 2007-2012 Armin Biere.
- *  Copyright (C) 2013-2014 Aina Niemetz.
+ *  Copyright (C) 2013-2015 Aina Niemetz.
  *
  *  All rights reserved.
  *
@@ -39,6 +39,7 @@ typedef void (*BtorCloneDataPtr) (BtorMemMgr *mem,
 union BtorPtrHashData
 {
   int asInt;
+  double asDbl;
   void *asPtr;
   char *asStr;
 };

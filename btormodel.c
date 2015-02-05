@@ -738,6 +738,7 @@ btor_update_model (Btor *btor,
   assert (exp);
   assert (assignment);
 
+  int i;
   BitVector *bv;
   BtorPtrHashBucket *b;
   BtorNodePtrStack stack, nodes;
