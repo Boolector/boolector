@@ -2171,6 +2171,10 @@ set_simplified_exp (Btor *btor, BtorNode *exp, BtorNode *simplified)
   assert (!BTOR_REAL_ADDR_NODE (simplified)->simplified);
   assert (exp->arity <= 3);
   assert (exp->len == BTOR_REAL_ADDR_NODE (simplified)->len);
+  assert (exp->parameterized
+          || !BTOR_REAL_ADDR_NODE (simplified)->parameterized);
+  assert (!BTOR_REAL_ADDR_NODE (simplified)->parameterized
+          || exp->parameterized);
 
   if (exp->simplified) btor_release_exp (btor, exp->simplified);
 
@@ -2179,6 +2183,9 @@ set_simplified_exp (Btor *btor, BtorNode *exp, BtorNode *simplified)
   if (exp->constraint) update_constraints (btor, exp);
 
   btor_set_to_proxy_exp (btor, exp);
+
+  /* if simplified is parameterized, exp was also parameterized */
+  if (BTOR_REAL_ADDR_NODE (simplified)->parameterized) exp->parameterized = 1;
 }
 
 /* Finds most simplified expression and shortens path to it */
