@@ -415,7 +415,10 @@ recursively_compute_assignment (Btor *btor, BtorNode *exp)
             btor_free_bv (btor, e[num_args]);
 
           btor_free_bv_tuple (btor, t);
-          goto PUSH_RESULT;
+          if (real_cur->parameterized)
+            goto PUSH_RESULT;
+          else
+            break;
         case BTOR_LAMBDA_NODE:
           real_cur->eval_mark = 0; /* not inserted into cache */
           result              = e[0];
