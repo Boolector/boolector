@@ -495,8 +495,6 @@ btor_xor_bv (Btor *btor, BitVector *a, BitVector *b)
   assert (btor);
   assert (a);
   assert (b);
-  assert (!BTOR_IS_INVERTED_BV (a));
-  assert (!BTOR_IS_INVERTED_BV (b));
   assert (a->len == b->len);
   assert (a->width == b->width);
 
