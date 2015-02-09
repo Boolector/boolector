@@ -3,7 +3,7 @@
  *  Copyright (C) 2007-2009 Robert Daniel Brummayer.
  *  Copyright (C) 2007-2012 Armin Biere.
  *  Copyright (C) 2013-2014 Mathias Preiner.
- *  Copyright (C) 2013-2014 Aina Niemetz.
+ *  Copyright (C) 2013-2015 Aina Niemetz.
  *
  *  All rights reserved.
  *
@@ -1803,14 +1803,6 @@ check_params_bound (BtorBTORParser *parser)
   {
     param = parser->params.start[i];
     assert (boolector_is_param (parser->btor, param));
-
-    if (!boolector_is_bound_param (parser->btor, param))
-    {
-      assert (boolector_get_symbol (parser->btor, param));
-      return btor_perr_btor (parser,
-                             "param '%s' not bound to any lambda expression",
-                             boolector_get_symbol (parser->btor, param));
-    }
   }
 
   return 0;

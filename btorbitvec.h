@@ -37,8 +37,6 @@ struct BitVector
 
 typedef struct BitVector BitVector;
 
-#define BTOR_INVERT_BV(bv) ((BitVector *) (1ul ^ (unsigned long int) (bv)))
-#define BTOR_IS_INVERTED_BV(bv) (1ul & (unsigned long int) (bv))
 #define BTOR_REAL_ADDR_BV(bv) ((BitVector *) (~3ul & (unsigned long int) (bv)))
 
 BitVector *btor_new_bv (Btor *, int);
