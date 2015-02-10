@@ -628,20 +628,24 @@ btor_print_stats_btor (Btor *btor)
             1,
             "%.2f seconds initial applies search",
             btor->time.search_init_apps);
-  if (btor->options.just.val || btor->options.dual_prop.val)
+  if (btor->options.just.val)
   {
     BTOR_MSG (btor->msg,
               1,
               "%.2f seconds compute scores for initial applies search",
-              btor->time.search_init_apps_compute_scores);
+              btor->time.compute_scores_just);
     BTOR_MSG (
         btor->msg,
         1,
         "%.2f seconds merge applies in compute scores for init apps search",
-        btor->time.search_init_apps_compute_scores_merge_applies);
+        btor->time.compute_scores_just_merge_applies);
   }
   if (btor->options.dual_prop.val)
   {
+    BTOR_MSG (btor->msg,
+              1,
+              "%.2f seconds compute scores for initial applies search",
+              btor->time.compute_scores_dp);
     BTOR_MSG (btor->msg,
               1,
               "%.2f seconds cloning for initial applies search",
@@ -665,6 +669,18 @@ btor_print_stats_btor (Btor *btor)
         1,
         "%.2f seconds cone traversal when collecting initial applies via FA",
         btor->time.search_init_apps_collect_fa_cone);
+  }
+  if (btor->options.sls.val)
+  {
+    BTOR_MSG (btor->msg,
+              1,
+              "%.2f seconds compute sls scores",
+              btor->time.compute_scores_sls);
+    if (btor->options.sls_just.val)
+      BTOR_MSG (btor->msg,
+                1,
+                "%.2f seconds compute just scores for candidate selection",
+                btor->time.compute_scores_just);
   }
   BTOR_MSG (btor->msg,
             1,

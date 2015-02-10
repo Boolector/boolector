@@ -104,6 +104,7 @@ typedef struct BtorOpts
                                     may be greater than the original */
 #endif
   BtorOpt sls;
+  BtorOpt sls_just;
   BtorOpt dual_prop;      /* dual prop optimization */
   BtorOpt just;           /* justification optimization */
   BtorOpt just_heuristic; /* use heuristic (else: input [0] if both

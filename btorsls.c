@@ -11,6 +11,7 @@
 #include "btorbitvec.h"
 #include "btorcore.h"
 #include "btordbg.h"
+#include "btordcr.h"
 #include "btorhash.h"
 #include "btoriter.h"
 #include "btorlog.h"
@@ -594,9 +595,98 @@ select_candidate_constraint (Btor *btor, BtorPtrHashTable *roots, int moves)
     }
   }
   if (bucket) bucket->data.asInt += 1; /* n times selected */
+
   BTORLOG ("");
   BTORLOG ("*** select candidate constraint: %s\n", node2string (res));
+
   return res;
+}
+
+static void
+select_candidates (Btor *btor, BtorNode *root, BtorNodePtrStack *candidates)
+{
+  assert (btor);
+  assert (check_id_table_mark_unset_dbg (btor));
+  assert (root);
+  assert (candidates);
+
+  int i;
+  BtorNode *cur, *real_cur;
+  BtorNodePtrStack stack, unmark_stack;
+  BitVector *bv, *bv0, *bv1;
+
+  BTORLOG ("");
+  BTORLOG ("*** select candidates");
+
+  BTOR_INIT_STACK (stack);
+  BTOR_INIT_STACK (unmark_stack);
+
+  assert (BTOR_COUNT_STACK (*candidates) == 0);
+  BTOR_PUSH_STACK (btor->mm, stack, root);
+  while (!BTOR_EMPTY_STACK (stack))
+  {
+    cur      = BTOR_POP_STACK (stack);
+    real_cur = BTOR_REAL_ADDR_NODE (cur);
+    if (real_cur->mark) continue;
+    real_cur->mark = 1;
+    BTOR_PUSH_STACK (btor->mm, unmark_stack, real_cur);
+
+    if (BTOR_IS_BV_VAR_NODE (real_cur))
+    {
+      BTOR_PUSH_STACK (btor->mm, *candidates, real_cur);
+      BTORLOG ("  %s\n", node2string (real_cur));
+      continue;
+    }
+
+    if (btor->options.sls_just.val)
+    {
+      /* choose candidates from controlling paths
+       * (on the Boolean layer) only */
+      if (BTOR_IS_AND_NODE (real_cur) && real_cur->len == 1)
+      {
+        bv  = (BitVector *) btor_get_bv_model (btor, real_cur);
+        bv0 = (BitVector *) btor_get_bv_model (btor, real_cur->e[0]);
+        bv1 = (BitVector *) btor_get_bv_model (btor, real_cur->e[1]);
+
+        assert (bv->bits[0] == 1 || bv->bits[0] == 0);
+
+        if (bv->bits[0] == 1)
+          goto PUSH_CHILDREN;
+        else
+        {
+          if (bv0->bits[0] == 0 && bv1->bits[0])
+          {
+            if (btor_compare_scores (btor, real_cur->e[0], real_cur->e[1]))
+              BTOR_PUSH_STACK (btor->mm, stack, real_cur->e[0]);
+            else
+              BTOR_PUSH_STACK (btor->mm, stack, real_cur->e[1]);
+          }
+          else if (bv0->bits[0] == 0)
+            BTOR_PUSH_STACK (btor->mm, stack, real_cur->e[0]);
+          else
+          {
+            assert (bv1->bits[0] == 0);
+            BTOR_PUSH_STACK (btor->mm, stack, real_cur->e[1]);
+          }
+        }
+      }
+      else
+        goto PUSH_CHILDREN;
+    }
+    else
+    {
+    PUSH_CHILDREN:
+      for (i = 0; i < real_cur->arity; i++)
+        BTOR_PUSH_STACK (btor->mm, stack, real_cur->e[i]);
+    }
+  }
+
+  /* cleanup */
+  while (!BTOR_EMPTY_STACK (unmark_stack))
+    BTOR_POP_STACK (unmark_stack)->mark = 0;
+
+  BTOR_RELEASE_STACK (btor->mm, stack);
+  BTOR_RELEASE_STACK (btor->mm, unmark_stack);
 }
 
 /* Note: failed assumptions -> no handling necessary, sls only works for SAT */
@@ -612,7 +702,7 @@ btor_sat_aux_btor_sls (Btor *btor)
   int moves;
   BtorPtrHashTable *roots;
   BtorHashTableIterator it;
-  BtorNode *candidate;
+  BtorNodePtrStack candidates;
 
   if (btor->inconsistent) goto UNSAT;
 
@@ -625,6 +715,7 @@ btor_sat_aux_btor_sls (Btor *btor)
 
   // do something
 
+  BTOR_INIT_STACK (candidates);
   moves = 0;
 
   // TODO insert infinite loop here
@@ -649,7 +740,14 @@ btor_sat_aux_btor_sls (Btor *btor)
   // printf ("res: %d\n", min_flip (btor, bv1, bv2));
   compute_sls_scores (btor, roots);
 
-  candidate = select_candidate_constraint (btor, roots, moves);
+  if (btor->options.sls_just.val)
+  {
+    btor->options.just_heuristic.val = BTOR_JUST_HEUR_BRANCH_MIN_DEP;
+    btor_compute_scores (btor);
+  }
+
+  select_candidates (
+      btor, select_candidate_constraint (btor, roots, moves), &candidates);
 
   // for (j = 0; j < BTOR_SLS_MAXSTEPS (i); j++)
   //  {
@@ -666,6 +764,7 @@ UNSAT:
 DONE:
   btor->last_sat_result = sat_result;
   /* cleanup */
+  BTOR_RELEASE_STACK (btor->mm, candidates);
   btor_delete_ptr_hash_table (roots);
   return sat_result;
 }

@@ -11,6 +11,7 @@
 
 #include "btormodel.h"
 #include "btorbeta.h"
+#include "btordbg.h"
 #include "btorexit.h"
 #include "btoriter.h"
 #include "btormem.h"
@@ -752,7 +753,7 @@ btor_update_model (Btor *btor,
   BTOR_INIT_STACK (stack);
   BTOR_INIT_STACK (nodes);
 
-  bv = btor_get_bv_model (btor, exp);
+  bv = (BitVector *) btor_get_bv_model (btor, exp);
   assert (bv->width == assignment->width);
   assert (bv->len == assignment->len);
   assert (btor_compare_bv (bv, assignment));

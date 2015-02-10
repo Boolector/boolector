@@ -246,13 +246,15 @@ struct Btor
     double reachable;
     double failed;
     double search_init_apps;
-    double search_init_apps_compute_scores;
-    double search_init_apps_compute_scores_merge_applies;
     double search_init_apps_cloning;
     double search_init_apps_sat;
     double search_init_apps_collect_var_apps;
     double search_init_apps_collect_fa;
     double search_init_apps_collect_fa_cone;
+    double compute_scores_just;
+    double compute_scores_just_merge_applies;
+    double compute_scores_dp;
+    double compute_scores_sls;
     double lemma_gen;
     double find_nenc_app;
     double find_prop_app;

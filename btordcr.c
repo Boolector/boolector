@@ -178,7 +178,7 @@ compute_scores_aux_min_app (Btor *btor, BtorNodePtrStack *nodes)
             if (!btor_find_in_ptr_hash_table (in, e))
               btor_insert_in_ptr_hash_table (in, btor_copy_exp (btor, e));
           }
-          btor->time.search_init_apps_compute_scores_merge_applies +=
+          btor->time.compute_scores_just_merge_applies +=
               btor_time_stamp () - delta;
         }
         else
@@ -250,6 +250,7 @@ btor_compute_scores (Btor *btor)
                                            (BtorCmpPtr) btor_compare_exp_by_id);
 
   init_node_hash_table_iterator (&it, btor->synthesized_constraints);
+  init_node_hash_table_iterator (&it, btor->unsynthesized_constraints);
   queue_node_hash_table_iterator (&it, btor->assumptions);
   while (has_next_node_hash_table_iterator (&it))
   {
@@ -286,7 +287,7 @@ btor_compute_scores (Btor *btor)
 
   BTOR_RELEASE_STACK (btor->mm, nodes);
 
-  btor->time.search_init_apps_compute_scores += btor_time_stamp () - start;
+  btor->time.compute_scores_just += btor_time_stamp () - start;
 }
 
 void
@@ -362,7 +363,7 @@ btor_compute_scores_dual_prop (Btor *btor)
 
   BTOR_RELEASE_STACK (btor->mm, nodes);
 
-  btor->time.search_init_apps_compute_scores += btor_time_stamp () - start;
+  btor->time.compute_scores_dp += btor_time_stamp () - start;
 }
 
 int
