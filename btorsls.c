@@ -20,12 +20,15 @@
 #include "btorprintmodel.h"
 #endif
 
+#include <math.h>
+
 #define BTOR_SLS_MAXSTEPS_CFACT 100  // TODO best value? used by Z3
 // TODO best restart scheme? used by Z3
 #define BTOR_SLS_MAXSTEPS(i) \
   (BTOR_SLS_MAXSTEPS_CFACT * ((i) &1u ? 1 : 1 << ((i) >> 1)))
 
 #define BTOR_SLS_SCORE_CFACT 0.5  // TODO best value? used by Z3
+#define BTOR_SLS_SELECT_CFACT 20  // TODO best value? used by Z3
 
 static int
 hamming_distance (Btor *btor, BitVector *bv1, BitVector *bv2)
@@ -326,7 +329,6 @@ compute_sls_score_node (Btor *btor, BtorNode *exp)
   return res;
 }
 #else
-
 static double
 compute_sls_score_node (Btor *btor, BtorNode *exp)
 {
@@ -484,11 +486,11 @@ compute_sls_score_node (Btor *btor, BtorNode *exp)
 #endif
 
 static void
-compute_sls_scores (Btor *btor)
+compute_sls_scores (Btor *btor, BtorPtrHashTable *roots)
 {
   assert (btor);
-  assert (btor->synthesized_constraints->count == 0);
   assert (check_id_table_mark_unset_dbg (btor));
+  assert (roots);
 
   int i;
   BtorNode *cur, *real_cur, *e;
@@ -505,8 +507,7 @@ compute_sls_scores (Btor *btor)
                                  (BtorCmpPtr) btor_compare_exp_by_id);
 
   /* collect roots */
-  init_node_hash_table_iterator (&it, btor->unsynthesized_constraints);
-  queue_node_hash_table_iterator (&it, btor->assumptions);
+  init_node_hash_table_iterator (&it, roots);
   while (has_next_node_hash_table_iterator (&it))
     BTOR_PUSH_STACK (btor->mm, stack, next_node_hash_table_iterator (&it));
 
@@ -551,7 +552,54 @@ compute_sls_scores (Btor *btor)
   BTOR_RELEASE_STACK (btor->mm, unmark_stack);
 }
 
-// TODO failed assumptions -> no handling necessary, sls only works for SAT
+static BtorNode *
+select_candidate_constraint (Btor *btor, BtorPtrHashTable *roots, int moves)
+{
+  assert (btor);
+  assert (btor->score_sls);
+  assert (roots);
+
+  int selected;
+  double value, max_value, score;
+  BtorNode *res, *cur;
+  BtorHashTableIterator it;
+  BtorPtrHashBucket *b, *bucket;
+
+  res       = 0;
+  max_value = 0.0;
+  bucket    = 0;
+  init_hash_table_iterator (&it, roots);
+  while (has_next_node_hash_table_iterator (&it))
+  {
+    b   = it.bucket;
+    cur = next_node_hash_table_iterator (&it);
+    assert (btor_find_in_ptr_hash_table (btor->score_sls, cur));
+    score = btor_find_in_ptr_hash_table (btor->score_sls, cur)->data.asDbl;
+    if (score >= 1.0) continue;
+    if (!res)
+    {
+      res = cur;
+      continue;
+    }
+    else
+    {
+      selected = b->data.asInt;
+      value    = score + BTOR_SLS_SELECT_CFACT * sqrt (log (selected) / moves);
+      if (value > max_value)
+      {
+        res       = cur;
+        max_value = value;
+        bucket    = b;
+      }
+    }
+  }
+  if (bucket) bucket->data.asInt += 1; /* n times selected */
+  BTORLOG ("");
+  BTORLOG ("*** select candidate constraint: %s\n", node2string (res));
+  return res;
+}
+
+/* Note: failed assumptions -> no handling necessary, sls only works for SAT */
 int
 btor_sat_aux_btor_sls (Btor *btor)
 {
@@ -561,6 +609,10 @@ btor_sat_aux_btor_sls (Btor *btor)
 
   int i, j;
   int sat_result, simp_sat_result;
+  int moves;
+  BtorPtrHashTable *roots;
+  BtorHashTableIterator it;
+  BtorNode *candidate;
 
   if (btor->inconsistent) goto UNSAT;
 
@@ -573,17 +625,31 @@ btor_sat_aux_btor_sls (Btor *btor)
 
   // do something
 
-  // TODO insert infinite model here
+  moves = 0;
+
+  // TODO insert infinite loop here
   i = 1;
   /* Generate intial model, all bv vars are initialized with zero.
    * We do not have to consider model_for_all_nodes, but let this be handled
    * by the model generation (if enabled) after SAT has been determined. */
   btor_generate_model (btor, 0);
 
+  /* collect roots */
+  roots = btor_new_ptr_hash_table (btor->mm,
+                                   (BtorHashPtr) btor_hash_exp_by_id,
+                                   (BtorCmpPtr) btor_compare_exp_by_id);
+  assert (btor->synthesized_constraints->count == 0);
+  init_node_hash_table_iterator (&it, btor->unsynthesized_constraints);
+  queue_node_hash_table_iterator (&it, btor->assumptions);
+  while (has_next_node_hash_table_iterator (&it))
+    btor_insert_in_ptr_hash_table (roots, next_node_hash_table_iterator (&it));
+
   // BitVector *bv1 = btor_uint64_to_bv (btor, 120, 7);
   // BitVector *bv2 = btor_uint64_to_bv (btor, 0, 7);
   // printf ("res: %d\n", min_flip (btor, bv1, bv2));
-  compute_sls_scores (btor);
+  compute_sls_scores (btor, roots);
+
+  candidate = select_candidate_constraint (btor, roots, moves);
 
   // for (j = 0; j < BTOR_SLS_MAXSTEPS (i); j++)
   //  {
@@ -599,5 +665,7 @@ UNSAT:
 
 DONE:
   btor->last_sat_result = sat_result;
+  /* cleanup */
+  btor_delete_ptr_hash_table (roots);
   return sat_result;
 }
