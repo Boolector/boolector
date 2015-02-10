@@ -5802,7 +5802,8 @@ rewrite_mul_exp (Btor *btor, BtorNode *e0, BtorNode *e1)
   ADD_RW_RULE (special_const_lhs_binary_exp, BTOR_MUL_NODE, e0, e1);
   ADD_RW_RULE (special_const_rhs_binary_exp, BTOR_MUL_NODE, e0, e1);
   ADD_RW_RULE (bool_mul, e0, e1);
-  ADD_RW_RULE (bcond_mul, e0, e1);
+// TODO (ma): this increases mul nodes in the general case, needs restriction
+//  ADD_RW_RULE (bcond_mul, e0, e1);
 SWAP_OPERANDS:
   ADD_RW_RULE (const_lhs_mul, e0, e1);
   ADD_RW_RULE (const_rhs_mul, e0, e1);
