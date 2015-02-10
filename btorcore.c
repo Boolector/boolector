@@ -950,7 +950,8 @@ btor_delete_btor (Btor *btor)
   btor_delete_ptr_hash_table (btor->var_rhs);
   btor_delete_ptr_hash_table (btor->fun_rhs);
 
-  if (btor->options.model_gen.val) btor_delete_model (btor);
+  if (btor->options.model_gen.val || btor->options.sls.val)
+    btor_delete_model (btor);
 
   for (i = 0; i < BTOR_COUNT_STACK (btor->functions_with_model); i++)
     btor_release_exp (btor, btor->functions_with_model.start[i]);
@@ -1003,6 +1004,11 @@ btor_delete_btor (Btor *btor)
       }
       btor_delete_ptr_hash_table (btor->score);
     }
+  }
+
+  if (btor->options.sls.val)
+  {
+    if (btor->score_sls) btor_delete_ptr_hash_table (btor->score_sls);
   }
 
   if (btor->options.auto_cleanup.val && btor->external_refs)
