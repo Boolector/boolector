@@ -501,6 +501,25 @@ btor_print_stats_btor (Btor *btor)
   }
 
   BTOR_MSG (btor->msg, 1, "");
+  BTOR_MSG (btor->msg, 1, "bit blasting statistics:");
+  BTOR_MSG (btor->msg,
+            1,
+            " AIG vectors (cur/max): %lld/%lld",
+            btor->avmgr->cur_num_aigvecs,
+            btor->avmgr->max_num_aigvecs);
+  BTOR_MSG (btor->msg,
+            1,
+            " AIG ANDs (cur/max): %lld/%lld",
+            btor->avmgr->amgr->cur_num_aigs,
+            btor->avmgr->amgr->max_num_aigs);
+  BTOR_MSG (
+      btor->msg, 1, " AIG variables: %lld", btor->avmgr->amgr->num_aig_vars);
+  BTOR_MSG (btor->msg, 1, " CNF variables: %lld", btor->avmgr->amgr->num_vars);
+  BTOR_MSG (btor->msg, 1, " CNF clauses: %lld", btor->avmgr->amgr->num_clauses);
+  BTOR_MSG (
+      btor->msg, 1, " CNF literals: %lld", btor->avmgr->amgr->num_literals);
+
+  BTOR_MSG (btor->msg, 1, "");
   BTOR_MSG (btor->msg, 1, "lemmas on demand statistics:");
   BTOR_MSG (btor->msg, 1, " LOD refinements: %d", btor->stats.lod_refinements);
   if (btor->stats.lod_refinements)
