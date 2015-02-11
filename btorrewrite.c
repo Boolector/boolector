@@ -5410,8 +5410,9 @@ normalize_add (Btor *btor, BtorNode **left, BtorNode **right)
   e0 = *left;
   e1 = *right;
 
-  /* normalize adds and muls on demand */
-  normalize_adds_muls (btor, &e0, &e1);
+  /* normalize muls on demand */
+  if (BTOR_IS_MUL_NODE (BTOR_REAL_ADDR_NODE (e0)))
+    normalize_adds_muls (btor, &e0, &e1);
 
   *left  = e0;
   *right = e1;
@@ -5425,8 +5426,9 @@ normalize_mul (Btor *btor, BtorNode **left, BtorNode **right)
   e0 = *left;
   e1 = *right;
 
-  /* normalize adds and muls on demand */
-  normalize_adds_muls (btor, &e0, &e1);
+  /* normalize adds on demand */
+  if (BTOR_IS_ADD_NODE (BTOR_REAL_ADDR_NODE (e0)))
+    normalize_adds_muls (btor, &e0, &e1);
 
   *left  = e0;
   *right = e1;
