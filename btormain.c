@@ -1499,6 +1499,9 @@ boolector_main (int argc, char **argv)
         if (static_verbosity) btormain_msg ("dumping in SMT 2.0 format");
         boolector_dump_smt2 (static_app->btor, static_app->outfile);
     }
+
+    if (static_verbosity) boolector_print_stats (static_app->btor);
+
     goto DONE;
   }
 
