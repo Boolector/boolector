@@ -562,7 +562,6 @@ compute_hash_exp (BtorNode *exp, int table_size)
   assert (!BTOR_IS_BV_VAR_NODE (exp));
   assert (!BTOR_IS_UF_NODE (exp));
 
-  int i;
   unsigned int hash = 0;
 
   if (BTOR_IS_BV_CONST_NODE (exp)) hash = btor_hash_str ((void *) exp->bits);
@@ -1250,8 +1249,6 @@ new_lambda_exp_node (Btor *btor, BtorNode *e_param, BtorNode *e_exp)
   assert (btor == e_param->btor);
   assert (btor == BTOR_REAL_ADDR_NODE (e_exp)->btor);
 
-  BtorNodeIterator it;
-  BtorNode *exp;
   BtorLambdaNode *lambda_exp;
 
   BTOR_CNEW (btor->mm, lambda_exp);
@@ -1483,8 +1480,6 @@ compare_lambda_exp (Btor *btor,
   BtorNodePtrStack visit;
   BtorPtrHashTable *marked;
 
-  marked = btor_new_ptr_hash_table (btor->mm, 0, 0);
-
   BTOR_INIT_STACK (visit);
   BTOR_PUSH_STACK (btor->mm, visit, param);
   BTOR_PUSH_STACK (btor->mm, visit, lambda->e[0]);
@@ -1500,8 +1495,6 @@ compare_lambda_exp (Btor *btor,
     cur0      = BTOR_POP_STACK (visit);
     real_cur1 = BTOR_REAL_ADDR_NODE (cur1);
     real_cur0 = BTOR_REAL_ADDR_NODE (cur0);
-
-    if (btor_find_in_ptr_hash_table (marked, real_cur0)) continue;
 
     if (BTOR_IS_INVERTED_NODE (cur0) != BTOR_IS_INVERTED_NODE (cur1)
         || real_cur0->kind != real_cur1->kind
@@ -1528,8 +1521,6 @@ compare_lambda_exp (Btor *btor,
       continue;
     }
 
-    (void) btor_insert_in_ptr_hash_table (marked, real_cur0);
-
     if (real_cur0->id == real_cur1->id) continue;
 
     for (i = 0; i < real_cur0->arity; i++)
@@ -1539,7 +1530,6 @@ compare_lambda_exp (Btor *btor,
     }
   }
   BTOR_RELEASE_STACK (btor->mm, visit);
-  btor_delete_ptr_hash_table (marked);
   return equal;
 }
 

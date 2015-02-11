@@ -684,16 +684,24 @@ btor_generate_model (Btor *btor, int model_for_all_nodes)
     BTOR_PUSH_STACK (btor->mm, stack, BTOR_REAL_ADDR_NODE (cur));
   }
 
-  for (i = 1; i < BTOR_COUNT_STACK (btor->nodes_id_table); i++)
+  if (model_for_all_nodes)
   {
-    cur = BTOR_PEEK_STACK (btor->nodes_id_table, i);
-    if (!cur || BTOR_IS_FUN_NODE (cur) || BTOR_IS_ARGS_NODE (cur)
-        || BTOR_IS_PROXY_NODE (cur)
-        || cur->parameterized
-        /* generate model for all expressions (includes non-reachable) */
-        || (!model_for_all_nodes && !cur->reachable))
-      continue;
-    BTOR_PUSH_STACK (btor->mm, stack, cur);
+    for (i = 1; i < BTOR_COUNT_STACK (btor->nodes_id_table); i++)
+    {
+      cur = BTOR_PEEK_STACK (btor->nodes_id_table, i);
+      if (!cur || BTOR_IS_FUN_NODE (cur) || BTOR_IS_ARGS_NODE (cur)
+          || BTOR_IS_PROXY_NODE (cur) || cur->parameterized)
+        continue;
+      BTOR_PUSH_STACK (btor->mm, stack, cur);
+    }
+  }
+  else /* push roots only */
+  {
+    init_node_hash_table_iterator (&it, btor->unsynthesized_constraints);
+    queue_node_hash_table_iterator (&it, btor->synthesized_constraints);
+    queue_node_hash_table_iterator (&it, btor->assumptions);
+    while (has_next_node_hash_table_iterator (&it))
+      BTOR_PUSH_STACK (btor->mm, stack, next_node_hash_table_iterator (&it));
   }
 
   qsort (stack.start,
