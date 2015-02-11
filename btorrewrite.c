@@ -436,6 +436,40 @@ is_true_cond (BtorNode *cond)
   return 0;
 }
 
+static int
+is_bit_mask (BtorNode *exp, int *upper, int *lower)
+{
+  char bit;
+  int i, inv, first = -1, last = -1;
+  BtorNode *real_exp;
+
+  real_exp = BTOR_REAL_ADDR_NODE (exp);
+
+  *upper = 0;
+  *lower = 0;
+
+  if (!BTOR_IS_BV_CONST_NODE (real_exp)) return 0;
+
+  inv = BTOR_IS_INVERTED_NODE (exp);
+  for (i = 0; i < real_exp->len; i++)
+  {
+    bit = real_exp->bits[i];
+    if (inv) bit = bit == '1' ? '0' : '1';
+
+    if (bit == '1' && first == -1)
+      first = i;
+    else if (bit == '0' && first > -1 && last == -1)
+      last = i - 1;
+
+    if (bit == '1' && last > -1) return 0;
+  }
+  if (last == -1) last = real_exp->len - 1;
+
+  *upper = real_exp->len - first - 1;
+  *lower = real_exp->len - last - 1;
+  return 1;
+}
+
 /* -------------------------------------------------------------------------- */
 
 static inline BtorNode *rewrite_slice_exp (Btor *, BtorNode *, int, int);
@@ -1520,6 +1554,35 @@ apply_bcond_slice (Btor *btor, BtorNode *exp, int upper, int lower)
   return result;
 }
 
+static inline int
+applies_zero_lower_slice (Btor *btor, BtorNode *exp, int upper, int lower)
+{
+  (void) upper;
+  return btor->options.rewrite_level.val > 2
+         && btor->rec_rw_calls < BTOR_REC_RW_BOUND && lower == 0
+         && upper < BTOR_REAL_ADDR_NODE (exp)->len / 2
+         && (BTOR_IS_MUL_NODE (BTOR_REAL_ADDR_NODE (exp))
+             || BTOR_IS_ADD_NODE (BTOR_REAL_ADDR_NODE (exp)));
+  //	     || BTOR_IS_AND_NODE (BTOR_REAL_ADDR_NODE (exp)));
+}
+
+static inline BtorNode *
+apply_zero_lower_slice (Btor *btor, BtorNode *exp, int upper, int lower)
+{
+  BtorNode *result, *real_exp, *tmp1, *tmp2;
+
+  real_exp = BTOR_REAL_ADDR_NODE (exp);
+  BTOR_INC_REC_RW_CALL (btor);
+  tmp1   = rewrite_slice_exp (btor, real_exp->e[0], upper, lower);
+  tmp2   = rewrite_slice_exp (btor, real_exp->e[1], upper, lower);
+  result = btor_rewrite_binary_exp (btor, real_exp->kind, tmp1, tmp2);
+  result = BTOR_COND_INVERT_NODE (exp, result);
+  BTOR_DEC_REC_RW_CALL (btor);
+  btor_release_exp (btor, tmp1);
+  btor_release_exp (btor, tmp2);
+  return result;
+}
+
 /* EQ rules */
 
 /* match:  a = a
@@ -2152,6 +2215,46 @@ apply_concat_eq (Btor *btor, BtorNode *e0, BtorNode *e1)
   btor_release_exp (btor, tmp3);
   btor_release_exp (btor, tmp4);
   BTOR_DEC_REC_RW_CALL (btor);
+  return result;
+}
+
+static inline int
+applies_zero_eq_and_eq (Btor *btor, BtorNode *e0, BtorNode *e1)
+{
+  BtorNode *real_e1;
+  real_e1 = BTOR_REAL_ADDR_NODE (e1);
+  return btor->options.rewrite_level.val > 2
+         && btor->rec_rw_calls < BTOR_REC_RW_BOUND
+         && is_const_zero_exp (btor, e0) && BTOR_IS_AND_NODE (real_e1)
+         && (BTOR_IS_BV_CONST_NODE (BTOR_REAL_ADDR_NODE (real_e1->e[0]))
+             || BTOR_IS_BV_CONST_NODE (BTOR_REAL_ADDR_NODE (real_e1->e[1])));
+}
+
+static inline BtorNode *
+apply_zero_eq_and_eq (Btor *btor, BtorNode *e0, BtorNode *e1)
+{
+  (void) e0;
+  int i, len, upper, lower;
+  BtorNode *result, *real_e1, *masked, *zero, *slice;
+
+  real_e1 = BTOR_REAL_ADDR_NODE (e1);
+
+  if (is_bit_mask (real_e1->e[0], &upper, &lower))
+    masked = real_e1->e[1];
+  else if (is_bit_mask (real_e1->e[1], &upper, &lower))
+    masked = real_e1->e[0];
+  else
+    return 0;
+
+  len = upper - lower + 1;
+
+  BTOR_INC_REC_RW_CALL (btor);
+  zero   = btor_zero_exp (btor, len);
+  slice  = rewrite_slice_exp (btor, masked, upper, lower);
+  result = rewrite_eq_exp (btor, zero, slice);
+  BTOR_DEC_REC_RW_CALL (btor);
+  btor_release_exp (btor, zero);
+  btor_release_exp (btor, slice);
   return result;
 }
 
@@ -5577,6 +5680,7 @@ rewrite_slice_exp (Btor *btor, BtorNode *exp, int upper, int lower)
   ADD_RW_RULE (concat_rec_slice, exp, upper, lower);
   ADD_RW_RULE (and_slice, exp, upper, lower);
   ADD_RW_RULE (bcond_slice, exp, upper, lower);
+  ADD_RW_RULE (zero_lower_slice, exp, upper, lower);
 
   assert (!result);
   result = btor_slice_exp_node (btor, exp, upper, lower);
@@ -5624,6 +5728,7 @@ SWAP_OPERANDS:
   ADD_RW_RULE (bcond_else_eq, e0, e1);
   ADD_RW_RULE (distrib_add_mul_eq, e0, e1);
   ADD_RW_RULE (concat_eq, e0, e1);
+  //  ADD_RW_RULE (zero_eq_and_eq, e0, e1);
 
   assert (!result);
 
