@@ -1,6 +1,8 @@
-+ fixed bug in compare function for pointer hashing
-+ fixed performance issues when computing scores for don't care reasoning
-+ added smt2 models (get-value, get-model)
+* fixed bug in compare function for pointer hashing
+* fixed performance issues when computing scores for don't care reasoning
+* added smt2 models (get-value, get-model)
+* fixed some issues in the Python API (thanks to Ryan Goulden)
+* improved dumping of SMT2 formulas
 
 news for release 2.0.3 since 2.0.0
 --------------------------------------
