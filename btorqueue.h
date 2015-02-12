@@ -2,6 +2,7 @@
  *
  *  Copyright (C) 2007-2009 Robert Daniel Brummayer.
  *  Copyright (C) 2007-2013 Armin Biere.
+ *  Copyright (C) 2012 Mathias Preiner.
  *
  *  All rights reserved.
  *
