@@ -88,7 +88,6 @@ struct BtorBTORParser
 
   int found_arrays;
   int found_lambdas;
-  int found_aeq;
 };
 
 /*------------------------------------------------------------------------*/
@@ -1036,8 +1035,6 @@ parse_compare_and_overflow (BtorBTORParser *parser,
 	      goto RELEASE_L_AND_R_AND_RETURN_ZERO;
 	    }
 #endif
-
-      parser->found_aeq = 1;
     }
   }
 
@@ -1791,105 +1788,6 @@ btor_delete_btor_parser (BtorBTORParser *parser)
   btor_delete_mem_mgr (mm);
 }
 
-static const char *
-check_params_bound (BtorBTORParser *parser)
-{
-  assert (parser);
-
-  int i;
-  BoolectorNode *param;
-
-  for (i = 0; i < BTOR_COUNT_STACK (parser->params); i++)
-  {
-    param = parser->params.start[i];
-    assert (boolector_is_param (parser->btor, param));
-  }
-
-  return 0;
-}
-
-#if 0
-static const char *
-check_lambdas_consistent (BtorBTORParser * parser)
-{
-  assert (parser);
-
-  int i;
-  BoolectorNode *cur, *lambda;
-  BoolectorNodePtrStack stack;
-  BoolectorNodePtrStack unmark;
-
-  BTOR_INIT_STACK (stack);
-  BTOR_INIT_STACK (unmark);
-
-  while (!BTOR_EMPTY_STACK (parser->lambdas))
-    {
-      lambda = BTOR_POP_STACK (parser->lambdas);
-      assert (BTOR_IS_REGULAR_NODE (lambda));
-      assert (BTOR_IS_LAMBDA_NODE (lambda));
-
-      if (BTOR_IS_NESTED_LAMBDA_NODE (lambda)
-	  && !BTOR_IS_FIRST_NESTED_LAMBDA (lambda))
-	continue;
-
-      assert (BTOR_EMPTY_STACK (stack));
-      assert (BTOR_EMPTY_STACK (unmark));
-      BTOR_PUSH_STACK (parser->mem, stack, lambda);
-
-      while (!BTOR_EMPTY_STACK (stack))
-	{
-	  cur = BTOR_POP_STACK (stack);
-	  assert (BTOR_IS_REGULAR_NODE (cur));
-
-	  if (btor_is_param_exp (parser->btor, cur) && !cur->mark)
-	    {
-	      BTOR_RELEASE_STACK (parser->mem, stack);
-	      BTOR_RELEASE_STACK (parser->mem, unmark);
-
-	      return btor_perr_btor (parser,
-		  "invalid scope for param '%d'",
-		  cur->symbol ? atoi (cur->symbol) : cur->id);
-	    }
-
-	  if (cur->mark)
-	    continue;
-
-	  cur->mark = 1;
-	  BTOR_PUSH_STACK (parser->mem, unmark, cur);
-
-	  if (boolector_is_fun (parser->btor, cur))
-	    {
-	      BTOR_REAL_ADDR_NODE (cur->e[0])->mark = 1;
-	      BTOR_PUSH_STACK (parser->mem, unmark,
-			       BTOR_REAL_ADDR_NODE (cur->e[0]));
-	      BTOR_PUSH_STACK (parser->mem, stack,
-			       BTOR_REAL_ADDR_NODE (cur->e[1]));
-	    }
-	  else
-	    {
-	      for (i = 0; i < cur->arity; i++)
-		if (BTOR_REAL_ADDR_NODE (cur->e[i])->parameterized)
-		  BTOR_PUSH_STACK (parser->mem, stack,
-				   BTOR_REAL_ADDR_NODE (cur->e[i]));
-	    }
-	}
-
-      while (!BTOR_EMPTY_STACK (unmark))
-	{
-	  cur = BTOR_POP_STACK (unmark);
-	  assert (BTOR_IS_REGULAR_NODE (cur));
-	  assert (cur->mark);
-	  cur->mark = 0;
-	}
-    }
-
-  BTOR_RELEASE_STACK (parser->mem, stack);
-  BTOR_RELEASE_STACK (parser->mem, unmark);
-
-  return 0;
-}
-#endif
-
 /* Note: we need prefix in case of stdin as input (also applies to compressed
  * input files). */
 static const char *
@@ -1932,17 +1830,6 @@ NEXT:
 
     if (res)
     {
-      if (check_params_bound (parser)) return parser->error;
-
-      //	  if (check_lambdas_consistent (parser))
-      //	    return parser->error;
-
-      if (parser->found_lambdas && parser->found_aeq)
-      {
-        btor_perr_btor (parser, "extensionality with lambdas is not supported");
-        return parser->error;
-      }
-
       if (parser->found_arrays || parser->found_lambdas)
         res->logic = BTOR_LOGIC_QF_AUFBV;
       else
