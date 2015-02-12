@@ -4960,43 +4960,37 @@ apply_cond (Btor * btor, BtorNode * e0, BtorNode * e1, BtorNode * e2)
 /* normalizers */
 
 static inline void
-normalize_binary_comm_ass_exp (Btor *btor,
-                               BtorNode *e0,
-                               BtorNode *e1,
-                               BtorNode **e0_norm,
-                               BtorNode **e1_norm,
-                               BtorNode *(*fptr) (Btor *,
-                                                  BtorNode *,
-                                                  BtorNode *),
-                               BtorNodeKind kind)
+normalize_bin_comm_ass_exp (Btor *btor,
+                            BtorNode *e0,
+                            BtorNode *e1,
+                            BtorNode **e0_norm,
+                            BtorNode **e1_norm)
 {
   assert (btor);
+  assert (btor->options.rewrite_level.val > 2);
   assert (e0);
   assert (e1);
   assert (!BTOR_REAL_ADDR_NODE (e0)->simplified);
   assert (!BTOR_REAL_ADDR_NODE (e1)->simplified);
   assert (e0_norm);
   assert (e1_norm);
-  assert (fptr);
-  assert (BTOR_IS_BINARY_NODE_KIND (kind));
   assert (!BTOR_IS_INVERTED_NODE (e0));
   assert (!BTOR_IS_INVERTED_NODE (e1));
-  assert (e0->kind == kind);
-  assert (e1->kind == kind);
-  assert (btor->options.rewrite_level.val > 2);
+  assert (BTOR_IS_ADD_NODE (e0) || BTOR_IS_AND_NODE (e0)
+          || BTOR_IS_MUL_NODE (e0));
+  assert (e0->kind == e1->kind);
 
-  assert (kind == BTOR_ADD_NODE || kind == BTOR_AND_NODE
-          || kind == BTOR_MUL_NODE);
-
+  int i;
+  BtorNodeKind kind;
   BtorNode *cur, *result, *temp, *common;
   BtorNodePtrStack stack;
   BtorMemMgr *mm;
-  int i;
   BtorPtrHashTable *left, *right, *comm;
   BtorPtrHashBucket *b;
   BtorHashTableIterator it;
 
   mm    = btor->mm;
+  kind  = e0->kind;
   left  = btor_new_ptr_hash_table (mm,
                                   (BtorHashPtr) btor_hash_exp_by_id,
                                   (BtorCmpPtr) btor_compare_exp_by_id);
@@ -5113,7 +5107,7 @@ normalize_binary_comm_ass_exp (Btor *btor,
   for (i = 1; i < BTOR_COUNT_STACK (stack); i++)
   {
     cur  = BTOR_PEEK_STACK (stack, i);
-    temp = fptr (btor, common, cur);
+    temp = btor_rewrite_binary_exp (btor, kind, common, cur);
     btor_release_exp (btor, common);
     common = temp;
   }
@@ -5164,7 +5158,7 @@ normalize_binary_comm_ass_exp (Btor *btor,
     {
       if (result)
       {
-        temp = fptr (btor, result, cur);
+        temp = btor_rewrite_binary_exp (btor, kind, result, cur);
         btor_release_exp (btor, result);
         result = temp;
       }
@@ -5175,7 +5169,7 @@ normalize_binary_comm_ass_exp (Btor *btor,
 
   if (result)
   {
-    temp = fptr (btor, common, result);
+    temp = btor_rewrite_binary_exp (btor, kind, common, result);
     btor_release_exp (btor, result);
     result = temp;
   }
@@ -5194,7 +5188,7 @@ normalize_binary_comm_ass_exp (Btor *btor,
     {
       if (result)
       {
-        temp = fptr (btor, result, cur);
+        temp = btor_rewrite_binary_exp (btor, kind, result, cur);
         btor_release_exp (btor, result);
         result = temp;
       }
@@ -5205,7 +5199,7 @@ normalize_binary_comm_ass_exp (Btor *btor,
 
   if (result)
   {
-    temp = fptr (btor, common, result);
+    temp = btor_rewrite_binary_exp (btor, kind, common, result);
     btor_release_exp (btor, result);
     result = temp;
   }
@@ -5220,50 +5214,6 @@ normalize_binary_comm_ass_exp (Btor *btor,
   btor_delete_ptr_hash_table (left);
   btor_delete_ptr_hash_table (right);
   btor_delete_ptr_hash_table (comm);
-}
-
-static void
-normalize_adds_exp (Btor *btor,
-                    BtorNode *e0,
-                    BtorNode *e1,
-                    BtorNode **e0_norm,
-                    BtorNode **e1_norm)
-{
-  assert (btor);
-  assert (e0);
-  assert (e1);
-  assert (!BTOR_REAL_ADDR_NODE (e0)->simplified);
-  assert (!BTOR_REAL_ADDR_NODE (e1)->simplified);
-  assert (e0_norm);
-  assert (e1_norm);
-  assert (!BTOR_IS_INVERTED_NODE (e0));
-  assert (!BTOR_IS_INVERTED_NODE (e1));
-  assert (e0->kind == BTOR_ADD_NODE);
-  assert (e1->kind == BTOR_ADD_NODE);
-  normalize_binary_comm_ass_exp (
-      btor, e0, e1, e0_norm, e1_norm, rewrite_add_exp, BTOR_ADD_NODE);
-}
-
-static void
-normalize_muls_exp (Btor *btor,
-                    BtorNode *e0,
-                    BtorNode *e1,
-                    BtorNode **e0_norm,
-                    BtorNode **e1_norm)
-{
-  assert (btor);
-  assert (e0);
-  assert (e1);
-  assert (!BTOR_REAL_ADDR_NODE (e0)->simplified);
-  assert (!BTOR_REAL_ADDR_NODE (e1)->simplified);
-  assert (e0_norm);
-  assert (e1_norm);
-  assert (!BTOR_IS_INVERTED_NODE (e0));
-  assert (!BTOR_IS_INVERTED_NODE (e1));
-  assert (e0->kind == BTOR_MUL_NODE);
-  assert (e1->kind == BTOR_MUL_NODE);
-  normalize_binary_comm_ass_exp (
-      btor, e0, e1, e0_norm, e1_norm, rewrite_mul_exp, BTOR_MUL_NODE);
 }
 
 // TODO (ma): what does this do?
@@ -5368,7 +5318,7 @@ rebuild_top_add (Btor *btor, BtorNode *e, BtorNode *c, BtorNode *r)
 }
 
 static inline void
-normalize_adds_muls (Btor *btor, BtorNode **left, BtorNode **right)
+normalize_adds_muls_ands (Btor *btor, BtorNode **left, BtorNode **right)
 {
   BtorNode *e0, *e1, *real_e0, *real_e1, *e0_norm, *e1_norm;
 
@@ -5378,19 +5328,10 @@ normalize_adds_muls (Btor *btor, BtorNode **left, BtorNode **right)
   real_e1 = BTOR_REAL_ADDR_NODE (e1);
 
   if (btor->options.rewrite_level.val > 2 && real_e0->kind == real_e1->kind
-      && (BTOR_IS_ADD_NODE (real_e0) || BTOR_IS_MUL_NODE (real_e0)))
+      && (BTOR_IS_ADD_NODE (real_e0) || BTOR_IS_MUL_NODE (real_e0)
+          || BTOR_IS_AND_NODE (real_e0)))
   {
-    if (real_e0->kind == BTOR_ADD_NODE)
-    {
-      assert (BTOR_IS_ADD_NODE (real_e1));
-      normalize_adds_exp (btor, real_e0, real_e1, &e0_norm, &e1_norm);
-    }
-    else
-    {
-      assert (BTOR_IS_MUL_NODE (real_e0));
-      assert (BTOR_IS_MUL_NODE (real_e1));
-      normalize_muls_exp (btor, real_e0, real_e1, &e0_norm, &e1_norm);
-    }
+    normalize_bin_comm_ass_exp (btor, real_e0, real_e1, &e0_norm, &e1_norm);
     e0_norm = BTOR_COND_INVERT_NODE (e0, e0_norm);
     e1_norm = BTOR_COND_INVERT_NODE (e1, e1_norm);
     btor_release_exp (btor, e0);
@@ -5434,13 +5375,13 @@ normalize_eq (Btor *btor, BtorNode **left, BtorNode **right)
   }
 
   /* normalize adds and muls on demand */
-  normalize_adds_muls (btor, &e0, &e1);
+  normalize_adds_muls_ands (btor, &e0, &e1);
 
   // TODO (ma): what does this do?
   if (btor->options.rewrite_level.val > 2 && (c0 = find_top_add (btor, e0))
       && (c1 = find_top_add (btor, e1)) && c0->len == c1->len)
   {
-    normalize_adds_exp (btor, c0, c1, &n0, &n1);
+    normalize_bin_comm_ass_exp (btor, c0, c1, &n0, &n1);
     tmp1 = rebuild_top_add (btor, e0, c0, n0);
     tmp2 = rebuild_top_add (btor, e1, c1, n1);
     btor_release_exp (btor, n0);
@@ -5484,7 +5425,7 @@ normalize_ult (Btor *btor, BtorNode **left, BtorNode **right)
   }
 
   /* normalize adds and muls on demand */
-  normalize_adds_muls (btor, &e0, &e1);
+  normalize_adds_muls_ands (btor, &e0, &e1);
 
   *left  = e0;
   *right = e1;
@@ -5499,7 +5440,7 @@ normalize_and (Btor *btor, BtorNode **left, BtorNode **right)
   e1 = *right;
 
   /* normalize adds and muls on demand */
-  normalize_adds_muls (btor, &e0, &e1);
+  normalize_adds_muls_ands (btor, &e0, &e1);
 
   *left  = e0;
   *right = e1;
@@ -5515,7 +5456,7 @@ normalize_add (Btor *btor, BtorNode **left, BtorNode **right)
 
   /* normalize muls on demand */
   if (BTOR_IS_MUL_NODE (BTOR_REAL_ADDR_NODE (e0)))
-    normalize_adds_muls (btor, &e0, &e1);
+    normalize_adds_muls_ands (btor, &e0, &e1);
 
   *left  = e0;
   *right = e1;
@@ -5531,7 +5472,7 @@ normalize_mul (Btor *btor, BtorNode **left, BtorNode **right)
 
   /* normalize adds on demand */
   if (BTOR_IS_ADD_NODE (BTOR_REAL_ADDR_NODE (e0)))
-    normalize_adds_muls (btor, &e0, &e1);
+    normalize_adds_muls_ands (btor, &e0, &e1);
 
   *left  = e0;
   *right = e1;
@@ -5546,7 +5487,7 @@ normalize_udiv (Btor *btor, BtorNode **left, BtorNode **right)
   e1 = *right;
 
   /* normalize adds and muls on demand */
-  normalize_adds_muls (btor, &e0, &e1);
+  normalize_adds_muls_ands (btor, &e0, &e1);
 
   *left  = e0;
   *right = e1;
@@ -5561,7 +5502,7 @@ normalize_urem (Btor *btor, BtorNode **left, BtorNode **right)
   e1 = *right;
 
   /* normalize adds and muls on demand */
-  normalize_adds_muls (btor, &e0, &e1);
+  normalize_adds_muls_ands (btor, &e0, &e1);
 
   *left  = e0;
   *right = e1;
@@ -5652,7 +5593,7 @@ normalize_cond (Btor *btor, BtorNode **cond, BtorNode **left, BtorNode **right)
   }
 
   /* normalize adds and muls on demand */
-  normalize_adds_muls (btor, &e1, &e2);
+  normalize_adds_muls_ands (btor, &e1, &e2);
 
   *cond  = e0;
   *left  = e1;
