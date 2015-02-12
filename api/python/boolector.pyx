@@ -13,7 +13,7 @@ cimport btorapi
 from libc.stdlib cimport malloc, free
 from libc.stdio cimport stdout, FILE, fopen, fclose
 from cpython cimport bool
-import math, os
+import math, os, sys
 
 g_tunable_options = {"rewrite_level", "rewrite_level_pbr",
                      "beta_reduce_all", "probe_beta_reduce_all",
@@ -50,7 +50,7 @@ cdef str _to_str(const char * string):
     if string is NULL:
         return None
     cdef bytes py_str = string
-    return py_str.decode()
+    return str(py_str.decode())
 
 def _is_power2(int num):
     return num != 0 and (num & (num - 1)) == 0
@@ -131,10 +131,11 @@ cdef class BoolectorSort:
 
     def __init__(self, Boolector boolector):
         self.btor = boolector
+        self._c_btor = boolector._c_btor
 
     def __dealloc__(self):
         assert(self._c_sort is not NULL)
-        btorapi.boolector_release_sort(self.btor._c_btor, self._c_sort)
+        btorapi.boolector_release_sort(self._c_btor, self._c_sort)
 
 cdef class _BoolectorFunSort(BoolectorSort):
     cdef list _domain
@@ -262,17 +263,18 @@ cdef class BoolectorNode:
     """
     The class representing a Boolector node.
     """
-    cdef Boolector btor
+    cdef public Boolector btor
     cdef btorapi.Btor * _c_btor
     cdef btorapi.BoolectorNode * _c_node
 
     def __init__(self, Boolector boolector):
         self.btor = boolector
+        self._c_btor = boolector._c_btor
 
     def __dealloc__(self):
         if self._c_node is NULL:
             raise BoolectorException("BoolectorNode not initialized correctly")
-        btorapi.boolector_release(self.btor._c_btor, self._c_node)
+        btorapi.boolector_release(self._c_btor, self._c_node)
 
     def __richcmp__(BoolectorNode x, BoolectorNode y, opcode):
         if opcode == 2:
@@ -1107,7 +1109,7 @@ cdef class Boolector:
                 Parameter ``width`` is only required if ``c`` is an integer.
         """
         cdef BoolectorConstNode r
-        if isinstance(c, int):
+        if isinstance(c, int) or (sys.version < '3' and isinstance(c, long)):
             if c != 0 and c.bit_length() > width:
                 raise BoolectorException(
                           "Value of constant {} (bit width {}) exceeds bit "\
@@ -1624,7 +1626,8 @@ cdef class Boolector:
             :return:  A bit vector node with bit width one.
             :rtype: :class:`~boolector.BoolectorNode`
         """
-        a, b = _to_node(a, b)
+        if not (isinstance(a, BoolectorArrayNode) and isinstance(b, BoolectorArrayNode)):
+          a, b = _to_node(a, b)
         r = BoolectorBVNode(self)
         r._c_node = btorapi.boolector_eq(self._c_btor, _c_node(a), _c_node(b))
         return r
@@ -1649,6 +1652,8 @@ cdef class Boolector:
             :return:  A bit vector node with bit width one.
             :rtype: :class:`~boolector.BoolectorNode`
         """
+        if not (isinstance(a, BoolectorArrayNode) and isinstance(b, BoolectorArrayNode)):
+          a, b = _to_node(a, b)
         a, b = _to_node(a, b)
         r = BoolectorBVNode(self)
         r._c_node = btorapi.boolector_ne(self._c_btor, _c_node(a), _c_node(b))
@@ -2030,7 +2035,6 @@ cdef class Boolector:
         """
         b = self.Const(b, math.ceil(math.log(a.width, 2)))
         _check_precond_shift(a, b)
-        _check_precond_shift(a, b)
         r = BoolectorBVNode(self)
         r._c_node = btorapi.boolector_srl(self._c_btor,
                                           _c_node(a), _c_node(b))
@@ -2053,7 +2057,6 @@ cdef class Boolector:
             :rtype: :class:`~boolector.BoolectorNode`
         """
         b = self.Const(b, math.ceil(math.log(a.width, 2)))
-        _check_precond_shift(a, b)
         _check_precond_shift(a, b)
         r = BoolectorBVNode(self)
         r._c_node = btorapi.boolector_sra(self._c_btor,
@@ -2363,7 +2366,6 @@ cdef class Boolector:
             :return:  A bit vector node with bitwidth ``bit width of a + bit width of b``.
             :rtype: :class:`~boolector.BoolectorNode`
         """
-        a, b = _to_node(a, b)
         r = BoolectorBVNode(self)
         r._c_node = \
             btorapi.boolector_concat(self._c_btor, _c_node(a), _c_node(b))
