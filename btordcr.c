@@ -250,7 +250,7 @@ btor_compute_scores (Btor *btor)
                                            (BtorCmpPtr) btor_compare_exp_by_id);
 
   init_node_hash_table_iterator (&it, btor->synthesized_constraints);
-  init_node_hash_table_iterator (&it, btor->unsynthesized_constraints);
+  queue_node_hash_table_iterator (&it, btor->unsynthesized_constraints);
   queue_node_hash_table_iterator (&it, btor->assumptions);
   while (has_next_node_hash_table_iterator (&it))
   {
