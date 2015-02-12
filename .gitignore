@@ -40,3 +40,4 @@ api/python/*.c
 api/python/*.so
 python.mk
 setup.py
+testibv

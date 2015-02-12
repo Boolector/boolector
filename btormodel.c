@@ -70,7 +70,6 @@ add_to_bv_model (Btor *btor, BtorNode *exp, BitVector *assignment)
   assert (btor);
   assert (exp);
   assert (assignment);
-  assert (BTOR_IS_REGULAR_NODE (exp));
 
   BtorPtrHashBucket *b;
 
@@ -416,7 +415,10 @@ recursively_compute_assignment (Btor *btor, BtorNode *exp)
             btor_free_bv (btor, e[num_args]);
 
           btor_free_bv_tuple (btor, t);
-          goto PUSH_RESULT;
+          if (real_cur->parameterized)
+            goto PUSH_RESULT;
+          else
+            break;
         case BTOR_LAMBDA_NODE:
           real_cur->eval_mark = 0; /* not inserted into cache */
           result              = e[0];
@@ -682,16 +684,24 @@ btor_generate_model (Btor *btor, int model_for_all_nodes)
     BTOR_PUSH_STACK (btor->mm, stack, BTOR_REAL_ADDR_NODE (cur));
   }
 
-  for (i = 1; i < BTOR_COUNT_STACK (btor->nodes_id_table); i++)
+  if (model_for_all_nodes)
   {
-    cur = BTOR_PEEK_STACK (btor->nodes_id_table, i);
-    if (!cur || BTOR_IS_FUN_NODE (cur) || BTOR_IS_ARGS_NODE (cur)
-        || BTOR_IS_PROXY_NODE (cur)
-        || cur->parameterized
-        /* generate model for all expressions (includes non-reachable) */
-        || (!model_for_all_nodes && !cur->reachable))
-      continue;
-    BTOR_PUSH_STACK (btor->mm, stack, cur);
+    for (i = 1; i < BTOR_COUNT_STACK (btor->nodes_id_table); i++)
+    {
+      cur = BTOR_PEEK_STACK (btor->nodes_id_table, i);
+      if (!cur || BTOR_IS_FUN_NODE (cur) || BTOR_IS_ARGS_NODE (cur)
+          || BTOR_IS_PROXY_NODE (cur) || cur->parameterized)
+        continue;
+      BTOR_PUSH_STACK (btor->mm, stack, cur);
+    }
+  }
+  else /* push roots only */
+  {
+    init_node_hash_table_iterator (&it, btor->unsynthesized_constraints);
+    queue_node_hash_table_iterator (&it, btor->synthesized_constraints);
+    queue_node_hash_table_iterator (&it, btor->assumptions);
+    while (has_next_node_hash_table_iterator (&it))
+      BTOR_PUSH_STACK (btor->mm, stack, next_node_hash_table_iterator (&it));
   }
 
   qsort (stack.start,
@@ -726,6 +736,8 @@ btor_delete_model (Btor *btor)
   delete_fun_model (btor);
 }
 
+/* Note: no need to free returned bit vector,
+ *       all bit vectors are maintained via btor->bv_model */
 const BitVector *
 btor_get_bv_model (Btor *btor, BtorNode *exp)
 {
@@ -746,7 +758,21 @@ btor_get_bv_model (Btor *btor, BtorNode *exp)
   if (!b) return 0;
 
   result = (BitVector *) b->data.asPtr;
-  if (BTOR_IS_INVERTED_NODE (exp)) result = BTOR_INVERT_BV (result);
+  /* Note: we cache assignments of inverted expressions on demand */
+  if (BTOR_IS_INVERTED_NODE (exp))
+  {
+    if ((b = btor_find_in_ptr_hash_table (btor->bv_model, exp)))
+      result = b->data.asPtr;
+    else
+    {
+      /* we don't use add_to_bv_model in order to avoid redundant
+       * hash table queries and copying/freeing of the resulting bv */
+      result        = btor_not_bv (btor, result);
+      b             = btor_insert_in_ptr_hash_table (btor->bv_model,
+                                         btor_copy_exp (btor, exp));
+      b->data.asPtr = result;
+    }
+  }
   return result;
 }
 
