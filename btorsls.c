@@ -697,42 +697,141 @@ update_cone (Btor *btor,
   compute_sls_scores_aux (btor, bv_model, fun_model, roots, score);
 }
 
-#if 0
 static void
-move (Btor * btor, BtorPtrHashTable * roots, BtorNodePtrStack * candidates)
+move (Btor *btor,
+      BtorPtrHashTable *roots,
+      BtorNode *assertion,
+      BtorNodePtrStack *candidates)
 {
   assert (btor);
   assert (roots);
   assert (candidates);
 
-  int i;
-  BtorNode *can;
- // BtorPtrHashTable *current_bv_model, *score, *bv_model;
+  int i, j;
+  double max_score;
+  BtorNode *can, *max_can;
+  BitVector *ass, *neighbor, *max_neighbor;
+  BtorPtrHashTable *bv_model, *score_sls;
+  BtorPtrHashBucket *b;
+
+  /* select move */
+
+  b = btor_find_in_ptr_hash_table (btor->score_sls, assertion);
+  assert (b);
+  max_score    = b->data.asDbl;
+  max_neighbor = 0;
+  max_can      = 0;
 
   for (i = 0; i < BTOR_COUNT_STACK (*candidates); i++)
+  {
+    can = BTOR_PEEK_STACK (*candidates, i);
+    assert (BTOR_IS_REGULAR_NODE (can));
+    ass = (BitVector *) btor_get_bv_model (btor, can);
+    assert (ass);
+
+    /* flip bits */
+    for (j = 0; j < ass->width; j++)
     {
-      can = BTOR_PEEK_STACK (*candidates, i);
-      assert (BTOR_IS_REGULAR_NODE (can));
+      bv_model = btor_clone_ptr_hash_table (
+          btor->mm, btor->bv_model, mapped_node, data_as_node_ptr, 0, 0);
+      score_sls = btor_clone_ptr_hash_table (
+          btor->mm, btor->score_sls, mapped_node, data_as_double, 0, 0);
 
-#if 0
-  /* During move selection, we alter the model for each move we inspect.
-   * However, we have to start from the unaltered current model for each
-   * move inspection and therefore keep an unaltered copy to be able to
-   * reset the current (altered) model to its unaltered state. */
-  current_model = btor_clone_ptr_hash_table (
-      btor->mm, btor->bv_model, mapped_node, data_as_node_ptr, 0, 0);
+      neighbor = btor_copy_bv (btor, ass);
+      btor_flip_bit_bv (neighbor, j);
+      /* we currently support QF_BV only, hence no funs */
+      update_cone (
+          btor, &bv_model, &btor->fun_model, roots, can, neighbor, score_sls);
 
-      score = btor_clone_ptr_hash_table (btor->mm, btor->score, mapped_node,
-					 data_as_double, 0, 0);
+      b = btor_find_in_ptr_hash_table (score_sls, can);
+      assert (b);
+      if (b->data.asDbl > max_score)
+      {
+        if (max_neighbor) btor_free_bv (btor, max_neighbor);
+        max_neighbor = neighbor;
+        max_can      = can;
+      }
+      else
+        btor_free_bv (btor, neighbor);
 
-
-      btor_delete_ptr_hash_table (model);
-      btor_delete_ptr_hash_table (score);
-#endif
+      btor_delete_ptr_hash_table (bv_model);
+      btor_delete_ptr_hash_table (score_sls);
     }
 
+    /* increment */
+    bv_model = btor_clone_ptr_hash_table (
+        btor->mm, btor->bv_model, mapped_node, data_as_node_ptr, 0, 0);
+    score_sls = btor_clone_ptr_hash_table (
+        btor->mm, btor->score_sls, mapped_node, data_as_double, 0, 0);
+    neighbor = btor_inc_bv (btor, ass);
+    update_cone (
+        btor, &bv_model, &btor->fun_model, roots, can, neighbor, score_sls);
+    b = btor_find_in_ptr_hash_table (score_sls, can);
+    assert (b);
+    if (b->data.asDbl > max_score)
+    {
+      if (max_neighbor) btor_free_bv (btor, max_neighbor);
+      max_neighbor = neighbor;
+      max_can      = can;
+    }
+    else
+      btor_free_bv (btor, neighbor);
+    btor_delete_ptr_hash_table (bv_model);
+    btor_delete_ptr_hash_table (score_sls);
+
+    /* decrement */
+    bv_model = btor_clone_ptr_hash_table (
+        btor->mm, btor->bv_model, mapped_node, data_as_node_ptr, 0, 0);
+    score_sls = btor_clone_ptr_hash_table (
+        btor->mm, btor->score_sls, mapped_node, data_as_double, 0, 0);
+    neighbor = btor_dec_bv (btor, ass);
+    update_cone (
+        btor, &bv_model, &btor->fun_model, roots, can, neighbor, score_sls);
+    b = btor_find_in_ptr_hash_table (score_sls, can);
+    assert (b);
+    if (b->data.asDbl > max_score)
+    {
+      if (max_neighbor) btor_free_bv (btor, max_neighbor);
+      max_neighbor = neighbor;
+      max_can      = can;
+    }
+    else
+      btor_free_bv (btor, neighbor);
+    btor_delete_ptr_hash_table (bv_model);
+    btor_delete_ptr_hash_table (score_sls);
+
+    /* not */
+    bv_model = btor_clone_ptr_hash_table (
+        btor->mm, btor->bv_model, mapped_node, data_as_node_ptr, 0, 0);
+    score_sls = btor_clone_ptr_hash_table (
+        btor->mm, btor->score_sls, mapped_node, data_as_double, 0, 0);
+    neighbor = btor_not_bv (btor, ass);
+    update_cone (
+        btor, &bv_model, &btor->fun_model, roots, can, neighbor, score_sls);
+    b = btor_find_in_ptr_hash_table (score_sls, can);
+    assert (b);
+    if (b->data.asDbl > max_score)
+    {
+      if (max_neighbor) btor_free_bv (btor, max_neighbor);
+      max_neighbor = neighbor;
+      max_can      = can;
+    }
+    else
+      btor_free_bv (btor, neighbor);
+    btor_delete_ptr_hash_table (bv_model);
+    btor_delete_ptr_hash_table (score_sls);
+  }
+
+  /* move */
+  if (!max_neighbor) return;
+  update_cone (btor,
+               &btor->bv_model,
+               &btor->fun_model,
+               roots,
+               max_can,
+               max_neighbor,
+               btor->score);
 }
-#endif
 
 /* Note: failed assumptions -> no handling necessary, sls only works for SAT */
 int
