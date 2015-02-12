@@ -480,6 +480,36 @@ btor_add_bv (Btor *btor, BitVector *a, BitVector *b)
 }
 
 BitVector *
+btor_inc_bv (Btor *btor, BitVector *bv)
+{
+  assert (btor);
+  assert (bv);
+
+  BitVector *res, *one;
+
+  one = btor_uint64_to_bv (btor, 1, bv->width);
+  res = btor_add_bv (btor, bv, one);
+  btor_free_bv (btor, one);
+  return res;
+}
+
+BitVector *
+btor_dec_bv (Btor *btor, BitVector *bv)
+{
+  assert (btor);
+  assert (bv);
+
+  BitVector *res, *one, *negone;
+
+  one    = btor_uint64_to_bv (btor, 1, bv->width);
+  negone = btor_neg_bv (btor, one);
+  res    = btor_add_bv (btor, bv, negone);
+  btor_free_bv (btor, one);
+  btor_free_bv (btor, negone);
+  return res;
+}
+
+BitVector *
 btor_and_bv (Btor *btor, BitVector *a, BitVector *b)
 {
   assert (btor);
