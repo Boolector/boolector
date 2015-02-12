@@ -260,6 +260,7 @@ get_sort (BtorDumpContext *bdc, BtorNode *node)
   return sort;
 }
 
+#ifndef NDEBUG
 static int
 has_lambda_parent (BtorNode *exp)
 {
@@ -273,6 +274,7 @@ has_lambda_parent (BtorNode *exp)
   }
   return 0;
 }
+#endif
 
 static void
 bdcnode (BtorDumpContext *bdc, BtorNode *node, FILE *file)

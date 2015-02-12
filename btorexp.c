@@ -1478,7 +1478,6 @@ compare_lambda_exp (Btor *btor,
   int i, equal = 1;
   BtorNode *cur0, *cur1, *real_cur0, *real_cur1;
   BtorNodePtrStack visit;
-  BtorPtrHashTable *marked;
 
   BTOR_INIT_STACK (visit);
   BTOR_PUSH_STACK (btor->mm, visit, param);
