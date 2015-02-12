@@ -5217,59 +5217,6 @@ normalize_bin_comm_ass_exp (Btor *btor,
 }
 
 // TODO (ma): what does this do?
-static inline void
-normalize_eq_adds_exp (Btor *btor,
-                       BtorNode *e0,
-                       BtorNode *e1,
-                       BtorNode **res0ptr,
-                       BtorNode **res1ptr)
-{
-  BtorNode *res0 = 0, *res1 = 0;
-
-  if (BTOR_REAL_ADDR_NODE (e0)->kind == BTOR_BV_CONST_NODE
-      && !BTOR_IS_INVERTED_NODE (e1) && e1->kind == BTOR_ADD_NODE)
-  {
-    if (BTOR_REAL_ADDR_NODE (e1->e[0])->kind == BTOR_BV_CONST_NODE)
-    {
-      res0 = btor_sub_exp (btor, e0, e1->e[0]);
-      res1 = btor_copy_exp (btor, e1->e[1]);
-    }
-    else if (BTOR_REAL_ADDR_NODE (e1->e[1])->kind == BTOR_BV_CONST_NODE)
-    {
-      res0 = btor_sub_exp (btor, e0, e1->e[1]);
-      res1 = btor_copy_exp (btor, e1->e[0]);
-    }
-  }
-  else if (BTOR_REAL_ADDR_NODE (e1)->kind == BTOR_BV_CONST_NODE
-           && !BTOR_IS_INVERTED_NODE (e0) && e0->kind == BTOR_ADD_NODE)
-  {
-    if (BTOR_REAL_ADDR_NODE (e0->e[0])->kind == BTOR_BV_CONST_NODE)
-    {
-      res0 = btor_copy_exp (btor, e0->e[1]);
-      res1 = btor_sub_exp (btor, e1, e0->e[0]);
-    }
-    else if (BTOR_REAL_ADDR_NODE (e0->e[1])->kind == BTOR_BV_CONST_NODE)
-    {
-      res0 = btor_copy_exp (btor, e0->e[0]);
-      res1 = btor_sub_exp (btor, e1, e0->e[1]);
-    }
-  }
-
-  if (res0)
-  {
-    assert (res1);
-    *res0ptr = res0;
-    *res1ptr = res1;
-  }
-  else
-  {
-    assert (!res1);
-    *res0ptr = btor_copy_exp (btor, e0);
-    *res1ptr = btor_copy_exp (btor, e1);
-  }
-}
-
-// TODO (ma): what does this do?
 static inline BtorNode *
 find_top_add (Btor *btor, BtorNode *e)
 {
@@ -5344,7 +5291,7 @@ normalize_adds_muls_ands (Btor *btor, BtorNode **left, BtorNode **right)
 static inline void
 normalize_eq (Btor *btor, BtorNode **left, BtorNode **right)
 {
-  BtorNode *e0, *e1, *tmp1, *tmp2, *c0, *c1, *n0, *n1;
+  BtorNode *e0, *e1, *tmp1, *tmp2, *c0, *c1, *n0, *n1, *add;
 
   e0 = *left;
   e1 = *right;
@@ -5392,16 +5339,67 @@ normalize_eq (Btor *btor, BtorNode **left, BtorNode **right)
     e1 = tmp2;
   }
 
-  // TODO (ma): what does this do?
+  // TODO (ma): check if this is also applicable to mul nodes and maybe others?
+  /* match: c0 = c1 + b
+   * result: c0 - c1 = b
+   *
+   * also handles negated adds:
+   *
+   * c0 = ~(c1 + b) -> ~c0 = c1 + b
+   */
   if (btor->options.rewrite_level.val > 2
-      && ((!BTOR_IS_INVERTED_NODE (e0) && e0->kind == BTOR_ADD_NODE)
-          || (!BTOR_IS_INVERTED_NODE (e1) && e1->kind == BTOR_ADD_NODE)))
+      && ((BTOR_IS_ADD_NODE (BTOR_REAL_ADDR_NODE (e0))
+           && BTOR_IS_BV_CONST_NODE (BTOR_REAL_ADDR_NODE (e1)))
+          || (BTOR_IS_ADD_NODE (BTOR_REAL_ADDR_NODE (e1))
+              && BTOR_IS_BV_CONST_NODE (BTOR_REAL_ADDR_NODE (e0)))))
   {
-    normalize_eq_adds_exp (btor, e0, e1, &tmp1, &tmp2);
-    btor_release_exp (btor, e0);
-    btor_release_exp (btor, e1);
-    e0 = tmp1;
-    e1 = tmp2;
+    if (BTOR_IS_BV_CONST_NODE (BTOR_REAL_ADDR_NODE (e0))
+        && BTOR_IS_ADD_NODE (BTOR_REAL_ADDR_NODE (e1)))
+    {
+      c0  = e0;
+      add = e1;
+    }
+    else
+    {
+      assert (BTOR_IS_ADD_NODE (BTOR_REAL_ADDR_NODE (e0)));
+      assert (BTOR_IS_BV_CONST_NODE (BTOR_REAL_ADDR_NODE (e1)));
+      c0  = e1;
+      add = e0;
+    }
+
+    /* c0 = ~(c1 + b) -> ~c0 = c1 + b */
+    c0  = BTOR_COND_INVERT_NODE (add, c0);
+    add = BTOR_COND_INVERT_NODE (add, add);
+
+    c1 = tmp1 = 0;
+    assert (BTOR_IS_REGULAR_NODE (add));
+    if (BTOR_IS_BV_CONST_NODE (BTOR_REAL_ADDR_NODE (add->e[0])))
+    {
+      c1   = add->e[0];
+      tmp1 = add->e[1];
+    }
+    else if (BTOR_IS_BV_CONST_NODE (BTOR_REAL_ADDR_NODE (add->e[1])))
+    {
+      c1   = add->e[1];
+      tmp1 = add->e[0];
+    }
+
+    if (tmp1)
+    {
+      assert (c0);
+      assert (c1);
+      btor_release_exp (btor, e0);
+      btor_release_exp (btor, e1);
+      e0 = btor_copy_exp (btor, tmp1);
+      e1 = btor_sub_exp (btor, c0, c1);
+    }
+  }
+
+  /* ~e0 == ~e1 is the same as e0 == e1 */
+  if (BTOR_IS_INVERTED_NODE (e0) && BTOR_IS_INVERTED_NODE (e1))
+  {
+    e0 = BTOR_INVERT_NODE (e0);
+    e1 = BTOR_INVERT_NODE (e1);
   }
 
   *left  = e0;
