@@ -3673,7 +3673,7 @@ btor_read_command_smt2 (BtorSMT2Parser *parser)
       break;
 
     case BTOR_GET_VALUE_TAG_SMT2:
-      if (!btor_read_lpar_smt2 (parser, " after 'get-model'")) return 0;
+      if (!btor_read_lpar_smt2 (parser, " after 'get-value'")) return 0;
       if (!boolector_get_opt_val (parser->btor, "model_gen"))
         return !btor_perr_smt2 (parser, "model generation is not enabled");
       if (parser->res->result != BOOLECTOR_SAT) break;
