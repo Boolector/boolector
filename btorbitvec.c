@@ -257,6 +257,16 @@ btor_set_bit_bv (BitVector *bv, int pos, int bit)
     bv->bits[bv->len - 1 - i] &= ~(1u << j);
 }
 
+void
+btor_flip_bit_bv (BitVector *bv, int pos)
+{
+  assert (bv);
+  assert (bv->len > 0);
+  assert (pos < bv->width);
+
+  btor_set_bit_bv (bv, pos, btor_get_bit_bv (bv, pos) ? 0 : 1);
+}
+
 static void
 set_rem_bits_to_zero (BitVector *bv)
 {
