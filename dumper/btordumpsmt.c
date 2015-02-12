@@ -960,9 +960,8 @@ get_references (BtorSMTDumpContext *sdc, BtorNode *exp)
     cur = next_parent_full_parent_iterator (&it);
     assert (BTOR_IS_REGULAR_NODE (cur));
     b = btor_find_in_ptr_hash_table (sdc->dump, cur);
-    if (!b) continue;
     /* argument nodes are counted differently */
-    if (BTOR_IS_ARGS_NODE (cur)) continue;
+    if (!b || BTOR_IS_ARGS_NODE (cur)) continue;
     refs++;
   }
   return refs;
@@ -1004,7 +1003,7 @@ dump_smt (BtorSMTDumpContext *sdc)
   int i, j, not_bool;
   BtorNode *e, *cur;
   BtorMemMgr *mm;
-  BtorNodePtrStack visit, all, vars, arrays, shared, ufs, args;
+  BtorNodePtrStack visit, all, vars, arrays, shared, ufs;
   BtorPtrHashBucket *b;
   BtorHashTableIterator it;
   BtorArgsIterator ait;
@@ -1016,7 +1015,6 @@ dump_smt (BtorSMTDumpContext *sdc)
   BTOR_INIT_STACK (vars);
   BTOR_INIT_STACK (arrays);
   BTOR_INIT_STACK (ufs);
-  BTOR_INIT_STACK (args);
 
   init_node_hash_table_iterator (&it, sdc->roots);
   while (has_next_node_hash_table_iterator (&it))
@@ -1034,7 +1032,7 @@ dump_smt (BtorSMTDumpContext *sdc)
 
     if (btor_find_in_ptr_hash_table (sdc->dump, cur)) continue;
 
-    btor_insert_in_ptr_hash_table (sdc->dump, cur);
+    btor_insert_in_ptr_hash_table (sdc->dump, cur)->data.asInt = 0;
     BTOR_PUSH_STACK (mm, all, cur);
 
     if (BTOR_IS_BV_VAR_NODE (cur))
@@ -1046,52 +1044,59 @@ dump_smt (BtorSMTDumpContext *sdc)
     else if (BTOR_IS_LAMBDA_NODE (cur) && !cur->parameterized
              && !has_lambda_parents_only (cur))
       BTOR_PUSH_STACK (mm, shared, cur);
-    else if (BTOR_IS_ARGS_NODE (cur))
-      BTOR_PUSH_STACK (mm, args, cur);
 
     for (j = 0; j < cur->arity; j++)
       BTOR_PUSH_STACK (mm, visit, BTOR_REAL_ADDR_NODE (cur->e[j]));
   }
 
-  /* collect nodes that are referenced more than once
-   * (inputs, constants, functions, and function applications excluded) */
+  /* compute reference counts of expressions (required for determining shared
+   * expressions)*/
   if (all.start)
     qsort (all.start, BTOR_COUNT_STACK (all), sizeof e, cmp_node_id);
 
-  for (i = BTOR_COUNT_STACK (all) - 1; i >= 0; i--)
+  for (i = 0; i < BTOR_COUNT_STACK (all); i++)
   {
     cur = BTOR_PEEK_STACK (all, i);
     b   = btor_find_in_ptr_hash_table (sdc->dump, cur);
+    assert (b);
+    assert (b->data.asInt == 0);
     /* cache result for later reuse */
     b->data.asInt = get_references (sdc, cur);
 
-    if (b->data.asInt <= 1 || cur->parameterized || BTOR_IS_BV_CONST_NODE (cur)
-        || BTOR_IS_BV_VAR_NODE (cur) || BTOR_IS_FUN_NODE (cur)
-        || BTOR_IS_PARAM_NODE (cur) || BTOR_IS_ARGS_NODE (cur))
+    /* update references for expressions under argument nodes */
+    if (BTOR_IS_ARGS_NODE (cur) && b->data.asInt > 0)
+    {
+      init_args_iterator (&ait, cur);
+      while (has_next_args_iterator (&ait))
+      {
+        e = BTOR_REAL_ADDR_NODE (next_args_iterator (&ait));
+        assert (btor_find_in_ptr_hash_table (sdc->dump, e));
+        btor_find_in_ptr_hash_table (sdc->dump, e)->data.asInt += b->data.asInt;
+      }
+    }
+  }
+
+  /* collect globally shared expressions */
+  for (i = 0; i < BTOR_COUNT_STACK (all); i++)
+  {
+    cur = BTOR_PEEK_STACK (all, i);
+    b   = btor_find_in_ptr_hash_table (sdc->dump, cur);
+    assert (b);
+
+    if (b->data.asInt <= 1
+        /* parameterized expressions are only shared within a function */
+        || cur->parameterized
+        || BTOR_IS_PARAM_NODE (cur)
+        /* constants are always printed */
+        || BTOR_IS_BV_CONST_NODE (cur)
+        /* for variables and functions the resp. symbols are always printed */
+        || BTOR_IS_BV_VAR_NODE (cur)
+        || BTOR_IS_FUN_NODE (cur)
+        /* argument nodes are never printed */
+        || BTOR_IS_ARGS_NODE (cur))
       continue;
 
     BTOR_PUSH_STACK (mm, shared, cur);
-  }
-
-  /* update references for expressions under argument nodes */
-  while (!BTOR_EMPTY_STACK (args))
-  {
-    cur = BTOR_POP_STACK (args);
-    assert (BTOR_IS_REGULAR_NODE (cur));
-    assert (BTOR_IS_ARGS_NODE (cur));
-
-    b = btor_find_in_ptr_hash_table (sdc->dump, cur);
-    assert (b);
-
-    if (b->data.asInt == 0) continue;
-
-    init_args_iterator (&ait, cur);
-    while (has_next_args_iterator (&ait))
-    {
-      e = BTOR_REAL_ADDR_NODE (next_args_iterator (&ait));
-      assert (btor_find_in_ptr_hash_table (sdc->dump, e));
-      btor_find_in_ptr_hash_table (sdc->dump, e)->data.asInt += b->data.asInt;
-    }
   }
 
   /* collect boolean terms */
@@ -1259,7 +1264,6 @@ dump_smt (BtorSMTDumpContext *sdc)
   BTOR_RELEASE_STACK (mm, vars);
   BTOR_RELEASE_STACK (mm, arrays);
   BTOR_RELEASE_STACK (mm, ufs);
-  BTOR_RELEASE_STACK (mm, args);
 
   if (sdc->version == 2)
   {
