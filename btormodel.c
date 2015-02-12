@@ -29,17 +29,18 @@
   } while (0)
 
 static void
-delete_bv_model (Btor *btor)
+delete_bv_model (Btor *btor, BtorPtrHashTable **bv_model)
 {
   assert (btor);
+  assert (bv_model);
 
   BitVector *bv;
   BtorNode *cur;
   BtorHashTableIterator it;
 
-  if (!btor->bv_model) return;
+  if (!*bv_model) return;
 
-  init_node_hash_table_iterator (&it, btor->bv_model);
+  init_node_hash_table_iterator (&it, *bv_model);
   while (has_next_node_hash_table_iterator (&it))
   {
     bv  = (BitVector *) it.bucket->data.asPtr;
@@ -48,25 +49,28 @@ delete_bv_model (Btor *btor)
     btor_release_exp (btor, cur);
   }
 
-  btor_delete_ptr_hash_table (btor->bv_model);
-  btor->bv_model = 0;
+  btor_delete_ptr_hash_table (*bv_model);
+  *bv_model = 0;
 }
 
 static void
-init_bv_model (Btor *btor)
+init_bv_model (Btor *btor, BtorPtrHashTable **bv_model)
 {
   assert (btor);
+  assert (bv_model);
 
-  if (btor->bv_model) delete_bv_model (btor);
+  if (*bv_model) delete_bv_model (btor, bv_model);
 
-  btor->bv_model =
-      btor_new_ptr_hash_table (btor->mm,
-                               (BtorHashPtr) btor_hash_exp_by_id,
-                               (BtorCmpPtr) btor_compare_exp_by_id);
+  *bv_model = btor_new_ptr_hash_table (btor->mm,
+                                       (BtorHashPtr) btor_hash_exp_by_id,
+                                       (BtorCmpPtr) btor_compare_exp_by_id);
 }
 
-static void
-add_to_bv_model (Btor *btor, BtorNode *exp, BitVector *assignment)
+void
+btor_add_to_bv_model (Btor *btor,
+                      BtorPtrHashTable *bv_model,
+                      BtorNode *exp,
+                      BitVector *assignment)
 {
   assert (btor);
   assert (exp);
@@ -74,16 +78,17 @@ add_to_bv_model (Btor *btor, BtorNode *exp, BitVector *assignment)
 
   BtorPtrHashBucket *b;
 
-  if (btor_find_in_ptr_hash_table (btor->bv_model, exp)) return;
+  if (btor_find_in_ptr_hash_table (bv_model, exp)) return;
 
-  b = btor_insert_in_ptr_hash_table (btor->bv_model, btor_copy_exp (btor, exp));
+  b = btor_insert_in_ptr_hash_table (bv_model, btor_copy_exp (btor, exp));
   b->data.asPtr = btor_copy_bv (btor, assignment);
 }
 
 static void
-delete_fun_model (Btor *btor)
+delete_fun_model (Btor *btor, BtorPtrHashTable **fun_model)
 {
   assert (btor);
+  assert (fun_model);
 
   BitVectorTuple *tup;
   BitVector *value;
@@ -91,9 +96,9 @@ delete_fun_model (Btor *btor)
   BtorHashTableIterator it1, it2;
   BtorPtrHashTable *t;
 
-  if (!btor->fun_model) return;
+  if (!*fun_model) return;
 
-  init_node_hash_table_iterator (&it1, btor->fun_model);
+  init_node_hash_table_iterator (&it1, *fun_model);
   while (has_next_node_hash_table_iterator (&it1))
   {
     t   = (BtorPtrHashTable *) it1.bucket->data.asPtr;
@@ -110,30 +115,32 @@ delete_fun_model (Btor *btor)
     btor_delete_ptr_hash_table (t);
   }
 
-  btor_delete_ptr_hash_table (btor->fun_model);
-  btor->fun_model = 0;
+  btor_delete_ptr_hash_table (*fun_model);
+  *fun_model = 0;
 }
 
 static void
-init_fun_model (Btor *btor)
+init_fun_model (Btor *btor, BtorPtrHashTable **fun_model)
 {
   assert (btor);
+  assert (fun_model);
 
-  if (btor->fun_model) delete_fun_model (btor);
+  if (*fun_model) delete_fun_model (btor, fun_model);
 
-  btor->fun_model =
-      btor_new_ptr_hash_table (btor->mm,
-                               (BtorHashPtr) btor_hash_exp_by_id,
-                               (BtorCmpPtr) btor_compare_exp_by_id);
+  *fun_model = btor_new_ptr_hash_table (btor->mm,
+                                        (BtorHashPtr) btor_hash_exp_by_id,
+                                        (BtorCmpPtr) btor_compare_exp_by_id);
 }
 
 static void
 add_to_fun_model (Btor *btor,
+                  BtorPtrHashTable *fun_model,
                   BtorNode *exp,
                   BitVectorTuple *t,
                   BitVector *value)
 {
   assert (btor);
+  assert (fun_model);
   assert (exp);
   assert (BTOR_IS_REGULAR_NODE (exp));
   assert (t);
@@ -142,7 +149,7 @@ add_to_fun_model (Btor *btor,
   BtorPtrHashTable *model;
   BtorPtrHashBucket *b;
 
-  b = btor_find_in_ptr_hash_table (btor->fun_model, exp);
+  b = btor_find_in_ptr_hash_table (fun_model, exp);
 
   if (b)
     model = (BtorPtrHashTable *) b->data.asPtr;
@@ -151,7 +158,7 @@ add_to_fun_model (Btor *btor,
     model = btor_new_ptr_hash_table (btor->mm,
                                      (BtorHashPtr) btor_hash_bv_tuple,
                                      (BtorCmpPtr) btor_compare_bv_tuple);
-    btor_insert_in_ptr_hash_table (btor->fun_model, btor_copy_exp (btor, exp))
+    btor_insert_in_ptr_hash_table (fun_model, btor_copy_exp (btor, exp))
         ->data.asPtr = model;
   }
   assert (!btor_find_in_ptr_hash_table (model, t));
@@ -161,9 +168,13 @@ add_to_fun_model (Btor *btor,
 }
 
 static BitVector *
-get_value_from_fun_model (Btor *btor, BtorNode *exp, BitVectorTuple *t)
+get_value_from_fun_model (Btor *btor,
+                          BtorPtrHashTable *fun_model,
+                          BtorNode *exp,
+                          BitVectorTuple *t)
 {
   assert (btor);
+  assert (fun_model);
   assert (exp);
   assert (t);
   assert (BTOR_IS_REGULAR_NODE (exp));
@@ -172,7 +183,7 @@ get_value_from_fun_model (Btor *btor, BtorNode *exp, BitVectorTuple *t)
   BtorPtrHashTable *model;
   BtorPtrHashBucket *b;
 
-  b = btor_find_in_ptr_hash_table (btor->fun_model, exp);
+  b = btor_find_in_ptr_hash_table (fun_model, exp);
 
   if (!b) return 0;
 
@@ -184,10 +195,16 @@ get_value_from_fun_model (Btor *btor, BtorNode *exp, BitVectorTuple *t)
   return btor_copy_bv (btor, (BitVector *) b->data.asPtr);
 }
 
-static BitVector *
-recursively_compute_assignment (Btor *btor, BtorNode *exp)
+/* Note: don't forget to free resulting bit vector! */
+BitVector *
+btor_recursively_compute_assignment (Btor *btor,
+                                     BtorPtrHashTable *bv_model,
+                                     BtorPtrHashTable *fun_model,
+                                     BtorNode *exp)
 {
   assert (btor);
+  assert (bv_model);
+  assert (fun_model);
   assert (exp);
 
   int i, num_args;
@@ -230,8 +247,7 @@ recursively_compute_assignment (Btor *btor, BtorNode *exp)
     real_cur   = BTOR_REAL_ADDR_NODE (cur);
     assert (!real_cur->simplified);
 
-    if (btor_find_in_ptr_hash_table (btor->bv_model, real_cur))
-      goto PUSH_CACHED;
+    if (btor_find_in_ptr_hash_table (bv_model, real_cur)) goto PUSH_CACHED;
 
     /* check if we already have an assignment for this function application */
     if (BTOR_IS_LAMBDA_NODE (real_cur) && cur_parent
@@ -249,7 +265,7 @@ recursively_compute_assignment (Btor *btor, BtorNode *exp)
         btor_add_to_bv_tuple (btor, t, e[i], num_args - 1 - i);
 
       /* check if there is already a value for given arguments */
-      result = get_value_from_fun_model (btor, cur_parent->e[0], t);
+      result = get_value_from_fun_model (btor, fun_model, cur_parent->e[0], t);
       btor_free_bv_tuple (btor, t);
 
       if (result) goto PUSH_RESULT;
@@ -405,12 +421,13 @@ recursively_compute_assignment (Btor *btor, BtorNode *exp)
           }
 
           /* check if there is already a value for given arguments */
-          result = get_value_from_fun_model (btor, real_cur->e[0], t);
+          result =
+              get_value_from_fun_model (btor, fun_model, real_cur->e[0], t);
           if (!result)
           {
             /* value of apply is at last index of e */
             result = e[num_args];
-            add_to_fun_model (btor, real_cur->e[0], t, result);
+            add_to_fun_model (btor, fun_model, real_cur->e[0], t, result);
           }
           else
             btor_free_bv (btor, e[num_args]);
@@ -437,8 +454,8 @@ recursively_compute_assignment (Btor *btor, BtorNode *exp)
       /* remember parameterized nodes for resetting 'eval_mark' later */
       if (real_cur->parameterized) BTOR_PUSH_STACK (mm, reset, real_cur);
 
-      assert (!btor_find_in_ptr_hash_table (btor->bv_model, real_cur));
-      add_to_bv_model (btor, real_cur, result);
+      assert (!btor_find_in_ptr_hash_table (bv_model, real_cur));
+      btor_add_to_bv_model (btor, bv_model, real_cur, result);
 
     PUSH_RESULT_AND_UNASSIGN:
       if (BTOR_IS_LAMBDA_NODE (real_cur) && cur_parent
@@ -472,7 +489,7 @@ recursively_compute_assignment (Btor *btor, BtorNode *exp)
     {
       assert (real_cur->eval_mark == 2);
     PUSH_CACHED:
-      b = btor_find_in_ptr_hash_table (btor->bv_model, real_cur);
+      b = btor_find_in_ptr_hash_table (bv_model, real_cur);
       assert (b);
       result = btor_copy_bv (btor, (BitVector *) b->data.asPtr);
       goto PUSH_RESULT;
@@ -536,9 +553,13 @@ find_candidates_for_param (Btor *btor,
 
 // TODO: works for arrays only
 static void
-compute_lambda_model (Btor *btor, BtorNode *exp)
+compute_lambda_model (Btor *btor,
+                      BtorPtrHashTable *bv_model,
+                      BtorPtrHashTable *fun_model,
+                      BtorNode *exp)
 {
   assert (btor);
+  assert (fun_model);
   assert (exp);
   assert (BTOR_IS_REGULAR_NODE (exp));
   assert (BTOR_IS_LAMBDA_NODE (exp));
@@ -570,7 +591,7 @@ compute_lambda_model (Btor *btor, BtorNode *exp)
   find_candidates_for_param (btor, exp->e[0], &candidates);
   for (i = 0; i < BTOR_COUNT_STACK (candidates); i++)
   {
-    // TODO: can we do this with recursively_compute_assignment?
+    // TODO: can we do this with btor_recursively_compute_assignment?
     c      = BTOR_PEEK_STACK (candidates, i);
     real_c = BTOR_REAL_ADDR_NODE (c);
 
@@ -580,16 +601,18 @@ compute_lambda_model (Btor *btor, BtorNode *exp)
 
     // TODO: continue from here on, check which conditions are needed here
     if ((BTOR_IS_SYNTH_NODE (real_c) || BTOR_IS_BV_CONST_NODE (real_c)
-         || btor_find_in_ptr_hash_table (btor->bv_model, real_c))
+         || btor_find_in_ptr_hash_table (bv_model, real_c))
         && (BTOR_IS_SYNTH_NODE (real_r) || BTOR_IS_BV_CONST_NODE (real_r)
-            || btor_find_in_ptr_hash_table (btor->bv_model, real_r)))
+            || btor_find_in_ptr_hash_table (bv_model, real_r)))
     {
       // TODO: multiple args
-      t     = btor_new_bv_tuple (btor, 1);
-      index = recursively_compute_assignment (btor, c);
+      t = btor_new_bv_tuple (btor, 1);
+      index =
+          btor_recursively_compute_assignment (btor, bv_model, fun_model, c);
       btor_add_to_bv_tuple (btor, t, index, 0);
-      value = recursively_compute_assignment (btor, r);
-      add_to_fun_model (btor, exp, t, value);
+      value =
+          btor_recursively_compute_assignment (btor, bv_model, fun_model, r);
+      add_to_fun_model (btor, fun_model, exp, t, value);
       btor_free_bv (btor, index);
       btor_free_bv (btor, value);
       btor_free_bv_tuple (btor, t);
@@ -602,9 +625,11 @@ compute_lambda_model (Btor *btor, BtorNode *exp)
 }
 
 static void
-extract_models_from_functions_with_model (Btor *btor)
+extract_models_from_functions_with_model (Btor *btor,
+                                          BtorPtrHashTable *fun_model)
 {
   assert (btor);
+  assert (fun_model);
 
   int i, pos;
   BtorNode *cur, *arg, *value, *args;
@@ -640,7 +665,7 @@ extract_models_from_functions_with_model (Btor *btor)
 
       bv_value = btor_assignment_bv (btor, value, 0);
 
-      add_to_fun_model (btor, cur, t, bv_value);
+      add_to_fun_model (btor, fun_model, cur, t, bv_value);
       btor_free_bv (btor, bv_value);
       btor_free_bv_tuple (btor, t);
     }
@@ -648,9 +673,14 @@ extract_models_from_functions_with_model (Btor *btor)
 }
 
 void
-btor_generate_model (Btor *btor, int model_for_all_nodes)
+btor_generate_model_aux (Btor *btor,
+                         BtorPtrHashTable *bv_model,
+                         BtorPtrHashTable *fun_model,
+                         int model_for_all_nodes)
 {
   assert (btor);
+  assert (bv_model);
+  assert (fun_model);
 
   int i;
   double start;
@@ -660,12 +690,10 @@ btor_generate_model (Btor *btor, int model_for_all_nodes)
   BitVector *bv;
 
   start = btor_time_stamp ();
-  init_bv_model (btor);
-  init_fun_model (btor);
 
   BTOR_INIT_STACK (stack);
 
-  extract_models_from_functions_with_model (btor);
+  extract_models_from_functions_with_model (btor, fun_model);
 
   /* NOTE: adding fun_rhs is only needed for extensional benchmarks */
   init_node_hash_table_iterator (&it, btor->fun_rhs);
@@ -716,10 +744,10 @@ btor_generate_model (Btor *btor, int model_for_all_nodes)
 
     // TODO: only required in extensional case (not fully supported yet)
     if (BTOR_IS_LAMBDA_NODE (cur))
-      compute_lambda_model (btor, cur);
+      compute_lambda_model (btor, bv_model, fun_model, cur);
     else
     {
-      bv = recursively_compute_assignment (btor, cur);
+      bv = btor_recursively_compute_assignment (btor, bv_model, fun_model, cur);
       btor_free_bv (btor, bv);
     }
   }
@@ -729,166 +757,125 @@ btor_generate_model (Btor *btor, int model_for_all_nodes)
 }
 
 void
-btor_delete_model (Btor *btor)
+btor_generate_model (Btor *btor, int model_for_all_nodes)
 {
   assert (btor);
-  delete_bv_model (btor);
-  delete_fun_model (btor);
+
+  init_bv_model (btor, &btor->bv_model);
+  init_fun_model (btor, &btor->fun_model);
+
+  btor_generate_model_aux (
+      btor, btor->bv_model, btor->fun_model, model_for_all_nodes);
 }
 
 void
-btor_update_model (Btor *btor,
-                   BtorNode *exp,
-                   BitVector *assignment,
-                   int model_for_all_nodes)
+btor_delete_model (Btor *btor)
 {
   assert (btor);
-  // TODO we currently support QF_BV only
-  assert (btor->lambdas->count == 0 && btor->ufs->count == 0);
-  assert (check_id_table_mark_unset_dbg (btor));
-  assert (exp);
-  assert (assignment);
-
-  int i;
-  BitVector *bv;
-  BtorPtrHashBucket *b;
-  BtorNodePtrStack stack, nodes;
-  BtorNodeIterator nit;
-  BtorNode *cur;
-
-  exp = BTOR_REAL_ADDR_NODE (exp);
-
-  BTOR_INIT_STACK (stack);
-  BTOR_INIT_STACK (nodes);
-
-  bv = (BitVector *) btor_get_bv_model (btor, exp);
-  assert (bv->width == assignment->width);
-  assert (bv->len == assignment->len);
-  assert (btor_compare_bv (bv, assignment));
-
-  b = btor_find_in_ptr_hash_table (btor->bv_model, exp);
-  assert (b->data.asPtr);
-  btor_free_bv (btor, b->data.asPtr);
-  b->data.asPtr = assignment;
-
-  /* determine cone */
-  init_full_parent_iterator (&nit, exp);
-  while (has_next_parent_full_parent_iterator (&nit))
-    BTOR_PUSH_STACK (btor->mm, stack, next_parent_full_parent_iterator (&nit));
-
-  while (!BTOR_EMPTY_STACK (stack))
-  {
-    cur = BTOR_REAL_ADDR_NODE (BTOR_POP_STACK (stack));
-    if (cur->mark) continue;
-    cur->mark = 1;
-
-    BTOR_PUSH_STACK (btor->mm, nodes, cur);
-
-    /* reset previous assignment */
-    b = btor_find_in_ptr_hash_table (btor->bv_model, cur);
-    if (b)
-    {
-      btor_free_bv (btor, b->data.asPtr);
-      btor_remove_from_ptr_hash_table (btor->bv_model, cur, 0, 0);
-    }
-
-    /* push parents */
-    init_full_parent_iterator (&nit, cur);
-    while (has_next_parent_full_parent_iterator (&nit))
-      BTOR_PUSH_STACK (
-          btor->mm, stack, next_parent_full_parent_iterator (&nit));
-  }
-  qsort (nodes.start,
-         BTOR_COUNT_STACK (nodes),
-         sizeof (BtorNode *),
-         btor_cmp_exp_by_id_qsort_asc);
-
-  /* cleanup */
-  for (i = 0; i < BTOR_COUNT_STACK (nodes); i++)
-    BTOR_PEEK_STACK (nodes, i)->mark = 0;
-
-  /* update model */
-  while (!BTOR_EMPTY_STACK (nodes))
-  {
-    cur = BTOR_POP_STACK (nodes);
-    assert (BTOR_IS_REGULAR_NODE (cur));
-    // TODO we currently support QF_BV only
-    assert (!BTOR_IS_FUN_NODE (cur));
-
-    if (BTOR_IS_ARGS_NODE (cur) || BTOR_IS_PROXY_NODE (cur)
-        || cur->parameterized
-        /* generate model for all expressions (includes non-reachable) */
-        || (!model_for_all_nodes && !cur->reachable))
-      continue;
-
-    bv = recursively_compute_assignment (btor, cur);
-  }
-
-  BTOR_RELEASE_STACK (btor->mm, stack);
-  BTOR_RELEASE_STACK (btor->mm, nodes);
+  delete_bv_model (btor, &btor->bv_model);
+  delete_fun_model (btor, &btor->fun_model);
 }
 
 /* Note: no need to free returned bit vector,
  *       all bit vectors are maintained via btor->bv_model */
 const BitVector *
-btor_get_bv_model (Btor *btor, BtorNode *exp)
+btor_get_bv_model_aux (Btor *btor,
+                       BtorPtrHashTable **bv_model,
+                       BtorPtrHashTable **fun_model,
+                       BtorNode *exp)
 {
   assert (btor);
+  assert (bv_model);
+  assert (*bv_model);
+  assert (fun_model);
+  assert (*fun_model);
   assert (exp);
 
   BitVector *result;
   BtorPtrHashBucket *b;
 
-  b = btor_find_in_ptr_hash_table (btor->bv_model, BTOR_REAL_ADDR_NODE (exp));
+  b = btor_find_in_ptr_hash_table (*bv_model, BTOR_REAL_ADDR_NODE (exp));
 
   /* if exp has no assignment, regenerate model in case that it is an exp
    * that previously existed but was simplified (i.e. the original exp is now
    * a proxy and was therefore regenerated when querying it's assignment via
    * get-value in SMT-LIB v2) */
-  if (!b) btor_generate_model (btor, 1);
-  b = btor_find_in_ptr_hash_table (btor->bv_model, BTOR_REAL_ADDR_NODE (exp));
+  if (!b)
+  {
+    init_bv_model (btor, bv_model);
+    init_fun_model (btor, fun_model);
+    btor_generate_model_aux (btor, *bv_model, *fun_model, 1);
+  }
+  b = btor_find_in_ptr_hash_table (*bv_model, BTOR_REAL_ADDR_NODE (exp));
   if (!b) return 0;
 
   result = (BitVector *) b->data.asPtr;
   /* Note: we cache assignments of inverted expressions on demand */
   if (BTOR_IS_INVERTED_NODE (exp))
   {
-    if ((b = btor_find_in_ptr_hash_table (btor->bv_model, exp)))
+    if ((b = btor_find_in_ptr_hash_table (*bv_model, exp)))
       result = b->data.asPtr;
     else
     {
       /* we don't use add_to_bv_model in order to avoid redundant
        * hash table queries and copying/freeing of the resulting bv */
-      result        = btor_not_bv (btor, result);
-      b             = btor_insert_in_ptr_hash_table (btor->bv_model,
-                                         btor_copy_exp (btor, exp));
+      result = btor_not_bv (btor, result);
+      b = btor_insert_in_ptr_hash_table (*bv_model, btor_copy_exp (btor, exp));
       b->data.asPtr = result;
     }
   }
   return result;
 }
 
-const BtorPtrHashTable *
-btor_get_fun_model (Btor *btor, BtorNode *exp)
+const BitVector *
+btor_get_bv_model (Btor *btor, BtorNode *exp)
 {
   assert (btor);
+  assert (exp);
+  return btor_get_bv_model_aux (btor, &btor->bv_model, &btor->fun_model, exp);
+}
+
+const BtorPtrHashTable *
+btor_get_fun_model_aux (Btor *btor,
+                        BtorPtrHashTable **bv_model,
+                        BtorPtrHashTable **fun_model,
+                        BtorNode *exp)
+{
+  assert (btor);
+  assert (bv_model);
+  assert (*bv_model);
+  assert (fun_model);
+  assert (*fun_model);
   assert (BTOR_IS_REGULAR_NODE (exp));
 
   BtorPtrHashBucket *b;
 
   exp = btor_simplify_exp (btor, exp);
   assert (BTOR_IS_FUN_NODE (exp));
-  b = btor_find_in_ptr_hash_table (btor->fun_model, exp);
+  b = btor_find_in_ptr_hash_table (*fun_model, exp);
 
   /* if exp has no assignment, regenerate model in case that it is an exp
    * that previously existed but was simplified (i.e. the original exp is now
    * a proxy and was therefore regenerated when querying it's assignment via
    * get-value in SMT-LIB v2) */
-  if (!b) btor_generate_model (btor, 0);
-  b = btor_find_in_ptr_hash_table (btor->fun_model, exp);
+  if (!b)
+  {
+    init_bv_model (btor, bv_model);
+    init_fun_model (btor, fun_model);
+    btor_generate_model_aux (btor, *bv_model, *fun_model, 1);
+  }
+  b = btor_find_in_ptr_hash_table (*fun_model, exp);
   if (!b) return 0;
 
   return (BtorPtrHashTable *) b->data.asPtr;
+}
+
+const BtorPtrHashTable *
+btor_get_fun_model (Btor *btor, BtorNode *exp)
+{
+  assert (btor);
+  assert (exp);
+  return btor_get_fun_model_aux (btor, &btor->bv_model, &btor->fun_model, exp);
 }
 
 static BtorNode *

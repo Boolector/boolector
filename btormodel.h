@@ -1,7 +1,7 @@
 /*  Boolector: Satisfiablity Modulo Theories (SMT) solver.
  *
  *  Copyright (C) 2014 Mathias Preiner.
- *  Copyright (C) 2014 Aina Niemetz.
+ *  Copyright (C) 2014-2015 Aina Niemetz.
  *
  *  All rights reserved.
  *
@@ -18,16 +18,35 @@
 #include "btorhash.h"
 
 void btor_generate_model (Btor* btor, int model_for_all_reads);
+void btor_generate_model_aux (Btor* btor,
+                              BtorPtrHashTable* bv_model,
+                              BtorPtrHashTable* fun_model,
+                              int model_for_all_nodes);
+
 void btor_delete_model (Btor* btor);
-void btor_update_model (Btor* btor,
-                        BtorNode* exp,
-                        BitVector* assignment,
-                        int model_for_all_nodes);
 
 const BitVector* btor_get_bv_model (Btor* btor, BtorNode* exp);
+const BitVector* btor_get_bv_model_aux (Btor* btor,
+                                        BtorPtrHashTable** bv_model,
+                                        BtorPtrHashTable** fun_model,
+                                        BtorNode* exp);
+
 const BtorPtrHashTable* btor_get_fun_model (Btor* btor, BtorNode* exp);
+const BtorPtrHashTable* btor_get_fun_model_aux (Btor* btor,
+                                                BtorPtrHashTable** bv_model,
+                                                BtorPtrHashTable** fun_model,
+                                                BtorNode* exp);
+
+void btor_add_to_bv_model (Btor* btor,
+                           BtorPtrHashTable* bv_model,
+                           BtorNode* exp,
+                           BitVector* assignment);
 
 BtorNode* btor_generate_lambda_model_from_fun_model (
     Btor* btor, BtorNode* exp, const BtorPtrHashTable* model);
 
+BitVector* btor_recursively_compute_assignment (Btor* btor,
+                                                BtorPtrHashTable* bv_model,
+                                                BtorPtrHashTable* fun_model,
+                                                BtorNode* exp);
 #endif
