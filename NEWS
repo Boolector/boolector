@@ -1,13 +1,20 @@
-+ fixed bug in compare function for pointer hashing
-+ fixed performance issues when computing scores for don't care reasoning
-+ added smt2 models (get-value, get-model)
+news for release 2.0.4 since 2.0.3
+--------------------------------------
+* fixed bug in compare function for pointer hashing
+* fixed performance issues when computing scores for don't care reasoning
+* added smt2 models (get-value, get-model)
+* fixed some issues in the Python API (thanks to Ryan Goulden)
+* improved dumping of SMT2 formulas
 
-news for release 2.0.3 since 2.0.0
+news for release 2.0.3 since 2.0.1
 --------------------------------------
 * fixed segmentation fault in back annotation for 'synthebtor'
 * renenabled verbosity output for SAT solvers during search
 * removed stale empty lines in triple verbose output
 * fixed compilation issues with gcc/g++ 4.4
+
+news for release 2.0.1 since 2.0.0
+--------------------------------------
 * fixes bug in model generation
 
 news for release 2.0.0 since 1.6.0

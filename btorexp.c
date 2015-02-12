@@ -562,7 +562,6 @@ compute_hash_exp (BtorNode *exp, int table_size)
   assert (!BTOR_IS_BV_VAR_NODE (exp));
   assert (!BTOR_IS_UF_NODE (exp));
 
-  int i;
   unsigned int hash = 0;
 
   if (BTOR_IS_BV_CONST_NODE (exp)) hash = btor_hash_str ((void *) exp->bits);
@@ -1250,8 +1249,6 @@ new_lambda_exp_node (Btor *btor, BtorNode *e_param, BtorNode *e_exp)
   assert (btor == e_param->btor);
   assert (btor == BTOR_REAL_ADDR_NODE (e_exp)->btor);
 
-  BtorNodeIterator it;
-  BtorNode *exp;
   BtorLambdaNode *lambda_exp;
 
   BTOR_CNEW (btor->mm, lambda_exp);
