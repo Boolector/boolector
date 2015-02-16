@@ -2,8 +2,8 @@
  *
  *  Copyright (C) 2007-2009 Robert Daniel Brummayer.
  *  Copyright (C) 2007-2014 Armin Biere.
- *  Copyright (C) 2012-2014 Aina Niemetz.
- *  Copyright (C) 2012-2014 Mathias Preiner.
+ *  Copyright (C) 2012-2015 Aina Niemetz.
+ *  Copyright (C) 2012-2015 Mathias Preiner.
  *
  *  All rights reserved.
  *
@@ -1461,6 +1461,8 @@ boolector_main (int argc, char **argv)
       sat_res = BOOLECTOR_UNSAT;
     }
 
+    if (static_verbosity) boolector_print_stats (static_app->btor);
+
     print_sat_result (static_app, sat_res);
 
     if (print_model && sat_res == BOOLECTOR_SAT)
@@ -1471,7 +1473,6 @@ boolector_main (int argc, char **argv)
                              static_app->outfile);
     }
 
-    if (static_verbosity) boolector_print_stats (static_app->btor);
     goto DONE;
   }
   else if (dump)
@@ -1498,6 +1499,9 @@ boolector_main (int argc, char **argv)
         if (static_verbosity) btormain_msg ("dumping in SMT 2.0 format");
         boolector_dump_smt2 (static_app->btor, static_app->outfile);
     }
+
+    if (static_verbosity) boolector_print_stats (static_app->btor);
+
     goto DONE;
   }
 
@@ -1517,14 +1521,6 @@ boolector_main (int argc, char **argv)
                     "'unsat' but status of benchmark in '%s' is 'sat'",
                     static_app->infile_name);
 
-  if (print_model && sat_res == BOOLECTOR_SAT)
-  {
-    assert (boolector_get_opt_val (static_app->btor, BTOR_OPT_MODEL_GEN));
-    boolector_print_model (static_app->btor,
-                           static_app->opts.smt2_model.val ? "smt2" : "btor",
-                           static_app->outfile);
-  }
-
   if (static_verbosity)
   {
     boolector_print_stats (static_app->btor);
@@ -1532,6 +1528,14 @@ boolector_main (int argc, char **argv)
   }
 
   print_sat_result (static_app, sat_res);
+
+  if (print_model && sat_res == BOOLECTOR_SAT)
+  {
+    assert (boolector_get_opt_val (static_app->btor, BTOR_OPT_MODEL_GEN));
+    boolector_print_model (static_app->btor,
+                           static_app->opts.smt2_model.val ? "smt2" : "btor",
+                           static_app->outfile);
+  }
 
 DONE:
   if (static_app->done)

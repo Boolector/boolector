@@ -2,8 +2,8 @@
  *
  *  Copyright (C) 2007-2009 Robert Daniel Brummayer.
  *  Copyright (C) 2007-2014 Armin Biere.
- *  Copyright (C) 2012-2014 Aina Niemetz.
- *  Copyright (C) 2012-2014 Mathias Preiner.
+ *  Copyright (C) 2012-2015 Aina Niemetz.
+ *  Copyright (C) 2012-2015 Mathias Preiner.
  *
  *  All rights reserved.
  *
@@ -562,7 +562,6 @@ compute_hash_exp (BtorNode *exp, int table_size)
   assert (!BTOR_IS_BV_VAR_NODE (exp));
   assert (!BTOR_IS_UF_NODE (exp));
 
-  int i;
   unsigned int hash = 0;
 
   if (BTOR_IS_BV_CONST_NODE (exp)) hash = btor_hash_str ((void *) exp->bits);
@@ -1250,8 +1249,6 @@ new_lambda_exp_node (Btor *btor, BtorNode *e_param, BtorNode *e_exp)
   assert (btor == e_param->btor);
   assert (btor == BTOR_REAL_ADDR_NODE (e_exp)->btor);
 
-  BtorNodeIterator it;
-  BtorNode *exp;
   BtorLambdaNode *lambda_exp;
 
   BTOR_CNEW (btor->mm, lambda_exp);
@@ -1384,16 +1381,16 @@ btor_compare_exp_by_id (BtorNode *exp0, BtorNode *exp1)
 int
 btor_cmp_exp_by_id_qsort_desc (const void *p, const void *q)
 {
-  BtorNode *a = *(BtorNode **) p;
-  BtorNode *b = *(BtorNode **) q;
+  BtorNode *a = BTOR_REAL_ADDR_NODE (*(BtorNode **) p);
+  BtorNode *b = BTOR_REAL_ADDR_NODE (*(BtorNode **) q);
   return b->id - a->id;
 }
 
 int
 btor_cmp_exp_by_id_qsort_asc (const void *p, const void *q)
 {
-  BtorNode *a = *(BtorNode **) p;
-  BtorNode *b = *(BtorNode **) q;
+  BtorNode *a = BTOR_REAL_ADDR_NODE (*(BtorNode **) p);
+  BtorNode *b = BTOR_REAL_ADDR_NODE (*(BtorNode **) q);
   return a->id - b->id;
 }
 
@@ -1481,9 +1478,6 @@ compare_lambda_exp (Btor *btor,
   int i, equal = 1;
   BtorNode *cur0, *cur1, *real_cur0, *real_cur1;
   BtorNodePtrStack visit;
-  BtorPtrHashTable *marked;
-
-  marked = btor_new_ptr_hash_table (btor->mm, 0, 0);
 
   BTOR_INIT_STACK (visit);
   BTOR_PUSH_STACK (btor->mm, visit, param);
@@ -1501,14 +1495,15 @@ compare_lambda_exp (Btor *btor,
     real_cur1 = BTOR_REAL_ADDR_NODE (cur1);
     real_cur0 = BTOR_REAL_ADDR_NODE (cur0);
 
-    if (btor_find_in_ptr_hash_table (marked, real_cur0)) continue;
-
     if (BTOR_IS_INVERTED_NODE (cur0) != BTOR_IS_INVERTED_NODE (cur1)
         || real_cur0->kind != real_cur1->kind
         || real_cur0->parameterized != real_cur1->parameterized
         || real_cur0->len != real_cur1->len
         /* arity might be differnt in case of BTOR_ARGS_NODE */
-        || real_cur0->arity != real_cur1->arity)
+        || real_cur0->arity != real_cur1->arity
+        || (BTOR_IS_SLICE_NODE (real_cur0)
+            && (real_cur0->upper != real_cur1->upper
+                || real_cur0->lower != real_cur1->lower)))
     {
       equal = 0;
       break;
@@ -1525,8 +1520,6 @@ compare_lambda_exp (Btor *btor,
       continue;
     }
 
-    (void) btor_insert_in_ptr_hash_table (marked, real_cur0);
-
     if (real_cur0->id == real_cur1->id) continue;
 
     for (i = 0; i < real_cur0->arity; i++)
@@ -1536,7 +1529,6 @@ compare_lambda_exp (Btor *btor,
     }
   }
   BTOR_RELEASE_STACK (btor->mm, visit);
-  btor_delete_ptr_hash_table (marked);
   return equal;
 }
 

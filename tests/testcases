@@ -701,11 +701,6 @@ redand3twice -o log/redand3twice.log log/redand3twice.btor
 painc -I -o log/painc.log log/painc.smt
 sult -o log/sult.log log/sult.btor
 sult2 -o log/sult2.log log/sult2.btor
-count02inc --incremental-look-ahead=2 -o log/count02inc.log log/count02inc.smt
-count02incuns --incremental-interval=4 -o log/count02incuns.log log/count02incuns.smt
-count03inc --incremental-in-depth=3 -o log/count03inc.log log/count03inc.smt
-count03to6 --incremental-interval=3 -o log/count03to6.log log/count03to6.smt
-count03plus2inc --incremental-interval=2 -o log/count03plus2inc.log log/count03plus2inc.smt
 concatslice1 -rwl 1 -db -o log/concatslice1.log log/concatslice1.btor
 concatslice2 -rwl 1 -db -o log/concatslice2.log log/concatslice2.btor
 regaddnorm1 -db -o log/regaddnorm1.log log/regaddnorm1.btor
