@@ -9,7 +9,7 @@ news for release 2.0.4 since 2.0.3
 news for release 2.0.3 since 2.0.1
 --------------------------------------
 * fixed segmentation fault in back annotation for 'synthebtor'
-* renenabled verbosity output for SAT solvers during search
+* reenabled verbosity output for SAT solvers during search
 * removed stale empty lines in triple verbose output
 * fixed compilation issues with gcc/g++ 4.4
 
