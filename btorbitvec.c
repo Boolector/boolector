@@ -208,6 +208,29 @@ btor_new_bv (Btor *btor, int bw)
   return res;
 }
 
+BitVector *
+btor_new_random_bv (Btor *btor, int bw)
+{
+  assert (btor);
+  assert (bw > 0);
+
+  int i, j;
+  BitVector *res;
+
+  i = bw / BTOR_BV_TYPE_BW;
+  if (bw % BTOR_BV_TYPE_BW > 0) i += 1;
+
+  assert (i > 0);
+  BTOR_CNEW (btor->mm, res);
+  BTOR_NEWN (btor->mm, res->bits, i);
+
+  for (j = 0; j < i; j++) res->bits[j] = btor_rand_rng (&btor->rng);
+
+  res->len   = i;
+  res->width = bw;
+  return res;
+}
+
 size_t
 btor_size_bv (BitVector *bv)
 {
