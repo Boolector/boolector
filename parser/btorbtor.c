@@ -60,11 +60,12 @@ struct BtorBTORParser
 
   int nprefix;
   BtorCharStack *prefix;
-  FILE *file;
+  FILE *infile;
+  const char *infile_name;
+  FILE *outfile;  // TODO not used at the moment, but will be with BTOR 2.0
   int lineno;
   int saved; /* boolean flag */
   int saved_char;
-  const char *name;
   char *error;
 
   BoolectorNodePtrStack exps;
@@ -101,12 +102,12 @@ btor_perr_btor (BtorBTORParser *parser, const char *fmt, ...)
   if (!parser->error)
   {
     va_start (ap, fmt);
-    bytes = btor_parse_error_message_length (parser->name, fmt, ap);
+    bytes = btor_parse_error_message_length (parser->infile_name, fmt, ap);
     va_end (ap);
 
     va_start (ap, fmt);
     parser->error = btor_parse_error_message (
-        parser->mem, parser->name, parser->lineno, 0, fmt, ap, bytes);
+        parser->mem, parser->infile_name, parser->lineno, 0, fmt, ap, bytes);
     va_end (ap);
   }
 
@@ -160,7 +161,7 @@ btor_nextch_btor (BtorBTORParser *parser)
     ch = parser->prefix->start[parser->nprefix++];
   }
   else
-    ch = getc (parser->file);
+    ch = getc (parser->infile);
 
   if (ch == '\n') parser->lineno++;
 
@@ -1793,25 +1794,29 @@ btor_delete_btor_parser (BtorBTORParser *parser)
 static const char *
 btor_parse_btor_parser (BtorBTORParser *parser,
                         BtorCharStack *prefix,
-                        FILE *file,
-                        const char *name,
+                        FILE *infile,
+                        const char *infile_name,
+                        FILE *outfile,
                         BtorParseResult *res)
 {
   BtorOpParser op_parser;
   int ch, len;
   BoolectorNode *e;
 
-  assert (name);
-  assert (file);
+  assert (infile);
+  assert (infile_name);
+  assert (outfile);
 
-  BTOR_MSG (boolector_get_btor_msg (parser->btor), 1, "parsing %s", name);
+  BTOR_MSG (
+      boolector_get_btor_msg (parser->btor), 1, "parsing %s", infile_name);
 
-  parser->nprefix = 0;
-  parser->prefix  = prefix;
-  parser->file    = file;
-  parser->name    = name;
-  parser->lineno  = 1;
-  parser->saved   = 0;
+  parser->nprefix     = 0;
+  parser->prefix      = prefix;
+  parser->infile      = infile;
+  parser->infile_name = infile_name;
+  parser->outfile     = outfile;
+  parser->lineno      = 1;
+  parser->saved       = 0;
 
   BTOR_INIT_STACK (parser->lambdas);
   BTOR_INIT_STACK (parser->params);

@@ -36,17 +36,19 @@ has_compressed_suffix (const char *str, const char *suffix)
 /* return BOOLECTOR_(SAT|UNSAT|UNKNOWN|PARSE_ERROR) */
 static int
 btor_parse_aux (Btor *btor,
-                FILE *file,
+                FILE *infile,
                 BtorCharStack *prefix,
-                const char *file_name,
+                const char *infile_name,
+                FILE *outfile,
                 const BtorParserAPI *parser_api,
                 char **error_msg,
                 int *status,
                 char *msg)
 {
   assert (btor);
-  assert (file);
-  assert (file_name);
+  assert (infile);
+  assert (infile_name);
+  assert (outfile);
   assert (parser_api);
   assert (error_msg);
   assert (status);
@@ -83,7 +85,8 @@ btor_parse_aux (Btor *btor,
   BTOR_MSG (btor->msg, 1, "%s", msg);
   parser = parser_api->init (btor, &parse_opt);
 
-  if ((emsg = parser_api->parse (parser, prefix, file, file_name, &parse_res)))
+  if ((emsg = parser_api->parse (
+           parser, prefix, infile, infile_name, outfile, &parse_res)))
   {
     res                   = BOOLECTOR_PARSE_ERROR;
     btor->parse_error_msg = btor_strdup (btor->mm, emsg);
@@ -149,14 +152,16 @@ btor_parse_aux (Btor *btor,
 
 int
 btor_parse (Btor *btor,
-            FILE *file,
-            const char *file_name,
+            FILE *infile,
+            const char *infile_name,
+            FILE *outfile,
             char **error_msg,
             int *status)
 {
   assert (btor);
-  assert (file);
-  assert (file_name);
+  assert (infile);
+  assert (infile_name);
+  assert (outfile);
   assert (error_msg);
   assert (status);
 
@@ -170,9 +175,9 @@ btor_parse (Btor *btor,
   mem = btor_new_mem_mgr ();
   BTOR_INIT_STACK (prefix);
 
-  if (has_compressed_suffix (file_name, ".btor"))
+  if (has_compressed_suffix (infile_name, ".btor"))
     parser_api = btor_btor_parser_api ();
-  else if (has_compressed_suffix (file_name, ".smt2"))
+  else if (has_compressed_suffix (infile_name, ".smt2"))
     parser_api = btor_smt2_parser_api ();
   else
   {
@@ -181,7 +186,7 @@ btor_parse (Btor *btor,
     msg            = "assuming BTOR input";
     for (;;)
     {
-      ch = getc (file);
+      ch = getc (infile);
       BTOR_PUSH_STACK (mem, prefix, ch);
       if (!ch || ch == EOF) break;
       if (ch == ' ' || ch == '\t' || ch == '\r' || ch == '\n')
@@ -193,7 +198,7 @@ btor_parse (Btor *btor,
         BTOR_PUSH_STACK (mem, prefix, ';');
         do
         {
-          ch = getc (file);
+          ch = getc (infile);
           if (ch == EOF) break;
           BTOR_PUSH_STACK (mem, prefix, ch);
         } while (ch != '\n');
@@ -227,8 +232,15 @@ btor_parse (Btor *btor,
     }
   }
 
-  res = btor_parse_aux (
-      btor, file, &prefix, file_name, parser_api, error_msg, status, msg);
+  res = btor_parse_aux (btor,
+                        infile,
+                        &prefix,
+                        infile_name,
+                        outfile,
+                        parser_api,
+                        error_msg,
+                        status,
+                        msg);
 
   /* cleanup */
   BTOR_RELEASE_STACK (mem, prefix);
@@ -239,57 +251,63 @@ btor_parse (Btor *btor,
 
 int
 btor_parse_btor (Btor *btor,
-                 FILE *file,
-                 const char *file_name,
+                 FILE *infile,
+                 const char *infile_name,
+                 FILE *outfile,
                  char **error_msg,
                  int *status)
 {
   assert (btor);
-  assert (file);
-  assert (file_name);
+  assert (infile);
+  assert (infile_name);
+  assert (outfile);
   assert (error_msg);
   assert (status);
 
   const BtorParserAPI *parser_api;
   parser_api = btor_btor_parser_api ();
   return btor_parse_aux (
-      btor, file, 0, file_name, parser_api, error_msg, status, 0);
+      btor, infile, 0, infile_name, outfile, parser_api, error_msg, status, 0);
 }
 
 int
 btor_parse_smt1 (Btor *btor,
-                 FILE *file,
-                 const char *file_name,
+                 FILE *infile,
+                 const char *infile_name,
+                 FILE *outfile,
                  char **error_msg,
                  int *status)
 {
   assert (btor);
-  assert (file);
-  assert (file_name);
+  assert (infile);
+  assert (infile_name);
+  assert (outfile);
   assert (error_msg);
   assert (status);
 
   const BtorParserAPI *parser_api;
   parser_api = btor_smt_parser_api ();
   return btor_parse_aux (
-      btor, file, 0, file_name, parser_api, error_msg, status, 0);
+      btor, infile, 0, infile_name, outfile, parser_api, error_msg, status, 0);
 }
 
 int
 btor_parse_smt2 (Btor *btor,
-                 FILE *file,
-                 const char *file_name,
+                 FILE *infile,
+                 const char *infile_name,
+                 FILE *outfile,
                  char **error_msg,
                  int *status)
 {
   assert (btor);
-  assert (file);
-  assert (file_name);
+  assert (infile);
+  assert (infile_name);
+  assert (outfile);
   assert (error_msg);
   assert (status);
 
   const BtorParserAPI *parser_api;
   parser_api = btor_smt2_parser_api ();
   return btor_parse_aux (
-      btor, file, 0, file_name, parser_api, error_msg, status, 0);
+      btor, infile, 0, infile_name, outfile, parser_api, error_msg, status, 0);
 }
