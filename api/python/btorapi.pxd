@@ -340,8 +340,9 @@ cdef extern from "boolector.h":
     void boolector_release_sort (Btor * btor, BoolectorSort * sort)
 
     int boolector_parse (Btor * btor, 
-                         FILE * file, 
-                         const char * file_name, 
+                         FILE * infile, 
+                         const char * infile_name, 
+                         FILE * outfile,
                          char ** error_msg,
                          int * status)
 
