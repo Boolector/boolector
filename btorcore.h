@@ -22,6 +22,7 @@
 #include "btoropt.h"
 #include "btorsat.h"
 #include "btorsort.h"
+#include "btorutil.h"
 
 /*------------------------------------------------------------------------*/
 
@@ -270,6 +271,8 @@ struct Btor
 
   BtorOpts options;
   BtorMsg *msg;
+
+  BtorRNG rng;
 };
 
 /* Creates new boolector instance. */

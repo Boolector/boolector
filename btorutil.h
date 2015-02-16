@@ -2,6 +2,7 @@
  *
  *  Copyright (C) 2007-2009 Robert Daniel Brummayer.
  *  Copyright (C) 2007-2012 Armin Biere.
+ *  Copyright (C) 2015 Aina Niemetz.
  *
  *  All rights reserved.
  *
@@ -30,10 +31,26 @@ int btor_next_power_of_2_util (int x);
 
 int btor_num_digits_util (int x);
 
+/*------------------------------------------------------------------------*/
+
 #ifdef BTOR_HAVE_GETRUSAGE
 double btor_time_stamp (void);
 #endif
 
+/*------------------------------------------------------------------------*/
+
 int btor_file_exists (const char *);
+
+/*------------------------------------------------------------------------*/
+
+struct BtorRNG
+{
+  unsigned z, w;
+};
+typedef struct BtorRNG BtorRNG;
+
+void btor_init_rng (BtorRNG *rng, unsigned seed);
+unsigned btor_rand_rng (BtorRNG *rng);
+unsigned btor_pick_rand_rng (BtorRNG *rng, unsigned from, unsigned to);
 
 #endif

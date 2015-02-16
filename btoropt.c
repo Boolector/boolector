@@ -10,13 +10,15 @@
  */
 
 #include "btoropt.h"
-#include <ctype.h>
 #include "boolector.h"
 #include "btorcore.h"
 #include "btoriter.h"
 #include "btorlog.h"
 #include "btormodel.h"
 #include "btortrapi.h"
+
+#include <ctype.h>
+#include <limits.h>
 
 static char *
 getenv_value (const char *lname)
@@ -190,6 +192,7 @@ btor_init_opts (Btor *btor)
   BTOR_OPT ("l", loglevel, 0, 0, BTORLOG_LEVEL_MAX, "increase loglevel");
 #endif
   BTOR_OPT ("v", verbosity, 0, 0, BTOR_VERBOSITY_MAX, "increase verbosity");
+  BTOR_OPT ("s", seed, 0, 0, INT_MAX, "random number generator seed");
 
   BTOR_OPT_INTL (0, simplify_constraints, 1, 0, 1, 0);
   BTOR_OPT_INTL (0, auto_cleanup_internal, 0, 0, 1, 0);

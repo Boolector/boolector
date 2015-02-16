@@ -123,6 +123,7 @@ typedef struct BtorOpts
 #endif
   BtorOpt verbosity;
 
+  BtorOpt seed; /* seed for random number generator */
   /* internal */
   BtorOpt simplify_constraints;  /* force constraints to true/false */
   BtorOpt auto_cleanup_internal; /* force cleanup of exps, assignm. strings

@@ -771,6 +771,8 @@ btor_new_aux_btor (int init_opts)
 
   if (init_opts) btor_init_opts (btor);
 
+  btor_init_rng (&btor->rng, btor->options.seed.val);
+
   btor->bv_assignments    = btor_new_bv_assignment_list (mm);
   btor->array_assignments = btor_new_array_assignment_list (mm);
 
