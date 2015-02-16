@@ -321,7 +321,7 @@ typedef struct BtorSMT2Parser
   char *error;
   unsigned char cc[256];
   FILE *infile;
-  const char *infile_name;
+  char *infile_name;
   FILE *outfile;
   BtorCharStack *prefix, token;
   BoolectorNodePtrStack outputs, inputs;
