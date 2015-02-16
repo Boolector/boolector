@@ -3,7 +3,7 @@
  *  Copyright (C) 2007-2009 Robert Daniel Brummayer.
  *  Copyright (C) 2007-2014 Armin Biere.
  *  Copyright (C) 2012-2015 Aina Niemetz.
- *  Copyright (C) 2012-2014 Mathias Preiner.
+ *  Copyright (C) 2012-2015 Mathias Preiner.
  *
  *  All rights reserved.
  *
@@ -560,11 +560,15 @@ print_version (BtorMainApp *app)
 }
 
 static void
-print_static_stats (void)
+print_static_stats (int sat_res)
 {
 #ifdef BTOR_HAVE_GETRUSAGE
   double delta_time = delta_time = btor_time_stamp () - static_start_time;
   btormain_msg ("%.1f seconds", delta_time);
+  btormain_msg ("%s",
+                sat_res == BOOLECTOR_SAT
+                    ? "sat"
+                    : (sat_res == BOOLECTOR_UNSAT ? "unsat" : "unknown"));
 #else
   btormain_msg ("can not determine run-time in seconds (no getrusage)");
 #endif
@@ -609,7 +613,7 @@ catch_sig (int sig)
     if (static_verbosity > 0)
     {
       boolector_print_stats (static_app->btor);
-      print_static_stats ();
+      print_static_stats (0);
       btormain_msg ("CAUGHT SIGNAL %d", sig);
     }
   }
@@ -649,7 +653,7 @@ catch_alarm (int sig)
     if (static_verbosity > 0)
     {
       boolector_print_stats (static_app->btor);
-      print_static_stats ();
+      print_static_stats (0);
     }
   }
   reset_alarm ();
@@ -1402,6 +1406,7 @@ boolector_main (int argc, char **argv)
         parse_result = boolector_parse_btor (static_app->btor,
                                              static_app->infile,
                                              static_app->infile_name,
+                                             static_app->outfile,
                                              &parse_error_msg,
                                              &parse_status);
         break;
@@ -1411,6 +1416,7 @@ boolector_main (int argc, char **argv)
         parse_result = boolector_parse_smt1 (static_app->btor,
                                              static_app->infile,
                                              static_app->infile_name,
+                                             static_app->outfile,
                                              &parse_error_msg,
                                              &parse_status);
         break;
@@ -1420,6 +1426,7 @@ boolector_main (int argc, char **argv)
         parse_result = boolector_parse_smt2 (static_app->btor,
                                              static_app->infile,
                                              static_app->infile_name,
+                                             static_app->outfile,
                                              &parse_error_msg,
                                              &parse_status);
         break;
@@ -1429,6 +1436,7 @@ boolector_main (int argc, char **argv)
     parse_result = boolector_parse (static_app->btor,
                                     static_app->infile,
                                     static_app->infile_name,
+                                    static_app->outfile,
                                     &parse_error_msg,
                                     &parse_status);
 
@@ -1462,8 +1470,6 @@ boolector_main (int argc, char **argv)
     }
 
     if (static_verbosity) boolector_print_stats (static_app->btor);
-
-    print_sat_result (static_app, sat_res);
 
     if (print_model && sat_res == BOOLECTOR_SAT)
     {
@@ -1506,7 +1512,10 @@ boolector_main (int argc, char **argv)
   }
 
   if (parse_result != BOOLECTOR_SAT && parse_result != BOOLECTOR_UNSAT)
+  {
     sat_res = boolector_sat (static_app->btor);
+    print_sat_result (static_app, sat_res);
+  }
   else
     sat_res = parse_result;
   assert (sat_res != BOOLECTOR_UNKNOWN);
@@ -1524,10 +1533,8 @@ boolector_main (int argc, char **argv)
   if (static_verbosity)
   {
     boolector_print_stats (static_app->btor);
-    print_static_stats ();
+    print_static_stats (sat_res);
   }
-
-  print_sat_result (static_app, sat_res);
 
   if (print_model && sat_res == BOOLECTOR_SAT)
   {

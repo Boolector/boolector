@@ -1,8 +1,8 @@
 /*  Boolector: Satisfiablity Modulo Theories (SMT) solver.
  *
- *  Copyright (C) 2011-2013 Armin Biere.
+ *  Copyright (C) 2011-2014 Armin Biere.
  *  Copyright (C) 2013-2015 Aina Niemetz.
- *  Copyright (C) 2013-2014 Mathias Preiner.
+ *  Copyright (C) 2013-2015 Mathias Preiner.
  *
  *  All rights reserved.
  *
@@ -318,9 +318,11 @@ typedef struct BtorSMT2Parser
   int last_end_of_line_ycoo;
   int nprefix;
   int binding, expecting_let_body;
-  char *name, *error;
+  char *error;
   unsigned char cc[256];
-  FILE *file;
+  FILE *infile;
+  const char *infile_name;
+  FILE *outfile;
   BtorCharStack *prefix, token;
   BoolectorNodePtrStack outputs, inputs;
   BtorSMT2ItemStack work;
@@ -358,11 +360,11 @@ btor_perr_smt2 (BtorSMT2Parser *parser, const char *fmt, ...)
   if (!parser->error)
   {
     va_start (ap, fmt);
-    bytes = btor_parse_error_message_length (parser->name, fmt, ap);
+    bytes = btor_parse_error_message_length (parser->infile_name, fmt, ap);
     va_end (ap);
     va_start (ap, fmt);
     parser->error = btor_parse_error_message (parser->mem,
-                                              parser->name,
+                                              parser->infile_name,
                                               btor_xcoo_smt2 (parser),
                                               btor_ycoo_smt2 (parser),
                                               fmt,
@@ -484,7 +486,7 @@ btor_nextch_smt2 (BtorSMT2Parser *parser)
            && parser->nprefix < BTOR_COUNT_STACK (*parser->prefix))
     res = parser->prefix->start[parser->nprefix++];
   else
-    res = getc (parser->file);
+    res = getc (parser->infile);
   if (res == '\n')
   {
     parser->nextcoo.x++;
@@ -880,7 +882,7 @@ btor_delete_smt2_parser (BtorSMT2Parser *parser)
   btor_release_symbols_smt2 (parser);
   btor_release_work_smt2 (parser);
 
-  if (parser->name) btor_freestr (mem, parser->name);
+  if (parser->infile_name) btor_freestr (mem, parser->infile_name);
   if (parser->error) btor_freestr (mem, parser->error);
 
   while (!BTOR_EMPTY_STACK (parser->inputs))
@@ -3561,7 +3563,7 @@ btor_read_command_smt2 (BtorSMT2Parser *parser)
         BTOR_MSG (boolector_get_btor_msg (parser->btor),
                   1,
                   "WARNING 'set-logic' not first command in '%s'",
-                  parser->name);
+                  parser->infile_name);
       tag = btor_read_token_smt2 (parser);
       if (tag == EOF)
       {
@@ -3600,10 +3602,19 @@ btor_read_command_smt2 (BtorSMT2Parser *parser)
       if (!btor_read_rpar_smt2 (parser, " after 'check-sat'")) return 0;
       if (parser->commands.check_sat++)
         BTOR_MSG (boolector_get_btor_msg (parser->btor),
-                  1,
+                  !parser->interactive,
                   "WARNING additional 'check-sat' command");
       if (parser->interactive)
+      {
         parser->res->result = boolector_sat (parser->btor);
+        if (parser->res->result == BOOLECTOR_SAT)
+          fprintf (parser->outfile, "sat\n");
+        else
+        {
+          assert (parser->res->result == BOOLECTOR_UNSAT);
+          fprintf (parser->outfile, "unsat\n");
+        }
+      }
       else
       {
         BTOR_MSG (boolector_get_btor_msg (parser->btor),
@@ -3669,7 +3680,7 @@ btor_read_command_smt2 (BtorSMT2Parser *parser)
       if (!boolector_get_opt_val (parser->btor, "model_gen"))
         return !btor_perr_smt2 (parser, "model generation is not enabled");
       if (parser->res->result != BOOLECTOR_SAT) break;
-      boolector_print_model (parser->btor, "smt2", stdout);
+      boolector_print_model (parser->btor, "smt2", parser->outfile);
       break;
 
     case BTOR_GET_VALUE_TAG_SMT2:
@@ -3685,7 +3696,8 @@ btor_read_command_smt2 (BtorSMT2Parser *parser)
         return 0;
       }
       fprintf (stdout, "(\n ");
-      boolector_print_value (parser->btor, exp, tokens.start, "smt2", stdout);
+      boolector_print_value (
+          parser->btor, exp, tokens.start, "smt2", parser->outfile);
       BTOR_RESET_STACK (tokens);
       boolector_release (parser->btor, exp);
       tag = btor_read_token_smt2 (parser);
@@ -3697,7 +3709,8 @@ btor_read_command_smt2 (BtorSMT2Parser *parser)
           return 0;
         }
         fprintf (stdout, "\n ");
-        boolector_print_value (parser->btor, exp, tokens.start, "smt2", stdout);
+        boolector_print_value (
+            parser->btor, exp, tokens.start, "smt2", parser->outfile);
         BTOR_RESET_STACK (tokens);
         boolector_release (parser->btor, exp);
         tag = btor_read_token_smt2 (parser);
@@ -3746,18 +3759,20 @@ DONE:
 static const char *
 btor_parse_smt2_parser (BtorSMT2Parser *parser,
                         BtorCharStack *prefix,
-                        FILE *file,
-                        const char *name,
+                        FILE *infile,
+                        const char *infile_name,
+                        FILE *outfile,
                         BtorParseResult *res)
 {
-  double start      = btor_time_stamp (), delta;
-  parser->name      = btor_strdup (parser->mem, name);
-  parser->nprefix   = 0;
-  parser->prefix    = prefix;
-  parser->nextcoo.x = 1;
-  parser->nextcoo.y = 1;
-  parser->file      = file;
-  parser->saved     = 0;
+  double start        = btor_time_stamp (), delta;
+  parser->nprefix     = 0;
+  parser->prefix      = prefix;
+  parser->nextcoo.x   = 1;
+  parser->nextcoo.y   = 1;
+  parser->infile      = infile;
+  parser->infile_name = btor_strdup (parser->mem, infile_name);
+  parser->outfile     = outfile;
+  parser->saved       = 0;
   BTOR_CLR (res);
   parser->res = res;
   while (btor_read_command_smt2 (parser)
@@ -3768,29 +3783,29 @@ btor_parse_smt2_parser (BtorSMT2Parser *parser,
     BTOR_MSG (boolector_get_btor_msg (parser->btor),
               1,
               "WARNING no commands in '%s'",
-              parser->name);
+              parser->infile_name);
   else
   {
     if (!parser->commands.set_logic)
       BTOR_MSG (boolector_get_btor_msg (parser->btor),
                 1,
                 "WARNING 'set-logic' command missing in '%s'",
-                parser->name);
+                parser->infile_name);
     if (!parser->commands.asserts)
       BTOR_MSG (boolector_get_btor_msg (parser->btor),
                 1,
                 "WARNING no 'assert' command in '%s'",
-                parser->name);
+                parser->infile_name);
     if (!parser->commands.check_sat)
       BTOR_MSG (boolector_get_btor_msg (parser->btor),
                 1,
                 "WARNING 'check-sat' command missing in '%s'",
-                parser->name);
+                parser->infile_name);
     if (!parser->commands.exits)
       BTOR_MSG (boolector_get_btor_msg (parser->btor),
                 1,
                 "WARNING no 'exit' command at end of '%s'",
-                parser->name);
+                parser->infile_name);
   }
   parser->res->inputs = parser->inputs.start;
   // TODO (ma): this stack is not used anymore for SMT2
