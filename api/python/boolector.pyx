@@ -447,6 +447,10 @@ cdef class BoolectorBVNode(BoolectorNode):
         x, y = _to_node(x, y)
         return (<BoolectorBVNode> x).btor.Mul(x, y)
 
+    def __div__(x, y):
+        x, y = _to_node(x, y)
+        return (<BoolectorBVNode> x).btor.Udiv(x, y)
+
     def __truediv__(x, y):
         x, y = _to_node(x, y)
         return (<BoolectorBVNode> x).btor.Udiv(x, y)
