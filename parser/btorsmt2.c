@@ -3428,82 +3428,105 @@ btor_set_option_smt2 (BtorSMT2Parser *parser)
   if (tag == BTOR_RPAR_TAG_SMT2)
     return !btor_perr_smt2 (parser, "keyword after 'set-option' missing");
 
-  switch (tag)
+  if (tag == BTOR_REGULAR_OUTPUT_CHANNEL_TAG_SMT2)
   {
-    case BTOR_PRODUCE_MODELS_TAG_SMT2:
-    case BTOR_OPT_MODEL_GEN_TAG_SMT2: opt = BTOR_OPT_MODEL_GEN; break;
-    case BTOR_VERBOSITY_TAG_SMT2:
-      opt  = BTOR_OPT_VERBOSITY;
-      verb = 1;
-      break;
-    case BTOR_OPT_INCREMENTAL_TAG_SMT2: opt = BTOR_OPT_INCREMENTAL; break;
-    case BTOR_OPT_INCREMENTAL_ALL_TAG_SMT2:
-      opt = BTOR_OPT_INCREMENTAL_ALL;
-      break;
-    case BTOR_OPT_INCREMENTAL_IN_DEPTH_TAG_SMT2:
-      opt = BTOR_OPT_INCREMENTAL_IN_DEPTH;
-      break;
-    case BTOR_OPT_INCREMENTAL_LOOK_AHEAD_TAG_SMT2:
-      opt = BTOR_OPT_INCREMENTAL_LOOK_AHEAD;
-      break;
-    case BTOR_OPT_INCREMENTAL_INTERVAL_TAG_SMT2:
-      opt = BTOR_OPT_INCREMENTAL_INTERVAL;
-      break;
-    case BTOR_OPT_INPUT_FORMAT_TAG_SMT2: opt = BTOR_OPT_INPUT_FORMAT; break;
-    case BTOR_OPT_OUTPUT_NUMBER_FORMAT_TAG_SMT2:
-      opt = BTOR_OPT_OUTPUT_NUMBER_FORMAT;
-      break;
-    case BTOR_OPT_OUTPUT_FORMAT_TAG_SMT2: opt = BTOR_OPT_OUTPUT_FORMAT; break;
-    case BTOR_OPT_REWRITE_LEVEL_TAG_SMT2: opt = BTOR_OPT_REWRITE_LEVEL; break;
-    case BTOR_OPT_REWRITE_LEVEL_PBR_TAG_SMT2:
-      opt = BTOR_OPT_REWRITE_LEVEL_PBR;
-      break;
-    case BTOR_OPT_BETA_REDUCE_ALL_TAG_SMT2:
-      opt = BTOR_OPT_BETA_REDUCE_ALL;
-      break;
-    case BTOR_OPT_DUAL_PROP_TAG_SMT2: opt = BTOR_OPT_DUAL_PROP; break;
-    case BTOR_OPT_JUST_TAG_SMT2: opt = BTOR_OPT_JUST; break;
-#ifndef BTOR_DO_NOT_OPTIMIZE_UNCONSTRAINED
-    case BTOR_OPT_UCOPT_TAG_SMT2: opt = BTOR_OPT_UCOPT; break;
-#endif
-    case BTOR_OPT_AUTO_CLEANUP_TAG_SMT2: opt = BTOR_OPT_AUTO_CLEANUP; break;
-    case BTOR_OPT_PRETTY_PRINT_TAG_SMT2: opt = BTOR_OPT_PRETTY_PRINT; break;
-    case BTOR_OPT_LOGLEVEL_TAG_SMT2: opt = BTOR_OPT_LOGLEVEL; break;
-    case BTOR_OPT_PBRA_TAG_SMT2: opt = BTOR_OPT_PBRA; break;
-    case BTOR_OPT_PBRA_LOD_LIMIT_TAG_SMT2: opt = BTOR_OPT_PBRA_LOD_LIMIT; break;
-    case BTOR_OPT_PBRA_SAT_LIMIT_TAG_SMT2: opt = BTOR_OPT_PBRA_SAT_LIMIT; break;
-    case BTOR_OPT_PBRA_OPS_FACTOR_TAG_SMT2:
-      opt = BTOR_OPT_PBRA_OPS_FACTOR;
-      break;
-    case BTOR_OPT_LAZY_SYNTHESIZE_TAG_SMT2:
-      opt = BTOR_OPT_LAZY_SYNTHESIZE;
-      break;
-    case BTOR_OPT_ELIMINATE_SLICES_TAG_SMT2:
-      opt = BTOR_OPT_ELIMINATE_SLICES;
-      break;
-    default: opt = 0;
-  }
-
-  if (opt)
-  {
+    assert (parser->outfile != stdin);
+    if (parser->outfile != stdout && parser->outfile != stderr)
+      fclose (parser->outfile);
     tag = btor_read_token_smt2 (parser);
     if (tag == BTOR_INVALID_TAG_SMT2)
     {
       assert (parser->error);
       return 0;
     }
-    val = boolector_get_opt_val (parser->btor, opt);
-    if (tag == BTOR_FALSE_TAG_SMT2)
-      val = 0;
-    else if (tag == BTOR_TRUE_TAG_SMT2)
-      val = 1;
-    else
-      val =
-          verb ? val + atoi (parser->token.start) : atoi (parser->token.start);
-    boolector_set_opt (parser->btor, opt, val);
+    parser->outfile = fopen (parser->token.start, "w");
+    if (!parser->outfile)
+      return !btor_perr_smt2 (
+          parser, "can not create '%s'", parser->token.start);
   }
   else
-    return !btor_perr_smt2 (parser, "unsupported option");
+  {
+    switch (tag)
+    {
+      case BTOR_PRODUCE_MODELS_TAG_SMT2:
+      case BTOR_OPT_MODEL_GEN_TAG_SMT2: opt = BTOR_OPT_MODEL_GEN; break;
+      case BTOR_VERBOSITY_TAG_SMT2:
+        opt  = BTOR_OPT_VERBOSITY;
+        verb = 1;
+        break;
+      case BTOR_OPT_INCREMENTAL_TAG_SMT2: opt = BTOR_OPT_INCREMENTAL; break;
+      case BTOR_OPT_INCREMENTAL_ALL_TAG_SMT2:
+        opt = BTOR_OPT_INCREMENTAL_ALL;
+        break;
+      case BTOR_OPT_INCREMENTAL_IN_DEPTH_TAG_SMT2:
+        opt = BTOR_OPT_INCREMENTAL_IN_DEPTH;
+        break;
+      case BTOR_OPT_INCREMENTAL_LOOK_AHEAD_TAG_SMT2:
+        opt = BTOR_OPT_INCREMENTAL_LOOK_AHEAD;
+        break;
+      case BTOR_OPT_INCREMENTAL_INTERVAL_TAG_SMT2:
+        opt = BTOR_OPT_INCREMENTAL_INTERVAL;
+        break;
+      case BTOR_OPT_INPUT_FORMAT_TAG_SMT2: opt = BTOR_OPT_INPUT_FORMAT; break;
+      case BTOR_OPT_OUTPUT_NUMBER_FORMAT_TAG_SMT2:
+        opt = BTOR_OPT_OUTPUT_NUMBER_FORMAT;
+        break;
+      case BTOR_OPT_OUTPUT_FORMAT_TAG_SMT2: opt = BTOR_OPT_OUTPUT_FORMAT; break;
+      case BTOR_OPT_REWRITE_LEVEL_TAG_SMT2: opt = BTOR_OPT_REWRITE_LEVEL; break;
+      case BTOR_OPT_REWRITE_LEVEL_PBR_TAG_SMT2:
+        opt = BTOR_OPT_REWRITE_LEVEL_PBR;
+        break;
+      case BTOR_OPT_BETA_REDUCE_ALL_TAG_SMT2:
+        opt = BTOR_OPT_BETA_REDUCE_ALL;
+        break;
+      case BTOR_OPT_DUAL_PROP_TAG_SMT2: opt = BTOR_OPT_DUAL_PROP; break;
+      case BTOR_OPT_JUST_TAG_SMT2: opt = BTOR_OPT_JUST; break;
+#ifndef BTOR_DO_NOT_OPTIMIZE_UNCONSTRAINED
+      case BTOR_OPT_UCOPT_TAG_SMT2: opt = BTOR_OPT_UCOPT; break;
+#endif
+      case BTOR_OPT_AUTO_CLEANUP_TAG_SMT2: opt = BTOR_OPT_AUTO_CLEANUP; break;
+      case BTOR_OPT_PRETTY_PRINT_TAG_SMT2: opt = BTOR_OPT_PRETTY_PRINT; break;
+      case BTOR_OPT_LOGLEVEL_TAG_SMT2: opt = BTOR_OPT_LOGLEVEL; break;
+      case BTOR_OPT_PBRA_TAG_SMT2: opt = BTOR_OPT_PBRA; break;
+      case BTOR_OPT_PBRA_LOD_LIMIT_TAG_SMT2:
+        opt = BTOR_OPT_PBRA_LOD_LIMIT;
+        break;
+      case BTOR_OPT_PBRA_SAT_LIMIT_TAG_SMT2:
+        opt = BTOR_OPT_PBRA_SAT_LIMIT;
+        break;
+      case BTOR_OPT_PBRA_OPS_FACTOR_TAG_SMT2:
+        opt = BTOR_OPT_PBRA_OPS_FACTOR;
+        break;
+      case BTOR_OPT_LAZY_SYNTHESIZE_TAG_SMT2:
+        opt = BTOR_OPT_LAZY_SYNTHESIZE;
+        break;
+      case BTOR_OPT_ELIMINATE_SLICES_TAG_SMT2:
+        opt = BTOR_OPT_ELIMINATE_SLICES;
+        break;
+      default: opt = 0;
+    }
+
+    if (opt)
+    {
+      tag = btor_read_token_smt2 (parser);
+      if (tag == BTOR_INVALID_TAG_SMT2)
+      {
+        assert (parser->error);
+        return 0;
+      }
+      val = boolector_get_opt_val (parser->btor, opt);
+      if (tag == BTOR_FALSE_TAG_SMT2)
+        val = 0;
+      else if (tag == BTOR_TRUE_TAG_SMT2)
+        val = 1;
+      else
+        val = verb ? val + atoi (parser->token.start)
+                   : atoi (parser->token.start);
+      boolector_set_opt (parser->btor, opt, val);
+    }
+    else
+      return !btor_perr_smt2 (parser, "unsupported option");
+  }
   return btor_skip_sexprs (parser, 1);
 }
 
@@ -3602,7 +3625,7 @@ btor_read_command_smt2 (BtorSMT2Parser *parser)
       if (!btor_read_rpar_smt2 (parser, " after 'check-sat'")) return 0;
       if (parser->commands.check_sat++)
         BTOR_MSG (boolector_get_btor_msg (parser->btor),
-                  !parser->interactive,
+                  !parser->incremental,
                   "WARNING additional 'check-sat' command");
       if (parser->interactive)
       {
