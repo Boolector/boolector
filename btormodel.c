@@ -73,7 +73,7 @@ add_to_bv_model (Btor *btor, BtorNode *exp, BitVector *assignment)
 
   BtorPtrHashBucket *b;
 
-  if (btor_find_in_ptr_hash_table (btor->bv_model, exp)) return;
+  assert (!btor_find_in_ptr_hash_table (btor->bv_model, exp));
 
   b = btor_insert_in_ptr_hash_table (btor->bv_model, btor_copy_exp (btor, exp));
   b->data.asPtr = btor_copy_bv (btor->mm, assignment);
