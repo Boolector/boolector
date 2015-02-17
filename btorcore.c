@@ -317,7 +317,13 @@ btor_version (Btor *btor)
   return BTOR_VERSION;
 }
 
-static BtorAIGMgr *
+BtorMemMgr *
+btor_get_mem_mgr_btor (const Btor *btor)
+{
+  assert (btor);
+  return btor->mm;
+}
+BtorAIGMgr *
 btor_get_aig_mgr_btor (const Btor *btor)
 {
   assert (btor);
@@ -7780,12 +7786,12 @@ btor_eval_exp (Btor *btor, BtorNode *exp)
       {
         assert (BTOR_IS_SYNTH_NODE (real_cur));
         assert (!BTOR_IS_FUN_NODE (real_cur));
-        result = btor_assignment_bv (btor, real_cur, 0);
+        result = btor_assignment_bv (btor->mm, real_cur, 0);
         goto EVAL_EXP_PUSH_RESULT;
       }
       else if (BTOR_IS_BV_CONST_NODE (real_cur))
       {
-        result = btor_char_to_bv (btor, real_cur->bits);
+        result = btor_char_to_bv (btor->mm, real_cur->bits);
         goto EVAL_EXP_PUSH_RESULT;
       }
       /* substitute param with its assignment */
@@ -7820,67 +7826,68 @@ btor_eval_exp (Btor *btor, BtorNode *exp)
       switch (real_cur->kind)
       {
         case BTOR_SLICE_NODE:
-          result = btor_slice_bv (btor, e[0], real_cur->upper, real_cur->lower);
-          btor_free_bv (btor, e[0]);
+          result =
+              btor_slice_bv (btor->mm, e[0], real_cur->upper, real_cur->lower);
+          btor_free_bv (btor->mm, e[0]);
           break;
         case BTOR_AND_NODE:
-          result = btor_and_bv (btor, e[1], e[0]);
-          btor_free_bv (btor, e[0]);
-          btor_free_bv (btor, e[1]);
+          result = btor_and_bv (btor->mm, e[1], e[0]);
+          btor_free_bv (btor->mm, e[0]);
+          btor_free_bv (btor->mm, e[1]);
           break;
         case BTOR_BEQ_NODE:
-          result = btor_eq_bv (btor, e[1], e[0]);
-          btor_free_bv (btor, e[0]);
-          btor_free_bv (btor, e[1]);
+          result = btor_eq_bv (btor->mm, e[1], e[0]);
+          btor_free_bv (btor->mm, e[0]);
+          btor_free_bv (btor->mm, e[1]);
           break;
         case BTOR_ADD_NODE:
-          result = btor_add_bv (btor, e[1], e[0]);
-          btor_free_bv (btor, e[0]);
-          btor_free_bv (btor, e[1]);
+          result = btor_add_bv (btor->mm, e[1], e[0]);
+          btor_free_bv (btor->mm, e[0]);
+          btor_free_bv (btor->mm, e[1]);
           break;
         case BTOR_MUL_NODE:
-          result = btor_mul_bv (btor, e[1], e[0]);
-          btor_free_bv (btor, e[0]);
-          btor_free_bv (btor, e[1]);
+          result = btor_mul_bv (btor->mm, e[1], e[0]);
+          btor_free_bv (btor->mm, e[0]);
+          btor_free_bv (btor->mm, e[1]);
           break;
         case BTOR_ULT_NODE:
-          result = btor_ult_bv (btor, e[1], e[0]);
-          btor_free_bv (btor, e[0]);
-          btor_free_bv (btor, e[1]);
+          result = btor_ult_bv (btor->mm, e[1], e[0]);
+          btor_free_bv (btor->mm, e[0]);
+          btor_free_bv (btor->mm, e[1]);
           break;
         case BTOR_SLL_NODE:
-          result = btor_sll_bv (btor, e[1], e[0]);
-          btor_free_bv (btor, e[0]);
-          btor_free_bv (btor, e[1]);
+          result = btor_sll_bv (btor->mm, e[1], e[0]);
+          btor_free_bv (btor->mm, e[0]);
+          btor_free_bv (btor->mm, e[1]);
           break;
         case BTOR_SRL_NODE:
-          result = btor_srl_bv (btor, e[1], e[0]);
-          btor_free_bv (btor, e[0]);
-          btor_free_bv (btor, e[1]);
+          result = btor_srl_bv (btor->mm, e[1], e[0]);
+          btor_free_bv (btor->mm, e[0]);
+          btor_free_bv (btor->mm, e[1]);
           break;
         case BTOR_UDIV_NODE:
-          result = btor_udiv_bv (btor, e[1], e[0]);
-          btor_free_bv (btor, e[0]);
-          btor_free_bv (btor, e[1]);
+          result = btor_udiv_bv (btor->mm, e[1], e[0]);
+          btor_free_bv (btor->mm, e[0]);
+          btor_free_bv (btor->mm, e[1]);
           break;
         case BTOR_UREM_NODE:
-          result = btor_urem_bv (btor, e[1], e[0]);
-          btor_free_bv (btor, e[0]);
-          btor_free_bv (btor, e[1]);
+          result = btor_urem_bv (btor->mm, e[1], e[0]);
+          btor_free_bv (btor->mm, e[0]);
+          btor_free_bv (btor->mm, e[1]);
           break;
         case BTOR_CONCAT_NODE:
-          result = btor_concat_bv (btor, e[1], e[0]);
-          btor_free_bv (btor, e[0]);
-          btor_free_bv (btor, e[1]);
+          result = btor_concat_bv (btor->mm, e[1], e[0]);
+          btor_free_bv (btor->mm, e[0]);
+          btor_free_bv (btor->mm, e[1]);
           break;
         case BTOR_BCOND_NODE:
           if (btor_is_true_bv (e[2]))
-            result = btor_copy_bv (btor, e[1]);
+            result = btor_copy_bv (btor->mm, e[1]);
           else
-            result = btor_copy_bv (btor, e[0]);
-          btor_free_bv (btor, e[0]);
-          btor_free_bv (btor, e[1]);
-          btor_free_bv (btor, e[2]);
+            result = btor_copy_bv (btor->mm, e[0]);
+          btor_free_bv (btor->mm, e[0]);
+          btor_free_bv (btor->mm, e[1]);
+          btor_free_bv (btor->mm, e[2]);
           break;
         default:
           BTORLOG ("  *** %s", node2string (real_cur));
@@ -7890,13 +7897,13 @@ btor_eval_exp (Btor *btor, BtorNode *exp)
 
       assert (!btor_find_in_ptr_hash_table (cache, real_cur));
       btor_insert_in_ptr_hash_table (cache, real_cur)->data.asPtr =
-          btor_copy_bv (btor, result);
+          btor_copy_bv (btor->mm, result);
 
     EVAL_EXP_PUSH_RESULT:
       if (BTOR_IS_INVERTED_NODE (cur))
       {
-        inv_result = btor_not_bv (btor, result);
-        btor_free_bv (btor, result);
+        inv_result = btor_not_bv (btor->mm, result);
+        btor_free_bv (btor->mm, result);
         result = inv_result;
       }
 
@@ -7907,7 +7914,7 @@ btor_eval_exp (Btor *btor, BtorNode *exp)
       assert (real_cur->eval_mark == 2);
       b = btor_find_in_ptr_hash_table (cache, real_cur);
       assert (b);
-      result = btor_copy_bv (btor, (BitVector *) b->data.asPtr);
+      result = btor_copy_bv (btor->mm, (BitVector *) b->data.asPtr);
       goto EVAL_EXP_PUSH_RESULT;
     }
   }
@@ -7925,13 +7932,13 @@ EVAL_EXP_CLEANUP_EXIT:
   while (!BTOR_EMPTY_STACK (arg_stack))
   {
     inv_result = BTOR_POP_STACK (arg_stack);
-    btor_free_bv (btor, inv_result);
+    btor_free_bv (btor->mm, inv_result);
   }
 
   init_node_hash_table_iterator (&it, cache);
   while (has_next_node_hash_table_iterator (&it))
   {
-    btor_free_bv (btor, (BitVector *) it.bucket->data.asPtr);
+    btor_free_bv (btor->mm, (BitVector *) it.bucket->data.asPtr);
     real_cur            = next_node_hash_table_iterator (&it);
     real_cur->eval_mark = 0;
   }
@@ -7945,8 +7952,8 @@ EVAL_EXP_CLEANUP_EXIT:
 
   if (result)
   {
-    res = btor_bv_to_char_bv (btor, result);
-    btor_free_bv (btor, result);
+    res = btor_bv_to_char_bv (btor->mm, result);
+    btor_free_bv (btor->mm, result);
   }
 
   return res;
