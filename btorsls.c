@@ -44,20 +44,20 @@ hamming_distance (Btor *btor, BitVector *bv1, BitVector *bv2)
   int res;
   BitVector *bv, *bvdec = 0, *zero, *ones, *tmp;
 
-  zero = btor_new_bv (btor, bv1->width);
-  ones = btor_not_bv (btor, zero);
-  bv   = btor_xor_bv (btor, bv1, bv2);
+  zero = btor_new_bv (btor->mm, bv1->width);
+  ones = btor_not_bv (btor->mm, zero);
+  bv   = btor_xor_bv (btor->mm, bv1, bv2);
   for (res = 0; !btor_compare_bv (bv, zero); res++)
   {
-    bvdec = btor_add_bv (btor, bv, ones);
+    bvdec = btor_add_bv (btor->mm, bv, ones);
     tmp   = bv;
-    bv    = btor_and_bv (btor, bv, bvdec);
-    btor_free_bv (btor, tmp);
+    bv    = btor_and_bv (btor->mm, bv, bvdec);
+    btor_free_bv (btor->mm, tmp);
   }
-  if (bvdec) btor_free_bv (btor, bvdec);
-  btor_free_bv (btor, bv);
-  btor_free_bv (btor, ones);
-  btor_free_bv (btor, zero);
+  if (bvdec) btor_free_bv (btor->mm, bvdec);
+  btor_free_bv (btor->mm, bv);
+  btor_free_bv (btor->mm, ones);
+  btor_free_bv (btor->mm, zero);
   return res;
 }
 
@@ -75,8 +75,8 @@ min_flip (Btor *btor, BitVector *bv1, BitVector *bv2)
   int i, res, b1;
   BitVector *tmp, *zero;
 
-  zero = btor_new_bv (btor, bv2->width);
-  tmp  = btor_copy_bv (btor, bv1);
+  zero = btor_new_bv (btor->mm, bv2->width);
+  tmp  = btor_copy_bv (btor->mm, bv1);
   for (res = 0, i = tmp->width - 1; i >= 0; i--)
   {
     if (!(b1 = btor_get_bit_bv (tmp, i))) continue;
@@ -87,8 +87,8 @@ min_flip (Btor *btor, BitVector *bv1, BitVector *bv2)
     if (btor_compare_bv (tmp, bv2) < 0) break;
   }
   res = !btor_compare_bv (zero, bv2) ? res + 1 : res;
-  btor_free_bv (btor, zero);
-  btor_free_bv (btor, tmp);
+  btor_free_bv (btor->mm, zero);
+  btor_free_bv (btor->mm, tmp);
   return res;
 }
 
@@ -667,13 +667,13 @@ reset_cone (Btor *btor,
     /* reset previous assignment */
     if ((b = btor_find_in_ptr_hash_table (bv_model, cur)))
     {
-      btor_free_bv (btor, b->data.asPtr);
+      btor_free_bv (btor->mm, b->data.asPtr);
       btor_remove_from_ptr_hash_table (bv_model, cur, 0, 0);
       btor_release_exp (btor, cur);
     }
     if ((b = btor_find_in_ptr_hash_table (bv_model, BTOR_INVERT_NODE (cur))))
     {
-      btor_free_bv (btor, b->data.asPtr);
+      btor_free_bv (btor->mm, b->data.asPtr);
       btor_remove_from_ptr_hash_table (bv_model, cur, 0, 0);
       btor_release_exp (btor, cur);
     }
@@ -765,7 +765,7 @@ move (Btor *btor,
       score_sls = btor_clone_ptr_hash_table (
           btor->mm, btor->score_sls, mapped_node, data_as_double, 0, 0);
 
-      neighbor = btor_copy_bv (btor, ass);
+      neighbor = btor_copy_bv (btor->mm, ass);
       btor_flip_bit_bv (neighbor, j);
       /* we currently support QF_BV only, hence no funs */
       update_cone (
@@ -775,12 +775,12 @@ move (Btor *btor,
       if (sc > max_score)
       {
         max_score = sc;
-        if (max_neighbor) btor_free_bv (btor, max_neighbor);
+        if (max_neighbor) btor_free_bv (btor->mm, max_neighbor);
         max_neighbor = neighbor;
         max_can      = can;
       }
       else
-        btor_free_bv (btor, neighbor);
+        btor_free_bv (btor->mm, neighbor);
 
       btor_delete_ptr_hash_table (bv_model);
       btor_delete_ptr_hash_table (score_sls);
@@ -791,19 +791,19 @@ move (Btor *btor,
         btor->mm, btor->bv_model, mapped_node, data_as_node_ptr, 0, 0);
     score_sls = btor_clone_ptr_hash_table (
         btor->mm, btor->score_sls, mapped_node, data_as_double, 0, 0);
-    neighbor = btor_inc_bv (btor, ass);
+    neighbor = btor_inc_bv (btor->mm, ass);
     update_cone (
         btor, &bv_model, &btor->fun_model, roots, can, neighbor, score_sls);
     b = btor_find_in_ptr_hash_table (score_sls, can);
     assert (b);
     if (b->data.asDbl > max_score)
     {
-      if (max_neighbor) btor_free_bv (btor, max_neighbor);
+      if (max_neighbor) btor_free_bv (btor->mm, max_neighbor);
       max_neighbor = neighbor;
       max_can      = can;
     }
     else
-      btor_free_bv (btor, neighbor);
+      btor_free_bv (btor->mm, neighbor);
     btor_delete_ptr_hash_table (bv_model);
     btor_delete_ptr_hash_table (score_sls);
 
@@ -812,19 +812,19 @@ move (Btor *btor,
         btor->mm, btor->bv_model, mapped_node, data_as_node_ptr, 0, 0);
     score_sls = btor_clone_ptr_hash_table (
         btor->mm, btor->score_sls, mapped_node, data_as_double, 0, 0);
-    neighbor = btor_dec_bv (btor, ass);
+    neighbor = btor_dec_bv (btor->mm, ass);
     update_cone (
         btor, &bv_model, &btor->fun_model, roots, can, neighbor, score_sls);
     b = btor_find_in_ptr_hash_table (score_sls, can);
     assert (b);
     if (b->data.asDbl > max_score)
     {
-      if (max_neighbor) btor_free_bv (btor, max_neighbor);
+      if (max_neighbor) btor_free_bv (btor->mm, max_neighbor);
       max_neighbor = neighbor;
       max_can      = can;
     }
     else
-      btor_free_bv (btor, neighbor);
+      btor_free_bv (btor->mm, neighbor);
     btor_delete_ptr_hash_table (bv_model);
     btor_delete_ptr_hash_table (score_sls);
 
@@ -833,19 +833,19 @@ move (Btor *btor,
         btor->mm, btor->bv_model, mapped_node, data_as_node_ptr, 0, 0);
     score_sls = btor_clone_ptr_hash_table (
         btor->mm, btor->score_sls, mapped_node, data_as_double, 0, 0);
-    neighbor = btor_not_bv (btor, ass);
+    neighbor = btor_not_bv (btor->mm, ass);
     update_cone (
         btor, &bv_model, &btor->fun_model, roots, can, neighbor, score_sls);
     b = btor_find_in_ptr_hash_table (score_sls, can);
     assert (b);
     if (b->data.asDbl > max_score)
     {
-      if (max_neighbor) btor_free_bv (btor, max_neighbor);
+      if (max_neighbor) btor_free_bv (btor->mm, max_neighbor);
       max_neighbor = neighbor;
       max_can      = can;
     }
     else
-      btor_free_bv (btor, neighbor);
+      btor_free_bv (btor->mm, neighbor);
     btor_delete_ptr_hash_table (bv_model);
     btor_delete_ptr_hash_table (score_sls);
   }
@@ -853,7 +853,7 @@ move (Btor *btor,
   /* move */
   if (!max_neighbor)
   {
-    max_neighbor = btor_new_random_bv (btor, ass->width);
+    max_neighbor = btor_new_random_bv (btor->mm, &btor->rng, ass->width);
     randomized   = 1;
   }
 
@@ -897,7 +897,7 @@ move (Btor *btor,
   }
 
   /* cleanup */
-  btor_free_bv (btor, max_neighbor);
+  btor_free_bv (btor->mm, max_neighbor);
 }
 
 /* Note: failed assumptions -> no handling necessary, sls only works for SAT */

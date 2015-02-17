@@ -467,20 +467,15 @@ data_as_bv_ptr (BtorMemMgr *mm,
   assert (data);
   assert (cloned_data);
 
-  Btor *btor;
-
-  (void) mm;
-  btor               = ((BtorNodeMap *) map)->btor;
-  cloned_data->asPtr = btor_copy_bv (btor, (BitVector *) data->asPtr);
+  (void) map;
+  cloned_data->asPtr = btor_copy_bv (mm, (BitVector *) data->asPtr);
 }
 
 static void *
 copy_bv_tuple (BtorMemMgr *mm, const void *map, const void *t)
 {
-  Btor *btor;
-  (void) mm;
-  btor = ((BtorNodeMap *) map)->btor;
-  return btor_copy_bv_tuple (btor, (BitVectorTuple *) t);
+  (void) map;
+  return btor_copy_bv_tuple (mm, (BitVectorTuple *) t);
 }
 
 static void
