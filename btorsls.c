@@ -50,7 +50,7 @@ hamming_distance (Btor *btor, BitVector *bv1, BitVector *bv2)
   zero = btor_new_bv (btor->mm, bv1->width);
   ones = btor_not_bv (btor->mm, zero);
   bv   = btor_xor_bv (btor->mm, bv1, bv2);
-  for (res = 0; !btor_compare_bv (bv, zero); res++)
+  for (res = 0; btor_compare_bv (bv, zero); res++)
   {
     bvdec = btor_add_bv (btor->mm, bv, ones);
     tmp   = bv;
@@ -190,10 +190,10 @@ compute_sls_score_node (Btor *btor,
           && real_cur->len != 1)
         continue;
 
-      //  BTORLOG ("");
-      //  BTORLOG ("*** compute sls score for: %s(%s)",
-      //	   BTOR_IS_INVERTED_NODE (cur) ? "-" : " ",
-      //	   node2string (cur));
+      BTORLOG ("");
+      BTORLOG ("*** compute sls score for: %s(%s)",
+               BTOR_IS_INVERTED_NODE (cur) ? "-" : " ",
+               node2string (cur));
 
       if (BTOR_IS_AND_NODE (real_cur))
       {
@@ -218,12 +218,12 @@ compute_sls_score_node (Btor *btor,
                 btor, bv_model, fun_model, BTOR_INVERT_NODE (real_cur->e[0]));
             a1 = (char *) btor_get_bv_model_str_aux (
                 btor, bv_model, fun_model, BTOR_INVERT_NODE (real_cur->e[1]));
-            // BTORLOG ("      assignment e[0]: %s", a0);
-            // BTORLOG ("      assignment e[1]: %s", a1);
+            BTORLOG ("      assignment e[0]: %s", a0);
+            BTORLOG ("      assignment e[1]: %s", a1);
             btor_freestr (btor->mm, a0);
             btor_freestr (btor->mm, a1);
-            // BTORLOG ("      sls score e[0]: %f", s0);
-            // BTORLOG ("      sls score e[1]: %f", s1);
+            BTORLOG ("      sls score e[0]: %f", s0);
+            BTORLOG ("      sls score e[1]: %f", s1);
           }
 #endif
           res = s0 > s1 ? s0 : s1;
@@ -244,12 +244,12 @@ compute_sls_score_node (Btor *btor,
                 btor, bv_model, fun_model, real_cur->e[0]);
             a1 = (char *) btor_get_bv_model_str_aux (
                 btor, bv_model, fun_model, real_cur->e[1]);
-            // BTORLOG ("      assignment e[0]: %s", a0);
-            // BTORLOG ("      assignment e[1]: %s", a1);
+            BTORLOG ("      assignment e[0]: %s", a0);
+            BTORLOG ("      assignment e[1]: %s", a1);
             btor_freestr (btor->mm, a0);
             btor_freestr (btor->mm, a1);
-            // BTORLOG ("      sls score e[0]: %f", s0);
-            // BTORLOG ("      sls score e[1]: %f", s1);
+            BTORLOG ("      sls score e[0]: %f", s0);
+            BTORLOG ("      sls score e[1]: %f", s1);
           }
 #endif
           res = (s0 + s1) / 2;
@@ -268,8 +268,8 @@ compute_sls_score_node (Btor *btor,
               btor, bv_model, fun_model, real_cur->e[0]);
           a1 = (char *) btor_get_bv_model_str_aux (
               btor, bv_model, fun_model, real_cur->e[1]);
-          // BTORLOG ("      assignment e[0]: %s", a0);
-          // BTORLOG ("      assignment e[1]: %s", a1);
+          BTORLOG ("      assignment e[0]: %s", a0);
+          BTORLOG ("      assignment e[1]: %s", a1);
           btor_freestr (btor->mm, a0);
           btor_freestr (btor->mm, a1);
         }
@@ -295,8 +295,8 @@ compute_sls_score_node (Btor *btor,
               btor, bv_model, fun_model, real_cur->e[0]);
           a1 = (char *) btor_get_bv_model_str_aux (
               btor, bv_model, fun_model, real_cur->e[1]);
-          // BTORLOG ("      assignment e[0]: %s", a0);
-          // BTORLOG ("      assignment e[1]: %s", a1);
+          BTORLOG ("      assignment e[0]: %s", a0);
+          BTORLOG ("      assignment e[1]: %s", a1);
           btor_freestr (btor->mm, a0);
           btor_freestr (btor->mm, a1);
         }
@@ -320,7 +320,7 @@ compute_sls_score_node (Btor *btor,
         {
           a0 = (char *) btor_get_bv_model_str_aux (
               btor, bv_model, fun_model, cur);
-          // BTORLOG ("      assignment : %s", a0);
+          BTORLOG ("      assignment : %s", a0);
           btor_freestr (btor->mm, a0);
         }
 #endif
@@ -333,7 +333,7 @@ compute_sls_score_node (Btor *btor,
       b             = btor_insert_in_ptr_hash_table (score_sls, cur);
       b->data.asDbl = res;
 
-      // BTORLOG ("      sls score : %f", res);
+      BTORLOG ("      sls score : %f", res);
     }
   }
 
@@ -739,13 +739,16 @@ move (Btor *btor, BtorPtrHashTable *roots, BtorNodePtrStack *candidates)
   assert (roots);
   assert (candidates);
 
-  int i, j, r, randomized;
+  int i, j, r, randomized, randomizeall;
   double max_score, sc;
   BtorNode *can, *max_can, *cur;
   BitVector *ass, *neighbor, *max_neighbor;
   BtorPtrHashTable *bv_model, *score_sls;
   BtorPtrHashBucket *b;
   BtorHashTableIterator it;
+#ifndef NBTORLOG
+  char *a;
+#endif
 
   /* select move */
 
@@ -771,6 +774,19 @@ move (Btor *btor, BtorPtrHashTable *roots, BtorNodePtrStack *candidates)
     {
       neighbor = btor_copy_bv (btor->mm, ass);
       btor_flip_bit_bv (neighbor, j);
+#ifndef NBTORLOG
+      BTORLOG ("");
+      BTORLOG (" try: flip %d", j);
+      BTORLOG ("  candidate: %s%s",
+               BTOR_IS_REGULAR_NODE (max_can) ? "" : "-",
+               node2string (can));
+      a = btor_bv_to_char_bv (btor->mm, ass);
+      BTORLOG ("  prev. assignment: %s", a);
+      btor_freestr (btor->mm, a);
+      a = btor_bv_to_char_bv (btor->mm, neighbor);
+      BTORLOG ("  new   assignment: %s", a);
+      btor_freestr (btor->mm, a);
+#endif
       /* we currently support QF_BV only, hence no funs */
       update_cone (
           btor, &bv_model, &btor->fun_model, roots, can, neighbor, score_sls);
@@ -788,6 +804,19 @@ move (Btor *btor, BtorPtrHashTable *roots, BtorNodePtrStack *candidates)
 
     /* increment */
     neighbor = btor_inc_bv (btor->mm, ass);
+#ifndef NBTORLOG
+    BTORLOG ("");
+    BTORLOG (" try: increment");
+    BTORLOG ("  candidate: %s%s",
+             BTOR_IS_REGULAR_NODE (max_can) ? "" : "-",
+             node2string (can));
+    a = btor_bv_to_char_bv (btor->mm, ass);
+    BTORLOG ("  prev. assignment: %s", a);
+    btor_freestr (btor->mm, a);
+    a = btor_bv_to_char_bv (btor->mm, neighbor);
+    BTORLOG ("  new   assignment: %s", a);
+    btor_freestr (btor->mm, a);
+#endif
     update_cone (
         btor, &bv_model, &btor->fun_model, roots, can, neighbor, score_sls);
     sc = compute_sls_score_formula (btor, roots, score_sls);
@@ -803,6 +832,19 @@ move (Btor *btor, BtorPtrHashTable *roots, BtorNodePtrStack *candidates)
 
     /* decrement */
     neighbor = btor_dec_bv (btor->mm, ass);
+#ifndef NBTORLOG
+    BTORLOG ("");
+    BTORLOG (" try: decrement");
+    BTORLOG ("  candidate: %s%s",
+             BTOR_IS_REGULAR_NODE (max_can) ? "" : "-",
+             node2string (can));
+    a = btor_bv_to_char_bv (btor->mm, ass);
+    BTORLOG ("  prev. assignment: %s", a);
+    btor_freestr (btor->mm, a);
+    a = btor_bv_to_char_bv (btor->mm, neighbor);
+    BTORLOG ("  new   assignment: %s", a);
+    btor_freestr (btor->mm, a);
+#endif
     update_cone (
         btor, &bv_model, &btor->fun_model, roots, can, neighbor, score_sls);
     sc = compute_sls_score_formula (btor, roots, score_sls);
@@ -818,6 +860,19 @@ move (Btor *btor, BtorPtrHashTable *roots, BtorNodePtrStack *candidates)
 
     /* not */
     neighbor = btor_not_bv (btor->mm, ass);
+#ifndef NBTORLOG
+    BTORLOG ("");
+    BTORLOG (" try: not");
+    BTORLOG ("  candidate: %s%s",
+             BTOR_IS_REGULAR_NODE (max_can) ? "" : "-",
+             node2string (can));
+    a = btor_bv_to_char_bv (btor->mm, ass);
+    BTORLOG ("  prev. assignment: %s", a);
+    btor_freestr (btor->mm, a);
+    a = btor_bv_to_char_bv (btor->mm, neighbor);
+    BTORLOG ("  new   assignment: %s", a);
+    btor_freestr (btor->mm, a);
+#endif
     update_cone (
         btor, &bv_model, &btor->fun_model, roots, can, neighbor, score_sls);
     sc = compute_sls_score_formula (btor, roots, score_sls);
@@ -840,7 +895,49 @@ move (Btor *btor, BtorPtrHashTable *roots, BtorNodePtrStack *candidates)
   if (!max_neighbor)
   {
     randomized = 1;
-    r = btor_pick_rand_rng (&btor->rng, 0, BTOR_COUNT_STACK (*candidates) - 1);
+    // randomizeall = btor_pick_rand_rng (&btor->rng, 0, 1);
+    randomizeall = 0;
+    if (randomizeall)
+    {
+      for (r = 0; r < BTOR_COUNT_STACK (*candidates) - 1; r++)
+      {
+        max_can = BTOR_PEEK_STACK (*candidates, r);
+        ass     = (BitVector *) btor_get_bv_model (btor, max_can);
+        if (BTOR_REAL_ADDR_NODE (max_can)->len == 1)
+        {
+          max_neighbor = btor_copy_bv (btor->mm, ass);
+          btor_flip_bit_bv (max_neighbor, 0);
+        }
+        else
+          max_neighbor =
+              btor_new_random_bv (btor->mm, &btor->rng, max_can->len);
+#ifndef NBTORLOG
+        BTORLOG ("");
+        BTORLOG ("*** move");
+        BTORLOG ("  candidate: %s%s",
+                 BTOR_IS_REGULAR_NODE (max_can) ? "" : "-",
+                 node2string (max_can));
+        a = btor_bv_to_char_bv (btor->mm, ass);
+        BTORLOG ("  prev. assignment: %s", a);
+        btor_freestr (btor->mm, a);
+        a = btor_bv_to_char_bv (btor->mm, max_neighbor);
+        BTORLOG ("  new   assignment: %s", a);
+        btor_freestr (btor->mm, a);
+#endif
+        update_cone (btor,
+                     &btor->bv_model,
+                     &btor->fun_model,
+                     roots,
+                     max_can,
+                     max_neighbor,
+                     btor->score_sls);
+      }
+    }
+    else
+    {
+      r = btor_pick_rand_rng (
+          &btor->rng, 0, BTOR_COUNT_STACK (*candidates) - 1);
+    }
     max_can = BTOR_PEEK_STACK (*candidates, r);
     ass     = (BitVector *) btor_get_bv_model (btor, max_can);
     if (BTOR_REAL_ADDR_NODE (max_can)->len == 1)
@@ -853,7 +950,6 @@ move (Btor *btor, BtorPtrHashTable *roots, BtorNodePtrStack *candidates)
   }
 
 #ifndef NBTORLOG
-  char *a;
   BTORLOG ("");
   BTORLOG ("*** move");
   BTORLOG ("  candidate: %s%s",
