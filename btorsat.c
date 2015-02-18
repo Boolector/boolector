@@ -807,7 +807,7 @@ static void
 btor_lingeling_enable_verbosity (BtorSATMgr *smgr, int level)
 {
   BtorLGL *blgl = smgr->solver;
-  lglsetopt (blgl->lgl, "verbose", level - 1);
+  lglsetopt (blgl->lgl, "verbose", level ? level - 1 : 0);
 }
 
 static int
