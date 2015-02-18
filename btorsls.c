@@ -17,6 +17,9 @@
 #include "btorlog.h"
 #include "btormisc.h"
 #include "btormodel.h"
+#ifndef NDEBUG
+#include "btorclone.h"
+#endif
 #ifndef NBTORLOG
 #include "btorprintmodel.h"
 #endif
@@ -919,6 +922,12 @@ btor_sat_aux_btor_sls (Btor *btor)
   BtorPtrHashBucket *b;
   BtorHashTableIterator it;
   BtorNodePtrStack candidates;
+
+#ifndef NDEBUG
+  Btor *clone     = btor_clone_btor (btor);
+  int csat_result = btor_sat_btor (clone, -1, -1);
+  if (csat_result == BTOR_UNSAT) goto UNSAT;
+#endif
 
   roots = 0;
   moves = 0;
