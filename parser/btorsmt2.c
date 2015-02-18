@@ -3718,7 +3718,7 @@ btor_read_command_smt2 (BtorSMT2Parser *parser)
         BTOR_RELEASE_STACK (parser->btor->mm, tokens);
         return 0;
       }
-      fprintf (stdout, "(\n ");
+      fprintf (stdout, "(");
       boolector_print_value (
           parser->btor, exp, tokens.start, "smt2", parser->outfile);
       BTOR_RESET_STACK (tokens);
@@ -3738,7 +3738,7 @@ btor_read_command_smt2 (BtorSMT2Parser *parser)
         boolector_release (parser->btor, exp);
         tag = btor_read_token_smt2 (parser);
       }
-      fprintf (stdout, "\n)\n");
+      fprintf (stdout, ")\n");
       if (tag != BTOR_RPAR_TAG_SMT2)
       {
         BTOR_RELEASE_STACK (parser->btor->mm, tokens);
