@@ -226,7 +226,11 @@ btor_new_random_bv (BtorMemMgr *mm, BtorRNG *rng, int bw)
   BTOR_CNEW (mm, res);
   BTOR_NEWN (mm, res->bits, i);
 
-  for (j = 0; j < i; j++) res->bits[j] = btor_rand_rng (rng);
+  for (j = 0; j < res->len; j++)
+    res->bits[j] = (BTOR_BV_TYPE) btor_rand_rng (rng);
+
+  res->bits[0] &= ((((BTOR_BV_TYPE) 1 << (BTOR_BV_TYPE_BW - 1)) - 1)
+                   >> (BTOR_BV_TYPE_BW - 1 - (res->width % BTOR_BV_TYPE_BW)));
 
   res->len = i;
   assert (res->len);
