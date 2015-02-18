@@ -169,7 +169,7 @@ btor_init_opts (Btor *btor)
   BTOR_OPT ("sls", sls, 0, 0, 1, "enable sls engine (SAT only)");
   BTOR_OPT (0,
             sls_just,
-            1,
+            0,
             0,
             1,
             "enable justification optimization for sls engine (SAT only)");
