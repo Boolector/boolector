@@ -316,6 +316,7 @@ int btor_failed_exp (Btor *btor, BtorNode *exp);
 /* Solves instance, but with lemmas on demand limit 'lod_limit' and conflict
  * limit for the underlying SAT solver 'sat_limit'. */
 int btor_sat_btor (Btor *btor, int lod_limit, int sat_limit);
+int btor_sat_aux_btor (Btor *btor, int lod_limit, int sat_limit);
 
 BtorSATMgr *btor_get_sat_mgr_btor (const Btor *btor);
 BtorAIGMgr *btor_get_aig_mgr_btor (const Btor *btor);

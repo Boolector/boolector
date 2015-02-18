@@ -912,8 +912,6 @@ int
 btor_sat_aux_btor_sls (Btor *btor)
 {
   assert (btor);
-  // TODO we currently support QF_BV only
-  assert (btor->lambdas->count == 0 && btor->ufs->count == 0);
 
   int i, j, max_steps;
   int sat_result;
@@ -923,14 +921,25 @@ btor_sat_aux_btor_sls (Btor *btor)
   BtorHashTableIterator it;
   BtorNodePtrStack candidates;
 
-#ifndef NDEBUG
-  Btor *clone     = btor_clone_btor (btor);
-  int csat_result = btor_sat_btor (clone, -1, -1);
-  if (csat_result == BTOR_UNSAT) goto UNSAT;
-#endif
-
   roots = 0;
   moves = 0;
+
+#ifndef NDEBUG
+  Btor *clone                              = btor_clone_btor (btor);
+  clone->options.sls.val                   = 0;
+  clone->options.auto_cleanup.val          = 1;
+  clone->options.auto_cleanup_internal.val = 1;
+  int csat_result                          = btor_sat_aux_btor (clone, -1, -1);
+  btor_delete_btor (clone);
+  if (csat_result == BTOR_UNSAT) goto UNSAT;
+  if (btor->lambdas->count || btor->ufs->count)
+  {
+    sat_result = csat_result;
+    goto DONE;
+  }
+#endif
+  // TODO we currently support QF_BV only
+  assert (btor->lambdas->count == 0 && btor->ufs->count == 0);
 
   if (btor->inconsistent) goto UNSAT;
 
@@ -1016,14 +1025,13 @@ btor_sat_aux_btor_sls (Btor *btor)
 SAT:
   assert (sat_result == BTOR_SAT);
   BTOR_RELEASE_STACK (btor->mm, candidates);
-  if (roots) btor_delete_ptr_hash_table (roots);
   goto DONE;
 
 UNSAT:
   sat_result = BTOR_UNSAT;
-  goto DONE;
 
 DONE:
+  if (roots) btor_delete_ptr_hash_table (roots);
   btor->last_sat_result = sat_result;
   return sat_result;
 }

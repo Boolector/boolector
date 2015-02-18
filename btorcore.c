@@ -109,7 +109,6 @@
 
 /*------------------------------------------------------------------------*/
 
-static int btor_sat_aux_btor (Btor *, int, int);
 static int btor_sat_aux_btor_dual_prop (Btor *);
 static BtorAIG *exp_to_aig (Btor *, BtorNode *);
 
@@ -1026,10 +1025,7 @@ btor_delete_btor (Btor *btor)
     btor_delete_ptr_hash_table (btor->score);
   }
 
-  if (btor->options.sls.val)
-  {
-    if (btor->score_sls) btor_delete_ptr_hash_table (btor->score_sls);
-  }
+  if (btor->score_sls) btor_delete_ptr_hash_table (btor->score_sls);
 
   if (btor->options.auto_cleanup.val && btor->external_refs)
   {
@@ -7077,7 +7073,7 @@ add_lemma_to_dual_prop_clone (Btor *btor,
   *root = and;
 }
 
-static int
+int
 btor_sat_aux_btor (Btor *btor, int lod_limit, int sat_limit)
 {
   assert (btor);
@@ -7549,6 +7545,7 @@ btor_sat_btor (Btor *btor, int lod_limit, int sat_limit)
     btor_delete_btor (dpclone);
   }
 #endif
+
   return res;
 }
 
