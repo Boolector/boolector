@@ -28,8 +28,8 @@
     }                                                 \
   } while (0)
 
-static void
-delete_bv_model (Btor *btor, BtorPtrHashTable **bv_model)
+void
+btor_delete_bv_model (Btor *btor, BtorPtrHashTable **bv_model)
 {
   assert (btor);
   assert (bv_model);
@@ -59,7 +59,7 @@ init_bv_model (Btor *btor, BtorPtrHashTable **bv_model)
   assert (btor);
   assert (bv_model);
 
-  if (*bv_model) delete_bv_model (btor, bv_model);
+  if (*bv_model) btor_delete_bv_model (btor, bv_model);
 
   *bv_model = btor_new_ptr_hash_table (btor->mm,
                                        (BtorHashPtr) btor_hash_exp_by_id,
@@ -773,7 +773,7 @@ void
 btor_delete_model (Btor *btor)
 {
   assert (btor);
-  delete_bv_model (btor, &btor->bv_model);
+  btor_delete_bv_model (btor, &btor->bv_model);
   delete_fun_model (btor, &btor->fun_model);
 }
 

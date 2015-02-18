@@ -24,6 +24,7 @@ void btor_generate_model_aux (Btor* btor,
                               int model_for_all_nodes);
 
 void btor_delete_model (Btor* btor);
+void btor_delete_bv_model (Btor* btor, BtorPtrHashTable** bv_model);
 
 const BitVector* btor_get_bv_model (Btor* btor, BtorNode* exp);
 const BitVector* btor_get_bv_model_aux (Btor* btor,

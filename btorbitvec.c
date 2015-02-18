@@ -204,7 +204,8 @@ btor_new_bv (BtorMemMgr *mm, int bw)
   BTOR_CNEW (mm, res);
   BTOR_NEWN (mm, res->bits, i);
   BTOR_CLRN (res->bits, i);
-  res->len   = i;
+  res->len = i;
+  assert (res->len);
   res->width = bw;
   return res;
 }
@@ -227,7 +228,8 @@ btor_new_random_bv (BtorMemMgr *mm, BtorRNG *rng, int bw)
 
   for (j = 0; j < i; j++) res->bits[j] = btor_rand_rng (rng);
 
-  res->len   = i;
+  res->len = i;
+  assert (res->len);
   res->width = bw;
   return res;
 }
