@@ -842,9 +842,15 @@ move (Btor *btor, BtorPtrHashTable *roots, BtorNodePtrStack *candidates)
   {
     randomized = 1;
     r = btor_pick_rand_rng (&btor->rng, 0, BTOR_COUNT_STACK (*candidates) - 1);
-    max_can      = BTOR_PEEK_STACK (*candidates, r);
-    ass          = (BitVector *) btor_get_bv_model (btor, max_can);
-    max_neighbor = btor_new_random_bv (btor->mm, &btor->rng, ass->width);
+    max_can = BTOR_PEEK_STACK (*candidates, r);
+    ass     = (BitVector *) btor_get_bv_model (btor, max_can);
+    if (BTOR_REAL_ADDR_NODE (max_can)->len == 1)
+    {
+      max_neighbor = btor_copy_bv (btor->mm, ass);
+      btor_flip_bit_bv (max_neighbor, 0);
+    }
+    else
+      max_neighbor = btor_new_random_bv (btor->mm, &btor->rng, max_can->len);
   }
 
 #ifndef NBTORLOG
@@ -929,7 +935,10 @@ btor_sat_aux_btor_sls (Btor *btor)
   clone->options.sls.val                   = 0;
   clone->options.auto_cleanup.val          = 1;
   clone->options.auto_cleanup_internal.val = 1;
-  int csat_result                          = btor_sat_aux_btor (clone, -1, -1);
+  clone->options.loglevel.val              = 0;
+  clone->options.verbosity.val             = 0;
+  clone->options.model_gen.val             = 1;
+  int csat_result                          = btor_sat_btor (clone, -1, -1);
   btor_delete_btor (clone);
   if (csat_result == BTOR_UNSAT) goto UNSAT;
   if (btor->lambdas->count || btor->ufs->count)

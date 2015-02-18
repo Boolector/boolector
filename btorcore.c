@@ -7073,7 +7073,7 @@ add_lemma_to_dual_prop_clone (Btor *btor,
   *root = and;
 }
 
-int
+static int
 btor_sat_aux_btor (Btor *btor, int lod_limit, int sat_limit)
 {
   assert (btor);
