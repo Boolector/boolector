@@ -834,7 +834,6 @@ move (Btor *btor, BtorPtrHashTable *roots, BtorNodePtrStack *candidates)
     /* cleanup */
     btor_delete_bv_model (btor, &bv_model);
     btor_delete_ptr_hash_table (score_sls);
-    break;
   }
 
   /* move */
