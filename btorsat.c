@@ -3,7 +3,7 @@
  *  Copyright (C) 2007-2009 Robert Daniel Brummayer.
  *  Copyright (C) 2007-2014 Armin Biere.
  *  Copyright (C) 2012-2014 Mathias Preiner.
- *  Copyright (C) 2013-2014 Aina Niemetz.
+ *  Copyright (C) 2013-2015 Aina Niemetz.
  *
  *  All rights reserved.
  *
@@ -98,6 +98,21 @@ btor_has_clone_support_sat_mgr (BtorSATMgr *smgr)
 {
   assert (smgr);
   return (!strcmp (smgr->name, "Lingeling"));
+}
+
+int
+btor_has_term_support_sat_mgr (BtorSATMgr *smgr)
+{
+  assert (smgr);
+  return (!strcmp (smgr->name, "Lingeling"));
+}
+
+void
+btor_set_term_sat_mgr (BtorSATMgr *smgr, int (*fun) (void *), void *state)
+{
+  assert (smgr);
+  smgr->term.fun   = fun;
+  smgr->term.state = state;
 }
 
 // FIXME log output handling, in particular: sat manager name output
@@ -651,14 +666,19 @@ btor_lingeling_init (BtorSATMgr *smgr)
                        (lglalloc) btor_sat_malloc,
                        (lglrealloc) btor_sat_realloc,
                        (lgldealloc) btor_sat_free);
+
+  if (smgr->term.fun) lglseterm (res->lgl, smgr->term.fun, smgr->term.state);
+
   if (*smgr->msg->verbosity <= 0)
     lglsetopt (res->lgl, "verbose", -1);
   else if (*smgr->msg->verbosity >= 2)
     lglsetopt (res->lgl, "verbose", *smgr->msg->verbosity - 1);
-  res->blimit = BTOR_LGL_MIN_BLIMIT;
-  assert (res);
+
   if (smgr->optstr)
     btor_passdown_lingeling_options (smgr, smgr->optstr, res->lgl);
+
+  res->blimit = BTOR_LGL_MIN_BLIMIT;
+
   return res;
 }
 

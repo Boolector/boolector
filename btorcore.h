@@ -75,6 +75,18 @@ struct BtorNodeUniqueTable
 
 typedef struct BtorNodeUniqueTable BtorNodeUniqueTable;
 
+struct BtorCallbacks
+{
+  struct
+  {
+    int (*fun) (void *);
+    void *state;
+    int done;
+  } term;
+};
+
+typedef struct BtorCallbacks BtorCallbacks;
+
 struct ConstraintStats
 {
   int varsubst;
@@ -85,37 +97,12 @@ struct ConstraintStats
 
 typedef struct ConstraintStats ConstraintStats;
 
-enum BtorUAMode
-{
-  BTOR_UA_GLOBAL_MODE = 0,
-  BTOR_UA_LOCAL_MODE,
-  BTOR_UA_LOCAL_INDIVIDUAL_MODE
-};
-
-typedef enum BtorUAMode BtorUAMode;
-
-enum BtorUARef
-{
-  BTOR_UA_REF_BY_DOUBLING = 0,
-  BTOR_UA_REF_BY_INC_ONE
-};
-
-typedef enum BtorUARef BtorUARef;
-
-enum BtorUAEnc
-{
-  BTOR_UA_ENC_SIGN_EXTEND = 0,
-  BTOR_UA_ENC_ZERO_EXTEND,
-  BTOR_UA_ENC_ONE_EXTEND,
-  BTOR_UA_ENC_EQ_CLASSES
-};
-
-typedef enum BtorUAEnc BtorUAEnc;
-
 // TODO (ma): array_assignments -> fun_assignments
 struct Btor
 {
   BtorMemMgr *mm;
+
+  BtorCallbacks cbs;
 
   BtorBVAssignmentList *bv_assignments;
   BtorArrayAssignmentList *array_assignments;
@@ -286,6 +273,12 @@ void btor_delete_btor (Btor *btor);
 
 /* Gets version. */
 const char *btor_version (Btor *btor);
+
+/* Set termination callback. */
+void btor_set_term_btor (Btor *btor, int (*fun) (void *), void *state);
+
+/* Determine if boolector has been terminated via termination callback. */
+int btor_terminate_btor (void *btor);
 
 /* Set verbosity message prefix. */
 void btor_set_msg_prefix_btor (Btor *btor, const char *prefix);
