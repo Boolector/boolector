@@ -74,6 +74,18 @@ struct BtorNodeUniqueTable
 
 typedef struct BtorNodeUniqueTable BtorNodeUniqueTable;
 
+struct BtorCallbacks
+{
+  struct
+  {
+    int (*fun) (void *);
+    void *state;
+    int done;
+  } term;
+};
+
+typedef struct BtorCallbacks BtorCallbacks;
+
 struct ConstraintStats
 {
   int varsubst;
@@ -88,6 +100,8 @@ typedef struct ConstraintStats ConstraintStats;
 struct Btor
 {
   BtorMemMgr *mm;
+
+  BtorCallbacks cbs;
 
   BtorBVAssignmentList *bv_assignments;
   BtorArrayAssignmentList *array_assignments;
@@ -253,6 +267,12 @@ void btor_delete_btor (Btor *btor);
 
 /* Gets version. */
 const char *btor_version (Btor *btor);
+
+/* Set termination callback. */
+void btor_set_term_btor (Btor *btor, int (*fun) (void *), void *state);
+
+/* Determine if boolector has been terminated via termination callback. */
+int btor_terminate_btor (void *btor);
 
 /* Set verbosity message prefix. */
 void btor_set_msg_prefix_btor (Btor *btor, const char *prefix);

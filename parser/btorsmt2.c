@@ -3632,11 +3632,10 @@ btor_read_command_smt2 (BtorSMT2Parser *parser)
         parser->res->result = boolector_sat (parser->btor);
         if (parser->res->result == BOOLECTOR_SAT)
           fprintf (parser->outfile, "sat\n");
-        else
-        {
-          assert (parser->res->result == BOOLECTOR_UNSAT);
+        else if (parser->res->result == BOOLECTOR_UNSAT)
           fprintf (parser->outfile, "unsat\n");
-        }
+        else
+          fprintf (parser->outfile, "unknown\n");
       }
       else
       {
@@ -3757,7 +3756,8 @@ btor_read_command_smt2 (BtorSMT2Parser *parser)
       if (parser->commands.model)
         return !btor_perr_smt2 (parser, "nesting models is invalid");
       parser->commands.model = 1;
-      while (btor_read_command_smt2 (parser))
+      while (btor_read_command_smt2 (parser)
+             && !boolector_terminate (parser->btor))
         ;
       break;
 
@@ -3787,7 +3787,8 @@ btor_parse_smt2_parser (BtorSMT2Parser *parser,
                         FILE *outfile,
                         BtorParseResult *res)
 {
-  double start        = btor_time_stamp (), delta;
+  double start = btor_time_stamp (), delta;
+
   parser->nprefix     = 0;
   parser->prefix      = prefix;
   parser->nextcoo.x   = 1;
@@ -3798,37 +3799,44 @@ btor_parse_smt2_parser (BtorSMT2Parser *parser,
   parser->saved       = 0;
   BTOR_CLR (res);
   parser->res = res;
+
   while (btor_read_command_smt2 (parser)
-         && (parser->interactive || !parser->done))
+         && (parser->interactive || !parser->done)
+         && !boolector_terminate (parser->btor))
     ;
+
   if (parser->error) return parser->error;
-  if (!parser->commands.all)
-    BTOR_MSG (boolector_get_btor_msg (parser->btor),
-              1,
-              "WARNING no commands in '%s'",
-              parser->infile_name);
-  else
+
+  if (!boolector_terminate (parser->btor))
   {
-    if (!parser->commands.set_logic)
+    if (!parser->commands.all)
       BTOR_MSG (boolector_get_btor_msg (parser->btor),
                 1,
-                "WARNING 'set-logic' command missing in '%s'",
+                "WARNING no commands in '%s'",
                 parser->infile_name);
-    if (!parser->commands.asserts)
-      BTOR_MSG (boolector_get_btor_msg (parser->btor),
-                1,
-                "WARNING no 'assert' command in '%s'",
-                parser->infile_name);
-    if (!parser->commands.check_sat)
-      BTOR_MSG (boolector_get_btor_msg (parser->btor),
-                1,
-                "WARNING 'check-sat' command missing in '%s'",
-                parser->infile_name);
-    if (!parser->commands.exits)
-      BTOR_MSG (boolector_get_btor_msg (parser->btor),
-                1,
-                "WARNING no 'exit' command at end of '%s'",
-                parser->infile_name);
+    else
+    {
+      if (!parser->commands.set_logic)
+        BTOR_MSG (boolector_get_btor_msg (parser->btor),
+                  1,
+                  "WARNING 'set-logic' command missing in '%s'",
+                  parser->infile_name);
+      if (!parser->commands.asserts)
+        BTOR_MSG (boolector_get_btor_msg (parser->btor),
+                  1,
+                  "WARNING no 'assert' command in '%s'",
+                  parser->infile_name);
+      if (!parser->commands.check_sat)
+        BTOR_MSG (boolector_get_btor_msg (parser->btor),
+                  1,
+                  "WARNING 'check-sat' command missing in '%s'",
+                  parser->infile_name);
+      if (!parser->commands.exits)
+        BTOR_MSG (boolector_get_btor_msg (parser->btor),
+                  1,
+                  "WARNING no 'exit' command at end of '%s'",
+                  parser->infile_name);
+    }
   }
   parser->res->inputs = parser->inputs.start;
   // TODO (ma): this stack is not used anymore for SMT2

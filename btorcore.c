@@ -844,6 +844,37 @@ btor_new_btor_no_init (void)
   return new_aux_btor (0);
 }
 
+void
+btor_set_term_btor (Btor *btor, int (*fun) (void *), void *state)
+{
+  assert (btor);
+
+  BtorSATMgr *smgr;
+
+  btor->cbs.term.fun   = fun;
+  btor->cbs.term.state = state;
+
+  smgr = btor_get_sat_mgr_btor (btor);
+  if (btor_has_term_support_sat_mgr (smgr))
+    btor_set_term_sat_mgr (smgr, btor_terminate_btor, btor);
+}
+
+int
+btor_terminate_btor (void *btor)
+{
+  assert (btor);
+
+  int res;
+  Btor *bt;
+
+  bt = (Btor *) btor;
+  if (!bt->cbs.term.fun) return 0;
+  if (bt->cbs.term.done) return 1;
+  res = bt->cbs.term.fun (bt->cbs.term.state);
+  if (res) bt->cbs.term.done = res;
+  return res;
+}
+
 static void
 release_all_ext_exp_refs (Btor *btor)
 {
@@ -7076,6 +7107,12 @@ sat_aux_btor (Btor *btor, int lod_limit, int sat_limit)
 
   BTOR_MSG (btor->msg, 1, "calling SAT");
 
+  if (btor_terminate_btor (btor))
+  {
+    sat_result = BTOR_UNKNOWN;
+    goto DONE;
+  }
+
   simp_sat_result = btor_simplify (btor);
   update_assumptions (btor);
 
@@ -7097,6 +7134,12 @@ sat_aux_btor (Btor *btor, int lod_limit, int sat_limit)
 #endif
 
   if (btor->inconsistent) goto UNSAT;
+
+  if (btor_terminate_btor (btor))
+  {
+    sat_result = BTOR_UNKNOWN;
+    goto DONE;
+  }
 
   smgr = btor_get_sat_mgr_btor (btor);
 
@@ -7156,6 +7199,12 @@ sat_aux_btor (Btor *btor, int lod_limit, int sat_limit)
 
   while (sat_result == BTOR_SAT)
   {
+    if (btor_terminate_btor (btor))
+    {
+      sat_result = BTOR_UNKNOWN;
+      goto DONE;
+    }
+
     found_conflict = check_and_resolve_conflicts (
         btor, clone, clone_root, exp_map, &prop_stack);
 
@@ -7210,9 +7259,6 @@ sat_aux_btor (Btor *btor, int lod_limit, int sat_limit)
 DONE:
   BTOR_RELEASE_STACK (btor->mm, prop_stack);
   btor->valid_assignments = 1;
-  BTOR_ABORT_CORE (lod_limit == -1 && sat_limit == -1 && sat_result != BTOR_SAT
-                       && sat_result != BTOR_UNSAT,
-                   "result must be sat or unsat");
 
   btor->last_sat_result = sat_result;
 
@@ -7297,7 +7343,8 @@ sat_aux_btor_dual_prop (Btor *btor)
 
   sat_result = timed_sat_sat (btor, -1);
 
-  assert (sat_result == BTOR_UNSAT);
+  assert (sat_result == BTOR_UNSAT
+          || (btor_terminate_btor (btor) && sat_result == BTOR_UNKNOWN));
 
   BTOR_RELEASE_STACK (btor->mm, prop_stack);
 
@@ -7305,8 +7352,6 @@ DONE:
   sat_result = BTOR_UNSAT;
   BTOR_RELEASE_STACK (btor->mm, prop_stack);
   btor->valid_assignments = 1;
-  BTOR_ABORT_CORE (sat_result != BTOR_SAT && sat_result != BTOR_UNSAT,
-                   "result must be sat or unsat");
 
   btor->last_sat_result = sat_result;
 #ifdef BTOR_CHECK_FAILED
