@@ -365,6 +365,8 @@ compute_sls_scores_aux (Btor *btor,
   assert (check_id_table_mark_unset_dbg (btor));
   assert (roots);
 
+  // TODO early pruning!!!
+  //
   int i;
   BtorNode *cur, *real_cur, *e;
   BtorNodePtrStack stack, unmark_stack;
@@ -440,20 +442,23 @@ compute_sls_score_formula (Btor *btor,
   assert (roots);
   assert (score);
 
+  int allsat;
   double res, sc, weight;
   BtorNode *root;
   BtorHashTableIterator it;
 
-  res = 0.0;
+  res    = 0.0;
+  allsat = 1;
   init_node_hash_table_iterator (&it, roots);
   while (has_next_node_hash_table_iterator (&it))
   {
     weight = (double) it.bucket->data.asInt;
     root   = next_node_hash_table_iterator (&it);
     sc     = btor_find_in_ptr_hash_table (score, root)->data.asDbl;
+    if (sc < 1.0) allsat = 0;
     res += weight * sc;
   }
-  return res;
+  return allsat ? -1.0 : res;
 }
 
 static BtorNode *
@@ -794,7 +799,17 @@ move (Btor *btor, BtorPtrHashTable *roots, BtorNodePtrStack *candidates)
       /* we currently support QF_BV only, hence no funs */
       update_cone (
           btor, &bv_model, &btor->fun_model, roots, can, neighbor, score_sls);
-      sc = compute_sls_score_formula (btor, roots, score_sls);
+
+      if ((sc = compute_sls_score_formula (btor, roots, score_sls)) == -1.0)
+      {
+        if (max_neighbor) btor_free_bv (btor->mm, max_neighbor);
+        max_neighbor = neighbor;
+        max_can      = can;
+        btor_delete_bv_model (btor, &bv_model);
+        btor_delete_ptr_hash_table (score_sls);
+        goto MOVE;
+      }
+
       if (sc > max_score)
       {
         max_score = sc;
@@ -823,7 +838,17 @@ move (Btor *btor, BtorPtrHashTable *roots, BtorNodePtrStack *candidates)
 #endif
     update_cone (
         btor, &bv_model, &btor->fun_model, roots, can, neighbor, score_sls);
-    sc = compute_sls_score_formula (btor, roots, score_sls);
+
+    if ((sc = compute_sls_score_formula (btor, roots, score_sls)) == -1.0)
+    {
+      if (max_neighbor) btor_free_bv (btor->mm, max_neighbor);
+      max_neighbor = neighbor;
+      max_can      = can;
+      btor_delete_bv_model (btor, &bv_model);
+      btor_delete_ptr_hash_table (score_sls);
+      goto MOVE;
+    }
+
     if (sc > max_score)
     {
       max_score = sc;
@@ -851,7 +876,17 @@ move (Btor *btor, BtorPtrHashTable *roots, BtorNodePtrStack *candidates)
 #endif
     update_cone (
         btor, &bv_model, &btor->fun_model, roots, can, neighbor, score_sls);
-    sc = compute_sls_score_formula (btor, roots, score_sls);
+
+    if ((sc = compute_sls_score_formula (btor, roots, score_sls)) == -1.0)
+    {
+      if (max_neighbor) btor_free_bv (btor->mm, max_neighbor);
+      max_neighbor = neighbor;
+      max_can      = can;
+      btor_delete_bv_model (btor, &bv_model);
+      btor_delete_ptr_hash_table (score_sls);
+      goto MOVE;
+    }
+
     if (sc > max_score)
     {
       max_score = sc;
@@ -879,7 +914,17 @@ move (Btor *btor, BtorPtrHashTable *roots, BtorNodePtrStack *candidates)
 #endif
     update_cone (
         btor, &bv_model, &btor->fun_model, roots, can, neighbor, score_sls);
-    sc = compute_sls_score_formula (btor, roots, score_sls);
+
+    if ((sc = compute_sls_score_formula (btor, roots, score_sls)) == -1.0)
+    {
+      if (max_neighbor) btor_free_bv (btor->mm, max_neighbor);
+      max_neighbor = neighbor;
+      max_can      = can;
+      btor_delete_bv_model (btor, &bv_model);
+      btor_delete_ptr_hash_table (score_sls);
+      goto MOVE;
+    }
+
     if (sc > max_score)
     {
       max_score = sc;
@@ -953,6 +998,7 @@ move (Btor *btor, BtorPtrHashTable *roots, BtorNodePtrStack *candidates)
       max_neighbor = btor_new_random_bv (btor->mm, &btor->rng, max_can->len);
   }
 
+MOVE:
 #ifndef NBTORLOG
   BTORLOG ("");
   BTORLOG ("*** move");
