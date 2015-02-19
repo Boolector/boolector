@@ -84,33 +84,6 @@ struct ConstraintStats
 
 typedef struct ConstraintStats ConstraintStats;
 
-enum BtorUAMode
-{
-  BTOR_UA_GLOBAL_MODE = 0,
-  BTOR_UA_LOCAL_MODE,
-  BTOR_UA_LOCAL_INDIVIDUAL_MODE
-};
-
-typedef enum BtorUAMode BtorUAMode;
-
-enum BtorUARef
-{
-  BTOR_UA_REF_BY_DOUBLING = 0,
-  BTOR_UA_REF_BY_INC_ONE
-};
-
-typedef enum BtorUARef BtorUARef;
-
-enum BtorUAEnc
-{
-  BTOR_UA_ENC_SIGN_EXTEND = 0,
-  BTOR_UA_ENC_ZERO_EXTEND,
-  BTOR_UA_ENC_ONE_EXTEND,
-  BTOR_UA_ENC_EQ_CLASSES
-};
-
-typedef enum BtorUAEnc BtorUAEnc;
-
 // TODO (ma): array_assignments -> fun_assignments
 struct Btor
 {
