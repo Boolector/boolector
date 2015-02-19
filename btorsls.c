@@ -252,7 +252,7 @@ compute_sls_score_node (Btor *btor,
             BTORLOG ("      sls score e[1]: %f", s1);
           }
 #endif
-          res = (s0 + s1) / 2;
+          res = (s0 + s1) / 2.0;
         }
       }
       else if (BTOR_IS_BV_EQ_NODE (real_cur))
@@ -280,7 +280,9 @@ compute_sls_score_node (Btor *btor,
           res = !btor_compare_bv (bv0, bv1)
                     ? 1.0
                     : BTOR_SLS_SCORE_CFACT
-                          * (1 - hamming_distance (btor, bv0, bv1)) / 2;
+                          * (1.0
+                             - hamming_distance (btor, bv0, bv1)
+                                   / (double) bv0->width);
       }
       else if (BTOR_IS_ULT_NODE (real_cur))
       {
@@ -302,15 +304,17 @@ compute_sls_score_node (Btor *btor,
         }
 #endif
         if (BTOR_IS_INVERTED_NODE (cur))
-          res =
-              btor_compare_bv (bv0, bv1) >= 0
-                  ? 1.0
-                  : BTOR_SLS_SCORE_CFACT * (1 - min_flip (btor, bv0, bv1) / 2);
+          res = btor_compare_bv (bv0, bv1) >= 0
+                    ? 1.0
+                    : BTOR_SLS_SCORE_CFACT
+                          * (1.0
+                             - min_flip (btor, bv0, bv1) / (double) bv0->width);
         else
-          res =
-              btor_compare_bv (bv0, bv1) < 0
-                  ? 1.0
-                  : BTOR_SLS_SCORE_CFACT * (1 - min_flip (btor, bv0, bv1) / 2);
+          res = btor_compare_bv (bv0, bv1) < 0
+                    ? 1.0
+                    : BTOR_SLS_SCORE_CFACT
+                          * (1.0
+                             - min_flip (btor, bv0, bv1) / (double) bv0->width);
       }
       else
       {
