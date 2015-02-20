@@ -833,7 +833,6 @@ static void
 btor_lingeling_stats (BtorSATMgr *smgr)
 {
   BtorLGL *blgl = smgr->solver;
-  lglflushtimers (blgl->lgl);
   lglstats (blgl->lgl);
   BTOR_MSG (smgr->msg, 1, "%d forked", blgl->nforked);
 }
