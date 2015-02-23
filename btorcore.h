@@ -220,6 +220,7 @@ struct Btor
   {
     double rewrite;
     double sat;
+    double sat_sls;
     double subst;
     double betareduce;
     double embedded;
@@ -242,7 +243,7 @@ struct Btor
     double compute_scores_just;
     double compute_scores_just_merge_applies;
     double compute_scores_dp;
-    double compute_scores_sls;
+    // double compute_scores_sls;
     double lemma_gen;
     double find_nenc_app;
     double find_prop_app;

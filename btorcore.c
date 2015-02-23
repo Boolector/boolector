@@ -675,10 +675,8 @@ btor_print_stats_btor (Btor *btor)
   }
   if (btor->options.sls.val)
   {
-    BTOR_MSG (btor->msg,
-              1,
-              "%.2f seconds compute sls scores",
-              btor->time.compute_scores_sls);
+    //      BTOR_MSG (btor->msg, 1,
+    //	  "%.2f seconds compute sls scores", btor->time.compute_scores_sls);
     if (btor->options.sls_just.val)
       BTOR_MSG (btor->msg,
                 1,
