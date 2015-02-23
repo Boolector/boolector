@@ -56,8 +56,8 @@ hamming_distance (Btor *btor, BitVector *bv1, BitVector *bv2)
     tmp   = bv;
     bv    = btor_and_bv (btor->mm, bv, bvdec);
     btor_free_bv (btor->mm, tmp);
+    btor_free_bv (btor->mm, bvdec);
   }
-  if (bvdec) btor_free_bv (btor->mm, bvdec);
   btor_free_bv (btor->mm, bv);
   btor_free_bv (btor->mm, ones);
   btor_free_bv (btor->mm, zero);
