@@ -23,6 +23,9 @@ void btor_generate_model_aux (Btor* btor,
                               BtorPtrHashTable* fun_model,
                               int model_for_all_nodes);
 
+void btor_init_bv_model (Btor* btor, BtorPtrHashTable** bv_model);
+void btor_init_fun_model (Btor* btor, BtorPtrHashTable** fun_model);
+
 void btor_delete_model (Btor* btor);
 void btor_delete_bv_model (Btor* btor, BtorPtrHashTable** bv_model);
 
