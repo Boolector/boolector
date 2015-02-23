@@ -20,9 +20,6 @@
 #ifndef NDEBUG
 #include "btorclone.h"
 #endif
-#ifndef NBTORLOG
-#include "btorprintmodel.h"
-#endif
 
 #include <math.h>
 
@@ -85,8 +82,6 @@ min_flip (Btor *btor, BitVector *bv1, BitVector *bv2)
     if (!(b1 = btor_get_bit_bv (tmp, i))) continue;
     res += 1;
     btor_set_bit_bv (tmp, i, 0);
-    btor_print_bv (tmp);
-    btor_print_bv (bv2);
     if (btor_compare_bv (tmp, bv2) < 0) break;
   }
   res = !btor_compare_bv (zero, bv2) ? res + 1 : res;
@@ -434,11 +429,8 @@ compute_sls_scores (Btor *btor,
 }
 
 static double
-compute_sls_score_formula (Btor *btor,
-                           BtorPtrHashTable *roots,
-                           BtorPtrHashTable *score)
+compute_sls_score_formula (BtorPtrHashTable *roots, BtorPtrHashTable *score)
 {
-  assert (btor);
   assert (roots);
   assert (score);
 
@@ -761,7 +753,7 @@ move (Btor *btor, BtorPtrHashTable *roots, BtorNodePtrStack *candidates)
 
   /* select move */
 
-  max_score    = compute_sls_score_formula (btor, roots, btor->score_sls);
+  max_score    = compute_sls_score_formula (roots, btor->score_sls);
   max_neighbor = 0;
   max_can      = 0;
   randomized   = 0;
@@ -800,7 +792,7 @@ move (Btor *btor, BtorPtrHashTable *roots, BtorNodePtrStack *candidates)
       update_cone (
           btor, &bv_model, &btor->fun_model, roots, can, neighbor, score_sls);
 
-      if ((sc = compute_sls_score_formula (btor, roots, score_sls)) == -1.0)
+      if ((sc = compute_sls_score_formula (roots, score_sls)) == -1.0)
       {
         if (max_neighbor) btor_free_bv (btor->mm, max_neighbor);
         max_neighbor = neighbor;
@@ -839,7 +831,7 @@ move (Btor *btor, BtorPtrHashTable *roots, BtorNodePtrStack *candidates)
     update_cone (
         btor, &bv_model, &btor->fun_model, roots, can, neighbor, score_sls);
 
-    if ((sc = compute_sls_score_formula (btor, roots, score_sls)) == -1.0)
+    if ((sc = compute_sls_score_formula (roots, score_sls)) == -1.0)
     {
       if (max_neighbor) btor_free_bv (btor->mm, max_neighbor);
       max_neighbor = neighbor;
@@ -877,7 +869,7 @@ move (Btor *btor, BtorPtrHashTable *roots, BtorNodePtrStack *candidates)
     update_cone (
         btor, &bv_model, &btor->fun_model, roots, can, neighbor, score_sls);
 
-    if ((sc = compute_sls_score_formula (btor, roots, score_sls)) == -1.0)
+    if ((sc = compute_sls_score_formula (roots, score_sls)) == -1.0)
     {
       if (max_neighbor) btor_free_bv (btor->mm, max_neighbor);
       max_neighbor = neighbor;
@@ -915,7 +907,7 @@ move (Btor *btor, BtorPtrHashTable *roots, BtorNodePtrStack *candidates)
     update_cone (
         btor, &bv_model, &btor->fun_model, roots, can, neighbor, score_sls);
 
-    if ((sc = compute_sls_score_formula (btor, roots, score_sls)) == -1.0)
+    if ((sc = compute_sls_score_formula (roots, score_sls)) == -1.0)
     {
       if (max_neighbor) btor_free_bv (btor->mm, max_neighbor);
       max_neighbor = neighbor;
