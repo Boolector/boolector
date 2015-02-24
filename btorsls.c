@@ -1118,13 +1118,6 @@ btor_sat_aux_btor_sls (Btor *btor)
     b->data.asInt = 1; /* initial assertion weight */
   }
 
-  sat_result = BTOR_SAT;
-  init_hash_table_iterator (&it, roots);
-  while (has_next_hash_table_iterator (&it))
-    if (!btor_get_bv_model (btor, next_node_hash_table_iterator (&it))->bits[0])
-      sat_result = BTOR_UNSAT;
-  if (sat_result == BTOR_SAT) goto DONE;
-
   BTOR_INIT_STACK (candidates);
 
   if (!btor->score_sls)
@@ -1138,6 +1131,12 @@ btor_sat_aux_btor_sls (Btor *btor)
   {
     /* compute initial sls score */
     compute_sls_scores (btor, roots, btor->score_sls);
+
+    if (compute_sls_score_formula (roots, btor->score_sls))
+    {
+      sat_result = BTOR_SAT;
+      goto DONE;
+    }
 
     for (j = 0, max_steps = BTOR_SLS_MAXSTEPS (i); j < max_steps; j++)
     {
