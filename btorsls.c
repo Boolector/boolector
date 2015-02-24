@@ -19,6 +19,7 @@
 #include "btormodel.h"
 #ifndef NDEBUG
 #include "btorclone.h"
+#include "btorprintmodel.h"
 #endif
 
 #include <math.h>
@@ -495,6 +496,8 @@ select_candidate_constraint (Btor *btor, BtorPtrHashTable *roots, int moves)
     }
   }
   if (bucket) bucket->data.asInt += 1; /* n times selected */
+
+  assert (res);
 
   BTORLOG ("");
   BTORLOG ("*** select candidate constraint: %s", node2string (res));
