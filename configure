@@ -138,7 +138,7 @@ TARGETS="boolector"
 if [ X"$CFLAGS" = X ]
 then
   [ $debug = unknown ] && debug=no
-  CFLAGS="-W -Wall -Wextra"
+  CFLAGS="-W -Wall -Wextra -Winline"
   [ $arch = 32 ] && CFLAGS="$CFLAGS -m32"
   [ $arch = 64 ] && CFLAGS="$CFLAGS -m64"
   [ $static = yes ] && CFLAGS="$CFLAGS -static"
