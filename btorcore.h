@@ -196,6 +196,7 @@ struct Btor
     int dp_assumed_applies;
     int sls_restarts;
     int sls_moves;
+    int sls_flips;
     BtorIntStack lemmas_size;       /* distribution of n-size lemmas */
     long long int lemmas_size_sum;  /* sum of the size of all added lemmas */
     long long int lclause_size_sum; /* sum of the size of all linking clauses */

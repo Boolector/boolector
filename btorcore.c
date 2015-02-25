@@ -615,6 +615,7 @@ btor_print_stats_btor (Btor *btor)
   {
     BTOR_MSG (btor->msg, 1, "sls restarts: %d", btor->stats.sls_restarts);
     BTOR_MSG (btor->msg, 1, "sls moves: %d", btor->stats.sls_moves);
+    BTOR_MSG (btor->msg, 1, "sls flips: %d", btor->stats.sls_flips);
   }
 
   BTOR_MSG (btor->msg, 1, "");

@@ -793,6 +793,7 @@ move (Btor *btor, BtorPtrHashTable *roots, BtorNodePtrStack *candidates)
       BTORLOG ("  new   assignment: %s", a);
       btor_freestr (btor->mm, a);
 #endif
+      btor->stats.sls_flips += 1;
       /* we currently support QF_BV only, hence no funs */
       update_cone (
           btor, &bv_model, &btor->fun_model, roots, can, neighbor, score_sls);
@@ -833,6 +834,7 @@ move (Btor *btor, BtorPtrHashTable *roots, BtorNodePtrStack *candidates)
     BTORLOG ("  new   assignment: %s", a);
     btor_freestr (btor->mm, a);
 #endif
+    btor->stats.sls_flips += 1;
     update_cone (
         btor, &bv_model, &btor->fun_model, roots, can, neighbor, score_sls);
 
@@ -871,6 +873,7 @@ move (Btor *btor, BtorPtrHashTable *roots, BtorNodePtrStack *candidates)
     BTORLOG ("  new   assignment: %s", a);
     btor_freestr (btor->mm, a);
 #endif
+    btor->stats.sls_flips += 1;
     update_cone (
         btor, &bv_model, &btor->fun_model, roots, can, neighbor, score_sls);
 
@@ -909,6 +912,7 @@ move (Btor *btor, BtorPtrHashTable *roots, BtorNodePtrStack *candidates)
     BTORLOG ("  new   assignment: %s", a);
     btor_freestr (btor->mm, a);
 #endif
+    btor->stats.sls_flips += 1;
     update_cone (
         btor, &bv_model, &btor->fun_model, roots, can, neighbor, score_sls);
 
