@@ -105,6 +105,10 @@ typedef struct BtorOpts
 #endif
   BtorOpt sls;
   BtorOpt sls_just;
+  BtorOpt sls_move_randomizeall;
+  BtorOpt sls_move_on_first;
+  BtorOpt sls_move_inc_move_test;
+
   BtorOpt dual_prop;      /* dual prop optimization */
   BtorOpt just;           /* justification optimization */
   BtorOpt just_heuristic; /* use heuristic (else: input [0] if both

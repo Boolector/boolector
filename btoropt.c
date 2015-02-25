@@ -173,6 +173,26 @@ btor_init_opts (Btor *btor)
             0,
             1,
             "enable justification optimization for sls engine (SAT only)");
+  BTOR_OPT (0,
+            sls_move_randomizeall,
+            0,
+            0,
+            1,
+            "randomize all candidate variables (instead of only one) if no "
+            "neighbor with better score is found");
+  BTOR_OPT (0,
+            sls_move_on_first,
+            0,
+            0,
+            1,
+            "move on first neighbor with better score");
+  BTOR_OPT (0,
+            sls_move_inc_move_test,
+            0,
+            0,
+            1,
+            "use prev. neighbor with better score as base for next move test");
+
   BTOR_OPT ("dp", dual_prop, 0, 0, 1, "dual propagation optimization");
   BTOR_OPT ("ju", just, 0, 0, 1, "justification optimization");
   BTOR_OPT (0,

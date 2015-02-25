@@ -778,7 +778,9 @@ move (Btor *btor, BtorPtrHashTable *roots, BtorNodePtrStack *candidates)
     /* flip bits */
     for (j = 0; j < ass->width; j++)
     {
-      neighbor = btor_copy_bv (btor->mm, ass);
+      neighbor = btor->options.sls_move_inc_move_test.val && max_neighbor
+                     ? btor_copy_bv (btor->mm, max_neighbor)
+                     : btor_copy_bv (btor->mm, ass);
       btor_flip_bit_bv (neighbor, j);
 #ifndef NBTORLOG
       BTORLOG ("");
@@ -814,13 +816,21 @@ move (Btor *btor, BtorPtrHashTable *roots, BtorNodePtrStack *candidates)
         if (max_neighbor) btor_free_bv (btor->mm, max_neighbor);
         max_neighbor = neighbor;
         max_can      = can;
+        if (btor->options.sls_move_on_first.val)
+        {
+          btor_delete_bv_model (btor, &bv_model);
+          btor_delete_ptr_hash_table (score_sls);
+          goto MOVE;
+        }
       }
       else
         btor_free_bv (btor->mm, neighbor);
     }
 
     /* increment */
-    neighbor = btor_inc_bv (btor->mm, ass);
+    neighbor = btor->options.sls_move_inc_move_test.val && max_neighbor
+                   ? btor_copy_bv (btor->mm, max_neighbor)
+                   : btor_copy_bv (btor->mm, ass);
 #ifndef NBTORLOG
     BTORLOG ("");
     BTORLOG (" try: increment");
@@ -854,12 +864,20 @@ move (Btor *btor, BtorPtrHashTable *roots, BtorNodePtrStack *candidates)
       if (max_neighbor) btor_free_bv (btor->mm, max_neighbor);
       max_neighbor = neighbor;
       max_can      = can;
+      if (btor->options.sls_move_on_first.val)
+      {
+        btor_delete_bv_model (btor, &bv_model);
+        btor_delete_ptr_hash_table (score_sls);
+        goto MOVE;
+      }
     }
     else
       btor_free_bv (btor->mm, neighbor);
 
     /* decrement */
-    neighbor = btor_dec_bv (btor->mm, ass);
+    neighbor = btor->options.sls_move_inc_move_test.val && max_neighbor
+                   ? btor_copy_bv (btor->mm, max_neighbor)
+                   : btor_copy_bv (btor->mm, ass);
 #ifndef NBTORLOG
     BTORLOG ("");
     BTORLOG (" try: decrement");
@@ -893,12 +911,20 @@ move (Btor *btor, BtorPtrHashTable *roots, BtorNodePtrStack *candidates)
       if (max_neighbor) btor_free_bv (btor->mm, max_neighbor);
       max_neighbor = neighbor;
       max_can      = can;
+      if (btor->options.sls_move_on_first.val)
+      {
+        btor_delete_bv_model (btor, &bv_model);
+        btor_delete_ptr_hash_table (score_sls);
+        goto MOVE;
+      }
     }
     else
       btor_free_bv (btor->mm, neighbor);
 
     /* not */
-    neighbor = btor_not_bv (btor->mm, ass);
+    neighbor = btor->options.sls_move_inc_move_test.val && max_neighbor
+                   ? btor_copy_bv (btor->mm, max_neighbor)
+                   : btor_copy_bv (btor->mm, ass);
 #ifndef NBTORLOG
     BTORLOG ("");
     BTORLOG (" try: not");
@@ -932,6 +958,12 @@ move (Btor *btor, BtorPtrHashTable *roots, BtorNodePtrStack *candidates)
       if (max_neighbor) btor_free_bv (btor->mm, max_neighbor);
       max_neighbor = neighbor;
       max_can      = can;
+      if (btor->options.sls_move_on_first.val)
+      {
+        btor_delete_bv_model (btor, &bv_model);
+        btor_delete_ptr_hash_table (score_sls);
+        goto MOVE;
+      }
     }
     else
       btor_free_bv (btor->mm, neighbor);
@@ -944,9 +976,11 @@ move (Btor *btor, BtorPtrHashTable *roots, BtorNodePtrStack *candidates)
   /* move */
   if (!max_neighbor)
   {
-    randomized = 1;
-    // randomizeall = btor_pick_rand_rng (&btor->rng, 0, 1);
-    randomizeall = 0;
+    randomized   = 1;
+    randomizeall = btor->options.sls_move_randomizeall.val
+                       ? btor_pick_rand_rng (&btor->rng, 0, 1)
+                       : 0;
+
     if (randomizeall)
     {
       for (r = 0; r < BTOR_COUNT_STACK (*candidates) - 1; r++)
