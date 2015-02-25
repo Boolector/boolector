@@ -611,6 +611,12 @@ btor_print_stats_btor (Btor *btor)
               btor->stats.dp_assumed_applies);
   }
 
+  if (btor->options.sls.val)
+  {
+    BTOR_MSG (btor->msg, 1, "sls restarts: %d", btor->stats.sls_restarts);
+    BTOR_MSG (btor->msg, 1, "sls moves: %d", btor->stats.sls_moves);
+  }
+
   BTOR_MSG (btor->msg, 1, "");
   BTOR_MSG (btor->msg, 1, "%.2f seconds beta-reduction", btor->time.beta);
   BTOR_MSG (

@@ -754,6 +754,8 @@ move (Btor *btor, BtorPtrHashTable *roots, BtorNodePtrStack *candidates)
   char *a;
 #endif
 
+  btor->stats.sls_moves += 1;
+
   /* select move */
 
   max_score    = compute_sls_score_formula (roots, btor->score_sls);
@@ -1071,21 +1073,21 @@ btor_sat_aux_btor_sls (Btor *btor)
   moves = 0;
 
 #ifndef NDEBUG
-  Btor *clone                              = btor_clone_btor (btor);
-  clone->options.sls.val                   = 0;
-  clone->options.auto_cleanup.val          = 1;
-  clone->options.auto_cleanup_internal.val = 1;
-  clone->options.loglevel.val              = 0;
-  clone->options.verbosity.val             = 0;
-  clone->options.model_gen.val             = 1;
-  int csat_result                          = btor_sat_btor (clone, -1, -1);
-  btor_delete_btor (clone);
-  if (csat_result == BTOR_UNSAT) goto UNSAT;
-  if (btor->lambdas->count || btor->ufs->count)
-  {
-    sat_result = csat_result;
-    goto DONE;
-  }
+  // Btor *clone = btor_clone_btor (btor);
+  // clone->options.sls.val = 0;
+  // clone->options.auto_cleanup.val = 1;
+  // clone->options.auto_cleanup_internal.val = 1;
+  // clone->options.loglevel.val = 0;
+  // clone->options.verbosity.val = 0;
+  // clone->options.model_gen.val = 1;
+  // int csat_result = btor_sat_btor (clone, -1, -1);
+  // btor_delete_btor (clone);
+  // if (csat_result == BTOR_UNSAT) goto UNSAT;
+  // if (btor->lambdas->count || btor->ufs->count)
+  //  {
+  //    sat_result = csat_result;
+  //    goto DONE;
+  //  }
 #endif
   // TODO we currently support QF_BV only
   assert (btor->lambdas->count == 0 && btor->ufs->count == 0);
@@ -1132,10 +1134,10 @@ btor_sat_aux_btor_sls (Btor *btor)
     /* compute initial sls score */
     compute_sls_scores (btor, roots, btor->score_sls);
 
-    if (compute_sls_score_formula (roots, btor->score_sls))
+    if (compute_sls_score_formula (roots, btor->score_sls) == -1.0)
     {
       sat_result = BTOR_SAT;
-      goto DONE;
+      goto SAT;
     }
 
     for (j = 0, max_steps = BTOR_SLS_MAXSTEPS (i); j < max_steps; j++)
@@ -1152,15 +1154,11 @@ btor_sat_aux_btor_sls (Btor *btor)
 
       move (btor, roots, &candidates);
 
-      sat_result = BTOR_SAT;
-      init_hash_table_iterator (&it, roots);
-      while (has_next_hash_table_iterator (&it))
+      if (compute_sls_score_formula (roots, btor->score_sls) == -1.0)
       {
-        if (!btor_get_bv_model (btor, next_node_hash_table_iterator (&it))
-                 ->bits[0])
-          sat_result = BTOR_UNSAT;
+        sat_result = BTOR_SAT;
+        goto SAT;
       }
-      if (sat_result == BTOR_SAT) goto SAT;
 
       BTOR_RESET_STACK (candidates);
     }
@@ -1172,6 +1170,7 @@ btor_sat_aux_btor_sls (Btor *btor)
 
 SAT:
   assert (sat_result == BTOR_SAT);
+  btor->stats.sls_restarts = i - 1;
   BTOR_RELEASE_STACK (btor->mm, candidates);
   goto DONE;
 
