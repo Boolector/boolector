@@ -86,7 +86,7 @@ struct BtorCallbacks
 
 typedef struct BtorCallbacks BtorCallbacks;
 
-struct ConstraintStats
+struct BtorConstraintStats
 {
   int varsubst;
   int embedded;
@@ -94,7 +94,7 @@ struct ConstraintStats
   int synthesized;
 };
 
-typedef struct ConstraintStats ConstraintStats;
+typedef struct BtorConstraintStats BtorConstraintStats;
 
 // TODO (ma): array_assignments -> fun_assignments
 struct Btor
@@ -195,8 +195,8 @@ struct Btor
     BtorIntStack lemmas_size;       /* distribution of n-size lemmas */
     long long int lemmas_size_sum;  /* sum of the size of all added lemmas */
     long long int lclause_size_sum; /* sum of the size of all linking clauses */
-    ConstraintStats constraints;
-    ConstraintStats oldconstraints;
+    BtorConstraintStats constraints;
+    BtorConstraintStats oldconstraints;
     long long expressions;
     long long beta_reduce_calls;
     long long eval_exp_calls;
