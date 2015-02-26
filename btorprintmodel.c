@@ -17,26 +17,48 @@
 #include "dumper/btordumpsmt.h"
 
 const char *
-btor_get_bv_model_str (Btor *btor, BtorNode *exp)
+btor_get_bv_model_str_aux (Btor *btor,
+                           BtorPtrHashTable **bv_model,
+                           BtorPtrHashTable **fun_model,
+                           BtorNode *exp)
 {
   assert (btor);
+  assert (bv_model);
+  assert (fun_model);
   assert (exp);
 
   const char *res;
   const BitVector *bv;
 
   exp = btor_simplify_exp (btor, exp);
-  if (!(bv = btor_get_bv_model (btor, exp)))
+  if (!(bv = btor_get_bv_model_aux (btor, bv_model, fun_model, exp)))
     return btor_x_const_3vl (btor->mm, BTOR_REAL_ADDR_NODE (exp)->len);
-  res = btor_bv_to_char_bv (btor, bv);
+  res = btor_bv_to_char_bv (btor->mm, bv);
   return res;
 }
 
-void
-btor_get_fun_model_str (
-    Btor *btor, BtorNode *exp, char ***args, char ***values, int *size)
+const char *
+btor_get_bv_model_str (Btor *btor, BtorNode *exp)
 {
   assert (btor);
+  assert (exp);
+
+  return btor_get_bv_model_str_aux (
+      btor, &btor->bv_model, &btor->fun_model, exp);
+}
+
+void
+btor_get_fun_model_str_aux (Btor *btor,
+                            BtorPtrHashTable **bv_model,
+                            BtorPtrHashTable **fun_model,
+                            BtorNode *exp,
+                            char ***args,
+                            char ***values,
+                            int *size)
+{
+  assert (btor);
+  assert (bv_model);
+  assert (fun_model);
   assert (exp);
   assert (args);
   assert (values);
@@ -53,10 +75,10 @@ btor_get_fun_model_str (
   exp = btor_simplify_exp (btor, exp);
   assert (BTOR_IS_FUN_NODE (exp));
 
-  model = btor_get_fun_model (btor, exp);
+  model = btor_get_fun_model_aux (btor, bv_model, fun_model, exp);
 
   if ((BTOR_IS_LAMBDA_NODE (exp) && ((BtorLambdaNode *) exp)->num_params > 1)
-      || !btor->fun_model || !model)
+      || !(*fun_model) || !model)
   {
     *size = 0;
     return;
@@ -81,13 +103,13 @@ btor_get_fun_model_str (
     BTOR_NEWN (btor->mm, arg, len);
     tmp = arg;
 
-    bv = (char *) btor_bv_to_char_bv (btor, t->bv[0]);
+    bv = (char *) btor_bv_to_char_bv (btor->mm, t->bv[0]);
     strcpy (tmp, bv);
     btor_release_bv_assignment_str (btor, bv);
 
     for (j = 1; j < t->arity; j++)
     {
-      bv = (char *) btor_bv_to_char_bv (btor, t->bv[j]);
+      bv = (char *) btor_bv_to_char_bv (btor->mm, t->bv[j]);
       strcat (tmp, " ");
       strcat (tmp, bv);
       btor_release_bv_assignment_str (btor, bv);
@@ -95,9 +117,23 @@ btor_get_fun_model_str (
     assert ((int) strlen (arg) == len - 1);
 
     (*args)[i]   = arg;
-    (*values)[i] = (char *) btor_bv_to_char_bv (btor, value);
+    (*values)[i] = (char *) btor_bv_to_char_bv (btor->mm, value);
     i++;
   }
+}
+
+void
+btor_get_fun_model_str (
+    Btor *btor, BtorNode *exp, char ***args, char ***values, int *size)
+{
+  assert (btor);
+  assert (exp);
+  assert (args);
+  assert (values);
+  assert (size);
+
+  btor_get_fun_model_str_aux (
+      btor, &btor->bv_model, &btor->fun_model, exp, args, values, size);
 }
 
 static void
@@ -283,7 +319,7 @@ print_fun_model_smt2 (Btor *btor, BtorNode *node, int base, FILE *file)
       fprintf (file, "\n%6c(and ", ' ');
       for (i = 0; i < args->arity; i++, x++)
       {
-        ass = btor_bv_to_char_bv (btor, args->bv[i]);
+        ass = btor_bv_to_char_bv (btor->mm, args->bv[i]);
         fprintf (file, "\n%8c(= %s_x%d ", ' ', s, x);
         btor_dump_const_value_smt (btor, ass, base, 2, file);
         fprintf (file, ")%s", i + 1 == args->arity ? "" : " ");
@@ -294,13 +330,13 @@ print_fun_model_smt2 (Btor *btor, BtorNode *node, int base, FILE *file)
     }
     else
     {
-      ass = btor_bv_to_char_bv (btor, args->bv[0]);
+      ass = btor_bv_to_char_bv (btor->mm, args->bv[0]);
       fprintf (file, "(= %s_x%d ", s, x);
       btor_dump_const_value_smt (btor, ass, base, 2, file);
       fprintf (file, ") ");
       btor_freestr (btor->mm, ass);
     }
-    ass = btor_bv_to_char_bv (btor, assignment);
+    ass = btor_bv_to_char_bv (btor->mm, assignment);
     btor_dump_const_value_smt (btor, ass, base, 2, file);
     fprintf (file, "\n");
     btor_freestr (btor->mm, ass);
@@ -489,7 +525,7 @@ print_fun_value_smt2 (
     {
       for (i = 0; i < args->arity; i++)
       {
-        ass = btor_bv_to_char_bv (btor, args->bv[i]);
+        ass = btor_bv_to_char_bv (btor->mm, args->bv[i]);
         btor_dump_const_value_smt (btor, ass, base, 2, file);
         fprintf (file, ")%s", i + 1 == args->arity ? "" : " ");
         btor_freestr (btor->mm, ass);
@@ -498,12 +534,12 @@ print_fun_value_smt2 (
     }
     else
     {
-      ass = btor_bv_to_char_bv (btor, args->bv[0]);
+      ass = btor_bv_to_char_bv (btor->mm, args->bv[0]);
       btor_dump_const_value_smt (btor, ass, base, 2, file);
       fprintf (file, ") ");
       btor_freestr (btor->mm, ass);
     }
-    ass = btor_bv_to_char_bv (btor, assignment);
+    ass = btor_bv_to_char_bv (btor->mm, assignment);
     btor_dump_const_value_smt (btor, ass, base, 2, file);
     btor_freestr (btor->mm, ass);
     fprintf (file, ")");

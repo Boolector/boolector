@@ -3,7 +3,7 @@
  *  Copyright (C) 2007-2009 Robert Daniel Brummayer.
  *  Copyright (C) 2007-2012 Armin Biere.
  *  Copyright (C) 2012-2014 Mathias Preiner.
- *  Copyright (C) 2013-2014 Aina Niemetz.
+ *  Copyright (C) 2013-2015 Aina Niemetz.
  *
  *  All rights reserved.
  *
@@ -115,6 +115,26 @@ Btor *boolector_clone (Btor *btor);
     boolector_set_opt in order to do the cleanup automatically.
 */
 void boolector_delete (Btor *btor);
+
+/*!
+ * Set a termination callback.
+ *
+ * :param btor:  Boolector instance.
+ * :param fun:   The termination callback function.
+ * :param state: The argument to the termination callback function.
+ */
+void boolector_set_term (Btor *btor, int (*fun) (void *), void *state);
+
+/*!
+ * Determine if a given Boolector instance has been terminated via the
+ * previously configured termination callback function.
+ *
+ * :param btor: Boolector instance.
+ *
+ * .. seealso::
+ *   boolector_set_term
+ */
+int boolector_terminate (Btor *btor);
 
 /*!
   Set a verbosity message prefix.

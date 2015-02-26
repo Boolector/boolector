@@ -3,7 +3,7 @@
  *  Copyright (C) 2007-2009 Robert Daniel Brummayer.
  *  Copyright (C) 2007-2014 Armin Biere.
  *  Copyright (C) 2012-2014 Mathias Preiner.
- *  Copyright (C) 2013-2014 Aina Niemetz.
+ *  Copyright (C) 2013-2015 Aina Niemetz.
  *
  *  All rights reserved.
  *
@@ -224,6 +224,29 @@ boolector_delete (Btor *btor)
     pclose (btor->apitrace);
   if (btor->clone) boolector_delete (btor->clone);
   btor_delete_btor (btor);
+}
+
+void
+boolector_set_term (Btor *btor, int (*fun) (void *), void *state)
+{
+  BTOR_ABORT_ARG_NULL_BOOLECTOR (btor);
+  btor_set_term_btor (btor, fun, state);
+#ifndef NDEBUG
+  BTOR_CHKCLONE_NORES (set_term, fun, state);
+#endif
+}
+
+int
+boolector_terminate (Btor *btor)
+{
+  int res;
+
+  BTOR_ABORT_ARG_NULL_BOOLECTOR (btor);
+  res = btor_terminate_btor (btor);
+#ifndef NDEBUG
+  BTOR_CHKCLONE_RES (res, terminate);
+#endif
+  return res;
 }
 
 void
