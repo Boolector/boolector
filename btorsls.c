@@ -756,8 +756,7 @@ move (Btor *btor, BtorPtrHashTable *roots, BtorNodePtrStack *candidates)
 
   btor->stats.sls_moves += 1;
 
-  /* select move */
-
+  /** select move **/
   max_score    = compute_sls_score_formula (roots, btor->score_sls);
   max_neighbor = 0;
   max_can      = 0;
@@ -973,7 +972,7 @@ move (Btor *btor, BtorPtrHashTable *roots, BtorNodePtrStack *candidates)
     btor_delete_ptr_hash_table (score_sls);
   }
 
-  /* move */
+  /* randomize if no best move was found */
   if (!max_neighbor)
   {
     randomized   = 1;
@@ -1034,6 +1033,7 @@ move (Btor *btor, BtorPtrHashTable *roots, BtorNodePtrStack *candidates)
   }
 
 MOVE:
+  /** move **/
 #ifndef NBTORLOG
   BTORLOG ("");
   BTORLOG ("*** move");
@@ -1056,7 +1056,7 @@ MOVE:
                max_neighbor,
                btor->score_sls);
 
-  /* update assertion weights */
+  /** update assertion weights **/
   if (randomized)
   {
     if (!btor_pick_rand_rng (&btor->rng, 0, BTOR_SLS_SCORE_F_PROB))
@@ -1089,7 +1089,7 @@ MOVE:
     }
   }
 
-  /* cleanup */
+  /** cleanup **/
   btor_free_bv (btor->mm, max_neighbor);
 }
 
