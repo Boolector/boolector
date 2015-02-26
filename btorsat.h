@@ -1,8 +1,9 @@
 /*  Boolector: Satisfiablity Modulo Theories (SMT) solver.
  *
  *  Copyright (C) 2007-2009 Robert Daniel Brummayer.
- *  Copyright (C) 2007-2012 Armin Biere.
- *  Copyright (C) 2013-2014 Aina Niemetz.
+ *  Copyright (C) 2007-2014 Armin Biere.
+ *  Copyright (C) 2013-2015 Aina Niemetz.
+ *  Copyright (C) 2012-2014 Mathias Preiner.
  *
  *  All rights reserved.
  *
@@ -30,8 +31,9 @@ struct BtorSATMgr
 
   BtorMemMgr *mm;
   BtorMsg *msg;
-  const char *name;
-  char *optstr;
+  const char *name; /* solver name */
+  char *optstr;     /* solver option string */
+
   /* Note: do not change order! (btor_clone_sat_mgr relies on inc_required
    * to come first of all fields following below.) */
   int inc_required;
@@ -48,6 +50,12 @@ struct BtorSATMgr
   int maxvar;
 
   double sat_time;
+
+  struct
+  {
+    int (*fun) (void *); /* termination callback */
+    void *state;
+  } term;
 
   struct
   {
@@ -69,7 +77,6 @@ struct BtorSATMgr
     void (*set_prefix) (BtorSATMgr *, const char *);
     void (*stats) (BtorSATMgr *);
     int (*variables) (BtorSATMgr *);
-
   } api;
 };
 
@@ -103,6 +110,10 @@ struct BtorLGL
 BtorSATMgr *btor_new_sat_mgr (BtorMemMgr *mm, BtorMsg *msg);
 
 int btor_has_clone_support_sat_mgr (BtorSATMgr *smgr);
+
+int btor_has_term_support_sat_mgr (BtorSATMgr *smgr);
+
+void btor_set_term_sat_mgr (BtorSATMgr *smgr, int (*fun) (void *), void *state);
 
 /* Clones existing SAT manager (and underlying SAT solver). */
 BtorSATMgr *btor_clone_sat_mgr (BtorMemMgr *mm, BtorMsg *msg, BtorSATMgr *smgr);

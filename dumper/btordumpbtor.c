@@ -3,7 +3,7 @@
  *  Copyright (C) 2007-2014 Armin Biere.
  *  Copyright (C) 2007-2009 Robert Daniel Brummayer.
  *  Copyright (C) 2012-2014 Aina Niemetz.
- *  Copyright (C) 2012-2014 Mathias Preiner.
+ *  Copyright (C) 2012-2015 Mathias Preiner.
  *
  *  All rights reserved.
  *
@@ -260,6 +260,7 @@ get_sort (BtorDumpContext *bdc, BtorNode *node)
   return sort;
 }
 
+#ifndef NDEBUG
 static int
 has_lambda_parent (BtorNode *exp)
 {
@@ -273,6 +274,7 @@ has_lambda_parent (BtorNode *exp)
   }
   return 0;
 }
+#endif
 
 static void
 bdcnode (BtorDumpContext *bdc, BtorNode *node, FILE *file)

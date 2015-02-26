@@ -3,7 +3,7 @@
  *  Copyright (C) 2007-2009 Robert Daniel Brummayer.
  *  Copyright (C) 2007-2014 Armin Biere.
  *  Copyright (C) 2012-2014 Mathias Preiner.
- *  Copyright (C) 2013-2014 Aina Niemetz.
+ *  Copyright (C) 2013-2015 Aina Niemetz.
  *
  *  All rights reserved.
  *
@@ -224,6 +224,29 @@ boolector_delete (Btor *btor)
     pclose (btor->apitrace);
   if (btor->clone) boolector_delete (btor->clone);
   btor_delete_btor (btor);
+}
+
+void
+boolector_set_term (Btor *btor, int (*fun) (void *), void *state)
+{
+  BTOR_ABORT_ARG_NULL_BOOLECTOR (btor);
+  btor_set_term_btor (btor, fun, state);
+#ifndef NDEBUG
+  BTOR_CHKCLONE_NORES (set_term, fun, state);
+#endif
+}
+
+int
+boolector_terminate (Btor *btor)
+{
+  int res;
+
+  BTOR_ABORT_ARG_NULL_BOOLECTOR (btor);
+  res = btor_terminate_btor (btor);
+#ifndef NDEBUG
+  BTOR_CHKCLONE_RES (res, terminate);
+#endif
+  return res;
 }
 
 void
@@ -2654,10 +2677,7 @@ boolector_apply (Btor *btor,
                             || argc != btor_get_fun_arity (btor, e_fun),
                         "number of arguments does not match arity of 'fun'");
   i = btor_fun_sort_check (btor, argc, args, e_fun);
-  BTOR_ABORT_BOOLECTOR (i >= 0,
-                        "sort of argument at position %d does not match given"
-                        " function signature",
-                        i);
+  BTOR_ABORT_BOOLECTOR (i >= 0, "invalid argument given at position %d", i);
   res = btor_apply_exps (btor, argc, args, e_fun);
   inc_exp_ext_ref_counter (btor, res);
   BTOR_TRAPI_RETURN_NODE (res);
@@ -3574,30 +3594,33 @@ boolector_is_equal_sort (Btor *btor, BoolectorNode *n0, BoolectorNode *n1)
 
 int
 boolector_parse (Btor *btor,
-                 FILE *file,
-                 const char *file_name,
+                 FILE *infile,
+                 const char *infile_name,
+                 FILE *outfile,
                  char **error_msg,
                  int *status)
 {
   int res;
 
   BTOR_ABORT_ARG_NULL_BOOLECTOR (btor);
-  BTOR_ABORT_ARG_NULL_BOOLECTOR (file);
-  BTOR_ABORT_ARG_NULL_BOOLECTOR (file_name);
+  BTOR_ABORT_ARG_NULL_BOOLECTOR (infile);
+  BTOR_ABORT_ARG_NULL_BOOLECTOR (infile_name);
+  BTOR_ABORT_ARG_NULL_BOOLECTOR (outfile);
   BTOR_ABORT_ARG_NULL_BOOLECTOR (error_msg);
   BTOR_ABORT_ARG_NULL_BOOLECTOR (status);
   BTOR_ABORT_BOOLECTOR (
       BTOR_COUNT_STACK (btor->nodes_id_table) > 2,
       "file parsing must be done before creating expressions");
-  res = btor_parse (btor, file, file_name, error_msg, status);
+  res = btor_parse (btor, infile, infile_name, outfile, error_msg, status);
 #ifndef NDEBUG
   if (btor->clone)
   {
     char *cerror_msg;
     int cstatus;
-    FILE *cfile = fopen (file_name, "r");
+    FILE *cinfile = fopen (infile_name, "r");
 
-    boolector_parse (btor->clone, cfile, file_name, &cerror_msg, &cstatus);
+    boolector_parse (
+        btor->clone, cinfile, infile_name, stdout, &cerror_msg, &cstatus);
     assert (cstatus == *status);
     assert (!strcmp (cerror_msg, *error_msg));
     btor_chkclone (btor);
@@ -3608,30 +3631,33 @@ boolector_parse (Btor *btor,
 
 int
 boolector_parse_btor (Btor *btor,
-                      FILE *file,
-                      const char *file_name,
+                      FILE *infile,
+                      const char *infile_name,
+                      FILE *outfile,
                       char **error_msg,
                       int *status)
 {
   int res;
 
   BTOR_ABORT_ARG_NULL_BOOLECTOR (btor);
-  BTOR_ABORT_ARG_NULL_BOOLECTOR (file);
-  BTOR_ABORT_ARG_NULL_BOOLECTOR (file_name);
+  BTOR_ABORT_ARG_NULL_BOOLECTOR (infile);
+  BTOR_ABORT_ARG_NULL_BOOLECTOR (infile_name);
+  BTOR_ABORT_ARG_NULL_BOOLECTOR (outfile);
   BTOR_ABORT_ARG_NULL_BOOLECTOR (error_msg);
   BTOR_ABORT_ARG_NULL_BOOLECTOR (status);
   BTOR_ABORT_BOOLECTOR (
       BTOR_COUNT_STACK (btor->nodes_id_table) > 2,
       "file parsing must be done before creating expressions");
-  res = btor_parse_btor (btor, file, file_name, error_msg, status);
+  res = btor_parse_btor (btor, infile, infile_name, outfile, error_msg, status);
 #ifndef NDEBUG
   if (btor->clone)
   {
     char *cerror_msg;
     int cstatus;
-    FILE *cfile = fopen (file_name, "r");
+    FILE *cinfile = fopen (infile_name, "r");
 
-    boolector_parse (btor->clone, cfile, file_name, &cerror_msg, &cstatus);
+    boolector_parse (
+        btor->clone, cinfile, infile_name, stdout, &cerror_msg, &cstatus);
     assert (cstatus == *status);
     assert (!strcmp (cerror_msg, *error_msg));
     btor_chkclone (btor);
@@ -3642,30 +3668,33 @@ boolector_parse_btor (Btor *btor,
 
 int
 boolector_parse_smt1 (Btor *btor,
-                      FILE *file,
-                      const char *file_name,
+                      FILE *infile,
+                      const char *infile_name,
+                      FILE *outfile,
                       char **error_msg,
                       int *status)
 {
   int res;
 
   BTOR_ABORT_ARG_NULL_BOOLECTOR (btor);
-  BTOR_ABORT_ARG_NULL_BOOLECTOR (file);
-  BTOR_ABORT_ARG_NULL_BOOLECTOR (file_name);
+  BTOR_ABORT_ARG_NULL_BOOLECTOR (infile);
+  BTOR_ABORT_ARG_NULL_BOOLECTOR (infile_name);
+  BTOR_ABORT_ARG_NULL_BOOLECTOR (outfile);
   BTOR_ABORT_ARG_NULL_BOOLECTOR (error_msg);
   BTOR_ABORT_ARG_NULL_BOOLECTOR (status);
   BTOR_ABORT_BOOLECTOR (
       BTOR_COUNT_STACK (btor->nodes_id_table) > 2,
       "file parsing must be done before creating expressions");
-  res = btor_parse_smt1 (btor, file, file_name, error_msg, status);
+  res = btor_parse_smt1 (btor, infile, infile_name, outfile, error_msg, status);
 #ifndef NDEBUG
   if (btor->clone)
   {
     char *cerror_msg;
     int cstatus;
-    FILE *cfile = fopen (file_name, "r");
+    FILE *cinfile = fopen (infile_name, "r");
 
-    boolector_parse (btor->clone, cfile, file_name, &cerror_msg, &cstatus);
+    boolector_parse (
+        btor->clone, cinfile, infile_name, stdout, &cerror_msg, &cstatus);
     assert (cstatus == *status);
     assert (!strcmp (cerror_msg, *error_msg));
     btor_chkclone (btor);
@@ -3676,30 +3705,33 @@ boolector_parse_smt1 (Btor *btor,
 
 int
 boolector_parse_smt2 (Btor *btor,
-                      FILE *file,
-                      const char *file_name,
+                      FILE *infile,
+                      const char *infile_name,
+                      FILE *outfile,
                       char **error_msg,
                       int *status)
 {
   int res;
 
   BTOR_ABORT_ARG_NULL_BOOLECTOR (btor);
-  BTOR_ABORT_ARG_NULL_BOOLECTOR (file);
-  BTOR_ABORT_ARG_NULL_BOOLECTOR (file_name);
+  BTOR_ABORT_ARG_NULL_BOOLECTOR (infile);
+  BTOR_ABORT_ARG_NULL_BOOLECTOR (infile_name);
+  BTOR_ABORT_ARG_NULL_BOOLECTOR (outfile);
   BTOR_ABORT_ARG_NULL_BOOLECTOR (error_msg);
   BTOR_ABORT_ARG_NULL_BOOLECTOR (status);
   BTOR_ABORT_BOOLECTOR (
       BTOR_COUNT_STACK (btor->nodes_id_table) > 2,
       "file parsing must be done before creating expressions");
-  res = btor_parse_smt2 (btor, file, file_name, error_msg, status);
+  res = btor_parse_smt2 (btor, infile, infile_name, outfile, error_msg, status);
 #ifndef NDEBUG
   if (btor->clone)
   {
     char *cerror_msg;
     int cstatus;
-    FILE *cfile = fopen (file_name, "r");
+    FILE *cinfile = fopen (infile_name, "r");
 
-    boolector_parse (btor->clone, cfile, file_name, &cerror_msg, &cstatus);
+    boolector_parse (
+        btor->clone, cinfile, infile_name, stdout, &cerror_msg, &cstatus);
     assert (cstatus == *status);
     assert (!strcmp (cerror_msg, *error_msg));
     btor_chkclone (btor);

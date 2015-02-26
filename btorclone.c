@@ -1,7 +1,7 @@
 /*  Boolector: Satisfiablity Modulo Theories (SMT) solver.
  *
  *  Copyright (C) 2013-2015 Aina Niemetz.
- *  Copyright (C) 2014 Mathias Preiner.
+ *  Copyright (C) 2014-2015 Mathias Preiner.
  *  Copyright (C) 2014 Armin Biere.
  *
  *  All rights reserved.
@@ -467,20 +467,15 @@ data_as_bv_ptr (BtorMemMgr *mm,
   assert (data);
   assert (cloned_data);
 
-  Btor *btor;
-
-  (void) mm;
-  btor               = ((BtorNodeMap *) map)->btor;
-  cloned_data->asPtr = btor_copy_bv (btor, (BitVector *) data->asPtr);
+  (void) map;
+  cloned_data->asPtr = btor_copy_bv (mm, (BitVector *) data->asPtr);
 }
 
 static void *
 copy_bv_tuple (BtorMemMgr *mm, const void *map, const void *t)
 {
-  Btor *btor;
-  (void) mm;
-  btor = ((BtorNodeMap *) map)->btor;
-  return btor_copy_bv_tuple (btor, (BitVectorTuple *) t);
+  (void) map;
+  return btor_copy_bv_tuple (mm, (BitVectorTuple *) t);
 }
 
 static void
@@ -1205,7 +1200,7 @@ btor_recursively_rebuild_exp_clone (Btor *btor,
   // FIXME lemmas are currently built with rwl1 (in parent)
   rwl = clone->options.rewrite_level.val;
   if (clone->options.rewrite_level.val > 0)
-    btor_set_opt (clone, BTOR_OPT_REWRITE_LEVEL, 1);
+    clone->options.rewrite_level.val = 1;
   //
 
   BTOR_INIT_STACK (work_stack);
@@ -1319,7 +1314,7 @@ btor_recursively_rebuild_exp_clone (Btor *btor,
   BTOR_RELEASE_STACK (btor->mm, unmark_stack);
 
   // FIXME lemmas are currently built with rwl1 (in parent)
-  btor_set_opt (clone, BTOR_OPT_REWRITE_LEVEL, rwl);
+  clone->options.rewrite_level.val = rwl;
   //
 #ifndef NDEBUG
   btor_delete_node_map (key_map);

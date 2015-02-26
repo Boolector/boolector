@@ -2,8 +2,8 @@
  *
  *  Copyright (C) 2007-2009 Robert Daniel Brummayer.
  *  Copyright (C) 2007-2012 Armin Biere.
- *  Copyright (C) 2013-2014 Mathias Preiner.
- *  Copyright (C) 2013-2014 Aina Niemetz.
+ *  Copyright (C) 2013-2015 Mathias Preiner.
+ *  Copyright (C) 2013-2015 Aina Niemetz.
  *
  *  All rights reserved.
  *
@@ -60,11 +60,12 @@ struct BtorBTORParser
 
   int nprefix;
   BtorCharStack *prefix;
-  FILE *file;
+  FILE *infile;
+  const char *infile_name;
+  FILE *outfile;  // TODO not used at the moment, but will be with BTOR 2.0
   int lineno;
   int saved; /* boolean flag */
   int saved_char;
-  const char *name;
   char *error;
 
   BoolectorNodePtrStack exps;
@@ -88,7 +89,6 @@ struct BtorBTORParser
 
   int found_arrays;
   int found_lambdas;
-  int found_aeq;
 };
 
 /*------------------------------------------------------------------------*/
@@ -102,12 +102,12 @@ btor_perr_btor (BtorBTORParser *parser, const char *fmt, ...)
   if (!parser->error)
   {
     va_start (ap, fmt);
-    bytes = btor_parse_error_message_length (parser->name, fmt, ap);
+    bytes = btor_parse_error_message_length (parser->infile_name, fmt, ap);
     va_end (ap);
 
     va_start (ap, fmt);
     parser->error = btor_parse_error_message (
-        parser->mem, parser->name, parser->lineno, 0, fmt, ap, bytes);
+        parser->mem, parser->infile_name, parser->lineno, 0, fmt, ap, bytes);
     va_end (ap);
   }
 
@@ -161,7 +161,7 @@ btor_nextch_btor (BtorBTORParser *parser)
     ch = parser->prefix->start[parser->nprefix++];
   }
   else
-    ch = getc (parser->file);
+    ch = getc (parser->infile);
 
   if (ch == '\n') parser->lineno++;
 
@@ -1036,8 +1036,6 @@ parse_compare_and_overflow (BtorBTORParser *parser,
 	      goto RELEASE_L_AND_R_AND_RETURN_ZERO;
 	    }
 #endif
-
-      parser->found_aeq = 1;
     }
   }
 
@@ -1791,137 +1789,34 @@ btor_delete_btor_parser (BtorBTORParser *parser)
   btor_delete_mem_mgr (mm);
 }
 
-static const char *
-check_params_bound (BtorBTORParser *parser)
-{
-  assert (parser);
-
-  int i;
-  BoolectorNode *param;
-
-  for (i = 0; i < BTOR_COUNT_STACK (parser->params); i++)
-  {
-    param = parser->params.start[i];
-    assert (boolector_is_param (parser->btor, param));
-
-    if (!boolector_is_bound_param (parser->btor, param))
-    {
-      assert (boolector_get_symbol (parser->btor, param));
-      return btor_perr_btor (parser,
-                             "param '%s' not bound to any lambda expression",
-                             boolector_get_symbol (parser->btor, param));
-    }
-  }
-
-  return 0;
-}
-
-#if 0
-static const char *
-check_lambdas_consistent (BtorBTORParser * parser)
-{
-  assert (parser);
-
-  int i;
-  BoolectorNode *cur, *lambda;
-  BoolectorNodePtrStack stack;
-  BoolectorNodePtrStack unmark;
-
-  BTOR_INIT_STACK (stack);
-  BTOR_INIT_STACK (unmark);
-
-  while (!BTOR_EMPTY_STACK (parser->lambdas))
-    {
-      lambda = BTOR_POP_STACK (parser->lambdas);
-      assert (BTOR_IS_REGULAR_NODE (lambda));
-      assert (BTOR_IS_LAMBDA_NODE (lambda));
-
-      if (BTOR_IS_NESTED_LAMBDA_NODE (lambda)
-	  && !BTOR_IS_FIRST_NESTED_LAMBDA (lambda))
-	continue;
-
-      assert (BTOR_EMPTY_STACK (stack));
-      assert (BTOR_EMPTY_STACK (unmark));
-      BTOR_PUSH_STACK (parser->mem, stack, lambda);
-
-      while (!BTOR_EMPTY_STACK (stack))
-	{
-	  cur = BTOR_POP_STACK (stack);
-	  assert (BTOR_IS_REGULAR_NODE (cur));
-
-	  if (btor_is_param_exp (parser->btor, cur) && !cur->mark)
-	    {
-	      BTOR_RELEASE_STACK (parser->mem, stack);
-	      BTOR_RELEASE_STACK (parser->mem, unmark);
-
-	      return btor_perr_btor (parser,
-		  "invalid scope for param '%d'",
-		  cur->symbol ? atoi (cur->symbol) : cur->id);
-	    }
-
-	  if (cur->mark)
-	    continue;
-
-	  cur->mark = 1;
-	  BTOR_PUSH_STACK (parser->mem, unmark, cur);
-
-	  if (boolector_is_fun (parser->btor, cur))
-	    {
-	      BTOR_REAL_ADDR_NODE (cur->e[0])->mark = 1;
-	      BTOR_PUSH_STACK (parser->mem, unmark,
-			       BTOR_REAL_ADDR_NODE (cur->e[0]));
-	      BTOR_PUSH_STACK (parser->mem, stack,
-			       BTOR_REAL_ADDR_NODE (cur->e[1]));
-	    }
-	  else
-	    {
-	      for (i = 0; i < cur->arity; i++)
-		if (BTOR_REAL_ADDR_NODE (cur->e[i])->parameterized)
-		  BTOR_PUSH_STACK (parser->mem, stack,
-				   BTOR_REAL_ADDR_NODE (cur->e[i]));
-	    }
-	}
-
-      while (!BTOR_EMPTY_STACK (unmark))
-	{
-	  cur = BTOR_POP_STACK (unmark);
-	  assert (BTOR_IS_REGULAR_NODE (cur));
-	  assert (cur->mark);
-	  cur->mark = 0;
-	}
-    }
-
-  BTOR_RELEASE_STACK (parser->mem, stack);
-  BTOR_RELEASE_STACK (parser->mem, unmark);
-
-  return 0;
-}
-#endif
-
 /* Note: we need prefix in case of stdin as input (also applies to compressed
  * input files). */
 static const char *
 btor_parse_btor_parser (BtorBTORParser *parser,
                         BtorCharStack *prefix,
-                        FILE *file,
-                        const char *name,
+                        FILE *infile,
+                        const char *infile_name,
+                        FILE *outfile,
                         BtorParseResult *res)
 {
   BtorOpParser op_parser;
   int ch, len;
   BoolectorNode *e;
 
-  assert (name);
-  assert (file);
+  assert (infile);
+  assert (infile_name);
+  assert (outfile);
 
-  BTOR_MSG (boolector_get_btor_msg (parser->btor), 1, "parsing %s", name);
+  BTOR_MSG (
+      boolector_get_btor_msg (parser->btor), 1, "parsing %s", infile_name);
 
-  parser->nprefix = 0;
-  parser->prefix  = prefix;
-  parser->file    = file;
-  parser->name    = name;
-  parser->lineno  = 1;
-  parser->saved   = 0;
+  parser->nprefix     = 0;
+  parser->prefix      = prefix;
+  parser->infile      = infile;
+  parser->infile_name = infile_name;
+  parser->outfile     = outfile;
+  parser->lineno      = 1;
+  parser->saved       = 0;
 
   BTOR_INIT_STACK (parser->lambdas);
   BTOR_INIT_STACK (parser->params);
@@ -1940,17 +1835,6 @@ NEXT:
 
     if (res)
     {
-      if (check_params_bound (parser)) return parser->error;
-
-      //	  if (check_lambdas_consistent (parser))
-      //	    return parser->error;
-
-      if (parser->found_lambdas && parser->found_aeq)
-      {
-        btor_perr_btor (parser, "extensionality with lambdas is not supported");
-        return parser->error;
-      }
-
       if (parser->found_arrays || parser->found_lambdas)
         res->logic = BTOR_LOGIC_QF_AUFBV;
       else

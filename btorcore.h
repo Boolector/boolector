@@ -1,8 +1,8 @@
 /*  Boolector: Satisfiablity Modulo Theories (SMT) solver.
  *
  *  Copyright (C) 2007-2009 Robert Daniel Brummayer.
- *  Copyright (C) 2007-2013 Armin Biere.
- *  Copyright (C) 2012-2014 Mathias Preiner.
+ *  Copyright (C) 2007-2014 Armin Biere.
+ *  Copyright (C) 2012-2015 Mathias Preiner.
  *  Copyright (C) 2012-2015 Aina Niemetz.
  *
  *  All rights reserved.
@@ -74,6 +74,18 @@ struct BtorNodeUniqueTable
 
 typedef struct BtorNodeUniqueTable BtorNodeUniqueTable;
 
+struct BtorCallbacks
+{
+  struct
+  {
+    int (*fun) (void *);
+    void *state;
+    int done;
+  } term;
+};
+
+typedef struct BtorCallbacks BtorCallbacks;
+
 struct ConstraintStats
 {
   int varsubst;
@@ -84,37 +96,12 @@ struct ConstraintStats
 
 typedef struct ConstraintStats ConstraintStats;
 
-enum BtorUAMode
-{
-  BTOR_UA_GLOBAL_MODE = 0,
-  BTOR_UA_LOCAL_MODE,
-  BTOR_UA_LOCAL_INDIVIDUAL_MODE
-};
-
-typedef enum BtorUAMode BtorUAMode;
-
-enum BtorUARef
-{
-  BTOR_UA_REF_BY_DOUBLING = 0,
-  BTOR_UA_REF_BY_INC_ONE
-};
-
-typedef enum BtorUARef BtorUARef;
-
-enum BtorUAEnc
-{
-  BTOR_UA_ENC_SIGN_EXTEND = 0,
-  BTOR_UA_ENC_ZERO_EXTEND,
-  BTOR_UA_ENC_ONE_EXTEND,
-  BTOR_UA_ENC_EQ_CLASSES
-};
-
-typedef enum BtorUAEnc BtorUAEnc;
-
 // TODO (ma): array_assignments -> fun_assignments
 struct Btor
 {
   BtorMemMgr *mm;
+
+  BtorCallbacks cbs;
 
   BtorBVAssignmentList *bv_assignments;
   BtorArrayAssignmentList *array_assignments;
@@ -281,6 +268,12 @@ void btor_delete_btor (Btor *btor);
 /* Gets version. */
 const char *btor_version (Btor *btor);
 
+/* Set termination callback. */
+void btor_set_term_btor (Btor *btor, int (*fun) (void *), void *state);
+
+/* Determine if boolector has been terminated via termination callback. */
+int btor_terminate_btor (void *btor);
+
 /* Set verbosity message prefix. */
 void btor_set_msg_prefix_btor (Btor *btor, const char *prefix);
 
@@ -310,6 +303,8 @@ int btor_failed_exp (Btor *btor, BtorNode *exp);
 int btor_sat_btor (Btor *btor, int lod_limit, int sat_limit);
 
 BtorSATMgr *btor_get_sat_mgr_btor (const Btor *btor);
+BtorAIGMgr *btor_get_aig_mgr_btor (const Btor *btor);
+BtorMemMgr *btor_get_mem_mgr_btor (const Btor *btor);
 
 /* Run rewriting engine */
 int btor_simplify (Btor *btor);

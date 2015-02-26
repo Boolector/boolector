@@ -2,7 +2,7 @@
  *
  *  Copyright (C) 2007-2009 Robert Daniel Brummayer.
  *  Copyright (C) 2007-2014 Armin Biere.
- *  Copyright (C) 2012-2014 Mathias Preiner.
+ *  Copyright (C) 2012-2015 Mathias Preiner.
  *  Copyright (C) 2012-2015 Aina Niemetz.
  *
  *  All rights reserved.
@@ -108,8 +108,8 @@
 
 /*------------------------------------------------------------------------*/
 
-static int btor_sat_aux_btor (Btor *, int, int);
-static int btor_sat_aux_btor_dual_prop (Btor *);
+static int sat_aux_btor (Btor *, int, int);
+static int sat_aux_btor_dual_prop (Btor *);
 static BtorAIG *exp_to_aig (Btor *, BtorNode *);
 
 #ifdef BTOR_CHECK_MODEL
@@ -172,7 +172,7 @@ typedef enum BtorSubstCompKind BtorSubstCompKind;
 /*------------------------------------------------------------------------*/
 
 static void
-btor_init_substitutions (Btor *btor)
+init_substitutions (Btor *btor)
 {
   assert (btor);
   assert (!btor->substitutions);
@@ -184,7 +184,7 @@ btor_init_substitutions (Btor *btor)
 }
 
 static void
-btor_delete_substitutions (Btor *btor)
+delete_substitutions (Btor *btor)
 {
   assert (btor);
 
@@ -204,7 +204,7 @@ btor_delete_substitutions (Btor *btor)
 }
 
 static BtorNode *
-btor_find_substitution (Btor *btor, BtorNode *exp)
+find_substitution (Btor *btor, BtorNode *exp)
 {
   assert (btor);
   assert (exp);
@@ -227,10 +227,7 @@ btor_find_substitution (Btor *btor, BtorNode *exp)
 }
 
 static void
-btor_insert_substitution (Btor *btor,
-                          BtorNode *exp,
-                          BtorNode *subst,
-                          int update)
+insert_substitution (Btor *btor, BtorNode *exp, BtorNode *subst, int update)
 {
   // TODO: cyclic substitution check
   assert (btor);
@@ -255,16 +252,14 @@ btor_insert_substitution (Btor *btor,
     /* release key of current bucket */
     btor_release_exp (btor, exp);
   }
-#ifndef NDEBUG
-  else
+  else if (b)
   {
     assert (!b || (BtorNode *) b->data.asPtr == subst);
     /* substitution already inserted */
     return;
   }
-#endif
 
-  simp = btor_find_substitution (btor, subst);
+  simp = find_substitution (btor, subst);
 
   if (simp) subst = simp;
 
@@ -279,7 +274,7 @@ btor_insert_substitution (Btor *btor,
 /*------------------------------------------------------------------------*/
 
 static void
-btor_mark_exp (Btor *btor, BtorNode *exp, int new_mark)
+mark_exp (Btor *btor, BtorNode *exp, int new_mark)
 {
   BtorMemMgr *mm;
   BtorNodePtrStack stack;
@@ -317,7 +312,13 @@ btor_version (Btor *btor)
   return BTOR_VERSION;
 }
 
-static BtorAIGMgr *
+BtorMemMgr *
+btor_get_mem_mgr_btor (const Btor *btor)
+{
+  assert (btor);
+  return btor->mm;
+}
+BtorAIGMgr *
 btor_get_aig_mgr_btor (const Btor *btor)
 {
   assert (btor);
@@ -738,7 +739,7 @@ btor_print_stats_btor (Btor *btor)
 }
 
 static Btor *
-btor_new_aux_btor (int init_opts)
+new_aux_btor (int init_opts)
 {
   assert (init_opts == 0 || init_opts == 1);
 
@@ -832,17 +833,48 @@ btor_new_aux_btor (int init_opts)
 Btor *
 btor_new_btor (void)
 {
-  return btor_new_aux_btor (1);
+  return new_aux_btor (1);
 }
 
 Btor *
 btor_new_btor_no_init (void)
 {
-  return btor_new_aux_btor (0);
+  return new_aux_btor (0);
+}
+
+void
+btor_set_term_btor (Btor *btor, int (*fun) (void *), void *state)
+{
+  assert (btor);
+
+  BtorSATMgr *smgr;
+
+  btor->cbs.term.fun   = fun;
+  btor->cbs.term.state = state;
+
+  smgr = btor_get_sat_mgr_btor (btor);
+  if (btor_has_term_support_sat_mgr (smgr))
+    btor_set_term_sat_mgr (smgr, btor_terminate_btor, btor);
+}
+
+int
+btor_terminate_btor (void *btor)
+{
+  assert (btor);
+
+  int res;
+  Btor *bt;
+
+  bt = (Btor *) btor;
+  if (!bt->cbs.term.fun) return 0;
+  if (bt->cbs.term.done) return 1;
+  res = bt->cbs.term.fun (bt->cbs.term.state);
+  if (res) bt->cbs.term.done = res;
+  return res;
 }
 
 static void
-btor_release_all_ext_exp_refs (Btor *btor)
+release_all_ext_exp_refs (Btor *btor)
 {
   assert (btor);
 
@@ -865,7 +897,7 @@ btor_release_all_ext_exp_refs (Btor *btor)
 }
 
 static void
-btor_release_all_ext_sort_refs (Btor *btor)
+release_all_ext_sort_refs (Btor *btor)
 {
   assert (btor);
 
@@ -889,8 +921,8 @@ btor_release_all_ext_sort_refs (Btor *btor)
 void
 btor_release_all_ext_refs (Btor *btor)
 {
-  btor_release_all_ext_exp_refs (btor);
-  btor_release_all_ext_sort_refs (btor);
+  release_all_ext_exp_refs (btor);
+  release_all_ext_sort_refs (btor);
 }
 
 void
@@ -949,7 +981,7 @@ btor_delete_btor (Btor *btor)
   btor_delete_ptr_hash_table (btor->var_rhs);
   btor_delete_ptr_hash_table (btor->fun_rhs);
 
-  if (btor->options.model_gen.val) btor_delete_model (btor);
+  btor_delete_model (btor);
 
   for (i = 0; i < BTOR_COUNT_STACK (btor->functions_with_model); i++)
     btor_release_exp (btor, btor->functions_with_model.start[i]);
@@ -975,38 +1007,35 @@ btor_delete_btor (Btor *btor)
     btor_release_exp (btor, BTOR_POP_STACK (stack));
   BTOR_RELEASE_STACK (mm, stack);
 
-  if (btor->options.just_heuristic.val)
+  if (btor->score)
   {
-    if (btor->score)
+    init_node_hash_table_iterator (&it, btor->score);
+    while (has_next_node_hash_table_iterator (&it))
     {
-      init_node_hash_table_iterator (&it, btor->score);
-      while (has_next_node_hash_table_iterator (&it))
+      if (btor->options.just_heuristic.val == BTOR_JUST_HEUR_BRANCH_MIN_APP)
       {
-        if (btor->options.just_heuristic.val == BTOR_JUST_HEUR_BRANCH_MIN_APP)
-        {
-          t   = (BtorPtrHashTable *) it.bucket->data.asPtr;
-          exp = next_node_hash_table_iterator (&it);
-          btor_release_exp (btor, exp);
+        t   = (BtorPtrHashTable *) it.bucket->data.asPtr;
+        exp = next_node_hash_table_iterator (&it);
+        btor_release_exp (btor, exp);
 
-          init_node_hash_table_iterator (&iit, t);
-          while (has_next_node_hash_table_iterator (&iit))
-            btor_release_exp (btor, next_node_hash_table_iterator (&iit));
-          btor_delete_ptr_hash_table (t);
-        }
-        else
-        {
-          assert (btor->options.just_heuristic.val
-                  == BTOR_JUST_HEUR_BRANCH_MIN_DEP);
-          btor_release_exp (btor, next_node_hash_table_iterator (&it));
-        }
+        init_node_hash_table_iterator (&iit, t);
+        while (has_next_node_hash_table_iterator (&iit))
+          btor_release_exp (btor, next_node_hash_table_iterator (&iit));
+        btor_delete_ptr_hash_table (t);
       }
-      btor_delete_ptr_hash_table (btor->score);
+      else
+      {
+        assert (btor->options.just_heuristic.val
+                == BTOR_JUST_HEUR_BRANCH_MIN_DEP);
+        btor_release_exp (btor, next_node_hash_table_iterator (&it));
+      }
     }
+    btor_delete_ptr_hash_table (btor->score);
   }
 
   if (btor->options.auto_cleanup.val && btor->external_refs)
   {
-    btor_release_all_ext_exp_refs (btor);
+    release_all_ext_exp_refs (btor);
 
     if (!btor->options.auto_cleanup_internal.val && !getenv ("BTORLEAK")
         && !getenv ("BTORLEAKEXP"))
@@ -1036,7 +1065,7 @@ btor_delete_btor (Btor *btor)
   }
 
   if (btor->options.auto_cleanup.val && btor->external_refs)
-    btor_release_all_ext_sort_refs (btor);
+    release_all_ext_sort_refs (btor);
 
   assert (btor->external_refs == 0);
 
@@ -1721,7 +1750,7 @@ insert_new_constraint (Btor *btor, BtorNode *exp)
 }
 
 static void
-btor_reset_assumptions (Btor *btor)
+reset_assumptions (Btor *btor)
 {
   assert (btor);
 
@@ -1738,7 +1767,7 @@ btor_reset_assumptions (Btor *btor)
 }
 
 static void
-btor_reset_functions_with_model (Btor *btor)
+reset_functions_with_model (Btor *btor)
 {
   BtorNode *cur;
   int i;
@@ -1762,12 +1791,12 @@ btor_reset_functions_with_model (Btor *btor)
 }
 
 static void
-btor_reset_incremental_usage (Btor *btor)
+reset_incremental_usage (Btor *btor)
 {
   assert (btor);
 
-  btor_reset_assumptions (btor);
-  btor_reset_functions_with_model (btor);
+  reset_assumptions (btor);
+  reset_functions_with_model (btor);
   btor->valid_assignments = 0;
   btor_delete_model (btor);
 }
@@ -1789,7 +1818,7 @@ add_constraint (Btor *btor, BtorNode *exp)
   assert (!BTOR_REAL_ADDR_NODE (exp)->parameterized);
 
   mm = btor->mm;
-  if (btor->valid_assignments) btor_reset_incremental_usage (btor);
+  if (btor->valid_assignments) reset_incremental_usage (btor);
 
   if (!BTOR_IS_INVERTED_NODE (exp) && BTOR_IS_AND_NODE (exp))
   {
@@ -1820,7 +1849,7 @@ add_constraint (Btor *btor, BtorNode *exp)
       }
     } while (!BTOR_EMPTY_STACK (stack));
     BTOR_RELEASE_STACK (mm, stack);
-    btor_mark_exp (btor, exp, 0);
+    mark_exp (btor, exp, 0);
   }
   else
     insert_new_constraint (btor, exp);
@@ -1914,7 +1943,7 @@ btor_assume_exp (Btor *btor, BtorNode *exp)
   if (BTOR_REAL_ADDR_NODE (exp)->simplified)
     exp = btor_simplify_exp (btor, exp);
 
-  if (btor->valid_assignments) btor_reset_incremental_usage (btor);
+  if (btor->valid_assignments) reset_incremental_usage (btor);
 
   if (!btor_find_in_ptr_hash_table (btor->assumptions, exp))
     (void) btor_insert_in_ptr_hash_table (btor->assumptions,
@@ -2064,13 +2093,13 @@ btor_failed_exp (Btor *btor, BtorNode *exp)
       ASSUMPTION_FAILED:
         BTOR_RELEASE_STACK (btor->mm, work_stack);
         BTOR_RELEASE_STACK (btor->mm, assumptions);
-        btor_mark_exp (btor, exp, 0);
+        mark_exp (btor, exp, 0);
         res = 1;
       }
     }
     BTOR_RELEASE_STACK (btor->mm, work_stack);
     BTOR_RELEASE_STACK (btor->mm, assumptions);
-    btor_mark_exp (btor, exp, 0);
+    mark_exp (btor, exp, 0);
   }
 
   btor->time.failed += btor_time_stamp () - start;
@@ -2171,6 +2200,10 @@ set_simplified_exp (Btor *btor, BtorNode *exp, BtorNode *simplified)
   assert (!BTOR_REAL_ADDR_NODE (simplified)->simplified);
   assert (exp->arity <= 3);
   assert (exp->len == BTOR_REAL_ADDR_NODE (simplified)->len);
+  assert (exp->parameterized
+          || !BTOR_REAL_ADDR_NODE (simplified)->parameterized);
+  assert (!BTOR_REAL_ADDR_NODE (simplified)->parameterized
+          || exp->parameterized);
 
   if (exp->simplified) btor_release_exp (btor, exp->simplified);
 
@@ -2179,6 +2212,9 @@ set_simplified_exp (Btor *btor, BtorNode *exp, BtorNode *simplified)
   if (exp->constraint) update_constraints (btor, exp);
 
   btor_set_to_proxy_exp (btor, exp);
+
+  /* if simplified is parameterized, exp was also parameterized */
+  if (BTOR_REAL_ADDR_NODE (simplified)->parameterized) exp->parameterized = 1;
 }
 
 /* Finds most simplified expression and shortens path to it */
@@ -2320,11 +2356,11 @@ btor_simplify_exp (Btor *btor, BtorNode *exp)
 
   BtorNode *result;
 
-  if (btor->substitutions && (result = btor_find_substitution (btor, exp)))
+  if (btor->substitutions && (result = find_substitution (btor, exp)))
   {
     assert (result);
     result = btor_pointer_chase_simplified_exp (btor, result);
-    assert (!btor_find_substitution (btor, BTOR_REAL_ADDR_NODE (result)));
+    assert (!find_substitution (btor, BTOR_REAL_ADDR_NODE (result)));
     assert (!BTOR_REAL_ADDR_NODE (result)->simplified);
   }
   else
@@ -2631,8 +2667,8 @@ substitute_var_exps (Btor *btor)
       cur = next_node_hash_table_iterator (&it);
       assert (BTOR_IS_REGULAR_NODE (cur));
       assert (BTOR_IS_BV_VAR_NODE (cur) || BTOR_IS_UF_NODE (cur));
-      btor_mark_exp (btor, cur, 0);
-      btor_mark_exp (btor, (BtorNode *) b->data.asPtr, 0);
+      mark_exp (btor, cur, 0);
+      mark_exp (btor, (BtorNode *) b->data.asPtr, 0);
     }
 
     /* we look for cycles */
@@ -2701,8 +2737,8 @@ substitute_var_exps (Btor *btor)
       left = next_node_hash_table_iterator (&it);
       assert (BTOR_IS_REGULAR_NODE (left));
       assert (BTOR_IS_BV_VAR_NODE (left) || BTOR_IS_UF_NODE (left));
-      btor_mark_exp (btor, left, 0);
-      btor_mark_exp (btor, right, 0);
+      mark_exp (btor, left, 0);
+      mark_exp (btor, right, 0);
       b_temp = btor_find_in_ptr_hash_table (order, left);
       assert (b_temp);
       order_num = b_temp->data.asInt;
@@ -2770,8 +2806,12 @@ all_exps_below_rebuilt (Btor *btor, BtorNode *exp)
   int i;
   BtorNode *subst;
 
-  subst = btor_find_substitution (btor, exp);
-  if (subst) return BTOR_REAL_ADDR_NODE (subst)->aux_mark == 0;
+  subst = find_substitution (btor, exp);
+  if (subst)
+  {
+    subst = btor_simplify_exp (btor, subst);
+    return BTOR_REAL_ADDR_NODE (subst)->aux_mark == 0;
+  }
 
   exp = BTOR_REAL_ADDR_NODE (exp);
   for (i = 0; i < exp->arity; i++)
@@ -2792,9 +2832,9 @@ substitute_and_rebuild (Btor *btor, BtorPtrHashTable *subst, int bra)
   assert (subst);
   assert (check_id_table_aux_mark_unset_dbg (btor));
 
-  int i, refs;
+  int i;
   BtorMemMgr *mm;
-  BtorNode *cur, *cur_parent, *rebuilt_exp, *simplified;
+  BtorNode *cur, *cur_parent, *rebuilt_exp, *simplified, *sub;
   BtorNodePtrStack roots;
   BtorNodePtrQueue queue;
   BtorHashTableIterator hit;
@@ -2853,14 +2893,17 @@ substitute_and_rebuild (Btor *btor, BtorPtrHashTable *subst, int bra)
     assert (BTOR_IS_REGULAR_NODE (cur));
     assert (!BTOR_IS_PROXY_NODE (cur));
     assert (cur->aux_mark == 2);
-    refs = cur->refs;
-    btor_release_exp (btor, cur);
 
-    if (refs == 1) continue;
+    if (cur->refs == 1)
+    {
+      btor_release_exp (btor, cur);
+      continue;
+    }
 
     if (all_exps_below_rebuilt (btor, cur))
     {
       cur->aux_mark = 0;
+      btor_release_exp (btor, cur);
 
       /* traverse upwards and enqueue all parents that are not yet
        * in the queue. */
@@ -2868,21 +2911,21 @@ substitute_and_rebuild (Btor *btor, BtorPtrHashTable *subst, int bra)
       while (has_next_parent_full_parent_iterator (&it))
       {
         cur_parent = next_parent_full_parent_iterator (&it);
-        if (cur_parent->aux_mark == 2) continue;
+        if (cur_parent->aux_mark == 2
+            || !all_exps_below_rebuilt (btor, cur_parent))
+          continue;
         assert (cur_parent->aux_mark == 0 || cur_parent->aux_mark == 1);
         cur_parent->aux_mark = 2;
         BTOR_ENQUEUE (mm, queue, btor_copy_exp (btor, cur_parent));
       }
 
-      if (btor_find_substitution (btor, cur))
+      if ((sub = find_substitution (btor, cur)))
       {
-        rebuilt_exp = btor_copy_exp (btor, cur);
-        goto SET_SIMPLIFIED_EXP;
+        rebuilt_exp = btor_copy_exp (btor, sub);
       }
-
       // TODO: externalize
-      if (bra && BTOR_IS_APPLY_NODE (cur)
-          && btor_find_in_ptr_hash_table (subst, cur))
+      else if (bra && BTOR_IS_APPLY_NODE (cur)
+               && btor_find_in_ptr_hash_table (subst, cur))
       {
         if (bra == -1)
           rebuilt_exp = btor_beta_reduce_full (btor, cur);
@@ -2895,7 +2938,6 @@ substitute_and_rebuild (Btor *btor, BtorPtrHashTable *subst, int bra)
       assert (rebuilt_exp);
       if (rebuilt_exp != cur)
       {
-      SET_SIMPLIFIED_EXP:
         simplified = btor_simplify_exp (btor, rebuilt_exp);
         // TODO: only push new roots? use hash table for roots instead of
         // stack?
@@ -2909,8 +2951,8 @@ substitute_and_rebuild (Btor *btor, BtorPtrHashTable *subst, int bra)
     /* not all children rebuilt, enqueue again */
     else
     {
-      cur->aux_mark = 2;
-      BTOR_ENQUEUE (mm, queue, btor_copy_exp (btor, cur));
+      assert (cur->aux_mark == 2);
+      BTOR_ENQUEUE (mm, queue, cur);
     }
   }
 
@@ -3285,7 +3327,7 @@ eliminate_slices_on_bv_vars (Btor *btor)
 #include "lglib.h"
 
 static int
-btor_fixed_exp (Btor *btor, BtorNode *exp)
+fixed_exp (Btor *btor, BtorNode *exp)
 {
   BtorNode *real_exp;
   BtorSATMgr *smgr;
@@ -3386,7 +3428,7 @@ process_skeleton_tseitin (Btor *btor,
       }
 #endif
       lhs   = process_skeleton_tseitin_lit (ids, exp);
-      fixed = btor_fixed_exp (btor, exp);
+      fixed = fixed_exp (btor, exp);
       if (fixed)
       {
         lgladd (lgl, (fixed > 0) ? lhs : -lhs);
@@ -3749,7 +3791,7 @@ merge_lambdas (Btor *btor)
   mm            = btor->mm;
   delta_lambdas = btor->lambdas->count;
 
-  btor_init_substitutions (btor);
+  init_substitutions (btor);
   BTOR_INIT_STACK (stack);
   BTOR_INIT_STACK (unmark);
   BTOR_INIT_STACK (visit);
@@ -3833,7 +3875,7 @@ merge_lambdas (Btor *btor)
     subst = btor_beta_reduce_merge (btor, BTOR_LAMBDA_GET_BODY (merge));
     subst = BTOR_COND_INVERT_NODE (BTOR_LAMBDA_GET_BODY (merge), subst);
     btor_unassign_params (btor, merge);
-    btor_insert_substitution (btor, BTOR_LAMBDA_GET_BODY (merge), subst, 0);
+    insert_substitution (btor, BTOR_LAMBDA_GET_BODY (merge), subst, 0);
     btor_release_exp (btor, subst);
   }
 
@@ -3847,7 +3889,7 @@ merge_lambdas (Btor *btor)
   }
 
   substitute_and_rebuild (btor, btor->substitutions, 0);
-  btor_delete_substitutions (btor);
+  delete_substitutions (btor);
   delta_lambdas -= btor->lambdas->count;
   btor->stats.lambdas_merged += delta_lambdas;
 
@@ -3893,7 +3935,7 @@ optimize_unconstrained (Btor *btor)
   ucs = btor_new_ptr_hash_table (mm,
                                  (BtorHashPtr) btor_hash_exp_by_id,
                                  (BtorCmpPtr) btor_compare_exp_by_id);
-  btor_init_substitutions (btor);
+  init_substitutions (btor);
 
   /* collect nodes that might contribute to a unconstrained candidate
    * propagation */
@@ -4003,7 +4045,7 @@ optimize_unconstrained (Btor *btor)
                 btor->stats.fun_uc_props++;
               btor_insert_in_ptr_hash_table (ucs, btor_copy_exp (btor, cur));
               subst = lambda_var_exp (btor, cur->len);
-              btor_insert_substitution (btor, cur, subst, 0);
+              insert_substitution (btor, cur, subst, 0);
               btor_release_exp (btor, subst);
             }
             break;
@@ -4018,7 +4060,7 @@ optimize_unconstrained (Btor *btor)
                 btor->stats.fun_uc_props++;
               btor_insert_in_ptr_hash_table (ucs, btor_copy_exp (btor, cur));
               subst = lambda_var_exp (btor, cur->len);
-              btor_insert_substitution (btor, cur, subst, 0);
+              insert_substitution (btor, cur, subst, 0);
               btor_release_exp (btor, subst);
             }
             break;
@@ -4035,7 +4077,7 @@ optimize_unconstrained (Btor *btor)
               btor->stats.bv_uc_props++;
               btor_insert_in_ptr_hash_table (ucs, btor_copy_exp (btor, cur));
               subst = lambda_var_exp (btor, cur->len);
-              btor_insert_substitution (btor, cur, subst, 0);
+              insert_substitution (btor, cur, subst, 0);
               btor_release_exp (btor, subst);
             }
             break;
@@ -4045,7 +4087,7 @@ optimize_unconstrained (Btor *btor)
               btor->stats.bv_uc_props++;
               btor_insert_in_ptr_hash_table (ucs, btor_copy_exp (btor, cur));
               subst = lambda_var_exp (btor, cur->len);
-              btor_insert_substitution (btor, cur, subst, 0);
+              insert_substitution (btor, cur, subst, 0);
               btor_release_exp (btor, subst);
             }
             break;
@@ -4061,7 +4103,7 @@ optimize_unconstrained (Btor *btor)
               sort  = btor_create_or_get_sort (btor, cur);
               subst = btor_uf_exp (btor, sort, 0);
               btor_release_sort (&btor->sorts_unique_table, sort);
-              btor_insert_substitution (btor, cur, subst, 0);
+              insert_substitution (btor, cur, subst, 0);
               btor_release_exp (btor, subst);
             }
             break;
@@ -4074,7 +4116,7 @@ optimize_unconstrained (Btor *btor)
   substitute_and_rebuild (btor, btor->substitutions, 0);
 
   /* cleanup */
-  btor_delete_substitutions (btor);
+  delete_substitutions (btor);
   init_hash_table_iterator (&it, ucs);
   while (has_next_hash_table_iterator (&it))
     btor_release_exp (btor, next_node_hash_table_iterator (&it));
@@ -4175,7 +4217,7 @@ btor_simplify (Btor *btor)
     }
 
     // printf ("----\n");
-    // btor_set_opt (btor, BTOR_OPT_PRETTY_PRINT, 1);
+    // btor->options.pretty_print.val = 1;
     // btor_dump_btor (btor, stdout);
 #ifndef BTOR_DO_NOT_OPTIMIZE_UNCONSTRAINED
     if (btor->options.ucopt.val && btor->options.rewrite_level.val > 2
@@ -4189,7 +4231,7 @@ btor_simplify (Btor *btor)
     }
 #endif
     // printf ("====\n");
-    // btor_set_opt (btor, BTOR_OPT_PRETTY_PRINT, 1);
+    // btor->options.pretty_print.val = 1;
     // btor_dump_btor (btor, stdout);
 
     if (btor->varsubst_constraints->count) continue;
@@ -4576,7 +4618,7 @@ update_reachable (Btor *btor, int check_all_tables)
   while (has_next_node_hash_table_iterator (&it))
   {
     cur = next_node_hash_table_iterator (&it);
-    btor_mark_exp (btor, cur, 1);
+    mark_exp (btor, cur, 1);
   }
 
   for (i = 1; i < BTOR_COUNT_STACK (btor->nodes_id_table); i++)
@@ -4678,7 +4720,7 @@ add_again_assumptions (Btor *btor)
         }
       }
     }
-    btor_mark_exp (btor, exp, 0);
+    mark_exp (btor, exp, 0);
   }
 
   init_node_hash_table_iterator (&it, assumptions);
@@ -4704,7 +4746,7 @@ add_again_assumptions (Btor *btor)
 }
 
 static int
-btor_timed_sat_sat (Btor *btor, int limit)
+timed_sat_sat (Btor *btor, int limit)
 {
   double start, delta;
   BtorSATMgr *smgr;
@@ -4733,10 +4775,10 @@ update_sat_assignments (Btor *btor)
   add_again_assumptions (btor);
 #ifndef NDEBUG
   int result;
-  result = btor_timed_sat_sat (btor, -1);
+  result = timed_sat_sat (btor, -1);
   assert (result == BTOR_SAT);
 #else
-  (void) btor_timed_sat_sat (btor, -1);
+  (void) timed_sat_sat (btor, -1);
 #endif
   return btor_changed_sat (smgr);
 }
@@ -5046,7 +5088,7 @@ set_up_dual_and_collect (Btor *btor,
 
   /* let solver determine failed assumptions */
   delta = btor_time_stamp ();
-  btor_sat_aux_btor_dual_prop (clone);
+  sat_aux_btor_dual_prop (clone);
   assert (clone->last_sat_result == BTOR_UNSAT);
   btor->time.search_init_apps_sat += btor_time_stamp () - delta;
 
@@ -6082,8 +6124,8 @@ add_lemma (Btor *btor, BtorNode *fun, BtorNode *app0, BtorNode *app1)
   //	   produce the same expressions
   if (btor->options.dual_prop.val && btor->options.rewrite_level.val > 1)
   {
-    rwl = btor->options.rewrite_level.val;
-    btor_set_opt (btor, BTOR_OPT_REWRITE_LEVEL, 1);
+    rwl                             = btor->options.rewrite_level.val;
+    btor->options.rewrite_level.val = 1;
   }
 
   /* function congruence axiom conflict */
@@ -6130,7 +6172,7 @@ add_lemma (Btor *btor, BtorNode *fun, BtorNode *app0, BtorNode *app1)
   btor_delete_ptr_hash_table (bconds_sel2);
   btor->time.lemma_gen += btor_time_stamp () - start;
 
-  if (rwl >= 0) btor_set_opt (btor, BTOR_OPT_REWRITE_LEVEL, rwl);
+  if (rwl >= 0) btor->options.rewrite_level.val = rwl;
 }
 
 static void
@@ -6960,17 +7002,17 @@ new_exp_layer_clone_for_dual_prop (Btor *btor,
   assert (!clone->synthesized_constraints->count);
   assert (clone->unsynthesized_constraints->count);
 
-  btor_set_opt (clone, BTOR_OPT_MODEL_GEN, 0);
-  btor_set_opt (clone, BTOR_OPT_INCREMENTAL, 1);
+  clone->options.model_gen.val   = 0;
+  clone->options.incremental.val = 1;
 #ifdef BTOR_CHECK_MODEL
   /* cleanup dangling references when model validation is enabled */
-  btor_set_opt (clone, BTOR_OPT_AUTO_CLEANUP_INTERNAL, 1);
+  clone->options.auto_cleanup_internal.val = 1;
 #endif
 #ifndef NBTORLOG
-  btor_set_opt (clone, BTOR_OPT_LOGLEVEL, 0);
+  clone->options.loglevel.val = 0;
 #endif
-  btor_set_opt (clone, BTOR_OPT_VERBOSITY, 0);
-  btor_set_opt (clone, BTOR_OPT_DUAL_PROP, 0);
+  clone->options.verbosity.val = 0;
+  clone->options.dual_prop.val = 0;
 
   smgr = btor_get_sat_mgr_btor (clone);
   assert (!btor_is_initialized_sat (smgr));
@@ -7038,7 +7080,7 @@ add_lemma_to_dual_prop_clone (Btor *btor,
 }
 
 static int
-btor_sat_aux_btor (Btor *btor, int lod_limit, int sat_limit)
+sat_aux_btor (Btor *btor, int lod_limit, int sat_limit)
 {
   assert (btor);
 
@@ -7063,6 +7105,12 @@ btor_sat_aux_btor (Btor *btor, int lod_limit, int sat_limit)
 
   BTOR_MSG (btor->msg, 1, "calling SAT");
 
+  if (btor_terminate_btor (btor))
+  {
+    sat_result = BTOR_UNKNOWN;
+    goto DONE;
+  }
+
   simp_sat_result = btor_simplify (btor);
   update_assumptions (btor);
 
@@ -7070,20 +7118,26 @@ btor_sat_aux_btor (Btor *btor, int lod_limit, int sat_limit)
   if (btor_has_clone_support_sat_mgr (btor_get_sat_mgr_btor (btor))
       && btor->options.chk_failed_assumptions.val)
   {
-    faclone = btor_clone_btor (btor);
-    btor_set_opt (faclone, BTOR_OPT_AUTO_CLEANUP, 1);
+    faclone                           = btor_clone_btor (btor);
+    faclone->options.auto_cleanup.val = 1;
 #ifdef BTOR_CHECK_MODEL
     /* cleanup dangling references when model validation is enabled */
-    btor_set_opt (faclone, BTOR_OPT_AUTO_CLEANUP_INTERNAL, 1);
+    faclone->options.auto_cleanup_internal.val = 1;
 #endif
-    btor_set_opt (faclone, BTOR_OPT_LOGLEVEL, 0);
-    btor_set_opt (faclone, BTOR_OPT_VERBOSITY, 0);
+    faclone->options.loglevel.val               = 0;
+    faclone->options.verbosity.val              = 0;
     faclone->options.chk_failed_assumptions.val = 0;
     faclone->options.dual_prop.val              = 0;  // FIXME necessary?
   }
 #endif
 
   if (btor->inconsistent) goto UNSAT;
+
+  if (btor_terminate_btor (btor))
+  {
+    sat_result = BTOR_UNKNOWN;
+    goto DONE;
+  }
 
   smgr = btor_get_sat_mgr_btor (btor);
 
@@ -7100,7 +7154,7 @@ btor_sat_aux_btor (Btor *btor, int lod_limit, int sat_limit)
               "no functions found, resetting SAT solver to non-incremental");
   }
 
-  if (btor->valid_assignments == 1) btor_reset_incremental_usage (btor);
+  if (btor->valid_assignments == 1) reset_incremental_usage (btor);
 
   BTOR_ABORT_CORE (btor->ops[BTOR_FEQ_NODE].cur > 0,
                    "extensionality on arrays/lambdas not yet supported");
@@ -7131,9 +7185,9 @@ btor_sat_aux_btor (Btor *btor, int lod_limit, int sat_limit)
   assert (check_reachable_flag_dbg (btor));
 
   if (sat_limit > -1)
-    sat_result = btor_timed_sat_sat (btor, sat_limit);
+    sat_result = timed_sat_sat (btor, sat_limit);
   else
-    sat_result = btor_timed_sat_sat (btor, -1);
+    sat_result = timed_sat_sat (btor, -1);
 
   if (btor->options.dual_prop.val && sat_result == BTOR_SAT
       && simp_sat_result != BTOR_SAT)
@@ -7143,6 +7197,12 @@ btor_sat_aux_btor (Btor *btor, int lod_limit, int sat_limit)
 
   while (sat_result == BTOR_SAT)
   {
+    if (btor_terminate_btor (btor))
+    {
+      sat_result = BTOR_UNKNOWN;
+      goto DONE;
+    }
+
     found_conflict = check_and_resolve_conflicts (
         btor, clone, clone_root, exp_map, &prop_stack);
 
@@ -7182,7 +7242,7 @@ btor_sat_aux_btor (Btor *btor, int lod_limit, int sat_limit)
     assert (check_all_hash_tables_simp_free_dbg (btor));
     assert (check_reachable_flag_dbg (btor));
     add_again_assumptions (btor);
-    sat_result = btor_timed_sat_sat (btor, -1);
+    sat_result = timed_sat_sat (btor, -1);
 
     if (lod_limit > -1 && btor->stats.lod_refinements >= lod_limit)
     {
@@ -7197,9 +7257,6 @@ btor_sat_aux_btor (Btor *btor, int lod_limit, int sat_limit)
 DONE:
   BTOR_RELEASE_STACK (btor->mm, prop_stack);
   btor->valid_assignments = 1;
-  BTOR_ABORT_CORE (lod_limit == -1 && sat_limit == -1 && sat_result != BTOR_SAT
-                       && sat_result != BTOR_UNSAT,
-                   "result must be sat or unsat");
 
   btor->last_sat_result = sat_result;
 
@@ -7222,7 +7279,7 @@ DONE:
 }
 
 static int
-btor_sat_aux_btor_dual_prop (Btor *btor)
+sat_aux_btor_dual_prop (Btor *btor)
 {
   assert (btor);
 
@@ -7243,11 +7300,11 @@ btor_sat_aux_btor_dual_prop (Btor *btor)
   if (btor_has_clone_support_sat_mgr (btor_get_sat_mgr_btor (btor))
       && btor->options.chk_failed_assumptions.val)
   {
-    faclone = btor_clone_btor (btor);
-    btor_set_opt (faclone, BTOR_OPT_AUTO_CLEANUP, 1);
-    btor_set_opt (faclone, BTOR_OPT_AUTO_CLEANUP_INTERNAL, 1);
-    btor_set_opt (faclone, BTOR_OPT_LOGLEVEL, 0);
-    btor_set_opt (faclone, BTOR_OPT_VERBOSITY, 0);
+    faclone                                     = btor_clone_btor (btor);
+    faclone->options.auto_cleanup.val           = 1;
+    faclone->options.auto_cleanup_internal.val  = 1;
+    faclone->options.loglevel.val               = 0;
+    faclone->options.verbosity.val              = 0;
     faclone->options.chk_failed_assumptions.val = 0;
     faclone->options.dual_prop.val              = 0;  // FIXME necessary?
   }
@@ -7257,7 +7314,7 @@ btor_sat_aux_btor_dual_prop (Btor *btor)
 
   if (!btor_is_initialized_sat (smgr)) btor_init_sat (smgr);
 
-  if (btor->valid_assignments == 1) btor_reset_incremental_usage (btor);
+  if (btor->valid_assignments == 1) reset_incremental_usage (btor);
 
   BTOR_ABORT_CORE (btor->ops[BTOR_FEQ_NODE].cur > 0,
                    "extensionality on arrays/lambdas not yet supported");
@@ -7282,9 +7339,10 @@ btor_sat_aux_btor_dual_prop (Btor *btor)
   add_again_assumptions (btor);
   assert (check_reachable_flag_dbg (btor));
 
-  sat_result = btor_timed_sat_sat (btor, -1);
+  sat_result = timed_sat_sat (btor, -1);
 
-  assert (sat_result == BTOR_UNSAT);
+  assert (sat_result == BTOR_UNSAT
+          || (btor_terminate_btor (btor) && sat_result == BTOR_UNKNOWN));
 
   BTOR_RELEASE_STACK (btor->mm, prop_stack);
 
@@ -7292,8 +7350,6 @@ DONE:
   sat_result = BTOR_UNSAT;
   BTOR_RELEASE_STACK (btor->mm, prop_stack);
   btor->valid_assignments = 1;
-  BTOR_ABORT_CORE (sat_result != BTOR_SAT && sat_result != BTOR_UNSAT,
-                   "result must be sat or unsat");
 
   btor->last_sat_result = sat_result;
 #ifdef BTOR_CHECK_FAILED
@@ -7340,11 +7396,11 @@ br_probe (Btor *btor)
 
   BTOR_MSG (btor->msg, 1, "try full beta reduction probing");
   assert (btor->assumptions->count == 0);
-  clone = btor_clone_btor (btor);
-  btor_set_opt (clone, BTOR_OPT_BETA_REDUCE_ALL, 1);
-  btor_set_opt (clone, BTOR_OPT_VERBOSITY, 0);
+  clone                              = btor_clone_btor (btor);
+  clone->options.beta_reduce_all.val = 1;
+  clone->options.verbosity.val       = 0;
 #ifndef NBTORLOG
-  btor_set_opt (clone, BTOR_OPT_LOGLEVEL, 0);
+  clone->options.loglevel.val = 0;
 #endif
 
   res           = btor_simplify (clone);
@@ -7372,9 +7428,9 @@ br_probe (Btor *btor)
               1,
               "  limit refinement iterations to 10 and SAT conflicts to %d",
               btor->options.pbra_sat_limit.val);
-    res = btor_sat_aux_btor (clone,
-                             btor->options.pbra_lod_limit.val,
-                             btor->options.pbra_sat_limit.val);
+    res = sat_aux_btor (clone,
+                        btor->options.pbra_lod_limit.val,
+                        btor->options.pbra_sat_limit.val);
     btor_delete_btor (clone);
   }
 
@@ -7419,9 +7475,9 @@ btor_sat_btor (Btor *btor, int lod_limit, int sat_limit)
       && btor->options.ucopt.val && btor->options.rewrite_level.val > 2
       && !btor->options.incremental.val && !btor->options.model_gen.val)
   {
-    uclone = btor_clone_btor (btor);
-    btor_set_opt (uclone, BTOR_OPT_AUTO_CLEANUP, 1);
-    btor_set_opt (uclone, BTOR_OPT_UCOPT, 0);
+    uclone                           = btor_clone_btor (btor);
+    uclone->options.auto_cleanup.val = 1;
+    uclone->options.ucopt.val        = 0;
   }
 #endif
 
@@ -7430,12 +7486,12 @@ btor_sat_btor (Btor *btor, int lod_limit, int sat_limit)
   BtorPtrHashTable *inputs = 0;
   if (btor_has_clone_support_sat_mgr (btor_get_sat_mgr_btor (btor)))
   {
-    mclone = btor_clone_btor (btor);
-    btor_set_opt (mclone, BTOR_OPT_LOGLEVEL, 0);
-    btor_set_opt (mclone, BTOR_OPT_VERBOSITY, 0);
-    btor_set_opt (mclone, BTOR_OPT_DUAL_PROP, 0);  // FIXME necessary?
-    inputs = map_inputs_check_model (btor, mclone);
-    btor_set_opt (mclone, BTOR_OPT_AUTO_CLEANUP, 1);
+    mclone                           = btor_clone_btor (btor);
+    mclone->options.loglevel.val     = 0;
+    mclone->options.verbosity.val    = 0;
+    mclone->options.dual_prop.val    = 0;
+    inputs                           = map_inputs_check_model (btor, mclone);
+    mclone->options.auto_cleanup.val = 1;
   }
 #endif
 
@@ -7444,16 +7500,16 @@ btor_sat_btor (Btor *btor, int lod_limit, int sat_limit)
   if (btor_has_clone_support_sat_mgr (btor_get_sat_mgr_btor (btor))
       && btor->options.dual_prop.val)
   {
-    dpclone = btor_clone_btor (btor);
-    btor_set_opt (dpclone, BTOR_OPT_LOGLEVEL, 0);
-    btor_set_opt (dpclone, BTOR_OPT_VERBOSITY, 0);
-    btor_set_opt (dpclone, BTOR_OPT_AUTO_CLEANUP, 1);
-    btor_set_opt (dpclone, BTOR_OPT_AUTO_CLEANUP_INTERNAL, 1);
-    btor_set_opt (dpclone, BTOR_OPT_DUAL_PROP, 0);
+    dpclone                                    = btor_clone_btor (btor);
+    dpclone->options.loglevel.val              = 0;
+    dpclone->options.verbosity.val             = 0;
+    dpclone->options.auto_cleanup.val          = 1;
+    dpclone->options.auto_cleanup_internal.val = 1;
+    dpclone->options.dual_prop.val             = 0;
   }
 #endif
 
-  res = btor_sat_aux_btor (btor, lod_limit, sat_limit);
+  res = sat_aux_btor (btor, lod_limit, sat_limit);
   btor->btor_sat_btor_called++;
 
 #ifdef BTOR_CHECK_UNCONSTRAINED
@@ -7463,7 +7519,7 @@ btor_sat_btor (Btor *btor, int lod_limit, int sat_limit)
     assert (btor->options.rewrite_level.val > 2);
     assert (!btor->options.incremental.val);
     assert (!btor->options.model_gen.val);
-    int ucres = btor_sat_aux_btor (uclone, lod_limit, sat_limit);
+    int ucres = sat_aux_btor (uclone, lod_limit, sat_limit);
     assert (res == ucres);
   }
 #endif
@@ -7504,6 +7560,17 @@ btor_sat_btor (Btor *btor, int lod_limit, int sat_limit)
   return res;
 }
 
+static int
+is_valid_argument (Btor *btor, BtorNode *exp)
+{
+  exp = BTOR_REAL_ADDR_NODE (exp);
+  if (btor_is_fun_exp (btor, exp)) return 0;
+  if (btor_is_array_exp (btor, exp)) return 0;
+  /* scope of bound parmaters already closed (cannot be used anymore) */
+  if (BTOR_IS_PARAM_NODE (exp) && BTOR_IS_BOUND_PARAM_NODE (exp)) return 0;
+  return 1;
+}
+
 int
 btor_fun_sort_check (Btor *btor, int argc, BtorNode **args, BtorNode *fun)
 {
@@ -7531,7 +7598,7 @@ btor_fun_sort_check (Btor *btor, int argc, BtorNode **args, BtorNode *fun)
       width = sort->fun.domain->bitvec.len;
     }
     /* NOTE: we do not allow functions or arrays as arguments yet */
-    if (btor_is_fun_exp (btor, args[0]) || btor_is_array_exp (btor, args[0])
+    if (!is_valid_argument (btor, args[0])
         || width != BTOR_REAL_ADDR_NODE (args[0])->len)
       pos = 0;
   }
@@ -7550,7 +7617,7 @@ btor_fun_sort_check (Btor *btor, int argc, BtorNode **args, BtorNode *fun)
         width = s->bitvec.len;
       }
       /* NOTE: we do not allow functions or arrays as arguments yet */
-      if (btor_is_fun_exp (btor, args[i]) || btor_is_array_exp (btor, args[i])
+      if (!is_valid_argument (btor, args[i])
           || width != BTOR_REAL_ADDR_NODE (args[i])->len)
       {
         pos = i;
@@ -7756,12 +7823,12 @@ btor_eval_exp (Btor *btor, BtorNode *exp)
       {
         assert (BTOR_IS_SYNTH_NODE (real_cur));
         assert (!BTOR_IS_FUN_NODE (real_cur));
-        result = btor_assignment_bv (btor, real_cur, 0);
+        result = btor_assignment_bv (btor->mm, real_cur, 0);
         goto EVAL_EXP_PUSH_RESULT;
       }
       else if (BTOR_IS_BV_CONST_NODE (real_cur))
       {
-        result = btor_char_to_bv (btor, real_cur->bits);
+        result = btor_char_to_bv (btor->mm, real_cur->bits);
         goto EVAL_EXP_PUSH_RESULT;
       }
       /* substitute param with its assignment */
@@ -7796,67 +7863,68 @@ btor_eval_exp (Btor *btor, BtorNode *exp)
       switch (real_cur->kind)
       {
         case BTOR_SLICE_NODE:
-          result = btor_slice_bv (btor, e[0], real_cur->upper, real_cur->lower);
-          btor_free_bv (btor, e[0]);
+          result =
+              btor_slice_bv (btor->mm, e[0], real_cur->upper, real_cur->lower);
+          btor_free_bv (btor->mm, e[0]);
           break;
         case BTOR_AND_NODE:
-          result = btor_and_bv (btor, e[1], e[0]);
-          btor_free_bv (btor, e[0]);
-          btor_free_bv (btor, e[1]);
+          result = btor_and_bv (btor->mm, e[1], e[0]);
+          btor_free_bv (btor->mm, e[0]);
+          btor_free_bv (btor->mm, e[1]);
           break;
         case BTOR_BEQ_NODE:
-          result = btor_eq_bv (btor, e[1], e[0]);
-          btor_free_bv (btor, e[0]);
-          btor_free_bv (btor, e[1]);
+          result = btor_eq_bv (btor->mm, e[1], e[0]);
+          btor_free_bv (btor->mm, e[0]);
+          btor_free_bv (btor->mm, e[1]);
           break;
         case BTOR_ADD_NODE:
-          result = btor_add_bv (btor, e[1], e[0]);
-          btor_free_bv (btor, e[0]);
-          btor_free_bv (btor, e[1]);
+          result = btor_add_bv (btor->mm, e[1], e[0]);
+          btor_free_bv (btor->mm, e[0]);
+          btor_free_bv (btor->mm, e[1]);
           break;
         case BTOR_MUL_NODE:
-          result = btor_mul_bv (btor, e[1], e[0]);
-          btor_free_bv (btor, e[0]);
-          btor_free_bv (btor, e[1]);
+          result = btor_mul_bv (btor->mm, e[1], e[0]);
+          btor_free_bv (btor->mm, e[0]);
+          btor_free_bv (btor->mm, e[1]);
           break;
         case BTOR_ULT_NODE:
-          result = btor_ult_bv (btor, e[1], e[0]);
-          btor_free_bv (btor, e[0]);
-          btor_free_bv (btor, e[1]);
+          result = btor_ult_bv (btor->mm, e[1], e[0]);
+          btor_free_bv (btor->mm, e[0]);
+          btor_free_bv (btor->mm, e[1]);
           break;
         case BTOR_SLL_NODE:
-          result = btor_sll_bv (btor, e[1], e[0]);
-          btor_free_bv (btor, e[0]);
-          btor_free_bv (btor, e[1]);
+          result = btor_sll_bv (btor->mm, e[1], e[0]);
+          btor_free_bv (btor->mm, e[0]);
+          btor_free_bv (btor->mm, e[1]);
           break;
         case BTOR_SRL_NODE:
-          result = btor_srl_bv (btor, e[1], e[0]);
-          btor_free_bv (btor, e[0]);
-          btor_free_bv (btor, e[1]);
+          result = btor_srl_bv (btor->mm, e[1], e[0]);
+          btor_free_bv (btor->mm, e[0]);
+          btor_free_bv (btor->mm, e[1]);
           break;
         case BTOR_UDIV_NODE:
-          result = btor_udiv_bv (btor, e[1], e[0]);
-          btor_free_bv (btor, e[0]);
-          btor_free_bv (btor, e[1]);
+          result = btor_udiv_bv (btor->mm, e[1], e[0]);
+          btor_free_bv (btor->mm, e[0]);
+          btor_free_bv (btor->mm, e[1]);
           break;
         case BTOR_UREM_NODE:
-          result = btor_urem_bv (btor, e[1], e[0]);
-          btor_free_bv (btor, e[0]);
-          btor_free_bv (btor, e[1]);
+          result = btor_urem_bv (btor->mm, e[1], e[0]);
+          btor_free_bv (btor->mm, e[0]);
+          btor_free_bv (btor->mm, e[1]);
           break;
         case BTOR_CONCAT_NODE:
-          result = btor_concat_bv (btor, e[1], e[0]);
-          btor_free_bv (btor, e[0]);
-          btor_free_bv (btor, e[1]);
+          result = btor_concat_bv (btor->mm, e[1], e[0]);
+          btor_free_bv (btor->mm, e[0]);
+          btor_free_bv (btor->mm, e[1]);
           break;
         case BTOR_BCOND_NODE:
           if (btor_is_true_bv (e[2]))
-            result = btor_copy_bv (btor, e[1]);
+            result = btor_copy_bv (btor->mm, e[1]);
           else
-            result = btor_copy_bv (btor, e[0]);
-          btor_free_bv (btor, e[0]);
-          btor_free_bv (btor, e[1]);
-          btor_free_bv (btor, e[2]);
+            result = btor_copy_bv (btor->mm, e[0]);
+          btor_free_bv (btor->mm, e[0]);
+          btor_free_bv (btor->mm, e[1]);
+          btor_free_bv (btor->mm, e[2]);
           break;
         default:
           BTORLOG ("  *** %s", node2string (real_cur));
@@ -7866,13 +7934,13 @@ btor_eval_exp (Btor *btor, BtorNode *exp)
 
       assert (!btor_find_in_ptr_hash_table (cache, real_cur));
       btor_insert_in_ptr_hash_table (cache, real_cur)->data.asPtr =
-          btor_copy_bv (btor, result);
+          btor_copy_bv (btor->mm, result);
 
     EVAL_EXP_PUSH_RESULT:
       if (BTOR_IS_INVERTED_NODE (cur))
       {
-        inv_result = btor_not_bv (btor, result);
-        btor_free_bv (btor, result);
+        inv_result = btor_not_bv (btor->mm, result);
+        btor_free_bv (btor->mm, result);
         result = inv_result;
       }
 
@@ -7883,7 +7951,7 @@ btor_eval_exp (Btor *btor, BtorNode *exp)
       assert (real_cur->eval_mark == 2);
       b = btor_find_in_ptr_hash_table (cache, real_cur);
       assert (b);
-      result = btor_copy_bv (btor, (BitVector *) b->data.asPtr);
+      result = btor_copy_bv (btor->mm, (BitVector *) b->data.asPtr);
       goto EVAL_EXP_PUSH_RESULT;
     }
   }
@@ -7901,13 +7969,13 @@ EVAL_EXP_CLEANUP_EXIT:
   while (!BTOR_EMPTY_STACK (arg_stack))
   {
     inv_result = BTOR_POP_STACK (arg_stack);
-    btor_free_bv (btor, inv_result);
+    btor_free_bv (btor->mm, inv_result);
   }
 
   init_node_hash_table_iterator (&it, cache);
   while (has_next_node_hash_table_iterator (&it))
   {
-    btor_free_bv (btor, (BitVector *) it.bucket->data.asPtr);
+    btor_free_bv (btor->mm, (BitVector *) it.bucket->data.asPtr);
     real_cur            = next_node_hash_table_iterator (&it);
     real_cur->eval_mark = 0;
   }
@@ -7921,8 +7989,8 @@ EVAL_EXP_CLEANUP_EXIT:
 
   if (result)
   {
-    res = btor_bv_to_char_bv (btor, result);
-    btor_free_bv (btor, result);
+    res = btor_bv_to_char_bv (btor->mm, result);
+    btor_free_bv (btor->mm, result);
   }
 
   return res;
@@ -8056,19 +8124,19 @@ check_model (Btor *btor, Btor *clone, BtorPtrHashTable *inputs)
   BtorHashTableIterator it;
   const BtorPtrHashTable *fmodel;
 
-  if (clone->valid_assignments) btor_reset_incremental_usage (clone);
+  if (clone->valid_assignments) reset_incremental_usage (clone);
 
   /* add assumptions as assertions */
   init_node_hash_table_iterator (&it, clone->assumptions);
   while (has_next_node_hash_table_iterator (&it))
     btor_assert_exp (clone, next_node_hash_table_iterator (&it));
-  btor_reset_assumptions (clone);
+  reset_assumptions (clone);
 
   /* rebuild formula with new rewriting level */
   rebuild_formula (clone, 3);
 
   assert (!clone->substitutions);
-  btor_init_substitutions (clone);
+  init_substitutions (clone);
 
   init_node_hash_table_iterator (&it, inputs);
   while (has_next_node_hash_table_iterator (&it))
@@ -8107,19 +8175,19 @@ check_model (Btor *btor, Btor *clone, BtorPtrHashTable *inputs)
       subst = btor_generate_lambda_model_from_fun_model (clone, cur, fmodel);
     }
     assert (!btor_find_in_ptr_hash_table (clone->substitutions, real_simp));
-    btor_insert_substitution (clone, real_simp, subst, 0);
+    insert_substitution (clone, real_simp, subst, 0);
     btor_release_exp (clone, subst);
   }
 
-  btor_reset_functions_with_model (clone);
+  reset_functions_with_model (clone);
   substitute_and_rebuild (clone, clone->substitutions, 0);
-  btor_delete_substitutions (clone);
+  delete_substitutions (clone);
   reset_varsubst_constraints (clone); /* varsubst not required */
 
-  btor_set_opt (clone, BTOR_OPT_BETA_REDUCE_ALL, 1);
-  ret = btor_simplify (clone);
+  clone->options.beta_reduce_all.val = 1;
+  ret                                = btor_simplify (clone);
 
-  assert (ret != BTOR_UNKNOWN || btor_sat_aux_btor (clone, -1, -1) == BTOR_SAT);
+  assert (ret != BTOR_UNKNOWN || sat_aux_btor (clone, -1, -1) == BTOR_SAT);
   // TODO: check if roots have been simplified through aig rewriting
   // BTOR_ABORT_CORE (ret == BTOR_UNKNOWN, "rewriting needed");
   BTOR_ABORT_CORE (ret == BTOR_UNSAT, "invalid model");
@@ -8159,7 +8227,7 @@ check_failed_assumptions (Btor *btor, Btor *clone)
                                (BtorHashPtr) btor_hash_exp_by_id,
                                (BtorCmpPtr) btor_compare_exp_by_id);
 
-  assert (btor_sat_aux_btor (clone, -1, -1) == BTOR_UNSAT);
+  assert (sat_aux_btor (clone, -1, -1) == BTOR_UNSAT);
 }
 #endif
 
@@ -8171,7 +8239,7 @@ check_dual_prop (Btor *btor, Btor *clone)
   assert (btor->options.dual_prop.val);
   assert (clone);
 
-  btor_sat_aux_btor (clone, -1, -1);
+  sat_aux_btor (clone, -1, -1);
   assert (btor->last_sat_result == clone->last_sat_result);
 }
 #endif
