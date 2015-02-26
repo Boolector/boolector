@@ -7199,7 +7199,8 @@ sat_aux_btor (Btor *btor, int lod_limit, int sat_limit)
 
   while (sat_result == BTOR_SAT)
   {
-    if (btor_terminate_btor (btor))
+    if (btor_terminate_btor (btor)
+        || (lod_limit > -1 && btor->stats.lod_refinements >= lod_limit))
     {
       sat_result = BTOR_UNKNOWN;
       goto DONE;
@@ -7245,12 +7246,6 @@ sat_aux_btor (Btor *btor, int lod_limit, int sat_limit)
     assert (check_reachable_flag_dbg (btor));
     add_again_assumptions (btor);
     sat_result = timed_sat_sat (btor, -1);
-
-    if (lod_limit > -1 && btor->stats.lod_refinements >= lod_limit)
-    {
-      sat_result = BTOR_UNKNOWN;
-      break;
-    }
   }
 
   assert (sat_result != BTOR_SAT || BTOR_EMPTY_STACK (prop_stack));
