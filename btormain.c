@@ -1511,14 +1511,17 @@ boolector_main (int argc, char **argv)
     goto DONE;
   }
 
-  if (parse_result != BOOLECTOR_SAT && parse_result != BOOLECTOR_UNSAT)
+  if (parse_result != BOOLECTOR_SAT && parse_result != BOOLECTOR_UNSAT
+      && !boolector_terminate (static_app->btor))
   {
     sat_res = boolector_sat (static_app->btor);
     print_sat_result (static_app, sat_res);
   }
   else
     sat_res = parse_result;
-  assert (sat_res != BOOLECTOR_UNKNOWN);
+
+  assert (boolector_terminate (static_app->btor)
+          || sat_res != BOOLECTOR_UNKNOWN);
 
   /* check if status is equal to benchmark status */
   if (sat_res == BOOLECTOR_SAT && parse_status == BOOLECTOR_UNSAT)
