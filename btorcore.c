@@ -844,23 +844,8 @@ btor_new_btor_no_init (void)
   return new_aux_btor (0);
 }
 
-void
-btor_set_term_btor (Btor *btor, int (*fun) (void *), void *state)
-{
-  assert (btor);
-
-  BtorSATMgr *smgr;
-
-  btor->cbs.term.fun   = fun;
-  btor->cbs.term.state = state;
-
-  smgr = btor_get_sat_mgr_btor (btor);
-  if (btor_has_term_support_sat_mgr (smgr))
-    btor_set_term_sat_mgr (smgr, btor_terminate_btor, btor);
-}
-
-int
-btor_terminate_btor (void *btor)
+static int
+terminate_aux_btor (void *btor)
 {
   assert (btor);
 
@@ -870,9 +855,34 @@ btor_terminate_btor (void *btor)
   bt = (Btor *) btor;
   if (!bt->cbs.term.fun) return 0;
   if (bt->cbs.term.done) return 1;
-  res = bt->cbs.term.fun (bt->cbs.term.state);
+  res = ((int (*) (void *)) bt->cbs.term.fun) (bt->cbs.term.state);
   if (res) bt->cbs.term.done = res;
   return res;
+}
+
+int
+btor_terminate_btor (Btor *btor)
+{
+  assert (btor);
+
+  if (btor->cbs.term.termfun) return btor->cbs.term.termfun (btor);
+  return 0;
+}
+
+void
+btor_set_term_btor (Btor *btor, int (*fun) (void *), void *state)
+{
+  assert (btor);
+
+  BtorSATMgr *smgr;
+
+  btor->cbs.term.termfun = terminate_aux_btor;
+  btor->cbs.term.fun     = fun;
+  btor->cbs.term.state   = state;
+
+  smgr = btor_get_sat_mgr_btor (btor);
+  if (btor_has_term_support_sat_mgr (smgr))
+    btor_set_term_sat_mgr (smgr, terminate_aux_btor, btor);
 }
 
 static void

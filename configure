@@ -130,6 +130,12 @@ fi
 
 #--------------------------------------------------------------------------#
 
+SRCDIRS=". parser dumper"
+if [ $python = yes ]
+then
+  SRCDIRS="$SRCDIRS api/python"
+fi
+
 TARGETS="boolector"
 [ $shared = yes ] && TARGETS="$TARGETS libboolector.so"
 
@@ -447,7 +453,10 @@ then
     py_libraries="$py_libraries minisat"
     py_library_dirs="$py_library_dirs ../minisat/build/dynamic/lib"
   fi
-
+  OBJS="api/python/boolector_py.o $OBJS" 
+  pyver=`python -c 'import sys; print(".".join(str(i) for i in sys.version_info[:2]))'`
+  INCS="${INCS} -I/usr/include/python$pyver"
+  LIBS="${LIBS} -lpython$pyver"
   cat > setup.py <<EOF
 import os
 from distutils.core import setup
@@ -471,13 +480,15 @@ cat > python.mk <<EOF
 
 all: python
 
-python: setup.py
+python: boolector_py setup.py
 	python setup.py build_ext -i
 	@echo "Compiled Boolector python module. Please read api/python/README on how to use the module"
 
+boolector_py: api/python/boolector_py.h api/python/boolector_py.c
+
 python-clean:
 	rm -rf build
-	rm -f api/python/*.c boolector.cpython*.so
+	rm -f api/python/boolector.c boolector.cpython*.so
 
 python-clean-mk:
 	rm -f python.mk setup.py
@@ -510,5 +521,6 @@ sed \
   -e "s,@LDEPS@,$LDEPS," \
   -e "s,@OBJS@,$OBJS," \
   -e "s,@TARGETS@,$TARGETS," \
+  -e "s,@SRCDIRS@,$SRCDIRS," \
   makefile.in > makefile
 msg "makefile generated"

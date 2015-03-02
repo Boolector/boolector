@@ -78,8 +78,12 @@ struct BtorCallbacks
 {
   struct
   {
-    int (*fun) (void *);
-    void *state;
+    /* the function to use for (checking) termination
+     * (we need to distinguish between callbacks from C and Python) */
+    int (*termfun) (void *);
+
+    void *fun;   /* termination callback function */
+    void *state; /* termination callback function arguments */
     int done;
   } term;
 };
@@ -272,7 +276,7 @@ const char *btor_version (Btor *btor);
 void btor_set_term_btor (Btor *btor, int (*fun) (void *), void *state);
 
 /* Determine if boolector has been terminated via termination callback. */
-int btor_terminate_btor (void *btor);
+int btor_terminate_btor (Btor *btor);
 
 /* Set verbosity message prefix. */
 void btor_set_msg_prefix_btor (Btor *btor, const char *prefix);

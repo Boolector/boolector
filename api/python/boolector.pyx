@@ -1,7 +1,7 @@
 # Boolector: Satisfiablity Modulo Theories (SMT) solver.
 #
 # Copyright (C) 2013-2014 Mathias Preiner.
-# Copyright (C) 2014 Aina Niemetz.
+# Copyright (C) 2014-2015 Aina Niemetz.
 #
 # All rights reserved.
 #
@@ -13,6 +13,7 @@ cimport btorapi
 from libc.stdlib cimport malloc, free
 from libc.stdio cimport stdout, FILE, fopen, fclose
 from cpython cimport bool
+from cpython.ref cimport PyObject
 import math, os, sys
 
 g_tunable_options = {"rewrite_level", "rewrite_level_pbr",
@@ -583,7 +584,58 @@ cdef class Boolector:
 
     def __dealloc__(self):
         if self._c_btor is not NULL:
-            btorapi.boolector_delete(self._c_btor)
+            btorapi.boolector_py_delete(self._c_btor)
+
+    # termination callback 
+    
+    def Set_term(self, fun, args):
+        """ Set_term(fun, args)
+
+            Set a termination callback function. 
+            
+            Use this function to force Boolector to prematurely terminate if
+            callback function ``fun`` returns True. Arguments ``args`` to 
+            ``fun`` may be passed as a single Python object (in case that 
+            ``fun`` takes only one argument), a tuple, or a list of arguments.
+
+            E.g., ::
+
+              import time
+              
+              def fun1 (arg): 
+                  if time.time() - arg > 1: return True
+                  return False
+
+              def fun2 (arg0, arg1):
+                  # do something and return either True or False
+
+              btor = Boolector()
+
+              btor.Set_term(fun1, time.time())
+              btor.Set_term(fun1, (time.time(),))
+              btor.Set_term(fun1, [time.time()])
+              
+              btor.Set_term(fun2, (arg0, arg1))
+              btor.Set_term(run2, [arg0, arg1])
+
+            :param fun: A python function.
+            :type args: A function argument or a list or tuple of function arguments.
+        """
+        cdef PyObject* funptr = <PyObject*>fun
+        cdef PyObject* argsptr = <PyObject*>args
+        btorapi.boolector_py_set_term(self._c_btor, funptr, argsptr)
+
+    def Terminate(self):
+        """ Terminate()
+
+            Determine if Boolector has been terminated via the previously
+            configured termination callback function.
+
+            See :func:`~boolector.Boolector.Set_term`.
+        """
+        cdef int res
+        res = btorapi.boolector_terminate(self._c_btor)
+        return res > 0
 
     # Boolector API functions (general)
 
