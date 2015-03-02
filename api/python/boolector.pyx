@@ -603,11 +603,12 @@ cdef class Boolector:
               import time
               
               def fun1 (arg): 
-                  if time.time() - arg > 1: return True
-                  return False
+                  # timeout after 1 sec.
+                  return time.time() - arg > 1.0
 
               def fun2 (arg0, arg1):
-                  # do something and return either True or False
+                  # do something and return True/False
+                  ...
 
               btor = Boolector()
 
@@ -619,7 +620,7 @@ cdef class Boolector:
               btor.Set_term(run2, [arg0, arg1])
 
             :param fun: A python function.
-            :type args: A function argument or a list or tuple of function arguments.
+            :param args: A function argument or a list or tuple of function arguments.
         """
         cdef PyObject* funptr = <PyObject*>fun
         cdef PyObject* argsptr = <PyObject*>args
@@ -628,10 +629,14 @@ cdef class Boolector:
     def Terminate(self):
         """ Terminate()
 
-            Determine if Boolector has been terminated via the previously
-            configured termination callback function.
+            Determine if Boolector has been terminated (and/or terminate 
+            Boolector) via the previously configured termination callback
+            function.
 
             See :func:`~boolector.Boolector.Set_term`.
+            
+            :return True if termination condition is fullfilled, else False.
+            :rtype: bool
         """
         cdef int res
         res = btorapi.boolector_terminate(self._c_btor)
