@@ -36,7 +36,7 @@ doc
 btorimc
 btormbt
 .vimrc
-api/python/*.c
+api/python/boolector.c
 api/python/*.so
 python.mk
 setup.py
