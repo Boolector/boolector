@@ -252,14 +252,12 @@ insert_substitution (Btor *btor, BtorNode *exp, BtorNode *subst, int update)
     /* release key of current bucket */
     btor_release_exp (btor, exp);
   }
-#ifndef NDEBUG
-  else
+  else if (b)
   {
     assert (!b || (BtorNode *) b->data.asPtr == subst);
     /* substitution already inserted */
     return;
   }
-#endif
 
   simp = find_substitution (btor, subst);
 
