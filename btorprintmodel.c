@@ -424,7 +424,8 @@ btor_print_model (Btor *btor, char *format, FILE *file)
 
   base = btor->options.output_number_format.val;
 
-  if (!strcmp (format, "smt2")) fprintf (file, "(model\n");
+  if (!strcmp (format, "smt2"))
+    fprintf (file, "(model%s", btor->inputs->count ? "\n" : " ");
 
   init_node_hash_table_iterator (&it, btor->inputs);
   while (has_next_node_hash_table_iterator (&it))
