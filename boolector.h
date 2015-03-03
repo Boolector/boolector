@@ -117,22 +117,27 @@ Btor *boolector_clone (Btor *btor);
 void boolector_delete (Btor *btor);
 
 /*!
- * Set a termination callback.
- *
- * :param btor:  Boolector instance.
- * :param fun:   The termination callback function.
- * :param state: The argument to the termination callback function.
+   Set a termination callback.
+
+   :param btor:  Boolector instance.
+   :param fun:   The termination callback function.
+   :param state: The argument to the termination callback function.
+
+  .. seealso::
+    boolector_terminate
  */
 void boolector_set_term (Btor *btor, int (*fun) (void *), void *state);
 
 /*!
- * Determine if a given Boolector instance has been terminated via the
- * previously configured termination callback function.
- *
- * :param btor: Boolector instance.
- *
- * .. seealso::
- *   boolector_set_term
+  Determine if a given Boolector instance has been terminated (and or
+  terminate Boolector) via the previously configured termination callback
+  function.
+
+  :param btor: Boolector instance.
+  :return: True if Boolector is terminated, and false otherwise.
+
+  .. seealso::
+    boolector_set_term
  */
 int boolector_terminate (Btor *btor);
 
