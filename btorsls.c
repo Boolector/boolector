@@ -728,6 +728,7 @@ update_cone (Btor *btor,
   assert (roots);
   assert (exp);
   assert (assignment);
+  assert (BTOR_REAL_ADDR_NODE (exp)->len == assignment->width);
   assert (score_sls);
 
   reset_cone (btor, exp, *bv_model, score_sls);
@@ -778,6 +779,7 @@ move (Btor *btor, BtorPtrHashTable *roots, BtorNodePtrStack *candidates)
     for (j = 0; j < ass->width; j++)
     {
       neighbor = btor->options.sls_move_inc_move_test.val && max_neighbor
+                         && max_neighbor->width == ass->width
                      ? btor_copy_bv (btor->mm, max_neighbor)
                      : btor_copy_bv (btor->mm, ass);
       btor_flip_bit_bv (neighbor, j);
@@ -828,6 +830,7 @@ move (Btor *btor, BtorPtrHashTable *roots, BtorNodePtrStack *candidates)
 
     /* increment */
     neighbor = btor->options.sls_move_inc_move_test.val && max_neighbor
+                       && max_neighbor->width == ass->width
                    ? btor_copy_bv (btor->mm, max_neighbor)
                    : btor_copy_bv (btor->mm, ass);
 #ifndef NBTORLOG
@@ -875,6 +878,7 @@ move (Btor *btor, BtorPtrHashTable *roots, BtorNodePtrStack *candidates)
 
     /* decrement */
     neighbor = btor->options.sls_move_inc_move_test.val && max_neighbor
+                       && max_neighbor->width == ass->width
                    ? btor_copy_bv (btor->mm, max_neighbor)
                    : btor_copy_bv (btor->mm, ass);
 #ifndef NBTORLOG
@@ -922,6 +926,7 @@ move (Btor *btor, BtorPtrHashTable *roots, BtorNodePtrStack *candidates)
 
     /* not */
     neighbor = btor->options.sls_move_inc_move_test.val && max_neighbor
+                       && max_neighbor->width == ass->width
                    ? btor_copy_bv (btor->mm, max_neighbor)
                    : btor_copy_bv (btor->mm, ass);
 #ifndef NBTORLOG
