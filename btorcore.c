@@ -254,7 +254,7 @@ insert_substitution (Btor *btor, BtorNode *exp, BtorNode *subst, int update)
   }
   else if (b)
   {
-    assert (!b || (BtorNode *) b->data.asPtr == subst);
+    assert ((BtorNode *) b->data.asPtr == subst);
     /* substitution already inserted */
     return;
   }
@@ -2366,15 +2366,7 @@ btor_simplify_exp (Btor *btor, BtorNode *exp)
 
   BtorNode *result;
 
-  if (btor->substitutions && (result = find_substitution (btor, exp)))
-  {
-    assert (result);
-    result = btor_pointer_chase_simplified_exp (btor, result);
-    assert (!find_substitution (btor, BTOR_REAL_ADDR_NODE (result)));
-    assert (!BTOR_REAL_ADDR_NODE (result)->simplified);
-  }
-  else
-    result = btor_pointer_chase_simplified_exp (btor, exp);
+  result = btor_pointer_chase_simplified_exp (btor, exp);
 
   /* NOTE: embedded constraints rewriting is enabled with rwl > 1 */
   if (btor->options.simplify_constraints.val
