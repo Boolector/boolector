@@ -156,17 +156,25 @@ def err_extract_opts(line):
 # column_name : <colname>, <keyword>, <filter>, [<is_dir_stat>] (optional)
 FILTER_ERR = {
   'status':    ['STAT', 
-                lambda x: b'status:' in x, err_extract_status, False],
+                lambda x: b'[runlim] status:' in x, err_extract_status, False],
   'result':    ['RES', 
-                lambda x: b'result:' in x, lambda x: int(x.split()[2]), False],
+                lambda x: b'[runlim] result:' in x,
+                lambda x: int(x.split()[2]),
+                False],
   'time_real': ['REAL[s]', 
-                lambda x: b'real:' in x, lambda x: float(x.split()[2]), False],
+                lambda x: b'[runlim] real:' in x,
+                lambda x: float(x.split()[2]),
+                False],
   'time_time': ['TIME[s]', 
-                lambda x: b'time:' in x, lambda x: float(x.split()[2]), False],
+                lambda x: b'[runlim] time:' in x,
+                lambda x: float(x.split()[2]),
+                False],
   'space':     ['SPACE[MB]', 
-                lambda x: b'space:' in x, lambda x: float(x.split()[2]), False],
+                lambda x: b'[runlim] space:' in x,
+                lambda x: float(x.split()[2]),
+                False],
   'opts':      ['OPTIONS', 
-                lambda x: b'argv' in x, err_extract_opts, True] 
+                lambda x: b'[runlim] argv' in x, err_extract_opts, True] 
 }
 
 
