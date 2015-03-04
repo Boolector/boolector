@@ -782,7 +782,7 @@ move (Btor *btor, BtorPtrHashTable *roots, BtorNodePtrStack *candidates)
     {
       btor->stats.sls_flips += 1;
       neighbor = btor->options.sls_move_inc_move_test.val && max_neighbor
-                         && max_neighbor->width == ass->width
+                         && max_can == can
                      ? btor_copy_bv (btor->mm, max_neighbor)
                      : btor_copy_bv (btor->mm, ass);
       btor_flip_bit_bv (neighbor, j);
@@ -841,7 +841,7 @@ move (Btor *btor, BtorPtrHashTable *roots, BtorNodePtrStack *candidates)
     /* increment */
     btor->stats.sls_flips += 1;
     neighbor = btor->options.sls_move_inc_move_test.val && max_neighbor
-                       && max_neighbor->width == ass->width
+                       && max_can == can
                    ? btor_copy_bv (btor->mm, max_neighbor)
                    : btor_copy_bv (btor->mm, ass);
 #ifndef NBTORLOG
@@ -892,7 +892,7 @@ move (Btor *btor, BtorPtrHashTable *roots, BtorNodePtrStack *candidates)
     /* decrement */
     btor->stats.sls_flips += 1;
     neighbor = btor->options.sls_move_inc_move_test.val && max_neighbor
-                       && max_neighbor->width == ass->width
+                       && max_can == can
                    ? btor_copy_bv (btor->mm, max_neighbor)
                    : btor_copy_bv (btor->mm, ass);
 #ifndef NBTORLOG
@@ -943,7 +943,7 @@ move (Btor *btor, BtorPtrHashTable *roots, BtorNodePtrStack *candidates)
     /* not */
     btor->stats.sls_flips += 1;
     neighbor = btor->options.sls_move_inc_move_test.val && max_neighbor
-                       && max_neighbor->width == ass->width
+                       && max_can == can
                    ? btor_copy_bv (btor->mm, max_neighbor)
                    : btor_copy_bv (btor->mm, ass);
 #ifndef NBTORLOG
