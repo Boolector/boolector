@@ -734,6 +734,62 @@ update_cone (Btor *btor,
   compute_sls_scores_aux (btor, bv_model, fun_model, roots, score_sls);
 }
 
+static double
+try_move (Btor *btor,
+          BtorPtrHashTable *roots,
+          BtorPtrHashTable **bv_model,
+          BtorPtrHashTable *score_sls,
+          BtorNodePtrStack *candidates,
+          BitVectorPtrStack *neighbors)
+{
+  assert (btor);
+  assert (bv_model);
+  assert (score_sls);
+  assert (candidates);
+  assert (neighbors);
+  assert (BTOR_COUNT_STACK (*candidates));
+  assert (BTOR_COUNT_STACK (*candidates) == BTOR_COUNT_STACK (*neighbors));
+
+  btor->stats.sls_flips += 1;
+
+#ifndef NBTORLOG
+  int i;
+  char *a;
+  BtorNode *can;
+  BitVector *prev_ass, *new_ass;
+
+  BTORLOG ("");
+  BTORLOG ("  * try move:");
+  for (i = 0; i < BTOR_COUNT_STACK (*candidates); i++)
+  {
+    can      = BTOR_PEEK_STACK (*candidates, i);
+    prev_ass = (BitVector *) btor_get_bv_model (btor, can);
+    new_ass  = BTOR_PEEK_STACK (*neighbors, i);
+    BTORLOG ("      candidate: %s%s",
+             BTOR_IS_REGULAR_NODE (can) ? "" : "-",
+             node2string (can));
+    a = btor_bv_to_char_bv (btor->mm, prev_ass);
+    BTORLOG ("        prev. assignment: %s", a);
+    btor_freestr (btor->mm, a);
+    a = btor_bv_to_char_bv (btor->mm, new_ass);
+    BTORLOG ("        new   assignment: %s", a);
+    btor_freestr (btor->mm, a);
+    btor_free_bv (btor->mm, prev_ass);
+  }
+#endif
+
+  /* we currently support QF_BV only, hence no funs */
+  update_cone (btor,
+               bv_model,
+               &btor->fun_model,
+               roots,
+               candidates,
+               neighbors,
+               score_sls);
+
+  return compute_sls_score_formula (roots, score_sls);
+}
+
 static void
 move (Btor *btor, BtorPtrHashTable *roots, BtorNodePtrStack *candidates)
 {
@@ -753,6 +809,8 @@ move (Btor *btor, BtorPtrHashTable *roots, BtorNodePtrStack *candidates)
 #ifndef NBTORLOG
   char *a;
 #endif
+
+  BTORLOG ("*** move");
 
   btor->stats.sls_moves += 1;
 
@@ -780,37 +838,18 @@ move (Btor *btor, BtorPtrHashTable *roots, BtorNodePtrStack *candidates)
     /* flip bits */
     for (j = 0; j < ass->width; j++)
     {
-      btor->stats.sls_flips += 1;
       neighbor = btor->options.sls_move_inc_move_test.val && max_neighbor
                          && max_can == can
                      ? btor_copy_bv (btor->mm, max_neighbor)
                      : btor_copy_bv (btor->mm, ass);
       btor_flip_bit_bv (neighbor, j);
-#ifndef NBTORLOG
-      BTORLOG ("");
-      BTORLOG (" try: flip %d", j);
-      BTORLOG ("  candidate: %s%s",
-               BTOR_IS_REGULAR_NODE (max_can) ? "" : "-",
-               node2string (can));
-      a = btor_bv_to_char_bv (btor->mm, ass);
-      BTORLOG ("  prev. assignment: %s", a);
-      btor_freestr (btor->mm, a);
-      a = btor_bv_to_char_bv (btor->mm, neighbor);
-      BTORLOG ("  new   assignment: %s", a);
-      btor_freestr (btor->mm, a);
-#endif
+
       BTOR_PUSH_STACK (btor->mm, cans, can);
       BTOR_PUSH_STACK (btor->mm, neighbors, neighbor);
-      /* we currently support QF_BV only, hence no funs */
-      update_cone (btor,
-                   &bv_model,
-                   &btor->fun_model,
-                   roots,
-                   &cans,
-                   &neighbors,
-                   score_sls);
 
-      if ((sc = compute_sls_score_formula (roots, score_sls)) == -1.0)
+      sc = try_move (btor, roots, &bv_model, score_sls, &cans, &neighbors);
+
+      if (sc == -1.0)
       {
         if (max_neighbor) btor_free_bv (btor->mm, max_neighbor);
         btor_delete_bv_model (btor, &bv_model);
@@ -839,30 +878,17 @@ move (Btor *btor, BtorPtrHashTable *roots, BtorNodePtrStack *candidates)
     }
 
     /* increment */
-    btor->stats.sls_flips += 1;
     neighbor = btor->options.sls_move_inc_move_test.val && max_neighbor
                        && max_can == can
                    ? btor_copy_bv (btor->mm, max_neighbor)
                    : btor_copy_bv (btor->mm, ass);
-#ifndef NBTORLOG
-    BTORLOG ("");
-    BTORLOG (" try: increment");
-    BTORLOG ("  candidate: %s%s",
-             BTOR_IS_REGULAR_NODE (max_can) ? "" : "-",
-             node2string (can));
-    a = btor_bv_to_char_bv (btor->mm, ass);
-    BTORLOG ("  prev. assignment: %s", a);
-    btor_freestr (btor->mm, a);
-    a = btor_bv_to_char_bv (btor->mm, neighbor);
-    BTORLOG ("  new   assignment: %s", a);
-    btor_freestr (btor->mm, a);
-#endif
+
     BTOR_PUSH_STACK (btor->mm, cans, can);
     BTOR_PUSH_STACK (btor->mm, neighbors, neighbor);
-    update_cone (
-        btor, &bv_model, &btor->fun_model, roots, &cans, &neighbors, score_sls);
 
-    if ((sc = compute_sls_score_formula (roots, score_sls)) == -1.0)
+    sc = try_move (btor, roots, &bv_model, score_sls, &cans, &neighbors);
+
+    if (sc == -1.0)
     {
       if (max_neighbor) btor_free_bv (btor->mm, max_neighbor);
       btor_delete_bv_model (btor, &bv_model);
@@ -890,30 +916,16 @@ move (Btor *btor, BtorPtrHashTable *roots, BtorNodePtrStack *candidates)
       btor_free_bv (btor->mm, neighbor);
 
     /* decrement */
-    btor->stats.sls_flips += 1;
     neighbor = btor->options.sls_move_inc_move_test.val && max_neighbor
                        && max_can == can
                    ? btor_copy_bv (btor->mm, max_neighbor)
                    : btor_copy_bv (btor->mm, ass);
-#ifndef NBTORLOG
-    BTORLOG ("");
-    BTORLOG (" try: decrement");
-    BTORLOG ("  candidate: %s%s",
-             BTOR_IS_REGULAR_NODE (max_can) ? "" : "-",
-             node2string (can));
-    a = btor_bv_to_char_bv (btor->mm, ass);
-    BTORLOG ("  prev. assignment: %s", a);
-    btor_freestr (btor->mm, a);
-    a = btor_bv_to_char_bv (btor->mm, neighbor);
-    BTORLOG ("  new   assignment: %s", a);
-    btor_freestr (btor->mm, a);
-#endif
     BTOR_PUSH_STACK (btor->mm, cans, can);
     BTOR_PUSH_STACK (btor->mm, neighbors, neighbor);
-    update_cone (
-        btor, &bv_model, &btor->fun_model, roots, &cans, &neighbors, score_sls);
 
-    if ((sc = compute_sls_score_formula (roots, score_sls)) == -1.0)
+    sc = try_move (btor, roots, &bv_model, score_sls, &cans, &neighbors);
+
+    if (sc == -1.0)
     {
       if (max_neighbor) btor_free_bv (btor->mm, max_neighbor);
       btor_delete_bv_model (btor, &bv_model);
@@ -941,30 +953,16 @@ move (Btor *btor, BtorPtrHashTable *roots, BtorNodePtrStack *candidates)
       btor_free_bv (btor->mm, neighbor);
 
     /* not */
-    btor->stats.sls_flips += 1;
     neighbor = btor->options.sls_move_inc_move_test.val && max_neighbor
                        && max_can == can
                    ? btor_copy_bv (btor->mm, max_neighbor)
                    : btor_copy_bv (btor->mm, ass);
-#ifndef NBTORLOG
-    BTORLOG ("");
-    BTORLOG (" try: not");
-    BTORLOG ("  candidate: %s%s",
-             BTOR_IS_REGULAR_NODE (max_can) ? "" : "-",
-             node2string (can));
-    a = btor_bv_to_char_bv (btor->mm, ass);
-    BTORLOG ("  prev. assignment: %s", a);
-    btor_freestr (btor->mm, a);
-    a = btor_bv_to_char_bv (btor->mm, neighbor);
-    BTORLOG ("  new   assignment: %s", a);
-    btor_freestr (btor->mm, a);
-#endif
     BTOR_PUSH_STACK (btor->mm, cans, can);
     BTOR_PUSH_STACK (btor->mm, neighbors, neighbor);
-    update_cone (
-        btor, &bv_model, &btor->fun_model, roots, &cans, &neighbors, score_sls);
 
-    if ((sc = compute_sls_score_formula (roots, score_sls)) == -1.0)
+    sc = try_move (btor, roots, &bv_model, score_sls, &cans, &neighbors);
+
+    if (sc == -1.0)
     {
       if (max_neighbor) btor_free_bv (btor->mm, max_neighbor);
       btor_delete_bv_model (btor, &bv_model);
@@ -1054,7 +1052,6 @@ move (Btor *btor, BtorPtrHashTable *roots, BtorNodePtrStack *candidates)
   }
 
 MOVE:
-  /** move **/
 #ifndef NBTORLOG
   BTORLOG ("");
   BTORLOG ("*** move");
@@ -1141,23 +1138,23 @@ btor_sat_aux_btor_sls (Btor *btor)
   roots = 0;
   moves = 0;
 
-  //#ifndef NDEBUG
-  //  Btor *clone = btor_clone_exp_layer (btor, 0, 0);
-  //  clone->options.sls.val = 0;
-  //  clone->options.auto_cleanup.val = 1;
-  //  clone->options.auto_cleanup_internal.val = 1;
-  //  clone->options.loglevel.val = 0;
-  //  clone->options.verbosity.val = 0;
-  //  clone->options.model_gen.val = 1;
-  //  int csat_result = btor_sat_btor (clone, -1, -1);
-  //  btor_delete_btor (clone);
-  //  if (csat_result == BTOR_UNSAT) goto UNSAT;
-  //  if (btor->lambdas->count || btor->ufs->count)
-  //    {
-  //      sat_result = csat_result;
-  //      goto DONE;
-  //    }
-  //#endif
+#ifndef NDEBUG
+  Btor *clone                              = btor_clone_exp_layer (btor, 0, 0);
+  clone->options.sls.val                   = 0;
+  clone->options.auto_cleanup.val          = 1;
+  clone->options.auto_cleanup_internal.val = 1;
+  clone->options.loglevel.val              = 0;
+  clone->options.verbosity.val             = 0;
+  clone->options.model_gen.val             = 1;
+  int csat_result                          = btor_sat_btor (clone, -1, -1);
+  btor_delete_btor (clone);
+  if (csat_result == BTOR_UNSAT) goto UNSAT;
+  if (btor->lambdas->count || btor->ufs->count)
+  {
+    sat_result = csat_result;
+    goto DONE;
+  }
+#endif
   BTOR_ABORT_BOOLECTOR (btor->lambdas->count != 0 || btor->ufs->count != 0,
                         "sls engine supports QF_BV only");
 
