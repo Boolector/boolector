@@ -1325,23 +1325,6 @@ boolector_main (int argc, char **argv)
     boolector_set_sat_solver_minisat (static_app->btor);
   }
 #endif
-  if (!forced_sat_solver)
-  {
-#if defined(BTOR_USE_LINGELING)
-    if (!boolector_set_sat_solver_lingeling (
-            static_app->btor,
-            lingeling_opts,
-            static_app->opts.lingeling_nofork.val))
-      btormain_error (
-          static_app, "invalid options to Lingeling: '%s'", lingeling_opts);
-#elif defined(BTOR_USE_PICOSAT)
-    boolector_set_sat_solver_picosat (static_app->btor);
-#elif defined(BTOR_USE_MINISAT)
-    boolector_set_sat_solver_minisat (static_app->btor);
-#else
-#error "no SAT solver configured"
-#endif
-  }
 
   if (static_verbosity)
   {
