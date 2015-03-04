@@ -1,7 +1,7 @@
 /*  Boolector: Satisfiablity Modulo Theories (SMT) solver.
  *
  *  Copyright (C) 2013 Christian Reisenberger.
- *  Copyright (C) 2013-2014 Aina Niemetz.
+ *  Copyright (C) 2013-2015 Aina Niemetz.
  *  Copyright (C) 2013-2014 Mathias Preiner.
  *  Copyright (C) 2013-2014 Armin Biere.
  *
@@ -2609,12 +2609,15 @@ _sat (BtorMBT *btormbt, unsigned r)
   else
     BTORMBT_LOG (1, "sat call returned %d", res);
 
-  while (res == BOOLECTOR_UNSAT && btormbt->assumptions.n)
+  if (res == BOOLECTOR_UNSAT && !boolector_get_opt_val (btormbt->btor, "sls"))
   {
-    ass = es_pop (&btormbt->assumptions);
-    assert (ass);
-    failed = boolector_failed (btormbt->btor, ass);
-    BTORMBT_LOG (1, "assumption %p failed: %d", ass, failed);
+    while (btormbt->assumptions.n)
+    {
+      ass = es_pop (&btormbt->assumptions);
+      assert (ass);
+      failed = boolector_failed (btormbt->btor, ass);
+      BTORMBT_LOG (1, "assumption %p failed: %d", ass, failed);
+    }
   }
   es_reset (&btormbt->assumptions);
 
