@@ -472,23 +472,20 @@ is_bit_mask (BtorNode *exp, int *upper, int *lower)
 
 /* -------------------------------------------------------------------------- */
 
-static inline BtorNode *rewrite_slice_exp (Btor *, BtorNode *, int, int);
-static inline BtorNode *rewrite_eq_exp (Btor *, BtorNode *, BtorNode *);
-static inline BtorNode *rewrite_ult_exp (Btor *, BtorNode *, BtorNode *);
-static inline BtorNode *rewrite_and_exp (Btor *, BtorNode *, BtorNode *);
-static inline BtorNode *rewrite_add_exp (Btor *, BtorNode *, BtorNode *);
-static inline BtorNode *rewrite_mul_exp (Btor *, BtorNode *, BtorNode *);
-static inline BtorNode *rewrite_udiv_exp (Btor *, BtorNode *, BtorNode *);
-static inline BtorNode *rewrite_urem_exp (Btor *, BtorNode *, BtorNode *);
-static inline BtorNode *rewrite_concat_exp (Btor *, BtorNode *, BtorNode *);
-static inline BtorNode *rewrite_sll_exp (Btor *, BtorNode *, BtorNode *);
-static inline BtorNode *rewrite_srl_exp (Btor *, BtorNode *, BtorNode *);
-static inline BtorNode *rewrite_apply_exp (Btor *, BtorNode *, BtorNode *);
-static inline BtorNode *rewrite_lambda_exp (Btor *, BtorNode *, BtorNode *);
-static inline BtorNode *rewrite_cond_exp (Btor *,
-                                          BtorNode *,
-                                          BtorNode *,
-                                          BtorNode *);
+static BtorNode *rewrite_slice_exp (Btor *, BtorNode *, int, int);
+static BtorNode *rewrite_eq_exp (Btor *, BtorNode *, BtorNode *);
+static BtorNode *rewrite_ult_exp (Btor *, BtorNode *, BtorNode *);
+static BtorNode *rewrite_and_exp (Btor *, BtorNode *, BtorNode *);
+static BtorNode *rewrite_add_exp (Btor *, BtorNode *, BtorNode *);
+static BtorNode *rewrite_mul_exp (Btor *, BtorNode *, BtorNode *);
+static BtorNode *rewrite_udiv_exp (Btor *, BtorNode *, BtorNode *);
+static BtorNode *rewrite_urem_exp (Btor *, BtorNode *, BtorNode *);
+static BtorNode *rewrite_concat_exp (Btor *, BtorNode *, BtorNode *);
+static BtorNode *rewrite_sll_exp (Btor *, BtorNode *, BtorNode *);
+static BtorNode *rewrite_srl_exp (Btor *, BtorNode *, BtorNode *);
+static BtorNode *rewrite_apply_exp (Btor *, BtorNode *, BtorNode *);
+static BtorNode *rewrite_lambda_exp (Btor *, BtorNode *, BtorNode *);
+static BtorNode *rewrite_cond_exp (Btor *, BtorNode *, BtorNode *, BtorNode *);
 
 /* -------------------------------------------------------------------------- */
 /* const term rewriting */
@@ -4959,7 +4956,7 @@ apply_cond (Btor * btor, BtorNode * e0, BtorNode * e1, BtorNode * e2)
 /* -------------------------------------------------------------------------- */
 /* normalizers */
 
-static inline void
+static void
 normalize_bin_comm_ass_exp (Btor *btor,
                             BtorNode *e0,
                             BtorNode *e1,
@@ -5217,7 +5214,7 @@ normalize_bin_comm_ass_exp (Btor *btor,
 }
 
 // TODO (ma): what does this do?
-static inline BtorNode *
+static BtorNode *
 find_top_add (Btor *btor, BtorNode *e)
 {
   BtorNode *res;
@@ -5238,7 +5235,7 @@ find_top_add (Btor *btor, BtorNode *e)
 }
 
 // TODO (ma): what does this do?
-static inline BtorNode *
+static BtorNode *
 rebuild_top_add (Btor *btor, BtorNode *e, BtorNode *c, BtorNode *r)
 {
   assert (!BTOR_IS_INVERTED_NODE (c));
@@ -5601,7 +5598,7 @@ normalize_cond (Btor *btor, BtorNode **cond, BtorNode **left, BtorNode **right)
 /* -------------------------------------------------------------------------- */
 /* term rewriting functions */
 
-static inline BtorNode *
+static BtorNode *
 rewrite_slice_exp (Btor *btor, BtorNode *exp, int upper, int lower)
 {
   BtorNode *result = 0;
@@ -5628,7 +5625,7 @@ DONE:
   return result;
 }
 
-static inline BtorNode *
+static BtorNode *
 rewrite_eq_exp (Btor *btor, BtorNode *e0, BtorNode *e1)
 {
   int swap_ops = 0;
@@ -5689,7 +5686,7 @@ DONE:
   return result;
 }
 
-static inline BtorNode *
+static BtorNode *
 rewrite_ult_exp (Btor *btor, BtorNode *e0, BtorNode *e1)
 {
   BtorNode *result = 0;
@@ -5720,7 +5717,7 @@ DONE:
   return result;
 }
 
-static inline BtorNode *
+static BtorNode *
 rewrite_and_exp (Btor *btor, BtorNode *e0, BtorNode *e1)
 {
   int swap_ops = 0;
@@ -5781,7 +5778,7 @@ DONE:
   return result;
 }
 
-static inline BtorNode *
+static BtorNode *
 rewrite_add_exp (Btor *btor, BtorNode *e0, BtorNode *e1)
 {
   int swap_ops = 0;
@@ -5830,7 +5827,7 @@ DONE:
   return result;
 }
 
-static inline BtorNode *
+static BtorNode *
 rewrite_mul_exp (Btor *btor, BtorNode *e0, BtorNode *e1)
 {
   int swap_ops = 0;
@@ -5875,7 +5872,7 @@ DONE:
   return result;
 }
 
-static inline BtorNode *
+static BtorNode *
 rewrite_udiv_exp (Btor *btor, BtorNode *e0, BtorNode *e1)
 {
   BtorNode *result = 0;
@@ -5908,7 +5905,7 @@ DONE:
   return result;
 }
 
-static inline BtorNode *
+static BtorNode *
 rewrite_urem_exp (Btor *btor, BtorNode *e0, BtorNode *e1)
 {
   BtorNode *result = 0;
@@ -5941,7 +5938,7 @@ DONE:
   return result;
 }
 
-static inline BtorNode *
+static BtorNode *
 rewrite_concat_exp (Btor *btor, BtorNode *e0, BtorNode *e1)
 {
   BtorNode *result = 0;
@@ -5971,7 +5968,7 @@ DONE:
   return result;
 }
 
-static inline BtorNode *
+static BtorNode *
 rewrite_sll_exp (Btor *btor, BtorNode *e0, BtorNode *e1)
 {
   BtorNode *result = 0;
@@ -5992,7 +5989,7 @@ DONE:
   return result;
 }
 
-static inline BtorNode *
+static BtorNode *
 rewrite_srl_exp (Btor *btor, BtorNode *e0, BtorNode *e1)
 {
   BtorNode *result = 0;
@@ -6013,7 +6010,7 @@ DONE:
   return result;
 }
 
-static inline BtorNode *
+static BtorNode *
 rewrite_apply_exp (Btor *btor, BtorNode *e0, BtorNode *e1)
 {
   BtorNode *result = 0;
@@ -6034,7 +6031,7 @@ DONE:
   return result;
 }
 
-static inline BtorNode *
+static BtorNode *
 rewrite_lambda_exp (Btor *btor, BtorNode *e0, BtorNode *e1)
 {
   BtorNode *result = 0;
@@ -6049,7 +6046,7 @@ DONE:
   return result;
 }
 
-static inline BtorNode *
+static BtorNode *
 rewrite_cond_exp (Btor *btor, BtorNode *e0, BtorNode *e1, BtorNode *e2)
 {
   BtorNode *result = 0;
