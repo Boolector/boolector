@@ -104,7 +104,6 @@ typedef struct BtorOpts
                                     may be greater than the original */
 #endif
   BtorOpt sls;
-  BtorOpt sls_just;
   BtorOpt sls_move_randomizeall;
   BtorOpt sls_move_on_first;
   BtorOpt sls_move_inc_move_test;
