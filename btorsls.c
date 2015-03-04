@@ -173,9 +173,8 @@ compute_sls_score_node (Btor *btor,
       {
         for (i = 0; i < real_cur->arity; i++)
         {
-          e = BTOR_IS_AND_NODE (real_cur) && BTOR_IS_INVERTED_NODE (cur)
-                  ? BTOR_INVERT_NODE (real_cur->e[i])
-                  : real_cur->e[i];
+          e = BTOR_IS_INVERTED_NODE (cur) ? BTOR_INVERT_NODE (real_cur->e[i])
+                                          : real_cur->e[i];
           BTOR_PUSH_STACK (btor->mm, stack, e);
         }
       }
@@ -395,8 +394,10 @@ compute_sls_scores_aux (Btor *btor,
       BTOR_PUSH_STACK (btor->mm, unmark_stack, real_cur);
       for (i = 0; i < real_cur->arity; i++)
       {
-        e = BTOR_IS_INVERTED_NODE (cur) ? BTOR_INVERT_NODE (real_cur->e[i])
-                                        : real_cur->e[i];
+        e = BTOR_IS_AND_NODE (real_cur) && real_cur->len == 1
+                    && BTOR_IS_INVERTED_NODE (cur)
+                ? BTOR_INVERT_NODE (real_cur->e[i])
+                : real_cur->e[i];
         BTOR_PUSH_STACK (btor->mm, stack, e);
       }
     }
@@ -517,9 +518,9 @@ select_candidates (Btor *btor, BtorNode *root, BtorNodePtrStack *candidates)
   assert (candidates);
 
   int i;
-  BtorNode *cur, *real_cur;
+  double sc;
+  BtorNode *cur, *real_cur, *e;
   BtorNodePtrStack stack, unmark_stack;
-  // BitVector *bv, *bv0, *bv1;
 
   BTORLOG ("");
   BTORLOG ("*** select candidates");
@@ -544,46 +545,21 @@ select_candidates (Btor *btor, BtorNode *root, BtorNodePtrStack *candidates)
       continue;
     }
 
-#if 0
-      if (btor->options.sls_just.val)
-	{
-	  /* choose candidates from controlling paths
-	   * (on the Boolean layer) only */
-	  if (BTOR_IS_AND_NODE (real_cur) && real_cur->len == 1)
-	    {
-	      bv = (BitVector *) btor_get_bv_model (btor, real_cur);
-	      bv0 = (BitVector *) btor_get_bv_model (btor, real_cur->e[0]);
-	      bv1 = (BitVector *) btor_get_bv_model (btor, real_cur->e[1]);
-      
-	      assert (bv->bits[0] == 1 || bv->bits[0] == 0);
-
-	      if (bv->bits[0] == 1)
-		goto PUSH_CHILDREN;
-	      else
-		{
-		  if (bv0->bits[0] == 0 && bv1->bits[0])
-		    {
-		      if (btor_compare_scores (
-			      btor, real_cur->e[0], real_cur->e[1]))
-			BTOR_PUSH_STACK (btor->mm, stack, real_cur->e[0]);
-		      else
-			BTOR_PUSH_STACK (btor->mm, stack, real_cur->e[1]);
-		    }
-		  else if (bv0->bits[0] == 0)
-		    BTOR_PUSH_STACK (btor->mm, stack, real_cur->e[0]);
-		  else 
-		    {
-		      assert (bv1->bits[0] == 0);
-		      BTOR_PUSH_STACK (btor->mm, stack, real_cur->e[1]);
-		    }
-		}
-	    }
-	  else goto PUSH_CHILDREN;
-	}
-#endif
+    /* push children */
+    if (BTOR_IS_AND_NODE (real_cur) && real_cur->len == 1)
+    {
+      for (i = 0; i < real_cur->arity; i++)
+      {
+        e = BTOR_IS_INVERTED_NODE (cur) ? BTOR_INVERT_NODE (real_cur->e[i])
+                                        : real_cur->e[i];
+        assert (btor_find_in_ptr_hash_table (btor->score_sls, e));
+        sc = btor_find_in_ptr_hash_table (btor->score_sls, e)->data.asDbl;
+        if (sc == 1.0) continue;
+        BTOR_PUSH_STACK (btor->mm, stack, e);
+      }
+    }
     else
     {
-      // PUSH_CHILDREN:
       for (i = 0; i < real_cur->arity; i++)
         BTOR_PUSH_STACK (btor->mm, stack, real_cur->e[i]);
     }
@@ -1235,15 +1211,6 @@ btor_sat_aux_btor_sls (Btor *btor)
 
     for (j = 0, max_steps = BTOR_SLS_MAXSTEPS (i); j < max_steps; j++)
     {
-#if 0
-          if (btor->options.sls_just.val)
-            {
-              /* compute justification score for candidate selection */
-              btor->options.just_heuristic.val = BTOR_JUST_HEUR_BRANCH_MIN_DEP;
-              btor_compute_scores (btor);
-            }
-#endif
-
       select_candidates (
           btor, select_candidate_constraint (btor, roots, moves), &candidates);
 
