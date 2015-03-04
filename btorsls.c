@@ -1141,23 +1141,23 @@ btor_sat_aux_btor_sls (Btor *btor)
   roots = 0;
   moves = 0;
 
-#ifndef NDEBUG
-  Btor *clone                              = btor_clone_exp_layer (btor, 0, 0);
-  clone->options.sls.val                   = 0;
-  clone->options.auto_cleanup.val          = 1;
-  clone->options.auto_cleanup_internal.val = 1;
-  clone->options.loglevel.val              = 0;
-  clone->options.verbosity.val             = 0;
-  clone->options.model_gen.val             = 1;
-  int csat_result                          = btor_sat_btor (clone, -1, -1);
-  btor_delete_btor (clone);
-  if (csat_result == BTOR_UNSAT) goto UNSAT;
-  if (btor->lambdas->count || btor->ufs->count)
-  {
-    sat_result = csat_result;
-    goto DONE;
-  }
-#endif
+  //#ifndef NDEBUG
+  //  Btor *clone = btor_clone_exp_layer (btor, 0, 0);
+  //  clone->options.sls.val = 0;
+  //  clone->options.auto_cleanup.val = 1;
+  //  clone->options.auto_cleanup_internal.val = 1;
+  //  clone->options.loglevel.val = 0;
+  //  clone->options.verbosity.val = 0;
+  //  clone->options.model_gen.val = 1;
+  //  int csat_result = btor_sat_btor (clone, -1, -1);
+  //  btor_delete_btor (clone);
+  //  if (csat_result == BTOR_UNSAT) goto UNSAT;
+  //  if (btor->lambdas->count || btor->ufs->count)
+  //    {
+  //      sat_result = csat_result;
+  //      goto DONE;
+  //    }
+  //#endif
   BTOR_ABORT_BOOLECTOR (btor->lambdas->count != 0 || btor->ufs->count != 0,
                         "sls engine supports QF_BV only");
 
