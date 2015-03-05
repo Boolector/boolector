@@ -734,6 +734,44 @@ update_cone (Btor *btor,
   compute_sls_scores_aux (btor, bv_model, fun_model, roots, score_sls);
 }
 
+static inline void
+update_assertion_weights (Btor *btor, BtorPtrHashTable *roots)
+{
+  assert (btor);
+  assert (roots);
+
+  BtorNode *cur;
+  BtorPtrHashBucket *b;
+  BtorHashTableIterator it;
+
+  if (!btor_pick_rand_rng (&btor->rng, 0, BTOR_SLS_SCORE_F_PROB))
+  {
+    /* decrease the weight of all satisfied assertions */
+    init_node_hash_table_iterator (&it, roots);
+    while (has_next_node_hash_table_iterator (&it))
+    {
+      b   = it.bucket;
+      cur = next_node_hash_table_iterator (&it);
+      if (btor_find_in_ptr_hash_table (btor->score_sls, cur)->data.asDbl == 0.0)
+        continue;
+      if (b->data.asInt > 1) b->data.asInt -= 1;
+    }
+  }
+  else
+  {
+    /* increase the weight of all unsatisfied assertions */
+    init_node_hash_table_iterator (&it, roots);
+    while (has_next_node_hash_table_iterator (&it))
+    {
+      b   = it.bucket;
+      cur = next_node_hash_table_iterator (&it);
+      if (btor_find_in_ptr_hash_table (btor->score_sls, cur)->data.asDbl == 1.0)
+        continue;
+      b->data.asInt += 1;
+    }
+  }
+}
+
 static inline double
 try_move (Btor *btor,
           BtorPtrHashTable *roots,
@@ -811,11 +849,9 @@ move (Btor *btor, BtorPtrHashTable *roots, BtorNodePtrStack *candidates)
   int i, j, r, randomized, randomizeall;
   double max_score, sc;
   BtorSLSMove m;
-  BtorNode *can, *max_can, *cur;
+  BtorNode *can, *max_can;
   BitVector *ass, *neighbor, *max_neighbor;
   BtorPtrHashTable *bv_model, *score_sls;
-  BtorPtrHashBucket *b;
-  BtorHashTableIterator it;
   BtorNodePtrStack cans;
   BitVectorPtrStack neighbors;
 #ifndef NBTORLOG
@@ -1006,38 +1042,7 @@ MOVE:
                &neighbors,
                btor->score_sls);
 
-  /** update assertion weights **/
-  if (randomized)
-  {
-    if (!btor_pick_rand_rng (&btor->rng, 0, BTOR_SLS_SCORE_F_PROB))
-    {
-      /* decrease the weight of all satisfied assertions */
-      init_node_hash_table_iterator (&it, roots);
-      while (has_next_node_hash_table_iterator (&it))
-      {
-        b   = it.bucket;
-        cur = next_node_hash_table_iterator (&it);
-        if (btor_find_in_ptr_hash_table (btor->score_sls, cur)->data.asDbl
-            == 0.0)
-          continue;
-        if (b->data.asInt > 1) b->data.asInt -= 1;
-      }
-    }
-    else
-    {
-      /* increase the weight of all unsatisfied assertions */
-      init_node_hash_table_iterator (&it, roots);
-      while (has_next_node_hash_table_iterator (&it))
-      {
-        b   = it.bucket;
-        cur = next_node_hash_table_iterator (&it);
-        if (btor_find_in_ptr_hash_table (btor->score_sls, cur)->data.asDbl
-            == 1.0)
-          continue;
-        b->data.asInt += 1;
-      }
-    }
-  }
+  if (randomized) update_assertion_weights (btor, roots);
 
   /** cleanup **/
   BTOR_RELEASE_STACK (btor->mm, cans);
