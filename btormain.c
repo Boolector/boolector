@@ -764,13 +764,17 @@ boolector_main (int argc, char **argv)
       continue;
     }
 
+    BTOR_RESET_STACK (errarg);
+    BTOR_RESET_STACK (opt);
+
     k       = 0;
     val     = 0;
     readval = 0;
     len     = strlen (argv[i]);
 
-    for (j = 0; j < len; j++)
+    for (j = 0; j < len && argv[i][j] != '='; j++)
       BTOR_PUSH_STACK (static_app->mm, errarg, argv[i][j]);
+    BTOR_PUSH_STACK (static_app->mm, errarg, '\0');
 
     shrt = argv[i][1] == '-' ? 0 : 1;
     j    = shrt ? 1 : 2;
@@ -779,6 +783,7 @@ boolector_main (int argc, char **argv)
     for (j = disable ? j + 3 : j; j < len && argv[i][j] != '='; j++, k++)
       BTOR_PUSH_STACK (
           static_app->mm, opt, argv[i][j] == '-' ? '_' : argv[i][j]);
+    BTOR_PUSH_STACK (static_app->mm, opt, '\0');
 
     valstr = argv[i] + j + 1;
     if (argv[i][j] == '=')
