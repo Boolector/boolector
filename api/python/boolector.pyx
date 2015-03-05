@@ -635,7 +635,7 @@ cdef class Boolector:
 
             See :func:`~boolector.Boolector.Set_term`.
             
-            :return True if termination condition is fullfilled, else False.
+            :return True if termination condition is fulfilled, else False.
             :rtype: bool
         """
         cdef int res
@@ -831,7 +831,7 @@ cdef class Boolector:
 
             * **incremental_all**
 
-              | Enable (``value``: 1) or disable (``value``: 0) incremental solving of all formulas when parsin an input file.
+              | Enable (``value``: 1) or disable (``value``: 0) incremental solving of all formulas when parsing an input file.
               | Note that currently, incremental mode while parsing an input file is only supported for `SMT-LIB v1`_ input.
 
             * **incremental_in_depth**
@@ -1222,7 +1222,7 @@ cdef class Boolector:
 
             Create a bit vector variable with bit width ``width``.
 
-            A variable's symbol is used as a simple means of identfication,
+            A variable's symbol is used as a simple means of identification,
             either when printing a model via 
             :func:`~boolector.Boolector.Print_model`,
             or generating file dumps via 
@@ -2587,7 +2587,7 @@ cdef class Boolector:
             ``symbol``.
 
             An uninterpreted function's symbol is used as a simple means of 
-            identfication, either when printing a model via 
+            identification, either when printing a model via 
             :func:`~boolector.Boolector.Print_model`,
             or generating file dumps via 
             :func:`~boolector.Boolector.Dump`.
