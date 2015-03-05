@@ -843,8 +843,6 @@ static inline void
 select_move (Btor *btor,
              BtorPtrHashTable *roots,
              BtorNode *can,
-             BtorNodePtrStack *cans,
-             BitVectorPtrStack *neighbors,
              BtorNode **max_can,
              BitVector **max_neighbor,
              double *max_score)
@@ -852,10 +850,6 @@ select_move (Btor *btor,
   assert (btor);
   assert (can);
   assert (BTOR_IS_REGULAR_NODE (can));
-  assert (cans);
-  assert (!BTOR_COUNT_STACK (*cans));
-  assert (neighbors);
-  assert (!BTOR_COUNT_STACK (*neighbors));
 
   int i;
   double sc;
@@ -863,6 +857,11 @@ select_move (Btor *btor,
   BitVector *ass, *neighbor;
   BtorPtrHashTable *bv_model;
   BtorPtrHashTable *score_sls;
+  BtorNodePtrStack cans;
+  BitVectorPtrStack neighbors;
+
+  BTOR_INIT_STACK (cans);
+  BTOR_INIT_STACK (neighbors);
 
   ass = (BitVector *) btor_get_bv_model (btor, can);
   assert (ass);
@@ -910,9 +909,9 @@ select_move (Btor *btor,
         btor_flip_bit_bv (neighbor, i);
     }
 
-    BTOR_PUSH_STACK (btor->mm, *cans, can);
-    BTOR_PUSH_STACK (btor->mm, *neighbors, neighbor);
-    sc = try_move (btor, roots, &bv_model, score_sls, cans, neighbors);
+    BTOR_PUSH_STACK (btor->mm, cans, can);
+    BTOR_PUSH_STACK (btor->mm, neighbors, neighbor);
+    sc = try_move (btor, roots, &bv_model, score_sls, &cans, &neighbors);
     if (sc == -1.0)
     {
       if (*max_neighbor) btor_free_bv (btor->mm, *max_neighbor);
@@ -920,8 +919,8 @@ select_move (Btor *btor,
       btor_delete_ptr_hash_table (score_sls);
       return;
     }
-    BTOR_RESET_STACK (*cans);
-    BTOR_RESET_STACK (*neighbors);
+    BTOR_RESET_STACK (cans);
+    BTOR_RESET_STACK (neighbors);
     if (sc > *max_score)
     {
       *max_score = sc;
@@ -942,6 +941,8 @@ select_move (Btor *btor,
   /* cleanup */
   btor_delete_bv_model (btor, &bv_model);
   btor_delete_ptr_hash_table (score_sls);
+  BTOR_RELEASE_STACK (btor->mm, cans);
+  BTOR_RELEASE_STACK (btor->mm, neighbors);
 }
 
 static void
@@ -975,8 +976,6 @@ move (Btor *btor, BtorPtrHashTable *roots, BtorNodePtrStack *candidates)
     select_move (btor,
                  roots,
                  BTOR_PEEK_STACK (*candidates, i),
-                 &cans,
-                 &neighbors,
                  &max_can,
                  &max_neighbor,
                  &max_score);
