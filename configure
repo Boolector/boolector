@@ -439,6 +439,12 @@ fi
 
 if [ $python = yes ]
 then
+  # set default python command if no PYTHON environment variable was set
+  [ -z "$PYTHON" ] && PYTHON="python"
+  # check if set python command exists
+  type "$PYTHON" > /dev/null 2>&1
+  [ $? -gt 0 ] && die "Python command '$PYTHON' does not exist"
+
   py_libraries="boolector"
   py_library_dirs="."
   if [ $lingeling = yes ]; then
@@ -454,9 +460,11 @@ then
     py_library_dirs="$py_library_dirs ../minisat/build/dynamic/lib"
   fi
   OBJS="api/python/boolector_py.o $OBJS" 
-  pyver=`python -c 'import sys; print(".".join(str(i) for i in sys.version_info[:2]))'`
-  INCS="${INCS} -I/usr/include/python$pyver"
-  LIBS="${LIBS} -lpython$pyver"
+  pyinc=`$PYTHON -c "import sysconfig; print(sysconfig.get_config_var('CONFINCLUDEPY'))"`
+  pylib=`$PYTHON -c "import sysconfig; print(sysconfig.get_config_var('BINLIBDEST'))"`
+  pyld=`basename $pyinc`
+  INCS="${INCS} -I$pyinc"
+  LIBS="${LIBS} -L$pylib -l$pyld"
   cat > setup.py <<EOF
 import os
 from distutils.core import setup
@@ -481,8 +489,8 @@ cat > python.mk <<EOF
 all: python
 
 python: boolector_py setup.py
-	python setup.py build_ext -i
-	@echo "Compiled Boolector python module. Please read api/python/README on how to use the module"
+	$PYTHON setup.py build_ext -i
+	@echo "Compiled Boolector Python module. Please read api/python/README on how to use the module"
 
 boolector_py: api/python/boolector_py.h api/python/boolector_py.c
 

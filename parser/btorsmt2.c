@@ -131,20 +131,16 @@ typedef enum BtorSMT2Tag
   BTOR_VERBOSITY_TAG_SMT2              = 31 + BTOR_KEYWORD_TAG_CLASS_SMT2,
   BTOR_VERSION_TAG_SMT2                = 32 + BTOR_KEYWORD_TAG_CLASS_SMT2,
   /* we define Boolector options as keywords, too ------------------------- */
-  BTOR_OPT_MODEL_GEN_TAG_SMT2              = 33 + BTOR_KEYWORD_TAG_CLASS_SMT2,
-  BTOR_OPT_INCREMENTAL_TAG_SMT2            = 34 + BTOR_KEYWORD_TAG_CLASS_SMT2,
-  BTOR_OPT_INCREMENTAL_ALL_TAG_SMT2        = 35 + BTOR_KEYWORD_TAG_CLASS_SMT2,
-  BTOR_OPT_INCREMENTAL_IN_DEPTH_TAG_SMT2   = 36 + BTOR_KEYWORD_TAG_CLASS_SMT2,
-  BTOR_OPT_INCREMENTAL_LOOK_AHEAD_TAG_SMT2 = 37 + BTOR_KEYWORD_TAG_CLASS_SMT2,
-  BTOR_OPT_INCREMENTAL_INTERVAL_TAG_SMT2   = 38 + BTOR_KEYWORD_TAG_CLASS_SMT2,
-  BTOR_OPT_INPUT_FORMAT_TAG_SMT2           = 39 + BTOR_KEYWORD_TAG_CLASS_SMT2,
-  BTOR_OPT_OUTPUT_NUMBER_FORMAT_TAG_SMT2   = 40 + BTOR_KEYWORD_TAG_CLASS_SMT2,
-  BTOR_OPT_OUTPUT_FORMAT_TAG_SMT2          = 41 + BTOR_KEYWORD_TAG_CLASS_SMT2,
-  BTOR_OPT_REWRITE_LEVEL_TAG_SMT2          = 42 + BTOR_KEYWORD_TAG_CLASS_SMT2,
-  BTOR_OPT_REWRITE_LEVEL_PBR_TAG_SMT2      = 43 + BTOR_KEYWORD_TAG_CLASS_SMT2,
-  BTOR_OPT_BETA_REDUCE_ALL_TAG_SMT2        = 44 + BTOR_KEYWORD_TAG_CLASS_SMT2,
-  BTOR_OPT_DUAL_PROP_TAG_SMT2              = 45 + BTOR_KEYWORD_TAG_CLASS_SMT2,
-  BTOR_OPT_JUST_TAG_SMT2                   = 46 + BTOR_KEYWORD_TAG_CLASS_SMT2,
+  BTOR_OPT_MODEL_GEN_TAG_SMT2            = 33 + BTOR_KEYWORD_TAG_CLASS_SMT2,
+  BTOR_OPT_INCREMENTAL_TAG_SMT2          = 34 + BTOR_KEYWORD_TAG_CLASS_SMT2,
+  BTOR_OPT_INPUT_FORMAT_TAG_SMT2         = 35 + BTOR_KEYWORD_TAG_CLASS_SMT2,
+  BTOR_OPT_OUTPUT_NUMBER_FORMAT_TAG_SMT2 = 36 + BTOR_KEYWORD_TAG_CLASS_SMT2,
+  BTOR_OPT_OUTPUT_FORMAT_TAG_SMT2        = 37 + BTOR_KEYWORD_TAG_CLASS_SMT2,
+  BTOR_OPT_REWRITE_LEVEL_TAG_SMT2        = 38 + BTOR_KEYWORD_TAG_CLASS_SMT2,
+  BTOR_OPT_REWRITE_LEVEL_PBR_TAG_SMT2    = 39 + BTOR_KEYWORD_TAG_CLASS_SMT2,
+  BTOR_OPT_BETA_REDUCE_ALL_TAG_SMT2      = 40 + BTOR_KEYWORD_TAG_CLASS_SMT2,
+  BTOR_OPT_DUAL_PROP_TAG_SMT2            = 41 + BTOR_KEYWORD_TAG_CLASS_SMT2,
+  BTOR_OPT_JUST_TAG_SMT2                 = 42 + BTOR_KEYWORD_TAG_CLASS_SMT2,
 #ifndef BTOR_DO_NOT_OPTIMIZE_UNCONSTRAINED
   BTOR_OPT_UCOPT_TAG_SMT2 = 47 + BTOR_KEYWORD_TAG_CLASS_SMT2,
 #endif
@@ -664,10 +660,6 @@ btor_insert_keywords_smt2 (BtorSMT2Parser *parser)
   /* we define Boolector options as keywords, too */
   INSERT (":model-gen", BTOR_OPT_MODEL_GEN_TAG_SMT2);
   INSERT (":incremental", BTOR_OPT_INCREMENTAL_TAG_SMT2);
-  INSERT (":incremental-all", BTOR_OPT_INCREMENTAL_ALL_TAG_SMT2);
-  INSERT (":incremental-in-depth", BTOR_OPT_INCREMENTAL_IN_DEPTH_TAG_SMT2);
-  INSERT (":incremental-look-ahead", BTOR_OPT_INCREMENTAL_LOOK_AHEAD_TAG_SMT2);
-  INSERT (":incremental-look-interval", BTOR_OPT_INCREMENTAL_INTERVAL_TAG_SMT2);
   INSERT (":input-format", BTOR_OPT_INPUT_FORMAT_TAG_SMT2);
   INSERT (":output-number-format", BTOR_OPT_OUTPUT_NUMBER_FORMAT_TAG_SMT2);
   INSERT (":output-format", BTOR_OPT_OUTPUT_FORMAT_TAG_SMT2);
@@ -3455,18 +3447,6 @@ btor_set_option_smt2 (BtorSMT2Parser *parser)
         verb = 1;
         break;
       case BTOR_OPT_INCREMENTAL_TAG_SMT2: opt = BTOR_OPT_INCREMENTAL; break;
-      case BTOR_OPT_INCREMENTAL_ALL_TAG_SMT2:
-        opt = BTOR_OPT_INCREMENTAL_ALL;
-        break;
-      case BTOR_OPT_INCREMENTAL_IN_DEPTH_TAG_SMT2:
-        opt = BTOR_OPT_INCREMENTAL_IN_DEPTH;
-        break;
-      case BTOR_OPT_INCREMENTAL_LOOK_AHEAD_TAG_SMT2:
-        opt = BTOR_OPT_INCREMENTAL_LOOK_AHEAD;
-        break;
-      case BTOR_OPT_INCREMENTAL_INTERVAL_TAG_SMT2:
-        opt = BTOR_OPT_INCREMENTAL_INTERVAL;
-        break;
       case BTOR_OPT_INPUT_FORMAT_TAG_SMT2: opt = BTOR_OPT_INPUT_FORMAT; break;
       case BTOR_OPT_OUTPUT_NUMBER_FORMAT_TAG_SMT2:
         opt = BTOR_OPT_OUTPUT_NUMBER_FORMAT;
@@ -3523,6 +3503,12 @@ btor_set_option_smt2 (BtorSMT2Parser *parser)
         val = verb ? val + atoi (parser->token.start)
                    : atoi (parser->token.start);
       boolector_set_opt (parser->btor, opt, val);
+
+      /* update parser options */
+      if (!strcmp (opt, BTOR_OPT_INCREMENTAL))
+        parser->incremental = val;
+      else if (!strcmp (opt, BTOR_OPT_VERBOSITY))
+        parser->verbosity = val;
     }
     else
       return !btor_perr_smt2 (parser, "unsupported option");
@@ -3623,9 +3609,9 @@ btor_read_command_smt2 (BtorSMT2Parser *parser)
 
     case BTOR_CHECK_SAT_TAG_SMT2:
       if (!btor_read_rpar_smt2 (parser, " after 'check-sat'")) return 0;
-      if (parser->commands.check_sat++)
+      if (parser->commands.check_sat++ && !parser->incremental)
         BTOR_MSG (boolector_get_btor_msg (parser->btor),
-                  !parser->incremental,
+                  1,
                   "WARNING additional 'check-sat' command");
       if (parser->interactive)
       {
