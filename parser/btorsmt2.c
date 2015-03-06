@@ -3622,6 +3622,7 @@ btor_read_command_smt2 (BtorSMT2Parser *parser)
           fprintf (parser->outfile, "unsat\n");
         else
           fprintf (parser->outfile, "unknown\n");
+        fflush (parser->outfile);
       }
       else
       {
@@ -3689,6 +3690,7 @@ btor_read_command_smt2 (BtorSMT2Parser *parser)
         return !btor_perr_smt2 (parser, "model generation is not enabled");
       if (parser->res->result != BOOLECTOR_SAT) break;
       boolector_print_model (parser->btor, "smt2", parser->outfile);
+      fflush (parser->outfile);
       break;
 
     case BTOR_GET_VALUE_TAG_SMT2:
@@ -3724,6 +3726,7 @@ btor_read_command_smt2 (BtorSMT2Parser *parser)
         tag = btor_read_token_smt2 (parser);
       }
       fprintf (parser->outfile, ")\n");
+      fflush (parser->outfile);
       if (tag != BTOR_RPAR_TAG_SMT2)
       {
         BTOR_RELEASE_STACK (parser->btor->mm, tokens);
