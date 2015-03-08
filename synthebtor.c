@@ -124,7 +124,7 @@ main (int argc, char **argv)
   parser = btor_btor_parser_api ()->init (btor, &parse_opt);
 
   parse_error = btor_btor_parser_api ()->parse (
-      parser, 0, input_file, input_name, &model);
+      parser, 0, input_file, input_name, output_file, &model);
   if (parse_error) die (0, parse_error);
 
   if (!model.noutputs) die (1, "no roots in '%s'", input_name);

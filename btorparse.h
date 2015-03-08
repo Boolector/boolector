@@ -35,6 +35,7 @@ typedef char *(*BtorParse) (BtorParser *,
                             BtorCharStack *prefix,
                             FILE *,
                             const char *,
+                            FILE *,
                             BtorParseResult *);
 
 enum BtorParseMode
@@ -79,26 +80,30 @@ struct BtorParserAPI
 };
 
 int btor_parse (Btor *btor,
-                FILE *file,
-                const char *file_name,
+                FILE *infile,
+                const char *infile_name,
+                FILE *outfile,
                 char **error_msg,
                 int *status);
 
 int btor_parse_btor (Btor *btor,
-                     FILE *file,
-                     const char *file_name,
+                     FILE *infile,
+                     const char *infile_name,
+                     FILE *outfile,
                      char **error_msg,
                      int *status);
 
 int btor_parse_smt1 (Btor *btor,
-                     FILE *file,
-                     const char *file_name,
+                     FILE *infile,
+                     const char *infile_name,
+                     FILE *outfile,
                      char **error_msg,
                      int *status);
 
 int btor_parse_smt2 (Btor *btor,
-                     FILE *file,
-                     const char *file_name,
+                     FILE *infile,
+                     const char *infile_name,
+                     FILE *outfile,
                      char **error_msg,
                      int *status);
 

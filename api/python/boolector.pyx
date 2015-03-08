@@ -447,6 +447,10 @@ cdef class BoolectorBVNode(BoolectorNode):
         x, y = _to_node(x, y)
         return (<BoolectorBVNode> x).btor.Mul(x, y)
 
+    def __div__(x, y):
+        x, y = _to_node(x, y)
+        return (<BoolectorBVNode> x).btor.Udiv(x, y)
+
     def __truediv__(x, y):
         x, y = _to_node(x, y)
         return (<BoolectorBVNode> x).btor.Udiv(x, y)
@@ -1025,8 +1029,8 @@ cdef class Boolector:
         if outfile is not None:
             fclose(c_file)
 
-    def Parse(self, str file):
-        """ Parse(file)
+    def Parse(self, str infile, str outfile = None):
+        """ Parse(infile, outfile = None)
 
             Parse input file.
 
@@ -1038,22 +1042,34 @@ cdef class Boolector:
               btor = Boolector()
               (result, status, error_msg) = btor.Parse("example.btor")
 
-            :param file: Input file name.
-            :type file:  str
+            :param infile: Input file name.
+            :type infile:  str
             :return: A tuple (result, status, error_msg), where return value ``result`` indicates an error (:data:`~boolector.Boolector.PARSE_ERROR`) if any, and else denotes the satisfiability result (:data:`~boolector.Boolector.SAT` or :data:`~boolector.Boolector.UNSAT`) in the incremental case, and :data:`~boolector.Boolector.UNKNOWN` otherwise. Return value ``status`` indicates a (known) status (:data:`~boolector.Boolector.SAT` or :data:`~boolector.Boolector.UNSAT`) as specified in the input file. In case of an error, an explanation of that error is stored in ``error_msg``.
         """
-        cdef FILE * c_file
+        cdef FILE * c_infile
+        cdef FILE * c_outfile
         cdef int res
         cdef char * err_msg
         cdef int status
 
-        if not os.path.isfile(file):
-            raise BoolectorException("File '{}' does not exist".format(file))
+        if not os.path.isfile(infile):
+            raise BoolectorException("File '{}' does not exist".format(infile))
+        c_infile = fopen(_ChPtr(infile)._c_str, "r")
 
-        c_file = fopen(_ChPtr(file)._c_str, "r")
-        res = btorapi.boolector_parse(self._c_btor, c_file, _ChPtr(file)._c_str,
-                                      &err_msg, &status)
-        fclose(c_file)
+        if outfile and not os.path.isfile(outfile):
+            raise BoolectorException("File '{}' does not exist".format(outfile))
+        if outfile is None:
+            c_outfile = stdout
+        else:
+            c_outfile = fopen(_ChPtr(outfile)._c_str, "r") 
+
+        res = btorapi.boolector_parse(self._c_btor, c_infile,
+                _ChPtr(infile)._c_str, c_outfile, &err_msg, &status)
+
+        fclose(c_infile)
+        if outfile is not None:
+            fclose(c_outfile)
+
         return (res, status, _to_str(err_msg))
 
     def Dump(self, format = "btor", outfile = None):

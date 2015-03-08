@@ -1,6 +1,7 @@
 /*  Boolector: Satisfiablity Modulo Theories (SMT) solver.
  *
  *  Copyright (C) 2013 Mathias Preiner.
+ *  Copyright (C) 2015 Aina Niemetz.
  *
  *  All rights reserved.
  *
@@ -11,6 +12,7 @@
 #include "testbitvec.h"
 #include "btorbitvec.h"
 #include "btorconst.h"
+#include "btorcore.h"
 #include "btormem.h"
 #include "btorstack.h"
 #include "btorutil.h"
@@ -32,11 +34,13 @@
 #define BTOR_TEST_BITVEC_PERF_TESTS 1000000
 
 static Btor *g_btor;
+static BtorMemMgr *g_mm;
 
 void
 init_bitvec_tests (void)
 {
   g_btor = btor_new_btor ();
+  g_mm   = btor_get_mem_mgr_btor (g_btor);
 }
 
 static void
@@ -44,17 +48,17 @@ test_new_bitvec (void)
 {
   BitVector *bv;
 
-  bv = btor_new_bv (g_btor, BTOR_BV_TYPE_BW);
+  bv = btor_new_bv (g_mm, BTOR_BV_TYPE_BW);
   assert (bv->len == 1);
-  btor_free_bv (g_btor, bv);
+  btor_free_bv (g_mm, bv);
 
-  bv = btor_new_bv (g_btor, BTOR_BV_TYPE_BW - 1);
+  bv = btor_new_bv (g_mm, BTOR_BV_TYPE_BW - 1);
   assert (bv->len == 1);
-  btor_free_bv (g_btor, bv);
+  btor_free_bv (g_mm, bv);
 
-  bv = btor_new_bv (g_btor, BTOR_BV_TYPE_BW + 1);
+  bv = btor_new_bv (g_mm, BTOR_BV_TYPE_BW + 1);
   assert (bv->len == 2);
-  btor_free_bv (g_btor, bv);
+  btor_free_bv (g_mm, bv);
 }
 
 static BitVector *
@@ -62,7 +66,7 @@ random_bv (int bw)
 {
   int i;
   BitVector *res;
-  res = btor_new_bv (g_btor, bw);
+  res = btor_new_bv (g_mm, bw);
 
   for (i = 0; i < res->len; i++) res->bits[i] = (BTOR_BV_TYPE) rand ();
 
@@ -74,7 +78,7 @@ random_bv (int bw)
 
 static void
 unary_bitvec (char *(*const_func) (BtorMemMgr *, const char *),
-              BitVector *(*bitvec_func) (Btor *, BitVector *),
+              BitVector *(*bitvec_func) (BtorMemMgr *, BitVector *),
               int num_tests,
               int bit_width)
 {
@@ -87,19 +91,19 @@ unary_bitvec (char *(*const_func) (BtorMemMgr *, const char *),
   for (i = 0; i < num_tests; i++)
   {
     a     = random_bv (bit_width);
-    res   = bitvec_func (g_btor, a);
-    c_a   = btor_bv_to_char_bv (g_btor, a);
-    c_res = const_func (g_btor->mm, c_a);
-    str   = btor_bv_to_char_bv (g_btor, res);
+    res   = bitvec_func (g_mm, a);
+    c_a   = btor_bv_to_char_bv (g_mm, a);
+    c_res = const_func (g_mm, c_a);
+    str   = btor_bv_to_char_bv (g_mm, res);
 
     assert (strlen (str) == strlen (c_res));
     assert (memcmp (c_res, str, strlen (str)) == 0);
 
-    btor_freestr (g_btor->mm, str);
-    btor_delete_const (g_btor->mm, c_res);
-    btor_delete_const (g_btor->mm, c_a);
-    btor_free_bv (g_btor, res);
-    btor_free_bv (g_btor, a);
+    btor_freestr (g_mm, str);
+    btor_delete_const (g_mm, c_res);
+    btor_delete_const (g_mm, c_a);
+    btor_free_bv (g_mm, res);
+    btor_free_bv (g_mm, a);
   }
 }
 
@@ -121,25 +125,27 @@ slice_bitvec (int num_tests, int bit_width)
     assert (upper < bit_width);
     assert (lower < bit_width);
 
-    res   = btor_slice_bv (g_btor, a, upper, lower);
-    c_a   = btor_bv_to_char_bv (g_btor, a);
-    c_res = btor_slice_const (g_btor->mm, c_a, upper, lower);
-    str   = btor_bv_to_char_bv (g_btor, res);
+    res   = btor_slice_bv (g_mm, a, upper, lower);
+    c_a   = btor_bv_to_char_bv (g_mm, a);
+    c_res = btor_slice_const (g_mm, c_a, upper, lower);
+    str   = btor_bv_to_char_bv (g_mm, res);
 
     assert (strlen (str) == strlen (c_res));
     assert (memcmp (c_res, str, strlen (str)) == 0);
 
-    btor_freestr (g_btor->mm, str);
-    btor_delete_const (g_btor->mm, c_res);
-    btor_delete_const (g_btor->mm, c_a);
-    btor_free_bv (g_btor, res);
-    btor_free_bv (g_btor, a);
+    btor_freestr (g_mm, str);
+    btor_delete_const (g_mm, c_res);
+    btor_delete_const (g_mm, c_a);
+    btor_free_bv (g_mm, res);
+    btor_free_bv (g_mm, a);
   }
 }
 
 static void
 shift_bitvec (char *(*const_func) (BtorMemMgr *, const char *, const char *),
-              BitVector *(*bitvec_func) (Btor *, BitVector *, BitVector *),
+              BitVector *(*bitvec_func) (BtorMemMgr *,
+                                         BitVector *,
+                                         BitVector *),
               int num_tests,
               int bit_width)
 {
@@ -153,32 +159,31 @@ shift_bitvec (char *(*const_func) (BtorMemMgr *, const char *, const char *),
   {
     a   = random_bv (bit_width);
     b   = random_bv (btor_log_2_util (bit_width));
-    res = bitvec_func (g_btor, a, b);
+    res = bitvec_func (g_mm, a, b);
 
-    c_a   = btor_bv_to_char_bv (g_btor, a);
-    c_b   = btor_bv_to_char_bv (g_btor, b);
-    c_res = const_func (g_btor->mm, c_a, c_b);
-    str   = btor_bv_to_char_bv (g_btor, res);
+    c_a   = btor_bv_to_char_bv (g_mm, a);
+    c_b   = btor_bv_to_char_bv (g_mm, b);
+    c_res = const_func (g_mm, c_a, c_b);
+    str   = btor_bv_to_char_bv (g_mm, res);
 
     assert (strlen (str) == strlen (c_res));
     assert (memcmp (c_res, str, strlen (str)) == 0);
 
-    btor_freestr (g_btor->mm, str);
-    btor_delete_const (g_btor->mm, c_res);
-    btor_delete_const (g_btor->mm, c_a);
-    btor_delete_const (g_btor->mm, c_b);
-    btor_free_bv (g_btor, res);
-    btor_free_bv (g_btor, a);
-    btor_free_bv (g_btor, b);
+    btor_freestr (g_mm, str);
+    btor_delete_const (g_mm, c_res);
+    btor_delete_const (g_mm, c_a);
+    btor_delete_const (g_mm, c_b);
+    btor_free_bv (g_mm, res);
+    btor_free_bv (g_mm, a);
+    btor_free_bv (g_mm, b);
   }
 }
 
 static void
-shift_cont_bitvec (char *(*const_func) (BtorMemMgr *,
-                                        const char *,
-                                        const char *),
-                   BitVector *(*bitvec_func) (Btor *, BitVector *, BitVector *),
-                   int bit_width)
+shift_cont_bitvec (
+    char *(*const_func) (BtorMemMgr *, const char *, const char *),
+    BitVector *(*bitvec_func) (BtorMemMgr *, BitVector *, BitVector *),
+    int bit_width)
 {
   int i, shift_width;
   char *c_a, *c_b, *c_res, *str;
@@ -188,30 +193,32 @@ shift_cont_bitvec (char *(*const_func) (BtorMemMgr *,
   shift_width = btor_log_2_util (bit_width);
   for (i = 0; i < bit_width; i++)
   {
-    b   = btor_uint64_to_bv (g_btor, (uint64_t) i, shift_width);
-    res = bitvec_func (g_btor, a, b);
+    b   = btor_uint64_to_bv (g_mm, (uint64_t) i, shift_width);
+    res = bitvec_func (g_mm, a, b);
 
-    c_a   = btor_bv_to_char_bv (g_btor, a);
-    c_b   = btor_bv_to_char_bv (g_btor, b);
-    c_res = const_func (g_btor->mm, c_a, c_b);
-    str   = btor_bv_to_char_bv (g_btor, res);
+    c_a   = btor_bv_to_char_bv (g_mm, a);
+    c_b   = btor_bv_to_char_bv (g_mm, b);
+    c_res = const_func (g_mm, c_a, c_b);
+    str   = btor_bv_to_char_bv (g_mm, res);
 
     assert (strlen (str) == strlen (c_res));
     assert (memcmp (c_res, str, strlen (str)) == 0);
 
-    btor_freestr (g_btor->mm, str);
-    btor_delete_const (g_btor->mm, c_res);
-    btor_delete_const (g_btor->mm, c_a);
-    btor_delete_const (g_btor->mm, c_b);
-    btor_free_bv (g_btor, res);
-    btor_free_bv (g_btor, b);
+    btor_freestr (g_mm, str);
+    btor_delete_const (g_mm, c_res);
+    btor_delete_const (g_mm, c_a);
+    btor_delete_const (g_mm, c_b);
+    btor_free_bv (g_mm, res);
+    btor_free_bv (g_mm, b);
   }
-  btor_free_bv (g_btor, a);
+  btor_free_bv (g_mm, a);
 }
 
 static void
 binary_bitvec (char *(*const_func) (BtorMemMgr *, const char *, const char *),
-               BitVector *(*bitvec_func) (Btor *, BitVector *, BitVector *),
+               BitVector *(*bitvec_func) (BtorMemMgr *,
+                                          BitVector *,
+                                          BitVector *),
                int num_tests,
                int bit_width)
 {
@@ -227,23 +234,23 @@ binary_bitvec (char *(*const_func) (BtorMemMgr *, const char *, const char *),
   for (i = 0; i < num_tests; i++)
   {
     a     = random_bv (bit_width);
-    c_a   = btor_bv_to_char_bv (g_btor, a);
+    c_a   = btor_bv_to_char_bv (g_mm, a);
     b     = random_bv (bit_width);
-    c_b   = btor_bv_to_char_bv (g_btor, b);
-    c_res = const_func (g_btor->mm, c_a, c_b);
-    res   = bitvec_func (g_btor, a, b);
-    str   = btor_bv_to_char_bv (g_btor, res);
+    c_b   = btor_bv_to_char_bv (g_mm, b);
+    c_res = const_func (g_mm, c_a, c_b);
+    res   = bitvec_func (g_mm, a, b);
+    str   = btor_bv_to_char_bv (g_mm, res);
 
     assert (strlen (str) == strlen (c_res));
     assert (memcmp (c_res, str, strlen (str)) == 0);
 
-    btor_freestr (g_btor->mm, str);
-    btor_delete_const (g_btor->mm, c_b);
-    btor_delete_const (g_btor->mm, c_res);
-    btor_free_bv (g_btor, b);
-    btor_free_bv (g_btor, res);
-    btor_delete_const (g_btor->mm, c_a);
-    btor_free_bv (g_btor, a);
+    btor_freestr (g_mm, str);
+    btor_delete_const (g_mm, c_b);
+    btor_delete_const (g_mm, c_res);
+    btor_free_bv (g_mm, b);
+    btor_free_bv (g_mm, res);
+    btor_delete_const (g_mm, c_a);
+    btor_free_bv (g_mm, a);
   }
 }
 
@@ -420,74 +427,9 @@ test_srl_bitvec (void)
 }
 
 static void
-perf_test_bitvec (char *(*const_func) (BtorMemMgr *,
-                                       const char *,
-                                       const char *),
-                  BitVector *(*bitvec_func) (Btor *, BitVector *, BitVector *),
-                  int num_tests)
-{
-  assert (const_func);
-  assert (bitvec_func);
-
-  double start_const, start_bitvec, total_const, total_bitvec;
-  int k;
-  long long i, tests;
-  char *c_a, *c_b, *c_res, *str;
-  BitVector *a, *b, *res;
-
-  printf ("\n");
-  printf ("  %10s | %5s | %10s | %10s\n",
-          "tests",
-          "bw",
-          "time const",
-          "time bitvec");
-
-  for (k = 1; k < 10; k++)
-  {
-    tests        = 0;
-    total_const  = 0;
-    total_bitvec = 0;
-    for (i = 0; i < num_tests; i++)
-    {
-      tests++;
-      a   = random_bv (2 << k);
-      c_a = btor_bv_to_char_bv (g_btor, a);
-      b   = random_bv (2 << k);
-      c_b = btor_bv_to_char_bv (g_btor, b);
-
-      start_const = btor_time_stamp ();
-      c_res       = const_func (g_btor->mm, c_a, c_b);
-      total_const += btor_time_stamp () - start_const;
-
-      start_bitvec = btor_time_stamp ();
-      res          = bitvec_func (g_btor, a, b);
-      total_bitvec += btor_time_stamp () - start_bitvec;
-      str = btor_bv_to_char_bv (g_btor, res);
-
-      assert (strlen (str) == strlen (c_res));
-      assert (memcmp (c_res, str, strlen (str) * sizeof (*str)) == 0);
-
-      btor_freestr (g_btor->mm, str);
-      btor_delete_const (g_btor->mm, c_b);
-      btor_delete_const (g_btor->mm, c_res);
-      btor_free_bv (g_btor, b);
-      btor_free_bv (g_btor, res);
-      btor_delete_const (g_btor->mm, c_a);
-      btor_free_bv (g_btor, a);
-    }
-
-    printf ("  %10llu | %5d | %10.5f | %10.5f\n",
-            tests,
-            2 << k,
-            total_const,
-            total_bitvec);
-  }
-}
-
-static void
-perf_test_shift_bitvec (
+perf_test_bitvec (
     char *(*const_func) (BtorMemMgr *, const char *, const char *),
-    BitVector *(*bitvec_func) (Btor *, BitVector *, BitVector *),
+    BitVector *(*bitvec_func) (BtorMemMgr *, BitVector *, BitVector *),
     int num_tests)
 {
   assert (const_func);
@@ -515,29 +457,93 @@ perf_test_shift_bitvec (
     {
       tests++;
       a   = random_bv (2 << k);
-      c_a = btor_bv_to_char_bv (g_btor, a);
-      b   = random_bv (btor_log_2_util (2 << k));
-      c_b = btor_bv_to_char_bv (g_btor, b);
+      c_a = btor_bv_to_char_bv (g_mm, a);
+      b   = random_bv (2 << k);
+      c_b = btor_bv_to_char_bv (g_mm, b);
 
       start_const = btor_time_stamp ();
-      c_res       = const_func (g_btor->mm, c_a, c_b);
+      c_res       = const_func (g_mm, c_a, c_b);
       total_const += btor_time_stamp () - start_const;
 
       start_bitvec = btor_time_stamp ();
-      res          = bitvec_func (g_btor, a, b);
+      res          = bitvec_func (g_mm, a, b);
       total_bitvec += btor_time_stamp () - start_bitvec;
-      str = btor_bv_to_char_bv (g_btor, res);
+      str = btor_bv_to_char_bv (g_mm, res);
 
       assert (strlen (str) == strlen (c_res));
       assert (memcmp (c_res, str, strlen (str) * sizeof (*str)) == 0);
 
-      btor_freestr (g_btor->mm, str);
-      btor_delete_const (g_btor->mm, c_b);
-      btor_delete_const (g_btor->mm, c_res);
-      btor_free_bv (g_btor, b);
-      btor_free_bv (g_btor, res);
-      btor_delete_const (g_btor->mm, c_a);
-      btor_free_bv (g_btor, a);
+      btor_freestr (g_mm, str);
+      btor_delete_const (g_mm, c_b);
+      btor_delete_const (g_mm, c_res);
+      btor_free_bv (g_mm, b);
+      btor_free_bv (g_mm, res);
+      btor_delete_const (g_mm, c_a);
+      btor_free_bv (g_mm, a);
+    }
+
+    printf ("  %10llu | %5d | %10.5f | %10.5f\n",
+            tests,
+            2 << k,
+            total_const,
+            total_bitvec);
+  }
+}
+
+static void
+perf_test_shift_bitvec (
+    char *(*const_func) (BtorMemMgr *, const char *, const char *),
+    BitVector *(*bitvec_func) (BtorMemMgr *, BitVector *, BitVector *),
+    int num_tests)
+{
+  assert (const_func);
+  assert (bitvec_func);
+
+  double start_const, start_bitvec, total_const, total_bitvec;
+  int k;
+  long long i, tests;
+  char *c_a, *c_b, *c_res, *str;
+  BitVector *a, *b, *res;
+
+  printf ("\n");
+  printf ("  %10s | %5s | %10s | %10s\n",
+          "tests",
+          "bw",
+          "time const",
+          "time bitvec");
+
+  for (k = 1; k < 10; k++)
+  {
+    tests        = 0;
+    total_const  = 0;
+    total_bitvec = 0;
+    for (i = 0; i < num_tests; i++)
+    {
+      tests++;
+      a   = random_bv (2 << k);
+      c_a = btor_bv_to_char_bv (g_mm, a);
+      b   = random_bv (btor_log_2_util (2 << k));
+      c_b = btor_bv_to_char_bv (g_mm, b);
+
+      start_const = btor_time_stamp ();
+      c_res       = const_func (g_mm, c_a, c_b);
+      total_const += btor_time_stamp () - start_const;
+
+      start_bitvec = btor_time_stamp ();
+      res          = bitvec_func (g_mm, a, b);
+      total_bitvec += btor_time_stamp () - start_bitvec;
+      str = btor_bv_to_char_bv (g_mm, res);
+
+      assert (strlen (str) == strlen (c_res));
+      assert (memcmp (c_res, str, strlen (str) * sizeof (*str)) == 0);
+
+      btor_freestr (g_mm, str);
+      btor_delete_const (g_mm, c_b);
+      btor_delete_const (g_mm, c_res);
+      btor_free_bv (g_mm, b);
+      btor_free_bv (g_mm, res);
+      btor_delete_const (g_mm, c_a);
+      btor_free_bv (g_mm, a);
     }
 
     printf ("  %10llu | %5d | %10.5f | %10.5f\n",
@@ -614,10 +620,10 @@ test_bv_to_ll_bitvec (void)
   {
     x = ((uint64_t) rand ()) << 32;
     x |= (uint64_t) rand ();
-    a = btor_uint64_to_bv (g_btor, x, 64);
+    a = btor_uint64_to_bv (g_mm, x, 64);
     y = btor_bv_to_uint64_bv (a);
     assert (x == y);
-    btor_free_bv (g_btor, a);
+    btor_free_bv (g_mm, a);
   }
 }
 
