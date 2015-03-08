@@ -130,6 +130,12 @@ fi
 
 #--------------------------------------------------------------------------#
 
+SRCDIRS=". parser dumper"
+if [ $python = yes ]
+then
+  SRCDIRS="$SRCDIRS api/python"
+fi
+
 TARGETS="boolector"
 [ $shared = yes ] && TARGETS="$TARGETS libboolector.so"
 
@@ -433,6 +439,12 @@ fi
 
 if [ $python = yes ]
 then
+  # set default python command if no PYTHON environment variable was set
+  [ -z "$PYTHON" ] && PYTHON="python"
+  # check if set python command exists
+  type "$PYTHON" > /dev/null 2>&1
+  [ $? -gt 0 ] && die "Python command '$PYTHON' does not exist"
+
   py_libraries="boolector"
   py_library_dirs="."
   if [ $lingeling = yes ]; then
@@ -447,7 +459,12 @@ then
     py_libraries="$py_libraries minisat"
     py_library_dirs="$py_library_dirs ../minisat/build/dynamic/lib"
   fi
-
+  OBJS="api/python/boolector_py.o $OBJS" 
+  pyinc=`$PYTHON -c "import sysconfig; print(sysconfig.get_config_var('CONFINCLUDEPY'))"`
+  pylib=`$PYTHON -c "import sysconfig; print(sysconfig.get_config_var('BINLIBDEST'))"`
+  pyld=`basename $pyinc`
+  INCS="${INCS} -I$pyinc"
+  LIBS="${LIBS} -L$pylib -l$pyld"
   cat > setup.py <<EOF
 import os
 from distutils.core import setup
@@ -471,13 +488,15 @@ cat > python.mk <<EOF
 
 all: python
 
-python: setup.py
-	python setup.py build_ext -i
-	@echo "Compiled Boolector python module. Please read api/python/README on how to use the module"
+python: boolector_py setup.py
+	$PYTHON setup.py build_ext -i
+	@echo "Compiled Boolector Python module. Please read api/python/README on how to use the module"
+
+boolector_py: api/python/boolector_py.h api/python/boolector_py.c
 
 python-clean:
 	rm -rf build
-	rm -f api/python/*.c boolector.cpython*.so
+	rm -f api/python/boolector.c boolector.cpython*.so
 
 python-clean-mk:
 	rm -f python.mk setup.py
@@ -510,5 +529,6 @@ sed \
   -e "s,@LDEPS@,$LDEPS," \
   -e "s,@OBJS@,$OBJS," \
   -e "s,@TARGETS@,$TARGETS," \
+  -e "s,@SRCDIRS@,$SRCDIRS," \
   makefile.in > makefile
 msg "makefile generated"

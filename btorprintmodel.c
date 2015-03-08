@@ -1,6 +1,6 @@
 /*  Boolector: Satisfiablity Modulo Theories (SMT) solver.
  *
- *  Copyright (C) 2014 Mathias Preiner.
+ *  Copyright (C) 2014-2015 Mathias Preiner.
  *  Copyright (C) 2014-2015 Aina Niemetz.
  *
  *  All rights reserved.
@@ -17,26 +17,48 @@
 #include "dumper/btordumpsmt.h"
 
 const char *
-btor_get_bv_model_str (Btor *btor, BtorNode *exp)
+btor_get_bv_model_str_aux (Btor *btor,
+                           BtorPtrHashTable **bv_model,
+                           BtorPtrHashTable **fun_model,
+                           BtorNode *exp)
 {
   assert (btor);
+  assert (bv_model);
+  assert (fun_model);
   assert (exp);
 
   const char *res;
   const BitVector *bv;
 
   exp = btor_simplify_exp (btor, exp);
-  if (!(bv = btor_get_bv_model (btor, exp)))
+  if (!(bv = btor_get_bv_model_aux (btor, bv_model, fun_model, exp)))
     return btor_x_const_3vl (btor->mm, BTOR_REAL_ADDR_NODE (exp)->len);
   res = btor_bv_to_char_bv (btor->mm, bv);
   return res;
 }
 
-void
-btor_get_fun_model_str (
-    Btor *btor, BtorNode *exp, char ***args, char ***values, int *size)
+const char *
+btor_get_bv_model_str (Btor *btor, BtorNode *exp)
 {
   assert (btor);
+  assert (exp);
+
+  return btor_get_bv_model_str_aux (
+      btor, &btor->bv_model, &btor->fun_model, exp);
+}
+
+void
+btor_get_fun_model_str_aux (Btor *btor,
+                            BtorPtrHashTable **bv_model,
+                            BtorPtrHashTable **fun_model,
+                            BtorNode *exp,
+                            char ***args,
+                            char ***values,
+                            int *size)
+{
+  assert (btor);
+  assert (bv_model);
+  assert (fun_model);
   assert (exp);
   assert (args);
   assert (values);
@@ -53,10 +75,10 @@ btor_get_fun_model_str (
   exp = btor_simplify_exp (btor, exp);
   assert (BTOR_IS_FUN_NODE (exp));
 
-  model = btor_get_fun_model (btor, exp);
+  model = btor_get_fun_model_aux (btor, bv_model, fun_model, exp);
 
   if ((BTOR_IS_LAMBDA_NODE (exp) && ((BtorLambdaNode *) exp)->num_params > 1)
-      || !btor->fun_model || !model)
+      || !(*fun_model) || !model)
   {
     *size = 0;
     return;
@@ -98,6 +120,20 @@ btor_get_fun_model_str (
     (*values)[i] = (char *) btor_bv_to_char_bv (btor->mm, value);
     i++;
   }
+}
+
+void
+btor_get_fun_model_str (
+    Btor *btor, BtorNode *exp, char ***args, char ***values, int *size)
+{
+  assert (btor);
+  assert (exp);
+  assert (args);
+  assert (values);
+  assert (size);
+
+  btor_get_fun_model_str_aux (
+      btor, &btor->bv_model, &btor->fun_model, exp, args, values, size);
 }
 
 static void
@@ -249,8 +285,11 @@ print_fun_model_smt2 (Btor *btor, BtorNode *node, int base, FILE *file)
   fprintf (file, "%2c(define-fun %s (", ' ', s);
 
   /* fun param sorts */
+  node = btor_simplify_exp (btor, node);
+  assert (BTOR_IS_REGULAR_NODE (node));
+  assert (BTOR_IS_FUN_NODE (node));
+  sort = btor_create_or_get_sort (btor, node);
   x    = 0;
-  sort = ((BtorUFNode *) node)->sort;
   if (sort->fun.domain->kind != BTOR_TUPLE_SORT) /* one parameter */
   {
     fprintf (file, "\n%3c", ' ');
@@ -264,6 +303,7 @@ print_fun_model_smt2 (Btor *btor, BtorNode *node, int base, FILE *file)
       print_param_smt2 (s, x, sort->fun.domain->tuple.elements[i], file);
     }
   }
+  btor_release_sort (&btor->sorts_unique_table, sort);
   fprintf (file, ") ");
   btor_dump_sort_smt (sort->fun.codomain, 2, file);
   fprintf (file, "\n");
@@ -388,7 +428,8 @@ btor_print_model (Btor *btor, char *format, FILE *file)
 
   base = btor->options.output_number_format.val;
 
-  if (!strcmp (format, "smt2")) fprintf (file, "(model\n");
+  if (!strcmp (format, "smt2"))
+    fprintf (file, "(model%s", btor->inputs->count ? "\n" : " ");
 
   init_node_hash_table_iterator (&it, btor->inputs);
   while (has_next_node_hash_table_iterator (&it))
