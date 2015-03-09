@@ -341,6 +341,10 @@ btor_set_opt (Btor *btor, const char *name, int val)
   {
     assert (!val || !btor->options.dual_prop.val);
   }
+  else if (!strcmp (name, "sls") || !strcmp (name, BTOR_OPT_SLS))
+  {
+    assert (btor->btor_sat_btor_called == 0);
+  }
   else if (!strcmp (name, "rwl") || !strcmp (name, BTOR_OPT_REWRITE_LEVEL))
   {
     assert (val >= 0 && val <= 3);

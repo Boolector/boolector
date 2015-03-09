@@ -590,6 +590,12 @@ boolector_set_opt (Btor *btor, const char *name, int val)
         val && btor->options.dual_prop.val,
         "enabling multiple optimization techniques is not allowed");
   }
+  else if (!strcmp (name, BTOR_OPT_SLS))
+  {
+    BTOR_ABORT_BOOLECTOR (
+        btor->btor_sat_btor_called > 0,
+        "enabling sls engine after calling 'boolector_sat' is not allowed");
+  }
   else if (!strcmp (name, BTOR_OPT_UCOPT))
   {
 #ifdef BTOR_DO_NOT_OPTIMIZE_UNCONSTRAINED

@@ -56,6 +56,10 @@ typedef struct BtorOpt
 #define BTOR_OPT_BETA_REDUCE_ALL "beta_reduce_all"
 #define BTOR_OPT_DUAL_PROP "dual_prop"
 #define BTOR_OPT_JUST "just"
+#define BTOR_OPT_SLS "sls"
+#define BTOR_OPT_SLS "sls_move_randomizeall"
+#define BTOR_OPT_SLS "sls_move_on_first"
+#define BTOR_OPT_SLS "sls_move_inc_move_test"
 #ifndef BTOR_DO_NOT_OPTIMIZE_UNCONSTRAINED
 #define BTOR_OPT_UCOPT "ucopt"
 #endif
