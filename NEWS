@@ -1,5 +1,15 @@
+news for release 2.0.6 since 2.0.5
+--------------------------------------
+* fixed printing issues in interactive SMT2 mode
+* SMT2 parser now exists immediately after (exit) command was read
+
+news for release 2.0.5 since 2.0.4
+--------------------------------------
+* add support for termination callbacks (C and python API)
 * smt2 parser: added option :regular-output-channel
 * fixed smt2 interactivity issues
+* fixed issue in Python API with Python 2.7 compatibility (__div__)
+* fixed segmentation fault in SMT2 model printer
 
 news for release 2.0.4 since 2.0.3
 --------------------------------------
