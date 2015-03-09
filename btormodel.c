@@ -15,6 +15,7 @@
 #include "btorexit.h"
 #include "btoriter.h"
 #include "btormem.h"
+#include "btorsls.h"
 #include "btorutil.h"
 
 #define BTOR_ABORT_MODEL(cond, msg)                   \
@@ -53,8 +54,8 @@ btor_delete_bv_model (Btor *btor, BtorPtrHashTable **bv_model)
   *bv_model = 0;
 }
 
-static void
-init_bv_model (Btor *btor, BtorPtrHashTable **bv_model)
+void
+btor_init_bv_model (Btor *btor, BtorPtrHashTable **bv_model)
 {
   assert (btor);
   assert (bv_model);
@@ -119,8 +120,8 @@ delete_fun_model (Btor *btor, BtorPtrHashTable **fun_model)
   *fun_model = 0;
 }
 
-static void
-init_fun_model (Btor *btor, BtorPtrHashTable **fun_model)
+void
+btor_init_fun_model (Btor *btor, BtorPtrHashTable **fun_model)
 {
   assert (btor);
   assert (fun_model);
@@ -762,11 +763,16 @@ btor_generate_model (Btor *btor, int model_for_all_nodes)
 {
   assert (btor);
 
-  init_bv_model (btor, &btor->bv_model);
-  init_fun_model (btor, &btor->fun_model);
+  if (btor->options.sls.val)
+    btor_generate_model_sls (btor, model_for_all_nodes, 0);
+  else
+  {
+    btor_init_bv_model (btor, &btor->bv_model);
+    btor_init_fun_model (btor, &btor->fun_model);
 
-  btor_generate_model_aux (
-      btor, btor->bv_model, btor->fun_model, model_for_all_nodes);
+    btor_generate_model_aux (
+        btor, btor->bv_model, btor->fun_model, model_for_all_nodes);
+  }
 }
 
 void
@@ -803,8 +809,8 @@ btor_get_bv_model_aux (Btor *btor,
    * get-value in SMT-LIB v2) */
   if (!b)
   {
-    init_bv_model (btor, bv_model);
-    init_fun_model (btor, fun_model);
+    btor_init_bv_model (btor, bv_model);
+    btor_init_fun_model (btor, fun_model);
     btor_generate_model_aux (btor, *bv_model, *fun_model, 1);
   }
   b = btor_find_in_ptr_hash_table (*bv_model, BTOR_REAL_ADDR_NODE (exp));
@@ -861,8 +867,8 @@ btor_get_fun_model_aux (Btor *btor,
    * get-value in SMT-LIB v2) */
   if (!b)
   {
-    init_bv_model (btor, bv_model);
-    init_fun_model (btor, fun_model);
+    btor_init_bv_model (btor, bv_model);
+    btor_init_fun_model (btor, fun_model);
     btor_generate_model_aux (btor, *bv_model, *fun_model, 1);
   }
   b = btor_find_in_ptr_hash_table (*fun_model, exp);

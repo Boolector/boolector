@@ -1191,6 +1191,18 @@ DONE:
   BTOR_RELEASE_STACK (btor->mm, neighs);
 }
 
+void
+btor_generate_model_sls (Btor *btor, int model_for_all_nodes, int reset)
+{
+  assert (btor);
+
+  if (!reset && btor->bv_model) return;
+  btor_init_bv_model (btor, &btor->bv_model);
+  btor_init_fun_model (btor, &btor->fun_model);
+  btor_generate_model_aux (
+      btor, btor->bv_model, btor->fun_model, model_for_all_nodes);
+}
+
 /* Note: failed assumptions -> no handling necessary, sls only works for SAT */
 int
 btor_sat_aux_btor_sls (Btor *btor)
@@ -1241,7 +1253,7 @@ btor_sat_aux_btor_sls (Btor *btor)
   /* Generate intial model, all bv vars are initialized with zero. We do
    * not have to consider model_for_all_nodes, but let this be handled by
    * the model generation (if enabled) after SAT has been determined. */
-  btor_generate_model (btor, 0);
+  btor_generate_model_sls (btor, 0, 1);
 
   /* collect roots */
   roots = btor_new_ptr_hash_table (btor->mm,
@@ -1289,7 +1301,7 @@ btor_sat_aux_btor_sls (Btor *btor)
     }
 
     /* restart */
-    btor_generate_model (btor, 0);
+    btor_generate_model_sls (btor, 0, 1);
     i += 1;
   }
 
