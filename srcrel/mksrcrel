@@ -67,7 +67,8 @@ done
 
 mkdir $dir/api/
 mkdir $dir/api/python
-for file in boolector.pyx btorapi.pxd api_usage_examples.py README
+for file in boolector_py.h boolector_py.c boolector.pyx btorapi.pxd \
+	    api_usage_examples.py README
 do
   cp -p api/python/$file $dir/api/python/
 done

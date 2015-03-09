@@ -254,7 +254,7 @@ insert_substitution (Btor *btor, BtorNode *exp, BtorNode *subst, int update)
   }
   else if (b)
   {
-    assert (!b || (BtorNode *) b->data.asPtr == subst);
+    assert ((BtorNode *) b->data.asPtr == subst);
     /* substitution already inserted */
     return;
   }
@@ -842,23 +842,8 @@ btor_new_btor_no_init (void)
   return new_aux_btor (0);
 }
 
-void
-btor_set_term_btor (Btor *btor, int (*fun) (void *), void *state)
-{
-  assert (btor);
-
-  BtorSATMgr *smgr;
-
-  btor->cbs.term.fun   = fun;
-  btor->cbs.term.state = state;
-
-  smgr = btor_get_sat_mgr_btor (btor);
-  if (btor_has_term_support_sat_mgr (smgr))
-    btor_set_term_sat_mgr (smgr, btor_terminate_btor, btor);
-}
-
-int
-btor_terminate_btor (void *btor)
+static int
+terminate_aux_btor (void *btor)
 {
   assert (btor);
 
@@ -868,9 +853,34 @@ btor_terminate_btor (void *btor)
   bt = (Btor *) btor;
   if (!bt->cbs.term.fun) return 0;
   if (bt->cbs.term.done) return 1;
-  res = bt->cbs.term.fun (bt->cbs.term.state);
+  res = ((int (*) (void *)) bt->cbs.term.fun) (bt->cbs.term.state);
   if (res) bt->cbs.term.done = res;
   return res;
+}
+
+int
+btor_terminate_btor (Btor *btor)
+{
+  assert (btor);
+
+  if (btor->cbs.term.termfun) return btor->cbs.term.termfun (btor);
+  return 0;
+}
+
+void
+btor_set_term_btor (Btor *btor, int (*fun) (void *), void *state)
+{
+  assert (btor);
+
+  BtorSATMgr *smgr;
+
+  btor->cbs.term.termfun = terminate_aux_btor;
+  btor->cbs.term.fun     = fun;
+  btor->cbs.term.state   = state;
+
+  smgr = btor_get_sat_mgr_btor (btor);
+  if (btor_has_term_support_sat_mgr (smgr))
+    btor_set_term_sat_mgr (smgr, terminate_aux_btor, btor);
 }
 
 static void
@@ -2356,15 +2366,7 @@ btor_simplify_exp (Btor *btor, BtorNode *exp)
 
   BtorNode *result;
 
-  if (btor->substitutions && (result = find_substitution (btor, exp)))
-  {
-    assert (result);
-    result = btor_pointer_chase_simplified_exp (btor, result);
-    assert (!find_substitution (btor, BTOR_REAL_ADDR_NODE (result)));
-    assert (!BTOR_REAL_ADDR_NODE (result)->simplified);
-  }
-  else
-    result = btor_pointer_chase_simplified_exp (btor, exp);
+  result = btor_pointer_chase_simplified_exp (btor, exp);
 
   /* NOTE: embedded constraints rewriting is enabled with rwl > 1 */
   if (btor->options.simplify_constraints.val
@@ -7197,7 +7199,8 @@ sat_aux_btor (Btor *btor, int lod_limit, int sat_limit)
 
   while (sat_result == BTOR_SAT)
   {
-    if (btor_terminate_btor (btor))
+    if (btor_terminate_btor (btor)
+        || (lod_limit > -1 && btor->stats.lod_refinements >= lod_limit))
     {
       sat_result = BTOR_UNKNOWN;
       goto DONE;
@@ -7243,12 +7246,6 @@ sat_aux_btor (Btor *btor, int lod_limit, int sat_limit)
     assert (check_reachable_flag_dbg (btor));
     add_again_assumptions (btor);
     sat_result = timed_sat_sat (btor, -1);
-
-    if (lod_limit > -1 && btor->stats.lod_refinements >= lod_limit)
-    {
-      sat_result = BTOR_UNKNOWN;
-      break;
-    }
   }
 
   assert (sat_result != BTOR_SAT || BTOR_EMPTY_STACK (prop_stack));

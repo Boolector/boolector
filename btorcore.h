@@ -78,15 +78,19 @@ struct BtorCallbacks
 {
   struct
   {
-    int (*fun) (void *);
-    void *state;
+    /* the function to use for (checking) termination
+     * (we need to distinguish between callbacks from C and Python) */
+    int (*termfun) (void *);
+
+    void *fun;   /* termination callback function */
+    void *state; /* termination callback function arguments */
     int done;
   } term;
 };
 
 typedef struct BtorCallbacks BtorCallbacks;
 
-struct ConstraintStats
+struct BtorConstraintStats
 {
   int varsubst;
   int embedded;
@@ -94,7 +98,7 @@ struct ConstraintStats
   int synthesized;
 };
 
-typedef struct ConstraintStats ConstraintStats;
+typedef struct BtorConstraintStats BtorConstraintStats;
 
 // TODO (ma): array_assignments -> fun_assignments
 struct Btor
@@ -195,8 +199,8 @@ struct Btor
     BtorIntStack lemmas_size;       /* distribution of n-size lemmas */
     long long int lemmas_size_sum;  /* sum of the size of all added lemmas */
     long long int lclause_size_sum; /* sum of the size of all linking clauses */
-    ConstraintStats constraints;
-    ConstraintStats oldconstraints;
+    BtorConstraintStats constraints;
+    BtorConstraintStats oldconstraints;
     long long expressions;
     long long beta_reduce_calls;
     long long eval_exp_calls;
@@ -272,7 +276,7 @@ const char *btor_version (Btor *btor);
 void btor_set_term_btor (Btor *btor, int (*fun) (void *), void *state);
 
 /* Determine if boolector has been terminated via termination callback. */
-int btor_terminate_btor (void *btor);
+int btor_terminate_btor (Btor *btor);
 
 /* Set verbosity message prefix. */
 void btor_set_msg_prefix_btor (Btor *btor, const char *prefix);
