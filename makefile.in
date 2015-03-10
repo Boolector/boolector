@@ -32,7 +32,8 @@ all: libboolector.a $(TARGETS)
 	$(CC) $(CFLAGS) $(INCS) -c $< -o $@
 
 analyze:
-	clang --analyze $(CFLAGS) $(INCS) $(shell ls *.c *.cc)
+	clang --analyze $(CFLAGS) $(INCS) \
+	  $(shell find $(SRCDIRS) -maxdepth 1 -name "*.[ch]" -o -name "*.cc")
 
 dependencies: btorconfig.h $(SRC) makefile
 	rm -f $@
