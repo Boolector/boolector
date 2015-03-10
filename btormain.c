@@ -111,6 +111,7 @@ struct BtorMainApp
   FILE *infile;
   int close_infile;
   FILE *outfile;
+  char *outfile_name;
   int close_outfile;
 };
 
@@ -861,13 +862,7 @@ boolector_main (int argc, char **argv)
         goto DONE;
       }
 
-      static_app->outfile = fopen (argv[i], "w");
-      if (!static_app->outfile)
-      {
-        btormain_error (static_app, "can not create '%s'", errarg.start);
-        goto DONE;
-      }
-      static_app->close_outfile = 1;
+      static_app->outfile_name = argv[i];
     }
     else if (IS_STATIC_OPT (smt2_model))
     {
@@ -1119,6 +1114,24 @@ boolector_main (int argc, char **argv)
   }
 
   assert (!static_app->done && !static_app->err);
+
+  if (static_app->outfile_name)
+  {
+    if (!strcmp (static_app->outfile_name, static_app->infile_name))
+    {
+      btormain_error (static_app, "input file and output file are the same");
+      goto DONE;
+    }
+
+    static_app->outfile = fopen (static_app->outfile_name, "w");
+    if (!static_app->outfile)
+    {
+      btormain_error (
+          static_app, "can not create '%s'", static_app->outfile_name);
+      goto DONE;
+    }
+    static_app->close_outfile = 1;
+  }
 
 #ifndef NBTORLOG
   boolector_set_opt (static_app->btor, BTOR_OPT_LOGLEVEL, log);
