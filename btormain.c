@@ -337,6 +337,7 @@ print_opt (BtorMainApp *app,
       || !strcmp (lng, BTOR_OPT_JUST_HEURISTIC) || !strcmp (lng, BTOR_OPT_UCOPT)
       || !strcmp (lng, BTOR_OPT_LAZY_SYNTHESIZE)
       || !strcmp (lng, BTOR_OPT_ELIMINATE_SLICES)
+      || !strcmp (lng, BTOR_OPT_SKELETON_PREPROCESSING)
       || !strcmp (lng, BTOR_OPT_PRETTY_PRINT)
       || !strcmp (lng, BTOR_OPT_VERBOSITY) || !strcmp (lng, BTOR_OPT_LOGLEVEL))
   {

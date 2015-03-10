@@ -75,6 +75,7 @@ typedef struct BtorOpt
 #define BTOR_OPT_UCOPT "ucopt"
 #define BTOR_OPT_LAZY_SYNTHESIZE "lazy_synthesize"
 #define BTOR_OPT_ELIMINATE_SLICES "eliminate_slices"
+#define BTOR_OPT_SKELETON_PREPROCESSING "skeleton_preprocessing"
 #define BTOR_OPT_JUST_HEURISTIC "just_heuristic"
 #define BTOR_OPT_PARSE_INTERACTIVE "parse_interactive"
 
@@ -110,8 +111,10 @@ typedef struct BtorOpts
 #ifndef BTOR_DO_NOT_OPTIMIZE_UNCONSTRAINED
   BtorOpt ucopt; /* unconstrained optimization */
 #endif
-  BtorOpt lazy_synthesize;  /* lazily synthesize expressions */
-  BtorOpt eliminate_slices; /* eliminate slices on variables */
+  BtorOpt lazy_synthesize;        /* lazily synthesize expressions */
+  BtorOpt eliminate_slices;       /* eliminate slices on variables */
+  BtorOpt skeleton_preprocessing; /* enable propositional skeletone
+                                     preprocessing" */
 
   BtorOpt auto_cleanup; /* automatic cleanup of exps, assignment
                            strings (external references only) */
