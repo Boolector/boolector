@@ -696,7 +696,7 @@ int
 boolector_main (int argc, char **argv)
 {
   int res, sat_res, model_gen, print_model, format;
-  int i, j, k, len, shrt, disable, readval, val, forced_sat_solver;
+  int i, j, k, len, shrt, disable, readval, isint, val, forced_sat_solver;
 #ifndef NBTORLOG
   int log;
 #endif
@@ -779,6 +779,7 @@ boolector_main (int argc, char **argv)
     k       = 0;
     val     = 0;
     readval = 0;
+    isint   = 0;
     len     = strlen (argv[i]);
 
     for (j = 0; j < len && argv[i][j] != '='; j++)
@@ -797,18 +798,18 @@ boolector_main (int argc, char **argv)
     valstr = argv[i] + j + 1;
     if (argv[i][j] == '=')
     {
-      if (valstr[0] != 0)
+      if ((readval = valstr[0] != 0))
       {
-        val = (int) strtol (valstr, &tmp, 10);
-        if (tmp[0] == 0) readval = 1;
+        val   = (int) strtol (valstr, &tmp, 10);
+        isint = tmp[0] == 0;
       }
     }
-    else if (i + 1 < argc && argv[i + 1][0] != '-')
+    else if ((readval = i + 1 < argc && argv[i + 1][0] != '-'))
     {
       val = (int) strtol (argv[i + 1], &tmp, 10);
       if (tmp[0] == 0)
       {
-        readval = 1;
+        isint = 1;
         i += 1;
       }
     }
@@ -839,6 +840,15 @@ boolector_main (int argc, char **argv)
     else if (IS_STATIC_OPT (time))
     {
       if (disable) goto ERR_INVALID_OPTION;
+
+      if (!isint)
+      {
+      ERR_INVALID_ARGUMENT:
+        btormain_error (static_app,
+                        "invalid argument for '%s', expected int",
+                        errarg.start);
+        goto DONE;
+      }
 
       if (!readval)
       {
@@ -1098,10 +1108,15 @@ boolector_main (int argc, char **argv)
                           BTOR_OPT_JUST);
           goto DONE;
         }
-        else if (!readval
-                 && (!strcmp (o, BTOR_OPT_REWRITE_LEVEL)
-                     || !strcmp (o, BTOR_OPT_REWRITE_LEVEL_PBR)))
-          goto ERR_MISSING_ARGUMENT;
+        else if ((!strcmp (o, BTOR_OPT_REWRITE_LEVEL)
+                  || !strcmp (o, BTOR_OPT_REWRITE_LEVEL_PBR))
+                 || !strcmp (o, BTOR_OPT_PBRA_LOD_LIMIT)
+                 || !strcmp (o, BTOR_OPT_PBRA_SAT_LIMIT)
+                 || !strcmp (o, BTOR_OPT_PBRA_OPS_FACTOR))
+        {
+          if (!isint) goto ERR_INVALID_ARGUMENT;
+          if (!readval) goto ERR_MISSING_ARGUMENT;
+        }
 
         if (disable || (readval && val == 0))
           boolector_set_opt (static_app->btor, o, 0);
