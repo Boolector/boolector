@@ -524,9 +524,8 @@ print_copyright (BtorMainApp *app)
 
   fprintf (out, "This software is\n");
   fprintf (out, "Copyright (c) 2007-2009 Robert Brummayer\n");
-  fprintf (out, "Copyright (c) 2007-2014 Armin Biere\n");
-  fprintf (out, "Copyright (c) 2012-2014 Aina Niemetz, Mathias Preiner\n");
-  fprintf (out, "Copyright (c) 2013 Christian Reisenberger\n");
+  fprintf (out, "Copyright (c) 2007-2015 Armin Biere\n");
+  fprintf (out, "Copyright (c) 2012-2015 Aina Niemetz, Mathias Preiner\n");
   fprintf (out, "Institute for Formal Models and Verification\n");
   fprintf (out, "Johannes Kepler University, Linz, Austria\n");
 #ifdef BTOR_USE_LINGELING
