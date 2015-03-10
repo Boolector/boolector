@@ -67,6 +67,7 @@ typedef struct BtorOpt
 #define BTOR_OPT_PRETTY_PRINT "pretty_print"
 #define BTOR_OPT_LOGLEVEL "loglevel"
 #define BTOR_OPT_VERBOSITY "verbosity"
+#define BTOR_OPT_SEED "seed"
 #define BTOR_OPT_SIMPLIFY_CONSTRAINTS "simplify_constraints"
 #define BTOR_OPT_AUTO_CLEANUP_INTERNAL "auto_cleanup_internal"
 #ifdef BTOR_CHECK_FAILED

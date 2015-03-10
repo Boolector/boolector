@@ -1112,7 +1112,8 @@ boolector_main (int argc, char **argv)
                   || !strcmp (o, BTOR_OPT_REWRITE_LEVEL_PBR))
                  || !strcmp (o, BTOR_OPT_PBRA_LOD_LIMIT)
                  || !strcmp (o, BTOR_OPT_PBRA_SAT_LIMIT)
-                 || !strcmp (o, BTOR_OPT_PBRA_OPS_FACTOR))
+                 || !strcmp (o, BTOR_OPT_PBRA_OPS_FACTOR)
+                 || !strcmp (o, BTOR_OPT_SEED))
         {
           if (!isint) goto ERR_INVALID_ARGUMENT;
           if (!readval) goto ERR_MISSING_ARGUMENT;
