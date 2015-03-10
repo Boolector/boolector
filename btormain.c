@@ -111,6 +111,7 @@ struct BtorMainApp
   FILE *infile;
   int close_infile;
   FILE *outfile;
+  char *outfile_name;
   int close_outfile;
 };
 
@@ -149,9 +150,9 @@ btormain_init_opts (BtorMainApp *app)
   assert (app);
 
   BTORMAIN_INIT_OPT (
-      app->opts.help, 0, "h", "help", 0, 0, 1, "print this message and exit");
+      app->opts.help, 1, "h", "help", 0, 0, 1, "print this message and exit");
   BTORMAIN_INIT_OPT (app->opts.copyright,
-                     0,
+                     1,
                      "c",
                      "copyright",
                      0,
@@ -159,11 +160,11 @@ btormain_init_opts (BtorMainApp *app)
                      1,
                      "print copyright and exit");
   BTORMAIN_INIT_OPT (
-      app->opts.version, 0, "V", "version", 0, 0, 1, "print version and exit");
+      app->opts.version, 1, "V", "version", 0, 0, 1, "print version and exit");
   BTORMAIN_INIT_OPT (
-      app->opts.time, 0, "t", "time", 0, 0, -1, "set time limit");
+      app->opts.time, 1, "t", "time", 0, 0, -1, "set time limit");
   BTORMAIN_INIT_OPT (app->opts.output,
-                     1,
+                     0,
                      "o",
                      "output",
                      0,
@@ -172,7 +173,7 @@ btormain_init_opts (BtorMainApp *app)
                      "set output file for dumping");
   BTORMAIN_INIT_OPT (
       app->opts.smt2_model,
-      1,
+      0,
       0,
       "smt2_model",
       0,
@@ -181,7 +182,7 @@ btormain_init_opts (BtorMainApp *app)
       "print model in SMT-LIB v2 format if model generation is enabled");
 #ifdef BTOR_USE_LINGELING
   BTORMAIN_INIT_OPT (app->opts.lingeling,
-                     1,
+                     0,
                      0,
                      "lingeling",
                      0,
@@ -189,7 +190,7 @@ btormain_init_opts (BtorMainApp *app)
                      1,
                      "force Lingeling as SAT solver");
   BTORMAIN_INIT_OPT (app->opts.lingeling_opts,
-                     1,
+                     0,
                      0,
                      "lingeling_opts",
                      0,
@@ -197,7 +198,7 @@ btormain_init_opts (BtorMainApp *app)
                      0,
                      "set lingeling option(s) '--<opt>=<val>'");
   BTORMAIN_INIT_OPT (app->opts.lingeling_nofork,
-                     1,
+                     0,
                      0,
                      "lingeling_nofork",
                      0,
@@ -207,7 +208,7 @@ btormain_init_opts (BtorMainApp *app)
 #endif
 #ifdef BTOR_USE_PICOSAT
   BTORMAIN_INIT_OPT (app->opts.picosat,
-                     1,
+                     0,
                      0,
                      "picosat",
                      0,
@@ -217,7 +218,7 @@ btormain_init_opts (BtorMainApp *app)
 #endif
 #ifdef BTOR_USE_MINISAT
   BTORMAIN_INIT_OPT (app->opts.minisat,
-                     1,
+                     0,
                      0,
                      "minisat",
                      0,
@@ -524,9 +525,8 @@ print_copyright (BtorMainApp *app)
 
   fprintf (out, "This software is\n");
   fprintf (out, "Copyright (c) 2007-2009 Robert Brummayer\n");
-  fprintf (out, "Copyright (c) 2007-2014 Armin Biere\n");
-  fprintf (out, "Copyright (c) 2012-2014 Aina Niemetz, Mathias Preiner\n");
-  fprintf (out, "Copyright (c) 2013 Christian Reisenberger\n");
+  fprintf (out, "Copyright (c) 2007-2015 Armin Biere\n");
+  fprintf (out, "Copyright (c) 2012-2015 Aina Niemetz, Mathias Preiner\n");
   fprintf (out, "Institute for Formal Models and Verification\n");
   fprintf (out, "Johannes Kepler University, Linz, Austria\n");
 #ifdef BTOR_USE_LINGELING
@@ -696,7 +696,7 @@ int
 boolector_main (int argc, char **argv)
 {
   int res, sat_res, model_gen, print_model, format;
-  int i, j, k, len, shrt, disable, readval, val, forced_sat_solver;
+  int i, j, k, len, shrt, disable, readval, isint, val, forced_sat_solver;
 #ifndef NBTORLOG
   int log;
 #endif
@@ -779,6 +779,7 @@ boolector_main (int argc, char **argv)
     k       = 0;
     val     = 0;
     readval = 0;
+    isint   = 0;
     len     = strlen (argv[i]);
 
     for (j = 0; j < len && argv[i][j] != '='; j++)
@@ -797,18 +798,18 @@ boolector_main (int argc, char **argv)
     valstr = argv[i] + j + 1;
     if (argv[i][j] == '=')
     {
-      if (valstr[0] != 0)
+      if ((readval = valstr[0] != 0))
       {
-        val = (int) strtol (valstr, &tmp, 10);
-        if (tmp[0] == 0) readval = 1;
+        val   = (int) strtol (valstr, &tmp, 10);
+        isint = tmp[0] == 0;
       }
     }
-    else if (i + 1 < argc && argv[i + 1][0] != '-')
+    else if ((readval = i + 1 < argc && argv[i + 1][0] != '-'))
     {
       val = (int) strtol (argv[i + 1], &tmp, 10);
       if (tmp[0] == 0)
       {
-        readval = 1;
+        isint = 1;
         i += 1;
       }
     }
@@ -840,6 +841,15 @@ boolector_main (int argc, char **argv)
     {
       if (disable) goto ERR_INVALID_OPTION;
 
+      if (!isint)
+      {
+      ERR_INVALID_ARGUMENT:
+        btormain_error (static_app,
+                        "invalid argument for '%s', expected int",
+                        errarg.start);
+        goto DONE;
+      }
+
       if (!readval)
       {
       ERR_MISSING_ARGUMENT:
@@ -862,13 +872,7 @@ boolector_main (int argc, char **argv)
         goto DONE;
       }
 
-      static_app->outfile = fopen (argv[i], "w");
-      if (!static_app->outfile)
-      {
-        btormain_error (static_app, "can not create '%s'", errarg.start);
-        goto DONE;
-      }
-      static_app->close_outfile = 1;
+      static_app->outfile_name = argv[i];
     }
     else if (IS_STATIC_OPT (smt2_model))
     {
@@ -1104,10 +1108,15 @@ boolector_main (int argc, char **argv)
                           BTOR_OPT_JUST);
           goto DONE;
         }
-        else if (!readval
-                 && (!strcmp (o, BTOR_OPT_REWRITE_LEVEL)
-                     || !strcmp (o, BTOR_OPT_REWRITE_LEVEL_PBR)))
-          goto ERR_MISSING_ARGUMENT;
+        else if ((!strcmp (o, BTOR_OPT_REWRITE_LEVEL)
+                  || !strcmp (o, BTOR_OPT_REWRITE_LEVEL_PBR))
+                 || !strcmp (o, BTOR_OPT_PBRA_LOD_LIMIT)
+                 || !strcmp (o, BTOR_OPT_PBRA_SAT_LIMIT)
+                 || !strcmp (o, BTOR_OPT_PBRA_OPS_FACTOR))
+        {
+          if (!isint) goto ERR_INVALID_ARGUMENT;
+          if (!readval) goto ERR_MISSING_ARGUMENT;
+        }
 
         if (disable || (readval && val == 0))
           boolector_set_opt (static_app->btor, o, 0);
@@ -1120,6 +1129,24 @@ boolector_main (int argc, char **argv)
   }
 
   assert (!static_app->done && !static_app->err);
+
+  if (static_app->outfile_name)
+  {
+    if (!strcmp (static_app->outfile_name, static_app->infile_name))
+    {
+      btormain_error (static_app, "input file and output file are the same");
+      goto DONE;
+    }
+
+    static_app->outfile = fopen (static_app->outfile_name, "w");
+    if (!static_app->outfile)
+    {
+      btormain_error (
+          static_app, "can not create '%s'", static_app->outfile_name);
+      goto DONE;
+    }
+    static_app->close_outfile = 1;
+  }
 
 #ifndef NBTORLOG
   boolector_set_opt (static_app->btor, BTOR_OPT_LOGLEVEL, log);

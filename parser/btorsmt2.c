@@ -3756,7 +3756,6 @@ btor_read_command_smt2 (BtorSMT2Parser *parser)
           parser, "unsupported command '%s'", parser->token.start);
       break;
   }
-DONE:
   parser->commands.all++;
   return 1;
 }
