@@ -38,7 +38,7 @@ dependencies: btorconfig.h $(SRC) makefile
 	rm -f $@
 	for srcdir in $(SRCDIRS); \
 	do \
-	  find $$srcdir/ -maxdepth 1 -name \*.c -o -name \*.h -o -name \*.cc | sort | uniq | \
+	  find $$srcdir/ -maxdepth 1 -name "*.[ch]" -o -name \*.cc | \
 	  xargs $(CC) $(CFLAGS) $(INCS) -MM | \
 	  sed -e 's,\(.*\):,'$$srcdir/'\1: makefile,' >>$@; \
 	done
