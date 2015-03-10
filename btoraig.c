@@ -625,6 +625,38 @@ BTOR_AIG_TWO_LEVEL_OPT_TRY_AGAIN:
       || find_and_contradiction_aig (amgr, right, left, right, &calls))
     return BTOR_AIG_FALSE;
 
+  // Implicit XOR normalization .... (TODO keep it?)
+
+  if (BTOR_IS_INVERTED_AIG (left) && BTOR_IS_INVERTED_AIG (right)
+      && BTOR_LEFT_CHILD_AIG (real_left)
+             == BTOR_INVERT_AIG (BTOR_LEFT_CHILD_AIG (real_right))
+      && BTOR_RIGHT_CHILD_AIG (real_left)
+             == BTOR_INVERT_AIG (BTOR_RIGHT_CHILD_AIG (real_right)))
+  {
+    BtorAIG *l =
+        *find_and_aig (amgr,
+                       BTOR_LEFT_CHILD_AIG (real_left),
+                       BTOR_INVERT_AIG (BTOR_RIGHT_CHILD_AIG (real_left)));
+    if (l)
+    {
+      BtorAIG *r =
+          *find_and_aig (amgr,
+                         BTOR_INVERT_AIG (BTOR_LEFT_CHILD_AIG (real_left)),
+                         BTOR_RIGHT_CHILD_AIG (real_left));
+      if (r)
+      {
+        res = *find_and_aig (amgr, BTOR_INVERT_AIG (l), BTOR_INVERT_AIG (r));
+        if (res)
+        {
+          inc_aig_ref_counter (res);
+          return BTOR_INVERT_AIG (res);
+        }
+      }
+    }
+  }
+
+  // TODO Implicit ITE normalization ....
+
   lookup = find_and_aig (amgr, left, right);
   if (!(res = *lookup))
   {
