@@ -1,3 +1,10 @@
+* fixed help message issues
+
+news for release 2.0.6 since 2.0.5
+--------------------------------------
+* fixed printing issues in interactive SMT2 mode
+* SMT2 parser now exists immediately after (exit) command was read
+
 news for release 2.0.5 since 2.0.4
 --------------------------------------
 * add support for termination callbacks (C and python API)

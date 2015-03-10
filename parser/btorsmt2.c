@@ -3622,6 +3622,7 @@ btor_read_command_smt2 (BtorSMT2Parser *parser)
           fprintf (parser->outfile, "unsat\n");
         else
           fprintf (parser->outfile, "unknown\n");
+        fflush (parser->outfile);
       }
       else
       {
@@ -3673,14 +3674,7 @@ btor_read_command_smt2 (BtorSMT2Parser *parser)
       if (!btor_read_rpar_smt2 (parser, " after 'exit'")) return 0;
       assert (!parser->commands.exits);
       parser->commands.exits++;
-      tag = btor_read_token_smt2 (parser);
-      if (tag == BTOR_INVALID_TAG_SMT2) return 0;
-      if (tag != EOF)
-        return !btor_perr_smt2 (
-            parser,
-            "expected end-of-file after 'exit' command at '%s'",
-            parser->token.start);
-      goto DONE;
+      parser->done = 1;
       break;
 
     case BTOR_GET_MODEL_TAG_SMT2:
@@ -3689,6 +3683,7 @@ btor_read_command_smt2 (BtorSMT2Parser *parser)
         return !btor_perr_smt2 (parser, "model generation is not enabled");
       if (parser->res->result != BOOLECTOR_SAT) break;
       boolector_print_model (parser->btor, "smt2", parser->outfile);
+      fflush (parser->outfile);
       break;
 
     case BTOR_GET_VALUE_TAG_SMT2:
@@ -3724,6 +3719,7 @@ btor_read_command_smt2 (BtorSMT2Parser *parser)
         tag = btor_read_token_smt2 (parser);
       }
       fprintf (parser->outfile, ")\n");
+      fflush (parser->outfile);
       if (tag != BTOR_RPAR_TAG_SMT2)
       {
         BTOR_RELEASE_STACK (parser->btor->mm, tokens);
@@ -3760,7 +3756,6 @@ btor_read_command_smt2 (BtorSMT2Parser *parser)
           parser, "unsupported command '%s'", parser->token.start);
       break;
   }
-DONE:
   parser->commands.all++;
   return 1;
 }
@@ -3786,8 +3781,7 @@ btor_parse_smt2_parser (BtorSMT2Parser *parser,
   BTOR_CLR (res);
   parser->res = res;
 
-  while (btor_read_command_smt2 (parser)
-         && (parser->interactive || !parser->done)
+  while (btor_read_command_smt2 (parser) && !parser->done
          && !boolector_terminate (parser->btor))
     ;
 
