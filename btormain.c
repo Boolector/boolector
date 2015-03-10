@@ -149,9 +149,9 @@ btormain_init_opts (BtorMainApp *app)
   assert (app);
 
   BTORMAIN_INIT_OPT (
-      app->opts.help, 0, "h", "help", 0, 0, 1, "print this message and exit");
+      app->opts.help, 1, "h", "help", 0, 0, 1, "print this message and exit");
   BTORMAIN_INIT_OPT (app->opts.copyright,
-                     0,
+                     1,
                      "c",
                      "copyright",
                      0,
@@ -159,11 +159,11 @@ btormain_init_opts (BtorMainApp *app)
                      1,
                      "print copyright and exit");
   BTORMAIN_INIT_OPT (
-      app->opts.version, 0, "V", "version", 0, 0, 1, "print version and exit");
+      app->opts.version, 1, "V", "version", 0, 0, 1, "print version and exit");
   BTORMAIN_INIT_OPT (
-      app->opts.time, 0, "t", "time", 0, 0, -1, "set time limit");
+      app->opts.time, 1, "t", "time", 0, 0, -1, "set time limit");
   BTORMAIN_INIT_OPT (app->opts.output,
-                     1,
+                     0,
                      "o",
                      "output",
                      0,
@@ -172,7 +172,7 @@ btormain_init_opts (BtorMainApp *app)
                      "set output file for dumping");
   BTORMAIN_INIT_OPT (
       app->opts.smt2_model,
-      1,
+      0,
       0,
       "smt2_model",
       0,
@@ -181,7 +181,7 @@ btormain_init_opts (BtorMainApp *app)
       "print model in SMT-LIB v2 format if model generation is enabled");
 #ifdef BTOR_USE_LINGELING
   BTORMAIN_INIT_OPT (app->opts.lingeling,
-                     1,
+                     0,
                      0,
                      "lingeling",
                      0,
@@ -189,7 +189,7 @@ btormain_init_opts (BtorMainApp *app)
                      1,
                      "force Lingeling as SAT solver");
   BTORMAIN_INIT_OPT (app->opts.lingeling_opts,
-                     1,
+                     0,
                      0,
                      "lingeling_opts",
                      0,
@@ -197,7 +197,7 @@ btormain_init_opts (BtorMainApp *app)
                      0,
                      "set lingeling option(s) '--<opt>=<val>'");
   BTORMAIN_INIT_OPT (app->opts.lingeling_nofork,
-                     1,
+                     0,
                      0,
                      "lingeling_nofork",
                      0,
@@ -207,7 +207,7 @@ btormain_init_opts (BtorMainApp *app)
 #endif
 #ifdef BTOR_USE_PICOSAT
   BTORMAIN_INIT_OPT (app->opts.picosat,
-                     1,
+                     0,
                      0,
                      "picosat",
                      0,
@@ -217,7 +217,7 @@ btormain_init_opts (BtorMainApp *app)
 #endif
 #ifdef BTOR_USE_MINISAT
   BTORMAIN_INIT_OPT (app->opts.minisat,
-                     1,
+                     0,
                      0,
                      "minisat",
                      0,
