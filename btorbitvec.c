@@ -285,16 +285,6 @@ btor_set_bit_bv (BitVector *bv, int pos, int bit)
     bv->bits[bv->len - 1 - i] &= ~(1u << j);
 }
 
-void
-btor_flip_bit_bv (BitVector *bv, int pos)
-{
-  assert (bv);
-  assert (bv->len > 0);
-  assert (pos < bv->width);
-
-  btor_set_bit_bv (bv, pos, btor_get_bit_bv (bv, pos) ? 0 : 1);
-}
-
 static void
 set_rem_bits_to_zero (BitVector *bv)
 {
@@ -925,6 +915,42 @@ btor_slice_bv (BtorMemMgr *mm, BitVector *bv, int upper, int lower)
   for (i = lower, j = 0; i <= upper; i++)
     btor_set_bit_bv (res, j++, btor_get_bit_bv (bv, i));
 
+  assert (rem_bits_zero_dbg (res));
+  return res;
+}
+
+BitVector *
+btor_flipped_bit_bv (BtorMemMgr *mm, BitVector *bv, int pos)
+{
+  assert (bv);
+  assert (bv->len > 0);
+  assert (pos < bv->width);
+
+  BitVector *res;
+
+  res = btor_copy_bv (mm, bv);
+  btor_set_bit_bv (res, pos, btor_get_bit_bv (res, pos) ? 0 : 1);
+  set_rem_bits_to_zero (res);
+  assert (rem_bits_zero_dbg (res));
+  return res;
+}
+
+BitVector *
+btor_flipped_bit_range_bv (BtorMemMgr *mm, BitVector *bv, int upper, int lower)
+{
+  assert (mm);
+  assert (lower >= 0);
+  assert (upper);
+  assert (lower <= upper);
+  assert (upper < bv->width);
+
+  int i;
+  BitVector *res;
+
+  res = btor_copy_bv (mm, bv);
+  for (i = lower; i <= upper; i++)
+    btor_set_bit_bv (res, i, btor_get_bit_bv (res, i) ? 0 : 1);
+  set_rem_bits_to_zero (res);
   assert (rem_bits_zero_dbg (res));
   return res;
 }

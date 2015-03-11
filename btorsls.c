@@ -869,6 +869,8 @@ enum BtorSLSMove
   BTOR_SLS_MOVE_INC,
   BTOR_SLS_MOVE_DEC,
   BTOR_SLS_MOVE_NOT,
+  BTOR_SLS_MOVE_FLIP_RANGE,
+  BTOR_SLS_MOVE_FLIP_SEGMENT,
   BTOR_SLS_MOVE_DONE
 };
 
@@ -887,7 +889,7 @@ select_move (Btor *btor,
   assert (can);
   assert (BTOR_IS_REGULAR_NODE (can));
 
-  int i;
+  int i, up, lo, seg, segnext;
   double sc;
   BtorSLSMove m;
   BitVector *ass, *neighbor;
@@ -907,8 +909,12 @@ select_move (Btor *btor,
   score_sls = btor_clone_ptr_hash_table (
       btor->mm, btor->score_sls, same_node, data_as_double, 0, 0);
 
-  m = 0;
-  i = 0;
+  m       = 0;
+  i       = 0;
+  up      = 0;
+  lo      = 0;
+  seg     = 1;
+  segnext = 1;
   while (m != BTOR_SLS_MOVE_DONE)
   {
     switch (m)
@@ -934,20 +940,65 @@ select_move (Btor *btor,
                        ? btor_not_bv (btor->mm, *max_neighbor)
                        : btor_not_bv (btor->mm, ass);
         break;
+      case BTOR_SLS_MOVE_FLIP_RANGE:
+        assert (lo == 0);
+        if (up == ass->width - 1) m += 1;
+        if (up == 0) up = 1; /* skip 0-0, already tested */
+        neighbor =
+            btor->options.sls_move_inc_move_test.val && *max_neighbor
+                    && *max_can == can
+                ? btor_flipped_bit_range_bv (btor->mm, *max_neighbor, up, lo)
+                : btor_flipped_bit_range_bv (btor->mm, ass, up, lo);
+        up = 2 * up + 1;
+        assert (up);
+        up = up < ass->width ? up : ass->width - 1;
+        if (m != BTOR_SLS_MOVE_FLIP_RANGE) up = 0; /* reset */
+        break;
+      case BTOR_SLS_MOVE_FLIP_SEGMENT:
+        if (up == ass->width - 1) segnext = 2 * seg + 1;
+        if (segnext > 7) m += 1;
+        if (up == 0)
+        {
+          assert (lo == 0);
+          up += seg;
+        }
+        neighbor =
+            btor->options.sls_move_inc_move_test.val && *max_neighbor
+                    && *max_can == can
+                ? btor_flipped_bit_range_bv (btor->mm, *max_neighbor, up, lo)
+                : btor_flipped_bit_range_bv (btor->mm, ass, up, lo);
+        lo = up + 1;
+        up += seg + 1;
+        up = up < ass->width ? up : ass->width - 1;
+        if (segnext != seg) /* next segment size */
+        {
+          up  = 0;
+          lo  = 0;
+          seg = segnext;
+        }
+        if (m != BTOR_SLS_MOVE_FLIP_SEGMENT) /* reset for next phase */
+        {
+          up      = 0;
+          lo      = 0;
+          seg     = 1;
+          segnext = 1;
+        }
+        break;
       default:
         assert (m == BTOR_SLS_MOVE_FLIP);
         if (i == ass->width - 1) m += 1;
         assert (i < ass->width);
         neighbor = btor->options.sls_move_inc_move_test.val && *max_neighbor
                            && *max_can == can
-                       ? btor_copy_bv (btor->mm, *max_neighbor)
-                       : btor_copy_bv (btor->mm, ass);
-        btor_flip_bit_bv (neighbor, i++);
+                       ? btor_flipped_bit_bv (btor->mm, *max_neighbor, i++)
+                       : btor_flipped_bit_bv (btor->mm, ass, i++);
     }
 
     BTOR_PUSH_STACK (btor->mm, cans, can);
     BTOR_PUSH_STACK (btor->mm, neighbors, neighbor);
     sc = try_move (btor, roots, &bv_model, score_sls, &cans, &neighbors);
+    printf ("max score %f\n", *max_score);
+    printf ("sc %f\n", sc);
     if (sc == -1.0)
     {
       *max_score = sc;
@@ -1038,8 +1089,7 @@ move_aux (Btor *btor, BtorPtrHashTable *roots, BtorNodePtrStack *candidates)
         if (BTOR_REAL_ADDR_NODE (can)->len == 1)
         {
           ass      = (BitVector *) btor_get_bv_model (btor, can);
-          neighbor = btor_copy_bv (btor->mm, ass);
-          btor_flip_bit_bv (neighbor, 0);
+          neighbor = btor_flipped_bit_bv (btor->mm, ass, 0);
           BTOR_PUSH_STACK (btor->mm, neighbors, neighbor);
         }
         else
@@ -1059,8 +1109,7 @@ move_aux (Btor *btor, BtorPtrHashTable *roots, BtorNodePtrStack *candidates)
       if (BTOR_REAL_ADDR_NODE (can)->len == 1)
       {
         ass      = (BitVector *) btor_get_bv_model (btor, can);
-        neighbor = btor_copy_bv (btor->mm, ass);
-        btor_flip_bit_bv (neighbor, 0);
+        neighbor = btor_flipped_bit_bv (btor->mm, ass, 0);
         BTOR_PUSH_STACK (btor->mm, neighbors, neighbor);
       }
       else
@@ -1347,7 +1396,7 @@ btor_sat_aux_btor_sls (Btor *btor)
 
     for (j = 0, max_steps = BTOR_SLS_MAXSTEPS (i); j < max_steps; j++)
     {
-      move (btor, roots, moves);
+      move (btor, roots, moves++);
 
       if (compute_sls_score_formula (roots, btor->score_sls) == -1.0)
       {
@@ -1364,6 +1413,7 @@ btor_sat_aux_btor_sls (Btor *btor)
 SAT:
   assert (sat_result == BTOR_SAT);
   btor->stats.sls_restarts = i - 1;
+  assert (btor->stats.sls_moves == moves);
   BTOR_RELEASE_STACK (btor->mm, candidates);
   goto DONE;
 

@@ -59,12 +59,12 @@ char *btor_bv_to_char_bv (BtorMemMgr *, const BitVector *);
 uint64_t btor_bv_to_uint64_bv (BitVector *);
 int btor_get_bit_bv (const BitVector *, int);
 void btor_set_bit_bv (BitVector *, int, int);
-void btor_flip_bit_bv (BitVector *, int);
 int btor_is_true_bv (BitVector *);
 int btor_is_false_bv (BitVector *);
 
 BitVector *btor_neg_bv (BtorMemMgr *, BitVector *);
 BitVector *btor_not_bv (BtorMemMgr *, BitVector *);
+BitVector *btor_not_range_bv (BtorMemMgr *, BitVector *, int, int);
 BitVector *btor_inc_bv (BtorMemMgr *, BitVector *);
 BitVector *btor_dec_bv (BtorMemMgr *, BitVector *);
 BitVector *btor_add_bv (BtorMemMgr *, BitVector *, BitVector *);
@@ -79,6 +79,8 @@ BitVector *btor_udiv_bv (BtorMemMgr *, BitVector *, BitVector *);
 BitVector *btor_urem_bv (BtorMemMgr *, BitVector *, BitVector *);
 BitVector *btor_concat_bv (BtorMemMgr *, BitVector *, BitVector *);
 BitVector *btor_slice_bv (BtorMemMgr *, BitVector *, int, int);
+BitVector *btor_flipped_bit_bv (BtorMemMgr *, BitVector *, int);
+BitVector *btor_flipped_bit_range_bv (BtorMemMgr *, BitVector *, int, int);
 
 /*------------------------------------------------------------------------*/
 
