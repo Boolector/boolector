@@ -2,4 +2,4 @@
 binary=$HOME/src/boolector/boolector
 default_options="-v"
 
-./submit_solver --default-options=$default_options $binary
+$HOME/bin/submit-solver --default-options=$default_options $binary

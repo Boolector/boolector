@@ -141,7 +141,7 @@ do
   qsub \
     -e ":$out.err" \
     -o ":$out.log" \
-    "$pwd/launch" \
+    $HOME/bin/launch \
     --time-limit=$time_limit \
     --space-limit=$space_limit \
     $solver \
