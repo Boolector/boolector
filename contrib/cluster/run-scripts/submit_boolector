@@ -1,0 +1,5 @@
+#!/bin/bash
+binary=$HOME/src/boolector/boolector
+default_options="-v"
+
+./submit_solver --default-options=$default_options $binary
