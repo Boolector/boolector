@@ -59,7 +59,7 @@ cp -p \
   btor2horn.mk \
 $dir/
 
-for subdir in dumper parser
+for subdir in dumper parser util
 do
   mkdir $dir/$subdir/
   cp -p $subdir/*.[ch] $dir/$subdir/
