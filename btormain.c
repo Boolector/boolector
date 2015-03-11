@@ -1087,6 +1087,16 @@ boolector_main (int argc, char **argv)
         else
           static_verbosity += 1;
       }
+      else if ((!strcmp (o, BTOR_OPT_REWRITE_LEVEL)
+                || !strcmp (o, BTOR_OPT_REWRITE_LEVEL_PBR))
+               || !strcmp (o, BTOR_OPT_PBRA_LOD_LIMIT)
+               || !strcmp (o, BTOR_OPT_PBRA_SAT_LIMIT)
+               || !strcmp (o, BTOR_OPT_PBRA_OPS_FACTOR))
+      {
+        if (!isint) goto ERR_INVALID_ARGUMENT;
+        if (!readval) goto ERR_MISSING_ARGUMENT;
+        boolector_set_opt (static_app->btor, o, val);
+      }
       else
       {
         if (disable && readval)
@@ -1107,16 +1117,6 @@ boolector_main (int argc, char **argv)
                           BTOR_OPT_DUAL_PROP,
                           BTOR_OPT_JUST);
           goto DONE;
-        }
-        else if ((!strcmp (o, BTOR_OPT_REWRITE_LEVEL)
-                  || !strcmp (o, BTOR_OPT_REWRITE_LEVEL_PBR))
-                 || !strcmp (o, BTOR_OPT_PBRA_LOD_LIMIT)
-                 || !strcmp (o, BTOR_OPT_PBRA_SAT_LIMIT)
-                 || !strcmp (o, BTOR_OPT_PBRA_OPS_FACTOR)
-                 || !strcmp (o, BTOR_OPT_SEED))
-        {
-          if (!isint) goto ERR_INVALID_ARGUMENT;
-          if (!readval) goto ERR_MISSING_ARGUMENT;
         }
 
         if (disable || (readval && val == 0))
