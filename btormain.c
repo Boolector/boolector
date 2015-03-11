@@ -977,7 +977,7 @@ boolector_main (int argc, char **argv)
 
       if (IS_OPT ("i", BTOR_OPT_INCREMENTAL))
       {
-        if (disable || (readval && val == 0))
+        if (disable || (readval && isint && val == 0))
           inc = 0;
         else
           inc |= BTOR_PARSE_MODE_BASIC_INCREMENTAL;
@@ -985,7 +985,7 @@ boolector_main (int argc, char **argv)
       }
       else if (IS_OPT ("I", BTOR_OPT_INCREMENTAL_ALL))
       {
-        if (disable || (readval && val == 0))
+        if (disable || (readval && isint && val == 0))
           boolector_set_opt (static_app->btor, o, 0);
         else
         {
@@ -1060,7 +1060,7 @@ boolector_main (int argc, char **argv)
       }
       else if (IS_OPT ("m", BTOR_OPT_MODEL_GEN))
       {
-        if (disable || (readval && val == 0))
+        if (disable || (readval && isint && val == 0))
         {
           model_gen   = 0;
           print_model = 0;
@@ -1074,7 +1074,7 @@ boolector_main (int argc, char **argv)
 #ifndef NBTORLOG
       else if (IS_OPT ("l", BTOR_OPT_LOGLEVEL))
       {
-        if (disable || (readval && val == 0))
+        if (disable || (readval && isint && val == 0))
           log = 0;
         else
           log += 1;
@@ -1082,7 +1082,7 @@ boolector_main (int argc, char **argv)
 #endif
       else if (IS_OPT ("v", BTOR_OPT_VERBOSITY))
       {
-        if (disable || (readval && val == 0))
+        if (disable || (readval && isint && val == 0))
           static_verbosity = 0;
         else
           static_verbosity += 1;
@@ -1119,7 +1119,7 @@ boolector_main (int argc, char **argv)
           goto DONE;
         }
 
-        if (disable || (readval && val == 0))
+        if (disable || (readval && isint && val == 0))
           boolector_set_opt (static_app->btor, o, 0);
         else if (!readval)
           boolector_set_opt (static_app->btor, o, 1);
