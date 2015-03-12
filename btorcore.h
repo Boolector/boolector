@@ -148,7 +148,6 @@ struct Btor
   BtorPtrHashTable *cache;
   BtorPtrHashTable *parameterized;
   BtorPtrHashTable *score;
-  BtorPtrHashTable *searched_applies;
 
   /* compare fun for sorting the inputs in search_inital_applies_dual_prop */
   int (*dp_cmp_inputs) (const void *, const void *);
