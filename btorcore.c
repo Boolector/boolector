@@ -4806,81 +4806,62 @@ update_sat_assignments (Btor *btor)
 }
 
 static void
-search_initial_applies (Btor *btor, BtorNodePtrStack *top_applies, int dp)
+search_initial_applies_bv_skeleton (Btor *btor, BtorNodePtrStack *applies)
 {
   assert (btor);
-  assert (top_applies);
-  assert (BTOR_EMPTY_STACK (*top_applies));
+  assert (applies);
+  assert (BTOR_EMPTY_STACK (*applies));
+  assert (check_id_table_aux_mark_unset_dbg (btor));
 
-  int is_top;
   double start;
-  BtorMemMgr *mm;
-  BtorNode *cur, *cur_parent;
+  int i;
+  BtorNode *cur;
+  BtorNodePtrStack stack, unmark_stack;
   BtorHashTableIterator it;
-  BtorNodeIterator pit;
-  BtorNodePtrStack top;
 
   start = btor_time_stamp ();
 
   BTORLOG ("");
   BTORLOG ("*** search initial applies");
 
-  mm = btor->mm;
-  BTOR_INIT_STACK (top);
+  BTOR_INIT_STACK (stack);
+  BTOR_INIT_STACK (unmark_stack);
 
-  init_node_hash_table_iterator (&it, btor->ufs);
-  queue_node_hash_table_iterator (&it, btor->lambdas);
+  init_node_hash_table_iterator (&it, btor->synthesized_constraints);
+  queue_node_hash_table_iterator (&it, btor->assumptions);
   while (has_next_node_hash_table_iterator (&it))
   {
     cur = next_node_hash_table_iterator (&it);
-    assert (BTOR_IS_REGULAR_NODE (cur));
-    assert (BTOR_IS_FUN_NODE (cur));
+    BTOR_PUSH_STACK (btor->mm, stack, cur);
 
-    /* we only consider reachable nodes */
-    if (!cur->reachable) continue;
-
-    is_top = 1;
-    init_full_parent_iterator (&pit, cur);
-    while (has_next_parent_full_parent_iterator (&pit))
+    while (!BTOR_EMPTY_STACK (stack))
     {
-      cur_parent = next_parent_full_parent_iterator (&pit);
-      assert (BTOR_IS_REGULAR_NODE (cur_parent));
-      assert (BTOR_IS_APPLY_NODE (cur_parent)
-              || BTOR_IS_LAMBDA_NODE (cur_parent));
+      cur = BTOR_REAL_ADDR_NODE (BTOR_POP_STACK (stack));
 
-      if ((BTOR_IS_APPLY_NODE (cur_parent) && cur_parent->parameterized)
-          || BTOR_IS_LAMBDA_NODE (cur_parent))
+      if (cur->aux_mark) continue;
+
+      cur->aux_mark = 1;
+      BTOR_PUSH_STACK (btor->mm, unmark_stack, cur);
+
+      if (BTOR_IS_APPLY_NODE (cur))
       {
-        is_top = 0;
-        break;
+        assert (BTOR_IS_SYNTH_NODE (cur));
+        BTORLOG ("initial apply: %s", node2string (cur));
+        BTOR_PUSH_STACK (btor->mm, *applies, cur);
+        continue;
       }
-    }
 
-    init_full_parent_iterator (&pit, cur);
-    while (has_next_parent_full_parent_iterator (&pit))
-    {
-      cur_parent = next_parent_full_parent_iterator (&pit);
-
-      if (cur_parent->reachable && BTOR_IS_APPLY_NODE (cur_parent)
-          && !cur_parent->parameterized)
-      {
-        /* applies on top functions have highest priority and are checked
-         * first */
-        if (is_top)
-          BTOR_PUSH_STACK (mm, top, cur_parent);
-        else if (!dp)
-          BTOR_PUSH_STACK (btor->mm, *top_applies, cur_parent);
-      }
+      for (i = 0; i < cur->arity; i++)
+        BTOR_PUSH_STACK (btor->mm, stack, cur->e[i]);
     }
   }
 
-  while (!BTOR_EMPTY_STACK (top))
-  {
-    cur = BTOR_POP_STACK (top);
-    if (!dp) BTOR_PUSH_STACK (btor->mm, *top_applies, cur);
-  }
+  /* cleanup */
+  while (!BTOR_EMPTY_STACK (unmark_stack))
+    BTOR_POP_STACK (unmark_stack)->aux_mark = 0;
 
-  BTOR_RELEASE_STACK (mm, top);
+  BTOR_RELEASE_STACK (btor->mm, stack);
+  BTOR_RELEASE_STACK (btor->mm, unmark_stack);
 
   btor->time.search_init_apps += btor_time_stamp () - start;
 }
@@ -6911,13 +6892,10 @@ BTOR_CONFLICT_CHECK:
   if (clone)
     search_initial_applies_dual_prop (
         btor, clone, clone_root, exp_map, &top_applies);
+  else if (btor->options.just.val)
+    search_initial_applies_just (btor, &top_applies);
   else
-  {
-    if (btor->options.just.val)
-      search_initial_applies_just (btor, &top_applies);
-    else
-      search_initial_applies (btor, &top_applies, 0);
-  }
+    search_initial_applies_bv_skeleton (btor, &top_applies);
 
   qsort (top_applies.start,
          BTOR_COUNT_STACK (top_applies),
