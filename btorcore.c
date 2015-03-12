@@ -6894,11 +6894,6 @@ BTOR_CONFLICT_CHECK:
   else
     search_initial_applies_bv_skeleton (btor, &top_applies);
 
-  qsort (top_applies.start,
-         BTOR_COUNT_STACK (top_applies),
-         sizeof (BtorNode *),
-         btor_cmp_exp_by_id_qsort_desc);
-
   while (!BTOR_EMPTY_STACK (*tmp_stack))
   {
     app = BTOR_POP_STACK (*tmp_stack);
