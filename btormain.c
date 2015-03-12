@@ -1099,7 +1099,7 @@ boolector_main (int argc, char **argv)
       }
       else
       {
-        if (disable && readval)
+        if (disable && isint && readval)
         {
           btormain_error (
               static_app, "'%s' does not take an argument", errarg.start);
