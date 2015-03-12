@@ -6858,9 +6858,6 @@ check_and_resolve_conflicts (Btor *btor,
   int found_conflict, changed_assignments;
   BtorMemMgr *mm;
   BtorNode *app, *cur;
-#ifndef NDEBUG
-  BtorNode *fun;
-#endif
   BtorNodePtrStack prop_stack;
   BtorNodePtrStack top_applies;
   BtorPtrHashTable *cleanup_table;
@@ -6904,14 +6901,6 @@ BTOR_CONFLICT_CHECK:
 
   while (!BTOR_EMPTY_STACK (*tmp_stack))
   {
-#ifndef NDEBUG
-    fun = BTOR_POP_STACK (*tmp_stack);
-    assert (BTOR_IS_REGULAR_NODE (fun));
-    assert (BTOR_IS_FUN_NODE (fun));
-    assert (!BTOR_EMPTY_STACK (*tmp_stack));
-#else
-    (void) BTOR_POP_STACK (*tmp_stack);
-#endif
     app = BTOR_POP_STACK (*tmp_stack);
     assert (BTOR_IS_REGULAR_NODE (app));
     assert (BTOR_IS_APPLY_NODE (app));
@@ -6949,7 +6938,6 @@ BTOR_CONFLICT_CHECK:
     if (app->vread && !app->propagated)
     {
       BTOR_PUSH_STACK (mm, *tmp_stack, app);
-      BTOR_PUSH_STACK (mm, *tmp_stack, app->e[0]);
       BTORLOG ("save apply for next iteration: %s", node2string (app));
     }
   }
