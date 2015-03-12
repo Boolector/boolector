@@ -762,9 +762,6 @@ remove_from_hash_tables (Btor *btor, BtorNode *exp, int keep_symbol)
       btor_freestr (btor->mm, data.asStr);
     }
   }
-  if (btor->searched_applies
-      && btor_find_in_ptr_hash_table (btor->searched_applies, exp))
-    btor_remove_from_ptr_hash_table (btor->searched_applies, exp, 0, 0);
 
   remove_parameterized (btor, exp);
 }
