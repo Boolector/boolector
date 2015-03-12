@@ -6909,18 +6909,16 @@ BTOR_CONFLICT_CHECK:
     assert (BTOR_IS_APPLY_NODE (app));
     assert (app->reachable || app->vread);
     assert (!app->parameterized);
-
-    if (app->propagated) continue;
-
+    assert (!app->propagated);
     BTOR_PUSH_STACK (mm, prop_stack, app);
     BTOR_PUSH_STACK (mm, prop_stack, app->e[0]);
-    found_conflict = propagate (btor,
-                                &prop_stack,
-                                cleanup_table,
-                                apply_search_cache,
-                                &changed_assignments);
-    if (found_conflict || changed_assignments) break;
   }
+
+  found_conflict = propagate (btor,
+                              &prop_stack,
+                              cleanup_table,
+                              apply_search_cache,
+                              &changed_assignments);
 
   while (!BTOR_EMPTY_STACK (prop_stack))
   {
