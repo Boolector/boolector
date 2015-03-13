@@ -1,1 +1,0 @@
-boolector: log/smt2perr010.smt2:2:1: expected end-of-file after 'exit' command at '('

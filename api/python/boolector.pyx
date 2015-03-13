@@ -1,7 +1,7 @@
 # Boolector: Satisfiablity Modulo Theories (SMT) solver.
 #
 # Copyright (C) 2013-2014 Mathias Preiner.
-# Copyright (C) 2014 Aina Niemetz.
+# Copyright (C) 2014-2015 Aina Niemetz.
 #
 # All rights reserved.
 #
@@ -13,6 +13,7 @@ cimport btorapi
 from libc.stdlib cimport malloc, free
 from libc.stdio cimport stdout, FILE, fopen, fclose
 from cpython cimport bool
+from cpython.ref cimport PyObject
 import math, os, sys
 
 g_tunable_options = {"rewrite_level", "rewrite_level_pbr",
@@ -447,6 +448,10 @@ cdef class BoolectorBVNode(BoolectorNode):
         x, y = _to_node(x, y)
         return (<BoolectorBVNode> x).btor.Mul(x, y)
 
+    def __div__(x, y):
+        x, y = _to_node(x, y)
+        return (<BoolectorBVNode> x).btor.Udiv(x, y)
+
     def __truediv__(x, y):
         x, y = _to_node(x, y)
         return (<BoolectorBVNode> x).btor.Udiv(x, y)
@@ -579,7 +584,63 @@ cdef class Boolector:
 
     def __dealloc__(self):
         if self._c_btor is not NULL:
-            btorapi.boolector_delete(self._c_btor)
+            btorapi.boolector_py_delete(self._c_btor)
+
+    # termination callback 
+    
+    def Set_term(self, fun, args):
+        """ Set_term(fun, args)
+
+            Set a termination callback function. 
+            
+            Use this function to force Boolector to prematurely terminate if
+            callback function ``fun`` returns True. Arguments ``args`` to 
+            ``fun`` may be passed as a single Python object (in case that 
+            ``fun`` takes only one argument), a tuple, or a list of arguments.
+
+            E.g., ::
+
+              import time
+              
+              def fun1 (arg): 
+                  # timeout after 1 sec.
+                  return time.time() - arg > 1.0
+
+              def fun2 (arg0, arg1):
+                  # do something and return True/False
+                  ...
+
+              btor = Boolector()
+
+              btor.Set_term(fun1, time.time())
+              btor.Set_term(fun1, (time.time(),))
+              btor.Set_term(fun1, [time.time()])
+              
+              btor.Set_term(fun2, (arg0, arg1))
+              btor.Set_term(run2, [arg0, arg1])
+
+            :param fun: A python function.
+            :param args: A function argument or a list or tuple of function arguments.
+        """
+        cdef PyObject* funptr = <PyObject*>fun
+        cdef PyObject* argsptr = <PyObject*>args
+        btorapi.boolector_py_set_term(self._c_btor, funptr, argsptr)
+
+    def Terminate(self):
+        """ Terminate()
+
+            Determine if Boolector has been terminated (and/or terminate 
+            Boolector) via the previously configured termination callback
+            function.
+
+            See :func:`~boolector.Boolector.Set_term`.
+            
+            :return True if termination condition is fulfilled, else False.
+            :rtype: bool
+        """
+        cdef int res
+        res = btorapi.boolector_terminate(self._c_btor)
+        return res > 0
 
     # Boolector API functions (general)
 
@@ -770,7 +831,7 @@ cdef class Boolector:
 
             * **incremental_all**
 
-              | Enable (``value``: 1) or disable (``value``: 0) incremental solving of all formulas when parsin an input file.
+              | Enable (``value``: 1) or disable (``value``: 0) incremental solving of all formulas when parsing an input file.
               | Note that currently, incremental mode while parsing an input file is only supported for `SMT-LIB v1`_ input.
 
             * **incremental_in_depth**
@@ -1025,8 +1086,8 @@ cdef class Boolector:
         if outfile is not None:
             fclose(c_file)
 
-    def Parse(self, str file):
-        """ Parse(file)
+    def Parse(self, str infile, str outfile = None):
+        """ Parse(infile, outfile = None)
 
             Parse input file.
 
@@ -1038,22 +1099,34 @@ cdef class Boolector:
               btor = Boolector()
               (result, status, error_msg) = btor.Parse("example.btor")
 
-            :param file: Input file name.
-            :type file:  str
+            :param infile: Input file name.
+            :type infile:  str
             :return: A tuple (result, status, error_msg), where return value ``result`` indicates an error (:data:`~boolector.Boolector.PARSE_ERROR`) if any, and else denotes the satisfiability result (:data:`~boolector.Boolector.SAT` or :data:`~boolector.Boolector.UNSAT`) in the incremental case, and :data:`~boolector.Boolector.UNKNOWN` otherwise. Return value ``status`` indicates a (known) status (:data:`~boolector.Boolector.SAT` or :data:`~boolector.Boolector.UNSAT`) as specified in the input file. In case of an error, an explanation of that error is stored in ``error_msg``.
         """
-        cdef FILE * c_file
+        cdef FILE * c_infile
+        cdef FILE * c_outfile
         cdef int res
         cdef char * err_msg
         cdef int status
 
-        if not os.path.isfile(file):
-            raise BoolectorException("File '{}' does not exist".format(file))
+        if not os.path.isfile(infile):
+            raise BoolectorException("File '{}' does not exist".format(infile))
+        c_infile = fopen(_ChPtr(infile)._c_str, "r")
 
-        c_file = fopen(_ChPtr(file)._c_str, "r")
-        res = btorapi.boolector_parse(self._c_btor, c_file, _ChPtr(file)._c_str,
-                                      &err_msg, &status)
-        fclose(c_file)
+        if outfile and not os.path.isfile(outfile):
+            raise BoolectorException("File '{}' does not exist".format(outfile))
+        if outfile is None:
+            c_outfile = stdout
+        else:
+            c_outfile = fopen(_ChPtr(outfile)._c_str, "r") 
+
+        res = btorapi.boolector_parse(self._c_btor, c_infile,
+                _ChPtr(infile)._c_str, c_outfile, &err_msg, &status)
+
+        fclose(c_infile)
+        if outfile is not None:
+            fclose(c_outfile)
+
         return (res, status, _to_str(err_msg))
 
     def Dump(self, format = "btor", outfile = None):
@@ -1149,7 +1222,7 @@ cdef class Boolector:
 
             Create a bit vector variable with bit width ``width``.
 
-            A variable's symbol is used as a simple means of identfication,
+            A variable's symbol is used as a simple means of identification,
             either when printing a model via 
             :func:`~boolector.Boolector.Print_model`,
             or generating file dumps via 
@@ -2514,7 +2587,7 @@ cdef class Boolector:
             ``symbol``.
 
             An uninterpreted function's symbol is used as a simple means of 
-            identfication, either when printing a model via 
+            identification, either when printing a model via 
             :func:`~boolector.Boolector.Print_model`,
             or generating file dumps via 
             :func:`~boolector.Boolector.Dump`.

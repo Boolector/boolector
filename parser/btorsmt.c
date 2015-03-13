@@ -196,10 +196,11 @@ struct BtorSMTParser
     int parsed, handled, checked;
   } formulas;
 
-  const char *name;
   int nprefix;
   BtorCharStack *prefix;
-  FILE *file;
+  FILE *infile;
+  const char *infile_name;
+  FILE *outfile;
   int lineno;
   int saved; /* boolean flag */
   int saved_char;
@@ -600,12 +601,12 @@ btor_perr_smt (BtorSMTParser *parser, const char *fmt, ...)
   if (!parser->error)
   {
     va_start (ap, fmt);
-    bytes = btor_parse_error_message_length (parser->name, fmt, ap);
+    bytes = btor_parse_error_message_length (parser->infile_name, fmt, ap);
     va_end (ap);
 
     va_start (ap, fmt);
     parser->error = btor_parse_error_message (
-        parser->mem, parser->name, parser->lineno, -1, fmt, ap, bytes);
+        parser->mem, parser->infile_name, parser->lineno, -1, fmt, ap, bytes);
     va_end (ap);
   }
 
@@ -861,7 +862,7 @@ btor_nextch_smt (BtorSMTParser *parser)
   else
   {
     parser->bytes++;
-    res = getc (parser->file);
+    res = getc (parser->infile);
   }
 
   if (res == '\n') parser->lineno++;
@@ -2623,12 +2624,14 @@ btor_smt_parser_inc_add_release_sat (BtorSMTParser *parser,
   {
     btor_smt_message (parser, 1, "':formula' %s SAT", formula);
     res->result = BOOLECTOR_SAT;
+    fprintf (parser->outfile, "sat\n");
   }
   else
   {
     assert (satres == BOOLECTOR_UNSAT);
     btor_smt_message (parser, 1, "':formula' %s UNSAT", formula);
     if (res->result == BOOLECTOR_UNKNOWN) res->result = BOOLECTOR_UNSAT;
+    fprintf (parser->outfile, "unsat\n");
   }
   if (parser->verbosity >= 2) boolector_print_stats (parser->btor);
 
@@ -3097,8 +3100,9 @@ set_last_occurrence_of_symbols (BtorSMTParser *parser, BtorSMTNode *top)
 static const char *
 parse (BtorSMTParser *parser,
        BtorCharStack *prefix,
-       FILE *file,
-       const char *name,
+       FILE *infile,
+       const char *infile_name,
+       FILE *outfile,
        BtorParseResult *res)
 {
   BtorSMTNode *node, *top, **p, **first;
@@ -3109,14 +3113,15 @@ parse (BtorSMTParser *parser,
   assert (!parser->parsed);
   parser->parsed = 1;
 
-  btor_smt_message (parser, 1, "parsing SMT file %s", name);
+  btor_smt_message (parser, 1, "parsing SMT file %s", infile_name);
 
-  parser->name    = name;
-  parser->nprefix = 0;
-  parser->prefix  = prefix;
-  parser->file    = file;
-  parser->lineno  = 1;
-  parser->saved   = 0;
+  parser->infile_name = infile_name;
+  parser->nprefix     = 0;
+  parser->prefix      = prefix;
+  parser->infile      = infile;
+  parser->outfile     = outfile;
+  parser->lineno      = 1;
+  parser->saved       = 0;
 
   BTOR_CLR (res);
 
@@ -3214,11 +3219,12 @@ NEXT_TOKEN:
 static const char *
 btor_parse_smt_parser (BtorSMTParser *parser,
                        BtorCharStack *prefix,
-                       FILE *file,
-                       const char *name,
+                       FILE *infile,
+                       const char *infile_name,
+                       FILE *outfile,
                        BtorParseResult *res)
 {
-  (void) parse (parser, prefix, file, name, res);
+  (void) parse (parser, prefix, infile, infile_name, outfile, res);
   btor_release_smt_internals (parser);
   return parser->error;
 }

@@ -44,4 +44,4 @@ do
   cont="$cont${line}\n"
 done
 
-echo -e $cont | $boolector $rw -de | $synthebtor -m | $aigtoaig
+echo -e $cont | $boolector $rw -db | $synthebtor -m | $aigtoaig

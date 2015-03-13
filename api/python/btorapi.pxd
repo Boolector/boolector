@@ -1,7 +1,7 @@
 # Boolector: Satisfiablity Modulo Theories (SMT) solver.
 #
 # Copyright (C) 2013-2014 Mathias Preiner.
-# Copyright (C) 2014 Aina Niemetz.
+# Copyright (C) 2014-2015 Aina Niemetz.
 #
 # All rights reserved.
 #
@@ -12,6 +12,11 @@
 # TODO: check functions that are implemented
 
 from libc.stdio cimport FILE
+from cpython.ref cimport PyObject
+
+cdef extern from "boolector_py.h":
+    void boolector_py_delete (Btor * btor)
+    void boolector_py_set_term (Btor * btor, PyObject * fun, PyObject * state)
 
 cdef extern from "boolector.h":
     ctypedef struct BoolectorNode:
@@ -25,7 +30,9 @@ cdef extern from "boolector.h":
 
     Btor *boolector_clone (Btor * btor)
 
-    void boolector_delete (Btor * btor)
+    void boolector_set_term (Btor * btor, int (*fun) (void *), void * state)
+
+    int boolector_terminate (Btor * btor)
 
 #    void boolector_set_msg_prefix (Btor * btor, const char * prefix)
 
@@ -340,8 +347,9 @@ cdef extern from "boolector.h":
     void boolector_release_sort (Btor * btor, BoolectorSort * sort)
 
     int boolector_parse (Btor * btor, 
-                         FILE * file, 
-                         const char * file_name, 
+                         FILE * infile, 
+                         const char * infile_name, 
+                         FILE * outfile,
                          char ** error_msg,
                          int * status)
 
