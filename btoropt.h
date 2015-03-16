@@ -54,6 +54,7 @@ typedef struct BtorOpt
 #define BTOR_OPT_REWRITE_LEVEL "rewrite_level"
 #define BTOR_OPT_REWRITE_LEVEL_PBR "rewrite_level_pbr"
 #define BTOR_OPT_BETA_REDUCE_ALL "beta_reduce_all"
+#define BTOR_OPT_ACKERMANN "ackermannize"
 #define BTOR_OPT_DUAL_PROP "dual_prop"
 #define BTOR_OPT_JUST "just"
 #ifndef BTOR_DO_NOT_OPTIMIZE_UNCONSTRAINED
@@ -97,6 +98,7 @@ typedef struct BtorOpts
   BtorOpt rewrite_level_pbr;
 
   BtorOpt beta_reduce_all; /* eagerly eliminate lambda expressions */
+  BtorOpt ackermannize;    /* add ackermann constraints */
 #ifdef BTOR_ENABLE_BETA_REDUCTION_PROBING
   BtorOpt probe_beta_reduce_all; /* probe until given LOD or SAT limit */
   BtorOpt pbra_lod_limit;        /* LOD limit for BR probing */

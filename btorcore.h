@@ -197,6 +197,7 @@ struct Btor
     int dp_failed_applies; /* number of applies in FA (dual prop) of last
                               sat call (final bv skeleton) */
     int dp_assumed_applies;
+    int ackermann_constraints;
     BtorIntStack lemmas_size;       /* distribution of n-size lemmas */
     long long int lemmas_size_sum;  /* sum of the size of all added lemmas */
     long long int lclause_size_sum; /* sum of the size of all linking clauses */
