@@ -141,7 +141,7 @@ compute_sls_score_node (Btor *btor,
 
   int i;
   double res, s0, s1;
-  BtorNode *cur, *real_cur, *e;
+  BtorNode *cur, *real_cur;
   BitVector *bv0, *bv1;
   BtorPtrHashBucket *b;
   BtorNodePtrStack stack, unmark_stack;
@@ -174,15 +174,24 @@ compute_sls_score_node (Btor *btor,
       BTOR_PUSH_STACK (btor->mm, stack, cur);
       BTOR_PUSH_STACK (btor->mm, unmark_stack, real_cur);
 
-      if (BTOR_IS_AND_NODE (real_cur) && real_cur->len == 1)
+      for (i = 0; i < real_cur->arity; i++)
       {
-        for (i = 0; i < real_cur->arity; i++)
-        {
-          e = BTOR_IS_INVERTED_NODE (cur) ? BTOR_INVERT_NODE (real_cur->e[i])
-                                          : real_cur->e[i];
-          BTOR_PUSH_STACK (btor->mm, stack, e);
-        }
+        BTOR_PUSH_STACK (btor->mm, stack, real_cur->e[i]);
+        BTOR_PUSH_STACK (btor->mm, stack, BTOR_INVERT_NODE (real_cur->e[i]));
       }
+
+#if 0
+	  if (BTOR_IS_AND_NODE (real_cur) && real_cur->len == 1)
+	    {
+	      for (i = 0; i < real_cur->arity; i++)
+		{
+		  e = BTOR_IS_INVERTED_NODE (cur)
+		      ? BTOR_INVERT_NODE (real_cur->e[i])
+		      : real_cur->e[i];
+		  BTOR_PUSH_STACK (btor->mm, stack, e);
+		}
+	    }
+#endif
     }
     else
     {
@@ -874,13 +883,13 @@ try_move (Btor *btor,
 
 enum BtorSLSMove
 {
-  BTOR_SLS_MOVE_FLIP_SEGMENT = 0,
-  BTOR_SLS_MOVE_DONE,
   BTOR_SLS_MOVE_FLIP = 0,
   BTOR_SLS_MOVE_INC,
   BTOR_SLS_MOVE_DEC,
   BTOR_SLS_MOVE_NOT,
-  BTOR_SLS_MOVE_FLIP_RANGE
+  BTOR_SLS_MOVE_DONE,
+  BTOR_SLS_MOVE_FLIP_RANGE,
+  BTOR_SLS_MOVE_FLIP_SEGMENT
 };
 
 typedef enum BtorSLSMove BtorSLSMove;
@@ -2091,6 +2100,7 @@ move (Btor *btor, BtorPtrHashTable *roots, int moves)
                      select_candidate_constraint (btor, roots, moves),
                      &candidates,
                      &parents);
+  assert (BTOR_COUNT_STACK (candidates));
 
 #if 0
   while (!BTOR_EMPTY_STACK (parents))
@@ -2250,7 +2260,7 @@ btor_sat_aux_btor_sls (Btor *btor)
   //      sat_result = csat_result;
   //      goto DONE;
   //    }
-  //  printf ("clone sat\n");
+  //  //printf ("clone sat\n");
   //#endif
   BTOR_ABORT_BOOLECTOR (btor->lambdas->count != 0 || btor->ufs->count != 0,
                         "sls engine supports QF_BV only");
