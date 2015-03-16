@@ -940,7 +940,6 @@ btor_flipped_bit_range_bv (BtorMemMgr *mm, BitVector *bv, int upper, int lower)
 {
   assert (mm);
   assert (lower >= 0);
-  assert (upper);
   assert (lower <= upper);
   assert (upper < bv->width);
 
