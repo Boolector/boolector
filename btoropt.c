@@ -177,6 +177,7 @@ btor_init_opts (Btor *btor)
 #endif
   BTOR_OPT ("ls", lazy_synthesize, 1, 0, 1, "lazily synthesize expressions");
   BTOR_OPT ("es", eliminate_slices, 1, 0, 1, "eliminate slices on variables");
+  BTOR_OPT ("el", eager_lemmas, 0, 0, 1, "eager lemma generation");
   BTOR_OPT ("ac", auto_cleanup, 0, 0, 1, "auto cleanup on exit");
   BTOR_OPT ("p", pretty_print, 1, 0, 1, "pretty print when dumping");
 #ifndef NBTORLOG

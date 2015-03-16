@@ -751,7 +751,7 @@ btor_chkclone_tables (Btor *btor)
   BTOR_CHKCLONE_NODE_PTR_HASH_TABLE (btor->lambdas, btor->clone->lambdas);
   BTOR_CHKCLONE_NODE_PTR_HASH_TABLE (btor->substitutions,
                                      btor->clone->substitutions);
-  BTOR_CHKCLONE_NODE_PTR_HASH_TABLE (btor->lod_cache, btor->clone->lod_cache);
+  BTOR_CHKCLONE_NODE_PTR_HASH_TABLE (btor->lemmas, btor->clone->lemmas);
   BTOR_CHKCLONE_NODE_PTR_HASH_TABLE (btor->varsubst_constraints,
                                      btor->clone->varsubst_constraints);
   BTOR_CHKCLONE_NODE_PTR_HASH_TABLE (btor->embedded_constraints,

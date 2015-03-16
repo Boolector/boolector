@@ -135,7 +135,8 @@ struct Btor
   int btor_sat_btor_called; /* how often is btor_sat_btor been called */
   int last_sat_result;      /* status of last SAT call (SAT/UNSAT) */
 
-  BtorPtrHashTable *lod_cache;
+  BtorPtrHashTable *lemmas;
+  BtorNodePtrStack cur_lemmas;
 
   BtorPtrHashTable *varsubst_constraints;
   BtorPtrHashTable *embedded_constraints;
@@ -167,6 +168,7 @@ struct Btor
     int lod_refinements;  /* number of lemmas on demand refinements */
     int synthesis_assignment_inconsistencies; /* number of restarts as a
                                                  result of lazy synthesis */
+    int refinement_iterations;
     int synthesis_inconsistency_apply;
     int synthesis_inconsistency_lambda;
     int synthesis_inconsistency_var;
@@ -226,6 +228,7 @@ struct Btor
     double embedded;
     double slicing;
     double skel;
+    double propagate;
     double beta;
     double eval;
     double enc_app;

@@ -75,6 +75,7 @@ typedef struct BtorOpt
 #define BTOR_OPT_UCOPT "ucopt"
 #define BTOR_OPT_LAZY_SYNTHESIZE "lazy_synthesize"
 #define BTOR_OPT_ELIMINATE_SLICES "eliminate_slices"
+#define BTOR_OPT_DELAY_LEMMAS "delay_lemmas"
 #define BTOR_OPT_JUST_HEURISTIC "just_heuristic"
 #define BTOR_OPT_PARSE_INTERACTIVE "parse_interactive"
 
@@ -112,6 +113,7 @@ typedef struct BtorOpts
 #endif
   BtorOpt lazy_synthesize;  /* lazily synthesize expressions */
   BtorOpt eliminate_slices; /* eliminate slices on variables */
+  BtorOpt eager_lemmas;     /* eager lemma generation */
 
   BtorOpt auto_cleanup; /* automatic cleanup of exps, assignment
                            strings (external references only) */

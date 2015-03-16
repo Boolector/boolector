@@ -968,8 +968,8 @@ clone_aux_btor (Btor *btor,
   CLONE_PTR_HASH_TABLE_DATA (substitutions, data_as_node_ptr);
   assert ((allocated += MEM_PTR_HASH_TABLE (btor->substitutions))
           == clone->mm->allocated);
-  CLONE_PTR_HASH_TABLE (lod_cache);
-  assert ((allocated += MEM_PTR_HASH_TABLE (btor->lod_cache))
+  CLONE_PTR_HASH_TABLE (lemmas);
+  assert ((allocated += MEM_PTR_HASH_TABLE (btor->lemmas))
           == clone->mm->allocated);
   CLONE_PTR_HASH_TABLE_DATA (varsubst_constraints, data_as_node_ptr);
   assert ((allocated += MEM_PTR_HASH_TABLE (btor->varsubst_constraints))
@@ -1036,6 +1036,11 @@ clone_aux_btor (Btor *btor,
 #endif
   assert ((allocated += MEM_PTR_HASH_TABLE (btor->fun_model))
           == clone->mm->allocated);
+
+  clone_node_ptr_stack (mm, &btor->cur_lemmas, &clone->cur_lemmas, emap);
+  assert (
+      (allocated += BTOR_SIZE_STACK (btor->cur_lemmas) * sizeof (BtorNode *))
+      == clone->mm->allocated);
 
   BTORLOG_TIMESTAMP (delta);
   clone_node_ptr_stack (
