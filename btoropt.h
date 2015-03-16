@@ -79,6 +79,7 @@ typedef struct BtorOpt
 #define BTOR_OPT_DELAY_LEMMAS "delay_lemmas"
 #define BTOR_OPT_JUST_HEURISTIC "just_heuristic"
 #define BTOR_OPT_PARSE_INTERACTIVE "parse_interactive"
+#define BTOR_OPT_MERGE_LAMBDAS "merge_lambdas"
 
 typedef struct BtorOpts
 {
@@ -116,6 +117,7 @@ typedef struct BtorOpts
   BtorOpt lazy_synthesize;  /* lazily synthesize expressions */
   BtorOpt eliminate_slices; /* eliminate slices on variables */
   BtorOpt eager_lemmas;     /* eager lemma generation */
+  BtorOpt merge_lambdas;    /* merge lambda chains */
 
   BtorOpt auto_cleanup; /* automatic cleanup of exps, assignment
                            strings (external references only) */

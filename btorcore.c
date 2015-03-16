@@ -4311,7 +4311,8 @@ btor_simplify (Btor *btor)
 
     if (btor->options.rewrite_level.val > 2
         /* merging lambdas not required if they get eliminated */
-        && !btor->options.beta_reduce_all.val)
+        && !btor->options.beta_reduce_all.val
+        && btor->options.merge_lambdas.val)
     {
       merge_lambdas (btor);
     }
