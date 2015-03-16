@@ -887,9 +887,9 @@ enum BtorSLSMove
   BTOR_SLS_MOVE_INC,
   BTOR_SLS_MOVE_DEC,
   BTOR_SLS_MOVE_NOT,
-  BTOR_SLS_MOVE_DONE,
   BTOR_SLS_MOVE_FLIP_RANGE,
   BTOR_SLS_MOVE_FLIP_SEGMENT,
+  BTOR_SLS_MOVE_DONE,
 };
 
 typedef enum BtorSLSMove BtorSLSMove;
@@ -1199,7 +1199,7 @@ select_flip_segment_move (Btor *btor,
           cup = ass->width - 1;
         }
 
-        if (lo >= ass->width - 1) clo = ass->width - seg;
+        if (lo >= ass->width - 1) clo = ass->width < seg ? 0 : ass->width - seg;
 
         BTOR_PUSH_STACK (btor->mm, cans, BTOR_PEEK_STACK (*candidates, i));
         BTOR_PUSH_STACK (
