@@ -1275,7 +1275,8 @@ select_move (Btor *btor,
     BTOR_RESET_STACK (cans);
   }
 
-  (void) select_move_aux (btor, roots, candidates, max_cans, max_score);
+  if (BTOR_COUNT_STACK (*candidates) > 1)
+    (void) select_move_aux (btor, roots, candidates, max_cans, max_score);
 
 DONE:
   BTOR_RELEASE_STACK (btor->mm, cans);
