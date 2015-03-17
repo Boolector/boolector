@@ -1302,7 +1302,7 @@ select_move (Btor *btor,
     BTOR_RESET_STACK (cans);
   }
 
-  BTOR_SLS_SELECT_MOVE (candidates);
+  if (BTOR_COUNT_STACK (*candidates) > 1) BTOR_SLS_SELECT_MOVE (candidates);
 
 DONE:
   BTOR_RELEASE_STACK (btor->mm, cans);
