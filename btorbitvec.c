@@ -318,7 +318,6 @@ btor_bv_to_char_bv (BtorMemMgr *mm, const BitVector *bv)
   int i, bw, bit;
   char *res;
 
-  bv = BTOR_REAL_ADDR_BV (bv);
   bw = bv->width;
   BTOR_NEWN (mm, res, bw + 1);
   for (i = 0; i < bw; i++)
