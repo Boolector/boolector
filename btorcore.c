@@ -4229,6 +4229,317 @@ add_ackermann_constraints (Btor *btor)
             btor_time_stamp () - start);
 }
 
+static int
+cmp_bits (const void *a, const void *b)
+{
+  const char *b0, *b1;
+  BtorNode *x, *y;
+
+  x = *((BtorNode **) a);
+  y = *((BtorNode **) b);
+
+  b0 = BTOR_IS_INVERTED_NODE (x) ? BTOR_REAL_ADDR_NODE (x)->invbits : x->bits;
+  b1 = BTOR_IS_INVERTED_NODE (y) ? BTOR_REAL_ADDR_NODE (y)->invbits : y->bits;
+
+  assert (b0);
+  assert (b1);
+  return strcmp (b0, b1);
+}
+
+static inline BtorNode *
+create_memset (Btor *btor,
+               BtorNode *lower,
+               BtorNode *upper,
+               BtorNode *value,
+               BtorNode *array)
+{
+  assert (lower);
+  assert (upper);
+  assert (BTOR_IS_BV_CONST_NODE (BTOR_REAL_ADDR_NODE (lower)));
+  assert (BTOR_IS_BV_CONST_NODE (BTOR_REAL_ADDR_NODE (upper)));
+  assert (btor_get_exp_len (btor, lower) == btor_get_exp_len (btor, upper));
+  assert (btor_is_array_exp (btor, array));
+
+  BtorNode *res, *param, *le0, *le1, *and, *ite, *read;
+
+  param = btor_param_exp (btor, btor_get_exp_len (btor, lower), 0);
+  le0   = btor_ulte_exp (btor, lower, param);
+  le1   = btor_ulte_exp (btor, param, upper);
+  and   = btor_and_exp (btor, le0, le1);
+  read  = btor_read_exp (btor, array, param);
+  ite   = btor_cond_exp (btor, and, value, read);
+  res   = btor_lambda_exp (btor, param, ite);
+
+  btor_release_exp (btor, param);
+  btor_release_exp (btor, le0);
+  btor_release_exp (btor, le1);
+  btor_release_exp (btor, and);
+  btor_release_exp (btor, read);
+  btor_release_exp (btor, ite);
+  return res;
+}
+
+static void
+find_memset_operations (Btor *btor)
+{
+  assert (btor);
+
+#ifndef NDEBUG
+  int cnt;
+#endif
+  int i, num_memsets = 0, num_writes = 0, lower, upper;
+  double start, delta;
+  char *b0, *b1, *one, *diff;
+  BtorNode *cur, *lhs, *rhs, *subst, *n0, *n1, *tmp;
+  BtorNode *array, *index, *value;
+  BtorHashTableIterator it, iit;
+  BtorPtrHashTable *t, *map_value_index;
+  BtorPtrHashBucket *b;
+  BtorNodePtrStack *stack;
+  BtorIntStack ranges, indices;
+  BtorMemMgr *mm;
+
+  start = btor_time_stamp ();
+
+  mm              = btor->mm;
+  map_value_index = btor_new_ptr_hash_table (mm, 0, 0);
+
+  /* top level equality pre-initialization */
+  init_node_hash_table_iterator (&it, btor->unsynthesized_constraints);
+  queue_node_hash_table_iterator (&it, btor->synthesized_constraints);
+  queue_node_hash_table_iterator (&it, btor->embedded_constraints);
+  while (has_next_node_hash_table_iterator (&it))
+  {
+    cur = next_node_hash_table_iterator (&it);
+    if (BTOR_IS_INVERTED_NODE (cur) || !BTOR_IS_BV_EQ_NODE (cur)) continue;
+
+    lhs = cur->e[0];
+    rhs = cur->e[1];
+
+    index = value = 0;
+    if (!BTOR_IS_INVERTED_NODE (lhs) && BTOR_IS_APPLY_NODE (lhs)
+        && BTOR_IS_UF_ARRAY_NODE (lhs->e[0])
+        && BTOR_IS_BV_CONST_NODE (BTOR_REAL_ADDR_NODE (lhs->e[1]->e[0]))
+        && BTOR_IS_BV_CONST_NODE (BTOR_REAL_ADDR_NODE (rhs)))
+    {
+      array = lhs->e[0];
+      index = lhs->e[1]->e[0];
+      value = rhs;
+    }
+    else if (!BTOR_IS_INVERTED_NODE (rhs) && BTOR_IS_APPLY_NODE (rhs)
+             && BTOR_IS_UF_ARRAY_NODE (rhs->e[0])
+             && BTOR_IS_BV_CONST_NODE (BTOR_REAL_ADDR_NODE (rhs->e[1]->e[0]))
+             && BTOR_IS_BV_CONST_NODE (BTOR_REAL_ADDR_NODE (lhs)))
+    {
+      array = rhs->e[0];
+      index = rhs->e[1]->e[0];
+      value = lhs;
+    }
+
+    if (!index) continue;
+
+    if (!(b = btor_find_in_ptr_hash_table (map_value_index, array)))
+    {
+      b             = btor_insert_in_ptr_hash_table (map_value_index, array);
+      t             = btor_new_ptr_hash_table (mm, 0, 0);
+      b->data.asPtr = t;
+    }
+    else
+      t = b->data.asPtr;
+    assert (t);
+
+    if (!(b = btor_find_in_ptr_hash_table (t, value)))
+    {
+      b = btor_insert_in_ptr_hash_table (t, value);
+      BTOR_NEW (mm, stack);
+      BTOR_INIT_STACK (*stack);
+      b->data.asPtr = stack;
+    }
+    else
+      stack = (BtorNodePtrStack *) b->data.asPtr;
+    assert (stack);
+    BTOR_PUSH_STACK (mm, *stack, index);
+
+    if (BTOR_IS_INVERTED_NODE (index) && !BTOR_REAL_ADDR_NODE (index)->invbits)
+      BTOR_REAL_ADDR_NODE (index)->invbits =
+          btor_not_const (mm, BTOR_REAL_ADDR_NODE (index)->bits);
+
+    continue;
+  }
+
+  BTOR_INIT_STACK (ranges);
+  BTOR_INIT_STACK (indices);
+  init_substitutions (btor);
+  init_node_hash_table_iterator (&it, map_value_index);
+  while (has_next_node_hash_table_iterator (&it))
+  {
+    t     = it.bucket->data.asPtr;
+    array = next_node_hash_table_iterator (&it);
+    subst = btor_array_exp (btor,
+                            btor_get_exp_len (btor, array),
+                            btor_get_index_exp_len (btor, array),
+                            0);
+    //      printf ("new array: %s (for %s)\n", node2string (subst), node2string
+    //      (array));
+
+    assert (t);
+
+    one = btor_one_const (mm, btor_get_index_exp_len (btor, array));
+    //    printf ("%s\n", node2string (array));
+    init_node_hash_table_iterator (&iit, t);
+    while (has_next_node_hash_table_iterator (&iit))
+    {
+      stack = iit.bucket->data.asPtr;
+      value = next_node_hash_table_iterator (&iit);
+      assert (stack);
+
+      qsort (stack->start,
+             BTOR_COUNT_STACK (*stack),
+             sizeof (BtorNode *),
+             cmp_bits);
+
+      //	  printf ("  (%d) %s\n", BTOR_COUNT_STACK (*stack),
+      //		  node2string (value));
+
+      assert (BTOR_EMPTY_STACK (ranges));
+      assert (BTOR_EMPTY_STACK (indices));
+
+      //	  printf ("**********************************\n");
+      lower = 0;
+      upper = -1;
+      for (i = 1; i < BTOR_COUNT_STACK (*stack); i++)
+      {
+        n0 = BTOR_PEEK_STACK (*stack, i - 1);
+        n1 = BTOR_PEEK_STACK (*stack, i);
+
+        b0 = BTOR_IS_INVERTED_NODE (n0) ? BTOR_REAL_ADDR_NODE (n0)->invbits
+                                        : n0->bits;
+        b1 = BTOR_IS_INVERTED_NODE (n1) ? BTOR_REAL_ADDR_NODE (n1)->invbits
+                                        : n1->bits;
+
+        assert (b0);
+        assert (b1);
+        diff = btor_sub_const (mm, b1, b0);
+        //	      printf ("%s = %s - %s\n", diff, b1, b0);
+        if (strcmp (diff, one) == 0)
+          upper = i;
+        else
+        {
+          if (lower > -1 && upper > -1)
+          {
+            BTOR_PUSH_STACK (mm, ranges, lower);
+            BTOR_PUSH_STACK (mm, ranges, upper);
+            //		    printf ("found range: %d %d: %s\n", lower, upper,
+            //			    node2string (value));
+          }
+          else
+          {
+            assert (lower > -1);
+            assert (upper == -1);
+            //		      printf ("indices: %d %d: %s\n", lower, upper,
+            //			      node2string (value));
+            BTOR_PUSH_STACK (mm, indices, lower);
+          }
+          //		  printf ("reset range\n");
+          lower = i;
+          upper = -1;
+        }
+        btor_delete_const (mm, diff);
+      }
+
+      /* found range */
+      if (lower > -1 && upper > -1)
+      {
+        BTOR_PUSH_STACK (mm, ranges, lower);
+        BTOR_PUSH_STACK (mm, ranges, upper);
+      }
+      else
+      {
+        assert (lower > -1);
+        assert (upper == -1);
+        BTOR_PUSH_STACK (mm, indices, lower);
+      }
+
+#ifndef NDEBUG
+      cnt = 0;
+#endif
+      /* create memset regions */
+      while (!BTOR_EMPTY_STACK (ranges))
+      {
+        upper = BTOR_POP_STACK (ranges);
+        lower = BTOR_POP_STACK (ranges);
+        assert (lower < upper);
+        assert (lower > -1);
+        assert (upper < BTOR_COUNT_STACK (*stack));
+        assert (upper - lower + 1 > 1);
+        //	      printf ("%d\n", upper - lower);
+        num_memsets++;
+#ifndef NDEBUG
+        cnt += upper - lower + 1;
+#endif
+        n0 = BTOR_PEEK_STACK (*stack, lower);
+        n1 = BTOR_PEEK_STACK (*stack, upper);
+        //	      printf ("create memset: %s %s -> %s : %s\n",
+        //		      node2string (n0), node2string (n1), node2string
+        //(value), 		      node2string (subst)); 	      printf ("
+        //%s %s\n", BTOR_REAL_ADDR_NODE (n0)->bits,
+        //		      BTOR_REAL_ADDR_NODE (n1)->bits);
+
+        tmp = create_memset (btor, n0, n1, value, subst);
+        btor_release_exp (btor, subst);
+        subst = tmp;
+        //	      printf ("  result: %s\n", node2string (subst));
+      }
+
+      /* create writes */
+      while (!BTOR_EMPTY_STACK (indices))
+      {
+        lower = BTOR_POP_STACK (indices);
+        assert (lower > -1);
+        assert (lower < BTOR_COUNT_STACK (*stack));
+        num_writes++;
+#ifndef NDEBUG
+        cnt++;
+#endif
+
+        n0 = BTOR_PEEK_STACK (*stack, lower);
+        //	      printf ("create write: %s -> %s : %s\n", node2string (n0),
+        //		      node2string (value), node2string (subst));
+        //	      printf ("  %s\n", BTOR_REAL_ADDR_NODE (n0)->bits);
+
+        tmp = btor_write_exp (btor, subst, n0, value);
+        btor_release_exp (btor, subst);
+        subst = tmp;
+        //	      printf ("  result: %s\n", node2string (subst));
+      }
+      //	  printf ("*** %d %d\n", cnt, BTOR_COUNT_STACK (*stack));
+      assert (cnt == BTOR_COUNT_STACK (*stack));
+
+      BTOR_RELEASE_STACK (mm, *stack);
+      BTOR_DELETE (mm, stack);
+    }
+    btor_delete_ptr_hash_table (t);
+    btor_delete_const (mm, one);
+    /* no memset or write found, no need to substitute 'array'. */
+    if (!BTOR_IS_UF_NODE (subst)) insert_substitution (btor, array, subst, 0);
+    btor_release_exp (btor, subst);
+  }
+  btor_delete_ptr_hash_table (map_value_index);
+  BTOR_RELEASE_STACK (mm, ranges);
+  BTOR_RELEASE_STACK (mm, indices);
+
+  substitute_and_rebuild (btor, btor->ufs, 0);
+  delete_substitutions (btor);
+
+  delta = btor_time_stamp () - start;
+  BTOR_MSG (btor->msg,
+            1,
+            "found %d memsets, and %d writes in %.3f seconds",
+            num_memsets,
+            num_writes,
+            delta);
+}
+
 int
 btor_simplify (Btor *btor)
 {
@@ -4308,6 +4619,8 @@ btor_simplify (Btor *btor)
       if (btor->embedded_constraints->count) continue;
     }
 #endif
+
+    if (btor->options.rewrite_level.val > 2) find_memset_operations (btor);
 
     if (btor->options.rewrite_level.val > 2
         /* merging lambdas not required if they get eliminated */
