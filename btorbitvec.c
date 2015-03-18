@@ -16,6 +16,7 @@
 #include "btorcore.h"
 #include "btorutil.h"
 
+#include "limits.h"
 #define BTOR_MASK_REM_BITS(bv)                       \
   ((((BTOR_BV_TYPE) 1 << (BTOR_BV_TYPE_BW - 1)) - 1) \
    >> (BTOR_BV_TYPE_BW - 1 - (bv->width % BTOR_BV_TYPE_BW)))
@@ -44,6 +45,13 @@ check_bits_sll_dbg (BitVector *bv, BitVector *res, int shift)
   return 1;
 }
 #endif
+
+static void
+set_rem_bits_to_zero (BitVector *bv)
+{
+  if ((unsigned) bv->width != BTOR_BV_TYPE_BW * bv->len)
+    bv->bits[0] &= BTOR_MASK_REM_BITS (bv);
+}
 
 /*------------------------------------------------------------------------*/
 
@@ -211,12 +219,15 @@ btor_new_bv (BtorMemMgr *mm, int bw)
 }
 
 BitVector *
-btor_new_random_bv (BtorMemMgr *mm, BtorRNG *rng, int bw)
+btor_new_random_range_bv (BtorMemMgr *mm, BtorRNG *rng, int bw, int up, int lo)
 {
   assert (mm);
+  assert (rng);
   assert (bw > 0);
+  assert (lo >= 0);
+  assert (lo <= up);
 
-  int i;
+  int i, seg;
   BitVector *res;
 
   i = bw / BTOR_BV_TYPE_BW;
@@ -227,13 +238,24 @@ btor_new_random_bv (BtorMemMgr *mm, BtorRNG *rng, int bw)
   assert (res->len > 0);
   res->width = bw;
 
-  for (i = 0; i < res->len; i++)
+  for (i = res->len - 1, seg = up - lo + 1;
+       seg > ((res->len - 1 - i) * sizeof (BTOR_BV_TYPE) * 8) && i >= 0;
+       i--)
     res->bits[i] = (BTOR_BV_TYPE) btor_rand_rng (rng);
 
-  res->bits[0] &= ((((BTOR_BV_TYPE) 1 << (BTOR_BV_TYPE_BW - 1)) - 1)
-                   >> (BTOR_BV_TYPE_BW - 1 - (res->width % BTOR_BV_TYPE_BW)));
+  if (i < res->len - 1 && seg % (sizeof (BTOR_BV_TYPE) * 8) > 0)
+    res->bits[i + 1] = (((BTOR_BV_TYPE) 1 << (BTOR_BV_TYPE_BW - 1)) - 1)
+                       >> (BTOR_BV_TYPE_BW - 1 - (seg % BTOR_BV_TYPE_BW));
+
+  for (; i >= 0; i--) res->bits[i] = 0;
 
   return res;
+}
+
+BitVector *
+btor_new_random_bv (BtorMemMgr *mm, BtorRNG *rng, int bw)
+{
+  return btor_new_random_range_bv (mm, rng, bw, bw - 1, 0);
 }
 
 size_t
@@ -283,13 +305,6 @@ btor_set_bit_bv (BitVector *bv, int pos, int bit)
     bv->bits[bv->len - 1 - i] |= (1u << j);
   else
     bv->bits[bv->len - 1 - i] &= ~(1u << j);
-}
-
-static void
-set_rem_bits_to_zero (BitVector *bv)
-{
-  if ((unsigned) bv->width != BTOR_BV_TYPE_BW * bv->len)
-    bv->bits[0] &= BTOR_MASK_REM_BITS (bv);
 }
 
 uint64_t

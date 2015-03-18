@@ -41,6 +41,7 @@ typedef struct BitVector BitVector;
 
 BitVector *btor_new_bv (BtorMemMgr *, int);
 BitVector *btor_new_random_bv (BtorMemMgr *, BtorRNG *, int);
+BitVector *btor_new_random_range_bv (BtorMemMgr *, BtorRNG *, int, int, int);
 BitVector *btor_char_to_bv (BtorMemMgr *, char *);
 BitVector *btor_uint64_to_bv (BtorMemMgr *, uint64_t, int);
 BitVector *btor_assignment_bv (BtorMemMgr *, BtorNode *, int);
