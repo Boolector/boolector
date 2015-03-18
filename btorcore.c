@@ -4298,7 +4298,7 @@ find_memset_operations (Btor *btor)
   double start, delta;
   char *b0, *b1, *one, *diff;
   BtorNode *cur, *lhs, *rhs, *subst, *n0, *n1, *tmp;
-  BtorNode *array, *index, *value;
+  BtorNode *array, *index, *value, *read;
   BtorHashTableIterator it, iit;
   BtorPtrHashTable *t, *map_value_index;
   BtorPtrHashBucket *b;
@@ -4310,6 +4310,7 @@ find_memset_operations (Btor *btor)
 
   mm              = btor->mm;
   map_value_index = btor_new_ptr_hash_table (mm, 0, 0);
+  init_substitutions (btor);
 
   /* top level equality pre-initialization */
   init_node_hash_table_iterator (&it, btor->unsynthesized_constraints);
@@ -4326,18 +4327,18 @@ find_memset_operations (Btor *btor)
     index = value = 0;
     if (!BTOR_IS_INVERTED_NODE (lhs) && BTOR_IS_APPLY_NODE (lhs)
         && BTOR_IS_UF_ARRAY_NODE (lhs->e[0])
-        && BTOR_IS_BV_CONST_NODE (BTOR_REAL_ADDR_NODE (lhs->e[1]->e[0]))
-        && BTOR_IS_BV_CONST_NODE (BTOR_REAL_ADDR_NODE (rhs)))
+        && BTOR_IS_BV_CONST_NODE (BTOR_REAL_ADDR_NODE (lhs->e[1]->e[0])))
     {
+      read  = lhs;
       array = lhs->e[0];
       index = lhs->e[1]->e[0];
       value = rhs;
     }
     else if (!BTOR_IS_INVERTED_NODE (rhs) && BTOR_IS_APPLY_NODE (rhs)
              && BTOR_IS_UF_ARRAY_NODE (rhs->e[0])
-             && BTOR_IS_BV_CONST_NODE (BTOR_REAL_ADDR_NODE (rhs->e[1]->e[0]))
-             && BTOR_IS_BV_CONST_NODE (BTOR_REAL_ADDR_NODE (lhs)))
+             && BTOR_IS_BV_CONST_NODE (BTOR_REAL_ADDR_NODE (rhs->e[1]->e[0])))
     {
+      read  = rhs;
       array = rhs->e[0];
       index = rhs->e[1]->e[0];
       value = lhs;
@@ -4371,12 +4372,15 @@ find_memset_operations (Btor *btor)
       BTOR_REAL_ADDR_NODE (index)->invbits =
           btor_not_const (mm, BTOR_REAL_ADDR_NODE (index)->bits);
 
+    /* substitute 'read' with 'value', in order to prevent down propgation
+     * rewriting for 'read' during substitute_and_rebuild(...), which
+     * simplifies 'read' to 'value' anyways. */
+    insert_substitution (btor, read, value, 0);
     continue;
   }
 
   BTOR_INIT_STACK (ranges);
   BTOR_INIT_STACK (indices);
-  init_substitutions (btor);
   init_node_hash_table_iterator (&it, map_value_index);
   while (has_next_node_hash_table_iterator (&it))
   {
