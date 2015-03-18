@@ -714,6 +714,10 @@ btor_print_stats_btor (Btor *btor)
             1,
             "%.2f seconds beta reduction probing",
             btor->time.br_probing);
+  BTOR_MSG (btor->msg,
+            1,
+            "%.2f seconds substitute and rebuild",
+            btor->time.subst_rebuild);
 #ifndef BTOR_DO_NOT_OPTIMIZE_UNCONSTRAINED
   if (btor->options.ucopt.val)
     BTOR_MSG (btor->msg,
@@ -2860,6 +2864,7 @@ substitute_and_rebuild (Btor *btor, BtorPtrHashTable *subst, int bra)
   assert (check_id_table_aux_mark_unset_dbg (btor));
 
   int i;
+  double start;
   BtorMemMgr *mm;
   BtorNode *cur, *cur_parent, *rebuilt_exp, *simplified, *sub;
   BtorNodePtrStack roots;
@@ -2869,7 +2874,8 @@ substitute_and_rebuild (Btor *btor, BtorPtrHashTable *subst, int bra)
 
   if (subst->count == 0u) return;
 
-  mm = btor->mm;
+  start = btor_time_stamp ();
+  mm    = btor->mm;
 
   BTOR_INIT_STACK (roots);
   BTOR_INIT_QUEUE (queue);
@@ -2995,6 +3001,7 @@ substitute_and_rebuild (Btor *btor, BtorPtrHashTable *subst, int bra)
 
   assert (check_id_table_aux_mark_unset_dbg (btor));
   assert (check_unique_table_children_proxy_free_dbg (btor));
+  btor->time.subst_rebuild += btor_time_stamp () - start;
 }
 
 static void

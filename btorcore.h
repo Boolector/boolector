@@ -225,6 +225,7 @@ struct Btor
     double rewrite;
     double sat;
     double subst;
+    double subst_rebuild;
     double betareduce;
     double embedded;
     double slicing;
