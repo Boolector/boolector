@@ -4327,7 +4327,8 @@ find_memset_operations (Btor *btor)
     index = value = 0;
     if (!BTOR_IS_INVERTED_NODE (lhs) && BTOR_IS_APPLY_NODE (lhs)
         && BTOR_IS_UF_ARRAY_NODE (lhs->e[0])
-        && BTOR_IS_BV_CONST_NODE (BTOR_REAL_ADDR_NODE (lhs->e[1]->e[0])))
+        && BTOR_IS_BV_CONST_NODE (BTOR_REAL_ADDR_NODE (lhs->e[1]->e[0]))
+        && BTOR_IS_BV_CONST_NODE (BTOR_REAL_ADDR_NODE (rhs)))
     {
       read  = lhs;
       array = lhs->e[0];
@@ -4336,7 +4337,8 @@ find_memset_operations (Btor *btor)
     }
     else if (!BTOR_IS_INVERTED_NODE (rhs) && BTOR_IS_APPLY_NODE (rhs)
              && BTOR_IS_UF_ARRAY_NODE (rhs->e[0])
-             && BTOR_IS_BV_CONST_NODE (BTOR_REAL_ADDR_NODE (rhs->e[1]->e[0])))
+             && BTOR_IS_BV_CONST_NODE (BTOR_REAL_ADDR_NODE (rhs->e[1]->e[0]))
+             && BTOR_IS_BV_CONST_NODE (BTOR_REAL_ADDR_NODE (lhs)))
     {
       read  = rhs;
       array = rhs->e[0];
@@ -4374,8 +4376,12 @@ find_memset_operations (Btor *btor)
 
     /* substitute 'read' with 'value', in order to prevent down propgation
      * rewriting for 'read' during substitute_and_rebuild(...), which
-     * simplifies 'read' to 'value' anyways. */
-    insert_substitution (btor, read, value, 0);
+     * simplifies 'read' to 'value' anyways.
+     * NOTE: if 'read' is already in 'substitutions', we let the rewriting
+     * engine handle inconsistencies (i,e., if 'value' is not the same
+     * as in 'substitutions'. */
+    if (!btor_find_in_ptr_hash_table (btor->substitutions, read))
+      insert_substitution (btor, read, value, 0);
     continue;
   }
 
