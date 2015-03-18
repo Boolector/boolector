@@ -2231,7 +2231,7 @@ static inline BtorNode *
 apply_zero_eq_and_eq (Btor *btor, BtorNode *e0, BtorNode *e1)
 {
   (void) e0;
-  int i, len, upper, lower;
+  int len, upper, lower;
   BtorNode *result, *real_e1, *masked, *zero, *slice;
 
   real_e1 = BTOR_REAL_ADDR_NODE (e1);
@@ -5435,7 +5435,9 @@ normalize_and (Btor *btor, BtorNode **left, BtorNode **right)
   e1 = *right;
 
   /* normalize adds and muls on demand */
-  normalize_adds_muls_ands (btor, &e0, &e1);
+  if (BTOR_IS_MUL_NODE (BTOR_REAL_ADDR_NODE (e0))
+      || BTOR_IS_ADD_NODE (BTOR_REAL_ADDR_NODE (e1)))
+    normalize_adds_muls_ands (btor, &e0, &e1);
 
   *left  = e0;
   *right = e1;
@@ -5449,8 +5451,9 @@ normalize_add (Btor *btor, BtorNode **left, BtorNode **right)
   e0 = *left;
   e1 = *right;
 
-  /* normalize muls on demand */
-  if (BTOR_IS_MUL_NODE (BTOR_REAL_ADDR_NODE (e0)))
+  /* normalize muls and ands on demand */
+  if (BTOR_IS_MUL_NODE (BTOR_REAL_ADDR_NODE (e0))
+      || BTOR_IS_AND_NODE (BTOR_REAL_ADDR_NODE (e0)))
     normalize_adds_muls_ands (btor, &e0, &e1);
 
   *left  = e0;
@@ -5465,8 +5468,9 @@ normalize_mul (Btor *btor, BtorNode **left, BtorNode **right)
   e0 = *left;
   e1 = *right;
 
-  /* normalize adds on demand */
-  if (BTOR_IS_ADD_NODE (BTOR_REAL_ADDR_NODE (e0)))
+  /* normalize adds and ands on demand */
+  if (BTOR_IS_ADD_NODE (BTOR_REAL_ADDR_NODE (e0))
+      || BTOR_IS_AND_NODE (BTOR_REAL_ADDR_NODE (e0)))
     normalize_adds_muls_ands (btor, &e0, &e1);
 
   *left  = e0;
@@ -6041,7 +6045,6 @@ rewrite_lambda_exp (Btor *btor, BtorNode *e0, BtorNode *e1)
 
   assert (!result);
   result = btor_lambda_exp_node (btor, e0, e1);
-DONE:
   assert (result);
   return result;
 }
