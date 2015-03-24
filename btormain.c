@@ -695,7 +695,7 @@ boolector_main (int argc, char **argv)
   int i, j, len, readval, val, format;
   int isshrt, isdisable, isint;
   int res, parse_res, parse_status, sat_res;
-  int log, mgen, pmodel, inc, dump, force_sat;
+  int mgen, pmodel, inc, dump, force_sat;
   char *arg, *cmd, *valstr, *tmp, *parse_err_msg;
   char *o;
   const char *oshrt;
@@ -721,9 +721,6 @@ boolector_main (int argc, char **argv)
   dump         = 0;
   force_sat    = 0;
 
-#ifndef NBTORLOG
-  log = boolector_get_opt_val (g_app->btor, BTOR_OPT_LOGLEVEL);
-#endif
   g_verbosity = boolector_get_opt_val (g_app->btor, BTOR_OPT_VERBOSITY);
   mgen        = boolector_get_opt_val (g_app->btor, BTOR_OPT_MODEL_GEN);
 
@@ -1064,23 +1061,6 @@ boolector_main (int argc, char **argv)
           pmodel = 1;
         }
       }
-#if 0
-#ifndef NBTORLOG
-	  else if (IS_BTOR_OPT ("l", BTOR_OPT_LOGLEVEL))
-	    {
-	      if (readval == 2 && !isint) goto ERR_INVALID_ARGUMENT;
-	      
-	      log = isdisable || (reaadval && isint && val == 0) ? 0 : log + 1;
-	    }
-#endif
-	  else if (IS_BTOR_OPT ("v", BTOR_OPT_VERBOSITY))
-	    {
-	      if (readval == 2 && !isint) goto ERR_INVALID_ARGUMENT;
-
-	      g_verbosity = isdisable || (readval && isint && val == 0)
-			    ? 0 : g_verbosity + val;
-	    }
-#endif
       /* options requiring an integer argument */
       else if (IS_BTOR_OPT ("rwl", BTOR_OPT_REWRITE_LEVEL)
                || IS_BTOR_OPT ("", BTOR_OPT_REWRITE_LEVEL_PBR)
