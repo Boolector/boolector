@@ -700,7 +700,7 @@ boolector_main (int argc, char **argv)
   char *o;
   const char *oshrt;
 #ifdef BTOR_USE_LINGELING
-  char *lglopts;
+  char *lglopts = 0;
 #endif
   BtorCharStack opt, errarg;
 
