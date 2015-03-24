@@ -164,6 +164,30 @@ has_next_lambda_iterator (BtorNodeIterator *it)
   return BTOR_IS_LAMBDA_NODE (BTOR_REAL_ADDR_NODE (it->cur));
 }
 
+void
+init_param_iterator (BtorNodeIterator *it, BtorNode *exp)
+{
+  init_lambda_iterator (it, exp);
+}
+
+BtorNode *
+next_param_iterator (BtorNodeIterator *it)
+{
+  assert (it);
+  assert (it->cur);
+
+  BtorNode *result;
+  result  = it->cur->e[0];
+  it->cur = result->e[1];
+  return result;
+}
+
+int
+has_next_param_iterator (BtorNodeIterator *it)
+{
+  return has_next_lambda_iterator (it);
+}
+
 /*------------------------------------------------------------------------*/
 
 void

@@ -65,10 +65,12 @@ void btor_chkclone_sort (const BtorSort *sort, const BtorSort *clone);
   do                                                                        \
   {                                                                         \
     if (!btor->clone) break;                                                \
-    const BtorSort *cloneres =                                              \
+    const BtorSortId cloneres =                                             \
         BTOR_IMPORT_BOOLECTOR_SORT (boolector_##fun (btor->clone, ##args)); \
-    (void) cloneres;                                                        \
-    btor_chkclone_sort (res, cloneres);                                     \
+    const BtorSort *s0, *s1;                                                \
+    s0 = btor_get_sort_by_id (&btor->sorts_unique_table, res);              \
+    s1 = btor_get_sort_by_id (&btor->sorts_unique_table, cloneres);         \
+    btor_chkclone_sort (s0, s1);                                            \
   } while (0)
 
 /*------------------------------------------------------------------------*/

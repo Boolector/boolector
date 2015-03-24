@@ -116,12 +116,7 @@ btor_delete_dump_context (BtorDumpContext *bdc)
     btor_release_exp (bdc->btor, next_node_hash_table_iterator (&it));
   btor_delete_ptr_hash_table (bdc->idtab);
 
-  init_hash_table_iterator (&it, bdc->sorts);
-  while (has_next_hash_table_iterator (&it))
-    btor_release_sort (&bdc->btor->sorts_unique_table,
-                       (BtorSort *) next_hash_table_iterator (&it));
   btor_delete_ptr_hash_table (bdc->sorts);
-
   BTOR_DELETE (bdc->btor->mm, bdc);
 }
 
@@ -253,10 +248,9 @@ static BtorSort *
 get_sort (BtorDumpContext *bdc, BtorNode *node)
 {
   BtorSort *sort;
-  sort = btor_create_or_get_sort (node->btor, node);
+  sort = btor_get_sort_by_id (&bdc->btor->sorts_unique_table, node->sort_id);
   assert (btor_find_in_ptr_hash_table (bdc->sorts, sort));
   assert (sort->refs > 1);
-  btor_release_sort (&bdc->btor->sorts_unique_table, sort);
   return sort;
 }
 
@@ -353,8 +347,13 @@ bdcnode (BtorDumpContext *bdc, BtorNode *node, FILE *file)
     fprintf (file, "%d %s %d", bdcid (bdc, node), op, node->len);
 
     /* print index bit width of arrays */
-    if (BTOR_IS_UF_ARRAY_NODE (node) || BTOR_IS_LAMBDA_NODE (node))
-      fprintf (file, " %d", BTOR_ARRAY_INDEX_LEN (node));
+    if (BTOR_IS_UF_ARRAY_NODE (node))
+      fprintf (file, " %d", btor_get_index_exp_len (bdc->btor, node));
+    else if (BTOR_IS_LAMBDA_NODE (node))
+      fprintf (file,
+               " %d",
+               btor_get_width_bitvec_sort (&bdc->btor->sorts_unique_table,
+                                           node->e[0]->sort_id));
 
     if (BTOR_IS_APPLY_NODE (node))
     {
@@ -422,7 +421,7 @@ DONE:
 static void
 bdcsort (BtorDumpContext *bdc, BtorSort *sort, FILE *file)
 {
-  int i, id;
+  unsigned i, id;
   const char *kind;
 
   /* already dumped */
@@ -443,7 +442,7 @@ bdcsort (BtorDumpContext *bdc, BtorSort *sort, FILE *file)
   fprintf (file, "%d sort %s", id, kind);
 
   if (sort->kind == BTOR_BITVEC_SORT)
-    fprintf (file, " %d", sort->bitvec.len);
+    fprintf (file, " %d", sort->bitvec.width);
   else if (sort->kind == BTOR_ARRAY_SORT)
     fprintf (file,
              " %d %d",
@@ -495,12 +494,10 @@ bdcsorts (BtorDumpContext *bdc, BtorNode *start, FILE *file)
 
     (void) btor_insert_in_ptr_hash_table (mark_nodes, cur);
 
-    sort = btor_create_or_get_sort (bdc->btor, cur);
+    sort = btor_get_sort_by_id (&bdc->btor->sorts_unique_table, cur->sort_id);
 
-    if (btor_find_in_ptr_hash_table (bdc->sorts, sort)
-        || btor_find_in_ptr_hash_table (mark_sorts, sort))
-      btor_release_sort (&bdc->btor->sorts_unique_table, sort);
-    else
+    if (!(btor_find_in_ptr_hash_table (bdc->sorts, sort)
+          || btor_find_in_ptr_hash_table (mark_sorts, sort)))
     {
       (void) btor_insert_in_ptr_hash_table (mark_sorts, sort);
       BTOR_PUSH_STACK (mm, sorts, sort);

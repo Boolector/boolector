@@ -110,14 +110,15 @@ typedef struct BtorNodePair BtorNodePair;
     unsigned int is_write : 1;                                          \
     unsigned int is_read : 1;                                           \
     unsigned int propagated : 1;                                        \
-    char *bits;    /* three-valued bits */                              \
-    char *invbits; /* inverted three-valued bits */                     \
-    int id;        /* unique expression id */                           \
-    int len;       /* number of bits */                                 \
-    int refs;      /* reference counter (incl. ext_refs) */             \
-    int ext_refs;  /* external references counter */                    \
-    int parents;   /* number of parents */                              \
-    int arity;     /* arity of operator */                              \
+    char *bits;         /* three-valued bits */                         \
+    char *invbits;      /* inverted three-valued bits */                \
+    int id;             /* unique expression id */                      \
+    int len;            /* number of bits */                            \
+    int refs;           /* reference counter (incl. ext_refs) */        \
+    int ext_refs;       /* external references counter */               \
+    int parents;        /* number of parents */                         \
+    int arity;          /* arity of operator */                         \
+    BtorSortId sort_id; /* sort id  TODO: rename to sort */             \
     union                                                               \
     {                                                                   \
       BtorAIGVec *av;        /* synthesized AIG vector */               \
@@ -161,8 +162,6 @@ struct BtorUFNode
 {
   BTOR_BV_NODE_STRUCT;
   int btor_id; /* id as defined in btor input */
-  BtorSort *sort;
-  int num_params;
   char is_array;
 };
 
@@ -195,7 +194,6 @@ struct BtorLambdaNode
   BTOR_BV_ADDITIONAL_NODE_STRUCT;
   BtorPtrHashTable *synth_apps;
   BtorNode *body; /* function body (short-cut for curried lambdas) */
-  int num_params; /* number of params (> 1 in case of curried lambdas) */
 };
 
 typedef struct BtorLambdaNode BtorLambdaNode;
@@ -381,11 +379,6 @@ typedef struct BtorArgsNode BtorArgsNode;
 
 #define BTOR_LAMBDA_GET_BODY(exp) (((BtorLambdaNode *) exp)->body)
 
-#define BTOR_ARRAY_INDEX_LEN(exp)                           \
-  (BTOR_IS_UF_ARRAY_NODE (exp)                              \
-       ? ((BtorUFNode *) exp)->sort->fun.domain->bitvec.len \
-       : BTOR_LAMBDA_GET_PARAM (exp)->len)
-
 /*------------------------------------------------------------------------*/
 
 struct BtorNodePair
@@ -490,7 +483,7 @@ BtorNode *btor_array_exp (Btor *btor,
 
 /* Uninterpreted function with sort 'sort'.
  */
-BtorNode *btor_uf_exp (Btor *btor, BtorSort *sort, const char *symbol);
+BtorNode *btor_uf_exp (Btor *btor, BtorSortId sort, const char *symbol);
 
 /* One's complement.
  * len(result) = len(exp)

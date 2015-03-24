@@ -63,10 +63,13 @@ dec_exp_ext_ref_counter (Btor *btor, BtorNode *exp)
   btor->external_refs -= 1;
 }
 static void
-inc_sort_ext_ref_counter (Btor *btor, BtorSort *sort)
+inc_sort_ext_ref_counter (Btor *btor, BtorSortId id)
 {
   assert (btor);
-  assert (sort);
+  assert (id);
+
+  BtorSort *sort;
+  sort = btor_get_sort_by_id (&btor->sorts_unique_table, id);
 
   BTOR_ABORT_BOOLECTOR (sort->ext_refs == INT_MAX,
                         "Node reference counter overflow");
@@ -75,11 +78,14 @@ inc_sort_ext_ref_counter (Btor *btor, BtorSort *sort)
 }
 
 static void
-dec_sort_ext_ref_counter (Btor *btor, BtorSort *sort)
+dec_sort_ext_ref_counter (Btor *btor, BtorSortId id)
 {
   assert (btor);
-  assert (sort);
+  assert (id);
 
+  BtorSort *sort;
+  sort = btor_get_sort_by_id (&btor->sorts_unique_table, id);
+  assert (sort->ext_refs > 0);
   sort->ext_refs -= 1;
   btor->external_refs -= 1;
 }
@@ -112,13 +118,8 @@ boolector_chkclone (Btor *btor)
                                              BTOR_REAL_ADDR_NODE (exp)->id)) \
                 : 0))
 
-#define BTOR_CLONED_SORT(sort)                                            \
-  ((btor->clone ? BTOR_EXPORT_BOOLECTOR_SORT (BTOR_PEEK_STACK (           \
-                      btor->clone->sorts_unique_table.id2sort, sort->id)) \
-                : 0))
 #else
 #define BTOR_CLONED_EXP(exp) 0
-#define BTOR_CLONED_SORT(sort) 0
 #endif
 
 /*------------------------------------------------------------------------*/
@@ -1010,26 +1011,19 @@ boolector_array (Btor *btor,
 }
 
 BoolectorNode *
-boolector_uf (Btor *btor, BoolectorSort *sort, const char *symbol)
+boolector_uf (Btor *btor, BoolectorSort sort, const char *symbol)
 {
   BTOR_ABORT_ARG_NULL_BOOLECTOR (btor);
   BTOR_ABORT_ARG_NULL_BOOLECTOR (sort);
 
   BtorNode *res;
-  BtorSort *s;
+  BtorSortId s;
   char *symb;
 
   symb = (char *) symbol;
   s    = BTOR_IMPORT_BOOLECTOR_SORT (sort);
-  BTOR_TRAPI (SORT_FMT "%s", BTOR_TRAPI_SORT_ID (s), symb);
-  BTOR_ABORT_BOOLECTOR (s->table != &btor->sorts_unique_table,
-                        "%ssort%s%s%s%s does not belong to 'btor'",
-                        symbol ? "" : "'",
-                        symbol ? "" : "'",
-                        symbol ? " '" : "",
-                        symbol ? symbol : "",
-                        symbol ? "'" : "");
-  BTOR_ABORT_BOOLECTOR (!BTOR_IS_FUN_SORT (BTOR_IMPORT_BOOLECTOR_SORT (sort)),
+  BTOR_TRAPI (SORT_FMT "%s", s, symb);
+  BTOR_ABORT_BOOLECTOR (!btor_is_fun_sort (&btor->sorts_unique_table, s),
                         "%ssort%s%s%s%s must be a function sort",
                         symbol ? "" : "'",
                         symbol ? "" : "'",
@@ -1041,15 +1035,14 @@ boolector_uf (Btor *btor, BoolectorSort *sort, const char *symbol)
       "symbol '%s' is already in use",
       symb);
 
-  res = btor_uf_exp (btor, BTOR_IMPORT_BOOLECTOR_SORT (sort), symb);
+  res = btor_uf_exp (btor, s, symb);
   assert (BTOR_IS_REGULAR_NODE (res));
   inc_exp_ext_ref_counter (btor, res);
   (void) btor_insert_in_ptr_hash_table (btor->inputs,
                                         btor_copy_exp (btor, res));
   BTOR_TRAPI_RETURN_NODE (res);
 #ifndef NDEBUG
-  BTOR_CHKCLONE_RES_PTR (
-      res, uf, BTOR_CLONED_SORT (BTOR_IMPORT_BOOLECTOR_SORT (sort)), symbol);
+  BTOR_CHKCLONE_RES_PTR (res, uf, s, symbol);
 #endif
   return BTOR_EXPORT_BOOLECTOR_NODE (res);
 }
@@ -1525,12 +1518,9 @@ boolector_ne (Btor *btor, BoolectorNode *n0, BoolectorNode *n1)
   is_array_simp1 = BTOR_IS_FUN_NODE (real_simp1);
   BTOR_ABORT_BOOLECTOR (is_array_simp0 != is_array_simp1,
                         "array must not be compared to bit-vector");
-  BTOR_ABORT_BOOLECTOR (is_array_simp0 && real_simp0->len != real_simp1->len,
-                        "arrays must not have unequal element bit-width");
-  BTOR_ABORT_BOOLECTOR (is_array_simp0
-                            && BTOR_ARRAY_INDEX_LEN (real_simp0)
-                                   != BTOR_ARRAY_INDEX_LEN (real_simp1),
-                        "arrays must not have unequal index bit-width");
+  BTOR_ABORT_BOOLECTOR (
+      is_array_simp0 && real_simp0->sort_id != real_simp1->sort_id,
+      "arrays must not have unequal index/element sorts");
   res = btor_ne_exp (btor, simp0, simp1);
   inc_exp_ext_ref_counter (btor, res);
   BTOR_TRAPI_RETURN_NODE (res);
@@ -2438,8 +2428,8 @@ boolector_read (Btor *btor, BoolectorNode *n_array, BoolectorNode *n_index)
   BTOR_ABORT_BV_BOOLECTOR (simp_array);
   BTOR_ABORT_ARRAY_BOOLECTOR (simp_index);
   BTOR_ABORT_BOOLECTOR (
-      BTOR_ARRAY_INDEX_LEN (simp_array)
-          != BTOR_REAL_ADDR_NODE (simp_index)->len,
+      btor_get_index_array_sort (&btor->sorts_unique_table, simp_array->sort_id)
+          != BTOR_REAL_ADDR_NODE (simp_index)->sort_id,
       "index bit-width of 'e_array' and bit-width of 'e_index' must be equal");
   res = btor_read_exp (btor, simp_array, simp_index);
   inc_exp_ext_ref_counter (btor, res);
@@ -2481,8 +2471,8 @@ boolector_write (Btor *btor,
   BTOR_ABORT_ARRAY_BOOLECTOR (simp_index);
   BTOR_ABORT_ARRAY_BOOLECTOR (simp_value);
   BTOR_ABORT_BOOLECTOR (
-      BTOR_ARRAY_INDEX_LEN (simp_array)
-          != BTOR_REAL_ADDR_NODE (simp_index)->len,
+      btor_get_index_array_sort (&btor->sorts_unique_table, simp_array->sort_id)
+          != BTOR_REAL_ADDR_NODE (simp_index)->sort_id,
       "index bit-width of 'e_array' and bit-width of 'e_index' must be equal");
   BTOR_ABORT_BOOLECTOR (
       simp_array->len != BTOR_REAL_ADDR_NODE (simp_value)->len,
@@ -2542,12 +2532,8 @@ boolector_cond (Btor *btor,
                             && real_simp_if->len != real_simp_else->len,
                         "bit-vectors must not have unequal bit-width");
   BTOR_ABORT_BOOLECTOR (is_array_simp_if && real_simp_if && real_simp_else
-                            && real_simp_if->len != real_simp_else->len,
-                        "arrays must not have unequal element bit-width");
-  BTOR_ABORT_BOOLECTOR (is_array_simp_if && real_simp_if && real_simp_else
-                            && BTOR_ARRAY_INDEX_LEN (real_simp_if)
-                                   != BTOR_ARRAY_INDEX_LEN (real_simp_else),
-                        "arrays must not have unequal index bit-width");
+                            && real_simp_if->sort_id != real_simp_else->sort_id,
+                        "arrays must not have unequal index/element sorts");
   res = btor_cond_exp (btor, simp_cond, simp_if, simp_else);
   inc_exp_ext_ref_counter (btor, res);
   BTOR_TRAPI_RETURN_NODE (res);
@@ -3447,13 +3433,13 @@ boolector_print_model (Btor *btor, char *format, FILE *file)
 
 /*------------------------------------------------------------------------*/
 
-BoolectorSort *
+BoolectorSort
 boolector_bool_sort (Btor *btor)
 {
   BTOR_ABORT_ARG_NULL_BOOLECTOR (btor);
   BTOR_TRAPI ("");
 
-  BtorSort *res;
+  BtorSortId res;
   res = btor_bool_sort (&btor->sorts_unique_table);
   inc_sort_ext_ref_counter (btor, res);
   BTOR_TRAPI_RETURN_SORT (res);
@@ -3463,14 +3449,14 @@ boolector_bool_sort (Btor *btor)
   return BTOR_EXPORT_BOOLECTOR_SORT (res);
 }
 
-BoolectorSort *
+BoolectorSort
 boolector_bitvec_sort (Btor *btor, int width)
 {
   BTOR_ABORT_ARG_NULL_BOOLECTOR (btor);
   BTOR_TRAPI ("%d", width);
   BTOR_ABORT_BOOLECTOR (width <= 0, "'width' must be > 0");
 
-  BtorSort *res;
+  BtorSortId res;
   res = btor_bitvec_sort (&btor->sorts_unique_table, width);
   inc_sort_ext_ref_counter (btor, res);
   BTOR_TRAPI_RETURN_SORT (res);
@@ -3480,11 +3466,11 @@ boolector_bitvec_sort (Btor *btor, int width)
   return BTOR_EXPORT_BOOLECTOR_SORT (res);
 }
 
-BoolectorSort *
+BoolectorSort
 boolector_fun_sort (Btor *btor,
-                    BoolectorSort **domain,
+                    BoolectorSort *domain,
                     int arity,
-                    BoolectorSort *codomain)
+                    BoolectorSort codomain)
 {
   BTOR_ABORT_ARG_NULL_BOOLECTOR (btor);
   BTOR_ABORT_ARG_NULL_BOOLECTOR (domain);
@@ -3492,72 +3478,59 @@ boolector_fun_sort (Btor *btor,
   BTOR_ABORT_BOOLECTOR (arity <= 0, "'arity' must be > 0");
 
   int i, len;
-  BtorSort *res;
+  BtorSortId res, tup;
   char *strtrapi;
 
   len = 8 + 10 + (arity + 1) * 20;
   BTOR_NEWN (btor->mm, strtrapi, len);
 
-  sprintf (strtrapi,
-           SORT_FMT,
-           BTOR_TRAPI_SORT_ID (BTOR_IMPORT_BOOLECTOR_SORT ((domain[0]))));
+  sprintf (strtrapi, SORT_FMT, BTOR_IMPORT_BOOLECTOR_SORT ((domain[0])));
   for (i = 1; i < arity; i++)
     sprintf (strtrapi + strlen (strtrapi),
              SORT_FMT,
-             BTOR_TRAPI_SORT_ID (BTOR_IMPORT_BOOLECTOR_SORT (domain[i])));
-  sprintf (strtrapi + strlen (strtrapi),
-           SORT_FMT,
-           BTOR_TRAPI_SORT_ID ((BtorSort *) codomain));
+             BTOR_IMPORT_BOOLECTOR_SORT (domain[i]));
+  sprintf (strtrapi + strlen (strtrapi), SORT_FMT, codomain);
   BTOR_TRAPI (strtrapi);
   BTOR_DELETEN (btor->mm, strtrapi, len);
 
   for (i = 0; i < arity; i++)
     BTOR_ABORT_BOOLECTOR (
-        !BTOR_IS_BITVEC_SORT (BTOR_IMPORT_BOOLECTOR_SORT (domain[i]))
-            && !BTOR_IS_BOOL_SORT (BTOR_IMPORT_BOOLECTOR_SORT (domain[i])),
+        !btor_is_bitvec_sort (&btor->sorts_unique_table,
+                              BTOR_IMPORT_BOOLECTOR_SORT (domain[i]))
+            && !btor_is_bool_sort (&btor->sorts_unique_table,
+                                   BTOR_IMPORT_BOOLECTOR_SORT (domain[i])),
         "'domain' sort at position %d must be a bool or bit vector sort",
         i);
   BTOR_ABORT_BOOLECTOR (
-      !BTOR_IS_BITVEC_SORT (BTOR_IMPORT_BOOLECTOR_SORT (codomain))
-          && !BTOR_IS_BOOL_SORT (BTOR_IMPORT_BOOLECTOR_SORT (codomain)),
+      !btor_is_bitvec_sort (&btor->sorts_unique_table,
+                            BTOR_IMPORT_BOOLECTOR_SORT (codomain))
+          && !btor_is_bool_sort (&btor->sorts_unique_table,
+                                 BTOR_IMPORT_BOOLECTOR_SORT (codomain)),
       "'codomain' sort must be a bool or bit vector sort");
 
-  res = btor_fun_sort (&btor->sorts_unique_table,
-                       (BtorSort **) domain,
-                       arity,
-                       (BtorSort *) codomain);
+  tup = btor_tuple_sort (&btor->sorts_unique_table, domain, arity);
+  res = btor_fun_sort (&btor->sorts_unique_table, tup, (BtorSortId) codomain);
+  btor_release_sort (&btor->sorts_unique_table, tup);
   inc_sort_ext_ref_counter (btor, res);
   BTOR_TRAPI_RETURN_SORT (res);
 #ifndef NDEBUG
-  BoolectorSort *cdomain[arity];
-  for (i = 0; i < arity; i++)
-    cdomain[i] = BTOR_CLONED_SORT (BTOR_IMPORT_BOOLECTOR_SORT (domain[i]));
-  BTOR_CHKCLONE_RES_SORT (
-      res,
-      fun_sort,
-      cdomain,
-      arity,
-      BTOR_CLONED_SORT (BTOR_IMPORT_BOOLECTOR_SORT (codomain)));
+  BTOR_CHKCLONE_RES_SORT (res, fun_sort, domain, arity, codomain);
 #endif
   return BTOR_EXPORT_BOOLECTOR_SORT (res);
 }
 
 void
-boolector_release_sort (Btor *btor, BoolectorSort *sort)
+boolector_release_sort (Btor *btor, BoolectorSort sort)
 {
   BTOR_ABORT_ARG_NULL_BOOLECTOR (btor);
   BTOR_ABORT_ARG_NULL_BOOLECTOR (sort);
-  BTOR_TRAPI (SORT_FMT, BTOR_TRAPI_SORT_ID ((BtorSort *) sort));
+  BTOR_TRAPI (SORT_FMT, (BtorSortId) sort);
 
-  BtorSort *s = BTOR_IMPORT_BOOLECTOR_SORT (sort);
-#ifndef NDEBUG
-  BoolectorSort *cs = BTOR_CLONED_SORT (s);
-#endif
-  assert (s->ext_refs > 0);
+  BtorSortId s = BTOR_IMPORT_BOOLECTOR_SORT (sort);
   dec_sort_ext_ref_counter (btor, s);
-  btor_release_sort (&btor->sorts_unique_table, (BtorSort *) sort);
+  btor_release_sort (&btor->sorts_unique_table, s);
 #ifndef NDEBUG
-  BTOR_CHKCLONE_NORES (release_sort, cs);
+  BTOR_CHKCLONE_NORES (release_sort, sort);
 #endif
 }
 

@@ -391,7 +391,7 @@ is_write_exp (BtorNode *exp,
 
   BtorNode *param, *body, *eq, *app;
 
-  if (!BTOR_IS_LAMBDA_NODE (exp) || ((BtorLambdaNode *) exp)->num_params > 1)
+  if (!BTOR_IS_LAMBDA_NODE (exp) || btor_get_fun_arity (exp->btor, exp) > 1)
     return 0;
 
   param = (BtorNode *) BTOR_LAMBDA_GET_PARAM (exp);

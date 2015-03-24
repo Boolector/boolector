@@ -41,9 +41,10 @@ clone_sorts_unique_table (BtorMemMgr *mm,
   assert (table);
   assert (res);
 
-  int i, j;
+  unsigned i, j;
   BtorSort *sort, *csort, *tmp;
-  BtorSortPtrStack elements;
+  BtorSortId cid;
+  BtorSortIdStack elements;
 
   BTOR_INIT_STACK (elements);
 
@@ -65,66 +66,39 @@ clone_sorts_unique_table (BtorMemMgr *mm,
 
     switch (sort->kind)
     {
-      case BTOR_BOOL_SORT: csort = btor_bool_sort (res); break;
+      case BTOR_BOOL_SORT: cid = btor_bool_sort (res); break;
 
       case BTOR_BITVEC_SORT:
-        csort = btor_bitvec_sort (res, sort->bitvec.len);
+        cid = btor_bitvec_sort (res, sort->bitvec.width);
         break;
 
       case BTOR_LST_SORT:
-        csort =
-            btor_lst_sort (res,
-                           BTOR_PEEK_STACK (res->id2sort, sort->lst.head->id),
-                           BTOR_PEEK_STACK (res->id2sort, sort->lst.tail->id));
+        cid = btor_lst_sort (res, sort->lst.head->id, sort->lst.tail->id);
         break;
 
       case BTOR_ARRAY_SORT:
-        csort = btor_array_sort (
-            res,
-            BTOR_PEEK_STACK (res->id2sort, sort->array.index->id),
-            BTOR_PEEK_STACK (res->id2sort, sort->array.element->id));
+        cid = btor_array_sort (
+            res, sort->array.index->id, sort->array.element->id);
         break;
 
       case BTOR_FUN_SORT:
         tmp = BTOR_PEEK_STACK (res->id2sort, sort->fun.domain->id);
         assert (tmp);
-        if (sort->fun.arity > 1)
-        {
-          assert (sort->fun.domain->kind == BTOR_TUPLE_SORT);
-          assert (tmp->kind == BTOR_TUPLE_SORT);
-          assert (sort->fun.arity == tmp->tuple.num_elements);
-          csort = btor_fun_sort (
-              res,
-              tmp->tuple.elements,
-              sort->fun.arity,
-              BTOR_PEEK_STACK (res->id2sort, sort->fun.codomain->id));
-        }
-        else
-        {
-          assert (sort->fun.domain->kind != BTOR_TUPLE_SORT
-                  && sort->fun.domain->kind != BTOR_LST_SORT);
-          csort = btor_fun_sort (
-              res,
-              &tmp,
-              1,
-              BTOR_PEEK_STACK (res->id2sort, sort->fun.codomain->id));
-        }
+        cid = btor_fun_sort (res, sort->fun.domain->id, sort->fun.codomain->id);
         break;
 
       case BTOR_TUPLE_SORT:
         BTOR_RESET_STACK (elements);
         for (j = 0; j < sort->tuple.num_elements; j++)
-          BTOR_PUSH_STACK (
-              mm,
-              elements,
-              BTOR_PEEK_STACK (res->id2sort, sort->tuple.elements[j]->id));
-        csort =
+          BTOR_PUSH_STACK (mm, elements, sort->tuple.elements[j]->id);
+        cid =
             btor_tuple_sort (res, elements.start, BTOR_COUNT_STACK (elements));
         break;
 
-      default: csort = 0; break;
+      default: cid = 0; break;
     }
-    assert (csort);
+    assert (cid);
+    csort = BTOR_PEEK_STACK (res->id2sort, cid);
     assert (csort->refs == 1);
     assert (csort->id == sort->id);
     assert (csort->kind == sort->kind);
@@ -152,6 +126,128 @@ clone_sorts_unique_table (BtorMemMgr *mm,
   assert (res->num_elements == table->num_elements);
   BTOR_RELEASE_STACK (mm, elements);
 }
+
+#if 0
+static void
+clone_sorts_unique_table (BtorMemMgr * mm,
+			  BtorSortUniqueTable * table,
+			  BtorSortUniqueTable * res)
+{
+  assert (mm);
+  assert (table);
+  assert (res);
+
+  int i, j;
+  BtorSort *sort, *csort, *tmp;
+  BtorSortPtrStack elements;
+  
+  BTOR_INIT_STACK (elements);
+
+  BTOR_CNEWN (mm, res->chains, table->size);
+  res->size = table->size;
+  res->num_elements = 0;
+  res->mm = mm;
+  BTOR_INIT_STACK (res->id2sort);
+
+  for (i = 0; i < BTOR_COUNT_STACK (table->id2sort); i++)
+    {
+      sort = BTOR_PEEK_STACK (table->id2sort, i);
+
+      if (!sort)
+	{
+	  BTOR_PUSH_STACK (res->mm, res->id2sort, 0);
+	  continue;
+	}
+
+      switch (sort->kind)
+	{
+	  case BTOR_BOOL_SORT:
+	    csort = btor_bool_sort (res);
+	    break;
+
+	  case BTOR_BITVEC_SORT:
+	    csort = btor_bitvec_sort (res, sort->bitvec.len);
+	    break;
+
+	  case BTOR_LST_SORT:
+	    csort = btor_lst_sort (res,
+			BTOR_PEEK_STACK (res->id2sort, sort->lst.head->id),
+			BTOR_PEEK_STACK (res->id2sort, sort->lst.tail->id));
+	    break;
+
+	  case BTOR_ARRAY_SORT:
+	    csort = btor_array_sort (res,
+			BTOR_PEEK_STACK (res->id2sort, sort->array.index->id),
+			BTOR_PEEK_STACK (res->id2sort,
+					 sort->array.element->id));
+	    break;
+
+	  case BTOR_FUN_SORT:
+	    tmp = BTOR_PEEK_STACK (res->id2sort, sort->fun.domain->id);
+	    assert (tmp);
+	    if (sort->fun.arity > 1)
+	      {
+		assert (sort->fun.domain->kind == BTOR_TUPLE_SORT);
+		assert (tmp->kind == BTOR_TUPLE_SORT);
+		assert (sort->fun.arity == tmp->tuple.num_elements);
+		csort = btor_fun_sort (res, tmp->tuple.elements,
+			    sort->fun.arity,
+			    BTOR_PEEK_STACK (res->id2sort,
+					     sort->fun.codomain->id));
+	      }
+	    else
+	      {
+		assert (sort->fun.domain->kind != BTOR_TUPLE_SORT
+			&& sort->fun.domain->kind != BTOR_LST_SORT);
+		csort = btor_fun_sort (res, &tmp, 1,
+			    BTOR_PEEK_STACK (res->id2sort,
+					     sort->fun.codomain->id));
+	      }
+	    break;
+
+	  case BTOR_TUPLE_SORT:
+	    BTOR_RESET_STACK (elements);
+	    for (j = 0; j < sort->tuple.num_elements; j++)
+	      BTOR_PUSH_STACK (mm, elements,
+			       BTOR_PEEK_STACK (res->id2sort,
+						sort->tuple.elements[j]->id));
+	    csort = btor_tuple_sort (res, elements.start,
+				     BTOR_COUNT_STACK (elements));
+	    break;
+
+	  default:
+	    csort = 0;
+	    break;
+	}
+      assert (csort);
+      assert (csort->refs == 1);
+      assert (csort->id == sort->id);
+      assert (csort->kind == sort->kind);
+      assert (csort->table != sort->table);
+    }
+
+  /* update sort references (must be the same as in table) */
+  assert (BTOR_COUNT_STACK (table->id2sort) == BTOR_COUNT_STACK (res->id2sort));
+  for (i = 0; i < BTOR_COUNT_STACK (res->id2sort); i++)
+    {
+      sort = BTOR_PEEK_STACK (table->id2sort, i);
+      csort = BTOR_PEEK_STACK (res->id2sort, i);
+      if (!sort)
+	{
+	  assert (!csort);
+	  continue;
+	}
+      assert (csort->id == sort->id);
+      assert (csort->parents == sort->parents);
+      assert (csort->ext_refs == 0);
+      assert (sort->refs == csort->refs - 1 + sort->refs - sort->parents);
+      csort->refs = sort->refs;
+      csort->ext_refs = sort->ext_refs;
+    }
+  assert (res->num_elements == table->num_elements);
+  BTOR_RELEASE_STACK (mm, elements);
+}
+#endif
 
 static BtorNode *
 clone_exp (Btor *clone,
@@ -318,16 +414,6 @@ clone_exp (Btor *clone,
                         mm,
                         *nodes,
                         &((BtorLambdaNode *) res)->body);
-  }
-
-  if (BTOR_IS_UF_NODE (exp))
-  {
-    ((BtorUFNode *) res)->num_params = ((BtorUFNode *) exp)->num_params;
-    ((BtorUFNode *) res)->sort       = BTOR_PEEK_STACK (
-        clone->sorts_unique_table.id2sort, ((BtorUFNode *) exp)->sort->id);
-    assert (((BtorUFNode *) res)->sort->id == ((BtorUFNode *) exp)->sort->id);
-    assert (((BtorUFNode *) res)->sort->refs
-            == ((BtorUFNode *) exp)->sort->refs);
   }
 
   btor_map_node (exp_map, exp, res);
@@ -1257,11 +1343,7 @@ btor_recursively_rebuild_exp_clone (Btor *btor,
         case BTOR_UF_NODE:
           symbol =
               btor_find_in_ptr_hash_table (btor->node2symbol, cur)->data.asStr;
-          cur_clone =
-              btor_uf_exp (clone,
-                           BTOR_PEEK_STACK (clone->sorts_unique_table.id2sort,
-                                            ((BtorUFNode *) cur)->sort->id),
-                           symbol);
+          cur_clone = btor_uf_exp (clone, cur->sort_id, symbol);
           break;
         case BTOR_SLICE_NODE:
           cur_clone = btor_slice_exp (clone, e[0], cur->upper, cur->lower);

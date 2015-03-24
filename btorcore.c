@@ -943,7 +943,7 @@ release_all_ext_sort_refs (Btor *btor)
     btor->external_refs -= sort->ext_refs;
     assert (sort->refs > 0);
     sort->ext_refs = 0;
-    btor_release_sort (&btor->sorts_unique_table, sort);
+    btor_release_sort (&btor->sorts_unique_table, sort->id);
   }
 }
 
@@ -3943,7 +3943,6 @@ optimize_unconstrained (Btor *btor)
   BtorNodeIterator pit;
   BtorParameterizedIterator parit;
   BtorMemMgr *mm;
-  BtorSort *sort;
 
   start = btor_time_stamp ();
 
@@ -4121,9 +4120,7 @@ optimize_unconstrained (Btor *btor)
             {
               btor->stats.fun_uc_props++;
               btor_insert_in_ptr_hash_table (ucs, btor_copy_exp (btor, cur));
-              sort  = btor_create_or_get_sort (btor, cur);
-              subst = btor_uf_exp (btor, sort, 0);
-              btor_release_sort (&btor->sorts_unique_table, sort);
+              subst = btor_uf_exp (btor, cur->sort_id, 0);
               insert_substitution (btor, cur, subst, 0);
               btor_release_exp (btor, subst);
             }
@@ -7599,83 +7596,29 @@ btor_fun_sort_check (Btor *btor, int argc, BtorNode **args, BtorNode *fun)
   assert (btor_is_fun_exp (btor, fun));
   assert (argc == btor_get_fun_arity (btor, fun));
 
-  int i, width, pos = -1;
-  BtorSort *sort, *s;
+  int i, pos = -1;
+  BtorSortId sort;
+  BtorSortUniqueTable *sorts;
+  BtorTupleSortIterator it;
 
-  sort = btor_create_or_get_sort (btor, fun);
-
-  if (argc == 1)
+  sorts = &btor->sorts_unique_table;
+  assert (btor_is_tuple_sort (sorts,
+                              btor_get_domain_fun_sort (sorts, fun->sort_id)));
+  btor_init_tuple_sort_iterator (
+      &it, sorts, btor_get_domain_fun_sort (sorts, fun->sort_id));
+  for (i = 0; i < argc; i++)
   {
-    if (BTOR_IS_BOOL_SORT (sort->fun.domain))
-      width = 1;
-    else
-    {
-      assert (BTOR_IS_BITVEC_SORT (sort->fun.domain));
-      width = sort->fun.domain->bitvec.len;
-    }
+    assert (btor_has_next_tuple_sort_iterator (&it));
+    sort = btor_next_tuple_sort_iterator (&it);
     /* NOTE: we do not allow functions or arrays as arguments yet */
-    if (!is_valid_argument (btor, args[0])
-        || width != BTOR_REAL_ADDR_NODE (args[0])->len)
-      pos = 0;
-  }
-  else
-  {
-    assert (sort->fun.domain->kind == BTOR_TUPLE_SORT);
-    assert (argc == sort->fun.domain->tuple.num_elements);
-    for (i = 0; i < argc; i++)
+    if (!is_valid_argument (btor, args[i])
+        || sort != BTOR_REAL_ADDR_NODE (args[i])->sort_id)
     {
-      s = sort->fun.domain->tuple.elements[i];
-      if (BTOR_IS_BOOL_SORT (s))
-        width = 1;
-      else
-      {
-        assert (BTOR_IS_BITVEC_SORT (s));
-        width = s->bitvec.len;
-      }
-      /* NOTE: we do not allow functions or arrays as arguments yet */
-      if (!is_valid_argument (btor, args[i])
-          || width != BTOR_REAL_ADDR_NODE (args[i])->len)
-      {
-        pos = i;
-        break;
-      }
+      pos = i;
+      break;
     }
   }
-  btor_release_sort (&btor->sorts_unique_table, sort);
   return pos;
-}
-
-/* util function for creating function sorts from function expressions, will
- * be obsolete as soon as we implement sorts for all expressions */
-BtorSort *
-btor_create_or_get_sort (Btor *btor, BtorNode *exp)
-{
-  assert (btor);
-  assert (exp);
-  assert (BTOR_IS_REGULAR_NODE (exp));
-
-  BtorSort *sort;
-
-#if 0
-  if (BTOR_IS_UF_ARRAY_NODE (exp))
-    {
-      sort = btor_array_sort (&btor->sorts_unique_table,
-			      ((BtorUFNode *) exp)->sort->fun.domain,
-			      ((BtorUFNode *) exp)->sort->fun.codomain);
-      return sort;
-    }
-#endif
-
-  if (BTOR_IS_FUN_NODE (exp))
-    return btor_fun_sort_from_fun (&btor->sorts_unique_table, exp);
-#if 0
-  else if (BTOR_IS_BV_EQ_NODE (exp)
-	   || BTOR_IS_ULT_NODE (exp))
-    return btor_bool_sort (&btor->sorts_unique_table);
-#endif
-
-  sort = btor_bitvec_sort (&btor->sorts_unique_table, exp->len);
-  return sort;
 }
 
 int
@@ -7684,49 +7627,8 @@ btor_is_equal_sort (Btor *btor, BtorNode *e0, BtorNode *e1)
   assert (btor);
   assert (e0);
   assert (e1);
-
-  int res;
-  BtorSort *s0, *s1;
-
-  s0  = btor_create_or_get_sort (btor, BTOR_REAL_ADDR_NODE (e0));
-  s1  = btor_create_or_get_sort (btor, BTOR_REAL_ADDR_NODE (e1));
-  res = s0 == s1;
-  btor_release_sort (&btor->sorts_unique_table, s0);
-  btor_release_sort (&btor->sorts_unique_table, s1);
-  return res;
+  return BTOR_REAL_ADDR_NODE (e0)->sort_id == BTOR_REAL_ADDR_NODE (e1)->sort_id;
 }
-
-#if 0
-int
-btor_has_bitvec_sort (Btor * btor, BtorNode * exp)
-{
-  assert (btor);
-  assert (exp);
-
-  int res;
-  BtorSort *s;
-
-  s = btor_create_or_get_sort (btor, BTOR_REAL_ADDR_NODE (exp));
-  res = s->kind == BTOR_BITVEC_SORT;
-  btor_release_sort (&btor->sorts_unique_table, s);
-  return res;
-}
-
-int
-btor_has_array_sort (Btor * btor, BtorNode * exp)
-{
-  assert (btor);
-  assert (exp);
-
-  int res;
-  BtorSort *s;
-
-  s = btor_create_or_get_sort (btor, BTOR_REAL_ADDR_NODE (exp));
-  res = s->kind == BTOR_ARRAY_SORT;
-  btor_release_sort (&btor->sorts_unique_table, s);
-  return res;
-}
-#endif
 
 static BtorAIG *
 exp_to_aig (Btor *btor, BtorNode *exp)

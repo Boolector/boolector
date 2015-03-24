@@ -287,7 +287,7 @@ dump_const_value_aux_smt (BtorSMTDumpContext *sdc, const char *bits)
 void
 btor_dump_sort_smt (BtorSort *sort, int version, FILE *file)
 {
-  int i;
+  unsigned i;
   const char *fmt;
 
   switch (sort->kind)
@@ -296,7 +296,7 @@ btor_dump_sort_smt (BtorSort *sort, int version, FILE *file)
 
     case BTOR_BITVEC_SORT:
       fmt = version == 1 ? "BitVec[%d]" : "(_ BitVec %d)";
-      fprintf (file, fmt, sort->bitvec.len);
+      fprintf (file, fmt, sort->bitvec.width);
       break;
 
     case BTOR_ARRAY_SORT:
@@ -306,8 +306,8 @@ btor_dump_sort_smt (BtorSort *sort, int version, FILE *file)
       assert (sort->array.element->kind == BTOR_BITVEC_SORT);
       fprintf (file,
                fmt,
-               sort->array.index->bitvec.len,
-               sort->array.element->bitvec.len);
+               sort->array.index->bitvec.width,
+               sort->array.element->bitvec.width);
       break;
 
     case BTOR_FUN_SORT:
@@ -342,29 +342,10 @@ btor_dump_sort_smt_node (BtorNode *exp, int version, FILE *file)
   assert (version);
   assert (file);
 
-  BtorSort *sort, tmp, index, element;
+  BtorSort *sort;
 
-  exp = BTOR_REAL_ADDR_NODE (exp);
-
-  if (BTOR_IS_UF_ARRAY_NODE (exp))
-  {
-    index.kind         = BTOR_BITVEC_SORT;
-    index.bitvec.len   = BTOR_ARRAY_INDEX_LEN (exp);
-    element.kind       = BTOR_BITVEC_SORT;
-    element.bitvec.len = exp->len;
-    tmp.kind           = BTOR_ARRAY_SORT;
-    tmp.array.index    = &index;
-    tmp.array.element  = &element;
-    sort               = &tmp;
-  }
-  else if (BTOR_IS_UF_NODE (exp))
-    sort = ((BtorUFNode *) exp)->sort;
-  else
-  {
-    tmp.kind       = BTOR_BITVEC_SORT;
-    tmp.bitvec.len = exp->len;
-    sort           = &tmp;
-  }
+  exp  = BTOR_REAL_ADDR_NODE (exp);
+  sort = btor_get_sort_by_id (&exp->btor->sorts_unique_table, exp->sort_id);
   btor_dump_sort_smt (sort, version, file);
 }
 
@@ -1160,8 +1141,10 @@ dump_smt (BtorSMTDumpContext *sdc)
       if ((BTOR_IS_LAMBDA_NODE (cur->e[0])
            && is_boolean (sdc, BTOR_LAMBDA_GET_BODY (cur->e[0])))
           || (BTOR_IS_UF_NODE (cur->e[0])
-              && ((BtorUFNode *) cur->e[0])->sort->fun.codomain->kind
-                     == BTOR_BOOL_SORT))
+              && btor_is_bool_sort (
+                     &sdc->btor->sorts_unique_table,
+                     btor_get_codomain_fun_sort (&sdc->btor->sorts_unique_table,
+                                                 cur->e[0]->sort_id))))
         btor_insert_in_ptr_hash_table (sdc->boolean, cur);
       continue;
     }

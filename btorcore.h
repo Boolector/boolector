@@ -47,8 +47,8 @@
 #define BTOR_IMPORT_BOOLECTOR_NODE(node) (((BtorNode *) (node)))
 #define BTOR_IMPORT_BOOLECTOR_NODE_ARRAY(array) (((BtorNode **) (array)))
 #define BTOR_EXPORT_BOOLECTOR_NODE(node) (((BoolectorNode *) (node)))
-#define BTOR_IMPORT_BOOLECTOR_SORT(sort) (((BtorSort *) (sort)))
-#define BTOR_EXPORT_BOOLECTOR_SORT(sort) (((BoolectorSort *) (sort)))
+#define BTOR_IMPORT_BOOLECTOR_SORT(sort) (((BtorSortId) (sort)))
+#define BTOR_EXPORT_BOOLECTOR_SORT(sort) (((BoolectorSort) (sort)))
 
 /*------------------------------------------------------------------------*/
 
@@ -345,8 +345,5 @@ int btor_is_equal_sort (Btor *btor, BtorNode *e0, BtorNode *e1);
 void btor_release_bv_assignment_str (Btor *btor, char *assignment);
 
 void btor_release_all_ext_refs (Btor *btor);
-
-// TODO: eliminate when we have full sort support (ma)
-BtorSort *btor_create_or_get_sort (Btor *, BtorNode *);
 
 #endif

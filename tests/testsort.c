@@ -46,7 +46,7 @@ void
 test_bool_sort (void)
 {
   init_sort_test ();
-  BtorSort *s0, *s1;
+  BtorSortId s0, s1;
 
   s0 = btor_bool_sort (g_sorts);
   s1 = btor_bool_sort (g_sorts);
@@ -61,7 +61,7 @@ test_bitvec_sort (void)
 {
   init_sort_test ();
   int i, j;
-  BtorSort *s0, *s1;
+  BtorSortId s0, s1;
 
   for (i = 1; i <= 128; i++)
   {
@@ -83,7 +83,7 @@ test_array_sort (void)
 {
   init_sort_test ();
   int i, j, k, l;
-  BtorSort *s0, *s1, *s2, *s3, *a0, *a1;
+  BtorSortId s0, s1, s2, s3, a0, a1;
 
   for (i = 1; i <= 16; i++)
   {
@@ -119,7 +119,7 @@ void
 test_lst_sort (void)
 {
   init_sort_test ();
-  BtorSort *a, *b, *c, *d, *l0, *l1, *l2, *l3, *l4, *l5, *l6;
+  BtorSortId a, b, c, d, l0, l1, l2, l3, l4, l5, l6;
 
   a = btor_bitvec_sort (g_sorts, 2);
   b = btor_bitvec_sort (g_sorts, 7);
@@ -169,21 +169,24 @@ void
 test_fun_sort (void)
 {
   init_sort_test ();
-  BtorSort *a, *b, *c, *s0[2], *s1[2], *f0, *f1, *f2;
+  BtorSortId a, b, c, s0[2], s1[2], f0, f1, f2, t0, t1, t2;
 
   a     = btor_bitvec_sort (g_sorts, 53);
   b     = btor_bitvec_sort (g_sorts, 1);
   c     = btor_bool_sort (g_sorts);
   s0[0] = a;
   s0[1] = b;
-  f0    = btor_fun_sort (g_sorts, s0, 2, c);
+  t0    = btor_tuple_sort (g_sorts, s0, 2);
+  f0    = btor_fun_sort (g_sorts, t0, c);
 
   s1[0] = b;
   s1[1] = a;
-  f1    = btor_fun_sort (g_sorts, s1, 2, c);
+  t1    = btor_tuple_sort (g_sorts, s1, 2);
+  f1    = btor_fun_sort (g_sorts, t1, c);
   assert (f0 != f1);
 
-  f2 = btor_fun_sort (g_sorts, s0, 2, c);
+  t2 = btor_tuple_sort (g_sorts, s0, 2);
+  f2 = btor_fun_sort (g_sorts, t2, c);
   assert (f0 == f2);
 
   btor_release_sort (g_sorts, a);
@@ -192,6 +195,9 @@ test_fun_sort (void)
   btor_release_sort (g_sorts, f0);
   btor_release_sort (g_sorts, f1);
   btor_release_sort (g_sorts, f2);
+  btor_release_sort (g_sorts, t0);
+  btor_release_sort (g_sorts, t1);
+  btor_release_sort (g_sorts, t2);
 
   finish_sort_test ();
 }
@@ -200,7 +206,7 @@ void
 test_tuple_sort (void)
 {
   init_sort_test ();
-  BtorSort *a, *b, *c, *d, *e[4], *t0, *t1;
+  BtorSortId a, b, c, d, e[4], t0, t1;
 
   a = btor_bitvec_sort (g_sorts, 53);
   b = btor_bitvec_sort (g_sorts, 7);

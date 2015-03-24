@@ -856,17 +856,18 @@ btor_chkclone_tables (Btor *btor)
 void
 btor_chkclone_sort (const BtorSort *sort, const BtorSort *clone)
 {
-  int i;
   assert (sort->id == clone->id);
   assert (sort->kind == clone->kind);
   assert (sort->refs == clone->refs);
   assert (sort->ext_refs == clone->ext_refs);
   assert (sort->parents == clone->parents);
 
+  unsigned i;
+
   switch (sort->kind)
   {
     case BTOR_BITVEC_SORT:
-      assert (sort->bitvec.len == clone->bitvec.len);
+      assert (sort->bitvec.width == clone->bitvec.width);
       break;
 
     case BTOR_ARRAY_SORT:
