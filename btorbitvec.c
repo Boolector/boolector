@@ -239,7 +239,7 @@ btor_new_random_range_bv (BtorMemMgr *mm, BtorRNG *rng, int bw, int up, int lo)
   res->width = bw;
 
   for (i = res->len - 1, seg = up - lo + 1;
-       seg > ((res->len - 1 - i) * sizeof (BTOR_BV_TYPE) * 8) && i >= 0;
+       seg > ((res->len - 1 - i) * ((int) sizeof (BTOR_BV_TYPE)) * 8) && i >= 0;
        i--)
     res->bits[i] = (BTOR_BV_TYPE) btor_rand_rng (rng);
 
