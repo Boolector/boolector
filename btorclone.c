@@ -1168,7 +1168,11 @@ Btor *
 btor_clone_btor (Btor *btor)
 {
   assert (btor);
-  return clone_aux_btor (btor, 0, 0, 0);
+  return clone_aux_btor (
+      btor,
+      0,
+      0,
+      !btor_has_clone_support_sat_mgr (btor_get_sat_mgr_btor (btor)));
 }
 
 Btor *

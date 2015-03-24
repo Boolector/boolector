@@ -1,0 +1,9 @@
+#!/bin/sh
+
+echo "c launch: $*"
+echo "c host: `hostname`"
+
+$HOME/bin/runlim \
+  $*
+
+echo "c launch: done"

@@ -309,6 +309,24 @@ btor_set_opt (Btor *btor, const char *name, int val)
     assert (val > 0);
     assert (btor->btor_sat_btor_called == 0);
   }
+  else if (!strcmp (name, BTOR_OPT_INCREMENTAL_IN_DEPTH))
+  {
+    assert (val > 1);
+    assert (!btor->options.incremental_look_ahead.val
+            && !btor->options.incremental_interval.val);
+  }
+  else if (!strcmp (name, BTOR_OPT_INCREMENTAL_LOOK_AHEAD))
+  {
+    assert (val > 1);
+    assert (!btor->options.incremental_in_depth.val
+            && !btor->options.incremental_interval.val);
+  }
+  else if (!strcmp (name, BTOR_OPT_INCREMENTAL_INTERVAL))
+  {
+    assert (val > 1);
+    assert (!btor->options.incremental_in_depth.val
+            && !btor->options.incremental_look_ahead.val);
+  }
   else if (!strcmp (name, "dp") || !strcmp (name, BTOR_OPT_DUAL_PROP))
   {
     assert (!val || !btor->options.just.val);
