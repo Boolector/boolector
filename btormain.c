@@ -1324,9 +1324,9 @@ boolector_main (int argc, char **argv)
     btormain_error (g_app,
                     "'sat' but status of benchmark in '%s' is 'unsat'",
                     g_app->infile_name);
-  else if (sat_res == BOOLECTOR_UNSAT && parse_status == BOOLECTOR_UNSAT)
+  else if (sat_res == BOOLECTOR_UNSAT && parse_status == BOOLECTOR_SAT)
     btormain_error (g_app,
-                    "'unsat' but staus of benchmark in '%s' is 'sat'",
+                    "'unsat' but status of benchmark in '%s' is 'sat'",
                     g_app->infile_name);
 
   /* print stats */
