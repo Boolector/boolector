@@ -348,7 +348,7 @@ bdcnode (BtorDumpContext *bdc, BtorNode *node, FILE *file)
 
     /* print index bit width of arrays */
     if (BTOR_IS_UF_ARRAY_NODE (node))
-      fprintf (file, " %d", btor_get_index_exp_len (bdc->btor, node));
+      fprintf (file, " %d", btor_get_index_exp_width (bdc->btor, node));
     else if (BTOR_IS_LAMBDA_NODE (node))
       fprintf (file,
                " %d",
@@ -613,7 +613,7 @@ btor_dump_btor_bdc (BtorDumpContext *bdc, FILE *file)
       fprintf (file,
                "%d next %d %d %d\n",
                id,
-               btor_get_exp_len (bdc->btor, bdcl->next),
+               btor_get_exp_width (bdc->btor, bdcl->next),
                bdcid (bdc, bdcl->latch),
                bdcid (bdc, bdcl->next));
     }
@@ -624,7 +624,7 @@ btor_dump_btor_bdc (BtorDumpContext *bdc, FILE *file)
       fprintf (file,
                "%d init %d %d %d\n",
                id,
-               btor_get_exp_len (bdc->btor, bdcl->init),
+               btor_get_exp_width (bdc->btor, bdcl->init),
                bdcid (bdc, bdcl->latch),
                bdcid (bdc, bdcl->init));
     }
@@ -640,7 +640,7 @@ btor_dump_btor_bdc (BtorDumpContext *bdc, FILE *file)
     fprintf (file,
              "%d output %d %d\n",
              id,
-             btor_get_exp_len (bdc->btor, node),
+             btor_get_exp_width (bdc->btor, node),
              bdcid (bdc, node));
   }
 
@@ -653,7 +653,7 @@ btor_dump_btor_bdc (BtorDumpContext *bdc, FILE *file)
     fprintf (file,
              "%d bad %d %d\n",
              id,
-             btor_get_exp_len (bdc->btor, node),
+             btor_get_exp_width (bdc->btor, node),
              bdcid (bdc, node));
   }
 
@@ -666,7 +666,7 @@ btor_dump_btor_bdc (BtorDumpContext *bdc, FILE *file)
     fprintf (file,
              "%d constraint %d %d\n",
              id,
-             btor_get_exp_len (bdc->btor, node),
+             btor_get_exp_width (bdc->btor, node),
              bdcid (bdc, node));
   }
 
@@ -680,7 +680,7 @@ btor_dump_btor_bdc (BtorDumpContext *bdc, FILE *file)
       fprintf (file,
                "%d root %d %d\n",
                id,
-               btor_get_exp_len (bdc->btor, node),
+               btor_get_exp_width (bdc->btor, node),
                bdcid (bdc, node));
     else
       fprintf (file, "assert %d\n", bdcid (bdc, node));

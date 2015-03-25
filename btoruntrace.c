@@ -1408,14 +1408,14 @@ NEXT:
     else if (!strcmp (tok, "bool_sort"))
     {
       PARSE_ARGS0 (tok);
-      ret_int = boolector_bool_sort (btor);
-      exp_ret = RET_INT;
+      ret_ptr = (void *) (size_t) boolector_bool_sort (btor);
+      exp_ret = RET_VOIDPTR;
     }
     else if (!strcmp (tok, "bitvec_sort"))
     {
       PARSE_ARGS1 (tok, int);
-      ret_int = boolector_bitvec_sort (btor, arg1_int);
-      exp_ret = RET_INT;
+      ret_ptr = (void *) (size_t) boolector_bitvec_sort (btor, arg1_int);
+      exp_ret = RET_VOIDPTR;
     }
     else if (!strcmp (tok, "fun_sort"))
     {
@@ -1425,11 +1425,12 @@ NEXT:
             sort_stack,
             (BoolectorSort) (size_t) hmap_get (hmap, btor_str, tok));
       assert (BTOR_COUNT_STACK (sort_stack) >= 2);
-      ret_int = boolector_fun_sort (btor,
-                                    sort_stack.start,
-                                    BTOR_COUNT_STACK (sort_stack) - 1,
-                                    BTOR_TOP_STACK (sort_stack));
-      exp_ret = RET_INT;
+      ret_ptr = (void *) (size_t) boolector_fun_sort (
+          btor,
+          sort_stack.start,
+          BTOR_COUNT_STACK (sort_stack) - 1,
+          BTOR_TOP_STACK (sort_stack));
+      exp_ret = RET_VOIDPTR;
     }
     else if (!strcmp (tok, "release_sort"))
     {

@@ -828,7 +828,7 @@ BtorNode *btor_inc_exp (Btor *btor, BtorNode *exp);
 BtorNode *btor_dec_exp (Btor *btor, BtorNode *exp);
 
 /* Gets the length of an expression representing the number of bits. */
-int btor_get_exp_len (Btor *btor, BtorNode *exp);
+inline int btor_get_exp_width (Btor *btor, BtorNode *exp);
 
 /* Determines if expression is an array or not. */
 int btor_is_array_exp (Btor *btor, BtorNode *exp);
@@ -840,7 +840,7 @@ int btor_is_uf_array_var_exp (Btor *btor, BtorNode *exp);
 int btor_is_bv_var_exp (Btor *btor, BtorNode *exp);
 
 /* Gets the number of bits used by indices on 'e_array'. */
-int btor_get_index_exp_len (Btor *btor, BtorNode *e_array);
+inline int btor_get_index_exp_width (Btor *btor, BtorNode *e_array);
 
 /* Get the id of an expression. */
 int btor_get_id (Btor *btor, BtorNode *exp);
@@ -941,47 +941,38 @@ BtorNode *btor_lambda_exp_node (Btor *btor, BtorNode *param, BtorNode *body);
 #ifndef NDEBUG
 /*------------------------------------------------------------------------*/
 
-int btor_precond_slice_exp_dbg (const Btor *btor,
-                                const BtorNode *exp,
+int btor_precond_slice_exp_dbg (Btor *btor,
+                                BtorNode *exp,
                                 int upper,
                                 int lower);
 
-int btor_precond_regular_unary_bv_exp_dbg (const Btor *btor,
-                                           const BtorNode *exp);
+int btor_precond_regular_unary_bv_exp_dbg (Btor *btor, BtorNode *exp);
 
-int btor_precond_regular_binary_bv_exp_dbg (const Btor *btor,
-                                            const BtorNode *e0,
-                                            const BtorNode *e1);
+int btor_precond_regular_binary_bv_exp_dbg (Btor *btor,
+                                            BtorNode *e0,
+                                            BtorNode *e1);
 
-int btor_precond_eq_exp_dbg (const Btor *btor,
-                             const BtorNode *e0,
-                             const BtorNode *e1);
+int btor_precond_eq_exp_dbg (Btor *btor, BtorNode *e0, BtorNode *e1);
 
-int btor_precond_shift_exp_dbg (const Btor *btor,
-                                const BtorNode *e0,
-                                const BtorNode *e1);
+int btor_precond_shift_exp_dbg (Btor *btor, BtorNode *e0, BtorNode *e1);
 
-int btor_precond_concat_exp_dbg (const Btor *btor,
-                                 const BtorNode *e0,
-                                 const BtorNode *e1);
+int btor_precond_concat_exp_dbg (Btor *btor, BtorNode *e0, BtorNode *e1);
 
-int btor_precond_read_exp_dbg (const Btor *btor,
-                               const BtorNode *e_array,
-                               const BtorNode *e_index);
+int btor_precond_read_exp_dbg (Btor *btor,
+                               BtorNode *e_array,
+                               BtorNode *e_index);
 
-int btor_precond_write_exp_dbg (const Btor *btor,
-                                const BtorNode *e_array,
-                                const BtorNode *e_index,
-                                const BtorNode *e_value);
+int btor_precond_write_exp_dbg (Btor *btor,
+                                BtorNode *e_array,
+                                BtorNode *e_index,
+                                BtorNode *e_value);
 
-int btor_precond_cond_exp_dbg (const Btor *btor,
-                               const BtorNode *e_cond,
-                               const BtorNode *e_if,
-                               const BtorNode *e_else);
+int btor_precond_cond_exp_dbg (Btor *btor,
+                               BtorNode *e_cond,
+                               BtorNode *e_if,
+                               BtorNode *e_else);
 
-int btor_precond_apply_exp_dbg (const Btor *btor,
-                                const BtorNode *fun,
-                                const BtorNode *args);
+int btor_precond_apply_exp_dbg (Btor *btor, BtorNode *fun, BtorNode *args);
 /*------------------------------------------------------------------------*/
 #endif
 /*------------------------------------------------------------------------*/

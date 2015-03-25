@@ -32,7 +32,7 @@ btor_get_bv_model_str_aux (Btor *btor,
 
   exp = btor_simplify_exp (btor, exp);
   if (!(bv = btor_get_bv_model_aux (btor, bv_model, fun_model, exp)))
-    return btor_x_const_3vl (btor->mm, BTOR_REAL_ADDR_NODE (exp)->len);
+    return btor_x_const_3vl (btor->mm, btor_get_exp_width (btor, exp));
   res = btor_bv_to_char_bv (btor->mm, bv);
   return res;
 }

@@ -980,7 +980,7 @@ clone_aux_btor (Btor *btor,
     if (!BTOR_IS_FUN_NODE (cur) && cur->av)
     {
       if (!exp_layer_only)
-        allocated += sizeof (*(cur->av)) + cur->len * sizeof (BtorAIG *);
+        allocated += sizeof (*(cur->av)) + cur->av->len * sizeof (BtorAIG *);
     }
     else if (cur->rho)
       allocated += MEM_PTR_HASH_TABLE (cur->rho);
@@ -1333,12 +1333,14 @@ btor_recursively_rebuild_exp_clone (Btor *btor,
         case BTOR_BV_VAR_NODE:
           symbol =
               btor_find_in_ptr_hash_table (btor->node2symbol, cur)->data.asStr;
-          cur_clone = btor_var_exp (clone, cur->len, symbol);
+          cur_clone =
+              btor_var_exp (clone, btor_get_exp_width (btor, cur), symbol);
           break;
         case BTOR_PARAM_NODE:
           symbol =
               btor_find_in_ptr_hash_table (btor->node2symbol, cur)->data.asStr;
-          cur_clone = btor_param_exp (clone, cur->len, symbol);
+          cur_clone =
+              btor_param_exp (clone, btor_get_exp_width (btor, cur), symbol);
           break;
         case BTOR_UF_NODE:
           symbol =

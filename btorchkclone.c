@@ -459,7 +459,7 @@ btor_chkclone_exp (BtorNode *exp, BtorNode *clone)
     if (real_exp->av)
     {
       assert (real_exp->av->len == real_clone->av->len);
-      for (i = 0; i < real_exp->len; i++)
+      for (i = 0; i < real_exp->av->len; i++)
         btor_chkclone_aig (real_exp->av->aigs[i], real_clone->av->aigs[i]);
     }
     else

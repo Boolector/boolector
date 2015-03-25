@@ -340,7 +340,7 @@ boolector_assert (Btor *btor, BoolectorNode *node)
   BTOR_ABORT_IF_BTOR_DOES_NOT_MATCH (btor, exp);
   simp = btor_simplify_exp (btor, exp);
   BTOR_ABORT_ARRAY_BOOLECTOR (simp);
-  BTOR_ABORT_BOOLECTOR (BTOR_REAL_ADDR_NODE (simp)->len != 1,
+  BTOR_ABORT_BOOLECTOR (btor_get_exp_width (btor, simp) != 1,
                         "'exp' must have bit-width one");
   btor_assert_exp (btor, simp);
 #ifndef NDEBUG
@@ -366,7 +366,7 @@ boolector_assume (Btor *btor, BoolectorNode *node)
   simp = BTOR_REAL_ADDR_NODE (exp)->simplified ? btor_simplify_exp (btor, exp)
                                                : exp;
   BTOR_ABORT_ARRAY_BOOLECTOR (simp);
-  BTOR_ABORT_BOOLECTOR (BTOR_REAL_ADDR_NODE (simp)->len != 1,
+  BTOR_ABORT_BOOLECTOR (btor_get_exp_width (btor, simp) != 1,
                         "'exp' must have bit-width one");
   btor_assume_exp (btor, simp);
 #ifndef NDEBUG
@@ -393,7 +393,7 @@ boolector_failed (Btor *btor, BoolectorNode *node)
   BTOR_ABORT_IF_BTOR_DOES_NOT_MATCH (btor, exp);
   /* Note: do not simplify expression (see boolector_assume). */
   BTOR_ABORT_ARRAY_BOOLECTOR (exp);
-  BTOR_ABORT_BOOLECTOR (BTOR_REAL_ADDR_NODE (exp)->len != 1,
+  BTOR_ABORT_BOOLECTOR (btor_get_exp_width (btor, exp) != 1,
                         "'exp' must have bit-width one");
   BTOR_ABORT_BOOLECTOR (!btor_is_assumption_exp (btor, exp),
                         "'exp' must be an assumption");
@@ -1172,7 +1172,7 @@ boolector_slice (Btor *btor, BoolectorNode *node, int upper, int lower)
   BTOR_ABORT_ARRAY_BOOLECTOR (simp);
   BTOR_ABORT_BOOLECTOR (lower < 0, "'lower' must not be negative");
   BTOR_ABORT_BOOLECTOR (upper < lower, "'upper' must not be < 'lower'");
-  BTOR_ABORT_BOOLECTOR (upper >= BTOR_REAL_ADDR_NODE (simp)->len,
+  BTOR_ABORT_BOOLECTOR (upper >= btor_get_exp_width (btor, simp),
                         "'upper' must not be >= width of 'exp'");
   res = btor_slice_exp (btor, simp, upper, lower);
   inc_exp_ext_ref_counter (btor, res);
@@ -1248,8 +1248,8 @@ boolector_implies (Btor *btor, BoolectorNode *n0, BoolectorNode *n1)
   simp1 = btor_simplify_exp (btor, e1);
   BTOR_ABORT_ARRAY_BOOLECTOR (simp0);
   BTOR_ABORT_ARRAY_BOOLECTOR (simp1);
-  BTOR_ABORT_BOOLECTOR (BTOR_REAL_ADDR_NODE (simp0)->len != 1
-                            || BTOR_REAL_ADDR_NODE (simp1)->len != 1,
+  BTOR_ABORT_BOOLECTOR (btor_get_exp_width (btor, simp0) != 1
+                            || btor_get_exp_width (btor, simp1) != 1,
                         "bit-width of 'e0' and 'e1' have be 1");
   res = btor_implies_exp (btor, simp0, simp1);
   inc_exp_ext_ref_counter (btor, res);
@@ -1280,8 +1280,8 @@ boolector_iff (Btor *btor, BoolectorNode *n0, BoolectorNode *n1)
   simp1 = btor_simplify_exp (btor, e1);
   BTOR_ABORT_ARRAY_BOOLECTOR (simp0);
   BTOR_ABORT_ARRAY_BOOLECTOR (simp1);
-  BTOR_ABORT_BOOLECTOR (BTOR_REAL_ADDR_NODE (simp0)->len != 1
-                            || BTOR_REAL_ADDR_NODE (simp1)->len != 1,
+  BTOR_ABORT_BOOLECTOR (btor_get_exp_width (btor, simp0) != 1
+                            || btor_get_exp_width (btor, simp1) != 1,
                         "bit-width of 'e0' and 'e1' must not be unequal to 1");
   res = btor_iff_exp (btor, simp0, simp1);
   inc_exp_ext_ref_counter (btor, res);
@@ -1961,11 +1961,11 @@ boolector_sll (Btor *btor, BoolectorNode *n0, BoolectorNode *n1)
   simp1 = btor_simplify_exp (btor, e1);
   BTOR_ABORT_ARRAY_BOOLECTOR (simp0);
   BTOR_ABORT_ARRAY_BOOLECTOR (simp1);
-  len = BTOR_REAL_ADDR_NODE (simp0)->len;
+  len = btor_get_exp_width (btor, simp0);
   BTOR_ABORT_BOOLECTOR (!btor_is_power_of_2_util (len),
                         "bit-width of 'e0' must be a power of 2");
   BTOR_ABORT_BOOLECTOR (
-      btor_log_2_util (len) != BTOR_REAL_ADDR_NODE (simp1)->len,
+      btor_log_2_util (len) != btor_get_exp_width (btor, simp1),
       "bit-width of 'e1' must be equal to log2(bit-width of 'e0')");
   res = btor_sll_exp (btor, simp0, simp1);
   inc_exp_ext_ref_counter (btor, res);
@@ -1996,11 +1996,11 @@ boolector_srl (Btor *btor, BoolectorNode *n0, BoolectorNode *n1)
   simp1 = btor_simplify_exp (btor, e1);
   BTOR_ABORT_ARRAY_BOOLECTOR (simp0);
   BTOR_ABORT_ARRAY_BOOLECTOR (simp1);
-  len = BTOR_REAL_ADDR_NODE (simp0)->len;
+  len = btor_get_exp_width (btor, simp0);
   BTOR_ABORT_BOOLECTOR (!btor_is_power_of_2_util (len),
                         "bit-width of 'e0' must be a power of 2");
   BTOR_ABORT_BOOLECTOR (
-      btor_log_2_util (len) != BTOR_REAL_ADDR_NODE (simp1)->len,
+      btor_log_2_util (len) != btor_get_exp_width (btor, simp1),
       "bit-width of 'e1' must be equal to log2(bit-width of 'e0')");
   res = btor_srl_exp (btor, simp0, simp1);
   inc_exp_ext_ref_counter (btor, res);
@@ -2031,11 +2031,11 @@ boolector_sra (Btor *btor, BoolectorNode *n0, BoolectorNode *n1)
   simp1 = btor_simplify_exp (btor, e1);
   BTOR_ABORT_ARRAY_BOOLECTOR (simp0);
   BTOR_ABORT_ARRAY_BOOLECTOR (simp1);
-  len = BTOR_REAL_ADDR_NODE (simp0)->len;
+  len = btor_get_exp_width (btor, simp0);
   BTOR_ABORT_BOOLECTOR (!btor_is_power_of_2_util (len),
                         "bit-width of 'e0' must be a power of 2");
   BTOR_ABORT_BOOLECTOR (
-      btor_log_2_util (len) != BTOR_REAL_ADDR_NODE (simp1)->len,
+      btor_log_2_util (len) != btor_get_exp_width (btor, simp1),
       "bit-width of 'e1' must be equal to log2(bit-width of 'e0')");
   res = btor_sra_exp (btor, simp0, simp1);
   inc_exp_ext_ref_counter (btor, res);
@@ -2066,11 +2066,11 @@ boolector_rol (Btor *btor, BoolectorNode *n0, BoolectorNode *n1)
   simp1 = btor_simplify_exp (btor, e1);
   BTOR_ABORT_ARRAY_BOOLECTOR (simp0);
   BTOR_ABORT_ARRAY_BOOLECTOR (simp1);
-  len = BTOR_REAL_ADDR_NODE (simp0)->len;
+  len = btor_get_exp_width (btor, simp0);
   BTOR_ABORT_BOOLECTOR (!btor_is_power_of_2_util (len),
                         "bit-width of 'e0' must be a power of 2");
   BTOR_ABORT_BOOLECTOR (
-      btor_log_2_util (len) != BTOR_REAL_ADDR_NODE (simp1)->len,
+      btor_log_2_util (len) != btor_get_exp_width (btor, simp1),
       "bit-width of 'e1' must be equal to log2(bit-width of 'e0')");
   res = btor_rol_exp (btor, simp0, simp1);
   inc_exp_ext_ref_counter (btor, res);
@@ -2101,11 +2101,11 @@ boolector_ror (Btor *btor, BoolectorNode *n0, BoolectorNode *n1)
   simp1 = btor_simplify_exp (btor, e1);
   BTOR_ABORT_ARRAY_BOOLECTOR (simp0);
   BTOR_ABORT_ARRAY_BOOLECTOR (simp1);
-  len = BTOR_REAL_ADDR_NODE (simp0)->len;
+  len = btor_get_exp_width (btor, simp0);
   BTOR_ABORT_BOOLECTOR (!btor_is_power_of_2_util (len),
                         "bit-width of 'e0' must be a power of 2");
   BTOR_ABORT_BOOLECTOR (
-      btor_log_2_util (len) != BTOR_REAL_ADDR_NODE (simp1)->len,
+      btor_log_2_util (len) != btor_get_exp_width (btor, simp1),
       "bit-width of 'e1' must be equal to log2(bit-width of 'e0')");
   res = btor_ror_exp (btor, simp0, simp1);
   inc_exp_ext_ref_counter (btor, res);
@@ -2395,8 +2395,8 @@ boolector_concat (Btor *btor, BoolectorNode *n0, BoolectorNode *n1)
   simp1 = btor_simplify_exp (btor, e1);
   BTOR_ABORT_ARRAY_BOOLECTOR (simp0);
   BTOR_ABORT_ARRAY_BOOLECTOR (simp1);
-  BTOR_ABORT_BOOLECTOR (BTOR_REAL_ADDR_NODE (e0)->len
-                            > INT_MAX - BTOR_REAL_ADDR_NODE (simp1)->len,
+  BTOR_ABORT_BOOLECTOR (btor_get_exp_width (btor, e0)
+                            > INT_MAX - btor_get_exp_width (btor, simp1),
                         "bit-width of result is too large");
   res = btor_concat_exp (btor, simp0, simp1);
   inc_exp_ext_ref_counter (btor, res);
@@ -2474,10 +2474,11 @@ boolector_write (Btor *btor,
       btor_get_index_array_sort (&btor->sorts_unique_table, simp_array->sort_id)
           != BTOR_REAL_ADDR_NODE (simp_index)->sort_id,
       "index bit-width of 'e_array' and bit-width of 'e_index' must be equal");
-  BTOR_ABORT_BOOLECTOR (
-      simp_array->len != BTOR_REAL_ADDR_NODE (simp_value)->len,
-      "element bit-width of 'e_array' and bit-width of 'e_value' must be "
-      "equal");
+  BTOR_ABORT_BOOLECTOR (btor_get_element_array_sort (&btor->sorts_unique_table,
+                                                     simp_array->sort_id)
+                            != BTOR_REAL_ADDR_NODE (simp_value)->sort_id,
+                        "element bit-width of 'e_array' and bit-width of "
+                        "'e_value' must be equal");
   res = btor_write_exp (btor, simp_array, simp_index, simp_value);
   inc_exp_ext_ref_counter (btor, res);
   BTOR_TRAPI_RETURN_NODE (res);
@@ -2520,7 +2521,7 @@ boolector_cond (Btor *btor,
   simp_if   = btor_simplify_exp (btor, e_if);
   simp_else = btor_simplify_exp (btor, e_else);
   BTOR_ABORT_ARRAY_BOOLECTOR (simp_cond);
-  BTOR_ABORT_BOOLECTOR (BTOR_REAL_ADDR_NODE (simp_cond)->len != 1,
+  BTOR_ABORT_BOOLECTOR (btor_get_exp_width (btor, simp_cond) != 1,
                         "bit-width of 'e_cond' must be equal to 1");
   real_simp_if       = BTOR_REAL_ADDR_NODE (simp_if);
   real_simp_else     = BTOR_REAL_ADDR_NODE (simp_else);
@@ -2529,7 +2530,7 @@ boolector_cond (Btor *btor,
   BTOR_ABORT_BOOLECTOR (is_array_simp_if != is_array_simp_else,
                         "array must not be combined with bit-vector");
   BTOR_ABORT_BOOLECTOR (!is_array_simp_if && real_simp_if && real_simp_else
-                            && real_simp_if->len != real_simp_else->len,
+                            && real_simp_if->sort_id != real_simp_else->sort_id,
                         "bit-vectors must not have unequal bit-width");
   BTOR_ABORT_BOOLECTOR (is_array_simp_if && real_simp_if && real_simp_else
                             && real_simp_if->sort_id != real_simp_else->sort_id,
@@ -2857,7 +2858,7 @@ boolector_get_width (Btor *btor, BoolectorNode *node)
   BTOR_TRAPI_UNFUN (exp);
   BTOR_ABORT_REFS_NOT_POS_BOOLECTOR (exp);
   BTOR_ABORT_IF_BTOR_DOES_NOT_MATCH (btor, exp);
-  res = btor_get_exp_len (btor, exp);
+  res = btor_get_exp_width (btor, exp);
   BTOR_TRAPI_RETURN_INT (res);
 #ifndef NDEBUG
   BTOR_CHKCLONE_RES (res, get_width, BTOR_CLONED_EXP (exp));
@@ -2879,7 +2880,7 @@ boolector_get_index_width (Btor *btor, BoolectorNode *n_array)
   BTOR_ABORT_IF_BTOR_DOES_NOT_MATCH (btor, e_array);
   simp_array = btor_simplify_exp (btor, e_array);
   BTOR_ABORT_BV_BOOLECTOR (simp_array);
-  res = btor_get_index_exp_len (btor, simp_array);
+  res = btor_get_index_exp_width (btor, simp_array);
   BTOR_TRAPI_RETURN_INT (res);
 #ifndef NDEBUG
   BTOR_CHKCLONE_RES (res, get_index_width, BTOR_CLONED_EXP (e_array));

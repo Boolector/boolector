@@ -173,13 +173,10 @@ init_param_iterator (BtorNodeIterator *it, BtorNode *exp)
 BtorNode *
 next_param_iterator (BtorNodeIterator *it)
 {
-  assert (it);
-  assert (it->cur);
-
   BtorNode *result;
-  result  = it->cur->e[0];
-  it->cur = result->e[1];
-  return result;
+  result = next_lambda_iterator (it);
+  assert (BTOR_IS_PARAM_NODE (result->e[0]));
+  return result->e[0];
 }
 
 int
