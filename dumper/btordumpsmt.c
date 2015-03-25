@@ -1149,8 +1149,8 @@ dump_smt (BtorSMTDumpContext *sdc)
         btor_insert_in_ptr_hash_table (sdc->boolean, cur);
       continue;
     }
-    else if (btor_get_exp_width (sdc->btor, cur) == 1
-             && (BTOR_IS_AND_NODE (cur) || BTOR_IS_BV_COND_NODE (cur)))
+    else if ((BTOR_IS_AND_NODE (cur) || BTOR_IS_BV_COND_NODE (cur))
+             && btor_get_exp_width (sdc->btor, cur) == 1)
     {
       not_bool = 0;
       for (j = 0; j < cur->arity; j++)

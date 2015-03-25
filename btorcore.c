@@ -3437,8 +3437,8 @@ process_skeleton_tseitin (Btor *btor,
     else if (exp->mark == 1)
     {
       exp->mark = 2;
-      if (btor_get_exp_width (btor, exp) != 1 || BTOR_IS_FUN_NODE (exp)
-          || BTOR_IS_ARGS_NODE (exp) || exp->parameterized)
+      if (BTOR_IS_FUN_NODE (exp) || BTOR_IS_ARGS_NODE (exp)
+          || exp->parameterized || btor_get_exp_width (btor, exp) != 1)
         continue;
 
 #ifndef NDEBUG
@@ -3447,8 +3447,8 @@ process_skeleton_tseitin (Btor *btor,
         BtorNode *child = exp->e[i];
         child           = BTOR_REAL_ADDR_NODE (child);
         assert (child->mark == 2);
-        if (btor_get_exp_width (btor, child) == 1 && !BTOR_IS_FUN_NODE (child)
-            && !BTOR_IS_ARGS_NODE (child) && !child->parameterized)
+        if (!BTOR_IS_FUN_NODE (child) && !BTOR_IS_ARGS_NODE (child)
+            && !child->parameterized && btor_get_exp_width (btor, child) == 1)
           assert (btor_find_in_ptr_hash_table (ids, child));
       }
 #endif
