@@ -3567,24 +3567,10 @@ btor_read_exp (Btor *btor, BtorNode *e_array, BtorNode *e_index)
   assert (btor == BTOR_REAL_ADDR_NODE (e_array)->btor);
   assert (btor == BTOR_REAL_ADDR_NODE (e_index)->btor);
 
-  BtorNode *result;
-
   e_array = btor_simplify_exp (btor, e_array);
   e_index = btor_simplify_exp (btor, e_index);
   assert (btor_precond_read_exp_dbg (btor, e_array, e_index));
-
-  result = btor_apply_exps (btor, 1, &e_index, e_array);
-
-  // TODO (ma): why do reads have bits?
-  if (0 && BTOR_IS_APPLY_NODE (BTOR_REAL_ADDR_NODE (result)))
-  {
-    BTOR_REAL_ADDR_NODE (result)->is_read = 1;
-    if (!BTOR_REAL_ADDR_NODE (result)->bits)
-      BTOR_REAL_ADDR_NODE (result)->bits =
-          btor_x_const_3vl (btor->mm, btor_get_exp_width (btor, e_array));
-  }
-
-  return result;
+  return btor_apply_exps (btor, 1, &e_index, e_array);
 }
 
 BtorNode *
