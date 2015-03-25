@@ -121,38 +121,32 @@ BtorSortId btor_copy_sort (BtorSortUniqueTable *, BtorSortId);
 
 void btor_release_sort (BtorSortUniqueTable *, BtorSortId);
 
-inline BtorSort *btor_get_sort_by_id (const BtorSortUniqueTable *, BtorSortId);
+BtorSort *btor_get_sort_by_id (const BtorSortUniqueTable *, BtorSortId);
 
-inline unsigned btor_get_width_bitvec_sort (const BtorSortUniqueTable *,
-                                            BtorSortId);
+unsigned btor_get_width_bitvec_sort (const BtorSortUniqueTable *, BtorSortId);
 
-inline unsigned btor_get_arity_tuple_sort (const BtorSortUniqueTable *,
-                                           BtorSortId);
+unsigned btor_get_arity_tuple_sort (const BtorSortUniqueTable *, BtorSortId);
 
-inline BtorSortId btor_get_codomain_fun_sort (const BtorSortUniqueTable *,
-                                              BtorSortId);
+BtorSortId btor_get_codomain_fun_sort (const BtorSortUniqueTable *, BtorSortId);
 
-inline BtorSortId btor_get_domain_fun_sort (const BtorSortUniqueTable *,
-                                            BtorSortId);
+BtorSortId btor_get_domain_fun_sort (const BtorSortUniqueTable *, BtorSortId);
 
-inline unsigned btor_get_arity_fun_sort (const BtorSortUniqueTable *,
-                                         BtorSortId);
+unsigned btor_get_arity_fun_sort (const BtorSortUniqueTable *, BtorSortId);
 
-inline BtorSortId btor_get_index_array_sort (const BtorSortUniqueTable *,
-                                             BtorSortId);
+BtorSortId btor_get_index_array_sort (const BtorSortUniqueTable *, BtorSortId);
 
-inline BtorSortId btor_get_element_array_sort (const BtorSortUniqueTable *,
-                                               BtorSortId);
+BtorSortId btor_get_element_array_sort (const BtorSortUniqueTable *,
+                                        BtorSortId);
 
-inline bool btor_is_bool_sort (BtorSortUniqueTable *, BtorSortId);
+bool btor_is_bool_sort (BtorSortUniqueTable *, BtorSortId);
 
-inline bool btor_is_bitvec_sort (BtorSortUniqueTable *, BtorSortId);
+bool btor_is_bitvec_sort (BtorSortUniqueTable *, BtorSortId);
 
-inline bool btor_is_array_sort (BtorSortUniqueTable *, BtorSortId);
+bool btor_is_array_sort (BtorSortUniqueTable *, BtorSortId);
 
-inline bool btor_is_tuple_sort (BtorSortUniqueTable *, BtorSortId);
+bool btor_is_tuple_sort (BtorSortUniqueTable *, BtorSortId);
 
-inline bool btor_is_fun_sort (BtorSortUniqueTable *, BtorSortId);
+bool btor_is_fun_sort (BtorSortUniqueTable *, BtorSortId);
 
 struct BtorTupleSortIterator
 {

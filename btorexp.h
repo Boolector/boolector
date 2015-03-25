@@ -826,15 +826,15 @@ BtorNode *btor_inc_exp (Btor *btor, BtorNode *exp);
 BtorNode *btor_dec_exp (Btor *btor, BtorNode *exp);
 
 /* Gets the bit width of a bit vector expression */
-inline int btor_get_exp_width (Btor *btor, BtorNode *exp);
+int btor_get_exp_width (Btor *btor, BtorNode *exp);
 
 /* Gets the bit width of the array elements. */
-inline int btor_get_fun_exp_width (Btor *btor, BtorNode *exp);
+int btor_get_fun_exp_width (Btor *btor, BtorNode *exp);
 
-inline char *btor_get_bits_const (BtorNode *exp);
-inline char *btor_get_invbits_const (BtorNode *exp);
-inline void btor_set_bits_const (BtorNode *exp, char *bits);
-inline void btor_set_invbits_const (BtorNode *exp, char *bits);
+char *btor_get_bits_const (BtorNode *exp);
+char *btor_get_invbits_const (BtorNode *exp);
+void btor_set_bits_const (BtorNode *exp, char *bits);
+void btor_set_invbits_const (BtorNode *exp, char *bits);
 
 /* Determines if expression is an array or not. */
 int btor_is_array_exp (Btor *btor, BtorNode *exp);
@@ -846,7 +846,7 @@ int btor_is_uf_array_var_exp (Btor *btor, BtorNode *exp);
 int btor_is_bv_var_exp (Btor *btor, BtorNode *exp);
 
 /* Gets the number of bits used by indices on 'e_array'. */
-inline int btor_get_index_exp_width (Btor *btor, BtorNode *e_array);
+int btor_get_index_exp_width (Btor *btor, BtorNode *e_array);
 
 /* Get the id of an expression. */
 int btor_get_id (Btor *btor, BtorNode *exp);

@@ -3647,7 +3647,7 @@ btor_dec_exp (Btor *btor, BtorNode *exp)
   return result;
 }
 
-inline int
+int
 btor_get_exp_width (Btor *btor, BtorNode *exp)
 {
   assert (btor);
@@ -3658,7 +3658,7 @@ btor_get_exp_width (Btor *btor, BtorNode *exp)
                                      BTOR_REAL_ADDR_NODE (exp)->sort_id);
 }
 
-inline int
+int
 btor_get_fun_exp_width (Btor *btor, BtorNode *exp)
 {
   assert (btor);
@@ -3672,7 +3672,7 @@ btor_get_fun_exp_width (Btor *btor, BtorNode *exp)
       sorts, btor_get_codomain_fun_sort (sorts, exp->sort_id));
 }
 
-inline char *
+char *
 btor_get_bits_const (BtorNode *exp)
 {
   assert (exp);
@@ -3680,7 +3680,7 @@ btor_get_bits_const (BtorNode *exp)
   return ((BtorBVConstNode *) BTOR_REAL_ADDR_NODE (exp))->bits;
 }
 
-inline char *
+char *
 btor_get_invbits_const (BtorNode *exp)
 {
   assert (exp);
@@ -3688,7 +3688,7 @@ btor_get_invbits_const (BtorNode *exp)
   return ((BtorBVConstNode *) BTOR_REAL_ADDR_NODE (exp))->invbits;
 }
 
-inline void
+void
 btor_set_bits_const (BtorNode *exp, char *bits)
 {
   assert (exp);
@@ -3696,7 +3696,7 @@ btor_set_bits_const (BtorNode *exp, char *bits)
   ((BtorBVConstNode *) BTOR_REAL_ADDR_NODE (exp))->bits = bits;
 }
 
-inline void
+void
 btor_set_invbits_const (BtorNode *exp, char *bits)
 {
   assert (exp);
@@ -3738,7 +3738,7 @@ btor_is_bv_var_exp (Btor *btor, BtorNode *exp)
   return BTOR_IS_BV_VAR_NODE (BTOR_REAL_ADDR_NODE (exp));
 }
 
-inline int
+int
 btor_get_index_exp_width (Btor *btor, BtorNode *e_array)
 {
   assert (btor);
