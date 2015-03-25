@@ -535,7 +535,8 @@ compute_hash_exp (BtorNode *exp, int table_size)
 
   unsigned int hash = 0;
 
-  if (BTOR_IS_BV_CONST_NODE (exp)) hash = btor_hash_str ((void *) exp->bits);
+  if (BTOR_IS_BV_CONST_NODE (exp))
+    hash = btor_hash_str ((void *) btor_get_bits_const (exp));
   /* hash for lambdas is computed once during creation. afterwards, we always
    * have to use the saved hash value since hashing of lambdas requires all
    * parameterized nodes and their inputs (cf. hash_lambda_exp), which may
@@ -815,9 +816,11 @@ erase_local_data_exp (Btor *btor, BtorNode *exp, int free_sort)
   switch (exp->kind)
   {
     case BTOR_BV_CONST_NODE:
-      btor_freestr (mm, exp->bits);
-      if (exp->invbits) btor_freestr (mm, exp->invbits);
-      exp->bits = exp->invbits = 0;
+      btor_freestr (mm, btor_get_bits_const (exp));
+      if (btor_get_invbits_const (exp))
+        btor_freestr (mm, btor_get_invbits_const (exp));
+      btor_set_bits_const (exp, 0);
+      btor_set_invbits_const (exp, 0);
       break;
     case BTOR_LAMBDA_NODE:
       synth_apps = ((BtorLambdaNode *) exp)->synth_apps;
@@ -917,9 +920,12 @@ really_deallocate_exp (Btor *btor, BtorNode *exp)
 
   set_kind (btor, exp, BTOR_INVALID_NODE);
 
-  if (exp->bits) btor_freestr (btor->mm, exp->bits);
-  if (exp->invbits) btor_freestr (btor->mm, exp->invbits);
-
+  if (BTOR_IS_BV_CONST_NODE (exp))
+  {
+    btor_freestr (btor->mm, btor_get_bits_const (exp));
+    if (btor_get_invbits_const (exp))
+      btor_freestr (btor->mm, btor_get_invbits_const (exp));
+  }
   btor_free (mm, exp, exp->bytes);
 }
 
@@ -1151,17 +1157,19 @@ new_const_exp_node (Btor *btor, const char *bits, int len)
   assert ((int) strlen (bits) == len);
   assert (btor_is_const_2vl (btor->mm, bits));
 
+  char *new_bits;
   BtorBVConstNode *exp;
-  int i;
 
   BTOR_CNEW (btor->mm, exp);
   set_kind (btor, (BtorNode *) exp, BTOR_BV_CONST_NODE);
-  exp->bytes = sizeof *exp;
-  BTOR_NEWN (btor->mm, exp->bits, len + 1);
-  for (i = 0; i < len; i++) exp->bits[i] = bits[i];
-  exp->bits[len] = '\0';
-  exp->sort_id   = btor_bitvec_sort (&btor->sorts_unique_table, len);
+  exp->bytes   = sizeof *exp;
+  exp->sort_id = btor_bitvec_sort (&btor->sorts_unique_table, len);
   setup_node_and_add_to_id_table (btor, exp);
+
+  BTOR_NEWN (btor->mm, new_bits, len + 1);
+  memcpy (new_bits, bits, len * sizeof (char));
+  new_bits[len] = '\0';
+  btor_set_bits_const ((BtorNode *) exp, new_bits);
   return (BtorNode *) exp;
 }
 
@@ -1415,7 +1423,7 @@ find_const_exp (Btor *btor, const char *bits, int len)
   {
     assert (BTOR_IS_REGULAR_NODE (cur));
     if (BTOR_IS_BV_CONST_NODE (cur) && btor_get_exp_width (btor, cur) == len
-        && strcmp (cur->bits, bits) == 0)
+        && strcmp (btor_get_bits_const (cur), bits) == 0)
       break;
     else
     {
@@ -1636,7 +1644,8 @@ btor_find_unique_exp (Btor *btor, BtorNode *exp)
 
   exp = BTOR_REAL_ADDR_NODE (exp);
   if (BTOR_IS_BV_CONST_NODE (exp))
-    return find_const_exp (btor, exp->bits, btor_get_exp_width (btor, exp));
+    return find_const_exp (
+        btor, btor_get_bits_const (exp), btor_get_exp_width (btor, exp));
   if (BTOR_IS_SLICE_NODE (exp))
     return find_slice_exp (btor, exp->e[0], exp->upper, exp->lower);
   if (BTOR_IS_LAMBDA_NODE (exp))
@@ -1843,7 +1852,6 @@ btor_var_exp (Btor *btor, int len, const char *symbol)
   set_kind (btor, (BtorNode *) exp, BTOR_BV_VAR_NODE);
   exp->bytes = sizeof *exp;
   setup_node_and_add_to_id_table (btor, exp);
-  exp->bits    = btor_x_const_3vl (btor->mm, len);
   exp->sort_id = btor_bitvec_sort (&btor->sorts_unique_table, len);
   (void) btor_insert_in_ptr_hash_table (btor->bv_vars, exp);
   if (symbol) btor_set_symbol_exp (btor, (BtorNode *) exp, symbol);
@@ -3662,6 +3670,38 @@ btor_get_fun_exp_width (Btor *btor, BtorNode *exp)
   assert (btor_is_fun_sort (sorts, exp->sort_id));
   return btor_get_width_bitvec_sort (
       sorts, btor_get_codomain_fun_sort (sorts, exp->sort_id));
+}
+
+inline char *
+btor_get_bits_const (BtorNode *exp)
+{
+  assert (exp);
+  assert (BTOR_IS_BV_CONST_NODE (BTOR_REAL_ADDR_NODE (exp)));
+  return ((BtorBVConstNode *) BTOR_REAL_ADDR_NODE (exp))->bits;
+}
+
+inline char *
+btor_get_invbits_const (BtorNode *exp)
+{
+  assert (exp);
+  assert (BTOR_IS_BV_CONST_NODE (BTOR_REAL_ADDR_NODE (exp)));
+  return ((BtorBVConstNode *) BTOR_REAL_ADDR_NODE (exp))->invbits;
+}
+
+inline void
+btor_set_bits_const (BtorNode *exp, char *bits)
+{
+  assert (exp);
+  assert (BTOR_IS_BV_CONST_NODE (BTOR_REAL_ADDR_NODE (exp)));
+  ((BtorBVConstNode *) BTOR_REAL_ADDR_NODE (exp))->bits = bits;
+}
+
+inline void
+btor_set_invbits_const (BtorNode *exp, char *bits)
+{
+  assert (exp);
+  assert (BTOR_IS_BV_CONST_NODE (BTOR_REAL_ADDR_NODE (exp)));
+  ((BtorBVConstNode *) BTOR_REAL_ADDR_NODE (exp))->invbits = bits;
 }
 
 int

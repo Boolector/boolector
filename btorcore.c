@@ -1275,13 +1275,14 @@ insert_unsynthesized_constraint (Btor *btor, BtorNode *exp)
   assert (exp);
   assert (!BTOR_REAL_ADDR_NODE (exp)->parameterized);
 
+  char *bits;
   BtorPtrHashTable *uc;
 
   if (BTOR_IS_BV_CONST_NODE (BTOR_REAL_ADDR_NODE (exp)))
   {
-    if ((BTOR_IS_INVERTED_NODE (exp)
-         && BTOR_REAL_ADDR_NODE (exp)->bits[0] == '1')
-        || (!BTOR_IS_INVERTED_NODE (exp) && exp->bits[0] == '0'))
+    bits = btor_get_bits_const (exp);
+    if ((BTOR_IS_INVERTED_NODE (exp) && bits[0] == '1')
+        || (!BTOR_IS_INVERTED_NODE (exp) && bits[0] == '0'))
     {
       btor->inconsistent = 1;
       return;
@@ -1289,9 +1290,8 @@ insert_unsynthesized_constraint (Btor *btor, BtorNode *exp)
     else
     {
       /* we do not add true */
-      assert ((BTOR_IS_INVERTED_NODE (exp)
-               && BTOR_REAL_ADDR_NODE (exp)->bits[0] == '0')
-              || (!BTOR_IS_INVERTED_NODE (exp) && exp->bits[0] == '1'));
+      assert ((BTOR_IS_INVERTED_NODE (exp) && bits[0] == '0')
+              || (!BTOR_IS_INVERTED_NODE (exp) && bits[0] == '1'));
       return;
     }
   }
@@ -1541,9 +1541,9 @@ normalize_substitution (Btor *btor,
     if (!BTOR_IS_BV_CONST_NODE (BTOR_REAL_ADDR_NODE (right))) return 0;
 
     if (BTOR_IS_INVERTED_NODE (right))
-      bits = btor_not_const_3vl (mm, BTOR_REAL_ADDR_NODE (right)->bits);
+      bits = btor_not_const_3vl (mm, btor_get_bits_const (right));
     else
-      bits = btor_copy_const (mm, right->bits);
+      bits = btor_copy_const (mm, btor_get_bits_const (right));
 
     if (comp == BTOR_SUBST_COMP_ULT_KIND || comp == BTOR_SUBST_COMP_ULTE_KIND)
     {
@@ -1723,6 +1723,7 @@ insert_new_constraint (Btor *btor, BtorNode *exp)
   assert (btor_get_exp_width (btor, exp) == 1);
   assert (!BTOR_REAL_ADDR_NODE (exp)->parameterized);
 
+  char *bits;
   BtorNode *left, *right, *real_exp;
 
   exp      = btor_simplify_exp (btor, exp);
@@ -1730,14 +1731,15 @@ insert_new_constraint (Btor *btor, BtorNode *exp)
 
   if (BTOR_IS_BV_CONST_NODE (real_exp))
   {
+    bits = btor_get_bits_const (real_exp);
     /* we do not add true/false */
-    if ((BTOR_IS_INVERTED_NODE (exp) && real_exp->bits[0] == '1')
-        || (!BTOR_IS_INVERTED_NODE (exp) && real_exp->bits[0] == '0'))
+    if ((BTOR_IS_INVERTED_NODE (exp) && bits[0] == '1')
+        || (!BTOR_IS_INVERTED_NODE (exp) && bits[0] == '0'))
       btor->inconsistent = 1;
     else
     {
-      assert ((BTOR_IS_INVERTED_NODE (exp) && real_exp->bits[0] == '0')
-              || (!BTOR_IS_INVERTED_NODE (exp) && real_exp->bits[0] == '1'));
+      assert ((BTOR_IS_INVERTED_NODE (exp) && bits[0] == '0')
+              || (!BTOR_IS_INVERTED_NODE (exp) && bits[0] == '1'));
     }
     return;
   }
@@ -4363,7 +4365,7 @@ synthesize_exp (Btor *btor, BtorNode *exp, BtorPtrHashTable *backannotation)
     {
       if (BTOR_IS_BV_CONST_NODE (cur))
       {
-        cur->av = btor_const_aigvec (avmgr, cur->bits);
+        cur->av = btor_const_aigvec (avmgr, btor_get_bits_const (cur));
         BTORLOG ("  synthesized: %s", node2string (cur));
         if (!btor->options.lazy_synthesize.val)
         {
@@ -4891,7 +4893,7 @@ bv_assignment_str_exp (Btor *btor, BtorNode *exp)
   assert (btor);
   assert (exp);
 
-  char *assignment;
+  char *assignment, *bits;
   int invert_av, invert_bits;
   BtorAIGVecMgr *avmgr;
   BtorAIGVec *av;
@@ -4905,12 +4907,11 @@ bv_assignment_str_exp (Btor *btor, BtorNode *exp)
 
   if (BTOR_IS_BV_CONST_NODE (real_exp))
   {
+    bits        = btor_get_bits_const (exp);
     invert_bits = BTOR_IS_INVERTED_NODE (exp);
-    if (invert_bits)
-      btor_invert_const (btor->mm, BTOR_REAL_ADDR_NODE (exp)->bits);
-    assignment = btor_copy_const (btor->mm, BTOR_REAL_ADDR_NODE (exp)->bits);
-    if (invert_bits)
-      btor_invert_const (btor->mm, BTOR_REAL_ADDR_NODE (exp)->bits);
+    if (invert_bits) btor_invert_const (btor->mm, bits);
+    assignment = btor_copy_const (btor->mm, bits);
+    if (invert_bits) btor_invert_const (btor->mm, bits);
   }
   else if (!BTOR_IS_SYNTH_NODE (real_exp))
   {
@@ -7740,7 +7741,7 @@ btor_eval_exp (Btor *btor, BtorNode *exp)
       }
       else if (BTOR_IS_BV_CONST_NODE (real_cur))
       {
-        result = btor_char_to_bv (btor->mm, real_cur->bits);
+        result = btor_char_to_bv (btor->mm, btor_get_bits_const (real_cur));
         goto EVAL_EXP_PUSH_RESULT;
       }
       /* substitute param with its assignment */

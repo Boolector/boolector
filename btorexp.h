@@ -110,8 +110,6 @@ typedef struct BtorNodePair BtorNodePair;
     unsigned int is_write : 1;                                          \
     unsigned int is_read : 1;                                           \
     unsigned int propagated : 1;                                        \
-    char *bits;         /* three-valued bits */                         \
-    char *invbits;      /* inverted three-valued bits */                \
     int id;             /* unique expression id */                      \
     int refs;           /* reference counter (incl. ext_refs) */        \
     int ext_refs;       /* external references counter */               \
@@ -169,6 +167,8 @@ typedef struct BtorUFNode BtorUFNode;
 struct BtorBVConstNode
 {
   BTOR_BV_NODE_STRUCT;
+  char *bits;    /* three-valued bits */
+  char *invbits; /* inverted three-valued bits */
 };
 
 typedef struct BtorBVConstNode BtorBVConstNode;
@@ -346,10 +346,10 @@ typedef struct BtorArgsNode BtorArgsNode;
        ? btor_not_aigvec ((btor)->avmgr, BTOR_REAL_ADDR_NODE (exp)->av) \
        : btor_copy_aigvec ((btor)->avmgr, exp->av))
 
-#define BTOR_BITS_NODE(mm, exp)                               \
-  (BTOR_IS_INVERTED_NODE (exp)                                \
-       ? btor_not_const (mm, BTOR_REAL_ADDR_NODE (exp)->bits) \
-       : btor_copy_const (mm, exp->bits))
+#define BTOR_BITS_NODE(mm, exp)                         \
+  (BTOR_IS_INVERTED_NODE (exp)                          \
+       ? btor_not_const (mm, btor_get_bits_const (exp)) \
+       : btor_copy_const (mm, btor_get_bits_const (exp)))
 
 #define BTOR_TAG_NODE(exp, tag) \
   ((BtorNode *) ((unsigned long int) tag | (unsigned long int) (exp)))
@@ -830,6 +830,11 @@ inline int btor_get_exp_width (Btor *btor, BtorNode *exp);
 
 /* Gets the bit width of the array elements. */
 inline int btor_get_fun_exp_width (Btor *btor, BtorNode *exp);
+
+inline char *btor_get_bits_const (BtorNode *exp);
+inline char *btor_get_invbits_const (BtorNode *exp);
+inline void btor_set_bits_const (BtorNode *exp, char *bits);
+inline void btor_set_invbits_const (BtorNode *exp, char *bits);
 
 /* Determines if expression is an array or not. */
 int btor_is_array_exp (Btor *btor, BtorNode *exp);

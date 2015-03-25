@@ -275,7 +275,7 @@ static void
 bdcnode (BtorDumpContext *bdc, BtorNode *node, FILE *file)
 {
   int i, aspi = -1;
-  char *symbol;
+  char *symbol, *bits;
   const char *op;
   BtorNode *n;
   BtorArgsIterator ait;
@@ -314,13 +314,14 @@ bdcnode (BtorDumpContext *bdc, BtorNode *node, FILE *file)
       op = BTOR_IS_UF_ARRAY_NODE (node) ? "array" : "uf";
       break;
     case BTOR_BV_CONST_NODE:
-      if (btor_is_zero_const (node->bits))
+      bits = btor_get_bits_const (node);
+      if (btor_is_zero_const (bits))
         op = "zero";
-      else if (btor_is_one_const (node->bits))
+      else if (btor_is_one_const (bits))
         op = "one";
-      else if (btor_is_ones_const (node->bits))
+      else if (btor_is_ones_const (bits))
         op = "ones";
-      else if ((aspi = btor_is_small_positive_int_const (node->bits)) > 0)
+      else if ((aspi = btor_is_small_positive_int_const (bits)) > 0)
         op = "constd";
       else
         op = "const";
@@ -403,7 +404,7 @@ bdcnode (BtorDumpContext *bdc, BtorNode *node, FILE *file)
 
   /* print children or const values */
   if (strcmp (op, "const") == 0)
-    fprintf (file, " %s", node->bits);
+    fprintf (file, " %s", btor_get_bits_const (node));
   else if (strcmp (op, "constd") == 0)
     fprintf (file, " %d", aspi);
   else if (BTOR_IS_PROXY_NODE (node))

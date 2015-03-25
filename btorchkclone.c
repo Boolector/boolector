@@ -402,7 +402,7 @@ btor_chkclone_exp (BtorNode *exp, BtorNode *clone)
   assert ((!BTOR_IS_INVERTED_NODE (exp) && !BTOR_IS_INVERTED_NODE (clone))
           || (BTOR_IS_INVERTED_NODE (exp) && BTOR_IS_INVERTED_NODE (clone)));
 
-  int i, len;
+  int i;
   BtorNode *real_exp, *real_clone, *e, *ce;
   BtorHashTableIterator it, cit;
 
@@ -435,11 +435,13 @@ btor_chkclone_exp (BtorNode *exp, BtorNode *clone)
   BTOR_CHKCLONE_EXP (is_write);
   BTOR_CHKCLONE_EXP (is_read);
 
-  if (real_exp->bits)
+  if (BTOR_IS_BV_CONST_NODE (real_exp))
   {
-    len = strlen (real_exp->bits);
-    assert ((size_t) len == strlen (real_clone->bits));
-    for (i = 0; i < len; i++) assert (real_exp->bits[i] == real_clone->bits[i]);
+    assert (strlen (btor_get_bits_const (real_exp))
+            == strlen (btor_get_bits_const (real_clone)));
+    assert (strcmp (btor_get_bits_const (real_exp),
+                    btor_get_bits_const (real_clone))
+            == 0);
   }
   else
   {

@@ -267,6 +267,7 @@ clone_exp (Btor *clone,
   assert (sapps);
   assert (exp_map);
 
+  char *bits;
   int i, len;
   BtorNode *res;
   BtorParamNode *param;
@@ -284,20 +285,22 @@ clone_exp (Btor *clone,
   }
 
   /* ----------------- BTOR_BV_VAR_NODE_STRUCT (all nodes) ----------------> */
-  if (exp->bits)
+  if (BTOR_IS_BV_CONST_NODE (exp))
   {
-    len = strlen (exp->bits);
-    BTOR_NEWN (mm, res->bits, len + 1);
-    for (i = 0; i < len; i++) res->bits[i] = exp->bits[i];
-    res->bits[len] = '\0';
-  }
+    len = btor_get_exp_width (exp->btor, exp);
+    BTOR_NEWN (mm, bits, len + 1);
+    memcpy (bits, btor_get_bits_const (exp), len * sizeof (char));
+    bits[len] = '\0';
+    btor_set_bits_const (res, bits);
 
-  if (exp->invbits)
-  {
-    len = strlen (exp->invbits);
-    BTOR_NEWN (mm, res->invbits, len + 1);
-    for (i = 0; i < len; i++) res->invbits[i] = exp->invbits[i];
-    res->invbits[len] = '\0';
+    if (btor_get_invbits_const (exp))
+    {
+      len = btor_get_exp_width (exp->btor, exp);
+      BTOR_NEWN (mm, bits, len + 1);
+      memcpy (bits, btor_get_invbits_const (exp), len * sizeof (char));
+      bits[len] = '\0';
+      btor_set_invbits_const (res, bits);
+    }
   }
 
   /* Note: no need to cache aig vectors here (exp->av is unique to exp). */
@@ -975,8 +978,12 @@ clone_aux_btor (Btor *btor,
       continue;
     }
     allocated += cur->bytes;
-    if (cur->bits) allocated += strlen (cur->bits) + 1;
-    if (cur->invbits) allocated += strlen (cur->invbits) + 1;
+    if (BTOR_IS_BV_CONST_NODE (cur))
+    {
+      allocated += strlen (btor_get_bits_const (cur)) + 1;
+      if (btor_get_invbits_const (cur))
+        allocated += strlen (btor_get_invbits_const (cur)) + 1;
+    }
     if (!BTOR_IS_FUN_NODE (cur) && cur->av)
     {
       if (!exp_layer_only)
@@ -1327,8 +1334,7 @@ btor_recursively_rebuild_exp_clone (Btor *btor,
       switch (cur->kind)
       {
         case BTOR_BV_CONST_NODE:
-          cur_clone = btor_const_exp (clone, cur->bits);
-
+          cur_clone = btor_const_exp (clone, btor_get_bits_const (cur));
           break;
         case BTOR_BV_VAR_NODE:
           symbol =
