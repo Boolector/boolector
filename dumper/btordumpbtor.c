@@ -679,15 +679,18 @@ btor_dump_btor_bdc (BtorDumpContext *bdc, FILE *file)
   for (i = 0; i < BTOR_COUNT_STACK (bdc->roots); i++)
   {
     BtorNode *node = BTOR_PEEK_STACK (bdc->roots, i);
-    int id;
+    int id, len;
     bdcrec (bdc, node, file);
     id = ++bdc->maxid;
     if (bdc->version == 1)
-      fprintf (file,
-               "%d root %d %d\n",
-               id,
-               btor_get_exp_width (bdc->btor, node),
-               bdcid (bdc, node));
+    {
+      if (btor_is_fun_sort (&bdc->btor->sorts_unique_table,
+                            BTOR_REAL_ADDR_NODE (node)->sort_id))
+        len = btor_get_fun_exp_width (bdc->btor, node);
+      else
+        len = btor_get_exp_width (bdc->btor, node);
+      fprintf (file, "%d root %d %d\n", id, len, bdcid (bdc, node));
+    }
     else
       fprintf (file, "assert %d\n", bdcid (bdc, node));
   }

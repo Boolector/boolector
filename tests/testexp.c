@@ -173,9 +173,9 @@ test_array_exp (void)
   BtorNode *exp3 = btor_array_exp (g_btor, 32, 8, "array2");
   assert (exp1 == exp2);
   assert (exp1 != exp3);
-  assert (btor_get_exp_width (g_btor, exp1) == 32);
-  assert (btor_get_exp_width (g_btor, exp2) == 32);
-  assert (btor_get_exp_width (g_btor, exp3) == 32);
+  assert (btor_get_fun_exp_width (g_btor, exp1) == 32);
+  assert (btor_get_fun_exp_width (g_btor, exp2) == 32);
+  assert (btor_get_fun_exp_width (g_btor, exp3) == 32);
   assert (btor_get_index_exp_width (g_btor, exp1) == 8);
   assert (btor_get_index_exp_width (g_btor, exp2) == 8);
   assert (btor_get_index_exp_width (g_btor, exp3) == 8);
@@ -630,7 +630,7 @@ test_read_exp (void)
   BtorNode *exp3 = btor_read_exp (g_btor, exp1, exp2);
   BtorNode *exp4 = btor_read_exp (g_btor, exp1, exp2);
   assert (exp4 == exp3);
-  assert (btor_get_exp_width (g_btor, exp1) == 32);
+  assert (btor_get_fun_exp_width (g_btor, exp1) == 32);
   assert (btor_get_index_exp_width (g_btor, exp1) == 8);
   assert (btor_get_exp_width (g_btor, exp2) == 8);
   assert (btor_get_exp_width (g_btor, exp3) == 32);
@@ -684,12 +684,12 @@ test_write_exp (void)
   BtorNode *exp7 = btor_read_exp (g_btor, exp5, exp2);
   assert (exp4 == exp5);
   assert (exp4 != exp6);
-  assert (btor_get_exp_width (g_btor, exp1) == 1);
+  assert (btor_get_fun_exp_width (g_btor, exp1) == 1);
   assert (btor_get_exp_width (g_btor, exp2) == 1);
   assert (btor_get_exp_width (g_btor, exp3) == 1);
-  assert (btor_get_exp_width (g_btor, exp4) == 1);
-  assert (btor_get_exp_width (g_btor, exp5) == 1);
-  assert (btor_get_exp_width (g_btor, exp6) == 1);
+  assert (btor_get_fun_exp_width (g_btor, exp4) == 1);
+  assert (btor_get_fun_exp_width (g_btor, exp5) == 1);
+  assert (btor_get_fun_exp_width (g_btor, exp6) == 1);
   assert (btor_get_exp_width (g_btor, exp7) == 1);
   btor_dump_btor_node (g_btor, g_logfile, exp7);
   btor_release_exp (g_btor, exp1);
