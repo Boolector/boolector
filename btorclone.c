@@ -42,7 +42,7 @@ clone_sorts_unique_table (BtorMemMgr *mm,
   assert (res);
 
   unsigned i, j;
-  BtorSort *sort, *csort, *tmp;
+  BtorSort *sort, *csort;
   BtorSortId cid;
   BtorSortIdStack elements;
 
@@ -82,8 +82,7 @@ clone_sorts_unique_table (BtorMemMgr *mm,
         break;
 
       case BTOR_FUN_SORT:
-        tmp = BTOR_PEEK_STACK (res->id2sort, sort->fun.domain->id);
-        assert (tmp);
+        assert (BTOR_PEEK_STACK (res->id2sort, sort->fun.domain->id));
         cid = btor_fun_sort (res, sort->fun.domain->id, sort->fun.codomain->id);
         break;
 
