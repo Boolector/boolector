@@ -92,7 +92,6 @@ btor_precond_regular_unary_bv_exp_dbg (Btor *btor, BtorNode *exp)
   return 1;
 }
 
-// TODO: add proper sort check
 int
 btor_precond_eq_exp_dbg (Btor *btor, BtorNode *e0, BtorNode *e1)
 {
@@ -111,7 +110,7 @@ btor_precond_eq_exp_dbg (Btor *btor, BtorNode *e0, BtorNode *e1)
   assert (real_e1->btor == btor);
   assert (!real_e0->simplified);
   assert (!real_e1->simplified);
-  assert (btor_is_equal_sort ((Btor *) btor, (BtorNode *) e0, (BtorNode *) e1));
+  assert (real_e0->sort_id == real_e1->sort_id);
   assert (!BTOR_IS_FUN_NODE (real_e0)
           || (BTOR_IS_REGULAR_NODE (e0) && BTOR_IS_REGULAR_NODE (e1)));
   return 1;
@@ -187,11 +186,9 @@ btor_precond_read_exp_dbg (Btor *btor, BtorNode *e_array, BtorNode *e_index)
   assert (!BTOR_IS_FUN_NODE (BTOR_REAL_ADDR_NODE (e_index)));
   assert (btor_get_exp_width (btor, e_index) > 0);
   assert (btor_get_exp_width (btor, e_array) > 0);
-  // TODO (ma): better sort check
   assert (
-      BTOR_IS_LAMBDA_NODE (e_array)
-      || btor_get_index_array_sort (&btor->sorts_unique_table, e_array->sort_id)
-             == BTOR_REAL_ADDR_NODE (e_index)->sort_id);
+      btor_get_index_array_sort (&btor->sorts_unique_table, e_array->sort_id)
+      == BTOR_REAL_ADDR_NODE (e_index)->sort_id);
   assert (BTOR_REAL_ADDR_NODE (e_array)->btor == btor);
   assert (BTOR_REAL_ADDR_NODE (e_index)->btor == btor);
   return 1;
@@ -1338,16 +1335,6 @@ new_args_exp_node (Btor *btor, int arity, BtorNode **e, int len)
   exp->sort_id = btor_tuple_sort (
       &btor->sorts_unique_table, sorts.start, BTOR_COUNT_STACK (sorts));
   BTOR_RELEASE_STACK (btor->mm, sorts);
-
-  // TODO (ma): obsolete with sorts
-  /* set args node specific fields */
-  if (BTOR_IS_ARGS_NODE (BTOR_REAL_ADDR_NODE (exp->e[arity - 1])))
-  {
-    exp->num_args = ((BtorArgsNode *) exp->e[arity - 1])->num_args + arity - 1;
-  }
-  else
-    exp->num_args = arity;
-
   return (BtorNode *) exp;
 }
 
@@ -1530,9 +1517,6 @@ compare_lambda_exp (Btor *btor,
         || real_cur0->kind != real_cur1->kind
         || real_cur0->parameterized != real_cur1->parameterized
         || real_cur0->sort_id != real_cur1->sort_id
-        /* arity might be differnt in case of BTOR_ARGS_NODE */
-        // TODO (ma): this is obsolete with sorts
-        || real_cur0->arity != real_cur1->arity
         || (BTOR_IS_SLICE_NODE (real_cur0)
             && (real_cur0->upper != real_cur1->upper
                 || real_cur0->lower != real_cur1->lower)))
@@ -3954,5 +3938,5 @@ btor_get_args_arity (Btor *btor, BtorNode *exp)
   exp = btor_simplify_exp (btor, exp);
   assert (BTOR_IS_REGULAR_NODE (exp));
   assert (BTOR_IS_ARGS_NODE (exp));
-  return ((BtorArgsNode *) exp)->num_args;
+  return btor_get_arity_tuple_sort (&btor->sorts_unique_table, exp->sort_id);
 }

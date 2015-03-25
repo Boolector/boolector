@@ -339,8 +339,6 @@ BtorNode *btor_simplify_exp (Btor *btor, BtorNode *exp);
 /* Finds most simplified expression and shortens path to it */
 BtorNode *btor_pointer_chase_simplified_exp (Btor *btor, BtorNode *exp);
 
-int btor_is_equal_sort (Btor *btor, BtorNode *e0, BtorNode *e1);
-
 /* Frees BV assignment obtained by calling 'btor_assignment_exp' */
 void btor_release_bv_assignment_str (Btor *btor, char *assignment);
 

@@ -548,10 +548,6 @@ btor_chkclone_exp (BtorNode *exp, BtorNode *clone)
       assert (!((BtorParamNode *) real_clone)->assigned_exp);
   }
 
-  if (BTOR_IS_ARGS_NODE (real_exp))
-    assert (((BtorArgsNode *) real_exp)->num_args
-            == ((BtorArgsNode *) real_clone)->num_args);
-
   if (BTOR_IS_LAMBDA_NODE (real_exp))
   {
     if (((BtorLambdaNode *) real_exp)->synth_apps)

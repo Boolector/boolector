@@ -1483,8 +1483,9 @@ boolector_eq (Btor *btor, BoolectorNode *n0, BoolectorNode *n1)
   BTOR_ABORT_IF_BTOR_DOES_NOT_MATCH (btor, e1);
   simp0 = btor_simplify_exp (btor, e0);
   simp1 = btor_simplify_exp (btor, e1);
-  BTOR_ABORT_BOOLECTOR (!btor_is_equal_sort (btor, e0, e1),
-                        "nodes must have equal sorts");
+  BTOR_ABORT_BOOLECTOR (
+      BTOR_REAL_ADDR_NODE (e0)->sort_id != BTOR_REAL_ADDR_NODE (e1)->sort_id,
+      "nodes must have equal sorts");
   res = btor_eq_exp (btor, simp0, simp1);
   inc_exp_ext_ref_counter (btor, res);
   BTOR_TRAPI_RETURN_NODE (res);
@@ -3553,7 +3554,8 @@ boolector_is_equal_sort (Btor *btor, BoolectorNode *n0, BoolectorNode *n1)
   BTOR_ABORT_IF_BTOR_DOES_NOT_MATCH (btor, e1);
   simp0 = btor_simplify_exp (btor, e0);
   simp1 = btor_simplify_exp (btor, e1);
-  res   = btor_is_equal_sort (btor, simp0, simp1);
+  res   = BTOR_REAL_ADDR_NODE (simp0)->sort_id
+        == BTOR_REAL_ADDR_NODE (simp1)->sort_id;
   BTOR_TRAPI_RETURN_INT (res);
 #ifndef NDEBUG
   BTOR_CHKCLONE_RES (

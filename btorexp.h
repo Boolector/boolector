@@ -211,7 +211,6 @@ struct BtorArgsNode
 {
   BTOR_BV_NODE_STRUCT;
   BTOR_BV_ADDITIONAL_NODE_STRUCT;
-  int num_args;
 };
 
 typedef struct BtorArgsNode BtorArgsNode;

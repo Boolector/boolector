@@ -255,7 +255,7 @@ btor_recursively_compute_assignment (Btor *btor,
         && (!(b = btor_find_in_ptr_hash_table (assigned, real_cur))
             || b->data.asPtr != cur_parent))
     {
-      num_args = ((BtorArgsNode *) cur_parent->e[1])->num_args;
+      num_args = btor_get_args_arity (btor, cur_parent->e[1]);
       e        = (BitVector **) arg_stack.top - num_args;
 
       t = btor_new_bv_tuple (btor->mm, num_args);
@@ -334,7 +334,7 @@ btor_recursively_compute_assignment (Btor *btor,
 
       if (BTOR_IS_APPLY_NODE (real_cur))
       {
-        num_args = ((BtorArgsNode *) real_cur->e[1])->num_args;
+        num_args = btor_get_args_arity (btor, real_cur->e[1]);
         arg_stack.top -= 1;        /* value of apply */
         arg_stack.top -= num_args; /* arguments of apply */
       }
@@ -650,7 +650,7 @@ extract_models_from_functions_with_model (Btor *btor,
       assert (BTOR_IS_REGULAR_NODE (args));
       assert (BTOR_IS_ARGS_NODE (args));
 
-      t = btor_new_bv_tuple (btor->mm, ((BtorArgsNode *) args)->num_args);
+      t = btor_new_bv_tuple (btor->mm, btor_get_args_arity (btor, args));
 
       pos = 0;
       init_args_iterator (&ait, args);

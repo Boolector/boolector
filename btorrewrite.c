@@ -411,7 +411,8 @@ is_write_exp (BtorNode *exp,
   /* check apply on unmodified array */
   app = body->e[2];
   if (BTOR_IS_INVERTED_NODE (app) || !BTOR_IS_APPLY_NODE (app)
-      || ((BtorArgsNode *) app->e[1])->num_args > 1 || app->e[1]->e[0] != param)
+      || btor_get_args_arity (app->btor, app->e[1]) > 1
+      || app->e[1]->e[0] != param)
     return 0;
 
   if (array) *array = app->e[0];

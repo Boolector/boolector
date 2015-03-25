@@ -5481,10 +5481,7 @@ compare_argument_assignments (BtorNode *e0, BtorNode *e1)
   BtorArgsIterator it0, it1;
   btor = e0->btor;
 
-  if (e0->sort_id != e1->sort_id
-      // TODO (ma): this might be obsolete with sorts
-      || ((BtorArgsNode *) e0)->num_args != ((BtorArgsNode *) e1)->num_args)
-    return 1;
+  if (e0->sort_id != e1->sort_id) return 1;
 
   init_args_iterator (&it0, e0);
   init_args_iterator (&it1, e1);
@@ -6008,8 +6005,6 @@ add_symbolic_lemma (Btor *btor,
   if (args1)
   {
     assert (BTOR_IS_SYNTH_NODE (b));
-    assert (((BtorArgsNode *) args0)->num_args
-            == ((BtorArgsNode *) args1)->num_args);
     assert (args0->sort_id == args1->sort_id);
 
     init_args_iterator (&it0, args0);
@@ -7627,15 +7622,6 @@ btor_fun_sort_check (Btor *btor, int argc, BtorNode **args, BtorNode *fun)
     }
   }
   return pos;
-}
-
-int
-btor_is_equal_sort (Btor *btor, BtorNode *e0, BtorNode *e1)
-{
-  assert (btor);
-  assert (e0);
-  assert (e1);
-  return BTOR_REAL_ADDR_NODE (e0)->sort_id == BTOR_REAL_ADDR_NODE (e1)->sort_id;
 }
 
 static BtorAIG *
