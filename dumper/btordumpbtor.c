@@ -345,20 +345,21 @@ bdcnode (BtorDumpContext *bdc, BtorNode *node, FILE *file)
   /* print id, operator and sort */
   if (bdc->version == 1)
   {
-    fprintf (file,
-             "%d %s %d",
-             bdcid (bdc, node),
-             op,
-             btor_get_exp_width (bdc->btor, node));
+    fprintf (file, "%d %s", bdcid (bdc, node), op);
 
     /* print index bit width of arrays */
     if (BTOR_IS_UF_ARRAY_NODE (node))
+    {
+      fprintf (file, " %d", btor_get_fun_exp_width (bdc->btor, node));
       fprintf (file, " %d", btor_get_index_exp_width (bdc->btor, node));
+    }
     else if (BTOR_IS_LAMBDA_NODE (node))
-      fprintf (file,
-               " %d",
-               btor_get_width_bitvec_sort (&bdc->btor->sorts_unique_table,
-                                           node->e[0]->sort_id));
+    {
+      fprintf (file, " %d", btor_get_fun_exp_width (bdc->btor, node));
+      fprintf (file, " %d", btor_get_exp_width (bdc->btor, node->e[0]));
+    }
+    else
+      fprintf (file, " %d", btor_get_exp_width (bdc->btor, node));
 
     if (BTOR_IS_APPLY_NODE (node))
     {

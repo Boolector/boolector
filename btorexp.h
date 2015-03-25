@@ -825,8 +825,11 @@ BtorNode *btor_inc_exp (Btor *btor, BtorNode *exp);
 /* Decrements bit-vector expression by one */
 BtorNode *btor_dec_exp (Btor *btor, BtorNode *exp);
 
-/* Gets the length of an expression representing the number of bits. */
+/* Gets the bit width of a bit vector expression */
 inline int btor_get_exp_width (Btor *btor, BtorNode *exp);
+
+/* Gets the bit width of the array elements. */
+inline int btor_get_fun_exp_width (Btor *btor, BtorNode *exp);
 
 /* Determines if expression is an array or not. */
 int btor_is_array_exp (Btor *btor, BtorNode *exp);

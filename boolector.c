@@ -2852,14 +2852,19 @@ boolector_get_width (Btor *btor, BoolectorNode *node)
 {
   int res;
   BtorNode *exp;
+  BtorSortUniqueTable *sorts;
 
-  exp = BTOR_IMPORT_BOOLECTOR_NODE (node);
+  sorts = &btor->sorts_unique_table;
+  exp   = BTOR_IMPORT_BOOLECTOR_NODE (node);
   BTOR_ABORT_ARG_NULL_BOOLECTOR (btor);
   BTOR_ABORT_ARG_NULL_BOOLECTOR (exp);
   BTOR_TRAPI_UNFUN (exp);
   BTOR_ABORT_REFS_NOT_POS_BOOLECTOR (exp);
   BTOR_ABORT_IF_BTOR_DOES_NOT_MATCH (btor, exp);
-  res = btor_get_exp_width (btor, exp);
+  if (btor_is_fun_sort (sorts, BTOR_REAL_ADDR_NODE (exp)->sort_id))
+    res = btor_get_fun_exp_width (btor, exp);
+  else
+    res = btor_get_exp_width (btor, exp);
   BTOR_TRAPI_RETURN_INT (res);
 #ifndef NDEBUG
   BTOR_CHKCLONE_RES (res, get_width, BTOR_CLONED_EXP (exp));
