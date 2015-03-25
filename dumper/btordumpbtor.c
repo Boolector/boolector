@@ -14,6 +14,7 @@
 #include "btordumpbtor.h"
 #include "btorconst.h"
 #include "btorcore.h"
+#include "btorexp.h"
 #include "btorhash.h"
 #include "btoriter.h"
 #include "btormem.h"
@@ -344,7 +345,11 @@ bdcnode (BtorDumpContext *bdc, BtorNode *node, FILE *file)
   /* print id, operator and sort */
   if (bdc->version == 1)
   {
-    fprintf (file, "%d %s %d", bdcid (bdc, node), op, node->len);
+    fprintf (file,
+             "%d %s %d",
+             bdcid (bdc, node),
+             op,
+             btor_get_exp_width (bdc->btor, node));
 
     /* print index bit width of arrays */
     if (BTOR_IS_UF_ARRAY_NODE (node))
@@ -577,7 +582,7 @@ btor_dump_btor_bdc (BtorDumpContext *bdc, FILE *file)
     assert (BTOR_IS_REGULAR_NODE (node));
     assert (BTOR_IS_BV_VAR_NODE (node));
     id = bdcid (bdc, node);
-    fprintf (file, "%d input %d", id, node->len);
+    fprintf (file, "%d input %d", id, btor_get_exp_width (bdc->btor, node));
     if ((symbol = btor_get_symbol_exp (bdc->btor, node)))
       fprintf (file, " %s", symbol);
     fputc ('\n', file);
@@ -592,7 +597,7 @@ btor_dump_btor_bdc (BtorDumpContext *bdc, FILE *file)
     assert (BTOR_IS_REGULAR_NODE (node));
     assert (BTOR_IS_BV_VAR_NODE (node));
     id = bdcid (bdc, node);
-    fprintf (file, "%d latch %d", id, node->len);
+    fprintf (file, "%d latch %d", id, btor_get_exp_width (bdc->btor, node));
     if ((symbol = btor_get_symbol_exp (bdc->btor, node)))
       fprintf (file, " %s", symbol);
     fputc ('\n', file);

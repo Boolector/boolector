@@ -1171,7 +1171,6 @@ new_const_exp_node (Btor *btor, const char *bits, int len)
   BTOR_NEWN (btor->mm, exp->bits, len + 1);
   for (i = 0; i < len; i++) exp->bits[i] = bits[i];
   exp->bits[len] = '\0';
-  exp->len       = len;
   exp->sort_id   = btor_bitvec_sort (&btor->sorts_unique_table, len);
   setup_node_and_add_to_id_table (btor, exp);
   return (BtorNode *) exp;
@@ -1195,7 +1194,6 @@ new_slice_exp_node (Btor *btor, BtorNode *e0, int upper, int lower)
   exp->arity = 1;
   exp->upper = upper;
   exp->lower = lower;
-  exp->len   = upper - lower + 1;
   exp->sort_id =
       btor_bitvec_sort (&btor->sorts_unique_table, upper - lower + 1);
   setup_node_and_add_to_id_table (btor, exp);
@@ -1219,7 +1217,6 @@ new_aeq_exp_node (Btor *btor, BtorNode *e0, BtorNode *e1)
   set_kind (btor, exp, BTOR_FEQ_NODE);
   exp->bytes   = sizeof *exp;
   exp->arity   = 2;
-  exp->len     = 1;
   exp->sort_id = btor_bitvec_sort (&btor->sorts_unique_table, 1);
   setup_node_and_add_to_id_table (btor, exp);
   connect_child_exp (btor, exp, e0, 0);
@@ -1252,7 +1249,6 @@ new_lambda_exp_node (Btor *btor, BtorNode *e_param, BtorNode *e_exp)
   set_kind (btor, (BtorNode *) lambda_exp, BTOR_LAMBDA_NODE);
   lambda_exp->bytes        = sizeof *lambda_exp;
   lambda_exp->arity        = 2;
-  lambda_exp->len          = btor_get_exp_width (btor, e_exp);
   lambda_exp->lambda_below = 1;
   setup_node_and_add_to_id_table (btor, (BtorNode *) lambda_exp);
   connect_child_exp (btor, (BtorNode *) lambda_exp, e_param, 0);
@@ -1318,7 +1314,6 @@ new_args_exp_node (Btor *btor, int arity, BtorNode **e, int len)
   set_kind (btor, (BtorNode *) exp, BTOR_ARGS_NODE);
   exp->bytes = sizeof (*exp);
   exp->arity = arity;
-  exp->len   = len;
   setup_node_and_add_to_id_table (btor, exp);
 
   for (i = 0; i < arity; i++)
@@ -1362,7 +1357,6 @@ new_exp_node (Btor *btor, BtorNodeKind kind, int arity, BtorNode **e, int len)
   set_kind (btor, (BtorNode *) exp, kind);
   exp->bytes = sizeof (*exp);
   exp->arity = arity;
-  exp->len   = len;
   setup_node_and_add_to_id_table (btor, exp);
   exp->sort_id = btor_bitvec_sort (&btor->sorts_unique_table, len);
 
@@ -1860,7 +1854,6 @@ btor_var_exp (Btor *btor, int len, const char *symbol)
   BTOR_CNEW (btor->mm, exp);
   set_kind (btor, (BtorNode *) exp, BTOR_BV_VAR_NODE);
   exp->bytes = sizeof *exp;
-  exp->len   = len;
   setup_node_and_add_to_id_table (btor, exp);
   exp->bits    = btor_x_const_3vl (btor->mm, len);
   exp->sort_id = btor_bitvec_sort (&btor->sorts_unique_table, len);
@@ -1882,7 +1875,6 @@ btor_param_exp (Btor *btor, int len, const char *symbol)
   BTOR_CNEW (btor->mm, exp);
   set_kind (btor, (BtorNode *) exp, BTOR_PARAM_NODE);
   exp->bytes         = sizeof *exp;
-  exp->len           = len;
   exp->parameterized = 1;
   exp->sort_id       = btor_bitvec_sort (&btor->sorts_unique_table, len);
   setup_node_and_add_to_id_table (btor, exp);
@@ -1936,8 +1928,6 @@ btor_uf_exp (Btor *btor, BtorSortId sort, const char *symbol)
   set_kind (btor, (BtorNode *) exp, BTOR_UF_NODE);
   exp->bytes   = sizeof (*exp);
   exp->sort_id = btor_copy_sort (sorts, sort);
-  exp->len     = btor_get_width_bitvec_sort (
-      sorts, btor_get_codomain_fun_sort (sorts, sort));
   setup_node_and_add_to_id_table (btor, exp);
   (void) btor_insert_in_ptr_hash_table (btor->ufs, exp);
   if (symbol) btor_set_symbol_exp (btor, (BtorNode *) exp, symbol);
@@ -3740,7 +3730,8 @@ btor_get_exp_width (Btor *btor, BtorNode *exp)
 {
   assert (btor);
   assert (exp);
-  return BTOR_REAL_ADDR_NODE (exp)->len;
+  return btor_get_width_bitvec_sort (&btor->sorts_unique_table,
+                                     BTOR_REAL_ADDR_NODE (exp)->sort_id);
 }
 
 int

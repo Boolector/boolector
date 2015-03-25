@@ -535,8 +535,9 @@ recursively_dump_exp_smt (BtorSMTDumpContext *sdc, BtorNode *exp, int expect_bv)
         case BTOR_SRL_NODE:
           assert (!is_bool);
           op = real_exp->kind == BTOR_SRL_NODE ? "bvlshr" : "bvshl";
-          assert (real_exp->len > 1);
-          pad = real_exp->len - BTOR_REAL_ADDR_NODE (real_exp->e[1])->len;
+          assert (btor_get_exp_width (sdc->btor, real_exp) > 1);
+          pad = btor_get_exp_width (sdc->btor, real_exp)
+                - btor_get_exp_width (sdc->btor, real_exp->e[1]);
           PUSH_DUMP_NODE (real_exp->e[1], 1, 0, 1, pad);
           PUSH_DUMP_NODE (real_exp->e[0], 1, 0, 1, 0);
           break;
@@ -931,7 +932,7 @@ dump_assert_smt2 (BtorSMTDumpContext *sdc, BtorNode *exp)
   assert (sdc);
   assert (sdc->version == 2);
   assert (exp);
-  assert (BTOR_REAL_ADDR_NODE (exp)->len == 1);
+  assert (btor_get_exp_width (sdc->btor, exp) == 1);
 
   fputs ("(assert ", sdc->file);
   if (!is_boolean (sdc, exp)) fputs ("(distinct ", sdc->file);
@@ -958,7 +959,7 @@ wrap_non_bool_root_smt1 (BtorSMTDumpContext *sdc, BtorNode *exp)
   if (!is_boolean (sdc, exp)) fputs ("(not (= ", sdc->file);
   recursively_dump_exp_smt (sdc, exp, 0);
   if (!is_boolean (sdc, exp))
-    fprintf (sdc->file, " bv0[%d]))", BTOR_REAL_ADDR_NODE (exp)->len);
+    fprintf (sdc->file, " bv0[%d]))", btor_get_exp_width (sdc->btor, exp));
 }
 
 static int
@@ -1148,7 +1149,7 @@ dump_smt (BtorSMTDumpContext *sdc)
         btor_insert_in_ptr_hash_table (sdc->boolean, cur);
       continue;
     }
-    else if (cur->len == 1
+    else if (btor_get_exp_width (sdc->btor, cur) == 1
              && (BTOR_IS_AND_NODE (cur) || BTOR_IS_BV_COND_NODE (cur)))
     {
       not_bool = 0;

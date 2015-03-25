@@ -2859,7 +2859,12 @@ boolector_get_width (Btor *btor, BoolectorNode *node)
   BTOR_TRAPI_UNFUN (exp);
   BTOR_ABORT_REFS_NOT_POS_BOOLECTOR (exp);
   BTOR_ABORT_IF_BTOR_DOES_NOT_MATCH (btor, exp);
-  res = btor_get_exp_width (btor, exp);
+  if (BTOR_IS_FUN_NODE (BTOR_REAL_ADDR_NODE (exp)))
+    res = btor_get_width_bitvec_sort (
+        &btor->sorts_unique_table,
+        btor_get_codomain_fun_sort (&btor->sorts_unique_table, exp->sort_id));
+  else
+    res = btor_get_exp_width (btor, exp);
   BTOR_TRAPI_RETURN_INT (res);
 #ifndef NDEBUG
   BTOR_CHKCLONE_RES (res, get_width, BTOR_CLONED_EXP (exp));

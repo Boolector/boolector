@@ -448,7 +448,6 @@ btor_chkclone_exp (BtorNode *exp, BtorNode *clone)
   }
 
   BTOR_CHKCLONE_EXP (id);
-  BTOR_CHKCLONE_EXP (len);
   BTOR_CHKCLONE_EXP (refs);
   BTOR_CHKCLONE_EXP (ext_refs);
   BTOR_CHKCLONE_EXP (parents);
