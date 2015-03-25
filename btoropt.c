@@ -188,6 +188,12 @@ btor_init_opts (Btor *btor)
             1,
             "move on first neighbor with better score");
   BTOR_OPT (0,
+            sls_move_on_same_score,
+            0,
+            0,
+            1,
+            "move on neighbor with same score (if none with better score");
+  BTOR_OPT (0,
             sls_move_inc_move_test,
             0,
             0,

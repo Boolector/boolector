@@ -863,7 +863,8 @@ typedef enum BtorSLSMove BtorSLSMove;
   do                                                                         \
   {                                                                          \
     done = (sc) == -1.0;                                                     \
-    if (done || (sc) > *max_score)                                           \
+    if (done || (sc) > *max_score                                            \
+        || (btor->options.sls_move_on_same_score.val && (sc) == *max_score)) \
     {                                                                        \
       *max_score = (sc);                                                     \
       if ((*max_cans)->count)                                                \

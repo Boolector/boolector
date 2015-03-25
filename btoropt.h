@@ -60,6 +60,7 @@ typedef struct BtorOpt
 #define BTOR_OPT_SLS_MOVE_RANOMIZEALL "sls_move_randomizeall"
 #define BTOR_OPT_SLS_MOVE_RANOMIZERANGE "sls_move_randomizerange"
 #define BTOR_OPT_SLS_MOVE_ON_FIRST "sls_move_on_first"
+#define BTOR_OPT_SLS_MOVE_ON_SAME_SCORE "sls_move_on_same_score"
 #define BTOR_OPT_SLS_MOVE_INC_MOVE_TEST "sls_move_inc_move_test"
 #ifndef BTOR_DO_NOT_OPTIMIZE_UNCONSTRAINED
 #define BTOR_OPT_UCOPT "ucopt"
@@ -113,6 +114,7 @@ typedef struct BtorOpts
   BtorOpt sls_move_randomizeall;
   BtorOpt sls_move_randomizerange;
   BtorOpt sls_move_on_first;
+  BtorOpt sls_move_on_same_score;
   BtorOpt sls_move_inc_move_test;
 
   BtorOpt dual_prop;      /* dual prop optimization */
