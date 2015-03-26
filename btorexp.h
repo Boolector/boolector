@@ -316,6 +316,9 @@ typedef struct BtorArgsNode BtorArgsNode;
 #define BTOR_IS_BINARY_NODE(exp) \
   ((exp) && BTOR_IS_BINARY_NODE_KIND ((exp)->kind))
 
+#define BTOR_IS_BINARY_COMMUTATIVE_NODE(exp) \
+  ((exp) && BTOR_IS_BINARY_COMMUTATIVE_NODE_KIND ((exp)->kind))
+
 #define BTOR_IS_TERNARY_NODE(exp) \
   ((exp) && BTOR_IS_TERNARY_NODE_KIND ((exp)->kind))
 
