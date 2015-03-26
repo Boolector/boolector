@@ -4200,8 +4200,7 @@ add_ackermann_constraints (Btor *btor)
       {
         app_j = BTOR_PEEK_STACK (applies, j);
         p     = 0;
-        assert (((BtorArgsNode *) app_i->e[1])->num_args
-                == ((BtorArgsNode *) app_j->e[1])->num_args);
+        assert (app_i->e[1]->sort_id == app_j->e[1]->sort_id);
         init_args_iterator (&ait_i, app_i->e[1]);
         init_args_iterator (&ait_j, app_j->e[1]);
         while (has_next_args_iterator (&ait_i))
@@ -4248,8 +4247,10 @@ cmp_bits (const void *a, const void *b)
   x = *((BtorNode **) a);
   y = *((BtorNode **) b);
 
-  b0 = BTOR_IS_INVERTED_NODE (x) ? BTOR_REAL_ADDR_NODE (x)->invbits : x->bits;
-  b1 = BTOR_IS_INVERTED_NODE (y) ? BTOR_REAL_ADDR_NODE (y)->invbits : y->bits;
+  b0 = BTOR_IS_INVERTED_NODE (x) ? btor_get_invbits_const (x)
+                                 : btor_get_bits_const (x);
+  b1 = BTOR_IS_INVERTED_NODE (y) ? btor_get_invbits_const (y)
+                                 : btor_get_bits_const (y);
 
   assert (b0);
   assert (b1);
@@ -4267,12 +4268,13 @@ create_memset (Btor *btor,
   assert (upper);
   assert (BTOR_IS_BV_CONST_NODE (BTOR_REAL_ADDR_NODE (lower)));
   assert (BTOR_IS_BV_CONST_NODE (BTOR_REAL_ADDR_NODE (upper)));
-  assert (btor_get_exp_len (btor, lower) == btor_get_exp_len (btor, upper));
+  assert (BTOR_REAL_ADDR_NODE (lower)->sort_id
+          == BTOR_REAL_ADDR_NODE (upper)->sort_id);
   assert (btor_is_array_exp (btor, array));
 
   BtorNode *res, *param, *le0, *le1, *and, *ite, *read;
 
-  param = btor_param_exp (btor, btor_get_exp_len (btor, lower), 0);
+  param = btor_param_exp (btor, btor_get_exp_width (btor, lower), 0);
   le0   = btor_ulte_exp (btor, lower, param);
   le1   = btor_ulte_exp (btor, param, upper);
   and   = btor_and_exp (btor, le0, le1);
@@ -4373,9 +4375,9 @@ find_memset_operations (Btor *btor)
     assert (stack);
     BTOR_PUSH_STACK (mm, *stack, index);
 
-    if (BTOR_IS_INVERTED_NODE (index) && !BTOR_REAL_ADDR_NODE (index)->invbits)
-      BTOR_REAL_ADDR_NODE (index)->invbits =
-          btor_not_const (mm, BTOR_REAL_ADDR_NODE (index)->bits);
+    if (BTOR_IS_INVERTED_NODE (index) && !btor_get_invbits_const (index))
+      btor_set_invbits_const (index,
+                              btor_not_const (mm, btor_get_bits_const (index)));
 
     /* substitute 'read' with 'value', in order to prevent down propgation
      * rewriting for 'read' during substitute_and_rebuild(...), which
@@ -4395,16 +4397,13 @@ find_memset_operations (Btor *btor)
   {
     t     = it.bucket->data.asPtr;
     array = next_node_hash_table_iterator (&it);
-    subst = btor_array_exp (btor,
-                            btor_get_exp_len (btor, array),
-                            btor_get_index_exp_len (btor, array),
-                            0);
+    subst = btor_uf_exp (btor, array->sort_id, 0);
     //      printf ("new array: %s (for %s)\n", node2string (subst), node2string
     //      (array));
 
     assert (t);
 
-    one = btor_one_const (mm, btor_get_index_exp_len (btor, array));
+    one = btor_one_const (mm, btor_get_fun_exp_width (btor, array));
     //    printf ("%s\n", node2string (array));
     init_node_hash_table_iterator (&iit, t);
     while (has_next_node_hash_table_iterator (&iit))
@@ -4432,10 +4431,10 @@ find_memset_operations (Btor *btor)
         n0 = BTOR_PEEK_STACK (*stack, i - 1);
         n1 = BTOR_PEEK_STACK (*stack, i);
 
-        b0 = BTOR_IS_INVERTED_NODE (n0) ? BTOR_REAL_ADDR_NODE (n0)->invbits
-                                        : n0->bits;
-        b1 = BTOR_IS_INVERTED_NODE (n1) ? BTOR_REAL_ADDR_NODE (n1)->invbits
-                                        : n1->bits;
+        b0 = BTOR_IS_INVERTED_NODE (n0) ? btor_get_invbits_const (n0)
+                                        : btor_get_bits_const (n0);
+        b1 = BTOR_IS_INVERTED_NODE (n1) ? btor_get_invbits_const (n1)
+                                        : btor_get_bits_const (n1);
 
         assert (b0);
         assert (b1);
