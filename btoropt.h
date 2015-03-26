@@ -57,6 +57,7 @@ typedef struct BtorOpt
 #define BTOR_OPT_DUAL_PROP "dual_prop"
 #define BTOR_OPT_JUST "just"
 #define BTOR_OPT_SLS "sls"
+#define BTOR_OPT_SLS_MOVE_GW "sls_move_gw"
 #define BTOR_OPT_SLS_MOVE_RANOMIZEALL "sls_move_randomizeall"
 #define BTOR_OPT_SLS_MOVE_RANOMIZERANGE "sls_move_randomizerange"
 #define BTOR_OPT_SLS_MOVE_ON_FIRST "sls_move_on_first"
@@ -111,6 +112,7 @@ typedef struct BtorOpts
                                     may be greater than the original */
 #endif
   BtorOpt sls;
+  BtorOpt sls_move_gw;
   BtorOpt sls_move_randomizeall;
   BtorOpt sls_move_randomizerange;
   BtorOpt sls_move_on_first;

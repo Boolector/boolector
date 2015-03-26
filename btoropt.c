@@ -168,6 +168,13 @@ btor_init_opts (Btor *btor)
 
   BTOR_OPT ("sls", sls, 0, 0, 1, "enable sls engine (SAT only)");
   BTOR_OPT (0,
+            sls_move_gw,
+            0,
+            0,
+            1,
+            "select move by altering not only one but all candidate variables "
+            "at once");
+  BTOR_OPT (0,
             sls_move_randomizeall,
             0,
             0,

@@ -1352,7 +1352,7 @@ select_move (Btor *btor,
     BTOR_RESET_STACK (cans);
   }
 
-  if (BTOR_COUNT_STACK (*candidates) > 1)
+  if (btor->options.sls_move_gw.val && BTOR_COUNT_STACK (*candidates) > 1)
     (void) select_move_aux (btor, roots, candidates, max_cans, max_score);
 
 DONE:
