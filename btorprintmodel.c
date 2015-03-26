@@ -32,7 +32,7 @@ btor_get_bv_model_str_aux (Btor *btor,
 
   exp = btor_simplify_exp (btor, exp);
   if (!(bv = btor_get_bv_model_aux (btor, bv_model, fun_model, exp)))
-    return btor_x_const_3vl (btor->mm, BTOR_REAL_ADDR_NODE (exp)->len);
+    return btor_x_const_3vl (btor->mm, btor_get_exp_width (btor, exp));
   res = btor_bv_to_char_bv (btor->mm, bv);
   return res;
 }
@@ -77,7 +77,7 @@ btor_get_fun_model_str_aux (Btor *btor,
 
   model = btor_get_fun_model_aux (btor, bv_model, fun_model, exp);
 
-  if ((BTOR_IS_LAMBDA_NODE (exp) && ((BtorLambdaNode *) exp)->num_params > 1)
+  if ((BTOR_IS_LAMBDA_NODE (exp) && btor_get_fun_arity (btor, exp) > 1)
       || !(*fun_model) || !model)
   {
     *size = 0;
@@ -265,8 +265,11 @@ print_fun_model_smt2 (Btor *btor, BtorNode *node, int base, FILE *file)
   BtorHashTableIterator it;
   BitVectorTuple *args;
   BitVector *assignment;
-  BtorSort *sort;
+  BtorSortId sort;
+  BtorTupleSortIterator iit;
+  BtorSortUniqueTable *sorts;
 
+  sorts     = &btor->sorts_unique_table;
   fun_model = (BtorPtrHashTable *) btor_get_fun_model (btor, node);
   if (!fun_model) return;
 
@@ -288,24 +291,19 @@ print_fun_model_smt2 (Btor *btor, BtorNode *node, int base, FILE *file)
   node = btor_simplify_exp (btor, node);
   assert (BTOR_IS_REGULAR_NODE (node));
   assert (BTOR_IS_FUN_NODE (node));
-  sort = btor_create_or_get_sort (btor, node);
-  x    = 0;
-  if (sort->fun.domain->kind != BTOR_TUPLE_SORT) /* one parameter */
+  btor_init_tuple_sort_iterator (
+      &iit, sorts, btor_get_domain_fun_sort (sorts, node->sort_id));
+  x = 0;
+  while (btor_has_next_tuple_sort_iterator (&iit))
   {
+    sort = btor_next_tuple_sort_iterator (&iit);
     fprintf (file, "\n%3c", ' ');
-    print_param_smt2 (s, x, sort->fun.domain, file);
+    print_param_smt2 (s, x, btor_get_sort_by_id (sorts, sort), file);
+    x++;
   }
-  else
-  {
-    for (i = 0; i < sort->fun.domain->tuple.num_elements; i++, x++)
-    {
-      fprintf (file, "\n%3c", ' ');
-      print_param_smt2 (s, x, sort->fun.domain->tuple.elements[i], file);
-    }
-  }
-  btor_release_sort (&btor->sorts_unique_table, sort);
   fprintf (file, ") ");
-  btor_dump_sort_smt (sort->fun.codomain, 2, file);
+  sort = btor_get_codomain_fun_sort (sorts, node->sort_id);
+  btor_dump_sort_smt (btor_get_sort_by_id (sorts, sort), 2, file);
   fprintf (file, "\n");
 
   /* fun model as ite over args and assignments */

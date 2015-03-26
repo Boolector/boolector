@@ -287,7 +287,7 @@ dump_const_value_aux_smt (BtorSMTDumpContext *sdc, const char *bits)
 void
 btor_dump_sort_smt (BtorSort *sort, int version, FILE *file)
 {
-  int i;
+  unsigned i;
   const char *fmt;
 
   switch (sort->kind)
@@ -296,7 +296,7 @@ btor_dump_sort_smt (BtorSort *sort, int version, FILE *file)
 
     case BTOR_BITVEC_SORT:
       fmt = version == 1 ? "BitVec[%d]" : "(_ BitVec %d)";
-      fprintf (file, fmt, sort->bitvec.len);
+      fprintf (file, fmt, sort->bitvec.width);
       break;
 
     case BTOR_ARRAY_SORT:
@@ -306,8 +306,8 @@ btor_dump_sort_smt (BtorSort *sort, int version, FILE *file)
       assert (sort->array.element->kind == BTOR_BITVEC_SORT);
       fprintf (file,
                fmt,
-               sort->array.index->bitvec.len,
-               sort->array.element->bitvec.len);
+               sort->array.index->bitvec.width,
+               sort->array.element->bitvec.width);
       break;
 
     case BTOR_FUN_SORT:
@@ -342,29 +342,10 @@ btor_dump_sort_smt_node (BtorNode *exp, int version, FILE *file)
   assert (version);
   assert (file);
 
-  BtorSort *sort, tmp, index, element;
+  BtorSort *sort;
 
-  exp = BTOR_REAL_ADDR_NODE (exp);
-
-  if (BTOR_IS_UF_ARRAY_NODE (exp))
-  {
-    index.kind         = BTOR_BITVEC_SORT;
-    index.bitvec.len   = BTOR_ARRAY_INDEX_LEN (exp);
-    element.kind       = BTOR_BITVEC_SORT;
-    element.bitvec.len = exp->len;
-    tmp.kind           = BTOR_ARRAY_SORT;
-    tmp.array.index    = &index;
-    tmp.array.element  = &element;
-    sort               = &tmp;
-  }
-  else if (BTOR_IS_UF_NODE (exp))
-    sort = ((BtorUFNode *) exp)->sort;
-  else
-  {
-    tmp.kind       = BTOR_BITVEC_SORT;
-    tmp.bitvec.len = exp->len;
-    sort           = &tmp;
-  }
+  exp  = BTOR_REAL_ADDR_NODE (exp);
+  sort = btor_get_sort_by_id (&exp->btor->sorts_unique_table, exp->sort_id);
   btor_dump_sort_smt (sort, version, file);
 }
 
@@ -503,12 +484,13 @@ recursively_dump_exp_smt (BtorSMTDumpContext *sdc, BtorNode *exp, int expect_bv)
           fputs ("false", sdc->file);
         else if (BTOR_IS_INVERTED_NODE (exp))
         {
-          inv_bits = btor_not_const (sdc->btor->mm, real_exp->bits);
+          inv_bits =
+              btor_not_const (sdc->btor->mm, btor_get_bits_const (real_exp));
           dump_const_value_aux_smt (sdc, inv_bits);
           btor_freestr (sdc->btor->mm, inv_bits);
         }
         else
-          dump_const_value_aux_smt (sdc, real_exp->bits);
+          dump_const_value_aux_smt (sdc, btor_get_bits_const (real_exp));
 
         /* close zero extend */
         if (zero_extend) fputc (')', sdc->file);
@@ -554,8 +536,9 @@ recursively_dump_exp_smt (BtorSMTDumpContext *sdc, BtorNode *exp, int expect_bv)
         case BTOR_SRL_NODE:
           assert (!is_bool);
           op = real_exp->kind == BTOR_SRL_NODE ? "bvlshr" : "bvshl";
-          assert (real_exp->len > 1);
-          pad = real_exp->len - BTOR_REAL_ADDR_NODE (real_exp->e[1])->len;
+          assert (btor_get_exp_width (sdc->btor, real_exp) > 1);
+          pad = btor_get_exp_width (sdc->btor, real_exp)
+                - btor_get_exp_width (sdc->btor, real_exp->e[1]);
           PUSH_DUMP_NODE (real_exp->e[1], 1, 0, 1, pad);
           PUSH_DUMP_NODE (real_exp->e[0], 1, 0, 1, 0);
           break;
@@ -950,7 +933,7 @@ dump_assert_smt2 (BtorSMTDumpContext *sdc, BtorNode *exp)
   assert (sdc);
   assert (sdc->version == 2);
   assert (exp);
-  assert (BTOR_REAL_ADDR_NODE (exp)->len == 1);
+  assert (btor_get_exp_width (sdc->btor, exp) == 1);
 
   fputs ("(assert ", sdc->file);
   if (!is_boolean (sdc, exp)) fputs ("(distinct ", sdc->file);
@@ -977,7 +960,7 @@ wrap_non_bool_root_smt1 (BtorSMTDumpContext *sdc, BtorNode *exp)
   if (!is_boolean (sdc, exp)) fputs ("(not (= ", sdc->file);
   recursively_dump_exp_smt (sdc, exp, 0);
   if (!is_boolean (sdc, exp))
-    fprintf (sdc->file, " bv0[%d]))", BTOR_REAL_ADDR_NODE (exp)->len);
+    fprintf (sdc->file, " bv0[%d]))", btor_get_exp_width (sdc->btor, exp));
 }
 
 static int
@@ -1160,13 +1143,15 @@ dump_smt (BtorSMTDumpContext *sdc)
       if ((BTOR_IS_LAMBDA_NODE (cur->e[0])
            && is_boolean (sdc, BTOR_LAMBDA_GET_BODY (cur->e[0])))
           || (BTOR_IS_UF_NODE (cur->e[0])
-              && ((BtorUFNode *) cur->e[0])->sort->fun.codomain->kind
-                     == BTOR_BOOL_SORT))
+              && btor_is_bool_sort (
+                     &sdc->btor->sorts_unique_table,
+                     btor_get_codomain_fun_sort (&sdc->btor->sorts_unique_table,
+                                                 cur->e[0]->sort_id))))
         btor_insert_in_ptr_hash_table (sdc->boolean, cur);
       continue;
     }
-    else if (cur->len == 1
-             && (BTOR_IS_AND_NODE (cur) || BTOR_IS_BV_COND_NODE (cur)))
+    else if ((BTOR_IS_AND_NODE (cur) || BTOR_IS_BV_COND_NODE (cur))
+             && btor_get_exp_width (sdc->btor, cur) == 1)
     {
       not_bool = 0;
       for (j = 0; j < cur->arity; j++)

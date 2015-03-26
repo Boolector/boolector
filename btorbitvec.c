@@ -379,7 +379,8 @@ btor_assignment_bv (BtorMemMgr *mm, BtorNode *exp, int init_x_values)
 
   real_exp = BTOR_REAL_ADDR_NODE (exp);
 
-  if (!real_exp->av) return btor_new_bv (mm, real_exp->len);
+  if (!real_exp->av)
+    return btor_new_bv (mm, btor_get_exp_width (real_exp->btor, real_exp));
 
   amgr = btor_get_aig_mgr_btor (real_exp->btor);
   av   = real_exp->av;

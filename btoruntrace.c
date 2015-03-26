@@ -268,7 +268,7 @@ hmap_clear (BtorPtrHashTable *hmap)
 #define RET_ARRASS 4
 #define RET_SKIP -1
 
-BTOR_DECLARE_STACK (BoolectorSortPtr, BoolectorSort *);
+BTOR_DECLARE_STACK (BoolectorSort, BoolectorSort);
 
 #define BTOR_STR_LEN 40
 
@@ -295,7 +295,7 @@ parse (FILE *file)
   char *arg1_str, *arg2_str, *arg3_str;
   BtorIntStack arg_int;
   BtorCharPtrStack arg_str;
-  BoolectorSortPtrStack sort_stack;
+  BoolectorSortStack sort_stack;
 
   msg ("reading %s", btorunt->filename);
 
@@ -717,8 +717,10 @@ NEXT:
     {
       PARSE_ARGS2 (tok, str, str);
       arg2_str = !strcmp (arg2_str, "(null)") ? 0 : arg2_str;
-      ret_ptr =
-          boolector_uf (btor, hmap_get (hmap, btor_str, arg1_str), arg2_str);
+      ret_ptr  = boolector_uf (
+          btor,
+          (BoolectorSort) (size_t) hmap_get (hmap, btor_str, arg1_str),
+          arg2_str);
       exp_ret = RET_VOIDPTR;
     }
     else if (!strcmp (tok, "not"))
@@ -1406,31 +1408,35 @@ NEXT:
     else if (!strcmp (tok, "bool_sort"))
     {
       PARSE_ARGS0 (tok);
-      ret_ptr = boolector_bool_sort (btor);
+      ret_ptr = (void *) (size_t) boolector_bool_sort (btor);
       exp_ret = RET_VOIDPTR;
     }
     else if (!strcmp (tok, "bitvec_sort"))
     {
       PARSE_ARGS1 (tok, int);
-      ret_ptr = boolector_bitvec_sort (btor, arg1_int);
+      ret_ptr = (void *) (size_t) boolector_bitvec_sort (btor, arg1_int);
       exp_ret = RET_VOIDPTR;
     }
     else if (!strcmp (tok, "fun_sort"))
     {
       while ((tok = strtok (0, " ")))
         BTOR_PUSH_STACK (
-            btorunt->mm, sort_stack, hmap_get (hmap, btor_str, tok));
+            btorunt->mm,
+            sort_stack,
+            (BoolectorSort) (size_t) hmap_get (hmap, btor_str, tok));
       assert (BTOR_COUNT_STACK (sort_stack) >= 2);
-      ret_ptr = boolector_fun_sort (btor,
-                                    sort_stack.start,
-                                    BTOR_COUNT_STACK (sort_stack) - 1,
-                                    BTOR_TOP_STACK (sort_stack));
+      ret_ptr = (void *) (size_t) boolector_fun_sort (
+          btor,
+          sort_stack.start,
+          BTOR_COUNT_STACK (sort_stack) - 1,
+          BTOR_TOP_STACK (sort_stack));
       exp_ret = RET_VOIDPTR;
     }
     else if (!strcmp (tok, "release_sort"))
     {
       PARSE_ARGS1 (tok, str);
-      boolector_release_sort (btor, hmap_get (hmap, btor_str, arg1_str));
+      boolector_release_sort (
+          btor, (BoolectorSort) (size_t) hmap_get (hmap, btor_str, arg1_str));
     }
     else if (!strcmp (tok, "equal_sort"))
     {
