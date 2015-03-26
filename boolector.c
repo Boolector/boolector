@@ -558,6 +558,33 @@ boolector_set_opt (Btor *btor, const char *name, int val)
                           "enabling incremental usage must be done before "
                           "calling 'boolector_sat'");
   }
+  else if (!strcmp (name, BTOR_OPT_INCREMENTAL_IN_DEPTH))
+  {
+    BTOR_ABORT_BOOLECTOR (val < 1, "incremental in-depth width must be >= 1");
+    BTOR_ABORT_BOOLECTOR (
+        btor->options.incremental_look_ahead.val
+            || btor->options.incremental_interval.val,
+        "can only set either 'incremental_in_depth', "
+        "'incremental_look_ahead', or 'incremental_interval'");
+  }
+  else if (!strcmp (name, BTOR_OPT_INCREMENTAL_LOOK_AHEAD))
+  {
+    BTOR_ABORT_BOOLECTOR (val < 1, "incremental look-ahead width must be >= 1");
+    BTOR_ABORT_BOOLECTOR (
+        btor->options.incremental_in_depth.val
+            || btor->options.incremental_interval.val,
+        "can only set either 'incremental_in_depth', "
+        "'incremental_look_ahead', or 'incremental_interval'");
+  }
+  else if (!strcmp (name, BTOR_OPT_INCREMENTAL_INTERVAL))
+  {
+    BTOR_ABORT_BOOLECTOR (val < 1, "incremental interval width must be >= 1");
+    BTOR_ABORT_BOOLECTOR (
+        btor->options.incremental_in_depth.val
+            || btor->options.incremental_look_ahead.val,
+        "can only set either 'incremental_in_depth', "
+        "'incremental_look_ahead', or 'incremental_interval'");
+  }
   else if (!strcmp (name, BTOR_OPT_MODEL_GEN))
   {
 #ifndef BTOR_DO_NOT_OPTIMIZE_UNCONSTRAINED
