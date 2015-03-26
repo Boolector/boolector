@@ -634,9 +634,9 @@ if __name__ == "__main__":
                 help="show discrepancies only")
         aparser.add_argument ("-to", dest="time", action="store_true",
                 help="show timeouts only")
-        aparser.add_argument ("-toof", dest="timeof", action="store",
-                default=None,
-                help="show timeouts of given dir only")
+        aparser.add_argument ("-toof", metavar="dir", dest="timeof",
+                action="store", default=None,
+                help="show timeouts of <dir> only")
         aparser.add_argument ("-mem", action="store_true",
                 help="show memory outs only")
         aparser.add_argument ("-err", action="store_true",
