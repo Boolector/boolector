@@ -1302,12 +1302,14 @@ select_move_aux (Btor *btor,
         break;
 
       case BTOR_SLS_MOVE_FLIP_RANGE:
+        if (!btor->options.sls_move_range.val) continue;
         if ((done = select_flip_range_move (
                  btor, roots, candidates, max_cans, max_score)))
           return done;
         break;
 
       case BTOR_SLS_MOVE_FLIP_SEGMENT:
+        if (!btor->options.sls_move_segment.val) continue;
         if ((done = select_flip_segment_move (
                  btor, roots, candidates, max_cans, max_score)))
           return done;
@@ -1475,7 +1477,8 @@ move (Btor *btor, BtorPtrHashTable *roots, int moves)
                                       (BtorHashPtr) btor_hash_exp_by_id,
                                       (BtorCmpPtr) btor_compare_exp_by_id);
 
-  if (0 || btor_pick_rand_rng (&btor->rng, 0, BTOR_SLS_MOVE_RANDOM_WALK_PROB))
+  if (btor->options.sls_move_random_walk.val
+      && btor_pick_rand_rng (&btor->rng, 0, BTOR_SLS_MOVE_RANDOM_WALK_PROB))
     select_random_move (btor, &candidates, max_cans);
   else
     select_move (btor, roots, &candidates, &max_cans, &max_score);

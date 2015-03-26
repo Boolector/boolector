@@ -166,6 +166,7 @@ btor_init_opts (Btor *btor)
             "the original formula");
 #endif
 
+  // TODO MAKE SLS FACTORS CONFIGURABLE VIA BTOROPT
   BTOR_OPT ("sls", sls, 0, 0, 1, "enable sls engine (SAT only)");
   BTOR_OPT (0,
             sls_move_gw,
@@ -174,6 +175,20 @@ btor_init_opts (Btor *btor)
             1,
             "select move by altering not only one but all candidate variables "
             "at once");
+  BTOR_OPT (
+      0, sls_move_range, 0, 0, 1, "try range-wise flips when selecting moves");
+  BTOR_OPT (0,
+            sls_move_segment,
+            0,
+            0,
+            1,
+            "try segment-wise flips when selecting moves");
+  BTOR_OPT (0,
+            sls_move_random_walk,
+            0,
+            0,
+            1,
+            "do a random walk with certain probability");
   BTOR_OPT (0,
             sls_move_randomizeall,
             0,
