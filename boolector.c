@@ -2913,6 +2913,8 @@ boolector_get_index_width (Btor *btor, BoolectorNode *n_array)
   BTOR_ABORT_IF_BTOR_DOES_NOT_MATCH (btor, e_array);
   simp_array = btor_simplify_exp (btor, e_array);
   BTOR_ABORT_BV_BOOLECTOR (simp_array);
+  BTOR_ABORT_BOOLECTOR (btor_get_fun_arity (btor, e_array) > 1,
+                        "'n_array' is a function with arity > 1");
   res = btor_get_index_exp_width (btor, simp_array);
   BTOR_TRAPI_RETURN_INT (res);
 #ifndef NDEBUG
