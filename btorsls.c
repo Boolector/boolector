@@ -35,6 +35,9 @@
 #define BTOR_SLS_SCORE_F_PROB 20      // = 0.05 TODO best value? used by Z3 (sp)
 #define BTOR_SLS_SELECT_CFACT 20      // TODO best value? used by Z3 (c2)
 
+#define BTOR_SLS_MOVE_RANDOM_WALK_PROB 10  // = 0.1 TODO best value? used by Z3
+#define BTOR_SLS_MOVE_SINGLE_VS_GW_PROB 4
+
 BTOR_DECLARE_STACK (BitVectorPtr, BitVector *);
 
 static int
@@ -1359,6 +1362,84 @@ DONE:
   BTOR_RELEASE_STACK (btor->mm, cans);
 }
 
+static inline void
+select_random_move (Btor *btor,
+                    BtorNodePtrStack *candidates,
+                    BtorPtrHashTable *maxcans)
+{
+  assert (btor);
+  assert (candidates);
+  assert (maxcans);
+  assert (!maxcans->count);
+
+  int i, r, up, lo;
+  BtorSLSMove m;
+  BtorNodePtrStack cans, *pcans;
+  BtorNode *can;
+  BitVector *ass, *neigh;
+
+  BTOR_INIT_STACK (cans);
+
+  /* select candidate(s) */
+  if (btor->options.sls_move_gw.val
+      && !btor_pick_rand_rng (&btor->rng, 0, BTOR_SLS_SCORE_F_PROB))
+  {
+    pcans = candidates;
+  }
+  else
+  {
+    BTOR_PUSH_STACK (
+        btor->mm,
+        cans,
+        BTOR_PEEK_STACK (
+            *candidates,
+            btor_pick_rand_rng (
+                &btor->rng, 0, BTOR_COUNT_STACK (*candidates) - 1)));
+    pcans = &cans;
+  }
+
+  /* select neighbor(s) */
+  for (i = 0; i < BTOR_COUNT_STACK (*pcans); i++)
+  {
+    can = BTOR_PEEK_STACK (cans, i);
+    ass = (BitVector *) btor_get_bv_model (btor, can);
+    assert (ass);
+
+    r = btor_pick_rand_rng (
+        &btor->rng, 0, BTOR_SLS_MOVE_DONE - 1 + ass->width - 1);
+    if (r < ass->width)
+      m = BTOR_SLS_MOVE_FLIP;
+    else
+      m = (BtorSLSMove) r - ass->width + 1;
+    assert (m >= 0);
+
+    switch (m)
+    {
+      case BTOR_SLS_MOVE_INC: neigh = btor_inc_bv (btor->mm, ass); break;
+      case BTOR_SLS_MOVE_DEC: neigh = btor_dec_bv (btor->mm, ass); break;
+      case BTOR_SLS_MOVE_NOT: neigh = btor_not_bv (btor->mm, ass); break;
+      case BTOR_SLS_MOVE_FLIP_RANGE:
+        up    = btor_pick_rand_rng (&btor->rng, 1, ass->width - 1);
+        neigh = btor_flipped_bit_range_bv (btor->mm, ass, up, 0);
+        break;
+      case BTOR_SLS_MOVE_FLIP_SEGMENT:
+        lo    = btor_pick_rand_rng (&btor->rng, 0, ass->width - 2);
+        up    = btor_pick_rand_rng (&btor->rng, lo + 1, ass->width - 1);
+        neigh = btor_flipped_bit_range_bv (btor->mm, ass, up, lo);
+        break;
+      default:
+        assert (m == BTOR_SLS_MOVE_FLIP);
+        neigh = btor_flipped_bit_bv (
+            btor->mm, ass, btor_pick_rand_rng (&btor->rng, 0, ass->width - 1));
+        break;
+    }
+
+    btor_insert_in_ptr_hash_table (maxcans, can)->data.asPtr = neigh;
+  }
+
+  BTOR_RELEASE_STACK (btor->mm, cans);
+}
+
 static void
 move (Btor *btor, BtorPtrHashTable *roots, int moves)
 {
@@ -1394,7 +1475,10 @@ move (Btor *btor, BtorPtrHashTable *roots, int moves)
                                       (BtorHashPtr) btor_hash_exp_by_id,
                                       (BtorCmpPtr) btor_compare_exp_by_id);
 
-  select_move (btor, roots, &candidates, &max_cans, &max_score);
+  if (0 || btor_pick_rand_rng (&btor->rng, 0, BTOR_SLS_MOVE_RANDOM_WALK_PROB))
+    select_random_move (btor, &candidates, max_cans);
+  else
+    select_move (btor, roots, &candidates, &max_cans, &max_score);
 
   if (max_cans->count)
   {
