@@ -564,6 +564,9 @@ def _print_data ():
 
     # print data rows
     for f in sorted(g_benchmarks, key=lambda s: s.lower()):
+        if g_args.timeof \
+           and not g_file_stats['status'][g_args.timeof][f] == 'time':
+            continue
         if g_args.time and not _has_status('time', f):
             continue
         if g_args.err and not _has_status('err', f):
@@ -629,8 +632,11 @@ if __name__ == "__main__":
                 help="compare models statistics")
         aparser.add_argument ("-dis", action="store_true",
                 help="show discrepancies only")
-        aparser.add_argument ("-time", action="store_true",
+        aparser.add_argument ("-to", dest="time", action="store_true",
                 help="show timeouts only")
+        aparser.add_argument ("-toof", dest="timeof", action="store",
+                default=None,
+                help="show timeouts of given dir only")
         aparser.add_argument ("-mem", action="store_true",
                 help="show memory outs only")
         aparser.add_argument ("-err", action="store_true",
@@ -699,6 +705,9 @@ if __name__ == "__main__":
             COLOR_DISC = ''
             COLOR_STAT = ''
             COLOR_NOCOLOR = ''
+
+        if g_args.timeof and not g_args.timeof in g_args.dirs:
+            raise CmpSMTException ("invalid dir given")
 
         _read_data (g_args.dirs)
         _pick_data ()

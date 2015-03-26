@@ -721,8 +721,7 @@ boolector_main (int argc, char **argv)
   dump         = 0;
   force_sat    = 0;
 
-  g_verbosity = boolector_get_opt_val (g_app->btor, BTOR_OPT_VERBOSITY);
-  mgen        = boolector_get_opt_val (g_app->btor, BTOR_OPT_MODEL_GEN);
+  mgen = boolector_get_opt_val (g_app->btor, BTOR_OPT_MODEL_GEN);
 
   BTOR_INIT_STACK (opt);
   BTOR_INIT_STACK (errarg);
@@ -1101,6 +1100,8 @@ boolector_main (int argc, char **argv)
   }
 
   assert (!g_app->done && !g_app->err);
+
+  g_verbosity = boolector_get_opt_val (g_app->btor, BTOR_OPT_VERBOSITY);
 
   /* open output file */
   if (g_app->outfile_name)
