@@ -1409,11 +1409,18 @@ select_random_move (Btor *btor,
 
     r = btor_pick_rand_rng (
         &btor->rng, 0, BTOR_SLS_MOVE_DONE - 1 + ass->width - 1);
+
     if (r < ass->width)
       m = BTOR_SLS_MOVE_FLIP;
     else
       m = (BtorSLSMove) r - ass->width + 1;
     assert (m >= 0);
+
+    if ((!btor->options.sls_move_segment.val && m == BTOR_SLS_MOVE_FLIP_SEGMENT)
+        || (!btor->options.sls_move_range.val && m == BTOR_SLS_MOVE_FLIP_RANGE))
+    {
+      m = BTOR_SLS_MOVE_FLIP;
+    }
 
     switch (m)
     {
