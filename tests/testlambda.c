@@ -1274,6 +1274,118 @@ test_lambda_reduce_nested_lambdas_const_n1000 (void)
   finish_lambda_test ();
 }
 
+static void
+test_lambda_hashing_1 (void)
+{
+  init_lambda_test ();
+
+  BtorNode *w0, *w1, *i, *e, *a;
+
+  a  = btor_array_exp (g_btor, 32, 32, 0);
+  i  = btor_var_exp (g_btor, 32, 0);
+  e  = btor_var_exp (g_btor, 32, 0);
+  w0 = btor_write_exp (g_btor, a, i, e);
+  w1 = btor_write_exp (g_btor, a, i, e);
+  assert (w0 == w1);
+
+  btor_release_exp (g_btor, a);
+  btor_release_exp (g_btor, i);
+  btor_release_exp (g_btor, e);
+  btor_release_exp (g_btor, w0);
+  btor_release_exp (g_btor, w1);
+  finish_lambda_test ();
+}
+
+static void
+test_lambda_hashing_2 (void)
+{
+  init_lambda_test ();
+
+  BtorNode *ite0, *ite1, *i, *e, *a0, *a1, *eq;
+
+  a0   = btor_array_exp (g_btor, 32, 32, 0);
+  a1   = btor_array_exp (g_btor, 32, 32, 0);
+  i    = btor_var_exp (g_btor, 32, 0);
+  e    = btor_var_exp (g_btor, 32, 0);
+  eq   = btor_eq_exp (g_btor, i, e);
+  ite0 = btor_cond_exp (g_btor, eq, a0, a1);
+  ite1 = btor_cond_exp (g_btor, eq, a0, a1);
+  assert (ite0 == ite1);
+
+  btor_release_exp (g_btor, ite1);
+  ite1 = btor_cond_exp (g_btor, BTOR_INVERT_NODE (eq), a1, a0);
+  assert (ite0 == ite1);
+
+  btor_release_exp (g_btor, a0);
+  btor_release_exp (g_btor, a1);
+  btor_release_exp (g_btor, i);
+  btor_release_exp (g_btor, e);
+  btor_release_exp (g_btor, eq);
+  btor_release_exp (g_btor, ite0);
+  btor_release_exp (g_btor, ite1);
+  finish_lambda_test ();
+}
+
+/* check if hashing considers commutativity */
+static void
+test_lambda_hashing_3 (void)
+{
+  init_lambda_test ();
+
+  BtorNode *l0, *l1, *v, *p0, *p1, *eq0, *eq1;
+
+  /* NOTE: order p0, v, p1 is important here */
+  p0 = btor_param_exp (g_btor, 32, 0);
+  v  = btor_var_exp (g_btor, 32, 0);
+  p1 = btor_param_exp (g_btor, 32, 0);
+
+  eq0 = btor_eq_exp (g_btor, p0, v);
+  eq1 = btor_eq_exp (g_btor, v, p1);
+
+  l0 = btor_lambda_exp (g_btor, p0, eq0);
+  l1 = btor_lambda_exp (g_btor, p1, eq1);
+  assert (l0 == l1);
+
+  btor_release_exp (g_btor, p0);
+  btor_release_exp (g_btor, p1);
+  btor_release_exp (g_btor, v);
+  btor_release_exp (g_btor, eq0);
+  btor_release_exp (g_btor, eq1);
+  btor_release_exp (g_btor, l0);
+  btor_release_exp (g_btor, l1);
+  finish_lambda_test ();
+}
+
+static void
+test_lambda_hashing_4 (void)
+{
+  init_lambda_test ();
+
+  BtorNode *f0, *f1, *p0[2], *p1[2], *eq0, *eq1;
+
+  p0[0] = btor_param_exp (g_btor, 32, 0);
+  p0[1] = btor_param_exp (g_btor, 32, 0);
+  p1[0] = btor_param_exp (g_btor, 32, 0);
+  p1[1] = btor_param_exp (g_btor, 32, 0);
+
+  eq0 = btor_eq_exp (g_btor, p0[0], p0[1]);
+  eq1 = btor_eq_exp (g_btor, p1[0], p1[1]);
+
+  f0 = btor_fun_exp (g_btor, 2, p0, eq0);
+  f1 = btor_fun_exp (g_btor, 2, p1, eq1);
+  assert (f0 == f1);
+
+  btor_release_exp (g_btor, p0[0]);
+  btor_release_exp (g_btor, p0[1]);
+  btor_release_exp (g_btor, p1[0]);
+  btor_release_exp (g_btor, p1[1]);
+  btor_release_exp (g_btor, eq0);
+  btor_release_exp (g_btor, eq1);
+  btor_release_exp (g_btor, f0);
+  btor_release_exp (g_btor, f1);
+  finish_lambda_test ();
+}
+
 #if 0
 /* (lambda x . (lambda y . (x + y))) (a) */
 static void
@@ -1450,6 +1562,12 @@ run_lambda_tests (int argc, char **argv)
   BTOR_RUN_TEST (lambda_reduce_nested_lambdas_add2);
   BTOR_RUN_TEST (lambda_reduce_nested_lambdas_read);
   BTOR_RUN_TEST (lambda_reduce_nested_lambdas_const_n1000);
+
+  /* lambda hashing tests */
+  BTOR_RUN_TEST (lambda_hashing_1);
+  BTOR_RUN_TEST (lambda_hashing_2);
+  BTOR_RUN_TEST (lambda_hashing_3);
+  BTOR_RUN_TEST (lambda_hashing_4);
 
   /* partial reduction tests */
   // TODO: should we really support this? use case?
