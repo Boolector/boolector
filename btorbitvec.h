@@ -38,8 +38,6 @@ struct BitVector
 
 typedef struct BitVector BitVector;
 
-#define BTOR_REAL_ADDR_BV(bv) ((BitVector *) (~3ul & (unsigned long int) (bv)))
-
 BitVector *btor_new_bv (BtorMemMgr *, int);
 BitVector *btor_char_to_bv (BtorMemMgr *, char *);
 BitVector *btor_uint64_to_bv (BtorMemMgr *, uint64_t, int);
