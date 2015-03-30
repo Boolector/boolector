@@ -227,10 +227,47 @@ find_substitution (Btor *btor, BtorNode *exp)
   return result;
 }
 
+#ifndef NDEBUG
+static int
+substitution_cycle_check_dbg (Btor *btor, BtorNode *exp, BtorNode *subst)
+{
+  int i, cycle = 0;
+  BtorMemMgr *mm;
+  BtorNode *cur;
+  BtorNodePtrStack visit;
+  BtorIntHashTable *cache;
+
+  mm    = btor->mm;
+  exp   = BTOR_REAL_ADDR_NODE (exp);
+  cache = btor_new_int_hash_table (mm);
+
+  BTOR_INIT_STACK (visit);
+  BTOR_PUSH_STACK (mm, visit, subst);
+  while (!BTOR_EMPTY_STACK (visit))
+  {
+    cur = BTOR_REAL_ADDR_NODE (BTOR_POP_STACK (visit));
+
+    if (btor_contains_int_hash_table (cache, cur->id)) continue;
+
+    if (cur == exp)
+    {
+      cycle = 1;
+      break;
+    }
+
+    btor_add_int_hash_table (cache, cur->id);
+
+    for (i = 0; i < cur->arity; i++) BTOR_PUSH_STACK (mm, visit, cur->e[i]);
+  }
+  BTOR_RELEASE_STACK (mm, visit);
+  btor_free_int_hash_table (cache);
+  return !cycle;
+}
+#endif
+
 static void
 insert_substitution (Btor *btor, BtorNode *exp, BtorNode *subst, int update)
 {
-  // TODO: cyclic substitution check
   assert (btor);
   assert (exp);
   assert (subst);
@@ -244,6 +281,8 @@ insert_substitution (Btor *btor, BtorNode *exp, BtorNode *subst, int update)
   exp = BTOR_REAL_ADDR_NODE (exp);
 
   if (exp == BTOR_REAL_ADDR_NODE (subst)) return;
+
+  assert (substitution_cycle_check_dbg (btor, exp, subst));
 
   b = btor_find_in_ptr_hash_table (btor->substitutions, exp);
   if (update && b)
@@ -4291,6 +4330,127 @@ create_memset (Btor *btor,
   return res;
 }
 
+static int
+is_write_exp (BtorNode *exp,
+              BtorNode **array,
+              BtorNode **index,
+              BtorNode **value)
+{
+  assert (exp);
+  assert (BTOR_IS_REGULAR_NODE (exp));
+
+  BtorNode *param, *body, *eq, *app;
+
+  if (!BTOR_IS_LAMBDA_NODE (exp) || btor_get_fun_arity (exp->btor, exp) > 1)
+    return 0;
+
+  param = (BtorNode *) BTOR_LAMBDA_GET_PARAM (exp);
+  body  = BTOR_LAMBDA_GET_BODY (exp);
+
+  if (BTOR_IS_INVERTED_NODE (body) || !BTOR_IS_BV_COND_NODE (body)) return 0;
+
+  /* check condition */
+  eq = body->e[0];
+  if (BTOR_IS_INVERTED_NODE (eq) || !BTOR_IS_BV_EQ_NODE (eq)
+      || !eq->parameterized || (eq->e[0] != param && eq->e[1] != param))
+    return 0;
+
+  /* check value */
+  if (BTOR_REAL_ADDR_NODE (body->e[1])->parameterized) return 0;
+
+  /* check apply on unmodified array */
+  app = body->e[2];
+  if (BTOR_IS_INVERTED_NODE (app) || !BTOR_IS_APPLY_NODE (app)
+      || btor_get_fun_arity (app->btor, app->e[0]) > 1
+      || app->e[1]->e[0] != param)
+    return 0;
+
+  if (array) *array = app->e[0];
+  if (index) *index = eq->e[1] == param ? eq->e[0] : eq->e[1];
+  if (value) *value = body->e[1];
+  return 1;
+}
+
+static int
+is_array_ite_exp (BtorNode *exp, BtorNode **array_if, BtorNode **array_else)
+{
+  assert (exp);
+  assert (BTOR_IS_REGULAR_NODE (exp));
+
+  BtorNode *param, *body, *app_if, *app_else;
+
+  if (!BTOR_IS_LAMBDA_NODE (exp) || btor_get_fun_arity (exp->btor, exp) > 1)
+    return 0;
+
+  param = (BtorNode *) BTOR_LAMBDA_GET_PARAM (exp);
+  body  = BTOR_LAMBDA_GET_BODY (exp);
+
+  if (BTOR_IS_INVERTED_NODE (body) || !BTOR_IS_BV_COND_NODE (body)) return 0;
+
+  /* check value */
+  if (!BTOR_REAL_ADDR_NODE (body->e[1])->parameterized
+      || !BTOR_REAL_ADDR_NODE (body->e[2])->parameterized)
+    return 0;
+
+  /* check applies in if and else branch */
+  app_if = body->e[1];
+  if (BTOR_IS_INVERTED_NODE (app_if) || !BTOR_IS_APPLY_NODE (app_if)
+      || btor_get_fun_arity (app_if->btor, app_if->e[0]) > 1
+      || app_if->e[1]->e[0] != param)
+    return 0;
+
+  app_else = body->e[1];
+  if (BTOR_IS_INVERTED_NODE (app_else) || !BTOR_IS_APPLY_NODE (app_else)
+      || btor_get_fun_arity (app_else->btor, app_else->e[0]) > 1
+      || app_else->e[1]->e[0] != param)
+    return 0;
+
+  if (array_if) *array_if = app_if->e[0];
+  if (array_else) *array_else = app_else->e[0];
+  return 1;
+}
+
+static void
+add_to_index_map (Btor *btor,
+                  BtorPtrHashTable *map_value_index,
+                  BtorNode *lambda,
+                  BtorNode *index,
+                  BtorNode *value)
+{
+  BtorMemMgr *mm;
+  BtorPtrHashBucket *b;
+  BtorPtrHashTable *t;
+  BtorNodePtrStack *stack;
+
+  mm = btor->mm;
+
+  if (!(b = btor_find_in_ptr_hash_table (map_value_index, lambda)))
+  {
+    b             = btor_insert_in_ptr_hash_table (map_value_index, lambda);
+    t             = btor_new_ptr_hash_table (mm, 0, 0);
+    b->data.asPtr = t;
+  }
+  else
+    t = b->data.asPtr;
+  assert (t);
+
+  if (!(b = btor_find_in_ptr_hash_table (t, value)))
+  {
+    b = btor_insert_in_ptr_hash_table (t, value);
+    BTOR_NEW (mm, stack);
+    BTOR_INIT_STACK (*stack);
+    b->data.asPtr = stack;
+  }
+  else
+    stack = (BtorNodePtrStack *) b->data.asPtr;
+  assert (stack);
+  BTOR_PUSH_STACK (mm, *stack, index);
+
+  if (BTOR_IS_INVERTED_NODE (index) && !btor_get_invbits_const (index))
+    btor_set_invbits_const (index,
+                            btor_not_const (mm, btor_get_bits_const (index)));
+}
+
 static void
 find_memset_operations (Btor *btor)
 {
@@ -4299,15 +4459,16 @@ find_memset_operations (Btor *btor)
 #ifndef NDEBUG
   int cnt;
 #endif
-  int i, num_memsets = 0, num_writes = 0, lower, upper;
+  int i, num_memsets = 0, num_writes = 0, lower, upper, is_top;
   double start, delta;
   char *b0, *b1, *one, *diff;
   BtorNode *cur, *lhs, *rhs, *subst, *n0, *n1, *tmp;
-  BtorNode *array, *index, *value, *read;
+  BtorNode *array, *index, *value, *read, *lambda, *array_if, *array_else;
+  BtorNodeIterator pit;
   BtorHashTableIterator it, iit;
-  BtorPtrHashTable *t, *map_value_index;
+  BtorPtrHashTable *t, *map_value_index, *index_cache, *map_lambda_base;
   BtorPtrHashBucket *b;
-  BtorNodePtrStack *stack;
+  BtorNodePtrStack *stack, lambdas;
   BtorIntStack ranges, indices;
   BtorMemMgr *mm;
 
@@ -4315,7 +4476,89 @@ find_memset_operations (Btor *btor)
 
   mm              = btor->mm;
   map_value_index = btor_new_ptr_hash_table (mm, 0, 0);
+  map_lambda_base = btor_new_ptr_hash_table (mm, 0, 0);
   init_substitutions (btor);
+  BTOR_INIT_STACK (lambdas);
+
+  /* collect lambdas that are at the top of lambda chains */
+  init_node_hash_table_iterator (&it, btor->lambdas);
+  while (has_next_node_hash_table_iterator (&it))
+  {
+    lambda = next_node_hash_table_iterator (&it);
+    assert (BTOR_IS_REGULAR_NODE (lambda));
+
+    /* already visited */
+    if (btor_find_in_ptr_hash_table (map_value_index, lambda)) continue;
+
+    /* we only consider writes */
+    if (btor_get_fun_arity (btor, lambda) > 1) continue;
+
+    is_top = 1;
+    init_apply_parent_iterator (&pit, lambda);
+    while (has_next_parent_apply_parent_iterator (&pit))
+    {
+      tmp = next_parent_apply_parent_iterator (&pit);
+
+      if (tmp->parameterized)
+      {
+        is_top = 0;
+        break;
+      }
+    }
+
+    if (!is_top) continue;
+
+    BTOR_PUSH_STACK (mm, lambdas, lambda);
+    while (!BTOR_EMPTY_STACK (lambdas))
+    {
+      lambda = BTOR_POP_STACK (lambdas);
+      //	  printf ("top: %s\n", node2string (lambda));
+
+      /* already visited */
+      if (btor_find_in_ptr_hash_table (map_value_index, lambda)) continue;
+
+      cur         = lambda;
+      index_cache = btor_new_ptr_hash_table (mm, 0, 0);
+      while (is_write_exp (cur, &array, &index, &value))
+      {
+        assert (BTOR_IS_REGULAR_NODE (array));
+        assert (BTOR_IS_FUN_NODE (array));
+
+        if (btor_find_in_ptr_hash_table (index_cache, index))
+        {
+          cur = array;
+          continue;
+        }
+
+        if (BTOR_IS_BV_CONST_NODE (BTOR_REAL_ADDR_NODE (index)))
+        {
+          btor_insert_in_ptr_hash_table (index_cache, index);
+          add_to_index_map (btor, map_value_index, lambda, index, value);
+          //		  printf ("  write: %s %s %s\n", node2string (array),
+          // node2string (index), node2string (value));
+        }
+        else
+        {
+          BTOR_PUSH_STACK (mm, lambdas, array);
+          break;
+        }
+
+        cur = array;
+      }
+      btor_delete_ptr_hash_table (index_cache);
+      if (lambda != cur
+          && !btor_find_in_ptr_hash_table (map_lambda_base, lambda))
+        btor_insert_in_ptr_hash_table (map_lambda_base, lambda)->data.asPtr =
+            cur;
+
+      if (is_array_ite_exp (cur, &array_if, &array_else))
+      {
+        BTOR_PUSH_STACK (mm, lambdas, array_if);
+        BTOR_PUSH_STACK (mm, lambdas, array_else);
+      }
+    }
+  }
+  BTOR_RELEASE_STACK (mm, lambdas);
 
   /* top level equality pre-initialization */
   init_node_hash_table_iterator (&it, btor->unsynthesized_constraints);
@@ -4353,31 +4596,7 @@ find_memset_operations (Btor *btor)
 
     if (!index) continue;
 
-    if (!(b = btor_find_in_ptr_hash_table (map_value_index, array)))
-    {
-      b             = btor_insert_in_ptr_hash_table (map_value_index, array);
-      t             = btor_new_ptr_hash_table (mm, 0, 0);
-      b->data.asPtr = t;
-    }
-    else
-      t = b->data.asPtr;
-    assert (t);
-
-    if (!(b = btor_find_in_ptr_hash_table (t, value)))
-    {
-      b = btor_insert_in_ptr_hash_table (t, value);
-      BTOR_NEW (mm, stack);
-      BTOR_INIT_STACK (*stack);
-      b->data.asPtr = stack;
-    }
-    else
-      stack = (BtorNodePtrStack *) b->data.asPtr;
-    assert (stack);
-    BTOR_PUSH_STACK (mm, *stack, index);
-
-    if (BTOR_IS_INVERTED_NODE (index) && !btor_get_invbits_const (index))
-      btor_set_invbits_const (index,
-                              btor_not_const (mm, btor_get_bits_const (index)));
+    add_to_index_map (btor, map_value_index, array, index, value);
 
     /* substitute 'read' with 'value', in order to prevent down propgation
      * rewriting for 'read' during substitute_and_rebuild(...), which
@@ -4397,14 +4616,24 @@ find_memset_operations (Btor *btor)
   {
     t     = it.bucket->data.asPtr;
     array = next_node_hash_table_iterator (&it);
-    subst = btor_uf_exp (btor, array->sort_id, 0);
-    //      printf ("new array: %s (for %s)\n", node2string (subst), node2string
-    //      (array));
+
+    if ((b = btor_find_in_ptr_hash_table (map_lambda_base, array)))
+    {
+      assert (BTOR_IS_LAMBDA_NODE (array));
+      subst = btor_copy_exp (btor, b->data.asPtr);
+    }
+    else
+    {
+      assert (BTOR_IS_UF_ARRAY_NODE (array));
+      subst = btor_uf_exp (btor, array->sort_id, 0);
+    }
+    //      printf ("base array: %s (for %s)\n", node2string (subst),
+    //      node2string (array));
 
     assert (t);
 
     one = btor_one_const (mm, btor_get_fun_exp_width (btor, array));
-    //    printf ("%s\n", node2string (array));
+    //      printf ("%s\n", node2string (array));
     init_node_hash_table_iterator (&iit, t);
     while (has_next_node_hash_table_iterator (&iit))
     {
@@ -4471,12 +4700,16 @@ find_memset_operations (Btor *btor)
       {
         BTOR_PUSH_STACK (mm, ranges, lower);
         BTOR_PUSH_STACK (mm, ranges, upper);
+        //	      printf ("found range: %d %d: %s\n", lower, upper,
+        //		      node2string (value));
       }
       else
       {
         assert (lower > -1);
         assert (upper == -1);
         BTOR_PUSH_STACK (mm, indices, lower);
+        //	      printf ("indices: %d %d: %s\n", lower, upper,
+        //		      node2string (value));
       }
 
 #ifndef NDEBUG
@@ -4540,14 +4773,21 @@ find_memset_operations (Btor *btor)
     btor_delete_ptr_hash_table (t);
     btor_delete_const (mm, one);
     /* no memset or write found, no need to substitute 'array'. */
-    if (!BTOR_IS_UF_NODE (subst)) insert_substitution (btor, array, subst, 0);
+    // TODO (ma): shouldn't we always find at least one write?
+    if (!BTOR_IS_UF_NODE (subst))
+    {
+      //	  printf ("  subst: %s -> %s\n", node2string (array),
+      // node2string (subst));
+      insert_substitution (btor, array, subst, 0);
+    }
     btor_release_exp (btor, subst);
   }
   btor_delete_ptr_hash_table (map_value_index);
+  btor_delete_ptr_hash_table (map_lambda_base);
   BTOR_RELEASE_STACK (mm, ranges);
   BTOR_RELEASE_STACK (mm, indices);
 
-  substitute_and_rebuild (btor, btor->ufs, 0);
+  substitute_and_rebuild (btor, btor->substitutions, 0);
   delete_substitutions (btor);
 
   delta = btor_time_stamp () - start;
