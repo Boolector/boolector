@@ -4452,32 +4452,19 @@ add_to_index_map (Btor *btor,
 }
 
 static void
-find_memset_operations (Btor *btor)
+collect_indices_writes (Btor *btor,
+                        BtorPtrHashTable *map_value_index,
+                        BtorPtrHashTable *map_lambda_base)
 {
-  assert (btor);
-
-#ifndef NDEBUG
-  int cnt;
-#endif
-  int i, num_memsets = 0, num_writes = 0, lower, upper, is_top;
-  double start, delta;
-  char *b0, *b1, *one, *diff;
-  BtorNode *cur, *lhs, *rhs, *subst, *n0, *n1, *tmp;
-  BtorNode *array, *index, *value, *read, *lambda, *array_if, *array_else;
+  int is_top;
+  BtorNode *lambda, *cur, *array, *index, *value, *tmp, *array_if, *array_else;
+  BtorHashTableIterator it;
   BtorNodeIterator pit;
-  BtorHashTableIterator it, iit;
-  BtorPtrHashTable *t, *map_value_index, *index_cache, *map_lambda_base;
-  BtorPtrHashBucket *b;
-  BtorNodePtrStack *stack, lambdas;
-  BtorIntStack ranges, indices;
+  BtorNodePtrStack lambdas;
+  BtorPtrHashTable *index_cache;
   BtorMemMgr *mm;
 
-  start = btor_time_stamp ();
-
-  mm              = btor->mm;
-  map_value_index = btor_new_ptr_hash_table (mm, 0, 0);
-  map_lambda_base = btor_new_ptr_hash_table (mm, 0, 0);
-  init_substitutions (btor);
+  mm = btor->mm;
   BTOR_INIT_STACK (lambdas);
 
   /* collect lambdas that are at the top of lambda chains */
@@ -4559,6 +4546,123 @@ find_memset_operations (Btor *btor)
     }
   }
   BTOR_RELEASE_STACK (mm, lambdas);
+}
+
+static void
+find_memset_operations (Btor *btor)
+{
+  assert (btor);
+
+#ifndef NDEBUG
+  int cnt;
+#endif
+  int i, num_memsets = 0, num_writes = 0, lower, upper, is_top;
+  double start, delta;
+  char *b0, *b1, *one, *diff;
+  BtorNode *cur, *lhs, *rhs, *subst, *n0, *n1, *tmp;
+  BtorNode *array, *index, *value, *read, *lambda, *array_if, *array_else;
+  BtorNodeIterator pit;
+  BtorHashTableIterator it, iit;
+  BtorPtrHashTable *t, *map_value_index, *index_cache, *map_lambda_base;
+  BtorPtrHashBucket *b;
+  BtorNodePtrStack *stack, lambdas;
+  BtorIntStack ranges, indices;
+  BtorMemMgr *mm;
+
+  start = btor_time_stamp ();
+
+  mm              = btor->mm;
+  map_value_index = btor_new_ptr_hash_table (mm, 0, 0);
+  map_lambda_base = btor_new_ptr_hash_table (mm, 0, 0);
+  init_substitutions (btor);
+  BTOR_INIT_STACK (lambdas);
+
+  /* collect lambdas that are at the top of lambda chains */
+  collect_indices_writes (btor, map_value_index, map_lambda_base);
+#if 0
+  init_node_hash_table_iterator (&it, btor->lambdas);
+  while (has_next_node_hash_table_iterator (&it))
+    {
+      lambda = next_node_hash_table_iterator (&it);
+      assert (BTOR_IS_REGULAR_NODE (lambda));
+
+      /* already visited */
+      if (btor_find_in_ptr_hash_table (map_value_index, lambda))
+	continue;
+
+      /* we only consider writes */
+      if (btor_get_fun_arity (btor, lambda) > 1)
+	continue;
+
+      is_top = 1;
+      init_apply_parent_iterator (&pit, lambda);
+      while (has_next_parent_apply_parent_iterator (&pit))
+	{
+	  tmp = next_parent_apply_parent_iterator (&pit);
+
+	  if (tmp->parameterized)
+	    {
+	      is_top = 0;
+	      break;
+	    }
+	}
+
+      if (!is_top)
+	continue;
+
+      BTOR_PUSH_STACK (mm, lambdas, lambda);
+      while (!BTOR_EMPTY_STACK (lambdas))
+	{
+	  lambda = BTOR_POP_STACK (lambdas);
+//	  printf ("top: %s\n", node2string (lambda));
+	  
+	  /* already visited */
+	  if (btor_find_in_ptr_hash_table (map_value_index, lambda))
+	    continue;
+
+	  cur = lambda;
+	  index_cache = btor_new_ptr_hash_table (mm, 0, 0);
+	  while (is_write_exp (cur, &array, &index, &value))
+	    {
+	      assert (BTOR_IS_REGULAR_NODE (array));
+	      assert (BTOR_IS_FUN_NODE (array));
+
+	      if (btor_find_in_ptr_hash_table (index_cache, index))
+		{
+		  cur = array;
+		  continue;
+		}
+
+	      if (BTOR_IS_BV_CONST_NODE (BTOR_REAL_ADDR_NODE (index)))
+		{
+		  btor_insert_in_ptr_hash_table (index_cache, index);
+		  add_to_index_map (btor, map_value_index,
+				    lambda, index, value);
+//		  printf ("  write: %s %s %s\n", node2string (array), node2string (index), node2string (value));
+		}
+	      else
+		{
+		  BTOR_PUSH_STACK (mm, lambdas, array); 
+		  break;
+		}
+
+	      cur = array;
+	    }
+	  btor_delete_ptr_hash_table (index_cache);
+	  if (lambda != cur
+	      && !btor_find_in_ptr_hash_table (map_lambda_base, lambda))
+	    btor_insert_in_ptr_hash_table (
+		map_lambda_base, lambda)->data.asPtr = cur;
+
+	  if (is_array_ite_exp (cur, &array_if, &array_else))
+	    {
+	      BTOR_PUSH_STACK (mm, lambdas, array_if);
+	      BTOR_PUSH_STACK (mm, lambdas, array_else);
+	    }
+	}
+    }
+  BTOR_RELEASE_STACK (mm, lambdas);
+#endif
 
   /* top level equality pre-initialization */
   init_node_hash_table_iterator (&it, btor->unsynthesized_constraints);
@@ -4632,7 +4736,7 @@ find_memset_operations (Btor *btor)
 
     assert (t);
 
-    one = btor_one_const (mm, btor_get_fun_exp_width (btor, array));
+    one = btor_one_const (mm, btor_get_index_exp_width (btor, array));
     //      printf ("%s\n", node2string (array));
     init_node_hash_table_iterator (&iit, t);
     while (has_next_node_hash_table_iterator (&iit))
@@ -4668,7 +4772,7 @@ find_memset_operations (Btor *btor)
         assert (b0);
         assert (b1);
         diff = btor_sub_const (mm, b1, b0);
-        //	      printf ("%s = %s - %s\n", diff, b1, b0);
+        //	      printf ("%s = %s - %s (%s)\n", diff, b1, b0, one);
         if (strcmp (diff, one) == 0)
           upper = i;
         else
@@ -4757,7 +4861,7 @@ find_memset_operations (Btor *btor)
         n0 = BTOR_PEEK_STACK (*stack, lower);
         //	      printf ("create write: %s -> %s : %s\n", node2string (n0),
         //		      node2string (value), node2string (subst));
-        //	      printf ("  %s\n", BTOR_REAL_ADDR_NODE (n0)->bits);
+        //	      printf ("  %s\n", btor_get_bits_const (n0));
 
         tmp = btor_write_exp (btor, subst, n0, value);
         btor_release_exp (btor, subst);
