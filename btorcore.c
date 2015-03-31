@@ -7249,15 +7249,16 @@ propagate (Btor *btor,
         param_app = next_node_hash_table_iterator (&it);
         assert (BTOR_IS_REGULAR_NODE (param_app));
         assert (BTOR_IS_APPLY_NODE (param_app));
-        insert_synth_app_lambda (btor, lambda, param_app);
-        assert (param_app->reachable || param_app->vread);
-        assert (param_app->refs - param_app->ext_refs > 1);
-        if (!param_app->propagated && !param_app->reachable
-            && (BTOR_REAL_ADDR_NODE (fun_value) != param_app
-                || param_app->e[1] != args))
+        if (param_app != fun_value)
         {
-          BTOR_PUSH_STACK (mm, *prop_stack, param_app);
-          BTOR_PUSH_STACK (mm, *prop_stack, param_app->e[0]);
+          insert_synth_app_lambda (btor, lambda, param_app);
+          assert (param_app->reachable || param_app->vread);
+          assert (param_app->refs - param_app->ext_refs > 1);
+          if (!param_app->propagated && !param_app->reachable)
+          {
+            BTOR_PUSH_STACK (mm, *prop_stack, param_app);
+            BTOR_PUSH_STACK (mm, *prop_stack, param_app->e[0]);
+          }
         }
         btor_remove_from_ptr_hash_table (to_prop, param_app, 0, 0);
         btor_release_exp (btor, param_app);
@@ -7281,7 +7282,7 @@ propagate (Btor *btor,
       args_equal = 0;
       // TODO: how can we still propagate negated applies down?
       if (!BTOR_IS_INVERTED_NODE (fun_value) && BTOR_IS_APPLY_NODE (fun_value))
-        args_equal = BTOR_REAL_ADDR_NODE (fun_value)->e[1] == args;
+        args_equal = fun_value->e[1] == args;
 
       if (!args_equal)
       {
