@@ -611,9 +611,59 @@ btor_print_stats_btor (Btor *btor)
 
   if (btor->options.sls.val)
   {
+    BTOR_MSG (btor->msg, 1, "");
     BTOR_MSG (btor->msg, 1, "sls restarts: %d", btor->stats.sls_restarts);
     BTOR_MSG (btor->msg, 1, "sls moves: %d", btor->stats.sls_moves);
     BTOR_MSG (btor->msg, 1, "sls flips: %d", btor->stats.sls_flips);
+
+    BTOR_MSG (btor->msg, 1, "");
+    BTOR_MSG (
+        btor->msg, 1, "sls flip        moves: %d", btor->stats.sls_move_flip);
+    BTOR_MSG (
+        btor->msg, 1, "sls inc         moves: %d", btor->stats.sls_move_inc);
+    BTOR_MSG (
+        btor->msg, 1, "sls dec         moves: %d", btor->stats.sls_move_dec);
+    BTOR_MSG (
+        btor->msg, 1, "sls not         moves: %d", btor->stats.sls_move_not);
+    BTOR_MSG (
+        btor->msg, 1, "sls range       moves: %d", btor->stats.sls_move_range);
+    BTOR_MSG (
+        btor->msg, 1, "sls segment     moves: %d", btor->stats.sls_move_seg);
+    BTOR_MSG (
+        btor->msg, 1, "sls random walk moves: %d", btor->stats.sls_move_rand);
+    BTOR_MSG (btor->msg, 1, "");
+    BTOR_MSG (btor->msg,
+              1,
+              "sls gw flip        moves: %d",
+              btor->stats.sls_move_gw_flip);
+    BTOR_MSG (btor->msg,
+              1,
+              "sls gw inc         moves: %d",
+              btor->stats.sls_move_gw_inc);
+    BTOR_MSG (btor->msg,
+              1,
+              "sls gw dec         moves: %d",
+              btor->stats.sls_move_gw_dec);
+    BTOR_MSG (btor->msg,
+              1,
+              "sls gw not         moves: %d",
+              btor->stats.sls_move_gw_not);
+    BTOR_MSG (btor->msg,
+              1,
+              "sls gw range       moves: %d",
+              btor->stats.sls_move_gw_range);
+    BTOR_MSG (btor->msg,
+              1,
+              "sls gw segment     moves: %d",
+              btor->stats.sls_move_gw_seg);
+    BTOR_MSG (btor->msg,
+              1,
+              "sls gw random      moves: %d",
+              btor->stats.sls_move_gw_rand);
+    BTOR_MSG (btor->msg,
+              1,
+              "sls gw random walk moves: %d",
+              btor->stats.sls_move_gw_rand_walk);
   }
 
   BTOR_MSG (btor->msg, 1, "");

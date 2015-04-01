@@ -198,9 +198,27 @@ struct Btor
     int dp_failed_applies; /* number of applies in FA (dual prop) of last
                               sat call (final bv skeleton) */
     int dp_assumed_applies;
+
     int sls_restarts;
     int sls_moves;
     int sls_flips;
+    int sls_move_flip;
+    int sls_move_inc;
+    int sls_move_dec;
+    int sls_move_not;
+    int sls_move_range;
+    int sls_move_seg;
+    int sls_move_rand;
+    int sls_move_rand_walk;
+    int sls_move_gw_flip;
+    int sls_move_gw_inc;
+    int sls_move_gw_dec;
+    int sls_move_gw_not;
+    int sls_move_gw_range;
+    int sls_move_gw_seg;
+    int sls_move_gw_rand;
+    int sls_move_gw_rand_walk;
+
     BtorIntStack lemmas_size;       /* distribution of n-size lemmas */
     long long int lemmas_size_sum;  /* sum of the size of all added lemmas */
     long long int lclause_size_sum; /* sum of the size of all linking clauses */
