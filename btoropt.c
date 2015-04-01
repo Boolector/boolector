@@ -198,7 +198,7 @@ btor_init_opts (Btor *btor)
             "neighbor with better score is found");
   BTOR_OPT (0,
             sls_move_randomizerange,
-            1,
+            0,
             0,
             1,
             "randomize a range of bits of a randomly chosen candidate variable "
