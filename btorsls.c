@@ -1206,7 +1206,7 @@ select_rand_range_move (Btor *btor,
   assert (max_cans);
   assert (max_score);
 
-  double sc, rand_max_score = 0.0;
+  double sc, rand_max_score = -1.0;
   int i, up, cup, n_endpos, done = 0;
   BitVector *ass;
   BtorNode *can;
@@ -1250,11 +1250,11 @@ select_rand_range_move (Btor *btor,
     }
 
     sc = try_move (btor, roots, &bv_model, score_sls, &cans, &neighs);
-    if (sc > rand_max_score) /* reset, use current */
+    if (rand_max_score == -1.0 || sc > rand_max_score)
     {
-      *max_score     = 0.0;
+      *max_score     = -1.0;
       rand_max_score = sc;
-    }
+    } /* reset, use current */
     BTOR_SLS_SELECT_MOVE_CHECK_SCORE (sc);
 
     BTOR_RESET_STACK (cans);
