@@ -1367,12 +1367,12 @@ DONE:
 static inline void
 select_random_move (Btor *btor,
                     BtorNodePtrStack *candidates,
-                    BtorPtrHashTable *maxcans)
+                    BtorPtrHashTable *max_cans)
 {
   assert (btor);
   assert (candidates);
-  assert (maxcans);
-  assert (!maxcans->count);
+  assert (max_cans);
+  assert (!max_cans->count);
 
   int i, r, up, lo;
   BtorSLSMove m;
@@ -1443,7 +1443,7 @@ select_random_move (Btor *btor,
         break;
     }
 
-    btor_insert_in_ptr_hash_table (maxcans, can)->data.asPtr = neigh;
+    btor_insert_in_ptr_hash_table (max_cans, can)->data.asPtr = neigh;
   }
 
   BTOR_RELEASE_STACK (btor->mm, cans);
