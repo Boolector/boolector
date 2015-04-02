@@ -300,9 +300,9 @@ print_opt (BtorMainApp *app,
 
   assert (!strcmp (lng, "lingeling_opts")
           || (shrt
-              && 2 * strlen (paramstr) + strlen (shrt) + strlen (lng) + 7
-                     <= LEN_OPTSTR)
-          || (!shrt && 2 * strlen (paramstr) + strlen (lng) + 7 <= LEN_OPTSTR));
+              && (2 * strlen (paramstr) + strlen (shrt) + strlen (lng) + 7
+                  <= LEN_OPTSTR))
+          || (!shrt && (strlen (paramstr) + strlen (lng) + 7 <= LEN_OPTSTR)));
 
   /* option string ------------------------------------------ */
   memset (optstr, ' ', LEN_OPTSTR * sizeof (char));
