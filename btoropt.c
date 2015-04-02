@@ -162,8 +162,8 @@ btor_init_opts (Btor *btor)
             10,
             0,
             -1,
-            "factor by which the size of the reduced formula may be greater "
-            "than the original formula");
+            "factor by which the size of the red. formula may be greater than "
+            "the original formula");
 #endif
 
   // TODO MAKE SLS FACTORS CONFIGURABLE VIA BTOROPT
