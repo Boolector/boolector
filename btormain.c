@@ -291,7 +291,8 @@ print_opt (BtorMainApp *app,
            || !strcmp (lng, BTOR_OPT_REWRITE_LEVEL_PBR)
            || !strcmp (lng, BTOR_OPT_PBRA_LOD_LIMIT)
            || !strcmp (lng, BTOR_OPT_PBRA_SAT_LIMIT)
-           || !strcmp (lng, BTOR_OPT_PBRA_OPS_FACTOR))
+           || !strcmp (lng, BTOR_OPT_PBRA_OPS_FACTOR)
+           || !strcmp (lng, BTOR_OPT_SLS_MOVE_RAND_WALK_PROB))
     sprintf (paramstr, "<n>");
   else if (!strcmp (lng, "lingeling_opts"))
     sprintf (paramstr, "[,<opt>=<val>]+");
@@ -339,7 +340,8 @@ print_opt (BtorMainApp *app,
       || !strcmp (lng, BTOR_OPT_ELIMINATE_SLICES)
       || !strcmp (lng, BTOR_OPT_PRETTY_PRINT)
       || !strcmp (lng, BTOR_OPT_VERBOSITY) || !strcmp (lng, BTOR_OPT_LOGLEVEL)
-      || !strcmp (lng, BTOR_OPT_SEED))
+      || !strcmp (lng, BTOR_OPT_SEED)
+      || !strcmp (lng, BTOR_OPT_SLS_MOVE_RAND_WALK_PROB))
   {
     len = strlen (desc) + 3 + btor_num_digits_util (dflt);
     BTOR_CNEWN (app->mm, descstr, len + 1);

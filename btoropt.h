@@ -60,9 +60,10 @@ typedef struct BtorOpt
 #define BTOR_OPT_SLS_MOVE_GW "sls_move_gw"
 #define BTOR_OPT_SLS_MOVE_RANGE "sls_move_range"
 #define BTOR_OPT_SLS_MOVE_SEGMENT "sls_move_segment"
-#define BTOR_OPT_SLS_MOVE_RANDOM_WALK "sls_move_random_walk"
-#define BTOR_OPT_SLS_MOVE_RANOMIZEALL "sls_move_randomizeall"
-#define BTOR_OPT_SLS_MOVE_RANOMIZERANGE "sls_move_randomizerange"
+#define BTOR_OPT_SLS_MOVE_RAND_WALK "sls_move_rand_walk"
+#define BTOR_OPT_SLS_MOVE_RAND_WALK_PROB "sls_move_rand_walk_prob"
+#define BTOR_OPT_SLS_MOVE_RANOMIZEALL "sls_move_rand_all"
+#define BTOR_OPT_SLS_MOVE_RANOMIZERANGE "sls_move_rand_range"
 #define BTOR_OPT_SLS_MOVE_ON_FIRST "sls_move_on_first"
 #define BTOR_OPT_SLS_MOVE_ON_SAME_SCORE "sls_move_on_same_score"
 #define BTOR_OPT_SLS_MOVE_INC_MOVE_TEST "sls_move_inc_move_test"
@@ -118,9 +119,10 @@ typedef struct BtorOpts
   BtorOpt sls_move_gw;
   BtorOpt sls_move_range;
   BtorOpt sls_move_segment;
-  BtorOpt sls_move_random_walk;
-  BtorOpt sls_move_randomizeall;
-  BtorOpt sls_move_randomizerange;
+  BtorOpt sls_move_rand_walk;
+  BtorOpt sls_move_rand_walk_prob;
+  BtorOpt sls_move_rand_all;
+  BtorOpt sls_move_rand_range;
   BtorOpt sls_move_on_first;
   BtorOpt sls_move_on_same_score;
   BtorOpt sls_move_inc_move_test;

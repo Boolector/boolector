@@ -184,20 +184,26 @@ btor_init_opts (Btor *btor)
             1,
             "try segment-wise flips when selecting moves");
   BTOR_OPT (0,
-            sls_move_random_walk,
+            sls_move_rand_walk,
             0,
             0,
             1,
             "do a random walk with certain probability");
   BTOR_OPT (0,
-            sls_move_randomizeall,
+            sls_move_rand_walk_prob,
+            10,
+            0,
+            UINT_MAX,
+            "probability for choosing random walks (interpreted as 1:<n>)");
+  BTOR_OPT (0,
+            sls_move_rand_all,
             0,
             0,
             1,
             "randomize all candidate variables (instead of only one) if no "
             "neighbor with better score is found");
   BTOR_OPT (0,
-            sls_move_randomizerange,
+            sls_move_rand_range,
             0,
             0,
             1,

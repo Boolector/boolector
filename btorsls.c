@@ -35,7 +35,6 @@
 #define BTOR_SLS_SCORE_F_PROB 20      // = 0.05 TODO best value? used by Z3 (sp)
 #define BTOR_SLS_SELECT_CFACT 20      // TODO best value? used by Z3 (c2)
 
-#define BTOR_SLS_MOVE_RANDOM_WALK_PROB 10  // = 0.1 TODO best value? used by Z3
 #define BTOR_SLS_MOVE_SINGLE_VS_GW_PROB 4
 
 BTOR_DECLARE_STACK (BitVectorPtr, BitVector *);
@@ -1573,8 +1572,9 @@ move (Btor *btor, BtorPtrHashTable *roots, int moves)
                                       (BtorHashPtr) btor_hash_exp_by_id,
                                       (BtorCmpPtr) btor_compare_exp_by_id);
 
-  if (btor->options.sls_move_random_walk.val
-      && !btor_pick_rand_rng (&btor->rng, 0, BTOR_SLS_MOVE_RANDOM_WALK_PROB))
+  if (btor->options.sls_move_rand_walk.val
+      && !btor_pick_rand_rng (
+             &btor->rng, 0, btor->options.sls_move_rand_walk_prob.val))
     select_random_move (btor, &candidates, max_cans, &max_stats);
   else
     select_move (btor, roots, &candidates, &max_cans, &max_score, &max_stats);
@@ -1598,7 +1598,7 @@ move (Btor *btor, BtorPtrHashTable *roots, int moves)
     /* randomize if no best move was found */
     BTORLOG ("--- randomized");
     randomized   = 1;
-    randomizeall = btor->options.sls_move_randomizeall.val
+    randomizeall = btor->options.sls_move_rand_all.val
                        ? btor_pick_rand_rng (&btor->rng, 0, 1)
                        : 0;
 
@@ -1640,7 +1640,7 @@ move (Btor *btor, BtorPtrHashTable *roots, int moves)
         BTOR_PUSH_STACK (btor->mm, neighbors, neighbor);
       }
       /* pick neighbor with randomized bit range (best guess) */
-      else if (btor->options.sls_move_randomizerange.val)
+      else if (btor->options.sls_move_rand_range.val)
       {
         select_rand_range_move (
             btor, roots, &cans, &max_cans, &max_score, 0, &max_stats);
