@@ -7567,8 +7567,8 @@ btor_sat_btor (Btor *btor, int lod_limit, int sat_limit)
   Btor *dpclone = 0;
 #endif
 
-  if (btor->options.sls.val && btor->lambdas->count == 0
-      && btor->ufs->count == 0)
+  if (btor->options.sls.val && !btor->options.beta_reduce_all.val
+      && btor->lambdas->count == 0 && btor->ufs->count == 0)
     res = btor_sat_aux_btor_sls (btor);
   else
   {

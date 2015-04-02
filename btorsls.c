@@ -1742,6 +1742,7 @@ move (Btor *btor, BtorPtrHashTable *roots, int moves)
         btor->stats.sls_move_rand += 1;
       else
         btor->stats.sls_move_gw_rand += 1;
+      break;
     default:
       assert (max_stats.max_move == BTOR_SLS_MOVE_RAND_WALK);
       if (!max_stats.max_gw)
