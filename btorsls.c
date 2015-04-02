@@ -1574,7 +1574,7 @@ move (Btor *btor, BtorPtrHashTable *roots, int moves)
                                       (BtorCmpPtr) btor_compare_exp_by_id);
 
   if (btor->options.sls_move_random_walk.val
-      && btor_pick_rand_rng (&btor->rng, 0, BTOR_SLS_MOVE_RANDOM_WALK_PROB))
+      && !btor_pick_rand_rng (&btor->rng, 0, BTOR_SLS_MOVE_RANDOM_WALK_PROB))
     select_random_move (btor, &candidates, max_cans, &max_stats);
   else
     select_move (btor, roots, &candidates, &max_cans, &max_score, &max_stats);
@@ -1799,24 +1799,23 @@ btor_sat_aux_btor_sls (Btor *btor)
   //  clone->options.loglevel.val = 0;
   //  clone->options.verbosity.val = 0;
   //  clone->options.model_gen.val = 1;
+  //  clone->options.beta_reduce_all.val = 1;
   //  int csat_result = btor_sat_btor (clone, -1, -1);
-  //  btor_delete_btor (clone);
   //  if (csat_result == BTOR_UNSAT) goto UNSAT;
-  //  if (btor->lambdas->count || btor->ufs->count)
-  //    {
-  //      sat_result = csat_result;
-  //      goto DONE;
-  //    }
-  //  //printf ("clone sat\n");
+  //  assert (!clone->lambdas->count && !clone->ufs->count);
+  //  printf ("clone sat\n");
+  //  btor_delete_btor (clone);
   //#endif
-  BTOR_ABORT_BOOLECTOR (btor->lambdas->count != 0 || btor->ufs->count != 0,
-                        "sls engine supports QF_BV only");
-
+  //
   if (btor->inconsistent) goto UNSAT;
 
   BTOR_MSG (btor->msg, 1, "calling SAT");
 
   sat_result = btor_simplify (btor);
+  BTOR_ABORT_BOOLECTOR (
+      btor->ufs->count != 0
+          || (!btor->options.beta_reduce_all.val && btor->lambdas->count != 0),
+      "sls engine supports QF_BV only");
   btor_update_assumptions (btor);
 
   if (btor->inconsistent) goto UNSAT;

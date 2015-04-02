@@ -630,7 +630,11 @@ btor_print_stats_btor (Btor *btor)
     BTOR_MSG (
         btor->msg, 1, "sls segment     moves: %d", btor->stats.sls_move_seg);
     BTOR_MSG (
-        btor->msg, 1, "sls random walk moves: %d", btor->stats.sls_move_rand);
+        btor->msg, 1, "sls random      moves: %d", btor->stats.sls_move_rand);
+    BTOR_MSG (btor->msg,
+              1,
+              "sls random walk moves: %d",
+              btor->stats.sls_move_rand_walk);
     BTOR_MSG (btor->msg, 1, "");
     BTOR_MSG (btor->msg,
               1,
@@ -7567,8 +7571,8 @@ btor_sat_btor (Btor *btor, int lod_limit, int sat_limit)
   Btor *dpclone = 0;
 #endif
 
-  if (btor->options.sls.val && !btor->options.beta_reduce_all.val
-      && btor->lambdas->count == 0 && btor->ufs->count == 0)
+  if (btor->options.sls.val && btor->ufs->count == 0
+      && (btor->options.beta_reduce_all.val || btor->lambdas->count == 0))
     res = btor_sat_aux_btor_sls (btor);
   else
   {
