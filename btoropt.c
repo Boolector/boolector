@@ -160,8 +160,8 @@ btor_init_opts (Btor *btor)
             10,
             0,
             -1,
-            "factor by which the size of the reduced formula may be greater "
-            "than the original formula");
+            "factor by which the size of the red. formula may be greater than "
+            "the original formula");
 #endif
 
   BTOR_OPT ("dp", dual_prop, 0, 0, 1, "dual propagation optimization");
