@@ -4776,81 +4776,91 @@ find_memset_operations (Btor *btor)
       {
         assert (cnt > 1);
         qsort (stack->start, cnt, sizeof (BtorNode *), cmp_bits);
+        last_diff = 0;
         lower = upper = 0;
-        last_diff     = one ? one : 0;
-        for (i = 1; i < cnt; i++)
+        while (upper < cnt)
         {
-          n0 = BTOR_PEEK_STACK (*stack, i - 1);
-          n1 = BTOR_PEEK_STACK (*stack, i);
-          b0 = BTOR_IS_INVERTED_NODE (n0) ? btor_get_invbits_const (n0)
-                                          : btor_get_bits_const (n0);
-          b1 = BTOR_IS_INVERTED_NODE (n1) ? btor_get_invbits_const (n1)
-                                          : btor_get_bits_const (n1);
-          assert (b0);
-          assert (b1);
-          diff = btor_sub_const (mm, b1, b0);
-
-          //		  printf ("%d: %s = %s - %s (%s)\n", i, diff, b1, b0,
-          // last_diff);
-          /* initialize in first iteration */
-          if (!last_diff) last_diff = btor_copy_const (mm, diff);
-
-          in_range = strcmp (diff, last_diff) == 0;
-          /* 'i' is still in range, increase upper bound */
-          if (in_range) upper = i;
-
-          /* close range or add index (also in last iteration) */
-          if (!in_range || i == cnt - 1)
+          //		  printf ("%d %d\n", lower, upper);
+          in_range = 0;
+          diff     = 0;
+          if (upper + 1 < cnt)
           {
-            /* found range [lower:upper] */
-            if (upper - lower > 0)
-            {
-              // TODO (ma): always use ranges with size = 2?
-              // in some cases it might be more expensive to
-              // extract a lambda with size 2 instead of
-              // checking the indices separately
-              if (upper - lower <= 1
-                  && btor_is_power_of_two_const (last_diff) != 1)
-              {
-                for (; lower <= upper; lower++)
-                  BTOR_PUSH_STACK (mm, indices, lower);
-              }
-              else
-              {
-                assert (last_diff);
-                BTOR_PUSH_STACK (mm, offsets, last_diff);
-                BTOR_PUSH_STACK (mm, ranges, lower);
-                BTOR_PUSH_STACK (mm, ranges, upper);
-                //			      printf ("  range (%d): %d %d: %s
-                //width diff %s\n", 				      upper -
-                // lower + 1, 				      lower, upper, 				      node2string (value), last_diff);
-                if (!one) last_diff = 0;
-              }
-            }
-            else
-            {
-              assert (lower == upper);
-              //			  printf ("  index: %d %d: %s (%s)\n",
-              // lower, upper, 				  node2string (value),
-              //				  b0);
-              BTOR_PUSH_STACK (mm, indices, lower);
-            }
+            n0 = BTOR_PEEK_STACK (*stack, upper);
+            n1 = BTOR_PEEK_STACK (*stack, upper + 1);
+            b0 = BTOR_IS_INVERTED_NODE (n0) ? btor_get_invbits_const (n0)
+                                            : btor_get_bits_const (n0);
+            b1 = BTOR_IS_INVERTED_NODE (n1) ? btor_get_invbits_const (n1)
+                                            : btor_get_bits_const (n1);
+            assert (b0);
+            assert (b1);
+            diff = btor_sub_const (mm, b1, b0);
+            //		      printf ("%d: %s = %s - %s\n", upper + 1, diff, b1,
+            // b0);
 
-            /* check last element in last iteration and add it to
-             * 'indices' if it was not included in the last range */
-            if (i == cnt - 1 && upper < i) BTOR_PUSH_STACK (mm, indices, i);
+            if (!last_diff) last_diff = btor_copy_const (mm, diff);
 
-            lower = upper = i; /* reset range */
+            /* increment upper bound of range */
+            in_range = strcmp (diff, last_diff) == 0;
+            if (in_range) upper += 1;
           }
 
-          if (!one && last_diff) btor_delete_const (mm, last_diff);
-
-          if (one)
-            btor_delete_const (mm, diff);
-          else
-            last_diff = diff;
+          if (!in_range)
+          {
+            //		      if (upper == cnt - 1)
+            //		      printf ("end of stack: %d\n", upper);
+            //		      else
+            //		      printf ("not in range: %d\n", upper + 1);
+            /* push index */
+            if (upper == lower)
+            {
+              BTOR_PUSH_STACK (mm, indices, lower);
+              //			  printf ("index: %d\n", lower);
+              goto NEW_RANGE;
+            }
+            /* range is too small, push separate indices */
+            else if (upper - lower <= 1
+                     /* range with an offset greater than 1 */
+                     && btor_is_power_of_two_const (last_diff) != 0)
+            {
+              /* last iteration step: if range contains all indices
+               * up to the last one, we can push all indices */
+              if (upper == cnt - 1) upper += 1;
+              //			  printf ("  small range, push
+              // indices\n");
+              //			  /* push all indices from lower until
+              // upper - 1 */
+              for (; lower < upper; lower++)
+              {
+                BTOR_PUSH_STACK (mm, indices, lower);
+                //			    printf ("index: %d\n", lower);
+              }
+              /* lower is now that last index in the range, from
+               * which we try to find a new range */
+              upper += 1;
+            }
+            /* found range */
+            else
+            {
+              assert (upper - lower > 0);
+              BTOR_PUSH_STACK (mm, offsets, last_diff);
+              BTOR_PUSH_STACK (mm, ranges, lower);
+              BTOR_PUSH_STACK (mm, ranges, upper);
+              //			  printf ("range %d:%d\n", lower,
+              // upper);
+              /* 'last_diff' will be released later */
+              last_diff = 0;
+            NEW_RANGE:
+              /* reset range */
+              upper += 1;
+              lower = upper;
+              if (diff) btor_delete_const (mm, diff);
+              diff = 0;
+            }
+          }
+          if (last_diff) btor_delete_const (mm, last_diff);
+          last_diff = diff;
         }
-        if (!one) btor_delete_const (mm, diff);
+        if (diff) btor_delete_const (mm, diff);
       }
       assert (!BTOR_EMPTY_STACK (ranges) || !BTOR_EMPTY_STACK (indices));
       assert (BTOR_COUNT_STACK (ranges) % 2 == 0);
