@@ -276,7 +276,7 @@ print_opt (BtorMainApp *app,
 
   char optstr[LEN_OPTSTR], paramstr[LEN_PARAMSTR];
   char *descstr, descstrline[LEN_HELPSTR], *lngstr, *word;
-  int i, j, len;
+  int i, j, len, nlines;
   BtorCharPtrStack words;
 
   if (!strcmp (lng, BTOR_OPT_INCREMENTAL_LOOK_AHEAD)
@@ -300,9 +300,9 @@ print_opt (BtorMainApp *app,
 
   assert (!strcmp (lng, "lingeling_opts")
           || (shrt
-              && 2 * strlen (paramstr) + strlen (shrt) + strlen (lng) + 7
-                     <= LEN_OPTSTR)
-          || (!shrt && 2 * strlen (paramstr) + strlen (lng) + 7 <= LEN_OPTSTR));
+              && (2 * strlen (paramstr) + strlen (shrt) + strlen (lng) + 7
+                  <= LEN_OPTSTR))
+          || (!shrt && (strlen (paramstr) + strlen (lng) + 7 <= LEN_OPTSTR)));
 
   /* option string ------------------------------------------ */
   memset (optstr, ' ', LEN_OPTSTR * sizeof (char));
@@ -361,7 +361,8 @@ print_opt (BtorMainApp *app,
 
   BTOR_CLRN (descstrline, LEN_HELPSTR);
   sprintf (descstrline, "%s ", optstr);
-  i = 0;
+  i      = 0;
+  nlines = 0;
   do
   {
     j = LEN_OPTSTR;
@@ -379,9 +380,11 @@ print_opt (BtorMainApp *app,
     }
     descstrline[j] = 0;
     fprintf (app->outfile, "%s\n", descstrline);
+    nlines += 1;
     BTOR_CLRN (descstrline, LEN_HELPSTR);
     memset (descstrline, ' ', LEN_OPTSTR * sizeof (char));
   } while (i < BTOR_COUNT_STACK (words));
+  if (nlines > 1) fprintf (app->outfile, "\n");
 
   /* cleanup */
   while (!BTOR_EMPTY_STACK (words))
@@ -480,7 +483,6 @@ print_help (BtorMainApp *app)
   {
     if (mo->general) continue;
     PRINT_MAIN_OPT (app, mo);
-    if (!strcmp (mo->lng, "smt2_model")) fprintf (out, "\n");
   }
 
   fprintf (out, "\n");
@@ -496,7 +498,7 @@ print_help (BtorMainApp *app)
       continue;
     if (!strcmp (o, BTOR_OPT_INCREMENTAL) || !strcmp (o, BTOR_OPT_REWRITE_LEVEL)
         || !strcmp (o, BTOR_OPT_BETA_REDUCE_ALL)
-        || !strcmp (o, BTOR_OPT_AUTO_CLEANUP) || !strcmp (o, BTOR_OPT_DUAL_PROP)
+        || !strcmp (o, BTOR_OPT_AUTO_CLEANUP)
         || !strcmp (o, BTOR_OPT_LAZY_SYNTHESIZE))
       fprintf (out, "\n");
     print_opt (app,
