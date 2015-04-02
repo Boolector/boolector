@@ -1552,8 +1552,6 @@ move (Btor *btor, BtorPtrHashTable *roots, int moves)
   BTORLOG ("");
   BTORLOG ("*** move");
 
-  btor->stats.sls_moves += 1;
-
   BTOR_INIT_STACK (candidates);
   BTOR_INIT_STACK (cans);
   BTOR_INIT_STACK (neighbors);
@@ -1695,6 +1693,8 @@ move (Btor *btor, BtorPtrHashTable *roots, int moves)
                &cans,
                &neighbors,
                btor->score_sls);
+
+  btor->stats.sls_moves += 1;
 
   assert (max_stats.max_move != BTOR_SLS_MOVE_DONE);
   assert (max_stats.max_gw >= 0);
