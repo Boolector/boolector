@@ -739,7 +739,7 @@ btor_print_stats_btor (Btor *btor)
   }
   BTOR_MSG (btor->msg,
             1,
-            "%.2f seconds determinig failed assumptions",
+            "%.2f seconds determining failed assumptions",
             btor->time.failed);
   BTOR_MSG (
       btor->msg, 1, "%.2f seconds lemma generation", btor->time.lemma_gen);
