@@ -1486,7 +1486,7 @@ select_random_move (Btor *btor,
   /* select neighbor(s) */
   for (i = 0; i < BTOR_COUNT_STACK (*pcans); i++)
   {
-    can = BTOR_PEEK_STACK (cans, i);
+    can = BTOR_PEEK_STACK ((*pcans), i);
     ass = (BitVector *) btor_get_bv_model (btor, can);
     assert (ass);
 
