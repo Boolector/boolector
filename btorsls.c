@@ -123,9 +123,9 @@ min_flip (Btor *btor, BitVector *bv1, BitVector *bv2)
 //	 : c1 * (1 - (min number of bits to flip s.t. e0[bw] < e1[bw]) / bw)
 //
 
-#ifndef NBTORLOG
-#define BTOR_SLS_LOG_COMPUTE_SCORE
-#endif
+//#ifndef NBTORLOG
+//#define BTOR_SLS_LOG_COMPUTE_SCORE
+//#endif
 
 static double
 compute_sls_score_node (Btor *btor,
@@ -1511,12 +1511,14 @@ select_random_move (Btor *btor,
       case BTOR_SLS_MOVE_DEC: neigh = btor_dec_bv (btor->mm, ass); break;
       case BTOR_SLS_MOVE_NOT: neigh = btor_not_bv (btor->mm, ass); break;
       case BTOR_SLS_MOVE_FLIP_RANGE:
-        up    = btor_pick_rand_rng (&btor->rng, 1, ass->width - 1);
+        up = btor_pick_rand_rng (
+            &btor->rng, ass->width > 1 ? 1 : 0, ass->width - 1);
         neigh = btor_flipped_bit_range_bv (btor->mm, ass, up, 0);
         break;
       case BTOR_SLS_MOVE_FLIP_SEGMENT:
-        lo    = btor_pick_rand_rng (&btor->rng, 0, ass->width - 2);
-        up    = btor_pick_rand_rng (&btor->rng, lo + 1, ass->width - 1);
+        lo = btor_pick_rand_rng (&btor->rng, 0, ass->width - 1);
+        up = btor_pick_rand_rng (
+            &btor->rng, lo < ass->width - 1 ? lo + 1 : lo, ass->width - 1);
         neigh = btor_flipped_bit_range_bv (btor->mm, ass, up, lo);
         break;
       default:
