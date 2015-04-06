@@ -123,9 +123,9 @@ min_flip (Btor *btor, BitVector *bv1, BitVector *bv2)
 //	 : c1 * (1 - (min number of bits to flip s.t. e0[bw] < e1[bw]) / bw)
 //
 
-//#ifndef NBTORLOG
-//#define BTOR_SLS_LOG_COMPUTE_SCORE
-//#endif
+#ifndef NBTORLOG
+#define BTOR_SLS_LOG_COMPUTE_SCORE
+#endif
 
 static double
 compute_sls_score_node (Btor *btor,
@@ -177,23 +177,7 @@ compute_sls_score_node (Btor *btor,
       BTOR_PUSH_STACK (btor->mm, unmark_stack, real_cur);
 
       for (i = 0; i < real_cur->arity; i++)
-      {
         BTOR_PUSH_STACK (btor->mm, stack, real_cur->e[i]);
-        BTOR_PUSH_STACK (btor->mm, stack, BTOR_INVERT_NODE (real_cur->e[i]));
-      }
-
-#if 0
-	  if (BTOR_IS_AND_NODE (real_cur) && real_cur->len == 1)
-	    {
-	      for (i = 0; i < real_cur->arity; i++)
-		{
-		  e = BTOR_IS_INVERTED_NODE (cur)
-		      ? BTOR_INVERT_NODE (real_cur->e[i])
-		      : real_cur->e[i];
-		  BTOR_PUSH_STACK (btor->mm, stack, e);
-		}
-	    }
-#endif
     }
     else
     {
@@ -390,6 +374,9 @@ compute_sls_scores_aux (Btor *btor,
   BtorNodePtrStack stack, unmark_stack;
   BtorHashTableIterator it;
 
+  BTORLOG ("");
+  BTORLOG ("**** compute sls scores ***");
+
   BTOR_INIT_STACK (stack);
   BTOR_INIT_STACK (unmark_stack);
 
@@ -413,13 +400,7 @@ compute_sls_scores_aux (Btor *btor,
       BTOR_PUSH_STACK (btor->mm, stack, cur);
       BTOR_PUSH_STACK (btor->mm, unmark_stack, real_cur);
       for (i = 0; i < real_cur->arity; i++)
-      {
-        e = BTOR_IS_AND_NODE (real_cur) && real_cur->len == 1
-                    && BTOR_IS_INVERTED_NODE (cur)
-                ? BTOR_INVERT_NODE (real_cur->e[i])
-                : real_cur->e[i];
-        BTOR_PUSH_STACK (btor->mm, stack, e);
-      }
+        BTOR_PUSH_STACK (btor->mm, stack, real_cur->e[i]);
     }
     else
     {
@@ -429,6 +410,8 @@ compute_sls_scores_aux (Btor *btor,
           && real_cur->len != 1)
         continue;
       compute_sls_score_node (btor, bv_model, fun_model, score, cur);
+      compute_sls_score_node (
+          btor, bv_model, fun_model, score, BTOR_INVERT_NODE (cur));
     }
   }
 
@@ -1874,6 +1857,11 @@ btor_sat_aux_btor_sls (Btor *btor)
 
     /* restart */
     btor_generate_model_sls (btor, 0, 1);
+    btor_delete_ptr_hash_table (btor->score_sls);
+    btor->score_sls =
+        btor_new_ptr_hash_table (btor->mm,
+                                 (BtorHashPtr) btor_hash_exp_by_id,
+                                 (BtorCmpPtr) btor_compare_exp_by_id);
     i += 1;
   }
 
