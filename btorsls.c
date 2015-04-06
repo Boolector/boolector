@@ -370,7 +370,7 @@ compute_sls_scores_aux (Btor *btor,
   // TODO early pruning!!!
   //
   int i;
-  BtorNode *cur, *real_cur, *e;
+  BtorNode *cur, *real_cur;
   BtorNodePtrStack stack, unmark_stack;
   BtorHashTableIterator it;
 
