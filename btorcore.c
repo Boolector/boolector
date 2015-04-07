@@ -5970,7 +5970,7 @@ sat_aux_btor (Btor *btor, int lod_limit, int sat_limit)
 {
   assert (btor);
 
-  int i, sat_result, refinements;
+  int i, sat_result;
   BtorNodePtrStack prop_stack;
   BtorSATMgr *smgr;
   Btor *clone;
@@ -6107,7 +6107,7 @@ sat_aux_btor (Btor *btor, int lod_limit, int sat_limit)
     }
     BTOR_RESET_STACK (btor->cur_lemmas);
 
-    if (btor->options.verbosity.val == 1)
+    if (btor->options.verbosity.val)
     {
       fprintf (stdout,
                "\r[btorcore] %d refinement iterations, %d lemmas, "
@@ -6117,15 +6117,6 @@ sat_aux_btor (Btor *btor, int lod_limit, int sat_limit)
                btor->ops[BTOR_BV_VAR_NODE].cur,
                btor->ops[BTOR_APPLY_NODE].cur);
       fflush (stdout);
-    }
-    else if (btor->options.verbosity.val > 1)
-    {
-      refinements = btor->stats.lod_refinements;
-      if (btor->options.verbosity.val > 2 || !(refinements % 10))
-      {
-        fprintf (stdout, "[btorsat] refinement iteration %d\n", refinements);
-        fflush (stdout);
-      }
     }
 
     /* may be set in add_symbolic_lemma via insert_unsythesized_constraint
@@ -6146,6 +6137,8 @@ sat_aux_btor (Btor *btor, int lod_limit, int sat_limit)
   BTOR_RELEASE_STACK (btor->mm, prop_stack);
 
 DONE:
+  if (btor->options.verbosity.val && btor->stats.lod_refinements > 0)
+    fprintf (stdout, "\n");
   BTOR_RELEASE_STACK (btor->mm, prop_stack);
   btor->valid_assignments = 1;
 
