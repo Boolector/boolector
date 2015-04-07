@@ -172,8 +172,8 @@ typedef enum BtorSubstCompKind BtorSubstCompKind;
 
 /*------------------------------------------------------------------------*/
 
-static void
-init_substitutions (Btor *btor)
+void
+btor_init_substitutions (Btor *btor)
 {
   assert (btor);
   assert (!btor->substitutions);
@@ -184,8 +184,8 @@ init_substitutions (Btor *btor)
                                (BtorCmpPtr) btor_compare_exp_by_id);
 }
 
-static void
-delete_substitutions (Btor *btor)
+void
+btor_delete_substitutions (Btor *btor)
 {
   assert (btor);
 
@@ -204,8 +204,8 @@ delete_substitutions (Btor *btor)
   btor->substitutions = 0;
 }
 
-static BtorNode *
-find_substitution (Btor *btor, BtorNode *exp)
+BtorNode *
+btor_find_substitution (Btor *btor, BtorNode *exp)
 {
   assert (btor);
   assert (exp);
@@ -265,8 +265,11 @@ substitution_cycle_check_dbg (Btor *btor, BtorNode *exp, BtorNode *subst)
 }
 #endif
 
-static void
-insert_substitution (Btor *btor, BtorNode *exp, BtorNode *subst, int update)
+void
+btor_insert_substitution (Btor *btor,
+                          BtorNode *exp,
+                          BtorNode *subst,
+                          int update)
 {
   assert (btor);
   assert (exp);
@@ -301,7 +304,7 @@ insert_substitution (Btor *btor, BtorNode *exp, BtorNode *subst, int update)
     return;
   }
 
-  simp = find_substitution (btor, subst);
+  simp = btor_find_substitution (btor, subst);
 
   if (simp) subst = simp;
 
@@ -2882,7 +2885,7 @@ all_exps_below_rebuilt (Btor *btor, BtorNode *exp)
   int i;
   BtorNode *subst;
 
-  subst = find_substitution (btor, exp);
+  subst = btor_find_substitution (btor, exp);
   if (subst)
   {
     subst = btor_simplify_exp (btor, subst);
@@ -2997,7 +3000,7 @@ substitute_and_rebuild (Btor *btor, BtorPtrHashTable *subst, int bra)
         BTOR_ENQUEUE (mm, queue, btor_copy_exp (btor, cur_parent));
       }
 
-      if ((sub = find_substitution (btor, cur)))
+      if ((sub = btor_find_substitution (btor, cur)))
       {
         rebuilt_exp = btor_copy_exp (btor, sub);
       }
@@ -3870,7 +3873,7 @@ merge_lambdas (Btor *btor)
   mm            = btor->mm;
   delta_lambdas = btor->lambdas->count;
 
-  init_substitutions (btor);
+  btor_init_substitutions (btor);
   BTOR_INIT_STACK (stack);
   BTOR_INIT_STACK (unmark);
   BTOR_INIT_STACK (visit);
@@ -3954,7 +3957,7 @@ merge_lambdas (Btor *btor)
     subst = btor_beta_reduce_merge (btor, BTOR_LAMBDA_GET_BODY (merge));
     subst = BTOR_COND_INVERT_NODE (BTOR_LAMBDA_GET_BODY (merge), subst);
     btor_unassign_params (btor, merge);
-    insert_substitution (btor, BTOR_LAMBDA_GET_BODY (merge), subst, 0);
+    btor_insert_substitution (btor, BTOR_LAMBDA_GET_BODY (merge), subst, 0);
     btor_release_exp (btor, subst);
   }
 
@@ -3968,7 +3971,7 @@ merge_lambdas (Btor *btor)
   }
 
   substitute_and_rebuild (btor, btor->substitutions, 0);
-  delete_substitutions (btor);
+  btor_delete_substitutions (btor);
   delta_lambdas -= btor->lambdas->count;
   btor->stats.lambdas_merged += delta_lambdas;
 
@@ -4013,7 +4016,7 @@ optimize_unconstrained (Btor *btor)
   ucs = btor_new_ptr_hash_table (mm,
                                  (BtorHashPtr) btor_hash_exp_by_id,
                                  (BtorCmpPtr) btor_compare_exp_by_id);
-  init_substitutions (btor);
+  btor_init_substitutions (btor);
 
   /* collect nodes that might contribute to a unconstrained candidate
    * propagation */
@@ -4123,7 +4126,7 @@ optimize_unconstrained (Btor *btor)
                 btor->stats.fun_uc_props++;
               btor_insert_in_ptr_hash_table (ucs, btor_copy_exp (btor, cur));
               subst = lambda_var_exp (btor, btor_get_exp_width (btor, cur));
-              insert_substitution (btor, cur, subst, 0);
+              btor_insert_substitution (btor, cur, subst, 0);
               btor_release_exp (btor, subst);
             }
             break;
@@ -4138,7 +4141,7 @@ optimize_unconstrained (Btor *btor)
                 btor->stats.fun_uc_props++;
               btor_insert_in_ptr_hash_table (ucs, btor_copy_exp (btor, cur));
               subst = lambda_var_exp (btor, btor_get_exp_width (btor, cur));
-              insert_substitution (btor, cur, subst, 0);
+              btor_insert_substitution (btor, cur, subst, 0);
               btor_release_exp (btor, subst);
             }
             break;
@@ -4155,7 +4158,7 @@ optimize_unconstrained (Btor *btor)
               btor->stats.bv_uc_props++;
               btor_insert_in_ptr_hash_table (ucs, btor_copy_exp (btor, cur));
               subst = lambda_var_exp (btor, btor_get_exp_width (btor, cur));
-              insert_substitution (btor, cur, subst, 0);
+              btor_insert_substitution (btor, cur, subst, 0);
               btor_release_exp (btor, subst);
             }
             break;
@@ -4165,7 +4168,7 @@ optimize_unconstrained (Btor *btor)
               btor->stats.bv_uc_props++;
               btor_insert_in_ptr_hash_table (ucs, btor_copy_exp (btor, cur));
               subst = lambda_var_exp (btor, btor_get_exp_width (btor, cur));
-              insert_substitution (btor, cur, subst, 0);
+              btor_insert_substitution (btor, cur, subst, 0);
               btor_release_exp (btor, subst);
             }
             break;
@@ -4179,7 +4182,7 @@ optimize_unconstrained (Btor *btor)
               btor->stats.fun_uc_props++;
               btor_insert_in_ptr_hash_table (ucs, btor_copy_exp (btor, cur));
               subst = btor_uf_exp (btor, cur->sort_id, 0);
-              insert_substitution (btor, cur, subst, 0);
+              btor_insert_substitution (btor, cur, subst, 0);
               btor_release_exp (btor, subst);
             }
             break;
@@ -4192,7 +4195,7 @@ optimize_unconstrained (Btor *btor)
   substitute_and_rebuild (btor, btor->substitutions, 0);
 
   /* cleanup */
-  delete_substitutions (btor);
+  btor_delete_substitutions (btor);
   init_hash_table_iterator (&it, ucs);
   while (has_next_hash_table_iterator (&it))
     btor_release_exp (btor, next_node_hash_table_iterator (&it));
@@ -4692,7 +4695,7 @@ collect_indices_top_eqs (Btor *btor, BtorPtrHashTable *map_value_index)
      * engine handle inconsistencies (i,e., if 'value' is not the same
      * as in 'substitutions'. */
     if (!btor_find_in_ptr_hash_table (btor->substitutions, read))
-      insert_substitution (btor, read, value, 0);
+      btor_insert_substitution (btor, read, value, 0);
   }
 }
 
@@ -4719,7 +4722,7 @@ find_memset_operations (Btor *btor)
   mm              = btor->mm;
   map_value_index = btor_new_ptr_hash_table (mm, 0, 0);
   map_lambda_base = btor_new_ptr_hash_table (mm, 0, 0);
-  init_substitutions (btor);
+  btor_init_substitutions (btor);
 
   /* collect lambdas that are at the top of lambda chains */
   collect_indices_writes (btor, map_value_index, map_lambda_base);
@@ -4925,7 +4928,7 @@ find_memset_operations (Btor *btor)
     {
       //	  printf ("  subst: %s -> %s\n", node2string (array),
       // node2string (subst));
-      insert_substitution (btor, array, subst, 0);
+      btor_insert_substitution (btor, array, subst, 0);
     }
     btor_release_exp (btor, subst);
   }
@@ -4936,7 +4939,7 @@ find_memset_operations (Btor *btor)
   BTOR_RELEASE_STACK (mm, offsets);
 
   substitute_and_rebuild (btor, btor->substitutions, 0);
-  delete_substitutions (btor);
+  btor_delete_substitutions (btor);
   delta = btor_time_stamp () - start;
   BTOR_MSG (btor->msg,
             1,
@@ -8724,7 +8727,7 @@ check_model (Btor *btor, Btor *clone, BtorPtrHashTable *inputs)
   rebuild_formula (clone, 3);
 
   assert (!clone->substitutions);
-  init_substitutions (clone);
+  btor_init_substitutions (clone);
 
   init_node_hash_table_iterator (&it, inputs);
   while (has_next_node_hash_table_iterator (&it))
@@ -8763,13 +8766,13 @@ check_model (Btor *btor, Btor *clone, BtorPtrHashTable *inputs)
       subst = btor_generate_lambda_model_from_fun_model (clone, cur, fmodel);
     }
     assert (!btor_find_in_ptr_hash_table (clone->substitutions, real_simp));
-    insert_substitution (clone, real_simp, subst, 0);
+    btor_insert_substitution (clone, real_simp, subst, 0);
     btor_release_exp (clone, subst);
   }
 
   reset_functions_with_model (clone);
   substitute_and_rebuild (clone, clone->substitutions, 0);
-  delete_substitutions (clone);
+  btor_delete_substitutions (clone);
   reset_varsubst_constraints (clone); /* varsubst not required */
 
   clone->options.beta_reduce_all.val = 1;

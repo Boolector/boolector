@@ -348,4 +348,9 @@ void btor_release_bv_assignment_str (Btor *btor, char *assignment);
 
 void btor_release_all_ext_refs (Btor *btor);
 
+void btor_init_substitutions (Btor *);
+void btor_delete_substitutions (Btor *);
+void btor_insert_substitution (Btor *, BtorNode *, BtorNode *, int);
+BtorNode *btor_find_substitution (Btor *, BtorNode *);
+
 #endif
