@@ -201,8 +201,7 @@ btor_new_bv (BtorMemMgr *mm, int bw)
   if (bw % BTOR_BV_TYPE_BW > 0) i += 1;
 
   assert (i > 0);
-  BTOR_CNEW (mm, res);
-  BTOR_NEWN (mm, res->bits, i);
+  res = btor_malloc (mm, sizeof (BitVector) + sizeof (BTOR_BV_TYPE) * i);
   BTOR_CLRN (res->bits, i);
   res->len   = i;
   res->width = bw;
@@ -221,8 +220,7 @@ btor_free_bv (BtorMemMgr *mm, BitVector *bv)
 {
   assert (mm);
   assert (bv);
-  btor_free (mm, bv->bits, sizeof (*(bv->bits)) * bv->len);
-  btor_free (mm, bv, sizeof (BitVector));
+  btor_free (mm, bv, sizeof (BitVector) + sizeof (BTOR_BV_TYPE) * bv->len);
 }
 
 int
