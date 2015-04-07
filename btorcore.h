@@ -353,4 +353,6 @@ void btor_delete_substitutions (Btor *);
 void btor_insert_substitution (Btor *, BtorNode *, BtorNode *, int);
 BtorNode *btor_find_substitution (Btor *, BtorNode *);
 
+void btor_substitute_and_rebuild (Btor *, BtorPtrHashTable *, int);
+
 #endif
