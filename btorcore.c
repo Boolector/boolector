@@ -1748,25 +1748,12 @@ constraint_is_inconsistent (Btor *btor, BtorNode *exp)
 }
 
 static int
-has_parents_exp (Btor *btor, BtorNode *exp)
-{
-  BtorNodeIterator it;
-
-  assert (btor);
-  assert (exp);
-  (void) btor;
-
-  init_full_parent_iterator (&it, exp);
-  return has_next_parent_full_parent_iterator (&it);
-}
-
-static int
 is_embedded_constraint_exp (Btor *btor, BtorNode *exp)
 {
   assert (btor);
   assert (exp);
-  // FIXME: use exp->parents > 0
-  return btor_get_exp_width (btor, exp) == 1 && has_parents_exp (btor, exp);
+  return btor_get_exp_width (btor, exp) == 1
+         && BTOR_REAL_ADDR_NODE (exp)->parents > 0;
 }
 
 static void
@@ -3075,7 +3062,7 @@ substitute_embedded_constraints (Btor *btor)
     assert (BTOR_REAL_ADDR_NODE (cur)->constraint);
     /* embedded constraints have possibly lost their parents,
      * e.g. top conjunction of constraints that are released */
-    if (has_parents_exp (btor, cur)) btor->stats.ec_substitutions++;
+    if (BTOR_REAL_ADDR_NODE (cur)->parents > 0) btor->stats.ec_substitutions++;
   }
 
   substitute_and_rebuild (btor, btor->embedded_constraints, 0);
