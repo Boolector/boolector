@@ -253,6 +253,9 @@ compute_sls_score_node (Btor *btor,
           }
 #endif
           res = (s0 + s1) / 2.0;
+          /* fix rounding errors (eg. (0.999+1.0)/2 = 1.0) ->
+             choose minimum (else it might again result in 1.0) */
+          if (res == 1.0 && (s0 < 1.0 || s1 < 1.0)) res = s0 < s1 ? s0 : s1;
         }
       }
       else if (BTOR_IS_BV_EQ_NODE (real_cur))
