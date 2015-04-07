@@ -16,33 +16,7 @@
 /*------------------------------------------------------------------------*/
 
 #include <stdio.h>
-
-/*------------------------------------------------------------------------*/
-
-/*!
-  Boolector instance
-*/
-typedef struct Btor Btor;
-typedef struct BtorNode BtorNode;
-/*!
-  Boolector sort.
-
-  .. seealso::
-    boolector_bool_sort, boolector_bitvec_sort, boolector_fun_sort,
-    boolector_release_sort, boolector_uf
-*/
-typedef unsigned BoolectorSort;
-
-// TODO: remove
-#ifdef BOOLECTOR_FORCE_API_1
-#define BoolectorNode BtorNode
-#else
-#define BOOLECTOR_API_2
-/*!
-  Boolector node.
-*/
-typedef struct BoolectorNode BoolectorNode;
-#endif
+#include "btortypes.h"
 
 /*------------------------------------------------------------------------*/
 

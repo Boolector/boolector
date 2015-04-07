@@ -8,11 +8,14 @@
  *  See COPYING for more information on using this software.
  */
 
-#ifndef BTOREXTRACT_H_INCLUDED
-#define BTOREXTRACT_H_INCLUDED
+#ifndef BTORTYPES_H_INCLUDED
+#define BTORTYPES_H_INCLUDED
 
-#include "btortypes.h"
+typedef struct Btor Btor;
+typedef struct BtorNode BtorNode;
 
-void btor_extract_lambdas (Btor* btor);
+/* public API types */
+typedef struct BoolectorNode BoolectorNode;
+typedef unsigned BoolectorSort;
 
 #endif

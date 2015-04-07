@@ -14,7 +14,6 @@
 #define BTORSORT_H_INCLUDED
 
 #include <stdbool.h>
-#include "boolector.h"
 #include "btormem.h"
 #include "btorstack.h"
 

@@ -14,12 +14,12 @@
 #ifndef BTOREXP_H_INCLUDED
 #define BTOREXP_H_INCLUDED
 
-#include "boolector.h"
 #include "btoraigvec.h"
 #include "btorhash.h"
 #include "btorqueue.h"
 #include "btorsort.h"
 #include "btorstack.h"
+#include "btortypes.h"
 
 /*------------------------------------------------------------------------*/
 
