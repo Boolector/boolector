@@ -56,15 +56,7 @@
 
 #if defined(BTOR_USE_LINGELING)
 static BtorLGL *btor_clone_lingeling (BtorLGL *, BtorMemMgr *);
-
-int btor_enable_lingeling_sat (BtorSATMgr *, const char *optstr, int nofork);
-
-#define btor_enable_default_sat(SMGR)         \
-  do                                          \
-  {                                           \
-    btor_enable_lingeling_sat ((SMGR), 0, 0); \
-  } while (0)
-
+#define btor_enable_default_sat(SMGR) btor_enable_lingeling_sat ((SMGR), 0, 0)
 #elif defined(BTOR_USE_PICOSAT)
 void btor_enable_picosat_sat (BtorSATMgr *);
 #define btor_enable_default_sat btor_enable_picosat_sat
