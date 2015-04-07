@@ -1,7 +1,16 @@
+/*  Boolector: Satisfiablity Modulo Theories (SMT) solver.
+ *
+ *  Copyright (C) 2015 Mathias Preiner.
+ *
+ *  All rights reserved.
+ *
+ *  This file is part of Boolector.
+ *  See COPYING for more information on using this software.
+ */
+
 #include "btorextract.h"
 #include "btorconst.h"
 #include "btorcore.h"
-#include "btorexp.h"
 #include "btoriter.h"
 #include "btorutil.h"
 
