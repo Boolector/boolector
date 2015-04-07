@@ -29,13 +29,13 @@
 #include <unistd.h>
 
 typedef struct BtorMainApp BtorMainApp;
-static BtorMainApp *static_app;
+static BtorMainApp *g_app;
 
-static int static_verbosity;
-static int static_set_alarm;
-static int static_caught_sig;
+static int g_verbosity;
+static int g_set_alarm;
+static int g_caught_sig;
 #ifdef BTOR_HAVE_GETRUSAGE
-static int static_start_time;
+static int g_start_time;
 #endif
 
 static void (*sig_int_handler) (int);
@@ -164,7 +164,7 @@ btormain_init_opts (BtorMainApp *app)
   BTORMAIN_INIT_OPT (
       app->opts.time, 1, "t", "time", 0, 0, -1, "set time limit");
   BTORMAIN_INIT_OPT (app->opts.output,
-                     0,
+                     1,
                      "o",
                      "output",
                      0,
@@ -185,7 +185,7 @@ btormain_init_opts (BtorMainApp *app)
                      0,
                      0,
                      "lingeling",
-                     0,
+                     1,
                      0,
                      1,
                      "force Lingeling as SAT solver");
@@ -300,9 +300,9 @@ print_opt (BtorMainApp *app,
 
   assert (!strcmp (lng, "lingeling_opts")
           || (shrt
-              && 2 * strlen (paramstr) + strlen (shrt) + strlen (lng) + 7
-                     <= LEN_OPTSTR)
-          || (!shrt && 2 * strlen (paramstr) + strlen (lng) + 7 <= LEN_OPTSTR));
+              && (2 * strlen (paramstr) + strlen (shrt) + strlen (lng) + 7
+                  <= LEN_OPTSTR))
+          || (!shrt && (strlen (paramstr) + strlen (lng) + 7 <= LEN_OPTSTR)));
 
   /* option string ------------------------------------------ */
   memset (optstr, ' ', LEN_OPTSTR * sizeof (char));
@@ -427,12 +427,10 @@ print_help (BtorMainApp *app)
        mo++)
   {
     if (!mo->general) continue;
-    if (!strcmp (mo->lng, "time") || !strcmp (mo->lng, "output"))
-      fprintf (out, "\n");
+    if (!strcmp (mo->lng, "time")) fprintf (out, "\n");
     PRINT_MAIN_OPT (app, mo);
   }
 
-  PRINT_MAIN_OPT (app, &app->opts.output);
   fprintf (app->outfile, "\n");
   to.dflt = 0;
   to.shrt = "x";
@@ -476,9 +474,16 @@ print_help (BtorMainApp *app)
   to.lng  = "dump_smt1";
   to.desc = "dump formula in SMT-LIB v1 format";
   PRINT_MAIN_OPT (app, &to);
-
   fprintf (out, "\n");
-  PRINT_MAIN_OPT (app, &app->opts.smt2_model);
+
+  for (mo = BTORMAIN_FIRST_OPT (app->opts); mo <= BTORMAIN_LAST_OPT (app->opts);
+       mo++)
+  {
+    if (mo->general) continue;
+    PRINT_MAIN_OPT (app, mo);
+    if (!strcmp (mo->lng, "smt2_model")) fprintf (out, "\n");
+  }
+
   fprintf (out, "\n");
 
   fprintf (out, BOOLECTOR_OPTS_INFO_MSG);
@@ -492,8 +497,8 @@ print_help (BtorMainApp *app)
       continue;
     if (!strcmp (o, BTOR_OPT_INCREMENTAL) || !strcmp (o, BTOR_OPT_REWRITE_LEVEL)
         || !strcmp (o, BTOR_OPT_BETA_REDUCE_ALL)
-        || !strcmp (o, BTOR_OPT_PRETTY_PRINT)
-        || !strcmp (o, BTOR_OPT_DUAL_PROP))
+        || !strcmp (o, BTOR_OPT_AUTO_CLEANUP) || !strcmp (o, BTOR_OPT_DUAL_PROP)
+        || !strcmp (o, BTOR_OPT_LAZY_SYNTHESIZE))
       fprintf (out, "\n");
     print_opt (app,
                o,
@@ -502,18 +507,6 @@ print_help (BtorMainApp *app)
                boolector_get_opt_desc (app->btor, o));
   }
 
-#ifdef BTOR_USE_LINGELING
-  fprintf (app->outfile, "\n");
-  PRINT_MAIN_OPT (app, &app->opts.lingeling);
-  PRINT_MAIN_OPT (app, &app->opts.lingeling_nofork);
-  PRINT_MAIN_OPT (app, &app->opts.lingeling_opts);
-#endif
-#ifdef BTOR_USE_PICOSAT
-  PRINT_MAIN_OPT (app, &app->opts.picosat);
-#endif
-#ifdef BTOR_USE_MINISAT
-  PRINT_MAIN_OPT (app, &app->opts.minisat);
-#endif
   app->done = 1;
 }
 
@@ -564,7 +557,7 @@ static void
 print_static_stats (int sat_res)
 {
 #ifdef BTOR_HAVE_GETRUSAGE
-  double delta_time = delta_time = btor_time_stamp () - static_start_time;
+  double delta_time = delta_time = btor_time_stamp () - g_start_time;
   btormain_msg ("%.1f seconds", delta_time);
   btormain_msg ("%s",
                 sat_res == BOOLECTOR_SAT
@@ -605,15 +598,15 @@ reset_sig_handlers (void)
 static void
 catch_sig (int sig)
 {
-  if (!static_caught_sig)
+  if (!g_caught_sig)
   {
-    static_caught_sig = 1;
+    g_caught_sig = 1;
     btormain_msg ("CAUGHT SIGNAL %d", sig);
     fputs ("unknown\n", stdout);
     fflush (stdout);
-    if (static_verbosity > 0)
+    if (g_verbosity > 0)
     {
-      boolector_print_stats (static_app->btor);
+      boolector_print_stats (g_app->btor);
       print_static_stats (0);
       btormain_msg ("CAUGHT SIGNAL %d", sig);
     }
@@ -645,15 +638,15 @@ catch_alarm (int sig)
 {
   (void) sig;
   assert (sig == SIGALRM);
-  if (static_set_alarm > 0)
+  if (g_set_alarm > 0)
   {
     btormain_msg ("ALARM TRIGGERED: time limit %d seconds reached",
-                  static_set_alarm);
+                  g_set_alarm);
     fputs ("unknown\n", stdout);
     fflush (stdout);
-    if (static_verbosity > 0)
+    if (g_verbosity > 0)
     {
-      boolector_print_stats (static_app->btor);
+      boolector_print_stats (g_app->btor);
       print_static_stats (0);
     }
   }
@@ -665,8 +658,8 @@ static void
 set_alarm (void)
 {
   sig_alrm_handler = signal (SIGALRM, catch_alarm);
-  assert (static_set_alarm > 0);
-  alarm (static_set_alarm);
+  assert (g_set_alarm > 0);
+  alarm (g_set_alarm);
 }
 
 /*------------------------------------------------------------------------*/
@@ -684,130 +677,147 @@ has_suffix (const char *str, const char *suffix)
 
 /*------------------------------------------------------------------------*/
 
-#define IS_STATIC_OPT(lng_opt)                             \
-  ((shrt && static_app->opts.lng_opt.shrt                  \
-    && !strcmp (opt.start, static_app->opts.lng_opt.shrt)) \
-   || (!shrt && !strcmp (opt.start, static_app->opts.lng_opt.lng)))
+#define IS_MAIN_OPT(lng_opt)                          \
+  ((isshrt && g_app->opts.lng_opt.shrt                \
+    && !strcmp (opt.start, g_app->opts.lng_opt.shrt)) \
+   || (!isshrt && !strcmp (opt.start, g_app->opts.lng_opt.lng)))
 
-#define IS_OPT(shrt_opt, lng_opt)               \
-  ((shrt && oshrt && !strcmp (oshrt, shrt_opt)) \
-   || (!shrt && !strcmp (o, lng_opt)))
+#define IS_BTOR_OPT(shrt_opt, lng_opt)            \
+  ((isshrt && oshrt && !strcmp (oshrt, shrt_opt)) \
+   || (!isshrt && !strcmp (o, lng_opt)))
+
+#define HAS_UNEXPECTED_ARGUMENT ((readval == 2 || (readval == 1 && isint)))
+#define HAS_MISSING_ARGUMENT ((!readval || (readval == 1 && !isint)))
+#define HAS_INVALID_ARGUMENT ((readval == 2 && !isint))
 
 int
 boolector_main (int argc, char **argv)
 {
-  int res, sat_res, model_gen, print_model, format;
-  int i, j, k, len, shrt, disable, readval, isint, val, forced_sat_solver;
-#ifndef NBTORLOG
-  int log;
-#endif
-  int inc, incid, incla, incint, dump;
-  int parse_result, parse_status;
-  char *cmd, *valstr, *parse_error_msg, *tmp;
-  BtorCharStack opt, errarg;
-#ifdef BTOR_USE_LINGELING
-  char *lingeling_opts = 0;
-#endif
+  int i, j, len, readval, val, format;
+  int isshrt, isdisable, isint;
+  int res, parse_res, parse_status, sat_res;
+  int mgen, pmodel, inc, dump, force_sat;
+  char *arg, *cmd, *valstr, *tmp, *parse_err_msg;
   char *o;
   const char *oshrt;
+#ifdef BTOR_USE_LINGELING
+  char *lglopts = 0;
+#endif
+  BtorCharStack opt, errarg;
 
 #ifdef BTOR_HAVE_GETRUSAGE
-  static_start_time = btor_time_stamp ();
+  g_start_time = btor_time_stamp ();
 #endif
 
-  res         = BTOR_UNKNOWN_EXIT;
-  sat_res     = BOOLECTOR_UNKNOWN;
-  print_model = 0;
-  inc = incid = incla = incint = dump = format = 0;
-  parse_result                                 = BOOLECTOR_UNKNOWN;
+  g_app = btormain_new_btormain (boolector_new ());
+  btormain_init_opts (g_app);
 
-  static_app = btormain_new_btormain (boolector_new ());
-  btormain_init_opts (static_app);
-#ifndef NBTORLOG
-  log = boolector_get_opt_val (static_app->btor, BTOR_OPT_LOGLEVEL);
-#endif
-  static_verbosity =
-      boolector_get_opt_val (static_app->btor, BTOR_OPT_VERBOSITY);
-  model_gen = boolector_get_opt_val (static_app->btor, BTOR_OPT_MODEL_GEN);
+  res          = BTOR_UNKNOWN_EXIT;
+  parse_res    = BOOLECTOR_UNKNOWN;
+  parse_status = BOOLECTOR_UNKNOWN;
+  sat_res      = BOOLECTOR_UNKNOWN;
+  inc          = 0;
+  mgen         = 0;
+  pmodel       = 0;
+  dump         = 0;
+  force_sat    = 0;
+
+  mgen = boolector_get_opt_val (g_app->btor, BTOR_OPT_MODEL_GEN);
 
   BTOR_INIT_STACK (opt);
   BTOR_INIT_STACK (errarg);
 
   for (i = 1; i < argc; i++)
   {
-    if (argv[i][0] != '-')
+    arg       = argv[i];
+    len       = strlen (argv[i]);
+    isshrt    = 0;
+    isdisable = 0;
+    isint     = 0;
+    readval   = 0;
+    val       = 0;
+    valstr    = 0;
+
+    /* input file */
+
+    if (arg[0] != '-')
     {
-      if (static_app->close_infile)
+      if (g_app->close_infile)
       {
-        btormain_error (static_app, "multiple input files");
+        btormain_error (g_app, "multiple input files");
         goto DONE;
       }
-      static_app->infile_name = argv[i];
-      if (!btor_file_exists (static_app->infile_name))
-        static_app->infile = 0;
-      else if (has_suffix (static_app->infile_name, ".gz")
-               || has_suffix (static_app->infile_name, ".bz2")
-               || has_suffix (static_app->infile_name, "7z"))
-      {
-        BTOR_NEWN (static_app->mm, cmd, strlen (static_app->infile_name) + 40);
-        if (has_suffix (static_app->infile_name, ".gz"))
-          sprintf (cmd, "gunzip -c %s", static_app->infile_name);
-        else if (has_suffix (static_app->infile_name, ".bz2"))
-          sprintf (cmd, "bzcat %s", static_app->infile_name);
-        else if (has_suffix (static_app->infile_name, ".7z"))
-          sprintf (cmd, "7z x -so %s 2>/dev/null", static_app->infile_name);
-        if ((static_app->infile = popen (cmd, "r")))
-          static_app->close_infile = 2;
-        BTOR_DELETEN (
-            static_app->mm, cmd, strlen (static_app->infile_name) + 40);
-      }
-      else if ((static_app->infile = fopen (static_app->infile_name, "r")))
-        static_app->close_infile = 1;
 
-      if (!static_app->infile)
+      g_app->infile_name = arg;
+
+      if (!btor_file_exists (g_app->infile_name))
       {
-        btormain_error (
-            static_app, "can not read '%s'", static_app->infile_name);
+        g_app->infile = 0;
+      }
+      else if (has_suffix (g_app->infile_name, ".gz")
+               || has_suffix (g_app->infile_name, ".bz2")
+               || has_suffix (g_app->infile_name, ".7z"))
+      {
+        BTOR_NEWN (g_app->mm, cmd, len + 40);
+        if (has_suffix (g_app->infile_name, ".gz"))
+          sprintf (cmd, "gunzip -c %s", g_app->infile_name);
+        else if (has_suffix (g_app->infile_name, ".bz2"))
+          sprintf (cmd, "bzcat %s", g_app->infile_name);
+        else if (has_suffix (g_app->infile_name, ".7z"))
+          sprintf (cmd, "7z x -so %s > /dev/null", g_app->infile_name);
+
+        if ((g_app->infile = popen (cmd, "r"))) g_app->close_infile = 2;
+
+        BTOR_DELETEN (g_app->mm, cmd, len + 40);
+      }
+      else if ((g_app->infile = fopen (g_app->infile_name, "r")))
+      {
+        g_app->close_infile = 1;
+      }
+
+      if (!g_app->infile)
+      {
+        btormain_error (g_app, "can not read '%s'", g_app->infile_name);
         goto DONE;
       }
 
       continue;
     }
 
+    /* options */
+
     BTOR_RESET_STACK (errarg);
     BTOR_RESET_STACK (opt);
 
-    k       = 0;
-    val     = 0;
-    readval = 0;
-    isint   = 0;
-    len     = strlen (argv[i]);
+    /* save original option string (without arguments) for error messages */
+    for (j = 0; j < len && arg[j] != '='; j++)
+      BTOR_PUSH_STACK (g_app->mm, errarg, arg[j]);
+    BTOR_PUSH_STACK (g_app->mm, errarg, '\0');
 
-    for (j = 0; j < len && argv[i][j] != '='; j++)
-      BTOR_PUSH_STACK (static_app->mm, errarg, argv[i][j]);
-    BTOR_PUSH_STACK (static_app->mm, errarg, '\0');
+    /* extract option name */
+    isshrt = arg[1] == '-' ? 0 : 1;
+    j      = isshrt ? 1 : 2;
+    isdisable =
+        len > 3 && arg[j] == 'n' && arg[j + 1] == 'o' && arg[j + 2] == '-';
+    for (j = isdisable ? j + 3 : j; j < len && arg[j] != '='; j++)
+      BTOR_PUSH_STACK (g_app->mm, opt, arg[j] == '-' ? '_' : arg[j]);
+    BTOR_PUSH_STACK (g_app->mm, opt, '\0');
 
-    shrt = argv[i][1] == '-' ? 0 : 1;
-    j    = shrt ? 1 : 2;
-    disable =
-        argv[i][j] == 'n' && argv[i][j + 1] == 'o' && argv[i][j + 2] == '-';
-    for (j = disable ? j + 3 : j; j < len && argv[i][j] != '='; j++, k++)
-      BTOR_PUSH_STACK (
-          static_app->mm, opt, argv[i][j] == '-' ? '_' : argv[i][j]);
-    BTOR_PUSH_STACK (static_app->mm, opt, '\0');
-
-    valstr = argv[i] + j + 1;
-    if (argv[i][j] == '=')
+    /* extract option argument (if any) */
+    if (arg[j] == '=')
     {
-      if ((readval = valstr[0] != 0))
+      valstr = arg + j + 1;
+      if (valstr[0] != 0)
       {
-        val   = (int) strtol (valstr, &tmp, 10);
-        isint = tmp[0] == 0;
+        readval = 2;
+        val     = (int) strtol (valstr, &tmp, 10);
+        isint   = tmp[0] == 0;
       }
     }
     else if ((readval = i + 1 < argc && argv[i + 1][0] != '-'))
     {
-      val = (int) strtol (argv[i + 1], &tmp, 10);
+      valstr = argv[i + 1];
+      val    = (int) strtol (valstr, &tmp, 10);
       if (tmp[0] == 0)
       {
         isint = 1;
@@ -815,105 +825,136 @@ boolector_main (int argc, char **argv)
       }
     }
 
-    if (IS_STATIC_OPT (help))
+    /* set options */
+    /* >> main options */
+    if (IS_MAIN_OPT (help))
     {
-      if (disable)
+      if (isdisable)
       {
       ERR_INVALID_OPTION:
-        btormain_error (static_app, "invalid option '%s'", errarg.start);
+        btormain_error (g_app, "invalid option '%s'", errarg.start);
         goto DONE;
       }
-      print_help (static_app);
-      goto DONE;
-    }
-    else if (IS_STATIC_OPT (copyright))
-    {
-      if (disable) goto ERR_INVALID_OPTION;
-      print_copyright (static_app);
-      goto DONE;
-    }
-    else if (IS_STATIC_OPT (version))
-    {
-      if (disable) goto ERR_INVALID_OPTION;
-      print_version (static_app);
-      goto DONE;
-    }
-    else if (IS_STATIC_OPT (time))
-    {
-      if (disable) goto ERR_INVALID_OPTION;
 
-      if (!isint)
+      if (HAS_UNEXPECTED_ARGUMENT)
       {
-      ERR_INVALID_ARGUMENT:
-        btormain_error (static_app,
-                        "invalid argument for '%s', expected int",
-                        errarg.start);
+      ERR_UNEXPECTED_ARGUMENT:
+        btormain_error (
+            g_app, "option '%s' does not expect an argument", errarg.start);
         goto DONE;
       }
 
-      if (!readval)
+      print_help (g_app);
+      goto DONE;
+    }
+    else if (IS_MAIN_OPT (copyright))
+    {
+      if (isdisable) goto ERR_INVALID_OPTION;
+      if (HAS_UNEXPECTED_ARGUMENT) goto ERR_UNEXPECTED_ARGUMENT;
+
+      print_copyright (g_app);
+      goto DONE;
+    }
+    else if (IS_MAIN_OPT (version))
+    {
+      if (isdisable) goto ERR_INVALID_OPTION;
+      if (HAS_UNEXPECTED_ARGUMENT) goto ERR_UNEXPECTED_ARGUMENT;
+
+      print_version (g_app);
+      goto DONE;
+    }
+    else if (IS_MAIN_OPT (time))
+    {
+      if (isdisable) goto ERR_INVALID_OPTION;
+
+      if (HAS_MISSING_ARGUMENT)
       {
       ERR_MISSING_ARGUMENT:
-        btormain_error (static_app, "missing argument for '%s'", errarg.start);
+        btormain_error (g_app, "missing argument for '%s'", errarg.start);
         goto DONE;
       }
 
-      static_set_alarm = val;
-      if (static_set_alarm <= 0) goto ERR_MISSING_ARGUMENT;
-    }
-    else if (IS_STATIC_OPT (output))
-    {
-      if (disable) goto ERR_INVALID_OPTION;
-
-      if (++i > argc) goto ERR_MISSING_ARGUMENT;
-
-      if (static_app->close_outfile)
+      if (HAS_INVALID_ARGUMENT)
       {
-        btormain_error (static_app, "multiple output files");
+      ERR_INVALID_ARGUMENT:
+        btormain_error (
+            g_app, "invalid argument for '%s', expected int", errarg.start);
         goto DONE;
       }
 
-      static_app->outfile_name = argv[i];
+      g_set_alarm = val;
     }
-    else if (IS_STATIC_OPT (smt2_model))
+    else if (IS_MAIN_OPT (output))
     {
-      static_app->opts.smt2_model.val = 1;
+      if (isdisable) goto ERR_INVALID_OPTION;
+      if (!readval) goto ERR_MISSING_ARGUMENT;
+
+      if (g_app->close_outfile)
+      {
+        btormain_error (g_app, "multiple output files");
+        goto DONE;
+      }
+
+      g_app->outfile_name = valstr;
+      if (readval == 1) i += 1;
     }
+    else if (IS_MAIN_OPT (smt2_model))
+    {
+      if (isdisable) goto ERR_INVALID_OPTION;
+      if (HAS_UNEXPECTED_ARGUMENT) goto ERR_UNEXPECTED_ARGUMENT;
+
+      g_app->opts.smt2_model.val += 1;
+    }
+    /* >> sat solver options */
 #ifdef BTOR_USE_LINGELING
-    else if (IS_STATIC_OPT (lingeling))
+    else if (IS_MAIN_OPT (lingeling))
     {
-      if (disable) goto ERR_INVALID_OPTION;
-      static_app->opts.lingeling.val = 1;
+      if (isdisable) goto ERR_INVALID_OPTION;
+      if (HAS_UNEXPECTED_ARGUMENT) goto ERR_UNEXPECTED_ARGUMENT;
+
+      g_app->opts.lingeling.val = 1;
     }
-    else if (IS_STATIC_OPT (lingeling_opts))
+    else if (IS_MAIN_OPT (lingeling_nofork))
     {
-      if (disable) goto ERR_INVALID_OPTION;
+      if (isdisable) goto ERR_INVALID_OPTION;
+      if (HAS_UNEXPECTED_ARGUMENT) goto ERR_UNEXPECTED_ARGUMENT;
 
-      if (!valstr) goto ERR_MISSING_ARGUMENT;
+      g_app->opts.lingeling_nofork.val = 1;
+    }
+    else if (IS_MAIN_OPT (lingeling_opts))
+    {
+      if (isdisable) goto ERR_INVALID_OPTION;
+      if (!readval) goto ERR_MISSING_ARGUMENT;
 
-      lingeling_opts = valstr;
+      lglopts = valstr;
     }
 #endif
 #ifdef BTOR_USE_PICOSAT
-    else if (IS_STATIC_OPT (picosat))
+    else if (IS_MAIN_OPT (picosat))
     {
-      if (disable) goto ERR_INVALID_OPTION;
-      static_app->opts.picosat.val = 1;
+      if (isdisable) goto ERR_INVALID_OPTION;
+      if (HAS_UNEXPECTED_ARGUMENT) goto ERR_UNEXPECTED_ARGUMENT;
+      g_app->opts.picosat.val = 1;
     }
 #endif
 #ifdef BTOR_USE_MINISAT
-    else if (IS_STATIC_OPT (minisat))
+    else if (IS_MAIN_OPT (minisat))
     {
-      if (disable) goto ERR_INVALID_OPTION;
-      static_app->opts.minisat.val = 1;
+      if (isdisable) goto ERR_INVALID_OPTION;
+      if (HAS_UNEXPECTED_ARGUMENT) goto ERR_UNEXPECTED_ARGUMENT;
+      g_app->opts.minisat.val = 1;
     }
 #endif
+
+    /* >> meta options */
     else if (!strcmp (opt.start, "btor"))
     {
       format = BTOR_INPUT_FORMAT_BTOR;
     SET_INPUT_FORMAT:
-      if (disable) goto ERR_INVALID_OPTION;
-      boolector_set_opt (static_app->btor, BTOR_OPT_INPUT_FORMAT, format);
+      if (isdisable) goto ERR_INVALID_OPTION;
+      if (HAS_UNEXPECTED_ARGUMENT) goto ERR_UNEXPECTED_ARGUMENT;
+
+      boolector_set_opt (g_app->btor, BTOR_OPT_INPUT_FORMAT, format);
     }
     else if (!strcmp (opt.start, "smt2"))
     {
@@ -929,9 +970,10 @@ boolector_main (int argc, char **argv)
     {
       format = BTOR_OUTPUT_BASE_HEX;
     SET_OUTPUT_NUMBER_FORMAT:
-      if (disable) goto ERR_INVALID_OPTION;
-      boolector_set_opt (
-          static_app->btor, BTOR_OPT_OUTPUT_NUMBER_FORMAT, format);
+      if (isdisable) goto ERR_INVALID_OPTION;
+      if (HAS_UNEXPECTED_ARGUMENT) goto ERR_UNEXPECTED_ARGUMENT;
+
+      boolector_set_opt (g_app->btor, BTOR_OPT_OUTPUT_NUMBER_FORMAT, format);
     }
     else if (!strcmp (opt.start, "d") || !strcmp (opt.start, "dec"))
     {
@@ -942,12 +984,14 @@ boolector_main (int argc, char **argv)
     {
       dump = BTOR_OUTPUT_FORMAT_BTOR;
     SET_OUTPUT_FORMAT:
-      if (disable) goto ERR_INVALID_OPTION;
-      boolector_set_opt (static_app->btor, BTOR_OPT_OUTPUT_FORMAT, dump);
+      if (isdisable) goto ERR_INVALID_OPTION;
+      if (HAS_UNEXPECTED_ARGUMENT) goto ERR_UNEXPECTED_ARGUMENT;
+
+      boolector_set_opt (g_app->btor, BTOR_OPT_OUTPUT_FORMAT, dump);
+      boolector_set_opt (g_app->btor, BTOR_OPT_PARSE_INTERACTIVE, 0);
     }
 #if 0
-      else if (!strcmp (opt.start, "db2")
-	       || !strcmp (opt.start, "dump_btor2"))
+      else if (!strcmp (opt.start, "db2") || !strcmp (opt.start, "dump_btor2"))
 	{
 	  dump = BTOR_OUTPUT_FORMAT_BTOR2;
 	  goto SET_OUTPUT_FORMAT;
@@ -963,433 +1007,350 @@ boolector_main (int argc, char **argv)
       dump = BTOR_OUTPUT_FORMAT_SMT1;
       goto SET_OUTPUT_FORMAT;
     }
+
+    /* >> btor options */
     else
     {
-      for (o = (char *) boolector_first_opt (static_app->btor); o;
-           o = (char *) boolector_next_opt (static_app->btor, o))
+      for (o = (char *) boolector_first_opt (g_app->btor); o;
+           o = (char *) boolector_next_opt (g_app->btor, o))
       {
-        oshrt = boolector_get_opt_shrt (static_app->btor, o);
-        if ((shrt && oshrt && !strcmp (oshrt, opt.start))
-            || (!shrt && !strcmp (o, opt.start)))
+        oshrt = boolector_get_opt_shrt (g_app->btor, o);
+        if ((isshrt && oshrt && !strcmp (oshrt, opt.start))
+            || (!isshrt && !strcmp (o, opt.start)))
           break;
       }
 
       if (!o) goto ERR_INVALID_OPTION;
 
-      if (IS_OPT ("i", BTOR_OPT_INCREMENTAL))
+      /* flags */
+      if (IS_BTOR_OPT ("i", BTOR_OPT_INCREMENTAL))
       {
-        if (disable || (readval && val == 0))
-          inc = 0;
-        else
-          inc |= BTOR_PARSE_MODE_BASIC_INCREMENTAL;
-        boolector_set_opt (static_app->btor, o, inc);
+        if (readval == 2 && !isint) goto ERR_INVALID_ARGUMENT;
+
+        inc = isdisable || (readval && isint && val == 0)
+                  ? 0
+                  : inc | BTOR_PARSE_MODE_BASIC_INCREMENTAL;
+        boolector_set_opt (g_app->btor, o, inc);
       }
-      else if (IS_OPT ("I", BTOR_OPT_INCREMENTAL_ALL))
+      else if (IS_BTOR_OPT ("I", BTOR_OPT_INCREMENTAL_ALL))
       {
-        if (disable || (readval && val == 0))
-          boolector_set_opt (static_app->btor, o, 0);
+        if (readval == 2 && !isint) goto ERR_INVALID_ARGUMENT;
+
+        if (isdisable || (readval && isint && val == 0))
+          boolector_set_opt (g_app->btor, o, 0);
         else
         {
           boolector_set_opt (
-              static_app->btor, o, BTOR_PARSE_MODE_INCREMENTAL_BUT_CONTINUE);
+              g_app->btor, o, BTOR_PARSE_MODE_INCREMENTAL_BUT_CONTINUE);
           inc |= BTOR_PARSE_MODE_INCREMENTAL_BUT_CONTINUE;
-          boolector_set_opt (static_app->btor, BTOR_OPT_INCREMENTAL, inc);
+          boolector_set_opt (g_app->btor, BTOR_OPT_INCREMENTAL, inc);
         }
       }
-      else if (IS_OPT ("", BTOR_OPT_INCREMENTAL_IN_DEPTH))
+      else if (IS_BTOR_OPT ("m", BTOR_OPT_MODEL_GEN))
       {
-        if (disable) goto ERR_INVALID_OPTION;
+        if (readval == 2 && !isint) goto ERR_INVALID_ARGUMENT;
 
-        if (incla || incint)
+        if (isdisable || (readval && isint && val == 0))
         {
-        ERR_INCREMENTAL_USAGE:
-          btormain_error (static_app,
-                          "Can only use one out of '--%s', '--%s', or '--%s'",
-                          BTOR_OPT_INCREMENTAL_IN_DEPTH,
-                          BTOR_OPT_INCREMENTAL_LOOK_AHEAD,
-                          BTOR_OPT_INCREMENTAL_INTERVAL);
-          goto DONE;
-        }
-
-        if (!readval) goto ERR_MISSING_ARGUMENT;
-
-        if (val < 1)
-        {
-          btormain_error (static_app,
-                          "incremental in-depth width must be >= 1");
-          goto DONE;
-        }
-
-        boolector_set_opt (static_app->btor, o, val);
-        incid = val;
-      }
-      else if (IS_OPT ("", BTOR_OPT_INCREMENTAL_LOOK_AHEAD))
-      {
-        if (disable) goto ERR_INVALID_OPTION;
-
-        if (incid || incint) goto ERR_INCREMENTAL_USAGE;
-
-        if (!readval) goto ERR_MISSING_ARGUMENT;
-
-        if (val < 1)
-        {
-          btormain_error (static_app,
-                          "incremental look-ahead width must be >= 1");
-          goto DONE;
-        }
-
-        boolector_set_opt (static_app->btor, o, val);
-        incla = val;
-      }
-      else if (IS_OPT ("", BTOR_OPT_INCREMENTAL_INTERVAL))
-      {
-        if (disable) goto ERR_INVALID_OPTION;
-
-        if (incid || incla) goto ERR_INCREMENTAL_USAGE;
-
-        if (!readval) goto ERR_MISSING_ARGUMENT;
-
-        if (val < 1)
-        {
-          btormain_error (static_app,
-                          "incremental interval width must be >= 1");
-          goto DONE;
-        }
-
-        boolector_set_opt (static_app->btor, o, val);
-        incint = val;
-      }
-      else if (IS_OPT ("m", BTOR_OPT_MODEL_GEN))
-      {
-        if (disable || (readval && val == 0))
-        {
-          model_gen   = 0;
-          print_model = 0;
+          mgen   = 0;
+          pmodel = 0;
         }
         else
         {
-          model_gen += 1;
-          print_model = 1;
+          mgen += 1;
+          pmodel = 1;
         }
       }
-#ifndef NBTORLOG
-      else if (IS_OPT ("l", BTOR_OPT_LOGLEVEL))
+      /* options requiring an integer argument */
+      else if (IS_BTOR_OPT ("rwl", BTOR_OPT_REWRITE_LEVEL)
+               || IS_BTOR_OPT ("", BTOR_OPT_REWRITE_LEVEL_PBR)
+               || IS_BTOR_OPT ("", BTOR_OPT_PBRA_LOD_LIMIT)
+               || IS_BTOR_OPT ("", BTOR_OPT_PBRA_SAT_LIMIT)
+               || IS_BTOR_OPT ("", BTOR_OPT_PBRA_OPS_FACTOR))
       {
-        if (disable || (readval && val == 0))
-          log = 0;
-        else
-          log += 1;
+        if (!readval) goto ERR_MISSING_ARGUMENT;
+        if (!isint) goto ERR_INVALID_ARGUMENT;
+        boolector_set_opt (g_app->btor, o, val);
       }
-#endif
-      else if (IS_OPT ("v", BTOR_OPT_VERBOSITY))
-      {
-        if (disable || (readval && val == 0))
-          static_verbosity = 0;
-        else
-          static_verbosity += 1;
-      }
+      /* options that can be used as a flag or with an argument */
       else
       {
-        if (disable && readval)
-        {
-          btormain_error (
-              static_app, "'%s' does not take an argument", errarg.start);
-          goto DONE;
-        }
+        if (isdisable && HAS_UNEXPECTED_ARGUMENT) goto ERR_UNEXPECTED_ARGUMENT;
 
-        if ((!strcmp (o, BTOR_OPT_DUAL_PROP)
-             && boolector_get_opt_val (static_app->btor, BTOR_OPT_JUST))
-            || (!strcmp (o, BTOR_OPT_JUST)
-                && boolector_get_opt_val (static_app->btor,
-                                          BTOR_OPT_DUAL_PROP)))
+        if ((IS_BTOR_OPT ("dp", BTOR_OPT_DUAL_PROP)
+             && boolector_get_opt_val (g_app->btor, BTOR_OPT_JUST))
+            || (IS_BTOR_OPT ("ju", BTOR_OPT_JUST)
+                && boolector_get_opt_val (g_app->btor, BTOR_OPT_DUAL_PROP)))
         {
-          btormain_error (static_app,
-                          "Can only use one out of '--%s' or '--%s'",
+          btormain_error (g_app,
+                          "can only set one out of '--%s' and '--%s'",
                           BTOR_OPT_DUAL_PROP,
                           BTOR_OPT_JUST);
           goto DONE;
         }
-        else if ((!strcmp (o, BTOR_OPT_REWRITE_LEVEL)
-                  || !strcmp (o, BTOR_OPT_REWRITE_LEVEL_PBR))
-                 || !strcmp (o, BTOR_OPT_PBRA_LOD_LIMIT)
-                 || !strcmp (o, BTOR_OPT_PBRA_SAT_LIMIT)
-                 || !strcmp (o, BTOR_OPT_PBRA_OPS_FACTOR))
-        {
-          if (!isint) goto ERR_INVALID_ARGUMENT;
-          if (!readval) goto ERR_MISSING_ARGUMENT;
-        }
 
-        if (disable || (readval && val == 0))
-          boolector_set_opt (static_app->btor, o, 0);
-        else if (!readval)
-          boolector_set_opt (static_app->btor, o, 1);
+        if (isdisable || (readval && isint && val == 0))
+          boolector_set_opt (g_app->btor, o, 0);
+        else if (readval && isint)
+          boolector_set_opt (g_app->btor, o, val);
         else
-          boolector_set_opt (static_app->btor, o, val);
+          boolector_set_opt (
+              g_app->btor, o, boolector_get_opt_val (g_app->btor, o) + 1);
       }
     }
   }
 
-  assert (!static_app->done && !static_app->err);
+  assert (!g_app->done && !g_app->err);
 
-  if (static_app->outfile_name)
+  g_verbosity = boolector_get_opt_val (g_app->btor, BTOR_OPT_VERBOSITY);
+
+  /* open output file */
+  if (g_app->outfile_name)
   {
-    if (!strcmp (static_app->outfile_name, static_app->infile_name))
+    if (!strcmp (g_app->outfile_name, g_app->infile_name))
     {
-      btormain_error (static_app, "input file and output file are the same");
+      btormain_error (g_app, "input and output file must not be the same");
       goto DONE;
     }
 
-    static_app->outfile = fopen (static_app->outfile_name, "w");
-    if (!static_app->outfile)
+    g_app->outfile = fopen (g_app->outfile_name, "w");
+    if (!g_app->outfile)
     {
-      btormain_error (
-          static_app, "can not create '%s'", static_app->outfile_name);
+      btormain_error (g_app, "can not create '%s'", g_app->outfile_name);
       goto DONE;
     }
-    static_app->close_outfile = 1;
+    g_app->close_outfile = 1;
   }
 
-#ifndef NBTORLOG
-  boolector_set_opt (static_app->btor, BTOR_OPT_LOGLEVEL, log);
-#endif
-  boolector_set_opt (static_app->btor, BTOR_OPT_VERBOSITY, static_verbosity);
-  // TODO: disabling model gen not yet supported (ma)
-  if (model_gen > 0)
-    boolector_set_opt (static_app->btor, BTOR_OPT_MODEL_GEN, model_gen);
+  /* automatically enable model generation if smt2 models are forced */
+  mgen =
+      !mgen && g_app->opts.smt2_model.val ? g_app->opts.smt2_model.val : mgen;
 
-  if (!inc && (incid || incla || incint))
-  {
-    inc = 1;
-    boolector_set_opt (static_app->btor,
-                       BTOR_OPT_INCREMENTAL,
-                       BTOR_PARSE_MODE_BASIC_INCREMENTAL);
-  }
+  // TODO: disabling model generation not yet supported (ma)
+  if (mgen > 0) boolector_set_opt (g_app->btor, BTOR_OPT_MODEL_GEN, mgen);
 
-  forced_sat_solver = 0;
+    /* force sat solver */
 #ifdef BTOR_USE_LINGELING
-  if (static_app->opts.lingeling.val)
+  if (g_app->opts.lingeling.val)
   {
-    if (forced_sat_solver++)
+  ERR_MULTIPLE_SAT_SOLVERS_FORCED:
+    if (force_sat++)
     {
-      btormain_error (static_app, "multiple sat solvers forced");
+      btormain_error (g_app, "multiple sat solvers forced");
       goto DONE;
     }
+
     if (!boolector_set_sat_solver_lingeling (
-            static_app->btor,
-            lingeling_opts,
-            static_app->opts.lingeling_nofork.val))
-      btormain_error (
-          static_app, "invalid options to Lingeling: '%s'", lingeling_opts);
+            g_app->btor, lglopts, g_app->opts.lingeling_nofork.val))
+      btormain_error (g_app, "invalid options to Lingeling: '%s'", lglopts);
   }
 #endif
 #ifdef BTOR_USE_PICOSAT
-  if (static_app->opts.picosat.val)
+  if (g_app->opts.picosat.val)
   {
-    if (forced_sat_solver++)
-    {
-      btormain_error (static_app, "multiple sat solvers forced");
-      goto DONE;
-    }
-    boolector_set_sat_solver_picosat (static_app->btor);
+    if (force_sat++) goto ERR_MULTIPLE_SAT_SOLVERS_FORCED;
+    boolector_set_sat_solver_picosat (g_app->btor);
   }
 #endif
 #ifdef BTOR_USE_MINISAT
-  if (static_app->opts.minisat.val)
+  if (g_app->opts.minisat.val)
   {
-    if (forced_sat_solver++)
-    {
-      btormain_error (static_app, "multiple sat solvers forced");
-      goto DONE;
-    }
-    boolector_set_sat_solver_minisat (static_app->btor);
+    if (force_sat++) goto ERR_MULTIPLE_SAT_SOLVERS_FORCED;
+    boolector_set_sat_solver_minisat (g_app->btor);
+  }
+#endif
+#ifdef BTOR_USE_LINGELING
+  if (g_app->opts.lingeling_nofork.val && !g_app->opts.lingeling.val)
+  {
+    btormain_error (g_app,
+                    "option '%s' is invalid if Lingeling is not "
+                    "configured as SAT solver",
+                    errarg.start);
+    goto DONE;
   }
 #endif
 
-  if (static_verbosity)
+  /* print verbose info and set signal handlers */
+  if (g_verbosity)
   {
     if (inc) btormain_msg ("incremental mode through command line option");
-    if (incid) btormain_msg ("incremental in-depth window of %d", incid);
-    if (incla) btormain_msg ("incremental look-ahead window of %d", incla);
-    if (incint) btormain_msg ("incremental interval window of %d", incint);
-
     btormain_msg ("Boolector Version %s %s", BTOR_VERSION, BTOR_ID);
     btormain_msg ("%s", BTOR_CFLAGS);
     btormain_msg ("released %s", BTOR_RELEASED);
     btormain_msg ("compiled %s", BTOR_COMPILED);
     if (*BTOR_CC) btormain_msg ("%s", BTOR_CC);
-
     btormain_msg ("setting signal handlers");
   }
   set_sig_handlers ();
 
-  if (static_set_alarm)
+  /* set alarm */
+  if (g_set_alarm)
   {
-    if (static_verbosity)
-      btormain_msg ("setting time limit to %d seconds", static_set_alarm);
+    if (g_verbosity)
+      btormain_msg ("setting time limit to %d seconds", g_set_alarm);
     set_alarm ();
   }
-  else if (static_verbosity)
+  else if (g_verbosity)
     btormain_msg ("no time limit given");
 
-  if (dump) boolector_set_opt (static_app->btor, BTOR_OPT_PARSE_INTERACTIVE, 0);
+  if (inc && g_verbosity) btormain_msg ("starting incremental mode");
 
-  if (inc && static_verbosity) btormain_msg ("starting incremental mode");
-
-  if ((val = boolector_get_opt_val (static_app->btor, "input_format")))
+  /* parse */
+  if ((val = boolector_get_opt_val (g_app->btor, "input_format")))
   {
     switch (val)
     {
       case BTOR_INPUT_FORMAT_BTOR:
-        if (static_verbosity)
+        if (g_verbosity)
           btormain_msg ("BTOR input forced through cmd line options");
-        parse_result = boolector_parse_btor (static_app->btor,
-                                             static_app->infile,
-                                             static_app->infile_name,
-                                             static_app->outfile,
-                                             &parse_error_msg,
-                                             &parse_status);
+        parse_res = boolector_parse_btor (g_app->btor,
+                                          g_app->infile,
+                                          g_app->infile_name,
+                                          g_app->outfile,
+                                          &parse_err_msg,
+                                          &parse_status);
         break;
       case BTOR_INPUT_FORMAT_SMT1:
-        if (static_verbosity)
+        if (g_verbosity)
           btormain_msg ("SMT-LIB v1 input forced through cmd line options");
-        parse_result = boolector_parse_smt1 (static_app->btor,
-                                             static_app->infile,
-                                             static_app->infile_name,
-                                             static_app->outfile,
-                                             &parse_error_msg,
-                                             &parse_status);
+        parse_res = boolector_parse_smt1 (g_app->btor,
+                                          g_app->infile,
+                                          g_app->infile_name,
+                                          g_app->outfile,
+                                          &parse_err_msg,
+                                          &parse_status);
         break;
       case BTOR_INPUT_FORMAT_SMT2:
-        if (static_verbosity)
+        if (g_verbosity)
           btormain_msg ("SMT-LIB v2 input forced through cmd line options");
-        parse_result = boolector_parse_smt2 (static_app->btor,
-                                             static_app->infile,
-                                             static_app->infile_name,
-                                             static_app->outfile,
-                                             &parse_error_msg,
-                                             &parse_status);
+        parse_res = boolector_parse_smt2 (g_app->btor,
+                                          g_app->infile,
+                                          g_app->infile_name,
+                                          g_app->outfile,
+                                          &parse_err_msg,
+                                          &parse_status);
         break;
     }
   }
   else
-    parse_result = boolector_parse (static_app->btor,
-                                    static_app->infile,
-                                    static_app->infile_name,
-                                    static_app->outfile,
-                                    &parse_error_msg,
-                                    &parse_status);
+    parse_res = boolector_parse (g_app->btor,
+                                 g_app->infile,
+                                 g_app->infile_name,
+                                 g_app->outfile,
+                                 &parse_err_msg,
+                                 &parse_status);
 
   /* verbosity may have been increased via input (set-option) */
-  static_verbosity =
-      boolector_get_opt_val (static_app->btor, BTOR_OPT_VERBOSITY);
+  g_verbosity = boolector_get_opt_val (g_app->btor, BTOR_OPT_VERBOSITY);
 
-  if (parse_result == BOOLECTOR_PARSE_ERROR)
+  if (parse_res == BOOLECTOR_PARSE_ERROR)
   {
-    /* NOTE: do not use btormain_error here as 'parse_error_msg' must not be
+    /* NOTE: do not use btormain_error here as 'parse_err_msg' must not be
      * treated as format string --- it might contain unescaped '%' due to
      * invalid user input. */
-    fprintf (stderr, "boolector: %s\n", parse_error_msg);
-    static_app->err = BTOR_ERR_EXIT;
+    fprintf (stderr, "boolector: %s\n", parse_err_msg);
+    g_app->err = BTOR_ERR_EXIT;
     goto DONE;
   }
 
+  /* incremental mode */
   if (inc)
   {
-    if (parse_result == BOOLECTOR_SAT)
+    if (parse_res == BOOLECTOR_SAT)
     {
-      if (static_verbosity)
-        btormain_msg ("one formula SAT in incremental mode");
+      if (g_verbosity) btormain_msg ("one formula SAT in incremental mode");
       sat_res = BOOLECTOR_SAT;
     }
-    else if (parse_result == BOOLECTOR_UNSAT)
+    else if (parse_res == BOOLECTOR_UNSAT)
     {
-      if (static_verbosity)
-        btormain_msg ("all formulas UNSAT in incremental mode");
+      if (g_verbosity) btormain_msg ("all formulas UNSAT in incremental mode");
       sat_res = BOOLECTOR_UNSAT;
     }
 
-    if (static_verbosity) boolector_print_stats (static_app->btor);
+    if (g_verbosity) boolector_print_stats (g_app->btor);
 
-    if (print_model && sat_res == BOOLECTOR_SAT)
+    if (pmodel && sat_res == BOOLECTOR_SAT)
     {
-      assert (boolector_get_opt_val (static_app->btor, BTOR_OPT_MODEL_GEN));
-      boolector_print_model (static_app->btor,
-                             static_app->opts.smt2_model.val ? "smt2" : "btor",
-                             static_app->outfile);
+      assert (boolector_get_opt_val (g_app->btor, BTOR_OPT_MODEL_GEN));
+      boolector_print_model (g_app->btor,
+                             g_app->opts.smt2_model.val ? "smt2" : "btor",
+                             g_app->outfile);
     }
 
     goto DONE;
   }
+  /* we don't dump formula(s) in incremental mode */
   else if (dump)
   {
     switch (dump)
     {
       case BTOR_OUTPUT_FORMAT_BTOR:
-        if (static_verbosity) btormain_msg ("dumping BTOR expressions");
-        boolector_dump_btor (static_app->btor, static_app->outfile);
+        if (g_verbosity) btormain_msg ("dumping BTOR expressions");
+        boolector_dump_btor (g_app->btor, g_app->outfile);
         break;
 #if 0
 	  case BTOR_OUTPUT_FORMAT_BTOR2:
-	    if (static_verbosity)
-	      btormain_msg ("dumping BTOR 2.0 expressions");
-	    boolector_dump_btor2 (static_app->btor, static_app->outfile);
+	    if (g_verbosity) btormain_msg ("dumping BTOR 2.0 expressions");
+	    boolector_dump_btor2 (g_app->btor, g_app->outfile);
 	    break;
 #endif
       case BTOR_OUTPUT_FORMAT_SMT1:
-        if (static_verbosity) btormain_msg ("dumping in SMT-LIB v1 format");
-        boolector_dump_smt1 (static_app->btor, static_app->outfile);
+        if (g_verbosity) btormain_msg ("dumping in SMT-LIB v1 format");
+        boolector_dump_smt1 (g_app->btor, g_app->outfile);
         break;
       default:
         assert (dump == BTOR_OUTPUT_FORMAT_SMT2);
-        if (static_verbosity) btormain_msg ("dumping in SMT 2.0 format");
-        boolector_dump_smt2 (static_app->btor, static_app->outfile);
+        if (g_verbosity) btormain_msg ("dumping in SMT 2.0 format");
+        boolector_dump_smt2 (g_app->btor, g_app->outfile);
     }
 
-    if (static_verbosity) boolector_print_stats (static_app->btor);
+    if (g_verbosity) boolector_print_stats (g_app->btor);
 
     goto DONE;
   }
 
-  if (parse_result != BOOLECTOR_SAT && parse_result != BOOLECTOR_UNSAT
-      && !boolector_terminate (static_app->btor))
+  /* call sat (if not in incremental mode) */
+  if (parse_res != BOOLECTOR_SAT && parse_res != BOOLECTOR_UNSAT
+      && !boolector_terminate (g_app->btor))
   {
-    sat_res = boolector_sat (static_app->btor);
-    print_sat_result (static_app, sat_res);
+    sat_res = boolector_sat (g_app->btor);
+    print_sat_result (g_app, sat_res);
   }
   else
-    sat_res = parse_result;
+    sat_res = parse_res;
 
-  assert (boolector_terminate (static_app->btor)
-          || sat_res != BOOLECTOR_UNKNOWN);
+  assert (boolector_terminate (g_app->btor) || sat_res != BOOLECTOR_UNKNOWN);
 
-  /* check if status is equal to benchmark status */
+  /* check if status is equal to benchmark status (if provided) */
   if (sat_res == BOOLECTOR_SAT && parse_status == BOOLECTOR_UNSAT)
-    btormain_error (static_app,
+    btormain_error (g_app,
                     "'sat' but status of benchmark in '%s' is 'unsat'",
-                    static_app->infile_name);
+                    g_app->infile_name);
   else if (sat_res == BOOLECTOR_UNSAT && parse_status == BOOLECTOR_SAT)
-    btormain_error (static_app,
+    btormain_error (g_app,
                     "'unsat' but status of benchmark in '%s' is 'sat'",
-                    static_app->infile_name);
+                    g_app->infile_name);
 
-  if (static_verbosity)
+  /* print stats */
+  if (g_verbosity)
   {
-    boolector_print_stats (static_app->btor);
+    boolector_print_stats (g_app->btor);
     print_static_stats (sat_res);
   }
 
-  if (print_model && sat_res == BOOLECTOR_SAT)
+  /* print model */
+  if (pmodel && sat_res == BOOLECTOR_SAT)
   {
-    assert (boolector_get_opt_val (static_app->btor, BTOR_OPT_MODEL_GEN));
-    boolector_print_model (static_app->btor,
-                           static_app->opts.smt2_model.val ? "smt2" : "btor",
-                           static_app->outfile);
+    assert (boolector_get_opt_val (g_app->btor, BTOR_OPT_MODEL_GEN));
+    boolector_print_model (g_app->btor,
+                           g_app->opts.smt2_model.val ? "smt2" : "btor",
+                           g_app->outfile);
   }
 
 DONE:
-  if (static_app->done)
+  if (g_app->done)
     res = BTOR_SUCC_EXIT;
-  else if (static_app->err)
+  else if (g_app->err)
     res = BTOR_ERR_EXIT;
   else if (sat_res == BOOLECTOR_UNSAT)
     res = BTOR_UNSAT_EXIT;
@@ -1399,15 +1360,15 @@ DONE:
   assert (res == BTOR_ERR_EXIT || res == BTOR_SUCC_EXIT || res == BTOR_SAT_EXIT
           || res == BTOR_UNSAT_EXIT || res == BTOR_UNKNOWN_EXIT);
 
-  if (static_app->close_infile == 1)
-    fclose (static_app->infile);
-  else if (static_app->close_infile == 2)
-    pclose (static_app->infile);
-  if (static_app->close_outfile) fclose (static_app->outfile);
+  if (g_app->close_infile == 1)
+    fclose (g_app->infile);
+  else if (g_app->close_infile == 2)
+    pclose (g_app->infile);
+  if (g_app->close_outfile) fclose (g_app->outfile);
 
-  BTOR_RELEASE_STACK (static_app->mm, errarg);
-  BTOR_RELEASE_STACK (static_app->mm, opt);
-  btormain_delete_btormain (static_app);
+  BTOR_RELEASE_STACK (g_app->mm, errarg);
+  BTOR_RELEASE_STACK (g_app->mm, opt);
+  btormain_delete_btormain (g_app);
   reset_sig_handlers ();
 
   return res;
