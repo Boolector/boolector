@@ -4701,7 +4701,7 @@ find_memset_operations (Btor *btor)
 {
   assert (btor);
 
-  int i, cnt, num_memsets = 0, num_writes = 0, num_indices = 0, in_range;
+  int cnt, num_memsets = 0, num_writes = 0, num_indices = 0, in_range;
   int lower, upper;
   double start, delta;
   char *b0, *b1, *one, *diff, *last_diff;
@@ -4776,7 +4776,7 @@ find_memset_operations (Btor *btor)
       {
         assert (cnt > 1);
         qsort (stack->start, cnt, sizeof (BtorNode *), cmp_bits);
-        last_diff = 0;
+        diff = last_diff = 0;
         lower = upper = 0;
         while (upper < cnt)
         {
