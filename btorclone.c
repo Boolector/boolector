@@ -1158,8 +1158,9 @@ clone_aux_btor (Btor *btor,
     BTOR_RELEASE_STACK (btor->mm, stack);
   }
 
-  clone->clone          = NULL;
-  clone->close_apitrace = 0;
+  clone->parse_error_msg = NULL;
+  clone->clone           = NULL;
+  clone->close_apitrace  = 0;
 
   clone_prefix = "clone";
   len          = btor->msg->prefix ? strlen (btor->msg->prefix) : 0;
