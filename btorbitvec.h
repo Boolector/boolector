@@ -34,7 +34,7 @@ struct BitVector
    *              ^ ^--- MSB
    *              |--- spare bit
    * */
-  BTOR_BV_TYPE *bits;
+  BTOR_BV_TYPE bits[];
 };
 
 typedef struct BitVector BitVector;

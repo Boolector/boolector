@@ -6628,15 +6628,16 @@ propagate (Btor *btor,
         param_app = next_node_hash_table_iterator (&it);
         assert (BTOR_IS_REGULAR_NODE (param_app));
         assert (BTOR_IS_APPLY_NODE (param_app));
-        insert_synth_app_lambda (btor, lambda, param_app);
-        assert (param_app->reachable || param_app->vread);
-        assert (param_app->refs - param_app->ext_refs > 1);
-        if (!param_app->propagated && !param_app->reachable
-            && (BTOR_REAL_ADDR_NODE (fun_value) != param_app
-                || param_app->e[1] != args))
+        if (param_app != fun_value)
         {
-          BTOR_PUSH_STACK (mm, *prop_stack, param_app);
-          BTOR_PUSH_STACK (mm, *prop_stack, param_app->e[0]);
+          insert_synth_app_lambda (btor, lambda, param_app);
+          assert (param_app->reachable || param_app->vread);
+          assert (param_app->refs - param_app->ext_refs > 1);
+          if (!param_app->propagated && !param_app->reachable)
+          {
+            BTOR_PUSH_STACK (mm, *prop_stack, param_app);
+            BTOR_PUSH_STACK (mm, *prop_stack, param_app->e[0]);
+          }
         }
         btor_remove_from_ptr_hash_table (to_prop, param_app, 0, 0);
         btor_release_exp (btor, param_app);
@@ -6662,7 +6663,7 @@ propagate (Btor *btor,
       args_equal = 0;
       // TODO: how can we still propagate negated applies down?
       if (!BTOR_IS_INVERTED_NODE (fun_value) && BTOR_IS_APPLY_NODE (fun_value))
-        args_equal = BTOR_REAL_ADDR_NODE (fun_value)->e[1] == args;
+        args_equal = fun_value->e[1] == args;
 
       if (!args_equal)
       {
@@ -7006,7 +7007,6 @@ new_exp_layer_clone_for_dual_prop (Btor *btor,
   Btor *clone;
   BtorNode *cur, *and;
   BtorHashTableIterator it;
-  LGL *lgl;
   BtorSATMgr *smgr;
 
   start = btor_time_stamp ();
@@ -7029,9 +7029,8 @@ new_exp_layer_clone_for_dual_prop (Btor *btor,
 
   smgr = btor_get_sat_mgr_btor (clone);
   assert (!btor_is_initialized_sat (smgr));
+  btor_set_sat_solver (smgr, btor_get_sat_mgr_btor (btor)->name, "plain=1", 0);
   btor_init_sat (smgr);
-  lgl = ((BtorLGL *) smgr->solver)->lgl;
-  lglsetopt (lgl, "plain", 1);
 
   init_node_hash_table_iterator (&it, clone->unsynthesized_constraints);
   queue_node_hash_table_iterator (&it, clone->assumptions);
@@ -7097,7 +7096,7 @@ sat_aux_btor (Btor *btor, int lod_limit, int sat_limit)
 {
   assert (btor);
 
-  int sat_result, found_conflict, refinements;
+  int sat_result, found_conflict;
   BtorNodePtrStack prop_stack;
   BtorSATMgr *smgr;
   Btor *clone;
@@ -7224,25 +7223,15 @@ sat_aux_btor (Btor *btor, int lod_limit, int sat_limit)
 
     if (clone) add_lemma_to_dual_prop_clone (btor, clone, &clone_root, exp_map);
 
-    if (btor->options.verbosity.val == 1)
+    if (btor->options.verbosity.val)
     {
-      refinements = btor->stats.lod_refinements;
       fprintf (stdout,
                "\r[btorcore] refinement iteration %d, "
                "vars %d, applies %d\r",
-               refinements,
+               btor->stats.lod_refinements,
                btor->ops[BTOR_BV_VAR_NODE].cur,
                btor->ops[BTOR_APPLY_NODE].cur);
       fflush (stdout);
-    }
-    else if (btor->options.verbosity.val > 1)
-    {
-      refinements = btor->stats.lod_refinements;
-      if (btor->options.verbosity.val > 2 || !(refinements % 10))
-      {
-        fprintf (stdout, "[btorsat] refinement iteration %d\n", refinements);
-        fflush (stdout);
-      }
     }
 
     /* may be set in add_symbolic_lemma via insert_unsythesized_constraint
@@ -7263,6 +7252,8 @@ sat_aux_btor (Btor *btor, int lod_limit, int sat_limit)
   BTOR_RELEASE_STACK (btor->mm, prop_stack);
 
 DONE:
+  if (btor->options.verbosity.val && btor->stats.lod_refinements > 0)
+    fprintf (stdout, "\n");
   BTOR_RELEASE_STACK (btor->mm, prop_stack);
   btor->valid_assignments = 1;
 
