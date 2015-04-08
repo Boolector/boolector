@@ -1716,7 +1716,7 @@ btor_sat_aux_btor_sls (Btor *btor)
     }
 
     for (j = 0, max_steps = BTOR_SLS_MAXSTEPS (i);
-         j < max_steps;  // && !btor->options.sls_move_prob_rand_walk.val;
+         j < max_steps;  //|| btor->options.sls_move_prob_rand_walk.val;
          j++)
     {
       move (btor, nmoves++);
