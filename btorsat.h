@@ -77,6 +77,7 @@ struct BtorSATMgr
     void (*set_prefix) (BtorSATMgr *, const char *);
     void (*stats) (BtorSATMgr *);
     int (*variables) (BtorSATMgr *);
+    void *(*clone) (BtorSATMgr *);
   } api;
 };
 

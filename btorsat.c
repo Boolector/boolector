@@ -55,7 +55,6 @@
 /*------------------------------------------------------------------------*/
 
 #if defined(BTOR_USE_LINGELING)
-static BtorLGL *btor_clone_lingeling (BtorLGL *, BtorMemMgr *);
 #define btor_enable_default_sat(SMGR) btor_enable_lingeling_sat ((SMGR), 0, 0)
 #elif defined(BTOR_USE_PICOSAT)
 #define btor_enable_default_sat btor_enable_picosat_sat
@@ -87,7 +86,7 @@ int
 btor_has_clone_support_sat_mgr (BtorSATMgr *smgr)
 {
   assert (smgr);
-  return (!strcmp (smgr->name, "Lingeling"));
+  return smgr->api.clone != 0;
 }
 
 int
@@ -118,8 +117,10 @@ btor_clone_sat_mgr (BtorMemMgr *mm, BtorMsg *msg, BtorSATMgr *smgr)
 
   BtorSATMgr *res;
 
+  BTOR_ABORT_SAT (!btor_has_clone_support_sat_mgr (smgr),
+                  "SAT solver does not support cloning");
   BTOR_NEW (mm, res);
-  res->solver = btor_clone_lingeling (smgr->solver, mm);
+  res->solver = smgr->api.clone (smgr);
   res->mm     = mm;
   res->msg    = msg;
   assert (res->mm->sat_allocated == smgr->mm->sat_allocated);
@@ -514,14 +515,16 @@ btor_enable_picosat_sat (BtorSATMgr *smgr)
 #ifdef BTOR_USE_LINGELING
 
 static BtorLGL *
-btor_clone_lingeling (BtorLGL *solver, BtorMemMgr *mm)
+btor_lingeling_clone (BtorSATMgr *smgr)
 {
-  assert (mm);
+  assert (smgr);
 
-  BtorLGL *res;
+  BtorMemMgr *mm;
+  BtorLGL *res, *solver;
 
-  if (!solver) return 0;
-
+  mm     = smgr->mm;
+  solver = smgr->solver;
+  assert (solver);
   assert (solver->lgl);
 
   BTOR_CNEW (mm, res);
@@ -923,6 +926,7 @@ btor_enable_lingeling_sat (BtorSATMgr *smgr, const char *optstr, int nofork)
   smgr->api.set_prefix       = btor_lingeling_set_prefix;
   smgr->api.stats            = btor_lingeling_stats;
   smgr->api.variables        = btor_lingeling_variables;
+  smgr->api.clone            = btor_lingeling_clone;
 
   BTOR_MSG (smgr->msg,
             1,
