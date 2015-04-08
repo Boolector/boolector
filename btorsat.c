@@ -218,10 +218,14 @@ btor_init_sat (BtorSATMgr *smgr)
   smgr->inc_required                   = 1;
   smgr->sat_time                       = 0;
   smgr->used_that_inc_was_not_required = 0;
-  smgr->true_lit                       = btor_next_cnf_id_sat_mgr (smgr);
+
+  if (smgr->api.setterm) smgr->api.setterm (smgr);
+
+  smgr->true_lit = btor_next_cnf_id_sat_mgr (smgr);
   btor_add_sat (smgr, smgr->true_lit);
   btor_add_sat (smgr, 0);
   btor_set_output_sat (smgr, stdout);
+  BTOR_MSG (smgr->msg, 1, "initialized %s", smgr->name);
 }
 
 void
@@ -487,6 +491,7 @@ btor_enable_picosat_sat (BtorSATMgr *smgr)
   smgr->name   = "PicoSAT";
   smgr->optstr = 0;
 
+  BTOR_CLR (&smgr->api);
   smgr->api.add              = btor_picosat_add;
   smgr->api.assume           = btor_picosat_assume;
   smgr->api.changed          = btor_picosat_changed;
@@ -513,30 +518,6 @@ btor_enable_picosat_sat (BtorSATMgr *smgr)
 #endif
 /*------------------------------------------------------------------------*/
 #ifdef BTOR_USE_LINGELING
-
-static BtorLGL *
-btor_lingeling_clone (BtorSATMgr *smgr)
-{
-  assert (smgr);
-
-  BtorMemMgr *mm;
-  BtorLGL *res, *solver;
-
-  mm     = smgr->mm;
-  solver = smgr->solver;
-  assert (solver);
-  assert (solver->lgl);
-
-  BTOR_CNEW (mm, res);
-  res->nforked = solver->nforked;
-  res->blimit  = solver->blimit;
-  res->lgl     = lglmclone (solver->lgl,
-                        mm,
-                        (lglalloc) btor_sat_malloc,
-                        (lglrealloc) btor_sat_realloc,
-                        (lgldealloc) btor_sat_free);
-  return res;
-}
 
 static int
 btor_passdown_lingeling_options (BtorSATMgr *smgr,
@@ -659,8 +640,6 @@ btor_lingeling_init (BtorSATMgr *smgr)
                        (lglalloc) btor_sat_malloc,
                        (lglrealloc) btor_sat_realloc,
                        (lgldealloc) btor_sat_free);
-
-  if (smgr->term.fun) lglseterm (res->lgl, smgr->term.fun, smgr->term.state);
 
   if (*smgr->msg->verbosity <= 0)
     lglsetopt (res->lgl, "verbose", -1);
@@ -891,6 +870,41 @@ btor_lingeling_inconsistent (BtorSATMgr *smgr)
   return lglinconsistent (blgl->lgl);
 }
 
+static void *
+btor_lingeling_clone (BtorSATMgr *smgr)
+{
+  assert (smgr);
+
+  BtorMemMgr *mm;
+  BtorLGL *res, *blgl;
+
+  mm   = smgr->mm;
+  blgl = smgr->solver;
+
+  /* not initialized yet */
+  if (!blgl) return 0;
+
+  BTOR_CNEW (mm, res);
+  res->nforked = blgl->nforked;
+  res->blimit  = blgl->blimit;
+  res->lgl     = lglmclone (blgl->lgl,
+                        mm,
+                        (lglalloc) btor_sat_malloc,
+                        (lglrealloc) btor_sat_realloc,
+                        (lgldealloc) btor_sat_free);
+  return res;
+}
+
+static void
+btor_lingeling_setterm (BtorSATMgr *smgr)
+{
+  assert (smgr);
+
+  BtorLGL *blgl;
+  blgl = smgr->solver;
+  lglseterm (blgl->lgl, smgr->term.fun, smgr->term.state);
+}
+
 /*------------------------------------------------------------------------*/
 
 int
@@ -908,6 +922,7 @@ btor_enable_lingeling_sat (BtorSATMgr *smgr, const char *optstr, int nofork)
   smgr->name   = "Lingeling";
   smgr->nofork = nofork;
 
+  BTOR_CLR (&smgr->api);
   smgr->api.add              = btor_lingeling_add;
   smgr->api.assume           = btor_lingeling_assume;
   smgr->api.changed          = btor_lingeling_changed;
@@ -927,6 +942,7 @@ btor_enable_lingeling_sat (BtorSATMgr *smgr, const char *optstr, int nofork)
   smgr->api.stats            = btor_lingeling_stats;
   smgr->api.variables        = btor_lingeling_variables;
   smgr->api.clone            = btor_lingeling_clone;
+  smgr->api.setterm          = btor_lingeling_setterm;
 
   BTOR_MSG (smgr->msg,
             1,
@@ -953,6 +969,7 @@ btor_enable_minisat_sat (BtorSATMgr *smgr)
   smgr->name   = "MiniSAT";
   smgr->optstr = 0;
 
+  BTOR_CLR (&smgr->api);
   smgr->api.add              = btor_minisat_add;
   smgr->api.assume           = btor_minisat_assume;
   smgr->api.changed          = btor_minisat_changed;
@@ -963,7 +980,6 @@ btor_enable_minisat_sat (BtorSATMgr *smgr)
   smgr->api.inc_max_var      = btor_minisat_inc_max_var;
   smgr->api.inconsistent     = btor_minisat_inconsistent;
   smgr->api.init             = btor_minisat_init;
-  smgr->api.melt             = 0;
   smgr->api.repr             = btor_minisat_repr;
   smgr->api.reset            = btor_minisat_reset;
   smgr->api.sat              = btor_minisat_sat;

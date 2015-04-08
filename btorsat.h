@@ -78,6 +78,7 @@ struct BtorSATMgr
     void (*stats) (BtorSATMgr *);
     int (*variables) (BtorSATMgr *);
     void *(*clone) (BtorSATMgr *);
+    void (*setterm) (BtorSATMgr *);
   } api;
 };
 
