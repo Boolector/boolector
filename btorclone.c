@@ -77,7 +77,6 @@ btor_clone_data_as_node_ptr (BtorMemMgr *mm,
                              BtorPtrHashData *data,
                              BtorPtrHashData *cloned_data)
 {
-  assert (mm);
   assert (map);
   assert (data);
   assert (cloned_data);
@@ -129,6 +128,20 @@ btor_clone_data_as_int (BtorMemMgr *mm,
 }
 
 void
+btor_clone_data_as_dbl (BtorMemMgr *mm,
+                        const void *map,
+                        BtorPtrHashData *data,
+                        BtorPtrHashData *cloned_data)
+{
+  assert (data);
+  assert (cloned_data);
+
+  (void) mm;
+  (void) map;
+  cloned_data->asDbl = data->asDbl;
+}
+
+void
 btor_clone_data_as_bv_ptr (BtorMemMgr *mm,
                            const void *map,
                            BtorPtrHashData *data,
@@ -140,27 +153,6 @@ btor_clone_data_as_bv_ptr (BtorMemMgr *mm,
 
   (void) map;
   cloned_data->asPtr = btor_copy_bv (mm, (BitVector *) data->asPtr);
-}
-
-void
-btor_clone_data_as_bv_htable_ptr (BtorMemMgr *mm,
-                                  const void *map,
-                                  BtorPtrHashData *data,
-                                  BtorPtrHashData *cloned_data)
-{
-  assert (mm);
-  assert (map);
-  assert (data);
-  assert (cloned_data);
-
-  BtorPtrHashTable *table;
-  table              = (BtorPtrHashTable *) data->asPtr;
-  cloned_data->asPtr = btor_clone_ptr_hash_table (mm,
-                                                  table,
-                                                  btor_clone_key_as_bv_tuple,
-                                                  btor_clone_data_as_bv_ptr,
-                                                  map,
-                                                  map);
 }
 
 void
@@ -182,6 +174,27 @@ btor_clone_data_as_htable_ptr (BtorMemMgr *mm,
 
   cloned_data->asPtr = btor_clone_ptr_hash_table (
       mm, table, btor_clone_key_as_node, 0, exp_map, 0);
+}
+
+void
+btor_clone_data_as_bv_htable_ptr (BtorMemMgr *mm,
+                                  const void *map,
+                                  BtorPtrHashData *data,
+                                  BtorPtrHashData *cloned_data)
+{
+  assert (mm);
+  assert (map);
+  assert (data);
+  assert (cloned_data);
+
+  BtorPtrHashTable *table;
+  table              = (BtorPtrHashTable *) data->asPtr;
+  cloned_data->asPtr = btor_clone_ptr_hash_table (mm,
+                                                  table,
+                                                  btor_clone_key_as_bv_tuple,
+                                                  btor_clone_data_as_bv_ptr,
+                                                  map,
+                                                  map);
 }
 
 /*------------------------------------------------------------------------*/
@@ -1154,6 +1167,41 @@ clone_aux_btor (Btor *btor,
         btor_insert_in_ptr_hash_table (clone->unsynthesized_constraints, exp);
     }
     BTOR_RELEASE_STACK (btor->mm, stack);
+  }
+
+  if (btor->sls_solver)
+  {
+    clone->sls_solver = btor_clone_sls_solver (clone, btor->sls_solver, emap);
+#ifndef NDEBUG
+    BtorSLSMove *m;
+    allocated += sizeof (BtorSLSSolver)
+                 + MEM_PTR_HASH_TABLE (btor->sls_solver->roots)
+                 + MEM_PTR_HASH_TABLE (btor->sls_solver->score);
+
+    allocated +=
+        BTOR_SIZE_STACK (btor->sls_solver->moves) * sizeof (BtorSLSMove *)
+        + BTOR_COUNT_STACK (btor->sls_solver->moves) * sizeof (BtorSLSMove);
+
+    for (i = 0; i < BTOR_COUNT_STACK (btor->sls_solver->moves); i++)
+    {
+      assert (BTOR_PEEK_STACK (clone->sls_solver->moves, i));
+      m = BTOR_PEEK_STACK (btor->sls_solver->moves, i);
+      assert (MEM_PTR_HASH_TABLE (m->cans)
+              == MEM_PTR_HASH_TABLE (
+                     BTOR_PEEK_STACK (clone->sls_solver->moves, i)->cans));
+      allocated += MEM_PTR_HASH_TABLE (m->cans);
+    }
+
+    if (btor->sls_solver->max_cans)
+    {
+      allocated += MEM_PTR_HASH_TABLE (btor->sls_solver->max_cans);
+      init_node_hash_table_iterator (&it, btor->sls_solver->max_cans);
+      while (has_next_node_hash_table_iterator (&it))
+        allocated += btor_size_bv (next_data_hash_table_iterator (&it)->asPtr);
+    }
+
+    assert (allocated == clone->mm->allocated);
+#endif
   }
 
   clone->parse_error_msg = NULL;
