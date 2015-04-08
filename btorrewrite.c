@@ -4404,6 +4404,11 @@ apply_prop_apply (Btor *btor, BtorNode *e0, BtorNode *e1)
     }
     assert (!result || done);
   }
+
+  /* check if apply was propagated down to 'cur_fun' */
+  if (!result && cur_fun != e0)
+    result = btor_apply_exp_node (btor, cur_fun, cur_args);
+
   btor_release_exp (btor, cur_args);
 
   if (result && inv_result) result = BTOR_INVERT_NODE (result);
