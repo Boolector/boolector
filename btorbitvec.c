@@ -229,13 +229,7 @@ btor_new_random_range_bv (BtorMemMgr *mm, BtorRNG *rng, int bw, int up, int lo)
   int i, seg;
   BitVector *res;
 
-  i = bw / BTOR_BV_TYPE_BW;
-  if (bw % BTOR_BV_TYPE_BW > 0) i += 1;
-  BTOR_CNEW (mm, res);
-  BTOR_NEWN (mm, res->bits, i);
-  res->len = i;
-  assert (res->len > 0);
-  res->width = bw;
+  res = btor_new_bv (mm, bw);
 
   for (i = res->len - 1, seg = up - lo + 1;
        seg > ((res->len - 1 - i) * ((int) sizeof (BTOR_BV_TYPE)) * 8) && i >= 0;
