@@ -120,7 +120,7 @@ btor_clone_sat_mgr (BtorMemMgr *mm, BtorMsg *msg, BtorSATMgr *smgr)
   BTOR_ABORT_SAT (!btor_has_clone_support_sat_mgr (smgr),
                   "SAT solver does not support cloning");
   BTOR_NEW (mm, res);
-  res->solver = smgr->api.clone (smgr);
+  res->solver = smgr->api.clone (smgr, mm);
   res->mm     = mm;
   res->msg    = msg;
   assert (res->mm->sat_allocated == smgr->mm->sat_allocated);
@@ -212,6 +212,7 @@ btor_init_sat (BtorSATMgr *smgr)
 {
   assert (smgr != NULL);
   assert (!smgr->initialized);
+  BTOR_MSG (smgr->msg, 1, "initialized %s", smgr->name);
 
   smgr->solver                         = smgr->api.init (smgr);
   smgr->initialized                    = 1;
@@ -225,7 +226,6 @@ btor_init_sat (BtorSATMgr *smgr)
   btor_add_sat (smgr, smgr->true_lit);
   btor_add_sat (smgr, 0);
   btor_set_output_sat (smgr, stdout);
-  BTOR_MSG (smgr->msg, 1, "initialized %s", smgr->name);
 }
 
 void
@@ -871,14 +871,12 @@ btor_lingeling_inconsistent (BtorSATMgr *smgr)
 }
 
 static void *
-btor_lingeling_clone (BtorSATMgr *smgr)
+btor_lingeling_clone (BtorSATMgr *smgr, BtorMemMgr *mm)
 {
   assert (smgr);
 
-  BtorMemMgr *mm;
   BtorLGL *res, *blgl;
 
-  mm   = smgr->mm;
   blgl = smgr->solver;
 
   /* not initialized yet */
