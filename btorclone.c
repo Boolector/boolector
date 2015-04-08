@@ -824,7 +824,9 @@ clone_aux_btor (Btor *btor,
     BTORLOG ("  clone AIG mgr: %.3f s", (btor_time_stamp () - delta));
     assert ((allocated +=
              sizeof (BtorAIGVecMgr) + sizeof (BtorAIGMgr) + sizeof (BtorSATMgr)
+#ifdef BTOR_USE_LINGELING
              + (amgr->smgr->solver ? sizeof (BtorLGL) : 0)
+#endif
              + (amgr->smgr->optstr ? strlen (amgr->smgr->optstr) + 1 : 0))
             == clone->mm->allocated);
 
