@@ -6996,7 +6996,6 @@ new_exp_layer_clone_for_dual_prop (Btor *btor,
   Btor *clone;
   BtorNode *cur, *and;
   BtorHashTableIterator it;
-  LGL *lgl;
   BtorSATMgr *smgr;
 
   start = btor_time_stamp ();
@@ -7019,9 +7018,8 @@ new_exp_layer_clone_for_dual_prop (Btor *btor,
 
   smgr = btor_get_sat_mgr_btor (clone);
   assert (!btor_is_initialized_sat (smgr));
+  btor_set_sat_solver (smgr, btor_get_sat_mgr_btor (btor)->name, "plain=1", 0);
   btor_init_sat (smgr);
-  lgl = ((BtorLGL *) smgr->solver)->lgl;
-  lglsetopt (lgl, "plain", 1);
 
   init_node_hash_table_iterator (&it, clone->unsynthesized_constraints);
   queue_node_hash_table_iterator (&it, clone->assumptions);
