@@ -62,6 +62,7 @@ typedef struct BtorOpt
 #define BTOR_OPT_SLS_MOVE_SEGMENT "sls_move_segment"
 #define BTOR_OPT_SLS_MOVE_RAND_WALK "sls_move_rand_walk"
 #define BTOR_OPT_SLS_MOVE_RAND_WALK_PROB "sls_move_rand_walk_prob"
+#define BTOR_OPT_SLS_MOVE_PROP_RAND_WALK "sls_move_prob_rand_walk"
 #define BTOR_OPT_SLS_MOVE_RANOMIZEALL "sls_move_rand_all"
 #define BTOR_OPT_SLS_MOVE_RANOMIZERANGE "sls_move_rand_range"
 #define BTOR_OPT_SLS_MOVE_ON_FIRST "sls_move_on_first"
@@ -121,6 +122,7 @@ typedef struct BtorOpts
   BtorOpt sls_move_segment;
   BtorOpt sls_move_rand_walk;
   BtorOpt sls_move_rand_walk_prob;
+  BtorOpt sls_move_prob_rand_walk;
   BtorOpt sls_move_rand_all;
   BtorOpt sls_move_rand_range;
   BtorOpt sls_move_on_first;

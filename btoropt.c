@@ -196,6 +196,12 @@ btor_init_opts (Btor *btor)
             UINT_MAX,
             "probability for choosing random walks (interpreted as 1:<n>)");
   BTOR_OPT (0,
+            sls_move_prob_rand_walk,
+            0,
+            0,
+            1,
+            "do probabilistic random walks only (instead of best score moves)");
+  BTOR_OPT (0,
             sls_move_rand_all,
             0,
             0,
