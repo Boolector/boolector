@@ -21,6 +21,7 @@
 #include "btormsg.h"
 #include "btoropt.h"
 #include "btorsat.h"
+#include "btorsls.h"
 #include "btorsort.h"
 #include "btorutil.h"
 
@@ -149,11 +150,13 @@ struct Btor
   BtorPtrHashTable *cache;
   BtorPtrHashTable *parameterized;
   BtorPtrHashTable *score;
-  BtorPtrHashTable *score_sls;
   BtorPtrHashTable *searched_applies;
 
   /* compare fun for sorting the inputs in search_inital_applies_dual_prop */
   int (*dp_cmp_inputs) (const void *, const void *);
+
+  /* TODO modularize btor for multiple engines */
+  BtorSLSSolver *sls_solver;
 
   /* shadow clone (debugging only) */
   Btor *clone;
@@ -199,26 +202,6 @@ struct Btor
                               sat call (final bv skeleton) */
     int dp_assumed_applies;
 
-    int sls_restarts;
-    int sls_moves;
-    int sls_flips;
-    int sls_move_flip;
-    int sls_move_inc;
-    int sls_move_dec;
-    int sls_move_not;
-    int sls_move_range;
-    int sls_move_seg;
-    int sls_move_rand;
-    int sls_move_rand_walk;
-    int sls_move_gw_flip;
-    int sls_move_gw_inc;
-    int sls_move_gw_dec;
-    int sls_move_gw_not;
-    int sls_move_gw_range;
-    int sls_move_gw_seg;
-    int sls_move_gw_rand;
-    int sls_move_gw_rand_walk;
-
     BtorIntStack lemmas_size;       /* distribution of n-size lemmas */
     long long int lemmas_size_sum;  /* sum of the size of all added lemmas */
     long long int lclause_size_sum; /* sum of the size of all linking clauses */
@@ -245,7 +228,6 @@ struct Btor
   {
     double rewrite;
     double sat;
-    double sat_sls;
     double subst;
     double betareduce;
     double embedded;
@@ -268,7 +250,6 @@ struct Btor
     double compute_scores_just;
     double compute_scores_just_merge_applies;
     double compute_scores_dp;
-    // double compute_scores_sls;
     double lemma_gen;
     double find_nenc_app;
     double find_prop_app;

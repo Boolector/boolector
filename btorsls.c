@@ -131,13 +131,13 @@ static double
 compute_sls_score_node (Btor *btor,
                         BtorPtrHashTable **bv_model,
                         BtorPtrHashTable **fun_model,
-                        BtorPtrHashTable *score_sls,
+                        BtorPtrHashTable *score,
                         BtorNode *exp)
 {
   assert (btor);
   assert (bv_model);
   assert (fun_model);
-  assert (score_sls);
+  assert (score);
   assert (check_id_table_aux_mark_unset_dbg (btor));
   assert (exp);
 
@@ -156,7 +156,7 @@ compute_sls_score_node (Btor *btor,
           || BTOR_IS_ULT_NODE (BTOR_REAL_ADDR_NODE (exp))
           || BTOR_REAL_ADDR_NODE (exp)->len == 1);
 
-  if ((b = btor_find_in_ptr_hash_table (score_sls, exp))) return b->data.asDbl;
+  if ((b = btor_find_in_ptr_hash_table (score, exp))) return b->data.asDbl;
 
   BTOR_INIT_STACK (stack);
   BTOR_INIT_STACK (unmark_stack);
@@ -167,7 +167,7 @@ compute_sls_score_node (Btor *btor,
     cur      = BTOR_POP_STACK (stack);
     real_cur = BTOR_REAL_ADDR_NODE (cur);
 
-    if (real_cur->aux_mark == 2 || btor_find_in_ptr_hash_table (score_sls, cur))
+    if (real_cur->aux_mark == 2 || btor_find_in_ptr_hash_table (score, cur))
       continue;
 
     if (real_cur->aux_mark == 0)
@@ -201,14 +201,14 @@ compute_sls_score_node (Btor *btor,
         if (BTOR_IS_INVERTED_NODE (cur))
         {
           assert (btor_find_in_ptr_hash_table (
-              score_sls, BTOR_INVERT_NODE (real_cur->e[0])));
+              score, BTOR_INVERT_NODE (real_cur->e[0])));
           assert (btor_find_in_ptr_hash_table (
-              score_sls, BTOR_INVERT_NODE (real_cur->e[1])));
+              score, BTOR_INVERT_NODE (real_cur->e[1])));
 
-          s0 = btor_find_in_ptr_hash_table (score_sls,
+          s0 = btor_find_in_ptr_hash_table (score,
                                             BTOR_INVERT_NODE (real_cur->e[0]))
                    ->data.asDbl;
-          s1 = btor_find_in_ptr_hash_table (score_sls,
+          s1 = btor_find_in_ptr_hash_table (score,
                                             BTOR_INVERT_NODE (real_cur->e[1]))
                    ->data.asDbl;
 #ifdef BTOR_SLS_LOG_COMPUTE_SCORE
@@ -230,13 +230,12 @@ compute_sls_score_node (Btor *btor,
         }
         else
         {
-          assert (btor_find_in_ptr_hash_table (score_sls, real_cur->e[0]));
-          assert (btor_find_in_ptr_hash_table (score_sls, real_cur->e[1]));
+          assert (btor_find_in_ptr_hash_table (score, real_cur->e[0]));
+          assert (btor_find_in_ptr_hash_table (score, real_cur->e[1]));
 
-          s0 = btor_find_in_ptr_hash_table (score_sls, real_cur->e[0])
-                   ->data.asDbl;
-          s1 = btor_find_in_ptr_hash_table (score_sls, (real_cur->e[1]))
-                   ->data.asDbl;
+          s0 = btor_find_in_ptr_hash_table (score, real_cur->e[0])->data.asDbl;
+          s1 =
+              btor_find_in_ptr_hash_table (score, (real_cur->e[1]))->data.asDbl;
 #ifdef BTOR_SLS_LOG_COMPUTE_SCORE
           if (btor->options.loglevel.val)
           {
@@ -336,8 +335,8 @@ compute_sls_score_node (Btor *btor,
                   ->bits[0];
       }
 
-      assert (!btor_find_in_ptr_hash_table (score_sls, cur));
-      b             = btor_insert_in_ptr_hash_table (score_sls, cur);
+      assert (!btor_find_in_ptr_hash_table (score, cur));
+      b             = btor_insert_in_ptr_hash_table (score, cur);
       b->data.asDbl = res;
 
 #ifdef BTOR_SLS_LOG_COMPUTE_SCORE
@@ -352,8 +351,8 @@ compute_sls_score_node (Btor *btor,
   BTOR_RELEASE_STACK (btor->mm, unmark_stack);
   BTOR_RELEASE_STACK (btor->mm, stack);
 
-  assert (btor_find_in_ptr_hash_table (score_sls, exp));
-  assert (res == btor_find_in_ptr_hash_table (score_sls, exp)->data.asDbl);
+  assert (btor_find_in_ptr_hash_table (score, exp));
+  assert (res == btor_find_in_ptr_hash_table (score, exp)->data.asDbl);
   return res;
 }
 
@@ -361,14 +360,14 @@ static void
 compute_sls_scores_aux (Btor *btor,
                         BtorPtrHashTable **bv_model,
                         BtorPtrHashTable **fun_model,
-                        BtorPtrHashTable *roots,
                         BtorPtrHashTable *score)
 {
   assert (btor);
+  assert (btor->sls_solver);
+  assert (btor->sls_solver->roots);
   assert (bv_model);
   assert (fun_model);
   assert (check_id_table_mark_unset_dbg (btor));
-  assert (roots);
 
   // TODO early pruning!!!
   //
@@ -384,7 +383,7 @@ compute_sls_scores_aux (Btor *btor,
   BTOR_INIT_STACK (unmark_stack);
 
   /* collect roots */
-  init_node_hash_table_iterator (&it, roots);
+  init_node_hash_table_iterator (&it, btor->sls_solver->roots);
   while (has_next_node_hash_table_iterator (&it))
     BTOR_PUSH_STACK (btor->mm, stack, next_node_hash_table_iterator (&it));
 
@@ -427,22 +426,15 @@ compute_sls_scores_aux (Btor *btor,
 }
 
 static void
-compute_sls_scores (Btor *btor,
-                    BtorPtrHashTable *roots,
-                    BtorPtrHashTable *score)
+compute_sls_scores (Btor *btor, BtorPtrHashTable *score)
 {
-  assert (btor);
-  assert (roots);
-  assert (score);
-
-  compute_sls_scores_aux (
-      btor, &btor->bv_model, &btor->fun_model, roots, score);
+  compute_sls_scores_aux (btor, &btor->bv_model, &btor->fun_model, score);
 }
 
 static double
-compute_sls_score_formula (BtorPtrHashTable *roots, BtorPtrHashTable *score)
+compute_sls_score_formula (Btor *btor, BtorPtrHashTable *score)
 {
-  assert (roots);
+  assert (btor);
   assert (score);
 
   int allsat;
@@ -452,7 +444,7 @@ compute_sls_score_formula (BtorPtrHashTable *roots, BtorPtrHashTable *score)
 
   res    = 0.0;
   allsat = 1;
-  init_node_hash_table_iterator (&it, roots);
+  init_node_hash_table_iterator (&it, btor->sls_solver->roots);
   while (has_next_node_hash_table_iterator (&it))
   {
     weight = (double) it.bucket->data.asInt;
@@ -465,28 +457,30 @@ compute_sls_score_formula (BtorPtrHashTable *roots, BtorPtrHashTable *score)
 }
 
 static BtorNode *
-select_candidate_constraint (Btor *btor, BtorPtrHashTable *roots, int nmoves)
+select_candidate_constraint (Btor *btor, int nmoves)
 {
   assert (btor);
-  assert (btor->score_sls);
-  assert (roots);
+  assert (btor->sls_solver);
+  assert (btor->sls_solver->roots);
+  assert (btor->sls_solver->score);
 
   int selected;
   double value, max_value, score;
   BtorNode *res, *cur;
   BtorHashTableIterator it;
-  BtorPtrHashBucket *b, *bucket;
+  BtorPtrHashBucket *b, *sb, *bucket;
 
   res       = 0;
   max_value = 0.0;
   bucket    = 0;
-  init_hash_table_iterator (&it, roots);
+  init_hash_table_iterator (&it, btor->sls_solver->roots);
   while (has_next_node_hash_table_iterator (&it))
   {
     b   = it.bucket;
     cur = next_node_hash_table_iterator (&it);
-    assert (btor_find_in_ptr_hash_table (btor->score_sls, cur));
-    score = btor_find_in_ptr_hash_table (btor->score_sls, cur)->data.asDbl;
+    sb  = btor_find_in_ptr_hash_table (btor->sls_solver->score, cur);
+    assert (sb);
+    score = sb->data.asDbl;
     if (score >= 1.0) continue;
     if (!res)
     {
@@ -559,8 +553,9 @@ select_candidates (Btor *btor, BtorNode *root, BtorNodePtrStack *candidates)
       {
         e = BTOR_IS_INVERTED_NODE (cur) ? BTOR_INVERT_NODE (real_cur->e[i])
                                         : real_cur->e[i];
-        assert (btor_find_in_ptr_hash_table (btor->score_sls, e));
-        sc = btor_find_in_ptr_hash_table (btor->score_sls, e)->data.asDbl;
+        assert (btor_find_in_ptr_hash_table (btor->sls_solver->score, e));
+        sc = btor_find_in_ptr_hash_table (btor->sls_solver->score, e)
+                 ->data.asDbl;
         if (sc == 1.0) continue;
         BTOR_PUSH_STACK (btor->mm, stack, e);
       }
@@ -640,14 +635,14 @@ static void
 reset_cone (Btor *btor,
             BtorPtrHashTable *cans,
             BtorPtrHashTable *bv_model,
-            BtorPtrHashTable *score_sls)
+            BtorPtrHashTable *score)
 {
   assert (btor);
   assert (check_id_table_mark_unset_dbg (btor));
   assert (cans);
   assert (cans->count);
   assert (bv_model);
-  assert (score_sls);
+  assert (score);
 
   BtorNode *cur;
   BtorHashTableIterator it;
@@ -684,10 +679,10 @@ reset_cone (Btor *btor,
       btor_release_exp (btor, cur);
     }
     /* reset previous score */
-    if ((b = btor_find_in_ptr_hash_table (score_sls, cur)))
-      btor_remove_from_ptr_hash_table (score_sls, cur, 0, 0);
-    if ((b = btor_find_in_ptr_hash_table (score_sls, BTOR_INVERT_NODE (cur))))
-      btor_remove_from_ptr_hash_table (score_sls, BTOR_INVERT_NODE (cur), 0, 0);
+    if ((b = btor_find_in_ptr_hash_table (score, cur)))
+      btor_remove_from_ptr_hash_table (score, cur, 0, 0);
+    if ((b = btor_find_in_ptr_hash_table (score, BTOR_INVERT_NODE (cur))))
+      btor_remove_from_ptr_hash_table (score, BTOR_INVERT_NODE (cur), 0, 0);
 
     /* push parents */
     init_full_parent_iterator (&nit, cur);
@@ -708,25 +703,25 @@ static void
 update_cone (Btor *btor,
              BtorPtrHashTable **bv_model,
              BtorPtrHashTable **fun_model,
-             BtorPtrHashTable *roots,
              BtorPtrHashTable *cans,
-             BtorPtrHashTable *score_sls)
+             BtorPtrHashTable *score)
 {
   assert (btor);
+  assert (btor->sls_solver);
+  assert (btor->sls_solver->roots);
   assert (bv_model);
   assert (*bv_model);
   assert (fun_model);
   assert (*fun_model);
-  assert (roots);
   assert (cans);
   assert (cans->count);
-  assert (score_sls);
+  assert (score);
 
   BtorHashTableIterator it;
   BtorNode *exp;
   BitVector *ass;
 
-  reset_cone (btor, cans, *bv_model, score_sls);
+  reset_cone (btor, cans, *bv_model, score);
 
   init_hash_table_iterator (&it, cans);
   while (has_next_node_hash_table_iterator (&it))
@@ -737,14 +732,15 @@ update_cone (Btor *btor,
   }
 
   btor_generate_model_aux (btor, *bv_model, *fun_model, 0);
-  compute_sls_scores_aux (btor, bv_model, fun_model, roots, score_sls);
+  compute_sls_scores_aux (btor, bv_model, fun_model, score);
 }
 
 static inline void
-update_assertion_weights (Btor *btor, BtorPtrHashTable *roots)
+update_assertion_weights (Btor *btor)
 {
   assert (btor);
-  assert (roots);
+  assert (btor->sls_solver);
+  assert (btor->sls_solver->roots);
 
   BtorNode *cur;
   BtorPtrHashBucket *b;
@@ -753,12 +749,13 @@ update_assertion_weights (Btor *btor, BtorPtrHashTable *roots)
   if (!btor_pick_rand_rng (&btor->rng, 0, BTOR_SLS_SCORE_F_PROB))
   {
     /* decrease the weight of all satisfied assertions */
-    init_node_hash_table_iterator (&it, roots);
+    init_node_hash_table_iterator (&it, btor->sls_solver->roots);
     while (has_next_node_hash_table_iterator (&it))
     {
       b   = it.bucket;
       cur = next_node_hash_table_iterator (&it);
-      if (btor_find_in_ptr_hash_table (btor->score_sls, cur)->data.asDbl == 0.0)
+      if (btor_find_in_ptr_hash_table (btor->sls_solver->score, cur)->data.asDbl
+          == 0.0)
         continue;
       if (b->data.asInt > 1) b->data.asInt -= 1;
     }
@@ -766,12 +763,13 @@ update_assertion_weights (Btor *btor, BtorPtrHashTable *roots)
   else
   {
     /* increase the weight of all unsatisfied assertions */
-    init_node_hash_table_iterator (&it, roots);
+    init_node_hash_table_iterator (&it, btor->sls_solver->roots);
     while (has_next_node_hash_table_iterator (&it))
     {
       b   = it.bucket;
       cur = next_node_hash_table_iterator (&it);
-      if (btor_find_in_ptr_hash_table (btor->score_sls, cur)->data.asDbl == 1.0)
+      if (btor_find_in_ptr_hash_table (btor->sls_solver->score, cur)->data.asDbl
+          == 1.0)
         continue;
       b->data.asInt += 1;
     }
@@ -780,18 +778,19 @@ update_assertion_weights (Btor *btor, BtorPtrHashTable *roots)
 
 static inline double
 try_move (Btor *btor,
-          BtorPtrHashTable *roots,
           BtorPtrHashTable **bv_model,
-          BtorPtrHashTable *score_sls,
+          BtorPtrHashTable *score,
           BtorPtrHashTable *cans)
 {
   assert (btor);
+  assert (btor->sls_solver);
+  assert (btor->sls_solver->roots);
   assert (bv_model);
-  assert (score_sls);
+  assert (score);
   assert (cans);
   assert (cans->count);
 
-  btor->stats.sls_flips += 1;
+  btor->sls_solver->stats.flips += 1;
 
 #ifndef NBTORLOG
   char *a;
@@ -820,43 +819,10 @@ try_move (Btor *btor,
 #endif
 
   /* we currently support QF_BV only, hence no funs */
-  update_cone (btor, bv_model, &btor->fun_model, roots, cans, score_sls);
+  update_cone (btor, bv_model, &btor->fun_model, cans, score);
 
-  return compute_sls_score_formula (roots, score_sls);
+  return compute_sls_score_formula (btor, score);
 }
-
-enum BtorSLSMoveKind
-{
-  BTOR_SLS_MOVE_FLIP = 0,
-  BTOR_SLS_MOVE_INC,
-  BTOR_SLS_MOVE_DEC,
-  BTOR_SLS_MOVE_NOT,
-  BTOR_SLS_MOVE_FLIP_RANGE,
-  BTOR_SLS_MOVE_FLIP_SEGMENT,
-  BTOR_SLS_MOVE_DONE,
-  BTOR_SLS_MOVE_RAND,
-  BTOR_SLS_MOVE_RAND_WALK,
-};
-
-typedef enum BtorSLSMoveKind BtorSLSMoveKind;
-
-struct BtorSLSMoveStats
-{
-  BtorSLSMoveKind max_move;
-  int max_gw;
-};
-
-typedef struct BtorSLSMoveStats BtorSLSMoveStats;
-
-struct BtorSLSMove
-{
-  BtorPtrHashTable *cans;
-  double sc;
-};
-
-typedef struct BtorSLSMove BtorSLSMove;
-
-BTOR_DECLARE_STACK (BtorSLSMovePtr, BtorSLSMove *);
 
 static int
 cmp_sls_moves_qsort (const void *move1, const void *move2)
@@ -870,30 +836,22 @@ cmp_sls_moves_qsort (const void *move1, const void *move2)
   return 0;
 }
 
-struct BtorSLSProbRWData
-{
-  BtorSLSMovePtrStack moves;
-  double sum_sc;
-};
-
-typedef struct BtorSLSProbRWData BtorSLSProbRWData;
-
 #define BTOR_SLS_SELECT_MOVE_CHECK_SCORE(sc)                                 \
   do                                                                         \
   {                                                                          \
     done = (sc) == -1.0;                                                     \
     if (done                                                                 \
         || (!btor->options.sls_move_prob_rand_walk.val                       \
-            && ((sc) > *max_score                                            \
+            && ((sc) > btor->sls_solver->max_score                           \
                 || (btor->options.sls_move_on_same_score.val                 \
-                    && (sc) == *max_score))))                                \
+                    && (sc) == btor->sls_solver->max_score))))               \
     {                                                                        \
-      *max_score          = (sc);                                            \
-      max_stats->max_move = mk;                                              \
-      max_stats->max_gw   = gw;                                              \
-      if ((*max_cans)->count)                                                \
+      btor->sls_solver->max_score = (sc);                                    \
+      btor->sls_solver->max_move  = mk;                                      \
+      btor->sls_solver->max_gw    = gw;                                      \
+      if (btor->sls_solver->max_cans->count)                                 \
       {                                                                      \
-        init_node_hash_table_iterator (&it, *max_cans);                      \
+        init_node_hash_table_iterator (&it, btor->sls_solver->max_cans);     \
         while (has_next_node_hash_table_iterator (&it))                      \
         {                                                                    \
           assert (it.bucket->data.asPtr);                                    \
@@ -901,8 +859,8 @@ typedef struct BtorSLSProbRWData BtorSLSProbRWData;
                         next_data_node_hash_table_iterator (&it)->asPtr);    \
         }                                                                    \
       }                                                                      \
-      btor_delete_ptr_hash_table (*max_cans);                                \
-      *max_cans = cans;                                                      \
+      btor_delete_ptr_hash_table (btor->sls_solver->max_cans);               \
+      btor->sls_solver->max_cans = cans;                                     \
       if (done || btor->options.sls_move_on_first.val) goto DONE;            \
     }                                                                        \
     else if (btor->options.sls_move_prob_rand_walk.val)                      \
@@ -910,8 +868,8 @@ typedef struct BtorSLSProbRWData BtorSLSProbRWData;
       BTOR_NEW (btor->mm, m);                                                \
       m->cans = cans;                                                        \
       m->sc   = (sc);                                                        \
-      BTOR_PUSH_STACK (btor->mm, moves->moves, m);                           \
-      moves->sum_sc += (sc);                                                 \
+      BTOR_PUSH_STACK (btor->mm, btor->sls_solver->moves, m);                \
+      btor->sls_solver->sum_score += (sc);                                   \
     }                                                                        \
     else                                                                     \
     {                                                                        \
@@ -925,13 +883,8 @@ typedef struct BtorSLSProbRWData BtorSLSProbRWData;
 static inline int
 select_inc_dec_not_move (Btor *btor,
                          BitVector *(*fun) (BtorMemMgr *, BitVector *),
-                         BtorPtrHashTable *roots,
                          BtorNodePtrStack *candidates,
-                         BtorSLSProbRWData *moves,
-                         BtorPtrHashTable **max_cans,
-                         double *max_score,
-                         int gw,
-                         BtorSLSMoveStats *max_stats)
+                         int gw)
 {
   double sc;
   int i, done = 0;
@@ -941,7 +894,7 @@ select_inc_dec_not_move (Btor *btor,
   BtorNode *can;
   BtorPtrHashTable *cans;
   BtorHashTableIterator it;
-  BtorPtrHashTable *bv_model, *score_sls;
+  BtorPtrHashTable *bv_model, *score;
   BtorPtrHashBucket *b;
 
   if (fun == btor_inc_bv)
@@ -956,8 +909,8 @@ select_inc_dec_not_move (Btor *btor,
 
   bv_model = btor_clone_ptr_hash_table (
       btor->mm, btor->bv_model, copy_node, data_as_bv_ptr, 0, 0);
-  score_sls = btor_clone_ptr_hash_table (
-      btor->mm, btor->score_sls, same_node, data_as_double, 0, 0);
+  score = btor_clone_ptr_hash_table (
+      btor->mm, btor->sls_solver->score, same_node, data_as_double, 0, 0);
 
   cans = btor_new_ptr_hash_table (btor->mm,
                                   (BtorHashPtr) btor_hash_exp_by_id,
@@ -971,7 +924,7 @@ select_inc_dec_not_move (Btor *btor,
     ass = (BitVector *) btor_get_bv_model (btor, can);
     assert (ass);
 
-    b         = btor_find_in_ptr_hash_table (*max_cans, can);
+    b         = btor_find_in_ptr_hash_table (btor->sls_solver->max_cans, can);
     max_neigh = b ? b->data.asPtr : 0;
 
     b             = btor_insert_in_ptr_hash_table (cans, can);
@@ -980,24 +933,17 @@ select_inc_dec_not_move (Btor *btor,
                         : fun (btor->mm, ass);
   }
 
-  sc = try_move (btor, roots, &bv_model, score_sls, cans);
+  sc = try_move (btor, &bv_model, score, cans);
   BTOR_SLS_SELECT_MOVE_CHECK_SCORE (sc);
 
 DONE:
   btor_delete_bv_model (btor, &bv_model);
-  btor_delete_ptr_hash_table (score_sls);
+  btor_delete_ptr_hash_table (score);
   return done;
 }
 
 static inline int
-select_flip_move (Btor *btor,
-                  BtorPtrHashTable *roots,
-                  BtorNodePtrStack *candidates,
-                  BtorSLSProbRWData *moves,
-                  BtorPtrHashTable **max_cans,
-                  double *max_score,
-                  int gw,
-                  BtorSLSMoveStats *max_stats)
+select_flip_move (Btor *btor, BtorNodePtrStack *candidates, int gw)
 {
   double sc;
   int i, pos, cpos, n_endpos, done = 0;
@@ -1007,15 +953,15 @@ select_flip_move (Btor *btor,
   BtorNode *can;
   BtorPtrHashTable *cans;
   BtorHashTableIterator it;
-  BtorPtrHashTable *bv_model, *score_sls;
+  BtorPtrHashTable *bv_model, *score;
   BtorPtrHashBucket *b;
 
   mk = BTOR_SLS_MOVE_FLIP;
 
   bv_model = btor_clone_ptr_hash_table (
       btor->mm, btor->bv_model, copy_node, data_as_bv_ptr, 0, 0);
-  score_sls = btor_clone_ptr_hash_table (
-      btor->mm, btor->score_sls, same_node, data_as_double, 0, 0);
+  score = btor_clone_ptr_hash_table (
+      btor->mm, btor->sls_solver->score, same_node, data_as_double, 0, 0);
 
   for (pos = 0, n_endpos = 0; n_endpos < BTOR_COUNT_STACK (*candidates); pos++)
   {
@@ -1031,7 +977,7 @@ select_flip_move (Btor *btor,
       ass = (BitVector *) btor_get_bv_model (btor, can);
       assert (ass);
 
-      b         = btor_find_in_ptr_hash_table (*max_cans, can);
+      b         = btor_find_in_ptr_hash_table (btor->sls_solver->max_cans, can);
       max_neigh = b ? b->data.asPtr : 0;
 
       if (pos == ass->width - 1) n_endpos += 1;
@@ -1043,25 +989,18 @@ select_flip_move (Btor *btor,
                           : btor_flipped_bit_bv (btor->mm, ass, cpos);
     }
 
-    sc = try_move (btor, roots, &bv_model, score_sls, cans);
+    sc = try_move (btor, &bv_model, score, cans);
     BTOR_SLS_SELECT_MOVE_CHECK_SCORE (sc);
   }
 
 DONE:
   btor_delete_bv_model (btor, &bv_model);
-  btor_delete_ptr_hash_table (score_sls);
+  btor_delete_ptr_hash_table (score);
   return done;
 }
 
 static inline int
-select_flip_range_move (Btor *btor,
-                        BtorPtrHashTable *roots,
-                        BtorNodePtrStack *candidates,
-                        BtorSLSProbRWData *moves,
-                        BtorPtrHashTable **max_cans,
-                        double *max_score,
-                        int gw,
-                        BtorSLSMoveStats *max_stats)
+select_flip_range_move (Btor *btor, BtorNodePtrStack *candidates, int gw)
 {
   double sc;
   int i, up, cup, n_endpos, done = 0;
@@ -1071,15 +1010,15 @@ select_flip_range_move (Btor *btor,
   BtorNode *can;
   BtorPtrHashTable *cans;
   BtorHashTableIterator it;
-  BtorPtrHashTable *bv_model, *score_sls;
+  BtorPtrHashTable *bv_model, *score;
   BtorPtrHashBucket *b;
 
   mk = BTOR_SLS_MOVE_FLIP_RANGE;
 
   bv_model = btor_clone_ptr_hash_table (
       btor->mm, btor->bv_model, copy_node, data_as_bv_ptr, 0, 0);
-  score_sls = btor_clone_ptr_hash_table (
-      btor->mm, btor->score_sls, same_node, data_as_double, 0, 0);
+  score = btor_clone_ptr_hash_table (
+      btor->mm, btor->sls_solver->score, same_node, data_as_double, 0, 0);
 
   for (up = 1, n_endpos = 0; n_endpos < BTOR_COUNT_STACK (*candidates);
        up = 2 * up + 1)
@@ -1096,7 +1035,7 @@ select_flip_range_move (Btor *btor,
       ass = (BitVector *) btor_get_bv_model (btor, can);
       assert (ass);
 
-      b         = btor_find_in_ptr_hash_table (*max_cans, can);
+      b         = btor_find_in_ptr_hash_table (btor->sls_solver->max_cans, can);
       max_neigh = b ? b->data.asPtr : 0;
 
       cup = up;
@@ -1114,25 +1053,18 @@ select_flip_range_move (Btor *btor,
               : btor_flipped_bit_range_bv (btor->mm, ass, cup, 0);
     }
 
-    sc = try_move (btor, roots, &bv_model, score_sls, cans);
+    sc = try_move (btor, &bv_model, score, cans);
     BTOR_SLS_SELECT_MOVE_CHECK_SCORE (sc);
   }
 
 DONE:
   btor_delete_bv_model (btor, &bv_model);
-  btor_delete_ptr_hash_table (score_sls);
+  btor_delete_ptr_hash_table (score);
   return done;
 }
 
 static inline int
-select_flip_segment_move (Btor *btor,
-                          BtorPtrHashTable *roots,
-                          BtorNodePtrStack *candidates,
-                          BtorSLSProbRWData *moves,
-                          BtorPtrHashTable **max_cans,
-                          double *max_score,
-                          int gw,
-                          BtorSLSMoveStats *max_stats)
+select_flip_segment_move (Btor *btor, BtorNodePtrStack *candidates, int gw)
 {
   double sc;
   int i, lo, clo, up, cup, seg, n_endpos, done = 0;
@@ -1142,15 +1074,15 @@ select_flip_segment_move (Btor *btor,
   BtorNode *can;
   BtorPtrHashTable *cans;
   BtorHashTableIterator it;
-  BtorPtrHashTable *bv_model, *score_sls;
+  BtorPtrHashTable *bv_model, *score;
   BtorPtrHashBucket *b;
 
   mk = BTOR_SLS_MOVE_FLIP_SEGMENT;
 
   bv_model = btor_clone_ptr_hash_table (
       btor->mm, btor->bv_model, copy_node, data_as_bv_ptr, 0, 0);
-  score_sls = btor_clone_ptr_hash_table (
-      btor->mm, btor->score_sls, same_node, data_as_double, 0, 0);
+  score = btor_clone_ptr_hash_table (
+      btor->mm, btor->sls_solver->score, same_node, data_as_double, 0, 0);
 
   for (seg = 2; seg <= 8; seg <<= 1)
   {
@@ -1170,7 +1102,7 @@ select_flip_segment_move (Btor *btor,
         ass = (BitVector *) btor_get_bv_model (btor, can);
         assert (ass);
 
-        b         = btor_find_in_ptr_hash_table (*max_cans, can);
+        b = btor_find_in_ptr_hash_table (btor->sls_solver->max_cans, can);
         max_neigh = b ? b->data.asPtr : 0;
 
         clo = lo;
@@ -1191,26 +1123,19 @@ select_flip_segment_move (Btor *btor,
                 : btor_flipped_bit_range_bv (btor->mm, ass, cup, clo);
       }
 
-      sc = try_move (btor, roots, &bv_model, score_sls, cans);
+      sc = try_move (btor, &bv_model, score, cans);
       BTOR_SLS_SELECT_MOVE_CHECK_SCORE (sc);
     }
   }
 
 DONE:
   btor_delete_bv_model (btor, &bv_model);
-  btor_delete_ptr_hash_table (score_sls);
+  btor_delete_ptr_hash_table (score);
   return done;
 }
 
 static inline int
-select_rand_range_move (Btor *btor,
-                        BtorPtrHashTable *roots,
-                        BtorNodePtrStack *candidates,
-                        BtorSLSProbRWData *moves,
-                        BtorPtrHashTable **max_cans,
-                        double *max_score,
-                        int gw,
-                        BtorSLSMoveStats *max_stats)
+select_rand_range_move (Btor *btor, BtorNodePtrStack *candidates, int gw)
 {
   double sc, rand_max_score = -1.0;
   int i, up, cup, n_endpos, done = 0;
@@ -1220,14 +1145,14 @@ select_rand_range_move (Btor *btor,
   BtorNode *can;
   BtorPtrHashTable *cans;
   BtorHashTableIterator it;
-  BtorPtrHashTable *bv_model, *score_sls;
+  BtorPtrHashTable *bv_model, *score;
 
   mk = BTOR_SLS_MOVE_RAND;
 
   bv_model = btor_clone_ptr_hash_table (
       btor->mm, btor->bv_model, copy_node, data_as_bv_ptr, 0, 0);
-  score_sls = btor_clone_ptr_hash_table (
-      btor->mm, btor->score_sls, same_node, data_as_double, 0, 0);
+  score = btor_clone_ptr_hash_table (
+      btor->mm, btor->sls_solver->score, same_node, data_as_double, 0, 0);
 
   for (up = 1, n_endpos = 0; n_endpos < BTOR_COUNT_STACK (*candidates);
        up = 2 * up + 1)
@@ -1256,39 +1181,28 @@ select_rand_range_move (Btor *btor,
           btor_new_random_range_bv (btor->mm, &btor->rng, ass->width, cup, 0);
     }
 
-    sc = try_move (btor, roots, &bv_model, score_sls, cans);
+    sc = try_move (btor, &bv_model, score, cans);
     if (rand_max_score == -1.0 || sc > rand_max_score)
     {
-      *max_score     = -1.0;
-      rand_max_score = sc;
-    } /* reset, use current */
+      /* reset, use current */
+      btor->sls_solver->max_score = -1.0;
+      rand_max_score              = sc;
+    }
     BTOR_SLS_SELECT_MOVE_CHECK_SCORE (sc);
   }
 
 DONE:
   btor_delete_bv_model (btor, &bv_model);
-  btor_delete_ptr_hash_table (score_sls);
+  btor_delete_ptr_hash_table (score);
   return done;
 }
 
 static inline int
-select_move_aux (Btor *btor,
-                 BtorPtrHashTable *roots,
-                 BtorNodePtrStack *candidates,
-                 BtorSLSProbRWData *moves,
-                 BtorPtrHashTable **max_cans,
-                 double *max_score,
-                 int gw,
-                 BtorSLSMoveStats *max_stats)
+select_move_aux (Btor *btor, BtorNodePtrStack *candidates, int gw)
 {
   assert (btor);
-  assert (roots);
   assert (candidates);
-  assert (moves);
-  assert (max_cans);
-  assert (max_score);
   assert (gw >= 0);
-  assert (max_stats);
 
   BtorSLSMoveKind mk;
   int done;
@@ -1298,81 +1212,37 @@ select_move_aux (Btor *btor,
     switch (mk)
     {
       case BTOR_SLS_MOVE_INC:
-        if ((done = select_inc_dec_not_move (btor,
-                                             btor_inc_bv,
-                                             roots,
-                                             candidates,
-                                             moves,
-                                             max_cans,
-                                             max_score,
-                                             gw,
-                                             max_stats)))
+        if ((done =
+                 select_inc_dec_not_move (btor, btor_inc_bv, candidates, gw)))
           return done;
         break;
 
       case BTOR_SLS_MOVE_DEC:
-        if ((done = select_inc_dec_not_move (btor,
-                                             btor_dec_bv,
-                                             roots,
-                                             candidates,
-                                             moves,
-                                             max_cans,
-                                             max_score,
-                                             gw,
-                                             max_stats)))
+        if ((done =
+                 select_inc_dec_not_move (btor, btor_dec_bv, candidates, gw)))
           return done;
         break;
 
       case BTOR_SLS_MOVE_NOT:
-        if ((done = select_inc_dec_not_move (btor,
-                                             btor_not_bv,
-                                             roots,
-                                             candidates,
-                                             moves,
-                                             max_cans,
-                                             max_score,
-                                             gw,
-                                             max_stats)))
+        if ((done =
+                 select_inc_dec_not_move (btor, btor_not_bv, candidates, gw)))
           return done;
         break;
 
       case BTOR_SLS_MOVE_FLIP_RANGE:
         if (!btor->options.sls_move_range.val) continue;
-        if ((done = select_flip_range_move (btor,
-                                            roots,
-                                            candidates,
-                                            moves,
-                                            max_cans,
-                                            max_score,
-                                            gw,
-                                            max_stats)))
-          return done;
+        if ((done = select_flip_range_move (btor, candidates, gw))) return done;
         break;
 
       case BTOR_SLS_MOVE_FLIP_SEGMENT:
         if (!btor->options.sls_move_segment.val) continue;
-        if ((done = select_flip_segment_move (btor,
-                                              roots,
-                                              candidates,
-                                              moves,
-                                              max_cans,
-                                              max_score,
-                                              gw,
-                                              max_stats)))
+        if ((done = select_flip_segment_move (btor, candidates, gw)))
           return done;
         break;
 
       default:
         assert (mk == BTOR_SLS_MOVE_FLIP);
-        if ((done = select_flip_move (btor,
-                                      roots,
-                                      candidates,
-                                      moves,
-                                      max_cans,
-                                      max_score,
-                                      gw,
-                                      max_stats)))
-          return done;
+        if ((done = select_flip_move (btor, candidates, gw))) return done;
     }
   }
 
@@ -1380,31 +1250,21 @@ select_move_aux (Btor *btor,
 }
 
 static inline void
-select_move (Btor *btor,
-             BtorPtrHashTable *roots,
-             BtorNodePtrStack *candidates,
-             BtorPtrHashTable **max_cans,
-             double *max_score,
-             BtorSLSMoveStats *max_stats)
+select_move (Btor *btor, BtorNodePtrStack *candidates)
 {
   assert (btor);
-  assert (roots);
+  assert (btor->sls_solver->max_cans);
+  assert (!btor->sls_solver->max_cans->count);
   assert (candidates);
-  assert (max_cans);
-  assert ((*max_cans)->count == 0);
-  assert (max_stats);
 
   int i, r, sum, done, randomizeall;
   BtorNode *can;
   BitVector *neigh;
   BtorNodePtrStack cans;
   BtorSLSMove *m;
-  BtorSLSProbRWData moves;
   BtorHashTableIterator it;
 
   BTOR_INIT_STACK (cans);
-  BTOR_INIT_STACK (moves.moves);
-  moves.sum_sc = 0.0;
 
   /* one after another */
   for (i = 0; i < BTOR_COUNT_STACK (*candidates); i++)
@@ -1413,9 +1273,7 @@ select_move (Btor *btor,
     assert (can);
     BTOR_PUSH_STACK (btor->mm, cans, can);
 
-    if ((done = select_move_aux (
-             btor, roots, &cans, &moves, max_cans, max_score, 0, max_stats)))
-      goto DONE;
+    if ((done = select_move_aux (btor, &cans, 0))) goto DONE;
 
     BTOR_RESET_STACK (cans);
   }
@@ -1423,57 +1281,52 @@ select_move (Btor *btor,
   /* groupwise */
   if (btor->options.sls_move_gw.val && BTOR_COUNT_STACK (*candidates) > 1)
   {
-    if ((done = select_move_aux (btor,
-                                 roots,
-                                 candidates,
-                                 &moves,
-                                 max_cans,
-                                 max_score,
-                                 1,
-                                 max_stats)))
-      goto DONE;
+    if ((done = select_move_aux (btor, candidates, 1))) goto DONE;
   }
 
   /* select probabilistic random walk move */
   if (btor->options.sls_move_prob_rand_walk.val)
   {
-    assert ((*max_cans)->count == 0);
-    assert (BTOR_COUNT_STACK (moves.moves));
+    assert (btor->sls_solver->max_cans->count == 0);
+    assert (BTOR_COUNT_STACK (btor->sls_solver->moves));
 
-    qsort (moves.moves.start,
-           BTOR_COUNT_STACK (moves.moves),
+    qsort (btor->sls_solver->moves.start,
+           BTOR_COUNT_STACK (btor->sls_solver->moves),
            sizeof (BtorSLSMove *),
            cmp_sls_moves_qsort);
 
-    r   = btor_pick_rand_rng (&btor->rng, 0, (unsigned) (moves.sum_sc * 10000));
-    m   = BTOR_PEEK_STACK (moves.moves, 0);
+    r = btor_pick_rand_rng (
+        &btor->rng, 0, (unsigned) (btor->sls_solver->sum_score * 10000));
+    m   = BTOR_PEEK_STACK (btor->sls_solver->moves, 0);
     sum = (unsigned) (m->sc * 10000);
     printf ("sumscore: %d r: %d sum: %d\n",
-            (unsigned) (moves.sum_sc * 10000),
+            (unsigned) (btor->sls_solver->sum_score * 10000),
             r,
             sum);
-    for (i = 0; i < BTOR_COUNT_STACK (moves.moves); i++)
+    for (i = 0; i < BTOR_COUNT_STACK (btor->sls_solver->moves); i++)
     {
-      sum += (unsigned) (BTOR_PEEK_STACK (moves.moves, i)->sc * 10000);
+      sum +=
+          (unsigned) (BTOR_PEEK_STACK (btor->sls_solver->moves, i)->sc * 10000);
       if (sum > r) break;
-      m = BTOR_PEEK_STACK (moves.moves, i);
+      m = BTOR_PEEK_STACK (btor->sls_solver->moves, i);
     }
     printf ("sum: %d\n", sum);
-    max_stats->max_gw   = m->cans->count > 1;
-    max_stats->max_move = BTOR_SLS_MOVE_RAND_WALK;
+    btor->sls_solver->max_gw   = m->cans->count > 1;
+    btor->sls_solver->max_move = BTOR_SLS_MOVE_RAND_WALK;
     init_node_hash_table_iterator (&it, m->cans);
     while (has_next_node_hash_table_iterator (&it))
     {
       neigh = btor_copy_bv (btor->mm, it.bucket->data.asPtr);
       assert (neigh);
       can = next_node_hash_table_iterator (&it);
-      btor_insert_in_ptr_hash_table (*max_cans, can)->data.asPtr = neigh;
+      btor_insert_in_ptr_hash_table (btor->sls_solver->max_cans, can)
+          ->data.asPtr = neigh;
     }
   }
 
-  if ((*max_cans)->count == 0)
+  if (btor->sls_solver->max_cans->count == 0)
   {
-    assert (max_stats->max_move == BTOR_SLS_MOVE_DONE);
+    assert (btor->sls_solver->max_move == BTOR_SLS_MOVE_DONE);
 
     /* randomize if no best move was found */
     BTORLOG ("--- randomized");
@@ -1483,8 +1336,8 @@ select_move (Btor *btor,
 
     if (randomizeall)
     {
-      max_stats->max_gw   = 1;
-      max_stats->max_move = BTOR_SLS_MOVE_RAND;
+      btor->sls_solver->max_gw   = 1;
+      btor->sls_solver->max_move = BTOR_SLS_MOVE_RAND;
 
       for (r = 0; r < BTOR_COUNT_STACK (*candidates) - 1; r++)
       {
@@ -1495,13 +1348,14 @@ select_move (Btor *btor,
         else
           neigh = btor_new_random_bv (btor->mm, &btor->rng, can->len);
 
-        btor_insert_in_ptr_hash_table (*max_cans, can)->data.asPtr = neigh;
+        btor_insert_in_ptr_hash_table (btor->sls_solver->max_cans, can)
+            ->data.asPtr = neigh;
       }
     }
     else
     {
-      max_stats->max_gw   = 0;
-      max_stats->max_move = BTOR_SLS_MOVE_RAND;
+      btor->sls_solver->max_gw   = 0;
+      btor->sls_solver->max_move = BTOR_SLS_MOVE_RAND;
 
       can = BTOR_PEEK_STACK (
           *candidates,
@@ -1512,69 +1366,67 @@ select_move (Btor *btor,
       {
         neigh = btor_flipped_bit_bv (
             btor->mm, (BitVector *) btor_get_bv_model (btor, can), 0);
-        btor_insert_in_ptr_hash_table (*max_cans, can)->data.asPtr = neigh;
+        btor_insert_in_ptr_hash_table (btor->sls_solver->max_cans, can)
+            ->data.asPtr = neigh;
       }
       /* pick neighbor with randomized bit range (best guess) */
       else if (btor->options.sls_move_rand_range.val)
       {
-        select_rand_range_move (
-            btor, roots, &cans, &moves, max_cans, max_score, 0, max_stats);
-        assert ((*max_cans)->count == 1);
-        assert ((*max_cans)->first->key == can);
+        select_rand_range_move (btor, &cans, 0);
+        assert (btor->sls_solver->max_cans->count == 1);
+        assert (btor->sls_solver->max_cans->first->key == can);
       }
       else
       {
         neigh = btor_new_random_bv (btor->mm, &btor->rng, can->len);
-        btor_insert_in_ptr_hash_table (*max_cans, can)->data.asPtr = neigh;
+        btor_insert_in_ptr_hash_table (btor->sls_solver->max_cans, can)
+            ->data.asPtr = neigh;
       }
 
-      assert (!max_stats->max_gw);
-      assert (max_stats->max_move == BTOR_SLS_MOVE_RAND);
+      assert (!btor->sls_solver->max_gw);
+      assert (btor->sls_solver->max_move == BTOR_SLS_MOVE_RAND);
     }
   }
 
 DONE:
   BTOR_RELEASE_STACK (btor->mm, cans);
-  while (!BTOR_EMPTY_STACK (moves.moves))
+  while (!BTOR_EMPTY_STACK (btor->sls_solver->moves))
   {
-    m = BTOR_POP_STACK (moves.moves);
+    m = BTOR_POP_STACK (btor->sls_solver->moves);
     init_node_hash_table_iterator (&it, m->cans);
     while (has_next_node_hash_table_iterator (&it))
       btor_free_bv (btor->mm, next_data_hash_table_iterator (&it)->asPtr);
     btor_delete_ptr_hash_table (m->cans);
     BTOR_DELETE (btor->mm, m);
   }
-  BTOR_RELEASE_STACK (btor->mm, moves.moves);
 }
 
 static inline void
-select_random_move (Btor *btor,
-                    BtorNodePtrStack *candidates,
-                    BtorPtrHashTable *max_cans,
-                    BtorSLSMoveStats *max_stats)
+select_random_move (Btor *btor, BtorNodePtrStack *candidates)
 {
   assert (btor);
+  assert (btor->sls_solver->max_cans);
+  assert (!btor->sls_solver->max_cans->count);
   assert (candidates);
-  assert (max_cans);
-  assert (!max_cans->count);
-  assert (max_stats);
 
   int i, r, up, lo;
   BtorSLSMoveKind mk;
   BtorNodePtrStack cans, *pcans;
   BtorNode *can;
   BitVector *ass, *neigh;
+  BtorPtrHashTable *max_cans;
 
   BTOR_INIT_STACK (cans);
 
-  max_stats->max_move = BTOR_SLS_MOVE_RAND_WALK;
+  max_cans                   = btor->sls_solver->max_cans;
+  btor->sls_solver->max_move = BTOR_SLS_MOVE_RAND_WALK;
 
   /* select candidate(s) */
   if (btor->options.sls_move_gw.val
       && !btor_pick_rand_rng (&btor->rng, 0, BTOR_SLS_SCORE_F_PROB))
   {
-    pcans             = candidates;
-    max_stats->max_gw = 1;
+    pcans                    = candidates;
+    btor->sls_solver->max_gw = 1;
   }
   else
   {
@@ -1585,8 +1437,8 @@ select_random_move (Btor *btor,
             *candidates,
             btor_pick_rand_rng (
                 &btor->rng, 0, BTOR_COUNT_STACK (*candidates) - 1)));
-    pcans             = &cans;
-    max_stats->max_gw = 0;
+    pcans                    = &cans;
+    btor->sls_solver->max_gw = 0;
   }
 
   /* select neighbor(s) */
@@ -1643,16 +1495,13 @@ select_random_move (Btor *btor,
 }
 
 static void
-move (Btor *btor, BtorPtrHashTable *roots, int nmoves)
+move (Btor *btor, int nmoves)
 {
   assert (btor);
-  assert (roots);
-  assert (compute_sls_score_formula (roots, btor->score_sls) != -1.0);
+  assert (!btor->sls_solver->max_cans);
+  assert (compute_sls_score_formula (btor, btor->sls_solver->score) != -1.0);
 
-  double max_score;
-  BtorSLSMoveStats max_stats;
   BtorNodePtrStack candidates;
-  BtorPtrHashTable *max_cans;
 
   BTORLOG ("");
   BTORLOG ("*** move");
@@ -1660,27 +1509,27 @@ move (Btor *btor, BtorPtrHashTable *roots, int nmoves)
   BTOR_INIT_STACK (candidates);
 
   select_candidates (
-      btor, select_candidate_constraint (btor, roots, nmoves), &candidates);
+      btor, select_candidate_constraint (btor, nmoves), &candidates);
   assert (BTOR_COUNT_STACK (candidates));
 
-  max_stats.max_move = BTOR_SLS_MOVE_DONE;
-  max_stats.max_gw   = -1;
-
-  max_score = compute_sls_score_formula (roots, btor->score_sls);
-
-  max_cans = btor_new_ptr_hash_table (btor->mm,
-                                      (BtorHashPtr) btor_hash_exp_by_id,
-                                      (BtorCmpPtr) btor_compare_exp_by_id);
+  btor->sls_solver->max_cans =
+      btor_new_ptr_hash_table (btor->mm,
+                               (BtorHashPtr) btor_hash_exp_by_id,
+                               (BtorCmpPtr) btor_compare_exp_by_id);
+  btor->sls_solver->max_score =
+      compute_sls_score_formula (btor, btor->sls_solver->score);
+  btor->sls_solver->max_move = BTOR_SLS_MOVE_DONE;
+  btor->sls_solver->max_gw   = -1;
 
   if (btor->options.sls_move_rand_walk.val
       && !btor_pick_rand_rng (
              &btor->rng, 0, btor->options.sls_move_rand_walk_prob.val))
-    select_random_move (btor, &candidates, max_cans, &max_stats);
+    select_random_move (btor, &candidates);
   else
-    select_move (btor, roots, &candidates, &max_cans, &max_score, &max_stats);
+    select_move (btor, &candidates);
 
-  assert (max_cans->count);
-  assert (max_stats.max_move != BTOR_SLS_MOVE_DONE);
+  assert (btor->sls_solver->max_cans->count);
+  assert (btor->sls_solver->max_move != BTOR_SLS_MOVE_DONE);
 
 #ifndef NBTORLOG
   BTORLOG ("");
@@ -1689,7 +1538,7 @@ move (Btor *btor, BtorPtrHashTable *roots, int nmoves)
   BtorNode *can;
   BitVector *neigh, *ass;
   BtorHashTableIterator it;
-  init_node_hash_table_iterator (&it, max_cans);
+  init_node_hash_table_iterator (&it, btor->sls_solver->max_cans);
   while (has_next_node_hash_table_iterator (&it))
   {
     neigh = it.bucket->data.asPtr;
@@ -1710,88 +1559,76 @@ move (Btor *btor, BtorPtrHashTable *roots, int nmoves)
   update_cone (btor,
                &btor->bv_model,
                &btor->fun_model,
-               roots,
-               max_cans,
-               btor->score_sls);
+               btor->sls_solver->max_cans,
+               btor->sls_solver->score);
 
-  btor->stats.sls_moves += 1;
+  btor->sls_solver->stats.moves += 1;
 
-  assert (max_stats.max_move != BTOR_SLS_MOVE_DONE);
-  assert (max_stats.max_gw >= 0);
+  assert (btor->sls_solver->max_move != BTOR_SLS_MOVE_DONE);
+  assert (btor->sls_solver->max_gw >= 0);
 
-  switch (max_stats.max_move)
+  switch (btor->sls_solver->max_move)
   {
     case BTOR_SLS_MOVE_FLIP:
-      if (!max_stats.max_gw)
-        btor->stats.sls_move_flip += 1;
+      if (!btor->sls_solver->max_gw)
+        btor->sls_solver->stats.move_flip += 1;
       else
-        btor->stats.sls_move_gw_flip += 1;
+        btor->sls_solver->stats.move_gw_flip += 1;
       break;
     case BTOR_SLS_MOVE_INC:
-      if (!max_stats.max_gw)
-        btor->stats.sls_move_inc += 1;
+      if (!btor->sls_solver->max_gw)
+        btor->sls_solver->stats.move_inc += 1;
       else
-        btor->stats.sls_move_gw_inc += 1;
+        btor->sls_solver->stats.move_gw_inc += 1;
       break;
     case BTOR_SLS_MOVE_DEC:
-      if (!max_stats.max_gw)
-        btor->stats.sls_move_dec += 1;
+      if (!btor->sls_solver->max_gw)
+        btor->sls_solver->stats.move_dec += 1;
       else
-        btor->stats.sls_move_gw_dec += 1;
+        btor->sls_solver->stats.move_gw_dec += 1;
       break;
     case BTOR_SLS_MOVE_NOT:
-      if (!max_stats.max_gw)
-        btor->stats.sls_move_not += 1;
+      if (!btor->sls_solver->max_gw)
+        btor->sls_solver->stats.move_not += 1;
       else
-        btor->stats.sls_move_gw_not += 1;
+        btor->sls_solver->stats.move_gw_not += 1;
       break;
     case BTOR_SLS_MOVE_FLIP_RANGE:
-      if (!max_stats.max_gw)
-        btor->stats.sls_move_range += 1;
+      if (!btor->sls_solver->max_gw)
+        btor->sls_solver->stats.move_range += 1;
       else
-        btor->stats.sls_move_gw_range += 1;
+        btor->sls_solver->stats.move_gw_range += 1;
       break;
     case BTOR_SLS_MOVE_FLIP_SEGMENT:
-      if (!max_stats.max_gw)
-        btor->stats.sls_move_seg += 1;
+      if (!btor->sls_solver->max_gw)
+        btor->sls_solver->stats.move_seg += 1;
       else
-        btor->stats.sls_move_gw_seg += 1;
+        btor->sls_solver->stats.move_gw_seg += 1;
       break;
     case BTOR_SLS_MOVE_RAND:
-      if (!max_stats.max_gw)
-        btor->stats.sls_move_rand += 1;
+      if (!btor->sls_solver->max_gw)
+        btor->sls_solver->stats.move_rand += 1;
       else
-        btor->stats.sls_move_gw_rand += 1;
+        btor->sls_solver->stats.move_gw_rand += 1;
       break;
     default:
-      assert (max_stats.max_move == BTOR_SLS_MOVE_RAND_WALK);
-      if (!max_stats.max_gw)
-        btor->stats.sls_move_rand_walk += 1;
+      assert (btor->sls_solver->max_move == BTOR_SLS_MOVE_RAND_WALK);
+      if (!btor->sls_solver->max_gw)
+        btor->sls_solver->stats.move_rand_walk += 1;
       else
-        btor->stats.sls_move_gw_rand_walk += 1;
+        btor->sls_solver->stats.move_gw_rand_walk += 1;
   }
 
-  if (max_stats.max_move == BTOR_SLS_MOVE_RAND)
-    update_assertion_weights (btor, roots);
+  if (btor->sls_solver->max_move == BTOR_SLS_MOVE_RAND)
+    update_assertion_weights (btor);
 
   /** cleanup **/
-  init_node_hash_table_iterator (&it, max_cans);
+  init_node_hash_table_iterator (&it, btor->sls_solver->max_cans);
   while (has_next_node_hash_table_iterator (&it))
     btor_free_bv (btor->mm, next_data_hash_table_iterator (&it)->asPtr);
-  btor_delete_ptr_hash_table (max_cans);
+  btor_delete_ptr_hash_table (btor->sls_solver->max_cans);
+  btor->sls_solver->max_cans = 0;
   BTOR_RELEASE_STACK (btor->mm, candidates);
-}
-
-void
-btor_generate_model_sls (Btor *btor, int model_for_all_nodes, int reset)
-{
-  assert (btor);
-
-  if (!reset && btor->bv_model) return;
-  btor_init_bv_model (btor, &btor->bv_model);
-  btor_init_fun_model (btor, &btor->fun_model);
-  btor_generate_model_aux (
-      btor, btor->bv_model, btor->fun_model, model_for_all_nodes);
 }
 
 /* Note: failed assumptions -> no handling necessary, sls only works for SAT */
@@ -1803,12 +1640,11 @@ btor_sat_aux_btor_sls (Btor *btor)
   int i, j, max_steps;
   int sat_result;
   int nmoves;
-  BtorPtrHashTable *roots;
   BtorPtrHashBucket *b;
   BtorHashTableIterator it;
-  BtorNodePtrStack candidates;
 
-  roots  = 0;
+  if (!btor->sls_solver) btor->sls_solver = btor_new_sls_solver (btor);
+
   nmoves = 0;
 
   //#ifndef NDEBUG
@@ -1846,23 +1682,23 @@ btor_sat_aux_btor_sls (Btor *btor)
   btor_generate_model_sls (btor, 0, 1);
 
   /* collect roots */
-  roots = btor_new_ptr_hash_table (btor->mm,
-                                   (BtorHashPtr) btor_hash_exp_by_id,
-                                   (BtorCmpPtr) btor_compare_exp_by_id);
+  assert (!btor->sls_solver->roots);
+  btor->sls_solver->roots =
+      btor_new_ptr_hash_table (btor->mm,
+                               (BtorHashPtr) btor_hash_exp_by_id,
+                               (BtorCmpPtr) btor_compare_exp_by_id);
   assert (btor->synthesized_constraints->count == 0);
   init_node_hash_table_iterator (&it, btor->unsynthesized_constraints);
   queue_node_hash_table_iterator (&it, btor->assumptions);
   while (has_next_node_hash_table_iterator (&it))
   {
-    b             = btor_insert_in_ptr_hash_table (roots,
+    b             = btor_insert_in_ptr_hash_table (btor->sls_solver->roots,
                                        next_node_hash_table_iterator (&it));
     b->data.asInt = 1; /* initial assertion weight */
   }
 
-  BTOR_INIT_STACK (candidates);
-
-  if (!btor->score_sls)
-    btor->score_sls =
+  if (!btor->sls_solver->score)
+    btor->sls_solver->score =
         btor_new_ptr_hash_table (btor->mm,
                                  (BtorHashPtr) btor_hash_exp_by_id,
                                  (BtorCmpPtr) btor_compare_exp_by_id);
@@ -1871,9 +1707,9 @@ btor_sat_aux_btor_sls (Btor *btor)
   for (;;)
   {
     /* compute initial sls score */
-    compute_sls_scores (btor, roots, btor->score_sls);
+    compute_sls_scores (btor, btor->sls_solver->score);
 
-    if (compute_sls_score_formula (roots, btor->score_sls) == -1.0)
+    if (compute_sls_score_formula (btor, btor->sls_solver->score) == -1.0)
     {
       sat_result = BTOR_SAT;
       goto SAT;
@@ -1883,9 +1719,9 @@ btor_sat_aux_btor_sls (Btor *btor)
          j < max_steps;  // && !btor->options.sls_move_prob_rand_walk.val;
          j++)
     {
-      move (btor, roots, nmoves++);
+      move (btor, nmoves++);
 
-      if (compute_sls_score_formula (roots, btor->score_sls) == -1.0)
+      if (compute_sls_score_formula (btor, btor->sls_solver->score) == -1.0)
       {
         sat_result = BTOR_SAT;
         goto SAT;
@@ -1894,8 +1730,8 @@ btor_sat_aux_btor_sls (Btor *btor)
 
     /* restart */
     btor_generate_model_sls (btor, 0, 1);
-    btor_delete_ptr_hash_table (btor->score_sls);
-    btor->score_sls =
+    btor_delete_ptr_hash_table (btor->sls_solver->score);
+    btor->sls_solver->score =
         btor_new_ptr_hash_table (btor->mm,
                                  (BtorHashPtr) btor_hash_exp_by_id,
                                  (BtorCmpPtr) btor_compare_exp_by_id);
@@ -1904,16 +1740,136 @@ btor_sat_aux_btor_sls (Btor *btor)
 
 SAT:
   assert (sat_result == BTOR_SAT);
-  btor->stats.sls_restarts = i - 1;
-  assert (btor->stats.sls_moves == nmoves);
-  BTOR_RELEASE_STACK (btor->mm, candidates);
+  btor->sls_solver->stats.restarts = i - 1;
+  assert (btor->sls_solver->stats.moves == nmoves);
   goto DONE;
 
 UNSAT:
   sat_result = BTOR_UNSAT;
 
 DONE:
-  if (roots) btor_delete_ptr_hash_table (roots);
+  if (btor->sls_solver->roots)
+  {
+    btor_delete_ptr_hash_table (btor->sls_solver->roots);
+    btor->sls_solver->roots = 0;
+  }
   btor->last_sat_result = sat_result;
   return sat_result;
+}
+
+void
+btor_generate_model_sls (Btor *btor, int model_for_all_nodes, int reset)
+{
+  assert (btor);
+
+  if (!reset && btor->bv_model) return;
+  btor_init_bv_model (btor, &btor->bv_model);
+  btor_init_fun_model (btor, &btor->fun_model);
+  btor_generate_model_aux (
+      btor, btor->bv_model, btor->fun_model, model_for_all_nodes);
+}
+
+BtorSLSSolver *
+btor_new_sls_solver (Btor *btor)
+{
+  assert (btor);
+
+  BtorSLSSolver *slv;
+
+  BTOR_CNEW (btor->mm, slv);
+  slv->btor = btor;
+  return slv;
+}
+
+void
+btor_delete_sls_solver (BtorSLSSolver *slv)
+{
+  assert (slv);
+
+  BtorMemMgr *mm = slv->btor->mm;
+  if (slv->score) btor_delete_ptr_hash_table (slv->score);
+  if (slv->roots) btor_delete_ptr_hash_table (slv->roots);
+  BTOR_RELEASE_STACK (mm, slv->moves);
+  BTOR_DELETE (mm, slv);
+}
+
+void
+btor_print_stats_sls_solver (BtorSLSSolver *slv)
+{
+  assert (slv);
+
+  Btor *btor = slv->btor;
+
+  BTOR_MSG (btor->msg, 1, "");
+  BTOR_MSG (btor->msg, 1, "sls restarts: %d", btor->sls_solver->stats.restarts);
+  BTOR_MSG (btor->msg, 1, "sls moves: %d", btor->sls_solver->stats.moves);
+  BTOR_MSG (btor->msg, 1, "sls flips: %d", btor->sls_solver->stats.flips);
+
+  BTOR_MSG (btor->msg, 1, "");
+  BTOR_MSG (btor->msg,
+            1,
+            "sls flip        moves: %d",
+            btor->sls_solver->stats.move_flip);
+  BTOR_MSG (btor->msg,
+            1,
+            "sls inc         moves: %d",
+            btor->sls_solver->stats.move_inc);
+  BTOR_MSG (btor->msg,
+            1,
+            "sls dec         moves: %d",
+            btor->sls_solver->stats.move_dec);
+  BTOR_MSG (btor->msg,
+            1,
+            "sls not         moves: %d",
+            btor->sls_solver->stats.move_not);
+  BTOR_MSG (btor->msg,
+            1,
+            "sls range       moves: %d",
+            btor->sls_solver->stats.move_range);
+  BTOR_MSG (btor->msg,
+            1,
+            "sls segment     moves: %d",
+            btor->sls_solver->stats.move_seg);
+  BTOR_MSG (btor->msg,
+            1,
+            "sls random      moves: %d",
+            btor->sls_solver->stats.move_rand);
+  BTOR_MSG (btor->msg,
+            1,
+            "sls random walk moves: %d",
+            btor->sls_solver->stats.move_rand_walk);
+
+  BTOR_MSG (btor->msg, 1, "");
+  BTOR_MSG (btor->msg,
+            1,
+            "sls gw flip        moves: %d",
+            btor->sls_solver->stats.move_gw_flip);
+  BTOR_MSG (btor->msg,
+            1,
+            "sls gw inc         moves: %d",
+            btor->sls_solver->stats.move_gw_inc);
+  BTOR_MSG (btor->msg,
+            1,
+            "sls gw dec         moves: %d",
+            btor->sls_solver->stats.move_gw_dec);
+  BTOR_MSG (btor->msg,
+            1,
+            "sls gw not         moves: %d",
+            btor->sls_solver->stats.move_gw_not);
+  BTOR_MSG (btor->msg,
+            1,
+            "sls gw range       moves: %d",
+            btor->sls_solver->stats.move_gw_range);
+  BTOR_MSG (btor->msg,
+            1,
+            "sls gw segment     moves: %d",
+            btor->sls_solver->stats.move_gw_seg);
+  BTOR_MSG (btor->msg,
+            1,
+            "sls gw random      moves: %d",
+            btor->sls_solver->stats.move_gw_rand);
+  BTOR_MSG (btor->msg,
+            1,
+            "sls gw random walk moves: %d",
+            btor->sls_solver->stats.move_gw_rand_walk);
 }

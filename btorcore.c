@@ -609,66 +609,7 @@ btor_print_stats_btor (Btor *btor)
               btor->stats.dp_assumed_applies);
   }
 
-  if (btor->options.sls.val)
-  {
-    BTOR_MSG (btor->msg, 1, "");
-    BTOR_MSG (btor->msg, 1, "sls restarts: %d", btor->stats.sls_restarts);
-    BTOR_MSG (btor->msg, 1, "sls moves: %d", btor->stats.sls_moves);
-    BTOR_MSG (btor->msg, 1, "sls flips: %d", btor->stats.sls_flips);
-
-    BTOR_MSG (btor->msg, 1, "");
-    BTOR_MSG (
-        btor->msg, 1, "sls flip        moves: %d", btor->stats.sls_move_flip);
-    BTOR_MSG (
-        btor->msg, 1, "sls inc         moves: %d", btor->stats.sls_move_inc);
-    BTOR_MSG (
-        btor->msg, 1, "sls dec         moves: %d", btor->stats.sls_move_dec);
-    BTOR_MSG (
-        btor->msg, 1, "sls not         moves: %d", btor->stats.sls_move_not);
-    BTOR_MSG (
-        btor->msg, 1, "sls range       moves: %d", btor->stats.sls_move_range);
-    BTOR_MSG (
-        btor->msg, 1, "sls segment     moves: %d", btor->stats.sls_move_seg);
-    BTOR_MSG (
-        btor->msg, 1, "sls random      moves: %d", btor->stats.sls_move_rand);
-    BTOR_MSG (btor->msg,
-              1,
-              "sls random walk moves: %d",
-              btor->stats.sls_move_rand_walk);
-    BTOR_MSG (btor->msg, 1, "");
-    BTOR_MSG (btor->msg,
-              1,
-              "sls gw flip        moves: %d",
-              btor->stats.sls_move_gw_flip);
-    BTOR_MSG (btor->msg,
-              1,
-              "sls gw inc         moves: %d",
-              btor->stats.sls_move_gw_inc);
-    BTOR_MSG (btor->msg,
-              1,
-              "sls gw dec         moves: %d",
-              btor->stats.sls_move_gw_dec);
-    BTOR_MSG (btor->msg,
-              1,
-              "sls gw not         moves: %d",
-              btor->stats.sls_move_gw_not);
-    BTOR_MSG (btor->msg,
-              1,
-              "sls gw range       moves: %d",
-              btor->stats.sls_move_gw_range);
-    BTOR_MSG (btor->msg,
-              1,
-              "sls gw segment     moves: %d",
-              btor->stats.sls_move_gw_seg);
-    BTOR_MSG (btor->msg,
-              1,
-              "sls gw random      moves: %d",
-              btor->stats.sls_move_gw_rand);
-    BTOR_MSG (btor->msg,
-              1,
-              "sls gw random walk moves: %d",
-              btor->stats.sls_move_gw_rand_walk);
-  }
+  if (btor->options.sls.val) btor_print_stats_sls_solver (btor->sls_solver);
 
   BTOR_MSG (btor->msg, 1, "");
   BTOR_MSG (btor->msg, 1, "%.2f seconds beta-reduction", btor->time.beta);
@@ -731,11 +672,6 @@ btor_print_stats_btor (Btor *btor)
         1,
         "%.2f seconds cone traversal when collecting initial applies via FA",
         btor->time.search_init_apps_collect_fa_cone);
-  }
-  if (btor->options.sls.val)
-  {
-    //      BTOR_MSG (btor->msg, 1,
-    //	  "%.2f seconds compute sls scores", btor->time.compute_scores_sls);
   }
   BTOR_MSG (btor->msg,
             1,
@@ -1024,6 +960,8 @@ btor_delete_btor (Btor *btor)
 
   if (btor->parse_error_msg) btor_freestr (mm, btor->parse_error_msg);
 
+  if (btor->sls_solver) btor_delete_sls_solver (btor->sls_solver);
+
   btor_release_exp (btor, btor->true_exp);
 
   btor_delete_bv_assignment_list (
@@ -1115,8 +1053,6 @@ btor_delete_btor (Btor *btor)
     }
     btor_delete_ptr_hash_table (btor->score);
   }
-
-  if (btor->score_sls) btor_delete_ptr_hash_table (btor->score_sls);
 
   if (btor->options.auto_cleanup.val && btor->external_refs)
   {
