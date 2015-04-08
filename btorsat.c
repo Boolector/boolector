@@ -58,10 +58,8 @@
 static BtorLGL *btor_clone_lingeling (BtorLGL *, BtorMemMgr *);
 #define btor_enable_default_sat(SMGR) btor_enable_lingeling_sat ((SMGR), 0, 0)
 #elif defined(BTOR_USE_PICOSAT)
-void btor_enable_picosat_sat (BtorSATMgr *);
 #define btor_enable_default_sat btor_enable_picosat_sat
 #elif defined(BTOR_USE_MINISAT)
-void btor_enable_minisat_sat (BtorSATMgr *);
 #define btor_enable_default_sat btor_enable_minisat_sat
 #else
 #error "no SAT solver configured"
