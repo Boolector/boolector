@@ -78,7 +78,7 @@ btor_new_sat_mgr (BtorMemMgr *mm, BtorMsg *msg)
   smgr->msg    = msg;
   smgr->output = stdout;
   btor_enable_default_sat (smgr);
-
+  BTOR_MSG (msg, 1, "enabled %s as default SAT solver", smgr->name);
   return smgr;
 }
 
