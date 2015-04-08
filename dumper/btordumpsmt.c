@@ -142,8 +142,7 @@ smt_id (BtorSMTDumpContext *sdc, BtorNode *exp)
   }
   if (BTOR_IS_BV_VAR_NODE (exp) && ((BtorBVVarNode *) exp)->btor_id)
     return ((BtorBVVarNode *) exp)->btor_id;
-  if ((BTOR_IS_UF_ARRAY_NODE (exp) || BTOR_IS_UF_NODE (exp))
-      && ((BtorUFNode *) exp)->btor_id)
+  if (BTOR_IS_UF_NODE (exp) && ((BtorUFNode *) exp)->btor_id)
     return ((BtorUFNode *) exp)->btor_id;
   return exp->id;
 }
@@ -173,9 +172,7 @@ dump_smt_id (BtorSMTDumpContext *sdc, BtorNode *exp)
       }
       break;
 
-    case BTOR_UF_NODE:
-      type = BTOR_IS_UF_ARRAY_NODE (exp) ? "a" : "uf";
-      goto DUMP_SYMBOL;
+    case BTOR_UF_NODE: type = "uf"; goto DUMP_SYMBOL;
 
     case BTOR_LAMBDA_NODE: type = "f"; goto DUMP_SYMBOL;
 
@@ -551,9 +548,6 @@ recursively_dump_exp_smt (BtorSMTDumpContext *sdc, BtorNode *exp, int expect_bv)
           break;
 
         case BTOR_APPLY_NODE:
-          /* array select */
-          if (BTOR_IS_UF_ARRAY_NODE (real_exp->e[0])) op = "select ";
-
           /* we need the arguments in reversed order */
           init_args_iterator (&it, real_exp->e[1]);
           while (has_next_args_iterator (&it))
@@ -827,7 +821,7 @@ dump_fun_smt2 (BtorSMTDumpContext *sdc, BtorNode *fun)
   if (is_boolean (sdc, fun_body))
     fputs ("Bool", sdc->file);
   else
-    btor_dump_sort_smt_node (fun, sdc->version, sdc->file);
+    btor_dump_sort_smt_node (fun_body, sdc->version, sdc->file);
   fputc (' ', sdc->file);
 
   assert (sdc->open_lets == 0);
@@ -919,8 +913,7 @@ dump_declare_fun_smt (BtorSMTDumpContext *sdc, BtorNode *exp)
     fputs ("(declare-fun ", sdc->file);
     dump_smt_id (sdc, exp);
     fputc (' ', sdc->file);
-    if (BTOR_IS_BV_VAR_NODE (exp) || BTOR_IS_UF_ARRAY_NODE (exp))
-      fputs ("() ", sdc->file);
+    if (BTOR_IS_BV_VAR_NODE (exp)) fputs ("() ", sdc->file);
     btor_dump_sort_smt_node (exp, sdc->version, sdc->file);
     fputs (")\n", sdc->file);
   }
@@ -1028,7 +1021,7 @@ dump_smt (BtorSMTDumpContext *sdc)
   int i, j, not_bool;
   BtorNode *e, *cur;
   BtorMemMgr *mm;
-  BtorNodePtrStack visit, all, vars, arrays, shared, ufs;
+  BtorNodePtrStack visit, all, vars, shared, ufs;
   BtorPtrHashBucket *b;
   BtorHashTableIterator it;
   BtorArgsIterator ait;
@@ -1038,7 +1031,6 @@ dump_smt (BtorSMTDumpContext *sdc)
   BTOR_INIT_STACK (shared);
   BTOR_INIT_STACK (all);
   BTOR_INIT_STACK (vars);
-  BTOR_INIT_STACK (arrays);
   BTOR_INIT_STACK (ufs);
 
   init_node_hash_table_iterator (&it, sdc->roots);
@@ -1062,8 +1054,6 @@ dump_smt (BtorSMTDumpContext *sdc)
 
     if (BTOR_IS_BV_VAR_NODE (cur))
       BTOR_PUSH_STACK (mm, vars, cur);
-    else if (BTOR_IS_UF_ARRAY_NODE (cur))
-      BTOR_PUSH_STACK (mm, arrays, cur);
     else if (BTOR_IS_UF_NODE (cur))
       BTOR_PUSH_STACK (mm, ufs, cur);
     else if (BTOR_IS_LAMBDA_NODE (cur) && !cur->parameterized
@@ -1172,14 +1162,10 @@ dump_smt (BtorSMTDumpContext *sdc)
   /* begin dump */
   if (sdc->version == 1) fputs ("(benchmark dump\n", sdc->file);
 
-  if (BTOR_EMPTY_STACK (arrays) && BTOR_EMPTY_STACK (ufs))
+  if (BTOR_EMPTY_STACK (ufs))
     set_logic_smt (sdc, "QF_BV");
-  else if (BTOR_EMPTY_STACK (arrays))
-    set_logic_smt (sdc, "QF_UFBV");
-  else if (BTOR_EMPTY_STACK (ufs))
-    set_logic_smt (sdc, "QF_ABV");
   else
-    set_logic_smt (sdc, "QF_AUFBV");
+    set_logic_smt (sdc, "QF_UFBV");
 
   /* dump inputs */
   if (vars.start)
@@ -1197,15 +1183,6 @@ dump_smt (BtorSMTDumpContext *sdc)
   for (i = 0; i < BTOR_COUNT_STACK (ufs); i++)
   {
     cur = BTOR_PEEK_STACK (ufs, i);
-    dump_declare_fun_smt (sdc, cur);
-  }
-
-  if (arrays.start)
-    qsort (arrays.start, BTOR_COUNT_STACK (arrays), sizeof e, cmp_node_id);
-
-  for (i = 0; i < BTOR_COUNT_STACK (arrays); i++)
-  {
-    cur = BTOR_PEEK_STACK (arrays, i);
     dump_declare_fun_smt (sdc, cur);
   }
 
@@ -1289,7 +1266,6 @@ dump_smt (BtorSMTDumpContext *sdc)
   BTOR_RELEASE_STACK (mm, visit);
   BTOR_RELEASE_STACK (mm, all);
   BTOR_RELEASE_STACK (mm, vars);
-  BTOR_RELEASE_STACK (mm, arrays);
   BTOR_RELEASE_STACK (mm, ufs);
 
   if (sdc->version == 2)
