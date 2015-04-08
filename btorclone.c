@@ -65,6 +65,8 @@ btor_clone_key_as_str (BtorMemMgr *mm, const void *map, const void *key)
 void *
 btor_clone_key_as_bv_tuple (BtorMemMgr *mm, const void *map, const void *t)
 {
+  assert (mm);
+  assert (t);
   (void) map;
   return btor_copy_bv_tuple (mm, (BitVectorTuple *) t);
 }
@@ -97,7 +99,6 @@ btor_clone_data_as_str_ptr (BtorMemMgr *mm,
                             BtorPtrHashData *data,
                             BtorPtrHashData *cloned_data)
 {
-  assert (mm);
   assert (str_table);
   assert (data);
   assert (cloned_data);
@@ -119,8 +120,6 @@ btor_clone_data_as_int (BtorMemMgr *mm,
                         BtorPtrHashData *data,
                         BtorPtrHashData *cloned_data)
 {
-  assert (mm);
-  assert (map);
   assert (data);
   assert (cloned_data);
 
@@ -136,7 +135,6 @@ btor_clone_data_as_bv_ptr (BtorMemMgr *mm,
                            BtorPtrHashData *cloned_data)
 {
   assert (mm);
-  assert (map);
   assert (data);
   assert (cloned_data);
 
