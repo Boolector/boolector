@@ -439,42 +439,46 @@ collect_indices_top_eqs (Btor *btor, BtorPtrHashTable *map_value_index)
 void
 find_ranges (Btor *btor,
              BtorNodePtrStack *stack,
-             BtorUIntStack *ranges,
+             BtorNodePtrStack *ranges,
              BtorCharPtrStack *offsets,
-             BtorUIntStack *indices)
+             BtorNodePtrStack *indices)
 {
   assert (stack);
   assert (ranges);
   assert (offsets);
   assert (indices);
 
+#ifndef NDEBUG
+  unsigned num_indices = 0;
+#endif
   bool in_range;
   char *b0, *b1, *diff, *last_diff;
   unsigned cnt, lower, upper;
   BtorNode *n0, *n1;
   BtorMemMgr *mm;
+  BtorNodePtrStack index_stack;
 
-  mm  = btor->mm;
-  cnt = BTOR_COUNT_STACK (*stack);
+  mm          = btor->mm;
+  index_stack = *stack;
+  cnt         = BTOR_COUNT_STACK (index_stack);
   assert (BTOR_EMPTY_STACK (*ranges));
   assert (BTOR_EMPTY_STACK (*indices));
   if (cnt == 1)
-    BTOR_PUSH_STACK (mm, *indices, 0);
+    BTOR_PUSH_STACK (mm, *indices, BTOR_PEEK_STACK (index_stack, 0));
   else
   {
     assert (cnt > 1);
-    qsort (stack->start, cnt, sizeof (BtorNode *), cmp_bits);
+    qsort (index_stack.start, cnt, sizeof (BtorNode *), cmp_bits);
     diff = last_diff = 0;
     lower = upper = 0;
     while (upper < cnt)
     {
-      //		  printf ("%d %d\n", lower, upper);
       in_range = false;
       diff     = 0;
       if (upper + 1 < cnt)
       {
-        n0 = BTOR_PEEK_STACK (*stack, upper);
-        n1 = BTOR_PEEK_STACK (*stack, upper + 1);
+        n0 = BTOR_PEEK_STACK (index_stack, upper);
+        n1 = BTOR_PEEK_STACK (index_stack, upper + 1);
         b0 = BTOR_IS_INVERTED_NODE (n0) ? btor_get_invbits_const (n0)
                                         : btor_get_bits_const (n0);
         b1 = BTOR_IS_INVERTED_NODE (n1) ? btor_get_invbits_const (n1)
@@ -482,8 +486,6 @@ find_ranges (Btor *btor,
         assert (b0);
         assert (b1);
         diff = btor_sub_const (mm, b1, b0);
-        //		      printf ("%d: %s = %s - %s\n", upper + 1, diff, b1,
-        // b0);
 
         if (!last_diff) last_diff = btor_copy_const (mm, diff);
 
@@ -494,15 +496,13 @@ find_ranges (Btor *btor,
 
       if (!in_range)
       {
-        //		      if (upper == cnt - 1)
-        //		      printf ("end of stack: %d\n", upper);
-        //		      else
-        //		      printf ("not in range: %d\n", upper + 1);
         /* push index */
         if (upper == lower)
         {
-          BTOR_PUSH_STACK (mm, *indices, lower);
-          //			  printf ("index: %d\n", lower);
+          BTOR_PUSH_STACK (mm, *indices, BTOR_PEEK_STACK (index_stack, lower));
+#ifndef NDEBUG
+          num_indices++;
+#endif
           goto NEW_RANGE;
         }
         /* range is too small, push separate indices */
@@ -513,13 +513,15 @@ find_ranges (Btor *btor,
           /* last iteration step: if range contains all indices
            * up to the last one, we can push all indices */
           if (upper == cnt - 1) upper += 1;
-          //			  printf ("  small range, push indices\n");
-          //			  /* push all indices from lower until upper - 1
-          //*/
+
+          /* push all indices from lower until upper - 1 */
           for (; lower < upper; lower++)
           {
-            BTOR_PUSH_STACK (mm, *indices, lower);
-            //			    printf ("index: %d\n", lower);
+            BTOR_PUSH_STACK (
+                mm, *indices, BTOR_PEEK_STACK (index_stack, lower));
+#ifndef NDEBUG
+            num_indices++;
+#endif
           }
           /* lower is now that last index in the range, from
            * which we try to find a new range */
@@ -530,8 +532,11 @@ find_ranges (Btor *btor,
         {
           assert (upper - lower > 0);
           BTOR_PUSH_STACK (mm, *offsets, last_diff);
-          BTOR_PUSH_STACK (mm, *ranges, lower);
-          BTOR_PUSH_STACK (mm, *ranges, upper);
+          BTOR_PUSH_STACK (mm, *ranges, BTOR_PEEK_STACK (index_stack, lower));
+          BTOR_PUSH_STACK (mm, *ranges, BTOR_PEEK_STACK (index_stack, upper));
+#ifndef NDEBUG
+          num_indices += upper - lower + 1;
+#endif
           //			  printf ("range %d:%d\n", lower, upper);
           /* 'last_diff' will be released later */
           last_diff = 0;
@@ -547,6 +552,7 @@ find_ranges (Btor *btor,
       last_diff = diff;
     }
     if (diff) btor_delete_const (mm, diff);
+    assert (num_indices == cnt);
   }
 }
 
@@ -555,25 +561,23 @@ btor_extract_lambdas (Btor *btor)
 {
   assert (btor);
 
-#ifndef NDEBUG
-  unsigned cnt;
-#endif
-  unsigned lower, upper, num_memsets = 0, num_writes = 0, num_indices = 0;
+  unsigned num_memsets = 0, num_writes = 0, num_indices = 0;
   double start, delta;
   char *offset;
-  BtorNode *subst, *base, *n0, *n1, *tmp, *array, *value;
+  BtorNode *subst, *base, *tmp, *array, *value, *lower, *upper;
   BtorHashTableIterator it, iit;
   BtorPtrHashTable *t, *map_value_index, *map_lambda_base;
   BtorPtrHashBucket *b;
-  BtorNodePtrStack *stack;
-  BtorUIntStack ranges, indices;
+  BtorNodePtrStack *stack, ranges, indices;
   BtorCharPtrStack offsets;
   BtorMemMgr *mm;
 
   start = btor_time_stamp ();
 
-  mm              = btor->mm;
+  mm = btor->mm;
+  /* maps for each array values to stacks of indices */
   map_value_index = btor_new_ptr_hash_table (mm, 0, 0);
+  /* contains the base array for each write chain */
   map_lambda_base = btor_new_ptr_hash_table (mm, 0, 0);
   btor_init_substitutions (btor);
 
@@ -583,9 +587,6 @@ btor_extract_lambdas (Btor *btor)
   /* top level equality pre-initialization */
   collect_indices_top_eqs (btor, map_value_index);
 
-  // TODO (ma): in the write case: to not substitute anything if no memset
-  // could be extracted (should be less work)
-  //  printf ("%d\n", btor->ops[BTOR_LAMBDA_NODE].cur);
   BTOR_INIT_STACK (ranges);
   BTOR_INIT_STACK (indices);
   BTOR_INIT_STACK (offsets);
@@ -596,6 +597,9 @@ btor_extract_lambdas (Btor *btor)
     array = next_node_hash_table_iterator (&it);
     assert (t);
 
+    /* choose base array for memsets/writes:
+     *  1) write chains: base array of the write chains
+     *  2) top eqs: a new UF symbol */
     if ((b = btor_find_in_ptr_hash_table (map_lambda_base, array)))
     {
       assert (BTOR_IS_LAMBDA_NODE (array));
@@ -606,13 +610,8 @@ btor_extract_lambdas (Btor *btor)
       assert (BTOR_IS_UF_ARRAY_NODE (array));
       subst = btor_uf_exp (btor, array->sort_id, 0);
     }
-    //      printf ("base array: %s (for %s)\n", node2string (subst),
-    //      node2string (array));
 
     base = subst;
-    // one = btor_one_const (mm, btor_get_index_exp_width (btor, array));
-    // one = 0;
-    //      printf ("%s\n", node2string (array));
     init_node_hash_table_iterator (&iit, t);
     while (has_next_node_hash_table_iterator (&iit))
     {
@@ -620,17 +619,14 @@ btor_extract_lambdas (Btor *btor)
       value = next_node_hash_table_iterator (&iit);
       assert (stack);
 
-      //	  printf ("  (%d) %s\n", BTOR_COUNT_STACK (*stack),
-      //		  node2string (value));
-
+      num_indices += BTOR_COUNT_STACK (*stack);
       find_ranges (btor, stack, &ranges, &offsets, &indices);
+      BTOR_RELEASE_STACK (mm, *stack);
+      BTOR_DELETE (mm, stack);
       assert (!BTOR_EMPTY_STACK (ranges) || !BTOR_EMPTY_STACK (indices));
       assert (BTOR_COUNT_STACK (ranges) % 2 == 0);
       assert (BTOR_COUNT_STACK (ranges) / 2 == BTOR_COUNT_STACK (offsets));
 
-#ifndef NDEBUG
-      cnt = 0;
-#endif
       /* create memset regions */
       while (!BTOR_EMPTY_STACK (ranges))
       {
@@ -638,54 +634,26 @@ btor_extract_lambdas (Btor *btor)
         offset = BTOR_POP_STACK (offsets);
         upper  = BTOR_POP_STACK (ranges);
         lower  = BTOR_POP_STACK (ranges);
-        assert (lower < upper);
-        assert (upper < BTOR_COUNT_STACK (*stack));
-        assert (upper - lower + 1 > 1);
-        num_memsets++;
-#ifndef NDEBUG
-        cnt += upper - lower + 1;
-#endif
-        num_indices += upper - lower + 1;
-        n0 = BTOR_PEEK_STACK (*stack, lower);
-        n1 = BTOR_PEEK_STACK (*stack, upper);
-        //	      printf ("  [%s : %s] -> %s\n", node2string (n0),
-        // node2string (n1), 		      node2string (value));
-        tmp = create_memset (btor, n0, n1, value, subst, offset);
+        tmp    = create_memset (btor, lower, upper, value, subst, offset);
         btor_release_exp (btor, subst);
         subst = tmp;
         btor_delete_const (mm, offset);
+        num_memsets++;
       }
 
       /* create writes */
       while (!BTOR_EMPTY_STACK (indices))
       {
         lower = BTOR_POP_STACK (indices);
-        assert (lower < BTOR_COUNT_STACK (*stack));
-        num_writes++;
-#ifndef NDEBUG
-        cnt++;
-#endif
-        n0 = BTOR_PEEK_STACK (*stack, lower);
-        //	      printf ("  %s -> %s (", node2string (n0), node2string
-        //(value));
-        tmp = btor_write_exp (btor, subst, n0, value);
-        //	      printf ("%s)\n", node2string (tmp));
-        //	      if (tmp->parents > 0)
-        //		printf ("hashed: %s\n", node2string (tmp));
+        tmp   = btor_write_exp (btor, subst, lower, value);
         btor_release_exp (btor, subst);
         subst = tmp;
+        num_writes++;
       }
-      assert (cnt == BTOR_COUNT_STACK (*stack));
-      BTOR_RELEASE_STACK (mm, *stack);
-      BTOR_DELETE (mm, stack);
     }
     btor_delete_ptr_hash_table (t);
-    if (base != subst)
-    {
-      //	  printf ("  subst: %s -> %s\n", node2string (array),
-      // node2string (subst));
-      btor_insert_substitution (btor, array, subst, 0);
-    }
+
+    if (base != subst) btor_insert_substitution (btor, array, subst, 0);
     btor_release_exp (btor, subst);
   }
   btor_delete_ptr_hash_table (map_value_index);
@@ -699,9 +667,9 @@ btor_extract_lambdas (Btor *btor)
   delta = btor_time_stamp () - start;
   BTOR_MSG (btor->msg,
             1,
-            "found %d memsets (%d indices), and %d writes in %.3f seconds",
+            "found %d memsets (%d indices), %d writes in %.3f seconds",
             num_memsets,
-            num_indices,
+            num_indices - num_writes,
             num_writes,
             delta);
 }
