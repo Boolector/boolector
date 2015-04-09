@@ -327,11 +327,14 @@ collect_indices_writes (Btor *btor,
         /* if 'cur' has more than one parent we have to treat as a top
          * lambda */
         // TODO (ma): check if it has an effect if this is disabled
-        if (cur != lambda && cur->parents > 1)
-        {
-          BTOR_PUSH_STACK (mm, lambdas, cur);
-          break;
-        }
+        //	  -> it seems better if disabled
+#if 0
+	      if (0 && cur != lambda && cur->parents > 1)
+		{
+		  BTOR_PUSH_STACK (mm, lambdas, cur);
+		  break;
+		}
+#endif
 
         /* index already cached, this index will be overwritten anyways,
          * so we can skip it */
