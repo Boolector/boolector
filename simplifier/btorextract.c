@@ -434,20 +434,136 @@ collect_indices_top_eqs (Btor *btor, BtorPtrHashTable *map_value_index)
 }
 
 void
+find_ranges (Btor *btor,
+             BtorNodePtrStack *stack,
+             BtorUIntStack *ranges,
+             BtorCharPtrStack *offsets,
+             BtorUIntStack *indices)
+{
+  assert (stack);
+  assert (ranges);
+  assert (offsets);
+  assert (indices);
+
+  bool in_range;
+  char *b0, *b1, *diff, *last_diff;
+  unsigned cnt, lower, upper;
+  BtorNode *n0, *n1;
+  BtorMemMgr *mm;
+
+  mm  = btor->mm;
+  cnt = BTOR_COUNT_STACK (*stack);
+  assert (BTOR_EMPTY_STACK (*ranges));
+  assert (BTOR_EMPTY_STACK (*indices));
+  if (cnt == 1)
+    BTOR_PUSH_STACK (mm, *indices, 0);
+  else
+  {
+    assert (cnt > 1);
+    qsort (stack->start, cnt, sizeof (BtorNode *), cmp_bits);
+    diff = last_diff = 0;
+    lower = upper = 0;
+    while (upper < cnt)
+    {
+      //		  printf ("%d %d\n", lower, upper);
+      in_range = false;
+      diff     = 0;
+      if (upper + 1 < cnt)
+      {
+        n0 = BTOR_PEEK_STACK (*stack, upper);
+        n1 = BTOR_PEEK_STACK (*stack, upper + 1);
+        b0 = BTOR_IS_INVERTED_NODE (n0) ? btor_get_invbits_const (n0)
+                                        : btor_get_bits_const (n0);
+        b1 = BTOR_IS_INVERTED_NODE (n1) ? btor_get_invbits_const (n1)
+                                        : btor_get_bits_const (n1);
+        assert (b0);
+        assert (b1);
+        diff = btor_sub_const (mm, b1, b0);
+        //		      printf ("%d: %s = %s - %s\n", upper + 1, diff, b1,
+        // b0);
+
+        if (!last_diff) last_diff = btor_copy_const (mm, diff);
+
+        /* increment upper bound of range */
+        in_range = strcmp (diff, last_diff) == 0;
+        if (in_range) upper += 1;
+      }
+
+      if (!in_range)
+      {
+        //		      if (upper == cnt - 1)
+        //		      printf ("end of stack: %d\n", upper);
+        //		      else
+        //		      printf ("not in range: %d\n", upper + 1);
+        /* push index */
+        if (upper == lower)
+        {
+          BTOR_PUSH_STACK (mm, *indices, lower);
+          //			  printf ("index: %d\n", lower);
+          goto NEW_RANGE;
+        }
+        /* range is too small, push separate indices */
+        else if (upper - lower <= 1
+                 /* range with an offset greater than 1 */
+                 && btor_is_power_of_two_const (last_diff) != 0)
+        {
+          /* last iteration step: if range contains all indices
+           * up to the last one, we can push all indices */
+          if (upper == cnt - 1) upper += 1;
+          //			  printf ("  small range, push indices\n");
+          //			  /* push all indices from lower until upper - 1
+          //*/
+          for (; lower < upper; lower++)
+          {
+            BTOR_PUSH_STACK (mm, *indices, lower);
+            //			    printf ("index: %d\n", lower);
+          }
+          /* lower is now that last index in the range, from
+           * which we try to find a new range */
+          upper += 1;
+        }
+        /* found range */
+        else
+        {
+          assert (upper - lower > 0);
+          BTOR_PUSH_STACK (mm, *offsets, last_diff);
+          BTOR_PUSH_STACK (mm, *ranges, lower);
+          BTOR_PUSH_STACK (mm, *ranges, upper);
+          //			  printf ("range %d:%d\n", lower, upper);
+          /* 'last_diff' will be released later */
+          last_diff = 0;
+        NEW_RANGE:
+          /* reset range */
+          upper += 1;
+          lower = upper;
+          if (diff) btor_delete_const (mm, diff);
+          diff = 0;
+        }
+      }
+      if (last_diff) btor_delete_const (mm, last_diff);
+      last_diff = diff;
+    }
+    if (diff) btor_delete_const (mm, diff);
+  }
+}
+
+void
 btor_extract_lambdas (Btor *btor)
 {
   assert (btor);
 
-  int cnt, num_memsets = 0, num_writes = 0, num_indices = 0, in_range;
-  int lower, upper;
+#ifndef NDEBUG
+  unsigned cnt;
+#endif
+  unsigned lower, upper, num_memsets = 0, num_writes = 0, num_indices = 0;
   double start, delta;
-  char *b0, *b1, *one, *diff, *last_diff;
+  char *offset;
   BtorNode *subst, *base, *n0, *n1, *tmp, *array, *value;
   BtorHashTableIterator it, iit;
   BtorPtrHashTable *t, *map_value_index, *map_lambda_base;
   BtorPtrHashBucket *b;
   BtorNodePtrStack *stack;
-  BtorIntStack ranges, indices;
+  BtorUIntStack ranges, indices;
   BtorCharPtrStack offsets;
   BtorMemMgr *mm;
 
@@ -492,7 +608,7 @@ btor_extract_lambdas (Btor *btor)
 
     base = subst;
     // one = btor_one_const (mm, btor_get_index_exp_width (btor, array));
-    one = 0;
+    // one = 0;
     //      printf ("%s\n", node2string (array));
     init_node_hash_table_iterator (&iit, t);
     while (has_next_node_hash_table_iterator (&iit))
@@ -504,101 +620,7 @@ btor_extract_lambdas (Btor *btor)
       //	  printf ("  (%d) %s\n", BTOR_COUNT_STACK (*stack),
       //		  node2string (value));
 
-      cnt = BTOR_COUNT_STACK (*stack);
-      assert (BTOR_EMPTY_STACK (ranges));
-      assert (BTOR_EMPTY_STACK (indices));
-      if (cnt == 1)
-        BTOR_PUSH_STACK (mm, indices, 0);
-      else
-      {
-        assert (cnt > 1);
-        qsort (stack->start, cnt, sizeof (BtorNode *), cmp_bits);
-        diff = last_diff = 0;
-        lower = upper = 0;
-        while (upper < cnt)
-        {
-          //		  printf ("%d %d\n", lower, upper);
-          in_range = 0;
-          diff     = 0;
-          if (upper + 1 < cnt)
-          {
-            n0 = BTOR_PEEK_STACK (*stack, upper);
-            n1 = BTOR_PEEK_STACK (*stack, upper + 1);
-            b0 = BTOR_IS_INVERTED_NODE (n0) ? btor_get_invbits_const (n0)
-                                            : btor_get_bits_const (n0);
-            b1 = BTOR_IS_INVERTED_NODE (n1) ? btor_get_invbits_const (n1)
-                                            : btor_get_bits_const (n1);
-            assert (b0);
-            assert (b1);
-            diff = btor_sub_const (mm, b1, b0);
-            //		      printf ("%d: %s = %s - %s\n", upper + 1, diff, b1,
-            // b0);
-
-            if (!last_diff) last_diff = btor_copy_const (mm, diff);
-
-            /* increment upper bound of range */
-            in_range = strcmp (diff, last_diff) == 0;
-            if (in_range) upper += 1;
-          }
-
-          if (!in_range)
-          {
-            //		      if (upper == cnt - 1)
-            //		      printf ("end of stack: %d\n", upper);
-            //		      else
-            //		      printf ("not in range: %d\n", upper + 1);
-            /* push index */
-            if (upper == lower)
-            {
-              BTOR_PUSH_STACK (mm, indices, lower);
-              //			  printf ("index: %d\n", lower);
-              goto NEW_RANGE;
-            }
-            /* range is too small, push separate indices */
-            else if (upper - lower <= 1
-                     /* range with an offset greater than 1 */
-                     && btor_is_power_of_two_const (last_diff) != 0)
-            {
-              /* last iteration step: if range contains all indices
-               * up to the last one, we can push all indices */
-              if (upper == cnt - 1) upper += 1;
-              //			  printf ("  small range, push
-              // indices\n");
-              //			  /* push all indices from lower until
-              // upper - 1 */
-              for (; lower < upper; lower++)
-              {
-                BTOR_PUSH_STACK (mm, indices, lower);
-                //			    printf ("index: %d\n", lower);
-              }
-              /* lower is now that last index in the range, from
-               * which we try to find a new range */
-              upper += 1;
-            }
-            /* found range */
-            else
-            {
-              assert (upper - lower > 0);
-              BTOR_PUSH_STACK (mm, offsets, last_diff);
-              BTOR_PUSH_STACK (mm, ranges, lower);
-              BTOR_PUSH_STACK (mm, ranges, upper);
-              //			  printf ("range %d:%d\n", lower,
-              // upper);
-              /* 'last_diff' will be released later */
-              last_diff = 0;
-            NEW_RANGE:
-              /* reset range */
-              upper += 1;
-              lower = upper;
-              if (diff) btor_delete_const (mm, diff);
-              diff = 0;
-            }
-          }
-          if (last_diff) btor_delete_const (mm, last_diff);
-          last_diff = diff;
-        }
-        if (diff) btor_delete_const (mm, diff);
-      }
+      find_ranges (btor, stack, &ranges, &offsets, &indices);
       assert (!BTOR_EMPTY_STACK (ranges) || !BTOR_EMPTY_STACK (indices));
       assert (BTOR_COUNT_STACK (ranges) % 2 == 0);
       assert (BTOR_COUNT_STACK (ranges) / 2 == BTOR_COUNT_STACK (offsets));
@@ -610,10 +632,9 @@ btor_extract_lambdas (Btor *btor)
       while (!BTOR_EMPTY_STACK (ranges))
       {
         assert (!BTOR_EMPTY_STACK (offsets));
-        diff  = BTOR_POP_STACK (offsets);
-        upper = BTOR_POP_STACK (ranges);
-        lower = BTOR_POP_STACK (ranges);
-        assert (lower >= 0);
+        offset = BTOR_POP_STACK (offsets);
+        upper  = BTOR_POP_STACK (ranges);
+        lower  = BTOR_POP_STACK (ranges);
         assert (lower < upper);
         assert (upper < BTOR_COUNT_STACK (*stack));
         assert (upper - lower + 1 > 1);
@@ -626,17 +647,16 @@ btor_extract_lambdas (Btor *btor)
         n1 = BTOR_PEEK_STACK (*stack, upper);
         //	      printf ("  [%s : %s] -> %s\n", node2string (n0),
         // node2string (n1), 		      node2string (value));
-        tmp = create_memset (btor, n0, n1, value, subst, diff);
+        tmp = create_memset (btor, n0, n1, value, subst, offset);
         btor_release_exp (btor, subst);
         subst = tmp;
-        if (!one) btor_delete_const (mm, diff);
+        btor_delete_const (mm, offset);
       }
 
       /* create writes */
       while (!BTOR_EMPTY_STACK (indices))
       {
         lower = BTOR_POP_STACK (indices);
-        assert (lower >= 0);
         assert (lower < BTOR_COUNT_STACK (*stack));
         num_writes++;
 #ifndef NDEBUG
@@ -657,7 +677,6 @@ btor_extract_lambdas (Btor *btor)
       BTOR_DELETE (mm, stack);
     }
     btor_delete_ptr_hash_table (t);
-    if (one) btor_delete_const (mm, one);
     if (base != subst)
     {
       //	  printf ("  subst: %s -> %s\n", node2string (array),
