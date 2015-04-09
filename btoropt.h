@@ -44,6 +44,14 @@
 #define BTOR_JUST_HEUR_MIN 0
 #define BTOR_JUST_HEUR_MAX 2
 
+#define BTOR_SLS_STRAT_BEST_MOVE 0
+#define BTOR_SLS_STRAT_PROB_RAND_WALK 1
+#define BTOR_SLS_STRAT_FIRST_BEST_MOVE 2
+#define BTOR_SLS_STRAT_BEST_SAME_MOVE 3
+#define BTOR_SLS_STRAT_DFLT BTOR_SLS_STRAT_BEST_MOVE
+#define BTOR_SLS_STRAT_MIN 0
+#define BTOR_SLS_STRAT_MAX 3
+
 typedef struct BtorOpt
 {
   int internal;     /* internal option? */
@@ -71,16 +79,14 @@ typedef struct BtorOpt
 #define BTOR_OPT_DUAL_PROP "dual_prop"
 #define BTOR_OPT_JUST "just"
 #define BTOR_OPT_SLS "sls"
+#define BTOR_OPT_SLS_STRATEGY "sls_strategy"
 #define BTOR_OPT_SLS_MOVE_GW "sls_move_gw"
 #define BTOR_OPT_SLS_MOVE_RANGE "sls_move_range"
 #define BTOR_OPT_SLS_MOVE_SEGMENT "sls_move_segment"
 #define BTOR_OPT_SLS_MOVE_RAND_WALK "sls_move_rand_walk"
 #define BTOR_OPT_SLS_MOVE_RAND_WALK_PROB "sls_move_rand_walk_prob"
-#define BTOR_OPT_SLS_MOVE_PROP_RAND_WALK "sls_move_prob_rand_walk"
 #define BTOR_OPT_SLS_MOVE_RANOMIZEALL "sls_move_rand_all"
 #define BTOR_OPT_SLS_MOVE_RANOMIZERANGE "sls_move_rand_range"
-#define BTOR_OPT_SLS_MOVE_ON_FIRST "sls_move_on_first"
-#define BTOR_OPT_SLS_MOVE_ON_SAME_SCORE "sls_move_on_same_score"
 #define BTOR_OPT_SLS_MOVE_INC_MOVE_TEST "sls_move_inc_move_test"
 #ifndef BTOR_DO_NOT_OPTIMIZE_UNCONSTRAINED
 #define BTOR_OPT_UCOPT "ucopt"
@@ -131,16 +137,14 @@ typedef struct BtorOpts
                                     may be greater than the original */
 #endif
   BtorOpt sls;
+  BtorOpt sls_strategy;
   BtorOpt sls_move_gw;
   BtorOpt sls_move_range;
   BtorOpt sls_move_segment;
   BtorOpt sls_move_rand_walk;
   BtorOpt sls_move_rand_walk_prob;
-  BtorOpt sls_move_prob_rand_walk;
   BtorOpt sls_move_rand_all;
   BtorOpt sls_move_rand_range;
-  BtorOpt sls_move_on_first;
-  BtorOpt sls_move_on_same_score;
   BtorOpt sls_move_inc_move_test;
 
   BtorOpt dual_prop;      /* dual prop optimization */

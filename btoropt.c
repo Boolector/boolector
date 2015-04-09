@@ -169,6 +169,12 @@ btor_init_opts (Btor *btor)
   // TODO MAKE SLS FACTORS CONFIGURABLE VIA BTOROPT
   BTOR_OPT ("sls", sls, 0, 0, 1, "enable sls engine (SAT only)");
   BTOR_OPT (0,
+            sls_strategy,
+            BTOR_SLS_STRAT_DFLT,
+            BTOR_SLS_STRAT_MIN,
+            BTOR_SLS_STRAT_MAX,
+            "move strategy for sls");
+  BTOR_OPT (0,
             sls_move_gw,
             0,
             0,
@@ -196,12 +202,6 @@ btor_init_opts (Btor *btor)
             UINT_MAX,
             "probability for choosing random walks (interpreted as 1:<n>)");
   BTOR_OPT (0,
-            sls_move_prob_rand_walk,
-            0,
-            0,
-            1,
-            "do probabilistic random walks only (instead of best score moves)");
-  BTOR_OPT (0,
             sls_move_rand_all,
             0,
             0,
@@ -215,18 +215,6 @@ btor_init_opts (Btor *btor)
             1,
             "randomize a range of bits of a randomly chosen candidate variable "
             "if neighbor with better score is found");
-  BTOR_OPT (0,
-            sls_move_on_first,
-            0,
-            0,
-            1,
-            "move on first neighbor with better score");
-  BTOR_OPT (0,
-            sls_move_on_same_score,
-            0,
-            0,
-            1,
-            "move on neighbor with same score (if none with better score");
   BTOR_OPT (0,
             sls_move_inc_move_test,
             0,

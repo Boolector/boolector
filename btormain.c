@@ -340,7 +340,7 @@ print_opt (BtorMainApp *app,
       || !strcmp (lng, BTOR_OPT_ELIMINATE_SLICES)
       || !strcmp (lng, BTOR_OPT_PRETTY_PRINT)
       || !strcmp (lng, BTOR_OPT_VERBOSITY) || !strcmp (lng, BTOR_OPT_LOGLEVEL)
-      || !strcmp (lng, BTOR_OPT_SEED)
+      || !strcmp (lng, BTOR_OPT_SEED) || !strcmp (lng, BTOR_OPT_SLS_STRATEGY)
       || !strcmp (lng, BTOR_OPT_SLS_MOVE_RAND_WALK_PROB))
   {
     len = strlen (desc) + 3 + btor_num_digits_util (dflt);

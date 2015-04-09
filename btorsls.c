@@ -837,48 +837,51 @@ cmp_sls_moves_qsort (const void *move1, const void *move2)
   return 0;
 }
 
-#define BTOR_SLS_SELECT_MOVE_CHECK_SCORE(sc)                                 \
-  do                                                                         \
-  {                                                                          \
-    done = (sc) == -1.0;                                                     \
-    if (done                                                                 \
-        || (!btor->options.sls_move_prob_rand_walk.val                       \
-            && ((sc) > btor->sls_solver->max_score                           \
-                || (btor->options.sls_move_on_same_score.val                 \
-                    && (sc) == btor->sls_solver->max_score))))               \
-    {                                                                        \
-      btor->sls_solver->max_score = (sc);                                    \
-      btor->sls_solver->max_move  = mk;                                      \
-      btor->sls_solver->max_gw    = gw;                                      \
-      if (btor->sls_solver->max_cans->count)                                 \
-      {                                                                      \
-        init_node_hash_table_iterator (&it, btor->sls_solver->max_cans);     \
-        while (has_next_node_hash_table_iterator (&it))                      \
-        {                                                                    \
-          assert (it.bucket->data.asPtr);                                    \
-          btor_free_bv (btor->mm,                                            \
-                        next_data_node_hash_table_iterator (&it)->asPtr);    \
-        }                                                                    \
-      }                                                                      \
-      btor_delete_ptr_hash_table (btor->sls_solver->max_cans);               \
-      btor->sls_solver->max_cans = cans;                                     \
-      if (done || btor->options.sls_move_on_first.val) goto DONE;            \
-    }                                                                        \
-    else if (btor->options.sls_move_prob_rand_walk.val)                      \
-    {                                                                        \
-      BTOR_NEW (btor->mm, m);                                                \
-      m->cans = cans;                                                        \
-      m->sc   = (sc);                                                        \
-      BTOR_PUSH_STACK (btor->mm, btor->sls_solver->moves, m);                \
-      btor->sls_solver->sum_score += (sc);                                   \
-    }                                                                        \
-    else                                                                     \
-    {                                                                        \
-      init_node_hash_table_iterator (&it, cans);                             \
-      while (has_next_node_hash_table_iterator (&it))                        \
-        btor_free_bv (btor->mm, next_data_hash_table_iterator (&it)->asPtr); \
-      btor_delete_ptr_hash_table (cans);                                     \
-    }                                                                        \
+#define BTOR_SLS_SELECT_MOVE_CHECK_SCORE(sc)                                   \
+  do                                                                           \
+  {                                                                            \
+    done = (sc) == -1.0;                                                       \
+    if (done                                                                   \
+        || (btor->options.sls_strategy.val != BTOR_SLS_STRAT_PROB_RAND_WALK    \
+            && ((sc) > btor->sls_solver->max_score                             \
+                || (btor->options.sls_strategy.val                             \
+                        == BTOR_SLS_STRAT_BEST_SAME_MOVE                       \
+                    && (sc) == btor->sls_solver->max_score))))                 \
+    {                                                                          \
+      btor->sls_solver->max_score = (sc);                                      \
+      btor->sls_solver->max_move  = mk;                                        \
+      btor->sls_solver->max_gw    = gw;                                        \
+      if (btor->sls_solver->max_cans->count)                                   \
+      {                                                                        \
+        init_node_hash_table_iterator (&it, btor->sls_solver->max_cans);       \
+        while (has_next_node_hash_table_iterator (&it))                        \
+        {                                                                      \
+          assert (it.bucket->data.asPtr);                                      \
+          btor_free_bv (btor->mm,                                              \
+                        next_data_node_hash_table_iterator (&it)->asPtr);      \
+        }                                                                      \
+      }                                                                        \
+      btor_delete_ptr_hash_table (btor->sls_solver->max_cans);                 \
+      btor->sls_solver->max_cans = cans;                                       \
+      if (done                                                                 \
+          || btor->options.sls_strategy.val == BTOR_SLS_STRAT_FIRST_BEST_MOVE) \
+        goto DONE;                                                             \
+    }                                                                          \
+    else if (btor->options.sls_strategy.val == BTOR_SLS_STRAT_PROB_RAND_WALK)  \
+    {                                                                          \
+      BTOR_NEW (btor->mm, m);                                                  \
+      m->cans = cans;                                                          \
+      m->sc   = (sc);                                                          \
+      BTOR_PUSH_STACK (btor->mm, btor->sls_solver->moves, m);                  \
+      btor->sls_solver->sum_score += (sc);                                     \
+    }                                                                          \
+    else                                                                       \
+    {                                                                          \
+      init_node_hash_table_iterator (&it, cans);                               \
+      while (has_next_node_hash_table_iterator (&it))                          \
+        btor_free_bv (btor->mm, next_data_hash_table_iterator (&it)->asPtr);   \
+      btor_delete_ptr_hash_table (cans);                                       \
+    }                                                                          \
   } while (0)
 
 static inline int
@@ -1285,7 +1288,7 @@ select_move (Btor *btor, BtorNodePtrStack *candidates)
   }
 
   /* select probabilistic random walk move */
-  if (btor->options.sls_move_prob_rand_walk.val)
+  if (btor->options.sls_strategy.val == BTOR_SLS_STRAT_PROB_RAND_WALK)
   {
     assert (btor->sls_solver->max_cans->count == 0);
     assert (BTOR_COUNT_STACK (btor->sls_solver->moves));
