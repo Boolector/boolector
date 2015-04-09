@@ -11,6 +11,7 @@
  */
 
 #include "btormap.h"
+#include "btorcore.h"
 #include "btoriter.h"
 
 /*------------------------------------------------------------------------*/
