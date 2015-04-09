@@ -1213,8 +1213,9 @@ clone_aux_btor (Btor *btor,
   len += strlen (clone_prefix) + 3;
   BTOR_NEWN (clone->mm, prefix, len + 1);
   sprintf (prefix,
-           "[%s] %s",
+           "[%s]%s%s",
            clone_prefix,
+           btor->msg->prefix ? " " : "",
            btor->msg->prefix ? btor->msg->prefix : "");
   btor_set_msg_prefix_btor (clone, prefix);
   BTOR_DELETEN (clone->mm, prefix, len + 1);
