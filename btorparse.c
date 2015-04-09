@@ -166,24 +166,31 @@ btor_parse (Btor *btor,
   assert (status);
 
   const BtorParserAPI *parser_api;
-  int first, second, res;
+  int first, second, res, len;
   char ch, *msg;
   BtorCharStack prefix;
   BtorMemMgr *mem;
 
-  msg = "";
+  len = 40 + strlen (infile_name);
+  BTOR_NEWN (btor->mm, msg, len);
   mem = btor_new_mem_mgr ();
   BTOR_INIT_STACK (prefix);
 
   if (has_compressed_suffix (infile_name, ".btor"))
+  {
     parser_api = btor_btor_parser_api ();
+    sprintf (msg, "parsing '%s'", infile_name);
+  }
   else if (has_compressed_suffix (infile_name, ".smt2"))
+  {
     parser_api = btor_smt2_parser_api ();
+    sprintf (msg, "parsing '%s'", infile_name);
+  }
   else
   {
     first = second = 0;
     parser_api     = btor_btor_parser_api ();
-    msg            = "assuming BTOR input";
+    sprintf (msg, "assuming BTOR input, parsing '%s'", infile_name);
     for (;;)
     {
       ch = getc (infile);
@@ -221,12 +228,14 @@ btor_parse (Btor *btor,
         if (second == 'b')
         {
           parser_api = btor_smt_parser_api ();
-          msg        = "assuming SMT-LIB v1 input";
+          sprintf (
+              msg, "assuming SMT-LIB v1 input,  parsing '%s'", infile_name);
         }
         else
         {
           parser_api = btor_smt2_parser_api ();
-          msg        = "assuming SMT-LIB v2 input";
+          sprintf (
+              msg, "assuming SMT-LIB v2 input,  parsing '%s'", infile_name);
         }
       }
     }
@@ -245,6 +254,7 @@ btor_parse (Btor *btor,
   /* cleanup */
   BTOR_RELEASE_STACK (mem, prefix);
   btor_delete_mem_mgr (mem);
+  BTOR_DELETEN (btor->mm, msg, len);
 
   return res;
 }
