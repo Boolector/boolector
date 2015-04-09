@@ -571,7 +571,7 @@ recursively_dump_exp_smt (BtorSMTDumpContext *sdc,
       {
         fmt =
             sdc->version == 1 ? " (zero_extend[%d] " : " ((_ zero_extend %d) ";
-        fprintf (sdc->file, fmt, pad);
+        fprintf (sdc->file, fmt, zero_extend);
       }
 
       /* always print constants */
