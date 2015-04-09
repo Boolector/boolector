@@ -14,7 +14,6 @@
 #ifndef BTORCORE_H_INCLUDED
 #define BTORCORE_H_INCLUDED
 
-#include "boolector.h"
 #include "btorass.h"
 #include "btorexp.h"
 #include "btormem.h"
@@ -22,6 +21,7 @@
 #include "btoropt.h"
 #include "btorsat.h"
 #include "btorsort.h"
+#include "btortypes.h"
 
 /*------------------------------------------------------------------------*/
 
