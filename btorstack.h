@@ -154,6 +154,8 @@
 
 BTOR_DECLARE_STACK (BtorInt, int);
 
+BTOR_DECLARE_STACK (BtorUInt, unsigned);
+
 BTOR_DECLARE_STACK (BtorChar, char);
 
 BTOR_DECLARE_STACK (BtorCharPtr, char *);
