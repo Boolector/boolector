@@ -16,7 +16,6 @@
 #include <stdbool.h>
 #include "btormem.h"
 #include "btorstack.h"
-#include "btortypes.h"
 
 typedef unsigned BtorSortId;
 
