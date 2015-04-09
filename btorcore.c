@@ -609,7 +609,8 @@ btor_print_stats_btor (Btor *btor)
               btor->stats.dp_assumed_applies);
   }
 
-  if (btor->options.sls.val) btor_print_stats_sls_solver (btor->sls_solver);
+  if (btor->options.sls.val)
+    btor_print_stats_sls_solver (btor, btor->sls_solver);
 
   BTOR_MSG (btor->msg, 1, "");
   BTOR_MSG (btor->msg, 1, "%.2f seconds beta-reduction", btor->time.beta);
@@ -960,7 +961,7 @@ btor_delete_btor (Btor *btor)
 
   if (btor->parse_error_msg) btor_freestr (mm, btor->parse_error_msg);
 
-  if (btor->sls_solver) btor_delete_sls_solver (btor->sls_solver);
+  if (btor->sls_solver) btor_delete_sls_solver (btor, btor->sls_solver);
 
   btor_release_exp (btor, btor->true_exp);
 

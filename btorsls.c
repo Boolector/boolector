@@ -16,6 +16,7 @@
 #include "btorhash.h"
 #include "btoriter.h"
 #include "btorlog.h"
+#include "btormap.h"
 #include "btormisc.h"
 #include "btormodel.h"
 #ifndef NDEBUG
@@ -1265,7 +1266,6 @@ select_move (Btor *btor, BtorNodePtrStack *candidates)
   BtorHashTableIterator it;
 
   BTOR_INIT_STACK (cans);
-
   /* one after another */
   for (i = 0; i < BTOR_COUNT_STACK (*candidates); i++)
   {
@@ -1781,24 +1781,103 @@ btor_new_sls_solver (Btor *btor)
   return slv;
 }
 
-void
-btor_delete_sls_solver (BtorSLSSolver *slv)
+BtorSLSSolver *
+btor_clone_sls_solver (Btor *clone, BtorSLSSolver *slv, BtorNodeMap *exp_map)
 {
+  assert (clone);
   assert (slv);
+  assert (exp_map);
 
-  BtorMemMgr *mm = slv->btor->mm;
-  if (slv->score) btor_delete_ptr_hash_table (slv->score);
-  if (slv->roots) btor_delete_ptr_hash_table (slv->roots);
-  BTOR_RELEASE_STACK (mm, slv->moves);
-  BTOR_DELETE (mm, slv);
+  int i;
+  BtorSLSSolver *res;
+  BtorSLSMove *m, *cm;
+
+  BTOR_CNEW (clone->mm, res);
+  memcpy (res, slv, sizeof (BtorSLSSolver));
+  res->btor  = clone;
+  res->roots = btor_clone_ptr_hash_table (clone->mm,
+                                          slv->roots,
+                                          btor_clone_key_as_node,
+                                          btor_clone_data_as_int,
+                                          exp_map,
+                                          0);
+  res->score = btor_clone_ptr_hash_table (clone->mm,
+                                          slv->score,
+                                          btor_clone_key_as_node,
+                                          btor_clone_data_as_dbl,
+                                          exp_map,
+                                          0);
+
+  BTOR_INIT_STACK (res->moves);
+  assert (BTOR_SIZE_STACK (slv->moves) || !BTOR_COUNT_STACK (slv->moves));
+  if (BTOR_SIZE_STACK (slv->moves))
+  {
+    BTOR_NEWN (clone->mm, res->moves.start, BTOR_SIZE_STACK (slv->moves));
+    res->moves.top = res->moves.start;
+    res->moves.end = res->moves.start + BTOR_SIZE_STACK (slv->moves);
+
+    for (i = 0; i < BTOR_COUNT_STACK (slv->moves); i++)
+    {
+      m = BTOR_PEEK_STACK (slv->moves, i);
+      assert (m);
+      BTOR_NEW (clone->mm, cm);
+      cm->cans = btor_clone_ptr_hash_table (clone->mm,
+                                            m->cans,
+                                            btor_clone_key_as_node,
+                                            btor_clone_data_as_bv_ptr,
+                                            exp_map,
+                                            0);
+      cm->sc   = m->sc;
+      BTOR_PUSH_STACK (clone->mm, res->moves, m);
+    }
+  }
+  assert (BTOR_COUNT_STACK (slv->moves) == BTOR_COUNT_STACK (res->moves));
+  assert (BTOR_SIZE_STACK (slv->moves) == BTOR_SIZE_STACK (res->moves));
+
+  res->max_cans = btor_clone_ptr_hash_table (clone->mm,
+                                             slv->max_cans,
+                                             btor_clone_key_as_node,
+                                             btor_clone_data_as_bv_ptr,
+                                             exp_map,
+                                             0);
+
+  return res;
 }
 
 void
-btor_print_stats_sls_solver (BtorSLSSolver *slv)
+btor_delete_sls_solver (Btor *btor, BtorSLSSolver *slv)
 {
   assert (slv);
 
-  Btor *btor = slv->btor;
+  BtorHashTableIterator it;
+  BtorSLSMove *m;
+
+  if (slv->score) btor_delete_ptr_hash_table (slv->score);
+  if (slv->roots) btor_delete_ptr_hash_table (slv->roots);
+  while (!BTOR_EMPTY_STACK (slv->moves))
+  {
+    m = BTOR_POP_STACK (slv->moves);
+    init_node_hash_table_iterator (&it, m->cans);
+    while (has_next_node_hash_table_iterator (&it))
+      btor_free_bv (btor->mm, next_data_hash_table_iterator (&it)->asPtr);
+    btor_delete_ptr_hash_table (m->cans);
+  }
+  BTOR_RELEASE_STACK (btor->mm, slv->moves);
+  if (slv->max_cans)
+  {
+    init_node_hash_table_iterator (&it, slv->max_cans);
+    while (has_next_node_hash_table_iterator (&it))
+      btor_free_bv (btor->mm, next_data_hash_table_iterator (&it)->asPtr);
+    btor_delete_ptr_hash_table (slv->max_cans);
+  }
+  BTOR_DELETE (btor->mm, slv);
+}
+
+void
+btor_print_stats_sls_solver (Btor *btor, BtorSLSSolver *slv)
+{
+  assert (btor);
+  assert (slv);
 
   BTOR_MSG (btor->msg, 1, "");
   BTOR_MSG (btor->msg, 1, "sls restarts: %d", btor->sls_solver->stats.restarts);

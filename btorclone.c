@@ -1190,6 +1190,9 @@ clone_aux_btor (Btor *btor,
               == MEM_PTR_HASH_TABLE (
                      BTOR_PEEK_STACK (clone->sls_solver->moves, i)->cans));
       allocated += MEM_PTR_HASH_TABLE (m->cans);
+      init_node_hash_table_iterator (&it, m->cans);
+      while (has_next_node_hash_table_iterator (&it))
+        allocated += btor_size_bv (next_data_hash_table_iterator (&it)->asPtr);
     }
 
     if (btor->sls_solver->max_cans)

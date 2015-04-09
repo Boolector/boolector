@@ -11,6 +11,8 @@
 #ifndef BTORSLS_H_INCLUDED
 #define BTORSLS_H_INCLUDED
 
+#include "btormap.h"
+
 int btor_sat_aux_btor_sls (Btor *btor);
 void btor_generate_model_sls (Btor *btor, int model_for_all_nodes, int reset);
 
@@ -82,7 +84,12 @@ struct BtorSLSSolver
 typedef struct BtorSLSSolver BtorSLSSolver;
 
 BtorSLSSolver *btor_new_sls_solver (Btor *btor);
-void btor_delete_sls_solver (BtorSLSSolver *slv);
-void btor_print_stats_sls_solver (BtorSLSSolver *slv);
+
+BtorSLSSolver *btor_clone_sls_solver (Btor *clone,
+                                      BtorSLSSolver *slv,
+                                      BtorNodeMap *exp_map);
+
+void btor_delete_sls_solver (Btor *btor, BtorSLSSolver *slv);
+void btor_print_stats_sls_solver (Btor *btor, BtorSLSSolver *slv);
 
 #endif
