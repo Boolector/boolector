@@ -13,9 +13,9 @@
 #ifndef BTORSORT_H_INCLUDED
 #define BTORSORT_H_INCLUDED
 
-#include "boolector.h"
 #include "btormem.h"
 #include "btorstack.h"
+#include "btortypes.h"
 
 enum BtorSortKind
 {

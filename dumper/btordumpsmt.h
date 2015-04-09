@@ -29,6 +29,11 @@ void btor_dump_smt2_nodes (Btor* btor,
                            BtorNode** roots,
                            int nroots);
 
+void btor_dump_smt2_node (Btor* btor,
+                          FILE* file,
+                          BtorNode* node,
+                          unsigned depth);
+
 void btor_dump_smt2 (Btor* btor, FILE* file);
 
 void btor_dump_const_value_smt (
