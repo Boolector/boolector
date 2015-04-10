@@ -672,10 +672,10 @@ extract_models_from_functions_with_model (Btor *btor,
 }
 
 void
-btor_generate_model_aux (Btor *btor,
-                         BtorPtrHashTable *bv_model,
-                         BtorPtrHashTable *fun_model,
-                         int model_for_all_nodes)
+btor_generate_model (Btor *btor,
+                     BtorPtrHashTable *bv_model,
+                     BtorPtrHashTable *fun_model,
+                     int model_for_all_nodes)
 {
   assert (btor);
   assert (bv_model);
@@ -756,18 +756,6 @@ btor_generate_model_aux (Btor *btor,
 }
 
 void
-btor_generate_model (Btor *btor, int model_for_all_nodes)
-{
-  assert (btor);
-
-  btor_init_bv_model (btor, &btor->bv_model);
-  btor_init_fun_model (btor, &btor->fun_model);
-
-  btor_generate_model_aux (
-      btor, btor->bv_model, btor->fun_model, model_for_all_nodes);
-}
-
-void
 btor_delete_model (Btor *btor)
 {
   assert (btor);
@@ -803,7 +791,7 @@ btor_get_bv_model_aux (Btor *btor,
   {
     btor_init_bv_model (btor, bv_model);
     btor_init_fun_model (btor, fun_model);
-    btor_generate_model_aux (btor, *bv_model, *fun_model, 1);
+    btor_generate_model (btor, *bv_model, *fun_model, 1);
   }
   b = btor_find_in_ptr_hash_table (*bv_model, BTOR_REAL_ADDR_NODE (exp));
   if (!b) return 0;
@@ -861,7 +849,7 @@ btor_get_fun_model_aux (Btor *btor,
   {
     btor_init_bv_model (btor, bv_model);
     btor_init_fun_model (btor, fun_model);
-    btor_generate_model_aux (btor, *bv_model, *fun_model, 1);
+    btor_generate_model (btor, *bv_model, *fun_model, 1);
   }
   b = btor_find_in_ptr_hash_table (*fun_model, exp);
   if (!b) return 0;

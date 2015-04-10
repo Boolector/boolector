@@ -1,6 +1,6 @@
 /*  Boolector: Satisfiablity Modulo Theories (SMT) solver.
  *
- *  Copyright (C) 2013-2014 Aina Niemetz.
+ *  Copyright (C) 2013-2015 Aina Niemetz.
  *  Copyright (C) 2013-2015 Mathias Preiner.
  *
  *  All rights reserved.
@@ -18,6 +18,7 @@
 #include "btorcore.h"
 #include "btoriter.h"
 #include "btoropt.h"
+#include "btorslv.h"
 
 static void
 btor_chkclone_mem (Btor *btor)
@@ -90,16 +91,9 @@ btor_chkclone_stats (Btor *btor)
   assert (clone);
 
   BTOR_CHKCLONE_STATS (max_rec_rw_calls);
-  BTOR_CHKCLONE_STATS (lod_refinements);
-  BTOR_CHKCLONE_STATS (synthesis_assignment_inconsistencies);
-  BTOR_CHKCLONE_STATS (synthesis_inconsistency_apply);
-  BTOR_CHKCLONE_STATS (synthesis_inconsistency_lambda);
-  BTOR_CHKCLONE_STATS (function_congruence_conflicts);
-  BTOR_CHKCLONE_STATS (beta_reduction_conflicts);
   BTOR_CHKCLONE_STATS (var_substitutions);
   BTOR_CHKCLONE_STATS (uf_substitutions);
   BTOR_CHKCLONE_STATS (ec_substitutions);
-  BTOR_CHKCLONE_STATS (vreads);
   BTOR_CHKCLONE_STATS (linear_equations);
   BTOR_CHKCLONE_STATS (gaussian_eliminations);
   BTOR_CHKCLONE_STATS (eliminated_slices);
@@ -107,9 +101,13 @@ btor_chkclone_stats (Btor *btor)
   BTOR_CHKCLONE_STATS (adds_normalized);
   BTOR_CHKCLONE_STATS (ands_normalized);
   BTOR_CHKCLONE_STATS (muls_normalized);
-  BTOR_CHKCLONE_STATS (read_props_construct);
-  BTOR_CHKCLONE_STATS (lemmas_size_sum);
-  BTOR_CHKCLONE_STATS (lclause_size_sum);
+  BTOR_CHKCLONE_STATS (apply_props_construct);
+#ifndef BTOR_DO_NOT_OPTIMIZE_UNCONSTRAINED
+  BTOR_CHKCLONE_STATS (bv_uc_props);
+  BTOR_CHKCLONE_STATS (fun_uc_props);
+#endif
+  BTOR_CHKCLONE_STATS (lambdas_merged);
+  BTOR_CHKCLONE_STATS (vreads);
 
   BTOR_CHKCLONE_CONSTRAINTSTATS (constraints, varsubst);
   BTOR_CHKCLONE_CONSTRAINTSTATS (constraints, embedded);
@@ -121,13 +119,8 @@ btor_chkclone_stats (Btor *btor)
   BTOR_CHKCLONE_CONSTRAINTSTATS (oldconstraints, synthesized);
 
   BTOR_CHKCLONE_STATS (expressions);
+  BTOR_CHKCLONE_STATS (node_bytes_alloc);
   BTOR_CHKCLONE_STATS (beta_reduce_calls);
-  BTOR_CHKCLONE_STATS (eval_exp_calls);
-  BTOR_CHKCLONE_STATS (lambda_synth_apps);
-  BTOR_CHKCLONE_STATS (lambdas_merged);
-  BTOR_CHKCLONE_STATS (propagations);
-  BTOR_CHKCLONE_STATS (propagations_down);
-  BTOR_CHKCLONE_STATS (apply_props_construct);
 }
 
 #define BTOR_CHKCLONE_OPT(field)                                          \
@@ -751,7 +744,6 @@ btor_chkclone_tables (Btor *btor)
   BTOR_CHKCLONE_NODE_PTR_HASH_TABLE (btor->lambdas, btor->clone->lambdas);
   BTOR_CHKCLONE_NODE_PTR_HASH_TABLE (btor->substitutions,
                                      btor->clone->substitutions);
-  BTOR_CHKCLONE_NODE_PTR_HASH_TABLE (btor->lod_cache, btor->clone->lod_cache);
   BTOR_CHKCLONE_NODE_PTR_HASH_TABLE (btor->varsubst_constraints,
                                      btor->clone->varsubst_constraints);
   BTOR_CHKCLONE_NODE_PTR_HASH_TABLE (btor->embedded_constraints,
@@ -895,6 +887,92 @@ btor_chkclone_sort (const BtorSort *sort, const BtorSort *clone)
   }
 }
 
+#define BTOR_CHKCLONE_SLV_STATS(solver, csolver, field)   \
+  do                                                      \
+  {                                                       \
+    assert (csolver->stats.field == solver->stats.field); \
+  } while (0)
+
+void
+btor_chkclone_slv_mgr (Btor *btor)
+{
+  int i, h = btor->options.just_heuristic.val;
+
+  assert (!strcmp (btor->slvmgr->name, btor->clone->slvmgr->name));
+
+  if (!strcmp (btor->slvmgr->name, "core"))
+  {
+    BtorCoreSolver *slv  = BTOR_CORE_SOLVER (btor);
+    BtorCoreSolver *cslv = BTOR_CORE_SOLVER (btor->clone);
+    BtorHashTableIterator it;
+    BtorHashTableIterator cit;
+
+    BTOR_CHKCLONE_NODE_PTR_HASH_TABLE (slv->lod_cache, cslv->lod_cache);
+
+    if (slv->score)
+    {
+      assert (cslv->score);
+      assert (slv->score->size == cslv->score->size);
+      assert (slv->score->count == cslv->score->count);
+      assert (slv->score->hash == cslv->score->hash);
+      assert (slv->score->cmp == cslv->score->cmp);
+      assert (!slv->score->first || cslv->score->first);
+      if (h == BTOR_JUST_HEUR_BRANCH_MIN_APP)
+      {
+        init_node_hash_table_iterator (&it, slv->score);
+        init_node_hash_table_iterator (&cit, cslv->score);
+        while (has_next_node_hash_table_iterator (&it))
+        {
+          assert (has_next_node_hash_table_iterator (&cit));
+          BTOR_CHKCLONE_NODE_PTR_HASH_TABLE (
+              (BtorPtrHashTable *) it.bucket->data.asPtr,
+              (BtorPtrHashTable *) cit.bucket->data.asPtr);
+          BTOR_CHKCLONE_EXPID (next_node_hash_table_iterator (&it),
+                               next_node_hash_table_iterator (&cit));
+        }
+        assert (!has_next_node_hash_table_iterator (&cit));
+      }
+      else
+      {
+        assert (h == BTOR_JUST_HEUR_BRANCH_MIN_DEP);
+        // TODO check data as int
+        BTOR_CHKCLONE_NODE_PTR_HASH_TABLE (slv->score, cslv->score);
+      }
+    }
+    else
+    {
+      assert (!cslv->score);
+    }
+
+    BTOR_CHKCLONE_NODE_PTR_HASH_TABLE (slv->searched_applies,
+                                       cslv->searched_applies);
+
+    assert (BTOR_COUNT_STACK (slv->stats.lemmas_size)
+            == BTOR_COUNT_STACK (cslv->stats.lemmas_size));
+    for (i = 0; i < BTOR_COUNT_STACK (slv->stats.lemmas_size); i++)
+      assert (BTOR_PEEK_STACK (slv->stats.lemmas_size, i)
+              == BTOR_PEEK_STACK (cslv->stats.lemmas_size, i));
+
+    BTOR_CHKCLONE_SLV_STATS (slv, cslv, lod_refinements);
+    BTOR_CHKCLONE_SLV_STATS (slv, cslv, synthesis_assignment_inconsistencies);
+    BTOR_CHKCLONE_SLV_STATS (slv, cslv, synthesis_inconsistency_apply);
+    BTOR_CHKCLONE_SLV_STATS (slv, cslv, synthesis_inconsistency_lambda);
+    BTOR_CHKCLONE_SLV_STATS (slv, cslv, synthesis_inconsistency_var);
+    BTOR_CHKCLONE_SLV_STATS (slv, cslv, function_congruence_conflicts);
+    BTOR_CHKCLONE_SLV_STATS (slv, cslv, beta_reduction_conflicts);
+    BTOR_CHKCLONE_SLV_STATS (slv, cslv, lemmas_size_sum);
+    BTOR_CHKCLONE_SLV_STATS (slv, cslv, dp_failed_vars);
+    BTOR_CHKCLONE_SLV_STATS (slv, cslv, dp_assumed_vars);
+    BTOR_CHKCLONE_SLV_STATS (slv, cslv, dp_failed_applies);
+    BTOR_CHKCLONE_SLV_STATS (slv, cslv, dp_assumed_applies);
+    BTOR_CHKCLONE_SLV_STATS (slv, cslv, eval_exp_calls);
+    BTOR_CHKCLONE_SLV_STATS (slv, cslv, lambda_synth_apps);
+    BTOR_CHKCLONE_SLV_STATS (slv, cslv, propagations);
+    BTOR_CHKCLONE_SLV_STATS (slv, cslv, propagations_down);
+    BTOR_CHKCLONE_SLV_STATS (slv, cslv, partial_beta_reduction_restarts);
+  }
+}
+
 void
 btor_chkclone (Btor *btor)
 {
@@ -918,6 +996,8 @@ btor_chkclone (Btor *btor)
   BTOR_CHKCLONE_NODE_PTR_STACK (btor->functions_with_model,
                                 btor->clone->functions_with_model);
   btor_chkclone_tables (btor);
+
+  btor_chkclone_slv_mgr (btor);
 }
 
 /*------------------------------------------------------------------------*/

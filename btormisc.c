@@ -95,25 +95,3 @@ btor_vis_exp (Btor *btor, BtorNode *exp)
   res = system (cmd);
   return res;
 }
-
-void
-btor_print_bfs_path (Btor *btor, BtorNode *from, BtorNode *to)
-{
-  assert (from);
-  assert (from->parent);
-  assert (to);
-
-  BtorNode *cur;
-
-  cur = BTOR_REAL_ADDR_NODE (from);
-  to  = BTOR_REAL_ADDR_NODE (to);
-
-  printf ("%d path", btor->stats.lod_refinements);
-  while (cur != to)
-  {
-    assert (BTOR_REAL_ADDR_NODE (cur->parent));
-    printf (" %d", cur->id);
-    cur = BTOR_REAL_ADDR_NODE (cur->parent);
-  }
-  printf (" %d\n", to->id);
-}

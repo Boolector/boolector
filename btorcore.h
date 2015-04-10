@@ -20,6 +20,7 @@
 #include "btormsg.h"
 #include "btoropt.h"
 #include "btorsat.h"
+#include "btorslv.h"
 #include "btorsort.h"
 #include "btortypes.h"
 
@@ -104,25 +105,34 @@ typedef struct BtorConstraintStats BtorConstraintStats;
 struct Btor
 {
   BtorMemMgr *mm;
-
+  BtorSlvMgr *slvmgr;
   BtorCallbacks cbs;
 
   BtorBVAssignmentList *bv_assignments;
   BtorArrayAssignmentList *array_assignments;
+
   BtorNodePtrStack nodes_id_table;
   BtorNodeUniqueTable nodes_unique_table;
   BtorSortUniqueTable sorts_unique_table;
+
   BtorAIGVecMgr *avmgr;
+
   BtorPtrHashTable *symbols;
   BtorPtrHashTable *node2symbol;
+
   BtorPtrHashTable *inputs;
   BtorPtrHashTable *bv_vars;
   BtorPtrHashTable *ufs;
   BtorPtrHashTable *lambdas;
+  BtorPtrHashTable *parameterized;
+
   BtorPtrHashTable *substitutions;
+
   BtorNode *true_exp;
+
   BtorPtrHashTable *bv_model;
   BtorPtrHashTable *fun_model;
+  BtorNodePtrStack functions_with_model;
 
   int rec_rw_calls; /* calls for recursive rewriting */
   int rec_read_acond_calls;
@@ -135,83 +145,27 @@ struct Btor
   int btor_sat_btor_called; /* how often is btor_sat_btor been called */
   int last_sat_result;      /* status of last SAT call (SAT/UNSAT) */
 
-  BtorPtrHashTable *lod_cache;
-
   BtorPtrHashTable *varsubst_constraints;
   BtorPtrHashTable *embedded_constraints;
   BtorPtrHashTable *unsynthesized_constraints;
   BtorPtrHashTable *synthesized_constraints;
+
   BtorPtrHashTable *assumptions;
+
   BtorPtrHashTable *var_rhs;
   BtorPtrHashTable *fun_rhs;
-  BtorNodePtrStack functions_with_model;
-  BtorPtrHashTable *cache;
-  BtorPtrHashTable *parameterized;
-  BtorPtrHashTable *score;
-  BtorPtrHashTable *searched_applies;
 
-  /* compare fun for sorting the inputs in search_inital_applies_dual_prop */
-  int (*dp_cmp_inputs) (const void *, const void *);
+  BtorPtrHashTable *cache; /* for btor_simplify_btor */
 
-  /* shadow clone (debugging only) */
-  Btor *clone;
+  Btor *clone; /* shadow clone (debugging only) */
 
   char *parse_error_msg;
 
   FILE *apitrace;
   int close_apitrace;
 
-  /* statistics */
-  struct
-  {
-    int max_rec_rw_calls; /* maximum number of recursive rewrite calls */
-    int lod_refinements;  /* number of lemmas on demand refinements */
-    int synthesis_assignment_inconsistencies; /* number of restarts as a
-                                                 result of lazy synthesis */
-    int synthesis_inconsistency_apply;
-    int synthesis_inconsistency_lambda;
-    int synthesis_inconsistency_var;
-    int function_congruence_conflicts;
-    int beta_reduction_conflicts;
-#ifndef BTOR_DO_NOT_OPTIMIZE_UNCONSTRAINED
-    int bv_uc_props;
-    int fun_uc_props;
-#endif
-    int var_substitutions;     /* number substituted vars */
-    int uf_substitutions;      /* num substituted uninterpreted functions */
-    int ec_substitutions;      /* embedded constraint substitutions */
-    int vreads;                /* number of virtual reads */
-    int linear_equations;      /* number of linear equations */
-    int gaussian_eliminations; /* number of gaussian eliminations */
-    int eliminated_slices;     /* number of eliminated slices */
-    int skeleton_constraints;  /* number of extracted skeleton constraints */
-    int adds_normalized;       /* number of add chains normalizations */
-    int ands_normalized;       /* number of and chains normalizations */
-    int muls_normalized;       /* number of mul chains normalizations */
-    int read_props_construct;  /* how often have we pushed a read over
-                                  write during construction */
-    int dp_failed_vars;        /* number of vars in FA (dual prop) of last
-                                  sat call (final bv skeleton) */
-    int dp_assumed_vars;
-    int dp_failed_applies; /* number of applies in FA (dual prop) of last
-                              sat call (final bv skeleton) */
-    int dp_assumed_applies;
-    BtorIntStack lemmas_size;       /* distribution of n-size lemmas */
-    long long int lemmas_size_sum;  /* sum of the size of all added lemmas */
-    long long int lclause_size_sum; /* sum of the size of all linking clauses */
-    BtorConstraintStats constraints;
-    BtorConstraintStats oldconstraints;
-    long long expressions;
-    long long beta_reduce_calls;
-    long long eval_exp_calls;
-    long long lambda_synth_apps;
-    long long lambdas_merged;
-    long long propagations;
-    long long propagations_down;
-    long long apply_props_construct;
-    long long partial_beta_reduction_restarts;
-    size_t node_bytes_alloc;
-  } stats;
+  BtorOpts options;
+  BtorMsg *msg;
 
   struct
   {
@@ -220,33 +174,42 @@ struct Btor
 
   struct
   {
+    int max_rec_rw_calls;      /* maximum number of recursive rewrite calls */
+    int var_substitutions;     /* number substituted vars */
+    int uf_substitutions;      /* num substituted uninterpreted functions */
+    int ec_substitutions;      /* embedded constraint substitutions */
+    int linear_equations;      /* number of linear equations */
+    int gaussian_eliminations; /* number of gaussian eliminations */
+    int eliminated_slices;     /* number of eliminated slices */
+    int skeleton_constraints;  /* number of extracted skeleton constraints */
+    int adds_normalized;       /* number of add chains normalizations */
+    int ands_normalized;       /* number of and chains normalizations */
+    int muls_normalized;       /* number of mul chains normalizations */
+    long long apply_props_construct; /* number of static apply propagations */
+#ifndef BTOR_DO_NOT_OPTIMIZE_UNCONSTRAINED
+    int bv_uc_props;
+    int fun_uc_props;
+#endif
+    long long lambdas_merged;
+    int vreads; /* number of virtual reads */
+    BtorConstraintStats constraints;
+    BtorConstraintStats oldconstraints;
+    long long expressions;
+    size_t node_bytes_alloc;
+    long long beta_reduce_calls;
+  } stats;
+
+  struct
+  {
     double rewrite;
-    double sat;
     double subst;
     double betareduce;
     double embedded;
     double slicing;
     double skel;
     double beta;
-    double eval;
-    double enc_app;
-    double enc_lambda;
-    double enc_var;
-    double find_dfs;
     double reachable;
     double failed;
-    double search_init_apps;
-    double search_init_apps_compute_scores;
-    double search_init_apps_compute_scores_merge_applies;
-    double search_init_apps_cloning;
-    double search_init_apps_sat;
-    double search_init_apps_collect_var_apps;
-    double search_init_apps_collect_fa;
-    double search_init_apps_collect_fa_cone;
-    double lemma_gen;
-    double find_nenc_app;
-    double find_prop_app;
-    double find_cond_prop_app;
     double cloning;
     double synth_exp;
     double model_gen;
@@ -255,9 +218,6 @@ struct Btor
     double ucopt;
 #endif
   } time;
-
-  BtorOpts options;
-  BtorMsg *msg;
 };
 
 /* Creates new boolector instance. */
@@ -312,6 +272,78 @@ BtorMemMgr *btor_get_mem_mgr_btor (const Btor *btor);
 
 /* Run rewriting engine */
 int btor_simplify (Btor *btor);
+
+/*------------------------------------------------------------------------*/
+
+#define BTOR_CORE_SOLVER(btor) ((BtorCoreSolver *) (btor)->slvmgr->slv)
+
+/*------------------------------------------------------------------------*/
+
+struct BtorCoreSolver
+{
+  BtorPtrHashTable *lod_cache;
+
+  BtorPtrHashTable *score; /* dcr score */
+  BtorPtrHashTable *searched_applies;
+
+  /* compare fun for sorting the inputs in search_inital_applies_dual_prop */
+  int (*dp_cmp_inputs) (const void *, const void *);
+
+  struct
+  {
+    int lod_refinements; /* number of lemmas on demand refinements */
+
+    int synthesis_assignment_inconsistencies; /* number of restarts as a
+                                                 result of lazy synthesis */
+    int synthesis_inconsistency_apply;
+    int synthesis_inconsistency_lambda;
+    int synthesis_inconsistency_var;
+
+    int function_congruence_conflicts;
+    int beta_reduction_conflicts;
+
+    BtorIntStack lemmas_size;      /* distribution of n-size lemmas */
+    long long int lemmas_size_sum; /* sum of the size of all added lemmas */
+
+    int dp_failed_vars; /* number of vars in FA (dual prop) of last
+                           sat call (final bv skeleton) */
+    int dp_assumed_vars;
+    int dp_failed_applies; /* number of applies in FA (dual prop) of last
+                              sat call (final bv skeleton) */
+    int dp_assumed_applies;
+
+    long long eval_exp_calls;
+    long long lambda_synth_apps;
+    long long propagations;
+    long long propagations_down;
+    long long partial_beta_reduction_restarts;
+  } stats;
+
+  struct
+  {
+    double sat;
+    double eval;
+    double enc_app;
+    double enc_lambda;
+    double enc_var;
+    double search_init_apps;
+    double search_init_apps_compute_scores;
+    double search_init_apps_compute_scores_merge_applies;
+    double search_init_apps_cloning;
+    double search_init_apps_sat;
+    double search_init_apps_collect_var_apps;
+    double search_init_apps_collect_fa;
+    double search_init_apps_collect_fa_cone;
+    double lemma_gen;
+    double find_nenc_app;
+    double find_prop_app;
+    double find_cond_prop_app;
+  } time;
+};
+
+typedef struct BtorCoreSolver BtorCoreSolver;
+
+BtorSlvMgr *btor_new_core_solver (Btor *btor);
 
 /*------------------------------------------------------------------------*/
 
