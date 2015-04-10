@@ -461,8 +461,8 @@ find_ranges (Btor *btor,
   mm          = btor->mm;
   index_stack = *stack;
   cnt         = BTOR_COUNT_STACK (index_stack);
-  assert (BTOR_EMPTY_STACK (*ranges));
-  assert (BTOR_EMPTY_STACK (*indices));
+  assert (BTOR_TOP_STACK (*ranges) == 0);
+  assert (BTOR_TOP_STACK (*indices) == 0);
   if (cnt == 1)
     BTOR_PUSH_STACK (mm, *indices, BTOR_PEEK_STACK (index_stack, 0));
   else
@@ -568,7 +568,7 @@ btor_extract_lambdas (Btor *btor)
   BtorHashTableIterator it, iit;
   BtorPtrHashTable *t, *map_value_index, *map_lambda_base;
   BtorPtrHashBucket *b;
-  BtorNodePtrStack *stack, ranges, indices;
+  BtorNodePtrStack *stack, ranges, indices, values;
   BtorCharPtrStack offsets;
   BtorMemMgr *mm;
 
@@ -590,12 +590,34 @@ btor_extract_lambdas (Btor *btor)
   BTOR_INIT_STACK (ranges);
   BTOR_INIT_STACK (indices);
   BTOR_INIT_STACK (offsets);
+  BTOR_INIT_STACK (values);
   init_node_hash_table_iterator (&it, map_value_index);
   while (has_next_node_hash_table_iterator (&it))
   {
     t     = it.bucket->data.asPtr;
     array = next_node_hash_table_iterator (&it);
     assert (t);
+
+    init_node_hash_table_iterator (&iit, t);
+    while (has_next_node_hash_table_iterator (&iit))
+    {
+      stack = iit.bucket->data.asPtr;
+      value = next_node_hash_table_iterator (&iit);
+      assert (stack);
+
+      num_indices += BTOR_COUNT_STACK (*stack);
+      BTOR_PUSH_STACK (mm, ranges, 0);
+      BTOR_PUSH_STACK (mm, indices, 0);
+      BTOR_PUSH_STACK (mm, values, value);
+      find_ranges (btor, stack, &ranges, &offsets, &indices);
+      BTOR_RELEASE_STACK (mm, *stack);
+      BTOR_DELETE (mm, stack);
+      assert (BTOR_COUNT_STACK (ranges) - BTOR_COUNT_STACK (values) > 0
+              || BTOR_COUNT_STACK (indices) - BTOR_COUNT_STACK (values) > 0);
+      assert ((BTOR_COUNT_STACK (ranges) - BTOR_COUNT_STACK (values)) % 2 == 0);
+      assert ((BTOR_COUNT_STACK (ranges) - BTOR_COUNT_STACK (values)) / 2
+              == BTOR_COUNT_STACK (offsets));
+    }
 
     /* choose base array for memsets/writes:
      *  1) write chains: base array of the write chains
@@ -612,28 +634,19 @@ btor_extract_lambdas (Btor *btor)
     }
 
     base = subst;
-    init_node_hash_table_iterator (&iit, t);
-    while (has_next_node_hash_table_iterator (&iit))
+    while (!BTOR_EMPTY_STACK (values))
     {
-      stack = iit.bucket->data.asPtr;
-      value = next_node_hash_table_iterator (&iit);
-      assert (stack);
-
-      num_indices += BTOR_COUNT_STACK (*stack);
-      find_ranges (btor, stack, &ranges, &offsets, &indices);
-      BTOR_RELEASE_STACK (mm, *stack);
-      BTOR_DELETE (mm, stack);
-      assert (!BTOR_EMPTY_STACK (ranges) || !BTOR_EMPTY_STACK (indices));
-      assert (BTOR_COUNT_STACK (ranges) % 2 == 0);
-      assert (BTOR_COUNT_STACK (ranges) / 2 == BTOR_COUNT_STACK (offsets));
+      value = BTOR_POP_STACK (values);
 
       /* create memset regions */
       while (!BTOR_EMPTY_STACK (ranges))
       {
+        upper = BTOR_POP_STACK (ranges);
+        /* next value */
+        if (!upper) break;
+        lower = BTOR_POP_STACK (ranges);
         assert (!BTOR_EMPTY_STACK (offsets));
         offset = BTOR_POP_STACK (offsets);
-        upper  = BTOR_POP_STACK (ranges);
-        lower  = BTOR_POP_STACK (ranges);
         tmp    = create_memset (btor, lower, upper, value, subst, offset);
         btor_release_exp (btor, subst);
         subst = tmp;
@@ -645,7 +658,9 @@ btor_extract_lambdas (Btor *btor)
       while (!BTOR_EMPTY_STACK (indices))
       {
         lower = BTOR_POP_STACK (indices);
-        tmp   = btor_write_exp (btor, subst, lower, value);
+        /* next value */
+        if (!lower) break;
+        tmp = btor_write_exp (btor, subst, lower, value);
         btor_release_exp (btor, subst);
         subst = tmp;
         num_writes++;
@@ -661,6 +676,7 @@ btor_extract_lambdas (Btor *btor)
   BTOR_RELEASE_STACK (mm, ranges);
   BTOR_RELEASE_STACK (mm, indices);
   BTOR_RELEASE_STACK (mm, offsets);
+  BTOR_RELEASE_STACK (mm, values);
 
   btor_substitute_and_rebuild (btor, btor->substitutions, 0);
   btor_delete_substitutions (btor);
