@@ -14,10 +14,10 @@
 #include "btorrewrite.h"
 #include "btorbeta.h"
 #include "btorconst.h"
-#include "btoriter.h"
-#include "btormem.h"
-#include "btormisc.h"
-#include "btorutil.h"
+#include "utils/btoriter.h"
+#include "utils/btormem.h"
+#include "utils/btormisc.h"
+#include "utils/btorutil.h"
 
 #include <assert.h>
 

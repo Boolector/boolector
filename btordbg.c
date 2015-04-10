@@ -13,7 +13,7 @@
 
 #ifndef NDEBUG
 #include "btordbg.h"
-#include "btoriter.h"
+#include "utils/btoriter.h"
 
 int
 check_unique_table_children_proxy_free_dbg (const Btor *btor)

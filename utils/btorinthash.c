@@ -8,7 +8,7 @@
  *  See COPYING for more information on using this software.
  */
 
-#include "btorinthash.h"
+#include "utils/btorinthash.h"
 #include <assert.h>
 
 #define HOP_RANGE 32

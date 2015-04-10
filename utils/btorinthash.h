@@ -13,7 +13,7 @@
 
 #include <stdbool.h>
 #include <stdint.h>
-#include "btormem.h"
+#include "utils/btormem.h"
 
 struct BtorIntHashTable
 {

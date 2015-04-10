@@ -12,7 +12,7 @@
 #ifndef BTORASS_H_INCLUDED
 #define BTORASS_H_INCLUDED
 
-#include "btormem.h"
+#include "utils/btormem.h"
 
 /*------------------------------------------------------------------------*/
 

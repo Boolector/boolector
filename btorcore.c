@@ -20,18 +20,18 @@
 #include "btordbg.h"
 #include "btordcr.h"
 #include "btorexit.h"
-#include "btoriter.h"
 #include "btorlog.h"
-#include "btormisc.h"
 #include "btormodel.h"
 #include "btormsg.h"
 #include "btoropt.h"
-#include "btorparamcache.h"
 #include "btorprintmodel.h"
 #include "btorrewrite.h"
 #include "btorsat.h"
-#include "btorutil.h"
-#include "util/btorinthash.h"
+#include "utils/btorinthash.h"
+#include "utils/btoriter.h"
+#include "utils/btormisc.h"
+#include "utils/btorparamcache.h"
+#include "utils/btorutil.h"
 
 #include <limits.h>
 

@@ -16,12 +16,12 @@
 #include "btoraigvec.h"
 #include "btorconst.h"
 #include "btorexit.h"
-#include "btorhash.h"
-#include "btoriter.h"
 #include "btorlog.h"
-#include "btormisc.h"
 #include "btorrewrite.h"
-#include "btorutil.h"
+#include "utils/btorhash.h"
+#include "utils/btoriter.h"
+#include "utils/btormisc.h"
+#include "utils/btorutil.h"
 
 #include <assert.h>
 #include <ctype.h>

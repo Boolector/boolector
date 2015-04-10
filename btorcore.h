@@ -16,12 +16,12 @@
 
 #include "btorass.h"
 #include "btorexp.h"
-#include "btormem.h"
 #include "btormsg.h"
 #include "btoropt.h"
 #include "btorsat.h"
 #include "btorsort.h"
 #include "btortypes.h"
+#include "utils/btormem.h"
 
 /*------------------------------------------------------------------------*/
 

@@ -15,10 +15,10 @@
 #include "boolector.h"
 #include "btorconfig.h"
 #include "btorexit.h"
-#include "btormem.h"
 #include "btoropt.h"
 #include "btorparse.h"
-#include "btorutil.h"
+#include "utils/btormem.h"
+#include "utils/btorutil.h"
 
 #include <assert.h>
 #include <signal.h>

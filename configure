@@ -130,7 +130,7 @@ fi
 
 #--------------------------------------------------------------------------#
 
-SRCDIRS=". parser dumper util"
+SRCDIRS=". parser dumper utils"
 if [ $python = yes ]
 then
   SRCDIRS="$SRCDIRS api/python"

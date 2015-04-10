@@ -13,10 +13,10 @@
 #include <ctype.h>
 #include "boolector.h"
 #include "btorcore.h"
-#include "btoriter.h"
 #include "btorlog.h"
 #include "btormodel.h"
 #include "btortrapi.h"
+#include "utils/btoriter.h"
 
 static char *
 getenv_value (const char *lname)

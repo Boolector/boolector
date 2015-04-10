@@ -15,7 +15,7 @@
 #define BTOR_HASH_H_INCLUDED
 
 #include <string.h>
-#include "btormem.h"
+#include "utils/btormem.h"
 
 #include <assert.h>
 
