@@ -461,8 +461,6 @@ find_ranges (Btor *btor,
   mm          = btor->mm;
   index_stack = *stack;
   cnt         = BTOR_COUNT_STACK (index_stack);
-  assert (BTOR_TOP_STACK (*ranges) == 0);
-  assert (BTOR_TOP_STACK (*indices) == 0);
   if (cnt == 1)
     BTOR_PUSH_STACK (mm, *indices, BTOR_PEEK_STACK (index_stack, 0));
   else
@@ -561,6 +559,7 @@ btor_extract_lambdas (Btor *btor)
 {
   assert (btor);
 
+  unsigned i_range, i_index, i_value, i_offset;
   unsigned num_memsets = 0, num_writes = 0, num_indices = 0;
   double start, delta;
   char *offset;
@@ -598,6 +597,10 @@ btor_extract_lambdas (Btor *btor)
     array = next_node_hash_table_iterator (&it);
     assert (t);
 
+    BTOR_RESET_STACK (ranges);
+    BTOR_RESET_STACK (indices);
+    BTOR_RESET_STACK (values);
+    BTOR_RESET_STACK (offsets);
     init_node_hash_table_iterator (&iit, t);
     while (has_next_node_hash_table_iterator (&iit))
     {
@@ -606,10 +609,10 @@ btor_extract_lambdas (Btor *btor)
       assert (stack);
 
       num_indices += BTOR_COUNT_STACK (*stack);
+      find_ranges (btor, stack, &ranges, &offsets, &indices);
       BTOR_PUSH_STACK (mm, ranges, 0);
       BTOR_PUSH_STACK (mm, indices, 0);
       BTOR_PUSH_STACK (mm, values, value);
-      find_ranges (btor, stack, &ranges, &offsets, &indices);
       BTOR_RELEASE_STACK (mm, *stack);
       BTOR_DELETE (mm, stack);
       assert (BTOR_COUNT_STACK (ranges) - BTOR_COUNT_STACK (values) > 0
@@ -633,33 +636,43 @@ btor_extract_lambdas (Btor *btor)
       subst = btor_uf_exp (btor, array->sort_id, 0);
     }
 
-    base = subst;
-    while (!BTOR_EMPTY_STACK (values))
+    base    = subst;
+    i_range = i_index = i_offset = 0;
+    for (i_value = 0; i_value < BTOR_COUNT_STACK (values); i_value++)
     {
-      value = BTOR_POP_STACK (values);
+      value = BTOR_PEEK_STACK (values, i_value);
 
       /* create memset regions */
-      while (!BTOR_EMPTY_STACK (ranges))
+      for (; i_range < BTOR_COUNT_STACK (ranges) - 1; i_range += 2)
       {
-        upper = BTOR_POP_STACK (ranges);
+        lower = BTOR_PEEK_STACK (ranges, i_range);
         /* next value */
-        if (!upper) break;
-        lower = BTOR_POP_STACK (ranges);
+        if (!lower)
+        {
+          i_range++;
+          break;
+        }
+        upper = BTOR_PEEK_STACK (ranges, i_range + 1);
         assert (!BTOR_EMPTY_STACK (offsets));
-        offset = BTOR_POP_STACK (offsets);
+        offset = BTOR_PEEK_STACK (offsets, i_offset);
         tmp    = create_memset (btor, lower, upper, value, subst, offset);
         btor_release_exp (btor, subst);
         subst = tmp;
         btor_delete_const (mm, offset);
+        i_offset++;
         num_memsets++;
       }
 
       /* create writes */
-      while (!BTOR_EMPTY_STACK (indices))
+      for (; i_index < BTOR_COUNT_STACK (indices); i_index++)
       {
-        lower = BTOR_POP_STACK (indices);
+        lower = BTOR_PEEK_STACK (indices, i_index);
         /* next value */
-        if (!lower) break;
+        if (!lower)
+        {
+          i_index++;
+          break;
+        }
         tmp = btor_write_exp (btor, subst, lower, value);
         btor_release_exp (btor, subst);
         subst = tmp;
