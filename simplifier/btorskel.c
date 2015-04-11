@@ -12,11 +12,11 @@
  */
 
 #ifdef BTOR_USE_LINGELING
-#include "btorskel.h"
+#include "simplifier/btorskel.h"
 #include "btorcore.h"
 #include "btordbg.h"
-#include "btoriter.h"
-#include "btorutil.h"
+#include "utils/btoriter.h"
+#include "utils/btorutil.h"
 
 #include "lglib.h"
 

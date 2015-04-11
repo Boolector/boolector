@@ -11,11 +11,11 @@
  *  See COPYING for more information on using this software.
  */
 
-#include "btorunconstrained.h"
+#include "simplifier/btorunconstrained.h"
 #include "btorcore.h"
 #include "btordbg.h"
-#include "btoriter.h"
-#include "btorutil.h"
+#include "utils/btoriter.h"
+#include "utils/btorutil.h"
 
 void
 btor_optimize_unconstrained (Btor *btor)

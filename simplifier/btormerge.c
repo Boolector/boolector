@@ -8,12 +8,12 @@
  *  See COPYING for more information on using this software.
  */
 
-#include "btormerge.h"
+#include "simplifier/btormerge.h"
 #include "btorbeta.h"
 #include "btorcore.h"
 #include "btordbg.h"
-#include "btoriter.h"
-#include "btorutil.h"
+#include "utils/btoriter.h"
+#include "utils/btorutil.h"
 
 void
 btor_merge_lambdas (Btor *btor)

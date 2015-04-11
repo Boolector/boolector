@@ -8,11 +8,11 @@
  *  See COPYING for more information on using this software.
  */
 
-#include "btorextract.h"
+#include "simplifier/btorextract.h"
 #include "btorconst.h"
 #include "btorcore.h"
-#include "btoriter.h"
-#include "btorutil.h"
+#include "utils/btoriter.h"
+#include "utils/btorutil.h"
 
 static int
 cmp_bits (const void *a, const void *b)

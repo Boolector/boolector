@@ -13,10 +13,10 @@
 
 #include "btoraig.h"
 #include "btorexit.h"
-#include "btorhash.h"
-#include "btormap.h"
 #include "btorsat.h"
-#include "btorutil.h"
+#include "utils/btorhash.h"
+#include "utils/btormap.h"
+#include "utils/btorutil.h"
 
 #include <assert.h>
 #include <limits.h>

@@ -10,9 +10,9 @@
  */
 
 #include "testqueue.h"
-#include "btormem.h"
-#include "btorqueue.h"
 #include "testrunner.h"
+#include "utils/btormem.h"
+#include "utils/btorqueue.h"
 
 #ifdef NDEBUG
 #undef NDEBUG

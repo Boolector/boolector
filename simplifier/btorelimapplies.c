@@ -8,11 +8,11 @@
  *  See COPYING for more information on using this software.
  */
 
-#include "btorelimapplies.h"
+#include "simplifier/btorelimapplies.h"
 #include "btorcore.h"
 #include "btordbg.h"
-#include "btoriter.h"
-#include "btorutil.h"
+#include "utils/btoriter.h"
+#include "utils/btorutil.h"
 
 void
 btor_eliminate_applies (Btor *btor)

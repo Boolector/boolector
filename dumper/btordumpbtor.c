@@ -15,11 +15,11 @@
 #include "btorconst.h"
 #include "btorcore.h"
 #include "btorexp.h"
-#include "btorhash.h"
-#include "btoriter.h"
-#include "btormem.h"
 #include "btorsort.h"
-#include "btorstack.h"
+#include "utils/btorhash.h"
+#include "utils/btoriter.h"
+#include "utils/btormem.h"
+#include "utils/btorstack.h"
 
 typedef struct BtorDumpContextLatch BtorDumpContextLatch;
 

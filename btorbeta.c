@@ -11,12 +11,12 @@
  */
 
 #include "btorbeta.h"
-#include "btoriter.h"
 #include "btorlog.h"
-#include "btormisc.h"
-#include "btorparamcache.h"
 #include "btorrewrite.h"
-#include "btorutil.h"
+#include "utils/btoriter.h"
+#include "utils/btormisc.h"
+#include "utils/btorparamcache.h"
+#include "utils/btorutil.h"
 
 #define BETA_RED_LAMBDA_MERGE -2
 #define BETA_RED_FULL 0

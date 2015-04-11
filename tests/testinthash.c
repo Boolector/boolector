@@ -9,10 +9,10 @@
  */
 
 #include "testinthash.h"
-#include "btorhash.h"
-#include "btorutil.h"
 #include "testrunner.h"
-#include "util/btorinthash.h"
+#include "utils/btorhash.h"
+#include "utils/btorinthash.h"
+#include "utils/btorutil.h"
 
 #ifdef NDEBUG
 #undef NDEBUG

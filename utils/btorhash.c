@@ -11,8 +11,8 @@
  *  See COPYING for more information on using this software.
  */
 
-#include "btorhash.h"
-#include "btoriter.h"
+#include "utils/btorhash.h"
+#include "utils/btoriter.h"
 
 static unsigned
 btor_hash_ptr (const void *p)

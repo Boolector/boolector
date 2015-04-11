@@ -11,10 +11,10 @@
  *  See COPYING for more information on using this software.
  */
 
-#include "btorelimslices.h"
+#include "simplifier/btorelimslices.h"
 #include "btorcore.h"
-#include "btoriter.h"
-#include "btorutil.h"
+#include "utils/btoriter.h"
+#include "utils/btorutil.h"
 
 struct BtorSlice
 {

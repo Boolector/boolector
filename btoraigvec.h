@@ -15,7 +15,7 @@
 #define BTORAIGVEC_H_INCLUDED
 
 #include "btoraig.h"
-#include "btormem.h"
+#include "utils/btormem.h"
 
 struct BtorAIGMap;
 

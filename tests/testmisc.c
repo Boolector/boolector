@@ -13,9 +13,9 @@
 #include "testmisc.h"
 #include "btorexit.h"
 #include "btormain.h"
-#include "btormem.h"
-#include "btorutil.h"
 #include "testrunner.h"
+#include "utils/btormem.h"
+#include "utils/btorutil.h"
 
 #ifdef NDEBUG
 #undef NDEBUG

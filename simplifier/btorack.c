@@ -8,10 +8,10 @@
  *  See COPYING for more information on using this software.
  */
 
-#include "btorack.h"
+#include "simplifier/btorack.h"
 #include "btorcore.h"
-#include "btoriter.h"
-#include "btorutil.h"
+#include "utils/btoriter.h"
+#include "utils/btorutil.h"
 
 void
 btor_add_ackermann_constraints (Btor *btor)

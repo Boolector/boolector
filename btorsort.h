@@ -14,8 +14,8 @@
 #define BTORSORT_H_INCLUDED
 
 #include <stdbool.h>
-#include "btormem.h"
-#include "btorstack.h"
+#include "utils/btormem.h"
+#include "utils/btorstack.h"
 
 typedef unsigned BtorSortId;
 
