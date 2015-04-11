@@ -622,67 +622,71 @@ btor_extract_lambdas (Btor *btor)
               == BTOR_COUNT_STACK (offsets));
     }
 
-    /* choose base array for memsets/writes:
-     *  1) write chains: base array of the write chains
-     *  2) top eqs: a new UF symbol */
-    if ((b = btor_find_in_ptr_hash_table (map_lambda_base, array)))
+    /* only create memsets/writes if at least one memset was found */
+    if (BTOR_COUNT_STACK (ranges) - BTOR_COUNT_STACK (values) > 0)
     {
-      assert (BTOR_IS_LAMBDA_NODE (array));
-      subst = btor_copy_exp (btor, b->data.asPtr);
-    }
-    else
-    {
-      assert (BTOR_IS_UF_ARRAY_NODE (array));
-      subst = btor_uf_exp (btor, array->sort_id, 0);
-    }
-
-    base    = subst;
-    i_range = i_index = i_offset = 0;
-    for (i_value = 0; i_value < BTOR_COUNT_STACK (values); i_value++)
-    {
-      value = BTOR_PEEK_STACK (values, i_value);
-
-      /* create memset regions */
-      for (; i_range < BTOR_COUNT_STACK (ranges) - 1; i_range += 2)
+      /* choose base array for memsets/writes:
+       *  1) write chains: base array of the write chains
+       *  2) top eqs: a new UF symbol */
+      if ((b = btor_find_in_ptr_hash_table (map_lambda_base, array)))
       {
-        lower = BTOR_PEEK_STACK (ranges, i_range);
-        /* next value */
-        if (!lower)
-        {
-          i_range++;
-          break;
-        }
-        upper = BTOR_PEEK_STACK (ranges, i_range + 1);
-        assert (!BTOR_EMPTY_STACK (offsets));
-        offset = BTOR_PEEK_STACK (offsets, i_offset);
-        tmp    = create_memset (btor, lower, upper, value, subst, offset);
-        btor_release_exp (btor, subst);
-        subst = tmp;
-        btor_delete_const (mm, offset);
-        i_offset++;
-        num_memsets++;
+        assert (BTOR_IS_LAMBDA_NODE (array));
+        subst = btor_copy_exp (btor, b->data.asPtr);
+      }
+      else
+      {
+        assert (BTOR_IS_UF_ARRAY_NODE (array));
+        subst = btor_uf_exp (btor, array->sort_id, 0);
       }
 
-      /* create writes */
-      for (; i_index < BTOR_COUNT_STACK (indices); i_index++)
+      base    = subst;
+      i_range = i_index = i_offset = 0;
+      for (i_value = 0; i_value < BTOR_COUNT_STACK (values); i_value++)
       {
-        lower = BTOR_PEEK_STACK (indices, i_index);
-        /* next value */
-        if (!lower)
+        value = BTOR_PEEK_STACK (values, i_value);
+
+        /* create memset regions */
+        for (; i_range < BTOR_COUNT_STACK (ranges) - 1; i_range += 2)
         {
-          i_index++;
-          break;
+          lower = BTOR_PEEK_STACK (ranges, i_range);
+          /* next value */
+          if (!lower)
+          {
+            i_range++;
+            break;
+          }
+          upper = BTOR_PEEK_STACK (ranges, i_range + 1);
+          assert (!BTOR_EMPTY_STACK (offsets));
+          offset = BTOR_PEEK_STACK (offsets, i_offset);
+          tmp    = create_memset (btor, lower, upper, value, subst, offset);
+          btor_release_exp (btor, subst);
+          subst = tmp;
+          btor_delete_const (mm, offset);
+          i_offset++;
+          num_memsets++;
         }
-        tmp = btor_write_exp (btor, subst, lower, value);
-        btor_release_exp (btor, subst);
-        subst = tmp;
-        num_writes++;
+
+        /* create writes */
+        for (; i_index < BTOR_COUNT_STACK (indices); i_index++)
+        {
+          lower = BTOR_PEEK_STACK (indices, i_index);
+          /* next value */
+          if (!lower)
+          {
+            i_index++;
+            break;
+          }
+          tmp = btor_write_exp (btor, subst, lower, value);
+          btor_release_exp (btor, subst);
+          subst = tmp;
+          num_writes++;
+        }
       }
+
+      if (base != subst) btor_insert_substitution (btor, array, subst, 0);
+      btor_release_exp (btor, subst);
     }
     btor_delete_ptr_hash_table (t);
-
-    if (base != subst) btor_insert_substitution (btor, array, subst, 0);
-    btor_release_exp (btor, subst);
   }
   btor_delete_ptr_hash_table (map_value_index);
   btor_delete_ptr_hash_table (map_lambda_base);
