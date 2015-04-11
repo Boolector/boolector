@@ -10,6 +10,7 @@
 
 #include "btorabort.h"
 #include "btorbitvec.h"
+#include "btorclone.h"
 #include "btorcore.h"
 #include "btordbg.h"
 #include "btordcr.h"
@@ -20,7 +21,6 @@
 #include "btormisc.h"
 #include "btormodel.h"
 #ifndef NDEBUG
-#include "btorclone.h"
 #include "btorprintmodel.h"
 #endif
 
@@ -1505,6 +1505,7 @@ move (Btor *btor, int nmoves)
   assert (compute_sls_score_formula (btor, btor->sls_solver->score) != -1.0);
 
   BtorNodePtrStack candidates;
+  BtorHashTableIterator it;
 
   BTORLOG ("");
   BTORLOG ("*** move");
@@ -1540,7 +1541,6 @@ move (Btor *btor, int nmoves)
   char *a;
   BtorNode *can;
   BitVector *neigh, *ass;
-  BtorHashTableIterator it;
   init_node_hash_table_iterator (&it, btor->sls_solver->max_cans);
   while (has_next_node_hash_table_iterator (&it))
   {
