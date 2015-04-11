@@ -15,15 +15,15 @@
 #include "btorbeta.h"
 #include "btorbitvec.h"
 #include "btorcore.h"
-#include "btorhash.h"
-#include "btoriter.h"
 #include "btorlog.h"
-#include "btormap.h"
 #include "btormsg.h"
 #include "btorsat.h"
 #include "btorsort.h"
-#include "btorstack.h"
-#include "btorutil.h"
+#include "utils/btorhash.h"
+#include "utils/btoriter.h"
+#include "utils/btormap.h"
+#include "utils/btorstack.h"
+#include "utils/btorutil.h"
 
 #include <assert.h>
 #include <stdio.h>

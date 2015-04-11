@@ -15,10 +15,10 @@
 #include "btorabort.h"
 #include "btorconst.h"
 #include "btorexp.h"
-#include "btoriter.h"
-#include "btormap.h"
 #include "btormsg.h"
 #include "dumper/btordumpbtor.h"
+#include "utils/btoriter.h"
+#include "utils/btormap.h"
 
 /*------------------------------------------------------------------------*/
 

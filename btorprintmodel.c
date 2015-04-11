@@ -11,10 +11,10 @@
 
 #include "btorprintmodel.h"
 #include "btorconst.h"
-#include "btorhash.h"
-#include "btoriter.h"
 #include "btormodel.h"
 #include "dumper/btordumpsmt.h"
+#include "utils/btorhash.h"
+#include "utils/btoriter.h"
 
 const char *
 btor_get_bv_model_str_aux (Btor *btor,

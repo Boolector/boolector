@@ -13,7 +13,7 @@
 
 #include "boolector.h"
 #include "btorcore.h"
-#include "btormem.h"
+#include "utils/btormem.h"
 // FIXME (ma): external sort handling?
 #include "btorsort.h"
 

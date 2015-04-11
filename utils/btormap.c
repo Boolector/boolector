@@ -10,9 +10,9 @@
  *  See COPYING for more information on using this software.
  */
 
-#include "btormap.h"
+#include "utils/btormap.h"
 #include "btorcore.h"
-#include "btoriter.h"
+#include "utils/btoriter.h"
 
 /*------------------------------------------------------------------------*/
 

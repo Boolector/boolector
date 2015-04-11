@@ -14,12 +14,12 @@
 #include "btorparse.h"
 #include "boolector.h"
 #include "btorcore.h"
-#include "btormem.h"
 #include "btoropt.h"
-#include "btorstack.h"
 #include "parser/btorbtor.h"
 #include "parser/btorsmt.h"
 #include "parser/btorsmt2.h"
+#include "utils/btormem.h"
+#include "utils/btorstack.h"
 
 static int
 has_compressed_suffix (const char *str, const char *suffix)

@@ -10,9 +10,9 @@
  */
 
 #include "btorconst.h"
-#include "btormem.h"
-#include "btorstack.h"
-#include "btorutil.h"
+#include "utils/btormem.h"
+#include "utils/btorstack.h"
+#include "utils/btorutil.h"
 
 #include <assert.h>
 #include <limits.h>
