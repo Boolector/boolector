@@ -695,6 +695,8 @@ btor_extract_lambdas (Btor *btor)
   BTOR_RELEASE_STACK (mm, offsets);
   BTOR_RELEASE_STACK (mm, values);
 
+  if (num_writes == 0 && num_memsets == 0) num_indices = 0;
+
   btor_substitute_and_rebuild (btor, btor->substitutions, 0);
   btor_delete_substitutions (btor);
   delta = btor_time_stamp () - start;
