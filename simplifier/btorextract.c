@@ -554,38 +554,32 @@ find_ranges (Btor *btor,
   }
 }
 
-void
-btor_extract_lambdas (Btor *btor)
+/* 'map_lambda_base' is null for top level equalities. */
+static void
+extract_lambdas (Btor *btor,
+                 BtorPtrHashTable *map_value_index,
+                 BtorPtrHashTable *map_lambda_base,
+                 unsigned *res_num_memsets,
+                 unsigned *res_num_memset_indices,
+                 unsigned *res_num_writes)
 {
   assert (btor);
+  assert (map_value_index);
+  assert (res_num_writes);
+  assert (res_num_memsets);
 
   unsigned i_range, i_index, i_value, i_offset;
   unsigned num_memsets = 0, num_writes = 0, num_indices = 0;
-  double start, delta;
   char *offset;
   BtorNode *subst, *base, *tmp, *array, *value, *lower, *upper;
   BtorHashTableIterator it, iit;
-  BtorPtrHashTable *t, *map_value_index, *map_lambda_base;
+  BtorPtrHashTable *t;
   BtorPtrHashBucket *b;
   BtorNodePtrStack *stack, ranges, indices, values;
   BtorCharPtrStack offsets;
   BtorMemMgr *mm;
 
-  start = btor_time_stamp ();
-
   mm = btor->mm;
-  /* maps for each array values to stacks of indices */
-  map_value_index = btor_new_ptr_hash_table (mm, 0, 0);
-  /* contains the base array for each write chain */
-  map_lambda_base = btor_new_ptr_hash_table (mm, 0, 0);
-  btor_init_substitutions (btor);
-
-  /* collect lambdas that are at the top of lambda chains */
-  collect_indices_writes (btor, map_value_index, map_lambda_base);
-
-  /* top level equality pre-initialization */
-  collect_indices_top_eqs (btor, map_value_index);
-
   BTOR_INIT_STACK (ranges);
   BTOR_INIT_STACK (indices);
   BTOR_INIT_STACK (offsets);
@@ -622,15 +616,21 @@ btor_extract_lambdas (Btor *btor)
               == BTOR_COUNT_STACK (offsets));
     }
 
-    /* only create memsets/writes if at least one memset was found */
-    if (BTOR_COUNT_STACK (ranges) - BTOR_COUNT_STACK (values) > 0)
+    /* only create memsets/writes if at least one memset was found
+     * (for the write chain case). we always have to create the writes for
+     * top level equality case, as the reads are already substituted by
+     * the corresponding values. */
+    if (!map_lambda_base
+        || BTOR_COUNT_STACK (ranges) - BTOR_COUNT_STACK (values) > 0)
     {
       /* choose base array for memsets/writes:
        *  1) write chains: base array of the write chains
        *  2) top eqs: a new UF symbol */
-      if ((b = btor_find_in_ptr_hash_table (map_lambda_base, array)))
+      if (map_lambda_base)
       {
         assert (BTOR_IS_LAMBDA_NODE (array));
+        b = btor_find_in_ptr_hash_table (map_lambda_base, array);
+        assert (b);
         subst = btor_copy_exp (btor, b->data.asPtr);
       }
       else
@@ -688,14 +688,54 @@ btor_extract_lambdas (Btor *btor)
     }
     btor_delete_ptr_hash_table (t);
   }
-  btor_delete_ptr_hash_table (map_value_index);
-  btor_delete_ptr_hash_table (map_lambda_base);
   BTOR_RELEASE_STACK (mm, ranges);
   BTOR_RELEASE_STACK (mm, indices);
   BTOR_RELEASE_STACK (mm, offsets);
   BTOR_RELEASE_STACK (mm, values);
 
   if (num_writes == 0 && num_memsets == 0) num_indices = 0;
+
+  *res_num_memsets += num_memsets;
+  *res_num_memset_indices += num_indices;
+  *res_num_writes += num_writes;
+}
+
+void
+btor_extract_lambdas (Btor *btor)
+{
+  assert (btor);
+
+  unsigned num_memsets = 0, num_writes = 0, num_indices = 0;
+  double start, delta;
+  BtorPtrHashTable *map_value_index, *map_lambda_base;
+  BtorMemMgr *mm;
+
+  start = btor_time_stamp ();
+
+  mm = btor->mm;
+  /* maps for each array values to stacks of indices */
+  map_value_index = btor_new_ptr_hash_table (mm, 0, 0);
+  /* contains the base array for each write chain */
+  map_lambda_base = btor_new_ptr_hash_table (mm, 0, 0);
+  btor_init_substitutions (btor);
+
+  /* collect lambdas that are at the top of lambda chains */
+  collect_indices_writes (btor, map_value_index, map_lambda_base);
+  extract_lambdas (btor,
+                   map_value_index,
+                   map_lambda_base,
+                   &num_memsets,
+                   &num_indices,
+                   &num_writes);
+  btor_delete_ptr_hash_table (map_lambda_base);
+  btor_delete_ptr_hash_table (map_value_index);
+
+  /* top level equality pre-initialization */
+  map_value_index = btor_new_ptr_hash_table (mm, 0, 0);
+  collect_indices_top_eqs (btor, map_value_index);
+  extract_lambdas (
+      btor, map_value_index, 0, &num_memsets, &num_indices, &num_writes);
+  btor_delete_ptr_hash_table (map_value_index);
 
   btor_substitute_and_rebuild (btor, btor->substitutions, 0);
   btor_delete_substitutions (btor);
