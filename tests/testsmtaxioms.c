@@ -17,8 +17,8 @@
 #include "testsmtaxioms.h"
 #include "btorexit.h"
 #include "btormain.h"
-#include "btorstack.h"
 #include "testrunner.h"
+#include "utils/btorstack.h"
 
 #include <assert.h>
 #include <stdio.h>

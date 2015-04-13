@@ -1,1 +1,1 @@
-boolector: log/smt2perr107.smt2:2:10: one argument to 'concat' missing
+boolector: log/smt2perr107.smt2:2:10: argument to 'concat' missing

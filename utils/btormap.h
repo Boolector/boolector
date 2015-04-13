@@ -1,7 +1,7 @@
 /*  Boolector: Satisfiablity Modulo Theories (SMT) solver.
  *
  *  Copyright (C) 2013-2014 Armin Biere.
- *  Copyright (C) 2013 Aina Niemetz.
+ *  Copyright (C) 2013,2015 Aina Niemetz.
  *  Copyright (C) 2013 Mathias Preiner.
  *
  *  All rights reserved.
@@ -12,8 +12,8 @@
 #ifndef BTORMAP_H_INCLUDED
 #define BTORMAP_H_INCLUDED
 
+#include "boolector.h"
 #include "btoraig.h"
-#include "btorcore.h"
 
 /*------------------------------------------------------------------------*/
 /* Simple map for expression node.  The 'map' owns references to the non

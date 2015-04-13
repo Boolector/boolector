@@ -13,10 +13,10 @@
 #include <ctype.h>
 #include "boolector.h"
 #include "btorcore.h"
-#include "btoriter.h"
 #include "btorlog.h"
 #include "btormodel.h"
 #include "btortrapi.h"
+#include "utils/btoriter.h"
 
 static char *
 getenv_value (const char *lname)
@@ -122,21 +122,21 @@ btor_init_opts (Btor *btor)
 
   BTOR_OPT (0,
             input_format,
-            0,
-            BTOR_INPUT_FORMAT_BTOR,
-            BTOR_INPUT_FORMAT_SMT2,
+            BTOR_INPUT_FORMAT_DFLT,
+            BTOR_INPUT_FORMAT_MIN,
+            BTOR_INPUT_FORMAT_MAX,
             "input file format");
   BTOR_OPT (0,
             output_number_format,
-            BTOR_OUTPUT_BASE_BIN,
-            BTOR_OUTPUT_BASE_BIN,
-            BTOR_OUTPUT_BASE_DEC,
+            BTOR_OUTPUT_BASE_DFLT,
+            BTOR_OUTPUT_BASE_MIN,
+            BTOR_OUTPUT_BASE_MAX,
             "output number format");
   BTOR_OPT (0,
             output_format,
-            BTOR_OUTPUT_FORMAT_BTOR,
-            BTOR_OUTPUT_FORMAT_BTOR,
-            BTOR_OUTPUT_FORMAT_SMT2,
+            BTOR_OUTPUT_FORMAT_DFLT,
+            BTOR_OUTPUT_FORMAT_MIN,
+            BTOR_OUTPUT_FORMAT_MAX,
             "output file format");
 
   BTOR_OPT ("rwl", rewrite_level, 3, 0, 3, "rewrite level");
@@ -168,9 +168,9 @@ btor_init_opts (Btor *btor)
   BTOR_OPT ("ju", just, 0, 0, 1, "justification optimization");
   BTOR_OPT (0,
             just_heuristic,
-            BTOR_JUST_HEUR_BRANCH_MIN_APP,
-            BTOR_JUST_HEUR_LEFT,
-            BTOR_JUST_HEUR_BRANCH_MIN_DEP,
+            BTOR_JUST_HEUR_DFLT,
+            BTOR_JUST_HEUR_MIN,
+            BTOR_JUST_HEUR_MAX,
             "justification heuristic");
 #ifndef BTOR_DO_NOT_OPTIMIZE_UNCONSTRAINED
   BTOR_OPT ("uc", ucopt, 0, 0, 1, "unconstrained optimization");
@@ -308,6 +308,24 @@ btor_set_opt (Btor *btor, const char *name, int val)
   {
     assert (val > 0);
     assert (btor->btor_sat_btor_called == 0);
+  }
+  else if (!strcmp (name, BTOR_OPT_INCREMENTAL_IN_DEPTH))
+  {
+    assert (val > 1);
+    assert (!btor->options.incremental_look_ahead.val
+            && !btor->options.incremental_interval.val);
+  }
+  else if (!strcmp (name, BTOR_OPT_INCREMENTAL_LOOK_AHEAD))
+  {
+    assert (val > 1);
+    assert (!btor->options.incremental_in_depth.val
+            && !btor->options.incremental_interval.val);
+  }
+  else if (!strcmp (name, BTOR_OPT_INCREMENTAL_INTERVAL))
+  {
+    assert (val > 1);
+    assert (!btor->options.incremental_in_depth.val
+            && !btor->options.incremental_look_ahead.val);
   }
   else if (!strcmp (name, "dp") || !strcmp (name, BTOR_OPT_DUAL_PROP))
   {

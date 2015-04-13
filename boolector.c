@@ -20,17 +20,17 @@
 #include "btorconst.h"
 #include "btorcore.h"
 #include "btorexit.h"
-#include "btorhash.h"
-#include "btoriter.h"
 #include "btormodel.h"
 #include "btorparse.h"
 #include "btorprintmodel.h"
 #include "btorsat.h"
 #include "btorsort.h"
 #include "btortrapi.h"
-#include "btorutil.h"
 #include "dumper/btordumpbtor.h"
 #include "dumper/btordumpsmt.h"
+#include "utils/btorhash.h"
+#include "utils/btoriter.h"
+#include "utils/btorutil.h"
 
 /*------------------------------------------------------------------------*/
 
@@ -556,6 +556,33 @@ boolector_set_opt (Btor *btor, const char *name, int val)
     BTOR_ABORT_BOOLECTOR (btor->btor_sat_btor_called > 0,
                           "enabling incremental usage must be done before "
                           "calling 'boolector_sat'");
+  }
+  else if (!strcmp (name, BTOR_OPT_INCREMENTAL_IN_DEPTH))
+  {
+    BTOR_ABORT_BOOLECTOR (val < 1, "incremental in-depth width must be >= 1");
+    BTOR_ABORT_BOOLECTOR (
+        btor->options.incremental_look_ahead.val
+            || btor->options.incremental_interval.val,
+        "can only set either 'incremental_in_depth', "
+        "'incremental_look_ahead', or 'incremental_interval'");
+  }
+  else if (!strcmp (name, BTOR_OPT_INCREMENTAL_LOOK_AHEAD))
+  {
+    BTOR_ABORT_BOOLECTOR (val < 1, "incremental look-ahead width must be >= 1");
+    BTOR_ABORT_BOOLECTOR (
+        btor->options.incremental_in_depth.val
+            || btor->options.incremental_interval.val,
+        "can only set either 'incremental_in_depth', "
+        "'incremental_look_ahead', or 'incremental_interval'");
+  }
+  else if (!strcmp (name, BTOR_OPT_INCREMENTAL_INTERVAL))
+  {
+    BTOR_ABORT_BOOLECTOR (val < 1, "incremental interval width must be >= 1");
+    BTOR_ABORT_BOOLECTOR (
+        btor->options.incremental_in_depth.val
+            || btor->options.incremental_look_ahead.val,
+        "can only set either 'incremental_in_depth', "
+        "'incremental_look_ahead', or 'incremental_interval'");
   }
   else if (!strcmp (name, BTOR_OPT_MODEL_GEN))
   {
@@ -3612,20 +3639,9 @@ boolector_parse (Btor *btor,
       BTOR_COUNT_STACK (btor->nodes_id_table) > 2,
       "file parsing must be done before creating expressions");
   res = btor_parse (btor, infile, infile_name, outfile, error_msg, status);
-#ifndef NDEBUG
-  if (btor->clone)
-  {
-    char *cerror_msg;
-    int cstatus;
-    FILE *cinfile = fopen (infile_name, "r");
-
-    boolector_parse (
-        btor->clone, cinfile, infile_name, stdout, &cerror_msg, &cstatus);
-    assert (cstatus == *status);
-    assert (!strcmp (cerror_msg, *error_msg));
-    btor_chkclone (btor);
-  }
-#endif
+  /* shadow clone can not shadow boolector_parse* (parser uses API calls only,
+   * hence all API calls issued while parsing are already shadowed and the
+   * shadow clone already maintains the parsed formula) */
   return res;
 }
 
@@ -3649,20 +3665,9 @@ boolector_parse_btor (Btor *btor,
       BTOR_COUNT_STACK (btor->nodes_id_table) > 2,
       "file parsing must be done before creating expressions");
   res = btor_parse_btor (btor, infile, infile_name, outfile, error_msg, status);
-#ifndef NDEBUG
-  if (btor->clone)
-  {
-    char *cerror_msg;
-    int cstatus;
-    FILE *cinfile = fopen (infile_name, "r");
-
-    boolector_parse (
-        btor->clone, cinfile, infile_name, stdout, &cerror_msg, &cstatus);
-    assert (cstatus == *status);
-    assert (!strcmp (cerror_msg, *error_msg));
-    btor_chkclone (btor);
-  }
-#endif
+  /* shadow clone can not shadow boolector_parse* (parser uses API calls only,
+   * hence all API calls issued while parsing are already shadowed and the
+   * shadow clone already maintains the parsed formula) */
   return res;
 }
 
@@ -3686,20 +3691,9 @@ boolector_parse_smt1 (Btor *btor,
       BTOR_COUNT_STACK (btor->nodes_id_table) > 2,
       "file parsing must be done before creating expressions");
   res = btor_parse_smt1 (btor, infile, infile_name, outfile, error_msg, status);
-#ifndef NDEBUG
-  if (btor->clone)
-  {
-    char *cerror_msg;
-    int cstatus;
-    FILE *cinfile = fopen (infile_name, "r");
-
-    boolector_parse (
-        btor->clone, cinfile, infile_name, stdout, &cerror_msg, &cstatus);
-    assert (cstatus == *status);
-    assert (!strcmp (cerror_msg, *error_msg));
-    btor_chkclone (btor);
-  }
-#endif
+  /* shadow clone can not shadow boolector_parse* (parser uses API calls only,
+   * hence all API calls issued while parsing are already shadowed and the
+   * shadow clone already maintains the parsed formula) */
   return res;
 }
 
@@ -3723,20 +3717,9 @@ boolector_parse_smt2 (Btor *btor,
       BTOR_COUNT_STACK (btor->nodes_id_table) > 2,
       "file parsing must be done before creating expressions");
   res = btor_parse_smt2 (btor, infile, infile_name, outfile, error_msg, status);
-#ifndef NDEBUG
-  if (btor->clone)
-  {
-    char *cerror_msg;
-    int cstatus;
-    FILE *cinfile = fopen (infile_name, "r");
-
-    boolector_parse (
-        btor->clone, cinfile, infile_name, stdout, &cerror_msg, &cstatus);
-    assert (cstatus == *status);
-    assert (!strcmp (cerror_msg, *error_msg));
-    btor_chkclone (btor);
-  }
-#endif
+  /* shadow clone can not shadow boolector_parse* (parser uses API calls only,
+   * hence all API calls issued while parsing are already shadowed and the
+   * shadow clone already maintains the parsed formula) */
   return res;
 }
 

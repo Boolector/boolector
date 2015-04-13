@@ -14,7 +14,7 @@
 
 #include <stdint.h>
 #include "btorexp.h"
-#include "btormem.h"
+#include "utils/btormem.h"
 
 #define BTOR_BV_TYPE uint32_t
 #define BTOR_BV_TYPE_BW (sizeof (BTOR_BV_TYPE) * 8)
@@ -33,12 +33,10 @@ struct BitVector
    *              ^ ^--- MSB
    *              |--- spare bit
    * */
-  BTOR_BV_TYPE *bits;
+  BTOR_BV_TYPE bits[];
 };
 
 typedef struct BitVector BitVector;
-
-#define BTOR_REAL_ADDR_BV(bv) ((BitVector *) (~3ul & (unsigned long int) (bv)))
 
 BitVector *btor_new_bv (BtorMemMgr *, int);
 BitVector *btor_char_to_bv (BtorMemMgr *, char *);

@@ -14,8 +14,8 @@
 #ifndef BTORSAT_H_INCLUDED
 #define BTORSAT_H_INCLUDED
 
-#include "btormem.h"
 #include "btormsg.h"
+#include "utils/btormem.h"
 
 #include <stdio.h>
 
@@ -77,6 +77,8 @@ struct BtorSATMgr
     void (*set_prefix) (BtorSATMgr *, const char *);
     void (*stats) (BtorSATMgr *);
     int (*variables) (BtorSATMgr *);
+    void *(*clone) (BtorSATMgr *, BtorMemMgr *);
+    void (*setterm) (BtorSATMgr *);
   } api;
 };
 

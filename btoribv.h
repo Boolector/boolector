@@ -17,7 +17,7 @@ extern "C" {
 #include "btorabort.h"
 #include "btorcore.h"
 #include "btormc.h"
-#include "btorstack.h"
+#include "utils/btorstack.h"
 };
 
 // We use classical C style data structures in order to be able to use the

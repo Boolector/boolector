@@ -10,7 +10,7 @@
 #ifndef BTORCLONE_H_INCLUDED
 #define BTORCLONE_H_INCLUDED
 
-#include "btormap.h"
+#include "utils/btormap.h"
 
 /* Clone an existing boolector instance. */
 Btor *btor_clone_btor (Btor *btor);
@@ -27,4 +27,43 @@ BtorNode *btor_recursively_rebuild_exp_clone (Btor *btor,
                                               Btor *clone,
                                               BtorNode *exp,
                                               BtorNodeMap *exp_map);
+
+/* helpers for hash table cloning */
+void *btor_clone_key_as_node (BtorMemMgr *mm, const void *map, const void *key);
+
+void *btor_clone_key_as_str (BtorMemMgr *mm, const void *map, const void *key);
+
+void *btor_clone_key_as_bv_tuple (BtorMemMgr *mm,
+                                  const void *map,
+                                  const void *t);
+
+void btor_clone_data_as_node_ptr (BtorMemMgr *mm,
+                                  const void *map,
+                                  BtorPtrHashData *data,
+                                  BtorPtrHashData *cloned_data);
+
+void btor_clone_data_as_str_ptr (BtorMemMgr *mm,
+                                 const void *str_table,
+                                 BtorPtrHashData *data,
+                                 BtorPtrHashData *cloned_data);
+
+void btor_clone_data_as_int (BtorMemMgr *mm,
+                             const void *map,
+                             BtorPtrHashData *data,
+                             BtorPtrHashData *cloned_data);
+
+void btor_clone_data_as_bv_ptr (BtorMemMgr *mm,
+                                const void *map,
+                                BtorPtrHashData *data,
+                                BtorPtrHashData *cloned_data);
+
+void btor_clone_data_as_bv_htable_ptr (BtorMemMgr *mm,
+                                       const void *map,
+                                       BtorPtrHashData *data,
+                                       BtorPtrHashData *cloned_data);
+
+void btor_clone_data_as_htable_ptr (BtorMemMgr *mm,
+                                    const void *map,
+                                    BtorPtrHashData *data,
+                                    BtorPtrHashData *cloned_data);
 #endif

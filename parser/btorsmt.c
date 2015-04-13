@@ -12,9 +12,9 @@
 
 #include "btorsmt.h"
 #include "btorconst.h"
-#include "btormem.h"
-#include "btorstack.h"
-#include "btorutil.h"
+#include "utils/btormem.h"
+#include "utils/btorstack.h"
+#include "utils/btorutil.h"
 
 #include <assert.h>
 #include <ctype.h>
@@ -2639,7 +2639,7 @@ btor_smt_parser_inc_add_release_sat (BtorSMTParser *parser,
 
   ndigits = btor_num_digits_util (parser->formulas.checked);
   BTOR_NEWN (parser->mem, prefix, ndigits + 1);
-  sprintf (prefix, "%d", parser->formulas.checked);
+  sprintf (prefix, "%d:", parser->formulas.checked);
   boolector_set_msg_prefix (parser->btor, prefix);
   BTOR_DELETEN (parser->mem, prefix, ndigits + 1);
 
