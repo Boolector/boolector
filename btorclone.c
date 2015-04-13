@@ -1092,10 +1092,10 @@ clone_aux_btor (Btor *btor,
   }
 
   clone->slvmgr = btor_clone_slv_mgr (clone, btor, emap);
-  assert (clone->slvmgr);
-  assert (clone->slvmgr->slv);
+  assert ((btor->slvmgr && clone->slvmgr) || (!btor->slvmgr && !clone->slvmgr));
+  assert (!clone->slvmgr || clone->slvmgr->slv);
 #ifndef NDEBUG
-  if (!strcmp (btor->slvmgr->name, "core"))
+  if (clone->slvmgr && !strcmp (btor->slvmgr->name, "core"))
   {
     BtorCoreSolver *slv  = BTOR_CORE_SOLVER (btor);
     BtorCoreSolver *cslv = BTOR_CORE_SOLVER (clone);
