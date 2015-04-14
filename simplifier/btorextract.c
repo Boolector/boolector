@@ -636,7 +636,6 @@ find_ranges (Btor *btor,
   }
 }
 
-/* 'map_lambda_base' is null for top level equalities. */
 static void
 extract_lambdas (Btor *btor,
                  BtorPtrHashTable *map_value_index,
@@ -647,11 +646,13 @@ extract_lambdas (Btor *btor,
 {
   assert (btor);
   assert (map_value_index);
+  assert (map_lambda_base);
   assert (res_num_writes);
   assert (res_num_memsets);
 
+  bool is_top_eq;
   unsigned i_range, i_index, i_value, i_offset;
-  unsigned num_memsets = 0, num_writes = 0, num_indices = 0;
+  unsigned num_patterns, num_memsets = 0, num_writes = 0, num_indices = 0;
   char *offset;
   BtorNode *subst, *base, *tmp, *array, *value, *lower, *upper;
   BtorHashTableIterator it, iit;
@@ -702,21 +703,24 @@ extract_lambdas (Btor *btor,
     /* choose base array for patterns/writes:
      *  1) write chains: base array of the write chains
      *  2) top eqs: a new UF symbol */
-    if (map_lambda_base)
+    if ((b = btor_find_in_ptr_hash_table (map_lambda_base, array)))
     {
       assert (BTOR_IS_LAMBDA_NODE (array));
       b = btor_find_in_ptr_hash_table (map_lambda_base, array);
       assert (b);
-      subst = btor_copy_exp (btor, b->data.asPtr);
+      subst     = btor_copy_exp (btor, b->data.asPtr);
+      is_top_eq = false;
     }
     else
     {
       assert (BTOR_IS_UF_ARRAY_NODE (array));
-      subst = btor_uf_exp (btor, array->sort_id, 0);
+      subst     = btor_uf_exp (btor, array->sort_id, 0);
+      is_top_eq = true;
     }
 
     index_value_map = btor_new_ptr_hash_table (mm, 0, 0);
     base            = subst;
+    num_patterns    = 0;
     i_range = i_index = i_offset = 0;
     for (i_value = 0; i_value < BTOR_COUNT_STACK (values); i_value++)
     {
@@ -740,7 +744,7 @@ extract_lambdas (Btor *btor,
         subst = tmp;
         btor_delete_const (mm, offset);
         i_offset++;
-        num_memsets++;
+        num_patterns++;
       }
 
       /* find other patterns */
@@ -792,7 +796,7 @@ extract_lambdas (Btor *btor,
         subst = tmp;
         btor_delete_const (mm, offset);
         i_offset++;
-        num_memsets++;
+        num_patterns++;
       }
     }
 
@@ -815,23 +819,33 @@ extract_lambdas (Btor *btor,
         subst = tmp;
         btor_delete_const (mm, offset);
         i_offset++;
-        num_memsets++;
+        num_patterns++;
       }
     }
 
-    /* no pattern found for indices in 'remidx'. create writes */
-    for (i_index = 0; i_index < BTOR_COUNT_STACK (remidx); i_index++)
+    num_memsets += num_patterns;
+
+    /* we can skip creating writes if we did not find any pattern in a write
+     * chain, and thus can leave the write chain as-is.
+     * for the top equality case we always have to create writes since we
+     * convert top level equalities to writes. */
+    if (is_top_eq || num_patterns > 0)
     {
-      lower = BTOR_PEEK_STACK (remidx, i_index);
-      b     = btor_find_in_ptr_hash_table (index_value_map, lower);
-      assert (b);
-      value = b->data.asPtr;
-      tmp   = btor_write_exp (btor, subst, lower, value);
-      btor_release_exp (btor, subst);
-      subst = tmp;
-      num_writes++;
+      /* no pattern found for indices in 'remidx'. create writes */
+      for (i_index = 0; i_index < BTOR_COUNT_STACK (remidx); i_index++)
+      {
+        lower = BTOR_PEEK_STACK (remidx, i_index);
+        b     = btor_find_in_ptr_hash_table (index_value_map, lower);
+        assert (b);
+        value = b->data.asPtr;
+        tmp   = btor_write_exp (btor, subst, lower, value);
+        btor_release_exp (btor, subst);
+        subst = tmp;
+        num_writes++;
+      }
     }
 
+    assert ((is_top_eq || num_patterns > 0) || base == subst);
     if (base != subst) btor_insert_substitution (btor, array, subst, 0);
     btor_release_exp (btor, subst);
 
@@ -879,9 +893,10 @@ btor_extract_lambdas (Btor *btor)
   map_lambda_base = btor_new_ptr_hash_table (mm, 0, 0);
   btor_init_substitutions (btor);
 
-  // TODO: merge top eqs and write chain indices again (more rewriting possible)
   /* collect lambdas that are at the top of lambda chains */
   collect_indices_writes (btor, map_value_index, map_lambda_base);
+  /* top level equality pre-initialization */
+  collect_indices_top_eqs (btor, map_value_index);
   extract_lambdas (btor,
                    map_value_index,
                    map_lambda_base,
@@ -889,13 +904,6 @@ btor_extract_lambdas (Btor *btor)
                    &num_indices,
                    &num_writes);
   btor_delete_ptr_hash_table (map_lambda_base);
-  btor_delete_ptr_hash_table (map_value_index);
-
-  /* top level equality pre-initialization */
-  map_value_index = btor_new_ptr_hash_table (mm, 0, 0);
-  collect_indices_top_eqs (btor, map_value_index);
-  extract_lambdas (
-      btor, map_value_index, 0, &num_memsets, &num_indices, &num_writes);
   btor_delete_ptr_hash_table (map_value_index);
 
   btor_substitute_and_rebuild (btor, btor->substitutions, 0);
