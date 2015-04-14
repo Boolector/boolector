@@ -16,7 +16,7 @@
 #include "boolector.h"
 #include "btorlogic.h"
 #include "btormsg.h"
-#include "btorstack.h"
+#include "utils/btorstack.h"
 
 #include <stdio.h>
 

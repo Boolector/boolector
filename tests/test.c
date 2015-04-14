@@ -20,6 +20,7 @@
 #include "testexp.h"
 #include "testhash.h"
 #include "testinc.h"
+#include "testinthash.h"
 #include "testlambda.h"
 #include "testlogic.h"
 #include "testmap.h"
@@ -148,6 +149,7 @@ main (int argc, char **argv)
   BTOR_RUN_TESTS (parseerror);
   BTOR_RUN_TESTS (mc);
   BTOR_RUN_TESTS (sort);
+  BTOR_RUN_TESTS (int_hash_table);
   finish_tests ();
   return 0;
 }

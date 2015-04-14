@@ -16,8 +16,8 @@
 
 #include "testtestcases.h"
 #include "btormain.h"
-#include "btorstack.h"
 #include "testrunner.h"
+#include "utils/btorstack.h"
 
 #include <assert.h>
 #include <ctype.h>

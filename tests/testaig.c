@@ -12,10 +12,10 @@
 
 #include "testaig.h"
 #include "btoraig.h"
-#include "btormem.h"
 #include "btormsg.h"
 #include "btorsat.h"
 #include "testrunner.h"
+#include "utils/btormem.h"
 
 #ifdef NDEBUG
 #undef NDEBUG

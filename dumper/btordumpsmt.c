@@ -15,9 +15,9 @@
 #include "btorconst.h"
 #include "btorcore.h"
 #include "btorexit.h"
-#include "btorhash.h"
-#include "btoriter.h"
 #include "btorsort.h"
+#include "utils/btorhash.h"
+#include "utils/btoriter.h"
 #ifndef NDEBUG
 #include "btorclone.h"
 #endif

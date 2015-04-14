@@ -15,8 +15,8 @@
 #define BTORITER_H_INCLUDED
 
 #include "btorcore.h"
-#include "btorhash.h"
-#include "btormap.h"
+#include "utils/btorhash.h"
+#include "utils/btormap.h"
 
 /*------------------------------------------------------------------------*/
 /* node iterators                                                         */

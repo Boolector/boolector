@@ -12,8 +12,8 @@
  */
 
 #include "btoraigvec.h"
-#include "btormap.h"
-#include "btorutil.h"
+#include "utils/btormap.h"
+#include "utils/btorutil.h"
 
 #include <assert.h>
 #include <limits.h>

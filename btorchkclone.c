@@ -16,8 +16,8 @@
 #include "btorchkclone.h"
 #include "btorbitvec.h"
 #include "btorcore.h"
-#include "btoriter.h"
 #include "btoropt.h"
+#include "utils/btoriter.h"
 
 static void
 btor_chkclone_mem (Btor *btor)

@@ -13,8 +13,8 @@
 #include "testmap.h"
 #include "btorcore.h"
 #include "btorexp.h"
-#include "btormap.h"
 #include "testrunner.h"
+#include "utils/btormap.h"
 
 #ifdef NDEBUG
 #undef NDEBUG

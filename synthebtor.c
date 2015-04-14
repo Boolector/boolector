@@ -11,10 +11,10 @@
 #include "btoraig.h"
 #include "btoraigvec.h"
 #include "btorcore.h"
-#include "btorhash.h"
-#include "btoriter.h"
 #include "parser/btorbtor.h"
 #include "stdio.h"
+#include "utils/btorhash.h"
+#include "utils/btoriter.h"
 
 #include <stdio.h>
 #include <string.h>
