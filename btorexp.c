@@ -440,6 +440,11 @@ disconnect_child_exp (Btor *btor, BtorNode *parent, int pos)
   assert (first_parent);
   assert (last_parent);
 
+  /* if a parameter is disconnected from a lambda we have to reset
+   * 'lambda_exp' of the parameter in order to keep a valid state */
+  if (BTOR_IS_LAMBDA_NODE (parent) && pos == 0)
+    BTOR_PARAM_SET_LAMBDA_NODE (parent->e[0], 0);
+
   /* only one parent? */
   if (first_parent == tagged_parent && first_parent == last_parent)
   {
