@@ -10,9 +10,9 @@
  */
 
 #include "teststack.h"
-#include "btormem.h"
-#include "btorstack.h"
 #include "testrunner.h"
+#include "utils/btormem.h"
+#include "utils/btorstack.h"
 
 #ifdef NDEBUG
 #undef NDEBUG

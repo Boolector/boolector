@@ -12,7 +12,7 @@
 #ifndef BTORCONST_H_INCLUDED
 #define BTORCONST_H_INCLUDED
 
-#include "btormem.h"
+#include "utils/btormem.h"
 
 /*------------------------------------------------------------------------*/
 

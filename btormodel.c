@@ -12,9 +12,9 @@
 #include "btormodel.h"
 #include "btorbeta.h"
 #include "btorexit.h"
-#include "btoriter.h"
-#include "btormem.h"
-#include "btorutil.h"
+#include "utils/btoriter.h"
+#include "utils/btormem.h"
+#include "utils/btorutil.h"
 
 #define BTOR_ABORT_MODEL(cond, msg)                   \
   do                                                  \

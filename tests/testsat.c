@@ -11,9 +11,9 @@
  */
 
 #include "testsat.h"
-#include "btormem.h"
 #include "btorsat.h"
 #include "testrunner.h"
+#include "utils/btormem.h"
 
 #ifdef NDEBUG
 #undef NDEBUG

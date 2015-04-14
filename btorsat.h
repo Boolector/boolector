@@ -14,8 +14,8 @@
 #ifndef BTORSAT_H_INCLUDED
 #define BTORSAT_H_INCLUDED
 
-#include "btormem.h"
 #include "btormsg.h"
+#include "utils/btormem.h"
 
 #include <stdio.h>
 

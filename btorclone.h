@@ -10,7 +10,7 @@
 #ifndef BTORCLONE_H_INCLUDED
 #define BTORCLONE_H_INCLUDED
 
-#include "btormap.h"
+#include "utils/btormap.h"
 
 /* Clone an existing boolector instance. */
 Btor *btor_clone_btor (Btor *btor);

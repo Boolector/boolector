@@ -11,7 +11,7 @@
  *  This file is part of Boolector.
  */
 
-#include "btormem.h"
+#include "utils/btormem.h"
 #include "btorexit.h"
 
 #include <assert.h>

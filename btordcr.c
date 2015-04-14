@@ -12,9 +12,9 @@
 #include "btorcore.h"
 #include "btordbg.h"
 #include "btorexp.h"
-#include "btorhash.h"
-#include "btoriter.h"
-#include "btorutil.h"
+#include "utils/btorhash.h"
+#include "utils/btoriter.h"
+#include "utils/btorutil.h"
 
 /* heuristic: minimum depth to the inputs
  *            (considering the whole formula or the bv skeleton, only) */

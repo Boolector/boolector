@@ -20,17 +20,18 @@
 #include "btordbg.h"
 #include "btordcr.h"
 #include "btorexit.h"
-#include "btoriter.h"
 #include "btorlog.h"
-#include "btormisc.h"
 #include "btormodel.h"
 #include "btormsg.h"
 #include "btoropt.h"
-#include "btorparamcache.h"
 #include "btorprintmodel.h"
 #include "btorrewrite.h"
 #include "btorsat.h"
-#include "btorutil.h"
+#include "utils/btorinthash.h"
+#include "utils/btoriter.h"
+#include "utils/btormisc.h"
+#include "utils/btorparamcache.h"
+#include "utils/btorutil.h"
 
 #include <limits.h>
 
@@ -6167,7 +6168,8 @@ static void
 push_applies_for_propagation (Btor *btor,
                               BtorNode *exp,
                               BtorLambdaNode *lambda,
-                              BtorNodePtrStack *prop_stack)
+                              BtorNodePtrStack *prop_stack,
+                              BtorIntHashTable *apply_search_cache)
 {
   assert (btor);
   assert (BTOR_CORE_SOLVER (btor));
@@ -6197,12 +6199,12 @@ push_applies_for_propagation (Btor *btor,
     assert (!BTOR_IS_FUN_NODE (cur));
 
     if (cur->mark || !cur->apply_below
-        || btor_find_in_ptr_hash_table (slv->searched_applies, cur))
+        || btor_contains_int_hash_table (apply_search_cache, cur->id))
       continue;
 
     cur->mark = 1;
     BTOR_PUSH_STACK (btor->mm, unmark, cur);
-    btor_insert_in_ptr_hash_table (slv->searched_applies, cur);
+    btor_add_int_hash_table (apply_search_cache, cur->id);
 
     if (BTOR_IS_APPLY_NODE (cur))
     {
@@ -6239,15 +6241,16 @@ push_applies_for_propagation (Btor *btor,
 static void
 push_applies_from_cond_for_propagation (Btor *btor,
                                         BtorNode *exp,
-                                        BtorNodePtrStack *prop_stack)
+                                        BtorNodePtrStack *prop_stack,
+                                        BtorIntHashTable *apply_search_cache)
 {
   assert (btor);
   assert (BTOR_CORE_SOLVER (btor));
-  assert (BTOR_CORE_SOLVER (btor)->searched_applies);
   assert (exp);
   assert (BTOR_IS_REGULAR_NODE (exp));
   assert (prop_stack);
   assert (check_id_table_mark_unset_dbg (btor));
+  assert (apply_search_cache);
 
   int i;
   double start;
@@ -6270,12 +6273,12 @@ push_applies_from_cond_for_propagation (Btor *btor,
     assert (!BTOR_IS_FUN_NODE (cur));
 
     if (cur->mark || !cur->apply_below
-        || btor_find_in_ptr_hash_table (slv->searched_applies, cur))
+        || btor_contains_int_hash_table (apply_search_cache, cur->id))
       continue;
 
     cur->mark = 1;
     BTOR_PUSH_STACK (btor->mm, unmark, cur);
-    btor_insert_in_ptr_hash_table (slv->searched_applies, cur);
+    btor_add_int_hash_table (apply_search_cache, cur->id);
 
     if (BTOR_IS_APPLY_NODE (cur))
     {
@@ -6304,12 +6307,14 @@ static int
 propagate (Btor *btor,
            BtorNodePtrStack *prop_stack,
            BtorPtrHashTable *cleanup_table,
+           BtorIntHashTable *apply_search_cache,
            int *assignments_changed)
 {
   assert (btor);
   assert (BTOR_CORE_SOLVER (btor));
   assert (prop_stack);
   assert (cleanup_table);
+  assert (apply_search_cache);
   // TODO: extensionality for write lambdas
   assert (btor->ops[BTOR_FEQ_NODE].cur == 0);
 
@@ -6371,7 +6376,8 @@ propagate (Btor *btor,
 
     *assignments_changed = lazy_synthesize_and_encode_apply_exp (btor, app, 1);
 
-    push_applies_for_propagation (btor, app->e[1], 0, prop_stack);
+    push_applies_for_propagation (
+        btor, app->e[1], 0, prop_stack, apply_search_cache);
 
     if (*assignments_changed)
     {
@@ -6442,7 +6448,8 @@ propagate (Btor *btor,
     /* skip array vars/uf */
     if (BTOR_IS_UF_NODE (fun))
     {
-      push_applies_for_propagation (btor, app, 0, prop_stack);
+      push_applies_for_propagation (
+          btor, app, 0, prop_stack, apply_search_cache);
       continue;
     }
     assert (BTOR_IS_LAMBDA_NODE (fun));
@@ -6617,7 +6624,8 @@ propagate (Btor *btor,
           while (has_next_node_hash_table_iterator (&it))
           {
             cond = next_node_hash_table_iterator (&it);
-            push_applies_from_cond_for_propagation (btor, cond, prop_stack);
+            push_applies_from_cond_for_propagation (
+                btor, cond, prop_stack, apply_search_cache);
             btor_remove_from_ptr_hash_table (conds, cond, 0, 0);
             btor_release_exp (btor, cond);
           }
@@ -6659,14 +6667,16 @@ propagate (Btor *btor,
           return 1;
         }
 
-        push_applies_for_propagation (btor, fun_value, lambda, prop_stack);
+        push_applies_for_propagation (
+            btor, fun_value, lambda, prop_stack, apply_search_cache);
         if (check_conds)
         {
           init_node_hash_table_iterator (&it, conds);
           while (has_next_node_hash_table_iterator (&it))
           {
             cond = next_node_hash_table_iterator (&it);
-            push_applies_from_cond_for_propagation (btor, cond, prop_stack);
+            push_applies_from_cond_for_propagation (
+                btor, cond, prop_stack, apply_search_cache);
             btor_remove_from_ptr_hash_table (conds, cond, 0, 0);
             btor_release_exp (btor, cond);
           }
@@ -6680,14 +6690,16 @@ propagate (Btor *btor,
       if (compare_assignments (app, fun_value) != 0)
         goto BETA_REDUCTION_CONFLICT;
 
-      push_applies_for_propagation (btor, fun_value, lambda, prop_stack);
+      push_applies_for_propagation (
+          btor, fun_value, lambda, prop_stack, apply_search_cache);
       if (check_conds)
       {
         init_node_hash_table_iterator (&it, conds);
         while (has_next_node_hash_table_iterator (&it))
         {
           cond = next_node_hash_table_iterator (&it);
-          push_applies_from_cond_for_propagation (btor, cond, prop_stack);
+          push_applies_from_cond_for_propagation (
+              btor, cond, prop_stack, apply_search_cache);
           btor_remove_from_ptr_hash_table (conds, cond, 0, 0);
           btor_release_exp (btor, cond);
         }
@@ -6724,11 +6736,13 @@ check_and_resolve_conflicts (Btor *btor,
   BtorNodePtrStack prop_stack;
   BtorNodePtrStack top_applies;
   BtorPtrHashTable *cleanup_table;
+  BtorIntHashTable *apply_search_cache;
   BtorHashTableIterator it;
 
-  found_conflict = 0;
-  mm             = btor->mm;
-  slv            = BTOR_CORE_SOLVER (btor);
+  apply_search_cache = 0;
+  found_conflict     = 0;
+  mm                 = btor->mm;
+  slv                = BTOR_CORE_SOLVER (btor);
 
 BTOR_CONFLICT_CHECK:
   assert (!found_conflict);
@@ -6739,13 +6753,14 @@ BTOR_CONFLICT_CHECK:
   BTOR_INIT_STACK (prop_stack);
   BTOR_INIT_STACK (top_applies);
 
-  if (!slv->searched_applies)
-  {
-    slv->searched_applies =
-        btor_new_ptr_hash_table (btor->mm,
-                                 (BtorHashPtr) btor_hash_exp_by_id,
-                                 (BtorCmpPtr) btor_compare_exp_by_id);
-  }
+  /* cache applies that were visited while searching for applies to propagate.
+   * applies added to this cache will be skipped in the apply search the next
+   * time they are visited.
+   * Note: the id of the resp. apply will be added to 'apply_search_cache',
+   *       hence, we don't have to ensure that these applies still exist in
+   *       memory.
+   */
+  if (!apply_search_cache) apply_search_cache = btor_new_int_hash_table (mm);
 
   if (clone)
     search_initial_applies_dual_prop (
@@ -6791,8 +6806,11 @@ BTOR_CONFLICT_CHECK:
 
     BTOR_PUSH_STACK (mm, prop_stack, app);
     BTOR_PUSH_STACK (mm, prop_stack, app->e[0]);
-    found_conflict =
-        propagate (btor, &prop_stack, cleanup_table, &changed_assignments);
+    found_conflict = propagate (btor,
+                                &prop_stack,
+                                cleanup_table,
+                                apply_search_cache,
+                                &changed_assignments);
     if (found_conflict || changed_assignments) break;
   }
 
@@ -6842,8 +6860,8 @@ BTOR_CONFLICT_CHECK:
   BTOR_RELEASE_STACK (mm, prop_stack);
   BTOR_RELEASE_STACK (mm, top_applies);
 
-  btor_delete_ptr_hash_table (slv->searched_applies);
-  slv->searched_applies = 0;
+  btor_free_int_hash_table (apply_search_cache);
+  apply_search_cache = 0;
 
   /* restart? (assignments changed during lazy synthesis and encoding) */
   if (changed_assignments)
@@ -7976,9 +7994,6 @@ clone_core_solver (Btor *clone, Btor *btor, BtorNodeMap *exp_map)
                                               0);
     }
   }
-
-  res->searched_applies = btor_clone_ptr_hash_table (
-      clone->mm, slv->searched_applies, btor_clone_key_as_node, 0, exp_map, 0);
 
   BTOR_INIT_STACK (res->stats.lemmas_size);
   if (BTOR_SIZE_STACK (slv->stats.lemmas_size) > 0)

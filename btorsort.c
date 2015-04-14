@@ -13,8 +13,8 @@
 #include "btorsort.h"
 #include "btorexit.h"
 #include "btorexp.h"
-#include "btoriter.h"
-#include "btorutil.h"
+#include "utils/btoriter.h"
+#include "utils/btorutil.h"
 
 #include <assert.h>
 #include <limits.h>

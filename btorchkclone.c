@@ -16,9 +16,9 @@
 #include "btorchkclone.h"
 #include "btorbitvec.h"
 #include "btorcore.h"
-#include "btoriter.h"
 #include "btoropt.h"
 #include "btorslv.h"
+#include "utils/btoriter.h"
 
 static void
 btor_chkclone_mem (Btor *btor)
@@ -943,9 +943,6 @@ btor_chkclone_slv_mgr (Btor *btor)
     {
       assert (!cslv->score);
     }
-
-    BTOR_CHKCLONE_NODE_PTR_HASH_TABLE (slv->searched_applies,
-                                       cslv->searched_applies);
 
     assert (BTOR_COUNT_STACK (slv->stats.lemmas_size)
             == BTOR_COUNT_STACK (cslv->stats.lemmas_size));

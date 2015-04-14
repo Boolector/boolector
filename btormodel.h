@@ -15,7 +15,7 @@
 #include "btorbitvec.h"
 #include "btorcore.h"
 #include "btorexp.h"
-#include "btorhash.h"
+#include "utils/btorhash.h"
 
 void btor_generate_model (Btor* btor,
                           BtorPtrHashTable* bv_model,

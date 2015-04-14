@@ -10,7 +10,7 @@
  *  See COPYING for more information on using this software.
  */
 
-#include "btormisc.h"
+#include "utils/btormisc.h"
 #include "btorcore.h"
 #include "dumper/btordumpbtor.h"
 

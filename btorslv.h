@@ -11,9 +11,9 @@
 #ifndef BTORSLV_H_INCLUDED
 #define BTORSLV_H_INCLUDED
 
-#include "btormap.h"
-#include "btormem.h"
 #include "btortypes.h"
+#include "utils/btormap.h"
+#include "utils/btormem.h"
 
 struct BtorSlvMgr
 {

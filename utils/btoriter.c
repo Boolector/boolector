@@ -11,8 +11,8 @@
  *  See COPYING for more information on using this software.
  */
 
-#include "btoriter.h"
-#include "btorhash.h"
+#include "utils/btoriter.h"
+#include "utils/btorhash.h"
 
 /*------------------------------------------------------------------------*/
 /* node iterators					                  */

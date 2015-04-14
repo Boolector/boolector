@@ -14,7 +14,7 @@
 #include "btoraigvec.h"
 #include "btorconst.h"
 #include "btorcore.h"
-#include "btorutil.h"
+#include "utils/btorutil.h"
 
 #define BTOR_MASK_REM_BITS(bv)                       \
   ((((BTOR_BV_TYPE) 1 << (BTOR_BV_TYPE_BW - 1)) - 1) \

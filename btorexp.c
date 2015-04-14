@@ -16,12 +16,12 @@
 #include "btoraigvec.h"
 #include "btorconst.h"
 #include "btorexit.h"
-#include "btorhash.h"
-#include "btoriter.h"
 #include "btorlog.h"
-#include "btormisc.h"
 #include "btorrewrite.h"
-#include "btorutil.h"
+#include "utils/btorhash.h"
+#include "utils/btoriter.h"
+#include "utils/btormisc.h"
+#include "utils/btorutil.h"
 
 #include <assert.h>
 #include <ctype.h>
@@ -762,14 +762,6 @@ remove_from_hash_tables (Btor *btor, BtorNode *exp, int keep_symbol)
       btor_freestr (btor->mm, data.asStr);
     }
   }
-  // FIXME eliminate after changes by mathias (use searched_applies locally)
-  // have been merged back
-  if (btor->slvmgr && !strcmp (btor->slvmgr->name, "core")
-      && BTOR_CORE_SOLVER (btor)->searched_applies
-      && btor_find_in_ptr_hash_table (BTOR_CORE_SOLVER (btor)->searched_applies,
-                                      exp))
-    btor_remove_from_ptr_hash_table (
-        BTOR_CORE_SOLVER (btor)->searched_applies, exp, 0, 0);
 
   remove_parameterized (btor, exp);
 }
