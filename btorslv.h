@@ -15,26 +15,31 @@
 #include "utils/btormap.h"
 #include "utils/btormem.h"
 
-struct BtorSlvMgr
+enum BtorSolverKind
 {
-  char *name;
-  void *slv;
-
-  struct
-  {
-    void *(*clone_slv) (Btor *clone, Btor *btor, BtorNodeMap *exp_map);
-    void (*delete_slv) (Btor *btor);
-    int (*sat) (Btor *btor, int lod_limit, int sat_limit);
-    void (*generate_model) (Btor *btor, int model_for_all_nodes, int reset);
-    void (*print_stats) (Btor *btor);
-    void (*print_time_stats) (Btor *btor);
-  } api;
+  BTOR_CORE_SOLVER,
 };
+typedef enum BtorSolverKind BtorSolverKind;
 
-typedef struct BtorSlvMgr BtorSlvMgr;
+#define BTOR_SOLVER_STRUCT                            \
+  struct                                              \
+  {                                                   \
+    BtorSolverKind kind;                              \
+    struct                                            \
+    {                                                 \
+      void *(*clone) (Btor *, Btor *, BtorNodeMap *); \
+      void (*delet) (Btor *);                         \
+      int (*sat) (Btor *, int, int);                  \
+      void (*generate_model) (Btor *, int, int);      \
+      void (*print_stats) (Btor *);                   \
+      void (*print_time_stats) (Btor *);              \
+    } api;                                            \
+  }
 
-void btor_delete_slv_mgr (Btor *btor);
-
-BtorSlvMgr *btor_clone_slv_mgr (Btor *clone, Btor *btor, BtorNodeMap *exp_map);
+struct BtorSolver
+{
+  BTOR_SOLVER_STRUCT;
+};
+typedef struct BtorSolver BtorSolver;
 
 #endif

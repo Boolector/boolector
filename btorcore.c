@@ -109,6 +109,7 @@
 
 /*------------------------------------------------------------------------*/
 
+static BtorSolver *new_core_solver (Btor *);
 static int sat_aux_btor_dual_prop (Btor *);
 static BtorAIG *exp_to_aig (Btor *, BtorNode *);
 
@@ -532,7 +533,7 @@ btor_print_stats_btor (Btor *btor)
   BTOR_MSG (
       btor->msg, 1, "beta reductions: %lld", btor->stats.beta_reduce_calls);
 
-  btor->slvmgr->api.print_stats (btor);
+  btor->slv->api.print_stats (btor);
 
   BTOR_MSG (btor->msg, 1, "");
   BTOR_MSG (btor->msg, 1, "%.2f seconds beta-reduction", btor->time.beta);
@@ -594,7 +595,7 @@ btor_print_stats_btor (Btor *btor)
             percent (btor->time.skel, btor->time.rewrite));
 #endif
 
-  btor->slvmgr->api.print_time_stats (btor);
+  btor->slv->api.print_time_stats (btor);
 
   BTOR_MSG (btor->msg, 1, "");
   BTOR_MSG (
@@ -807,7 +808,7 @@ btor_delete_btor (Btor *btor)
 
   mm = btor->mm;
 
-  btor_delete_slv_mgr (btor);
+  if (btor->slv) btor->slv->api.delet (btor);
 
   if (btor->parse_error_msg) btor_freestr (mm, btor->parse_error_msg);
 
@@ -7124,9 +7125,9 @@ br_probe (Btor *btor)
               1,
               "  limit refinement iterations to 10 and SAT conflicts to %d",
               btor->options.pbra_sat_limit.val);
-    res = clone->slvmgr->api.sat (clone,
-                                  btor->options.pbra_lod_limit.val,
-                                  btor->options.pbra_sat_limit.val);
+    res = clone->slv->api.sat (clone,
+                               btor->options.pbra_lod_limit.val,
+                               btor->options.pbra_sat_limit.val);
     btor_delete_btor (clone);
   }
 
@@ -7155,9 +7156,8 @@ btor_sat_btor (Btor *btor, int lod_limit, int sat_limit)
 
   int res;
 
-  if (!btor->slvmgr) btor->slvmgr = btor_new_core_solver (btor);
-  assert (btor->slvmgr);
-  assert (btor->slvmgr->slv);
+  if (!btor->slv) btor->slv = new_core_solver (btor);
+  assert (btor->slv);
 
 #ifdef BTOR_ENABLE_BETA_REDUCTION_PROBING
   if (btor_has_clone_support_sat_mgr (btor_get_sat_mgr_btor (btor))
@@ -7209,7 +7209,7 @@ btor_sat_btor (Btor *btor, int lod_limit, int sat_limit)
   }
 #endif
 
-  res = btor->slvmgr->api.sat (btor, lod_limit, sat_limit);
+  res = btor->slv->api.sat (btor, lod_limit, sat_limit);
   btor->btor_sat_btor_called++;
 
 #ifdef BTOR_CHECK_UNCONSTRAINED
@@ -7219,14 +7219,13 @@ btor_sat_btor (Btor *btor, int lod_limit, int sat_limit)
     assert (btor->options.rewrite_level.val > 2);
     assert (!btor->options.incremental.val);
     assert (!btor->options.model_gen.val);
-    int ucres = uclone->slvmgr->api.sat (uclone, lod_limit, sat_limit);
+    int ucres = uclone->slv->api.sat (uclone, lod_limit, sat_limit);
     assert (res == ucres);
   }
 #endif
 
   if (btor->options.model_gen.val && res == BTOR_SAT)
-    btor->slvmgr->api.generate_model (
-        btor, btor->options.model_gen.val == 2, 1);
+    btor->slv->api.generate_model (btor, btor->options.model_gen.val == 2, 1);
 
 #ifdef BTOR_CHECK_MODEL
   if (mclone)
@@ -7235,7 +7234,7 @@ btor_sat_btor (Btor *btor, int lod_limit, int sat_limit)
     if (res == BTOR_SAT && !btor->options.ucopt.val)
     {
       if (!btor->options.model_gen.val)
-        btor->slvmgr->api.generate_model (btor, 0, 1);
+        btor->slv->api.generate_model (btor, 0, 1);
       check_model (btor, mclone, inputs);
       if (!btor->options.model_gen.val) btor_delete_model (btor);
     }
@@ -7891,7 +7890,7 @@ check_model (Btor *btor, Btor *clone, BtorPtrHashTable *inputs)
   ret                                = btor_simplify (clone);
 
   assert (ret != BTOR_UNKNOWN
-          || clone->slvmgr->api.sat (clone, -1, -1) == BTOR_SAT);
+          || clone->slv->api.sat (clone, -1, -1) == BTOR_SAT);
   // TODO: check if roots have been simplified through aig rewriting
   // BTOR_ABORT_CORE (ret == BTOR_UNKNOWN, "rewriting needed");
   BTOR_ABORT_CORE (ret == BTOR_UNSAT, "invalid model");
@@ -7931,7 +7930,7 @@ check_failed_assumptions (Btor *btor, Btor *clone)
                                (BtorHashPtr) btor_hash_exp_by_id,
                                (BtorCmpPtr) btor_compare_exp_by_id);
 
-  assert (clone->slvmgr->api.sat (clone, -1, -1) == BTOR_UNSAT);
+  assert (clone->slv->api.sat (clone, -1, -1) == BTOR_UNSAT);
 }
 #endif
 
@@ -7943,7 +7942,7 @@ check_dual_prop (Btor *btor, Btor *clone)
   assert (btor->options.dual_prop.val);
   assert (clone);
 
-  clone->slvmgr->api.sat (clone, -1, -1);
+  clone->slv->api.sat (clone, -1, -1);
   assert (btor->last_sat_result == clone->last_sat_result);
 }
 #endif
@@ -7955,13 +7954,12 @@ clone_core_solver (Btor *clone, Btor *btor, BtorNodeMap *exp_map)
 {
   assert (clone);
   assert (btor);
-  assert (btor->slvmgr);
-  assert (btor->slvmgr->slv);
 
   int h;
-  double delta;
-  BtorCoreSolver *slv = BTOR_CORE_SOLVER (btor);
+  BtorCoreSolver *slv;
   BtorCoreSolver *res;
+
+  if (!(slv = BTOR_CORE_SOLVER (btor))) return 0;
 
   BTOR_NEW (clone->mm, res);
   memcpy (res, slv, sizeof (BtorCoreSolver));
@@ -7974,14 +7972,12 @@ clone_core_solver (Btor *clone, Btor *btor, BtorNodeMap *exp_map)
     h = btor->options.just_heuristic.val;
     if (h == BTOR_JUST_HEUR_BRANCH_MIN_APP)
     {
-      delta      = btor_time_stamp ();
       res->score = btor_clone_ptr_hash_table (clone->mm,
                                               slv->score,
                                               btor_clone_key_as_node,
                                               btor_clone_data_as_htable_ptr,
                                               exp_map,
                                               exp_map);
-      BTORLOG ("  clone score table: %.3f s", (btor_time_stamp () - delta));
     }
     else
     {
@@ -8018,12 +8014,13 @@ static void
 delete_core_solver (Btor *btor)
 {
   assert (btor);
-  assert (BTOR_CORE_SOLVER (btor));
 
-  BtorCoreSolver *slv = BTOR_CORE_SOLVER (btor);
+  BtorCoreSolver *slv;
   BtorPtrHashTable *t;
   BtorHashTableIterator it, iit;
   BtorNode *exp;
+
+  if (!(slv = BTOR_CORE_SOLVER (btor))) return;
 
   init_node_hash_table_iterator (&it, slv->lod_cache);
   while (has_next_node_hash_table_iterator (&it))
@@ -8058,14 +8055,14 @@ delete_core_solver (Btor *btor)
 
   BTOR_RELEASE_STACK (btor->mm, slv->stats.lemmas_size);
   BTOR_DELETE (btor->mm, slv);
-  btor->slvmgr->slv = 0;
+  btor->slv = 0;
 }
 
 static int
 sat_core_solver (Btor *btor, int lod_limit, int sat_limit)
 {
   assert (btor);
-  assert (BTOR_CORE_SOLVER (btor));
+  assert (btor->slv);
 
   BtorCoreSolver *slv;
   int sat_result, found_conflict;
@@ -8268,10 +8265,11 @@ static void
 print_stats_core_solver (Btor *btor)
 {
   assert (btor);
-  assert (BTOR_CORE_SOLVER (btor));
 
   int i;
-  BtorCoreSolver *slv = BTOR_CORE_SOLVER (btor);
+  BtorCoreSolver *slv;
+
+  if (!(slv = BTOR_CORE_SOLVER (btor))) return;
 
   BTOR_MSG (btor->msg, 1, "");
   BTOR_MSG (btor->msg, 1, "lemmas on demand statistics:");
@@ -8351,9 +8349,10 @@ static void
 print_time_stats_core_solver (Btor *btor)
 {
   assert (btor);
-  assert (BTOR_CORE_SOLVER (btor));
 
-  BtorCoreSolver *slv = BTOR_CORE_SOLVER (btor);
+  BtorCoreSolver *slv;
+
+  if (!(slv = BTOR_CORE_SOLVER (btor))) return;
 
   BTOR_MSG (btor->msg, 1, "");
   BTOR_MSG (btor->msg, 1, "%.2f seconds expression evaluation", slv->time.eval);
@@ -8427,31 +8426,31 @@ print_time_stats_core_solver (Btor *btor)
   BTOR_MSG (btor->msg, 1, "");
 }
 
-BtorSlvMgr *
-btor_new_core_solver (Btor *btor)
+BtorSolver *
+new_core_solver (Btor *btor)
 {
   assert (btor);
 
-  BtorSlvMgr *slvmgr;
   BtorCoreSolver *slv;
 
   BTOR_CNEW (btor->mm, slv);
+
+  slv->kind                 = BTOR_CORE_SOLVER;
+  slv->api.clone            = clone_core_solver;
+  slv->api.delet            = delete_core_solver;
+  slv->api.sat              = sat_core_solver;
+  slv->api.generate_model   = generate_model_core_solver;
+  slv->api.print_stats      = print_stats_core_solver;
+  slv->api.print_time_stats = print_time_stats_core_solver;
+
   slv->lod_cache =
       btor_new_ptr_hash_table (btor->mm,
                                (BtorHashPtr) btor_hash_exp_by_id,
                                (BtorCmpPtr) btor_compare_exp_by_id);
+
   BTOR_INIT_STACK (slv->stats.lemmas_size);
 
-  BTOR_CNEW (btor->mm, slvmgr);
-  slvmgr->name                 = "core";
-  slvmgr->slv                  = slv;
-  slvmgr->api.clone_slv        = clone_core_solver;
-  slvmgr->api.delete_slv       = delete_core_solver;
-  slvmgr->api.sat              = sat_core_solver;
-  slvmgr->api.generate_model   = generate_model_core_solver;
-  slvmgr->api.print_stats      = print_stats_core_solver;
-  slvmgr->api.print_time_stats = print_time_stats_core_solver;
-  BTOR_MSG (btor->msg, 1, "enabled %s engine", slvmgr->name);
+  BTOR_MSG (btor->msg, 1, "enabled core engine");
 
-  return slvmgr;
+  return (BtorSolver *) slv;
 }

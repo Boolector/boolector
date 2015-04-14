@@ -105,7 +105,7 @@ typedef struct BtorConstraintStats BtorConstraintStats;
 struct Btor
 {
   BtorMemMgr *mm;
-  BtorSlvMgr *slvmgr;
+  BtorSolver *slv;
   BtorCallbacks cbs;
 
   BtorBVAssignmentList *bv_assignments;
@@ -275,12 +275,12 @@ int btor_simplify (Btor *btor);
 
 /*------------------------------------------------------------------------*/
 
-#define BTOR_CORE_SOLVER(btor) ((BtorCoreSolver *) (btor)->slvmgr->slv)
-
-/*------------------------------------------------------------------------*/
+#define BTOR_CORE_SOLVER(btor) ((BtorCoreSolver *) (btor)->slv)
 
 struct BtorCoreSolver
 {
+  BTOR_SOLVER_STRUCT;
+
   BtorPtrHashTable *lod_cache;
 
   BtorPtrHashTable *score; /* dcr score */
@@ -341,8 +341,6 @@ struct BtorCoreSolver
 };
 
 typedef struct BtorCoreSolver BtorCoreSolver;
-
-BtorSlvMgr *btor_new_core_solver (Btor *btor);
 
 /*------------------------------------------------------------------------*/
 

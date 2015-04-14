@@ -894,13 +894,15 @@ btor_chkclone_sort (const BtorSort *sort, const BtorSort *clone)
   } while (0)
 
 void
-btor_chkclone_slv_mgr (Btor *btor)
+btor_chkclone_slv (Btor *btor)
 {
   int i, h = btor->options.just_heuristic.val;
 
-  assert (!strcmp (btor->slvmgr->name, btor->clone->slvmgr->name));
+  assert ((!btor->slv && !btor->clone->slv) || (btor->slv && btor->clone->slv));
+  if (!btor->slv) return;
+  assert (btor->slv->kind == btor->clone->slv->kind);
 
-  if (!strcmp (btor->slvmgr->name, "core"))
+  if (btor->slv->kind == BTOR_CORE_SOLVER)
   {
     BtorCoreSolver *slv  = BTOR_CORE_SOLVER (btor);
     BtorCoreSolver *cslv = BTOR_CORE_SOLVER (btor->clone);
@@ -994,7 +996,7 @@ btor_chkclone (Btor *btor)
                                 btor->clone->functions_with_model);
   btor_chkclone_tables (btor);
 
-  btor_chkclone_slv_mgr (btor);
+  btor_chkclone_slv (btor);
 }
 
 /*------------------------------------------------------------------------*/

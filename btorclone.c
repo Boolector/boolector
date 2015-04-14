@@ -707,10 +707,10 @@ clone_aux_btor (Btor *btor,
   BtorAIGMap *amap  = 0;
   BtorMemMgr *mm;
   double start, delta;
-  int len, h;
+  int len;
   char *prefix, *clone_prefix;
 #ifndef NDEBUG
-  int i;
+  int i, h;
   size_t allocated, amap_size = 0, amap_count = 0;
   BtorNode *cur;
   BtorAIGMgr *amgr;
@@ -1091,56 +1091,57 @@ clone_aux_btor (Btor *btor,
     BTOR_RELEASE_STACK (btor->mm, stack);
   }
 
-  clone->slvmgr = btor_clone_slv_mgr (clone, btor, emap);
-  assert ((btor->slvmgr && clone->slvmgr) || (!btor->slvmgr && !clone->slvmgr));
-  assert (!clone->slvmgr || clone->slvmgr->slv);
+  if (btor->slv) clone->slv = btor->slv->api.clone (clone, btor, emap);
+  assert ((btor->slv && clone->slv) || (!btor->slv && !clone->slv));
 #ifndef NDEBUG
-  if (clone->slvmgr && !strcmp (btor->slvmgr->name, "core"))
+  if (clone->slv)
   {
-    BtorCoreSolver *slv  = BTOR_CORE_SOLVER (btor);
-    BtorCoreSolver *cslv = BTOR_CORE_SOLVER (clone);
-
-    allocated += sizeof (BtorSlvMgr);
-    allocated += sizeof (BtorCoreSolver);
-
-    allocated += MEM_PTR_HASH_TABLE (slv->lod_cache);
-
-    if (slv->score)
+    if (clone->slv->kind == BTOR_CORE_SOLVER)
     {
-      h = btor->options.just_heuristic.val;
-      if (h == BTOR_JUST_HEUR_BRANCH_MIN_APP)
-      {
-        CHKCLONE_MEM_PTR_HASH_TABLE (slv->score, cslv->score);
-        allocated += MEM_PTR_HASH_TABLE (slv->score);
+      BtorCoreSolver *slv  = BTOR_CORE_SOLVER (btor);
+      BtorCoreSolver *cslv = BTOR_CORE_SOLVER (clone);
 
-        init_node_hash_table_iterator (&it, slv->score);
-        init_node_hash_table_iterator (&cit, cslv->score);
-        while (has_next_node_hash_table_iterator (&it))
+      allocated += sizeof (BtorCoreSolver);
+
+      allocated += MEM_PTR_HASH_TABLE (slv->lod_cache);
+
+      if (slv->score)
+      {
+        h = btor->options.just_heuristic.val;
+        if (h == BTOR_JUST_HEUR_BRANCH_MIN_APP)
         {
-          assert (
-              MEM_PTR_HASH_TABLE ((BtorPtrHashTable *) it.bucket->data.asPtr)
-              == MEM_PTR_HASH_TABLE (
-                     (BtorPtrHashTable *) cit.bucket->data.asPtr));
-          allocated +=
-              MEM_PTR_HASH_TABLE ((BtorPtrHashTable *) it.bucket->data.asPtr);
-          (void) next_node_hash_table_iterator (&it);
-          (void) next_node_hash_table_iterator (&cit);
+          CHKCLONE_MEM_PTR_HASH_TABLE (slv->score, cslv->score);
+          allocated += MEM_PTR_HASH_TABLE (slv->score);
+
+          init_node_hash_table_iterator (&it, slv->score);
+          init_node_hash_table_iterator (&cit, cslv->score);
+          while (has_next_node_hash_table_iterator (&it))
+          {
+            assert (
+                MEM_PTR_HASH_TABLE ((BtorPtrHashTable *) it.bucket->data.asPtr)
+                == MEM_PTR_HASH_TABLE (
+                       (BtorPtrHashTable *) cit.bucket->data.asPtr));
+            allocated +=
+                MEM_PTR_HASH_TABLE ((BtorPtrHashTable *) it.bucket->data.asPtr);
+            (void) next_node_hash_table_iterator (&it);
+            (void) next_node_hash_table_iterator (&cit);
+          }
+        }
+        else
+        {
+          assert (h == BTOR_JUST_HEUR_BRANCH_MIN_DEP);
+          allocated += MEM_PTR_HASH_TABLE (slv->score);
         }
       }
-      else
-      {
-        assert (h == BTOR_JUST_HEUR_BRANCH_MIN_DEP);
-        allocated += MEM_PTR_HASH_TABLE (slv->score);
-      }
+
+      assert (BTOR_SIZE_STACK (slv->stats.lemmas_size)
+              == BTOR_SIZE_STACK (cslv->stats.lemmas_size));
+      assert (BTOR_COUNT_STACK (slv->stats.lemmas_size)
+              == BTOR_COUNT_STACK (cslv->stats.lemmas_size));
+      allocated += BTOR_SIZE_STACK (slv->stats.lemmas_size) * sizeof (int);
+
+      assert (allocated == clone->mm->allocated);
     }
-
-    assert (BTOR_SIZE_STACK (slv->stats.lemmas_size)
-            == BTOR_SIZE_STACK (cslv->stats.lemmas_size));
-    assert (BTOR_COUNT_STACK (slv->stats.lemmas_size)
-            == BTOR_COUNT_STACK (cslv->stats.lemmas_size));
-    allocated += BTOR_SIZE_STACK (slv->stats.lemmas_size) * sizeof (int);
-
-    assert (allocated == clone->mm->allocated);
   }
 #endif
 
