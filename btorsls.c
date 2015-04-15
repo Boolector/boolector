@@ -548,20 +548,21 @@ select_candidates (Btor *btor, BtorNode *root, BtorNodePtrStack *candidates)
     }
 
     /* push children */
-    if (BTOR_IS_AND_NODE (real_cur) && real_cur->len == 1)
-    {
-      for (i = 0; i < real_cur->arity; i++)
-      {
-        e = BTOR_IS_INVERTED_NODE (cur) ? BTOR_INVERT_NODE (real_cur->e[i])
-                                        : real_cur->e[i];
-        assert (btor_find_in_ptr_hash_table (btor->sls_solver->score, e));
-        sc = btor_find_in_ptr_hash_table (btor->sls_solver->score, e)
-                 ->data.asDbl;
-        if (sc == 1.0) continue;
-        BTOR_PUSH_STACK (btor->mm, stack, e);
-      }
-    }
-    else
+#if 0
+      if (BTOR_IS_AND_NODE (real_cur) && real_cur->len == 1)
+	{
+	  for (i = 0; i < real_cur->arity; i++)
+	    {
+	      e = real_cur->e[i];
+	      assert (btor_find_in_ptr_hash_table (btor->sls_solver->score, e));
+	      sc = btor_find_in_ptr_hash_table (
+		       btor->sls_solver->score, e)->data.asDbl;
+	      if (sc == 1.0) continue;
+	      BTOR_PUSH_STACK (btor->mm, stack, e);
+	    }
+	}
+      else
+#endif
     {
       for (i = 0; i < real_cur->arity; i++)
         BTOR_PUSH_STACK (btor->mm, stack, real_cur->e[i]);
