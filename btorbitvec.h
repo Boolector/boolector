@@ -50,6 +50,7 @@ BitVector *btor_copy_bv (BtorMemMgr *, BitVector *);
 size_t btor_size_bv (BitVector *);
 void btor_free_bv (BtorMemMgr *, BitVector *);
 int btor_compare_bv (BitVector *, BitVector *);
+int btor_is_zero_bv (const BitVector *);
 unsigned int btor_hash_bv (BitVector *);
 
 void btor_print_bv (BitVector *);

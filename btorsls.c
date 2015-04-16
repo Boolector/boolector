@@ -54,7 +54,7 @@ hamming_distance (Btor *btor, BitVector *bv1, BitVector *bv2)
   zero = btor_new_bv (btor->mm, bv1->width);
   ones = btor_not_bv (btor->mm, zero);
   bv   = btor_xor_bv (btor->mm, bv1, bv2);
-  for (res = 0; btor_compare_bv (bv, zero); res++)
+  for (res = 0; btor_is_zero_bv (bv); res++)
   {
     bvdec = btor_add_bv (btor->mm, bv, ones);
     tmp   = bv;
@@ -80,10 +80,9 @@ min_flip (Btor *btor, BitVector *bv1, BitVector *bv2)
   assert (bv1->len == bv2->len);
 
   int i, res, b1;
-  BitVector *tmp, *zero;
+  BitVector *tmp;
 
-  zero = btor_new_bv (btor->mm, bv2->width);
-  tmp  = btor_copy_bv (btor->mm, bv1);
+  tmp = btor_copy_bv (btor->mm, bv1);
   for (res = 0, i = tmp->width - 1; i >= 0; i--)
   {
     if (!(b1 = btor_get_bit_bv (tmp, i))) continue;
@@ -91,8 +90,7 @@ min_flip (Btor *btor, BitVector *bv1, BitVector *bv2)
     btor_set_bit_bv (tmp, i, 0);
     if (btor_compare_bv (tmp, bv2) < 0) break;
   }
-  res = !btor_compare_bv (zero, bv2) ? res + 1 : res;
-  btor_free_bv (btor->mm, zero);
+  res = btor_is_zero_bv (bv2) ? res + 1 : res;
   btor_free_bv (btor->mm, tmp);
   return res;
 }
@@ -519,15 +517,16 @@ select_candidates (Btor *btor, BtorNode *root, BtorNodePtrStack *candidates)
   assert (candidates);
 
   int i;
-  double sc;
   BtorNode *cur, *real_cur, *e;
-  BtorNodePtrStack stack, unmark_stack;
+  BtorNodePtrStack stack, unmark_stack, controlling;
+  const BitVector *bv;
 
   BTORLOG ("");
   BTORLOG ("*** select candidates");
 
   BTOR_INIT_STACK (stack);
   BTOR_INIT_STACK (unmark_stack);
+  BTOR_INIT_STACK (controlling);
 
   BTOR_RESET_STACK (*candidates);
 
@@ -548,22 +547,34 @@ select_candidates (Btor *btor, BtorNode *root, BtorNodePtrStack *candidates)
     }
 
     /* push children */
-#if 0
-      if (BTOR_IS_AND_NODE (real_cur) && real_cur->len == 1)
-	{
-	  for (i = 0; i < real_cur->arity; i++)
-	    {
-	      e = real_cur->e[i];
-	      assert (btor_find_in_ptr_hash_table (btor->sls_solver->score, e));
-	      sc = btor_find_in_ptr_hash_table (
-		       btor->sls_solver->score, e)->data.asDbl;
-	      if (sc == 1.0) continue;
-	      BTOR_PUSH_STACK (btor->mm, stack, e);
-	    }
-	}
-      else
-#endif
+    if (btor->options.just.val && BTOR_IS_AND_NODE (real_cur)
+        && real_cur->len == 1)
     {
+      bv = btor_get_bv_model (btor, real_cur);
+      if (!btor_is_zero_bv (bv)) /* push all */
+        goto PUSH_CHILDREN;
+      else /* push one controlling input */
+      {
+        BTOR_RESET_STACK (controlling);
+        for (i = 0; i < real_cur->arity; i++)
+        {
+          e = real_cur->e[i];
+          if (btor_is_zero_bv (btor_get_bv_model (btor, e)))
+            BTOR_PUSH_STACK (btor->mm, controlling, real_cur->e[i]);
+        }
+        assert (BTOR_COUNT_STACK (controlling));
+        BTOR_PUSH_STACK (
+            btor->mm,
+            stack,
+            BTOR_PEEK_STACK (
+                controlling,
+                btor_pick_rand_rng (
+                    &btor->rng, 0, BTOR_COUNT_STACK (controlling) - 1)));
+      }
+    }
+    else
+    {
+    PUSH_CHILDREN:
       for (i = 0; i < real_cur->arity; i++)
         BTOR_PUSH_STACK (btor->mm, stack, real_cur->e[i]);
     }
@@ -575,6 +586,7 @@ select_candidates (Btor *btor, BtorNode *root, BtorNodePtrStack *candidates)
 
   BTOR_RELEASE_STACK (btor->mm, stack);
   BTOR_RELEASE_STACK (btor->mm, unmark_stack);
+  BTOR_RELEASE_STACK (btor->mm, controlling);
 }
 
 static void *

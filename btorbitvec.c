@@ -982,6 +982,17 @@ btor_compare_bv (BitVector *a, BitVector *b)
   return -1;
 }
 
+int
+btor_is_zero_bv (const BitVector *bv)
+{
+  assert (bv);
+
+  int i;
+  for (i = 0; i < bv->len; i++)
+    if (bv->bits[i] != 0) return 1;
+  return 0;
+}
+
 unsigned int
 btor_hash_bv (BitVector *bv)
 {
