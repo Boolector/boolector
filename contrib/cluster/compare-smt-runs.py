@@ -883,14 +883,20 @@ if __name__ == "__main__":
         g_dir_stats = dict((k, {}) for k in DIR_STATS_KEYS)
 
         _read_data (g_args.dirs)
-        assert(len(g_file_stats.keys()) == len(g_args.columns))
-        _init_missing_files (g_file_stats)
-        _normalize_data(g_file_stats)
+        if (len(g_file_stats.keys()) > 0):
+            assert(len(g_file_stats.keys()) == len(g_args.columns))
+            _init_missing_files (g_file_stats)
+            _normalize_data(g_file_stats)
 
-        if g_args.g and 'result' in g_args.columns:
-            g_args.columns.remove('result')
-            del(g_file_stats['result'])
-        _print_data ()
+            if g_args.g and 'result' in g_args.columns:
+                g_args.columns.remove('result')
+                del(g_file_stats['result'])
+            _print_data ()
+        else:
+            if g_args.filter:
+                print("no files found that match '{}'".format(g_args.filter))
+            else:
+                print("no files found")
 
     except KeyboardInterrupt as e:
         sys.exit ("[cmpsmt] interrupted")
