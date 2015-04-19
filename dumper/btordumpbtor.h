@@ -11,7 +11,8 @@
 #ifndef BTORDUMPBTOR_H_INCLUDED
 #define BTORDUMPBTOR_H_INCLUDED
 
-#include "boolector.h"
+#include <stdio.h>
+#include "btortypes.h"
 
 typedef struct BtorDumpContext BtorDumpContext;
 

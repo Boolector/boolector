@@ -14,12 +14,12 @@
 #ifndef BTOREXP_H_INCLUDED
 #define BTOREXP_H_INCLUDED
 
-#include "boolector.h"
 #include "btoraigvec.h"
-#include "btorhash.h"
-#include "btorqueue.h"
 #include "btorsort.h"
-#include "btorstack.h"
+#include "btortypes.h"
+#include "utils/btorhash.h"
+#include "utils/btorqueue.h"
+#include "utils/btorstack.h"
 
 /*------------------------------------------------------------------------*/
 
@@ -315,6 +315,9 @@ typedef struct BtorArgsNode BtorArgsNode;
 
 #define BTOR_IS_BINARY_NODE(exp) \
   ((exp) && BTOR_IS_BINARY_NODE_KIND ((exp)->kind))
+
+#define BTOR_IS_BINARY_COMMUTATIVE_NODE(exp) \
+  ((exp) && BTOR_IS_BINARY_COMMUTATIVE_NODE_KIND ((exp)->kind))
 
 #define BTOR_IS_TERNARY_NODE(exp) \
   ((exp) && BTOR_IS_TERNARY_NODE_KIND ((exp)->kind))

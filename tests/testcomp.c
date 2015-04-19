@@ -13,8 +13,8 @@
 #include "testcomp.h"
 #include "btorexit.h"
 #include "btormain.h"
-#include "btorutil.h"
 #include "testrunner.h"
+#include "utils/btorutil.h"
 
 #ifdef NDEBUG
 #undef NDEBUG

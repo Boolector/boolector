@@ -12,8 +12,8 @@
 
 #include "testaigvec.h"
 #include "btoraigvec.h"
-#include "btormem.h"
 #include "testrunner.h"
+#include "utils/btormem.h"
 
 #ifdef NDEBUG
 #undef NDEBUG

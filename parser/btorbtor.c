@@ -13,11 +13,11 @@
 
 #include "btorbtor.h"
 #include "btorconst.h"
-#include "btormem.h"
 #include "btormsg.h"
 #include "btorparse.h"
-#include "btorstack.h"
-#include "btorutil.h"
+#include "utils/btormem.h"
+#include "utils/btorstack.h"
+#include "utils/btorutil.h"
 
 #include <assert.h>
 #include <ctype.h>

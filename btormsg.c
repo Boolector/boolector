@@ -56,7 +56,7 @@ btor_msg (BtorMsg *msg, char *filename, int level, char *fmt, ...)
   fputs (fname, stdout);
   fputs ("] ", stdout);
   BTOR_DELETEN (msg->mm, fname, len);
-  if (msg->prefix) printf ("%s : ", msg->prefix);
+  if (msg->prefix) printf ("%s ", msg->prefix);
   va_start (ap, fmt);
   vfprintf (stdout, fmt, ap);
   va_end (ap);

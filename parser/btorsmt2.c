@@ -13,10 +13,10 @@
 #include "btorsmt2.h"
 #include "btorconst.h"
 #include "btorcore.h"
-#include "btormem.h"
 #include "btormsg.h"
 #include "btoropt.h"
-#include "btorutil.h"
+#include "utils/btormem.h"
+#include "utils/btorutil.h"
 
 #include <ctype.h>
 #include <limits.h>
