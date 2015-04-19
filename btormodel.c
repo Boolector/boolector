@@ -12,9 +12,9 @@
 #include "btormodel.h"
 #include "btorbeta.h"
 #include "btorexit.h"
-#include "btoriter.h"
-#include "btormem.h"
-#include "btorutil.h"
+#include "utils/btoriter.h"
+#include "utils/btormem.h"
+#include "utils/btorutil.h"
 
 #define BTOR_ABORT_MODEL(cond, msg)                   \
   do                                                  \
@@ -205,14 +205,14 @@ btor_recursively_compute_assignment (Btor *btor,
   assert (fun_model);
   assert (exp);
 
-  int i, num_args;
+  int i, num_args, pos;
   BtorMemMgr *mm;
   BtorNodePtrStack work_stack, cleanup, reset;
   BtorVoidPtrStack arg_stack;
   BtorNode *cur, *real_cur, *next, *cur_parent;
   BtorPtrHashData d;
   BtorPtrHashBucket *b;
-  BtorPtrHashTable *assigned, *reset_st;
+  BtorPtrHashTable *assigned, *reset_st, *param_model_cache;
   BitVector *result = 0, *inv_result, **e;
   BitVectorTuple *t;
 
@@ -221,6 +221,8 @@ btor_recursively_compute_assignment (Btor *btor,
   assigned = btor_new_ptr_hash_table (mm,
                                       (BtorHashPtr) btor_hash_exp_by_id,
                                       (BtorCmpPtr) btor_compare_exp_by_id);
+  /* model cache for parameterized nodes */
+  param_model_cache = btor_new_ptr_hash_table (mm, 0, 0);
 
   /* 'reset_st' remembers the stack position of 'reset' in case a lambda is
    * assigned. when the resp. lambda is unassigned, the 'eval_mark' flag of all
@@ -245,7 +247,9 @@ btor_recursively_compute_assignment (Btor *btor,
     real_cur   = BTOR_REAL_ADDR_NODE (cur);
     assert (!real_cur->simplified);
 
-    if (btor_find_in_ptr_hash_table (bv_model, real_cur)) goto PUSH_CACHED;
+    if (btor_find_in_ptr_hash_table (bv_model, real_cur)
+        || btor_find_in_ptr_hash_table (param_model_cache, real_cur))
+      goto PUSH_CACHED;
 
     /* check if we already have an assignment for this function application */
     if (BTOR_IS_LAMBDA_NODE (real_cur) && cur_parent
@@ -440,7 +444,28 @@ btor_recursively_compute_assignment (Btor *btor,
           real_cur->eval_mark = 0; /* not inserted into cache */
           result              = e[0];
           btor_free_bv (btor->mm, e[1]);
-          goto PUSH_RESULT_AND_UNASSIGN;
+          if (BTOR_IS_LAMBDA_NODE (real_cur) && cur_parent
+              && BTOR_IS_APPLY_NODE (cur_parent))
+          {
+            assert (btor_find_in_ptr_hash_table (assigned, real_cur));
+            btor_unassign_params (btor, real_cur);
+            btor_remove_from_ptr_hash_table (assigned, real_cur, 0, 0);
+
+            /* reset 'eval_mark' of all parameterized nodes
+             * instantiated by 'real_cur' */
+            btor_remove_from_ptr_hash_table (reset_st, real_cur, 0, &d);
+            pos = d.asInt;
+            while (BTOR_COUNT_STACK (reset) > pos)
+            {
+              next = BTOR_POP_STACK (reset);
+              assert (BTOR_IS_REGULAR_NODE (next));
+              assert (next->parameterized);
+              next->eval_mark = 0;
+              btor_remove_from_ptr_hash_table (param_model_cache, next, 0, &d);
+              btor_free_bv (mm, d.asPtr);
+            }
+          }
+          goto PUSH_RESULT;
         case BTOR_UF_NODE:
           real_cur->eval_mark = 0; /* not inserted into cache */
           result              = btor_assignment_bv (btor->mm, cur_parent, 1);
@@ -451,30 +476,22 @@ btor_recursively_compute_assignment (Btor *btor,
       }
     CACHE_AND_PUSH_RESULT:
       /* remember parameterized nodes for resetting 'eval_mark' later */
-      if (real_cur->parameterized) BTOR_PUSH_STACK (mm, reset, real_cur);
-
-      assert (!btor_find_in_ptr_hash_table (bv_model, real_cur));
-      btor_add_to_bv_model (btor, bv_model, real_cur, result);
-
-    PUSH_RESULT_AND_UNASSIGN:
-      if (BTOR_IS_LAMBDA_NODE (real_cur) && cur_parent
-          && BTOR_IS_APPLY_NODE (cur_parent))
+      if (real_cur->parameterized)
       {
-        assert (btor_find_in_ptr_hash_table (assigned, real_cur));
-        btor_unassign_params (btor, real_cur);
-        btor_remove_from_ptr_hash_table (assigned, real_cur, 0, 0);
-
-        /* reset 'eval_mark' of all parameterized nodes instantiated by
-         * 'real_cur' */
-        btor_remove_from_ptr_hash_table (reset_st, real_cur, 0, &d);
-        while (BTOR_COUNT_STACK (reset) > d.asInt)
-        {
-          next = BTOR_POP_STACK (reset);
-          assert (BTOR_IS_REGULAR_NODE (next));
-          assert (next->parameterized);
-          next->eval_mark = 0;
-        }
+        BTOR_PUSH_STACK (mm, reset, real_cur);
+        /* temporarily cache model for paramterized nodes, is only
+         * valid under current parameter assignment and will be reset
+         * when parameters are unassigned */
+        assert (!btor_find_in_ptr_hash_table (param_model_cache, real_cur));
+        btor_insert_in_ptr_hash_table (param_model_cache, real_cur)
+            ->data.asPtr = btor_copy_bv (mm, result);
       }
+      else
+      {
+        assert (!btor_find_in_ptr_hash_table (bv_model, real_cur));
+        btor_add_to_bv_model (btor, bv_model, real_cur, result);
+      }
+
     PUSH_RESULT:
       if (BTOR_IS_INVERTED_NODE (cur))
       {
@@ -488,12 +505,16 @@ btor_recursively_compute_assignment (Btor *btor,
     {
       assert (real_cur->eval_mark == 2);
     PUSH_CACHED:
-      b = btor_find_in_ptr_hash_table (bv_model, real_cur);
+      if (real_cur->parameterized)
+        b = btor_find_in_ptr_hash_table (param_model_cache, real_cur);
+      else
+        b = btor_find_in_ptr_hash_table (bv_model, real_cur);
       assert (b);
       result = btor_copy_bv (btor->mm, (BitVector *) b->data.asPtr);
       goto PUSH_RESULT;
     }
   }
+  assert (param_model_cache->count == 0);
   assert (BTOR_COUNT_STACK (arg_stack) == 1);
   result = BTOR_POP_STACK (arg_stack);
   assert (result);
@@ -510,6 +531,7 @@ btor_recursively_compute_assignment (Btor *btor,
   BTOR_RELEASE_STACK (mm, reset);
   btor_delete_ptr_hash_table (assigned);
   btor_delete_ptr_hash_table (reset_st);
+  btor_delete_ptr_hash_table (param_model_cache);
 
   return result;
 }

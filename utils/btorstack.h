@@ -13,7 +13,7 @@
 #ifndef BTOR_STACK_H_INCLUDED
 #define BTOR_STACK_H_INCLUDED
 
-#include "btormem.h"
+#include "utils/btormem.h"
 
 #include <assert.h>
 #include <stdlib.h>

@@ -11,10 +11,10 @@
 
 #include "testconst.h"
 #include "btorconst.h"
-#include "btormem.h"
-#include "btorstack.h"
-#include "btorutil.h"
 #include "testrunner.h"
+#include "utils/btormem.h"
+#include "utils/btorstack.h"
+#include "utils/btorutil.h"
 
 #ifdef NDEBUG
 #undef NDEBUG

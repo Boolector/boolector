@@ -15,10 +15,10 @@
 #include "boolector.h"
 #include "btorconfig.h"
 #include "btorexit.h"
-#include "btormem.h"
 #include "btoropt.h"
 #include "btorparse.h"
-#include "btorutil.h"
+#include "utils/btormem.h"
+#include "utils/btorutil.h"
 
 #include <assert.h>
 #include <signal.h>
@@ -185,7 +185,7 @@ btormain_init_opts (BtorMainApp *app)
                      0,
                      0,
                      "lingeling",
-                     1,
+                     0,
                      0,
                      1,
                      "force Lingeling as SAT solver");
@@ -300,9 +300,9 @@ print_opt (BtorMainApp *app,
 
   assert (!strcmp (lng, "lingeling_opts")
           || (shrt
-              && 2 * strlen (paramstr) + strlen (shrt) + strlen (lng) + 7
-                     <= LEN_OPTSTR)
-          || (!shrt && 2 * strlen (paramstr) + strlen (lng) + 7 <= LEN_OPTSTR));
+              && (2 * strlen (paramstr) + strlen (shrt) + strlen (lng) + 7
+                  <= LEN_OPTSTR))
+          || (!shrt && (strlen (paramstr) + strlen (lng) + 7 <= LEN_OPTSTR)));
 
   /* option string ------------------------------------------ */
   memset (optstr, ' ', LEN_OPTSTR * sizeof (char));
@@ -1133,13 +1133,11 @@ boolector_main (int argc, char **argv)
 #ifdef BTOR_USE_LINGELING
   if (g_app->opts.lingeling.val)
   {
-  ERR_MULTIPLE_SAT_SOLVERS_FORCED:
     if (force_sat++)
     {
       btormain_error (g_app, "multiple sat solvers forced");
       goto DONE;
     }
-
     if (!boolector_set_sat_solver_lingeling (
             g_app->btor, lglopts, g_app->opts.lingeling_nofork.val))
       btormain_error (g_app, "invalid options to Lingeling: '%s'", lglopts);
@@ -1148,14 +1146,22 @@ boolector_main (int argc, char **argv)
 #ifdef BTOR_USE_PICOSAT
   if (g_app->opts.picosat.val)
   {
-    if (force_sat++) goto ERR_MULTIPLE_SAT_SOLVERS_FORCED;
+    if (force_sat++)
+    {
+      btormain_error (g_app, "multiple sat solvers forced");
+      goto DONE;
+    }
     boolector_set_sat_solver_picosat (g_app->btor);
   }
 #endif
 #ifdef BTOR_USE_MINISAT
   if (g_app->opts.minisat.val)
   {
-    if (force_sat++) goto ERR_MULTIPLE_SAT_SOLVERS_FORCED;
+    if (force_sat++)
+    {
+      btormain_error (g_app, "multiple sat solvers forced");
+      goto DONE;
+    }
     boolector_set_sat_solver_minisat (g_app->btor);
   }
 #endif
