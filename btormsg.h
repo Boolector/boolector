@@ -12,7 +12,7 @@
 #define BTORMSG_H_INCLUDED
 
 #include <string.h>
-#include "btormem.h"
+#include "utils/btormem.h"
 
 #define BTOR_MSG(btormsg, level, msg...)        \
   do                                            \

@@ -30,8 +30,8 @@ HTML_CLASS = {
     COLOR_STAT: 'stat'
 }
 
-def _get_name_and_ext (filename):
-    return ("".join(filename.rpartition('.')[:-2]), filename.rpartition('.')[-1])
+def _get_name_and_ext (fname):
+    return ("".join(fname.rpartition('.')[:-2]), fname.rpartition('.')[-1])
 
 
 # per directory/file flag
@@ -135,69 +135,79 @@ FILTER_LOG = {
 def err_extract_status(line):
     status = line.split()[2:]
     if b'ok' == status[0]:
-        return "ok"
+        return 'ok'
     elif b'time' == status[-1]:
-        return "time"
+        return 'time'
     elif b'memory' == status[-1]:
-        return "mem"
+        return 'mem'
     elif b'segmentation' == status[-2]:
-        return "segfault"
+        return 'segf'
     else:
         raise CmpSMTException("invalid status")
 
 
 def err_extract_opts(line):
-    opt = str(line.split()[2])
-    if opt[2] == '-':
-        return opt[2:-1]
+    opt = line.split()[2].decode()
+    if opt[0] == '-':
+        return opt
     return None 
 
 
 # column_name : <colname>, <keyword>, <filter>, [<is_dir_stat>] (optional)
 FILTER_ERR = {
   'status':    ['STAT', 
-                lambda x: b'[runlim] status:' in x, err_extract_status, False],
+                lambda x: b'status:' in x, err_extract_status, False],
+  'g_solved':  ['SLVD', 
+                lambda x: b'status:' in x, err_extract_status, False],
+  'g_total':   ['TOT', 
+                lambda x: b'status:' in x, err_extract_status, False],
+  'g_time':    ['TOUTS', 
+                lambda x: b'status:' in x, err_extract_status, False],
+  'g_mem':     ['MOUTS', 
+                lambda x: b'status:' in x, err_extract_status, False],
+  'g_err':     ['ERR', 
+                lambda x: b'status:' in x, err_extract_status, False],
+  'g_sat':     ['SAT', 
+                lambda x: b'result:' in x, lambda x: int(x.split()[2]), False],
+  'g_unsat':   ['UNSAT', 
+                lambda x: b'result:' in x, lambda x: int(x.split()[2]), False],
   'result':    ['RES', 
-                lambda x: b'[runlim] result:' in x,
-                lambda x: int(x.split()[2]),
-                False],
+                lambda x: b'result:' in x, lambda x: int(x.split()[2]), False],
   'time_real': ['REAL[s]', 
-                lambda x: b'[runlim] real:' in x,
-                lambda x: float(x.split()[2]),
-                False],
+                lambda x: b'real:' in x, lambda x: float(x.split()[2]), False],
   'time_time': ['TIME[s]', 
-                lambda x: b'[runlim] time:' in x,
-                lambda x: float(x.split()[2]),
-                False],
+                lambda x: b'time:' in x, lambda x: float(x.split()[2]), False],
   'space':     ['SPACE[MB]', 
-                lambda x: b'[runlim] space:' in x,
-                lambda x: float(x.split()[2]),
-                False],
+                lambda x: b'space:' in x, lambda x: float(x.split()[2]), False],
   'opts':      ['OPTIONS', 
-                lambda x: b'[runlim] argv' in x, err_extract_opts, True] 
+                lambda x: b'argv' in x, err_extract_opts, True] 
 }
 
+def format_status(l):
+    if 'err' in l:
+        return 'err'
+    if 'ok' in l:
+        return 'ok'
+    return "".join(set(l))
+
+TOTALS_FORMAT_ERR = {
+  'status':    format_status,
+  'g_solved':  lambda l: l.count('ok'),
+  'g_total':   lambda l: len(l),
+  'g_mem':     lambda l: l.count('mem'),
+  'g_time':    lambda l: l.count('time'),
+  'g_err':     lambda l: l.count('err'),
+  'g_sat':     lambda l: l.count(10),
+  'g_unsat':   lambda l: l.count(20),
+  'time_real': lambda l: round(sum(l), 1),
+  'time_time': lambda l: round(sum(l), 1),
+  'space':     lambda l: round(sum(l), 1),
+}
 
 # column_name : <colname>, <keyword>, <filter>, [<is_dir_stat>] (optional)
 FILTER_OUT = {
   'models_arr':  ['MARR', lambda x: b'[' in x, lambda x: 1, False],
   'models_bvar': ['MVAR', lambda x: b'[' not in x, lambda x: 1, False]
-}
-
-TOTALS_OP = {
-  'status':    lambda l: '{}/{}'.format(l.count('ok'), len(l)),
-  'result':    lambda l: '{}/{}'.format(l.count(10), l.count(20)),
-  'time_time': lambda l: round(sum(l), 2),
-  'time_real': lambda l: round(sum(l), 2),
-  'num_prop':  lambda l: sum(l),
-  'num_propd': lambda l: sum(l),
-  'lods':      lambda l: sum(l),
-  'lods_br':   lambda l: sum(l),
-  'lods_fc':   lambda l: sum(l),
-  'space':   lambda l: sum(l),
-  'lods_avg':  lambda l: round(sum(l)/len(l), 2),
-  'time_sat':  lambda l: round(sum(l), 2),
-  'time_sapp': lambda l: round(sum(l), 2),
 }
 
 assert(set(FILTER_LOG.keys()).isdisjoint(set(FILTER_ERR.keys())))
@@ -211,23 +221,22 @@ FILE_STATS_KEYS.extend(list(k for k, f in FILTER_OUT.items() if not f[3]))
 DIR_STATS_KEYS = list(k for k, f in FILTER_LOG.items() if f[3])
 DIR_STATS_KEYS.extend(list(k for k, f in FILTER_ERR.items() if f[3]))
 
-g_dir_stats = dict((k, {}) for k in DIR_STATS_KEYS)
-g_file_stats = dict((k, {}) for k in FILE_STATS_KEYS)
-g_best_stats = dict((k, {}) for k in FILE_STATS_KEYS)
-g_diff_stats = dict((k, {}) for k in FILE_STATS_KEYS)
-g_total_stats = dict((k, {}) for k in FILE_STATS_KEYS)
-
-
+g_dir_stats = {}
+g_file_stats = {}
+g_total_stats = {}
+g_format_stats = TOTALS_FORMAT_ERR
 
 def _filter_data(d, file, filters):
-    global g_file_stats
+    global g_file_stats, g_dir_stats
     
+    dir_stats = dict((k, {}) for k in DIR_STATS_KEYS)
     with open(os.path.join(d, file), 'rb') as infile:
         (f_name, f_ext) = _get_name_and_ext(file)
-        dir_stats_tmp = dict((k, []) for k in DIR_STATS_KEYS) 
 
         if os.stat(os.path.join(d, file)).st_size == 0:
             for k in filters:
+                if k not in g_file_stats:
+                    g_file_stats[k] = {}
                 if d not in g_file_stats[k]:
                     g_file_stats[k][d] = {}
                 if f_name not in g_file_stats[k][d]:
@@ -239,16 +248,24 @@ def _filter_data(d, file, filters):
 
             for k, v in filters.items():
                 assert(len(v) == 4)
-                val = v[2](line) if v[1](line) else None
+                f_match = v[1]
+                f_val = v[2]
                 
-                if k in DIR_STATS_KEYS:
-                    if d in g_dir_stats:
-                        continue
-
+                if k in DIR_STATS_KEYS and not d in g_dir_stats[k]:
+                    val = f_val(line) if f_match(line) else None
+                    if k not in dir_stats:
+                        dir_stats[k] = {}
+                    if d not in dir_stats[k]:
+                        dir_stats[k][d] = []
                     if val is not None:
-                        dir_stats_tmp[k].append(val)
-                else:
-                    assert(k in FILE_STATS_KEYS)
+                        dir_stats[k][d].append(val)
+                # skip columns that are not printed
+                elif k in g_args.columns:
+                    val = f_val(line) if f_match(line) else None
+
+                    if k not in g_file_stats:
+                        g_file_stats[k] = {}
+
                     if d not in g_file_stats[k]:
                         g_file_stats[k][d] = {}
 
@@ -265,10 +282,11 @@ def _filter_data(d, file, filters):
                         else:
                             g_file_stats[k][d][f_name] += val
 
-        for k,v in dir_stats_tmp.items():
-            if d in g_dir_stats[k]:
-                continue
-            g_dir_stats[k][d] = v
+    for k in dir_stats:
+        for d in dir_stats[k]:
+            if k not in g_dir_stats:
+                g_dir_stats[k] = {}
+            g_dir_stats[k][d] = dir_stats[k][d]
 
 
 def _read_log_file(d, f):
@@ -279,15 +297,31 @@ def _read_err_file(d, f):
     global g_file_stats
 
     try:
-        _filter_data(d, f, dict((k, f) for k, f in FILTER_ERR.items() if not f[3]))
-        # TODO: move to normalize method or something like that
-        # update status for errors ('err' instead of 'ok')
-        f_name = _get_name_and_ext(f)[0]
-        if g_file_stats['status'][d][f_name] == "ok" \
-           and g_file_stats['result'][d][f_name] not in (10, 20):
-            g_file_stats['status'][d][f_name] = "err"
+        _filter_data(d, f, FILTER_ERR)
     except CmpSMTException as e:
         raise CmpSMTException("{} in file {}".format(str(e), f))
+
+def _init_missing_files(data):
+    global g_benchmarks
+
+    for k in data:
+        for d in data[k]:
+            for f in g_benchmarks:
+                if f not in data[k][d]:
+                    data[k][d][f] = None
+
+def _normalize_data(data):
+
+    # normalize status ok, time, mem, err
+    for k in ['status', 'g_total', 'g_solved', 'g_time', 'g_mem', 'g_err']:
+        if k not in data:
+            continue
+        for d in data[k]:
+            for f in data[k][d]:
+                assert('result' in data)
+                if data[k][d][f] == 'ok' \
+                   and data['result'][d][f] not in (10, 20):
+                    data[k][d][f] = 'err'
 
 
 def _read_out_file(d, f):
@@ -320,38 +354,45 @@ def _read_data (dirs):
                             _read_out_file (d, "{}{}".format(f[:-3], "out"))
 
 
-def _pick_data():
-    global g_file_stats, g_best_stats, g_diff_stats
+def _pick_data(benchmarks, data):
+    global g_args
 
-    for f in g_benchmarks:
-        for k in g_file_stats.keys():
+    sort_reverse = False
+    f_cmp = lambda x, y: x * (1 + g_args.diff) <= y
+    if g_args.cmp_col == 'g_solved':
+        sort_reverse = True 
+        f_cmp = lambda x, y: x > y
+
+    best_stats = dict((k, {}) for k in g_args.columns)
+    diff_stats = dict((k, {}) for k in g_args.columns)
+    for f in benchmarks:
+        for k in data.keys():
             for d in g_args.dirs:
-                if f not in g_file_stats[k][d]:
-                    g_file_stats[k][d][f] = None
-            v = sorted([(g_file_stats[k][d][f], d) for d in g_args.dirs \
-                    if g_file_stats[k][d][f] is not None])
+                # initialize missing files in a directory
+                if f not in data[k][d]:
+                    data[k][d][f] = None
+
+            v = sorted([(data[k][d][f], d) for d in g_args.dirs \
+                                           if data[k][d][f] is not None],
+                       reverse=sort_reverse)
             # strings are not considered for diff/best values
             if len(v) == 0 or isinstance(v[0][0], str):
-                g_best_stats[k][f] = None
-                g_diff_stats[k][f] = None
+                best_stats[k][f] = None
+                diff_stats[k][f] = None
                 continue
 
-            g_best_stats[k][f] = None \
+            best_stats[k][f] = None \
                 if len(set([t[0] for t in v])) <= 1 \
-                   or g_file_stats['status'][d][f] != 'ok' else v[0][1]
-
-            g_diff_stats[k][f] = None \
-                if g_best_stats[k][f] is None \
-                   or v[0][0] * (1 + g_args.diff) > v[1][0] \
+                   or 'status' in data and f not in data['status'][d] \
+                   or 'status' in data and data['status'][d][f] != 'ok' \
                 else v[0][1]
 
+            diff_stats[k][f] = None \
+                if best_stats[k][f] is None or not f_cmp(v[0][0], v[1][0]) \
+                else v[0][1]
 
-def _compute_totals():
-    for k in g_file_stats.keys():
-        for d in g_file_stats[k].keys():
-            g_total_stats[k][d] = \
-                [v for v in g_file_stats[k][d].values() if v is not None]
-
+    assert(diff_stats.keys() == best_stats.keys())
+    return diff_stats, best_stats
 
 def _format_field(field, width, color=None, colspan=0, classes=[]):
     field = "-" if field is None else str(field)
@@ -430,27 +471,12 @@ def _print_html_header():
                </head>
                <body>""".format(style_css, jquery_js, tableheaders_js))
 
-def _print_result_table():
-    print("""    <table id="legend">
-                   <tr>
-                     <th>LEGEND</th>
-                     <td class="best">best value</td>
-                     <td class="diff">difference of '{}' >= {}</td>
-                     <td class="disc">discrepancy</td>
-                     <td class="stat">status differs</td>
-                   </tr>
-                 </table>
-                 <table id="results">
-                    <thead>""".format(g_args.cmp_col, g_args.diff))
-
 
 def _print_html_footer():
     print("<tbody></table></body></html>")
 
-
 def _has_status(status, f):
     return status in set(g_file_stats['status'][d][f] for d in g_args.dirs)
-
 
 def _get_column_name(key):
     if key in FILTER_LOG:
@@ -460,83 +486,188 @@ def _get_column_name(key):
     assert(key in FILTER_OUT)
     return FILTER_OUT[key][0]
 
+def _get_color(f, d, diff_stats, best_stats):
+    global g_args
 
-def _get_color(f, d):
-    global g_diff_stats, g_best_stats
-
-    for k in g_diff_stats.keys():
+    for k in diff_stats.keys():
         if g_args.cmp_col == k:
-            if g_diff_stats[k][f] == d:
+            if diff_stats[k][f] == d:
                 return COLOR_DIFF
-            elif g_best_stats[k][f] == d:
+            elif best_stats[k][f] == d:
                 return COLOR_BEST
-
     return COLOR_NOCOLOR
+
+def _get_group_totals():
+    global g_args, g_benchmarks, g_file_stats, g_format_stats
+    stats = {}
+    totals = {}
+
+    # collect statistics per group
+    for f in g_benchmarks:
+        group_name = f.split('-')[0]
+
+        if group_name not in stats:
+            stats[group_name] = {} 
+
+        if 'totals' not in stats:
+            stats['totals'] = {}
+
+        group = stats[group_name]
+        for d in g_args.dirs:
+            if d not in group:
+                group[d] = {}
+            if d not in stats['totals']:
+                stats['totals'][d] = {}
+
+            for stat in g_args.columns:
+                if stat not in group[d]:
+                    group[d][stat] = []
+                if stat not in stats['totals'][d]:
+                    stats['totals'][d][stat] = []
+                val = g_file_stats[stat][d][f]
+                # val is None if file does not exist
+                if val is not None:
+                    group[d][stat].append(val)
+                    stats['totals'][d][stat].append(val)
+
+    # compute group totals
+    for stat in g_args.columns:
+        assert(stat not in totals)
+        totals[stat] = {}
+        for d in g_args.dirs:
+            if d not in totals[stat]:
+                totals[stat][d] = {}
+
+            for group in stats:
+                assert(group not in totals[stat][d])
+                if stat in g_format_stats:
+                    fmt_stat = g_format_stats[stat]
+                    val = fmt_stat(stats[group][d][stat])
+                else:
+                    val = sum(stats[group][d][stat])
+                totals[stat][d][group] = val 
+
+    return totals, stats.keys()
+
+def _base_dir(path):
+    return os.path.basename(path.rstrip('/'))
+
+def _print_totals():
+
+    data, benchmarks = _get_group_totals()
+
+    if 'result' in data:
+        del(data['result'])
+
+    benchmark_column_width, header_column_widths, data_column_widths = \
+        _get_column_widths(data, benchmarks)
+
+    # g_args.columns and data.keys() may differ, just use the ones in data
+    # do not use data.keys() here since we want to keep the order of
+    # g_args.columns
+    columns = [k for k in g_args.columns if k in data.keys()]
+
+    if not g_args.html:
+        print("\n")
+
+    # header
+    cols = ["DIRECTORY"]
+    cols.extend(_get_column_name(k) for k in columns)
+    widths = [max(len(_base_dir(d)) for d in g_args.dirs)]
+    widths.extend([max(data_column_widths[k][d] for d in g_args.dirs) \
+                      for k in columns])
+    classes = [["header"] for i in range(len(columns) + 1)]
+    _print_row(cols, widths, classes=classes)
+
+    # totals
+    for d in g_args.dirs:
+        cols = [_base_dir(d)]
+#            classes.append([["borderleft"]])
+#            classes[-1].extend([[] for i in range(len(g_args.columns) - 1)])
+        cols.extend(data[k][d]['totals'] for k in columns)
+        _print_row(cols, widths)#, classes=classes)
+    if g_args.html:
+        print("</table><br><br><table>")
+    else:
+        print("\n\n")
+
+def _get_column_widths(data, benchmarks):
+    global g_args
+
+    # g_args.columns and data.keys() may differ, just use the ones in data
+    # do not use data.keys() here since we want to keep the order of
+    # g_args.columns
+    columns = [k for k in g_args.columns if k in data.keys()]
+
+    padding = 1
+    benchmark_column_width = \
+        padding + max(max(len(b) for b in benchmarks), len("DIRECTORY"))
+
+    data_column_widths = dict((k, {}) for k in g_args.columns)
+    for d in g_args.dirs:
+        for k in columns:
+            data_column_widths[k][d] = \
+                padding + \
+                max(len(_get_column_name(k)),
+                    max(len(str(v)) for v in data[k][d].values()))
+
+    # header column widths
+    column_groups = dict((d, list(columns)) for d in g_args.dirs)
+    header_column_widths = {} 
+    for d, g in column_groups.items():
+        width_cols = 0
+        for k in g:
+            width_cols += data_column_widths[k][d]
+        width_dir = len(_base_dir(d))
+        if width_cols > width_dir:
+            header_column_widths[d] = width_cols
+        else:
+            header_column_widths[d] = width_dir
+            # add width to first column of column group if directory name is
+            # longer than the column group itself
+            data_column_widths[columns[0]][d] += width_dir - width_cols 
+
+    return benchmark_column_width, header_column_widths, data_column_widths
 
 
 def _print_data ():
     global g_file_stats, g_dir_stats
 
-    padding = 1
-    benchmark_column_width = padding + max(len(b) for b in g_benchmarks) 
+    if g_args.g:
+        data, benchmarks = _get_group_totals()
+    else:
+        data = g_file_stats
+        benchmarks = g_benchmarks
 
-    column_groups = {}
-    for d in g_args.dirs:
-        column_groups[d] = list(g_args.columns)
+    # pick data for best runs and diff runs
+    diff_stats, best_stats = _pick_data(benchmarks, data)
 
-    data_column_widths = dict((k, {}) for k in g_file_stats.keys())
-    for d in g_args.dirs:
-        for k in g_file_stats.keys():
-            data_column_widths[k][d] = \
-                padding + \
-                max(len(_get_column_name(k)),
-                    max(len(str(val)) for val in g_file_stats[k][d].values()))
-
-    header_column_widths = {} 
-    for d, g in column_groups.items():
-        width = 0
-        for k in g:
-            width += data_column_widths[k][d]
-        header_column_widths[d] = width
+    # compute column widths
+    benchmark_column_width, header_column_widths, data_column_widths = \
+        _get_column_widths(data, benchmarks)
 
     if g_args.html:
         _print_html_header()
-        print("<table><thead>")
+        print("""<table id="legend">
+                   <tr>
+                     <th>LEGEND</th>
+                     <td class="best">best value</td>
+                     <td class="diff">difference of '{}' >= {}</td>
+                     <td class="disc">discrepancy</td>
+                     <td class="stat">status differs</td>
+                   </tr>
+                 </table><table>""".format(g_args.cmp_col, g_args.diff))
 
-    if g_args.html:
-        print("</thead><tbody>")
-        # print totals
-        columns = ["DIRECTORY"]
-        columns.append([_get_column_name(k) for k in g_args.columns])
-        widths = [benchmark_column_width]
-        widths.append([data_column_widths[k][d] for k in g_args.columns])
-        classes = [["header"]]
-        classes.append([["header"] for k in g_args.columns])
-        _print_row (columns, widths, classes=classes)
-
-        for d in g_args.dirs:
-            columns = ([os.path.basename(d.rstrip('/'))])
-            cols = []
-            for k in g_args.columns:
-                if k in TOTALS_OP:
-                    cols.append(TOTALS_OP[k](g_total_stats[k][d]))
-                else:
-                    cols.append('-')
-            columns.append(cols)
-            classes = [["nowrap"]]
-            classes.append([[] for k in g_args.columns])
-            _print_row (columns, widths, classes=classes)
-
-    if g_args.html:
-        print("</tbody></table><br/><br/>")
-        _print_result_table()
-    
+    if g_args.t or g_args.html:
+        _print_totals()
+        
+    # print header
     columns = ["DIRECTORY"]
-    columns.extend([os.path.basename(d.rstrip('/')) for d in g_args.dirs])
+    columns.extend([_base_dir(d) for d in g_args.dirs])
     widths = [benchmark_column_width]
-    widths.extend([max(header_column_widths[d], len(d)) for d in g_args.dirs])
+    widths.extend([header_column_widths[d] for d in g_args.dirs])
     colspans = [0]
-    colspans.extend([len(g) for g in column_groups.values()])
+    colspans.extend([len(g_args.columns) for d in g_args.dirs])
 
     classes = [["header"]]
     classes.extend([["borderleft", "header"] for d in g_args.dirs])
@@ -563,32 +694,40 @@ def _print_data ():
         print("</thead><tbody>")
 
     # print data rows
-    for f in sorted(g_benchmarks, key=lambda s: s.lower()):
-        if g_args.timeof \
-           and not g_file_stats['status'][g_args.timeof][f] == 'time':
-            continue
-        if g_args.time and not _has_status('time', f):
-            continue
-        if g_args.err and not _has_status('err', f):
-            continue
-        if g_args.ok and not _has_status('ok', f):
-            continue
-        if g_args.mem and not _has_status('mem', f):
-            continue
+    for f in sorted(benchmarks, key=lambda s: s.lower()):
+        if not g_args.g:
+            if g_args.timeof \
+               and not g_file_stats['status'][g_args.timeof][f] == 'time':
+                continue
+            if g_args.time and not _has_status('time', f):
+                continue
+            if g_args.err and not _has_status('err', f):
+                continue
+            if g_args.ok and not _has_status('ok', f):
+                continue
+            if g_args.mem and not _has_status('mem', f):
+                continue
 
-        s = [g_file_stats['status'][d][f] for d in g_args.dirs
-                if g_file_stats['status'][d][f]]
-        r = [g_file_stats['result'][d][f] for d in g_args.dirs
-                if g_file_stats['result'][d][f]]
+        s = None
+        r = None
+        if 'status' in data:
+            s = [data['status'][d][f] for d in g_args.dirs \
+                                      if data['status'][d][f]]
+        if 'result' in data:
+            r = [data['result'][d][f] for d in g_args.dirs \
+                                      if data['result'][d][f]]
 
-        if g_args.dis:
+        # show discrepancies only
+        if g_args.dis and r is not None:
             r_tmp = [x for x in r if x == 10 or x == 20]
-            if not len(set(r_tmp)) > 1: continue
+            # no discrepancy, skip
+            if len(set(r_tmp)) == 1: continue
 
-        # row color
+        # highlight row if status is not the same or solvers are disagreeing
         color = COLOR_STAT \
-                if len(set(s)) > 1 \
-                else (COLOR_DISC if len(set(r)) > 1 else COLOR_NOCOLOR)
+                if s is not None and len(set(s)) > 1 \
+                else (COLOR_DISC if r is not None and len(set(r)) > 1 \
+                                 else COLOR_NOCOLOR)
 
         columns = [f]
         widths = [benchmark_column_width]
@@ -598,9 +737,10 @@ def _print_data ():
         for d in g_args.dirs:
             classes.append([["borderleft"]])
             classes[-1].extend([[] for i in range(len(g_args.columns) - 1)])
-            columns.append([g_file_stats[k][d][f] for k in g_args.columns])
+            columns.append([data[k][d][f] for k in g_args.columns])
             widths.append([data_column_widths[k][d] for k in g_args.columns])
-            colors.append(color if color != COLOR_NOCOLOR else _get_color(f, d))
+            colors.append(color if color != COLOR_NOCOLOR \
+                                else _get_color(f, d, diff_stats, best_stats))
 
         _print_row(columns, widths, colors=colors, classes=classes)
 
@@ -632,7 +772,7 @@ if __name__ == "__main__":
                 help="compare models statistics")
         aparser.add_argument ("-dis", action="store_true",
                 help="show discrepancies only")
-        aparser.add_argument ("-to", dest="time", action="store_true",
+        aparser.add_argument ("-time", action="store_true",
                 help="show timeouts only")
         aparser.add_argument ("-toof", metavar="dir", dest="timeof",
                 action="store", default=None,
@@ -649,7 +789,6 @@ if __name__ == "__main__":
                 help="compare results column")
         aparser.add_argument ("-s", metavar="column[,column ...]",
                 dest="columns",
-                default="status,result,time_real,time_time,space",
                 help="list of columns to print")
         aparser.add_argument ("-a", dest="show_all", action="store_true",
                 help="print all columns")
@@ -659,6 +798,10 @@ if __name__ == "__main__":
                 help="two or more smt run directories to compare")
         aparser.add_argument ("--no-colors", action="store_true",
                               help="disable colors")
+        aparser.add_argument ("-g", action="store_true",
+                              help="group benchmarks into families")
+        aparser.add_argument ("-t", action="store_true",
+                              help="show totals table")
         g_args = aparser.parse_args()
 
         # do not use a set here as the order of directories should be preserved
@@ -675,6 +818,15 @@ if __name__ == "__main__":
             if not os.path.isdir(d):
                 raise CmpSMTException ("given smt run is not a directory")
 
+        if g_args.columns is None:
+            if g_args.g:
+                g_args.columns = \
+                    "status,result,g_solved,g_total,g_time,g_mem,g_err," \
+                    "time_time,space"
+            else:
+                g_args.columns = "status,result,time_time,space"
+            
+        # column options
         if g_args.bs:
             g_args.columns = \
                     "status,lods,calls,time_sat,time_rw,time_beta"
@@ -686,11 +838,7 @@ if __name__ == "__main__":
                     "status,lods,models_bvar,models_arr,"\
                     "time_time,time_sat"
             g_args.m = True
-        
-        if not g_args.m:
-            for x in list(FILTER_OUT.keys()):
-                del g_file_stats[x]
-
+            
         g_args.columns = g_args.columns.split(',')
         for c in g_args.columns:
             if c not in FILE_STATS_KEYS:
@@ -698,6 +846,29 @@ if __name__ == "__main__":
 
         if g_args.show_all:
             g_args.columns = FILE_STATS_KEYS
+
+        # we need column result for some other columns
+        if 'result' not in g_args.columns and \
+           ('status' in g_args.columns \
+            or 'g_solved' in g_args.columns \
+            or 'g_total' in g_args.columns \
+            or 'g_time' in g_args.columns \
+            or 'g_mem' in g_args.columns \
+            or 'g_err' in g_args.columns):
+            g_args.columns.append('result')
+
+        # some columns may not make sense or are not available for some options
+        remove_columns = []
+        if not g_args.m:
+            remove_columns.extend(FILTER_OUT.keys())
+
+        for c in remove_columns:
+            if g_args.columns.count(c) > 0:
+                g_args.columns.remove(c)
+
+        # disable comparison if cmp_col is not in the columns list
+        if g_args.cmp_col not in g_args.columns:
+            g_args.cmp_col = None
 
         if g_args.no_colors:
             COLOR_BEST = ''
@@ -708,11 +879,24 @@ if __name__ == "__main__":
 
         if g_args.timeof and not g_args.timeof in g_args.dirs:
             raise CmpSMTException ("invalid dir given")
+        # initialize global data
+        g_dir_stats = dict((k, {}) for k in DIR_STATS_KEYS)
 
         _read_data (g_args.dirs)
-        _pick_data ()
-        _compute_totals()
-        _print_data ()
+        if (len(g_file_stats.keys()) > 0):
+            assert(len(g_file_stats.keys()) == len(g_args.columns))
+            _init_missing_files (g_file_stats)
+            _normalize_data(g_file_stats)
+
+            if g_args.g and 'result' in g_args.columns:
+                g_args.columns.remove('result')
+                del(g_file_stats['result'])
+            _print_data ()
+        else:
+            if g_args.filter:
+                print("no files found that match '{}'".format(g_args.filter))
+            else:
+                print("no files found")
 
     except KeyboardInterrupt as e:
         sys.exit ("[cmpsmt] interrupted")

@@ -14,7 +14,7 @@
 #include "btoraigvec.h"
 #include "btorconst.h"
 #include "btorcore.h"
-#include "btorutil.h"
+#include "utils/btorutil.h"
 
 #include "limits.h"
 #define BTOR_MASK_REM_BITS(bv)                       \

@@ -16,14 +16,14 @@
 
 #include "btorass.h"
 #include "btorexp.h"
-#include "btormem.h"
 #include "btormsg.h"
 #include "btoropt.h"
 #include "btorsat.h"
 #include "btorsls.h"
 #include "btorsort.h"
 #include "btortypes.h"
-#include "btorutil.h"
+#include "utils/btormem.h"
+#include "utils/btorutil.h"
 
 /*------------------------------------------------------------------------*/
 
@@ -150,7 +150,6 @@ struct Btor
   BtorPtrHashTable *cache;
   BtorPtrHashTable *parameterized;
   BtorPtrHashTable *score;
-  BtorPtrHashTable *searched_applies;
 
   /* compare fun for sorting the inputs in search_inital_applies_dual_prop */
   int (*dp_cmp_inputs) (const void *, const void *);

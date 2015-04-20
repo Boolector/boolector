@@ -20,17 +20,17 @@
 #include "btorconst.h"
 #include "btorcore.h"
 #include "btorexit.h"
-#include "btorhash.h"
-#include "btoriter.h"
 #include "btormodel.h"
 #include "btorparse.h"
 #include "btorprintmodel.h"
 #include "btorsat.h"
 #include "btorsort.h"
 #include "btortrapi.h"
-#include "btorutil.h"
 #include "dumper/btordumpbtor.h"
 #include "dumper/btordumpsmt.h"
+#include "utils/btorhash.h"
+#include "utils/btoriter.h"
+#include "utils/btorutil.h"
 
 /*------------------------------------------------------------------------*/
 

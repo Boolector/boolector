@@ -14,10 +14,10 @@
 #ifndef BTORAIG_H_INCLUDED
 #define BTORAIG_H_INCLUDED
 
-#include "btorhash.h"
-#include "btormem.h"
 #include "btorsat.h"
-#include "btorstack.h"
+#include "utils/btorhash.h"
+#include "utils/btormem.h"
+#include "utils/btorstack.h"
 
 #include <stdio.h>
 

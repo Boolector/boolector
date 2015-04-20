@@ -18,7 +18,7 @@
 
 extern "C" {
 #include "btorabort.h"
-#include "btorutil.h"
+#include "utils/btorutil.h"
 };
 
 static void

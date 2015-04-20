@@ -15,11 +15,11 @@
 #define BTOREXP_H_INCLUDED
 
 #include "btoraigvec.h"
-#include "btorhash.h"
-#include "btorqueue.h"
 #include "btorsort.h"
-#include "btorstack.h"
 #include "btortypes.h"
+#include "utils/btorhash.h"
+#include "utils/btorqueue.h"
+#include "utils/btorstack.h"
 
 /*------------------------------------------------------------------------*/
 

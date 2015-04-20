@@ -10,7 +10,7 @@
  *  See COPYING for more information on using this software.
  */
 
-#include "btorutil.h"
+#include "utils/btorutil.h"
 
 #include <assert.h>
 #include <limits.h>

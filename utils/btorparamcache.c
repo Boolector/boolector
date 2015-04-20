@@ -8,9 +8,9 @@
  *  See COPYING for more information on using this software.
  */
 
-#include "btorparamcache.h"
+#include "utils/btorparamcache.h"
 #include "btorbeta.h"
-#include "btoriter.h"
+#include "utils/btoriter.h"
 
 BtorParamCacheTuple *
 btor_new_param_cache_tuple (Btor *btor, BtorNode *exp)

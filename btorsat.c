@@ -25,7 +25,7 @@
 
 #include "btorexit.h"
 #include "btorsat.h"
-#include "btorutil.h"
+#include "utils/btorutil.h"
 
 #include <assert.h>
 #include <ctype.h>

@@ -12,10 +12,10 @@
 #include "btoropt.h"
 #include "boolector.h"
 #include "btorcore.h"
-#include "btoriter.h"
 #include "btorlog.h"
 #include "btormodel.h"
 #include "btortrapi.h"
+#include "utils/btoriter.h"
 
 #include <ctype.h>
 #include <limits.h>

@@ -11,7 +11,7 @@
 #ifndef BTORSLS_H_INCLUDED
 #define BTORSLS_H_INCLUDED
 
-#include "btormap.h"
+#include "utils/btormap.h"
 
 int btor_sat_aux_btor_sls (Btor *btor);
 void btor_generate_model_sls (Btor *btor, int model_for_all_nodes, int reset);

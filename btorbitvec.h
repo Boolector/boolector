@@ -14,8 +14,8 @@
 
 #include <stdint.h>
 #include "btorexp.h"
-#include "btormem.h"
-#include "btorutil.h"
+#include "utils/btormem.h"
+#include "utils/btorutil.h"
 
 #define BTOR_BV_TYPE uint32_t
 #define BTOR_BV_TYPE_BW (sizeof (BTOR_BV_TYPE) * 8)

@@ -15,9 +15,9 @@
 #include "btorconst.h"
 #include "btorcore.h"
 #include "btorexit.h"
-#include "btorhash.h"
-#include "btoriter.h"
 #include "btorsort.h"
+#include "utils/btorhash.h"
+#include "utils/btoriter.h"
 #ifndef NDEBUG
 #include "btorclone.h"
 #endif
@@ -451,7 +451,65 @@ static const char *g_kind2smt[BTOR_NUM_OPS_NODE] = {
     [BTOR_BCOND_NODE] = "ite",       [BTOR_ARGS_NODE] = "args",
     [BTOR_UF_NODE] = "uf",           [BTOR_PROXY_NODE] = "proxy"};
 
-// TODO (ma): implement depth_limit
+static void
+get_children (BtorSMTDumpContext *sdc,
+              BtorNode *exp,
+              BtorNodePtrStack *children)
+{
+  assert (children);
+  assert (BTOR_EMPTY_STACK (*children));
+
+  int i, is_or = 0, is_and = 0;
+  BtorNode *cur, *real_cur;
+  BtorPtrHashTable *mark;
+  BtorNodePtrQueue visit;
+  BtorPtrHashBucket *b;
+
+  mark = btor_new_ptr_hash_table (sdc->btor->mm, 0, 0);
+
+  if (BTOR_IS_AND_NODE (BTOR_REAL_ADDR_NODE (exp)))
+  {
+    if (BTOR_IS_INVERTED_NODE (exp))
+      is_or = 1;
+    else
+      is_and = 1;
+  }
+
+  BTOR_INIT_QUEUE (visit);
+  for (i = 0; i < BTOR_REAL_ADDR_NODE (exp)->arity; i++)
+    BTOR_ENQUEUE (
+        sdc->btor->mm,
+        visit,
+        BTOR_COND_INVERT_NODE (is_or, BTOR_REAL_ADDR_NODE (exp)->e[i]));
+
+  /* get children of multi-input and/or */
+  while (!BTOR_EMPTY_QUEUE (visit))
+  {
+    cur      = BTOR_DEQUEUE (visit);
+    real_cur = BTOR_REAL_ADDR_NODE (cur);
+
+    if (btor_find_in_ptr_hash_table (mark, real_cur)) continue;
+
+    b = btor_find_in_ptr_hash_table (sdc->dump, real_cur);
+    btor_insert_in_ptr_hash_table (mark, real_cur);
+    if (!BTOR_IS_AND_NODE (real_cur) || (b && b->data.asInt > 1)
+        || (is_and && BTOR_IS_INVERTED_NODE (cur))
+        || (is_or && !BTOR_IS_INVERTED_NODE (cur)))
+    {
+      BTOR_PUSH_STACK (sdc->btor->mm, *children, cur);
+      continue;
+    }
+
+    assert (!btor_find_in_ptr_hash_table (sdc->dumped, real_cur));
+    btor_insert_in_ptr_hash_table (sdc->dumped, real_cur);
+    for (i = 0; i < real_cur->arity; i++)
+      BTOR_ENQUEUE (
+          sdc->btor->mm, visit, BTOR_COND_INVERT_NODE (is_or, real_cur->e[i]));
+  }
+  BTOR_RELEASE_QUEUE (sdc->btor->mm, visit);
+  btor_delete_ptr_hash_table (mark);
+}
+
 static void
 recursively_dump_exp_smt (BtorSMTDumpContext *sdc,
                           BtorNode *exp,
@@ -513,7 +571,7 @@ recursively_dump_exp_smt (BtorSMTDumpContext *sdc,
       {
         fmt =
             sdc->version == 1 ? " (zero_extend[%d] " : " ((_ zero_extend %d) ";
-        fprintf (sdc->file, fmt, pad);
+        fprintf (sdc->file, fmt, zero_extend);
       }
 
       /* always print constants */
@@ -674,8 +732,20 @@ recursively_dump_exp_smt (BtorSMTDumpContext *sdc,
               break;
             default: assert (0); op = "unknown";
           }
-          for (i = real_exp->arity - 1; i >= 0; i--)
-            PUSH_DUMP_NODE (real_exp->e[i], expect_bv, 0, 1, 0, depth + 1);
+          if (BTOR_IS_AND_NODE (real_exp) && is_bool)
+          {
+            assert (BTOR_EMPTY_STACK (args));
+            get_children (sdc, exp, &args);
+            for (i = 0; i < BTOR_COUNT_STACK (args); i++)
+            {
+              arg = BTOR_PEEK_STACK (args, i);
+              PUSH_DUMP_NODE (arg, expect_bv, 0, 1, 0, depth + 1);
+            }
+            BTOR_RESET_STACK (args);
+          }
+          else
+            for (i = real_exp->arity - 1; i >= 0; i--)
+              PUSH_DUMP_NODE (real_exp->e[i], expect_bv, 0, 1, 0, depth + 1);
       }
 
       /* open s-expression */

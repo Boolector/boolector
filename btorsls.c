@@ -13,13 +13,12 @@
 #include "btorclone.h"
 #include "btorcore.h"
 #include "btordbg.h"
-#include "btordcr.h"
-#include "btorhash.h"
-#include "btoriter.h"
 #include "btorlog.h"
-#include "btormap.h"
-#include "btormisc.h"
 #include "btormodel.h"
+#include "utils/btorhash.h"
+#include "utils/btoriter.h"
+#include "utils/btormap.h"
+#include "utils/btormisc.h"
 #ifndef NDEBUG
 #include "btorprintmodel.h"
 #endif
