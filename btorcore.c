@@ -8279,22 +8279,6 @@ print_stats_core_solver (Btor *btor)
   BTOR_MSG (btor->msg, 1, "");
   BTOR_MSG (btor->msg, 1, "lemmas on demand statistics:");
   BTOR_MSG (btor->msg, 1, " LOD refinements: %d", slv->stats.lod_refinements);
-
-  BTOR_MSG (btor->msg,
-            1,
-            "synthesis assignment inconsistencies: %d",
-            slv->stats.synthesis_assignment_inconsistencies);
-  BTOR_MSG (btor->msg,
-            1,
-            "  apply nodes: %d",
-            slv->stats.synthesis_inconsistency_apply);
-  BTOR_MSG (btor->msg,
-            1,
-            "  lambda nodes: %d",
-            slv->stats.synthesis_inconsistency_lambda);
-  BTOR_MSG (
-      btor->msg, 1, "  var nodes: %d", slv->stats.synthesis_inconsistency_var);
-
   if (slv->stats.lod_refinements)
   {
     BTOR_MSG (btor->msg,
@@ -8320,6 +8304,21 @@ print_stats_core_solver (Btor *btor)
                 slv->stats.lemmas_size.start[i]);
     }
   }
+
+  BTOR_MSG (btor->msg,
+            1,
+            "synthesis assignment inconsistencies: %d",
+            slv->stats.synthesis_assignment_inconsistencies);
+  BTOR_MSG (btor->msg,
+            1,
+            "  apply nodes: %d",
+            slv->stats.synthesis_inconsistency_apply);
+  BTOR_MSG (btor->msg,
+            1,
+            "  lambda nodes: %d",
+            slv->stats.synthesis_inconsistency_lambda);
+  BTOR_MSG (
+      btor->msg, 1, "  var nodes: %d", slv->stats.synthesis_inconsistency_var);
 
   BTOR_MSG (
       btor->msg, 1, "expression evaluations: %lld", slv->stats.eval_exp_calls);
