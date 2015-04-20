@@ -64,12 +64,14 @@ int btor_is_false_bv (BitVector *);
 
 BitVector *btor_neg_bv (BtorMemMgr *, BitVector *);
 BitVector *btor_not_bv (BtorMemMgr *, BitVector *);
-BitVector *btor_not_range_bv (BtorMemMgr *, BitVector *, int, int);
+BitVector *btor_xor_bv (BtorMemMgr *, BitVector *, BitVector *);
 BitVector *btor_inc_bv (BtorMemMgr *, BitVector *);
 BitVector *btor_dec_bv (BtorMemMgr *, BitVector *);
+BitVector *btor_flipped_bit_bv (BtorMemMgr *, BitVector *, int);
+BitVector *btor_flipped_bit_range_bv (BtorMemMgr *, BitVector *, int, int);
+
 BitVector *btor_add_bv (BtorMemMgr *, BitVector *, BitVector *);
 BitVector *btor_and_bv (BtorMemMgr *, BitVector *, BitVector *);
-BitVector *btor_xor_bv (BtorMemMgr *, BitVector *, BitVector *);
 BitVector *btor_eq_bv (BtorMemMgr *, BitVector *, BitVector *);
 BitVector *btor_ult_bv (BtorMemMgr *, BitVector *, BitVector *);
 BitVector *btor_sll_bv (BtorMemMgr *, BitVector *, BitVector *);
@@ -79,8 +81,6 @@ BitVector *btor_udiv_bv (BtorMemMgr *, BitVector *, BitVector *);
 BitVector *btor_urem_bv (BtorMemMgr *, BitVector *, BitVector *);
 BitVector *btor_concat_bv (BtorMemMgr *, BitVector *, BitVector *);
 BitVector *btor_slice_bv (BtorMemMgr *, BitVector *, int, int);
-BitVector *btor_flipped_bit_bv (BtorMemMgr *, BitVector *, int);
-BitVector *btor_flipped_bit_range_bv (BtorMemMgr *, BitVector *, int, int);
 
 /*------------------------------------------------------------------------*/
 
