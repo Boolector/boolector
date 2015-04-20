@@ -3784,11 +3784,11 @@ merge_lambdas (Btor *btor)
 
   int i, delta_lambdas;
   double start, delta;
-  BtorNode *cur, *lambda, *subst, *parent, *merge;
+  BtorNode *cur, *lambda, *subst, *parent, *merge, *param, *body;
   BtorMemMgr *mm;
   BtorHashTableIterator it;
   BtorNodeIterator nit;
-  BtorNodePtrStack stack, unmark, visit;
+  BtorNodePtrStack stack, unmark, visit, params;
 
   start         = btor_time_stamp ();
   mm            = btor->mm;
@@ -3798,6 +3798,7 @@ merge_lambdas (Btor *btor)
   BTOR_INIT_STACK (stack);
   BTOR_INIT_STACK (unmark);
   BTOR_INIT_STACK (visit);
+  BTOR_INIT_STACK (params);
 
   /* collect candidates for merging */
   init_node_hash_table_iterator (&it, btor->lambdas);
@@ -3871,15 +3872,20 @@ merge_lambdas (Btor *btor)
     init_lambda_iterator (&nit, merge);
     while (has_next_lambda_iterator (&nit))
     {
-      cur = next_lambda_iterator (&nit);
-      btor_assign_param (btor, cur, cur->e[0]);
+      cur   = next_lambda_iterator (&nit);
+      param = btor_param_exp (btor, cur->e[0]->len, 0);
+      BTOR_PUSH_STACK (mm, params, param);
+      btor_assign_param (btor, cur, param);
     }
     /* merge lambdas that are marked with 'merge' flag */
-    subst = btor_beta_reduce_merge (btor, BTOR_LAMBDA_GET_BODY (merge));
-    subst = BTOR_COND_INVERT_NODE (BTOR_LAMBDA_GET_BODY (merge), subst);
+    body = btor_beta_reduce_merge (btor, BTOR_LAMBDA_GET_BODY (merge));
     btor_unassign_params (btor, merge);
-    insert_substitution (btor, BTOR_LAMBDA_GET_BODY (merge), subst, 0);
+    subst = btor_fun_exp (btor, BTOR_COUNT_STACK (params), params.start, body);
+    btor_release_exp (btor, body);
+    insert_substitution (btor, merge, subst, 0);
     btor_release_exp (btor, subst);
+    while (!BTOR_EMPTY_STACK (params))
+      btor_release_exp (btor, BTOR_POP_STACK (params));
   }
 
   /* cleanup */
@@ -3899,6 +3905,7 @@ merge_lambdas (Btor *btor)
   BTOR_RELEASE_STACK (mm, visit);
   BTOR_RELEASE_STACK (mm, stack);
   BTOR_RELEASE_STACK (mm, unmark);
+  BTOR_RELEASE_STACK (mm, params);
   assert (check_id_table_aux_mark_unset_dbg (btor));
   assert (check_unique_table_merge_unset_dbg (btor));
   delta = btor_time_stamp () - start;
