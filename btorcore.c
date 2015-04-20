@@ -4908,9 +4908,11 @@ set_up_dual_and_collect (Btor *btor,
   assert (dp_cmp_inputs);
 
   double delta;
+  BtorCoreSolver *slv;
   BtorNodeMap *assumptions, *key_map;
 
   delta = btor_time_stamp ();
+  slv   = BTOR_CORE_SOLVER (btor);
 
   assumptions = btor_new_node_map (btor);
   key_map     = btor_new_node_map (btor);
@@ -4925,15 +4927,13 @@ set_up_dual_and_collect (Btor *btor,
          sizeof (BtorNode *),
          dp_cmp_inputs);
   assume_inputs (btor, clone, inputs, exp_map, key_map, assumptions);
-  BTOR_CORE_SOLVER (btor)->time.search_init_apps_collect_var_apps +=
-      btor_time_stamp () - delta;
+  slv->time.search_init_apps_collect_var_apps += btor_time_stamp () - delta;
 
   /* let solver determine failed assumptions */
   delta = btor_time_stamp ();
   sat_aux_btor_dual_prop (clone);
   assert (clone->last_sat_result == BTOR_UNSAT);
-  BTOR_CORE_SOLVER (btor)->time.search_init_apps_sat +=
-      btor_time_stamp () - delta;
+  slv->time.search_init_apps_sat += btor_time_stamp () - delta;
 
   /* extract partial model via failed assumptions */
   collect_applies (btor, clone, key_map, assumptions, top_applies);
@@ -4959,11 +4959,11 @@ search_initial_applies_dual_prop (Btor *btor,
 
   double start;
   int i;
-  BtorCoreSolver *slv;
   BtorNode *cur;
   BtorNodePtrStack stack, unmark_stack, inputs;
   BtorHashTableIterator it;
   BtorSATMgr *smgr;
+  BtorCoreSolver *slv;
 
   start = btor_time_stamp ();
 
@@ -5418,12 +5418,14 @@ lazy_synthesize_and_encode_var_exp (Btor *btor, BtorNode *var, int force_update)
   double start;
   int changed_assignments, update;
   BtorAIGVecMgr *avmgr = 0;
+  BtorCoreSolver *slv;
 
   if (!btor->options.lazy_synthesize.val) return 0;
 
   if (var->tseitin) return 0;
 
   start               = btor_time_stamp ();
+  slv                 = BTOR_CORE_SOLVER (btor);
   changed_assignments = 0;
   update              = 0;
   avmgr               = btor->avmgr;
@@ -5446,10 +5448,9 @@ lazy_synthesize_and_encode_var_exp (Btor *btor, BtorNode *var, int force_update)
 
   // TODO: assignment should never change when encoding vars
   //	   (since unconstrained)
-  if (changed_assignments)
-    BTOR_CORE_SOLVER (btor)->stats.synthesis_inconsistency_var++;
+  if (changed_assignments) slv->stats.synthesis_inconsistency_var++;
+  slv->time.enc_var += btor_time_stamp () - start;
 
-  BTOR_CORE_SOLVER (btor)->time.enc_var += btor_time_stamp () - start;
   return changed_assignments;
 }
 
@@ -5474,10 +5475,12 @@ lazy_synthesize_and_encode_apply_exp (Btor *btor,
   BtorNode *arg;
   BtorAIGVecMgr *avmgr = 0;
   BtorArgsIterator it;
+  BtorCoreSolver *slv;
 
   if (app->lazy_tseitin) return 0;
 
   start               = btor_time_stamp ();
+  slv                 = BTOR_CORE_SOLVER (btor);
   changed_assignments = 0;
   update              = 0;
   avmgr               = btor->avmgr;
@@ -5531,10 +5534,9 @@ lazy_synthesize_and_encode_apply_exp (Btor *btor,
   if (update && force_update)
     changed_assignments = update_sat_assignments (btor);
 
-  if (changed_assignments)
-    BTOR_CORE_SOLVER (btor)->stats.synthesis_inconsistency_apply++;
+  if (changed_assignments) slv->stats.synthesis_inconsistency_apply++;
+  slv->time.enc_app += btor_time_stamp () - start;
 
-  BTOR_CORE_SOLVER (btor)->time.enc_app += btor_time_stamp () - start;
   return changed_assignments;
 }
 
@@ -5556,6 +5558,7 @@ lazy_synthesize_and_encode_lambda_exp (Btor *btor,
   BtorNode *cur;
   BtorMemMgr *mm;
   BtorAIGVecMgr *avmgr;
+  BtorCoreSolver *slv;
 
   if (!btor->options.lazy_synthesize.val)
   {
@@ -5568,6 +5571,7 @@ lazy_synthesize_and_encode_lambda_exp (Btor *btor,
 
   start               = btor_time_stamp ();
   mm                  = btor->mm;
+  slv                 = BTOR_CORE_SOLVER (btor);
   avmgr               = btor->avmgr;
   changed_assignments = 0;
   update              = 0;
@@ -5627,10 +5631,9 @@ lazy_synthesize_and_encode_lambda_exp (Btor *btor,
   if (update && force_update)
     changed_assignments = update_sat_assignments (btor);
 
-  if (changed_assignments)
-    BTOR_CORE_SOLVER (btor)->stats.synthesis_inconsistency_lambda++;
+  if (changed_assignments) slv->stats.synthesis_inconsistency_lambda++;
+  slv->time.enc_lambda += btor_time_stamp () - start;
 
-  BTOR_CORE_SOLVER (btor)->time.enc_lambda += btor_time_stamp () - start;
   return changed_assignments;
 }
 
@@ -7483,13 +7486,15 @@ btor_eval_exp (Btor *btor, BtorNode *exp)
   BtorPtrHashBucket *b;
   BtorHashTableIterator it;
   BitVector *result = 0, *inv_result, **e;
+  BtorCoreSolver *slv;
 
   // TODO: return if tseitin
   //  BTORLOG ("%s: %s", __FUNCTION__, node2string (exp));
 
-  mm    = btor->mm;
   start = btor_time_stamp ();
-  BTOR_CORE_SOLVER (btor)->stats.eval_exp_calls++;
+  mm    = btor->mm;
+  slv   = BTOR_CORE_SOLVER (btor);
+  slv->stats.eval_exp_calls++;
 
   BTOR_INIT_STACK (work_stack);
   BTOR_INIT_STACK (arg_stack);
@@ -7687,7 +7692,7 @@ EVAL_EXP_CLEANUP_EXIT:
   btor_delete_ptr_hash_table (cache);
 
   //  BTORLOG ("%s: %s '%s'", __FUNCTION__, node2string (exp), result);
-  BTOR_CORE_SOLVER (btor)->time.eval += btor_time_stamp () - start;
+  slv->time.eval += btor_time_stamp () - start;
 
   if (result)
   {
@@ -8435,7 +8440,7 @@ new_core_solver (Btor *btor)
 
   BTOR_CNEW (btor->mm, slv);
 
-  slv->kind                 = BTOR_CORE_SOLVER;
+  slv->kind                 = BTOR_CORE_SOLVER_KIND;
   slv->api.clone            = clone_core_solver;
   slv->api.delet            = delete_core_solver;
   slv->api.sat              = sat_core_solver;
