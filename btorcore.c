@@ -3822,7 +3822,6 @@ merge_lambdas (Btor *btor)
   {
     lambda = BTOR_PEEK_STACK (stack, i);
     assert (BTOR_IS_REGULAR_NODE (lambda));
-    assert (lambda->parents == 1);
 
     if (lambda->mark) continue;
 
