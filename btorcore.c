@@ -3897,7 +3897,7 @@ merge_lambdas (Btor *btor)
     while (has_next_lambda_iterator (&nit))
     {
       cur   = next_lambda_iterator (&nit);
-      param = btor_param_exp (btor, cur->e[0]->len, 0);
+      param = btor_param_exp (btor, btor_get_exp_width (btor, cur->e[0]), 0);
       BTOR_PUSH_STACK (mm, params, param);
       btor_assign_param (btor, cur, param);
     }
