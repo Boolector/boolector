@@ -615,6 +615,7 @@ same_node (BtorMemMgr *mm, const void *map, const void *key)
   return (BtorNode *) key;
 }
 
+// TODO REMOVE AFTER MERGE WITH SLVENG (use public fun in btorhash)
 static void
 data_as_bv_ptr (BtorMemMgr *mm,
                 const void *map,
@@ -629,6 +630,7 @@ data_as_bv_ptr (BtorMemMgr *mm,
   cloned_data->asPtr = btor_copy_bv (mm, (BitVector *) data->asPtr);
 }
 
+// TODO REMOVE AFTER MERGE WITH SLVENG (use public fun in btorhash)
 static void
 data_as_double (BtorMemMgr *mm,
                 const void *map,
