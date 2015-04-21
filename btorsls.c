@@ -1313,8 +1313,7 @@ select_move (Btor *btor, BtorNodePtrStack *candidates)
            sizeof (BtorSLSMove *),
            cmp_sls_moves_qsort);
 
-    sum = (unsigned) (btor->sls_solver->sum_score * 10000);
-    rd  = btor_pick_rand_rng (&btor->rng, 0, sum) / 10000;
+    rd  = btor_pick_rand_dbl_rng (&btor->rng, 0, btor->sls_solver->sum_score);
     m   = BTOR_PEEK_STACK (btor->sls_solver->moves, 0);
     sum = m->sc;
     //      printf ("sumscore: %f r: %f sum: %f\n",

@@ -164,3 +164,16 @@ btor_pick_rand_rng (BtorRNG* rng, unsigned from, unsigned to)
   res += from;
   return res;
 }
+
+double
+btor_pick_rand_dbl_rng (BtorRNG* rng, double from, double to)
+{
+  assert (rng);
+  assert (from <= to && to < DBL_MAX);
+
+  double res;
+
+  res = (double) btor_rand_rng (rng) / UINT_MAX;
+  res = from + res * (to - from);
+  return res;
+}
