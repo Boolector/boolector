@@ -1275,7 +1275,8 @@ select_move (Btor *btor, BtorNodePtrStack *candidates)
   assert (!btor->sls_solver->max_cans->count);
   assert (candidates);
 
-  int i, r, sum, done, randomizeall;
+  int i, r, done, randomizeall;
+  double rd, sum;
   BtorNode *can;
   BitVector *neigh;
   BtorNodePtrStack cans;
@@ -1312,22 +1313,20 @@ select_move (Btor *btor, BtorNodePtrStack *candidates)
            sizeof (BtorSLSMove *),
            cmp_sls_moves_qsort);
 
-    r = btor_pick_rand_rng (
-        &btor->rng, 0, (unsigned) (btor->sls_solver->sum_score * 10000));
+    sum = (unsigned) (btor->sls_solver->sum_score * 10000);
+    rd  = btor_pick_rand_rng (&btor->rng, 0, sum) / 10000;
     m   = BTOR_PEEK_STACK (btor->sls_solver->moves, 0);
-    sum = (unsigned) (m->sc * 10000);
-    printf ("sumscore: %d r: %d sum: %d\n",
-            (unsigned) (btor->sls_solver->sum_score * 10000),
-            r,
-            sum);
+    sum = m->sc;
+    //      printf ("sumscore: %f r: %f sum: %f\n",
+    //	      btor->sls_solver->sum_score, rd, sum);
     for (i = 0; i < BTOR_COUNT_STACK (btor->sls_solver->moves); i++)
     {
-      sum +=
-          (unsigned) (BTOR_PEEK_STACK (btor->sls_solver->moves, i)->sc * 10000);
-      if (sum > r) break;
+      sum += BTOR_PEEK_STACK (btor->sls_solver->moves, i)->sc;
+      if (sum > rd) break;
       m = BTOR_PEEK_STACK (btor->sls_solver->moves, i);
     }
-    printf ("sum: %d\n", sum);
+    //      printf ("sum: %f\n", sum);
+
     btor->sls_solver->max_gw   = m->cans->count > 1;
     btor->sls_solver->max_move = BTOR_SLS_MOVE_RAND_WALK;
     init_node_hash_table_iterator (&it, m->cans);
