@@ -37,7 +37,7 @@
 #define BTOR_SLS_PROB_SCORE_F 20  // = 0.05 TODO best value? used by Z3 (sp)
 
 /* choose move with one candidate rather than group wise move for random walk */
-#define BTOR_SLS_PROB_SINGLE_VS_GW 4
+#define BTOR_SLS_PROB_SINGLE_VS_GW 20
 /* randomize all candidates rather than one only */
 #define BTOR_SLS_PROB_RAND_ALL_VS_ONE 1
 /* start ranges from LSB rather than MSB */
