@@ -504,6 +504,9 @@ collect_indices_top_eqs (Btor *btor, BtorPtrHashTable *map_value_index)
 
     if (!index) continue;
 
+    if (btor_find_in_ptr_hash_table (btor->substitutions, read)) continue;
+
+    /* only add each index once */
     add_to_index_map (btor, map_value_index, array, index, value);
 
     /* substitute 'read' with 'value', in order to prevent down propgation
@@ -512,8 +515,7 @@ collect_indices_top_eqs (Btor *btor, BtorPtrHashTable *map_value_index)
      * NOTE: if 'read' is already in 'substitutions', we let the rewriting
      * engine handle inconsistencies (i,e., if 'value' is not the same
      * as in 'substitutions'. */
-    if (!btor_find_in_ptr_hash_table (btor->substitutions, read))
-      btor_insert_substitution (btor, read, value, 0);
+    btor_insert_substitution (btor, read, value, 0);
   }
 }
 
