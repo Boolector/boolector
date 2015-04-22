@@ -32,10 +32,18 @@
 
 #define BTOR_SLS_SCORE_CFACT 0.5      // TODO best value? used by Z3 (c1)
 #define BTOR_SLS_SCORE_F_CFACT 0.025  // TODO best value? used by Z3 (c3)
-#define BTOR_SLS_SCORE_F_PROB 20      // = 0.05 TODO best value? used by Z3 (sp)
 #define BTOR_SLS_SELECT_CFACT 20      // TODO best value? used by Z3 (c2)
 
-#define BTOR_SLS_MOVE_SINGLE_VS_GW_PROB 4
+#define BTOR_SLS_PROB_SCORE_F 20  // = 0.05 TODO best value? used by Z3 (sp)
+
+/* choose move with one candidate rather than group wise move for random walk */
+#define BTOR_SLS_PROB_SINGLE_VS_GW 4
+/* randomize all candidates rather than one only */
+#define BTOR_SLS_PROB_RAND_ALL_VS_ONE 1
+/* start ranges from LSB rather than MSB */
+#define BTOR_SLS_PROB_RANGE_LSB_VS_MSB 1
+/* start segments from LSB rather than MSB */
+#define BTOR_SLS_PROB_SEG_LSB_VS_MSB 1
 
 BTOR_DECLARE_STACK (BitVectorPtr, BitVector *);
 
@@ -121,9 +129,9 @@ min_flip (Btor *btor, BitVector *bv1, BitVector *bv2)
 //	 : c1 * (1 - (min number of bits to flip s.t. e0[bw] < e1[bw]) / bw)
 //
 
-#ifndef NBTORLOG
-#define BTOR_SLS_LOG_COMPUTE_SCORE
-#endif
+//#ifndef NBTORLOG
+//#define BTOR_SLS_LOG_COMPUTE_SCORE
+//#endif
 
 static double
 compute_sls_score_node (Btor *btor,
@@ -374,8 +382,10 @@ compute_sls_scores_aux (Btor *btor,
   BtorNodePtrStack stack, unmark_stack;
   BtorHashTableIterator it;
 
+#ifdef BTOR_SLS_LOG_COMPUTE_SCORE
   BTORLOG ("");
   BTORLOG ("**** compute sls scores ***");
+#endif
 
   BTOR_INIT_STACK (stack);
   BTOR_INIT_STACK (unmark_stack);
@@ -770,7 +780,7 @@ update_assertion_weights (Btor *btor)
   BtorPtrHashBucket *b;
   BtorHashTableIterator it;
 
-  if (!btor_pick_rand_rng (&btor->rng, 0, BTOR_SLS_SCORE_F_PROB))
+  if (!btor_pick_rand_rng (&btor->rng, 0, BTOR_SLS_PROB_SCORE_F))
   {
     /* decrease the weight of all satisfied assertions */
     init_node_hash_table_iterator (&it, btor->sls_solver->roots);
@@ -1030,7 +1040,7 @@ static inline int
 select_flip_range_move (Btor *btor, BtorNodePtrStack *candidates, int gw)
 {
   double sc;
-  int i, up, cup, n_endpos, done = 0;
+  int i, up, cup, clo, n_endpos, done = 0;
   BtorSLSMove *m;
   BtorSLSMoveKind mk;
   BitVector *ass, *max_neigh;
@@ -1065,8 +1075,8 @@ select_flip_range_move (Btor *btor, BtorNodePtrStack *candidates, int gw)
       b         = btor_find_in_ptr_hash_table (btor->sls_solver->max_cans, can);
       max_neigh = b ? b->data.asPtr : 0;
 
+      clo = 0;
       cup = up;
-
       if (up >= ass->width)
       {
         if ((up - 1) / 2 < ass->width) n_endpos += 1;
@@ -1074,10 +1084,18 @@ select_flip_range_move (Btor *btor, BtorNodePtrStack *candidates, int gw)
       }
 
       b = btor_insert_in_ptr_hash_table (cans, can);
+
+      /* range from LSB rather than MSB with given prob */
+      if (btor_pick_rand_rng (&btor->rng, 0, BTOR_SLS_PROB_RANGE_LSB_VS_MSB))
+      {
+        clo = ass->width - 1 - cup;
+        cup = ass->width - 1;
+      }
+
       b->data.asPtr =
           btor->options.sls_move_inc_move_test.val && max_neigh
-              ? btor_flipped_bit_range_bv (btor->mm, max_neigh, cup, 0)
-              : btor_flipped_bit_range_bv (btor->mm, ass, cup, 0);
+              ? btor_flipped_bit_range_bv (btor->mm, max_neigh, cup, clo)
+              : btor_flipped_bit_range_bv (btor->mm, ass, cup, clo);
     }
 
     sc = try_move (btor, &bv_model, score, cans);
@@ -1094,7 +1112,7 @@ static inline int
 select_flip_segment_move (Btor *btor, BtorNodePtrStack *candidates, int gw)
 {
   double sc;
-  int i, lo, clo, up, cup, seg, n_endpos, done = 0;
+  int i, lo, clo, up, cup, ctmp, seg, n_endpos, done = 0;
   BtorSLSMove *m;
   BtorSLSMoveKind mk;
   BitVector *ass, *max_neigh;
@@ -1144,6 +1162,15 @@ select_flip_segment_move (Btor *btor, BtorNodePtrStack *candidates, int gw)
         if (lo >= ass->width - 1) clo = ass->width < seg ? 0 : ass->width - seg;
 
         b = btor_insert_in_ptr_hash_table (cans, can);
+
+        /* range from LSB rather than MSB with given prob */
+        if (btor_pick_rand_rng (&btor->rng, 0, BTOR_SLS_PROB_SEG_LSB_VS_MSB))
+        {
+          ctmp = clo;
+          clo  = ass->width - 1 - cup;
+          cup  = ass->width - 1 - ctmp;
+        }
+
         b->data.asPtr =
             btor->options.sls_move_inc_move_test.val && max_neigh
                 ? btor_flipped_bit_range_bv (btor->mm, max_neigh, cup, clo)
@@ -1354,9 +1381,10 @@ select_move (Btor *btor, BtorNodePtrStack *candidates)
 
     /* randomize if no best move was found */
     BTORLOG ("--- randomized");
-    randomizeall = btor->options.sls_move_rand_all.val
-                       ? btor_pick_rand_rng (&btor->rng, 0, 1)
-                       : 0;
+    randomizeall =
+        btor->options.sls_move_rand_all.val
+            ? btor_pick_rand_rng (&btor->rng, 0, BTOR_SLS_PROB_RAND_ALL_VS_ONE)
+            : 0;
 
     if (randomizeall)
     {
@@ -1447,7 +1475,7 @@ select_random_move (Btor *btor, BtorNodePtrStack *candidates)
 
   /* select candidate(s) */
   if (btor->options.sls_move_gw.val
-      && !btor_pick_rand_rng (&btor->rng, 0, BTOR_SLS_MOVE_SINGLE_VS_GW_PROB))
+      && !btor_pick_rand_rng (&btor->rng, 0, BTOR_SLS_PROB_SINGLE_VS_GW))
   {
     pcans                    = candidates;
     btor->sls_solver->max_gw = 1;
