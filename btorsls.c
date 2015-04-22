@@ -1447,7 +1447,7 @@ select_random_move (Btor *btor, BtorNodePtrStack *candidates)
 
   /* select candidate(s) */
   if (btor->options.sls_move_gw.val
-      && !btor_pick_rand_rng (&btor->rng, 0, BTOR_SLS_SCORE_F_PROB))
+      && !btor_pick_rand_rng (&btor->rng, 0, BTOR_SLS_MOVE_SINGLE_VS_GW_PROB))
   {
     pcans                    = candidates;
     btor->sls_solver->max_gw = 1;
