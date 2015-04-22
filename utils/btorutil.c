@@ -14,6 +14,9 @@
 
 #include <assert.h>
 #include <limits.h>
+#ifndef NDEBUG
+#include <float.h>
+#endif
 
 /*------------------------------------------------------------------------*/
 
