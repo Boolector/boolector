@@ -244,6 +244,8 @@ typedef struct BtorArgsNode BtorArgsNode;
 
 #define BTOR_IS_LAMBDA_NODE_KIND(kind) ((kind) == BTOR_LAMBDA_NODE)
 
+#define BTOR_IS_BCOND_NODE_KIND(kind) ((kind) == BTOR_BCOND_NODE)
+
 #define BTOR_IS_UF_NODE_KIND(kind) ((kind) == BTOR_UF_NODE)
 
 #define BTOR_IS_ARGS_NODE_KIND(kind) ((kind) == BTOR_ARGS_NODE)
@@ -298,6 +300,8 @@ typedef struct BtorArgsNode BtorArgsNode;
 
 #define BTOR_IS_LAMBDA_NODE(exp) \
   ((exp) && BTOR_IS_LAMBDA_NODE_KIND ((exp)->kind))
+
+#define BTOR_IS_BCOND_NODE(exp) ((exp) && BTOR_IS_BCOND_NODE_KIND ((exp)->kind))
 
 #define BTOR_IS_UF_NODE(exp) ((exp) && BTOR_IS_UF_NODE_KIND ((exp)->kind))
 

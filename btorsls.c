@@ -571,6 +571,14 @@ select_candidates (Btor *btor, BtorNode *root, BtorNodePtrStack *candidates)
                     &btor->rng, 0, BTOR_COUNT_STACK (controlling) - 1)));
       }
     }
+    else if (btor->options.just.val && BTOR_IS_BCOND_NODE (real_cur))
+    {
+      bv = btor_get_bv_model (btor, real_cur->e[0]);
+      if (btor_is_zero_bv (bv))
+        BTOR_PUSH_STACK (btor->mm, stack, real_cur->e[2]);
+      else
+        BTOR_PUSH_STACK (btor->mm, stack, real_cur->e[1]);
+    }
     else
     {
     PUSH_CHILDREN:
