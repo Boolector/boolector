@@ -573,6 +573,7 @@ select_candidates (Btor *btor, BtorNode *root, BtorNodePtrStack *candidates)
     }
     else if (btor->options.just.val && BTOR_IS_BCOND_NODE (real_cur))
     {
+      BTOR_PUSH_STACK (btor->mm, stack, real_cur->e[0]);
       bv = btor_get_bv_model (btor, real_cur->e[0]);
       if (btor_is_zero_bv (bv))
         BTOR_PUSH_STACK (btor->mm, stack, real_cur->e[2]);
