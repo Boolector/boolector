@@ -1192,7 +1192,7 @@ static inline int
 select_rand_range_move (Btor *btor, BtorNodePtrStack *candidates, int gw)
 {
   double sc, rand_max_score = -1.0;
-  int i, up, cup, n_endpos, done = 0;
+  int i, up, cup, clo, n_endpos, done = 0;
   BtorSLSMove *m;
   BtorSLSMoveKind mk;
   BitVector *ass;
@@ -1223,16 +1223,22 @@ select_rand_range_move (Btor *btor, BtorNodePtrStack *candidates, int gw)
       ass = (BitVector *) btor_get_bv_model (btor, can);
       assert (ass);
 
+      clo = 0;
       cup = up;
-
       if (up >= ass->width)
       {
         if ((up - 1) / 2 < ass->width) n_endpos += 1;
         cup = ass->width - 1;
       }
 
+      /* range from LSB rather than MSB with given prob */
+      if (btor_pick_rand_rng (&btor->rng, 0, BTOR_SLS_PROB_RANGE_LSB_VS_MSB))
+      {
+        clo = ass->width - 1 - cup;
+        cup = ass->width - 1;
+      }
       btor_insert_in_ptr_hash_table (cans, can)->data.asPtr =
-          btor_new_random_range_bv (btor->mm, &btor->rng, ass->width, cup, 0);
+          btor_new_random_range_bv (btor->mm, &btor->rng, ass->width, cup, clo);
     }
 
     sc = try_move (btor, &bv_model, score, cans);
@@ -1424,7 +1430,10 @@ select_move (Btor *btor, BtorNodePtrStack *candidates)
       /* pick neighbor with randomized bit range (best guess) */
       else if (btor->options.sls_move_rand_range.val)
       {
+        assert (!BTOR_COUNT_STACK (cans));
+        BTOR_PUSH_STACK (btor->mm, cans, can);
         select_rand_range_move (btor, &cans, 0);
+        BTOR_RESET_STACK (cans);
         assert (btor->sls_solver->max_cans->count == 1);
         assert (btor->sls_solver->max_cans->first->key == can);
       }
