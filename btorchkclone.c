@@ -902,7 +902,7 @@ btor_chkclone_slv (Btor *btor)
   if (!btor->slv) return;
   assert (btor->slv->kind == btor->clone->slv->kind);
 
-  if (btor->slv->kind == BTOR_CORE_SOLVER)
+  if (btor->slv->kind == BTOR_CORE_SOLVER_KIND)
   {
     BtorCoreSolver *slv  = BTOR_CORE_SOLVER (btor);
     BtorCoreSolver *cslv = BTOR_CORE_SOLVER (btor->clone);
