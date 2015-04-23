@@ -1096,7 +1096,7 @@ clone_aux_btor (Btor *btor,
 #ifndef NDEBUG
   if (clone->slv)
   {
-    if (clone->slv->kind == BTOR_CORE_SOLVER)
+    if (clone->slv->kind == BTOR_CORE_SOLVER_KIND)
     {
       BtorCoreSolver *slv  = BTOR_CORE_SOLVER (btor);
       BtorCoreSolver *cslv = BTOR_CORE_SOLVER (clone);
