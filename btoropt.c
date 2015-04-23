@@ -113,12 +113,8 @@ btor_init_opts (Btor *btor)
   BTOR_OPT ("m", model_gen, 0, 0, 2, "print model for satisfiable instances");
 
   BTOR_OPT ("i", incremental, 0, 0, 1, "incremental usage (SMT1 only)");
-  BTOR_OPT ("I",
-            incremental_all,
-            0,
-            0,
-            1,
-            "incremental usage, solve all (SMT1 only)");
+  BTOR_OPT (
+      "I", incremental_all, 0, 0, 1, "incremental, solve all (SMT1 only)");
 
   BTOR_OPT (0,
             input_format,
@@ -151,7 +147,7 @@ btor_init_opts (Btor *btor)
             0,
             0,
             1,
-            "probe '-bra' until given LOD or SAT limit");
+            "probe -bra until given LOD or SAT limit");
   BTOR_OPT (0, pbra_lod_limit, 10, 0, -1, "LOD limit (#lemmas) for -pbra");
   BTOR_OPT (
       0, pbra_sat_limit, 55000, 0, -1, "SAT limit (#conflicts) for -pbra");
@@ -179,6 +175,7 @@ btor_init_opts (Btor *btor)
   BTOR_OPT ("es", eliminate_slices, 1, 0, 1, "eliminate slices on variables");
   BTOR_OPT ("ac", auto_cleanup, 0, 0, 1, "auto cleanup on exit");
   BTOR_OPT ("p", pretty_print, 1, 0, 1, "pretty print when dumping");
+  BTOR_OPT ("e", exit_codes, 1, 0, 1, "use Boolector exit codes");
 #ifndef NBTORLOG
   BTOR_OPT ("l", loglevel, 0, 0, BTORLOG_LEVEL_MAX, "increase loglevel");
 #endif
