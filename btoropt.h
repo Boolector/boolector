@@ -76,6 +76,7 @@ typedef struct BtorOpt
 #endif
 #define BTOR_OPT_AUTO_CLEANUP "auto_cleanup"
 #define BTOR_OPT_PRETTY_PRINT "pretty_print"
+#define BTOR_OPT_EXIT_CODES "exit_codes"
 #define BTOR_OPT_LOGLEVEL "loglevel"
 #define BTOR_OPT_VERBOSITY "verbosity"
 #define BTOR_OPT_SIMPLIFY_CONSTRAINTS "simplify_constraints"
@@ -136,6 +137,8 @@ typedef struct BtorOpts
   BtorOpt auto_cleanup; /* automatic cleanup of exps, assignment
                            strings (external references only) */
   BtorOpt pretty_print; /* reindex exps and sorts when dumping */
+  BtorOpt exit_codes;   /* use Boolector exit codes rather than
+                           returning 0 on success and 1 on error */
 #ifndef NBTORLOG
   BtorOpt loglevel;
 #endif
