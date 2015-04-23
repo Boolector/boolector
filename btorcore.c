@@ -7946,6 +7946,7 @@ clone_core_solver (Btor *clone, Btor *btor, BtorNodeMap *exp_map)
 {
   assert (clone);
   assert (btor);
+  assert (exp_map);
 
   int h;
   BtorCoreSolver *slv;
@@ -8054,7 +8055,6 @@ static int
 sat_core_solver (Btor *btor, int lod_limit, int sat_limit)
 {
   assert (btor);
-  assert (btor->slv);
 
   BtorCoreSolver *slv;
   int sat_result, found_conflict;
@@ -8069,6 +8069,7 @@ sat_core_solver (Btor *btor, int lod_limit, int sat_limit)
 #endif
 
   slv = BTOR_CORE_SOLVER (btor);
+  assert (slv);
 
   clone      = 0;
   clone_root = 0;
