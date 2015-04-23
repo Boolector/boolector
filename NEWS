@@ -1,3 +1,4 @@
+* added option to (en|di)sable use of Boolector exit codes
 * fixed help message issues
 * fixed option handling issues
 * improved SMT dumpers

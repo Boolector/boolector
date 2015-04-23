@@ -1363,6 +1363,16 @@ DONE:
     pclose (g_app->infile);
   if (g_app->close_outfile) fclose (g_app->outfile);
 
+  if (!boolector_get_opt_val (g_app->btor, BTOR_OPT_EXIT_CODES))
+  {
+    switch (res)
+    {
+      case BTOR_UNSAT_EXIT:
+      case BTOR_SAT_EXIT: res = BTOR_SUCC_EXIT; break;
+      default: res = BTOR_ERR_EXIT;
+    }
+  }
+
   BTOR_RELEASE_STACK (g_app->mm, errarg);
   BTOR_RELEASE_STACK (g_app->mm, opt);
   btormain_delete_btormain (g_app);

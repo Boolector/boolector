@@ -175,6 +175,7 @@ btor_init_opts (Btor *btor)
   BTOR_OPT ("es", eliminate_slices, 1, 0, 1, "eliminate slices on variables");
   BTOR_OPT ("ac", auto_cleanup, 0, 0, 1, "auto cleanup on exit");
   BTOR_OPT ("p", pretty_print, 1, 0, 1, "pretty print when dumping");
+  BTOR_OPT ("e", exit_codes, 1, 0, 1, "use Boolector exit codes");
 #ifndef NBTORLOG
   BTOR_OPT ("l", loglevel, 0, 0, BTORLOG_LEVEL_MAX, "increase loglevel");
 #endif
