@@ -21,14 +21,14 @@ inline static bool is_idxinc_pattern (BtorNode *, BtorNode *);
 inline static bool is_memcopy_pattern (BtorNode *, BtorNode *);
 static void memcopy_pattern_get_arguments (BtorNode *index,
                                            BtorNode *value,
-                                           BtorNode **dst_array,
+                                           BtorNode **src_array,
                                            BtorNode **src,
                                            BtorNode **dst,
                                            BtorNode **off);
 
 struct MemcopyOp
 {
-  BtorNode *dst_array;
+  BtorNode *src_array;
   BtorNode *src_addr;
   BtorNode *dst_addr;
   BtorNode *index;
@@ -48,7 +48,7 @@ new_memcopy_op (BtorMemMgr *mm, BtorNode *index, BtorNode *value)
   BTOR_NEW (mm, res);
   memcopy_pattern_get_arguments (index,
                                  value,
-                                 &res->dst_array,
+                                 &res->src_array,
                                  &res->src_addr,
                                  &res->dst_addr,
                                  &res->index);
@@ -156,9 +156,9 @@ cmp_memcopy_op (const void *a, const void *b)
   op_a = *((MemcopyOp **) a);
   op_b = *((MemcopyOp **) b);
 
-  if (op_a->dst_array != op_b->dst_array)
-    return BTOR_REAL_ADDR_NODE (op_a->dst_array)->id
-           - BTOR_REAL_ADDR_NODE (op_b->dst_array)->id;
+  if (op_a->src_array != op_b->src_array)
+    return BTOR_REAL_ADDR_NODE (op_a->src_array)->id
+           - BTOR_REAL_ADDR_NODE (op_b->src_array)->id;
 
   b0 = BTOR_CONST_GET_BITS (op_a->index);
   b1 = BTOR_CONST_GET_BITS (op_b->index);
@@ -361,23 +361,23 @@ static inline BtorNode *
 create_pattern_memcopy (Btor *btor,
                         MemcopyOp *lower,
                         MemcopyOp *upper,
-                        BtorNode *array,
+                        BtorNode *dst_array,
                         char *offset)
 {
   assert (lower->dst_addr == upper->dst_addr);
   assert (lower->src_addr == upper->src_addr);
 
-  BtorNode *res, *param, *ite, *read, *cond, *read_cpy, *add, *sub;
+  BtorNode *res, *param, *ite, *read, *cond, *read_src, *add, *sub;
 
   param =
       btor_param_exp (btor, btor_get_exp_width (btor, lower->orig_index), 0);
-  read = btor_read_exp (btor, array, param);
+  read = btor_read_exp (btor, dst_array, param);
   cond =
       create_range (btor, lower->orig_index, upper->orig_index, param, offset);
   sub      = btor_sub_exp (btor, param, lower->dst_addr);
   add      = btor_add_exp (btor, lower->src_addr, sub);
-  read_cpy = btor_read_exp (btor, lower->dst_array, add);
-  ite      = btor_cond_exp (btor, cond, read_cpy, read);
+  read_src = btor_read_exp (btor, lower->src_array, add);
+  ite      = btor_cond_exp (btor, cond, read_src, read);
   res      = btor_lambda_exp (btor, param, ite);
 
   btor_release_exp (btor, param);
@@ -385,7 +385,7 @@ create_pattern_memcopy (Btor *btor,
   btor_release_exp (btor, cond);
   btor_release_exp (btor, sub);
   btor_release_exp (btor, add);
-  btor_release_exp (btor, read_cpy);
+  btor_release_exp (btor, read_src);
   btor_release_exp (btor, ite);
   return res;
 }
@@ -514,7 +514,7 @@ is_memcopy_pattern (BtorNode *index, BtorNode *value)
 static void
 memcopy_pattern_get_arguments (BtorNode *index,
                                BtorNode *value,
-                               BtorNode **dst_array,
+                               BtorNode **src_array,
                                BtorNode **src,
                                BtorNode **dst,
                                BtorNode **off)
@@ -526,7 +526,7 @@ memcopy_pattern_get_arguments (BtorNode *index,
   bvadd_get_base_and_offset (index, dst, off);
   bvadd      = value->e[1]->e[0];
   *src       = bvadd->e[0] == *off ? bvadd->e[1] : bvadd->e[0];
-  *dst_array = value->e[0];
+  *src_array = value->e[0];
 }
 
 inline static bool
@@ -538,12 +538,12 @@ is_equal_memcopy_pattern (BtorNode *index0,
   assert (is_memcopy_pattern (index0, value0));
   assert (is_memcopy_pattern (index1, value1));
 
-  BtorNode *dst_array0, *src0, *dst0, *off0, *dst_array1, *src1, *dst1, *off1;
+  BtorNode *src_array0, *src0, *dst0, *off0, *src_array1, *src1, *dst1, *off1;
 
   memcopy_pattern_get_arguments (
-      index0, value0, &dst_array0, &src0, &dst0, &off0);
+      index0, value0, &src_array0, &src0, &dst0, &off0);
   memcopy_pattern_get_arguments (
-      index1, value1, &dst_array1, &src1, &dst1, &off1);
+      index1, value1, &src_array1, &src1, &dst1, &off1);
 #if 0
   printf ("***\n");
   printf ("%s\n", node2string (src0));
@@ -726,15 +726,21 @@ collect_indices_writes (Btor *btor,
                  && (!prev_index
                      || (is_memcopy_pattern (prev_index, prev_value)
                          && is_equal_memcopy_pattern (
-                                index, value, prev_index, prev_value))))
+                                index, value, prev_index, prev_value)
+                         && (value->e[0] == prev_value->e[0]
+                             || value->e[0] == array))))
         {
           //		  printf ("index: "); btor_dump_smt2_node (btor, stdout,
-          // index, 2);
+          // index, 2); 		  printf ("value: "); btor_dump_smt2_node
+          // (btor, stdout, value, 2); 		  printf ("from: %s\n",
+          // node2string (value->e[0])); 		  printf ("array: ");
+          //printf ("%s\n", node2string (array));
           btor_insert_in_ptr_hash_table (index_cache, index);
           add_to_index_map (btor, map_value_index, lambda, index, value);
         }
         else
         {
+          //		  printf ("***\n");
           //		  printf ("  no const index: ");
           //		  btor_dump_smt2_node (btor, stdout, index, 2);
           BTOR_PUSH_STACK (mm, lambdas, array);
@@ -1410,8 +1416,7 @@ extract_lambdas (Btor *btor,
         assert (i_offset < BTOR_COUNT_STACK (offsets));
         offset = BTOR_PEEK_STACK (offsets, i_offset);
         //	      printf ("off: %s\n", offset);
-        tmp = create_pattern_memcopy (
-            btor, op_lower, op_upper, op_lower->dst_array, offset);
+        tmp = create_pattern_memcopy (btor, op_lower, op_upper, subst, offset);
         //	      btor_dump_smt2_node (btor, stdout, tmp, 3);
         btor_release_exp (btor, subst);
         subst = tmp;
