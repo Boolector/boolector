@@ -57,7 +57,9 @@ void btor_print_bv (BitVector *);
 void btor_print_all_bv (BitVector *);
 char *btor_bv_to_char_bv (BtorMemMgr *, const BitVector *);
 uint64_t btor_bv_to_uint64_bv (BitVector *);
+/* index 0 is LSB, width - 1 is MSB */
 int btor_get_bit_bv (const BitVector *, int);
+/* index 0 is LSB, width - 1 is MSB */
 void btor_set_bit_bv (BitVector *, int, int);
 int btor_is_true_bv (BitVector *);
 int btor_is_false_bv (BitVector *);
