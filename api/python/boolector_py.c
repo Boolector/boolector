@@ -8,6 +8,7 @@
  *  See COPYING for more information on using this software.
  */
 #include "boolector_py.h"
+#include "boolector.h"
 #include "btorabort.h"
 
 static int
