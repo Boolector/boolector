@@ -1255,7 +1255,7 @@ new_lambda_exp_node (Btor *btor, BtorNode *e_param, BtorNode *e_exp)
   assert (!btor_find_in_ptr_hash_table (btor->lambdas, lambda_exp));
   (void) btor_insert_in_ptr_hash_table (btor->lambdas, lambda_exp);
   /* set lambda expression of parameter */
-  BTOR_PARAM_SET_LAMBDA_NODE (e_param, lambda_exp);
+  BTOR_PARAM_SET_LAMBDA_NODE (e_param, (BtorNode *) lambda_exp);
   return (BtorNode *) lambda_exp;
 }
 

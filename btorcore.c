@@ -4040,8 +4040,8 @@ optimize_unconstrained (Btor *btor)
       {
         /* parameterized expressions are possibly unconstrained if the
          * lambda(s) parameterizing it do not have more than 1 parent */
-        lambda = (BtorNode *) BTOR_PARAM_GET_LAMBDA_NODE (
-            next_parameterized_iterator (&parit));
+        lambda =
+            BTOR_PARAM_GET_LAMBDA_NODE (next_parameterized_iterator (&parit));
         /* get head lambda of function */
         while (lambda->parents == 1)
         {
@@ -5939,8 +5939,7 @@ collect_premisses (Btor *btor,
           assert (i < t->num_args);
           arg = t->args[i++];
           assert (arg);
-          btor_assign_param (
-              btor, (BtorNode *) BTOR_PARAM_GET_LAMBDA_NODE (param), arg);
+          btor_assign_param (btor, BTOR_PARAM_GET_LAMBDA_NODE (param), arg);
         }
 
         result = btor_beta_reduce_bounded (btor, cond, 1);
@@ -5953,8 +5952,7 @@ collect_premisses (Btor *btor,
         while (has_next_parameterized_iterator (&pit))
         {
           param = next_parameterized_iterator (&pit);
-          btor_unassign_params (
-              btor, (BtorNode *) BTOR_PARAM_GET_LAMBDA_NODE (param));
+          btor_unassign_params (btor, BTOR_PARAM_GET_LAMBDA_NODE (param));
         }
       }
       else
