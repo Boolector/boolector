@@ -3232,7 +3232,10 @@ btor_simplify (Btor *btor)
     }
 #endif
 
-    if (btor->options.rewrite_level.val > 2) btor_extract_lambdas (btor);
+    if (btor->options.rewrite_level.val > 2
+        && !btor->options.beta_reduce_all.val
+        && btor->options.extract_lambdas.val)
+      btor_extract_lambdas (btor);
 
     if (btor->options.rewrite_level.val > 2
         /* merging lambdas not required if they get eliminated */

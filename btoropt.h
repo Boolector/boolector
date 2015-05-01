@@ -95,6 +95,7 @@ typedef struct BtorOpt
 #define BTOR_OPT_JUST_HEURISTIC "just_heuristic"
 #define BTOR_OPT_PARSE_INTERACTIVE "parse_interactive"
 #define BTOR_OPT_MERGE_LAMBDAS "merge_lambdas"
+#define BTOR_OPT_EXTRACT_LAMBDAS "extract_lambdas"
 
 typedef struct BtorOpts
 {
@@ -133,6 +134,7 @@ typedef struct BtorOpts
   BtorOpt eliminate_slices; /* eliminate slices on variables */
   BtorOpt eager_lemmas;     /* eager lemma generation */
   BtorOpt merge_lambdas;    /* merge lambda chains */
+  BtorOpt extract_lambdas;  /* extract lambda terms */
 
   BtorOpt auto_cleanup; /* automatic cleanup of exps, assignment
                            strings (external references only) */
