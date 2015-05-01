@@ -119,8 +119,8 @@ btor_optimize_unconstrained (Btor *btor)
       {
         /* parameterized expressions are possibly unconstrained if the
          * lambda(s) parameterizing it do not have more than 1 parent */
-        lambda = (BtorNode *) BTOR_PARAM_GET_LAMBDA_NODE (
-            next_parameterized_iterator (&parit));
+        lambda =
+            BTOR_PARAM_GET_LAMBDA_NODE (next_parameterized_iterator (&parit));
         /* get head lambda of function */
         while (lambda->parents == 1)
         {

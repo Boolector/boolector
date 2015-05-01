@@ -4914,8 +4914,7 @@ collect_premisses (Btor *btor,
           assert (i < t->num_args);
           arg = t->args[i++];
           assert (arg);
-          btor_assign_param (
-              btor, (BtorNode *) BTOR_PARAM_GET_LAMBDA_NODE (param), arg);
+          btor_assign_param (btor, BTOR_PARAM_GET_LAMBDA_NODE (param), arg);
         }
 
         result = btor_beta_reduce_bounded (btor, cond, 1);
@@ -4928,8 +4927,7 @@ collect_premisses (Btor *btor,
         while (has_next_parameterized_iterator (&pit))
         {
           param = next_parameterized_iterator (&pit);
-          btor_unassign_params (
-              btor, (BtorNode *) BTOR_PARAM_GET_LAMBDA_NODE (param));
+          btor_unassign_params (btor, BTOR_PARAM_GET_LAMBDA_NODE (param));
         }
       }
       else
