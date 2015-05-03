@@ -491,7 +491,7 @@ is_idxinc_pattern (BtorNode *index, BtorNode *value)
 inline static bool
 is_memcopy_pattern (BtorNode *index, BtorNode *value)
 {
-  BtorNode *src, *bvadd, *dst, *offset;
+  BtorNode *bvadd, *dst, *offset;
 
   if (BTOR_IS_INVERTED_NODE (index) || !BTOR_IS_ADD_NODE (index)
       || BTOR_IS_INVERTED_NODE (value) || !BTOR_IS_APPLY_NODE (value)
@@ -499,7 +499,12 @@ is_memcopy_pattern (BtorNode *index, BtorNode *value)
       || !BTOR_IS_ADD_NODE (value->e[1]->e[0]))
     return false;
 
-  bvadd_get_base_and_offset (index, &src, &offset);
+  if (BTOR_IS_BV_CONST_NODE (BTOR_REAL_ADDR_NODE (index->e[0])))
+    offset = index->e[0];
+  else if (BTOR_IS_BV_CONST_NODE (BTOR_REAL_ADDR_NODE (index->e[1])))
+    offset = index->e[1];
+  else
+    return false;
 
   bvadd = value->e[1]->e[0];
   dst   = 0;
