@@ -844,12 +844,16 @@ collect_indices_top_eqs (Btor *btor, BtorPtrHashTable *map_value_index)
   }
 }
 
-unsigned
+void
 find_ranges (Btor *btor,
              BtorNodePtrStack *stack,
              BtorNodePtrStack *ranges,
              BtorCharPtrStack *offsets,
-             BtorNodePtrStack *indices)
+             BtorNodePtrStack *indices,
+             unsigned *res_num_memset,
+             unsigned *res_num_memset_inc,
+             unsigned *res_range_size,
+             unsigned *res_range_size_inc)
 {
   assert (stack);
   assert (ranges);
@@ -861,7 +865,8 @@ find_ranges (Btor *btor,
 #endif
   bool in_range;
   char *b0, *b1, *diff, *last_diff;
-  unsigned cnt, lower, upper, range_size = 0;
+  unsigned cnt, lower, upper, range_size = 0, range_size_inc = 0;
+  unsigned num_memset = 0, num_memset_inc = 0;
   BtorNode *n0, *n1;
   BtorMemMgr *mm;
   BtorNodePtrStack index_stack;
@@ -869,7 +874,7 @@ find_ranges (Btor *btor,
   mm          = btor->mm;
   index_stack = *stack;
   cnt         = BTOR_COUNT_STACK (index_stack);
-  if (cnt == 0) return 0;
+  if (cnt == 0) return;
   if (cnt == 1)
     BTOR_PUSH_STACK (mm, *indices, BTOR_PEEK_STACK (index_stack, 0));
   else
@@ -944,7 +949,16 @@ find_ranges (Btor *btor,
 #ifndef NDEBUG
           num_indices += upper - lower + 1;
 #endif
-          range_size += upper - lower + 1;
+          if (btor_is_one_const (last_diff))
+          {
+            range_size += upper - lower + 1;
+            num_memset++;
+          }
+          else
+          {
+            range_size_inc += upper - lower + 1;
+            num_memset_inc++;
+          }
           //			  printf ("range %d:%d\n", lower, upper);
           /* 'last_diff' will be released later */
           last_diff = 0;
@@ -962,7 +976,10 @@ find_ranges (Btor *btor,
     if (diff) btor_delete_const (mm, diff);
     assert (num_indices == cnt);
   }
-  return range_size;
+  if (res_num_memset) *res_num_memset += num_memset;
+  if (res_num_memset_inc) *res_num_memset_inc += num_memset_inc;
+  if (res_range_size) *res_range_size += range_size;
+  if (res_range_size_inc) *res_range_size_inc += range_size_inc;
 }
 
 #if 0
@@ -1237,6 +1254,8 @@ extract_lambdas (Btor *btor,
   unsigned num_patterns = 0, num_writes = 0;
   unsigned num_pat_memset = 0, num_pat_idxidx = 0, num_pat_idxinc = 0;
   unsigned num_pat_memcopy = 0, num_indices_memset = 0, num_indices_memcopy = 0;
+  unsigned num_pat_memset_inc = 0, num_indices_memset_inc = 0;
+  unsigned num_indices_idxidx = 0, num_indices_idxinc = 0;
   char *offset;
   BtorNode *subst, *base, *tmp, *array, *value, *lower, *upper;
   BtorHashTableIterator it, iit;
@@ -1274,8 +1293,15 @@ extract_lambdas (Btor *btor,
       stack = iit.bucket->data.asPtr;
       value = next_node_hash_table_iterator (&iit);
       assert (stack);
-      num_indices_memset +=
-          find_ranges (btor, stack, &ranges, &offsets, &indices);
+      find_ranges (btor,
+                   stack,
+                   &ranges,
+                   &offsets,
+                   &indices,
+                   &num_pat_memset,
+                   &num_pat_memset_inc,
+                   &num_indices_memset,
+                   &num_indices_memset_inc);
       BTOR_RELEASE_STACK (mm, *stack);
       BTOR_DELETE (mm, stack);
       BTOR_PUSH_STACK (mm, ranges, 0);
@@ -1331,7 +1357,6 @@ extract_lambdas (Btor *btor,
         subst = tmp;
         btor_delete_const (mm, offset);
         i_offset++;
-        num_pat_memset++;
       }
 
       /* find patterns that are dependent on the current index */
@@ -1366,7 +1391,15 @@ extract_lambdas (Btor *btor,
     /* pattern: index = index */
     BTOR_RESET_STACK (ranges);
     BTOR_RESET_STACK (offsets);
-    find_ranges (btor, &idxidx, &ranges, &offsets, &remidx);
+    find_ranges (btor,
+                 &idxidx,
+                 &ranges,
+                 &offsets,
+                 &remidx,
+                 &num_pat_idxidx,
+                 &num_pat_idxidx,
+                 &num_indices_idxidx,
+                 &num_indices_idxinc);
     if (!BTOR_EMPTY_STACK (ranges))
     {
       assert (BTOR_COUNT_STACK (ranges) % 2 == 0);
@@ -1382,14 +1415,21 @@ extract_lambdas (Btor *btor,
         subst = tmp;
         btor_delete_const (mm, offset);
         i_offset++;
-        num_pat_idxidx++;
       }
     }
 
     /* pattern: index = index + 1 */
     BTOR_RESET_STACK (ranges);
     BTOR_RESET_STACK (offsets);
-    find_ranges (btor, &idxinc, &ranges, &offsets, &remidx);
+    find_ranges (btor,
+                 &idxinc,
+                 &ranges,
+                 &offsets,
+                 &remidx,
+                 &num_pat_idxinc,
+                 &num_pat_idxinc,
+                 &num_indices_idxinc,
+                 &num_indices_idxinc);
     if (!BTOR_EMPTY_STACK (ranges))
     {
       assert (BTOR_COUNT_STACK (ranges) % 2 == 0);
@@ -1405,7 +1445,6 @@ extract_lambdas (Btor *btor,
         subst = tmp;
         btor_delete_const (mm, offset);
         i_offset++;
-        num_pat_idxinc++;
       }
     }
 
@@ -1495,12 +1534,19 @@ extract_lambdas (Btor *btor,
 
   BTOR_MSG (btor->msg,
             1,
-            "extracted %u memsets (%u), %u idxidx, %u idxinc, "
+            "extracted %u memsets (%u), "
+            "%u memset_inc (%u), "
+            "%u idxidx (%u), "
+            "%u idxinc (%u), "
             "%u memcopies (%u)",
             num_pat_memset,
             num_indices_memset,
+            num_pat_memset_inc,
+            num_indices_memset_inc,
             num_pat_idxidx,
+            num_indices_idxidx,
             num_pat_idxinc,
+            num_indices_idxinc,
             num_pat_memcopy,
             num_indices_memcopy);
   return num_pat_memset + num_pat_idxidx + num_pat_idxinc + num_pat_memcopy;
