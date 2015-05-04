@@ -645,7 +645,7 @@ collect_indices_writes (Btor *btor,
   visit_cache = btor_new_ptr_hash_table (mm, 0, 0);
 
   /* collect lambdas that are at the top of lambda chains */
-  init_node_hash_table_iterator (&it, btor->lambdas);
+  init_reversed_hash_table_iterator (&it, btor->lambdas);
   while (has_next_node_hash_table_iterator (&it))
   {
     lambda = next_node_hash_table_iterator (&it);
@@ -735,6 +735,11 @@ collect_indices_writes (Btor *btor,
                          && (value->e[0] == prev_value->e[0]
                              || value->e[0] == array))))
         {
+          /* optimization for memcopy: do not visit lambdas that are
+           * only accessed via this lambda (reduces number of redundant
+           * memcopy patterns) */
+          if (value->e[0] == array && array->parents == 2)
+            btor_insert_in_ptr_hash_table (visit_cache, array);
           //		  printf ("index: "); btor_dump_smt2_node (btor, stdout,
           // index, 2); 		  printf ("value: "); btor_dump_smt2_node
           // (btor, stdout, value, 2); 		  printf ("from: %s\n",
