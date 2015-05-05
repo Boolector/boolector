@@ -255,6 +255,41 @@ binary_bitvec (char *(*const_func) (BtorMemMgr *, const char *, const char *),
 }
 
 static void
+ext_bitvec (char *(*const_func) (BtorMemMgr *, const char *, int),
+            BitVector *(*bitvec_func) (BtorMemMgr *, BitVector *, int),
+            int num_tests,
+            int bit_width)
+{
+  assert (const_func);
+  assert (bitvec_func);
+
+  int i, bw;
+  char *c_a, *c_res, *str;
+  BitVector *a, *res;
+
+  printf (" %d", bit_width);
+  fflush (stdout);
+  for (i = 0; i < num_tests; i++)
+  {
+    a     = random_bv (bit_width);
+    c_a   = btor_bv_to_char_bv (g_mm, a);
+    bw    = btor_pick_rand_rng (&g_btor->rng, a->width + 1, 100);
+    c_res = const_func (g_mm, c_a, bw);
+    res   = bitvec_func (g_mm, a, bw);
+    str   = btor_bv_to_char_bv (g_mm, res);
+
+    assert (strlen (str) == strlen (c_res));
+    assert (memcmp (c_res, str, strlen (str)) == 0);
+
+    btor_freestr (g_mm, str);
+    btor_delete_const (g_mm, c_res);
+    btor_free_bv (g_mm, res);
+    btor_delete_const (g_mm, c_a);
+    btor_free_bv (g_mm, a);
+  }
+}
+
+static void
 test_not_bitvec (void)
 {
   unary_bitvec (btor_not_const, btor_not_bv, BTOR_TEST_BITVEC_TESTS, 1);
@@ -424,6 +459,32 @@ test_srl_bitvec (void)
   shift_bitvec (btor_srl_const, btor_srl_bv, BTOR_TEST_BITVEC_TESTS, 32);
   shift_bitvec (btor_srl_const, btor_srl_bv, BTOR_TEST_BITVEC_TESTS, 64);
   shift_bitvec (btor_srl_const, btor_srl_bv, BTOR_TEST_BITVEC_TESTS, 128);
+}
+
+static void
+test_uext_bitvec (void)
+{
+  ext_bitvec (btor_uext_const, btor_uext_bv, BTOR_TEST_BITVEC_TESTS, 1);
+  ext_bitvec (btor_uext_const, btor_uext_bv, BTOR_TEST_BITVEC_TESTS, 7);
+  ext_bitvec (btor_uext_const, btor_uext_bv, BTOR_TEST_BITVEC_TESTS, 31);
+  ext_bitvec (btor_uext_const, btor_uext_bv, BTOR_TEST_BITVEC_TESTS, 33);
+  ext_bitvec (btor_uext_const,
+              btor_uext_bv,
+              BTOR_TEST_BITVEC_TESTS,
+              BTOR_TEST_BITVEC_NUM_BITS);
+}
+
+static void
+test_sext_bitvec (void)
+{
+  ext_bitvec (btor_sext_const, btor_sext_bv, BTOR_TEST_BITVEC_TESTS, 1);
+  ext_bitvec (btor_sext_const, btor_sext_bv, BTOR_TEST_BITVEC_TESTS, 7);
+  ext_bitvec (btor_sext_const, btor_sext_bv, BTOR_TEST_BITVEC_TESTS, 31);
+  ext_bitvec (btor_sext_const, btor_sext_bv, BTOR_TEST_BITVEC_TESTS, 33);
+  ext_bitvec (btor_sext_const,
+              btor_sext_bv,
+              BTOR_TEST_BITVEC_TESTS,
+              BTOR_TEST_BITVEC_NUM_BITS);
 }
 
 static void

@@ -2,6 +2,7 @@
  *
  *  Copyright (C) 2007-2009 Robert Daniel Brummayer.
  *  Copyright (C) 2007-2014 Armin Biere.
+ *  Copyright (C) 2015 Aina Niemetz.
  *
  *  All rights reserved.
  *
@@ -1500,6 +1501,34 @@ btor_uext_const (BtorMemMgr *mm, const char *c, int len)
   BTOR_NEWN (mm, res, rlen + 1);
 
   for (q = res; len; len--, q++) *q = '0';
+
+  for (p = c; *p; p++, q++) *q = *p;
+
+  assert (res + rlen == q);
+  *q = 0;
+
+  return res;
+}
+
+char *
+btor_sext_const (BtorMemMgr *mm, const char *c, int len)
+{
+  char ch;
+  char *res, *q;
+  const char *p;
+  int rlen;
+
+  assert (mm != NULL);
+  assert (c != NULL);
+  assert (len > 0);
+  assert (is_valid_const (c));
+
+  rlen = (int) strlen (c) + len;
+
+  BTOR_NEWN (mm, res, rlen + 1);
+
+  ch = c[0] == '0' ? '0' : '1';
+  for (q = res; len; len--, q++) *q = ch;
 
   for (p = c; *p; p++, q++) *q = *p;
 

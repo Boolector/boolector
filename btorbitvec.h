@@ -12,6 +12,7 @@
 #ifndef BTORCONSTBV_H_INCLUDED
 #define BTORCONSTBV_H_INCLUDED
 
+#include <stdbool.h>
 #include <stdint.h>
 #include "btorexp.h"
 #include "utils/btormem.h"
@@ -50,14 +51,16 @@ BitVector *btor_copy_bv (BtorMemMgr *, BitVector *);
 size_t btor_size_bv (BitVector *);
 void btor_free_bv (BtorMemMgr *, BitVector *);
 int btor_compare_bv (BitVector *, BitVector *);
-int btor_is_zero_bv (const BitVector *);
+bool btor_is_zero_bv (const BitVector *);
 unsigned int btor_hash_bv (BitVector *);
 
 void btor_print_bv (BitVector *);
 void btor_print_all_bv (BitVector *);
 char *btor_bv_to_char_bv (BtorMemMgr *, const BitVector *);
 uint64_t btor_bv_to_uint64_bv (BitVector *);
+/* index 0 is LSB, width - 1 is MSB */
 int btor_get_bit_bv (const BitVector *, int);
+/* index 0 is LSB, width - 1 is MSB */
 void btor_set_bit_bv (BitVector *, int, int);
 int btor_is_true_bv (BitVector *);
 int btor_is_false_bv (BitVector *);
@@ -81,6 +84,8 @@ BitVector *btor_udiv_bv (BtorMemMgr *, BitVector *, BitVector *);
 BitVector *btor_urem_bv (BtorMemMgr *, BitVector *, BitVector *);
 BitVector *btor_concat_bv (BtorMemMgr *, BitVector *, BitVector *);
 BitVector *btor_slice_bv (BtorMemMgr *, BitVector *, int, int);
+BitVector *btor_uext_bv (BtorMemMgr *, BitVector *, int);
+BitVector *btor_sext_bv (BtorMemMgr *, BitVector *, int);
 
 /*------------------------------------------------------------------------*/
 

@@ -40,10 +40,10 @@
 #define BTOR_SLS_PROB_SINGLE_VS_GW 20
 /* randomize all candidates rather than one only */
 #define BTOR_SLS_PROB_RAND_ALL_VS_ONE 1
-/* start ranges from LSB rather than MSB */
-#define BTOR_SLS_PROB_RANGE_LSB_VS_MSB 1
-/* start segments from LSB rather than MSB */
-#define BTOR_SLS_PROB_SEG_LSB_VS_MSB 1
+/* start ranges from MSB rather than LSB */
+#define BTOR_SLS_PROB_RANGE_MSB_VS_LSB 1
+/* start segments from MSB rather than LSB */
+#define BTOR_SLS_PROB_SEG_MSB_VS_LSB 1
 
 BTOR_DECLARE_STACK (BitVectorPtr, BitVector *);
 
@@ -1085,8 +1085,8 @@ select_flip_range_move (Btor *btor, BtorNodePtrStack *candidates, int gw)
 
       b = btor_insert_in_ptr_hash_table (cans, can);
 
-      /* range from LSB rather than MSB with given prob */
-      if (btor_pick_rand_rng (&btor->rng, 0, BTOR_SLS_PROB_RANGE_LSB_VS_MSB))
+      /* range from MSB rather than LSB with given prob */
+      if (btor_pick_rand_rng (&btor->rng, 0, BTOR_SLS_PROB_RANGE_MSB_VS_LSB))
       {
         clo = ass->width - 1 - cup;
         cup = ass->width - 1;
@@ -1163,8 +1163,8 @@ select_flip_segment_move (Btor *btor, BtorNodePtrStack *candidates, int gw)
 
         b = btor_insert_in_ptr_hash_table (cans, can);
 
-        /* range from LSB rather than MSB with given prob */
-        if (btor_pick_rand_rng (&btor->rng, 0, BTOR_SLS_PROB_SEG_LSB_VS_MSB))
+        /* range from MSB rather than LSB with given prob */
+        if (btor_pick_rand_rng (&btor->rng, 0, BTOR_SLS_PROB_SEG_MSB_VS_LSB))
         {
           ctmp = clo;
           clo  = ass->width - 1 - cup;
@@ -1231,8 +1231,8 @@ select_rand_range_move (Btor *btor, BtorNodePtrStack *candidates, int gw)
         cup = ass->width - 1;
       }
 
-      /* range from LSB rather than MSB with given prob */
-      if (btor_pick_rand_rng (&btor->rng, 0, BTOR_SLS_PROB_RANGE_LSB_VS_MSB))
+      /* range from MSB rather than LSB with given prob */
+      if (btor_pick_rand_rng (&btor->rng, 0, BTOR_SLS_PROB_RANGE_MSB_VS_LSB))
       {
         clo = ass->width - 1 - cup;
         cup = ass->width - 1;

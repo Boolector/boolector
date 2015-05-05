@@ -16,7 +16,7 @@
 #include "btorcore.h"
 #include "utils/btorutil.h"
 
-#include "limits.h"
+#include <limits.h>
 
 #define BTOR_MASK_REM_BITS(bv)                       \
   ((((BTOR_BV_TYPE) 1 << (BTOR_BV_TYPE_BW - 1)) - 1) \
@@ -245,15 +245,15 @@ btor_compare_bv (BitVector *a, BitVector *b)
   return -1;
 }
 
-int
+bool
 btor_is_zero_bv (const BitVector *bv)
 {
   assert (bv);
 
   int i;
   for (i = 0; i < bv->len; i++)
-    if (bv->bits[i] != 0) return 1;
-  return 0;
+    if (bv->bits[i] != 0) return false;
+  return true;
 }
 
 unsigned int
@@ -902,6 +902,41 @@ btor_slice_bv (BtorMemMgr *mm, BitVector *bv, int upper, int lower)
     btor_set_bit_bv (res, j++, btor_get_bit_bv (bv, i));
 
   assert (rem_bits_zero_dbg (res));
+  return res;
+}
+
+BitVector *
+btor_sext_bv (BtorMemMgr *mm, BitVector *bv, int len)
+{
+  assert (mm);
+  assert (bv);
+  assert (len);
+
+  int i;
+  BitVector *res;
+
+  res = btor_new_bv (mm, bv->width + len);
+  memcpy (res->bits, bv->bits, sizeof (*(bv->bits)) * bv->len);
+  i = (bv->width % BTOR_BV_TYPE_BW);
+  if (btor_get_bit_bv (bv, bv->width - 1))
+    res->bits[0] |= (((uint64_t) -1) >> i) << i;
+
+  return res;
+}
+
+BitVector *
+btor_uext_bv (BtorMemMgr *mm, BitVector *bv, int len)
+{
+  assert (mm);
+  assert (bv);
+  assert (len);
+
+  int i;
+  BitVector *res;
+
+  res = btor_new_bv (mm, bv->width + len);
+  for (i = bv->len - 1; i >= 0; i++) res->bits[i] = bv->bits[i];
+
   return res;
 }
 
