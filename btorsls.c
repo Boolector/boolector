@@ -581,15 +581,15 @@ select_candidates (Btor *btor, BtorNode *root, BtorNodePtrStack *candidates)
                     &btor->rng, 0, BTOR_COUNT_STACK (controlling) - 1)));
       }
     }
-    else if (btor->options.just.val && BTOR_IS_BCOND_NODE (real_cur))
-    {
-      BTOR_PUSH_STACK (btor->mm, stack, real_cur->e[0]);
-      bv = btor_get_bv_model (btor, real_cur->e[0]);
-      if (btor_is_zero_bv (bv))
-        BTOR_PUSH_STACK (btor->mm, stack, real_cur->e[2]);
-      else
-        BTOR_PUSH_STACK (btor->mm, stack, real_cur->e[1]);
-    }
+    //      else if (btor->options.just.val && BTOR_IS_BCOND_NODE (real_cur))
+    //	{
+    //	  BTOR_PUSH_STACK (btor->mm, stack, real_cur->e[0]);
+    //	  bv = btor_get_bv_model (btor, real_cur->e[0]);
+    //	  if (btor_is_zero_bv (bv))
+    //	    BTOR_PUSH_STACK (btor->mm, stack, real_cur->e[2]);
+    //	  else
+    //	    BTOR_PUSH_STACK (btor->mm, stack, real_cur->e[1]);
+    //	}
     else
     {
     PUSH_CHILDREN:
@@ -906,7 +906,7 @@ cmp_sls_moves_qsort (const void *move1, const void *move2)
       m->cans = cans;                                                          \
       m->sc   = (sc);                                                          \
       BTOR_PUSH_STACK (btor->mm, btor->sls_solver->moves, m);                  \
-      btor->sls_solver->sum_score += (sc);                                     \
+      btor->sls_solver->sum_score += m->sc;                                    \
     }                                                                          \
     else                                                                       \
     {                                                                          \
@@ -1777,7 +1777,8 @@ btor_sat_aux_btor_sls (Btor *btor)
     }
 
     for (j = 0, max_steps = BTOR_SLS_MAXSTEPS (i);
-         j < max_steps;  //|| btor->options.sls_move_prob_rand_walk.val;
+         j < max_steps;  //|| btor->options.sls_strategy.val ==
+                         // BTOR_SLS_STRAT_PROB_RAND_WALK;
          j++)
     {
       move (btor, nmoves++);
