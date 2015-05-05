@@ -16,7 +16,7 @@
 #include "btorcore.h"
 #include "utils/btorutil.h"
 
-#include "limits.h"
+#include <limits.h>
 
 #define BTOR_MASK_REM_BITS(bv)                       \
   ((((BTOR_BV_TYPE) 1 << (BTOR_BV_TYPE_BW - 1)) - 1) \
@@ -245,15 +245,15 @@ btor_compare_bv (BitVector *a, BitVector *b)
   return -1;
 }
 
-int
+bool
 btor_is_zero_bv (const BitVector *bv)
 {
   assert (bv);
 
   int i;
   for (i = 0; i < bv->len; i++)
-    if (bv->bits[i] != 0) return 1;
-  return 0;
+    if (bv->bits[i] != 0) return false;
+  return true;
 }
 
 unsigned int
