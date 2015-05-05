@@ -61,7 +61,7 @@ hamming_distance (Btor *btor, BitVector *bv1, BitVector *bv2)
   zero = btor_new_bv (btor->mm, bv1->width);
   ones = btor_not_bv (btor->mm, zero);
   bv   = btor_xor_bv (btor->mm, bv1, bv2);
-  for (res = 0; btor_is_zero_bv (bv); res++)
+  for (res = 0; !btor_is_zero_bv (bv); res++)
   {
     bvdec = btor_add_bv (btor->mm, bv, ones);
     tmp   = bv;
