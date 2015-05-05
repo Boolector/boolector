@@ -905,6 +905,41 @@ btor_slice_bv (BtorMemMgr *mm, BitVector *bv, int upper, int lower)
   return res;
 }
 
+BitVector *
+btor_sext_bv (BtorMemMgr *mm, BitVector *bv, int len)
+{
+  assert (mm);
+  assert (bv);
+  assert (len);
+
+  int i;
+  BitVector *res;
+
+  res = btor_new_bv (mm, bv->width + len);
+  memcpy (res->bits, bv->bits, sizeof (*(bv->bits)) * bv->len);
+  i = (bv->width % BTOR_BV_TYPE_BW);
+  if (btor_get_bit_bv (bv, bv->width - 1))
+    res->bits[0] |= (((uint64_t) -1) >> i) << i;
+
+  return res;
+}
+
+BitVector *
+btor_uext_bv (BtorMemMgr *mm, BitVector *bv, int len)
+{
+  assert (mm);
+  assert (bv);
+  assert (len);
+
+  int i;
+  BitVector *res;
+
+  res = btor_new_bv (mm, bv->width + len);
+  for (i = bv->len - 1; i >= 0; i++) res->bits[i] = bv->bits[i];
+
+  return res;
+}
+
 /*------------------------------------------------------------------------*/
 
 BitVectorTuple *

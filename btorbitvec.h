@@ -83,6 +83,8 @@ BitVector *btor_udiv_bv (BtorMemMgr *, BitVector *, BitVector *);
 BitVector *btor_urem_bv (BtorMemMgr *, BitVector *, BitVector *);
 BitVector *btor_concat_bv (BtorMemMgr *, BitVector *, BitVector *);
 BitVector *btor_slice_bv (BtorMemMgr *, BitVector *, int, int);
+BitVector *btor_uext_bv (BtorMemMgr *, BitVector *, int);
+BitVector *btor_sext_bv (BtorMemMgr *, BitVector *, int);
 
 /*------------------------------------------------------------------------*/
 
