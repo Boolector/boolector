@@ -707,6 +707,8 @@ run_bitvec_tests (int argc, char **argv)
   BTOR_RUN_TEST (mul_bitvec);
   BTOR_RUN_TEST (udiv_bitvec);
   BTOR_RUN_TEST (urem_bitvec);
+  BTOR_RUN_TEST (uext_bitvec);
+  BTOR_RUN_TEST (sext_bitvec);
 
   BTOR_RUN_TEST (perf_and_bitvec);
   BTOR_RUN_TEST (perf_eq_bitvec);
