@@ -256,6 +256,19 @@ btor_is_zero_bv (const BitVector *bv)
   return true;
 }
 
+bool
+btor_is_one_bv (const BitVector *bv)
+{
+  assert (bv);
+
+  int i;
+
+  if (bv->bits[bv->len - 1] != 1) return false;
+  for (i = 0; i < bv->len - 1; i++)
+    if (bv->bits[i] != 0) return false;
+  return true;
+}
+
 unsigned int
 btor_hash_bv (BitVector *bv)
 {
