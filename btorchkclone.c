@@ -871,8 +871,8 @@ btor_chkclone_tables (Btor *btor)
         assert (has_next_hash_table_iterator (&cnit));
         assert (!btor_compare_bv ((BtorBitVector *) nit.bucket->data.asPtr,
                                   (BtorBitVector *) cnit.bucket->data.asPtr));
-        assert (!btor_compare_bv_tuple ((BitVectorTuple *) nit.cur,
-                                        (BitVectorTuple *) cnit.cur));
+        assert (!btor_compare_bv_tuple ((BtorBitVectorTuple *) nit.cur,
+                                        (BtorBitVectorTuple *) cnit.cur));
         (void) next_hash_table_iterator (&nit);
         (void) next_hash_table_iterator (&cnit);
       }

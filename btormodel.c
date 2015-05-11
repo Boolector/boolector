@@ -91,7 +91,7 @@ delete_fun_model (Btor *btor, BtorPtrHashTable **fun_model)
   assert (btor);
   assert (fun_model);
 
-  BitVectorTuple *tup;
+  BtorBitVectorTuple *tup;
   BtorBitVector *value;
   BtorNode *cur;
   BtorHashTableIterator it1, it2;
@@ -108,7 +108,7 @@ delete_fun_model (Btor *btor, BtorPtrHashTable **fun_model)
     while (has_next_hash_table_iterator (&it2))
     {
       value = (BtorBitVector *) it2.bucket->data.asPtr;
-      tup   = (BitVectorTuple *) next_hash_table_iterator (&it2);
+      tup   = (BtorBitVectorTuple *) next_hash_table_iterator (&it2);
       btor_free_bv_tuple (btor->mm, tup);
       btor_free_bv (btor->mm, value);
     }
@@ -137,7 +137,7 @@ static void
 add_to_fun_model (Btor *btor,
                   BtorPtrHashTable *fun_model,
                   BtorNode *exp,
-                  BitVectorTuple *t,
+                  BtorBitVectorTuple *t,
                   BtorBitVector *value)
 {
   assert (btor);
@@ -172,7 +172,7 @@ static BtorBitVector *
 get_value_from_fun_model (Btor *btor,
                           BtorPtrHashTable *fun_model,
                           BtorNode *exp,
-                          BitVectorTuple *t)
+                          BtorBitVectorTuple *t)
 {
   assert (btor);
   assert (fun_model);
@@ -217,7 +217,7 @@ btor_recursively_compute_assignment (Btor *btor,
   BtorPtrHashBucket *b;
   BtorPtrHashTable *assigned, *reset_st, *param_model_cache;
   BtorBitVector *result = 0, *inv_result, **e;
-  BitVectorTuple *t;
+  BtorBitVectorTuple *t;
 
   mm = btor->mm;
 
@@ -593,7 +593,7 @@ compute_lambda_model (Btor *btor,
   BtorNode *c, *r, *real_c, *real_r, *parent;
   BtorNodePtrStack candidates;
   BtorNodeIterator it;
-  BitVectorTuple *t;
+  BtorBitVectorTuple *t;
 
   /* if we already have a model for 'exp', we don't need to compute one */
   if (exp->rho) return;
@@ -658,7 +658,7 @@ extract_models_from_functions_with_model (Btor *btor,
   int i, pos;
   BtorNode *cur, *arg, *value, *args;
   BtorBitVector *bv_arg, *bv_value;
-  BitVectorTuple *t;
+  BtorBitVectorTuple *t;
   BtorHashTableIterator it;
   BtorArgsIterator ait;
 
@@ -940,7 +940,7 @@ btor_generate_lambda_model_from_fun_model (Btor *btor,
   BtorSort *sort, *domain;
   BtorNodePtrStack params, consts;
   BtorBitVector *value;
-  BitVectorTuple *args;
+  BtorBitVectorTuple *args;
 
   BTOR_INIT_STACK (params);
   BTOR_INIT_STACK (consts);

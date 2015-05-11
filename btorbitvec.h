@@ -135,24 +135,24 @@ BtorBitVector *btor_gcd_ext_bv (Btor *btor,
 
 /*------------------------------------------------------------------------*/
 
-struct BitVectorTuple
+struct BtorBitVectorTuple
 {
   int arity;
   BtorBitVector **bv;
 };
 
-typedef struct BitVectorTuple BitVectorTuple;
+typedef struct BtorBitVectorTuple BtorBitVectorTuple;
 
-BitVectorTuple *btor_new_bv_tuple (BtorMemMgr *mm, int arity);
-BitVectorTuple *btor_copy_bv_tuple (BtorMemMgr *mm, BitVectorTuple *t);
+BtorBitVectorTuple *btor_new_bv_tuple (BtorMemMgr *mm, int arity);
+BtorBitVectorTuple *btor_copy_bv_tuple (BtorMemMgr *mm, BtorBitVectorTuple *t);
 
-size_t btor_size_bv_tuple (BitVectorTuple *t);
-void btor_free_bv_tuple (BtorMemMgr *mm, BitVectorTuple *t);
-int btor_compare_bv_tuple (BitVectorTuple *t0, BitVectorTuple *t1);
-unsigned int btor_hash_bv_tuple (BitVectorTuple *t);
+size_t btor_size_bv_tuple (BtorBitVectorTuple *t);
+void btor_free_bv_tuple (BtorMemMgr *mm, BtorBitVectorTuple *t);
+int btor_compare_bv_tuple (BtorBitVectorTuple *t0, BtorBitVectorTuple *t1);
+unsigned int btor_hash_bv_tuple (BtorBitVectorTuple *t);
 
 void btor_add_to_bv_tuple (BtorMemMgr *mm,
-                           BitVectorTuple *t,
+                           BtorBitVectorTuple *t,
                            BtorBitVector *bv,
                            int pos);
 

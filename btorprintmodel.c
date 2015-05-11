@@ -70,7 +70,7 @@ btor_get_fun_model_str_aux (Btor *btor,
   BtorHashTableIterator it;
   const BtorPtrHashTable *model;
   BtorBitVector *value;
-  BitVectorTuple *t;
+  BtorBitVectorTuple *t;
 
   exp = btor_simplify_exp (btor, exp);
   assert (BTOR_IS_FUN_NODE (exp));
@@ -97,7 +97,7 @@ btor_get_fun_model_str_aux (Btor *btor,
     value = (BtorBitVector *) it.bucket->data.asPtr;
 
     /* build assignment string for all arguments */
-    t   = (BitVectorTuple *) next_hash_table_iterator (&it);
+    t   = (BtorBitVectorTuple *) next_hash_table_iterator (&it);
     len = t->arity;
     for (j = 0; j < t->arity; j++) len += t->bv[j]->width;
     BTOR_NEWN (btor->mm, arg, len);
@@ -263,7 +263,7 @@ print_fun_model_smt2 (Btor *btor, BtorNode *node, int base, FILE *file)
   int i, x, n, len;
   BtorPtrHashTable *fun_model;
   BtorHashTableIterator it;
-  BitVectorTuple *args;
+  BtorBitVectorTuple *args;
   BtorBitVector *assignment;
   BtorSort *sort;
 
@@ -497,7 +497,7 @@ print_fun_value_smt2 (
   char *s, *symbol, *ass;
   BtorPtrHashTable *fun_model;
   BtorHashTableIterator it;
-  BitVectorTuple *args;
+  BtorBitVectorTuple *args;
   BtorBitVector *assignment;
 
   fun_model = (BtorPtrHashTable *) btor_get_fun_model (btor, node);
