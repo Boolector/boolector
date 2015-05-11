@@ -80,7 +80,39 @@ btor_new_bv (BtorMemMgr *mm, int bw)
 }
 
 BitVector *
-btor_new_random_range_bv (BtorMemMgr *mm, BtorRNG *rng, int bw, int up, int lo)
+btor_new_random_range_bv (
+    BtorMemMgr *mm, BtorRNG *rng, int bw, BitVector *from, BitVector *to)
+{
+  assert (mm);
+  assert (rng);
+  assert (bw > 0);
+  assert (btor_compare_bv (from, to) <= 0);
+
+  BitVector *res, *one, *add, *neg, *tmp;
+
+  res = btor_new_random_bv (mm, rng, bw);
+  one = btor_uint64_to_bv (mm, 1, bw);
+  add = btor_add_bv (mm, to, one);  // to + 1
+  neg = btor_neg_bv (mm, from);
+  tmp = add;
+  add = btor_add_bv (mm, tmp, neg);  // to - from + 1
+  btor_free_bv (mm, tmp);
+  tmp = res;
+  res = btor_urem_bv (mm, tmp, add);  // res %= to - from + 1
+  btor_free_bv (mm, tmp);
+  tmp = res;
+  res = btor_add_bv (mm, tmp, from);  // res += from
+  btor_free_bv (mm, tmp);
+  btor_free_bv (mm, one);
+  btor_free_bv (mm, add);
+  btor_free_bv (mm, neg);
+
+  return res;
+}
+
+BitVector *
+btor_new_random_bit_range_bv (
+    BtorMemMgr *mm, BtorRNG *rng, int bw, int up, int lo)
 {
   assert (mm);
   assert (rng);
@@ -110,7 +142,7 @@ btor_new_random_range_bv (BtorMemMgr *mm, BtorRNG *rng, int bw, int up, int lo)
 BitVector *
 btor_new_random_bv (BtorMemMgr *mm, BtorRNG *rng, int bw)
 {
-  return btor_new_random_range_bv (mm, rng, bw, bw - 1, 0);
+  return btor_new_random_bit_range_bv (mm, rng, bw, bw - 1, 0);
 }
 
 BitVector *
@@ -951,6 +983,101 @@ btor_uext_bv (BtorMemMgr *mm, BitVector *bv, int len)
   for (i = bv->len - 1; i >= 0; i++) res->bits[i] = bv->bits[i];
 
   return res;
+}
+
+/*------------------------------------------------------------------------*/
+
+BitVector *
+btor_gcd_ext_bv (
+    Btor *btor, BitVector *bv1, BitVector *bv2, BitVector **fx, BitVector **fy)
+{
+  assert (bv1);
+  assert (bv2);
+  assert (bv1->width == bv2->width);
+  assert (btor_compare_bv (bv1, bv2) <= 0);
+  assert (fx);
+  assert (fy);
+
+  // printf ("gcd_ext\n");
+  // printf ("---------------------------------------------------\n");
+  BitVector *a, *b, *x, *y, *lx, *ly, *gcd      = 0;
+  BitVector *zero, *mul, *neg, *tx, *ty, *r, *q = 0;
+
+  zero = btor_new_bv (btor->mm, bv1->width);
+
+  a = btor_copy_bv (btor->mm, bv1);
+  b = btor_copy_bv (btor->mm, bv2);
+
+  x = btor_copy_bv (btor->mm, zero);            // 0
+  y = btor_flipped_bit_bv (btor->mm, zero, 0);  // 1
+
+  lx = btor_flipped_bit_bv (btor->mm, zero, 0);  // 1
+  ly = btor_copy_bv (btor->mm, zero);            // 0
+
+  r = btor_copy_bv (btor->mm, bv1);
+
+  while (btor_compare_bv (b, zero) > 0)
+  {
+    if (gcd) btor_free_bv (btor->mm, gcd);
+    gcd = btor_copy_bv (btor->mm, r);
+
+    btor_free_bv (btor->mm, r);
+    r = btor_urem_bv (btor->mm, a, b);
+
+    if (q) btor_free_bv (btor->mm, q);
+    q = btor_udiv_bv (btor->mm, a, b);
+
+    btor_free_bv (btor->mm, a);
+    a = btor_copy_bv (btor->mm, b);
+    btor_free_bv (btor->mm, b);
+    b = btor_copy_bv (btor->mm, r);
+
+    //    printf ("gcd: %lu r: %lu q: %lu a: %lu b: %lu\n", (int64_t)
+    //    btor_bv_to_uint64_bv (gcd), (int64_t) btor_bv_to_uint64_bv (r),
+    //    (int64_t) btor_bv_to_uint64_bv (q), (int64_t) btor_bv_to_uint64_bv
+    //    (a), (int64_t) btor_bv_to_uint64_bv (b));
+
+    tx  = btor_copy_bv (btor->mm, x);
+    mul = btor_mul_bv (btor->mm, x, q);
+    neg = btor_neg_bv (btor->mm, mul);
+    btor_free_bv (btor->mm, x);
+    x = btor_add_bv (btor->mm, lx, neg);
+    btor_free_bv (btor->mm, neg);
+    btor_free_bv (btor->mm, mul);
+    btor_free_bv (btor->mm, lx);
+    lx = tx;
+    //   printf ("tx: %lu x: %lu lx: %lu\n", (int64_t) btor_bv_to_uint64_bv
+    //   (tx), (int64_t) btor_bv_to_uint64_bv (x), (int64_t)
+    //   btor_bv_to_uint64_bv (lx));
+
+    ty  = btor_copy_bv (btor->mm, y);
+    mul = btor_mul_bv (btor->mm, y, q);
+    neg = btor_neg_bv (btor->mm, mul);
+    btor_free_bv (btor->mm, y);
+    y = btor_add_bv (btor->mm, ly, neg);
+    btor_free_bv (btor->mm, neg);
+    btor_free_bv (btor->mm, mul);
+    btor_free_bv (btor->mm, ly);
+    ly = ty;
+    //  printf ("ty: %lu y: %lu ly: %lu\n", (int64_t) btor_bv_to_uint64_bv (ty),
+    //  (int64_t) btor_bv_to_uint64_bv (y), (int64_t) btor_bv_to_uint64_bv
+    //  (ly));
+  }
+
+  *fx = lx;
+  *fy = ly;
+  //  printf ("gcd: %lu fx %lu fy %lu\n", (int64_t) btor_bv_to_uint64_bv (gcd),
+  //  (int64_t) btor_bv_to_uint64_bv (*fx), (int64_t) btor_bv_to_uint64_bv
+  //  (*fy));
+  // printf ("---------------------------------------------------\n");
+  btor_free_bv (btor->mm, r);
+  btor_free_bv (btor->mm, q);
+  btor_free_bv (btor->mm, a);
+  btor_free_bv (btor->mm, b);
+  btor_free_bv (btor->mm, x);
+  btor_free_bv (btor->mm, y);
+  btor_free_bv (btor->mm, zero);
+  return gcd;
 }
 
 /*------------------------------------------------------------------------*/
