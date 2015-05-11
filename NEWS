@@ -1,9 +1,14 @@
+news for release 2.0.7 since 2.0.6
+--------------------------------------
+* added option to (en|di)sable use of Boolector exit codes
 * fixed help message issues
+* fixed option handling issues
+* improved SMT dumpers
 
 news for release 2.0.6 since 2.0.5
 --------------------------------------
 * fixed printing issues in interactive SMT2 mode
-* SMT2 parser now exists immediately after (exit) command was read
+* SMT2 parser now exits immediately after (exit) command was read
 
 news for release 2.0.5 since 2.0.4
 --------------------------------------
