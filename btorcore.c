@@ -7793,7 +7793,7 @@ btor_eval_exp (Btor *btor, BtorNode *exp)
   BtorPtrHashTable *cache;
   BtorPtrHashBucket *b;
   BtorHashTableIterator it;
-  BitVector *result = 0, *inv_result, **e;
+  BtorBitVector *result = 0, *inv_result, **e;
 
   // TODO: return if tseitin
   //  BTORLOG ("%s: %s", __FUNCTION__, node2string (exp));
@@ -7871,7 +7871,7 @@ btor_eval_exp (Btor *btor, BtorNode *exp)
 
       real_cur->eval_mark = 2;
       arg_stack.top -= real_cur->arity;
-      e = (BitVector **) arg_stack.top; /* arguments in reverse order */
+      e = (BtorBitVector **) arg_stack.top; /* arguments in reverse order */
 
       switch (real_cur->kind)
       {
@@ -7964,7 +7964,7 @@ btor_eval_exp (Btor *btor, BtorNode *exp)
       assert (real_cur->eval_mark == 2);
       b = btor_find_in_ptr_hash_table (cache, real_cur);
       assert (b);
-      result = btor_copy_bv (btor->mm, (BitVector *) b->data.asPtr);
+      result = btor_copy_bv (btor->mm, (BtorBitVector *) b->data.asPtr);
       goto EVAL_EXP_PUSH_RESULT;
     }
   }
@@ -7988,7 +7988,7 @@ EVAL_EXP_CLEANUP_EXIT:
   init_node_hash_table_iterator (&it, cache);
   while (has_next_node_hash_table_iterator (&it))
   {
-    btor_free_bv (btor->mm, (BitVector *) it.bucket->data.asPtr);
+    btor_free_bv (btor->mm, (BtorBitVector *) it.bucket->data.asPtr);
     real_cur            = next_node_hash_table_iterator (&it);
     real_cur->eval_mark = 0;
   }
