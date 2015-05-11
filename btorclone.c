@@ -68,7 +68,7 @@ btor_clone_key_as_bv_tuple (BtorMemMgr *mm, const void *map, const void *t)
   assert (mm);
   assert (t);
   (void) map;
-  return btor_copy_bv_tuple (mm, (BitVectorTuple *) t);
+  return btor_copy_bv_tuple (mm, (BtorBitVectorTuple *) t);
 }
 
 void
@@ -1041,7 +1041,7 @@ clone_aux_btor (Btor *btor,
       {
         allocated += btor_size_bv ((BtorBitVector *) ncit.bucket->data.asPtr);
         allocated += btor_size_bv_tuple (
-            (BitVectorTuple *) next_hash_table_iterator (&ncit));
+            (BtorBitVectorTuple *) next_hash_table_iterator (&ncit));
       }
     }
   }

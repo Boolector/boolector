@@ -47,13 +47,13 @@ check_bits_sll_dbg (BtorBitVector *bv, BtorBitVector *res, int shift)
 
 /*------------------------------------------------------------------------*/
 
-BitVectorTuple *
+BtorBitVectorTuple *
 btor_new_bv_tuple (BtorMemMgr *mm, int arity)
 {
   assert (mm);
   assert (arity > 0);
 
-  BitVectorTuple *res;
+  BtorBitVectorTuple *res;
 
   BTOR_CNEW (mm, res);
   BTOR_CNEWN (mm, res->bv, arity);
@@ -63,7 +63,7 @@ btor_new_bv_tuple (BtorMemMgr *mm, int arity)
 
 void
 btor_add_to_bv_tuple (BtorMemMgr *mm,
-                      BitVectorTuple *t,
+                      BtorBitVectorTuple *t,
                       BtorBitVector *bv,
                       int pos)
 {
@@ -77,7 +77,7 @@ btor_add_to_bv_tuple (BtorMemMgr *mm,
 }
 
 void
-btor_free_bv_tuple (BtorMemMgr *mm, BitVectorTuple *t)
+btor_free_bv_tuple (BtorMemMgr *mm, BtorBitVectorTuple *t)
 {
   assert (mm);
   assert (t);
@@ -85,12 +85,12 @@ btor_free_bv_tuple (BtorMemMgr *mm, BitVectorTuple *t)
   int i;
   for (i = 0; i < t->arity; i++) btor_free_bv (mm, t->bv[i]);
 
-  btor_free (mm, t->bv, sizeof (BitVectorTuple *) * t->arity);
-  btor_free (mm, t, sizeof (BitVectorTuple));
+  btor_free (mm, t->bv, sizeof (BtorBitVectorTuple *) * t->arity);
+  btor_free (mm, t, sizeof (BtorBitVectorTuple));
 }
 
 int
-btor_compare_bv_tuple (BitVectorTuple *t0, BitVectorTuple *t1)
+btor_compare_bv_tuple (BtorBitVectorTuple *t0, BtorBitVectorTuple *t1)
 {
   assert (t0);
   assert (t1);
@@ -110,7 +110,7 @@ btor_compare_bv_tuple (BitVectorTuple *t0, BitVectorTuple *t1)
 }
 
 unsigned int
-btor_hash_bv_tuple (BitVectorTuple *t)
+btor_hash_bv_tuple (BtorBitVectorTuple *t)
 {
   assert (t);
 
@@ -126,14 +126,14 @@ btor_hash_bv_tuple (BitVectorTuple *t)
   return hash;
 }
 
-BitVectorTuple *
-btor_copy_bv_tuple (BtorMemMgr *mm, BitVectorTuple *t)
+BtorBitVectorTuple *
+btor_copy_bv_tuple (BtorMemMgr *mm, BtorBitVectorTuple *t)
 {
   assert (mm);
   assert (t);
 
   int i;
-  BitVectorTuple *res;
+  BtorBitVectorTuple *res;
 
   res = btor_new_bv_tuple (mm, t->arity);
 
@@ -147,14 +147,14 @@ btor_copy_bv_tuple (BtorMemMgr *mm, BitVectorTuple *t)
 }
 
 size_t
-btor_size_bv_tuple (BitVectorTuple *t)
+btor_size_bv_tuple (BtorBitVectorTuple *t)
 {
   assert (t);
 
   int i;
   size_t res;
 
-  res = sizeof (BitVectorTuple) + t->arity * sizeof (BtorBitVector *);
+  res = sizeof (BtorBitVectorTuple) + t->arity * sizeof (BtorBitVector *);
   for (i = 0; i < t->arity; i++) res += btor_size_bv (t->bv[i]);
 
   return res;
