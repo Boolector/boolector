@@ -123,21 +123,19 @@ btor_new_random_bit_range_bv (
   assert (lo >= 0);
   assert (lo <= up);
 
-  int i, seg;
+  int i;
   BtorBitVector *res;
 
   res = btor_new_bv (mm, bw);
-
-  for (i = res->len - 1, seg = up - lo + 1;
-       seg > ((res->len - 1 - i) * ((int) sizeof (BTOR_BV_TYPE)) * 8) && i >= 0;
-       i--)
+  for (i = 1; i < res->len; i++)
     res->bits[i] = (BTOR_BV_TYPE) btor_rand_rng (rng);
+  res->bits[0] = (BTOR_BV_TYPE) btor_pick_rand_rng (
+      rng, 0, ((~0) >> (BTOR_BV_TYPE_BW - bw % BTOR_BV_TYPE_BW)) - 1);
 
-  if (i < res->len - 1 && seg % (sizeof (BTOR_BV_TYPE) * 8) > 0)
-    res->bits[i + 1] = (((BTOR_BV_TYPE) 1 << (BTOR_BV_TYPE_BW - 1)) - 1)
-                       >> (BTOR_BV_TYPE_BW - 1 - (seg % BTOR_BV_TYPE_BW));
+  for (i = 0; i < lo; i++) btor_set_bit_bv (res, i, 0);
+  for (i = up + 1; i < res->width; i++) btor_set_bit_bv (res, i, 0);
 
-  for (; i >= 0; i--) res->bits[i] = 0;
+  set_rem_bits_to_zero (res);
 
   return res;
 }
