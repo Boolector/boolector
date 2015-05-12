@@ -1237,6 +1237,7 @@ select_rand_range_move (Btor *btor, BtorNodePtrStack *candidates, int gw)
         clo = ass->width - 1 - cup;
         cup = ass->width - 1;
       }
+      printf ("cup: %d clo: %d\n", cup, clo);
       btor_insert_in_ptr_hash_table (cans, can)->data.asPtr =
           btor_new_random_bit_range_bv (
               btor->mm, &btor->rng, ass->width, cup, clo);
@@ -1557,8 +1558,11 @@ select_random_move (Btor *btor, BtorNodePtrStack *candidates)
 }
 
 /*------------------------------------------------------------------------*/
-
+#ifdef NDEBUG
 static inline BtorBitVector *
+#else
+BtorBitVector *
+#endif
 inv_add_bv (Btor *btor, BtorNode *add, BtorBitVector *bvadd, int eidx)
 {
   assert (btor);
@@ -1593,7 +1597,11 @@ inv_add_bv (Btor *btor, BtorNode *add, BtorBitVector *bvadd, int eidx)
   return res;
 }
 
+#ifdef NDEBUG
 static inline BtorBitVector *
+#else
+BtorBitVector *
+#endif
 inv_and_bv (Btor *btor, BtorNode *and, BtorBitVector *bvand, int eidx)
 {
   assert (btor);
@@ -1628,35 +1636,44 @@ inv_and_bv (Btor *btor, BtorNode *and, BtorBitVector *bvand, int eidx)
 #endif
     /* check for non-fixable conflict */
     if (BTOR_IS_BV_CONST_NODE (BTOR_REAL_ADDR_NODE (e)) && bitand&&!bite)
-      return 0;
+    {
+      btor_free_bv (btor->mm, res);
+      res = 0;
+      break;
+    }
 
     if (bitand)
       btor_set_bit_bv (res, i, 1);
+    else if (bite)
+      btor_set_bit_bv (res, i, 0);
     else
       btor_set_bit_bv (res, i, btor_pick_rand_rng (&btor->rng, 0, 1));
   }
 #ifndef NDEBUG
-  BtorBitVector *tmpdbg, *tmp2dbg;
+  BtorBitVector *tmpdbg;
   if (!iscon)
-    tmp2dbg = btor_copy_bv (btor->mm, bve);
-  else
   {
-    tmpdbg  = btor_new_bv (btor->mm, bve->width);
-    tmp2dbg = btor_neg_bv (btor->mm, tmpdbg);
+    if (eidx)
+      tmpdbg = btor_and_bv (btor->mm, bve, res);
+    else
+      tmpdbg = btor_and_bv (btor->mm, res, bve);
+    assert (!btor_compare_bv (tmpdbg, bvand));
     btor_free_bv (btor->mm, tmpdbg);
   }
-  if (eidx)
-    tmpdbg = btor_and_bv (btor->mm, tmp2dbg, res);
   else
-    tmpdbg = btor_and_bv (btor->mm, res, tmp2dbg);
-  assert (!btor_compare_bv (tmpdbg, bvand));
-  btor_free_bv (btor->mm, tmpdbg);
-  btor_free_bv (btor->mm, tmp2dbg);
+  {
+    for (i = 0; res && i < bvand->width; i++)
+      assert (!btor_get_bit_bv (bvand, i) || btor_get_bit_bv (res, i));
+  }
 #endif
   return res;
 }
 
+#ifdef NDEBUG
 static inline BtorBitVector *
+#else
+BtorBitVector *
+#endif
 inv_eq_bv (Btor *btor, BtorNode *eq, BtorBitVector *bveq, int eidx)
 {
   assert (btor);
@@ -1699,7 +1716,11 @@ inv_eq_bv (Btor *btor, BtorNode *eq, BtorBitVector *bveq, int eidx)
   return res;
 }
 
+#ifdef NDEBUG
 static inline BtorBitVector *
+#else
+BtorBitVector *
+#endif
 inv_ult_bv (Btor *btor, BtorNode *ult, BtorBitVector *bvult, int eidx)
 {
   assert (btor);
@@ -1788,7 +1809,11 @@ inv_ult_bv (Btor *btor, BtorNode *ult, BtorBitVector *bvult, int eidx)
   return res;
 }
 
+#ifdef NDEBUG
 static inline BtorBitVector *
+#else
+BtorBitVector *
+#endif
 inv_sll_bv (Btor *btor, BtorNode *sll, BtorBitVector *bvsll, int eidx)
 {
   assert (btor);
@@ -1872,7 +1897,11 @@ inv_sll_bv (Btor *btor, BtorNode *sll, BtorBitVector *bvsll, int eidx)
   return res;
 }
 
+#ifdef NDEBUG
 static inline BtorBitVector *
+#else
+BtorBitVector *
+#endif
 inv_srl_bv (Btor *btor, BtorNode *srl, BtorBitVector *bvsrl, int eidx)
 {
   assert (btor);
@@ -2025,7 +2054,11 @@ int_gcd_ext (unsigned int A, unsigned int B, int * fx, int * fy)
 }
 #endif
 
+#ifdef NDEBUG
 static inline BtorBitVector *
+#else
+BtorBitVector *
+#endif
 inv_mul_bv (Btor *btor, BtorNode *mul, BtorBitVector *bvmul, int eidx)
 {
   assert (btor);
@@ -2064,7 +2097,7 @@ inv_mul_bv (Btor *btor, BtorNode *mul, BtorBitVector *bvmul, int eidx)
     extlen   = bve->width; /* double the bit width for inv multiplicand */
     bveext   = btor_uext_bv (btor->mm, bve, extlen);
     tmp      = btor_new_bv (btor->mm, bvmul->width);
-    bvmod    = btor_neg_bv (btor->mm, tmp);
+    bvmod    = btor_not_bv (btor->mm, tmp);
     bvmodext = btor_uext_bv (btor->mm, bvmod, extlen); /* 2^bw - 1 */
     btor_free_bv (btor->mm, tmp);
     bvmulext = btor_uext_bv (btor->mm, bvmul, extlen);
@@ -2153,7 +2186,11 @@ inv_mul_bv (Btor *btor, BtorNode *mul, BtorBitVector *bvmul, int eidx)
   return res;
 }
 
+#ifdef NDEBUG
 static inline BtorBitVector *
+#else
+BtorBitVector *
+#endif
 inv_div_bv (Btor *btor, BtorNode *div, BtorBitVector *bvdiv, int eidx)
 {
   assert (btor);
@@ -2163,7 +2200,6 @@ inv_div_bv (Btor *btor, BtorNode *div, BtorBitVector *bvdiv, int eidx)
   assert (eidx >= 0 && eidx <= 1);
   assert (!BTOR_IS_BV_CONST_NODE (BTOR_REAL_ADDR_NODE (div->e[eidx])));
 
-  int extlen;
   BtorNode *e;
   BtorBitVector *bve, *res, *bvmod, *gcd, *tmp, *x, *y;
   BtorBitVector *bveext, *bvdivext, *bvmodext;
@@ -2183,8 +2219,8 @@ inv_div_bv (Btor *btor, BtorNode *div, BtorBitVector *bvdiv, int eidx)
   {
     /* res = bve * bvdiv^(-1) mod (2^bw - 1) */
     tmp      = btor_new_bv (btor->mm, bvdiv->width);
-    bvmod    = btor_neg_bv (btor->mm, tmp);
-    bvmodext = btor_uext_bv (btor->mm, bvmod, extlen); /* 2^bw - 1 */
+    bvmod    = btor_not_bv (btor->mm, tmp);
+    bvmodext = btor_uext_bv (btor->mm, bvmod, 1); /* 2^bw - 1 */
     btor_free_bv (btor->mm, bvmod);
     btor_free_bv (btor->mm, tmp);
     /* compute bvdiv^(-1) */
@@ -2257,7 +2293,11 @@ inv_div_bv (Btor *btor, BtorNode *div, BtorBitVector *bvdiv, int eidx)
   return res;
 }
 
+#ifdef NDEBUG
 static inline BtorBitVector *
+#else
+BtorBitVector *
+#endif
 inv_urem_bv (Btor *btor, BtorNode *urem, BtorBitVector *bvurem, int eidx)
 {
   assert (btor);
@@ -2282,7 +2322,8 @@ inv_urem_bv (Btor *btor, BtorNode *urem, BtorBitVector *bvurem, int eidx)
   assert (bve);
   assert (bve->width == bvurem->width);
 
-  bvmod = btor_neg_bv (btor->mm, tmp); /* 2^n - 1 */
+  tmp   = btor_new_bv (btor->mm, bvurem->width);
+  bvmod = btor_not_bv (btor->mm, tmp); /* 2^n - 1 */
 
   if (eidx)
   {
@@ -2435,7 +2476,11 @@ inv_urem_bv (Btor *btor, BtorNode *urem, BtorBitVector *bvurem, int eidx)
   return res;
 }
 
+#ifdef NDEBUG
 static inline BtorBitVector *
+#else
+BtorBitVector *
+#endif
 inv_concat_bv (Btor *btor, BtorNode *concat, BtorBitVector *bvconcat, int eidx)
 {
   assert (btor);
@@ -2501,7 +2546,11 @@ inv_concat_bv (Btor *btor, BtorNode *concat, BtorBitVector *bvconcat, int eidx)
   return res;
 }
 
+#ifdef NDEBUG
 static inline BtorBitVector *
+#else
+BtorBitVector *
+#endif
 inv_slice_bv (Btor *btor, BtorNode *slice, BtorBitVector *bvslice)
 {
   assert (btor);
