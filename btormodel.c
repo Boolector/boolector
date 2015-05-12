@@ -823,20 +823,25 @@ btor_get_bv_model_aux (Btor *btor,
   BtorBitVector *result;
   BtorPtrHashBucket *b;
 
-  b = btor_find_in_ptr_hash_table (*bv_model, BTOR_REAL_ADDR_NODE (exp));
+  b = btor_find_in_ptr_hash_table (*bv_model, exp);
 
-  /* if exp has no assignment, regenerate model in case that it is an exp
-   * that previously existed but was simplified (i.e. the original exp is now
-   * a proxy and was therefore regenerated when querying it's assignment via
-   * get-value in SMT-LIB v2) */
   if (!b)
   {
-    btor_init_bv_model (btor, bv_model);
-    btor_init_fun_model (btor, fun_model);
-    btor_generate_model_aux (btor, *bv_model, *fun_model, 1);
+    b = btor_find_in_ptr_hash_table (*bv_model, BTOR_REAL_ADDR_NODE (exp));
+
+    /* if exp has no assignment, regenerate model in case that it is an exp
+     * that previously existed but was simplified (i.e. the original exp is
+     * now a proxy and was therefore regenerated when querying it's
+     * assignment via get-value in SMT-LIB v2) */
+    if (!b)
+    {
+      btor_init_bv_model (btor, bv_model);
+      btor_init_fun_model (btor, fun_model);
+      btor_generate_model_aux (btor, *bv_model, *fun_model, 1);
+    }
+    b = btor_find_in_ptr_hash_table (*bv_model, BTOR_REAL_ADDR_NODE (exp));
+    if (!b) return 0;
   }
-  b = btor_find_in_ptr_hash_table (*bv_model, BTOR_REAL_ADDR_NODE (exp));
-  if (!b) return 0;
 
   result = (BtorBitVector *) b->data.asPtr;
   /* Note: we cache assignments of inverted expressions on demand */
