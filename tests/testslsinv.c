@@ -34,11 +34,6 @@ sls_inv_add_bv (int bw)
   e[0] = btor_var_exp (g_btor, bw, 0);
   e[1] = btor_var_exp (g_btor, bw, 0);
   add  = btor_add_exp (g_btor, e[0], e[1]);
-  /* keep track of children (might have changed due to rewriting) */
-  btor_release_exp (g_btor, e[0]);
-  btor_release_exp (g_btor, e[1]);
-  e[0] = btor_copy_exp (g_btor, add->e[0]);
-  e[1] = btor_copy_exp (g_btor, add->e[1]);
 
   bve[0] = btor_new_random_bv (g_btor->mm, &g_btor->rng, bw);
   bve[1] = btor_new_random_bv (g_btor->mm, &g_btor->rng, bw);
@@ -89,11 +84,6 @@ sls_inv_and_bv (int bw)
   e[0] = btor_var_exp (g_btor, bw, 0);
   e[1] = btor_var_exp (g_btor, bw, 0);
   and  = btor_and_exp (g_btor, e[0], e[1]);
-  /* keep track of children (might have changed due to rewriting) */
-  btor_release_exp (g_btor, e[0]);
-  btor_release_exp (g_btor, e[1]);
-  e[0] = btor_copy_exp (g_btor, and->e[0]);
-  e[1] = btor_copy_exp (g_btor, and->e[1]);
 
   bvand = btor_new_random_bv (g_btor->mm, &g_btor->rng, bw);
 
@@ -216,11 +206,6 @@ sls_inv_eq_bv (int bw)
   e[0] = btor_var_exp (g_btor, bw, 0);
   e[1] = btor_var_exp (g_btor, bw, 0);
   eq   = btor_eq_exp (g_btor, e[0], e[1]);
-  /* keep track of children (might have changed due to rewriting) */
-  btor_release_exp (g_btor, e[0]);
-  btor_release_exp (g_btor, e[1]);
-  e[0] = btor_copy_exp (g_btor, eq->e[0]);
-  e[1] = btor_copy_exp (g_btor, eq->e[1]);
 
   bveq   = btor_new_random_bv (g_btor->mm, &g_btor->rng, 1);
   bve[0] = btor_new_random_bv (g_btor->mm, &g_btor->rng, bw);
@@ -268,11 +253,6 @@ sls_inv_ult_bv (int bw)
   e[0] = btor_var_exp (g_btor, bw, 0);
   e[1] = btor_var_exp (g_btor, bw, 0);
   ult  = btor_ult_exp (g_btor, e[0], e[1]);
-  /* keep track of children (might have changed due to rewriting) */
-  btor_release_exp (g_btor, e[0]);
-  btor_release_exp (g_btor, e[1]);
-  e[0] = btor_copy_exp (g_btor, ult->e[0]);
-  e[1] = btor_copy_exp (g_btor, ult->e[1]);
 
   bvult = btor_new_random_bv (g_btor->mm, &g_btor->rng, 1);
 
