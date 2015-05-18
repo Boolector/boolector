@@ -6648,7 +6648,10 @@ propagate (Btor *btor,
         param_app = next_node_hash_table_iterator (&it);
         assert (BTOR_IS_REGULAR_NODE (param_app));
         assert (BTOR_IS_APPLY_NODE (param_app));
-        if (param_app != fun_value)
+        if (param_app != BTOR_REAL_ADDR_NODE (fun_value)
+            /* check down propagation condition */
+            || BTOR_REAL_ADDR_NODE (fun_value)->tseitin
+            || BTOR_IS_INVERTED_NODE (fun_value) || fun_value->e[1] != args)
         {
           insert_synth_app_lambda (btor, lambda, param_app);
           assert (param_app->reachable || param_app->vread);
@@ -7707,7 +7710,7 @@ btor_eval_exp (Btor *btor, BtorNode *exp)
   BtorPtrHashTable *cache;
   BtorPtrHashBucket *b;
   BtorHashTableIterator it;
-  BitVector *result = 0, *inv_result, **e;
+  BtorBitVector *result = 0, *inv_result, **e;
 
   // TODO: return if tseitin
   //  BTORLOG ("%s: %s", __FUNCTION__, node2string (exp));
@@ -7785,7 +7788,7 @@ btor_eval_exp (Btor *btor, BtorNode *exp)
 
       real_cur->eval_mark = 2;
       arg_stack.top -= real_cur->arity;
-      e = (BitVector **) arg_stack.top; /* arguments in reverse order */
+      e = (BtorBitVector **) arg_stack.top; /* arguments in reverse order */
 
       switch (real_cur->kind)
       {
@@ -7878,7 +7881,7 @@ btor_eval_exp (Btor *btor, BtorNode *exp)
       assert (real_cur->eval_mark == 2);
       b = btor_find_in_ptr_hash_table (cache, real_cur);
       assert (b);
-      result = btor_copy_bv (btor->mm, (BitVector *) b->data.asPtr);
+      result = btor_copy_bv (btor->mm, (BtorBitVector *) b->data.asPtr);
       goto EVAL_EXP_PUSH_RESULT;
     }
   }
@@ -7902,7 +7905,7 @@ EVAL_EXP_CLEANUP_EXIT:
   init_node_hash_table_iterator (&it, cache);
   while (has_next_node_hash_table_iterator (&it))
   {
-    btor_free_bv (btor->mm, (BitVector *) it.bucket->data.asPtr);
+    btor_free_bv (btor->mm, (BtorBitVector *) it.bucket->data.asPtr);
     real_cur            = next_node_hash_table_iterator (&it);
     real_cur->eval_mark = 0;
   }
