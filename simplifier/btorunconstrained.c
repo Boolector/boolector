@@ -26,7 +26,8 @@ btor_optimize_unconstrained (Btor *btor)
   assert (!btor->options.model_gen.val);
   assert (check_id_table_mark_unset_dbg (btor));
 
-  double start;
+  double start, delta;
+  unsigned num_ucs;
   int i, uc[3], isuc;
   BtorNode *cur, *cur_parent, *subst, *lambda;
   BtorNodePtrStack stack, roots;
@@ -157,6 +158,10 @@ btor_optimize_unconstrained (Btor *btor)
                 btor->stats.fun_uc_props++;
               btor_insert_in_ptr_hash_table (ucs, btor_copy_exp (btor, cur));
               subst = btor_aux_var_exp (btor, btor_get_exp_width (btor, cur));
+              BTOR_MSG (btor->msg,
+                        2,
+                        "found unconstrained term %s",
+                        node2string (cur));
               btor_insert_substitution (btor, cur, subst, 0);
               btor_release_exp (btor, subst);
             }
@@ -172,6 +177,10 @@ btor_optimize_unconstrained (Btor *btor)
                 btor->stats.fun_uc_props++;
               btor_insert_in_ptr_hash_table (ucs, btor_copy_exp (btor, cur));
               subst = btor_aux_var_exp (btor, btor_get_exp_width (btor, cur));
+              BTOR_MSG (btor->msg,
+                        2,
+                        "found unconstrained term %s",
+                        node2string (cur));
               btor_insert_substitution (btor, cur, subst, 0);
               btor_release_exp (btor, subst);
             }
@@ -189,6 +198,10 @@ btor_optimize_unconstrained (Btor *btor)
               btor->stats.bv_uc_props++;
               btor_insert_in_ptr_hash_table (ucs, btor_copy_exp (btor, cur));
               subst = btor_aux_var_exp (btor, btor_get_exp_width (btor, cur));
+              BTOR_MSG (btor->msg,
+                        2,
+                        "found unconstrained term %s",
+                        node2string (cur));
               btor_insert_substitution (btor, cur, subst, 0);
               btor_release_exp (btor, subst);
             }
@@ -199,6 +212,10 @@ btor_optimize_unconstrained (Btor *btor)
               btor->stats.bv_uc_props++;
               btor_insert_in_ptr_hash_table (ucs, btor_copy_exp (btor, cur));
               subst = btor_aux_var_exp (btor, btor_get_exp_width (btor, cur));
+              BTOR_MSG (btor->msg,
+                        2,
+                        "found unconstrained term %s",
+                        node2string (cur));
               btor_insert_substitution (btor, cur, subst, 0);
               btor_release_exp (btor, subst);
             }
@@ -213,6 +230,10 @@ btor_optimize_unconstrained (Btor *btor)
               btor->stats.fun_uc_props++;
               btor_insert_in_ptr_hash_table (ucs, btor_copy_exp (btor, cur));
               subst = btor_uf_exp (btor, cur->sort_id, 0);
+              BTOR_MSG (btor->msg,
+                        2,
+                        "found unconstrained term %s",
+                        node2string (cur));
               btor_insert_substitution (btor, cur, subst, 0);
               btor_release_exp (btor, subst);
             }
@@ -223,6 +244,7 @@ btor_optimize_unconstrained (Btor *btor)
     }
   }
 
+  num_ucs = btor->substitutions->count;
   btor_substitute_and_rebuild (btor, btor->substitutions, 0);
 
   /* cleanup */
@@ -235,5 +257,11 @@ btor_optimize_unconstrained (Btor *btor)
   BTOR_RELEASE_STACK (btor->mm, stack);
   BTOR_RELEASE_STACK (btor->mm, roots);
 
-  btor->time.ucopt += btor_time_stamp () - start;
+  delta = btor_time_stamp () - start;
+  btor->time.ucopt += delta;
+  BTOR_MSG (btor->msg,
+            1,
+            "detected %u unconstrained terms in %.3f seconds",
+            num_ucs,
+            delta);
 }
