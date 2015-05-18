@@ -2288,6 +2288,7 @@ btor_fun_exp (Btor *btor, int paramc, BtorNode **params, BtorNode *exp)
   assert (params);
   assert (exp);
   assert (btor == BTOR_REAL_ADDR_NODE (exp)->btor);
+  assert (!BTOR_IS_UF_NODE (BTOR_REAL_ADDR_NODE (exp)));
 
   int i;
   BtorNode *fun      = btor_simplify_exp (btor, exp);
