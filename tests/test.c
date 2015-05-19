@@ -104,7 +104,8 @@ main (int argc, char **argv)
     }
     else if (!strcmp (argv[i], "-s") || !strcmp (argv[i], "--slow"))
     {
-      speed = BTOR_SLOW_TEST_CASE;
+      speed  = BTOR_SLOW_TEST_CASE;
+      bitvec = 1;
     }
     else if (!strcmp (argv[i], "--bitvec"))
     {

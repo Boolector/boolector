@@ -89,10 +89,13 @@ btor_new_random_range_bv (BtorMemMgr *mm,
   assert (mm);
   assert (rng);
   assert (bw > 0);
+  assert (bw = from->width);
+  assert (from->width == to->width);
   assert (btor_compare_bv (from, to) <= 0);
 
   BtorBitVector *res, *one, *add, *neg, *tmp;
 
+  bw  = from->width;
   res = btor_new_random_bv (mm, rng, bw);
   one = btor_uint64_to_bv (mm, 1, bw);
   add = btor_add_bv (mm, to, one);  // to + 1
@@ -968,10 +971,14 @@ btor_sext_bv (BtorMemMgr *mm, BtorBitVector *bv, int len)
   BtorBitVector *res;
 
   res = btor_new_bv (mm, bv->width + len);
-  memcpy (res->bits, bv->bits, sizeof (*(bv->bits)) * bv->len);
-  i = (bv->width % BTOR_BV_TYPE_BW);
+  memcpy (
+      res->bits + res->len - bv->len, bv->bits, sizeof (*(bv->bits)) * bv->len);
   if (btor_get_bit_bv (bv, bv->width - 1))
-    res->bits[0] |= (((uint64_t) -1) >> i) << i;
+  {
+    i = (bv->width % BTOR_BV_TYPE_BW);
+    res->bits[res->len - bv->len] |= (((uint64_t) -1) >> i) << i;
+    for (i = res->len - bv->len - 1; i >= 0; i--) res->bits[i] = UINT_MAX;
+  }
 
   return res;
 }
@@ -981,13 +988,13 @@ btor_uext_bv (BtorMemMgr *mm, BtorBitVector *bv, int len)
 {
   assert (mm);
   assert (bv);
-  assert (len);
+  assert (len > 0);
 
-  int i;
   BtorBitVector *res;
 
   res = btor_new_bv (mm, bv->width + len);
-  for (i = bv->len - 1; i >= 0; i++) res->bits[i] = bv->bits[i];
+  memcpy (
+      res->bits + res->len - bv->len, bv->bits, sizeof (*(bv->bits)) * bv->len);
 
   return res;
 }
