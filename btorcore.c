@@ -31,6 +31,7 @@
 #include "simplifier/btorelimapplies.h"
 #include "simplifier/btorelimslices.h"
 #include "simplifier/btorextract.h"
+#include "simplifier/btorfeq.h"
 #include "simplifier/btormerge.h"
 #include "simplifier/btorunconstrained.h"
 #include "utils/btorinthash.h"
@@ -3273,6 +3274,8 @@ btor_simplify (Btor *btor)
     if (btor->options.ackermannize.val) btor_add_ackermann_constraints (btor);
   } while (btor->varsubst_constraints->count
            || btor->embedded_constraints->count);
+
+  btor_rewrite_negative_fun_eqs (btor);
 
   if (btor->options.beta_reduce_all.val) release_cache (btor);
 
