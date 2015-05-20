@@ -735,12 +735,12 @@ extract_models_from_functions_with_model (Btor *btor,
   BtorPtrHashTable *static_rho;
 
   init_node_hash_table_iterator (&it, btor->lambdas);
-  while (has_next_node_hash_table_iterator (&it))
+  while (0 && has_next_node_hash_table_iterator (&it))
   {
     cur        = next_node_hash_table_iterator (&it);
     static_rho = btor_lambda_get_static_rho (cur);
 
-    if (!static_rho) continue;
+    if (!static_rho || !cur->tseitin) continue;
 
     BTORLOG ("generate model for %s from static_rho", node2string (cur));
     extract_model_from_rho (btor, fun_model, cur, static_rho);
