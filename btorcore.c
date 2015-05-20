@@ -5881,9 +5881,11 @@ check_ext (Btor *btor, BtorNodePtrStack *prop_stack)
   BtorNodeIterator it;
   BtorPtrHashTable *table0, *table1;
   BtorHashTableIterator hit;
+  BtorNodePtrStack feqs;
 
   BTORLOG ("");
   BTORLOG ("*** check ext");
+  BTOR_INIT_STACK (feqs);
 
   init_unique_table_iterator (btor, &it);
   while (has_next_unique_table_iterator (&it))
@@ -5891,12 +5893,20 @@ check_ext (Btor *btor, BtorNodePtrStack *prop_stack)
     cur = next_unique_table_iterator (&it);
     if (!BTOR_IS_FEQ_NODE (cur)) continue;
 
+    BTOR_PUSH_STACK (btor->mm, feqs, cur);
+  }
+
+  while (!BTOR_EMPTY_STACK (feqs))
+  {
+    cur = BTOR_POP_STACK (feqs);
+
     table0 = build_table (btor, cur->e[0]);
     table1 = build_table (btor, cur->e[1]);
 
     init_node_hash_table_iterator (&hit, table0);
     queue_node_hash_table_iterator (&hit, table1);
 
+    BTORLOG ("  %s", node2string (cur));
     // TODO: check for conflicts?
     while (has_next_node_hash_table_iterator (&hit))
     {
@@ -5905,7 +5915,9 @@ check_ext (Btor *btor, BtorNodePtrStack *prop_stack)
       app1     = btor_apply_exp (btor, cur->e[1], cur_args);
       eq       = btor_eq_exp (btor, app0, app1);
       con      = btor_implies_exp (btor, cur, eq);
+      BTORLOG ("    %s, %s", node2string (app0), node2string (app1));
 
+      /* add instantiation of extensionality lemma */
       if (!btor_find_in_ptr_hash_table (btor->lemmas, con))
       {
         btor_insert_in_ptr_hash_table (btor->lemmas, btor_copy_exp (btor, con));
@@ -5922,6 +5934,7 @@ check_ext (Btor *btor, BtorNodePtrStack *prop_stack)
     btor_delete_ptr_hash_table (table0);
     btor_delete_ptr_hash_table (table1);
   }
+  BTOR_RELEASE_STACK (btor->mm, feqs);
 
   BTORLOG ("  added %u extensionality lemmas", num_lemmas);
 }
@@ -6170,18 +6183,29 @@ add_function_inequality_constraints (Btor *btor)
 {
   BtorNode *cur, *neq, *con;
   BtorNodeIterator it;
+  BtorNodePtrStack feqs;
 
+  BTOR_INIT_STACK (feqs);
   init_unique_table_iterator (btor, &it);
   while (has_next_unique_table_iterator (&it))
   {
     cur = next_unique_table_iterator (&it);
     if (!BTOR_IS_FEQ_NODE (cur) || !cur->reachable) continue;
+    BTOR_PUSH_STACK (btor->mm, feqs, cur);
+  }
+
+  while (!BTOR_EMPTY_STACK (feqs))
+  {
+    cur = BTOR_POP_STACK (feqs);
+    assert (BTOR_IS_FEQ_NODE (cur));
+    assert (cur->reachable);
     neq = btor_rewrite_function_inequality (btor, cur);
     con = btor_implies_exp (btor, BTOR_INVERT_NODE (cur), neq);
     btor_assert_exp (btor, con);
     btor_release_exp (btor, con);
     btor_release_exp (btor, neq);
   }
+  BTOR_RELEASE_STACK (btor->mm, feqs);
 }
 
 static int
