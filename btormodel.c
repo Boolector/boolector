@@ -12,8 +12,10 @@
 #include "btormodel.h"
 #include "btorbeta.h"
 #include "btorexit.h"
+#include "btorlog.h"
 #include "utils/btoriter.h"
 #include "utils/btormem.h"
+#include "utils/btormisc.h"
 #include "utils/btorutil.h"
 
 #define BTOR_ABORT_MODEL(cond, msg)                   \
@@ -159,8 +161,11 @@ add_to_fun_model (Btor *btor,
     btor_insert_in_ptr_hash_table (fun_model, btor_copy_exp (btor, exp))
         ->data.asPtr = model;
   }
-  assert (!btor_find_in_ptr_hash_table (model, t));
-
+  if ((b = btor_find_in_ptr_hash_table (model, t)))
+  {
+    assert (btor_compare_bv (b->data.asPtr, value) == 0);
+    return;
+  }
   b = btor_insert_in_ptr_hash_table (model, btor_copy_bv_tuple (btor->mm, t));
   b->data.asPtr = btor_copy_bv (btor->mm, value);
 }
@@ -676,50 +681,77 @@ compute_lambda_model (Btor *btor,
 }
 
 static void
+extract_model_from_rho (Btor *btor,
+                        BtorPtrHashTable *fun_model,
+                        BtorNode *fun,
+                        BtorPtrHashTable *rho)
+{
+  int pos;
+  BtorNode *arg, *value, *args;
+  BtorBitVector *bv_arg, *bv_value;
+  BtorBitVectorTuple *t;
+  BtorHashTableIterator it;
+  BtorArgsIterator ait;
+
+  init_node_hash_table_iterator (&it, rho);
+  while (has_next_node_hash_table_iterator (&it))
+  {
+    value = (BtorNode *) it.bucket->data.asPtr;
+    args  = next_node_hash_table_iterator (&it);
+    assert (BTOR_IS_REGULAR_NODE (args));
+    assert (BTOR_IS_ARGS_NODE (args));
+
+    t = btor_new_bv_tuple (btor->mm, btor_get_args_arity (btor, args));
+
+    pos = 0;
+    init_args_iterator (&ait, args);
+    while (has_next_args_iterator (&ait))
+    {
+      arg    = next_args_iterator (&ait);
+      bv_arg = btor_assignment_bv (btor->mm, arg, 0);
+      btor_add_to_bv_tuple (btor->mm, t, bv_arg, pos++);
+      btor_free_bv (btor->mm, bv_arg);
+    }
+
+    bv_value = btor_assignment_bv (btor->mm, value, 0);
+
+    if (!btor_find_in_ptr_hash_table (fun_model, t))
+      add_to_fun_model (btor, fun_model, fun, t, bv_value);
+    btor_free_bv (btor->mm, bv_value);
+    btor_free_bv_tuple (btor->mm, t);
+  }
+}
+
+static void
 extract_models_from_functions_with_model (Btor *btor,
                                           BtorPtrHashTable *fun_model)
 {
   assert (btor);
   assert (fun_model);
 
-  int i, pos;
-  BtorNode *cur, *arg, *value, *args;
-  BtorBitVector *bv_arg, *bv_value;
-  BtorBitVectorTuple *t;
+  int i;
+  BtorNode *cur;
   BtorHashTableIterator it;
-  BtorArgsIterator ait;
+  BtorPtrHashTable *static_rho;
+
+  init_node_hash_table_iterator (&it, btor->lambdas);
+  while (has_next_node_hash_table_iterator (&it))
+  {
+    cur        = next_node_hash_table_iterator (&it);
+    static_rho = btor_lambda_get_static_rho (cur);
+
+    if (!static_rho) continue;
+
+    BTORLOG ("generate model for %s from static_rho", node2string (cur));
+    extract_model_from_rho (btor, fun_model, cur, static_rho);
+  }
 
   for (i = 0; i < BTOR_COUNT_STACK (btor->functions_with_model); i++)
   {
     cur = BTOR_PEEK_STACK (btor->functions_with_model, i);
     assert (cur->rho);
-
-    init_node_hash_table_iterator (&it, cur->rho);
-    while (has_next_node_hash_table_iterator (&it))
-    {
-      value = (BtorNode *) it.bucket->data.asPtr;
-      args  = next_node_hash_table_iterator (&it);
-      assert (BTOR_IS_REGULAR_NODE (args));
-      assert (BTOR_IS_ARGS_NODE (args));
-
-      t = btor_new_bv_tuple (btor->mm, btor_get_args_arity (btor, args));
-
-      pos = 0;
-      init_args_iterator (&ait, args);
-      while (has_next_args_iterator (&ait))
-      {
-        arg    = next_args_iterator (&ait);
-        bv_arg = btor_assignment_bv (btor->mm, arg, 0);
-        btor_add_to_bv_tuple (btor->mm, t, bv_arg, pos++);
-        btor_free_bv (btor->mm, bv_arg);
-      }
-
-      bv_value = btor_assignment_bv (btor->mm, value, 0);
-
-      add_to_fun_model (btor, fun_model, cur, t, bv_value);
-      btor_free_bv (btor->mm, bv_value);
-      btor_free_bv_tuple (btor->mm, t);
-    }
+    BTORLOG ("generate model for %s from rho", node2string (cur));
+    extract_model_from_rho (btor, fun_model, cur, cur->rho);
   }
 }
 
@@ -792,6 +824,7 @@ btor_generate_model_aux (Btor *btor,
   {
     cur = BTOR_PEEK_STACK (stack, i);
     assert (!BTOR_IS_UF_NODE (cur));
+    BTORLOG ("generate model for %s", node2string (cur));
 
     // TODO: only required in extensional case (not fully supported yet)
     if (BTOR_IS_LAMBDA_NODE (cur))
