@@ -250,6 +250,8 @@ find_next_unique_node (BtorNodeIterator *it)
 {
   while (!it->cur && it->pos < it->btor->nodes_unique_table.size)
     it->cur = it->btor->nodes_unique_table.chains[it->pos++];
+  assert (it->cur
+          || it->num_elements == it->btor->nodes_unique_table.num_elements);
 }
 
 void
@@ -260,7 +262,10 @@ init_unique_table_iterator (Btor *btor, BtorNodeIterator *it)
 
   it->btor = btor;
   it->pos  = 0;
-  it->cur  = btor->nodes_unique_table.chains[it->pos++];
+#ifndef NDEBUG
+  it->num_elements = 0;
+#endif
+  it->cur = 0;
   find_next_unique_node (it);
 }
 
@@ -268,6 +273,7 @@ int
 has_next_unique_table_iterator (BtorNodeIterator *it)
 {
   assert (it);
+  assert (it->cur || it->pos >= it->btor->nodes_unique_table.size);
   return it->cur != 0;
 }
 
@@ -279,9 +285,14 @@ next_unique_table_iterator (BtorNodeIterator *it)
 
   BtorNode *result;
 
-  result  = it->cur;
+  result = it->cur;
+#ifndef NDEBUG
+  it->num_elements++;
+  assert (it->num_elements <= it->btor->nodes_unique_table.num_elements);
+  assert (result);
+#endif
   it->cur = it->cur->next;
-  find_next_unique_node (it);
+  if (!it->cur) find_next_unique_node (it);
   return result;
 }
 
