@@ -891,6 +891,9 @@ int btor_is_args_exp (Btor *btor, BtorNode *exp);
 /* Gets the number of arguments of an argument expression 'exp'. */
 int btor_get_args_arity (Btor *btor, BtorNode *exp);
 
+/* Returns static_rho of given lambda node. */
+BtorPtrHashTable *btor_lambda_get_static_rho (BtorNode *lambda);
+
 /* Copies expression (increments reference counter). */
 BtorNode *btor_copy_exp (Btor *btor, BtorNode *exp);
 

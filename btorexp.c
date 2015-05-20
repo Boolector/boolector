@@ -4082,3 +4082,11 @@ btor_get_args_arity (Btor *btor, BtorNode *exp)
   assert (BTOR_IS_ARGS_NODE (exp));
   return btor_get_arity_tuple_sort (&btor->sorts_unique_table, exp->sort_id);
 }
+
+BtorPtrHashTable *
+btor_lambda_get_static_rho (BtorNode *lambda)
+{
+  assert (BTOR_IS_REGULAR_NODE (lambda));
+  assert (BTOR_IS_LAMBDA_NODE (lambda));
+  return ((BtorLambdaNode *) lambda)->static_rho;
+}
