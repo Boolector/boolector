@@ -5915,7 +5915,6 @@ check_ext (Btor *btor, BtorNodePtrStack *prop_stack)
       app1     = btor_apply_exp (btor, cur->e[1], cur_args);
       eq       = btor_eq_exp (btor, app0, app1);
       con      = btor_implies_exp (btor, cur, eq);
-      BTORLOG ("    %s, %s", node2string (app0), node2string (app1));
 
       /* add instantiation of extensionality lemma */
       if (!btor_find_in_ptr_hash_table (btor->lemmas, con))
@@ -5925,6 +5924,7 @@ check_ext (Btor *btor, BtorNodePtrStack *prop_stack)
         btor->stats.extensionality_lemmas++;
         btor->stats.lod_refinements++;
         num_lemmas++;
+        BTORLOG ("    %s, %s", node2string (app0), node2string (app1));
       }
       btor_release_exp (btor, app0);
       btor_release_exp (btor, app1);
@@ -6184,16 +6184,31 @@ add_function_inequality_constraints (Btor *btor)
   BtorNode *cur, *neq, *con;
   BtorNodeIterator it;
   BtorNodePtrStack feqs;
+  BtorHashTableIterator hit;
 
+  /* we have to add inequality constraints for every function equality
+   * in the formula (var_rhs and fun_rhs are still part of the formula). */
+  init_node_hash_table_iterator (&hit, btor->var_rhs);
+  queue_node_hash_table_iterator (&hit, btor->fun_rhs);
+  while (has_next_node_hash_table_iterator (&hit))
+  {
+    cur = next_node_hash_table_iterator (&hit);
+    cur = btor_simplify_exp (btor, cur);
+    mark_reachable (btor, cur);
+  }
+
+  /* collect all reachable function equalities */
   BTOR_INIT_STACK (feqs);
   init_unique_table_iterator (btor, &it);
   while (has_next_unique_table_iterator (&it))
   {
     cur = next_unique_table_iterator (&it);
     if (!BTOR_IS_FEQ_NODE (cur) || !cur->reachable) continue;
+    mark_reachable (btor, cur);
     BTOR_PUSH_STACK (btor->mm, feqs, cur);
   }
 
+  /* add inequality constraint for every reachable function equality */
   while (!BTOR_EMPTY_STACK (feqs))
   {
     cur = BTOR_POP_STACK (feqs);
