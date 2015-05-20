@@ -56,7 +56,7 @@
 #ifndef BTOR_DO_NOT_OPTIMIZE_UNCONSTRAINED
 #define BTOR_CHECK_UNCONSTRAINED
 #endif
-//#define BTOR_CHECK_MODEL
+#define BTOR_CHECK_MODEL
 #define BTOR_CHECK_DUAL_PROP
 #endif
 #undef BTOR_CHECK_FAILED
@@ -3301,8 +3301,6 @@ btor_simplify (Btor *btor)
   } while (btor->varsubst_constraints->count
            || btor->embedded_constraints->count);
 
-  //  btor_rewrite_function_inequalities (btor);
-
   if (btor->options.beta_reduce_all.val) release_cache (btor);
 
   delta = btor_time_stamp () - start;
@@ -5796,8 +5794,10 @@ propagate (Btor *btor,
   return assignments_changed;
 }
 
+/* generate hash table for function 'fun' consisting of all rho and static_rho
+ * hash tables. */
 static BtorPtrHashTable *
-build_table (Btor *btor, BtorNode *fun)
+generate_table (Btor *btor, BtorNode *fun)
 {
   int i;
   BtorMemMgr *mm;
@@ -5832,7 +5832,7 @@ build_table (Btor *btor, BtorNode *fun)
 
       if (BTOR_IS_LAMBDA_NODE (cur))
       {
-        /* we don't care if assignments have been changed */
+        /* we don't care if assignments have changed */
         (void) lazy_synthesize_and_encode_lambda_exp (btor, cur, 1);
         static_rho = ((BtorLambdaNode *) cur)->static_rho;
       }
@@ -5871,7 +5871,7 @@ build_table (Btor *btor, BtorNode *fun)
 }
 
 static void
-check_ext (Btor *btor, BtorNodePtrStack *prop_stack)
+add_extensionality_lemmas (Btor *btor, BtorNodePtrStack *prop_stack)
 {
   assert (btor);
   assert (prop_stack);
@@ -5884,24 +5884,26 @@ check_ext (Btor *btor, BtorNodePtrStack *prop_stack)
   BtorNodePtrStack feqs;
 
   BTORLOG ("");
-  BTORLOG ("*** check ext");
+  BTORLOG ("*** %s", __FUNCTION__);
   BTOR_INIT_STACK (feqs);
 
+  /* collect all reachable function applications */
   init_unique_table_iterator (btor, &it);
   while (has_next_unique_table_iterator (&it))
   {
     cur = next_unique_table_iterator (&it);
-    if (!BTOR_IS_FEQ_NODE (cur)) continue;
-
+    if (!BTOR_IS_FEQ_NODE (cur) || !cur->reachable) continue;
     BTOR_PUSH_STACK (btor->mm, feqs, cur);
   }
 
   while (!BTOR_EMPTY_STACK (feqs))
   {
     cur = BTOR_POP_STACK (feqs);
+    assert (BTOR_IS_FEQ_NODE (cur));
+    assert (cur->reachable);
 
-    table0 = build_table (btor, cur->e[0]);
-    table1 = build_table (btor, cur->e[1]);
+    table0 = generate_table (btor, cur->e[0]);
+    table1 = generate_table (btor, cur->e[1]);
 
     init_node_hash_table_iterator (&hit, table0);
     queue_node_hash_table_iterator (&hit, table1);
@@ -6016,7 +6018,7 @@ BTOR_CONFLICT_CHECK:
       && !found_conflicts && btor->ops[BTOR_FEQ_NODE].cur > 0)
   {
     assert (BTOR_EMPTY_STACK (prop_stack));
-    check_ext (btor, &prop_stack);
+    add_extensionality_lemmas (btor, &prop_stack);
     found_conflicts = BTOR_COUNT_STACK (btor->cur_lemmas);
   }
 
@@ -6304,6 +6306,7 @@ sat_aux_btor (Btor *btor, int lod_limit, int sat_limit)
   //		   "extensionality on arrays/lambdas not yet supported");
   if (btor->ops[BTOR_FEQ_NODE].cur > 0)
   {
+    // btor_rewrite_function_inequalities (btor);
     update_reachable (btor, 1);
     add_function_inequality_constraints (btor);
   }
