@@ -13,8 +13,8 @@
 
 #include "btortypes.h"
 
-BtorNode* btor_rewrite_negative_fun_eq (Btor* btor, BtorNode* feq);
+BtorNode* btor_rewrite_function_inequality (Btor* btor, BtorNode* feq);
 
-void btor_rewrite_negative_fun_eqs (Btor* btor);
+void btor_rewrite_function_inequalities (Btor* btor);
 
 #endif

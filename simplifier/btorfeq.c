@@ -4,7 +4,7 @@
 #include "utils/btormem.h"
 
 BtorNode *
-btor_rewrite_negative_fun_eq (Btor *btor, BtorNode *feq)
+btor_rewrite_function_inequality (Btor *btor, BtorNode *feq)
 {
   assert (BTOR_IS_REGULAR_NODE (feq));
   assert (BTOR_IS_FEQ_NODE (feq));
@@ -45,7 +45,7 @@ btor_rewrite_negative_fun_eq (Btor *btor, BtorNode *feq)
 }
 
 void
-btor_rewrite_negative_fun_eqs (Btor *btor)
+btor_rewrite_function_inequalities (Btor *btor)
 {
   assert (btor->varsubst_constraints->count == 0);
   assert (btor->embedded_constraints->count == 0);
@@ -87,14 +87,15 @@ btor_rewrite_negative_fun_eqs (Btor *btor)
         continue;
       }
 
-      eq = btor_rewrite_negative_fun_eq (btor, cur);
+      eq = btor_rewrite_function_inequality (btor, cur);
       for (i = 0; i < real_par->arity; i++) e[i] = real_par->e[i];
       e[pos] = eq;
       subst  = btor_create_exp (btor, real_par->kind, real_par->arity, e);
-      btor_release_exp (btor, eq);
       /* real_par may be inserted multiple times if more than one negative
        * function eq is in real_par->e */
       btor_insert_substitution (btor, real_par, subst, 1);
+      btor_release_exp (btor, eq);
+      btor_release_exp (btor, subst);
     }
 
     if (!cur->constraint) continue;
@@ -107,7 +108,7 @@ btor_rewrite_negative_fun_eqs (Btor *btor)
       continue;
     }
 
-    eq = btor_rewrite_negative_fun_eq (btor, cur);
+    eq = btor_rewrite_function_inequality (btor, cur);
     if (btor_find_in_ptr_hash_table (btor->unsynthesized_constraints,
                                      BTOR_INVERT_NODE (cur)))
     {
@@ -121,6 +122,7 @@ btor_rewrite_negative_fun_eqs (Btor *btor)
     }
     btor_remove_from_ptr_hash_table (ctable, BTOR_INVERT_NODE (cur), 0, 0);
     btor_insert_in_ptr_hash_table (ctable, eq);
+    BTOR_REAL_ADDR_NODE (eq)->constraint = 1;
     btor_release_exp (btor, cur);
   }
 
