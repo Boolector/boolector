@@ -297,6 +297,11 @@ btor_recursively_compute_assignment (Btor *btor,
         BTOR_PUSH_STACK (mm, work_stack, cur_parent);
         continue;
       }
+      else if (BTOR_IS_FEQ_NODE (real_cur))
+      {
+        result = btor_assignment_bv (btor->mm, real_cur, 1);
+        goto CACHE_AND_PUSH_RESULT;
+      }
       else if (BTOR_IS_LAMBDA_NODE (real_cur) && cur_parent
                && BTOR_IS_APPLY_NODE (cur_parent))
       {
@@ -587,14 +592,41 @@ compute_lambda_model (Btor *btor,
 
   int i;
   BtorBitVector *value, *index;
-  BtorNode *c, *r, *real_c, *real_r, *parent;
+  BtorNode *c, *r, *real_c, *real_r, *parent, *args;
   BtorNodePtrStack candidates;
-  BtorNodeIterator it;
   BtorBitVectorTuple *t;
 
   /* if we already have a model for 'exp', we don't need to compute one */
   if (exp->rho) return;
 
+  /* right now, we only support array models */
+  if (btor_get_fun_arity (btor, exp) > 1) return;
+
+#if 0
+  BtorHashTableIterator it;
+  if (((BtorLambdaNode *) exp)->static_rho)
+    {
+      init_node_hash_table_iterator (&it, ((BtorLambdaNode *) exp)->static_rho);
+      while (has_next_node_hash_table_iterator (&it))
+	{
+	  value = btor_recursively_compute_assignment (btor, bv_model,
+		      fun_model, it.bucket->data.asPtr);
+	  /* compute model for index */
+	  args = next_node_hash_table_iterator (&it);
+	  assert (args->arity == 1);
+	  index = btor_recursively_compute_assignment (btor, bv_model,
+		      fun_model, args->e[0]);
+
+	  t = btor_new_bv_tuple (btor->mm, 1);
+	  btor_add_to_bv_tuple (btor->mm, t, index, 0);
+	  add_to_fun_model (btor, fun_model, exp, t, value);
+	  btor_free_bv (btor->mm, index);
+	  btor_free_bv (btor->mm, value);
+	  btor_free_bv_tuple (btor->mm, t);
+	}
+    }
+#else
+  BtorNodeIterator it;
   /* if lambda is reachable through a reachable apply, we do not need to
    * construct a model right now since it will be done via those applies. */
   init_apply_parent_iterator (&it, exp);
@@ -603,9 +635,6 @@ compute_lambda_model (Btor *btor,
     parent = next_parent_apply_parent_iterator (&it);
     if (parent->reachable) return;
   }
-
-  /* right now, we only support array models */
-  if (btor_get_fun_arity (btor, exp) > 1) return;
 
   BTOR_INIT_STACK (candidates);
 
@@ -643,6 +672,7 @@ compute_lambda_model (Btor *btor,
     btor_unassign_params (btor, exp);
   }
   BTOR_RELEASE_STACK (btor->mm, candidates);
+#endif
 }
 
 static void

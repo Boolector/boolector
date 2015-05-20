@@ -559,6 +559,11 @@ clone_exp (Btor *clone,
       BTOR_PUSH_STACK (mm, *sapps, &((BtorLambdaNode *) res)->synth_apps);
       BTOR_PUSH_STACK (mm, *sapps, &((BtorLambdaNode *) exp)->synth_apps);
     }
+    if (lambda->static_rho)
+    {
+      BTOR_PUSH_STACK (mm, *rhos, &((BtorLambdaNode *) res)->static_rho);
+      BTOR_PUSH_STACK (mm, *rhos, &((BtorLambdaNode *) exp)->static_rho);
+    }
 
     //      assert (!lambda->head || !BTOR_IS_INVALID_NODE (lambda->head));
     assert (!lambda->body
@@ -1007,6 +1012,9 @@ clone_aux_btor (Btor *btor,
     if (!exp_layer_only && BTOR_IS_LAMBDA_NODE (cur)
         && ((BtorLambdaNode *) cur)->synth_apps)
       allocated += MEM_PTR_HASH_TABLE (((BtorLambdaNode *) cur)->synth_apps);
+    if (!exp_layer_only && BTOR_IS_LAMBDA_NODE (cur)
+        && ((BtorLambdaNode *) cur)->static_rho)
+      allocated += MEM_PTR_HASH_TABLE (((BtorLambdaNode *) cur)->static_rho);
   }
   allocated -= vread_bytes;
   if (amap)

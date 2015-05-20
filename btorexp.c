@@ -799,7 +799,7 @@ erase_local_data_exp (Btor *btor, BtorNode *exp, int free_sort)
   assert (!BTOR_IS_INVALID_NODE (exp));
 
   BtorMemMgr *mm;
-  BtorPtrHashTable *synth_apps;
+  BtorPtrHashTable *synth_apps, *static_rho;
   BtorHashTableIterator it;
 
   mm = btor->mm;
@@ -816,6 +816,7 @@ erase_local_data_exp (Btor *btor, BtorNode *exp, int free_sort)
       break;
     case BTOR_LAMBDA_NODE:
       synth_apps = ((BtorLambdaNode *) exp)->synth_apps;
+      static_rho = ((BtorLambdaNode *) exp)->static_rho;
       if (synth_apps)
       {
         init_node_hash_table_iterator (&it, synth_apps);
@@ -823,6 +824,17 @@ erase_local_data_exp (Btor *btor, BtorNode *exp, int free_sort)
           btor_release_exp (btor, next_node_hash_table_iterator (&it));
         btor_delete_ptr_hash_table (synth_apps);
         ((BtorLambdaNode *) exp)->synth_apps = 0;
+      }
+      if (static_rho)
+      {
+        init_node_hash_table_iterator (&it, static_rho);
+        while (has_next_node_hash_table_iterator (&it))
+        {
+          btor_release_exp (btor, it.bucket->data.asPtr);
+          btor_release_exp (btor, next_node_hash_table_iterator (&it));
+        }
+        btor_delete_ptr_hash_table (static_rho);
+        ((BtorLambdaNode *) exp)->static_rho = 0;
       }
       /* fall through intended */
     case BTOR_UF_NODE:
@@ -3693,8 +3705,9 @@ btor_write_exp (Btor *btor,
   assert (btor == BTOR_REAL_ADDR_NODE (e_index)->btor);
   assert (btor == BTOR_REAL_ADDR_NODE (e_value)->btor);
 
-  BtorNode *param, *e_cond, *e_if, *e_else, *bvcond;
+  BtorNode *param, *e_cond, *e_if, *e_else, *bvcond, *args;
   BtorLambdaNode *lambda;
+  BtorPtrHashBucket *b;
 
   e_array = btor_simplify_exp (btor, e_array);
   e_index = btor_simplify_exp (btor, e_index);
@@ -3707,6 +3720,19 @@ btor_write_exp (Btor *btor,
   e_else = btor_read_exp (btor, e_array, param);
   bvcond = btor_cond_exp (btor, e_cond, e_if, e_else);
   lambda = (BtorLambdaNode *) btor_lambda_exp (btor, param, bvcond);
+  if (!lambda->static_rho)
+  {
+    lambda->static_rho = btor_new_ptr_hash_table (btor->mm, 0, 0);
+    args               = btor_args_exp (btor, 1, &e_index);
+    b             = btor_insert_in_ptr_hash_table (lambda->static_rho, args);
+    b->data.asPtr = btor_copy_exp (btor, e_value);
+  }
+  else
+  {
+    assert (lambda->static_rho->count == 1);
+    assert ((args = lambda->static_rho->first->key) && args->e[0] == e_index);
+    assert (((BtorNode *) lambda->static_rho->first->data.asPtr) == e_value);
+  }
 
   btor_release_exp (btor, e_if);
   btor_release_exp (btor, e_else);
@@ -3745,6 +3771,61 @@ btor_dec_exp (Btor *btor, BtorNode *exp)
   result = btor_sub_exp (btor, exp, one);
   btor_release_exp (btor, one);
   return result;
+}
+
+BtorNode *
+btor_create_exp (Btor *btor, BtorNodeKind kind, int arity, BtorNode **e)
+{
+  assert (arity > 0);
+  assert (arity <= 3);
+
+  switch (kind)
+  {
+    case BTOR_AND_NODE:
+      assert (arity == 2);
+      return btor_and_exp (btor, e[0], e[1]);
+    case BTOR_BEQ_NODE:
+    case BTOR_FEQ_NODE:
+      assert (arity == 2);
+      return btor_eq_exp (btor, e[0], e[1]);
+    case BTOR_ADD_NODE:
+      assert (arity == 2);
+      return btor_add_exp (btor, e[0], e[1]);
+    case BTOR_MUL_NODE:
+      assert (arity == 2);
+      return btor_mul_exp (btor, e[0], e[1]);
+    case BTOR_ULT_NODE:
+      assert (arity == 2);
+      return btor_ult_exp (btor, e[0], e[1]);
+    case BTOR_SLL_NODE:
+      assert (arity == 2);
+      return btor_sll_exp (btor, e[0], e[1]);
+    case BTOR_SRL_NODE:
+      assert (arity == 2);
+      return btor_srl_exp (btor, e[0], e[1]);
+    case BTOR_UDIV_NODE:
+      assert (arity == 2);
+      return btor_udiv_exp (btor, e[0], e[1]);
+    case BTOR_UREM_NODE:
+      assert (arity == 2);
+      return btor_urem_exp (btor, e[0], e[1]);
+    case BTOR_CONCAT_NODE:
+      assert (arity == 2);
+      return btor_concat_exp (btor, e[0], e[1]);
+    case BTOR_APPLY_NODE:
+      assert (arity == 2);
+      return btor_apply_exp (btor, e[0], e[1]);
+    case BTOR_LAMBDA_NODE:
+      assert (arity == 2);
+      return btor_lambda_exp (btor, e[0], e[1]);
+    case BTOR_BCOND_NODE:
+      assert (arity == 3);
+      return btor_cond_exp (btor, e[0], e[1], e[2]);
+    default:
+      assert (kind == BTOR_ARGS_NODE);
+      return btor_args_exp (btor, arity, e);
+  }
+  return 0;
 }
 
 int

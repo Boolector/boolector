@@ -192,6 +192,7 @@ struct BtorLambdaNode
   BTOR_BV_NODE_STRUCT;
   BTOR_BV_ADDITIONAL_NODE_STRUCT;
   BtorPtrHashTable *synth_apps;
+  BtorPtrHashTable *static_rho;
   BtorNode *body; /* function body (short-cut for curried lambdas) */
 };
 
@@ -945,6 +946,11 @@ BtorNode *btor_cond_exp_node (Btor *btor,
 BtorNode *btor_apply_exp_node (Btor *btor, BtorNode *fun, BtorNode *args);
 
 BtorNode *btor_lambda_exp_node (Btor *btor, BtorNode *param, BtorNode *body);
+
+BtorNode *btor_create_exp (Btor *btor,
+                           BtorNodeKind kind,
+                           int arity,
+                           BtorNode **e);
 
 /*------------------------------------------------------------------------*/
 #ifndef NDEBUG
