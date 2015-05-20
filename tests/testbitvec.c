@@ -490,6 +490,52 @@ test_sext_bitvec (void)
               BTOR_TEST_BITVEC_NUM_BITS);
 }
 
+#define TEST_IS_UMULO_BITVEC(bw, v0, v1, res)          \
+  do                                                   \
+  {                                                    \
+    bv0 = btor_uint64_to_bv (g_mm, v0, bw);            \
+    bv1 = btor_uint64_to_bv (g_mm, v1, bw);            \
+    assert (btor_is_umulo_bv (g_mm, bv0, bv1) == res); \
+    btor_free_bv (g_mm, bv0);                          \
+    btor_free_bv (g_mm, bv1);                          \
+  } while (0)
+
+static void
+is_umulo_bitvec (int bw)
+{
+  BtorBitVector *bv0, *bv1;
+
+  switch (bw)
+  {
+    case 1:
+      TEST_IS_UMULO_BITVEC (bw, 0, 0, false);
+      TEST_IS_UMULO_BITVEC (bw, 0, 1, false);
+      TEST_IS_UMULO_BITVEC (bw, 1, 1, false);
+      break;
+    case 7:
+      TEST_IS_UMULO_BITVEC (bw, 3, 6, false);
+      TEST_IS_UMULO_BITVEC (bw, 124, 2, true);
+      break;
+    case 31:
+      TEST_IS_UMULO_BITVEC (bw, 15, 78, false);
+      TEST_IS_UMULO_BITVEC (bw, 1073742058, 2, true);
+      break;
+    case 33:
+      TEST_IS_UMULO_BITVEC (bw, 15, 78, false);
+      TEST_IS_UMULO_BITVEC (bw, 4294967530, 4294967530, true);
+      break;
+  }
+}
+
+static void
+test_is_umulo_bitvec (void)
+{
+  is_umulo_bitvec (1);
+  is_umulo_bitvec (7);
+  is_umulo_bitvec (31);
+  is_umulo_bitvec (33);
+}
+
 static void
 perf_test_bitvec (char *(*const_func) (BtorMemMgr *,
                                        const char *,
@@ -718,6 +764,7 @@ run_bitvec_tests (int argc, char **argv)
   BTOR_RUN_TEST (urem_bitvec);
   BTOR_RUN_TEST (uext_bitvec);
   BTOR_RUN_TEST (sext_bitvec);
+  BTOR_RUN_TEST (is_umulo_bitvec);
 
   BTOR_RUN_TEST (perf_and_bitvec);
   BTOR_RUN_TEST (perf_eq_bitvec);

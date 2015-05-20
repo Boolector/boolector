@@ -1001,6 +1001,38 @@ btor_uext_bv (BtorMemMgr *mm, BtorBitVector *bv, int len)
 
 /*------------------------------------------------------------------------*/
 
+bool
+btor_is_umulo_bv (BtorMemMgr *mm, BtorBitVector *a, BtorBitVector *b)
+{
+  assert (mm);
+  assert (a);
+  assert (b);
+  assert (a->len == b->len);
+  assert (a->width == b->width);
+
+  bool res;
+  BtorBitVector *aext, *bext, *mul, *o;
+
+  res = false;
+
+  if (a->width > 1)
+  {
+    aext = btor_uext_bv (mm, a, a->width);
+    bext = btor_uext_bv (mm, b, b->width);
+    mul  = btor_mul_bv (mm, aext, bext);
+    o    = btor_slice_bv (mm, mul, mul->width - 1, a->width);
+    if (!btor_is_zero_bv (o)) res = true;
+    btor_free_bv (mm, aext);
+    btor_free_bv (mm, bext);
+    btor_free_bv (mm, mul);
+    btor_free_bv (mm, o);
+  }
+
+  return res;
+}
+
+/*------------------------------------------------------------------------*/
+
 BtorBitVector *
 btor_gcd_ext_bv (Btor *btor,
                  BtorBitVector *bv1,

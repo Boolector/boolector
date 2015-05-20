@@ -74,6 +74,8 @@ void btor_set_bit_bv (BtorBitVector *bv, int pos, int value);
 int btor_is_true_bv (BtorBitVector *bv);
 int btor_is_false_bv (BtorBitVector *bv);
 
+/*------------------------------------------------------------------------*/
+
 BtorBitVector *btor_neg_bv (BtorMemMgr *mm, BtorBitVector *bv);
 BtorBitVector *btor_not_bv (BtorMemMgr *mm, BtorBitVector *bv);
 BtorBitVector *btor_inc_bv (BtorMemMgr *mm, BtorBitVector *bv);
@@ -124,6 +126,10 @@ BtorBitVector *btor_flipped_bit_range_bv (BtorMemMgr *mm,
                                           BtorBitVector *bv,
                                           int up,
                                           int lo);
+
+/*------------------------------------------------------------------------*/
+
+bool btor_is_umulo_bv (BtorMemMgr *mm, BtorBitVector *bv0, BtorBitVector *bv1);
 
 /*------------------------------------------------------------------------*/
 
