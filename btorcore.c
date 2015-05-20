@@ -3350,11 +3350,13 @@ static void
 synthesize_exp (Btor *btor, BtorNode *exp, BtorPtrHashTable *backannotation)
 {
   BtorNodePtrStack exp_stack;
-  BtorNode *cur;
+  BtorNode *cur, *value, *args;
   BtorAIGVec *av0, *av1, *av2;
   BtorMemMgr *mm;
   BtorAIGVecMgr *avmgr;
   BtorPtrHashBucket *b;
+  BtorPtrHashTable *static_rho;
+  BtorHashTableIterator it;
   char *indexed_name;
   const char *name;
   unsigned int count;
@@ -3485,6 +3487,23 @@ synthesize_exp (Btor *btor, BtorNode *exp, BtorPtrHashTable *backannotation)
         BTOR_PUSH_STACK (mm, exp_stack, cur);
         for (i = cur->arity - 1; i >= 0; i--)
           BTOR_PUSH_STACK (mm, exp_stack, cur->e[i]);
+
+        /* synthesize nodes in static_rho of lambda nodes */
+        if (BTOR_IS_LAMBDA_NODE (cur))
+        {
+          static_rho = btor_lambda_get_static_rho (cur);
+          if (static_rho)
+          {
+            init_node_hash_table_iterator (&it, static_rho);
+            while (has_next_node_hash_table_iterator (&it))
+            {
+              value = it.bucket->data.asPtr;
+              args  = next_node_hash_table_iterator (&it);
+              BTOR_PUSH_STACK (mm, exp_stack, btor_simplify_exp (btor, value));
+              BTOR_PUSH_STACK (mm, exp_stack, btor_simplify_exp (btor, args));
+            }
+          }
+        }
       }
     }
     else
