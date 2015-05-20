@@ -819,10 +819,59 @@ sls_inv_srl_bv (int bw)
   btor_release_exp (g_btor, e[1]);
 }
 
+#define TEST_SLS_INV_MUL(bw, ve, vmul, eidx)                      \
+  do                                                              \
+  {                                                               \
+    idx      = eidx ? 0 : 1;                                      \
+    bve[idx] = btor_uint64_to_bv (g_mm, ve, bw);                  \
+    bvmul    = btor_uint64_to_bv (g_mm, vmul, bw);                \
+    btor_init_bv_model (g_btor, g_bv_model);                      \
+    btor_add_to_bv_model (g_btor, *g_bv_model, e[idx], bve[idx]); \
+    assert ((*g_bv_model)->count == 1);                           \
+    res = inv_mul_bv (g_btor, mul, bvmul, eidx);                  \
+    assert ((*g_bv_model)->count == 1);                           \
+    if (eidx)                                                     \
+      tmp = btor_mul_bv (g_mm, bve[idx], res);                    \
+    else                                                          \
+      tmp = btor_mul_bv (g_mm, res, bve[idx]);                    \
+    assert (!btor_compare_bv (tmp, bvmul));                       \
+    btor_free_bv (g_mm, tmp);                                     \
+    btor_free_bv (g_mm, res);                                     \
+    btor_delete_bv_model (g_btor, g_bv_model);                    \
+    btor_free_bv (g_btor->mm, bve[idx]);                          \
+    btor_free_bv (g_btor->mm, bvmul);                             \
+  } while (0)
+
+#define TEST_SLS_INV_MUL_CON(bw, ve, vmul, eidx)                   \
+  do                                                               \
+  {                                                                \
+    idx     = eidx ? 0 : 1;                                        \
+    tmpbits = btor_decimal_to_const (g_mm, #ve);                   \
+    len     = strlen (#ve);                                        \
+    BTOR_CNEWN (g_mm, bits, bw + 1);                               \
+    for (i = 0; i < bw; i++) bits[i] = i < len ? tmpbits[i] : '0'; \
+    e[idx] = btor_const_exp (g_btor, bits);                        \
+    btor_freestr (g_mm, tmpbits);                                  \
+    BTOR_DELETEN (g_mm, bits, bw + 1);                             \
+    btor_release_exp (g_btor, mul);                                \
+    mul      = btor_mul_exp (g_btor, e[0], e[1]);                  \
+    bve[idx] = btor_uint64_to_bv (g_mm, ve, bw);                   \
+    bvmul    = btor_uint64_to_bv (g_mm, vmul, bw);                 \
+    btor_init_bv_model (g_btor, g_bv_model);                       \
+    btor_add_to_bv_model (g_btor, *g_bv_model, e[idx], bve[idx]);  \
+    assert ((*g_bv_model)->count == 1);                            \
+    res = inv_mul_bv (g_btor, mul, bvmul, eidx);                   \
+    assert ((*g_bv_model)->count == 1);                            \
+    assert (!res);                                                 \
+    btor_delete_bv_model (g_btor, g_bv_model);                     \
+    btor_free_bv (g_btor->mm, bve[idx]);                           \
+    btor_free_bv (g_btor->mm, bvmul);                              \
+  } while (0)
+
 static void
 sls_inv_mul_bv (int bw)
 {
-  int i, len;
+  int i, len, idx;
   BtorNode *mul, *e[3], *tmpe;
   BtorBitVector *bvmul, *bve[3], *res, *tmp;
   char *bits, *tmpbits;
@@ -835,131 +884,23 @@ sls_inv_mul_bv (int bw)
   switch (bw)
   {
     case 7:
-      bve[0] = btor_uint64_to_bv (g_mm, 3, bw);
-      bvmul  = btor_uint64_to_bv (g_mm, 6, bw);
-      btor_init_bv_model (g_btor, g_bv_model);
-      btor_add_to_bv_model (g_btor, *g_bv_model, e[0], bve[0]);
-      assert ((*g_bv_model)->count == 1);
-      res = inv_mul_bv (g_btor, mul, bvmul, 1);
-      assert ((*g_bv_model)->count == 1);
-      tmp = btor_mul_bv (g_mm, bve[0], res);
-      assert (!btor_compare_bv (tmp, bvmul));
-      btor_free_bv (g_mm, tmp);
-      btor_free_bv (g_mm, res);
-      btor_delete_bv_model (g_btor, g_bv_model);
-      btor_free_bv (g_btor->mm, bve[0]);
-      btor_free_bv (g_btor->mm, bvmul);
-
-      bve[1] = btor_uint64_to_bv (g_mm, 2, bw);
-      bvmul  = btor_uint64_to_bv (g_mm, 4, bw);
-      btor_init_bv_model (g_btor, g_bv_model);
-      btor_add_to_bv_model (g_btor, *g_bv_model, e[1], bve[1]);
-      assert ((*g_bv_model)->count == 1);
-      res = inv_mul_bv (g_btor, mul, bvmul, 0);
-      assert ((*g_bv_model)->count == 1);
-      tmp = btor_mul_bv (g_mm, res, bve[1]);
-      assert (!btor_compare_bv (tmp, bvmul));
-      btor_free_bv (g_mm, tmp);
-      btor_free_bv (g_mm, res);
-      btor_delete_bv_model (g_btor, g_bv_model);
-      btor_free_bv (g_btor->mm, bve[1]);
-      btor_free_bv (g_btor->mm, bvmul);
+      TEST_SLS_INV_MUL (bw, 3, 6, 1);
+      TEST_SLS_INV_MUL (bw, 2, 4, 0);
       break;
 
     case 31:
-      bve[0] = btor_uint64_to_bv (g_mm, 334, bw);
-      bvmul  = btor_uint64_to_bv (g_mm, 41416, bw);
-      btor_init_bv_model (g_btor, g_bv_model);
-      btor_add_to_bv_model (g_btor, *g_bv_model, e[0], bve[0]);
-      assert ((*g_bv_model)->count == 1);
-      res = inv_mul_bv (g_btor, mul, bvmul, 1);
-      assert ((*g_bv_model)->count == 1);
-      tmp = btor_mul_bv (g_mm, bve[0], res);
-      assert (!btor_compare_bv (tmp, bvmul));
-      btor_free_bv (g_mm, tmp);
-      btor_free_bv (g_mm, res);
-      btor_delete_bv_model (g_btor, g_bv_model);
-      btor_free_bv (g_btor->mm, bve[0]);
-      btor_free_bv (g_btor->mm, bvmul);
-
-      bve[1] = btor_uint64_to_bv (g_mm, 22222, bw);
-      bvmul  = btor_uint64_to_bv (g_mm, 1511096, bw);
-      btor_init_bv_model (g_btor, g_bv_model);
-      btor_add_to_bv_model (g_btor, *g_bv_model, e[1], bve[1]);
-      assert ((*g_bv_model)->count == 1);
-      res = inv_mul_bv (g_btor, mul, bvmul, 0);
-      assert ((*g_bv_model)->count == 1);
-      tmp = btor_mul_bv (g_mm, res, bve[1]);
-      assert (!btor_compare_bv (tmp, bvmul));
-      btor_free_bv (g_mm, tmp);
-      btor_free_bv (g_mm, res);
-      btor_delete_bv_model (g_btor, g_bv_model);
-      btor_free_bv (g_btor->mm, bve[1]);
-      btor_free_bv (g_btor->mm, bvmul);
+      TEST_SLS_INV_MUL (bw, 334, 41416, 1);
+      TEST_SLS_INV_MUL (bw, 22222, 1511096, 0);
       break;
 
     case 33:
-      bve[0] = btor_uint64_to_bv (g_mm, 556, bw);
-      bvmul  = btor_uint64_to_bv (g_mm, 89858496, bw);
-      btor_init_bv_model (g_btor, g_bv_model);
-      btor_add_to_bv_model (g_btor, *g_bv_model, e[0], bve[0]);
-      assert ((*g_bv_model)->count == 1);
-      res = inv_mul_bv (g_btor, mul, bvmul, 1);
-      assert ((*g_bv_model)->count == 1);
-      tmp = btor_mul_bv (g_mm, bve[0], res);
-      assert (!btor_compare_bv (tmp, bvmul));
-      btor_free_bv (g_mm, tmp);
-      btor_free_bv (g_mm, res);
-      btor_delete_bv_model (g_btor, g_bv_model);
-      btor_free_bv (g_btor->mm, bve[0]);
-      btor_free_bv (g_btor->mm, bvmul);
-
-      bve[1] = btor_uint64_to_bv (g_mm, 42, bw);
-      bvmul  = btor_uint64_to_bv (g_mm, 51828, bw);
-      btor_init_bv_model (g_btor, g_bv_model);
-      btor_add_to_bv_model (g_btor, *g_bv_model, e[1], bve[1]);
-      assert ((*g_bv_model)->count == 1);
-      res = inv_mul_bv (g_btor, mul, bvmul, 0);
-      assert ((*g_bv_model)->count == 1);
-      tmp = btor_mul_bv (g_mm, res, bve[1]);
-      assert (!btor_compare_bv (tmp, bvmul));
-      btor_free_bv (g_mm, tmp);
-      btor_free_bv (g_mm, res);
-      btor_delete_bv_model (g_btor, g_bv_model);
-      btor_free_bv (g_btor->mm, bve[1]);
-      btor_free_bv (g_btor->mm, bvmul);
+      TEST_SLS_INV_MUL (bw, 556, 89858496, 1);
+      TEST_SLS_INV_MUL (bw, 42, 51828, 0);
       break;
 
     case 45:
-      bve[0] = btor_uint64_to_bv (g_mm, 354222444, bw);
-      bvmul  = btor_uint64_to_bv (g_mm, 3896446884, bw);
-      btor_init_bv_model (g_btor, g_bv_model);
-      btor_add_to_bv_model (g_btor, *g_bv_model, e[0], bve[0]);
-      assert ((*g_bv_model)->count == 1);
-      res = inv_mul_bv (g_btor, mul, bvmul, 1);
-      assert ((*g_bv_model)->count == 1);
-      tmp = btor_mul_bv (g_mm, bve[0], res);
-      assert (!btor_compare_bv (tmp, bvmul));
-      btor_free_bv (g_mm, tmp);
-      btor_free_bv (g_mm, res);
-      btor_delete_bv_model (g_btor, g_bv_model);
-      btor_free_bv (g_btor->mm, bve[0]);
-      btor_free_bv (g_btor->mm, bvmul);
-
-      bve[1] = btor_uint64_to_bv (g_mm, 8293882888, bw);
-      bvmul  = btor_uint64_to_bv (g_mm, 24881648664, bw);
-      btor_init_bv_model (g_btor, g_bv_model);
-      btor_add_to_bv_model (g_btor, *g_bv_model, e[1], bve[1]);
-      assert ((*g_bv_model)->count == 1);
-      res = inv_mul_bv (g_btor, mul, bvmul, 0);
-      assert ((*g_bv_model)->count == 1);
-      tmp = btor_mul_bv (g_mm, res, bve[1]);
-      assert (!btor_compare_bv (tmp, bvmul));
-      btor_free_bv (g_mm, tmp);
-      btor_free_bv (g_mm, res);
-      btor_delete_bv_model (g_btor, g_bv_model);
-      btor_free_bv (g_btor->mm, bve[1]);
-      btor_free_bv (g_btor->mm, bvmul);
+      TEST_SLS_INV_MUL (bw, 354222444, 3896446884, 1);
+      TEST_SLS_INV_MUL (bw, 8293882888, 24881648664, 0);
       break;
 
     default: break;
@@ -969,163 +910,28 @@ sls_inv_mul_bv (int bw)
   switch (bw)
   {
     case 1:
-      bve[0] = btor_uint64_to_bv (g_mm, 1, bw);
-      bvmul  = btor_uint64_to_bv (g_mm, 1, bw);
-      btor_init_bv_model (g_btor, g_bv_model);
-      btor_add_to_bv_model (g_btor, *g_bv_model, e[0], bve[0]);
-      assert ((*g_bv_model)->count == 1);
-      res = inv_mul_bv (g_btor, mul, bvmul, 1);
-      assert ((*g_bv_model)->count == 1);
-      tmp = btor_mul_bv (g_mm, bve[0], res);
-      assert (!btor_compare_bv (tmp, bvmul));
-      btor_free_bv (g_mm, tmp);
-      btor_free_bv (g_mm, res);
-      btor_delete_bv_model (g_btor, g_bv_model);
-      btor_free_bv (g_btor->mm, bve[0]);
-      btor_free_bv (g_btor->mm, bvmul);
-
-      bve[1] = btor_uint64_to_bv (g_mm, 1, bw);
-      bvmul  = btor_uint64_to_bv (g_mm, 0, bw);
-      btor_init_bv_model (g_btor, g_bv_model);
-      btor_add_to_bv_model (g_btor, *g_bv_model, e[1], bve[1]);
-      assert ((*g_bv_model)->count == 1);
-      res = inv_mul_bv (g_btor, mul, bvmul, 0);
-      assert ((*g_bv_model)->count == 1);
-      tmp = btor_mul_bv (g_mm, res, bve[1]);
-      assert (!btor_compare_bv (tmp, bvmul));
-      btor_free_bv (g_mm, tmp);
-      btor_free_bv (g_mm, res);
-      btor_delete_bv_model (g_btor, g_bv_model);
-      btor_free_bv (g_btor->mm, bve[1]);
-      btor_free_bv (g_btor->mm, bvmul);
+      TEST_SLS_INV_MUL (bw, 1, 1, 1);
+      TEST_SLS_INV_MUL (bw, 1, 0, 0);
       break;
 
     case 7:
-      bve[0] = btor_uint64_to_bv (g_mm, 5, bw);
-      bvmul  = btor_uint64_to_bv (g_mm, 11, bw);
-      btor_init_bv_model (g_btor, g_bv_model);
-      btor_add_to_bv_model (g_btor, *g_bv_model, e[0], bve[0]);
-      assert ((*g_bv_model)->count == 1);
-      res = inv_mul_bv (g_btor, mul, bvmul, 1);
-      assert ((*g_bv_model)->count == 1);
-      tmp = btor_mul_bv (g_mm, bve[0], res);
-      assert (!btor_compare_bv (tmp, bvmul));
-      btor_free_bv (g_mm, tmp);
-      btor_free_bv (g_mm, res);
-      btor_delete_bv_model (g_btor, g_bv_model);
-      btor_free_bv (g_btor->mm, bve[0]);
-      btor_free_bv (g_btor->mm, bvmul);
-
-      bve[1] = btor_uint64_to_bv (g_mm, 105, bw);
-      bvmul  = btor_uint64_to_bv (g_mm, 34, bw);
-      btor_init_bv_model (g_btor, g_bv_model);
-      btor_add_to_bv_model (g_btor, *g_bv_model, e[1], bve[1]);
-      assert ((*g_bv_model)->count == 1);
-      res = inv_mul_bv (g_btor, mul, bvmul, 0);
-      assert ((*g_bv_model)->count == 1);
-      tmp = btor_mul_bv (g_mm, res, bve[1]);
-      assert (!btor_compare_bv (tmp, bvmul));
-      btor_free_bv (g_mm, tmp);
-      btor_free_bv (g_mm, res);
-      btor_delete_bv_model (g_btor, g_bv_model);
-      btor_free_bv (g_btor->mm, bve[1]);
-      btor_free_bv (g_btor->mm, bvmul);
+      TEST_SLS_INV_MUL (bw, 5, 11, 1);
+      TEST_SLS_INV_MUL (bw, 105, 34, 0);
       break;
 
     case 31:
-      bve[0] = btor_uint64_to_bv (g_mm, 156797, bw);
-      bvmul  = btor_uint64_to_bv (g_mm, 17846234, bw);
-      btor_init_bv_model (g_btor, g_bv_model);
-      btor_add_to_bv_model (g_btor, *g_bv_model, e[0], bve[0]);
-      assert ((*g_bv_model)->count == 1);
-      res = inv_mul_bv (g_btor, mul, bvmul, 1);
-      assert ((*g_bv_model)->count == 1);
-      tmp = btor_mul_bv (g_mm, bve[0], res);
-      assert (!btor_compare_bv (tmp, bvmul));
-      btor_free_bv (g_mm, tmp);
-      btor_free_bv (g_mm, res);
-      btor_delete_bv_model (g_btor, g_bv_model);
-      btor_free_bv (g_btor->mm, bve[0]);
-      btor_free_bv (g_btor->mm, bvmul);
-
-      bve[1] = btor_uint64_to_bv (g_mm, 34547367, bw);
-      bvmul  = btor_uint64_to_bv (g_mm, 454656422, bw);
-      btor_init_bv_model (g_btor, g_bv_model);
-      btor_add_to_bv_model (g_btor, *g_bv_model, e[1], bve[1]);
-      assert ((*g_bv_model)->count == 1);
-      res = inv_mul_bv (g_btor, mul, bvmul, 0);
-      assert ((*g_bv_model)->count == 1);
-      tmp = btor_mul_bv (g_mm, res, bve[1]);
-      assert (!btor_compare_bv (tmp, bvmul));
-      btor_free_bv (g_mm, tmp);
-      btor_free_bv (g_mm, res);
-      btor_delete_bv_model (g_btor, g_bv_model);
-      btor_free_bv (g_btor->mm, bve[1]);
-      btor_free_bv (g_btor->mm, bvmul);
+      TEST_SLS_INV_MUL (bw, 156797, 17846234, 1);
+      TEST_SLS_INV_MUL (bw, 34547367, 454656422, 0);
       break;
 
     case 33:
-      bve[0] = btor_uint64_to_bv (g_mm, 801110083, bw);
-      bvmul  = btor_uint64_to_bv (g_mm, 1602220166, bw);
-      btor_init_bv_model (g_btor, g_bv_model);
-      btor_add_to_bv_model (g_btor, *g_bv_model, e[0], bve[0]);
-      assert ((*g_bv_model)->count == 1);
-      res = inv_mul_bv (g_btor, mul, bvmul, 1);
-      assert ((*g_bv_model)->count == 1);
-      tmp = btor_mul_bv (g_mm, bve[0], res);
-      assert (!btor_compare_bv (tmp, bvmul));
-      btor_free_bv (g_mm, tmp);
-      btor_free_bv (g_mm, res);
-      btor_delete_bv_model (g_btor, g_bv_model);
-      btor_free_bv (g_btor->mm, bve[0]);
-      btor_free_bv (g_btor->mm, bvmul);
-
-      bve[1] = btor_uint64_to_bv (g_mm, 125, bw);
-      bvmul  = btor_uint64_to_bv (g_mm, 4546522, bw);
-      btor_init_bv_model (g_btor, g_bv_model);
-      btor_add_to_bv_model (g_btor, *g_bv_model, e[1], bve[1]);
-      assert ((*g_bv_model)->count == 1);
-      res = inv_mul_bv (g_btor, mul, bvmul, 0);
-      assert ((*g_bv_model)->count == 1);
-      tmp = btor_mul_bv (g_mm, res, bve[1]);
-      assert (!btor_compare_bv (tmp, bvmul));
-      btor_free_bv (g_mm, tmp);
-      btor_free_bv (g_mm, res);
-      btor_delete_bv_model (g_btor, g_bv_model);
-      btor_free_bv (g_btor->mm, bve[1]);
-      btor_free_bv (g_btor->mm, bvmul);
+      TEST_SLS_INV_MUL (bw, 801110083, 1602220166, 1);
+      TEST_SLS_INV_MUL (bw, 125, 4546522, 0);
       break;
 
     case 45:
-      bve[0] = btor_uint64_to_bv (g_mm, 25, bw);
-      bvmul  = btor_uint64_to_bv (g_mm, 234314345, bw);
-      btor_init_bv_model (g_btor, g_bv_model);
-      btor_add_to_bv_model (g_btor, *g_bv_model, e[0], bve[0]);
-      assert ((*g_bv_model)->count == 1);
-      res = inv_mul_bv (g_btor, mul, bvmul, 1);
-      assert ((*g_bv_model)->count == 1);
-      tmp = btor_mul_bv (g_mm, bve[0], res);
-      assert (!btor_compare_bv (tmp, bvmul));
-      btor_free_bv (g_mm, tmp);
-      btor_free_bv (g_mm, res);
-      btor_delete_bv_model (g_btor, g_bv_model);
-      btor_free_bv (g_btor->mm, bve[0]);
-      btor_free_bv (g_btor->mm, bvmul);
-
-      bve[1] = btor_uint64_to_bv (g_mm, 1125, bw);
-      bvmul  = btor_uint64_to_bv (g_mm, 814546522, bw);
-      btor_init_bv_model (g_btor, g_bv_model);
-      btor_add_to_bv_model (g_btor, *g_bv_model, e[1], bve[1]);
-      assert ((*g_bv_model)->count == 1);
-      res = inv_mul_bv (g_btor, mul, bvmul, 0);
-      assert ((*g_bv_model)->count == 1);
-      tmp = btor_mul_bv (g_mm, res, bve[1]);
-      assert (!btor_compare_bv (tmp, bvmul));
-      btor_free_bv (g_mm, tmp);
-      btor_free_bv (g_mm, res);
-      btor_delete_bv_model (g_btor, g_bv_model);
-      btor_free_bv (g_btor->mm, bve[1]);
-      btor_free_bv (g_btor->mm, bvmul);
+      TEST_SLS_INV_MUL (bw, 25, 234314345, 1);
+      TEST_SLS_INV_MUL (bw, 1125, 814546522, 0);
       break;
 
     default: break;
@@ -1136,191 +942,35 @@ sls_inv_mul_bv (int bw)
   switch (bw)
   {
     case 7:
-      tmpbits = btor_decimal_to_const (g_mm, "6");
-      len     = strlen ("6");
-      BTOR_CNEWN (g_mm, bits, bw + 1);
-      for (i = 0; i < bw; i++) bits[i] = i < len ? tmpbits[i] : '0';
-      e[1] = btor_const_exp (g_btor, bits);
-      btor_freestr (g_mm, tmpbits);
-      BTOR_DELETEN (g_mm, bits, bw + 1);
-      btor_release_exp (g_btor, mul);
-      mul    = btor_mul_exp (g_btor, e[0], e[1]);
-      bve[1] = btor_uint64_to_bv (g_mm, 6, bw);
-      bvmul  = btor_uint64_to_bv (g_mm, 8, bw);
-      btor_init_bv_model (g_btor, g_bv_model);
-      btor_add_to_bv_model (g_btor, *g_bv_model, e[1], bve[1]);
-      assert ((*g_bv_model)->count == 1);
-      res = inv_mul_bv (g_btor, mul, bvmul, 0);
-      assert ((*g_bv_model)->count == 1);
-      assert (!res);
-      btor_delete_bv_model (g_btor, g_bv_model);
-      btor_free_bv (g_btor->mm, bve[1]);
-      btor_free_bv (g_btor->mm, bvmul);
-
+      TEST_SLS_INV_MUL_CON (bw, 6, 8, 0);
       btor_release_exp (g_btor, e[1]);
       e[1] = tmpe;
       btor_release_exp (g_btor, e[0]);
-      tmpbits = btor_decimal_to_const (g_mm, "6");
-      len     = strlen ("6");
-      BTOR_CNEWN (g_mm, bits, bw + 1);
-      for (i = 0; i < bw; i++) bits[i] = i < len ? tmpbits[i] : '0';
-      e[0] = btor_const_exp (g_btor, bits);
-      btor_freestr (g_mm, tmpbits);
-      BTOR_DELETEN (g_mm, bits, bw + 1);
-      btor_release_exp (g_btor, mul);
-      mul    = btor_mul_exp (g_btor, e[0], e[1]);
-      bve[0] = btor_uint64_to_bv (g_mm, 6, bw);
-      bvmul  = btor_uint64_to_bv (g_mm, 124, bw);
-      btor_init_bv_model (g_btor, g_bv_model);
-      btor_add_to_bv_model (g_btor, *g_bv_model, e[0], bve[0]);
-      assert ((*g_bv_model)->count == 1);
-      res = inv_mul_bv (g_btor, mul, bvmul, 1);
-      assert ((*g_bv_model)->count == 1);
-      assert (!res);
-      btor_delete_bv_model (g_btor, g_bv_model);
-      btor_free_bv (g_btor->mm, bve[0]);
-      btor_free_bv (g_btor->mm, bvmul);
+      TEST_SLS_INV_MUL_CON (bw, 6, 124, 1);
       break;
 
     case 31:
-      tmpbits = btor_decimal_to_const (g_mm, "156798");
-      len     = strlen ("156798");
-      BTOR_CNEWN (g_mm, bits, bw + 1);
-      for (i = 0; i < bw; i++) bits[i] = i < len ? tmpbits[i] : '0';
-      e[1] = btor_const_exp (g_btor, bits);
-      btor_freestr (g_mm, tmpbits);
-      BTOR_DELETEN (g_mm, bits, bw + 1);
-      btor_release_exp (g_btor, mul);
-      mul    = btor_mul_exp (g_btor, e[0], e[1]);
-      bve[1] = btor_uint64_to_bv (g_mm, 156798, bw);
-      bvmul  = btor_uint64_to_bv (g_mm, 17846234, bw);
-      btor_init_bv_model (g_btor, g_bv_model);
-      btor_add_to_bv_model (g_btor, *g_bv_model, e[1], bve[1]);
-      assert ((*g_bv_model)->count == 1);
-      res = inv_mul_bv (g_btor, mul, bvmul, 0);
-      assert ((*g_bv_model)->count == 1);
-      assert (!res);
-      btor_delete_bv_model (g_btor, g_bv_model);
-      btor_free_bv (g_btor->mm, bve[1]);
-      btor_free_bv (g_btor->mm, bvmul);
-
+      TEST_SLS_INV_MUL_CON (bw, 156798, 17846234, 0);
       btor_release_exp (g_btor, e[1]);
       e[1] = tmpe;
       btor_release_exp (g_btor, e[0]);
-      tmpbits = btor_decimal_to_const (g_mm, "33932");
-      len     = strlen ("33932");
-      BTOR_CNEWN (g_mm, bits, bw + 1);
-      for (i = 0; i < bw; i++) bits[i] = i < len ? tmpbits[i] : '0';
-      e[0] = btor_const_exp (g_btor, bits);
-      btor_freestr (g_mm, tmpbits);
-      BTOR_DELETEN (g_mm, bits, bw + 1);
-      btor_release_exp (g_btor, mul);
-      mul    = btor_mul_exp (g_btor, e[0], e[1]);
-      bve[0] = btor_uint64_to_bv (g_mm, 33932, bw);
-      bvmul  = btor_uint64_to_bv (g_mm, 813457, bw);
-      btor_init_bv_model (g_btor, g_bv_model);
-      btor_add_to_bv_model (g_btor, *g_bv_model, e[0], bve[0]);
-      assert ((*g_bv_model)->count == 1);
-      res = inv_mul_bv (g_btor, mul, bvmul, 1);
-      assert ((*g_bv_model)->count == 1);
-      assert (!res);
-      btor_delete_bv_model (g_btor, g_bv_model);
-      btor_free_bv (g_btor->mm, bve[0]);
-      btor_free_bv (g_btor->mm, bvmul);
+      TEST_SLS_INV_MUL_CON (bw, 33932, 813457, 1);
       break;
 
     case 33:
-      tmpbits = btor_decimal_to_const (g_mm, "801110082");
-      len     = strlen ("801110082");
-      BTOR_CNEWN (g_mm, bits, bw + 1);
-      for (i = 0; i < bw; i++) bits[i] = i < len ? tmpbits[i] : '0';
-      e[1] = btor_const_exp (g_btor, bits);
-      btor_freestr (g_mm, tmpbits);
-      BTOR_DELETEN (g_mm, bits, bw + 1);
-      btor_release_exp (g_btor, mul);
-      mul    = btor_mul_exp (g_btor, e[0], e[1]);
-      bve[1] = btor_uint64_to_bv (g_mm, 801110082, bw);
-      bvmul  = btor_uint64_to_bv (g_mm, 1602220163, bw);
-      btor_init_bv_model (g_btor, g_bv_model);
-      btor_add_to_bv_model (g_btor, *g_bv_model, e[1], bve[1]);
-      assert ((*g_bv_model)->count == 1);
-      res = inv_mul_bv (g_btor, mul, bvmul, 0);
-      assert ((*g_bv_model)->count == 1);
-      assert (!res);
-      btor_delete_bv_model (g_btor, g_bv_model);
-      btor_free_bv (g_btor->mm, bve[1]);
-      btor_free_bv (g_btor->mm, bvmul);
-
+      TEST_SLS_INV_MUL_CON (bw, 801110082, 1602220163, 0);
       btor_release_exp (g_btor, e[1]);
       e[1] = tmpe;
       btor_release_exp (g_btor, e[0]);
-      tmpbits = btor_decimal_to_const (g_mm, "33932");
-      len     = strlen ("33932");
-      BTOR_CNEWN (g_mm, bits, bw + 1);
-      for (i = 0; i < bw; i++) bits[i] = i < len ? tmpbits[i] : '0';
-      e[0] = btor_const_exp (g_btor, bits);
-      btor_freestr (g_mm, tmpbits);
-      BTOR_DELETEN (g_mm, bits, bw + 1);
-      btor_release_exp (g_btor, mul);
-      mul    = btor_mul_exp (g_btor, e[0], e[1]);
-      bve[0] = btor_uint64_to_bv (g_mm, 33932, bw);
-      bvmul  = btor_uint64_to_bv (g_mm, 508981, bw);
-      btor_init_bv_model (g_btor, g_bv_model);
-      btor_add_to_bv_model (g_btor, *g_bv_model, e[0], bve[0]);
-      assert ((*g_bv_model)->count == 1);
-      res = inv_mul_bv (g_btor, mul, bvmul, 1);
-      assert ((*g_bv_model)->count == 1);
-      assert (!res);
-      btor_delete_bv_model (g_btor, g_bv_model);
-      btor_free_bv (g_btor->mm, bve[0]);
-      btor_free_bv (g_btor->mm, bvmul);
+      TEST_SLS_INV_MUL_CON (bw, 33932, 508981, 1);
       break;
 
     case 45:
-      tmpbits = btor_decimal_to_const (g_mm, "9801110082");
-      len     = strlen ("9801110082");
-      BTOR_CNEWN (g_mm, bits, bw + 1);
-      for (i = 0; i < bw; i++) bits[i] = i < len ? tmpbits[i] : '0';
-      e[1] = btor_const_exp (g_btor, bits);
-      btor_freestr (g_mm, tmpbits);
-      BTOR_DELETEN (g_mm, bits, bw + 1);
-      btor_release_exp (g_btor, mul);
-      mul    = btor_mul_exp (g_btor, e[0], e[1]);
-      bve[1] = btor_uint64_to_bv (g_mm, 9801110082, bw);
-      bvmul  = btor_uint64_to_bv (g_mm, 127414431063, bw);
-      btor_init_bv_model (g_btor, g_bv_model);
-      btor_add_to_bv_model (g_btor, *g_bv_model, e[1], bve[1]);
-      assert ((*g_bv_model)->count == 1);
-      res = inv_mul_bv (g_btor, mul, bvmul, 0);
-      assert ((*g_bv_model)->count == 1);
-      assert (!res);
-      btor_delete_bv_model (g_btor, g_bv_model);
-      btor_free_bv (g_btor->mm, bve[1]);
-      btor_free_bv (g_btor->mm, bvmul);
-
+      TEST_SLS_INV_MUL_CON (bw, 9801110082, 127414431063, 0);
       btor_release_exp (g_btor, e[1]);
       e[1] = tmpe;
       btor_release_exp (g_btor, e[0]);
-      tmpbits = btor_decimal_to_const (g_mm, "313932");
-      len     = strlen ("313932");
-      BTOR_CNEWN (g_mm, bits, bw + 1);
-      for (i = 0; i < bw; i++) bits[i] = i < len ? tmpbits[i] : '0';
-      e[0] = btor_const_exp (g_btor, bits);
-      btor_freestr (g_mm, tmpbits);
-      BTOR_DELETEN (g_mm, bits, bw + 1);
-      btor_release_exp (g_btor, mul);
-      mul    = btor_mul_exp (g_btor, e[0], e[1]);
-      bve[0] = btor_uint64_to_bv (g_mm, 313932, bw);
-      bvmul  = btor_uint64_to_bv (g_mm, 7848305, bw);
-      btor_init_bv_model (g_btor, g_bv_model);
-      btor_add_to_bv_model (g_btor, *g_bv_model, e[0], bve[0]);
-      assert ((*g_bv_model)->count == 1);
-      res = inv_mul_bv (g_btor, mul, bvmul, 1);
-      assert ((*g_bv_model)->count == 1);
-      assert (!res);
-      btor_delete_bv_model (g_btor, g_bv_model);
-      btor_free_bv (g_btor->mm, bve[0]);
-      btor_free_bv (g_btor->mm, bvmul);
+      TEST_SLS_INV_MUL_CON (bw, 313932, 7848305, 1);
       break;
     default: break;
   }
