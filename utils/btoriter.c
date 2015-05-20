@@ -268,7 +268,7 @@ int
 has_next_unique_table_iterator (BtorNodeIterator *it)
 {
   assert (it);
-  return it->cur != 0 || it->pos < it->btor->nodes_unique_table.size;
+  return it->cur != 0;
 }
 
 BtorNode *
