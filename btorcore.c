@@ -5915,14 +5915,18 @@ add_extensionality_lemmas (Btor *btor, BtorNodePtrStack *prop_stack)
   assert (prop_stack);
 
   unsigned num_lemmas = 0;
-  BtorNode *cur, *cur_args, *app0, *app1, *eq, *con;
+  BtorNode *cur, *cur_args, *app0, *app1, *eq, *con, *value;
   BtorNodeIterator it;
-  BtorPtrHashTable *table0, *table1;
+  BtorPtrHashTable *table0, *table1, *conflicts;
   BtorHashTableIterator hit;
   BtorNodePtrStack feqs;
+  BtorMemMgr *mm;
+  BtorPtrHashBucket *b;
 
   BTORLOG ("");
   BTORLOG ("*** %s", __FUNCTION__);
+
+  mm = btor->mm;
   BTOR_INIT_STACK (feqs);
 
   /* collect all reachable function applications */
@@ -5942,12 +5946,47 @@ add_extensionality_lemmas (Btor *btor, BtorNodePtrStack *prop_stack)
 
     table0 = generate_table (btor, cur->e[0]);
     table1 = generate_table (btor, cur->e[1]);
+#if 1
+    conflicts =
+        btor_new_ptr_hash_table (mm,
+                                 (BtorHashPtr) hash_assignment,
+                                 (BtorCmpPtr) compare_argument_assignments);
 
     init_node_hash_table_iterator (&hit, table0);
-    queue_node_hash_table_iterator (&hit, table1);
+    while (has_next_node_hash_table_iterator (&hit))
+    {
+      value    = hit.bucket->data.asPtr;
+      cur_args = next_node_hash_table_iterator (&hit);
+      b        = btor_find_in_ptr_hash_table (table1, cur_args);
+
+      if (btor_find_in_ptr_hash_table (conflicts, cur_args)) continue;
+
+      if (!b || compare_assignments (value, b->data.asPtr) != 0)
+        btor_insert_in_ptr_hash_table (conflicts, cur_args);
+    }
+
+    init_node_hash_table_iterator (&hit, table1);
+    while (has_next_node_hash_table_iterator (&hit))
+    {
+      value    = hit.bucket->data.asPtr;
+      cur_args = next_node_hash_table_iterator (&hit);
+      b        = btor_find_in_ptr_hash_table (table0, cur_args);
+
+      if (btor_find_in_ptr_hash_table (conflicts, cur_args)) continue;
+
+      if (!b || compare_assignments (value, b->data.asPtr) != 0)
+        btor_insert_in_ptr_hash_table (conflicts, cur_args);
+    }
+#endif
+
+#if 0
+      init_node_hash_table_iterator (&hit, table0);
+      queue_node_hash_table_iterator (&hit, table1);
+#else
+    init_node_hash_table_iterator (&hit, conflicts);
+#endif
 
     BTORLOG ("  %s", node2string (cur));
-    // TODO: check for conflicts?
     while (has_next_node_hash_table_iterator (&hit))
     {
       cur_args = next_node_hash_table_iterator (&hit);
@@ -5971,6 +6010,9 @@ add_extensionality_lemmas (Btor *btor, BtorNodePtrStack *prop_stack)
       btor_release_exp (btor, eq);
       btor_release_exp (btor, con);
     }
+#if 1
+    btor_delete_ptr_hash_table (conflicts);
+#endif
     btor_delete_ptr_hash_table (table0);
     btor_delete_ptr_hash_table (table1);
   }
