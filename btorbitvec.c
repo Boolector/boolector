@@ -441,6 +441,32 @@ btor_is_false_bv (BtorBitVector *bv)
 /*------------------------------------------------------------------------*/
 
 BtorBitVector *
+btor_one_bv (BtorMemMgr *mm, int bw)
+{
+  assert (mm);
+  assert (bw);
+
+  BtorBitVector *res = btor_new_bv (mm, bw);
+  btor_set_bit_bv (res, 0, 1);
+  return res;
+}
+
+BtorBitVector *
+btor_ones_bv (BtorMemMgr *mm, int bw)
+{
+  assert (mm);
+  assert (bw);
+
+  BtorBitVector *res, *tmp;
+
+  tmp = btor_new_bv (mm, bw);
+  res = btor_not_bv (mm, tmp);
+  btor_free_bv (mm, tmp);
+
+  return res;
+}
+
+BtorBitVector *
 btor_neg_bv (BtorMemMgr *mm, BtorBitVector *bv)
 {
   assert (mm);

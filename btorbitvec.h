@@ -76,6 +76,9 @@ int btor_is_false_bv (BtorBitVector *bv);
 
 /*------------------------------------------------------------------------*/
 
+BtorBitVector *btor_one_bv (BtorMemMgr *mm, int bw);
+BtorBitVector *btor_ones_bv (BtorMemMgr *mm, int bw);
+
 BtorBitVector *btor_neg_bv (BtorMemMgr *mm, BtorBitVector *bv);
 BtorBitVector *btor_not_bv (BtorMemMgr *mm, BtorBitVector *bv);
 BtorBitVector *btor_inc_bv (BtorMemMgr *mm, BtorBitVector *bv);
