@@ -1588,6 +1588,7 @@ inv_add_bv (Btor *btor, BtorNode *add, BtorBitVector *bvadd, int eidx)
   assert (bve);
   assert (bve->width == bvadd->width);
 
+  /* res + bve = bve + res = bvadd -> res = bvadd - bve */
   neg = btor_neg_bv (mm, bve);
   res = btor_add_bv (mm, bvadd, neg);
   btor_free_bv (mm, neg);
@@ -1639,17 +1640,24 @@ inv_and_bv (Btor *btor, BtorNode *and, BtorBitVector *bvand, int eidx)
   {
     bitand = btor_get_bit_bv (bvand, i);
     bite   = btor_get_bit_bv (bve, i);
-#ifndef NDEBUG
-    if (bitand&&!bite) iscon = 1;
-#endif
-    /* check for non-fixable conflict */
-    if (BTOR_IS_BV_CONST_NODE (BTOR_REAL_ADDR_NODE (e)) && bitand&&!bite)
+    /* all bits set in bvand, must be set in bve, else conflict */
+    if (bitand&&!bite)
     {
-      btor_free_bv (mm, res);
-      res = 0;
-      break;
+#ifndef NDEBUG
+      iscon = 1;
+#endif
+      /* check for non-fixable conflict */
+      if (BTOR_IS_BV_CONST_NODE (BTOR_REAL_ADDR_NODE (e)))
+      {
+        btor_free_bv (mm, res);
+        res = 0;
+        break;
+      }
     }
-
+    /* res & bve = bve & res = bvand
+     * -> all bits set in bvand and bve must be set in res
+     * -> all bits not set in bvand but set in bve must not be set in res
+     * -> all bits not set in bve can be chosen to be set randomly */
     if (bitand)
       btor_set_bit_bv (res, i, 1);
     else if (bite)
@@ -1705,6 +1713,7 @@ inv_eq_bv (Btor *btor, BtorNode *eq, BtorBitVector *bveq, int eidx)
   bve = (BtorBitVector *) btor_get_bv_model (btor, e);
   assert (bve);
 
+  /* res != bveq -> choose random res != bveq */
   if (btor_is_zero_bv (bveq))
   {
     do
@@ -1713,6 +1722,7 @@ inv_eq_bv (Btor *btor, BtorNode *eq, BtorBitVector *bveq, int eidx)
       res = btor_new_random_bv (mm, &btor->rng, bve->width);
     } while (!btor_compare_bv (res, bve));
   }
+  /* res = bveq */
   else
     res = btor_copy_bv (mm, bve);
 
@@ -1870,6 +1880,9 @@ inv_sll_bv (Btor *btor, BtorNode *sll, BtorBitVector *bvsll, int eidx)
   assert (!eidx || bve->width == bvsll->width);
   assert (eidx || btor_log_2_util (bvsll->width) == bve->width);
 
+  /* bve << e[1] = bvsll
+   * -> identify possible shift value via zero LSB in bvsll
+   *    (considering zero LSB in bve) */
   if (eidx)
   {
     for (i = 0, oneidx = -1; i < bvsll->width; i++)
@@ -1879,7 +1892,7 @@ inv_sll_bv (Btor *btor, BtorNode *sll, BtorBitVector *bvsll, int eidx)
     }
     shift = oneidx == -1 ? 0 : i - oneidx;
 
-    /* check for conflict */
+    /* check for conflict -> do not allow shift by bw */
     if (shift > bvsll->width - 1)
     {
 #ifndef NDEBUG
@@ -1888,6 +1901,8 @@ inv_sll_bv (Btor *btor, BtorNode *sll, BtorBitVector *bvsll, int eidx)
       /* check for non-fixable conflict */
       if (BTOR_IS_BV_CONST_NODE (BTOR_REAL_ADDR_NODE (e))) return 0;
     }
+
+    /* check for conflict -> shifted bits must match */
 #ifndef NDEBUG
     for (i = 0; i < shift; i++) assert (!btor_get_bit_bv (bvsll, i));
     for (i = 0, j = shift; i < bve->width - j; i++)
@@ -1912,11 +1927,15 @@ inv_sll_bv (Btor *btor, BtorNode *sll, BtorBitVector *bvsll, int eidx)
     res = btor_uint64_to_bv (
         mm, (uint64_t) shift, btor_log_2_util (bvsll->width));
   }
+  /* e[0] << bve = bvsll
+   * -> e[0] = bvsll >> bve
+   *    set irrelevant MSBs (the ones that get shifted out) randomly */
   else
   {
     /* cast is no problem (max bit width handled by Boolector is INT_MAX) */
     shift = (int) btor_bv_to_uint64_bv (bve);
 
+    /* check for conflict -> the LSBs shifted must be zero */
 #ifndef NDEBUG
     for (i = 0; i < shift; i++)
       if (btor_get_bit_bv (bvsll, i))
@@ -1983,6 +2002,9 @@ inv_srl_bv (Btor *btor, BtorNode *srl, BtorBitVector *bvsrl, int eidx)
   assert (!eidx || bve->width == bvsrl->width);
   assert (eidx || btor_log_2_util (bvsrl->width) == bve->width);
 
+  /* bve >> e[1] = bvsll
+   * -> identify possible shift value via zero MSBs in bvsll
+   *    (considering zero MSBs in bve) */
   if (eidx)
   {
     for (i = 0, oneidx = -1; i < bvsrl->width; i++)
@@ -1996,7 +2018,7 @@ inv_srl_bv (Btor *btor, BtorNode *srl, BtorBitVector *bvsrl, int eidx)
       assert (!btor_get_bit_bv (bvsrl, bvsrl->width - 1 - i));
 #endif
 
-    /* check for conflict */
+    /* check for conflict -> do not allow shift by bw */
     if (shift > bvsrl->width - 1)
     {
 #ifndef NDEBUG
@@ -2005,6 +2027,8 @@ inv_srl_bv (Btor *btor, BtorNode *srl, BtorBitVector *bvsrl, int eidx)
       /* check for non-fixable conflict */
       if (BTOR_IS_BV_CONST_NODE (BTOR_REAL_ADDR_NODE (e))) return 0;
     }
+
+    /* check for conflict -> shifted bits must match */
 #ifndef NDEBUG
     for (i = 0, j = shift; i < bve->width - j; i++)
     {
@@ -2027,10 +2051,15 @@ inv_srl_bv (Btor *btor, BtorNode *srl, BtorBitVector *bvsrl, int eidx)
     res = btor_uint64_to_bv (
         mm, (uint64_t) shift, btor_log_2_util (bvsrl->width));
   }
+  /* e[0] >> bve = bvsll
+   * -> e[0] = bvsll << bve
+   *    set irrelevant LSBs (the ones that get shifted out) randomly */
   else
   {
     /* cast is no problem (max bit width handled by Boolector is INT_MAX) */
     shift = (int) btor_bv_to_uint64_bv (bve);
+
+    /* check for conflict -> the MSBs shifted must be zero */
 #ifndef NDEBUG
     for (i = 0; i < shift; i++)
       if (btor_get_bit_bv (bvsrl, bvsrl->width - 1 - i))
@@ -2096,6 +2125,11 @@ inv_mul_bv (Btor *btor, BtorNode *mul, BtorBitVector *bvmul, int eidx)
   assert (bve);
   assert (bve->width == bvmul->width);
 
+  /* res * bve = bve * res = bvmul
+   * -> if bve is a divisor of bvmul, res = bvmul / bve
+   * -> if gcd (bve, 2^bw) == 1, determine res via extended euclid
+   * -> else conflict */
+
   res = 0;
   tmp = btor_urem_bv (mm, bvmul, bve);
   if (btor_is_zero_bv (tmp))
@@ -2135,7 +2169,7 @@ inv_mul_bv (Btor *btor, BtorNode *mul, BtorBitVector *bvmul, int eidx)
       btor_free_bv (mm, tmpdbg);
 #endif
     }
-    else
+    else /* conflict */
     {
       int i;
       uint64_t div[4] = {7, 5, 3, 2};
@@ -2223,6 +2257,9 @@ inv_div_bv (Btor *btor, BtorNode *div, BtorBitVector *bvdiv, int eidx)
   assert (bve);
   assert (bve->width == bvdiv->width);
 
+  /* bve / e[1] = bvdiv
+   * -> if bvdiv is a divisor of bve, res = bve / bvdiv
+   * -> else conflict */
   if (eidx)
   {
     tmp = btor_urem_bv (mm, bve, bvdiv);
@@ -2264,6 +2301,9 @@ inv_div_bv (Btor *btor, BtorNode *div, BtorBitVector *bvdiv, int eidx)
       }
     }
   }
+  /* e[0] / bve = bvdiv
+   * -> if bvdiv * bve does not overflow, res  = bvdiv * bve
+   * -> else conflict */
   else
   {
     /* res = bve * bvdiv */
@@ -2363,7 +2403,7 @@ inv_urem_bv (Btor *btor, BtorNode *urem, BtorBitVector *bvurem, int eidx)
 
   if (eidx)
   {
-    if ((cmp = btor_compare_bv (bve, bvurem)) == 0) /* bve = bvurm */
+    if ((cmp = btor_compare_bv (bve, bvurem)) == 0) /* bve = bvurem */
     {
       /* check for non-fixable conflict */
       if (btor_compare_bv (bve, bvmod) >= 0)
