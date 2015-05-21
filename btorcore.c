@@ -56,7 +56,7 @@
 #ifndef BTOR_DO_NOT_OPTIMIZE_UNCONSTRAINED
 #define BTOR_CHECK_UNCONSTRAINED
 #endif
-#define BTOR_CHECK_MODEL
+//#define BTOR_CHECK_MODEL
 #define BTOR_CHECK_DUAL_PROP
 #endif
 #undef BTOR_CHECK_FAILED
@@ -5878,6 +5878,25 @@ generate_table (Btor *btor, BtorNode *fun)
         }
       }
       // TODO: update static_rho to get rid off proxy nodes
+    }
+
+    /* choose path w.r.t. condition for ITE on functions */
+    if (BTOR_IS_BV_COND_NODE (cur) && BTOR_REAL_ADDR_NODE (cur->e[0])->tseitin)
+    {
+      char *eval = btor_eval_exp (btor, cur->e[0]);
+
+      if (eval)
+      {
+        if (eval[0] == '1')
+          BTOR_PUSH_STACK (mm, visit, cur->e[1]);
+        else
+        {
+          assert (eval[0] == '0');
+          BTOR_PUSH_STACK (mm, visit, cur->e[2]);
+        }
+        btor_freestr (mm, eval);
+        continue;
+      }
     }
 
     for (i = 0; i < cur->arity; i++) BTOR_PUSH_STACK (mm, visit, cur->e[i]);
