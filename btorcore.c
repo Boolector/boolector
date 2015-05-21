@@ -6344,7 +6344,7 @@ sat_aux_btor (Btor *btor, int lod_limit, int sat_limit)
   //		   "extensionality on arrays/lambdas not yet supported");
   if (btor->ops[BTOR_FEQ_NODE].cur > 0)
   {
-    // btor_rewrite_function_inequalities (btor);
+    btor_rewrite_function_inequalities (btor);
     update_reachable (btor, 1);
     add_function_inequality_constraints (btor);
   }

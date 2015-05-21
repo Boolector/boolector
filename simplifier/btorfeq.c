@@ -72,31 +72,54 @@ btor_rewrite_function_inequalities (Btor *btor)
   {
     cur = BTOR_POP_STACK (feqs);
 
-    init_full_parent_iterator (&pit, cur);
-    while (has_next_parent_full_parent_iterator (&pit))
-    {
-      par      = pit.cur;
-      real_par = next_parent_full_parent_iterator (&pit);
-      pos      = BTOR_GET_TAG_NODE (par);
-      assert (cur == BTOR_REAL_ADDR_NODE (real_par->e[pos]));
+#if 0
+      num_pos = 0;
+      init_full_parent_iterator (&pit, cur);
+      while (has_next_parent_full_parent_iterator (&pit))
+	{
+	  par = pit.cur;
+	  real_par = next_parent_full_parent_iterator (&pit);
+	  pos = BTOR_GET_TAG_NODE (par);
+	  assert (cur == BTOR_REAL_ADDR_NODE (real_par->e[pos]));
 
-      /* occurs positively */
-      if (!BTOR_IS_INVERTED_NODE (real_par->e[pos]))
-      {
-        num_pos++;
-        continue;
-      }
+	  /* occurs positively */
+	  if (!BTOR_IS_INVERTED_NODE (real_par->e[pos]))
+	    {
+	      num_pos++;
+	      break;
+	    }
+	}
 
-      eq = btor_rewrite_function_inequality (btor, cur);
-      for (i = 0; i < real_par->arity; i++) e[i] = real_par->e[i];
-      e[pos] = eq;
-      subst  = btor_create_exp (btor, real_par->kind, real_par->arity, e);
-      /* real_par may be inserted multiple times if more than one negative
-       * function eq is in real_par->e */
-      btor_insert_substitution (btor, real_par, subst, 1);
-      btor_release_exp (btor, eq);
-      btor_release_exp (btor, subst);
-    }
+      if (num_pos > 0)
+	continue;
+
+      init_full_parent_iterator (&pit, cur);
+      while (has_next_parent_full_parent_iterator (&pit))
+	{
+	  par = pit.cur;
+	  real_par = next_parent_full_parent_iterator (&pit);
+	  pos = BTOR_GET_TAG_NODE (par);
+	  assert (cur == BTOR_REAL_ADDR_NODE (real_par->e[pos]));
+
+	  /* occurs positively */
+	  if (!BTOR_IS_INVERTED_NODE (real_par->e[pos]))
+	    {
+	      num_pos++;
+	      continue;
+	    }
+
+	  eq = btor_rewrite_function_inequality (btor, cur);
+	  for (i = 0; i < real_par->arity; i++)
+	    e[i] = real_par->e[i];
+	  e[pos] = eq;
+	  subst = btor_create_exp (btor, real_par->kind, real_par->arity, e);
+	  /* real_par may be inserted multiple times if more than one negative
+	   * function eq is in real_par->e */
+	  btor_insert_substitution (btor, real_par, subst, 1);
+	  btor_release_exp (btor, eq);
+	  btor_release_exp (btor, subst);
+	}
+#endif
 
     if (!cur->constraint) continue;
 
@@ -120,6 +143,7 @@ btor_rewrite_function_inequalities (Btor *btor)
                                            BTOR_INVERT_NODE (cur)));
       ctable = btor->synthesized_constraints;
     }
+    num_neg++;
     btor_remove_from_ptr_hash_table (ctable, BTOR_INVERT_NODE (cur), 0, 0);
     btor_insert_in_ptr_hash_table (ctable, eq);
     BTOR_REAL_ADDR_NODE (eq)->constraint = 1;
@@ -127,7 +151,7 @@ btor_rewrite_function_inequalities (Btor *btor)
   }
 
   BTOR_RELEASE_STACK (btor->mm, feqs);
-  num_neg = btor->substitutions->count;
+  //  num_neg = btor->substitutions->count;
   btor_substitute_and_rebuild (btor, btor->substitutions, 0);
   btor_delete_substitutions (btor);
   BTOR_MSG (btor->msg,
