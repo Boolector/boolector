@@ -266,7 +266,8 @@ insert_substitution (Btor *btor, BtorNode *exp, BtorNode *subst, int update)
 
   assert (!btor_find_in_ptr_hash_table (btor->substitutions,
                                         BTOR_REAL_ADDR_NODE (subst)));
-  assert (exp != BTOR_REAL_ADDR_NODE (subst));
+
+  if (exp == BTOR_REAL_ADDR_NODE (subst)) return;
 
   btor_insert_in_ptr_hash_table (btor->substitutions, btor_copy_exp (btor, exp))
       ->data.asPtr = btor_copy_exp (btor, subst);
@@ -3784,11 +3785,11 @@ merge_lambdas (Btor *btor)
 
   int i, delta_lambdas;
   double start, delta;
-  BtorNode *cur, *lambda, *subst, *parent, *merge;
+  BtorNode *cur, *lambda, *subst, *parent, *merge, *param, *body;
   BtorMemMgr *mm;
   BtorHashTableIterator it;
   BtorNodeIterator nit;
-  BtorNodePtrStack stack, unmark, visit;
+  BtorNodePtrStack stack, unmark, visit, params;
 
   start         = btor_time_stamp ();
   mm            = btor->mm;
@@ -3798,6 +3799,7 @@ merge_lambdas (Btor *btor)
   BTOR_INIT_STACK (stack);
   BTOR_INIT_STACK (unmark);
   BTOR_INIT_STACK (visit);
+  BTOR_INIT_STACK (params);
 
   /* collect candidates for merging */
   init_node_hash_table_iterator (&it, btor->lambdas);
@@ -3821,7 +3823,6 @@ merge_lambdas (Btor *btor)
   {
     lambda = BTOR_PEEK_STACK (stack, i);
     assert (BTOR_IS_REGULAR_NODE (lambda));
-    assert (lambda->parents == 1);
 
     if (lambda->mark) continue;
 
@@ -3871,15 +3872,20 @@ merge_lambdas (Btor *btor)
     init_lambda_iterator (&nit, merge);
     while (has_next_lambda_iterator (&nit))
     {
-      cur = next_lambda_iterator (&nit);
-      btor_assign_param (btor, cur, cur->e[0]);
+      cur   = next_lambda_iterator (&nit);
+      param = btor_param_exp (btor, cur->e[0]->len, 0);
+      BTOR_PUSH_STACK (mm, params, param);
+      btor_assign_param (btor, cur, param);
     }
     /* merge lambdas that are marked with 'merge' flag */
-    subst = btor_beta_reduce_merge (btor, BTOR_LAMBDA_GET_BODY (merge));
-    subst = BTOR_COND_INVERT_NODE (BTOR_LAMBDA_GET_BODY (merge), subst);
+    body = btor_beta_reduce_merge (btor, BTOR_LAMBDA_GET_BODY (merge));
     btor_unassign_params (btor, merge);
-    insert_substitution (btor, BTOR_LAMBDA_GET_BODY (merge), subst, 0);
+    subst = btor_fun_exp (btor, BTOR_COUNT_STACK (params), params.start, body);
+    btor_release_exp (btor, body);
+    insert_substitution (btor, merge, subst, 0);
     btor_release_exp (btor, subst);
+    while (!BTOR_EMPTY_STACK (params))
+      btor_release_exp (btor, BTOR_POP_STACK (params));
   }
 
   /* cleanup */
@@ -3899,6 +3905,7 @@ merge_lambdas (Btor *btor)
   BTOR_RELEASE_STACK (mm, visit);
   BTOR_RELEASE_STACK (mm, stack);
   BTOR_RELEASE_STACK (mm, unmark);
+  BTOR_RELEASE_STACK (mm, params);
   assert (check_id_table_aux_mark_unset_dbg (btor));
   assert (check_unique_table_merge_unset_dbg (btor));
   delta = btor_time_stamp () - start;
@@ -4010,8 +4017,8 @@ optimize_unconstrained (Btor *btor)
       {
         /* parameterized expressions are possibly unconstrained if the
          * lambda(s) parameterizing it do not have more than 1 parent */
-        lambda = (BtorNode *) BTOR_PARAM_GET_LAMBDA_NODE (
-            next_parameterized_iterator (&parit));
+        lambda =
+            BTOR_PARAM_GET_LAMBDA_NODE (next_parameterized_iterator (&parit));
         /* get head lambda of function */
         while (lambda->parents == 1)
         {
@@ -5911,8 +5918,7 @@ collect_premisses (Btor *btor,
           assert (i < t->num_args);
           arg = t->args[i++];
           assert (arg);
-          btor_assign_param (
-              btor, (BtorNode *) BTOR_PARAM_GET_LAMBDA_NODE (param), arg);
+          btor_assign_param (btor, BTOR_PARAM_GET_LAMBDA_NODE (param), arg);
         }
 
         result = btor_beta_reduce_bounded (btor, cond, 1);
@@ -5925,8 +5931,7 @@ collect_premisses (Btor *btor,
         while (has_next_parameterized_iterator (&pit))
         {
           param = next_parameterized_iterator (&pit);
-          btor_unassign_params (
-              btor, (BtorNode *) BTOR_PARAM_GET_LAMBDA_NODE (param));
+          btor_unassign_params (btor, BTOR_PARAM_GET_LAMBDA_NODE (param));
         }
       }
       else
@@ -6624,7 +6629,10 @@ propagate (Btor *btor,
         param_app = next_node_hash_table_iterator (&it);
         assert (BTOR_IS_REGULAR_NODE (param_app));
         assert (BTOR_IS_APPLY_NODE (param_app));
-        if (param_app != fun_value)
+        if (param_app != BTOR_REAL_ADDR_NODE (fun_value)
+            /* check down propagation condition */
+            || BTOR_REAL_ADDR_NODE (fun_value)->tseitin
+            || BTOR_IS_INVERTED_NODE (fun_value) || fun_value->e[1] != args)
         {
           insert_synth_app_lambda (btor, lambda, param_app);
           assert (param_app->reachable || param_app->vread);
@@ -7787,7 +7795,7 @@ btor_eval_exp (Btor *btor, BtorNode *exp)
   BtorPtrHashTable *cache;
   BtorPtrHashBucket *b;
   BtorHashTableIterator it;
-  BitVector *result = 0, *inv_result, **e;
+  BtorBitVector *result = 0, *inv_result, **e;
 
   // TODO: return if tseitin
   //  BTORLOG ("%s: %s", __FUNCTION__, node2string (exp));
@@ -7865,7 +7873,7 @@ btor_eval_exp (Btor *btor, BtorNode *exp)
 
       real_cur->eval_mark = 2;
       arg_stack.top -= real_cur->arity;
-      e = (BitVector **) arg_stack.top; /* arguments in reverse order */
+      e = (BtorBitVector **) arg_stack.top; /* arguments in reverse order */
 
       switch (real_cur->kind)
       {
@@ -7958,7 +7966,7 @@ btor_eval_exp (Btor *btor, BtorNode *exp)
       assert (real_cur->eval_mark == 2);
       b = btor_find_in_ptr_hash_table (cache, real_cur);
       assert (b);
-      result = btor_copy_bv (btor->mm, (BitVector *) b->data.asPtr);
+      result = btor_copy_bv (btor->mm, (BtorBitVector *) b->data.asPtr);
       goto EVAL_EXP_PUSH_RESULT;
     }
   }
@@ -7982,7 +7990,7 @@ EVAL_EXP_CLEANUP_EXIT:
   init_node_hash_table_iterator (&it, cache);
   while (has_next_node_hash_table_iterator (&it))
   {
-    btor_free_bv (btor->mm, (BitVector *) it.bucket->data.asPtr);
+    btor_free_bv (btor->mm, (BtorBitVector *) it.bucket->data.asPtr);
     real_cur            = next_node_hash_table_iterator (&it);
     real_cur->eval_mark = 0;
   }
@@ -8059,30 +8067,6 @@ map_inputs_check_model (Btor *btor, Btor *clone)
 }
 
 static void
-reset_varsubst_constraints (Btor *btor)
-{
-  assert (btor);
-
-  BtorNode *right, *left;
-  BtorHashTableIterator it;
-
-  init_node_hash_table_iterator (&it, btor->varsubst_constraints);
-  while (has_next_node_hash_table_iterator (&it))
-  {
-    right = (BtorNode *) it.bucket->data.asPtr;
-    assert (right);
-    left = next_node_hash_table_iterator (&it);
-    btor_release_exp (btor, left);
-    btor_release_exp (btor, right);
-  }
-  btor_delete_ptr_hash_table (btor->varsubst_constraints);
-  btor->varsubst_constraints =
-      btor_new_ptr_hash_table (btor->mm,
-                               (BtorHashPtr) btor_hash_exp_by_id,
-                               (BtorCmpPtr) btor_compare_exp_by_id);
-}
-
-static void
 rebuild_formula (Btor *btor, int rewrite_level)
 {
   assert (btor);
@@ -8127,10 +8111,12 @@ check_model (Btor *btor, Btor *clone, BtorPtrHashTable *inputs)
 
   int ret;
   char *a;
-  BtorNode *cur, *exp, *simp, *real_simp, *subst;
+  BtorNode *cur, *exp, *simp, *real_simp, *model, *eq;
   BtorHashTableIterator it;
   const BtorPtrHashTable *fmodel;
 
+  /* formula did not change since last sat call, we have to reset assumptions
+   * from the previous run */
   if (clone->valid_assignments) reset_incremental_usage (clone);
 
   /* add assumptions as assertions */
@@ -8139,12 +8125,14 @@ check_model (Btor *btor, Btor *clone, BtorPtrHashTable *inputs)
     btor_assert_exp (clone, next_node_hash_table_iterator (&it));
   reset_assumptions (clone);
 
+  /* apply variable substitution until fixpoint */
+  while (clone->varsubst_constraints->count > 0) substitute_var_exps (clone);
+
   /* rebuild formula with new rewriting level */
   rebuild_formula (clone, 3);
 
   assert (!clone->substitutions);
   init_substitutions (clone);
-
   init_node_hash_table_iterator (&it, inputs);
   while (has_next_node_hash_table_iterator (&it))
   {
@@ -8155,41 +8143,42 @@ check_model (Btor *btor, Btor *clone, BtorPtrHashTable *inputs)
     cur = next_node_hash_table_iterator (&it);
     assert (BTOR_IS_REGULAR_NODE (cur));
     assert (cur->btor == clone);
-    // TODO (ma) why pointer_chase instead of btor_simplify_exp?
-    simp      = btor_pointer_chase_simplified_exp (clone, cur);
+    simp      = btor_simplify_exp (clone, cur);
     real_simp = BTOR_REAL_ADDR_NODE (simp);
 
-    if (BTOR_IS_BV_CONST_NODE (real_simp)
-        || btor_find_in_ptr_hash_table (clone->substitutions, real_simp))
-      continue;
+    if (btor_find_in_ptr_hash_table (clone->substitutions, real_simp)) continue;
 
-    if (BTOR_IS_BV_VAR_NODE (real_simp))
+    if (BTOR_IS_FUN_NODE (real_simp))
     {
-      assert (!BTOR_IS_FUN_NODE (real_simp));
-      /* we need to invert the assignment if simplified is inverted */
-      a     = (char *) btor_get_bv_model_str (btor,
-                                          BTOR_COND_INVERT_NODE (simp, exp));
-      subst = btor_const_exp (clone, a);
-      btor_release_bv_assignment_str (btor, a);
-    }
-    else
-    {
-      assert (BTOR_IS_FUN_NODE (real_simp));
       fmodel = btor_get_fun_model (btor, exp);
 
       if (!fmodel) continue;
 
-      subst = btor_generate_lambda_model_from_fun_model (clone, cur, fmodel);
+      model =
+          btor_generate_lambda_model_from_fun_model (clone, real_simp, fmodel);
+      assert (!btor_find_in_ptr_hash_table (clone->substitutions, real_simp));
+      // TODO (ma): as soon as we support extensionality we add an
+      //            equality of two functions
+      //            right now we substitute the original function with the
+      //            model, which still detects invalid models
+      insert_substitution (clone, real_simp, model, 0);
     }
-    assert (!btor_find_in_ptr_hash_table (clone->substitutions, real_simp));
-    insert_substitution (clone, real_simp, subst, 0);
-    btor_release_exp (clone, subst);
+    else
+    {
+      /* we need to invert the assignment if simplified is inverted */
+      a     = (char *) btor_get_bv_model_str (btor,
+                                          BTOR_COND_INVERT_NODE (simp, exp));
+      model = btor_const_exp (clone, a);
+      btor_release_bv_assignment_str (btor, a);
+      eq = btor_eq_exp (clone, real_simp, model);
+      btor_assert_exp (clone, eq);
+      btor_release_exp (clone, eq);
+    }
+    btor_release_exp (clone, model);
   }
 
-  reset_functions_with_model (clone);
   substitute_and_rebuild (clone, clone->substitutions, 0);
   delete_substitutions (clone);
-  reset_varsubst_constraints (clone); /* varsubst not required */
 
   clone->options.beta_reduce_all.val = 1;
   ret                                = btor_simplify (clone);

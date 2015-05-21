@@ -440,6 +440,17 @@ disconnect_child_exp (Btor *btor, BtorNode *parent, int pos)
   assert (first_parent);
   assert (last_parent);
 
+  /* if a parameter is disconnected from a lambda we have to reset
+   * 'lambda_exp' of the parameter in order to keep a valid state */
+  if (BTOR_IS_LAMBDA_NODE (parent)
+      && pos == 0
+      /* if parent gets rebuilt via substitute_and_rebuild, it might
+       * result in a new lambda term, where the param is already reused.
+       * if this is the case param is already bound by a different lambda
+       * and we are not allowed to reset param->lambda_exp to 0. */
+      && BTOR_PARAM_GET_LAMBDA_NODE (parent->e[0]) == parent)
+    BTOR_PARAM_SET_LAMBDA_NODE (parent->e[0], 0);
+
   /* only one parent? */
   if (first_parent == tagged_parent && first_parent == last_parent)
   {
@@ -1263,7 +1274,7 @@ new_lambda_exp_node (Btor *btor, BtorNode *e_param, BtorNode *e_exp)
   assert (!btor_find_in_ptr_hash_table (btor->lambdas, lambda_exp));
   (void) btor_insert_in_ptr_hash_table (btor->lambdas, lambda_exp);
   /* set lambda expression of parameter */
-  BTOR_PARAM_SET_LAMBDA_NODE (e_param, lambda_exp);
+  BTOR_PARAM_SET_LAMBDA_NODE (e_param, (BtorNode *) lambda_exp);
   return (BtorNode *) lambda_exp;
 }
 
@@ -2338,6 +2349,7 @@ btor_fun_exp (Btor *btor, int paramc, BtorNode **params, BtorNode *exp)
   assert (params);
   assert (exp);
   assert (btor == BTOR_REAL_ADDR_NODE (exp)->btor);
+  assert (!BTOR_IS_UF_NODE (BTOR_REAL_ADDR_NODE (exp)));
 
   int i;
   BtorNode *fun      = btor_simplify_exp (btor, exp);

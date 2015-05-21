@@ -156,31 +156,44 @@ def err_extract_opts(line):
 # column_name : <colname>, <keyword>, <filter>, [<is_dir_stat>] (optional)
 FILTER_ERR = {
   'status':    ['STAT', 
-                lambda x: b'status:' in x, err_extract_status, False],
+                lambda x: b'runlim' in x and b'status:' in x,
+                err_extract_status, False],
   'g_solved':  ['SLVD', 
-                lambda x: b'status:' in x, err_extract_status, False],
+                lambda x: b'runlim' in x and b'status:' in x,
+                err_extract_status, False],
   'g_total':   ['TOT', 
-                lambda x: b'status:' in x, err_extract_status, False],
+                lambda x: b'runlim' in x and b'status:' in x,
+                err_extract_status, False],
   'g_time':    ['TOUTS', 
-                lambda x: b'status:' in x, err_extract_status, False],
+                lambda x: b'runlim' in x and b'status:' in x,
+                err_extract_status, False],
   'g_mem':     ['MOUTS', 
-                lambda x: b'status:' in x, err_extract_status, False],
+                lambda x: b'runlim' in x and b'status:' in x,
+                err_extract_status, False],
   'g_err':     ['ERR', 
-                lambda x: b'status:' in x, err_extract_status, False],
+                lambda x: b'runlim' in x and b'status:' in x,
+                err_extract_status, False],
   'g_sat':     ['SAT', 
-                lambda x: b'result:' in x, lambda x: int(x.split()[2]), False],
+                lambda x: b'runlim' in x and b'result:' in x,
+                lambda x: int(x.split()[2]), False],
   'g_unsat':   ['UNSAT', 
-                lambda x: b'result:' in x, lambda x: int(x.split()[2]), False],
+                lambda x: b'runlim' in x and b'result:' in x,
+                lambda x: int(x.split()[2]), False],
   'result':    ['RES', 
-                lambda x: b'result:' in x, lambda x: int(x.split()[2]), False],
+                lambda x: b'runlim' in x and b'result:' in x,
+                lambda x: int(x.split()[2]), False],
   'time_real': ['REAL[s]', 
-                lambda x: b'real:' in x, lambda x: float(x.split()[2]), False],
+                lambda x: b'runlim' in x and b'real:' in x,
+                lambda x: float(x.split()[2]), False],
   'time_time': ['TIME[s]', 
-                lambda x: b'time:' in x, lambda x: float(x.split()[2]), False],
+                lambda x: b'runlim' in x and b'time:' in x,
+                lambda x: float(x.split()[2]), False],
   'space':     ['SPACE[MB]', 
-                lambda x: b'space:' in x, lambda x: float(x.split()[2]), False],
+                lambda x: b'runlim' in x and b'space:' in x,
+                lambda x: float(x.split()[2]), False],
   'opts':      ['OPTIONS', 
-                lambda x: b'argv' in x, err_extract_opts, True] 
+                lambda x: b'runlim' in x and b'argv' in x,
+                err_extract_opts, True] 
 }
 
 def format_status(l):
@@ -883,14 +896,20 @@ if __name__ == "__main__":
         g_dir_stats = dict((k, {}) for k in DIR_STATS_KEYS)
 
         _read_data (g_args.dirs)
-        assert(len(g_file_stats.keys()) == len(g_args.columns))
-        _init_missing_files (g_file_stats)
-        _normalize_data(g_file_stats)
+        if (len(g_file_stats.keys()) > 0):
+            assert(len(g_file_stats.keys()) == len(g_args.columns))
+            _init_missing_files (g_file_stats)
+            _normalize_data(g_file_stats)
 
-        if g_args.g and 'result' in g_args.columns:
-            g_args.columns.remove('result')
-            del(g_file_stats['result'])
-        _print_data ()
+            if g_args.g and 'result' in g_args.columns:
+                g_args.columns.remove('result')
+                del(g_file_stats['result'])
+            _print_data ()
+        else:
+            if g_args.filter:
+                print("no files found that match '{}'".format(g_args.filter))
+            else:
+                print("no files found")
 
     except KeyboardInterrupt as e:
         sys.exit ("[cmpsmt] interrupted")
