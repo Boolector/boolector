@@ -883,24 +883,31 @@ sls_inv_mul_bv (int bw)
   /* operand is a divisor of the result, gcd (operand, max value) != 1 */
   switch (bw)
   {
+    case 1:
+      TEST_SLS_INV_MUL (bw, 1, 1, 1);  // 1 * 1 = 1
+      TEST_SLS_INV_MUL (bw, 1, 0, 0);  // 0 * 1 = 0
+      break;
+
     case 7:
-      TEST_SLS_INV_MUL (bw, 3, 6, 1);
-      TEST_SLS_INV_MUL (bw, 2, 4, 0);
+      TEST_SLS_INV_MUL (bw, 3, 6, 1);  // 3 * 2 = 6
+      TEST_SLS_INV_MUL (bw, 2, 4, 0);  // 2 * 2 = 4
       break;
 
     case 31:
-      TEST_SLS_INV_MUL (bw, 334, 41416, 1);
-      TEST_SLS_INV_MUL (bw, 22222, 1511096, 0);
+      TEST_SLS_INV_MUL (bw, 334, 41416, 1);      // 334 * 124 = 41416
+      TEST_SLS_INV_MUL (bw, 22222, 1511096, 0);  // 68 * 22222 = 1511096
       break;
 
     case 33:
-      TEST_SLS_INV_MUL (bw, 556, 89858496, 1);
-      TEST_SLS_INV_MUL (bw, 42, 51828, 0);
+      TEST_SLS_INV_MUL (bw, 556, 89858496, 1);  // 556 * 161616 = 89858496
+      TEST_SLS_INV_MUL (bw, 42, 51828, 0);      // 1234 * 42 = 51828
       break;
 
     case 45:
-      TEST_SLS_INV_MUL (bw, 354222444, 3896446884, 1);
-      TEST_SLS_INV_MUL (bw, 8293882888, 24881648664, 0);
+      TEST_SLS_INV_MUL (
+          bw, 354222444, 3896446884, 1);  // 354222444 * 11 = 3896446884
+      TEST_SLS_INV_MUL (
+          bw, 8293882888, 24881648664, 0);  // 3 * 8293882888 = 24881648664
       break;
 
     default: break;
@@ -909,29 +916,29 @@ sls_inv_mul_bv (int bw)
   /* ext euclid, gcd (operand, max value) == 1 */
   switch (bw)
   {
-    case 1:
-      TEST_SLS_INV_MUL (bw, 1, 1, 1);
-      TEST_SLS_INV_MUL (bw, 1, 0, 0);
-      break;
-
     case 7:
-      TEST_SLS_INV_MUL (bw, 5, 11, 1);
-      TEST_SLS_INV_MUL (bw, 105, 34, 0);
+      TEST_SLS_INV_MUL (bw, 5, 11, 1);    // 5 * 79 = 11
+      TEST_SLS_INV_MUL (bw, 105, 34, 0);  // 82 * 105 = 34
       break;
 
     case 31:
-      TEST_SLS_INV_MUL (bw, 156797, 17846234, 1);
-      TEST_SLS_INV_MUL (bw, 34547367, 454656422, 0);
+      TEST_SLS_INV_MUL (
+          bw, 156797, 17846234, 1);  // 156797 * 1197258850 = 17846234
+      TEST_SLS_INV_MUL (
+          bw, 34547367, 454656422, 0);  // 579931114 * 34547367 = 454656422
       break;
 
     case 33:
-      TEST_SLS_INV_MUL (bw, 801110083, 1602220166, 1);
-      TEST_SLS_INV_MUL (bw, 125, 4546522, 0);
+      TEST_SLS_INV_MUL (
+          bw, 801110083, 1602220165, 1);  // 801110083 * 3887459223 = 1602220165
+      TEST_SLS_INV_MUL (bw, 125, 4546522, 0);  // 125 * 5772472418 = 4546522
       break;
 
     case 45:
-      TEST_SLS_INV_MUL (bw, 25, 234314345, 1);
-      TEST_SLS_INV_MUL (bw, 1125, 814546522, 0);
+      TEST_SLS_INV_MUL (
+          bw, 25, 234314345, 1);  // 25 * 21110632625873 = 234314345
+      TEST_SLS_INV_MUL (
+          bw, 1125, 814546522, 0);  // 25926973578834 * 1125 = 814546522
       break;
 
     default: break;
@@ -976,6 +983,142 @@ sls_inv_mul_bv (int bw)
   }
 
   btor_release_exp (g_btor, mul);
+  btor_release_exp (g_btor, e[0]);
+  btor_release_exp (g_btor, e[1]);
+}
+
+#define TEST_SLS_INV_DIV(bw, ve, vdiv, eidx)                      \
+  do                                                              \
+  {                                                               \
+    idx      = eidx ? 0 : 1;                                      \
+    bve[idx] = btor_uint64_to_bv (g_mm, ve, bw);                  \
+    bvdiv    = btor_uint64_to_bv (g_mm, vdiv, bw);                \
+    btor_init_bv_model (g_btor, g_bv_model);                      \
+    btor_add_to_bv_model (g_btor, *g_bv_model, e[idx], bve[idx]); \
+    assert ((*g_bv_model)->count == 1);                           \
+    res = inv_div_bv (g_btor, div, bvdiv, eidx);                  \
+    assert ((*g_bv_model)->count == 1);                           \
+    if (eidx)                                                     \
+      tmp = btor_udiv_bv (g_mm, bve[idx], res);                   \
+    else                                                          \
+      tmp = btor_udiv_bv (g_mm, res, bve[idx]);                   \
+    assert (!btor_compare_bv (tmp, bvdiv));                       \
+    btor_free_bv (g_mm, tmp);                                     \
+    btor_free_bv (g_mm, res);                                     \
+    btor_delete_bv_model (g_btor, g_bv_model);                    \
+    btor_free_bv (g_btor->mm, bve[idx]);                          \
+    btor_free_bv (g_btor->mm, bvdiv);                             \
+  } while (0)
+
+#define TEST_SLS_INV_DIV_CON(bw, ve, vdiv, eidx)                   \
+  do                                                               \
+  {                                                                \
+    idx     = eidx ? 0 : 1;                                        \
+    tmpbits = btor_decimal_to_const (g_mm, #ve);                   \
+    len     = strlen (#ve);                                        \
+    BTOR_CNEWN (g_mm, bits, bw + 1);                               \
+    for (i = 0; i < bw; i++) bits[i] = i < len ? tmpbits[i] : '0'; \
+    e[idx] = btor_const_exp (g_btor, bits);                        \
+    btor_freestr (g_mm, tmpbits);                                  \
+    BTOR_DELETEN (g_mm, bits, bw + 1);                             \
+    btor_release_exp (g_btor, div);                                \
+    div      = btor_udiv_exp (g_btor, e[0], e[1]);                 \
+    bve[idx] = btor_uint64_to_bv (g_mm, ve, bw);                   \
+    bvdiv    = btor_uint64_to_bv (g_mm, vdiv, bw);                 \
+    btor_init_bv_model (g_btor, g_bv_model);                       \
+    btor_add_to_bv_model (g_btor, *g_bv_model, e[idx], bve[idx]);  \
+    assert ((*g_bv_model)->count == 1);                            \
+    res = inv_div_bv (g_btor, div, bvdiv, eidx);                   \
+    assert ((*g_bv_model)->count == 1);                            \
+    assert (!res);                                                 \
+    btor_delete_bv_model (g_btor, g_bv_model);                     \
+    btor_free_bv (g_btor->mm, bve[idx]);                           \
+    btor_free_bv (g_btor->mm, bvdiv);                              \
+  } while (0)
+
+static void
+sls_inv_div_bv (int bw)
+{
+  int i, len, idx;
+  BtorNode *div, *e[3], *tmpe;
+  BtorBitVector *bvdiv, *bve[3], *res, *tmp;
+  char *bits, *tmpbits;
+
+  e[0] = btor_var_exp (g_btor, bw, 0);
+  e[1] = btor_var_exp (g_btor, bw, 0);
+  div  = btor_udiv_exp (g_btor, e[0], e[1]);
+
+  switch (bw)
+  {
+    case 1:
+      TEST_SLS_INV_DIV (bw, 1, 1, 1);  // 1 / 1 = 1
+      TEST_SLS_INV_DIV (bw, 1, 0, 0);  // 0 / 1 = 0
+      break;
+
+    case 7:
+      TEST_SLS_INV_DIV (bw, 6, 3, 1);  // 6 / 2 = 3
+      TEST_SLS_INV_DIV (bw, 2, 2, 0);  // 4 / 2 = 2
+      break;
+
+    case 31:
+      TEST_SLS_INV_DIV (bw, 41416, 334, 1);  // 41416 / 124 = 334
+      TEST_SLS_INV_DIV (bw, 68, 22222, 0);   // 1511096 / 68 = 22222
+      break;
+
+    case 33:
+      TEST_SLS_INV_DIV (bw, 89858496, 556, 1);  // 89858496 / 161616 = 556
+      TEST_SLS_INV_DIV (bw, 1234, 42, 0);       // 51828 / 1234 = 42
+      break;
+
+    case 45:
+      TEST_SLS_INV_DIV (
+          bw, 3896446884, 354222444, 1);        // 3896446884 / 354222444 = 11
+      TEST_SLS_INV_DIV (bw, 3, 8293882888, 0);  // 24881648664 / 3 = 8293882888
+      break;
+
+    default: break;
+  }
+
+  /* conflict */
+  tmpe = e[1];
+  switch (bw)
+  {
+    case 7:
+      TEST_SLS_INV_DIV_CON (bw, 124, 2, 0);
+      btor_release_exp (g_btor, e[1]);
+      e[1] = tmpe;
+      btor_release_exp (g_btor, e[0]);
+      TEST_SLS_INV_DIV_CON (bw, 6, 4, 1);
+      break;
+
+    case 31:
+      TEST_SLS_INV_DIV_CON (bw, 123456, 22222, 0);
+      btor_release_exp (g_btor, e[1]);
+      e[1] = tmpe;
+      btor_release_exp (g_btor, e[0]);
+      TEST_SLS_INV_DIV_CON (bw, 41416, 333, 1);
+      break;
+
+    case 33:
+      TEST_SLS_INV_DIV_CON (bw, 1234, 4242424242, 0);
+      btor_release_exp (g_btor, e[1]);
+      e[1] = tmpe;
+      btor_release_exp (g_btor, e[0]);
+      TEST_SLS_INV_DIV_CON (bw, 89858496, 555, 1);
+      break;
+
+    case 45:
+      TEST_SLS_INV_DIV_CON (bw, 333333, 8293882888, 0);
+      btor_release_exp (g_btor, e[1]);
+      e[1] = tmpe;
+      btor_release_exp (g_btor, e[0]);
+      TEST_SLS_INV_DIV_CON (bw, 3896446884, 354222441, 1);
+      break;
+
+    default: break;
+  }
+
+  btor_release_exp (g_btor, div);
   btor_release_exp (g_btor, e[0]);
   btor_release_exp (g_btor, e[1]);
 }
@@ -1052,6 +1195,16 @@ test_slsinv_mul_bv (void)
   sls_inv_mul_bv (45);
 }
 
+static void
+test_slsinv_div_bv (void)
+{
+  sls_inv_div_bv (1);
+  sls_inv_div_bv (7);
+  sls_inv_div_bv (31);
+  sls_inv_div_bv (33);
+  sls_inv_div_bv (45);
+}
+
 void
 run_slsinv_tests (int argc, char **argv)
 {
@@ -1062,6 +1215,7 @@ run_slsinv_tests (int argc, char **argv)
   BTOR_RUN_TEST (slsinv_sll_bv);
   BTOR_RUN_TEST (slsinv_srl_bv);
   BTOR_RUN_TEST (slsinv_mul_bv);
+  BTOR_RUN_TEST (slsinv_div_bv);
 }
 
 void
