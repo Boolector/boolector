@@ -1123,6 +1123,204 @@ sls_inv_div_bv (int bw)
   btor_release_exp (g_btor, e[1]);
 }
 
+#define TEST_SLS_INV_UREM(bw, bve, bvurem, eidx)             \
+  do                                                         \
+  {                                                          \
+    idx = eidx ? 0 : 1;                                      \
+    btor_init_bv_model (g_btor, g_bv_model);                 \
+    btor_add_to_bv_model (g_btor, *g_bv_model, e[idx], bve); \
+    assert ((*g_bv_model)->count == 1);                      \
+    res = inv_urem_bv (g_btor, urem, bvurem, eidx);          \
+    assert ((*g_bv_model)->count == 1);                      \
+    if (eidx)                                                \
+      tmp = btor_urem_bv (g_mm, bve, res);                   \
+    else                                                     \
+      tmp = btor_urem_bv (g_mm, res, bve);                   \
+    assert (!btor_compare_bv (tmp, bvurem));                 \
+    btor_free_bv (g_mm, tmp);                                \
+    btor_free_bv (g_mm, res);                                \
+    btor_delete_bv_model (g_btor, g_bv_model);               \
+  } while (0)
+
+#define TEST_SLS_INV_UREM_CON(bw, bve, bvurem, eidx)         \
+  do                                                         \
+  {                                                          \
+    idx = eidx ? 0 : 1;                                      \
+    btor_init_bv_model (g_btor, g_bv_model);                 \
+    btor_add_to_bv_model (g_btor, *g_bv_model, e[idx], bve); \
+    assert ((*g_bv_model)->count == 1);                      \
+    res = inv_urem_bv (g_btor, urem, bvurem, eidx);          \
+    assert ((*g_bv_model)->count == 1);                      \
+    assert (!res);                                           \
+    btor_delete_bv_model (g_btor, g_bv_model);               \
+  } while (0)
+
+static void
+sls_inv_urem_bv (int bw)
+{
+  int j, idx;
+  BtorNode *urem, *e[3], *tmpe, *tmpurem;
+  BtorBitVector *bvurem, *bve[3], *res, *tmp, *tmp2, *bvmax, *one, *neg, *zero;
+  char *bits;
+
+  e[0]  = btor_var_exp (g_btor, bw, 0);
+  e[1]  = btor_var_exp (g_btor, bw, 0);
+  urem  = btor_urem_exp (g_btor, e[0], e[1]);
+  bvmax = btor_ones_bv (g_mm, bw);
+  zero  = btor_new_bv (g_mm, bw);
+  one   = btor_one_bv (g_mm, bw);
+  neg   = btor_neg_bv (g_mm, one);
+
+  /* search assignment for e[1] */
+  for (j = 0; (bw > 1 && j < 5) || j < 1; j++)
+  {
+    /* bve = bvurem */
+    tmp    = btor_add_bv (g_mm, bvmax, neg);
+    bve[0] = btor_new_random_range_bv (g_mm, g_rng, bw, zero, tmp);
+    btor_free_bv (g_mm, tmp);
+    TEST_SLS_INV_UREM (bw, bve[0], bve[0], 1);
+    btor_free_bv (g_mm, bve[0]);
+
+    /* bve > bvurem */
+    bve[0] = btor_new_random_range_bv (g_mm, g_rng, bw, one, bvmax);
+    tmp    = btor_add_bv (g_mm, bve[0], neg);
+    bvurem = btor_new_random_range_bv (g_mm, g_rng, bw, zero, tmp);
+    btor_free_bv (g_mm, tmp);
+    /* conflict if bve[0] - bvurem <= bvurem */
+    tmp  = btor_neg_bv (g_mm, bvurem);
+    tmp2 = btor_add_bv (g_mm, bve[0], tmp);
+    btor_free_bv (g_mm, tmp);
+    if (btor_compare_bv (tmp2, bvurem) > 0)
+      TEST_SLS_INV_UREM (bw, bve[0], bvurem, 1);
+    else
+    {
+      tmpe    = e[0];
+      tmpurem = urem;
+      bits    = btor_bv_to_char_bv (g_mm, bve[0]);
+      e[0]    = btor_const_exp (g_btor, bits);
+      btor_freestr (g_mm, bits);
+      urem = btor_urem_exp (g_btor, e[0], e[1]);
+      TEST_SLS_INV_UREM_CON (bw, bve[0], bvurem, 1);
+      btor_release_exp (g_btor, e[0]);
+      btor_release_exp (g_btor, urem);
+      e[0] = tmpe;
+      urem = tmpurem;
+    }
+    btor_free_bv (g_mm, bve[0]);
+    btor_free_bv (g_mm, bvurem);
+    btor_free_bv (g_mm, tmp2);
+
+    /* conflict: bve < bvurem, bvurem = bvmax */
+    tmp    = btor_add_bv (g_mm, bvmax, neg);
+    bve[0] = btor_new_random_range_bv (g_mm, g_rng, bw, zero, tmp);
+    btor_free_bv (g_mm, tmp);
+    TEST_SLS_INV_UREM_CON (bw, bve[0], bvmax, 1);
+    btor_free_bv (g_mm, bve[0]);
+
+    /* conflict: bve = bvurem = bvmax */
+    TEST_SLS_INV_UREM_CON (bw, bvmax, bvmax, 1);
+
+    /* conflict: bve < bvurem, e const */
+    tmpe    = e[0];
+    tmpurem = urem;
+    bvurem  = btor_new_random_range_bv (g_mm, g_rng, bw, one, bvmax);
+    tmp     = btor_add_bv (g_mm, bvurem, neg);
+    bve[0]  = btor_new_random_range_bv (g_mm, g_rng, bw, zero, tmp);
+    btor_free_bv (g_mm, tmp);
+    bits = btor_bv_to_char_bv (g_mm, bve[0]);
+    e[0] = btor_const_exp (g_btor, bits);
+    btor_freestr (g_mm, bits);
+    urem = btor_urem_exp (g_btor, e[0], e[1]);
+    TEST_SLS_INV_UREM_CON (bw, bve[0], bvurem, 1);
+    btor_free_bv (g_mm, bve[0]);
+    btor_free_bv (g_mm, bvurem);
+    btor_release_exp (g_btor, e[0]);
+    btor_release_exp (g_btor, urem);
+
+    /* conflict: bve = bvurem = bvmax, e const */
+    bits = btor_bv_to_char_bv (g_mm, bvmax);
+    e[0] = btor_const_exp (g_btor, bits);
+    btor_freestr (g_mm, bits);
+    urem = btor_urem_exp (g_btor, e[0], e[1]);
+    TEST_SLS_INV_UREM_CON (bw, bvmax, bvmax, 1);
+    btor_release_exp (g_btor, e[0]);
+    btor_release_exp (g_btor, urem);
+    e[0] = tmpe;
+    urem = tmpurem;
+  }
+
+  /* search assginment for e[0] */
+  for (j = 0; (bw > 1 && j < 5) || j < 1; j++)
+  {
+    /* bve > bvurem */
+    bve[1] = btor_new_random_range_bv (g_mm, g_rng, bw, one, bvmax);
+    tmp    = btor_add_bv (g_mm, bve[1], neg);
+    bvurem = btor_new_random_range_bv (g_mm, g_rng, bw, zero, tmp);
+    btor_free_bv (g_mm, tmp);
+    /* conflict if overflow for bve[1] + bvurem */
+    tmp  = btor_neg_bv (g_mm, bvurem);
+    tmp2 = btor_add_bv (g_mm, bvmax, tmp);
+    btor_free_bv (g_mm, tmp);
+    if (btor_compare_bv (tmp2, bvmax) <= 0)
+      TEST_SLS_INV_UREM (bw, bve[1], bvurem, 0);
+    else
+    {
+      tmpe    = e[1];
+      tmpurem = urem;
+      bits    = btor_bv_to_char_bv (g_mm, bve[1]);
+      e[1]    = btor_const_exp (g_btor, bits);
+      btor_freestr (g_mm, bits);
+      urem = btor_urem_exp (g_btor, e[0], e[1]);
+      TEST_SLS_INV_UREM_CON (bw, bve[1], bvurem, 0);
+      btor_release_exp (g_btor, e[1]);
+      btor_release_exp (g_btor, urem);
+      e[1] = tmpe;
+      urem = tmpurem;
+    }
+    btor_free_bv (g_mm, tmp2);
+    btor_free_bv (g_mm, bve[1]);
+    btor_free_bv (g_mm, bvurem);
+
+    /* conflict: bve = bvurem, e const */
+    tmpe    = e[1];
+    tmpurem = urem;
+    bve[1]  = btor_new_random_bv (g_mm, g_rng, bw);
+    bits    = btor_bv_to_char_bv (g_mm, bve[1]);
+    e[1]    = btor_const_exp (g_btor, bits);
+    btor_freestr (g_mm, bits);
+    urem = btor_urem_exp (g_btor, e[0], e[1]);
+    TEST_SLS_INV_UREM_CON (bw, bve[1], bve[1], 0);
+    btor_free_bv (g_mm, bve[1]);
+    btor_release_exp (g_btor, e[1]);
+    btor_release_exp (g_btor, urem);
+
+    /* conflict: bve < bvurem, e const */
+    bvurem = btor_new_random_range_bv (g_mm, g_rng, bw, one, bvmax);
+    tmp    = btor_add_bv (g_mm, bvurem, neg);
+    bve[1] = btor_new_random_range_bv (g_mm, g_rng, bw, zero, tmp);
+    btor_free_bv (g_mm, tmp);
+    bits = btor_bv_to_char_bv (g_mm, bve[1]);
+    e[1] = btor_const_exp (g_btor, bits);
+    btor_freestr (g_mm, bits);
+    urem = btor_urem_exp (g_btor, e[0], e[1]);
+    TEST_SLS_INV_UREM_CON (bw, bve[1], bve[1], 0);
+    btor_free_bv (g_mm, bvurem);
+    btor_free_bv (g_mm, bve[1]);
+    btor_release_exp (g_btor, e[1]);
+    btor_release_exp (g_btor, urem);
+    e[1] = tmpe;
+    urem = tmpurem;
+  }
+
+  btor_release_exp (g_btor, urem);
+  btor_release_exp (g_btor, e[0]);
+  btor_release_exp (g_btor, e[1]);
+  btor_free_bv (g_mm, bvmax);
+  btor_free_bv (g_mm, zero);
+  btor_free_bv (g_mm, one);
+  btor_free_bv (g_mm, neg);
+}
+
 static void
 test_slsinv_add_bv (void)
 {
@@ -1205,6 +1403,16 @@ test_slsinv_div_bv (void)
   sls_inv_div_bv (45);
 }
 
+static void
+test_slsinv_urem_bv (void)
+{
+  sls_inv_urem_bv (1);
+  sls_inv_urem_bv (7);
+  sls_inv_urem_bv (31);
+  sls_inv_urem_bv (33);
+  sls_inv_urem_bv (45);
+}
+
 void
 run_slsinv_tests (int argc, char **argv)
 {
@@ -1216,6 +1424,7 @@ run_slsinv_tests (int argc, char **argv)
   BTOR_RUN_TEST (slsinv_srl_bv);
   BTOR_RUN_TEST (slsinv_mul_bv);
   BTOR_RUN_TEST (slsinv_div_bv);
+  BTOR_RUN_TEST (slsinv_urem_bv);
 }
 
 void

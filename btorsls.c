@@ -2242,7 +2242,7 @@ inv_div_bv (Btor *btor, BtorNode *div, BtorBitVector *bvdiv, int eidx)
   assert (!BTOR_IS_BV_CONST_NODE (BTOR_REAL_ADDR_NODE (div->e[eidx])));
 
   BtorNode *e;
-  BtorBitVector *bve, *res, *tmp, *one, *neg;
+  BtorBitVector *bve, *res, *tmp, *one, *neg, *bvmax;
   BtorMemMgr *mm;
 #ifndef NDEBUG
   BtorBitVector *tmpdbg;
@@ -2258,7 +2258,7 @@ inv_div_bv (Btor *btor, BtorNode *div, BtorBitVector *bvdiv, int eidx)
   assert (bve->width == bvdiv->width);
 
   /* bve / e[1] = bvdiv
-   * -> if bvdiv is a divisor of bve, res = bve / bvdiv
+   * -> if bvdiv is a divisor of bve, res = bve * bvdiv
    * -> else conflict */
   if (eidx)
   {
@@ -2281,10 +2281,11 @@ inv_div_bv (Btor *btor, BtorNode *div, BtorBitVector *bvdiv, int eidx)
         res = 0;
       else
       {
-        one = btor_one_bv (mm, bve->width);
-        neg = btor_not_bv (mm, one);
+        bvmax = btor_ones_bv (mm, bvdiv->width); /* 2^bw - 1 */
+        one   = btor_one_bv (mm, bve->width);
+        neg   = btor_neg_bv (mm, one);
 
-        tmp = btor_copy_bv (mm, bvdiv);
+        tmp = btor_copy_bv (mm, bvmax);
         res = btor_new_random_range_bv (mm, &btor->rng, bve->width, one, tmp);
 
         while (btor_is_umulo_bv (mm, res, bvdiv))
@@ -2295,6 +2296,7 @@ inv_div_bv (Btor *btor, BtorNode *div, BtorBitVector *bvdiv, int eidx)
           res = btor_new_random_range_bv (mm, &btor->rng, bve->width, one, tmp);
         }
 
+        btor_free_bv (mm, bvmax);
         btor_free_bv (mm, one);
         btor_free_bv (mm, neg);
         btor_free_bv (mm, tmp);
@@ -2324,7 +2326,7 @@ inv_div_bv (Btor *btor, BtorNode *div, BtorBitVector *bvdiv, int eidx)
       else
       {
         one = btor_one_bv (mm, bve->width);
-        neg = btor_not_bv (mm, one);
+        neg = btor_neg_bv (mm, one);
 
         tmp = btor_add_bv (mm, bve, neg);
         res = btor_new_random_range_bv (mm, &btor->rng, bve->width, one, tmp);
@@ -2383,8 +2385,7 @@ inv_urem_bv (Btor *btor, BtorNode *urem, BtorBitVector *bvurem, int eidx)
 
   int cmp;
   BtorNode *e;
-  BtorBitVector *bve, *res, *bvmod, *tmp, *tmp2;
-  BtorBitVector *bveext, *bvuremext;
+  BtorBitVector *bve, *res, *bvmax, *tmp, *tmp2, *one, *negone, *neg, *n, *mul;
   BtorMemMgr *mm;
 #ifndef NDEBUG
   BtorBitVector *tmpdbg;
@@ -2399,31 +2400,63 @@ inv_urem_bv (Btor *btor, BtorNode *urem, BtorBitVector *bvurem, int eidx)
   assert (bve);
   assert (bve->width == bvurem->width);
 
-  bvmod = btor_ones_bv (mm, bvurem->width); /* 2^n - 1 */
+  bvmax = btor_ones_bv (mm, bvurem->width); /* 2^bw - 1 */
+  one   = btor_one_bv (mm, bvurem->width);
 
+  /* bve % e[1] = bvurem
+   * -> if bve = bvurem, choose some e[1] > bve randomly
+   *    (if bve = 2^bw - 1, then conflict)
+   * -> if bve > bvurem, e[1] = bve - bvurem > bvurem, else conflict
+   * -> if bve < bvurem, conflict */
   if (eidx)
   {
-    if ((cmp = btor_compare_bv (bve, bvurem)) == 0) /* bve = bvurem */
+    cmp = btor_compare_bv (bve, bvurem);
+    /* bve == bvurem, choose random e[1] if not conflict */
+    if (cmp == 0)
     {
-      /* check for non-fixable conflict */
-      if (btor_compare_bv (bve, bvmod) >= 0)
+      if (btor_compare_bv (bve, bvmax) < 0)
       {
+        /* bve < res <= 2^bw - 1 */
+        tmp = btor_add_bv (mm, bve, one);
+        res = btor_new_random_range_bv (mm, &btor->rng, bve->width, tmp, bvmax);
+        btor_free_bv (mm, tmp);
+      }
+      else /* non-fixable conflict -> bvurem = 2^bw - 1 */
+      {
+      RES_GT_BVUREM:
         res = 0;
 #ifndef NDEBUG
         iscon = 1;
 #endif
       }
-      else
+    }
+    /* bve > bvurem, e[1] = (bve - bvurem) / n */
+    else if (cmp > 0)
+    {
+      /* we choose simplest solution with n = 1
+       * (if res > bvurem, else conflict) */
+      // TODO maybe choose more random solution?
+      tmp = btor_neg_bv (mm, bvurem);
+      res = btor_add_bv (mm, bve, tmp);
+      btor_free_bv (mm, tmp);
+      /* check for conflict */
+      if (btor_compare_bv (res, bvurem) <= 0)
       {
-        /* bve < res <= 2^bw - 1 */
-        tmp2 = btor_uint64_to_bv (mm, 1, bve->width);
-        tmp  = btor_add_bv (mm, bve, tmp2);
-        res = btor_new_random_range_bv (mm, &btor->rng, bve->width, tmp, bvmod);
-        btor_free_bv (mm, tmp);
-        btor_free_bv (mm, tmp2);
+#ifndef NDEBUG
+        iscon = 1;
+#endif
+        /* check for non-fixable conflict */
+        if (BTOR_IS_BV_CONST_NODE (BTOR_REAL_ADDR_NODE (e)))
+        {
+          btor_free_bv (mm, res);
+          res = 0;
+        }
+        else
+          goto RES_EQ_BVUREM_1;
       }
     }
-    else if (cmp < 0) /* bve < bvurem  (conflict) */
+    /* bve < bvurem (conflict) */
+    else
     {
 #ifndef NDEBUG
       iscon = 1;
@@ -2433,109 +2466,125 @@ inv_urem_bv (Btor *btor, BtorNode *urem, BtorBitVector *bvurem, int eidx)
       {
         res = 0;
       }
-      else
+      /* still non-fixable if bvurem = 2^bw - 1 */
+      else if (!btor_compare_bv (bvurem, bvmax))
       {
-      RES_GT_BVUREM:
-        /* bvurem < res <= 2^bw - 1 */
-        if (!btor_compare_bv (bvurem, bvmod)) /* non-fixable conflict */
-          res = 0;
-        else
-        {
-          tmp2 = btor_uint64_to_bv (mm, 1, bvurem->width);
-          tmp  = btor_add_bv (mm, bve, tmp2);
-          res =
-              btor_new_random_range_bv (mm, &btor->rng, bve->width, tmp, bvmod);
-          btor_free_bv (mm, tmp);
-          btor_free_bv (mm, tmp2);
-        }
-      }
-    }
-    else
-    {
-      /* res = bve - bvurem with res > bvurem
-       * (n * res = bve - bvurem, we choose the simplest solution n = 1)
-       * TODO (maybe) more random solution? */
-      bveext    = btor_uext_bv (mm, bve, 1);
-      bvuremext = btor_uext_bv (mm, bvurem, 1);
-      tmp2      = btor_neg_bv (mm, bvuremext);
-      tmp       = btor_add_bv (mm, bveext, tmp2);
-      btor_free_bv (mm, bveext);
-      btor_free_bv (mm, bvuremext);
-      btor_free_bv (mm, tmp2);
-
-      if (btor_get_bit_bv (tmp, tmp->width - 1)) /* overflow */
-      {
-#ifndef NDEBUG
-        iscon = 1;
-#endif
-        btor_free_bv (mm, tmp);
-        if (BTOR_IS_BV_CONST_NODE (BTOR_REAL_ADDR_NODE (e)))
-          res = 0;
-        else
-          goto RES_GT_BVUREM;
+        goto RES_GT_BVUREM;
       }
       else
       {
-        tmp = btor_neg_bv (mm, bvurem);
-        res = btor_add_bv (mm, bve, tmp);
+      RES_EQ_BVUREM_1:
+        /* choose res s.t. e[0] = bvurem (simplest solution)
+           -> bvurem < res <= 2^bw - 1 */
+        tmp = btor_add_bv (mm, bve, one);
+        res = btor_new_random_range_bv (mm, &btor->rng, bve->width, tmp, bvmax);
         btor_free_bv (mm, tmp);
       }
     }
   }
+  /* e[0] % bve = bvurem
+   * -> if bve <= bvurem, conflict
+   * -> else choose either
+   *      - e[0] = bvurem, or
+   *      - e[0] = bve * n + b, with n s.t. (bve * n + b) does not overflow */
   else
   {
-    if (btor_compare_bv (bve, bvurem) <= 0)
-    {
-#ifndef NDEBUG
-      iscon = 1;
-#endif
-      /* check for non-fixable conflict */
-      if (BTOR_IS_BV_CONST_NODE (BTOR_REAL_ADDR_NODE (e)))
-        res = 0;
-      else
-      {
-      RES_EQ_BVUREM:
-        /* res = bvurem (simplest solution) */
-        res = btor_copy_bv (mm, bvurem);
-      }
-    }
-    else
+    if (btor_compare_bv (bve, bvurem) > 0)
     {
       /* choose simplest solution (0 <= res < bve -> res = bvurem)
        * with prob 0.5 */
       if (btor_pick_rand_rng (&btor->rng, 0, 1))
       {
-        goto RES_EQ_BVUREM;
+        goto RES_EQ_BVUREM_0;
       }
+      /* e[0] = bve * n + bvurem,
+       * with n s.t. (bve * n + bvurem) does not overflow */
       else
       {
-        /* res = bve - bvurem with res > bvurem
-         * (n * res = bve - bvurem, we choose the simplest solution n = 1)
-         * TODO (maybe) more random solution? */
-        bveext    = btor_uext_bv (mm, bve, 1);
-        bvuremext = btor_uext_bv (mm, bvurem, 1);
-        tmp       = btor_add_bv (mm, bveext, bvuremext);
-        btor_free_bv (mm, bveext);
-        btor_free_bv (mm, bvuremext);
+        neg  = btor_neg_bv (mm, bve);
+        tmp2 = btor_add_bv (mm, bvmax, neg);
 
-        if (btor_get_bit_bv (tmp, tmp->width - 1)) /* overflow */
+        /* check for conflict -> overflow for n = 1 */
+        if (btor_compare_bv (tmp2, bvurem) < 0)
         {
+          btor_free_bv (mm, neg);
+          btor_free_bv (mm, tmp2);
 #ifndef NDEBUG
           iscon = 1;
 #endif
-          btor_free_bv (mm, tmp);
+          /* check for non-fixable conflict */
           if (BTOR_IS_BV_CONST_NODE (BTOR_REAL_ADDR_NODE (e)))
             res = 0;
           else
-            goto RES_EQ_BVUREM;
+          {
+            goto RES_EQ_BVUREM_0;
+          }
         }
         else
         {
-          res = btor_add_bv (mm, bve, bvurem);
+          btor_free_bv (mm, neg);
+          btor_free_bv (mm, tmp2);
+
+          negone = btor_neg_bv (mm, one);
+
+          tmp = btor_copy_bv (mm, bvmax);
+          n   = btor_new_random_range_bv (mm, &btor->rng, bve->width, one, tmp);
+
+          while (btor_is_umulo_bv (mm, bve, n))
+          {
+            btor_free_bv (mm, tmp);
+            tmp = btor_add_bv (mm, n, negone);
+            btor_free_bv (mm, n);
+            n = btor_new_random_range_bv (mm, &btor->rng, bve->width, one, tmp);
+          }
+
+          mul  = btor_mul_bv (mm, bve, n);
+          neg  = btor_neg_bv (mm, mul);
+          tmp2 = btor_add_bv (mm, bvmax, neg);
+
+          if (btor_compare_bv (tmp2, bvurem) < 0)
+          {
+            btor_free_bv (mm, tmp);
+            tmp = btor_add_bv (mm, n, negone);
+            btor_free_bv (mm, n);
+            n = btor_new_random_range_bv (mm, &btor->rng, bve->width, one, tmp);
+            btor_free_bv (mm, mul);
+            mul = btor_mul_bv (mm, bve, n);
+          }
+
+          res = btor_add_bv (mm, mul, bvurem);
+          assert (btor_compare_bv (res, mul) >= 0);
+          assert (btor_compare_bv (res, bvurem) >= 0);
+
+          btor_free_bv (mm, tmp);
+          btor_free_bv (mm, tmp2);
+          btor_free_bv (mm, neg);
+          btor_free_bv (mm, mul);
+          btor_free_bv (mm, n);
+          btor_free_bv (mm, negone);
         }
       }
     }
+    else /* conflict */
+    {
+#ifndef NDEBUG
+      iscon = 1;
+#endif
+      /* check for non-fixable conflict */
+      if (BTOR_IS_BV_CONST_NODE (BTOR_REAL_ADDR_NODE (e)))
+        res = 0;
+      else
+      {
+      RES_EQ_BVUREM_0:
+        /* res = bvurem (simplest solution) */
+        res = btor_copy_bv (mm, bvurem);
+      }
+    }
   }
+
+  btor_free_bv (mm, one);
+  btor_free_bv (mm, bvmax);
+
 #ifndef NDEBUG
   if (!iscon)
   {
