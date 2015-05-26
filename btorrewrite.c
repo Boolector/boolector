@@ -5636,16 +5636,20 @@ rewrite_eq_exp (Btor *btor, BtorNode *e0, BtorNode *e1)
 {
   int swap_ops = 0;
   BtorNode *tmp, *result = 0;
+  BtorNodeKind kind;
 
   e0 = btor_simplify_exp (btor, e0);
   e1 = btor_simplify_exp (btor, e1);
   assert (btor_precond_eq_exp_dbg (btor, e0, e1));
 
+  kind = BTOR_IS_FUN_NODE (BTOR_REAL_ADDR_NODE (e0)) ? BTOR_FEQ_NODE
+                                                     : BTOR_BEQ_NODE;
+
   e0 = btor_copy_exp (btor, e0);
   e1 = btor_copy_exp (btor, e1);
   normalize_eq (btor, &e0, &e1);
 
-  ADD_RW_RULE (const_binary_exp, BTOR_BEQ_NODE, e0, e1);
+  ADD_RW_RULE (const_binary_exp, kind, e0, e1);
   /* We do not rewrite eq in the boolean case, as we cannot extract the
    * resulting XNOR on top level again and would therefore loose substitutions.
    *
@@ -5655,8 +5659,8 @@ rewrite_eq_exp (Btor *btor, BtorNode *e0, BtorNode *e1)
   ADD_RW_RULE (true_eq, e0, e1);
   ADD_RW_RULE (false_eq, e0, e1);
   ADD_RW_RULE (bcond_eq, e0, e1);
-  ADD_RW_RULE (special_const_lhs_binary_exp, BTOR_BEQ_NODE, e0, e1);
-  ADD_RW_RULE (special_const_rhs_binary_exp, BTOR_BEQ_NODE, e0, e1);
+  ADD_RW_RULE (special_const_lhs_binary_exp, kind, e0, e1);
+  ADD_RW_RULE (special_const_rhs_binary_exp, kind, e0, e1);
 SWAP_OPERANDS:
   ADD_RW_RULE (add_left_eq, e0, e1);
   ADD_RW_RULE (add_right_eq, e0, e1);
