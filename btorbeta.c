@@ -475,10 +475,16 @@ btor_beta_reduce (Btor *btor, BtorNode *exp, int mode, int bound)
           btor_release_exp (btor, e[1]);
           break;
         case BTOR_LAMBDA_NODE:
+          /* function equalities always expect a lambda as argument */
+          if (BTOR_IS_FEQ_NODE (cur_parent))
+          {
+            assert (BTOR_IS_PARAM_NODE (BTOR_REAL_ADDR_NODE (e[1])));
+            result = btor_lambda_exp (btor, e[1], e[0]);
+          }
           /* special case: lambda not reduced (not instantiated)
            *		 and is not constant */
-          if (real_cur->e[0] == e[1] && real_cur->e[1] == e[0]
-              && BTOR_REAL_ADDR_NODE (e[0])->parameterized)
+          else if (real_cur->e[0] == e[1] && real_cur->e[1] == e[0]
+                   && BTOR_REAL_ADDR_NODE (e[0])->parameterized)
           {
             result = btor_copy_exp (btor, real_cur);
           }
