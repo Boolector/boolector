@@ -545,14 +545,20 @@ btor_beta_reduce (Btor *btor, BtorNode *exp, int mode, int bound)
     {
       assert (real_cur->beta_mark == 2);
 
+      /* check cache if parameterized expressions was already instantiated
+       * with current assignment */
       if (BTOR_IS_LAMBDA_NODE (real_cur) || real_cur->parameterized)
       {
         if (BTOR_IS_LAMBDA_NODE (real_cur))
         {
           args = 0;
-          /* we do not need to assign parameters of curried lambdas
-           * that are not the first one */
-          if (!cur_parent || !BTOR_IS_LAMBDA_NODE (cur_parent))
+          /* assign parameters of lambdas in order to create
+           * a param cache tuple. if the parent is either a lambda
+           * ('real_cur' is a curried lambda) or a function
+           * equality we do not assign the parameters. */
+          if (!cur_parent
+              || (!BTOR_IS_LAMBDA_NODE (cur_parent)
+                  && !BTOR_IS_FEQ_NODE (cur_parent)))
           {
             assert (!btor_param_cur_assignment (real_cur->e[0]));
             args = BTOR_TOP_STACK (arg_stack);
