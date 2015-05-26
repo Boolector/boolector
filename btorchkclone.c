@@ -574,6 +574,29 @@ btor_chkclone_exp (BtorNode *exp, BtorNode *clone)
       assert (!has_next_hash_table_iterator (&cit));
     }
 
+    if (((BtorLambdaNode *) real_exp)->static_rho)
+    {
+      init_node_hash_table_iterator (&it,
+                                     ((BtorLambdaNode *) real_exp)->static_rho);
+      init_node_hash_table_iterator (
+          &cit, ((BtorLambdaNode *) real_clone)->static_rho);
+      while (has_next_node_hash_table_iterator (&it))
+      {
+        assert (has_next_node_hash_table_iterator (&cit));
+        e  = next_node_hash_table_iterator (&it);
+        ce = next_node_hash_table_iterator (&cit);
+        if (e)
+        {
+          assert (ce);
+          assert (e != ce);
+          BTOR_CHKCLONE_EXPID (e, ce);
+        }
+        else
+          assert (!ce);
+      }
+      assert (!has_next_hash_table_iterator (&cit));
+    }
+
 #if 0
       if (((BtorLambdaNode *) real_exp)->head)
 	{
