@@ -6258,7 +6258,7 @@ create_function_inequality (Btor *btor, BtorNode *feq)
   assert (BTOR_IS_FEQ_NODE (feq));
 
   BtorMemMgr *mm;
-  BtorNode *var, *app0, *app1, *eq, *args0;
+  BtorNode *var, *app0, *app1, *eq, *arg;
   BtorSortUniqueTable *sorts;
   BtorSortId funsort, sort;
   BtorNodePtrStack args;
@@ -6279,10 +6279,12 @@ create_function_inequality (Btor *btor, BtorNode *feq)
     BTOR_PUSH_STACK (mm, args, var);
   }
 
-  app0 = btor_apply_exps (btor, BTOR_COUNT_STACK (args), args.start, feq->e[0]);
-  app1 = btor_apply_exps (btor, BTOR_COUNT_STACK (args), args.start, feq->e[1]);
+  arg  = btor_args_exp (btor, BTOR_COUNT_STACK (args), args.start);
+  app0 = btor_apply_exp_node (btor, feq->e[0], arg);
+  app1 = btor_apply_exp_node (btor, feq->e[1], arg);
   eq   = btor_eq_exp (btor, app0, app1);
 
+  btor_release_exp (btor, arg);
   btor_release_exp (btor, app0);
   btor_release_exp (btor, app1);
   while (!BTOR_EMPTY_STACK (args))
