@@ -2617,10 +2617,13 @@ btor_eq_exp (Btor *btor, BtorNode *e0, BtorNode *e1)
   e1 = btor_simplify_exp (btor, e1);
   assert (btor_precond_eq_exp_dbg (btor, e0, e1));
 
-  // TODO (ma): it is ok to pass BEQ or FEQ here as the same
-  //	        rewriting function will be triggered
   if (btor->options.rewrite_level.val > 0)
-    result = btor_rewrite_binary_exp (btor, BTOR_BEQ_NODE, e0, e1);
+  {
+    if (BTOR_IS_FUN_NODE (BTOR_REAL_ADDR_NODE (e0)))
+      result = btor_rewrite_binary_exp (btor, BTOR_FEQ_NODE, e0, e1);
+    else
+      result = btor_rewrite_binary_exp (btor, BTOR_BEQ_NODE, e0, e1);
+  }
   else
     result = btor_eq_exp_node (btor, e0, e1);
 
