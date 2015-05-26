@@ -1012,8 +1012,7 @@ clone_aux_btor (Btor *btor,
     if (!exp_layer_only && BTOR_IS_LAMBDA_NODE (cur)
         && ((BtorLambdaNode *) cur)->synth_apps)
       allocated += MEM_PTR_HASH_TABLE (((BtorLambdaNode *) cur)->synth_apps);
-    if (!exp_layer_only && BTOR_IS_LAMBDA_NODE (cur)
-        && ((BtorLambdaNode *) cur)->static_rho)
+    if (BTOR_IS_LAMBDA_NODE (cur) && ((BtorLambdaNode *) cur)->static_rho)
       allocated += MEM_PTR_HASH_TABLE (((BtorLambdaNode *) cur)->static_rho);
   }
   allocated -= vread_bytes;
