@@ -4,6 +4,7 @@ news for release 2.0.7 since 2.0.6
 * fixed help message issues
 * fixed option handling issues
 * fixed caching bug in model generation
+* fixed issues with lambda hashing
 * improved SMT dumpers
 
 news for release 2.0.6 since 2.0.5
