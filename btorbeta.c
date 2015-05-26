@@ -133,6 +133,40 @@ btor_assign_args (Btor *btor, BtorNode *fun, BtorNode *args)
   }
 }
 
+static void
+assign_new_params (Btor *btor, BtorNode *fun)
+{
+  BtorNode *lambda, *param, *arg;
+  BtorNodeIterator it;
+
+  init_lambda_iterator (&it, fun);
+  while (has_next_lambda_iterator (&it))
+  {
+    lambda = next_lambda_iterator (&it);
+    param  = lambda->e[0];
+    arg    = btor_param_exp (btor, btor_get_exp_width (btor, param), 0);
+    btor_assign_param (btor, lambda, arg);
+  }
+}
+
+static void
+unassign_new_params (Btor *btor, BtorNode *fun)
+{
+  BtorNode *lambda;
+  BtorNodeIterator it;
+  BtorParamNode *param;
+
+  init_lambda_iterator (&it, fun);
+  while (has_next_lambda_iterator (&it))
+  {
+    lambda = next_lambda_iterator (&it);
+    param  = (BtorParamNode *) lambda->e[0];
+    if (!param->assigned_exp) break;
+    btor_release_exp (btor, param->assigned_exp);
+    param->assigned_exp = 0;
+  }
+}
+
 void
 btor_assign_param (Btor *btor, BtorNode *lambda, BtorNode *arg)
 {
@@ -336,6 +370,14 @@ btor_beta_reduce (Btor *btor, BtorNode *exp, int mode, int bound)
 #endif
         btor_assign_args (btor, real_cur, args);
       }
+      else if (BTOR_IS_LAMBDA_NODE (real_cur) && BTOR_IS_FEQ_NODE (cur_parent))
+      {
+        assert (!btor_param_cur_assignment (real_cur->e[0]));
+#ifndef NDEBUG
+        BTOR_PUSH_STACK (mm, unassign_stack, real_cur);
+#endif
+        assign_new_params (btor, real_cur);
+      }
 
       real_cur->beta_mark = 1;
       BTOR_PUSH_STACK (mm, stack, cur);
@@ -525,6 +567,14 @@ btor_beta_reduce (Btor *btor, BtorNode *exp, int mode, int bound)
           && btor_param_cur_assignment (real_cur->e[0]))
       {
         btor_unassign_params (btor, real_cur);
+#ifndef NDEBUG
+        (void) BTOR_POP_STACK (unassign_stack);
+#endif
+      }
+      else if (BTOR_IS_LAMBDA_NODE (real_cur) && BTOR_IS_FEQ_NODE (cur_parent))
+      {
+        assert (btor_param_cur_assignment (real_cur->e[0]));
+        unassign_new_params (btor, real_cur);
 #ifndef NDEBUG
         (void) BTOR_POP_STACK (unassign_stack);
 #endif
