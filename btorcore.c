@@ -56,7 +56,7 @@
 #ifndef BTOR_DO_NOT_OPTIMIZE_UNCONSTRAINED
 #define BTOR_CHECK_UNCONSTRAINED
 #endif
-//#define BTOR_CHECK_MODEL
+#define BTOR_CHECK_MODEL
 #define BTOR_CHECK_DUAL_PROP
 #endif
 #undef BTOR_CHECK_FAILED
@@ -3032,6 +3032,8 @@ substitute_and_rebuild (Btor *btor, BtorPtrHashTable *subst, int bra)
       else
         rebuilt_exp = rebuild_exp (btor, cur);
 
+      assert (BTOR_REAL_ADDR_NODE (cur)->sort_id
+              == BTOR_REAL_ADDR_NODE (rebuilt_exp)->sort_id);
       assert (rebuilt_exp);
       if (rebuilt_exp != cur)
       {
@@ -6258,6 +6260,47 @@ add_lemma_to_dual_prop_clone (Btor *btor,
   *root = and;
 }
 
+static BtorNode *
+create_function_inequality (Btor *btor, BtorNode *feq)
+{
+  assert (BTOR_IS_REGULAR_NODE (feq));
+  assert (BTOR_IS_FEQ_NODE (feq));
+
+  BtorMemMgr *mm;
+  BtorNode *var, *app0, *app1, *eq, *args0;
+  BtorSortUniqueTable *sorts;
+  BtorSortId funsort, sort;
+  BtorNodePtrStack args;
+  BtorTupleSortIterator it;
+
+  BTOR_INIT_STACK (args);
+
+  mm      = btor->mm;
+  sorts   = &btor->sorts_unique_table;
+  funsort = btor_get_domain_fun_sort (sorts, feq->e[0]->sort_id);
+
+  btor_init_tuple_sort_iterator (&it, sorts, funsort);
+  while (btor_has_next_tuple_sort_iterator (&it))
+  {
+    sort = btor_next_tuple_sort_iterator (&it);
+    assert (btor_is_bitvec_sort (sorts, sort));
+    var = btor_var_exp (btor, btor_get_width_bitvec_sort (sorts, sort), 0);
+    BTOR_PUSH_STACK (mm, args, var);
+  }
+
+  app0 = btor_apply_exps (btor, BTOR_COUNT_STACK (args), args.start, feq->e[0]);
+  app1 = btor_apply_exps (btor, BTOR_COUNT_STACK (args), args.start, feq->e[1]);
+  eq   = btor_eq_exp (btor, app0, app1);
+
+  btor_release_exp (btor, app0);
+  btor_release_exp (btor, app1);
+  while (!BTOR_EMPTY_STACK (args))
+    btor_release_exp (btor, BTOR_POP_STACK (args));
+  BTOR_RELEASE_STACK (mm, args);
+
+  return BTOR_INVERT_NODE (eq);
+}
+
 /* for every function equality f = g, add
  * f != g -> f(a) != g(a) */
 static void
@@ -6296,7 +6339,7 @@ add_function_inequality_constraints (Btor *btor)
     cur = BTOR_POP_STACK (feqs);
     assert (BTOR_IS_FEQ_NODE (cur));
     assert (cur->reachable);
-    neq = btor_rewrite_function_inequality (btor, cur);
+    neq = create_function_inequality (btor, cur);
     con = btor_implies_exp (btor, BTOR_INVERT_NODE (cur), neq);
     btor_assert_exp (btor, con);
     btor_release_exp (btor, con);
