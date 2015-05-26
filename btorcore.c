@@ -3194,10 +3194,6 @@ btor_simplify (Btor *btor)
 
   if (btor->inconsistent) return BTOR_UNSAT;
 
-  //  if (btor->options.rewrite_level.val <= 1 &&
-  //  !btor->options.beta_reduce_all.val)
-  //    return;
-
   rounds = 0;
   start  = btor_time_stamp ();
 
@@ -3237,9 +3233,9 @@ btor_simplify (Btor *btor)
       btor_eliminate_slices_on_bv_vars (btor);
       if (btor->inconsistent) break;
 
-      if (btor->varsubst_constraints->count) continue;
-
-      if (btor->embedded_constraints->count) continue;
+      if (btor->varsubst_constraints->count
+          || btor->embedded_constraints->count)
+        continue;
     }
 
 #ifndef BTOR_DO_NOT_PROCESS_SKELETON
@@ -3255,9 +3251,9 @@ btor_simplify (Btor *btor)
         if (btor->inconsistent) break;
       }
 
-      if (btor->varsubst_constraints->count) continue;
-
-      if (btor->embedded_constraints->count) continue;
+      if (btor->varsubst_constraints->count
+          || btor->embedded_constraints->count)
+        continue;
     }
 #endif
 
@@ -3270,13 +3266,11 @@ btor_simplify (Btor *btor)
         /* merging lambdas not required if they get eliminated */
         && !btor->options.beta_reduce_all.val
         && btor->options.merge_lambdas.val)
-    {
       btor_merge_lambdas (btor);
-    }
 
-    // printf ("----\n");
-    // btor->options.pretty_print.val = 1;
-    // btor_dump_btor (btor, stdout);
+    if (btor->varsubst_constraints->count || btor->embedded_constraints->count)
+      continue;
+
 #ifndef BTOR_DO_NOT_OPTIMIZE_UNCONSTRAINED
     if (btor->options.ucopt.val && btor->options.rewrite_level.val > 2
         && !btor->options.incremental.val && !btor->options.model_gen.val)
@@ -3288,17 +3282,14 @@ btor_simplify (Btor *btor)
       if (btor->inconsistent) break;
     }
 #endif
-    // printf ("====\n");
-    // btor->options.pretty_print.val = 1;
-    // btor_dump_btor (btor, stdout);
 
-    if (btor->varsubst_constraints->count) continue;
-
-    if (btor->embedded_constraints->count) continue;
+    if (btor->varsubst_constraints->count || btor->embedded_constraints->count)
+      continue;
 
     /* rewrite/beta-reduce applies on lambdas */
     if (btor->options.beta_reduce_all.val) btor_eliminate_applies (btor);
 
+    /* add ackermann constraints for all uninterpreted functions */
     if (btor->options.ackermannize.val) btor_add_ackermann_constraints (btor);
   } while (btor->varsubst_constraints->count
            || btor->embedded_constraints->count);
