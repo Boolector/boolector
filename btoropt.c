@@ -172,9 +172,9 @@ btor_init_opts (Btor *btor)
 #ifndef BTOR_DO_NOT_OPTIMIZE_UNCONSTRAINED
   BTOR_OPT ("uc", ucopt, 0, 0, 1, "unconstrained optimization");
 #endif
-  BTOR_OPT ("ls", lazy_synthesize, 1, 0, 1, "lazily synthesize expressions");
+  BTOR_OPT ("ls", lazy_synthesize, 0, 0, 1, "lazily synthesize expressions");
   BTOR_OPT ("es", eliminate_slices, 1, 0, 1, "eliminate slices on variables");
-  BTOR_OPT ("el", eager_lemmas, 0, 0, 1, "eager lemma generation");
+  BTOR_OPT ("el", eager_lemmas, 1, 0, 1, "eager lemma generation");
   BTOR_OPT ("ml", merge_lambdas, 1, 0, 1, "merge lambda chains");
   BTOR_OPT ("xl", extract_lambdas, 1, 0, 1, "extract lambda terms");
   BTOR_OPT ("ac", auto_cleanup, 0, 0, 1, "auto cleanup on exit");
