@@ -3258,11 +3258,15 @@ btor_simplify (Btor *btor)
 #endif
 
     if (btor->options.rewrite_level.val > 2
+        /* FIXME: extraction not supported yet for extensional lambdas */
+        && btor->ops[BTOR_FEQ_NODE].cur == 0
         && !btor->options.beta_reduce_all.val
         && btor->options.extract_lambdas.val)
       btor_extract_lambdas (btor);
 
     if (btor->options.rewrite_level.val > 2
+        /* FIXME: merging not supported yet for extensional lambdas */
+        && btor->ops[BTOR_FEQ_NODE].cur == 0
         /* merging lambdas not required if they get eliminated */
         && !btor->options.beta_reduce_all.val
         && btor->options.merge_lambdas.val)
