@@ -5911,6 +5911,8 @@ add_extensionality_lemmas (Btor *btor, BtorNodePtrStack *prop_stack)
   assert (btor);
   assert (prop_stack);
 
+  bool skip;
+  char *eval;
   unsigned num_lemmas = 0;
   BtorNode *cur, *cur_args, *app0, *app1, *eq, *con, *value;
   BtorNodeIterator it;
@@ -5940,6 +5942,13 @@ add_extensionality_lemmas (Btor *btor, BtorNodePtrStack *prop_stack)
     cur = BTOR_POP_STACK (feqs);
     assert (BTOR_IS_FEQ_NODE (cur));
     assert (cur->reachable);
+
+    eval = btor_eval_exp (btor, cur);
+    assert (eval);
+    skip = eval[0] == '0';
+    btor_freestr (mm, eval);
+
+    if (skip) continue;
 
     table0 = generate_table (btor, cur->e[0]);
     table1 = generate_table (btor, cur->e[1]);
