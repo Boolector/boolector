@@ -2701,7 +2701,7 @@ inv_slice_bv (Btor *btor, BtorNode *slice, BtorBitVector *bvslice)
   for (i = 0; i < slice->lower; i++)
     btor_set_bit_bv (res, i, btor_pick_rand_rng (&btor->rng, 0, 1));
   for (i = slice->lower; i <= slice->upper; i++)
-    btor_set_bit_bv (res, i, btor_get_bit_bv (bvslice, slice->lower - i));
+    btor_set_bit_bv (res, i, btor_get_bit_bv (bvslice, i - slice->lower));
   for (i = slice->upper + 1; i < res->width; i++)
     btor_set_bit_bv (res, i, btor_pick_rand_rng (&btor->rng, 0, 1));
 

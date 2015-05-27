@@ -1451,6 +1451,34 @@ sls_inv_concat_bv (int bw)
 }
 
 static void
+sls_inv_slice_bv (int bw)
+{
+  int j, up, lo;
+  BtorNode *slice, *e[3];
+  BtorBitVector *bvslice, *res, *tmp;
+
+  for (j = 0; j < 5; j++)
+  {
+    e[0]    = btor_var_exp (g_btor, bw, 0);
+    up      = btor_pick_rand_rng (g_rng, 0, bw - 1);
+    lo      = btor_pick_rand_rng (g_rng, 0, up);
+    slice   = btor_slice_exp (g_btor, e[0], up, lo);
+    bvslice = btor_new_random_bv (g_mm, g_rng, up - lo + 1);
+    btor_init_bv_model (g_btor, g_bv_model);
+    res = inv_slice_bv (g_btor, slice, bvslice);
+    assert ((*g_bv_model)->count == 0);
+    tmp = btor_slice_bv (g_mm, res, up, lo);
+    assert (!btor_compare_bv (tmp, bvslice));
+    btor_free_bv (g_mm, tmp);
+    btor_free_bv (g_mm, res);
+    btor_delete_bv_model (g_btor, g_bv_model);
+    btor_free_bv (g_mm, bvslice);
+    btor_release_exp (g_btor, e[0]);
+    btor_release_exp (g_btor, slice);
+  }
+}
+
+static void
 test_slsinv_add_bv (void)
 {
   sls_inv_add_bv (1);
@@ -1552,6 +1580,16 @@ test_slsinv_concat_bv (void)
   sls_inv_concat_bv (45);
 }
 
+static void
+test_slsinv_slice_bv (void)
+{
+  sls_inv_slice_bv (1);
+  sls_inv_slice_bv (7);
+  sls_inv_slice_bv (31);
+  sls_inv_slice_bv (33);
+  sls_inv_slice_bv (45);
+}
+
 void
 run_slsinv_tests (int argc, char **argv)
 {
@@ -1565,6 +1603,7 @@ run_slsinv_tests (int argc, char **argv)
   BTOR_RUN_TEST (slsinv_div_bv);
   BTOR_RUN_TEST (slsinv_urem_bv);
   BTOR_RUN_TEST (slsinv_concat_bv);
+  BTOR_RUN_TEST (slsinv_slice_bv);
 }
 
 void
