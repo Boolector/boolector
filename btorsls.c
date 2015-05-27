@@ -2628,32 +2628,34 @@ inv_concat_bv (Btor *btor, BtorNode *concat, BtorBitVector *bvconcat, int eidx)
   bve = (BtorBitVector *) btor_get_bv_model (btor, e);
   assert (bve);
 
+  /* bve o e[1] = bvconcat, slice e[1] out of the lower bits of bvconcat */
   if (eidx)
-  {
-    tmp = btor_slice_bv (mm, bvconcat, bve->width - 1, 0);
-#ifndef NDEBUG
-    if (!btor_compare_bv (tmp, bve)) iscon = 1;
-#endif
-    /* check for non-fixable conflict */
-    if (!btor_compare_bv (tmp, bve)
-        && BTOR_IS_BV_CONST_NODE (BTOR_REAL_ADDR_NODE (e)))
-      res = 0;
-    else
-      res = btor_slice_bv (mm, bvconcat, bvconcat->width - 1, bve->width);
-  }
-  else
   {
     tmp = btor_slice_bv (
         mm, bvconcat, bvconcat->width - 1, bvconcat->width - bve->width);
 #ifndef NDEBUG
-    if (!btor_compare_bv (tmp, bve)) iscon = 1;
+    if (btor_compare_bv (tmp, bve)) iscon = 1;
 #endif
     /* check for non-fixable conflict */
-    if (!btor_compare_bv (tmp, bve)
+    if (btor_compare_bv (tmp, bve)
         && BTOR_IS_BV_CONST_NODE (BTOR_REAL_ADDR_NODE (e)))
       res = 0;
     else
       res = btor_slice_bv (mm, bvconcat, bvconcat->width - bve->width - 1, 0);
+  }
+  /* e[0] o bve = bvconcat, slice e[0] out of the upper bits of bvconcat */
+  else
+  {
+    tmp = btor_slice_bv (mm, bvconcat, bve->width - 1, 0);
+#ifndef NDEBUG
+    if (btor_compare_bv (tmp, bve)) iscon = 1;
+#endif
+    /* check for non-fixable conflict */
+    if (btor_compare_bv (tmp, bve)
+        && BTOR_IS_BV_CONST_NODE (BTOR_REAL_ADDR_NODE (e)))
+      res = 0;
+    else
+      res = btor_slice_bv (mm, bvconcat, bvconcat->width - 1, bve->width);
   }
   btor_free_bv (mm, tmp);
 #ifndef NDEBUG

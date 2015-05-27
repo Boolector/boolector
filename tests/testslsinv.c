@@ -1321,6 +1321,135 @@ sls_inv_urem_bv (int bw)
   btor_free_bv (g_mm, neg);
 }
 
+#define TEST_SLS_INV_CONCAT(bw, bve, bvconcat, eidx)         \
+  do                                                         \
+  {                                                          \
+    idx = eidx ? 0 : 1;                                      \
+    btor_init_bv_model (g_btor, g_bv_model);                 \
+    btor_add_to_bv_model (g_btor, *g_bv_model, e[idx], bve); \
+    assert ((*g_bv_model)->count == 1);                      \
+    res = inv_concat_bv (g_btor, concat, bvconcat, eidx);    \
+    assert ((*g_bv_model)->count == 1);                      \
+    if (eidx)                                                \
+      tmp = btor_concat_bv (g_mm, bve, res);                 \
+    else                                                     \
+      tmp = btor_concat_bv (g_mm, res, bve);                 \
+    assert (!btor_compare_bv (tmp, bvconcat));               \
+    btor_free_bv (g_mm, tmp);                                \
+    btor_free_bv (g_mm, res);                                \
+    btor_delete_bv_model (g_btor, g_bv_model);               \
+  } while (0)
+
+#define TEST_SLS_INV_CONCAT_CON(bw, bve, bvconcat, eidx)     \
+  do                                                         \
+  {                                                          \
+    idx = eidx ? 0 : 1;                                      \
+    btor_init_bv_model (g_btor, g_bv_model);                 \
+    btor_add_to_bv_model (g_btor, *g_bv_model, e[idx], bve); \
+    assert ((*g_bv_model)->count == 1);                      \
+    res = inv_concat_bv (g_btor, concat, bvconcat, eidx);    \
+    assert ((*g_bv_model)->count == 1);                      \
+    assert (!res);                                           \
+    btor_delete_bv_model (g_btor, g_bv_model);               \
+  } while (0)
+
+static void
+sls_inv_concat_bv (int bw)
+{
+  int i, j, idx, ebw, iscon;
+  BtorNode *concat, *e[3], *tmpe, *tmpconcat;
+  BtorBitVector *bvconcat, *bve[3], *res, *tmp;
+  char *bits;
+
+  e[0]   = btor_var_exp (g_btor, bw, 0);
+  e[1]   = btor_var_exp (g_btor, bw, 0);
+  concat = btor_concat_exp (g_btor, e[0], e[1]);
+
+  for (j = 0; j < 5; j++)
+  {
+    ebw = btor_pick_rand_rng (g_rng, 1, bw);
+    if (btor_pick_rand_rng (g_rng, 0, 1))
+    {
+      bve[0] = btor_new_random_bv (g_mm, g_rng, ebw);
+      bve[1] = btor_new_random_bv (g_mm, g_rng, bw);
+    }
+    else
+    {
+      bve[1] = btor_new_random_bv (g_mm, g_rng, ebw);
+      bve[0] = btor_new_random_bv (g_mm, g_rng, bw);
+    }
+    bvconcat = btor_concat_bv (g_mm, bve[0], bve[1]);
+
+    TEST_SLS_INV_CONCAT (bw, bve[1], bvconcat, 0);
+    TEST_SLS_INV_CONCAT (bw, bve[0], bvconcat, 1);
+
+    btor_free_bv (g_mm, bvconcat);
+    btor_free_bv (g_mm, bve[1]);
+    btor_free_bv (g_mm, bve[0]);
+  }
+
+  /* conflict */
+  for (j = 0; j < 5; j++)
+  {
+    tmpe      = e[1];
+    tmpconcat = concat;
+    ebw       = btor_pick_rand_rng (g_rng, 1, bw);
+    bve[1]    = btor_new_random_bv (g_mm, g_rng, ebw);
+    bvconcat  = btor_new_random_bv (g_mm, g_rng, bw + ebw);
+    for (iscon = 0, i = 0; i < bve[1]->width; i++)
+      if (btor_get_bit_bv (bve[1], i) != btor_get_bit_bv (bvconcat, i))
+      {
+        iscon = 1;
+        break;
+      }
+    bits = btor_bv_to_char_bv (g_mm, bve[1]);
+    e[1] = btor_const_exp (g_btor, bits);
+    btor_freestr (g_mm, bits);
+    concat = btor_concat_exp (g_btor, e[0], e[1]);
+    if (iscon)
+      TEST_SLS_INV_CONCAT_CON (bw, bve[1], bvconcat, 0);
+    else
+      TEST_SLS_INV_CONCAT (bw, bve[1], bvconcat, 0);
+    btor_free_bv (g_mm, bve[1]);
+    btor_free_bv (g_mm, bvconcat);
+    btor_release_exp (g_btor, e[1]);
+    btor_release_exp (g_btor, concat);
+    e[1]   = tmpe;
+    concat = tmpconcat;
+
+    tmpe      = e[0];
+    tmpconcat = concat;
+    ebw       = btor_pick_rand_rng (g_rng, 1, bw);
+    bve[0]    = btor_new_random_bv (g_mm, g_rng, ebw);
+    bvconcat  = btor_new_random_bv (g_mm, g_rng, bw + ebw);
+    for (iscon = 0, i = 0; i < bve[0]->width; i++)
+      if (btor_get_bit_bv (bve[0], i)
+          != btor_get_bit_bv (bvconcat, bvconcat->width - bve[0]->width + i))
+      {
+        iscon = 1;
+        break;
+      }
+    bits = btor_bv_to_char_bv (g_mm, bve[0]);
+    e[0] = btor_const_exp (g_btor, bits);
+    btor_freestr (g_mm, bits);
+    concat = btor_concat_exp (g_btor, e[0], e[1]);
+    if (iscon)
+      TEST_SLS_INV_CONCAT_CON (bw, bve[0], bvconcat, 1);
+    else
+      TEST_SLS_INV_CONCAT (bw, bve[0], bvconcat, 1);
+    btor_free_bv (g_mm, bve[0]);
+    btor_free_bv (g_mm, bvconcat);
+    btor_release_exp (g_btor, e[0]);
+    btor_release_exp (g_btor, concat);
+    e[0]   = tmpe;
+    concat = tmpconcat;
+  }
+
+  btor_release_exp (g_btor, e[0]);
+  btor_release_exp (g_btor, e[1]);
+  btor_release_exp (g_btor, concat);
+}
+
 static void
 test_slsinv_add_bv (void)
 {
@@ -1413,6 +1542,16 @@ test_slsinv_urem_bv (void)
   sls_inv_urem_bv (45);
 }
 
+static void
+test_slsinv_concat_bv (void)
+{
+  sls_inv_concat_bv (1);
+  sls_inv_concat_bv (7);
+  sls_inv_concat_bv (31);
+  sls_inv_concat_bv (33);
+  sls_inv_concat_bv (45);
+}
+
 void
 run_slsinv_tests (int argc, char **argv)
 {
@@ -1425,6 +1564,7 @@ run_slsinv_tests (int argc, char **argv)
   BTOR_RUN_TEST (slsinv_mul_bv);
   BTOR_RUN_TEST (slsinv_div_bv);
   BTOR_RUN_TEST (slsinv_urem_bv);
+  BTOR_RUN_TEST (slsinv_concat_bv);
 }
 
 void
