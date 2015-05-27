@@ -79,7 +79,7 @@ do
 done
 
 working_dir=$pwd/$(basename $working_dir)
-mkdir $working_dir
+mkdir -p $working_dir
 
 # configure solver 
 echo -n "choose '$binary_name' options (default: $default_options): "
