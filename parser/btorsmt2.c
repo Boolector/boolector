@@ -3395,13 +3395,13 @@ SORTED_VAR:
     {
       if (!boolector_is_array (parser->btor, fun->exp))
         return !btor_perr_smt2 (parser, "sort Array expected");
-      if (!boolector_get_index_width (parser->btor, fun->exp) != domain)
+      if (boolector_get_index_width (parser->btor, fun->exp) != domain)
         return !btor_perr_smt2 (
             parser,
             "expected index bit-width '%d' but was '%d'",
             boolector_get_index_width (parser->btor, fun->exp),
             domain);
-      if (!boolector_get_width (parser->btor, fun->exp) != width)
+      if (boolector_get_width (parser->btor, fun->exp) != width)
         return !btor_perr_smt2 (parser,
                                 "expected element bit-width '%d' but was '%d'",
                                 boolector_get_width (parser->btor, fun->exp),
