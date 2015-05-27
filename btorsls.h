@@ -124,10 +124,10 @@ BtorBitVector *inv_mul_bv (Btor *btor,
                            BtorNode *mul_exp,
                            BtorBitVector *bvmul,
                            int eidx);
-BtorBitVector *inv_div_bv (Btor *btor,
-                           BtorNode *div_exp,
-                           BtorBitVector *bvdiv,
-                           int eidx);
+BtorBitVector *inv_udiv_bv (Btor *btor,
+                            BtorNode *div_exp,
+                            BtorBitVector *bvdiv,
+                            int eidx);
 BtorBitVector *inv_urem_bv (Btor *btor,
                             BtorNode *urem_exp,
                             BtorBitVector *bvurem,

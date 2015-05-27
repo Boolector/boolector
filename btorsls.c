@@ -2232,7 +2232,7 @@ static inline BtorBitVector *
 #else
 BtorBitVector *
 #endif
-inv_div_bv (Btor *btor, BtorNode *div, BtorBitVector *bvdiv, int eidx)
+inv_udiv_bv (Btor *btor, BtorNode *div, BtorBitVector *bvdiv, int eidx)
 {
   assert (btor);
   assert (div);
