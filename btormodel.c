@@ -571,13 +571,11 @@ find_candidates_for_param (Btor *btor,
     parent = next_parent_full_parent_iterator (&it);
     assert (BTOR_IS_REGULAR_NODE (parent));
 
-    switch (parent->kind)
+    if (BTOR_IS_BV_EQ_NODE (parent))
     {
-      case BTOR_BEQ_NODE:
-        pos = pos == 0 ? 1 : 0;
-        BTOR_PUSH_STACK (mm, *candidates, parent->e[pos]);
-        BTOR_PUSH_STACK (mm, *candidates, BTOR_INVERT_NODE (parent->e[pos]));
-        break;
+      pos = pos == 0 ? 1 : 0;
+      BTOR_PUSH_STACK (mm, *candidates, parent->e[pos]);
+      BTOR_PUSH_STACK (mm, *candidates, BTOR_INVERT_NODE (parent->e[pos]));
     }
   }
 }

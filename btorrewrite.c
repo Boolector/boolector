@@ -258,14 +258,9 @@ is_xnor_exp (Btor *btor, BtorNode *exp)
 static int
 slice_simplifiable (BtorNode *exp)
 {
-  BtorNode *real_exp = BTOR_REAL_ADDR_NODE (exp);
-  switch (real_exp->kind)
-  {
-    case BTOR_BV_VAR_NODE:
-    case BTOR_BV_CONST_NODE:
-    case BTOR_SLICE_NODE: return 1;
-  }
-  return 0;
+  exp = BTOR_REAL_ADDR_NODE (exp);
+  return BTOR_IS_BV_VAR_NODE (exp) || BTOR_IS_BV_CONST_NODE (exp)
+         || BTOR_IS_SLICE_NODE (exp);
 }
 
 static int
@@ -366,13 +361,8 @@ find_and_contradiction_exp (
 static int
 concat_simplifiable (BtorNode *exp)
 {
-  BtorNode *real_exp = BTOR_REAL_ADDR_NODE (exp);
-  switch (real_exp->kind)
-  {
-    case BTOR_BV_VAR_NODE:
-    case BTOR_BV_CONST_NODE: return 1;
-  }
-  return 0;
+  exp = BTOR_REAL_ADDR_NODE (exp);
+  return BTOR_IS_BV_VAR_NODE (exp) || BTOR_IS_BV_CONST_NODE (exp);
 }
 
 static int
