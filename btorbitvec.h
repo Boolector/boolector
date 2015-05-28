@@ -21,7 +21,7 @@
 #define BTOR_BV_TYPE uint32_t
 #define BTOR_BV_TYPE_BW (sizeof (BTOR_BV_TYPE) * 8)
 
-struct BitVector
+struct BtorBitVector
 {
   int width; /* length of bit vector */
   int len;   /* length of 'bits' array */
@@ -38,71 +38,131 @@ struct BitVector
   BTOR_BV_TYPE bits[];
 };
 
-typedef struct BitVector BitVector;
+typedef struct BtorBitVector BtorBitVector;
 
-BitVector *btor_new_bv (BtorMemMgr *, int);
-BitVector *btor_new_random_bv (BtorMemMgr *, BtorRNG *, int);
-BitVector *btor_new_random_range_bv (BtorMemMgr *, BtorRNG *, int, int, int);
-BitVector *btor_char_to_bv (BtorMemMgr *, char *);
-BitVector *btor_uint64_to_bv (BtorMemMgr *, uint64_t, int);
-BitVector *btor_assignment_bv (BtorMemMgr *, BtorNode *, int);
-BitVector *btor_copy_bv (BtorMemMgr *, BitVector *);
+BtorBitVector *btor_new_bv (BtorMemMgr *mm, int bw);
 
-size_t btor_size_bv (BitVector *);
-void btor_free_bv (BtorMemMgr *, BitVector *);
-int btor_compare_bv (BitVector *, BitVector *);
-bool btor_is_zero_bv (const BitVector *);
-unsigned int btor_hash_bv (BitVector *);
+BtorBitVector *btor_new_random_bv (BtorMemMgr *mm, BtorRNG *rng, int bw);
+BtorBitVector *btor_new_random_range_bv (BtorMemMgr *mm,
+                                         BtorRNG *rng,
+                                         int bw,
+                                         BtorBitVector *from,
+                                         BtorBitVector *to);
+BtorBitVector *btor_new_random_bit_range_bv (
+    BtorMemMgr *mm, BtorRNG *rng, int bw, int up, int lo);
 
-void btor_print_bv (BitVector *);
-void btor_print_all_bv (BitVector *);
-char *btor_bv_to_char_bv (BtorMemMgr *, const BitVector *);
-uint64_t btor_bv_to_uint64_bv (BitVector *);
+BtorBitVector *btor_char_to_bv (BtorMemMgr *mm, char *assignment);
+BtorBitVector *btor_uint64_to_bv (BtorMemMgr *mm, uint64_t value, int bw);
+BtorBitVector *btor_assignment_bv (BtorMemMgr *mm, BtorNode *exp, int bw);
+BtorBitVector *btor_copy_bv (BtorMemMgr *mm, BtorBitVector *bv);
+
+size_t btor_size_bv (BtorBitVector *bv);
+void btor_free_bv (BtorMemMgr *mm, BtorBitVector *bv);
+int btor_compare_bv (BtorBitVector *bv1, BtorBitVector *bv2);
+bool btor_is_zero_bv (const BtorBitVector *bv);
+bool btor_is_one_bv (const BtorBitVector *bv);
+unsigned int btor_hash_bv (BtorBitVector *bv);
+
+void btor_print_bv (BtorBitVector *bv);
+void btor_print_all_bv (BtorBitVector *bv);
+char *btor_bv_to_char_bv (BtorMemMgr *mm, const BtorBitVector *bv);
+uint64_t btor_bv_to_uint64_bv (BtorBitVector *bv);
 /* index 0 is LSB, width - 1 is MSB */
-int btor_get_bit_bv (const BitVector *, int);
+int btor_get_bit_bv (const BtorBitVector *bv, int pos);
 /* index 0 is LSB, width - 1 is MSB */
-void btor_set_bit_bv (BitVector *, int, int);
-int btor_is_true_bv (BitVector *);
-int btor_is_false_bv (BitVector *);
-
-BitVector *btor_neg_bv (BtorMemMgr *, BitVector *);
-BitVector *btor_not_bv (BtorMemMgr *, BitVector *);
-BitVector *btor_xor_bv (BtorMemMgr *, BitVector *, BitVector *);
-BitVector *btor_inc_bv (BtorMemMgr *, BitVector *);
-BitVector *btor_dec_bv (BtorMemMgr *, BitVector *);
-BitVector *btor_flipped_bit_bv (BtorMemMgr *, BitVector *, int);
-BitVector *btor_flipped_bit_range_bv (BtorMemMgr *, BitVector *, int, int);
-
-BitVector *btor_add_bv (BtorMemMgr *, BitVector *, BitVector *);
-BitVector *btor_and_bv (BtorMemMgr *, BitVector *, BitVector *);
-BitVector *btor_eq_bv (BtorMemMgr *, BitVector *, BitVector *);
-BitVector *btor_ult_bv (BtorMemMgr *, BitVector *, BitVector *);
-BitVector *btor_sll_bv (BtorMemMgr *, BitVector *, BitVector *);
-BitVector *btor_srl_bv (BtorMemMgr *, BitVector *, BitVector *);
-BitVector *btor_mul_bv (BtorMemMgr *, BitVector *, BitVector *);
-BitVector *btor_udiv_bv (BtorMemMgr *, BitVector *, BitVector *);
-BitVector *btor_urem_bv (BtorMemMgr *, BitVector *, BitVector *);
-BitVector *btor_concat_bv (BtorMemMgr *, BitVector *, BitVector *);
-BitVector *btor_slice_bv (BtorMemMgr *, BitVector *, int, int);
-BitVector *btor_uext_bv (BtorMemMgr *, BitVector *, int);
-BitVector *btor_sext_bv (BtorMemMgr *, BitVector *, int);
+void btor_set_bit_bv (BtorBitVector *bv, int pos, int value);
+int btor_is_true_bv (BtorBitVector *bv);
+int btor_is_false_bv (BtorBitVector *bv);
 
 /*------------------------------------------------------------------------*/
 
-struct BitVectorTuple
+BtorBitVector *btor_one_bv (BtorMemMgr *mm, int bw);
+BtorBitVector *btor_ones_bv (BtorMemMgr *mm, int bw);
+
+BtorBitVector *btor_neg_bv (BtorMemMgr *mm, BtorBitVector *bv);
+BtorBitVector *btor_not_bv (BtorMemMgr *mm, BtorBitVector *bv);
+BtorBitVector *btor_inc_bv (BtorMemMgr *mm, BtorBitVector *bv);
+BtorBitVector *btor_dec_bv (BtorMemMgr *mm, BtorBitVector *bv);
+
+BtorBitVector *btor_add_bv (BtorMemMgr *mm,
+                            BtorBitVector *bv0,
+                            BtorBitVector *bv1);
+BtorBitVector *btor_and_bv (BtorMemMgr *mm,
+                            BtorBitVector *bv0,
+                            BtorBitVector *bv1);
+BtorBitVector *btor_xor_bv (BtorMemMgr *mm,
+                            BtorBitVector *bv0,
+                            BtorBitVector *bv1);
+BtorBitVector *btor_eq_bv (BtorMemMgr *mm,
+                           BtorBitVector *bv0,
+                           BtorBitVector *bv1);
+BtorBitVector *btor_ult_bv (BtorMemMgr *mm,
+                            BtorBitVector *bv0,
+                            BtorBitVector *bv1);
+BtorBitVector *btor_sll_bv (BtorMemMgr *mm,
+                            BtorBitVector *bv0,
+                            BtorBitVector *bv1);
+BtorBitVector *btor_srl_bv (BtorMemMgr *mm,
+                            BtorBitVector *bv0,
+                            BtorBitVector *bv1);
+BtorBitVector *btor_mul_bv (BtorMemMgr *mm,
+                            BtorBitVector *bv0,
+                            BtorBitVector *bv1);
+BtorBitVector *btor_udiv_bv (BtorMemMgr *mm,
+                             BtorBitVector *bv0,
+                             BtorBitVector *bv1);
+BtorBitVector *btor_urem_bv (BtorMemMgr *mm,
+                             BtorBitVector *bv0,
+                             BtorBitVector *bv1);
+BtorBitVector *btor_concat_bv (BtorMemMgr *mm,
+                               BtorBitVector *bv0,
+                               BtorBitVector *bv1);
+BtorBitVector *btor_slice_bv (BtorMemMgr *mm,
+                              BtorBitVector *bv0,
+                              int up,
+                              int lo);
+BtorBitVector *btor_uext_bv (BtorMemMgr *mm, BtorBitVector *bv0, int len);
+BtorBitVector *btor_sext_bv (BtorMemMgr *mm, BtorBitVector *bv0, int len);
+
+BtorBitVector *btor_flipped_bit_bv (BtorMemMgr *mm, BtorBitVector *bv, int pos);
+BtorBitVector *btor_flipped_bit_range_bv (BtorMemMgr *mm,
+                                          BtorBitVector *bv,
+                                          int up,
+                                          int lo);
+
+/*------------------------------------------------------------------------*/
+
+bool btor_is_umulo_bv (BtorMemMgr *mm, BtorBitVector *bv0, BtorBitVector *bv1);
+
+/*------------------------------------------------------------------------*/
+
+BtorBitVector *btor_gcd_ext_bv (Btor *btor,
+                                BtorBitVector *bv1,
+                                BtorBitVector *bv2,
+                                BtorBitVector **fx,
+                                BtorBitVector **fy);
+
+/*------------------------------------------------------------------------*/
+
+struct BtorBitVectorTuple
 {
   int arity;
-  BitVector **bv;
+  BtorBitVector **bv;
 };
 
-typedef struct BitVectorTuple BitVectorTuple;
+typedef struct BtorBitVectorTuple BtorBitVectorTuple;
 
-BitVectorTuple *btor_new_bv_tuple (BtorMemMgr *, int);
-void btor_free_bv_tuple (BtorMemMgr *, BitVectorTuple *);
-BitVectorTuple *btor_copy_bv_tuple (BtorMemMgr *, BitVectorTuple *);
-size_t btor_size_bv_tuple (BitVectorTuple *);
-void btor_add_to_bv_tuple (BtorMemMgr *, BitVectorTuple *, BitVector *, int);
-int btor_compare_bv_tuple (BitVectorTuple *, BitVectorTuple *);
-unsigned int btor_hash_bv_tuple (BitVectorTuple *);
+BtorBitVectorTuple *btor_new_bv_tuple (BtorMemMgr *mm, int arity);
+BtorBitVectorTuple *btor_copy_bv_tuple (BtorMemMgr *mm, BtorBitVectorTuple *t);
+
+size_t btor_size_bv_tuple (BtorBitVectorTuple *t);
+void btor_free_bv_tuple (BtorMemMgr *mm, BtorBitVectorTuple *t);
+int btor_compare_bv_tuple (BtorBitVectorTuple *t0, BtorBitVectorTuple *t1);
+unsigned int btor_hash_bv_tuple (BtorBitVectorTuple *t);
+
+void btor_add_to_bv_tuple (BtorMemMgr *mm,
+                           BtorBitVectorTuple *t,
+                           BtorBitVector *bv,
+                           int pos);
 
 #endif

@@ -203,7 +203,7 @@ typedef struct BtorLambdaNode BtorLambdaNode;
 struct BtorParamNode
 {
   BTOR_BV_NODE_STRUCT;
-  BtorLambdaNode *lambda_exp; /* 1:1 relation param:lambda_exp */
+  BtorNode *lambda_exp; /* 1:1 relation param:lambda_exp */
   BtorNode *assigned_exp;
 };
 

@@ -2,7 +2,7 @@
  *
  *  Copyright (C) 2007-2010 Robert Daniel Brummayer.
  *  Copyright (C) 2007-2012 Armin Biere.
- *  Copyright (C) 2012, 2014 Aina Niemetz.
+ *  Copyright (C) 2012, 2014-2015 Aina Niemetz.
  *  Copyright (C) 2012 Mathias Preiner.
  *
  *  All rights reserved.
@@ -35,6 +35,7 @@
 #include "testrunner.h"
 #include "testsat.h"
 #include "testshift.h"
+#include "testslsinv.h"
 #include "testsmtaxioms.h"
 #include "testsort.h"
 #include "testspecial.h"
@@ -103,7 +104,8 @@ main (int argc, char **argv)
     }
     else if (!strcmp (argv[i], "-s") || !strcmp (argv[i], "--slow"))
     {
-      speed = BTOR_SLOW_TEST_CASE;
+      speed  = BTOR_SLOW_TEST_CASE;
+      bitvec = 1;
     }
     else if (!strcmp (argv[i], "--bitvec"))
     {
@@ -128,6 +130,7 @@ main (int argc, char **argv)
   BTOR_RUN_TESTS (hash);
   BTOR_RUN_TESTS (const);
   if (bitvec) BTOR_RUN_TESTS (bitvec);
+  BTOR_RUN_TESTS (slsinv);
   BTOR_RUN_TESTS (sat);
   BTOR_RUN_TESTS (aig);
   BTOR_RUN_TESTS (aigvec);

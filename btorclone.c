@@ -68,7 +68,7 @@ btor_clone_key_as_bv_tuple (BtorMemMgr *mm, const void *map, const void *t)
   assert (mm);
   assert (t);
   (void) map;
-  return btor_copy_bv_tuple (mm, (BitVectorTuple *) t);
+  return btor_copy_bv_tuple (mm, (BtorBitVectorTuple *) t);
 }
 
 void
@@ -138,6 +138,7 @@ btor_clone_data_as_dbl (BtorMemMgr *mm,
 
   (void) mm;
   (void) map;
+
   cloned_data->asDbl = data->asDbl;
 }
 
@@ -152,7 +153,7 @@ btor_clone_data_as_bv_ptr (BtorMemMgr *mm,
   assert (cloned_data);
 
   (void) map;
-  cloned_data->asPtr = btor_copy_bv (mm, (BitVector *) data->asPtr);
+  cloned_data->asPtr = btor_copy_bv (mm, (BtorBitVector *) data->asPtr);
 }
 
 void
@@ -1027,9 +1028,9 @@ clone_aux_btor (Btor *btor,
     {
       data  = next_data_hash_table_iterator (&it);
       cdata = next_data_hash_table_iterator (&cit);
-      assert (btor_size_bv ((BitVector *) data->asPtr)
-              == btor_size_bv ((BitVector *) cdata->asPtr));
-      allocated += btor_size_bv ((BitVector *) cdata->asPtr);
+      assert (btor_size_bv ((BtorBitVector *) data->asPtr)
+              == btor_size_bv ((BtorBitVector *) cdata->asPtr));
+      allocated += btor_size_bv ((BtorBitVector *) cdata->asPtr);
     }
   }
 #endif
@@ -1052,9 +1053,9 @@ clone_aux_btor (Btor *btor,
       init_hash_table_iterator (&ncit, ((BtorPtrHashTable *) data->asPtr));
       while (has_next_hash_table_iterator (&ncit))
       {
-        allocated += btor_size_bv ((BitVector *) ncit.bucket->data.asPtr);
+        allocated += btor_size_bv ((BtorBitVector *) ncit.bucket->data.asPtr);
         allocated += btor_size_bv_tuple (
-            (BitVectorTuple *) next_hash_table_iterator (&ncit));
+            (BtorBitVectorTuple *) next_hash_table_iterator (&ncit));
       }
     }
   }

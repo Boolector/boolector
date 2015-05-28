@@ -65,7 +65,6 @@ static const char *slowtests[] = {
     "hd10",
     "hd14",
     "problem_130",
-    "_bitvec",
 
     0, /* NOTE: DO NOT REMOVE AND KEEP AT SENTINEL */
 };

@@ -46,7 +46,7 @@ init_bitvec_tests (void)
 static void
 test_new_bitvec (void)
 {
-  BitVector *bv;
+  BtorBitVector *bv;
 
   bv = btor_new_bv (g_mm, BTOR_BV_TYPE_BW);
   assert (bv->len == 1);
@@ -61,11 +61,11 @@ test_new_bitvec (void)
   btor_free_bv (g_mm, bv);
 }
 
-static BitVector *
+static BtorBitVector *
 random_bv (int bw)
 {
   int i;
-  BitVector *res;
+  BtorBitVector *res;
   res = btor_new_bv (g_mm, bw);
 
   for (i = 0; i < res->len; i++) res->bits[i] = (BTOR_BV_TYPE) rand ();
@@ -78,13 +78,13 @@ random_bv (int bw)
 
 static void
 unary_bitvec (char *(*const_func) (BtorMemMgr *, const char *),
-              BitVector *(*bitvec_func) (BtorMemMgr *, BitVector *),
+              BtorBitVector *(*bitvec_func) (BtorMemMgr *, BtorBitVector *),
               int num_tests,
               int bit_width)
 {
   int i;
   char *c_a, *c_res, *str;
-  BitVector *a, *res;
+  BtorBitVector *a, *res;
 
   printf (" %d", bit_width);
   fflush (stdout);
@@ -112,7 +112,7 @@ slice_bitvec (int num_tests, int bit_width)
 {
   int i, upper, lower;
   char *c_a, *c_res, *str;
-  BitVector *a, *res;
+  BtorBitVector *a, *res;
 
   printf (" %d", bit_width);
   fflush (stdout);
@@ -143,15 +143,15 @@ slice_bitvec (int num_tests, int bit_width)
 
 static void
 shift_bitvec (char *(*const_func) (BtorMemMgr *, const char *, const char *),
-              BitVector *(*bitvec_func) (BtorMemMgr *,
-                                         BitVector *,
-                                         BitVector *),
+              BtorBitVector *(*bitvec_func) (BtorMemMgr *,
+                                             BtorBitVector *,
+                                             BtorBitVector *),
               int num_tests,
               int bit_width)
 {
   int i;
   char *c_a, *c_b, *c_res, *str;
-  BitVector *a, *b, *res;
+  BtorBitVector *a, *b, *res;
 
   printf (" %d", bit_width);
   fflush (stdout);
@@ -180,14 +180,17 @@ shift_bitvec (char *(*const_func) (BtorMemMgr *, const char *, const char *),
 }
 
 static void
-shift_cont_bitvec (
-    char *(*const_func) (BtorMemMgr *, const char *, const char *),
-    BitVector *(*bitvec_func) (BtorMemMgr *, BitVector *, BitVector *),
-    int bit_width)
+shift_cont_bitvec (char *(*const_func) (BtorMemMgr *,
+                                        const char *,
+                                        const char *),
+                   BtorBitVector *(*bitvec_func) (BtorMemMgr *,
+                                                  BtorBitVector *,
+                                                  BtorBitVector *),
+                   int bit_width)
 {
   int i, shift_width;
   char *c_a, *c_b, *c_res, *str;
-  BitVector *a, *b, *res;
+  BtorBitVector *a, *b, *res;
 
   a           = random_bv (bit_width);
   shift_width = btor_log_2_util (bit_width);
@@ -216,9 +219,9 @@ shift_cont_bitvec (
 
 static void
 binary_bitvec (char *(*const_func) (BtorMemMgr *, const char *, const char *),
-               BitVector *(*bitvec_func) (BtorMemMgr *,
-                                          BitVector *,
-                                          BitVector *),
+               BtorBitVector *(*bitvec_func) (BtorMemMgr *,
+                                              BtorBitVector *,
+                                              BtorBitVector *),
                int num_tests,
                int bit_width)
 {
@@ -227,7 +230,7 @@ binary_bitvec (char *(*const_func) (BtorMemMgr *, const char *, const char *),
 
   int i;
   char *c_a, *c_b, *c_res, *str;
-  BitVector *a, *b, *res;
+  BtorBitVector *a, *b, *res;
 
   printf (" %d", bit_width);
   fflush (stdout);
@@ -256,7 +259,7 @@ binary_bitvec (char *(*const_func) (BtorMemMgr *, const char *, const char *),
 
 static void
 ext_bitvec (char *(*const_func) (BtorMemMgr *, const char *, int),
-            BitVector *(*bitvec_func) (BtorMemMgr *, BitVector *, int),
+            BtorBitVector *(*bitvec_func) (BtorMemMgr *, BtorBitVector *, int),
             int num_tests,
             int bit_width)
 {
@@ -265,7 +268,7 @@ ext_bitvec (char *(*const_func) (BtorMemMgr *, const char *, int),
 
   int i, bw;
   char *c_a, *c_res, *str;
-  BitVector *a, *res;
+  BtorBitVector *a, *res;
 
   printf (" %d", bit_width);
   fflush (stdout);
@@ -341,7 +344,6 @@ test_eq_bitvec (void)
 static void
 test_ult_bitvec (void)
 {
-  binary_bitvec (btor_ult_const, btor_ult_bv, BTOR_TEST_BITVEC_TESTS, 1);
   binary_bitvec (btor_ult_const, btor_ult_bv, BTOR_TEST_BITVEC_TESTS, 7);
   binary_bitvec (btor_ult_const, btor_ult_bv, BTOR_TEST_BITVEC_TESTS, 31);
   binary_bitvec (btor_ult_const, btor_ult_bv, BTOR_TEST_BITVEC_TESTS, 33);
@@ -354,6 +356,7 @@ test_ult_bitvec (void)
 static void
 test_and_bitvec (void)
 {
+  binary_bitvec (btor_ult_const, btor_ult_bv, BTOR_TEST_BITVEC_TESTS, 1);
   binary_bitvec (btor_and_const, btor_and_bv, BTOR_TEST_BITVEC_TESTS, 1);
   binary_bitvec (btor_and_const, btor_and_bv, BTOR_TEST_BITVEC_TESTS, 7);
   binary_bitvec (btor_and_const, btor_and_bv, BTOR_TEST_BITVEC_TESTS, 31);
@@ -487,11 +490,60 @@ test_sext_bitvec (void)
               BTOR_TEST_BITVEC_NUM_BITS);
 }
 
+#define TEST_IS_UMULO_BITVEC(bw, v0, v1, res)          \
+  do                                                   \
+  {                                                    \
+    bv0 = btor_uint64_to_bv (g_mm, v0, bw);            \
+    bv1 = btor_uint64_to_bv (g_mm, v1, bw);            \
+    assert (btor_is_umulo_bv (g_mm, bv0, bv1) == res); \
+    btor_free_bv (g_mm, bv0);                          \
+    btor_free_bv (g_mm, bv1);                          \
+  } while (0)
+
 static void
-perf_test_bitvec (
-    char *(*const_func) (BtorMemMgr *, const char *, const char *),
-    BitVector *(*bitvec_func) (BtorMemMgr *, BitVector *, BitVector *),
-    int num_tests)
+is_umulo_bitvec (int bw)
+{
+  BtorBitVector *bv0, *bv1;
+
+  switch (bw)
+  {
+    case 1:
+      TEST_IS_UMULO_BITVEC (bw, 0, 0, false);
+      TEST_IS_UMULO_BITVEC (bw, 0, 1, false);
+      TEST_IS_UMULO_BITVEC (bw, 1, 1, false);
+      break;
+    case 7:
+      TEST_IS_UMULO_BITVEC (bw, 3, 6, false);
+      TEST_IS_UMULO_BITVEC (bw, 124, 2, true);
+      break;
+    case 31:
+      TEST_IS_UMULO_BITVEC (bw, 15, 78, false);
+      TEST_IS_UMULO_BITVEC (bw, 1073742058, 2, true);
+      break;
+    case 33:
+      TEST_IS_UMULO_BITVEC (bw, 15, 78, false);
+      TEST_IS_UMULO_BITVEC (bw, 4294967530, 4294967530, true);
+      break;
+  }
+}
+
+static void
+test_is_umulo_bitvec (void)
+{
+  is_umulo_bitvec (1);
+  is_umulo_bitvec (7);
+  is_umulo_bitvec (31);
+  is_umulo_bitvec (33);
+}
+
+static void
+perf_test_bitvec (char *(*const_func) (BtorMemMgr *,
+                                       const char *,
+                                       const char *),
+                  BtorBitVector *(*bitvec_func) (BtorMemMgr *,
+                                                 BtorBitVector *,
+                                                 BtorBitVector *),
+                  int num_tests)
 {
   assert (const_func);
   assert (bitvec_func);
@@ -500,7 +552,7 @@ perf_test_bitvec (
   int k;
   long long i, tests;
   char *c_a, *c_b, *c_res, *str;
-  BitVector *a, *b, *res;
+  BtorBitVector *a, *b, *res;
 
   printf ("\n");
   printf ("  %10s | %5s | %10s | %10s\n",
@@ -552,10 +604,13 @@ perf_test_bitvec (
 }
 
 static void
-perf_test_shift_bitvec (
-    char *(*const_func) (BtorMemMgr *, const char *, const char *),
-    BitVector *(*bitvec_func) (BtorMemMgr *, BitVector *, BitVector *),
-    int num_tests)
+perf_test_shift_bitvec (char *(*const_func) (BtorMemMgr *,
+                                             const char *,
+                                             const char *),
+                        BtorBitVector *(*bitvec_func) (BtorMemMgr *,
+                                                       BtorBitVector *,
+                                                       BtorBitVector *),
+                        int num_tests)
 {
   assert (const_func);
   assert (bitvec_func);
@@ -564,7 +619,7 @@ perf_test_shift_bitvec (
   int k;
   long long i, tests;
   char *c_a, *c_b, *c_res, *str;
-  BitVector *a, *b, *res;
+  BtorBitVector *a, *b, *res;
 
   printf ("\n");
   printf ("  %10s | %5s | %10s | %10s\n",
@@ -675,7 +730,7 @@ static void
 test_bv_to_ll_bitvec (void)
 {
   uint64_t i, x, y;
-  BitVector *a;
+  BtorBitVector *a;
 
   for (i = 0; i < 10000000; i++)
   {
@@ -709,6 +764,7 @@ run_bitvec_tests (int argc, char **argv)
   BTOR_RUN_TEST (urem_bitvec);
   BTOR_RUN_TEST (uext_bitvec);
   BTOR_RUN_TEST (sext_bitvec);
+  BTOR_RUN_TEST (is_umulo_bitvec);
 
   BTOR_RUN_TEST (perf_and_bitvec);
   BTOR_RUN_TEST (perf_eq_bitvec);

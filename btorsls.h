@@ -12,6 +12,9 @@
 #define BTORSLS_H_INCLUDED
 
 #include "utils/btormap.h"
+#ifndef NDEBUG
+#include "btorbitvec.h"
+#endif
 
 int btor_sat_aux_btor_sls (Btor *btor);
 void btor_generate_model_sls (Btor *btor, int model_for_all_nodes, int reset);
@@ -27,6 +30,7 @@ enum BtorSLSMoveKind
   BTOR_SLS_MOVE_DONE,
   BTOR_SLS_MOVE_RAND,
   BTOR_SLS_MOVE_RAND_WALK,
+  BTOR_SLS_MOVE_PROP,
 };
 typedef enum BtorSLSMoveKind BtorSLSMoveKind;
 
@@ -71,6 +75,7 @@ struct BtorSLSSolver
     int move_seg;
     int move_rand;
     int move_rand_walk;
+    int move_prop;
     int move_gw_flip;
     int move_gw_inc;
     int move_gw_dec;
@@ -91,5 +96,71 @@ BtorSLSSolver *btor_clone_sls_solver (Btor *clone,
 
 void btor_delete_sls_solver (Btor *btor, BtorSLSSolver *slv);
 void btor_print_stats_sls_solver (Btor *btor, BtorSLSSolver *slv);
+
+#ifndef NDEBUG
+BtorBitVector *inv_add_bv (Btor *btor,
+                           BtorNode *add_exp,
+                           BtorBitVector *bvadd,
+                           BtorBitVector *bve,
+                           int eidx);
+
+BtorBitVector *inv_and_bv (Btor *btor,
+                           BtorNode *and_exp,
+                           BtorBitVector *bvand,
+                           BtorBitVector *bve,
+                           int eidx);
+
+BtorBitVector *inv_eq_bv (Btor *btor,
+                          BtorNode *eq_exp,
+                          BtorBitVector *bveq,
+                          BtorBitVector *bve,
+                          int eidx);
+
+BtorBitVector *inv_ult_bv (Btor *btor,
+                           BtorNode *ult_exp,
+                           BtorBitVector *bvult,
+                           BtorBitVector *bve,
+                           int eidx);
+
+BtorBitVector *inv_sll_bv (Btor *btor,
+                           BtorNode *sll_exp,
+                           BtorBitVector *bvsll,
+                           BtorBitVector *bve,
+                           int eidx);
+
+BtorBitVector *inv_srl_bv (Btor *btor,
+                           BtorNode *srl_exp,
+                           BtorBitVector *bvsrl,
+                           BtorBitVector *bve,
+                           int eidx);
+
+BtorBitVector *inv_mul_bv (Btor *btor,
+                           BtorNode *mul_exp,
+                           BtorBitVector *bvmul,
+                           BtorBitVector *bve,
+                           int eidx);
+
+BtorBitVector *inv_udiv_bv (Btor *btor,
+                            BtorNode *div_exp,
+                            BtorBitVector *bvdiv,
+                            BtorBitVector *bve,
+                            int eidx);
+
+BtorBitVector *inv_urem_bv (Btor *btor,
+                            BtorNode *urem_exp,
+                            BtorBitVector *bvurem,
+                            BtorBitVector *bve,
+                            int eidx);
+
+BtorBitVector *inv_concat_bv (Btor *btor,
+                              BtorNode *conc_exp,
+                              BtorBitVector *bvconc,
+                              BtorBitVector *bve,
+                              int eidx);
+
+BtorBitVector *inv_slice_bv (Btor *btor,
+                             BtorNode *slice_exp,
+                             BtorBitVector *bvslice);
+#endif
 
 #endif

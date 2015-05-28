@@ -85,14 +85,17 @@ typedef struct BtorOpt
 #define BTOR_OPT_SLS_MOVE_SEGMENT "sls_move_segment"
 #define BTOR_OPT_SLS_MOVE_RAND_WALK "sls_move_rand_walk"
 #define BTOR_OPT_SLS_MOVE_RAND_WALK_PROB "sls_move_rand_walk_prob"
-#define BTOR_OPT_SLS_MOVE_RANOMIZEALL "sls_move_rand_all"
-#define BTOR_OPT_SLS_MOVE_RANOMIZERANGE "sls_move_rand_range"
+#define BTOR_OPT_SLS_MOVE_RANDOMIZEALL "sls_move_rand_all"
+#define BTOR_OPT_SLS_MOVE_RANDOMIZERANGE "sls_move_rand_range"
+#define BTOR_OPT_SLS_MOVE_PROP_PROB "sls_move_prop_prob"
+#define BTOR_OPT_SLS_MOVE_PROP "sls_move_prop"
 #define BTOR_OPT_SLS_MOVE_INC_MOVE_TEST "sls_move_inc_move_test"
 #ifndef BTOR_DO_NOT_OPTIMIZE_UNCONSTRAINED
 #define BTOR_OPT_UCOPT "ucopt"
 #endif
 #define BTOR_OPT_AUTO_CLEANUP "auto_cleanup"
 #define BTOR_OPT_PRETTY_PRINT "pretty_print"
+#define BTOR_OPT_EXIT_CODES "exit_codes"
 #define BTOR_OPT_LOGLEVEL "loglevel"
 #define BTOR_OPT_VERBOSITY "verbosity"
 #define BTOR_OPT_SEED "seed"
@@ -145,6 +148,8 @@ typedef struct BtorOpts
   BtorOpt sls_move_rand_walk_prob;
   BtorOpt sls_move_rand_all;
   BtorOpt sls_move_rand_range;
+  BtorOpt sls_move_prop;
+  BtorOpt sls_move_prop_prob;
   BtorOpt sls_move_inc_move_test;
 
   BtorOpt dual_prop;      /* dual prop optimization */
@@ -160,6 +165,8 @@ typedef struct BtorOpts
   BtorOpt auto_cleanup; /* automatic cleanup of exps, assignment
                            strings (external references only) */
   BtorOpt pretty_print; /* reindex exps and sorts when dumping */
+  BtorOpt exit_codes;   /* use Boolector exit codes rather than
+                           returning 0 on success and 1 on error */
 #ifndef NBTORLOG
   BtorOpt loglevel;
 #endif
