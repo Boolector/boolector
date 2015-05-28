@@ -268,100 +268,176 @@ static void
 sls_inv_ult_bv (int bw)
 {
   int j;
-  BtorNode *ult, *e[3], *tmpe[3], *tmpult;
-  BtorBitVector *bvult, *bve[3], *res, *tmp, *tr, *fa, *zero, *ones;
+  BtorNode *ult, *e[3], *tmpe[3];
+  BtorBitVector *bve[3], *res, *tmp;
+  BtorBitVector *tr, *fa, *zero, *bvmax, *one, *neg;
   char *bits;
 
   e[0] = btor_var_exp (g_btor, bw, 0);
   e[1] = btor_var_exp (g_btor, bw, 0);
   ult  = btor_ult_exp (g_btor, e[0], e[1]);
 
-  fa   = btor_new_bv (g_mm, 1);
-  tr   = btor_not_bv (g_mm, fa);
-  zero = btor_new_bv (g_mm, bw);
-  ones = btor_not_bv (g_mm, zero);
+  fa    = btor_new_bv (g_mm, 1);
+  tr    = btor_not_bv (g_mm, fa);
+  zero  = btor_new_bv (g_mm, bw);
+  bvmax = btor_not_bv (g_mm, zero);
+  one   = btor_one_bv (g_mm, bw);
+  neg   = btor_neg_bv (g_mm, one);
 
   for (j = 0; j < 5; j++)
   {
-    bvult = btor_new_random_bv (g_mm, g_rng, 1);
-
-    bve[0] = 0;
-    do
-    {
-      tmp    = bve[0];
-      bve[0] = btor_new_random_bv (g_mm, g_rng, bw);
-      if (tmp) btor_free_bv (g_mm, tmp);
-    } while (bw > 1 && !btor_compare_bv (ones, bve[0])
-             && btor_is_one_bv (bvult));
-
-    bve[1] = 0;
-    do
-    {
-      tmp    = bve[1];
-      bve[1] = btor_new_random_bv (g_mm, g_rng, bw);
-      if (tmp) btor_free_bv (g_mm, tmp);
-    } while (bw > 1 && btor_is_zero_bv (bve[1]) && btor_is_one_bv (bvult));
-
-    /* find assignment for e[0] */
-    if (bw > 1 || btor_is_zero_bv (bvult) || !btor_is_zero_bv (bve[1]))
-      TEST_SLS_INV_BV (ult, 0, bw, bve[1], bvult, 0);
-
-    /* find assignment for e[1] */
-    if (bw > 1 || btor_is_zero_bv (bvult) || btor_compare_bv (ones, bve[0]))
-      TEST_SLS_INV_BV (ult, 0, bw, bve[0], bvult, 1);
-
-    /* find assignment for 0 < e[1] */
-    TEST_SLS_INV_BV (ult, 0, bw, zero, tr, 1);
-
-    /* find assignment for 0 >= e[1] */
-    TEST_SLS_INV_BV (ult, 0, bw, zero, fa, 1);
-
-    /* find assignment for e[0] >= 0 */
-    TEST_SLS_INV_BV (ult, 0, bw, zero, fa, 0);
-
-    /* find assignment for e[0] < 1..1 */
-    TEST_SLS_INV_BV (ult, 0, bw, ones, tr, 0);
-
-    /* find assignment for e[0] >= 1..1 */
-    TEST_SLS_INV_BV (ult, 0, bw, ones, fa, 0);
-
-    /* find assignment for 1..1 >= e[1] */
-    TEST_SLS_INV_BV (ult, 0, bw, ones, fa, 1);
-
-    tmpe[0] = e[0];
-    tmpe[1] = e[1];
-    tmpult  = ult;
-
-    /* find assignment for e[0] < 0, non-fixable conflict */
-    bits = btor_bv_to_char_bv (g_mm, zero);
-    e[1] = btor_const_exp (g_btor, bits);
-    btor_freestr (g_mm, bits);
-    ult = btor_ult_exp (g_btor, e[0], e[1]);
-    TEST_SLS_INV_BV (ult, 1, bw, zero, tr, 0);
-    btor_release_exp (g_btor, ult);
-    btor_release_exp (g_btor, e[1]);
-    e[1] = tmpe[1];
-
-    /* find assignment for 1..1 < e[1], non-fixable conflict */
-    bits = btor_bv_to_char_bv (g_mm, ones);
-    e[0] = btor_const_exp (g_btor, bits);
-    btor_freestr (g_mm, bits);
-    ult = btor_ult_exp (g_btor, e[0], e[1]);
-    TEST_SLS_INV_BV (ult, 1, bw, ones, tr, 1);
-    btor_release_exp (g_btor, ult);
-    btor_release_exp (g_btor, e[0]);
-    e[0] = tmpe[0];
-    ult  = tmpult;
-
-    btor_free_bv (g_mm, bvult);
-    btor_free_bv (g_mm, bve[0]);
+    /* search assignment for e[0] */
+    bve[1] = btor_new_random_range_bv (g_mm, g_rng, bw, one, bvmax);
+    TEST_SLS_INV_BV (ult, 0, bw, bve[1], tr, 0);
     btor_free_bv (g_mm, bve[1]);
+    bve[1] = btor_new_random_bv (g_mm, g_rng, bw);
+    TEST_SLS_INV_BV (ult, 0, bw, bve[1], fa, 0);
+    btor_free_bv (g_mm, bve[1]);
+
+    /* search assignment for e[1] */
+    tmp    = btor_add_bv (g_mm, bvmax, neg);
+    bve[0] = btor_new_random_range_bv (g_mm, g_rng, bw, zero, tmp);
+    btor_free_bv (g_mm, tmp);
+    TEST_SLS_INV_BV (ult, 0, bw, bve[0], tr, 1);
+    btor_free_bv (g_mm, bve[0]);
+    bve[0] = btor_new_random_bv (g_mm, g_rng, bw);
+    TEST_SLS_INV_BV (ult, 0, bw, bve[0], fa, 1);
+    btor_free_bv (g_mm, bve[0]);
   }
+
+  /* corner case: e[0] >= 0 */
+  TEST_SLS_INV_BV (ult, 0, bw, zero, fa, 0);
+  /* corner case: e[0] < 1...1 */
+  TEST_SLS_INV_BV (ult, 0, bw, bvmax, tr, 0);
+  /* corner case: 0 < e[1] */
+  TEST_SLS_INV_BV (ult, 0, bw, zero, tr, 1);
+  /* corner case: 1...1 >= e[1] */
+  TEST_SLS_INV_BV (ult, 0, bw, bvmax, fa, 1);
+
+  tmpe[0] = e[0];
+  tmpe[1] = e[1];
+  btor_release_exp (g_btor, ult);
+
+  /* conflict: e[0] < 0 */
+  bits = btor_bv_to_char_bv (g_mm, zero);
+  e[1] = btor_const_exp (g_btor, bits);
+  ult  = btor_ult_exp (g_btor, e[0], e[1]);
+  TEST_SLS_INV_BV (ult, 1, bw, zero, tr, 0);
+  btor_release_exp (g_btor, ult);
+  btor_release_exp (g_btor, e[1]);
+  e[1] = tmpe[1];
+  /* conflict: 0 >= e[1] */
+  e[0] = btor_const_exp (g_btor, bits);
+  ult  = btor_ult_exp (g_btor, e[0], e[1]);
+  TEST_SLS_INV_BV (ult, 1, bw, zero, fa, 1);
+  btor_release_exp (g_btor, ult);
+  btor_release_exp (g_btor, e[0]);
+  btor_freestr (g_mm, bits);
+  e[0] = tmpe[0];
+  /* conflict: e[0] >= 1...1 */
+  bits = btor_bv_to_char_bv (g_mm, bvmax);
+  e[1] = btor_const_exp (g_btor, bits);
+  ult  = btor_ult_exp (g_btor, e[0], e[1]);
+  TEST_SLS_INV_BV (ult, 1, bw, bvmax, fa, 0);
+  btor_release_exp (g_btor, ult);
+  btor_release_exp (g_btor, e[1]);
+  e[1] = tmpe[1];
+  /* conflict: 1...1 < e[1] */
+  e[0] = btor_const_exp (g_btor, bits);
+  ult  = btor_ult_exp (g_btor, e[0], e[1]);
+  TEST_SLS_INV_BV (ult, 1, bw, bvmax, tr, 1);
+  btor_release_exp (g_btor, ult);
+  btor_release_exp (g_btor, e[0]);
+  btor_freestr (g_mm, bits);
+#if 0
+  for (j = 0; j < 5; j++)
+    {
+      bvult = btor_new_random_bv (g_mm, g_rng, 1);  
+
+      bve[0] = 0;
+      do
+	{
+	  tmp = bve[0];
+	  bve[0] = btor_new_random_bv (g_mm, g_rng, bw);
+	  if (tmp) btor_free_bv (g_mm, tmp);
+	}
+      while (bw > 1
+	     && !btor_compare_bv (ones, bve[0])
+	     && btor_is_one_bv (bvult));
+
+      bve[1] = 0;
+      do
+	{
+	  tmp = bve[1];
+	  bve[1] = btor_new_random_bv (g_mm, g_rng, bw);
+	  if (tmp) btor_free_bv (g_mm, tmp);
+	}
+      while (bw > 1
+	     && btor_is_zero_bv (bve[1]) &&
+	     btor_is_one_bv (bvult));
+
+      /* find assignment for e[0] */
+      if (bw > 1 || btor_is_zero_bv (bvult) || !btor_is_zero_bv (bve[1]))
+	TEST_SLS_INV_BV (ult, 0, bw, bve[1], bvult, 0);
+
+      /* find assignment for e[1] */
+      if (bw > 1 || btor_is_zero_bv (bvult) || btor_compare_bv (ones, bve[0]))
+	TEST_SLS_INV_BV (ult, 0, bw, bve[0], bvult, 1);
+
+      /* find assignment for 0 < e[1] */
+      TEST_SLS_INV_BV (ult, 0, bw, zero, tr, 1);
+
+      /* find assignment for 0 >= e[1] */
+      TEST_SLS_INV_BV (ult, 0, bw, zero, fa, 1);
+
+      /* find assignment for e[0] >= 0 */
+      TEST_SLS_INV_BV (ult, 0, bw, zero, fa, 0);
+
+      /* find assignment for e[0] < 1..1 */
+      TEST_SLS_INV_BV (ult, 0, bw, ones, tr, 0);
+
+      /* find assignment for e[0] >= 1..1 */
+      TEST_SLS_INV_BV (ult, 0, bw, ones, fa, 0);
+
+      /* find assignment for 1..1 >= e[1] */
+      TEST_SLS_INV_BV (ult, 0, bw, ones, fa, 1);
+
+      tmpe[0] = e[0];
+      tmpe[1] = e[1];
+      tmpult = ult;
+
+      /* find assignment for e[0] < 0, non-fixable conflict */
+      bits = btor_bv_to_char_bv (g_mm, zero);
+      e[1] = btor_const_exp (g_btor, bits);
+      btor_freestr (g_mm, bits);
+      ult = btor_ult_exp (g_btor, e[0], e[1]);
+      TEST_SLS_INV_BV (ult, 1, bw, zero, tr, 0);
+      btor_release_exp (g_btor, ult);
+      btor_release_exp (g_btor, e[1]);
+      e[1] = tmpe[1];
+
+      /* find assignment for 1..1 < e[1], non-fixable conflict */
+      bits = btor_bv_to_char_bv (g_mm, ones);
+      e[0] = btor_const_exp (g_btor, bits);
+      btor_freestr (g_mm, bits);
+      ult = btor_ult_exp (g_btor, e[0], e[1]);
+      TEST_SLS_INV_BV (ult, 1, bw, ones, tr, 1);
+      btor_release_exp (g_btor, ult);
+      btor_release_exp (g_btor, e[0]);
+      e[0] = tmpe[0];
+      ult = tmpult;
+
+      btor_free_bv (g_mm, bvult);
+      btor_free_bv (g_mm, bve[0]);
+      btor_free_bv (g_mm, bve[1]);
+    }
+#endif
   btor_free_bv (g_mm, tr);
   btor_free_bv (g_mm, fa);
   btor_free_bv (g_mm, zero);
-  btor_free_bv (g_mm, ones);
-  btor_release_exp (g_btor, tmpult);
+  btor_free_bv (g_mm, bvmax);
+  btor_free_bv (g_mm, one);
+  btor_free_bv (g_mm, neg);
   btor_release_exp (g_btor, tmpe[0]);
   btor_release_exp (g_btor, tmpe[1]);
 }
