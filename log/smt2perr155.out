@@ -1,1 +1,1 @@
-boolector: log/smt2perr155.smt2:1:2: unsupported command 'push'
+boolector: log/smt2perr155.smt2:2:1: expected decimal constant but reached end-of-file
