@@ -1000,7 +1000,9 @@ btor_generate_lambda_model_from_fun_model (Btor *btor,
   BtorTupleSortIterator iit;
   BtorSortId sort;
   BtorSortUniqueTable *sorts;
+  BtorPtrHashTable *static_rho;
 
+  static_rho = btor_new_ptr_hash_table (btor->mm, 0, 0);
   BTOR_INIT_STACK (params);
   BTOR_INIT_STACK (consts);
 
@@ -1058,12 +1060,20 @@ btor_generate_lambda_model_from_fun_model (Btor *btor,
       cond = tmp;
     }
 
+    /* args for static_rho */
+    args = btor_args_exp (btor, BTOR_COUNT_STACK (consts), consts.start);
+
     while (!BTOR_EMPTY_STACK (consts))
       btor_release_exp (btor, BTOR_POP_STACK (consts));
 
     /* create ITE */
     e_if = const_from_bv (btor, value);
     ite  = btor_cond_exp (btor, cond, e_if, e_else);
+
+    /* add to static rho */
+    btor_insert_in_ptr_hash_table (static_rho, args)->data.asPtr =
+        btor_copy_exp (btor, e_if);
+
     btor_release_exp (btor, cond);
     btor_release_exp (btor, e_if);
     btor_release_exp (btor, e_else);
@@ -1082,6 +1092,19 @@ btor_generate_lambda_model_from_fun_model (Btor *btor,
   BTOR_RELEASE_STACK (btor->mm, params);
   BTOR_RELEASE_STACK (btor->mm, consts);
 
+  /* res already exists */
+  if (((BtorLambdaNode *) res)->static_rho)
+  {
+    init_node_hash_table_iterator (&it, static_rho);
+    while (has_next_node_hash_table_iterator (&it))
+    {
+      btor_release_exp (btor, it.bucket->data.asPtr);
+      btor_release_exp (btor, next_node_hash_table_iterator (&it));
+    }
+    btor_delete_ptr_hash_table (static_rho);
+  }
+  else
+    ((BtorLambdaNode *) res)->static_rho = static_rho;
   assert (res->sort_id == exp->sort_id);
   return res;
 }
