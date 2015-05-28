@@ -2171,7 +2171,7 @@ apply_concat_eq (Btor *btor, BtorNode *e0, BtorNode *e1)
   assert (applies_concat_eq (btor, e0, e1));
 
   int upper, lower;
-  BtorNode *real_e0, *tmp1, *tmp2, *tmp3, *tmp4, *result;
+  BtorNode *real_e0, *tmp1, *tmp2, *tmp3, *tmp4, *result, *eq1, *eq2;
 
   real_e0 = BTOR_REAL_ADDR_NODE (e0);
 
@@ -2180,16 +2180,25 @@ apply_concat_eq (Btor *btor, BtorNode *e0, BtorNode *e1)
   lower = upper - btor_get_exp_width (btor, real_e0->e[0]) + 1;
 
   tmp1 = rewrite_slice_exp (btor, e0, upper, lower);
-  tmp3 = rewrite_slice_exp (btor, e1, upper, lower);
-  tmp2 = rewrite_eq_exp (btor, tmp1, tmp3);
-  btor_release_exp (btor, tmp1);
-  btor_release_exp (btor, tmp3);
+  tmp2 = rewrite_slice_exp (btor, e1, upper, lower);
   lower--;
-  tmp1 = rewrite_slice_exp (btor, e0, lower, 0);
-  tmp3 = rewrite_slice_exp (btor, e1, lower, 0);
-  tmp4 = rewrite_eq_exp (btor, tmp1, tmp3);
+  tmp3 = rewrite_slice_exp (btor, e0, lower, 0);
+  tmp4 = rewrite_slice_exp (btor, e1, lower, 0);
 
-  result = rewrite_and_exp (btor, tmp2, tmp4);
+  /* creating two slices on e1 does not really improve the situation here,
+   * hence only create a result if a slice on e1 yields a result different
+   * from a slice (through further rewriting) */
+  if (!(BTOR_IS_SLICE_NODE (BTOR_REAL_ADDR_NODE (tmp2))
+        && BTOR_IS_SLICE_NODE (BTOR_REAL_ADDR_NODE (tmp4))))
+  {
+    eq1    = rewrite_eq_exp (btor, tmp1, tmp2);
+    eq2    = rewrite_eq_exp (btor, tmp3, tmp4);
+    result = rewrite_and_exp (btor, eq1, eq2);
+    btor_release_exp (btor, eq1);
+    btor_release_exp (btor, eq2);
+  }
+  else
+    result = 0;
 
   btor_release_exp (btor, tmp1);
   btor_release_exp (btor, tmp2);
@@ -5663,8 +5672,7 @@ SWAP_OPERANDS:
   ADD_RW_RULE (bcond_if_eq, e0, e1);
   ADD_RW_RULE (bcond_else_eq, e0, e1);
   ADD_RW_RULE (distrib_add_mul_eq, e0, e1);
-  // FIXME: concat_eq makes troubles on QF_ABV ecc benchmarks
-  //  ADD_RW_RULE (concat_eq, e0, e1);
+  ADD_RW_RULE (concat_eq, e0, e1);
   //  ADD_RW_RULE (zero_eq_and_eq, e0, e1);
 
   assert (!result);
