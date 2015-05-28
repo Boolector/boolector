@@ -190,7 +190,7 @@ btor_init_opts (Btor *btor)
             0,
             0,
             1,
-            "do a random walk with certain probability");
+            "do a random walk (with given probability)");
   BTOR_OPT (0,
             sls_move_rand_walk_prob,
             10,
@@ -211,6 +211,19 @@ btor_init_opts (Btor *btor)
             1,
             "randomize a range of bits of a randomly chosen candidate variable "
             "if neighbor with better score is found");
+  BTOR_OPT (0,
+            sls_move_prop,
+            0,
+            0,
+            1,
+            "do a propagation move (with given probability)");
+  BTOR_OPT (
+      0,
+      sls_move_prop_prob,
+      1,
+      0,
+      UINT_MAX,
+      "probability for choosing propagation moves (interpreted as 1:<n>)");
   BTOR_OPT (0,
             sls_move_inc_move_test,
             0,

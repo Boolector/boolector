@@ -30,6 +30,7 @@ enum BtorSLSMoveKind
   BTOR_SLS_MOVE_DONE,
   BTOR_SLS_MOVE_RAND,
   BTOR_SLS_MOVE_RAND_WALK,
+  BTOR_SLS_MOVE_PROP,
 };
 typedef enum BtorSLSMoveKind BtorSLSMoveKind;
 
@@ -74,6 +75,7 @@ struct BtorSLSSolver
     int move_seg;
     int move_rand;
     int move_rand_walk;
+    int move_prop;
     int move_gw_flip;
     int move_gw_inc;
     int move_gw_dec;
