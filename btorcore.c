@@ -7292,9 +7292,39 @@ check_model (Btor *btor, Btor *clone, BtorPtrHashTable *inputs)
   /* rebuild formula with new rewriting level */
   rebuild_formula (clone, 3);
 
+  /* add bit vector variable models */
+  init_node_hash_table_iterator (&it, inputs);
+  while (has_next_node_hash_table_iterator (&it))
+  {
+    exp = (BtorNode *) it.bucket->data.asPtr;
+    assert (exp);
+    assert (BTOR_IS_REGULAR_NODE (exp));
+    assert (exp->btor == btor);
+    cur = next_node_hash_table_iterator (&it);
+    assert (BTOR_IS_REGULAR_NODE (cur));
+    assert (cur->btor == clone);
+    simp      = btor_simplify_exp (clone, cur);
+    real_simp = BTOR_REAL_ADDR_NODE (simp);
+
+    if (BTOR_IS_FUN_NODE (real_simp)) continue;
+
+    /* we need to invert the assignment if simplified is inverted */
+    a     = (char *) btor_get_bv_model_str (btor,
+                                        BTOR_COND_INVERT_NODE (simp, exp));
+    model = btor_const_exp (clone, a);
+    btor_release_bv_assignment_str (btor, a);
+    eq = btor_eq_exp (clone, real_simp, model);
+    btor_assert_exp (clone, eq);
+    btor_release_exp (clone, eq);
+    btor_release_exp (clone, model);
+  }
+
+  /* apply variable substitution until fixpoint */
+  while (clone->varsubst_constraints->count > 0) substitute_var_exps (clone);
+
+  /* add function models */
   assert (!clone->substitutions);
   btor_init_substitutions (clone);
-
   init_node_hash_table_iterator (&it, inputs);
   while (has_next_node_hash_table_iterator (&it))
   {
@@ -7310,35 +7340,22 @@ check_model (Btor *btor, Btor *clone, BtorPtrHashTable *inputs)
 
     if (btor_find_in_ptr_hash_table (clone->substitutions, real_simp)) continue;
 
-    if (BTOR_IS_FUN_NODE (real_simp))
-    {
-      fmodel = btor_get_fun_model (btor, exp);
+    if (!BTOR_IS_FUN_NODE (real_simp)) continue;
 
-      if (!fmodel) continue;
+    fmodel = btor_get_fun_model (btor, exp);
 
-      model =
-          btor_generate_lambda_model_from_fun_model (clone, real_simp, fmodel);
-      assert (!btor_find_in_ptr_hash_table (clone->substitutions, real_simp));
-      // TODO (ma): as soon as we support extensionality we add an
-      //            equality of two functions
-      //            right now we substitute the original function with the
-      //            model, which still detects invalid models
-      btor_insert_substitution (clone, real_simp, model, 0);
-    }
-    else
-    {
-      /* we need to invert the assignment if simplified is inverted */
-      a     = (char *) btor_get_bv_model_str (btor,
-                                          BTOR_COND_INVERT_NODE (simp, exp));
-      model = btor_const_exp (clone, a);
-      btor_release_bv_assignment_str (btor, a);
-      eq = btor_eq_exp (clone, real_simp, model);
-      btor_assert_exp (clone, eq);
-      btor_release_exp (clone, eq);
-    }
+    if (!fmodel) continue;
+
+    model =
+        btor_generate_lambda_model_from_fun_model (clone, real_simp, fmodel);
+    assert (!btor_find_in_ptr_hash_table (clone->substitutions, real_simp));
+    // TODO (ma): as soon as we support extensionality we add an
+    //            equality of two functions
+    //            right now we substitute the original function with the
+    //            model, which still detects invalid models
+    btor_insert_substitution (clone, real_simp, model, 0);
     btor_release_exp (clone, model);
   }
-
   substitute_and_rebuild (clone, clone->substitutions, 0);
   btor_delete_substitutions (clone);
 
