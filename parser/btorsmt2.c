@@ -1248,14 +1248,12 @@ RESTART:
   }
   else if (ch == '|')
   {
-    btor_pushch_smt2 (parser, '|');
     for (;;)
     {
       if ((ch = btor_nextch_smt2 (parser)) == EOF)
         return !btor_cerr_smt2 (parser, "unexpected", ch, "in quoted symbol");
       if (ch == '|')
       {
-        btor_pushch_smt2 (parser, '|');
         btor_pushch_smt2 (parser, 0);
         if (!(node = btor_find_symbol_smt2 (parser, parser->token.start)))
         {
