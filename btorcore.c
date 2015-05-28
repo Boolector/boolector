@@ -124,6 +124,7 @@
 static int sat_aux_btor (Btor *, int, int);
 static int sat_aux_btor_dual_prop (Btor *);
 static BtorAIG *exp_to_aig (Btor *, BtorNode *);
+static void synthesize_exp (Btor *, BtorNode *, BtorPtrHashTable *);
 
 #ifdef BTOR_CHECK_MODEL
 static void check_model (Btor *, Btor *, BtorPtrHashTable *);
@@ -1224,6 +1225,9 @@ process_unsynthesized_constraints (Btor *btor)
   uc   = btor->unsynthesized_constraints;
   sc   = btor->synthesized_constraints;
   amgr = btor_get_aig_mgr_btor (btor);
+
+  /* synthesize true exp */
+  synthesize_exp (btor, btor->true_exp, 0);
 
   while (uc->count > 0)
   {
@@ -6316,6 +6320,9 @@ add_function_inequality_constraints (Btor *btor)
   BtorNodeIterator it;
   BtorNodePtrStack feqs;
   BtorHashTableIterator hit;
+
+  // TODO (ma): optimization: add inequality only once for each function eq
+  //		for now every sat call a new ineq is added
 
   /* we have to add inequality constraints for every function equality
    * in the formula (var_rhs and fun_rhs are still part of the formula). */
