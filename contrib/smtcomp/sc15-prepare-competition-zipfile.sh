@@ -1,6 +1,6 @@
 #!/bin/sh
 make clean
-./configure -static #-flto -static
+./configure -static --only-lingeling #-flto -static
 make boolector
 b=`./boolector -v /dev/null|grep -i version|grep -i boolector|awk '{print $(NF-1);exit}'`
 l=`./boolector -v /dev/null|grep -i version|grep -i lingeling|awk '{print $(NF-1);exit}'`
