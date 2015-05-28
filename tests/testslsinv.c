@@ -10,8 +10,8 @@
 
 #include "btorbitvec.h"
 #include "btorconst.h"
+#include "btorcore.h"
 #include "btorexp.h"
-#include "btormodel.h"
 #include "btorsls.h"
 #include "testrunner.h"
 #include "utils/btorutil.h"
@@ -19,58 +19,46 @@
 static Btor *g_btor;
 static BtorMemMgr *g_mm;
 static BtorRNG *g_rng;
-static BtorPtrHashTable **g_bv_model;
 
-#define TEST_SLS_INV_BV(fun, iscon, bw, bve, bvn, eidx)      \
-  do                                                         \
-  {                                                          \
-    idx = eidx ? 0 : 1;                                      \
-    btor_init_bv_model (g_btor, g_bv_model);                 \
-    btor_add_to_bv_model (g_btor, *g_bv_model, e[idx], bve); \
-    assert ((*g_bv_model)->count == 1);                      \
-    res = inv_##fun##_bv (g_btor, fun, bvn, eidx);           \
-    assert ((*g_bv_model)->count == 1);                      \
-    if (iscon)                                               \
-      assert (!res);                                         \
-    else                                                     \
-    {                                                        \
-      if (eidx)                                              \
-        tmp = btor_##fun##_bv (g_mm, bve, res);              \
-      else                                                   \
-        tmp = btor_##fun##_bv (g_mm, res, bve);              \
-      assert (!btor_compare_bv (tmp, bvn));                  \
-      btor_free_bv (g_mm, tmp);                              \
-      btor_free_bv (g_mm, res);                              \
-    }                                                        \
-    btor_delete_bv_model (g_btor, g_bv_model);               \
+#define TEST_SLS_INV_BV(fun, iscon, bw, bve, bvn, eidx) \
+  do                                                    \
+  {                                                     \
+    res = inv_##fun##_bv (g_btor, fun, bvn, bve, eidx); \
+    if (iscon)                                          \
+      assert (!res);                                    \
+    else                                                \
+    {                                                   \
+      if (eidx)                                         \
+        tmp = btor_##fun##_bv (g_mm, bve, res);         \
+      else                                              \
+        tmp = btor_##fun##_bv (g_mm, res, bve);         \
+      assert (!btor_compare_bv (tmp, bvn));             \
+      btor_free_bv (g_mm, tmp);                         \
+      btor_free_bv (g_mm, res);                         \
+    }                                                   \
   } while (0)
 
-#define TEST_SLS_INV_VAL(fun, iscon, bw, ve, vn, eidx)            \
-  do                                                              \
-  {                                                               \
-    idx      = eidx ? 0 : 1;                                      \
-    bve[idx] = btor_uint64_to_bv (g_mm, ve, bw);                  \
-    bv##fun  = btor_uint64_to_bv (g_mm, vn, bw);                  \
-    btor_init_bv_model (g_btor, g_bv_model);                      \
-    btor_add_to_bv_model (g_btor, *g_bv_model, e[idx], bve[idx]); \
-    assert ((*g_bv_model)->count == 1);                           \
-    res = inv_##fun##_bv (g_btor, fun, bv##fun, eidx);            \
-    assert ((*g_bv_model)->count == 1);                           \
-    if (iscon)                                                    \
-      assert (!res);                                              \
-    else                                                          \
-    {                                                             \
-      if (eidx)                                                   \
-        tmp = btor_##fun##_bv (g_mm, bve[idx], res);              \
-      else                                                        \
-        tmp = btor_##fun##_bv (g_mm, res, bve[idx]);              \
-      assert (!btor_compare_bv (tmp, bv##fun));                   \
-      btor_free_bv (g_mm, tmp);                                   \
-      btor_free_bv (g_mm, res);                                   \
-    }                                                             \
-    btor_delete_bv_model (g_btor, g_bv_model);                    \
-    btor_free_bv (g_btor->mm, bve[idx]);                          \
-    btor_free_bv (g_btor->mm, bv##fun);                           \
+#define TEST_SLS_INV_VAL(fun, iscon, bw, ve, vn, eidx)                \
+  do                                                                  \
+  {                                                                   \
+    idx      = eidx ? 0 : 1;                                          \
+    bve[idx] = btor_uint64_to_bv (g_mm, ve, bw);                      \
+    bv##fun  = btor_uint64_to_bv (g_mm, vn, bw);                      \
+    res      = inv_##fun##_bv (g_btor, fun, bv##fun, bve[idx], eidx); \
+    if (iscon)                                                        \
+      assert (!res);                                                  \
+    else                                                              \
+    {                                                                 \
+      if (eidx)                                                       \
+        tmp = btor_##fun##_bv (g_mm, bve[idx], res);                  \
+      else                                                            \
+        tmp = btor_##fun##_bv (g_mm, res, bve[idx]);                  \
+      assert (!btor_compare_bv (tmp, bv##fun));                       \
+      btor_free_bv (g_mm, tmp);                                       \
+      btor_free_bv (g_mm, res);                                       \
+    }                                                                 \
+    btor_free_bv (g_btor->mm, bve[idx]);                              \
+    btor_free_bv (g_btor->mm, bv##fun);                               \
   } while (0)
 
 #define TEST_SLS_INIT_INV_VAL_CON(fun, bw, ve, eidx)               \
@@ -100,16 +88,14 @@ init_slsinv_tests (void)
 {
   g_btor                            = btor_new_btor ();
   g_btor->options.rewrite_level.val = 0;
-  btor_init_fun_model (g_btor, &g_btor->fun_model);
-  g_mm       = g_btor->mm;
-  g_rng      = &g_btor->rng;
-  g_bv_model = &g_btor->bv_model;
+  g_mm                              = g_btor->mm;
+  g_rng                             = &g_btor->rng;
 }
 
 static void
 sls_inv_add_bv (int bw)
 {
-  int j, idx;
+  int j;
   BtorNode *add, *e[3];
   BtorBitVector *bvadd, *bve[3], *res, *tmp;
 
@@ -142,7 +128,7 @@ sls_inv_add_bv (int bw)
 static void
 sls_inv_and_bv (int bw)
 {
-  int i, j, idx;
+  int i, j;
   BtorNode *and, *e[3], *tmpe[3], *tmpand;
   BtorBitVector *bvand, *bve[3], *res, *one, *bvmax, *tmp;
   char *bits;
@@ -195,25 +181,17 @@ sls_inv_and_bv (int bw)
         break;
       }
     /* fixable conflict, assignment for e[0] */
-    btor_init_bv_model (g_btor, g_bv_model);
-    btor_add_to_bv_model (g_btor, *g_bv_model, e[1], bve[1]);
-    assert ((*g_bv_model)->count == 1);
-    res = inv_and_bv (g_btor, and, bvand, 0);
-    assert ((*g_bv_model)->count == 1);
+    res = inv_and_bv (g_btor, and, bvand, bve[1], 0);
     assert (res);
     for (i = 0; i < bvand->width; i++)
       if (btor_get_bit_bv (bvand, i)) assert (btor_get_bit_bv (res, i));
     btor_free_bv (g_mm, res);
-    btor_delete_bv_model (g_btor, g_bv_model);
     /* fixable conflict, assignment for e[1] */
-    btor_init_bv_model (g_btor, g_bv_model);
-    btor_add_to_bv_model (g_btor, *g_bv_model, e[0], bve[0]);
-    res = inv_and_bv (g_btor, and, bvand, 1);
+    res = inv_and_bv (g_btor, and, bvand, bve[0], 1);
     assert (res);
     for (i = 0; i < bvand->width; i++)
       if (btor_get_bit_bv (bvand, i)) assert (btor_get_bit_bv (res, i));
     btor_free_bv (g_mm, res);
-    btor_delete_bv_model (g_btor, g_bv_model);
 
     /* non-fixable conflicts */
     tmpe[0] = e[0];
@@ -265,28 +243,18 @@ sls_inv_eq_bv (int bw)
   bve[1] = btor_new_random_bv (g_mm, g_rng, bw);
 
   /* find assignment for e[0],  */
-  btor_init_bv_model (g_btor, g_bv_model);
-  btor_add_to_bv_model (g_btor, *g_bv_model, e[1], bve[1]);
-  assert ((*g_bv_model)->count == 1);
-  res = inv_eq_bv (g_btor, eq, bveq, 0);
-  assert ((*g_bv_model)->count == 1);
+  res = inv_eq_bv (g_btor, eq, bveq, bve[1], 0);
   assert (res);
   assert ((btor_is_zero_bv (bveq) && btor_compare_bv (res, bve[1]))
           || (!btor_is_zero_bv (bveq) && !btor_compare_bv (res, bve[1])));
   btor_free_bv (g_mm, res);
-  btor_delete_bv_model (g_btor, g_bv_model);
 
   /* find assignment for e[1] */
-  btor_init_bv_model (g_btor, g_bv_model);
-  btor_add_to_bv_model (g_btor, *g_bv_model, e[0], bve[0]);
-  assert ((*g_bv_model)->count == 1);
-  res = inv_eq_bv (g_btor, eq, bveq, 1);
-  assert ((*g_bv_model)->count == 1);
+  res = inv_eq_bv (g_btor, eq, bveq, bve[0], 1);
   assert (res);
   assert ((btor_is_zero_bv (bveq) && btor_compare_bv (res, bve[0]))
           || (!btor_is_zero_bv (bveq) && !btor_compare_bv (res, bve[0])));
   btor_free_bv (g_mm, res);
-  btor_delete_bv_model (g_btor, g_bv_model);
 
   btor_free_bv (g_mm, bveq);
   btor_free_bv (g_mm, bve[0]);
@@ -299,7 +267,7 @@ sls_inv_eq_bv (int bw)
 static void
 sls_inv_ult_bv (int bw)
 {
-  int j, idx;
+  int j;
   BtorNode *ult, *e[3], *tmpe[3], *tmpult;
   BtorBitVector *bvult, *bve[3], *res, *tmp, *tr, *fa, *zero, *ones;
   char *bits;
@@ -401,7 +369,7 @@ sls_inv_ult_bv (int bw)
 static void
 sls_inv_sll_bv (int bw)
 {
-  int i, j, r, sbw, idx;
+  int i, j, r, sbw;
   BtorNode *sll, *e[3], *tmpe[3];
   BtorBitVector *bvsll, *bve[3], *res, *zero, *one, *bvmaxshift, *tmp;
   char *bits;
@@ -566,7 +534,7 @@ sls_inv_sll_bv (int bw)
 static void
 sls_inv_srl_bv (int bw)
 {
-  int i, j, r, sbw, idx;
+  int i, j, r, sbw;
   BtorNode *srl, *e[3], *tmpe[3];
   BtorBitVector *bvsrl, *bve[3], *res, *zero, *one, *bvmaxshift, *tmp;
   char *bits;
@@ -977,7 +945,7 @@ sls_inv_udiv_bv (int bw)
 static void
 sls_inv_urem_bv (int bw)
 {
-  int j, idx;
+  int j;
   BtorNode *urem, *e[3], *tmpe, *tmpurem;
   BtorBitVector *bvurem, *bve[3], *res, *tmp, *tmp2, *bvmax, *one, *neg, *zero;
   char *bits;
@@ -1143,7 +1111,7 @@ sls_inv_urem_bv (int bw)
 static void
 sls_inv_concat_bv (int bw)
 {
-  int i, j, idx, ebw, iscon;
+  int i, j, ebw, iscon;
   BtorNode *concat, *e[3], *tmpe, *tmpconcat;
   BtorBitVector *bvconcat, *bve[3], *res, *tmp;
   char *bits;
@@ -1251,14 +1219,11 @@ sls_inv_slice_bv (int bw)
     lo      = btor_pick_rand_rng (g_rng, 0, up);
     slice   = btor_slice_exp (g_btor, e[0], up, lo);
     bvslice = btor_new_random_bv (g_mm, g_rng, up - lo + 1);
-    btor_init_bv_model (g_btor, g_bv_model);
-    res = inv_slice_bv (g_btor, slice, bvslice);
-    assert ((*g_bv_model)->count == 0);
-    tmp = btor_slice_bv (g_mm, res, up, lo);
+    res     = inv_slice_bv (g_btor, slice, bvslice);
+    tmp     = btor_slice_bv (g_mm, res, up, lo);
     assert (!btor_compare_bv (tmp, bvslice));
     btor_free_bv (g_mm, tmp);
     btor_free_bv (g_mm, res);
-    btor_delete_bv_model (g_btor, g_bv_model);
     btor_free_bv (g_mm, bvslice);
     btor_release_exp (g_btor, e[0]);
     btor_release_exp (g_btor, slice);

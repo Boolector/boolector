@@ -1564,29 +1564,28 @@ static inline BtorBitVector *
 #else
 BtorBitVector *
 #endif
-inv_add_bv (Btor *btor, BtorNode *add, BtorBitVector *bvadd, int eidx)
+inv_add_bv (Btor *btor,
+            BtorNode *add,
+            BtorBitVector *bvadd,
+            BtorBitVector *bve,
+            int eidx)
 {
   assert (btor);
   assert (add);
   assert (BTOR_IS_REGULAR_NODE (add));
   assert (bvadd);
+  assert (bve);
+  assert (bve->width == bvadd->width);
   assert (eidx >= 0 && eidx <= 1);
   assert (!BTOR_IS_BV_CONST_NODE (BTOR_REAL_ADDR_NODE (add->e[eidx])));
 
-  BtorNode *e;
-  BtorBitVector *bve, *neg, *res;
+  BtorBitVector *neg, *res;
   BtorMemMgr *mm;
 #ifndef NDEBUG
   BtorBitVector *tmpdbg;
 #endif
 
   mm = btor->mm;
-  e  = add->e[eidx ? 0 : 1];
-  assert (e);
-
-  bve = (BtorBitVector *) btor_get_bv_model (btor, e);
-  assert (bve);
-  assert (bve->width == bvadd->width);
 
   /* res + bve = bve + res = bvadd -> res = bvadd - bve */
   neg = btor_neg_bv (mm, bve);
@@ -1608,18 +1607,24 @@ static inline BtorBitVector *
 #else
 BtorBitVector *
 #endif
-inv_and_bv (Btor *btor, BtorNode *and, BtorBitVector *bvand, int eidx)
+inv_and_bv (Btor *btor,
+            BtorNode *and,
+            BtorBitVector *bvand,
+            BtorBitVector *bve,
+            int eidx)
 {
   assert (btor);
   assert (and);
   assert (BTOR_IS_REGULAR_NODE (and));
   assert (bvand);
+  assert (bve);
+  assert (bve->width == bvand->width);
   assert (eidx >= 0 && eidx <= 1);
   assert (!BTOR_IS_BV_CONST_NODE (BTOR_REAL_ADDR_NODE (and->e[eidx])));
 
   int i, bitand, bite;
   BtorNode *e;
-  BtorBitVector *bve, *res;
+  BtorBitVector *res;
   BtorMemMgr *mm;
 #ifndef NDEBUG
   BtorBitVector *tmpdbg;
@@ -1629,10 +1634,6 @@ inv_and_bv (Btor *btor, BtorNode *and, BtorBitVector *bvand, int eidx)
   mm = btor->mm;
   e  = and->e[eidx ? 0 : 1];
   assert (e);
-
-  bve = (BtorBitVector *) btor_get_bv_model (btor, e);
-  assert (bve);
-  assert (bve->width == bvand->width);
 
   res = btor_new_bv (mm, bvand->width);
 
@@ -1689,18 +1690,20 @@ static inline BtorBitVector *
 #else
 BtorBitVector *
 #endif
-inv_eq_bv (Btor *btor, BtorNode *eq, BtorBitVector *bveq, int eidx)
+inv_eq_bv (
+    Btor *btor, BtorNode *eq, BtorBitVector *bveq, BtorBitVector *bve, int eidx)
 {
   assert (btor);
   assert (eq);
   assert (BTOR_IS_REGULAR_NODE (eq));
   assert (bveq);
   assert (bveq->width = 1);
+  assert (bve);
   assert (eidx >= 0 && eidx <= 1);
   assert (!BTOR_IS_BV_CONST_NODE (BTOR_REAL_ADDR_NODE (eq->e[eidx])));
 
   BtorNode *e;
-  BtorBitVector *bve, *res = 0;
+  BtorBitVector *res = 0;
   BtorMemMgr *mm;
 #ifndef NDEBUG
   BtorBitVector *tmpdbg;
@@ -1709,9 +1712,6 @@ inv_eq_bv (Btor *btor, BtorNode *eq, BtorBitVector *bveq, int eidx)
   mm = btor->mm;
   e  = eq->e[eidx ? 0 : 1];
   assert (e);
-
-  bve = (BtorBitVector *) btor_get_bv_model (btor, e);
-  assert (bve);
 
   /* res != bveq -> choose random res != bveq */
   if (btor_is_zero_bv (bveq))
@@ -1742,19 +1742,24 @@ static inline BtorBitVector *
 #else
 BtorBitVector *
 #endif
-inv_ult_bv (Btor *btor, BtorNode *ult, BtorBitVector *bvult, int eidx)
+inv_ult_bv (Btor *btor,
+            BtorNode *ult,
+            BtorBitVector *bvult,
+            BtorBitVector *bve,
+            int eidx)
 {
   assert (btor);
   assert (ult);
   assert (BTOR_IS_REGULAR_NODE (ult));
   assert (bvult);
   assert (bvult->width = 1);
+  assert (bve);
   assert (eidx >= 0 && eidx <= 1);
   assert (!BTOR_IS_BV_CONST_NODE (BTOR_REAL_ADDR_NODE (ult->e[eidx])));
 
   int iszero;
   BtorNode *e;
-  BtorBitVector *bve, *res = 0, *zero, *one, *ones, *tmp, *tmp2;
+  BtorBitVector *res = 0, *zero, *one, *ones, *tmp, *tmp2;
   BtorMemMgr *mm;
 #ifndef NDEBUG
   BtorBitVector *tmpdbg;
@@ -1764,9 +1769,6 @@ inv_ult_bv (Btor *btor, BtorNode *ult, BtorBitVector *bvult, int eidx)
   mm = btor->mm;
   e  = ult->e[eidx ? 0 : 1];
   assert (e);
-
-  bve = (BtorBitVector *) btor_get_bv_model (btor, e);
-  assert (bve);
 
   zero   = btor_new_bv (mm, bve->width);
   one    = btor_one_bv (mm, bve->width);
@@ -1853,18 +1855,25 @@ static inline BtorBitVector *
 #else
 BtorBitVector *
 #endif
-inv_sll_bv (Btor *btor, BtorNode *sll, BtorBitVector *bvsll, int eidx)
+inv_sll_bv (Btor *btor,
+            BtorNode *sll,
+            BtorBitVector *bvsll,
+            BtorBitVector *bve,
+            int eidx)
 {
   assert (btor);
   assert (sll);
   assert (BTOR_IS_REGULAR_NODE (sll));
   assert (bvsll);
+  assert (bve);
   assert (eidx >= 0 && eidx <= 1);
+  assert (!eidx || bve->width == bvsll->width);
+  assert (eidx || btor_log_2_util (bvsll->width) == bve->width);
   assert (!BTOR_IS_BV_CONST_NODE (BTOR_REAL_ADDR_NODE (sll->e[eidx])));
 
   int i, j, shift, oneidx;
   BtorNode *e;
-  BtorBitVector *bve, *res;
+  BtorBitVector *res;
   BtorMemMgr *mm;
 #ifndef NDEBUG
   BtorBitVector *tmpdbg;
@@ -1874,11 +1883,6 @@ inv_sll_bv (Btor *btor, BtorNode *sll, BtorBitVector *bvsll, int eidx)
   mm = btor->mm;
   e  = sll->e[eidx ? 0 : 1];
   assert (e);
-
-  bve = (BtorBitVector *) btor_get_bv_model (btor, e);
-  assert (bve);
-  assert (!eidx || bve->width == bvsll->width);
-  assert (eidx || btor_log_2_util (bvsll->width) == bve->width);
 
   /* bve << e[1] = bvsll
    * -> identify possible shift value via zero LSB in bvsll
@@ -1975,18 +1979,25 @@ static inline BtorBitVector *
 #else
 BtorBitVector *
 #endif
-inv_srl_bv (Btor *btor, BtorNode *srl, BtorBitVector *bvsrl, int eidx)
+inv_srl_bv (Btor *btor,
+            BtorNode *srl,
+            BtorBitVector *bvsrl,
+            BtorBitVector *bve,
+            int eidx)
 {
   assert (btor);
   assert (srl);
   assert (BTOR_IS_REGULAR_NODE (srl));
   assert (bvsrl);
+  assert (bve);
   assert (eidx >= 0 && eidx <= 1);
+  assert (!eidx || bve->width == bvsrl->width);
+  assert (eidx || btor_log_2_util (bvsrl->width) == bve->width);
   assert (!BTOR_IS_BV_CONST_NODE (BTOR_REAL_ADDR_NODE (srl->e[eidx])));
 
   int i, j, shift, oneidx;
   BtorNode *e;
-  BtorBitVector *bve, *res;
+  BtorBitVector *res;
   BtorMemMgr *mm;
 #ifndef NDEBUG
   BtorBitVector *tmpdbg;
@@ -1996,11 +2007,6 @@ inv_srl_bv (Btor *btor, BtorNode *srl, BtorBitVector *bvsrl, int eidx)
   mm = btor->mm;
   e  = srl->e[eidx ? 0 : 1];
   assert (e);
-
-  bve = (BtorBitVector *) btor_get_bv_model (btor, e);
-  assert (bve);
-  assert (!eidx || bve->width == bvsrl->width);
-  assert (eidx || btor_log_2_util (bvsrl->width) == bve->width);
 
   /* bve >> e[1] = bvsll
    * -> identify possible shift value via zero MSBs in bvsll
@@ -2099,17 +2105,23 @@ static inline BtorBitVector *
 #else
 BtorBitVector *
 #endif
-inv_mul_bv (Btor *btor, BtorNode *mul, BtorBitVector *bvmul, int eidx)
+inv_mul_bv (Btor *btor,
+            BtorNode *mul,
+            BtorBitVector *bvmul,
+            BtorBitVector *bve,
+            int eidx)
 {
   assert (btor);
   assert (mul);
   assert (BTOR_IS_REGULAR_NODE (mul));
   assert (bvmul);
+  assert (bve);
+  assert (bve->width == bvmul->width);
   assert (eidx >= 0 && eidx <= 1);
   assert (!BTOR_IS_BV_CONST_NODE (BTOR_REAL_ADDR_NODE (mul->e[eidx])));
 
   BtorNode *e;
-  BtorBitVector *bve, *res, *x, *y, *gcd, *tmp, *tmp2;
+  BtorBitVector *res, *x, *y, *gcd, *tmp, *tmp2;
   BtorBitVector *bveext, *bvmodext;
   BtorMemMgr *mm;
 #ifndef NDEBUG
@@ -2120,10 +2132,6 @@ inv_mul_bv (Btor *btor, BtorNode *mul, BtorBitVector *bvmul, int eidx)
   mm = btor->mm;
   e  = mul->e[eidx ? 0 : 1];
   assert (e);
-
-  bve = (BtorBitVector *) btor_get_bv_model (btor, e);
-  assert (bve);
-  assert (bve->width == bvmul->width);
 
   /* res * bve = bve * res = bvmul
    * -> if bve is a divisor of bvmul, res = bvmul / bve
@@ -2232,17 +2240,23 @@ static inline BtorBitVector *
 #else
 BtorBitVector *
 #endif
-inv_udiv_bv (Btor *btor, BtorNode *div, BtorBitVector *bvdiv, int eidx)
+inv_udiv_bv (Btor *btor,
+             BtorNode *div,
+             BtorBitVector *bvdiv,
+             BtorBitVector *bve,
+             int eidx)
 {
   assert (btor);
   assert (div);
   assert (BTOR_IS_REGULAR_NODE (div));
   assert (bvdiv);
+  assert (bve);
+  assert (bve->width == bvdiv->width);
   assert (eidx >= 0 && eidx <= 1);
   assert (!BTOR_IS_BV_CONST_NODE (BTOR_REAL_ADDR_NODE (div->e[eidx])));
 
   BtorNode *e;
-  BtorBitVector *bve, *res, *tmp, *one, *neg, *bvmax;
+  BtorBitVector *res, *tmp, *one, *neg, *bvmax;
   BtorMemMgr *mm;
 #ifndef NDEBUG
   BtorBitVector *tmpdbg;
@@ -2252,10 +2266,6 @@ inv_udiv_bv (Btor *btor, BtorNode *div, BtorBitVector *bvdiv, int eidx)
   mm = btor->mm;
   e  = div->e[eidx ? 0 : 1];
   assert (e);
-
-  bve = (BtorBitVector *) btor_get_bv_model (btor, e);
-  assert (bve);
-  assert (bve->width == bvdiv->width);
 
   /* bve / e[1] = bvdiv
    * -> if bvdiv is a divisor of bve, res = bve * bvdiv
@@ -2374,18 +2384,24 @@ static inline BtorBitVector *
 #else
 BtorBitVector *
 #endif
-inv_urem_bv (Btor *btor, BtorNode *urem, BtorBitVector *bvurem, int eidx)
+inv_urem_bv (Btor *btor,
+             BtorNode *urem,
+             BtorBitVector *bvurem,
+             BtorBitVector *bve,
+             int eidx)
 {
   assert (btor);
   assert (urem);
   assert (BTOR_IS_REGULAR_NODE (urem));
   assert (bvurem);
+  assert (bve);
+  assert (bve->width == bvurem->width);
   assert (eidx >= 0 && eidx <= 1);
   assert (!BTOR_IS_BV_CONST_NODE (BTOR_REAL_ADDR_NODE (urem->e[eidx])));
 
   int cmp;
   BtorNode *e;
-  BtorBitVector *bve, *res, *bvmax, *tmp, *tmp2, *one, *negone, *neg, *n, *mul;
+  BtorBitVector *res, *bvmax, *tmp, *tmp2, *one, *negone, *neg, *n, *mul;
   BtorMemMgr *mm;
 #ifndef NDEBUG
   BtorBitVector *tmpdbg;
@@ -2395,10 +2411,6 @@ inv_urem_bv (Btor *btor, BtorNode *urem, BtorBitVector *bvurem, int eidx)
   mm = btor->mm;
   e  = urem->e[eidx ? 0 : 1];
   assert (e);
-
-  bve = (BtorBitVector *) btor_get_bv_model (btor, e);
-  assert (bve);
-  assert (bve->width == bvurem->width);
 
   bvmax = btor_ones_bv (mm, bvurem->width); /* 2^bw - 1 */
   one   = btor_one_bv (mm, bvurem->width);
@@ -2604,17 +2616,22 @@ static inline BtorBitVector *
 #else
 BtorBitVector *
 #endif
-inv_concat_bv (Btor *btor, BtorNode *concat, BtorBitVector *bvconcat, int eidx)
+inv_concat_bv (Btor *btor,
+               BtorNode *concat,
+               BtorBitVector *bvconcat,
+               BtorBitVector *bve,
+               int eidx)
 {
   assert (btor);
   assert (concat);
   assert (BTOR_IS_REGULAR_NODE (concat));
   assert (bvconcat);
+  assert (bve);
   assert (eidx >= 0 && eidx <= 1);
   assert (!BTOR_IS_BV_CONST_NODE (BTOR_REAL_ADDR_NODE (concat->e[eidx])));
 
   BtorNode *e;
-  BtorBitVector *bve, *res, *tmp;
+  BtorBitVector *res, *tmp;
   BtorMemMgr *mm;
 #ifndef NDEBUG
   BtorBitVector *tmpdbg;
@@ -2624,9 +2641,6 @@ inv_concat_bv (Btor *btor, BtorNode *concat, BtorBitVector *bvconcat, int eidx)
   mm = btor->mm;
   e  = concat->e[eidx ? 0 : 1];
   assert (e);
-
-  bve = (BtorBitVector *) btor_get_bv_model (btor, e);
-  assert (bve);
 
   /* bve o e[1] = bvconcat, slice e[1] out of the lower bits of bvconcat */
   if (eidx)
