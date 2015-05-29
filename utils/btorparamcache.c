@@ -37,7 +37,7 @@ btor_new_param_cache_tuple (Btor *btor, BtorNode *exp)
   {
     t->num_args = it.num_params;
     if (BTOR_IS_LAMBDA_NODE (exp))
-      t->num_args += ((BtorLambdaNode *) exp)->num_params;
+      t->num_args += btor_get_fun_arity (btor, exp);
 
     BTOR_NEWN (btor->mm, t->args, t->num_args);
 
@@ -70,7 +70,7 @@ btor_new_param_cache_tuple (Btor *btor, BtorNode *exp)
   else if (BTOR_IS_LAMBDA_NODE (exp))
   {
     init_lambda_iterator (&pit, exp);
-    t->num_args = ((BtorLambdaNode *) exp)->num_params;
+    t->num_args = btor_get_fun_arity (btor, exp);
     BTOR_NEWN (btor->mm, t->args, t->num_args);
 
     i = 0;

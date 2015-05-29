@@ -402,7 +402,7 @@ btor_chkclone_exp (BtorNode *exp, BtorNode *clone)
   assert ((!BTOR_IS_INVERTED_NODE (exp) && !BTOR_IS_INVERTED_NODE (clone))
           || (BTOR_IS_INVERTED_NODE (exp) && BTOR_IS_INVERTED_NODE (clone)));
 
-  int i, len;
+  int i;
   BtorNode *real_exp, *real_clone, *e, *ce;
   BtorHashTableIterator it, cit;
 
@@ -435,11 +435,13 @@ btor_chkclone_exp (BtorNode *exp, BtorNode *clone)
   BTOR_CHKCLONE_EXP (is_write);
   BTOR_CHKCLONE_EXP (is_read);
 
-  if (real_exp->bits)
+  if (BTOR_IS_BV_CONST_NODE (real_exp))
   {
-    len = strlen (real_exp->bits);
-    assert ((size_t) len == strlen (real_clone->bits));
-    for (i = 0; i < len; i++) assert (real_exp->bits[i] == real_clone->bits[i]);
+    assert (strlen (btor_get_bits_const (real_exp))
+            == strlen (btor_get_bits_const (real_clone)));
+    assert (strcmp (btor_get_bits_const (real_exp),
+                    btor_get_bits_const (real_clone))
+            == 0);
   }
   else
   {
@@ -448,7 +450,6 @@ btor_chkclone_exp (BtorNode *exp, BtorNode *clone)
   }
 
   BTOR_CHKCLONE_EXP (id);
-  BTOR_CHKCLONE_EXP (len);
   BTOR_CHKCLONE_EXP (refs);
   BTOR_CHKCLONE_EXP (ext_refs);
   BTOR_CHKCLONE_EXP (parents);
@@ -459,7 +460,7 @@ btor_chkclone_exp (BtorNode *exp, BtorNode *clone)
     if (real_exp->av)
     {
       assert (real_exp->av->len == real_clone->av->len);
-      for (i = 0; i < real_exp->len; i++)
+      for (i = 0; i < real_exp->av->len; i++)
         btor_chkclone_aig (real_exp->av->aigs[i], real_clone->av->aigs[i]);
     }
     else
@@ -547,10 +548,6 @@ btor_chkclone_exp (BtorNode *exp, BtorNode *clone)
     else
       assert (!((BtorParamNode *) real_clone)->assigned_exp);
   }
-
-  if (BTOR_IS_ARGS_NODE (real_exp))
-    assert (((BtorArgsNode *) real_exp)->num_args
-            == ((BtorArgsNode *) real_clone)->num_args);
 
   if (BTOR_IS_LAMBDA_NODE (real_exp))
   {
@@ -751,7 +748,7 @@ btor_chkclone_tables (Btor *btor)
   BTOR_CHKCLONE_NODE_PTR_HASH_TABLE (btor->lambdas, btor->clone->lambdas);
   BTOR_CHKCLONE_NODE_PTR_HASH_TABLE (btor->substitutions,
                                      btor->clone->substitutions);
-  BTOR_CHKCLONE_NODE_PTR_HASH_TABLE (btor->lod_cache, btor->clone->lod_cache);
+  BTOR_CHKCLONE_NODE_PTR_HASH_TABLE (btor->lemmas, btor->clone->lemmas);
   BTOR_CHKCLONE_NODE_PTR_HASH_TABLE (btor->varsubst_constraints,
                                      btor->clone->varsubst_constraints);
   BTOR_CHKCLONE_NODE_PTR_HASH_TABLE (btor->embedded_constraints,
@@ -856,17 +853,18 @@ btor_chkclone_tables (Btor *btor)
 void
 btor_chkclone_sort (const BtorSort *sort, const BtorSort *clone)
 {
-  int i;
   assert (sort->id == clone->id);
   assert (sort->kind == clone->kind);
   assert (sort->refs == clone->refs);
   assert (sort->ext_refs == clone->ext_refs);
   assert (sort->parents == clone->parents);
 
+  unsigned i;
+
   switch (sort->kind)
   {
     case BTOR_BITVEC_SORT:
-      assert (sort->bitvec.len == clone->bitvec.len);
+      assert (sort->bitvec.width == clone->bitvec.width);
       break;
 
     case BTOR_ARRAY_SORT:

@@ -59,6 +59,14 @@ struct BtorAIGMgr
   int verbosity;
   BtorSATMgr *smgr;
   BtorAIGPtrStack id2aig; /* cnf id to aig */
+
+  /* statistics */
+  long long max_num_aigs;
+  long long cur_num_aigs;
+  long long num_aig_vars;
+  long long num_vars;
+  long long num_clauses;
+  long long num_literals;
 };
 
 typedef struct BtorAIGMgr BtorAIGMgr;

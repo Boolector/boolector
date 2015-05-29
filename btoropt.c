@@ -146,6 +146,7 @@ btor_init_opts (Btor *btor)
 
   BTOR_OPT (
       "bra", beta_reduce_all, 0, 0, 1, "eagerly eliminate lambda expressions");
+  BTOR_OPT ("ack", ackermannize, 0, 0, 1, "add ackermann constraints");
 #ifdef BTOR_ENABLE_BETA_REDUCTION_PROBING
   BTOR_OPT ("pbra",
             probe_beta_reduce_all,
@@ -184,6 +185,8 @@ btor_init_opts (Btor *btor)
             0,
             1,
             "enable propositional skeletone preprocessing");
+  BTOR_OPT ("el", eager_lemmas, 0, 0, 1, "eager lemma generation");
+  BTOR_OPT ("ml", merge_lambdas, 1, 0, 1, "merge lambda chains");
   BTOR_OPT ("ac", auto_cleanup, 0, 0, 1, "auto cleanup on exit");
   BTOR_OPT ("p", pretty_print, 1, 0, 1, "pretty print when dumping");
 #ifndef NBTORLOG

@@ -13,6 +13,9 @@
 
 #include "boolector.h"
 #include "btorcore.h"
+#include "utils/btormem.h"
+// FIXME (ma): external sort handling?
+#include "btorsort.h"
 
 #include <assert.h>
 #include <ctype.h>
@@ -461,7 +464,7 @@ typedef struct ExpStack
 
 typedef struct SortStack
 {
-  BoolectorSort **sorts;
+  BoolectorSort *sorts;
   int size, n;
   //  int initlayer;
 } SortStack;
@@ -469,6 +472,7 @@ typedef struct SortStack
 typedef struct BtorMBT
 {
   Btor *btor;
+  BtorMemMgr *mm;
 
   double start_time;
 
@@ -676,6 +680,7 @@ new_btormbt (void)
 
   btormbt = malloc (sizeof (BtorMBT));
   memset (btormbt, 0, sizeof (BtorMBT));
+  btormbt->mm                       = btor_new_mem_mgr ();
   btormbt->g_max_rounds             = INT_MAX;
   btormbt->seed                     = -1;
   btormbt->seeded                   = 0;
@@ -783,7 +788,7 @@ ss_init (SortStack *ss)
 }
 
 static void
-ss_push (SortStack *ss, BoolectorSort *sort)
+ss_push (SortStack *ss, BoolectorSort sort)
 {
   assert (ss);
   assert (sort);
@@ -1756,24 +1761,37 @@ param_afun (BtorMBT *btormbt, RNG *rng, int force_arrnparr)
 }
 
 static void
-bitvec_fun (BtorMBT *btormbt, unsigned r, int *nparams, int *width, int nlevel)
+bitvec_fun (BtorMBT *btormbt, unsigned r, int nlevel)
 {
-  int i, n, np, ip, w, max_ops, rand;
+  int i, n, ip, w, max_ops, rand;
   ExpStack parambo, parambv, paramarr;
   ExpStack *es, *tmpparambo, *tmpparambv, *tmpparamarr;
-  BoolectorNode *tmp, *fun, **params, **args;
+  BoolectorNode *tmp, *fun;
+  BoolectorNodePtrStack params, args;
+  BtorIntStack param_widths;
   RNG rng;
 
+  BTOR_INIT_STACK (param_widths);
   rng = initrng (r);
   /* choose between apply on random existing and apply on new function */
   rand = pick (&rng, 0, NORM_VAL - 1);
   if (btormbt->fun.n && rand < btormbt->p_apply_fun) /* use existing function */
   {
-    rand     = pick (&rng, 0, btormbt->fun.n - 1);
-    fun      = btormbt->fun.exps[rand].exp;
-    *nparams = boolector_get_fun_arity (btormbt->btor, fun);
-    assert (*nparams);
-    *width = boolector_get_index_width (btormbt->btor, fun);
+    rand = pick (&rng, 0, btormbt->fun.n - 1);
+    fun  = btormbt->fun.exps[rand].exp;
+
+    // FIXME (ma): sort workaround
+    BtorSort *sort;
+    sort = btor_get_sort_by_id (&btormbt->btor->sorts_unique_table,
+                                ((BtorNode *) fun)->sort_id);
+    for (i = 0; i < (int) sort->fun.domain->tuple.num_elements; i++)
+    {
+      BTOR_PUSH_STACK (
+          btormbt->mm,
+          param_widths,
+          btor_get_width_bitvec_sort (&btormbt->btor->sorts_unique_table,
+                                      sort->fun.domain->tuple.elements[i]->id));
+    }
   }
   else /* generate new function */
   {
@@ -1789,14 +1807,14 @@ bitvec_fun (BtorMBT *btormbt, unsigned r, int *nparams, int *width, int nlevel)
     btormbt->paramarr = &paramarr;
 
     /* choose function parameters */
-    *width   = pick (&rng, 1, MAX_BITWIDTH);
-    *nparams = pick (&rng, MIN_NPARAMS, MAX_NPARAMS);
-    params   = malloc (sizeof (BoolectorNode *) * *nparams);
-    for (i = 0; i < *nparams; i++)
+    BTOR_INIT_STACK (params);
+    for (i = 0; i < pick (&rng, MIN_NPARAMS, MAX_NPARAMS); i++)
     {
-      tmp       = boolector_param (btormbt->btor, *width, NULL);
-      params[i] = tmp;
-      es_push (*width == 1 ? btormbt->parambo : btormbt->parambv, tmp);
+      w   = pick (&rng, 1, MAX_BITWIDTH);
+      tmp = boolector_param (btormbt->btor, w, 0);
+      BTOR_PUSH_STACK (btormbt->mm, params, tmp);
+      es_push (w == 1 ? btormbt->parambo : btormbt->parambv, tmp);
+      BTOR_PUSH_STACK (btormbt->mm, param_widths, w);
     }
 
     /* initialize parameterized stacks to be non-empty */
@@ -1832,7 +1850,7 @@ bitvec_fun (BtorMBT *btormbt, unsigned r, int *nparams, int *width, int nlevel)
       {
         if (nlevel < MAX_NNESTEDBFUNS)
         {
-          bitvec_fun (btormbt, nextrand (&rng), &np, &w, nlevel + 1);
+          bitvec_fun (btormbt, nextrand (&rng), nlevel + 1);
           btormbt->parambo  = &parambo;
           btormbt->parambv  = &parambv;
           btormbt->paramarr = &paramarr;
@@ -1848,7 +1866,10 @@ bitvec_fun (BtorMBT *btormbt, unsigned r, int *nparams, int *width, int nlevel)
                    : &parambv;
     assert (es->n);
     rand = pick (&rng, 0, es->n - 1);
-    fun  = boolector_fun (btormbt->btor, params, *nparams, es->exps[rand].exp);
+    fun  = boolector_fun (btormbt->btor,
+                         params.start,
+                         BTOR_COUNT_STACK (params),
+                         es->exps[rand].exp);
     es_push (&btormbt->fun, fun);
 
     /* reset scope for arguments to apply node */
@@ -1866,23 +1887,27 @@ bitvec_fun (BtorMBT *btormbt, unsigned r, int *nparams, int *width, int nlevel)
     for (i = 0; i < paramarr.n; i++)
       boolector_release (btormbt->btor, paramarr.exps[i].exp);
     es_release (&paramarr);
-    free (params);
+    BTOR_RELEASE_STACK (btormbt->mm, params);
   }
 
   /* generate apply expression with arguments within scope of apply */
-  args = malloc (sizeof (BoolectorNode *) * *nparams);
-  for (i = 0; i < *nparams; i++)
+  BTOR_INIT_STACK (args);
+  for (i = 0; i < BTOR_COUNT_STACK (param_widths); i++)
   {
-    tmp     = selexp (btormbt, &rng, T_BV, 0, &ip);
-    args[i] = modifybv (btormbt,
-                        &rng,
-                        tmp,
-                        boolector_get_width (btormbt->btor, tmp),
-                        *width,
-                        ip);
+    w   = BTOR_PEEK_STACK (param_widths, i);
+    tmp = selexp (btormbt, &rng, T_BV, 0, &ip);
+    BTOR_PUSH_STACK (btormbt->mm,
+                     args,
+                     modifybv (btormbt,
+                               &rng,
+                               tmp,
+                               boolector_get_width (btormbt->btor, tmp),
+                               w,
+                               ip));
   }
 
-  tmp = boolector_apply (btormbt->btor, args, *nparams, fun);
+  tmp =
+      boolector_apply (btormbt->btor, args.start, BTOR_COUNT_STACK (args), fun);
   es_push (boolector_get_width (btormbt->btor, fun) == 1
                ? (BTOR_REAL_ADDR_NODE (tmp)->parameterized ? btormbt->parambo
                                                            : &btormbt->bo)
@@ -1890,16 +1915,17 @@ bitvec_fun (BtorMBT *btormbt, unsigned r, int *nparams, int *width, int nlevel)
                                                            : &btormbt->bv),
            tmp);
 
-  free (args);
+  BTOR_RELEASE_STACK (btormbt->mm, param_widths);
+  BTOR_RELEASE_STACK (btormbt->mm, args);
 }
 
-static BoolectorSort *
+static BoolectorSort
 bitvec_sort (BtorMBT *btormbt, unsigned r)
 {
   int rand, len;
   RNG rng;
   BoolectorNode *bv;
-  BoolectorSort *sort;
+  BoolectorSort sort;
 
   rng  = initrng (r);
   rand = pick (&rng, 0, NORM_VAL - 1);
@@ -1943,12 +1969,12 @@ init_domain (BtorMBT *btormbt, unsigned r, SortStack *ss)
   for (i = 0; i < arity; i++) ss_push (ss, bitvec_sort (btormbt, r));
 }
 
-static BoolectorSort *
+static BoolectorSort
 fun_sort (BtorMBT *btormbt, unsigned r)
 {
   int rand;
   RNG rng;
-  BoolectorSort *sort, *codomain;
+  BoolectorSort sort, codomain;
   SortStack domain;
 
   rng  = initrng (r);
@@ -1975,14 +2001,18 @@ fun_sort (BtorMBT *btormbt, unsigned r)
 static void
 bitvec_uf (BtorMBT *btormbt, unsigned r)
 {
-  int i, rand, len;
+  unsigned len;
+  int rand;
   RNG rng;
-  BoolectorNode *uf, *arg, *apply, **args;
-  BoolectorSort *sort;
-  ExpStack stack;
+  BoolectorNode *uf, *arg, *apply;
+  BoolectorSort sort;
+  BoolectorNodePtrStack stack;
+  BtorTupleSortIterator it;
+  BtorSortUniqueTable *sorts;
 
-  rng  = initrng (r);
-  rand = pick (&rng, 0, NORM_VAL - 1);
+  rng   = initrng (r);
+  rand  = pick (&rng, 0, NORM_VAL - 1);
+  sorts = &btormbt->btor->sorts_unique_table;
 
   if (btormbt->uf.n && rand < btormbt->p_apply_uf) /* use existing UF */
   {
@@ -1997,48 +2027,31 @@ bitvec_uf (BtorMBT *btormbt, unsigned r)
   }
 
   /* create apply with sort of UF */
-  es_init (&stack);
-  // TODO: no api function yet for sort handling
-  BtorSort *s = ((BtorUFNode *) uf)->sort->fun.domain;
-  if (s->kind == BTOR_TUPLE_SORT)
+  BTOR_INIT_STACK (stack);
+  btor_init_tuple_sort_iterator (
+      &it, sorts, btor_get_domain_fun_sort (sorts, ((BtorNode *) uf)->sort_id));
+  while (btor_has_next_tuple_sort_iterator (&it))
   {
-    for (i = 0; i < s->tuple.num_elements; i++)
-    {
-      assert (s->tuple.elements[i]->kind == BTOR_BITVEC_SORT);
-      len = s->tuple.elements[i]->bitvec.len;
-      arg = selexp (btormbt, &rng, T_BB, 0, 0);
-      es_push (&stack,
-               modifybv (btormbt,
-                         &rng,
-                         arg,
-                         boolector_get_width (btormbt->btor, arg),
-                         len,
-                         0));
-    }
-  }
-  else
-  {
-    assert (s->kind == BTOR_BITVEC_SORT);
-    len = s->bitvec.len;
-    arg = selexp (btormbt, &rng, T_BB, 0, 0);
-    es_push (&stack,
-             modifybv (btormbt,
-                       &rng,
-                       arg,
-                       boolector_get_width (btormbt->btor, arg),
-                       len,
-                       0));
+    sort = btor_next_tuple_sort_iterator (&it);
+    len  = btor_get_width_bitvec_sort (sorts, sort);
+    arg  = selexp (btormbt, &rng, T_BB, 0, 0);
+    BTOR_PUSH_STACK (btormbt->mm,
+                     stack,
+                     modifybv (btormbt,
+                               &rng,
+                               arg,
+                               boolector_get_width (btormbt->btor, arg),
+                               len,
+                               0));
   }
 
   /* create apply on UF */
-  args = malloc (stack.n * sizeof (BoolectorNode *));
-  for (i = 0; i < stack.n; i++) args[i] = stack.exps[i].exp;
-  apply = boolector_apply (btormbt->btor, args, stack.n, uf);
+  apply = boolector_apply (
+      btormbt->btor, stack.start, BTOR_COUNT_STACK (stack), uf);
 
   len = boolector_get_width (btormbt->btor, apply);
   es_push (len == 1 ? &btormbt->bo : &btormbt->bv, apply);
-  free (args);
-  es_release (&stack);
+  BTOR_RELEASE_STACK (btormbt->mm, stack);
 }
 
 /*------------------------------------------------------------------------*/
@@ -2451,9 +2464,7 @@ _bitvec_fun (BtorMBT *btormbt, unsigned r)
 {
   assert (!btormbt->parambo && !btormbt->parambv && !btormbt->paramarr);
 
-  int nparams, width;
-
-  bitvec_fun (btormbt, r, &nparams, &width, 0);
+  bitvec_fun (btormbt, r, 0);
 
   btormbt->parambo = btormbt->parambv = btormbt->paramarr = NULL; /* cleanup */
 
@@ -2760,6 +2771,7 @@ _del (BtorMBT *btormbt, unsigned r)
   assert (btormbt->parambv == NULL);
   assert (btormbt->paramarr == NULL);
 
+  btor_delete_mem_mgr (btormbt->mm);
   boolector_delete (btormbt->btor);
   btormbt->btor = NULL;
   return 0;

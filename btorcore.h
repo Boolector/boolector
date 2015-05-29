@@ -47,8 +47,8 @@
 #define BTOR_IMPORT_BOOLECTOR_NODE(node) (((BtorNode *) (node)))
 #define BTOR_IMPORT_BOOLECTOR_NODE_ARRAY(array) (((BtorNode **) (array)))
 #define BTOR_EXPORT_BOOLECTOR_NODE(node) (((BoolectorNode *) (node)))
-#define BTOR_IMPORT_BOOLECTOR_SORT(sort) (((BtorSort *) (sort)))
-#define BTOR_EXPORT_BOOLECTOR_SORT(sort) (((BoolectorSort *) (sort)))
+#define BTOR_IMPORT_BOOLECTOR_SORT(sort) (((BtorSortId) (sort)))
+#define BTOR_EXPORT_BOOLECTOR_SORT(sort) (((BoolectorSort) (sort)))
 
 /*------------------------------------------------------------------------*/
 
@@ -135,7 +135,8 @@ struct Btor
   int btor_sat_btor_called; /* how often is btor_sat_btor been called */
   int last_sat_result;      /* status of last SAT call (SAT/UNSAT) */
 
-  BtorPtrHashTable *lod_cache;
+  BtorPtrHashTable *lemmas;
+  BtorNodePtrStack cur_lemmas;
 
   BtorPtrHashTable *varsubst_constraints;
   BtorPtrHashTable *embedded_constraints;
@@ -167,6 +168,7 @@ struct Btor
     int lod_refinements;  /* number of lemmas on demand refinements */
     int synthesis_assignment_inconsistencies; /* number of restarts as a
                                                  result of lazy synthesis */
+    int refinement_iterations;
     int synthesis_inconsistency_apply;
     int synthesis_inconsistency_lambda;
     int synthesis_inconsistency_var;
@@ -195,6 +197,7 @@ struct Btor
     int dp_failed_applies; /* number of applies in FA (dual prop) of last
                               sat call (final bv skeleton) */
     int dp_assumed_applies;
+    int ackermann_constraints;
     BtorIntStack lemmas_size;       /* distribution of n-size lemmas */
     long long int lemmas_size_sum;  /* sum of the size of all added lemmas */
     long long int lclause_size_sum; /* sum of the size of all linking clauses */
@@ -222,10 +225,12 @@ struct Btor
     double rewrite;
     double sat;
     double subst;
+    double subst_rebuild;
     double betareduce;
     double embedded;
     double slicing;
     double skel;
+    double propagate;
     double beta;
     double eval;
     double enc_app;
@@ -338,14 +343,19 @@ BtorNode *btor_simplify_exp (Btor *btor, BtorNode *exp);
 /* Finds most simplified expression and shortens path to it */
 BtorNode *btor_pointer_chase_simplified_exp (Btor *btor, BtorNode *exp);
 
-int btor_is_equal_sort (Btor *btor, BtorNode *e0, BtorNode *e1);
-
 /* Frees BV assignment obtained by calling 'btor_assignment_exp' */
 void btor_release_bv_assignment_str (Btor *btor, char *assignment);
 
 void btor_release_all_ext_refs (Btor *btor);
 
-// TODO: eliminate when we have full sort support (ma)
-BtorSort *btor_create_or_get_sort (Btor *, BtorNode *);
+void btor_init_substitutions (Btor *);
+void btor_delete_substitutions (Btor *);
+void btor_insert_substitution (Btor *, BtorNode *, BtorNode *, int);
+BtorNode *btor_find_substitution (Btor *, BtorNode *);
+
+void btor_substitute_and_rebuild (Btor *, BtorPtrHashTable *, int);
+void btor_insert_varsubst_constraint (Btor *, BtorNode *, BtorNode *);
+
+BtorNode *btor_aux_var_exp (Btor *, int);
 
 #endif

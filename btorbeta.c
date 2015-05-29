@@ -147,7 +147,7 @@ btor_assign_param (Btor *btor, BtorNode *lambda, BtorNode *arg)
 
   param = BTOR_LAMBDA_GET_PARAM (lambda);
   assert (BTOR_IS_REGULAR_NODE (param));
-  assert (BTOR_REAL_ADDR_NODE (arg)->len == param->len);
+  assert (BTOR_REAL_ADDR_NODE (arg)->sort_id == param->sort_id);
   //  BTORLOG ("  assign: %s (%s)", node2string (lambda), node2string (arg));
   assert (!param->assigned_exp);
   param->assigned_exp = arg;
@@ -869,7 +869,6 @@ btor_beta_reduce_partial_aux (Btor *btor,
                   && !btor_find_in_ptr_hash_table (conds,
                                                    BTOR_REAL_ADDR_NODE (e[0])))
               {
-                assert (btor->options.dual_prop.val || btor->options.just.val);
                 btor_insert_in_ptr_hash_table (
                     conds, btor_copy_exp (btor, BTOR_REAL_ADDR_NODE (e[0])));
               }

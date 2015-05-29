@@ -752,7 +752,7 @@ BoolectorNode *boolector_array (Btor *btor,
     boolector_apply, boolector_fun_sort
 */
 BoolectorNode *boolector_uf (Btor *btor,
-                             BoolectorSort *sort,
+                             BoolectorSort sort,
                              const char *symbol);
 
 /*!
@@ -1901,7 +1901,7 @@ void boolector_print_model (Btor *btor, char *format, FILE *file);
   .. seealso::
     boolector_uf
 */
-BoolectorSort *boolector_bool_sort (Btor *btor);
+BoolectorSort boolector_bool_sort (Btor *btor);
 
 /*!
   Create bit vector sort of bit width ``width``.
@@ -1916,7 +1916,7 @@ BoolectorSort *boolector_bool_sort (Btor *btor);
   .. seealso::
     boolector_uf
 */
-BoolectorSort *boolector_bitvec_sort (Btor *btor, int width);
+BoolectorSort boolector_bitvec_sort (Btor *btor, int width);
 
 /*!
   Create function sort.
@@ -1933,10 +1933,10 @@ BoolectorSort *boolector_bitvec_sort (Btor *btor, int width);
   .. seealso::
     boolector_uf
 */
-BoolectorSort *boolector_fun_sort (Btor *btor,
-                                   BoolectorSort **domain,
-                                   int arity,
-                                   BoolectorSort *codomain);
+BoolectorSort boolector_fun_sort (Btor *btor,
+                                  BoolectorSort *domain,
+                                  int arity,
+                                  BoolectorSort codomain);
 
 /*!
   Release sort (decrements reference counter).
@@ -1944,7 +1944,7 @@ BoolectorSort *boolector_fun_sort (Btor *btor,
   :param btor: Boolector instance.
   :param sort: Sort to be released.
 */
-void boolector_release_sort (Btor *btor, BoolectorSort *sort);
+void boolector_release_sort (Btor *btor, BoolectorSort sort);
 
 /*!
   Determine if ``n0`` and ``n1`` have the same sort or not.

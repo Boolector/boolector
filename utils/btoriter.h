@@ -47,6 +47,10 @@ void init_lambda_iterator (BtorNodeIterator *, BtorNode *);
 int has_next_lambda_iterator (BtorNodeIterator *);
 BtorNode *next_lambda_iterator (BtorNodeIterator *);
 
+void init_param_iterator (BtorNodeIterator *, BtorNode *);
+int has_next_param_iterator (BtorNodeIterator *);
+BtorNode *next_param_iterator (BtorNodeIterator *);
+
 void init_unique_table_iterator (Btor *btor, BtorNodeIterator *);
 int has_next_unique_table_iterator (BtorNodeIterator *);
 BtorNode *next_unique_table_iterator (BtorNodeIterator *);

@@ -3030,8 +3030,8 @@ SORTED_VAR:
   BITVEC:
     if (!BTOR_EMPTY_STACK (args))
     {
-      BoolectorSort *sort, *scodomain;
-      BoolectorSort *sdomain[BTOR_COUNT_STACK (args)];
+      BoolectorSort sort, scodomain;
+      BoolectorSort sdomain[BTOR_COUNT_STACK (args)];
 
       if (BTOR_COUNT_STACK (args) > 1)
       {

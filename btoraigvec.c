@@ -31,6 +31,9 @@ new_aigvec (BtorAIGVecMgr *avmgr, int len)
   BTOR_NEW (avmgr->mm, result);
   BTOR_NEWN (avmgr->mm, result->aigs, len);
   result->len = len;
+  avmgr->cur_num_aigvecs++;
+  if (avmgr->max_num_aigvecs < avmgr->cur_num_aigvecs)
+    avmgr->max_num_aigvecs = avmgr->cur_num_aigvecs;
   return result;
 }
 
@@ -694,6 +697,7 @@ btor_release_delete_aigvec (BtorAIGVecMgr *avmgr, BtorAIGVec *av)
   for (i = 0; i < len; i++) btor_release_aig (amgr, av->aigs[i]);
   BTOR_DELETEN (mm, av->aigs, len);
   BTOR_DELETE (mm, av);
+  avmgr->cur_num_aigvecs--;
 }
 
 BtorAIGVecMgr *
@@ -703,7 +707,7 @@ btor_new_aigvec_mgr (BtorMemMgr *mm, BtorMsg *msg)
   assert (msg);
 
   BtorAIGVecMgr *avmgr;
-  BTOR_NEW (mm, avmgr);
+  BTOR_CNEW (mm, avmgr);
   avmgr->mm   = mm;
   avmgr->msg  = msg;
   avmgr->amgr = btor_new_aig_mgr (mm, avmgr->msg);
@@ -720,9 +724,11 @@ btor_clone_aigvec_mgr (BtorMemMgr *mm, BtorMsg *msg, BtorAIGVecMgr *avmgr)
   BtorAIGVecMgr *res;
   BTOR_NEW (mm, res);
 
-  res->mm   = mm;
-  res->msg  = msg;
-  res->amgr = btor_clone_aig_mgr (mm, msg, avmgr->amgr);
+  res->mm              = mm;
+  res->msg             = msg;
+  res->amgr            = btor_clone_aig_mgr (mm, msg, avmgr->amgr);
+  res->max_num_aigvecs = avmgr->max_num_aigvecs;
+  res->cur_num_aigvecs = avmgr->cur_num_aigvecs;
   return res;
 }
 

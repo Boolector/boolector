@@ -68,6 +68,7 @@ typedef struct BtorOpt
 #define BTOR_OPT_REWRITE_LEVEL "rewrite_level"
 #define BTOR_OPT_REWRITE_LEVEL_PBR "rewrite_level_pbr"
 #define BTOR_OPT_BETA_REDUCE_ALL "beta_reduce_all"
+#define BTOR_OPT_ACKERMANN "ackermannize"
 #define BTOR_OPT_DUAL_PROP "dual_prop"
 #define BTOR_OPT_JUST "just"
 #ifndef BTOR_DO_NOT_OPTIMIZE_UNCONSTRAINED
@@ -90,8 +91,10 @@ typedef struct BtorOpt
 #define BTOR_OPT_LAZY_SYNTHESIZE "lazy_synthesize"
 #define BTOR_OPT_ELIMINATE_SLICES "eliminate_slices"
 #define BTOR_OPT_SKELETON_PREPROCESSING "skeleton_preprocessing"
+#define BTOR_OPT_DELAY_LEMMAS "delay_lemmas"
 #define BTOR_OPT_JUST_HEURISTIC "just_heuristic"
 #define BTOR_OPT_PARSE_INTERACTIVE "parse_interactive"
+#define BTOR_OPT_MERGE_LAMBDAS "merge_lambdas"
 
 typedef struct BtorOpts
 {
@@ -111,6 +114,7 @@ typedef struct BtorOpts
   BtorOpt rewrite_level_pbr;
 
   BtorOpt beta_reduce_all; /* eagerly eliminate lambda expressions */
+  BtorOpt ackermannize;    /* add ackermann constraints */
 #ifdef BTOR_ENABLE_BETA_REDUCTION_PROBING
   BtorOpt probe_beta_reduce_all; /* probe until given LOD or SAT limit */
   BtorOpt pbra_lod_limit;        /* LOD limit for BR probing */
@@ -125,10 +129,12 @@ typedef struct BtorOpts
 #ifndef BTOR_DO_NOT_OPTIMIZE_UNCONSTRAINED
   BtorOpt ucopt; /* unconstrained optimization */
 #endif
-  BtorOpt lazy_synthesize;        /* lazily synthesize expressions */
-  BtorOpt eliminate_slices;       /* eliminate slices on variables */
-  BtorOpt skeleton_preprocessing; /* enable propositional skeletone
-                                     preprocessing" */
+  BtorOpt lazy_synthesize;  /* lazily synthesize expressions */
+  BtorOpt eliminate_slices; /* eliminate slices on variables */
+  BtorOpt
+      skeleton_preprocessing; /* enable propositional skeleton preprocessing" */
+  BtorOpt eager_lemmas;       /* eager lemma generation */
+  BtorOpt merge_lambdas;      /* merge lambda chains */
 
   BtorOpt auto_cleanup; /* automatic cleanup of exps, assignment
                            strings (external references only) */

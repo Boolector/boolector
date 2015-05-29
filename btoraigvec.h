@@ -36,6 +36,8 @@ struct BtorAIGVecMgr
   BtorMemMgr *mm;
   BtorMsg *msg;
   BtorAIGMgr *amgr;
+  long long max_num_aigvecs;
+  long long cur_num_aigvecs;
 };
 
 /*------------------------------------------------------------------------*/
