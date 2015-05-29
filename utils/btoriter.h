@@ -26,6 +26,9 @@ typedef struct BtorNodeIterator
 {
   Btor *btor; /* required for unique table iterator */
   int pos;    /* required for unique table iterator */
+#ifndef NDEBUG
+  int num_elements;
+#endif
   BtorNode *cur;
 } BtorNodeIterator;
 

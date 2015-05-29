@@ -13,7 +13,7 @@
 #ifndef BTORLOG_H_INCLUDED
 #define BTORLOG_H_INCLUDED
 
-int btor_log_start (Btor *, const char *, ...);
+int btor_log_start (Btor *, const char *filename, const char *, ...);
 void btor_log_end (Btor *);
 
 /*------------------------------------------------------------------------*/
@@ -22,12 +22,12 @@ void btor_log_end (Btor *);
 
 #define BTORLOG_LEVEL_MAX 1 /* at the moment we support en/disabling only */
 
-#define BTORLOG(FMT, ARGS...)                   \
-  do                                            \
-  {                                             \
-    if (btor->options.loglevel.val <= 0) break; \
-    (void) btor_log_start (btor, FMT, ##ARGS);  \
-    btor_log_end (btor);                        \
+#define BTORLOG(FMT, ARGS...)                            \
+  do                                                     \
+  {                                                      \
+    if (btor->options.loglevel.val <= 0) break;          \
+    (void) btor_log_start (btor, __FILE__, FMT, ##ARGS); \
+    btor_log_end (btor);                                 \
   } while (0)
 
 #define BTORLOG_TIMESTAMP(start) \

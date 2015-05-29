@@ -79,7 +79,7 @@ do
 done
 
 working_dir=$pwd/$(basename $working_dir)
-mkdir $working_dir
+mkdir -p $working_dir
 
 # configure solver 
 echo -n "choose '$binary_name' options (default: $default_options): "
@@ -102,6 +102,8 @@ do
   if [[ ! $time_limit =~ $re ]]; then
     msg "time limit '$time_limit' is not a number"
     continue
+  else
+    break
   fi
 done
 
@@ -118,6 +120,8 @@ do
   if [[ ! $space_limit =~ $re ]]; then
     msg "space limit '$space_limit' is not a number"
     continue
+  else
+    break
   fi
 done
 

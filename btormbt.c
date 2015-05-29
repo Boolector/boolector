@@ -2896,7 +2896,7 @@ isfloatnumstr (const char *str)
 {
   const char *p;
   for (p = str; *p; p++)
-    if (!isdigit (*p) && !*p == '.') return 0;
+    if (!isdigit (*p) && *p != '.') return 0;
   return 1;
 }
 

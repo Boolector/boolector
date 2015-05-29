@@ -258,14 +258,9 @@ is_xnor_exp (Btor *btor, BtorNode *exp)
 static int
 slice_simplifiable (BtorNode *exp)
 {
-  BtorNode *real_exp = BTOR_REAL_ADDR_NODE (exp);
-  switch (real_exp->kind)
-  {
-    case BTOR_BV_VAR_NODE:
-    case BTOR_BV_CONST_NODE:
-    case BTOR_SLICE_NODE: return 1;
-  }
-  return 0;
+  exp = BTOR_REAL_ADDR_NODE (exp);
+  return BTOR_IS_BV_VAR_NODE (exp) || BTOR_IS_BV_CONST_NODE (exp)
+         || BTOR_IS_SLICE_NODE (exp);
 }
 
 static int
@@ -366,13 +361,8 @@ find_and_contradiction_exp (
 static int
 concat_simplifiable (BtorNode *exp)
 {
-  BtorNode *real_exp = BTOR_REAL_ADDR_NODE (exp);
-  switch (real_exp->kind)
-  {
-    case BTOR_BV_VAR_NODE:
-    case BTOR_BV_CONST_NODE: return 1;
-  }
-  return 0;
+  exp = BTOR_REAL_ADDR_NODE (exp);
+  return BTOR_IS_BV_VAR_NODE (exp) || BTOR_IS_BV_CONST_NODE (exp);
 }
 
 static int
@@ -2181,7 +2171,7 @@ apply_concat_eq (Btor *btor, BtorNode *e0, BtorNode *e1)
   assert (applies_concat_eq (btor, e0, e1));
 
   int upper, lower;
-  BtorNode *real_e0, *tmp1, *tmp2, *tmp3, *tmp4, *result;
+  BtorNode *real_e0, *tmp1, *tmp2, *tmp3, *tmp4, *result, *eq1, *eq2;
 
   real_e0 = BTOR_REAL_ADDR_NODE (e0);
 
@@ -2190,16 +2180,25 @@ apply_concat_eq (Btor *btor, BtorNode *e0, BtorNode *e1)
   lower = upper - btor_get_exp_width (btor, real_e0->e[0]) + 1;
 
   tmp1 = rewrite_slice_exp (btor, e0, upper, lower);
-  tmp3 = rewrite_slice_exp (btor, e1, upper, lower);
-  tmp2 = rewrite_eq_exp (btor, tmp1, tmp3);
-  btor_release_exp (btor, tmp1);
-  btor_release_exp (btor, tmp3);
+  tmp2 = rewrite_slice_exp (btor, e1, upper, lower);
   lower--;
-  tmp1 = rewrite_slice_exp (btor, e0, lower, 0);
-  tmp3 = rewrite_slice_exp (btor, e1, lower, 0);
-  tmp4 = rewrite_eq_exp (btor, tmp1, tmp3);
+  tmp3 = rewrite_slice_exp (btor, e0, lower, 0);
+  tmp4 = rewrite_slice_exp (btor, e1, lower, 0);
 
-  result = rewrite_and_exp (btor, tmp2, tmp4);
+  /* creating two slices on e1 does not really improve the situation here,
+   * hence only create a result if a slice on e1 yields a result different
+   * from a slice (through further rewriting) */
+  if (!(BTOR_IS_SLICE_NODE (BTOR_REAL_ADDR_NODE (tmp2))
+        && BTOR_IS_SLICE_NODE (BTOR_REAL_ADDR_NODE (tmp4))))
+  {
+    eq1    = rewrite_eq_exp (btor, tmp1, tmp2);
+    eq2    = rewrite_eq_exp (btor, tmp3, tmp4);
+    result = rewrite_and_exp (btor, eq1, eq2);
+    btor_release_exp (btor, eq1);
+    btor_release_exp (btor, eq2);
+  }
+  else
+    result = 0;
 
   btor_release_exp (btor, tmp1);
   btor_release_exp (btor, tmp2);
@@ -5636,16 +5635,20 @@ rewrite_eq_exp (Btor *btor, BtorNode *e0, BtorNode *e1)
 {
   int swap_ops = 0;
   BtorNode *tmp, *result = 0;
+  BtorNodeKind kind;
 
   e0 = btor_simplify_exp (btor, e0);
   e1 = btor_simplify_exp (btor, e1);
   assert (btor_precond_eq_exp_dbg (btor, e0, e1));
 
+  kind = BTOR_IS_FUN_NODE (BTOR_REAL_ADDR_NODE (e0)) ? BTOR_FEQ_NODE
+                                                     : BTOR_BEQ_NODE;
+
   e0 = btor_copy_exp (btor, e0);
   e1 = btor_copy_exp (btor, e1);
   normalize_eq (btor, &e0, &e1);
 
-  ADD_RW_RULE (const_binary_exp, BTOR_BEQ_NODE, e0, e1);
+  ADD_RW_RULE (const_binary_exp, kind, e0, e1);
   /* We do not rewrite eq in the boolean case, as we cannot extract the
    * resulting XNOR on top level again and would therefore loose substitutions.
    *
@@ -5655,8 +5658,8 @@ rewrite_eq_exp (Btor *btor, BtorNode *e0, BtorNode *e1)
   ADD_RW_RULE (true_eq, e0, e1);
   ADD_RW_RULE (false_eq, e0, e1);
   ADD_RW_RULE (bcond_eq, e0, e1);
-  ADD_RW_RULE (special_const_lhs_binary_exp, BTOR_BEQ_NODE, e0, e1);
-  ADD_RW_RULE (special_const_rhs_binary_exp, BTOR_BEQ_NODE, e0, e1);
+  ADD_RW_RULE (special_const_lhs_binary_exp, kind, e0, e1);
+  ADD_RW_RULE (special_const_rhs_binary_exp, kind, e0, e1);
 SWAP_OPERANDS:
   ADD_RW_RULE (add_left_eq, e0, e1);
   ADD_RW_RULE (add_right_eq, e0, e1);

@@ -192,6 +192,7 @@ struct BtorLambdaNode
   BTOR_BV_NODE_STRUCT;
   BTOR_BV_ADDITIONAL_NODE_STRUCT;
   BtorPtrHashTable *synth_apps;
+  BtorPtrHashTable *static_rho;
   BtorNode *body; /* function body (short-cut for curried lambdas) */
 };
 
@@ -200,7 +201,7 @@ typedef struct BtorLambdaNode BtorLambdaNode;
 struct BtorParamNode
 {
   BTOR_BV_NODE_STRUCT;
-  BtorLambdaNode *lambda_exp; /* 1:1 relation param:lambda_exp */
+  BtorNode *lambda_exp; /* 1:1 relation param:lambda_exp */
   BtorNode *assigned_exp;
 };
 
@@ -890,6 +891,9 @@ int btor_is_args_exp (Btor *btor, BtorNode *exp);
 /* Gets the number of arguments of an argument expression 'exp'. */
 int btor_get_args_arity (Btor *btor, BtorNode *exp);
 
+/* Returns static_rho of given lambda node. */
+BtorPtrHashTable *btor_lambda_get_static_rho (BtorNode *lambda);
+
 /* Copies expression (increments reference counter). */
 BtorNode *btor_copy_exp (Btor *btor, BtorNode *exp);
 
@@ -945,6 +949,11 @@ BtorNode *btor_cond_exp_node (Btor *btor,
 BtorNode *btor_apply_exp_node (Btor *btor, BtorNode *fun, BtorNode *args);
 
 BtorNode *btor_lambda_exp_node (Btor *btor, BtorNode *param, BtorNode *body);
+
+BtorNode *btor_create_exp (Btor *btor,
+                           BtorNodeKind kind,
+                           int arity,
+                           BtorNode **e);
 
 /*------------------------------------------------------------------------*/
 #ifndef NDEBUG

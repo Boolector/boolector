@@ -174,6 +174,7 @@ struct Btor
     int synthesis_inconsistency_var;
     int function_congruence_conflicts;
     int beta_reduction_conflicts;
+    int extensionality_lemmas;
 #ifndef BTOR_DO_NOT_OPTIMIZE_UNCONSTRAINED
     int bv_uc_props;
     int fun_uc_props;

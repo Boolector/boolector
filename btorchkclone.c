@@ -574,6 +574,29 @@ btor_chkclone_exp (BtorNode *exp, BtorNode *clone)
       assert (!has_next_hash_table_iterator (&cit));
     }
 
+    if (((BtorLambdaNode *) real_exp)->static_rho)
+    {
+      init_node_hash_table_iterator (&it,
+                                     ((BtorLambdaNode *) real_exp)->static_rho);
+      init_node_hash_table_iterator (
+          &cit, ((BtorLambdaNode *) real_clone)->static_rho);
+      while (has_next_node_hash_table_iterator (&it))
+      {
+        assert (has_next_node_hash_table_iterator (&cit));
+        e  = next_node_hash_table_iterator (&it);
+        ce = next_node_hash_table_iterator (&cit);
+        if (e)
+        {
+          assert (ce);
+          assert (e != ce);
+          BTOR_CHKCLONE_EXPID (e, ce);
+        }
+        else
+          assert (!ce);
+      }
+      assert (!has_next_hash_table_iterator (&cit));
+    }
+
 #if 0
       if (((BtorLambdaNode *) real_exp)->head)
 	{
@@ -802,8 +825,8 @@ btor_chkclone_tables (Btor *btor)
       BTOR_CHKCLONE_EXPID ((BtorNode *) it.cur, (BtorNode *) cit.cur);
       assert (it.bucket->data.asPtr);
       assert (cit.bucket->data.asPtr);
-      assert (!btor_compare_bv ((BitVector *) it.bucket->data.asPtr,
-                                (BitVector *) cit.bucket->data.asPtr));
+      assert (!btor_compare_bv ((BtorBitVector *) it.bucket->data.asPtr,
+                                (BtorBitVector *) cit.bucket->data.asPtr));
       (void) next_node_hash_table_iterator (&it);
       (void) next_node_hash_table_iterator (&cit);
     }
@@ -833,10 +856,10 @@ btor_chkclone_tables (Btor *btor)
       while (has_next_hash_table_iterator (&nit))
       {
         assert (has_next_hash_table_iterator (&cnit));
-        assert (!btor_compare_bv ((BitVector *) nit.bucket->data.asPtr,
-                                  (BitVector *) cnit.bucket->data.asPtr));
-        assert (!btor_compare_bv_tuple ((BitVectorTuple *) nit.cur,
-                                        (BitVectorTuple *) cnit.cur));
+        assert (!btor_compare_bv ((BtorBitVector *) nit.bucket->data.asPtr,
+                                  (BtorBitVector *) cnit.bucket->data.asPtr));
+        assert (!btor_compare_bv_tuple ((BtorBitVectorTuple *) nit.cur,
+                                        (BtorBitVectorTuple *) cnit.cur));
         (void) next_hash_table_iterator (&nit);
         (void) next_hash_table_iterator (&cnit);
       }
