@@ -3295,7 +3295,11 @@ btor_simplify (Btor *btor)
       continue;
 
     /* rewrite/beta-reduce applies on lambdas */
-    if (btor->options.beta_reduce_all.val) btor_eliminate_applies (btor);
+    if (btor->options.beta_reduce_all.val
+        /* FIXME: full beta reduction may produce lambdas that do not have a
+         * static_rho */
+        && btor->ops[BTOR_FEQ_NODE].cur == 0)
+      btor_eliminate_applies (btor);
 
     /* add ackermann constraints for all uninterpreted functions */
     if (btor->options.ackermannize.val) btor_add_ackermann_constraints (btor);
@@ -3456,6 +3460,7 @@ synthesize_exp (Btor *btor, BtorNode *exp, BtorPtrHashTable *backannotation)
       {
         assert (!cur->parameterized);
         cur->av = btor_var_aigvec (avmgr, btor_get_exp_width (btor, cur));
+        BTORLOG ("  synthesized: %s", node2string (cur));
 
         if (!btor->options.lazy_synthesize.val)
         {
@@ -5814,12 +5819,109 @@ propagate (Btor *btor,
   return assignments_changed;
 }
 
+static BtorNode *
+generate_table_select_branch_ite (Btor *btor, BtorNode *fun)
+{
+  assert (BTOR_IS_REGULAR_NODE (fun));
+  assert (BTOR_IS_LAMBDA_NODE (fun));
+  assert (!((BtorLambdaNode *) fun)->static_rho);
+
+  bool is_true;
+  char *eval;
+  BtorNode *cur, *result = 0, *and0[2], *and1[2];
+  BtorNode *cond0, *cond1, *next0, *next1;
+
+  cur = BTOR_LAMBDA_GET_BODY (fun);
+  assert (!BTOR_IS_INVERTED_NODE (cur));
+  assert (cur->parameterized);
+
+  /* general case */
+  if (BTOR_IS_BV_COND_NODE (cur))
+  {
+    assert (!BTOR_REAL_ADDR_NODE (cur->e[0])->parameterized);
+    assert (BTOR_REAL_ADDR_NODE (cur->e[0])->tseitin);
+    eval = btor_eval_exp (btor, cur->e[0]);
+    assert (eval);
+    if (eval[0] == '1')
+      result = cur->e[1];
+    else
+    {
+      assert (eval[0] == '0');
+      result = cur->e[2];
+    }
+    btor_freestr (btor->mm, eval);
+  }
+  else if (BTOR_IS_APPLY_NODE (cur))
+  {
+    result = cur;
+  }
+  /* boolean case */
+  else
+  {
+    assert (BTOR_IS_AND_NODE (cur));
+    assert (btor_get_exp_width (btor, cur) == 1);
+    assert (BTOR_IS_AND_NODE (BTOR_REAL_ADDR_NODE (cur->e[0])));
+    assert (BTOR_IS_AND_NODE (BTOR_REAL_ADDR_NODE (cur->e[1])));
+    assert (BTOR_IS_INVERTED_NODE (cur->e[0]));
+    assert (BTOR_IS_INVERTED_NODE (cur->e[1]));
+
+    and0[0] = BTOR_REAL_ADDR_NODE (cur->e[0])->e[0];
+    and0[1] = BTOR_REAL_ADDR_NODE (cur->e[0])->e[1];
+    and1[0] = BTOR_REAL_ADDR_NODE (cur->e[1])->e[0];
+    and1[1] = BTOR_REAL_ADDR_NODE (cur->e[1])->e[1];
+
+    if (!BTOR_REAL_ADDR_NODE (and0[0])->parameterized)
+    {
+      cond0 = and0[0];
+      next0 = and0[1];
+    }
+    else
+    {
+      assert (BTOR_REAL_ADDR_NODE (and0[0])->parameterized);
+      cond0 = and0[1];
+      next0 = and0[0];
+    }
+
+    if (!BTOR_REAL_ADDR_NODE (and1[0])->parameterized)
+    {
+      cond1 = and1[0];
+      next1 = and1[1];
+    }
+    else
+    {
+      assert (BTOR_REAL_ADDR_NODE (and1[0])->parameterized);
+      cond1 = and1[1];
+      next1 = and1[0];
+    }
+
+    eval = btor_eval_exp (btor, cond0);
+    assert (eval);
+    is_true = eval[0] == '1';
+    btor_freestr (btor->mm, eval);
+    if (is_true)
+      result = next0;
+    else
+    {
+#ifndef NDEBUG
+      eval = btor_eval_exp (btor, cond1);
+      assert (eval);
+      assert (eval[0] == '1');
+      btor_freestr (btor->mm, eval);
+#endif
+      result = next1;
+    }
+  }
+  assert (result);
+  return result;
+}
+
 /* generate hash table for function 'fun' consisting of all rho and static_rho
  * hash tables. */
 static BtorPtrHashTable *
 generate_table (Btor *btor, BtorNode *fun)
 {
   int i;
+  bool is_ite;
   BtorMemMgr *mm;
   BtorNode *cur, *value, *args;
   BtorPtrHashTable *table, *rho, *static_rho;
@@ -5848,13 +5950,22 @@ generate_table (Btor *btor, BtorNode *fun)
 
     if (BTOR_IS_FUN_NODE (cur))
     {
-      rho = cur->rho;
+      rho    = cur->rho;
+      is_ite = false;
 
       if (BTOR_IS_LAMBDA_NODE (cur))
       {
         /* we don't care if assignments have changed */
         (void) lazy_synthesize_and_encode_lambda_exp (btor, cur, 1);
         static_rho = ((BtorLambdaNode *) cur)->static_rho;
+
+        /* choose branch in function ITE case */
+        if (!static_rho)
+        {
+          BTOR_PUSH_STACK (
+              mm, visit, generate_table_select_branch_ite (btor, cur));
+          is_ite = true;
+        }
       }
       else
         static_rho = 0;
@@ -5881,24 +5992,11 @@ generate_table (Btor *btor, BtorNode *fun)
       // TODO: update static_rho to get rid off proxy nodes
     }
 
-    /* choose path w.r.t. condition for ITE on functions */
-    if (BTOR_IS_BV_COND_NODE (cur) && BTOR_REAL_ADDR_NODE (cur->e[0])->tseitin)
-    {
-      char *eval = btor_eval_exp (btor, cur->e[0]);
+    if (is_ite) continue;
 
-      if (eval)
-      {
-        if (eval[0] == '1')
-          BTOR_PUSH_STACK (mm, visit, cur->e[1]);
-        else
-        {
-          assert (eval[0] == '0');
-          BTOR_PUSH_STACK (mm, visit, cur->e[2]);
-        }
-        btor_freestr (mm, eval);
-        continue;
-      }
-    }
+    /* ITE on functions are handled with generate_table_select_branch_ite */
+    assert (!BTOR_IS_BV_COND_NODE (cur)
+            || BTOR_REAL_ADDR_NODE (cur->e[0])->parameterized);
 
     for (i = 0; i < cur->arity; i++) BTOR_PUSH_STACK (mm, visit, cur->e[i]);
   }
