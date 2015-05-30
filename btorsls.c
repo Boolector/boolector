@@ -2923,7 +2923,7 @@ select_prop_move (Btor *btor, BtorNode *root)
       real_cur = BTOR_REAL_ADDR_NODE (cur);
       do
       {
-        tmp = btor_get_bv_model (btor, real_cur->e[0]);
+        tmp = (BtorBitVector *) btor_get_bv_model (btor, real_cur->e[0]);
         /* assume cond to be fixed and propagate bvnew to enabled path */
         if (btor_is_zero_bv (tmp))
           cur = real_cur->e[2];
