@@ -2857,67 +2857,6 @@ select_prop_move (Btor *btor, BtorNode *root)
       if (BTOR_IS_BV_CONST_NODE (BTOR_REAL_ADDR_NODE (real_cur->e[idx]))
           || real_cur->arity == 1)
       {
-#ifndef NDEBUG
-        switch (real_cur->kind)
-        {
-          case BTOR_ADD_NODE:
-            tmp = btor_add_bv (btor->mm, bve[0], bve[1]);
-            assert (btor_compare_bv (tmp, bvcur));
-            btor_free_bv (btor->mm, tmp);
-            break;
-          case BTOR_AND_NODE:
-            tmp = btor_and_bv (btor->mm, bve[0], bve[1]);
-            assert (btor_compare_bv (tmp, bvcur));
-            btor_free_bv (btor->mm, tmp);
-            break;
-          case BTOR_BEQ_NODE:
-            tmp = btor_eq_bv (btor->mm, bve[0], bve[1]);
-            assert (btor_compare_bv (tmp, bvcur));
-            btor_free_bv (btor->mm, tmp);
-            break;
-          case BTOR_ULT_NODE:
-            tmp = btor_ult_bv (btor->mm, bve[0], bve[1]);
-            assert (btor_compare_bv (tmp, bvcur));
-            btor_free_bv (btor->mm, tmp);
-            break;
-          case BTOR_SLL_NODE:
-            tmp = btor_sll_bv (btor->mm, bve[0], bve[1]);
-            assert (btor_compare_bv (tmp, bvcur));
-            btor_free_bv (btor->mm, tmp);
-            break;
-          case BTOR_SRL_NODE:
-            tmp = btor_srl_bv (btor->mm, bve[0], bve[1]);
-            assert (btor_compare_bv (tmp, bvcur));
-            btor_free_bv (btor->mm, tmp);
-            break;
-          case BTOR_MUL_NODE:
-            tmp = btor_mul_bv (btor->mm, bve[0], bve[1]);
-            assert (btor_compare_bv (tmp, bvcur));
-            btor_free_bv (btor->mm, tmp);
-            break;
-          case BTOR_UDIV_NODE:
-            tmp = btor_udiv_bv (btor->mm, bve[0], bve[1]);
-            assert (btor_compare_bv (tmp, bvcur));
-            btor_free_bv (btor->mm, tmp);
-            break;
-          case BTOR_UREM_NODE:
-            tmp = btor_urem_bv (btor->mm, bve[0], bve[1]);
-            assert (btor_compare_bv (tmp, bvcur));
-            btor_free_bv (btor->mm, tmp);
-            break;
-          case BTOR_CONCAT_NODE:
-            tmp = btor_concat_bv (btor->mm, bve[0], bve[1]);
-            assert (btor_compare_bv (tmp, bvcur));
-            btor_free_bv (btor->mm, tmp);
-            break;
-          default:
-            assert (real_cur->kind == BTOR_SLICE_NODE);
-            tmp = btor_slice_bv (
-                btor->mm, bve[0], real_cur->upper, real_cur->lower);
-            assert (btor_compare_bv (tmp, bvcur));
-            btor_free_bv (btor->mm, tmp);
-        }
-#endif
         break;
       }
 
@@ -2980,13 +2919,16 @@ select_prop_move (Btor *btor, BtorNode *root)
     }
     else if (BTOR_IS_BV_COND_NODE (BTOR_REAL_ADDR_NODE (real_cur->e[eidx])))
     {
+      cur      = real_cur->e[eidx];
+      real_cur = BTOR_REAL_ADDR_NODE (cur);
       do
       {
+        tmp = btor_get_bv_model (btor, real_cur->e[0]);
         /* assume cond to be fixed and propagate bvnew to enabled path */
-        if (btor_is_zero_bv (bve[0]))
-          cur = BTOR_REAL_ADDR_NODE (real_cur->e[eidx])->e[2];
+        if (btor_is_zero_bv (tmp))
+          cur = real_cur->e[2];
         else
-          cur = BTOR_REAL_ADDR_NODE (real_cur->e[eidx])->e[1];
+          cur = real_cur->e[1];
         real_cur = BTOR_REAL_ADDR_NODE (cur);
       } while (BTOR_IS_BV_COND_NODE (real_cur));
 
@@ -2995,8 +2937,6 @@ select_prop_move (Btor *btor, BtorNode *root)
       else if (BTOR_IS_BV_CONST_NODE (BTOR_REAL_ADDR_NODE (cur)))
       {
         /* if input is const -> conflict */
-        assert (btor_compare_bv (
-            bvenew, (BtorBitVector *) btor_get_bv_model (btor, cur)));
         btor_free_bv (btor->mm, bvenew);
         break;
       }
