@@ -61,18 +61,23 @@ static BtorRNG *g_rng;
     btor_free_bv (g_btor->mm, bv##fun);                               \
   } while (0)
 
-#define TEST_SLS_INIT_INV_VAL_CON(fun, bw, ve, eidx)               \
-  do                                                               \
-  {                                                                \
-    idx     = eidx ? 0 : 1;                                        \
-    tmpbits = btor_decimal_to_const (g_mm, #ve);                   \
-    len     = strlen (#ve);                                        \
-    BTOR_CNEWN (g_mm, bits, bw + 1);                               \
-    for (i = 0; i < bw; i++) bits[i] = i < len ? tmpbits[i] : '0'; \
-    btor_freestr (g_mm, tmpbits);                                  \
-    e[idx] = btor_const_exp (g_btor, bits);                        \
-    BTOR_DELETEN (g_mm, bits, bw + 1);                             \
-    fun = btor_##fun##_exp (g_btor, e[0], e[1]);                   \
+#define TEST_SLS_INIT_INV_VAL_CON(fun, bw, ve, eidx)                 \
+  do                                                                 \
+  {                                                                  \
+    idx = eidx ? 0 : 1;                                              \
+    BTOR_CNEWN (g_mm, bits, bw + 1);                                 \
+    if (!ve)                                                         \
+      memset (bits, '0', bw);                                        \
+    else                                                             \
+    {                                                                \
+      tmpbits = btor_decimal_to_const (g_mm, #ve);                   \
+      len     = strlen (#ve);                                        \
+      for (i = 0; i < bw; i++) bits[i] = i < len ? tmpbits[i] : '0'; \
+      btor_freestr (g_mm, tmpbits);                                  \
+    }                                                                \
+    e[idx] = btor_const_exp (g_btor, bits);                          \
+    BTOR_DELETEN (g_mm, bits, bw + 1);                               \
+    fun = btor_##fun##_exp (g_btor, e[0], e[1]);                     \
   } while (0)
 
 #define TEST_SLS_FINISH_INV_VAL_CON(fun, eidx) \
@@ -971,41 +976,102 @@ sls_inv_udiv_bv (int bw)
 
   switch (bw)
   {
+    case 1:
+      /* conflict: e[0] / 0 != 1...1 */
+      TEST_SLS_INIT_INV_VAL_CON (udiv, bw, 0, 0);
+      TEST_SLS_INV_VAL (udiv, 1, bw, 0, 0, 0);
+      TEST_SLS_FINISH_INV_VAL_CON (udiv, 0);
+      e[1] = tmpe[1];
+      /* conflict: 0 / e[1] != 0 */
+      TEST_SLS_INIT_INV_VAL_CON (udiv, bw, 0, 1);
+      TEST_SLS_INV_VAL (udiv, 1, bw, 0, 1, 1);
+      TEST_SLS_FINISH_INV_VAL_CON (udiv, 1);
+      e[0] = tmpe[0];
+      break;
+
     case 7:
+      /* conflict: e[0] / 0 != 1...1 */
+      TEST_SLS_INIT_INV_VAL_CON (udiv, bw, 0, 0);
+      TEST_SLS_INV_VAL (udiv, 1, bw, 0, 124, 0);
+      TEST_SLS_FINISH_INV_VAL_CON (udiv, 0);
+      e[1] = tmpe[1];
+      /* conflict: 0 / e[1] != 0 */
+      TEST_SLS_INIT_INV_VAL_CON (udiv, bw, 0, 1);
+      TEST_SLS_INV_VAL (udiv, 1, bw, 0, 124, 1);
+      TEST_SLS_FINISH_INV_VAL_CON (udiv, 1);
+      e[0] = tmpe[0];
+      /* conflict: e[0] / bve = bvudiv, overflow: bve * bvudiv */
       TEST_SLS_INIT_INV_VAL_CON (udiv, bw, 124, 0);
       TEST_SLS_INV_VAL (udiv, 1, bw, 124, 2, 0);
       TEST_SLS_FINISH_INV_VAL_CON (udiv, 0);
       e[1] = tmpe[1];
+      /* conflict: bve / e[1] = bvudiv, bvudiv % bve != 0 */
       TEST_SLS_INIT_INV_VAL_CON (udiv, bw, 6, 1);
       TEST_SLS_INV_VAL (udiv, 1, bw, 6, 4, 1);
       TEST_SLS_FINISH_INV_VAL_CON (udiv, 1);
       break;
 
     case 31:
+      /* conflict: e[0] / 0 != 1...1 */
+      TEST_SLS_INIT_INV_VAL_CON (udiv, bw, 0, 0);
+      TEST_SLS_INV_VAL (udiv, 1, bw, 0, 22222, 0);
+      TEST_SLS_FINISH_INV_VAL_CON (udiv, 0);
+      e[1] = tmpe[1];
+      /* conflict: 0 / e[1] != 0 */
+      TEST_SLS_INIT_INV_VAL_CON (udiv, bw, 0, 1);
+      TEST_SLS_INV_VAL (udiv, 1, bw, 0, 22222, 1);
+      TEST_SLS_FINISH_INV_VAL_CON (udiv, 1);
+      e[0] = tmpe[0];
+      /* conflict: e[0] / bve = bvudiv, overflow: bve * bvudiv */
       TEST_SLS_INIT_INV_VAL_CON (udiv, bw, 123456, 0);
       TEST_SLS_INV_VAL (udiv, 1, bw, 123456, 22222, 0);
       TEST_SLS_FINISH_INV_VAL_CON (udiv, 0);
       e[1] = tmpe[1];
+      /* conflict: bve / e[1] = bvudiv, bvudiv % bve != 0 */
       TEST_SLS_INIT_INV_VAL_CON (udiv, bw, 41416, 1);
       TEST_SLS_INV_VAL (udiv, 1, bw, 41416, 333, 1);
       TEST_SLS_FINISH_INV_VAL_CON (udiv, 1);
       break;
 
     case 33:
+      /* conflict: e[0] / 0 != 1...1 */
+      TEST_SLS_INIT_INV_VAL_CON (udiv, bw, 0, 0);
+      TEST_SLS_INV_VAL (udiv, 1, bw, 0, 4242424242, 0);
+      TEST_SLS_FINISH_INV_VAL_CON (udiv, 0);
+      e[1] = tmpe[1];
+      /* conflict: 0 / e[1] != 0 */
+      TEST_SLS_INIT_INV_VAL_CON (udiv, bw, 0, 1);
+      TEST_SLS_INV_VAL (udiv, 1, bw, 0, 4242424242, 1);
+      TEST_SLS_FINISH_INV_VAL_CON (udiv, 1);
+      e[0] = tmpe[0];
+      /* conflict: e[0] / bve = bvudiv, overflow: bve * bvudiv */
       TEST_SLS_INIT_INV_VAL_CON (udiv, bw, 1234, 0);
       TEST_SLS_INV_VAL (udiv, 1, bw, 1234, 4242424242, 0);
       TEST_SLS_FINISH_INV_VAL_CON (udiv, 0);
       e[1] = tmpe[1];
+      /* conflict: bve / e[1] = bvudiv, bvudiv % bve != 0 */
       TEST_SLS_INIT_INV_VAL_CON (udiv, bw, 89858496, 1);
       TEST_SLS_INV_VAL (udiv, 1, bw, 89858496, 555, 1);
       TEST_SLS_FINISH_INV_VAL_CON (udiv, 1);
       break;
 
     case 45:
+      /* conflict: e[0] / 0 != 1...1 */
+      TEST_SLS_INIT_INV_VAL_CON (udiv, bw, 0, 0);
+      TEST_SLS_INV_VAL (udiv, 1, bw, 0, 8293882888, 0);
+      TEST_SLS_FINISH_INV_VAL_CON (udiv, 0);
+      e[1] = tmpe[1];
+      /* conflict: 0 / e[1] != 0 */
+      TEST_SLS_INIT_INV_VAL_CON (udiv, bw, 0, 1);
+      TEST_SLS_INV_VAL (udiv, 1, bw, 0, 8293882888, 1);
+      TEST_SLS_FINISH_INV_VAL_CON (udiv, 1);
+      e[0] = tmpe[0];
+      /* conflict: e[0] / bve = bvudiv, overflow: bve * bvudiv */
       TEST_SLS_INIT_INV_VAL_CON (udiv, bw, 333333, 0);
       TEST_SLS_INV_VAL (udiv, 1, bw, 333333, 8293882888, 0);
       TEST_SLS_FINISH_INV_VAL_CON (udiv, 0);
       e[1] = tmpe[1];
+      /* conflict: bve / e[1] = bvudiv, bvudiv % bve != 0 */
       TEST_SLS_INIT_INV_VAL_CON (udiv, bw, 3896446884, 1);
       TEST_SLS_INV_VAL (udiv, 1, bw, 3896446884, 354222441, 1);
       TEST_SLS_FINISH_INV_VAL_CON (udiv, 1);
