@@ -1586,6 +1586,8 @@ inv_add_bv (Btor *btor,
 #endif
 
   mm = btor->mm;
+  (void) add;
+  (void) eidx;
 
   /* res + bve = bve + res = bvadd -> res = bvadd - bve */
   neg = btor_neg_bv (mm, bve);
@@ -1702,20 +1704,20 @@ inv_eq_bv (
   assert (eidx >= 0 && eidx <= 1);
   assert (!BTOR_IS_BV_CONST_NODE (BTOR_REAL_ADDR_NODE (eq->e[eidx])));
 
-  BtorNode *e;
-  BtorBitVector *res = 0;
+  BtorBitVector *res;
   BtorMemMgr *mm;
 #ifndef NDEBUG
   BtorBitVector *tmpdbg;
 #endif
 
   mm = btor->mm;
-  e  = eq->e[eidx ? 0 : 1];
-  assert (e);
+  (void) eq;
+  (void) eidx;
 
   /* res != bveq -> choose random res != bveq */
   if (btor_is_zero_bv (bveq))
   {
+    res = 0;
     do
     {
       if (res) btor_free_bv (mm, res);
@@ -1759,7 +1761,7 @@ inv_ult_bv (Btor *btor,
 
   int isult, bw;
   BtorNode *e;
-  BtorBitVector *res = 0, *zero, *one, *bvmax, *tmp, *neg;
+  BtorBitVector *res, *zero, *one, *bvmax, *tmp, *neg;
   BtorMemMgr *mm;
 #ifndef NDEBUG
   BtorBitVector *tmpdbg;
@@ -2154,7 +2156,6 @@ inv_mul_bv (Btor *btor,
    * -> if gcd (bve, 2^bw) == 1, determine res via extended euclid
    * -> else conflict */
 
-  res = 0;
   tmp = btor_urem_bv (mm, bvmul, bve);
   if (btor_is_zero_bv (tmp))
   {
@@ -2206,6 +2207,7 @@ inv_mul_bv (Btor *btor,
         res = 0;
       else
       {
+        res = 0;
         if (bvmul->width > 2)
         {
           for (i = bvmul->width < 3 ? 2 : 0; i < 4; i++)
@@ -2295,7 +2297,9 @@ inv_udiv_bv (Btor *btor,
     if (btor_is_zero_bv (bve))
     {
       /* 0 / e[1] = 0, else conflict */
-      if (!btor_is_zero_bv (bvudiv))
+      if (btor_is_zero_bv (bvudiv))
+        res = btor_new_random_bv (mm, &btor->rng, bve->width);
+      else
       {
 #ifndef NDEBUG
         iscon = 1;
@@ -2365,7 +2369,9 @@ inv_udiv_bv (Btor *btor,
     if (btor_is_zero_bv (bve))
     {
       /* e[0] / 0 = 1...1, else conflict */
-      if (btor_compare_bv (bvmax, bvudiv))
+      if (!btor_compare_bv (bvmax, bvudiv))
+        res = btor_new_random_bv (mm, &btor->rng, bve->width);
+      else
       {
 #ifndef NDEBUG
         iscon = 1;
@@ -3400,10 +3406,9 @@ btor_delete_sls_solver (Btor *btor, BtorSLSSolver *slv)
 }
 
 void
-btor_print_stats_sls_solver (Btor *btor, BtorSLSSolver *slv)
+btor_print_stats_sls_solver (Btor *btor)
 {
   assert (btor);
-  assert (slv);
 
   BTOR_MSG (btor->msg, 1, "");
   BTOR_MSG (btor->msg, 1, "sls restarts: %d", btor->sls_solver->stats.restarts);

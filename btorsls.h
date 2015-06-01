@@ -95,7 +95,7 @@ BtorSLSSolver *btor_clone_sls_solver (Btor *clone,
                                       BtorNodeMap *exp_map);
 
 void btor_delete_sls_solver (Btor *btor, BtorSLSSolver *slv);
-void btor_print_stats_sls_solver (Btor *btor, BtorSLSSolver *slv);
+void btor_print_stats_sls_solver (Btor *btor);
 
 #ifndef NDEBUG
 BtorBitVector *inv_add_bv (Btor *btor,

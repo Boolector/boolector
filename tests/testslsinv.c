@@ -20,6 +20,10 @@ static Btor *g_btor;
 static BtorMemMgr *g_mm;
 static BtorRNG *g_rng;
 
+/*------------------------------------------------------------------------*/
+#ifndef NDEBUG
+/*------------------------------------------------------------------------*/
+
 #define TEST_SLS_INV_BV(fun, iscon, bw, bve, bvn, eidx) \
   do                                                    \
   {                                                     \
@@ -88,6 +92,10 @@ static BtorRNG *g_rng;
     btor_release_exp (g_btor, e[idx]);         \
   } while (0)
 
+/*------------------------------------------------------------------------*/
+#endif
+/*------------------------------------------------------------------------*/
+
 void
 init_slsinv_tests (void)
 {
@@ -100,6 +108,8 @@ init_slsinv_tests (void)
 static void
 sls_inv_add_bv (int bw)
 {
+  (void) bw;
+#ifndef NDEBUG
   int j;
   BtorNode *add, *e[3];
   BtorBitVector *bvadd, *bve[3], *res, *tmp;
@@ -128,11 +138,14 @@ sls_inv_add_bv (int bw)
   btor_release_exp (g_btor, add);
   btor_release_exp (g_btor, e[0]);
   btor_release_exp (g_btor, e[1]);
+#endif
 }
 
 static void
 sls_inv_and_bv (int bw)
 {
+  (void) bw;
+#ifndef NDEBUG
   int i, j;
   BtorNode *and, *e[3], *tmpe[3], *tmpand;
   BtorBitVector *bvand, *bve[3], *res, *one, *bvmax, *tmp;
@@ -231,11 +244,14 @@ sls_inv_and_bv (int bw)
   btor_release_exp (g_btor, tmpand);
   btor_free_bv (g_mm, one);
   btor_free_bv (g_mm, bvmax);
+#endif
 }
 
 static void
 sls_inv_eq_bv (int bw)
 {
+  (void) bw;
+#ifndef NDEBUG
   BtorNode *eq, *e[3];
   BtorBitVector *bveq, *bve[3], *res;
 
@@ -267,11 +283,14 @@ sls_inv_eq_bv (int bw)
   btor_release_exp (g_btor, eq);
   btor_release_exp (g_btor, e[0]);
   btor_release_exp (g_btor, e[1]);
+#endif
 }
 
 static void
 sls_inv_ult_bv (int bw)
 {
+  (void) bw;
+#ifndef NDEBUG
   int j;
   BtorNode *ult, *e[3], *tmpe[3];
   BtorBitVector *bve[3], *res, *tmp;
@@ -445,11 +464,14 @@ sls_inv_ult_bv (int bw)
   btor_free_bv (g_mm, neg);
   btor_release_exp (g_btor, tmpe[0]);
   btor_release_exp (g_btor, tmpe[1]);
+#endif
 }
 
 static void
 sls_inv_sll_bv (int bw)
 {
+  (void) bw;
+#ifndef NDEBUG
   int i, j, r, sbw;
   BtorNode *sll, *e[3], *tmpe[3];
   BtorBitVector *bvsll, *bve[3], *res, *zero, *one, *bvmaxshift, *tmp;
@@ -610,11 +632,14 @@ sls_inv_sll_bv (int bw)
   btor_free_bv (g_mm, one);
   btor_release_exp (g_btor, tmpe[0]);
   btor_release_exp (g_btor, tmpe[1]);
+#endif
 }
 
 static void
 sls_inv_srl_bv (int bw)
 {
+  (void) bw;
+#ifndef NDEBUG
   int i, j, r, sbw;
   BtorNode *srl, *e[3], *tmpe[3];
   BtorBitVector *bvsrl, *bve[3], *res, *zero, *one, *bvmaxshift, *tmp;
@@ -775,11 +800,14 @@ sls_inv_srl_bv (int bw)
   btor_free_bv (g_mm, one);
   btor_release_exp (g_btor, tmpe[0]);
   btor_release_exp (g_btor, tmpe[1]);
+#endif
 }
 
 static void
 sls_inv_mul_bv (int bw)
 {
+  (void) bw;
+#ifndef NDEBUG
   int i, len, idx;
   BtorNode *mul, *e[3], *tmpe[3];
   BtorBitVector *bvmul, *bve[3], *res, *tmp;
@@ -918,11 +946,14 @@ sls_inv_mul_bv (int bw)
 
   btor_release_exp (g_btor, tmpe[0]);
   btor_release_exp (g_btor, tmpe[1]);
+#endif
 }
 
 static void
 sls_inv_udiv_bv (int bw)
 {
+  (void) bw;
+#ifndef NDEBUG
   int i, len, idx;
   BtorNode *udiv, *e[3], *tmpe[3];
   BtorBitVector *bvudiv, *bve[3], *res, *tmp;
@@ -1082,11 +1113,14 @@ sls_inv_udiv_bv (int bw)
 
   btor_release_exp (g_btor, tmpe[0]);
   btor_release_exp (g_btor, tmpe[1]);
+#endif
 }
 
 static void
 sls_inv_urem_bv (int bw)
 {
+  (void) bw;
+#ifndef NDEBUG
   int j;
   BtorNode *urem, *e[3], *tmpe, *tmpurem;
   BtorBitVector *bvurem, *bve[3], *res, *tmp, *tmp2, *bvmax, *one, *neg, *zero;
@@ -1248,11 +1282,14 @@ sls_inv_urem_bv (int bw)
   btor_free_bv (g_mm, zero);
   btor_free_bv (g_mm, one);
   btor_free_bv (g_mm, neg);
+#endif
 }
 
 static void
 sls_inv_concat_bv (int bw)
 {
+  (void) bw;
+#ifndef NDEBUG
   int i, j, ebw, iscon;
   BtorNode *concat, *e[3], *tmpe, *tmpconcat;
   BtorBitVector *bvconcat, *bve[3], *res, *tmp;
@@ -1345,11 +1382,14 @@ sls_inv_concat_bv (int bw)
   btor_release_exp (g_btor, e[0]);
   btor_release_exp (g_btor, e[1]);
   btor_release_exp (g_btor, concat);
+#endif
 }
 
 static void
 sls_inv_slice_bv (int bw)
 {
+  (void) bw;
+#ifndef NDEBUG
   int j, up, lo;
   BtorNode *slice, *e[3];
   BtorBitVector *bvslice, *res, *tmp;
@@ -1370,6 +1410,7 @@ sls_inv_slice_bv (int bw)
     btor_release_exp (g_btor, e[0]);
     btor_release_exp (g_btor, slice);
   }
+#endif
 }
 
 static void
@@ -1487,6 +1528,8 @@ test_slsinv_slice_bv (void)
 void
 run_slsinv_tests (int argc, char **argv)
 {
+  (void) argc;
+  (void) argv;
   BTOR_RUN_TEST (slsinv_add_bv);
   BTOR_RUN_TEST (slsinv_and_bv);
   BTOR_RUN_TEST (slsinv_eq_bv);

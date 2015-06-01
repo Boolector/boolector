@@ -610,8 +610,7 @@ btor_print_stats_btor (Btor *btor)
               btor->stats.dp_assumed_applies);
   }
 
-  if (btor->options.sls.val)
-    btor_print_stats_sls_solver (btor, btor->sls_solver);
+  if (btor->options.sls.val) btor_print_stats_sls_solver (btor);
 
   BTOR_MSG (btor->msg, 1, "");
   BTOR_MSG (btor->msg, 1, "%.2f seconds beta-reduction", btor->time.beta);
