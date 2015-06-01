@@ -2527,12 +2527,10 @@ inv_urem_bv (Btor *btor,
 #ifndef NDEBUG
         iscon = 1;
 #endif
+        btor_free_bv (mm, res);
         /* check for non-recoverable conflict */
         if (BTOR_IS_BV_CONST_NODE (BTOR_REAL_ADDR_NODE (e)))
-        {
-          btor_free_bv (mm, res);
           res = 0;
-        }
         else
           goto RES_EQ_BVUREM_1;
       }
@@ -2856,9 +2854,7 @@ select_prop_move (Btor *btor, BtorNode *root)
       /* non-recoverable conflict */
       if (BTOR_IS_BV_CONST_NODE (BTOR_REAL_ADDR_NODE (real_cur->e[idx]))
           || real_cur->arity == 1)
-      {
         break;
-      }
 
       eidx = idx;
       idx  = eidx ? 0 : 1;
