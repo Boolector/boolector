@@ -112,7 +112,7 @@ btor_init_opts (Btor *btor)
 
   BTOR_OPT ("m", model_gen, 0, 0, 2, "print model for satisfiable instances");
 
-  BTOR_OPT ("i", incremental, 0, 0, 1, "incremental usage (SMT1 only)");
+  BTOR_OPT ("i", incremental, 0, 0, 1, "incremental usage");
   BTOR_OPT (
       "I", incremental_all, 0, 0, 1, "incremental, solve all (SMT1 only)");
 
