@@ -4096,7 +4096,8 @@ collect_applies (Btor *btor,
     cur_btor = btor_mapped_node (key_map, cur_clone);
     assert (cur_btor);
     assert (BTOR_IS_REGULAR_NODE (cur_btor));
-    assert (BTOR_IS_BV_VAR_NODE (cur_btor) || BTOR_IS_APPLY_NODE (cur_btor));
+    assert (BTOR_IS_BV_VAR_NODE (cur_btor) || BTOR_IS_APPLY_NODE (cur_btor)
+            || BTOR_IS_FEQ_NODE (cur_btor));
 
     if (BTOR_IS_BV_VAR_NODE (cur_btor))
       btor->stats.dp_assumed_vars += 1;
@@ -4111,15 +4112,16 @@ collect_applies (Btor *btor,
       assert (!cur_btor->parameterized);
       if (BTOR_IS_BV_VAR_NODE (cur_btor))
         btor->stats.dp_failed_vars += 1;
-      else
+      else if (BTOR_IS_APPLY_NODE (cur_btor))
       {
-        assert (BTOR_IS_APPLY_NODE (cur_btor));
         if (cur_btor->aux_mark) continue;
         btor->stats.dp_failed_applies += 1;
         cur_btor->aux_mark = 1;
         BTOR_PUSH_STACK (btor->mm, unmark_stack, cur_btor);
         BTOR_PUSH_STACK (btor->mm, *top_applies, cur_btor);
       }
+      else
+        assert (BTOR_IS_FEQ_NODE (cur_btor)); /* nothing to do here */
     }
   }
 
@@ -4234,7 +4236,8 @@ search_initial_applies_dual_prop (Btor *btor,
       cur->aux_mark = 1;
       BTOR_PUSH_STACK (btor->mm, unmark_stack, cur);
 
-      if (BTOR_IS_BV_VAR_NODE (cur) || BTOR_IS_APPLY_NODE (cur))
+      if (BTOR_IS_BV_VAR_NODE (cur) || BTOR_IS_FEQ_NODE (cur)
+          || BTOR_IS_APPLY_NODE (cur))
       {
         assert (BTOR_IS_SYNTH_NODE (cur));
         BTOR_PUSH_STACK (btor->mm, inputs, cur);
@@ -4375,12 +4378,11 @@ search_initial_applies_just (Btor *btor, BtorNodePtrStack *top_applies)
     {
       cur = BTOR_REAL_ADDR_NODE (BTOR_POP_STACK (stack));
       assert (!cur->parameterized);
-      assert (!BTOR_IS_FUN_NODE (cur));
       if (cur->aux_mark) continue;
       cur->aux_mark = 1;
       BTOR_PUSH_STACK (btor->mm, unmark_stack, cur);
 
-      if (BTOR_IS_APPLY_NODE (cur))
+      if (BTOR_IS_APPLY_NODE (cur) && !cur->parameterized)
       {
         assert (BTOR_IS_SYNTH_NODE (cur));
         BTORLOG ("initial apply: %s", node2string (cur));
@@ -6704,9 +6706,6 @@ sat_aux_btor_dual_prop (Btor *btor)
   if (!btor_is_initialized_sat (smgr)) btor_init_sat (smgr);
 
   if (btor->valid_assignments == 1) reset_incremental_usage (btor);
-
-  BTOR_ABORT_CORE (btor->ops[BTOR_FEQ_NODE].cur > 0,
-                   "extensionality on arrays/lambdas not yet supported");
 
   assert (btor->synthesized_constraints->count == 0);
   assert (btor->unsynthesized_constraints->count == 0);

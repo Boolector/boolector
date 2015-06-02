@@ -333,6 +333,8 @@ btor_compute_scores_dual_prop (Btor *btor)
       cur->aux_mark = 1;
       BTOR_PUSH_STACK (btor->mm, unmark_stack, cur);
 
+      if (BTOR_IS_FEQ_NODE (cur)) continue;
+
       if (BTOR_IS_APPLY_NODE (cur))
       {
         assert (!cur->parameterized);
@@ -436,7 +438,7 @@ btor_compare_scores_qsort (const void *p1, const void *p2)
 
   if (h == BTOR_JUST_HEUR_BRANCH_MIN_APP)
   {
-    if (BTOR_IS_BV_VAR_NODE (a))
+    if (BTOR_IS_BV_VAR_NODE (a) || BTOR_IS_FEQ_NODE (a))
       sa = 0;
     else
     {
@@ -445,7 +447,7 @@ btor_compare_scores_qsort (const void *p1, const void *p2)
       sa = ((BtorPtrHashTable *) bucket->data.asPtr)->count;
     }
 
-    if (BTOR_IS_BV_VAR_NODE (b))
+    if (BTOR_IS_BV_VAR_NODE (b) || BTOR_IS_FEQ_NODE (b))
       sb = 0;
     else
     {
