@@ -7371,6 +7371,21 @@ rebuild_formula (Btor *btor, int rewrite_level)
   btor_delete_ptr_hash_table (t);
 }
 
+static BtorNode *
+const_from_bv (Btor *btor, BtorBitVector *bv)
+{
+  assert (btor);
+  assert (bv);
+
+  char *val;
+  BtorNode *res;
+
+  val = btor_bv_to_char_bv (btor->mm, bv);
+  res = btor_const_exp (btor, val);
+  btor_release_bv_assignment_str (btor, val);
+  return res;
+}
+
 static void
 check_model (Btor *btor, Btor *clone, BtorPtrHashTable *inputs)
 {
@@ -7379,11 +7394,14 @@ check_model (Btor *btor, Btor *clone, BtorPtrHashTable *inputs)
   assert (clone);
   assert (inputs);
 
-  int ret;
+  int i, ret;
   char *a;
-  BtorNode *cur, *exp, *simp, *real_simp, *model, *eq;
+  BtorNode *cur, *exp, *simp, *real_simp, *model, *eq, *args, *apply;
   BtorHashTableIterator it;
   const BtorPtrHashTable *fmodel;
+  BtorBitVector *value;
+  BtorBitVectorTuple *args_tuple;
+  BtorNodePtrStack consts;
 
   /* formula did not change since last sat call, we have to reset assumptions
    * from the previous run */
@@ -7402,6 +7420,7 @@ check_model (Btor *btor, Btor *clone, BtorPtrHashTable *inputs)
   rebuild_formula (clone, 3);
 
   /* add bit vector variable models */
+  BTOR_INIT_STACK (consts);
   init_node_hash_table_iterator (&it, inputs);
   while (has_next_node_hash_table_iterator (&it))
   {
@@ -7415,58 +7434,99 @@ check_model (Btor *btor, Btor *clone, BtorPtrHashTable *inputs)
     simp      = btor_simplify_exp (clone, cur);
     real_simp = BTOR_REAL_ADDR_NODE (simp);
 
-    if (BTOR_IS_FUN_NODE (real_simp)) continue;
+    if (BTOR_IS_FUN_NODE (real_simp))
+    {
+      fmodel = btor_get_fun_model (btor, exp);
+      if (!fmodel) continue;
 
-    /* we need to invert the assignment if simplified is inverted */
-    a     = (char *) btor_get_bv_model_str (btor,
-                                        BTOR_COND_INVERT_NODE (simp, exp));
-    model = btor_const_exp (clone, a);
-    btor_release_bv_assignment_str (btor, a);
-    eq = btor_eq_exp (clone, real_simp, model);
-    btor_assert_exp (clone, eq);
-    btor_release_exp (clone, eq);
-    btor_release_exp (clone, model);
+      init_hash_table_iterator (&it, (BtorPtrHashTable *) fmodel);
+      while (has_next_hash_table_iterator (&it))
+      {
+        value      = (BtorBitVector *) it.bucket->data.asPtr;
+        args_tuple = next_hash_table_iterator (&it);
+
+        /* create condition */
+        assert (BTOR_EMPTY_STACK (consts));
+        for (i = 0; i < args_tuple->arity; i++)
+        {
+          model = const_from_bv (clone, args_tuple->bv[i]);
+          BTOR_PUSH_STACK (clone->mm, consts, model);
+        }
+
+        args  = btor_args_exp (clone, BTOR_COUNT_STACK (consts), consts.start);
+        apply = btor_apply_exp (clone, real_simp, args);
+        model = const_from_bv (clone, value);
+        eq    = btor_eq_exp (clone, apply, model);
+        btor_assert_exp (clone, eq);
+        btor_release_exp (clone, eq);
+        btor_release_exp (clone, model);
+        btor_release_exp (clone, apply);
+        btor_release_exp (clone, args);
+
+        while (!BTOR_EMPTY_STACK (consts))
+          btor_release_exp (clone, BTOR_POP_STACK (consts));
+      }
+    }
+    else
+    {
+      /* we need to invert the assignment if simplified is inverted */
+      a     = (char *) btor_get_bv_model_str (btor,
+                                          BTOR_COND_INVERT_NODE (simp, exp));
+      model = btor_const_exp (clone, a);
+      btor_release_bv_assignment_str (btor, a);
+      eq = btor_eq_exp (clone, real_simp, model);
+      btor_assert_exp (clone, eq);
+      btor_release_exp (clone, eq);
+      btor_release_exp (clone, model);
+    }
   }
+  BTOR_RELEASE_STACK (clone->mm, consts);
 
   /* apply variable substitution until fixpoint */
   while (clone->varsubst_constraints->count > 0) substitute_var_exps (clone);
 
+#if 0
   /* add function models */
   assert (!clone->substitutions);
   btor_init_substitutions (clone);
   init_node_hash_table_iterator (&it, inputs);
   while (has_next_node_hash_table_iterator (&it))
-  {
-    exp = (BtorNode *) it.bucket->data.asPtr;
-    assert (exp);
-    assert (BTOR_IS_REGULAR_NODE (exp));
-    assert (exp->btor == btor);
-    cur = next_node_hash_table_iterator (&it);
-    assert (BTOR_IS_REGULAR_NODE (cur));
-    assert (cur->btor == clone);
-    simp      = btor_simplify_exp (clone, cur);
-    real_simp = BTOR_REAL_ADDR_NODE (simp);
+    {
+      exp = (BtorNode *) it.bucket->data.asPtr;
+      assert (exp);
+      assert (BTOR_IS_REGULAR_NODE (exp));
+      assert (exp->btor == btor);
+      cur = next_node_hash_table_iterator (&it);
+      assert (BTOR_IS_REGULAR_NODE (cur));
+      assert (cur->btor == clone);
+      simp = btor_simplify_exp (clone, cur);
+      real_simp = BTOR_REAL_ADDR_NODE (simp);
 
-    if (btor_find_in_ptr_hash_table (clone->substitutions, real_simp)) continue;
+      if (btor_find_in_ptr_hash_table (clone->substitutions, real_simp))
+	continue;
 
-    if (!BTOR_IS_FUN_NODE (real_simp)) continue;
+      if (!BTOR_IS_FUN_NODE (real_simp))
+	continue;
 
-    fmodel = btor_get_fun_model (btor, exp);
+      fmodel = btor_get_fun_model (btor, exp);
 
-    if (!fmodel) continue;
+      if (!fmodel)
+	continue;
 
-    model =
-        btor_generate_lambda_model_from_fun_model (clone, real_simp, fmodel);
-    assert (!btor_find_in_ptr_hash_table (clone->substitutions, real_simp));
-    // TODO (ma): as soon as we support extensionality we add an
-    //            equality of two functions
-    //            right now we substitute the original function with the
-    //            model, which still detects invalid models
-    btor_insert_substitution (clone, real_simp, model, 0);
-    btor_release_exp (clone, model);
-  }
+      model = btor_generate_lambda_model_from_fun_model (
+		  clone, real_simp, fmodel);
+      assert (!btor_find_in_ptr_hash_table (clone->substitutions,
+					    real_simp));
+      // TODO (ma): as soon as we support extensionality we add an
+      //            equality of two functions
+      //            right now we substitute the original function with the
+      //            model, which still detects invalid models
+      btor_insert_substitution (clone, real_simp, model, 0);
+      btor_release_exp (clone, model);
+    }
   substitute_and_rebuild (clone, clone->substitutions, 0);
   btor_delete_substitutions (clone);
+#endif
 
   clone->options.beta_reduce_all.val = 1;
   ret                                = btor_simplify (clone);
