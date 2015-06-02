@@ -2288,7 +2288,7 @@ btor_lambda_exp (Btor *btor, BtorNode *e_param, BtorNode *e_exp)
     result = btor_rewrite_binary_exp (btor, BTOR_LAMBDA_NODE, e_param, e_exp);
   else
     result = btor_lambda_exp_node (btor, e_param, e_exp);
-  assert (BTOR_IS_LAMBDA_NODE (BTOR_REAL_ADDR_NODE (result)));
+  assert (BTOR_IS_FUN_NODE (BTOR_REAL_ADDR_NODE (result)));
   return result;
 }
 
