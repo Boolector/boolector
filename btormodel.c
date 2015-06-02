@@ -733,7 +733,7 @@ extract_models_from_functions_with_model (Btor *btor,
   BtorPtrHashTable *static_rho;
 
   init_node_hash_table_iterator (&it, btor->lambdas);
-  while (0 && has_next_node_hash_table_iterator (&it))
+  while (has_next_node_hash_table_iterator (&it))
   {
     cur        = next_node_hash_table_iterator (&it);
     static_rho = btor_lambda_get_static_rho (cur);
