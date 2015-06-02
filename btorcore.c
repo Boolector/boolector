@@ -3264,13 +3264,18 @@ btor_simplify (Btor *btor)
     if (btor->options.rewrite_level.val > 2
         /* FIXME: extraction not supported yet for extensional lambdas */
         && btor->ops[BTOR_FEQ_NODE].cur == 0
-        && !btor->options.beta_reduce_all.val
+        /* FIXME: merging not supported yet for incremental due to
+         * extensionality*/
+        && !btor->options.incremental.val && !btor->options.beta_reduce_all.val
         && btor->options.extract_lambdas.val)
       btor_extract_lambdas (btor);
 
     if (btor->options.rewrite_level.val > 2
         /* FIXME: merging not supported yet for extensional lambdas */
         && btor->ops[BTOR_FEQ_NODE].cur == 0
+        /* FIXME: merging not supported yet for incremental due to
+         * extensionality*/
+        && !btor->options.incremental.val
         /* merging lambdas not required if they get eliminated */
         && !btor->options.beta_reduce_all.val
         && btor->options.merge_lambdas.val)
@@ -5833,7 +5838,6 @@ generate_table_select_branch_ite (Btor *btor, BtorNode *fun)
 
   cur = BTOR_LAMBDA_GET_BODY (fun);
   assert (!BTOR_IS_INVERTED_NODE (cur));
-  assert (cur->parameterized);
 
   /* general case */
   if (BTOR_IS_BV_COND_NODE (cur))
