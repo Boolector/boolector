@@ -5952,10 +5952,10 @@ generate_table (Btor *btor, BtorNode *fun)
 
     btor_add_int_hash_table (cache, cur->id);
 
+    is_ite = false;
     if (BTOR_IS_FUN_NODE (cur))
     {
-      rho    = cur->rho;
-      is_ite = false;
+      rho = cur->rho;
 
       if (BTOR_IS_LAMBDA_NODE (cur))
       {
