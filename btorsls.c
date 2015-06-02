@@ -90,7 +90,7 @@ min_flip (Btor *btor, BtorBitVector *bv1, BtorBitVector *bv2)
   BtorBitVector *tmp;
 
   tmp = btor_copy_bv (btor->mm, bv1);
-  for (res = 0, i = tmp->width - 1; i >= 0; i--)
+  for (res = 1, i = tmp->width - 1; i >= 0; i--)
   {
     if (!(b1 = btor_get_bit_bv (tmp, i))) continue;
     res += 1;
