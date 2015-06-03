@@ -268,7 +268,8 @@ print_opt (BtorMainApp *app,
            const char *lng,
            const char *shrt,
            int dflt,
-           const char *desc)
+           const char *desc,
+           int print_dflt)
 {
   assert (app);
   assert (lng);
@@ -328,17 +329,7 @@ print_opt (BtorMainApp *app,
 
   /* formatted description ---------------------------------- */
   /* append default value to description */
-  if (!strcmp (lng, BTOR_OPT_REWRITE_LEVEL)
-      || !strcmp (lng, BTOR_OPT_REWRITE_LEVEL_PBR)
-      || !strcmp (lng, BTOR_OPT_PBRA_LOD_LIMIT)
-      || !strcmp (lng, BTOR_OPT_PBRA_SAT_LIMIT)
-      || !strcmp (lng, BTOR_OPT_PBRA_OPS_FACTOR)
-      || !strcmp (lng, BTOR_OPT_DUAL_PROP) || !strcmp (lng, BTOR_OPT_JUST)
-      || !strcmp (lng, BTOR_OPT_JUST_HEURISTIC) || !strcmp (lng, BTOR_OPT_UCOPT)
-      || !strcmp (lng, BTOR_OPT_LAZY_SYNTHESIZE)
-      || !strcmp (lng, BTOR_OPT_ELIMINATE_SLICES)
-      || !strcmp (lng, BTOR_OPT_PRETTY_PRINT)
-      || !strcmp (lng, BTOR_OPT_VERBOSITY) || !strcmp (lng, BTOR_OPT_LOGLEVEL))
+  if (print_dflt)
   {
     len = strlen (desc) + 3 + btor_num_digits_util (dflt);
     BTOR_CNEWN (app->mm, descstr, len + 1);
@@ -389,10 +380,10 @@ print_opt (BtorMainApp *app,
   BTOR_RELEASE_STACK (app->mm, words);
 }
 
-#define PRINT_MAIN_OPT(app, opt)                                        \
-  do                                                                    \
-  {                                                                     \
-    print_opt (app, (opt)->lng, (opt)->shrt, (opt)->dflt, (opt)->desc); \
+#define PRINT_MAIN_OPT(app, opt)                                           \
+  do                                                                       \
+  {                                                                        \
+    print_opt (app, (opt)->lng, (opt)->shrt, (opt)->dflt, (opt)->desc, 0); \
   } while (0)
 
 #define BOOLECTOR_OPTS_INFO_MSG                                                \
@@ -503,7 +494,8 @@ print_help (BtorMainApp *app)
                o,
                boolector_get_opt_shrt (app->btor, o),
                boolector_get_opt_dflt (app->btor, o),
-               boolector_get_opt_desc (app->btor, o));
+               boolector_get_opt_desc (app->btor, o),
+               1);
   }
 
   app->done = 1;
@@ -1370,6 +1362,16 @@ DONE:
   else if (g_app->close_infile == 2)
     pclose (g_app->infile);
   if (g_app->close_outfile) fclose (g_app->outfile);
+
+  if (!boolector_get_opt_val (g_app->btor, BTOR_OPT_EXIT_CODES))
+  {
+    switch (res)
+    {
+      case BTOR_UNSAT_EXIT:
+      case BTOR_SAT_EXIT: res = BTOR_SUCC_EXIT; break;
+      default: res = BTOR_ERR_EXIT;
+    }
+  }
 
   BTOR_RELEASE_STACK (g_app->mm, errarg);
   BTOR_RELEASE_STACK (g_app->mm, opt);
