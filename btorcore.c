@@ -315,7 +315,8 @@ btor_insert_substitution (Btor *btor,
 
   assert (!btor_find_in_ptr_hash_table (btor->substitutions,
                                         BTOR_REAL_ADDR_NODE (subst)));
-  assert (exp != BTOR_REAL_ADDR_NODE (subst));
+
+  if (exp == BTOR_REAL_ADDR_NODE (subst)) return;
 
   btor_insert_in_ptr_hash_table (btor->substitutions, btor_copy_exp (btor, exp))
       ->data.asPtr = btor_copy_exp (btor, subst);
