@@ -6067,7 +6067,10 @@ rewrite_lambda_exp (Btor *btor, BtorNode *e0, BtorNode *e1)
   e0 = btor_simplify_exp (btor, e0);
   e1 = btor_simplify_exp (btor, e1);
 
-  ADD_RW_RULE (lambda_lambda, e0, e1);
+  // FIXME: this rule may yield lambdas with differents sorts (in case of
+  // curried
+  //        lambdas)
+  //  ADD_RW_RULE (lambda_lambda, e0, e1);
 
   assert (!result);
   result = btor_lambda_exp_node (btor, e0, e1);
