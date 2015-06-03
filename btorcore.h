@@ -284,7 +284,8 @@ struct BtorCoreSolver
 {
   BTOR_SOLVER_STRUCT;
 
-  BtorPtrHashTable *lod_cache;
+  BtorPtrHashTable *lemmas;
+  BtorNodePtrStack cur_lemmas;
 
   BtorPtrHashTable *score; /* dcr score */
 

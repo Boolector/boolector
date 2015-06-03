@@ -582,11 +582,11 @@ clone_exp (Btor *clone,
   return res;
 }
 
-static void
-clone_node_ptr_stack (BtorMemMgr *mm,
-                      BtorNodePtrStack *stack,
-                      BtorNodePtrStack *res,
-                      BtorNodeMap *exp_map)
+void
+btor_clone_node_ptr_stack (BtorMemMgr *mm,
+                           BtorNodePtrStack *stack,
+                           BtorNodePtrStack *res,
+                           BtorNodeMap *exp_map)
 {
   assert (stack);
   assert (res);
@@ -1122,13 +1122,8 @@ clone_aux_btor (Btor *btor,
   assert ((allocated += MEM_PTR_HASH_TABLE (btor->fun_model))
           == clone->mm->allocated);
 
-  clone_node_ptr_stack (mm, &btor->cur_lemmas, &clone->cur_lemmas, emap);
-  assert (
-      (allocated += BTOR_SIZE_STACK (btor->cur_lemmas) * sizeof (BtorNode *))
-      == clone->mm->allocated);
-
   BTORLOG_TIMESTAMP (delta);
-  clone_node_ptr_stack (
+  btor_clone_node_ptr_stack (
       mm, &btor->functions_with_model, &clone->functions_with_model, emap);
   BTORLOG ("  clone functions_with_model: %.3f s", btor_time_stamp () - delta);
   assert ((allocated +=
@@ -1207,7 +1202,8 @@ clone_aux_btor (Btor *btor,
 
       allocated += sizeof (BtorCoreSolver);
 
-      allocated += MEM_PTR_HASH_TABLE (slv->lod_cache);
+      allocated += MEM_PTR_HASH_TABLE (slv->lemmas);
+      allocated += BTOR_SIZE_STACK (slv->cur_lemmas) * sizeof (BtorNode *);
 
       if (slv->score)
       {

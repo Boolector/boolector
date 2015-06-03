@@ -930,7 +930,7 @@ btor_chkclone_slv (Btor *btor)
     BtorHashTableIterator it;
     BtorHashTableIterator cit;
 
-    BTOR_CHKCLONE_NODE_PTR_HASH_TABLE (slv->lod_cache, cslv->lod_cache);
+    BTOR_CHKCLONE_NODE_PTR_HASH_TABLE (slv->lemmas, cslv->lemmas);
 
     if (slv->score)
     {
@@ -974,12 +974,14 @@ btor_chkclone_slv (Btor *btor)
               == BTOR_PEEK_STACK (cslv->stats.lemmas_size, i));
 
     BTOR_CHKCLONE_SLV_STATS (slv, cslv, lod_refinements);
+    BTOR_CHKCLONE_SLV_STATS (slv, cslv, refinement_iterations);
     BTOR_CHKCLONE_SLV_STATS (slv, cslv, synthesis_assignment_inconsistencies);
     BTOR_CHKCLONE_SLV_STATS (slv, cslv, synthesis_inconsistency_apply);
     BTOR_CHKCLONE_SLV_STATS (slv, cslv, synthesis_inconsistency_lambda);
     BTOR_CHKCLONE_SLV_STATS (slv, cslv, synthesis_inconsistency_var);
     BTOR_CHKCLONE_SLV_STATS (slv, cslv, function_congruence_conflicts);
     BTOR_CHKCLONE_SLV_STATS (slv, cslv, beta_reduction_conflicts);
+    BTOR_CHKCLONE_SLV_STATS (slv, cslv, extensionality_lemmas);
     BTOR_CHKCLONE_SLV_STATS (slv, cslv, lemmas_size_sum);
     BTOR_CHKCLONE_SLV_STATS (slv, cslv, dp_failed_vars);
     BTOR_CHKCLONE_SLV_STATS (slv, cslv, dp_assumed_vars);
