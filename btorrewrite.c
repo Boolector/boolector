@@ -5405,10 +5405,12 @@ normalize_eq (Btor *btor, BtorNode **left, BtorNode **right)
     {
       assert (c0);
       assert (c1);
+      n0 = btor_copy_exp (btor, tmp1);
+      n1 = btor_sub_exp (btor, c0, c1);
       btor_release_exp (btor, e0);
       btor_release_exp (btor, e1);
-      e0 = btor_copy_exp (btor, tmp1);
-      e1 = btor_sub_exp (btor, c0, c1);
+      e0 = n0;
+      e1 = n1;
     }
   }
 
