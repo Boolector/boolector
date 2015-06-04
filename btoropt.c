@@ -223,7 +223,7 @@ btor_init_opts (Btor *btor)
       1,
       0,
       UINT_MAX,
-      "probability for choosing propagation moves (interpreted as 1:<n>)");
+      "probability for choosing propagation moves (interpreted as <n>;1)");
   BTOR_OPT (0,
             sls_move_inc_move_test,
             0,

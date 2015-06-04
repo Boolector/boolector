@@ -2978,7 +2978,7 @@ move (Btor *btor, int nmoves)
                                (BtorCmpPtr) btor_compare_exp_by_id);
 
   if (btor->options.sls_move_prop.val
-      && !btor_pick_rand_rng (
+      && btor_pick_rand_rng (
              &btor->rng, 0, btor->options.sls_move_prop_prob.val))
   {
     select_prop_move (btor, constr);
