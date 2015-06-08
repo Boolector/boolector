@@ -495,8 +495,11 @@ def ddmbt_main():
         rounds += 1
 
         num_lines = _remove_lines()
-        num_substs = _compact_graph()
-        num_swaps = _swap_ids()
+        num_substs = 0
+        num_swaps = 0
+        if num_lines == 0:
+            num_substs = _compact_graph()
+            num_swaps = _swap_ids()
 
         if pairs:
             num_lines += _remove_return_pairs()

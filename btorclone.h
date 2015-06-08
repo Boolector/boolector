@@ -66,4 +66,9 @@ void btor_clone_data_as_htable_ptr (BtorMemMgr *mm,
                                     const void *map,
                                     BtorPtrHashData *data,
                                     BtorPtrHashData *cloned_data);
+
+void btor_clone_node_ptr_stack (BtorMemMgr *mm,
+                                BtorNodePtrStack *stack,
+                                BtorNodePtrStack *res,
+                                BtorNodeMap *exp_map);
 #endif

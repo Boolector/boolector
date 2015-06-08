@@ -37,7 +37,7 @@ btor_new_param_cache_tuple (Btor *btor, BtorNode *exp)
   {
     t->num_args = it.num_params;
     if (BTOR_IS_LAMBDA_NODE (exp))
-      t->num_args += ((BtorLambdaNode *) exp)->num_params;
+      t->num_args += btor_get_fun_arity (btor, exp);
 
     BTOR_NEWN (btor->mm, t->args, t->num_args);
 
@@ -50,6 +50,7 @@ btor_new_param_cache_tuple (Btor *btor, BtorNode *exp)
         cur = next_lambda_iterator (&pit);
         arg = btor_param_cur_assignment (
             (BtorNode *) BTOR_LAMBDA_GET_PARAM (cur));
+        if (!arg) arg = (BtorNode *) BTOR_LAMBDA_GET_PARAM (cur);
         assert (arg);
         t->args[i++] = btor_copy_exp (btor, arg);
         hash += (unsigned int) BTOR_GET_ID_NODE (arg);
@@ -62,6 +63,7 @@ btor_new_param_cache_tuple (Btor *btor, BtorNode *exp)
       assert (BTOR_IS_REGULAR_NODE (param));
       assert (BTOR_IS_PARAM_NODE (param));
       arg = btor_param_cur_assignment (param);
+      if (!arg) arg = param;
       assert (arg);
       t->args[i++] = btor_copy_exp (btor, arg);
       hash += (unsigned int) BTOR_GET_ID_NODE (arg);
@@ -70,7 +72,7 @@ btor_new_param_cache_tuple (Btor *btor, BtorNode *exp)
   else if (BTOR_IS_LAMBDA_NODE (exp))
   {
     init_lambda_iterator (&pit, exp);
-    t->num_args = ((BtorLambdaNode *) exp)->num_params;
+    t->num_args = btor_get_fun_arity (btor, exp);
     BTOR_NEWN (btor->mm, t->args, t->num_args);
 
     i = 0;
@@ -79,6 +81,7 @@ btor_new_param_cache_tuple (Btor *btor, BtorNode *exp)
       cur = next_lambda_iterator (&pit);
       arg =
           btor_param_cur_assignment ((BtorNode *) BTOR_LAMBDA_GET_PARAM (cur));
+      if (!arg) arg = (BtorNode *) BTOR_LAMBDA_GET_PARAM (cur);
       assert (arg);
       t->args[i++] = btor_copy_exp (btor, arg);
       hash += (unsigned int) BTOR_GET_ID_NODE (arg);

@@ -130,7 +130,7 @@ fi
 
 #--------------------------------------------------------------------------#
 
-SRCDIRS=". parser dumper utils"
+SRCDIRS=". simplifier parser dumper utils"
 if [ $python = yes ]
 then
   SRCDIRS="$SRCDIRS api/python"
@@ -144,7 +144,7 @@ TARGETS="boolector"
 if [ X"$CFLAGS" = X ]
 then
   [ $debug = unknown ] && debug=no
-  CFLAGS="-W -Wall -Wextra -Wredundant-decls"
+  CFLAGS="-W -Wall -Wextra -Winline -Wredundant-decls"
   [ $arch = 32 ] && CFLAGS="$CFLAGS -m32"
   [ $arch = 64 ] && CFLAGS="$CFLAGS -m64"
   [ $static = yes ] && CFLAGS="$CFLAGS -static"

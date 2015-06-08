@@ -164,6 +164,27 @@ has_next_lambda_iterator (BtorNodeIterator *it)
   return BTOR_IS_LAMBDA_NODE (BTOR_REAL_ADDR_NODE (it->cur));
 }
 
+void
+init_param_iterator (BtorNodeIterator *it, BtorNode *exp)
+{
+  init_lambda_iterator (it, exp);
+}
+
+BtorNode *
+next_param_iterator (BtorNodeIterator *it)
+{
+  BtorNode *result;
+  result = next_lambda_iterator (it);
+  assert (BTOR_IS_PARAM_NODE (result->e[0]));
+  return result->e[0];
+}
+
+int
+has_next_param_iterator (BtorNodeIterator *it)
+{
+  return has_next_lambda_iterator (it);
+}
+
 /*------------------------------------------------------------------------*/
 
 void
@@ -229,6 +250,8 @@ find_next_unique_node (BtorNodeIterator *it)
 {
   while (!it->cur && it->pos < it->btor->nodes_unique_table.size)
     it->cur = it->btor->nodes_unique_table.chains[it->pos++];
+  assert (it->cur
+          || it->num_elements == it->btor->nodes_unique_table.num_elements);
 }
 
 void
@@ -239,7 +262,10 @@ init_unique_table_iterator (Btor *btor, BtorNodeIterator *it)
 
   it->btor = btor;
   it->pos  = 0;
-  it->cur  = btor->nodes_unique_table.chains[it->pos++];
+#ifndef NDEBUG
+  it->num_elements = 0;
+#endif
+  it->cur = 0;
   find_next_unique_node (it);
 }
 
@@ -247,7 +273,8 @@ int
 has_next_unique_table_iterator (BtorNodeIterator *it)
 {
   assert (it);
-  return it->cur != 0 || it->pos < it->btor->nodes_unique_table.size;
+  assert (it->cur || it->pos >= it->btor->nodes_unique_table.size);
+  return it->cur != 0;
 }
 
 BtorNode *
@@ -258,9 +285,14 @@ next_unique_table_iterator (BtorNodeIterator *it)
 
   BtorNode *result;
 
-  result  = it->cur;
+  result = it->cur;
+#ifndef NDEBUG
+  it->num_elements++;
+  assert (it->num_elements <= it->btor->nodes_unique_table.num_elements);
+  assert (result);
+#endif
   it->cur = it->cur->next;
-  find_next_unique_node (it);
+  if (!it->cur) find_next_unique_node (it);
   return result;
 }
 

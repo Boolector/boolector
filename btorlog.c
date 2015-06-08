@@ -18,11 +18,24 @@
 #include <stdarg.h>
 
 int
-btor_log_start (Btor* btor, const char* fmt, ...)
+btor_log_start (Btor *btor, const char *filename, const char *fmt, ...)
 {
+  size_t len;
   va_list ap;
+  char *fname, *c;
+
   if (btor->options.loglevel.val <= 0) return 0;
-  fputs ("[btorlog] ", stdout);
+
+  len = strlen (filename) + 1;
+  BTOR_NEWN (btor->mm, fname, len);
+  strcpy (fname, filename);
+  if ((c = strrchr (fname, '.'))) *c = 0;
+  while ((c = strrchr (fname, '/'))) *c = ':';
+  fputs ("[", stdout);
+  fputs (fname, stdout);
+  fputs (":", stdout);
+  fputs ("log] ", stdout);
+  BTOR_DELETEN (btor->mm, fname, len);
   va_start (ap, fmt);
   vprintf (fmt, ap);
   va_end (ap);
@@ -30,7 +43,7 @@ btor_log_start (Btor* btor, const char* fmt, ...)
 }
 
 void
-btor_log_end (Btor* btor)
+btor_log_end (Btor *btor)
 {
   (void) btor;
   assert (btor->options.loglevel.val > 0);

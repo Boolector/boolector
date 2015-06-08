@@ -110,8 +110,8 @@
 #define BTOR_ABORT_NE_BW(arg1, arg2)                               \
   do                                                               \
   {                                                                \
-    if (BTOR_REAL_ADDR_NODE ((arg1))->len                          \
-        != BTOR_REAL_ADDR_NODE ((arg2))->len)                      \
+    if (BTOR_REAL_ADDR_NODE ((arg1))->sort_id                      \
+        != BTOR_REAL_ADDR_NODE ((arg2))->sort_id)                  \
     {                                                              \
       fprintf (stderr, "[%s] %s: ", __FILE__, __FUNCTION__);       \
       fprintf (stderr,                                             \

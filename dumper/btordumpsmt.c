@@ -142,8 +142,7 @@ smt_id (BtorSMTDumpContext *sdc, BtorNode *exp)
   }
   if (BTOR_IS_BV_VAR_NODE (exp) && ((BtorBVVarNode *) exp)->btor_id)
     return ((BtorBVVarNode *) exp)->btor_id;
-  if ((BTOR_IS_UF_ARRAY_NODE (exp) || BTOR_IS_UF_NODE (exp))
-      && ((BtorUFNode *) exp)->btor_id)
+  if (BTOR_IS_UF_NODE (exp) && ((BtorUFNode *) exp)->btor_id)
     return ((BtorUFNode *) exp)->btor_id;
   return exp->id;
 }
@@ -173,9 +172,7 @@ dump_smt_id (BtorSMTDumpContext *sdc, BtorNode *exp)
       }
       break;
 
-    case BTOR_UF_NODE:
-      type = BTOR_IS_UF_ARRAY_NODE (exp) ? "a" : "uf";
-      goto DUMP_SYMBOL;
+    case BTOR_UF_NODE: type = "uf"; goto DUMP_SYMBOL;
 
     case BTOR_LAMBDA_NODE: type = "f"; goto DUMP_SYMBOL;
 
@@ -287,7 +284,7 @@ dump_const_value_aux_smt (BtorSMTDumpContext *sdc, const char *bits)
 void
 btor_dump_sort_smt (BtorSort *sort, int version, FILE *file)
 {
-  int i;
+  unsigned i;
   const char *fmt;
 
   switch (sort->kind)
@@ -296,7 +293,7 @@ btor_dump_sort_smt (BtorSort *sort, int version, FILE *file)
 
     case BTOR_BITVEC_SORT:
       fmt = version == 1 ? "BitVec[%d]" : "(_ BitVec %d)";
-      fprintf (file, fmt, sort->bitvec.len);
+      fprintf (file, fmt, sort->bitvec.width);
       break;
 
     case BTOR_ARRAY_SORT:
@@ -306,8 +303,8 @@ btor_dump_sort_smt (BtorSort *sort, int version, FILE *file)
       assert (sort->array.element->kind == BTOR_BITVEC_SORT);
       fprintf (file,
                fmt,
-               sort->array.index->bitvec.len,
-               sort->array.element->bitvec.len);
+               sort->array.index->bitvec.width,
+               sort->array.element->bitvec.width);
       break;
 
     case BTOR_FUN_SORT:
@@ -342,29 +339,10 @@ btor_dump_sort_smt_node (BtorNode *exp, int version, FILE *file)
   assert (version);
   assert (file);
 
-  BtorSort *sort, tmp, index, element;
+  BtorSort *sort;
 
-  exp = BTOR_REAL_ADDR_NODE (exp);
-
-  if (BTOR_IS_UF_ARRAY_NODE (exp))
-  {
-    index.kind         = BTOR_BITVEC_SORT;
-    index.bitvec.len   = BTOR_ARRAY_INDEX_LEN (exp);
-    element.kind       = BTOR_BITVEC_SORT;
-    element.bitvec.len = exp->len;
-    tmp.kind           = BTOR_ARRAY_SORT;
-    tmp.array.index    = &index;
-    tmp.array.element  = &element;
-    sort               = &tmp;
-  }
-  else if (BTOR_IS_UF_NODE (exp))
-    sort = ((BtorUFNode *) exp)->sort;
-  else
-  {
-    tmp.kind       = BTOR_BITVEC_SORT;
-    tmp.bitvec.len = exp->len;
-    sort           = &tmp;
-  }
+  exp  = BTOR_REAL_ADDR_NODE (exp);
+  sort = btor_get_sort_by_id (&exp->btor->sorts_unique_table, exp->sort_id);
   btor_dump_sort_smt (sort, version, file);
 }
 
@@ -572,12 +550,13 @@ recursively_dump_exp_smt (BtorSMTDumpContext *sdc,
           fputs ("false", sdc->file);
         else if (BTOR_IS_INVERTED_NODE (exp))
         {
-          inv_bits = btor_not_const (sdc->btor->mm, real_exp->bits);
+          inv_bits =
+              btor_not_const (sdc->btor->mm, btor_get_bits_const (real_exp));
           dump_const_value_aux_smt (sdc, inv_bits);
           btor_freestr (sdc->btor->mm, inv_bits);
         }
         else
-          dump_const_value_aux_smt (sdc, real_exp->bits);
+          dump_const_value_aux_smt (sdc, btor_get_bits_const (real_exp));
 
         /* close zero extend */
         if (zero_extend) fputc (')', sdc->file);
@@ -629,8 +608,9 @@ recursively_dump_exp_smt (BtorSMTDumpContext *sdc,
         case BTOR_SRL_NODE:
           assert (!is_bool);
           op = real_exp->kind == BTOR_SRL_NODE ? "bvlshr" : "bvshl";
-          assert (real_exp->len > 1);
-          pad = real_exp->len - BTOR_REAL_ADDR_NODE (real_exp->e[1])->len;
+          assert (btor_get_exp_width (sdc->btor, real_exp) > 1);
+          pad = btor_get_exp_width (sdc->btor, real_exp)
+                - btor_get_exp_width (sdc->btor, real_exp->e[1]);
           PUSH_DUMP_NODE (real_exp->e[1], 1, 0, 1, pad, depth + 1);
           PUSH_DUMP_NODE (real_exp->e[0], 1, 0, 1, 0, depth + 1);
           break;
@@ -643,9 +623,6 @@ recursively_dump_exp_smt (BtorSMTDumpContext *sdc,
           break;
 
         case BTOR_APPLY_NODE:
-          /* array select */
-          if (BTOR_IS_UF_ARRAY_NODE (real_exp->e[0])) op = "select ";
-
           /* we need the arguments in reversed order */
           init_args_iterator (&it, real_exp->e[1]);
           while (has_next_args_iterator (&it))
@@ -932,7 +909,7 @@ dump_fun_smt2 (BtorSMTDumpContext *sdc, BtorNode *fun)
   if (is_boolean (sdc, fun_body))
     fputs ("Bool", sdc->file);
   else
-    btor_dump_sort_smt_node (fun, sdc->version, sdc->file);
+    btor_dump_sort_smt_node (fun_body, sdc->version, sdc->file);
   fputc (' ', sdc->file);
 
   assert (sdc->open_lets == 0);
@@ -1024,8 +1001,7 @@ dump_declare_fun_smt (BtorSMTDumpContext *sdc, BtorNode *exp)
     fputs ("(declare-fun ", sdc->file);
     dump_smt_id (sdc, exp);
     fputc (' ', sdc->file);
-    if (BTOR_IS_BV_VAR_NODE (exp) || BTOR_IS_UF_ARRAY_NODE (exp))
-      fputs ("() ", sdc->file);
+    if (BTOR_IS_BV_VAR_NODE (exp)) fputs ("() ", sdc->file);
     btor_dump_sort_smt_node (exp, sdc->version, sdc->file);
     fputs (")\n", sdc->file);
   }
@@ -1038,7 +1014,7 @@ dump_assert_smt2 (BtorSMTDumpContext *sdc, BtorNode *exp)
   assert (sdc);
   assert (sdc->version == 2);
   assert (exp);
-  assert (BTOR_REAL_ADDR_NODE (exp)->len == 1);
+  assert (btor_get_exp_width (sdc->btor, exp) == 1);
 
   fputs ("(assert ", sdc->file);
   if (!is_boolean (sdc, exp)) fputs ("(distinct ", sdc->file);
@@ -1065,7 +1041,7 @@ wrap_non_bool_root_smt1 (BtorSMTDumpContext *sdc, BtorNode *exp)
   if (!is_boolean (sdc, exp)) fputs ("(not (= ", sdc->file);
   recursively_dump_exp_smt (sdc, exp, 0, 0);
   if (!is_boolean (sdc, exp))
-    fprintf (sdc->file, " bv0[%d]))", BTOR_REAL_ADDR_NODE (exp)->len);
+    fprintf (sdc->file, " bv0[%d]))", btor_get_exp_width (sdc->btor, exp));
 }
 
 static int
@@ -1150,13 +1126,15 @@ mark_boolean (BtorSMTDumpContext *sdc, BtorNodePtrStack *exps)
       if ((BTOR_IS_LAMBDA_NODE (cur->e[0])
            && is_boolean (sdc, BTOR_LAMBDA_GET_BODY (cur->e[0])))
           || (BTOR_IS_UF_NODE (cur->e[0])
-              && ((BtorUFNode *) cur->e[0])->sort->fun.codomain->kind
-                     == BTOR_BOOL_SORT))
+              && btor_is_bool_sort (
+                     &sdc->btor->sorts_unique_table,
+                     btor_get_codomain_fun_sort (&sdc->btor->sorts_unique_table,
+                                                 cur->e[0]->sort_id))))
         btor_insert_in_ptr_hash_table (sdc->boolean, cur);
       continue;
     }
-    else if (cur->len == 1
-             && (BTOR_IS_AND_NODE (cur) || BTOR_IS_BV_COND_NODE (cur)))
+    else if ((BTOR_IS_AND_NODE (cur) || BTOR_IS_BV_COND_NODE (cur))
+             && btor_get_exp_width (sdc->btor, cur) == 1)
     {
       not_bool = 0;
       for (j = 0; j < cur->arity; j++)
@@ -1183,7 +1161,7 @@ dump_smt (BtorSMTDumpContext *sdc)
   int i, j;
   BtorNode *e, *cur;
   BtorMemMgr *mm;
-  BtorNodePtrStack visit, all, vars, arrays, shared, ufs;
+  BtorNodePtrStack visit, all, vars, shared, ufs;
   BtorPtrHashBucket *b;
   BtorHashTableIterator it;
   BtorArgsIterator ait;
@@ -1193,7 +1171,6 @@ dump_smt (BtorSMTDumpContext *sdc)
   BTOR_INIT_STACK (shared);
   BTOR_INIT_STACK (all);
   BTOR_INIT_STACK (vars);
-  BTOR_INIT_STACK (arrays);
   BTOR_INIT_STACK (ufs);
 
   init_node_hash_table_iterator (&it, sdc->roots);
@@ -1217,8 +1194,6 @@ dump_smt (BtorSMTDumpContext *sdc)
 
     if (BTOR_IS_BV_VAR_NODE (cur))
       BTOR_PUSH_STACK (mm, vars, cur);
-    else if (BTOR_IS_UF_ARRAY_NODE (cur))
-      BTOR_PUSH_STACK (mm, arrays, cur);
     else if (BTOR_IS_UF_NODE (cur))
       BTOR_PUSH_STACK (mm, ufs, cur);
     else if (BTOR_IS_LAMBDA_NODE (cur) && !cur->parameterized
@@ -1285,14 +1260,10 @@ dump_smt (BtorSMTDumpContext *sdc)
   /* begin dump */
   if (sdc->version == 1) fputs ("(benchmark dump\n", sdc->file);
 
-  if (BTOR_EMPTY_STACK (arrays) && BTOR_EMPTY_STACK (ufs))
+  if (BTOR_EMPTY_STACK (ufs))
     set_logic_smt (sdc, "QF_BV");
-  else if (BTOR_EMPTY_STACK (arrays))
-    set_logic_smt (sdc, "QF_UFBV");
-  else if (BTOR_EMPTY_STACK (ufs))
-    set_logic_smt (sdc, "QF_ABV");
   else
-    set_logic_smt (sdc, "QF_AUFBV");
+    set_logic_smt (sdc, "QF_UFBV");
 
   /* dump inputs */
   if (vars.start)
@@ -1310,15 +1281,6 @@ dump_smt (BtorSMTDumpContext *sdc)
   for (i = 0; i < BTOR_COUNT_STACK (ufs); i++)
   {
     cur = BTOR_PEEK_STACK (ufs, i);
-    dump_declare_fun_smt (sdc, cur);
-  }
-
-  if (arrays.start)
-    qsort (arrays.start, BTOR_COUNT_STACK (arrays), sizeof e, cmp_node_id);
-
-  for (i = 0; i < BTOR_COUNT_STACK (arrays); i++)
-  {
-    cur = BTOR_PEEK_STACK (arrays, i);
     dump_declare_fun_smt (sdc, cur);
   }
 
@@ -1402,7 +1364,6 @@ dump_smt (BtorSMTDumpContext *sdc)
   BTOR_RELEASE_STACK (mm, visit);
   BTOR_RELEASE_STACK (mm, all);
   BTOR_RELEASE_STACK (mm, vars);
-  BTOR_RELEASE_STACK (mm, arrays);
   BTOR_RELEASE_STACK (mm, ufs);
 
   if (sdc->version == 2)
