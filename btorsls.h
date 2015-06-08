@@ -16,8 +16,7 @@
 #include "btorbitvec.h"
 #endif
 
-int btor_sat_aux_btor_sls (Btor *btor);
-void btor_generate_model_sls (Btor *btor, int model_for_all_nodes, int reset);
+#include "btorslv.h"
 
 enum BtorSLSMoveKind
 {
@@ -43,12 +42,16 @@ typedef struct BtorSLSMove BtorSLSMove;
 
 BTOR_DECLARE_STACK (BtorSLSMovePtr, BtorSLSMove *);
 
+/*------------------------------------------------------------------------*/
+
+#define BTOR_SLS_SOLVER(btor) ((BtorSLSSolver *) (btor)->slv)
+
 struct BtorSLSSolver
 {
-  Btor *btor;
+  BTOR_SOLVER_STRUCT;
 
   BtorPtrHashTable *roots; /* also maintains assertion weights */
-  BtorPtrHashTable *score;
+  BtorPtrHashTable *score; /* sls score */
 
   BtorSLSMovePtrStack moves; /* record moves for prob rand walk */
   int npropmoves;            /* record #no moves for prop moves */
@@ -87,16 +90,12 @@ struct BtorSLSSolver
     int move_gw_rand_walk;
   } stats;
 };
+
 typedef struct BtorSLSSolver BtorSLSSolver;
 
-BtorSLSSolver *btor_new_sls_solver (Btor *btor);
+BtorSolver *btor_new_sls_solver (Btor *btor);
 
-BtorSLSSolver *btor_clone_sls_solver (Btor *clone,
-                                      BtorSLSSolver *slv,
-                                      BtorNodeMap *exp_map);
-
-void btor_delete_sls_solver (Btor *btor, BtorSLSSolver *slv);
-void btor_print_stats_sls_solver (Btor *btor);
+/*------------------------------------------------------------------------*/
 
 #ifndef NDEBUG
 BtorBitVector *inv_add_bv (Btor *btor,

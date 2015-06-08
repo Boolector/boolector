@@ -1204,45 +1204,6 @@ clone_aux_btor (Btor *btor,
     BTOR_RELEASE_STACK (btor->mm, stack);
   }
 
-  // TODO MODULARIZE
-  if (btor->sls_solver)
-  {
-    clone->sls_solver = btor_clone_sls_solver (clone, btor->sls_solver, emap);
-#ifndef NDEBUG
-    BtorSLSMove *m;
-    allocated += sizeof (BtorSLSSolver)
-                 + MEM_PTR_HASH_TABLE (btor->sls_solver->roots)
-                 + MEM_PTR_HASH_TABLE (btor->sls_solver->score);
-
-    allocated +=
-        BTOR_SIZE_STACK (btor->sls_solver->moves) * sizeof (BtorSLSMove *)
-        + BTOR_COUNT_STACK (btor->sls_solver->moves) * sizeof (BtorSLSMove);
-
-    for (i = 0; i < BTOR_COUNT_STACK (btor->sls_solver->moves); i++)
-    {
-      assert (BTOR_PEEK_STACK (clone->sls_solver->moves, i));
-      m = BTOR_PEEK_STACK (btor->sls_solver->moves, i);
-      assert (MEM_PTR_HASH_TABLE (m->cans)
-              == MEM_PTR_HASH_TABLE (
-                     BTOR_PEEK_STACK (clone->sls_solver->moves, i)->cans));
-      allocated += MEM_PTR_HASH_TABLE (m->cans);
-      init_node_hash_table_iterator (&it, m->cans);
-      while (has_next_node_hash_table_iterator (&it))
-        allocated += btor_size_bv (next_data_hash_table_iterator (&it)->asPtr);
-    }
-
-    if (btor->sls_solver->max_cans)
-    {
-      allocated += MEM_PTR_HASH_TABLE (btor->sls_solver->max_cans);
-      init_node_hash_table_iterator (&it, btor->sls_solver->max_cans);
-      while (has_next_node_hash_table_iterator (&it))
-        allocated += btor_size_bv (next_data_hash_table_iterator (&it)->asPtr);
-    }
-
-    assert (allocated == clone->mm->allocated);
-#endif
-  }
-
   if (btor->slv) clone->slv = btor->slv->api.clone (clone, btor, emap);
   assert ((btor->slv && clone->slv) || (!btor->slv && !clone->slv));
 #ifndef NDEBUG
@@ -1292,9 +1253,50 @@ clone_aux_btor (Btor *btor,
       assert (BTOR_COUNT_STACK (slv->stats.lemmas_size)
               == BTOR_COUNT_STACK (cslv->stats.lemmas_size));
       allocated += BTOR_SIZE_STACK (slv->stats.lemmas_size) * sizeof (int);
-
-      assert (allocated == clone->mm->allocated);
     }
+    else if (clone->slv->kind == BTOR_SLS_SOLVER_KIND)
+    {
+      BtorSLSMove *m;
+      BtorSLSSolver *slv  = BTOR_SLS_SOLVER (btor);
+      BtorSLSSolver *cslv = BTOR_SLS_SOLVER (clone);
+
+      CHKCLONE_MEM_PTR_HASH_TABLE (slv->roots, cslv->roots);
+      CHKCLONE_MEM_PTR_HASH_TABLE (slv->score, cslv->score);
+
+      allocated += sizeof (BtorSLSSolver) + MEM_PTR_HASH_TABLE (cslv->roots)
+                   + MEM_PTR_HASH_TABLE (cslv->score);
+
+      assert (BTOR_SIZE_STACK (slv->moves) == BTOR_SIZE_STACK (cslv->moves));
+      assert (BTOR_COUNT_STACK (slv->moves) == BTOR_COUNT_STACK (cslv->moves));
+
+      allocated += BTOR_SIZE_STACK (cslv->moves) * sizeof (BtorSLSMove *)
+                   + BTOR_COUNT_STACK (cslv->moves) * sizeof (BtorSLSMove);
+
+      for (i = 0; i < BTOR_COUNT_STACK (cslv->moves); i++)
+      {
+        assert (BTOR_PEEK_STACK (cslv->moves, i));
+        m = BTOR_PEEK_STACK (cslv->moves, i);
+        assert (MEM_PTR_HASH_TABLE (m->cans)
+                == MEM_PTR_HASH_TABLE (BTOR_PEEK_STACK (cslv->moves, i)->cans));
+        allocated += MEM_PTR_HASH_TABLE (m->cans);
+        init_node_hash_table_iterator (&it, m->cans);
+        while (has_next_node_hash_table_iterator (&it))
+          allocated +=
+              btor_size_bv (next_data_hash_table_iterator (&it)->asPtr);
+      }
+
+      if (cslv->max_cans)
+      {
+        assert (slv->max_cans);
+        assert (slv->max_cans->count == cslv->max_cans->count);
+        allocated += MEM_PTR_HASH_TABLE (cslv->max_cans);
+        init_node_hash_table_iterator (&it, cslv->max_cans);
+        while (has_next_node_hash_table_iterator (&it))
+          allocated +=
+              btor_size_bv (next_data_hash_table_iterator (&it)->asPtr);
+      }
+    }
+    assert (allocated == clone->mm->allocated);
   }
 #endif
 

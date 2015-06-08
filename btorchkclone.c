@@ -965,70 +965,6 @@ btor_chkclone_sort (const BtorSort *sort, const BtorSort *clone)
   }
 }
 
-// TODO MODULARIZE
-#define BTOR_CHKCLONE_SOLVER_STATS(solver, field)                           \
-  do                                                                        \
-  {                                                                         \
-    assert (btor->clone->solver->stats.field == btor->solver->stats.field); \
-  } while (0)
-
-static void
-chkclone_sls_solver (Btor *btor)
-{
-  assert (btor);
-  assert (btor->sls_solver);
-
-  int i;
-  BtorSLSMove *m, *cm;
-
-  if (!btor->clone) return;
-
-  assert (btor->clone->sls_solver);
-  assert (btor->sls_solver != btor->clone->sls_solver);
-
-  chkclone_node_ptr_hash_table (
-      btor->sls_solver->roots, btor->clone->sls_solver->roots, cmp_data_as_int);
-  chkclone_node_ptr_hash_table (
-      btor->sls_solver->score, btor->clone->sls_solver->score, cmp_data_as_dbl);
-
-  assert (BTOR_COUNT_STACK (btor->sls_solver->moves)
-          == BTOR_COUNT_STACK (btor->clone->sls_solver->moves));
-  for (i = 0; i < BTOR_COUNT_STACK (btor->sls_solver->moves); i++)
-  {
-    m = BTOR_PEEK_STACK (btor->sls_solver->moves, i);
-    assert (m);
-    cm = BTOR_PEEK_STACK (btor->clone->sls_solver->moves, i);
-    assert (cm);
-    assert (m->sc == cm->sc);
-    chkclone_node_ptr_hash_table (m->cans, cm->cans, cmp_data_as_bv_ptr);
-  }
-
-  chkclone_node_ptr_hash_table (btor->sls_solver->max_cans,
-                                btor->clone->sls_solver->max_cans,
-                                cmp_data_as_bv_ptr);
-
-  BTOR_CHKCLONE_SOLVER_STATS (sls_solver, restarts);
-  BTOR_CHKCLONE_SOLVER_STATS (sls_solver, moves);
-  BTOR_CHKCLONE_SOLVER_STATS (sls_solver, flips);
-  BTOR_CHKCLONE_SOLVER_STATS (sls_solver, move_flip);
-  BTOR_CHKCLONE_SOLVER_STATS (sls_solver, move_inc);
-  BTOR_CHKCLONE_SOLVER_STATS (sls_solver, move_dec);
-  BTOR_CHKCLONE_SOLVER_STATS (sls_solver, move_not);
-  BTOR_CHKCLONE_SOLVER_STATS (sls_solver, move_range);
-  BTOR_CHKCLONE_SOLVER_STATS (sls_solver, move_seg);
-  BTOR_CHKCLONE_SOLVER_STATS (sls_solver, move_rand);
-  BTOR_CHKCLONE_SOLVER_STATS (sls_solver, move_rand_walk);
-  BTOR_CHKCLONE_SOLVER_STATS (sls_solver, move_gw_flip);
-  BTOR_CHKCLONE_SOLVER_STATS (sls_solver, move_gw_inc);
-  BTOR_CHKCLONE_SOLVER_STATS (sls_solver, move_gw_dec);
-  BTOR_CHKCLONE_SOLVER_STATS (sls_solver, move_gw_not);
-  BTOR_CHKCLONE_SOLVER_STATS (sls_solver, move_gw_range);
-  BTOR_CHKCLONE_SOLVER_STATS (sls_solver, move_gw_seg);
-  BTOR_CHKCLONE_SOLVER_STATS (sls_solver, move_gw_rand);
-  BTOR_CHKCLONE_SOLVER_STATS (sls_solver, move_gw_rand_walk);
-}
-
-//////
 #define BTOR_CHKCLONE_SLV_STATS(solver, csolver, field)   \
   do                                                      \
   {                                                       \
@@ -1039,9 +975,11 @@ void
 btor_chkclone_slv (Btor *btor)
 {
   int i, h = btor->options.just_heuristic.val;
+  BtorSLSMove *m, *cm;
 
   assert ((!btor->slv && !btor->clone->slv) || (btor->slv && btor->clone->slv));
   if (!btor->slv) return;
+  assert (btor->slv != btor->clone->slv);
   assert (btor->slv->kind == btor->clone->slv->kind);
 
   if (btor->slv->kind == BTOR_CORE_SOLVER_KIND)
@@ -1079,8 +1017,7 @@ btor_chkclone_slv (Btor *btor)
       else
       {
         assert (h == BTOR_JUST_HEUR_BRANCH_MIN_DEP);
-        // TODO check data as int
-        BTOR_CHKCLONE_NODE_PTR_HASH_TABLE (slv->score, cslv->score);
+        chkclone_node_ptr_hash_table (slv->score, cslv->score, cmp_data_as_int);
       }
     }
     else
@@ -1114,6 +1051,48 @@ btor_chkclone_slv (Btor *btor)
     BTOR_CHKCLONE_SLV_STATS (slv, cslv, propagations_down);
     BTOR_CHKCLONE_SLV_STATS (slv, cslv, partial_beta_reduction_restarts);
   }
+  else if (btor->slv->kind == BTOR_SLS_SOLVER_KIND)
+  {
+    BtorSLSSolver *slv  = BTOR_SLS_SOLVER (btor);
+    BtorSLSSolver *cslv = BTOR_SLS_SOLVER (btor->clone);
+
+    chkclone_node_ptr_hash_table (slv->roots, cslv->roots, cmp_data_as_int);
+    chkclone_node_ptr_hash_table (slv->score, cslv->score, cmp_data_as_dbl);
+
+    assert (BTOR_COUNT_STACK (slv->moves) == BTOR_COUNT_STACK (cslv->moves));
+    for (i = 0; i < BTOR_COUNT_STACK (slv->moves); i++)
+    {
+      m = BTOR_PEEK_STACK (slv->moves, i);
+      assert (m);
+      cm = BTOR_PEEK_STACK (cslv->moves, i);
+      assert (cm);
+      assert (m->sc == cm->sc);
+      chkclone_node_ptr_hash_table (m->cans, cm->cans, cmp_data_as_bv_ptr);
+    }
+
+    chkclone_node_ptr_hash_table (
+        slv->max_cans, cslv->max_cans, cmp_data_as_bv_ptr);
+
+    BTOR_CHKCLONE_SLV_STATS (slv, cslv, restarts);
+    BTOR_CHKCLONE_SLV_STATS (slv, cslv, moves);
+    BTOR_CHKCLONE_SLV_STATS (slv, cslv, flips);
+    BTOR_CHKCLONE_SLV_STATS (slv, cslv, move_flip);
+    BTOR_CHKCLONE_SLV_STATS (slv, cslv, move_inc);
+    BTOR_CHKCLONE_SLV_STATS (slv, cslv, move_dec);
+    BTOR_CHKCLONE_SLV_STATS (slv, cslv, move_not);
+    BTOR_CHKCLONE_SLV_STATS (slv, cslv, move_range);
+    BTOR_CHKCLONE_SLV_STATS (slv, cslv, move_seg);
+    BTOR_CHKCLONE_SLV_STATS (slv, cslv, move_rand);
+    BTOR_CHKCLONE_SLV_STATS (slv, cslv, move_rand_walk);
+    BTOR_CHKCLONE_SLV_STATS (slv, cslv, move_gw_flip);
+    BTOR_CHKCLONE_SLV_STATS (slv, cslv, move_gw_inc);
+    BTOR_CHKCLONE_SLV_STATS (slv, cslv, move_gw_dec);
+    BTOR_CHKCLONE_SLV_STATS (slv, cslv, move_gw_not);
+    BTOR_CHKCLONE_SLV_STATS (slv, cslv, move_gw_range);
+    BTOR_CHKCLONE_SLV_STATS (slv, cslv, move_gw_seg);
+    BTOR_CHKCLONE_SLV_STATS (slv, cslv, move_gw_rand);
+    BTOR_CHKCLONE_SLV_STATS (slv, cslv, move_gw_rand_walk);
+  }
 }
 
 void
@@ -1140,8 +1119,6 @@ btor_chkclone (Btor *btor)
                                 btor->clone->functions_with_model);
   btor_chkclone_tables (btor);
 
-  // TODO MODULARIZE
-  if (btor->sls_solver) chkclone_sls_solver (btor);
   btor_chkclone_slv (btor);
 }
 

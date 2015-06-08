@@ -605,8 +605,6 @@ btor_print_stats_btor (Btor *btor)
 
   btor->slv->api.print_stats (btor);
 
-  if (btor->options.sls.val) btor_print_stats_sls_solver (btor);
-
   BTOR_MSG (btor->msg, 1, "");
   BTOR_MSG (btor->msg, 1, "%.2f seconds beta-reduction", btor->time.beta);
   BTOR_MSG (btor->msg,
@@ -889,8 +887,6 @@ btor_delete_btor (Btor *btor)
   if (btor->slv) btor->slv->api.delet (btor);
 
   if (btor->parse_error_msg) btor_freestr (mm, btor->parse_error_msg);
-
-  if (btor->sls_solver) btor_delete_sls_solver (btor, btor->sls_solver);
 
   btor_release_exp (btor, btor->true_exp);
 
@@ -6526,7 +6522,14 @@ btor_sat_btor (Btor *btor, int lod_limit, int sat_limit)
   Btor *dpclone;
 #endif
 
-  if (!btor->slv) btor->slv = new_core_solver (btor);
+  if (!btor->slv)
+  {
+    if (btor->options.sls.val && btor->ufs->count == 0
+        && (btor->options.beta_reduce_all.val || btor->lambdas->count == 0))
+      btor->slv = btor_new_sls_solver (btor);
+    else
+      btor->slv = new_core_solver (btor);
+  }
   assert (btor->slv);
 
 #ifdef BTOR_ENABLE_BETA_REDUCTION_PROBING
@@ -6565,27 +6568,20 @@ btor_sat_btor (Btor *btor, int lod_limit, int sat_limit)
   }
 #endif
 
-  // TODO MODULARIZE
-  if (btor->options.sls.val && btor->ufs->count == 0
-      && (btor->options.beta_reduce_all.val || btor->lambdas->count == 0))
-    res = btor_sat_aux_btor_sls (btor);
-  else
-  {
 #ifdef BTOR_CHECK_DUAL_PROP
-    dpclone = 0;
-    if (btor_has_clone_support_sat_mgr (btor_get_sat_mgr_btor (btor))
-        && btor->options.dual_prop.val)
-    {
-      dpclone                                    = btor_clone_btor (btor);
-      dpclone->options.loglevel.val              = 0;
-      dpclone->options.verbosity.val             = 0;
-      dpclone->options.auto_cleanup.val          = 1;
-      dpclone->options.auto_cleanup_internal.val = 1;
-      dpclone->options.dual_prop.val             = 0;
-    }
-#endif
-    res = btor->slv->api.sat (btor, lod_limit, sat_limit);
+  dpclone = 0;
+  if (btor_has_clone_support_sat_mgr (btor_get_sat_mgr_btor (btor))
+      && btor->options.dual_prop.val)
+  {
+    dpclone                                    = btor_clone_btor (btor);
+    dpclone->options.loglevel.val              = 0;
+    dpclone->options.verbosity.val             = 0;
+    dpclone->options.auto_cleanup.val          = 1;
+    dpclone->options.auto_cleanup_internal.val = 1;
+    dpclone->options.dual_prop.val             = 0;
   }
+#endif
+  res = btor->slv->api.sat (btor, lod_limit, sat_limit);
 
   btor->btor_sat_btor_called++;
 
@@ -6603,9 +6599,8 @@ btor_sat_btor (Btor *btor, int lod_limit, int sat_limit)
 
   if (btor->options.model_gen.val && res == BTOR_SAT)
   {
-    // TODO MODULARIZE
     if (btor->options.sls.val)
-      btor_generate_model_sls (btor, btor->options.model_gen.val == 2, 0);
+      btor->slv->api.generate_model (btor, btor->options.model_gen.val == 2, 0);
     else
       btor->slv->api.generate_model (btor, btor->options.model_gen.val == 2, 1);
   }
@@ -6617,7 +6612,12 @@ btor_sat_btor (Btor *btor, int lod_limit, int sat_limit)
     if (res == BTOR_SAT && !btor->options.ucopt.val)
     {
       if (!btor->options.model_gen.val)
-        btor->slv->api.generate_model (btor, 0, 1);
+      {
+        if (btor->options.sls.val)
+          btor->slv->api.generate_model (btor, 0, 0);
+        else
+          btor->slv->api.generate_model (btor, 0, 1);
+      }
       check_model (btor, mclone, inputs);
       if (!btor->options.model_gen.val) btor_delete_model (btor);
     }

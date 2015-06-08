@@ -159,9 +159,6 @@ struct Btor
 
   BtorPtrHashTable *cache; /* for btor_simplify_btor */
 
-  /* TODO modularize btor for multiple engines */
-  BtorSLSSolver *sls_solver;
-
   /* shadow clone (debugging only) */
   Btor *clone;
 
