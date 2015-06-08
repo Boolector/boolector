@@ -24,6 +24,7 @@
 #include <limits.h>
 #include <signal.h>
 #include <stdarg.h>
+#include <stdbool.h>
 #include <stdio.h>
 #include <stdlib.h>
 #include <string.h>
@@ -176,8 +177,10 @@
   "  -n, --no-modelgen                do not enable model generation \n"       \
   "  -e, --extensionality             use extensionality\n"                    \
   "  -dp, --dual-prop                 enable dual prop optimization\n"         \
-  "  -ju, --justification             enable justification "                   \
-  "optimization\n" BTORMBT_UCOPT_USAGE                                         \
+  "  -ju, --justification             enable justification optimization\n"     \
+  "  --no-funs                        disable functions"                       \
+  "  --no-ufs                         disable UFs"                             \
+  "  --no-arrays                      disable arrays" BTORMBT_UCOPT_USAGE      \
   "  -s, --shadow                     create and check shadow clone\n"         \
   "  -o, --out                        output directory for saving traces\n"    \
   "\n"                                                                         \
@@ -497,6 +500,9 @@ typedef struct BtorMBT
   int shadow;
   char *out;
   int time_limit;
+  bool create_funs;
+  bool create_ufs;
+  bool create_arrays;
 
   int bloglevel;
   int bverblevel;
@@ -686,6 +692,9 @@ new_btormbt (void)
   btormbt->seeded                   = 0;
   btormbt->terminal                 = isatty (1);
   btormbt->ext                      = 0;
+  btormbt->create_funs              = true;
+  btormbt->create_ufs               = true;
+  btormbt->create_arrays            = true;
   btormbt->g_min_inputs             = MIN_NLITS;
   btormbt->g_max_inputs             = MAX_NLITS;
   btormbt->g_min_vars_init          = MIN_NVARS_INIT;
@@ -2361,13 +2370,16 @@ _add (BtorMBT *btormbt, unsigned r)
 
   if (rand < btormbt->p_bitvec_op)
     next = _bitvec_op;
-  else if (rand < btormbt->p_bitvec_op + btormbt->p_array_op)
+  else if (btormbt->create_arrays
+           && rand < btormbt->p_bitvec_op + btormbt->p_array_op)
     next = _array_op;
-  else if (rand
-           < btormbt->p_bitvec_op + btormbt->p_array_op + btormbt->p_bitvec_fun)
+  else if (btormbt->create_funs
+           && rand < btormbt->p_bitvec_op + btormbt->p_array_op
+                         + btormbt->p_bitvec_fun)
     next = _bitvec_fun;
-  else if (rand < btormbt->p_bitvec_op + btormbt->p_array_op
-                      + btormbt->p_bitvec_fun + btormbt->p_bitvec_uf)
+  else if (btormbt->create_ufs
+           && rand < btormbt->p_bitvec_op + btormbt->p_array_op
+                         + btormbt->p_bitvec_fun + btormbt->p_bitvec_uf)
     next = _bitvec_uf;
   else
     next = _input;
@@ -3050,6 +3062,12 @@ main (int argc, char **argv)
       btormbt->force_nomgen = 1;
     else if (!strcmp (argv[i], "-e") || !strcmp (argv[i], "--extensionality"))
       btormbt->ext = 1;
+    else if (!strcmp (argv[i], "--no-funs"))
+      btormbt->create_funs = false;
+    else if (!strcmp (argv[i], "--no-ufs"))
+      btormbt->create_ufs = false;
+    else if (!strcmp (argv[i], "--no-arrays"))
+      btormbt->create_arrays = false;
     else if (!strcmp (argv[i], "-dp")
              || !strcmp (argv[i], "--enable-dual-prop"))
       btormbt->dual_prop = 1;
