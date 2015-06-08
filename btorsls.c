@@ -765,7 +765,7 @@ update_cone (Btor *btor,
     btor_add_to_bv_model (btor, *bv_model, exp, ass);
   }
 
-  btor_generate_model_aux (btor, *bv_model, *fun_model, 0);
+  btor_generate_model (btor, *bv_model, *fun_model, 0);
   compute_sls_scores_aux (btor, bv_model, fun_model, score);
 }
 
@@ -3313,7 +3313,7 @@ btor_generate_model_sls (Btor *btor, int model_for_all_nodes, int reset)
   if (!reset && btor->bv_model) return;
   btor_init_bv_model (btor, &btor->bv_model);
   btor_init_fun_model (btor, &btor->fun_model);
-  btor_generate_model_aux (
+  btor_generate_model (
       btor, btor->bv_model, btor->fun_model, model_for_all_nodes);
 }
 
