@@ -267,7 +267,8 @@ insert_substitution (Btor *btor, BtorNode *exp, BtorNode *subst, int update)
 
   assert (!btor_find_in_ptr_hash_table (btor->substitutions,
                                         BTOR_REAL_ADDR_NODE (subst)));
-  assert (exp != BTOR_REAL_ADDR_NODE (subst));
+
+  if (exp == BTOR_REAL_ADDR_NODE (subst)) return;
 
   btor_insert_in_ptr_hash_table (btor->substitutions, btor_copy_exp (btor, exp))
       ->data.asPtr = btor_copy_exp (btor, subst);
@@ -6639,7 +6640,10 @@ propagate (Btor *btor,
         param_app = next_node_hash_table_iterator (&it);
         assert (BTOR_IS_REGULAR_NODE (param_app));
         assert (BTOR_IS_APPLY_NODE (param_app));
-        if (param_app != fun_value)
+        if (param_app != BTOR_REAL_ADDR_NODE (fun_value)
+            /* check down propagation condition */
+            || BTOR_REAL_ADDR_NODE (fun_value)->tseitin
+            || BTOR_IS_INVERTED_NODE (fun_value) || fun_value->e[1] != args)
         {
           insert_synth_app_lambda (btor, lambda, param_app);
           assert (param_app->reachable || param_app->vread);
