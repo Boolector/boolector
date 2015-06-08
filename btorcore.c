@@ -7595,7 +7595,7 @@ generate_model_core_solver (Btor *btor, int model_for_all_nodes, int reset)
   btor_init_bv_model (btor, &btor->bv_model);
   btor_init_fun_model (btor, &btor->fun_model);
 
-  btor_generate_model_aux (
+  btor_generate_model (
       btor, btor->bv_model, btor->fun_model, model_for_all_nodes);
 }
 
