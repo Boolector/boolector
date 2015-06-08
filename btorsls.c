@@ -2987,8 +2987,9 @@ move (Btor *btor, int nmoves)
    * or if <nprops> < 0 do <nprops> sls moves for 1 prop move
    * or if <nprops> = 0 do sls moves only */
   if (btor->options.sls_strategy.val == BTOR_SLS_STRAT_ALWAYS_PROP
-      || (nprops > 0 ? btor->sls_solver->npropmoves < nprops
-                     : btor->sls_solver->npropmoves == nprops))
+      || (btor->options.sls_move_prop.val
+          && (nprops > 0 ? btor->sls_solver->npropmoves < nprops
+                         : btor->sls_solver->npropmoves == nprops)))
   {
     select_prop_move (btor, constr);
     if (!btor->sls_solver->max_cans->count) goto SLS_MOVE;
