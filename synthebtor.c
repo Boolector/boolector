@@ -119,12 +119,21 @@ main (int argc, char **argv)
   btor_set_opt (btor, BTOR_OPT_VERBOSITY, verbosity);
   btor_set_opt (btor, BTOR_OPT_REWRITE_LEVEL, rwl);
 
+  {
+    BtorSATMgr *smgr = btor_get_sat_mgr_btor (btor);
+    assert (!btor_is_initialized_sat (smgr));
+    btor_set_sat_solver (
+        smgr, btor_get_sat_mgr_btor (btor)->name, "plain=1", 0);
+    btor_init_sat (smgr);
+  }
+
   BTOR_CLR (&parse_opt);
 
   parser = btor_btor_parser_api ()->init (btor, &parse_opt);
 
   parse_error = btor_btor_parser_api ()->parse (
       parser, 0, input_file, input_name, output_file, &model);
+
   if (parse_error) die (0, parse_error);
 
   if (!model.noutputs) die (1, "no roots in '%s'", input_name);
