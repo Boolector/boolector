@@ -160,7 +160,7 @@ compute_sls_score_node (Btor *btor,
   res = 0.0;
   assert (BTOR_IS_BV_EQ_NODE (BTOR_REAL_ADDR_NODE (exp))
           || BTOR_IS_ULT_NODE (BTOR_REAL_ADDR_NODE (exp))
-          || BTOR_REAL_ADDR_NODE (exp)->len == 1);
+          || btor_get_exp_width (btor, exp) == 1);
 
   if ((b = btor_find_in_ptr_hash_table (score, exp))) return b->data.asDbl;
 
@@ -191,7 +191,7 @@ compute_sls_score_node (Btor *btor,
       real_cur->aux_mark = 2;
 
       if (!BTOR_IS_BV_EQ_NODE (real_cur) && !BTOR_IS_ULT_NODE (real_cur)
-          && real_cur->len != 1)
+          && btor_get_exp_width (btor, real_cur) != 1)
         continue;
 
 #ifdef BTOR_SLS_LOG_COMPUTE_SCORE
@@ -203,7 +203,7 @@ compute_sls_score_node (Btor *btor,
 
       if (BTOR_IS_AND_NODE (real_cur))
       {
-        assert (real_cur->len == 1);
+        assert (btor_get_exp_width (btor, real_cur) == 1);
         if (BTOR_IS_INVERTED_NODE (cur))
         {
           assert (btor_find_in_ptr_hash_table (
@@ -326,7 +326,7 @@ compute_sls_score_node (Btor *btor,
       }
       else
       {
-        assert (real_cur->len == 1);
+        assert (btor_get_exp_width (btor, real_cur) == 1);
 #ifdef BTOR_SLS_LOG_COMPUTE_SCORE
         if (btor->options.loglevel.val)
         {
@@ -417,7 +417,7 @@ compute_sls_scores_aux (Btor *btor,
       assert (real_cur->mark == 1);
       real_cur->mark = 2;
       if (!BTOR_IS_BV_EQ_NODE (real_cur) && !BTOR_IS_ULT_NODE (real_cur)
-          && real_cur->len != 1)
+          && btor_get_exp_width (btor, real_cur) != 1)
         continue;
       compute_sls_score_node (btor, bv_model, fun_model, score, cur);
       compute_sls_score_node (
@@ -557,7 +557,7 @@ select_candidates (Btor *btor, BtorNode *root, BtorNodePtrStack *candidates)
 
     /* push children */
     if (btor->options.just.val && BTOR_IS_AND_NODE (real_cur)
-        && real_cur->len == 1)
+        && btor_get_exp_width (btor, real_cur) == 1)
     {
       bv = btor_get_bv_model (btor, real_cur);
       if (!btor_is_zero_bv (bv)) /* push all */
@@ -1402,11 +1402,12 @@ select_move (Btor *btor, BtorNodePtrStack *candidates)
       for (r = 0; r < BTOR_COUNT_STACK (*candidates) - 1; r++)
       {
         can = BTOR_PEEK_STACK (*candidates, r);
-        if (BTOR_REAL_ADDR_NODE (can)->len == 1)
+        if (btor_get_exp_width (btor, can) == 1)
           neigh = btor_flipped_bit_bv (
               btor->mm, (BtorBitVector *) btor_get_bv_model (btor, can), 0);
         else
-          neigh = btor_new_random_bv (btor->mm, &btor->rng, can->len);
+          neigh = btor_new_random_bv (
+              btor->mm, &btor->rng, btor_get_exp_width (btor, can));
 
         btor_insert_in_ptr_hash_table (btor->sls_solver->max_cans, can)
             ->data.asPtr = neigh;
@@ -1422,7 +1423,7 @@ select_move (Btor *btor, BtorNodePtrStack *candidates)
           btor_pick_rand_rng (
               &btor->rng, 0, BTOR_COUNT_STACK (*candidates) - 1));
 
-      if (BTOR_REAL_ADDR_NODE (can)->len == 1)
+      if (btor_get_exp_width (btor, can) == 1)
       {
         neigh = btor_flipped_bit_bv (
             btor->mm, (BtorBitVector *) btor_get_bv_model (btor, can), 0);
@@ -1441,7 +1442,8 @@ select_move (Btor *btor, BtorNodePtrStack *candidates)
       }
       else
       {
-        neigh = btor_new_random_bv (btor->mm, &btor->rng, can->len);
+        neigh = btor_new_random_bv (
+            btor->mm, &btor->rng, btor_get_exp_width (btor, can));
         btor_insert_in_ptr_hash_table (btor->sls_solver->max_cans, can)
             ->data.asPtr = neigh;
       }
@@ -2785,7 +2787,7 @@ inv_slice_bv (Btor *btor, BtorNode *slice, BtorBitVector *bvslice)
   e  = slice->e[0];
   assert (e);
 
-  res = btor_new_bv (mm, BTOR_REAL_ADDR_NODE (e)->len);
+  res = btor_new_bv (mm, btor_get_exp_width (btor, e));
   for (i = 0; i < slice->lower; i++)
     btor_set_bit_bv (res, i, btor_pick_rand_rng (&btor->rng, 0, 1));
   for (i = slice->lower; i <= slice->upper; i++)

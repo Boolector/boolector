@@ -577,7 +577,7 @@ sls_inv_sll_bv (int bw)
         e[0]   = btor_const_exp (g_btor, "1101");
         assert (bve[0]->width == bw);
         assert (bvsll->width == bw);
-        assert (BTOR_REAL_ADDR_NODE (e[0])->len == bw);
+        assert (btor_get_exp_width (g_btor, e[0]) == bw);
         break;
       case 8:
         bve[0] = btor_char_to_bv (g_mm, "11010011");
@@ -585,7 +585,7 @@ sls_inv_sll_bv (int bw)
         e[0]   = btor_const_exp (g_btor, "11010011");
         assert (bve[0]->width == bw);
         assert (bvsll->width == bw);
-        assert (BTOR_REAL_ADDR_NODE (e[0])->len == bw);
+        assert (btor_get_exp_width (g_btor, e[0]) == bw);
         break;
       case 16:
         bve[0] = btor_char_to_bv (g_mm, "1011110100110100");
@@ -593,7 +593,7 @@ sls_inv_sll_bv (int bw)
         e[0]   = btor_const_exp (g_btor, "1011110100110100");
         assert (bve[0]->width == bw);
         assert (bvsll->width == bw);
-        assert (BTOR_REAL_ADDR_NODE (e[0])->len == bw);
+        assert (btor_get_exp_width (g_btor, e[0]) == bw);
         break;
       case 32:
         bve[0] = btor_char_to_bv (g_mm, "10100101001101011011110100110111");
@@ -601,7 +601,7 @@ sls_inv_sll_bv (int bw)
         e[0]   = btor_const_exp (g_btor, "10100101001101011011110100110111");
         assert (bve[0]->width == bw);
         assert (bvsll->width == bw);
-        assert (BTOR_REAL_ADDR_NODE (e[0])->len == bw);
+        assert (btor_get_exp_width (g_btor, e[0]) == bw);
         break;
       case 64:
         bve[0] = btor_char_to_bv (
@@ -615,7 +615,7 @@ sls_inv_sll_bv (int bw)
             "1010010101110101101111010101011010010101111100101111010111011011");
         assert (bve[0]->width == bw);
         assert (bvsll->width == bw);
-        assert (BTOR_REAL_ADDR_NODE (e[0])->len == bw);
+        assert (btor_get_exp_width (g_btor, e[0]) == bw);
         break;
       default: break;
     }
@@ -745,7 +745,7 @@ sls_inv_srl_bv (int bw)
         e[0]   = btor_const_exp (g_btor, "1101");
         assert (bve[0]->width == bw);
         assert (bvsrl->width == bw);
-        assert (BTOR_REAL_ADDR_NODE (e[0])->len == bw);
+        assert (btor_get_exp_width (g_btor, e[0]) == bw);
         break;
       case 8:
         bve[0] = btor_char_to_bv (g_mm, "11010011");
@@ -753,7 +753,7 @@ sls_inv_srl_bv (int bw)
         e[0]   = btor_const_exp (g_btor, "11010011");
         assert (bve[0]->width == bw);
         assert (bvsrl->width == bw);
-        assert (BTOR_REAL_ADDR_NODE (e[0])->len == bw);
+        assert (btor_get_exp_width (g_btor, e[0]) == bw);
         break;
       case 16:
         bve[0] = btor_char_to_bv (g_mm, "1011110100110100");
@@ -761,7 +761,7 @@ sls_inv_srl_bv (int bw)
         e[0]   = btor_const_exp (g_btor, "1011110100110100");
         assert (bve[0]->width == bw);
         assert (bvsrl->width == bw);
-        assert (BTOR_REAL_ADDR_NODE (e[0])->len == bw);
+        assert (btor_get_exp_width (g_btor, e[0]) == bw);
         break;
       case 32:
         bve[0] = btor_char_to_bv (g_mm, "10100101001101011011110100110111");
@@ -769,7 +769,7 @@ sls_inv_srl_bv (int bw)
         e[0]   = btor_const_exp (g_btor, "10100101001101011011110100110111");
         assert (bve[0]->width == bw);
         assert (bvsrl->width == bw);
-        assert (BTOR_REAL_ADDR_NODE (e[0])->len == bw);
+        assert (btor_get_exp_width (g_btor, e[0]) == bw);
         break;
       case 64:
         bve[0] = btor_char_to_bv (
@@ -783,7 +783,7 @@ sls_inv_srl_bv (int bw)
             "1010010101110101101111010101011010010101111100101111010111011011");
         assert (bve[0]->width == bw);
         assert (bvsrl->width == bw);
-        assert (BTOR_REAL_ADDR_NODE (e[0])->len == bw);
+        assert (btor_get_exp_width (g_btor, e[0]) == bw);
         break;
       default: break;
     }

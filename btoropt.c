@@ -114,7 +114,7 @@ btor_init_opts (Btor *btor)
 
   BTOR_OPT ("m", model_gen, 0, 0, 2, "print model for satisfiable instances");
 
-  BTOR_OPT ("i", incremental, 0, 0, 1, "incremental usage (SMT1 only)");
+  BTOR_OPT ("i", incremental, 0, 0, 1, "incremental usage");
   BTOR_OPT (
       "I", incremental_all, 0, 0, 1, "incremental, solve all (SMT1 only)");
 
@@ -143,6 +143,7 @@ btor_init_opts (Btor *btor)
 
   BTOR_OPT (
       "bra", beta_reduce_all, 0, 0, 1, "eagerly eliminate lambda expressions");
+  BTOR_OPT ("ack", ackermannize, 0, 0, 1, "add ackermann constraints");
 #ifdef BTOR_ENABLE_BETA_REDUCTION_PROBING
   BTOR_OPT ("pbra",
             probe_beta_reduce_all,
@@ -243,8 +244,11 @@ btor_init_opts (Btor *btor)
 #ifndef BTOR_DO_NOT_OPTIMIZE_UNCONSTRAINED
   BTOR_OPT ("uc", ucopt, 0, 0, 1, "unconstrained optimization");
 #endif
-  BTOR_OPT ("ls", lazy_synthesize, 1, 0, 1, "lazily synthesize expressions");
+  BTOR_OPT ("ls", lazy_synthesize, 0, 0, 1, "lazily synthesize expressions");
   BTOR_OPT ("es", eliminate_slices, 1, 0, 1, "eliminate slices on variables");
+  BTOR_OPT ("el", eager_lemmas, 1, 0, 1, "eager lemma generation");
+  BTOR_OPT ("ml", merge_lambdas, 1, 0, 1, "merge lambda chains");
+  BTOR_OPT ("xl", extract_lambdas, 1, 0, 1, "extract lambda terms");
   BTOR_OPT ("ac", auto_cleanup, 0, 0, 1, "auto cleanup on exit");
   BTOR_OPT ("p", pretty_print, 1, 0, 1, "pretty print when dumping");
   BTOR_OPT ("e", exit_codes, 1, 0, 1, "use Boolector exit codes");

@@ -20,8 +20,6 @@
 #define BTOR_TRAPI_NODE_ID(exp) \
   (BTOR_IS_INVERTED_NODE (exp) ? -BTOR_REAL_ADDR_NODE (exp)->id : exp->id)
 
-#define BTOR_TRAPI_SORT_ID(sort) (sort)->id
-
 #define BTOR_TRAPI(args...)                  \
   do                                         \
   {                                          \
@@ -60,8 +58,7 @@
 
 #define BTOR_TRAPI_RETURN_INT(res) BTOR_TRAPI_RETURN ("%d", res)
 
-#define BTOR_TRAPI_RETURN_SORT(sort) \
-  BTOR_TRAPI_RETURN (SORT_FMT, BTOR_TRAPI_SORT_ID (sort))
+#define BTOR_TRAPI_RETURN_SORT(sort) BTOR_TRAPI_RETURN (SORT_FMT, sort)
 
 void btor_trapi (Btor* btor, const char* fname, const char* msg, ...);
 

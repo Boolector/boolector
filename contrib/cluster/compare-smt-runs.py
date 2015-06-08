@@ -453,7 +453,9 @@ def _print_row (columns, widths, colors=None, colspans=None, classes=[]):
 
         formatted_cols.append(column)
 
-    if g_args.html:
+    if g_args.plain:
+        print("{}".format(" ".join(formatted_cols)))
+    elif g_args.html:
         print("<tr>{}</tr>".format("".join(formatted_cols)))
     else:
         print("{} |".format(" | ".join(formatted_cols)))
@@ -632,7 +634,7 @@ def _get_column_widths(data, benchmarks):
         for k in g:
             width_cols += data_column_widths[k][d]
         width_dir = len(_base_dir(d))
-        if width_cols > width_dir:
+        if width_cols > width_dir or g_args.plain:
             header_column_widths[d] = width_cols
         else:
             header_column_widths[d] = width_dir
@@ -684,13 +686,15 @@ def _print_data ():
 
     classes = [["header"]]
     classes.extend([["borderleft", "header"] for d in g_args.dirs])
-    _print_row (columns, widths, colspans=colspans, classes=classes)
-
-    for k in g_dir_stats:
-        columns = [_get_column_name(k)]
-        for d in g_args.dirs:
-            columns.append(" ".join(g_dir_stats[k][d]))
+    if not g_args.plain:
         _print_row (columns, widths, colspans=colspans, classes=classes)
+
+    if not g_args.plain:
+        for k in g_dir_stats:
+            columns = [_get_column_name(k)]
+            for d in g_args.dirs:
+                columns.append(" ".join(g_dir_stats[k][d]))
+            _print_row (columns, widths, colspans=colspans, classes=classes)
 
     columns = ["BENCHMARK"]
     widths = [benchmark_column_width]
@@ -701,7 +705,8 @@ def _print_data ():
         classes[-1][0].append("borderleft")
         columns.append([_get_column_name(k) for k in g_args.columns])
         widths.append([data_column_widths[k][d] for k in g_args.columns])
-    _print_row (columns, widths, classes=classes)
+    if not g_args.plain:
+        _print_row (columns, widths, classes=classes)
 
     if g_args.html:
         print("</thead><tbody>")
@@ -815,6 +820,9 @@ if __name__ == "__main__":
                               help="group benchmarks into families")
         aparser.add_argument ("-t", action="store_true",
                               help="show totals table")
+        aparser.add_argument ("-p", dest="plain", action="store_true",
+                              help="plain mode, only show columns and " \
+                                   "filename (for gnuplot data files)")
         g_args = aparser.parse_args()
 
         # do not use a set here as the order of directories should be preserved
