@@ -1280,9 +1280,8 @@ new_args_exp_node (Btor *btor, int arity, BtorNode **e)
 
   int i;
   BtorArgsNode *exp;
-  BtorNode *arg;
-  BtorArgsIterator it;
   BtorSortIdStack sorts;
+  BtorTupleSortIterator it;
 #ifndef NDEBUG
   for (i = 0; i < arity; i++) assert (e[i]);
 #endif
@@ -1298,11 +1297,19 @@ new_args_exp_node (Btor *btor, int arity, BtorNode **e)
 
   /* create tuple sort for argument node */
   BTOR_INIT_STACK (sorts);
-  init_args_iterator (&it, (BtorNode *) exp);
-  while (has_next_args_iterator (&it))
+  for (i = 0; i < arity; i++)
   {
-    arg = next_args_iterator (&it);
-    BTOR_PUSH_STACK (btor->mm, sorts, BTOR_REAL_ADDR_NODE (arg)->sort_id);
+    if (BTOR_IS_ARGS_NODE (BTOR_REAL_ADDR_NODE (e[i])))
+    {
+      assert (i == 2);
+      assert (BTOR_IS_REGULAR_NODE (e[i]));
+      btor_init_tuple_sort_iterator (
+          &it, &btor->sorts_unique_table, e[i]->sort_id);
+      while (btor_has_next_tuple_sort_iterator (&it))
+        BTOR_PUSH_STACK (btor->mm, sorts, btor_next_tuple_sort_iterator (&it));
+    }
+    else
+      BTOR_PUSH_STACK (btor->mm, sorts, BTOR_REAL_ADDR_NODE (e[i])->sort_id);
   }
   exp->sort_id = btor_tuple_sort (
       &btor->sorts_unique_table, sorts.start, BTOR_COUNT_STACK (sorts));
