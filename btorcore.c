@@ -3244,7 +3244,8 @@ btor_simplify (Btor *btor)
     }
 
 #ifndef BTOR_DO_NOT_PROCESS_SKELETON
-    if (btor->options.rewrite_level.val > 2)
+    if (btor->options.rewrite_level.val > 2
+        && btor->options.skeleton_preproc.val)
     {
       skelrounds++;
       if (skelrounds <= 1)  // TODO only one?
