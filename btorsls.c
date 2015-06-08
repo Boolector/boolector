@@ -2961,6 +2961,7 @@ move (Btor *btor, int nmoves)
   assert (!btor->sls_solver->max_cans);
   assert (compute_sls_score_formula (btor, btor->sls_solver->score) != -1.0);
 
+  int nprops;
   BtorNode *constr;
   BtorNodePtrStack candidates;
   BtorHashTableIterator it;
@@ -2977,9 +2978,15 @@ move (Btor *btor, int nmoves)
                                (BtorHashPtr) btor_hash_exp_by_id,
                                (BtorCmpPtr) btor_compare_exp_by_id);
 
-  if (btor->options.sls_move_prop.val
-      && btor_pick_rand_rng (
-             &btor->rng, 0, btor->options.sls_move_prop_prob.val))
+  nprops = btor->options.sls_move_prop_moves.val;
+
+  /* Either always try a propagation move first,
+   * or if <nprops> > 0 do <nprops> prop moves for 1 sls move
+   * or if <nprops> < 0 do <nprops> sls moves for 1 prop move
+   * or if <nprops> = 0 do sls moves only */
+  if (btor->options.sls_strategy.val == BTOR_SLS_STRAT_ALWAYS_PROP
+      || (nprops > 0 ? btor->sls_solver->npropmoves < nprops
+                     : btor->sls_solver->npropmoves == nprops))
   {
     select_prop_move (btor, constr);
     if (!btor->sls_solver->max_cans->count) goto SLS_MOVE;
@@ -3005,6 +3012,12 @@ move (Btor *btor, int nmoves)
     assert (btor->sls_solver->max_cans->count);
   }
   assert (btor->sls_solver->max_move != BTOR_SLS_MOVE_DONE);
+
+  btor->sls_solver->npropmoves =
+      nprops == btor->sls_solver->npropmoves
+          ? 0
+          : (nprops > 0 ? btor->sls_solver->npropmoves + 1
+                        : (nprops < 0 ? btor->sls_solver->npropmoves - 1 : 0));
 
 #ifndef NBTORLOG
   BTORLOG ("");

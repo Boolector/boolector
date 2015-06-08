@@ -217,13 +217,14 @@ btor_init_opts (Btor *btor)
             0,
             1,
             "do a propagation move (with given probability)");
-  BTOR_OPT (
-      0,
-      sls_move_prop_prob,
-      1,
-      0,
-      UINT_MAX,
-      "probability for choosing propagation moves (interpreted as <n>;1)");
+  BTOR_OPT (0,
+            sls_move_prop_moves,
+            1,
+            INT_MIN,
+            INT_MAX,
+            "ratio of prop moves versus regular moves (use <n> > 0 for <n> "
+            "prop moves per one regular move, and <n> < 0 for <n> regular "
+            "moves per one prop move)");
   BTOR_OPT (0,
             sls_move_inc_move_test,
             0,
