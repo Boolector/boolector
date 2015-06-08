@@ -22,6 +22,8 @@
 #include <limits.h>
 #include <stdarg.h>
 
+//#define BTOR_USE_CLONE_SCOPES
+
 /*------------------------------------------------------------------------*/
 
 void boolector_print_value (
@@ -328,7 +330,9 @@ typedef struct BtorSMT2Parser
   BtorSMT2Coo coo, lastcoo, nextcoo, perrcoo;
   BtorSMT2Node *last_node;
   BtorParseResult *res;
-  //  BtorPtrStack btor_scopes;
+#ifdef BTOR_USE_CLONE_SCOPES
+  BtorPtrStack btor_scopes;
+#endif
   BoolectorNodePtrStack assumptions;
   BtorUIntStack assumptions_trail;
   unsigned num_scopes;
@@ -548,8 +552,12 @@ btor_new_node_smt2 (BtorSMT2Parser *parser, BtorSMT2Tag tag)
   BtorSMT2Node *res;
   BTOR_NEW (parser->mem, res);
   BTOR_CLR (res);
-  res->tag         = tag;
+  res->tag = tag;
+#ifdef BTOR_USE_CLONE_SCOPES
+  res->scope_level = BTOR_COUNT_STACK (parser->btor_scopes);
+#else
   res->scope_level = BTOR_COUNT_STACK (parser->assumptions_trail);
+#endif
   return res;
 }
 
@@ -595,15 +603,6 @@ btor_release_item_smt2 (BtorSMT2Parser *parser, BtorSMT2Item *item)
   else if (item->tag & BTOR_CONSTANT_TAG_CLASS_SMT2)
     btor_freestr (parser->mem, item->str);
 }
-
-#if 0
-static Btor *
-get_current_btor_scope (BtorSMT2Parser * parser)
-{
-  assert (!BTOR_EMPTY_STACK (parser->btor_scopes));
-  return BTOR_TOP_STACK (parser->btor_scopes);
-}
-#endif
 
 static void
 open_new_scope (BtorSMT2Parser *parser)
@@ -684,9 +683,16 @@ create_symbol_current_scope (BtorSMT2Parser *parser, char *symbol)
   return symb;
 }
 
-#if 0
+#ifdef BTOR_USE_CLONE_SCOPES
+static Btor *
+get_current_btor_scope (BtorSMT2Parser *parser)
+{
+  assert (!BTOR_EMPTY_STACK (parser->btor_scopes));
+  return BTOR_TOP_STACK (parser->btor_scopes);
+}
+
 static void
-open_new_btor_scope (BtorSMT2Parser * parser)
+open_new_btor_scope (BtorSMT2Parser *parser)
 {
   double start;
   unsigned i;
@@ -696,35 +702,36 @@ open_new_btor_scope (BtorSMT2Parser * parser)
   start = btor_time_stamp ();
   /* create new boolector instance (new scope) */
   scope = boolector_clone (get_current_btor_scope (parser));
-//  boolector_set_opt (scope, "auto_cleanup", 1);
+  //  boolector_set_opt (scope, "auto_cleanup", 1);
   BTOR_PUSH_STACK (parser->mem, parser->btor_scopes, scope);
-  BTOR_PUSH_STACK (parser->mem, parser->outputs_trail,
-		   BTOR_COUNT_STACK (parser->outputs));
-  BTOR_PUSH_STACK (parser->mem, parser->inputs_trail,
-		   BTOR_COUNT_STACK (parser->inputs));
- 
+  BTOR_PUSH_STACK (
+      parser->mem, parser->outputs_trail, BTOR_COUNT_STACK (parser->outputs));
+  BTOR_PUSH_STACK (
+      parser->mem, parser->inputs_trail, BTOR_COUNT_STACK (parser->inputs));
+
   /* work stack is always empty if a new scope is opened */
   assert (BTOR_EMPTY_STACK (parser->work));
 
   /* update expressions in symbol table to match current boolector instance */
   for (i = 0; i < parser->symbol.size; i++)
     for (node = parser->symbol.table[i]; node; node = node->next)
-      {
-	if (!node->exp) continue;
-	assert (node->scope_level < BTOR_COUNT_STACK (parser->btor_scopes));
-	node->exp = boolector_match_node (scope, node->exp);
-	assert (node->exp);
-	boolector_release (scope, node->exp);
-      }
-  BTOR_MSG (parser->btor->msg, 2,
-	    "opened new scope at level %d in %.3f seconds",
-	    BTOR_COUNT_STACK (parser->btor_scopes) - 1,
-	    btor_time_stamp () - start);
+    {
+      if (!node->exp) continue;
+      assert (node->scope_level < BTOR_COUNT_STACK (parser->btor_scopes));
+      node->exp = boolector_match_node (scope, node->exp);
+      assert (node->exp);
+      boolector_release (scope, node->exp);
+    }
+  BTOR_MSG (parser->btor->msg,
+            2,
+            "opened new scope at level %d in %.3f seconds",
+            BTOR_COUNT_STACK (parser->btor_scopes) - 1,
+            btor_time_stamp () - start);
   parser->btor = scope;
 }
 
 static void
-close_current_btor_scope (BtorSMT2Parser * parser)
+close_current_btor_scope (BtorSMT2Parser *parser)
 {
   assert (BTOR_COUNT_STACK (parser->btor_scopes) > 1);
 
@@ -744,10 +751,10 @@ close_current_btor_scope (BtorSMT2Parser * parser)
   /* in case of an error we have to delete all items on the work stack */
   assert (parser->error || BTOR_EMPTY_STACK (parser->work));
   while (!BTOR_EMPTY_STACK (parser->work))
-    {
-      item = BTOR_POP_STACK (parser->work);
-      btor_release_item_smt2 (parser, &item);
-    }
+  {
+    item = BTOR_POP_STACK (parser->work);
+    btor_release_item_smt2 (parser, &item);
+  }
 
   /* reset outputs added in current scope */
   offset = BTOR_POP_STACK (parser->outputs_trail);
@@ -760,28 +767,29 @@ close_current_btor_scope (BtorSMT2Parser * parser)
 
   /* restore expressions in symbol table to match current boolector instance */
   for (i = 0; i < parser->symbol.size; i++)
+  {
+    node = parser->symbol.table[i];
+    while (node)
     {
-      node = parser->symbol.table[i];
-      while (node)
-	{
-	  next = node->next;
-	  if (node->scope_level == scope_level)
-	    btor_remove_symbol_smt2 (parser, node);
-	  else if (node->exp)
-	    {
-	      node->exp = boolector_match_node (scope, node->exp);
-	      assert (node->exp);
-	      boolector_release (scope, node->exp);
-	    }
-	  node = next;
-	}
+      next = node->next;
+      if (node->scope_level == scope_level)
+        btor_remove_symbol_smt2 (parser, node);
+      else if (node->exp)
+      {
+        node->exp = boolector_match_node (scope, node->exp);
+        assert (node->exp);
+        boolector_release (scope, node->exp);
+      }
+      node = next;
     }
+  }
   boolector_delete (parser->btor);
   parser->btor = scope;
-  BTOR_MSG (parser->btor->msg, 2,
-	    "closed scope at level %d in %.3f seconds",
-	    BTOR_COUNT_STACK (parser->btor_scopes),
-	    btor_time_stamp () - start);
+  BTOR_MSG (parser->btor->msg,
+            2,
+            "closed scope at level %d in %.3f seconds",
+            BTOR_COUNT_STACK (parser->btor_scopes),
+            btor_time_stamp () - start);
 }
 #endif
 
@@ -1039,7 +1047,7 @@ btor_new_smt2_parser (Btor *btor, BtorParseOpt *opts)
   res->mem         = mem;
   res->num_scopes  = 0;
 
-#if 0
+#ifdef BTOR_USE_CLONE_SCOPES
   BTOR_INIT_STACK (res->btor_scopes);
   BTOR_PUSH_STACK (mem, res->btor_scopes, btor);
 #endif
@@ -1079,7 +1087,7 @@ btor_delete_smt2_parser (BtorSMT2Parser *parser)
 {
   BtorMemMgr *mem = parser->mem;
 
-#if 0
+#ifdef BTOR_USE_CLONE_SCOPES
   while (BTOR_COUNT_STACK (parser->btor_scopes) > 1)
     close_current_btor_scope (parser);
 #endif
@@ -1103,7 +1111,9 @@ btor_delete_smt2_parser (BtorSMT2Parser *parser)
 
   BTOR_RELEASE_STACK (mem, parser->outputs_trail);
   BTOR_RELEASE_STACK (mem, parser->inputs_trail);
-  //  BTOR_RELEASE_STACK (mem, parser->btor_scopes);
+#ifdef BTOR_USE_CLONE_SCOPES
+  BTOR_RELEASE_STACK (mem, parser->btor_scopes);
+#endif
   BTOR_RELEASE_STACK (mem, parser->token);
 
   BTOR_DELETE (mem, parser);
@@ -4011,17 +4021,23 @@ btor_read_command_smt2 (BtorSMT2Parser *parser)
     case BTOR_PUSH_TAG_SMT2:
       tag = btor_parse_int32_smt2 (parser, 1, &tag, 0);
       if (!btor_read_rpar_smt2 (parser, " after 'push'")) return 0;
-      // TODO: open more scopes if tag > 1
-      //	open_new_btor_scope (parser);
+        // TODO: open more scopes if tag > 1
+#ifdef BTOR_USE_CLONE_SCOPES
+      open_new_btor_scope (parser);
+#else
       open_new_scope (parser);
+#endif
       break;
 
     case BTOR_POP_TAG_SMT2:
       tag = btor_parse_int32_smt2 (parser, 1, &tag, 0);
       if (!btor_read_rpar_smt2 (parser, " after 'pop'")) return 0;
-      // TODO: close more scopes if tag > 1
-      //	close_current_btor_scope (parser);
+        // TODO: close more scopes if tag > 1
+#ifdef BTOR_USE_CLONE_SCOPES
+      close_current_btor_scope (parser);
+#else
       close_current_scope (parser);
+#endif
       break;
 
     default:
