@@ -6471,6 +6471,7 @@ sat_aux_btor (Btor *btor, int lod_limit, int sat_limit)
 {
   assert (btor);
 
+  double start;
   int i, sat_result;
   BtorNodePtrStack prop_stack;
   BtorSATMgr *smgr;
@@ -6482,6 +6483,7 @@ sat_aux_btor (Btor *btor, int lod_limit, int sat_limit)
   Btor *faclone = 0;
 #endif
 
+  start      = btor_time_stamp ();
   clone      = 0;
   clone_root = 0;
   exp_map    = 0;
@@ -6667,6 +6669,11 @@ DONE:
     btor_delete_btor (faclone);
   }
 #endif
+  BTOR_MSG (btor->msg,
+            1,
+            "SAT call returned %d in %.3f seconds",
+            sat_result,
+            btor_time_stamp () - start);
   return sat_result;
 }
 
