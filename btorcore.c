@@ -6672,7 +6672,8 @@ DONE:
 #endif
   BTOR_MSG (btor->msg,
             1,
-            "SAT call returned %d in %.3f seconds",
+            "SAT call %d returned %d in %.3f seconds",
+            btor->btor_sat_btor_called + 1,
             sat_result,
             btor_time_stamp () - start);
   return sat_result;
