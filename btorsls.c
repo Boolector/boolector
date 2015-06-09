@@ -3456,6 +3456,8 @@ btor_new_sls_solver (Btor *btor)
   slv->api.print_stats      = print_stats_sls_solver;
   slv->api.print_time_stats = print_time_stats_sls_solver;
 
+  BTOR_MSG (btor->msg, 1, "enabled sls engine");
+
   return (BtorSolver *) slv;
 }
 
