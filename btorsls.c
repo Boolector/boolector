@@ -3285,6 +3285,12 @@ sat_sls_solver (Btor *btor, int limit0, int limit1)
 
   BTOR_MSG (btor->msg, 1, "calling SAT");
 
+  if (btor_terminate_btor (btor))
+  {
+    sat_result = BTOR_UNKNOWN;
+    goto DONE;
+  }
+
   sat_result = btor_simplify (btor);
   BTOR_ABORT_BOOLECTOR (
       btor->ufs->count != 0
@@ -3293,6 +3299,12 @@ sat_sls_solver (Btor *btor, int limit0, int limit1)
   btor_update_assumptions (btor);
 
   if (btor->inconsistent) goto UNSAT;
+
+  if (btor_terminate_btor (btor))
+  {
+    sat_result = BTOR_UNKNOWN;
+    goto DONE;
+  }
 
   /* Generate intial model, all bv vars are initialized with zero. We do
    * not have to consider model_for_all_nodes, but let this be handled by
@@ -3322,6 +3334,12 @@ sat_sls_solver (Btor *btor, int limit0, int limit1)
   i = 1;
   for (;;)
   {
+    if (btor_terminate_btor (btor))
+    {
+      sat_result = BTOR_UNKNOWN;
+      goto DONE;
+    }
+
     /* compute initial sls score */
     compute_sls_scores (btor, slv->score);
 
@@ -3336,6 +3354,12 @@ sat_sls_solver (Btor *btor, int limit0, int limit1)
                          // BTOR_SLS_STRAT_PROB_RAND_WALK;
          j++)
     {
+      if (btor_terminate_btor (btor))
+      {
+        sat_result = BTOR_UNKNOWN;
+        goto DONE;
+      }
+
       move (btor, nmoves++);
 
       if (compute_sls_score_formula (btor, slv->score) == -1.0)
