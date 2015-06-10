@@ -1294,6 +1294,7 @@ clone_aux_btor (Btor *btor,
     btor_delete_node_map (emap);
 
   btor->time.cloning += btor_time_stamp () - start;
+  btor->stats.clone_calls += 1;
   BTORLOG ("cloning total: %.3f s", btor->time.cloning);
   return clone;
 }
