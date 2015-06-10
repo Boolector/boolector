@@ -2682,7 +2682,7 @@ boolector_apply (Btor *btor,
 {
   int i, len;
   char *strtrapi;
-  BtorNode **args, *e_fun, *res;
+  BtorNode **args, *e_fun, *res, *simp;
 
   args  = BTOR_IMPORT_BOOLECTOR_NODE_ARRAY (arg_nodes);
   e_fun = BTOR_IMPORT_BOOLECTOR_NODE (n_fun);
@@ -2705,19 +2705,19 @@ boolector_apply (Btor *btor,
   BTOR_TRAPI (strtrapi);
   BTOR_DELETEN (btor->mm, strtrapi, len);
 
-  e_fun = btor_simplify_exp (btor, e_fun);
+  simp = btor_simplify_exp (btor, e_fun);
   BTOR_ABORT_BOOLECTOR (
-      argc != btor_get_fun_arity (btor, e_fun),
+      argc != btor_get_fun_arity (btor, simp),
       "number of arguments must be equal to the number of parameters in 'fun'");
   BTOR_ABORT_BOOLECTOR (argc < 1, "'argc' must not be < 1");
   BTOR_ABORT_BOOLECTOR (argc >= 1 && !args,
                         "no arguments given but argc defined > 0");
-  BTOR_ABORT_BOOLECTOR (!btor_is_fun_exp (btor, e_fun)
-                            || argc != btor_get_fun_arity (btor, e_fun),
-                        "number of arguments does not match arity of 'fun'");
-  i = btor_fun_sort_check (btor, argc, args, e_fun);
+  BTOR_ABORT_BOOLECTOR (
+      !btor_is_fun_exp (btor, simp) || argc != btor_get_fun_arity (btor, simp),
+      "number of arguments does not match arity of 'fun'");
+  i = btor_fun_sort_check (btor, argc, args, simp);
   BTOR_ABORT_BOOLECTOR (i >= 0, "invalid argument given at position %d", i);
-  res = btor_apply_exps (btor, argc, args, e_fun);
+  res = btor_apply_exps (btor, argc, args, simp);
   inc_exp_ext_ref_counter (btor, res);
   BTOR_TRAPI_RETURN_NODE (res);
 #ifndef NDEBUG
