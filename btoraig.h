@@ -3,7 +3,7 @@
  *  Copyright (C) 2007-2009 Robert Daniel Brummayer.
  *  Copyright (C) 2007-2014 Armin Biere.
  *  Copyright (C) 2013-2014 Aina Niemetz.
- *  Copyright (C) 2014 Mathias Preiner.
+ *  Copyright (C) 2014-2015 Mathias Preiner.
  *
  *  All rights reserved.
  *
@@ -19,6 +19,7 @@
 #include "utils/btormem.h"
 #include "utils/btorstack.h"
 
+#include <stdint.h>
 #include <stdio.h>
 
 struct BtorAIGMap;
@@ -27,13 +28,14 @@ struct BtorAIGMap;
 
 struct BtorAIG
 {
-  int id;
-  unsigned int refs;
-  struct BtorAIG *children[2];
-  struct BtorAIG *next;
-  int cnf_id;
-  unsigned mark : 2;
-  unsigned local;
+  int32_t id;
+  int32_t cnf_id;
+  uint32_t refs;
+  int32_t next;
+  uint8_t mark : 2;
+  uint8_t is_var : 1;
+  uint32_t local;
+  int32_t children[];
 };
 
 typedef struct BtorAIG BtorAIG;
@@ -45,7 +47,7 @@ struct BtorAIGUniqueTable
 {
   int size;
   int num_elements;
-  BtorAIG **chains;
+  int32_t *chains;
 };
 
 typedef struct BtorAIGUniqueTable BtorAIGUniqueTable;
@@ -55,10 +57,10 @@ struct BtorAIGMgr
   BtorMemMgr *mm;
   BtorMsg *msg;
   BtorAIGUniqueTable table;
-  int id;
   int verbosity;
   BtorSATMgr *smgr;
-  BtorAIGPtrStack id2aig; /* cnf id to aig */
+  BtorAIGPtrStack id2aig;
+  BtorIntStack cnfid2aig; /* cnf id to aig id */
 
   /* statistics */
   long long max_num_aigs;
@@ -86,13 +88,20 @@ typedef struct BtorAIGMgr BtorAIGMgr;
 
 #define BTOR_REAL_ADDR_AIG(aig) ((BtorAIG *) (~1ul & (unsigned long int) (aig)))
 
-#define BTOR_IS_VAR_AIG(aig) (!(aig)->children[0])
+#define BTOR_IS_VAR_AIG(aig) ((aig)->is_var)
 
-#define BTOR_IS_AND_AIG(aig) ((aig)->children[0])
+#define BTOR_IS_AND_AIG(aig) (!(aig)->is_var)
 
-#define BTOR_LEFT_CHILD_AIG(aig) ((aig)->children[0])
+#define BTOR_GET_NODE_AIG(id)                                     \
+  (id < 0 ? BTOR_INVERT_AIG (BTOR_PEEK_STACK (amgr->id2aig, -id)) \
+          : BTOR_PEEK_STACK (amgr->id2aig, id))
 
-#define BTOR_RIGHT_CHILD_AIG(aig) ((aig)->children[1])
+#define BTOR_LEFT_CHILD_AIG(aig) (BTOR_GET_NODE_AIG ((aig)->children[0]))
+
+#define BTOR_RIGHT_CHILD_AIG(aig) (BTOR_GET_NODE_AIG ((aig)->children[1]))
+
+#define BTOR_GET_AIG_ID_AIG(aig) \
+  (BTOR_IS_INVERTED_AIG (aig) ? -BTOR_REAL_ADDR_AIG (aig)->id : aig->id)
 
 #define BTOR_GET_CNF_ID_AIG(aig)                                             \
   ((aig) == BTOR_AIG_TRUE                                                    \

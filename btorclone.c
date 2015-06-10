@@ -915,9 +915,10 @@ clone_aux_btor (Btor *btor,
   if (exp_layer_only)
   {
     clone->avmgr = btor_new_aigvec_mgr (mm, clone->msg);
-    assert ((allocated += sizeof (BtorAIGVecMgr) + sizeof (BtorAIGMgr)
-                          + sizeof (BtorSATMgr)
-                          + sizeof (BtorAIG *)) /* BtorAIGUniqueTable chains */
+    assert ((allocated +=
+             sizeof (BtorAIGVecMgr) + sizeof (BtorAIGMgr) + sizeof (BtorSATMgr)
+             + BTOR_SIZE_STACK (clone->avmgr->amgr->id2aig) * sizeof (BtorAIG *)
+             + sizeof (int32_t)) /* unique table chains */
             == clone->mm->allocated);
   }
   else
@@ -936,7 +937,7 @@ clone_aux_btor (Btor *btor,
     amap = btor_new_aig_map (clone,
                              btor_get_aig_mgr_aigvec_mgr (btor->avmgr),
                              btor_get_aig_mgr_aigvec_mgr (clone->avmgr));
-    assert ((allocated += sizeof (*amap) + MEM_PTR_HASH_TABLE (amap->table))
+    assert ((allocated + sizeof (*amap) + MEM_PTR_HASH_TABLE (amap->table))
             == clone->mm->allocated);
 
     BTORLOG_TIMESTAMP (delta);
@@ -946,12 +947,18 @@ clone_aux_btor (Btor *btor,
     BTORLOG ("  clone AIGs: %.3f s", (btor_time_stamp () - delta));
 #ifndef NDEBUG
     /* Note: hash table is initialized with size 1 */
-    assert ((allocated += (amap->table->size - 1) * sizeof (BtorPtrHashBucket *)
-                          + amap->table->count * sizeof (BtorPtrHashBucket)
-                          + amap->table->count * sizeof (BtorAIG)
-                          + amgr->table.size * sizeof (BtorAIG *)
-                          + BTOR_SIZE_STACK (amgr->id2aig) * sizeof (BtorAIG *))
-            == clone->mm->allocated);
+    assert (
+        (allocated += sizeof (*amap)
+                      + MEM_PTR_HASH_TABLE (amap->table)
+                      /* memory of AIG nodes */
+                      + amap->table->count * sizeof (BtorAIG)
+                      /* children for AND AIGs */
+                      + amgr->cur_num_aigs * sizeof (int32_t) * 2
+                      /* unique table chain */
+                      + amgr->table.size * sizeof (int32_t)
+                      + BTOR_SIZE_STACK (amgr->id2aig) * sizeof (BtorAIG *)
+                      + BTOR_SIZE_STACK (amgr->cnfid2aig) * sizeof (int32_t))
+        == clone->mm->allocated);
     amap_size  = amap->table->size;
     amap_count = amap->table->count;
 #endif
