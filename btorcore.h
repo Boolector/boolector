@@ -213,6 +213,7 @@ struct Btor
     long long propagations_down;
     long long apply_props_construct;
     long long partial_beta_reduction_restarts;
+    long long clone_calls;
     size_t node_bytes_alloc;
   } stats;
 
@@ -306,6 +307,12 @@ int btor_is_assumption_exp (Btor *btor, BtorNode *exp);
 
 /* Determines if assumption is a failed assumption. */
 int btor_failed_exp (Btor *btor, BtorNode *exp);
+
+/* Adds assumptions as assertions and resets the assumptions. */
+void btor_fixate_assumptions (Btor *btor);
+
+/* Resets assumptions */
+void btor_reset_assumptions (Btor *btor);
 
 /* Solves instance, but with lemmas on demand limit 'lod_limit' and conflict
  * limit for the underlying SAT solver 'sat_limit'. */

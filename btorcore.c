@@ -671,6 +671,7 @@ btor_print_stats_btor (Btor *btor)
             1,
             "partial beta reduction restarts: %lld",
             btor->stats.partial_beta_reduction_restarts);
+  BTOR_MSG (btor->msg, 1, "clone calls: %lld", btor->stats.clone_calls);
 
   if (btor->options.dual_prop.val)
   {
@@ -1836,8 +1837,8 @@ insert_new_constraint (Btor *btor, BtorNode *exp)
   }
 }
 
-static void
-reset_assumptions (Btor *btor)
+void
+btor_reset_assumptions (Btor *btor)
 {
   assert (btor);
 
@@ -1882,7 +1883,7 @@ reset_incremental_usage (Btor *btor)
 {
   assert (btor);
 
-  reset_assumptions (btor);
+  btor_reset_assumptions (btor);
   reset_functions_with_model (btor);
   btor->valid_assignments = 0;
   btor_delete_model (btor);
@@ -2192,6 +2193,16 @@ btor_failed_exp (Btor *btor, BtorNode *exp)
   btor->time.failed += btor_time_stamp () - start;
 
   return res;
+}
+
+void
+btor_fixate_assumptions (Btor *btor)
+{
+  BtorHashTableIterator it;
+  init_node_hash_table_iterator (&it, btor->assumptions);
+  while (has_next_node_hash_table_iterator (&it))
+    btor_assert_exp (btor, next_node_hash_table_iterator (&it));
+  btor_reset_assumptions (btor);
 }
 
 /*------------------------------------------------------------------------*/
@@ -7420,7 +7431,7 @@ check_model (Btor *btor, Btor *clone, BtorPtrHashTable *inputs)
   init_node_hash_table_iterator (&it, clone->assumptions);
   while (has_next_node_hash_table_iterator (&it))
     btor_assert_exp (clone, next_node_hash_table_iterator (&it));
-  reset_assumptions (clone);
+  btor_reset_assumptions (clone);
 
   /* apply variable substitution until fixpoint */
   while (clone->varsubst_constraints->count > 0) substitute_var_exps (clone);

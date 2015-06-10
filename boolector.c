@@ -405,6 +405,28 @@ boolector_failed (Btor *btor, BoolectorNode *node)
   return res;
 }
 
+void
+boolector_fixate_assumptions (Btor *btor)
+{
+  BTOR_ABORT_ARG_NULL_BOOLECTOR (btor);
+  BTOR_TRAPI ("");
+  BTOR_ABORT_BOOLECTOR (
+      !btor->options.incremental.val,
+      "incremental usage has not been enabled, no assumptions available");
+  btor_fixate_assumptions (btor);
+}
+
+void
+boolector_reset_assumptions (Btor *btor)
+{
+  BTOR_ABORT_ARG_NULL_BOOLECTOR (btor);
+  BTOR_TRAPI ("");
+  BTOR_ABORT_BOOLECTOR (
+      !btor->options.incremental.val,
+      "incremental usage has not been enabled, no assumptions available");
+  btor_reset_assumptions (btor);
+}
+
 int
 boolector_sat (Btor *btor)
 {
