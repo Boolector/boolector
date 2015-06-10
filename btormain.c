@@ -1275,8 +1275,11 @@ boolector_main (int argc, char **argv)
     }
 
 #ifdef BTOR_HAVE_GETRUSAGE
-    double delta_time = delta_time = btor_time_stamp () - g_start_time;
-    btormain_msg ("%.1f seconds", delta_time);
+    if (g_verbosity)
+    {
+      double delta_time = delta_time = btor_time_stamp () - g_start_time;
+      btormain_msg ("%.1f seconds", delta_time);
+    }
 #endif
     goto DONE;
   }
