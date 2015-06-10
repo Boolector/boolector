@@ -4956,11 +4956,6 @@ add_symbolic_lemma (Btor *btor,
   lemma_size += bconds_sel1->count;
   lemma_size += bconds_sel2->count;
 
-  slv->stats.lemmas_size_sum += lemma_size;
-  if (lemma_size >= BTOR_SIZE_STACK (slv->stats.lemmas_size))
-    BTOR_FIT_STACK (btor->mm, slv->stats.lemmas_size, lemma_size);
-  slv->stats.lemmas_size.start[lemma_size] += 1;
-
   /* premisses bv conditions:
    *   true conditions: c_0, ..., c_k
    *   encode premisses: \forall i <= k. /\ c_i */
@@ -5019,6 +5014,10 @@ add_symbolic_lemma (Btor *btor,
     btor_insert_in_ptr_hash_table (slv->lemmas, btor_copy_exp (btor, lemma));
     BTOR_PUSH_STACK (btor->mm, slv->cur_lemmas, lemma);
     slv->stats.lod_refinements++;
+    slv->stats.lemmas_size_sum += lemma_size;
+    if (lemma_size >= BTOR_SIZE_STACK (slv->stats.lemmas_size))
+      BTOR_FIT_STACK (btor->mm, slv->stats.lemmas_size, lemma_size);
+    slv->stats.lemmas_size.start[lemma_size] += 1;
   }
   btor_release_exp (btor, lemma);
   btor_release_exp (btor, conclusion);
@@ -7540,7 +7539,7 @@ sat_core_solver (Btor *btor, int lod_limit, int sat_limit)
       fflush (stdout);
     }
 
-    /* may be set in add_symbolic_lemma via insert_unsythesized_constraint
+    /* may be set via insert_unsythesized_constraint
      * in case generated lemma is false */
     if (btor->inconsistent) goto UNSAT;
 
