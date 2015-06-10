@@ -336,6 +336,7 @@ typedef struct BtorSMT2Parser
   BoolectorNodePtrStack assumptions;
   BtorUIntStack assumptions_trail;
   unsigned num_scopes;
+  unsigned cur_scope_num_terms;
   struct
   {
     unsigned size, count;
@@ -604,6 +605,13 @@ btor_release_item_smt2 (BtorSMT2Parser *parser, BtorSMT2Item *item)
     btor_freestr (parser->mem, item->str);
 }
 
+static unsigned
+get_current_formula_size (BtorSMT2Parser *parser)
+{
+  return parser->btor->bv_vars->count + parser->btor->ufs->count
+         + parser->btor->nodes_unique_table.num_elements;
+}
+
 static void
 open_new_scope (BtorSMT2Parser *parser)
 {
@@ -616,6 +624,7 @@ open_new_scope (BtorSMT2Parser *parser)
                    BTOR_COUNT_STACK (parser->assumptions));
   BTOR_PUSH_STACK (
       parser->mem, parser->inputs_trail, BTOR_COUNT_STACK (parser->inputs));
+  parser->cur_scope_num_terms = get_current_formula_size (parser);
 
   BTOR_MSG (parser->btor->msg,
             2,
@@ -3774,7 +3783,8 @@ btor_set_option_smt2 (BtorSMT2Parser *parser)
 static int
 btor_read_command_smt2 (BtorSMT2Parser *parser)
 {
-  unsigned i;
+  float ratio;
+  unsigned i, fsize;
   int tag, width;
   BoolectorNode *exp = 0;
   BtorSMT2Coo coo;
@@ -3877,7 +3887,20 @@ btor_read_command_smt2 (BtorSMT2Parser *parser)
             boolector_assume (parser->btor,
                               BTOR_PEEK_STACK (parser->assumptions, i));
         }
-        parser->res->result = boolector_sat (parser->btor);
+        fsize = get_current_formula_size (parser);
+        ratio = (float) (fsize - parser->cur_scope_num_terms) / fsize;
+        /* 0.06f is the best factor right now for keeping the cloning
+         * overhead as low as possible */
+        if (ratio >= 0.06f)
+        {
+          Btor *c = boolector_clone (parser->btor);
+          boolector_fixate_assumptions (c);
+          parser->res->result = boolector_sat (c);
+          boolector_delete (c);
+          boolector_reset_assumptions (parser->btor);
+        }
+        else
+          parser->res->result = boolector_sat (parser->btor);
         if (parser->res->result == BOOLECTOR_SAT)
           fprintf (parser->outfile, "sat\n");
         else if (parser->res->result == BOOLECTOR_UNSAT)
