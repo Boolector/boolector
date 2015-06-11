@@ -3881,14 +3881,15 @@ btor_read_command_smt2 (BtorSMT2Parser *parser)
                   "WARNING additional 'check-sat' command");
       if (parser->interactive)
       {
+        ratio = 0.0f;
         if (!BTOR_EMPTY_STACK (parser->assumptions_trail))
         {
           for (i = 0; i < BTOR_COUNT_STACK (parser->assumptions); i++)
             boolector_assume (parser->btor,
                               BTOR_PEEK_STACK (parser->assumptions, i));
+          fsize = get_current_formula_size (parser);
+          ratio = (float) (fsize - parser->cur_scope_num_terms) / fsize;
         }
-        fsize = get_current_formula_size (parser);
-        ratio = (float) (fsize - parser->cur_scope_num_terms) / fsize;
         /* 0.06f is the best factor right now for keeping the cloning
          * overhead as low as possible */
         if (ratio >= 0.06f)
