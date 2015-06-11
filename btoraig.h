@@ -31,17 +31,16 @@ struct BtorAIG
   int32_t id;
   int32_t cnf_id;
   uint32_t refs;
-  int32_t next;
+  int32_t next; /* next AIG id for unique table */
   uint8_t mark : 2;
-  uint8_t is_var : 1;
+  uint8_t is_var : 1; /* is it an AIG variable or an AND? */
   uint32_t local;
-  int32_t children[];
+  int32_t children[]; /* only allocated for AIG AND */
 };
 
 typedef struct BtorAIG BtorAIG;
 
 BTOR_DECLARE_STACK (BtorAIGPtr, BtorAIG *);
-BTOR_DECLARE_STACK (BtorAIGPtrPtr, BtorAIG **);
 
 struct BtorAIGUniqueTable
 {
@@ -59,17 +58,18 @@ struct BtorAIGMgr
   BtorAIGUniqueTable table;
   int verbosity;
   BtorSATMgr *smgr;
-  BtorAIGPtrStack id2aig;
-  BtorIntStack cnfid2aig; /* cnf id to aig id */
+  BtorAIGPtrStack id2aig; /* id to AIG node */
+  BtorIntStack cnfid2aig; /* cnf id to AIG id */
+
+  long long cur_num_aigs;     /* current number of ANDs */
+  long long cur_num_aig_vars; /* current number of AIG variables */
 
   /* statistics */
-  long long cur_num_aigs;
-  long long cur_num_aig_vars;
   long long max_num_aigs;
-  long long num_aig_vars;
-  long long num_vars;
-  long long num_clauses;
-  long long num_literals;
+  long long max_num_aig_vars;
+  long long num_cnf_vars;
+  long long num_cnf_clauses;
+  long long num_cnf_literals;
 };
 
 typedef struct BtorAIGMgr BtorAIGMgr;

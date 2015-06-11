@@ -563,12 +563,16 @@ btor_print_stats_btor (Btor *btor)
             " AIG ANDs (cur/max): %lld/%lld",
             btor->avmgr->amgr->cur_num_aigs,
             btor->avmgr->amgr->max_num_aigs);
+  BTOR_MSG (btor->msg,
+            1,
+            " AIG variables: %lld",
+            btor->avmgr->amgr->max_num_aig_vars);
   BTOR_MSG (
-      btor->msg, 1, " AIG variables: %lld", btor->avmgr->amgr->num_aig_vars);
-  BTOR_MSG (btor->msg, 1, " CNF variables: %lld", btor->avmgr->amgr->num_vars);
-  BTOR_MSG (btor->msg, 1, " CNF clauses: %lld", btor->avmgr->amgr->num_clauses);
+      btor->msg, 1, " CNF variables: %lld", btor->avmgr->amgr->num_cnf_vars);
   BTOR_MSG (
-      btor->msg, 1, " CNF literals: %lld", btor->avmgr->amgr->num_literals);
+      btor->msg, 1, " CNF clauses: %lld", btor->avmgr->amgr->num_cnf_clauses);
+  BTOR_MSG (
+      btor->msg, 1, " CNF literals: %lld", btor->avmgr->amgr->num_cnf_literals);
 
   BTOR_MSG (btor->msg, 1, "");
   BTOR_MSG (btor->msg, 1, "lemmas on demand statistics:");

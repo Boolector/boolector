@@ -343,7 +343,8 @@ btor_var_aig (BtorAIGMgr *amgr)
   setup_aig_and_add_to_id_table (amgr, aig);
   aig->is_var = 1;
   amgr->cur_num_aig_vars++;
-  amgr->num_aig_vars++;
+  if (amgr->max_num_aig_vars < amgr->cur_num_aig_vars)
+    amgr->max_num_aig_vars = amgr->cur_num_aig_vars;
   return aig;
 }
 
@@ -1141,10 +1142,12 @@ btor_clone_aig_mgr (BtorMemMgr *mm, BtorMsg *msg, BtorAIGMgr *amgr)
   /* Note: we do not yet clone aigs here (we need the clone of the aig
    *       manager for that). */
   res->max_num_aigs     = amgr->max_num_aigs;
+  res->max_num_aig_vars = amgr->max_num_aig_vars;
   res->cur_num_aigs     = amgr->cur_num_aigs;
   res->cur_num_aig_vars = amgr->cur_num_aig_vars;
-  res->num_vars         = amgr->num_vars;
-  res->num_clauses      = amgr->num_clauses;
+  res->num_cnf_vars     = amgr->num_cnf_vars;
+  res->num_cnf_clauses  = amgr->num_cnf_clauses;
+  res->num_cnf_literals = amgr->num_cnf_literals;
   clone_aigs (amgr, res);
   return res;
 }
@@ -1272,7 +1275,7 @@ btor_set_next_id_aig_mgr (BtorAIGMgr *amgr, BtorAIG *root)
   BTOR_FIT_STACK (amgr->mm, amgr->cnfid2aig, (size_t) root->cnf_id);
   amgr->cnfid2aig.start[root->cnf_id] = root->id;
   assert (amgr->cnfid2aig.start[root->cnf_id] == root->id);
-  amgr->num_vars++;
+  amgr->num_cnf_vars++;
 }
 
 #ifdef BTOR_EXTRACT_TOP_LEVEL_MULTI_OR
@@ -1458,8 +1461,8 @@ btor_aig_to_sat_tseitin (BtorAIGMgr *amgr, BtorAIG *start)
         btor_add_sat (smgr, a);
         btor_add_sat (smgr, b);
         btor_add_sat (smgr, 0);
-        amgr->num_clauses += 4;
-        amgr->num_literals += 12;
+        amgr->num_cnf_clauses += 4;
+        amgr->num_cnf_literals += 12;
       }
       else if (isite)
       {
@@ -1487,8 +1490,8 @@ btor_aig_to_sat_tseitin (BtorAIGMgr *amgr, BtorAIG *start)
         btor_add_sat (smgr, c);
         btor_add_sat (smgr, -a);
         btor_add_sat (smgr, 0);
-        amgr->num_clauses += 4;
-        amgr->num_literals += 12;
+        amgr->num_cnf_clauses += 4;
+        amgr->num_cnf_literals += 12;
       }
       else
       {
@@ -1498,12 +1501,12 @@ btor_aig_to_sat_tseitin (BtorAIGMgr *amgr, BtorAIG *start)
           y   = BTOR_GET_CNF_ID_AIG (cur);
           assert (y);
           btor_add_sat (smgr, -y);
-          amgr->num_literals++;
+          amgr->num_cnf_literals++;
         }
         btor_add_sat (smgr, x);
         btor_add_sat (smgr, 0);
-        amgr->num_clauses++;
-        amgr->num_literals++;
+        amgr->num_cnf_clauses++;
+        amgr->num_cnf_literals++;
 
         for (p = leafs.start; p < leafs.top; p++)
         {
@@ -1512,8 +1515,8 @@ btor_aig_to_sat_tseitin (BtorAIGMgr *amgr, BtorAIG *start)
           btor_add_sat (smgr, -x);
           btor_add_sat (smgr, y);
           btor_add_sat (smgr, 0);
-          amgr->num_clauses++;
-          amgr->num_literals += 2;
+          amgr->num_cnf_clauses++;
+          amgr->num_cnf_literals += 2;
         }
       }
     }
@@ -1579,7 +1582,7 @@ btor_add_toplevel_aig_to_sat (BtorAIGMgr *amgr, BtorAIG *root)
   if (root == BTOR_AIG_FALSE)
   {
     btor_add_sat (smgr, 0); /* add empty clause */
-    amgr->num_clauses++;
+    amgr->num_cnf_clauses++;
     return;
   }
 
@@ -1616,18 +1619,18 @@ btor_add_toplevel_aig_to_sat (BtorAIGMgr *amgr, BtorAIG *root)
           left = *p;
           assert (BTOR_GET_CNF_ID_AIG (left));
           btor_add_sat (smgr, BTOR_GET_CNF_ID_AIG (BTOR_INVERT_AIG (left)));
-          amgr->num_literals++;
+          amgr->num_cnf_literals++;
         }
         btor_add_sat (smgr, 0);
-        amgr->num_clauses++;
+        amgr->num_cnf_clauses++;
       }
       else
       {
         btor_aig_to_sat (amgr, aig);
         btor_add_sat (smgr, BTOR_GET_CNF_ID_AIG (aig));
         btor_add_sat (smgr, 0);
-        amgr->num_literals++;
-        amgr->num_clauses++;
+        amgr->num_cnf_literals++;
+        amgr->num_cnf_clauses++;
       }
       BTOR_RELEASE_STACK (mm, leafs);
 #else
@@ -1640,16 +1643,16 @@ btor_add_toplevel_aig_to_sat (BtorAIGMgr *amgr, BtorAIG *root)
         btor_add_sat (smgr, BTOR_GET_CNF_ID_AIG (left));
         btor_add_sat (smgr, BTOR_GET_CNF_ID_AIG (right));
         btor_add_sat (smgr, 0);
-        amgr->num_clauses++;
-        amgr->num_literals += 2;
+        amgr->num_cnf_clauses++;
+        amgr->num_cnf_literals += 2;
       }
       else
       {
         btor_aig_to_sat (amgr, aig);
         btor_add_sat (smgr, BTOR_GET_CNF_ID_AIG (aig));
         btor_add_sat (smgr, 0);
-        amgr->num_clauses++;
-        amgr->num_literals++;
+        amgr->num_cnf_clauses++;
+        amgr->num_cnf_literals++;
       }
 #endif
     }
