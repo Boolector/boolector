@@ -31,7 +31,6 @@
 #include "simplifier/btorelimapplies.h"
 #include "simplifier/btorelimslices.h"
 #include "simplifier/btorextract.h"
-#include "simplifier/btorfeq.h"
 #include "simplifier/btormerge.h"
 #include "simplifier/btorunconstrained.h"
 #include "utils/btorinthash.h"
@@ -6557,11 +6556,8 @@ sat_aux_btor (Btor *btor, int lod_limit, int sat_limit)
 
   if (btor->valid_assignments == 1) reset_incremental_usage (btor);
 
-  //  BTOR_ABORT_CORE (btor->ops[BTOR_FEQ_NODE].cur > 0,
-  //		   "extensionality on arrays/lambdas not yet supported");
   if (btor->ops[BTOR_FEQ_NODE].cur > 0)
   {
-    //      btor_rewrite_function_inequalities (btor);
     update_reachable (btor, 1);
     add_function_inequality_constraints (btor);
   }
