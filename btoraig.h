@@ -3,7 +3,7 @@
  *  Copyright (C) 2007-2009 Robert Daniel Brummayer.
  *  Copyright (C) 2007-2014 Armin Biere.
  *  Copyright (C) 2013-2014 Aina Niemetz.
- *  Copyright (C) 2014 Mathias Preiner.
+ *  Copyright (C) 2014-2015 Mathias Preiner.
  *
  *  All rights reserved.
  *
@@ -19,6 +19,7 @@
 #include "utils/btormem.h"
 #include "utils/btorstack.h"
 
+#include <stdint.h>
 #include <stdio.h>
 
 struct BtorAIGMap;
@@ -27,25 +28,25 @@ struct BtorAIGMap;
 
 struct BtorAIG
 {
-  int id;
-  unsigned int refs;
-  struct BtorAIG *children[2];
-  struct BtorAIG *next;
-  int cnf_id;
-  unsigned mark : 2;
-  unsigned local;
+  int32_t id;
+  int32_t cnf_id;
+  uint32_t refs;
+  int32_t next; /* next AIG id for unique table */
+  uint8_t mark : 2;
+  uint8_t is_var : 1; /* is it an AIG variable or an AND? */
+  uint32_t local;
+  int32_t children[]; /* only allocated for AIG AND */
 };
 
 typedef struct BtorAIG BtorAIG;
 
 BTOR_DECLARE_STACK (BtorAIGPtr, BtorAIG *);
-BTOR_DECLARE_STACK (BtorAIGPtrPtr, BtorAIG **);
 
 struct BtorAIGUniqueTable
 {
   int size;
   int num_elements;
-  BtorAIG **chains;
+  int32_t *chains;
 };
 
 typedef struct BtorAIGUniqueTable BtorAIGUniqueTable;
@@ -55,18 +56,20 @@ struct BtorAIGMgr
   BtorMemMgr *mm;
   BtorMsg *msg;
   BtorAIGUniqueTable table;
-  int id;
   int verbosity;
   BtorSATMgr *smgr;
-  BtorAIGPtrStack id2aig; /* cnf id to aig */
+  BtorAIGPtrStack id2aig; /* id to AIG node */
+  BtorIntStack cnfid2aig; /* cnf id to AIG id */
+
+  long long cur_num_aigs;     /* current number of ANDs */
+  long long cur_num_aig_vars; /* current number of AIG variables */
 
   /* statistics */
   long long max_num_aigs;
-  long long cur_num_aigs;
-  long long num_aig_vars;
-  long long num_vars;
-  long long num_clauses;
-  long long num_literals;
+  long long max_num_aig_vars;
+  long long num_cnf_vars;
+  long long num_cnf_clauses;
+  long long num_cnf_literals;
 };
 
 typedef struct BtorAIGMgr BtorAIGMgr;
@@ -86,13 +89,20 @@ typedef struct BtorAIGMgr BtorAIGMgr;
 
 #define BTOR_REAL_ADDR_AIG(aig) ((BtorAIG *) (~1ul & (unsigned long int) (aig)))
 
-#define BTOR_IS_VAR_AIG(aig) (!(aig)->children[0])
+#define BTOR_IS_VAR_AIG(aig) ((aig)->is_var)
 
-#define BTOR_IS_AND_AIG(aig) ((aig)->children[0])
+#define BTOR_IS_AND_AIG(aig) (!(aig)->is_var)
 
-#define BTOR_LEFT_CHILD_AIG(aig) ((aig)->children[0])
+#define BTOR_GET_NODE_AIG(id)                                     \
+  (id < 0 ? BTOR_INVERT_AIG (BTOR_PEEK_STACK (amgr->id2aig, -id)) \
+          : BTOR_PEEK_STACK (amgr->id2aig, id))
 
-#define BTOR_RIGHT_CHILD_AIG(aig) ((aig)->children[1])
+#define BTOR_LEFT_CHILD_AIG(aig) (BTOR_GET_NODE_AIG ((aig)->children[0]))
+
+#define BTOR_RIGHT_CHILD_AIG(aig) (BTOR_GET_NODE_AIG ((aig)->children[1]))
+
+#define BTOR_GET_AIG_ID_AIG(aig) \
+  (BTOR_IS_INVERTED_AIG (aig) ? -BTOR_REAL_ADDR_AIG (aig)->id : aig->id)
 
 #define BTOR_GET_CNF_ID_AIG(aig)                                             \
   ((aig) == BTOR_AIG_TRUE                                                    \
@@ -111,18 +121,6 @@ BtorAIGMgr *btor_new_aig_mgr (BtorMemMgr *mm, BtorMsg *msg);
 
 /* Clones AIG manager. */
 BtorAIGMgr *btor_clone_aig_mgr (BtorMemMgr *mm, BtorMsg *msg, BtorAIGMgr *amgr);
-
-/* Clone all aigs managed by the AIG manager. This needs to be done after
- * cloning the aig manager, as aig_map needs an associated aig manager clone. */
-void btor_clone_aigs (BtorAIGMgr *amgr,
-                      BtorAIGMgr *clone,
-                      struct BtorAIGMap *aig_map);
-
-/* Wrapper to retrieve cloned aigs from aig_map in case that var aigs occur
- * in the aig vector but not as children to non-var aigs. */
-BtorAIG *btor_cloned_aig (BtorMemMgr *mm,
-                          BtorAIG *aig,
-                          struct BtorAIGMap *aig_map);
 
 /* Sets verbosity [-1,3] */
 void btor_set_verbosity_aig_mgr (BtorAIGMgr *amgr, int verbosity);

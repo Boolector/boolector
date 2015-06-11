@@ -1274,6 +1274,13 @@ boolector_main (int argc, char **argv)
                              g_app->outfile);
     }
 
+#ifdef BTOR_HAVE_GETRUSAGE
+    if (g_verbosity)
+    {
+      double delta_time = delta_time = btor_time_stamp () - g_start_time;
+      btormain_msg ("%.1f seconds", delta_time);
+    }
+#endif
     goto DONE;
   }
   /* we don't dump formula(s) in incremental mode */
