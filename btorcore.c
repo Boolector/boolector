@@ -6304,7 +6304,7 @@ new_exp_layer_clone_for_dual_prop (Btor *btor,
 
   start = btor_time_stamp ();
 
-  clone = btor_clone_exp_layer (btor, exp_map, 0);
+  clone = btor_clone_exp_layer (btor, exp_map);
   assert (!clone->synthesized_constraints->count);
   assert (clone->unsynthesized_constraints->count);
 

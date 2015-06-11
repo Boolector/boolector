@@ -646,24 +646,33 @@ btor_copy_aigvec (BtorAIGVecMgr *avmgr, BtorAIGVec *av)
 }
 
 BtorAIGVec *
-btor_clone_aigvec (BtorAIGVec *av, BtorAIGVecMgr *avmgr, BtorAIGMap *aig_map)
+btor_clone_aigvec (BtorAIGVec *av, BtorAIGVecMgr *avmgr)
 {
   assert (av);
   assert (avmgr);
 
   int i;
   BtorAIGVec *res;
+  BtorAIGMgr *amgr;
+  BtorAIG *aig, *caig;
 
-  if (!aig_map) return 0;
-
-  res = new_aigvec (avmgr, av->len);
+  amgr = avmgr->amgr;
+  res  = new_aigvec (avmgr, av->len);
   for (i = 0; i < av->len; i++)
   {
     if (BTOR_IS_CONST_AIG (av->aigs[i]))
       res->aigs[i] = av->aigs[i];
     else
     {
-      res->aigs[i] = btor_cloned_aig (avmgr->mm, av->aigs[i], aig_map);
+      aig = av->aigs[i];
+      assert (BTOR_REAL_ADDR_AIG (aig)->id < BTOR_COUNT_STACK (amgr->id2aig));
+      caig = BTOR_PEEK_STACK (amgr->id2aig, BTOR_REAL_ADDR_AIG (aig)->id);
+      assert (caig);
+      assert (!BTOR_IS_CONST_AIG (caig));
+      if (BTOR_IS_INVERTED_AIG (aig))
+        res->aigs[i] = BTOR_INVERT_AIG (caig);
+      else
+        res->aigs[i] = caig;
       assert (res->aigs[i]);
     }
   }

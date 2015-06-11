@@ -121,7 +121,10 @@ delete_aig_node (BtorAIGMgr *amgr, BtorAIG *aig)
   if (aig->cnf_id) btor_release_cnf_id_aig_mgr (amgr, aig);
   amgr->id2aig.start[aig->id] = 0;
   if (aig->is_var)
+  {
+    amgr->cur_num_aig_vars--;
     BTOR_DELETE (amgr->mm, aig);
+  }
   else
   {
     amgr->cur_num_aigs--;
@@ -339,6 +342,7 @@ btor_var_aig (BtorAIGMgr *amgr)
   BTOR_CNEW (amgr->mm, aig);
   setup_aig_and_add_to_id_table (amgr, aig);
   aig->is_var = 1;
+  amgr->cur_num_aig_vars++;
   amgr->num_aig_vars++;
   return aig;
 }
@@ -1041,38 +1045,16 @@ btor_new_aig_mgr (BtorMemMgr *mm, BtorMsg *msg)
   BTOR_INIT_STACK (amgr->id2aig);
   BTOR_PUSH_STACK (mm, amgr->id2aig, BTOR_AIG_FALSE);
   BTOR_PUSH_STACK (mm, amgr->id2aig, BTOR_AIG_TRUE);
+  assert ((size_t) BTOR_AIG_FALSE == 0);
+  assert ((size_t) BTOR_AIG_TRUE == 1);
   BTOR_INIT_STACK (amgr->cnfid2aig);
   return amgr;
 }
 
-BtorAIGMgr *
-btor_clone_aig_mgr (BtorMemMgr *mm, BtorMsg *msg, BtorAIGMgr *amgr)
-{
-  assert (mm);
-  assert (msg);
-  assert (amgr);
-
-  BtorAIGMgr *res;
-
-  BTOR_CNEW (mm, res);
-  res->mm  = mm;
-  res->msg = msg;
-
-  res->smgr = btor_clone_sat_mgr (mm, msg, amgr->smgr);
-  /* Note: we do not yet clone aigs here (we need the clone of the aig
-   *       manager for that). */
-  res->max_num_aigs = amgr->max_num_aigs;
-  res->cur_num_aigs = amgr->cur_num_aigs;
-  res->num_vars     = amgr->num_vars;
-  res->num_clauses  = amgr->num_clauses;
-  return res;
-}
-
 static BtorAIG *
-clone_aig (BtorMemMgr *mm, BtorAIG *aig, BtorAIGMap *aig_map)
+clone_aig (BtorMemMgr *mm, BtorAIG *aig)
 {
   assert (mm);
-  assert (aig_map);
 
   int i;
   size_t size;
@@ -1081,31 +1063,28 @@ clone_aig (BtorMemMgr *mm, BtorAIG *aig, BtorAIGMap *aig_map)
   if (BTOR_IS_CONST_AIG (aig)) return aig;
 
   real_aig = BTOR_REAL_ADDR_AIG (aig);
-  if (real_aig->is_var)
-    size = sizeof (BtorAIG);
-  else
-    size = sizeof (BtorAIG) + 2 * sizeof (int32_t);
+  size     = sizeof (BtorAIG);
+  if (!real_aig->is_var) size += 2 * sizeof (int32_t);
   res = btor_malloc (mm, size);
   memcpy (res, real_aig, size);
 
   res = BTOR_IS_INVERTED_AIG (aig) ? BTOR_INVERT_AIG (res) : res;
-  btor_map_aig (aig_map, aig, res);
   return res;
 }
 
-void
-btor_clone_aigs (BtorAIGMgr *amgr, BtorAIGMgr *clone, BtorAIGMap *aig_map)
+static void
+clone_aigs (BtorAIGMgr *amgr, BtorAIGMgr *clone)
 {
   assert (amgr);
   assert (clone);
-  assert (aig_map);
 
   int i;
   size_t size;
   BtorMemMgr *mm;
   BtorAIG *aig;
 
-  mm = clone->mm;
+  double start = btor_time_stamp ();
+  mm           = clone->mm;
 
   /* clone id2aig table */
   BTOR_INIT_STACK (clone->id2aig);
@@ -1118,9 +1097,10 @@ btor_clone_aigs (BtorAIGMgr *amgr, BtorAIGMgr *clone, BtorAIGMap *aig_map)
   }
   for (i = 0; i < BTOR_COUNT_STACK (amgr->id2aig); i++)
   {
-    aig = clone_aig (mm, BTOR_PEEK_STACK (amgr->id2aig, i), aig_map);
+    aig = clone_aig (mm, BTOR_PEEK_STACK (amgr->id2aig, i));
     BTOR_POKE_STACK (clone->id2aig, i, aig);
   }
+  //  printf ("cloned id2aig: %.3f\n", btor_time_stamp () - start);
 
   /* clone unique table */
   BTOR_CNEWN (mm, clone->table.chains, amgr->table.size);
@@ -1145,22 +1125,33 @@ btor_clone_aigs (BtorAIGMgr *amgr, BtorAIGMgr *clone, BtorAIGMap *aig_map)
           == BTOR_SIZE_STACK (amgr->cnfid2aig));
   assert (BTOR_COUNT_STACK (clone->cnfid2aig)
           == BTOR_COUNT_STACK (amgr->cnfid2aig));
+  //  printf ("cloned AIGs: %.3f (%u)\n", btor_time_stamp () - start,
+  //  BTOR_COUNT_STACK (amgr->id2aig));
 }
 
-BtorAIG *
-btor_cloned_aig (BtorMemMgr *mm, BtorAIG *aig, BtorAIGMap *aig_map)
+BtorAIGMgr *
+btor_clone_aig_mgr (BtorMemMgr *mm, BtorMsg *msg, BtorAIGMgr *amgr)
 {
   assert (mm);
-  assert (aig);
-  assert (aig_map);
+  assert (msg);
+  assert (amgr);
 
-  BtorAIG *caig;
+  BtorAIGMgr *res;
 
-  if (BTOR_IS_CONST_AIG (aig)) return aig;
+  BTOR_CNEW (mm, res);
+  res->mm  = mm;
+  res->msg = msg;
 
-  caig = btor_mapped_aig (aig_map, aig);
-  assert (caig);
-  return caig;
+  res->smgr = btor_clone_sat_mgr (mm, msg, amgr->smgr);
+  /* Note: we do not yet clone aigs here (we need the clone of the aig
+   *       manager for that). */
+  res->max_num_aigs     = amgr->max_num_aigs;
+  res->cur_num_aigs     = amgr->cur_num_aigs;
+  res->cur_num_aig_vars = amgr->cur_num_aig_vars;
+  res->num_vars         = amgr->num_vars;
+  res->num_clauses      = amgr->num_clauses;
+  clone_aigs (amgr, res);
+  return res;
 }
 
 void
