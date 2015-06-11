@@ -3668,9 +3668,14 @@ add_again_assumptions (Btor *btor)
 static int
 timed_sat_sat (Btor *btor, int limit)
 {
+  assert (btor);
+  assert (btor->slv);
+  assert (btor->slv->kind == BTOR_CORE_SOLVER_KIND);
+
   double start, delta;
-  BtorSATMgr *smgr;
   int res;
+  BtorSATMgr *smgr;
+
   smgr  = btor_get_sat_mgr_btor (btor);
   start = btor_time_stamp ();
   res   = btor_sat_sat (smgr, limit);
@@ -3709,7 +3714,8 @@ static void
 search_initial_applies_bv_skeleton (Btor *btor, BtorNodePtrStack *applies)
 {
   assert (btor);
-  assert (BTOR_CORE_SOLVER (btor));
+  assert (btor->slv);
+  assert (btor->slv->kind == BTOR_CORE_SOLVER_KIND);
   assert (applies);
   assert (BTOR_EMPTY_STACK (*applies));
   assert (check_id_table_aux_mark_unset_dbg (btor));
@@ -3892,7 +3898,8 @@ collect_applies (Btor *btor,
                  BtorNodePtrStack *top_applies)
 {
   assert (btor);
-  assert (BTOR_CORE_SOLVER (btor));
+  assert (btor->slv);
+  assert (btor->slv->kind == BTOR_CORE_SOLVER_KIND);
   assert (clone);
   assert (key_map);
   assert (assumptions);
@@ -3970,7 +3977,8 @@ set_up_dual_and_collect (Btor *btor,
                          int (*dp_cmp_inputs) (const void *, const void *))
 {
   assert (btor);
-  assert (BTOR_CORE_SOLVER (btor));
+  assert (btor->slv);
+  assert (btor->slv->kind == BTOR_CORE_SOLVER_KIND);
   assert (clone);
   assert (clone_root);
   assert (exp_map);
@@ -4021,7 +4029,8 @@ search_initial_applies_dual_prop (Btor *btor,
                                   BtorNodePtrStack *top_applies)
 {
   assert (btor);
-  assert (BTOR_CORE_SOLVER (btor));
+  assert (btor->slv);
+  assert (btor->slv->kind == BTOR_CORE_SOLVER_KIND);
   assert (clone);
   assert (clone_root);
   assert (exp_map);
@@ -4179,7 +4188,8 @@ static void
 search_initial_applies_just (Btor *btor, BtorNodePtrStack *top_applies)
 {
   assert (btor);
-  assert (BTOR_CORE_SOLVER (btor));
+  assert (btor->slv);
+  assert (btor->slv->kind == BTOR_CORE_SOLVER_KIND);
   assert (top_applies);
   assert (btor->unsynthesized_constraints->count == 0);
   assert (btor->embedded_constraints->count == 0);
@@ -4480,7 +4490,8 @@ static int
 lazy_synthesize_and_encode_var_exp (Btor *btor, BtorNode *var, int force_update)
 {
   assert (btor);
-  assert (BTOR_CORE_SOLVER (btor));
+  assert (btor->slv);
+  assert (btor->slv->kind == BTOR_CORE_SOLVER_KIND);
   assert (var);
   assert (BTOR_IS_REGULAR_NODE (var));
   assert (BTOR_IS_BV_VAR_NODE (var));
@@ -4533,7 +4544,8 @@ lazy_synthesize_and_encode_apply_exp (Btor *btor,
                                       int force_update)
 {
   assert (btor);
-  assert (BTOR_CORE_SOLVER (btor));
+  assert (btor->slv);
+  assert (btor->slv->kind == BTOR_CORE_SOLVER_KIND);
   assert (app);
   assert (BTOR_IS_REGULAR_NODE (app));
   assert (BTOR_IS_APPLY_NODE (app));
@@ -4616,7 +4628,8 @@ lazy_synthesize_and_encode_lambda_exp (Btor *btor,
                                        int force_update)
 {
   assert (btor);
-  assert (BTOR_CORE_SOLVER (btor));
+  assert (btor->slv);
+  assert (btor->slv->kind == BTOR_CORE_SOLVER_KIND);
   assert (lambda_exp);
   assert (BTOR_IS_REGULAR_NODE (lambda_exp));
   assert (BTOR_IS_LAMBDA_NODE (lambda_exp));
@@ -4891,7 +4904,8 @@ add_symbolic_lemma (Btor *btor,
                     BtorNode *args1)
 {
   assert (btor);
-  assert (BTOR_CORE_SOLVER (btor));
+  assert (btor->slv);
+  assert (btor->slv->kind == BTOR_CORE_SOLVER_KIND);
   assert (bconds_sel1);
   assert (bconds_sel2);
   assert (a);
@@ -5027,7 +5041,8 @@ static void
 add_lemma (Btor *btor, BtorNode *fun, BtorNode *app0, BtorNode *app1)
 {
   assert (btor);
-  assert (BTOR_CORE_SOLVER (btor));
+  assert (btor->slv);
+  assert (btor->slv->kind == BTOR_CORE_SOLVER_KIND);
   assert (fun);
   assert (app0);
   assert (BTOR_IS_REGULAR_NODE (fun));
@@ -5120,7 +5135,8 @@ find_not_encoded_applies_vars (Btor *btor,
                                BtorNodePtrStack *param_apps)
 {
   assert (btor);
-  assert (BTOR_CORE_SOLVER (btor));
+  assert (btor->slv);
+  assert (btor->slv->kind == BTOR_CORE_SOLVER_KIND);
   assert (exp);
   assert (param_apps);
   assert (check_id_table_mark_unset_dbg (btor));
@@ -5171,7 +5187,8 @@ static void
 insert_synth_app_lambda (Btor *btor, BtorLambdaNode *lambda, BtorNode *app)
 {
   assert (btor);
-  assert (BTOR_CORE_SOLVER (btor));
+  assert (btor->slv);
+  assert (btor->slv->kind == BTOR_CORE_SOLVER_KIND);
   assert (lambda);
   assert (app);
   assert (BTOR_IS_REGULAR_NODE (app));
@@ -5255,7 +5272,8 @@ push_applies_for_propagation (Btor *btor,
                               BtorIntHashTable *apply_search_cache)
 {
   assert (btor);
-  assert (BTOR_CORE_SOLVER (btor));
+  assert (btor->slv);
+  assert (btor->slv->kind == BTOR_CORE_SOLVER_KIND);
   assert (exp);
   assert (prop_stack);
   assert (check_id_table_mark_unset_dbg (btor));
@@ -5329,7 +5347,8 @@ push_applies_from_conds_for_propagation (Btor *btor,
                                          BtorIntHashTable *apply_search_cache)
 {
   assert (btor);
-  assert (BTOR_CORE_SOLVER (btor));
+  assert (btor->slv);
+  assert (btor->slv->kind == BTOR_CORE_SOLVER_KIND);
   assert (conds);
   assert (prop_stack);
 
@@ -5354,7 +5373,8 @@ propagate (Btor *btor,
            BtorIntHashTable *apply_search_cache)
 {
   assert (btor);
-  assert (BTOR_CORE_SOLVER (btor));
+  assert (btor->slv);
+  assert (btor->slv->kind == BTOR_CORE_SOLVER_KIND);
   assert (prop_stack);
   assert (cleanup_table);
   assert (apply_search_cache);
@@ -5876,6 +5896,8 @@ static void
 add_extensionality_lemmas (Btor *btor, BtorNodePtrStack *prop_stack)
 {
   assert (btor);
+  assert (btor->slv);
+  assert (btor->slv->kind == BTOR_CORE_SOLVER_KIND);
   assert (prop_stack);
 
   bool skip;
@@ -6004,7 +6026,8 @@ check_and_resolve_conflicts (Btor *btor,
                              BtorNodePtrStack *tmp_stack)
 {
   assert (btor);
-  assert (BTOR_CORE_SOLVER (btor));
+  assert (btor->slv);
+  assert (btor->slv->kind == BTOR_CORE_SOLVER_KIND);
 
   int found_conflicts, changed_assignments;
   BtorMemMgr *mm;
@@ -6145,7 +6168,8 @@ new_exp_layer_clone_for_dual_prop (Btor *btor,
                                    BtorNode **root)
 {
   assert (btor);
-  assert (BTOR_CORE_SOLVER (btor));
+  assert (btor->slv);
+  assert (btor->slv->kind == BTOR_CORE_SOLVER_KIND);
   assert (exp_map);
   assert (root);
 
@@ -6224,7 +6248,8 @@ add_lemma_to_dual_prop_clone (Btor *btor,
                               BtorNodeMap *exp_map)
 {
   assert (btor);
-  assert (BTOR_CORE_SOLVER (btor));
+  assert (btor->slv);
+  assert (btor->slv->kind == BTOR_CORE_SOLVER_KIND);
   assert (clone);
   assert (lemma);
 
@@ -6431,7 +6456,8 @@ static int
 br_probe (Btor *btor)
 {
   assert (btor);
-  assert (BTOR_CORE_SOLVER (btor));
+  assert (btor->slv);
+  assert (btor->slv->kind == BTOR_CORE_SOLVER_KIND);
   assert (btor->avmgr);
   assert (btor->avmgr->amgr);
   assert (btor->avmgr->amgr->smgr);
@@ -6722,7 +6748,8 @@ char *
 btor_eval_exp (Btor *btor, BtorNode *exp)
 {
   assert (btor);
-  assert (BTOR_CORE_SOLVER (btor));
+  assert (btor->slv);
+  assert (btor->slv->kind == BTOR_CORE_SOLVER_KIND);
   assert (exp);
 
   int i;
@@ -7268,6 +7295,8 @@ clone_core_solver (Btor *clone, Btor *btor, BtorNodeMap *exp_map)
 {
   assert (clone);
   assert (btor);
+  assert (btor->slv);
+  assert (btor->slv->kind == BTOR_CORE_SOLVER_KIND);
   assert (exp_map);
 
   int h;
@@ -7332,6 +7361,8 @@ static void
 delete_core_solver (Btor *btor)
 {
   assert (btor);
+  assert (btor->slv);
+  assert (btor->slv->kind == BTOR_CORE_SOLVER_KIND);
 
   BtorCoreSolver *slv;
   BtorPtrHashTable *t;
@@ -7381,6 +7412,8 @@ static int
 sat_core_solver (Btor *btor, int lod_limit, int sat_limit)
 {
   assert (btor);
+  assert (btor->slv);
+  assert (btor->slv->kind == BTOR_CORE_SOLVER_KIND);
 
   BtorCoreSolver *slv;
   int i, sat_result;
@@ -7599,6 +7632,8 @@ static void
 print_stats_core_solver (Btor *btor)
 {
   assert (btor);
+  assert (btor->slv);
+  assert (btor->slv->kind == BTOR_CORE_SOLVER_KIND);
 
   int i;
   BtorCoreSolver *slv;
@@ -7690,6 +7725,8 @@ static void
 print_time_stats_core_solver (Btor *btor)
 {
   assert (btor);
+  assert (btor->slv);
+  assert (btor->slv->kind == BTOR_CORE_SOLVER_KIND);
 
   BtorCoreSolver *slv;
 
