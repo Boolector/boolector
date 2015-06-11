@@ -31,7 +31,6 @@
 #include "simplifier/btorelimapplies.h"
 #include "simplifier/btorelimslices.h"
 #include "simplifier/btorextract.h"
-#include "simplifier/btorfeq.h"
 #include "simplifier/btormerge.h"
 #include "simplifier/btorunconstrained.h"
 #include "utils/btorinthash.h"
@@ -564,12 +563,16 @@ btor_print_stats_btor (Btor *btor)
             " AIG ANDs (cur/max): %lld/%lld",
             btor->avmgr->amgr->cur_num_aigs,
             btor->avmgr->amgr->max_num_aigs);
+  BTOR_MSG (btor->msg,
+            1,
+            " AIG variables: %lld",
+            btor->avmgr->amgr->max_num_aig_vars);
   BTOR_MSG (
-      btor->msg, 1, " AIG variables: %lld", btor->avmgr->amgr->num_aig_vars);
-  BTOR_MSG (btor->msg, 1, " CNF variables: %lld", btor->avmgr->amgr->num_vars);
-  BTOR_MSG (btor->msg, 1, " CNF clauses: %lld", btor->avmgr->amgr->num_clauses);
+      btor->msg, 1, " CNF variables: %lld", btor->avmgr->amgr->num_cnf_vars);
   BTOR_MSG (
-      btor->msg, 1, " CNF literals: %lld", btor->avmgr->amgr->num_literals);
+      btor->msg, 1, " CNF clauses: %lld", btor->avmgr->amgr->num_cnf_clauses);
+  BTOR_MSG (
+      btor->msg, 1, " CNF literals: %lld", btor->avmgr->amgr->num_cnf_literals);
 
   BTOR_MSG (btor->msg, 1, "");
   BTOR_MSG (btor->msg,
@@ -601,6 +604,7 @@ btor_print_stats_btor (Btor *btor)
             btor->stats.apply_props_construct);
   BTOR_MSG (
       btor->msg, 1, "beta reductions: %lld", btor->stats.beta_reduce_calls);
+  BTOR_MSG (btor->msg, 1, "clone calls: %lld", btor->stats.clone_calls);
 
   btor->slv->api.print_stats (btor);
 
@@ -1657,8 +1661,8 @@ insert_new_constraint (Btor *btor, BtorNode *exp)
   }
 }
 
-static void
-reset_assumptions (Btor *btor)
+void
+btor_reset_assumptions (Btor *btor)
 {
   assert (btor);
 
@@ -1703,7 +1707,7 @@ reset_incremental_usage (Btor *btor)
 {
   assert (btor);
 
-  reset_assumptions (btor);
+  btor_reset_assumptions (btor);
   reset_functions_with_model (btor);
   btor->valid_assignments = 0;
   btor_delete_model (btor);
@@ -2013,6 +2017,16 @@ btor_failed_exp (Btor *btor, BtorNode *exp)
   btor->time.failed += btor_time_stamp () - start;
 
   return res;
+}
+
+void
+btor_fixate_assumptions (Btor *btor)
+{
+  BtorHashTableIterator it;
+  init_node_hash_table_iterator (&it, btor->assumptions);
+  while (has_next_node_hash_table_iterator (&it))
+    btor_assert_exp (btor, next_node_hash_table_iterator (&it));
+  btor_reset_assumptions (btor);
 }
 
 /*------------------------------------------------------------------------*/
@@ -3065,7 +3079,8 @@ btor_simplify (Btor *btor)
     }
 
 #ifndef BTOR_DO_NOT_PROCESS_SKELETON
-    if (btor->options.rewrite_level.val > 2)
+    if (btor->options.rewrite_level.val > 2
+        && btor->options.skeleton_preproc.val)
     {
       skelrounds++;
       if (skelrounds <= 1)  // TODO only one?
@@ -6159,7 +6174,7 @@ new_exp_layer_clone_for_dual_prop (Btor *btor,
 
   start = btor_time_stamp ();
 
-  clone = btor_clone_exp_layer (btor, exp_map, 0);
+  clone = btor_clone_exp_layer (btor, exp_map);
   assert (!clone->synthesized_constraints->count);
   assert (clone->unsynthesized_constraints->count);
 
@@ -6369,11 +6384,8 @@ sat_aux_btor_dual_prop (Btor *btor)
 
   if (btor->valid_assignments == 1) reset_incremental_usage (btor);
 
-  //  BTOR_ABORT_CORE (btor->ops[BTOR_FEQ_NODE].cur > 0,
-  //		   "extensionality on arrays/lambdas not yet supported");
   if (btor->ops[BTOR_FEQ_NODE].cur > 0)
   {
-    //      btor_rewrite_function_inequalities (btor);
     update_reachable (btor, 1);
     add_function_inequality_constraints (btor);
   }
@@ -7086,7 +7098,7 @@ check_model (Btor *btor, Btor *clone, BtorPtrHashTable *inputs)
   init_node_hash_table_iterator (&it, clone->assumptions);
   while (has_next_node_hash_table_iterator (&it))
     btor_assert_exp (clone, next_node_hash_table_iterator (&it));
-  reset_assumptions (clone);
+  btor_reset_assumptions (clone);
 
   /* apply variable substitution until fixpoint */
   while (clone->varsubst_constraints->count > 0) substitute_var_exps (clone);
@@ -7386,6 +7398,7 @@ sat_core_solver (Btor *btor, int lod_limit, int sat_limit)
   assert (btor);
 
   BtorCoreSolver *slv;
+  double start;
   int i, sat_result;
   BtorNodePtrStack prop_stack;
   BtorSATMgr *smgr;
@@ -7397,7 +7410,8 @@ sat_core_solver (Btor *btor, int lod_limit, int sat_limit)
   Btor *faclone = 0;
 #endif
 
-  slv = BTOR_CORE_SOLVER (btor);
+  start = btor_time_stamp ();
+  slv   = BTOR_CORE_SOLVER (btor);
   assert (slv);
 
   clone      = 0;
@@ -7583,6 +7597,12 @@ DONE:
     btor_delete_btor (faclone);
   }
 #endif
+  BTOR_MSG (btor->msg,
+            1,
+            "SAT call %d returned %d in %.3f seconds",
+            btor->btor_sat_btor_called + 1,
+            sat_result,
+            btor_time_stamp () - start);
   return sat_result;
 }
 
