@@ -16,6 +16,7 @@
 #include "btordbg.h"
 #include "btormsg.h"
 #include "utils/btoriter.h"
+#include "utils/btormisc.h"
 #include "utils/btorutil.h"
 
 void
