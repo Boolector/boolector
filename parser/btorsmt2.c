@@ -3892,7 +3892,7 @@ btor_read_command_smt2 (BtorSMT2Parser *parser)
         }
         /* 0.06f is the best factor right now for keeping the cloning
          * overhead as low as possible */
-        if (ratio >= 0.06f)
+        if (!BTOR_EMPTY_STACK (parser->assumptions_trail) && ratio >= 0.06f)
         {
           Btor *c = boolector_clone (parser->btor);
           boolector_fixate_assumptions (c);
