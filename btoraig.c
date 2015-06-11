@@ -1056,7 +1056,6 @@ clone_aig (BtorMemMgr *mm, BtorAIG *aig)
 {
   assert (mm);
 
-  int i;
   size_t size;
   BtorAIG *res, *real_aig;
 
@@ -1083,8 +1082,7 @@ clone_aigs (BtorAIGMgr *amgr, BtorAIGMgr *clone)
   BtorMemMgr *mm;
   BtorAIG *aig;
 
-  double start = btor_time_stamp ();
-  mm           = clone->mm;
+  mm = clone->mm;
 
   /* clone id2aig table */
   BTOR_INIT_STACK (clone->id2aig);
@@ -1100,7 +1098,6 @@ clone_aigs (BtorAIGMgr *amgr, BtorAIGMgr *clone)
     aig = clone_aig (mm, BTOR_PEEK_STACK (amgr->id2aig, i));
     BTOR_POKE_STACK (clone->id2aig, i, aig);
   }
-  //  printf ("cloned id2aig: %.3f\n", btor_time_stamp () - start);
 
   /* clone unique table */
   BTOR_CNEWN (mm, clone->table.chains, amgr->table.size);
@@ -1125,8 +1122,6 @@ clone_aigs (BtorAIGMgr *amgr, BtorAIGMgr *clone)
           == BTOR_SIZE_STACK (amgr->cnfid2aig));
   assert (BTOR_COUNT_STACK (clone->cnfid2aig)
           == BTOR_COUNT_STACK (amgr->cnfid2aig));
-  //  printf ("cloned AIGs: %.3f (%u)\n", btor_time_stamp () - start,
-  //  BTOR_COUNT_STACK (amgr->id2aig));
 }
 
 BtorAIGMgr *
