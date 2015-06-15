@@ -774,15 +774,15 @@ clone_nodes_unique_table (BtorMemMgr *mm,
     CHKCLONE_MEM_PTR_HASH_TABLE (btor->table, clone->table);  \
   } while (0)
 
-#define CLONE_PTR_HASH_TABLE_DATA(table, data_func)                      \
-  do                                                                     \
-  {                                                                      \
-    BTORLOG_TIMESTAMP (delta);                                           \
-    clone->table = btor_clone_ptr_hash_table (                           \
-        mm, btor->table, btor_clone_key_as_node, data_func, emap, emap); \
-    BTORLOG ("  clone " #table " table: %.3f s",                         \
-             (btor_time_stamp () - delta));                              \
-    CHKCLONE_MEM_PTR_HASH_TABLE (btor->table, clone->table);             \
+#define CLONE_PTR_HASH_TABLE_DATA(table, data_func)                           \
+  do                                                                          \
+  {                                                                           \
+    BTORLOG_TIMESTAMP (delta);                                                \
+    clone->table = btor_clone_ptr_hash_table (                                \
+        mm, btor->table, btor_clone_key_as_node, data_func, emap, emap);      \
+    BTORLOG (                                                                 \
+        1, "  clone " #table " table: %.3f s", (btor_time_stamp () - delta)); \
+    CHKCLONE_MEM_PTR_HASH_TABLE (btor->table, clone->table);                  \
   } while (0)
 
 static Btor *
@@ -812,7 +812,7 @@ clone_aux_btor (Btor *btor, BtorNodeMap **exp_map, bool exp_layer_only)
   BtorPtrHashData *data, *cdata;
 #endif
 
-  BTORLOG ("start cloning btor %p ...", btor);
+  BTORLOG (1, "start cloning btor %p ...", btor);
   start = btor_time_stamp ();
 
   mm = btor_new_mem_mgr ();
@@ -848,7 +848,7 @@ clone_aux_btor (Btor *btor, BtorNodeMap **exp_map, bool exp_layer_only)
     BTORLOG_TIMESTAMP (delta);
     clone->bv_assignments =
         btor_clone_bv_assignment_list (clone->mm, btor->bv_assignments);
-    BTORLOG ("  clone BV assignments: %.3f s", (btor_time_stamp () - delta));
+    BTORLOG (1, "  clone BV assignments: %.3f s", (btor_time_stamp () - delta));
 #ifndef NDEBUG
     for (bvass = btor->bv_assignments->first; bvass; bvass = bvass->next)
       allocated += sizeof (BtorBVAssignment)
@@ -869,7 +869,8 @@ clone_aux_btor (Btor *btor, BtorNodeMap **exp_map, bool exp_layer_only)
     BTORLOG_TIMESTAMP (delta);
     clone->array_assignments =
         btor_clone_array_assignment_list (clone->mm, btor->array_assignments);
-    BTORLOG ("  clone array assignments: %.3f s", (btor_time_stamp () - delta));
+    BTORLOG (
+        1, "  clone array assignments: %.3f s", (btor_time_stamp () - delta));
 #ifndef NDEBUG
     for (arrass = btor->array_assignments->first; arrass; arrass = arrass->next)
     {
@@ -899,7 +900,7 @@ clone_aux_btor (Btor *btor, BtorNodeMap **exp_map, bool exp_layer_only)
   {
     BTORLOG_TIMESTAMP (delta);
     clone->avmgr = btor_clone_aigvec_mgr (mm, clone->msg, btor->avmgr);
-    BTORLOG ("  clone AIG mgr: %.3f s", (btor_time_stamp () - delta));
+    BTORLOG (1, "  clone AIG mgr: %.3f s", (btor_time_stamp () - delta));
     assert ((allocated +=
              sizeof (BtorAIGVecMgr) + sizeof (BtorAIGMgr) + sizeof (BtorSATMgr)
 #ifdef BTOR_USE_LINGELING
@@ -920,7 +921,8 @@ clone_aux_btor (Btor *btor, BtorNodeMap **exp_map, bool exp_layer_only)
   BTORLOG_TIMESTAMP (delta);
   clone_sorts_unique_table (
       mm, &btor->sorts_unique_table, &clone->sorts_unique_table);
-  BTORLOG ("  clone sorts unique table: %.3f s", (btor_time_stamp () - delta));
+  BTORLOG (
+      1, "  clone sorts unique table: %.3f s", (btor_time_stamp () - delta));
 #ifndef NDEBUG
   allocated += btor->sorts_unique_table.size * sizeof (BtorSort *)
                + btor->sorts_unique_table.num_elements * sizeof (BtorSort)
@@ -945,7 +947,7 @@ clone_aux_btor (Btor *btor, BtorNodeMap **exp_map, bool exp_layer_only)
                         &clone->nodes_id_table,
                         emap,
                         exp_layer_only);
-  BTORLOG ("  clone nodes id table: %.3f s", (btor_time_stamp () - delta));
+  BTORLOG (1, "  clone nodes id table: %.3f s", (btor_time_stamp () - delta));
 #ifndef NDEBUG
   int vread_bytes = 0;
   for (i = 1; i < BTOR_COUNT_STACK (btor->nodes_id_table); i++)
@@ -992,7 +994,8 @@ clone_aux_btor (Btor *btor, BtorNodeMap **exp_map, bool exp_layer_only)
   BTORLOG_TIMESTAMP (delta);
   clone_nodes_unique_table (
       mm, &btor->nodes_unique_table, &clone->nodes_unique_table, emap);
-  BTORLOG ("  clone nodes unique table: %.3f s", (btor_time_stamp () - delta));
+  BTORLOG (
+      1, "  clone nodes unique table: %.3f s", (btor_time_stamp () - delta));
   assert ((allocated += btor->nodes_unique_table.size * sizeof (BtorNode *))
           == clone->mm->allocated);
 
@@ -1102,7 +1105,8 @@ clone_aux_btor (Btor *btor, BtorNodeMap **exp_map, bool exp_layer_only)
   BTORLOG_TIMESTAMP (delta);
   btor_clone_node_ptr_stack (
       mm, &btor->functions_with_model, &clone->functions_with_model, emap);
-  BTORLOG ("  clone functions_with_model: %.3f s", btor_time_stamp () - delta);
+  BTORLOG (
+      1, "  clone functions_with_model: %.3f s", btor_time_stamp () - delta);
   assert ((allocated +=
            BTOR_SIZE_STACK (btor->functions_with_model) * sizeof (BtorNode *))
           == clone->mm->allocated);
@@ -1119,7 +1123,8 @@ clone_aux_btor (Btor *btor, BtorNodeMap **exp_map, bool exp_layer_only)
                                  btor_clone_data_as_htable_ptr,
                                  emap,
                                  emap);
-  BTORLOG ("  clone parameterized table: %.3f s", (btor_time_stamp () - delta));
+  BTORLOG (
+      1, "  clone parameterized table: %.3f s", (btor_time_stamp () - delta));
 #ifndef NDEBUG
   CHKCLONE_MEM_PTR_HASH_TABLE (btor->parameterized, clone->parameterized);
   allocated += MEM_PTR_HASH_TABLE (btor->parameterized);
@@ -1245,7 +1250,7 @@ clone_aux_btor (Btor *btor, BtorNodeMap **exp_map, bool exp_layer_only)
 
   btor->time.cloning += btor_time_stamp () - start;
   btor->stats.clone_calls += 1;
-  BTORLOG ("cloning total: %.3f s", btor->time.cloning);
+  BTORLOG (1, "cloning total: %.3f s", btor->time.cloning);
   return clone;
 }
 
