@@ -3250,7 +3250,7 @@ sat_sls_solver (Btor *btor, int limit0, int limit1)
 {
   assert (btor);
 
-  int i, j, max_steps;
+  int j, max_steps;
   int sat_result;
   int nmoves;
   BtorPtrHashBucket *b;
@@ -3264,7 +3264,6 @@ sat_sls_solver (Btor *btor, int limit0, int limit1)
   assert (slv);
 
   nmoves = 0;
-  i      = 1;
 
   //#ifndef NDEBUG
   //  Btor *clone = btor_clone_exp_layer (btor, 0, 0);
@@ -3349,7 +3348,7 @@ sat_sls_solver (Btor *btor, int limit0, int limit1)
       goto SAT;
     }
 
-    for (j = 0, max_steps = BTOR_SLS_MAXSTEPS (i);
+    for (j = 0, max_steps = BTOR_SLS_MAXSTEPS (slv->stats.restarts + 1);
          j < max_steps;  //|| btor->options.sls_strategy.val ==
                          // BTOR_SLS_STRAT_PROB_RAND_WALK;
          j++)
@@ -3375,7 +3374,7 @@ sat_sls_solver (Btor *btor, int limit0, int limit1)
     slv->score = btor_new_ptr_hash_table (btor->mm,
                                           (BtorHashPtr) btor_hash_exp_by_id,
                                           (BtorCmpPtr) btor_compare_exp_by_id);
-    i += 1;
+    slv->stats.restarts += 1;
   }
 
 SAT:
@@ -3392,7 +3391,6 @@ DONE:
     btor_delete_ptr_hash_table (slv->roots);
     slv->roots = 0;
   }
-  slv->stats.restarts   = i - 1;
   btor->last_sat_result = sat_result;
   return sat_result;
 }
