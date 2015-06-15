@@ -59,15 +59,6 @@ new_memcopy_op (BtorMemMgr *mm, BtorNode *index, BtorNode *value)
     btor_set_invbits_const (
         res->index, btor_not_const (mm, btor_get_bits_const (res->index)));
 
-  //  printf ("new memcopy op:\n");
-  //  Btor *btor = BTOR_REAL_ADDR_NODE (index)->btor;
-  //  printf ("  to: "); btor_dump_smt2_node (btor, stdout, res->to, 2);
-  //  printf ("  src_addr: "); btor_dump_smt2_node (btor, stdout, res->src_addr,
-  //  2); printf ("  dst_addr: "); btor_dump_smt2_node (btor, stdout,
-  //  res->dst_addr, 2); printf ("  offset: "); btor_dump_smt2_node (btor,
-  //  stdout, res->index, 2); printf ("  index: "); btor_dump_smt2_node (btor,
-  //  stdout, index, 2); printf ("  value: "); btor_dump_smt2_node (btor,
-  //  stdout, value, 2);
   return res;
 }
 
@@ -117,34 +108,6 @@ bvadd_get_base_and_offset (BtorNode *bvadd, BtorNode **base, BtorNode **offset)
     *offset = bvadd->e[1];
     *base   = bvadd->e[0];
   }
-}
-
-static int
-cmp_bvadd (const void *a, const void *b)
-{
-  const char *b0, *b1;
-  BtorNode *x, *y, *x_base_addr, *x_base_offset, *y_base_addr, *y_base_offset;
-
-  x = *((BtorNode **) a);
-  y = *((BtorNode **) b);
-
-  assert (BTOR_IS_REGULAR_NODE (x));
-  assert (BTOR_IS_REGULAR_NODE (y));
-  assert (BTOR_IS_ADD_NODE (x));
-  assert (BTOR_IS_ADD_NODE (y));
-
-  bvadd_get_base_and_offset (x, &x_base_addr, &x_base_offset);
-  bvadd_get_base_and_offset (y, &y_base_addr, &y_base_offset);
-
-  if (x_base_addr != y_base_addr)
-    return BTOR_REAL_ADDR_NODE (x_base_addr)->id
-           - BTOR_REAL_ADDR_NODE (y_base_addr)->id;
-
-  b0 = BTOR_CONST_GET_BITS (x_base_offset);
-  b1 = BTOR_CONST_GET_BITS (y_base_offset);
-  assert (b0);
-  assert (b1);
-  return strcmp (b0, b1);
 }
 
 static int
@@ -549,21 +512,6 @@ is_equal_memcopy_pattern (BtorNode *index0,
       index0, value0, &src_array0, &src0, &dst0, &off0);
   memcopy_pattern_get_arguments (
       index1, value1, &src_array1, &src1, &dst1, &off1);
-#if 0
-  printf ("***\n");
-  printf ("%s\n", node2string (src0));
-  printf ("%s\n", node2string (src1));
-  printf ("%s\n", node2string (dst0));
-  printf ("%s\n", node2string (dst1));
-  printf ("%s\n", node2string (off0));
-  printf ("%s\n", node2string (off1));
-  btor_dump_smt2_node (BTOR_REAL_ADDR_NODE (index0)->btor, stdout, src0, 1);
-  btor_dump_smt2_node (BTOR_REAL_ADDR_NODE (index0)->btor, stdout, src1, 1);
-  btor_dump_smt2_node (BTOR_REAL_ADDR_NODE (index0)->btor, stdout, dst0, 1);
-  btor_dump_smt2_node (BTOR_REAL_ADDR_NODE (index0)->btor, stdout, dst1, 1);
-  btor_dump_smt2_node (BTOR_REAL_ADDR_NODE (index0)->btor, stdout, off0, 1);
-  btor_dump_smt2_node (BTOR_REAL_ADDR_NODE (index0)->btor, stdout, off1, 1);
-#endif
   return src0 == src1 && dst0 == dst1;
 }
 
@@ -687,43 +635,21 @@ collect_indices_writes (Btor *btor,
       prev_index = prev_value = 0;
       while (is_write_exp (cur, &array, &index, &value))
       {
-        //	      printf ("(%d) is_write: %s\n", cur->parents, node2string
-        //(cur));
         assert (BTOR_IS_REGULAR_NODE (array));
         assert (BTOR_IS_FUN_NODE (array));
-
-        /* if 'cur' has more than one parent we have to treat as a top
-         * lambda */
-        // TODO (ma): check if it has an effect if this is disabled
-        //	  -> it seems better if disabled
-#if 0
-	      if (0 && cur != lambda && cur->parents > 1)
-		{
-		  BTOR_PUSH_STACK (mm, lambdas, cur);
-		  break;
-		}
-#endif
 
         /* index already cached, this index will be overwritten anyways,
          * so we can skip it */
         if (btor_find_in_ptr_hash_table (index_cache, index))
         {
-          //		  printf ("  skip: %s\n", node2string (index));
           cur = array;
           continue;
         }
 
-        //		  fprintf (stderr, "top: %s\n", node2string (lambda));
-        //		  fprintf (stderr, "  value: ");
-        //		  btor_dump_smt2_node (btor, stderr, value, 2);
-        //		  fprintf (stderr, "  index: ");
-        //		  btor_dump_smt2_node (btor, stderr, index, 2);
         if ((!prev_index
              || BTOR_IS_BV_CONST_NODE (BTOR_REAL_ADDR_NODE (prev_index)))
             && BTOR_IS_BV_CONST_NODE (BTOR_REAL_ADDR_NODE (index)))
         {
-          //		  printf ("index: "); btor_dump_smt2_node (btor, stdout,
-          // index, 2);
           btor_insert_in_ptr_hash_table (index_cache, index);
           add_to_index_map (btor, map_value_index, lambda, index, value);
         }
@@ -740,19 +666,11 @@ collect_indices_writes (Btor *btor,
            * memcopy patterns) */
           if (value->e[0] == array && array->parents == 2)
             btor_insert_in_ptr_hash_table (visit_cache, array);
-          //		  printf ("index: "); btor_dump_smt2_node (btor, stdout,
-          // index, 2); 		  printf ("value: "); btor_dump_smt2_node
-          // (btor, stdout, value, 2); 		  printf ("from: %s\n",
-          // node2string (value->e[0])); 		  printf ("array: ");
-          //printf ("%s\n", node2string (array));
           btor_insert_in_ptr_hash_table (index_cache, index);
           add_to_index_map (btor, map_value_index, lambda, index, value);
         }
         else
         {
-          //		  printf ("***\n");
-          //		  printf ("  no const index: ");
-          //		  btor_dump_smt2_node (btor, stdout, index, 2);
           BTOR_PUSH_STACK (mm, lambdas, array);
           break;
         }
@@ -766,8 +684,6 @@ collect_indices_writes (Btor *btor,
         assert (!btor_find_in_ptr_hash_table (map_lambda_base, lambda));
         btor_insert_in_ptr_hash_table (map_lambda_base, lambda)->data.asPtr =
             cur;
-        //	    printf ("### base: %s (%d)\n", node2string (cur),
-        // index_cache->count);
       }
       btor_delete_ptr_hash_table (index_cache);
 
@@ -822,12 +738,7 @@ collect_indices_top_eqs (Btor *btor, BtorPtrHashTable *map_value_index)
       value = lhs;
     }
 
-    if (!index)
-    {
-      //	printf ("  no const eq index: ");
-      //	btor_dump_smt2_node (btor, stdout, cur, 2);
-      continue;
-    }
+    if (!index) continue;
 
     if (btor_find_in_ptr_hash_table (btor->substitutions, read)) continue;
 
@@ -959,7 +870,6 @@ find_ranges (Btor *btor,
             range_size_inc += upper - lower + 1;
             num_memset_inc++;
           }
-          //			  printf ("range %d:%d\n", lower, upper);
           /* 'last_diff' will be released later */
           last_diff = 0;
         NEW_RANGE:
@@ -981,138 +891,6 @@ find_ranges (Btor *btor,
   if (res_range_size) *res_range_size += range_size;
   if (res_range_size_inc) *res_range_size_inc += range_size_inc;
 }
-
-#if 0
-void
-find_rel_ranges (Btor * btor,
-		 BtorNodePtrStack * stack,
-		 BtorNodePtrStack * ranges,
-		 BtorCharPtrStack * offsets,
-		 BtorNodePtrStack * indices)
-{
-  assert (stack);
-  assert (ranges);
-  assert (offsets);
-  assert (indices);
-
-#ifndef NDEBUG
-  unsigned num_indices = 0;
-#endif
-  bool in_range;
-  char *b0, *b1, *diff, *last_diff;
-  unsigned cnt, lower, upper;
-  BtorNode *n0, *n1, *n0_base, *n0_offset, *n1_base, *n1_offset;
-  BtorMemMgr *mm;
-  BtorNodePtrStack index_stack;
-
-  mm = btor->mm;
-  index_stack = *stack;
-  cnt = BTOR_COUNT_STACK (index_stack);
-  if (cnt == 0)
-    return;
-  if (cnt == 1)
-    BTOR_PUSH_STACK (mm, *indices, BTOR_PEEK_STACK (index_stack, 0));
-  else
-    {
-      assert (cnt > 1);
-      qsort (index_stack.start, cnt, sizeof (BtorNode *), cmp_bvadd);
-      diff = last_diff = 0;
-      lower = upper = 0;
-      while (upper < cnt)
-	{
-	  in_range = false;
-	  diff = 0;
-	  if (upper + 1 < cnt)
-	    {
-	      n0 = BTOR_PEEK_STACK (index_stack, upper);
-	      n1 = BTOR_PEEK_STACK (index_stack, upper + 1);
-	      bvadd_get_base_and_offset (n0, &n0_base, &n0_offset);
-	      bvadd_get_base_and_offset (n1, &n1_base, &n1_offset);
-	      b0 = BTOR_CONST_GET_BITS (n0_offset);
-	      b1 = BTOR_CONST_GET_BITS (n1_offset);
-	      assert (b0);
-	      assert (b1);
-	      diff = btor_sub_const (mm, b1, b0);
-
-	      if (!last_diff)
-		last_diff = btor_copy_const (mm, diff);
-
-	      /* increment upper bound of range */
-	      in_range = n0_base == n1_base && strcmp (diff, last_diff) == 0;
-	      if (in_range)
-		upper += 1;
-	    }
-
-	  if (!in_range)
-	    {
-	      /* push index */
-	      if (upper == lower)
-		{
-		  BTOR_PUSH_STACK (mm, *indices,
-				   BTOR_PEEK_STACK (index_stack, lower));
-		  printf ("index: %d\n", lower);
-#ifndef NDEBUG
-		  num_indices++;
-#endif
-		  goto NEW_RANGE;
-		}
-	      /* range is too small, push separate indices */
-	      else if (upper - lower <= 1
-		       /* range with an offset greater than 1 */
-		       && btor_is_power_of_two_const (last_diff) != 0)
-		{
-		  /* last iteration step: if range contains all indices
-		   * up to the last one, we can push all indices */
-		  if (upper == cnt - 1)
-		    upper += 1;
-
-		  /* push all indices from lower until upper - 1 */
-		  for (; lower < upper; lower++)
-		    {
-		      BTOR_PUSH_STACK (mm, *indices,
-				       BTOR_PEEK_STACK (index_stack, lower));
-#ifndef NDEBUG
-		      num_indices++;
-#endif
-		    }
-		  /* lower is now that last index in the range, from
-		   * which we try to find a new range */
-		  upper += 1;
-		}
-	      /* found range */
-	      else
-		{
-		  assert (upper - lower > 0);
-		  BTOR_PUSH_STACK (mm, *offsets, last_diff);
-		  BTOR_PUSH_STACK (mm, *ranges,
-				   BTOR_PEEK_STACK (index_stack, lower));
-		  BTOR_PUSH_STACK (mm, *ranges,
-				   BTOR_PEEK_STACK (index_stack, upper));
-#ifndef NDEBUG
-		  num_indices += upper - lower + 1;
-#endif
-		  printf ("range %d:%d\n", lower, upper);
-		  /* 'last_diff' will be released later */
-		  last_diff = 0;
-NEW_RANGE:
-		  /* reset range */
-		  upper += 1;
-		  lower = upper;
-		  if (diff)
-		    btor_delete_const (mm, diff);
-		  diff = 0;
-		}
-	    }
-	  if (last_diff)
-	    btor_delete_const (mm, last_diff);
-	  last_diff = diff;
-	}
-      if (diff)
-	btor_delete_const (mm, diff);
-      assert (num_indices == cnt);
-    }
-}
-#endif
 
 unsigned
 find_memcopy_ranges (Btor *btor,
@@ -1181,7 +959,6 @@ find_memcopy_ranges (Btor *btor,
         {
           op0 = BTOR_PEEK_STACK (memcopy_stack, lower);
           BTOR_PUSH_STACK (mm, *indices, op0->orig_index);
-//		  printf ("index: %d\n", lower);
 #ifndef NDEBUG
           num_indices++;
 #endif
@@ -1220,7 +997,6 @@ find_memcopy_ranges (Btor *btor,
           num_indices += upper - lower + 1;
 #endif
           range_size += upper - lower + 1;
-          //		  printf ("range %d:%d\n", lower, upper);
           /* 'last_diff' will be released later */
           last_diff = 0;
         NEW_RANGE:
@@ -1464,16 +1240,12 @@ extract_lambdas (Btor *btor,
         op_upper = BTOR_PEEK_STACK (memcopy_ranges, i_range + 1);
         assert (i_offset < BTOR_COUNT_STACK (offsets));
         offset = BTOR_PEEK_STACK (offsets, i_offset);
-        //	      printf ("off: %s\n", offset);
         tmp = create_pattern_memcopy (btor, op_lower, op_upper, subst, offset);
-        //	      btor_dump_smt2_node (btor, stdout, tmp, 3);
         btor_release_exp (btor, subst);
         subst = tmp;
         btor_delete_const (mm, offset);
         i_offset++;
         num_pat_memcopy++;
-        //	      free_memcopy_op (mm, op_lower);
-        //	      free_memcopy_op (mm, op_upper);
       }
     }
     while (!BTOR_EMPTY_STACK (p_memcopy))
@@ -1515,8 +1287,6 @@ extract_lambdas (Btor *btor,
     BTOR_RESET_STACK (idxidx);
     BTOR_RESET_STACK (idxinc);
     BTOR_RESET_STACK (remidx);
-    //      BTOR_RESET_STACK (rel_ranges);
-    //      BTOR_RESET_STACK (rel_offsets);
     BTOR_RESET_STACK (memcopy_ranges);
     BTOR_RESET_STACK (p_memcopy);
   }
@@ -1527,8 +1297,6 @@ extract_lambdas (Btor *btor,
   BTOR_RELEASE_STACK (mm, indices);
   BTOR_RELEASE_STACK (mm, offsets);
   BTOR_RELEASE_STACK (mm, values);
-  //  BTOR_RELEASE_STACK (mm, rel_ranges);
-  //  BTOR_RELEASE_STACK (mm, rel_offsets);
   BTOR_RELEASE_STACK (mm, memcopy_ranges);
   BTOR_RELEASE_STACK (mm, p_memcopy);
 
