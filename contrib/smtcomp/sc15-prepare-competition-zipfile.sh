@@ -30,7 +30,7 @@ mkdir $dir/bin
 cp boolector $dir/bin
 echo "#!/bin/sh
 
-./boolector -i -bra -uc -sp=0\$1" > $dir/bin/starexec_run_boolector_qf_bv_inc
+./boolector -i -bra -uc -sp=0 \$1" > $dir/bin/starexec_run_boolector_qf_bv_inc
 
 tar -C $dir -zcf $archive .
 rm -rf $dir
