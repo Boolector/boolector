@@ -228,7 +228,7 @@ btor_init_opts (Btor *btor)
             "prop moves per one regular move, and <n> < 0 for <n> regular "
             "moves per one prop move)");
   BTOR_OPT (0,
-            sls_move_prop_rand_walk,
+            sls_move_prop_force_rw,
             0,
             0,
             1,
