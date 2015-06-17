@@ -217,7 +217,8 @@ btor_init_opts (Btor *btor)
             0,
             0,
             1,
-            "do a propagation move (with given probability)");
+            "enable propagation moves (with given ratio of propagation to "
+            " regular moves)");
   BTOR_OPT (0,
             sls_move_prop_moves,
             1,
@@ -226,6 +227,12 @@ btor_init_opts (Btor *btor)
             "ratio of prop moves versus regular moves (use <n> > 0 for <n> "
             "prop moves per one regular move, and <n> < 0 for <n> regular "
             "moves per one prop move)");
+  BTOR_OPT (0,
+            sls_move_prop_rand_walk,
+            0,
+            0,
+            1,
+            "force random walk if propagation move fails");
   BTOR_OPT (0,
             sls_move_inc_move_test,
             0,

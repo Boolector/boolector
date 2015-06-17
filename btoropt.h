@@ -89,8 +89,9 @@ typedef struct BtorOpt
 #define BTOR_OPT_SLS_MOVE_RAND_WALK_PROB "sls_move_rand_walk_prob"
 #define BTOR_OPT_SLS_MOVE_RANDOMIZEALL "sls_move_rand_all"
 #define BTOR_OPT_SLS_MOVE_RANDOMIZERANGE "sls_move_rand_range"
-#define BTOR_OPT_SLS_MOVE_PROP_MOVES "sls_move_prop_moves"
 #define BTOR_OPT_SLS_MOVE_PROP "sls_move_prop"
+#define BTOR_OPT_SLS_MOVE_PROP_MOVES "sls_move_prop_moves"
+#define BTOR_OPT_SLS_MOVE_PROP_RAND_WALK "sls_move_prop_rand_walk"
 #define BTOR_OPT_SLS_MOVE_INC_MOVE_TEST "sls_move_inc_move_test"
 #ifndef BTOR_DO_NOT_OPTIMIZE_UNCONSTRAINED
 #define BTOR_OPT_UCOPT "ucopt"
@@ -148,14 +149,18 @@ typedef struct BtorOpts
   BtorOpt sls;
   BtorOpt sls_strategy;
   BtorOpt sls_move_gw;
-  BtorOpt sls_move_range;
-  BtorOpt sls_move_segment;
-  BtorOpt sls_move_rand_walk;
-  BtorOpt sls_move_rand_walk_prob;
-  BtorOpt sls_move_rand_all;
-  BtorOpt sls_move_rand_range;
-  BtorOpt sls_move_prop;
-  BtorOpt sls_move_prop_moves;
+  BtorOpt sls_move_range;          /* enable range flip neighbors */
+  BtorOpt sls_move_segment;        /* enable segment flip neighbors */
+  BtorOpt sls_move_rand_all;       /* randomize all candidates
+                                      (rather than just one) */
+  BtorOpt sls_move_rand_range;     /* ranomize range-wise and choose best guess
+                                      (rather than randomizing all bits) */
+  BtorOpt sls_move_rand_walk;      /* enable random walks */
+  BtorOpt sls_move_rand_walk_prob; /* probability to choose a random walk */
+  BtorOpt sls_move_prop;           /* enable propagation moves */
+  BtorOpt sls_move_prop_moves;     /* pos: do n:1 prop vs. regular moves
+                                      neg: do n:1 regular vs. prop moves */
+  BtorOpt sls_move_prop_rand_walk; /* force random walk if prop move fails */
   BtorOpt sls_move_inc_move_test;
 
   BtorOpt dual_prop;      /* dual prop optimization */

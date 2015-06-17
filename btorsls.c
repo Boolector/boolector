@@ -3017,7 +3017,13 @@ move (Btor *btor, int nmoves)
                          : slv->npropmoves == nprops)))
   {
     select_prop_move (btor, constr);
-    if (!slv->max_cans->count) goto SLS_MOVE;
+    if (!slv->max_cans->count)
+    {
+      /* force random walk if prop move fails */
+      if (btor->options.sls_move_prop_rand_walk.val) goto SLS_MOVE_RAND_WALK;
+
+      goto SLS_MOVE;
+    }
   }
   else
   {
@@ -3032,9 +3038,14 @@ move (Btor *btor, int nmoves)
     if (btor->options.sls_move_rand_walk.val
         && !btor_pick_rand_rng (
                &btor->rng, 0, btor->options.sls_move_rand_walk_prob.val))
+    {
+    SLS_MOVE_RAND_WALK:
       select_random_move (btor, &candidates);
+    }
     else
+    {
       select_move (btor, &candidates);
+    }
 
     assert (slv->max_cans->count);
   }
