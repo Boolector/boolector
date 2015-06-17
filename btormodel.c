@@ -743,7 +743,7 @@ extract_models_from_functions_with_model (Btor *btor,
 
     if (!static_rho || !cur->tseitin) continue;
 
-    BTORLOG ("generate model for %s from static_rho", node2string (cur));
+    BTORLOG (1, "generate model for %s from static_rho", node2string (cur));
     extract_model_from_rho (btor, fun_model, cur, static_rho);
   }
 
@@ -751,7 +751,7 @@ extract_models_from_functions_with_model (Btor *btor,
   {
     cur = BTOR_PEEK_STACK (btor->functions_with_model, i);
     assert (cur->rho);
-    BTORLOG ("generate model for %s from rho", node2string (cur));
+    BTORLOG (1, "generate model for %s from rho", node2string (cur));
     extract_model_from_rho (btor, fun_model, cur, cur->rho);
   }
 }
@@ -825,7 +825,7 @@ btor_generate_model (Btor *btor,
   {
     cur = BTOR_PEEK_STACK (stack, i);
     assert (!BTOR_IS_UF_NODE (cur));
-    BTORLOG ("generate model for %s", node2string (cur));
+    BTORLOG (1, "generate model for %s", node2string (cur));
 
     // TODO: only required in extensional case (not fully supported yet)
     if (BTOR_IS_LAMBDA_NODE (cur))

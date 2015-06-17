@@ -222,6 +222,26 @@ void boolector_assume (Btor *btor, BoolectorNode *node);
 int boolector_failed (Btor *btor, BoolectorNode *node);
 
 /*!
+  Add all assumptions as assertions.
+
+  :param btor: Boolector instance.
+
+  .. seealso::
+    boolector_assume
+*/
+void boolector_fixate_assumptions (Btor *btor);
+
+/*!
+  Resets all added assumptions.
+
+  :param btor: Boolector instance.
+
+  .. seealso::
+    boolector_assume
+*/
+void boolector_reset_assumptions (Btor *btor);
+
+/*!
   Solve an input formula.
 
   An input formula is defined by constraints added via boolector_assert.

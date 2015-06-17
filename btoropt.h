@@ -118,6 +118,7 @@ typedef struct BtorOpt
 #define BTOR_OPT_PARSE_INTERACTIVE "parse_interactive"
 #define BTOR_OPT_MERGE_LAMBDAS "merge_lambdas"
 #define BTOR_OPT_EXTRACT_LAMBDAS "extract_lambdas"
+#define BTOR_OPT_SKELETON_PREPROC "skeleton_preproc"
 
 typedef struct BtorOpts
 {
@@ -170,6 +171,7 @@ typedef struct BtorOpts
   BtorOpt eager_lemmas;     /* eager lemma generation */
   BtorOpt merge_lambdas;    /* merge lambda chains */
   BtorOpt extract_lambdas;  /* extract lambda terms */
+  BtorOpt skeleton_preproc; /* skeleton preprocessing */
 
   BtorOpt auto_cleanup; /* automatic cleanup of exps, assignment
                            strings (external references only) */
