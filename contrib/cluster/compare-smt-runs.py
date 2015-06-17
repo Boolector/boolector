@@ -373,7 +373,7 @@ def _read_data (dirs):
                            g_file_stats["result"][d][f_name] = 1
 
 
-def _pick_data(benchmarks, data, generate_vbs=True):
+def _pick_data(benchmarks, data, generate_vbs):
     global g_args
 
     dirs = g_args.dirs[:-1] if g_args.vb else g_args.dirs
@@ -700,7 +700,8 @@ def _get_column_widths(data, benchmarks):
 def _print_data ():
     global g_file_stats, g_dir_stats
 
-    diff_stats, best_stats, vb_stats = _pick_data(g_benchmarks, g_file_stats)
+    diff_stats, best_stats, vb_stats = \
+            _pick_data(g_benchmarks, g_file_stats, g_args.vb)
     if g_args.g:
         data, benchmarks = _get_group_totals()
         diff_stats, best_stats, vbs_stats = _pick_data(benchmarks, data, False)
