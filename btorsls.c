@@ -3020,7 +3020,7 @@ move (Btor *btor, int nmoves)
     if (!slv->max_cans->count)
     {
       /* force random walk if prop move fails */
-      if (btor->options.sls_move_prop_rand_walk.val) goto SLS_MOVE_RAND_WALK;
+      if (btor->options.sls_move_prop_force_rw.val) goto SLS_MOVE_RAND_WALK;
 
       goto SLS_MOVE;
     }
