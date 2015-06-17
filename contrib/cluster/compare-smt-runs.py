@@ -854,7 +854,7 @@ if __name__ == "__main__":
               (
                 "-hd",
                 metavar="float", dest="diff", type=float, default=0.1,
-                help="highlight difference if greater than <float>"
+                help="highlight diff if greater than <float>"
               )
         aparser.add_argument \
               (
