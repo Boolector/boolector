@@ -365,6 +365,12 @@ def _read_data (dirs):
                                 raise CmpSMTException ("missing '{}'".format (
                                     os.path.join (d, outfile)))
                             _read_out_file (d, "{}{}".format(f[:-3], "out"))
+                    # reset timeout if given
+                    if g_args.timeout and \
+                       g_file_stats["time_time"][d][f_name] > g_args.timeout:
+                           g_file_stats["time_time"][d][f_name] = g_args.timeout
+                           g_file_stats["status"][d][f_name] = "time"
+                           g_file_stats["result"][d][f_name] = 1
 
 
 def _pick_data(benchmarks, data, generate_vbs=True):
@@ -819,60 +825,152 @@ if __name__ == "__main__":
                              "note: {{ {} }} are enabled for '-M' only.".format(
                           ", ".join(sorted(FILE_STATS_KEYS)),
                           ", ".join(sorted(list(FILTER_OUT.keys())))))
-        aparser.add_argument ("-f", metavar="string", dest="filter", type=str, 
-                default=None,
-                help="filter benchmark files by <string>")
-        aparser.add_argument ("-vb", action="store_true",
-                help="generate virtual best solver")
-        aparser.add_argument ("--vb-show-details", action="store_true",
-                dest="vbsd",
-                help="show detailed overview for virtual best solver")
-        aparser.add_argument ("-hd", metavar="float", dest="diff", type=float,
-                default=0.1,
-                help="highlight difference if greater than <float>")
-        aparser.add_argument ("-bs", action="store_true",
-                help="compare boolector statistics")
-        aparser.add_argument ("-dp", action="store_true",
-                help = "compare dual prop statistics")
-        aparser.add_argument ("-m", action="store_true",
-                help="extract models statistics")
-        aparser.add_argument ("-M", action="store_true",
-                help="compare models statistics")
-        aparser.add_argument ("-dis", action="store_true",
-                help="show discrepancies only")
-        aparser.add_argument ("-time", action="store_true",
-                help="show timeouts only")
-        aparser.add_argument ("-toof", dest="timeof", action="store",
-                              default=None,
-                              help="show timeouts of given dir only")
-        aparser.add_argument ("-mem", action="store_true",
-                help="show memory outs only")
-        aparser.add_argument ("-err", action="store_true",
-                help="show errors only")
-        aparser.add_argument ("-ok", action="store_true",
-                help="show non-errors only")
-        aparser.add_argument ("-c", metavar="column", dest="cmp_col", 
-                default='time_time',
+        aparser.add_argument \
+              (
+                "-f",
+                metavar="string", dest="filter", type=str, default=None,
+                help="filter benchmark files by <string>"
+              )
+        aparser.add_argument \
+              (
+                "-to",
+                metavar="seconds", dest="timeout", type=float, default=None,
+                help="use individual time out"
+              )
+        aparser.add_argument \
+              (
+                "-vb",
+                action="store_true",
+                help="generate virtual best solver"
+              )
+        aparser.add_argument \
+              (
+                "--vb-show-details",
+                dest="vbsd", action="store_true",
+                help="show detailed overview for virtual best solver"
+               )
+        aparser.add_argument \
+              (
+                "-hd",
+                metavar="float", dest="diff", type=float, default=0.1,
+                help="highlight difference if greater than <float>"
+              )
+        aparser.add_argument \
+              (
+                "-bs",
+                action="store_true",
+                help="compare boolector statistics"
+              )
+        aparser.add_argument \
+              (
+                "-dp",
+                action="store_true",
+                help = "compare dual prop statistics"
+              )
+        aparser.add_argument \
+              (
+                "-m",
+                action="store_true",
+                help="extract models statistics"
+              )
+        aparser.add_argument \
+              (
+                "-M",
+                action="store_true",
+                help="compare models statistics"
+              )
+        aparser.add_argument \
+              (
+                "-dis",
+                action="store_true",
+                help="show discrepancies only"
+              )
+        aparser.add_argument \
+              (
+                "-time",
+                action="store_true",
+                help="show timeouts only"
+              )
+        aparser.add_argument \
+              (
+                "-toof",
+                metavar="dir", dest="timeof", action="store", default=None,
+                help="show timeouts of given dir only"
+              )
+        aparser.add_argument \
+              (
+                "-mem",
+                action="store_true",
+                help="show memory outs only"
+              )
+        aparser.add_argument \
+              (
+                "-err",
+                action="store_true",
+                help="show errors only"
+              )
+        aparser.add_argument \
+              (
+                "-ok",
+                action="store_true",
+                help="show non-errors only"
+              )
+        aparser.add_argument \
+              (
+                "-c",
+                metavar="column", dest="cmp_col", default='time_time',
                 choices=FILE_STATS_KEYS,
-                help="compare results column")
-        aparser.add_argument ("-s", metavar="column[,column ...]",
-                dest="columns",
-                help="list of columns to print")
-        aparser.add_argument ("-a", dest="show_all", action="store_true",
-                help="print all columns")
-        aparser.add_argument ("--html", action="store_true",
-                help="generte html output")
-        aparser.add_argument ("dirs", nargs=REMAINDER,
-                help="two or more smt run directories to compare")
-        aparser.add_argument ("--no-colors", action="store_true",
-                              help="disable colors")
-        aparser.add_argument ("-g", action="store_true",
-                              help="group benchmarks into families")
-        aparser.add_argument ("-t", action="store_true",
-                              help="show totals table")
-        aparser.add_argument ("-p", dest="plain", action="store_true",
-                              help="plain mode, only show columns and " \
-                                   "filename (for gnuplot data files)")
+                help="compare results column"
+              )
+        aparser.add_argument \
+              (
+                "-s",
+                metavar="column[,column ...]", dest="columns",
+                help="list of columns to print"
+              )
+        aparser.add_argument \
+              (
+                "-a",
+                dest="show_all", action="store_true",
+                help="print all columns"
+              )
+        aparser.add_argument \
+              (
+                "--html",
+                action="store_true",
+                help="generte html output"
+              )
+        aparser.add_argument \
+              (
+                "dirs",
+                nargs=REMAINDER,
+                help="two or more smt run directories to compare"
+              )
+        aparser.add_argument \
+              (
+                "--no-colors",
+                action="store_true",
+                help="disable colors"
+              )
+        aparser.add_argument \
+              (
+                "-g",
+                action="store_true",
+                help="group benchmarks into families"
+              )
+        aparser.add_argument \
+              (
+                "-t",
+                action="store_true",
+                help="show totals table"
+              )
+        aparser.add_argument \
+              (
+                "-p",
+                dest="plain", action="store_true",
+                help="plain mode, only show columns and " \
+                     "filename (for gnuplot data files)"
+              )
         g_args = aparser.parse_args()
 
         # do not use a set here as the order of directories should be preserved
