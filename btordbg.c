@@ -86,18 +86,6 @@ check_id_table_aux_mark_unset_dbg (const Btor *btor)
 }
 
 int
-check_unique_table_merge_unset_dbg (const Btor *btor)
-{
-  int i;
-  BtorNode *cur;
-
-  for (i = 0; i < btor->nodes_unique_table.size; i++)
-    for (cur = btor->nodes_unique_table.chains[i]; cur; cur = cur->next)
-      if (cur->merge != 0) return 0;
-  return 1;
-}
-
-int
 check_hash_table_proxy_free_dbg (BtorPtrHashTable *table)
 {
   BtorHashTableIterator it;

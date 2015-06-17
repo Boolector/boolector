@@ -106,7 +106,6 @@ typedef struct BtorNodePair BtorNodePair;
     unsigned int parameterized : 1; /* param as sub expression ? */     \
     unsigned int lambda_below : 1;  /* lambda as sub expression ? */    \
     unsigned int apply_below : 1;                                       \
-    unsigned int merge : 1;                                             \
     unsigned int is_write : 1;                                          \
     unsigned int is_read : 1;                                           \
     unsigned int propagated : 1;                                        \
@@ -893,6 +892,9 @@ int btor_get_args_arity (Btor *btor, BtorNode *exp);
 
 /* Returns static_rho of given lambda node. */
 BtorPtrHashTable *btor_lambda_get_static_rho (BtorNode *lambda);
+
+void btor_lambda_set_static_rho (BtorNode *lambda,
+                                 BtorPtrHashTable *static_rho);
 
 /* Copies expression (increments reference counter). */
 BtorNode *btor_copy_exp (Btor *btor, BtorNode *exp);

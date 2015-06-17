@@ -24,8 +24,6 @@ int check_id_table_mark_unset_dbg (const Btor* btor);
 
 int check_id_table_aux_mark_unset_dbg (const Btor* btor);
 
-int check_unique_table_merge_unset_dbg (const Btor* btor);
-
 int check_hash_table_proxy_free_dbg (BtorPtrHashTable* table);
 
 int check_all_hash_tables_proxy_free_dbg (const Btor* btor);

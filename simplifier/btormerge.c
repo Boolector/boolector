@@ -12,8 +12,62 @@
 #include "btorbeta.h"
 #include "btorcore.h"
 #include "btordbg.h"
+#include "btorlog.h"
 #include "utils/btoriter.h"
 #include "utils/btorutil.h"
+
+static void
+delete_static_rho (Btor *btor, BtorPtrHashTable *static_rho)
+{
+  BtorHashTableIterator it;
+
+  init_node_hash_table_iterator (&it, static_rho);
+  while (has_next_node_hash_table_iterator (&it))
+  {
+    btor_release_exp (btor, it.bucket->data.asPtr);
+    btor_release_exp (btor, next_node_hash_table_iterator (&it));
+  }
+  btor_delete_ptr_hash_table (static_rho);
+}
+
+static void
+add_to_static_rho (Btor *btor, BtorPtrHashTable *to, BtorPtrHashTable *from)
+{
+  BtorNode *data, *key;
+  BtorHashTableIterator it;
+
+  if (!from) return;
+
+  init_node_hash_table_iterator (&it, from);
+  while (has_next_node_hash_table_iterator (&it))
+  {
+    data = it.bucket->data.asPtr;
+    key  = next_node_hash_table_iterator (&it);
+    if (btor_find_in_ptr_hash_table (to, key)) continue;
+    btor_insert_in_ptr_hash_table (to, btor_copy_exp (btor, key))->data.asPtr =
+        btor_copy_exp (btor, data);
+  }
+}
+
+static bool
+check_static_rho_equal_dbg (BtorPtrHashTable *t0, BtorPtrHashTable *t1)
+{
+  assert (t0);
+  assert (t1);
+  assert (t0->count == t1->count);
+
+  BtorHashTableIterator it0, it1;
+
+  init_node_hash_table_iterator (&it0, t0);
+  init_node_hash_table_iterator (&it1, t1);
+  while (has_next_node_hash_table_iterator (&it0))
+  {
+    assert (it0.bucket->data.asPtr == it1.bucket->data.asPtr);
+    assert (next_node_hash_table_iterator (&it0)
+            == next_node_hash_table_iterator (&it1));
+  }
+  return true;
+}
 
 void
 btor_merge_lambdas (Btor *btor)
@@ -22,19 +76,19 @@ btor_merge_lambdas (Btor *btor)
   assert (btor->options.rewrite_level.val > 0);
   assert (check_id_table_mark_unset_dbg (btor));
   assert (check_id_table_aux_mark_unset_dbg (btor));
-  assert (check_unique_table_merge_unset_dbg (btor));
 
-  int i, delta_lambdas;
+  unsigned num_merged_lambdas = 0;
+  int i;
   double start, delta;
-  BtorNode *cur, *lambda, *subst, *parent, *merge, *param, *body;
+  BtorNode *cur, *lambda, *subst, *parent, *param, *body;
   BtorMemMgr *mm;
   BtorHashTableIterator it;
   BtorNodeIterator nit;
   BtorNodePtrStack stack, unmark, visit, params;
+  BtorPtrHashTable *merge_lambdas, *static_rho;
 
-  start         = btor_time_stamp ();
-  mm            = btor->mm;
-  delta_lambdas = btor->lambdas->count;
+  start = btor_time_stamp ();
+  mm    = btor->mm;
 
   btor_init_substitutions (btor);
   BTOR_INIT_STACK (stack);
@@ -49,20 +103,22 @@ btor_merge_lambdas (Btor *btor)
     lambda = next_node_hash_table_iterator (&it);
     assert (BTOR_IS_REGULAR_NODE (lambda));
 
-    if (lambda->parents != 1) continue;
-
+    /* found top lambda */
     parent = BTOR_REAL_ADDR_NODE (lambda->first_parent);
-    assert (parent);
-    /* stop at non-parameterized applies */
-    if (!parent->parameterized && BTOR_IS_APPLY_NODE (parent)) continue;
-
-    lambda->merge = 1;
-    BTOR_PUSH_STACK (mm, stack, lambda);
+    if (lambda->parents > 1
+        || lambda->parents == 0
+        /* case lambda->parents == 1 */
+        || (!parent->parameterized
+            && (BTOR_IS_APPLY_NODE (parent) || BTOR_IS_FEQ_NODE (parent))))
+    {
+      BTOR_PUSH_STACK (mm, stack, lambda);
+      continue;
+    }
   }
 
-  for (i = 0; i < BTOR_COUNT_STACK (stack); i++)
+  while (!BTOR_EMPTY_STACK (stack))
   {
-    lambda = BTOR_PEEK_STACK (stack, i);
+    lambda = BTOR_POP_STACK (stack);
     assert (BTOR_IS_REGULAR_NODE (lambda));
 
     if (lambda->mark) continue;
@@ -70,47 +126,61 @@ btor_merge_lambdas (Btor *btor)
     lambda->mark = 1;
     BTOR_PUSH_STACK (mm, unmark, lambda);
 
-    /* skip curried lambdas */
-    if (BTOR_IS_LAMBDA_NODE (lambda->first_parent)) continue;
-
-    /* search upwards for top-most lambda */
-    merge = 0;
+    /* search downwards and look for lambdas that can be merged */
     BTOR_RESET_STACK (visit);
-    BTOR_PUSH_STACK (mm, visit, lambda);
+    BTOR_PUSH_STACK (mm, visit, BTOR_LAMBDA_GET_BODY (lambda));
+    merge_lambdas = btor_new_ptr_hash_table (mm, 0, 0);
+    btor_insert_in_ptr_hash_table (merge_lambdas, lambda);
     while (!BTOR_EMPTY_STACK (visit))
     {
       cur = BTOR_REAL_ADDR_NODE (BTOR_POP_STACK (visit));
 
-      if (cur->aux_mark) continue;
+      if (cur->aux_mark || (!BTOR_IS_LAMBDA_NODE (cur) && !cur->parameterized)
+          || !cur->lambda_below)
+        continue;
+
+      if (BTOR_IS_LAMBDA_NODE (cur))
+      {
+        /* lambdas with more than one parents cannot be merged */
+        if (cur->parents > 1)
+        {
+          /* try to merge lambdas starting from 'cur' */
+          BTOR_PUSH_STACK (mm, stack, cur);
+          continue;
+        }
+
+        /* we can only merge lambdas that have all a static_rho or
+         * none of them has one */
+        if (!btor_lambda_get_static_rho (cur)
+            != !btor_lambda_get_static_rho (lambda))
+        {
+          /* try to merge lambdas starting from 'cur' */
+          BTOR_PUSH_STACK (mm, stack, cur);
+          continue;
+        }
+
+        if (!btor_find_in_ptr_hash_table (merge_lambdas, cur))
+          btor_insert_in_ptr_hash_table (merge_lambdas, cur);
+        BTOR_PUSH_STACK (mm, visit, BTOR_LAMBDA_GET_BODY (cur));
+      }
+      else
+      {
+        for (i = 0; i < cur->arity; i++) BTOR_PUSH_STACK (mm, visit, cur->e[i]);
+      }
 
       cur->aux_mark = 1;
       BTOR_PUSH_STACK (mm, unmark, cur);
-
-      /* we can only merge non-paremeterized lambdas */
-      // TODO: remove parameterized if we handle btorparamcache differently
-      if (BTOR_IS_LAMBDA_NODE (cur) && !cur->merge && !cur->parameterized)
-      {
-        merge = cur;
-        break;
-      }
-
-      init_full_parent_iterator (&nit, cur);
-      while (has_next_parent_full_parent_iterator (&nit))
-        BTOR_PUSH_STACK (mm, visit, next_parent_full_parent_iterator (&nit));
     }
 
-    /* no lambda to merge found */
-    if (!merge) continue;
+    /* no lambdas to merge found */
+    if (merge_lambdas->count <= 1)
+    {
+      btor_delete_ptr_hash_table (merge_lambdas);
+      continue;
+    }
 
-    assert (!merge->parameterized);
-
-    /* already processed */
-    if (merge->mark) continue;
-
-    merge->mark = 1;
-    BTOR_PUSH_STACK (mm, unmark, merge);
-
-    init_lambda_iterator (&nit, merge);
+    /* assign parameters of top-most lambda with fresh parameters */
+    init_lambda_iterator (&nit, lambda);
     while (has_next_lambda_iterator (&nit))
     {
       cur   = next_lambda_iterator (&nit);
@@ -119,11 +189,51 @@ btor_merge_lambdas (Btor *btor)
       btor_assign_param (btor, cur, param);
     }
     /* merge lambdas that are marked with 'merge' flag */
-    body = btor_beta_reduce_merge (btor, BTOR_LAMBDA_GET_BODY (merge));
-    btor_unassign_params (btor, merge);
+    body = btor_beta_reduce_merge (
+        btor, BTOR_LAMBDA_GET_BODY (lambda), merge_lambdas);
+    btor_unassign_params (btor, lambda);
     subst = btor_fun_exp (btor, BTOR_COUNT_STACK (params), params.start, body);
     btor_release_exp (btor, body);
-    btor_insert_substitution (btor, merge, subst, 0);
+
+    /* generate static_rho from merged lambdas' static_rhos */
+    assert (merge_lambdas->count > 0);
+    num_merged_lambdas += merge_lambdas->count;
+    static_rho = btor_new_ptr_hash_table (mm, 0, 0);
+    init_node_hash_table_iterator (&it, merge_lambdas);
+    while (has_next_node_hash_table_iterator (&it))
+    {
+      cur = next_node_hash_table_iterator (&it);
+      add_to_static_rho (btor, static_rho, btor_lambda_get_static_rho (cur));
+      assert (!btor_lambda_get_static_rho (lambda)
+              == !btor_lambda_get_static_rho (cur));
+    }
+    BTORLOG (2,
+             "merged %u lambdas (%u static_rho entries)",
+             merge_lambdas->count,
+             static_rho->count);
+    btor_delete_ptr_hash_table (merge_lambdas);
+
+    if (static_rho->count > 0)
+    {
+      /* 'subst' is already an existing lambda with a 'static_rho', if
+       * this is the case we have to check that subst->static_rho constains
+       * the same elements as static_rho */
+      if (btor_lambda_get_static_rho (subst))
+      {
+        printf ("existing: %s\n", node2string (subst));
+        assert (check_static_rho_equal_dbg (btor_lambda_get_static_rho (subst),
+                                            static_rho));
+        /* 'static_rho' contains elements so we have to release them
+         * properly */
+        delete_static_rho (btor, static_rho);
+      }
+      else
+        btor_lambda_set_static_rho (subst, static_rho);
+    }
+    else
+      btor_delete_ptr_hash_table (static_rho);
+
+    btor_insert_substitution (btor, lambda, subst, 0);
     btor_release_exp (btor, subst);
     while (!BTOR_EMPTY_STACK (params))
       btor_release_exp (btor, BTOR_POP_STACK (params));
@@ -135,21 +245,21 @@ btor_merge_lambdas (Btor *btor)
     cur           = BTOR_POP_STACK (unmark);
     cur->mark     = 0;
     cur->aux_mark = 0;
-    cur->merge    = 0;
   }
 
   btor_substitute_and_rebuild (btor, btor->substitutions, 0);
   btor_delete_substitutions (btor);
-  delta_lambdas -= btor->lambdas->count;
-  btor->stats.lambdas_merged += delta_lambdas;
+  btor->stats.lambdas_merged += num_merged_lambdas;
 
   BTOR_RELEASE_STACK (mm, visit);
   BTOR_RELEASE_STACK (mm, stack);
   BTOR_RELEASE_STACK (mm, unmark);
   BTOR_RELEASE_STACK (mm, params);
   assert (check_id_table_aux_mark_unset_dbg (btor));
-  assert (check_unique_table_merge_unset_dbg (btor));
   delta = btor_time_stamp () - start;
-  BTOR_MSG (
-      btor->msg, 1, "merged %d lambdas in %.2f seconds", delta_lambdas, delta);
+  BTOR_MSG (btor->msg,
+            1,
+            "merged %d lambdas in %.2f seconds",
+            num_merged_lambdas,
+            delta);
 }

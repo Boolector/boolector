@@ -4100,3 +4100,11 @@ btor_lambda_get_static_rho (BtorNode *lambda)
   assert (BTOR_IS_LAMBDA_NODE (lambda));
   return ((BtorLambdaNode *) lambda)->static_rho;
 }
+
+void
+btor_lambda_set_static_rho (BtorNode *lambda, BtorPtrHashTable *static_rho)
+{
+  assert (BTOR_IS_REGULAR_NODE (lambda));
+  assert (BTOR_IS_LAMBDA_NODE (lambda));
+  ((BtorLambdaNode *) lambda)->static_rho = static_rho;
+}

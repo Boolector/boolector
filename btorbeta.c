@@ -232,7 +232,11 @@ btor_unassign_params (Btor *btor, BtorNode *lambda)
  *			       lambdas
  */
 static BtorNode *
-btor_beta_reduce (Btor *btor, BtorNode *exp, int mode, int bound)
+btor_beta_reduce (Btor *btor,
+                  BtorNode *exp,
+                  int mode,
+                  int bound,
+                  BtorPtrHashTable *merge_lambdas)
 {
   assert (btor);
   assert (exp);
@@ -241,6 +245,7 @@ btor_beta_reduce (Btor *btor, BtorNode *exp, int mode, int bound)
   assert (bound >= 0);
   assert (bound == 0 || mode == BETA_RED_BOUNDED);
   assert (check_unique_table_beta_mark_unset_dbg (btor));
+  assert (mode != BETA_RED_LAMBDA_MERGE || merge_lambdas);
 
   //  BTORLOG ("%s: %s", __FUNCTION__, node2string (exp));
 
@@ -314,7 +319,7 @@ btor_beta_reduce (Btor *btor, BtorNode *exp, int mode, int bound)
       }
       /* skip all lambdas that are not marked for merge */
       else if (mode == BETA_RED_LAMBDA_MERGE && BTOR_IS_LAMBDA_NODE (real_cur)
-               && !real_cur->merge
+               && !btor_find_in_ptr_hash_table (merge_lambdas, real_cur)
                /* do not stop at parameterized lambdas, otherwise the
                 * result may contain parameters that are not bound by any
                 * lambda anymore */
@@ -685,16 +690,16 @@ btor_beta_reduce (Btor *btor, BtorNode *exp, int mode, int bound)
 static BtorNode *
 btor_beta_reduce_partial_aux (Btor *btor,
                               BtorNode *exp,
-                              BtorPtrHashTable *cond_sel1,
-                              BtorPtrHashTable *cond_sel2,
+                              BtorPtrHashTable *cond_sel_if,
+                              BtorPtrHashTable *cond_sel_else,
                               int *evalerr,
                               BtorPtrHashTable *to_prop,
                               BtorPtrHashTable *conds)
 {
   assert (btor);
   assert (exp);
-  assert (!cond_sel1 || cond_sel2);
-  assert (!cond_sel2 || cond_sel1);
+  assert (!cond_sel_if || cond_sel_else);
+  assert (!cond_sel_else || cond_sel_if);
   //  BTORLOG ("%s: %s", __FUNCTION__, node2string (exp));
 
   int i, rwl;
@@ -941,13 +946,13 @@ btor_beta_reduce_partial_aux (Btor *btor,
               real_cur->beta_mark = 2;
               if (eval_res[0] == '1')
               {
-                if (cond_sel1) tmp = cond_sel1;
+                if (cond_sel_if) tmp = cond_sel_if;
                 next = real_cur->e[1];
               }
               else
               {
                 assert (eval_res[0] == '0');
-                if (cond_sel2) tmp = cond_sel2;
+                if (cond_sel_else) tmp = cond_sel_else;
                 next = real_cur->e[2];
               }
               if (tmp)
@@ -1116,21 +1121,23 @@ BtorNode *
 btor_beta_reduce_full (Btor *btor, BtorNode *exp)
 {
   BTORLOG (2, "%s: %s", __FUNCTION__, node2string (exp));
-  return btor_beta_reduce (btor, exp, BETA_RED_FULL, 0);
+  return btor_beta_reduce (btor, exp, BETA_RED_FULL, 0, 0);
 }
 
 BtorNode *
-btor_beta_reduce_merge (Btor *btor, BtorNode *exp)
+btor_beta_reduce_merge (Btor *btor,
+                        BtorNode *exp,
+                        BtorPtrHashTable *merge_lambdas)
 {
   BTORLOG (2, "%s: %s", __FUNCTION__, node2string (exp));
-  return btor_beta_reduce (btor, exp, BETA_RED_LAMBDA_MERGE, 0);
+  return btor_beta_reduce (btor, exp, BETA_RED_LAMBDA_MERGE, 0, merge_lambdas);
 }
 
 BtorNode *
 btor_beta_reduce_bounded (Btor *btor, BtorNode *exp, int bound)
 {
   BTORLOG (2, "%s: %s", __FUNCTION__, node2string (exp));
-  return btor_beta_reduce (btor, exp, BETA_RED_BOUNDED, bound);
+  return btor_beta_reduce (btor, exp, BETA_RED_BOUNDED, bound, 0);
 }
 
 BtorNode *
@@ -1148,20 +1155,20 @@ btor_beta_reduce_partial (Btor *btor,
 BtorNode *
 btor_beta_reduce_partial_collect (Btor *btor,
                                   BtorNode *exp,
-                                  BtorPtrHashTable *cond_sel1,
-                                  BtorPtrHashTable *cond_sel2)
+                                  BtorPtrHashTable *cond_sel_if,
+                                  BtorPtrHashTable *cond_sel_else)
 {
   BTORLOG (2, "%s: %s", __FUNCTION__, node2string (exp));
 #ifndef NDEBUG
   int evalerr;
   BtorNode *res;
   res = btor_beta_reduce_partial_aux (
-      btor, exp, cond_sel1, cond_sel2, &evalerr, 0, 0);
+      btor, exp, cond_sel_if, cond_sel_else, &evalerr, 0, 0);
   //  assert (!evalerr);
   return res;
 #else
   return btor_beta_reduce_partial_aux (
-      btor, exp, cond_sel1, cond_sel2, 0, 0, 0);
+      btor, exp, cond_sel_if, cond_sel_else, 0, 0, 0);
 #endif
 }
 

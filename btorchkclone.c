@@ -405,7 +405,6 @@ btor_chkclone_exp (BtorNode *exp, BtorNode *clone)
   BTOR_CHKCLONE_EXP (bytes);
   BTOR_CHKCLONE_EXP (parameterized);
   BTOR_CHKCLONE_EXP (lambda_below);
-  BTOR_CHKCLONE_EXP (merge);
   BTOR_CHKCLONE_EXP (is_write);
   BTOR_CHKCLONE_EXP (is_read);
 
