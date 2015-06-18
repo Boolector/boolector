@@ -100,6 +100,8 @@ void
 init_slsinv_tests (void)
 {
   g_btor                            = btor_new_btor ();
+  g_btor->slv                       = btor_new_sls_solver (g_btor);
+  g_btor->options.sls.val           = 1;
   g_btor->options.rewrite_level.val = 0;
   g_mm                              = g_btor->mm;
   g_rng                             = &g_btor->rng;

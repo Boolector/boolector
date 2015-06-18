@@ -1585,6 +1585,7 @@ inv_add_bv (Btor *btor,
             int eidx)
 {
   assert (btor);
+  assert (BTOR_SLS_SOLVER (btor));
   assert (add);
   assert (BTOR_IS_REGULAR_NODE (add));
   assert (bvadd);
@@ -1630,6 +1631,7 @@ inv_and_bv (Btor *btor,
             int eidx)
 {
   assert (btor);
+  assert (BTOR_SLS_SOLVER (btor));
   assert (and);
   assert (BTOR_IS_REGULAR_NODE (and));
   assert (bvand);
@@ -1638,7 +1640,7 @@ inv_and_bv (Btor *btor,
   assert (eidx >= 0 && eidx <= 1);
   assert (!BTOR_IS_BV_CONST_NODE (BTOR_REAL_ADDR_NODE (and->e[eidx])));
 
-  int i, bitand, bite;
+  int i, bitand, bite, isreccon;
   BtorNode *e;
   BtorBitVector *res;
   BtorMemMgr *mm;
@@ -1653,7 +1655,7 @@ inv_and_bv (Btor *btor,
 
   res = btor_new_bv (mm, bvand->width);
 
-  for (i = 0; i < bvand->width; i++)
+  for (i = 0, isreccon = 0; i < bvand->width; i++)
   {
     bitand = btor_get_bit_bv (bvand, i);
     bite   = btor_get_bit_bv (bve, i);
@@ -1670,6 +1672,8 @@ inv_and_bv (Btor *btor,
         res = 0;
         break;
       }
+
+      isreccon = 1;
     }
     /* res & bve = bve & res = bvand
      * -> all bits set in bvand and bve must be set in res
@@ -1682,6 +1686,9 @@ inv_and_bv (Btor *btor,
     else
       btor_set_bit_bv (res, i, btor_pick_rand_rng (&btor->rng, 0, 1));
   }
+
+  BTOR_SLS_SOLVER (btor)->stats.move_prop_rec_conf += isreccon;
+
 #ifndef NDEBUG
   if (!iscon)
   {
@@ -1710,6 +1717,7 @@ inv_eq_bv (
     Btor *btor, BtorNode *eq, BtorBitVector *bveq, BtorBitVector *bve, int eidx)
 {
   assert (btor);
+  assert (BTOR_SLS_SOLVER (btor));
   assert (eq);
   assert (BTOR_IS_REGULAR_NODE (eq));
   assert (bveq);
@@ -1765,6 +1773,7 @@ inv_ult_bv (Btor *btor,
             int eidx)
 {
   assert (btor);
+  assert (BTOR_SLS_SOLVER (btor));
   assert (ult);
   assert (BTOR_IS_REGULAR_NODE (ult));
   assert (bvult);
@@ -1804,14 +1813,20 @@ inv_ult_bv (Btor *btor,
 #endif
       /* check for non-recoverable conflict */
       if (BTOR_IS_BV_CONST_NODE (BTOR_REAL_ADDR_NODE (e)))
+      {
         res = 0;
+      }
       else if (isult)
+      {
         res = btor_new_random_range_bv (mm, &btor->rng, bw, one, bvmax);
+        BTOR_SLS_SOLVER (btor)->stats.move_prop_rec_conf += 1;
+      }
       else
       {
         tmp = btor_add_bv (mm, bvmax, neg);
         res = btor_new_random_range_bv (mm, &btor->rng, bw, zero, tmp);
         btor_free_bv (mm, tmp);
+        BTOR_SLS_SOLVER (btor)->stats.move_prop_rec_conf += 1;
       }
     }
     else
@@ -1841,12 +1856,16 @@ inv_ult_bv (Btor *btor,
       if (BTOR_IS_BV_CONST_NODE (BTOR_REAL_ADDR_NODE (e)))
         res = 0;
       else if (!isult)
+      {
         res = btor_new_random_range_bv (btor->mm, &btor->rng, bw, one, bvmax);
+        BTOR_SLS_SOLVER (btor)->stats.move_prop_rec_conf += 1;
+      }
       else
       {
         tmp = btor_add_bv (btor->mm, bvmax, neg);
         res = btor_new_random_range_bv (btor->mm, &btor->rng, bw, zero, tmp);
         btor_free_bv (btor->mm, tmp);
+        BTOR_SLS_SOLVER (btor)->stats.move_prop_rec_conf += 1;
       }
     }
     else
@@ -1894,6 +1913,7 @@ inv_sll_bv (Btor *btor,
             int eidx)
 {
   assert (btor);
+  assert (BTOR_SLS_SOLVER (btor));
   assert (sll);
   assert (BTOR_IS_REGULAR_NODE (sll));
   assert (bvsll);
@@ -1927,36 +1947,33 @@ inv_sll_bv (Btor *btor,
       if (oneidx == -1 && btor_get_bit_bv (bve, i)) oneidx = i;
     }
     shift = oneidx == -1 ? 0 : i - oneidx;
+#ifndef NDEBUG
+    for (i = 0; i < shift; i++) assert (!btor_get_bit_bv (bvsll, i));
+#endif
 
     /* check for conflict -> do not allow shift by bw */
     if (shift > bvsll->width - 1)
     {
+      /* check for non-recoverable conflict */
+      if (BTOR_IS_BV_CONST_NODE (BTOR_REAL_ADDR_NODE (e))) return 0;
 #ifndef NDEBUG
       iscon = 1;
 #endif
-      /* check for non-recoverable conflict */
-      if (BTOR_IS_BV_CONST_NODE (BTOR_REAL_ADDR_NODE (e))) return 0;
+      BTOR_SLS_SOLVER (btor)->stats.move_prop_rec_conf += 1;
     }
 
     /* check for conflict -> shifted bits must match */
-#ifndef NDEBUG
-    for (i = 0; i < shift; i++) assert (!btor_get_bit_bv (bvsll, i));
     for (i = 0, j = shift; i < bve->width - j; i++)
     {
       if (btor_get_bit_bv (bve, i) != btor_get_bit_bv (bvsll, j + i))
       {
+        /* check for non-recoverable conflict */
+        if (BTOR_IS_BV_CONST_NODE (BTOR_REAL_ADDR_NODE (e))) return 0;
+#ifndef NDEBUG
         iscon = 1;
-        break;
-      }
-    }
 #endif
-    /* check for non-recoverable conflict */
-    if (BTOR_IS_BV_CONST_NODE (BTOR_REAL_ADDR_NODE (e)))
-    {
-      for (i = 0, j = shift; i < bve->width - j; i++)
-      {
-        if (btor_get_bit_bv (bve, i) != btor_get_bit_bv (bvsll, j + i))
-          return 0;
+        BTOR_SLS_SOLVER (btor)->stats.move_prop_rec_conf += 1;
+        break;
       }
     }
 
@@ -1972,19 +1989,18 @@ inv_sll_bv (Btor *btor,
     shift = (int) btor_bv_to_uint64_bv (bve);
 
     /* check for conflict -> the LSBs shifted must be zero */
-#ifndef NDEBUG
     for (i = 0; i < shift; i++)
+    {
       if (btor_get_bit_bv (bvsll, i))
       {
+        /* check for non-recoverable conflict */
+        if (BTOR_IS_BV_CONST_NODE (BTOR_REAL_ADDR_NODE (e))) return 0;
+#ifndef NDEBUG
         iscon = 1;
+#endif
+        BTOR_SLS_SOLVER (btor)->stats.move_prop_rec_conf += 1;
         break;
       }
-#endif
-    if (BTOR_IS_BV_CONST_NODE (BTOR_REAL_ADDR_NODE (e)))
-    {
-      /* check for non-recoverable conflict */
-      for (i = 0; i < shift; i++)
-        if (btor_get_bit_bv (bvsll, i)) return 0;
     }
 
     res = btor_srl_bv (mm, bvsll, bve);
@@ -2018,6 +2034,7 @@ inv_srl_bv (Btor *btor,
             int eidx)
 {
   assert (btor);
+  assert (BTOR_SLS_SOLVER (btor));
   assert (srl);
   assert (BTOR_IS_REGULAR_NODE (srl));
   assert (bvsrl);
@@ -2055,34 +2072,30 @@ inv_srl_bv (Btor *btor,
     for (i = 0; i < shift; i++)
       assert (!btor_get_bit_bv (bvsrl, bvsrl->width - 1 - i));
 #endif
-
     /* check for conflict -> do not allow shift by bw */
     if (shift > bvsrl->width - 1)
     {
+      /* check for non-recoverable conflict */
+      if (BTOR_IS_BV_CONST_NODE (BTOR_REAL_ADDR_NODE (e))) return 0;
 #ifndef NDEBUG
       iscon = 1;
 #endif
-      /* check for non-recoverable conflict */
-      if (BTOR_IS_BV_CONST_NODE (BTOR_REAL_ADDR_NODE (e))) return 0;
+      BTOR_SLS_SOLVER (btor)->stats.move_prop_rec_conf += 1;
     }
 
     /* check for conflict -> shifted bits must match */
-#ifndef NDEBUG
     for (i = 0, j = shift; i < bve->width - j; i++)
     {
       if (btor_get_bit_bv (bve, bve->width - 1 - i)
           != btor_get_bit_bv (bvsrl, bvsrl->width - 1 - (j + i)))
-        iscon = 1;
-    }
-#endif
-    /* check for non-recoverable conflict */
-    if (BTOR_IS_BV_CONST_NODE (BTOR_REAL_ADDR_NODE (e)))
-    {
-      for (i = 0, j = shift; i < bve->width - j; i++)
       {
-        if (btor_get_bit_bv (bve, bve->width - 1 - i)
-            != btor_get_bit_bv (bvsrl, bvsrl->width - 1 - (j + i)))
-          return 0;
+        /* check for non-recoverable conflict */
+        if (BTOR_IS_BV_CONST_NODE (BTOR_REAL_ADDR_NODE (e))) return 0;
+#ifndef NDEBUG
+        iscon = 1;
+#endif
+        BTOR_SLS_SOLVER (btor)->stats.move_prop_rec_conf += 1;
+        break;
       }
     }
 
@@ -2098,19 +2111,18 @@ inv_srl_bv (Btor *btor,
     shift = (int) btor_bv_to_uint64_bv (bve);
 
     /* check for conflict -> the MSBs shifted must be zero */
-#ifndef NDEBUG
     for (i = 0; i < shift; i++)
+    {
       if (btor_get_bit_bv (bvsrl, bvsrl->width - 1 - i))
       {
+        /* check for non-recoverable conflict */
+        if (BTOR_IS_BV_CONST_NODE (BTOR_REAL_ADDR_NODE (e))) return 0;
+#ifndef NDEBUG
         iscon = 1;
+#endif
+        BTOR_SLS_SOLVER (btor)->stats.move_prop_rec_conf += 1;
         break;
       }
-#endif
-    if (BTOR_IS_BV_CONST_NODE (BTOR_REAL_ADDR_NODE (e)))
-    {
-      /* check for non-recoverable conflict */
-      for (i = 0; i < shift; i++)
-        if (btor_get_bit_bv (bvsrl, bvsrl->width - 1 - i)) return 0;
     }
 
     res = btor_sll_bv (mm, bvsrl, bve);
@@ -2144,6 +2156,7 @@ inv_mul_bv (Btor *btor,
             int eidx)
 {
   assert (btor);
+  assert (BTOR_SLS_SOLVER (btor));
   assert (mul);
   assert (BTOR_IS_REGULAR_NODE (mul));
   assert (bvmul);
@@ -2218,7 +2231,9 @@ inv_mul_bv (Btor *btor,
 #endif
       /* check for non-recoverable conflict */
       if (BTOR_IS_BV_CONST_NODE (BTOR_REAL_ADDR_NODE (e)))
+      {
         res = 0;
+      }
       else
       {
         res = 0;
@@ -2244,6 +2259,8 @@ inv_mul_bv (Btor *btor,
         }
 
         if (!res) res = btor_uint64_to_bv (mm, 1, bvmul->width);
+
+        BTOR_SLS_SOLVER (btor)->stats.move_prop_rec_conf += 1;
       }
     }
 
@@ -2279,6 +2296,7 @@ inv_udiv_bv (Btor *btor,
              int eidx)
 {
   assert (btor);
+  assert (BTOR_SLS_SOLVER (btor));
   assert (udiv);
   assert (BTOR_IS_REGULAR_NODE (udiv));
   assert (bvudiv);
@@ -2320,7 +2338,9 @@ inv_udiv_bv (Btor *btor,
 #endif
         /* check for non-recoverable conflict */
         if (BTOR_IS_BV_CONST_NODE (BTOR_REAL_ADDR_NODE (e)))
+        {
           res = 0;
+        }
         else
         {
           /* e[0] = res * bvudiv s.t. res * bvudiv does not overflow */
@@ -2334,6 +2354,8 @@ inv_udiv_bv (Btor *btor,
                 btor_new_random_range_bv (mm, &btor->rng, bve->width, one, tmp);
             btor_free_bv (mm, tmp);
           }
+
+          BTOR_SLS_SOLVER (btor)->stats.move_prop_rec_conf += 1;
         }
       }
     }
@@ -2371,6 +2393,8 @@ inv_udiv_bv (Btor *btor,
           }
 
           btor_free_bv (mm, tmp);
+
+          BTOR_SLS_SOLVER (btor)->stats.move_prop_rec_conf += 1;
         }
       }
     }
@@ -2406,6 +2430,8 @@ inv_udiv_bv (Btor *btor,
           }
           res = btor_mul_bv (mm, n, bvudiv);
           btor_free_bv (mm, n);
+
+          BTOR_SLS_SOLVER (btor)->stats.move_prop_rec_conf += 1;
         }
       }
     }
@@ -2439,6 +2465,8 @@ inv_udiv_bv (Btor *btor,
           tmp = res;
           res = btor_mul_bv (mm, tmp, bvudiv);
           btor_free_bv (mm, tmp);
+
+          BTOR_SLS_SOLVER (btor)->stats.move_prop_rec_conf += 1;
         }
       }
       /* res = bve * bvudiv */
@@ -2481,6 +2509,7 @@ inv_urem_bv (Btor *btor,
              int eidx)
 {
   assert (btor);
+  assert (BTOR_SLS_SOLVER (btor));
   assert (urem);
   assert (BTOR_IS_REGULAR_NODE (urem));
   assert (bvurem);
@@ -2552,7 +2581,10 @@ inv_urem_bv (Btor *btor,
         if (BTOR_IS_BV_CONST_NODE (BTOR_REAL_ADDR_NODE (e)))
           res = 0;
         else
+        {
+          BTOR_SLS_SOLVER (btor)->stats.move_prop_rec_conf += 1;
           goto RES_EQ_BVUREM_1;
+        }
       }
     }
     /* bve < bvurem (conflict) */
@@ -2573,6 +2605,7 @@ inv_urem_bv (Btor *btor,
       }
       else
       {
+        BTOR_SLS_SOLVER (btor)->stats.move_prop_rec_conf += 1;
       RES_EQ_BVUREM_1:
         /* choose res s.t. e[0] = bvurem (simplest solution)
            -> bvurem < res <= 2^bw - 1 */
@@ -2617,6 +2650,7 @@ inv_urem_bv (Btor *btor,
             res = 0;
           else
           {
+            BTOR_SLS_SOLVER (btor)->stats.move_prop_rec_conf += 1;
             goto RES_EQ_BVUREM_0;
           }
         }
@@ -2675,6 +2709,7 @@ inv_urem_bv (Btor *btor,
         res = 0;
       else
       {
+        BTOR_SLS_SOLVER (btor)->stats.move_prop_rec_conf += 1;
       RES_EQ_BVUREM_0:
         /* res = bvurem (simplest solution) */
         res = btor_copy_bv (mm, bvurem);
@@ -2711,6 +2746,7 @@ inv_concat_bv (Btor *btor,
                int eidx)
 {
   assert (btor);
+  assert (BTOR_SLS_SOLVER (btor));
   assert (concat);
   assert (BTOR_IS_REGULAR_NODE (concat));
   assert (bvconcat);
@@ -2735,29 +2771,55 @@ inv_concat_bv (Btor *btor,
   {
     tmp = btor_slice_bv (
         mm, bvconcat, bvconcat->width - 1, bvconcat->width - bve->width);
+    /* check for conflict */
+    if (btor_compare_bv (tmp, bve))
+    {
 #ifndef NDEBUG
-    if (btor_compare_bv (tmp, bve)) iscon = 1;
+      iscon = 1;
 #endif
-    /* check for non-recoverable conflict */
-    if (btor_compare_bv (tmp, bve)
-        && BTOR_IS_BV_CONST_NODE (BTOR_REAL_ADDR_NODE (e)))
-      res = 0;
+      /* check for non-recoverable conflict */
+      if (BTOR_IS_BV_CONST_NODE (BTOR_REAL_ADDR_NODE (e)))
+      {
+        res = 0;
+      }
+      else
+      {
+        BTOR_SLS_SOLVER (btor)->stats.move_prop_rec_conf += 1;
+        goto SLICE_EIDX1;
+      }
+    }
     else
+    {
+    SLICE_EIDX1:
       res = btor_slice_bv (mm, bvconcat, bvconcat->width - bve->width - 1, 0);
+    }
   }
   /* e[0] o bve = bvconcat, slice e[0] out of the upper bits of bvconcat */
   else
   {
     tmp = btor_slice_bv (mm, bvconcat, bve->width - 1, 0);
+    /* check for conflict */
+    if (btor_compare_bv (tmp, bve))
+    {
 #ifndef NDEBUG
-    if (btor_compare_bv (tmp, bve)) iscon = 1;
+      iscon = 1;
 #endif
-    /* check for non-recoverable conflict */
-    if (btor_compare_bv (tmp, bve)
-        && BTOR_IS_BV_CONST_NODE (BTOR_REAL_ADDR_NODE (e)))
-      res = 0;
+      /* check for non-recoverable conflict */
+      if (BTOR_IS_BV_CONST_NODE (BTOR_REAL_ADDR_NODE (e)))
+      {
+        res = 0;
+      }
+      else
+      {
+        BTOR_SLS_SOLVER (btor)->stats.move_prop_rec_conf += 1;
+        goto SLICE_EIDX0;
+      }
+    }
     else
+    {
+    SLICE_EIDX0:
       res = btor_slice_bv (mm, bvconcat, bvconcat->width - 1, bve->width);
+    }
   }
   btor_free_bv (mm, tmp);
 #ifndef NDEBUG
@@ -2782,6 +2844,7 @@ BtorBitVector *
 inv_slice_bv (Btor *btor, BtorNode *slice, BtorBitVector *bvslice)
 {
   assert (btor);
+  assert (BTOR_SLS_SOLVER (btor));
   assert (slice);
   assert (BTOR_IS_REGULAR_NODE (slice));
   assert (bvslice);
@@ -3010,6 +3073,7 @@ move (Btor *btor, int nmoves)
     select_prop_move (btor, constr);
     if (!slv->max_cans->count)
     {
+      slv->stats.move_prop_non_rec_conf += 1;
       /* force random walk if prop move fails */
       if (btor->options.sls_move_prop_force_rw.val)
       {
@@ -3427,6 +3491,15 @@ print_stats_sls_solver (Btor *btor)
   BTOR_MSG (btor->msg, 1, "sls restarts: %d", slv->stats.restarts);
   BTOR_MSG (btor->msg, 1, "sls moves: %d", slv->stats.moves);
   BTOR_MSG (btor->msg, 1, "sls flips: %d", slv->stats.flips);
+  BTOR_MSG (btor->msg, 1, "");
+  BTOR_MSG (btor->msg,
+            1,
+            "sls propagation move conflicts (recoverable): %d",
+            slv->stats.move_prop_rec_conf);
+  BTOR_MSG (btor->msg,
+            1,
+            "sls propagation move conflicts (non-recoverable): %d",
+            slv->stats.move_prop_non_rec_conf);
 
   BTOR_MSG (btor->msg, 1, "");
   BTOR_MSG (btor->msg, 1, "sls flip        moves: %d", slv->stats.move_flip);

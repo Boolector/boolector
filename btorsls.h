@@ -80,6 +80,8 @@ struct BtorSLSSolver
     int move_rand;
     int move_rand_walk;
     int move_prop;
+    int move_prop_rec_conf;
+    int move_prop_non_rec_conf;
     int move_gw_flip;
     int move_gw_inc;
     int move_gw_dec;
