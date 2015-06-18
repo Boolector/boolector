@@ -394,6 +394,22 @@ cmp_data_as_bv_ptr (const BtorPtrHashData *d1, const BtorPtrHashData *d2)
   return btor_compare_bv (d1->asPtr, d2->asPtr);
 }
 
+static int
+cmp_data_as_sls_constr_data_ptr (const BtorPtrHashData *d1,
+                                 const BtorPtrHashData *d2)
+{
+  assert (d1);
+  assert (d2);
+
+  BtorSLSConstrData *scd1, *scd2;
+
+  scd1 = (BtorSLSConstrData *) d1->asPtr;
+  scd2 = (BtorSLSConstrData *) d2->asPtr;
+  if (scd1->weight != scd2->weight) return 1;
+  if (scd1->selected != scd2->selected) return 1;
+  return 0;
+}
+
 static inline void
 chkclone_node_ptr_hash_table (BtorPtrHashTable *table,
                               BtorPtrHashTable *clone,
@@ -956,7 +972,6 @@ void
 btor_chkclone_slv (Btor *btor)
 {
   int i, h = btor->options.just_heuristic.val;
-  BtorSLSMove *m, *cm;
 
   assert ((!btor->slv && !btor->clone->slv) || (btor->slv && btor->clone->slv));
   if (!btor->slv) return;
@@ -1034,10 +1049,12 @@ btor_chkclone_slv (Btor *btor)
   }
   else if (btor->slv->kind == BTOR_SLS_SOLVER_KIND)
   {
+    BtorSLSMove *m, *cm;
     BtorSLSSolver *slv  = BTOR_SLS_SOLVER (btor);
     BtorSLSSolver *cslv = BTOR_SLS_SOLVER (btor->clone);
 
-    chkclone_node_ptr_hash_table (slv->roots, cslv->roots, cmp_data_as_int);
+    chkclone_node_ptr_hash_table (
+        slv->roots, cslv->roots, cmp_data_as_sls_constr_data_ptr);
     chkclone_node_ptr_hash_table (slv->score, cslv->score, cmp_data_as_dbl);
 
     assert (BTOR_COUNT_STACK (slv->moves) == BTOR_COUNT_STACK (cslv->moves));

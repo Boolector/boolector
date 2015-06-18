@@ -40,6 +40,13 @@ struct BtorSLSMove
 };
 typedef struct BtorSLSMove BtorSLSMove;
 
+struct BtorSLSConstrData
+{
+  int64_t weight;
+  int64_t selected;
+};
+typedef struct BtorSLSConstrData BtorSLSConstrData;
+
 BTOR_DECLARE_STACK (BtorSLSMovePtr, BtorSLSMove *);
 
 /*------------------------------------------------------------------------*/

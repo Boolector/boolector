@@ -1248,6 +1248,9 @@ clone_aux_btor (Btor *btor, BtorNodeMap **exp_map, bool exp_layer_only)
       allocated += sizeof (BtorSLSSolver) + MEM_PTR_HASH_TABLE (cslv->roots)
                    + MEM_PTR_HASH_TABLE (cslv->score);
 
+      if (slv->roots)
+        allocated += slv->roots->count * sizeof (BtorSLSConstrData);
+
       assert (BTOR_SIZE_STACK (slv->moves) == BTOR_SIZE_STACK (cslv->moves));
       assert (BTOR_COUNT_STACK (slv->moves) == BTOR_COUNT_STACK (cslv->moves));
 
