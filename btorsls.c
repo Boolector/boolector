@@ -2923,9 +2923,10 @@ select_prop_move (Btor *btor, BtorNode *root)
     for (i = 0, eidx = -1; i < real_cur->arity; i++)
     {
       bve[i] = (BtorBitVector *) btor_get_bv_model (btor, real_cur->e[i]);
-      /* AND: choose 0-branch if only one is 0, else choose randomly */
-      if (BTOR_IS_AND_NODE (real_cur) && !btor_is_zero_bv (bvcur)
-          && btor_is_zero_bv (bve[i]))
+      /* AND: choose 0-branch if only one is 0, else choose randomly
+       * Note: if bvcur = 0, no path is 0 (as the prev assignment of
+       *       bvur was 1) */
+      if (BTOR_IS_AND_NODE (real_cur) && btor_is_zero_bv (bve[i]))
         eidx = eidx == -1 ? i : -1;
     }
     if (eidx == -1)
