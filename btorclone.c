@@ -1214,8 +1214,10 @@ clone_aux_btor (Btor *btor, BtorNodeMap **exp_map, bool exp_layer_only)
 #endif
 
   clone->parse_error_msg = NULL;
-  clone->clone           = NULL;
-  clone->close_apitrace  = 0;
+#ifndef NDEBUG
+  clone->clone = NULL;
+#endif
+  clone->close_apitrace = 0;
 
   clone_prefix = "clone";
   len          = btor->msg->prefix ? strlen (btor->msg->prefix) : 0;

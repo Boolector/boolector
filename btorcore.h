@@ -155,7 +155,9 @@ struct Btor
 
   BtorPtrHashTable *cache; /* for btor_simplify_btor */
 
+#ifndef NDEBUG
   Btor *clone; /* shadow clone (debugging only) */
+#endif
 
   char *parse_error_msg;
 
