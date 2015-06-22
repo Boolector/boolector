@@ -1306,8 +1306,8 @@ apply_slice_slice (Btor *btor, BtorNode *exp, int upper, int lower)
   BTOR_INC_REC_RW_CALL (btor);
   result = rewrite_slice_exp (btor,
                               BTOR_COND_INVERT_NODE (exp, real_exp->e[0]),
-                              real_exp->lower + upper,
-                              real_exp->lower + lower);
+                              btor_slice_get_lower (real_exp) + upper,
+                              btor_slice_get_lower (real_exp) + lower);
   BTOR_DEC_REC_RW_CALL (btor);
   return result;
 }
@@ -3844,7 +3844,8 @@ applies_slice_concat (Btor *btor, BtorNode *e0, BtorNode *e1)
          && BTOR_IS_INVERTED_NODE (e0) == BTOR_IS_INVERTED_NODE (e1)
          && BTOR_IS_SLICE_NODE (real_e0) && BTOR_IS_SLICE_NODE (real_e1)
          && real_e0->e[0] == real_e1->e[0]
-         && real_e0->lower == real_e1->upper + 1;
+         && btor_slice_get_lower (real_e0)
+                == btor_slice_get_upper (real_e1) + 1;
 }
 
 static inline BtorNode *
@@ -3856,8 +3857,10 @@ apply_slice_concat (Btor *btor, BtorNode *e0, BtorNode *e1)
 
   real_e0 = BTOR_REAL_ADDR_NODE (e0);
   BTOR_INC_REC_RW_CALL (btor);
-  result = rewrite_slice_exp (
-      btor, real_e0->e[0], real_e0->upper, BTOR_REAL_ADDR_NODE (e1)->lower);
+  result = rewrite_slice_exp (btor,
+                              real_e0->e[0],
+                              btor_slice_get_upper (real_e0),
+                              btor_slice_get_lower (e1));
   BTOR_DEC_REC_RW_CALL (btor);
   result = BTOR_COND_INVERT_NODE (e0, result);
   return result;
@@ -5281,7 +5284,8 @@ rebuild_top_add (Btor *btor, BtorNode *e, BtorNode *c, BtorNode *r)
     //
     assert (e->kind == BTOR_SLICE_NODE);
     tmp = rebuild_top_add (btor, e->e[0], c, r);
-    res = rewrite_slice_exp (btor, tmp, e->upper, e->lower);
+    res = rewrite_slice_exp (
+        btor, tmp, btor_slice_get_upper (e), btor_slice_get_lower (e));
     btor_release_exp (btor, tmp);
   }
   return res;

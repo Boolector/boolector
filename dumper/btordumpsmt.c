@@ -721,7 +721,10 @@ recursively_dump_exp_smt (BtorSMTDumpContext *sdc,
       if (BTOR_IS_SLICE_NODE (real_exp))
       {
         fmt = sdc->version == 1 ? "[%d:%d]" : "%d %d)";
-        fprintf (sdc->file, fmt, real_exp->upper, real_exp->lower);
+        fprintf (sdc->file,
+                 fmt,
+                 btor_slice_get_upper (real_exp),
+                 btor_slice_get_lower (real_exp));
       }
     }
     /* close s-expression */

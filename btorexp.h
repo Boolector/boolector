@@ -113,7 +113,7 @@ typedef struct BtorNodePair BtorNodePair;
     int ext_refs;       /* external references counter */               \
     int parents;        /* number of parents */                         \
     int arity;          /* arity of operator */                         \
-    BtorSortId sort_id; /* sort id  TODO: rename to sort */             \
+    BtorSortId sort_id; /* sort id */                                   \
     union                                                               \
     {                                                                   \
       BtorAIGVec *av;        /* synthesized AIG vector */               \
@@ -130,11 +130,6 @@ typedef struct BtorNodePair BtorNodePair;
 #define BTOR_BV_ADDITIONAL_NODE_STRUCT                             \
   struct                                                           \
   {                                                                \
-    struct                                                         \
-    {                                                              \
-      int upper; /* upper index for slices */                      \
-      int lower; /* lower index for slices */                      \
-    };                                                             \
     BtorNode *e[3];           /* expression children */            \
     BtorNode *prev_parent[3]; /* prev in parent list of child i */ \
     BtorNode *next_parent[3]; /* next in parent list of child i */ \
@@ -166,6 +161,16 @@ struct BtorBVConstNode
 };
 
 typedef struct BtorBVConstNode BtorBVConstNode;
+
+struct BtorSliceNode
+{
+  BTOR_BV_NODE_STRUCT;
+  BTOR_BV_ADDITIONAL_NODE_STRUCT;
+  int upper;
+  int lower;
+};
+
+typedef struct BtorSliceNode BtorSliceNode;
 
 struct BtorBVNode
 {
@@ -890,6 +895,10 @@ BtorPtrHashTable *btor_lambda_get_static_rho (BtorNode *lambda);
 
 void btor_lambda_set_static_rho (BtorNode *lambda,
                                  BtorPtrHashTable *static_rho);
+
+/* Getter for BtorSliceNode fields */
+int btor_slice_get_upper (BtorNode *);
+int btor_slice_get_lower (BtorNode *);
 
 /* Copies expression (increments reference counter). */
 BtorNode *btor_copy_exp (Btor *btor, BtorNode *exp);

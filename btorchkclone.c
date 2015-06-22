@@ -458,11 +458,14 @@ btor_chkclone_exp (BtorNode *exp, BtorNode *clone)
       {
         for (i = 0; i < real_exp->arity; i++) BTOR_CHKCLONE_EXPPINV (e[i]);
       }
-      else
-      {
-        BTOR_CHKCLONE_EXP (upper);
-        if (!BTOR_IS_FEQ_NODE (real_exp)) BTOR_CHKCLONE_EXP (lower);
-      }
+    }
+
+    if (BTOR_IS_SLICE_NODE (real_exp))
+    {
+      assert (btor_slice_get_upper (real_exp)
+              == btor_slice_get_upper (real_clone));
+      assert (btor_slice_get_lower (real_exp)
+              == btor_slice_get_lower (real_clone));
     }
 
     for (i = 0; i < real_exp->arity; i++)

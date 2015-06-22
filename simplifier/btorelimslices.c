@@ -145,7 +145,8 @@ btor_eliminate_slices_on_bv_vars (Btor *btor)
       assert (BTOR_IS_REGULAR_NODE (cur));
       if (cur->kind == BTOR_SLICE_NODE)
       {
-        s1 = new_slice (btor, cur->upper, cur->lower);
+        s1 = new_slice (
+            btor, btor_slice_get_upper (cur), btor_slice_get_lower (cur));
         assert (!btor_find_in_ptr_hash_table (slices, s1));
         btor_insert_in_ptr_hash_table (slices, s1);
       }
