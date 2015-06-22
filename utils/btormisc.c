@@ -63,7 +63,11 @@ node2string (BtorNode *exp)
   }
 
   if (exp->kind == BTOR_SLICE_NODE)
-    sprintf (strbuf, "%s %d %d", strbuf, exp->upper, exp->lower);
+    sprintf (strbuf,
+             "%s %d %d",
+             strbuf,
+             btor_slice_get_upper (exp),
+             btor_slice_get_lower (exp));
   // FIXME: len exceeds buf
   //  else if (BTOR_IS_BV_CONST_NODE (exp))
   //    sprintf (strbuf, "%s %s", strbuf, exp->bits);
