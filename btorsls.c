@@ -3009,12 +3009,16 @@ select_prop_move (Btor *btor, BtorNode *root)
       real_cur = BTOR_REAL_ADDR_NODE (cur);
       do
       {
-        tmp = (BtorBitVector *) btor_get_bv_model (btor, real_cur->e[0]);
-        /* assume cond to be fixed and propagate bvnew to enabled path */
-        if (btor_is_zero_bv (tmp))
-          cur = real_cur->e[2];
-        else
-          cur = real_cur->e[1];
+#if 0
+	      tmp = (BtorBitVector *) btor_get_bv_model (btor, real_cur->e[0]);
+	      /* assume cond to be fixed and propagate bvnew to enabled path */
+	      if (btor_is_zero_bv (tmp))
+		cur = real_cur->e[2];
+	      else
+		cur = real_cur->e[1];
+#else
+        cur = real_cur->e[btor_pick_rand_rng (&btor->rng, 0, 2)];
+#endif
         real_cur = BTOR_REAL_ADDR_NODE (cur);
       } while (BTOR_IS_BV_COND_NODE (real_cur));
 
