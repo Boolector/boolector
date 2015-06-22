@@ -1170,7 +1170,7 @@ insert_unsynthesized_constraint (Btor *btor, BtorNode *exp)
 
   if (BTOR_IS_BV_CONST_NODE (BTOR_REAL_ADDR_NODE (exp)))
   {
-    bits = btor_get_bits_const (exp);
+    bits = btor_const_get_bits (exp);
     if ((BTOR_IS_INVERTED_NODE (exp) && bits[0] == '1')
         || (!BTOR_IS_INVERTED_NODE (exp) && bits[0] == '0'))
     {
@@ -1431,9 +1431,9 @@ normalize_substitution (Btor *btor,
     if (!BTOR_IS_BV_CONST_NODE (BTOR_REAL_ADDR_NODE (right))) return 0;
 
     if (BTOR_IS_INVERTED_NODE (right))
-      bits = btor_not_const_3vl (mm, btor_get_bits_const (right));
+      bits = btor_not_const_3vl (mm, btor_const_get_bits (right));
     else
-      bits = btor_copy_const (mm, btor_get_bits_const (right));
+      bits = btor_copy_const (mm, btor_const_get_bits (right));
 
     if (comp == BTOR_SUBST_COMP_ULT_KIND || comp == BTOR_SUBST_COMP_ULTE_KIND)
     {
@@ -1608,7 +1608,7 @@ insert_new_constraint (Btor *btor, BtorNode *exp)
 
   if (BTOR_IS_BV_CONST_NODE (real_exp))
   {
-    bits = btor_get_bits_const (real_exp);
+    bits = btor_const_get_bits (real_exp);
     /* we do not add true/false */
     if ((BTOR_IS_INVERTED_NODE (exp) && bits[0] == '1')
         || (!BTOR_IS_INVERTED_NODE (exp) && bits[0] == '0'))
@@ -3312,7 +3312,7 @@ synthesize_exp (Btor *btor, BtorNode *exp, BtorPtrHashTable *backannotation)
     {
       if (BTOR_IS_BV_CONST_NODE (cur))
       {
-        cur->av = btor_const_aigvec (avmgr, btor_get_bits_const (cur));
+        cur->av = btor_const_aigvec (avmgr, btor_const_get_bits (cur));
         BTORLOG (2, "  synthesized: %s", node2string (cur));
         if (!btor->options.lazy_synthesize.val)
         {
@@ -3880,7 +3880,7 @@ bv_assignment_str_exp (Btor *btor, BtorNode *exp)
 
   if (BTOR_IS_BV_CONST_NODE (real_exp))
   {
-    bits        = btor_get_bits_const (exp);
+    bits        = btor_const_get_bits (exp);
     invert_bits = BTOR_IS_INVERTED_NODE (exp);
     if (invert_bits) btor_invert_const (btor->mm, bits);
     assignment = btor_copy_const (btor->mm, bits);
@@ -4763,10 +4763,10 @@ lazy_synthesize_and_encode_lambda_exp (Btor *btor,
     while (has_next_node_hash_table_iterator (&it))
     {
       cur = it.bucket->data.asPtr;
-      assert (BTOR_IS_PROXY_NODE (BTOR_REAL_ADDR_NODE (cur)));
+      assert (!BTOR_IS_PROXY_NODE (BTOR_REAL_ADDR_NODE (cur)));
       BTOR_PUSH_STACK (mm, work_stack, cur);
       cur = next_node_hash_table_iterator (&it);
-      assert (BTOR_IS_PROXY_NODE (BTOR_REAL_ADDR_NODE (cur)));
+      assert (!BTOR_IS_PROXY_NODE (BTOR_REAL_ADDR_NODE (cur)));
       BTOR_PUSH_STACK (mm, work_stack, cur);
     }
   }
@@ -6924,7 +6924,7 @@ btor_eval_exp (Btor *btor, BtorNode *exp)
       }
       else if (BTOR_IS_BV_CONST_NODE (real_cur))
       {
-        result = btor_char_to_bv (btor->mm, btor_get_bits_const (real_cur));
+        result = btor_char_to_bv (btor->mm, btor_const_get_bits (real_cur));
         goto EVAL_EXP_PUSH_RESULT;
       }
       /* substitute param with its assignment */

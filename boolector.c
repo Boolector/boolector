@@ -2971,13 +2971,13 @@ boolector_get_bits (Btor *btor, BoolectorNode *node)
                         "argument is not a constant node");
   if (BTOR_IS_INVERTED_NODE (simp))
   {
-    if (!btor_get_invbits_const (real))
+    if (!btor_const_get_invbits (real))
       btor_set_invbits_const (
-          real, btor_not_const_3vl (btor->mm, btor_get_bits_const (real)));
-    res = btor_get_invbits_const (real);
+          real, btor_not_const_3vl (btor->mm, btor_const_get_bits (real)));
+    res = btor_const_get_invbits (real);
   }
   else
-    res = btor_get_bits_const (simp);
+    res = btor_const_get_bits (simp);
   BTOR_TRAPI_RETURN_STR (res);
 #ifndef NDEBUG
   if (btor->clone)

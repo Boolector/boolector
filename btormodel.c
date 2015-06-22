@@ -292,7 +292,7 @@ btor_recursively_compute_assignment (Btor *btor,
       }
       else if (BTOR_IS_BV_CONST_NODE (real_cur))
       {
-        result = btor_char_to_bv (btor->mm, btor_get_bits_const (real_cur));
+        result = btor_char_to_bv (btor->mm, btor_const_get_bits (real_cur));
         goto CACHE_AND_PUSH_RESULT;
       }
       /* substitute param with its assignment */
