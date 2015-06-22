@@ -365,11 +365,18 @@ def _read_data (dirs):
                                 raise CmpSMTException ("missing '{}'".format (
                                     os.path.join (d, outfile)))
                             _read_out_file (d, "{}{}".format(f[:-3], "out"))
+                    # reset timeout if given
+                    if g_args.timeout and \
+                       g_file_stats["time_time"][d][f_name] > g_args.timeout:
+                           g_file_stats["time_time"][d][f_name] = g_args.timeout
+                           g_file_stats["status"][d][f_name] = "time"
+                           g_file_stats["result"][d][f_name] = 1
 
 
-def _pick_data(benchmarks, data):
+def _pick_data(benchmarks, data, generate_vbs):
     global g_args
 
+    dirs = g_args.dirs[:-1] if g_args.vb else g_args.dirs
     sort_reverse = False
     f_cmp = lambda x, y: x * (1 + g_args.diff) <= y
     if g_args.cmp_col == 'g_solved':
@@ -378,38 +385,64 @@ def _pick_data(benchmarks, data):
 
     best_stats = dict((k, {}) for k in g_args.columns)
     diff_stats = dict((k, {}) for k in g_args.columns)
+    vb_stats = None if not generate_vbs\
+                    else dict((k, {}) for k in g_args.columns)
+    vbdir = g_args.dirs[-1]
+
     for f in benchmarks:
         for k in data.keys():
-            for d in g_args.dirs:
-                # initialize missing files in a directory
-                if f not in data[k][d]:
-                    data[k][d][f] = None
+            # initialize missing files in a directory
+            for d in dirs:
+                if f not in data[k][d]: data[k][d][f] = None
+            if generate_vbs: 
+                if vbdir not in data[k]: data[k][vbdir] = {}
+                if f not in data[k][vbdir]: data[k][vbdir][f] = None
 
-            v = sorted([(data[k][d][f], d) for d in g_args.dirs \
-                                           if data[k][d][f] is not None],
-                       reverse=sort_reverse)
+            v = sorted(\
+                [(data[k][d][f], d) for d in dirs if data[k][d][f] is not None],
+                reverse=sort_reverse)
+
             # strings are not considered for diff/best values
             if len(v) == 0 or isinstance(v[0][0], str):
                 best_stats[k][f] = None
                 diff_stats[k][f] = None
+                if generate_vbs: vb_stats[k][f] = None
                 continue
 
             best_stats[k][f] = None \
                 if len(set([t[0] for t in v])) <= 1 \
                    or 'status' in data and f not in data['status'][d] \
-                   or 'status' in data and data['status'][d][f] != 'ok' \
+                   or not g_args.vbsd \
+                      and 'status' in data and data['status'][d][f] != 'ok' \
                 else v[0][1]
 
             diff_stats[k][f] = None \
                 if best_stats[k][f] is None or not f_cmp(v[0][0], v[1][0]) \
                 else v[0][1]
 
+            if generate_vbs:
+                vb_stats[k][f] = v[0][1]
+
     assert(diff_stats.keys() == best_stats.keys())
-    return diff_stats, best_stats
+
+    # collect data for virtual best solver
+    if generate_vbs:
+        for f in vb_stats[g_args.cmp_col]:
+            for k in data.keys():
+                if vb_stats[g_args.cmp_col][f]:
+                    data[k][vbdir][f] = \
+                            data[k][vb_stats[g_args.cmp_col][f]][f]
+
+    return diff_stats, best_stats, vb_stats
+
 
 def _format_field(field, width, color=None, colspan=0, classes=[]):
-    field = "-" if field is None else str(field)
-
+    field = "-" if field is None \
+                            or (g_args.vbsd \
+                                and not isinstance(field, str) \
+                                and color != COLOR_DIFF \
+                                and color != COLOR_BEST) \
+                else str(field)
     if g_args.html:
         tag = "td"
         if color is not None and color != COLOR_NOCOLOR:
@@ -490,8 +523,10 @@ def _print_html_header():
 def _print_html_footer():
     print("<tbody></table></body></html>")
 
+
 def _has_status(status, f):
     return status in set(g_file_stats['status'][d][f] for d in g_args.dirs)
+
 
 def _get_column_name(key):
     if key in FILTER_LOG:
@@ -501,7 +536,8 @@ def _get_column_name(key):
     assert(key in FILTER_OUT)
     return FILTER_OUT[key][0]
 
-def _get_color(f, d, diff_stats, best_stats):
+
+def _get_color(f, d, diff_stats, best_stats, vb_stats):
     global g_args
 
     for k in diff_stats.keys():
@@ -510,7 +546,14 @@ def _get_color(f, d, diff_stats, best_stats):
                 return COLOR_DIFF
             elif best_stats[k][f] == d:
                 return COLOR_BEST
+            elif not g_args.g and vb_stats and d == g_args.dirs[-1] \
+                 and diff_stats[k][f] == vb_stats[k][f]:
+                     return COLOR_DIFF
+            elif not g_args.g and vb_stats and d == g_args.dirs[-1] \
+                 and best_stats[k][f] == vb_stats[k][f]:
+                     return COLOR_BEST
     return COLOR_NOCOLOR
+
 
 def _get_group_totals():
     global g_args, g_benchmarks, g_file_stats, g_format_stats
@@ -540,7 +583,8 @@ def _get_group_totals():
                 if stat not in stats['totals'][d]:
                     stats['totals'][d][stat] = []
                 val = g_file_stats[stat][d][f]
-                # val is None if file does not exist
+                # val is None if file does not exist or all files in 
+                # a group timed out for virtual best solver
                 if val is not None:
                     group[d][stat].append(val)
                     stats['totals'][d][stat].append(val)
@@ -564,10 +608,12 @@ def _get_group_totals():
 
     return totals, stats.keys()
 
+
 def _base_dir(path):
     return os.path.basename(path.rstrip('/'))
 
-def _print_totals():
+
+def _print_totals(vb_stats=None):
 
     data, benchmarks = _get_group_totals()
 
@@ -619,12 +665,18 @@ def _get_column_widths(data, benchmarks):
         padding + max(max(len(b) for b in benchmarks), len("DIRECTORY"))
 
     data_column_widths = dict((k, {}) for k in g_args.columns)
-    for d in g_args.dirs:
+    dirs = g_args.dirs[:-1] if g_args.vb else g_args.dirs
+    for d in dirs:
         for k in columns:
             data_column_widths[k][d] = \
                 padding + \
                 max(len(_get_column_name(k)),
                     max(len(str(v)) for v in data[k][d].values()))
+    if g_args.vb:
+        for k in columns:
+            data_column_widths[k][g_args.dirs[-1]] = \
+                    max(data_column_widths[k][d] for d in dirs)
+
 
     # header column widths
     column_groups = dict((d, list(columns)) for d in g_args.dirs)
@@ -648,16 +700,15 @@ def _get_column_widths(data, benchmarks):
 def _print_data ():
     global g_file_stats, g_dir_stats
 
+    diff_stats, best_stats, vb_stats = \
+            _pick_data(g_benchmarks, g_file_stats, g_args.vb)
     if g_args.g:
         data, benchmarks = _get_group_totals()
+        diff_stats, best_stats, vbs_stats = _pick_data(benchmarks, data, False)
     else:
         data = g_file_stats
         benchmarks = g_benchmarks
 
-    # pick data for best runs and diff runs
-    diff_stats, best_stats = _pick_data(benchmarks, data)
-
-    # compute column widths
     benchmark_column_width, header_column_widths, data_column_widths = \
         _get_column_widths(data, benchmarks)
 
@@ -674,7 +725,7 @@ def _print_data ():
                  </table><table>""".format(g_args.cmp_col, g_args.diff))
 
     if g_args.t or g_args.html:
-        _print_totals()
+        _print_totals(vb_stats)
         
     # print header
     columns = ["DIRECTORY"]
@@ -688,8 +739,6 @@ def _print_data ():
     classes.extend([["borderleft", "header"] for d in g_args.dirs])
     if not g_args.plain:
         _print_row (columns, widths, colspans=colspans, classes=classes)
-
-    if not g_args.plain:
         for k in g_dir_stats:
             columns = [_get_column_name(k)]
             for d in g_args.dirs:
@@ -743,10 +792,13 @@ def _print_data ():
 
         # highlight row if status is not the same or solvers are disagreeing
         color = COLOR_STAT \
-                if s is not None and len(set(s)) > 1 \
-                else (COLOR_DISC if r is not None and len(set(r)) > 1 \
+                if not g_args.vbsd and s is not None and len(set(s)) > 1 \
+                else (COLOR_DISC if ((not g_args.vbsd \
+                                      or (g_args.vbsd \
+                                          and (s is None or len(set(s)) <= 1)))\
+                                     and r is not None \
+                                     and len(set(r)) > 1) \
                                  else COLOR_NOCOLOR)
-
         columns = [f]
         widths = [benchmark_column_width]
         colors = [color]
@@ -758,7 +810,7 @@ def _print_data ():
             columns.append([data[k][d][f] for k in g_args.columns])
             widths.append([data_column_widths[k][d] for k in g_args.columns])
             colors.append(color if color != COLOR_NOCOLOR \
-                                else _get_color(f, d, diff_stats, best_stats))
+                        else _get_color(f, d, diff_stats, best_stats, vb_stats))
 
         _print_row(columns, widths, colors=colors, classes=classes)
 
@@ -774,55 +826,152 @@ if __name__ == "__main__":
                              "note: {{ {} }} are enabled for '-M' only.".format(
                           ", ".join(sorted(FILE_STATS_KEYS)),
                           ", ".join(sorted(list(FILTER_OUT.keys())))))
-        aparser.add_argument ("-f", metavar="string", dest="filter", type=str, 
-                default=None,
-            help="filter benchmark files by <string>")
-        aparser.add_argument ("-hd", metavar="float", dest="diff", type=float,
-                default=0.1,
-                help="highlight difference if greater than <float>")
-        aparser.add_argument ("-bs", action="store_true",
-                help="compare boolector statistics")
-        aparser.add_argument ("-dp", action="store_true",
-                help = "compare dual prop statistics")
-        aparser.add_argument ("-m", action="store_true",
-                help="extract models statistics")
-        aparser.add_argument ("-M", action="store_true",
-                help="compare models statistics")
-        aparser.add_argument ("-dis", action="store_true",
-                help="show discrepancies only")
-        aparser.add_argument ("-time", action="store_true",
-                help="show timeouts only")
-        aparser.add_argument ("-toof", dest="timeof", action="store",
-                              default=None,
-                              help="show timeouts of given dir only")
-        aparser.add_argument ("-mem", action="store_true",
-                help="show memory outs only")
-        aparser.add_argument ("-err", action="store_true",
-                help="show errors only")
-        aparser.add_argument ("-ok", action="store_true",
-                help="show non-errors only")
-        aparser.add_argument ("-c", metavar="column", dest="cmp_col", 
-                default='time_time',
+        aparser.add_argument \
+              (
+                "-f",
+                metavar="string", dest="filter", type=str, default=None,
+                help="filter benchmark files by <string>"
+              )
+        aparser.add_argument \
+              (
+                "-to",
+                metavar="seconds", dest="timeout", type=float, default=None,
+                help="use individual time out"
+              )
+        aparser.add_argument \
+              (
+                "-vb",
+                action="store_true",
+                help="generate virtual best solver"
+              )
+        aparser.add_argument \
+              (
+                "--vb-show-details",
+                dest="vbsd", action="store_true",
+                help="show detailed overview for virtual best solver"
+               )
+        aparser.add_argument \
+              (
+                "-hd",
+                metavar="float", dest="diff", type=float, default=0.1,
+                help="highlight diff if greater than <float>"
+              )
+        aparser.add_argument \
+              (
+                "-bs",
+                action="store_true",
+                help="compare boolector statistics"
+              )
+        aparser.add_argument \
+              (
+                "-dp",
+                action="store_true",
+                help = "compare dual prop statistics"
+              )
+        aparser.add_argument \
+              (
+                "-m",
+                action="store_true",
+                help="extract models statistics"
+              )
+        aparser.add_argument \
+              (
+                "-M",
+                action="store_true",
+                help="compare models statistics"
+              )
+        aparser.add_argument \
+              (
+                "-dis",
+                action="store_true",
+                help="show discrepancies only"
+              )
+        aparser.add_argument \
+              (
+                "-time",
+                action="store_true",
+                help="show timeouts only"
+              )
+        aparser.add_argument \
+              (
+                "-toof",
+                metavar="dir", dest="timeof", action="store", default=None,
+                help="show timeouts of given dir only"
+              )
+        aparser.add_argument \
+              (
+                "-mem",
+                action="store_true",
+                help="show memory outs only"
+              )
+        aparser.add_argument \
+              (
+                "-err",
+                action="store_true",
+                help="show errors only"
+              )
+        aparser.add_argument \
+              (
+                "-ok",
+                action="store_true",
+                help="show non-errors only"
+              )
+        aparser.add_argument \
+              (
+                "-c",
+                metavar="column", dest="cmp_col", default='time_time',
                 choices=FILE_STATS_KEYS,
-                help="compare results column")
-        aparser.add_argument ("-s", metavar="column[,column ...]",
-                dest="columns",
-                help="list of columns to print")
-        aparser.add_argument ("-a", dest="show_all", action="store_true",
-                help="print all columns")
-        aparser.add_argument ("--html", action="store_true",
-                help="generte html output")
-        aparser.add_argument ("dirs", nargs=REMAINDER,
-                help="two or more smt run directories to compare")
-        aparser.add_argument ("--no-colors", action="store_true",
-                              help="disable colors")
-        aparser.add_argument ("-g", action="store_true",
-                              help="group benchmarks into families")
-        aparser.add_argument ("-t", action="store_true",
-                              help="show totals table")
-        aparser.add_argument ("-p", dest="plain", action="store_true",
-                              help="plain mode, only show columns and " \
-                                   "filename (for gnuplot data files)")
+                help="compare results column"
+              )
+        aparser.add_argument \
+              (
+                "-s",
+                metavar="column[,column ...]", dest="columns",
+                help="list of columns to print"
+              )
+        aparser.add_argument \
+              (
+                "-a",
+                dest="show_all", action="store_true",
+                help="print all columns"
+              )
+        aparser.add_argument \
+              (
+                "--html",
+                action="store_true",
+                help="generte html output"
+              )
+        aparser.add_argument \
+              (
+                "dirs",
+                nargs=REMAINDER,
+                help="two or more smt run directories to compare"
+              )
+        aparser.add_argument \
+              (
+                "--no-colors",
+                action="store_true",
+                help="disable colors"
+              )
+        aparser.add_argument \
+              (
+                "-g",
+                action="store_true",
+                help="group benchmarks into families"
+              )
+        aparser.add_argument \
+              (
+                "-t",
+                action="store_true",
+                help="show totals table"
+              )
+        aparser.add_argument \
+              (
+                "-p",
+                dest="plain", action="store_true",
+                help="plain mode, only show columns and " \
+                     "filename (for gnuplot data files)"
+              )
         g_args = aparser.parse_args()
 
         # do not use a set here as the order of directories should be preserved
@@ -900,10 +1049,19 @@ if __name__ == "__main__":
 
         if g_args.timeof and not g_args.timeof in g_args.dirs:
             raise CmpSMTException ("invalid dir given")
+
+        if g_args.vb:
+            g_args.dirs.append("virtual best solver")
+
         # initialize global data
         g_dir_stats = dict((k, {}) for k in DIR_STATS_KEYS)
+        # initialize for virtual best solver
+        if g_args.vb:
+            for k in g_dir_stats.keys():
+                g_dir_stats[k][g_args.dirs[-1]] = []
 
-        _read_data (g_args.dirs)
+        #_read_data (g_args.dirs)
+        _read_data (g_args.dirs[:-1] if g_args.vb else g_args.dirs)
         if (len(g_file_stats.keys()) > 0):
             assert(len(g_file_stats.keys()) == len(g_args.columns))
             _init_missing_files (g_file_stats)
