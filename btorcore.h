@@ -140,7 +140,6 @@ struct Btor
   int rec_read_acond_calls;
   int valid_assignments;
   int vis_idx; /* file index for visualizing expressions */
-  int vread_index_id;
   int inconsistent;
   int found_constraint_false;
   int external_refs;        /* external references (library mode) */
@@ -196,7 +195,6 @@ struct Btor
     int fun_uc_props;
 #endif
     long long lambdas_merged;
-    int vreads; /* number of virtual reads */
     BtorConstraintStats constraints;
     BtorConstraintStats oldconstraints;
     long long expressions;

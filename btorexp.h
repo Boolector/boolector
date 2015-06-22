@@ -96,8 +96,7 @@ typedef struct BtorNodePair BtorNodePair;
     unsigned int reachable : 1;  /* reachable from root ? */            \
     unsigned int tseitin : 1;    /* tseitin encoded into SAT ? */       \
     unsigned int lazy_tseitin : 1;                                      \
-    unsigned int vread : 1;         /* virtual read ? */                \
-    unsigned int vread_index : 1;   /* index for two virtual reads ? */ \
+    unsigned int synthapp : 1;      /* inserted in synth_apps? */       \
     unsigned int constraint : 1;    /* top level constraint ? */        \
     unsigned int erased : 1;        /* for debugging purposes */        \
     unsigned int disconnected : 1;  /* for debugging purposes */        \
@@ -106,7 +105,6 @@ typedef struct BtorNodePair BtorNodePair;
     unsigned int parameterized : 1; /* param as sub expression ? */     \
     unsigned int lambda_below : 1;  /* lambda as sub expression ? */    \
     unsigned int apply_below : 1;                                       \
-    unsigned int merge : 1;                                             \
     unsigned int is_write : 1;                                          \
     unsigned int is_read : 1;                                           \
     unsigned int propagated : 1;                                        \
@@ -129,21 +127,17 @@ typedef struct BtorNodePair BtorNodePair;
     BtorNode *last_parent;  /* tail of parent list */                   \
   }
 
-#define BTOR_BV_ADDITIONAL_NODE_STRUCT                                \
-  struct                                                              \
-  {                                                                   \
-    struct                                                            \
-    {                                                                 \
-      int upper; /* upper index for slices */                         \
-      union                                                           \
-      {                                                               \
-        int lower;            /* lower index for slices */            \
-        BtorNodePair *vreads; /* virtual reads for array equalites */ \
-      };                                                              \
-    };                                                                \
-    BtorNode *e[3];           /* expression children */               \
-    BtorNode *prev_parent[3]; /* prev in parent list of child i */    \
-    BtorNode *next_parent[3]; /* next in parent list of child i */    \
+#define BTOR_BV_ADDITIONAL_NODE_STRUCT                             \
+  struct                                                           \
+  {                                                                \
+    struct                                                         \
+    {                                                              \
+      int upper; /* upper index for slices */                      \
+      int lower; /* lower index for slices */                      \
+    };                                                             \
+    BtorNode *e[3];           /* expression children */            \
+    BtorNode *prev_parent[3]; /* prev in parent list of child i */ \
+    BtorNode *next_parent[3]; /* next in parent list of child i */ \
   }
 // TODO: optimization of **e, **prev_parent, **next_parent memory allocation
 
@@ -901,6 +895,9 @@ int btor_get_args_arity (Btor *btor, BtorNode *exp);
 
 /* Returns static_rho of given lambda node. */
 BtorPtrHashTable *btor_lambda_get_static_rho (BtorNode *lambda);
+
+void btor_lambda_set_static_rho (BtorNode *lambda,
+                                 BtorPtrHashTable *static_rho);
 
 /* Copies expression (increments reference counter). */
 BtorNode *btor_copy_exp (Btor *btor, BtorNode *exp);

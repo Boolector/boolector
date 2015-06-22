@@ -1540,7 +1540,7 @@ run_lambda_tests (int argc, char **argv)
   BTOR_RUN_TEST (lambda_param_srem);
   BTOR_RUN_TEST (lambda_param_smod);
   BTOR_RUN_TEST (lambda_param_concat);
-  //  BTOR_RUN_TEST (lambda_param_read);
+  BTOR_RUN_TEST (lambda_param_read);
   /* ternary exp tests */
   BTOR_RUN_TEST (lambda_param_write1);
   BTOR_RUN_TEST (lambda_param_write2);

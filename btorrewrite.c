@@ -4418,22 +4418,28 @@ apply_prop_apply (Btor *btor, BtorNode *e0, BtorNode *e1)
 
 /* LAMBDA rules */
 
+#if 0 
+// TODO (ma): this rule cannot be applied yet as it may produce lambdas with
+//            different sorts
 /* match: (\lambda j . (\lambda k . t)(j))
  * result: \lambda k . t
  */
 static inline int
-applies_lambda_lambda (Btor *btor, BtorNode *e0, BtorNode *e1)
+applies_lambda_lambda (Btor * btor, BtorNode * e0, BtorNode * e1)
 {
-  return !BTOR_IS_INVERTED_NODE (e1) && BTOR_IS_APPLY_NODE (e1)
-         && !e1->e[0]->parameterized && e1->e[1]->arity == 1
-         && e1->e[1]->e[0] == e0;
+  return !BTOR_IS_INVERTED_NODE (e1)
+	 && BTOR_IS_APPLY_NODE (e1)
+	 && !e1->e[0]->parameterized
+	 && e1->e[1]->arity == 1
+	 && e1->e[1]->e[0] == e0;
 }
 
 static inline BtorNode *
-apply_lambda_lambda (Btor *btor, BtorNode *e0, BtorNode *e1)
+apply_lambda_lambda (Btor * btor, BtorNode * e0, BtorNode * e1)
 {
   return btor_copy_exp (btor, e1->e[0]);
 }
+#endif
 
 /* COND rules */
 
@@ -6076,7 +6082,7 @@ rewrite_lambda_exp (Btor *btor, BtorNode *e0, BtorNode *e1)
 
   assert (!result);
   result = btor_lambda_exp_node (btor, e0, e1);
-DONE:
+  // DONE:
   assert (result);
   return result;
 }

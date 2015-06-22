@@ -844,13 +844,6 @@ erase_local_data_exp (Btor *btor, BtorNode *exp, int free_sort)
         exp->rho = 0;
       }
       break;
-    case BTOR_FEQ_NODE:
-      if (exp->vreads)
-      {
-        BTOR_DELETE (mm, exp->vreads);
-        exp->vreads = 0;
-      }
-      break;
     default: break;
   }
 
@@ -974,12 +967,6 @@ recursively_release_exp (Btor *btor, BtorNode *root)
         cur->simplified = 0;
       }
 
-      if (BTOR_IS_FEQ_NODE (cur) && cur->vreads)
-      {
-        BTOR_PUSH_STACK (mm, stack, cur->vreads->exp2);
-        BTOR_PUSH_STACK (mm, stack, cur->vreads->exp1);
-      }
-
       remove_from_nodes_unique_table_exp (btor, cur);
       erase_local_data_exp (btor, cur, 1);
 
@@ -1022,14 +1009,6 @@ btor_set_to_proxy_exp (Btor *btor, BtorNode *exp)
 
   int i;
   BtorNode *e[3];
-
-  if (exp->kind == BTOR_FEQ_NODE && exp->vreads)
-  {
-    btor_release_exp (btor, exp->vreads->exp2);
-    btor_release_exp (btor, exp->vreads->exp1);
-    BTOR_DELETE (btor->mm, exp->vreads);
-    exp->vreads = 0;
-  }
 
   remove_from_nodes_unique_table_exp (btor, exp);
   /* also updates op stats */
@@ -4099,4 +4078,12 @@ btor_lambda_get_static_rho (BtorNode *lambda)
   assert (BTOR_IS_REGULAR_NODE (lambda));
   assert (BTOR_IS_LAMBDA_NODE (lambda));
   return ((BtorLambdaNode *) lambda)->static_rho;
+}
+
+void
+btor_lambda_set_static_rho (BtorNode *lambda, BtorPtrHashTable *static_rho)
+{
+  assert (BTOR_IS_REGULAR_NODE (lambda));
+  assert (BTOR_IS_LAMBDA_NODE (lambda));
+  ((BtorLambdaNode *) lambda)->static_rho = static_rho;
 }

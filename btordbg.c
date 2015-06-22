@@ -16,6 +16,33 @@
 #include "utils/btoriter.h"
 
 int
+check_lambdas_static_rho_proxy_free_dbg (const Btor *btor)
+{
+  BtorNode *cur, *data, *key;
+  BtorHashTableIterator it, iit;
+  BtorPtrHashTable *static_rho;
+
+  init_node_hash_table_iterator (&it, btor->lambdas);
+  while (has_next_node_hash_table_iterator (&it))
+  {
+    cur        = next_node_hash_table_iterator (&it);
+    static_rho = btor_lambda_get_static_rho (cur);
+    if (!static_rho) continue;
+
+    init_node_hash_table_iterator (&iit, static_rho);
+    while (has_next_node_hash_table_iterator (&iit))
+    {
+      data = iit.bucket->data.asPtr;
+      key  = next_node_hash_table_iterator (&iit);
+      assert (data);
+      if (BTOR_IS_PROXY_NODE (BTOR_REAL_ADDR_NODE (data))) return 0;
+      if (BTOR_IS_PROXY_NODE (BTOR_REAL_ADDR_NODE (key))) return 0;
+    }
+  }
+  return 1;
+}
+
+int
 check_unique_table_children_proxy_free_dbg (const Btor *btor)
 {
   int i, j;
@@ -55,18 +82,6 @@ check_id_table_aux_mark_unset_dbg (const Btor *btor)
     if (!cur) continue;
     if (cur->aux_mark != 0) return 0;
   }
-  return 1;
-}
-
-int
-check_unique_table_merge_unset_dbg (const Btor *btor)
-{
-  int i;
-  BtorNode *cur;
-
-  for (i = 0; i < btor->nodes_unique_table.size; i++)
-    for (cur = btor->nodes_unique_table.chains[i]; cur; cur = cur->next)
-      if (cur->merge != 0) return 0;
   return 1;
 }
 

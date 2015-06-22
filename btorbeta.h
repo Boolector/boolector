@@ -13,23 +13,31 @@
 
 #include "btorcore.h"
 
-BtorNode *btor_beta_reduce_full (Btor *, BtorNode *);
+BtorNode *btor_beta_reduce_full (Btor *btor, BtorNode *exp);
 
-BtorNode *btor_beta_reduce_merge (Btor *, BtorNode *);
+BtorNode *btor_beta_reduce_merge (Btor *btor,
+                                  BtorNode *exp,
+                                  BtorPtrHashTable *merge_lambdas);
 
-BtorNode *btor_beta_reduce_partial (
-    Btor *, BtorNode *, int *, BtorPtrHashTable *, BtorPtrHashTable *);
+BtorNode *btor_beta_reduce_partial (Btor *btor,
+                                    BtorNode *exp,
+                                    int *evalerr,
+                                    BtorPtrHashTable *to_prop,
+                                    BtorPtrHashTable *conds);
 
-BtorNode *btor_beta_reduce_partial_collect (Btor *,
-                                            BtorNode *,
-                                            BtorPtrHashTable *,
-                                            BtorPtrHashTable *);
+BtorNode *btor_beta_reduce_partial_collect (Btor *btor,
+                                            BtorNode *exp,
+                                            BtorPtrHashTable *cond_sel_if,
+                                            BtorPtrHashTable *cond_sel_else);
 
-BtorNode *btor_beta_reduce_bounded (Btor *, BtorNode *, int);
+BtorNode *btor_beta_reduce_bounded (Btor *btor, BtorNode *exp, int bound);
 
-BtorNode *btor_param_cur_assignment (BtorNode *);
+BtorNode *btor_param_cur_assignment (BtorNode *exp);
 
-BtorNode *btor_apply_and_reduce (Btor *, int, BtorNode **, BtorNode *);
+BtorNode *btor_apply_and_reduce (Btor *btor,
+                                 int argc,
+                                 BtorNode **args,
+                                 BtorNode *fun);
 
 void btor_assign_param (Btor *, BtorNode *, BtorNode *);
 

@@ -521,9 +521,6 @@ btor_print_stats_btor (Btor *btor)
             btor->stats.ec_substitutions);
   BTOR_MSG (btor->msg, 1, "assumptions: %u", btor->assumptions->count);
 
-  if (btor->ops[BTOR_FEQ_NODE].cur)
-    BTOR_MSG (btor->msg, 1, "virtual reads: %d", btor->stats.vreads);
-
   if (verbosity > 0)
   {
     BTOR_MSG (btor->msg, 2, "max rec. RW: %d", btor->stats.max_rec_rw_calls);
@@ -726,7 +723,6 @@ new_aux_btor (int init_opts)
                                            (BtorCmpPtr) btor_compare_exp_by_id);
 
   btor->valid_assignments = 1;
-  btor->vread_index_id    = 1;
 
   BTOR_PUSH_STACK (btor->mm, btor->nodes_id_table, 0);
 
@@ -2298,6 +2294,91 @@ btor_simplify_exp (Btor *btor, BtorNode *exp)
 
 /*------------------------------------------------------------------------*/
 
+/* update hash tables of nodes in order to get rid of proxy nodes
+ */
+static void
+update_node_hash_tables (Btor *btor)
+{
+  BtorNode *cur, *data, *old_data, *old_key, *key;
+  BtorHashTableIterator it, iit;
+  BtorPtrHashTable *static_rho;
+  BtorPtrHashBucket *b;
+
+  /* update static_rhos */
+  init_node_hash_table_iterator (&it, btor->lambdas);
+  while (has_next_node_hash_table_iterator (&it))
+  {
+    cur        = next_node_hash_table_iterator (&it);
+    static_rho = btor_lambda_get_static_rho (cur);
+
+    if (!static_rho) continue;
+
+    /* update static rho to get rid of proxy nodes */
+    init_node_hash_table_iterator (&iit, static_rho);
+    while (has_next_node_hash_table_iterator (&iit))
+    {
+      b       = iit.bucket;
+      old_key = next_node_hash_table_iterator (&iit);
+      assert (BTOR_IS_REGULAR_NODE (old_key));
+
+      if (BTOR_IS_PROXY_NODE (old_key))
+      {
+        data = b->data.asPtr;
+        btor_remove_from_ptr_hash_table (static_rho, old_key, 0, 0);
+        key = btor_copy_exp (btor, btor_simplify_exp (btor, old_key));
+        btor_release_exp (btor, old_key);
+        if (!btor_find_in_ptr_hash_table (static_rho, key))
+        {
+          b             = btor_insert_in_ptr_hash_table (static_rho, key);
+          b->data.asPtr = data;
+        }
+        /* we can skip 'key' if it is already in 'static_rho' because
+         * it is overwritten anyways in write semantics */
+        else
+          continue;
+      }
+      old_data = b->data.asPtr;
+      if (BTOR_IS_PROXY_NODE (BTOR_REAL_ADDR_NODE (old_data)))
+      {
+        data          = btor_simplify_exp (btor, old_data);
+        b->data.asPtr = btor_copy_exp (btor, data);
+        btor_release_exp (btor, old_data);
+      }
+    }
+  }
+}
+
+static BtorNode *
+rebuild_lambda_exp (Btor *btor, BtorNode *exp)
+{
+  assert (BTOR_IS_REGULAR_NODE (exp));
+  assert (BTOR_IS_LAMBDA_NODE (exp));
+  assert (!btor_param_cur_assignment (exp->e[0]));
+
+  BtorNode *key, *data, *result;
+  BtorHashTableIterator it;
+  BtorPtrHashTable *static_rho;
+
+  BTOR_PARAM_SET_LAMBDA_NODE (exp->e[0], 0);
+
+  static_rho = btor_lambda_get_static_rho (exp);
+  result     = btor_lambda_exp (btor, exp->e[0], exp->e[1]);
+  /* copy static_rho for new lambda */
+  if (static_rho && !btor_lambda_get_static_rho (result))
+  {
+    static_rho = btor_new_ptr_hash_table (btor->mm, 0, 0);
+    init_node_hash_table_iterator (&it, btor_lambda_get_static_rho (exp));
+    while (has_next_node_hash_table_iterator (&it))
+    {
+      data = btor_copy_exp (btor, it.bucket->data.asPtr);
+      key  = btor_copy_exp (btor, next_node_hash_table_iterator (&it));
+      btor_insert_in_ptr_hash_table (static_rho, key)->data.asPtr = data;
+    }
+    ((BtorLambdaNode *) result)->static_rho = static_rho;
+  }
+  return result;
+}
+
 static BtorNode *
 rebuild_exp (Btor *btor, BtorNode *exp)
 {
@@ -2326,31 +2407,7 @@ rebuild_exp (Btor *btor, BtorNode *exp)
     case BTOR_UDIV_NODE: return btor_udiv_exp (btor, exp->e[0], exp->e[1]);
     case BTOR_UREM_NODE: return btor_urem_exp (btor, exp->e[0], exp->e[1]);
     case BTOR_CONCAT_NODE: return btor_concat_exp (btor, exp->e[0], exp->e[1]);
-    case BTOR_LAMBDA_NODE:
-      assert (!btor_param_cur_assignment (exp->e[0]));
-      BTOR_PARAM_SET_LAMBDA_NODE (exp->e[0], 0);
-      BtorNode *result;
-
-      result = btor_lambda_exp (btor, exp->e[0], exp->e[1]);
-      if (((BtorLambdaNode *) exp)->static_rho
-          && !((BtorLambdaNode *) result)->static_rho)
-      {
-        BtorNode *key, *data;
-        BtorHashTableIterator it;
-        BtorPtrHashTable *static_rho;
-        static_rho = btor_new_ptr_hash_table (btor->mm, 0, 0);
-        init_node_hash_table_iterator (&it,
-                                       ((BtorLambdaNode *) exp)->static_rho);
-        while (has_next_node_hash_table_iterator (&it))
-        {
-          data = btor_simplify_exp (btor, it.bucket->data.asPtr);
-          key  = btor_simplify_exp (btor, next_node_hash_table_iterator (&it));
-          btor_insert_in_ptr_hash_table (static_rho, btor_copy_exp (btor, key))
-              ->data.asPtr = btor_copy_exp (btor, data);
-        }
-        ((BtorLambdaNode *) result)->static_rho = static_rho;
-      }
-      return result;  // btor_lambda_exp (btor, exp->e[0], exp->e[1]);
+    case BTOR_LAMBDA_NODE: return rebuild_lambda_exp (btor, exp);
     case BTOR_APPLY_NODE: return btor_apply_exp (btor, exp->e[0], exp->e[1]);
     case BTOR_ARGS_NODE: return btor_args_exp (btor, exp->arity, exp->e);
     default:
@@ -2482,6 +2539,9 @@ substitute_vars_and_rebuild_exps (Btor *btor, BtorPtrHashTable *substs)
   for (temp = root_stack.start; temp != top; temp++)
     btor_release_exp (btor, *temp);
   BTOR_RELEASE_STACK (mm, root_stack);
+
+  update_node_hash_tables (btor);
+  assert (check_lambdas_static_rho_proxy_free_dbg (btor));
 }
 
 static void
@@ -2911,6 +2971,9 @@ substitute_and_rebuild (Btor *btor, BtorPtrHashTable *subst, int bra)
 
   assert (check_id_table_aux_mark_unset_dbg (btor));
   assert (check_unique_table_children_proxy_free_dbg (btor));
+
+  update_node_hash_tables (btor);
+  assert (check_lambdas_static_rho_proxy_free_dbg (btor));
   btor->time.subst_rebuild += btor_time_stamp () - start;
 }
 
@@ -4695,9 +4758,11 @@ lazy_synthesize_and_encode_lambda_exp (Btor *btor,
                                    ((BtorLambdaNode *) lambda_exp)->static_rho);
     while (has_next_node_hash_table_iterator (&it))
     {
-      cur = btor_simplify_exp (btor, it.bucket->data.asPtr);
+      cur = it.bucket->data.asPtr;
+      assert (BTOR_IS_PROXY_NODE (BTOR_REAL_ADDR_NODE (cur)));
       BTOR_PUSH_STACK (mm, work_stack, cur);
-      cur = btor_simplify_exp (btor, next_node_hash_table_iterator (&it));
+      cur = next_node_hash_table_iterator (&it);
+      assert (BTOR_IS_PROXY_NODE (BTOR_REAL_ADDR_NODE (cur)));
       BTOR_PUSH_STACK (mm, work_stack, cur);
     }
   }
@@ -5228,7 +5293,7 @@ insert_synth_app_lambda (Btor *btor, BtorLambdaNode *lambda, BtorNode *app)
   if (!btor_find_in_ptr_hash_table (lambda->synth_apps, app))
   {
     /* must be considered for consistency checking */
-    app->vread = 1;
+    app->synthapp = 1;
     BTOR_CORE_SOLVER (btor)->stats.lambda_synth_apps++;
     btor_insert_in_ptr_hash_table (lambda->synth_apps,
                                    btor_copy_exp (btor, app));
@@ -5345,7 +5410,7 @@ push_applies_for_propagation (Btor *btor,
   for (i = 0; i < BTOR_COUNT_STACK (applies); i++)
   {
     cur = BTOR_PEEK_STACK (applies, i);
-    if (lambda && !cur->reachable && !cur->vread && !cur->propagated)
+    if (lambda && !cur->reachable && !cur->synthapp && !cur->propagated)
       insert_synth_app_lambda (btor, lambda, cur);
     BTOR_PUSH_STACK (btor->mm, *prop_stack, cur);
     BTOR_PUSH_STACK (btor->mm, *prop_stack, cur->e[0]);
@@ -5549,7 +5614,7 @@ propagate (Btor *btor,
             || BTOR_IS_INVERTED_NODE (fun_value) || fun_value->e[1] != args)
         {
           insert_synth_app_lambda (btor, lambda, param_app);
-          assert (param_app->reachable || param_app->vread);
+          assert (param_app->reachable || param_app->synthapp);
           assert (param_app->refs - param_app->ext_refs > 1);
           if (!param_app->propagated && !param_app->reachable)
           {
@@ -5890,14 +5955,15 @@ generate_table (Btor *btor, BtorNode *fun)
       {
         while (has_next_node_hash_table_iterator (&it))
         {
-          value = btor_simplify_exp (btor, it.bucket->data.asPtr);
-          args  = btor_simplify_exp (btor, next_node_hash_table_iterator (&it));
+          value = it.bucket->data.asPtr;
+          assert (!BTOR_IS_PROXY_NODE (BTOR_REAL_ADDR_NODE (value)));
+          args = next_node_hash_table_iterator (&it);
+          assert (!BTOR_IS_PROXY_NODE (BTOR_REAL_ADDR_NODE (args)));
 
           if (!btor_find_in_ptr_hash_table (table, args))
             btor_insert_in_ptr_hash_table (table, args)->data.asPtr = value;
         }
       }
-      // TODO: update static_rho to get rid off proxy nodes
     }
 
     if (is_ite) continue;
@@ -6107,7 +6173,7 @@ BTOR_CONFLICT_CHECK:
     app = BTOR_POP_STACK (top_applies);
     assert (BTOR_IS_REGULAR_NODE (app));
     assert (BTOR_IS_APPLY_NODE (app));
-    assert (app->reachable || app->vread);
+    assert (app->reachable || app->synthapp);
     assert (!app->parameterized);
     assert (!app->propagated);
     BTOR_PUSH_STACK (mm, prop_stack, app);
@@ -6135,7 +6201,7 @@ BTOR_CONFLICT_CHECK:
      * we need to start consistency checking from app->e[0] again, as
      * otherwise we can get inconsistent propagation paths (in case
      * the assignments changed). */
-    if (app->vread && !app->propagated)
+    if (app->synthapp && !app->propagated)
     {
       BTOR_PUSH_STACK (mm, *tmp_stack, app);
       BTORLOG (1, "save apply for next iteration: %s", node2string (app));
