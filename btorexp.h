@@ -836,8 +836,8 @@ int btor_get_fun_exp_width (Btor *btor, BtorNode *exp);
 
 char *btor_const_get_bits (BtorNode *exp);
 char *btor_const_get_invbits (BtorNode *exp);
-void btor_set_bits_const (BtorNode *exp, char *bits);
-void btor_set_invbits_const (BtorNode *exp, char *bits);
+void btor_const_set_bits (BtorNode *exp, char *bits);
+void btor_const_set_invbits (BtorNode *exp, char *bits);
 
 /* Determines if expression is an array or not. */
 int btor_is_array_exp (Btor *btor, BtorNode *exp);

@@ -2966,7 +2966,7 @@ boolector_get_bits (Btor *btor, BoolectorNode *node)
   if (BTOR_IS_INVERTED_NODE (simp))
   {
     if (!btor_const_get_invbits (real))
-      btor_set_invbits_const (
+      btor_const_set_invbits (
           real, btor_not_const_3vl (btor->mm, btor_const_get_bits (real)));
     res = btor_const_get_invbits (real);
   }

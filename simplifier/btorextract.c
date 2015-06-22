@@ -56,7 +56,7 @@ new_memcopy_op (BtorMemMgr *mm, BtorNode *index, BtorNode *value)
 
   if (BTOR_IS_INVERTED_NODE (res->index)
       && !btor_const_get_invbits (res->index))
-    btor_set_invbits_const (
+    btor_const_set_invbits (
         res->index, btor_not_const (mm, btor_const_get_bits (res->index)));
 
   return res;
@@ -553,7 +553,7 @@ add_to_index_map (Btor *btor,
   if (BTOR_IS_BV_CONST_NODE (BTOR_REAL_ADDR_NODE (index)))
   {
     if (BTOR_IS_INVERTED_NODE (index) && !btor_const_get_invbits (index))
-      btor_set_invbits_const (index,
+      btor_const_set_invbits (index,
                               btor_not_const (mm, btor_const_get_bits (index)));
   }
   else
@@ -568,7 +568,7 @@ add_to_index_map (Btor *btor,
       offset = BTOR_REAL_ADDR_NODE (index->e[1]);
 
     if (BTOR_IS_INVERTED_NODE (offset) && !btor_const_get_invbits (offset))
-      btor_set_invbits_const (
+      btor_const_set_invbits (
           offset, btor_not_const (mm, btor_const_get_bits (offset)));
   }
   BTOR_PUSH_STACK (mm, *indices, index);

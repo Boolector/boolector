@@ -444,7 +444,7 @@ clone_exp (Btor *clone,
     BTOR_NEWN (mm, bits, len + 1);
     memcpy (bits, btor_const_get_bits (exp), len * sizeof (char));
     bits[len] = '\0';
-    btor_set_bits_const (res, bits);
+    btor_const_set_bits (res, bits);
 
     if (btor_const_get_invbits (exp))
     {
@@ -452,7 +452,7 @@ clone_exp (Btor *clone,
       BTOR_NEWN (mm, bits, len + 1);
       memcpy (bits, btor_const_get_invbits (exp), len * sizeof (char));
       bits[len] = '\0';
-      btor_set_invbits_const (res, bits);
+      btor_const_set_invbits (res, bits);
     }
   }
 

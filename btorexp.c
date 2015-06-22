@@ -812,8 +812,8 @@ erase_local_data_exp (Btor *btor, BtorNode *exp, int free_sort)
       btor_freestr (mm, btor_const_get_bits (exp));
       if (btor_const_get_invbits (exp))
         btor_freestr (mm, btor_const_get_invbits (exp));
-      btor_set_bits_const (exp, 0);
-      btor_set_invbits_const (exp, 0);
+      btor_const_set_bits (exp, 0);
+      btor_const_set_invbits (exp, 0);
       break;
     case BTOR_LAMBDA_NODE:
       synth_apps = ((BtorLambdaNode *) exp)->synth_apps;
@@ -1153,7 +1153,7 @@ new_const_exp_node (Btor *btor, const char *bits, int len)
   BTOR_NEWN (btor->mm, new_bits, len + 1);
   memcpy (new_bits, bits, len * sizeof (char));
   new_bits[len] = '\0';
-  btor_set_bits_const ((BtorNode *) exp, new_bits);
+  btor_const_set_bits ((BtorNode *) exp, new_bits);
   return (BtorNode *) exp;
 }
 
@@ -3867,7 +3867,7 @@ btor_const_get_invbits (BtorNode *exp)
 }
 
 void
-btor_set_bits_const (BtorNode *exp, char *bits)
+btor_const_set_bits (BtorNode *exp, char *bits)
 {
   assert (exp);
   assert (BTOR_IS_BV_CONST_NODE (BTOR_REAL_ADDR_NODE (exp)));
@@ -3875,7 +3875,7 @@ btor_set_bits_const (BtorNode *exp, char *bits)
 }
 
 void
-btor_set_invbits_const (BtorNode *exp, char *bits)
+btor_const_set_invbits (BtorNode *exp, char *bits)
 {
   assert (exp);
   assert (BTOR_IS_BV_CONST_NODE (BTOR_REAL_ADDR_NODE (exp)));
