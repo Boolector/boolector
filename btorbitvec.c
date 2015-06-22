@@ -412,7 +412,7 @@ btor_copy_bv (BtorMemMgr *mm, const BtorBitVector *bv)
   assert (res->width == bv->width);
   assert (res->len == bv->len);
   memcpy (res->bits, bv->bits, sizeof (*(bv->bits)) * bv->len);
-  assert (btor_compare_bv (res, bv) == 0);
+  assert (btor_compare_bv (res, (BtorBitVector *) bv) == 0);
   return res;
 }
 
