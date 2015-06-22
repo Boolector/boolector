@@ -501,18 +501,6 @@ clone_exp (Btor *clone,
           assert (res->e[i]);
         }
       }
-      else
-      {
-        if (BTOR_IS_FEQ_NODE (exp) && exp->vreads)
-        {
-          assert (btor_mapped_node (exp_map, exp->vreads->exp1));
-          assert (btor_mapped_node (exp_map, exp->vreads->exp2));
-          res->vreads =
-              new_exp_pair (clone,
-                            btor_mapped_node (exp_map, exp->vreads->exp1),
-                            btor_mapped_node (exp_map, exp->vreads->exp2));
-        }
-      }
 
       for (i = 0; i < exp->arity; i++)
       {
@@ -949,13 +937,13 @@ clone_aux_btor (Btor *btor, BtorNodeMap **exp_map, bool exp_layer_only)
                         exp_layer_only);
   BTORLOG (1, "  clone nodes id table: %.3f s", (btor_time_stamp () - delta));
 #ifndef NDEBUG
-  int vread_bytes = 0;
+  int synthapp_bytes = 0;
   for (i = 1; i < BTOR_COUNT_STACK (btor->nodes_id_table); i++)
   {
     if (!(cur = BTOR_PEEK_STACK (btor->nodes_id_table, i))) continue;
-    if (exp_layer_only && cur->vread && cur->refs == 1)
+    if (exp_layer_only && cur->synthapp && cur->refs == 1)
     {
-      vread_bytes += cur->bytes;
+      synthapp_bytes += cur->bytes;
       continue;
     }
     allocated += cur->bytes;
@@ -972,15 +960,13 @@ clone_aux_btor (Btor *btor, BtorNodeMap **exp_map, bool exp_layer_only)
     }
     else if (cur->rho)
       allocated += MEM_PTR_HASH_TABLE (cur->rho);
-    if (BTOR_IS_FEQ_NODE (cur) && cur->vreads)
-      allocated += sizeof (BtorNodePair);
     if (!exp_layer_only && BTOR_IS_LAMBDA_NODE (cur)
         && ((BtorLambdaNode *) cur)->synth_apps)
       allocated += MEM_PTR_HASH_TABLE (((BtorLambdaNode *) cur)->synth_apps);
     if (BTOR_IS_LAMBDA_NODE (cur) && ((BtorLambdaNode *) cur)->static_rho)
       allocated += MEM_PTR_HASH_TABLE (((BtorLambdaNode *) cur)->static_rho);
   }
-  allocated -= vread_bytes;
+  allocated -= synthapp_bytes;
   /* Note: hash table is initialized with size 1 */
   allocated += (emap->table->size - 1) * sizeof (BtorPtrHashBucket *)
                + emap->table->count * sizeof (BtorPtrHashBucket)

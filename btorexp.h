@@ -96,8 +96,7 @@ typedef struct BtorNodePair BtorNodePair;
     unsigned int reachable : 1;  /* reachable from root ? */            \
     unsigned int tseitin : 1;    /* tseitin encoded into SAT ? */       \
     unsigned int lazy_tseitin : 1;                                      \
-    unsigned int vread : 1;         /* virtual read ? */                \
-    unsigned int vread_index : 1;   /* index for two virtual reads ? */ \
+    unsigned int synthapp : 1;      /* inserted in synth_apps? */       \
     unsigned int constraint : 1;    /* top level constraint ? */        \
     unsigned int erased : 1;        /* for debugging purposes */        \
     unsigned int disconnected : 1;  /* for debugging purposes */        \
@@ -128,21 +127,17 @@ typedef struct BtorNodePair BtorNodePair;
     BtorNode *last_parent;  /* tail of parent list */                   \
   }
 
-#define BTOR_BV_ADDITIONAL_NODE_STRUCT                                \
-  struct                                                              \
-  {                                                                   \
-    struct                                                            \
-    {                                                                 \
-      int upper; /* upper index for slices */                         \
-      union                                                           \
-      {                                                               \
-        int lower;            /* lower index for slices */            \
-        BtorNodePair *vreads; /* virtual reads for array equalites */ \
-      };                                                              \
-    };                                                                \
-    BtorNode *e[3];           /* expression children */               \
-    BtorNode *prev_parent[3]; /* prev in parent list of child i */    \
-    BtorNode *next_parent[3]; /* next in parent list of child i */    \
+#define BTOR_BV_ADDITIONAL_NODE_STRUCT                             \
+  struct                                                           \
+  {                                                                \
+    struct                                                         \
+    {                                                              \
+      int upper; /* upper index for slices */                      \
+      int lower; /* lower index for slices */                      \
+    };                                                             \
+    BtorNode *e[3];           /* expression children */            \
+    BtorNode *prev_parent[3]; /* prev in parent list of child i */ \
+    BtorNode *next_parent[3]; /* next in parent list of child i */ \
   }
 // TODO: optimization of **e, **prev_parent, **next_parent memory allocation
 

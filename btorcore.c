@@ -520,9 +520,6 @@ btor_print_stats_btor (Btor *btor)
             btor->stats.ec_substitutions);
   BTOR_MSG (btor->msg, 1, "assumptions: %u", btor->assumptions->count);
 
-  if (btor->ops[BTOR_FEQ_NODE].cur)
-    BTOR_MSG (btor->msg, 1, "virtual reads: %d", btor->stats.vreads);
-
   if (verbosity > 0)
   {
     BTOR_MSG (btor->msg, 2, "max rec. RW: %d", btor->stats.max_rec_rw_calls);
@@ -723,7 +720,6 @@ new_aux_btor (int init_opts)
                                            (BtorCmpPtr) btor_compare_exp_by_id);
 
   btor->valid_assignments = 1;
-  btor->vread_index_id    = 1;
 
   BTOR_PUSH_STACK (btor->mm, btor->nodes_id_table, 0);
 
@@ -5294,7 +5290,7 @@ insert_synth_app_lambda (Btor *btor, BtorLambdaNode *lambda, BtorNode *app)
   if (!btor_find_in_ptr_hash_table (lambda->synth_apps, app))
   {
     /* must be considered for consistency checking */
-    app->vread = 1;
+    app->synthapp = 1;
     BTOR_CORE_SOLVER (btor)->stats.lambda_synth_apps++;
     btor_insert_in_ptr_hash_table (lambda->synth_apps,
                                    btor_copy_exp (btor, app));
@@ -5411,7 +5407,7 @@ push_applies_for_propagation (Btor *btor,
   for (i = 0; i < BTOR_COUNT_STACK (applies); i++)
   {
     cur = BTOR_PEEK_STACK (applies, i);
-    if (lambda && !cur->reachable && !cur->vread && !cur->propagated)
+    if (lambda && !cur->reachable && !cur->synthapp && !cur->propagated)
       insert_synth_app_lambda (btor, lambda, cur);
     BTOR_PUSH_STACK (btor->mm, *prop_stack, cur);
     BTOR_PUSH_STACK (btor->mm, *prop_stack, cur->e[0]);
@@ -5615,7 +5611,7 @@ propagate (Btor *btor,
             || BTOR_IS_INVERTED_NODE (fun_value) || fun_value->e[1] != args)
         {
           insert_synth_app_lambda (btor, lambda, param_app);
-          assert (param_app->reachable || param_app->vread);
+          assert (param_app->reachable || param_app->synthapp);
           assert (param_app->refs - param_app->ext_refs > 1);
           if (!param_app->propagated && !param_app->reachable)
           {
@@ -6174,7 +6170,7 @@ BTOR_CONFLICT_CHECK:
     app = BTOR_POP_STACK (top_applies);
     assert (BTOR_IS_REGULAR_NODE (app));
     assert (BTOR_IS_APPLY_NODE (app));
-    assert (app->reachable || app->vread);
+    assert (app->reachable || app->synthapp);
     assert (!app->parameterized);
     assert (!app->propagated);
     BTOR_PUSH_STACK (mm, prop_stack, app);
@@ -6202,7 +6198,7 @@ BTOR_CONFLICT_CHECK:
      * we need to start consistency checking from app->e[0] again, as
      * otherwise we can get inconsistent propagation paths (in case
      * the assignments changed). */
-    if (app->vread && !app->propagated)
+    if (app->synthapp && !app->propagated)
     {
       BTOR_PUSH_STACK (mm, *tmp_stack, app);
       BTORLOG (1, "save apply for next iteration: %s", node2string (app));

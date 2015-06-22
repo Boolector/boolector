@@ -60,7 +60,6 @@ btor_chkclone_state (Btor *btor)
   BTOR_CHKCLONE_STATE (rec_read_acond_calls);
   BTOR_CHKCLONE_STATE (valid_assignments);
   BTOR_CHKCLONE_STATE (vis_idx);
-  BTOR_CHKCLONE_STATE (vread_index_id);
   BTOR_CHKCLONE_STATE (inconsistent);
   BTOR_CHKCLONE_STATE (found_constraint_false);
   BTOR_CHKCLONE_STATE (external_refs);
@@ -107,7 +106,6 @@ btor_chkclone_stats (Btor *btor)
   BTOR_CHKCLONE_STATS (fun_uc_props);
 #endif
   BTOR_CHKCLONE_STATS (lambdas_merged);
-  BTOR_CHKCLONE_STATS (vreads);
 
   BTOR_CHKCLONE_CONSTRAINTSTATS (constraints, varsubst);
   BTOR_CHKCLONE_CONSTRAINTSTATS (constraints, embedded);
@@ -396,8 +394,7 @@ btor_chkclone_exp (BtorNode *exp, BtorNode *clone)
   BTOR_CHKCLONE_EXP (reachable);
   BTOR_CHKCLONE_EXP (tseitin);
   BTOR_CHKCLONE_EXP (lazy_tseitin);
-  BTOR_CHKCLONE_EXP (vread);
-  BTOR_CHKCLONE_EXP (vread_index);
+  BTOR_CHKCLONE_EXP (synthapp);
   BTOR_CHKCLONE_EXP (constraint);
   BTOR_CHKCLONE_EXP (erased);
   BTOR_CHKCLONE_EXP (disconnected);
@@ -464,13 +461,7 @@ btor_chkclone_exp (BtorNode *exp, BtorNode *clone)
       else
       {
         BTOR_CHKCLONE_EXP (upper);
-        if (!BTOR_IS_FEQ_NODE (real_exp))
-          BTOR_CHKCLONE_EXP (lower);
-        else
-        {
-          assert (real_exp->vreads->exp1->id == real_clone->vreads->exp1->id);
-          assert (real_exp->vreads->exp2->id == real_clone->vreads->exp2->id);
-        }
+        if (!BTOR_IS_FEQ_NODE (real_exp)) BTOR_CHKCLONE_EXP (lower);
       }
     }
 
