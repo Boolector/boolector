@@ -135,7 +135,6 @@ struct Btor
   BtorNodePtrStack functions_with_model;
 
   int rec_rw_calls; /* calls for recursive rewriting */
-  int rec_read_acond_calls;
   int valid_assignments;
   int vis_idx; /* file index for visualizing expressions */
   int inconsistent;

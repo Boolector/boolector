@@ -57,7 +57,6 @@ btor_chkclone_state (Btor *btor)
   assert (clone);
 
   BTOR_CHKCLONE_STATE (rec_rw_calls);
-  BTOR_CHKCLONE_STATE (rec_read_acond_calls);
   BTOR_CHKCLONE_STATE (valid_assignments);
   BTOR_CHKCLONE_STATE (vis_idx);
   BTOR_CHKCLONE_STATE (inconsistent);
