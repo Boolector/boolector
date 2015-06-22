@@ -108,12 +108,12 @@ typedef struct BtorNodePair BtorNodePair;
     unsigned int is_write : 1;                                          \
     unsigned int is_read : 1;                                           \
     unsigned int propagated : 1;                                        \
-    int id;             /* unique expression id */                      \
-    int refs;           /* reference counter (incl. ext_refs) */        \
-    int ext_refs;       /* external references counter */               \
-    int parents;        /* number of parents */                         \
-    int arity;          /* arity of operator */                         \
-    BtorSortId sort_id; /* sort id */                                   \
+    unsigned int arity : 2; /* arity of operator (at most 3) */         \
+    int id;                 /* unique expression id */                  \
+    int refs;               /* reference counter (incl. ext_refs) */    \
+    int ext_refs;           /* external references counter */           \
+    int parents;            /* number of parents */                     \
+    BtorSortId sort_id;     /* sort id */                               \
     union                                                               \
     {                                                                   \
       BtorAIGVec *av;        /* synthesized AIG vector */               \
@@ -134,7 +134,6 @@ typedef struct BtorNodePair BtorNodePair;
     BtorNode *prev_parent[3]; /* prev in parent list of child i */ \
     BtorNode *next_parent[3]; /* next in parent list of child i */ \
   }
-// TODO: optimization of **e, **prev_parent, **next_parent memory allocation
 
 struct BtorBVVarNode
 {

@@ -1256,6 +1256,7 @@ new_args_exp_node (Btor *btor, int arity, BtorNode **e)
 {
   assert (btor);
   assert (arity > 0);
+  assert (arity <= 3);
   assert (e);
 
   int i;
