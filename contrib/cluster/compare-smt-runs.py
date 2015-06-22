@@ -324,7 +324,6 @@ def _init_missing_files(data):
                     data[k][d][f] = None
 
 def _normalize_data(data):
-
     # normalize status ok, time, mem, err
     for k in ['status', 'g_total', 'g_solved', 'g_time', 'g_mem', 'g_err']:
         if k not in data:
@@ -371,6 +370,12 @@ def _read_data (dirs):
                            g_file_stats["time_time"][d][f_name] = g_args.timeout
                            g_file_stats["status"][d][f_name] = "time"
                            g_file_stats["result"][d][f_name] = 1
+                           if g_args.g:
+                               g_file_stats["g_total"][d][f_name] = "time"
+                               g_file_stats["g_solved"][d][f_name] = "time"
+                               g_file_stats["g_time"][d][f_name] = "time"
+                               g_file_stats["g_mem"][d][f_name] = "time"
+                               g_file_stats["g_err"][d][f_name] = "time"
 
 
 def _pick_data(benchmarks, data, generate_vbs):
