@@ -442,15 +442,15 @@ clone_exp (Btor *clone,
   {
     len = btor_get_exp_width (exp->btor, exp);
     BTOR_NEWN (mm, bits, len + 1);
-    memcpy (bits, btor_get_bits_const (exp), len * sizeof (char));
+    memcpy (bits, btor_const_get_bits (exp), len * sizeof (char));
     bits[len] = '\0';
     btor_set_bits_const (res, bits);
 
-    if (btor_get_invbits_const (exp))
+    if (btor_const_get_invbits (exp))
     {
       len = btor_get_exp_width (exp->btor, exp);
       BTOR_NEWN (mm, bits, len + 1);
-      memcpy (bits, btor_get_invbits_const (exp), len * sizeof (char));
+      memcpy (bits, btor_const_get_invbits (exp), len * sizeof (char));
       bits[len] = '\0';
       btor_set_invbits_const (res, bits);
     }
@@ -949,9 +949,9 @@ clone_aux_btor (Btor *btor, BtorNodeMap **exp_map, bool exp_layer_only)
     allocated += cur->bytes;
     if (BTOR_IS_BV_CONST_NODE (cur))
     {
-      allocated += strlen (btor_get_bits_const (cur)) + 1;
-      if (btor_get_invbits_const (cur))
-        allocated += strlen (btor_get_invbits_const (cur)) + 1;
+      allocated += strlen (btor_const_get_bits (cur)) + 1;
+      if (btor_const_get_invbits (cur))
+        allocated += strlen (btor_const_get_invbits (cur)) + 1;
     }
     if (!BTOR_IS_FUN_NODE (cur) && cur->av)
     {
@@ -1314,7 +1314,7 @@ btor_recursively_rebuild_exp_clone (Btor *btor,
       switch (cur->kind)
       {
         case BTOR_BV_CONST_NODE:
-          cur_clone = btor_const_exp (clone, btor_get_bits_const (cur));
+          cur_clone = btor_const_exp (clone, btor_const_get_bits (cur));
           break;
         case BTOR_BV_VAR_NODE:
           symbol =

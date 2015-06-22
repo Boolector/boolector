@@ -407,11 +407,19 @@ btor_chkclone_exp (BtorNode *exp, BtorNode *clone)
 
   if (BTOR_IS_BV_CONST_NODE (real_exp))
   {
-    assert (strlen (btor_get_bits_const (real_exp))
-            == strlen (btor_get_bits_const (real_clone)));
-    assert (strcmp (btor_get_bits_const (real_exp),
-                    btor_get_bits_const (real_clone))
+    assert (strlen (btor_const_get_bits (real_exp))
+            == strlen (btor_const_get_bits (real_clone)));
+    assert (strcmp (btor_const_get_bits (real_exp),
+                    btor_const_get_bits (real_clone))
             == 0);
+    if (btor_const_get_invbits (real_exp))
+    {
+      assert (strlen (btor_const_get_invbits (real_exp))
+              == strlen (btor_const_get_invbits (real_clone)));
+      assert (strcmp (btor_const_get_invbits (real_exp),
+                      btor_const_get_invbits (real_clone))
+              == 0);
+    }
   }
   else
   {

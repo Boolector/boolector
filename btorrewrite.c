@@ -112,7 +112,7 @@ is_const_one_exp (Btor *btor, BtorNode *exp)
   if (!BTOR_IS_BV_CONST_NODE (BTOR_REAL_ADDR_NODE (exp))) return 0;
 
   real_exp = BTOR_REAL_ADDR_NODE (exp);
-  bits     = btor_get_bits_const (real_exp);
+  bits     = btor_const_get_bits (real_exp);
   if (BTOR_IS_INVERTED_NODE (exp)) btor_invert_const (btor->mm, bits);
   result = btor_is_special_const (bits) == BTOR_SPECIAL_CONST_ONE;
   if (BTOR_IS_INVERTED_NODE (exp)) btor_invert_const (btor->mm, bits);
@@ -133,9 +133,9 @@ is_const_zero_exp (Btor *btor, BtorNode *exp)
   if (!BTOR_IS_BV_CONST_NODE (BTOR_REAL_ADDR_NODE (exp))) return 0;
 
   if (BTOR_IS_INVERTED_NODE (exp))
-    result = btor_is_ones_const (btor_get_bits_const (exp));
+    result = btor_is_ones_const (btor_const_get_bits (exp));
   else
-    result = btor_is_zero_const (btor_get_bits_const (exp));
+    result = btor_is_zero_const (btor_const_get_bits (exp));
 
   return result;
 }
@@ -155,9 +155,9 @@ is_const_ones_exp (Btor * btor, BtorNode * exp)
     return 0;
 
   if (BTOR_IS_INVERTED_NODE (exp))
-    result = btor_is_zero_const (btor_get_bits_const (exp));
+    result = btor_is_zero_const (btor_const_get_bits (exp));
   else
-    result = btor_is_ones_const (btor_get_bits_const (exp));
+    result = btor_is_ones_const (btor_const_get_bits (exp));
 
   return result;
 }
@@ -175,7 +175,7 @@ is_const_zero_or_ones_exp (Btor *btor, BtorNode *exp)
 
   if (!BTOR_IS_BV_CONST_NODE (BTOR_REAL_ADDR_NODE (exp))) return 0;
 
-  result = btor_is_zero_or_ones_const (btor_get_bits_const (exp));
+  result = btor_is_zero_or_ones_const (btor_const_get_bits (exp));
 
   return result;
 }
@@ -189,7 +189,7 @@ is_odd_const_exp (BtorNode *exp)
 
   if (exp->kind != BTOR_BV_CONST_NODE) return 0;
 
-  bits = btor_get_bits_const (exp);
+  bits = btor_const_get_bits (exp);
   return bits[btor_get_exp_width (exp->btor, exp) - 1] == '1';
 }
 
@@ -412,10 +412,10 @@ is_true_cond (BtorNode *cond)
   assert (cond);
   assert (btor_get_exp_width (BTOR_REAL_ADDR_NODE (cond)->btor, cond) == 1);
 
-  if (BTOR_IS_INVERTED_NODE (cond) && btor_get_bits_const (cond)[0] == '0')
+  if (BTOR_IS_INVERTED_NODE (cond) && btor_const_get_bits (cond)[0] == '0')
     return 1;
   else if (!BTOR_IS_INVERTED_NODE (cond)
-           && btor_get_bits_const (cond)[0] == '1')
+           && btor_const_get_bits (cond)[0] == '1')
     return 1;
 
   return 0;
@@ -435,7 +435,7 @@ is_bit_mask (BtorNode *exp, int *upper, int *lower)
 
   if (!BTOR_IS_BV_CONST_NODE (real_exp)) return 0;
 
-  bits = btor_get_bits_const (real_exp);
+  bits = btor_const_get_bits (real_exp);
   inv  = BTOR_IS_INVERTED_NODE (exp);
   len  = btor_get_exp_width (real_exp->btor, real_exp);
   for (i = 0; i < len; i++)
@@ -518,10 +518,10 @@ apply_const_binary_exp (Btor *btor,
   else
   {
     invert_b0 = BTOR_IS_INVERTED_NODE (e0);
-    b0        = btor_get_bits_const (real_e0);
+    b0        = btor_const_get_bits (real_e0);
     if (invert_b0) btor_invert_const (mm, b0);
     invert_b1 = BTOR_IS_INVERTED_NODE (e1);
-    b1        = btor_get_bits_const (real_e1);
+    b1        = btor_const_get_bits (real_e1);
     if (invert_b1) btor_invert_const (mm, b1);
   }
   switch (kind)
@@ -592,7 +592,7 @@ apply_special_const_lhs_binary_exp (Btor *btor,
   real_e0   = BTOR_REAL_ADDR_NODE (e0);
   real_e1   = BTOR_REAL_ADDR_NODE (e1);
   invert_b0 = BTOR_IS_INVERTED_NODE (e0);
-  b0        = btor_get_bits_const (real_e0);
+  b0        = btor_const_get_bits (real_e0);
   width_e0  = btor_get_exp_width (btor, real_e0);
 
   if (invert_b0) btor_invert_const (mm, b0);
@@ -719,9 +719,9 @@ apply_special_const_lhs_binary_exp (Btor *btor,
         BTOR_INC_REC_RW_CALL (btor);
         BTOR_INIT_STACK (stack);
         if (BTOR_IS_INVERTED_NODE (e0))
-          bv_const = btor_not_const (btor->mm, btor_get_bits_const (real_e0));
+          bv_const = btor_not_const (btor->mm, btor_const_get_bits (real_e0));
         else
-          bv_const = btor_copy_const (btor->mm, btor_get_bits_const (real_e0));
+          bv_const = btor_copy_const (btor->mm, btor_const_get_bits (real_e0));
 
         pos = 0;
         /* const == a | b */
@@ -856,7 +856,7 @@ apply_special_const_rhs_binary_exp (Btor *btor,
   real_e0   = BTOR_REAL_ADDR_NODE (e0);
   real_e1   = BTOR_REAL_ADDR_NODE (e1);
   invert_b1 = BTOR_IS_INVERTED_NODE (e1);
-  b1        = btor_get_bits_const (real_e1);
+  b1        = btor_const_get_bits (real_e1);
   width_e0  = btor_get_exp_width (btor, real_e0);
   width_e1  = btor_get_exp_width (btor, real_e1);
   if (invert_b1) btor_invert_const (mm, b1);
@@ -978,9 +978,9 @@ apply_special_const_rhs_binary_exp (Btor *btor,
         BTOR_INC_REC_RW_CALL (btor);
         BTOR_INIT_STACK (stack);
         if (BTOR_IS_INVERTED_NODE (e1))
-          bv_const = btor_not_const (btor->mm, btor_get_bits_const (real_e1));
+          bv_const = btor_not_const (btor->mm, btor_const_get_bits (real_e1));
         else
-          bv_const = btor_copy_const (btor->mm, btor_get_bits_const (real_e1));
+          bv_const = btor_copy_const (btor->mm, btor_const_get_bits (real_e1));
 
         pos = 0;
         /* a | b == const */
@@ -1181,7 +1181,7 @@ rewrite_linear_term_bounded (Btor *btor,
 
     assert (!BTOR_IS_INVERTED_NODE (other));
     *factor_ptr =
-        btor_mul_const (btor->mm, btor_get_bits_const (other), factor);
+        btor_mul_const (btor->mm, btor_const_get_bits (other), factor);
     btor_delete_const (btor->mm, factor);
     *rhs_ptr = rewrite_mul_exp (btor, other, tmp);
     btor_release_exp (btor, tmp);
@@ -1276,7 +1276,7 @@ apply_const_slice (Btor *btor, BtorNode *exp, int upper, int lower)
   char *bits;
   BtorNode *result;
 
-  bits   = btor_slice_const (btor->mm, btor_get_bits_const (exp), upper, lower);
+  bits   = btor_slice_const (btor->mm, btor_const_get_bits (exp), upper, lower);
   result = btor_const_exp (btor, bits);
   result = BTOR_COND_INVERT_NODE (exp, result);
   btor_delete_const (btor->mm, bits);
@@ -3652,7 +3652,7 @@ applies_power2_udiv (Btor *btor, BtorNode *e0, BtorNode *e1)
   (void) e0;
   return btor->rec_rw_calls < BTOR_REC_RW_BOUND && !BTOR_IS_INVERTED_NODE (e1)
          && BTOR_IS_BV_CONST_NODE (e1)
-         && btor_is_power_of_two_const (btor_get_bits_const (e1)) > 0;
+         && btor_is_power_of_two_const (btor_const_get_bits (e1)) > 0;
 }
 
 static inline BtorNode *
@@ -3663,7 +3663,7 @@ apply_power2_udiv (Btor *btor, BtorNode *e0, BtorNode *e1)
   int l, n;
   BtorNode *slice, *pad, *result;
 
-  n = btor_is_power_of_two_const (btor_get_bits_const (e1));
+  n = btor_is_power_of_two_const (btor_const_get_bits (e1));
   l = btor_get_exp_width (btor, e0);
   assert (l > n);
 
@@ -4042,7 +4042,7 @@ apply_const_sll (Btor *btor, BtorNode *e0, BtorNode *e1)
 
   if (is_const_zero_exp (btor, e1)) return btor_copy_exp (btor, e0);
 
-  bits = btor_strdup (btor->mm, btor_get_bits_const (real_e1));
+  bits = btor_strdup (btor->mm, btor_const_get_bits (real_e1));
   if (BTOR_IS_INVERTED_NODE (e1)) btor_invert_const (btor->mm, bits);
   len = btor_const_to_decimal (btor->mm, bits);
 
@@ -4092,7 +4092,7 @@ apply_const_srl (Btor *btor, BtorNode *e0, BtorNode *e1)
 
   if (is_const_zero_exp (btor, e1)) return btor_copy_exp (btor, e0);
 
-  bits = btor_strdup (btor->mm, btor_get_bits_const (real_e1));
+  bits = btor_strdup (btor->mm, btor_const_get_bits (real_e1));
   if (BTOR_IS_INVERTED_NODE (e1)) btor_invert_const (btor->mm, bits);
   len = btor_const_to_decimal (btor->mm, bits);
 
@@ -4486,7 +4486,7 @@ static inline BtorNode *
 apply_const_cond (Btor *btor, BtorNode *e0, BtorNode *e1, BtorNode *e2)
 {
   assert (applies_const_cond (btor, e0, e1, e2));
-  if (btor_get_bits_const (e0)[0] == '1') return btor_copy_exp (btor, e1);
+  if (btor_const_get_bits (e0)[0] == '1') return btor_copy_exp (btor, e1);
   return btor_copy_exp (btor, e2);
 }
 

@@ -141,7 +141,7 @@ btor_map_node_internal (Btor *btor, BtorNodeMap *map, BtorNode *exp)
       real_exp = BTOR_REAL_ADDR_NODE (exp);
       if (real_exp->btor != btor)
       {
-        BtorNode *res = btor_const_exp (btor, btor_get_bits_const (exp));
+        BtorNode *res = btor_const_exp (btor, btor_const_get_bits (exp));
         if (real_exp != exp) res = BTOR_INVERT_NODE (res);
         return res;
       }
