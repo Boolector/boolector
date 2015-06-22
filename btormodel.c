@@ -363,8 +363,10 @@ btor_recursively_compute_assignment (Btor *btor,
       switch (real_cur->kind)
       {
         case BTOR_SLICE_NODE:
-          result =
-              btor_slice_bv (btor->mm, e[0], real_cur->upper, real_cur->lower);
+          result = btor_slice_bv (btor->mm,
+                                  e[0],
+                                  btor_slice_get_upper (real_cur),
+                                  btor_slice_get_lower (real_cur));
           btor_free_bv (btor->mm, e[0]);
           break;
         case BTOR_AND_NODE:

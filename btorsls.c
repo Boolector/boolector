@@ -2851,7 +2851,7 @@ inv_slice_bv (Btor *btor, BtorNode *slice, BtorBitVector *bvslice)
   assert (bvslice);
   assert (!BTOR_IS_BV_CONST_NODE (BTOR_REAL_ADDR_NODE (slice->e[0])));
 
-  int i;
+  int i, upper, lower;
   BtorNode *e;
   BtorBitVector *res;
   BtorMemMgr *mm;
@@ -2862,17 +2862,19 @@ inv_slice_bv (Btor *btor, BtorNode *slice, BtorBitVector *bvslice)
   mm = btor->mm;
   e  = slice->e[0];
   assert (e);
+  upper = btor_slice_get_upper (slice);
+  lower = btor_slice_get_lower (slice);
 
   res = btor_new_bv (mm, btor_get_exp_width (btor, e));
-  for (i = 0; i < slice->lower; i++)
+  for (i = 0; i < lower; i++)
     btor_set_bit_bv (res, i, btor_pick_rand_rng (&btor->rng, 0, 1));
-  for (i = slice->lower; i <= slice->upper; i++)
-    btor_set_bit_bv (res, i, btor_get_bit_bv (bvslice, i - slice->lower));
-  for (i = slice->upper + 1; i < res->width; i++)
+  for (i = lower; i <= upper; i++)
+    btor_set_bit_bv (res, i, btor_get_bit_bv (bvslice, i - lower));
+  for (i = upper + 1; i < res->width; i++)
     btor_set_bit_bv (res, i, btor_pick_rand_rng (&btor->rng, 0, 1));
 
 #ifndef NDEBUG
-  tmpdbg = btor_slice_bv (mm, res, slice->upper, slice->lower);
+  tmpdbg = btor_slice_bv (mm, res, upper, lower);
   assert (!btor_compare_bv (tmpdbg, bvslice));
   btor_free_bv (mm, tmpdbg);
 #endif

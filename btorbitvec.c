@@ -563,6 +563,7 @@ btor_flipped_bit_bv (BtorMemMgr *mm, BtorBitVector *bv, int pos)
   btor_set_bit_bv (res, pos, btor_get_bit_bv (res, pos) ? 0 : 1);
   set_rem_bits_to_zero (res);
   assert (rem_bits_zero_dbg (res));
+
   return res;
 }
 

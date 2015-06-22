@@ -1392,7 +1392,10 @@ btor_recursively_rebuild_exp_clone (Btor *btor,
           cur_clone = btor_uf_exp (clone, cur->sort_id, symbol);
           break;
         case BTOR_SLICE_NODE:
-          cur_clone = btor_slice_exp (clone, e[0], cur->upper, cur->lower);
+          cur_clone = btor_slice_exp (clone,
+                                      e[0],
+                                      btor_slice_get_upper (cur),
+                                      btor_slice_get_lower (cur));
           break;
         case BTOR_AND_NODE: cur_clone = btor_and_exp (clone, e[0], e[1]); break;
         case BTOR_BEQ_NODE:

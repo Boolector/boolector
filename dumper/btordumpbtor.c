@@ -415,7 +415,10 @@ bdcnode (BtorDumpContext *bdc, BtorNode *node, FILE *file)
 
   /* print slice limits/var symbols */
   if (node->kind == BTOR_SLICE_NODE)
-    fprintf (file, " %d %d", node->upper, node->lower);
+    fprintf (file,
+             " %d %d",
+             btor_slice_get_upper (node),
+             btor_slice_get_lower (node));
   else if (BTOR_IS_BV_VAR_NODE (node) || BTOR_IS_UF_NODE (node))
   {
     symbol = btor_get_symbol_exp (bdc->btor, node);

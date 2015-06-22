@@ -542,7 +542,8 @@ compute_hash_exp (BtorNode *exp, int table_size)
   {
     hash = hash_bv_exp (exp->arity, exp->e);
     if (exp->kind == BTOR_SLICE_NODE)
-      hash += (unsigned int) exp->upper + (unsigned int) exp->lower;
+      hash += (unsigned int) btor_slice_get_upper (exp)
+              + (unsigned int) btor_slice_get_lower (exp);
   }
   hash = (hash * BTOR_NODE_UNIQUE_TABLE_PRIME) & (table_size - 1);
   return hash;
@@ -1166,7 +1167,7 @@ new_slice_exp_node (Btor *btor, BtorNode *e0, int upper, int lower)
   assert (upper >= lower);
   assert (lower >= 0);
 
-  BtorBVNode *exp = 0;
+  BtorSliceNode *exp = 0;
 
   BTOR_CNEW (btor->mm, exp);
   set_kind (btor, (BtorNode *) exp, BTOR_SLICE_NODE);
@@ -1445,8 +1446,9 @@ find_slice_exp (Btor *btor, BtorNode *e0, int upper, int lower)
   while (cur)
   {
     assert (BTOR_IS_REGULAR_NODE (cur));
-    if (cur->kind == BTOR_SLICE_NODE && cur->e[0] == e0 && cur->upper == upper
-        && cur->lower == lower)
+    if (cur->kind == BTOR_SLICE_NODE && cur->e[0] == e0
+        && btor_slice_get_upper (cur) == upper
+        && btor_slice_get_lower (cur) == lower)
       break;
     else
     {
@@ -1645,7 +1647,10 @@ compare_lambda_exp (Btor *btor,
 
       if (BTOR_IS_SLICE_NODE (real_cur))
       {
-        result = find_slice_exp (btor, e[0], real_cur->upper, real_cur->lower);
+        result = find_slice_exp (btor,
+                                 e[0],
+                                 btor_slice_get_upper (real_cur),
+                                 btor_slice_get_lower (real_cur));
       }
       else if (BTOR_IS_LAMBDA_NODE (real_cur))
       {
@@ -1743,7 +1748,10 @@ btor_find_unique_exp (Btor *btor, BtorNode *exp)
     return find_const_exp (
         btor, btor_get_bits_const (exp), btor_get_exp_width (btor, exp));
   if (BTOR_IS_SLICE_NODE (exp))
-    return find_slice_exp (btor, exp->e[0], exp->upper, exp->lower);
+    return find_slice_exp (btor,
+                           exp->e[0],
+                           btor_slice_get_upper (exp),
+                           btor_slice_get_lower (exp));
   if (BTOR_IS_LAMBDA_NODE (exp))
     return find_lambda_exp (btor, exp->e[0], exp->e[1], 0, 1);
   return find_exp (btor, exp->kind, exp->arity, exp->e, 0);
@@ -4086,4 +4094,18 @@ btor_lambda_set_static_rho (BtorNode *lambda, BtorPtrHashTable *static_rho)
   assert (BTOR_IS_REGULAR_NODE (lambda));
   assert (BTOR_IS_LAMBDA_NODE (lambda));
   ((BtorLambdaNode *) lambda)->static_rho = static_rho;
+}
+
+int
+btor_slice_get_upper (BtorNode *slice)
+{
+  assert (BTOR_IS_SLICE_NODE (BTOR_REAL_ADDR_NODE (slice)));
+  return ((BtorSliceNode *) BTOR_REAL_ADDR_NODE (slice))->upper;
+}
+
+int
+btor_slice_get_lower (BtorNode *slice)
+{
+  assert (BTOR_IS_SLICE_NODE (BTOR_REAL_ADDR_NODE (slice)));
+  return ((BtorSliceNode *) BTOR_REAL_ADDR_NODE (slice))->lower;
 }

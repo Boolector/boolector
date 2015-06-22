@@ -220,7 +220,6 @@ btor_merge_lambdas (Btor *btor)
        * the same elements as static_rho */
       if (btor_lambda_get_static_rho (subst))
       {
-        printf ("existing: %s\n", node2string (subst));
         assert (check_static_rho_equal_dbg (btor_lambda_get_static_rho (subst),
                                             static_rho));
         /* 'static_rho' contains elements so we have to release them

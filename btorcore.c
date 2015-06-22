@@ -2395,7 +2395,10 @@ rebuild_exp (Btor *btor, BtorNode *exp)
     case BTOR_UF_NODE:
       return btor_copy_exp (btor, btor_simplify_exp (btor, exp));
     case BTOR_SLICE_NODE:
-      return btor_slice_exp (btor, exp->e[0], exp->upper, exp->lower);
+      return btor_slice_exp (btor,
+                             exp->e[0],
+                             btor_slice_get_upper (exp),
+                             btor_slice_get_lower (exp));
     case BTOR_AND_NODE: return btor_and_exp (btor, exp->e[0], exp->e[1]);
     case BTOR_BEQ_NODE:
     case BTOR_FEQ_NODE: return btor_eq_exp (btor, exp->e[0], exp->e[1]);
@@ -3435,7 +3438,8 @@ synthesize_exp (Btor *btor, BtorNode *exp, BtorPtrHashTable *backannotation)
         invert_av0 = BTOR_IS_INVERTED_NODE (cur->e[0]);
         av0        = BTOR_REAL_ADDR_NODE (cur->e[0])->av;
         if (invert_av0) btor_invert_aigvec (avmgr, av0);
-        cur->av = btor_slice_aigvec (avmgr, av0, cur->upper, cur->lower);
+        cur->av = btor_slice_aigvec (
+            avmgr, av0, btor_slice_get_upper (cur), btor_slice_get_lower (cur));
         BTORLOG (2, "  synthesized: %s", node2string (cur));
         if (invert_av0) btor_invert_aigvec (avmgr, av0);
         if (!btor->options.lazy_synthesize.val)
@@ -6955,8 +6959,10 @@ btor_eval_exp (Btor *btor, BtorNode *exp)
       switch (real_cur->kind)
       {
         case BTOR_SLICE_NODE:
-          result =
-              btor_slice_bv (btor->mm, e[0], real_cur->upper, real_cur->lower);
+          result = btor_slice_bv (btor->mm,
+                                  e[0],
+                                  btor_slice_get_upper (real_cur),
+                                  btor_slice_get_lower (real_cur));
           btor_free_bv (btor->mm, e[0]);
           break;
         case BTOR_AND_NODE:
