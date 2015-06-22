@@ -401,7 +401,7 @@ btor_assignment_bv (BtorMemMgr *mm, BtorNode *exp, int init_x_values)
 }
 
 BtorBitVector *
-btor_copy_bv (BtorMemMgr *mm, BtorBitVector *bv)
+btor_copy_bv (BtorMemMgr *mm, const BtorBitVector *bv)
 {
   assert (mm);
   assert (bv);
@@ -848,7 +848,7 @@ btor_slice_bv (BtorMemMgr *mm, BtorBitVector *bv, int upper, int lower)
 }
 
 int
-btor_compare_bv (BtorBitVector *a, BtorBitVector *b)
+btor_compare_bv (const BtorBitVector *a, const BtorBitVector *b)
 {
   assert (a);
   assert (b);

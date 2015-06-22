@@ -42,10 +42,10 @@ BtorBitVector *btor_new_bv (BtorMemMgr *, int);
 BtorBitVector *btor_char_to_bv (BtorMemMgr *, char *);
 BtorBitVector *btor_uint64_to_bv (BtorMemMgr *, uint64_t, int);
 BtorBitVector *btor_assignment_bv (BtorMemMgr *, BtorNode *, int);
-BtorBitVector *btor_copy_bv (BtorMemMgr *, BtorBitVector *);
+BtorBitVector *btor_copy_bv (BtorMemMgr *, const BtorBitVector *);
 size_t btor_size_bv (BtorBitVector *);
 void btor_free_bv (BtorMemMgr *, BtorBitVector *);
-int btor_compare_bv (BtorBitVector *, BtorBitVector *);
+int btor_compare_bv (const BtorBitVector *, const BtorBitVector *);
 unsigned int btor_hash_bv (BtorBitVector *);
 
 void btor_print_bv (BtorBitVector *);
