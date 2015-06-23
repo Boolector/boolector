@@ -21,6 +21,7 @@
 #include <ctype.h>
 #include <limits.h>
 #include <stdarg.h>
+#include <stdbool.h>
 
 //#define BTOR_USE_CLONE_SCOPES
 
@@ -346,6 +347,9 @@ typedef struct BtorSMT2Parser
   {
     int all, set_logic, asserts, check_sat, exits, model;
   } commands;
+
+  /* SMT2 options */
+  bool print_success;
 } BtorSMT2Parser;
 
 static int
@@ -1047,14 +1051,15 @@ btor_new_smt2_parser (Btor *btor, BtorParseOpt *opts)
   BtorMemMgr *mem = btor_new_mem_mgr ();
   BTOR_NEW (mem, res);
   BTOR_CLR (res);
-  res->verbosity   = opts->verbosity;
-  res->incremental = opts->incremental;
-  res->interactive = opts->interactive;
-  res->model       = opts->need_model;
-  res->done        = 0;
-  res->btor        = btor;
-  res->mem         = mem;
-  res->num_scopes  = 0;
+  res->verbosity     = opts->verbosity;
+  res->incremental   = opts->incremental;
+  res->interactive   = opts->interactive;
+  res->model         = opts->need_model;
+  res->done          = 0;
+  res->btor          = btor;
+  res->mem           = mem;
+  res->num_scopes    = 0;
+  res->print_success = false;
 
 #ifdef BTOR_USE_CLONE_SCOPES
   BTOR_INIT_STACK (res->btor_scopes);
@@ -3684,6 +3689,7 @@ btor_set_option_smt2 (BtorSMT2Parser *parser)
   if (tag == BTOR_RPAR_TAG_SMT2)
     return !btor_perr_smt2 (parser, "keyword after 'set-option' missing");
 
+  /* parser specific options */
   if (tag == BTOR_REGULAR_OUTPUT_CHANNEL_TAG_SMT2)
   {
     assert (parser->outfile != stdin);
@@ -3700,6 +3706,23 @@ btor_set_option_smt2 (BtorSMT2Parser *parser)
       return !btor_perr_smt2 (
           parser, "can not create '%s'", parser->token.start);
   }
+  else if (tag == BTOR_PRINT_SUCCESS_TAG_SMT2)
+  {
+    tag = btor_read_token_smt2 (parser);
+    if (tag == BTOR_INVALID_TAG_SMT2)
+    {
+      assert (parser->error);
+      return 0;
+    }
+    else if (tag == BTOR_TRUE_TAG_SMT2)
+      parser->print_success = true;
+    else if (tag == BTOR_FALSE_TAG_SMT2)
+      parser->print_success = false;
+    else
+      return !btor_perr_smt2 (
+          parser, "expected boolean argument at '%s'", parser->token.start);
+  }
+  /* boolector specific options */
   else
   {
     switch (tag)
@@ -3778,6 +3801,14 @@ btor_set_option_smt2 (BtorSMT2Parser *parser)
       return !btor_perr_smt2 (parser, "unsupported option");
   }
   return btor_skip_sexprs (parser, 1);
+}
+
+static void
+print_success (BtorSMT2Parser *parser)
+{
+  if (!parser->print_success) return;
+  fprintf (parser->outfile, "success\n");
+  fflush (parser->outfile);
 }
 
 static int
@@ -3871,6 +3902,7 @@ btor_read_command_smt2 (BtorSMT2Parser *parser)
         BTOR_MSG (boolector_get_btor_msg (parser->btor),
                   1,
                   "WARNING additional 'set-logic' command");
+      print_success (parser);
       break;
 
     case BTOR_CHECK_SAT_TAG_SMT2:
@@ -3922,10 +3954,12 @@ btor_read_command_smt2 (BtorSMT2Parser *parser)
 
     case BTOR_DECLARE_FUN_TAG_SMT2:
       if (!btor_declare_fun_smt2 (parser)) return 0;
+      print_success (parser);
       break;
 
     case BTOR_DEFINE_FUN_TAG_SMT2:
       if (!btor_define_fun_smt2 (parser)) return 0;
+      print_success (parser);
       break;
 
     case BTOR_ASSERT_TAG_SMT2:
@@ -3959,6 +3993,7 @@ btor_read_command_smt2 (BtorSMT2Parser *parser)
       boolector_release (parser->btor, exp);
       assert (!parser->error);
       parser->commands.asserts++;
+      print_success (parser);
       break;
 
     case BTOR_EXIT_TAG_SMT2:
@@ -3966,6 +4001,7 @@ btor_read_command_smt2 (BtorSMT2Parser *parser)
       assert (!parser->commands.exits);
       parser->commands.exits++;
       parser->done = 1;
+      print_success (parser);
       break;
 
     case BTOR_GET_MODEL_TAG_SMT2:
@@ -4032,14 +4068,17 @@ btor_read_command_smt2 (BtorSMT2Parser *parser)
       while (btor_read_command_smt2 (parser)
              && !boolector_terminate (parser->btor))
         ;
+      print_success (parser);
       break;
 
     case BTOR_SET_INFO_TAG_SMT2:
       if (!btor_set_info_smt2 (parser)) return 0;
+      print_success (parser);
       break;
 
     case BTOR_SET_OPTION_TAG_SMT2:
       if (!btor_set_option_smt2 (parser)) return 0;
+      print_success (parser);
       break;
 
     case BTOR_PUSH_TAG_SMT2:
@@ -4051,6 +4090,7 @@ btor_read_command_smt2 (BtorSMT2Parser *parser)
 #else
       open_new_scope (parser);
 #endif
+      print_success (parser);
       break;
 
     case BTOR_POP_TAG_SMT2:
@@ -4062,6 +4102,7 @@ btor_read_command_smt2 (BtorSMT2Parser *parser)
 #else
       close_current_scope (parser);
 #endif
+      print_success (parser);
       break;
 
     default:
