@@ -81,48 +81,45 @@ typedef enum BtorNodeKind BtorNodeKind;
 
 typedef struct BtorNodePair BtorNodePair;
 
-#define BTOR_BV_NODE_STRUCT                                                  \
-  struct                                                                     \
-  {                                                                          \
-    BtorNodeKind kind : 5;          /* kind of expression */                 \
-    unsigned int mark : 3;          /* for DAG traversal */                  \
-    unsigned int aux_mark : 2;      /* auxiliary mark flag */                \
-    unsigned int occ_mark : 1;      /* occurrence check mark flag */         \
-    unsigned int fun_mark : 1;      /* for bottom up function traversal */   \
-    unsigned int beta_mark : 2;     /* mark for beta_reduce */               \
-    unsigned int eval_mark : 2;     /* mark for eval_exp */                  \
-    unsigned int synth_mark : 2;    /* mark for synthesize_exp */            \
-    unsigned int clone_mark : 2;    /* mark for clone_exp_tree */            \
-    unsigned int reachable : 1;     /* reachable from root ? */              \
-    unsigned int lazy_synth : 1;    /* lazy synthesized ? (funs, applies) */ \
-    unsigned int synthapp : 1;      /* inserted in synth_apps ? */           \
-    unsigned int constraint : 1;    /* top level constraint ? */             \
-    unsigned int erased : 1;        /* for debugging purposes */             \
-    unsigned int disconnected : 1;  /* for debugging purposes */             \
-    unsigned int unique : 1;        /* in unique table? */                   \
-    unsigned int bytes : 9;         /* allocated bytes */                    \
-    unsigned int parameterized : 1; /* param as sub expression ? */          \
-    unsigned int lambda_below : 1;  /* lambda as sub expression ? */         \
-    unsigned int apply_below : 1;                                            \
-    unsigned int is_write : 1;                                               \
-    unsigned int is_read : 1;                                                \
-    unsigned int propagated : 1;                                             \
-    unsigned int arity : 2; /* arity of operator (at most 3) */              \
-    int id;                 /* unique expression id */                       \
-    int refs;               /* reference counter (incl. ext_refs) */         \
-    int ext_refs;           /* external references counter */                \
-    int parents;            /* number of parents */                          \
-    BtorSortId sort_id;     /* sort id */                                    \
-    union                                                                    \
-    {                                                                        \
-      BtorAIGVec *av;        /* synthesized AIG vector */                    \
-      BtorPtrHashTable *rho; /* for finding array conflicts */               \
-    };                                                                       \
-    BtorNode *next;         /* next in unique table */                       \
-    BtorNode *simplified;   /* simplified expression */                      \
-    Btor *btor;             /* boolector */                                  \
-    BtorNode *first_parent; /* head of parent list */                        \
-    BtorNode *last_parent;  /* tail of parent list */                        \
+#define BTOR_BV_NODE_STRUCT                                             \
+  struct                                                                \
+  {                                                                     \
+    BtorNodeKind kind : 5;     /* kind of expression */                 \
+    uint8_t mark : 3;          /* for DAG traversal */                  \
+    uint8_t aux_mark : 2;      /* auxiliary mark flag */                \
+    uint8_t occ_mark : 1;      /* occurrence check mark flag */         \
+    uint8_t beta_mark : 2;     /* mark for beta_reduce */               \
+    uint8_t eval_mark : 2;     /* mark for eval_exp */                  \
+    uint8_t synth_mark : 2;    /* mark for synthesize_exp */            \
+    uint8_t clone_mark : 2;    /* mark for clone_exp_tree */            \
+    uint8_t reachable : 1;     /* reachable from root ? */              \
+    uint8_t lazy_synth : 1;    /* lazy synthesized ? (funs, applies) */ \
+    uint8_t synth_app : 1;     /* inserted in synth_apps ? */           \
+    uint8_t constraint : 1;    /* top level constraint ? */             \
+    uint8_t erased : 1;        /* for debugging purposes */             \
+    uint8_t disconnected : 1;  /* for debugging purposes */             \
+    uint8_t unique : 1;        /* in unique table? */                   \
+    uint8_t bytes;             /* allocated bytes */                    \
+    uint8_t parameterized : 1; /* param as sub expression ? */          \
+    uint8_t lambda_below : 1;  /* lambda as sub expression ? */         \
+    uint8_t apply_below : 1;   /* apply as sub expression ? */          \
+    uint8_t propagated : 1;    /* is set during propagation */          \
+    uint8_t arity : 2;         /* arity of operator (at most 3) */      \
+    int id;                    /* unique expression id */               \
+    int refs;                  /* reference counter (incl. ext_refs) */ \
+    int ext_refs;              /* external references counter */        \
+    int parents;               /* number of parents */                  \
+    BtorSortId sort_id;        /* sort id */                            \
+    union                                                               \
+    {                                                                   \
+      BtorAIGVec *av;        /* synthesized AIG vector */               \
+      BtorPtrHashTable *rho; /* for finding array conflicts */          \
+    };                                                                  \
+    BtorNode *next;         /* next in unique table */                  \
+    BtorNode *simplified;   /* simplified expression */                 \
+    Btor *btor;             /* boolector instance */                    \
+    BtorNode *first_parent; /* head of parent list */                   \
+    BtorNode *last_parent;  /* tail of parent list */                   \
   }
 
 #define BTOR_BV_ADDITIONAL_NODE_STRUCT                             \
@@ -145,7 +142,7 @@ struct BtorUFNode
 {
   BTOR_BV_NODE_STRUCT;
   int btor_id; /* id as defined in btor input */
-  char is_array;
+  uint8_t is_array : 1;
 };
 
 typedef struct BtorUFNode BtorUFNode;

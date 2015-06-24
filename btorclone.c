@@ -933,7 +933,7 @@ clone_aux_btor (Btor *btor, BtorNodeMap **exp_map, bool exp_layer_only)
   for (i = 1; i < BTOR_COUNT_STACK (btor->nodes_id_table); i++)
   {
     if (!(cur = BTOR_PEEK_STACK (btor->nodes_id_table, i))) continue;
-    if (exp_layer_only && cur->synthapp && cur->refs == 1)
+    if (exp_layer_only && cur->synth_app && cur->refs == 1)
     {
       synthapp_bytes += cur->bytes;
       continue;

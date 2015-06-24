@@ -386,13 +386,12 @@ btor_chkclone_exp (BtorNode *exp, BtorNode *clone)
   BTOR_CHKCLONE_EXP (kind);
   BTOR_CHKCLONE_EXP (mark);
   BTOR_CHKCLONE_EXP (aux_mark);
-  BTOR_CHKCLONE_EXP (fun_mark);
   BTOR_CHKCLONE_EXP (beta_mark);
   BTOR_CHKCLONE_EXP (eval_mark);
   BTOR_CHKCLONE_EXP (synth_mark);
   BTOR_CHKCLONE_EXP (reachable);
   BTOR_CHKCLONE_EXP (lazy_synth);
-  BTOR_CHKCLONE_EXP (synthapp);
+  BTOR_CHKCLONE_EXP (synth_app);
   BTOR_CHKCLONE_EXP (constraint);
   BTOR_CHKCLONE_EXP (erased);
   BTOR_CHKCLONE_EXP (disconnected);
@@ -400,8 +399,6 @@ btor_chkclone_exp (BtorNode *exp, BtorNode *clone)
   BTOR_CHKCLONE_EXP (bytes);
   BTOR_CHKCLONE_EXP (parameterized);
   BTOR_CHKCLONE_EXP (lambda_below);
-  BTOR_CHKCLONE_EXP (is_write);
-  BTOR_CHKCLONE_EXP (is_read);
 
   if (BTOR_IS_BV_CONST_NODE (real_exp))
   {
