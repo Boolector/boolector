@@ -4110,3 +4110,27 @@ btor_slice_get_lower (BtorNode *slice)
   assert (BTOR_IS_SLICE_NODE (BTOR_REAL_ADDR_NODE (slice)));
   return ((BtorSliceNode *) BTOR_REAL_ADDR_NODE (slice))->lower;
 }
+
+bool
+btor_is_encoded_exp (BtorNode *exp)
+{
+  int i;
+  BtorAIG *aig;
+
+  exp = BTOR_REAL_ADDR_NODE (exp);
+
+  if (BTOR_IS_FUN_NODE (exp)) return exp->lazy_synth == 1;
+
+  if (!BTOR_IS_SYNTH_NODE (exp)) return false;
+
+  if (exp->av->encoded) return true;
+
+  for (i = 0; i < exp->av->len; i++)
+  {
+    aig = exp->av->aigs[i];
+    if (BTOR_IS_CONST_AIG (aig)) continue;
+    if (!BTOR_REAL_ADDR_AIG (aig)->cnf_id) return false;
+  }
+  exp->av->encoded = 1;
+  return true;
+}

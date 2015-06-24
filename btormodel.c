@@ -596,7 +596,7 @@ extract_model_from_rhos (Btor *btor,
       /* all arguments in 'rho' are encoded, however some arguments in
        * 'static_rho' might not be encoded and thus we have to obtain the
        * assignment from the constructed model. */
-      if (BTOR_REAL_ADDR_NODE (arg)->tseitin)
+      if (btor_is_encoded_exp (arg))
         bv_arg = btor_assignment_bv (btor->mm, arg, 0);
       else
         bv_arg = btor_copy_bv (btor->mm, btor_get_bv_model (btor, arg));
@@ -607,7 +607,7 @@ extract_model_from_rhos (Btor *btor,
     /* values in 'rho' are encoded, however some values in 'static_rho' might
      * not be encoded and thus we have to obtain the assignment from the
      * constructed model. */
-    if (BTOR_REAL_ADDR_NODE (value)->tseitin)
+    if (btor_is_encoded_exp (value))
       bv_value = btor_assignment_bv (btor->mm, value, 0);
     else
       bv_value = btor_copy_bv (btor->mm, btor_get_bv_model (btor, value));

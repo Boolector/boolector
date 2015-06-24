@@ -431,11 +431,7 @@ clone_exp (Btor *clone,
 
   res = btor_malloc (mm, exp->bytes);
   memcpy (res, exp, exp->bytes);
-  if (exp_layer_only)
-  {
-    res->tseitin      = 0;
-    res->lazy_tseitin = 0;
-  }
+  if (exp_layer_only) res->lazy_synth = 0;
 
   /* ----------------- BTOR_BV_VAR_NODE_STRUCT (all nodes) ----------------> */
   if (BTOR_IS_BV_CONST_NODE (exp))

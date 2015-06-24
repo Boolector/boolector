@@ -30,7 +30,8 @@ new_aigvec (BtorAIGVecMgr *avmgr, int len)
   assert (len > 0);
   result =
       btor_malloc (avmgr->mm, sizeof (BtorAIGVec) + sizeof (BtorAIG *) * len);
-  result->len = len;
+  result->len     = len;
+  result->encoded = 0;
   avmgr->cur_num_aigvecs++;
   if (avmgr->max_num_aigvecs < avmgr->cur_num_aigvecs)
     avmgr->max_num_aigvecs = avmgr->cur_num_aigvecs;
@@ -49,6 +50,7 @@ btor_const_aigvec (BtorAIGVecMgr *avmgr, const char *bits)
   result = new_aigvec (avmgr, len);
   for (i = 0; i < len; i++)
     result->aigs[i] = bits[i] == '0' ? BTOR_AIG_FALSE : BTOR_AIG_TRUE;
+  result->encoded = 1;
   return result;
 }
 
@@ -689,6 +691,7 @@ btor_aigvec_to_sat_tseitin (BtorAIGVecMgr *avmgr, BtorAIGVec *av)
   amgr = btor_get_aig_mgr_aigvec_mgr (avmgr);
   len  = av->len;
   for (i = 0; i < len; i++) btor_aig_to_sat_tseitin (amgr, av->aigs[i]);
+  av->encoded = 1;
 }
 
 void
