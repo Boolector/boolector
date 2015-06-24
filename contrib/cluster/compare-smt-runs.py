@@ -364,18 +364,19 @@ def _read_data (dirs):
                                 raise CmpSMTException ("missing '{}'".format (
                                     os.path.join (d, outfile)))
                             _read_out_file (d, "{}{}".format(f[:-3], "out"))
-                    # reset timeout if given
-                    if g_args.timeout and \
-                       g_file_stats["time_time"][d][f_name] > g_args.timeout:
-                           g_file_stats["time_time"][d][f_name] = g_args.timeout
-                           g_file_stats["status"][d][f_name] = "time"
-                           g_file_stats["result"][d][f_name] = 1
-                           if g_args.g:
-                               g_file_stats["g_total"][d][f_name] = "time"
-                               g_file_stats["g_solved"][d][f_name] = "time"
-                               g_file_stats["g_time"][d][f_name] = "time"
-                               g_file_stats["g_mem"][d][f_name] = "time"
-                               g_file_stats["g_err"][d][f_name] = "time"
+                        # reset timeout if given
+                        if g_args.timeout and \
+                       g_file_stats["time_time"][d][f_name] > g_args.timeout[d]:
+                            g_file_stats["time_time"][d][f_name] = \
+                                   g_args.timeout[d]
+                            g_file_stats["status"][d][f_name] = "time"
+                            g_file_stats["result"][d][f_name] = 1
+                            if g_args.g:
+                                g_file_stats["g_total"][d][f_name] = "time"
+                                g_file_stats["g_solved"][d][f_name] = "time"
+                                g_file_stats["g_time"][d][f_name] = "time"
+                                g_file_stats["g_mem"][d][f_name] = "time"
+                                g_file_stats["g_err"][d][f_name] = "time"
 
 
 def _pick_data(benchmarks, data, generate_vbs):
@@ -432,11 +433,44 @@ def _pick_data(benchmarks, data, generate_vbs):
 
     # collect data for virtual best solver
     if generate_vbs:
-        for f in vb_stats[g_args.cmp_col]:
-            for k in data.keys():
-                if vb_stats[g_args.cmp_col][f]:
-                    data[k][vbdir][f] = \
+        if not g_args.vbp or len(g_args.dirs) < 3:
+            for f in vb_stats[g_args.cmp_col]:
+                for k in data.keys():
+                    if vb_stats[g_args.cmp_col][f]:
+                        data[k][vbdir][f] = \
                             data[k][vb_stats[g_args.cmp_col][f]][f]
+        else:
+            assert (len(g_args.dirs) <= 3)
+            if g_args.timeout[g_args.dirs[0]] < g_args.timeout[g_args.dirs[1]]:
+                bdir = g_args.dirs[1]  # base run
+                pdir = g_args.dirs[0]  # "preprocessing" run
+            else:
+                bdir = g_args.dirs[0]
+                pdir = g_args.dirs[1]
+            for f in benchmarks:
+                time_bdir = data["time_time"][bdir][f] \
+                        if data["time_time"][bdir][f] < g_args.timeout[bdir] \
+                        else g_args.timeout[bdir]
+                time_pdir = data["time_time"][pdir][f] \
+                        if data["time_time"][pdir][f] < g_args.timeout[pdir] \
+                        else g_args.timeout[pdir]
+                if data["status"][pdir][f] in ["ok", "time"] \
+                   and time_pdir < g_args.timeout[pdir]:
+                       for k in data.keys():
+                           data[k][vbdir][f] = data[k][pdir][f]
+                elif data["status"][bdir][f] == "ok":
+                    for k in data.keys():
+                        data[k][vbdir][f] = data[k][bdir][f]
+                    time_vbp = round(time_bdir + g_args.timeout[pdir], 2)
+                    data["time_time"][vbdir][f] = time_vbp
+                    if time_vbp >= g_args.timeout[bdir]:
+                        data["status"][vbdir][f] = "time"
+                        data["time_time"][vbdir][f] = g_args.timeout[bdir]
+                        if not g_args.g:
+                            data["result"][vbdir][f] = 1
+                else:
+                    for k in data.keys():
+                        data[k][vbdir][f] = data[k][bdir][f]
 
     return diff_stats, best_stats, vb_stats
 
@@ -840,7 +874,7 @@ if __name__ == "__main__":
         aparser.add_argument \
               (
                 "-to",
-                metavar="seconds", dest="timeout", type=float, default=None,
+                metavar="seconds[,second ...]", dest="timeout", default=None,
                 help="use individual time out"
               )
         aparser.add_argument \
@@ -848,6 +882,17 @@ if __name__ == "__main__":
                 "-vb",
                 action="store_true",
                 help="generate virtual best solver"
+              )
+        aparser.add_argument \
+              (
+                "-vbp",
+                action="store_true",
+                help="generate virtual best solver out of two runs with " \
+                     "one treated as a preprocessing step (don't forget to " \
+                     "provide a list " \
+                     "of timeouts via -to in the same order as the runs, " \
+                     "the run with the lesser timeout serves as " \
+                     "preprocessing step)"
               )
         aparser.add_argument \
               (
@@ -986,8 +1031,11 @@ if __name__ == "__main__":
                 unique_dirs.append(d)
         g_args.dirs = unique_dirs
 
-        if len(g_args.dirs) < 1:
+        if len(g_args.dirs) < 1 \
+           or g_args.vbp and len(g_args.dirs) > 2:
             raise CmpSMTException ("invalid number of dirs given")
+
+        if g_args.vbp: g_args.vb = True
 
         for d in g_args.dirs:
             if not os.path.isdir(d):
@@ -1022,6 +1070,16 @@ if __name__ == "__main__":
         if g_args.show_all:
             g_args.columns = FILE_STATS_KEYS
 
+        g_args.timeout = [float(s) for s in g_args.timeout.split(',')]
+        if len(g_args.timeout) > 1 and len(g_args.timeout) != len(g_args.dirs):
+               raise CmpSMTException ("invalid number of timeouts given")
+        if g_args.timeout and len(g_args.timeout) == 1:
+            g_args.timeout = [g_args.timeout[0] for d in g_args.dirs]
+        assert (len(g_args.timeout) == len(g_args.dirs))    
+        tmp = { g_args.dirs[i]:g_args.timeout[i] \
+                for i in range(0, len(g_args.dirs)) }
+        g_args.timeout = tmp
+
         # we need column result for some other columns
         if 'result' not in g_args.columns and \
            ('status' in g_args.columns \
@@ -1055,8 +1113,10 @@ if __name__ == "__main__":
         if g_args.timeof and not g_args.timeof in g_args.dirs:
             raise CmpSMTException ("invalid dir given")
 
-        if g_args.vb:
-            g_args.dirs.append("virtual best solver")
+        if g_args.vbp:
+            g_args.dirs.append("virtual best solver (prep)")
+        elif g_args.vb:
+            g_args.dirs.append("virtual best solver (portfolio)")
 
         # initialize global data
         g_dir_stats = dict((k, {}) for k in DIR_STATS_KEYS)
