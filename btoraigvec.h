@@ -23,7 +23,8 @@ struct BtorAIGMap;
 
 struct BtorAIGVec
 {
-  int len;         /* length of the AIG vector */
+  int len; /* length of the AIG vector */
+  int8_t encoded : 1;
   BtorAIG *aigs[]; /* vector of AIGs */
 };
 

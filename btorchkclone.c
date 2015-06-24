@@ -57,7 +57,6 @@ btor_chkclone_state (Btor *btor)
   assert (clone);
 
   BTOR_CHKCLONE_STATE (rec_rw_calls);
-  BTOR_CHKCLONE_STATE (rec_read_acond_calls);
   BTOR_CHKCLONE_STATE (valid_assignments);
   BTOR_CHKCLONE_STATE (vis_idx);
   BTOR_CHKCLONE_STATE (inconsistent);
@@ -387,14 +386,11 @@ btor_chkclone_exp (BtorNode *exp, BtorNode *clone)
   BTOR_CHKCLONE_EXP (kind);
   BTOR_CHKCLONE_EXP (mark);
   BTOR_CHKCLONE_EXP (aux_mark);
-  BTOR_CHKCLONE_EXP (fun_mark);
   BTOR_CHKCLONE_EXP (beta_mark);
   BTOR_CHKCLONE_EXP (eval_mark);
-  BTOR_CHKCLONE_EXP (synth_mark);
   BTOR_CHKCLONE_EXP (reachable);
-  BTOR_CHKCLONE_EXP (tseitin);
-  BTOR_CHKCLONE_EXP (lazy_tseitin);
-  BTOR_CHKCLONE_EXP (synthapp);
+  BTOR_CHKCLONE_EXP (lazy_synth);
+  BTOR_CHKCLONE_EXP (synth_app);
   BTOR_CHKCLONE_EXP (constraint);
   BTOR_CHKCLONE_EXP (erased);
   BTOR_CHKCLONE_EXP (disconnected);
@@ -402,8 +398,6 @@ btor_chkclone_exp (BtorNode *exp, BtorNode *clone)
   BTOR_CHKCLONE_EXP (bytes);
   BTOR_CHKCLONE_EXP (parameterized);
   BTOR_CHKCLONE_EXP (lambda_below);
-  BTOR_CHKCLONE_EXP (is_write);
-  BTOR_CHKCLONE_EXP (is_read);
 
   if (BTOR_IS_BV_CONST_NODE (real_exp))
   {
@@ -448,8 +442,6 @@ btor_chkclone_exp (BtorNode *exp, BtorNode *clone)
     BTOR_CHKCLONE_NODE_PTR_HASH_TABLE (real_exp->rho, real_clone->rho);
 
   BTOR_CHKCLONE_EXPPID (next);
-  /* Note: parent node used during BFS only, pointer is not reset after bfs,
-   *	   hence not cloned, do not check */
   BTOR_CHKCLONE_EXPPINV (simplified);
   assert (real_exp->btor->clone == real_clone->btor);
   BTOR_CHKCLONE_EXPPTAG (first_parent);

@@ -431,11 +431,7 @@ clone_exp (Btor *clone,
 
   res = btor_malloc (mm, exp->bytes);
   memcpy (res, exp, exp->bytes);
-  if (exp_layer_only)
-  {
-    res->tseitin      = 0;
-    res->lazy_tseitin = 0;
-  }
+  if (exp_layer_only) res->lazy_synth = 0;
 
   /* ----------------- BTOR_BV_VAR_NODE_STRUCT (all nodes) ----------------> */
   if (BTOR_IS_BV_CONST_NODE (exp))
@@ -467,10 +463,6 @@ clone_exp (Btor *clone,
 
   assert (!exp->next || !BTOR_IS_INVALID_NODE (exp->next));
   BTOR_PUSH_STACK_IF (exp->next, mm, *nodes, &res->next);
-
-  /* Note: parent node used during BFS only, pointer is not reset after bfs,
-   *	   do not clone to avoid access to invalid nodes */
-  res->parent = 0;
 
   assert (!exp->simplified
           || !BTOR_IS_INVALID_NODE (BTOR_REAL_ADDR_NODE (exp->simplified)));
@@ -941,7 +933,7 @@ clone_aux_btor (Btor *btor, BtorNodeMap **exp_map, bool exp_layer_only)
   for (i = 1; i < BTOR_COUNT_STACK (btor->nodes_id_table); i++)
   {
     if (!(cur = BTOR_PEEK_STACK (btor->nodes_id_table, i))) continue;
-    if (exp_layer_only && cur->synthapp && cur->refs == 1)
+    if (exp_layer_only && cur->synth_app && cur->refs == 1)
     {
       synthapp_bytes += cur->bytes;
       continue;
@@ -1214,8 +1206,10 @@ clone_aux_btor (Btor *btor, BtorNodeMap **exp_map, bool exp_layer_only)
 #endif
 
   clone->parse_error_msg = NULL;
-  clone->clone           = NULL;
-  clone->close_apitrace  = 0;
+#ifndef NDEBUG
+  clone->clone = NULL;
+#endif
+  clone->close_apitrace = 0;
 
   clone_prefix = "clone";
   len          = btor->msg->prefix ? strlen (btor->msg->prefix) : 0;

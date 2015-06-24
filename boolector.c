@@ -223,7 +223,9 @@ boolector_delete (Btor *btor)
     fclose (btor->apitrace);
   else if (btor->close_apitrace == 2)
     pclose (btor->apitrace);
+#ifndef NDEBUG
   if (btor->clone) boolector_delete (btor->clone);
+#endif
   btor_delete_btor (btor);
 }
 

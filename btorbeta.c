@@ -760,7 +760,7 @@ btor_beta_reduce_partial_aux (Btor *btor,
       if (!real_cur->parameterized)
       {
         assert (BTOR_IS_FUN_NODE (real_cur) || BTOR_IS_ARGS_NODE (real_cur)
-                || real_cur->tseitin);
+                || btor_is_encoded_exp (real_cur));
         BTOR_PUSH_STACK (mm, arg_stack, btor_copy_exp (btor, cur));
         continue;
       }

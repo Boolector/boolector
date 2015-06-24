@@ -1291,7 +1291,7 @@ applies_slice_slice (Btor *btor, BtorNode *exp, int upper, int lower)
 {
   (void) upper;
   (void) lower;
-  return btor->rec_read_acond_calls < BTOR_REC_RW_BOUND
+  return btor->rec_rw_calls < BTOR_REC_RW_BOUND
          && BTOR_IS_SLICE_NODE (BTOR_REAL_ADDR_NODE (exp));
 }
 
