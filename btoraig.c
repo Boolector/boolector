@@ -421,12 +421,11 @@ btor_and_aig (BtorAIGMgr *amgr, BtorAIG *left, BtorAIG *right)
 
   calls = 0;
 
-  // TODO (ma): why is BTOR_AIG_TWO_LEVEL_OPT_TRY_AGAIN not up here?
+BTOR_AIG_TWO_LEVEL_OPT_TRY_AGAIN:
   if (left == BTOR_AIG_FALSE || right == BTOR_AIG_FALSE) return BTOR_AIG_FALSE;
 
   if (left == BTOR_AIG_TRUE) return inc_aig_ref_counter_and_return (right);
 
-BTOR_AIG_TWO_LEVEL_OPT_TRY_AGAIN:
   if (right == BTOR_AIG_TRUE || (left == right))
     return inc_aig_ref_counter_and_return (left);
   if (left == BTOR_INVERT_AIG (right)) return BTOR_AIG_FALSE;
