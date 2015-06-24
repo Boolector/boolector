@@ -85,9 +85,8 @@ typedef struct BtorNodePair BtorNodePair;
   struct                                                                \
   {                                                                     \
     BtorNodeKind kind : 5;     /* kind of expression */                 \
-    uint8_t mark : 3;          /* for DAG traversal */                  \
+    uint8_t mark : 2;          /* for DAG traversal */                  \
     uint8_t aux_mark : 2;      /* auxiliary mark flag */                \
-    uint8_t occ_mark : 1;      /* occurrence check mark flag */         \
     uint8_t beta_mark : 2;     /* mark for beta_reduce */               \
     uint8_t eval_mark : 2;     /* mark for eval_exp */                  \
     uint8_t clone_mark : 2;    /* mark for clone_exp_tree */            \

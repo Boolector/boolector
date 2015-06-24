@@ -1299,16 +1299,16 @@ occurrence_check (Btor *btor, BtorNode *left, BtorNode *right)
   assert (right);
 
   BtorNode *cur, *real_left;
-  BtorNodePtrStack unmark_stack;
   BtorNodePtrQueue queue;
   int is_cyclic, i;
   BtorMemMgr *mm;
+  BtorIntHashTable *cache;
 
   is_cyclic = 0;
   mm        = btor->mm;
+  cache     = btor_new_int_hash_table (mm);
   real_left = BTOR_REAL_ADDR_NODE (left);
   BTOR_INIT_QUEUE (queue);
-  BTOR_INIT_STACK (unmark_stack);
 
   cur = BTOR_REAL_ADDR_NODE (right);
   goto OCCURRENCE_CHECK_ENTER_WITHOUT_POP;
@@ -1317,11 +1317,9 @@ occurrence_check (Btor *btor, BtorNode *left, BtorNode *right)
   {
     cur = BTOR_REAL_ADDR_NODE (BTOR_DEQUEUE (queue));
   OCCURRENCE_CHECK_ENTER_WITHOUT_POP:
-    assert (cur->occ_mark == 0 || cur->occ_mark == 1);
-    if (cur->occ_mark == 0)
+    if (!btor_contains_int_hash_table (cache, cur->id))
     {
-      cur->occ_mark = 1;
-      BTOR_PUSH_STACK (mm, unmark_stack, cur);
+      btor_add_int_hash_table (cache, cur->id);
       if (cur == real_left)
       {
         is_cyclic = 1;
@@ -1331,15 +1329,7 @@ occurrence_check (Btor *btor, BtorNode *left, BtorNode *right)
     }
   } while (!BTOR_EMPTY_QUEUE (queue));
   BTOR_RELEASE_QUEUE (mm, queue);
-
-  while (!BTOR_EMPTY_STACK (unmark_stack))
-  {
-    cur = BTOR_POP_STACK (unmark_stack);
-    assert (BTOR_IS_REGULAR_NODE (cur));
-    assert (cur->occ_mark == 1);
-    cur->occ_mark = 0;
-  }
-  BTOR_RELEASE_STACK (mm, unmark_stack);
+  btor_free_int_hash_table (cache);
   return is_cyclic;
 }
 
