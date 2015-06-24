@@ -19,8 +19,8 @@
 
 BtorNode *btor_rewrite_slice_exp (Btor *btor,
                                   BtorNode *exp,
-                                  int upper,
-                                  int lower);
+                                  uint32_t upper,
+                                  uint32_t lower);
 
 BtorNode *btor_rewrite_binary_exp (Btor *,
                                    BtorNodeKind,

@@ -459,7 +459,7 @@ is_bit_mask (BtorNode *exp, int *upper, int *lower)
 
 /* -------------------------------------------------------------------------- */
 
-static BtorNode *rewrite_slice_exp (Btor *, BtorNode *, int, int);
+static BtorNode *rewrite_slice_exp (Btor *, BtorNode *, uint32_t, uint32_t);
 static BtorNode *rewrite_eq_exp (Btor *, BtorNode *, BtorNode *);
 static BtorNode *rewrite_ult_exp (Btor *, BtorNode *, BtorNode *);
 static BtorNode *rewrite_and_exp (Btor *, BtorNode *, BtorNode *);
@@ -1240,14 +1240,14 @@ apply_<rw_rule> (Btor * btor, ...)
  * result: exp
  */
 static inline int
-applies_full_slice (Btor *btor, BtorNode *exp, int upper, int lower)
+applies_full_slice (Btor *btor, BtorNode *exp, uint32_t upper, uint32_t lower)
 {
   (void) btor;
   return btor_get_exp_width (btor, exp) == upper - lower + 1;
 }
 
 static inline BtorNode *
-apply_full_slice (Btor *btor, BtorNode *exp, int upper, int lower)
+apply_full_slice (Btor *btor, BtorNode *exp, uint32_t upper, uint32_t lower)
 {
   assert (applies_full_slice (btor, exp, upper, lower));
   (void) btor;
@@ -1260,7 +1260,7 @@ apply_full_slice (Btor *btor, BtorNode *exp, int upper, int lower)
  * result: constant
  */
 static inline int
-applies_const_slice (Btor *btor, BtorNode *exp, int upper, int lower)
+applies_const_slice (Btor *btor, BtorNode *exp, uint32_t upper, uint32_t lower)
 {
   (void) btor;
   (void) upper;
@@ -1269,7 +1269,7 @@ applies_const_slice (Btor *btor, BtorNode *exp, int upper, int lower)
 }
 
 static inline BtorNode *
-apply_const_slice (Btor *btor, BtorNode *exp, int upper, int lower)
+apply_const_slice (Btor *btor, BtorNode *exp, uint32_t upper, uint32_t lower)
 {
   assert (applies_const_slice (btor, exp, upper, lower));
 
@@ -1287,7 +1287,7 @@ apply_const_slice (Btor *btor, BtorNode *exp, int upper, int lower)
  * result: exp[l+upper:l+lower]
  */
 static inline int
-applies_slice_slice (Btor *btor, BtorNode *exp, int upper, int lower)
+applies_slice_slice (Btor *btor, BtorNode *exp, uint32_t upper, uint32_t lower)
 {
   (void) upper;
   (void) lower;
@@ -1296,7 +1296,7 @@ applies_slice_slice (Btor *btor, BtorNode *exp, int upper, int lower)
 }
 
 static inline BtorNode *
-apply_slice_slice (Btor *btor, BtorNode *exp, int upper, int lower)
+apply_slice_slice (Btor *btor, BtorNode *exp, uint32_t upper, uint32_t lower)
 {
   assert (applies_slice_slice (btor, exp, upper, lower));
 
@@ -1316,7 +1316,10 @@ apply_slice_slice (Btor *btor, BtorNode *exp, int upper, int lower)
  * result: b
  */
 static inline int
-applies_concat_lower_slice (Btor *btor, BtorNode *exp, int upper, int lower)
+applies_concat_lower_slice (Btor *btor,
+                            BtorNode *exp,
+                            uint32_t upper,
+                            uint32_t lower)
 {
   (void) btor;
   return BTOR_IS_CONCAT_NODE (BTOR_REAL_ADDR_NODE (exp)) && lower == 0
@@ -1325,7 +1328,10 @@ applies_concat_lower_slice (Btor *btor, BtorNode *exp, int upper, int lower)
 }
 
 static inline BtorNode *
-apply_concat_lower_slice (Btor *btor, BtorNode *exp, int upper, int lower)
+apply_concat_lower_slice (Btor *btor,
+                          BtorNode *exp,
+                          uint32_t upper,
+                          uint32_t lower)
 {
   assert (applies_concat_lower_slice (btor, exp, upper, lower));
   (void) upper;
@@ -1341,7 +1347,10 @@ apply_concat_lower_slice (Btor *btor, BtorNode *exp, int upper, int lower)
  * result: a
  */
 static inline int
-applies_concat_upper_slice (Btor *btor, BtorNode *exp, int upper, int lower)
+applies_concat_upper_slice (Btor *btor,
+                            BtorNode *exp,
+                            uint32_t upper,
+                            uint32_t lower)
 {
   return BTOR_IS_CONCAT_NODE (BTOR_REAL_ADDR_NODE (exp))
          && btor->options.rewrite_level.val < 3
@@ -1351,7 +1360,10 @@ applies_concat_upper_slice (Btor *btor, BtorNode *exp, int upper, int lower)
 }
 
 static inline BtorNode *
-apply_concat_upper_slice (Btor *btor, BtorNode *exp, int upper, int lower)
+apply_concat_upper_slice (Btor *btor,
+                          BtorNode *exp,
+                          uint32_t upper,
+                          uint32_t lower)
 {
   assert (applies_concat_upper_slice (btor, exp, upper, lower));
   (void) upper;
@@ -1370,7 +1382,10 @@ apply_concat_upper_slice (Btor *btor, BtorNode *exp, int upper, int lower)
  * we recursively check if slice and child of concat matches
  */
 static inline int
-applies_concat_rec_upper_slice (Btor *btor, BtorNode *exp, int upper, int lower)
+applies_concat_rec_upper_slice (Btor *btor,
+                                BtorNode *exp,
+                                uint32_t upper,
+                                uint32_t lower)
 {
   (void) upper;
   return btor->options.rewrite_level.val >= 3
@@ -1380,7 +1395,10 @@ applies_concat_rec_upper_slice (Btor *btor, BtorNode *exp, int upper, int lower)
 }
 
 static inline BtorNode *
-apply_concat_rec_upper_slice (Btor *btor, BtorNode *exp, int upper, int lower)
+apply_concat_rec_upper_slice (Btor *btor,
+                              BtorNode *exp,
+                              uint32_t upper,
+                              uint32_t lower)
 {
   assert (applies_concat_rec_upper_slice (btor, exp, upper, lower));
 
@@ -1405,7 +1423,10 @@ apply_concat_rec_upper_slice (Btor *btor, BtorNode *exp, int upper, int lower)
  * we recursively check if slice and child of concat matches
  */
 static inline int
-applies_concat_rec_lower_slice (Btor *btor, BtorNode *exp, int upper, int lower)
+applies_concat_rec_lower_slice (Btor *btor,
+                                BtorNode *exp,
+                                uint32_t upper,
+                                uint32_t lower)
 {
   (void) lower;
   return btor->options.rewrite_level.val >= 3
@@ -1415,7 +1436,10 @@ applies_concat_rec_lower_slice (Btor *btor, BtorNode *exp, int upper, int lower)
 }
 
 static inline BtorNode *
-apply_concat_rec_lower_slice (Btor *btor, BtorNode *exp, int upper, int lower)
+apply_concat_rec_lower_slice (Btor *btor,
+                              BtorNode *exp,
+                              uint32_t upper,
+                              uint32_t lower)
 {
   assert (applies_concat_rec_lower_slice (btor, exp, upper, lower));
 
@@ -1438,7 +1462,10 @@ apply_concat_rec_lower_slice (Btor *btor, BtorNode *exp, int upper, int lower)
  * we recursively check if slice and child of concat matches
  */
 static inline int
-applies_concat_rec_slice (Btor *btor, BtorNode *exp, int upper, int lower)
+applies_concat_rec_slice (Btor *btor,
+                          BtorNode *exp,
+                          uint32_t upper,
+                          uint32_t lower)
 {
   return BTOR_IS_CONCAT_NODE (BTOR_REAL_ADDR_NODE (exp))
          && btor->options.rewrite_level.val >= 3
@@ -1447,7 +1474,10 @@ applies_concat_rec_slice (Btor *btor, BtorNode *exp, int upper, int lower)
 }
 
 static inline BtorNode *
-apply_concat_rec_slice (Btor *btor, BtorNode *exp, int upper, int lower)
+apply_concat_rec_slice (Btor *btor,
+                        BtorNode *exp,
+                        uint32_t upper,
+                        uint32_t lower)
 {
   assert (applies_concat_rec_slice (btor, exp, upper, lower));
   (void) lower;
@@ -1471,7 +1501,7 @@ apply_concat_rec_slice (Btor *btor, BtorNode *exp, int upper, int lower)
  * result: a[upper:lower] & b[upper:lower]
  */
 static inline int
-applies_and_slice (Btor *btor, BtorNode *exp, int upper, int lower)
+applies_and_slice (Btor *btor, BtorNode *exp, uint32_t upper, uint32_t lower)
 {
   (void) upper;
   (void) lower;
@@ -1483,7 +1513,7 @@ applies_and_slice (Btor *btor, BtorNode *exp, int upper, int lower)
 }
 
 static inline BtorNode *
-apply_and_slice (Btor *btor, BtorNode *exp, int upper, int lower)
+apply_and_slice (Btor *btor, BtorNode *exp, uint32_t upper, uint32_t lower)
 {
   assert (applies_and_slice (btor, exp, upper, lower));
 
@@ -1505,7 +1535,7 @@ apply_and_slice (Btor *btor, BtorNode *exp, int upper, int lower)
  * result: c ? a[upper:lower] : b[upper:lower]
  */
 static inline int
-applies_bcond_slice (Btor *btor, BtorNode *exp, int upper, int lower)
+applies_bcond_slice (Btor *btor, BtorNode *exp, uint32_t upper, uint32_t lower)
 {
   (void) upper;
   (void) lower;
@@ -1517,7 +1547,7 @@ applies_bcond_slice (Btor *btor, BtorNode *exp, int upper, int lower)
 }
 
 static inline BtorNode *
-apply_bcond_slice (Btor *btor, BtorNode *exp, int upper, int lower)
+apply_bcond_slice (Btor *btor, BtorNode *exp, uint32_t upper, uint32_t lower)
 {
   assert (applies_bcond_slice (btor, exp, upper, lower));
 
@@ -1536,7 +1566,10 @@ apply_bcond_slice (Btor *btor, BtorNode *exp, int upper, int lower)
 }
 
 static inline int
-applies_zero_lower_slice (Btor *btor, BtorNode *exp, int upper, int lower)
+applies_zero_lower_slice (Btor *btor,
+                          BtorNode *exp,
+                          uint32_t upper,
+                          uint32_t lower)
 {
   (void) upper;
   return btor->options.rewrite_level.val > 2
@@ -1548,7 +1581,10 @@ applies_zero_lower_slice (Btor *btor, BtorNode *exp, int upper, int lower)
 }
 
 static inline BtorNode *
-apply_zero_lower_slice (Btor *btor, BtorNode *exp, int upper, int lower)
+apply_zero_lower_slice (Btor *btor,
+                        BtorNode *exp,
+                        uint32_t upper,
+                        uint32_t lower)
 {
   BtorNode *result, *real_exp, *tmp1, *tmp2;
 
@@ -3660,7 +3696,7 @@ apply_power2_udiv (Btor *btor, BtorNode *e0, BtorNode *e1)
 {
   assert (applies_power2_udiv (btor, e0, e1));
 
-  int l, n;
+  unsigned l, n;
   BtorNode *slice, *pad, *result;
 
   n = btor_is_power_of_two_const (btor_const_get_bits (e1));
@@ -4033,7 +4069,7 @@ apply_const_sll (Btor *btor, BtorNode *e0, BtorNode *e1)
 {
   assert (applies_const_sll (btor, e0, e1));
 
-  int shiftlen;
+  unsigned shiftlen;
   char *bits, *len;
   BtorNode *result, *real_e0, *real_e1, *pad, *slice;
 
@@ -4083,7 +4119,7 @@ apply_const_srl (Btor *btor, BtorNode *e0, BtorNode *e1)
 {
   assert (applies_const_srl (btor, e0, e1));
 
-  int shiftlen;
+  unsigned shiftlen;
   char *bits, *len;
   BtorNode *result, *real_e0, *real_e1, *pad, *slice;
 
@@ -5635,7 +5671,7 @@ normalize_cond (Btor *btor, BtorNode **cond, BtorNode **left, BtorNode **right)
 /* term rewriting functions */
 
 static BtorNode *
-rewrite_slice_exp (Btor *btor, BtorNode *exp, int upper, int lower)
+rewrite_slice_exp (Btor *btor, BtorNode *exp, uint32_t upper, uint32_t lower)
 {
   BtorNode *result = 0;
 
@@ -6138,7 +6174,10 @@ DONE:
 /* api function */
 
 BtorNode *
-btor_rewrite_slice_exp (Btor *btor, BtorNode *exp, int upper, int lower)
+btor_rewrite_slice_exp (Btor *btor,
+                        BtorNode *exp,
+                        uint32_t upper,
+                        uint32_t lower)
 {
   assert (btor);
   assert (btor->options.rewrite_level.val > 0);

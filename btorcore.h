@@ -359,7 +359,10 @@ typedef struct BtorCoreSolver BtorCoreSolver;
 /* Check whether the sorts of given arguments match the signature of the
  * function. If sorts are correct -1 is returned, otherwise the position of
  * the invalid argument is returned. */
-int btor_fun_sort_check (Btor *btor, int argc, BtorNode **args, BtorNode *fun);
+int btor_fun_sort_check (Btor *btor,
+                         uint32_t argc,
+                         BtorNode **args,
+                         BtorNode *fun);
 
 /* Evaluates expression and returns its value. */
 char *btor_eval_exp (Btor *btor, BtorNode *exp);

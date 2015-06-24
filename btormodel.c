@@ -843,7 +843,7 @@ btor_generate_lambda_model_from_fun_model (Btor *btor,
   assert (BTOR_IS_REGULAR_NODE (exp));
   assert (BTOR_IS_FUN_NODE (exp));
 
-  int i;
+  uint32_t i;
   BtorNode *uf, *res, *c, *p, *cond, *e_if, *e_else, *tmp, *eq, *ite, *args;
   BtorHashTableIterator it;
   BtorNodePtrStack params, consts;

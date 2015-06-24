@@ -40,7 +40,8 @@ die (int prefix, const char *fmt, ...)
 int
 main (int argc, char **argv)
 {
-  int i, j, verbosity, close_input, close_output, binary, merge, rwl;
+  unsigned j;
+  int i, verbosity, close_input, close_output, binary, merge, rwl;
   FILE *input_file, *output_file, *file;
   BtorAIG *aig, *tmp, *merged, **p;
   BtorPtrHashTable *back_annotation;

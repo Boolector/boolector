@@ -66,7 +66,7 @@ btor_get_fun_model_str_aux (Btor *btor,
   assert (BTOR_IS_REGULAR_NODE (exp));
 
   char *arg, *tmp, *bv;
-  int i, j, len;
+  uint32_t i, j, len;
   BtorHashTableIterator it;
   const BtorPtrHashTable *model;
   BtorBitVector *value;
@@ -114,7 +114,7 @@ btor_get_fun_model_str_aux (Btor *btor,
       strcat (tmp, bv);
       btor_release_bv_assignment_str (btor, bv);
     }
-    assert ((int) strlen (arg) == len - 1);
+    assert (strlen (arg) == len - 1);
 
     (*args)[i]   = arg;
     (*values)[i] = (char *) btor_bv_to_char_bv (btor->mm, value);
@@ -260,7 +260,7 @@ print_fun_model_smt2 (Btor *btor, BtorNode *node, int base, FILE *file)
   assert (file);
 
   char *s, *symbol, *ass;
-  int i, x, n, len;
+  uint32_t i, x, n, len;
   BtorPtrHashTable *fun_model;
   BtorHashTableIterator it;
   BtorBitVectorTuple *args;
@@ -491,7 +491,7 @@ print_fun_value_smt2 (
   assert (BTOR_IS_REGULAR_NODE (node));
   assert (file);
 
-  int i, n;
+  uint32_t i, n;
   char *s, *symbol, *ass;
   BtorPtrHashTable *fun_model;
   BtorHashTableIterator it;

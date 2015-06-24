@@ -1223,7 +1223,7 @@ boolector_slice (Btor *btor, BoolectorNode *node, int upper, int lower)
   BTOR_ABORT_ARRAY_BOOLECTOR (simp);
   BTOR_ABORT_BOOLECTOR (lower < 0, "'lower' must not be negative");
   BTOR_ABORT_BOOLECTOR (upper < lower, "'upper' must not be < 'lower'");
-  BTOR_ABORT_BOOLECTOR (upper >= btor_get_exp_width (btor, simp),
+  BTOR_ABORT_BOOLECTOR ((uint32_t) upper >= btor_get_exp_width (btor, simp),
                         "'upper' must not be >= width of 'exp'");
   res = btor_slice_exp (btor, simp, upper, lower);
   inc_exp_ext_ref_counter (btor, res);
@@ -2709,13 +2709,14 @@ boolector_apply (Btor *btor,
 
   simp = btor_simplify_exp (btor, e_fun);
   BTOR_ABORT_BOOLECTOR (
-      argc != btor_get_fun_arity (btor, simp),
+      (uint32_t) argc != btor_get_fun_arity (btor, simp),
       "number of arguments must be equal to the number of parameters in 'fun'");
   BTOR_ABORT_BOOLECTOR (argc < 1, "'argc' must not be < 1");
   BTOR_ABORT_BOOLECTOR (argc >= 1 && !args,
                         "no arguments given but argc defined > 0");
   BTOR_ABORT_BOOLECTOR (
-      !btor_is_fun_exp (btor, simp) || argc != btor_get_fun_arity (btor, simp),
+      !btor_is_fun_exp (btor, simp)
+          || (uint32_t) argc != btor_get_fun_arity (btor, simp),
       "number of arguments does not match arity of 'fun'");
   i = btor_fun_sort_check (btor, argc, args, simp);
   BTOR_ABORT_BOOLECTOR (i >= 0, "invalid argument given at position %d", i);

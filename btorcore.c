@@ -3232,8 +3232,8 @@ synthesize_exp (Btor *btor, BtorNode *exp, BtorPtrHashTable *backannotation)
   BtorHashTableIterator it;
   char *indexed_name;
   const char *name;
-  unsigned int count;
-  int same_children_mem, i, len;
+  unsigned int count, i, len;
+  int same_children_mem, j;
   int invert_av0 = 0;
   int invert_av1 = 0;
   int invert_av2 = 0;
@@ -3274,7 +3274,7 @@ synthesize_exp (Btor *btor, BtorNode *exp, BtorPtrHashTable *backannotation)
         BTORLOG (2, "  synthesized: %s", node2string (cur));
         if (backannotation && (name = btor_get_symbol_exp (btor, cur)))
         {
-          len = (int) strlen (name) + 40;
+          len = strlen (name) + 40;
           if (btor_get_exp_width (btor, cur) > 1)
           {
             indexed_name = btor_malloc (mm, len);
@@ -3345,8 +3345,8 @@ synthesize_exp (Btor *btor, BtorNode *exp, BtorPtrHashTable *backannotation)
 
         btor_add_int_hash_table (cache, cur->id);
         BTOR_PUSH_STACK (mm, exp_stack, cur);
-        for (i = cur->arity - 1; i >= 0; i--)
-          BTOR_PUSH_STACK (mm, exp_stack, cur->e[i]);
+        for (j = cur->arity - 1; j >= 0; j--)
+          BTOR_PUSH_STACK (mm, exp_stack, cur->e[j]);
 
         /* synthesize nodes in static_rho of lambda nodes */
         if (BTOR_IS_LAMBDA_NODE (cur))
@@ -6668,7 +6668,7 @@ is_valid_argument (Btor *btor, BtorNode *exp)
 }
 
 int
-btor_fun_sort_check (Btor *btor, int argc, BtorNode **args, BtorNode *fun)
+btor_fun_sort_check (Btor *btor, uint32_t argc, BtorNode **args, BtorNode *fun)
 {
   (void) btor;
   assert (btor);
@@ -6679,7 +6679,8 @@ btor_fun_sort_check (Btor *btor, int argc, BtorNode **args, BtorNode *fun)
   assert (btor_is_fun_exp (btor, fun));
   assert (argc == btor_get_fun_arity (btor, fun));
 
-  int i, pos = -1;
+  uint32_t i;
+  int pos = -1;
   BtorSortId sort;
   BtorSortUniqueTable *sorts;
   BtorTupleSortIterator it;
@@ -7107,7 +7108,8 @@ check_model (Btor *btor, Btor *clone, BtorPtrHashTable *inputs)
   assert (clone);
   assert (inputs);
 
-  int i, ret;
+  uint32_t i;
+  int ret;
   char *a;
   BtorNode *cur, *exp, *simp, *real_simp, *model, *eq, *args, *apply;
   BtorHashTableIterator it;

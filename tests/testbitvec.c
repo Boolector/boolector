@@ -64,7 +64,7 @@ test_new_bitvec (void)
 static BtorBitVector *
 random_bv (int bw)
 {
-  int i;
+  uint32_t i;
   BtorBitVector *res;
   res = btor_new_bv (g_mm, bw);
 

@@ -705,8 +705,7 @@ shift_const_test (int (*int_func) (int, int),
                                        const char *,
                                        const char *) )
 {
-  int i        = 0;
-  int j        = 0;
+  uint32_t i = 0, j = 0;
   char *a      = NULL;
   char *b      = NULL;
   char *result = NULL;

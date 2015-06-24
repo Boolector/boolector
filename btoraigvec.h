@@ -23,8 +23,8 @@ struct BtorAIGMap;
 
 struct BtorAIGVec
 {
-  int len; /* length of the AIG vector */
-  int8_t encoded : 1;
+  uint32_t len; /* length of the AIG vector */
+  uint8_t encoded : 1;
   BtorAIG *aigs[]; /* vector of AIGs */
 };
 
@@ -72,7 +72,7 @@ BtorAIGVec *btor_const_aigvec (BtorAIGVecMgr *avmgr, const char *bits);
  * len > 0
  * len(result) = len
  */
-BtorAIGVec *btor_var_aigvec (BtorAIGVecMgr *avmgr, int len);
+BtorAIGVec *btor_var_aigvec (BtorAIGVecMgr *avmgr, uint32_t len);
 
 /* Inverts all AIGs of the AIG vector */
 void btor_invert_aigvec (BtorAIGVecMgr *avmgr, BtorAIGVec *av);
@@ -90,8 +90,8 @@ BtorAIGVec *btor_not_aigvec (BtorAIGVecMgr *avmgr, BtorAIGVec *av);
  */
 BtorAIGVec *btor_slice_aigvec (BtorAIGVecMgr *avmgr,
                                BtorAIGVec *av,
-                               int upper,
-                               int lower);
+                               uint32_t upper,
+                               uint32_t lower);
 
 /* Creates new AIG vector representing av1 AND av2.
  * len(av1) = len(av2)

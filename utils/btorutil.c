@@ -17,16 +17,16 @@
 /*------------------------------------------------------------------------*/
 
 int
-btor_is_power_of_2_util (int x)
+btor_is_power_of_2_util (uint32_t x)
 {
   assert (x > 0);
   return (x & (x - 1)) == 0;
 }
 
-int
-btor_log_2_util (int x)
+uint32_t
+btor_log_2_util (uint32_t x)
 {
-  int result = 0;
+  uint32_t result = 0;
   assert (x > 0);
   assert (btor_is_power_of_2_util (x));
   while (x > 1)
@@ -34,7 +34,6 @@ btor_log_2_util (int x)
     x >>= 1;
     result++;
   }
-  assert (result >= 0);
   return result;
 }
 

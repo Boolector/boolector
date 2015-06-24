@@ -373,7 +373,7 @@ btor_chkclone_exp (BtorNode *exp, BtorNode *clone)
   assert ((!BTOR_IS_INVERTED_NODE (exp) && !BTOR_IS_INVERTED_NODE (clone))
           || (BTOR_IS_INVERTED_NODE (exp) && BTOR_IS_INVERTED_NODE (clone)));
 
-  int i;
+  unsigned i;
   BtorNode *real_exp, *real_clone, *e, *ce;
   BtorHashTableIterator it, cit;
 
