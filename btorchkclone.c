@@ -446,8 +446,6 @@ btor_chkclone_exp (BtorNode *exp, BtorNode *clone)
     BTOR_CHKCLONE_NODE_PTR_HASH_TABLE (real_exp->rho, real_clone->rho);
 
   BTOR_CHKCLONE_EXPPID (next);
-  /* Note: parent node used during BFS only, pointer is not reset after bfs,
-   *	   hence not cloned, do not check */
   BTOR_CHKCLONE_EXPPINV (simplified);
   assert (real_exp->btor->clone == real_clone->btor);
   BTOR_CHKCLONE_EXPPTAG (first_parent);

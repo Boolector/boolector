@@ -119,7 +119,6 @@ typedef struct BtorNodePair BtorNodePair;
       BtorPtrHashTable *rho; /* for finding array conflicts */               \
     };                                                                       \
     BtorNode *next;         /* next in unique table */                       \
-    BtorNode *parent;       /* parent pointer for BFS */                     \
     BtorNode *simplified;   /* simplified expression */                      \
     Btor *btor;             /* boolector */                                  \
     BtorNode *first_parent; /* head of parent list */                        \

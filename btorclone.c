@@ -464,10 +464,6 @@ clone_exp (Btor *clone,
   assert (!exp->next || !BTOR_IS_INVALID_NODE (exp->next));
   BTOR_PUSH_STACK_IF (exp->next, mm, *nodes, &res->next);
 
-  /* Note: parent node used during BFS only, pointer is not reset after bfs,
-   *	   do not clone to avoid access to invalid nodes */
-  res->parent = 0;
-
   assert (!exp->simplified
           || !BTOR_IS_INVALID_NODE (BTOR_REAL_ADDR_NODE (exp->simplified)));
   BTOR_PUSH_STACK_IF (exp->simplified, mm, *nodes, &res->simplified);
