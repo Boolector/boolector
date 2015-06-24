@@ -3230,36 +3230,6 @@ btor_simplify (Btor *btor)
 }
 
 static void
-mark_synth_mark_exp (Btor *btor, BtorNode *exp, int new_mark)
-{
-  BtorMemMgr *mm;
-  BtorNodePtrStack stack;
-  BtorNode *cur;
-  int i;
-
-  assert (btor);
-  assert (exp);
-
-  mm = btor->mm;
-  BTOR_INIT_STACK (stack);
-  cur = BTOR_REAL_ADDR_NODE (exp);
-  goto MARK_SYNTH_MARK_NODE_ENTER_WITHOUT_POP;
-
-  while (!BTOR_EMPTY_STACK (stack))
-  {
-    cur = BTOR_REAL_ADDR_NODE (BTOR_POP_STACK (stack));
-  MARK_SYNTH_MARK_NODE_ENTER_WITHOUT_POP:
-    if (cur->synth_mark != new_mark)
-    {
-      cur->synth_mark = new_mark;
-      for (i = cur->arity - 1; i >= 0; i--)
-        BTOR_PUSH_STACK (mm, stack, cur->e[i]);
-    }
-  }
-  BTOR_RELEASE_STACK (mm, stack);
-}
-
-static void
 synthesize_exp (Btor *btor, BtorNode *exp, BtorPtrHashTable *backannotation)
 {
   BtorNodePtrStack exp_stack;
@@ -3278,6 +3248,7 @@ synthesize_exp (Btor *btor, BtorNode *exp, BtorPtrHashTable *backannotation)
   int invert_av1 = 0;
   int invert_av2 = 0;
   double start;
+  BtorIntHashTable *cache;
 
   assert (btor);
   assert (exp);
@@ -3286,6 +3257,7 @@ synthesize_exp (Btor *btor, BtorNode *exp, BtorPtrHashTable *backannotation)
   mm    = btor->mm;
   avmgr = btor->avmgr;
   count = 0;
+  cache = btor_new_int_hash_table (mm);
 
   BTOR_INIT_STACK (exp_stack);
   BTOR_PUSH_STACK (mm, exp_stack, exp);
@@ -3295,16 +3267,10 @@ synthesize_exp (Btor *btor, BtorNode *exp, BtorPtrHashTable *backannotation)
   {
     cur = BTOR_REAL_ADDR_NODE (BTOR_POP_STACK (exp_stack));
 
-    assert (cur->synth_mark >= 0);
-    assert (cur->synth_mark <= 2);
-
     if (BTOR_IS_SYNTH_NODE (cur)) continue;
 
-    if (cur->synth_mark >= 2) continue;
-
     count++;
-
-    if (cur->synth_mark == 0)
+    if (!btor_contains_int_hash_table (cache, cur->id))
     {
       if (BTOR_IS_BV_CONST_NODE (cur))
       {
@@ -3352,6 +3318,7 @@ synthesize_exp (Btor *btor, BtorNode *exp, BtorPtrHashTable *backannotation)
         assert (BTOR_IS_FUN_NODE (cur->e[0]));
         if (!btor->options.lazy_synthesize.val)
         {
+          cur->lazy_synth = 1;
           btor_aigvec_to_sat_tseitin (avmgr, cur->av);
           goto PUSH_CHILDREN;
         }
@@ -3375,19 +3342,18 @@ synthesize_exp (Btor *btor, BtorNode *exp, BtorPtrHashTable *backannotation)
       {
         /* we stop at function nodes as they will be lazily synthesized
          * and encoded during consistency checking */
-        if (!btor->options.lazy_synthesize.val) goto PUSH_CHILDREN;
+        if (!btor->options.lazy_synthesize.val)
+        {
+          cur->lazy_synth = 1;
+          goto PUSH_CHILDREN;
+        }
       }
       else
       {
       PUSH_CHILDREN:
         assert (!btor->options.lazy_synthesize.val || !BTOR_IS_FUN_NODE (cur));
-        /* always skip argument nodes and parameterized nodes */
-        if (cur->parameterized || BTOR_IS_ARGS_NODE (cur)
-            || BTOR_IS_FUN_NODE (cur))
-          cur->synth_mark = 2;
-        else
-          cur->synth_mark = 1;
 
+        btor_add_int_hash_table (cache, cur->id);
         BTOR_PUSH_STACK (mm, exp_stack, cur);
         for (i = cur->arity - 1; i >= 0; i--)
           BTOR_PUSH_STACK (mm, exp_stack, cur->e[i]);
@@ -3410,14 +3376,11 @@ synthesize_exp (Btor *btor, BtorNode *exp, BtorPtrHashTable *backannotation)
         }
       }
     }
-    else
+    /* paremterized nodes, argument nodes and functions are not
+     * synthesizable */
+    else if (!cur->parameterized && !BTOR_IS_ARGS_NODE (cur)
+             && !BTOR_IS_FUN_NODE (cur))
     {
-      assert (cur->synth_mark == 1);
-      cur->synth_mark = 2;
-      assert (!BTOR_IS_APPLY_NODE (cur));
-      assert (!BTOR_IS_LAMBDA_NODE (cur));
-      assert (!cur->parameterized);
-
       if (cur->arity == 1)
       {
         assert (cur->kind == BTOR_SLICE_NODE);
@@ -3550,11 +3513,11 @@ synthesize_exp (Btor *btor, BtorNode *exp, BtorPtrHashTable *backannotation)
             btor_aigvec_to_sat_tseitin (avmgr, cur->av);
         }
       }
+      assert (cur->av);
     }
   }
-
   BTOR_RELEASE_STACK (mm, exp_stack);
-  mark_synth_mark_exp (btor, exp, 0);
+  btor_free_int_hash_table (cache);
 
   if (count > 0 && btor->options.verbosity.val > 3)
     BTOR_MSG (

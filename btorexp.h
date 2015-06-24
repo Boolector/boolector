@@ -90,7 +90,6 @@ typedef struct BtorNodePair BtorNodePair;
     uint8_t occ_mark : 1;      /* occurrence check mark flag */         \
     uint8_t beta_mark : 2;     /* mark for beta_reduce */               \
     uint8_t eval_mark : 2;     /* mark for eval_exp */                  \
-    uint8_t synth_mark : 2;    /* mark for synthesize_exp */            \
     uint8_t clone_mark : 2;    /* mark for clone_exp_tree */            \
     uint8_t reachable : 1;     /* reachable from root ? */              \
     uint8_t lazy_synth : 1;    /* lazy synthesized ? (funs, applies) */ \

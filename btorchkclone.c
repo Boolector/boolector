@@ -388,7 +388,6 @@ btor_chkclone_exp (BtorNode *exp, BtorNode *clone)
   BTOR_CHKCLONE_EXP (aux_mark);
   BTOR_CHKCLONE_EXP (beta_mark);
   BTOR_CHKCLONE_EXP (eval_mark);
-  BTOR_CHKCLONE_EXP (synth_mark);
   BTOR_CHKCLONE_EXP (reachable);
   BTOR_CHKCLONE_EXP (lazy_synth);
   BTOR_CHKCLONE_EXP (synth_app);
