@@ -259,7 +259,7 @@ btormain_msg (char *msg, ...)
 
 /*------------------------------------------------------------------------*/
 
-#define LEN_OPTSTR 35
+#define LEN_OPTSTR 38
 #define LEN_PARAMSTR 16
 #define LEN_HELPSTR 80
 
@@ -293,7 +293,8 @@ print_opt (BtorMainApp *app,
            || !strcmp (lng, BTOR_OPT_PBRA_LOD_LIMIT)
            || !strcmp (lng, BTOR_OPT_PBRA_SAT_LIMIT)
            || !strcmp (lng, BTOR_OPT_PBRA_OPS_FACTOR)
-           || !strcmp (lng, BTOR_OPT_SLS_MOVE_RAND_WALK_PROB))
+           || !strcmp (lng, BTOR_OPT_SLS_MOVE_RAND_WALK_PROB)
+           || !strcmp (lng, BTOR_OPT_SLS_MOVE_PROP_FLIP_COND_PROB))
     sprintf (paramstr, "<n>");
   else if (!strcmp (lng, "lingeling_opts"))
     sprintf (paramstr, "[,<opt>=<val>]+");

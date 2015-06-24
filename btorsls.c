@@ -3059,7 +3059,8 @@ select_prop_move (Btor *btor, BtorNode *root)
         /* either assume that cond is fixed and propagate bvenew
          * to enabled path, or flip condition */
         tmp = (BtorBitVector *) btor_get_bv_model (btor, real_cur->e[0]);
-        if (btor_pick_rand_rng (&btor->rng, 0, 1))
+        if (btor_pick_rand_rng (
+                &btor->rng, 0, btor->options.sls_move_prop_flip_cond_prob.val))
         {
           /* assume cond to be fixed */
           cur = btor_is_zero_bv (tmp) ? real_cur->e[2] : real_cur->e[1];

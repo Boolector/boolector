@@ -196,7 +196,7 @@ btor_init_opts (Btor *btor)
             sls_move_rand_walk_prob,
             10,
             0,
-            UINT_MAX,
+            INT_MAX,
             "probability for choosing random walks (interpreted as 1:<n>)");
   BTOR_OPT (0,
             sls_move_rand_all,
@@ -233,6 +233,14 @@ btor_init_opts (Btor *btor)
             0,
             1,
             "force random walk if propagation move fails");
+  BTOR_OPT (0,
+            sls_move_prop_flip_cond_prob,
+            5,
+            0,
+            INT_MAX,
+            "probability for choosing to flip the condition (rather than "
+            "choosing the enabled path) for ITE during path selection "
+            "for prop moves (interpreted as 1:<n>)");
   BTOR_OPT (0,
             sls_move_inc_move_test,
             0,

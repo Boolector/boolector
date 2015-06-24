@@ -92,6 +92,7 @@ typedef struct BtorOpt
 #define BTOR_OPT_SLS_MOVE_PROP "sls_move_prop"
 #define BTOR_OPT_SLS_MOVE_PROP_MOVES "sls_move_prop_moves"
 #define BTOR_OPT_SLS_MOVE_PROP_FORCE_RW "sls_move_prop_force_rw"
+#define BTOR_OPT_SLS_MOVE_PROP_FLIP_COND_PROB "sls_move_prop_flip_cond_prob"
 #define BTOR_OPT_SLS_MOVE_INC_MOVE_TEST "sls_move_inc_move_test"
 #ifndef BTOR_DO_NOT_OPTIMIZE_UNCONSTRAINED
 #define BTOR_OPT_UCOPT "ucopt"
@@ -162,6 +163,8 @@ typedef struct BtorOpts
   BtorOpt sls_move_prop_moves;     /* pos: do n:1 prop vs. regular moves
                                       neg: do n:1 regular vs. prop moves */
   BtorOpt sls_move_prop_force_rw;  /* force random walk if prop move fails */
+  BtorOpt sls_move_prop_flip_cond_prob; /* probability to choose cond flip
+                                     during path selection for prop moves */
   BtorOpt sls_move_inc_move_test;
 
   BtorOpt dual_prop;      /* dual prop optimization */
