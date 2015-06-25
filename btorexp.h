@@ -887,9 +887,14 @@ int btor_get_args_arity (Btor *btor, BtorNode *exp);
 
 /* Returns static_rho of given lambda node. */
 BtorPtrHashTable *btor_lambda_get_static_rho (BtorNode *lambda);
+/* Returns synth_apps of given lambda node. */
+BtorPtrHashTable *btor_lambda_get_synth_apps (BtorNode *lambda);
 
 void btor_lambda_set_static_rho (BtorNode *lambda,
                                  BtorPtrHashTable *static_rho);
+
+void btor_lambda_set_synth_apps (BtorNode *lambda,
+                                 BtorPtrHashTable *synth_apps);
 
 /* Getter for BtorSliceNode fields */
 uint32_t btor_slice_get_upper (BtorNode *);

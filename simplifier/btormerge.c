@@ -188,7 +188,7 @@ btor_merge_lambdas (Btor *btor)
       BTOR_PUSH_STACK (mm, params, param);
       btor_assign_param (btor, cur, param);
     }
-    /* merge lambdas that are marked with 'merge' flag */
+    /* merge lambdas that are in 'merge_lambdas' table */
     body = btor_beta_reduce_merge (
         btor, BTOR_LAMBDA_GET_BODY (lambda), merge_lambdas);
     btor_unassign_params (btor, lambda);
@@ -199,13 +199,16 @@ btor_merge_lambdas (Btor *btor)
     assert (merge_lambdas->count > 0);
     num_merged_lambdas += merge_lambdas->count;
     static_rho = btor_new_ptr_hash_table (mm, 0, 0);
-    init_node_hash_table_iterator (&it, merge_lambdas);
-    while (has_next_node_hash_table_iterator (&it))
+    if (btor_lambda_get_static_rho (lambda))
     {
-      cur = next_node_hash_table_iterator (&it);
-      add_to_static_rho (btor, static_rho, btor_lambda_get_static_rho (cur));
-      assert (!btor_lambda_get_static_rho (lambda)
-              == !btor_lambda_get_static_rho (cur));
+      init_node_hash_table_iterator (&it, merge_lambdas);
+      while (has_next_node_hash_table_iterator (&it))
+      {
+        cur = next_node_hash_table_iterator (&it);
+        add_to_static_rho (btor, static_rho, btor_lambda_get_static_rho (cur));
+        assert (!btor_lambda_get_static_rho (lambda)
+                == !btor_lambda_get_static_rho (cur));
+      }
     }
     BTORLOG (2,
              "merged %u lambdas (%u static_rho entries)",
