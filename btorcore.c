@@ -2288,7 +2288,6 @@ update_node_hash_tables (Btor *btor)
   BtorNode *cur, *data, *key, *simp_key, *simp_data;
   BtorHashTableIterator it, iit;
   BtorPtrHashTable *static_rho, *new_static_rho;
-  BtorPtrHashBucket *b;
 
   /* update static_rhos */
   init_node_hash_table_iterator (&it, btor->lambdas);
@@ -2335,7 +2334,7 @@ rebuild_lambda_exp (Btor *btor, BtorNode *exp)
   BtorHashTableIterator it;
   BtorPtrHashTable *static_rho;
 
-  BTOR_PARAM_SET_LAMBDA_NODE (exp->e[0], 0);
+  btor_param_set_binding_lambda (exp->e[0], 0);
 
   static_rho = btor_lambda_get_static_rho (exp);
   result     = btor_lambda_exp (btor, exp->e[0], exp->e[1]);
@@ -4860,7 +4859,7 @@ collect_premisses (Btor *btor,
           assert (i < t->num_args);
           arg = t->args[i++];
           assert (arg);
-          btor_assign_param (btor, BTOR_PARAM_GET_LAMBDA_NODE (param), arg);
+          btor_assign_param (btor, btor_param_get_binding_lambda (param), arg);
         }
 
         result = btor_beta_reduce_bounded (btor, cond, 1);
@@ -4874,7 +4873,7 @@ collect_premisses (Btor *btor,
         while (has_next_parameterized_iterator (&pit))
         {
           param = next_parameterized_iterator (&pit);
-          btor_unassign_params (btor, BTOR_PARAM_GET_LAMBDA_NODE (param));
+          btor_unassign_params (btor, btor_param_get_binding_lambda (param));
         }
       }
       else

@@ -363,11 +363,6 @@ typedef struct BtorArgsNode BtorArgsNode;
 
 #define BTOR_IS_BOUND_PARAM_NODE(exp) (((BtorParamNode *) exp)->lambda_exp != 0)
 
-#define BTOR_PARAM_GET_LAMBDA_NODE(exp) (((BtorParamNode *) exp)->lambda_exp)
-
-#define BTOR_PARAM_SET_LAMBDA_NODE(param, lambda) \
-  (((BtorParamNode *) BTOR_REAL_ADDR_NODE (param))->lambda_exp = lambda)
-
 #define BTOR_LAMBDA_GET_PARAM(exp) (((BtorParamNode *) exp->e[0]))
 
 #define BTOR_LAMBDA_GET_BODY(exp) (((BtorLambdaNode *) exp)->body)
@@ -897,8 +892,11 @@ void btor_lambda_set_synth_apps (BtorNode *lambda,
                                  BtorPtrHashTable *synth_apps);
 
 /* Getter for BtorSliceNode fields */
-uint32_t btor_slice_get_upper (BtorNode *);
-uint32_t btor_slice_get_lower (BtorNode *);
+uint32_t btor_slice_get_upper (BtorNode *slice);
+uint32_t btor_slice_get_lower (BtorNode *slice);
+
+BtorNode *btor_param_get_binding_lambda (BtorNode *param);
+void btor_param_set_binding_lambda (BtorNode *param, BtorNode *lambda);
 
 /* Copies expression (increments reference counter). */
 BtorNode *btor_copy_exp (Btor *btor, BtorNode *exp);

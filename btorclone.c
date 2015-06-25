@@ -1352,7 +1352,7 @@ btor_recursively_rebuild_exp_clone (Btor *btor,
           break;
         case BTOR_LAMBDA_NODE:
           assert (!btor_param_cur_assignment (e[0]));
-          BTOR_PARAM_SET_LAMBDA_NODE (e[0], 0);
+          btor_param_set_binding_lambda (e[0], 0);
           cur_clone = btor_lambda_exp (clone, e[0], e[1]);
           break;
         case BTOR_APPLY_NODE:

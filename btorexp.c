@@ -420,8 +420,8 @@ disconnect_child_exp (Btor *btor, BtorNode *parent, int pos)
        * result in a new lambda term, where the param is already reused.
        * if this is the case param is already bound by a different lambda
        * and we are not allowed to reset param->lambda_exp to 0. */
-      && BTOR_PARAM_GET_LAMBDA_NODE (parent->e[0]) == parent)
-    BTOR_PARAM_SET_LAMBDA_NODE (parent->e[0], 0);
+      && btor_param_get_binding_lambda (parent->e[0]) == parent)
+    btor_param_set_binding_lambda (parent->e[0], 0);
 
   /* only one parent? */
   if (first_parent == tagged_parent && first_parent == last_parent)
@@ -1248,7 +1248,7 @@ new_lambda_exp_node (Btor *btor, BtorNode *e_param, BtorNode *e_exp)
   assert (!btor_find_in_ptr_hash_table (btor->lambdas, lambda_exp));
   (void) btor_insert_in_ptr_hash_table (btor->lambdas, lambda_exp);
   /* set lambda expression of parameter */
-  BTOR_PARAM_SET_LAMBDA_NODE (e_param, (BtorNode *) lambda_exp);
+  btor_param_set_binding_lambda (e_param, (BtorNode *) lambda_exp);
   return (BtorNode *) lambda_exp;
 }
 
@@ -4127,6 +4127,21 @@ btor_slice_get_lower (BtorNode *slice)
 {
   assert (BTOR_IS_SLICE_NODE (BTOR_REAL_ADDR_NODE (slice)));
   return ((BtorSliceNode *) BTOR_REAL_ADDR_NODE (slice))->lower;
+}
+
+BtorNode *
+btor_param_get_binding_lambda (BtorNode *param)
+{
+  assert (BTOR_IS_PARAM_NODE (BTOR_REAL_ADDR_NODE (param)));
+  return ((BtorParamNode *) BTOR_REAL_ADDR_NODE (param))->lambda_exp;
+}
+
+void
+btor_param_set_binding_lambda (BtorNode *param, BtorNode *lambda)
+{
+  assert (BTOR_IS_PARAM_NODE (BTOR_REAL_ADDR_NODE (param)));
+  assert (!lambda || BTOR_IS_LAMBDA_NODE (BTOR_REAL_ADDR_NODE (lambda)));
+  ((BtorParamNode *) BTOR_REAL_ADDR_NODE (param))->lambda_exp = lambda;
 }
 
 bool
