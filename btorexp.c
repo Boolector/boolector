@@ -1190,7 +1190,7 @@ new_lambda_exp_node (Btor *btor, BtorNode *e_param, BtorNode *e_exp)
   assert (e_param);
   assert (BTOR_IS_REGULAR_NODE (e_param));
   assert (BTOR_IS_PARAM_NODE (e_param));
-  assert (!BTOR_IS_BOUND_PARAM_NODE (e_param));
+  assert (!btor_param_is_bound (e_param));
   assert (e_exp);
   assert (btor == e_param->btor);
   assert (btor == BTOR_REAL_ADDR_NODE (e_exp)->btor);
@@ -4028,17 +4028,6 @@ btor_is_param_exp (Btor *btor, BtorNode *exp)
 }
 
 bool
-btor_is_bound_param_exp (Btor *btor, BtorNode *param)
-{
-  assert (btor);
-  assert (param);
-  assert (btor == BTOR_REAL_ADDR_NODE (param)->btor);
-  assert (BTOR_IS_PARAM_NODE (BTOR_REAL_ADDR_NODE (param)));
-  param = btor_simplify_exp (btor, param);
-  return BTOR_IS_BOUND_PARAM_NODE (BTOR_REAL_ADDR_NODE (param));
-}
-
-bool
 btor_is_fun_exp (Btor *btor, BtorNode *exp)
 {
   assert (btor);
@@ -4160,6 +4149,13 @@ btor_param_set_binding_lambda (BtorNode *param, BtorNode *lambda)
   assert (BTOR_IS_PARAM_NODE (BTOR_REAL_ADDR_NODE (param)));
   assert (!lambda || BTOR_IS_LAMBDA_NODE (BTOR_REAL_ADDR_NODE (lambda)));
   ((BtorParamNode *) BTOR_REAL_ADDR_NODE (param))->lambda_exp = lambda;
+}
+
+bool
+btor_param_is_bound (BtorNode *param)
+{
+  assert (BTOR_IS_PARAM_NODE (BTOR_REAL_ADDR_NODE (param)));
+  return btor_param_get_binding_lambda (param) != 0;
 }
 
 bool

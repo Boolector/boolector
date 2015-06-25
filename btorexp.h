@@ -361,8 +361,6 @@ typedef struct BtorArgsNode BtorArgsNode;
 #define BTOR_IS_UF_ARRAY_NODE(exp) \
   ((exp) && BTOR_IS_UF_NODE (exp) && ((BtorUFNode *) exp)->is_array)
 
-#define BTOR_IS_BOUND_PARAM_NODE(exp) (((BtorParamNode *) exp)->lambda_exp != 0)
-
 /*------------------------------------------------------------------------*/
 
 struct BtorNodePair
@@ -861,9 +859,6 @@ void btor_set_symbol_exp (Btor *btor, BtorNode *exp, const char *symbol);
 /* Determines if expression is a param or not. */
 bool btor_is_param_exp (Btor *btor, BtorNode *exp);
 
-/* Determines if param is already bound to a lambda expression or not. */
-bool btor_is_bound_param_exp (Btor *btor, BtorNode *param);
-
 /* Determines if expression is a lambda or not. */
 bool btor_is_fun_exp (Btor *btor, BtorNode *exp);
 
@@ -896,6 +891,7 @@ uint32_t btor_slice_get_lower (BtorNode *slice);
 
 BtorNode *btor_param_get_binding_lambda (BtorNode *param);
 void btor_param_set_binding_lambda (BtorNode *param, BtorNode *lambda);
+bool btor_param_is_bound (BtorNode *param);
 
 /* Copies expression (increments reference counter). */
 BtorNode *btor_copy_exp (Btor *btor, BtorNode *exp);

@@ -6652,7 +6652,7 @@ is_valid_argument (Btor *btor, BtorNode *exp)
   if (btor_is_fun_exp (btor, exp)) return 0;
   if (btor_is_array_exp (btor, exp)) return 0;
   /* scope of bound parmaters already closed (cannot be used anymore) */
-  if (BTOR_IS_PARAM_NODE (exp) && BTOR_IS_BOUND_PARAM_NODE (exp)) return 0;
+  if (BTOR_IS_PARAM_NODE (exp) && btor_param_is_bound (exp)) return 0;
   return 1;
 }
 

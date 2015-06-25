@@ -3130,7 +3130,7 @@ boolector_is_bound_param (Btor *btor, BoolectorNode *node)
   simp = btor_simplify_exp (btor, exp);
   BTOR_ABORT_BOOLECTOR (!BTOR_IS_PARAM_NODE (BTOR_REAL_ADDR_NODE (simp)),
                         "given expression is not a parameter node");
-  res = btor_is_bound_param_exp (btor, simp);
+  res = btor_param_is_bound (simp);
   BTOR_TRAPI_RETURN_INT (res);
 #ifndef NDEBUG
   BTOR_CHKCLONE_RES (res, is_bound_param, BTOR_CLONED_EXP (exp));
