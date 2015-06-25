@@ -1217,7 +1217,9 @@ new_lambda_exp_node (Btor *btor, BtorNode *e_param, BtorNode *e_exp)
   /* curried lambdas (functions) */
   if (BTOR_IS_LAMBDA_NODE (BTOR_REAL_ADDR_NODE (e_exp)))
   {
-    lambda_exp->body = btor_simplify_exp (btor, BTOR_LAMBDA_GET_BODY (e_exp));
+    btor_lambda_set_body (
+        (BtorNode *) lambda_exp,
+        btor_simplify_exp (btor, btor_lambda_get_body (e_exp)));
     btor_init_tuple_sort_iterator (
         &it, sorts, btor_get_domain_fun_sort (sorts, e_exp->sort_id));
     while (btor_has_next_tuple_sort_iterator (&it))
@@ -1227,7 +1229,7 @@ new_lambda_exp_node (Btor *btor, BtorNode *e_param, BtorNode *e_exp)
     }
   }
   else
-    lambda_exp->body = e_exp;
+    btor_lambda_set_body ((BtorNode *) lambda_exp, e_exp);
 
   domain = btor_tuple_sort (
       sorts, param_sorts.start, BTOR_COUNT_STACK (param_sorts));
@@ -4113,6 +4115,22 @@ btor_lambda_set_synth_apps (BtorNode *lambda, BtorPtrHashTable *synth_apps)
   assert (BTOR_IS_REGULAR_NODE (lambda));
   assert (BTOR_IS_LAMBDA_NODE (lambda));
   ((BtorLambdaNode *) lambda)->synth_apps = synth_apps;
+}
+
+BtorNode *
+btor_lambda_get_body (BtorNode *lambda)
+{
+  assert (BTOR_IS_REGULAR_NODE (lambda));
+  assert (BTOR_IS_LAMBDA_NODE (lambda));
+  return ((BtorLambdaNode *) lambda)->body;
+}
+
+void
+btor_lambda_set_body (BtorNode *lambda, BtorNode *body)
+{
+  assert (BTOR_IS_REGULAR_NODE (lambda));
+  assert (BTOR_IS_LAMBDA_NODE (lambda));
+  ((BtorLambdaNode *) lambda)->body = body;
 }
 
 uint32_t

@@ -4664,7 +4664,7 @@ lazy_synthesize_and_encode_lambda_exp (Btor *btor,
 
   BTORLOG (1, "%s: %s", __FUNCTION__, node2string (lambda_exp));
 
-  cur = BTOR_REAL_ADDR_NODE (BTOR_LAMBDA_GET_BODY (lambda_exp));
+  cur = BTOR_REAL_ADDR_NODE (btor_lambda_get_body (lambda_exp));
   BTOR_PUSH_STACK (mm, work_stack, cur);
 
   if (((BtorLambdaNode *) lambda_exp)->static_rho)
@@ -5718,7 +5718,7 @@ generate_table_select_branch_ite (Btor *btor, BtorNode *fun)
   BtorNode *cur, *result = 0, *and0[2], *and1[2];
   BtorNode *cond0, *cond1, *next0, *next1;
 
-  cur = BTOR_LAMBDA_GET_BODY (fun);
+  cur = btor_lambda_get_body (fun);
   assert (!BTOR_IS_INVERTED_NODE (cur));
 
   /* general case */

@@ -363,10 +363,6 @@ typedef struct BtorArgsNode BtorArgsNode;
 
 #define BTOR_IS_BOUND_PARAM_NODE(exp) (((BtorParamNode *) exp)->lambda_exp != 0)
 
-#define BTOR_LAMBDA_GET_PARAM(exp) (((BtorParamNode *) exp->e[0]))
-
-#define BTOR_LAMBDA_GET_BODY(exp) (((BtorLambdaNode *) exp)->body)
-
 /*------------------------------------------------------------------------*/
 
 struct BtorNodePair
@@ -890,6 +886,9 @@ void btor_lambda_set_static_rho (BtorNode *lambda,
 
 void btor_lambda_set_synth_apps (BtorNode *lambda,
                                  BtorPtrHashTable *synth_apps);
+
+BtorNode *btor_lambda_get_body (BtorNode *lambda);
+void btor_lambda_set_body (BtorNode *lambda, BtorNode *body);
 
 /* Getter for BtorSliceNode fields */
 uint32_t btor_slice_get_upper (BtorNode *slice);

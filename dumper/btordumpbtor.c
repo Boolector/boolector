@@ -394,10 +394,9 @@ bdcnode (BtorDumpContext *bdc, BtorNode *node, FILE *file)
       while (has_next_lambda_iterator (&nit))
       {
         n = next_lambda_iterator (&nit);
-        fprintf (
-            file, " %d", bdcid (bdc, (BtorNode *) BTOR_LAMBDA_GET_PARAM (n)));
+        fprintf (file, " %d", bdcid (bdc, n->e[0]));
       }
-      fprintf (file, " %d", bdcid (bdc, BTOR_LAMBDA_GET_BODY (node)));
+      fprintf (file, " %d", bdcid (bdc, btor_lambda_get_body (node)));
       goto DONE;
     }
   }

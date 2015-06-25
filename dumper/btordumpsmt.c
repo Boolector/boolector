@@ -855,7 +855,7 @@ dump_fun_smt2 (BtorSMTDumpContext *sdc, BtorNode *fun)
 #endif
 
   /* collect shared parameterized expressions in function body */
-  fun_body = BTOR_LAMBDA_GET_BODY (fun);
+  fun_body = btor_lambda_get_body (fun);
   BTOR_PUSH_STACK (mm, visit, fun_body);
   while (!BTOR_EMPTY_STACK (visit))
   {
@@ -892,7 +892,7 @@ dump_fun_smt2 (BtorSMTDumpContext *sdc, BtorNode *fun)
   while (has_next_lambda_iterator (&it))
   {
     cur   = next_lambda_iterator (&it);
-    param = (BtorNode *) BTOR_LAMBDA_GET_PARAM (cur);
+    param = cur->e[0];
     if (!btor_find_in_ptr_hash_table (mark, cur))
       btor_insert_in_ptr_hash_table (mark, cur);
     if (!btor_find_in_ptr_hash_table (mark, param))
@@ -1127,7 +1127,7 @@ mark_boolean (BtorSMTDumpContext *sdc, BtorNodePtrStack *exps)
     {
       /* boolean function */
       if ((BTOR_IS_LAMBDA_NODE (cur->e[0])
-           && is_boolean (sdc, BTOR_LAMBDA_GET_BODY (cur->e[0])))
+           && is_boolean (sdc, btor_lambda_get_body (cur->e[0])))
           || (BTOR_IS_UF_NODE (cur->e[0])
               && btor_is_bool_sort (
                      &sdc->btor->sorts_unique_table,

@@ -367,8 +367,8 @@ is_write_exp (BtorNode *exp,
   if (!BTOR_IS_LAMBDA_NODE (exp) || btor_get_fun_arity (exp->btor, exp) > 1)
     return 0;
 
-  param = (BtorNode *) BTOR_LAMBDA_GET_PARAM (exp);
-  body  = BTOR_LAMBDA_GET_BODY (exp);
+  param = exp->e[0];
+  body  = btor_lambda_get_body (exp);
 
   if (BTOR_IS_INVERTED_NODE (body) || !BTOR_IS_BV_COND_NODE (body)) return 0;
 
@@ -405,8 +405,8 @@ is_array_ite_exp (BtorNode *exp, BtorNode **array_if, BtorNode **array_else)
   if (!BTOR_IS_LAMBDA_NODE (exp) || btor_get_fun_arity (exp->btor, exp) > 1)
     return 0;
 
-  param = (BtorNode *) BTOR_LAMBDA_GET_PARAM (exp);
-  body  = BTOR_LAMBDA_GET_BODY (exp);
+  param = exp->e[0];
+  body  = btor_lambda_get_body (exp);
 
   if (BTOR_IS_INVERTED_NODE (body) || !BTOR_IS_BV_COND_NODE (body)) return 0;
 

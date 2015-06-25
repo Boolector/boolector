@@ -180,7 +180,7 @@ btor_assign_param (Btor *btor, BtorNode *lambda, BtorNode *arg)
 
   BtorParamNode *param;
 
-  param = BTOR_LAMBDA_GET_PARAM (lambda);
+  param = (BtorParamNode *) lambda->e[0];
   assert (BTOR_IS_REGULAR_NODE (param));
   assert (BTOR_REAL_ADDR_NODE (arg)->sort_id == param->sort_id);
   //  BTORLOG ("  assign: %s (%s)", node2string (lambda), node2string (arg));
@@ -741,7 +741,7 @@ btor_beta_reduce_partial_aux (Btor *btor,
   real_cur = BTOR_REAL_ADDR_NODE (exp);
 
   /* skip all nested lambdas */
-  if (BTOR_IS_LAMBDA_NODE (real_cur)) exp = BTOR_LAMBDA_GET_BODY (real_cur);
+  if (BTOR_IS_LAMBDA_NODE (real_cur)) exp = btor_lambda_get_body (real_cur);
 
   BTOR_PUSH_STACK (mm, stack, exp);
   BTOR_PUSH_STACK (mm, stack, 0);

@@ -128,7 +128,7 @@ btor_merge_lambdas (Btor *btor)
 
     /* search downwards and look for lambdas that can be merged */
     BTOR_RESET_STACK (visit);
-    BTOR_PUSH_STACK (mm, visit, BTOR_LAMBDA_GET_BODY (lambda));
+    BTOR_PUSH_STACK (mm, visit, btor_lambda_get_body (lambda));
     merge_lambdas = btor_new_ptr_hash_table (mm, 0, 0);
     btor_insert_in_ptr_hash_table (merge_lambdas, lambda);
     while (!BTOR_EMPTY_STACK (visit))
@@ -161,7 +161,7 @@ btor_merge_lambdas (Btor *btor)
 
         if (!btor_find_in_ptr_hash_table (merge_lambdas, cur))
           btor_insert_in_ptr_hash_table (merge_lambdas, cur);
-        BTOR_PUSH_STACK (mm, visit, BTOR_LAMBDA_GET_BODY (cur));
+        BTOR_PUSH_STACK (mm, visit, btor_lambda_get_body (cur));
       }
       else
       {
@@ -190,7 +190,7 @@ btor_merge_lambdas (Btor *btor)
     }
     /* merge lambdas that are in 'merge_lambdas' table */
     body = btor_beta_reduce_merge (
-        btor, BTOR_LAMBDA_GET_BODY (lambda), merge_lambdas);
+        btor, btor_lambda_get_body (lambda), merge_lambdas);
     btor_unassign_params (btor, lambda);
     subst = btor_fun_exp (btor, BTOR_COUNT_STACK (params), params.start, body);
     btor_release_exp (btor, body);
