@@ -88,18 +88,46 @@ min_flip (Btor *btor, BtorBitVector *bv1, BtorBitVector *bv2)
   assert (bv1->width == bv2->width);
   assert (bv1->len == bv2->len);
 
-  int i, res, b1;
+  int i, res;
   BtorBitVector *tmp;
+
+  if (btor_is_zero_bv (bv2))
+    res = hamming_distance (btor, bv1, bv2) + 1;
+  else
+  {
+    tmp = btor_copy_bv (btor->mm, bv1);
+    for (res = 1, i = tmp->width - 1; i >= 0; i--)
+    {
+      if (!btor_get_bit_bv (tmp, i)) continue;
+      res += 1;
+      btor_set_bit_bv (tmp, i, 0);
+      if (btor_compare_bv (tmp, bv2) < 0) break;
+    }
+    if (btor_is_zero_bv (bv2)) res += 1;
+    btor_free_bv (btor->mm, tmp);
+  }
+  return res;
+}
+
+static int
+min_flip_inv (Btor *btor, BtorBitVector *bv1, BtorBitVector *bv2)
+{
+  assert (bv1);
+  assert (bv2);
+  assert (bv1->width == bv2->width);
+  assert (bv1->len == bv2->len);
+
+  int i, res;
+  BtorBitVector *tmp, *tmpbv1;
 
   tmp = btor_copy_bv (btor->mm, bv1);
   for (res = 1, i = tmp->width - 1; i >= 0; i--)
   {
-    if (!(b1 = btor_get_bit_bv (tmp, i))) continue;
+    if (btor_get_bit_bv (tmp, i)) continue;
     res += 1;
-    btor_set_bit_bv (tmp, i, 0);
-    if (btor_compare_bv (tmp, bv2) < 0) break;
+    btor_set_bit_bv (tmp, i, 1);
+    if (btor_compare_bv (tmp, bv2) >= 0) break;
   }
-  res = btor_is_zero_bv (bv2) ? res + 1 : res;
   btor_free_bv (btor->mm, tmp);
   return res;
 }
@@ -312,7 +340,8 @@ compute_sls_score_node (Btor *btor,
                     ? 1.0
                     : BTOR_SLS_SCORE_CFACT
                           * (1.0
-                             - min_flip (btor, bv0, bv1) / (double) bv0->width);
+                             - min_flip_inv (btor, bv0, bv1)
+                                   / (double) bv0->width);
         else
           res = btor_compare_bv (bv0, bv1) < 0
                     ? 1.0
