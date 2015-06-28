@@ -106,15 +106,15 @@ min_flip (Btor *btor, BtorBitVector *bv1, BtorBitVector *bv2)
 
 // score
 //
-// bw m == 1:
+// Boolean variable:
 //   s (e[1], A) = A (e[1])
 //
-// bw m > 1:
+// bw m >= 1:
 //
 //   score (e0[bw] /\ e1[bw], A)    =
 //       1/2 * (score (e0[bw], A) + score (e1[bw], A))
 //
-//   score (-(e0[bw] /\ ... /\ e1[bw]), A) =
+//   score (-(-e0[bw] /\ ... /\ -e1[bw]), A) =
 //       max (score (-e0[bw], A), score (-e1[bw], A))
 //
 //   score (e0[bw] = e1[bw], A) =
