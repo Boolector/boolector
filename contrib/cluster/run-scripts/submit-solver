@@ -137,7 +137,7 @@ ntasks=$(wc -l $benchmarks_file | cut -d ' ' -f 1)
 # get most common prefix of all benchmark files
 prefix=$(cat $benchmarks_file | sed -e 'N;s/^\(.*\).*\n\1.*$/\1\n\1/;D')
 
-qsub -t 1-$ntasks $HOME/bin/launch_array \
+qsub -t 1-$ntasks $HOME/bin/launch \
   "$working_dir/benchmarks" \
   "$prefix" \
   "$working_dir" \
