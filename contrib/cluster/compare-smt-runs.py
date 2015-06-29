@@ -1070,15 +1070,17 @@ if __name__ == "__main__":
         if g_args.show_all:
             g_args.columns = FILE_STATS_KEYS
 
-        g_args.timeout = [float(s) for s in g_args.timeout.split(',')]
-        if len(g_args.timeout) > 1 and len(g_args.timeout) != len(g_args.dirs):
-               raise CmpSMTException ("invalid number of timeouts given")
-        if g_args.timeout and len(g_args.timeout) == 1:
-            g_args.timeout = [g_args.timeout[0] for d in g_args.dirs]
-        assert (len(g_args.timeout) == len(g_args.dirs))    
-        tmp = { g_args.dirs[i]:g_args.timeout[i] \
-                for i in range(0, len(g_args.dirs)) }
-        g_args.timeout = tmp
+        if g_args.timeout:
+            g_args.timeout = [float(s) for s in g_args.timeout.split(',')]
+            if len(g_args.timeout) > 1 \
+               and len(g_args.timeout) != len(g_args.dirs):
+                   raise CmpSMTException ("invalid number of timeouts given")
+            if g_args.timeout and len(g_args.timeout) == 1:
+                g_args.timeout = [g_args.timeout[0] for d in g_args.dirs]
+            assert (len(g_args.timeout) == len(g_args.dirs))    
+            tmp = { g_args.dirs[i]:g_args.timeout[i] \
+                    for i in range(0, len(g_args.dirs)) }
+            g_args.timeout = tmp
 
         # we need column result for some other columns
         if 'result' not in g_args.columns and \
