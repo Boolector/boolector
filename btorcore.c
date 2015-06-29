@@ -6350,6 +6350,7 @@ add_function_inequality_constraints (Btor *btor)
   {
     cur = BTOR_POP_STACK (feqs);
     assert (BTOR_IS_FEQ_NODE (cur));
+    assert (!cur->parameterized);
     assert (cur->reachable);
     neq = create_function_inequality (btor, cur);
     con = btor_implies_exp (btor, BTOR_INVERT_NODE (cur), neq);
