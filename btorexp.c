@@ -1738,28 +1738,6 @@ find_exp (Btor *btor,
   return find_bv_exp (btor, kind, arity, e);
 }
 
-// TODO (ma): this function does not make any sense
-BtorNode **
-btor_find_unique_exp (Btor *btor, BtorNode *exp)
-{
-  assert (btor);
-  assert (exp);
-  assert (btor == BTOR_REAL_ADDR_NODE (exp)->btor);
-
-  exp = BTOR_REAL_ADDR_NODE (exp);
-  if (BTOR_IS_BV_CONST_NODE (exp))
-    return find_const_exp (
-        btor, btor_const_get_bits (exp), btor_get_exp_width (btor, exp));
-  if (BTOR_IS_SLICE_NODE (exp))
-    return find_slice_exp (btor,
-                           exp->e[0],
-                           btor_slice_get_upper (exp),
-                           btor_slice_get_lower (exp));
-  if (BTOR_IS_LAMBDA_NODE (exp))
-    return find_lambda_exp (btor, exp->e[0], exp->e[1], 0, 1);
-  return find_exp (btor, exp->kind, exp->arity, exp->e, 0);
-}
-
 /* Enlarges unique table and rehashes expressions. */
 static void
 enlarge_nodes_unique_table (Btor *btor)
@@ -2318,8 +2296,7 @@ btor_fun_exp (Btor *btor, uint32_t paramc, BtorNode **params, BtorNode *exp)
   return fun;
 }
 
-// TODO: global define?
-#define MAX_NUM_CHILDREN 3
+#define ARGS_MAX_NUM_CHILDREN 3
 
 BtorNode *
 btor_args_exp (Btor *btor, uint32_t argc, BtorNode **args)
@@ -2329,29 +2306,29 @@ btor_args_exp (Btor *btor, uint32_t argc, BtorNode **args)
   assert (args);
 
   int i, cur_argc, cnt_args, rem_free, num_args;
-  BtorNode *e[MAX_NUM_CHILDREN];
+  BtorNode *e[ARGS_MAX_NUM_CHILDREN];
   BtorNode *result = 0, *last = 0;
 
   /* arguments fit in one args node */
-  if (argc <= MAX_NUM_CHILDREN)
+  if (argc <= ARGS_MAX_NUM_CHILDREN)
   {
     num_args = 1;
-    rem_free = MAX_NUM_CHILDREN - argc;
+    rem_free = ARGS_MAX_NUM_CHILDREN - argc;
     cur_argc = argc;
   }
   /* arguments have to be split into several args nodes.
    * compute number of required args nodes */
   else
   {
-    rem_free = argc % (MAX_NUM_CHILDREN - 1);
-    num_args = argc / (MAX_NUM_CHILDREN - 1);
+    rem_free = argc % (ARGS_MAX_NUM_CHILDREN - 1);
+    num_args = argc / (ARGS_MAX_NUM_CHILDREN - 1);
     /* we can store at most 1 more element into 'num_args' nodes
      * without needing an additional args node */
     if (rem_free > 1) num_args += 1;
 
     assert (num_args > 1);
     /* compute number of arguments in last args node */
-    cur_argc = argc - (num_args - 1) * (MAX_NUM_CHILDREN - 1);
+    cur_argc = argc - (num_args - 1) * (ARGS_MAX_NUM_CHILDREN - 1);
   }
   cnt_args = cur_argc - 1;
 
@@ -2359,7 +2336,7 @@ btor_args_exp (Btor *btor, uint32_t argc, BtorNode **args)
   for (i = argc - 1; i >= 0; i--)
   {
     assert (cnt_args >= 0);
-    assert (cnt_args <= MAX_NUM_CHILDREN);
+    assert (cnt_args <= ARGS_MAX_NUM_CHILDREN);
     assert (!BTOR_IS_FUN_NODE (BTOR_REAL_ADDR_NODE (args[i])));
     assert (btor == BTOR_REAL_ADDR_NODE (args[i])->btor);
     e[cnt_args] = btor_simplify_exp (btor, args[i]);
@@ -2371,7 +2348,7 @@ btor_args_exp (Btor *btor, uint32_t argc, BtorNode **args)
       result = create_exp (btor, BTOR_ARGS_NODE, cur_argc, e);
 
       /* init for next iteration */
-      cur_argc    = MAX_NUM_CHILDREN;
+      cur_argc    = ARGS_MAX_NUM_CHILDREN;
       cnt_args    = cur_argc - 1;
       e[cnt_args] = result;
       cnt_args -= 1;
