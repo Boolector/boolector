@@ -287,7 +287,6 @@ btor_beta_reduce (Btor *btor,
   {
     cur_parent = BTOR_POP_STACK (stack);
     cur        = BTOR_POP_STACK (stack);
-    // TODO: directly push simplified exp onto stack at the beginning
     /* we do not want the simplification of top level apply constraints */
     if (BTOR_REAL_ADDR_NODE (cur)->constraint
         && BTOR_IS_APPLY_NODE (BTOR_REAL_ADDR_NODE (cur)))
@@ -557,7 +556,6 @@ btor_beta_reduce (Btor *btor,
           result = 0;
           /* not reachable */
           assert (0);
-          // TODO: abort
       }
 
       /* cache rebuilt parameterized node with current arguments */
@@ -745,7 +743,6 @@ btor_beta_reduce_partial_aux (Btor *btor,
 
   BTOR_PUSH_STACK (mm, stack, exp);
   BTOR_PUSH_STACK (mm, stack, 0);
-  // TODO: intially we do not have args (assigned from outside)
 
   while (!BTOR_EMPTY_STACK (stack))
   {
@@ -1019,7 +1016,6 @@ btor_beta_reduce_partial_aux (Btor *btor,
           result = 0;
           /* not reachable */
           assert (0);
-          // TODO: abort
       }
 
       next = BTOR_REAL_ADDR_NODE (result);

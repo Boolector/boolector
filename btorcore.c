@@ -3153,11 +3153,6 @@ btor_simplify (Btor *btor)
       btor_extract_lambdas (btor);
 
     if (btor->options.rewrite_level.val > 2
-        /* FIXME: merging not supported yet for extensional lambdas */
-        && btor->ops[BTOR_FEQ_NODE].cur == 0
-        /* FIXME: merging not supported yet for incremental due to
-         * extensionality*/
-        && !btor->options.incremental.val
         /* merging lambdas not required if they get eliminated */
         && !btor->options.beta_reduce_all.val
         && btor->options.merge_lambdas.val)
@@ -5511,8 +5506,6 @@ propagate (Btor *btor,
 
     /* push applies onto the propagation stack that are necessary to derive
      * 'fun_value' */
-    // TODO: applies on to_prop need to be more accurate...
-    //       too many synthesized lambda applies!!!
     if (to_prop->count > 0)
     {
       init_node_hash_table_iterator (&it, to_prop);
@@ -6097,9 +6090,8 @@ BTOR_CONFLICT_CHECK:
       propagate (btor, &prop_stack, cleanup_table, apply_search_cache);
   found_conflicts = BTOR_COUNT_STACK (slv->cur_lemmas);
 
-  if (!changed_assignments
-      // TODO: check extensionlity if eager lemmas enabled
-      && !found_conflicts && btor->ops[BTOR_FEQ_NODE].cur > 0)
+  if (!changed_assignments && !found_conflicts
+      && btor->ops[BTOR_FEQ_NODE].cur > 0)
   {
     assert (BTOR_EMPTY_STACK (prop_stack));
     add_extensionality_lemmas (btor, &prop_stack);
@@ -7189,49 +7181,6 @@ check_model (Btor *btor, Btor *clone, BtorPtrHashTable *inputs)
 
   /* apply variable substitution until fixpoint */
   while (clone->varsubst_constraints->count > 0) substitute_var_exps (clone);
-
-#if 0
-  /* add function models */
-  assert (!clone->substitutions);
-  btor_init_substitutions (clone);
-  init_node_hash_table_iterator (&it, inputs);
-  while (has_next_node_hash_table_iterator (&it))
-    {
-      exp = (BtorNode *) it.bucket->data.asPtr;
-      assert (exp);
-      assert (BTOR_IS_REGULAR_NODE (exp));
-      assert (exp->btor == btor);
-      cur = next_node_hash_table_iterator (&it);
-      assert (BTOR_IS_REGULAR_NODE (cur));
-      assert (cur->btor == clone);
-      simp = btor_simplify_exp (clone, cur);
-      real_simp = BTOR_REAL_ADDR_NODE (simp);
-
-      if (btor_find_in_ptr_hash_table (clone->substitutions, real_simp))
-	continue;
-
-      if (!BTOR_IS_FUN_NODE (real_simp))
-	continue;
-
-      fmodel = btor_get_fun_model (btor, exp);
-
-      if (!fmodel)
-	continue;
-
-      model = btor_generate_lambda_model_from_fun_model (
-		  clone, real_simp, fmodel);
-      assert (!btor_find_in_ptr_hash_table (clone->substitutions,
-					    real_simp));
-      // TODO (ma): as soon as we support extensionality we add an
-      //            equality of two functions
-      //            right now we substitute the original function with the
-      //            model, which still detects invalid models
-      btor_insert_substitution (clone, real_simp, model, 0);
-      btor_release_exp (clone, model);
-    }
-  substitute_and_rebuild (clone, clone->substitutions, 0);
-  btor_delete_substitutions (clone);
-#endif
 
   clone->options.beta_reduce_all.val = 1;
   ret                                = btor_simplify (clone);
