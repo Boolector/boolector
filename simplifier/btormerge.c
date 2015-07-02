@@ -16,6 +16,35 @@
 #include "utils/btoriter.h"
 #include "utils/btorutil.h"
 
+#ifndef NDEBUG
+static bool
+check_static_rho_equal_dbg (BtorPtrHashTable *t0, BtorPtrHashTable *t1)
+{
+  assert (t0);
+  assert (t1);
+  assert (t0->count == t1->count);
+
+  BtorNode *args0, *args1, *value0, *value1;
+  BtorHashTableIterator it0, it1;
+
+  init_node_hash_table_iterator (&it0, t0);
+  init_node_hash_table_iterator (&it1, t1);
+  while (has_next_node_hash_table_iterator (&it0))
+  {
+    value0 = it0.bucket->data.asPtr;
+    value1 = it1.bucket->data.asPtr;
+    args0  = next_node_hash_table_iterator (&it0);
+    args1  = next_node_hash_table_iterator (&it1);
+    assert (args0->arity == 1);
+    assert (args0->arity == args1->arity);
+    assert ((BTOR_IS_BV_CONST_NODE (BTOR_REAL_ADDR_NODE (args0->e[0]))
+             && BTOR_IS_BV_CONST_NODE (BTOR_REAL_ADDR_NODE (args1->e[0])))
+            || (args0 == args1 && value0 == value1));
+  }
+  return true;
+}
+#endif
+
 static void
 delete_static_rho (Btor *btor, BtorPtrHashTable *static_rho)
 {
@@ -47,26 +76,6 @@ add_to_static_rho (Btor *btor, BtorPtrHashTable *to, BtorPtrHashTable *from)
     btor_insert_in_ptr_hash_table (to, btor_copy_exp (btor, key))->data.asPtr =
         btor_copy_exp (btor, data);
   }
-}
-
-static bool
-check_static_rho_equal_dbg (BtorPtrHashTable *t0, BtorPtrHashTable *t1)
-{
-  assert (t0);
-  assert (t1);
-  assert (t0->count == t1->count);
-
-  BtorHashTableIterator it0, it1;
-
-  init_node_hash_table_iterator (&it0, t0);
-  init_node_hash_table_iterator (&it1, t1);
-  while (has_next_node_hash_table_iterator (&it0))
-  {
-    assert (it0.bucket->data.asPtr == it1.bucket->data.asPtr);
-    assert (next_node_hash_table_iterator (&it0)
-            == next_node_hash_table_iterator (&it1));
-  }
-  return true;
 }
 
 void
