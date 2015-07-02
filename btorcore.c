@@ -5916,7 +5916,7 @@ add_extensionality_lemmas (Btor *btor, BtorNodePtrStack *prop_stack)
   char *eval;
   unsigned num_lemmas = 0;
   BtorNode *cur, *cur_args, *app0, *app1, *eq, *con, *value;
-  BtorNodeIterator it;
+  BtorHashTableIterator it;
   BtorPtrHashTable *table0, *table1, *conflicts;
   BtorHashTableIterator hit;
   BtorNodePtrStack feqs;
@@ -5931,12 +5931,13 @@ add_extensionality_lemmas (Btor *btor, BtorNodePtrStack *prop_stack)
   mm  = btor->mm;
   BTOR_INIT_STACK (feqs);
 
-  /* collect all reachable function applications */
-  init_unique_table_iterator (btor, &it);
-  while (has_next_unique_table_iterator (&it))
+  /* collect all reachable function equalities */
+  init_node_hash_table_iterator (&it, btor->feqs);
+  while (has_next_node_hash_table_iterator (&it))
   {
-    cur = next_unique_table_iterator (&it);
-    if (!BTOR_IS_FEQ_NODE (cur) || !cur->reachable) continue;
+    cur = next_node_hash_table_iterator (&it);
+    assert (BTOR_IS_FEQ_NODE (cur));
+    if (!cur->reachable) continue;
     BTOR_PUSH_STACK (btor->mm, feqs, cur);
   }
 
