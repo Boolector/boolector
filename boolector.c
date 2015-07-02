@@ -344,6 +344,8 @@ boolector_assert (Btor *btor, BoolectorNode *node)
   BTOR_ABORT_ARRAY_BOOLECTOR (simp);
   BTOR_ABORT_BOOLECTOR (btor_get_exp_width (btor, simp) != 1,
                         "'exp' must have bit-width one");
+  BTOR_ABORT_BOOLECTOR (BTOR_REAL_ADDR_NODE (simp)->parameterized,
+                        "assertion must not be parameterized");
   btor_assert_exp (btor, simp);
 #ifndef NDEBUG
   BTOR_CHKCLONE_NORES (assert, BTOR_CLONED_EXP (exp));
@@ -370,6 +372,8 @@ boolector_assume (Btor *btor, BoolectorNode *node)
   BTOR_ABORT_ARRAY_BOOLECTOR (simp);
   BTOR_ABORT_BOOLECTOR (btor_get_exp_width (btor, simp) != 1,
                         "'exp' must have bit-width one");
+  BTOR_ABORT_BOOLECTOR (BTOR_REAL_ADDR_NODE (simp)->parameterized,
+                        "assumption must not be parameterized");
   btor_assume_exp (btor, simp);
 #ifndef NDEBUG
   BTOR_CHKCLONE_NORES (assume, BTOR_CLONED_EXP (exp));
