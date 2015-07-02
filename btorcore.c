@@ -3150,7 +3150,7 @@ btor_simplify (Btor *btor)
 
     if (btor->options.rewrite_level.val > 2
         /* FIXME: extraction not supported yet for extensional lambdas */
-        && btor->ops[BTOR_FEQ_NODE].cur == 0
+        && btor->feqs->count == 0
         /* FIXME: merging not supported yet for incremental due to
          * extensionality*/
         && !btor->options.incremental.val && !btor->options.beta_reduce_all.val
@@ -3185,7 +3185,7 @@ btor_simplify (Btor *btor)
     if (btor->options.beta_reduce_all.val
         /* FIXME: full beta reduction may produce lambdas that do not have a
          * static_rho */
-        && btor->ops[BTOR_FEQ_NODE].cur == 0)
+        && btor->feqs->count == 0)
       btor_eliminate_applies (btor);
 
     /* add ackermann constraints for all uninterpreted functions */
@@ -5907,12 +5907,11 @@ generate_table (Btor *btor, BtorNode *fun)
 }
 
 static void
-add_extensionality_lemmas (Btor *btor, BtorNodePtrStack *prop_stack)
+add_extensionality_lemmas (Btor *btor)
 {
   assert (btor);
   assert (btor->slv);
   assert (btor->slv->kind == BTOR_CORE_SOLVER_KIND);
-  assert (prop_stack);
 
   bool skip;
   char *eval;
@@ -6110,11 +6109,10 @@ BTOR_CONFLICT_CHECK:
       propagate (btor, &prop_stack, cleanup_table, apply_search_cache);
   found_conflicts = BTOR_COUNT_STACK (slv->cur_lemmas);
 
-  if (!changed_assignments && !found_conflicts
-      && btor->ops[BTOR_FEQ_NODE].cur > 0)
+  if (!changed_assignments && !found_conflicts && btor->feqs->count > 0)
   {
     assert (BTOR_EMPTY_STACK (prop_stack));
-    add_extensionality_lemmas (btor, &prop_stack);
+    add_extensionality_lemmas (btor);
     found_conflicts = BTOR_COUNT_STACK (slv->cur_lemmas);
   }
 
@@ -6328,31 +6326,32 @@ static void
 add_function_inequality_constraints (Btor *btor)
 {
   BtorNode *cur, *neq, *con;
-  BtorNodeIterator it;
   BtorNodePtrStack feqs;
-  BtorHashTableIterator hit;
+  BtorHashTableIterator it;
 
   // TODO (ma): optimization: add inequality only once for each function eq
   //		for now every sat call a new ineq is added
 
   /* we have to add inequality constraints for every function equality
    * in the formula (var_rhs and fun_rhs are still part of the formula). */
-  btor_init_node_hash_table_iterator (&hit, btor->var_rhs);
-  btor_queue_node_hash_table_iterator (&hit, btor->fun_rhs);
-  while (btor_has_next_node_hash_table_iterator (&hit))
+  btor_init_node_hash_table_iterator (&it, btor->var_rhs);
+  btor_queue_node_hash_table_iterator (&it, btor->fun_rhs);
+  while (btor_has_next_node_hash_table_iterator (&it))
   {
-    cur = btor_next_node_hash_table_iterator (&hit);
+    cur = btor_next_node_hash_table_iterator (&it);
     cur = btor_simplify_exp (btor, cur);
     mark_reachable (btor, cur);
   }
 
   /* collect all reachable function equalities */
   BTOR_INIT_STACK (feqs);
-  btor_init_unique_table_iterator (&it, btor);
-  while (btor_has_next_unique_table_iterator (&it))
+  btor_init_node_hash_table_iterator (&it, btor->feqs);
+  while (btor_has_next_node_hash_table_iterator (&it))
   {
-    cur = btor_next_unique_table_iterator (&it);
-    if (!BTOR_IS_FEQ_NODE (cur) || !cur->reachable) continue;
+    cur = btor_next_node_hash_table_iterator (&it);
+    assert (BTOR_IS_REGULAR_NODE (cur));
+    assert (BTOR_IS_FEQ_NODE (cur));
+    if (!cur->reachable) continue;
     mark_reachable (btor, cur);
     BTOR_PUSH_STACK (btor->mm, feqs, cur);
   }
@@ -6408,7 +6407,7 @@ sat_aux_btor_dual_prop (Btor *btor)
 
   if (btor->valid_assignments == 1) reset_incremental_usage (btor);
 
-  if (btor->ops[BTOR_FEQ_NODE].cur > 0)
+  if (btor->feqs->count > 0)
   {
     update_reachable (btor, 1);
     add_function_inequality_constraints (btor);
@@ -7468,7 +7467,7 @@ sat_core_solver (Btor *btor, int lod_limit, int sat_limit)
 
   if (btor->valid_assignments == 1) reset_incremental_usage (btor);
 
-  if (btor->ops[BTOR_FEQ_NODE].cur > 0)
+  if (btor->feqs->count > 0)
   {
     update_reachable (btor, 1);
     add_function_inequality_constraints (btor);
