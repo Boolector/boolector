@@ -735,6 +735,9 @@ remove_from_hash_tables (Btor *btor, BtorNode *exp, int keep_symbol)
     case BTOR_UF_NODE:
       btor_remove_from_ptr_hash_table (btor->ufs, exp, 0, 0);
       break;
+    case BTOR_FEQ_NODE:
+      btor_remove_from_ptr_hash_table (btor->feqs, exp, 0, 0);
+      break;
     default: break;
   }
 
@@ -1353,6 +1356,12 @@ new_bv_node (Btor *btor, BtorNodeKind kind, int arity, BtorNode **e)
 
   for (i = 0; i < arity; i++)
     connect_child_exp (btor, (BtorNode *) exp, e[i], i);
+
+  if (kind == BTOR_FEQ_NODE)
+  {
+    assert (!btor_find_in_ptr_hash_table (btor->feqs, exp));
+    btor_insert_in_ptr_hash_table (btor->feqs, exp);
+  }
 
   return (BtorNode *) exp;
 }

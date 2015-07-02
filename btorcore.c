@@ -718,6 +718,9 @@ new_aux_btor (int init_opts)
   btor->lambdas = btor_new_ptr_hash_table (mm,
                                            (BtorHashPtr) btor_hash_exp_by_id,
                                            (BtorCmpPtr) btor_compare_exp_by_id);
+  btor->feqs    = btor_new_ptr_hash_table (mm,
+                                        (BtorHashPtr) btor_hash_exp_by_id,
+                                        (BtorCmpPtr) btor_compare_exp_by_id);
 
   btor->valid_assignments = 1;
 
@@ -1013,6 +1016,7 @@ btor_delete_btor (Btor *btor)
   btor_delete_ptr_hash_table (btor->bv_vars);
   btor_delete_ptr_hash_table (btor->ufs);
   btor_delete_ptr_hash_table (btor->lambdas);
+  btor_delete_ptr_hash_table (btor->feqs);
   btor_delete_ptr_hash_table (btor->parameterized);
 
   btor_delete_aigvec_mgr (btor->avmgr);
@@ -1835,6 +1839,7 @@ btor_assume_exp (Btor *btor, BtorNode *exp)
   assert (btor);
   assert (btor->options.incremental.val);
   assert (exp);
+  assert (!BTOR_REAL_ADDR_NODE (exp)->parameterized);
 
   /* Note: do not simplify constraint expression in order to prevent
    *       constraint expressions from not being added to btor->assumptions. */

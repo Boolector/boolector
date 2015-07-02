@@ -124,6 +124,7 @@ struct Btor
   BtorPtrHashTable *bv_vars;
   BtorPtrHashTable *ufs;
   BtorPtrHashTable *lambdas;
+  BtorPtrHashTable *feqs;
   BtorPtrHashTable *parameterized;
 
   BtorPtrHashTable *substitutions;

@@ -1011,6 +1011,9 @@ clone_aux_btor (Btor *btor, BtorNodeMap **exp_map, bool exp_layer_only)
   CLONE_PTR_HASH_TABLE_DATA (lambdas, btor_clone_data_as_int);
   assert ((allocated += MEM_PTR_HASH_TABLE (btor->lambdas))
           == clone->mm->allocated);
+  CLONE_PTR_HASH_TABLE (feqs);
+  assert ((allocated += MEM_PTR_HASH_TABLE (btor->feqs))
+          == clone->mm->allocated);
   CLONE_PTR_HASH_TABLE_DATA (substitutions, btor_clone_data_as_node_ptr);
   assert ((allocated += MEM_PTR_HASH_TABLE (btor->substitutions))
           == clone->mm->allocated);
