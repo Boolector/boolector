@@ -159,10 +159,10 @@ compute_scores_aux_min_app (Btor *btor, BtorNodePtrStack *nodes)
         if (!min_t || t->count < min_t->count) min_t = t;
       }
       assert (min_t);
-      init_node_hash_table_iterator (&it, min_t);
-      while (has_next_node_hash_table_iterator (&it))
+      btor_init_node_hash_table_iterator (&it, min_t);
+      while (btor_has_next_node_hash_table_iterator (&it))
       {
-        e = next_node_hash_table_iterator (&it);
+        e = btor_next_node_hash_table_iterator (&it);
         assert (!btor_find_in_ptr_hash_table (in, e));
         btor_insert_in_ptr_hash_table (in, btor_copy_exp (btor, e));
       }
@@ -177,10 +177,10 @@ compute_scores_aux_min_app (Btor *btor, BtorNodePtrStack *nodes)
         {
           /* merge tables */
           delta = btor_time_stamp ();
-          init_node_hash_table_iterator (&it, t);
-          while (has_next_node_hash_table_iterator (&it))
+          btor_init_node_hash_table_iterator (&it, t);
+          while (btor_has_next_node_hash_table_iterator (&it))
           {
-            e = next_node_hash_table_iterator (&it);
+            e = btor_next_node_hash_table_iterator (&it);
             if (!btor_find_in_ptr_hash_table (in, e))
               btor_insert_in_ptr_hash_table (in, btor_copy_exp (btor, e));
           }
@@ -258,11 +258,11 @@ btor_compute_scores (Btor *btor)
                                           (BtorHashPtr) btor_hash_exp_by_id,
                                           (BtorCmpPtr) btor_compare_exp_by_id);
 
-  init_node_hash_table_iterator (&it, btor->synthesized_constraints);
-  queue_node_hash_table_iterator (&it, btor->assumptions);
-  while (has_next_node_hash_table_iterator (&it))
+  btor_init_node_hash_table_iterator (&it, btor->synthesized_constraints);
+  btor_queue_node_hash_table_iterator (&it, btor->assumptions);
+  while (btor_has_next_node_hash_table_iterator (&it))
   {
-    cur = next_node_hash_table_iterator (&it);
+    cur = btor_next_node_hash_table_iterator (&it);
     BTOR_PUSH_STACK (btor->mm, stack, cur);
     while (!BTOR_EMPTY_STACK (stack))
     {
@@ -332,11 +332,11 @@ btor_compute_scores_dual_prop (Btor *btor)
                                           (BtorCmpPtr) btor_compare_exp_by_id);
 
   /* collect applies in bv skeleton */
-  init_node_hash_table_iterator (&it, btor->synthesized_constraints);
-  queue_node_hash_table_iterator (&it, btor->assumptions);
-  while (has_next_node_hash_table_iterator (&it))
+  btor_init_node_hash_table_iterator (&it, btor->synthesized_constraints);
+  btor_queue_node_hash_table_iterator (&it, btor->assumptions);
+  while (btor_has_next_node_hash_table_iterator (&it))
   {
-    cur = next_node_hash_table_iterator (&it);
+    cur = btor_next_node_hash_table_iterator (&it);
     BTOR_PUSH_STACK (btor->mm, stack, cur);
     while (!BTOR_EMPTY_STACK (stack))
     {

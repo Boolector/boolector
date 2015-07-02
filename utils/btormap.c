@@ -41,13 +41,13 @@ btor_delete_node_map (BtorNodeMap *map)
   BtorHashTableIterator it;
   BtorNode *cur;
 
-  init_node_hash_table_iterator (&it, map->table);
-  while (has_next_node_hash_table_iterator (&it))
+  btor_init_node_hash_table_iterator (&it, map->table);
+  while (btor_has_next_node_hash_table_iterator (&it))
   {
     btor_release_exp (
         BTOR_REAL_ADDR_NODE ((BtorNode *) it.bucket->data.asPtr)->btor,
         it.bucket->data.asPtr);
-    cur = next_node_hash_table_iterator (&it);
+    cur = btor_next_node_hash_table_iterator (&it);
     btor_release_exp (BTOR_REAL_ADDR_NODE (cur)->btor, cur);
   }
   btor_delete_ptr_hash_table (map->table);
@@ -393,11 +393,11 @@ btor_delete_aig_map (BtorAIGMap *map)
 
   btor = map->btor;
 
-  init_hash_table_iterator (&it, map->table);
-  while (has_next_hash_table_iterator (&it))
+  btor_init_hash_table_iterator (&it, map->table);
+  while (btor_has_next_hash_table_iterator (&it))
   {
     btor_release_aig (map->amgr_dst, it.bucket->data.asPtr);
-    btor_release_aig (map->amgr_src, next_hash_table_iterator (&it));
+    btor_release_aig (map->amgr_src, btor_next_hash_table_iterator (&it));
   }
   btor_delete_ptr_hash_table (map->table);
   BTOR_DELETE (btor->mm, map);

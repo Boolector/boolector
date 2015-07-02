@@ -265,13 +265,13 @@ boolector_delete_mc (BtorMC *mc)
   for (f = mc->frames.start; f < mc->frames.top; f++)
     btor_release_mc_frame (mc, f);
   BTOR_RELEASE_STACK (mm, mc->frames);
-  init_hash_table_iterator (&it, mc->inputs);
-  while (has_next_hash_table_iterator (&it))
-    btor_delete_mc_input (mc, next_data_hash_table_iterator (&it)->asPtr);
+  btor_init_hash_table_iterator (&it, mc->inputs);
+  while (btor_has_next_hash_table_iterator (&it))
+    btor_delete_mc_input (mc, btor_next_data_hash_table_iterator (&it)->asPtr);
   btor_delete_ptr_hash_table (mc->inputs);
-  init_hash_table_iterator (&it, mc->latches);
-  while (has_next_hash_table_iterator (&it))
-    btor_delete_mc_latch (mc, next_data_hash_table_iterator (&it)->asPtr);
+  btor_init_hash_table_iterator (&it, mc->latches);
+  while (btor_has_next_hash_table_iterator (&it))
+    btor_delete_mc_latch (mc, btor_next_data_hash_table_iterator (&it)->asPtr);
   btor_delete_ptr_hash_table (mc->latches);
   while (!BTOR_EMPTY_STACK (mc->bad))
     boolector_release (btor, BTOR_POP_STACK (mc->bad));
@@ -503,14 +503,14 @@ initialize_inputs_of_frame (BtorMC *mc, BtorMcFrame *f)
             (int) mc->inputs->count,
             f->time);
 
-  init_hash_table_iterator (&it, mc->inputs);
-  while (has_next_hash_table_iterator (&it))
+  btor_init_hash_table_iterator (&it, mc->inputs);
+  while (btor_has_next_hash_table_iterator (&it))
   {
 #ifndef NDEBUG
     input = it.bucket->data.asPtr;
     assert (input);
 #endif
-    src = (BoolectorNode *) next_hash_table_iterator (&it);
+    src = (BoolectorNode *) btor_next_hash_table_iterator (&it);
     assert (src);
     assert (BTOR_IS_REGULAR_NODE (src));
 #ifndef NDEBUG
@@ -548,13 +548,13 @@ initialize_latches_of_frame (BtorMC *mc, BtorMcFrame *f)
             f->time);
 
   i = 0;
-  init_hash_table_iterator (&it, mc->latches);
-  while (has_next_hash_table_iterator (&it))
+  btor_init_hash_table_iterator (&it, mc->latches);
+  while (btor_has_next_hash_table_iterator (&it))
   {
     latch = it.bucket->data.asPtr;
     assert (latch);
     assert (latch->id == i);
-    src = (BoolectorNode *) next_hash_table_iterator (&it);
+    src = (BoolectorNode *) btor_next_hash_table_iterator (&it);
     assert (src);
     assert (BTOR_IS_REGULAR_NODE (src));
     assert (latch->node == src);
@@ -607,12 +607,12 @@ initialize_next_state_functions_of_frame (BtorMC *mc,
 
   i          = 0;
   nextstates = 0;
-  init_hash_table_iterator (&it, mc->latches);
-  while (has_next_hash_table_iterator (&it))
+  btor_init_hash_table_iterator (&it, mc->latches);
+  while (btor_has_next_hash_table_iterator (&it))
   {
     latch = it.bucket->data.asPtr;
     assert (latch);
-    node = (BoolectorNode *) next_hash_table_iterator (&it);
+    node = (BoolectorNode *) btor_next_hash_table_iterator (&it);
     assert (latch->node == node);
     assert (BTOR_COUNT_STACK (f->next) == i);
     src = latch->next;
@@ -729,20 +729,20 @@ map_inputs_and_latches_of_frame (BtorMC *mc, BtorMcFrame *f)
             f->time);
 
   i = 0;
-  init_hash_table_iterator (&it, mc->inputs);
-  while (has_next_hash_table_iterator (&it))
+  btor_init_hash_table_iterator (&it, mc->inputs);
+  while (btor_has_next_hash_table_iterator (&it))
   {
-    src = (BoolectorNode *) next_hash_table_iterator (&it);
+    src = (BoolectorNode *) btor_next_hash_table_iterator (&it);
     dst = BTOR_PEEK_STACK (f->inputs, i);
     boolector_map_node (res, src, dst);
     i += 1;
   }
 
   i = 0;
-  init_hash_table_iterator (&it, mc->latches);
-  while (has_next_hash_table_iterator (&it))
+  btor_init_hash_table_iterator (&it, mc->latches);
+  while (btor_has_next_hash_table_iterator (&it))
   {
-    src = (BoolectorNode *) next_hash_table_iterator (&it);
+    src = (BoolectorNode *) btor_next_hash_table_iterator (&it);
     dst = BTOR_PEEK_STACK (f->latches, i);
     boolector_map_node (res, src, dst);
     i += 1;
@@ -1220,20 +1220,20 @@ boolector_dump_btormc (BtorMC *mc, FILE *file)
 
   bdc = btor_new_dump_context (mc->btor);
 
-  init_hash_table_iterator (&it, mc->inputs);
-  while (has_next_hash_table_iterator (&it))
+  btor_init_hash_table_iterator (&it, mc->inputs);
+  while (btor_has_next_hash_table_iterator (&it))
   {
-    BtorMcInput *input = next_data_hash_table_iterator (&it)->asPtr;
+    BtorMcInput *input = btor_next_data_hash_table_iterator (&it)->asPtr;
     assert (input);
     assert (input->node);
     btor_add_input_to_dump_context (bdc,
                                     BTOR_IMPORT_BOOLECTOR_NODE (input->node));
   }
 
-  init_hash_table_iterator (&it, mc->latches);
-  while (has_next_hash_table_iterator (&it))
+  btor_init_hash_table_iterator (&it, mc->latches);
+  while (btor_has_next_hash_table_iterator (&it))
   {
-    BtorMcLatch *latch = next_data_hash_table_iterator (&it)->asPtr;
+    BtorMcLatch *latch = btor_next_data_hash_table_iterator (&it)->asPtr;
     assert (latch);
     assert (latch->node);
     assert (BTOR_IS_REGULAR_NODE (latch->node));

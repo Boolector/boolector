@@ -193,11 +193,11 @@ main (int argc, char **argv)
   for (p = nexts.start; p < nexts.top; p++) btor_release_aig (amgr, *p);
   BTOR_RELEASE_STACK (mem, nexts);
 
-  init_hash_table_iterator (&it, back_annotation);
-  while (has_next_hash_table_iterator (&it))
+  btor_init_hash_table_iterator (&it, back_annotation);
+  while (btor_has_next_hash_table_iterator (&it))
   {
     btor_freestr (mem, it.bucket->data.asStr);
-    (void) next_hash_table_iterator (&it);
+    (void) btor_next_hash_table_iterator (&it);
   }
 
   btor_delete_ptr_hash_table (back_annotation);

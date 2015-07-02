@@ -22,18 +22,18 @@ check_lambdas_static_rho_proxy_free_dbg (const Btor *btor)
   BtorHashTableIterator it, iit;
   BtorPtrHashTable *static_rho;
 
-  init_node_hash_table_iterator (&it, btor->lambdas);
-  while (has_next_node_hash_table_iterator (&it))
+  btor_init_node_hash_table_iterator (&it, btor->lambdas);
+  while (btor_has_next_node_hash_table_iterator (&it))
   {
-    cur        = next_node_hash_table_iterator (&it);
+    cur        = btor_next_node_hash_table_iterator (&it);
     static_rho = btor_lambda_get_static_rho (cur);
     if (!static_rho) continue;
 
-    init_node_hash_table_iterator (&iit, static_rho);
-    while (has_next_node_hash_table_iterator (&iit))
+    btor_init_node_hash_table_iterator (&iit, static_rho);
+    while (btor_has_next_node_hash_table_iterator (&iit))
     {
       data = iit.bucket->data.asPtr;
-      key  = next_node_hash_table_iterator (&iit);
+      key  = btor_next_node_hash_table_iterator (&iit);
       assert (data);
       if (BTOR_IS_PROXY_NODE (BTOR_REAL_ADDR_NODE (data))) return 0;
       if (BTOR_IS_PROXY_NODE (BTOR_REAL_ADDR_NODE (key))) return 0;
@@ -91,10 +91,10 @@ check_hash_table_proxy_free_dbg (BtorPtrHashTable *table)
   BtorHashTableIterator it;
   BtorNode *cur;
 
-  init_node_hash_table_iterator (&it, table);
-  while (has_next_node_hash_table_iterator (&it))
+  btor_init_node_hash_table_iterator (&it, table);
+  while (btor_has_next_node_hash_table_iterator (&it))
   {
-    cur = next_node_hash_table_iterator (&it);
+    cur = btor_next_node_hash_table_iterator (&it);
     if (BTOR_IS_PROXY_NODE (BTOR_REAL_ADDR_NODE (cur))) return 0;
   }
   return 1;
@@ -116,9 +116,10 @@ int
 check_hash_table_simp_free_dbg (BtorPtrHashTable *table)
 {
   BtorHashTableIterator it;
-  init_node_hash_table_iterator (&it, table);
-  while (has_next_node_hash_table_iterator (&it))
-    if (BTOR_REAL_ADDR_NODE (next_node_hash_table_iterator (&it))->simplified)
+  btor_init_node_hash_table_iterator (&it, table);
+  while (btor_has_next_node_hash_table_iterator (&it))
+    if (BTOR_REAL_ADDR_NODE (btor_next_node_hash_table_iterator (&it))
+            ->simplified)
       return 0;
   return 1;
 }
@@ -145,11 +146,11 @@ check_reachable_flag_dbg (const Btor *btor)
   {
     if (!(cur = BTOR_PEEK_STACK (btor->nodes_id_table, i))) continue;
 
-    init_full_parent_iterator (&it, cur);
+    btor_init_parent_iterator (&it, cur);
 
-    while (has_next_parent_full_parent_iterator (&it))
+    while (btor_has_next_parent_iterator (&it))
     {
-      parent = next_parent_full_parent_iterator (&it);
+      parent = btor_next_parent_iterator (&it);
       if (parent->reachable && !cur->reachable) return 0;
     }
   }
@@ -162,19 +163,19 @@ check_constraints_not_const_dbg (Btor *btor)
   BtorNode *cur;
   BtorHashTableIterator it;
 
-  init_node_hash_table_iterator (&it, btor->unsynthesized_constraints);
-  while (has_next_node_hash_table_iterator (&it))
+  btor_init_node_hash_table_iterator (&it, btor->unsynthesized_constraints);
+  while (btor_has_next_node_hash_table_iterator (&it))
   {
-    cur = next_node_hash_table_iterator (&it);
+    cur = btor_next_node_hash_table_iterator (&it);
     assert (cur);
     cur = BTOR_REAL_ADDR_NODE (cur);
     if (BTOR_IS_BV_CONST_NODE (cur)) return 0;
   }
 
-  init_node_hash_table_iterator (&it, btor->synthesized_constraints);
-  while (has_next_node_hash_table_iterator (&it))
+  btor_init_node_hash_table_iterator (&it, btor->synthesized_constraints);
+  while (btor_has_next_node_hash_table_iterator (&it))
   {
-    cur = next_node_hash_table_iterator (&it);
+    cur = btor_next_node_hash_table_iterator (&it);
     assert (cur);
     cur = BTOR_REAL_ADDR_NODE (cur);
     if (BTOR_IS_BV_CONST_NODE (cur)) return 0;

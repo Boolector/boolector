@@ -595,9 +595,9 @@ remove_parameterized (Btor *btor, BtorNode *exp)
   t = (BtorPtrHashTable *) b->data.asPtr;
 
   /* release params */
-  init_node_hash_table_iterator (&it, t);
-  while (has_next_node_hash_table_iterator (&it))
-    btor_release_exp (btor, next_node_hash_table_iterator (&it));
+  btor_init_node_hash_table_iterator (&it, t);
+  while (btor_has_next_node_hash_table_iterator (&it))
+    btor_release_exp (btor, btor_next_node_hash_table_iterator (&it));
   btor_delete_ptr_hash_table (t);
 
   btor_remove_from_ptr_hash_table (btor->parameterized, exp, 0, 0);
@@ -659,10 +659,10 @@ update_parameterized (Btor *btor, BtorNode *parent, BtorNode *child)
   }
   else
   {
-    init_parameterized_iterator (btor, &it, child);
-    while (has_next_parameterized_iterator (&it))
+    btor_init_parameterized_iterator (&it, btor, child);
+    while (btor_has_next_parameterized_iterator (&it))
     {
-      param = next_parameterized_iterator (&it);
+      param = btor_next_parameterized_iterator (&it);
       assert (BTOR_IS_REGULAR_NODE (param));
       assert (BTOR_IS_PARAM_NODE (param));
       if (!btor_find_in_ptr_hash_table (t, param))
@@ -825,19 +825,19 @@ erase_local_data_exp (Btor *btor, BtorNode *exp, int free_sort)
       static_rho = btor_lambda_get_static_rho (exp);
       if (synth_apps)
       {
-        init_node_hash_table_iterator (&it, synth_apps);
-        while (has_next_node_hash_table_iterator (&it))
-          btor_release_exp (btor, next_node_hash_table_iterator (&it));
+        btor_init_node_hash_table_iterator (&it, synth_apps);
+        while (btor_has_next_node_hash_table_iterator (&it))
+          btor_release_exp (btor, btor_next_node_hash_table_iterator (&it));
         btor_delete_ptr_hash_table (synth_apps);
         ((BtorLambdaNode *) exp)->synth_apps = 0;
       }
       if (static_rho)
       {
-        init_node_hash_table_iterator (&it, static_rho);
-        while (has_next_node_hash_table_iterator (&it))
+        btor_init_node_hash_table_iterator (&it, static_rho);
+        while (btor_has_next_node_hash_table_iterator (&it))
         {
           btor_release_exp (btor, it.bucket->data.asPtr);
-          btor_release_exp (btor, next_node_hash_table_iterator (&it));
+          btor_release_exp (btor, btor_next_node_hash_table_iterator (&it));
         }
         btor_delete_ptr_hash_table (static_rho);
         ((BtorLambdaNode *) exp)->static_rho = 0;
@@ -1593,14 +1593,14 @@ compare_lambda_exp (Btor *btor,
   if (BTOR_IS_LAMBDA_NODE (BTOR_REAL_ADDR_NODE (body))
       && BTOR_IS_LAMBDA_NODE (BTOR_REAL_ADDR_NODE (lambda->e[1])))
   {
-    init_lambda_iterator (&it, body);
-    init_lambda_iterator (&iit, lambda->e[1]);
-    while (has_next_lambda_iterator (&it))
+    btor_init_lambda_iterator (&it, body);
+    btor_init_lambda_iterator (&iit, lambda->e[1]);
+    while (btor_has_next_lambda_iterator (&it))
     {
-      if (!has_next_lambda_iterator (&iit)) goto NOT_EQUAL;
+      if (!btor_has_next_lambda_iterator (&iit)) goto NOT_EQUAL;
 
-      l0 = next_lambda_iterator (&it);
-      l1 = next_lambda_iterator (&iit);
+      l0 = btor_next_lambda_iterator (&it);
+      l1 = btor_next_lambda_iterator (&iit);
 
       if (l0->sort_id != l1->sort_id) goto NOT_EQUAL;
 

@@ -593,10 +593,10 @@ collect_indices_writes (Btor *btor,
   visit_cache = btor_new_ptr_hash_table (mm, 0, 0);
 
   /* collect lambdas that are at the top of lambda chains */
-  init_reversed_hash_table_iterator (&it, btor->lambdas);
-  while (has_next_node_hash_table_iterator (&it))
+  btor_init_reversed_hash_table_iterator (&it, btor->lambdas);
+  while (btor_has_next_node_hash_table_iterator (&it))
   {
-    lambda = next_node_hash_table_iterator (&it);
+    lambda = btor_next_node_hash_table_iterator (&it);
     assert (BTOR_IS_REGULAR_NODE (lambda));
 
     /* already visited */
@@ -606,10 +606,10 @@ collect_indices_writes (Btor *btor,
     if (btor_get_fun_arity (btor, lambda) > 1) continue;
 
     is_top = 0;
-    init_apply_parent_iterator (&pit, lambda);
-    while (has_next_parent_apply_parent_iterator (&pit))
+    btor_init_apply_parent_iterator (&pit, lambda);
+    while (btor_has_next_apply_parent_iterator (&pit))
     {
-      tmp = next_parent_apply_parent_iterator (&pit);
+      tmp = btor_next_apply_parent_iterator (&pit);
 
       if (!tmp->parameterized)
       {
@@ -705,12 +705,12 @@ collect_indices_top_eqs (Btor *btor, BtorPtrHashTable *map_value_index)
   BtorNode *cur, *lhs, *rhs, *read, *array, *index, *value;
 
   /* top level equality pre-initialization */
-  init_node_hash_table_iterator (&it, btor->unsynthesized_constraints);
-  queue_node_hash_table_iterator (&it, btor->synthesized_constraints);
-  queue_node_hash_table_iterator (&it, btor->embedded_constraints);
-  while (has_next_node_hash_table_iterator (&it))
+  btor_init_node_hash_table_iterator (&it, btor->unsynthesized_constraints);
+  btor_queue_node_hash_table_iterator (&it, btor->synthesized_constraints);
+  btor_queue_node_hash_table_iterator (&it, btor->embedded_constraints);
+  while (btor_has_next_node_hash_table_iterator (&it))
   {
-    cur = next_node_hash_table_iterator (&it);
+    cur = btor_next_node_hash_table_iterator (&it);
     if (BTOR_IS_INVERTED_NODE (cur) || !BTOR_IS_BV_EQ_NODE (cur)) continue;
 
     lhs = cur->e[0];
@@ -1054,20 +1054,20 @@ extract_lambdas (Btor *btor,
   BTOR_INIT_STACK (remidx);
   BTOR_INIT_STACK (p_memcopy);
   BTOR_INIT_STACK (memcopy_ranges);
-  init_node_hash_table_iterator (&it, map_value_index);
-  while (has_next_node_hash_table_iterator (&it))
+  btor_init_node_hash_table_iterator (&it, map_value_index);
+  while (btor_has_next_node_hash_table_iterator (&it))
   {
     t     = it.bucket->data.asPtr;
-    array = next_node_hash_table_iterator (&it);
+    array = btor_next_node_hash_table_iterator (&it);
     assert (t);
 
     /* find memset patterns, the remaining unused indices are pushed onto
      * stack 'indices' */
-    init_node_hash_table_iterator (&iit, t);
-    while (has_next_node_hash_table_iterator (&iit))
+    btor_init_node_hash_table_iterator (&iit, t);
+    while (btor_has_next_node_hash_table_iterator (&iit))
     {
       stack = iit.bucket->data.asPtr;
-      value = next_node_hash_table_iterator (&iit);
+      value = btor_next_node_hash_table_iterator (&iit);
       assert (stack);
       find_ranges (btor,
                    stack,

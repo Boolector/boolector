@@ -45,15 +45,15 @@ btor_eliminate_applies (Btor *btor)
                                     (BtorCmpPtr) btor_compare_exp_by_id);
 
     /* collect function applications */
-    init_node_hash_table_iterator (&h_it, btor->lambdas);
-    while (has_next_node_hash_table_iterator (&h_it))
+    btor_init_node_hash_table_iterator (&h_it, btor->lambdas);
+    while (btor_has_next_node_hash_table_iterator (&h_it))
     {
-      fun = next_node_hash_table_iterator (&h_it);
+      fun = btor_next_node_hash_table_iterator (&h_it);
 
-      init_apply_parent_iterator (&it, fun);
-      while (has_next_parent_apply_parent_iterator (&it))
+      btor_init_apply_parent_iterator (&it, fun);
+      while (btor_has_next_apply_parent_iterator (&it))
       {
-        app = next_parent_apply_parent_iterator (&it);
+        app = btor_next_apply_parent_iterator (&it);
 
         if (btor_find_in_ptr_hash_table (apps, app)) continue;
 
@@ -73,23 +73,23 @@ btor_eliminate_applies (Btor *btor)
 
     btor_substitute_and_rebuild (btor, apps, -1);
 
-    init_node_hash_table_iterator (&h_it, apps);
-    while (has_next_node_hash_table_iterator (&h_it))
-      btor_release_exp (btor, next_node_hash_table_iterator (&h_it));
+    btor_init_node_hash_table_iterator (&h_it, apps);
+    while (btor_has_next_node_hash_table_iterator (&h_it))
+      btor_release_exp (btor, btor_next_node_hash_table_iterator (&h_it));
     btor_delete_ptr_hash_table (apps);
     round++;
   } while (num_applies > 0);
 
 #ifndef NDEBUG
-  init_node_hash_table_iterator (&h_it, btor->lambdas);
-  while (has_next_node_hash_table_iterator (&h_it))
+  btor_init_node_hash_table_iterator (&h_it, btor->lambdas);
+  while (btor_has_next_node_hash_table_iterator (&h_it))
   {
-    fun = next_node_hash_table_iterator (&h_it);
+    fun = btor_next_node_hash_table_iterator (&h_it);
 
-    init_apply_parent_iterator (&it, fun);
-    while (has_next_parent_apply_parent_iterator (&it))
+    btor_init_apply_parent_iterator (&it, fun);
+    while (btor_has_next_apply_parent_iterator (&it))
     {
-      app = next_parent_apply_parent_iterator (&it);
+      app = btor_next_apply_parent_iterator (&it);
       assert (app->parameterized);
     }
   }

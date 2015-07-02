@@ -122,14 +122,14 @@ btor_assign_args (Btor *btor, BtorNode *fun, BtorNode *args)
   BtorNodeIterator it;
   BtorArgsIterator ait;
 
-  init_args_iterator (&ait, args);
-  init_lambda_iterator (&it, fun);
+  btor_init_args_iterator (&ait, args);
+  btor_init_lambda_iterator (&it, fun);
 
-  while (has_next_args_iterator (&ait))
+  while (btor_has_next_args_iterator (&ait))
   {
-    assert (has_next_lambda_iterator (&it));
-    cur_arg    = next_args_iterator (&ait);
-    cur_lambda = next_lambda_iterator (&it);
+    assert (btor_has_next_lambda_iterator (&it));
+    cur_arg    = btor_next_args_iterator (&ait);
+    cur_lambda = btor_next_lambda_iterator (&it);
     btor_assign_param (btor, cur_lambda, cur_arg);
   }
 }
@@ -140,10 +140,10 @@ assign_new_params (Btor *btor, BtorNode *fun)
   BtorNode *lambda, *param, *arg;
   BtorNodeIterator it;
 
-  init_lambda_iterator (&it, fun);
-  while (has_next_lambda_iterator (&it))
+  btor_init_lambda_iterator (&it, fun);
+  while (btor_has_next_lambda_iterator (&it))
   {
-    lambda = next_lambda_iterator (&it);
+    lambda = btor_next_lambda_iterator (&it);
     param  = lambda->e[0];
     arg    = btor_param_exp (btor, btor_get_exp_width (btor, param), 0);
     btor_assign_param (btor, lambda, arg);
@@ -157,10 +157,10 @@ unassign_new_params (Btor *btor, BtorNode *fun)
   BtorNodeIterator it;
   BtorParamNode *param;
 
-  init_lambda_iterator (&it, fun);
-  while (has_next_lambda_iterator (&it))
+  btor_init_lambda_iterator (&it, fun);
+  while (btor_has_next_lambda_iterator (&it))
   {
-    lambda = next_lambda_iterator (&it);
+    lambda = btor_next_lambda_iterator (&it);
     param  = (BtorParamNode *) lambda->e[0];
     if (!param->assigned_exp) break;
     btor_release_exp (btor, param->assigned_exp);
@@ -652,11 +652,11 @@ btor_beta_reduce (Btor *btor,
   assert (result);
 
   /* release cache and reset beta_mark flags */
-  init_hash_table_iterator (&it, param_cache);
-  while (has_next_hash_table_iterator (&it))
+  btor_init_hash_table_iterator (&it, param_cache);
+  while (btor_has_next_hash_table_iterator (&it))
   {
     btor_release_exp (btor, (BtorNode *) it.bucket->data.asPtr);
-    t        = (BtorParamCacheTuple *) next_node_hash_table_iterator (&it);
+    t        = (BtorParamCacheTuple *) btor_next_node_hash_table_iterator (&it);
     real_cur = t->exp;
     assert (BTOR_IS_REGULAR_NODE (real_cur));
     btor_delete_param_cache_tuple (btor, t);
@@ -1079,11 +1079,11 @@ btor_beta_reduce_partial_aux (Btor *btor,
   assert (result);
 
   /* release cache and reset beta_mark flags */
-  init_hash_table_iterator (&it, cache);
-  while (has_next_node_hash_table_iterator (&it))
+  btor_init_hash_table_iterator (&it, cache);
+  while (btor_has_next_node_hash_table_iterator (&it))
   {
     btor_release_exp (btor, (BtorNode *) it.bucket->data.asPtr);
-    t0       = (BtorParamCacheTuple *) next_node_hash_table_iterator (&it);
+    t0       = (BtorParamCacheTuple *) btor_next_node_hash_table_iterator (&it);
     real_cur = t0->exp;
     assert (BTOR_IS_REGULAR_NODE (real_cur));
     real_cur->beta_mark = 0;
@@ -1097,9 +1097,9 @@ btor_beta_reduce_partial_aux (Btor *btor,
       *evalerr = 1;
   }
 
-  init_node_hash_table_iterator (&it, mark);
-  while (has_next_node_hash_table_iterator (&it))
-    btor_release_exp (btor, next_node_hash_table_iterator (&it));
+  btor_init_node_hash_table_iterator (&it, mark);
+  while (btor_has_next_node_hash_table_iterator (&it))
+    btor_release_exp (btor, btor_next_node_hash_table_iterator (&it));
 
   BTOR_RELEASE_STACK (mm, stack);
   BTOR_RELEASE_STACK (mm, arg_stack);
