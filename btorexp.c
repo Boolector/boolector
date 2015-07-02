@@ -1360,7 +1360,7 @@ new_bv_node (Btor *btor, BtorNodeKind kind, int arity, BtorNode **e)
   if (kind == BTOR_FEQ_NODE)
   {
     assert (!btor_find_in_ptr_hash_table (btor->feqs, exp));
-    btor_insert_in_ptr_hash_table (btor->feqs, exp);
+    btor_insert_in_ptr_hash_table (btor->feqs, exp)->data.asInt = 0;
   }
 
   return (BtorNode *) exp;

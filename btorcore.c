@@ -6328,9 +6328,7 @@ add_function_inequality_constraints (Btor *btor)
   BtorNode *cur, *neq, *con;
   BtorNodePtrStack feqs;
   BtorHashTableIterator it;
-
-  // TODO (ma): optimization: add inequality only once for each function eq
-  //		for now every sat call a new ineq is added
+  BtorPtrHashBucket *b;
 
   /* we have to add inequality constraints for every function equality
    * in the formula (var_rhs and fun_rhs are still part of the formula). */
@@ -6348,12 +6346,14 @@ add_function_inequality_constraints (Btor *btor)
   btor_init_node_hash_table_iterator (&it, btor->feqs);
   while (btor_has_next_node_hash_table_iterator (&it))
   {
+    b   = it.bucket;
     cur = btor_next_node_hash_table_iterator (&it);
     assert (BTOR_IS_REGULAR_NODE (cur));
     assert (BTOR_IS_FEQ_NODE (cur));
-    if (!cur->reachable) continue;
+    if (!cur->reachable || b->data.asInt) continue;
     mark_reachable (btor, cur);
     BTOR_PUSH_STACK (btor->mm, feqs, cur);
+    b->data.asInt = 1; /* mark function equality for inequality witness */
   }
 
   /* add inequality constraint for every reachable function equality */
