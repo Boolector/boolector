@@ -5714,83 +5714,95 @@ generate_table_select_branch_ite (Btor *btor, BtorNode *fun)
   cur = btor_lambda_get_body (fun);
   assert (!BTOR_IS_INVERTED_NODE (cur));
 
-  /* general case */
-  if (BTOR_IS_BV_COND_NODE (cur))
+  while (!result)
   {
-    assert (!BTOR_REAL_ADDR_NODE (cur->e[0])->parameterized);
-    assert (btor_is_encoded_exp (cur->e[0]));
-    eval = btor_eval_exp (btor, cur->e[0]);
-    assert (eval);
-    if (eval[0] == '1')
-      result = cur->e[1];
-    else
+    /* general case */
+    if (BTOR_IS_BV_COND_NODE (cur))
     {
-      assert (eval[0] == '0');
-      result = cur->e[2];
-    }
-    btor_freestr (btor->mm, eval);
-  }
-  else if (BTOR_IS_APPLY_NODE (cur))
-  {
-    result = cur;
-  }
-  /* boolean case */
-  else
-  {
-    assert (BTOR_IS_AND_NODE (cur));
-    assert (btor_get_exp_width (btor, cur) == 1);
-    assert (BTOR_IS_AND_NODE (BTOR_REAL_ADDR_NODE (cur->e[0])));
-    assert (BTOR_IS_AND_NODE (BTOR_REAL_ADDR_NODE (cur->e[1])));
-    assert (BTOR_IS_INVERTED_NODE (cur->e[0]));
-    assert (BTOR_IS_INVERTED_NODE (cur->e[1]));
-
-    and0[0] = BTOR_REAL_ADDR_NODE (cur->e[0])->e[0];
-    and0[1] = BTOR_REAL_ADDR_NODE (cur->e[0])->e[1];
-    and1[0] = BTOR_REAL_ADDR_NODE (cur->e[1])->e[0];
-    and1[1] = BTOR_REAL_ADDR_NODE (cur->e[1])->e[1];
-
-    if (!BTOR_REAL_ADDR_NODE (and0[0])->parameterized)
-    {
-      cond0 = and0[0];
-      next0 = and0[1];
-    }
-    else
-    {
-      assert (BTOR_REAL_ADDR_NODE (and0[0])->parameterized);
-      cond0 = and0[1];
-      next0 = and0[0];
-    }
-
-    if (!BTOR_REAL_ADDR_NODE (and1[0])->parameterized)
-    {
-      cond1 = and1[0];
-      next1 = and1[1];
-    }
-    else
-    {
-      assert (BTOR_REAL_ADDR_NODE (and1[0])->parameterized);
-      cond1 = and1[1];
-      next1 = and1[0];
-    }
-
-    eval = btor_eval_exp (btor, cond0);
-    assert (eval);
-    is_true = eval[0] == '1';
-    btor_freestr (btor->mm, eval);
-    if (is_true)
-      result = next0;
-    else
-    {
-#ifndef NDEBUG
-      eval = btor_eval_exp (btor, cond1);
+      assert (!BTOR_REAL_ADDR_NODE (cur->e[0])->parameterized);
+      assert (btor_is_encoded_exp (cur->e[0]));
+      eval = btor_eval_exp (btor, cur->e[0]);
       assert (eval);
-      assert (eval[0] == '1');
+      if (eval[0] == '1')
+        result = cur->e[1];
+      else
+      {
+        assert (eval[0] == '0');
+        result = cur->e[2];
+      }
       btor_freestr (btor->mm, eval);
+
+      if (!BTOR_IS_APPLY_NODE (BTOR_REAL_ADDR_NODE (result)))
+      {
+        cur    = result;
+        result = 0;
+        continue;
+      }
+    }
+    else if (BTOR_IS_APPLY_NODE (cur))
+    {
+      result = cur;
+    }
+    /* boolean case */
+    else
+    {
+      assert (BTOR_IS_AND_NODE (cur));
+      assert (btor_get_exp_width (btor, cur) == 1);
+      assert (BTOR_IS_AND_NODE (BTOR_REAL_ADDR_NODE (cur->e[0])));
+      assert (BTOR_IS_AND_NODE (BTOR_REAL_ADDR_NODE (cur->e[1])));
+      assert (BTOR_IS_INVERTED_NODE (cur->e[0]));
+      assert (BTOR_IS_INVERTED_NODE (cur->e[1]));
+
+      and0[0] = BTOR_REAL_ADDR_NODE (cur->e[0])->e[0];
+      and0[1] = BTOR_REAL_ADDR_NODE (cur->e[0])->e[1];
+      and1[0] = BTOR_REAL_ADDR_NODE (cur->e[1])->e[0];
+      and1[1] = BTOR_REAL_ADDR_NODE (cur->e[1])->e[1];
+
+      if (!BTOR_REAL_ADDR_NODE (and0[0])->parameterized)
+      {
+        cond0 = and0[0];
+        next0 = and0[1];
+      }
+      else
+      {
+        assert (BTOR_REAL_ADDR_NODE (and0[0])->parameterized);
+        cond0 = and0[1];
+        next0 = and0[0];
+      }
+
+      if (!BTOR_REAL_ADDR_NODE (and1[0])->parameterized)
+      {
+        cond1 = and1[0];
+        next1 = and1[1];
+      }
+      else
+      {
+        assert (BTOR_REAL_ADDR_NODE (and1[0])->parameterized);
+        cond1 = and1[1];
+        next1 = and1[0];
+      }
+
+      eval = btor_eval_exp (btor, cond0);
+      assert (eval);
+      is_true = eval[0] == '1';
+      btor_freestr (btor->mm, eval);
+      if (is_true)
+        result = next0;
+      else
+      {
+#ifndef NDEBUG
+        eval = btor_eval_exp (btor, cond1);
+        assert (eval);
+        assert (eval[0] == '1');
+        btor_freestr (btor->mm, eval);
 #endif
-      result = next1;
+        result = next1;
+      }
     }
   }
   assert (result);
+  assert (BTOR_IS_REGULAR_NODE (result));
+  assert (BTOR_IS_APPLY_NODE (result));
   return result;
 }
 
