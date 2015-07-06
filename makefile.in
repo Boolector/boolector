@@ -22,7 +22,6 @@ all: libboolector.a $(TARGETS)
 -include ibv.mk
 -include mbt.mk
 -include python.mk
--include synthebtor.mk
 -include btor2horn.mk
 
 %.o: %.c

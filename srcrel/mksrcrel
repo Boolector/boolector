@@ -54,8 +54,6 @@ cp -p \
   `ls btor*.[ch]|grep -v btormbt|grep -v btoruntrace|grep -v btoribv.h` \
   `ls btor*.cc |grep -v btoribv|grep -v btorimc` \
   deltabtor.c \
-  synthebtor.c \
-  synthebtor.mk \
   btor2horn.mk \
 $dir/
 
