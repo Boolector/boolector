@@ -529,6 +529,7 @@ btor_beta_reduce (Btor *btor,
           {
             assert (BTOR_IS_PARAM_NODE (BTOR_REAL_ADDR_NODE (e[1])));
             result = btor_lambda_exp (btor, e[1], e[0]);
+            if (real_cur->is_array) result->is_array = 1;
           }
           /* special case: lambda not reduced (not instantiated)
            *		 and is not constant */

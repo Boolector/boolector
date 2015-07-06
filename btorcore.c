@@ -2356,6 +2356,7 @@ rebuild_lambda_exp (Btor *btor, BtorNode *exp)
     }
     btor_lambda_set_static_rho (result, static_rho);
   }
+  if (exp->is_array) result->is_array = 1;
   return result;
 }
 
@@ -6409,6 +6410,7 @@ sat_aux_btor_dual_prop (Btor *btor)
 
   if (btor->feqs->count > 0)
   {
+    // TODO (ma): check if function equalities are arrays only
     update_reachable (btor, 1);
     add_function_inequality_constraints (btor);
   }

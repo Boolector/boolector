@@ -1990,8 +1990,8 @@ btor_array_exp (Btor *btor,
   tup        = btor_tuple_sort (&btor->sorts_unique_table, &index_sort, 1);
   sort       = btor_fun_sort (&btor->sorts_unique_table, tup, elem_sort);
 
-  exp                            = btor_uf_exp (btor, sort, symbol);
-  ((BtorUFNode *) exp)->is_array = 1;
+  exp           = btor_uf_exp (btor, sort, symbol);
+  exp->is_array = 1;
   btor_release_sort (&btor->sorts_unique_table, index_sort);
   btor_release_sort (&btor->sorts_unique_table, elem_sort);
   btor_release_sort (&btor->sorts_unique_table, sort);
@@ -2499,6 +2499,7 @@ btor_array_cond_exp_node (Btor *btor,
   app_else = btor_apply_exps (btor, 1, &param, e_else);
   cond     = btor_bv_cond_exp_node (btor, e_cond, app_if, app_else);
   lambda   = btor_lambda_exp (btor, param, cond);
+  lambda->is_array = 1;
 
   btor_release_exp (btor, param);
   btor_release_exp (btor, app_if);
@@ -3728,6 +3729,7 @@ btor_write_exp (Btor *btor,
   btor_release_exp (btor, bvcond);
   btor_release_exp (btor, param);
 
+  lambda->is_array = 1;
   return (BtorNode *) lambda;
 }
 
@@ -3881,10 +3883,7 @@ btor_is_array_exp (Btor *btor, BtorNode *exp)
   assert (btor == BTOR_REAL_ADDR_NODE (exp)->btor);
 
   exp = btor_simplify_exp (btor, exp);
-  // TODO: check for array sort?
-  return (BTOR_IS_LAMBDA_NODE (BTOR_REAL_ADDR_NODE (exp))
-          && btor_get_fun_arity (btor, exp) == 1)
-         || BTOR_IS_UF_ARRAY_NODE (BTOR_REAL_ADDR_NODE (exp));
+  return exp->is_array == 1;
 }
 
 bool

@@ -102,6 +102,7 @@ typedef struct BtorNodePair BtorNodePair;
     uint8_t lambda_below : 1;  /* lambda as sub expression ? */         \
     uint8_t apply_below : 1;   /* apply as sub expression ? */          \
     uint8_t propagated : 1;    /* is set during propagation */          \
+    uint8_t is_array : 1;      /* function represents array ? */        \
     uint8_t arity : 2;         /* arity of operator (at most 3) */      \
     int32_t id;                /* unique expression id */               \
     uint32_t refs;             /* reference counter (incl. ext_refs) */ \
@@ -140,7 +141,6 @@ struct BtorUFNode
 {
   BTOR_BV_NODE_STRUCT;
   int32_t btor_id; /* id as defined in btor input */
-  uint8_t is_array : 1;
 };
 
 typedef struct BtorUFNode BtorUFNode;

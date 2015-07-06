@@ -161,7 +161,10 @@ btor_merge_lambdas (Btor *btor)
         /* we can only merge lambdas that have all a static_rho or
          * none of them has one */
         if (!btor_lambda_get_static_rho (cur)
-            != !btor_lambda_get_static_rho (lambda))
+                != !btor_lambda_get_static_rho (lambda)
+            /* we can only merge lambdas that either represent arrays
+             * or not */
+            || cur->is_array != lambda->is_array)
         {
           /* try to merge lambdas starting from 'cur' */
           BTOR_PUSH_STACK (mm, stack, cur);
@@ -202,6 +205,7 @@ btor_merge_lambdas (Btor *btor)
         btor, btor_lambda_get_body (lambda), merge_lambdas);
     btor_unassign_params (btor, lambda);
     subst = btor_fun_exp (btor, BTOR_COUNT_STACK (params), params.start, body);
+    if (lambda->is_array) subst->is_array = 1;
     btor_release_exp (btor, body);
 
     /* generate static_rho from merged lambdas' static_rhos */
