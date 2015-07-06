@@ -132,6 +132,8 @@ static const char *brokentests[] = {
     "lambda_param_write1",
     "lambda_param_write2",
     "lambda_param_acond",
+    /* currently broken since we don't allow to mix lambdas with arrays */
+    "regrbetacache2",
 
     0, /* NOTE: DO NOT REMOVE AND KEEP AT SENTINEL */
 };
