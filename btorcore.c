@@ -5809,8 +5809,7 @@ generate_table_select_branch_ite (Btor *btor, BtorNode *fun)
     }
   }
   assert (result);
-  assert (BTOR_IS_REGULAR_NODE (result));
-  assert (BTOR_IS_APPLY_NODE (result));
+  assert (BTOR_IS_APPLY_NODE (BTOR_REAL_ADDR_NODE (result)));
   return result;
 }
 
@@ -6355,6 +6354,10 @@ add_function_inequality_constraints (Btor *btor)
     mark_reachable (btor, cur);
     BTOR_PUSH_STACK (btor->mm, feqs, cur);
     b->data.asInt = 1; /* mark function equality for inequality witness */
+    BTOR_ABORT_CORE (
+        (!cur->e[0]->is_array || !cur->e[1]->is_array)
+            && (!BTOR_IS_UF_NODE (cur->e[0]) || !BTOR_IS_UF_NODE (cur->e[1])),
+        "equality over lambda not supported yet");
   }
 
   /* add inequality constraint for every reachable function equality */
