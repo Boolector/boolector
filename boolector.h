@@ -2124,6 +2124,22 @@ void boolector_dump_smt2_node (Btor *btor, FILE *file, BoolectorNode *node);
 */
 void boolector_dump_smt2 (Btor *btor, FILE *file);
 
+/*!
+  Dumps bit vector formula to file in ascii AIGER format.
+
+  :param btor: Boolector instance
+  :param file: Output file.
+*/
+void boolector_dump_aiger_ascii (Btor *btor, FILE *file);
+
+/*!
+  Dumps bit vector formula to file in ascii AIGER format.
+
+  :param btor: Boolector instance
+  :param file: Output file.
+*/
+void boolector_dump_aiger_binary (Btor *btor, FILE *file);
+
 /* DEPRECATED API */
 
 /*!

@@ -26,6 +26,7 @@
 #include "btorsat.h"
 #include "btorsort.h"
 #include "btortrapi.h"
+#include "dumper/btordumpaig.h"
 #include "dumper/btordumpbtor.h"
 #include "dumper/btordumpsmt.h"
 #include "utils/btorhash.h"
@@ -3843,6 +3844,30 @@ boolector_dump_smt2 (Btor *btor, FILE *file)
   btor_dump_smt2 (btor, file);
 #ifndef NDEBUG
   BTOR_CHKCLONE_NORES (dump_smt2, file);
+#endif
+}
+
+void
+boolector_dump_aiger_ascii (Btor *btor, FILE *file)
+{
+  BTOR_TRAPI ("");
+  BTOR_ABORT_ARG_NULL_BOOLECTOR (btor);
+  BTOR_ABORT_ARG_NULL_BOOLECTOR (file);
+  btor_dump_aiger (btor, file, false);
+#ifndef NDEBUG
+  BTOR_CHKCLONE_NORES (dump_aiger_ascii, file);
+#endif
+}
+
+void
+boolector_dump_aiger_binary (Btor *btor, FILE *file)
+{
+  BTOR_TRAPI ("");
+  BTOR_ABORT_ARG_NULL_BOOLECTOR (btor);
+  BTOR_ABORT_ARG_NULL_BOOLECTOR (file);
+  btor_dump_aiger (btor, file, true);
+#ifndef NDEBUG
+  BTOR_CHKCLONE_NORES (dump_aiger_binary, file);
 #endif
 }
 

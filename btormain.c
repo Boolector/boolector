@@ -464,6 +464,14 @@ print_help (BtorMainApp *app)
   to.lng  = "dump_smt1";
   to.desc = "dump formula in SMT-LIB v1 format";
   PRINT_MAIN_OPT (app, &to);
+  to.shrt = "daa";
+  to.lng  = "dump_aag";
+  to.desc = "dump QF_BV formula in ascii AIGER format";
+  PRINT_MAIN_OPT (app, &to);
+  to.shrt = "dai";
+  to.lng  = "dump_aig";
+  to.desc = "dump QF_BV formula in binary AIGER format";
+  PRINT_MAIN_OPT (app, &to);
   fprintf (out, "\n");
 
   for (mo = BTORMAIN_FIRST_OPT (app->opts); mo <= BTORMAIN_LAST_OPT (app->opts);
@@ -998,7 +1006,16 @@ boolector_main (int argc, char **argv)
       dump = BTOR_OUTPUT_FORMAT_SMT1;
       goto SET_OUTPUT_FORMAT;
     }
-
+    else if (!strcmp (opt.start, "daa") || !strcmp (opt.start, "dump_aag"))
+    {
+      dump = BTOR_OUTPUT_FORMAT_AIGER_ASCII;
+      goto SET_OUTPUT_FORMAT;
+    }
+    else if (!strcmp (opt.start, "dai") || !strcmp (opt.start, "dump_aig"))
+    {
+      dump = BTOR_OUTPUT_FORMAT_AIGER_BINARY;
+      goto SET_OUTPUT_FORMAT;
+    }
     /* >> btor options */
     else
     {
@@ -1302,10 +1319,18 @@ boolector_main (int argc, char **argv)
         if (g_verbosity) btormain_msg ("dumping in SMT-LIB v1 format");
         boolector_dump_smt1 (g_app->btor, g_app->outfile);
         break;
-      default:
-        assert (dump == BTOR_OUTPUT_FORMAT_SMT2);
+      case BTOR_OUTPUT_FORMAT_SMT2:
         if (g_verbosity) btormain_msg ("dumping in SMT 2.0 format");
         boolector_dump_smt2 (g_app->btor, g_app->outfile);
+        break;
+      case BTOR_OUTPUT_FORMAT_AIGER_ASCII:
+        if (g_verbosity) btormain_msg ("dumping in ascii AIGER format");
+        boolector_dump_aiger_ascii (g_app->btor, g_app->outfile);
+        break;
+      default:
+        assert (dump == BTOR_OUTPUT_FORMAT_AIGER_BINARY);
+        if (g_verbosity) btormain_msg ("dumping in binary AIGER format");
+        boolector_dump_aiger_binary (g_app->btor, g_app->outfile);
     }
 
     if (g_verbosity) boolector_print_stats (g_app->btor);
