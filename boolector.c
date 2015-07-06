@@ -1541,6 +1541,9 @@ boolector_eq (Btor *btor, BoolectorNode *n0, BoolectorNode *n1)
   BTOR_ABORT_BOOLECTOR (
       BTOR_REAL_ADDR_NODE (e0)->sort_id != BTOR_REAL_ADDR_NODE (e1)->sort_id,
       "nodes must have equal sorts");
+  BTOR_ABORT_BOOLECTOR (btor_is_fun_exp (btor, simp0)
+                            && (simp0->parameterized || simp1->parameterized),
+                        "parameterized function equalities not supported");
   res = btor_eq_exp (btor, simp0, simp1);
   inc_exp_ext_ref_counter (btor, res);
   BTOR_TRAPI_RETURN_NODE (res);
@@ -1553,8 +1556,7 @@ boolector_eq (Btor *btor, BoolectorNode *n0, BoolectorNode *n1)
 BoolectorNode *
 boolector_ne (Btor *btor, BoolectorNode *n0, BoolectorNode *n1)
 {
-  BtorNode *e0, *e1, *simp0, *simp1, *real_simp0, *real_simp1, *res;
-  int is_array_simp0, is_array_simp1;
+  BtorNode *e0, *e1, *simp0, *simp1, *res;
 
   e0 = BTOR_IMPORT_BOOLECTOR_NODE (n0);
   e1 = BTOR_IMPORT_BOOLECTOR_NODE (n1);
@@ -1566,17 +1568,14 @@ boolector_ne (Btor *btor, BoolectorNode *n0, BoolectorNode *n1)
   BTOR_ABORT_REFS_NOT_POS_BOOLECTOR (e1);
   BTOR_ABORT_IF_BTOR_DOES_NOT_MATCH (btor, e0);
   BTOR_ABORT_IF_BTOR_DOES_NOT_MATCH (btor, e1);
-  simp0          = btor_simplify_exp (btor, e0);
-  simp1          = btor_simplify_exp (btor, e1);
-  real_simp0     = BTOR_REAL_ADDR_NODE (simp0);
-  real_simp1     = BTOR_REAL_ADDR_NODE (simp1);
-  is_array_simp0 = BTOR_IS_FUN_NODE (real_simp0);
-  is_array_simp1 = BTOR_IS_FUN_NODE (real_simp1);
-  BTOR_ABORT_BOOLECTOR (is_array_simp0 != is_array_simp1,
-                        "array must not be compared to bit-vector");
+  simp0 = btor_simplify_exp (btor, e0);
+  simp1 = btor_simplify_exp (btor, e1);
   BTOR_ABORT_BOOLECTOR (
-      is_array_simp0 && real_simp0->sort_id != real_simp1->sort_id,
-      "arrays must not have unequal index/element sorts");
+      BTOR_REAL_ADDR_NODE (e0)->sort_id != BTOR_REAL_ADDR_NODE (e1)->sort_id,
+      "nodes must have equal sorts");
+  BTOR_ABORT_BOOLECTOR (btor_is_fun_exp (btor, simp0)
+                            && (simp0->parameterized || simp1->parameterized),
+                        "parameterized function equalities not supported");
   res = btor_ne_exp (btor, simp0, simp1);
   inc_exp_ext_ref_counter (btor, res);
   BTOR_TRAPI_RETURN_NODE (res);
