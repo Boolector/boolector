@@ -604,7 +604,7 @@ btor_print_stats_btor (Btor *btor)
       btor->msg, 1, "beta reductions: %lld", btor->stats.beta_reduce_calls);
   BTOR_MSG (btor->msg, 1, "clone calls: %lld", btor->stats.clone_calls);
 
-  btor->slv->api.print_stats (btor);
+  if (btor->slv) btor->slv->api.print_stats (btor);
 
   BTOR_MSG (btor->msg, 1, "");
   BTOR_MSG (btor->msg, 1, "%.2f seconds beta-reduction", btor->time.beta);
@@ -670,7 +670,7 @@ btor_print_stats_btor (Btor *btor)
             percent (btor->time.skel, btor->time.rewrite));
 #endif
 
-  btor->slv->api.print_time_stats (btor);
+  if (btor->slv) btor->slv->api.print_time_stats (btor);
 
   BTOR_MSG (btor->msg, 1, "");
   BTOR_MSG (
