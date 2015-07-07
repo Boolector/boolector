@@ -472,6 +472,10 @@ print_help (BtorMainApp *app)
   to.lng  = "dump_aig";
   to.desc = "dump QF_BV formula in binary AIGER format";
   PRINT_MAIN_OPT (app, &to);
+  to.shrt = "dam";
+  to.lng  = "dump_aiger_merge";
+  to.desc = "merge all roots of AIG [0]";
+  PRINT_MAIN_OPT (app, &to);
   fprintf (out, "\n");
 
   for (mo = BTORMAIN_FIRST_OPT (app->opts); mo <= BTORMAIN_LAST_OPT (app->opts);
@@ -692,6 +696,7 @@ has_suffix (const char *str, const char *suffix)
 int
 boolector_main (int argc, char **argv)
 {
+  bool dump_merge = false;
   int i, j, len, readval, val, format;
   int isshrt, isdisable, isint;
   int res, parse_res, parse_status, sat_res;
@@ -1016,6 +1021,11 @@ boolector_main (int argc, char **argv)
       dump = BTOR_OUTPUT_FORMAT_AIGER_BINARY;
       goto SET_OUTPUT_FORMAT;
     }
+    else if (!strcmp (opt.start, "dam")
+             || !strcmp (opt.start, "dump_aiger_merge"))
+    {
+      dump_merge = true;
+    }
     /* >> btor options */
     else
     {
@@ -1325,12 +1335,12 @@ boolector_main (int argc, char **argv)
         break;
       case BTOR_OUTPUT_FORMAT_AIGER_ASCII:
         if (g_verbosity) btormain_msg ("dumping in ascii AIGER format");
-        boolector_dump_aiger_ascii (g_app->btor, g_app->outfile);
+        boolector_dump_aiger_ascii (g_app->btor, g_app->outfile, dump_merge);
         break;
       default:
         assert (dump == BTOR_OUTPUT_FORMAT_AIGER_BINARY);
         if (g_verbosity) btormain_msg ("dumping in binary AIGER format");
-        boolector_dump_aiger_binary (g_app->btor, g_app->outfile);
+        boolector_dump_aiger_binary (g_app->btor, g_app->outfile, dump_merge);
     }
 
     if (g_verbosity) boolector_print_stats (g_app->btor);

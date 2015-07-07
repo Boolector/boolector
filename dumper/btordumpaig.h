@@ -31,5 +31,8 @@ void btor_dump_seq_aiger (BtorAIGMgr* amgr,
                           BtorPtrHashTable* back_annotation);
 
 /* Dumps AIGs in AIGER format to file. */
-void btor_dump_aiger (Btor* btor, FILE* output, bool is_binary);
+void btor_dump_aiger (Btor* btor,
+                      FILE* output,
+                      bool is_binary,
+                      bool merge_roots);
 #endif

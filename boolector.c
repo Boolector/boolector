@@ -3848,26 +3848,26 @@ boolector_dump_smt2 (Btor *btor, FILE *file)
 }
 
 void
-boolector_dump_aiger_ascii (Btor *btor, FILE *file)
+boolector_dump_aiger_ascii (Btor *btor, FILE *file, bool merge_roots)
 {
-  BTOR_TRAPI ("");
+  BTOR_TRAPI ("%d", merge_roots);
   BTOR_ABORT_ARG_NULL_BOOLECTOR (btor);
   BTOR_ABORT_ARG_NULL_BOOLECTOR (file);
-  btor_dump_aiger (btor, file, false);
+  btor_dump_aiger (btor, file, false, merge_roots);
 #ifndef NDEBUG
-  BTOR_CHKCLONE_NORES (dump_aiger_ascii, file);
+  BTOR_CHKCLONE_NORES (dump_aiger_ascii, file, merge_roots);
 #endif
 }
 
 void
-boolector_dump_aiger_binary (Btor *btor, FILE *file)
+boolector_dump_aiger_binary (Btor *btor, FILE *file, bool merge_roots)
 {
-  BTOR_TRAPI ("");
+  BTOR_TRAPI ("%d", merge_roots);
   BTOR_ABORT_ARG_NULL_BOOLECTOR (btor);
   BTOR_ABORT_ARG_NULL_BOOLECTOR (file);
-  btor_dump_aiger (btor, file, true);
+  btor_dump_aiger (btor, file, true, merge_roots);
 #ifndef NDEBUG
-  BTOR_CHKCLONE_NORES (dump_aiger_binary, file);
+  BTOR_CHKCLONE_NORES (dump_aiger_binary, file, merge_roots);
 #endif
 }
 

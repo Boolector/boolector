@@ -55,7 +55,7 @@ btor_dump_aig (BtorAIGMgr *amgr, int binary, FILE *output, BtorAIG *aig)
 }
 
 void
-btor_dump_aiger (Btor *btor, FILE *output, bool is_binary)
+btor_dump_aiger (Btor *btor, FILE *output, bool is_binary, bool merge_roots)
 {
   BtorHashTableIterator it;
   BtorPtrHashTable *backannotation;
@@ -64,7 +64,9 @@ btor_dump_aiger (Btor *btor, FILE *output, bool is_binary)
   BtorAIGMgr *amgr;
   BtorAIGVecMgr *avmgr;
   int lazy_synthesize;
+  BtorAIGPtrStack roots;
 
+  BTOR_INIT_STACK (roots);
   amgr           = btor_get_aig_mgr_btor (btor);
   avmgr          = btor->avmgr;
   backannotation = btor_new_ptr_hash_table (btor->mm, 0, 0);
@@ -87,17 +89,32 @@ btor_dump_aiger (Btor *btor, FILE *output, bool is_binary)
     av = btor_exp_to_aigvec (
         btor, btor_next_node_hash_table_iterator (&it), backannotation);
     assert (av->len == 1);
-    tmp = btor_and_aig (amgr, merged, av->aigs[0]);
-    btor_release_aig (amgr, merged);
-    merged = tmp;
+    if (merge_roots)
+    {
+      tmp = btor_and_aig (amgr, merged, av->aigs[0]);
+      btor_release_aig (amgr, merged);
+      merged = tmp;
+    }
+    else
+      BTOR_PUSH_STACK (btor->mm, roots, btor_copy_aig (amgr, av->aigs[0]));
     btor_release_delete_aigvec (avmgr, av);
   }
   btor->options.lazy_synthesize.val = lazy_synthesize;
+  if (merge_roots) BTOR_PUSH_STACK (btor->mm, roots, merged);
 
-  btor_dump_seq_aiger (
-      amgr, is_binary, output, 1, &merged, 0, 0, 0, backannotation);
+  btor_dump_seq_aiger (amgr,
+                       is_binary,
+                       output,
+                       BTOR_COUNT_STACK (roots),
+                       roots.start,
+                       0,
+                       0,
+                       0,
+                       backannotation);
 
-  btor_release_aig (amgr, merged);
+  while (!BTOR_EMPTY_STACK (roots))
+    btor_release_aig (amgr, BTOR_POP_STACK (roots));
+  BTOR_RELEASE_STACK (btor->mm, roots);
 
   btor_init_hash_table_iterator (&it, backannotation);
   while (btor_has_next_hash_table_iterator (&it))
