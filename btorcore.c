@@ -5713,11 +5713,12 @@ generate_table_select_branch_ite (Btor *btor, BtorNode *fun)
   assert (BTOR_IS_REGULAR_NODE (fun));
   assert (BTOR_IS_LAMBDA_NODE (fun));
   assert (!((BtorLambdaNode *) fun)->static_rho);
+  assert (fun->is_array);
 
   bool is_true;
   char *eval;
-  BtorNode *cur, *result = 0, *and0[2], *and1[2];
-  BtorNode *cond0, *cond1, *next0, *next1;
+  BtorNode *cur, *result = 0;
+  BtorNodePtrStack visit;
 
   cur = btor_lambda_get_body (fun);
   assert (!BTOR_IS_INVERTED_NODE (cur));
@@ -5756,56 +5757,47 @@ generate_table_select_branch_ite (Btor *btor, BtorNode *fun)
     {
       assert (BTOR_IS_AND_NODE (cur));
       assert (btor_get_exp_width (btor, cur) == 1);
-      assert (BTOR_IS_AND_NODE (BTOR_REAL_ADDR_NODE (cur->e[0])));
-      assert (BTOR_IS_AND_NODE (BTOR_REAL_ADDR_NODE (cur->e[1])));
-      assert (BTOR_IS_INVERTED_NODE (cur->e[0]));
-      assert (BTOR_IS_INVERTED_NODE (cur->e[1]));
 
-      and0[0] = BTOR_REAL_ADDR_NODE (cur->e[0])->e[0];
-      and0[1] = BTOR_REAL_ADDR_NODE (cur->e[0])->e[1];
-      and1[0] = BTOR_REAL_ADDR_NODE (cur->e[1])->e[0];
-      and1[1] = BTOR_REAL_ADDR_NODE (cur->e[1])->e[1];
+      /* find apply by evaluating non-parameterized nodes */
+      BTOR_INIT_STACK (visit);
+      BTOR_PUSH_STACK (btor->mm, visit, cur);
+      while (!BTOR_EMPTY_STACK (visit))
+      {
+        cur = BTOR_REAL_ADDR_NODE (BTOR_POP_STACK (visit));
 
-      if (!BTOR_REAL_ADDR_NODE (and0[0])->parameterized)
-      {
-        cond0 = and0[0];
-        next0 = and0[1];
-      }
-      else
-      {
-        assert (BTOR_REAL_ADDR_NODE (and0[0])->parameterized);
-        cond0 = and0[1];
-        next0 = and0[0];
-      }
+        if (BTOR_IS_APPLY_NODE (cur))
+        {
+          result = cur;
+          break;
+        }
 
-      if (!BTOR_REAL_ADDR_NODE (and1[0])->parameterized)
-      {
-        cond1 = and1[0];
-        next1 = and1[1];
-      }
-      else
-      {
-        assert (BTOR_REAL_ADDR_NODE (and1[0])->parameterized);
-        cond1 = and1[1];
-        next1 = and1[0];
-      }
+        assert (BTOR_IS_AND_NODE (cur));
 
-      eval = btor_eval_exp (btor, cond0);
-      assert (eval);
-      is_true = eval[0] == '1';
-      btor_freestr (btor->mm, eval);
-      if (is_true)
-        result = next0;
-      else
-      {
-#ifndef NDEBUG
-        eval = btor_eval_exp (btor, cond1);
-        assert (eval);
-        assert (eval[0] == '1');
-        btor_freestr (btor->mm, eval);
-#endif
-        result = next1;
+        if (!cur->parameterized) continue;
+
+        if (!BTOR_REAL_ADDR_NODE (cur->e[0])->parameterized)
+        {
+          assert (btor_is_encoded_exp (cur->e[0]));
+          eval    = btor_eval_exp (btor, cur->e[0]);
+          is_true = eval[0] == '1';
+          btor_freestr (btor->mm, eval);
+          if (is_true) BTOR_PUSH_STACK (btor->mm, visit, cur->e[1]);
+        }
+        else if (!BTOR_REAL_ADDR_NODE (cur->e[1])->parameterized)
+        {
+          assert (btor_is_encoded_exp (cur->e[1]));
+          eval    = btor_eval_exp (btor, cur->e[1]);
+          is_true = eval[0] == '1';
+          btor_freestr (btor->mm, eval);
+          if (is_true) BTOR_PUSH_STACK (btor->mm, visit, cur->e[0]);
+        }
+        else
+        {
+          BTOR_PUSH_STACK (btor->mm, visit, cur->e[0]);
+          BTOR_PUSH_STACK (btor->mm, visit, cur->e[1]);
+        }
       }
+      BTOR_RELEASE_STACK (btor->mm, visit);
     }
   }
   assert (result);
@@ -5849,6 +5841,7 @@ generate_table (Btor *btor, BtorNode *fun)
     is_ite = false;
     if (BTOR_IS_FUN_NODE (cur))
     {
+      assert (cur->is_array);
       rho = cur->rho;
 
       if (BTOR_IS_LAMBDA_NODE (cur))
@@ -5947,6 +5940,8 @@ add_extensionality_lemmas (Btor *btor)
     cur = BTOR_POP_STACK (feqs);
     assert (BTOR_IS_FEQ_NODE (cur));
     assert (cur->reachable);
+    assert (cur->e[0]->is_array);
+    assert (cur->e[1]->is_array);
 
     eval = btor_eval_exp (btor, cur);
     assert (eval);
