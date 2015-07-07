@@ -3077,13 +3077,13 @@ btor_simplify (Btor *btor)
 {
   assert (btor);
 
-  int rounds;
+  int rounds, result;
   double start, delta;
 #ifndef BTOR_DO_NOT_PROCESS_SKELETON
   int skelrounds = 0;
 #endif
 
-  if (btor->inconsistent) return BTOR_UNSAT;
+  if (btor->inconsistent) goto DONE;
 
   rounds = 0;
   start  = btor_time_stamp ();
@@ -3196,17 +3196,21 @@ btor_simplify (Btor *btor)
 
   if (btor->options.beta_reduce_all.val) release_cache (btor);
 
+DONE:
   delta = btor_time_stamp () - start;
   btor->time.rewrite += delta;
   BTOR_MSG (btor->msg, 1, "%d rewriting rounds in %.1f seconds", rounds, delta);
 
   if (btor->inconsistent)
-    return BTOR_UNSAT;
+    result = BTOR_UNSAT;
   else if (btor->unsynthesized_constraints->count == 0u
            && btor->synthesized_constraints->count == 0u)
-    return BTOR_SAT;
+    result = BTOR_SAT;
+  else
+    result = BTOR_UNKNOWN;
 
-  return BTOR_UNKNOWN;
+  BTOR_MSG (btor->msg, 1, "simplification returned %d", result);
+  return result;
 }
 
 static void
