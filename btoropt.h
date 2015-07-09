@@ -99,6 +99,7 @@ typedef struct BtorOpt
 #define BTOR_OPT_MERGE_LAMBDAS "merge_lambdas"
 #define BTOR_OPT_EXTRACT_LAMBDAS "extract_lambdas"
 #define BTOR_OPT_SKELETON_PREPROC "skeleton_preproc"
+#define BTOR_OPT_RW_NORMALIZE "rw_normalize"
 
 typedef struct BtorOpts
 {
@@ -159,6 +160,7 @@ typedef struct BtorOpts
   BtorOpt incremental_look_ahead; /* incremental usage, look-ahead mode */
   BtorOpt incremental_interval;   /* incremental usage, interval mode */
   BtorOpt parse_interactive;      /* interactive parse mode */
+  BtorOpt rw_normalize;           /* normalization during rewriting */
 
   /* ----------------------------------------------------------------------- */
   BtorOpt last; /* dummy for iteration */

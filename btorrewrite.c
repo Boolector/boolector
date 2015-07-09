@@ -5713,7 +5713,7 @@ rewrite_eq_exp (Btor *btor, BtorNode *e0, BtorNode *e1)
 
   e0 = btor_copy_exp (btor, e0);
   e1 = btor_copy_exp (btor, e1);
-  normalize_eq (btor, &e0, &e1);
+  if (btor->options.rw_normalize.val) normalize_eq (btor, &e0, &e1);
 
   ADD_RW_RULE (const_binary_exp, kind, e0, e1);
   /* We do not rewrite eq in the boolean case, as we cannot extract the
@@ -5773,7 +5773,7 @@ rewrite_ult_exp (Btor *btor, BtorNode *e0, BtorNode *e1)
 
   e0 = btor_copy_exp (btor, e0);
   e1 = btor_copy_exp (btor, e1);
-  normalize_ult (btor, &e0, &e1);
+  if (btor->options.rw_normalize.val) normalize_ult (btor, &e0, &e1);
 
   ADD_RW_RULE (const_binary_exp, BTOR_ULT_NODE, e0, e1);
   ADD_RW_RULE (special_const_lhs_binary_exp, BTOR_ULT_NODE, e0, e1);
@@ -5805,7 +5805,7 @@ rewrite_and_exp (Btor *btor, BtorNode *e0, BtorNode *e1)
 
   e0 = btor_copy_exp (btor, e0);
   e1 = btor_copy_exp (btor, e1);
-  normalize_and (btor, &e0, &e1);
+  if (btor->options.rw_normalize.val) normalize_and (btor, &e0, &e1);
 
   ADD_RW_RULE (const_binary_exp, BTOR_AND_NODE, e0, e1);
   ADD_RW_RULE (special_const_lhs_binary_exp, BTOR_AND_NODE, e0, e1);
@@ -5866,7 +5866,7 @@ rewrite_add_exp (Btor *btor, BtorNode *e0, BtorNode *e1)
 
   e0 = btor_copy_exp (btor, e0);
   e1 = btor_copy_exp (btor, e1);
-  normalize_add (btor, &e0, &e1);
+  if (btor->options.rw_normalize.val) normalize_add (btor, &e0, &e1);
 
   ADD_RW_RULE (const_binary_exp, BTOR_ADD_NODE, e0, e1);
   ADD_RW_RULE (special_const_lhs_binary_exp, BTOR_ADD_NODE, e0, e1);
@@ -5915,7 +5915,7 @@ rewrite_mul_exp (Btor *btor, BtorNode *e0, BtorNode *e1)
 
   e0 = btor_copy_exp (btor, e0);
   e1 = btor_copy_exp (btor, e1);
-  normalize_mul (btor, &e0, &e1);
+  if (btor->options.rw_normalize.val) normalize_mul (btor, &e0, &e1);
 
   ADD_RW_RULE (const_binary_exp, BTOR_MUL_NODE, e0, e1);
   ADD_RW_RULE (special_const_lhs_binary_exp, BTOR_MUL_NODE, e0, e1);
@@ -5959,7 +5959,7 @@ rewrite_udiv_exp (Btor *btor, BtorNode *e0, BtorNode *e1)
 
   e0 = btor_copy_exp (btor, e0);
   e1 = btor_copy_exp (btor, e1);
-  normalize_udiv (btor, &e0, &e1);
+  if (btor->options.rw_normalize.val) normalize_udiv (btor, &e0, &e1);
 
   // TODO what about non powers of 2, like divisor 3, which means that
   // some upper bits are 0 ...
@@ -5992,7 +5992,7 @@ rewrite_urem_exp (Btor *btor, BtorNode *e0, BtorNode *e1)
 
   e0 = btor_copy_exp (btor, e0);
   e1 = btor_copy_exp (btor, e1);
-  normalize_urem (btor, &e0, &e1);
+  if (btor->options.rw_normalize.val) normalize_urem (btor, &e0, &e1);
 
   // TODO do optimize for powers of two even AIGs do it as well !!!
 
@@ -6025,7 +6025,7 @@ rewrite_concat_exp (Btor *btor, BtorNode *e0, BtorNode *e1)
 
   e0 = btor_copy_exp (btor, e0);
   e1 = btor_copy_exp (btor, e1);
-  normalize_concat (btor, &e0, &e1);
+  if (btor->options.rw_normalize.val) normalize_concat (btor, &e0, &e1);
 
   ADD_RW_RULE (const_binary_exp, BTOR_CONCAT_NODE, e0, e1);
   ADD_RW_RULE (special_const_lhs_binary_exp, BTOR_CONCAT_NODE, e0, e1);
@@ -6140,7 +6140,7 @@ rewrite_cond_exp (Btor *btor, BtorNode *e0, BtorNode *e1, BtorNode *e2)
   e0 = btor_copy_exp (btor, e0);
   e1 = btor_copy_exp (btor, e1);
   e2 = btor_copy_exp (btor, e2);
-  normalize_cond (btor, &e0, &e1, &e2);
+  if (btor->options.rw_normalize.val) normalize_cond (btor, &e0, &e1, &e2);
   assert (BTOR_IS_REGULAR_NODE (e0));
 
   ADD_RW_RULE (equal_branches_cond, e0, e1, e2);
