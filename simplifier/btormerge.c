@@ -24,22 +24,19 @@ check_static_rho_equal_dbg (BtorPtrHashTable *t0, BtorPtrHashTable *t1)
   assert (t1);
   assert (t0->count == t1->count);
 
-  BtorNode *args0, *args1, *value0, *value1;
-  BtorHashTableIterator it0, it1;
+  BtorHashTableIterator it;
+  BtorPtrHashBucket *b;
+  BtorNode *value, *args;
 
-  btor_init_node_hash_table_iterator (&it0, t0);
-  btor_init_node_hash_table_iterator (&it1, t1);
-  while (btor_has_next_node_hash_table_iterator (&it0))
+  btor_init_node_hash_table_iterator (&it, t0);
+  while (btor_has_next_node_hash_table_iterator (&it))
   {
-    value0 = it0.bucket->data.asPtr;
-    value1 = it1.bucket->data.asPtr;
-    args0  = btor_next_node_hash_table_iterator (&it0);
-    args1  = btor_next_node_hash_table_iterator (&it1);
-    assert (args0->arity == 1);
-    assert (args0->arity == args1->arity);
-    assert ((BTOR_IS_BV_CONST_NODE (BTOR_REAL_ADDR_NODE (args0->e[0]))
-             && BTOR_IS_BV_CONST_NODE (BTOR_REAL_ADDR_NODE (args1->e[0])))
-            || (args0 == args1 && value0 == value1));
+    value = it.bucket->data.asPtr;
+    args  = btor_next_node_hash_table_iterator (&it);
+    assert (args->arity == 1);
+    b = btor_find_in_ptr_hash_table (t1, args);
+    assert (b);
+    assert (b->data.asPtr == value);
   }
   return true;
 }
