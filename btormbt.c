@@ -178,9 +178,9 @@
   "  -e, --extensionality             use extensionality\n"                    \
   "  -dp, --dual-prop                 enable dual prop optimization\n"         \
   "  -ju, --justification             enable justification optimization\n"     \
-  "  --no-funs                        disable functions"                       \
-  "  --no-ufs                         disable UFs"                             \
-  "  --no-arrays                      disable arrays" BTORMBT_UCOPT_USAGE      \
+  "  --no-funs                        disable functions\n"                     \
+  "  --no-ufs                         disable UFs\n"                           \
+  "  --no-arrays                      disable arrays\n" BTORMBT_UCOPT_USAGE    \
   "  -s, --shadow                     create and check shadow clone\n"         \
   "  -o, --out                        output directory for saving traces\n"    \
   "\n"                                                                         \

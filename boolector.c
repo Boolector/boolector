@@ -26,6 +26,7 @@
 #include "btorsat.h"
 #include "btorsort.h"
 #include "btortrapi.h"
+#include "dumper/btordumpaig.h"
 #include "dumper/btordumpbtor.h"
 #include "dumper/btordumpsmt.h"
 #include "utils/btorhash.h"
@@ -223,7 +224,9 @@ boolector_delete (Btor *btor)
     fclose (btor->apitrace);
   else if (btor->close_apitrace == 2)
     pclose (btor->apitrace);
+#ifndef NDEBUG
   if (btor->clone) boolector_delete (btor->clone);
+#endif
   btor_delete_btor (btor);
 }
 
@@ -342,6 +345,8 @@ boolector_assert (Btor *btor, BoolectorNode *node)
   BTOR_ABORT_ARRAY_BOOLECTOR (simp);
   BTOR_ABORT_BOOLECTOR (btor_get_exp_width (btor, simp) != 1,
                         "'exp' must have bit-width one");
+  BTOR_ABORT_BOOLECTOR (BTOR_REAL_ADDR_NODE (simp)->parameterized,
+                        "assertion must not be parameterized");
   btor_assert_exp (btor, simp);
 #ifndef NDEBUG
   BTOR_CHKCLONE_NORES (assert, BTOR_CLONED_EXP (exp));
@@ -368,6 +373,8 @@ boolector_assume (Btor *btor, BoolectorNode *node)
   BTOR_ABORT_ARRAY_BOOLECTOR (simp);
   BTOR_ABORT_BOOLECTOR (btor_get_exp_width (btor, simp) != 1,
                         "'exp' must have bit-width one");
+  BTOR_ABORT_BOOLECTOR (BTOR_REAL_ADDR_NODE (simp)->parameterized,
+                        "assumption must not be parameterized");
   btor_assume_exp (btor, simp);
 #ifndef NDEBUG
   BTOR_CHKCLONE_NORES (assume, BTOR_CLONED_EXP (exp));
@@ -403,6 +410,28 @@ boolector_failed (Btor *btor, BoolectorNode *node)
   BTOR_CHKCLONE_RES (res, failed, BTOR_CLONED_EXP (exp));
 #endif
   return res;
+}
+
+void
+boolector_fixate_assumptions (Btor *btor)
+{
+  BTOR_ABORT_ARG_NULL_BOOLECTOR (btor);
+  BTOR_TRAPI ("");
+  BTOR_ABORT_BOOLECTOR (
+      !btor->options.incremental.val,
+      "incremental usage has not been enabled, no assumptions available");
+  btor_fixate_assumptions (btor);
+}
+
+void
+boolector_reset_assumptions (Btor *btor)
+{
+  BTOR_ABORT_ARG_NULL_BOOLECTOR (btor);
+  BTOR_TRAPI ("");
+  BTOR_ABORT_BOOLECTOR (
+      !btor->options.incremental.val,
+      "incremental usage has not been enabled, no assumptions available");
+  btor_reset_assumptions (btor);
 }
 
 int
@@ -1199,7 +1228,7 @@ boolector_slice (Btor *btor, BoolectorNode *node, int upper, int lower)
   BTOR_ABORT_ARRAY_BOOLECTOR (simp);
   BTOR_ABORT_BOOLECTOR (lower < 0, "'lower' must not be negative");
   BTOR_ABORT_BOOLECTOR (upper < lower, "'upper' must not be < 'lower'");
-  BTOR_ABORT_BOOLECTOR (upper >= btor_get_exp_width (btor, simp),
+  BTOR_ABORT_BOOLECTOR ((uint32_t) upper >= btor_get_exp_width (btor, simp),
                         "'upper' must not be >= width of 'exp'");
   res = btor_slice_exp (btor, simp, upper, lower);
   inc_exp_ext_ref_counter (btor, res);
@@ -1513,6 +1542,9 @@ boolector_eq (Btor *btor, BoolectorNode *n0, BoolectorNode *n1)
   BTOR_ABORT_BOOLECTOR (
       BTOR_REAL_ADDR_NODE (e0)->sort_id != BTOR_REAL_ADDR_NODE (e1)->sort_id,
       "nodes must have equal sorts");
+  BTOR_ABORT_BOOLECTOR (btor_is_fun_exp (btor, simp0)
+                            && (simp0->parameterized || simp1->parameterized),
+                        "parameterized function equalities not supported");
   res = btor_eq_exp (btor, simp0, simp1);
   inc_exp_ext_ref_counter (btor, res);
   BTOR_TRAPI_RETURN_NODE (res);
@@ -1525,8 +1557,7 @@ boolector_eq (Btor *btor, BoolectorNode *n0, BoolectorNode *n1)
 BoolectorNode *
 boolector_ne (Btor *btor, BoolectorNode *n0, BoolectorNode *n1)
 {
-  BtorNode *e0, *e1, *simp0, *simp1, *real_simp0, *real_simp1, *res;
-  int is_array_simp0, is_array_simp1;
+  BtorNode *e0, *e1, *simp0, *simp1, *res;
 
   e0 = BTOR_IMPORT_BOOLECTOR_NODE (n0);
   e1 = BTOR_IMPORT_BOOLECTOR_NODE (n1);
@@ -1538,17 +1569,14 @@ boolector_ne (Btor *btor, BoolectorNode *n0, BoolectorNode *n1)
   BTOR_ABORT_REFS_NOT_POS_BOOLECTOR (e1);
   BTOR_ABORT_IF_BTOR_DOES_NOT_MATCH (btor, e0);
   BTOR_ABORT_IF_BTOR_DOES_NOT_MATCH (btor, e1);
-  simp0          = btor_simplify_exp (btor, e0);
-  simp1          = btor_simplify_exp (btor, e1);
-  real_simp0     = BTOR_REAL_ADDR_NODE (simp0);
-  real_simp1     = BTOR_REAL_ADDR_NODE (simp1);
-  is_array_simp0 = BTOR_IS_FUN_NODE (real_simp0);
-  is_array_simp1 = BTOR_IS_FUN_NODE (real_simp1);
-  BTOR_ABORT_BOOLECTOR (is_array_simp0 != is_array_simp1,
-                        "array must not be compared to bit-vector");
+  simp0 = btor_simplify_exp (btor, e0);
+  simp1 = btor_simplify_exp (btor, e1);
   BTOR_ABORT_BOOLECTOR (
-      is_array_simp0 && real_simp0->sort_id != real_simp1->sort_id,
-      "arrays must not have unequal index/element sorts");
+      BTOR_REAL_ADDR_NODE (e0)->sort_id != BTOR_REAL_ADDR_NODE (e1)->sort_id,
+      "nodes must have equal sorts");
+  BTOR_ABORT_BOOLECTOR (btor_is_fun_exp (btor, simp0)
+                            && (simp0->parameterized || simp1->parameterized),
+                        "parameterized function equalities not supported");
   res = btor_ne_exp (btor, simp0, simp1);
   inc_exp_ext_ref_counter (btor, res);
   BTOR_TRAPI_RETURN_NODE (res);
@@ -2660,7 +2688,7 @@ boolector_apply (Btor *btor,
 {
   int i, len;
   char *strtrapi;
-  BtorNode **args, *e_fun, *res;
+  BtorNode **args, *e_fun, *res, *simp;
 
   args  = BTOR_IMPORT_BOOLECTOR_NODE_ARRAY (arg_nodes);
   e_fun = BTOR_IMPORT_BOOLECTOR_NODE (n_fun);
@@ -2683,19 +2711,20 @@ boolector_apply (Btor *btor,
   BTOR_TRAPI (strtrapi);
   BTOR_DELETEN (btor->mm, strtrapi, len);
 
-  e_fun = btor_simplify_exp (btor, e_fun);
+  simp = btor_simplify_exp (btor, e_fun);
   BTOR_ABORT_BOOLECTOR (
-      argc != btor_get_fun_arity (btor, e_fun),
+      (uint32_t) argc != btor_get_fun_arity (btor, simp),
       "number of arguments must be equal to the number of parameters in 'fun'");
   BTOR_ABORT_BOOLECTOR (argc < 1, "'argc' must not be < 1");
   BTOR_ABORT_BOOLECTOR (argc >= 1 && !args,
                         "no arguments given but argc defined > 0");
-  BTOR_ABORT_BOOLECTOR (!btor_is_fun_exp (btor, e_fun)
-                            || argc != btor_get_fun_arity (btor, e_fun),
-                        "number of arguments does not match arity of 'fun'");
-  i = btor_fun_sort_check (btor, argc, args, e_fun);
+  BTOR_ABORT_BOOLECTOR (
+      !btor_is_fun_exp (btor, simp)
+          || (uint32_t) argc != btor_get_fun_arity (btor, simp),
+      "number of arguments does not match arity of 'fun'");
+  i = btor_fun_sort_check (btor, argc, args, simp);
   BTOR_ABORT_BOOLECTOR (i >= 0, "invalid argument given at position %d", i);
-  res = btor_apply_exps (btor, argc, args, e_fun);
+  res = btor_apply_exps (btor, argc, args, simp);
   inc_exp_ext_ref_counter (btor, res);
   BTOR_TRAPI_RETURN_NODE (res);
 #ifndef NDEBUG
@@ -2943,13 +2972,13 @@ boolector_get_bits (Btor *btor, BoolectorNode *node)
                         "argument is not a constant node");
   if (BTOR_IS_INVERTED_NODE (simp))
   {
-    if (!btor_get_invbits_const (real))
-      btor_set_invbits_const (
-          real, btor_not_const_3vl (btor->mm, btor_get_bits_const (real)));
-    res = btor_get_invbits_const (real);
+    if (!btor_const_get_invbits (real))
+      btor_const_set_invbits (
+          real, btor_not_const_3vl (btor->mm, btor_const_get_bits (real)));
+    res = btor_const_get_invbits (real);
   }
   else
-    res = btor_get_bits_const (simp);
+    res = btor_const_get_bits (simp);
   BTOR_TRAPI_RETURN_STR (res);
 #ifndef NDEBUG
   if (btor->clone)
@@ -3105,7 +3134,7 @@ boolector_is_bound_param (Btor *btor, BoolectorNode *node)
   simp = btor_simplify_exp (btor, exp);
   BTOR_ABORT_BOOLECTOR (!BTOR_IS_PARAM_NODE (BTOR_REAL_ADDR_NODE (simp)),
                         "given expression is not a parameter node");
-  res = btor_is_bound_param_exp (btor, simp);
+  res = btor_param_is_bound (simp);
   BTOR_TRAPI_RETURN_INT (res);
 #ifndef NDEBUG
   BTOR_CHKCLONE_RES (res, is_bound_param, BTOR_CLONED_EXP (exp));
@@ -3815,6 +3844,30 @@ boolector_dump_smt2 (Btor *btor, FILE *file)
   btor_dump_smt2 (btor, file);
 #ifndef NDEBUG
   BTOR_CHKCLONE_NORES (dump_smt2, file);
+#endif
+}
+
+void
+boolector_dump_aiger_ascii (Btor *btor, FILE *file, bool merge_roots)
+{
+  BTOR_TRAPI ("%d", merge_roots);
+  BTOR_ABORT_ARG_NULL_BOOLECTOR (btor);
+  BTOR_ABORT_ARG_NULL_BOOLECTOR (file);
+  btor_dump_aiger (btor, file, false, merge_roots);
+#ifndef NDEBUG
+  BTOR_CHKCLONE_NORES (dump_aiger_ascii, file, merge_roots);
+#endif
+}
+
+void
+boolector_dump_aiger_binary (Btor *btor, FILE *file, bool merge_roots)
+{
+  BTOR_TRAPI ("%d", merge_roots);
+  BTOR_ABORT_ARG_NULL_BOOLECTOR (btor);
+  BTOR_ABORT_ARG_NULL_BOOLECTOR (file);
+  btor_dump_aiger (btor, file, true, merge_roots);
+#ifndef NDEBUG
+  BTOR_CHKCLONE_NORES (dump_aiger_binary, file, merge_roots);
 #endif
 }
 

@@ -258,7 +258,7 @@ test_slice_exp (void)
 }
 
 static void
-ext_exp_test (BtorNode *(*func) (Btor *, BtorNode *, int) )
+ext_exp_test (BtorNode *(*func) (Btor *, BtorNode *, uint32_t))
 {
   init_exp_test ();
   BtorNode *exp1 = btor_var_exp (g_btor, 32, "v1");

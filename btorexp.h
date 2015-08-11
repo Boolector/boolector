@@ -84,73 +84,55 @@ typedef struct BtorNodePair BtorNodePair;
 #define BTOR_BV_NODE_STRUCT                                             \
   struct                                                                \
   {                                                                     \
-    BtorNodeKind kind : 5;       /* kind of expression */               \
-    unsigned int mark : 3;       /* for DAG traversal */                \
-    unsigned int aux_mark : 2;   /* auxiliary mark flag */              \
-    unsigned int occ_mark : 1;   /* occurrence check mark flag */       \
-    unsigned int fun_mark : 1;   /* for bottom up function traversal */ \
-    unsigned int beta_mark : 2;  /* mark for beta_reduce */             \
-    unsigned int eval_mark : 2;  /* mark for eval_exp */                \
-    unsigned int synth_mark : 2; /* mark for synthesize_exp */          \
-    unsigned int clone_mark : 2; /* mark for clone_exp_tree */          \
-    unsigned int reachable : 1;  /* reachable from root ? */            \
-    unsigned int tseitin : 1;    /* tseitin encoded into SAT ? */       \
-    unsigned int lazy_tseitin : 1;                                      \
-    unsigned int vread : 1;         /* virtual read ? */                \
-    unsigned int vread_index : 1;   /* index for two virtual reads ? */ \
-    unsigned int constraint : 1;    /* top level constraint ? */        \
-    unsigned int erased : 1;        /* for debugging purposes */        \
-    unsigned int disconnected : 1;  /* for debugging purposes */        \
-    unsigned int unique : 1;        /* in unique table? */              \
-    unsigned int bytes : 9;         /* allocated bytes */               \
-    unsigned int parameterized : 1; /* param as sub expression ? */     \
-    unsigned int lambda_below : 1;  /* lambda as sub expression ? */    \
-    unsigned int apply_below : 1;                                       \
-    unsigned int merge : 1;                                             \
-    unsigned int is_write : 1;                                          \
-    unsigned int is_read : 1;                                           \
-    unsigned int propagated : 1;                                        \
-    int id;             /* unique expression id */                      \
-    int refs;           /* reference counter (incl. ext_refs) */        \
-    int ext_refs;       /* external references counter */               \
-    int parents;        /* number of parents */                         \
-    int arity;          /* arity of operator */                         \
-    BtorSortId sort_id; /* sort id  TODO: rename to sort */             \
+    BtorNodeKind kind : 5;     /* kind of expression */                 \
+    uint8_t mark : 2;          /* for DAG traversal */                  \
+    uint8_t aux_mark : 2;      /* auxiliary mark flag */                \
+    uint8_t beta_mark : 2;     /* mark for beta_reduce */               \
+    uint8_t eval_mark : 2;     /* mark for eval_exp */                  \
+    uint8_t clone_mark : 2;    /* mark for clone_exp_tree */            \
+    uint8_t reachable : 1;     /* reachable from root ? */              \
+    uint8_t lazy_synth : 1;    /* lazy synthesized ? (funs, applies) */ \
+    uint8_t synth_app : 1;     /* inserted in synth_apps ? */           \
+    uint8_t constraint : 1;    /* top level constraint ? */             \
+    uint8_t erased : 1;        /* for debugging purposes */             \
+    uint8_t disconnected : 1;  /* for debugging purposes */             \
+    uint8_t unique : 1;        /* in unique table? */                   \
+    uint8_t bytes;             /* allocated bytes */                    \
+    uint8_t parameterized : 1; /* param as sub expression ? */          \
+    uint8_t lambda_below : 1;  /* lambda as sub expression ? */         \
+    uint8_t apply_below : 1;   /* apply as sub expression ? */          \
+    uint8_t propagated : 1;    /* is set during propagation */          \
+    uint8_t is_array : 1;      /* function represents array ? */        \
+    uint8_t arity : 2;         /* arity of operator (at most 3) */      \
+    int32_t id;                /* unique expression id */               \
+    uint32_t refs;             /* reference counter (incl. ext_refs) */ \
+    uint32_t ext_refs;         /* external references counter */        \
+    uint32_t parents;          /* number of parents */                  \
+    BtorSortId sort_id;        /* sort id */                            \
     union                                                               \
     {                                                                   \
       BtorAIGVec *av;        /* synthesized AIG vector */               \
       BtorPtrHashTable *rho; /* for finding array conflicts */          \
     };                                                                  \
     BtorNode *next;         /* next in unique table */                  \
-    BtorNode *parent;       /* parent pointer for BFS */                \
     BtorNode *simplified;   /* simplified expression */                 \
-    Btor *btor;             /* boolector */                             \
+    Btor *btor;             /* boolector instance */                    \
     BtorNode *first_parent; /* head of parent list */                   \
     BtorNode *last_parent;  /* tail of parent list */                   \
   }
 
-#define BTOR_BV_ADDITIONAL_NODE_STRUCT                                \
-  struct                                                              \
-  {                                                                   \
-    struct                                                            \
-    {                                                                 \
-      int upper; /* upper index for slices */                         \
-      union                                                           \
-      {                                                               \
-        int lower;            /* lower index for slices */            \
-        BtorNodePair *vreads; /* virtual reads for array equalites */ \
-      };                                                              \
-    };                                                                \
-    BtorNode *e[3];           /* expression children */               \
-    BtorNode *prev_parent[3]; /* prev in parent list of child i */    \
-    BtorNode *next_parent[3]; /* next in parent list of child i */    \
+#define BTOR_BV_ADDITIONAL_NODE_STRUCT                             \
+  struct                                                           \
+  {                                                                \
+    BtorNode *e[3];           /* expression children */            \
+    BtorNode *prev_parent[3]; /* prev in parent list of child i */ \
+    BtorNode *next_parent[3]; /* next in parent list of child i */ \
   }
-// TODO: optimization of **e, **prev_parent, **next_parent memory allocation
 
 struct BtorBVVarNode
 {
   BTOR_BV_NODE_STRUCT;
-  int btor_id; /* id as defined in btor input */
+  int32_t btor_id; /* id as defined in btor input */
 };
 
 typedef struct BtorBVVarNode BtorBVVarNode;
@@ -158,8 +140,7 @@ typedef struct BtorBVVarNode BtorBVVarNode;
 struct BtorUFNode
 {
   BTOR_BV_NODE_STRUCT;
-  int btor_id; /* id as defined in btor input */
-  char is_array;
+  int32_t btor_id; /* id as defined in btor input */
 };
 
 typedef struct BtorUFNode BtorUFNode;
@@ -172,6 +153,16 @@ struct BtorBVConstNode
 };
 
 typedef struct BtorBVConstNode BtorBVConstNode;
+
+struct BtorSliceNode
+{
+  BTOR_BV_NODE_STRUCT;
+  BTOR_BV_ADDITIONAL_NODE_STRUCT;
+  uint32_t upper;
+  uint32_t lower;
+};
+
+typedef struct BtorSliceNode BtorSliceNode;
 
 struct BtorBVNode
 {
@@ -352,8 +343,8 @@ typedef struct BtorArgsNode BtorArgsNode;
 
 #define BTOR_BITS_NODE(mm, exp)                         \
   (BTOR_IS_INVERTED_NODE (exp)                          \
-       ? btor_not_const (mm, btor_get_bits_const (exp)) \
-       : btor_copy_const (mm, btor_get_bits_const (exp)))
+       ? btor_not_const (mm, btor_const_get_bits (exp)) \
+       : btor_copy_const (mm, btor_const_get_bits (exp)))
 
 #define BTOR_TAG_NODE(exp, tag) \
   ((BtorNode *) ((unsigned long int) tag | (unsigned long int) (exp)))
@@ -369,17 +360,6 @@ typedef struct BtorArgsNode BtorArgsNode;
 
 #define BTOR_IS_UF_ARRAY_NODE(exp) \
   ((exp) && BTOR_IS_UF_NODE (exp) && ((BtorUFNode *) exp)->is_array)
-
-#define BTOR_IS_BOUND_PARAM_NODE(exp) (((BtorParamNode *) exp)->lambda_exp != 0)
-
-#define BTOR_PARAM_GET_LAMBDA_NODE(exp) (((BtorParamNode *) exp)->lambda_exp)
-
-#define BTOR_PARAM_SET_LAMBDA_NODE(param, lambda) \
-  (((BtorParamNode *) BTOR_REAL_ADDR_NODE (param))->lambda_exp = lambda)
-
-#define BTOR_LAMBDA_GET_PARAM(exp) (((BtorParamNode *) exp->e[0]))
-
-#define BTOR_LAMBDA_GET_BODY(exp) (((BtorLambdaNode *) exp)->body)
 
 /*------------------------------------------------------------------------*/
 
@@ -424,7 +404,7 @@ BtorNode *btor_const_exp (Btor *btor, const char *bits);
  * len > 0
  * len(result) = len
  */
-BtorNode *btor_zero_exp (Btor *btor, int len);
+BtorNode *btor_zero_exp (Btor *btor, uint32_t len);
 
 /* Constant respresenting FALSE
  * len(result) = 1
@@ -435,7 +415,7 @@ BtorNode *btor_false_exp (Btor *btor);
  * len > 0
  * len(result) = len
  */
-BtorNode *btor_ones_exp (Btor *btor, int len);
+BtorNode *btor_ones_exp (Btor *btor, uint32_t len);
 
 /* Constant respresenting TRUE
  * len(result) = 1
@@ -446,41 +426,41 @@ BtorNode *btor_true_exp (Btor *btor);
  * len > 0
  * len(result) = len
  */
-BtorNode *btor_one_exp (Btor *btor, int len);
+BtorNode *btor_one_exp (Btor *btor, uint32_t len);
 
 /* Binary constant representing the unsigned integer.
  * The constant is obtained by either truncating bits
  * or by unsigned extension (padding with zeroes).
  * len > 0
  */
-BtorNode *btor_unsigned_exp (Btor *btor, unsigned u, int len);
+BtorNode *btor_unsigned_exp (Btor *btor, uint32_t u, uint32_t len);
 
 /* Binary constant representing the signed integer.
  * The constant is obtained by either truncating bits
  * or by signed extension (padding with ones).
  * len > 0
  */
-BtorNode *btor_int_exp (Btor *emg, int i, int len);
+BtorNode *btor_int_exp (Btor *emg, int32_t i, uint32_t len);
 
 /* Variable representing 'len' bits.
  * len > 0
  * len(result) = len
  */
-BtorNode *btor_var_exp (Btor *btor, int len, const char *symbol);
+BtorNode *btor_var_exp (Btor *btor, uint32_t len, const char *symbol);
 
 /* Lambda variable representing 'len' bits.
  * len > 0
  * len(result) = len
  */
-BtorNode *btor_param_exp (Btor *btor, int len, const char *symbol);
+BtorNode *btor_param_exp (Btor *btor, uint32_t len, const char *symbol);
 
 /* Array of size 2 ^ 'index_len' with elements of length 'elem_len'.
  * elem_len > 0
  * index_len > 0
  */
 BtorNode *btor_array_exp (Btor *btor,
-                          int elem_len,
-                          int index_len,
+                          uint32_t elem_len,
+                          uint32_t index_len,
                           const char *symbol);
 
 /* Uninterpreted function with sort 'sort'.
@@ -518,19 +498,22 @@ BtorNode *btor_redand_exp (Btor *btor, BtorNode *exp);
  * upper >= lower
  * len(result) = upper - lower + 1
  */
-BtorNode *btor_slice_exp (Btor *btor, BtorNode *exp, int upper, int lower);
+BtorNode *btor_slice_exp (Btor *btor,
+                          BtorNode *exp,
+                          uint32_t upper,
+                          uint32_t lower);
 
 /* Unsigned extension of 'len' bits.
  * len >= 0
  * len(result) = len(exp) + len
  */
-BtorNode *btor_uext_exp (Btor *btor, BtorNode *exp, int len);
+BtorNode *btor_uext_exp (Btor *btor, BtorNode *exp, uint32_t len);
 
 /* Signed extension of 'len' bits (keep sign).
  * len >= 0
  * len(result) = len(exp) + len
  */
-BtorNode *btor_sext_exp (Btor *btor, BtorNode *exp, int len);
+BtorNode *btor_sext_exp (Btor *btor, BtorNode *exp, uint32_t len);
 
 /* Logical IMPLICATION.
  * len(e0) = len(e1) = 1
@@ -794,7 +777,7 @@ BtorNode *btor_lambda_exp (Btor *btor, BtorNode *e_param, BtorNode *e_exp);
  * function body 'exp'.
  */
 BtorNode *btor_fun_exp (Btor *btor,
-                        int paramc,
+                        uint32_t paramc,
                         BtorNode **params,
                         BtorNode *exp);
 
@@ -805,13 +788,13 @@ BtorNode *btor_apply_exp (Btor *btor, BtorNode *fun, BtorNode *args);
 /* Apply expression that applies 'argc' number of arguments to 'fun'.
  */
 BtorNode *btor_apply_exps (Btor *btor,
-                           int argc,
+                           uint32_t argc,
                            BtorNode **args,
                            BtorNode *fun);
 
 /* Argument expression with 'argc' arguments.
  */
-BtorNode *btor_args_exp (Btor *btor, int argc, BtorNode **args);
+BtorNode *btor_args_exp (Btor *btor, uint32_t argc, BtorNode **args);
 
 /* If-then-else.
  * len(e_cond) = 1
@@ -830,24 +813,24 @@ BtorNode *btor_inc_exp (Btor *btor, BtorNode *exp);
 BtorNode *btor_dec_exp (Btor *btor, BtorNode *exp);
 
 /* Gets the bit width of a bit vector expression */
-int btor_get_exp_width (Btor *btor, BtorNode *exp);
+uint32_t btor_get_exp_width (Btor *btor, BtorNode *exp);
 
 /* Gets the bit width of the array elements. */
-int btor_get_fun_exp_width (Btor *btor, BtorNode *exp);
+uint32_t btor_get_fun_exp_width (Btor *btor, BtorNode *exp);
 
-char *btor_get_bits_const (BtorNode *exp);
-char *btor_get_invbits_const (BtorNode *exp);
-void btor_set_bits_const (BtorNode *exp, char *bits);
-void btor_set_invbits_const (BtorNode *exp, char *bits);
+char *btor_const_get_bits (BtorNode *exp);
+char *btor_const_get_invbits (BtorNode *exp);
+void btor_const_set_bits (BtorNode *exp, char *bits);
+void btor_const_set_invbits (BtorNode *exp, char *bits);
 
 /* Determines if expression is an array or not. */
-int btor_is_array_exp (Btor *btor, BtorNode *exp);
+bool btor_is_array_exp (Btor *btor, BtorNode *exp);
 
 /* Determines if expression is an uf or array variable or not. */
-int btor_is_uf_array_var_exp (Btor *btor, BtorNode *exp);
+bool btor_is_uf_array_var_exp (Btor *btor, BtorNode *exp);
 
 /* Determines if expression is a bv variable or not. */
-int btor_is_bv_var_exp (Btor *btor, BtorNode *exp);
+bool btor_is_bv_var_exp (Btor *btor, BtorNode *exp);
 
 /* Gets the number of bits used by indices on 'e_array'. */
 int btor_get_index_exp_width (Btor *btor, BtorNode *e_array);
@@ -857,7 +840,7 @@ int btor_get_id (Btor *btor, BtorNode *exp);
 
 /* Retrieve the exp (belonging to instance 'btor') that matches given id.
  * (Note: increases ref counter of returned match!) */
-BtorNode *btor_match_node_by_id (Btor *btor, int id);
+BtorNode *btor_match_node_by_id (Btor *btor, int32_t id);
 
 /* Retrieve the exp (belonging to instance 'btor') that matches given
  * expression by id. This is intended to be used for handling expressions
@@ -874,25 +857,41 @@ char *btor_get_symbol_exp (Btor *btor, BtorNode *exp);
 void btor_set_symbol_exp (Btor *btor, BtorNode *exp, const char *symbol);
 
 /* Determines if expression is a param or not. */
-int btor_is_param_exp (Btor *btor, BtorNode *exp);
-
-/* Determines if param is already bound to a lambda expression or not. */
-int btor_is_bound_param_exp (Btor *btor, BtorNode *param);
+bool btor_is_param_exp (Btor *btor, BtorNode *exp);
 
 /* Determines if expression is a lambda or not. */
-int btor_is_fun_exp (Btor *btor, BtorNode *exp);
+bool btor_is_fun_exp (Btor *btor, BtorNode *exp);
 
 /* Gets the number of arguments of lambda expression 'exp'. */
-int btor_get_fun_arity (Btor *btor, BtorNode *exp);
+uint32_t btor_get_fun_arity (Btor *btor, BtorNode *exp);
 
 /* Determines if expression is an argument expression or not. */
-int btor_is_args_exp (Btor *btor, BtorNode *exp);
+bool btor_is_args_exp (Btor *btor, BtorNode *exp);
 
 /* Gets the number of arguments of an argument expression 'exp'. */
 int btor_get_args_arity (Btor *btor, BtorNode *exp);
 
 /* Returns static_rho of given lambda node. */
 BtorPtrHashTable *btor_lambda_get_static_rho (BtorNode *lambda);
+/* Returns synth_apps of given lambda node. */
+BtorPtrHashTable *btor_lambda_get_synth_apps (BtorNode *lambda);
+
+void btor_lambda_set_static_rho (BtorNode *lambda,
+                                 BtorPtrHashTable *static_rho);
+
+void btor_lambda_set_synth_apps (BtorNode *lambda,
+                                 BtorPtrHashTable *synth_apps);
+
+BtorNode *btor_lambda_get_body (BtorNode *lambda);
+void btor_lambda_set_body (BtorNode *lambda, BtorNode *body);
+
+/* Getter for BtorSliceNode fields */
+uint32_t btor_slice_get_upper (BtorNode *slice);
+uint32_t btor_slice_get_lower (BtorNode *slice);
+
+BtorNode *btor_param_get_binding_lambda (BtorNode *param);
+void btor_param_set_binding_lambda (BtorNode *param, BtorNode *lambda);
+bool btor_param_is_bound (BtorNode *param);
 
 /* Copies expression (increments reference counter). */
 BtorNode *btor_copy_exp (Btor *btor, BtorNode *exp);
@@ -904,15 +903,16 @@ void btor_release_exp (Btor *btor, BtorNode *exp);
  * NOTE: 'exp' must be already simplified */
 void btor_set_to_proxy_exp (Btor *btor, BtorNode *exp);
 
-/* Return a pointer to the unique table location of 'exp', if present.
- * Else, result pointer is the location where 'exp' may be inserted. */
-BtorNode **btor_find_unique_exp (Btor *btor, BtorNode *exp);
-
 int btor_cmp_exp_by_id_qsort_desc (const void *p, const void *q);
 int btor_cmp_exp_by_id_qsort_asc (const void *p, const void *q);
+
+bool btor_is_encoded_exp (BtorNode *exp);
 /*------------------------------------------------------------------------*/
 
-BtorNode *btor_slice_exp_node (Btor *btor, BtorNode *exp, int upper, int lower);
+BtorNode *btor_slice_exp_node (Btor *btor,
+                               BtorNode *exp,
+                               uint32_t upper,
+                               uint32_t lower);
 
 BtorNode *btor_and_exp_node (Btor *btor, BtorNode *e0, BtorNode *e1);
 
@@ -952,7 +952,7 @@ BtorNode *btor_lambda_exp_node (Btor *btor, BtorNode *param, BtorNode *body);
 
 BtorNode *btor_create_exp (Btor *btor,
                            BtorNodeKind kind,
-                           int arity,
+                           uint32_t arity,
                            BtorNode **e);
 
 /*------------------------------------------------------------------------*/
@@ -961,8 +961,8 @@ BtorNode *btor_create_exp (Btor *btor,
 
 int btor_precond_slice_exp_dbg (Btor *btor,
                                 BtorNode *exp,
-                                int upper,
-                                int lower);
+                                uint32_t upper,
+                                uint32_t lower);
 
 int btor_precond_regular_unary_bv_exp_dbg (Btor *btor, BtorNode *exp);
 

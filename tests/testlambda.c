@@ -308,7 +308,7 @@ test_lambda_param_slice (void)
 }
 
 static void
-param_extension_test (BtorNode *(*func) (Btor *, BtorNode *, int) )
+param_extension_test (BtorNode *(*func) (Btor *, BtorNode *, uint32_t))
 {
   init_lambda_test ();
   int lower           = g_elem_bw / 2 + 1;
@@ -1540,7 +1540,7 @@ run_lambda_tests (int argc, char **argv)
   BTOR_RUN_TEST (lambda_param_srem);
   BTOR_RUN_TEST (lambda_param_smod);
   BTOR_RUN_TEST (lambda_param_concat);
-  //  BTOR_RUN_TEST (lambda_param_read);
+  BTOR_RUN_TEST (lambda_param_read);
   /* ternary exp tests */
   BTOR_RUN_TEST (lambda_param_write1);
   BTOR_RUN_TEST (lambda_param_write2);

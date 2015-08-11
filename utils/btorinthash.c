@@ -18,26 +18,6 @@ static inline uint32_t
 hash (uint32_t h)
 {
   return h;
-  //  return h; // * 1183477;
-  //  h ^= h >> 16;
-  //  h *= 0x85ebca6b;
-  //  h ^= h >> 13;
-  //  h *= 0xc2b2ae35;
-  //  h ^= h >> 16;
-  //  return h;
-  //  uint32_t c2=0x27d4eb2d; // a prime or an odd constant
-  //  h = (h ^ 61) ^ (h >> 16);
-  //  h = h + (h << 3);
-  //  h = h ^ (h >> 4);
-  //  h = h * c2;
-  //  h = h ^ (h >> 15);
-  //  return h;
-
-  //  h = ((h >> 16) ^ h) * 0x45d9f3b;
-  //  h = ((h >> 16) ^ h) * 0x45d9f3b;
-  //  h = ((h >> 16) ^ h);
-  //  return h;
-
   h += ~(h << 15);
   h ^= (h >> 10);
   h += (h << 3);
@@ -47,22 +27,26 @@ hash (uint32_t h)
   return h;
 }
 
+#if 0
 #ifndef NDEBUG
 #include <stdio.h>
 static void
-print_int_hash_table (BtorIntHashTable *t)
+print_int_hash_table (BtorIntHashTable * t)
 {
   size_t i;
 
   printf ("keys: ");
   for (i = 0; i < t->size; i++)
-  {
-    if (i % HOP_RANGE == 0) printf ("|");
-    printf ("%d[%d]", t->keys[i], t->hop_info[i]);
-    if (i < t->size - 1) printf (".");
-  }
+    {
+      if (i % HOP_RANGE == 0)
+	printf ("|");
+      printf ("%d[%d]", t->keys[i], t->hop_info[i]);
+      if (i < t->size - 1)
+	printf (".");
+    }
   printf ("|\n");
 }
+#endif
 #endif
 
 /*
@@ -234,14 +218,6 @@ btor_add_int_hash_table (BtorIntHashTable *t, int32_t key)
    * we need to resize 't'. */
   while (pos == t->size)
   {
-    //      if (t->size < 128)
-    //      print_int_hash_table (t);
-    //      printf ("resize: %zd %zd (%.1f%% full, %.3f MB)\n", t->count,
-    //      t->size,
-    //	      t->count / ((double) t->size) * 100,
-    //	      (double) btor_size_int_hash_table (t) / 1024 / 1024);
-    //      if (t->size < 128)
-    //      print_int_hash_table (t);
     resize (t);
     pos = add (t, key);
   }

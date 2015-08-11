@@ -29,12 +29,14 @@
 #define BTOR_OUTPUT_BASE_MIN 0
 #define BTOR_OUTPUT_BASE_MAX 2
 
+#define BTOR_OUTPUT_FORMAT_AIGER_ASCII -4
+#define BTOR_OUTPUT_FORMAT_AIGER_BINARY -3
 #define BTOR_OUTPUT_FORMAT_BTOR2 -2
 #define BTOR_OUTPUT_FORMAT_BTOR -1
 #define BTOR_OUTPUT_FORMAT_SMT1 1
 #define BTOR_OUTPUT_FORMAT_SMT2 2
 #define BTOR_OUTPUT_FORMAT_DFLT BTOR_OUTPUT_FORMAT_BTOR
-#define BTOR_OUTPUT_FORMAT_MIN -2
+#define BTOR_OUTPUT_FORMAT_MIN -4
 #define BTOR_OUTPUT_FORMAT_MAX 2
 
 #define BTOR_JUST_HEUR_LEFT 0
@@ -98,6 +100,7 @@ typedef struct BtorOpt
 #define BTOR_OPT_MERGE_LAMBDAS "merge_lambdas"
 #define BTOR_OPT_EXTRACT_LAMBDAS "extract_lambdas"
 #define BTOR_OPT_SKELETON_PREPROC "skeleton_preproc"
+#define BTOR_OPT_RW_NORMALIZE "rw_normalize"
 
 typedef struct BtorOpts
 {
@@ -160,6 +163,7 @@ typedef struct BtorOpts
   BtorOpt incremental_look_ahead; /* incremental usage, look-ahead mode */
   BtorOpt incremental_interval;   /* incremental usage, interval mode */
   BtorOpt parse_interactive;      /* interactive parse mode */
+  BtorOpt rw_normalize;           /* normalization during rewriting */
 
   /* ----------------------------------------------------------------------- */
   BtorOpt last; /* dummy for iteration */

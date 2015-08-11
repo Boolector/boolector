@@ -12,6 +12,7 @@
 #ifndef BTORCONST_H_INCLUDED
 #define BTORCONST_H_INCLUDED
 
+#include <stdint.h>
 #include "utils/btormem.h"
 
 /*------------------------------------------------------------------------*/
@@ -29,23 +30,23 @@ typedef enum BtorSpecialConst BtorSpecialConst;
 
 /*------------------------------------------------------------------------*/
 
-char *btor_zero_const (BtorMemMgr *mm, int len);
+char *btor_zero_const (BtorMemMgr *mm, uint32_t len);
 
-char *btor_one_const (BtorMemMgr *mm, int len);
+char *btor_one_const (BtorMemMgr *mm, uint32_t len);
 
-char *btor_ones_const (BtorMemMgr *mm, int len);
+char *btor_ones_const (BtorMemMgr *mm, uint32_t len);
 
-char *btor_int_to_const (BtorMemMgr *mm, int x, int len);
+char *btor_int_to_const (BtorMemMgr *mm, int x, uint32_t len);
 
-char *btor_unsigned_to_const (BtorMemMgr *mm, unsigned x, int len);
+char *btor_unsigned_to_const (BtorMemMgr *mm, unsigned x, uint32_t len);
 
 char *btor_decimal_to_const (BtorMemMgr *mm, const char *str);
 
-char *btor_decimal_to_const_n (BtorMemMgr *mm, const char *str, int len);
+char *btor_decimal_to_const_n (BtorMemMgr *mm, const char *str, uint32_t len);
 
 char *btor_hex_to_const (BtorMemMgr *mm, const char *str);
 
-char *btor_hex_to_const_n (BtorMemMgr *mm, const char *str, int len);
+char *btor_hex_to_const_n (BtorMemMgr *mm, const char *str, uint32_t len);
 
 int btor_is_zero_const (const char *str);
 
@@ -91,7 +92,7 @@ char *btor_sll_const (BtorMemMgr *mm, const char *a, const char *b);
 
 char *btor_srl_const (BtorMemMgr *mm, const char *a, const char *b);
 
-char *btor_uext_const (BtorMemMgr *mm, const char *c, int len);
+char *btor_uext_const (BtorMemMgr *mm, const char *c, uint32_t len);
 
 char *btor_concat_const (BtorMemMgr *mm, const char *a, const char *b);
 
@@ -100,7 +101,7 @@ char *btor_inverse_const (BtorMemMgr *mm, const char *a);
 /*------------------------------------------------------------------------*/
 /* Three valued logic.
  */
-char *btor_x_const_3vl (BtorMemMgr *mm, int len);
+char *btor_x_const_3vl (BtorMemMgr *mm, uint32_t len);
 
 char *btor_not_const_3vl (BtorMemMgr *mm, const char *a);
 
@@ -121,7 +122,10 @@ int btor_get_num_leading_zeros_const (BtorMemMgr *mm, const char *c);
 
 int btor_get_num_leading_ones_const (BtorMemMgr *mm, const char *c);
 
-char *btor_slice_const (BtorMemMgr *mm, const char *a, int upper, int lower);
+char *btor_slice_const (BtorMemMgr *mm,
+                        const char *a,
+                        uint32_t upper,
+                        uint32_t lower);
 
 /*------------------------------------------------------------------------*/
 /* Output functions.

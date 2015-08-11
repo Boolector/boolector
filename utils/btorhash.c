@@ -96,11 +96,11 @@ btor_clone_ptr_hash_table (BtorMemMgr *mem,
   while (res->size < table->size) btor_enlarge_ptr_hash_table (res);
   assert (res->size == table->size);
 
-  init_hash_table_iterator (&it, table);
-  while (has_next_hash_table_iterator (&it))
+  btor_init_hash_table_iterator (&it, table);
+  while (btor_has_next_hash_table_iterator (&it))
   {
     b          = it.bucket;
-    key        = next_hash_table_iterator (&it);
+    key        = btor_next_hash_table_iterator (&it);
     cloned_key = ckey (mem, key_map, key);
     assert (cloned_key);
     cloned_b = btor_insert_in_ptr_hash_table (res, cloned_key);

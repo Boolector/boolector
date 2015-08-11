@@ -20,12 +20,12 @@ void btor_log_end (Btor *);
 #ifndef NBTORLOG
 /*------------------------------------------------------------------------*/
 
-#define BTORLOG_LEVEL_MAX 1 /* at the moment we support en/disabling only */
+#define BTORLOG_LEVEL_MAX 2 /* at the moment we support en/disabling only */
 
-#define BTORLOG(FMT, ARGS...)                            \
+#define BTORLOG(LEVEL, FMT, ARGS...)                     \
   do                                                     \
   {                                                      \
-    if (btor->options.loglevel.val <= 0) break;          \
+    if (btor->options.loglevel.val < LEVEL) break;       \
     (void) btor_log_start (btor, __FILE__, FMT, ##ARGS); \
     btor_log_end (btor);                                 \
   } while (0)

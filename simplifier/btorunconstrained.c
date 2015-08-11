@@ -16,6 +16,7 @@
 #include "btordbg.h"
 #include "btormsg.h"
 #include "utils/btoriter.h"
+#include "utils/btormisc.h"
 #include "utils/btorutil.h"
 
 void
@@ -53,11 +54,11 @@ btor_optimize_unconstrained (Btor *btor)
 
   /* collect nodes that might contribute to a unconstrained candidate
    * propagation */
-  init_node_hash_table_iterator (&it, btor->bv_vars);
-  queue_hash_table_iterator (&it, btor->ufs);
-  while (has_next_hash_table_iterator (&it))
+  btor_init_node_hash_table_iterator (&it, btor->bv_vars);
+  btor_queue_hash_table_iterator (&it, btor->ufs);
+  while (btor_has_next_hash_table_iterator (&it))
   {
-    cur = next_node_hash_table_iterator (&it);
+    cur = btor_next_node_hash_table_iterator (&it);
     assert (BTOR_IS_REGULAR_NODE (cur));
     if (cur->parents == 1)
     {
@@ -81,9 +82,9 @@ btor_optimize_unconstrained (Btor *btor)
         BTOR_PUSH_STACK (mm, roots, cur);
       else
       {
-        init_full_parent_iterator (&pit, cur);
-        while (has_next_parent_full_parent_iterator (&pit))
-          BTOR_PUSH_STACK (mm, stack, next_parent_full_parent_iterator (&pit));
+        btor_init_parent_iterator (&pit, cur);
+        while (btor_has_next_parent_iterator (&pit))
+          BTOR_PUSH_STACK (mm, stack, btor_next_parent_iterator (&pit));
       }
     }
   }
@@ -116,13 +117,13 @@ btor_optimize_unconstrained (Btor *btor)
       cur->mark = 0;
 
       isuc = 1;
-      init_parameterized_iterator (btor, &parit, cur);
-      while (has_next_parameterized_iterator (&parit))
+      btor_init_parameterized_iterator (&parit, btor, cur);
+      while (btor_has_next_parameterized_iterator (&parit))
       {
         /* parameterized expressions are possibly unconstrained if the
          * lambda(s) parameterizing it do not have more than 1 parent */
-        lambda =
-            BTOR_PARAM_GET_LAMBDA_NODE (next_parameterized_iterator (&parit));
+        lambda = btor_param_get_binding_lambda (
+            btor_next_parameterized_iterator (&parit));
         /* get head lambda of function */
         while (lambda->parents == 1)
         {
@@ -250,9 +251,9 @@ btor_optimize_unconstrained (Btor *btor)
 
   /* cleanup */
   btor_delete_substitutions (btor);
-  init_hash_table_iterator (&it, ucs);
-  while (has_next_hash_table_iterator (&it))
-    btor_release_exp (btor, next_node_hash_table_iterator (&it));
+  btor_init_hash_table_iterator (&it, ucs);
+  while (btor_has_next_hash_table_iterator (&it))
+    btor_release_exp (btor, btor_next_node_hash_table_iterator (&it));
   btor_delete_ptr_hash_table (ucs);
 
   BTOR_RELEASE_STACK (btor->mm, stack);

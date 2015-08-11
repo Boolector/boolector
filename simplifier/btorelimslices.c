@@ -137,15 +137,16 @@ btor_eliminate_slices_on_bv_vars (Btor *btor)
     var = BTOR_POP_STACK (vars);
     assert (BTOR_IS_REGULAR_NODE (var));
     assert (BTOR_IS_BV_VAR_NODE (var));
-    init_full_parent_iterator (&it, var);
+    btor_init_parent_iterator (&it, var);
     /* find all slices on variable */
-    while (has_next_parent_full_parent_iterator (&it))
+    while (btor_has_next_parent_iterator (&it))
     {
-      cur = next_parent_full_parent_iterator (&it);
+      cur = btor_next_parent_iterator (&it);
       assert (BTOR_IS_REGULAR_NODE (cur));
       if (cur->kind == BTOR_SLICE_NODE)
       {
-        s1 = new_slice (btor, cur->upper, cur->lower);
+        s1 = new_slice (
+            btor, btor_slice_get_upper (cur), btor_slice_get_lower (cur));
         assert (!btor_find_in_ptr_hash_table (slices, s1));
         btor_insert_in_ptr_hash_table (slices, s1);
       }

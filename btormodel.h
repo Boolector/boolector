@@ -17,11 +17,10 @@
 #include "btorexp.h"
 #include "utils/btorhash.h"
 
-void btor_generate_model (Btor* btor, int model_for_all_reads);
-void btor_generate_model_aux (Btor* btor,
-                              BtorPtrHashTable* bv_model,
-                              BtorPtrHashTable* fun_model,
-                              int model_for_all_nodes);
+void btor_generate_model (Btor* btor,
+                          BtorPtrHashTable* bv_model,
+                          BtorPtrHashTable* fun_model,
+                          int model_for_all_nodes);
 
 void btor_init_bv_model (Btor* btor, BtorPtrHashTable** bv_model);
 void btor_init_fun_model (Btor* btor, BtorPtrHashTable** fun_model);
