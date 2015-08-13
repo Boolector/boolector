@@ -2899,7 +2899,7 @@ isnumstr (const char *str)
 {
   const char *p;
   for (p = str; *p; p++)
-    if (!isdigit (*p)) return 0;
+    if (!isdigit ((int) *p)) return 0;
   return 1;
 }
 
@@ -2908,7 +2908,7 @@ isfloatnumstr (const char *str)
 {
   const char *p;
   for (p = str; *p; p++)
-    if (!isdigit (*p) && *p != '.') return 0;
+    if (!isdigit ((int) *p) && *p != '.') return 0;
   return 1;
 }
 
