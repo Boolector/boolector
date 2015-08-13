@@ -18,6 +18,12 @@ gcov=no
 gprof=no
 python=no
 
+quotedcwd="`pwd|sed -e 's, ,\\\\ ,g'`"
+
+#echo "quotedcwd=$quotedcwd"
+#echo quotedcwd=$quotedcwd
+#exit 0
+
 #--------------------------------------------------------------------------#
 
 die () {
@@ -197,7 +203,7 @@ LIBM=no
 LIBSTDCPP=no
 if [ $shared = yes ]
 then
-  LIBS="-Wl\,-rpath=$(pwd)/."
+  LIBS="-Wl\,-rpath=$quotedcwd/."
   LDEPS="libboolector.so"
   LIBSTDCPP=yes
 fi
@@ -238,7 +244,7 @@ else
     [ X"$LDEPS" = X ] || LDEPS="$LDEPS "
     [ X"$LIBS" = X ] || LIBS="$LIBS "
     CFLAGS="${CFLAGS}-DBTOR_USE_PICOSAT"
-    LIBS="${LIBS}-L../picosat -Wl\,-rpath=$(pwd)/../picosat/ -lpicosat"
+    LIBS="${LIBS}-L../picosat -Wl\,-rpath=$quotedcwd/../picosat/ -lpicosat"
     LDEPS="${LDEPS}../picosat/libpicosat.a"
     INCS="${INCS}-I../picosat"
   fi
@@ -392,7 +398,7 @@ else
     OBJS="${OBJS}btorminisat.o"
     if [ $shared = yes ]
     then
-      LIBS="${LIBS}-L../minisat/build/dynamic/lib -Wl\,-rpath=$(pwd)/../minisat/build/dynamic/lib -lminisat"
+      LIBS="${LIBS}-L../minisat/build/dynamic/lib -Wl\,-rpath=$quotedcwd/../minisat/build/dynamic/lib -lminisat"
       LDEPS="${LDEPS}../minisat/build/dynamic/lib/libminisat.so"
     else
       LIBS="${LIBS}-L../minisat/build/release/lib -lminisat"
