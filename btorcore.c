@@ -3083,10 +3083,10 @@ btor_simplify (Btor *btor)
   int skelrounds = 0;
 #endif
 
-  if (btor->inconsistent) goto DONE;
-
   rounds = 0;
   start  = btor_time_stamp ();
+
+  if (btor->inconsistent) goto DONE;
 
   if (btor->options.beta_reduce_all.val) init_cache (btor);
 
