@@ -248,6 +248,17 @@ find_and_aig (BtorAIGMgr *amgr, BtorAIG *left, BtorAIG *right)
   return result;
 }
 
+static BtorAIG *
+find_and_aig_node (BtorAIGMgr *amgr, BtorAIG *left, BtorAIG *right)
+{
+  int32_t *lookup;
+  BtorAIG *res;
+  lookup = find_and_aig (amgr, left, right);
+  assert (lookup);
+  res = *lookup ? BTOR_GET_NODE_AIG (*lookup) : 0;
+  return res;
+}
+
 static void
 enlarge_aig_nodes_unique_table (BtorAIGMgr *amgr)
 {
@@ -651,25 +662,27 @@ BTOR_AIG_TWO_LEVEL_OPT_TRY_AGAIN:
 
   // Implicit XOR normalization .... (TODO keep it?)
 
-  if (BTOR_IS_INVERTED_AIG (left) && BTOR_IS_INVERTED_AIG (right)
+  if (BTOR_IS_INVERTED_AIG (left) && BTOR_IS_AND_AIG (real_left)
+      && BTOR_IS_INVERTED_AIG (right) && BTOR_IS_AND_AIG (real_right)
       && BTOR_LEFT_CHILD_AIG (real_left)
              == BTOR_INVERT_AIG (BTOR_LEFT_CHILD_AIG (real_right))
       && BTOR_RIGHT_CHILD_AIG (real_left)
              == BTOR_INVERT_AIG (BTOR_RIGHT_CHILD_AIG (real_right)))
   {
     BtorAIG *l =
-        *find_and_aig (amgr,
-                       BTOR_LEFT_CHILD_AIG (real_left),
-                       BTOR_INVERT_AIG (BTOR_RIGHT_CHILD_AIG (real_left)));
+        find_and_aig_node (amgr,
+                           BTOR_LEFT_CHILD_AIG (real_left),
+                           BTOR_INVERT_AIG (BTOR_RIGHT_CHILD_AIG (real_left)));
     if (l)
     {
       BtorAIG *r =
-          *find_and_aig (amgr,
-                         BTOR_INVERT_AIG (BTOR_LEFT_CHILD_AIG (real_left)),
-                         BTOR_RIGHT_CHILD_AIG (real_left));
+          find_and_aig_node (amgr,
+                             BTOR_INVERT_AIG (BTOR_LEFT_CHILD_AIG (real_left)),
+                             BTOR_RIGHT_CHILD_AIG (real_left));
       if (r)
       {
-        res = *find_and_aig (amgr, BTOR_INVERT_AIG (l), BTOR_INVERT_AIG (r));
+        res =
+            find_and_aig_node (amgr, BTOR_INVERT_AIG (l), BTOR_INVERT_AIG (r));
         if (res)
         {
           inc_aig_ref_counter (res);
