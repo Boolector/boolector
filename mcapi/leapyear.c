@@ -43,6 +43,46 @@ bv2dec (const char* str)
 int
 main (int argc, char** argv)
 {
+  int i, fixed = 0, dump = 0, res = 0;
+  const char* daystr = 0;
+  for (i = 1; i < argc; i++)
+  {
+    if (!strcmp (argv[i], "-h"))
+    {
+      printf ("usage: leapyear [-h][--fixed][--dump] [<days>]\n");
+      exit (1);
+    }
+    else if (!strcmp (argv[i], "--fixed"))
+      fixed = 1;
+    else if (!strcmp (argv[i], "--fixed"))
+      dump = 1;
+    else if (argv[i][0] == '-')
+    {
+      fprintf (
+          stderr, "*** leapyear: invalid option '%s' (try '-h')\n", argv[i]);
+      exit (1);
+    }
+    else if (daystr)
+    {
+      fprintf (stderr, "*** leapyear: too many options(try '-h')\n");
+      exit (1);
+    }
+    else
+    {
+      const char* p;
+      for (p = argv[i]; *p; p++)
+        if (*p < '0' || *p > '9') break;
+      if (!argv[i][0] || *p)
+      {
+        fprintf (stderr,
+                 "*** leapyear: invalid days argument '%s' (try '-h')\n",
+                 argv[i]);
+        exit (1);
+      }
+      daystr = argv[i];
+    }
+  }
+
   BtorMC* mc = boolector_new_mc ();
   boolector_set_verbosity_mc (mc, 0);
   boolector_enable_trace_gen (mc);
@@ -69,16 +109,16 @@ main (int argc, char** argv)
   BoolectorNode* days_sub_365     = boolector_sub (btor, days, c365);
   boolector_release (btor, c365);
 
-  if (argc > 1)
+  if (daystr)
   {
-    int daysinitval = atoi (argv[1]);
-    printf ("[fixed initializatio of days to %d]\n", daysinitval);
+    int daysinitval = atoi (daystr);
+    printf ("; constant initialization of days to %d\n", daysinitval);
     BoolectorNode* daysinit = boolector_int (btor, daysinitval, 32);
     boolector_init (mc, days, daysinit);
     boolector_release (btor, daysinit);
   }
   else
-    printf ("[arbitrary initialization of days]\n");
+    printf ("; non-deterministic arbitrary initialization of days\n");
   fflush (stdout);
 
   BoolectorNode* c366             = boolector_int (btor, 366, 32);
@@ -171,39 +211,45 @@ main (int argc, char** argv)
   // all nodes (except latches and inputs) should have been released at this
   // point
 
-  printf ("[printing BTOR model]\n");
-  boolector_dump_btormc (mc, stdout);
-  fflush (stdout);
-
-  const int maxk = 100;
-  printf ("[running bounded model checker up to bound %d]\n", maxk);
-  fflush (stdout);
-  int k = boolector_bmc (mc, 0, maxk);
-  if (0 <= k && k <= maxk)
+  if (dump)
   {
-    printf ("[days does NOT decrease at bound %d]\n", k);
-    int i;
-    for (i = 0; i <= k; i++)
-    {
-      char* val_year      = boolector_mc_assignment (mc, year, i);
-      char* val_days      = boolector_mc_assignment (mc, days, i);
-      char* val_prev_days = boolector_mc_assignment (mc, prev_days, i);
-      printf ("time=%d year=%ld days=%ld prev(days)=%ld\n",
-              i,
-              bv2dec (val_year),
-              bv2dec (val_days),
-              bv2dec (val_prev_days));
-      boolector_free_mc_assignment (mc, val_days);
-      boolector_free_mc_assignment (mc, val_year);
-      boolector_free_mc_assignment (mc, val_prev_days);
-    }
+    printf ("; printing BTOR model\n");
+    boolector_dump_btormc (mc, stdout);
+    fflush (stdout);
   }
   else
-    printf ("[days decreases alwways up to bound %d]\n", maxk);
+  {
+    const int maxk = 100;
+    printf ("; running bounded model checker up to bound %d\n", maxk);
+    fflush (stdout);
+    int k = boolector_bmc (mc, 0, maxk);
+    if (0 <= k && k <= maxk)
+    {
+      printf ("; days does NOT decrease at bound %d\n", k);
+      int i;
+      for (i = 0; i <= k; i++)
+      {
+        char* val_year      = boolector_mc_assignment (mc, year, i);
+        char* val_days      = boolector_mc_assignment (mc, days, i);
+        char* val_prev_days = boolector_mc_assignment (mc, prev_days, i);
+        printf ("time=%d year=%ld days=%ld prev(days)=%ld\n",
+                i,
+                bv2dec (val_year),
+                bv2dec (val_days),
+                bv2dec (val_prev_days));
+        boolector_free_mc_assignment (mc, val_days);
+        boolector_free_mc_assignment (mc, val_year);
+        boolector_free_mc_assignment (mc, val_prev_days);
+      }
+    }
+    else
+      printf ("; days decreases alwways up to bound %d\n", maxk);
+    res = (0 <= k);
+  }
 
   // latches (and inputs) are owned by 'mc', e.g., do not release
 
   boolector_delete_mc (mc);
 
-  return 0 <= k;
+  return res;
 }
