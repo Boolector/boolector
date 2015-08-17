@@ -54,7 +54,7 @@ main (int argc, char** argv)
     }
     else if (!strcmp (argv[i], "--fixed"))
       fixed = 1;
-    else if (!strcmp (argv[i], "--fixed"))
+    else if (!strcmp (argv[i], "--dump"))
       dump = 1;
     else if (argv[i][0] == '-')
     {
