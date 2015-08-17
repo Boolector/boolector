@@ -15,8 +15,10 @@ while (days > 365) {
       days -= 366;      
       year += 1;
     }
-  }
-  else {
+#ifdef FIXED
+    else break;
+#endif
+  } else {
     days -= 365;
     year += 1;
   }
@@ -25,6 +27,25 @@ while (days > 365) {
 We want to know whether the 32-bit variable days strictly decreases
 during an iteration of the loop. A counterexample is days = 1461 which
 causes an infinite loop.
+
+int prev_days, prev_days_valid = 0, break_out_of_loop = 0;
+int year = 1977;
+while (days > 365 && !break_out_of_loop) {
+  if (prev_days_valid) assert (prev_days > days);
+  prev_days_valid = 1, prev_days = days;
+  if ((year % 100) && (year % 4) == 0) {
+    if (days > 366) {
+      days -= 366;      
+      year += 1;
+    }
+#ifdef FIXED
+    else break_out_of_loop = 1;
+#endif
+  } else {
+    days -= 365;
+    year += 1;
+  }
+}
 
 #endif
 
@@ -43,17 +64,19 @@ bv2dec (const char* str)
 int
 main (int argc, char** argv)
 {
-  int i, fixed = 0, dump = 0, res = 0;
+  int i, fixed = 0, dump = 0, res = 0, verbosity = 0;
   const char* daystr = 0;
   for (i = 1; i < argc; i++)
   {
     if (!strcmp (argv[i], "-h"))
     {
-      printf ("usage: leapyear [-h][--fixed][--dump] [<days>]\n");
+      printf ("usage: leapyear [-h][-v][--fixed][--dump] [<days>]\n");
       exit (1);
     }
     else if (!strcmp (argv[i], "--fixed"))
       fixed = 1;
+    else if (!strcmp (argv[i], "-v"))
+      verbosity++;
     else if (!strcmp (argv[i], "--dump"))
       dump = 1;
     else if (argv[i][0] == '-')
@@ -84,7 +107,7 @@ main (int argc, char** argv)
   }
 
   BtorMC* mc = boolector_new_mc ();
-  boolector_set_verbosity_mc (mc, 0);
+  boolector_set_verbosity_mc (mc, verbosity);
   boolector_enable_trace_gen (mc);
   Btor* btor = boolector_btor_mc (mc);
 
@@ -99,6 +122,14 @@ main (int argc, char** argv)
   BoolectorNode* tt              = boolector_int (btor, 1, 1);
   boolector_init (mc, prev_days_valid, ff);
   boolector_next (mc, prev_days_valid, tt);
+  BoolectorNode* break_out_of_loop;
+  if (fixed)
+  {
+    break_out_of_loop = boolector_copy (btor, boolector_latch (mc, 1, "break"));
+    boolector_init (mc, break_out_of_loop, ff);
+  }
+  else
+    break_out_of_loop = boolector_copy (btor, ff);
   boolector_release (btor, ff);
   boolector_release (btor, tt);
 
@@ -157,15 +188,40 @@ main (int argc, char** argv)
   boolector_release (btor, year_mod_100_ne_zero);
   boolector_release (btor, year_mod_4_eq_zero);
 
-  BoolectorNode *tmp1, *tmp2;
+  BoolectorNode *tmp1, *tmp2, *tmp3, *tmp4;
+
+  BoolectorNode* not_break_out_of_loop =
+      boolector_not (btor, break_out_of_loop);
+  boolector_release (btor, break_out_of_loop);
+
+  if (fixed)
+  {
+    BoolectorNode* next_break_out_of_loop = boolector_or (
+        btor,
+        break_out_of_loop,
+        tmp1 = boolector_and (
+            btor,
+            tmp2 =
+                boolector_and (btor, days_greater_365, not_break_out_of_loop),
+            tmp3 =
+                boolector_and (btor,
+                               complex_condition,
+                               tmp4 = boolector_not (btor, days_greater_366))));
+    boolector_next (mc, break_out_of_loop, next_break_out_of_loop);
+    boolector_release (btor, tmp1);
+    boolector_release (btor, tmp2);
+    boolector_release (btor, tmp3);
+    boolector_release (btor, tmp4);
+    boolector_release (btor, next_break_out_of_loop);
+  }
 
   BoolectorNode* next_year = boolector_cond (
       btor,
-      days_greater_365,
-      tmp1 = boolector_cond (
+      tmp1 = boolector_and (btor, days_greater_365, not_break_out_of_loop),
+      tmp2 = boolector_cond (
           btor,
           complex_condition,
-          tmp2 = boolector_cond (btor, days_greater_366, inc_year, year),
+          tmp3 = boolector_cond (btor, days_greater_366, inc_year, year),
           inc_year),
       year);
 
@@ -173,15 +229,16 @@ main (int argc, char** argv)
   boolector_release (btor, next_year);
   boolector_release (btor, tmp1);
   boolector_release (btor, tmp2);
+  boolector_release (btor, tmp3);
   boolector_release (btor, inc_year);
 
   BoolectorNode* next_days = boolector_cond (
       btor,
-      days_greater_365,
-      tmp1 = boolector_cond (
+      tmp1 = boolector_and (btor, days_greater_365, not_break_out_of_loop),
+      tmp2 = boolector_cond (
           btor,
           complex_condition,
-          tmp2 = boolector_cond (btor, days_greater_366, days_sub_366, days),
+          tmp3 = boolector_cond (btor, days_greater_366, days_sub_366, days),
           days_sub_365),
       days);
 
@@ -189,6 +246,7 @@ main (int argc, char** argv)
   boolector_release (btor, next_days);
   boolector_release (btor, tmp1);
   boolector_release (btor, tmp2);
+  boolector_release (btor, tmp3);
   boolector_release (btor, days_sub_365);
   boolector_release (btor, days_sub_366);
   boolector_release (btor, days_greater_366);
@@ -199,14 +257,19 @@ main (int argc, char** argv)
   boolector_next (mc, prev_days, next_prev_days);
   boolector_release (btor, next_prev_days);
 
-  BoolectorNode* good =
-      boolector_implies (btor, days_greater_365, days_decreases);
+  BoolectorNode* good = boolector_implies (
+      btor,
+      tmp1 = boolector_and (btor, days_greater_365, not_break_out_of_loop),
+      days_decreases);
+  boolector_release (btor, tmp1);
   boolector_release (btor, days_decreases);
   boolector_release (btor, days_greater_365);
   BoolectorNode* bad = boolector_not (btor, good);
   boolector_release (btor, good);
   boolector_bad (mc, bad);
   boolector_release (btor, bad);
+
+  boolector_release (btor, not_break_out_of_loop);
 
   // all nodes (except latches and inputs) should have been released at this
   // point
