@@ -398,8 +398,6 @@ compute_sls_scores_aux (Btor *btor,
   assert (fun_model);
   assert (check_id_table_mark_unset_dbg (btor));
 
-  // TODO early pruning!!!
-  //
   int i;
   BtorNode *cur, *real_cur;
   BtorNodePtrStack stack, unmark_stack;
@@ -1832,6 +1830,7 @@ inv_ult_bv (Btor *btor,
 
   if (eidx)
   {
+    // TODO 0 >= e[1] is not necessarily a conflict
     /* conflict: 0 >= e[1] or 1...1 < e[1] */
     if ((btor_is_zero_bv (bve) && !isult)
         || (!btor_compare_bv (bve, bvmax) && isult))
@@ -1873,6 +1872,7 @@ inv_ult_bv (Btor *btor,
   }
   else
   {
+    // TODO e[0] >= 1...1 is not necessarily a conflict
     /* conflict: e[0] < 0 or e[0] >= 1...1 */
     if ((btor_is_zero_bv (bve) && isult)
         || (!btor_compare_bv (bve, bvmax) && !isult))
