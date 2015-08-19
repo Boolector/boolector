@@ -45,18 +45,18 @@ main (int argc, char** argv)
   {
     if (!strcmp (argv[i], "-h"))
     {
-      fprintf (stderr, "usage: btorcat [-h] [ <btorfile> ]\n");
+      fprintf (stderr, "usage: catbtor [-h] [ <btorfile> ]\n");
       exit (1);
     }
     else if (argv[i][0] == '-')
     {
       fprintf (
-          stderr, "*** btorcat: invalid option '%s' (try '-h')\n", argv[i]);
+          stderr, "*** catbtor: invalid option '%s' (try '-h')\n", argv[i]);
       exit (1);
     }
     else if (input_name)
     {
-      fprintf (stderr, "*** btorcat: too many inputs (try '-h')\n");
+      fprintf (stderr, "*** catbtor: too many inputs (try '-h')\n");
       exit (1);
     }
     else
@@ -74,7 +74,7 @@ main (int argc, char** argv)
     if (!input_file)
     {
       fprintf (
-          stderr, "*** btorcat: can not open '%s' for reading\n", input_name);
+          stderr, "*** catbtor: can not open '%s' for reading\n", input_name);
       exit (1);
     }
     close_input = 1;
@@ -85,7 +85,7 @@ main (int argc, char** argv)
   {
     err = error_btor_format_reader (reader);
     assert (err);
-    fprintf (stderr, "*** btorcat parse error in '%s' %s\n", input_name, err);
+    fprintf (stderr, "*** catbtor: parse error in '%s' %s\n", input_name, err);
     exit (1);
   }
   delete_btor_format_reader (reader);
