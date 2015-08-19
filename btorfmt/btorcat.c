@@ -27,6 +27,7 @@ OTHER DEALINGS IN THE SOFTWARE.
 
 #include <assert.h>
 #include <stdio.h>
+#include <stdlib.h>
 #include <string.h>
 
 static int close_input;
@@ -79,13 +80,12 @@ main (int argc, char** argv)
     close_input = 1;
   }
   reader = new_btor_format_reader ();
-  lines  = read_btor_format_lines (reader);
+  lines  = read_btor_format_lines (reader, input_file);
   if (!lines)
   {
-    errmsg = error_btor_format_reader (reader);
-    assert (errmsg);
-    fprintf (
-        stderr, "*** btorcat parse error in '%s' %s\n", input_name, errmsg);
+    err = error_btor_format_reader (reader);
+    assert (err);
+    fprintf (stderr, "*** btorcat parse error in '%s' %s\n", input_name, err);
     exit (1);
   }
   delete_btor_format_reader (reader);

@@ -61,7 +61,7 @@ set_btor_format_reader_verbosity (BtorFormatReader* bfr, int verbosity)
 }
 
 void
-set_btor_format_reader_prefix (BtorFormatReader* bfr, char* prefix)
+set_btor_format_reader_prefix (BtorFormatReader* bfr, const char* prefix)
 {
   free (bfr->prefix);
   bfr->prefix = strdup (prefix ? prefix : "");
@@ -72,13 +72,13 @@ msg_bfr (BtorFormatReader* bfr, int level, const char* fmt, ...)
 {
   va_list ap;
   if (bfr->verbosity < level) return;
-  ap = va_start (ap, fmt);
+  va_start (ap, fmt);
   fflush (stdout);
-  fputs (bfs->prefix, stderr);
+  fputs (bfr->prefix, stderr);
   vfprintf (stderr, fmt, ap);
   va_end (ap);
   fputc ('\n', stderr);
-  fflush (stdrr);
+  fflush (stderr);
 }
 
 static void
