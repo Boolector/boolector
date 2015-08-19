@@ -1,0 +1,12 @@
+CC=@CC@
+CFLAGS=@CFLAGS@
+all: btorfmt.o libbtorfmt.a btorcat
+libbtorfmt.a: btorfmt.o makefile
+	ar rc $@ btorfmt.o
+	ranlib $@
+btorcat.o: btorcat.c btorfmt.h makefile
+	$(CC) $(CFLAGS) -c btorcat.c
+btorfmt.o: btorfmt.c btorfmt.h makefile
+	$(CC) $(CFLAGS) -c btorfmt.c
+btorcat: btorcat.o libbtorfmt.a makefile
+	$(CC) $(CFLAGS) -o $@ btorcat.o -L. -lbtorfmt
