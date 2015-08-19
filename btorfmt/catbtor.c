@@ -39,15 +39,17 @@ main (int argc, char** argv)
 {
   BtorFormatReader* reader;
   BtorFormatLine** lines;
+  int i, verbosity = 0;
   const char* err;
-  int i;
   for (i = 1; i < argc; i++)
   {
     if (!strcmp (argv[i], "-h"))
     {
-      fprintf (stderr, "usage: catbtor [-h] [ <btorfile> ]\n");
+      fprintf (stderr, "usage: catbtor [-h|-v] [ <btorfile> ]\n");
       exit (1);
     }
+    else if (!strcmp (argv[i], "-v"))
+      verbosity++;
     else if (argv[i][0] == '-')
     {
       fprintf (
@@ -79,8 +81,18 @@ main (int argc, char** argv)
     }
     close_input = 1;
   }
+  if (verbosity)
+  {
+    fprintf (stderr,
+             "; [catbor] simple CAT for BTOR files\n"
+             "; [catbor] reading '%s'\n",
+             input_name);
+    fflush (stderr);
+  }
   reader = new_btor_format_reader ();
-  lines  = read_btor_format_lines (reader, input_file);
+  set_btor_format_reader_prefix (reader, "; [catbtor] ");
+  set_btor_format_reader_verbosity (reader, verbosity);
+  lines = read_btor_format_lines (reader, input_file);
   if (!lines)
   {
     err = error_btor_format_reader (reader);
@@ -88,7 +100,23 @@ main (int argc, char** argv)
     fprintf (stderr, "*** catbtor: parse error in '%s' %s\n", input_name, err);
     exit (1);
   }
-  delete_btor_format_reader (reader);
   if (close_input) fclose (input_file);
+  if (verbosity)
+  {
+    fprintf (stderr, "; [catbor] finished parsing '%s'\n", input_name);
+    fflush (stderr);
+  }
+  if (verbosity)
+  {
+    fprintf (stderr, "; [catbor] starting to dump BTOR model to '<stdout>'\n");
+    fflush (stderr);
+  }
+  // TODO
+  delete_btor_format_reader (reader);
+  if (verbosity)
+  {
+    fprintf (stderr, "; [catbor] finished dumping BTOR model to '<stdout>'\n");
+    fflush (stderr);
+  }
   return 0;
 }
