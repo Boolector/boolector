@@ -64,19 +64,21 @@ bv2dec (const char* str)
 int
 main (int argc, char** argv)
 {
-  int i, fixed = 0, dump = 0, res = 0, verbosity = 0;
+  int i, fixed = 0, dump = 0, res = 0, verbosity = 0, witness = 1;
   const char* daystr = 0;
   for (i = 1; i < argc; i++)
   {
     if (!strcmp (argv[i], "-h"))
     {
-      printf ("usage: leapyear [-h][-v][--fixed][--dump] [<days>]\n");
+      printf ("usage: leapyear [-h][-v][-n][--fixed][--dump] [<days>]\n");
       exit (1);
     }
     else if (!strcmp (argv[i], "--fixed"))
       fixed = 1;
     else if (!strcmp (argv[i], "-v"))
       verbosity++;
+    else if (!strcmp (argv[i], "-n"))
+      witness = 0;
     else if (!strcmp (argv[i], "--dump"))
       dump = 1;
     else if (argv[i][0] == '-')
@@ -108,7 +110,7 @@ main (int argc, char** argv)
 
   BtorMC* mc = boolector_new_mc ();
   boolector_set_verbosity_mc (mc, verbosity);
-  boolector_enable_trace_gen (mc);
+  if (witness) boolector_enable_trace_gen (mc);
   Btor* btor = boolector_btor_mc (mc);
 
   BoolectorNode* year  = boolector_latch (mc, 32, "year");
@@ -289,20 +291,22 @@ main (int argc, char** argv)
     if (0 <= k && k <= maxk)
     {
       printf ("; days does NOT decrease at bound %d\n", k);
-      int i;
-      for (i = 0; i <= k; i++)
+      if (witness)
       {
-        char* val_year      = boolector_mc_assignment (mc, year, i);
-        char* val_days      = boolector_mc_assignment (mc, days, i);
-        char* val_prev_days = boolector_mc_assignment (mc, prev_days, i);
-        printf ("time=%d year=%ld days=%ld prev(days)=%ld\n",
-                i,
-                bv2dec (val_year),
-                bv2dec (val_days),
-                bv2dec (val_prev_days));
-        boolector_free_mc_assignment (mc, val_days);
-        boolector_free_mc_assignment (mc, val_year);
-        boolector_free_mc_assignment (mc, val_prev_days);
+        for (i = 0; i <= k; i++)
+        {
+          char* val_year      = boolector_mc_assignment (mc, year, i);
+          char* val_days      = boolector_mc_assignment (mc, days, i);
+          char* val_prev_days = boolector_mc_assignment (mc, prev_days, i);
+          printf ("time=%d year=%ld days=%ld prev(days)=%ld\n",
+                  i,
+                  bv2dec (val_year),
+                  bv2dec (val_days),
+                  bv2dec (val_prev_days));
+          boolector_free_mc_assignment (mc, val_days);
+          boolector_free_mc_assignment (mc, val_year);
+          boolector_free_mc_assignment (mc, val_prev_days);
+        }
       }
     }
     else
