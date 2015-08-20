@@ -1,7 +1,7 @@
 /*  Boolector: Satisfiablity Modulo Theories (SMT) solver.
  *
  *  Copyright (C) 2013 Christian Reisenberger.
- *  Copyright (C) 2013-2014 Aina Niemetz.
+ *  Copyright (C) 2013-2015 Aina Niemetz.
  *  Copyright (C) 2013-2014 Mathias Preiner.
  *  Copyright (C) 2013-2014 Armin Biere.
  *
@@ -14,6 +14,7 @@
 #include "boolector.h"
 #include "btorcore.h"
 #include "utils/btormem.h"
+#include "utils/btorutil.h"
 // FIXME (ma): external sort handling?
 #include "btorsort.h"
 
@@ -172,7 +173,8 @@
   "  -h, --help                       print this message and exit\n"           \
   "  -ha, --help-advanced             print all options\n"                     \
   "  -v, --verbose                    be verbose\n"                            \
-  "  -q, --quiet                      be quiet (only print stats)\n"           \
+  "  -q, --quiet                      be quiet (only print "                   \
+  "btormbt_print_stats)\n"                                                     \
   "  -k, --keep-lines                 do not clear output lines\n"             \
   "  -n, --no-modelgen                do not enable model generation \n"       \
   "  -e, --extensionality             use extensionality\n"                    \
@@ -339,7 +341,7 @@
 #define BTORMBT_LOG(l, fmt, args...) \
   do                                 \
   {                                  \
-    if (l <= btormbt->verbose)       \
+    if (l <= g_verbosity)            \
     {                                \
       printf ("[btormbt] ");         \
       printf (fmt, ##args);          \
@@ -350,12 +352,12 @@
 #define BTORMBT_LOG_STATUS(l, prefix)                                   \
   BTORMBT_LOG (l,                                                       \
                prefix " (%d): bool %d, bv %d, array %d, fun %d, uf %d", \
-               btormbt->ops,                                            \
-               btormbt->bo.n,                                           \
-               btormbt->bv.n,                                           \
-               btormbt->arr.n,                                          \
-               btormbt->fun.n,                                          \
-               btormbt->uf.n);
+               g_btormbt->ops,                                          \
+               g_btormbt->bo.n,                                         \
+               g_btormbt->bv.n,                                         \
+               g_btormbt->arr.n,                                        \
+               g_btormbt->fun.n,                                        \
+               g_btormbt->uf.n);
 
 /*------------------------------------------------------------------------*/
 
@@ -486,7 +488,6 @@ typedef struct BtorMBT
   int forked;
   int ppid; /* parent pid */
 
-  int verbose;
   int quiet;
   int terminal;
   int quit_after_first;
@@ -499,7 +500,6 @@ typedef struct BtorMBT
 #endif
   int shadow;
   char *out;
-  int time_limit;
   bool create_funs;
   bool create_ufs;
   bool create_arrays;
@@ -683,10 +683,11 @@ static BtorMBT *
 new_btormbt (void)
 {
   BtorMBT *btormbt;
+  BtorMemMgr *mm;
 
-  btormbt = malloc (sizeof (BtorMBT));
-  memset (btormbt, 0, sizeof (BtorMBT));
-  btormbt->mm                       = btor_new_mem_mgr ();
+  mm = btor_new_mem_mgr ();
+  BTOR_CNEW (mm, btormbt);
+  btormbt->mm                       = mm;
   btormbt->g_max_rounds             = INT_MAX;
   btormbt->seed                     = -1;
   btormbt->seeded                   = 0;
@@ -782,11 +783,219 @@ new_btormbt (void)
   return btormbt;
 }
 
+static void
+delete_btormbt (BtorMBT *btormbt)
+{
+  assert (btormbt);
+  BtorMemMgr *mm = btormbt->mm;
+  BTOR_DELETE (mm, btormbt);
+  btor_delete_mem_mgr (mm);
+}
+
 /*------------------------------------------------------------------------*/
 
-static BtorMBT *btormbt;
+static BtorMBT *g_btormbt;
+
+static int g_verbosity;
+
+static int g_caught_sig;
+static void (*sig_int_handler) (int);
+static void (*sig_segv_handler) (int);
+static void (*sig_abrt_handler) (int);
+static void (*sig_term_handler) (int);
+static void (*sig_bus_handler) (int);
+
+static int g_set_alarm;
+static void (*sig_alrm_handler) (int);
 
 void boolector_chkclone (Btor *);
+
+/*------------------------------------------------------------------------*/
+
+static void
+erase (void)
+{
+  int i;
+  fputc ('\r', stdout);
+  for (i = 0; i < 80; i++) fputc (' ', stdout);
+  fputc ('\r', stdout);
+}
+
+static int
+isnumstr (const char *str)
+{
+  const char *p;
+  for (p = str; *p; p++)
+    if (!isdigit ((int) *p)) return 0;
+  return 1;
+}
+
+static int
+isfloatnumstr (const char *str)
+{
+  const char *p;
+  for (p = str; *p; p++)
+    if (!isdigit ((int) *p) && *p != '.') return 0;
+  return 1;
+}
+
+static int
+hashmac (void)
+{
+  FILE *file = fopen ("/sys/class/net/eth0/address", "r");
+  int mac[6], res = 0;
+  if (!file) return 0;
+  if (fscanf (file,
+              "%02x:%02x:%02x:%02x:%02x:%02x",
+              mac + 0,
+              mac + 1,
+              mac + 2,
+              mac + 3,
+              mac + 4,
+              mac + 5)
+      == 6)
+  {
+    res = mac[5];
+    res ^= mac[4] << 4;
+    res ^= mac[3] << 8;
+    res ^= mac[2] << 16;
+    res ^= mac[1] << 20;
+    res ^= mac[0] << 24;
+  }
+  fclose (file);
+  return res;
+}
+
+static double
+current_time (void)
+{
+  double res = 0;
+  struct timeval tv;
+  if (!gettimeofday (&tv, 0)) res = 1e-6 * tv.tv_usec, res += tv.tv_sec;
+  return res;
+}
+
+static double
+get_time ()
+{
+  return current_time () - g_btormbt->start_time;
+}
+
+static double
+average (double a, double b)
+{
+  return b ? a / b : 0;
+}
+
+/*------------------------------------------------------------------------*/
+
+static void
+btormbt_msg (char *msg, ...)
+{
+  assert (msg);
+  va_list list;
+  va_start (list, msg);
+  fprintf (stdout, "[btormbt] ");
+  vfprintf (stdout, msg, list);
+  fprintf (stdout, "\n");
+  va_end (list);
+  fflush (stdout);
+}
+
+static void
+btormbt_error (char *msg, ...)
+{
+  assert (msg);
+
+  va_list list;
+  va_start (list, msg);
+  fputs ("btormbt: ", stderr);
+  vfprintf (stderr, msg, list);
+  fprintf (stderr, "\n");
+  va_end (list);
+  fflush (stderr);
+  delete_btormbt (g_btormbt);
+  exit (EXIT_ERROR);
+}
+
+static void
+btormbt_print_stats (BtorMBT *btormbt)
+{
+  double t = get_time ();
+  btormbt_msg ("finished after %0.2f seconds", t);
+  btormbt_msg ("%d rounds = %0.2f rounds per second",
+               btormbt->rounds,
+               average (btormbt->rounds, t));
+  btormbt_msg ("%d bugs = %0.2f bugs per second",
+               btormbt->bugs,
+               average (btormbt->bugs, t));
+}
+
+/*------------------------------------------------------------------------*/
+
+static void
+reset_sig_handlers (void)
+{
+  (void) signal (SIGINT, sig_int_handler);
+  (void) signal (SIGSEGV, sig_segv_handler);
+  (void) signal (SIGABRT, sig_abrt_handler);
+  (void) signal (SIGTERM, sig_term_handler);
+  (void) signal (SIGBUS, sig_bus_handler);
+}
+
+static void
+catch_sig (int sig)
+{
+  if (!g_caught_sig)
+  {
+    g_caught_sig = 1;
+    btormbt_msg ("CAUGHT SIGNAL %d", sig);
+    btormbt_print_stats (g_btormbt);
+  }
+  reset_sig_handlers ();
+  raise (sig);
+  exit (sig);
+}
+
+static void
+set_sig_handlers (void)
+{
+  sig_int_handler  = signal (SIGINT, catch_sig);
+  sig_segv_handler = signal (SIGSEGV, catch_sig);
+  sig_abrt_handler = signal (SIGABRT, catch_sig);
+  sig_term_handler = signal (SIGTERM, catch_sig);
+  sig_bus_handler  = signal (SIGBUS, catch_sig);
+}
+
+static void
+reset_alarm (void)
+{
+  alarm (0);
+  (void) signal (SIGALRM, sig_alrm_handler);
+}
+
+static void
+catch_alarm (int sig)
+{
+  (void) sig;
+  assert (sig == SIGALRM);
+
+  if (g_set_alarm > 0)
+  {
+    btormbt_msg ("ALARM TRIGGERED: time limit %d seconds reached", g_set_alarm);
+    btormbt_print_stats (g_btormbt);
+  }
+  reset_alarm ();
+  exit (EXIT_TIMEOUT);
+}
+
+static void
+set_alarm (void)
+{
+  sig_alrm_handler = signal (SIGALRM, catch_alarm);
+  assert (g_set_alarm > 0);
+  alarm (g_set_alarm);
+}
 
 /*------------------------------------------------------------------------*/
 
@@ -802,10 +1011,13 @@ ss_push (SortStack *ss, BoolectorSort sort)
   assert (ss);
   assert (sort);
 
+  int oldsize;
+
   if (ss->n == ss->size)
   {
-    ss->size  = ss->size ? ss->size * 2 : 2;
-    ss->sorts = realloc (ss->sorts, ss->size * sizeof *ss->sorts);
+    oldsize  = ss->size;
+    ss->size = ss->size ? ss->size * 2 : 2;
+    BTOR_REALLOC (g_btormbt->mm, ss->sorts, oldsize, ss->size);
   }
   ss->sorts[ss->n] = sort;
   ss->n++;
@@ -846,9 +1058,9 @@ ss_release (SortStack *ss)
 {
   if (!ss) return;
 
-  ss->n    = 0;
-  ss->size = 0;
-  free (ss->sorts);
+  BTOR_DELETEN (g_btormbt->mm, ss->sorts, ss->size);
+  ss->n     = 0;
+  ss->size  = 0;
   ss->sorts = 0;
 }
 
@@ -864,10 +1076,13 @@ es_push (ExpStack *es, BoolectorNode *exp)
   assert (es);
   assert (exp);
 
+  int oldsize;
+
   if (es->n == es->size)
   {
+    oldsize  = es->size;
     es->size = es->size ? es->size * 2 : 2;
-    es->exps = realloc (es->exps, es->size * sizeof *es->exps);
+    BTOR_REALLOC (g_btormbt->mm, es->exps, oldsize, es->size);
   }
   es->exps[es->n].exp  = exp;
   es->exps[es->n].pars = 0;
@@ -913,12 +1128,12 @@ es_release (ExpStack *es)
 {
   if (!es) return;
 
+  BTOR_DELETEN (g_btormbt->mm, es->exps, es->size);
   es->n         = 0;
   es->size      = 0;
   es->sexp      = 0;
   es->initlayer = 0;
-  free (es->exps);
-  es->exps = NULL;
+  es->exps      = 0;
 }
 
 /*------------------------------------------------------------------------*/
@@ -1133,6 +1348,7 @@ create_var (BtorMBT *btormbt, RNG *rng, ExpType type)
 static void
 create_const (BtorMBT *btormbt, RNG *rng)
 {
+  char *buff;
   int width, val, i;
   ExpStack *es;
 
@@ -1165,11 +1381,12 @@ create_const (BtorMBT *btormbt, RNG *rng)
   {
     case CONST:
     {
-      char *buff = malloc (width + 1); /* generate random binary string */
+      /* generate random binary string */
+      BTOR_NEWN (btormbt->mm, buff, width + 1);
       for (i = 0; i < width; i++) buff[i] = pick (rng, 0, 1) ? '1' : '0';
       buff[width] = '\0';
       es_push (es, boolector_const (btormbt->btor, buff));
-      free (buff);
+      BTOR_DELETEN (btormbt->mm, buff, width + 1);
       break;
     }
     case ZERO: es_push (es, boolector_zero (btormbt->btor, width)); break;
@@ -2176,7 +2393,7 @@ _opt (BtorMBT *btormbt, unsigned r)
   }
   if (btormbt->bverblevel)
   {
-    BTORMBT_LOG (1, "opt: verbose level: '%d'", btormbt->bverblevel);
+    BTORMBT_LOG (1, "opt: verbosity level: '%d'", btormbt->bverblevel);
     boolector_set_opt (btormbt->btor, "verbosity", btormbt->bverblevel);
   }
 
@@ -2812,33 +3029,6 @@ rantrav (BtorMBT *btormbt)
   }
 }
 
-static void (*sig_alrm_handler) (int);
-
-static void
-reset_alarm (void)
-{
-  alarm (0);
-  (void) signal (SIGALRM, sig_alrm_handler);
-}
-
-static void
-catch_alarm (int sig)
-{
-  assert (sig == SIGALRM);
-  (void) sig;
-
-  reset_alarm ();
-  exit (EXIT_TIMEOUT);
-}
-
-static void
-set_alarm (void)
-{
-  sig_alrm_handler = signal (SIGALRM, catch_alarm);
-  assert (btormbt->time_limit > 0);
-  alarm (btormbt->time_limit);
-}
-
 static int
 run (BtorMBT *btormbt)
 {
@@ -2860,15 +3050,15 @@ run (BtorMBT *btormbt)
   }
   else
   {
-    if (btormbt->time_limit)
+    if (g_set_alarm)
     {
       set_alarm ();
-      BTORMBT_LOG (1, "set time limit to %d second(s)", btormbt->time_limit);
+      BTORMBT_LOG (1, "set time limit to %d second(s)", g_set_alarm);
     }
 
     /* redirect output from child to /dev/null if we don't want to have
      * verbose output */
-    if (!btormbt->seeded && !btormbt->verbose)
+    if (!btormbt->seeded && !g_verbosity)
     {
       null = open ("/dev/null", O_WRONLY);
       dup2 (null, STDOUT_FILENO);
@@ -2885,157 +3075,18 @@ run (BtorMBT *btormbt)
 
 /*------------------------------------------------------------------------*/
 
-static void
-erase (void)
-{
-  int i;
-  fputc ('\r', stdout);
-  for (i = 0; i < 80; i++) fputc (' ', stdout);
-  fputc ('\r', stdout);
-}
-
-static int
-isnumstr (const char *str)
-{
-  const char *p;
-  for (p = str; *p; p++)
-    if (!isdigit ((int) *p)) return 0;
-  return 1;
-}
-
-static int
-isfloatnumstr (const char *str)
-{
-  const char *p;
-  for (p = str; *p; p++)
-    if (!isdigit ((int) *p) && *p != '.') return 0;
-  return 1;
-}
-
-static void
-die (const char *msg, ...)
-{
-  va_list ap;
-  fputs ("*** btormbt: ", stderr);
-  va_start (ap, msg);
-  vfprintf (stderr, msg, ap);
-  va_end (ap);
-  fputc ('\n', stderr);
-  fflush (stderr);
-  exit (EXIT_ERROR);
-}
-
-static int
-hashmac (void)
-{
-  FILE *file = fopen ("/sys/class/net/eth0/address", "r");
-  int mac[6], res = 0;
-  if (!file) return 0;
-  if (fscanf (file,
-              "%02x:%02x:%02x:%02x:%02x:%02x",
-              mac + 0,
-              mac + 1,
-              mac + 2,
-              mac + 3,
-              mac + 4,
-              mac + 5)
-      == 6)
-  {
-    res = mac[5];
-    res ^= mac[4] << 4;
-    res ^= mac[3] << 8;
-    res ^= mac[2] << 16;
-    res ^= mac[1] << 20;
-    res ^= mac[0] << 24;
-  }
-  fclose (file);
-  return res;
-}
-
-static double
-current_time (void)
-{
-  double res = 0;
-  struct timeval tv;
-  if (!gettimeofday (&tv, 0)) res = 1e-6 * tv.tv_usec, res += tv.tv_sec;
-  return res;
-}
-
-static double
-get_time ()
-{
-  return current_time () - btormbt->start_time;
-}
-
-static double
-average (double a, double b)
-{
-  return b ? a / b : 0;
-}
-
-static void
-stats (BtorMBT *btormbt)
-{
-  double t = get_time ();
-  printf ("finished after %0.2f seconds\n", t);
-  printf ("%d rounds = %0.2f rounds per second\n",
-          btormbt->rounds,
-          average (btormbt->rounds, t));
-  printf ("%d bugs = %0.2f bugs per second\n",
-          btormbt->bugs,
-          average (btormbt->bugs, t));
-}
-
-/* Note: - do not call non-reentrant function here, see:
- *         https://www.securecoding.cert.org/confluence/display/seccode/SIG30-C.+Call+only+asynchronous-safe+functions+within+signal+handlers
- *       - do not use printf here (causes segfault when SIGINT and valgrind) */
-static void
-sig_handler (int sig)
-{
-  char str[100];
-
-  sprintf (str, "*** btormbt: caught signal %d\n\n", sig);
-  if (!write (STDOUT_FILENO, str, strlen (str)))
-  {
-    // error message failed ....
-  }
-  /* Note: if _exit is used here (which is reentrant, in contrast to exit),
-   *       atexit handler is not called. Hence, use exit here. */
-  exit (EXIT_ERROR);
-}
-
-static void
-set_sig_handlers (void)
-{
-  (void) signal (SIGINT, sig_handler);
-  (void) signal (SIGSEGV, sig_handler);
-  (void) signal (SIGABRT, sig_handler);
-  (void) signal (SIGTERM, sig_handler);
-}
-
-static void
-finish (void)
-{
-  fflush (stderr);
-  fflush (stdout);
-  if (btormbt->ppid == getpid ()) stats (btormbt);
-  free (btormbt);
-  fflush (stdout);
-}
-
 int
 main (int argc, char **argv)
 {
-  int i, mac, pid, prev, res, verbose, status;
+  int i, mac, pid, prev, res, verbosity, status;
   char *name, *cmd;
+  int namelen, cmdlen, tmppid;
 
-  btormbt             = new_btormbt ();
-  btormbt->start_time = current_time ();
+  g_btormbt             = new_btormbt ();
+  g_btormbt->start_time = current_time ();
 
   pid  = 0;
   prev = 0;
-
-  atexit (finish);
 
   for (i = 1; i < argc; i++)
   {
@@ -3051,622 +3102,735 @@ main (int argc, char **argv)
       exit (EXIT_OK);
     }
     else if (!strcmp (argv[i], "-v") || !strcmp (argv[i], "--verbose"))
-      btormbt->verbose++;
+      g_verbosity++;
     else if (!strcmp (argv[i], "-q") || !strcmp (argv[i], "--quiet"))
-      btormbt->quiet = 1;
+      g_btormbt->quiet = 1;
     else if (!strcmp (argv[i], "-k") || !strcmp (argv[i], "--keep-lines"))
-      btormbt->terminal = 0;
+      g_btormbt->terminal = 0;
     else if (!strcmp (argv[i], "-f") || !strcmp (argv[i], "--quit-after-first"))
-      btormbt->quit_after_first = 1;
+      g_btormbt->quit_after_first = 1;
     else if (!strcmp (argv[i], "-n") || !strcmp (argv[i], "--no-modelgen"))
-      btormbt->force_nomgen = 1;
+      g_btormbt->force_nomgen = 1;
     else if (!strcmp (argv[i], "-e") || !strcmp (argv[i], "--extensionality"))
-      btormbt->ext = 1;
+      g_btormbt->ext = 1;
     else if (!strcmp (argv[i], "--no-funs"))
-      btormbt->create_funs = false;
+      g_btormbt->create_funs = false;
     else if (!strcmp (argv[i], "--no-ufs"))
-      btormbt->create_ufs = false;
+      g_btormbt->create_ufs = false;
     else if (!strcmp (argv[i], "--no-arrays"))
-      btormbt->create_arrays = false;
+      g_btormbt->create_arrays = false;
     else if (!strcmp (argv[i], "-dp")
              || !strcmp (argv[i], "--enable-dual-prop"))
-      btormbt->dual_prop = 1;
+      g_btormbt->dual_prop = 1;
     else if (!strcmp (argv[i], "-ju") || !strcmp (argv[i], "--enable-just"))
-      btormbt->just = 1;
+      g_btormbt->just = 1;
 #ifndef BTOR_DO_NOT_OPTIMIZE_UNCONSTRAINED
     else if (!strcmp (argv[i], "-uc") || !strcmp (argv[i], "--enable-ucopt"))
-      btormbt->ucopt = 1;
+      g_btormbt->ucopt = 1;
 #endif
     else if (!strcmp (argv[i], "-s") || !strcmp (argv[i], "--shadow-clone"))
-      btormbt->shadow = 1;
+      g_btormbt->shadow = 1;
     else if (!strcmp (argv[i], "-o") || !strcmp (argv[i], "--out"))
     {
-      if (++i == argc) die ("argument to '-o' missing (try '-h')");
-      if (argv[i][0] == '-') die ("invalid output directory given (try '-h')");
-      btormbt->out = argv[i];
-      DIR *dir     = opendir (argv[i]);
+      if (++i == argc) btormbt_error ("argument to '-o' missing (try '-h')");
+      if (argv[i][0] == '-')
+        btormbt_error ("invalid output directory given (try '-h')");
+      g_btormbt->out = argv[i];
+      DIR *dir       = opendir (argv[i]);
       if (dir)
         closedir (dir);
       else
-        die ("given output directory does not exist");
+        btormbt_error ("given output directory does not exist");
     }
     else if (!strcmp (argv[i], "-m"))
     {
-      if (++i == argc) die ("argument to '-m' missing (try '-h')");
+      if (++i == argc) btormbt_error ("argument to '-m' missing (try '-h')");
       if (!isnumstr (argv[i]))
-        die ("argument '%s' to '-m' is not a number (try '-h')", argv[i]);
-      btormbt->g_max_rounds = atoi (argv[i]);
+        btormbt_error ("argument '%s' to '-m' is not a number (try '-h')",
+                       argv[i]);
+      g_btormbt->g_max_rounds = atoi (argv[i]);
     }
     else if (!strcmp (argv[i], "-t"))
     {
-      if (++i == argc) die ("argument to '-t' missing (try '-h')");
+      if (++i == argc) btormbt_error ("argument to '-t' missing (try '-h')");
       if (!isnumstr (argv[i]))
-        die ("argument '%s' to '-t' is not a number (try '-h')", argv[i]);
-      btormbt->time_limit = atoi (argv[i]);
+        btormbt_error ("argument '%s' to '-t' is not a number (try '-h')",
+                       argv[i]);
+      g_set_alarm = atoi (argv[i]);
     }
     else if (!strcmp (argv[i], "--blog"))
     {
-      if (++i == argc) die ("argument to '--blog' missing (try '-h')");
+      if (++i == argc)
+        btormbt_error ("argument to '--blog' missing (try '-h')");
       if (!isnumstr (argv[i]))
-        die ("argument '%s' to '--blog' not a number (try '-h')", argv[i]);
-      btormbt->bloglevel = atoi (argv[i]);
+        btormbt_error ("argument '%s' to '--blog' not a number (try '-h')",
+                       argv[i]);
+      g_btormbt->bloglevel = atoi (argv[i]);
     }
     else if (!strcmp (argv[i], "--bverb"))
     {
-      if (++i == argc) die ("argument to '--bverb' missing (try '-h')");
+      if (++i == argc)
+        btormbt_error ("argument to '--bverb' missing (try '-h')");
       if (!isnumstr (argv[i]))
-        die ("argument '%s' to '--bverb' not a number (try '-h')", argv[i]);
-      btormbt->bverblevel = atoi (argv[i]);
+        btormbt_error ("argument '%s' to '--bverb' not a number (try '-h')",
+                       argv[i]);
+      g_btormbt->bverblevel = atoi (argv[i]);
     }
     else if (!strcmp (argv[i], "--inputs"))
     {
-      if (++i == argc) die ("argument to '--inputs' missing (try '-h')");
+      if (++i == argc)
+        btormbt_error ("argument to '--inputs' missing (try '-h')");
       if (!isnumstr (argv[i]))
-        die ("argument to '--inputs' is not a number (try '-h')");
-      btormbt->g_min_inputs = atoi (argv[i]);
-      if (++i == argc) die ("argument to '--inputs' missing (try '-h')");
+        btormbt_error ("argument to '--inputs' is not a number (try '-h')");
+      g_btormbt->g_min_inputs = atoi (argv[i]);
+      if (++i == argc)
+        btormbt_error ("argument to '--inputs' missing (try '-h')");
       if (!isnumstr (argv[i]))
-        die ("argument to '--inputs' is not a number (try '-h')");
-      btormbt->g_max_inputs = atoi (argv[i]);
+        btormbt_error ("argument to '--inputs' is not a number (try '-h')");
+      g_btormbt->g_max_inputs = atoi (argv[i]);
     }
     else if (!strcmp (argv[i], "--vars-init"))
     {
-      if (++i == argc) die ("argument to '--vars-init' missing (try '-h')");
+      if (++i == argc)
+        btormbt_error ("argument to '--vars-init' missing (try '-h')");
       if (!isnumstr (argv[i]))
-        die ("argument to '--vars-init' is not a number (try '-h')");
-      btormbt->g_min_vars_init = atoi (argv[i]);
-      if (++i == argc) die ("argument to '--vars-init' missing (try '-h')");
+        btormbt_error ("argument to '--vars-init' is not a number (try '-h')");
+      g_btormbt->g_min_vars_init = atoi (argv[i]);
+      if (++i == argc)
+        btormbt_error ("argument to '--vars-init' missing (try '-h')");
       if (!isnumstr (argv[i]))
-        die ("argument to '--vars-init' is not a number (try '-h')");
-      btormbt->g_max_vars_init = atoi (argv[i]);
+        btormbt_error ("argument to '--vars-init' is not a number (try '-h')");
+      g_btormbt->g_max_vars_init = atoi (argv[i]);
     }
     else if (!strcmp (argv[i], "--vars"))
     {
-      if (++i == argc) die ("argument to '--vars' missing (try '-h')");
+      if (++i == argc)
+        btormbt_error ("argument to '--vars' missing (try '-h')");
       if (!isnumstr (argv[i]))
-        die ("argument to '--vars' is not a number (try '-h')");
-      btormbt->g_min_vars = atoi (argv[i]);
-      if (++i == argc) die ("argument to '--vars' missing (try '-h')");
+        btormbt_error ("argument to '--vars' is not a number (try '-h')");
+      g_btormbt->g_min_vars = atoi (argv[i]);
+      if (++i == argc)
+        btormbt_error ("argument to '--vars' missing (try '-h')");
       if (!isnumstr (argv[i]))
-        die ("argument to '--vars' is not a number (try '-h')");
-      btormbt->g_max_vars = atoi (argv[i]);
+        btormbt_error ("argument to '--vars' is not a number (try '-h')");
+      g_btormbt->g_max_vars = atoi (argv[i]);
     }
     else if (!strcmp (argv[i], "--vars-inc"))
     {
-      if (++i == argc) die ("argument to '--vars-inc' missing (try '-h')");
+      if (++i == argc)
+        btormbt_error ("argument to '--vars-inc' missing (try '-h')");
       if (!isnumstr (argv[i]))
-        die ("argument to '--vars-inc' is not a number (try '-h')");
-      btormbt->g_min_vars_inc = atoi (argv[i]);
-      if (++i == argc) die ("argument to '--vars-inc' missing (try '-h')");
+        btormbt_error ("argument to '--vars-inc' is not a number (try '-h')");
+      g_btormbt->g_min_vars_inc = atoi (argv[i]);
+      if (++i == argc)
+        btormbt_error ("argument to '--vars-inc' missing (try '-h')");
       if (!isnumstr (argv[i]))
-        die ("argument to '--vars-inc' is not a number (try '-h')");
-      btormbt->g_max_vars_inc = atoi (argv[i]);
+        btormbt_error ("argument to '--vars-inc' is not a number (try '-h')");
+      g_btormbt->g_max_vars_inc = atoi (argv[i]);
     }
     else if (!strcmp (argv[i], "--consts-init"))
     {
-      if (++i == argc) die ("argument to '--consts-init' missing (try '-h')");
+      if (++i == argc)
+        btormbt_error ("argument to '--consts-init' missing (try '-h')");
       if (!isnumstr (argv[i]))
-        die ("argument to '--consts-init' is not a number (try '-h')");
-      btormbt->g_min_consts_init = atoi (argv[i]);
-      if (++i == argc) die ("argument to '--consts-init' missing (try '-h')");
+        btormbt_error (
+            "argument to '--consts-init' is not a number (try '-h')");
+      g_btormbt->g_min_consts_init = atoi (argv[i]);
+      if (++i == argc)
+        btormbt_error ("argument to '--consts-init' missing (try '-h')");
       if (!isnumstr (argv[i]))
-        die ("argument to '--consts-init' is not a number (try '-h')");
-      btormbt->g_max_consts_init = atoi (argv[i]);
+        btormbt_error (
+            "argument to '--consts-init' is not a number (try '-h')");
+      g_btormbt->g_max_consts_init = atoi (argv[i]);
     }
     else if (!strcmp (argv[i], "--consts"))
     {
-      if (++i == argc) die ("argument to '--consts' missing (try '-h')");
+      if (++i == argc)
+        btormbt_error ("argument to '--consts' missing (try '-h')");
       if (!isnumstr (argv[i]))
-        die ("argument to '--consts' is not a number (try '-h')");
-      btormbt->g_min_consts = atoi (argv[i]);
-      if (++i == argc) die ("argument to '--consts' missing (try '-h')");
+        btormbt_error ("argument to '--consts' is not a number (try '-h')");
+      g_btormbt->g_min_consts = atoi (argv[i]);
+      if (++i == argc)
+        btormbt_error ("argument to '--consts' missing (try '-h')");
       if (!isnumstr (argv[i]))
-        die ("argument to '--consts' is not a number (try '-h')");
-      btormbt->g_max_consts = atoi (argv[i]);
+        btormbt_error ("argument to '--consts' is not a number (try '-h')");
+      g_btormbt->g_max_consts = atoi (argv[i]);
     }
     else if (!strcmp (argv[i], "--consts-inc"))
     {
-      if (++i == argc) die ("argument to '--consts-inc' missing (try '-h')");
+      if (++i == argc)
+        btormbt_error ("argument to '--consts-inc' missing (try '-h')");
       if (!isnumstr (argv[i]))
-        die ("argument to '--consts-inc' is not a number (try '-h')");
-      btormbt->g_min_consts_inc = atoi (argv[i]);
-      if (++i == argc) die ("argument to '--consts-inc' missing (try '-h')");
+        btormbt_error ("argument to '--consts-inc' is not a number (try '-h')");
+      g_btormbt->g_min_consts_inc = atoi (argv[i]);
+      if (++i == argc)
+        btormbt_error ("argument to '--consts-inc' missing (try '-h')");
       if (!isnumstr (argv[i]))
-        die ("argument to '--consts-inc' is not a number (try '-h')");
-      btormbt->g_max_consts_inc = atoi (argv[i]);
+        btormbt_error ("argument to '--consts-inc' is not a number (try '-h')");
+      g_btormbt->g_max_consts_inc = atoi (argv[i]);
     }
     else if (!strcmp (argv[i], "--arrays-init"))
     {
-      if (++i == argc) die ("argument to '--arrays-init' missing (try '-h')");
+      if (++i == argc)
+        btormbt_error ("argument to '--arrays-init' missing (try '-h')");
       if (!isnumstr (argv[i]))
-        die ("argument to '--arrays-init' is not a number (try '-h')");
-      btormbt->g_min_arrays_init = atoi (argv[i]);
-      if (++i == argc) die ("argument to '--arrays-init' missing (try '-h')");
+        btormbt_error (
+            "argument to '--arrays-init' is not a number (try '-h')");
+      g_btormbt->g_min_arrays_init = atoi (argv[i]);
+      if (++i == argc)
+        btormbt_error ("argument to '--arrays-init' missing (try '-h')");
       if (!isnumstr (argv[i]))
-        die ("argument to '--arrays-init' is not a number (try '-h')");
-      btormbt->g_max_arrays_init = atoi (argv[i]);
+        btormbt_error (
+            "argument to '--arrays-init' is not a number (try '-h')");
+      g_btormbt->g_max_arrays_init = atoi (argv[i]);
     }
     else if (!strcmp (argv[i], "--arrays"))
     {
-      if (++i == argc) die ("argument to '--arrays' missing (try '-h')");
+      if (++i == argc)
+        btormbt_error ("argument to '--arrays' missing (try '-h')");
       if (!isnumstr (argv[i]))
-        die ("argument to '--arrays' is not a number (try '-h')");
-      btormbt->g_min_arrays = atoi (argv[i]);
-      if (++i == argc) die ("argument to '--arrays' missing (try '-h')");
+        btormbt_error ("argument to '--arrays' is not a number (try '-h')");
+      g_btormbt->g_min_arrays = atoi (argv[i]);
+      if (++i == argc)
+        btormbt_error ("argument to '--arrays' missing (try '-h')");
       if (!isnumstr (argv[i]))
-        die ("argument to '--arrays' is not a number (try '-h')");
-      btormbt->g_max_arrays = atoi (argv[i]);
+        btormbt_error ("argument to '--arrays' is not a number (try '-h')");
+      g_btormbt->g_max_arrays = atoi (argv[i]);
     }
     else if (!strcmp (argv[i], "--arrays-inc"))
     {
-      if (++i == argc) die ("argument to '--arrays-inc' missing (try '-h')");
+      if (++i == argc)
+        btormbt_error ("argument to '--arrays-inc' missing (try '-h')");
       if (!isnumstr (argv[i]))
-        die ("argument to '--arrays-inc' is not a number (try '-h')");
-      btormbt->g_min_arrays_inc = atoi (argv[i]);
-      if (++i == argc) die ("argument to '--arrays-inc' missing (try '-h')");
+        btormbt_error ("argument to '--arrays-inc' is not a number (try '-h')");
+      g_btormbt->g_min_arrays_inc = atoi (argv[i]);
+      if (++i == argc)
+        btormbt_error ("argument to '--arrays-inc' missing (try '-h')");
       if (!isnumstr (argv[i]))
-        die ("argument to '--arrays-inc' is not a number (try '-h')");
-      btormbt->g_max_arrays_inc = atoi (argv[i]);
+        btormbt_error ("argument to '--arrays-inc' is not a number (try '-h')");
+      g_btormbt->g_max_arrays_inc = atoi (argv[i]);
     }
     else if (!strcmp (argv[i], "--add-funs-init"))
     {
-      if (++i == argc) die ("argument to '--add-funs-init' missing (try '-h')");
+      if (++i == argc)
+        btormbt_error ("argument to '--add-funs-init' missing (try '-h')");
       if (!isnumstr (argv[i]))
-        die ("argument to '--add-funs-init' is not a number (try '-h')");
-      btormbt->g_min_add_funs_init = atoi (argv[i]);
-      if (++i == argc) die ("argument to '--add-funs-init' missing (try '-h')");
+        btormbt_error (
+            "argument to '--add-funs-init' is not a number (try '-h')");
+      g_btormbt->g_min_add_funs_init = atoi (argv[i]);
+      if (++i == argc)
+        btormbt_error ("argument to '--add-funs-init' missing (try '-h')");
       if (!isnumstr (argv[i]))
-        die ("argument to '--add-funs-init' is not a number (try '-h')");
-      btormbt->g_max_add_funs_init = atoi (argv[i]);
+        btormbt_error (
+            "argument to '--add-funs-init' is not a number (try '-h')");
+      g_btormbt->g_max_add_funs_init = atoi (argv[i]);
     }
     else if (!strcmp (argv[i], "--add-funs"))
     {
-      if (++i == argc) die ("argument to '--add-funs' missing (try '-h')");
+      if (++i == argc)
+        btormbt_error ("argument to '--add-funs' missing (try '-h')");
       if (!isnumstr (argv[i]))
-        die ("argument to '--add-funs' is not a number (try '-h')");
-      btormbt->g_min_add_funs = atoi (argv[i]);
-      if (++i == argc) die ("argument to '--add-funs' missing (try '-h')");
+        btormbt_error ("argument to '--add-funs' is not a number (try '-h')");
+      g_btormbt->g_min_add_funs = atoi (argv[i]);
+      if (++i == argc)
+        btormbt_error ("argument to '--add-funs' missing (try '-h')");
       if (!isnumstr (argv[i]))
-        die ("argument to '--add-funs' is not a number (try '-h')");
-      btormbt->g_max_add_funs = atoi (argv[i]);
+        btormbt_error ("argument to '--add-funs' is not a number (try '-h')");
+      g_btormbt->g_max_add_funs = atoi (argv[i]);
     }
     else if (!strcmp (argv[i], "--add-funs-inc"))
     {
-      if (++i == argc) die ("argument to '--add-funs-inc' missing (try '-h')");
+      if (++i == argc)
+        btormbt_error ("argument to '--add-funs-inc' missing (try '-h')");
       if (!isnumstr (argv[i]))
-        die ("argument to '--add-funs-inc' is not a number (try '-h')");
-      btormbt->g_min_add_funs_inc = atoi (argv[i]);
-      if (++i == argc) die ("argument to '--add-funs-inc' missing (try '-h')");
+        btormbt_error (
+            "argument to '--add-funs-inc' is not a number (try '-h')");
+      g_btormbt->g_min_add_funs_inc = atoi (argv[i]);
+      if (++i == argc)
+        btormbt_error ("argument to '--add-funs-inc' missing (try '-h')");
       if (!isnumstr (argv[i]))
-        die ("argument to '--add-funs-inc' is not a number (try '-h')");
-      btormbt->g_max_add_funs_inc = atoi (argv[i]);
+        btormbt_error (
+            "argument to '--add-funs-inc' is not a number (try '-h')");
+      g_btormbt->g_max_add_funs_inc = atoi (argv[i]);
     }
     else if (!strcmp (argv[i], "--add-arrayops-init"))
     {
       if (++i == argc)
-        die ("argument to '--add-arrayops-init' missing (try '-h')");
+        btormbt_error ("argument to '--add-arrayops-init' missing (try '-h')");
       if (!isnumstr (argv[i]))
-        die ("argument to '--add-arrayops-init' is not a number (try '-h')");
-      btormbt->g_min_add_arrayops_init = atoi (argv[i]);
+        btormbt_error (
+            "argument to '--add-arrayops-init' is not a number (try '-h')");
+      g_btormbt->g_min_add_arrayops_init = atoi (argv[i]);
       if (++i == argc)
-        die ("argument to '--add-arrayops-init' missing (try '-h')");
+        btormbt_error ("argument to '--add-arrayops-init' missing (try '-h')");
       if (!isnumstr (argv[i]))
-        die ("argument to '--add-arrayops-init' is not a number (try '-h')");
-      btormbt->g_max_add_arrayops_init = atoi (argv[i]);
+        btormbt_error (
+            "argument to '--add-arrayops-init' is not a number (try '-h')");
+      g_btormbt->g_max_add_arrayops_init = atoi (argv[i]);
     }
     else if (!strcmp (argv[i], "--add-arrayops"))
     {
-      if (++i == argc) die ("argument to '--add-arrayops' missing (try '-h')");
+      if (++i == argc)
+        btormbt_error ("argument to '--add-arrayops' missing (try '-h')");
       if (!isnumstr (argv[i]))
-        die ("argument to '--add-arrayops' is not a number (try '-h')");
-      btormbt->g_min_add_arrayops = atoi (argv[i]);
-      if (++i == argc) die ("argument to '--add-arrayops' missing (try '-h')");
+        btormbt_error (
+            "argument to '--add-arrayops' is not a number (try '-h')");
+      g_btormbt->g_min_add_arrayops = atoi (argv[i]);
+      if (++i == argc)
+        btormbt_error ("argument to '--add-arrayops' missing (try '-h')");
       if (!isnumstr (argv[i]))
-        die ("argument to '--add-arrayops' is not a number (try '-h')");
-      btormbt->g_max_add_arrayops = atoi (argv[i]);
+        btormbt_error (
+            "argument to '--add-arrayops' is not a number (try '-h')");
+      g_btormbt->g_max_add_arrayops = atoi (argv[i]);
     }
     else if (!strcmp (argv[i], "--add-arrayops-inc"))
     {
       if (++i == argc)
-        die ("argument to '--add-arrayops-inc' missing (try '-h')");
+        btormbt_error ("argument to '--add-arrayops-inc' missing (try '-h')");
       if (!isnumstr (argv[i]))
-        die ("argument to '--add-arrayops-inc' is not a number (try '-h')");
-      btormbt->g_min_add_arrayops_inc = atoi (argv[i]);
+        btormbt_error (
+            "argument to '--add-arrayops-inc' is not a number (try '-h')");
+      g_btormbt->g_min_add_arrayops_inc = atoi (argv[i]);
       if (++i == argc)
-        die ("argument to '--add-arrayops-inc' missing (try '-h')");
+        btormbt_error ("argument to '--add-arrayops-inc' missing (try '-h')");
       if (!isnumstr (argv[i]))
-        die ("argument to '--add-arrayops-inc' is not a number (try '-h')");
-      btormbt->g_max_add_arrayops_inc = atoi (argv[i]);
+        btormbt_error (
+            "argument to '--add-arrayops-inc' is not a number (try '-h')");
+      g_btormbt->g_max_add_arrayops_inc = atoi (argv[i]);
     }
     else if (!strcmp (argv[i], "--add-bitvecops-init"))
     {
       if (++i == argc)
-        die ("argument to '--add-bitvecops-init' missing (try '-h')");
+        btormbt_error ("argument to '--add-bitvecops-init' missing (try '-h')");
       if (!isnumstr (argv[i]))
-        die ("argument to '--add-bitvecops-init' is not a number (try '-h')");
-      btormbt->g_min_add_bitvecops_init = atoi (argv[i]);
+        btormbt_error (
+            "argument to '--add-bitvecops-init' is not a number (try '-h')");
+      g_btormbt->g_min_add_bitvecops_init = atoi (argv[i]);
       if (++i == argc)
-        die ("argument to '--add-bitvecops-init' missing (try '-h')");
+        btormbt_error ("argument to '--add-bitvecops-init' missing (try '-h')");
       if (!isnumstr (argv[i]))
-        die ("argument to '--add-bitvecops-init' is not a number (try '-h')");
-      btormbt->g_max_add_bitvecops_init = atoi (argv[i]);
+        btormbt_error (
+            "argument to '--add-bitvecops-init' is not a number (try '-h')");
+      g_btormbt->g_max_add_bitvecops_init = atoi (argv[i]);
     }
     else if (!strcmp (argv[i], "--add-bitvecops"))
     {
-      if (++i == argc) die ("argument to '--add-bitvecops' missing (try '-h')");
+      if (++i == argc)
+        btormbt_error ("argument to '--add-bitvecops' missing (try '-h')");
       if (!isnumstr (argv[i]))
-        die ("argument to '--add-bitvecops' is not a number (try '-h')");
-      btormbt->g_min_add_bitvecops = atoi (argv[i]);
-      if (++i == argc) die ("argument to '--add-bitvecops' missing (try '-h')");
+        btormbt_error (
+            "argument to '--add-bitvecops' is not a number (try '-h')");
+      g_btormbt->g_min_add_bitvecops = atoi (argv[i]);
+      if (++i == argc)
+        btormbt_error ("argument to '--add-bitvecops' missing (try '-h')");
       if (!isnumstr (argv[i]))
-        die ("argument to '--add-bitvecops' is not a number (try '-h')");
-      btormbt->g_max_add_bitvecops = atoi (argv[i]);
+        btormbt_error (
+            "argument to '--add-bitvecops' is not a number (try '-h')");
+      g_btormbt->g_max_add_bitvecops = atoi (argv[i]);
     }
     else if (!strcmp (argv[i], "--add-bitvecops-inc"))
     {
       if (++i == argc)
-        die ("argument to '--add-bitvecops-inc' missing (try '-h')");
+        btormbt_error ("argument to '--add-bitvecops-inc' missing (try '-h')");
       if (!isnumstr (argv[i]))
-        die ("argument to '--add-bitvecops-inc' is not a number (try '-h')");
-      btormbt->g_min_add_bitvecops_inc = atoi (argv[i]);
+        btormbt_error (
+            "argument to '--add-bitvecops-inc' is not a number (try '-h')");
+      g_btormbt->g_min_add_bitvecops_inc = atoi (argv[i]);
       if (++i == argc)
-        die ("argument to '--add-bitvecops-inc' missing (try '-h')");
+        btormbt_error ("argument to '--add-bitvecops-inc' missing (try '-h')");
       if (!isnumstr (argv[i]))
-        die ("argument to '--add-bitvecops-inc' is not a number (try '-h')");
-      btormbt->g_max_add_bitvecops_inc = atoi (argv[i]);
+        btormbt_error (
+            "argument to '--add-bitvecops-inc' is not a number (try '-h')");
+      g_btormbt->g_max_add_bitvecops_inc = atoi (argv[i]);
     }
     else if (!strcmp (argv[i], "--add-inputs-init"))
     {
       if (++i == argc)
-        die ("argument to '--add-inputs-init' missing (try '-h')");
+        btormbt_error ("argument to '--add-inputs-init' missing (try '-h')");
       if (!isnumstr (argv[i]))
-        die ("argument to '--add-inputs-init' is not a number (try '-h')");
-      btormbt->g_min_add_inputs_init = atoi (argv[i]);
+        btormbt_error (
+            "argument to '--add-inputs-init' is not a number (try '-h')");
+      g_btormbt->g_min_add_inputs_init = atoi (argv[i]);
       if (++i == argc)
-        die ("argument to '--add-inputs-init' missing (try '-h')");
+        btormbt_error ("argument to '--add-inputs-init' missing (try '-h')");
       if (!isnumstr (argv[i]))
-        die ("argument to '--add-inputs-init' is not a number (try '-h')");
-      btormbt->g_max_add_inputs_init = atoi (argv[i]);
+        btormbt_error (
+            "argument to '--add-inputs-init' is not a number (try '-h')");
+      g_btormbt->g_max_add_inputs_init = atoi (argv[i]);
     }
     else if (!strcmp (argv[i], "--add-inputs"))
     {
-      if (++i == argc) die ("argument to '--add-inputs' missing (try '-h')");
+      if (++i == argc)
+        btormbt_error ("argument to '--add-inputs' missing (try '-h')");
       if (!isnumstr (argv[i]))
-        die ("argument to '--add-inputs' is not a number (try '-h')");
-      btormbt->g_min_add_inputs = atoi (argv[i]);
-      if (++i == argc) die ("argument to '--add-inputs' missing (try '-h')");
+        btormbt_error ("argument to '--add-inputs' is not a number (try '-h')");
+      g_btormbt->g_min_add_inputs = atoi (argv[i]);
+      if (++i == argc)
+        btormbt_error ("argument to '--add-inputs' missing (try '-h')");
       if (!isnumstr (argv[i]))
-        die ("argument to '--add-inputs' is not a number (try '-h')");
-      btormbt->g_max_add_inputs = atoi (argv[i]);
+        btormbt_error ("argument to '--add-inputs' is not a number (try '-h')");
+      g_btormbt->g_max_add_inputs = atoi (argv[i]);
     }
     else if (!strcmp (argv[i], "--add-inputs-inc"))
     {
       if (++i == argc)
-        die ("argument to '--add-inputs-inc' missing (try '-h')");
+        btormbt_error ("argument to '--add-inputs-inc' missing (try '-h')");
       if (!isnumstr (argv[i]))
-        die ("argument to '--add-inputs-inc' is not a number (try '-h')");
-      btormbt->g_min_add_inputs_inc = atoi (argv[i]);
+        btormbt_error (
+            "argument to '--add-inputs-inc' is not a number (try '-h')");
+      g_btormbt->g_min_add_inputs_inc = atoi (argv[i]);
       if (++i == argc)
-        die ("argument to '--add-inputs-inc' missing (try '-h')");
+        btormbt_error ("argument to '--add-inputs-inc' missing (try '-h')");
       if (!isnumstr (argv[i]))
-        die ("argument to '--add-inputs-inc' is not a number (try '-h')");
-      btormbt->g_max_add_inputs_inc = atoi (argv[i]);
+        btormbt_error (
+            "argument to '--add-inputs-inc' is not a number (try '-h')");
+      g_btormbt->g_max_add_inputs_inc = atoi (argv[i]);
     }
     else if (!strcmp (argv[i], "--ops-init"))
     {
-      if (++i == argc) die ("argument to '--ops-init' missing (try '-h')");
+      if (++i == argc)
+        btormbt_error ("argument to '--ops-init' missing (try '-h')");
       if (!isnumstr (argv[i]))
-        die ("argument to '--ops-init' is not a number (try '-h')");
-      btormbt->g_min_ops_init = atoi (argv[i]);
-      if (++i == argc) die ("argument to '--ops-init' missing (try '-h')");
+        btormbt_error ("argument to '--ops-init' is not a number (try '-h')");
+      g_btormbt->g_min_ops_init = atoi (argv[i]);
+      if (++i == argc)
+        btormbt_error ("argument to '--ops-init' missing (try '-h')");
       if (!isnumstr (argv[i]))
-        die ("argument to '--ops-init' is not a number (try '-h')");
-      btormbt->g_max_ops_init = atoi (argv[i]);
+        btormbt_error ("argument to '--ops-init' is not a number (try '-h')");
+      g_btormbt->g_max_ops_init = atoi (argv[i]);
     }
     else if (!strcmp (argv[i], "--ops"))
     {
-      if (++i == argc) die ("argument to '--ops' missing (try '-h')");
+      if (++i == argc) btormbt_error ("argument to '--ops' missing (try '-h')");
       if (!isnumstr (argv[i]))
-        die ("argument to '--ops' is not a number (try '-h')");
-      btormbt->g_min_ops = atoi (argv[i]);
-      if (++i == argc) die ("argument to '--ops' missing (try '-h')");
+        btormbt_error ("argument to '--ops' is not a number (try '-h')");
+      g_btormbt->g_min_ops = atoi (argv[i]);
+      if (++i == argc) btormbt_error ("argument to '--ops' missing (try '-h')");
       if (!isnumstr (argv[i]))
-        die ("argument to '--ops' is not a number (try '-h')");
-      btormbt->g_max_ops = atoi (argv[i]);
+        btormbt_error ("argument to '--ops' is not a number (try '-h')");
+      g_btormbt->g_max_ops = atoi (argv[i]);
     }
     else if (!strcmp (argv[i], "--ops-inc"))
     {
-      if (++i == argc) die ("argument to '--ops-inc' missing (try '-h')");
+      if (++i == argc)
+        btormbt_error ("argument to '--ops-inc' missing (try '-h')");
       if (!isnumstr (argv[i]))
-        die ("argument to '--ops-inc' is not a number (try '-h')");
-      btormbt->g_min_ops_inc = atoi (argv[i]);
-      if (++i == argc) die ("argument to '--ops-inc' missing (try '-h')");
+        btormbt_error ("argument to '--ops-inc' is not a number (try '-h')");
+      g_btormbt->g_min_ops_inc = atoi (argv[i]);
+      if (++i == argc)
+        btormbt_error ("argument to '--ops-inc' missing (try '-h')");
       if (!isnumstr (argv[i]))
-        die ("argument to '--ops-inc' is not a number (try '-h')");
-      btormbt->g_max_ops_inc = atoi (argv[i]);
+        btormbt_error ("argument to '--ops-inc' is not a number (try '-h')");
+      g_btormbt->g_max_ops_inc = atoi (argv[i]);
     }
     else if (!strcmp (argv[i], "--add-ops-init"))
     {
-      if (++i == argc) die ("argument to '--add-ops-init' missing (try '-h')");
+      if (++i == argc)
+        btormbt_error ("argument to '--add-ops-init' missing (try '-h')");
       if (!isnumstr (argv[i]))
-        die ("argument to '--add-ops-init' is not a number (try '-h')");
-      btormbt->g_min_add_ops_init = atoi (argv[i]);
-      if (++i == argc) die ("argument to '--add-ops-init' missing (try '-h')");
+        btormbt_error (
+            "argument to '--add-ops-init' is not a number (try '-h')");
+      g_btormbt->g_min_add_ops_init = atoi (argv[i]);
+      if (++i == argc)
+        btormbt_error ("argument to '--add-ops-init' missing (try '-h')");
       if (!isnumstr (argv[i]))
-        die ("argument to '--add-ops-init' is not a number (try '-h')");
-      btormbt->g_max_add_ops_init = atoi (argv[i]);
+        btormbt_error (
+            "argument to '--add-ops-init' is not a number (try '-h')");
+      g_btormbt->g_max_add_ops_init = atoi (argv[i]);
     }
     else if (!strcmp (argv[i], "--add-ops"))
     {
-      if (++i == argc) die ("argument to '--add-ops' missing (try '-h')");
+      if (++i == argc)
+        btormbt_error ("argument to '--add-ops' missing (try '-h')");
       if (!isnumstr (argv[i]))
-        die ("argument to '--add-ops' is not a number (try '-h')");
-      btormbt->g_min_add_ops = atoi (argv[i]);
-      if (++i == argc) die ("argument to '--add-ops' missing (try '-h')");
+        btormbt_error ("argument to '--add-ops' is not a number (try '-h')");
+      g_btormbt->g_min_add_ops = atoi (argv[i]);
+      if (++i == argc)
+        btormbt_error ("argument to '--add-ops' missing (try '-h')");
       if (!isnumstr (argv[i]))
-        die ("argument to '--add-ops' is not a number (try '-h')");
-      btormbt->g_max_add_ops = atoi (argv[i]);
+        btormbt_error ("argument to '--add-ops' is not a number (try '-h')");
+      g_btormbt->g_max_add_ops = atoi (argv[i]);
     }
     else if (!strcmp (argv[i], "--add-ops-inc"))
     {
-      if (++i == argc) die ("argument to '--add-ops-inc' missing (try '-h')");
+      if (++i == argc)
+        btormbt_error ("argument to '--add-ops-inc' missing (try '-h')");
       if (!isnumstr (argv[i]))
-        die ("argument to '--add-ops-inc' is not a number (try '-h')");
-      btormbt->g_min_add_ops_inc = atoi (argv[i]);
-      if (++i == argc) die ("argument to '--add-ops-inc' missing (try '-h')");
+        btormbt_error (
+            "argument to '--add-ops-inc' is not a number (try '-h')");
+      g_btormbt->g_min_add_ops_inc = atoi (argv[i]);
+      if (++i == argc)
+        btormbt_error ("argument to '--add-ops-inc' missing (try '-h')");
       if (!isnumstr (argv[i]))
-        die ("argument to '--add-ops-inc' is not a number (try '-h')");
-      btormbt->g_max_add_ops_inc = atoi (argv[i]);
+        btormbt_error (
+            "argument to '--add-ops-inc' is not a number (try '-h')");
+      g_btormbt->g_max_add_ops_inc = atoi (argv[i]);
     }
     else if (!strcmp (argv[i], "--release-ops-init"))
     {
       if (++i == argc)
-        die ("argument to '--release-ops-init' missing (try '-h')");
+        btormbt_error ("argument to '--release-ops-init' missing (try '-h')");
       if (!isnumstr (argv[i]))
-        die ("argument to '--release-ops-init' is not a number (try '-h')");
-      btormbt->g_min_release_ops_init = atoi (argv[i]);
+        btormbt_error (
+            "argument to '--release-ops-init' is not a number (try '-h')");
+      g_btormbt->g_min_release_ops_init = atoi (argv[i]);
       if (++i == argc)
-        die ("argument to '--release-ops-init' missing (try '-h')");
+        btormbt_error ("argument to '--release-ops-init' missing (try '-h')");
       if (!isnumstr (argv[i]))
-        die ("argument to '--release-ops-init' is not a number (try '-h')");
-      btormbt->g_max_release_ops_init = atoi (argv[i]);
+        btormbt_error (
+            "argument to '--release-ops-init' is not a number (try '-h')");
+      g_btormbt->g_max_release_ops_init = atoi (argv[i]);
     }
     else if (!strcmp (argv[i], "--release-ops"))
     {
-      if (++i == argc) die ("argument to '--release-ops' missing (try '-h')");
+      if (++i == argc)
+        btormbt_error ("argument to '--release-ops' missing (try '-h')");
       if (!isnumstr (argv[i]))
-        die ("argument to '--release-ops' is not a number (try '-h')");
-      btormbt->g_min_release_ops = atoi (argv[i]);
-      if (++i == argc) die ("argument to '--release-ops' missing (try '-h')");
+        btormbt_error (
+            "argument to '--release-ops' is not a number (try '-h')");
+      g_btormbt->g_min_release_ops = atoi (argv[i]);
+      if (++i == argc)
+        btormbt_error ("argument to '--release-ops' missing (try '-h')");
       if (!isnumstr (argv[i]))
-        die ("argument to '--release-ops' is not a number (try '-h')");
-      btormbt->g_max_release_ops = atoi (argv[i]);
+        btormbt_error (
+            "argument to '--release-ops' is not a number (try '-h')");
+      g_btormbt->g_max_release_ops = atoi (argv[i]);
     }
     else if (!strcmp (argv[i], "--release-ops-inc"))
     {
       if (++i == argc)
-        die ("argument to '--release-ops-inc' missing (try '-h')");
+        btormbt_error ("argument to '--release-ops-inc' missing (try '-h')");
       if (!isnumstr (argv[i]))
-        die ("argument to '--release-ops-inc' is not a number (try '-h')");
-      btormbt->g_min_release_ops_inc = atoi (argv[i]);
+        btormbt_error (
+            "argument to '--release-ops-inc' is not a number (try '-h')");
+      g_btormbt->g_min_release_ops_inc = atoi (argv[i]);
       if (++i == argc)
-        die ("argument to '--release-ops-inc' missing (try '-h')");
+        btormbt_error ("argument to '--release-ops-inc' missing (try '-h')");
       if (!isnumstr (argv[i]))
-        die ("argument to '--release-ops-inc' is not a number (try '-h')");
-      btormbt->g_max_release_ops_inc = atoi (argv[i]);
+        btormbt_error (
+            "argument to '--release-ops-inc' is not a number (try '-h')");
+      g_btormbt->g_max_release_ops_inc = atoi (argv[i]);
     }
     else if (!strcmp (argv[i], "--max-ops-lower"))
     {
-      if (++i == argc) die ("argument to '--max-ops-lower' missing (try '-h')");
+      if (++i == argc)
+        btormbt_error ("argument to '--max-ops-lower' missing (try '-h')");
       if (!isnumstr (argv[i]))
-        die ("argument to '--max-ops-lower' is not a number (try '-h')");
-      btormbt->g_max_ops_lower = atoi (argv[i]);
+        btormbt_error (
+            "argument to '--max-ops-lower' is not a number (try '-h')");
+      g_btormbt->g_max_ops_lower = atoi (argv[i]);
     }
     else if (!strcmp (argv[i], "--asserts-lower"))
     {
-      if (++i == argc) die ("argument to '--asserts-lower' missing (try '-h')");
+      if (++i == argc)
+        btormbt_error ("argument to '--asserts-lower' missing (try '-h')");
       if (!isnumstr (argv[i]))
-        die ("argument to '--asserts-lower' is not a number (try '-h')");
-      btormbt->g_min_asserts_lower = atoi (argv[i]);
-      if (++i == argc) die ("argument to '--asserts-lower' missing (try '-h')");
+        btormbt_error (
+            "argument to '--asserts-lower' is not a number (try '-h')");
+      g_btormbt->g_min_asserts_lower = atoi (argv[i]);
+      if (++i == argc)
+        btormbt_error ("argument to '--asserts-lower' missing (try '-h')");
       if (!isnumstr (argv[i]))
-        die ("argument to '--asserts-lower' is not a number (try '-h')");
-      btormbt->g_max_asserts_lower = atoi (argv[i]);
+        btormbt_error (
+            "argument to '--asserts-lower' is not a number (try '-h')");
+      g_btormbt->g_max_asserts_lower = atoi (argv[i]);
     }
     else if (!strcmp (argv[i], "--asserts-upper"))
     {
-      if (++i == argc) die ("argument to '--asserts-upper' missing (try '-h')");
+      if (++i == argc)
+        btormbt_error ("argument to '--asserts-upper' missing (try '-h')");
       if (!isnumstr (argv[i]))
-        die ("argument to '--asserts-upper' is not a number (try '-h')");
-      btormbt->g_min_asserts_upper = atoi (argv[i]);
-      if (++i == argc) die ("argument to '--asserts-upper' missing (try '-h')");
+        btormbt_error (
+            "argument to '--asserts-upper' is not a number (try '-h')");
+      g_btormbt->g_min_asserts_upper = atoi (argv[i]);
+      if (++i == argc)
+        btormbt_error ("argument to '--asserts-upper' missing (try '-h')");
       if (!isnumstr (argv[i]))
-        die ("argument to '--asserts-upper' is not a number (try '-h')");
-      btormbt->g_max_asserts_upper = atoi (argv[i]);
+        btormbt_error (
+            "argument to '--asserts-upper' is not a number (try '-h')");
+      g_btormbt->g_max_asserts_upper = atoi (argv[i]);
     }
     else if (!strcmp (argv[i], "--p-param-exp"))
     {
-      if (++i == argc) die ("argument to '--p-param-exp' missing (try '-h')");
+      if (++i == argc)
+        btormbt_error ("argument to '--p-param-exp' missing (try '-h')");
       if (!isfloatnumstr (argv[i]))
-        die ("argument to '--p-param-exp' is not a number (try '-h')");
-      btormbt->p_param_exp = atof (argv[i]) * NORM_VAL;
-      if (btormbt->p_param_exp > NORM_VAL)
-        die ("argument to '--p-param-exp' must be < 1.0");
+        btormbt_error (
+            "argument to '--p-param-exp' is not a number (try '-h')");
+      g_btormbt->p_param_exp = atof (argv[i]) * NORM_VAL;
+      if (g_btormbt->p_param_exp > NORM_VAL)
+        btormbt_error ("argument to '--p-param-exp' must be < 1.0");
     }
     else if (!strcmp (argv[i], "--p-param-arr-exp"))
     {
       if (++i == argc)
-        die ("argument to '--p-param-arr-exp' missing (try '-h')");
+        btormbt_error ("argument to '--p-param-arr-exp' missing (try '-h')");
       if (!isfloatnumstr (argv[i]))
-        die ("argument to '--p-param-arr-exp' is not a number (try '-h')");
-      btormbt->p_param_arr_exp = atof (argv[i]) * NORM_VAL;
-      if (btormbt->p_param_arr_exp > NORM_VAL)
-        die ("argument to '--p-param-arr-exp' must be < 1.0");
+        btormbt_error (
+            "argument to '--p-param-arr-exp' is not a number (try '-h')");
+      g_btormbt->p_param_arr_exp = atof (argv[i]) * NORM_VAL;
+      if (g_btormbt->p_param_arr_exp > NORM_VAL)
+        btormbt_error ("argument to '--p-param-arr-exp' must be < 1.0");
     }
     else if (!strcmp (argv[i], "--p-apply-fun"))
     {
-      if (++i == argc) die ("argument to '--p-apply-fun' missing (try '-h')");
+      if (++i == argc)
+        btormbt_error ("argument to '--p-apply-fun' missing (try '-h')");
       if (!isfloatnumstr (argv[i]))
-        die ("argument to '--p-apply-fun' is not a number (try '-h')");
-      btormbt->p_apply_fun = atof (argv[i]) * NORM_VAL;
-      if (btormbt->p_apply_fun > NORM_VAL)
-        die ("argument to '--p-apply-fun' must be < 1.0");
+        btormbt_error (
+            "argument to '--p-apply-fun' is not a number (try '-h')");
+      g_btormbt->p_apply_fun = atof (argv[i]) * NORM_VAL;
+      if (g_btormbt->p_apply_fun > NORM_VAL)
+        btormbt_error ("argument to '--p-apply-fun' must be < 1.0");
     }
     else if (!strcmp (argv[i], "--p-apply-uf"))
     {
-      if (++i == argc) die ("argument to '--p-apply-uf' missing (try '-h')");
+      if (++i == argc)
+        btormbt_error ("argument to '--p-apply-uf' missing (try '-h')");
       if (!isfloatnumstr (argv[i]))
-        die ("argument to '--p-apply-uf' is not a number (try '-h')");
-      btormbt->p_apply_uf = atof (argv[i]) * NORM_VAL;
-      if (btormbt->p_apply_uf > NORM_VAL)
-        die ("argument to '--p-apply-uf' must be < 1.0");
+        btormbt_error ("argument to '--p-apply-uf' is not a number (try '-h')");
+      g_btormbt->p_apply_uf = atof (argv[i]) * NORM_VAL;
+      if (g_btormbt->p_apply_uf > NORM_VAL)
+        btormbt_error ("argument to '--p-apply-uf' must be < 1.0");
     }
     else if (!strcmp (argv[i], "--p-rw"))
     {
-      if (++i == argc) die ("argument to '--p-rw' missing (try '-h')");
+      if (++i == argc)
+        btormbt_error ("argument to '--p-rw' missing (try '-h')");
       if (!isfloatnumstr (argv[i]))
-        die ("argument to '--p-rw' is not a number (try '-h')");
-      btormbt->p_rw = atof (argv[i]) * NORM_VAL;
-      if (btormbt->p_rw > NORM_VAL) die ("argument to '--p-rw' must be < 1.0");
+        btormbt_error ("argument to '--p-rw' is not a number (try '-h')");
+      g_btormbt->p_rw = atof (argv[i]) * NORM_VAL;
+      if (g_btormbt->p_rw > NORM_VAL)
+        btormbt_error ("argument to '--p-rw' must be < 1.0");
     }
     else if (!strcmp (argv[i], "--p-read"))
     {
-      if (++i == argc) die ("argument to '--p-read' missing (try '-h')");
+      if (++i == argc)
+        btormbt_error ("argument to '--p-read' missing (try '-h')");
       if (!isfloatnumstr (argv[i]))
-        die ("argument to '--p-read' is not a number (try '-h')");
-      btormbt->p_read = atof (argv[i]) * NORM_VAL;
-      if (btormbt->p_read > NORM_VAL)
-        die ("argument to '--p-read' must be < 1.0");
+        btormbt_error ("argument to '--p-read' is not a number (try '-h')");
+      g_btormbt->p_read = atof (argv[i]) * NORM_VAL;
+      if (g_btormbt->p_read > NORM_VAL)
+        btormbt_error ("argument to '--p-read' must be < 1.0");
     }
     else if (!strcmp (argv[i], "--p-cond"))
     {
-      if (++i == argc) die ("argument to '--p-cond' missing (try '-h')");
+      if (++i == argc)
+        btormbt_error ("argument to '--p-cond' missing (try '-h')");
       if (!isfloatnumstr (argv[i]))
-        die ("argument to '--p-cond' is not a number (try '-h')");
-      btormbt->p_cond = atof (argv[i]) * NORM_VAL;
-      if (btormbt->p_cond > NORM_VAL)
-        die ("argument to '--p-cond' must be < 1.0");
+        btormbt_error ("argument to '--p-cond' is not a number (try '-h')");
+      g_btormbt->p_cond = atof (argv[i]) * NORM_VAL;
+      if (g_btormbt->p_cond > NORM_VAL)
+        btormbt_error ("argument to '--p-cond' must be < 1.0");
     }
     else if (!strcmp (argv[i], "--p-eq"))
     {
-      if (++i == argc) die ("argument to '--p-eq' missing (try '-h')");
+      if (++i == argc)
+        btormbt_error ("argument to '--p-eq' missing (try '-h')");
       if (!isfloatnumstr (argv[i]))
-        die ("argument to '--p-eq' is not a number (try '-h')");
-      btormbt->p_eq = atof (argv[i]) * NORM_VAL;
-      if (btormbt->p_eq > NORM_VAL) die ("argument to '--p-eq' must be < 1.0");
+        btormbt_error ("argument to '--p-eq' is not a number (try '-h')");
+      g_btormbt->p_eq = atof (argv[i]) * NORM_VAL;
+      if (g_btormbt->p_eq > NORM_VAL)
+        btormbt_error ("argument to '--p-eq' must be < 1.0");
     }
     else if (!strcmp (argv[i], "--p-inc"))
     {
-      if (++i == argc) die ("argument to '--p-inc' missing (try '-h')");
+      if (++i == argc)
+        btormbt_error ("argument to '--p-inc' missing (try '-h')");
       if (!isfloatnumstr (argv[i]))
-        die ("argument to '--p-inc' is not a number (try '-h')");
-      btormbt->p_inc = atof (argv[i]) * NORM_VAL;
-      if (btormbt->p_inc > NORM_VAL)
-        die ("argument to '--p-inc' must be < 1.0");
+        btormbt_error ("argument to '--p-inc' is not a number (try '-h')");
+      g_btormbt->p_inc = atof (argv[i]) * NORM_VAL;
+      if (g_btormbt->p_inc > NORM_VAL)
+        btormbt_error ("argument to '--p-inc' must be < 1.0");
     }
     else if (!strcmp (argv[i], "--p-dump"))
     {
-      if (++i == argc) die ("argument to '--p-dump' missing (try '-h')");
+      if (++i == argc)
+        btormbt_error ("argument to '--p-dump' missing (try '-h')");
       if (!isfloatnumstr (argv[i]))
-        die ("argument to '--p-dump' is not a number (try '-h')");
-      btormbt->p_dump = atof (argv[i]) * NORM_VAL;
-      if (btormbt->p_dump > NORM_VAL)
-        die ("argument to '--p-dump' must be < 1.0");
+        btormbt_error ("argument to '--p-dump' is not a number (try '-h')");
+      g_btormbt->p_dump = atof (argv[i]) * NORM_VAL;
+      if (g_btormbt->p_dump > NORM_VAL)
+        btormbt_error ("argument to '--p-dump' must be < 1.0");
     }
     else if (!strcmp (argv[i], "--p-print-model"))
     {
-      if (++i == argc) die ("argument to '--p-print-model' missing (try '-h')");
+      if (++i == argc)
+        btormbt_error ("argument to '--p-print-model' missing (try '-h')");
       if (!isfloatnumstr (argv[i]))
-        die ("argument to '--p-print-model' is not a number (try '-h')");
-      btormbt->p_print_model = atof (argv[i]) * NORM_VAL;
-      if (btormbt->p_print_model > NORM_VAL)
-        die ("argument to '--p-print-model' must be < 1.0");
+        btormbt_error (
+            "argument to '--p-print-model' is not a number (try '-h')");
+      g_btormbt->p_print_model = atof (argv[i]) * NORM_VAL;
+      if (g_btormbt->p_print_model > NORM_VAL)
+        btormbt_error ("argument to '--p-print-model' must be < 1.0");
     }
     else if (!strcmp (argv[i], "--p-model-format"))
     {
       if (++i == argc)
-        die ("argument to '--p-model-format' missing (try '-h')");
+        btormbt_error ("argument to '--p-model-format' missing (try '-h')");
       if (!isfloatnumstr (argv[i]))
-        die ("argument to '--p-model-format' is not a number (try '-h')");
-      btormbt->p_model_format = atof (argv[i]) * NORM_VAL;
-      if (btormbt->p_print_model > NORM_VAL)
-        die ("argument to '--p-model-format' must be < 1.0");
+        btormbt_error (
+            "argument to '--p-model-format' is not a number (try '-h')");
+      g_btormbt->p_model_format = atof (argv[i]) * NORM_VAL;
+      if (g_btormbt->p_print_model > NORM_VAL)
+        btormbt_error ("argument to '--p-model-format' must be < 1.0");
     }
     else if (!strcmp (argv[i], "--output-format"))
     {
-      if (++i == argc) die ("argument to '--output-format' missing (try '-h')");
+      if (++i == argc)
+        btormbt_error ("argument to '--output-format' missing (try '-h')");
       if (strcmp (argv[i], "btor") && strcmp (argv[i], "smt1")
           && strcmp (argv[i], "smt2"))
-        die ("argument to '--output-format' is invalid (try '-h')");
-      btormbt->output_format = argv[i];
+        btormbt_error ("argument to '--output-format' is invalid (try '-h')");
+      g_btormbt->output_format = argv[i];
     }
     else if (!isnumstr (argv[i]))
     {
-      die ("invalid command line option '%s' (try '-h')", argv[i]);
+      btormbt_error ("invalid command line option '%s' (try '-h')", argv[i]);
     }
     else
     {
-      btormbt->seed   = atoi (argv[i]);
-      btormbt->seeded = 1;
+      g_btormbt->seed   = atoi (argv[i]);
+      g_btormbt->seeded = 1;
     }
   }
 
-  btormbt->ppid = getpid ();
+  g_btormbt->ppid = getpid ();
   set_sig_handlers ();
 
   mac = hashmac ();
-  for (btormbt->rounds = 0; btormbt->rounds < btormbt->g_max_rounds;
-       btormbt->rounds++)
+  for (g_btormbt->rounds = 0; g_btormbt->rounds < g_btormbt->g_max_rounds;
+       g_btormbt->rounds++)
   {
     if (!(prev & 1)) prev++;
 
-    if (!btormbt->seeded)
+    if (!g_btormbt->seeded)
     {
-      btormbt->seed = mac;
-      btormbt->seed *= 123301093;
-      btormbt->seed += times (0);
-      btormbt->seed *= 223531513;
-      btormbt->seed += pid;
-      btormbt->seed *= 31752023;
-      btormbt->seed += prev;
-      btormbt->seed *= 43376579;
-      prev = btormbt->seed = abs (btormbt->seed) >> 1;
+      g_btormbt->seed = mac;
+      g_btormbt->seed *= 123301093;
+      g_btormbt->seed += times (0);
+      g_btormbt->seed *= 223531513;
+      g_btormbt->seed += pid;
+      g_btormbt->seed *= 31752023;
+      g_btormbt->seed += prev;
+      g_btormbt->seed *= 43376579;
+      prev = g_btormbt->seed = abs (g_btormbt->seed) >> 1;
 
-      if (!btormbt->quiet)
+      if (!g_btormbt->quiet)
       {
-        if (btormbt->terminal) erase ();
-        printf ("%d %d ", btormbt->rounds, btormbt->seed);
+        if (g_btormbt->terminal) erase ();
+        printf ("%d %d ", g_btormbt->rounds, g_btormbt->seed);
         fflush (stdout);
       }
 
-      /* reset verbose flag for initial run, only print on replay */
-      verbose          = btormbt->verbose;
-      btormbt->verbose = 0;
-      status           = run (btormbt);
-      btormbt->verbose = verbose;
+      /* reset verbosity flag for initial run, only print on replay */
+      verbosity   = g_verbosity;
+      g_verbosity = 0;
+      status      = run (g_btormbt);
+      g_verbosity = verbosity;
     }
     else
-      status = run (btormbt);
+      status = run (g_btormbt);
 
     if (WIFEXITED (status))
       res = WEXITSTATUS (status);
@@ -3676,74 +3840,79 @@ main (int argc, char **argv)
       res = EXIT_UNKNOWN;
 
     /* replay run on error */
-    if (!btormbt->seeded && res == EXIT_ERROR)
+    if (!g_btormbt->seeded && res == EXIT_ERROR)
     {
-      btormbt->bugs++;
+      g_btormbt->bugs++;
 
       if (!(name = getenv ("BTORAPITRACE")))
       {
-        name = malloc (100 * sizeof (char));
-        sprintf (name, "/tmp/bug-%d-mbt.trace", getpid ());
+        tmppid  = getpid ();
+        namelen = 40 + btor_num_digits_util (tmppid);
+        BTOR_NEWN (g_btormbt->mm, name, namelen);
+        sprintf (name, "/tmp/bug-%d-mbt.trace", tmppid);
         /* replay run */
         setenv ("BTORAPITRACE", name, 1);
-        i = run (btormbt);
+        i = run (g_btormbt);
         assert (WIFEXITED (i));
         assert (WEXITSTATUS (i) == res);
         unsetenv ("BTORAPITRACE");
       }
 
-      if (btormbt->out)
+      if (g_btormbt->out)
       {
-        cmd = malloc (strlen (name) + 80 + strlen (btormbt->out) + 1);
+        cmdlen = 40 + strlen (name) + strlen (g_btormbt->out)
+                 + btor_num_digits_util (g_btormbt->seed);
+        BTOR_NEWN (g_btormbt->mm, cmd, cmdlen);
         sprintf (cmd,
                  "cp %s %s/btormbt-bug-%d.trace",
                  name,
-                 btormbt->out,
-                 btormbt->seed);
+                 g_btormbt->out,
+                 g_btormbt->seed);
       }
       else
       {
-        cmd = malloc (strlen (name) + 80);
-        sprintf (cmd, "cp %s btormbt-bug-%d.trace", name, btormbt->seed);
+        cmdlen = 40 + strlen (name) + btor_num_digits_util (g_btormbt->seed);
+        BTOR_NEWN (g_btormbt->mm, cmd, cmdlen);
+        sprintf (cmd, "cp %s btormbt-bug-%d.trace", name, g_btormbt->seed);
       }
 
-      if (!getenv ("BTORAPITRACE")) free (name);
+      if (!getenv ("BTORAPITRACE")) BTOR_DELETEN (g_btormbt->mm, name, namelen);
+
       if (system (cmd))
       {
         printf ("Error on copy command %s \n", cmd);
         exit (EXIT_ERROR);
       }
-      free (cmd);
+
+      BTOR_DELETEN (g_btormbt->mm, cmd, cmdlen);
     }
 
     if (res == EXIT_SIGNALED)
     {
-      if (btormbt->verbose) printf ("signal %d", WTERMSIG (status));
+      if (g_verbosity) printf ("signal %d", WTERMSIG (status));
     }
     else if (res == EXIT_UNKNOWN)
     {
-      if (btormbt->verbose) printf ("unknown");
+      if (g_verbosity) printf ("unknown");
     }
     else if (res == EXIT_TIMEOUT)
     {
-      BTORMBT_LOG (
-          1, "TIMEOUT: time limit %d seconds reached\n", btormbt->time_limit);
-      if (!btormbt->verbose)
-        printf ("timed out after %d second(s)\n", btormbt->time_limit);
+      BTORMBT_LOG (1, "TIMEOUT: time limit %d seconds reached\n", g_set_alarm);
+      if (!g_verbosity) printf ("timed out after %d second(s)\n", g_set_alarm);
     }
     else if (res == EXIT_ERROR)
     {
-      if (btormbt->quiet) printf ("%d ", btormbt->seed);
+      if (g_btormbt->quiet) printf ("%d ", g_btormbt->seed);
       printf ("exit %d\n", res);
     }
 
-    if ((res == EXIT_ERROR && btormbt->quit_after_first) || btormbt->seeded)
+    if ((res == EXIT_ERROR && g_btormbt->quit_after_first) || g_btormbt->seeded)
       break;
   }
-  if (btormbt->verbose)
+  if (g_verbosity)
   {
-    if (btormbt->terminal) erase ();
-    printf ("forked %d\n", btormbt->forked);
+    if (g_btormbt->terminal) erase ();
+    printf ("forked %d\n", g_btormbt->forked);
   }
   return 0;
 }
