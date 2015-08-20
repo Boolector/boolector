@@ -310,7 +310,7 @@ main (int argc, char** argv)
       }
     }
     else
-      printf ("; days decreases alwways up to bound %d\n", maxk);
+      printf ("; days decreases always up to bound %d\n", maxk);
     res = (0 <= k);
   }
 

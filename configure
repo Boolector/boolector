@@ -132,7 +132,7 @@ fi
 
 #--------------------------------------------------------------------------#
 
-SRCDIRS=". simplifier parser dumper utils"
+SRCDIRS=". simplifier parser dumper utils btorfmt"
 if [ $python = yes ]
 then
   SRCDIRS="$SRCDIRS api/python"

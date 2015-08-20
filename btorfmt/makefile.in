@@ -1,0 +1,14 @@
+CC=@CC@
+CFLAGS=@CFLAGS@
+all: btorfmt.o libbtorfmt.a catbtor
+libbtorfmt.a: btorfmt.o makefile
+	ar rc $@ btorfmt.o
+	ranlib $@
+catbtor.o: catbtor.c btorfmt.h makefile
+	$(CC) $(CFLAGS) -c catbtor.c
+btorfmt.o: btorfmt.c btorfmt.h makefile
+	$(CC) $(CFLAGS) -c btorfmt.c
+catbtor: catbtor.o libbtorfmt.a makefile
+	$(CC) $(CFLAGS) -o $@ catbtor.o -L. -lbtorfmt
+clean:
+	rm -f *.o *.a catbtor
