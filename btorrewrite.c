@@ -15,6 +15,7 @@
 #include "btorbeta.h"
 #include "btorconst.h"
 #include "btorlog.h"
+#include "utils/btorinthash.h"
 #include "utils/btoriter.h"
 #include "utils/btormem.h"
 #include "utils/btormisc.h"
@@ -5050,6 +5051,7 @@ normalize_bin_comm_ass_exp (Btor *btor,
   BtorPtrHashTable *left, *right, *comm;
   BtorPtrHashBucket *b;
   BtorHashTableIterator it;
+  BtorIntHashTable *cache;
 
   mm    = btor->mm;
   kind  = e0->kind;
@@ -5062,6 +5064,7 @@ normalize_bin_comm_ass_exp (Btor *btor,
   comm  = btor_new_ptr_hash_table (mm,
                                   (BtorHashPtr) btor_hash_exp_by_id,
                                   (BtorCmpPtr) btor_compare_exp_by_id);
+  cache = btor_new_int_hash_table (mm);
 
   BTOR_INIT_STACK (stack);
   BTOR_PUSH_STACK (mm, stack, e0);
@@ -5070,6 +5073,12 @@ normalize_bin_comm_ass_exp (Btor *btor,
     cur = BTOR_POP_STACK (stack);
     if (!BTOR_IS_INVERTED_NODE (cur) && cur->kind == kind)
     {
+      if (btor_contains_int_hash_table (cache, cur->id))
+      {
+        BTOR_RELEASE_STACK (mm, stack);
+        goto RETURN_NO_RESULT;
+      }
+      btor_add_int_hash_table (cache, cur->id);
       BTOR_PUSH_STACK (mm, stack, cur->e[1]);
       BTOR_PUSH_STACK (mm, stack, cur->e[0]);
     }
@@ -5082,6 +5091,8 @@ normalize_bin_comm_ass_exp (Btor *btor,
         b->data.asInt++;
     }
   } while (!BTOR_EMPTY_STACK (stack));
+  btor_free_int_hash_table (cache);
+  cache = btor_new_int_hash_table (mm);
 
   BTOR_PUSH_STACK (mm, stack, e1);
   do
@@ -5089,6 +5100,12 @@ normalize_bin_comm_ass_exp (Btor *btor,
     cur = BTOR_POP_STACK (stack);
     if (!BTOR_IS_INVERTED_NODE (cur) && cur->kind == kind)
     {
+      if (btor_contains_int_hash_table (cache, cur->id))
+      {
+        BTOR_RELEASE_STACK (mm, stack);
+        goto RETURN_NO_RESULT;
+      }
+      btor_add_int_hash_table (cache, cur->id);
       BTOR_PUSH_STACK (mm, stack, cur->e[1]);
       BTOR_PUSH_STACK (mm, stack, cur->e[0]);
     }
@@ -5131,10 +5148,12 @@ normalize_bin_comm_ass_exp (Btor *btor,
   /* no operand or only one operand in common? leave everything as it is */
   if (comm->count < 2u)
   {
+  RETURN_NO_RESULT:
     /* clean up */
     btor_delete_ptr_hash_table (left);
     btor_delete_ptr_hash_table (right);
     btor_delete_ptr_hash_table (comm);
+    btor_free_int_hash_table (cache);
     *e0_norm = btor_copy_exp (btor, e0);
     *e1_norm = btor_copy_exp (btor, e1);
     return;
@@ -5276,6 +5295,7 @@ normalize_bin_comm_ass_exp (Btor *btor,
   btor_delete_ptr_hash_table (left);
   btor_delete_ptr_hash_table (right);
   btor_delete_ptr_hash_table (comm);
+  btor_free_int_hash_table (cache);
 }
 
 // TODO (ma): what does this do?
