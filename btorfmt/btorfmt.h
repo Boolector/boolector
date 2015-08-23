@@ -32,88 +32,111 @@ OTHER DEALINGS IN THE SOFTWARE.
 
 /*------------------------------------------------------------------------*/
 
+#define BTOR_FORMAT_MAXID (1l << 40)  // compiles only on 64-bit machine
+#define BTOR_FORMAT_MAXLEN ((1l << 31) - 1)
+
+/*------------------------------------------------------------------------*/
+
 typedef struct BtorFormatReader BtorFormatReader;
 typedef struct BtorFormatLine BtorFormatLine;
+typedef struct BtorFormatType BtorFormatType;
 
 typedef enum BtorFormatTag
 {
-  BTOR_FORMAT_INVALID_TAG = 0,
-  BTOR_FORMAT_TAG_ADD,
-  BTOR_FORMAT_TAG_AND,
-  BTOR_FORMAT_TAG_ARRAY,
-  BTOR_FORMAT_TAG_CONCAT,
-  BTOR_FORMAT_TAG_COND,
-  BTOR_FORMAT_TAG_ACOND,
-  BTOR_FORMAT_TAG_CONST,
-  BTOR_FORMAT_TAG_CONSTD,
-  BTOR_FORMAT_TAG_CONSTH,
-  BTOR_FORMAT_TAG_EQ,
-  BTOR_FORMAT_TAG_IFF,
-  BTOR_FORMAT_TAG_IMPLIES,
-  BTOR_FORMAT_TAG_MUL,
-  BTOR_FORMAT_TAG_NAND,
-  BTOR_FORMAT_TAG_NEG,
-  BTOR_FORMAT_TAG_INC,
-  BTOR_FORMAT_TAG_DEC,
-  BTOR_FORMAT_TAG_NE,
-  BTOR_FORMAT_TAG_NEXT,
-  BTOR_FORMAT_TAG_ANEXT,
-  BTOR_FORMAT_TAG_NOR,
-  BTOR_FORMAT_TAG_NOT,
-  BTOR_FORMAT_TAG_ONE,
-  BTOR_FORMAT_TAG_ONES,
-  BTOR_FORMAT_TAG_OR,
-  BTOR_FORMAT_TAG_PROXY,
-  BTOR_FORMAT_TAG_READ,
-  BTOR_FORMAT_TAG_REDAND,
-  BTOR_FORMAT_TAG_REDOR,
-  BTOR_FORMAT_TAG_REDXOR,
-  BTOR_FORMAT_TAG_ROL,
-  BTOR_FORMAT_TAG_ROOT,
-  BTOR_FORMAT_TAG_ROR,
-  BTOR_FORMAT_TAG_SADDO,
-  BTOR_FORMAT_TAG_SDIVO,
-  BTOR_FORMAT_TAG_SDIV,
-  BTOR_FORMAT_TAG_SEXT,
-  BTOR_FORMAT_TAG_SGTE,
-  BTOR_FORMAT_TAG_SGT,
-  BTOR_FORMAT_TAG_SLICE,
-  BTOR_FORMAT_TAG_SLL,
-  BTOR_FORMAT_TAG_SLTE,
-  BTOR_FORMAT_TAG_SLT,
-  BTOR_FORMAT_TAG_SMOD,
-  BTOR_FORMAT_TAG_SMULO,
-  BTOR_FORMAT_TAG_SRA,
-  BTOR_FORMAT_TAG_SREM,
-  BTOR_FORMAT_TAG_SRL,
-  BTOR_FORMAT_TAG_SSUBO,
-  BTOR_FORMAT_TAG_SUB,
-  BTOR_FORMAT_TAG_UADDO,
-  BTOR_FORMAT_TAG_UDIV,
-  BTOR_FORMAT_TAG_UEXT,
-  BTOR_FORMAT_TAG_UGTE,
-  BTOR_FORMAT_TAG_UGT,
-  BTOR_FORMAT_TAG_ULTE,
-  BTOR_FORMAT_TAG_ULT,
-  BTOR_FORMAT_TAG_UMULO,
-  BTOR_FORMAT_TAG_UREM,
-  BTOR_FORMAT_TAG_USUBO,
-  BTOR_FORMAT_TAG_VAR,
-  BTOR_FORMAT_TAG_WRITE,
-  BTOR_FORMAT_TAG_XNOR,
-  BTOR_FORMAT_TAG_XOR,
-  BTOR_FORMAT_TAG_ZERO,
+  BTOR_FORMAT_TAG_add,
+  BTOR_FORMAT_TAG_and,
+  BTOR_FORMAT_TAG_array,
+  BTOR_FORMAT_TAG_concat,
+  BTOR_FORMAT_TAG_cond,
+  BTOR_FORMAT_TAG_acond,
+  BTOR_FORMAT_TAG_const,
+  BTOR_FORMAT_TAG_constd,
+  BTOR_FORMAT_TAG_consth,
+  BTOR_FORMAT_TAG_eq,
+  BTOR_FORMAT_TAG_iff,
+  BTOR_FORMAT_TAG_implies,
+  BTOR_FORMAT_TAG_mul,
+  BTOR_FORMAT_TAG_nand,
+  BTOR_FORMAT_TAG_neg,
+  BTOR_FORMAT_TAG_inc,
+  BTOR_FORMAT_TAG_dec,
+  BTOR_FORMAT_TAG_ne,
+  BTOR_FORMAT_TAG_next,
+  BTOR_FORMAT_TAG_anext,
+  BTOR_FORMAT_TAG_nor,
+  BTOR_FORMAT_TAG_not,
+  BTOR_FORMAT_TAG_one,
+  BTOR_FORMAT_TAG_ones,
+  BTOR_FORMAT_TAG_or,
+  BTOR_FORMAT_TAG_proxy,
+  BTOR_FORMAT_TAG_read,
+  BTOR_FORMAT_TAG_redand,
+  BTOR_FORMAT_TAG_redor,
+  BTOR_FORMAT_TAG_redxor,
+  BTOR_FORMAT_TAG_rol,
+  BTOR_FORMAT_TAG_root,
+  BTOR_FORMAT_TAG_ror,
+  BTOR_FORMAT_TAG_saddo,
+  BTOR_FORMAT_TAG_sdivo,
+  BTOR_FORMAT_TAG_sdiv,
+  BTOR_FORMAT_TAG_sext,
+  BTOR_FORMAT_TAG_sgte,
+  BTOR_FORMAT_TAG_sgt,
+  BTOR_FORMAT_TAG_slice,
+  BTOR_FORMAT_TAG_sll,
+  BTOR_FORMAT_TAG_slte,
+  BTOR_FORMAT_TAG_slt,
+  BTOR_FORMAT_TAG_smod,
+  BTOR_FORMAT_TAG_smulo,
+  BTOR_FORMAT_TAG_sra,
+  BTOR_FORMAT_TAG_srem,
+  BTOR_FORMAT_TAG_srl,
+  BTOR_FORMAT_TAG_ssubo,
+  BTOR_FORMAT_TAG_sub,
+  BTOR_FORMAT_TAG_uaddo,
+  BTOR_FORMAT_TAG_udiv,
+  BTOR_FORMAT_TAG_uext,
+  BTOR_FORMAT_TAG_ugte,
+  BTOR_FORMAT_TAG_ugt,
+  BTOR_FORMAT_TAG_ulte,
+  BTOR_FORMAT_TAG_ult,
+  BTOR_FORMAT_TAG_umulo,
+  BTOR_FORMAT_TAG_urem,
+  BTOR_FORMAT_TAG_usubo,
+  BTOR_FORMAT_TAG_var,
+  BTOR_FORMAT_TAG_write,
+  BTOR_FORMAT_TAG_xnor,
+  BTOR_FORMAT_TAG_xor,
+  BTOR_FORMAT_TAG_zero,
 } BtorFormatTag;
 
 /*------------------------------------------------------------------------*/
 
+struct BtorFormatType
+{
+  int len, idxlen;
+};
+
 struct BtorFormatLine
 {
-  int id;
+  long id;
   BtorFormatTag tag;
-  int len, ilen;
-  char *symbol;
-  int arg[3];
+  BtorFormatType type;
+  const char *tagastr;
+  union
+  {
+    char *symbol;
+    char *constant;
+    BtorFormatLine *arg[3];
+  };
+  union
+  {
+    void *asvoidptr;
+    char *ascharptr;
+    unsigned asunsigned;
+    long aslong;
+    int asint;
+  } data;
 };
 
 /*------------------------------------------------------------------------*/
