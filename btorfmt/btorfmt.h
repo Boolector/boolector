@@ -40,6 +40,9 @@ OTHER DEALINGS IN THE SOFTWARE.
 typedef struct BtorFormatReader BtorFormatReader;
 typedef struct BtorFormatLine BtorFormatLine;
 typedef struct BtorFormatType BtorFormatType;
+typedef struct BtorFormatLineIterator BtorFormatLineIterator;
+
+/*------------------------------------------------------------------------*/
 
 typedef enum BtorFormatTag
 {
@@ -114,29 +117,27 @@ typedef enum BtorFormatTag
 
 struct BtorFormatType
 {
-  int len, idxlen;
+  int len;     // length = bit-width
+  int idxlen;  // index length for arrays and functions
 };
 
 struct BtorFormatLine
 {
-  long id;
-  BtorFormatTag tag;
-  BtorFormatType type;
-  const char *tagastr;
-  union
-  {
-    char *symbol;
-    char *constant;
-    BtorFormatLine *arg[3];
-  };
-  union
-  {
-    void *asvoidptr;
-    char *ascharptr;
-    unsigned asunsigned;
-    long aslong;
-    int asint;
-  } data;
+  long id;              // positive id (non zero)
+  const char *name;     // name in ASCCII: "and", "add", ...
+  BtorFormatTag tag;    // same as name but encoded as integer
+  BtorFormatType type;  // length = bit-width (also for indices)
+  int arity;            // redundant but useful (0 <= arity <= 3)
+  long arg[3];          // non zero ids up to arity
+  char *constant;       // non zero for const, constd, consth
+  char *symbol;         // optional for: var, array, latch, input
+  void *data;           // user data
+};
+
+struct BtorFormatLineIterator
+{
+  BtorFormatReader *reader;
+  long next;
 };
 
 /*------------------------------------------------------------------------*/
@@ -148,8 +149,11 @@ void delete_btor_format_reader (BtorFormatReader *);
 
 /*------------------------------------------------------------------------*/
 
-BtorFormatLine **read_btor_format_lines (BtorFormatReader *, FILE *);
+int read_btor_format_lines (BtorFormatReader *, FILE *);
 const char *error_btor_format_reader (BtorFormatReader *);
+
+BtorFormatLineIterator iterate_btor_format_line (BtorFormatReader *bfr);
+BtorFormatLine *next_btor_format_line (BtorFormatLineIterator *);
 
 /*------------------------------------------------------------------------*/
 

@@ -37,8 +37,8 @@ static const char* input_name;
 int
 main (int argc, char** argv)
 {
+  BtorFormatLine **lines, **p, *l;
   BtorFormatReader* reader;
-  BtorFormatLine** lines;
   int i, verbosity = 0;
   const char* err;
   for (i = 1; i < argc; i++)
@@ -111,7 +111,15 @@ main (int argc, char** argv)
     fprintf (stderr, "; [catbor] starting to dump BTOR model to '<stdout>'\n");
     fflush (stderr);
   }
-  // TODO
+  for (p = lines; (l = *p); p++)
+  {
+    printf ("%ld %s %d", l->id, l->name, l->type.len);
+    if (l->type.idxlen) printf (" %d", l->type.idxlen);
+    for (i = 0; i < 3 && l->arg[i]; i++) printf (" %ld", l->arg[i]);
+    if (l->constant) printf (" %s", l->constant);
+    if (l->symbol) printf (" %s", l->symbol);
+    fputc ('\n', stdout);
+  }
   delete_btor_format_reader (reader);
   if (verbosity)
   {

@@ -34,8 +34,8 @@ OTHER DEALINGS IN THE SOFTWARE.
 struct BtorFormatReader
 {
   char *error, *prefix;
-  BtorFormatLine **lines, **table;
-  long szlines, nlines, sztable, ntable, szbuf, nbuf, lineno;
+  BtorFormatLine **table, *new_line;
+  long sztable, ntable, szbuf, nbuf, lineno;
   int verbosity, saved;
   char *buf;
   FILE *file;
@@ -101,12 +101,6 @@ reset_bfr (BtorFormatReader *bfr)
     free (bfr->table);
     bfr->table  = 0;
     bfr->ntable = bfr->sztable = 0;
-  }
-  if (bfr->lines)
-  {
-    free (bfr->lines);
-    bfr->lines  = 0;
-    bfr->nlines = bfr->szlines = 0;
   }
   if (bfr->buf)
   {
@@ -174,17 +168,6 @@ pushc_bfr (BtorFormatReader *bfr, int ch)
 }
 
 static void
-pushl_bfr (BtorFormatReader *bfr, BtorFormatLine *l)
-{
-  if (bfr->nlines >= bfr->szlines)
-  {
-    bfr->szlines = bfr->szlines ? 2 * bfr->szlines : 1;
-    bfr->lines   = realloc (bfr->lines, bfr->szlines * sizeof *bfr->lines);
-  }
-  bfr->lines[bfr->nlines++] = l;
-}
-
-static void
 pusht_bfr (BtorFormatReader *bfr, BtorFormatLine *l)
 {
   if (bfr->ntable >= bfr->sztable)
@@ -215,6 +198,26 @@ parse_id_bfr (BtorFormatReader *bfr, long *res)
 }
 
 static int
+parse_signed_id_bfr (BtorFormatReader *bfr, long *res)
+{
+  int ch, sign;
+  ch = getc_bfr (bfr);
+  if (ch == '-')
+  {
+    ch   = getc_bfr (bfr);
+    sign = -1;
+  }
+  else
+  {
+    ungetc_bfr (bfr, ch);
+    sign = 1;
+  }
+  if (!parse_id_bfr (bfr, res)) return 0;
+  if (sign < 0) *res *= -*res;
+  return 1;
+}
+
+static int
 parse_len_bfr (BtorFormatReader *bfr, int *res)
 {
   long len;
@@ -238,7 +241,7 @@ parse_len_bfr (BtorFormatReader *bfr, int *res)
 static BtorFormatLine *
 new_line_bfr (BtorFormatReader *bfr,
               long id,
-              const char *tagastr,
+              const char *name,
               BtorFormatTag tag)
 {
   BtorFormatLine *res;
@@ -246,29 +249,34 @@ new_line_bfr (BtorFormatReader *bfr,
   assert (bfr->ntable <= id);
   res = malloc (sizeof *res);
   memset (res, 0, sizeof (*res));
-  res->id      = id;
-  res->tag     = tag;
-  res->tagastr = tagastr;
+  res->id   = id;
+  res->tag  = tag;
+  res->name = name;
   while (bfr->ntable < id) pusht_bfr (bfr, 0);
   assert (bfr->ntable == id);
-  pusht_bfr (bfr, res);
-  assert (bfr->table[id] == res);
   return res;
 }
 
 static BtorFormatLine *
-parse_arg_bfr (BtorFormatReader *bfr, long maxid)
+id2line_bfr (BtorFormatReader *bfr, long id)
 {
-  BtorFormatLine *res;
-  long id;
-  if (!parse_id_bfr (bfr, &id)) return 0;
-  if (id > maxid || id >= bfr->ntable)
+  long absid = labs (id);
+  if (!absid || absid >= bfr->ntable) return 0;
+  return bfr->table[absid];
+}
+
+static long
+parse_arg_bfr (BtorFormatReader *bfr)
+{
+  long res, absres;
+  if (!parse_signed_id_bfr (bfr, &res)) return 0;
+  absres = labs (res);
+  if (absres >= bfr->ntable)
   {
     (void) perr_bfr (bfr, "argument id too large");
     return 0;
   }
-  res = bfr->table[id];
-  if (!res)
+  if (!(bfr->table[absres]))
   {
     (void) perr_bfr (bfr, "undefined argument id");
     return 0;
@@ -276,11 +284,14 @@ parse_arg_bfr (BtorFormatReader *bfr, long maxid)
   return res;
 }
 
-static BtorFormatLine *
-parse_bit_vector_arg_bfr (BtorFormatReader *bfr, long maxid)
+static long
+parse_bit_vector_arg_bfr (BtorFormatReader *bfr)
 {
-  BtorFormatLine *res = parse_arg_bfr (bfr, maxid);
-  if (res && res->type.idxlen)
+  BtorFormatLine *l;
+  long res;
+  if (!(res = parse_arg_bfr (bfr))) return 0;
+  l = id2line_bfr (bfr, res);
+  if (l->type.idxlen)
   {
     (void) perr_bfr (bfr, "expected bit-vector argument");
     return 0;
@@ -291,11 +302,20 @@ parse_bit_vector_arg_bfr (BtorFormatReader *bfr, long maxid)
 static int
 parse_two_args_with_same_len (BtorFormatReader *bfr, BtorFormatLine *l)
 {
-  long maxid = l->id - 1;
-  if (!(l->arg[0] = parse_bit_vector_arg_bfr (bfr, maxid))) return 0;
-  if (!(l->arg[1] = parse_bit_vector_arg_bfr (bfr, maxid))) return 0;
-  if (l->arg[0]->type.len != l->arg[1]->type.len)
+  BtorFormatLine *l0, *l1;
+  if (getc_bfr (bfr) != ' ')
+    return perr_bfr (bfr, "expected space after length");
+  if (!(l->arg[0] = parse_bit_vector_arg_bfr (bfr))) return 0;
+  if (getc_bfr (bfr) != ' ')
+    return perr_bfr (bfr, "expected space after first argument");
+  if (!(l->arg[1] = parse_bit_vector_arg_bfr (bfr))) return 0;
+  l0 = id2line_bfr (bfr, l->arg[0]);
+  l1 = id2line_bfr (bfr, l->arg[1]);
+  if (l0->type.len != l1->type.len)
     return perr_bfr (bfr, "length of arguments does not match");
+  if (getc_bfr (bfr) != '\n')
+    return perr_bfr (bfr, "expected new-line (after two argument operator)");
+  l->arity = 2;
   return 1;
 }
 
@@ -303,8 +323,16 @@ static int
 parse_op2_bfr (BtorFormatReader *bfr, BtorFormatLine *l)
 {
   if (!parse_two_args_with_same_len (bfr, l)) return 0;
-  pushl_bfr (bfr, l);
-  return 0;
+  return 1;
+}
+
+static int
+parse_no_arg_const_bfr (BtorFormatReader *bfr, BtorFormatLine *l)
+{
+  if (getc_bfr (bfr) != '\n')
+    return perr_bfr (bfr, "expected new-line (after no argument constant)");
+  l->arity = 0;
+  return 1;
 }
 
 #define PARSE(NAME, GENERIC)                                     \
@@ -314,10 +342,18 @@ parse_op2_bfr (BtorFormatReader *bfr, BtorFormatLine *l)
     {                                                            \
       BtorFormatLine *LINE =                                     \
           new_line_bfr (bfr, id, #NAME, BTOR_FORMAT_TAG_##NAME); \
-      if (!parse_len_bfr (bfr, &LINE->type.len)) return 0;       \
-      if (!getc_bfr (bfr) == ' ')                                \
-        return perr_bfr (bfr, "expected space after length");    \
-      return parse_##GENERIC##_bfr (bfr, LINE);                  \
+      if (parse_len_bfr (bfr, &LINE->type.len)                   \
+          && parse_##GENERIC##_bfr (bfr, LINE))                  \
+      {                                                          \
+        pusht_bfr (bfr, LINE);                                   \
+        assert (bfr->table[id] == LINE);                         \
+        return 1;                                                \
+      }                                                          \
+      else                                                       \
+      {                                                          \
+        free (LINE);                                             \
+        return 0;                                                \
+      }                                                          \
     }                                                            \
   } while (0)
 
@@ -344,17 +380,18 @@ START:
   ungetc_bfr (bfr, ch);
   if (!parse_id_bfr (bfr, &id)) return 0;
   if (getc_bfr (bfr) != ' ') return perr_bfr (bfr, "expected space after id");
-  if (id < bfr->ntable) perr_bfr (bfr, "id out-of-order");
+  if (id < bfr->ntable) return perr_bfr (bfr, "id out-of-order");
   bfr->nbuf = 0;
   while ('a' <= (ch = getc_bfr (bfr)) && ch <= 'z') pushc_bfr (bfr, ch);
   if (ch != ' ' || !bfr->nbuf) return perr_bfr (bfr, "expected tag");
   pushc_bfr (bfr, 0);
   tag = bfr->buf;
   PARSE (and, op2);
+  PARSE (zero, no_arg_const);
   return perr_bfr (bfr, "invalid tag");
 }
 
-BtorFormatLine **
+int
 read_btor_format_lines (BtorFormatReader *bfr, FILE *file)
 {
   reset_bfr (bfr);
@@ -363,13 +400,44 @@ read_btor_format_lines (BtorFormatReader *bfr, FILE *file)
   bfr->file   = file;
   while (readl_bfr (bfr))
     ;
-  if (bfr->error) return 0;
-  pushl_bfr (bfr, 0);
-  return bfr->lines;
+  return !bfr->error;
 }
 
 const char *
 error_btor_format_reader (BtorFormatReader *bfr)
 {
   return bfr->error;
+}
+
+static long
+find_non_zero_line_bfr (BtorFormatReader *bfr, long start)
+{
+  long res;
+  for (res = start; res < bfr->ntable; res++)
+    if (bfr->table[res]) return res;
+  return 0;
+}
+
+BtorFormatLineIterator
+iterate_btor_format_line (BtorFormatReader *bfr)
+{
+  BtorFormatLineIterator res;
+  res.reader = bfr;
+  if (bfr->error)
+    res.next = 0;
+  else
+    res.next = find_non_zero_line_bfr (bfr, 1);
+  return res;
+}
+
+BtorFormatLine *
+next_btor_format_line (BtorFormatLineIterator *it)
+{
+  BtorFormatLine *res;
+  if (!it->next) return 0;
+  assert (0 < it->next);
+  assert (it->next < it->reader->ntable);
+  res      = it->reader->table[it->next];
+  it->next = find_non_zero_line_bfr (it->reader, it->next + 1);
+  return res;
 }
