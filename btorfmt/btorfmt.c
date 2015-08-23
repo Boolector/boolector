@@ -64,9 +64,9 @@ set_btor_format_reader_prefix (BtorFormatReader *bfr, const char *prefix)
   bfr->prefix = strdup (prefix ? prefix : "");
 }
 
-static void
-msg_bfr (BtorFormatReader *bfr, int level, const char *fmt, ...)
-{
+#if 0
+static void msg_bfr (BtorFormatReader * bfr, int level,
+                     const char * fmt, ...) {
   va_list ap;
   if (bfr->verbosity < level) return;
   va_start (ap, fmt);
@@ -77,6 +77,7 @@ msg_bfr (BtorFormatReader *bfr, int level, const char *fmt, ...)
   fputc ('\n', stderr);
   fflush (stderr);
 }
+#endif
 
 static void
 reset_bfr (BtorFormatReader *bfr)
@@ -113,7 +114,11 @@ reset_bfr (BtorFormatReader *bfr)
     bfr->buf  = 0;
     bfr->nbuf = bfr->szbuf = 0;
   }
-  free (bfr->prefix);
+  if (bfr->prefix)
+  {
+    free (bfr->prefix);
+    bfr->prefix = 0;
+  }
 }
 
 void
@@ -252,13 +257,12 @@ new_line_bfr (BtorFormatReader *bfr,
 }
 
 static BtorFormatLine *
-parse_arg_bfr (BtorFormatReader *bfr)
+parse_arg_bfr (BtorFormatReader *bfr, long maxid)
 {
   BtorFormatLine *res;
   long id;
   if (!parse_id_bfr (bfr, &id)) return 0;
-  assert (bfr->ntable > 0);
-  if (id >= bfr->ntable - 1)
+  if (id > maxid || id >= bfr->ntable)
   {
     (void) perr_bfr (bfr, "argument id too large");
     return 0;
@@ -273,9 +277,9 @@ parse_arg_bfr (BtorFormatReader *bfr)
 }
 
 static BtorFormatLine *
-parse_bit_vector_arg_bfr (BtorFormatReader *bfr)
+parse_bit_vector_arg_bfr (BtorFormatReader *bfr, long maxid)
 {
-  BtorFormatLine *res = parse_arg_bfr (bfr);
+  BtorFormatLine *res = parse_arg_bfr (bfr, maxid);
   if (res && res->type.idxlen)
   {
     (void) perr_bfr (bfr, "expected bit-vector argument");
@@ -287,8 +291,9 @@ parse_bit_vector_arg_bfr (BtorFormatReader *bfr)
 static int
 parse_two_args_with_same_len (BtorFormatReader *bfr, BtorFormatLine *l)
 {
-  if (!(l->arg[0] = parse_bit_vector_arg_bfr (bfr))) return 0;
-  if (!(l->arg[1] = parse_bit_vector_arg_bfr (bfr))) return 0;
+  long maxid = l->id - 1;
+  if (!(l->arg[0] = parse_bit_vector_arg_bfr (bfr, maxid))) return 0;
+  if (!(l->arg[1] = parse_bit_vector_arg_bfr (bfr, maxid))) return 0;
   if (l->arg[0]->type.len != l->arg[1]->type.len)
     return perr_bfr (bfr, "length of arguments does not match");
   return 1;
@@ -297,6 +302,7 @@ parse_two_args_with_same_len (BtorFormatReader *bfr, BtorFormatLine *l)
 static int
 parse_op2_bfr (BtorFormatReader *bfr, BtorFormatLine *l)
 {
+  if (!parse_two_args_with_same_len (bfr, l)) return 0;
   pushl_bfr (bfr, l);
   return 0;
 }
