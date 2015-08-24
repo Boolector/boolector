@@ -394,7 +394,8 @@ START:
   if (id < bfr->ntable) return perr_bfr (bfr, "id out-of-order");
   bfr->nbuf = 0;
   while ('a' <= (ch = getc_bfr (bfr)) && ch <= 'z') pushc_bfr (bfr, ch);
-  if (ch != ' ' || !bfr->nbuf) return perr_bfr (bfr, "expected tag");
+  if (!bfr->nbuf) return perr_bfr (bfr, "expected tag");
+  if (ch != ' ') return perr_bfr (bfr, "expected space after tag");
   pushc_bfr (bfr, 0);
   tag = bfr->buf;
   switch (bfr->buf[0])
