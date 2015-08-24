@@ -27,6 +27,21 @@ OTHER DEALINGS IN THE SOFTWARE.
 #define btorfmt_h_INCLUDED
 
 /*------------------------------------------------------------------------*/
+/* The BTOR format is described in our BPR'08 paper and beside comment lines
+ * starting with ';', as well empty lines, consists of the following lines:
+ *
+ *  <id> <tag> <len> [ <idxlen> ] [ <sid> ... ] [ <const> | <sym> ]
+ *
+ * Arguments are seperated by a singled space character and no additional
+ * spaces are allowed at the end-of-the line before the new line character.
+ * The <id> is a unique postive id, the output length is <len>, and <tag>
+ * is decribed below.  For arrays and functions <idxlen> is specified too.
+ * If the line describes an operator, signed but non zero ids are used do
+ * reference arguments.  For constants <const> is a string representing
+ * a binary, decimal or hexadecimal constant.  Finally for basic variables,
+ * arrays, latches, functions <sym> is an optional symbol name.
+ */
+/*------------------------------------------------------------------------*/
 
 #include <stdio.h>
 
@@ -43,8 +58,7 @@ typedef struct BtorFormatType BtorFormatType;
 typedef struct BtorFormatLineIterator BtorFormatLineIterator;
 
 /*------------------------------------------------------------------------*/
-/*
- * These BTOR format tags can be used for fast(er) traversal and operations
+/* These BTOR format tags can be used for fast(er) traversal and operations
  * on BTOR format lines for instance in a switch statement in client code.
  * Alternatively client code can use the name of the BTOR format tag, which
  * is a C string also (redundantly) contained in the format line. This needs
@@ -149,8 +163,7 @@ struct BtorFormatLineIterator
 };
 
 /*------------------------------------------------------------------------*/
-/*
- * Constructor, setting options and destructor:
+/* Constructor, setting options and destructor:
  */
 BtorFormatReader *new_btor_format_reader ();
 void set_btor_format_reader_verbosity (BtorFormatReader *, int verbosity);
@@ -158,8 +171,7 @@ void set_btor_format_reader_prefix (BtorFormatReader *, const char *prefix);
 void delete_btor_format_reader (BtorFormatReader *);
 
 /*------------------------------------------------------------------------*/
-/*
- * The 'read_btor_format_lines' function returns zero on failure.  In this
+/* The 'read_btor_format_lines' function returns zero on failure.  In this
  * case you can call 'error_btor_format_reader' to obtain a description of
  * the actual read or parse error, which includes the line number where
  * the error occurred.
@@ -168,8 +180,7 @@ int read_btor_format_lines (BtorFormatReader *, FILE *);
 const char *error_btor_format_reader (BtorFormatReader *);
 
 /*------------------------------------------------------------------------*/
-/*
- * Iterate over all read format lines:
+/* Iterate over all read format lines:
  *
  *   BtorFormatLineIterator it = iterate_btor_format_line (bfr);
  *   BtorFormatLine * l;
@@ -180,8 +191,7 @@ BtorFormatLineIterator iterate_btor_format_line (BtorFormatReader *bfr);
 BtorFormatLine *next_btor_format_line (BtorFormatLineIterator *);
 
 /*------------------------------------------------------------------------*/
-/*
- * The reader maintains a mapping of ids to format lines.  This mapping
+/* The reader maintains a mapping of ids to format lines.  This mapping
  * can be retrieved with the following function.  Note, however, that
  * ids might be negative and denote the negation of the actual node.
  */

@@ -203,10 +203,7 @@ parse_signed_id_bfr (BtorFormatReader *bfr, long *res)
   int ch, sign;
   ch = getc_bfr (bfr);
   if (ch == '-')
-  {
-    ch   = getc_bfr (bfr);
     sign = -1;
-  }
   else
   {
     ungetc_bfr (bfr, ch);
@@ -322,7 +319,13 @@ parse_two_args_with_same_len (BtorFormatReader *bfr, BtorFormatLine *l)
 static int
 parse_op2_bfr (BtorFormatReader *bfr, BtorFormatLine *l)
 {
+  BtorFormatLine *arg;
+  assert (l->type.len > 0);
+  assert (!l->type.idxlen);
   if (!parse_two_args_with_same_len (bfr, l)) return 0;
+  arg = id2line_bfr (bfr, l->arg[0]);
+  if (arg->type.len != l->type.len)
+    return perr_bfr (bfr, "arguments length does not match output length");
   return 1;
 }
 
@@ -386,8 +389,18 @@ START:
   if (ch != ' ' || !bfr->nbuf) return perr_bfr (bfr, "expected tag");
   pushc_bfr (bfr, 0);
   tag = bfr->buf;
-  PARSE (and, op2);
-  PARSE (zero, no_arg_const);
+  switch (bfr->buf[0])
+  {
+    case 'a':
+      PARSE (add, op2);
+      PARSE (and, op2);
+      break;
+    case 'o':
+      PARSE (one, no_arg_const);
+      PARSE (ones, no_arg_const);
+      break;
+    case 'z': PARSE (zero, no_arg_const); break;
+  }
   return perr_bfr (bfr, "invalid tag");
 }
 
@@ -440,4 +453,10 @@ next_btor_format_line (BtorFormatLineIterator *it)
   res      = it->reader->table[it->next];
   it->next = find_non_zero_line_bfr (it->reader, it->next + 1);
   return res;
+}
+
+BtorFormatLine *
+get_btor_format_line_from_id (BtorFormatReader *bfr, long id)
+{
+  return id2line_bfr (bfr, id);
 }

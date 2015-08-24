@@ -98,6 +98,7 @@ main (int argc, char** argv)
     err = error_btor_format_reader (reader);
     assert (err);
     fprintf (stderr, "*** catbtor: parse error in '%s' %s\n", input_name, err);
+    delete_btor_format_reader (reader);
     exit (1);
   }
   if (close_input) fclose (input_file);

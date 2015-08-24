@@ -12,3 +12,4 @@ catbtor: catbtor.o libbtorfmt.a makefile
 	$(CC) $(CFLAGS) -o $@ catbtor.o -L. -lbtorfmt
 clean:
 	rm -f *.o *.a catbtor tests/*.log
+	rm -f *.gcno *.gcov
