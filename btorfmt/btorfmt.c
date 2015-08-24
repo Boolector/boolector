@@ -210,7 +210,7 @@ parse_signed_id_bfr (BtorFormatReader *bfr, long *res)
     sign = 1;
   }
   if (!parse_id_bfr (bfr, res)) return 0;
-  if (sign < 0) *res *= -*res;
+  if (sign < 0) *res = -*res;
   return 1;
 }
 
