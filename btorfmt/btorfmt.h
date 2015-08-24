@@ -92,7 +92,6 @@ typedef enum BtorFormatTag
   BTOR_FORMAT_TAG_one,
   BTOR_FORMAT_TAG_ones,
   BTOR_FORMAT_TAG_or,
-  BTOR_FORMAT_TAG_proxy,
   BTOR_FORMAT_TAG_read,
   BTOR_FORMAT_TAG_redand,
   BTOR_FORMAT_TAG_redor,

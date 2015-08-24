@@ -300,6 +300,7 @@ static int
 parse_two_args_with_same_len (BtorFormatReader *bfr, BtorFormatLine *l)
 {
   BtorFormatLine *l0, *l1;
+  int ch;
   if (getc_bfr (bfr) != ' ')
     return perr_bfr (bfr, "expected space after length");
   if (!(l->arg[0] = parse_bit_vector_arg_bfr (bfr))) return 0;
@@ -310,7 +311,11 @@ parse_two_args_with_same_len (BtorFormatReader *bfr, BtorFormatLine *l)
   l1 = id2line_bfr (bfr, l->arg[1]);
   if (l0->type.len != l1->type.len)
     return perr_bfr (bfr, "length of arguments does not match");
-  if (getc_bfr (bfr) != '\n')
+  ch = getc_bfr (bfr);
+  if (ch == ' ')
+    return perr_bfr (bfr,
+                     "unexpected trailing space (after two argument operator)");
+  if (ch != '\n')
     return perr_bfr (bfr, "expected new-line (after two argument operator)");
   l->arity = 2;
   return 1;
@@ -332,7 +337,10 @@ parse_op2_bfr (BtorFormatReader *bfr, BtorFormatLine *l)
 static int
 parse_no_arg_const_bfr (BtorFormatReader *bfr, BtorFormatLine *l)
 {
-  if (getc_bfr (bfr) != '\n')
+  int ch = getc_bfr (bfr);
+  if (ch == ' ')
+    return perr_bfr (bfr, "unexpected space (after no argument constant)");
+  if (ch != '\n')
     return perr_bfr (bfr, "expected new-line (after no argument constant)");
   l->arity = 0;
   return 1;
@@ -395,9 +403,30 @@ START:
       PARSE (add, op2);
       PARSE (and, op2);
       break;
+    case 'i': PARSE (implies, op2); break;
+    case 'm': PARSE (mul, op2); break;
+    case 'n':
+      PARSE (nand, op2);
+      PARSE (nor, op2);
+      break;
     case 'o':
       PARSE (one, no_arg_const);
       PARSE (ones, no_arg_const);
+      PARSE (or, op2);
+      break;
+    case 's':
+      PARSE (sdiv, op2);
+      PARSE (srem, op2);
+      PARSE (smod, op2);
+      PARSE (sub, op2);
+      break;
+    case 'u':
+      PARSE (udiv, op2);
+      PARSE (urem, op2);
+      break;
+    case 'x':
+      PARSE (xnor, op2);
+      PARSE (xor, op2);
       break;
     case 'z': PARSE (zero, no_arg_const); break;
   }
