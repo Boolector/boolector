@@ -56,6 +56,7 @@ typedef struct BtorFormatReader BtorFormatReader;
 typedef struct BtorFormatLine BtorFormatLine;
 typedef struct BtorFormatType BtorFormatType;
 typedef struct BtorFormatLineIterator BtorFormatLineIterator;
+typedef enum BtorFormatTag BtorFormatTag;
 
 /*------------------------------------------------------------------------*/
 /* These BTOR format tags can be used for fast(er) traversal and operations
@@ -65,7 +66,7 @@ typedef struct BtorFormatLineIterator BtorFormatLineIterator;
  * string comparisons and thus is slower even if client code would use an
  * additional hash table.
  */
-typedef enum BtorFormatTag
+enum BtorFormatTag
 {
   BTOR_FORMAT_TAG_add,
   BTOR_FORMAT_TAG_and,
@@ -79,6 +80,8 @@ typedef enum BtorFormatTag
   BTOR_FORMAT_TAG_eq,
   BTOR_FORMAT_TAG_iff,
   BTOR_FORMAT_TAG_implies,
+  BTOR_FORMAT_TAG_input,
+  BTOR_FORMAT_TAG_latch,
   BTOR_FORMAT_TAG_mul,
   BTOR_FORMAT_TAG_nand,
   BTOR_FORMAT_TAG_neg,
@@ -131,28 +134,27 @@ typedef enum BtorFormatTag
   BTOR_FORMAT_TAG_xnor,
   BTOR_FORMAT_TAG_xor,
   BTOR_FORMAT_TAG_zero,
-} BtorFormatTag;
+};
 
 /*------------------------------------------------------------------------*/
 
 struct BtorFormatType
 {
-  int len;     // length = bit-width
-  int idxlen;  // index length
-               // non-zero for arrays and functions
+  int len;    /* length = bit-width                     */
+  int idxlen; /* index length                           */
+              /* non-zero for arrays and functions      */
 };
 
 struct BtorFormatLine
 {
-  long id;              // positive id (non zero)
-  const char *name;     // name in ASCCII: "and", "add", ...
-  BtorFormatTag tag;    // same as name but encoded as integer
-  BtorFormatType type;  // length = bit-width (also for indices)
-  int arity;            // redundant but useful (0 <= arity <= 3)
-  long arg[3];          // non zero ids up to arity
-  char *constant;       // non zero for const, constd, consth
-  char *symbol;         // optional for: var, array, latch, input
-  void *data;           // user data
+  long id;             /* positive id (non zero)                 */
+  const char *name;    /* name in ASCII: "and", "add", ...       */
+  BtorFormatTag tag;   /* same as name but encoded as integer    */
+  BtorFormatType type; /* length = bit-width (also for indices)  */
+  int arity;           /* redundant (0 <= arity <= 3)            */
+  long arg[3];         /* non zero ids up to arity               */
+  char *constant;      /* non zero for const, constd, consth     */
+  char *symbol;        /* optional for: var array latch input    */
 };
 
 struct BtorFormatLineIterator

@@ -346,6 +346,50 @@ parse_no_arg_const_bfr (BtorFormatReader *bfr, BtorFormatLine *l)
   return 1;
 }
 
+static int
+parse_symbol_bfr (BtorFormatReader *bfr)
+{
+  int ch;
+  bfr->nbuf = 0;
+  while ((ch = getc_bfr (bfr)) != '\n')
+    if (ch == EOF)
+      return perr_bfr (bfr, "unexpected end-of-file in symbol");
+    else if (ch == ' ' || ch == '\t')
+      return perr_bfr (bfr, "unexpected white-space in symbol");
+    else
+      pushc_bfr (bfr, ch);
+  if (!bfr->nbuf) return perr_bfr (bfr, "empty symbol");
+  pushc_bfr (bfr, 0);
+  return 1;
+}
+
+static int
+parse_var_bfr (BtorFormatReader *bfr, BtorFormatLine *l)
+{
+  int ch = getc_bfr (bfr);
+  if (ch == '\n') return 1;
+  if (ch != ' ')
+    return perr_bfr (bfr, "expected space or new-line after length");
+  if (!parse_symbol_bfr (bfr)) return 0;
+  l->symbol = strdup (bfr->buf);
+  return 1;
+}
+
+static int
+parse_array_bfr (BtorFormatReader *bfr, BtorFormatLine *l)
+{
+  int ch = getc_bfr (bfr);
+  if (ch != ' ') return perr_bfr (bfr, "expected space after length");
+  if (!parse_len_bfr (bfr, &l->type.idxlen)) return 0;
+  ch = getc_bfr (bfr);
+  if (ch == '\n') return 1;
+  if (ch != ' ')
+    return perr_bfr (bfr, "expected space or new-line after index length");
+  if (!parse_symbol_bfr (bfr)) return 0;
+  l->symbol = strdup (bfr->buf);
+  return 1;
+}
+
 #define PARSE(NAME, GENERIC)                                     \
   do                                                             \
   {                                                              \
@@ -403,8 +447,13 @@ START:
     case 'a':
       PARSE (add, op2);
       PARSE (and, op2);
+      PARSE (array, array);
       break;
-    case 'i': PARSE (implies, op2); break;
+    case 'i':
+      PARSE (implies, op2);
+      PARSE (input, var);
+      break;
+    case 'l': PARSE (latch, var); break;
     case 'm': PARSE (mul, op2); break;
     case 'n':
       PARSE (nand, op2);
@@ -425,6 +474,7 @@ START:
       PARSE (udiv, op2);
       PARSE (urem, op2);
       break;
+    case 'v': PARSE (var, var); break;
     case 'x':
       PARSE (xnor, op2);
       PARSE (xor, op2);
