@@ -265,19 +265,14 @@ id2line_bfr (BtorFormatReader *bfr, long id)
 static long
 parse_arg_bfr (BtorFormatReader *bfr)
 {
+  BtorFormatLine *l;
   long res, absres;
   if (!parse_signed_id_bfr (bfr, &res)) return 0;
   absres = labs (res);
-  if (absres >= bfr->ntable)
-  {
-    (void) perr_bfr (bfr, "argument id too large");
-    return 0;
-  }
-  if (!(bfr->table[absres]))
-  {
-    (void) perr_bfr (bfr, "undefined argument id");
-    return 0;
-  }
+  if (absres >= bfr->ntable) return perr_bfr (bfr, "argument id too large");
+  l = bfr->table[absres];
+  if (!l) return perr_bfr (bfr, "undefined argument id");
+  if (!l->type.len) return perr_bfr (bfr, "declaration used as argument");
   return res;
 }
 
@@ -390,6 +385,54 @@ parse_array_bfr (BtorFormatReader *bfr, BtorFormatLine *l)
   return 1;
 }
 
+static int
+is_constant_bfr (BtorFormatReader *bfr, long id)
+{
+  BtorFormatLine *l = id2line_bfr (bfr, id);
+  BtorFormatTag tag = l->tag;
+  return tag == BTOR_FORMAT_TAG_const || tag == BTOR_FORMAT_TAG_constd
+         || tag == BTOR_FORMAT_TAG_consth || tag == BTOR_FORMAT_TAG_one
+         || tag == BTOR_FORMAT_TAG_ones || tag == BTOR_FORMAT_TAG_zero;
+}
+
+static int
+parse_init_bfr (BtorFormatReader *bfr, BtorFormatLine *l)
+{
+  BtorFormatLine *latch;
+  if (!parse_two_args_with_same_len (bfr, l)) return 0;
+  if (l->arg[0] < 0) return perr_bfr (bfr, "invalid negated first argument");
+  latch = id2line_bfr (bfr, l->arg[0]);
+  if (latch->tag != BTOR_FORMAT_TAG_latch)
+    return perr_bfr (bfr, "expected latch as first argument");
+  if (!is_constant_bfr (bfr, l->arg[1]))
+    return perr_bfr (bfr, "expected as second argument id of constant");
+  if (latch->type.len != l->type.len)
+    return perr_bfr (bfr, "arguments length does not match output length");
+  l->type.len = 0;
+  if (latch->init) return perr_bfr (bfr, "latch initialized twice");
+  latch->init = l->arg[1];
+  return 1;
+}
+
+static int
+parse_next_bfr (BtorFormatReader *bfr, BtorFormatLine *l)
+{
+  BtorFormatLine *latch;
+  if (!parse_two_args_with_same_len (bfr, l)) return 0;
+  if (l->arg[0] < 0) return perr_bfr (bfr, "invalid negated first argument");
+  latch = id2line_bfr (bfr, l->arg[0]);
+  if (latch->tag != BTOR_FORMAT_TAG_latch)
+    return perr_bfr (bfr, "expected latch as first argument");
+  if (!is_constant_bfr (bfr, l->arg[1]))
+    return perr_bfr (bfr, "expected as second argument id of constant");
+  if (latch->type.len != l->type.len)
+    return perr_bfr (bfr, "arguments length does not match output length");
+  l->type.len = 0;
+  if (latch->init) return perr_bfr (bfr, "latch initialized twice");
+  latch->init = l->arg[1];
+  return 1;
+}
+
 #define PARSE(NAME, GENERIC)                                     \
   do                                                             \
   {                                                              \
@@ -451,6 +494,7 @@ START:
       break;
     case 'i':
       PARSE (implies, op2);
+      PARSE (init, init);
       PARSE (input, var);
       break;
     case 'l': PARSE (latch, var); break;

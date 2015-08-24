@@ -80,6 +80,7 @@ enum BtorFormatTag
   BTOR_FORMAT_TAG_eq,
   BTOR_FORMAT_TAG_iff,
   BTOR_FORMAT_TAG_implies,
+  BTOR_FORMAT_TAG_init,
   BTOR_FORMAT_TAG_input,
   BTOR_FORMAT_TAG_latch,
   BTOR_FORMAT_TAG_mul,
@@ -153,6 +154,7 @@ struct BtorFormatLine
   BtorFormatType type; /* length = bit-width (also for indices)  */
   int arity;           /* redundant (0 <= arity <= 3)            */
   long arg[3];         /* non zero ids up to arity               */
+  long init, next;     /* non zero if initialized or has next    */
   char *constant;      /* non zero for const, constd, consth     */
   char *symbol;        /* optional for: var array latch input    */
 };
