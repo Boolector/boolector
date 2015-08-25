@@ -560,8 +560,6 @@ extract_model_from_rhos (Btor *btor, BtorPtrHashTable *fun_model, BtorNode *fun)
   BtorArgsIterator ait;
   BtorPtrHashBucket *b;
 
-  (void) bv_model;
-
   if (!fun->rho
       && (!BTOR_IS_LAMBDA_NODE (fun) || !btor_lambda_get_static_rho (fun)))
     return;
