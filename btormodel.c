@@ -549,10 +549,7 @@ btor_recursively_compute_assignment (Btor *btor,
 }
 
 static void
-extract_model_from_rhos (Btor *btor,
-                         BtorPtrHashTable *bv_model,
-                         BtorPtrHashTable *fun_model,
-                         BtorNode *fun)
+extract_model_from_rhos (Btor *btor, BtorPtrHashTable *fun_model, BtorNode *fun)
 {
   int pos;
   BtorNode *arg, *value, *args;
@@ -697,7 +694,7 @@ btor_generate_model (Btor *btor,
     cur = BTOR_PEEK_STACK (stack, i);
     BTORLOG (1, "generate model for %s", node2string (cur));
     if (BTOR_IS_FUN_NODE (cur))
-      extract_model_from_rhos (btor, bv_model, fun_model, cur);
+      extract_model_from_rhos (btor, fun_model, cur);
     else
     {
       bv = btor_recursively_compute_assignment (btor, bv_model, fun_model, cur);
@@ -782,14 +779,9 @@ btor_get_bv_model (Btor *btor, BtorNode *exp)
 }
 
 const BtorPtrHashTable *
-btor_get_fun_model_aux (Btor *btor,
-                        BtorPtrHashTable **bv_model,
-                        BtorPtrHashTable **fun_model,
-                        BtorNode *exp)
+btor_get_fun_model_aux (Btor *btor, BtorPtrHashTable **fun_model, BtorNode *exp)
 {
   assert (btor);
-  assert (bv_model);
-  assert (*bv_model);
   assert (fun_model);
   assert (*fun_model);
   assert (BTOR_IS_REGULAR_NODE (exp));
@@ -804,7 +796,7 @@ btor_get_fun_model_aux (Btor *btor,
    * that previously existed but was simplified (i.e. the original exp is now
    * a proxy and was therefore regenerated when querying it's assignment via
    * get-value in SMT-LIB v2) */
-  if (!b) extract_model_from_rhos (btor, *bv_model, *fun_model, exp);
+  if (!b) extract_model_from_rhos (btor, *fun_model, exp);
   b = btor_find_in_ptr_hash_table (*fun_model, exp);
   if (!b) return 0;
 
@@ -816,7 +808,7 @@ btor_get_fun_model (Btor *btor, BtorNode *exp)
 {
   assert (btor);
   assert (exp);
-  return btor_get_fun_model_aux (btor, &btor->bv_model, &btor->fun_model, exp);
+  return btor_get_fun_model_aux (btor, &btor->fun_model, exp);
 }
 
 static BtorNode *
