@@ -604,15 +604,14 @@ catch_sig (int sig)
   if (!g_caught_sig)
   {
     g_caught_sig = 1;
-    btormain_msg ("CAUGHT SIGNAL %d", sig);
-    fputs ("unknown\n", stdout);
-    fflush (stdout);
     if (g_verbosity > 0)
     {
       boolector_print_stats (g_app->btor);
       print_static_stats (0);
-      btormain_msg ("CAUGHT SIGNAL %d", sig);
     }
+    btormain_msg ("CAUGHT SIGNAL %d", sig);
+    fputs ("unknown\n", stdout);
+    fflush (stdout);
   }
   reset_sig_handlers ();
   raise (sig);
