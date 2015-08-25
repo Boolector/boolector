@@ -1100,13 +1100,12 @@ catch_sig (int sig)
 {
   if (!g_caught_sig)
   {
-    g_caught_sig = 1;
+    g_caught_sig = sig;
     btormbt_msg ("CAUGHT SIGNAL %d", sig);
-    btormbt_print_stats (g_btormbt);
   }
   reset_sig_handlers ();
   raise (sig);
-  exit (sig);
+  exit (EXIT_ERROR);
 }
 
 static void
@@ -4086,7 +4085,7 @@ main (int argc, char **argv)
                  + btor_num_digits_util (g_btormbt->seed);
         BTOR_NEWN (g_btormbt->mm, cmd, cmdlen);
         sprintf (cmd,
-                 "cp %s %s/mbt-bug-%d.trace",
+                 "cp %s %s/btormbt-bug-%d.trace",
                  name,
                  g_btormbt->out,
                  g_btormbt->seed);
@@ -4095,7 +4094,7 @@ main (int argc, char **argv)
       {
         cmdlen = 40 + strlen (name) + btor_num_digits_util (g_btormbt->seed);
         BTOR_NEWN (g_btormbt->mm, cmd, cmdlen);
-        sprintf (cmd, "cp %s mbt-bug-%d.trace", name, g_btormbt->seed);
+        sprintf (cmd, "cp %s btormbt-bug-%d.trace", name, g_btormbt->seed);
       }
 
       if (!getenv ("BTORAPITRACE")) BTOR_DELETEN (g_btormbt->mm, name, namelen);
@@ -4132,13 +4131,16 @@ main (int argc, char **argv)
     if ((res == EXIT_ERROR && g_btormbt->quit_after_first) || g_btormbt->seeded)
       break;
   }
+
   if (g_verbosity)
   {
     if (g_btormbt->terminal) erase ();
     printf ("forked %d\n", g_btormbt->forked);
   }
+
 DONE:
-  btormbt_print_stats (g_btormbt);
+  if (!g_btormbt->quit_after_first && !g_btormbt->seeded)
+    btormbt_print_stats (g_btormbt);
   delete_btormbt (g_btormbt);
   exit (exitcode);
 }
