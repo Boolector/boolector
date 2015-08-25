@@ -142,7 +142,7 @@ isnumstr (const char *str)
   const char *p;
   int ch;
   if (*(p = str) == '-') p++;
-  if (!isdigit (*p++)) return 0;
+  if (!isdigit ((int) *p++)) return 0;
   while (isdigit (ch = *p)) p++;
   return !ch;
 }

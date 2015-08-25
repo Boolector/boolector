@@ -165,7 +165,7 @@ dump_smt_id (BtorSMTDumpContext *sdc, BtorNode *exp)
       type = "p";
     DUMP_SYMBOL:
       sym = btor_get_symbol_exp (sdc->btor, exp);
-      if (sym && !isdigit (sym[0]))
+      if (sym && !isdigit ((int) sym[0]))
       {
         fputs (sym, sdc->file);
         return;

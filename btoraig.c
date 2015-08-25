@@ -1,7 +1,7 @@
 /*  Boolector: Satisfiablity Modulo Theories (SMT) solver.
  *
  *  Copyright (C) 2007-2009 Robert Daniel Brummayer.
- *  Copyright (C) 2007-2014 Armin Biere.
+ *  Copyright (C) 2007-2015 Armin Biere.
  *  Copyright (C) 2013-2014 Aina Niemetz.
  *  Copyright (C) 2013-2015 Mathias Preiner.
  *
@@ -58,9 +58,21 @@
 
 #define BTOR_FIND_AND_AIG_CONTRADICTION_LIMIT 8
 
+/*------------------------------------------------------------------------*/
+
 //#define BTOR_EXTRACT_TOP_LEVEL_MULTI_OR
 
 //#define NBTOR_AIG_SORT
+
+// #define BTOR_AIG_TO_CNF_TOP_ELIM
+
+#define BTOR_AIG_TO_CNF_EXTRACT_ONLY_NON_SHARED
+
+#define BTOR_AIG_TO_CNF_EXTRACT_ITE
+
+#define BTOR_AIG_TO_CNF_EXTRACT_XOR
+
+#define BTOR_AIG_TO_CNF_NARY_AND
 
 /*------------------------------------------------------------------------*/
 
@@ -234,6 +246,17 @@ find_and_aig (BtorAIGMgr *amgr, BtorAIG *left, BtorAIG *right)
     }
   }
   return result;
+}
+
+static BtorAIG *
+find_and_aig_node (BtorAIGMgr *amgr, BtorAIG *left, BtorAIG *right)
+{
+  int32_t *lookup;
+  BtorAIG *res;
+  lookup = find_and_aig (amgr, left, right);
+  assert (lookup);
+  res = *lookup ? BTOR_GET_NODE_AIG (*lookup) : 0;
+  return res;
 }
 
 static void
@@ -637,6 +660,40 @@ BTOR_AIG_TWO_LEVEL_OPT_TRY_AGAIN:
       || find_and_contradiction_aig (amgr, right, left, right, &calls))
     return BTOR_AIG_FALSE;
 
+  // Implicit XOR normalization .... (TODO keep it?)
+
+  if (BTOR_IS_INVERTED_AIG (left) && BTOR_IS_AND_AIG (real_left)
+      && BTOR_IS_INVERTED_AIG (right) && BTOR_IS_AND_AIG (real_right)
+      && BTOR_LEFT_CHILD_AIG (real_left)
+             == BTOR_INVERT_AIG (BTOR_LEFT_CHILD_AIG (real_right))
+      && BTOR_RIGHT_CHILD_AIG (real_left)
+             == BTOR_INVERT_AIG (BTOR_RIGHT_CHILD_AIG (real_right)))
+  {
+    BtorAIG *l =
+        find_and_aig_node (amgr,
+                           BTOR_LEFT_CHILD_AIG (real_left),
+                           BTOR_INVERT_AIG (BTOR_RIGHT_CHILD_AIG (real_left)));
+    if (l)
+    {
+      BtorAIG *r =
+          find_and_aig_node (amgr,
+                             BTOR_INVERT_AIG (BTOR_LEFT_CHILD_AIG (real_left)),
+                             BTOR_RIGHT_CHILD_AIG (real_left));
+      if (r)
+      {
+        res =
+            find_and_aig_node (amgr, BTOR_INVERT_AIG (l), BTOR_INVERT_AIG (r));
+        if (res)
+        {
+          inc_aig_ref_counter (res);
+          return BTOR_INVERT_AIG (res);
+        }
+      }
+    }
+  }
+
+  // TODO Implicit ITE normalization ....
+
   lookup = find_and_aig (amgr, left, right);
   assert (lookup);
   res = *lookup ? BTOR_GET_NODE_AIG (*lookup) : 0;
@@ -844,6 +901,7 @@ btor_delete_aig_mgr (BtorAIGMgr *amgr)
 static int
 btor_is_xor_aig (BtorAIGMgr *amgr, BtorAIG *aig, BtorAIGPtrStack *leafs)
 {
+#ifdef BTOR_AIG_TO_CNF_EXTRACT_XOR
   BtorAIG *l, *r, *ll, *lr, *rl, *rr;
 
   assert (BTOR_IS_AND_AIG (aig));
@@ -852,12 +910,16 @@ btor_is_xor_aig (BtorAIGMgr *amgr, BtorAIG *aig, BtorAIGPtrStack *leafs)
   l = BTOR_LEFT_CHILD_AIG (aig);
   if (!BTOR_IS_INVERTED_AIG (l)) return 0;
   l = BTOR_REAL_ADDR_AIG (l);
+#ifdef BTOR_AIG_TO_CNF_EXTRACT_ONLY_NON_SHARED
   if (l->refs > 1) return 0;
+#endif
 
   r = BTOR_RIGHT_CHILD_AIG (aig);
   if (!BTOR_IS_INVERTED_AIG (r)) return 0;
   r = BTOR_REAL_ADDR_AIG (r);
+#ifdef BTOR_AIG_TO_CNF_EXTRACT_ONLY_NON_SHARED
   if (r->refs > 1) return 0;
+#endif
 
   ll = BTOR_LEFT_CHILD_AIG (l);
   lr = BTOR_RIGHT_CHILD_AIG (l);
@@ -875,11 +937,18 @@ btor_is_xor_aig (BtorAIGMgr *amgr, BtorAIG *aig, BtorAIGPtrStack *leafs)
   assert (ll != BTOR_INVERT_AIG (rr) || lr != BTOR_INVERT_AIG (rl));
 
   return 0;
+#else
+  (void) amgr;
+  (void) aig;
+  (void) leafs;
+  return 0;
+#endif
 }
 
 static int
 btor_is_ite_aig (BtorAIGMgr *amgr, BtorAIG *aig, BtorAIGPtrStack *leafs)
 {
+#ifdef BTOR_AIG_TO_CNF_EXTRACT_ITE
   BtorAIG *l, *r, *ll, *lr, *rl, *rr;
 
   assert (BTOR_IS_AND_AIG (aig));
@@ -888,12 +957,16 @@ btor_is_ite_aig (BtorAIGMgr *amgr, BtorAIG *aig, BtorAIGPtrStack *leafs)
   l = BTOR_LEFT_CHILD_AIG (aig);
   if (!BTOR_IS_INVERTED_AIG (l)) return 0;
   l = BTOR_REAL_ADDR_AIG (l);
+#ifdef BTOR_AIG_TO_CNF_EXTRACT_ONLY_NON_SHARED
   if (l->refs > 1) return 0;
+#endif
 
   r = BTOR_RIGHT_CHILD_AIG (aig);
   if (!BTOR_IS_INVERTED_AIG (r)) return 0;
   r = BTOR_REAL_ADDR_AIG (r);
+#ifdef BTOR_AIG_TO_CNF_EXTRACT_ONLY_NON_SHARED
   if (r->refs > 1) return 0;
+#endif
 
   ll = BTOR_LEFT_CHILD_AIG (l);
   lr = BTOR_RIGHT_CHILD_AIG (l);
@@ -937,6 +1010,12 @@ btor_is_ite_aig (BtorAIGMgr *amgr, BtorAIG *aig, BtorAIGPtrStack *leafs)
   }
 
   return 0;
+#else
+  (void) amgr;
+  (void) aig;
+  (void) leafs;
+  return 0;
+#endif
 }
 
 static void
@@ -1071,6 +1150,7 @@ btor_aig_to_sat_tseitin (BtorAIGMgr *amgr, BtorAIG *start)
 
     if (!isxor && !isite)
     {
+#ifdef BTOR_AIG_TO_CNF_NARY_AND
       BTOR_PUSH_STACK (mm, tree, BTOR_RIGHT_CHILD_AIG (root));
       BTOR_PUSH_STACK (mm, tree, BTOR_LEFT_CHILD_AIG (root));
 
@@ -1089,6 +1169,10 @@ btor_aig_to_sat_tseitin (BtorAIGMgr *amgr, BtorAIG *start)
           BTOR_PUSH_STACK (mm, tree, BTOR_LEFT_CHILD_AIG (cur));
         }
       }
+#else
+      BTOR_PUSH_STACK (mm, leafs, BTOR_LEFT_CHILD_AIG (root));
+      BTOR_PUSH_STACK (mm, leafs, BTOR_RIGHT_CHILD_AIG (root));
+#endif
     }
 
     if (root->mark == 0)
@@ -1239,13 +1323,16 @@ btor_aig_to_sat (BtorAIGMgr *amgr, BtorAIG *aig)
 void
 btor_add_toplevel_aig_to_sat (BtorAIGMgr *amgr, BtorAIG *root)
 {
+#ifdef BTOR_AIG_TO_CNF_TOP_ELIM
   BtorMemMgr *mm;
   BtorSATMgr *smgr;
-  BtorAIG *aig, *real_aig, *left, *right;
+  BtorAIG *aig, *left;
   BtorAIGPtrStack stack;
 #ifdef BTOR_EXTRACT_TOP_LEVEL_MULTI_OR
   BtorAIGPtrStack leafs;
-  BtorAig **p;
+  BtorAIG **p;
+#else
+  BtorAIG *real_aig, *right;
 #endif
 
   mm   = amgr->mm;
@@ -1275,8 +1362,6 @@ btor_add_toplevel_aig_to_sat (BtorAIGMgr *amgr, BtorAIG *root)
     }
     else
     {
-      real_aig = BTOR_REAL_ADDR_AIG (aig);
-
 #ifdef BTOR_EXTRACT_TOP_LEVEL_MULTI_OR
       BTOR_INIT_STACK (leafs);
       if (btor_is_or_aig (amgr, aig, &leafs))
@@ -1285,7 +1370,8 @@ btor_add_toplevel_aig_to_sat (BtorAIGMgr *amgr, BtorAIG *root)
         for (p = leafs.start; p < leafs.top; p++)
         {
           left = *p;
-          if (BTOR_IS_CONST_AIG (left)) continue;
+          if (BTOR_IS_CONST_AIG (left))  // TODO reachable?
+            continue;
           btor_aig_to_sat (amgr, left);
         }
         for (p = leafs.start; p < leafs.top; p++)
@@ -1308,6 +1394,7 @@ btor_add_toplevel_aig_to_sat (BtorAIGMgr *amgr, BtorAIG *root)
       }
       BTOR_RELEASE_STACK (mm, leafs);
 #else
+      real_aig = BTOR_REAL_ADDR_AIG (aig);
       if (BTOR_IS_INVERTED_AIG (aig) && BTOR_IS_AND_AIG (real_aig))
       {
         left  = BTOR_INVERT_AIG (BTOR_LEFT_CHILD_AIG (real_aig));
@@ -1332,6 +1419,18 @@ btor_add_toplevel_aig_to_sat (BtorAIGMgr *amgr, BtorAIG *root)
     }
   }
   BTOR_RELEASE_STACK (mm, stack);
+#else
+  if (root == BTOR_AIG_TRUE) return;
+
+  if (root == BTOR_AIG_FALSE)
+  {
+    btor_add_sat (amgr->smgr, 0);
+    return;
+  }
+  btor_aig_to_sat (amgr, root);
+  btor_add_sat (amgr->smgr, BTOR_GET_CNF_ID_AIG (root));
+  btor_add_sat (amgr->smgr, 0);
+#endif
 }
 
 BtorSATMgr *

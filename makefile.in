@@ -14,6 +14,7 @@ LIBOBJ=$(patsubst %.c,%.o,$(foreach d,$(SRCDIRS),$(wildcard $(d)/btor[a-z]*.c)))
 LIBOBJ+=boolector.o $(OBJS)
 SRC=$(foreach d,$(SRCDIRS),$(wildcard $(d)/*.[c|h|cc]))
 TARGETS=@TARGETS@
+ROOT=$(shell pwd|sed -e 's, ,\\ ,g')
 
 all: libboolector.a $(TARGETS)
 

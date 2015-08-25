@@ -202,7 +202,7 @@ btor_set_output_sat (BtorSATMgr *smgr, FILE *output)
   prefix = btor_malloc (smgr->mm, strlen (smgr->name) + 4);
   sprintf (prefix, "[%s] ", smgr->name);
   q = prefix + 1;
-  for (p = smgr->name; *p; p++) *q++ = tolower (*p);
+  for (p = smgr->name; *p; p++) *q++ = tolower ((int) *p);
   smgr->api.set_prefix (smgr, prefix);
   btor_free (smgr->mm, prefix, strlen (smgr->name) + 4);
 }
@@ -556,11 +556,11 @@ btor_passdown_lingeling_options (BtorSATMgr *smgr,
 
       val = eq = 0;
 
-      if (!isalpha (*opt))
+      if (!isalpha ((int) *opt))
         valid = 0;
       else
       {
-        for (p = opt + 1; isalnum (*p); p++)
+        for (p = opt + 1; isalnum ((int) *p); p++)
           ;
 
         if (*p == '=')
@@ -568,9 +568,9 @@ btor_passdown_lingeling_options (BtorSATMgr *smgr,
           *(eq = p++) = 0;
           val         = p;
           if (*p == '-') p++;
-          if (isdigit (*p))
+          if (isdigit ((int) *p))
           {
-            while (isdigit (*p)) p++;
+            while (isdigit ((int) *p)) p++;
 
             valid = !*p;
           }
@@ -799,7 +799,7 @@ static void
 btor_lingeling_enable_verbosity (BtorSATMgr *smgr, int level)
 {
   BtorLGL *blgl = smgr->solver;
-  lglsetopt (blgl->lgl, "verbose", level - 1);
+  lglsetopt (blgl->lgl, "verbose", level ? level - 1 : 0);
 }
 
 static int

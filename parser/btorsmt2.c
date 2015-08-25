@@ -1599,9 +1599,9 @@ btor_bvconst_str_smt2 (const char *str)
 {
   const char *p;
   if (str[0] != 'b' || str[1] != 'v') return 0;
-  if (!isdigit (str[2])) return 0;
+  if (!isdigit ((int) str[2])) return 0;
   for (p = str + 3; *p; p++)
-    if (!isdigit (*p)) return 0;
+    if (!isdigit ((int) *p)) return 0;
   return 1;
 }
 

@@ -97,6 +97,11 @@ struct BtorMC
       void *state;
       BtorMCReachedAtBound fun;
     } reached_at_bound;
+    struct
+    {
+      void *state;
+      BtorMCStartingBound fun;
+    } starting_bound;
   } call_backs;
 };
 
@@ -148,6 +153,15 @@ boolector_set_reached_at_bound_call_back_mc (BtorMC *mc,
 {
   mc->call_backs.reached_at_bound.state = state;
   mc->call_backs.reached_at_bound.fun   = fun;
+}
+
+void
+boolector_set_starting_bound_call_back_mc (BtorMC *mc,
+                                           void *state,
+                                           BtorMCStartingBound fun)
+{
+  mc->call_backs.starting_bound.state = state;
+  mc->call_backs.starting_bound.fun   = fun;
 }
 
 void
@@ -956,6 +970,10 @@ boolector_bmc (BtorMC *mc, int mink, int maxk)
 
   while ((k = BTOR_COUNT_STACK (mc->frames)) <= maxk)
   {
+    if (mc->call_backs.starting_bound.fun)
+      mc->call_backs.starting_bound.fun (mc->call_backs.starting_bound.state,
+                                         k);
+
     initialize_new_forward_frame (mc);
     if (k < mink) continue;
     if (check_last_forward_frame (mc))

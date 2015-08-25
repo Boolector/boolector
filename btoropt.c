@@ -2,6 +2,7 @@
  *
  *  Copyright (C) 2014-2015 Aina Niemetz.
  *  Copyright (C) 2014-2015 Mathias Preiner.
+ *  Copyright (C) 2015 Armin Biere.
  *
  *  All rights reserved.
  *
@@ -36,7 +37,7 @@ getenv_value (const char *lname)
       i -= 1;
       continue;
     }
-    uname[i] = toupper (lname[j]);
+    uname[i] = toupper ((int) lname[j]);
   }
 
   return getenv (uname);
@@ -174,6 +175,12 @@ btor_init_opts (Btor *btor)
 #endif
   BTOR_OPT ("ls", lazy_synthesize, 0, 0, 1, "lazily synthesize expressions");
   BTOR_OPT ("es", eliminate_slices, 1, 0, 1, "eliminate slices on variables");
+  BTOR_OPT ("sp",
+            skeleton_preprocessing,
+            1,
+            0,
+            1,
+            "enable propositional skeletone preprocessing");
   BTOR_OPT ("el", eager_lemmas, 1, 0, 1, "eager lemma generation");
   BTOR_OPT ("ml", merge_lambdas, 1, 0, 1, "merge lambda chains");
   BTOR_OPT ("xl", extract_lambdas, 1, 0, 1, "extract lambda terms");

@@ -819,15 +819,25 @@ assertionFailedCallBack (void* state, int i, int k)
 }
 
 namespace IMC {
+
 class ReachedAtBoundListener : public virtual BtorIBV::ReachedAtBoundListener
 {
  public:
   ~ReachedAtBoundListener () {}
   void reachedAtBound (int i, int k) { assertionFailedCallBack (0, i, k); }
 };
+
+class StartingBoundListener : public virtual BtorIBV::StartingBoundListener
+{
+ public:
+  ~StartingBoundListener () {}
+  void startingBound (int k) { msg ("bound %d", k); }
+};
+
 }  // namespace IMC
 
-static IMC::ReachedAtBoundListener listener;
+static IMC::ReachedAtBoundListener reached_at_bound_listener;
+static IMC::StartingBoundListener starting_bound_listener;
 
 int
 main (int argc, char** argv)
@@ -888,12 +898,13 @@ main (int argc, char** argv)
   if (multi) witness = false;
   msg ("reading '%s'", input_name);
   ibvm = new BtorIBV ();
-  ibvm->setVerbosity (verbosity);
+  ibvm->setVerbosity ((verbosity ? verbosity - 1 : 0));
   ibvm->setRewriteLevel (rwl);
   if (force) ibvm->setForce (force);
   if (witness) ibvm->enableTraceGeneration ();
   ibvm->setStop (!multi);
-  ibvm->setReachedAtBoundListener (&listener);
+  ibvm->setReachedAtBoundListener (&reached_at_bound_listener);
+  if (verbosity) ibvm->setStartingBoundListener (&starting_bound_listener);
   parse ();
   if (close_input == 1) fclose (input);
   if (close_input == 2) pclose (input);
