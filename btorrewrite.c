@@ -5347,7 +5347,7 @@ rebuild_top_add (Btor *btor, BtorNode *e, BtorNode *c, BtorNode *r)
   return res;
 }
 
-static inline void
+static void
 normalize_adds_muls_ands (Btor *btor, BtorNode **left, BtorNode **right)
 {
   BtorNode *e0, *e1, *real_e0, *real_e1, *e0_norm, *e1_norm;
