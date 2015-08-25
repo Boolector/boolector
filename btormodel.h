@@ -36,7 +36,6 @@ const BtorBitVector* btor_get_bv_model_aux (Btor* btor,
 
 const BtorPtrHashTable* btor_get_fun_model (Btor* btor, BtorNode* exp);
 const BtorPtrHashTable* btor_get_fun_model_aux (Btor* btor,
-                                                BtorPtrHashTable** bv_model,
                                                 BtorPtrHashTable** fun_model,
                                                 BtorNode* exp);
 
