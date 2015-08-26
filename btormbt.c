@@ -36,8 +36,6 @@
 #include <sys/wait.h>
 #include <unistd.h>
 
-// TODO externalize all parameters
-
 /*------------------------------------------------------------------------*/
 
 #define NORM_VAL 1000.0f
@@ -489,7 +487,7 @@ btormbt_new_exp_stack (BtorMemMgr *mm)
   return res;
 }
 
-void
+static void
 btormbt_push_exp_stack (BtorMemMgr *mm,
                         BtorMBTExpStack *expstack,
                         BoolectorNode *exp)
@@ -505,7 +503,7 @@ btormbt_push_exp_stack (BtorMemMgr *mm,
   BTOR_PUSH_STACK (mm, expstack->exps, e);
 }
 
-BoolectorNode *
+static BoolectorNode *
 btormbt_pop_exp_stack (BtorMemMgr *mm, BtorMBTExpStack *expstack)
 {
   assert (mm);
@@ -550,7 +548,7 @@ btormbt_reset_exp_stack (BtorMemMgr *mm, BtorMBTExpStack *expstack)
   expstack->initlayer = 0;
 }
 
-void
+static void
 btormbt_release_exp_stack (BtorMemMgr *mm, BtorMBTExpStack *expstack)
 {
   assert (expstack);
@@ -592,7 +590,7 @@ btormbt_new_sort_stack (BtorMemMgr *mm)
   return res;
 }
 
-void
+static void
 btormbt_push_sort_stack (BtorMemMgr *mm,
                          BoolectorSortStack *sortstack,
                          BoolectorSort sort)
@@ -604,7 +602,7 @@ btormbt_push_sort_stack (BtorMemMgr *mm,
   BTOR_PUSH_STACK (mm, *sortstack, sort);
 }
 
-void
+static void
 btormbt_release_sort_stack (BtorMemMgr *mm, BoolectorSortStack *sortstack)
 {
   assert (sortstack);
@@ -832,7 +830,7 @@ typedef struct BtorMBT BtorMBT;
 typedef void *(*BtorMBTState) (BtorMBT *, unsigned rand);
 
 static BtorMBT *
-new_btormbt (void)
+btormbt_new_btormbt (void)
 {
   BtorMBT *mbt;
   BtorMemMgr *mm;
@@ -937,7 +935,7 @@ new_btormbt (void)
 }
 
 static void
-delete_btormbt (BtorMBT *mbt)
+btormbt_delete_btormbt (BtorMBT *mbt)
 {
   assert (mbt);
   BtorMemMgr *mm = mbt->mm;
@@ -1067,7 +1065,7 @@ btormbt_error (char *msg, ...)
   fprintf (stderr, "\n");
   va_end (list);
   fflush (stderr);
-  delete_btormbt (g_btormbt);
+  btormbt_delete_btormbt (g_btormbt);
   exit (EXIT_ERROR);
 }
 
@@ -1137,7 +1135,7 @@ catch_alarm (int sig)
     btormbt_print_stats (g_btormbt);
   }
   reset_alarm ();
-  delete_btormbt (g_btormbt);
+  btormbt_delete_btormbt (g_btormbt);
   exit (EXIT_TIMEOUT);
 }
 
@@ -3283,7 +3281,7 @@ run (BtorMBT *mbt)
     }
 
     rantrav (mbt);
-    delete_btormbt (g_btormbt);
+    btormbt_delete_btormbt (g_btormbt);
     exit (EXIT_OK);
   }
 
@@ -3300,7 +3298,7 @@ main (int argc, char **argv)
   char *name, *cmd;
   int namelen, cmdlen, tmppid;
 
-  g_btormbt             = new_btormbt ();
+  g_btormbt             = btormbt_new_btormbt ();
   g_btormbt->start_time = current_time ();
 
   pid      = 0;
@@ -4141,6 +4139,6 @@ main (int argc, char **argv)
 DONE:
   if (!g_btormbt->quit_after_first && !g_btormbt->seeded)
     btormbt_print_stats (g_btormbt);
-  delete_btormbt (g_btormbt);
+  btormbt_delete_btormbt (g_btormbt);
   exit (exitcode);
 }
