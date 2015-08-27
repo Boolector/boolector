@@ -170,13 +170,12 @@
   "  -m <maxruns>                     quit after <maxruns> rounds\n"           \
   "  -t <seconds>                     set time limit for calls to boolector\n" \
   "\n"                                                                         \
-  "  -n, --no-modelgen                do not enable model generation \n"       \
+  "  --logic=<logic>                  generate <logic> formulas only, "        \
+  "available\n"                                                                \
+  "                                   logics are: QF_BV, QF_UFBV, QF_ABV, "    \
+  "QF_AUFBV\n"                                                                 \
+  "                                   (default: QF_AUFBV)\n"                   \
   "  -e, --extensionality             use extensionality\n"                    \
-  "  --no-funs                        disable functions\n"                     \
-  "  --no-ufs                         disable UFs\n"                           \
-  "  --no-arrays                      disable arrays\n"                        \
-  "\n"                                                                         \
-  "  --bverb <verblevel>              enable boolector verbosity\n"            \
   "  --b<btoropt>, --b<btoropt>=<val> set boolector option <btoropt>\n"
 
 /*------------------------------------------------------------------------*/
@@ -719,7 +718,7 @@ struct BtorMBT
   char *out;
   bool create_funs;
   bool create_ufs;
-  bool btormbt_arrays;
+  bool create_arrays;
 
   int g_max_rounds;
 
@@ -912,7 +911,7 @@ btormbt_new_btormbt (void)
   mbt->ext                      = 0;
   mbt->create_funs              = true;
   mbt->create_ufs               = true;
-  mbt->btormbt_arrays           = true;
+  mbt->create_arrays            = true;
   mbt->g_min_inputs             = MIN_NLITS;
   mbt->g_max_inputs             = MAX_NLITS;
   mbt->g_min_vars_init          = MIN_NVARS_INIT;
@@ -2577,9 +2576,7 @@ btormbt_state_opt (BtorMBT *mbt, unsigned r)
                        BTOR_PEEK_STACK (mbt->btor_opts, i)->val);
   }
 
-  if (pick (&rng, 0, NORM_VAL - 1) < mbt->p_dump) mbt->dump = 1;
-
-    /* set random sat solver */
+  /* set random sat solver */
 #ifdef BTOR_USE_LINGELING
   if (!mbt->shadow && pick (&rng, 0, 1) && set_sat_solver)
   {
@@ -2599,6 +2596,8 @@ btormbt_state_opt (BtorMBT *mbt, unsigned r)
     boolector_set_sat_solver_minisat (mbt->btor);
 #endif
 
+  if (pick (&rng, 0, NORM_VAL - 1) < mbt->p_dump) mbt->dump = 1;
+
   mbt->mgen = 0;
   if (!mbt->dump && !mbt->force_nomgen
 // FIXME remove as soon as ucopt works with mgen
@@ -2607,15 +2606,15 @@ btormbt_state_opt (BtorMBT *mbt, unsigned r)
 #endif
       && pick (&rng, 0, 1))
   {
-    BTORMBT_LOG (1, "opt: enable model generation");
-    boolector_set_opt (mbt->btor, "model_gen", 1);
+    BTORMBT_LOG (1, "opt: enabled boolector option '%s'", BTOR_OPT_MODEL_GEN);
+    boolector_set_opt (mbt->btor, BTOR_OPT_MODEL_GEN, 1);
     mbt->mgen = 1;
   }
 
   if (mbt->mgen && pick (&rng, 0, NORM_VAL - 1) < mbt->p_print_model)
   {
     mbt->print_model = 1;
-    boolector_set_opt (mbt->btor, "pretty_print", 0);
+    boolector_set_opt (mbt->btor, BTOR_OPT_PRETTY_PRINT, 0);
   }
 
   if (!mbt->dump
@@ -2625,20 +2624,22 @@ btormbt_state_opt (BtorMBT *mbt, unsigned r)
 #endif
       && pick (&rng, 0, 1))
   {
-    BTORMBT_LOG (1, "opt: enable incremental usage");
-    boolector_set_opt (mbt->btor, "incremental", 1);
+    BTORMBT_LOG (1, "opt: enabled boolector option '%s'", BTOR_OPT_INCREMENTAL);
+    boolector_set_opt (mbt->btor, BTOR_OPT_INCREMENTAL, 1);
     mbt->inc = 1;
   }
 
-  if (pick (&rng, 0, 9) == 5)
+  if (!pick (&rng, 0, 9))
   {
-    BTORMBT_LOG (1, "opt: enable full beta reduction");
-    boolector_set_opt (mbt->btor, "beta_reduce_all", 1);
+    BTORMBT_LOG (
+        1, "opt: enabled boolector option '%s'", BTOR_OPT_BETA_REDUCE_ALL);
+    boolector_set_opt (mbt->btor, BTOR_OPT_BETA_REDUCE_ALL, 1);
   }
 
   rw = pick (&rng, 0, 3);
-  BTORMBT_LOG (1, "opt: set rewrite level %d", rw);
-  boolector_set_opt (mbt->btor, "rewrite_level", rw);
+  BTORMBT_LOG (
+      1, "opt: set boolector option '%s' to %d", BTOR_OPT_REWRITE_LEVEL, rw);
+  boolector_set_opt (mbt->btor, BTOR_OPT_REWRITE_LEVEL, rw);
 
   return btormbt_state_init;
 }
@@ -2768,7 +2769,7 @@ btormbt_state_add (BtorMBT *mbt, unsigned r)
 
   if (rand < mbt->p_bitvec_op)
     next = btormbt_state_bv_op;
-  else if (mbt->btormbt_arrays && rand < mbt->p_bitvec_op + mbt->p_array_op)
+  else if (mbt->create_arrays && rand < mbt->p_bitvec_op + mbt->p_array_op)
     next = btormbt_state_arr_op;
   else if (mbt->create_funs
            && rand < mbt->p_bitvec_op + mbt->p_array_op + mbt->p_bitvec_fun)
@@ -3260,9 +3261,11 @@ int
 main (int argc, char **argv)
 {
   int exitcode;
-  int i, mac, pid, prev, res, verbosity, status;
-  char *name, *cmd;
+  int i, j, len, val, mac, pid, prev, res, verbosity, status;
+  char *name, *cmd, *valstr, *tmp;
   int namelen, cmdlen, tmppid;
+  BtorCharStack str;
+  BtorMBTBtorOpt *btoropt;
 
   g_btormbt             = btormbt_new_btormbt ();
   g_btormbt->start_time = current_time ();
@@ -3335,61 +3338,91 @@ main (int argc, char **argv)
                        argv[i]);
       g_set_alarm = atoi (argv[i]);
     }
-    else if (!strcmp (argv[i], "-n") || !strcmp (argv[i], "--no-modelgen"))
+    else if (!strncmp (argv[i], "--logic", 7))
     {
-      g_btormbt->force_nomgen = 1;
+      BTOR_INIT_STACK (str);
+      len = strlen (argv[i]);
+      for (j = 3, val = 0; j < len && argv[i][j] != '='; j++)
+        BTOR_PUSH_STACK (g_btormbt->mm, str, argv[i][j]);
+      if (!strchr (argv[i], '='))
+      {
+        BTOR_RELEASE_STACK (g_btormbt->mm, str);
+        btormbt_error ("argument to '--logic' missing (try '-h')");
+      }
+      if (argv[i][j] == '=')
+      {
+        valstr = argv[i] + j + 1;
+        if (valstr[0] == 0)
+        {
+          BTOR_RELEASE_STACK (g_btormbt->mm, str);
+          btormbt_error ("argument to '--logic' missing (try '-h')");
+        }
+        if (!strcmp (valstr, "QF_BV"))
+        {
+          g_btormbt->create_funs   = false;
+          g_btormbt->create_ufs    = false;
+          g_btormbt->create_arrays = false;
+        }
+        else if (!strcmp (valstr, "QF_UFBV"))
+        {
+          g_btormbt->create_funs   = false;
+          g_btormbt->create_ufs    = true;
+          g_btormbt->create_arrays = false;
+        }
+        else if (!strcmp (valstr, "QF_ABV"))
+        {
+          g_btormbt->create_funs   = false;
+          g_btormbt->create_ufs    = false;
+          g_btormbt->create_arrays = true;
+        }
+        else if (!strcmp (valstr, "QF_AUFBV"))
+        {
+          g_btormbt->create_funs   = true;
+          g_btormbt->create_ufs    = true;
+          g_btormbt->create_arrays = true;
+        }
+        else
+        {
+          BTOR_RELEASE_STACK (g_btormbt->mm, str);
+          btormbt_error ("invalid argument to '--logic' (try '-h')");
+        }
+        BTOR_RELEASE_STACK (g_btormbt->mm, str);
+      }
     }
     else if (!strcmp (argv[i], "-e") || !strcmp (argv[i], "--extensionality"))
     {
       g_btormbt->ext = 1;
     }
-    else if (!strcmp (argv[i], "--no-funs"))
-    {
-      g_btormbt->create_funs = false;
-    }
-    else if (!strcmp (argv[i], "--no-ufs"))
-    {
-      g_btormbt->create_ufs = false;
-    }
-    else if (!strcmp (argv[i], "--no-arrays"))
-    {
-      g_btormbt->btormbt_arrays = false;
-    }
     /* boolector options */
     else if (!strncmp (argv[i], "--b", 3))
     {
-      int j, len, val;
-      char *valstr, *tmp;
-      BtorCharStack opt;
-      BtorMBTBtorOpt *btoropt;
-
-      BTOR_INIT_STACK (opt);
+      BTOR_INIT_STACK (str);
       len = strlen (argv[i]);
       for (j = 3, val = 0; j < len && argv[i][j] != '='; j++)
-        BTOR_PUSH_STACK (g_btormbt->mm, opt, argv[i][j]);
-      BTOR_PUSH_STACK (g_btormbt->mm, opt, 0);
+        BTOR_PUSH_STACK (g_btormbt->mm, str, argv[i][j]);
+      BTOR_PUSH_STACK (g_btormbt->mm, str, 0);
 
       if (argv[i][j] == '=')
       {
         valstr = argv[i] + j + 1;
         if (valstr[0] == 0)
         {
-          BTOR_RELEASE_STACK (g_btormbt->mm, opt);
+          BTOR_RELEASE_STACK (g_btormbt->mm, str);
           btormbt_error ("argument to '--b<btoropt>' missing (try '-h')");
         }
         val = (int) strtol (valstr, &tmp, 10);
         if (tmp[0] != 0)
         {
-          BTOR_RELEASE_STACK (g_btormbt->mm, opt);
+          BTOR_RELEASE_STACK (g_btormbt->mm, str);
           btormbt_error ("invalid argument to '--b<btoropt>' (try '-h')");
         }
       }
 
       BTOR_NEW (g_btormbt->mm, btoropt);
-      btoropt->name = btor_strdup (g_btormbt->mm, opt.start);
+      btoropt->name = btor_strdup (g_btormbt->mm, str.start);
       btoropt->val  = val;
       BTOR_PUSH_STACK (g_btormbt->mm, g_btormbt->btor_opts, btoropt);
-      BTOR_RELEASE_STACK (g_btormbt->mm, opt);
+      BTOR_RELEASE_STACK (g_btormbt->mm, str);
     }
 
     /* advanced options */
