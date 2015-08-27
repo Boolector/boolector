@@ -150,19 +150,7 @@
 #define BTORMBT_STR(str) #str
 #define BTORMBT_M2STR(m) BTORMBT_STR (m)
 
-#ifndef NBTORLOG
-#define BTORMBT_LOG_USAGE \
-  "  --blog <loglevel>                enable boolector logging\n"
-#else
-#define BTORMBT_LOG_USAGE ""
-#endif
-
-#ifndef BTOR_DO_NOT_OPTIMIZE_UNCONSTRAINED
-#define BTORMBT_UCOPT_USAGE \
-  "  -uc, --enable-ucopt              enable unconstrained optimization\n"
-#else
-#define BTORMBT_UCOPT_USAGE ""
-#endif
+/*------------------------------------------------------------------------*/
 
 #define BTORMBT_USAGE                                                          \
   "usage: mbt [<option>]\n"                                                    \
@@ -171,26 +159,27 @@
   "\n"                                                                         \
   "  -h, --help                       print this message and exit\n"           \
   "  -ha, --help-advanced             print all options\n"                     \
-  "  -v, --verbose                    be verbose\n"                            \
-  "  -q, --quiet                      be quiet (only print "                   \
-  "btormbt_print_stats)\n"                                                     \
+  "\n"                                                                         \
+  "  -v, --verbose                    be extra verbose\n"                      \
+  "  -q, --quiet                      be extra quiet (stats only)\n"           \
   "  -k, --keep-lines                 do not clear output lines\n"             \
-  "  -n, --no-modelgen                do not enable model generation \n"       \
-  "  -e, --extensionality             use extensionality\n"                    \
-  "  -dp, --dual-prop                 enable dual prop optimization\n"         \
-  "  -ju, --justification             enable justification optimization\n"     \
-  "  --no-funs                        disable functions\n"                     \
-  "  --no-ufs                         disable UFs\n"                           \
-  "  --no-arrays                      disable arrays\n" BTORMBT_UCOPT_USAGE    \
+  "\n"                                                                         \
   "  -s, --shadow                     create and check shadow clone\n"         \
   "  -o, --out                        output directory for saving traces\n"    \
-  "\n"                                                                         \
   "  -f, --quit-after-first           quit after first bug encountered\n"      \
   "  -m <maxruns>                     quit after <maxruns> rounds\n"           \
   "  -t <seconds>                     set time limit for calls to boolector\n" \
   "\n"                                                                         \
-  "  --bverb <verblevel>              enable boolector "                       \
-  "verbosity\n" BTORMBT_LOG_USAGE
+  "  -n, --no-modelgen                do not enable model generation \n"       \
+  "  -e, --extensionality             use extensionality\n"                    \
+  "  --no-funs                        disable functions\n"                     \
+  "  --no-ufs                         disable UFs\n"                           \
+  "  --no-arrays                      disable arrays\n"                        \
+  "\n"                                                                         \
+  "  --bverb <verblevel>              enable boolector verbosity\n"            \
+  "  --b<btoropt>, --b<btoropt>=<val> set boolector option <btoropt>\n"
+
+/*------------------------------------------------------------------------*/
 
 #define BTORMBT_USAGE_ADVANCED \
   "\nadvanced options:\n" \
@@ -516,6 +505,18 @@ is_array_op (Op op)
 
 /*------------------------------------------------------------------------*/
 
+struct BtorMBTBtorOpt
+{
+  char *name;
+  int val;
+};
+
+typedef struct BtorMBTBtorOpt BtorMBTBtorOpt;
+
+BTOR_DECLARE_STACK (BtorMBTBtorOptPtr, BtorMBTBtorOpt *);
+
+/*------------------------------------------------------------------------*/
+
 enum BtorMBTExpType
 {
   BTORMBT_BO_T, /* Boolean */
@@ -695,8 +696,10 @@ btormbt_release_sort_stack (BtorMemMgr *mm, BoolectorSortStack *sortstack)
 
 struct BtorMBT
 {
-  Btor *btor;
   BtorMemMgr *mm;
+
+  Btor *btor;
+  BtorMBTBtorOptPtrStack btor_opts;
 
   double start_time;
 
@@ -712,19 +715,11 @@ struct BtorMBT
   int quit_after_first;
   int force_nomgen;
   int ext;
-  int dual_prop;
-  int just;
-#ifndef BTOR_DO_NOT_OPTIMIZE_UNCONSTRAINED
-  int ucopt;
-#endif
   int shadow;
   char *out;
   bool create_funs;
   bool create_ufs;
   bool btormbt_arrays;
-
-  int bloglevel;
-  int bverblevel;
 
   int g_max_rounds;
 
@@ -908,6 +903,8 @@ btormbt_new_btormbt (void)
   BTOR_CNEW (mm, mbt);
   mbt->mm = mm;
 
+  BTOR_INIT_STACK (mbt->btor_opts);
+
   mbt->g_max_rounds             = INT_MAX;
   mbt->seed                     = -1;
   mbt->seeded                   = 0;
@@ -1007,7 +1004,18 @@ static void
 btormbt_delete_btormbt (BtorMBT *mbt)
 {
   assert (mbt);
-  BtorMemMgr *mm = mbt->mm;
+
+  BtorMemMgr *mm;
+  BtorMBTBtorOpt *opt;
+
+  mm = mbt->mm;
+  while (!BTOR_EMPTY_STACK (mbt->btor_opts))
+  {
+    opt = BTOR_POP_STACK (mbt->btor_opts);
+    btor_freestr (mbt->mm, opt->name);
+    BTOR_DELETE (mm, opt);
+  }
+  BTOR_RELEASE_STACK (mm, mbt->btor_opts);
   BTOR_DELETE (mm, mbt);
   btor_delete_mem_mgr (mm);
 }
@@ -2555,38 +2563,18 @@ btormbt_state_new (BtorMBT *mbt, unsigned r)
 static void *
 btormbt_state_opt (BtorMBT *mbt, unsigned r)
 {
-  int rw, set_sat_solver = 1;
+  int i, rw, set_sat_solver = 1;
   RNG rng = initrng (r);
 
-  if (mbt->dual_prop)
+  for (i = 0; i < BTOR_COUNT_STACK (mbt->btor_opts); i++)
   {
-    BTORMBT_LOG (1, "opt: enable dual prop");
-    boolector_set_opt (mbt->btor, "dual_prop", 1);
-  }
-
-  if (mbt->just)
-  {
-    BTORMBT_LOG (1, "opt: enable justification");
-    boolector_set_opt (mbt->btor, "just", 1);
-  }
-
-#ifndef BTOR_DO_NOT_OPTIMIZE_UNCONSTRAINED
-  if (mbt->ucopt)
-  {
-    BTORMBT_LOG (1, "opt: enable unconstrained optimization");
-    boolector_set_opt (mbt->btor, "ucopt", 1);
-  }
-#endif
-
-  if (mbt->bloglevel)
-  {
-    BTORMBT_LOG (1, "opt: log level: '%d'", mbt->bloglevel);
-    boolector_set_opt (mbt->btor, "loglevel", mbt->bloglevel);
-  }
-  if (mbt->bverblevel)
-  {
-    BTORMBT_LOG (1, "opt: verbosity level: '%d'", mbt->bverblevel);
-    boolector_set_opt (mbt->btor, "verbosity", mbt->bverblevel);
+    BTORMBT_LOG (1,
+                 "opt: set boolector option '%s' to '%d'",
+                 BTOR_PEEK_STACK (mbt->btor_opts, i)->name,
+                 BTOR_PEEK_STACK (mbt->btor_opts, i)->val);
+    boolector_set_opt (mbt->btor,
+                       BTOR_PEEK_STACK (mbt->btor_opts, i)->name,
+                       BTOR_PEEK_STACK (mbt->btor_opts, i)->val);
   }
 
   if (pick (&rng, 0, NORM_VAL - 1) < mbt->p_dump) mbt->dump = 1;
@@ -2613,8 +2601,9 @@ btormbt_state_opt (BtorMBT *mbt, unsigned r)
 
   mbt->mgen = 0;
   if (!mbt->dump && !mbt->force_nomgen
+// FIXME remove as soon as ucopt works with mgen
 #ifndef BTOR_DO_NOT_OPTIMIZE_UNCONSTRAINED
-      && !mbt->ucopt
+      && !boolector_get_opt_val (mbt->btor, BTOR_OPT_UCOPT)
 #endif
       && pick (&rng, 0, 1))
   {
@@ -2630,8 +2619,9 @@ btormbt_state_opt (BtorMBT *mbt, unsigned r)
   }
 
   if (!mbt->dump
+// FIXME remove as soon as ucopt works with mgen
 #ifndef BTOR_DO_NOT_OPTIMIZE_UNCONSTRAINED
-      && !mbt->ucopt
+      && !boolector_get_opt_val (mbt->btor, BTOR_OPT_UCOPT)
 #endif
       && pick (&rng, 0, 1))
   {
@@ -3184,78 +3174,6 @@ btormbt_state_delete (BtorMBT *mbt, unsigned r)
 
 /*------------------------------------------------------------------------*/
 
-static void
-rantrav (BtorMBT *mbt)
-{
-  assert (mbt);
-
-  BtorMBTState state, next;
-  unsigned rand;
-
-  assert (!mbt->is_init);
-  assert (!mbt->inc);
-  assert (!mbt->mgen);
-  assert (!mbt->dump);
-  assert (!mbt->print_model);
-  assert (!mbt->p_var);
-  assert (!mbt->p_const);
-  assert (!mbt->p_array);
-  assert (!mbt->p_add);
-  assert (!mbt->p_release);
-  assert (!mbt->p_bitvec_fun);
-  assert (!mbt->p_bitvec_uf);
-  assert (!mbt->p_array_op);
-  assert (!mbt->p_bitvec_op);
-  assert (!mbt->p_input);
-  assert (!mbt->p_ass);
-  assert (!mbt->ops);
-  assert (!mbt->asserts);
-  assert (!mbt->assumes);
-  assert (!mbt->max_inputs);
-  assert (!mbt->max_ops);
-  assert (!mbt->max_ass);
-  assert (!mbt->tot_asserts);
-  assert (!mbt->rng.z);
-  assert (!mbt->rng.w);
-
-  assert (!mbt->assumptions);
-  assert (!mbt->bo);
-  assert (!mbt->bv);
-  assert (!mbt->arr);
-  assert (!mbt->fun);
-  assert (!mbt->uf);
-  assert (!mbt->cnf);
-
-  assert (!mbt->parambo);
-  assert (!mbt->parambv);
-  assert (!mbt->paramarr);
-
-  assert (!mbt->bv_sorts);
-  assert (!mbt->fun_sorts);
-
-  mbt->assumptions = btormbt_new_exp_stack (mbt->mm);
-  mbt->bo          = btormbt_new_exp_stack (mbt->mm);
-  mbt->bv          = btormbt_new_exp_stack (mbt->mm);
-  mbt->arr         = btormbt_new_exp_stack (mbt->mm);
-  mbt->fun         = btormbt_new_exp_stack (mbt->mm);
-  mbt->uf          = btormbt_new_exp_stack (mbt->mm);
-  mbt->cnf         = btormbt_new_exp_stack (mbt->mm);
-
-  mbt->bv_sorts  = btormbt_new_sort_stack (mbt->mm);
-  mbt->fun_sorts = btormbt_new_sort_stack (mbt->mm);
-
-  assert (mbt->is_init == 0);
-  assert (mbt->tot_asserts == 0);
-  mbt->rng.z = mbt->rng.w = mbt->seed;
-
-  /* state loop */
-  for (state = btormbt_state_new; state; state = next)
-  {
-    rand = nextrand (&mbt->rng);
-    next = state (mbt, rand);
-  }
-}
-
 static int
 run (BtorMBT *mbt)
 {
@@ -3355,48 +3273,36 @@ main (int argc, char **argv)
 
   for (i = 1; i < argc; i++)
   {
+    /* general options */
     if (!strcmp (argv[i], "-h") || !strcmp (argv[i], "--help"))
     {
       printf ("%s", BTORMBT_USAGE);
       exitcode = EXIT_OK;
-      goto DONE;
+      goto EXIT;
     }
     else if (!strcmp (argv[i], "-ha") || !strcmp (argv[i], "--help-advanced"))
     {
       printf ("%s", BTORMBT_USAGE);
       printf ("%s", BTORMBT_USAGE_ADVANCED);
       exitcode = EXIT_OK;
-      goto DONE;
+      goto EXIT;
     }
     else if (!strcmp (argv[i], "-v") || !strcmp (argv[i], "--verbose"))
+    {
       g_verbosity++;
+    }
     else if (!strcmp (argv[i], "-q") || !strcmp (argv[i], "--quiet"))
+    {
       g_btormbt->quiet = 1;
+    }
     else if (!strcmp (argv[i], "-k") || !strcmp (argv[i], "--keep-lines"))
+    {
       g_btormbt->terminal = 0;
-    else if (!strcmp (argv[i], "-f") || !strcmp (argv[i], "--quit-after-first"))
-      g_btormbt->quit_after_first = 1;
-    else if (!strcmp (argv[i], "-n") || !strcmp (argv[i], "--no-modelgen"))
-      g_btormbt->force_nomgen = 1;
-    else if (!strcmp (argv[i], "-e") || !strcmp (argv[i], "--extensionality"))
-      g_btormbt->ext = 1;
-    else if (!strcmp (argv[i], "--no-funs"))
-      g_btormbt->create_funs = false;
-    else if (!strcmp (argv[i], "--no-ufs"))
-      g_btormbt->create_ufs = false;
-    else if (!strcmp (argv[i], "--no-arrays"))
-      g_btormbt->btormbt_arrays = false;
-    else if (!strcmp (argv[i], "-dp")
-             || !strcmp (argv[i], "--enable-dual-prop"))
-      g_btormbt->dual_prop = 1;
-    else if (!strcmp (argv[i], "-ju") || !strcmp (argv[i], "--enable-just"))
-      g_btormbt->just = 1;
-#ifndef BTOR_DO_NOT_OPTIMIZE_UNCONSTRAINED
-    else if (!strcmp (argv[i], "-uc") || !strcmp (argv[i], "--enable-ucopt"))
-      g_btormbt->ucopt = 1;
-#endif
+    }
     else if (!strcmp (argv[i], "-s") || !strcmp (argv[i], "--shadow-clone"))
+    {
       g_btormbt->shadow = 1;
+    }
     else if (!strcmp (argv[i], "-o") || !strcmp (argv[i], "--out"))
     {
       if (++i == argc) btormbt_error ("argument to '-o' missing (try '-h')");
@@ -3408,6 +3314,10 @@ main (int argc, char **argv)
         closedir (dir);
       else
         btormbt_error ("given output directory does not exist");
+    }
+    else if (!strcmp (argv[i], "-f") || !strcmp (argv[i], "--quit-after-first"))
+    {
+      g_btormbt->quit_after_first = 1;
     }
     else if (!strcmp (argv[i], "-m"))
     {
@@ -3425,24 +3335,64 @@ main (int argc, char **argv)
                        argv[i]);
       g_set_alarm = atoi (argv[i]);
     }
-    else if (!strcmp (argv[i], "--blog"))
+    else if (!strcmp (argv[i], "-n") || !strcmp (argv[i], "--no-modelgen"))
     {
-      if (++i == argc)
-        btormbt_error ("argument to '--blog' missing (try '-h')");
-      if (!isnumstr (argv[i]))
-        btormbt_error ("argument '%s' to '--blog' not a number (try '-h')",
-                       argv[i]);
-      g_btormbt->bloglevel = atoi (argv[i]);
+      g_btormbt->force_nomgen = 1;
     }
-    else if (!strcmp (argv[i], "--bverb"))
+    else if (!strcmp (argv[i], "-e") || !strcmp (argv[i], "--extensionality"))
     {
-      if (++i == argc)
-        btormbt_error ("argument to '--bverb' missing (try '-h')");
-      if (!isnumstr (argv[i]))
-        btormbt_error ("argument '%s' to '--bverb' not a number (try '-h')",
-                       argv[i]);
-      g_btormbt->bverblevel = atoi (argv[i]);
+      g_btormbt->ext = 1;
     }
+    else if (!strcmp (argv[i], "--no-funs"))
+    {
+      g_btormbt->create_funs = false;
+    }
+    else if (!strcmp (argv[i], "--no-ufs"))
+    {
+      g_btormbt->create_ufs = false;
+    }
+    else if (!strcmp (argv[i], "--no-arrays"))
+    {
+      g_btormbt->btormbt_arrays = false;
+    }
+    /* boolector options */
+    else if (!strncmp (argv[i], "--b", 3))
+    {
+      int j, len, val;
+      char *valstr, *tmp;
+      BtorCharStack opt;
+      BtorMBTBtorOpt *btoropt;
+
+      BTOR_INIT_STACK (opt);
+      len = strlen (argv[i]);
+      for (j = 3, val = 0; j < len && argv[i][j] != '='; j++)
+        BTOR_PUSH_STACK (g_btormbt->mm, opt, argv[i][j]);
+      BTOR_PUSH_STACK (g_btormbt->mm, opt, 0);
+
+      if (argv[i][j] == '=')
+      {
+        valstr = argv[i] + j + 1;
+        if (valstr[0] == 0)
+        {
+          BTOR_RELEASE_STACK (g_btormbt->mm, opt);
+          btormbt_error ("argument to '--b<btoropt>' missing (try '-h')");
+        }
+        val = (int) strtol (valstr, &tmp, 10);
+        if (tmp[0] != 0)
+        {
+          BTOR_RELEASE_STACK (g_btormbt->mm, opt);
+          btormbt_error ("invalid argument to '--b<btoropt>' (try '-h')");
+        }
+      }
+
+      BTOR_NEW (g_btormbt->mm, btoropt);
+      btoropt->name = btor_strdup (g_btormbt->mm, opt.start);
+      btoropt->val  = val;
+      BTOR_PUSH_STACK (g_btormbt->mm, g_btormbt->btor_opts, btoropt);
+      BTOR_RELEASE_STACK (g_btormbt->mm, opt);
+    }
+
+    /* advanced options */
     else if (!strcmp (argv[i], "--inputs"))
     {
       if (++i == argc)
@@ -4187,6 +4137,7 @@ main (int argc, char **argv)
 DONE:
   if (!g_btormbt->quit_after_first && !g_btormbt->seeded)
     btormbt_print_stats (g_btormbt);
+EXIT:
   btormbt_delete_btormbt (g_btormbt);
   exit (exitcode);
 }
