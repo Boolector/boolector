@@ -3360,14 +3360,14 @@ main (int argc, char **argv)
     {
       printf ("%s", BTORMBT_USAGE);
       exitcode = EXIT_OK;
-      goto DONE;
+      goto EXIT;
     }
     else if (!strcmp (argv[i], "-ha") || !strcmp (argv[i], "--help-advanced"))
     {
       printf ("%s", BTORMBT_USAGE);
       printf ("%s", BTORMBT_USAGE_ADVANCED);
       exitcode = EXIT_OK;
-      goto DONE;
+      goto EXIT;
     }
     else if (!strcmp (argv[i], "-v") || !strcmp (argv[i], "--verbose"))
       g_verbosity++;
@@ -4188,6 +4188,7 @@ main (int argc, char **argv)
 DONE:
   if (!g_btormbt->quit_after_first && !g_btormbt->seeded)
     btormbt_print_stats (g_btormbt);
+EXIT:
   btormbt_delete_btormbt (g_btormbt);
   exit (exitcode);
 }
