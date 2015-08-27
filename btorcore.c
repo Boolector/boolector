@@ -3232,6 +3232,7 @@ synthesize_exp (Btor *btor, BtorNode *exp, BtorPtrHashTable *backannotation)
   int invert_av1 = 0;
   int invert_av2 = 0;
   double start;
+  bool restart;
   BtorIntHashTable *cache;
 
   assert (btor);
@@ -3365,6 +3366,25 @@ synthesize_exp (Btor *btor, BtorNode *exp, BtorPtrHashTable *backannotation)
     else if (!cur->parameterized && !BTOR_IS_ARGS_NODE (cur)
              && !BTOR_IS_FUN_NODE (cur))
     {
+      if (!btor->options.lazy_synthesize.val)
+      {
+        /* due to pushing nodes from static_rho onto 'exp_stack' a strict
+         * DFS order is not guaranteed anymore. hence, we have to check
+         * if one of the children of 'cur' is not yet synthesized and
+         * thus, have to synthesize them before 'cur'. */
+        restart = false;
+        for (i = 0; i < cur->arity; i++)
+        {
+          if (!BTOR_IS_SYNTH_NODE (BTOR_REAL_ADDR_NODE (cur->e[i])))
+          {
+            BTOR_PUSH_STACK (mm, exp_stack, cur->e[i]);
+            restart = true;
+            break;
+          }
+        }
+        if (restart) continue;
+      }
+
       if (cur->arity == 1)
       {
         assert (cur->kind == BTOR_SLICE_NODE);
