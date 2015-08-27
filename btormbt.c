@@ -1227,7 +1227,6 @@ catch_alarm (int sig)
     btormbt_print_stats (g_btormbt);
   }
   reset_alarm ();
-  btormbt_delete_btormbt (g_btormbt);
   exit (EXIT_TIMEOUT);
 }
 

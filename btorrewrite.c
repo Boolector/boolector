@@ -4373,6 +4373,8 @@ apply_prop_apply (Btor *btor, BtorNode *e0, BtorNode *e1)
             if (BTOR_IS_APPLY_NODE (BTOR_REAL_ADDR_NODE (result)))
             {
               next_fun = BTOR_REAL_ADDR_NODE (result)->e[0];
+              btor_release_exp (btor, args);
+              args = btor_copy_exp (btor, BTOR_REAL_ADDR_NODE (result)->e[1]);
               /* result is not needed here as it may be further
                * rewritten */
               btor_release_exp (btor, result);
