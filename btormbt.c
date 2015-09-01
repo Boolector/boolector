@@ -40,8 +40,11 @@
 
 #define NORM_VAL 1000.0f
 
+#define MIN_BITWIDTH 2   /* must be >= 2 */
 #define MAX_BITWIDTH 128 /* must be >= 2 */
+#define MIN_INDEXWIDTH 1
 #define MAX_INDEXWIDTH 8
+#define MIN_MULDIVWIDTH 1
 #define MAX_MULDIVWIDTH 8
 
 #define MIN_NPARAMS 1 /* must be >= 1 */
@@ -170,18 +173,37 @@
   "  -m <maxruns>                     quit after <maxruns> rounds\n"           \
   "  -t <seconds>                     set time limit for calls to boolector\n" \
   "\n"                                                                         \
-  "  --logic=<logic>                  generate <logic> formulas only, "        \
+  "  --logic <logic>                  generate <logic> formulas only, "        \
   "available\n"                                                                \
   "                                   logics are: QF_BV, QF_UFBV, QF_ABV, "    \
   "QF_AUFBV\n"                                                                 \
   "                                   (default: QF_AUFBV)\n"                   \
   "  -e, --extensionality             use extensionality\n"                    \
-  "  --b<btoropt>, --b<btoropt>=<val> set boolector option <btoropt>\n"
+  "  --b<btoropt> <val>               set boolector option <btoropt>\n"
 
 /*------------------------------------------------------------------------*/
 
 #define BTORMBT_USAGE_ADVANCED \
-  "\nadvanced options:\n" \
+  "\n" \
+  "-------------------------------------------------------------------------\n"\
+  "\nadvanced options:\n\n" \
+  "  --min-bw <min>                   min bit width (min: " \
+                                      BTORMBT_M2STR (MIN_BITWIDTH) ") [" \
+                                      BTORMBT_M2STR (MIN_BITWIDTH) "]\n" \
+  "  --max-bw <max>                   max bit width (min: " \
+                                      BTORMBT_M2STR (MIN_BITWIDTH) ") [" \
+                                      BTORMBT_M2STR (MAX_BITWIDTH) "]\n" \
+  "  --min-index-bw <min>             min index bit width (min: " \
+                                      BTORMBT_M2STR (MIN_INDEXWIDTH) ") [" \
+                                      BTORMBT_M2STR (MIN_INDEXWIDTH) "]\n" \
+  "  --max-index-bw <max>             max index bit width [" \
+                                      BTORMBT_M2STR (MAX_INDEXWIDTH) "]\n" \
+  "  --min-muldiv-bw <min>            min bit widht for mul/div (min: " \
+                                      BTORMBT_M2STR (MIN_MULDIVWIDTH) ") [" \
+                                      BTORMBT_M2STR (MIN_MULDIVWIDTH) "]\n" \
+  "  --max-muldiv-bw <max>            max bit width for mul/div [" \
+                                      BTORMBT_M2STR (MAX_MULDIVWIDTH) "]\n" \
+  "\n" \
   "  --inputs <min> <max>             num inputs [" \
                                       BTORMBT_M2STR (MIN_NLITS) " " \
                                       BTORMBT_M2STR (MAX_NLITS) "]\n" \
@@ -312,13 +334,13 @@
   "  --p-eq <val>                     choose eq over ne [" \
                                       BTORMBT_M2STR (P_EQ) "]\n" \
   "  --p-inc <val>                    choose an incremental step [" \
-         			      BTORMBT_M2STR (P_INC) "]\n" \
+                                      BTORMBT_M2STR (P_INC) "]\n" \
   "  --p-dump <val>                   dump formula [" \
-  				      BTORMBT_M2STR (P_DUMP) "]\n" \
+                                      BTORMBT_M2STR (P_DUMP) "]\n" \
   "  --p-print-model <val>            print model [" \
-				      BTORMBT_M2STR (P_PRINT_MODEL) "]\n" \
+                                      BTORMBT_M2STR (P_PRINT_MODEL) "]\n" \
   "  --p-model-format <val>           model format (btor:smt2) [" \
-				      BTORMBT_M2STR (P_MODEL_FORMAT) "]\n" \
+                                      BTORMBT_M2STR (P_MODEL_FORMAT) "]\n" \
   "\n other options:\n" \
   "  --output-format <string>         force dump/model output format\n" \
   "                                    (btor,smt1,smt2)\n"
@@ -722,6 +744,13 @@ struct BtorMBT
 
   int g_max_rounds;
 
+  int g_min_bw;
+  int g_max_bw;
+  int g_min_index_bw;
+  int g_max_index_bw;
+  int g_min_muldiv_bw;
+  int g_max_muldiv_bw;
+
   int g_min_inputs; /* min number of inputs in a round */
   int g_max_inputs; /* max number of inputs in a round */
 
@@ -912,6 +941,12 @@ btormbt_new_btormbt (void)
   mbt->create_funs              = true;
   mbt->create_ufs               = true;
   mbt->create_arrays            = true;
+  mbt->g_min_bw                 = MIN_BITWIDTH;
+  mbt->g_max_bw                 = MAX_BITWIDTH;
+  mbt->g_min_index_bw           = MIN_INDEXWIDTH;
+  mbt->g_max_index_bw           = MAX_INDEXWIDTH;
+  mbt->g_min_muldiv_bw          = MIN_MULDIVWIDTH;
+  mbt->g_max_muldiv_bw          = MAX_MULDIVWIDTH;
   mbt->g_min_inputs             = MIN_NLITS;
   mbt->g_max_inputs             = MAX_NLITS;
   mbt->g_min_vars_init          = MIN_NVARS_INIT;
@@ -1352,9 +1387,9 @@ btormbt_var (BtorMBT *mbt, RNG *rng, BtorMBTExpType type)
   if (type == BTORMBT_BO_T)
     width = 1;
   else if (type == BTORMBT_BV_T)
-    width = pick (rng, 2, MAX_BITWIDTH);
+    width = pick (rng, mbt->g_min_bw, mbt->g_max_bw);
   else
-    width = pick (rng, 1, MAX_BITWIDTH);
+    width = pick (rng, 1, mbt->g_max_bw);
 
   if (width == 1)
     btormbt_push_exp_stack (
@@ -1378,7 +1413,7 @@ btormbt_const (BtorMBT *mbt, RNG *rng)
   Op op = pick (rng, CONST, INT);
   if (op != TRUE && op != FALSE)
   {
-    width = pick (rng, 1, MAX_BITWIDTH);
+    width = pick (rng, 1, mbt->g_max_bw);
     if (width == 1)
       expstack = mbt->bo;
     else
@@ -1444,8 +1479,8 @@ btormbt_array (BtorMBT *mbt, RNG *rng)
 {
   int ew, iw;
 
-  ew = pick (rng, 1, MAX_BITWIDTH);
-  iw = pick (rng, 1, MAX_INDEXWIDTH);
+  ew = pick (rng, mbt->g_min_bw > 2 ? mbt->g_min_bw : 1, mbt->g_max_bw);
+  iw = pick (rng, mbt->g_min_index_bw, mbt->g_max_index_bw);
 
   btormbt_push_exp_stack (
       mbt->mm, mbt->arr, boolector_array (mbt->btor, ew, iw, NULL));
@@ -1501,7 +1536,7 @@ btormbt_unary_op (
 
   assert (is_unary_op (op));
   e0w = boolector_get_width (mbt->btor, e0);
-  assert (e0w <= MAX_BITWIDTH);
+  assert (e0w <= mbt->g_max_bw);
   /* set default result width */
   if (is_boolean_unary_op (op))
     rw = 1;
@@ -1516,7 +1551,7 @@ btormbt_unary_op (
   }
   else if (op == UEXT || op == SEXT)
   {
-    tmp0 = pick (rng, 0, MAX_BITWIDTH - e0w);
+    tmp0 = pick (rng, 0, mbt->g_max_bw - e0w);
     rw   = e0w + tmp0;
   }
 
@@ -1581,9 +1616,9 @@ btormbt_binary_op (BtorMBT *mbt,
 
   assert (is_binary_op (op));
   e0w = boolector_get_width (mbt->btor, e0);
-  assert (e0w <= MAX_BITWIDTH);
+  assert (e0w <= mbt->g_max_bw);
   e1w = boolector_get_width (mbt->btor, e1);
-  assert (e1w <= MAX_BITWIDTH);
+  assert (e1w <= mbt->g_max_bw);
 
   /* set default result width */
   if (is_boolean_binary_op (op))
@@ -1596,10 +1631,20 @@ btormbt_binary_op (BtorMBT *mbt,
     /* modify e1w equal to e0w, guarded mul and div */
     if ((op >= UMULO && op <= SDIVO) || (op >= MUL && op <= SMOD))
     {
-      if (e0w > MAX_MULDIVWIDTH)
+      if (e0w > mbt->g_max_muldiv_bw)
       {
-        e0  = modify_bv (mbt, rng, e0, e0w, MAX_MULDIVWIDTH, is_param);
-        e0w = MAX_MULDIVWIDTH;
+        e0  = modify_bv (mbt, rng, e0, e0w, mbt->g_max_muldiv_bw, is_param);
+        e0w = mbt->g_max_muldiv_bw;
+        if (op >= MUL && op <= SMOD)
+        {
+          rw = e0w;
+        }
+      }
+      else if (e0w < mbt->g_min_muldiv_bw)
+      {
+        e0 = modify_bv (
+            mbt, rng, e0, mbt->g_min_muldiv_bw, mbt->g_max_muldiv_bw, is_param);
+        e0w = mbt->g_max_muldiv_bw;
         if (op >= MUL && op <= SMOD)
         {
           rw = e0w;
@@ -1619,7 +1664,7 @@ btormbt_binary_op (BtorMBT *mbt,
   }
   else if (op == CONCAT)
   {
-    if (e0w + e1w > MAX_BITWIDTH)
+    if (e0w + e1w > mbt->g_max_bw)
     {
       if (e0w > 1)
       {
@@ -1820,9 +1865,9 @@ btormbt_ternary_op (BtorMBT *mbt,
   assert (boolector_get_width (mbt->btor, e0) == 1);
 
   e1w = boolector_get_width (mbt->btor, e1);
-  assert (e1w <= MAX_BITWIDTH);
+  assert (e1w <= mbt->g_max_bw);
   e2w = boolector_get_width (mbt->btor, e2);
-  assert (e2w <= MAX_BITWIDTH);
+  assert (e2w <= mbt->g_max_bw);
 
   /* bitvectors must have same bit width */
   e2 = modify_bv (mbt, rng, e2, e2w, e1w, is_param);
@@ -1864,21 +1909,22 @@ btormbt_array_op (BtorMBT *mbt,
   BtorMBTExpStack *expstack;
 
   e0w = boolector_get_width (mbt->btor, e0);
-  assert (e0w <= MAX_BITWIDTH);
+  assert (e0w <= mbt->g_max_bw);
   e0iw = boolector_get_index_width (mbt->btor, e0);
-  assert (e0iw <= MAX_INDEXWIDTH);
+  assert (e0iw >= mbt->g_min_index_bw);
+  assert (e0iw <= mbt->g_max_index_bw);
 
   if (op >= READ && op <= WRITE)
   {
     e1w = boolector_get_width (mbt->btor, e1);
-    assert (e1w <= MAX_BITWIDTH);
+    assert (e1w <= mbt->g_max_bw);
 
     e1  = modify_bv (mbt, rng, e1, e1w, e0iw, is_param);
     e1w = e0iw;
     if (op == WRITE)
     {
       e2w = boolector_get_width (mbt->btor, e2);
-      assert (e1w <= MAX_BITWIDTH);
+      assert (e1w <= mbt->g_max_bw);
 
       e2 = modify_bv (mbt, rng, e2, e2w, e0w, is_param);
       btormbt_push_exp_stack (mbt->mm,
@@ -1899,9 +1945,11 @@ btormbt_array_op (BtorMBT *mbt,
   {
     assert (boolector_is_array (mbt->btor, e1));
     e1w = boolector_get_width (mbt->btor, e1);
-    assert (e1w == e0w && e1w <= MAX_BITWIDTH);
+    assert (e1w == e0w && e1w <= mbt->g_max_bw);
     assert (boolector_get_index_width (mbt->btor, e1) == e0iw
-            && boolector_get_index_width (mbt->btor, e1) <= MAX_INDEXWIDTH);
+            && boolector_get_index_width (mbt->btor, e1) <= mbt->g_max_index_bw
+            && boolector_get_index_width (mbt->btor, e1)
+                   >= mbt->g_min_index_bw);
 
     if (op == EQ)
       btormbt_push_exp_stack (mbt->mm,
@@ -2328,7 +2376,7 @@ btormbt_bv_fun (BtorMBT *mbt, unsigned r, int nlevel)
     BTOR_INIT_STACK (params);
     for (i = 0; i < pick (&rng, MIN_NPARAMS, MAX_NPARAMS); i++)
     {
-      w   = pick (&rng, 1, MAX_BITWIDTH);
+      w   = pick (&rng, mbt->g_min_bw > 2 ? mbt->g_min_bw : 1, mbt->g_max_bw);
       tmp = boolector_param (mbt->btor, w, 0);
       BTOR_PUSH_STACK (mbt->mm, params, tmp);
       btormbt_push_exp_stack (
@@ -2343,7 +2391,8 @@ btormbt_bv_fun (BtorMBT *mbt, unsigned r, int nlevel)
       rand = pick (&rng, 0, BTOR_COUNT_STACK (mbt->parambo->exps) - 1);
       tmp  = mbt->parambo->exps.start[rand]->exp;
       assert (boolector_get_width (mbt->btor, tmp) == 1);
-      modify_bv (mbt, &rng, tmp, 1, pick (&rng, 2, MAX_BITWIDTH), 1);
+      modify_bv (
+          mbt, &rng, tmp, 1, pick (&rng, mbt->g_min_bw, mbt->g_max_bw), 1);
     }
     assert (BTOR_COUNT_STACK (mbt->parambv->exps));
     if (BTOR_COUNT_STACK (mbt->parambo->exps) == 0)
@@ -3262,7 +3311,7 @@ main (int argc, char **argv)
 {
   int exitcode;
   int i, j, len, val, mac, pid, prev, res, verbosity, status;
-  char *name, *cmd, *valstr, *tmp;
+  char *name, *cmd, *tmp;
   int namelen, cmdlen, tmppid;
   BtorCharStack str;
   BtorMBTBtorOpt *btoropt;
@@ -3340,53 +3389,35 @@ main (int argc, char **argv)
     }
     else if (!strncmp (argv[i], "--logic", 7))
     {
-      BTOR_INIT_STACK (str);
-      len = strlen (argv[i]);
-      for (j = 3, val = 0; j < len && argv[i][j] != '='; j++)
-        BTOR_PUSH_STACK (g_btormbt->mm, str, argv[i][j]);
-      if (!strchr (argv[i], '='))
-      {
-        BTOR_RELEASE_STACK (g_btormbt->mm, str);
+      if (++i == argc)
         btormbt_error ("argument to '--logic' missing (try '-h')");
-      }
-      if (argv[i][j] == '=')
+      if (!strcmp (argv[i], "QF_BV"))
       {
-        valstr = argv[i] + j + 1;
-        if (valstr[0] == 0)
-        {
-          BTOR_RELEASE_STACK (g_btormbt->mm, str);
-          btormbt_error ("argument to '--logic' missing (try '-h')");
-        }
-        if (!strcmp (valstr, "QF_BV"))
-        {
-          g_btormbt->create_funs   = false;
-          g_btormbt->create_ufs    = false;
-          g_btormbt->create_arrays = false;
-        }
-        else if (!strcmp (valstr, "QF_UFBV"))
-        {
-          g_btormbt->create_funs   = false;
-          g_btormbt->create_ufs    = true;
-          g_btormbt->create_arrays = false;
-        }
-        else if (!strcmp (valstr, "QF_ABV"))
-        {
-          g_btormbt->create_funs   = false;
-          g_btormbt->create_ufs    = false;
-          g_btormbt->create_arrays = true;
-        }
-        else if (!strcmp (valstr, "QF_AUFBV"))
-        {
-          g_btormbt->create_funs   = true;
-          g_btormbt->create_ufs    = true;
-          g_btormbt->create_arrays = true;
-        }
-        else
-        {
-          BTOR_RELEASE_STACK (g_btormbt->mm, str);
-          btormbt_error ("invalid argument to '--logic' (try '-h')");
-        }
-        BTOR_RELEASE_STACK (g_btormbt->mm, str);
+        g_btormbt->create_funs   = false;
+        g_btormbt->create_ufs    = false;
+        g_btormbt->create_arrays = false;
+      }
+      else if (!strcmp (argv[i], "QF_UFBV"))
+      {
+        g_btormbt->create_funs   = false;
+        g_btormbt->create_ufs    = true;
+        g_btormbt->create_arrays = false;
+      }
+      else if (!strcmp (argv[i], "QF_ABV"))
+      {
+        g_btormbt->create_funs   = false;
+        g_btormbt->create_ufs    = false;
+        g_btormbt->create_arrays = true;
+      }
+      else if (!strcmp (argv[i], "QF_AUFBV"))
+      {
+        g_btormbt->create_funs   = true;
+        g_btormbt->create_ufs    = true;
+        g_btormbt->create_arrays = true;
+      }
+      else
+      {
+        btormbt_error ("invalid argument to '--logic' (try '-h')");
       }
     }
     else if (!strcmp (argv[i], "-e") || !strcmp (argv[i], "--extensionality"))
@@ -3396,26 +3427,21 @@ main (int argc, char **argv)
     /* boolector options */
     else if (!strncmp (argv[i], "--b", 3))
     {
+      if (i + 1 == argc)
+        btormbt_error ("argument to '--b<btoropt>' missing (try '-h')");
+
       BTOR_INIT_STACK (str);
       len = strlen (argv[i]);
-      for (j = 3, val = 0; j < len && argv[i][j] != '='; j++)
+      for (j = 3, val = 0; j < len && argv[i][j]; j++)
         BTOR_PUSH_STACK (g_btormbt->mm, str, argv[i][j]);
       BTOR_PUSH_STACK (g_btormbt->mm, str, 0);
 
-      if (argv[i][j] == '=')
+      i += 1;
+      val = (int) strtol (argv[i], &tmp, 10);
+      if (tmp[0] != 0)
       {
-        valstr = argv[i] + j + 1;
-        if (valstr[0] == 0)
-        {
-          BTOR_RELEASE_STACK (g_btormbt->mm, str);
-          btormbt_error ("argument to '--b<btoropt>' missing (try '-h')");
-        }
-        val = (int) strtol (valstr, &tmp, 10);
-        if (tmp[0] != 0)
-        {
-          BTOR_RELEASE_STACK (g_btormbt->mm, str);
-          btormbt_error ("invalid argument to '--b<btoropt>' (try '-h')");
-        }
+        BTOR_RELEASE_STACK (g_btormbt->mm, str);
+        btormbt_error ("invalid argument to '--b<btoropt>' (try '-h')");
       }
 
       BTOR_NEW (g_btormbt->mm, btoropt);
@@ -3426,6 +3452,88 @@ main (int argc, char **argv)
     }
 
     /* advanced options */
+    else if (!strcmp (argv[i], "--min-bw"))
+    {
+      if (++i == argc)
+        btormbt_error ("argument to '--min-bw' missing (try '-h')");
+      if (!isnumstr (argv[i]))
+        btormbt_error ("argument to '--min-bw' is not a number (try '-h')");
+      g_btormbt->g_min_bw = atoi (argv[i]);
+      if (g_btormbt->g_min_bw < MIN_BITWIDTH)
+        btormbt_error (
+            "argument to '--min-bw' must not be less than %d "
+            "(try '-h')",
+            MIN_BITWIDTH);
+    }
+    else if (!strcmp (argv[i], "--max-bw"))
+    {
+      if (++i == argc)
+        btormbt_error ("argument to '--max-bw' missing (try '-h')");
+      if (!isnumstr (argv[i]))
+        btormbt_error ("argument to '--max-bw' is not a number (try '-h')");
+      g_btormbt->g_max_bw = atoi (argv[i]);
+      if (g_btormbt->g_max_bw < MIN_BITWIDTH)
+        btormbt_error (
+            "argument to '--max-bw' must not be less than %d "
+            "(try '-h')",
+            MIN_BITWIDTH);
+    }
+    else if (!strcmp (argv[i], "--min-index-bw"))
+    {
+      if (++i == argc)
+        btormbt_error ("argument to '--min-index-bw' missing (try '-h')");
+      if (!isnumstr (argv[i]))
+        btormbt_error (
+            "argument to '--min-index-bw' is not a number (try '-h')");
+      g_btormbt->g_min_index_bw = atoi (argv[i]);
+      if (g_btormbt->g_min_index_bw < MIN_INDEXWIDTH)
+        btormbt_error (
+            "argument to '--min-index-bw' must not be less "
+            "than %d (try '-h')",
+            MIN_INDEXWIDTH);
+    }
+    else if (!strcmp (argv[i], "--max-index-bw"))
+    {
+      if (++i == argc)
+        btormbt_error ("argument to '--max-index-bw' missing (try '-h')");
+      if (!isnumstr (argv[i]))
+        btormbt_error (
+            "argument to '--max-index-bw' is not a number (try '-h')");
+      g_btormbt->g_max_index_bw = atoi (argv[i]);
+      if (g_btormbt->g_max_index_bw < MIN_INDEXWIDTH)
+        btormbt_error (
+            "argument to '--max-index-bw' must not be less "
+            "than %d (try '-h')",
+            MIN_INDEXWIDTH);
+    }
+    else if (!strcmp (argv[i], "--min-muldiv-bw"))
+    {
+      if (++i == argc)
+        btormbt_error ("argument to '--min-muldiv-bw' missing (try '-h')");
+      if (!isnumstr (argv[i]))
+        btormbt_error (
+            "argument to '--min-muldiv-bw' is not a number (try '-h')");
+      g_btormbt->g_min_muldiv_bw = atoi (argv[i]);
+      if (g_btormbt->g_min_muldiv_bw < MIN_MULDIVWIDTH)
+        btormbt_error (
+            "argument to '--min-muldiv-bw' must not be less "
+            "than %d (try '-h')",
+            MIN_MULDIVWIDTH);
+    }
+    else if (!strcmp (argv[i], "--max-muldiv-bw"))
+    {
+      if (++i == argc)
+        btormbt_error ("argument to '--max-muldiv-bw' missing (try '-h')");
+      if (!isnumstr (argv[i]))
+        btormbt_error (
+            "argument to '--max-muldiv-bw' is not a number (try '-h')");
+      g_btormbt->g_max_muldiv_bw = atoi (argv[i]);
+      if (g_btormbt->g_max_muldiv_bw < MIN_MULDIVWIDTH)
+        btormbt_error (
+            "argument to '--max-muldiv-bw' must not be less "
+            "than %d (try '-h')",
+            MIN_MULDIVWIDTH);
+    }
     else if (!strcmp (argv[i], "--inputs"))
     {
       if (++i == argc)
@@ -4044,6 +4152,20 @@ main (int argc, char **argv)
       g_btormbt->seeded = 1;
     }
   }
+
+  if (g_btormbt->g_max_bw < g_btormbt->g_min_bw)
+    btormbt_error (
+        "value for '--min-bw' must be less or equal than '--max-bw' (try "
+        "'-h')");
+  if (g_btormbt->g_max_index_bw < g_btormbt->g_min_index_bw)
+    btormbt_error (
+        "value for '--min-index-bw' must be less or equal than '--max-index-bw'"
+        " (try '-h')");
+  if (g_btormbt->g_max_muldiv_bw < g_btormbt->g_min_muldiv_bw)
+    btormbt_error (
+        "value for '--min-muldiv-bw' must be less or equal than "
+        "'--max-muldiv-bw'"
+        " (try '-h')");
 
   g_btormbt->ppid = getpid ();
   set_sig_handlers ();
