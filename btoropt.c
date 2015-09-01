@@ -175,16 +175,11 @@ btor_init_opts (Btor *btor)
 #endif
   BTOR_OPT ("ls", lazy_synthesize, 0, 0, 1, "lazily synthesize expressions");
   BTOR_OPT ("es", eliminate_slices, 1, 0, 1, "eliminate slices on variables");
-  BTOR_OPT ("sp",
-            skeleton_preprocessing,
-            1,
-            0,
-            1,
-            "enable propositional skeletone preprocessing");
   BTOR_OPT ("el", eager_lemmas, 1, 0, 1, "eager lemma generation");
   BTOR_OPT ("ml", merge_lambdas, 1, 0, 1, "merge lambda chains");
   BTOR_OPT ("xl", extract_lambdas, 1, 0, 1, "extract lambda terms");
-  BTOR_OPT ("sp", skeleton_preproc, 1, 0, 1, "boolean skeleton preprocessing");
+  BTOR_OPT (
+      "sp", skeleton_preproc, 1, 0, 1, "propositional skeleton preprocessing");
   BTOR_OPT ("ac", auto_cleanup, 0, 0, 1, "auto cleanup on exit");
   BTOR_OPT ("p", pretty_print, 1, 0, 1, "pretty print when dumping");
   BTOR_OPT ("e", exit_codes, 1, 0, 1, "use Boolector exit codes");
