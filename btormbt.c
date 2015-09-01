@@ -2553,7 +2553,7 @@ static void *btormbt_state_bv_fun (BtorMBT *, unsigned);
 static void *btormbt_state_bv_uf (BtorMBT *, unsigned);
 static void *btormbt_state_input (BtorMBT *, unsigned);
 static void *btormbt_state_release (BtorMBT *, unsigned);
-static void *btormbt_state_model_assume_assert (BtorMBT *, unsigned);
+static void *btormbt_state_assume_assert (BtorMBT *, unsigned);
 static void *btormbt_state_sat (BtorMBT *, unsigned);
 static void *btormbt_state_dump (BtorMBT *, unsigned);
 static void *btormbt_state_model_gen (BtorMBT *, unsigned);
@@ -2787,7 +2787,7 @@ btormbt_state_main (BtorMBT *mbt, unsigned r)
     BTORMBT_LOG_STATUS (2, "main");
     rand = pick (&rng, 0, NORM_VAL - 1);
     if (rand < mbt->max_ass * NORM_VAL / mbt->max_ops)
-      return btormbt_state_model_assume_assert;
+      return btormbt_state_assume_assert;
     else
     {
       rand = pick (&rng, 0, NORM_VAL - 1);
@@ -2994,7 +2994,7 @@ btormbt_state_release (BtorMBT *mbt, unsigned r)
 }
 
 static void *
-btormbt_state_model_assume_assert (BtorMBT *mbt, unsigned r)
+btormbt_state_assume_assert (BtorMBT *mbt, unsigned r)
 {
   int lower;
   BoolectorNode *node;
