@@ -3716,26 +3716,28 @@ btor_write_exp (Btor *btor,
     b             = btor_insert_in_ptr_hash_table (lambda->static_rho, args);
     b->data.asPtr = btor_copy_exp (btor, e_value);
   }
-#ifndef NDEBUG
-  else
-  {
-    if (lambda->static_rho->count == 1)
-    {
-      assert ((args = lambda->static_rho->first->key) && args->e[0] == e_index);
-      assert (((BtorNode *) lambda->static_rho->first->data.asPtr) == e_value);
-    }
-    else
-    {
-      BtorHashTableIterator it;
-      btor_init_node_hash_table_iterator (&it, lambda->static_rho);
-      while (btor_has_next_node_hash_table_iterator (&it))
-      {
-        assert (it.bucket->data.asPtr == e_value);
-        (void) btor_next_node_hash_table_iterator (&it);
-      }
-    }
-  }
-#endif
+  //#ifndef NDEBUG
+  //  else
+  //    {
+  //      if (lambda->static_rho->count == 1)
+  //	{
+  //	  assert ((args = lambda->static_rho->first->key)
+  //		  && args->e[0] == e_index);
+  //	  assert (((BtorNode *) lambda->static_rho->first->data.asPtr)
+  //		  == e_value);
+  //	}
+  //      else
+  //	{
+  //	  BtorHashTableIterator it;
+  //	  btor_init_node_hash_table_iterator (&it, lambda->static_rho);
+  //	  while (btor_has_next_node_hash_table_iterator (&it))
+  //	    {
+  //	      assert (it.bucket->data.asPtr == e_value);
+  //	      (void) btor_next_node_hash_table_iterator (&it);
+  //	    }
+  //	}
+  //    }
+  //#endif
 
   btor_release_exp (btor, e_if);
   btor_release_exp (btor, e_else);

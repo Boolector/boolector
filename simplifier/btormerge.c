@@ -16,31 +16,31 @@
 #include "utils/btoriter.h"
 #include "utils/btorutil.h"
 
-#ifndef NDEBUG
-static bool
-check_static_rho_equal_dbg (BtorPtrHashTable *t0, BtorPtrHashTable *t1)
-{
-  assert (t0);
-  assert (t1);
-  assert (t0->count == t1->count);
-
-  BtorHashTableIterator it;
-  BtorPtrHashBucket *b;
-  BtorNode *value, *args;
-
-  btor_init_node_hash_table_iterator (&it, t0);
-  while (btor_has_next_node_hash_table_iterator (&it))
-  {
-    value = it.bucket->data.asPtr;
-    args  = btor_next_node_hash_table_iterator (&it);
-    assert (args->arity == 1);
-    b = btor_find_in_ptr_hash_table (t1, args);
-    assert (b);
-    assert (b->data.asPtr == value);
-  }
-  return true;
-}
-#endif
+//#ifndef NDEBUG
+// static bool
+// check_static_rho_equal_dbg (BtorPtrHashTable * t0, BtorPtrHashTable * t1)
+//{
+//  assert (t0);
+//  assert (t1);
+//  assert (t0->count == t1->count);
+//
+//  BtorHashTableIterator it;
+//  BtorPtrHashBucket *b;
+//  BtorNode *value, *args;
+//
+//  btor_init_node_hash_table_iterator (&it, t0);
+//  while (btor_has_next_node_hash_table_iterator (&it))
+//    {
+//      value = it.bucket->data.asPtr;
+//      args = btor_next_node_hash_table_iterator (&it);
+//      assert (args->arity == 1);
+//      b = btor_find_in_ptr_hash_table (t1, args);
+//      assert (b);
+//      assert (b->data.asPtr == value);
+//    }
+//  return true;
+//}
+//#endif
 
 static void
 delete_static_rho (Btor *btor, BtorPtrHashTable *static_rho)
@@ -233,8 +233,9 @@ btor_merge_lambdas (Btor *btor)
        * the same elements as static_rho */
       if (btor_lambda_get_static_rho (subst))
       {
-        assert (check_static_rho_equal_dbg (btor_lambda_get_static_rho (subst),
-                                            static_rho));
+        //	      assert (check_static_rho_equal_dbg (
+        //			   btor_lambda_get_static_rho (subst),
+        // static_rho));
         /* 'static_rho' contains elements so we have to release them
          * properly */
         delete_static_rho (btor, static_rho);
