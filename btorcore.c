@@ -4254,8 +4254,17 @@ search_initial_applies_just (Btor *btor, BtorNodePtrStack *top_applies)
     while (!BTOR_EMPTY_STACK (stack))
     {
       cur = BTOR_REAL_ADDR_NODE (BTOR_POP_STACK (stack));
-      assert (!cur->parameterized);
+
       if (cur->aux_mark) continue;
+
+      /* in case of function equalities we have to visit the functions
+       * below an equality and all of their children */
+      if (btor->feqs->count > 0
+          && (BTOR_IS_FUN_NODE (cur) || BTOR_IS_ARGS_NODE (cur)
+              || cur->parameterized))
+        goto PUSH_CHILDREN;
+
+      assert (!cur->parameterized);
       cur->aux_mark = 1;
       BTOR_PUSH_STACK (btor->mm, unmark_stack, cur);
 
