@@ -4228,16 +4228,19 @@ search_initial_applies_just (Btor *btor, BtorNodePtrStack *top_applies)
   assert (check_id_table_aux_mark_unset_dbg (btor));
 
   int i;
-  char *c, *c0, *c1;
+  int a, a0, a1;
   double start;
-  BtorNode *cur;
+  BtorNode *cur, *e0, *e1;
   BtorHashTableIterator it;
   BtorNodePtrStack stack, unmark_stack;
+  BtorAIGMgr *amgr;
 
   start = btor_time_stamp ();
 
   BTORLOG (1, "");
   BTORLOG (1, "*** search initial applies");
+
+  amgr = btor_get_aig_mgr_btor (btor);
 
   BTOR_INIT_STACK (stack);
   BTOR_INIT_STACK (unmark_stack);
@@ -4281,20 +4284,40 @@ search_initial_applies_just (Btor *btor, BtorNodePtrStack *top_applies)
         switch (cur->kind)
         {
           case BTOR_AND_NODE:
-            c  = bv_assignment_str_exp (btor, cur);
-            c0 = bv_assignment_str_exp (btor, cur->e[0]);
-            c1 = bv_assignment_str_exp (btor, cur->e[1]);
 
-            if (c[0] == '1' || c[0] == 'x')  // and = 1
+            a = BTOR_IS_SYNTH_NODE (cur)
+                    ? btor_get_assignment_aig (amgr, cur->av->aigs[0])
+                    : 0;  // 'x'
+
+            e0 = BTOR_REAL_ADDR_NODE (cur->e[0]);
+            e1 = BTOR_REAL_ADDR_NODE (cur->e[1]);
+
+            a0 = BTOR_IS_SYNTH_NODE (e0)
+                     ? btor_get_assignment_aig (amgr, e0->av->aigs[0])
+                     : 0;  // 'x'
+            if (a0 && BTOR_IS_INVERTED_NODE (cur->e[0])) a0 *= -1;
+
+            a1 = BTOR_IS_SYNTH_NODE (e1)
+                     ? btor_get_assignment_aig (amgr, e1->av->aigs[0])
+                     : 0;  // 'x'
+            if (a1 && BTOR_IS_INVERTED_NODE (cur->e[1])) a1 *= -1;
+
+            // c = bv_assignment_str_exp (btor, cur);
+            // c0 = bv_assignment_str_exp (btor, cur->e[0]);
+            // c1 = bv_assignment_str_exp (btor, cur->e[1]);
+
+            // if (c[0] == '1' || c[0] == 'x')  // and = 1
+            if (a != -1)  // and = 1 or x
             {
               BTOR_PUSH_STACK (btor->mm, stack, cur->e[0]);
               BTOR_PUSH_STACK (btor->mm, stack, cur->e[1]);
             }
             else  // and = 0
             {
-              assert (c[0] == '0');
+              // assert (c[0] == '0');
 
-              if (c0[0] == '0' && c1[0] == '0'
+              // if (c0[0] == '0' && c1[0] == '0'
+              if (a0 == -1 && a1 == -1  // both inputs 0
                   && btor->options.just_heuristic.val)
               {
                 if (btor_compare_scores (btor, cur->e[0], cur->e[1]))
@@ -4302,25 +4325,31 @@ search_initial_applies_just (Btor *btor, BtorNodePtrStack *top_applies)
                 else
                   BTOR_PUSH_STACK (btor->mm, stack, cur->e[1]);
               }
-              else if (c0[0] == '0')
+              // else if (c0[0] == '0')
+              else if (a0 == -1)  // only one input 0
                 BTOR_PUSH_STACK (btor->mm, stack, cur->e[0]);
-              else if (c1[0] == '0')
+              // else if (c1[0] == '0')
+              else if (a1 == -1)  // only one input 0
                 BTOR_PUSH_STACK (btor->mm, stack, cur->e[1]);
-              else if (c0[0] == 'x' && c1[0] == '1')
+              // else if (c0[0] == 'x' && c1[0] == '1')
+              else if (a0 == 0 && a1 == 1)  // first input x, second 0
                 BTOR_PUSH_STACK (btor->mm, stack, cur->e[0]);
-              else if (c0[0] == '1' && c1[0] == 'x')
+              // else if (c0[0] == '1' && c1[0] == 'x')
+              else if (a0 == 1 && a1 == 0)  // first input 0, second x
                 BTOR_PUSH_STACK (btor->mm, stack, cur->e[1]);
-              else
+              else  // both inputs x
               {
-                assert (c0[0] == 'x');
-                assert (c1[0] == 'x');
+                // assert (c0[0] == 'x');
+                // assert (c1[0] == 'x');
+                assert (a0 == 0);
+                assert (a1 == 0);
                 BTOR_PUSH_STACK (btor->mm, stack, cur->e[0]);
                 BTOR_PUSH_STACK (btor->mm, stack, cur->e[1]);
               }
             }
-            btor_release_bv_assignment_str (btor, c);
-            btor_release_bv_assignment_str (btor, c0);
-            btor_release_bv_assignment_str (btor, c1);
+            // btor_release_bv_assignment_str (btor, c);
+            // btor_release_bv_assignment_str (btor, c0);
+            // btor_release_bv_assignment_str (btor, c1);
             break;
 
 #if 0
