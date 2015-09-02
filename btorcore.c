@@ -4300,7 +4300,7 @@ search_initial_applies_just (Btor *btor, BtorNodePtrStack *top_applies)
             a1 = BTOR_IS_SYNTH_NODE (e1)
                      ? btor_get_assignment_aig (amgr, e1->av->aigs[0])
                      : 0;  // 'x'
-            if (a0 && BTOR_IS_INVERTED_NODE (cur->e[1])) a1 *= -1;
+            if (a1 && BTOR_IS_INVERTED_NODE (cur->e[1])) a1 *= -1;
 
             // c = bv_assignment_str_exp (btor, cur);
             // c0 = bv_assignment_str_exp (btor, cur->e[0]);
