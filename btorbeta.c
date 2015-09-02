@@ -705,7 +705,7 @@ btor_beta_reduce_partial_aux (Btor *btor,
 
   int i, rwl;
   double start;
-  const char *eval_res;
+  BtorBitVector *eval_res;
   BtorMemMgr *mm;
   BtorNode *cur, *real_cur, *cur_parent, *next, *result, **e, *args, *cur_args;
   BtorNodePtrStack stack, arg_stack;
@@ -946,14 +946,14 @@ btor_beta_reduce_partial_aux (Btor *btor,
 
               tmp                 = 0;
               real_cur->beta_mark = 2;
-              if (eval_res[0] == '1')
+              if (btor_get_bit_bv (eval_res, 0))
               {
                 if (cond_sel_if) tmp = cond_sel_if;
                 next = real_cur->e[1];
               }
               else
               {
-                assert (eval_res[0] == '0');
+                assert (!btor_get_bit_bv (eval_res, 0));
                 if (cond_sel_else) tmp = cond_sel_else;
                 next = real_cur->e[2];
               }
@@ -967,7 +967,7 @@ btor_beta_reduce_partial_aux (Btor *btor,
                   btor_delete_param_cache_tuple (btor, t0);
               }
               assert (next);
-              btor_freestr (mm, (char *) eval_res);
+              btor_free_bv (btor->mm, eval_res);
 
               real_cur->beta_mark = 0;
               if (BTOR_IS_INVERTED_NODE (cur)) next = BTOR_INVERT_NODE (next);
