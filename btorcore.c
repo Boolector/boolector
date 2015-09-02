@@ -6297,9 +6297,8 @@ add_lemma_to_dual_prop_clone (Btor *btor,
   BtorNode *clemma, *and;
 
   clemma = btor_recursively_rebuild_exp_clone (btor, clone, lemma, exp_map);
-  assert (lemma);
-  BTOR_REAL_ADDR_NODE (lemma)->constraint = 0;
-  and                                     = btor_and_exp (clone, *root, clemma);
+  assert (clemma);
+  and = btor_and_exp (clone, *root, clemma);
   btor_release_exp (clone, clemma);
   btor_release_exp (clone, *root);
   *root = and;
