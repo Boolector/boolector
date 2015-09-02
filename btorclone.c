@@ -453,13 +453,13 @@ clone_exp (Btor *clone,
   }
 
   /* Note: no need to cache aig vectors here (exp->av is unique to exp). */
-  if (!BTOR_IS_FUN_NODE (exp) && exp->av)
-    res->av = btor_clone_aigvec (exp->av, clone->avmgr);
-  else
+  if (BTOR_IS_FUN_NODE (exp))
   {
     BTOR_PUSH_STACK_IF (res->rho, mm, *rhos, &res->rho);
     BTOR_PUSH_STACK_IF (exp->rho, mm, *rhos, &exp->rho);
   }
+  else if (exp->av)
+    res->av = exp_layer_only ? 0 : btor_clone_aigvec (exp->av, clone->avmgr);
 
   assert (!exp->next || !BTOR_IS_INVALID_NODE (exp->next));
   BTOR_PUSH_STACK_IF (exp->next, mm, *nodes, &res->next);
@@ -1138,19 +1138,23 @@ clone_aux_btor (Btor *btor, BtorNodeMap **exp_map, bool exp_layer_only)
       BTOR_REAL_ADDR_NODE (exp)->constraint = 0;
       BTOR_PUSH_STACK (btor->mm, stack, exp);
     }
+    allocated -= MEM_PTR_HASH_TABLE (clone->synthesized_constraints);
     btor_delete_ptr_hash_table (clone->synthesized_constraints);
     clone->synthesized_constraints =
         btor_new_ptr_hash_table (mm,
                                  (BtorHashPtr) btor_hash_exp_by_id,
                                  (BtorCmpPtr) btor_compare_exp_by_id);
+    allocated += MEM_PTR_HASH_TABLE (clone->synthesized_constraints);
+    allocated -= MEM_PTR_HASH_TABLE (clone->unsynthesized_constraints);
     while (!BTOR_EMPTY_STACK (stack))
     {
       exp = BTOR_POP_STACK (stack);
       assert (!BTOR_REAL_ADDR_NODE (exp)->constraint);
-      if (!btor_find_in_ptr_hash_table (clone->synthesized_constraints, exp))
-        btor_insert_in_ptr_hash_table (clone->unsynthesized_constraints, exp);
+      btor_insert_in_ptr_hash_table (clone->unsynthesized_constraints, exp);
     }
+    allocated += MEM_PTR_HASH_TABLE (clone->unsynthesized_constraints);
     BTOR_RELEASE_STACK (btor->mm, stack);
+    assert (allocated == clone->mm->allocated);
   }
 
   if (btor->slv) clone->slv = btor->slv->api.clone (clone, btor, emap);
