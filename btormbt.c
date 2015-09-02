@@ -955,8 +955,7 @@ btormbt_new_btormbt (void)
 
   mm = btor_new_mem_mgr ();
   BTOR_CNEW (mm, mbt);
-  mbt->mm   = mm;
-  mbt->btor = boolector_new ();
+  mbt->mm = mm;
 
   BTOR_INIT_STACK (mbt->btor_opts);
 
@@ -1074,7 +1073,6 @@ btormbt_delete_btormbt (BtorMBT *mbt)
   BtorMemMgr *mm;
   BtorMBTBtorOpt *opt;
 
-  if (mbt->btor) boolector_delete (mbt->btor);
   mm = mbt->mm;
   while (!BTOR_EMPTY_STACK (mbt->btor_opts))
   {
@@ -2625,9 +2623,7 @@ btormbt_state_new (BtorMBT *mbt, unsigned r)
                mbt->p_release / 10,
                mbt->max_inputs);
 
-  /* we need a btor instance during option parsing, hence mbt->btor is
-   * already initialized in the first round */
-  if (!mbt->btor) mbt->btor = boolector_new ();
+  mbt->btor = boolector_new ();
   assert (mbt->btor);
   if (mbt->shadow)
   {
@@ -3342,6 +3338,7 @@ main (int argc, char **argv)
   int exitcode;
   int i, val, mac, pid, prev, res, verbosity, status;
   char *name, *cmd, *tmp;
+  const char *tmpshrt;
   int namelen, cmdlen, tmppid;
   BtorMBTBtorOpt *btoropt;
 
@@ -3456,11 +3453,14 @@ main (int argc, char **argv)
     /* boolector options */
     else if (!strcmp (argv[i], "-b"))
     {
+      Btor *tmpbtor = boolector_new ();
       if (++i == argc) btormbt_error ("argument to '-b' missing (try '-h')");
-      for (tmp = (char *) boolector_first_opt (g_btormbt->btor); tmp;
-           tmp = (char *) boolector_next_opt (g_btormbt->btor, tmp))
+      for (tmp = (char *) boolector_first_opt (tmpbtor); tmp;
+           tmp = (char *) boolector_next_opt (tmpbtor, tmp))
       {
         if (!strcmp (tmp, argv[i])) break;
+        tmpshrt = boolector_get_opt_shrt (tmpbtor, tmp);
+        if (tmpshrt && !strcmp (tmpshrt, argv[i])) break;
       }
       if (!tmp) btormbt_error ("invalid boolector option '%s'", argv[i]);
       BTOR_NEW (g_btormbt->mm, btoropt);
@@ -3470,6 +3470,7 @@ main (int argc, char **argv)
       if (tmp[0] != 0) btormbt_error ("invalid argument to '-b' (try '-h')");
       btoropt->val = val;
       BTOR_PUSH_STACK (g_btormbt->mm, g_btormbt->btor_opts, btoropt);
+      boolector_delete (tmpbtor);
     }
 
     /* advanced options */

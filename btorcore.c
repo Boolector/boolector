@@ -4276,6 +4276,9 @@ search_initial_applies_just (Btor *btor, BtorNodePtrStack *top_applies)
             c0 = bv_assignment_str_exp (btor, cur->e[0]);
             c1 = bv_assignment_str_exp (btor, cur->e[1]);
 
+            assert (c[0] != 'x');
+            assert (c0[0] != 'x');
+            assert (c1[0] != 'x');
             if (c[0] == '1' || c[0] == 'x')  // and = 1
             {
               BTOR_PUSH_STACK (btor->mm, stack, cur->e[0]);
