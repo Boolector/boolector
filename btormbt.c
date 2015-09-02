@@ -3348,6 +3348,7 @@ main (int argc, char **argv)
   pid      = 0;
   prev     = 0;
   exitcode = 0;
+  namelen  = 0;
 
   for (i = 1; i < argc; i++)
   {
