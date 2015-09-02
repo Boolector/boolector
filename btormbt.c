@@ -17,6 +17,7 @@
 #include "utils/btorstack.h"
 #include "utils/btorutil.h"
 // FIXME (ma): external sort handling?
+#include "btoropt.h"
 #include "btorsort.h"
 
 #include <assert.h>
@@ -46,6 +47,9 @@
 #define MAX_INDEXWIDTH 8
 #define MIN_MULDIVWIDTH 1
 #define MAX_MULDIVWIDTH 8
+
+#define MIN_SORT_FUN_ARITY 2
+#define MAX_SORT_FUN_ARITY 10
 
 #define MIN_NPARAMS 1 /* must be >= 1 */
 #define MAX_NPARAMS 5
@@ -129,6 +133,10 @@
 #define MIN_NASSERTS_UPPER 20
 #define MAX_NASSERTS_UPPER 30
 
+#define P_SORT_BV 0.5
+#define P_SORT_FUN 0.5
+#define P_SORT_FUN_UNARY 0.1
+#define P_ASSUME 0.8
 #define P_PARAM_EXP 0.5
 #define P_PARAM_ARR_EXP 0.5
 #define P_APPLY_FUN 0.5
@@ -175,11 +183,11 @@
   "\n"                                                                         \
   "  --logic <logic>                  generate <logic> formulas only, "        \
   "available\n"                                                                \
-  "                                   logics are: QF_BV, QF_UFBV, QF_ABV, "    \
+  "                                   logics are: QF_BV,QF_UFBV,QF_ABV,"       \
   "QF_AUFBV\n"                                                                 \
   "                                   (default: QF_AUFBV)\n"                   \
   "  -e, --extensionality             use extensionality\n"                    \
-  "  --b<btoropt> <val>               set boolector option <btoropt>\n"
+  "  -b <btoropt> <val>               set boolector option <btoropt>\n"
 
 /*------------------------------------------------------------------------*/
 
@@ -187,22 +195,23 @@
   "\n" \
   "-------------------------------------------------------------------------\n"\
   "\nadvanced options:\n\n" \
-  "  --min-bw <min>                   min bit width (min: " \
+  "  --bw <min> <max>                 bit width (min: " \
                                       BTORMBT_M2STR (MIN_BITWIDTH) ") [" \
-                                      BTORMBT_M2STR (MIN_BITWIDTH) "]\n" \
-  "  --max-bw <max>                   max bit width (min: " \
-                                      BTORMBT_M2STR (MIN_BITWIDTH) ") [" \
+                                      BTORMBT_M2STR (MIN_BITWIDTH) " "\
                                       BTORMBT_M2STR (MAX_BITWIDTH) "]\n" \
-  "  --min-index-bw <min>             min index bit width (min: " \
+  "  --index-bw <min> <max>           index bit width (min: " \
                                       BTORMBT_M2STR (MIN_INDEXWIDTH) ") [" \
-                                      BTORMBT_M2STR (MIN_INDEXWIDTH) "]\n" \
-  "  --max-index-bw <max>             max index bit width [" \
+                                      BTORMBT_M2STR (MIN_INDEXWIDTH) " " \
                                       BTORMBT_M2STR (MAX_INDEXWIDTH) "]\n" \
-  "  --min-muldiv-bw <min>            min bit widht for mul/div (min: " \
+  "  --muldiv-bw <min> <max>          bit width for mul/div (min: " \
                                       BTORMBT_M2STR (MIN_MULDIVWIDTH) ") [" \
-                                      BTORMBT_M2STR (MIN_MULDIVWIDTH) "]\n" \
-  "  --max-muldiv-bw <max>            max bit width for mul/div [" \
+                                      BTORMBT_M2STR (MIN_MULDIVWIDTH) " " \
                                       BTORMBT_M2STR (MAX_MULDIVWIDTH) "]\n" \
+  "\n" \
+  "  --sort-fun-arity <min> <max>     fun sort min and max arity [" \
+                                      BTORMBT_M2STR (MIN_SORT_FUN_ARITY) \
+                                      BTORMBT_M2STR (MAX_SORT_FUN_ARITY) \
+                                     "]\n" \
   "\n" \
   "  --inputs <min> <max>             num inputs [" \
                                       BTORMBT_M2STR (MIN_NLITS) " " \
@@ -220,7 +229,7 @@
                                       BTORMBT_M2STR (MIN_NCONSTS_INIT) " " \
                                       BTORMBT_M2STR (MAX_NCONSTS_INIT) "]\n" \
   "  --consts <min> <max>             num constants after initial " \
-                                      "layer [" \
+                                     "layer [" \
                                       BTORMBT_M2STR (MIN_NCONSTS) " " \
                                       BTORMBT_M2STR (MAX_NCONSTS) "]\n" \
   "  --consts-inc <min> <max>         num constants for reinit. inc. step [" \
@@ -246,7 +255,7 @@
                                       BTORMBT_M2STR (MAX_NOPS_INC) "]\n" \
   "\n" \
   "  --max-ops-lower <val>            lower bound for max-ops in current " \
-                                      "round [" \
+                                     "round [" \
                                       BTORMBT_M2STR (MAX_NOPS_LOWER) "]\n" \
   "\n" \
   "  --asserts-lower <min> <max>      num assertions for current\n" \
@@ -313,17 +322,26 @@
                                       BTORMBT_M2STR (MIN_NADDOPLITS_INC) " " \
                                       BTORMBT_M2STR (MAX_NADDOPLITS_INC) "]\n" \
   "\n probability options:\n" \
+  "  --p-sort-bv <val>                choose existing over new bv sort [" \
+                                      BTORMBT_M2STR (P_SORT_BV) "]\n" \
+  "  --p-sort-fun <val>               choose existing over new fun sort [" \
+                                      BTORMBT_M2STR (P_SORT_FUN) "]\n" \
+  "  --p-sort-fun-unary <val>         choose unary fun sort [" \
+                                      BTORMBT_M2STR (P_SORT_FUN_UNARY) "]\n" \
+  "  --p-assume <val>                 choose assumption over assertion in \n" \
+  "                                   incremental mode [" \
+                                      BTORMBT_M2STR (P_ASSUME) "] \n" \
   "  --p-param-exp <val>              choose parameterized over\n" \
-  "                                    non-parameterized expressions [" \
+  "                                   non-parameterized expressions [" \
                                       BTORMBT_M2STR (P_PARAM_EXP) "]\n" \
   "  --p-param-arr-exp <val>          choose parameterized over\n" \
-  "                                    non-parameterized array expressions [" \
+  "                                   non-parameterized array expressions [" \
                                       BTORMBT_M2STR (P_PARAM_ARR_EXP) "]\n" \
   "  --p-apply-fun <val>              choose apply on existing over new\n"\
-  "                                    function [" \
+  "                                   function [" \
                                       BTORMBT_M2STR (P_APPLY_FUN) "]\n" \
   "  --p-apply-uf <val>               choose apply on existing over new\n"\
-  "                                    uninterpreted function [" \
+  "                                   uninterpreted function [" \
                                       BTORMBT_M2STR (P_APPLY_UF) "]\n" \
   "  --p-rw <val>                     choose read/write over eq/ne/cond [" \
                                       BTORMBT_M2STR (P_RW) "]\n" \
@@ -343,7 +361,7 @@
                                       BTORMBT_M2STR (P_MODEL_FORMAT) "]\n" \
   "\n other options:\n" \
   "  --output-format <string>         force dump/model output format\n" \
-  "                                    (btor,smt1,smt2)\n"
+  "                                   available formats are: btor,smt1,smt2\n"
 
 /*------------------------------------------------------------------------*/
 
@@ -751,6 +769,9 @@ struct BtorMBT
   int g_min_muldiv_bw;
   int g_max_muldiv_bw;
 
+  int g_min_sort_fun_arity;
+  int g_max_sort_fun_arity;
+
   int g_min_inputs; /* min number of inputs in a round */
   int g_max_inputs; /* max number of inputs in a round */
 
@@ -845,24 +866,31 @@ struct BtorMBT
                                for max_ops >= g_max_ops_lower */
 
   /* propability options */
-  int p_param_exp;     /* probability of choosing parameterized expressions
-                          over non-parameterized expressions */
-  int p_param_arr_exp; /* probability of choosing parameterized expressions
-                          over non-parameterized array expressions */
-  int p_apply_fun;     /* probability of choosing an apply on an existing
-                          over an apply on a new function */
-  int p_apply_uf;      /* probability of choosing an apply on an existing
-                          over an apply on a new uninterpreted function */
-  int p_rw;            /* probability of choosing read/write over
-                          eq/ne/cond */
-  int p_read;          /* probability of choosing read over write */
-  int p_cond;          /* probability of choosing cond over eq/ne */
-  int p_eq;            /* probability of choosing eq over ne */
-  int p_inc;           /* probability of choosing an incremental step */
-  int p_dump;          /* probability of dumping formula and exit */
-  int p_print_model;   /* probability of printing the model after a sat call */
-  int p_model_format;  /* probability of using btor over smt2 format when
-                          printing a model */
+  int p_sort_bv;        /* probability of choosing an existing bv sort over
+                           creating a new one */
+  int p_sort_fun;       /* probability of choosing an existing fun sort over
+                           creating a new one */
+  int p_sort_fun_unary; /* probability of choosing a unary fun sort */
+  int p_assume;         /* probability of choosing an assumption over an
+                           an assertion in incremental mode */
+  int p_param_exp;      /* probability of choosing parameterized expressions
+                           over non-parameterized expressions */
+  int p_param_arr_exp;  /* probability of choosing parameterized expressions
+                           over non-parameterized array expressions */
+  int p_apply_fun;      /* probability of choosing an apply on an existing
+                           over an apply on a new function */
+  int p_apply_uf;       /* probability of choosing an apply on an existing
+                           over an apply on a new uninterpreted function */
+  int p_rw;             /* probability of choosing read/write over
+                           eq/ne/cond */
+  int p_read;           /* probability of choosing read over write */
+  int p_cond;           /* probability of choosing cond over eq/ne */
+  int p_eq;             /* probability of choosing eq over ne */
+  int p_inc;            /* probability of choosing an incremental step */
+  int p_dump;           /* probability of dumping formula and exit */
+  int p_print_model;    /* probability of printing the model after a sat call */
+  int p_model_format;   /* probability of using btor over smt2 format when
+                           printing a model */
   /* other options */
   char *output_format; /* force output format for dumping/printing models */
 
@@ -901,8 +929,6 @@ struct BtorMBT
   /* prob. distribution of functions (without macros and array operations),
    * array operations, macros, inputs in current round */
   float p_bitvec_fun, p_bitvec_uf, p_array_op, p_bitvec_op, p_input;
-  /* prob. distribution of assertions in current round */
-  float p_ass;
 
   int ops;     /* number of operations in current round */
   int asserts; /* number of produced asserts in current round */
@@ -947,6 +973,8 @@ btormbt_new_btormbt (void)
   mbt->g_max_index_bw           = MAX_INDEXWIDTH;
   mbt->g_min_muldiv_bw          = MIN_MULDIVWIDTH;
   mbt->g_max_muldiv_bw          = MAX_MULDIVWIDTH;
+  mbt->g_min_sort_fun_arity     = MIN_SORT_FUN_ARITY;
+  mbt->g_max_sort_fun_arity     = MAX_SORT_FUN_ARITY;
   mbt->g_min_inputs             = MIN_NLITS;
   mbt->g_max_inputs             = MAX_NLITS;
   mbt->g_min_vars_init          = MIN_NVARS_INIT;
@@ -1019,6 +1047,9 @@ btormbt_new_btormbt (void)
   mbt->g_max_asserts_lower      = MAX_NASSERTS_LOWER;
   mbt->g_min_asserts_upper      = MIN_NASSERTS_UPPER;
   mbt->g_max_asserts_upper      = MAX_NASSERTS_UPPER;
+  mbt->p_sort_bv                = P_SORT_BV * NORM_VAL;
+  mbt->p_sort_fun               = P_SORT_BV * NORM_VAL;
+  mbt->p_assume                 = P_ASSUME * NORM_VAL;
   mbt->p_param_exp              = P_PARAM_EXP * NORM_VAL;
   mbt->p_param_arr_exp          = P_PARAM_ARR_EXP * NORM_VAL;
   mbt->p_apply_fun              = P_APPLY_FUN * NORM_VAL;
@@ -2160,8 +2191,7 @@ btormbt_bv_sort (BtorMBT *mbt, unsigned r)
   rng  = initrng (r);
   rand = pick (&rng, 0, NORM_VAL - 1);
 
-  // TODO: option for 0.5 p_sort_bv
-  if (BTOR_COUNT_STACK (*mbt->bv_sorts) && rand < 0.5)
+  if (BTOR_COUNT_STACK (*mbt->bv_sorts) && rand < mbt->p_sort_bv)
   {
     /* use existing bv sort */
     rand = pick (&rng, 0, BTOR_COUNT_STACK (*mbt->bv_sorts) - 1);
@@ -2188,16 +2218,13 @@ init_domain (BtorMBT *mbt, unsigned r, BoolectorSortStack *sortstack)
   rng  = initrng (r);
   rand = pick (&rng, 0, NORM_VAL - 1);
 
-  // TODO: option for 0.1 p_sort_fun_unary?
-  if (rand < 0.1)
+  if (rand < mbt->p_sort_fun_unary)
   {
     btormbt_push_sort_stack (mbt->mm, sortstack, btormbt_bv_sort (mbt, r));
     return;
   }
 
-  // TODO: option for 2 sort_fun_min_arity
-  // TODO: option for 10 sort_fun_max_arity
-  arity = pick (&rng, 2, 10);
+  arity = pick (&rng, mbt->g_min_sort_fun_arity, mbt->g_max_sort_fun_arity);
   for (i = 0; i < arity; i++)
     btormbt_push_sort_stack (mbt->mm, sortstack, btormbt_bv_sort (mbt, r));
 }
@@ -2213,8 +2240,7 @@ btormbt_fun_sort (BtorMBT *mbt, unsigned r)
   rng  = initrng (r);
   rand = pick (&rng, 0, NORM_VAL - 1);
 
-  // TODO: option for 0.5 p_sort_fun
-  if (BTOR_COUNT_STACK (*mbt->fun_sorts) && rand < 0.5)
+  if (BTOR_COUNT_STACK (*mbt->fun_sorts) && rand < mbt->p_sort_fun)
   {
     /* use existing fun sort */
     rand = pick (&rng, 0, BTOR_COUNT_STACK (*mbt->fun_sorts) - 1);
@@ -2553,7 +2579,7 @@ static void *btormbt_state_bv_fun (BtorMBT *, unsigned);
 static void *btormbt_state_bv_uf (BtorMBT *, unsigned);
 static void *btormbt_state_input (BtorMBT *, unsigned);
 static void *btormbt_state_release (BtorMBT *, unsigned);
-static void *btormbt_state_model_assume_assert (BtorMBT *, unsigned);
+static void *btormbt_state_assume_assert (BtorMBT *, unsigned);
 static void *btormbt_state_sat (BtorMBT *, unsigned);
 static void *btormbt_state_dump (BtorMBT *, unsigned);
 static void *btormbt_state_model_gen (BtorMBT *, unsigned);
@@ -2787,7 +2813,7 @@ btormbt_state_main (BtorMBT *mbt, unsigned r)
     BTORMBT_LOG_STATUS (2, "main");
     rand = pick (&rng, 0, NORM_VAL - 1);
     if (rand < mbt->max_ass * NORM_VAL / mbt->max_ops)
-      return btormbt_state_model_assume_assert;
+      return btormbt_state_assume_assert;
     else
     {
       rand = pick (&rng, 0, NORM_VAL - 1);
@@ -2994,9 +3020,9 @@ btormbt_state_release (BtorMBT *mbt, unsigned r)
 }
 
 static void *
-btormbt_state_model_assume_assert (BtorMBT *mbt, unsigned r)
+btormbt_state_assume_assert (BtorMBT *mbt, unsigned r)
 {
-  int lower;
+  int lower, rand;
   BoolectorNode *node;
   RNG rng = initrng (r);
 
@@ -3010,8 +3036,8 @@ btormbt_state_model_assume_assert (BtorMBT *mbt, unsigned r)
       btormbt_clause (mbt, &rng, lower, BTOR_COUNT_STACK (mbt->bo->exps) - 1);
   assert (!BTOR_REAL_ADDR_NODE (node)->parameterized);
 
-  // TODO: use p_ass here?
-  if (mbt->inc && pick (&rng, 0, 4))
+  rand = pick (&rng, 0, NORM_VAL - 1);
+  if (mbt->inc && rand < mbt->p_assume)
   {
     boolector_assume (mbt->btor, node);
     btormbt_push_exp_stack (mbt->mm, mbt->assumptions, node);
@@ -3310,10 +3336,10 @@ int
 main (int argc, char **argv)
 {
   int exitcode;
-  int i, j, len, val, mac, pid, prev, res, verbosity, status;
+  int i, val, mac, pid, prev, res, verbosity, status;
   char *name, *cmd, *tmp;
+  const char *tmpshrt;
   int namelen, cmdlen, tmppid;
-  BtorCharStack str;
   BtorMBTBtorOpt *btoropt;
 
   g_btormbt             = btormbt_new_btormbt ();
@@ -3322,6 +3348,7 @@ main (int argc, char **argv)
   pid      = 0;
   prev     = 0;
   exitcode = 0;
+  namelen  = 0;
 
   for (i = 1; i < argc; i++)
   {
@@ -3425,114 +3452,107 @@ main (int argc, char **argv)
       g_btormbt->ext = 1;
     }
     /* boolector options */
-    else if (!strncmp (argv[i], "--b", 3))
+    else if (!strcmp (argv[i], "-b"))
     {
-      if (i + 1 == argc)
-        btormbt_error ("argument to '--b<btoropt>' missing (try '-h')");
-
-      BTOR_INIT_STACK (str);
-      len = strlen (argv[i]);
-      for (j = 3, val = 0; j < len && argv[i][j]; j++)
-        BTOR_PUSH_STACK (g_btormbt->mm, str, argv[i][j]);
-      BTOR_PUSH_STACK (g_btormbt->mm, str, 0);
-
-      i += 1;
-      val = (int) strtol (argv[i], &tmp, 10);
-      if (tmp[0] != 0)
+      Btor *tmpbtor = boolector_new ();
+      if (++i == argc) btormbt_error ("argument to '-b' missing (try '-h')");
+      for (tmp = (char *) boolector_first_opt (tmpbtor); tmp;
+           tmp = (char *) boolector_next_opt (tmpbtor, tmp))
       {
-        BTOR_RELEASE_STACK (g_btormbt->mm, str);
-        btormbt_error ("invalid argument to '--b<btoropt>' (try '-h')");
+        if (!strcmp (tmp, argv[i])) break;
+        tmpshrt = boolector_get_opt_shrt (tmpbtor, tmp);
+        if (tmpshrt && !strcmp (tmpshrt, argv[i])) break;
       }
-
+      if (!tmp) btormbt_error ("invalid boolector option '%s'", argv[i]);
       BTOR_NEW (g_btormbt->mm, btoropt);
-      btoropt->name = btor_strdup (g_btormbt->mm, str.start);
-      btoropt->val  = val;
+      btoropt->name = btor_strdup (g_btormbt->mm, argv[i]);
+      if (++i == argc) btormbt_error ("argument to '-b' missing (try '-h')");
+      val = (int) strtol (argv[i], &tmp, 10);
+      if (tmp[0] != 0) btormbt_error ("invalid argument to '-b' (try '-h')");
+      btoropt->val = val;
       BTOR_PUSH_STACK (g_btormbt->mm, g_btormbt->btor_opts, btoropt);
-      BTOR_RELEASE_STACK (g_btormbt->mm, str);
+      boolector_delete (tmpbtor);
     }
 
     /* advanced options */
-    else if (!strcmp (argv[i], "--min-bw"))
+    else if (!strcmp (argv[i], "--bw"))
     {
-      if (++i == argc)
-        btormbt_error ("argument to '--min-bw' missing (try '-h')");
+      if (++i == argc) btormbt_error ("argument to '--bw' missing (try '-h')");
       if (!isnumstr (argv[i]))
-        btormbt_error ("argument to '--min-bw' is not a number (try '-h')");
+        btormbt_error ("argument to '--bw' is not a number (try '-h')");
       g_btormbt->g_min_bw = atoi (argv[i]);
       if (g_btormbt->g_min_bw < MIN_BITWIDTH)
         btormbt_error (
-            "argument to '--min-bw' must not be less than %d "
+            "min value of '--bw' must not be less than %d "
             "(try '-h')",
             MIN_BITWIDTH);
-    }
-    else if (!strcmp (argv[i], "--max-bw"))
-    {
-      if (++i == argc)
-        btormbt_error ("argument to '--max-bw' missing (try '-h')");
+      if (++i == argc) btormbt_error ("argument to '--bw' missing (try '-h')");
       if (!isnumstr (argv[i]))
-        btormbt_error ("argument to '--max-bw' is not a number (try '-h')");
+        btormbt_error ("argument to '--bw' is not a number (try '-h')");
       g_btormbt->g_max_bw = atoi (argv[i]);
-      if (g_btormbt->g_max_bw < MIN_BITWIDTH)
+      if (g_btormbt->g_max_bw < g_btormbt->g_min_bw)
         btormbt_error (
-            "argument to '--max-bw' must not be less than %d "
-            "(try '-h')",
-            MIN_BITWIDTH);
+            "min value for '--bw' must be less or equal than max value "
+            "(try '-h')");
     }
-    else if (!strcmp (argv[i], "--min-index-bw"))
+    else if (!strcmp (argv[i], "--index-bw"))
     {
       if (++i == argc)
-        btormbt_error ("argument to '--min-index-bw' missing (try '-h')");
+        btormbt_error ("argument to '--index-bw' missing (try '-h')");
       if (!isnumstr (argv[i]))
-        btormbt_error (
-            "argument to '--min-index-bw' is not a number (try '-h')");
+        btormbt_error ("argument to '--index-bw' is not a number (try '-h')");
       g_btormbt->g_min_index_bw = atoi (argv[i]);
       if (g_btormbt->g_min_index_bw < MIN_INDEXWIDTH)
         btormbt_error (
-            "argument to '--min-index-bw' must not be less "
+            "min value of '--index-bw' must not be less "
             "than %d (try '-h')",
             MIN_INDEXWIDTH);
-    }
-    else if (!strcmp (argv[i], "--max-index-bw"))
-    {
       if (++i == argc)
-        btormbt_error ("argument to '--max-index-bw' missing (try '-h')");
+        btormbt_error ("argument to '--index-bw' missing (try '-h')");
       if (!isnumstr (argv[i]))
-        btormbt_error (
-            "argument to '--max-index-bw' is not a number (try '-h')");
+        btormbt_error ("argument to '--index-bw' is not a number (try '-h')");
       g_btormbt->g_max_index_bw = atoi (argv[i]);
-      if (g_btormbt->g_max_index_bw < MIN_INDEXWIDTH)
+      if (g_btormbt->g_max_index_bw < g_btormbt->g_min_index_bw)
         btormbt_error (
-            "argument to '--max-index-bw' must not be less "
-            "than %d (try '-h')",
-            MIN_INDEXWIDTH);
+            "min value of '--index-bw' must be less or equal than max value "
+            "(try '-h')");
     }
-    else if (!strcmp (argv[i], "--min-muldiv-bw"))
+    else if (!strcmp (argv[i], "--muldiv-bw"))
     {
       if (++i == argc)
-        btormbt_error ("argument to '--min-muldiv-bw' missing (try '-h')");
+        btormbt_error ("argument to '--muldiv-bw' missing (try '-h')");
       if (!isnumstr (argv[i]))
-        btormbt_error (
-            "argument to '--min-muldiv-bw' is not a number (try '-h')");
+        btormbt_error ("argument to '--muldiv-bw' is not a number (try '-h')");
       g_btormbt->g_min_muldiv_bw = atoi (argv[i]);
       if (g_btormbt->g_min_muldiv_bw < MIN_MULDIVWIDTH)
         btormbt_error (
-            "argument to '--min-muldiv-bw' must not be less "
+            "min value of '--muldiv-bw' must not be less "
             "than %d (try '-h')",
             MIN_MULDIVWIDTH);
+      if (++i == argc)
+        btormbt_error ("argument to '--muldiv-bw' missing (try '-h')");
+      if (!isnumstr (argv[i]))
+        btormbt_error ("argument to '--muldiv-bw' is not a number (try '-h')");
+      g_btormbt->g_max_muldiv_bw = atoi (argv[i]);
+      if (g_btormbt->g_max_muldiv_bw < g_btormbt->g_min_muldiv_bw)
+        btormbt_error (
+            "min value of '--muldiv-bw' must be less or equal than "
+            "max value (try '-h')");
     }
-    else if (!strcmp (argv[i], "--max-muldiv-bw"))
+    else if (!strcmp (argv[i], "--sort-fun-arity"))
     {
       if (++i == argc)
-        btormbt_error ("argument to '--max-muldiv-bw' missing (try '-h')");
+        btormbt_error ("argument to '--sort-fun-arity' missing (try '-h')");
       if (!isnumstr (argv[i]))
         btormbt_error (
-            "argument to '--max-muldiv-bw' is not a number (try '-h')");
-      g_btormbt->g_max_muldiv_bw = atoi (argv[i]);
-      if (g_btormbt->g_max_muldiv_bw < MIN_MULDIVWIDTH)
+            "argument to '--sort-fun-arity' is not a number (try '-h')");
+      g_btormbt->g_min_sort_fun_arity = atoi (argv[i]);
+      if (++i == argc)
+        btormbt_error ("argument to '--sort-fun-arity' missing (try '-h')");
+      if (!isnumstr (argv[i]))
         btormbt_error (
-            "argument to '--max-muldiv-bw' must not be less "
-            "than %d (try '-h')",
-            MIN_MULDIVWIDTH);
+            "argument to '--sort-fun-arity' is not a number (try '-h')");
+      g_btormbt->g_max_sort_fun_arity = atoi (argv[i]);
     }
     else if (!strcmp (argv[i], "--inputs"))
     {
@@ -4008,6 +4028,47 @@ main (int argc, char **argv)
             "argument to '--asserts-upper' is not a number (try '-h')");
       g_btormbt->g_max_asserts_upper = atoi (argv[i]);
     }
+    else if (!strcmp (argv[i], "--p-sort-bv"))
+    {
+      if (++i == argc)
+        btormbt_error ("argument to '--p-sort-bv' missing (try '-h')");
+      if (!isfloatnumstr (argv[i]))
+        btormbt_error ("argument to '--p-sort-bv' is not a number (try '-h')");
+      g_btormbt->p_sort_bv = atof (argv[i]) * NORM_VAL;
+      if (g_btormbt->p_sort_bv > NORM_VAL)
+        btormbt_error ("argument to '--p-sort-bv' must be < 1.0");
+    }
+    else if (!strcmp (argv[i], "--p-sort-fun"))
+    {
+      if (++i == argc)
+        btormbt_error ("argument to '--p-sort-fun' missing (try '-h')");
+      if (!isfloatnumstr (argv[i]))
+        btormbt_error ("argument to '--p-sort-fun' is not a number (try '-h')");
+      g_btormbt->p_sort_fun = atof (argv[i]) * NORM_VAL;
+      if (g_btormbt->p_sort_fun > NORM_VAL)
+        btormbt_error ("argument to '--p-sort-fun' must be < 1.0");
+    }
+    else if (!strcmp (argv[i], "--p-sort-fun-unary"))
+    {
+      if (++i == argc)
+        btormbt_error ("argument to '--p-sort-fun-unary' missing (try '-h')");
+      if (!isfloatnumstr (argv[i]))
+        btormbt_error (
+            "argument to '--p-sort-fun-unary' is not a number (try '-h')");
+      g_btormbt->p_sort_fun_unary = atof (argv[i]) * NORM_VAL;
+      if (g_btormbt->p_sort_fun_unary > NORM_VAL)
+        btormbt_error ("argument to '--p-sort-fun-unary' must be < 1.0");
+    }
+    else if (!strcmp (argv[i], "--p-assume"))
+    {
+      if (++i == argc)
+        btormbt_error ("argument to '--p-assume' missing (try '-h')");
+      if (!isfloatnumstr (argv[i]))
+        btormbt_error ("argument to '--p-assume' is not a number (try '-h')");
+      g_btormbt->p_assume = atof (argv[i]) * NORM_VAL;
+      if (g_btormbt->p_assume > NORM_VAL)
+        btormbt_error ("argument to '--p-assume' must be < 1.0");
+    }
     else if (!strcmp (argv[i], "--p-param-exp"))
     {
       if (++i == argc)
@@ -4152,20 +4213,6 @@ main (int argc, char **argv)
       g_btormbt->seeded = 1;
     }
   }
-
-  if (g_btormbt->g_max_bw < g_btormbt->g_min_bw)
-    btormbt_error (
-        "value for '--min-bw' must be less or equal than '--max-bw' (try "
-        "'-h')");
-  if (g_btormbt->g_max_index_bw < g_btormbt->g_min_index_bw)
-    btormbt_error (
-        "value for '--min-index-bw' must be less or equal than '--max-index-bw'"
-        " (try '-h')");
-  if (g_btormbt->g_max_muldiv_bw < g_btormbt->g_min_muldiv_bw)
-    btormbt_error (
-        "value for '--min-muldiv-bw' must be less or equal than "
-        "'--max-muldiv-bw'"
-        " (try '-h')");
 
   g_btormbt->ppid = getpid ();
   set_sig_handlers ();
