@@ -888,8 +888,6 @@ btor_delete_btor (Btor *btor)
 
   if (btor->parse_error_msg) btor_freestr (mm, btor->parse_error_msg);
 
-  btor_release_exp (btor, btor->true_exp);
-
   btor_delete_bv_assignment_list (
       btor->bv_assignments,
       btor->options.auto_cleanup.val
@@ -927,6 +925,7 @@ btor_delete_btor (Btor *btor)
   btor_delete_ptr_hash_table (btor->fun_rhs);
 
   btor_delete_model (btor);
+  btor_release_exp (btor, btor->true_exp);
 
   for (i = 0; i < BTOR_COUNT_STACK (btor->functions_with_model); i++)
     btor_release_exp (btor, btor->functions_with_model.start[i]);
@@ -937,13 +936,26 @@ btor_delete_btor (Btor *btor)
   while (btor_has_next_node_hash_table_iterator (&it))
   {
     exp = btor_next_node_hash_table_iterator (&it);
-    t   = ((BtorLambdaNode *) exp)->synth_apps;
+    t   = btor_lambda_get_synth_apps (exp);
     if (t)
     {
       btor_init_node_hash_table_iterator (&iit, t);
       while (btor_has_next_node_hash_table_iterator (&iit))
         BTOR_PUSH_STACK (mm, stack, btor_next_node_hash_table_iterator (&iit));
       ((BtorLambdaNode *) exp)->synth_apps = 0;
+      btor_lambda_set_synth_apps (exp, 0);
+      btor_delete_ptr_hash_table (t);
+    }
+    t = btor_lambda_get_static_rho (exp);
+    if (t)
+    {
+      btor_init_node_hash_table_iterator (&iit, t);
+      while (btor_has_next_node_hash_table_iterator (&iit))
+      {
+        BTOR_PUSH_STACK (mm, stack, iit.bucket->data.asPtr);
+        BTOR_PUSH_STACK (mm, stack, btor_next_node_hash_table_iterator (&iit));
+      }
+      btor_lambda_set_static_rho (exp, 0);
       btor_delete_ptr_hash_table (t);
     }
   }
@@ -969,18 +981,13 @@ btor_delete_btor (Btor *btor)
     for (i = BTOR_COUNT_STACK (btor->nodes_id_table) - 1; i >= 0; i--)
     {
       exp = BTOR_PEEK_STACK (btor->nodes_id_table, i);
-      if (!exp || !BTOR_IS_PROXY_NODE (exp)) continue;
-      exp->simplified = 0;
-    }
-    for (i = BTOR_COUNT_STACK (btor->nodes_id_table) - 1; i >= 0; i--)
-    {
-      if (!(exp = BTOR_PEEK_STACK (btor->nodes_id_table, i))) continue;
+      if (!exp) continue;
+      if (BTOR_IS_PROXY_NODE (exp)) exp->simplified = 0;
       assert (exp->refs);
       exp->refs = 1;
       btor_release_exp (btor, exp);
-    }
-    for (i = BTOR_COUNT_STACK (btor->nodes_id_table) - 1; i >= 0; i--)
       assert (!BTOR_PEEK_STACK (btor->nodes_id_table, i));
+    }
   }
 
   if (btor->options.auto_cleanup.val && btor->external_refs)
