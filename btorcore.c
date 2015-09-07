@@ -3943,16 +3943,20 @@ collect_applies (Btor *btor,
   assert (assumptions);
 
   double start;
+  int i;
+  BtorMemMgr *mm;
   BtorCoreSolver *slv;
   BtorNode *cur_btor, *cur_clone, *bv_eq;
-  BtorNodePtrStack unmark_stack;
+  BtorNodePtrStack unmark_stack, failed_eqs;
   BtorNodeMapIterator it;
 
   start = btor_time_stamp ();
 
+  mm  = btor->mm;
   slv = BTOR_CORE_SOLVER (btor);
 
   BTOR_INIT_STACK (unmark_stack);
+  BTOR_INIT_STACK (failed_eqs);
 
   btor_init_node_map_iterator (&it, assumptions);
   while (btor_has_next_node_map_iterator (&it))
@@ -3974,8 +3978,13 @@ collect_applies (Btor *btor,
 
     if (BTOR_IS_BV_VAR_NODE (cur_btor))
       slv->stats.dp_assumed_vars += 1;
+    else if (BTOR_IS_FEQ_NODE (cur_btor))
+      slv->stats.dp_assumed_eqs += 1;
     else
+    {
+      assert (BTOR_IS_APPLY_NODE (cur_btor));
       slv->stats.dp_assumed_applies += 1;
+    }
 
     if (btor_failed_exp (clone, bv_eq))
     {
@@ -3986,22 +3995,53 @@ collect_applies (Btor *btor,
       assert (!cur_btor->parameterized);
       if (BTOR_IS_BV_VAR_NODE (cur_btor))
         slv->stats.dp_failed_vars += 1;
-      else if (BTOR_IS_APPLY_NODE (cur_btor))
+      else if (BTOR_IS_FEQ_NODE (cur_btor))
       {
+        slv->stats.dp_failed_eqs += 1;
+        BTOR_PUSH_STACK (mm, failed_eqs, cur_btor);
+      }
+      else
+      {
+        assert (BTOR_IS_APPLY_NODE (cur_btor));
         if (cur_btor->aux_mark) continue;
         slv->stats.dp_failed_applies += 1;
         cur_btor->aux_mark = 1;
-        BTOR_PUSH_STACK (btor->mm, unmark_stack, cur_btor);
-        BTOR_PUSH_STACK (btor->mm, *top_applies, cur_btor);
+        BTOR_PUSH_STACK (mm, unmark_stack, cur_btor);
+        BTOR_PUSH_STACK (mm, *top_applies, cur_btor);
       }
-      else
-        assert (BTOR_IS_FEQ_NODE (cur_btor)); /* nothing to do here */
     }
   }
 
   while (!BTOR_EMPTY_STACK (unmark_stack))
     BTOR_POP_STACK (unmark_stack)->aux_mark = 0;
-  BTOR_RELEASE_STACK (btor->mm, unmark_stack);
+  BTOR_RELEASE_STACK (mm, unmark_stack);
+
+  /* collect applies below failed function equalities */
+  while (!BTOR_EMPTY_STACK (failed_eqs))
+  {
+    cur_btor = BTOR_REAL_ADDR_NODE (BTOR_POP_STACK (failed_eqs));
+
+    if (!cur_btor->apply_below || cur_btor->aux_mark) continue;
+
+    cur_btor->aux_mark = 1;
+    BTOR_PUSH_STACK (mm, unmark_stack, cur_btor);
+
+    /* we only need the "top applies" below a failed function equality */
+    if (!cur_btor->parameterized && BTOR_IS_APPLY_NODE (cur_btor))
+    {
+      BTORLOG (1, "apply below eq: %s", node2string (cur_btor));
+      BTOR_PUSH_STACK (mm, *top_applies, cur_btor);
+      continue;
+    }
+
+    for (i = 0; i < cur_btor->arity; i++)
+      BTOR_PUSH_STACK (mm, failed_eqs, cur_btor->e[i]);
+  }
+  BTOR_RELEASE_STACK (mm, failed_eqs);
+
+  while (!BTOR_EMPTY_STACK (unmark_stack))
+    BTOR_POP_STACK (unmark_stack)->aux_mark = 0;
+  BTOR_RELEASE_STACK (mm, unmark_stack);
 
   slv->time.search_init_apps_collect_fa += btor_time_stamp () - start;
 }
