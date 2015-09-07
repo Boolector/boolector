@@ -4285,19 +4285,19 @@ search_initial_applies_just (Btor *btor, BtorNodePtrStack *top_applies)
         {
           case BTOR_AND_NODE:
 
-            a = BTOR_IS_SYNTH_NODE (cur)
+            a = btor_is_encoded_exp (btor, cur)
                     ? btor_get_assignment_aig (amgr, cur->av->aigs[0])
                     : 0;  // 'x'
 
             e0 = BTOR_REAL_ADDR_NODE (cur->e[0]);
             e1 = BTOR_REAL_ADDR_NODE (cur->e[1]);
 
-            a0 = BTOR_IS_SYNTH_NODE (e0)
+            a0 = btor_is_encoded_exp (btor, e0)
                      ? btor_get_assignment_aig (amgr, e0->av->aigs[0])
                      : 0;  // 'x'
             if (a0 && BTOR_IS_INVERTED_NODE (cur->e[0])) a0 *= -1;
 
-            a1 = BTOR_IS_SYNTH_NODE (e1)
+            a1 = btor_is_encoded_exp (btor, e1)
                      ? btor_get_assignment_aig (amgr, e1->av->aigs[0])
                      : 0;  // 'x'
             if (a1 && BTOR_IS_INVERTED_NODE (cur->e[1])) a1 *= -1;
