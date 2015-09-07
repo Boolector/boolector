@@ -4307,14 +4307,6 @@ search_initial_applies_just (Btor *btor, BtorNodePtrStack *top_applies)
 
       if (cur->aux_mark) continue;
 
-      /* in case of function equalities we have to visit the functions
-       * below an equality and all of their children */
-      if (btor->feqs->count > 0
-          && (BTOR_IS_FUN_NODE (cur) || BTOR_IS_ARGS_NODE (cur)
-              || cur->parameterized))
-        goto PUSH_CHILDREN;
-
-      assert (!cur->parameterized);
       cur->aux_mark = 1;
       BTOR_PUSH_STACK (btor->mm, unmark_stack, cur);
 
@@ -4326,10 +4318,22 @@ search_initial_applies_just (Btor *btor, BtorNodePtrStack *top_applies)
         continue;
       }
 
-      if (btor_get_exp_width (btor, cur) == 1)
+      if (!cur->parameterized && !BTOR_IS_FUN_NODE (cur)
+          && btor_get_exp_width (btor, cur) == 1)
       {
         switch (cur->kind)
         {
+          case BTOR_FEQ_NODE:
+            a = btor_is_encoded_exp (cur)
+                    ? btor_get_assignment_aig (amgr, cur->av->aigs[0])
+                    : 0;  // 'x';
+
+            if (a == 1 || a == 0) goto PUSH_CHILDREN;
+            /* if equality is false (-1), we do not need to check
+             * applies below for consistency as it is sufficient to
+             * check the witnesses of inequality */
+            break;
+
           case BTOR_AND_NODE:
 
             a = BTOR_IS_SYNTH_NODE (cur)
