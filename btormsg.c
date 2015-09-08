@@ -39,13 +39,11 @@ btor_delete_btor_msg (BtorMsg *msg)
 }
 
 void
-btor_msg (BtorMsg *msg, char *filename, int level, char *fmt, ...)
+btor_msg (BtorMsg *msg, bool log, char *filename, char *fmt, ...)
 {
   va_list ap;
   char *path, *fname, *c, *p;
   int len;
-
-  if (*msg->verbosity < level) return;
 
   len = strlen (filename) + 1;
   BTOR_NEWN (msg->mm, path, len);
@@ -59,7 +57,8 @@ btor_msg (BtorMsg *msg, char *filename, int level, char *fmt, ...)
     fname += 1;
 
   fputs ("[", stdout);
-  if (msg->prefix) printf ("%s>", msg->prefix);
+  if (log) fputs ("log:", stdout);
+  if (msg->prefix) fprintf (stdout, "%s>", msg->prefix);
   p = path;
   while ((c = strchr (p, '/')))
   {
