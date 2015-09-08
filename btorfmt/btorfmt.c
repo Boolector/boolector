@@ -292,6 +292,35 @@ parse_bit_vector_arg_bfr (BtorFormatReader *bfr)
 }
 
 static int
+parse_one_arg (BtorFormatReader *bfr, BtorFormatLine *l)
+{
+  int ch;
+  if (getc_bfr (bfr) != ' ')
+    return perr_bfr (bfr, "expected space after length");
+  if (!(l->arg[0] = parse_bit_vector_arg_bfr (bfr))) return 0;
+  ch = getc_bfr (bfr);
+  if (ch == ' ')
+    return perr_bfr (bfr, "unexpected trailing space (after one argument)");
+  if (ch != '\n')
+    return perr_bfr (bfr, "expected new-line (after one argument)");
+  l->arity = 1;
+  return 1;
+}
+
+static int
+parse_op1_bfr (BtorFormatReader *bfr, BtorFormatLine *l)
+{
+  BtorFormatLine *arg;
+  assert (l->type.len > 0);
+  assert (!l->type.idxlen);
+  if (!parse_one_arg (bfr, l)) return 0;
+  arg = id2line_bfr (bfr, l->arg[0]);
+  if (arg->type.len != l->type.len)
+    return perr_bfr (bfr, "argument length does not match");
+  return 1;
+}
+
+static int
 parse_two_args_with_same_len (BtorFormatReader *bfr, BtorFormatLine *l)
 {
   BtorFormatLine *l0, *l1;
@@ -305,13 +334,12 @@ parse_two_args_with_same_len (BtorFormatReader *bfr, BtorFormatLine *l)
   l0 = id2line_bfr (bfr, l->arg[0]);
   l1 = id2line_bfr (bfr, l->arg[1]);
   if (l0->type.len != l1->type.len)
-    return perr_bfr (bfr, "length of arguments does not match");
+    return perr_bfr (bfr, "argument lengths do not match");
   ch = getc_bfr (bfr);
   if (ch == ' ')
-    return perr_bfr (bfr,
-                     "unexpected trailing space (after two argument operator)");
+    return perr_bfr (bfr, "unexpected trailing space (after two arguments)");
   if (ch != '\n')
-    return perr_bfr (bfr, "expected new-line (after two argument operator)");
+    return perr_bfr (bfr, "expected new-line (after two arguments)");
   l->arity = 2;
   return 1;
 }
@@ -325,7 +353,7 @@ parse_op2_bfr (BtorFormatReader *bfr, BtorFormatLine *l)
   if (!parse_two_args_with_same_len (bfr, l)) return 0;
   arg = id2line_bfr (bfr, l->arg[0]);
   if (arg->type.len != l->type.len)
-    return perr_bfr (bfr, "arguments length does not match output length");
+    return perr_bfr (bfr, "arguments length does not match");
   return 1;
 }
 
@@ -433,6 +461,18 @@ parse_next_bfr (BtorFormatReader *bfr, BtorFormatLine *l)
   return 1;
 }
 
+static int
+parse_output_bfr (BtorFormatReader *bfr, BtorFormatLine *l)
+{
+  return 0;
+}
+
+static int
+parse_output1_bfr (BtorFormatReader *bfr, BtorFormatLine *l)
+{
+  return 1;
+}
+
 #define PARSE(NAME, GENERIC)                                     \
   do                                                             \
   {                                                              \
@@ -492,22 +532,31 @@ START:
       PARSE (and, op2);
       PARSE (array, array);
       break;
+    case 'b': PARSE (bad, output1); break;
+    case 'c': PARSE (constraint, output1); break;
+    case 'f': PARSE (fair, output1); break;
     case 'i':
       PARSE (implies, op2);
       PARSE (init, init);
       PARSE (input, var);
       break;
+    case 'j': PARSE (justice, output1); break;
     case 'l': PARSE (latch, var); break;
     case 'm': PARSE (mul, op2); break;
     case 'n':
       PARSE (nand, op2);
+      PARSE (neg, op1);
+      PARSE (next, next);
       PARSE (nor, op2);
+      PARSE (not, op1);
       break;
     case 'o':
       PARSE (one, no_arg_const);
       PARSE (ones, no_arg_const);
       PARSE (or, op2);
+      PARSE (output, output);
       break;
+    case 'r': PARSE (root, output); break;
     case 's':
       PARSE (sdiv, op2);
       PARSE (srem, op2);
