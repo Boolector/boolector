@@ -1215,13 +1215,9 @@ clone_aux_btor (Btor *btor, BtorNodeMap **exp_map, bool exp_layer_only)
 
   clone_prefix = "clone";
   len          = btor->msg->prefix ? strlen (btor->msg->prefix) : 0;
-  len += strlen (clone_prefix) + 3;
+  len += strlen (clone_prefix) + 1;
   BTOR_NEWN (clone->mm, prefix, len + 1);
-  sprintf (prefix,
-           "[%s]%s%s",
-           clone_prefix,
-           btor->msg->prefix ? " " : "",
-           btor->msg->prefix ? btor->msg->prefix : "");
+  sprintf (prefix, "%s>%s", btor->msg->prefix, clone_prefix);
   btor_set_msg_prefix_btor (clone, prefix);
   BTOR_DELETEN (clone->mm, prefix, len + 1);
 

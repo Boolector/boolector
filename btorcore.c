@@ -761,6 +761,7 @@ new_aux_btor (int init_opts)
   BTOR_INIT_STACK (btor->functions_with_model);
 
   btor->true_exp = btor_true_exp (btor);
+  btor_set_msg_prefix_btor (btor, "btor");
 
   return btor;
 }
