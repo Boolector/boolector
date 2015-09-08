@@ -59,6 +59,24 @@ init_overflow_tests (void)
   g_argv[g_argc - 1] = BTOR_TEST_OVERFLOW_TEMP_FILE_NAME;
 }
 
+// #define EXTRACTBENCHMARKS
+
+#ifdef EXTRACTBENCHMARKS
+static void
+extract (const char *name, int n, int i, int j, int res)
+{
+  char cmd[200];
+  sprintf (cmd,
+           "cp of.tmp overflow/%s_%d_%d_%d_%s.btor",
+           name,
+           n,
+           i,
+           j,
+           res == 10 ? "sat" : "unsat");
+  system (cmd);
+}
+#endif
+
 static void
 u_overflow_test (int (*func) (int, int),
                  const char *func_name,
@@ -97,6 +115,9 @@ u_overflow_test (int (*func) (int, int),
         fprintf (f, "4 root 1 3\n");
         fclose (f);
         exit_code = boolector_main (g_argc, g_argv);
+#ifdef EXTRACTBENCHMARKS
+        extract (func_name, num_bits, i, j, exit_code);
+#endif
         assert (exit_code == BTOR_SAT_EXIT || exit_code == BTOR_UNSAT_EXIT);
         if (exit_code == BTOR_SAT_EXIT) overflow_boolector = 1;
         if (overflow_boolector) assert (overflow_test);
@@ -176,6 +197,9 @@ s_overflow_test (int (*func) (int, int),
           fprintf (f, "%d root 1 %d\n", const2_id + 2, const2_id + 1);
           fclose (f);
           exit_code = boolector_main (g_argc, g_argv);
+#ifdef EXTRACTBENCHMARKS
+          extract (func_name, num_bits, i, j, exit_code);
+#endif
           assert (exit_code == BTOR_SAT_EXIT || exit_code == BTOR_UNSAT_EXIT);
           if (exit_code == BTOR_SAT_EXIT) overflow_boolector = 1;
           if (overflow_boolector) assert (overflow_test);
