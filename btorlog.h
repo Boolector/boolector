@@ -1,7 +1,7 @@
 /*  Boolector: Satisfiablity Modulo Theories (SMT) solver.
  *
  *  Copyright (C) 2012 Armin Biere.
- *  Copyright (C) 2013-2014 Aina Niemetz.
+ *  Copyright (C) 2013-2015 Aina Niemetz.
  *  Copyright (C) 2014 Mathias Preiner.
  *
  *  All rights reserved.
@@ -19,8 +19,6 @@ void btor_log_end (Btor *);
 /*------------------------------------------------------------------------*/
 #ifndef NBTORLOG
 /*------------------------------------------------------------------------*/
-
-#define BTORLOG_LEVEL_MAX 2 /* at the moment we support en/disabling only */
 
 #define BTORLOG(LEVEL, FMT, ARGS...)                     \
   do                                                     \
