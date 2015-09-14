@@ -2,6 +2,7 @@
  *
  *  Copyright (C) 2007-2010 Robert Daniel Brummayer.
  *  Copyright (C) 2007-2014 Armin Biere.
+ *  Copyright (C) 2015 Aina Niemetz.
  *
  *  All rights reserved.
  *
@@ -344,6 +345,62 @@ test_is_special_const (void)
   assert (btor_is_special_const ("1101") == BTOR_SPECIAL_CONST_NONE);
   assert (btor_is_special_const ("1110") == BTOR_SPECIAL_CONST_NONE);
   assert (btor_is_special_const ("1111") == BTOR_SPECIAL_CONST_ONES);
+}
+
+static void
+test_is_power_of_two_const (void)
+{
+  assert (
+      btor_is_power_of_two_const (
+          "0000000000000000000000000000000000000000000000000000000000000000")
+      == 0);
+
+  assert (btor_is_power_of_two_const ("000") == 0);
+  assert (btor_is_power_of_two_const ("001") == 0);
+  assert (btor_is_power_of_two_const ("0010") == 1);
+  assert (btor_is_power_of_two_const ("00100") == 2);
+  assert (btor_is_power_of_two_const ("001000") == 3);
+  assert (btor_is_power_of_two_const ("0010000") == 4);
+  assert (btor_is_power_of_two_const ("000100000") == 5);
+  assert (btor_is_power_of_two_const ("0001000000") == 6);
+  assert (btor_is_power_of_two_const ("00010000000") == 7);
+  assert (btor_is_power_of_two_const ("000100000000") == 8);
+  assert (btor_is_power_of_two_const ("0001000000000") == 9);
+  assert (btor_is_power_of_two_const ("0000010000000000") == 10);
+  assert (btor_is_power_of_two_const ("10000000000000000000000000000") == 28);
+  assert (btor_is_power_of_two_const ("100000000000000000000000000000") == 29);
+  assert (btor_is_power_of_two_const ("1000000000000000000000000000000") == 30);
+  assert (btor_is_power_of_two_const ("01000000000000000000000000000000")
+          == 30);
+
+  assert (btor_is_power_of_two_const ("110") == -1);
+  assert (btor_is_power_of_two_const ("1110") == -1);
+  assert (btor_is_power_of_two_const ("11110") == -1);
+  assert (btor_is_power_of_two_const ("111110") == -1);
+  assert (btor_is_power_of_two_const ("1111110") == -1);
+  assert (btor_is_power_of_two_const ("111111110") == -1);
+  assert (btor_is_power_of_two_const ("1111111110") == -1);
+  assert (btor_is_power_of_two_const ("11111111110") == -1);
+  assert (btor_is_power_of_two_const ("111111111110") == -1);
+  assert (btor_is_power_of_two_const ("1111111111110") == -1);
+  assert (btor_is_power_of_two_const ("1111111111111110") == -1);
+
+  assert (btor_is_power_of_two_const ("011") == -1);
+  assert (btor_is_power_of_two_const ("111") == -1);
+  assert (btor_is_power_of_two_const ("0011") == -1);
+  assert (btor_is_power_of_two_const ("00101") == -1);
+  assert (btor_is_power_of_two_const ("101101") == -1);
+  assert (btor_is_power_of_two_const ("0010001") == -1);
+  assert (btor_is_power_of_two_const ("000100111") == -1);
+  assert (btor_is_power_of_two_const ("1001000001") == -1);
+  assert (btor_is_power_of_two_const ("11010000001") == -1);
+  assert (btor_is_power_of_two_const ("000100000011") == -1);
+  assert (btor_is_power_of_two_const ("0001000000111") == -1);
+  assert (btor_is_power_of_two_const ("0000010000001111") == -1);
+
+  assert (btor_is_power_of_two_const ("10000000000000000000000000010") == -1);
+  assert (btor_is_power_of_two_const ("100000000000000000000001000000") == -1);
+  assert (btor_is_power_of_two_const ("1000000000000100000000000000000") == -1);
 }
 
 static void
@@ -1410,6 +1467,7 @@ run_const_tests (int argc, char **argv)
   BTOR_RUN_TEST (is_one_const);
   BTOR_RUN_TEST (is_ones_const);
   BTOR_RUN_TEST (is_special_const);
+  BTOR_RUN_TEST (is_power_of_two_const);
   BTOR_RUN_TEST (is_small_positive_int_const);
   BTOR_RUN_TEST (int_to_const);
   BTOR_RUN_TEST (unsigned_to_const);
