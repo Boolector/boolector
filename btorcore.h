@@ -324,6 +324,8 @@ struct BtorCoreSolver
     int dp_failed_applies; /* number of applies in FA (dual prop) of last
                               sat call (final bv skeleton) */
     int dp_assumed_applies;
+    int dp_failed_eqs;
+    int dp_assumed_eqs;
 
     long long eval_exp_calls;
     long long lambda_synth_apps;
