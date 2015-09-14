@@ -12,6 +12,7 @@
 
 #include "btoropt.h"
 #include <ctype.h>
+#include <limits.h>
 #include "boolector.h"
 #include "btorcore.h"
 #include "btorlog.h"
