@@ -794,7 +794,6 @@ clone_aux_btor (Btor *btor, BtorNodeMap **exp_map, bool exp_layer_only)
   {
     /* reset */
     clone->btor_sat_btor_called = 0;
-    clone->valid_assignments    = 0;
     btor_reset_time_btor (clone);
     btor_reset_stats_btor (clone);
   }
