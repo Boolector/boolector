@@ -2,7 +2,7 @@
  *
  *  Copyright (C) 2007-2010 Robert Daniel Brummayer.
  *  Copyright (C) 2007-2012 Armin Biere.
- *  Copyright (C) 2014 Aina Niemetz.
+ *  Copyright (C) 2014-2015 Aina Niemetz.
  *
  *  All rights reserved.
  *
@@ -12,6 +12,7 @@
 
 #include "testaigvec.h"
 #include "btoraigvec.h"
+#include "btorbitvec.h"
 #include "testrunner.h"
 #include "utils/btormem.h"
 
@@ -42,7 +43,7 @@ test_new_delete_aigvec_mgr (void)
 static void
 test_const_aigvec (void)
 {
-  const char bits[]    = {'1', '0', '1', '1', '\0'};
+  BtorBitVector *bits  = btor_uint64_to_bv (g_mm, 11, 4);  // "1011"
   BtorAIGVecMgr *avmgr = btor_new_aigvec_mgr (g_mm, g_msg);
   BtorAIGVec *av       = btor_const_aigvec (avmgr, bits);
   assert (av->len == 4);
@@ -65,7 +66,7 @@ test_invert_aigvec (void)
 {
   int i                = 0;
   int len              = 0;
-  const char bits[]    = {'1', '0', '1', '1', '\0'};
+  BtorBitVector *bits  = btor_uint64_to_bv (g_mm, 11, 4);  // "1011"
   BtorAIGVecMgr *avmgr = btor_new_aigvec_mgr (g_mm, g_msg);
   BtorAIGVec *av1      = btor_var_aigvec (avmgr, 32);
   BtorAIGVec *av2      = btor_const_aigvec (avmgr, bits);

@@ -2,7 +2,7 @@
  *
  *  Copyright (C) 2007-2009 Robert Daniel Brummayer.
  *  Copyright (C) 2007-2014 Armin Biere.
- *  Copyright (C) 2013-2014 Aina Niemetz.
+ *  Copyright (C) 2013-2015 Aina Niemetz.
  *  Copyright (C) 2013-2014 Mathias Preiner.
  *
  *  All rights reserved.
@@ -25,9 +25,11 @@
 static BtorAIGVec *
 new_aigvec (BtorAIGVecMgr *avmgr, uint32_t len)
 {
-  BtorAIGVec *result;
   assert (avmgr);
   assert (len > 0);
+
+  BtorAIGVec *result;
+
   result =
       btor_malloc (avmgr->mm, sizeof (BtorAIGVec) + sizeof (BtorAIG *) * len);
   result->len     = len;
@@ -39,17 +41,19 @@ new_aigvec (BtorAIGVecMgr *avmgr, uint32_t len)
 }
 
 BtorAIGVec *
-btor_const_aigvec (BtorAIGVecMgr *avmgr, const char *bits)
+btor_const_aigvec (BtorAIGVecMgr *avmgr, BtorBitVector *bits)
 {
-  BtorAIGVec *result;
-  int i, len;
   assert (avmgr);
   assert (bits);
-  len = (int) strlen (bits);
+
+  BtorAIGVec *result;
+  int i, len;
+  len = bits->width;
   assert (len > 0);
   result = new_aigvec (avmgr, len);
   for (i = 0; i < len; i++)
-    result->aigs[i] = bits[i] == '0' ? BTOR_AIG_FALSE : BTOR_AIG_TRUE;
+    result->aigs[i] =
+        !btor_get_bit_bv (bits, i) ? BTOR_AIG_FALSE : BTOR_AIG_TRUE;
   result->encoded = 1;
   return result;
 }
@@ -57,10 +61,12 @@ btor_const_aigvec (BtorAIGVecMgr *avmgr, const char *bits)
 BtorAIGVec *
 btor_var_aigvec (BtorAIGVecMgr *avmgr, uint32_t len)
 {
-  BtorAIGVec *result;
-  int i;
   assert (avmgr);
   assert (len > 0);
+
+  BtorAIGVec *result;
+  int i;
+
   result = new_aigvec (avmgr, len);
   for (i = len - 1; i >= 0; i--) result->aigs[i] = btor_var_aig (avmgr->amgr);
   return result;

@@ -2,7 +2,7 @@
  *
  *  Copyright (C) 2007-2014 Armin Biere.
  *  Copyright (C) 2007-2009 Robert Daniel Brummayer.
- *  Copyright (C) 2012-2014 Aina Niemetz.
+ *  Copyright (C) 2012-2015 Aina Niemetz.
  *  Copyright (C) 2012-2015 Mathias Preiner.
  *
  *  All rights reserved.
@@ -275,9 +275,10 @@ static void
 bdcnode (BtorDumpContext *bdc, BtorNode *node, FILE *file)
 {
   int i, aspi = -1;
-  char *symbol, *bits;
+  char *symbol;
   const char *op;
   BtorNode *n;
+  BtorBitVector *bits;
   BtorArgsIterator ait;
   BtorNodeIterator nit;
 
@@ -315,13 +316,13 @@ bdcnode (BtorDumpContext *bdc, BtorNode *node, FILE *file)
       break;
     case BTOR_BV_CONST_NODE:
       bits = btor_const_get_bits (node);
-      if (btor_is_zero_const (bits))
+      if (btor_is_zero_bv (bits))
         op = "zero";
-      else if (btor_is_one_const (bits))
+      else if (btor_is_one_bv (bits))
         op = "one";
-      else if (btor_is_ones_const (bits))
+      else if (btor_is_ones_bv (bits))
         op = "ones";
-      else if ((aspi = btor_is_small_positive_int_const (bits)) > 0)
+      else if ((aspi = btor_is_small_positive_int_bv (bits)) > 0)
         op = "constd";
       else
         op = "const";
@@ -403,7 +404,11 @@ bdcnode (BtorDumpContext *bdc, BtorNode *node, FILE *file)
 
   /* print children or const values */
   if (strcmp (op, "const") == 0)
-    fprintf (file, " %s", btor_const_get_bits (node));
+  {
+    char *b = btor_bv_to_char_bv (bdc->btor->mm, btor_const_get_bits (node));
+    fprintf (file, " %s", b);
+    btor_freestr (bdc->btor->mm, b);
+  }
   else if (strcmp (op, "constd") == 0)
     fprintf (file, " %d", aspi);
   else if (BTOR_IS_PROXY_NODE (node))

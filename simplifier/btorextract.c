@@ -1,6 +1,7 @@
 /*  Boolector: Satisfiablity Modulo Theories (SMT) solver.
  *
  *  Copyright (C) 2015 Mathias Preiner.
+ *  Copyright (C) 2015 Aina Niemetz.
  *
  *  All rights reserved.
  *
@@ -9,6 +10,7 @@
  */
 
 #include "simplifier/btorextract.h"
+#include "btorbitvec.h"
 #include "btorconst.h"
 #include "btorcore.h"
 #include "utils/btoriter.h"
@@ -44,6 +46,7 @@ new_memcopy_op (BtorMemMgr *mm, BtorNode *index, BtorNode *value)
 {
   assert (is_memcopy_pattern (index, value));
   MemcopyOp *res;
+  BtorBitVector *invbits;
 
   BTOR_NEW (mm, res);
   memcopy_pattern_get_arguments (index,
@@ -56,8 +59,10 @@ new_memcopy_op (BtorMemMgr *mm, BtorNode *index, BtorNode *value)
 
   if (BTOR_IS_INVERTED_NODE (res->index)
       && !btor_const_get_invbits (res->index))
-    btor_const_set_invbits (
-        res->index, btor_not_const (mm, btor_const_get_bits (res->index)));
+  {
+    invbits = btor_not_bv (mm, btor_const_get_bits (res->index));
+    btor_const_set_invbits (res->index, invbits);
+  }
 
   return res;
 }
@@ -75,7 +80,7 @@ free_memcopy_op (BtorMemMgr *mm, MemcopyOp *mcpyop)
 static int
 cmp_bvconst_bits (const void *a, const void *b)
 {
-  const char *b0, *b1;
+  BtorBitVector *b0, *b1;
   BtorNode *x, *y;
 
   x = *((BtorNode **) a);
@@ -88,7 +93,7 @@ cmp_bvconst_bits (const void *a, const void *b)
 
   assert (b0);
   assert (b1);
-  return strcmp (b0, b1);
+  return btor_compare_bv (b0, b1);
 }
 
 inline static void
@@ -113,7 +118,7 @@ bvadd_get_base_and_offset (BtorNode *bvadd, BtorNode **base, BtorNode **offset)
 static int
 cmp_memcopy_op (const void *a, const void *b)
 {
-  const char *b0, *b1;
+  BtorBitVector *b0, *b1;
   MemcopyOp *op_a, *op_b;
 
   op_a = *((MemcopyOp **) a);
@@ -127,7 +132,7 @@ cmp_memcopy_op (const void *a, const void *b)
   b1 = BTOR_CONST_GET_BITS (op_b->index);
   assert (b0);
   assert (b1);
-  return strcmp (b0, b1);
+  return btor_compare_bv (b0, b1);
 }
 
 /*
@@ -154,8 +159,11 @@ cmp_memcopy_op (const void *a, const void *b)
  *   l <= i && i <= u && (u - i)[2:0] = 0
  */
 static inline BtorNode *
-create_range (
-    Btor *btor, BtorNode *lower, BtorNode *upper, BtorNode *param, char *offset)
+create_range (Btor *btor,
+              BtorNode *lower,
+              BtorNode *upper,
+              BtorNode *param,
+              BtorBitVector *offset)
 {
   assert (lower);
   assert (upper);
@@ -178,9 +186,9 @@ create_range (
   and = btor_and_exp (btor, le0, le1);
 
   /* increment by one */
-  if (btor_is_one_const (offset)) res = btor_copy_exp (btor, and);
+  if (btor_is_one_bv (offset)) res = btor_copy_exp (btor, and);
   /* increment by power of two */
-  else if ((pos = btor_is_power_of_two_const (offset)) > -1)
+  else if ((pos = btor_is_power_of_two_bv (offset)) > -1)
   {
     assert (pos > 0);
     sub   = btor_sub_exp (btor, upper, param);
@@ -225,7 +233,7 @@ create_pattern_memset (Btor *btor,
                        BtorNode *upper,
                        BtorNode *value,
                        BtorNode *array,
-                       char *offset)
+                       BtorBitVector *offset)
 {
   assert (lower);
   assert (upper);
@@ -256,8 +264,11 @@ create_pattern_memset (Btor *btor,
 
 /* pattern: lower <= j <= upper && range_cond ? j : a[j] */
 static inline BtorNode *
-create_pattern_idxidx (
-    Btor *btor, BtorNode *lower, BtorNode *upper, BtorNode *array, char *offset)
+create_pattern_idxidx (Btor *btor,
+                       BtorNode *lower,
+                       BtorNode *upper,
+                       BtorNode *array,
+                       BtorBitVector *offset)
 {
   assert (lower);
   assert (upper);
@@ -288,8 +299,11 @@ create_pattern_idxidx (
 
 /* pattern: lower <= j <= upper && range_cond ? j + 1 : a[j] */
 static inline BtorNode *
-create_pattern_idxinc (
-    Btor *btor, BtorNode *lower, BtorNode *upper, BtorNode *array, char *offset)
+create_pattern_idxinc (Btor *btor,
+                       BtorNode *lower,
+                       BtorNode *upper,
+                       BtorNode *array,
+                       BtorBitVector *offset)
 {
   assert (lower);
   assert (upper);
@@ -325,7 +339,7 @@ create_pattern_memcopy (Btor *btor,
                         MemcopyOp *lower,
                         MemcopyOp *upper,
                         BtorNode *dst_array,
-                        char *offset)
+                        BtorBitVector *offset)
 {
   assert (lower->dst_addr == upper->dst_addr);
   assert (lower->src_addr == upper->src_addr);
@@ -527,6 +541,7 @@ add_to_index_map (Btor *btor,
   BtorPtrHashTable *t;
   BtorNodePtrStack *indices;
   BtorNode *offset;
+  BtorBitVector *invbits;
 
   mm = btor->mm;
 
@@ -553,8 +568,10 @@ add_to_index_map (Btor *btor,
   if (BTOR_IS_BV_CONST_NODE (BTOR_REAL_ADDR_NODE (index)))
   {
     if (BTOR_IS_INVERTED_NODE (index) && !btor_const_get_invbits (index))
-      btor_const_set_invbits (index,
-                              btor_not_const (mm, btor_const_get_bits (index)));
+    {
+      invbits = btor_not_bv (mm, btor_const_get_bits (index));
+      btor_const_set_invbits (index, invbits);
+    }
   }
   else
   {
@@ -568,8 +585,10 @@ add_to_index_map (Btor *btor,
       offset = BTOR_REAL_ADDR_NODE (index->e[1]);
 
     if (BTOR_IS_INVERTED_NODE (offset) && !btor_const_get_invbits (offset))
-      btor_const_set_invbits (
-          offset, btor_not_const (mm, btor_const_get_bits (offset)));
+    {
+      invbits = btor_not_bv (mm, btor_const_get_bits (offset));
+      btor_const_set_invbits (offset, invbits);
+    }
   }
   BTOR_PUSH_STACK (mm, *indices, index);
 }
@@ -759,7 +778,7 @@ void
 find_ranges (Btor *btor,
              BtorNodePtrStack *stack,
              BtorNodePtrStack *ranges,
-             BtorCharPtrStack *offsets,
+             BtorBitVectorPtrStack *offsets,
              BtorNodePtrStack *indices,
              unsigned *res_num_memset,
              unsigned *res_num_memset_inc,
@@ -775,7 +794,7 @@ find_ranges (Btor *btor,
   unsigned num_indices = 0;
 #endif
   bool in_range;
-  char *b0, *b1, *diff, *last_diff;
+  BtorBitVector *b0, *b1, *diff, *last_diff;
   unsigned cnt, lower, upper, range_size = 0, range_size_inc = 0;
   unsigned num_memset = 0, num_memset_inc = 0;
   BtorNode *n0, *n1;
@@ -808,12 +827,12 @@ find_ranges (Btor *btor,
         b1 = BTOR_CONST_GET_BITS (n1);
         assert (b0);
         assert (b1);
-        diff = btor_sub_const (mm, b1, b0);
+        diff = btor_sub_bv (mm, b1, b0);
 
-        if (!last_diff) last_diff = btor_copy_const (mm, diff);
+        if (!last_diff) last_diff = btor_copy_bv (mm, diff);
 
         /* increment upper bound of range */
-        in_range = strcmp (diff, last_diff) == 0;
+        in_range = btor_compare_bv (diff, last_diff) == 0;
         if (in_range) upper += 1;
       }
 
@@ -831,7 +850,7 @@ find_ranges (Btor *btor,
         /* range is too small, push separate indices */
         else if (upper - lower <= 1
                  /* range with an offset greater than 1 */
-                 && btor_is_power_of_two_const (last_diff) != 0)
+                 && btor_is_power_of_two_bv (last_diff) != 0)
         {
           /* last iteration step: if range contains all indices
            * up to the last one, we can push all indices */
@@ -860,7 +879,7 @@ find_ranges (Btor *btor,
 #ifndef NDEBUG
           num_indices += upper - lower + 1;
 #endif
-          if (btor_is_one_const (last_diff))
+          if (btor_is_one_bv (last_diff))
           {
             range_size += upper - lower + 1;
             num_memset++;
@@ -876,14 +895,14 @@ find_ranges (Btor *btor,
           /* reset range */
           upper += 1;
           lower = upper;
-          if (diff) btor_delete_const (mm, diff);
+          if (diff) btor_free_bv (mm, diff);
           diff = 0;
         }
       }
-      if (last_diff) btor_delete_const (mm, last_diff);
+      if (last_diff) btor_free_bv (mm, last_diff);
       last_diff = diff;
     }
-    if (diff) btor_delete_const (mm, diff);
+    if (diff) btor_free_bv (mm, diff);
     assert (num_indices == cnt);
   }
   if (res_num_memset) *res_num_memset += num_memset;
@@ -896,7 +915,7 @@ unsigned
 find_memcopy_ranges (Btor *btor,
                      MemcopyOpPtrStack *stack,
                      MemcopyOpPtrStack *ranges,
-                     BtorCharPtrStack *offsets,
+                     BtorBitVectorPtrStack *offsets,
                      BtorNodePtrStack *indices)
 {
   assert (stack);
@@ -908,7 +927,7 @@ find_memcopy_ranges (Btor *btor,
   unsigned num_indices = 0;
 #endif
   bool in_range;
-  char *b0, *b1, *diff, *last_diff;
+  BtorBitVector *b0, *b1, *diff, *last_diff;
   unsigned cnt, lower, upper, range_size = 0;
   BtorMemMgr *mm;
   MemcopyOpPtrStack memcopy_stack;
@@ -941,14 +960,14 @@ find_memcopy_ranges (Btor *btor,
         b1  = BTOR_CONST_GET_BITS (op1->index);
         assert (b0);
         assert (b1);
-        diff = btor_sub_const (mm, b1, b0);
+        diff = btor_sub_bv (mm, b1, b0);
 
-        if (!last_diff) last_diff = btor_copy_const (mm, diff);
+        if (!last_diff) last_diff = btor_copy_bv (mm, diff);
 
         /* increment upper bound of range */
         in_range = op0->src_addr == op1->src_addr
                    && op0->dst_addr == op1->dst_addr
-                   && strcmp (diff, last_diff) == 0;
+                   && btor_compare_bv (diff, last_diff) == 0;
         if (in_range) upper += 1;
       }
 
@@ -967,7 +986,7 @@ find_memcopy_ranges (Btor *btor,
         /* range is too small, push separate indices */
         else if (upper - lower <= 1
                  /* range with an offset greater than 1 */
-                 && btor_is_power_of_two_const (last_diff) != 0)
+                 && btor_is_power_of_two_bv (last_diff) != 0)
         {
           /* last iteration step: if range contains all indices
            * up to the last one, we can push all indices */
@@ -1003,14 +1022,14 @@ find_memcopy_ranges (Btor *btor,
           /* reset range */
           upper += 1;
           lower = upper;
-          if (diff) btor_delete_const (mm, diff);
+          if (diff) btor_free_bv (mm, diff);
           diff = 0;
         }
       }
-      if (last_diff) btor_delete_const (mm, last_diff);
+      if (last_diff) btor_free_bv (mm, last_diff);
       last_diff = diff;
     }
-    if (diff) btor_delete_const (mm, diff);
+    if (diff) btor_free_bv (mm, diff);
     assert (num_indices == cnt);
   }
   return range_size;
@@ -1032,14 +1051,14 @@ extract_lambdas (Btor *btor,
   unsigned num_pat_memcopy = 0, num_indices_memset = 0, num_indices_memcopy = 0;
   unsigned num_pat_memset_inc = 0, num_indices_memset_inc = 0;
   unsigned num_indices_idxidx = 0, num_indices_idxinc = 0;
-  char *offset;
   BtorNode *subst, *base, *tmp, *array, *value, *lower, *upper;
   BtorHashTableIterator it, iit;
   BtorPtrHashTable *t, *index_value_map;
   BtorPtrHashBucket *b;
   BtorNodePtrStack ranges, indices, values, idxidx, idxinc, remidx;
   BtorNodePtrStack *stack;
-  BtorCharPtrStack offsets;
+  BtorBitVectorPtrStack offsets;
+  BtorBitVector *offset;
   BtorMemMgr *mm;
   MemcopyOpPtrStack p_memcopy, memcopy_ranges;
   MemcopyOp *op_lower, *op_upper;
@@ -1131,7 +1150,7 @@ extract_lambdas (Btor *btor,
         tmp = create_pattern_memset (btor, lower, upper, value, subst, offset);
         btor_release_exp (btor, subst);
         subst = tmp;
-        btor_delete_const (mm, offset);
+        btor_free_bv (mm, offset);
         i_offset++;
       }
 
@@ -1189,7 +1208,7 @@ extract_lambdas (Btor *btor,
         tmp    = create_pattern_idxidx (btor, lower, upper, subst, offset);
         btor_release_exp (btor, subst);
         subst = tmp;
-        btor_delete_const (mm, offset);
+        btor_free_bv (mm, offset);
         i_offset++;
       }
     }
@@ -1219,7 +1238,7 @@ extract_lambdas (Btor *btor,
         tmp    = create_pattern_idxinc (btor, lower, upper, subst, offset);
         btor_release_exp (btor, subst);
         subst = tmp;
-        btor_delete_const (mm, offset);
+        btor_free_bv (mm, offset);
         i_offset++;
       }
     }
@@ -1243,7 +1262,7 @@ extract_lambdas (Btor *btor,
         tmp = create_pattern_memcopy (btor, op_lower, op_upper, subst, offset);
         btor_release_exp (btor, subst);
         subst = tmp;
-        btor_delete_const (mm, offset);
+        btor_free_bv (mm, offset);
         i_offset++;
         num_pat_memcopy++;
       }

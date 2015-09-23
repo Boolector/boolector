@@ -636,6 +636,566 @@ test_bv_to_ll_bitvec (void)
   }
 }
 
+static void
+test_is_special_const_bitvec (void)
+{
+  int i;
+  BtorBitVector *bv;
+
+  bv = btor_uint64_to_bv (g_mm, 0, 1);
+  assert (btor_is_special_const_bv (bv) == BTOR_SPECIAL_CONST_BV_ZERO);
+  btor_free_bv (g_mm, bv);
+
+  bv = btor_uint64_to_bv (g_mm, 1, 1);
+  assert (btor_is_special_const_bv (bv) == BTOR_SPECIAL_CONST_BV_ONE_ONES);
+  btor_free_bv (g_mm, bv);
+
+  bv = btor_uint64_to_bv (g_mm, 0, 2);
+  assert (btor_is_special_const_bv (bv) == BTOR_SPECIAL_CONST_BV_ZERO);
+  btor_free_bv (g_mm, bv);
+
+  bv = btor_uint64_to_bv (g_mm, 1, 2);
+  assert (btor_is_special_const_bv (bv) == BTOR_SPECIAL_CONST_BV_ONE);
+  btor_free_bv (g_mm, bv);
+
+  bv = btor_uint64_to_bv (g_mm, 2, 2);
+  assert (btor_is_special_const_bv (bv) == BTOR_SPECIAL_CONST_BV_NONE);
+  btor_free_bv (g_mm, bv);
+
+  bv = btor_uint64_to_bv (g_mm, 3, 2);
+  assert (btor_is_special_const_bv (bv) == BTOR_SPECIAL_CONST_BV_ONES);
+  btor_free_bv (g_mm, bv);
+
+  bv = btor_uint64_to_bv (g_mm, 0, 3);
+  assert (btor_is_special_const_bv (bv) == BTOR_SPECIAL_CONST_BV_ZERO);
+  btor_free_bv (g_mm, bv);
+
+  bv = btor_uint64_to_bv (g_mm, 1, 3);
+  assert (btor_is_special_const_bv (bv) == BTOR_SPECIAL_CONST_BV_ONE);
+  btor_free_bv (g_mm, bv);
+
+  for (i = 2; i < 7; i++)
+  {
+    bv = btor_uint64_to_bv (g_mm, i, 3);
+    assert (btor_is_special_const_bv (bv) == BTOR_SPECIAL_CONST_BV_NONE);
+    btor_free_bv (g_mm, bv);
+  }
+
+  bv = btor_uint64_to_bv (g_mm, 7, 3);
+  assert (btor_is_special_const_bv (bv) == BTOR_SPECIAL_CONST_BV_ONES);
+  btor_free_bv (g_mm, bv);
+
+  bv = btor_uint64_to_bv (g_mm, 0, 4);
+  assert (btor_is_special_const_bv (bv) == BTOR_SPECIAL_CONST_BV_ZERO);
+  btor_free_bv (g_mm, bv);
+
+  bv = btor_uint64_to_bv (g_mm, 1, 4);
+  assert (btor_is_special_const_bv (bv) == BTOR_SPECIAL_CONST_BV_ONE);
+  btor_free_bv (g_mm, bv);
+
+  for (i = 2; i < 15; i++)
+  {
+    bv = btor_uint64_to_bv (g_mm, i, 4);
+    assert (btor_is_special_const_bv (bv) == BTOR_SPECIAL_CONST_BV_NONE);
+    btor_free_bv (g_mm, bv);
+  }
+
+  bv = btor_uint64_to_bv (g_mm, 15, 4);
+  assert (btor_is_special_const_bv (bv) == BTOR_SPECIAL_CONST_BV_ONES);
+  btor_free_bv (g_mm, bv);
+}
+
+static void
+test_is_power_of_two_bitvec (void)
+{
+  BtorBitVector *bv;
+
+  bv = btor_char_to_bv (
+      g_mm, "0000000000000000000000000000000000000000000000000000000000000000");
+  assert (btor_is_power_of_two_bv (bv) == 0);
+  btor_free_bv (g_mm, bv);
+
+  bv = btor_char_to_bv (g_mm, "000");
+  assert (btor_is_power_of_two_bv (bv) == 0);
+  btor_free_bv (g_mm, bv);
+
+  bv = btor_char_to_bv (g_mm, "001");
+  assert (btor_is_power_of_two_bv (bv) == 0);
+  btor_free_bv (g_mm, bv);
+
+  bv = btor_char_to_bv (g_mm, "0010");
+  assert (btor_is_power_of_two_bv (bv) == 1);
+  btor_free_bv (g_mm, bv);
+
+  bv = btor_char_to_bv (g_mm, "00100");
+  assert (btor_is_power_of_two_bv (bv) == 2);
+  btor_free_bv (g_mm, bv);
+
+  bv = btor_char_to_bv (g_mm, "001000");
+  assert (btor_is_power_of_two_bv (bv) == 3);
+  btor_free_bv (g_mm, bv);
+
+  bv = btor_char_to_bv (g_mm, "0010000");
+  assert (btor_is_power_of_two_bv (bv) == 4);
+  btor_free_bv (g_mm, bv);
+
+  bv = btor_char_to_bv (g_mm, "000100000");
+  assert (btor_is_power_of_two_bv (bv) == 5);
+  btor_free_bv (g_mm, bv);
+
+  bv = btor_char_to_bv (g_mm, "0001000000");
+  assert (btor_is_power_of_two_bv (bv) == 6);
+  btor_free_bv (g_mm, bv);
+
+  bv = btor_char_to_bv (g_mm, "00010000000");
+  assert (btor_is_power_of_two_bv (bv) == 7);
+  btor_free_bv (g_mm, bv);
+
+  bv = btor_char_to_bv (g_mm, "000100000000");
+  assert (btor_is_power_of_two_bv (bv) == 8);
+  btor_free_bv (g_mm, bv);
+
+  bv = btor_char_to_bv (g_mm, "0001000000000");
+  assert (btor_is_power_of_two_bv (bv) == 9);
+  btor_free_bv (g_mm, bv);
+
+  bv = btor_char_to_bv (g_mm, "0000010000000000");
+  assert (btor_is_power_of_two_bv (bv) == 10);
+  btor_free_bv (g_mm, bv);
+
+  bv = btor_char_to_bv (g_mm, "10000000000000000000000000000");
+  assert (btor_is_power_of_two_bv (bv) == 28);
+  btor_free_bv (g_mm, bv);
+
+  bv = btor_char_to_bv (g_mm, "100000000000000000000000000000");
+  assert (btor_is_power_of_two_bv (bv) == 29);
+  btor_free_bv (g_mm, bv);
+
+  bv = btor_char_to_bv (g_mm, "1000000000000000000000000000000");
+  assert (btor_is_power_of_two_bv (bv) == 30);
+  btor_free_bv (g_mm, bv);
+
+  bv = btor_char_to_bv (g_mm, "01000000000000000000000000000000");
+  assert (btor_is_power_of_two_bv (bv) == 30);
+  btor_free_bv (g_mm, bv);
+
+  bv = btor_char_to_bv (g_mm, "110");
+  assert (btor_is_power_of_two_bv (bv) == -1);
+
+  btor_free_bv (g_mm, bv);
+  bv = btor_char_to_bv (g_mm, "1110");
+  assert (btor_is_power_of_two_bv (bv) == -1);
+
+  btor_free_bv (g_mm, bv);
+  bv = btor_char_to_bv (g_mm, "11110");
+  assert (btor_is_power_of_two_bv (bv) == -1);
+
+  btor_free_bv (g_mm, bv);
+  bv = btor_char_to_bv (g_mm, "111110");
+  assert (btor_is_power_of_two_bv (bv) == -1);
+
+  btor_free_bv (g_mm, bv);
+  bv = btor_char_to_bv (g_mm, "1111110");
+  assert (btor_is_power_of_two_bv (bv) == -1);
+
+  btor_free_bv (g_mm, bv);
+  bv = btor_char_to_bv (g_mm, "111111110");
+  assert (btor_is_power_of_two_bv (bv) == -1);
+
+  btor_free_bv (g_mm, bv);
+  bv = btor_char_to_bv (g_mm, "1111111110");
+  assert (btor_is_power_of_two_bv (bv) == -1);
+
+  btor_free_bv (g_mm, bv);
+  bv = btor_char_to_bv (g_mm, "11111111110");
+  assert (btor_is_power_of_two_bv (bv) == -1);
+
+  btor_free_bv (g_mm, bv);
+  bv = btor_char_to_bv (g_mm, "111111111110");
+  assert (btor_is_power_of_two_bv (bv) == -1);
+
+  btor_free_bv (g_mm, bv);
+  bv = btor_char_to_bv (g_mm, "1111111111110");
+  assert (btor_is_power_of_two_bv (bv) == -1);
+
+  btor_free_bv (g_mm, bv);
+  bv = btor_char_to_bv (g_mm, "1111111111111110");
+  assert (btor_is_power_of_two_bv (bv) == -1);
+  btor_free_bv (g_mm, bv);
+
+  bv = btor_char_to_bv (g_mm, "011");
+  assert (btor_is_power_of_two_bv (bv) == -1);
+  btor_free_bv (g_mm, bv);
+
+  bv = btor_char_to_bv (g_mm, "111");
+  assert (btor_is_power_of_two_bv (bv) == -1);
+  btor_free_bv (g_mm, bv);
+
+  bv = btor_char_to_bv (g_mm, "0011");
+  assert (btor_is_power_of_two_bv (bv) == -1);
+  btor_free_bv (g_mm, bv);
+
+  bv = btor_char_to_bv (g_mm, "00101");
+  assert (btor_is_power_of_two_bv (bv) == -1);
+  btor_free_bv (g_mm, bv);
+
+  bv = btor_char_to_bv (g_mm, "101101");
+  assert (btor_is_power_of_two_bv (bv) == -1);
+  btor_free_bv (g_mm, bv);
+
+  bv = btor_char_to_bv (g_mm, "0010001");
+  assert (btor_is_power_of_two_bv (bv) == -1);
+  btor_free_bv (g_mm, bv);
+
+  bv = btor_char_to_bv (g_mm, "000100111");
+  assert (btor_is_power_of_two_bv (bv) == -1);
+  btor_free_bv (g_mm, bv);
+
+  bv = btor_char_to_bv (g_mm, "1001000001");
+  assert (btor_is_power_of_two_bv (bv) == -1);
+  btor_free_bv (g_mm, bv);
+
+  bv = btor_char_to_bv (g_mm, "11010000001");
+  assert (btor_is_power_of_two_bv (bv) == -1);
+  btor_free_bv (g_mm, bv);
+
+  bv = btor_char_to_bv (g_mm, "000100000011");
+  assert (btor_is_power_of_two_bv (bv) == -1);
+  btor_free_bv (g_mm, bv);
+
+  bv = btor_char_to_bv (g_mm, "0001000000111");
+  assert (btor_is_power_of_two_bv (bv) == -1);
+  btor_free_bv (g_mm, bv);
+
+  bv = btor_char_to_bv (g_mm, "0000010000001111");
+  assert (btor_is_power_of_two_bv (bv) == -1);
+  btor_free_bv (g_mm, bv);
+
+  bv = btor_char_to_bv (g_mm, "10000000000000000000000000010");
+  assert (btor_is_power_of_two_bv (bv) == -1);
+  btor_free_bv (g_mm, bv);
+
+  bv = btor_char_to_bv (g_mm, "100000000000000000000001000000");
+  assert (btor_is_power_of_two_bv (bv) == -1);
+  btor_free_bv (g_mm, bv);
+
+  bv = btor_char_to_bv (g_mm, "1000000000000100000000000000000");
+  assert (btor_is_power_of_two_bv (bv) == -1);
+  btor_free_bv (g_mm, bv);
+}
+
+static void
+test_is_small_positive_int_bitvec (void)
+{
+  BtorBitVector *bv;
+
+  bv = btor_char_to_bv (
+      g_mm, "0000000000000000000000000000000000000000000000000000000000000000");
+  assert (btor_is_small_positive_int_bv (bv) == 0);
+  btor_free_bv (g_mm, bv);
+
+  bv = btor_char_to_bv (g_mm, "000");
+  assert (btor_is_small_positive_int_bv (bv) == 0);
+  btor_free_bv (g_mm, bv);
+
+  bv = btor_char_to_bv (g_mm, "001");
+  assert (btor_is_small_positive_int_bv (bv) == 1);
+  btor_free_bv (g_mm, bv);
+
+  bv = btor_char_to_bv (g_mm, "0010");
+  assert (btor_is_small_positive_int_bv (bv) == 2);
+  btor_free_bv (g_mm, bv);
+
+  bv = btor_char_to_bv (g_mm, "00100");
+  assert (btor_is_small_positive_int_bv (bv) == 4);
+  btor_free_bv (g_mm, bv);
+
+  bv = btor_char_to_bv (g_mm, "001000");
+  assert (btor_is_small_positive_int_bv (bv) == 8);
+  btor_free_bv (g_mm, bv);
+
+  bv = btor_char_to_bv (g_mm, "0010000");
+  assert (btor_is_small_positive_int_bv (bv) == 16);
+  btor_free_bv (g_mm, bv);
+
+  bv = btor_char_to_bv (g_mm, "000100000");
+  assert (btor_is_small_positive_int_bv (bv) == 32);
+  btor_free_bv (g_mm, bv);
+
+  bv = btor_char_to_bv (g_mm, "0001000000");
+  assert (btor_is_small_positive_int_bv (bv) == 64);
+  btor_free_bv (g_mm, bv);
+
+  bv = btor_char_to_bv (g_mm, "00010000000");
+  assert (btor_is_small_positive_int_bv (bv) == 128);
+  btor_free_bv (g_mm, bv);
+
+  bv = btor_char_to_bv (g_mm, "000100000000");
+  assert (btor_is_small_positive_int_bv (bv) == 256);
+  btor_free_bv (g_mm, bv);
+
+  bv = btor_char_to_bv (g_mm, "0001000000000");
+  assert (btor_is_small_positive_int_bv (bv) == 512);
+  btor_free_bv (g_mm, bv);
+
+  bv = btor_char_to_bv (g_mm, "0000010000000000");
+  assert (btor_is_small_positive_int_bv (bv) == 1024);
+  btor_free_bv (g_mm, bv);
+
+  bv = btor_char_to_bv (g_mm, "10000000000000000000000000000");
+  assert (btor_is_small_positive_int_bv (bv) == (1 << 28));
+  btor_free_bv (g_mm, bv);
+
+  bv = btor_char_to_bv (g_mm, "100000000000000000000000000000");
+  assert (btor_is_small_positive_int_bv (bv) == (1 << 29));
+  btor_free_bv (g_mm, bv);
+
+  bv = btor_char_to_bv (g_mm, "1000000000000000000000000000000");
+  assert (btor_is_small_positive_int_bv (bv) == (1 << 30));
+  btor_free_bv (g_mm, bv);
+
+  bv = btor_char_to_bv (g_mm, "01000000000000000000000000000000");
+  assert (btor_is_small_positive_int_bv (bv) == (1 << 30));
+  btor_free_bv (g_mm, bv);
+
+  bv = btor_char_to_bv (g_mm, "110");
+  assert (btor_is_small_positive_int_bv (bv) == 6);
+  btor_free_bv (g_mm, bv);
+
+  bv = btor_char_to_bv (g_mm, "1110");
+  assert (btor_is_small_positive_int_bv (bv) == 14);
+  btor_free_bv (g_mm, bv);
+
+  bv = btor_char_to_bv (g_mm, "11110");
+  assert (btor_is_small_positive_int_bv (bv) == 30);
+  btor_free_bv (g_mm, bv);
+
+  bv = btor_char_to_bv (g_mm, "111110");
+  assert (btor_is_small_positive_int_bv (bv) == 62);
+  btor_free_bv (g_mm, bv);
+
+  bv = btor_char_to_bv (g_mm, "1111110");
+  assert (btor_is_small_positive_int_bv (bv) == 126);
+  btor_free_bv (g_mm, bv);
+
+  bv = btor_char_to_bv (g_mm, "111111110");
+  assert (btor_is_small_positive_int_bv (bv) == 510);
+  btor_free_bv (g_mm, bv);
+
+  bv = btor_char_to_bv (g_mm, "1111111110");
+  assert (btor_is_small_positive_int_bv (bv) == 1022);
+  btor_free_bv (g_mm, bv);
+
+  bv = btor_char_to_bv (g_mm, "11111111110");
+  assert (btor_is_small_positive_int_bv (bv) == 2046);
+  btor_free_bv (g_mm, bv);
+
+  bv = btor_char_to_bv (g_mm, "111111111110");
+  assert (btor_is_small_positive_int_bv (bv) == 4094);
+  btor_free_bv (g_mm, bv);
+
+  bv = btor_char_to_bv (g_mm, "1111111111110");
+  assert (btor_is_small_positive_int_bv (bv) == 8190);
+  btor_free_bv (g_mm, bv);
+
+  bv = btor_char_to_bv (g_mm, "1111111111111110");
+  assert (btor_is_small_positive_int_bv (bv) == 65534);
+  btor_free_bv (g_mm, bv);
+
+  bv = btor_char_to_bv (g_mm, "011");
+  assert (btor_is_small_positive_int_bv (bv) == 3);
+  btor_free_bv (g_mm, bv);
+
+  bv = btor_char_to_bv (g_mm, "111");
+  assert (btor_is_small_positive_int_bv (bv) == 7);
+  btor_free_bv (g_mm, bv);
+
+  bv = btor_char_to_bv (g_mm, "0011");
+  assert (btor_is_small_positive_int_bv (bv) == 3);
+  btor_free_bv (g_mm, bv);
+
+  bv = btor_char_to_bv (g_mm, "00101");
+  assert (btor_is_small_positive_int_bv (bv) == 5);
+  btor_free_bv (g_mm, bv);
+
+  bv = btor_char_to_bv (g_mm, "101101");
+  assert (btor_is_small_positive_int_bv (bv) == 45);
+  btor_free_bv (g_mm, bv);
+
+  bv = btor_char_to_bv (g_mm, "00100001");
+  assert (btor_is_small_positive_int_bv (bv) == 17);
+  btor_free_bv (g_mm, bv);
+
+  bv = btor_char_to_bv (g_mm, "000100111");
+  assert (btor_is_small_positive_int_bv (bv) == 39);
+  btor_free_bv (g_mm, bv);
+
+  bv = btor_char_to_bv (g_mm, "1001000001");
+  assert (btor_is_small_positive_int_bv (bv) == 577);
+  btor_free_bv (g_mm, bv);
+
+  bv = btor_char_to_bv (g_mm, "11010000001");
+  assert (btor_is_small_positive_int_bv (bv) == 1665);
+  btor_free_bv (g_mm, bv);
+
+  bv = btor_char_to_bv (g_mm, "000100000011");
+  assert (btor_is_small_positive_int_bv (bv) == 259);
+  btor_free_bv (g_mm, bv);
+
+  bv = btor_char_to_bv (g_mm, "0001000000111");
+  assert (btor_is_small_positive_int_bv (bv) == 519);
+  btor_free_bv (g_mm, bv);
+
+  bv = btor_char_to_bv (g_mm, "0000010000001111");
+  assert (btor_is_small_positive_int_bv (bv) == 1039);
+  btor_free_bv (g_mm, bv);
+
+  bv = btor_char_to_bv (g_mm, "10000000000000000000000000010");
+  assert (btor_is_small_positive_int_bv (bv) == 268435458);
+  btor_free_bv (g_mm, bv);
+
+  bv = btor_char_to_bv (g_mm, "100000000000000000000001000000");
+  assert (btor_is_small_positive_int_bv (bv) == 536870976);
+  btor_free_bv (g_mm, bv);
+
+  bv = btor_char_to_bv (g_mm, "1000000000000100000000000000000");
+  assert (btor_is_small_positive_int_bv (bv) == 1073872896);
+  btor_free_bv (g_mm, bv);
+
+  bv = btor_char_to_bv (g_mm, "10000000000000000000000000000000");
+  assert (btor_is_small_positive_int_bv (bv) < 0);
+  btor_free_bv (g_mm, bv);
+
+  bv = btor_char_to_bv (g_mm, "10000100000000000000000011100000");
+  assert (btor_is_small_positive_int_bv (bv) < 0);
+  btor_free_bv (g_mm, bv);
+
+  bv = btor_char_to_bv (g_mm, "0010000000000000000000000000000000");
+  assert (btor_is_small_positive_int_bv (bv) < 0);
+  btor_free_bv (g_mm, bv);
+
+  bv = btor_char_to_bv (g_mm, "0010000000000100000000000011110000");
+  assert (btor_is_small_positive_int_bv (bv) < 0);
+  btor_free_bv (g_mm, bv);
+}
+
+static void
+test_get_num_leading_zeros_bitvec (void)
+{
+  BtorBitVector *bv;
+
+  // 1000
+  bv = btor_uint64_to_bv (g_mm, 8, 4);
+  assert (btor_get_num_leading_zeros_bv (bv) == 0);
+  btor_free_bv (g_mm, bv);
+
+  // 0100
+  bv = btor_uint64_to_bv (g_mm, 4, 4);
+  assert (btor_get_num_leading_zeros_bv (bv) == 1);
+  btor_free_bv (g_mm, bv);
+
+  // 0010
+  bv = btor_uint64_to_bv (g_mm, 2, 4);
+  assert (btor_get_num_leading_zeros_bv (bv) == 2);
+  btor_free_bv (g_mm, bv);
+
+  // 0001
+  bv = btor_uint64_to_bv (g_mm, 1, 4);
+  assert (btor_get_num_leading_zeros_bv (bv) == 3);
+  btor_free_bv (g_mm, bv);
+
+  // 0000
+  bv = btor_uint64_to_bv (g_mm, 0, 4);
+  assert (btor_get_num_leading_zeros_bv (bv) == 4);
+  btor_free_bv (g_mm, bv);
+
+  // 1111
+  bv = btor_uint64_to_bv (g_mm, 15, 4);
+  assert (btor_get_num_leading_ones_bv (bv) == 0);
+  btor_free_bv (g_mm, bv);
+
+  // 0110
+  bv = btor_uint64_to_bv (g_mm, 6, 4);
+  assert (btor_get_num_leading_zeros_bv (bv) == 1);
+  btor_free_bv (g_mm, bv);
+
+  // 0111
+  bv = btor_uint64_to_bv (g_mm, 7, 4);
+  assert (btor_get_num_leading_zeros_bv (bv) == 1);
+  btor_free_bv (g_mm, bv);
+
+  // 1010
+  bv = btor_uint64_to_bv (g_mm, 10, 4);
+  assert (btor_get_num_leading_zeros_bv (bv) == 0);
+  btor_free_bv (g_mm, bv);
+
+  // 0
+  bv = btor_uint64_to_bv (g_mm, 0, 1);
+  assert (btor_get_num_leading_zeros_bv (bv) == 1);
+  btor_free_bv (g_mm, bv);
+
+  // 1
+  bv = btor_uint64_to_bv (g_mm, 1, 1);
+  assert (btor_get_num_leading_zeros_bv (bv) == 0);
+  btor_free_bv (g_mm, bv);
+}
+
+static void
+test_get_num_leading_ones_bitvec (void)
+{
+  BtorBitVector *bv;
+
+  // 1000
+  bv = btor_uint64_to_bv (g_mm, 8, 4);
+  assert (btor_get_num_leading_ones_bv (bv) == 1);
+  btor_free_bv (g_mm, bv);
+
+  // 1100
+  bv = btor_uint64_to_bv (g_mm, 12, 4);
+  assert (btor_get_num_leading_ones_bv (bv) == 1);
+  btor_free_bv (g_mm, bv);
+
+  // 1110
+  bv = btor_uint64_to_bv (g_mm, 14, 4);
+  assert (btor_get_num_leading_ones_bv (bv) == 3);
+  btor_free_bv (g_mm, bv);
+
+  // 1111
+  bv = btor_uint64_to_bv (g_mm, 15, 4);
+  assert (btor_get_num_leading_ones_bv (bv) == 4);
+  btor_free_bv (g_mm, bv);
+
+  // 0000
+  bv = btor_uint64_to_bv (g_mm, 0, 4);
+  assert (btor_get_num_leading_zeros_bv (bv) == 0);
+  btor_free_bv (g_mm, bv);
+
+  // 1011
+  bv = btor_uint64_to_bv (g_mm, 11, 4);
+  assert (btor_get_num_leading_zeros_bv (bv) == 1);
+  btor_free_bv (g_mm, bv);
+
+  // 1101
+  bv = btor_uint64_to_bv (g_mm, 13, 4);
+  assert (btor_get_num_leading_zeros_bv (bv) == 2);
+  btor_free_bv (g_mm, bv);
+
+  // 1001
+  bv = btor_uint64_to_bv (g_mm, 9, 4);
+  assert (btor_get_num_leading_zeros_bv (bv) == 1);
+  btor_free_bv (g_mm, bv);
+
+  // 0
+  bv = btor_uint64_to_bv (g_mm, 0, 1);
+  assert (btor_get_num_leading_zeros_bv (bv) == 0);
+  btor_free_bv (g_mm, bv);
+
+  // 1
+  bv = btor_uint64_to_bv (g_mm, 1, 1);
+  assert (btor_get_num_leading_zeros_bv (bv) == 1);
+  btor_free_bv (g_mm, bv);
+}
+
 void
 run_bitvec_tests (int argc, char **argv)
 {
@@ -665,6 +1225,12 @@ run_bitvec_tests (int argc, char **argv)
   BTOR_RUN_TEST (perf_urem_bitvec);
   BTOR_RUN_TEST (perf_sll_bitvec);
   BTOR_RUN_TEST (perf_srl_bitvec);
+
+  BTOR_RUN_TEST (is_special_const_bitvec);
+  BTOR_RUN_TEST (is_small_positive_int_bitvec);
+  BTOR_RUN_TEST (is_power_of_two_bitvec);
+  BTOR_RUN_TEST (get_num_leading_zeros_bitvec);
+  BTOR_RUN_TEST (get_num_leading_ones_bitvec);
 }
 
 void

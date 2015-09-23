@@ -2,7 +2,7 @@
  *
  *  Copyright (C) 2007-2009 Robert Daniel Brummayer.
  *  Copyright (C) 2007-2012 Armin Biere.
- *  Copyright (C) 2013-2014 Aina Niemetz.
+ *  Copyright (C) 2013-2015 Aina Niemetz.
  *  Copyright (C) 2014 Mathias Preiner.
  *
  *  All rights reserved.
@@ -15,6 +15,7 @@
 #define BTORAIGVEC_H_INCLUDED
 
 #include "btoraig.h"
+#include "btorbitvec.h"
 #include "utils/btormem.h"
 
 struct BtorAIGMap;
@@ -63,10 +64,10 @@ void btor_delete_aigvec_mgr (BtorAIGVecMgr *avmgr);
  * The length of all input AIG vectors have to be greater than zero.
  */
 
-/* Creates new AIG vector representing a constant specified by bits.
- * len(result) = strlen(bits)
+/* Creates new AIG vector representing the constant specified by bits.
+ * len(result) = width(bits)
  */
-BtorAIGVec *btor_const_aigvec (BtorAIGVecMgr *avmgr, const char *bits);
+BtorAIGVec *btor_const_aigvec (BtorAIGVecMgr *avmgr, BtorBitVector *bits);
 
 /* Creates new AIG vector representing a variable.
  * len > 0
