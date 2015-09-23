@@ -683,25 +683,10 @@ clone_nodes_id_table (Btor *clone,
   /* clone synth_apps of lambda nodes */
   while (!BTOR_EMPTY_STACK (sapps))
   {
-    htable  = BTOR_POP_STACK (sapps);
-    chtable = BTOR_POP_STACK (sapps);
-    if (!exp_layer_only)
-    {
-      *chtable = btor_clone_ptr_hash_table (
-          mm, *htable, btor_clone_key_as_node, 0, exp_map, 0);
-    }
-    else
-    {
-      BtorNode *cur;
-      BtorHashTableIterator it;
-      btor_init_node_hash_table_iterator (&it, *htable);
-      while (btor_has_next_node_hash_table_iterator (&it))
-      {
-        cur = btor_next_node_hash_table_iterator (&it);
-        btor_release_exp (clone, BTOR_PEEK_STACK (*res, cur->id));
-      }
-      *chtable = 0;
-    }
+    htable   = BTOR_POP_STACK (sapps);
+    chtable  = BTOR_POP_STACK (sapps);
+    *chtable = btor_clone_ptr_hash_table (
+        mm, *htable, btor_clone_key_as_node, 0, exp_map, 0);
   }
 
   BTOR_RELEASE_STACK (mm, parents);
@@ -931,15 +916,9 @@ clone_aux_btor (Btor *btor, BtorNodeMap **exp_map, bool exp_layer_only)
                         exp_layer_only);
   BTORLOG (1, "  clone nodes id table: %.3f s", (btor_time_stamp () - delta));
 #ifndef NDEBUG
-  int synthapp_bytes = 0;
   for (i = 1; i < BTOR_COUNT_STACK (btor->nodes_id_table); i++)
   {
     if (!(cur = BTOR_PEEK_STACK (btor->nodes_id_table, i))) continue;
-    if (exp_layer_only && cur->synth_app && cur->refs == 1)
-    {
-      synthapp_bytes += cur->bytes;
-      continue;
-    }
     allocated += cur->bytes;
     if (BTOR_IS_BV_CONST_NODE (cur))
     {
@@ -954,13 +933,11 @@ clone_aux_btor (Btor *btor, BtorNodeMap **exp_map, bool exp_layer_only)
     }
     else if (cur->rho)
       allocated += MEM_PTR_HASH_TABLE (cur->rho);
-    if (!exp_layer_only && BTOR_IS_LAMBDA_NODE (cur)
-        && ((BtorLambdaNode *) cur)->synth_apps)
+    if (BTOR_IS_LAMBDA_NODE (cur) && ((BtorLambdaNode *) cur)->synth_apps)
       allocated += MEM_PTR_HASH_TABLE (((BtorLambdaNode *) cur)->synth_apps);
     if (BTOR_IS_LAMBDA_NODE (cur) && ((BtorLambdaNode *) cur)->static_rho)
       allocated += MEM_PTR_HASH_TABLE (((BtorLambdaNode *) cur)->static_rho);
   }
-  allocated -= synthapp_bytes;
   /* Note: hash table is initialized with size 1 */
   allocated += (emap->table->size - 1) * sizeof (BtorPtrHashBucket *)
                + emap->table->count * sizeof (BtorPtrHashBucket)
