@@ -4337,28 +4337,23 @@ search_initial_applies_just (Btor *btor, BtorNodePtrStack *top_applies)
 
           case BTOR_AND_NODE:
 
-            a = BTOR_IS_SYNTH_NODE (cur)
+            a = btor_is_encoded_exp (cur)
                     ? btor_get_assignment_aig (amgr, cur->av->aigs[0])
                     : 0;  // 'x'
 
             e0 = BTOR_REAL_ADDR_NODE (cur->e[0]);
             e1 = BTOR_REAL_ADDR_NODE (cur->e[1]);
 
-            a0 = BTOR_IS_SYNTH_NODE (e0)
+            a0 = btor_is_encoded_exp (e0)
                      ? btor_get_assignment_aig (amgr, e0->av->aigs[0])
                      : 0;  // 'x'
             if (a0 && BTOR_IS_INVERTED_NODE (cur->e[0])) a0 *= -1;
 
-            a1 = BTOR_IS_SYNTH_NODE (e1)
+            a1 = btor_is_encoded_exp (e1)
                      ? btor_get_assignment_aig (amgr, e1->av->aigs[0])
                      : 0;  // 'x'
             if (a1 && BTOR_IS_INVERTED_NODE (cur->e[1])) a1 *= -1;
 
-            // c = bv_assignment_str_exp (btor, cur);
-            // c0 = bv_assignment_str_exp (btor, cur->e[0]);
-            // c1 = bv_assignment_str_exp (btor, cur->e[1]);
-
-            // if (c[0] == '1' || c[0] == 'x')  // and = 1
             if (a != -1)  // and = 1 or x
             {
               BTOR_PUSH_STACK (btor->mm, stack, cur->e[0]);
@@ -4366,9 +4361,6 @@ search_initial_applies_just (Btor *btor, BtorNodePtrStack *top_applies)
             }
             else  // and = 0
             {
-              // assert (c[0] == '0');
-
-              // if (c0[0] == '0' && c1[0] == '0'
               if (a0 == -1 && a1 == -1  // both inputs 0
                   && btor->options.just_heuristic.val)
               {
@@ -4377,31 +4369,22 @@ search_initial_applies_just (Btor *btor, BtorNodePtrStack *top_applies)
                 else
                   BTOR_PUSH_STACK (btor->mm, stack, cur->e[1]);
               }
-              // else if (c0[0] == '0')
               else if (a0 == -1)  // only one input 0
                 BTOR_PUSH_STACK (btor->mm, stack, cur->e[0]);
-              // else if (c1[0] == '0')
               else if (a1 == -1)  // only one input 0
                 BTOR_PUSH_STACK (btor->mm, stack, cur->e[1]);
-              // else if (c0[0] == 'x' && c1[0] == '1')
               else if (a0 == 0 && a1 == 1)  // first input x, second 0
                 BTOR_PUSH_STACK (btor->mm, stack, cur->e[0]);
-              // else if (c0[0] == '1' && c1[0] == 'x')
               else if (a0 == 1 && a1 == 0)  // first input 0, second x
                 BTOR_PUSH_STACK (btor->mm, stack, cur->e[1]);
               else  // both inputs x
               {
-                // assert (c0[0] == 'x');
-                // assert (c1[0] == 'x');
                 assert (a0 == 0);
                 assert (a1 == 0);
                 BTOR_PUSH_STACK (btor->mm, stack, cur->e[0]);
                 BTOR_PUSH_STACK (btor->mm, stack, cur->e[1]);
               }
             }
-            // btor_release_bv_assignment_str (btor, c);
-            // btor_release_bv_assignment_str (btor, c0);
-            // btor_release_bv_assignment_str (btor, c1);
             break;
 
 #if 0
@@ -4501,7 +4484,7 @@ compare_argument_assignments (BtorNode *e0, BtorNode *e1)
   assert (BTOR_IS_ARGS_NODE (e1));
 
   int equal;
-  char *avec0, *avec1;
+  BtorBitVector *avec0, *avec1;
   BtorNode *arg0, *arg1;
   Btor *btor;
   BtorArgsIterator it0, it1;
@@ -4521,18 +4504,18 @@ compare_argument_assignments (BtorNode *e0, BtorNode *e1)
     if (!BTOR_IS_SYNTH_NODE (BTOR_REAL_ADDR_NODE (arg0)))
       avec0 = btor_eval_exp (btor, arg0);
     else
-      avec0 = bv_assignment_str_exp (btor, arg0);
+      avec0 = btor_assignment_bv (btor->mm, arg0, 0);
 
     if (!BTOR_IS_SYNTH_NODE (BTOR_REAL_ADDR_NODE (arg1)))
       avec1 = btor_eval_exp (btor, arg1);
     else
-      avec1 = bv_assignment_str_exp (btor, arg1);
+      avec1 = btor_assignment_bv (btor->mm, arg1, 0);
 
     assert (avec0);
     assert (avec1);
-    equal = strcmp (avec0, avec1) == 0;
-    btor_freestr (btor->mm, (char *) avec0);
-    btor_freestr (btor->mm, (char *) avec1);
+    equal = btor_compare_bv (avec0, avec1) == 0;
+    btor_free_bv (btor->mm, avec0);
+    btor_free_bv (btor->mm, avec1);
 
     if (!equal) return 1;
   }
@@ -5501,7 +5484,7 @@ propagate (Btor *btor,
   int num_restarts;
 #endif
   int i, values_equal, args_equal, evalerr, assignments_changed;
-  char *fun_value_assignment, *app_assignment;
+  BtorBitVector *fun_value_assignment, *app_assignment;
   BtorMemMgr *mm;
   BtorCoreSolver *slv;
   BtorLambdaNode *lambda;
@@ -5761,12 +5744,13 @@ propagate (Btor *btor,
       {
         /* compute assignment of 'fun_value' and compare it to the
          * assignment of 'app'. */
-        app_assignment       = bv_assignment_str_exp (btor, app);
+        app_assignment       = btor_assignment_bv (btor->mm, app, 0);
         fun_value_assignment = btor_eval_exp (btor, fun_value);
         assert (fun_value_assignment);
-        values_equal = strcmp (app_assignment, fun_value_assignment) == 0;
-        btor_freestr (mm, fun_value_assignment);
-        btor_release_bv_assignment_str (btor, app_assignment);
+        values_equal =
+            btor_compare_bv (app_assignment, fun_value_assignment) == 0;
+        btor_free_bv (btor->mm, app_assignment);
+        btor_free_bv (btor->mm, fun_value_assignment);
 
         /* beta reduction conflict */
         if (!values_equal)
@@ -5829,8 +5813,7 @@ generate_table_select_branch_ite (Btor *btor, BtorNode *fun)
   assert (!((BtorLambdaNode *) fun)->static_rho);
   assert (fun->is_array);
 
-  bool is_true;
-  char *eval;
+  BtorBitVector *evalbv;
   BtorNode *cur, *result = 0;
   BtorNodePtrStack visit;
 
@@ -5844,16 +5827,16 @@ generate_table_select_branch_ite (Btor *btor, BtorNode *fun)
     {
       assert (!BTOR_REAL_ADDR_NODE (cur->e[0])->parameterized);
       assert (btor_is_encoded_exp (cur->e[0]));
-      eval = btor_eval_exp (btor, cur->e[0]);
-      assert (eval);
-      if (eval[0] == '1')
+      evalbv = btor_eval_exp (btor, cur->e[0]);
+      assert (evalbv);
+      if (btor_get_bit_bv (evalbv, 0))
         result = cur->e[1];
       else
       {
-        assert (eval[0] == '0');
+        assert (!btor_get_bit_bv (evalbv, 0));
         result = cur->e[2];
       }
-      btor_freestr (btor->mm, eval);
+      btor_free_bv (btor->mm, evalbv);
 
       if (!BTOR_IS_APPLY_NODE (BTOR_REAL_ADDR_NODE (result)))
       {
@@ -5892,18 +5875,18 @@ generate_table_select_branch_ite (Btor *btor, BtorNode *fun)
         if (!BTOR_REAL_ADDR_NODE (cur->e[0])->parameterized)
         {
           assert (btor_is_encoded_exp (cur->e[0]));
-          eval    = btor_eval_exp (btor, cur->e[0]);
-          is_true = eval[0] == '1';
-          btor_freestr (btor->mm, eval);
-          if (is_true) BTOR_PUSH_STACK (btor->mm, visit, cur->e[1]);
+          evalbv = btor_eval_exp (btor, cur->e[0]);
+          if (btor_get_bit_bv (evalbv, 0))
+            BTOR_PUSH_STACK (btor->mm, visit, cur->e[1]);
+          btor_free_bv (btor->mm, evalbv);
         }
         else if (!BTOR_REAL_ADDR_NODE (cur->e[1])->parameterized)
         {
           assert (btor_is_encoded_exp (cur->e[1]));
-          eval    = btor_eval_exp (btor, cur->e[1]);
-          is_true = eval[0] == '1';
-          btor_freestr (btor->mm, eval);
-          if (is_true) BTOR_PUSH_STACK (btor->mm, visit, cur->e[0]);
+          evalbv = btor_eval_exp (btor, cur->e[1]);
+          if (btor_get_bit_bv (evalbv, 0))
+            BTOR_PUSH_STACK (btor->mm, visit, cur->e[0]);
+          btor_free_bv (btor->mm, evalbv);
         }
         else
         {
@@ -6021,7 +6004,7 @@ add_extensionality_lemmas (Btor *btor)
   assert (btor->slv->kind == BTOR_CORE_SOLVER_KIND);
 
   bool skip;
-  char *eval;
+  BtorBitVector *evalbv;
   unsigned num_lemmas = 0;
   BtorNode *cur, *cur_args, *app0, *app1, *eq, *con, *value;
   BtorHashTableIterator it;
@@ -6057,10 +6040,10 @@ add_extensionality_lemmas (Btor *btor)
     assert (cur->e[0]->is_array);
     assert (cur->e[1]->is_array);
 
-    eval = btor_eval_exp (btor, cur);
-    assert (eval);
-    skip = eval[0] == '0';
-    btor_freestr (mm, eval);
+    evalbv = btor_eval_exp (btor, cur);
+    assert (evalbv);
+    skip = btor_get_bit_bv (evalbv, 0) == 0;
+    btor_free_bv (btor->mm, evalbv);
 
     if (skip) continue;
 
@@ -6871,7 +6854,7 @@ btor_exp_to_aigvec (Btor *btor, BtorNode *exp, BtorPtrHashTable *backannotation)
   return result;
 }
 
-char *
+BtorBitVector *
 btor_eval_exp (Btor *btor, BtorNode *exp)
 {
   assert (btor);
@@ -6880,7 +6863,6 @@ btor_eval_exp (Btor *btor, BtorNode *exp)
   assert (exp);
 
   int i;
-  char *res = 0;
   double start;
   BtorMemMgr *mm;
   BtorNodePtrStack work_stack;
@@ -7100,13 +7082,7 @@ EVAL_EXP_CLEANUP_EXIT:
   //  BTORLOG ("%s: %s '%s'", __FUNCTION__, node2string (exp), result);
   slv->time.eval += btor_time_stamp () - start;
 
-  if (result)
-  {
-    res = btor_bv_to_char_bv (btor->mm, result);
-    btor_free_bv (btor->mm, result);
-  }
-
-  return res;
+  return result;
 }
 
 void

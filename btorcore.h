@@ -15,6 +15,7 @@
 #define BTORCORE_H_INCLUDED
 
 #include "btorass.h"
+#include "btorbitvec.h"
 #include "btorexp.h"
 #include "btormsg.h"
 #include "btoropt.h"
@@ -368,7 +369,7 @@ int btor_fun_sort_check (Btor *btor,
                          BtorNode *fun);
 
 /* Evaluates expression and returns its value. */
-char *btor_eval_exp (Btor *btor, BtorNode *exp);
+BtorBitVector *btor_eval_exp (Btor *btor, BtorNode *exp);
 
 /* Synthesizes expression of arbitrary length to an AIG vector. Adds string
  * back annotation to the hash table, if the hash table is a non zero ptr.

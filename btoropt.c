@@ -12,6 +12,7 @@
 
 #include "btoropt.h"
 #include <ctype.h>
+#include <limits.h>
 #include "boolector.h"
 #include "btorcore.h"
 #include "btorlog.h"
@@ -184,7 +185,7 @@ btor_init_opts (Btor *btor)
   BTOR_OPT ("p", pretty_print, 1, 0, 1, "pretty print when dumping");
   BTOR_OPT ("e", exit_codes, 1, 0, 1, "use Boolector exit codes");
 #ifndef NBTORLOG
-  BTOR_OPT ("l", loglevel, 0, 0, BTORLOG_LEVEL_MAX, "increase loglevel");
+  BTOR_OPT ("l", loglevel, 0, 0, INT_MAX, "increase loglevel");
 #endif
   BTOR_OPT ("v", verbosity, 0, 0, BTOR_VERBOSITY_MAX, "increase verbosity");
 
