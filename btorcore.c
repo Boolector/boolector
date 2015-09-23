@@ -6675,17 +6675,14 @@ btor_sat_btor (Btor *btor, int lod_limit, int sat_limit)
 #endif
 
 #ifdef BTOR_CHECK_MODEL
-  Btor *mclone             = 0;
-  BtorPtrHashTable *inputs = 0;
-  if (btor_has_clone_support_sat_mgr (btor_get_sat_mgr_btor (btor)))
-  {
-    mclone                           = btor_clone_exp_layer (btor, 0);
-    mclone->options.loglevel.val     = 0;
-    mclone->options.verbosity.val    = 0;
-    mclone->options.dual_prop.val    = 0;
-    inputs                           = map_inputs_check_model (btor, mclone);
-    mclone->options.auto_cleanup.val = 1;
-  }
+  Btor *mclone                     = 0;
+  BtorPtrHashTable *inputs         = 0;
+  mclone                           = btor_clone_exp_layer (btor, 0);
+  mclone->options.loglevel.val     = 0;
+  mclone->options.verbosity.val    = 0;
+  mclone->options.dual_prop.val    = 0;
+  inputs                           = map_inputs_check_model (btor, mclone);
+  mclone->options.auto_cleanup.val = 1;
 #endif
 
 #ifdef BTOR_CHECK_DUAL_PROP
