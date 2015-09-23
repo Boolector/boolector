@@ -804,6 +804,16 @@ clone_aux_btor (Btor *btor, BtorNodeMap **exp_map, bool exp_layer_only)
   clone->msg = btor_new_btor_msg (clone->mm, &clone->options.verbosity.val);
   assert ((allocated += sizeof (BtorMsg)) == clone->mm->allocated);
 
+  /* set msg prefix for clone */
+  clone_prefix = "clone";
+  len          = btor->msg->prefix ? strlen (btor->msg->prefix) : 0;
+  len += strlen (clone_prefix) + 1;
+  allocated += len + 1;
+  BTOR_NEWN (clone->mm, prefix, len + 1);
+  sprintf (prefix, "%s>%s", btor->msg->prefix, clone_prefix);
+  btor_set_msg_prefix_btor (clone, prefix);
+  BTOR_DELETEN (clone->mm, prefix, len + 1);
+
   if (exp_layer_only)
   {
     clone->bv_assignments = btor_new_bv_assignment_list (mm);
@@ -1189,14 +1199,6 @@ clone_aux_btor (Btor *btor, BtorNodeMap **exp_map, bool exp_layer_only)
   clone->clone = NULL;
 #endif
   clone->close_apitrace = 0;
-
-  clone_prefix = "clone";
-  len          = btor->msg->prefix ? strlen (btor->msg->prefix) : 0;
-  len += strlen (clone_prefix) + 1;
-  BTOR_NEWN (clone->mm, prefix, len + 1);
-  sprintf (prefix, "%s>%s", btor->msg->prefix, clone_prefix);
-  btor_set_msg_prefix_btor (clone, prefix);
-  BTOR_DELETEN (clone->mm, prefix, len + 1);
 
   if (exp_map)
     *exp_map = emap;
