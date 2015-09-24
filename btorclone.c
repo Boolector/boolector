@@ -455,8 +455,13 @@ clone_exp (Btor *clone,
   /* Note: no need to cache aig vectors here (exp->av is unique to exp). */
   if (BTOR_IS_FUN_NODE (exp))
   {
-    BTOR_PUSH_STACK_IF (res->rho, mm, *rhos, &res->rho);
-    BTOR_PUSH_STACK_IF (exp->rho, mm, *rhos, &exp->rho);
+    if (exp_layer_only)
+      res->rho = 0;
+    else
+    {
+      BTOR_PUSH_STACK_IF (res->rho, mm, *rhos, &res->rho);
+      BTOR_PUSH_STACK_IF (exp->rho, mm, *rhos, &exp->rho);
+    }
   }
   else if (exp->av)
     res->av = exp_layer_only ? 0 : btor_clone_aigvec (exp->av, clone->avmgr);
@@ -935,13 +940,13 @@ clone_aux_btor (Btor *btor, BtorNodeMap **exp_map, bool exp_layer_only)
       if (btor_const_get_invbits (cur))
         allocated += strlen (btor_const_get_invbits (cur)) + 1;
     }
-    if (!BTOR_IS_FUN_NODE (cur) && cur->av)
+    if (!exp_layer_only)
     {
-      if (!exp_layer_only)
+      if (!BTOR_IS_FUN_NODE (cur) && cur->av)
         allocated += sizeof (*(cur->av)) + cur->av->len * sizeof (BtorAIG *);
+      else if (cur->rho)
+        allocated += MEM_PTR_HASH_TABLE (cur->rho);
     }
-    else if (cur->rho)
-      allocated += MEM_PTR_HASH_TABLE (cur->rho);
     if (BTOR_IS_LAMBDA_NODE (cur) && ((BtorLambdaNode *) cur)->synth_apps)
       allocated += MEM_PTR_HASH_TABLE (((BtorLambdaNode *) cur)->synth_apps);
     if (BTOR_IS_LAMBDA_NODE (cur) && ((BtorLambdaNode *) cur)->static_rho)
@@ -1071,14 +1076,28 @@ clone_aux_btor (Btor *btor, BtorNodeMap **exp_map, bool exp_layer_only)
   assert ((allocated += MEM_PTR_HASH_TABLE (btor->fun_model))
           == clone->mm->allocated);
 
-  BTORLOG_TIMESTAMP (delta);
-  btor_clone_node_ptr_stack (
-      mm, &btor->functions_with_model, &clone->functions_with_model, emap);
-  BTORLOG (
-      1, "  clone functions_with_model: %.3f s", btor_time_stamp () - delta);
-  assert ((allocated +=
-           BTOR_SIZE_STACK (btor->functions_with_model) * sizeof (BtorNode *))
-          == clone->mm->allocated);
+  if (exp_layer_only)
+  {
+    BTOR_INIT_STACK (clone->functions_with_model);
+    /* we need to decrement the reference count of the cloned expressions
+     * that were pushed onto the functions_with_model stack. */
+    for (i = 0; i < BTOR_COUNT_STACK (btor->functions_with_model); i++)
+      btor_release_exp (
+          clone,
+          btor_mapped_node (emap,
+                            BTOR_PEEK_STACK (btor->functions_with_model, i)));
+  }
+  else
+  {
+    BTORLOG_TIMESTAMP (delta);
+    btor_clone_node_ptr_stack (
+        mm, &btor->functions_with_model, &clone->functions_with_model, emap);
+    BTORLOG (
+        1, "  clone functions_with_model: %.3f s", btor_time_stamp () - delta);
+    assert ((allocated +=
+             BTOR_SIZE_STACK (btor->functions_with_model) * sizeof (BtorNode *))
+            == clone->mm->allocated);
+  }
 
   CLONE_PTR_HASH_TABLE_DATA (cache, btor_clone_data_as_node_ptr);
   assert ((allocated += MEM_PTR_HASH_TABLE (btor->cache))
