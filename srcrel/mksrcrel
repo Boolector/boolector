@@ -51,7 +51,7 @@ cp -p \
   configure \
   boolector.[ch] \
   boolectormain.[ch] \
-  `ls btor*.[ch]|grep -v btormbt|grep -v btoruntrace|grep -v btoribv.h` \
+  `ls btor*.[ch]|grep -v btoribv.h` \
   `ls btor*.cc |grep -v btoribv|grep -v btorimc` \
   deltabtor.c \
   btor2horn.mk \
