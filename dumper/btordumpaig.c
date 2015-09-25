@@ -57,6 +57,9 @@ btor_dump_aig (BtorAIGMgr *amgr, int binary, FILE *output, BtorAIG *aig)
 void
 btor_dump_aiger (Btor *btor, FILE *output, bool is_binary, bool merge_roots)
 {
+  assert (btor->lambdas->count == 0);
+  assert (btor->ufs->count == 0);
+
   BtorHashTableIterator it;
   BtorPtrHashTable *backannotation;
   BtorAIGVec *av;
@@ -136,6 +139,9 @@ btor_dump_seq_aiger (BtorAIGMgr *amgr,
                      BtorAIG **nexts,
                      BtorPtrHashTable *backannotation)
 {
+  assert (btor->lambdas->count == 0);
+  assert (btor->ufs->count == 0);
+
   unsigned aig_id, left_id, right_id, tmp, delta;
   BtorPtrHashTable *table, *latches;
   BtorAIG *aig, *left, *right;
