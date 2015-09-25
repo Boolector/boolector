@@ -3853,6 +3853,8 @@ boolector_dump_aiger_ascii (Btor *btor, FILE *file, bool merge_roots)
   BTOR_TRAPI ("%d", merge_roots);
   BTOR_ABORT_ARG_NULL_BOOLECTOR (btor);
   BTOR_ABORT_ARG_NULL_BOOLECTOR (file);
+  BTOR_ABORT_BOOLECTOR (btor->lambdas->count > 0 || btor->ufs->count > 0,
+                        "dumping to ASCII AIGER is supported for QF_BV only");
   btor_dump_aiger (btor, file, false, merge_roots);
 #ifndef NDEBUG
   BTOR_CHKCLONE_NORES (dump_aiger_ascii, file, merge_roots);
@@ -3865,6 +3867,8 @@ boolector_dump_aiger_binary (Btor *btor, FILE *file, bool merge_roots)
   BTOR_TRAPI ("%d", merge_roots);
   BTOR_ABORT_ARG_NULL_BOOLECTOR (btor);
   BTOR_ABORT_ARG_NULL_BOOLECTOR (file);
+  BTOR_ABORT_BOOLECTOR (btor->lambdas->count > 0 || btor->ufs->count > 0,
+                        "dumping to binary AIGER is supported for QF_BV only");
   btor_dump_aiger (btor, file, true, merge_roots);
 #ifndef NDEBUG
   BTOR_CHKCLONE_NORES (dump_aiger_binary, file, merge_roots);
