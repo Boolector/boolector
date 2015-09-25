@@ -2,7 +2,7 @@
  *
  *  Copyright (C) 2012 Armin Biere.
  *  Copyright (C) 2013-2015 Aina Niemetz.
- *  Copyright (C) 2014 Mathias Preiner.
+ *  Copyright (C) 2014-2015 Mathias Preiner.
  *
  *  All rights reserved.
 
