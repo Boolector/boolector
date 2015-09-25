@@ -704,6 +704,26 @@ cdef class Boolector:
             raise BoolectorException("Term must be of bit width one")
         return btorapi.boolector_failed(self._c_btor, n._c_node) == 1
 
+    def Fixate_assumptions(self):
+	""" Fixate_assumptions()
+
+	    Add all assumptions added since the last
+	    :func:`~boolector.Boolector.Sat` call as assertions. 
+
+            See :func:`~boolector.Boolector.Assume`.
+	"""
+	btorapi.boolector_fixate_assumptions(self._c_btor)
+
+    def Reset_assumptions(self):
+	""" Reset_assumptions()
+
+	    Remove all assumptions added since the last
+	    :func:`~boolector.Boolector.Sat` call.
+
+            See :func:`~boolector.Boolector.Assume`.
+	"""
+	btorapi.boolector_reset_assumptions(self._c_btor)
+
     def Sat(self, int lod_limit = -1, int sat_limit = -1):
         """ Sat (lod_limit = -1, sat_limit = -1)
 
@@ -1134,7 +1154,7 @@ cdef class Boolector:
 
             Dump input formula to output file.
 
-            :param format: A file format identifier string (use 'btor' for BTOR_, 'smt1' for `SMT-LIB v1`_, and 'smt2' for `SMT-LIB v2`_).
+            :param format: A file format identifier string (use 'btor' for BTOR_, 'smt1' for `SMT-LIB v1`_, 'smt2' for `SMT-LIB v2`_, 'aig' for binary AIGER (QF_BV only), and 'aag' for ASCII AIGER (QF_BV only)).
             :type format: str
             :param outile: Output file name (default: stdout).
             :type format: str.
@@ -1159,6 +1179,10 @@ cdef class Boolector:
             btorapi.boolector_dump_smt1(self._c_btor, c_file)
         elif format.lower() == "smt2":
             btorapi.boolector_dump_smt2(self._c_btor, c_file)
+        elif format.lower() == "aig":
+	    btorapi.boolector_dump_aiger_binary(self._c_btor, c_file, True)
+	elif format.lower() == "aag":
+	    btorapi.boolector_dump_aiger_ascii(self._c_btor, c_file, True)
         else:
             raise BoolectorException("Invalid dump format '{}'".format(format)) 
         if outfile is not None:
