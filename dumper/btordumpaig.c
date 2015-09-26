@@ -139,9 +139,6 @@ btor_dump_seq_aiger (BtorAIGMgr *amgr,
                      BtorAIG **nexts,
                      BtorPtrHashTable *backannotation)
 {
-  assert (btor->lambdas->count == 0);
-  assert (btor->ufs->count == 0);
-
   unsigned aig_id, left_id, right_id, tmp, delta;
   BtorPtrHashTable *table, *latches;
   BtorAIG *aig, *left, *right;

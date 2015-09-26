@@ -766,12 +766,12 @@ clone_aux_btor (Btor *btor, BtorNodeMap **exp_map, bool exp_layer_only)
   BtorNodeMap *emap = 0;
   BtorMemMgr *mm;
   double start, delta;
-  int len;
+  int i, len;
   char *prefix, *clone_prefix;
   BtorNode *exp;
   BtorHashTableIterator it;
 #ifndef NDEBUG
-  int i, h;
+  int h;
   size_t allocated;
   BtorNode *cur;
   BtorAIGMgr *amgr;
@@ -812,7 +812,9 @@ clone_aux_btor (Btor *btor, BtorNodeMap **exp_map, bool exp_layer_only)
   clone_prefix = "clone";
   len          = btor->msg->prefix ? strlen (btor->msg->prefix) : 0;
   len += strlen (clone_prefix) + 1;
+#ifndef NDEBUG
   allocated += len + 1;
+#endif
   BTOR_NEWN (clone->mm, prefix, len + 1);
   sprintf (prefix, "%s>%s", btor->msg->prefix, clone_prefix);
   btor_set_msg_prefix_btor (clone, prefix);
