@@ -12,6 +12,7 @@
 # TODO: check functions that are implemented
 
 from libc.stdio cimport FILE
+from libcpp cimport bool
 from cpython.ref cimport PyObject
 
 cdef extern from "boolector_py.h":

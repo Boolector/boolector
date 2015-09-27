@@ -128,14 +128,13 @@ cdef class BoolectorSort:
     """
     cdef Boolector btor
     cdef btorapi.Btor * _c_btor
-    cdef btorapi.BoolectorSort * _c_sort
+    cdef btorapi.BoolectorSort _c_sort
 
     def __init__(self, Boolector boolector):
         self.btor = boolector
         self._c_btor = boolector._c_btor
 
     def __dealloc__(self):
-        assert(self._c_sort is not NULL)
         btorapi.boolector_release_sort(self._c_btor, self._c_sort)
 
 cdef class _BoolectorFunSort(BoolectorSort):
@@ -705,24 +704,24 @@ cdef class Boolector:
         return btorapi.boolector_failed(self._c_btor, n._c_node) == 1
 
     def Fixate_assumptions(self):
-	""" Fixate_assumptions()
+        """ Fixate_assumptions()
 
-	    Add all assumptions added since the last
-	    :func:`~boolector.Boolector.Sat` call as assertions. 
+            Add all assumptions added since the last
+            :func:`~boolector.Boolector.Sat` call as assertions. 
 
             See :func:`~boolector.Boolector.Assume`.
-	"""
-	btorapi.boolector_fixate_assumptions(self._c_btor)
+        """
+        btorapi.boolector_fixate_assumptions(self._c_btor)
 
     def Reset_assumptions(self):
-	""" Reset_assumptions()
+        """ Reset_assumptions()
 
-	    Remove all assumptions added since the last
-	    :func:`~boolector.Boolector.Sat` call.
+            Remove all assumptions added since the last
+            :func:`~boolector.Boolector.Sat` call.
 
             See :func:`~boolector.Boolector.Assume`.
-	"""
-	btorapi.boolector_reset_assumptions(self._c_btor)
+        """
+        btorapi.boolector_reset_assumptions(self._c_btor)
 
     def Sat(self, int lod_limit = -1, int sat_limit = -1):
         """ Sat (lod_limit = -1, sat_limit = -1)
@@ -1180,9 +1179,9 @@ cdef class Boolector:
         elif format.lower() == "smt2":
             btorapi.boolector_dump_smt2(self._c_btor, c_file)
         elif format.lower() == "aig":
-	    btorapi.boolector_dump_aiger_binary(self._c_btor, c_file, True)
-	elif format.lower() == "aag":
-	    btorapi.boolector_dump_aiger_ascii(self._c_btor, c_file, True)
+            btorapi.boolector_dump_aiger_binary(self._c_btor, c_file, True)
+        elif format.lower() == "aag":
+            btorapi.boolector_dump_aiger_ascii(self._c_btor, c_file, True)
         else:
             raise BoolectorException("Invalid dump format '{}'".format(format)) 
         if outfile is not None:
@@ -2748,9 +2747,9 @@ cdef class Boolector:
             :rtype: :class:`~boolector.BoolectorSort`
           """
         cdef int arity = len(domain)
-        cdef btorapi.BoolectorSort ** c_domain = \
-            <btorapi.BoolectorSort **> \
-                malloc(arity * sizeof(btorapi.BoolectorSort *))
+        cdef btorapi.BoolectorSort * c_domain = \
+            <btorapi.BoolectorSort *> \
+                malloc(arity * sizeof(btorapi.BoolectorSort))
 
         for i in range(arity):
             if not isinstance(domain[i], BoolectorSort):
