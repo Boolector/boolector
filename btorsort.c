@@ -406,30 +406,33 @@ create_sort (BtorSortUniqueTable *table, BtorSort *pattern)
 BtorSortId
 btor_bool_sort (BtorSortUniqueTable *table)
 {
+  return btor_bitvec_sort (table, 1);
+#if 0
   assert (table);
 
-  BtorSort *res, **pos, pattern;
+  BtorSort * res, ** pos, pattern;
 
   BTOR_CLR (&pattern);
   pattern.kind = BTOR_BOOL_SORT;
-  pos          = find_sort (table, &pattern);
+  pos = find_sort (table, &pattern);
   assert (pos);
   res = *pos;
-  if (!res)
-  {
-    if (BTOR_FULL_SORT_UNIQUE_TABLE (table))
+  if (!res) 
     {
-      enlarge_sorts_unique_table (table);
-      pos = find_sort (table, &pattern);
-      assert (pos);
-      res = *pos;
-      assert (!res);
+      if (BTOR_FULL_SORT_UNIQUE_TABLE (table))
+	{
+	  enlarge_sorts_unique_table (table);
+	  pos = find_sort (table, &pattern);
+	  assert (pos);
+	  res = *pos;
+	  assert (!res);
+	}
+      res = create_sort (table, &pattern);
+      *pos = res;
     }
-    res  = create_sort (table, &pattern);
-    *pos = res;
-  }
   inc_sort_ref_counter (res);
   return res->id;
+#endif
 }
 
 BtorSortId
@@ -712,10 +715,14 @@ btor_get_element_array_sort (const BtorSortUniqueTable *table, BtorSortId id)
 bool
 btor_is_bool_sort (BtorSortUniqueTable *table, BtorSortId id)
 {
+#if 0
   BtorSort *sort;
   sort = btor_get_sort_by_id (table, id);
   assert (sort);
   return sort->kind == BTOR_BOOL_SORT;
+#endif
+  return btor_is_bitvec_sort (table, id)
+         && btor_get_width_bitvec_sort (table, id) == 1;
 }
 
 bool
