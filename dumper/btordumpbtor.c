@@ -359,7 +359,7 @@ bdcnode (BtorDumpContext *bdc, BtorNode *node, FILE *file)
       fprintf (file, " %d", btor_get_fun_exp_width (bdc->btor, node));
       fprintf (file, " %d", btor_get_exp_width (bdc->btor, node->e[0]));
     }
-    else
+    else if (!BTOR_IS_UF_NODE (node))
       fprintf (file, " %d", btor_get_exp_width (bdc->btor, node));
 
     if (BTOR_IS_APPLY_NODE (node))
