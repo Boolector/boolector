@@ -49,6 +49,7 @@ test_const_aigvec (void)
   assert (av->len == 4);
   btor_release_delete_aigvec (avmgr, av);
   btor_delete_aigvec_mgr (avmgr);
+  btor_free_bv (g_mm, bits);
 }
 
 static void
@@ -102,6 +103,7 @@ test_invert_aigvec (void)
   btor_release_delete_aigvec (avmgr, av1);
   btor_release_delete_aigvec (avmgr, av2);
   btor_delete_aigvec_mgr (avmgr);
+  btor_free_bv (g_mm, bits);
 }
 
 static void
