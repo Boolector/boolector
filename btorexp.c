@@ -1792,7 +1792,7 @@ btor_const_exp (Btor *btor, BtorBitVector *bits)
   lookupbits = bits;
 
   /* normalize constants, constans are always even */
-  if (btor_get_bit_bv (bits, bits->width - 1))
+  if (btor_get_bit_bv (bits, 0))
   {
     lookupbits = btor_not_bv (btor->mm, bits);
     inv        = true;
