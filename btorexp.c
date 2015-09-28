@@ -532,7 +532,7 @@ compute_hash_exp (BtorNode *exp, int table_size)
   unsigned int hash = 0;
 
   if (BTOR_IS_BV_CONST_NODE (exp))
-    hash = btor_hash_str ((void *) btor_const_get_bits (exp));
+    hash = btor_hash_bv ((void *) btor_const_get_bits (exp));
   /* hash for lambdas is computed once during creation. afterwards, we always
    * have to use the saved hash value since hashing of lambdas requires all
    * parameterized nodes and their inputs (cf. hash_lambda_exp), which may
@@ -1410,7 +1410,7 @@ hash_bv (const void *bv)
 
   for (i = 0, j = 0, res = 0; i < p->len; i++)
   {
-    res += btor_hash_primes[i++] * p->bits[j++];
+    res += btor_hash_primes[j++] * p->bits[i];
     if (j == BTOR_HASH_PRIMES) j = 0;
   }
   return res;
