@@ -147,6 +147,8 @@ test_unsigned_to_exp (void)
   BtorNode *exp1, *exp2, *exp3, *exp4, *exp5, *exp6, *exp7, *exp8;
   BtorBitVector *bv5, *bv6, *bv7, *bv8;
 
+  init_exp_test ();
+
   exp1 = btor_unsigned_exp (g_btor, 32u, 8);
   exp2 = btor_unsigned_exp (g_btor, 49u, 8);
   exp3 = btor_unsigned_exp (g_btor, 3u, 8);
@@ -159,8 +161,6 @@ test_unsigned_to_exp (void)
   exp6 = btor_const_exp (g_btor, bv6);
   exp7 = btor_const_exp (g_btor, bv7);
   exp8 = btor_const_exp (g_btor, bv8);
-
-  init_exp_test ();
 
   assert (exp1 == exp5);
   assert (exp2 == exp6);

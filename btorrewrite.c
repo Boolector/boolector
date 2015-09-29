@@ -501,7 +501,6 @@ applies_const_binary_exp (Btor *btor,
          && BTOR_IS_BV_CONST_NODE (BTOR_REAL_ADDR_NODE (e1));
 }
 
-// TODO (an)
 static inline BtorNode *
 apply_const_binary_exp (Btor *btor,
                         BtorNodeKind kind,

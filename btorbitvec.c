@@ -261,7 +261,7 @@ btor_is_ones_bv (BtorBitVector *bv)
   assert (bv);
 
   int i, n;
-  for (i = bv->len - 2; i >= 0; i--)
+  for (i = bv->len - 1; i >= 1; i--)
     if (bv->bits[i] != UINT_MAX) return false;
   n = bv->width % BTOR_BV_TYPE_BW;
   if (n && bv->bits[0] != UINT_MAX >> (BTOR_BV_TYPE_BW - n)) return false;
