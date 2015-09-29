@@ -275,18 +275,38 @@ btor_is_power_of_two_bv (BtorBitVector *bv)
 
   uint32_t i, j;
   int bit;
+  bool iszero;
 
-  if (btor_get_bit_bv (bv, 0)) return -1;
-  for (i = 1, j = 0; i < bv->width; i++)
+  for (i = 0, j = 0, iszero = true; i < bv->width; i++)
   {
     bit = btor_get_bit_bv (bv, i);
     if (!bit) continue;
-    if (bit && j) return -1;
-    assert (bit && !j);
-    j = i;
+    if (bit && !iszero) return -1;
+    assert (bit && iszero);
+    j      = i;
+    iszero = false;
   }
-  if (!j) return 0;
   return j;
+  //  q = 0;
+  //  for (p = str; (ch = *p); p++)
+  //    if (ch == '0') continue;
+  //    else if (ch == '1' && q) return -1;
+  //    else if (ch == '1' && !q) q = p;
+  //    else return -1;
+  //  if (!q) return 0;
+  //  return p - q - 1;
+
+  /// for (i = 0, j = 0; i < bv->width; i++)
+  ///  {
+  /// printf ("++j %d\n", j);
+  ///    bit = btor_get_bit_bv (bv, i);
+  ///    if (!bit) continue;
+  ///    if (bit && j) return -1;
+  ///    assert (bit && !j);
+  ///    j = i;
+  ///  }
+  /// printf ("j %d\n", j);
+  /// return j;
 }
 
 int
@@ -310,9 +330,11 @@ btor_get_num_leading_zeros_bv (BtorBitVector *bv)
   uint32_t i;
   int res;
 
-  for (i = bv->width - 1, res = 0; !btor_get_bit_bv (bv, i) && i < UINT_MAX;
-       i--)
+  for (i = bv->width - 1, res = 0; i < UINT_MAX; i--)
+  {
+    if (btor_get_bit_bv (bv, i)) break;
     res += 1;
+  }
 
   return res;
 }
@@ -325,8 +347,11 @@ btor_get_num_leading_ones_bv (BtorBitVector *bv)
   uint32_t i;
   int res;
 
-  for (i = bv->width - 1, res = 0; btor_get_bit_bv (bv, i) && i < UINT_MAX; i--)
+  for (i = bv->width - 1, res = 0; i < UINT_MAX; i--)
+  {
+    if (!btor_get_bit_bv (bv, i)) break;
     res += 1;
+  }
 
   return res;
 }
