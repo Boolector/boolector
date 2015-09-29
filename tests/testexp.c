@@ -755,6 +755,7 @@ test_cond_exp (void)
   btor_release_exp (g_btor, exp4);
   btor_release_exp (g_btor, exp5);
   btor_release_exp (g_btor, exp6);
+  btor_free_bv (g_btor->mm, bv3);
   finish_exp_test ();
 }
 
