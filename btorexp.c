@@ -518,6 +518,24 @@ hash_bv_exp (int arity, BtorNode **e)
   return hash;
 }
 
+unsigned btor_hash_primes[] = {111130391, 22237357, 33355519, 444476887};
+
+#define BTOR_HASH_PRIMES ((sizeof btor_hash_primes) / sizeof *btor_hash_primes)
+
+static inline unsigned int
+hash_bv (const void *bv)
+{
+  const BtorBitVector *p = (const BtorBitVector *) bv;
+  unsigned res, i, j;
+
+  for (i = 0, j = 0, res = 0; i < p->len; i++)
+  {
+    res += btor_hash_primes[j++] * p->bits[i];
+    if (j == BTOR_HASH_PRIMES) j = 0;
+  }
+  return res;
+}
+
 /* Computes hash value of expresssion by children ids */
 static unsigned int
 compute_hash_exp (BtorNode *exp, int table_size)
@@ -532,7 +550,7 @@ compute_hash_exp (BtorNode *exp, int table_size)
   unsigned int hash = 0;
 
   if (BTOR_IS_BV_CONST_NODE (exp))
-    hash = btor_hash_bv ((void *) btor_const_get_bits (exp));
+    hash = hash_bv ((void *) btor_const_get_bits (exp));
   /* hash for lambdas is computed once during creation. afterwards, we always
    * have to use the saved hash value since hashing of lambdas requires all
    * parameterized nodes and their inputs (cf. hash_lambda_exp), which may
@@ -1396,24 +1414,6 @@ btor_cmp_exp_by_id_qsort_asc (const void *p, const void *q)
   BtorNode *a = BTOR_REAL_ADDR_NODE (*(BtorNode **) p);
   BtorNode *b = BTOR_REAL_ADDR_NODE (*(BtorNode **) q);
   return a->id - b->id;
-}
-
-unsigned btor_hash_primes[] = {111130391, 22237357, 33355519, 444476887};
-
-#define BTOR_HASH_PRIMES ((sizeof btor_hash_primes) / sizeof *btor_hash_primes)
-
-static inline unsigned int
-hash_bv (const void *bv)
-{
-  const BtorBitVector *p = (const BtorBitVector *) bv;
-  unsigned res, i, j;
-
-  for (i = 0, j = 0, res = 0; i < p->len; i++)
-  {
-    res += btor_hash_primes[j++] * p->bits[i];
-    if (j == BTOR_HASH_PRIMES) j = 0;
-  }
-  return res;
 }
 
 /* Search for constant expression in hash table. Returns 0 if not found. */
