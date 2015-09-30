@@ -732,7 +732,8 @@ btor_get_bv_model_aux (Btor *btor,
   BtorBitVector *result;
   BtorPtrHashBucket *b;
 
-  b = btor_find_in_ptr_hash_table (*bv_model, exp);
+  exp = btor_simplify_exp (btor, exp);
+  b   = btor_find_in_ptr_hash_table (*bv_model, exp);
 
   if (!b)
   {
