@@ -1,4 +1,4 @@
-/*  Boolector: Satisfiablity Modulo Theories (SMT) solver.
+/*  boolector: Satisfiablity Modulo Theories (SMT) solver.
  *
  *  Copyright (C) 2013 Mathias Preiner.
  *  Copyright (C) 2015 Aina Niemetz.
@@ -685,6 +685,85 @@ test_compare_bitvec (void)
 }
 
 static void
+test_is_one_bitvec (void)
+{
+  int i;
+  char *s;
+  BtorBitVector *bv1, *bv2, *bv3;
+
+  for (i = 1; i < 32; i++)
+  {
+    bv1 = btor_one_bv (g_btor->mm, i);
+    bv2 = btor_uint64_to_bv (g_btor->mm, 1, i);
+    BTOR_CNEWN (g_btor->mm, s, i + 1);
+    memset (s, '0', i - 1);
+    s[i - 1] = '1';
+    bv3      = btor_char_to_bv (g_btor->mm, s);
+    assert (btor_is_one_bv (bv1));
+    assert (btor_is_one_bv (bv2));
+    assert (btor_is_one_bv (bv3));
+    assert (!btor_compare_bv (bv1, bv2));
+    assert (!btor_compare_bv (bv1, bv3));
+    btor_free_bv (g_btor->mm, bv1);
+    btor_free_bv (g_btor->mm, bv2);
+    btor_free_bv (g_btor->mm, bv3);
+    BTOR_DELETEN (g_btor->mm, s, i + 1);
+  }
+}
+
+static void
+test_is_ones_bitvec (void)
+{
+  int i;
+  char *s;
+  BtorBitVector *bv1, *bv2, *bv3;
+
+  for (i = 1; i < 32; i++)
+  {
+    bv1 = btor_ones_bv (g_btor->mm, i);
+    bv2 = btor_uint64_to_bv (g_btor->mm, UINT_MAX, i);
+    BTOR_CNEWN (g_btor->mm, s, i + 1);
+    memset (s, '1', i);
+    bv3 = btor_char_to_bv (g_btor->mm, s);
+    assert (btor_is_ones_bv (bv1));
+    assert (btor_is_ones_bv (bv2));
+    assert (btor_is_ones_bv (bv3));
+    assert (!btor_compare_bv (bv1, bv2));
+    assert (!btor_compare_bv (bv1, bv3));
+    btor_free_bv (g_btor->mm, bv1);
+    btor_free_bv (g_btor->mm, bv2);
+    btor_free_bv (g_btor->mm, bv3);
+    BTOR_DELETEN (g_btor->mm, s, i + 1);
+  }
+}
+
+static void
+test_is_zero_bitvec (void)
+{
+  int i;
+  char *s;
+  BtorBitVector *bv1, *bv2, *bv3;
+
+  for (i = 1; i < 32; i++)
+  {
+    bv1 = btor_new_bv (g_btor->mm, i);
+    bv2 = btor_uint64_to_bv (g_btor->mm, 0, i);
+    BTOR_CNEWN (g_btor->mm, s, i + 1);
+    memset (s, '0', i);
+    bv3 = btor_char_to_bv (g_btor->mm, s);
+    assert (btor_is_zero_bv (bv1));
+    assert (btor_is_zero_bv (bv2));
+    assert (btor_is_zero_bv (bv3));
+    assert (!btor_compare_bv (bv1, bv2));
+    assert (!btor_compare_bv (bv1, bv3));
+    btor_free_bv (g_btor->mm, bv1);
+    btor_free_bv (g_btor->mm, bv2);
+    btor_free_bv (g_btor->mm, bv3);
+    BTOR_DELETEN (g_btor->mm, s, i + 1);
+  }
+}
+
+static void
 test_is_special_const_bitvec (void)
 {
   int i;
@@ -1276,6 +1355,9 @@ run_bitvec_tests (int argc, char **argv)
 
   BTOR_RUN_TEST (compare_bitvec);
 
+  BTOR_RUN_TEST (is_one_bitvec);
+  BTOR_RUN_TEST (is_ones_bitvec);
+  BTOR_RUN_TEST (is_zero_bitvec);
   BTOR_RUN_TEST (is_special_const_bitvec);
   BTOR_RUN_TEST (is_small_positive_int_bitvec);
   BTOR_RUN_TEST (is_power_of_two_bitvec);
