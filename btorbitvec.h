@@ -65,6 +65,7 @@ uint64_t btor_bv_to_uint64_bv (BtorBitVector *bv);
 
 /* LSB is pos 0 */
 int btor_get_bit_bv (const BtorBitVector *bv, uint32_t pos);
+void btor_set_bit_bv (BtorBitVector *bv, uint32_t pos, uint32_t bit);
 
 bool btor_is_true_bv (BtorBitVector *bv);
 bool btor_is_false_bv (BtorBitVector *bv);

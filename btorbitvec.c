@@ -126,7 +126,7 @@ btor_get_bit_bv (const BtorBitVector *bv, uint32_t pos)
   return (bv->bits[bv->len - 1 - i] >> j) & 1;
 }
 
-static void
+void
 btor_set_bit_bv (BtorBitVector *bv, uint32_t pos, uint32_t bit)
 {
   assert (bv);

@@ -1833,7 +1833,8 @@ int_min_exp (Btor *btor, uint32_t width)
   BtorBitVector *bv;
   BtorNode *result;
 
-  bv     = btor_one_bv (btor->mm, width);
+  bv = btor_new_bv (btor->mm, width);
+  btor_set_bit_bv (bv, bv->width - 1, 1);
   result = btor_const_exp (btor, bv);
   btor_free_bv (btor->mm, bv);
   return result;

@@ -95,7 +95,7 @@
     result = apply_##rw_rule (btor, __VA_ARGS__); \
     if (result) goto DONE;                        \
   }
-//      fprintf (stderr, "apply: %s (%s)\n", #rw_rule, __FUNCTION__);
+//fprintf (stderr, "apply: %s (%s)\n", #rw_rule, __FUNCTION__);\
 
 /* -------------------------------------------------------------------------- */
 /* util functions */
