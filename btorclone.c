@@ -449,8 +449,13 @@ clone_exp (Btor *clone,
   /* Note: no need to cache aig vectors here (exp->av is unique to exp). */
   if (BTOR_IS_FUN_NODE (exp))
   {
-    BTOR_PUSH_STACK_IF (res->rho, mm, *rhos, &res->rho);
-    BTOR_PUSH_STACK_IF (exp->rho, mm, *rhos, &exp->rho);
+    if (exp_layer_only)
+      res->rho = 0;
+    else
+    {
+      BTOR_PUSH_STACK_IF (res->rho, mm, *rhos, &res->rho);
+      BTOR_PUSH_STACK_IF (exp->rho, mm, *rhos, &exp->rho);
+    }
   }
   else if (exp->av)
     res->av = exp_layer_only ? 0 : btor_clone_aigvec (exp->av, clone->avmgr);
@@ -677,25 +682,10 @@ clone_nodes_id_table (Btor *clone,
   /* clone synth_apps of lambda nodes */
   while (!BTOR_EMPTY_STACK (sapps))
   {
-    htable  = BTOR_POP_STACK (sapps);
-    chtable = BTOR_POP_STACK (sapps);
-    if (!exp_layer_only)
-    {
-      *chtable = btor_clone_ptr_hash_table (
-          mm, *htable, btor_clone_key_as_node, 0, exp_map, 0);
-    }
-    else
-    {
-      BtorNode *cur;
-      BtorHashTableIterator it;
-      btor_init_node_hash_table_iterator (&it, *htable);
-      while (btor_has_next_node_hash_table_iterator (&it))
-      {
-        cur = btor_next_node_hash_table_iterator (&it);
-        btor_release_exp (clone, BTOR_PEEK_STACK (*res, cur->id));
-      }
-      *chtable = 0;
-    }
+    htable   = BTOR_POP_STACK (sapps);
+    chtable  = BTOR_POP_STACK (sapps);
+    *chtable = btor_clone_ptr_hash_table (
+        mm, *htable, btor_clone_key_as_node, 0, exp_map, 0);
   }
 
   BTOR_RELEASE_STACK (mm, parents);
@@ -773,12 +763,12 @@ clone_aux_btor (Btor *btor, BtorNodeMap **exp_map, bool exp_layer_only)
   BtorNodeMap *emap = 0;
   BtorMemMgr *mm;
   double start, delta;
-  int len;
+  int i, len;
   char *prefix, *clone_prefix;
   BtorNode *exp;
   BtorHashTableIterator it;
 #ifndef NDEBUG
-  int i, h;
+  int h;
   size_t allocated;
   BtorNode *cur;
   BtorAIGMgr *amgr;
@@ -806,7 +796,6 @@ clone_aux_btor (Btor *btor, BtorNodeMap **exp_map, bool exp_layer_only)
   {
     /* reset */
     clone->btor_sat_btor_called = 0;
-    clone->valid_assignments    = 0;
     btor_reset_time_btor (clone);
     btor_reset_stats_btor (clone);
   }
@@ -815,6 +804,18 @@ clone_aux_btor (Btor *btor, BtorNodeMap **exp_map, bool exp_layer_only)
 
   clone->msg = btor_new_btor_msg (clone->mm, &clone->options.verbosity.val);
   assert ((allocated += sizeof (BtorMsg)) == clone->mm->allocated);
+
+  /* set msg prefix for clone */
+  clone_prefix = "clone";
+  len          = btor->msg->prefix ? strlen (btor->msg->prefix) : 0;
+  len += strlen (clone_prefix) + 1;
+#ifndef NDEBUG
+  allocated += len + 1;
+#endif
+  BTOR_NEWN (clone->mm, prefix, len + 1);
+  sprintf (prefix, "%s>%s", btor->msg->prefix, clone_prefix);
+  btor_set_msg_prefix_btor (clone, prefix);
+  BTOR_DELETEN (clone->mm, prefix, len + 1);
 
   if (exp_layer_only)
   {
@@ -928,15 +929,9 @@ clone_aux_btor (Btor *btor, BtorNodeMap **exp_map, bool exp_layer_only)
                         exp_layer_only);
   BTORLOG (1, "  clone nodes id table: %.3f s", (btor_time_stamp () - delta));
 #ifndef NDEBUG
-  int synthapp_bytes = 0;
   for (i = 1; i < BTOR_COUNT_STACK (btor->nodes_id_table); i++)
   {
     if (!(cur = BTOR_PEEK_STACK (btor->nodes_id_table, i))) continue;
-    if (exp_layer_only && cur->synth_app && cur->refs == 1)
-    {
-      synthapp_bytes += cur->bytes;
-      continue;
-    }
     allocated += cur->bytes;
     if (BTOR_IS_BV_CONST_NODE (cur))
     {
@@ -944,20 +939,18 @@ clone_aux_btor (Btor *btor, BtorNodeMap **exp_map, bool exp_layer_only)
       if (btor_const_get_invbits (cur))
         allocated += MEM_BITVEC (btor_const_get_invbits (cur));
     }
-    if (!BTOR_IS_FUN_NODE (cur) && cur->av)
+    if (!exp_layer_only)
     {
-      if (!exp_layer_only)
+      if (!BTOR_IS_FUN_NODE (cur) && cur->av)
         allocated += sizeof (*(cur->av)) + cur->av->len * sizeof (BtorAIG *);
+      else if (cur->rho)
+        allocated += MEM_PTR_HASH_TABLE (cur->rho);
     }
-    else if (cur->rho)
-      allocated += MEM_PTR_HASH_TABLE (cur->rho);
-    if (!exp_layer_only && BTOR_IS_LAMBDA_NODE (cur)
-        && ((BtorLambdaNode *) cur)->synth_apps)
+    if (BTOR_IS_LAMBDA_NODE (cur) && ((BtorLambdaNode *) cur)->synth_apps)
       allocated += MEM_PTR_HASH_TABLE (((BtorLambdaNode *) cur)->synth_apps);
     if (BTOR_IS_LAMBDA_NODE (cur) && ((BtorLambdaNode *) cur)->static_rho)
       allocated += MEM_PTR_HASH_TABLE (((BtorLambdaNode *) cur)->static_rho);
   }
-  allocated -= synthapp_bytes;
   /* Note: hash table is initialized with size 1 */
   allocated += (emap->table->size - 1) * sizeof (BtorPtrHashBucket *)
                + emap->table->count * sizeof (BtorPtrHashBucket)
@@ -1082,14 +1075,28 @@ clone_aux_btor (Btor *btor, BtorNodeMap **exp_map, bool exp_layer_only)
   assert ((allocated += MEM_PTR_HASH_TABLE (btor->fun_model))
           == clone->mm->allocated);
 
-  BTORLOG_TIMESTAMP (delta);
-  btor_clone_node_ptr_stack (
-      mm, &btor->functions_with_model, &clone->functions_with_model, emap);
-  BTORLOG (
-      1, "  clone functions_with_model: %.3f s", btor_time_stamp () - delta);
-  assert ((allocated +=
-           BTOR_SIZE_STACK (btor->functions_with_model) * sizeof (BtorNode *))
-          == clone->mm->allocated);
+  if (exp_layer_only)
+  {
+    BTOR_INIT_STACK (clone->functions_with_model);
+    /* we need to decrement the reference count of the cloned expressions
+     * that were pushed onto the functions_with_model stack. */
+    for (i = 0; i < BTOR_COUNT_STACK (btor->functions_with_model); i++)
+      btor_release_exp (
+          clone,
+          btor_mapped_node (emap,
+                            BTOR_PEEK_STACK (btor->functions_with_model, i)));
+  }
+  else
+  {
+    BTORLOG_TIMESTAMP (delta);
+    btor_clone_node_ptr_stack (
+        mm, &btor->functions_with_model, &clone->functions_with_model, emap);
+    BTORLOG (
+        1, "  clone functions_with_model: %.3f s", btor_time_stamp () - delta);
+    assert ((allocated +=
+             BTOR_SIZE_STACK (btor->functions_with_model) * sizeof (BtorNode *))
+            == clone->mm->allocated);
+  }
 
   CLONE_PTR_HASH_TABLE_DATA (cache, btor_clone_data_as_node_ptr);
   assert ((allocated += MEM_PTR_HASH_TABLE (btor->cache))
@@ -1209,18 +1216,6 @@ clone_aux_btor (Btor *btor, BtorNodeMap **exp_map, bool exp_layer_only)
   clone->clone = NULL;
 #endif
   clone->close_apitrace = 0;
-
-  clone_prefix = "clone";
-  len          = btor->msg->prefix ? strlen (btor->msg->prefix) : 0;
-  len += strlen (clone_prefix) + 3;
-  BTOR_NEWN (clone->mm, prefix, len + 1);
-  sprintf (prefix,
-           "[%s]%s%s",
-           clone_prefix,
-           btor->msg->prefix ? " " : "",
-           btor->msg->prefix ? btor->msg->prefix : "");
-  btor_set_msg_prefix_btor (clone, prefix);
-  BTOR_DELETEN (clone->mm, prefix, len + 1);
 
   if (exp_map)
     *exp_map = emap;

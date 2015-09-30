@@ -761,6 +761,7 @@ new_aux_btor (int init_opts)
   BTOR_INIT_STACK (btor->functions_with_model);
 
   btor->true_exp = btor_true_exp (btor);
+  btor_set_msg_prefix_btor (btor, "btor");
 
   return btor;
 }
@@ -1251,7 +1252,8 @@ btor_insert_varsubst_constraint (Btor *btor, BtorNode *left, BtorNode *right)
       btor_insert_in_ptr_hash_table (btor->fun_rhs, btor_copy_exp (btor, left));
     }
 
-    BTORLOG (1, "varsubst: %s -> %s", node2string (left), node2string (right));
+    BTORLOG (
+        1, "add varsubst: %s -> %s", node2string (left), node2string (right));
     btor_insert_in_ptr_hash_table (vsc, btor_copy_exp (btor, left))
         ->data.asPtr = btor_copy_exp (btor, right);
     /* do not set constraint flag, as they are gone after substitution
@@ -6677,17 +6679,14 @@ btor_sat_btor (Btor *btor, int lod_limit, int sat_limit)
 #endif
 
 #ifdef BTOR_CHECK_MODEL
-  Btor *mclone             = 0;
-  BtorPtrHashTable *inputs = 0;
-  if (btor_has_clone_support_sat_mgr (btor_get_sat_mgr_btor (btor)))
-  {
-    mclone                           = btor_clone_btor (btor);
-    mclone->options.loglevel.val     = 0;
-    mclone->options.verbosity.val    = 0;
-    mclone->options.dual_prop.val    = 0;
-    inputs                           = map_inputs_check_model (btor, mclone);
-    mclone->options.auto_cleanup.val = 1;
-  }
+  Btor *mclone                     = 0;
+  BtorPtrHashTable *inputs         = 0;
+  mclone                           = btor_clone_exp_layer (btor, 0);
+  mclone->options.loglevel.val     = 0;
+  mclone->options.verbosity.val    = 0;
+  mclone->options.dual_prop.val    = 0;
+  inputs                           = map_inputs_check_model (btor, mclone);
+  mclone->options.auto_cleanup.val = 1;
 #endif
 
 #ifdef BTOR_CHECK_DUAL_PROP
@@ -7231,6 +7230,7 @@ check_model (Btor *btor, Btor *clone, BtorPtrHashTable *inputs)
       fmodel = btor_get_fun_model (btor, exp);
       if (!fmodel) continue;
 
+      BTORLOG (2, "assert model for %s", node2string (real_simp));
       btor_init_hash_table_iterator (&it, (BtorPtrHashTable *) fmodel);
       while (btor_has_next_hash_table_iterator (&it))
       {
@@ -7261,6 +7261,7 @@ check_model (Btor *btor, Btor *clone, BtorPtrHashTable *inputs)
     }
     else
     {
+      BTORLOG (2, "assert model for %s", node2string (real_simp));
       /* we need to invert the assignment if simplified is inverted */
       model = btor_const_exp (clone,
                               (BtorBitVector *) btor_get_bv_model (

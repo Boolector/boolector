@@ -251,7 +251,7 @@ btormain_msg (char *msg, ...)
 
   va_list list;
   va_start (list, msg);
-  fprintf (stdout, "[btormain] ");
+  fprintf (stdout, "[btor>main] ");
   vfprintf (stdout, msg, list);
   fprintf (stdout, "\n");
   va_end (list);
