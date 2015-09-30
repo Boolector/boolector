@@ -769,35 +769,35 @@ test_is_special_const_bitvec (void)
   int i;
   BtorBitVector *bv;
 
-  bv = btor_uint64_to_bv (g_mm, 0, 1);
+  bv = btor_char_to_bv (g_mm, "0");
   assert (btor_is_special_const_bv (bv) == BTOR_SPECIAL_CONST_BV_ZERO);
   btor_free_bv (g_mm, bv);
 
-  bv = btor_uint64_to_bv (g_mm, 1, 1);
-  assert (btor_is_special_const_bv (bv) == BTOR_SPECIAL_CONST_BV_ONE);
+  bv = btor_char_to_bv (g_mm, "1");
+  assert (btor_is_special_const_bv (bv) == BTOR_SPECIAL_CONST_BV_ONE_ONES);
   btor_free_bv (g_mm, bv);
 
-  bv = btor_uint64_to_bv (g_mm, 0, 2);
+  bv = btor_char_to_bv (g_mm, "00");
   assert (btor_is_special_const_bv (bv) == BTOR_SPECIAL_CONST_BV_ZERO);
   btor_free_bv (g_mm, bv);
 
-  bv = btor_uint64_to_bv (g_mm, 1, 2);
+  bv = btor_char_to_bv (g_mm, "01");
   assert (btor_is_special_const_bv (bv) == BTOR_SPECIAL_CONST_BV_ONE);
   btor_free_bv (g_mm, bv);
 
-  bv = btor_uint64_to_bv (g_mm, 2, 2);
+  bv = btor_char_to_bv (g_mm, "10");
   assert (btor_is_special_const_bv (bv) == BTOR_SPECIAL_CONST_BV_NONE);
   btor_free_bv (g_mm, bv);
 
-  bv = btor_uint64_to_bv (g_mm, 3, 2);
+  bv = btor_char_to_bv (g_mm, "11");
   assert (btor_is_special_const_bv (bv) == BTOR_SPECIAL_CONST_BV_ONES);
   btor_free_bv (g_mm, bv);
 
-  bv = btor_uint64_to_bv (g_mm, 0, 3);
+  bv = btor_char_to_bv (g_mm, "000");
   assert (btor_is_special_const_bv (bv) == BTOR_SPECIAL_CONST_BV_ZERO);
   btor_free_bv (g_mm, bv);
 
-  bv = btor_uint64_to_bv (g_mm, 1, 3);
+  bv = btor_char_to_bv (g_mm, "001");
   assert (btor_is_special_const_bv (bv) == BTOR_SPECIAL_CONST_BV_ONE);
   btor_free_bv (g_mm, bv);
 
@@ -808,15 +808,15 @@ test_is_special_const_bitvec (void)
     btor_free_bv (g_mm, bv);
   }
 
-  bv = btor_uint64_to_bv (g_mm, 7, 3);
+  bv = btor_char_to_bv (g_mm, "111");
   assert (btor_is_special_const_bv (bv) == BTOR_SPECIAL_CONST_BV_ONES);
   btor_free_bv (g_mm, bv);
 
-  bv = btor_uint64_to_bv (g_mm, 0, 4);
+  bv = btor_char_to_bv (g_mm, "0000");
   assert (btor_is_special_const_bv (bv) == BTOR_SPECIAL_CONST_BV_ZERO);
   btor_free_bv (g_mm, bv);
 
-  bv = btor_uint64_to_bv (g_mm, 1, 4);
+  bv = btor_char_to_bv (g_mm, "0001");
   assert (btor_is_special_const_bv (bv) == BTOR_SPECIAL_CONST_BV_ONE);
   btor_free_bv (g_mm, bv);
 
@@ -827,7 +827,7 @@ test_is_special_const_bitvec (void)
     btor_free_bv (g_mm, bv);
   }
 
-  bv = btor_uint64_to_bv (g_mm, 15, 4);
+  bv = btor_char_to_bv (g_mm, "1111");
   assert (btor_is_special_const_bv (bv) == BTOR_SPECIAL_CONST_BV_ONES);
   btor_free_bv (g_mm, bv);
 }

@@ -952,7 +952,9 @@ btor_is_special_const_bv (BtorBitVector *bv)
   assert (bv);
 
   if (btor_is_zero_bv (bv)) return BTOR_SPECIAL_CONST_BV_ZERO;
-  if (btor_is_one_bv (bv)) return BTOR_SPECIAL_CONST_BV_ONE;
+  if (btor_is_one_bv (bv))
+    return bv->width == 1 ? BTOR_SPECIAL_CONST_BV_ONE_ONES
+                          : BTOR_SPECIAL_CONST_BV_ONE;
   if (btor_is_ones_bv (bv))
   {
     if (bv->width == 1)
