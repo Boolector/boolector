@@ -51,6 +51,8 @@
   ((table).num_elements >= (table).size \
    && btor_log_2_util ((table).size) < BTOR_UNIQUE_TABLE_LIMIT)
 
+/*------------------------------------------------------------------------*/
+
 //#define NBTOR_SORT_BIN_COMMUTATIVE
 
 /*------------------------------------------------------------------------*/
