@@ -871,7 +871,7 @@ clone_aux_btor (Btor *btor, BtorNodeMap **exp_map, bool exp_layer_only)
 
   if (exp_layer_only)
   {
-    clone->avmgr = btor_new_aigvec_mgr (mm, clone->msg);
+    clone->avmgr = btor_new_aigvec_mgr (mm, clone->msg, &clone->options);
     assert ((allocated += sizeof (BtorAIGVecMgr) + sizeof (BtorAIGMgr)
                           + sizeof (BtorSATMgr)
                           /* true and false AIGs */

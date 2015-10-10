@@ -689,7 +689,7 @@ new_aux_btor (int init_opts)
 
   btor->mm    = mm;
   btor->msg   = btor_new_btor_msg (btor->mm, &btor->options.verbosity.val);
-  btor->avmgr = btor_new_aigvec_mgr (mm, btor->msg);
+  btor->avmgr = btor_new_aigvec_mgr (mm, btor->msg, &btor->options);
 
   if (init_opts) btor_init_opts (btor);
 

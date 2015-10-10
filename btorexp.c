@@ -53,7 +53,7 @@
 
 /*------------------------------------------------------------------------*/
 
-//#define NBTOR_SORT_BIN_COMMUTATIVE
+//#define NBTOR_EXP_SORT
 
 /*------------------------------------------------------------------------*/
 #ifndef NDEBUG
@@ -1492,8 +1492,9 @@ find_bv_exp (Btor *btor, BtorNodeKind kind, int arity, BtorNode **e)
     if (cur->kind == kind && cur->arity == arity)
     {
       equal = 1;
-#ifndef NBTOR_SORT_BIN_COMMUTATIVE
-      if (BTOR_IS_BINARY_COMMUTATIVE_NODE_KIND (kind))
+#ifndef NBTOR_EXP_SORT
+      if (btor->options.rewrite_level.val > 0
+          && BTOR_IS_BINARY_COMMUTATIVE_NODE_KIND (kind))
       {
         if ((cur->e[0] == e[0] && cur->e[1] == e[1])
             || (cur->e[0] == e[1] && cur->e[1] == e[0]))
@@ -1681,7 +1682,7 @@ compare_lambda_exp (Btor *btor,
       {
         assert (!BTOR_IS_LAMBDA_NODE (real_cur));
 
-#ifndef NBTOR_SORT_BIN_COMMUTATIVE
+#ifndef NBTOR_EXP_SORT
         if (btor->options.rewrite_level.val > 0
             && BTOR_IS_BINARY_COMMUTATIVE_NODE (real_cur)
             && BTOR_REAL_ADDR_NODE (e[1])->id < BTOR_REAL_ADDR_NODE (e[0])->id)
@@ -2100,7 +2101,7 @@ create_exp (Btor *btor, BtorNodeKind kind, uint32_t arity, BtorNode **e)
     simp_e[i] = btor_simplify_exp (btor, e[i]);
   }
 
-#ifndef NBTOR_SORT_BIN_COMMUTATIVE
+#ifndef NBTOR_EXP_SORT
   if (btor->options.rewrite_level.val > 0
       && BTOR_IS_BINARY_COMMUTATIVE_NODE_KIND (kind)
       && BTOR_REAL_ADDR_NODE (simp_e[1])->id

@@ -267,7 +267,8 @@ btor_add_aigvec (BtorAIGVecMgr *avmgr, BtorAIGVec *av1, BtorAIGVec *av2)
   assert (av1->len == av2->len);
   assert (av1->len > 0);
 #ifndef NBTOR_AIGVEC_SORT
-  if (btor_cmp_aigvec_lsb_first (av1, av2) > 0)
+  if ((!avmgr->opts || avmgr->opts->rewrite_level.val > 0)
+      && btor_cmp_aigvec_lsb_first (av1, av2) > 0)
   {
     BtorAIGVec *tmp = av1;
     av1             = av2;
@@ -415,7 +416,8 @@ mul_aigvec (BtorAIGVecMgr *avmgr, BtorAIGVec *a, BtorAIGVec *b)
   assert (len == b->len);
 
 #ifndef NBTOR_AIGVEC_SORT
-  if (btor_cmp_aigvec_lsb_first (a, b) > 0)
+  if ((!avmgr->opts || avmgr->opts->rewrite_level.val > 0)
+      && btor_cmp_aigvec_lsb_first (a, b) > 0)
   {
     BtorAIGVec *c = a;
     a             = b;
@@ -732,7 +734,7 @@ btor_release_delete_aigvec (BtorAIGVecMgr *avmgr, BtorAIGVec *av)
 }
 
 BtorAIGVecMgr *
-btor_new_aigvec_mgr (BtorMemMgr *mm, BtorMsg *msg)
+btor_new_aigvec_mgr (BtorMemMgr *mm, BtorMsg *msg, BtorOpts *opts)
 {
   assert (mm);
   assert (msg);
@@ -741,6 +743,7 @@ btor_new_aigvec_mgr (BtorMemMgr *mm, BtorMsg *msg)
   BTOR_CNEW (mm, avmgr);
   avmgr->mm   = mm;
   avmgr->msg  = msg;
+  avmgr->opts = opts;
   avmgr->amgr = btor_new_aig_mgr (mm, avmgr->msg);
   return avmgr;
 }
