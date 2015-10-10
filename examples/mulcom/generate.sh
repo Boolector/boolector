@@ -1,6 +1,6 @@
 #!/bin/sh
 i=1
-while [ $i -le 128 ]
+while [ $i -le 16 ]
 do
   n=`printf '%03d' $i`
   smt=mulcom$n.smt
