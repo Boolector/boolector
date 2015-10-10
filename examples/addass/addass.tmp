@@ -2,5 +2,5 @@
 (declare-fun x () (_ BitVec @))
 (declare-fun y () (_ BitVec @))
 (declare-fun z () (_ BitVec @))
-(assert (distinct (bvmul x (bvmul y z)) (bvmul (bvmul x y) z)))
+(assert (distinct (bvadd x (bvadd y z)) (bvadd (bvadd x y) z)))
 (check-sat)
