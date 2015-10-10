@@ -1490,7 +1490,7 @@ find_bv_exp (Btor *btor, BtorNodeKind kind, int arity, BtorNode **e)
     if (cur->kind == kind && cur->arity == arity)
     {
       equal = 1;
-#ifdef NBTOR_SORT_BIN_COMMUTATIVE
+#ifndef NBTOR_SORT_BIN_COMMUTATIVE
       if (BTOR_IS_BINARY_COMMUTATIVE_NODE_KIND (kind))
       {
         if ((cur->e[0] == e[0] && cur->e[1] == e[1])

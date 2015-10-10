@@ -22,6 +22,10 @@
 
 /*------------------------------------------------------------------------*/
 
+// #define NBTOR_AIGVEC_SORT
+
+/*------------------------------------------------------------------------*/
+
 static BtorAIGVec *
 new_aigvec (BtorAIGVecMgr *avmgr, uint32_t len)
 {
@@ -369,6 +373,8 @@ btor_srl_aigvec (BtorAIGVecMgr *avmgr, BtorAIGVec *av1, BtorAIGVec *av2)
   return result;
 }
 
+#ifndef NBTOR_AIGVEC_SORT
+
 static int
 btor_cmp_aigvec_lsb_first (BtorAIGVec *a, BtorAIGVec *b)
 {
@@ -382,6 +388,8 @@ btor_cmp_aigvec_lsb_first (BtorAIGVec *a, BtorAIGVec *b)
   for (i = 0; !res && i < len; i++) res = btor_cmp_aig (a->aigs[i], b->aigs[i]);
   return res;
 }
+
+#endif
 
 static BtorAIGVec *
 mul_aigvec (BtorAIGVecMgr *avmgr, BtorAIGVec *a, BtorAIGVec *b)
@@ -398,12 +406,14 @@ mul_aigvec (BtorAIGVecMgr *avmgr, BtorAIGVec *a, BtorAIGVec *b)
   assert (len > 0);
   assert (len == b->len);
 
+#ifndef NBTOR_AIGVEC_SORT
   if (btor_cmp_aigvec_lsb_first (a, b) > 0)
   {
     BtorAIGVec *c = a;
     a             = b;
     b             = c;
   }
+#endif
 
   res = new_aigvec (avmgr, len);
 
