@@ -99,6 +99,9 @@ typedef struct BtorOpt
 #define BTOR_OPT_MERGE_LAMBDAS "merge_lambdas"
 #define BTOR_OPT_EXTRACT_LAMBDAS "extract_lambdas"
 #define BTOR_OPT_SKELETON_PREPROC "skeleton_preproc"
+#define BTOR_OPT_SORT_EXP "sort_exp"
+#define BTOR_OPT_SORT_AIG "sort_aig"
+#define BTOR_OPT_SORT_AIGVEC "sort_aigvec"
 #define BTOR_OPT_RW_NORMALIZE "rw_normalize"
 
 typedef struct BtorOpts
@@ -140,6 +143,9 @@ typedef struct BtorOpts
   BtorOpt merge_lambdas;    /* merge lambda chains */
   BtorOpt extract_lambdas;  /* extract lambda terms */
   BtorOpt skeleton_preproc; /* skeleton preprocessing */
+  BtorOpt sort_exp;         /* sort commutative expression nodes */
+  BtorOpt sort_aig;         /* sort AIG nodes */
+  BtorOpt sort_aigvec;      /* sort AIG vectors */
 
   BtorOpt auto_cleanup; /* automatic cleanup of exps, assignment
                            strings (external references only) */
