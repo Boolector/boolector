@@ -55,6 +55,7 @@ BtorAIGVecMgr *btor_new_aigvec_mgr (BtorMemMgr *mm,
 /* Clones AIG vector manager. */
 BtorAIGVecMgr *btor_clone_aigvec_mgr (BtorMemMgr *mm,
                                       BtorMsg *msg,
+                                      BtorOpts *opts,
                                       BtorAIGVecMgr *avmgr);
 
 /* Returns AIG manager of the AIG vector manager. */

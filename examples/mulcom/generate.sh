@@ -7,7 +7,7 @@ do
   aig=mulcom$n.aig
   cnf=mulcom$n.cnf
   sed -e "s,@,$i," mulcom.tmp > $smt
-  boolector -rwl 0 -dai -o $aig $smt
+  boolector -rwl 2 --no-sort-exp --no-sort-aigvec -dai -o $aig $smt
   aigtocnf $aig $cnf
   i=`expr $i + 1`
 done

@@ -732,15 +732,19 @@ btor_new_aigvec_mgr (BtorMemMgr *mm, BtorMsg *msg, BtorOpts *opts)
   avmgr->mm   = mm;
   avmgr->msg  = msg;
   avmgr->opts = opts;
-  avmgr->amgr = btor_new_aig_mgr (mm, avmgr->msg);
+  avmgr->amgr = btor_new_aig_mgr (mm, avmgr->msg, opts);
   return avmgr;
 }
 
 BtorAIGVecMgr *
-btor_clone_aigvec_mgr (BtorMemMgr *mm, BtorMsg *msg, BtorAIGVecMgr *avmgr)
+btor_clone_aigvec_mgr (BtorMemMgr *mm,
+                       BtorMsg *msg,
+                       BtorOpts *opts,
+                       BtorAIGVecMgr *avmgr)
 {
   assert (mm);
   assert (msg);
+  assert (opts);
   assert (avmgr);
 
   BtorAIGVecMgr *res;
@@ -748,7 +752,7 @@ btor_clone_aigvec_mgr (BtorMemMgr *mm, BtorMsg *msg, BtorAIGVecMgr *avmgr)
 
   res->mm              = mm;
   res->msg             = msg;
-  res->amgr            = btor_clone_aig_mgr (mm, msg, avmgr->amgr);
+  res->amgr            = btor_clone_aig_mgr (mm, msg, opts, avmgr->amgr);
   res->max_num_aigvecs = avmgr->max_num_aigvecs;
   res->cur_num_aigvecs = avmgr->cur_num_aigvecs;
   return res;

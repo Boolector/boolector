@@ -62,8 +62,6 @@
 
 //#define BTOR_EXTRACT_TOP_LEVEL_MULTI_OR
 
-// #define NBTOR_AIG_SORT
-
 //#define BTOR_AIG_TO_CNF_TOP_ELIM
 
 #define BTOR_AIG_TO_CNF_EXTRACT_ONLY_NON_SHARED
@@ -216,34 +214,33 @@ find_and_aig (BtorAIGMgr *amgr, BtorAIG *left, BtorAIG *right)
          & (amgr->table.size - 1);
   result = amgr->table.chains + hash;
   cur    = BTOR_GET_NODE_AIG (*result);
-#ifndef NBTOR_AIG_SORT
-  if (BTOR_REAL_ADDR_AIG (right)->id < BTOR_REAL_ADDR_AIG (left)->id)
+  if ((!amgr->opts || amgr->opts->sort_aig.val > 0)
+      && BTOR_REAL_ADDR_AIG (right)->id < BTOR_REAL_ADDR_AIG (left)->id)
   {
     BtorAIG *temp = left;
     left          = right;
     right         = temp;
   }
-#endif
   while (cur)
   {
     assert (!BTOR_IS_INVERTED_AIG (cur));
     assert (BTOR_IS_AND_AIG (cur));
-#ifndef NBTOR_AIG_SORT
-    if ((BTOR_LEFT_CHILD_AIG (cur) == left
-         && BTOR_RIGHT_CHILD_AIG (cur) == right)
-        || (BTOR_LEFT_CHILD_AIG (cur) == right
-            && BTOR_RIGHT_CHILD_AIG (cur) == left))
-      break;
-#else
-    if (BTOR_LEFT_CHILD_AIG (cur) == left
-        && BTOR_RIGHT_CHILD_AIG (cur) == right)
-      break;
-#endif
+    if (!amgr->opts || amgr->opts->sort_aig.val > 0)
+    {
+      if ((BTOR_LEFT_CHILD_AIG (cur) == left
+           && BTOR_RIGHT_CHILD_AIG (cur) == right)
+          || (BTOR_LEFT_CHILD_AIG (cur) == right
+              && BTOR_RIGHT_CHILD_AIG (cur) == left))
+        break;
+    }
     else
     {
-      result = &cur->next;
-      cur    = cur->next == 0 ? 0 : BTOR_GET_NODE_AIG (cur->next);
+      if (BTOR_LEFT_CHILD_AIG (cur) == left
+          && BTOR_RIGHT_CHILD_AIG (cur) == right)
+        break;
     }
+    result = &cur->next;
+    cur    = cur->next == 0 ? 0 : BTOR_GET_NODE_AIG (cur->next);
   }
   return result;
 }
@@ -706,11 +703,10 @@ BTOR_AIG_TWO_LEVEL_OPT_TRY_AGAIN:
       enlarge_aig_nodes_unique_table (amgr);
       lookup = find_and_aig (amgr, left, right);
     }
-#ifndef NBTOR_AIG_SORT
-    if (real_right->id < real_left->id)
+    if ((!amgr->opts || amgr->opts->sort_aig.val > 0)
+        && real_right->id < real_left->id)
       res = new_and_aig (amgr, right, left);
     else
-#endif
       res = new_and_aig (amgr, left, right);
     *lookup = res->id;
     inc_aig_ref_counter (left);
@@ -766,15 +762,16 @@ btor_cond_aig (BtorAIGMgr *amgr,
 }
 
 BtorAIGMgr *
-btor_new_aig_mgr (BtorMemMgr *mm, BtorMsg *msg)
+btor_new_aig_mgr (BtorMemMgr *mm, BtorMsg *msg, BtorOpts *opts)
 {
   assert (mm);
 
   BtorAIGMgr *amgr;
 
   BTOR_CNEW (mm, amgr);
-  amgr->mm  = mm;
-  amgr->msg = msg;
+  amgr->mm   = mm;
+  amgr->msg  = msg;
+  amgr->opts = opts;
   BTOR_INIT_AIG_UNIQUE_TABLE (mm, amgr->table);
   amgr->smgr = btor_new_sat_mgr (mm, amgr->msg);
   BTOR_INIT_STACK (amgr->id2aig);
@@ -860,17 +857,22 @@ clone_aigs (BtorAIGMgr *amgr, BtorAIGMgr *clone)
 }
 
 BtorAIGMgr *
-btor_clone_aig_mgr (BtorMemMgr *mm, BtorMsg *msg, BtorAIGMgr *amgr)
+btor_clone_aig_mgr (BtorMemMgr *mm,
+                    BtorMsg *msg,
+                    BtorOpts *opts,
+                    BtorAIGMgr *amgr)
 {
   assert (mm);
   assert (msg);
+  assert (opts);
   assert (amgr);
 
   BtorAIGMgr *res;
 
   BTOR_CNEW (mm, res);
-  res->mm  = mm;
-  res->msg = msg;
+  res->mm   = mm;
+  res->msg  = msg;
+  res->opts = opts;
 
   res->smgr = btor_clone_sat_mgr (mm, msg, amgr->smgr);
   /* Note: we do not yet clone aigs here (we need the clone of the aig
