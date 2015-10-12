@@ -1,7 +1,7 @@
 /*  Boolector: Satisfiablity Modulo Theories (SMT) solver.
  *
  *  Copyright (C) 2007-2009 Robert Daniel Brummayer.
- *  Copyright (C) 2007-2014 Armin Biere.
+ *  Copyright (C) 2007-2015 Armin Biere.
  *  Copyright (C) 2013-2014 Aina Niemetz.
  *  Copyright (C) 2013-2015 Mathias Preiner.
  *
@@ -232,6 +232,20 @@ full_adder (
   return res;
 }
 
+static int
+btor_cmp_aigvec_lsb_first (BtorAIGVec *a, BtorAIGVec *b)
+{
+  uint32_t len, i;
+  int res;
+  assert (a);
+  assert (b);
+  len = a->len;
+  assert (len == b->len);
+  res = 0;
+  for (i = 0; !res && i < len; i++) res = btor_cmp_aig (a->aigs[i], b->aigs[i]);
+  return res;
+}
+
 BtorAIGVec *
 btor_add_aigvec (BtorAIGVecMgr *avmgr, BtorAIGVec *av1, BtorAIGVec *av2)
 {
@@ -244,6 +258,13 @@ btor_add_aigvec (BtorAIGVecMgr *avmgr, BtorAIGVec *av1, BtorAIGVec *av2)
   assert (av2);
   assert (av1->len == av2->len);
   assert (av1->len > 0);
+  if ((!avmgr->opts || avmgr->opts->sort_aigvec.val > 0)
+      && btor_cmp_aigvec_lsb_first (av1, av2) > 0)
+  {
+    BtorAIGVec *tmp = av1;
+    av1             = av2;
+    av2             = tmp;
+  }
   amgr   = avmgr->amgr;
   result = new_aigvec (avmgr, av1->len);
   cout = cin = BTOR_AIG_FALSE; /* for 'cout' to avoid warning */
@@ -369,20 +390,6 @@ btor_srl_aigvec (BtorAIGVecMgr *avmgr, BtorAIGVec *av1, BtorAIGVec *av2)
   return result;
 }
 
-static int
-btor_cmp_aigvec_lsb_first (BtorAIGVec *a, BtorAIGVec *b)
-{
-  uint32_t len, i;
-  int res;
-  assert (a);
-  assert (b);
-  len = a->len;
-  assert (len == b->len);
-  res = 0;
-  for (i = 0; !res && i < len; i++) res = btor_cmp_aig (a->aigs[i], b->aigs[i]);
-  return res;
-}
-
 static BtorAIGVec *
 mul_aigvec (BtorAIGVecMgr *avmgr, BtorAIGVec *a, BtorAIGVec *b)
 {
@@ -398,7 +405,8 @@ mul_aigvec (BtorAIGVecMgr *avmgr, BtorAIGVec *a, BtorAIGVec *b)
   assert (len > 0);
   assert (len == b->len);
 
-  if (btor_cmp_aigvec_lsb_first (a, b) > 0)
+  if ((!avmgr->opts || avmgr->opts->sort_aigvec.val > 0)
+      && btor_cmp_aigvec_lsb_first (a, b) > 0)
   {
     BtorAIGVec *c = a;
     a             = b;
@@ -714,7 +722,7 @@ btor_release_delete_aigvec (BtorAIGVecMgr *avmgr, BtorAIGVec *av)
 }
 
 BtorAIGVecMgr *
-btor_new_aigvec_mgr (BtorMemMgr *mm, BtorMsg *msg)
+btor_new_aigvec_mgr (BtorMemMgr *mm, BtorMsg *msg, BtorOpts *opts)
 {
   assert (mm);
   assert (msg);
@@ -723,15 +731,20 @@ btor_new_aigvec_mgr (BtorMemMgr *mm, BtorMsg *msg)
   BTOR_CNEW (mm, avmgr);
   avmgr->mm   = mm;
   avmgr->msg  = msg;
-  avmgr->amgr = btor_new_aig_mgr (mm, avmgr->msg);
+  avmgr->opts = opts;
+  avmgr->amgr = btor_new_aig_mgr (mm, avmgr->msg, opts);
   return avmgr;
 }
 
 BtorAIGVecMgr *
-btor_clone_aigvec_mgr (BtorMemMgr *mm, BtorMsg *msg, BtorAIGVecMgr *avmgr)
+btor_clone_aigvec_mgr (BtorMemMgr *mm,
+                       BtorMsg *msg,
+                       BtorOpts *opts,
+                       BtorAIGVecMgr *avmgr)
 {
   assert (mm);
   assert (msg);
+  assert (opts);
   assert (avmgr);
 
   BtorAIGVecMgr *res;
@@ -739,7 +752,7 @@ btor_clone_aigvec_mgr (BtorMemMgr *mm, BtorMsg *msg, BtorAIGVecMgr *avmgr)
 
   res->mm              = mm;
   res->msg             = msg;
-  res->amgr            = btor_clone_aig_mgr (mm, msg, avmgr->amgr);
+  res->amgr            = btor_clone_aig_mgr (mm, msg, opts, avmgr->amgr);
   res->max_num_aigvecs = avmgr->max_num_aigvecs;
   res->cur_num_aigvecs = avmgr->cur_num_aigvecs;
   return res;

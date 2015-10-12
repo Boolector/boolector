@@ -1,7 +1,7 @@
 /*  Boolector: Satisfiablity Modulo Theories (SMT) solver.
  *
  *  Copyright (C) 2007-2009 Robert Daniel Brummayer.
- *  Copyright (C) 2007-2014 Armin Biere.
+ *  Copyright (C) 2007-2015 Armin Biere.
  *  Copyright (C) 2012-2015 Aina Niemetz.
  *  Copyright (C) 2012-2015 Mathias Preiner.
  *
@@ -50,8 +50,6 @@
 #define BTOR_FULL_UNIQUE_TABLE(table)   \
   ((table).num_elements >= (table).size \
    && btor_log_2_util ((table).size) < BTOR_UNIQUE_TABLE_LIMIT)
-
-//#define NBTOR_SORT_BIN_COMMUTATIVE
 
 /*------------------------------------------------------------------------*/
 #ifndef NDEBUG
@@ -1490,14 +1488,13 @@ find_bv_exp (Btor *btor, BtorNodeKind kind, int arity, BtorNode **e)
     if (cur->kind == kind && cur->arity == arity)
     {
       equal = 1;
-#ifdef NBTOR_SORT_BIN_COMMUTATIVE
-      if (BTOR_IS_BINARY_COMMUTATIVE_NODE_KIND (kind))
+      if (btor->options.sort_exp.val > 0
+          && BTOR_IS_BINARY_COMMUTATIVE_NODE_KIND (kind))
       {
         if ((cur->e[0] == e[0] && cur->e[1] == e[1])
             || (cur->e[0] == e[1] && cur->e[1] == e[0]))
           break;
       }
-#endif
       for (i = 0; i < arity && equal; i++)
         if (cur->e[i] != e[i]) equal = 0;
 
@@ -1679,8 +1676,7 @@ compare_lambda_exp (Btor *btor,
       {
         assert (!BTOR_IS_LAMBDA_NODE (real_cur));
 
-#ifndef NBTOR_SORT_BIN_COMMUTATIVE
-        if (btor->options.rewrite_level.val > 0
+        if (btor->options.sort_exp.val > 0
             && BTOR_IS_BINARY_COMMUTATIVE_NODE (real_cur)
             && BTOR_REAL_ADDR_NODE (e[1])->id < BTOR_REAL_ADDR_NODE (e[0])->id)
         {
@@ -1688,7 +1684,6 @@ compare_lambda_exp (Btor *btor,
           e[0] = e[1];
           e[1] = t;
         }
-#endif
         result = find_bv_exp (btor, real_cur->kind, real_cur->arity, e);
       }
 
@@ -2098,8 +2093,7 @@ create_exp (Btor *btor, BtorNodeKind kind, uint32_t arity, BtorNode **e)
     simp_e[i] = btor_simplify_exp (btor, e[i]);
   }
 
-#ifndef NBTOR_SORT_BIN_COMMUTATIVE
-  if (btor->options.rewrite_level.val > 0
+  if (btor->options.sort_exp.val > 0
       && BTOR_IS_BINARY_COMMUTATIVE_NODE_KIND (kind)
       && BTOR_REAL_ADDR_NODE (simp_e[1])->id
              < BTOR_REAL_ADDR_NODE (simp_e[0])->id)
@@ -2108,7 +2102,6 @@ create_exp (Btor *btor, BtorNodeKind kind, uint32_t arity, BtorNode **e)
     simp_e[0] = simp_e[1];
     simp_e[1] = t;
   }
-#endif
 
   lookup = find_exp (btor, kind, arity, simp_e, &lambda_hash);
   if (!*lookup)

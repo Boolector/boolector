@@ -871,7 +871,7 @@ clone_aux_btor (Btor *btor, BtorNodeMap **exp_map, bool exp_layer_only)
 
   if (exp_layer_only)
   {
-    clone->avmgr = btor_new_aigvec_mgr (mm, clone->msg);
+    clone->avmgr = btor_new_aigvec_mgr (mm, clone->msg, &clone->options);
     assert ((allocated += sizeof (BtorAIGVecMgr) + sizeof (BtorAIGMgr)
                           + sizeof (BtorSATMgr)
                           /* true and false AIGs */
@@ -882,7 +882,8 @@ clone_aux_btor (Btor *btor, BtorNodeMap **exp_map, bool exp_layer_only)
   else
   {
     BTORLOG_TIMESTAMP (delta);
-    clone->avmgr = btor_clone_aigvec_mgr (mm, clone->msg, btor->avmgr);
+    clone->avmgr =
+        btor_clone_aigvec_mgr (mm, clone->msg, &clone->options, btor->avmgr);
     BTORLOG (1, "  clone AIG mgr: %.3f s", (btor_time_stamp () - delta));
     assert ((allocated +=
              sizeof (BtorAIGVecMgr) + sizeof (BtorAIGMgr) + sizeof (BtorSATMgr)

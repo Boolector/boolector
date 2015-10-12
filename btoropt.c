@@ -181,6 +181,9 @@ btor_init_opts (Btor *btor)
   BTOR_OPT ("xl", extract_lambdas, 1, 0, 1, "extract lambda terms");
   BTOR_OPT (
       "sp", skeleton_preproc, 1, 0, 1, "propositional skeleton preprocessing");
+  BTOR_OPT (0, sort_exp, 1, 0, 1, "sort commutative expression nodes");
+  BTOR_OPT (0, sort_aig, 1, 0, 1, "sort AIG nodes");
+  BTOR_OPT (0, sort_aigvec, 1, 0, 1, "sort AIG vectors");
   BTOR_OPT ("ac", auto_cleanup, 0, 0, 1, "auto cleanup on exit");
   BTOR_OPT ("p", pretty_print, 1, 0, 1, "pretty print when dumping");
   BTOR_OPT ("e", exit_codes, 1, 0, 1, "use Boolector exit codes");

@@ -1,6 +1,6 @@
 /*  Boolector: Satisfiablity Modulo Theories (SMT) solver.
  *
- *  Copyright (C) 2007-2014 Armin Biere.
+ *  Copyright (C) 2007-2015 Armin Biere.
  *  Copyright (C) 2015 Mathias Preiner.
  *
  *  All rights reserved.
@@ -105,6 +105,10 @@ btor_dump_aiger (Btor *btor, FILE *output, bool is_binary, bool merge_roots)
   btor->options.lazy_synthesize.val = lazy_synthesize;
   if (merge_roots) BTOR_PUSH_STACK (btor->mm, roots, merged);
 
+  if (BTOR_EMPTY_STACK (roots))
+    BTOR_PUSH_STACK (
+        btor->mm, roots, btor->inconsistent ? BTOR_AIG_FALSE : BTOR_AIG_TRUE);
+
   btor_dump_seq_aiger (amgr,
                        is_binary,
                        output,
@@ -148,7 +152,7 @@ btor_dump_seq_aiger (BtorAIGMgr *amgr,
   unsigned char ch;
   BtorMemMgr *mm;
 
-  assert (naigs > 0);
+  assert (naigs >= 0);
 
   mm = amgr->mm;
 

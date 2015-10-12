@@ -124,8 +124,7 @@ intelfilter='-e /ibv.mk/d'
 fi
 
 sed \
-  -e '/test.mk/d' \
-  -e '/mbt.mk/d' \
+  -e '/btor2horn/d' \
   $intelfilter \
   makefile.in > $dir/makefile.in
 
