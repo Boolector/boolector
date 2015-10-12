@@ -1128,6 +1128,8 @@ btor_delete_smt2_parser (BtorSMT2Parser *parser)
 #ifdef BTOR_USE_CLONE_SCOPES
   BTOR_RELEASE_STACK (mem, parser->btor_scopes);
 #endif
+  BTOR_RELEASE_STACK (mem, parser->assumptions);
+  BTOR_RELEASE_STACK (mem, parser->assumptions_trail);
   BTOR_RELEASE_STACK (mem, parser->token);
 
   BTOR_DELETE (mem, parser);
