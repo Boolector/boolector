@@ -1,12 +1,12 @@
 #!/bin/sh
 i=1
-while [ $i -le 16 ]
+while [ $i -le 4 ]
 do
   n=`printf '%03d' $i`
-  smt=mulcom$n.smt
-  aig=mulcom$n.aig
-  cnf=mulcom$n.cnf
-  sed -e "s,@,$i," mulcom.tmp > $smt
+  smt=hwb$n.smt
+  aig=hwb$n.aig
+  cnf=hwb$n.cnf
+  ./genhwb.sh $i > $smt
   boolector -rwl 2 --no-sort-exp --no-sort-aigvec -dai -o $aig $smt
   aigtocnf $aig $cnf
   i=`expr $i + 1`
