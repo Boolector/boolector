@@ -227,19 +227,14 @@ find_and_aig (BtorAIGMgr *amgr, BtorAIG *left, BtorAIG *right)
   assert (amgr);
   assert (!BTOR_IS_CONST_AIG (left));
   assert (!BTOR_IS_CONST_AIG (right));
-  hash = (((unsigned int) BTOR_REAL_ADDR_AIG (left)->id
-           + (unsigned int) BTOR_REAL_ADDR_AIG (right)->id)
-          * BTOR_AIG_UNIQUE_TABLE_PRIME)
-         & (amgr->table.size - 1);
-  result = amgr->table.chains + hash;
-  cur    = BTOR_GET_NODE_AIG (*result);
   if ((!amgr->opts || amgr->opts->sort_aig.val > 0)
       && BTOR_REAL_ADDR_AIG (right)->id < BTOR_REAL_ADDR_AIG (left)->id)
-  {
-    BtorAIG *temp = left;
-    left          = right;
-    right         = temp;
-  }
+    BTOR_SWAP (BtorAIG *, left, right);
+  hash   = hash_aig (BTOR_REAL_ADDR_AIG (left)->id,
+                   BTOR_REAL_ADDR_AIG (right)->id,
+                   amgr->table.size);
+  result = amgr->table.chains + hash;
+  cur    = BTOR_GET_NODE_AIG (*result);
   while (cur)
   {
     assert (!BTOR_IS_INVERTED_AIG (cur));
@@ -718,9 +713,8 @@ BTOR_AIG_TWO_LEVEL_OPT_TRY_AGAIN:
     }
     if ((!amgr->opts || amgr->opts->sort_aig.val > 0)
         && real_right->id < real_left->id)
-      res = new_and_aig (amgr, right, left);
-    else
-      res = new_and_aig (amgr, left, right);
+      BTOR_SWAP (BtorAIG *, left, right);
+    res     = new_and_aig (amgr, left, right);
     *lookup = res->id;
     inc_aig_ref_counter (left);
     inc_aig_ref_counter (right);

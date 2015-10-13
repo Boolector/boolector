@@ -518,11 +518,7 @@ is_sorted_bv_exp (Btor *btor, BtorNodeKind kind, BtorNode **e)
 static void
 sort_bv_exp (Btor *btor, BtorNodeKind kind, BtorNode **e)
 {
-  BtorNode *t;
-  if (is_sorted_bv_exp (btor, kind, e)) return;
-  t    = e[0];
-  e[0] = e[1];
-  e[1] = t;
+  if (!is_sorted_bv_exp (btor, kind, e)) BTOR_SWAP (BtorNode *, e[0], e[1]);
 }
 
 static unsigned hash_primes[] = {333444569u, 76891121u, 456790003u};

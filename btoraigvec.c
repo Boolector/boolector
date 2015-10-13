@@ -260,11 +260,7 @@ btor_add_aigvec (BtorAIGVecMgr *avmgr, BtorAIGVec *av1, BtorAIGVec *av2)
   assert (av1->len > 0);
   if ((!avmgr->opts || avmgr->opts->sort_aigvec.val > 0)
       && btor_cmp_aigvec_lsb_first (av1, av2) > 0)
-  {
-    BtorAIGVec *tmp = av1;
-    av1             = av2;
-    av2             = tmp;
-  }
+    BTOR_SWAP (BtorAIGVec *, av1, av2);
   amgr   = avmgr->amgr;
   result = new_aigvec (avmgr, av1->len);
   cout = cin = BTOR_AIG_FALSE; /* for 'cout' to avoid warning */
@@ -407,11 +403,7 @@ mul_aigvec (BtorAIGVecMgr *avmgr, BtorAIGVec *a, BtorAIGVec *b)
 
   if ((!avmgr->opts || avmgr->opts->sort_aigvec.val > 0)
       && btor_cmp_aigvec_lsb_first (a, b) > 0)
-  {
-    BtorAIGVec *c = a;
-    a             = b;
-    b             = c;
-  }
+    BTOR_SWAP (BtorAIGVec *, a, b);
 
   res = new_aigvec (avmgr, len);
 
