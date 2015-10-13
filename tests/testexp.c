@@ -189,16 +189,17 @@ test_array_exp (void)
 static void
 unary_exp_test (BtorNode *(*func) (Btor *, BtorNode *) )
 {
+  const unsigned len = 8;
   init_exp_test ();
-  BtorNode *exp1 = btor_var_exp (g_btor, 8, "v1");
+  BtorNode *exp1 = btor_var_exp (g_btor, len, "v1");
   BtorNode *exp2 = func (g_btor, exp1);
   BtorNode *exp3 = func (g_btor, exp1);
   assert (exp2 == exp3);
-  assert (btor_get_exp_width (g_btor, exp1) == 8);
+  assert (btor_get_exp_width (g_btor, exp1) == len);
   if (func == btor_not_exp || func == btor_neg_exp)
   {
-    assert (btor_get_exp_width (g_btor, exp2) == 8);
-    assert (btor_get_exp_width (g_btor, exp3) == 8);
+    assert (btor_get_exp_width (g_btor, exp2) == len);
+    assert (btor_get_exp_width (g_btor, exp3) == len);
   }
   else
   {
