@@ -143,16 +143,35 @@ delete_aig_node (BtorAIGMgr *amgr, BtorAIG *aig)
 }
 
 static unsigned int
-compute_aig_hash (BtorAIG *aig, int table_size)
+hash_aig (int32_t id0, int32_t id1, unsigned table_size)
+{
+  unsigned hash;
+  assert (table_size > 0);
+  assert (btor_is_power_of_2_util (table_size));
+#if 0
+  hash = 547789289u * (unsigned int) abs (id0);
+  hash += 786695309u * (unsigned int) abs (id1);
+#else
+  hash = (unsigned int) abs (id0);
+  hash += (unsigned int) abs (id1);
+#endif
+  hash *= BTOR_AIG_UNIQUE_TABLE_PRIME;
+  hash &= table_size - 1;
+  return hash;
+}
+
+static unsigned int
+compute_aig_hash (BtorAIG *aig, unsigned table_size)
 {
   unsigned int hash;
   assert (!BTOR_IS_INVERTED_AIG (aig));
   assert (BTOR_IS_AND_AIG (aig));
-  assert (table_size > 0);
-  assert (btor_is_power_of_2_util (table_size));
+#if 0
   hash = (unsigned int) abs (aig->children[0]) + abs (aig->children[1]);
-  //    (unsigned int) BTOR_REAL_ADDR_AIG (BTOR_RIGHT_CHILD_AIG (aig))->id;
   hash = (hash * BTOR_AIG_UNIQUE_TABLE_PRIME) & (table_size - 1);
+#else
+  hash = hash_aig (aig->children[0], aig->children[1], table_size);
+#endif
   return hash;
 }
 
@@ -225,16 +244,14 @@ find_and_aig (BtorAIGMgr *amgr, BtorAIG *left, BtorAIG *right)
   {
     assert (!BTOR_IS_INVERTED_AIG (cur));
     assert (BTOR_IS_AND_AIG (cur));
-#ifndef NDEBUG
-    if (!amgr->opts || amgr->opts->sort_aig.val > 0)
-    {
-      assert (BTOR_LEFT_CHILD_AIG (cur) != right
-              || BTOR_RIGHT_CHILD_AIG (cur) != left);
-    }
-#endif
     if (BTOR_LEFT_CHILD_AIG (cur) == left
         && BTOR_RIGHT_CHILD_AIG (cur) == right)
       break;
+#ifndef NDEBUG
+    if (!amgr->opts || amgr->opts->sort_aig.val > 0)
+      assert (BTOR_LEFT_CHILD_AIG (cur) != right
+              || BTOR_RIGHT_CHILD_AIG (cur) != left);
+#endif
     result = &cur->next;
     cur    = cur->next == 0 ? 0 : BTOR_GET_NODE_AIG (cur->next);
   }
