@@ -225,20 +225,16 @@ find_and_aig (BtorAIGMgr *amgr, BtorAIG *left, BtorAIG *right)
   {
     assert (!BTOR_IS_INVERTED_AIG (cur));
     assert (BTOR_IS_AND_AIG (cur));
+#ifndef NDEBUG
     if (!amgr->opts || amgr->opts->sort_aig.val > 0)
     {
-      if ((BTOR_LEFT_CHILD_AIG (cur) == left
-           && BTOR_RIGHT_CHILD_AIG (cur) == right)
-          || (BTOR_LEFT_CHILD_AIG (cur) == right
-              && BTOR_RIGHT_CHILD_AIG (cur) == left))
-        break;
+      assert (BTOR_LEFT_CHILD_AIG (cur) != right
+              || BTOR_RIGHT_CHILD_AIG (cur) != left);
     }
-    else
-    {
-      if (BTOR_LEFT_CHILD_AIG (cur) == left
-          && BTOR_RIGHT_CHILD_AIG (cur) == right)
-        break;
-    }
+#endif
+    if (BTOR_LEFT_CHILD_AIG (cur) == left
+        && BTOR_RIGHT_CHILD_AIG (cur) == right)
+      break;
     result = &cur->next;
     cur    = cur->next == 0 ? 0 : BTOR_GET_NODE_AIG (cur->next);
   }
