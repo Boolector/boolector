@@ -148,13 +148,8 @@ hash_aig (int32_t id0, int32_t id1, unsigned table_size)
   unsigned hash;
   assert (table_size > 0);
   assert (btor_is_power_of_2_util (table_size));
-#if 0
   hash = 547789289u * (unsigned int) abs (id0);
   hash += 786695309u * (unsigned int) abs (id1);
-#else
-  hash = (unsigned int) abs (id0);
-  hash += (unsigned int) abs (id1);
-#endif
   hash *= BTOR_AIG_UNIQUE_TABLE_PRIME;
   hash &= table_size - 1;
   return hash;
@@ -166,12 +161,7 @@ compute_aig_hash (BtorAIG *aig, unsigned table_size)
   unsigned int hash;
   assert (!BTOR_IS_INVERTED_AIG (aig));
   assert (BTOR_IS_AND_AIG (aig));
-#if 0
-  hash = (unsigned int) abs (aig->children[0]) + abs (aig->children[1]);
-  hash = (hash * BTOR_AIG_UNIQUE_TABLE_PRIME) & (table_size - 1);
-#else
   hash = hash_aig (aig->children[0], aig->children[1], table_size);
-#endif
   return hash;
 }
 
