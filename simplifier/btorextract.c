@@ -19,12 +19,12 @@
 inline static bool is_idxidx_pattern (BtorNode *, BtorNode *);
 inline static bool is_idxinc_pattern (BtorNode *, BtorNode *);
 inline static bool is_memcopy_pattern (BtorNode *, BtorNode *);
-static void memcopy_pattern_get_arguments (BtorNode *index,
-                                           BtorNode *value,
-                                           BtorNode **src_array,
-                                           BtorNode **src,
-                                           BtorNode **dst,
-                                           BtorNode **off);
+static void extract_memcopy_arguments (BtorNode *index,
+                                       BtorNode *value,
+                                       BtorNode **src_array,
+                                       BtorNode **src_addr,
+                                       BtorNode **dst_addr,
+                                       BtorNode **off);
 
 struct MemcopyOp
 {
@@ -46,12 +46,12 @@ new_memcopy_op (BtorMemMgr *mm, BtorNode *index, BtorNode *value)
   MemcopyOp *res;
 
   BTOR_NEW (mm, res);
-  memcopy_pattern_get_arguments (index,
-                                 value,
-                                 &res->src_array,
-                                 &res->src_addr,
-                                 &res->dst_addr,
-                                 &res->index);
+  extract_memcopy_arguments (index,
+                             value,
+                             &res->src_array,
+                             &res->src_addr,
+                             &res->dst_addr,
+                             &res->index);
   res->orig_index = index;
 
   if (BTOR_IS_INVERTED_NODE (res->index)
@@ -99,14 +99,14 @@ bvadd_get_base_and_offset (BtorNode *bvadd, BtorNode **base, BtorNode **offset)
 
   if (BTOR_IS_BV_CONST_NODE (BTOR_REAL_ADDR_NODE (bvadd->e[0])))
   {
-    *offset = bvadd->e[0];
-    *base   = bvadd->e[1];
+    if (offset) *offset = bvadd->e[0];
+    if (base) *base = bvadd->e[1];
   }
   else
   {
     assert (BTOR_IS_BV_CONST_NODE (BTOR_REAL_ADDR_NODE (bvadd->e[1])));
-    *offset = bvadd->e[1];
-    *base   = bvadd->e[0];
+    if (offset) *offset = bvadd->e[1];
+    if (base) *base = bvadd->e[0];
   }
 }
 
@@ -454,7 +454,7 @@ is_idxinc_pattern (BtorNode *index, BtorNode *value)
 inline static bool
 is_memcopy_pattern (BtorNode *index, BtorNode *value)
 {
-  BtorNode *bvadd, *dst, *offset;
+  BtorNode *bvadd, *dst_addr, *off;
 
   if (BTOR_IS_INVERTED_NODE (index) || !BTOR_IS_ADD_NODE (index)
       || BTOR_IS_INVERTED_NODE (value) || !BTOR_IS_APPLY_NODE (value)
@@ -463,56 +463,91 @@ is_memcopy_pattern (BtorNode *index, BtorNode *value)
     return false;
 
   if (BTOR_IS_BV_CONST_NODE (BTOR_REAL_ADDR_NODE (index->e[0])))
-    offset = index->e[0];
+    off = index->e[0];
   else if (BTOR_IS_BV_CONST_NODE (BTOR_REAL_ADDR_NODE (index->e[1])))
-    offset = index->e[1];
+    off = index->e[1];
   else
     return false;
 
-  bvadd = value->e[1]->e[0];
-  dst   = 0;
-  if (bvadd->e[0] == offset)
-    dst = bvadd->e[1];
-  else if (bvadd->e[1] == offset)
-    dst = bvadd->e[0];
+  bvadd    = value->e[1]->e[0];
+  dst_addr = 0;
+  if (bvadd->e[0] == off)
+    dst_addr = bvadd->e[1];
+  else if (bvadd->e[1] == off)
+    dst_addr = bvadd->e[0];
 
-  return dst != 0;
+  return dst_addr != 0;
 }
 
+/* extracts source array, source address, destination address and offset of
+ * a memcopy pattern. */
 static void
-memcopy_pattern_get_arguments (BtorNode *index,
-                               BtorNode *value,
-                               BtorNode **src_array,
-                               BtorNode **src,
-                               BtorNode **dst,
-                               BtorNode **off)
+extract_memcopy_arguments (BtorNode *index,
+                           BtorNode *value,
+                           BtorNode **src_array,
+                           BtorNode **src_addr,
+                           BtorNode **dst_addr,
+                           BtorNode **off)
 {
   assert (is_memcopy_pattern (index, value));
 
-  BtorNode *bvadd;
+  BtorNode *bvadd, *offset;
 
-  bvadd_get_base_and_offset (index, dst, off);
-  bvadd      = value->e[1]->e[0];
-  *src       = bvadd->e[0] == *off ? bvadd->e[1] : bvadd->e[0];
-  *src_array = value->e[0];
+  bvadd_get_base_and_offset (index, dst_addr, &offset);
+  bvadd = value->e[1]->e[0];
+  if (off) *off = offset;
+  if (src_addr) *src_addr = bvadd->e[0] == offset ? bvadd->e[1] : bvadd->e[0];
+  if (src_array) *src_array = value->e[0];
 }
 
 inline static bool
-is_equal_memcopy_pattern (BtorNode *index0,
-                          BtorNode *value0,
-                          BtorNode *index1,
-                          BtorNode *value1)
+is_set_pattern (BtorNode *index, BtorNode *prev_index)
 {
-  assert (is_memcopy_pattern (index0, value0));
-  assert (is_memcopy_pattern (index1, value1));
+  return BTOR_IS_BV_CONST_NODE (BTOR_REAL_ADDR_NODE (index))
+         && (!prev_index
+             || BTOR_IS_BV_CONST_NODE (BTOR_REAL_ADDR_NODE (prev_index)));
+}
 
-  BtorNode *src_array0, *src0, *dst0, *off0, *src_array1, *src1, *dst1, *off1;
+/* Pattern 1)
+ *
+ *   dst0 := write(dst, dst_addr + c, read(src, src_addr + c))
+ *   dst1 := write(dst0, dst_addr + c + 1, read(src, src_addr + c + 1))
+ *   dst2 := write(dst1, dst_addr + c + 2, read(src, src_addr + c + 2))
+ *
+ * Pattern 2) overlapping memory regions
+ *
+ *   dst0 := write(dst, dst_addr + c, read(dst, src_addr + c))
+ *   dst1 := write(dst0, dst_addr + c + 1, read(dst0, src_addr + c + 1))
+ *   dst2 := write(dst1, dst_addr + c + 2, read(dst1, src_addr + c + 2))
+ */
+inline static bool
+is_copy_pattern (BtorNode *index,
+                 BtorNode *value,
+                 BtorNode *prev_index,
+                 BtorNode *prev_value,
+                 BtorNode *array)
+{
+  BtorNode *src_addr, *dst_addr;
+  BtorNode *prev_src_addr, *prev_dst_addr;
 
-  memcopy_pattern_get_arguments (
-      index0, value0, &src_array0, &src0, &dst0, &off0);
-  memcopy_pattern_get_arguments (
-      index1, value1, &src_array1, &src1, &dst1, &off1);
-  return src0 == src1 && dst0 == dst1;
+  if (!is_memcopy_pattern (index, value)) return false;
+
+  /* 'index' is the first index collected for the current memcopy pattern */
+  if (!prev_index) return true;
+
+  /* 'index' belongs to a new memcopy pattern (create new pattern) */
+  if (!is_memcopy_pattern (prev_index, prev_value)) return false;
+
+  extract_memcopy_arguments (index, value, 0, &src_addr, &dst_addr, 0);
+  extract_memcopy_arguments (
+      prev_index, prev_value, 0, &prev_src_addr, &prev_dst_addr, 0);
+
+  return src_addr == prev_src_addr
+         && dst_addr == prev_dst_addr
+         /* destination array check: either every copy step uses the same
+          * destination array or they use the intermediate results of the write
+          * operations */
+         && (value->e[0] == prev_value->e[0] || value->e[0] == array);
 }
 
 static void
@@ -646,20 +681,15 @@ collect_indices_writes (Btor *btor,
           continue;
         }
 
-        if ((!prev_index
-             || BTOR_IS_BV_CONST_NODE (BTOR_REAL_ADDR_NODE (prev_index)))
-            && BTOR_IS_BV_CONST_NODE (BTOR_REAL_ADDR_NODE (index)))
+        /* collect index/value pairs for set patterns */
+        if (is_set_pattern (index, prev_index))
         {
           btor_insert_in_ptr_hash_table (index_cache, index);
           add_to_index_map (btor, map_value_index, lambda, index, value);
         }
-        else if (is_memcopy_pattern (index, value)
-                 && (!prev_index
-                     || (is_memcopy_pattern (prev_index, prev_value)
-                         && is_equal_memcopy_pattern (
-                                index, value, prev_index, prev_value)
-                         && (value->e[0] == prev_value->e[0]
-                             || value->e[0] == array))))
+        /* collect index/value pairs for memcopy pattern if 'index'
+         * and 'value' still belong to current memcopy pattern */
+        else if (is_copy_pattern (index, value, prev_index, prev_value, array))
         {
           /* optimization for memcopy: do not visit lambdas that are
            * only accessed via this lambda (reduces number of redundant
@@ -669,6 +699,7 @@ collect_indices_writes (Btor *btor,
           btor_insert_in_ptr_hash_table (index_cache, index);
           add_to_index_map (btor, map_value_index, lambda, index, value);
         }
+        /* use array as new start point */
         else
         {
           BTOR_PUSH_STACK (mm, lambdas, array);
