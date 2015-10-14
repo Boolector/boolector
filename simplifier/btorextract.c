@@ -1195,7 +1195,7 @@ extract_lambdas (Btor *btor,
       }
     }
 
-    /* pattern: index = index */
+    /* pattern: index -> index */
     BTOR_RESET_STACK (ranges);
     BTOR_RESET_STACK (offsets);
     find_ranges (btor,
@@ -1225,7 +1225,7 @@ extract_lambdas (Btor *btor,
       }
     }
 
-    /* pattern: index = index + 1 */
+    /* pattern: index -> index + 1 */
     BTOR_RESET_STACK (ranges);
     BTOR_RESET_STACK (offsets);
     find_ranges (btor,
@@ -1275,7 +1275,6 @@ extract_lambdas (Btor *btor,
         btor_release_exp (btor, subst);
         subst = tmp;
         btor_delete_const (mm, offset);
-        i_offset++;
         num_pat_memcopy++;
       }
     }
