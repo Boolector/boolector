@@ -120,6 +120,10 @@ BtorBitVector *btor_slice_bv (BtorMemMgr *mm,
 
 /*------------------------------------------------------------------------*/
 
+BtorBitVector *btor_mod_inverse_bv (BtorMemMgr *mm, BtorBitVector *bv);
+
+/*------------------------------------------------------------------------*/
+
 enum BtorSpecialConstBitVector
 {
   BTOR_SPECIAL_CONST_BV_ZERO,

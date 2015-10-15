@@ -293,26 +293,6 @@ btor_is_power_of_two_bv (BtorBitVector *bv)
     iszero = false;
   }
   return j;
-  //  q = 0;
-  //  for (p = str; (ch = *p); p++)
-  //    if (ch == '0') continue;
-  //    else if (ch == '1' && q) return -1;
-  //    else if (ch == '1' && !q) q = p;
-  //    else return -1;
-  //  if (!q) return 0;
-  //  return p - q - 1;
-
-  /// for (i = 0, j = 0; i < bv->width; i++)
-  ///  {
-  /// printf ("++j %d\n", j);
-  ///    bit = btor_get_bit_bv (bv, i);
-  ///    if (!bit) continue;
-  ///    if (bit && j) return -1;
-  ///    assert (bit && !j);
-  ///    j = i;
-  ///  }
-  /// printf ("j %d\n", j);
-  /// return j;
 }
 
 int
@@ -946,6 +926,65 @@ btor_hash_bv (BtorBitVector *bv)
 
 /*------------------------------------------------------------------------*/
 
+/* Calculate modular inverse for bv by means of the Extended Euclidian
+ * Algorithm. Note that c must be odd (the greatest
+ * common divisor gcd (c, 2^bw) must be and is in this case always 1).  */
+BtorBitVector *
+btor_mod_inverse_bv (BtorMemMgr *mm, BtorBitVector *bv)
+{
+  assert (mm);
+  assert (bv);
+  assert (btor_get_bit_bv (bv, 0)); /* bv must be odd */
+
+  uint32_t i;
+  BtorBitVector *a, *b, *y, *ly, *ty, *q, *yq, *r, *res;
+
+  a = btor_new_bv (mm, bv->width + 1);
+  btor_set_bit_bv (a, a->width - 1, 1); /* 10...0 */
+
+  b = btor_new_bv (mm, bv->width + 1); /* concat (0, bv) */
+  for (i = 0; i < bv->width; i++)
+    btor_set_bit_bv (b, i, btor_get_bit_bv (bv, i));
+
+  y  = btor_one_bv (mm, bv->width + 1);
+  ly = btor_new_bv (mm, bv->width + 1);
+
+  while (!btor_is_zero_bv (b))
+  {
+    udiv_urem_bv (mm, a, b, &q, &r);
+    btor_free_bv (mm, a);
+
+    a = b;
+    b = r;
+
+    ty = y;
+    yq = btor_mul_bv (mm, y, q);
+    btor_free_bv (mm, q);
+    y = btor_sub_bv (mm, ly, yq); /* y = ly - y * q */
+    btor_free_bv (mm, yq);
+
+    btor_free_bv (mm, ly);
+    ly = ty;
+  }
+
+  res = btor_slice_bv (mm, ly, bv->width - 1, 0);
+
+#ifndef NDEBUG
+  assert (res->width == bv->width);
+  ty = btor_mul_bv (mm, bv, res);
+  assert (btor_is_one_bv (ty));
+  btor_free_bv (mm, ty);
+#endif
+
+  btor_free_bv (mm, ly);
+  btor_free_bv (mm, y);
+  btor_free_bv (mm, b);
+  btor_free_bv (mm, a);
+
+  return res;
+}
+/*------------------------------------------------------------------------*/
+
 BtorSpecialConstBitVector
 btor_is_special_const_bv (BtorBitVector *bv)
 {
@@ -957,10 +996,8 @@ btor_is_special_const_bv (BtorBitVector *bv)
                           : BTOR_SPECIAL_CONST_BV_ONE;
   if (btor_is_ones_bv (bv))
   {
-    if (bv->width == 1)
-      return BTOR_SPECIAL_CONST_BV_ONE_ONES;
-    else
-      return BTOR_SPECIAL_CONST_BV_ONES;
+    assert (bv->width > 1);
+    return BTOR_SPECIAL_CONST_BV_ONES;
   }
   return BTOR_SPECIAL_CONST_BV_NONE;
 }

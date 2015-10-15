@@ -489,8 +489,8 @@ recursively_dump_exp_smt (BtorSMTDumpContext *sdc,
 
   unsigned depth;
   int pad, i, is_bool, add_space, zero_extend, expect_bool;
-  BtorBitVector *inv_bitsbv;
-  char *inv_bits;
+  BtorBitVector *bitsbv;
+  char *bits;
   const char *op, *fmt;
   BtorNode *arg, *real_exp;
   BtorArgsIterator it;
@@ -551,19 +551,18 @@ recursively_dump_exp_smt (BtorSMTDumpContext *sdc,
           fputs ("false", sdc->file);
         else if (BTOR_IS_INVERTED_NODE (exp))
         {
-          inv_bitsbv =
-              btor_not_bv (sdc->btor->mm, btor_const_get_bits (real_exp));
-          inv_bits = btor_bv_to_char_bv (sdc->btor->mm, inv_bitsbv);
-          dump_const_value_aux_smt (sdc, inv_bits);
-          btor_free_bv (sdc->btor->mm, inv_bitsbv);
-          btor_freestr (sdc->btor->mm, inv_bits);
+          bitsbv = btor_not_bv (sdc->btor->mm, btor_const_get_bits (real_exp));
+          bits   = btor_bv_to_char_bv (sdc->btor->mm, bitsbv);
+          dump_const_value_aux_smt (sdc, bits);
+          btor_free_bv (sdc->btor->mm, bitsbv);
+          btor_freestr (sdc->btor->mm, bits);
         }
         else
         {
-          inv_bits = btor_bv_to_char_bv (sdc->btor->mm,
-                                         btor_const_get_bits (real_exp));
-          dump_const_value_aux_smt (sdc, inv_bits);
-          btor_freestr (sdc->btor->mm, inv_bits);
+          bits = btor_bv_to_char_bv (sdc->btor->mm,
+                                     btor_const_get_bits (real_exp));
+          dump_const_value_aux_smt (sdc, bits);
+          btor_freestr (sdc->btor->mm, bits);
         }
 
         /* close zero extend */

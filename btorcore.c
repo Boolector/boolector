@@ -27,6 +27,7 @@
 #include "btorprintmodel.h"
 #include "btorrewrite.h"
 #include "btorsat.h"
+#include "dumper/btordumpbtor.h"
 #include "simplifier/btorack.h"
 #include "simplifier/btorelimapplies.h"
 #include "simplifier/btorelimslices.h"
@@ -1180,6 +1181,7 @@ insert_unsynthesized_constraint (Btor *btor, BtorNode *exp)
   if (BTOR_IS_BV_CONST_NODE (BTOR_REAL_ADDR_NODE (exp)))
   {
     bits = btor_const_get_bits (exp);
+    assert (bits->width == 1);
     if ((BTOR_IS_INVERTED_NODE (exp) && btor_get_bit_bv (bits, 0))
         || (!BTOR_IS_INVERTED_NODE (exp) && !btor_get_bit_bv (bits, 0)))
     {
@@ -1516,7 +1518,7 @@ normalize_substitution (Btor *btor,
     btor->stats.gaussian_eliminations++;
 
     btor_release_exp (btor, tmp);
-    ic = btor_not_bv (btor->mm, fc);
+    ic = btor_mod_inverse_bv (btor->mm, fc);
     btor_free_bv (btor->mm, fc);
     inv = btor_const_exp (btor, ic);
     btor_free_bv (btor->mm, ic);
@@ -1609,6 +1611,7 @@ insert_new_constraint (Btor *btor, BtorNode *exp)
   if (BTOR_IS_BV_CONST_NODE (real_exp))
   {
     bits = btor_const_get_bits (real_exp);
+    assert (bits->width == 1);
     /* we do not add true/false */
     if ((BTOR_IS_INVERTED_NODE (exp) && btor_get_bit_bv (bits, 0))
         || (!BTOR_IS_INVERTED_NODE (exp) && !btor_get_bit_bv (bits, 0)))

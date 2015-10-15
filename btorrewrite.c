@@ -95,7 +95,7 @@
     result = apply_##rw_rule (btor, __VA_ARGS__); \
     if (result) goto DONE;                        \
   }
-//fprintf (stderr, "apply: %s (%s)\n", #rw_rule, __FUNCTION__);\
+//{fprintf (stderr, "apply: %s (%s)\n", #rw_rule, __FUNCTION__);
 
 /* -------------------------------------------------------------------------- */
 /* util functions */
@@ -461,8 +461,8 @@ is_bit_mask (BtorNode *exp, int *upper, int *lower)
   }
   if (last == -1) last = len - 1;
 
-  *upper = len - first - 1;
-  *lower = len - last - 1;
+  *upper = last;
+  *lower = first;
   return true;
 }
 
@@ -509,7 +509,7 @@ apply_const_binary_exp (Btor *btor,
 {
   assert (applies_const_binary_exp (btor, kind, e0, e1));
 
-  bool same_mem, invert_b0, invert_b1;
+  bool invert_b0, invert_b1;
   BtorBitVector *b0, *b1, *bresult;
   BtorMemMgr *mm;
   BtorNode *result, *real_e0, *real_e1;
@@ -518,23 +518,13 @@ apply_const_binary_exp (Btor *btor,
   real_e0 = BTOR_REAL_ADDR_NODE (e0);
   real_e1 = BTOR_REAL_ADDR_NODE (e1);
 
-  invert_b0 = false;
-  invert_b1 = false;
-  same_mem  = real_e0 == real_e1;
-  if (same_mem)
-  {
-    b0 = BTOR_BITS_NODE (mm, e0);
-    b1 = BTOR_BITS_NODE (mm, e1);
-  }
-  else
-  {
-    invert_b0 = BTOR_IS_INVERTED_NODE (e0);
-    b0        = btor_const_get_bits (real_e0);
-    if (invert_b0) b0 = btor_not_bv (mm, b0);
-    invert_b1 = BTOR_IS_INVERTED_NODE (e1);
-    b1        = btor_const_get_bits (real_e1);
-    if (invert_b1) b1 = btor_not_bv (mm, b1);
-  }
+  invert_b0 = BTOR_IS_INVERTED_NODE (e0);
+  invert_b1 = BTOR_IS_INVERTED_NODE (e1);
+  b0        = btor_const_get_bits (real_e0);
+  b1        = btor_const_get_bits (real_e1);
+  if (invert_b0) b0 = btor_not_bv (mm, b0);
+  if (invert_b1) b1 = btor_not_bv (mm, b1);
+
   switch (kind)
   {
     case BTOR_AND_NODE: bresult = btor_and_bv (mm, b0, b1); break;
@@ -551,16 +541,8 @@ apply_const_binary_exp (Btor *btor,
       bresult = btor_concat_bv (mm, b0, b1);
       break;
   }
-  if (same_mem)
-  {
-    btor_free_bv (mm, b1);
-    btor_free_bv (mm, b0);
-  }
-  else
-  {
-    if (invert_b0) btor_free_bv (mm, b0);
-    if (invert_b1) btor_free_bv (mm, b1);
-  }
+  if (invert_b0) btor_free_bv (mm, b0);
+  if (invert_b1) btor_free_bv (mm, b1);
   result = btor_const_exp (btor, bresult);
   btor_free_bv (mm, bresult);
   return result;
@@ -612,7 +594,7 @@ apply_special_const_lhs_binary_exp (Btor *btor,
 
   switch (sc)
   {
-    case BTOR_SPECIAL_CONST_ZERO:
+    case BTOR_SPECIAL_CONST_BV_ZERO:
       switch (kind)
       {
         case BTOR_BEQ_NODE:
@@ -671,7 +653,7 @@ apply_special_const_lhs_binary_exp (Btor *btor,
         default: break;
       }
       break;
-    case BTOR_SPECIAL_CONST_ONE_ONES:
+    case BTOR_SPECIAL_CONST_BV_ONE_ONES:
       assert (width_e0 == 1);
       if (kind == BTOR_AND_NODE || kind == BTOR_BEQ_NODE
           || kind == BTOR_MUL_NODE)
@@ -679,10 +661,10 @@ apply_special_const_lhs_binary_exp (Btor *btor,
       else if (kind == BTOR_ULT_NODE)
         result = btor_false_exp (btor);
       break;
-    case BTOR_SPECIAL_CONST_ONE:
+    case BTOR_SPECIAL_CONST_BV_ONE:
       if (kind == BTOR_MUL_NODE) result = btor_copy_exp (btor, e1);
       break;
-    case BTOR_SPECIAL_CONST_ONES:
+    case BTOR_SPECIAL_CONST_BV_ONES:
       if (kind == BTOR_BEQ_NODE)
       {
         if (is_xnor_exp (btor, e1)) /* 1+ == (a XNOR b)  -->  a = b */
@@ -879,7 +861,7 @@ apply_special_const_rhs_binary_exp (Btor *btor,
 
   switch (sc)
   {
-    case BTOR_SPECIAL_CONST_ZERO:
+    case BTOR_SPECIAL_CONST_BV_ZERO:
       switch (kind)
       {
         case BTOR_BEQ_NODE:
@@ -928,13 +910,13 @@ apply_special_const_rhs_binary_exp (Btor *btor,
         default: break;
       }
       break;
-    case BTOR_SPECIAL_CONST_ONE_ONES:
+    case BTOR_SPECIAL_CONST_BV_ONE_ONES:
       assert (width_e1 == 1);
       if (kind == BTOR_AND_NODE || kind == BTOR_BEQ_NODE
           || kind == BTOR_MUL_NODE || kind == BTOR_UDIV_NODE)
         result = btor_copy_exp (btor, e0);
       break;
-    case BTOR_SPECIAL_CONST_ONE:
+    case BTOR_SPECIAL_CONST_BV_ONE:
       if (kind == BTOR_MUL_NODE || kind == BTOR_UDIV_NODE)
         result = btor_copy_exp (btor, e0);
       else if (kind == BTOR_UREM_NODE)
@@ -946,7 +928,7 @@ apply_special_const_rhs_binary_exp (Btor *btor,
         btor_release_exp (btor, tmp1);
       }
       break;
-    case BTOR_SPECIAL_CONST_ONES:
+    case BTOR_SPECIAL_CONST_BV_ONES:
       if (kind == BTOR_BEQ_NODE)
       {
         if (is_xnor_exp (btor, e0)) /* (a XNOR b) == 1 -->  a = b */
