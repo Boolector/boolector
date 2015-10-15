@@ -15,10 +15,11 @@
 #include "utils/btorutil.h"
 
 #include "dumper/btordumpsmt.h"
+#include "utils/btormisc.h"
 
-inline static bool is_idxidx_pattern (BtorNode *, BtorNode *);
-inline static bool is_idxinc_pattern (BtorNode *, BtorNode *);
-inline static bool is_memcopy_pattern (BtorNode *, BtorNode *);
+inline static bool is_itoi_pattern (BtorNode *index, BtorNode *value);
+inline static bool is_itoip1_pattern (BtorNode *index, BtorNode *value);
+inline static bool is_cpy_pattern (BtorNode *index, BtorNode *value);
 static void extract_memcopy_arguments (BtorNode *index,
                                        BtorNode *value,
                                        BtorNode **src_array,
@@ -42,7 +43,7 @@ BTOR_DECLARE_STACK (MemcopyOpPtr, MemcopyOp *);
 static MemcopyOp *
 new_memcopy_op (BtorMemMgr *mm, BtorNode *index, BtorNode *value)
 {
-  assert (is_memcopy_pattern (index, value));
+  assert (is_cpy_pattern (index, value));
   MemcopyOp *res;
 
   BTOR_NEW (mm, res);
@@ -92,7 +93,7 @@ cmp_bvconst_bits (const void *a, const void *b)
 }
 
 inline static void
-bvadd_get_base_and_offset (BtorNode *bvadd, BtorNode **base, BtorNode **offset)
+extract_base_addr_offset (BtorNode *bvadd, BtorNode **base, BtorNode **offset)
 {
   assert (BTOR_IS_REGULAR_NODE (bvadd));
   assert (BTOR_IS_ADD_NODE (bvadd));
@@ -108,6 +109,43 @@ bvadd_get_base_and_offset (BtorNode *bvadd, BtorNode **base, BtorNode **offset)
     if (offset) *offset = bvadd->e[1];
     if (base) *base = bvadd->e[0];
   }
+}
+
+static int
+cmp_abs_rel_indices (const void *a, const void *b)
+{
+  bool is_abs;
+  const char *bx, *by;
+  BtorNode *x, *y, *x_base_addr, *y_base_addr, *x_offset, *y_offset;
+
+  x = *((BtorNode **) a);
+  y = *((BtorNode **) b);
+
+  is_abs = BTOR_IS_BV_CONST_NODE (BTOR_REAL_ADDR_NODE (x))
+           && BTOR_IS_BV_CONST_NODE (BTOR_REAL_ADDR_NODE (y));
+
+  if (is_abs) /* absolute address */
+  {
+    bx = BTOR_CONST_GET_BITS (x);
+    by = BTOR_CONST_GET_BITS (y);
+  }
+  else /* relative address */
+  {
+    assert (!BTOR_IS_INVERTED_NODE (x));
+    assert (!BTOR_IS_INVERTED_NODE (y));
+    assert (BTOR_IS_ADD_NODE (x));
+    assert (BTOR_IS_ADD_NODE (y));
+    extract_base_addr_offset (x, &x_base_addr, &x_offset);
+    extract_base_addr_offset (y, &y_base_addr, &y_offset);
+    assert (x_base_addr == y_base_addr);
+    assert (BTOR_IS_BV_CONST_NODE (BTOR_REAL_ADDR_NODE (x_offset)));
+    assert (BTOR_IS_BV_CONST_NODE (BTOR_REAL_ADDR_NODE (y_offset)));
+    bx = BTOR_CONST_GET_BITS (x_offset);
+    by = BTOR_CONST_GET_BITS (y_offset);
+  }
+  assert (bx);
+  assert (by);
+  return strcmp (bx, by);
 }
 
 static int
@@ -229,10 +267,10 @@ create_pattern_memset (Btor *btor,
 {
   assert (lower);
   assert (upper);
+  assert (BTOR_REAL_ADDR_NODE (lower)->kind
+          == BTOR_REAL_ADDR_NODE (upper)->kind);
   assert (BTOR_IS_BV_CONST_NODE (BTOR_REAL_ADDR_NODE (lower))
           || BTOR_IS_ADD_NODE (BTOR_REAL_ADDR_NODE (lower)));
-  assert (BTOR_IS_BV_CONST_NODE (BTOR_REAL_ADDR_NODE (upper))
-          || BTOR_IS_ADD_NODE (BTOR_REAL_ADDR_NODE (upper)));
   assert (BTOR_REAL_ADDR_NODE (lower)->sort_id
           == BTOR_REAL_ADDR_NODE (upper)->sort_id);
   assert (offset);
@@ -256,13 +294,15 @@ create_pattern_memset (Btor *btor,
 
 /* pattern: lower <= j <= upper && range_cond ? j : a[j] */
 static inline BtorNode *
-create_pattern_idxidx (
+create_pattern_itoi (
     Btor *btor, BtorNode *lower, BtorNode *upper, BtorNode *array, char *offset)
 {
   assert (lower);
   assert (upper);
-  assert (BTOR_IS_BV_CONST_NODE (BTOR_REAL_ADDR_NODE (lower)));
-  assert (BTOR_IS_BV_CONST_NODE (BTOR_REAL_ADDR_NODE (upper)));
+  assert (BTOR_REAL_ADDR_NODE (lower)->kind
+          == BTOR_REAL_ADDR_NODE (upper)->kind);
+  assert (BTOR_IS_BV_CONST_NODE (BTOR_REAL_ADDR_NODE (lower))
+          || BTOR_IS_ADD_NODE (BTOR_REAL_ADDR_NODE (lower)));
   assert (BTOR_REAL_ADDR_NODE (lower)->sort_id
           == BTOR_REAL_ADDR_NODE (upper)->sort_id);
   assert (btor_get_codomain_fun_sort (&btor->sorts_unique_table, array->sort_id)
@@ -288,13 +328,15 @@ create_pattern_idxidx (
 
 /* pattern: lower <= j <= upper && range_cond ? j + 1 : a[j] */
 static inline BtorNode *
-create_pattern_idxinc (
+create_pattern_itoip1 (
     Btor *btor, BtorNode *lower, BtorNode *upper, BtorNode *array, char *offset)
 {
   assert (lower);
   assert (upper);
-  assert (BTOR_IS_BV_CONST_NODE (BTOR_REAL_ADDR_NODE (lower)));
-  assert (BTOR_IS_BV_CONST_NODE (BTOR_REAL_ADDR_NODE (upper)));
+  assert (BTOR_REAL_ADDR_NODE (lower)->kind
+          == BTOR_REAL_ADDR_NODE (upper)->kind);
+  assert (BTOR_IS_BV_CONST_NODE (BTOR_REAL_ADDR_NODE (lower))
+          || BTOR_IS_ADD_NODE (BTOR_REAL_ADDR_NODE (lower)));
   assert (BTOR_REAL_ADDR_NODE (lower)->sort_id
           == BTOR_REAL_ADDR_NODE (upper)->sort_id);
   assert (btor_get_codomain_fun_sort (&btor->sorts_unique_table, array->sort_id)
@@ -317,6 +359,43 @@ create_pattern_idxinc (
   btor_release_exp (btor, inc);
   btor_release_exp (btor, ite);
 
+  return res;
+}
+
+static inline BtorNode *
+create_pattern_cpy (Btor *btor,
+                    BtorNode *lower,
+                    BtorNode *upper,
+                    BtorNode *src_array,
+                    BtorNode *dst_array,
+                    BtorNode *src_addr,
+                    BtorNode *dst_addr,
+                    char *offset)
+{
+  assert (!BTOR_IS_INVERTED_NODE (lower));
+  assert (!BTOR_IS_INVERTED_NODE (upper));
+  assert (BTOR_IS_ADD_NODE (lower));
+  assert (BTOR_IS_ADD_NODE (upper));
+
+  BtorNode *res, *param, *ite, *read, *cond, *read_src, *add, *sub;
+
+  param = btor_param_exp (btor, btor_get_exp_width (btor, lower), 0);
+  read  = btor_read_exp (btor, dst_array, param);
+  cond  = create_range (btor, lower, upper, param, offset);
+
+  sub      = btor_sub_exp (btor, param, dst_addr);
+  add      = btor_add_exp (btor, src_addr, sub);
+  read_src = btor_read_exp (btor, src_array, add);
+  ite      = btor_cond_exp (btor, cond, read_src, read);
+  res      = btor_lambda_exp (btor, param, ite);
+
+  btor_release_exp (btor, param);
+  btor_release_exp (btor, read);
+  btor_release_exp (btor, cond);
+  btor_release_exp (btor, sub);
+  btor_release_exp (btor, add);
+  btor_release_exp (btor, read_src);
+  btor_release_exp (btor, ite);
   return res;
 }
 
@@ -434,13 +513,13 @@ is_array_ite_exp (BtorNode *exp, BtorNode **array_if, BtorNode **array_else)
 }
 
 inline static bool
-is_idxidx_pattern (BtorNode *index, BtorNode *value)
+is_itoi_pattern (BtorNode *index, BtorNode *value)
 {
   return index == value;
 }
 
 inline static bool
-is_idxinc_pattern (BtorNode *index, BtorNode *value)
+is_itoip1_pattern (BtorNode *index, BtorNode *value)
 {
   bool res;
   BtorNode *inc;
@@ -452,7 +531,7 @@ is_idxinc_pattern (BtorNode *index, BtorNode *value)
 }
 
 inline static bool
-is_memcopy_pattern (BtorNode *index, BtorNode *value)
+is_cpy_pattern (BtorNode *index, BtorNode *value)
 {
   BtorNode *bvadd, *dst_addr, *off;
 
@@ -489,11 +568,11 @@ extract_memcopy_arguments (BtorNode *index,
                            BtorNode **dst_addr,
                            BtorNode **off)
 {
-  assert (is_memcopy_pattern (index, value));
+  assert (is_cpy_pattern (index, value));
 
   BtorNode *bvadd, *offset;
 
-  bvadd_get_base_and_offset (index, dst_addr, &offset);
+  extract_base_addr_offset (index, dst_addr, &offset);
   bvadd = value->e[1]->e[0];
   if (off) *off = offset;
   if (src_addr) *src_addr = bvadd->e[0] == offset ? bvadd->e[1] : bvadd->e[0];
@@ -501,11 +580,39 @@ extract_memcopy_arguments (BtorNode *index,
 }
 
 inline static bool
-is_set_pattern (BtorNode *index, BtorNode *prev_index)
+is_abs_set_pattern (BtorNode *index, BtorNode *prev_index)
 {
   return BTOR_IS_BV_CONST_NODE (BTOR_REAL_ADDR_NODE (index))
          && (!prev_index
              || BTOR_IS_BV_CONST_NODE (BTOR_REAL_ADDR_NODE (prev_index)));
+}
+
+inline static bool
+is_rel_set_pattern (BtorNode *index, BtorNode *prev_index)
+{
+  BtorNode *base_addr, *offset, *prev_base_addr, *prev_offset;
+
+  if (BTOR_IS_INVERTED_NODE (index) || !BTOR_IS_ADD_NODE (index)) return false;
+
+  if (!BTOR_IS_BV_CONST_NODE (BTOR_REAL_ADDR_NODE (index->e[0]))
+      && !BTOR_IS_BV_CONST_NODE (BTOR_REAL_ADDR_NODE (index->e[1])))
+    return false;
+
+  if (!prev_index) return true;
+
+  if (BTOR_IS_INVERTED_NODE (prev_index) || !BTOR_IS_ADD_NODE (prev_index))
+    return false;
+
+  if (!BTOR_IS_BV_CONST_NODE (BTOR_REAL_ADDR_NODE (prev_index->e[0]))
+      && !BTOR_IS_BV_CONST_NODE (BTOR_REAL_ADDR_NODE (prev_index->e[1])))
+    return false;
+
+  extract_base_addr_offset (index, &base_addr, &offset);
+  extract_base_addr_offset (prev_index, &prev_base_addr, &prev_offset);
+  assert (BTOR_IS_BV_CONST_NODE (BTOR_REAL_ADDR_NODE (offset)));
+  assert (BTOR_IS_BV_CONST_NODE (BTOR_REAL_ADDR_NODE (prev_offset)));
+
+  return base_addr == prev_base_addr;
 }
 
 /* Pattern 1)
@@ -530,13 +637,13 @@ is_copy_pattern (BtorNode *index,
   BtorNode *src_addr, *dst_addr;
   BtorNode *prev_src_addr, *prev_dst_addr;
 
-  if (!is_memcopy_pattern (index, value)) return false;
+  if (!is_cpy_pattern (index, value)) return false;
 
   /* 'index' is the first index collected for the current memcopy pattern */
   if (!prev_index) return true;
 
   /* 'index' belongs to a new memcopy pattern (create new pattern) */
-  if (!is_memcopy_pattern (prev_index, prev_value)) return false;
+  if (!is_cpy_pattern (prev_index, prev_value)) return false;
 
   extract_memcopy_arguments (index, value, 0, &src_addr, &dst_addr, 0);
   extract_memcopy_arguments (
@@ -586,26 +693,20 @@ add_to_index_map (Btor *btor,
     indices = (BtorNodePtrStack *) b->data.asPtr;
   assert (indices);
   if (BTOR_IS_BV_CONST_NODE (BTOR_REAL_ADDR_NODE (index)))
-  {
-    if (BTOR_IS_INVERTED_NODE (index) && !btor_const_get_invbits (index))
-      btor_const_set_invbits (index,
-                              btor_not_const (mm, btor_const_get_bits (index)));
-  }
+    offset = index;
   else
   {
     assert (BTOR_IS_REGULAR_NODE (index));
     assert (BTOR_IS_ADD_NODE (index));
-    assert (BTOR_IS_BV_CONST_NODE (BTOR_REAL_ADDR_NODE (index->e[0]))
-            || BTOR_IS_BV_CONST_NODE (BTOR_REAL_ADDR_NODE (index->e[1])));
-    if (BTOR_IS_BV_CONST_NODE (BTOR_REAL_ADDR_NODE (index->e[0])))
-      offset = BTOR_REAL_ADDR_NODE (index->e[0]);
-    else
-      offset = BTOR_REAL_ADDR_NODE (index->e[1]);
-
-    if (BTOR_IS_INVERTED_NODE (offset) && !btor_const_get_invbits (offset))
-      btor_const_set_invbits (
-          offset, btor_not_const (mm, btor_const_get_bits (offset)));
+    extract_base_addr_offset (index, 0, &offset);
+    assert (BTOR_IS_BV_CONST_NODE (BTOR_REAL_ADDR_NODE (offset)));
   }
+
+  /* generate inverted bit string for constants if required */
+  if (BTOR_IS_INVERTED_NODE (offset) && !btor_const_get_invbits (offset))
+    btor_const_set_invbits (offset,
+                            btor_not_const (mm, btor_const_get_bits (offset)));
+
   BTOR_PUSH_STACK (mm, *indices, index);
 }
 
@@ -681,24 +782,53 @@ collect_indices_writes (Btor *btor,
           continue;
         }
 
-        /* collect index/value pairs for set patterns */
-        if (is_set_pattern (index, prev_index))
+        /* collect index/value pairs for absolute set patterns */
+        if (is_abs_set_pattern (index, prev_index))
         {
           btor_insert_in_ptr_hash_table (index_cache, index);
           add_to_index_map (btor, map_value_index, lambda, index, value);
         }
-        /* collect index/value pairs for memcopy pattern if 'index'
-         * and 'value' still belong to current memcopy pattern */
-        else if (is_copy_pattern (index, value, prev_index, prev_value, array))
+        // TODO (ma): is there a way to recognize base_addr + 0 as
+        //            relative?
+        //            -> only if its the last index
+        //	       - prev_index->base_addr == index
+        else if (is_rel_set_pattern (index, prev_index))
         {
-          /* optimization for memcopy: do not visit lambdas that are
-           * only accessed via this lambda (reduces number of redundant
-           * memcopy patterns) */
-          if (value->e[0] == array && array->parents == 2)
-            btor_insert_in_ptr_hash_table (visit_cache, array);
-          btor_insert_in_ptr_hash_table (index_cache, index);
-          add_to_index_map (btor, map_value_index, lambda, index, value);
+          /* collect index/value pairs for memcopy pattern if 'index'
+           * and 'value' still belong to current memcopy pattern */
+          if (is_copy_pattern (index, value, prev_index, prev_value, array))
+          {
+            /* optimization for memcopy: do not visit lambdas that
+             * are only accessed via this lambda (reduces number of
+             * redundant memcopy patterns) */
+            if (value->e[0] == array && array->parents == 2)
+              btor_insert_in_ptr_hash_table (visit_cache, array);
+            btor_insert_in_ptr_hash_table (index_cache, index);
+            add_to_index_map (btor, map_value_index, lambda, index, value);
+          }
+          /* collect index/value pairs for relative set patterns */
+          else
+          {
+            btor_insert_in_ptr_hash_table (index_cache, index);
+            add_to_index_map (btor, map_value_index, lambda, index, value);
+          }
         }
+#if 0
+	      /* collect index/value pairs for memcopy pattern if 'index'
+	       * and 'value' still belong to current memcopy pattern */
+	      else if (is_copy_pattern (index, value,
+					prev_index, prev_value, array))
+		{
+		  /* optimization for memcopy: do not visit lambdas that are
+		   * only accessed via this lambda (reduces number of redundant
+		   * memcopy patterns) */
+		  if (value->e[0] == array && array->parents == 2)
+		    btor_insert_in_ptr_hash_table (visit_cache, array);
+		  btor_insert_in_ptr_hash_table (index_cache, index);
+		  add_to_index_map (btor, map_value_index,
+				    lambda, index, value);
+		}
+#endif
         /* use array as new start point */
         else
         {
@@ -1047,6 +1177,512 @@ find_memcopy_ranges (Btor *btor,
   return range_size;
 }
 
+void
+find_ranges2 (Btor *btor,
+              BtorNodePtrStack *stack,
+              BtorNodePtrStack *ranges,
+              BtorCharPtrStack *increments,
+              BtorNodePtrStack *indices,
+              unsigned *num_pat,
+              unsigned *num_pat_inc,
+              unsigned *size_pat,
+              unsigned *size_pat_inc)
+{
+  assert (stack);
+  assert (ranges);
+  assert (increments);
+  assert (indices);
+  assert (num_pat);
+  assert (size_pat);
+
+#ifndef NDEBUG
+  unsigned num_indices = 0;
+  int i;
+#endif
+  bool in_range;
+  char *b0, *b1, *inc, *prev_inc;
+  unsigned cnt, lower, upper;
+  unsigned num_pattern = 0, num_pattern_inc = 0, size_pattern = 0;
+  unsigned size_pattern_inc = 0;
+  BtorNode *n0, *n1, *n0_base_addr, *n1_base_addr, *n0_offset, *n1_offset;
+  BtorMemMgr *mm;
+  BtorNodePtrStack index_stack;
+
+  mm          = btor->mm;
+  index_stack = *stack;
+  cnt         = BTOR_COUNT_STACK (index_stack);
+  if (cnt == 0) return;
+
+  if (cnt == 1)
+    BTOR_PUSH_STACK (mm, *indices, BTOR_PEEK_STACK (index_stack, 0));
+  else
+  {
+    assert (cnt > 1);
+#ifndef NDEBUG
+    /* sanity check: 'index_stack' contains either absolute or relative
+     * addresses */
+    for (i = 1; i < BTOR_COUNT_STACK (index_stack); i++)
+    {
+      n0 = BTOR_REAL_ADDR_NODE (BTOR_PEEK_STACK (index_stack, i - 1));
+      n1 = BTOR_REAL_ADDR_NODE (BTOR_PEEK_STACK (index_stack, i));
+      assert (n0->kind == n1->kind);
+      assert (BTOR_IS_ADD_NODE (n0) || BTOR_IS_BV_CONST_NODE (n0));
+      if (BTOR_IS_ADD_NODE (n0))
+      {
+        extract_base_addr_offset (n0, &n0_base_addr, &n0_offset);
+        extract_base_addr_offset (n1, &n1_base_addr, &n1_offset);
+        assert (n0_base_addr == n1_base_addr);
+        assert (BTOR_IS_BV_CONST_NODE (BTOR_REAL_ADDR_NODE (n0_offset)));
+        assert (BTOR_IS_BV_CONST_NODE (BTOR_REAL_ADDR_NODE (n1_offset)));
+      }
+    }
+#endif
+    qsort (index_stack.start, cnt, sizeof (BtorNode *), cmp_abs_rel_indices);
+    inc = prev_inc = 0;
+    lower = upper = 0;
+    while (upper < cnt)
+    {
+      in_range = false;
+      inc      = 0;
+      if (upper + 1 < cnt)
+      {
+        n0 = BTOR_PEEK_STACK (index_stack, upper);
+        n1 = BTOR_PEEK_STACK (index_stack, upper + 1);
+
+        if (BTOR_IS_BV_CONST_NODE (BTOR_REAL_ADDR_NODE (n0)))
+        {
+          assert (BTOR_IS_BV_CONST_NODE (BTOR_REAL_ADDR_NODE (n1)));
+          b0 = BTOR_CONST_GET_BITS (n0);
+          b1 = BTOR_CONST_GET_BITS (n1);
+        }
+        else
+        {
+          assert (!BTOR_IS_INVERTED_NODE (n0));
+          assert (!BTOR_IS_INVERTED_NODE (n1));
+          assert (BTOR_IS_ADD_NODE (n0));
+          assert (BTOR_IS_ADD_NODE (n1));
+          extract_base_addr_offset (n0, &n0_base_addr, &n0_offset);
+          extract_base_addr_offset (n1, &n1_base_addr, &n1_offset);
+          assert (n0_base_addr == n1_base_addr);
+          b0 = BTOR_CONST_GET_BITS (n0_offset);
+          b1 = BTOR_CONST_GET_BITS (n1_offset);
+        }
+        assert (b0);
+        assert (b1);
+        inc = btor_sub_const (mm, b1, b0);
+
+        if (!prev_inc) prev_inc = btor_copy_const (mm, inc);
+
+        /* increment upper bound of range */
+        in_range = strcmp (inc, prev_inc) == 0;
+        if (in_range) upper += 1;
+      }
+
+      if (!in_range)
+      {
+        /* push index */
+        if (upper == lower)
+        {
+          BTOR_PUSH_STACK (mm, *indices, BTOR_PEEK_STACK (index_stack, lower));
+#ifndef NDEBUG
+          num_indices++;
+#endif
+          goto NEW_RANGE;
+        }
+        /* range is too small, push separate indices */
+        else if (upper - lower <= 1
+                 /* range with an offset greater than 1 */
+                 && btor_is_power_of_two_const (prev_inc) != 0)
+        {
+          /* last iteration step: if range contains all indices
+           * up to the last one, we can push all indices */
+          if (upper == cnt - 1) upper += 1;
+
+          /* push all indices from lower until upper - 1 */
+          for (; lower < upper; lower++)
+          {
+            BTOR_PUSH_STACK (
+                mm, *indices, BTOR_PEEK_STACK (index_stack, lower));
+#ifndef NDEBUG
+            num_indices++;
+#endif
+          }
+          /* lower is now that last index in the range, from
+           * which we try to find a new range */
+          upper += 1;
+        }
+        /* found range */
+        else
+        {
+          assert (upper - lower > 0);
+          BTOR_PUSH_STACK (mm, *increments, prev_inc);
+          BTOR_PUSH_STACK (mm, *ranges, BTOR_PEEK_STACK (index_stack, lower));
+          BTOR_PUSH_STACK (mm, *ranges, BTOR_PEEK_STACK (index_stack, upper));
+#ifndef NDEBUG
+          num_indices += upper - lower + 1;
+#endif
+          if (btor_is_one_const (prev_inc))
+          {
+            size_pattern += upper - lower + 1;
+            num_pattern++;
+          }
+          else
+          {
+            size_pattern_inc += upper - lower + 1;
+            num_pattern_inc++;
+          }
+          /* 'prev_inc' will be released later */
+          prev_inc = 0;
+        NEW_RANGE:
+          /* reset range */
+          upper += 1;
+          lower = upper;
+          if (inc) btor_delete_const (mm, inc);
+          inc = 0;
+        }
+      }
+      if (prev_inc) btor_delete_const (mm, prev_inc);
+      prev_inc = inc;
+    }
+    if (inc) btor_delete_const (mm, inc);
+    assert (num_indices == cnt);
+  }
+
+  /* return statistics */
+  if (num_pat)
+  {
+    *num_pat += num_pattern;
+    /* if no separate statistic variable is given for the 'inc' pattern,
+     * we just add the number to the normal one */
+    if (!num_pat_inc) *num_pat += num_pattern_inc;
+  }
+  if (num_pat_inc) *num_pat_inc += num_pattern_inc;
+  if (size_pat)
+  {
+    *size_pat += size_pattern;
+    /* if no separate statistic variable is given for the 'inc' pattern,
+     * we just add the size to the normal one */
+    if (!size_pat_inc) *size_pat += size_pattern_inc;
+  }
+  if (size_pat_inc) *size_pat_inc += size_pattern_inc;
+}
+
+static unsigned
+extract_lambdas2 (Btor *btor,
+                  BtorPtrHashTable *map_value_index,
+                  BtorPtrHashTable *map_lambda_base)
+{
+  assert (btor);
+  assert (map_value_index);
+  assert (map_lambda_base);
+
+  bool is_top_eq;
+  char *inc;
+  unsigned i_range, i_index, i_value, i_inc;
+  BtorNode *subst, *base, *tmp, *array, *value, *lower, *upper;
+  BtorNode *src_array, *src_addr, *dst_addr;
+  BtorHashTableIterator it, iit;
+  BtorPtrHashTable *t, *index_value_map;
+  BtorPtrHashBucket *b;
+  BtorNodePtrStack ranges, indices, values, indices_itoi, indices_itoip1;
+  BtorNodePtrStack indices_cpy, indices_rem, *stack;
+  BtorCharPtrStack increments;
+  BtorMemMgr *mm;
+
+  /* statistics */
+  unsigned num_total = 0, num_writes = 0;
+  unsigned num_set = 0, num_set_inc = 0, num_set_itoi = 0, num_set_itoip1 = 0;
+  unsigned num_cpy = 0, size_set = 0, size_set_inc = 0, size_set_itoi = 0;
+  unsigned size_set_itoip1 = 0, size_cpy = 0;
+
+  mm = btor->mm;
+  BTOR_INIT_STACK (ranges);
+  BTOR_INIT_STACK (indices);
+  BTOR_INIT_STACK (increments);
+  BTOR_INIT_STACK (values);
+  BTOR_INIT_STACK (indices_itoi);
+  BTOR_INIT_STACK (indices_itoip1);
+  BTOR_INIT_STACK (indices_cpy);
+  BTOR_INIT_STACK (indices_rem);
+  btor_init_node_hash_table_iterator (&it, map_value_index);
+  while (btor_has_next_node_hash_table_iterator (&it))
+  {
+    t     = it.bucket->data.asPtr;
+    array = btor_next_node_hash_table_iterator (&it);
+    assert (t);
+
+    /* find memset patterns, the remaining unused indices are pushed onto
+     * stack 'indices' */
+    btor_init_node_hash_table_iterator (&iit, t);
+    while (btor_has_next_node_hash_table_iterator (&iit))
+    {
+      stack = iit.bucket->data.asPtr;
+      value = btor_next_node_hash_table_iterator (&iit);
+      assert (stack);
+      find_ranges2 (btor,
+                    stack,
+                    &ranges,
+                    &increments,
+                    &indices,
+                    &num_set,
+                    &num_set_inc,
+                    &size_set,
+                    &size_set_inc);
+      BTOR_RELEASE_STACK (mm, *stack);
+      BTOR_DELETE (mm, stack);
+      BTOR_PUSH_STACK (mm, ranges, 0);
+      BTOR_PUSH_STACK (mm, indices, 0);
+      BTOR_PUSH_STACK (mm, values, value);
+      assert (BTOR_COUNT_STACK (ranges) - BTOR_COUNT_STACK (values) > 0
+              || BTOR_COUNT_STACK (indices) - BTOR_COUNT_STACK (values) > 0);
+      assert ((BTOR_COUNT_STACK (ranges) - BTOR_COUNT_STACK (values)) % 2 == 0);
+      assert ((BTOR_COUNT_STACK (ranges) - BTOR_COUNT_STACK (values)) / 2
+              == BTOR_COUNT_STACK (increments));
+    }
+
+    /* choose base array for patterns/writes:
+     *  1) write chains: base array of the write chains
+     *  2) top eqs: a new UF symbol */
+    if ((b = btor_find_in_ptr_hash_table (map_lambda_base, array)))
+    {
+      assert (BTOR_IS_LAMBDA_NODE (array));
+      b = btor_find_in_ptr_hash_table (map_lambda_base, array);
+      assert (b);
+      subst     = btor_copy_exp (btor, b->data.asPtr);
+      is_top_eq = false;
+    }
+    else
+    {
+      assert (BTOR_IS_UF_ARRAY_NODE (array));
+      subst     = btor_uf_exp (btor, array->sort_id, 0);
+      is_top_eq = true;
+    }
+
+    index_value_map = btor_new_ptr_hash_table (mm, 0, 0);
+    base            = subst;
+    i_range = i_index = i_inc = 0;
+    for (i_value = 0; i_value < BTOR_COUNT_STACK (values); i_value++)
+    {
+      value = BTOR_PEEK_STACK (values, i_value);
+
+      /* create memset regions */
+      for (; i_range < BTOR_COUNT_STACK (ranges) - 1; i_range += 2)
+      {
+        lower = BTOR_PEEK_STACK (ranges, i_range);
+        /* next value */
+        if (!lower)
+        {
+          i_range++;
+          break;
+        }
+        upper = BTOR_PEEK_STACK (ranges, i_range + 1);
+        assert (i_inc < BTOR_COUNT_STACK (increments));
+        inc = BTOR_PEEK_STACK (increments, i_inc);
+        tmp = create_pattern_memset (btor, lower, upper, value, subst, inc);
+        btor_release_exp (btor, subst);
+        subst = tmp;
+        btor_delete_const (mm, inc);
+        i_inc++;
+      }
+
+      /* find patterns that are dependent on the current index */
+      for (; i_index < BTOR_COUNT_STACK (indices); i_index++)
+      {
+        lower = BTOR_PEEK_STACK (indices, i_index);
+        /* next value */
+        if (!lower)
+        {
+          i_index++;
+          break;
+        }
+        assert (!btor_find_in_ptr_hash_table (index_value_map, lower));
+        /* save index value pairs for later */
+        btor_insert_in_ptr_hash_table (index_value_map, lower)->data.asPtr =
+            value;
+
+        /* pattern 1: index -> index */
+        if (is_itoi_pattern (lower, value))
+          BTOR_PUSH_STACK (mm, indices_itoi, lower);
+        /* pattern 2: index -> index + 1 */
+        else if (is_itoip1_pattern (lower, value))
+          BTOR_PUSH_STACK (mm, indices_itoip1, lower);
+        /* pattern 3: memcopy pattern */
+        else if (is_cpy_pattern (lower, value))
+        {
+          BTOR_PUSH_STACK (mm, indices_cpy, lower);
+          //		  extract_memcopy_arguments (lower, value, 0, 0, 0,
+          //&tmp);
+          //		  /* generate inverted bit string if required */
+          //		  if (BTOR_IS_INVERTED_NODE (tmp)
+          //		      && !btor_const_get_invbits (tmp))
+          //		    btor_const_set_invbits (tmp,
+          //		      btor_not_const (mm, btor_const_get_bits (tmp)));
+        }
+        else /* no pattern found */
+          BTOR_PUSH_STACK (mm, indices_rem, lower);
+      }
+    }
+
+    /* pattern: index -> index */
+    BTOR_RESET_STACK (ranges);
+    BTOR_RESET_STACK (increments);
+    find_ranges2 (btor,
+                  &indices_itoi,
+                  &ranges,
+                  &increments,
+                  &indices_rem,
+                  &num_set_itoi,
+                  0,
+                  &size_set_itoi,
+                  0);
+    if (!BTOR_EMPTY_STACK (ranges))
+    {
+      assert (BTOR_COUNT_STACK (ranges) % 2 == 0);
+      for (i_range = 0, i_inc = 0; i_range < BTOR_COUNT_STACK (ranges) - 1;
+           i_range += 2, i_inc++)
+      {
+        lower = BTOR_PEEK_STACK (ranges, i_range);
+        upper = BTOR_PEEK_STACK (ranges, i_range + 1);
+        assert (i_inc < BTOR_COUNT_STACK (increments));
+        inc = BTOR_PEEK_STACK (increments, i_inc);
+        tmp = create_pattern_itoi (btor, lower, upper, subst, inc);
+        btor_release_exp (btor, subst);
+        subst = tmp;
+        btor_delete_const (mm, inc);
+      }
+    }
+
+    /* pattern: index -> index + 1 */
+    BTOR_RESET_STACK (ranges);
+    BTOR_RESET_STACK (increments);
+    find_ranges2 (btor,
+                  &indices_itoip1,
+                  &ranges,
+                  &increments,
+                  &indices_rem,
+                  &num_set_itoip1,
+                  0,
+                  &size_set_itoip1,
+                  0);
+    if (!BTOR_EMPTY_STACK (ranges))
+    {
+      assert (BTOR_COUNT_STACK (ranges) % 2 == 0);
+      for (i_range = 0, i_inc = 0; i_range < BTOR_COUNT_STACK (ranges) - 1;
+           i_range += 2, i_inc++)
+      {
+        lower = BTOR_PEEK_STACK (ranges, i_range);
+        upper = BTOR_PEEK_STACK (ranges, i_range + 1);
+        assert (i_inc < BTOR_COUNT_STACK (increments));
+        inc = BTOR_PEEK_STACK (increments, i_inc);
+        tmp = create_pattern_itoip1 (btor, lower, upper, subst, inc);
+        btor_release_exp (btor, subst);
+        subst = tmp;
+        btor_delete_const (mm, inc);
+      }
+    }
+
+    /* pattern: memcopy */
+    BTOR_RESET_STACK (ranges);
+    BTOR_RESET_STACK (increments);
+    find_ranges2 (btor,
+                  &indices_cpy,
+                  &ranges,
+                  &increments,
+                  &indices_rem,
+                  &num_cpy,
+                  0,
+                  &size_cpy,
+                  0);
+    if (!BTOR_EMPTY_STACK (ranges))
+    {
+      assert (base == subst);
+      assert (BTOR_COUNT_STACK (ranges) % 2 == 0);
+      for (i_range = 0, i_inc = 0; i_range < BTOR_COUNT_STACK (ranges) - 1;
+           i_range += 2, i_inc++)
+      {
+        lower = BTOR_PEEK_STACK (ranges, i_range);
+        upper = BTOR_PEEK_STACK (ranges, i_range + 1);
+        assert (i_inc < BTOR_COUNT_STACK (increments));
+        inc   = BTOR_PEEK_STACK (increments, i_inc);
+        b     = btor_find_in_ptr_hash_table (index_value_map, lower);
+        value = b->data.asPtr;
+        extract_memcopy_arguments (
+            lower, value, &src_array, &src_addr, &dst_addr, 0);
+        /* 'subst' == destination array */
+        tmp = create_pattern_cpy (
+            btor, lower, upper, src_array, subst, src_addr, dst_addr, inc);
+        btor_release_exp (btor, subst);
+        subst = tmp;
+        btor_delete_const (mm, inc);
+      }
+    }
+
+    num_total = num_set + num_set_inc + num_set_itoi + num_set_itoip1 + num_cpy;
+
+    /* we can skip creating writes if we did not find any pattern in a write
+     * chain, and thus can leave the write chain as-is.
+     * for the top equality case we always have to create writes since we
+     * convert top level equalities to writes. */
+    if (is_top_eq || num_total > 0)
+    {
+      /* no pattern found for indices in 'indices_rem'. create writes */
+      for (i_index = 0; i_index < BTOR_COUNT_STACK (indices_rem); i_index++)
+      {
+        lower = BTOR_PEEK_STACK (indices_rem, i_index);
+        b     = btor_find_in_ptr_hash_table (index_value_map, lower);
+        assert (b);
+        value = b->data.asPtr;
+        tmp   = btor_write_exp (btor, subst, lower, value);
+        btor_release_exp (btor, subst);
+        subst = tmp;
+        num_writes++;
+      }
+    }
+
+    assert ((is_top_eq || num_total > 0) || base == subst);
+    if (base != subst) btor_insert_substitution (btor, array, subst, 0);
+    btor_release_exp (btor, subst);
+
+    btor_delete_ptr_hash_table (index_value_map);
+    btor_delete_ptr_hash_table (t);
+    BTOR_RESET_STACK (ranges);
+    BTOR_RESET_STACK (indices);
+    BTOR_RESET_STACK (values);
+    BTOR_RESET_STACK (increments);
+    BTOR_RESET_STACK (indices_itoi);
+    BTOR_RESET_STACK (indices_itoip1);
+    BTOR_RESET_STACK (indices_cpy);
+    BTOR_RESET_STACK (indices_rem);
+  }
+  BTOR_RELEASE_STACK (mm, ranges);
+  BTOR_RELEASE_STACK (mm, indices);
+  BTOR_RELEASE_STACK (mm, values);
+  BTOR_RELEASE_STACK (mm, increments);
+  BTOR_RELEASE_STACK (mm, indices_itoi);
+  BTOR_RELEASE_STACK (mm, indices_itoip1);
+  BTOR_RELEASE_STACK (mm, indices_cpy);
+  BTOR_RELEASE_STACK (mm, indices_rem);
+
+  BTOR_MSG (btor->msg,
+            1,
+            "set: %u (%u), "
+            "set_inc: %u (%u), "
+            "set_itoi: %u (%u), "
+            "set_itoip1: %u (%u), "
+            "cpy: %u (%u)",
+            num_set,
+            size_set,
+            num_set_inc,
+            size_set_inc,
+            num_set_itoi,
+            size_set_itoi,
+            num_set_itoip1,
+            size_set_itoip1,
+            num_cpy,
+            size_cpy);
+  return num_total;
+}
+
 static unsigned
 extract_lambdas (Btor *btor,
                  BtorPtrHashTable *map_value_index,
@@ -1182,13 +1818,12 @@ extract_lambdas (Btor *btor,
             value;
 
         /* pattern 1: index -> index */
-        if (is_idxidx_pattern (lower, value))
-          BTOR_PUSH_STACK (mm, idxidx, lower);
+        if (is_itoi_pattern (lower, value)) BTOR_PUSH_STACK (mm, idxidx, lower);
         /* pattern 2: index -> index + 1 */
-        else if (is_idxinc_pattern (lower, value))
+        else if (is_itoip1_pattern (lower, value))
           BTOR_PUSH_STACK (mm, idxinc, lower);
         /* pattern 3: memcopy pattern */
-        else if (is_memcopy_pattern (lower, value))
+        else if (is_cpy_pattern (lower, value))
           BTOR_PUSH_STACK (mm, p_memcopy, new_memcopy_op (mm, lower, value));
         else /* no pattern found */
           BTOR_PUSH_STACK (mm, remidx, lower);
@@ -1217,11 +1852,11 @@ extract_lambdas (Btor *btor,
         upper = BTOR_PEEK_STACK (ranges, i_range + 1);
         assert (i_offset < BTOR_COUNT_STACK (offsets));
         offset = BTOR_PEEK_STACK (offsets, i_offset);
-        tmp    = create_pattern_idxidx (btor, lower, upper, subst, offset);
+        tmp    = create_pattern_itoi (btor, lower, upper, subst, offset);
         btor_release_exp (btor, subst);
         subst = tmp;
         btor_delete_const (mm, offset);
-        i_offset++;
+        i_offset++;  // TODO: remove
       }
     }
 
@@ -1247,11 +1882,11 @@ extract_lambdas (Btor *btor,
         upper = BTOR_PEEK_STACK (ranges, i_range + 1);
         assert (i_offset < BTOR_COUNT_STACK (offsets));
         offset = BTOR_PEEK_STACK (offsets, i_offset);
-        tmp    = create_pattern_idxinc (btor, lower, upper, subst, offset);
+        tmp    = create_pattern_itoip1 (btor, lower, upper, subst, offset);
         btor_release_exp (btor, subst);
         subst = tmp;
         btor_delete_const (mm, offset);
-        i_offset++;
+        i_offset++;  // TODO: remove
       }
     }
 
@@ -1373,7 +2008,7 @@ btor_extract_lambdas (Btor *btor)
   collect_indices_writes (btor, map_value_index, map_lambda_base);
   /* top level equality pre-initialization */
   collect_indices_top_eqs (btor, map_value_index);
-  num_lambdas = extract_lambdas (btor, map_value_index, map_lambda_base);
+  num_lambdas = extract_lambdas2 (btor, map_value_index, map_lambda_base);
   btor_delete_ptr_hash_table (map_lambda_base);
   btor_delete_ptr_hash_table (map_value_index);
 
