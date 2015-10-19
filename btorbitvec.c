@@ -626,6 +626,23 @@ btor_add_bv (BtorMemMgr *mm, BtorBitVector *a, BtorBitVector *b)
 }
 
 BtorBitVector *
+btor_sub_bv (BtorMemMgr *mm, BtorBitVector *a, BtorBitVector *b)
+{
+  assert (mm);
+  assert (a);
+  assert (b);
+  assert (a->len == b->len);
+  assert (a->width == b->width);
+
+  BtorBitVector *negb, *res;
+
+  negb = btor_neg_bv (mm, b);
+  res  = btor_add_bv (mm, a, negb);
+  btor_free_bv (mm, negb);
+  return res;
+}
+
+BtorBitVector *
 btor_and_bv (BtorMemMgr *mm, BtorBitVector *a, BtorBitVector *b)
 {
   assert (mm);
@@ -1138,6 +1155,71 @@ btor_gcd_ext_bv (Btor *btor,
   btor_free_bv (btor->mm, y);
   btor_free_bv (btor->mm, zero);
   return gcd;
+}
+
+/* Calculate modular inverse for bv by means of the Extended Euclidian
+ * Algorithm. Note that c must be odd (the greatest
+ * common divisor gcd (c, 2^bw) must be and is in this case always 1).  */
+BtorBitVector *
+btor_mod_inverse_bv (BtorMemMgr *mm, BtorBitVector *bv)
+{
+  assert (mm);
+  assert (bv);
+  assert (btor_get_bit_bv (bv, 0)); /* bv must be odd */
+
+  uint32_t i;
+  BtorBitVector *a, *b, *y, *ly, *ty, *q, *yq, *r, *res;
+
+  /* a = 2^bw
+   * b = bv
+   * lx * a + ly * b = gcd (a, b) = 1
+   * -> lx * a = lx * 2^bw = 0 (2^bw_[bw] = 0)
+   * -> ly * b = bv^-1 * bv = 1
+   * -> ly is modular inverse of bv */
+
+  a = btor_new_bv (mm, bv->width + 1);
+  btor_set_bit_bv (a, a->width - 1, 1); /* 2^bw */
+
+  b = btor_new_bv (mm, bv->width + 1); /* extend to bw of a */
+  for (i = 0; i < bv->width; i++)
+    btor_set_bit_bv (b, i, btor_get_bit_bv (bv, i));
+
+  y  = btor_one_bv (mm, bv->width + 1);
+  ly = btor_new_bv (mm, bv->width + 1);
+
+  while (!btor_is_zero_bv (b))
+  {
+    udiv_urem_bv (mm, a, b, &q, &r);
+    btor_free_bv (mm, a);
+
+    a = b;
+    b = r;
+
+    ty = y;
+    yq = btor_mul_bv (mm, y, q);
+    btor_free_bv (mm, q);
+    y = btor_sub_bv (mm, ly, yq); /* y = ly - y * q */
+    btor_free_bv (mm, yq);
+
+    btor_free_bv (mm, ly);
+    ly = ty;
+  }
+
+  res = btor_slice_bv (mm, ly, bv->width - 1, 0);
+
+#ifndef NDEBUG
+  assert (res->width == bv->width);
+  ty = btor_mul_bv (mm, bv, res);
+  assert (btor_is_one_bv (ty));
+  btor_free_bv (mm, ty);
+#endif
+
+  btor_free_bv (mm, ly);
+  btor_free_bv (mm, y);
+  btor_free_bv (mm, b);
+  btor_free_bv (mm, a);
+
+  return res;
 }
 
 /*------------------------------------------------------------------------*/

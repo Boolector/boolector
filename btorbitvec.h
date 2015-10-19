@@ -93,6 +93,8 @@ BtorBitVector *btor_dec_bv (BtorMemMgr *mm, BtorBitVector *bv);
 
 BtorBitVector *btor_add_bv (BtorMemMgr *mm, BtorBitVector *a, BtorBitVector *b);
 
+BtorBitVector *btor_sub_bv (BtorMemMgr *mm, BtorBitVector *a, BtorBitVector *b);
+
 BtorBitVector *btor_and_bv (BtorMemMgr *mm, BtorBitVector *a, BtorBitVector *b);
 
 BtorBitVector *btor_xor_bv (BtorMemMgr *mm,
@@ -150,6 +152,8 @@ BtorBitVector *btor_gcd_ext_bv (Btor *btor,
                                 BtorBitVector *bv2,
                                 BtorBitVector **fx,
                                 BtorBitVector **fy);
+
+BtorBitVector *btor_mod_inverse_bv (BtorMemMgr *mm, BtorBitVector *bv);
 
 /*------------------------------------------------------------------------*/
 
