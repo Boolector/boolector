@@ -224,6 +224,8 @@ compute_scores_aux (Btor *btor, BtorNodePtrStack *nodes)
     compute_scores_aux_min_app (btor, nodes);
   else if (h == BTOR_JUST_HEUR_BRANCH_MIN_DEP)
     compute_scores_aux_min_dep (btor, nodes);
+  else /* no scores required for BTOR_JUST_HEUR_LEFT */
+    assert (h == BTOR_JUST_HEUR_LEFT);
 }
 
 void
