@@ -12,6 +12,7 @@
 # TODO: check functions that are implemented
 
 from libc.stdio cimport FILE
+from libcpp cimport bool
 from cpython.ref cimport PyObject
 
 cdef extern from "boolector_py.h":
@@ -53,6 +54,10 @@ cdef extern from "boolector.h":
     void boolector_assume (Btor * btor, BoolectorNode * node)
 
     int boolector_failed (Btor * btor, BoolectorNode * node)
+
+    void boolector_fixate_assumptions (Btor * btor)
+
+    void boolector_reset_assumptions (Btor * btor)
 
     int boolector_sat (Btor * btor)
 
@@ -264,7 +269,7 @@ cdef extern from "boolector.h":
                                   int paramc, 
                                   BoolectorNode * node) 
 
-    BoolectorNode *boolector_uf (Btor * btor, BoolectorSort * sort,
+    BoolectorNode *boolector_uf (Btor * btor, BoolectorSort sort,
                                  const char * symbol)
 
     BoolectorNode *boolector_apply (Btor * btor,
@@ -335,16 +340,16 @@ cdef extern from "boolector.h":
 
     void boolector_print_model (Btor * btor, char * format, FILE * file)
 
-    BoolectorSort *boolector_bool_sort (Btor * btor)
+    BoolectorSort boolector_bool_sort (Btor * btor)
 
-    BoolectorSort *boolector_bitvec_sort (Btor * btor, int len)
+    BoolectorSort boolector_bitvec_sort (Btor * btor, int len)
 
-    BoolectorSort *boolector_fun_sort (Btor * btor,
-                                       BoolectorSort ** domain,
-                                       int arity,
-                                       BoolectorSort * codomain)
+    BoolectorSort boolector_fun_sort (Btor * btor,
+                                      BoolectorSort * domain,
+                                      int arity,
+                                      BoolectorSort codomain)
 
-    void boolector_release_sort (Btor * btor, BoolectorSort * sort)
+    void boolector_release_sort (Btor * btor, BoolectorSort sort)
 
     int boolector_parse (Btor * btor, 
                          FILE * infile, 
@@ -386,3 +391,6 @@ cdef extern from "boolector.h":
 
     void boolector_dump_smt2 (Btor * btor, FILE * file)
 
+    void boolector_dump_aiger_ascii (Btor * btor, FILE * file, bool merge_roots)
+
+    void boolector_dump_aiger_binary (Btor * btor, FILE * file, bool merge_roots)

@@ -15,6 +15,7 @@
 
 /*------------------------------------------------------------------------*/
 
+#include <stdbool.h>
 #include <stdio.h>
 #include "btortypes.h"
 
@@ -2123,6 +2124,24 @@ void boolector_dump_smt2_node (Btor *btor, FILE *file, BoolectorNode *node);
   :param file: Output file.
 */
 void boolector_dump_smt2 (Btor *btor, FILE *file);
+
+/*!
+  Dumps bit vector formula to file in ascii AIGER format.
+
+  :param btor: Boolector instance
+  :param file: Output file.
+  :param merge_roots: Merge all roots of AIG.
+*/
+void boolector_dump_aiger_ascii (Btor *btor, FILE *file, bool merge_roots);
+
+/*!
+  Dumps bit vector formula to file in ascii AIGER format.
+
+  :param btor: Boolector instance
+  :param file: Output file.
+  :param merge_roots: Merge all roots of AIG.
+*/
+void boolector_dump_aiger_binary (Btor *btor, FILE *file, bool merge_roots);
 
 /* DEPRECATED API */
 

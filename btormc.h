@@ -90,6 +90,14 @@ void boolector_set_reached_at_bound_call_back_mc (BtorMC *,
 
 /*------------------------------------------------------------------------*/
 
+typedef void (*BtorMCStartingBound) (void *, int k);
+
+void boolector_set_starting_bound_call_back_mc (BtorMC *,
+                                                void *state,
+                                                BtorMCStartingBound fun);
+
+/*------------------------------------------------------------------------*/
+
 /* Assumes that 'boolector_enable_trace_gen' was called and then
  * 'boolector_bmc' which returned a 'k' with '0 <= time <= k'.
  */

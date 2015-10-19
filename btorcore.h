@@ -15,6 +15,7 @@
 #define BTORCORE_H_INCLUDED
 
 #include "btorass.h"
+#include "btorbitvec.h"
 #include "btorexp.h"
 #include "btormsg.h"
 #include "btoropt.h"
@@ -126,6 +127,7 @@ struct Btor
   BtorPtrHashTable *bv_vars;
   BtorPtrHashTable *ufs;
   BtorPtrHashTable *lambdas;
+  BtorPtrHashTable *feqs;
   BtorPtrHashTable *parameterized;
 
   BtorPtrHashTable *substitutions;
@@ -137,7 +139,6 @@ struct Btor
   BtorNodePtrStack functions_with_model;
 
   int rec_rw_calls; /* calls for recursive rewriting */
-  int rec_read_acond_calls;
   int valid_assignments;
   int vis_idx; /* file index for visualizing expressions */
   int inconsistent;
@@ -158,8 +159,9 @@ struct Btor
 
   BtorPtrHashTable *cache; /* for btor_simplify_btor */
 
-  /* shadow clone (debugging only) */
-  Btor *clone;
+#ifndef NDEBUG
+  Btor *clone; /* shadow clone (debugging only) */
+#endif
 
   char *parse_error_msg;
 
@@ -327,6 +329,8 @@ struct BtorCoreSolver
     int dp_failed_applies; /* number of applies in FA (dual prop) of last
                               sat call (final bv skeleton) */
     int dp_assumed_applies;
+    int dp_failed_eqs;
+    int dp_assumed_eqs;
 
     long long eval_exp_calls;
     long long lambda_synth_apps;
@@ -364,10 +368,13 @@ typedef struct BtorCoreSolver BtorCoreSolver;
 /* Check whether the sorts of given arguments match the signature of the
  * function. If sorts are correct -1 is returned, otherwise the position of
  * the invalid argument is returned. */
-int btor_fun_sort_check (Btor *btor, int argc, BtorNode **args, BtorNode *fun);
+int btor_fun_sort_check (Btor *btor,
+                         uint32_t argc,
+                         BtorNode **args,
+                         BtorNode *fun);
 
 /* Evaluates expression and returns its value. */
-char *btor_eval_exp (Btor *btor, BtorNode *exp);
+BtorBitVector *btor_eval_exp (Btor *btor, BtorNode *exp);
 
 /* Synthesizes expression of arbitrary length to an AIG vector. Adds string
  * back annotation to the hash table, if the hash table is a non zero ptr.

@@ -64,7 +64,7 @@ test_new_bitvec (void)
 static BtorBitVector *
 random_bv (int bw)
 {
-  int i;
+  uint32_t i;
   BtorBitVector *res;
   res = btor_new_bv (g_mm, bw);
 
@@ -258,10 +258,12 @@ binary_bitvec (char *(*const_func) (BtorMemMgr *, const char *, const char *),
 }
 
 static void
-ext_bitvec (char *(*const_func) (BtorMemMgr *, const char *, int),
-            BtorBitVector *(*bitvec_func) (BtorMemMgr *, BtorBitVector *, int),
+ext_bitvec (char *(*const_func) (BtorMemMgr *, const char *, uint32_t),
+            BtorBitVector *(*bitvec_func) (BtorMemMgr *,
+                                           BtorBitVector *,
+                                           uint32_t),
             int num_tests,
-            int bit_width)
+            uint32_t bit_width)
 {
   assert (const_func);
   assert (bitvec_func);

@@ -103,12 +103,13 @@ init_slsinv_tests (void)
   g_btor->slv                       = btor_new_sls_solver (g_btor);
   g_btor->options.sls.val           = 1;
   g_btor->options.rewrite_level.val = 0;
+  g_btor->options.sort_exp.val      = 0;
   g_mm                              = g_btor->mm;
   g_rng                             = &g_btor->rng;
 }
 
 static void
-sls_inv_add_bv (int bw)
+sls_inv_add_bv (uint32_t bw)
 {
   (void) bw;
 #ifndef NDEBUG
@@ -144,11 +145,11 @@ sls_inv_add_bv (int bw)
 }
 
 static void
-sls_inv_and_bv (int bw)
+sls_inv_and_bv (uint32_t bw)
 {
   (void) bw;
 #ifndef NDEBUG
-  int i, j;
+  uint32_t i, j;
   BtorNode *and, *e[3], *tmpe[3], *tmpand;
   BtorBitVector *bvand, *bve[3], *res, *one, *bvmax, *tmp;
   char *bits;
@@ -250,7 +251,7 @@ sls_inv_and_bv (int bw)
 }
 
 static void
-sls_inv_eq_bv (int bw)
+sls_inv_eq_bv (uint32_t bw)
 {
   (void) bw;
 #ifndef NDEBUG
@@ -289,7 +290,7 @@ sls_inv_eq_bv (int bw)
 }
 
 static void
-sls_inv_ult_bv (int bw)
+sls_inv_ult_bv (uint32_t bw)
 {
   (void) bw;
 #ifndef NDEBUG
@@ -372,92 +373,10 @@ sls_inv_ult_bv (int bw)
   e[0] = btor_const_exp (g_btor, bits);
   ult  = btor_ult_exp (g_btor, e[0], e[1]);
   TEST_SLS_INV_BV (ult, 1, bw, bvmax, tr, 1);
+
   btor_release_exp (g_btor, ult);
   btor_release_exp (g_btor, e[0]);
   btor_freestr (g_mm, bits);
-#if 0
-  for (j = 0; j < 5; j++)
-    {
-      bvult = btor_new_random_bv (g_mm, g_rng, 1);  
-
-      bve[0] = 0;
-      do
-	{
-	  tmp = bve[0];
-	  bve[0] = btor_new_random_bv (g_mm, g_rng, bw);
-	  if (tmp) btor_free_bv (g_mm, tmp);
-	}
-      while (bw > 1
-	     && !btor_compare_bv (ones, bve[0])
-	     && btor_is_one_bv (bvult));
-
-      bve[1] = 0;
-      do
-	{
-	  tmp = bve[1];
-	  bve[1] = btor_new_random_bv (g_mm, g_rng, bw);
-	  if (tmp) btor_free_bv (g_mm, tmp);
-	}
-      while (bw > 1
-	     && btor_is_zero_bv (bve[1]) &&
-	     btor_is_one_bv (bvult));
-
-      /* find assignment for e[0] */
-      if (bw > 1 || btor_is_zero_bv (bvult) || !btor_is_zero_bv (bve[1]))
-	TEST_SLS_INV_BV (ult, 0, bw, bve[1], bvult, 0);
-
-      /* find assignment for e[1] */
-      if (bw > 1 || btor_is_zero_bv (bvult) || btor_compare_bv (ones, bve[0]))
-	TEST_SLS_INV_BV (ult, 0, bw, bve[0], bvult, 1);
-
-      /* find assignment for 0 < e[1] */
-      TEST_SLS_INV_BV (ult, 0, bw, zero, tr, 1);
-
-      /* find assignment for 0 >= e[1] */
-      TEST_SLS_INV_BV (ult, 0, bw, zero, fa, 1);
-
-      /* find assignment for e[0] >= 0 */
-      TEST_SLS_INV_BV (ult, 0, bw, zero, fa, 0);
-
-      /* find assignment for e[0] < 1..1 */
-      TEST_SLS_INV_BV (ult, 0, bw, ones, tr, 0);
-
-      /* find assignment for e[0] >= 1..1 */
-      TEST_SLS_INV_BV (ult, 0, bw, ones, fa, 0);
-
-      /* find assignment for 1..1 >= e[1] */
-      TEST_SLS_INV_BV (ult, 0, bw, ones, fa, 1);
-
-      tmpe[0] = e[0];
-      tmpe[1] = e[1];
-      tmpult = ult;
-
-      /* find assignment for e[0] < 0, non-fixable conflict */
-      bits = btor_bv_to_char_bv (g_mm, zero);
-      e[1] = btor_const_exp (g_btor, bits);
-      btor_freestr (g_mm, bits);
-      ult = btor_ult_exp (g_btor, e[0], e[1]);
-      TEST_SLS_INV_BV (ult, 1, bw, zero, tr, 0);
-      btor_release_exp (g_btor, ult);
-      btor_release_exp (g_btor, e[1]);
-      e[1] = tmpe[1];
-
-      /* find assignment for 1..1 < e[1], non-fixable conflict */
-      bits = btor_bv_to_char_bv (g_mm, ones);
-      e[0] = btor_const_exp (g_btor, bits);
-      btor_freestr (g_mm, bits);
-      ult = btor_ult_exp (g_btor, e[0], e[1]);
-      TEST_SLS_INV_BV (ult, 1, bw, ones, tr, 1);
-      btor_release_exp (g_btor, ult);
-      btor_release_exp (g_btor, e[0]);
-      e[0] = tmpe[0];
-      ult = tmpult;
-
-      btor_free_bv (g_mm, bvult);
-      btor_free_bv (g_mm, bve[0]);
-      btor_free_bv (g_mm, bve[1]);
-    }
-#endif
   btor_free_bv (g_mm, tr);
   btor_free_bv (g_mm, fa);
   btor_free_bv (g_mm, zero);
@@ -470,11 +389,11 @@ sls_inv_ult_bv (int bw)
 }
 
 static void
-sls_inv_sll_bv (int bw)
+sls_inv_sll_bv (uint32_t bw)
 {
   (void) bw;
 #ifndef NDEBUG
-  int i, j, r, sbw;
+  uint32_t i, j, r, sbw;
   BtorNode *sll, *e[3], *tmpe[3];
   BtorBitVector *bvsll, *bve[3], *res, *zero, *one, *bvmaxshift, *tmp;
   char *bits;
@@ -638,11 +557,11 @@ sls_inv_sll_bv (int bw)
 }
 
 static void
-sls_inv_srl_bv (int bw)
+sls_inv_srl_bv (uint32_t bw)
 {
   (void) bw;
 #ifndef NDEBUG
-  int i, j, r, sbw;
+  uint32_t i, j, r, sbw;
   BtorNode *srl, *e[3], *tmpe[3];
   BtorBitVector *bvsrl, *bve[3], *res, *zero, *one, *bvmaxshift, *tmp;
   char *bits;
@@ -806,11 +725,11 @@ sls_inv_srl_bv (int bw)
 }
 
 static void
-sls_inv_mul_bv (int bw)
+sls_inv_mul_bv (uint32_t bw)
 {
   (void) bw;
 #ifndef NDEBUG
-  int i, len, idx;
+  uint32_t i, len, idx;
   BtorNode *mul, *e[3], *tmpe[3];
   BtorBitVector *bvmul, *bve[3], *res, *tmp;
   char *bits, *tmpbits;
@@ -952,11 +871,11 @@ sls_inv_mul_bv (int bw)
 }
 
 static void
-sls_inv_udiv_bv (int bw)
+sls_inv_udiv_bv (uint32_t bw)
 {
   (void) bw;
 #ifndef NDEBUG
-  int i, len, idx;
+  uint32_t i, len, idx;
   BtorNode *udiv, *e[3], *tmpe[3];
   BtorBitVector *bvudiv, *bve[3], *res, *tmp;
   char *bits, *tmpbits;
@@ -1119,7 +1038,7 @@ sls_inv_udiv_bv (int bw)
 }
 
 static void
-sls_inv_urem_bv (int bw)
+sls_inv_urem_bv (uint32_t bw)
 {
   (void) bw;
 #ifndef NDEBUG
@@ -1288,11 +1207,12 @@ sls_inv_urem_bv (int bw)
 }
 
 static void
-sls_inv_concat_bv (int bw)
+sls_inv_concat_bv (uint32_t bw)
 {
   (void) bw;
 #ifndef NDEBUG
-  int i, j, ebw, iscon;
+  uint32_t i, j, ebw;
+  int iscon;
   BtorNode *concat, *e[3], *tmpe, *tmpconcat;
   BtorBitVector *bvconcat, *bve[3], *res, *tmp;
   char *bits;
@@ -1388,11 +1308,11 @@ sls_inv_concat_bv (int bw)
 }
 
 static void
-sls_inv_slice_bv (int bw)
+sls_inv_slice_bv (uint32_t bw)
 {
   (void) bw;
 #ifndef NDEBUG
-  int j, up, lo;
+  uint32_t j, up, lo;
   BtorNode *slice, *e[3];
   BtorBitVector *bvslice, *res, *tmp;
 
@@ -1422,7 +1342,7 @@ test_slsinv_add_bv (void)
   sls_inv_add_bv (7);
   sls_inv_add_bv (31);
   sls_inv_add_bv (33);
-  sls_inv_and_bv (45);
+  sls_inv_add_bv (45);
 }
 
 static void

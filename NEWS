@@ -1,3 +1,24 @@
+news for release 2.1.1 since 2.0.7
+--------------------------------------
+* added support for array extensionality
+* added lambda extraction (enabled by default)
+* added model based testing tools btormbt and btoruntrace
+* reduced memory footprint
+* improved performance of cloning
+* added support for push/pop in SMT-LIBv2 parser
+* added support for :print-success in SMT-LIBv2 parser
+* added support for dumping BV formulas in AIGER format (replaces synthebtor)
+* API changes/additions:
+  + added boolector_fixate_assumptions
+  + added boolector_reset_assumptions
+  + added boolector_dump_aiger_ascii
+  + added boolector_dump_aiger_binary
+  + changed boolector_*_sort
+    - now takes BoolectorSort instead of BoolectorSort* as arguments
+* adpated and updated Python API to support new API
+  - Assert(), Assume(), and Failed() now support variable number of arguments
+
+
 news for release 2.0.7 since 2.0.6
 --------------------------------------
 * added option to (en|di)sable use of Boolector exit codes

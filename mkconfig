@@ -34,4 +34,3 @@ echo "#define BTOR_COMPILED \"`date`\""
 echo "#define BTOR_RELEASED \"`date`\""
 echo "#define BTOR_VERSION \"`cat VERSION`\""
 echo "#define BTOR_ID \"`./getgitid`\""
-cat<<EOF

@@ -118,7 +118,7 @@ min_flip_inv (Btor *btor, BtorBitVector *bv1, BtorBitVector *bv2)
   assert (bv1->len == bv2->len);
 
   int i, res;
-  BtorBitVector *tmp, *tmpbv1;
+  BtorBitVector *tmp;
 
   tmp = btor_copy_bv (btor->mm, bv1);
   for (res = 1, i = tmp->width - 1; i >= 0; i--)
@@ -134,15 +134,15 @@ min_flip_inv (Btor *btor, BtorBitVector *bv1, BtorBitVector *bv2)
 
 // score
 //
-// bw m == 1:
+// Boolean variable:
 //   s (e[1], A) = A (e[1])
 //
-// bw m > 1:
+// bw m >= 1:
 //
 //   score (e0[bw] /\ e1[bw], A)    =
 //       1/2 * (score (e0[bw], A) + score (e1[bw], A))
 //
-//   score (-(e0[bw] /\ ... /\ e1[bw]), A) =
+//   score (-(-e0[bw] /\ ... /\ -e1[bw]), A) =
 //       max (score (-e0[bw], A), score (-e1[bw], A))
 //
 //   score (e0[bw] = e1[bw], A) =
@@ -398,8 +398,6 @@ compute_sls_scores_aux (Btor *btor,
   assert (fun_model);
   assert (check_id_table_mark_unset_dbg (btor));
 
-  // TODO early pruning!!!
-  //
   int i;
   BtorNode *cur, *real_cur;
   BtorNodePtrStack stack, unmark_stack;
@@ -412,9 +410,9 @@ compute_sls_scores_aux (Btor *btor,
   BTOR_INIT_STACK (unmark_stack);
 
   /* collect roots */
-  init_node_hash_table_iterator (&it, BTOR_SLS_SOLVER (btor)->roots);
-  while (has_next_node_hash_table_iterator (&it))
-    BTOR_PUSH_STACK (btor->mm, stack, next_node_hash_table_iterator (&it));
+  btor_init_node_hash_table_iterator (&it, BTOR_SLS_SOLVER (btor)->roots);
+  while (btor_has_next_node_hash_table_iterator (&it))
+    BTOR_PUSH_STACK (btor->mm, stack, btor_next_node_hash_table_iterator (&it));
 
   /* compute score */
   while (!BTOR_EMPTY_STACK (stack))
@@ -475,11 +473,11 @@ compute_sls_score_formula (Btor *btor, BtorPtrHashTable *score)
 
   res    = 0.0;
   allsat = 1;
-  init_node_hash_table_iterator (&it, BTOR_SLS_SOLVER (btor)->roots);
-  while (has_next_node_hash_table_iterator (&it))
+  btor_init_node_hash_table_iterator (&it, BTOR_SLS_SOLVER (btor)->roots);
+  while (btor_has_next_node_hash_table_iterator (&it))
   {
     weight = (double) ((BtorSLSConstrData *) it.bucket->data.asPtr)->weight;
-    root   = next_node_hash_table_iterator (&it);
+    root   = btor_next_node_hash_table_iterator (&it);
     sc     = btor_find_in_ptr_hash_table (score, root)->data.asDbl;
     if (sc < 1.0) allsat = 0;
     res += weight * sc;
@@ -506,12 +504,12 @@ select_candidate_constraint (Btor *btor, int nmoves)
 
   res       = 0;
   max_value = 0.0;
-  init_hash_table_iterator (&it, slv->roots);
-  while (has_next_node_hash_table_iterator (&it))
+  btor_init_hash_table_iterator (&it, slv->roots);
+  while (btor_has_next_node_hash_table_iterator (&it))
   {
     b   = it.bucket;
     d   = (BtorSLSConstrData *) b->data.asPtr;
-    cur = next_node_hash_table_iterator (&it);
+    cur = btor_next_node_hash_table_iterator (&it);
     sb  = btor_find_in_ptr_hash_table (slv->score, cur);
     assert (sb);
     score = sb->data.asDbl;
@@ -710,9 +708,9 @@ reset_cone (Btor *btor,
   BTOR_INIT_STACK (stack);
   BTOR_INIT_STACK (unmark_stack);
 
-  init_node_hash_table_iterator (&it, cans);
-  while (has_next_node_hash_table_iterator (&it))
-    BTOR_PUSH_STACK (btor->mm, stack, next_node_hash_table_iterator (&it));
+  btor_init_node_hash_table_iterator (&it, cans);
+  while (btor_has_next_node_hash_table_iterator (&it))
+    BTOR_PUSH_STACK (btor->mm, stack, btor_next_node_hash_table_iterator (&it));
 
   while (!BTOR_EMPTY_STACK (stack))
   {
@@ -742,10 +740,9 @@ reset_cone (Btor *btor,
       btor_remove_from_ptr_hash_table (score, BTOR_INVERT_NODE (cur), 0, 0);
 
     /* push parents */
-    init_full_parent_iterator (&nit, cur);
-    while (has_next_parent_full_parent_iterator (&nit))
-      BTOR_PUSH_STACK (
-          btor->mm, stack, next_parent_full_parent_iterator (&nit));
+    btor_init_parent_iterator (&nit, cur);
+    while (btor_has_next_parent_iterator (&nit))
+      BTOR_PUSH_STACK (btor->mm, stack, btor_next_parent_iterator (&nit));
   }
 
   /* cleanup */
@@ -780,11 +777,11 @@ update_cone (Btor *btor,
 
   reset_cone (btor, cans, *bv_model, score);
 
-  init_hash_table_iterator (&it, cans);
-  while (has_next_node_hash_table_iterator (&it))
+  btor_init_hash_table_iterator (&it, cans);
+  while (btor_has_next_node_hash_table_iterator (&it))
   {
     ass = it.bucket->data.asPtr;
-    exp = next_node_hash_table_iterator (&it);
+    exp = btor_next_node_hash_table_iterator (&it);
     btor_add_to_bv_model (btor, *bv_model, exp, ass);
   }
 
@@ -807,11 +804,11 @@ update_assertion_weights (Btor *btor)
   if (!btor_pick_rand_rng (&btor->rng, 0, BTOR_SLS_PROB_SCORE_F))
   {
     /* decrease the weight of all satisfied assertions */
-    init_node_hash_table_iterator (&it, slv->roots);
-    while (has_next_node_hash_table_iterator (&it))
+    btor_init_node_hash_table_iterator (&it, slv->roots);
+    while (btor_has_next_node_hash_table_iterator (&it))
     {
       b   = it.bucket;
-      cur = next_node_hash_table_iterator (&it);
+      cur = btor_next_node_hash_table_iterator (&it);
       if (btor_find_in_ptr_hash_table (slv->score, cur)->data.asDbl == 0.0)
         continue;
       if (((BtorSLSConstrData *) b->data.asPtr)->weight > 1)
@@ -821,11 +818,11 @@ update_assertion_weights (Btor *btor)
   else
   {
     /* increase the weight of all unsatisfied assertions */
-    init_node_hash_table_iterator (&it, slv->roots);
-    while (has_next_node_hash_table_iterator (&it))
+    btor_init_node_hash_table_iterator (&it, slv->roots);
+    while (btor_has_next_node_hash_table_iterator (&it))
     {
       b   = it.bucket;
-      cur = next_node_hash_table_iterator (&it);
+      cur = btor_next_node_hash_table_iterator (&it);
       if (btor_find_in_ptr_hash_table (slv->score, cur)->data.asDbl == 1.0)
         continue;
       ((BtorSLSConstrData *) b->data.asPtr)->weight += 1;
@@ -857,11 +854,11 @@ try_move (Btor *btor,
 
   BTORLOG (2, "");
   BTORLOG (2, "  * try move:");
-  init_hash_table_iterator (&it, cans);
-  while (has_next_node_hash_table_iterator (&it))
+  btor_init_hash_table_iterator (&it, cans);
+  while (btor_has_next_node_hash_table_iterator (&it))
   {
     new_ass  = it.bucket->data.asPtr;
-    can      = next_node_hash_table_iterator (&it);
+    can      = btor_next_node_hash_table_iterator (&it);
     prev_ass = (BtorBitVector *) btor_get_bv_model (btor, can);
     BTORLOG (2,
              "      candidate: %s%s",
@@ -910,12 +907,12 @@ cmp_sls_moves_qsort (const void *move1, const void *move2)
       slv->max_gw    = gw;                                                     \
       if (slv->max_cans->count)                                                \
       {                                                                        \
-        init_node_hash_table_iterator (&it, slv->max_cans);                    \
-        while (has_next_node_hash_table_iterator (&it))                        \
+        btor_init_node_hash_table_iterator (&it, slv->max_cans);               \
+        while (btor_has_next_node_hash_table_iterator (&it))                   \
         {                                                                      \
           assert (it.bucket->data.asPtr);                                      \
           btor_free_bv (btor->mm,                                              \
-                        next_data_node_hash_table_iterator (&it)->asPtr);      \
+                        btor_next_data_node_hash_table_iterator (&it)->asPtr); \
         }                                                                      \
       }                                                                        \
       btor_delete_ptr_hash_table (slv->max_cans);                              \
@@ -934,9 +931,10 @@ cmp_sls_moves_qsort (const void *move1, const void *move2)
     }                                                                          \
     else                                                                       \
     {                                                                          \
-      init_node_hash_table_iterator (&it, cans);                               \
-      while (has_next_node_hash_table_iterator (&it))                          \
-        btor_free_bv (btor->mm, next_data_hash_table_iterator (&it)->asPtr);   \
+      btor_init_node_hash_table_iterator (&it, cans);                          \
+      while (btor_has_next_node_hash_table_iterator (&it))                     \
+        btor_free_bv (btor->mm,                                                \
+                      btor_next_data_hash_table_iterator (&it)->asPtr);        \
       btor_delete_ptr_hash_table (cans);                                       \
     }                                                                          \
   } while (0)
@@ -1010,7 +1008,8 @@ static inline int
 select_flip_move (Btor *btor, BtorNodePtrStack *candidates, int gw)
 {
   double sc;
-  int i, pos, cpos, n_endpos, done = 0;
+  int i, n_endpos, done = 0;
+  uint32_t pos, cpos;
   BtorSLSMove *m;
   BtorSLSMoveKind mk;
   BtorBitVector *ass, *max_neigh;
@@ -1070,7 +1069,8 @@ static inline int
 select_flip_range_move (Btor *btor, BtorNodePtrStack *candidates, int gw)
 {
   double sc;
-  int i, up, cup, clo, n_endpos, done = 0;
+  int i, n_endpos, done = 0;
+  uint32_t up, cup, clo;
   BtorSLSMove *m;
   BtorSLSMoveKind mk;
   BtorBitVector *ass, *max_neigh;
@@ -1145,7 +1145,8 @@ static inline int
 select_flip_segment_move (Btor *btor, BtorNodePtrStack *candidates, int gw)
 {
   double sc;
-  int i, lo, clo, up, cup, ctmp, seg, n_endpos, done = 0;
+  int i, ctmp, n_endpos, done = 0;
+  uint32_t lo, clo, up, cup, seg;
   BtorSLSMove *m;
   BtorSLSMoveKind mk;
   BtorBitVector *ass, *max_neigh;
@@ -1228,7 +1229,8 @@ static inline int
 select_rand_range_move (Btor *btor, BtorNodePtrStack *candidates, int gw)
 {
   double sc, rand_max_score = -1.0;
-  int i, up, cup, clo, n_endpos, done = 0;
+  int i, n_endpos, done = 0;
+  uint32_t up, cup, clo;
   BtorSLSMove *m;
   BtorSLSMoveKind mk;
   BtorBitVector *ass;
@@ -1414,12 +1416,12 @@ select_move (Btor *btor, BtorNodePtrStack *candidates)
 
     slv->max_gw   = m->cans->count > 1;
     slv->max_move = BTOR_SLS_MOVE_RAND_WALK;
-    init_node_hash_table_iterator (&it, m->cans);
-    while (has_next_node_hash_table_iterator (&it))
+    btor_init_node_hash_table_iterator (&it, m->cans);
+    while (btor_has_next_node_hash_table_iterator (&it))
     {
       neigh = btor_copy_bv (btor->mm, it.bucket->data.asPtr);
       assert (neigh);
-      can = next_node_hash_table_iterator (&it);
+      can = btor_next_node_hash_table_iterator (&it);
       btor_insert_in_ptr_hash_table (slv->max_cans, can)->data.asPtr = neigh;
     }
   }
@@ -1495,9 +1497,9 @@ DONE:
   while (!BTOR_EMPTY_STACK (slv->moves))
   {
     m = BTOR_POP_STACK (slv->moves);
-    init_node_hash_table_iterator (&it, m->cans);
-    while (has_next_node_hash_table_iterator (&it))
-      btor_free_bv (btor->mm, next_data_hash_table_iterator (&it)->asPtr);
+    btor_init_node_hash_table_iterator (&it, m->cans);
+    while (btor_has_next_node_hash_table_iterator (&it))
+      btor_free_bv (btor->mm, btor_next_data_hash_table_iterator (&it)->asPtr);
     btor_delete_ptr_hash_table (m->cans);
     BTOR_DELETE (btor->mm, m);
   }
@@ -1509,7 +1511,8 @@ select_random_move (Btor *btor, BtorNodePtrStack *candidates)
   assert (btor);
   assert (candidates);
 
-  int i, r, up, lo;
+  int i;
+  uint32_t r, up, lo;
   BtorSLSMoveKind mk;
   BtorNodePtrStack cans, *pcans;
   BtorNode *can;
@@ -1668,7 +1671,8 @@ inv_and_bv (Btor *btor,
   assert (eidx >= 0 && eidx <= 1);
   assert (!BTOR_IS_BV_CONST_NODE (BTOR_REAL_ADDR_NODE (and->e[eidx])));
 
-  int i, bitand, bite, isreccon;
+  uint32_t i;
+  int bitand, bite, isreccon;
   BtorNode *e;
   BtorBitVector *res;
   BtorMemMgr *mm;
@@ -1832,6 +1836,7 @@ inv_ult_bv (Btor *btor,
 
   if (eidx)
   {
+    // TODO 0 >= e[1] is not necessarily a conflict
     /* conflict: 0 >= e[1] or 1...1 < e[1] */
     if ((btor_is_zero_bv (bve) && !isult)
         || (!btor_compare_bv (bve, bvmax) && isult))
@@ -1873,6 +1878,7 @@ inv_ult_bv (Btor *btor,
   }
   else
   {
+    // TODO e[0] >= 1...1 is not necessarily a conflict
     /* conflict: e[0] < 0 or e[0] >= 1...1 */
     if ((btor_is_zero_bv (bve) && isult)
         || (!btor_compare_bv (bve, bvmax) && !isult))
@@ -1953,7 +1959,8 @@ inv_sll_bv (Btor *btor,
   assert (eidx || btor_log_2_util (bvsll->width) == bve->width);
   assert (!BTOR_IS_BV_CONST_NODE (BTOR_REAL_ADDR_NODE (sll->e[eidx])));
 
-  int i, j, shift, oneidx;
+  uint32_t i, j, shift;
+  int oneidx;
   BtorNode *e;
   BtorBitVector *res;
   BtorMemMgr *mm;
@@ -2074,7 +2081,8 @@ inv_srl_bv (Btor *btor,
   assert (eidx || btor_log_2_util (bvsrl->width) == bve->width);
   assert (!BTOR_IS_BV_CONST_NODE (BTOR_REAL_ADDR_NODE (srl->e[eidx])));
 
-  int i, j, shift, oneidx;
+  uint32_t i, j, shift;
+  int oneidx;
   BtorNode *e;
   BtorBitVector *res;
   BtorMemMgr *mm;
@@ -2880,7 +2888,7 @@ inv_slice_bv (Btor *btor, BtorNode *slice, BtorBitVector *bvslice)
   assert (bvslice);
   assert (!BTOR_IS_BV_CONST_NODE (BTOR_REAL_ADDR_NODE (slice->e[0])));
 
-  int i, upper, lower;
+  uint32_t i, upper, lower;
   BtorNode *e;
   BtorBitVector *res;
   BtorMemMgr *mm;
@@ -3235,11 +3243,11 @@ move (Btor *btor, int nmoves)
   char *a;
   BtorNode *can;
   BtorBitVector *neigh, *ass;
-  init_node_hash_table_iterator (&it, slv->max_cans);
-  while (has_next_node_hash_table_iterator (&it))
+  btor_init_node_hash_table_iterator (&it, slv->max_cans);
+  while (btor_has_next_node_hash_table_iterator (&it))
   {
     neigh = it.bucket->data.asPtr;
-    can   = next_node_hash_table_iterator (&it);
+    can   = btor_next_node_hash_table_iterator (&it);
     ass   = (BtorBitVector *) btor_get_bv_model (btor, can);
     a     = btor_bv_to_char_bv (btor->mm, ass);
     BTORLOG (1,
@@ -3320,9 +3328,9 @@ move (Btor *btor, int nmoves)
   if (slv->max_move == BTOR_SLS_MOVE_RAND) update_assertion_weights (btor);
 
   /** cleanup **/
-  init_node_hash_table_iterator (&it, slv->max_cans);
-  while (has_next_node_hash_table_iterator (&it))
-    btor_free_bv (btor->mm, next_data_hash_table_iterator (&it)->asPtr);
+  btor_init_node_hash_table_iterator (&it, slv->max_cans);
+  while (btor_has_next_node_hash_table_iterator (&it))
+    btor_free_bv (btor->mm, btor_next_data_hash_table_iterator (&it)->asPtr);
   btor_delete_ptr_hash_table (slv->max_cans);
   slv->max_cans = 0;
   BTOR_RELEASE_STACK (btor->mm, candidates);
@@ -3430,17 +3438,17 @@ delete_sls_solver (Btor *btor)
   while (!BTOR_EMPTY_STACK (slv->moves))
   {
     m = BTOR_POP_STACK (slv->moves);
-    init_node_hash_table_iterator (&it, m->cans);
-    while (has_next_node_hash_table_iterator (&it))
-      btor_free_bv (btor->mm, next_data_hash_table_iterator (&it)->asPtr);
+    btor_init_node_hash_table_iterator (&it, m->cans);
+    while (btor_has_next_node_hash_table_iterator (&it))
+      btor_free_bv (btor->mm, btor_next_data_hash_table_iterator (&it)->asPtr);
     btor_delete_ptr_hash_table (m->cans);
   }
   BTOR_RELEASE_STACK (btor->mm, slv->moves);
   if (slv->max_cans)
   {
-    init_node_hash_table_iterator (&it, slv->max_cans);
-    while (has_next_node_hash_table_iterator (&it))
-      btor_free_bv (btor->mm, next_data_hash_table_iterator (&it)->asPtr);
+    btor_init_node_hash_table_iterator (&it, slv->max_cans);
+    while (btor_has_next_node_hash_table_iterator (&it))
+      btor_free_bv (btor->mm, btor_next_data_hash_table_iterator (&it)->asPtr);
     btor_delete_ptr_hash_table (slv->max_cans);
   }
   BTOR_DELETE (btor->mm, slv);
@@ -3521,12 +3529,12 @@ sat_sls_solver (Btor *btor, int limit0, int limit1)
                                         (BtorHashPtr) btor_hash_exp_by_id,
                                         (BtorCmpPtr) btor_compare_exp_by_id);
   assert (btor->synthesized_constraints->count == 0);
-  init_node_hash_table_iterator (&it, btor->unsynthesized_constraints);
-  queue_node_hash_table_iterator (&it, btor->assumptions);
-  while (has_next_node_hash_table_iterator (&it))
+  btor_init_node_hash_table_iterator (&it, btor->unsynthesized_constraints);
+  btor_queue_node_hash_table_iterator (&it, btor->assumptions);
+  while (btor_has_next_node_hash_table_iterator (&it))
   {
-    b = btor_insert_in_ptr_hash_table (slv->roots,
-                                       next_node_hash_table_iterator (&it));
+    b = btor_insert_in_ptr_hash_table (
+        slv->roots, btor_next_node_hash_table_iterator (&it));
     BTOR_CNEW (btor->mm, d);
     d->weight     = 1; /* initial assertion weight */
     b->data.asPtr = d;
@@ -3594,11 +3602,11 @@ UNSAT:
 DONE:
   if (slv->roots)
   {
-    init_node_hash_table_iterator (&it, slv->roots);
-    while (has_next_node_hash_table_iterator (&it))
+    btor_init_node_hash_table_iterator (&it, slv->roots);
+    while (btor_has_next_node_hash_table_iterator (&it))
       BTOR_DELETE (
           btor->mm,
-          (BtorSLSConstrData *) next_data_node_hash_table_iterator (&it)
+          (BtorSLSConstrData *) btor_next_data_node_hash_table_iterator (&it)
               ->asPtr);
     btor_delete_ptr_hash_table (slv->roots);
     slv->roots = 0;
