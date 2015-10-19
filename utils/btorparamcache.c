@@ -1,6 +1,6 @@
 /*  Boolector: Satisfiablity Modulo Theories (SMT) solver.
  *
- *  Copyright (C) 2013-2014 Mathias Preiner.
+ *  Copyright (C) 2013-2015 Mathias Preiner.
  *
  *  All rights reserved.
  *
@@ -30,10 +30,10 @@ btor_new_param_cache_tuple (Btor *btor, BtorNode *exp)
   BTOR_CLR (t);
   t->exp = btor_copy_exp (btor, exp);
 
-  init_parameterized_iterator (btor, &it, exp);
+  btor_init_parameterized_iterator (&it, btor, exp);
 
   hash = BTOR_REAL_ADDR_NODE (exp)->id;
-  if (has_next_parameterized_iterator (&it))
+  if (btor_has_next_parameterized_iterator (&it))
   {
     t->num_args = it.num_params;
     if (BTOR_IS_LAMBDA_NODE (exp))
@@ -44,13 +44,12 @@ btor_new_param_cache_tuple (Btor *btor, BtorNode *exp)
     i = 0;
     if (BTOR_IS_LAMBDA_NODE (exp))
     {
-      init_lambda_iterator (&pit, exp);
-      while (has_next_lambda_iterator (&pit))
+      btor_init_lambda_iterator (&pit, exp);
+      while (btor_has_next_lambda_iterator (&pit))
       {
-        cur = next_lambda_iterator (&pit);
-        arg = btor_param_cur_assignment (
-            (BtorNode *) BTOR_LAMBDA_GET_PARAM (cur));
-        if (!arg) arg = (BtorNode *) BTOR_LAMBDA_GET_PARAM (cur);
+        cur = btor_next_lambda_iterator (&pit);
+        arg = btor_param_cur_assignment (cur->e[0]);
+        if (!arg) arg = cur->e[0];
         assert (arg);
         t->args[i++] = btor_copy_exp (btor, arg);
         hash += (unsigned int) BTOR_GET_ID_NODE (arg);
@@ -59,7 +58,7 @@ btor_new_param_cache_tuple (Btor *btor, BtorNode *exp)
 
     do
     {
-      param = next_parameterized_iterator (&it);
+      param = btor_next_parameterized_iterator (&it);
       assert (BTOR_IS_REGULAR_NODE (param));
       assert (BTOR_IS_PARAM_NODE (param));
       arg = btor_param_cur_assignment (param);
@@ -67,21 +66,20 @@ btor_new_param_cache_tuple (Btor *btor, BtorNode *exp)
       assert (arg);
       t->args[i++] = btor_copy_exp (btor, arg);
       hash += (unsigned int) BTOR_GET_ID_NODE (arg);
-    } while (has_next_parameterized_iterator (&it));
+    } while (btor_has_next_parameterized_iterator (&it));
   }
   else if (BTOR_IS_LAMBDA_NODE (exp))
   {
-    init_lambda_iterator (&pit, exp);
+    btor_init_lambda_iterator (&pit, exp);
     t->num_args = btor_get_fun_arity (btor, exp);
     BTOR_NEWN (btor->mm, t->args, t->num_args);
 
     i = 0;
-    while (has_next_lambda_iterator (&pit))
+    while (btor_has_next_lambda_iterator (&pit))
     {
-      cur = next_lambda_iterator (&pit);
-      arg =
-          btor_param_cur_assignment ((BtorNode *) BTOR_LAMBDA_GET_PARAM (cur));
-      if (!arg) arg = (BtorNode *) BTOR_LAMBDA_GET_PARAM (cur);
+      cur = btor_next_lambda_iterator (&pit);
+      arg = btor_param_cur_assignment (cur->e[0]);
+      if (!arg) arg = cur->e[0];
       assert (arg);
       t->args[i++] = btor_copy_exp (btor, arg);
       hash += (unsigned int) BTOR_GET_ID_NODE (arg);

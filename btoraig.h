@@ -14,6 +14,7 @@
 #ifndef BTORAIG_H_INCLUDED
 #define BTORAIG_H_INCLUDED
 
+#include "btoropt.h"
 #include "btorsat.h"
 #include "utils/btorhash.h"
 #include "utils/btormem.h"
@@ -55,6 +56,7 @@ struct BtorAIGMgr
 {
   BtorMemMgr *mm;
   BtorMsg *msg;
+  BtorOpts *opts;
   BtorAIGUniqueTable table;
   int verbosity;
   BtorSATMgr *smgr;
@@ -117,10 +119,13 @@ typedef struct BtorAIGMgr BtorAIGMgr;
 /* Creates new AIG manager. An AIG manager is used by nearly all functions
  * of the AIG layer.
  */
-BtorAIGMgr *btor_new_aig_mgr (BtorMemMgr *mm, BtorMsg *msg);
+BtorAIGMgr *btor_new_aig_mgr (BtorMemMgr *mm, BtorMsg *msg, BtorOpts *opts);
 
 /* Clones AIG manager. */
-BtorAIGMgr *btor_clone_aig_mgr (BtorMemMgr *mm, BtorMsg *msg, BtorAIGMgr *amgr);
+BtorAIGMgr *btor_clone_aig_mgr (BtorMemMgr *mm,
+                                BtorMsg *msg,
+                                BtorOpts *opts,
+                                BtorAIGMgr *amgr);
 
 /* Sets verbosity [-1,3] */
 void btor_set_verbosity_aig_mgr (BtorAIGMgr *amgr, int verbosity);
@@ -161,28 +166,6 @@ BtorAIG *btor_copy_aig (BtorAIGMgr *amgr, BtorAIG *aig);
  * and AIG is deleted from memory.
  */
 void btor_release_aig (BtorAIGMgr *amgr, BtorAIG *aig);
-
-/* Dumps AIG in AIGER format to file. */
-void btor_dump_aig (BtorAIGMgr *amgr, int binary, FILE *output, BtorAIG *aig);
-
-/* Dumps AIGs in AIGER format to file. */
-void btor_dump_aigs (BtorAIGMgr *amgr,
-                     int binary,
-                     FILE *output,
-                     int naigs,
-                     BtorAIG **aigs,
-                     BtorPtrHashTable *back_annotation);
-
-/* Dumps sequential AIGER model to file. */
-void btor_dump_aiger (BtorAIGMgr *amgr,
-                      int binary,
-                      FILE *output,
-                      int naigs,
-                      BtorAIG **aigs,
-                      int nregs,
-                      BtorAIG **regs,
-                      BtorAIG **nexts,
-                      BtorPtrHashTable *back_annotation);
 
 /* Translates AIG into SAT instance. */
 void btor_aig_to_sat (BtorAIGMgr *amgr, BtorAIG *aig);

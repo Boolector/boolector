@@ -2,7 +2,7 @@
  *
  *  Copyright (C) 2013 Christian Reisenberger.
  *  Copyright (C) 2013-2014 Aina Niemetz.
- *  Copyright (C) 2013-2014 Mathias Preiner.
+ *  Copyright (C) 2013-2015 Mathias Preiner.
  *
  *  All rights reserved.
  *
@@ -142,7 +142,7 @@ isnumstr (const char *str)
   const char *p;
   int ch;
   if (*(p = str) == '-') p++;
-  if (!isdigit (*p++)) return 0;
+  if (!isdigit ((int) *p++)) return 0;
   while (isdigit (ch = *p)) p++;
   return !ch;
 }

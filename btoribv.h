@@ -378,6 +378,14 @@ class BtorIBV : public BitVector
     virtual void reachedAtBound (int assertion_number, int k) = 0;
   };
 
+  class StartingBoundListener
+  {
+   public:
+    StartingBoundListener () {}
+    virtual ~StartingBoundListener () {}
+    virtual void startingBound (int k) = 0;
+  };
+
   BtorIBV ();
   ~BtorIBV ();
 
@@ -400,10 +408,12 @@ class BtorIBV : public BitVector
   //
   void setReachedAtBoundCallBack (void *state,
                                   void (*fun) (void *state, int i, int k));
+  void setStartingBoundCallBack (void *state, void (*fun) (void *state, int k));
 
   // Second C++ Listener API.
   //
   void setReachedAtBoundListener (ReachedAtBoundListener *);
+  void setStartingBoundListener (StartingBoundListener *);
 
   // Return the 'k' at which a previous model checking run showed that the
   // assertion with number 'assertion_number' (counting from 0) has been

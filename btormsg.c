@@ -2,7 +2,7 @@
  *
  *  Copyright (C) 2007-2009 Robert Daniel Brummayer.
  *  Copyright (C) 2007-2013 Armin Biere.
- *  Copyright (C) 2012-2014 Mathias Preiner.
+ *  Copyright (C) 2012-2015 Mathias Preiner.
  *  Copyright (C) 2012-2015 Aina Niemetz.
  *
  *  All rights reserved.
@@ -39,24 +39,42 @@ btor_delete_btor_msg (BtorMsg *msg)
 }
 
 void
-btor_msg (BtorMsg *msg, char *filename, int level, char *fmt, ...)
+btor_msg (BtorMsg *msg, bool log, char *filename, char *fmt, ...)
 {
   va_list ap;
-  char *fname, *c;
+  char *path, *fname, *c, *p;
   int len;
 
-  if (*msg->verbosity < level) return;
-
   len = strlen (filename) + 1;
-  BTOR_NEWN (msg->mm, fname, len);
-  strcpy (fname, filename);
-  if ((c = strrchr (fname, '.'))) *c = 0;
-  while ((c = strrchr (fname, '/'))) *c = ':';
+  BTOR_NEWN (msg->mm, path, len);
+  strcpy (path, filename);
+  /* cut-off file extension */
+  if ((c = strrchr (path, '.'))) *c = 0;
+  fname = strrchr (path, '/');
+  if (!fname)
+    fname = path;
+  else
+    fname += 1;
+
   fputs ("[", stdout);
-  fputs (fname, stdout);
+  if (log) fputs ("log:", stdout);
+  if (msg->prefix) fprintf (stdout, "%s>", msg->prefix);
+  p = path;
+  while ((c = strchr (p, '/')))
+  {
+    *c = 0;
+    /* print at most 4 chars per directory */
+    if (c - p > 4)
+    {
+      p[4] = 0;
+      fprintf (stdout, "%s>", p);
+    }
+    p = c;
+  }
+  /* cut-off btor prefix from file name */
+  fputs (fname + 4, stdout);
   fputs ("] ", stdout);
-  BTOR_DELETEN (msg->mm, fname, len);
-  if (msg->prefix) printf ("%s ", msg->prefix);
+  BTOR_DELETEN (msg->mm, path, len);
   va_start (ap, fmt);
   vfprintf (stdout, fmt, ap);
   va_end (ap);

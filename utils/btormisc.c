@@ -2,7 +2,8 @@
  *
  *  Copyright (C) 2007-2009 Robert Daniel Brummayer.
  *  Copyright (C) 2007-2013 Armin Biere.
- *  Copyright (C) 2012-2014 Aina Niemetz, Mathias Preiner.
+ *  Copyright (C) 2012-2014 Aina Niemetz.
+ *  Copyright (C) 2012-2015 Mathias Preiner.
  *
  *  All rights reserved.
  *
@@ -20,15 +21,16 @@ int g_strbufpos = 0;
 char *
 node2string (BtorNode *exp)
 {
+  BtorNode *real_exp;
   const char *name;
   char strbuf[100], *bufstart;
   int len, i;
 
   if (!exp) return "0";
 
-  exp = BTOR_REAL_ADDR_NODE (exp);
+  real_exp = BTOR_REAL_ADDR_NODE (exp);
 
-  switch (exp->kind)
+  switch (real_exp->kind)
   {
     case BTOR_INVALID_NODE: name = "invalid"; break;
     case BTOR_BV_CONST_NODE: name = "const"; break;
@@ -56,13 +58,13 @@ node2string (BtorNode *exp)
   }
 
   sprintf (strbuf, "%d %s", BTOR_GET_ID_NODE (exp), name);
-  for (i = 0; i < exp->arity; i++)
+  for (i = 0; i < real_exp->arity; i++)
   {
-    sprintf (strbuf, "%s %d", strbuf, BTOR_GET_ID_NODE (exp->e[i]));
+    sprintf (strbuf, "%s %d", strbuf, BTOR_GET_ID_NODE (real_exp->e[i]));
     if (strlen (strbuf) >= 100) break;
   }
 
-  if (exp->kind == BTOR_SLICE_NODE)
+  if (BTOR_IS_SLICE_NODE (real_exp))
     sprintf (strbuf,
              "%s %d %d",
              strbuf,

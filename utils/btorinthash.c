@@ -18,26 +18,6 @@ static inline uint32_t
 hash (uint32_t h)
 {
   return h;
-  //  return h; // * 1183477;
-  //  h ^= h >> 16;
-  //  h *= 0x85ebca6b;
-  //  h ^= h >> 13;
-  //  h *= 0xc2b2ae35;
-  //  h ^= h >> 16;
-  //  return h;
-  //  uint32_t c2=0x27d4eb2d; // a prime or an odd constant
-  //  h = (h ^ 61) ^ (h >> 16);
-  //  h = h + (h << 3);
-  //  h = h ^ (h >> 4);
-  //  h = h * c2;
-  //  h = h ^ (h >> 15);
-  //  return h;
-
-  //  h = ((h >> 16) ^ h) * 0x45d9f3b;
-  //  h = ((h >> 16) ^ h) * 0x45d9f3b;
-  //  h = ((h >> 16) ^ h);
-  //  return h;
-
   h += ~(h << 15);
   h ^= (h >> 10);
   h += (h << 3);

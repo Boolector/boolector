@@ -1,6 +1,6 @@
 # Boolector: Satisfiablity Modulo Theories (SMT) solver.
 #
-# Copyright (C) 2013-2014 Mathias Preiner.
+# Copyright (C) 2013-2015 Mathias Preiner.
 # Copyright (C) 2014-2015 Aina Niemetz.
 #
 # All rights reserved.
@@ -128,14 +128,13 @@ cdef class BoolectorSort:
     """
     cdef Boolector btor
     cdef btorapi.Btor * _c_btor
-    cdef btorapi.BoolectorSort * _c_sort
+    cdef btorapi.BoolectorSort _c_sort
 
     def __init__(self, Boolector boolector):
         self.btor = boolector
         self._c_btor = boolector._c_btor
 
     def __dealloc__(self):
-        assert(self._c_sort is not NULL)
         btorapi.boolector_release_sort(self._c_btor, self._c_sort)
 
 cdef class _BoolectorFunSort(BoolectorSort):
@@ -644,27 +643,32 @@ cdef class Boolector:
 
     # Boolector API functions (general)
 
-    def Assert(self, BoolectorNode n):
-        """ Assert(n)
+    def Assert(self, *assertions):
+        """ Assert(a,...)
 
-            Add a constraint. 
+            Add one or more constraints. 
             
-            Use this function to assert node ``n``.
             Added constraints can not be removed.
 
-            :param n: Bit vector expression with bit width 1.
-            :type n:  :class:`~boolector.BoolectorNode`
+            :param a: Bit vector expression with bit width 1.
+            :type a:  :class:`~boolector.BoolectorNode`
         """
-        if n.width > 1:
-            raise BoolectorException("Asserted term must be of bit width one")
-        btorapi.boolector_assert(self._c_btor, n._c_node)
+        for i in range(len(assertions)):
+            a = assertions[i]
+            if not isinstance(a, BoolectorNode):
+              raise BoolectorException("Argument at position {0:d} is not "\
+                                       "a BoolectorNode".format(i))
+            n = <BoolectorNode> a
+            if n.width > 1:
+                raise BoolectorException("Asserted term at position {0:d} "\
+                                         "must be of bit width one".format(i))
+            btorapi.boolector_assert(self._c_btor, n._c_node)
 
-    def Assume(self, BoolectorNode n):
-        """ Assume(n)
+    def Assume(self, *assumptions):
+        """ Assume(a,...)
 
-            Add an assumption.
+                Add one or more assumptions.
             
-            Use this function to assume node ``n``.
             You must enable Boolector's incremental usage via 
             :func:`~boolector.Boolector.Set_opt` before you can add
             assumptions.
@@ -676,17 +680,24 @@ cdef class Boolector:
             Assumption handling in Boolector is analogous to assumptions
             in MiniSAT.
 
-            :param n: Bit vector expression with bit width 1.
-            :type n:  :class:`~boolector.BoolectorNode`
+            :param a: Bit vector expression with bit width 1.
+            :type a:  :class:`~boolector.BoolectorNode`
         """
-        if n.width > 1:
-            raise BoolectorException("Assumed termed must be of bit width one")
-        btorapi.boolector_assume(self._c_btor, n._c_node)
+        for i in range(len(assumptions)):
+            a = assumptions[i]
+            if not isinstance(a, BoolectorNode):
+              raise BoolectorException("Argument at position {0:d} is not "\
+                                       "a BoolectorNode".format(i))
+            n = <BoolectorNode> a
+            if n.width > 1:
+                raise BoolectorException("Asserted term at position {0:d} "\
+                                         "must be of bit width one".format(i))
+            btorapi.boolector_assume(self._c_btor, n._c_node)
 
-    def Failed(self, BoolectorNode n):
-        """ Failed(n)
+    def Failed(self,  *assumptions):
+        """ Failed(a,...)
 
-            Determine if assumption ``n`` is a failed assumption.
+            Determine if any of the given assumptions are failed assumptions.
 
             Failed assumptions are those assumptions, that force an
             input formula to become unsatisfiable.
@@ -695,14 +706,44 @@ cdef class Boolector:
 
             See :func:`~boolector.Boolector.Assume`.
 
-            :param n: Bit vector expression with bit width 1.
-            :type n:  :class:`~boolector.BoolectorNode`
-            :return:  True if assumption is failed, and false otherwise.
-            :rtype:   int
+            :param a: Bit vector expression with bit width 1.
+            :type a:  :class:`~boolector.BoolectorNode`
+            :return:  list of boolean values, where True indicates that the assumption at given index is failed, and false otherwise.
+            :rtype:   list(bool)
         """
-        if n.width > 1:
-            raise BoolectorException("Term must be of bit width one")
-        return btorapi.boolector_failed(self._c_btor, n._c_node) == 1
+        failed = []
+        for i in range(len(assumptions)):
+            a = assumptions[i]
+            if not isinstance(a, BoolectorNode):
+              raise BoolectorException("Argument at position {0:d} is not "\
+                                       "a BoolectorNode".format(i))
+            n = <BoolectorNode> a
+            if n.width > 1:
+                raise BoolectorException("Term at position {0:d} must "\
+                                         "be of bit width one".format(i))
+            failed.append(
+                btorapi.boolector_failed(self._c_btor, n._c_node) == 1)
+        return failed
+
+    def Fixate_assumptions(self):
+        """ Fixate_assumptions()
+
+            Add all assumptions added since the last
+            :func:`~boolector.Boolector.Sat` call as assertions. 
+
+            See :func:`~boolector.Boolector.Assume`.
+        """
+        btorapi.boolector_fixate_assumptions(self._c_btor)
+
+    def Reset_assumptions(self):
+        """ Reset_assumptions()
+
+            Remove all assumptions added since the last
+            :func:`~boolector.Boolector.Sat` call.
+
+            See :func:`~boolector.Boolector.Assume`.
+        """
+        btorapi.boolector_reset_assumptions(self._c_btor)
 
     def Sat(self, int lod_limit = -1, int sat_limit = -1):
         """ Sat (lod_limit = -1, sat_limit = -1)
@@ -1134,7 +1175,7 @@ cdef class Boolector:
 
             Dump input formula to output file.
 
-            :param format: A file format identifier string (use 'btor' for BTOR_, 'smt1' for `SMT-LIB v1`_, and 'smt2' for `SMT-LIB v2`_).
+            :param format: A file format identifier string (use 'btor' for BTOR_, 'smt1' for `SMT-LIB v1`_, 'smt2' for `SMT-LIB v2`_, 'aig' for binary AIGER (QF_BV only), and 'aag' for ASCII AIGER (QF_BV only)).
             :type format: str
             :param outile: Output file name (default: stdout).
             :type format: str.
@@ -1159,6 +1200,10 @@ cdef class Boolector:
             btorapi.boolector_dump_smt1(self._c_btor, c_file)
         elif format.lower() == "smt2":
             btorapi.boolector_dump_smt2(self._c_btor, c_file)
+        elif format.lower() == "aig":
+            btorapi.boolector_dump_aiger_binary(self._c_btor, c_file, True)
+        elif format.lower() == "aag":
+            btorapi.boolector_dump_aiger_ascii(self._c_btor, c_file, True)
         else:
             raise BoolectorException("Invalid dump format '{}'".format(format)) 
         if outfile is not None:
@@ -2724,9 +2769,9 @@ cdef class Boolector:
             :rtype: :class:`~boolector.BoolectorSort`
           """
         cdef int arity = len(domain)
-        cdef btorapi.BoolectorSort ** c_domain = \
-            <btorapi.BoolectorSort **> \
-                malloc(arity * sizeof(btorapi.BoolectorSort *))
+        cdef btorapi.BoolectorSort * c_domain = \
+            <btorapi.BoolectorSort *> \
+                malloc(arity * sizeof(btorapi.BoolectorSort))
 
         for i in range(arity):
             if not isinstance(domain[i], BoolectorSort):

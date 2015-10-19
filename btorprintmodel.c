@@ -49,7 +49,6 @@ btor_get_bv_model_str (Btor *btor, BtorNode *exp)
 
 void
 btor_get_fun_model_str_aux (Btor *btor,
-                            BtorPtrHashTable **bv_model,
                             BtorPtrHashTable **fun_model,
                             BtorNode *exp,
                             char ***args,
@@ -57,7 +56,6 @@ btor_get_fun_model_str_aux (Btor *btor,
                             int *size)
 {
   assert (btor);
-  assert (bv_model);
   assert (fun_model);
   assert (exp);
   assert (args);
@@ -66,7 +64,7 @@ btor_get_fun_model_str_aux (Btor *btor,
   assert (BTOR_IS_REGULAR_NODE (exp));
 
   char *arg, *tmp, *bv;
-  int i, j, len;
+  uint32_t i, j, len;
   BtorHashTableIterator it;
   const BtorPtrHashTable *model;
   BtorBitVector *value;
@@ -75,7 +73,7 @@ btor_get_fun_model_str_aux (Btor *btor,
   exp = btor_simplify_exp (btor, exp);
   assert (BTOR_IS_FUN_NODE (exp));
 
-  model = btor_get_fun_model_aux (btor, bv_model, fun_model, exp);
+  model = btor_get_fun_model_aux (btor, fun_model, exp);
 
   if ((BTOR_IS_LAMBDA_NODE (exp) && btor_get_fun_arity (btor, exp) > 1)
       || !(*fun_model) || !model)
@@ -91,13 +89,13 @@ btor_get_fun_model_str_aux (Btor *btor,
   BTOR_NEWN (btor->mm, *values, *size);
 
   i = 0;
-  init_hash_table_iterator (&it, (BtorPtrHashTable *) model);
-  while (has_next_hash_table_iterator (&it))
+  btor_init_hash_table_iterator (&it, (BtorPtrHashTable *) model);
+  while (btor_has_next_hash_table_iterator (&it))
   {
     value = (BtorBitVector *) it.bucket->data.asPtr;
 
     /* build assignment string for all arguments */
-    t   = (BtorBitVectorTuple *) next_hash_table_iterator (&it);
+    t   = (BtorBitVectorTuple *) btor_next_hash_table_iterator (&it);
     len = t->arity;
     for (j = 0; j < t->arity; j++) len += t->bv[j]->width;
     BTOR_NEWN (btor->mm, arg, len);
@@ -114,7 +112,7 @@ btor_get_fun_model_str_aux (Btor *btor,
       strcat (tmp, bv);
       btor_release_bv_assignment_str (btor, bv);
     }
-    assert ((int) strlen (arg) == len - 1);
+    assert (strlen (arg) == len - 1);
 
     (*args)[i]   = arg;
     (*values)[i] = (char *) btor_bv_to_char_bv (btor->mm, value);
@@ -132,8 +130,7 @@ btor_get_fun_model_str (
   assert (values);
   assert (size);
 
-  btor_get_fun_model_str_aux (
-      btor, &btor->bv_model, &btor->fun_model, exp, args, values, size);
+  btor_get_fun_model_str_aux (btor, &btor->fun_model, exp, args, values, size);
 }
 
 static void
@@ -260,7 +257,7 @@ print_fun_model_smt2 (Btor *btor, BtorNode *node, int base, FILE *file)
   assert (file);
 
   char *s, *symbol, *ass;
-  int i, x, n, len;
+  uint32_t i, x, n, len;
   BtorPtrHashTable *fun_model;
   BtorHashTableIterator it;
   BtorBitVectorTuple *args;
@@ -309,12 +306,12 @@ print_fun_model_smt2 (Btor *btor, BtorNode *node, int base, FILE *file)
   /* fun model as ite over args and assignments */
   n          = 0;
   assignment = 0;
-  init_hash_table_iterator (&it, fun_model);
-  while (has_next_hash_table_iterator (&it))
+  btor_init_hash_table_iterator (&it, fun_model);
+  while (btor_has_next_hash_table_iterator (&it))
   {
     fprintf (file, "%4c(ite ", ' ');
     assignment = it.bucket->data.asPtr;
-    args       = next_hash_table_iterator (&it);
+    args       = btor_next_hash_table_iterator (&it);
     x          = 0;
     if (args->arity > 1)
     {
@@ -429,10 +426,10 @@ btor_print_model (Btor *btor, char *format, FILE *file)
   if (!strcmp (format, "smt2"))
     fprintf (file, "(model%s", btor->inputs->count ? "\n" : " ");
 
-  init_node_hash_table_iterator (&it, btor->inputs);
-  while (has_next_node_hash_table_iterator (&it))
+  btor_init_node_hash_table_iterator (&it, btor->inputs);
+  while (btor_has_next_node_hash_table_iterator (&it))
   {
-    cur = next_node_hash_table_iterator (&it);
+    cur = btor_next_node_hash_table_iterator (&it);
     if (BTOR_IS_FUN_NODE (BTOR_REAL_ADDR_NODE (btor_simplify_exp (btor, cur))))
       print_fun_model (btor, cur, format, base, file);
     else
@@ -491,7 +488,7 @@ print_fun_value_smt2 (
   assert (BTOR_IS_REGULAR_NODE (node));
   assert (file);
 
-  int i, n;
+  uint32_t i, n;
   char *s, *symbol, *ass;
   BtorPtrHashTable *fun_model;
   BtorHashTableIterator it;
@@ -518,12 +515,12 @@ print_fun_value_smt2 (
   fprintf (file, "(");
 
   n = 0;
-  init_hash_table_iterator (&it, fun_model);
-  while (has_next_hash_table_iterator (&it))
+  btor_init_hash_table_iterator (&it, fun_model);
+  while (btor_has_next_hash_table_iterator (&it))
   {
     fprintf (file, "%s((%s ", n++ ? "\n  " : "", symbol);
     assignment = it.bucket->data.asPtr;
-    args       = next_hash_table_iterator (&it);
+    args       = btor_next_hash_table_iterator (&it);
     if (args->arity > 1)
     {
       for (i = 0; i < args->arity; i++)

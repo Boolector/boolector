@@ -2,7 +2,7 @@
  *
  *  Copyright (C) 2007-2013 Armin Biere.
  *  Copyright (C) 2013-2015 Aina Niemetz.
- *  Copyright (C) 2014 Mathias Preiner.
+ *  Copyright (C) 2014-2015 Mathias Preiner.
  *
  *  All rights reserved.
  *
@@ -1248,18 +1248,18 @@ static const char *
 next_numeral (const char *str)
 {
   const char *p = str;
-  char ch;
+  int ch;
 
   assert (str);
 
-  if (isdigit (*p++))
+  if (isdigit ((int) *p++))
   {
     while (isdigit (ch = *p++))
       ;
 
     if (ch == ':')
     {
-      assert (isdigit (*p));
+      assert (isdigit ((int) *p));
       return p;
     }
 
@@ -1270,7 +1270,7 @@ next_numeral (const char *str)
     while ((ch = *p++))
       if (ch == '[')
       {
-        assert (isdigit (*p));
+        assert (isdigit ((int) *p));
         return p;
       }
   }
@@ -1447,15 +1447,15 @@ node2exp (BtorSMTParser *parser, BtorSMTNode *node)
     p = symbol->name;
     if (*p++ == 'b' && *p++ == 'v')
     {
-      if (isdigit (*p))
+      if (isdigit ((int) *p))
       {
         start = p++;
-        for (end = p; isdigit (*end); end++)
+        for (end = p; isdigit ((int) *end); end++)
           ;
 
         if (*end == '[')
         {
-          for (p = end + 1; isdigit (*p); p++)
+          for (p = end + 1; isdigit ((int) *p); p++)
             ;
 
           if (*p == ']')
@@ -1502,7 +1502,7 @@ node2exp (BtorSMTParser *parser, BtorSMTNode *node)
       }
       else if (*p++ == 'h' && *p++ == 'e' && *p++ == 'x')
       {
-        for (start = p; isxdigit (*p); p++)
+        for (start = p; isxdigit ((int) *p); p++)
           ;
 
         if (start < p && !*p)

@@ -1,9 +1,9 @@
 /*  Boolector: Satisfiablity Modulo Theories (SMT) solver.
  *
  *  Copyright (C) 2007-2009 Robert Daniel Brummayer.
- *  Copyright (C) 2007-2012 Armin Biere.
+ *  Copyright (C) 2007-2015 Armin Biere.
  *  Copyright (C) 2013-2014 Aina Niemetz.
- *  Copyright (C) 2014 Mathias Preiner.
+ *  Copyright (C) 2014-2015 Mathias Preiner.
  *
  *  All rights reserved.
  *
@@ -15,6 +15,7 @@
 #define BTORAIGVEC_H_INCLUDED
 
 #include "btoraig.h"
+#include "btoropt.h"
 #include "utils/btormem.h"
 
 struct BtorAIGMap;
@@ -23,7 +24,8 @@ struct BtorAIGMap;
 
 struct BtorAIGVec
 {
-  int len;         /* length of the AIG vector */
+  uint32_t len; /* length of the AIG vector */
+  uint8_t encoded : 1;
   BtorAIG *aigs[]; /* vector of AIGs */
 };
 
@@ -35,6 +37,7 @@ struct BtorAIGVecMgr
 {
   BtorMemMgr *mm;
   BtorMsg *msg;
+  BtorOpts *opts;
   BtorAIGMgr *amgr;
   long long max_num_aigvecs;
   long long cur_num_aigvecs;
@@ -45,11 +48,14 @@ struct BtorAIGVecMgr
 /* Creates new AIG vector manager. An AIG vector manager is used by nearly
  * all functions of the AIG vector layer.
  */
-BtorAIGVecMgr *btor_new_aigvec_mgr (BtorMemMgr *mm, BtorMsg *msg);
+BtorAIGVecMgr *btor_new_aigvec_mgr (BtorMemMgr *mm,
+                                    BtorMsg *msg,
+                                    BtorOpts *opts);
 
 /* Clones AIG vector manager. */
 BtorAIGVecMgr *btor_clone_aigvec_mgr (BtorMemMgr *mm,
                                       BtorMsg *msg,
+                                      BtorOpts *opts,
                                       BtorAIGVecMgr *avmgr);
 
 /* Returns AIG manager of the AIG vector manager. */
@@ -71,7 +77,7 @@ BtorAIGVec *btor_const_aigvec (BtorAIGVecMgr *avmgr, const char *bits);
  * len > 0
  * len(result) = len
  */
-BtorAIGVec *btor_var_aigvec (BtorAIGVecMgr *avmgr, int len);
+BtorAIGVec *btor_var_aigvec (BtorAIGVecMgr *avmgr, uint32_t len);
 
 /* Inverts all AIGs of the AIG vector */
 void btor_invert_aigvec (BtorAIGVecMgr *avmgr, BtorAIGVec *av);
@@ -89,8 +95,8 @@ BtorAIGVec *btor_not_aigvec (BtorAIGVecMgr *avmgr, BtorAIGVec *av);
  */
 BtorAIGVec *btor_slice_aigvec (BtorAIGVecMgr *avmgr,
                                BtorAIGVec *av,
-                               int upper,
-                               int lower);
+                               uint32_t upper,
+                               uint32_t lower);
 
 /* Creates new AIG vector representing av1 AND av2.
  * len(av1) = len(av2)

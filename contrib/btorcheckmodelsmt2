@@ -9,7 +9,7 @@ die ()
 trap "exit 2" SIGHUP SIGINT SIGTERM
 
 CONTRIBDIR=$(dirname "$(readlink -f $0)")
-BOOLECTOR=$CONTRIBDIR/../boolector
+BOOLECTOR="$CONTRIBDIR/../boolector"
 INFILE=""
 MODEL=""
 TMPFILE=/tmp/btorcheckmodelsmt2-$$.smt2
@@ -44,8 +44,7 @@ cat $INFILE | sed -r 's/\(check-sat\)|\(exit\)//' >> $TMPFILE
 cat $MODEL | sed 's/sat//' >> $TMPFILE
 echo "(check-sat)" >> $TMPFILE
 echo "(exit)" >> $TMPFILE
-
-${BOOLECTOR} ${TMPFILE}
+"${BOOLECTOR}" ${TMPFILE}
 ret=$?
 if [[ $ret = 10 ]]; then
   exit 0

@@ -47,6 +47,6 @@ bool btor_contains_int_hash_table (BtorIntHashTable *, int32_t key);
 size_t btor_remove_int_hash_table (BtorIntHashTable *, int32_t key);
 
 /* Returns the position at which 'key' is stored in the keys array. It returns
- * 'size' of the hash talbe if 'key' could not be found. */
+ * 'size' of the hash table if 'key' could not be found. */
 size_t btor_get_pos_int_hash_table (BtorIntHashTable *, int32_t key);
 #endif

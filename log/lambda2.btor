@@ -11,14 +11,14 @@
 11 read 1 4 5
 12 and 1 -11 -10
 13 lambda 1 13 5 -12
-14 read 1 13 7
+14 apply 1 13 7
 15 and 1 -14 -9
 16 lambda 1 13 7 -15
-17 read 1 16 8
+17 apply 1 16 8
 18 eq 1 3 6
-19 read 1 13 6
+19 apply 1 13 6
 20 and 1 -19 -18
 21 lambda 1 13 6 -20
-22 read 1 21 1
+22 apply 1 21 1
 23 root 1 22
 24 root 1 -17

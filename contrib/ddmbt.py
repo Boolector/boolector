@@ -19,12 +19,11 @@ g_tmpfile = "/tmp/ddmbt-" + str(os.getpid()) + ".trace"
 g_tmpbin = "/tmp/ddmbt-bin-" + str(os.getpid())
 g_command = [] 
 g_num_tests = 0
-g_lines = []
-g_subst_lines = {}
+g_lines = []        # contains the current failing trace
+g_subst_lines = {}  # maps line number in 'g_lines' to line substitution
 g_line_tokens = []
 g_id2line = {}
 g_node_map = {}
-g_node_bw = {}
 g_sort_map = {}
 
 CONST_NODE_KINDS = ["const", "zero", "false", "ones", "true", "one",
@@ -42,6 +41,34 @@ NODE_KINDS = ["copy", "const", "zero", "false", "ones", "true", "one",
 
 SORT_KINDS = ["bool_sort", "bitvec_sort", "fun_sort", "array_sort",
               "tuple_sort"]
+
+class LineTokens: 
+    def __init__(self, id, line):
+        tokens = line.split()
+        self.id = id
+        self.kind = tokens[0] 
+        if len(tokens) > 1:
+            self.btor = tokens[1]
+        else:
+            self.btor = ""
+        self.tokens = tokens
+
+        if self.is_node_kind():
+            self.bw = _node_bw(self.tokens)
+            self.children = [c for c in tokens if _is_node(c)]
+        else:
+            self.bw = None 
+            self.children = []
+
+    def is_node_kind(self):
+        return self.kind in NODE_KINDS
+
+    def is_sort_kind(self):
+        return self.kind in SORT_KINDS
+
+    def __str__(self):
+        return "{} {} {}".format(self.id, self.bw, self.children)
+
 
 def _parse_options():
     usage_fmt = "%prog [options] INFILE OUTFILE \"CMD [options]\""
@@ -85,8 +112,6 @@ def _tokens_children(tokens):
     return [c for c in tokens if _is_node(c)]
 
 def _node_bw(tokens):
-    global g_nodes_bw
-
     t = tokens[:]
     del[t[1]]
     tokens = t
@@ -112,7 +137,7 @@ def _node_bw(tokens):
         bw = _sort_bw(tokens[1])
     else:
         children = _tokens_children(tokens)
-        cbw = [g_node_bw[c] for c in children]
+        cbw = [g_node_map[c].bw for c in children]
         if kind == "cond":
             assert(cbw[1] == cbw[2])
             bw = cbw[1]
@@ -159,33 +184,33 @@ def _is_sort_id(s):
     return m is not None
 
 def _build_graph():
-    global g_lines, g_line_tokens, g_id2line, g_node_map, g_node_bw, g_sort_map
+    global g_lines, g_line_tokens, g_id2line, g_node_map, g_sort_map
 
     g_line_tokens = [] 
     g_node_map = {}
-    g_node_bw = {}
     g_sort_map = {}
-    prev_tokens = []
+    prev_ltok = None
     for i in range(len(g_lines)):
-        tokens = g_lines[i].split()
-        bw = []
-        nid = "" 
+        line = g_lines[i]
+        cur_ltok = LineTokens(None, line)
 
-        if tokens[0] == "return" and not "assignment" in prev_tokens[0]:
-            id = tokens[1]
-            if prev_tokens[0] in NODE_KINDS and _is_node_id(id):
-                g_node_map[id] = prev_tokens 
-                bw = _node_bw(prev_tokens)
-                g_node_bw[id] = bw
+        if cur_ltok.kind == "return" and not "assignment" in prev_ltok.kind:
+            id = cur_ltok.tokens[1]
+            if prev_ltok.is_node_kind():
+                g_node_map[id] = prev_ltok
                 assert(i > 0)
-                g_line_tokens[i - 1][0] = id
-                g_line_tokens[i - 1][1] = bw
+                assert(g_line_tokens[i - 1].id == None)
+                g_line_tokens[i - 1].id = id
                 g_id2line[id] = i - 1
-            elif prev_tokens[0] in SORT_KINDS and _is_sort_id(id):
-                g_sort_map[id] = prev_tokens
+            elif prev_ltok.is_sort_kind():
+                g_sort_map[id] = prev_ltok.tokens
 
-        prev_tokens = tokens
-        g_line_tokens.append(["", [], tokens])
+        prev_ltok = LineTokens(None, line) 
+        g_line_tokens.append(prev_ltok)
+    
+    for id,node in g_node_map.items():
+        assert(id != None)
+        assert(node.id == id)
 
 def _parse_trace(inputfile):
     global g_lines
@@ -328,8 +353,8 @@ def _compact_graph():
 
     # insert vars
     for i in range(len(g_line_tokens)):
-        id = g_line_tokens[i][0]
-        tokens = g_line_tokens[i][2]
+        id = g_line_tokens[i].id
+        tokens = g_line_tokens[i].tokens
         kind = tokens[0]
 
         if kind in CONST_NODE_KINDS or \
@@ -337,7 +362,7 @@ def _compact_graph():
             continue
 
         btor = tokens[1]
-        bw = g_line_tokens[i][1]
+        bw = g_line_tokens[i].bw
 
         _log(1, "  insert var at line {}, {}".format(i, num_substs), True)
         g_subst_lines[i] = "var {} {} v{}".format(btor, bw, i) 
@@ -354,14 +379,19 @@ def _compact_graph():
 
 def _swap_candidates(nid):
     global g_line_tokens, g_id2line
+    assert(nid in g_node_map)
 
     i = g_id2line[nid]
-    bw = g_line_tokens[i][1]
-
+    bw = g_line_tokens[i].bw
+    assert (bw != None)
     candidates = []
+    cache = {}
     for j in range(i):
-        if g_line_tokens[j][1] == bw:
-            candidates.append(g_line_tokens[j][0])
+        ltok = g_line_tokens[j]
+        if ltok.id != None and ltok.bw == bw and ltok.id not in cache and \
+           ltok.id != nid:
+            cache[ltok.id] = True
+            candidates.append(ltok.id)
 
     return candidates
 
@@ -376,36 +406,46 @@ def _swap_ids():
     assert(len(g_lines) == len(g_line_tokens))
 
     for i in range(len(g_line_tokens)):
-        nid = g_line_tokens[i][0]
-        bw = g_line_tokens[i][1]
-        tokens = g_line_tokens[i][2]
-        kind = tokens[0]
+        ltok = g_line_tokens[i]
 
-        if nid == "":
-            continue;
+        if ltok.id is None:
+            continue
 
-        for j in range(len(tokens)):
-            if _is_node(tokens[j]):
-                candidates = _swap_candidates(tokens[j])
+        tokens = [str(t) for t in ltok.tokens]
+        for child in ltok.children:
+            assert(_is_node(child))
+            if len(g_node_map[child].children) == 0:
+                continue
+            candidates = _swap_candidates(child)
 
-                t = [str(tt) for tt in tokens]
-                for c in candidates:
-                    old = t[j]
-                    t[j] = str(c)
-                    g_subst_lines[i] = " ".join(t)
-                    _log(1, "  line {}, swap nodes {}".format(i, num_substs),
-                         True)
-                    _open_file_dump_trace(g_tmpfile, g_lines)
-
-                    if _test():
-                        _save(g_lines)
-                        g_lines[i] = g_subst_lines[i]
-                        num_substs += 1
+            for c in candidates:
+                assert(child != c)
+                swapped = False
+                pos = 0
+                while pos < len(tokens):
+                    if tokens[pos] == child:
+                        tokens[pos] = c
+                        swapped = True
                         break
-                    else:
-                        t[j] = old
+                    pos += 1
 
-                    del(g_subst_lines[i])
+                if not swapped:
+                    continue
+
+                g_subst_lines[i] = " ".join(tokens)
+                assert(g_subst_lines[i] != g_lines[i])
+                _log(1, "  line {}, swap nodes {}".format(i, num_substs), True)
+                _open_file_dump_trace(g_tmpfile, g_lines)
+
+                if _test():
+                    _save(g_lines)
+                    g_lines[i] = g_subst_lines[i]
+                    num_substs += 1
+                    break
+                else:
+                    tokens[pos] = child
+
+                del(g_subst_lines[i])
 
     return num_substs
 
@@ -417,35 +457,69 @@ def _remove_return_pairs():
     cur_lines = g_lines[:]
     last_saved_lines = g_lines[:]
     offset = 0
+
+    # remove get_width etc.
+    num = 0
+    prev_kind = None 
     while offset < len(cur_lines):
         line = cur_lines[offset]
+        kind = line.split()[0]
+        prev_kind = kind if prev_kind is None else prev_kind
 
-        if "return" in line:
-            assert(offset > 0)
-            lower = offset - 1
-            upper = offset + 1
-            subset = cur_lines[lower:upper]
-            assert (len(subset) == 2)
-            lines = cur_lines[:lower]
-            lines.extend(cur_lines[upper:])
-            assert(len(subset) == len(cur_lines) - len(lines))
-            assert(len(subset) > 0)
-            assert(len(lines) < len(cur_lines))
-
-            _open_file_dump_trace(g_tmpfile, lines)
-
-            if _test():
-                _save(lines)
-                cur_lines = lines
-                last_saved_lines = cur_lines[:]
-                num_lines += len(subset)
-            else:
-                offset += 1 
+        if "return" in kind and prev_kind != kind and \
+            ("get_" in prev_kind or "is_" in prev_kind or \
+            "_assignment" in prev_kind):
+            cur_lines.pop(offset - 1)
+            cur_lines.pop(offset - 1)
+            num_lines += 2
+            offset -= 1
+        elif "free_" in kind and "assignment" in kind: 
+            cur_lines.pop(offset)
+            num_lines += 1
         else:
-             offset += 1
+            offset += 1
+        prev_kind = kind
 
-        _log(1, "  pairs: offset {}, lines {}".format(offset,
-             len(last_saved_lines)), True)
+    _open_file_dump_trace(g_tmpfile, cur_lines)
+
+    if _test():
+        _save(cur_lines)
+        last_saved_lines = cur_lines[:]
+    else:
+        cur_lines = g_lines[:]
+        last_saved_lines = g_lines[:]
+
+    if num_lines == 0:
+        offset = 0
+        while offset < len(cur_lines):
+            line = cur_lines[offset]
+
+            if "return" in line:
+                assert(offset > 0)
+                lower = offset - 1
+                upper = offset + 1
+                subset = cur_lines[lower:upper]
+                assert (len(subset) == 2)
+                lines = cur_lines[:lower]
+                lines.extend(cur_lines[upper:])
+                assert(len(subset) == len(cur_lines) - len(lines))
+                assert(len(subset) > 0)
+                assert(len(lines) < len(cur_lines))
+
+                _open_file_dump_trace(g_tmpfile, lines)
+
+                if _test():
+                    _save(lines)
+                    cur_lines = lines
+                    last_saved_lines = cur_lines[:]
+                    num_lines += len(subset)
+                else:
+                    offset += 1 
+            else:
+                 offset += 1
+
+            _log(1, "  pairs: offset {}, lines {}".format(offset,
+                 len(last_saved_lines)), True)
 
     g_lines = last_saved_lines 
 
@@ -490,29 +564,41 @@ def ddmbt_main():
             g_golden_exit_code, g_golden_runtime))
 
     rounds = 0
-    pairs = False
+    last_num_lines = last_num_substs = last_num_swaps = 0
+    num_swap_only_rounds = 0
     while True:
         rounds += 1
 
-        num_lines = _remove_lines()
-        num_substs = 0
-        num_swaps = 0
-        if num_lines == 0:
+        if last_num_lines > 0 or rounds % 5 == 1:
+            num_lines = _remove_return_pairs()
+            num_lines += _remove_lines()
+            if num_lines > 0:
+                num_swap_only_rounds = 0
+        if last_num_substs > 0 or rounds % 5 == 1:
             num_substs = _compact_graph()
+            if num_substs > 0:
+                num_swap_only_rounds = 0
+        if last_num_swaps > 0 or rounds % 5 == 1:
             num_swaps = _swap_ids()
+            if num_lines == 0 and num_substs == 0:
+                num_swap_only_rounds += 1
 
-        if pairs:
-            num_lines += _remove_return_pairs()
 
-        _log(1, "round {}, removed {} lines, substituted {} lines, swapped {} nodes".format(
-             rounds, num_lines, num_substs, num_swaps))
+        _log(1, "round {}, removed {} lines, substituted {} lines, "\
+                "swapped {} nodes".format(rounds, num_lines,
+                                          num_substs, num_swaps))
 
-        if num_lines == 0 and not pairs:
-            _log(1, "remove return pairs")
-            pairs = True
-        elif num_lines == 0 and num_substs == 0 and num_swaps == 0:
-            break
+        if (num_lines == 0 and num_substs == 0 and num_swaps == 0) or \
+            num_swap_only_rounds >= 3:
+            num_lines = _remove_return_pairs()
+            num_lines += _remove_lines()
 
+            if num_lines == 0:
+                break
+
+        last_num_lines = num_lines
+        last_num_substs = num_substs
+        last_num_swaps = num_swaps
 
     _log(1, "tests: {0:d}".format(g_num_tests))
     _log(1, "dumped {0:d} lines (removed {1:.1f}% of lines)".format(

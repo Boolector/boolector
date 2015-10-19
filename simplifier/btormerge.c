@@ -16,16 +16,42 @@
 #include "utils/btoriter.h"
 #include "utils/btorutil.h"
 
+//#ifndef NDEBUG
+// static bool
+// check_static_rho_equal_dbg (BtorPtrHashTable * t0, BtorPtrHashTable * t1)
+//{
+//  assert (t0);
+//  assert (t1);
+//  assert (t0->count == t1->count);
+//
+//  BtorHashTableIterator it;
+//  BtorPtrHashBucket *b;
+//  BtorNode *value, *args;
+//
+//  btor_init_node_hash_table_iterator (&it, t0);
+//  while (btor_has_next_node_hash_table_iterator (&it))
+//    {
+//      value = it.bucket->data.asPtr;
+//      args = btor_next_node_hash_table_iterator (&it);
+//      assert (args->arity == 1);
+//      b = btor_find_in_ptr_hash_table (t1, args);
+//      assert (b);
+//      assert (b->data.asPtr == value);
+//    }
+//  return true;
+//}
+//#endif
+
 static void
 delete_static_rho (Btor *btor, BtorPtrHashTable *static_rho)
 {
   BtorHashTableIterator it;
 
-  init_node_hash_table_iterator (&it, static_rho);
-  while (has_next_node_hash_table_iterator (&it))
+  btor_init_node_hash_table_iterator (&it, static_rho);
+  while (btor_has_next_node_hash_table_iterator (&it))
   {
     btor_release_exp (btor, it.bucket->data.asPtr);
-    btor_release_exp (btor, next_node_hash_table_iterator (&it));
+    btor_release_exp (btor, btor_next_node_hash_table_iterator (&it));
   }
   btor_delete_ptr_hash_table (static_rho);
 }
@@ -38,35 +64,15 @@ add_to_static_rho (Btor *btor, BtorPtrHashTable *to, BtorPtrHashTable *from)
 
   if (!from) return;
 
-  init_node_hash_table_iterator (&it, from);
-  while (has_next_node_hash_table_iterator (&it))
+  btor_init_node_hash_table_iterator (&it, from);
+  while (btor_has_next_node_hash_table_iterator (&it))
   {
     data = it.bucket->data.asPtr;
-    key  = next_node_hash_table_iterator (&it);
+    key  = btor_next_node_hash_table_iterator (&it);
     if (btor_find_in_ptr_hash_table (to, key)) continue;
     btor_insert_in_ptr_hash_table (to, btor_copy_exp (btor, key))->data.asPtr =
         btor_copy_exp (btor, data);
   }
-}
-
-static bool
-check_static_rho_equal_dbg (BtorPtrHashTable *t0, BtorPtrHashTable *t1)
-{
-  assert (t0);
-  assert (t1);
-  assert (t0->count == t1->count);
-
-  BtorHashTableIterator it0, it1;
-
-  init_node_hash_table_iterator (&it0, t0);
-  init_node_hash_table_iterator (&it1, t1);
-  while (has_next_node_hash_table_iterator (&it0))
-  {
-    assert (it0.bucket->data.asPtr == it1.bucket->data.asPtr);
-    assert (next_node_hash_table_iterator (&it0)
-            == next_node_hash_table_iterator (&it1));
-  }
-  return true;
 }
 
 void
@@ -97,10 +103,10 @@ btor_merge_lambdas (Btor *btor)
   BTOR_INIT_STACK (params);
 
   /* collect candidates for merging */
-  init_node_hash_table_iterator (&it, btor->lambdas);
-  while (has_next_node_hash_table_iterator (&it))
+  btor_init_node_hash_table_iterator (&it, btor->lambdas);
+  while (btor_has_next_node_hash_table_iterator (&it))
   {
-    lambda = next_node_hash_table_iterator (&it);
+    lambda = btor_next_node_hash_table_iterator (&it);
     assert (BTOR_IS_REGULAR_NODE (lambda));
 
     /* found top lambda */
@@ -128,7 +134,7 @@ btor_merge_lambdas (Btor *btor)
 
     /* search downwards and look for lambdas that can be merged */
     BTOR_RESET_STACK (visit);
-    BTOR_PUSH_STACK (mm, visit, BTOR_LAMBDA_GET_BODY (lambda));
+    BTOR_PUSH_STACK (mm, visit, btor_lambda_get_body (lambda));
     merge_lambdas = btor_new_ptr_hash_table (mm, 0, 0);
     btor_insert_in_ptr_hash_table (merge_lambdas, lambda);
     while (!BTOR_EMPTY_STACK (visit))
@@ -152,7 +158,10 @@ btor_merge_lambdas (Btor *btor)
         /* we can only merge lambdas that have all a static_rho or
          * none of them has one */
         if (!btor_lambda_get_static_rho (cur)
-            != !btor_lambda_get_static_rho (lambda))
+                != !btor_lambda_get_static_rho (lambda)
+            /* we can only merge lambdas that either represent arrays
+             * or not */
+            || cur->is_array != lambda->is_array)
         {
           /* try to merge lambdas starting from 'cur' */
           BTOR_PUSH_STACK (mm, stack, cur);
@@ -161,7 +170,7 @@ btor_merge_lambdas (Btor *btor)
 
         if (!btor_find_in_ptr_hash_table (merge_lambdas, cur))
           btor_insert_in_ptr_hash_table (merge_lambdas, cur);
-        BTOR_PUSH_STACK (mm, visit, BTOR_LAMBDA_GET_BODY (cur));
+        BTOR_PUSH_STACK (mm, visit, btor_lambda_get_body (cur));
       }
       else
       {
@@ -180,32 +189,36 @@ btor_merge_lambdas (Btor *btor)
     }
 
     /* assign parameters of top-most lambda with fresh parameters */
-    init_lambda_iterator (&nit, lambda);
-    while (has_next_lambda_iterator (&nit))
+    btor_init_lambda_iterator (&nit, lambda);
+    while (btor_has_next_lambda_iterator (&nit))
     {
-      cur   = next_lambda_iterator (&nit);
+      cur   = btor_next_lambda_iterator (&nit);
       param = btor_param_exp (btor, btor_get_exp_width (btor, cur->e[0]), 0);
       BTOR_PUSH_STACK (mm, params, param);
       btor_assign_param (btor, cur, param);
     }
-    /* merge lambdas that are marked with 'merge' flag */
+    /* merge lambdas that are in 'merge_lambdas' table */
     body = btor_beta_reduce_merge (
-        btor, BTOR_LAMBDA_GET_BODY (lambda), merge_lambdas);
+        btor, btor_lambda_get_body (lambda), merge_lambdas);
     btor_unassign_params (btor, lambda);
     subst = btor_fun_exp (btor, BTOR_COUNT_STACK (params), params.start, body);
+    if (lambda->is_array) subst->is_array = 1;
     btor_release_exp (btor, body);
 
     /* generate static_rho from merged lambdas' static_rhos */
     assert (merge_lambdas->count > 0);
     num_merged_lambdas += merge_lambdas->count;
     static_rho = btor_new_ptr_hash_table (mm, 0, 0);
-    init_node_hash_table_iterator (&it, merge_lambdas);
-    while (has_next_node_hash_table_iterator (&it))
+    if (btor_lambda_get_static_rho (lambda))
     {
-      cur = next_node_hash_table_iterator (&it);
-      add_to_static_rho (btor, static_rho, btor_lambda_get_static_rho (cur));
-      assert (!btor_lambda_get_static_rho (lambda)
-              == !btor_lambda_get_static_rho (cur));
+      btor_init_node_hash_table_iterator (&it, merge_lambdas);
+      while (btor_has_next_node_hash_table_iterator (&it))
+      {
+        cur = btor_next_node_hash_table_iterator (&it);
+        add_to_static_rho (btor, static_rho, btor_lambda_get_static_rho (cur));
+        assert (!btor_lambda_get_static_rho (lambda)
+                == !btor_lambda_get_static_rho (cur));
+      }
     }
     BTORLOG (2,
              "merged %u lambdas (%u static_rho entries)",
@@ -220,8 +233,9 @@ btor_merge_lambdas (Btor *btor)
        * the same elements as static_rho */
       if (btor_lambda_get_static_rho (subst))
       {
-        assert (check_static_rho_equal_dbg (btor_lambda_get_static_rho (subst),
-                                            static_rho));
+        //	      assert (check_static_rho_equal_dbg (
+        //			   btor_lambda_get_static_rho (subst),
+        // static_rho));
         /* 'static_rho' contains elements so we have to release them
          * properly */
         delete_static_rho (btor, static_rho);
