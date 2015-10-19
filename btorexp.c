@@ -508,9 +508,9 @@ hash_lambda_exp (Btor *btor, BtorNode *param, BtorNode *body)
 static int
 is_sorted_bv_exp (Btor *btor, BtorNodeKind kind, BtorNode **e)
 {
-  if (e[0] == e[1]) return 1;
   if (!btor->options.sort_exp.val) return 1;
   if (!BTOR_IS_BINARY_COMMUTATIVE_NODE_KIND (kind)) return 1;
+  if (e[0] == e[1]) return 1;
   if (BTOR_INVERT_NODE (e[0]) == e[1] && BTOR_IS_INVERTED_NODE (e[1])) return 1;
   return BTOR_REAL_ADDR_NODE (e[0])->id <= BTOR_REAL_ADDR_NODE (e[1])->id;
 }
