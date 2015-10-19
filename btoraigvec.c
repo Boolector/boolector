@@ -744,6 +744,7 @@ btor_clone_aigvec_mgr (BtorMemMgr *mm,
 
   res->mm              = mm;
   res->msg             = msg;
+  res->opts            = opts;
   res->amgr            = btor_clone_aig_mgr (mm, msg, opts, avmgr->amgr);
   res->max_num_aigvecs = avmgr->max_num_aigvecs;
   res->cur_num_aigvecs = avmgr->cur_num_aigvecs;
