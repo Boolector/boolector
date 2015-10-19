@@ -546,6 +546,9 @@ hash_bv_exp (Btor *btor, BtorNodeKind kind, int arity, BtorNode **e)
       && BTOR_IS_BINARY_COMMUTATIVE_NODE_KIND (kind))
     assert (arity == 2), assert (BTOR_REAL_ADDR_NODE (e[0])->id
                                  <= BTOR_REAL_ADDR_NODE (e[1])->id);
+#else
+  (void) btor;
+  (void) kind;
 #endif
   assert (arity <= NPRIMES);
   for (i = 0; i < arity; i++)
