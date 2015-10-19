@@ -3767,6 +3767,9 @@ boolector_dump_btor (Btor *btor, FILE *file)
   BTOR_ABORT_BOOLECTOR (!btor_can_be_dumped (btor),
                         "formula cannot be dumped in BTOR format as it does "
                         "not support uninterpreted functions yet.");
+  BTOR_ABORT_BOOLECTOR (btor->options.incremental.val,
+                        "dumping formula in BTOR format is not supported if "
+                        "'incremental' is enabled");
   btor_dump_btor (btor, file, 1);
 #ifndef NDEBUG
   BTOR_CHKCLONE_NORES (dump_btor, file);
@@ -3811,6 +3814,9 @@ boolector_dump_smt1 (Btor *btor, FILE *file)
   BTOR_TRAPI ("");
   BTOR_ABORT_ARG_NULL_BOOLECTOR (btor);
   BTOR_ABORT_ARG_NULL_BOOLECTOR (file);
+  BTOR_ABORT_BOOLECTOR (btor->options.incremental.val,
+                        "dumping formula in SMT1 format is not supported if "
+                        "'incremental' is enabled");
   btor_dump_smt1 (btor, file);
 #ifndef NDEBUG
   BTOR_CHKCLONE_NORES (dump_smt1, file);
@@ -3841,6 +3847,9 @@ boolector_dump_smt2 (Btor *btor, FILE *file)
   BTOR_TRAPI ("");
   BTOR_ABORT_ARG_NULL_BOOLECTOR (btor);
   BTOR_ABORT_ARG_NULL_BOOLECTOR (file);
+  BTOR_ABORT_BOOLECTOR (btor->options.incremental.val,
+                        "dumping formula in SMT2 format is not supported if "
+                        "'incremental' is enabled");
   btor_dump_smt2 (btor, file);
 #ifndef NDEBUG
   BTOR_CHKCLONE_NORES (dump_smt2, file);
