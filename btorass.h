@@ -21,7 +21,9 @@ typedef struct BtorBVAssignmentList BtorBVAssignmentList;
 
 struct BtorBVAssignment
 {
-  const char *cloned_assignment;
+#ifndef NDEBUG
+  const char *cloned_assignment; /* needed for shadow clone only */
+#endif
   BtorBVAssignment *prev;
   BtorBVAssignment *next;
 };
