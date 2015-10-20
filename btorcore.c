@@ -6371,7 +6371,10 @@ add_lemma_to_dual_prop_clone (Btor *btor,
 
   BtorNode *clemma, *and;
 
-  clemma = btor_recursively_rebuild_exp_clone (btor, clone, lemma, exp_map);
+  /* lemmas are built with rewriting level 'rewrite_level_pbr'. thus, we
+   * have to rebuild cloned expressions with the same rewriting level. */
+  clemma = btor_recursively_rebuild_exp_clone (
+      btor, clone, lemma, exp_map, btor->options.rewrite_level_pbr.val);
   assert (clemma);
   and = btor_and_exp (clone, *root, clemma);
   btor_release_exp (clone, clemma);
