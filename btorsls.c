@@ -2237,6 +2237,8 @@ inv_mul_bv (Btor *btor,
       int i;
       uint64_t div[4] = {7, 5, 3, 2};
 
+      // TODO if bvmul even, choose m*2 as divisor (1 randomly shifted to left)
+      // TODO else choose random odd number with rem 0
 #ifndef NDEBUG
       iscon = 1;
 #endif
@@ -2712,6 +2714,8 @@ inv_urem_bv (Btor *btor,
       /* we choose simplest solution with n = 1
        * (if res > bvurem, else conflict) */
       // TODO maybe choose more random solution?
+      // TODO if (bve-bvurem) even, n = m * 2, m >= 0 (shift 1 randomly to left)
+      // TODO if odd, generate random odd numbers (+1 if even) until rem=0
       res = btor_sub_bv (mm, bve, bvurem);
       /* check for conflict */
       if (btor_compare_bv (res, bvurem) <= 0)
