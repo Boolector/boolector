@@ -241,6 +241,10 @@ btor_compute_scores (Btor *btor)
   BtorHashTableIterator it;
   BtorNodePtrStack stack, unmark_stack, nodes;
 
+  /* computing scores only required for BTOR_JUST_HEUR_BRANCH_MIN_DEP and
+   * BTOR_JUST_HEUR_BRANCH_MIN_APP */
+  if (btor->options.just_heuristic.val == BTOR_JUST_HEUR_LEFT) return;
+
   /* Collect all nodes we actually need the score for.
    * If just is enabled, we only need the children of AND nodes. If dual prop
    * is enabled, we only need APPLY nodes (BV var nodes always have score 0 and
@@ -311,6 +315,10 @@ btor_compute_scores_dual_prop (Btor *btor)
   BtorNode *cur;
   BtorNodePtrStack stack, unmark_stack, nodes;
   BtorHashTableIterator it;
+
+  /* computing scores only required for BTOR_JUST_HEUR_BRANCH_MIN_DEP and
+   * BTOR_JUST_HEUR_BRANCH_MIN_APP */
+  if (btor->options.just_heuristic.val == BTOR_JUST_HEUR_LEFT) return;
 
   start = btor_time_stamp ();
 
