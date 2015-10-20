@@ -939,10 +939,17 @@ btor_mod_inverse_bv (BtorMemMgr *mm, BtorBitVector *bv)
   uint32_t i;
   BtorBitVector *a, *b, *y, *ly, *ty, *q, *yq, *r, *res;
 
-  a = btor_new_bv (mm, bv->width + 1);
-  btor_set_bit_bv (a, a->width - 1, 1); /* 10...0 */
+  /* a = 2^bw
+   *    * b = bv
+   *       * lx * a + ly * b = gcd (a, b) = 1
+   *          * -> lx * a = lx * 2^bw = 0 (2^bw_[bw] = 0)
+   *             * -> ly * b = bv^-1 * bv = 1
+   *                * -> ly is modular inverse of bv */
 
-  b = btor_new_bv (mm, bv->width + 1); /* concat (0, bv) */
+  a = btor_new_bv (mm, bv->width + 1);
+  btor_set_bit_bv (a, a->width - 1, 1); /* 2^bw */
+
+  b = btor_new_bv (mm, bv->width + 1); /* extend to bw of a */
   for (i = 0; i < bv->width; i++)
     btor_set_bit_bv (b, i, btor_get_bit_bv (bv, i));
 
