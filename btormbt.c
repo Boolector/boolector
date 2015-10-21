@@ -547,7 +547,12 @@ is_array_op (Op op)
 struct BtorMBTBtorOpt
 {
   char *name;
-  int val;
+  char *shrt;
+  int val; /* only used for options specified via command line */
+  int min;
+  int max;
+  bool set_by_cl; /* if option is already set by command line, we do not
+                     choose a random value for this option */
 };
 
 typedef struct BtorMBTBtorOpt BtorMBTBtorOpt;
@@ -738,7 +743,7 @@ struct BtorMBT
   BtorMemMgr *mm;
 
   Btor *btor;
-  BtorMBTBtorOptPtrStack btor_opts;
+  BtorMBTBtorOptPtrStack btor_opts; /* all available boolector options */
 
   double start_time;
 
@@ -752,7 +757,6 @@ struct BtorMBT
   int quiet;
   int terminal;
   int quit_after_first;
-  int force_nomgen;
   int ext;
   int shadow;
   char *out;
@@ -950,14 +954,35 @@ typedef void *(*BtorMBTState) (BtorMBT *, unsigned rand);
 static BtorMBT *
 btormbt_new_btormbt (void)
 {
+  const char *opt;
   BtorMBT *mbt;
   BtorMemMgr *mm;
+  Btor *tmpbtor;
+  BtorMBTBtorOpt *btoropt;
 
   mm = btor_new_mem_mgr ();
   BTOR_CNEW (mm, mbt);
   mbt->mm = mm;
 
   BTOR_INIT_STACK (mbt->btor_opts);
+
+  /* retrieve all available boolector options */
+  tmpbtor = boolector_new ();
+  for (opt = boolector_first_opt (tmpbtor); opt;
+       opt = boolector_next_opt (tmpbtor, opt))
+  {
+    BTOR_NEW (mm, btoropt);
+    btoropt->name = btor_strdup (mm, opt);
+    btoropt->shrt = btor_strdup (mm, boolector_get_opt_shrt (tmpbtor, opt));
+    btoropt->val  = boolector_get_opt_val (tmpbtor, opt);
+    btoropt->min  = boolector_get_opt_min (tmpbtor, opt);
+    btoropt->max  = boolector_get_opt_max (tmpbtor, opt);
+    /* disabling incremental not supported */
+    if (!strcmp (opt, "incremental")) btoropt->min = btoropt->max;
+    btoropt->set_by_cl = false;
+    BTOR_PUSH_STACK (mm, mbt->btor_opts, btoropt);
+  }
+  boolector_delete (tmpbtor);
 
   mbt->g_max_rounds             = INT_MAX;
   mbt->seed                     = -1;
@@ -1078,6 +1103,7 @@ btormbt_delete_btormbt (BtorMBT *mbt)
   {
     opt = BTOR_POP_STACK (mbt->btor_opts);
     btor_freestr (mbt->mm, opt->name);
+    if (opt->shrt) btor_freestr (mbt->mm, opt->shrt);
     BTOR_DELETE (mm, opt);
   }
   BTOR_RELEASE_STACK (mm, mbt->btor_opts);
@@ -2631,25 +2657,22 @@ btormbt_state_new (BtorMBT *mbt, unsigned r)
     /* cleanup done by boolector */
     boolector_chkclone (mbt->btor);
   }
+
   return btormbt_state_opt;
 }
 
 static void *
 btormbt_state_opt (BtorMBT *mbt, unsigned r)
 {
-  int i, rw, set_sat_solver = 1;
+  int i, set_sat_solver = 1;
+  BtorMBTBtorOpt *btoropt;
   RNG rng = initrng (r);
 
-  for (i = 0; i < BTOR_COUNT_STACK (mbt->btor_opts); i++)
-  {
-    BTORMBT_LOG (1,
-                 "opt: set boolector option '%s' to '%d'",
-                 BTOR_PEEK_STACK (mbt->btor_opts, i)->name,
-                 BTOR_PEEK_STACK (mbt->btor_opts, i)->val);
-    boolector_set_opt (mbt->btor,
-                       BTOR_PEEK_STACK (mbt->btor_opts, i)->name,
-                       BTOR_PEEK_STACK (mbt->btor_opts, i)->val);
-  }
+  /* reset every round */
+  mbt->dump        = 0;
+  mbt->inc         = 0;
+  mbt->mgen        = 0;
+  mbt->print_model = 0;
 
   /* set random sat solver */
 #ifdef BTOR_USE_LINGELING
@@ -2671,50 +2694,67 @@ btormbt_state_opt (BtorMBT *mbt, unsigned r)
     boolector_set_sat_solver_minisat (mbt->btor);
 #endif
 
-  if (pick (&rng, 0, NORM_VAL - 1) < mbt->p_dump) mbt->dump = 1;
-
-  mbt->mgen = 0;
-  if (!mbt->dump && !mbt->force_nomgen
-// FIXME remove as soon as ucopt works with mgen
+  /* set random options */
+  for (i = 0; i < BTOR_COUNT_STACK (mbt->btor_opts); i++)
+  {
+    btoropt = BTOR_PEEK_STACK (mbt->btor_opts, i);
+    if (!btoropt->set_by_cl)
+    {
+      /* choose options with probability 0.5 */
+      if (!strcmp (btoropt->name, BTOR_OPT_INCREMENTAL)
+          || !strcmp (btoropt->name, BTOR_OPT_MODEL_GEN))
+      {
+        if (pick (&rng, 0, 1)) continue;
+      }
+      else /* choose other options with probability 0.1 */
+      {
+        if (pick (&rng, 0, 9)) continue;
+      }
+      /* exclude some combinations of options (dependent on option order in
+       * btoropts.h) */
 #ifndef BTOR_DO_NOT_OPTIMIZE_UNCONSTRAINED
-      && !boolector_get_opt_val (mbt->btor, BTOR_OPT_UCOPT)
+      // FIXME remove as soon as ucopt works with mgen
+      /* do not enable unconstrained optimization if either model
+       * generation or incremental is enabled */
+      if (!strcmp (btoropt->name, BTOR_OPT_UCOPT)
+          && (boolector_get_opt_val (mbt->btor, BTOR_OPT_MODEL_GEN)
+              || boolector_get_opt_val (mbt->btor, BTOR_OPT_INCREMENTAL)))
+        continue;
 #endif
-      && pick (&rng, 0, 1))
-  {
-    BTORMBT_LOG (1, "opt: enabled boolector option '%s'", BTOR_OPT_MODEL_GEN);
-    boolector_set_opt (mbt->btor, BTOR_OPT_MODEL_GEN, 1);
-    mbt->mgen = 1;
+      /* do not enable beta reduction probing if model generation is
+       * enabled */
+      if (!strcmp (btoropt->name, BTOR_OPT_PBRA)
+          && boolector_get_opt_val (mbt->btor, BTOR_OPT_MODEL_GEN))
+        continue;
+
+      /* do not enable justification if dual propagation is enabled */
+      if (!strcmp (btoropt->name, BTOR_OPT_JUST)
+          && boolector_get_opt_val (mbt->btor, BTOR_OPT_DUAL_PROP))
+        continue;
+
+      btoropt->val = pick (&rng, btoropt->min, btoropt->max);
+    }
+    BTORMBT_LOG (1,
+                 "opt: set boolector option '%s' to '%d'",
+                 btoropt->name,
+                 btoropt->val);
+    /* if an option is set via command line the value is saved in
+     * btoropt->val */
+    boolector_set_opt (mbt->btor, btoropt->name, btoropt->val);
+
+    /* set some mbt specific options */
+    if (!strcmp (btoropt->name, BTOR_OPT_INCREMENTAL) && btoropt->val == 1)
+      mbt->inc = 1;
+    else if (!strcmp (btoropt->name, BTOR_OPT_MODEL_GEN) && btoropt->val > 0)
+    {
+      mbt->mgen = 1;
+      if (pick (&rng, 0, NORM_VAL - 1) < mbt->p_print_model)
+        mbt->print_model = 1;
+    }
   }
 
-  if (mbt->mgen && pick (&rng, 0, NORM_VAL - 1) < mbt->p_print_model)
-  {
-    mbt->print_model = 1;
-    boolector_set_opt (mbt->btor, BTOR_OPT_PRETTY_PRINT, 0);
-  }
-
-  if (!mbt->dump
-// FIXME remove as soon as ucopt works with mgen
-#ifndef BTOR_DO_NOT_OPTIMIZE_UNCONSTRAINED
-      && !boolector_get_opt_val (mbt->btor, BTOR_OPT_UCOPT)
-#endif
-      && pick (&rng, 0, 1))
-  {
-    BTORMBT_LOG (1, "opt: enabled boolector option '%s'", BTOR_OPT_INCREMENTAL);
-    boolector_set_opt (mbt->btor, BTOR_OPT_INCREMENTAL, 1);
-    mbt->inc = 1;
-  }
-
-  if (!pick (&rng, 0, 9))
-  {
-    BTORMBT_LOG (
-        1, "opt: enabled boolector option '%s'", BTOR_OPT_BETA_REDUCE_ALL);
-    boolector_set_opt (mbt->btor, BTOR_OPT_BETA_REDUCE_ALL, 1);
-  }
-
-  rw = pick (&rng, 0, 3);
-  BTORMBT_LOG (
-      1, "opt: set boolector option '%s' to %d", BTOR_OPT_REWRITE_LEVEL, rw);
-  boolector_set_opt (mbt->btor, BTOR_OPT_REWRITE_LEVEL, rw);
+  if (!mbt->inc && !mbt->mgen && pick (&rng, 0, NORM_VAL - 1) < mbt->p_dump)
+    mbt->dump = 1;
 
   return btormbt_state_init;
 }
@@ -3336,11 +3376,10 @@ int
 main (int argc, char **argv)
 {
   int exitcode;
-  int i, val, mac, pid, prev, res, verbosity, status;
+  int i, j, val, mac, pid, prev, res, verbosity, status;
   char *name, *cmd, *tmp;
-  const char *tmpshrt;
   int namelen, cmdlen, tmppid;
-  BtorMBTBtorOpt *btoropt;
+  BtorMBTBtorOpt *btoropt, *tmpopt;
 
   g_btormbt             = btormbt_new_btormbt ();
   g_btormbt->start_time = current_time ();
@@ -3454,24 +3493,25 @@ main (int argc, char **argv)
     /* boolector options */
     else if (!strcmp (argv[i], "-b"))
     {
-      Btor *tmpbtor = boolector_new ();
       if (++i == argc) btormbt_error ("argument to '-b' missing (try '-h')");
-      for (tmp = (char *) boolector_first_opt (tmpbtor); tmp;
-           tmp = (char *) boolector_next_opt (tmpbtor, tmp))
+      btoropt = 0;
+      for (j = 0; j < BTOR_COUNT_STACK (g_btormbt->btor_opts); j++)
       {
-        if (!strcmp (tmp, argv[i])) break;
-        tmpshrt = boolector_get_opt_shrt (tmpbtor, tmp);
-        if (tmpshrt && !strcmp (tmpshrt, argv[i])) break;
+        tmpopt = BTOR_PEEK_STACK (g_btormbt->btor_opts, j);
+        assert (tmpopt);
+        if (!strcmp (tmpopt->name, argv[i])
+            || (tmpopt->shrt && !strcmp (tmpopt->shrt, argv[i])))
+        {
+          btoropt = tmpopt;
+          break;
+        }
       }
-      if (!tmp) btormbt_error ("invalid boolector option '%s'", argv[i]);
-      BTOR_NEW (g_btormbt->mm, btoropt);
-      btoropt->name = btor_strdup (g_btormbt->mm, argv[i]);
+      if (!btoropt) btormbt_error ("invalid boolector option '%s'", argv[i]);
       if (++i == argc) btormbt_error ("argument to '-b' missing (try '-h')");
       val = (int) strtol (argv[i], &tmp, 10);
       if (tmp[0] != 0) btormbt_error ("invalid argument to '-b' (try '-h')");
-      btoropt->val = val;
-      BTOR_PUSH_STACK (g_btormbt->mm, g_btormbt->btor_opts, btoropt);
-      boolector_delete (tmpbtor);
+      btoropt->val       = val;
+      btoropt->set_by_cl = true;
     }
 
     /* advanced options */

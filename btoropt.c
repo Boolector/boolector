@@ -55,8 +55,10 @@ set_opt_values (BtorOpt *opt,
                 char *desc)
 {
   assert (opt);
+  assert (min >= 0);
+  assert (max <= INT_MAX);
   assert (min <= val);
-  assert (max == -1 || val <= max);
+  assert (val <= max);
 
   opt->internal = internal;
   opt->shrt     = shrt;
@@ -151,14 +153,14 @@ btor_init_opts (Btor *btor)
             0,
             1,
             "probe -bra until given LOD or SAT limit");
-  BTOR_OPT (0, pbra_lod_limit, 10, 0, -1, "LOD limit (#lemmas) for -pbra");
+  BTOR_OPT (0, pbra_lod_limit, 10, 0, INT_MAX, "LOD limit (#lemmas) for -pbra");
   BTOR_OPT (
-      0, pbra_sat_limit, 55000, 0, -1, "SAT limit (#conflicts) for -pbra");
+      0, pbra_sat_limit, 55000, 0, INT_MAX, "SAT limit (#conflicts) for -pbra");
   BTOR_OPT (0,
             pbra_ops_factor,
             10,
             0,
-            -1,
+            INT_MAX,
             "factor by which the size of the red. formula may be greater than "
             "the original formula");
 #endif
@@ -181,6 +183,9 @@ btor_init_opts (Btor *btor)
   BTOR_OPT ("xl", extract_lambdas, 1, 0, 1, "extract lambda terms");
   BTOR_OPT (
       "sp", skeleton_preproc, 1, 0, 1, "propositional skeleton preprocessing");
+  BTOR_OPT (0, sort_exp, 1, 0, 1, "sort commutative expression nodes");
+  BTOR_OPT (0, sort_aig, 1, 0, 1, "sort AIG nodes");
+  BTOR_OPT (0, sort_aigvec, 1, 0, 1, "sort AIG vectors");
   BTOR_OPT ("ac", auto_cleanup, 0, 0, 1, "auto cleanup on exit");
   BTOR_OPT ("p", pretty_print, 1, 0, 1, "pretty print when dumping");
   BTOR_OPT ("e", exit_codes, 1, 0, 1, "use Boolector exit codes");

@@ -1,7 +1,7 @@
 /*  Boolector: Satisfiablity Modulo Theories (SMT) solver.
  *
  *  Copyright (C) 2007-2009 Robert Daniel Brummayer.
- *  Copyright (C) 2007-2014 Armin Biere.
+ *  Copyright (C) 2007-2015 Armin Biere.
  *  Copyright (C) 2013-2015 Mathias Preiner.
  *  Copyright (C) 2014-2015 Aina Niemetz.
  *
@@ -5660,7 +5660,7 @@ normalize_concat (Btor *btor, BtorNode **left, BtorNode **right)
 static inline void
 normalize_cond (Btor *btor, BtorNode **cond, BtorNode **left, BtorNode **right)
 {
-  BtorNode *e0, *e1, *e2, *tmp;
+  BtorNode *e0, *e1, *e2;
 
   e0 = *cond;
   e1 = *left;
@@ -5669,10 +5669,8 @@ normalize_cond (Btor *btor, BtorNode **cond, BtorNode **left, BtorNode **right)
   /* normalization: ~e0 ? e1 : e2 is the same as e0 ? e2: e1 */
   if (BTOR_IS_INVERTED_NODE (e0))
   {
-    e0  = BTOR_INVERT_NODE (e0);
-    tmp = e1;
-    e1  = e2;
-    e2  = tmp;
+    e0 = BTOR_INVERT_NODE (e0);
+    BTOR_SWAP (BtorNode *, e1, e2);
   }
 
   /* normalize adds and muls on demand */
@@ -5716,8 +5714,8 @@ DONE:
 static BtorNode *
 rewrite_eq_exp (Btor *btor, BtorNode *e0, BtorNode *e1)
 {
-  int swap_ops = 0;
-  BtorNode *tmp, *result = 0;
+  int swap_ops     = 0;
+  BtorNode *result = 0;
   BtorNodeKind kind;
 
   e0 = btor_simplify_exp (btor, e0);
@@ -5763,9 +5761,7 @@ SWAP_OPERANDS:
   /* no result so far, swap operands */
   if (!swap_ops)
   {
-    tmp      = e0;
-    e0       = e1;
-    e1       = tmp;
+    BTOR_SWAP (BtorNode *, e0, e1);
     swap_ops = 1;
     goto SWAP_OPERANDS;
   }
@@ -5812,8 +5808,8 @@ DONE:
 static BtorNode *
 rewrite_and_exp (Btor *btor, BtorNode *e0, BtorNode *e1)
 {
-  int swap_ops = 0;
-  BtorNode *tmp, *result = 0;
+  int swap_ops     = 0;
+  BtorNode *result = 0;
 
   e0 = btor_simplify_exp (btor, e0);
   e1 = btor_simplify_exp (btor, e1);
@@ -5855,9 +5851,7 @@ SWAP_OPERANDS:
   /* no result so far, swap operands */
   if (!swap_ops)
   {
-    tmp      = e0;
-    e0       = e1;
-    e1       = tmp;
+    BTOR_SWAP (BtorNode *, e0, e1);
     swap_ops = 1;
     goto SWAP_OPERANDS;
   }
@@ -5873,8 +5867,8 @@ DONE:
 static BtorNode *
 rewrite_add_exp (Btor *btor, BtorNode *e0, BtorNode *e1)
 {
-  int swap_ops = 0;
-  BtorNode *tmp, *result = 0;
+  int swap_ops     = 0;
+  BtorNode *result = 0;
 
   e0 = btor_simplify_exp (btor, e0);
   e1 = btor_simplify_exp (btor, e1);
@@ -5904,9 +5898,7 @@ SWAP_OPERANDS:
   /* no result so far, swap operands */
   if (!swap_ops)
   {
-    tmp      = e0;
-    e0       = e1;
-    e1       = tmp;
+    BTOR_SWAP (BtorNode *, e0, e1);
     swap_ops = 1;
     goto SWAP_OPERANDS;
   }
@@ -5922,8 +5914,8 @@ DONE:
 static BtorNode *
 rewrite_mul_exp (Btor *btor, BtorNode *e0, BtorNode *e1)
 {
-  int swap_ops = 0;
-  BtorNode *tmp, *result = 0;
+  int swap_ops     = 0;
+  BtorNode *result = 0;
 
   e0 = btor_simplify_exp (btor, e0);
   e1 = btor_simplify_exp (btor, e1);
@@ -5949,9 +5941,7 @@ SWAP_OPERANDS:
   /* no result so far, swap operands */
   if (!swap_ops)
   {
-    tmp      = e0;
-    e0       = e1;
-    e1       = tmp;
+    BTOR_SWAP (BtorNode *, e0, e1);
     swap_ops = 1;
     goto SWAP_OPERANDS;
   }

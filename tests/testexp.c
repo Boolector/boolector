@@ -2,7 +2,7 @@
  *
  *  Copyright (C) 2007-2010 Robert Daniel Brummayer.
  *  Copyright (C) 2007-2012 Armin Biere.
- *  Copyright (C) 2012, 2014-2015 Aina Niemetz.
+ *  Copyright (C) 2012-2015 Aina Niemetz.
  *
  *  All rights reserved.
  *
@@ -238,6 +238,7 @@ test_array_exp (void)
 static void
 unary_exp_test (BtorNode *(*func) (Btor *, BtorNode *) )
 {
+  const unsigned len = 8;
   BtorNode *exp1, *exp2, *exp3;
 
   init_exp_test ();
@@ -247,11 +248,11 @@ unary_exp_test (BtorNode *(*func) (Btor *, BtorNode *) )
   exp3 = func (g_btor, exp1);
 
   assert (exp2 == exp3);
-  assert (btor_get_exp_width (g_btor, exp1) == 8);
+  assert (btor_get_exp_width (g_btor, exp1) == len);
   if (func == btor_not_exp || func == btor_neg_exp)
   {
-    assert (btor_get_exp_width (g_btor, exp2) == 8);
-    assert (btor_get_exp_width (g_btor, exp3) == 8);
+    assert (btor_get_exp_width (g_btor, exp2) == len);
+    assert (btor_get_exp_width (g_btor, exp3) == len);
   }
   else
   {

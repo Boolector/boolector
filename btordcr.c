@@ -219,12 +219,13 @@ compute_scores_aux (Btor *btor, BtorNodePtrStack *nodes)
 {
   int h;
 
-  if (!(h = btor->options.just_heuristic.val)) return;
-
+  h = btor->options.just_heuristic.val;
   if (h == BTOR_JUST_HEUR_BRANCH_MIN_APP)
     compute_scores_aux_min_app (btor, nodes);
   else if (h == BTOR_JUST_HEUR_BRANCH_MIN_DEP)
     compute_scores_aux_min_dep (btor, nodes);
+  else /* no scores required for BTOR_JUST_HEUR_LEFT */
+    assert (h == BTOR_JUST_HEUR_LEFT);
 }
 
 void
@@ -239,6 +240,10 @@ btor_compute_scores (Btor *btor)
   BtorNode *cur, *e;
   BtorHashTableIterator it;
   BtorNodePtrStack stack, unmark_stack, nodes;
+
+  /* computing scores only required for BTOR_JUST_HEUR_BRANCH_MIN_DEP and
+   * BTOR_JUST_HEUR_BRANCH_MIN_APP */
+  if (btor->options.just_heuristic.val == BTOR_JUST_HEUR_LEFT) return;
 
   /* Collect all nodes we actually need the score for.
    * If just is enabled, we only need the children of AND nodes. If dual prop
@@ -310,6 +315,10 @@ btor_compute_scores_dual_prop (Btor *btor)
   BtorNode *cur;
   BtorNodePtrStack stack, unmark_stack, nodes;
   BtorHashTableIterator it;
+
+  /* computing scores only required for BTOR_JUST_HEUR_BRANCH_MIN_DEP and
+   * BTOR_JUST_HEUR_BRANCH_MIN_APP */
+  if (btor->options.just_heuristic.val == BTOR_JUST_HEUR_LEFT) return;
 
   start = btor_time_stamp ();
 
@@ -460,6 +469,7 @@ btor_compare_scores_qsort (const void *p1, const void *p2)
     {
       bucket = btor_find_in_ptr_hash_table (slv->score, a);
       assert (bucket);
+      assert (bucket->data.asPtr);
       sa = ((BtorPtrHashTable *) bucket->data.asPtr)->count;
     }
 
@@ -469,6 +479,7 @@ btor_compare_scores_qsort (const void *p1, const void *p2)
     {
       bucket = btor_find_in_ptr_hash_table (slv->score, b);
       assert (bucket);
+      assert (bucket->data.asPtr);
       sb = ((BtorPtrHashTable *) bucket->data.asPtr)->count;
     }
   }

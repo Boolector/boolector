@@ -1,6 +1,6 @@
 /*  Boolector: Satisfiablity Modulo Theories (SMT) solver.
  *
- *  Copyright (C) 2007-2014 Armin Biere.
+ *  Copyright (C) 2007-2015 Armin Biere.
  *  Copyright (C) 2015 Mathias Preiner.
  *
  *  All rights reserved.
@@ -13,6 +13,7 @@
 #include "btoraigvec.h"
 #include "btorexit.h"
 #include "utils/btoriter.h"
+#include "utils/btorutil.h"
 
 #define BTOR_ABORT_DUMPAIG(cond, msg)                   \
   do                                                    \
@@ -105,6 +106,10 @@ btor_dump_aiger (Btor *btor, FILE *output, bool is_binary, bool merge_roots)
   btor->options.lazy_synthesize.val = lazy_synthesize;
   if (merge_roots) BTOR_PUSH_STACK (btor->mm, roots, merged);
 
+  if (BTOR_EMPTY_STACK (roots))
+    BTOR_PUSH_STACK (
+        btor->mm, roots, btor->inconsistent ? BTOR_AIG_FALSE : BTOR_AIG_TRUE);
+
   btor_dump_seq_aiger (amgr,
                        is_binary,
                        output,
@@ -148,7 +153,7 @@ btor_dump_seq_aiger (BtorAIGMgr *amgr,
   unsigned char ch;
   BtorMemMgr *mm;
 
-  assert (naigs > 0);
+  assert (naigs >= 0);
 
   mm = amgr->mm;
 
@@ -343,12 +348,7 @@ btor_dump_seq_aiger (BtorAIGMgr *amgr,
     left_id  = aiger_encode_aig (table, left);
     right_id = aiger_encode_aig (table, right);
 
-    if (left_id < right_id)
-    {
-      tmp      = left_id;
-      left_id  = right_id;
-      right_id = tmp;
-    }
+    if (left_id < right_id) BTOR_SWAP (int, left_id, right_id);
 
     assert (aig_id > left_id);
     assert (left_id >= right_id); /* strict ? */

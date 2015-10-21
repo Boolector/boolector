@@ -277,10 +277,11 @@ bdcnode (BtorDumpContext *bdc, BtorNode *node, FILE *file)
   int i, aspi = -1;
   char *symbol;
   const char *op;
-  BtorNode *n;
-  BtorBitVector *bits;
+  BtorNode *n, *index, *value;
   BtorArgsIterator ait;
   BtorNodeIterator nit;
+  BtorPtrHashTable *rho;
+  BtorBitVector *bits;
 
   node = BTOR_REAL_ADDR_NODE (node);
 
@@ -329,13 +330,21 @@ bdcnode (BtorDumpContext *bdc, BtorNode *node, FILE *file)
       break;
     case BTOR_PARAM_NODE: op = "param"; break;
     case BTOR_LAMBDA_NODE:
-      if (bdc->version == 1 || btor_get_fun_arity (bdc->btor, node) == 1)
+      if (bdc->btor->options.rewrite_level.val == 0
+          && btor_lambda_get_static_rho (node))
+      {
+        op = "write";
+      }
+      else if (bdc->version == 1 || btor_get_fun_arity (bdc->btor, node) == 1)
         op = "lambda";
       else
         op = "fun";
       break;
     case BTOR_APPLY_NODE:
-      if (BTOR_IS_UF_ARRAY_NODE (node->e[0]))
+      if (BTOR_IS_UF_ARRAY_NODE (node->e[0])
+          || (bdc->btor->options.rewrite_level.val == 0
+              && BTOR_IS_LAMBDA_NODE (node->e[0])
+              && btor_lambda_get_static_rho (node->e[0])))
         op = "read";
       else
         op = "apply";
@@ -413,6 +422,28 @@ bdcnode (BtorDumpContext *bdc, BtorNode *node, FILE *file)
     fprintf (file, " %d", aspi);
   else if (BTOR_IS_PROXY_NODE (node))
     fprintf (file, " %d", bdcid (bdc, node->simplified));
+  /* print write instead of lambda */
+  else if (bdc->btor->options.rewrite_level.val == 0
+           && BTOR_IS_LAMBDA_NODE (node) && btor_lambda_get_static_rho (node))
+  {
+    assert (btor_get_fun_arity (bdc->btor, node) == 1);
+    rho = btor_lambda_get_static_rho (node);
+    assert (rho->count == 1);
+    index = rho->first->key;
+    value = rho->first->data.asPtr;
+    assert (value);
+    assert (BTOR_IS_REGULAR_NODE (index));
+    assert (BTOR_IS_ARGS_NODE (index));
+    assert (BTOR_IS_REGULAR_NODE (node->e[1]));
+    assert (BTOR_IS_BV_COND_NODE (node->e[1]));
+    assert (BTOR_IS_REGULAR_NODE (node->e[1]->e[2]));
+    assert (BTOR_IS_APPLY_NODE (node->e[1]->e[2]));
+    fprintf (file,
+             " %d %d %d",
+             bdcid (bdc, node->e[1]->e[2]->e[0]),
+             bdcid (bdc, index->e[0]),
+             bdcid (bdc, value));
+  }
   else
     for (i = 0; i < node->arity; i++)
       fprintf (file, " %d", bdcid (bdc, node->e[i]));
