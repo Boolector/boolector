@@ -1,7 +1,7 @@
 /*  Boolector: Satisfiablity Modulo Theories (SMT) solver.
  *
  *  Copyright (C) 2007-2009 Robert Daniel Brummayer.
- *  Copyright (C) 2007-2014 Armin Biere.
+ *  Copyright (C) 2007-2015 Armin Biere.
  *  Copyright (C) 2012-2015 Aina Niemetz.
  *  Copyright (C) 2012-2015 Mathias Preiner.
  *
@@ -45,13 +45,9 @@
 
 #define BTOR_UNIQUE_TABLE_LIMIT 30
 
-#define BTOR_NODE_UNIQUE_TABLE_PRIME 2000000137u
-
 #define BTOR_FULL_UNIQUE_TABLE(table)   \
   ((table).num_elements >= (table).size \
    && btor_log_2_util ((table).size) < BTOR_UNIQUE_TABLE_LIMIT)
-
-//#define NBTOR_SORT_BIN_COMMUTATIVE
 
 /*------------------------------------------------------------------------*/
 #ifndef NDEBUG
@@ -509,18 +505,60 @@ hash_lambda_exp (Btor *btor, BtorNode *param, BtorNode *body)
   return hash;
 }
 
-static inline unsigned int
-hash_bv_exp (int arity, BtorNode **e)
+static int
+is_sorted_bv_exp (Btor *btor, BtorNodeKind kind, BtorNode **e)
 {
-  int i;
+  if (!btor->options.sort_exp.val) return 1;
+  if (!BTOR_IS_BINARY_COMMUTATIVE_NODE_KIND (kind)) return 1;
+  if (e[0] == e[1]) return 1;
+  if (BTOR_INVERT_NODE (e[0]) == e[1] && BTOR_IS_INVERTED_NODE (e[1])) return 1;
+  return BTOR_REAL_ADDR_NODE (e[0])->id <= BTOR_REAL_ADDR_NODE (e[1])->id;
+}
+
+static void
+sort_bv_exp (Btor *btor, BtorNodeKind kind, BtorNode **e)
+{
+  if (!is_sorted_bv_exp (btor, kind, e)) BTOR_SWAP (BtorNode *, e[0], e[1]);
+}
+
+static unsigned hash_primes[] = {333444569u, 76891121u, 456790003u};
+
+#define NPRIMES ((int) (sizeof hash_primes / sizeof *hash_primes))
+
+static inline unsigned int
+hash_slice_exp (BtorNode *e, uint32_t upper, uint32_t lower)
+{
+  unsigned int hash;
+  assert (upper >= lower);
+  hash = hash_primes[0] * (unsigned int) BTOR_REAL_ADDR_NODE (e)->id;
+  hash += hash_primes[1] * (unsigned int) upper;
+  hash += hash_primes[2] * (unsigned int) lower;
+  return hash;
+}
+
+static inline unsigned int
+hash_bv_exp (Btor *btor, BtorNodeKind kind, int arity, BtorNode **e)
+{
   unsigned int hash = 0;
-  for (i = 0; i < arity; i++) hash += (unsigned) BTOR_REAL_ADDR_NODE (e[i])->id;
+  int i;
+#ifndef NDEBUG
+  if (btor->options.sort_exp.val > 0
+      && BTOR_IS_BINARY_COMMUTATIVE_NODE_KIND (kind))
+    assert (arity == 2), assert (BTOR_REAL_ADDR_NODE (e[0])->id
+                                 <= BTOR_REAL_ADDR_NODE (e[1])->id);
+#else
+  (void) btor;
+  (void) kind;
+#endif
+  assert (arity <= NPRIMES);
+  for (i = 0; i < arity; i++)
+    hash += hash_primes[i] * (unsigned int) BTOR_REAL_ADDR_NODE (e[i])->id;
   return hash;
 }
 
 /* Computes hash value of expresssion by children ids */
 static unsigned int
-compute_hash_exp (BtorNode *exp, int table_size)
+compute_hash_exp (Btor *btor, BtorNode *exp, int table_size)
 {
   assert (exp);
   assert (table_size > 0);
@@ -539,14 +577,12 @@ compute_hash_exp (BtorNode *exp, int table_size)
    * change at some point. */
   else if (BTOR_IS_LAMBDA_NODE (exp))
     hash = btor_find_in_ptr_hash_table (exp->btor->lambdas, exp)->data.asInt;
-  else if (exp)
-  {
-    hash = hash_bv_exp (exp->arity, exp->e);
-    if (exp->kind == BTOR_SLICE_NODE)
-      hash += (unsigned int) btor_slice_get_upper (exp)
-              + (unsigned int) btor_slice_get_lower (exp);
-  }
-  hash = (hash * BTOR_NODE_UNIQUE_TABLE_PRIME) & (table_size - 1);
+  else if (exp->kind == BTOR_SLICE_NODE)
+    hash = hash_slice_exp (
+        exp->e[0], btor_slice_get_upper (exp), btor_slice_get_lower (exp));
+  else
+    hash = hash_bv_exp (btor, exp->kind, exp->arity, exp->e);
+  hash &= table_size - 1;
   return hash;
 }
 
@@ -691,7 +727,7 @@ remove_from_nodes_unique_table_exp (Btor *btor, BtorNode *exp)
   assert (btor);
   assert (btor->nodes_unique_table.num_elements > 0);
 
-  hash = compute_hash_exp (exp, btor->nodes_unique_table.size);
+  hash = compute_hash_exp (btor, exp, btor->nodes_unique_table.size);
   prev = 0;
   cur  = btor->nodes_unique_table.chains[hash];
 
@@ -1313,6 +1349,13 @@ new_bv_node (Btor *btor, BtorNodeKind kind, int arity, BtorNode **e)
   assert (BTOR_IS_BINARY_NODE_KIND (kind) || BTOR_IS_TERNARY_NODE_KIND (kind));
   assert (e);
 
+#ifndef NDEBUG
+  if (btor->options.sort_exp.val > 0
+      && BTOR_IS_BINARY_COMMUTATIVE_NODE_KIND (kind))
+    assert (arity == 2), assert (BTOR_REAL_ADDR_NODE (e[0])->id
+                                 <= BTOR_REAL_ADDR_NODE (e[1])->id);
+#endif
+
   int i;
   unsigned len;
   BtorBVNode *exp;
@@ -1419,8 +1462,7 @@ find_const_exp (Btor *btor, const char *bits, uint32_t len)
   unsigned int hash;
 
   hash = btor_hash_str ((void *) bits);
-  hash = (hash * BTOR_NODE_UNIQUE_TABLE_PRIME)
-         & (btor->nodes_unique_table.size - 1);
+  hash &= btor->nodes_unique_table.size - 1;
   result = btor->nodes_unique_table.chains + hash;
   cur    = *result;
   while (cur)
@@ -1449,10 +1491,8 @@ find_slice_exp (Btor *btor, BtorNode *e0, uint32_t upper, uint32_t lower)
   BtorNode *cur, **result;
   unsigned int hash;
 
-  hash = (((unsigned int) BTOR_REAL_ADDR_NODE (e0)->id + (unsigned int) upper
-           + (unsigned int) lower)
-          * BTOR_NODE_UNIQUE_TABLE_PRIME)
-         & (btor->nodes_unique_table.size - 1);
+  hash = hash_slice_exp (e0, upper, lower);
+  hash &= btor->nodes_unique_table.size - 1;
   result = btor->nodes_unique_table.chains + hash;
   cur    = *result;
   while (cur)
@@ -1478,8 +1518,11 @@ find_bv_exp (Btor *btor, BtorNodeKind kind, int arity, BtorNode **e)
   unsigned int hash;
   BtorNode *cur, **result;
 
-  hash = hash_bv_exp (arity, e);
-  hash *= BTOR_NODE_UNIQUE_TABLE_PRIME;
+  assert (kind != BTOR_SLICE_NODE);
+  assert (kind != BTOR_BV_CONST_NODE);
+
+  sort_bv_exp (btor, kind, e);
+  hash = hash_bv_exp (btor, kind, arity, e);
   hash &= btor->nodes_unique_table.size - 1;
 
   result = btor->nodes_unique_table.chains + hash;
@@ -1490,18 +1533,16 @@ find_bv_exp (Btor *btor, BtorNodeKind kind, int arity, BtorNode **e)
     if (cur->kind == kind && cur->arity == arity)
     {
       equal = 1;
-#ifdef NBTOR_SORT_BIN_COMMUTATIVE
-      if (BTOR_IS_BINARY_COMMUTATIVE_NODE_KIND (kind))
-      {
-        if ((cur->e[0] == e[0] && cur->e[1] == e[1])
-            || (cur->e[0] == e[1] && cur->e[1] == e[0]))
-          break;
-      }
-#endif
       for (i = 0; i < arity && equal; i++)
         if (cur->e[i] != e[i]) equal = 0;
-
       if (equal) break;
+#ifndef NDEBUG
+      if (btor->options.sort_exp.val > 0
+          && BTOR_IS_BINARY_COMMUTATIVE_NODE_KIND (kind))
+        assert (arity == 2),
+            assert (e[0] == e[1] || BTOR_INVERT_NODE (e[0]) == e[1]
+                    || !(cur->e[0] == e[1] && cur->e[1] == e[0]));
+#endif
     }
     result = &(cur->next);
     cur    = *result;
@@ -1529,7 +1570,6 @@ find_lambda_exp (Btor *btor,
 
   hash = hash_lambda_exp (btor, param, body);
   if (lambda_hash) *lambda_hash = hash;
-  hash *= BTOR_NODE_UNIQUE_TABLE_PRIME;
   hash &= btor->nodes_unique_table.size - 1;
   result = btor->nodes_unique_table.chains + hash;
   cur    = *result;
@@ -1568,7 +1608,7 @@ compare_lambda_exp (Btor *btor,
 
   int i, equal = 0;
   BtorMemMgr *mm;
-  BtorNode *cur, *real_cur, **result, *subst_param, **e, *t, *l0, *l1;
+  BtorNode *cur, *real_cur, **result, *subst_param, **e, *l0, *l1;
   BtorPtrHashTable *cache, *param_map;
   BtorPtrHashBucket *b, *bb;
   BtorNodePtrStack stack, args;
@@ -1678,17 +1718,6 @@ compare_lambda_exp (Btor *btor,
       else
       {
         assert (!BTOR_IS_LAMBDA_NODE (real_cur));
-
-#ifndef NBTOR_SORT_BIN_COMMUTATIVE
-        if (btor->options.rewrite_level.val > 0
-            && BTOR_IS_BINARY_COMMUTATIVE_NODE (real_cur)
-            && BTOR_REAL_ADDR_NODE (e[1])->id < BTOR_REAL_ADDR_NODE (e[0])->id)
-        {
-          t    = e[0];
-          e[0] = e[1];
-          e[1] = t;
-        }
-#endif
         result = find_bv_exp (btor, real_cur->kind, real_cur->arity, e);
       }
 
@@ -1771,7 +1800,7 @@ enlarge_nodes_unique_table (Btor *btor)
       assert (!BTOR_IS_BV_VAR_NODE (cur));
       assert (!BTOR_IS_UF_NODE (cur));
       temp             = cur->next;
-      hash             = compute_hash_exp (cur, new_size);
+      hash             = compute_hash_exp (btor, cur, new_size);
       cur->next        = new_chains[hash];
       new_chains[hash] = cur;
       cur              = temp;
@@ -2090,25 +2119,13 @@ create_exp (Btor *btor, BtorNodeKind kind, uint32_t arity, BtorNode **e)
 
   uint32_t i;
   unsigned int lambda_hash;
-  BtorNode **lookup, *simp_e[3], *t;
+  BtorNode **lookup, *simp_e[3];
 
   for (i = 0; i < arity; i++)
   {
     assert (BTOR_REAL_ADDR_NODE (e[i])->btor == btor);
     simp_e[i] = btor_simplify_exp (btor, e[i]);
   }
-
-#ifndef NBTOR_SORT_BIN_COMMUTATIVE
-  if (btor->options.rewrite_level.val > 0
-      && BTOR_IS_BINARY_COMMUTATIVE_NODE_KIND (kind)
-      && BTOR_REAL_ADDR_NODE (simp_e[1])->id
-             < BTOR_REAL_ADDR_NODE (simp_e[0])->id)
-  {
-    t         = simp_e[0];
-    simp_e[0] = simp_e[1];
-    simp_e[1] = t;
-  }
-#endif
 
   lookup = find_exp (btor, kind, arity, simp_e, &lambda_hash);
   if (!*lookup)
@@ -4182,3 +4199,24 @@ btor_is_encoded_exp (BtorNode *exp)
   exp->av->encoded = 1;
   return true;
 }
+
+#ifndef NDEBUG
+
+BtorNode *
+btor_trav (BtorNode *n, const char *str)
+{
+  const char *p;
+  for (p = str; *p; p++)
+  {
+    int i;
+    if (!n) return 0;
+    n = BTOR_REAL_ADDR_NODE (n);
+    i = *p - '0';
+    if (i < 0) return 0;
+    if (i >= n->arity) return 0;
+    n = n->e[i];
+  }
+  return n;
+}
+
+#endif

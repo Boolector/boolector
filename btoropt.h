@@ -13,38 +13,38 @@
 #ifndef BTOROPTS_H_INCLUDED
 #define BTOROPTS_H_INCLUDED
 
-#define BTOR_INPUT_FORMAT_BTOR2 -2
-#define BTOR_INPUT_FORMAT_BTOR -1
 #define BTOR_INPUT_FORMAT_NONE 0
-#define BTOR_INPUT_FORMAT_SMT1 1
-#define BTOR_INPUT_FORMAT_SMT2 2
+#define BTOR_INPUT_FORMAT_BTOR 1
+#define BTOR_INPUT_FORMAT_BTOR2 2
+#define BTOR_INPUT_FORMAT_SMT1 3
+#define BTOR_INPUT_FORMAT_SMT2 4
 #define BTOR_INPUT_FORMAT_DFLT BTOR_INPUT_FORMAT_NONE
-#define BTOR_INPUT_FORMAT_MIN -2
-#define BTOR_INPUT_FORMAT_MAX 2
+#define BTOR_INPUT_FORMAT_MIN BTOR_INPUT_FORMAT_NONE
+#define BTOR_INPUT_FORMAT_MAX BTOR_INPUT_FORMAT_SMT2
 
 #define BTOR_OUTPUT_BASE_BIN 0
 #define BTOR_OUTPUT_BASE_HEX 1
 #define BTOR_OUTPUT_BASE_DEC 2
 #define BTOR_OUTPUT_BASE_DFLT BTOR_OUTPUT_BASE_BIN
-#define BTOR_OUTPUT_BASE_MIN 0
-#define BTOR_OUTPUT_BASE_MAX 2
+#define BTOR_OUTPUT_BASE_MIN BTOR_OUTPUT_BASE_BIN
+#define BTOR_OUTPUT_BASE_MAX BTOR_OUTPUT_BASE_DEC
 
-#define BTOR_OUTPUT_FORMAT_AIGER_ASCII -4
-#define BTOR_OUTPUT_FORMAT_AIGER_BINARY -3
-#define BTOR_OUTPUT_FORMAT_BTOR2 -2
-#define BTOR_OUTPUT_FORMAT_BTOR -1
-#define BTOR_OUTPUT_FORMAT_SMT1 1
-#define BTOR_OUTPUT_FORMAT_SMT2 2
+#define BTOR_OUTPUT_FORMAT_BTOR 1
+#define BTOR_OUTPUT_FORMAT_BTOR2 2
+#define BTOR_OUTPUT_FORMAT_SMT1 3
+#define BTOR_OUTPUT_FORMAT_SMT2 4
+#define BTOR_OUTPUT_FORMAT_AIGER_ASCII 5
+#define BTOR_OUTPUT_FORMAT_AIGER_BINARY 6
 #define BTOR_OUTPUT_FORMAT_DFLT BTOR_OUTPUT_FORMAT_BTOR
-#define BTOR_OUTPUT_FORMAT_MIN -4
-#define BTOR_OUTPUT_FORMAT_MAX 2
+#define BTOR_OUTPUT_FORMAT_MIN BTOR_OUTPUT_FORMAT_BTOR
+#define BTOR_OUTPUT_FORMAT_MAX BTOR_OUTPUT_FORMAT_AIGER_BINARY
 
 #define BTOR_JUST_HEUR_LEFT 0
 #define BTOR_JUST_HEUR_BRANCH_MIN_APP 1
 #define BTOR_JUST_HEUR_BRANCH_MIN_DEP 2
 #define BTOR_JUST_HEUR_DFLT BTOR_JUST_HEUR_BRANCH_MIN_APP
-#define BTOR_JUST_HEUR_MIN 0
-#define BTOR_JUST_HEUR_MAX 2
+#define BTOR_JUST_HEUR_MIN BTOR_JUST_HEUR_LEFT
+#define BTOR_JUST_HEUR_MAX BTOR_JUST_HEUR_BRANCH_MIN_DEP
 
 typedef struct BtorOpt
 {
@@ -99,6 +99,9 @@ typedef struct BtorOpt
 #define BTOR_OPT_MERGE_LAMBDAS "merge_lambdas"
 #define BTOR_OPT_EXTRACT_LAMBDAS "extract_lambdas"
 #define BTOR_OPT_SKELETON_PREPROC "skeleton_preproc"
+#define BTOR_OPT_SORT_EXP "sort_exp"
+#define BTOR_OPT_SORT_AIG "sort_aig"
+#define BTOR_OPT_SORT_AIGVEC "sort_aigvec"
 #define BTOR_OPT_RW_NORMALIZE "rw_normalize"
 
 typedef struct BtorOpts
@@ -140,6 +143,9 @@ typedef struct BtorOpts
   BtorOpt merge_lambdas;    /* merge lambda chains */
   BtorOpt extract_lambdas;  /* extract lambda terms */
   BtorOpt skeleton_preproc; /* skeleton preprocessing */
+  BtorOpt sort_exp;         /* sort commutative expression nodes */
+  BtorOpt sort_aig;         /* sort AIG nodes */
+  BtorOpt sort_aigvec;      /* sort AIG vectors */
 
   BtorOpt auto_cleanup; /* automatic cleanup of exps, assignment
                            strings (external references only) */

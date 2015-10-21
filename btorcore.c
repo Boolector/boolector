@@ -689,7 +689,7 @@ new_aux_btor (int init_opts)
 
   btor->mm    = mm;
   btor->msg   = btor_new_btor_msg (btor->mm, &btor->options.verbosity.val);
-  btor->avmgr = btor_new_aigvec_mgr (mm, btor->msg);
+  btor->avmgr = btor_new_aigvec_mgr (mm, btor->msg, &btor->options);
 
   if (init_opts) btor_init_opts (btor);
 
@@ -4276,7 +4276,7 @@ search_initial_applies_just (Btor *btor, BtorNodePtrStack *top_applies)
   assert (btor->embedded_constraints->count == 0);
   assert (check_id_table_aux_mark_unset_dbg (btor));
 
-  int i;
+  int i, h;
   int a, a0, a1;
   double start;
   BtorNode *cur, *e0, *e1;
@@ -4290,6 +4290,7 @@ search_initial_applies_just (Btor *btor, BtorNodePtrStack *top_applies)
   BTORLOG (1, "*** search initial applies");
 
   amgr = btor_get_aig_mgr_btor (btor);
+  h    = btor->options.just_heuristic.val;
 
   BTOR_INIT_STACK (stack);
   BTOR_INIT_STACK (unmark_stack);
@@ -4362,13 +4363,22 @@ search_initial_applies_just (Btor *btor, BtorNodePtrStack *top_applies)
             }
             else  // and = 0
             {
-              if (a0 == -1 && a1 == -1  // both inputs 0
-                  && btor->options.just_heuristic.val)
+              if (a0 == -1 && a1 == -1)  // both inputs 0
               {
-                if (btor_compare_scores (btor, cur->e[0], cur->e[1]))
-                  BTOR_PUSH_STACK (btor->mm, stack, cur->e[0]);
+                /* branch selection w.r.t selected heuristic */
+                if (h == BTOR_JUST_HEUR_BRANCH_MIN_APP
+                    || h == BTOR_JUST_HEUR_BRANCH_MIN_DEP)
+                {
+                  if (btor_compare_scores (btor, cur->e[0], cur->e[1]))
+                    BTOR_PUSH_STACK (btor->mm, stack, cur->e[0]);
+                  else
+                    BTOR_PUSH_STACK (btor->mm, stack, cur->e[1]);
+                }
                 else
-                  BTOR_PUSH_STACK (btor->mm, stack, cur->e[1]);
+                {
+                  assert (h == BTOR_JUST_HEUR_LEFT);
+                  BTOR_PUSH_STACK (btor->mm, stack, cur->e[0]);
+                }
               }
               else if (a0 == -1)  // only one input 0
                 BTOR_PUSH_STACK (btor->mm, stack, cur->e[0]);
@@ -6361,7 +6371,10 @@ add_lemma_to_dual_prop_clone (Btor *btor,
 
   BtorNode *clemma, *and;
 
-  clemma = btor_recursively_rebuild_exp_clone (btor, clone, lemma, exp_map);
+  /* lemmas are built with rewriting level 'rewrite_level_pbr'. thus, we
+   * have to rebuild cloned expressions with the same rewriting level. */
+  clemma = btor_recursively_rebuild_exp_clone (
+      btor, clone, lemma, exp_map, btor->options.rewrite_level_pbr.val);
   assert (clemma);
   and = btor_and_exp (clone, *root, clemma);
   btor_release_exp (clone, clemma);

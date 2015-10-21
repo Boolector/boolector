@@ -1,6 +1,6 @@
 /*  Boolector: Satisfiablity Modulo Theories (SMT) solver.
  *
- *  Copyright (C) 2014 Mathias Preiner.
+ *  Copyright (C) 2014-2015 Mathias Preiner.
  *  Copyright (C) 2014-2015 Aina Niemetz.
  *
  *  All rights reserved.
@@ -22,6 +22,7 @@ static void
 compute_scores_aux_min_dep (Btor *btor, BtorNodePtrStack *nodes)
 {
   assert (btor);
+  assert (BTOR_CORE_SOLVER (btor)->score);
   assert (check_id_table_aux_mark_unset_dbg (btor));
   assert (nodes);
 
@@ -35,13 +36,7 @@ compute_scores_aux_min_dep (Btor *btor, BtorNodePtrStack *nodes)
   BTOR_INIT_STACK (stack);
   BTOR_INIT_STACK (unmark_stack);
 
-  slv = BTOR_CORE_SOLVER (btor);
-
-  if (!slv->score)
-    slv->score = btor_new_ptr_hash_table (btor->mm,
-                                          (BtorHashPtr) btor_hash_exp_by_id,
-                                          (BtorCmpPtr) btor_compare_exp_by_id);
-
+  slv   = BTOR_CORE_SOLVER (btor);
   score = slv->score;
 
   for (j = 0; j < BTOR_COUNT_STACK (*nodes); j++)
@@ -110,6 +105,7 @@ static void
 compute_scores_aux_min_app (Btor *btor, BtorNodePtrStack *nodes)
 {
   assert (btor);
+  assert (BTOR_CORE_SOLVER (btor)->score);
   assert (check_id_table_aux_mark_unset_dbg (btor));
   assert (nodes);
 
@@ -217,14 +213,17 @@ compute_scores_aux_min_app (Btor *btor, BtorNodePtrStack *nodes)
 static void
 compute_scores_aux (Btor *btor, BtorNodePtrStack *nodes)
 {
+  assert (BTOR_CORE_SOLVER (btor)->score);
+
   int h;
 
-  if (!(h = btor->options.just_heuristic.val)) return;
-
+  h = btor->options.just_heuristic.val;
   if (h == BTOR_JUST_HEUR_BRANCH_MIN_APP)
     compute_scores_aux_min_app (btor, nodes);
   else if (h == BTOR_JUST_HEUR_BRANCH_MIN_DEP)
     compute_scores_aux_min_dep (btor, nodes);
+  else /* no scores required for BTOR_JUST_HEUR_LEFT */
+    assert (h == BTOR_JUST_HEUR_LEFT);
 }
 
 void
@@ -240,10 +239,14 @@ btor_compute_scores (Btor *btor)
   BtorHashTableIterator it;
   BtorNodePtrStack stack, unmark_stack, nodes;
 
-  /* Collect all nodes we actually need the score for.
-   * If just is enabled, we only need the children of AND nodes. If dual prop
-   * is enabled, we only need APPLY nodes (BV var nodes always have score 0 and
-   * are treated as such in compare_scores).
+  /* computing scores only required for BTOR_JUST_HEUR_BRANCH_MIN_DEP and
+   * BTOR_JUST_HEUR_BRANCH_MIN_APP */
+  if (btor->options.just_heuristic.val == BTOR_JUST_HEUR_LEFT) return;
+
+  /* Collect all nodes we actually need the score for.  If just is enabled, we
+   * only need the children of AND nodes. If dual prop is enabled, we only need
+   * APPLY nodes (BV var nodes always have score 0 or 1 depending on the
+   * selected heuristic and are treated as such in compare_scores).
    * -> see btor_compute_scores_dual_prop */
 
   start = btor_time_stamp ();
@@ -311,6 +314,10 @@ btor_compute_scores_dual_prop (Btor *btor)
   BtorNodePtrStack stack, unmark_stack, nodes;
   BtorHashTableIterator it;
 
+  /* computing scores only required for BTOR_JUST_HEUR_BRANCH_MIN_DEP and
+   * BTOR_JUST_HEUR_BRANCH_MIN_APP */
+  if (btor->options.just_heuristic.val == BTOR_JUST_HEUR_LEFT) return;
+
   start = btor_time_stamp ();
 
   BTOR_INIT_STACK (stack);
@@ -318,10 +325,10 @@ btor_compute_scores_dual_prop (Btor *btor)
 
   slv = BTOR_CORE_SOLVER (btor);
 
-  /* Collect all nodes we actually need the score for.
-   * If just is enabled, we only need the children of AND nodes. If dual prop
-   * is enabled, we only need APPLY nodes (BV var nodes always have score 0 and
-   * are treated as such in compare_scores).
+  /* Collect all nodes we actually need the score for.  If just is enabled, we
+   * only need the children of AND nodes. If dual prop is enabled, we only need
+   * APPLY nodes (BV var nodes always have score 0 or 1 depending on the
+   * selected heuristic and are treated as such in compare_scores).
    * -> see btor_compute_scores */
 
   BTOR_INIT_STACK (nodes);
@@ -454,33 +461,45 @@ btor_compare_scores_qsort (const void *p1, const void *p2)
 
   if (h == BTOR_JUST_HEUR_BRANCH_MIN_APP)
   {
-    if (BTOR_IS_BV_VAR_NODE (a) || BTOR_IS_FEQ_NODE (a))
+    if (BTOR_IS_BV_VAR_NODE (a))
       sa = 0;
     else
     {
       bucket = btor_find_in_ptr_hash_table (slv->score, a);
       assert (bucket);
+      assert (bucket->data.asPtr);
       sa = ((BtorPtrHashTable *) bucket->data.asPtr)->count;
     }
 
-    if (BTOR_IS_BV_VAR_NODE (b) || BTOR_IS_FEQ_NODE (b))
+    if (BTOR_IS_BV_VAR_NODE (b))
       sb = 0;
     else
     {
       bucket = btor_find_in_ptr_hash_table (slv->score, b);
       assert (bucket);
+      assert (bucket->data.asPtr);
       sb = ((BtorPtrHashTable *) bucket->data.asPtr)->count;
     }
   }
   else if (h == BTOR_JUST_HEUR_BRANCH_MIN_DEP)
   {
-    bucket = btor_find_in_ptr_hash_table (slv->score, a);
-    assert (bucket);
-    sa = bucket->data.asInt;
+    if (BTOR_IS_BV_VAR_NODE (a))
+      sa = 1;
+    else
+    {
+      bucket = btor_find_in_ptr_hash_table (slv->score, a);
+      assert (bucket);
+      sa = bucket->data.asInt;
+    }
 
-    bucket = btor_find_in_ptr_hash_table (slv->score, b);
-    assert (bucket);
-    sb = bucket->data.asInt;
+    if (BTOR_IS_BV_VAR_NODE (b))
+      sb = 1;
+    else
+    {
+      bucket = btor_find_in_ptr_hash_table (slv->score, b);
+      assert (bucket);
+      sb = bucket->data.asInt;
+    }
   }
 
   if (sa < sb) return 1;

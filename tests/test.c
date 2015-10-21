@@ -2,7 +2,7 @@
  *
  *  Copyright (C) 2007-2010 Robert Daniel Brummayer.
  *  Copyright (C) 2007-2012 Armin Biere.
- *  Copyright (C) 2012, 2014 Aina Niemetz.
+ *  Copyright (C) 2012-2014 Aina Niemetz.
  *  Copyright (C) 2012 Mathias Preiner.
  *
  *  All rights reserved.

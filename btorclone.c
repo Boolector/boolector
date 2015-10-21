@@ -766,12 +766,12 @@ clone_aux_btor (Btor *btor, BtorNodeMap **exp_map, bool exp_layer_only)
   BtorNodeMap *emap = 0;
   BtorMemMgr *mm;
   double start, delta;
-  int len;
+  int i, len;
   char *prefix, *clone_prefix;
   BtorNode *exp;
   BtorHashTableIterator it;
 #ifndef NDEBUG
-  int i, h;
+  int h;
   size_t allocated;
   BtorNode *cur;
   BtorAIGMgr *amgr;
@@ -812,7 +812,9 @@ clone_aux_btor (Btor *btor, BtorNodeMap **exp_map, bool exp_layer_only)
   clone_prefix = "clone";
   len          = btor->msg->prefix ? strlen (btor->msg->prefix) : 0;
   len += strlen (clone_prefix) + 1;
+#ifndef NDEBUG
   allocated += len + 1;
+#endif
   BTOR_NEWN (clone->mm, prefix, len + 1);
   sprintf (prefix, "%s>%s", btor->msg->prefix, clone_prefix);
   btor_set_msg_prefix_btor (clone, prefix);
@@ -869,7 +871,7 @@ clone_aux_btor (Btor *btor, BtorNodeMap **exp_map, bool exp_layer_only)
 
   if (exp_layer_only)
   {
-    clone->avmgr = btor_new_aigvec_mgr (mm, clone->msg);
+    clone->avmgr = btor_new_aigvec_mgr (mm, clone->msg, &clone->options);
     assert ((allocated += sizeof (BtorAIGVecMgr) + sizeof (BtorAIGMgr)
                           + sizeof (BtorSATMgr)
                           /* true and false AIGs */
@@ -880,7 +882,8 @@ clone_aux_btor (Btor *btor, BtorNodeMap **exp_map, bool exp_layer_only)
   else
   {
     BTORLOG_TIMESTAMP (delta);
-    clone->avmgr = btor_clone_aigvec_mgr (mm, clone->msg, btor->avmgr);
+    clone->avmgr =
+        btor_clone_aigvec_mgr (mm, clone->msg, &clone->options, btor->avmgr);
     BTORLOG (1, "  clone AIG mgr: %.3f s", (btor_time_stamp () - delta));
     assert ((allocated +=
              sizeof (BtorAIGVecMgr) + sizeof (BtorAIGMgr) + sizeof (BtorSATMgr)
@@ -1260,7 +1263,8 @@ BtorNode *
 btor_recursively_rebuild_exp_clone (Btor *btor,
                                     Btor *clone,
                                     BtorNode *exp,
-                                    BtorNodeMap *exp_map)
+                                    BtorNodeMap *exp_map,
+                                    int rewrite_level)
 {
   assert (btor);
   assert (exp);
@@ -1275,11 +1279,10 @@ btor_recursively_rebuild_exp_clone (Btor *btor,
   BtorNodeMap *key_map = btor_new_node_map (btor);
 #endif
 
-  // FIXME lemmas are currently built with rwl1 (in parent)
+  /* in some cases we may want to rebuild the expressions with a certain
+   * rewrite level */
   rwl = clone->options.rewrite_level.val;
-  if (clone->options.rewrite_level.val > 0)
-    clone->options.rewrite_level.val = 1;
-  //
+  if (rwl > 0) clone->options.rewrite_level.val = rewrite_level;
 
   BTOR_INIT_STACK (work_stack);
   BTOR_INIT_STACK (unmark_stack);
@@ -1391,9 +1394,8 @@ btor_recursively_rebuild_exp_clone (Btor *btor,
   BTOR_RELEASE_STACK (btor->mm, work_stack);
   BTOR_RELEASE_STACK (btor->mm, unmark_stack);
 
-  // FIXME lemmas are currently built with rwl1 (in parent)
+  /* reset rewrite_level to original value */
   clone->options.rewrite_level.val = rwl;
-  //
 #ifndef NDEBUG
   btor_delete_node_map (key_map);
 #endif

@@ -1128,6 +1128,8 @@ btor_delete_smt2_parser (BtorSMT2Parser *parser)
 #ifdef BTOR_USE_CLONE_SCOPES
   BTOR_RELEASE_STACK (mem, parser->btor_scopes);
 #endif
+  BTOR_RELEASE_STACK (mem, parser->assumptions);
+  BTOR_RELEASE_STACK (mem, parser->assumptions_trail);
   BTOR_RELEASE_STACK (mem, parser->token);
 
   BTOR_DELETE (mem, parser);
@@ -3814,8 +3816,11 @@ print_success (BtorSMT2Parser *parser)
 static int
 btor_read_command_smt2 (BtorSMT2Parser *parser)
 {
+#if 0
   float ratio;
-  unsigned i, fsize;
+  unsigned fsize
+#endif
+  unsigned i;
   int tag, width;
   BoolectorNode *exp = 0;
   BtorSMT2Coo coo;
@@ -3913,6 +3918,11 @@ btor_read_command_smt2 (BtorSMT2Parser *parser)
                   "WARNING additional 'check-sat' command");
       if (parser->interactive)
       {
+#if 1
+        for (i = 0; i < BTOR_COUNT_STACK (parser->assumptions); i++)
+          boolector_assume (parser->btor,
+                            BTOR_PEEK_STACK (parser->assumptions, i));
+#else
         ratio = 0.0f;
         if (!BTOR_EMPTY_STACK (parser->assumptions_trail))
         {
@@ -3922,6 +3932,7 @@ btor_read_command_smt2 (BtorSMT2Parser *parser)
           fsize = get_current_formula_size (parser);
           ratio = (float) (fsize - parser->cur_scope_num_terms) / fsize;
         }
+
         /* 0.06f is the best factor right now for keeping the cloning
          * overhead as low as possible */
         if (!BTOR_EMPTY_STACK (parser->assumptions_trail) && ratio >= 0.06f)
@@ -3933,7 +3944,8 @@ btor_read_command_smt2 (BtorSMT2Parser *parser)
           boolector_reset_assumptions (parser->btor);
         }
         else
-          parser->res->result = boolector_sat (parser->btor);
+#endif
+        parser->res->result = boolector_sat (parser->btor);
         if (parser->res->result == BOOLECTOR_SAT)
           fprintf (parser->outfile, "sat\n");
         else if (parser->res->result == BOOLECTOR_UNSAT)
