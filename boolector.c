@@ -99,7 +99,12 @@ boolector_chkclone (Btor *btor)
   BTOR_ABORT_ARG_NULL_BOOLECTOR (btor);
   BTOR_TRAPI ("");
 #ifndef NDEBUG
-  if (btor->clone) btor_delete_btor (btor->clone);
+  if (btor->clone)
+  {
+    /* force auto cleanup (might have been disabled via btormbt) */
+    btor->clone->options.auto_cleanup.val = 1;
+    btor_delete_btor (btor->clone);
+  }
   btor->clone           = btor_clone_btor (btor);
   btor->clone->apitrace = 0; /* disable tracing of shadow clone */
   assert (btor->clone->mm);
