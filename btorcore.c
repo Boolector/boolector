@@ -2348,10 +2348,16 @@ rebuild_lambda_exp (Btor *btor, BtorNode *exp)
   BtorHashTableIterator it;
   BtorPtrHashTable *static_rho;
 
+  /* we need to reset the binding lambda here as otherwise it is not possible
+   * to create a new lambda term with the same param that substitutes 'exp' */
   btor_param_set_binding_lambda (exp->e[0], 0);
 
   static_rho = btor_lambda_get_static_rho (exp);
   result     = btor_lambda_exp (btor, exp->e[0], exp->e[1]);
+
+  /* lambda not rebuilt, set binding lambda again */
+  if (result == exp) btor_param_set_binding_lambda (exp->e[0], exp);
+
   /* copy static_rho for new lambda */
   if (static_rho && !btor_lambda_get_static_rho (result))
   {
