@@ -31,7 +31,7 @@ btor_optimize_unconstrained (Btor *btor)
   double start, delta;
   unsigned num_ucs;
   int i, uc[3], isuc;
-  BtorNode *cur, *cur_parent, *subst, *lambda;
+  BtorNode *cur, *cur_parent, *subst, *lambda, *param;
   BtorNodePtrStack stack, roots;
   BtorPtrHashTable *ucs; /* unconstrained (candidate) nodes */
   BtorHashTableIterator it;
@@ -125,8 +125,12 @@ btor_optimize_unconstrained (Btor *btor)
       {
         /* parameterized expressions are possibly unconstrained if the
          * lambda(s) parameterizing it do not have more than 1 parent */
-        lambda = btor_param_get_binding_lambda (
-            btor_next_parameterized_iterator (&parit));
+        param = btor_next_parameterized_iterator (&parit);
+        assert (BTOR_IS_REGULAR_NODE (param));
+        assert (BTOR_IS_PARAM_NODE (param));
+        assert (btor_param_is_bound (param));
+        lambda = btor_param_get_binding_lambda (param);
+        assert (lambda);
         /* get head lambda of function */
         while (
             lambda->parents == 1
