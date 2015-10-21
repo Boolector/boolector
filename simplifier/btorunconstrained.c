@@ -128,9 +128,11 @@ btor_optimize_unconstrained (Btor *btor)
         lambda = btor_param_get_binding_lambda (
             btor_next_parameterized_iterator (&parit));
         /* get head lambda of function */
-        while (lambda->parents == 1)
+        while (
+            lambda->parents == 1
+            && BTOR_IS_LAMBDA_NODE (BTOR_REAL_ADDR_NODE (lambda->first_parent)))
         {
-          if (!BTOR_IS_LAMBDA_NODE (lambda->first_parent)) break;
+          assert (BTOR_IS_LAMBDA_NODE (lambda));
           lambda = BTOR_REAL_ADDR_NODE (lambda->first_parent);
         }
         assert (BTOR_IS_LAMBDA_NODE (lambda));
