@@ -363,7 +363,7 @@ cdef class BoolectorNode:
             else:
                 c_str = \
                     btorapi.boolector_bv_assignment(self.btor._c_btor,
-                                                       self._c_node)
+                                                    self._c_node)
                 value = _to_str(c_str)
                 btorapi.boolector_free_bv_assignment(self.btor._c_btor, c_str)
                 return value
@@ -511,10 +511,14 @@ cdef class BoolectorConstNode(BoolectorBVNode):
         """ The bit string of a Boolector constant node.
         """
         def __get__(self):
+            cdef const char * c_str
             if not self.__is_const():
                 raise BoolectorException("Given node is not a constant")
-            return _to_str(btorapi.boolector_get_bits(self.btor._c_btor,
-                                                      self._c_node))
+            c_str = btorapi.boolector_get_bits(self.btor._c_btor, self._c_node)
+            value = _to_str(c_str)
+            btorapi.boolector_free_bits(self.btor._c_btor, c_str)
+            return value
+
     def __is_const(self):
         return btorapi.boolector_is_const(self.btor._c_btor, self._c_node) == 1
 

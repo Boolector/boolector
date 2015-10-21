@@ -2961,6 +2961,8 @@ const char *
 boolector_get_bits (Btor *btor, BoolectorNode *node)
 {
   BtorNode *exp, *simp, *real;
+  BtorBVAssignment *bvass;
+  char *bits;
   const char *res;
 
   exp = BTOR_IMPORT_BOOLECTOR_NODE (node);
@@ -2973,15 +2975,20 @@ boolector_get_bits (Btor *btor, BoolectorNode *node)
   real = BTOR_REAL_ADDR_NODE (simp);
   BTOR_ABORT_BOOLECTOR (!BTOR_IS_BV_CONST_NODE (real),
                         "argument is not a constant node");
-  if (BTOR_IS_INVERTED_NODE (simp))
+  /* representations of bits of const nodes are maintained analogously
+   * to bv assignment strings */
+  if (!BTOR_IS_INVERTED_NODE (simp))
+    bits = btor_bv_to_char_bv (btor->mm, btor_const_get_bits (simp));
+  else
   {
     if (!btor_const_get_invbits (real))
       btor_const_set_invbits (
           real, btor_not_bv (btor->mm, btor_const_get_bits (real)));
-    res = btor_bv_to_char_bv (btor->mm, btor_const_get_invbits (real));
+    bits = btor_bv_to_char_bv (btor->mm, btor_const_get_invbits (real));
   }
-  else
-    res = btor_bv_to_char_bv (btor->mm, btor_const_get_bits (simp));
+  bvass = btor_new_bv_assignment (btor->bv_assignments, bits);
+  btor_freestr (btor->mm, bits);
+  res = btor_get_bv_assignment_str (bvass);
   BTOR_TRAPI_RETURN_STR (res);
 #ifndef NDEBUG
   if (btor->clone)
@@ -2992,6 +2999,23 @@ boolector_get_bits (Btor *btor, BoolectorNode *node)
   }
 #endif
   return res;
+}
+
+void
+boolector_free_bits (Btor *btor, const char *bits)
+{
+  BTOR_ABORT_ARG_NULL_BOOLECTOR (btor);
+  BTOR_TRAPI ("%p", bits);
+  BTOR_ABORT_ARG_NULL_BOOLECTOR (bits);
+#ifndef NDEBUG
+  char *cass;
+  cass =
+      (char *) btor_get_bv_assignment ((const char *) bits)->cloned_assignment;
+#endif
+  btor_release_bv_assignment (btor->bv_assignments, bits);
+#ifndef NDEBUG
+  BTOR_CHKCLONE_NORES (free_bv_assignment, cass);
+#endif
 }
 
 int
