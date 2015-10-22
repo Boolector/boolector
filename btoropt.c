@@ -244,7 +244,7 @@ btor_init_opts (Btor *btor)
             "force random walk if propagation move fails");
   BTOR_OPT (0,
             sls_move_prop_flip_cond_prob,
-            5,
+            10,
             0,
             INT_MAX,
             "probability for choosing to flip the condition (rather than "
