@@ -6663,7 +6663,7 @@ btor_sat_btor (Btor *btor, int lod_limit, int sat_limit)
 
   if (!btor->slv)
   {
-    if (btor->options.sls.val && btor->ufs->count == 0
+    if (btor->options.engine.val == BTOR_ENGINE_SLS && btor->ufs->count == 0
         && (btor->options.beta_reduce_all.val || btor->lambdas->count == 0))
       btor->slv = btor_new_sls_solver (btor);
     else
@@ -6735,7 +6735,7 @@ btor_sat_btor (Btor *btor, int lod_limit, int sat_limit)
 
   if (btor->options.model_gen.val && res == BTOR_SAT)
   {
-    if (btor->options.sls.val)
+    if (btor->options.engine.val == BTOR_ENGINE_SLS)
       btor->slv->api.generate_model (btor, btor->options.model_gen.val == 2, 0);
     else
       btor->slv->api.generate_model (btor, btor->options.model_gen.val == 2, 1);
@@ -6749,7 +6749,7 @@ btor_sat_btor (Btor *btor, int lod_limit, int sat_limit)
     {
       if (!btor->options.model_gen.val)
       {
-        if (btor->options.sls.val)
+        if (btor->options.engine.val == BTOR_ENGINE_SLS)
           btor->slv->api.generate_model (btor, 0, 0);
         else
           btor->slv->api.generate_model (btor, 0, 1);

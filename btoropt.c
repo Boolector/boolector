@@ -11,6 +11,7 @@
  */
 
 #include "btoropt.h"
+#include <ctype.h>
 #include <limits.h>
 #include "boolector.h"
 #include "btorcore.h"
@@ -18,9 +19,6 @@
 #include "btormodel.h"
 #include "btortrapi.h"
 #include "utils/btoriter.h"
-
-#include <ctype.h>
-#include <limits.h>
 
 static char *
 getenv_value (const char *lname)
@@ -166,8 +164,14 @@ btor_init_opts (Btor *btor)
             "the original formula");
 #endif
 
+  BTOR_OPT ("E",
+            engine,
+            BTOR_ENGINE_DFLT,
+            BTOR_ENGINE_MIN,
+            BTOR_ENGINE_MAX,
+            "enable specific engine");
+
   // TODO MAKE SLS FACTORS CONFIGURABLE VIA BTOROPT
-  BTOR_OPT ("sls", sls, 0, 0, 1, "enable sls engine (SAT only)");
   BTOR_OPT (0,
             sls_strategy,
             BTOR_SLS_STRAT_DFLT,

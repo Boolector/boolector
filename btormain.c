@@ -288,6 +288,8 @@ print_opt (BtorMainApp *app,
     sprintf (paramstr, "<seconds>");
   else if (!strcmp (lng, "output"))
     sprintf (paramstr, "<file>");
+  else if (!strcmp (lng, BTOR_OPT_ENGINE))
+    sprintf (paramstr, "<engine>");
   else if (!strcmp (lng, BTOR_OPT_REWRITE_LEVEL)
            || !strcmp (lng, BTOR_OPT_REWRITE_LEVEL_PBR)
            || !strcmp (lng, BTOR_OPT_PBRA_LOD_LIMIT)
@@ -424,6 +426,12 @@ print_help (BtorMainApp *app)
   }
 
   fprintf (app->outfile, "\n");
+  to.shrt = "E";
+  to.lng  = "engine";
+  to.desc = "set engine (core, sls) [core]";
+  PRINT_MAIN_OPT (app, &to);
+
+  fprintf (app->outfile, "\n");
   to.dflt = 0;
   to.shrt = "x";
   to.lng  = "hex";
@@ -495,7 +503,7 @@ print_help (BtorMainApp *app)
   for (o = (char *) boolector_first_opt (app->btor); o;
        o = (char *) boolector_next_opt (app->btor, o))
   {
-    if (!strcmp (o, BTOR_OPT_INPUT_FORMAT)
+    if (!strcmp (o, BTOR_OPT_ENGINE) || !strcmp (o, BTOR_OPT_INPUT_FORMAT)
         || !strcmp (o, BTOR_OPT_OUTPUT_NUMBER_FORMAT)
         || !strcmp (o, BTOR_OPT_OUTPUT_FORMAT))
       continue;
@@ -952,6 +960,16 @@ boolector_main (int argc, char **argv)
 #endif
 
     /* >> meta options */
+    else if (!strcmp (opt.start, "E") || !strcmp (opt.start, BTOR_OPT_ENGINE))
+    {
+      if (isdisable) goto ERR_INVALID_OPTION;
+      if (!readval) goto ERR_MISSING_ARGUMENT;
+      if (isint) goto ERR_INVALID_ARGUMENT;
+      if (!strcasecmp (valstr, "core"))
+        boolector_set_opt (g_app->btor, BTOR_OPT_ENGINE, BTOR_ENGINE_CORE);
+      else if (!strcasecmp (valstr, "sls"))
+        boolector_set_opt (g_app->btor, BTOR_OPT_ENGINE, BTOR_ENGINE_SLS);
+    }
     else if (!strcmp (opt.start, "btor"))
     {
       format = BTOR_INPUT_FORMAT_BTOR;

@@ -13,6 +13,13 @@
 #ifndef BTOROPTS_H_INCLUDED
 #define BTOROPTS_H_INCLUDED
 
+#define BTOR_ENGINE_CORE 0
+#define BTOR_ENGINE_SLS 1
+#define BTOR_ENGINE_PROP 2
+#define BTOR_ENGINE_DFLT BTOR_ENGINE_CORE
+#define BTOR_ENGINE_MIN BTOR_ENGINE_CORE
+#define BTOR_ENGINE_MAX BTOR_ENGINE_PROP
+
 #define BTOR_INPUT_FORMAT_NONE 0
 #define BTOR_INPUT_FORMAT_BTOR 1
 #define BTOR_INPUT_FORMAT_BTOR2 2
@@ -67,6 +74,7 @@ typedef struct BtorOpt
   int max;          /* max value */
 } BtorOpt;
 
+#define BTOR_OPT_ENGINE "engine"
 #define BTOR_OPT_MODEL_GEN "model_gen"
 #define BTOR_OPT_INCREMENTAL "incremental"
 #define BTOR_OPT_INCREMENTAL_ALL "incremental_all"
@@ -133,6 +141,8 @@ typedef struct BtorOpts
 {
   BtorOpt first; /* dummy for iteration */
   /* ----------------------------------------------------------------------- */
+  BtorOpt engine; /* Boolector engine */
+
   BtorOpt model_gen; /* model generation enabled */
 
   BtorOpt incremental;     /* incremental usage */
@@ -155,7 +165,6 @@ typedef struct BtorOpts
   BtorOpt pbra_ops_factor;       /* factor by which the beta reduced formula
                                     may be greater than the original */
 #endif
-  BtorOpt sls;
   BtorOpt sls_strategy;
   BtorOpt sls_move_gw;
   BtorOpt sls_move_range;          /* enable range flip neighbors */
