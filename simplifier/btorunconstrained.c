@@ -31,7 +31,7 @@ btor_optimize_unconstrained (Btor *btor)
   double start, delta;
   unsigned num_ucs;
   int i, uc[3], isuc;
-  BtorNode *cur, *cur_parent, *subst, *lambda;
+  BtorNode *cur, *cur_parent, *subst, *lambda, *param;
   BtorNodePtrStack stack, roots;
   BtorPtrHashTable *ucs; /* unconstrained (candidate) nodes */
   BtorHashTableIterator it;
@@ -65,6 +65,8 @@ btor_optimize_unconstrained (Btor *btor)
       cur_parent = BTOR_REAL_ADDR_NODE (cur->first_parent);
       assert (!btor_find_in_ptr_hash_table (ucs, cur));
       btor_insert_in_ptr_hash_table (ucs, btor_copy_exp (btor, cur));
+      BTOR_MSG (
+          btor->msg, 2, "found unconstrained input %s", node2string (cur));
       if (BTOR_IS_UF_NODE (cur)
           || (cur_parent->kind != BTOR_ARGS_NODE
               && cur_parent->kind != BTOR_LAMBDA_NODE))
@@ -116,19 +118,26 @@ btor_optimize_unconstrained (Btor *btor)
       assert (cur->mark == 2);
       cur->mark = 0;
 
+      /* check if parameterized term can be unconstrained */
       isuc = 1;
       btor_init_parameterized_iterator (&parit, btor, cur);
       while (btor_has_next_parameterized_iterator (&parit))
       {
         /* parameterized expressions are possibly unconstrained if the
          * lambda(s) parameterizing it do not have more than 1 parent */
-        lambda = btor_param_get_binding_lambda (
-            btor_next_parameterized_iterator (&parit));
+        param = btor_next_parameterized_iterator (&parit);
+        assert (BTOR_IS_REGULAR_NODE (param));
+        assert (BTOR_IS_PARAM_NODE (param));
+        assert (btor_param_is_bound (param));
+        lambda = btor_param_get_binding_lambda (param);
+        assert (lambda);
         /* get head lambda of function */
-        while (lambda->parents == 1)
+        while (
+            lambda->parents == 1
+            && BTOR_IS_LAMBDA_NODE (BTOR_REAL_ADDR_NODE (lambda->first_parent)))
         {
-          if (!BTOR_IS_LAMBDA_NODE (lambda->first_parent)) break;
-          lambda = lambda->first_parent;
+          assert (BTOR_IS_LAMBDA_NODE (lambda));
+          lambda = BTOR_REAL_ADDR_NODE (lambda->first_parent);
         }
         assert (BTOR_IS_LAMBDA_NODE (lambda));
         if (lambda->parents > 1)
@@ -227,7 +236,8 @@ btor_optimize_unconstrained (Btor *btor)
             if (uc[1]
                 /* only consider head lambda of curried lambdas */
                 && (!cur->first_parent
-                    || !BTOR_IS_LAMBDA_NODE (cur->first_parent)))
+                    || !BTOR_IS_LAMBDA_NODE (
+                           BTOR_REAL_ADDR_NODE (cur->first_parent))))
             {
               btor->stats.fun_uc_props++;
               btor_insert_in_ptr_hash_table (ucs, btor_copy_exp (btor, cur));

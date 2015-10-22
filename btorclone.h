@@ -20,12 +20,14 @@ Btor *btor_clone_btor (Btor *btor);
 Btor *btor_clone_exp_layer (Btor *btor, BtorNodeMap **exp_map);
 
 /* Rebuild 'exp' (and all expressions below) of an existing boolector instance
- * 'btor' in an existing boolector instance 'clone'. 'exp_map' must contain
- * all previously cloned expressions. */
+ * 'btor' in an existing boolector instance 'clone' with rewrite level
+ * 'rewrite_level'. 'exp_map' must contain all previously cloned expressions.
+ */
 BtorNode *btor_recursively_rebuild_exp_clone (Btor *btor,
                                               Btor *clone,
                                               BtorNode *exp,
-                                              BtorNodeMap *exp_map);
+                                              BtorNodeMap *exp_map,
+                                              int rewrite_level);
 
 /* helpers for hash table cloning */
 void *btor_clone_key_as_node (BtorMemMgr *mm, const void *map, const void *key);

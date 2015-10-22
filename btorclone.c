@@ -1321,7 +1321,8 @@ BtorNode *
 btor_recursively_rebuild_exp_clone (Btor *btor,
                                     Btor *clone,
                                     BtorNode *exp,
-                                    BtorNodeMap *exp_map)
+                                    BtorNodeMap *exp_map,
+                                    int rewrite_level)
 {
   assert (btor);
   assert (exp);
@@ -1336,11 +1337,10 @@ btor_recursively_rebuild_exp_clone (Btor *btor,
   BtorNodeMap *key_map = btor_new_node_map (btor);
 #endif
 
-  // FIXME lemmas are currently built with rwl1 (in parent)
+  /* in some cases we may want to rebuild the expressions with a certain
+   * rewrite level */
   rwl = clone->options.rewrite_level.val;
-  if (clone->options.rewrite_level.val > 0)
-    clone->options.rewrite_level.val = 1;
-  //
+  if (rwl > 0) clone->options.rewrite_level.val = rewrite_level;
 
   BTOR_INIT_STACK (work_stack);
   BTOR_INIT_STACK (unmark_stack);
@@ -1452,9 +1452,8 @@ btor_recursively_rebuild_exp_clone (Btor *btor,
   BTOR_RELEASE_STACK (btor->mm, work_stack);
   BTOR_RELEASE_STACK (btor->mm, unmark_stack);
 
-  // FIXME lemmas are currently built with rwl1 (in parent)
+  /* reset rewrite_level to original value */
   clone->options.rewrite_level.val = rwl;
-  //
 #ifndef NDEBUG
   btor_delete_node_map (key_map);
 #endif

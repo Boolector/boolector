@@ -57,8 +57,10 @@ set_opt_values (BtorOpt *opt,
                 char *desc)
 {
   assert (opt);
+  assert (min >= 0);
+  assert (max <= INT_MAX);
   assert (min <= val);
-  assert (max == -1 || val <= max);
+  assert (val <= max);
 
   opt->internal = internal;
   opt->shrt     = shrt;
@@ -153,14 +155,14 @@ btor_init_opts (Btor *btor)
             0,
             1,
             "probe -bra until given LOD or SAT limit");
-  BTOR_OPT (0, pbra_lod_limit, 10, 0, -1, "LOD limit (#lemmas) for -pbra");
+  BTOR_OPT (0, pbra_lod_limit, 10, 0, INT_MAX, "LOD limit (#lemmas) for -pbra");
   BTOR_OPT (
-      0, pbra_sat_limit, 55000, 0, -1, "SAT limit (#conflicts) for -pbra");
+      0, pbra_sat_limit, 55000, 0, INT_MAX, "SAT limit (#conflicts) for -pbra");
   BTOR_OPT (0,
             pbra_ops_factor,
             10,
             0,
-            -1,
+            INT_MAX,
             "factor by which the size of the red. formula may be greater than "
             "the original formula");
 #endif

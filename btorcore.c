@@ -2351,10 +2351,16 @@ rebuild_lambda_exp (Btor *btor, BtorNode *exp)
   BtorHashTableIterator it;
   BtorPtrHashTable *static_rho;
 
+  /* we need to reset the binding lambda here as otherwise it is not possible
+   * to create a new lambda term with the same param that substitutes 'exp' */
   btor_param_set_binding_lambda (exp->e[0], 0);
 
   static_rho = btor_lambda_get_static_rho (exp);
   result     = btor_lambda_exp (btor, exp->e[0], exp->e[1]);
+
+  /* lambda not rebuilt, set binding lambda again */
+  if (result == exp) btor_param_set_binding_lambda (exp->e[0], exp);
+
   /* copy static_rho for new lambda */
   if (static_rho && !btor_lambda_get_static_rho (result))
   {
@@ -4279,7 +4285,7 @@ search_initial_applies_just (Btor *btor, BtorNodePtrStack *top_applies)
   assert (btor->embedded_constraints->count == 0);
   assert (check_id_table_aux_mark_unset_dbg (btor));
 
-  int i;
+  int i, h;
   int a, a0, a1;
   double start;
   BtorNode *cur, *e0, *e1;
@@ -4293,6 +4299,7 @@ search_initial_applies_just (Btor *btor, BtorNodePtrStack *top_applies)
   BTORLOG (1, "*** search initial applies");
 
   amgr = btor_get_aig_mgr_btor (btor);
+  h    = btor->options.just_heuristic.val;
 
   BTOR_INIT_STACK (stack);
   BTOR_INIT_STACK (unmark_stack);
@@ -4365,13 +4372,22 @@ search_initial_applies_just (Btor *btor, BtorNodePtrStack *top_applies)
             }
             else  // and = 0
             {
-              if (a0 == -1 && a1 == -1  // both inputs 0
-                  && btor->options.just_heuristic.val)
+              if (a0 == -1 && a1 == -1)  // both inputs 0
               {
-                if (btor_compare_scores (btor, cur->e[0], cur->e[1]))
-                  BTOR_PUSH_STACK (btor->mm, stack, cur->e[0]);
+                /* branch selection w.r.t selected heuristic */
+                if (h == BTOR_JUST_HEUR_BRANCH_MIN_APP
+                    || h == BTOR_JUST_HEUR_BRANCH_MIN_DEP)
+                {
+                  if (btor_compare_scores (btor, cur->e[0], cur->e[1]))
+                    BTOR_PUSH_STACK (btor->mm, stack, cur->e[0]);
+                  else
+                    BTOR_PUSH_STACK (btor->mm, stack, cur->e[1]);
+                }
                 else
-                  BTOR_PUSH_STACK (btor->mm, stack, cur->e[1]);
+                {
+                  assert (h == BTOR_JUST_HEUR_LEFT);
+                  BTOR_PUSH_STACK (btor->mm, stack, cur->e[0]);
+                }
               }
               else if (a0 == -1)  // only one input 0
                 BTOR_PUSH_STACK (btor->mm, stack, cur->e[0]);
@@ -5158,7 +5174,6 @@ add_lemma (Btor *btor, BtorNode *fun, BtorNode *app0, BtorNode *app1)
   assert (!app1 || BTOR_IS_APPLY_NODE (app1));
 
   double start;
-  int rwl = -1;
 #ifndef NDEBUG
   int evalerr;
 #endif
@@ -5176,15 +5191,6 @@ add_lemma (Btor *btor, BtorNode *fun, BtorNode *app0, BtorNode *app1)
   bconds_sel2 = btor_new_ptr_hash_table (mm,
                                          (BtorHashPtr) btor_hash_exp_by_id,
                                          (BtorCmpPtr) btor_compare_exp_by_id);
-
-  // TODO: right now we have to build lemmas with rwl 1 with the current
-  //	   dual propagation implementation, since cloning the lemma needs to
-  //	   produce the same expressions
-  if (btor->options.dual_prop.val && btor->options.rewrite_level.val > 1)
-  {
-    rwl                             = btor->options.rewrite_level.val;
-    btor->options.rewrite_level.val = 1;
-  }
 
   /* function congruence axiom conflict */
   if (app1)
@@ -5229,8 +5235,6 @@ add_lemma (Btor *btor, BtorNode *fun, BtorNode *app0, BtorNode *app1)
   btor_delete_ptr_hash_table (bconds_sel1);
   btor_delete_ptr_hash_table (bconds_sel2);
   BTOR_CORE_SOLVER (btor)->time.lemma_gen += btor_time_stamp () - start;
-
-  if (rwl >= 0) btor->options.rewrite_level.val = rwl;
 }
 
 static void
@@ -6364,7 +6368,9 @@ add_lemma_to_dual_prop_clone (Btor *btor,
 
   BtorNode *clemma, *and;
 
-  clemma = btor_recursively_rebuild_exp_clone (btor, clone, lemma, exp_map);
+  /* clone and rebuild lemma with rewrite level 0 (as we want the exact
+   * expression) */
+  clemma = btor_recursively_rebuild_exp_clone (btor, clone, lemma, exp_map, 0);
   assert (clemma);
   and = btor_and_exp (clone, *root, clemma);
   btor_release_exp (clone, clemma);
