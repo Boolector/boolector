@@ -936,7 +936,8 @@ btor_is_xor_aig (BtorAIGMgr *amgr, BtorAIG *aig, BtorAIGPtrStack *leafs)
     return 1;
   }
 
-  assert (ll != BTOR_INVERT_AIG (rr) || lr != BTOR_INVERT_AIG (rl));
+  assert (!amgr->opts->sort_aig.val || ll != BTOR_INVERT_AIG (rr)
+          || lr != BTOR_INVERT_AIG (rl));
 
   return 0;
 #else

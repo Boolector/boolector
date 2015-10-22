@@ -2351,10 +2351,16 @@ rebuild_lambda_exp (Btor *btor, BtorNode *exp)
   BtorHashTableIterator it;
   BtorPtrHashTable *static_rho;
 
+  /* we need to reset the binding lambda here as otherwise it is not possible
+   * to create a new lambda term with the same param that substitutes 'exp' */
   btor_param_set_binding_lambda (exp->e[0], 0);
 
   static_rho = btor_lambda_get_static_rho (exp);
   result     = btor_lambda_exp (btor, exp->e[0], exp->e[1]);
+
+  /* lambda not rebuilt, set binding lambda again */
+  if (result == exp) btor_param_set_binding_lambda (exp->e[0], exp);
+
   /* copy static_rho for new lambda */
   if (static_rho && !btor_lambda_get_static_rho (result))
   {
@@ -5172,7 +5178,6 @@ add_lemma (Btor *btor, BtorNode *fun, BtorNode *app0, BtorNode *app1)
   assert (!app1 || BTOR_IS_APPLY_NODE (app1));
 
   double start;
-  int rwl = -1;
 #ifndef NDEBUG
   int evalerr;
 #endif
@@ -5190,15 +5195,6 @@ add_lemma (Btor *btor, BtorNode *fun, BtorNode *app0, BtorNode *app1)
   bconds_sel2 = btor_new_ptr_hash_table (mm,
                                          (BtorHashPtr) btor_hash_exp_by_id,
                                          (BtorCmpPtr) btor_compare_exp_by_id);
-
-  // TODO: right now we have to build lemmas with rwl 1 with the current
-  //	   dual propagation implementation, since cloning the lemma needs to
-  //	   produce the same expressions
-  if (btor->options.dual_prop.val && btor->options.rewrite_level.val > 1)
-  {
-    rwl                             = btor->options.rewrite_level.val;
-    btor->options.rewrite_level.val = 1;
-  }
 
   /* function congruence axiom conflict */
   if (app1)
@@ -5243,8 +5239,6 @@ add_lemma (Btor *btor, BtorNode *fun, BtorNode *app0, BtorNode *app1)
   btor_delete_ptr_hash_table (bconds_sel1);
   btor_delete_ptr_hash_table (bconds_sel2);
   BTOR_CORE_SOLVER (btor)->time.lemma_gen += btor_time_stamp () - start;
-
-  if (rwl >= 0) btor->options.rewrite_level.val = rwl;
 }
 
 static void
@@ -6378,10 +6372,9 @@ add_lemma_to_dual_prop_clone (Btor *btor,
 
   BtorNode *clemma, *and;
 
-  /* lemmas are built with rewriting level 'rewrite_level_pbr'. thus, we
-   * have to rebuild cloned expressions with the same rewriting level. */
-  clemma = btor_recursively_rebuild_exp_clone (
-      btor, clone, lemma, exp_map, btor->options.rewrite_level_pbr.val);
+  /* clone and rebuild lemma with rewrite level 0 (as we want the exact
+   * expression) */
+  clemma = btor_recursively_rebuild_exp_clone (btor, clone, lemma, exp_map, 0);
   assert (clemma);
   and = btor_and_exp (clone, *root, clemma);
   btor_release_exp (clone, clemma);
