@@ -57,7 +57,6 @@ set_opt_values (BtorOpt *opt,
                 char *desc)
 {
   assert (opt);
-  assert (min >= 0);
   assert (max <= INT_MAX);
   assert (min <= val);
   assert (val <= max);
