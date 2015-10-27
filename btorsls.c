@@ -3280,63 +3280,78 @@ move (Btor *btor, int nmoves)
                                            (BtorHashPtr) btor_hash_exp_by_id,
                                            (BtorCmpPtr) btor_compare_exp_by_id);
 
-  nprops = btor->options.sls_move_prop_moves.val;
-
-  /* Either always try a propagation move first,
-   * or if <nprops> > 0 do <nprops> prop moves for 1 sls move
-   * or if <nprops> < 0 do <nprops> sls moves for 1 prop move
-   * or if <nprops> = 0 do sls moves only */
-  if (btor->options.sls_strategy.val == BTOR_SLS_STRAT_ALWAYS_PROP
-      || (btor->options.sls_move_prop.val
-          && (nprops > 0 ? slv->npropmoves < nprops
-                         : slv->npropmoves == nprops)))
+  /* prop engine */
+  if (btor->options.engine.val == BTOR_ENGINE_PROP)
   {
-    //    do {
     select_prop_move (btor, constr);
-    //    } while (!slv->max_cans->count);
-    if (!slv->max_cans->count)
+    while (!slv->max_cans->count)
     {
       slv->stats.move_prop_non_rec_conf += 1;
-      /* force random walk if prop move fails */
-      if (btor->options.sls_move_prop_force_rw.val)
-      {
-        select_candidates (btor, constr, &candidates);
-        goto SLS_MOVE_RAND_WALK;
-      }
-
-      goto SLS_MOVE;
+      select_prop_move (btor, constr);
     }
   }
+  /* sls engine */
   else
   {
-  SLS_MOVE:
-    select_candidates (btor, constr, &candidates);
-    assert (BTOR_COUNT_STACK (candidates));
+    assert (btor->options.engine.val == BTOR_ENGINE_SLS);
 
-    slv->max_score = compute_sls_score_formula (btor, slv->score);
-    slv->max_move  = BTOR_SLS_MOVE_DONE;
-    slv->max_gw    = -1;
+    nprops = btor->options.sls_move_prop_moves.val;
 
-    if (btor->options.sls_move_rand_walk.val
-        && !btor_pick_rand_rng (
-               &btor->rng, 0, btor->options.sls_move_rand_walk_prob.val))
+    /* Either always try a propagation move first,
+     * or if <nprops> > 0 do <nprops> prop moves for 1 sls move
+     * or if <nprops> < 0 do <nprops> sls moves for 1 prop move
+     * or if <nprops> = 0 do sls moves only */
+    if (btor->options.sls_strategy.val == BTOR_SLS_STRAT_ALWAYS_PROP
+        || (btor->options.sls_move_prop.val
+            && (nprops > 0 ? slv->npropmoves < nprops
+                           : slv->npropmoves == nprops)))
     {
-    SLS_MOVE_RAND_WALK:
-      select_random_move (btor, &candidates);
+      select_prop_move (btor, constr);
+      if (!slv->max_cans->count)
+      {
+        slv->stats.move_prop_non_rec_conf += 1;
+        /* force random walk if prop move fails */
+        if (btor->options.sls_move_prop_force_rw.val)
+        {
+          select_candidates (btor, constr, &candidates);
+          goto SLS_MOVE_RAND_WALK;
+        }
+
+        goto SLS_MOVE;
+      }
     }
     else
     {
-      select_move (btor, &candidates);
+    SLS_MOVE:
+      select_candidates (btor, constr, &candidates);
+      assert (BTOR_COUNT_STACK (candidates));
+
+      slv->max_score = compute_sls_score_formula (btor, slv->score);
+      slv->max_move  = BTOR_SLS_MOVE_DONE;
+      slv->max_gw    = -1;
+
+      if (btor->options.sls_move_rand_walk.val
+          && !btor_pick_rand_rng (
+                 &btor->rng, 0, btor->options.sls_move_rand_walk_prob.val))
+      {
+      SLS_MOVE_RAND_WALK:
+        select_random_move (btor, &candidates);
+      }
+      else
+      {
+        select_move (btor, &candidates);
+      }
+
+      assert (slv->max_cans->count);
     }
+    assert (slv->max_move != BTOR_SLS_MOVE_DONE);
 
-    assert (slv->max_cans->count);
+    slv->npropmoves =
+        nprops == slv->npropmoves
+            ? 0
+            : (nprops > 0 ? slv->npropmoves + 1
+                          : (nprops < 0 ? slv->npropmoves - 1 : 0));
   }
-  assert (slv->max_move != BTOR_SLS_MOVE_DONE);
-
-  slv->npropmoves = nprops == slv->npropmoves
-                        ? 0
-                        : (nprops > 0 ? slv->npropmoves + 1
-                                      : (nprops < 0 ? slv->npropmoves - 1 : 0));
 
 #ifndef NBTORLOG
   BTORLOG (1, "");
