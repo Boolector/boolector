@@ -425,6 +425,8 @@ print_help (BtorMainApp *app)
     PRINT_MAIN_OPT (app, mo);
   }
 
+  to.dflt = 0;
+
   fprintf (app->outfile, "\n");
   to.shrt = "E";
   to.lng  = "engine";
@@ -432,7 +434,6 @@ print_help (BtorMainApp *app)
   PRINT_MAIN_OPT (app, &to);
 
   fprintf (app->outfile, "\n");
-  to.dflt = 0;
   to.shrt = "x";
   to.lng  = "hex";
   to.desc = "force hexadecimal number output";

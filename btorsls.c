@@ -3038,24 +3038,12 @@ select_prop_move (Btor *btor, BtorNode *root)
   BtorNode *cur, *real_cur;
   BtorBitVector *bve[3], *bvcur, *bvenew, *tmp;
   BtorSLSSolver *slv;
-  // BtorNodePtrStack nstack;
-  // BtorBitVectorPtrStack bvstack;
 
   slv           = BTOR_SLS_SOLVER (btor);
   slv->max_move = BTOR_SLS_MOVE_PROP;
 
-  // BTOR_INIT_STACK (nstack);
-  // BTOR_INIT_STACK (bvstack);
-
-  // BTOR_PUSH_STACK (btor->mm, nstack, root);
-  // BTOR_PUSH_STACK (btor->mm, bvstack, btor_one_bv (btor->mm, 1));
   cur   = root;
   bvcur = btor_one_bv (btor->mm, 1);
-  // while (!BTOR_EMPTY_STACK (nstack))
-  //   {
-  //     assert (!BTOR_EMPTY_STACK (bvstack));
-  //     cur = BTOR_POP_STACK (nstack);
-  //     bvcur = BTOR_POP_STACK (bvstack);
 
   for (;;)
   {
@@ -3161,39 +3149,14 @@ select_prop_move (Btor *btor, BtorNode *root)
       do
       {
 #if 0
-		  tmp = (BtorBitVector *)
-		    btor_get_bv_model (btor, real_cur->e[0]);
-		  /* assume cond to be fixed, propagate bvnew to enabled path */
-		  if (btor_is_zero_bv (tmp))
-		    cur = real_cur->e[2];
-		  else
-		    cur = real_cur->e[1];
+	      tmp = (BtorBitVector *)
+		btor_get_bv_model (btor, real_cur->e[0]);
+	      /* assume cond to be fixed, propagate bvnew to enabled path */
+	      if (btor_is_zero_bv (tmp))
+		cur = real_cur->e[2];
+	      else
+		cur = real_cur->e[1];
 #else
-#if 0
-		  /* either assume cond to be fixed and propagate bvnew to
-		   * enabled path, or flip condition and propagate bvnew to
-		   * previously disabled path */
-		  tmp = (BtorBitVector *)
-		    btor_get_bv_model (btor, real_cur->e[0]);
-		  if (btor_pick_rand_rng (&btor->rng, 0, 1))
-		    {
-		      /* assume cond to be fixed */
-		      cur = btor_is_zero_bv (tmp)
-			? real_cur->e[2] : real_cur->e[1];
-		    }
-		  else
-		    {
-		      /* push previously disabled branch */
-		      BTOR_PUSH_STACK (btor->mm, bvstack, bvenew);
-		      BTOR_PUSH_STACK (btor->mm, nstack,
-			  btor_is_zero_bv (tmp)
-			  ? real_cur->e[1] : real_cur->e[2]);
-		      /* flip condition */
-		      bvenew = btor_not_bv (btor->mm, tmp);
-		      cur = real_cur->e[0];
-		    }
-#endif
-
         /* either assume that cond is fixed and propagate bvenew
          * to enabled path, or flip condition */
         tmp = (BtorBitVector *) btor_get_bv_model (btor, real_cur->e[0]);
@@ -3213,20 +3176,6 @@ select_prop_move (Btor *btor, BtorNode *root)
           bvenew = btor_not_bv (btor->mm, tmp);
           cur    = real_cur->e[0];
         }
-
-#if 0
-		  /* choose either condition, or then, or else branch */
-		  eidx = btor_pick_rand_rng (&btor->rng, 0, 2);
-		  /* flip condition, ignore then/else branch */
-		  if (!eidx)
-		    {
-		      btor_free_bv (btor->mm, bvenew);
-		      tmp = (BtorBitVector *)
-			btor_get_bv_model (btor, real_cur->e[eidx]);
-		      bvenew = btor_not_bv (btor->mm, tmp);
-		    }
-		  cur = real_cur->e[eidx];
-#endif
 #endif
         real_cur = BTOR_REAL_ADDR_NODE (cur);
       } while (BTOR_IS_BV_COND_NODE (real_cur));
@@ -3247,9 +3196,6 @@ select_prop_move (Btor *btor, BtorNode *root)
     bvcur = bvenew;
   }
   btor_free_bv (btor->mm, bvcur);
-  //    }
-  //  BTOR_RELEASE_STACK (btor->mm, nstack);
-  //  BTOR_RELEASE_STACK (btor->mm, bvstack);
 }
 
 /*------------------------------------------------------------------------*/
