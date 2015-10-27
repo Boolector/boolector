@@ -1644,6 +1644,21 @@ inv_add_bv (Btor *btor,
     tmpdbg = btor_add_bv (mm, res, bve);
   assert (!btor_compare_bv (tmpdbg, bvadd));
   btor_free_bv (mm, tmpdbg);
+
+  char *sbvadd = btor_bv_to_char_bv (btor->mm, bvadd);
+  char *sbve   = btor_bv_to_char_bv (btor->mm, bve);
+  char *sres   = btor_bv_to_char_bv (btor->mm, res);
+  if (eidx)
+    BTORLOG (3,
+             "prop (e[%d]): %s: %s := %s + %s",
+             eidx,
+             node2string (add),
+             sbvadd,
+             eidx ? sbve : sres,
+             eidx ? sres : sbve);
+  btor_freestr (btor->mm, sbvadd);
+  btor_freestr (btor->mm, sbve);
+  btor_freestr (btor->mm, sres);
 #endif
   return res;
 }
@@ -1703,7 +1718,7 @@ inv_and_bv (Btor *btor,
 #ifndef NDEBUG
         char *sbvand = btor_bv_to_char_bv (btor->mm, bvand);
         char *sbve   = btor_bv_to_char_bv (btor->mm, bve);
-        BTORLOG (2, "prop CONFLICT: %s AND x = %s", sbve, sbvand);
+        BTORLOG (2, "prop CONFLICT: %s := %s AND x", sbvand, sbve);
         btor_freestr (btor->mm, sbvand);
         btor_freestr (btor->mm, sbve);
 #endif
@@ -1735,6 +1750,21 @@ inv_and_bv (Btor *btor,
       tmpdbg = btor_and_bv (mm, res, bve);
     assert (!btor_compare_bv (tmpdbg, bvand));
     btor_free_bv (mm, tmpdbg);
+
+    char *sbvand = btor_bv_to_char_bv (btor->mm, bvand);
+    char *sbve   = btor_bv_to_char_bv (btor->mm, bve);
+    char *sres   = btor_bv_to_char_bv (btor->mm, res);
+    if (eidx)
+      BTORLOG (3,
+               "prop (e[%d]): %s: %s := %s AND %s",
+               eidx,
+               node2string (and),
+               sbvand,
+               eidx ? sbve : sres,
+               eidx ? sres : sbve);
+    btor_freestr (btor->mm, sbvand);
+    btor_freestr (btor->mm, sbve);
+    btor_freestr (btor->mm, sres);
   }
   else
   {
@@ -1794,6 +1824,21 @@ inv_eq_bv (
     tmpdbg = btor_eq_bv (mm, res, bve);
   assert (!btor_compare_bv (tmpdbg, bveq));
   btor_free_bv (mm, tmpdbg);
+
+  char *sbveq = btor_bv_to_char_bv (btor->mm, bveq);
+  char *sbve  = btor_bv_to_char_bv (btor->mm, bve);
+  char *sres  = btor_bv_to_char_bv (btor->mm, res);
+  if (eidx)
+    BTORLOG (3,
+             "prop (e[%d]): %s: %s := %s = %s",
+             eidx,
+             node2string (eq),
+             sbveq,
+             eidx ? sbve : sres,
+             eidx ? sres : sbve);
+  btor_freestr (btor->mm, sbveq);
+  btor_freestr (btor->mm, sbve);
+  btor_freestr (btor->mm, sres);
 #endif
   return res;
 }
@@ -1855,7 +1900,7 @@ inv_ult_bv (Btor *btor,
 #ifndef NDEBUG
         char *sbvult = btor_bv_to_char_bv (btor->mm, bvult);
         char *sbve   = btor_bv_to_char_bv (btor->mm, bve);
-        BTORLOG (2, "prop CONFLICT: %s < x = %s", sbve, sbvult);
+        BTORLOG (2, "prop CONFLICT: %s := %s < x", sbvult, sbve);
         btor_freestr (btor->mm, sbvult);
         btor_freestr (btor->mm, sbve);
 #endif
@@ -1904,7 +1949,7 @@ inv_ult_bv (Btor *btor,
 #ifndef NDEBUG
         char *sbvult = btor_bv_to_char_bv (btor->mm, bvult);
         char *sbve   = btor_bv_to_char_bv (btor->mm, bve);
-        BTORLOG (2, "prop CONFLICT: x < %s = %s", sbve, sbvult);
+        BTORLOG (2, "prop CONFLICT: %s := x < %s", sbvult, sbve);
         btor_freestr (btor->mm, sbvult);
         btor_freestr (btor->mm, sbve);
 #endif
@@ -1946,6 +1991,21 @@ inv_ult_bv (Btor *btor,
       tmpdbg = btor_ult_bv (mm, res, bve);
     assert (!btor_compare_bv (tmpdbg, bvult));
     btor_free_bv (mm, tmpdbg);
+
+    char *sbvult = btor_bv_to_char_bv (btor->mm, bvult);
+    char *sbve   = btor_bv_to_char_bv (btor->mm, bve);
+    char *sres   = btor_bv_to_char_bv (btor->mm, res);
+    if (eidx)
+      BTORLOG (3,
+               "prop (e[%d]): %s: %s := %s < %s",
+               eidx,
+               node2string (ult),
+               eidx ? sbve : sres,
+               eidx ? sres : sbve,
+               sbvult);
+    btor_freestr (btor->mm, sbvult);
+    btor_freestr (btor->mm, sbve);
+    btor_freestr (btor->mm, sres);
   }
 #endif
   btor_free_bv (mm, zero);
@@ -2014,7 +2074,7 @@ inv_sll_bv (Btor *btor,
 #ifndef NDEBUG
         char *sbvsll = btor_bv_to_char_bv (btor->mm, bvsll);
         char *sbve   = btor_bv_to_char_bv (btor->mm, bve);
-        BTORLOG (2, "prop CONFLICT: %s << x = %s", sbve, sbvsll);
+        BTORLOG (2, "prop CONFLICT: %s := %s << x", sbvsll, sbve);
         btor_freestr (btor->mm, sbvsll);
         btor_freestr (btor->mm, sbve);
 #endif
@@ -2063,7 +2123,7 @@ inv_sll_bv (Btor *btor,
 #ifndef NDEBUG
           char *sbvsll = btor_bv_to_char_bv (btor->mm, bvsll);
           char *sbve   = btor_bv_to_char_bv (btor->mm, bve);
-          BTORLOG (2, "prop CONFLICT: x << %s = %s", sbve, sbvsll);
+          BTORLOG (2, "prop CONFLICT: %s := x << %s", sbvsll, sbve);
           btor_freestr (btor->mm, sbvsll);
           btor_freestr (btor->mm, sbve);
 #endif
@@ -2091,6 +2151,21 @@ inv_sll_bv (Btor *btor,
       tmpdbg = btor_sll_bv (mm, res, bve);
     assert (!btor_compare_bv (tmpdbg, bvsll));
     btor_free_bv (mm, tmpdbg);
+
+    char *sbvsll = btor_bv_to_char_bv (btor->mm, bvsll);
+    char *sbve   = btor_bv_to_char_bv (btor->mm, bve);
+    char *sres   = btor_bv_to_char_bv (btor->mm, res);
+    if (eidx)
+      BTORLOG (3,
+               "prop (e[%d]): %s: %s := %s << %s",
+               eidx,
+               node2string (sll),
+               sbvsll,
+               eidx ? sbve : sres,
+               eidx ? sres : sbve);
+    btor_freestr (btor->mm, sbvsll);
+    btor_freestr (btor->mm, sbve);
+    btor_freestr (btor->mm, sres);
   }
 #endif
   return res;
@@ -2156,7 +2231,7 @@ inv_srl_bv (Btor *btor,
 #ifndef NDEBUG
         char *sbvsrl = btor_bv_to_char_bv (btor->mm, bvsrl);
         char *sbve   = btor_bv_to_char_bv (btor->mm, bve);
-        BTORLOG (2, "prop CONFLICT: %s << x = %s", sbve, sbvsrl);
+        BTORLOG (2, "prop CONFLICT: %s := %s >> x", sbvsrl, sbve);
         btor_freestr (btor->mm, sbvsrl);
         btor_freestr (btor->mm, sbve);
 #endif
@@ -2206,7 +2281,7 @@ inv_srl_bv (Btor *btor,
 #ifndef NDEBUG
           char *sbvsrl = btor_bv_to_char_bv (btor->mm, bvsrl);
           char *sbve   = btor_bv_to_char_bv (btor->mm, bve);
-          BTORLOG (2, "prop CONFLICT: x << %s = %s", sbve, sbvsrl);
+          BTORLOG (2, "prop CONFLICT: %s := x >> %s", sbvsrl, sbve);
           btor_freestr (btor->mm, sbvsrl);
           btor_freestr (btor->mm, sbve);
 #endif
@@ -2234,6 +2309,21 @@ inv_srl_bv (Btor *btor,
       tmpdbg = btor_srl_bv (mm, res, bve);
     assert (!btor_compare_bv (tmpdbg, bvsrl));
     btor_free_bv (mm, tmpdbg);
+
+    char *sbvsrl = btor_bv_to_char_bv (btor->mm, bvsrl);
+    char *sbve   = btor_bv_to_char_bv (btor->mm, bve);
+    char *sres   = btor_bv_to_char_bv (btor->mm, res);
+    if (eidx)
+      BTORLOG (3,
+               "prop (e[%d]): %s: %s := %s >> %s",
+               eidx,
+               node2string (srl),
+               sbvsrl,
+               eidx ? sbve : sres,
+               eidx ? sres : sbve);
+    btor_freestr (btor->mm, sbvsrl);
+    btor_freestr (btor->mm, sbve);
+    btor_freestr (btor->mm, sres);
   }
 #endif
   return res;
@@ -2310,7 +2400,7 @@ inv_mul_bv (Btor *btor,
 #ifndef NDEBUG
         char *sbvmul = btor_bv_to_char_bv (btor->mm, bvmul);
         char *sbve   = btor_bv_to_char_bv (btor->mm, bve);
-        BTORLOG (2, "prop CONFLICT: %s * x = %s", sbve, sbvmul);
+        BTORLOG (2, "prop CONFLICT: %s := %s * x", sbvmul, sbve);
         btor_freestr (btor->mm, sbvmul);
         btor_freestr (btor->mm, sbve);
 #endif
@@ -2354,6 +2444,21 @@ inv_mul_bv (Btor *btor,
       tmpdbg = btor_mul_bv (mm, res, bve);
     assert (!btor_compare_bv (tmpdbg, bvmul));
     btor_free_bv (mm, tmpdbg);
+
+    char *sbvmul = btor_bv_to_char_bv (btor->mm, bvmul);
+    char *sbve   = btor_bv_to_char_bv (btor->mm, bve);
+    char *sres   = btor_bv_to_char_bv (btor->mm, res);
+    if (eidx)
+      BTORLOG (3,
+               "prop (e[%d]): %s: %s := %s * %s",
+               eidx,
+               node2string (mul),
+               sbvmul,
+               eidx ? sbve : sres,
+               eidx ? sres : sbve);
+    btor_freestr (btor->mm, sbvmul);
+    btor_freestr (btor->mm, sbve);
+    btor_freestr (btor->mm, sres);
   }
 #endif
   return res;
@@ -2559,7 +2664,7 @@ inv_udiv_bv (Btor *btor,
 #ifndef NDEBUG
           char *sbvudiv = btor_bv_to_char_bv (btor->mm, bvudiv);
           char *sbve    = btor_bv_to_char_bv (btor->mm, bve);
-          BTORLOG (2, "prop CONFLICT: %s / x = %s", sbve, sbvudiv);
+          BTORLOG (2, "prop CONFLICT: %s := %s / x", sbvudiv, sbve);
           btor_freestr (btor->mm, sbvudiv);
           btor_freestr (btor->mm, sbve);
 #endif
@@ -2605,7 +2710,7 @@ inv_udiv_bv (Btor *btor,
 #ifndef NDEBUG
           char *sbvudiv = btor_bv_to_char_bv (btor->mm, bvudiv);
           char *sbve    = btor_bv_to_char_bv (btor->mm, bve);
-          BTORLOG (2, "prop CONFLICT: %s / x = %s", sbve, sbvudiv);
+          BTORLOG (2, "prop CONFLICT: %s := %s / x", sbvudiv, sbve);
           btor_freestr (btor->mm, sbvudiv);
           btor_freestr (btor->mm, sbve);
 #endif
@@ -2653,7 +2758,7 @@ inv_udiv_bv (Btor *btor,
 #ifndef NDEBUG
           char *sbvudiv = btor_bv_to_char_bv (btor->mm, bvudiv);
           char *sbve    = btor_bv_to_char_bv (btor->mm, bve);
-          BTORLOG (2, "prop CONFLICT: x / %s = %s", sbve, sbvudiv);
+          BTORLOG (2, "prop CONFLICT: %s := x / %s", sbvudiv, sbve);
           btor_freestr (btor->mm, sbvudiv);
           btor_freestr (btor->mm, sbve);
 #endif
@@ -2691,7 +2796,7 @@ inv_udiv_bv (Btor *btor,
 #ifndef NDEBUG
           char *sbvudiv = btor_bv_to_char_bv (btor->mm, bvudiv);
           char *sbve    = btor_bv_to_char_bv (btor->mm, bve);
-          BTORLOG (2, "prop CONFLICT: x / %s = %s", sbve, sbvudiv);
+          BTORLOG (2, "prop CONFLICT: %s := x / %s", sbvudiv, sbve);
           btor_freestr (btor->mm, sbvudiv);
           btor_freestr (btor->mm, sbve);
 #endif
@@ -2741,6 +2846,21 @@ inv_udiv_bv (Btor *btor,
       assert (!btor_compare_bv (tmpdbg, bvudiv));
       btor_free_bv (mm, tmpdbg);
     }
+
+    char *sbvudiv = btor_bv_to_char_bv (btor->mm, bvudiv);
+    char *sbve    = btor_bv_to_char_bv (btor->mm, bve);
+    char *sres    = btor_bv_to_char_bv (btor->mm, res);
+    if (eidx)
+      BTORLOG (3,
+               "prop (e[%d]): %s: %s := %s * %s",
+               eidx,
+               node2string (udiv),
+               sbvudiv,
+               eidx ? sbve : sres,
+               eidx ? sres : sbve);
+    btor_freestr (btor->mm, sbvudiv);
+    btor_freestr (btor->mm, sbve);
+    btor_freestr (btor->mm, sres);
   }
 #endif
   return res;
@@ -2808,7 +2928,7 @@ inv_urem_bv (Btor *btor,
 #ifndef NDEBUG
         char *sbvurem = btor_bv_to_char_bv (btor->mm, bvurem);
         char *sbve    = btor_bv_to_char_bv (btor->mm, bve);
-        BTORLOG (2, "prop CONFLICT: %s %% x = %s", sbve, sbvurem);
+        BTORLOG (2, "prop CONFLICT: %s := %s %% x", sbvurem, sbve);
         btor_freestr (btor->mm, sbvurem);
         btor_freestr (btor->mm, sbve);
 
@@ -2839,7 +2959,7 @@ inv_urem_bv (Btor *btor,
 #ifndef NDEBUG
           char *sbvurem = btor_bv_to_char_bv (btor->mm, bvurem);
           char *sbve    = btor_bv_to_char_bv (btor->mm, bve);
-          BTORLOG (2, "prop CONFLICT: %s %% x = %s", sbve, sbvurem);
+          BTORLOG (2, "prop CONFLICT: %s := %s %% x", sbvurem, sbve);
           btor_freestr (btor->mm, sbvurem);
           btor_freestr (btor->mm, sbve);
 #endif
@@ -2864,7 +2984,7 @@ inv_urem_bv (Btor *btor,
 #ifndef NDEBUG
         char *sbvurem = btor_bv_to_char_bv (btor->mm, bvurem);
         char *sbve    = btor_bv_to_char_bv (btor->mm, bve);
-        BTORLOG (2, "prop CONFLICT: %s %% x = %s", sbve, sbvurem);
+        BTORLOG (2, "prop CONFLICT: %s := %s %% x", sbvurem, sbve);
         btor_freestr (btor->mm, sbvurem);
         btor_freestr (btor->mm, sbve);
 #endif
@@ -2921,7 +3041,7 @@ inv_urem_bv (Btor *btor,
 #ifndef NDEBUG
             char *sbvurem = btor_bv_to_char_bv (btor->mm, bvurem);
             char *sbve    = btor_bv_to_char_bv (btor->mm, bve);
-            BTORLOG (2, "prop CONFLICT: x %% %s = %s", sbve, sbvurem);
+            BTORLOG (2, "prop CONFLICT: %s := x %% %s", sbvurem, sbve);
             btor_freestr (btor->mm, sbvurem);
             btor_freestr (btor->mm, sbve);
 #endif
@@ -2983,7 +3103,7 @@ inv_urem_bv (Btor *btor,
 #ifndef NDEBUG
         char *sbvurem = btor_bv_to_char_bv (btor->mm, bvurem);
         char *sbve    = btor_bv_to_char_bv (btor->mm, bve);
-        BTORLOG (2, "prop CONFLICT: x %% %s = %s", sbve, sbvurem);
+        BTORLOG (2, "prop CONFLICT: %s := x %% %s", sbvurem, sbve);
         btor_freestr (btor->mm, sbvurem);
         btor_freestr (btor->mm, sbve);
 #endif
@@ -3010,6 +3130,21 @@ inv_urem_bv (Btor *btor,
       tmpdbg = btor_urem_bv (mm, res, bve);
     assert (!btor_compare_bv (tmpdbg, bvurem));
     btor_free_bv (mm, tmpdbg);
+
+    char *sbvurem = btor_bv_to_char_bv (btor->mm, bvurem);
+    char *sbve    = btor_bv_to_char_bv (btor->mm, bve);
+    char *sres    = btor_bv_to_char_bv (btor->mm, res);
+    if (eidx)
+      BTORLOG (3,
+               "prop (e[%d]): %s: %s := %s %% %s",
+               eidx,
+               node2string (urem),
+               sbvurem,
+               eidx ? sbve : sres,
+               eidx ? sres : sbve);
+    btor_freestr (btor->mm, sbvurem);
+    btor_freestr (btor->mm, sbve);
+    btor_freestr (btor->mm, sres);
   }
 #endif
   return res;
@@ -3065,7 +3200,7 @@ inv_concat_bv (Btor *btor,
 #ifndef NDEBUG
         char *sbvconcat = btor_bv_to_char_bv (btor->mm, bvconcat);
         char *sbve      = btor_bv_to_char_bv (btor->mm, bve);
-        BTORLOG (2, "prop CONFLICT: %s o x = %s", sbve, sbvconcat);
+        BTORLOG (2, "prop CONFLICT: %s := %s o x", sbvconcat, sbve);
         btor_freestr (btor->mm, sbvconcat);
         btor_freestr (btor->mm, sbve);
 #endif
@@ -3099,7 +3234,7 @@ inv_concat_bv (Btor *btor,
 #ifndef NDEBUG
         char *sbvconcat = btor_bv_to_char_bv (btor->mm, bvconcat);
         char *sbve      = btor_bv_to_char_bv (btor->mm, bve);
-        BTORLOG (2, "prop CONFLICT: x o %s = %s", sbve, sbvconcat);
+        BTORLOG (2, "prop CONFLICT: %s := x o %s", sbvconcat, sbve);
         btor_freestr (btor->mm, sbvconcat);
         btor_freestr (btor->mm, sbve);
 #endif
@@ -3126,6 +3261,21 @@ inv_concat_bv (Btor *btor,
       tmpdbg = btor_concat_bv (mm, res, bve);
     assert (!btor_compare_bv (tmpdbg, bvconcat));
     btor_free_bv (mm, tmpdbg);
+
+    char *sbvconcat = btor_bv_to_char_bv (btor->mm, bvconcat);
+    char *sbve      = btor_bv_to_char_bv (btor->mm, bve);
+    char *sres      = btor_bv_to_char_bv (btor->mm, res);
+    if (eidx)
+      BTORLOG (3,
+               "prop (e[%d]): %s: %s := %s o %s",
+               eidx,
+               node2string (concat),
+               sbvconcat,
+               eidx ? sbve : sres,
+               eidx ? sres : sbve);
+    btor_freestr (btor->mm, sbvconcat);
+    btor_freestr (btor->mm, sbve);
+    btor_freestr (btor->mm, sres);
   }
 #endif
   return res;
@@ -3171,6 +3321,18 @@ inv_slice_bv (Btor *btor, BtorNode *slice, BtorBitVector *bvslice)
   tmpdbg = btor_slice_bv (mm, res, upper, lower);
   assert (!btor_compare_bv (tmpdbg, bvslice));
   btor_free_bv (mm, tmpdbg);
+
+  char *sbvslice = btor_bv_to_char_bv (btor->mm, bvslice);
+  char *sres     = btor_bv_to_char_bv (btor->mm, res);
+  BTORLOG (3,
+           "prop (xxxxx): %s: %s := %s[%d:%d]",
+           node2string (slice),
+           sbvslice,
+           sres,
+           lower,
+           upper);
+  btor_freestr (btor->mm, sbvslice);
+  btor_freestr (btor->mm, sres);
 #endif
   return res;
 }
