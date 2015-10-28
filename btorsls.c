@@ -1833,10 +1833,8 @@ inv_ult_bv (Btor *btor,
 
   if (eidx)
   {
-    // TODO 0 >= e[1] is not necessarily a conflict
-    /* conflict: 0 >= e[1] or 1...1 < e[1] */
-    if ((btor_is_zero_bv (bve) && !isult)
-        || (!btor_compare_bv (bve, bvmax) && isult))
+    /* conflict: 1...1 < e[1] */
+    if (!btor_compare_bv (bve, bvmax) && isult)
     {
 #ifndef NDEBUG
       iscon = 1;
@@ -1875,10 +1873,8 @@ inv_ult_bv (Btor *btor,
   }
   else
   {
-    // TODO e[0] >= 1...1 is not necessarily a conflict
-    /* conflict: e[0] < 0 or e[0] >= 1...1 */
-    if ((btor_is_zero_bv (bve) && isult)
-        || (!btor_compare_bv (bve, bvmax) && !isult))
+    /* conflict: e[0] < 0 */
+    if (btor_is_zero_bv (bve) && isult)
     {
 #ifndef NDEBUG
       iscon = 1;
