@@ -41,6 +41,7 @@ init_bitvec_tests (void)
 {
   g_btor = btor_new_btor ();
   g_mm   = btor_get_mem_mgr_btor (g_btor);
+  btor_init_rng (&g_btor->rng, g_btor->options.seed.val);
 }
 
 static void
@@ -75,6 +76,44 @@ random_bv (uint32_t bw)
                      >> (BTOR_BV_TYPE_BW - 1 - (bw % BTOR_BV_TYPE_BW)));
 
   return res;
+}
+
+static void
+test_new_random_range_bitvec (void)
+{
+  uint32_t bw;
+  uint64_t val;
+  BtorBitVector *bv, *from, *to, *tmp;
+
+  for (bw = 1; bw <= 64; bw++)
+  {
+    from = random_bv (bw);
+    // from == to
+    bv  = btor_new_random_range_bv (g_mm, &g_btor->rng, bw, from, from);
+    val = btor_bv_to_uint64_bv (bv);
+    assert (val == btor_bv_to_uint64_bv (from));
+    btor_free_bv (g_mm, bv);
+    // from < to
+    to = random_bv (bw);
+    while (!btor_compare_bv (from, to))
+    {
+      btor_free_bv (g_mm, to);
+      to = random_bv (bw);
+    }
+    if (btor_bv_to_uint64_bv (to) < btor_bv_to_uint64_bv (from))
+    {
+      tmp  = to;
+      to   = from;
+      from = tmp;
+    }
+    bv  = btor_new_random_range_bv (g_mm, &g_btor->rng, bw, from, to);
+    val = btor_bv_to_uint64_bv (bv);
+    assert (val >= btor_bv_to_uint64_bv (from));
+    assert (val <= btor_bv_to_uint64_bv (to));
+    btor_free_bv (g_mm, from);
+    btor_free_bv (g_mm, to);
+    btor_free_bv (g_mm, bv);
+  }
 }
 
 static void
@@ -752,6 +791,7 @@ run_bitvec_tests (int argc, char **argv)
   srand (42);
   BTOR_RUN_TEST (bv_to_ll_bitvec);
   BTOR_RUN_TEST (new_bitvec);
+  BTOR_RUN_TEST (new_random_range_bitvec);
   BTOR_RUN_TEST (not_bitvec);
   BTOR_RUN_TEST (neg_bitvec);
   BTOR_RUN_TEST (slice_bitvec);
