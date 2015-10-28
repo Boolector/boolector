@@ -1711,7 +1711,8 @@ inv_and_bv (Btor *btor,
       iscon = 1;
 #endif
       /* check for non-recoverable conflict */
-      if (BTOR_IS_BV_CONST_NODE (BTOR_REAL_ADDR_NODE (e)))
+      if (btor->options.engine.val == BTOR_ENGINE_SLS
+          && BTOR_IS_BV_CONST_NODE (BTOR_REAL_ADDR_NODE (e)))
       {
         btor_free_bv (mm, res);
         res = 0;
@@ -1894,7 +1895,8 @@ inv_ult_bv (Btor *btor,
       iscon = 1;
 #endif
       /* check for non-recoverable conflict */
-      if (BTOR_IS_BV_CONST_NODE (BTOR_REAL_ADDR_NODE (e)))
+      if (btor->options.engine.val == BTOR_ENGINE_SLS
+          && BTOR_IS_BV_CONST_NODE (BTOR_REAL_ADDR_NODE (e)))
       {
         res = 0;
 #ifndef NDEBUG
@@ -1943,7 +1945,8 @@ inv_ult_bv (Btor *btor,
       iscon = 1;
 #endif
       /* check for non-recoverable conflict */
-      if (BTOR_IS_BV_CONST_NODE (BTOR_REAL_ADDR_NODE (e)))
+      if (btor->options.engine.val == BTOR_ENGINE_SLS
+          && BTOR_IS_BV_CONST_NODE (BTOR_REAL_ADDR_NODE (e)))
       {
         res = 0;
 #ifndef NDEBUG
@@ -2069,7 +2072,8 @@ inv_sll_bv (Btor *btor,
     if (shift > bvsll->width - 1)
     {
       /* check for non-recoverable conflict */
-      if (BTOR_IS_BV_CONST_NODE (BTOR_REAL_ADDR_NODE (e)))
+      if (btor->options.engine.val == BTOR_ENGINE_SLS
+          && BTOR_IS_BV_CONST_NODE (BTOR_REAL_ADDR_NODE (e)))
       {
 #ifndef NDEBUG
         char *sbvsll = btor_bv_to_char_bv (btor->mm, bvsll);
@@ -2092,7 +2096,9 @@ inv_sll_bv (Btor *btor,
       if (btor_get_bit_bv (bve, i) != btor_get_bit_bv (bvsll, j + i))
       {
         /* check for non-recoverable conflict */
-        if (BTOR_IS_BV_CONST_NODE (BTOR_REAL_ADDR_NODE (e))) return 0;
+        if (btor->options.engine.val == BTOR_ENGINE_SLS
+            && BTOR_IS_BV_CONST_NODE (BTOR_REAL_ADDR_NODE (e)))
+          return 0;
 #ifndef NDEBUG
         iscon = 1;
 #endif
@@ -2118,7 +2124,8 @@ inv_sll_bv (Btor *btor,
       if (btor_get_bit_bv (bvsll, i))
       {
         /* check for non-recoverable conflict */
-        if (BTOR_IS_BV_CONST_NODE (BTOR_REAL_ADDR_NODE (e)))
+        if (btor->options.engine.val == BTOR_ENGINE_SLS
+            && BTOR_IS_BV_CONST_NODE (BTOR_REAL_ADDR_NODE (e)))
         {
 #ifndef NDEBUG
           char *sbvsll = btor_bv_to_char_bv (btor->mm, bvsll);
@@ -2226,7 +2233,8 @@ inv_srl_bv (Btor *btor,
     if (shift > bvsrl->width - 1)
     {
       /* check for non-recoverable conflict */
-      if (BTOR_IS_BV_CONST_NODE (BTOR_REAL_ADDR_NODE (e)))
+      if (btor->options.engine.val == BTOR_ENGINE_SLS
+          && BTOR_IS_BV_CONST_NODE (BTOR_REAL_ADDR_NODE (e)))
       {
 #ifndef NDEBUG
         char *sbvsrl = btor_bv_to_char_bv (btor->mm, bvsrl);
@@ -2250,7 +2258,9 @@ inv_srl_bv (Btor *btor,
           != btor_get_bit_bv (bvsrl, bvsrl->width - 1 - (j + i)))
       {
         /* check for non-recoverable conflict */
-        if (BTOR_IS_BV_CONST_NODE (BTOR_REAL_ADDR_NODE (e))) return 0;
+        if (btor->options.engine.val == BTOR_ENGINE_SLS
+            && BTOR_IS_BV_CONST_NODE (BTOR_REAL_ADDR_NODE (e)))
+          return 0;
 #ifndef NDEBUG
         iscon = 1;
 #endif
@@ -2276,7 +2286,8 @@ inv_srl_bv (Btor *btor,
       if (btor_get_bit_bv (bvsrl, bvsrl->width - 1 - i))
       {
         /* check for non-recoverable conflict */
-        if (BTOR_IS_BV_CONST_NODE (BTOR_REAL_ADDR_NODE (e)))
+        if (btor->options.engine.val == BTOR_ENGINE_SLS
+            && BTOR_IS_BV_CONST_NODE (BTOR_REAL_ADDR_NODE (e)))
         {
 #ifndef NDEBUG
           char *sbvsrl = btor_bv_to_char_bv (btor->mm, bvsrl);
@@ -2394,7 +2405,8 @@ inv_mul_bv (Btor *btor,
       iscon = 1;
 #endif
       /* check for non-recoverable conflict */
-      if (BTOR_IS_BV_CONST_NODE (BTOR_REAL_ADDR_NODE (e)))
+      if (btor->options.engine.val == BTOR_ENGINE_SLS
+          && BTOR_IS_BV_CONST_NODE (BTOR_REAL_ADDR_NODE (e)))
       {
         res = 0;
 #ifndef NDEBUG
@@ -2658,7 +2670,8 @@ inv_udiv_bv (Btor *btor,
         iscon = 1;
 #endif
         /* check for non-recoverable conflict */
-        if (BTOR_IS_BV_CONST_NODE (BTOR_REAL_ADDR_NODE (e)))
+        if (btor->options.engine.val == BTOR_ENGINE_SLS
+            && BTOR_IS_BV_CONST_NODE (BTOR_REAL_ADDR_NODE (e)))
         {
           res = 0;
 #ifndef NDEBUG
@@ -2704,7 +2717,8 @@ inv_udiv_bv (Btor *btor,
         btor_free_bv (mm, tmp);
 
         /* check for non-recoverable conflict */
-        if (BTOR_IS_BV_CONST_NODE (BTOR_REAL_ADDR_NODE (e)))
+        if (btor->options.engine.val == BTOR_ENGINE_SLS
+            && BTOR_IS_BV_CONST_NODE (BTOR_REAL_ADDR_NODE (e)))
         {
           res = 0;
 #ifndef NDEBUG
@@ -2752,7 +2766,8 @@ inv_udiv_bv (Btor *btor,
         iscon = 1;
 #endif
         /* check for non-recoverable conflict */
-        if (BTOR_IS_BV_CONST_NODE (BTOR_REAL_ADDR_NODE (e)))
+        if (btor->options.engine.val == BTOR_ENGINE_SLS
+            && BTOR_IS_BV_CONST_NODE (BTOR_REAL_ADDR_NODE (e)))
         {
           res = 0;
 #ifndef NDEBUG
@@ -2790,7 +2805,8 @@ inv_udiv_bv (Btor *btor,
         iscon = 1;
 #endif
         /* check for non-recoverable conflict */
-        if (BTOR_IS_BV_CONST_NODE (BTOR_REAL_ADDR_NODE (e)))
+        if (btor->options.engine.val == BTOR_ENGINE_SLS
+            && BTOR_IS_BV_CONST_NODE (BTOR_REAL_ADDR_NODE (e)))
         {
           res = 0;
 #ifndef NDEBUG
@@ -2921,6 +2937,7 @@ inv_urem_bv (Btor *btor,
         res = btor_new_random_range_bv (mm, &btor->rng, bve->width, tmp, bvmax);
         btor_free_bv (mm, tmp);
       }
+      // TODO how to handle this in the engine=prop case?
       else /* non-recoverable conflict -> bvurem = 2^bw - 1 */
       {
       RES_GT_BVUREM:
@@ -2953,7 +2970,8 @@ inv_urem_bv (Btor *btor,
 #endif
         btor_free_bv (mm, res);
         /* check for non-recoverable conflict */
-        if (BTOR_IS_BV_CONST_NODE (BTOR_REAL_ADDR_NODE (e)))
+        if (btor->options.engine.val == BTOR_ENGINE_SLS
+            && BTOR_IS_BV_CONST_NODE (BTOR_REAL_ADDR_NODE (e)))
         {
           res = 0;
 #ifndef NDEBUG
@@ -2978,7 +2996,8 @@ inv_urem_bv (Btor *btor,
       iscon = 1;
 #endif
       /* check for non-recoverable conflict */
-      if (BTOR_IS_BV_CONST_NODE (BTOR_REAL_ADDR_NODE (e)))
+      if (btor->options.engine.val == BTOR_ENGINE_SLS
+          && BTOR_IS_BV_CONST_NODE (BTOR_REAL_ADDR_NODE (e)))
       {
         res = 0;
 #ifndef NDEBUG
@@ -2990,6 +3009,7 @@ inv_urem_bv (Btor *btor,
 #endif
       }
       /* still non-recoverable if bvurem = 2^bw - 1 */
+      // TODO how to handle this in the engine=prop case?
       else if (!btor_compare_bv (bvurem, bvmax))
       {
         goto RES_GT_BVUREM;
@@ -3035,7 +3055,8 @@ inv_urem_bv (Btor *btor,
           iscon = 1;
 #endif
           /* check for non-recoverable conflict */
-          if (BTOR_IS_BV_CONST_NODE (BTOR_REAL_ADDR_NODE (e)))
+          if (btor->options.engine.val == BTOR_ENGINE_SLS
+              && BTOR_IS_BV_CONST_NODE (BTOR_REAL_ADDR_NODE (e)))
           {
             res = 0;
 #ifndef NDEBUG
@@ -3097,7 +3118,8 @@ inv_urem_bv (Btor *btor,
       iscon = 1;
 #endif
       /* check for non-recoverable conflict */
-      if (BTOR_IS_BV_CONST_NODE (BTOR_REAL_ADDR_NODE (e)))
+      if (btor->options.engine.val == BTOR_ENGINE_SLS
+          && BTOR_IS_BV_CONST_NODE (BTOR_REAL_ADDR_NODE (e)))
       {
         res = 0;
 #ifndef NDEBUG
@@ -3194,7 +3216,8 @@ inv_concat_bv (Btor *btor,
       iscon = 1;
 #endif
       /* check for non-recoverable conflict */
-      if (BTOR_IS_BV_CONST_NODE (BTOR_REAL_ADDR_NODE (e)))
+      if (btor->options.engine.val == BTOR_ENGINE_SLS
+          && BTOR_IS_BV_CONST_NODE (BTOR_REAL_ADDR_NODE (e)))
       {
         res = 0;
 #ifndef NDEBUG
@@ -3228,7 +3251,8 @@ inv_concat_bv (Btor *btor,
       iscon = 1;
 #endif
       /* check for non-recoverable conflict */
-      if (BTOR_IS_BV_CONST_NODE (BTOR_REAL_ADDR_NODE (e)))
+      if (btor->options.engine.val == BTOR_ENGINE_SLS
+          && BTOR_IS_BV_CONST_NODE (BTOR_REAL_ADDR_NODE (e)))
       {
         res = 0;
 #ifndef NDEBUG
@@ -3399,6 +3423,7 @@ select_prop_move (Btor *btor, BtorNode *root)
     if (BTOR_IS_BV_CONST_NODE (BTOR_REAL_ADDR_NODE (real_cur->e[eidx])))
     {
       /* non-recoverable conflict */
+      // TODO how to handle this in the engine=prop case?
       if (BTOR_IS_BV_CONST_NODE (BTOR_REAL_ADDR_NODE (real_cur->e[idx]))
           || real_cur->arity == 1)
         break;
