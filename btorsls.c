@@ -2937,20 +2937,25 @@ inv_urem_bv (Btor *btor,
         res = btor_new_random_range_bv (mm, &btor->rng, bve->width, tmp, bvmax);
         btor_free_bv (mm, tmp);
       }
-      // TODO how to handle this in the engine=prop case?
       else /* non-recoverable conflict -> bvurem = 2^bw - 1 */
       {
-      RES_GT_BVUREM:
-        res = 0;
+      RES_GT_BVUREM_CONF:
+        if (btor->options.engine.val == BTOR_ENGINE_PROP)
+          res = btor_new_random_bv (btor->mm, &btor->rng, bve->width);
+        else
+        {
+          assert (btor->options.engine.val == BTOR_ENGINE_SLS);
+          res = 0;
 #ifndef NDEBUG
-        char *sbvurem = btor_bv_to_char_bv (btor->mm, bvurem);
-        char *sbve    = btor_bv_to_char_bv (btor->mm, bve);
-        BTORLOG (2, "prop CONFLICT: %s := %s %% x", sbvurem, sbve);
-        btor_freestr (btor->mm, sbvurem);
-        btor_freestr (btor->mm, sbve);
+          char *sbvurem = btor_bv_to_char_bv (btor->mm, bvurem);
+          char *sbve    = btor_bv_to_char_bv (btor->mm, bve);
+          BTORLOG (2, "prop CONFLICT: %s := %s %% x", sbvurem, sbve);
+          btor_freestr (btor->mm, sbvurem);
+          btor_freestr (btor->mm, sbve);
 
-        iscon = 1;
+          iscon = 1;
 #endif
+        }
       }
     }
     /* bve > bvurem, e[1] = (bve - bvurem) / n */
@@ -3009,10 +3014,9 @@ inv_urem_bv (Btor *btor,
 #endif
       }
       /* still non-recoverable if bvurem = 2^bw - 1 */
-      // TODO how to handle this in the engine=prop case?
       else if (!btor_compare_bv (bvurem, bvmax))
       {
-        goto RES_GT_BVUREM;
+        goto RES_GT_BVUREM_CONF;
       }
       else
       {
