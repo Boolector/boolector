@@ -79,6 +79,7 @@ btor_new_bv (BtorMemMgr *mm, uint32_t bw)
   return res;
 }
 
+// TODO simpler with btor_sub_bv
 BtorBitVector *
 btor_new_random_range_bv (BtorMemMgr *mm,
                           BtorRNG *rng,
