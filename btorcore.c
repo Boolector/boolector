@@ -4306,7 +4306,6 @@ search_initial_applies_just (Btor *btor, BtorNodePtrStack *top_applies)
 
       if (BTOR_IS_APPLY_NODE (cur) && !cur->parameterized)
       {
-        assert (BTOR_IS_SYNTH_NODE (cur));
         BTORLOG (1, "initial apply: %s", node2string (cur));
         BTOR_PUSH_STACK (btor->mm, *top_applies, cur);
         continue;
