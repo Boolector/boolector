@@ -2794,22 +2794,37 @@ inv_urem_bv (Btor *btor,
       else /* non-recoverable conflict -> bvurem = 2^bw - 1 */
       {
       RES_GT_BVUREM_CONF:
-        if (btor->options.engine.val == BTOR_ENGINE_PROP)
-          res = btor_new_random_bv (btor->mm, &btor->rng, bve->width);
-        else
-        {
-          assert (btor->options.engine.val == BTOR_ENGINE_SLS);
-          res = 0;
+        res = 0;
 #ifndef NDEBUG
-          char *sbvurem = btor_bv_to_char_bv (btor->mm, bvurem);
-          char *sbve    = btor_bv_to_char_bv (btor->mm, bve);
-          BTORLOG (2, "prop CONFLICT: %s := %s %% x", sbvurem, sbve);
-          btor_freestr (btor->mm, sbvurem);
-          btor_freestr (btor->mm, sbve);
+        char *sbvurem = btor_bv_to_char_bv (btor->mm, bvurem);
+        char *sbve    = btor_bv_to_char_bv (btor->mm, bve);
+        BTORLOG (2, "prop CONFLICT: %s := %s %% x", sbvurem, sbve);
+        btor_freestr (btor->mm, sbvurem);
+        btor_freestr (btor->mm, sbve);
 
-          iscon = 1;
+        iscon = 1;
 #endif
-        }
+#if 0
+// TODO doesn't make a difference if this case produces a randomized 
+// result or no result at all
+RES_GT_BVUREM_CONF:
+	      if (btor->options.engine.val == BTOR_ENGINE_PROP)
+		res = btor_new_random_bv (btor->mm, &btor->rng, bve->width);
+	      else
+		{
+		  assert (btor->options.engine.val == BTOR_ENGINE_SLS);
+		  res = 0;
+#ifndef NDEBUG
+		  char *sbvurem = btor_bv_to_char_bv (btor->mm, bvurem);
+		  char *sbve = btor_bv_to_char_bv (btor->mm, bve);
+		  BTORLOG (2, "prop CONFLICT: %s := %s %% x", sbvurem, sbve);
+		  btor_freestr (btor->mm, sbvurem);
+		  btor_freestr (btor->mm, sbve);
+
+		  iscon = 1;
+#endif
+		}
+#endif
       }
     }
     /* bve > bvurem, e[1] = (bve - bvurem) / n */
