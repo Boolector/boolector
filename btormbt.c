@@ -3270,7 +3270,7 @@ btormbt_state_dump (BtorMBT *mbt, unsigned r)
     rand = pick (&rng, 0, 2);
     if (rand == 0 && !BTOR_COUNT_STACK (mbt->uf->exps))
       boolector_dump_btor (mbt->btor, stdout);
-    else if (rand == 1)
+    else if (!mbt->ext && rand == 1)
       boolector_dump_smt1 (mbt->btor, stdout);
     else
       boolector_dump_smt2 (mbt->btor, stdout);
