@@ -2494,7 +2494,7 @@ inv_udiv_bv (Btor *btor,
   assert (!BTOR_IS_BV_CONST_NODE (BTOR_REAL_ADDR_NODE (udiv->e[eidx])));
 
   BtorNode *e;
-  BtorBitVector *res, *tmp, *one, *bvmax, *n;
+  BtorBitVector *res, *tmp, *lo, *up, *one, *bvmax, *n;
   BtorMemMgr *mm;
 #ifndef NDEBUG
   BtorBitVector *tmpdbg;
@@ -2511,6 +2511,9 @@ inv_udiv_bv (Btor *btor,
   /* bve / e[1] = bvudiv
    * -> if bvudiv is a divisor of bve, res = bve * bvudiv
    * -> else conflict */
+  // TODO conflict case not entirely correct
+  // e.g. 7 / x = 2 -> x = 7/2 = 3 which is still correct but handled as
+  // conflict case here
   if (eidx)
   {
     if (btor_is_zero_bv (bve))
@@ -2556,52 +2559,73 @@ inv_udiv_bv (Btor *btor,
     }
     else
     {
-      tmp = btor_urem_bv (mm, bve, bvudiv);
-      if (btor_is_zero_bv (tmp))
-      {
-        btor_free_bv (mm, tmp);
-        res = btor_udiv_bv (mm, bve, bvudiv);
-      }
-      else
-      {
-        /* conflict */
+#if 0
+	  tmp = btor_urem_bv (mm, bve, bvudiv);
+	  if (btor_is_zero_bv (tmp))
+	    {
+	      btor_free_bv (mm, tmp);
+	      res = btor_udiv_bv (mm, bve, bvudiv);
+	    }
+	  else
+	    {
+	      /* conflict */
 #ifndef NDEBUG
-        iscon = 1;
+	      iscon = 1;
 #endif
-        btor_free_bv (mm, tmp);
+	      btor_free_bv (mm, tmp);
 
-        /* check for non-recoverable conflict */
-        if (btor->options.engine.val == BTOR_ENGINE_SLS
-            && BTOR_IS_BV_CONST_NODE (BTOR_REAL_ADDR_NODE (e)))
-        {
-          res = 0;
+	      /* check for non-recoverable conflict */
+	      if (btor->options.engine.val == BTOR_ENGINE_SLS 
+		  && BTOR_IS_BV_CONST_NODE (BTOR_REAL_ADDR_NODE (e)))
+		{
+		  res = 0;
 #ifndef NDEBUG
-          char *sbvudiv = btor_bv_to_char_bv (btor->mm, bvudiv);
-          char *sbve    = btor_bv_to_char_bv (btor->mm, bve);
-          BTORLOG (2, "prop CONFLICT: %s := %s / x", sbvudiv, sbve);
-          btor_freestr (btor->mm, sbvudiv);
-          btor_freestr (btor->mm, sbve);
+		  char *sbvudiv = btor_bv_to_char_bv (btor->mm, bvudiv);
+		  char *sbve = btor_bv_to_char_bv (btor->mm, bve);
+		  BTORLOG (2, "prop CONFLICT: %s := %s / x", sbvudiv, sbve);
+		  btor_freestr (btor->mm, sbvudiv);
+		  btor_freestr (btor->mm, sbve);
 #endif
-        }
-        else
-        {
-          tmp = btor_copy_bv (mm, bvmax);
-          res = btor_new_random_range_bv (mm, &btor->rng, bve->width, one, tmp);
+		}
+	      else
+		{
+		  tmp = btor_copy_bv (mm, bvmax);
+		  res = btor_new_random_range_bv (
+		      mm, &btor->rng, bve->width, one, tmp);
 
-          while (btor_is_umulo_bv (mm, res, bvudiv))
-          {
-            btor_free_bv (mm, tmp);
-            tmp = btor_sub_bv (mm, res, one);
-            btor_free_bv (mm, res);
-            res =
-                btor_new_random_range_bv (mm, &btor->rng, bve->width, one, tmp);
-          }
+		  while (btor_is_umulo_bv (mm, res, bvudiv))
+		    {
+		      btor_free_bv (mm, tmp);
+		      tmp = btor_sub_bv (mm, res, one);
+		      btor_free_bv (mm, res);
+		      res = btor_new_random_range_bv (
+			  mm, &btor->rng, bve->width, one, tmp);
+		    }
 
-          btor_free_bv (mm, tmp);
+		  btor_free_bv (mm, tmp);
 
-          BTOR_SLS_SOLVER (btor)->stats.move_prop_rec_conf += 1;
-        }
-      }
+		  BTOR_SLS_SOLVER (btor)->stats.move_prop_rec_conf += 1;
+		}
+	    }
+#endif
+      /* Choose e[1] out of all options that yield bve / e[1] = bvudiv
+       * Note: udiv always truncates the result towards 0. */
+
+      /* determine upper and lower bounds for e[1]:
+       * upper: bve / bvudiv
+       * lower: bve / (bvudiv +1) + 1 */
+      tmp = btor_inc_bv (mm, bvudiv);
+      lo  = btor_udiv_bv (mm, bve, tmp);
+      btor_free_bv (mm, tmp);
+      tmp = lo;
+      lo  = btor_inc_bv (mm, tmp); /* lower bound */
+      btor_free_bv (mm, tmp);
+      up = btor_udiv_bv (mm, bve, bvudiv); /* upper bound */
+
+      res = btor_new_random_range_bv (mm, &btor->rng, bve->width, lo, up);
+
+      btor_free_bv (mm, lo);
+      btor_free_bv (mm, tmp);
     }
   }
   /* e[0] / bve = bvudiv
