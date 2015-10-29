@@ -3819,6 +3819,9 @@ boolector_dump_smt1 (Btor *btor, FILE *file)
   BTOR_TRAPI ("");
   BTOR_ABORT_ARG_NULL_BOOLECTOR (btor);
   BTOR_ABORT_ARG_NULL_BOOLECTOR (file);
+  BTOR_ABORT_BOOLECTOR (btor->feqs->count > 0 && btor->lambdas->count > 0,
+                        "dumping formula in SMT1 format is not supported if "
+                        "array equalities are present in the formula");
   BTOR_ABORT_BOOLECTOR (btor->options.incremental.val,
                         "dumping formula in SMT1 format is not supported if "
                         "'incremental' is enabled");
