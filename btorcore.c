@@ -115,9 +115,6 @@
 #define BTOR_COND_INVERT_AIG_NODE(exp, aig) \
   ((BtorAIG *) (((unsigned long int) (exp) &1ul) ^ ((unsigned long int) (aig))))
 
-//#define MARK_PROP_UP(exp) ((BtorNode *) (1ul | (unsigned long int) (exp)))
-//#define PROPAGATED_UPWARDS(exp) (1ul & (unsigned long int) (exp)->parent)
-
 /*------------------------------------------------------------------------*/
 
 static BtorSolver *new_core_solver (Btor *);
@@ -6470,6 +6467,7 @@ add_function_inequality_constraints (Btor *btor)
     btor_assert_exp (btor, con);
     btor_release_exp (btor, con);
     btor_release_exp (btor, neq);
+    BTORLOG (2, "add inequality contraint for %s", node2string (cur));
   }
   BTOR_RELEASE_STACK (btor->mm, feqs);
 }
