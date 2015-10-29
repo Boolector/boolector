@@ -2383,10 +2383,13 @@ btormbt_param_array_op (BtorMBT *mbt, RNG *rng)
   else /* evenly distribute EQ, NE and COND */
   {
     /* parameterized EQ and NE not supported */
-    if (force_param || pick (rng, 0, 2) == 0)
+    if (!mbt->ext || force_param || pick (rng, 0, 2) == 0)
       op = COND;
     else
-      op = pick (rng, EQ, NE);
+    {
+      rand = pick (&rng, 0, NORM_VAL - 1);
+      op   = rand < mbt->p_eq ? EQ : NE;
+    }
   }
 
   e1 = e2 = 0;
@@ -2417,6 +2420,7 @@ btormbt_param_array_op (BtorMBT *mbt, RNG *rng)
       break;
     default:
       assert (!force_param);
+      assert (mbt->ext);
       assert (op == EQ || op == NE);
       e0 = select_exp (mbt, rng, BTORMBT_ARR_T, -1);
       e1 = select_arr_exp (mbt,
