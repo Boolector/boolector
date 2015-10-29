@@ -4183,7 +4183,7 @@ applies_param_lambda_apply (Btor *btor, BtorNode *e0, BtorNode *e1)
 {
   (void) btor;
   (void) e1;
-  return BTOR_IS_LAMBDA_NODE (BTOR_REAL_ADDR_NODE (e0))
+  return BTOR_IS_LAMBDA_NODE (BTOR_REAL_ADDR_NODE (e0)) && !e0->parameterized
          && BTOR_IS_PARAM_NODE (
                 BTOR_REAL_ADDR_NODE (btor_lambda_get_body (e0)));
 }
