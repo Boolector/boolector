@@ -2904,7 +2904,7 @@ btormbt_state_opt (BtorMBT *mbt, unsigned r)
     mbt->dump = 1;
 
   /* make formulas extensional with probability of 0.1 */
-  if (0 && pick (&rng, 0, 9)) mbt->ext = 1;
+  if (pick (&rng, 0, 9)) mbt->ext = 1;
 
   return btormbt_state_init;
 }
@@ -3252,13 +3252,15 @@ btormbt_state_dump (BtorMBT *mbt, unsigned r)
   RNG rng;
   rng = initrng (r);
 
-  // TODO: UF support in BTOR format not yet implemented
+  // TODO (ma): UF support in BTOR format not yet implemented
+  // TODO (ma): SMT1 dumping not possible for extensional benchmarks (lambdas
+  //		cannot be eliminated)
   if (mbt->output_format)
   {
     if (!strcmp (mbt->output_format, "btor")
         && !BTOR_COUNT_STACK (mbt->uf->exps))
       boolector_dump_btor (mbt->btor, stdout);
-    else if (!strcmp (mbt->output_format, "smt1"))
+    else if (!mbt->ext && !strcmp (mbt->output_format, "smt1"))
       boolector_dump_smt1 (mbt->btor, stdout);
     else if (!strcmp (mbt->output_format, "smt2"))
       boolector_dump_smt2 (mbt->btor, stdout);
