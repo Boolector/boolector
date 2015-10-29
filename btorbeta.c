@@ -530,6 +530,10 @@ btor_beta_reduce (Btor *btor,
             assert (BTOR_IS_PARAM_NODE (BTOR_REAL_ADDR_NODE (e[1])));
             result = btor_lambda_exp (btor, e[1], e[0]);
             if (real_cur->is_array) result->is_array = 1;
+            if (btor_lambda_get_static_rho (real_cur)
+                && !btor_lambda_get_static_rho (result))
+              btor_lambda_set_static_rho (
+                  result, btor_lambda_copy_static_rho (btor, real_cur));
           }
           /* special case: lambda not reduced (not instantiated)
            *		 and is not constant */

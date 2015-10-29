@@ -879,6 +879,8 @@ BtorPtrHashTable *btor_lambda_get_synth_apps (BtorNode *lambda);
 void btor_lambda_set_static_rho (BtorNode *lambda,
                                  BtorPtrHashTable *static_rho);
 
+BtorPtrHashTable *btor_lambda_copy_static_rho (Btor *btor, BtorNode *lambda);
+
 void btor_lambda_set_synth_apps (BtorNode *lambda,
                                  BtorPtrHashTable *synth_apps);
 

@@ -2341,33 +2341,20 @@ rebuild_lambda_exp (Btor *btor, BtorNode *exp)
   assert (BTOR_IS_LAMBDA_NODE (exp));
   assert (!btor_param_cur_assignment (exp->e[0]));
 
-  BtorNode *key, *data, *result;
-  BtorHashTableIterator it;
-  BtorPtrHashTable *static_rho;
+  BtorNode *result;
 
   /* we need to reset the binding lambda here as otherwise it is not possible
    * to create a new lambda term with the same param that substitutes 'exp' */
   btor_param_set_binding_lambda (exp->e[0], 0);
-
-  static_rho = btor_lambda_get_static_rho (exp);
-  result     = btor_lambda_exp (btor, exp->e[0], exp->e[1]);
+  result = btor_lambda_exp (btor, exp->e[0], exp->e[1]);
 
   /* lambda not rebuilt, set binding lambda again */
   if (result == exp) btor_param_set_binding_lambda (exp->e[0], exp);
 
   /* copy static_rho for new lambda */
-  if (static_rho && !btor_lambda_get_static_rho (result))
-  {
-    btor_init_node_hash_table_iterator (&it, static_rho);
-    static_rho = btor_new_ptr_hash_table (btor->mm, 0, 0);
-    while (btor_has_next_node_hash_table_iterator (&it))
-    {
-      data = btor_copy_exp (btor, it.bucket->data.asPtr);
-      key  = btor_copy_exp (btor, btor_next_node_hash_table_iterator (&it));
-      btor_insert_in_ptr_hash_table (static_rho, key)->data.asPtr = data;
-    }
-    btor_lambda_set_static_rho (result, static_rho);
-  }
+  if (btor_lambda_get_static_rho (exp) && !btor_lambda_get_static_rho (result))
+    btor_lambda_set_static_rho (result,
+                                btor_lambda_copy_static_rho (btor, exp));
   if (exp->is_array) result->is_array = 1;
   return result;
 }
@@ -3195,10 +3182,11 @@ btor_simplify (Btor *btor)
       continue;
 
     /* rewrite/beta-reduce applies on lambdas */
-    if (btor->options.beta_reduce_all.val
-        /* FIXME: full beta reduction may produce lambdas that do not have a
-         * static_rho */
-        && btor->feqs->count == 0)
+    if (btor->options.beta_reduce_all.val)
+      //	  /* FIXME: full beta reduction may produce lambdas that do not
+      // have a
+      //	   * static_rho */
+      //	  && btor->feqs->count == 0)
       btor_eliminate_applies (btor);
 
     /* add ackermann constraints for all uninterpreted functions */
@@ -5812,7 +5800,7 @@ generate_table_select_branch_ite (Btor *btor, BtorNode *fun)
 {
   assert (BTOR_IS_REGULAR_NODE (fun));
   assert (BTOR_IS_LAMBDA_NODE (fun));
-  assert (!((BtorLambdaNode *) fun)->static_rho);
+  assert (!btor_lambda_get_static_rho (fun));
   assert (fun->is_array);
 
   BtorBitVector *evalbv;
