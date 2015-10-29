@@ -241,7 +241,8 @@ btor_optimize_unconstrained (Btor *btor)
             {
               btor->stats.fun_uc_props++;
               btor_insert_in_ptr_hash_table (ucs, btor_copy_exp (btor, cur));
-              subst = btor_uf_exp (btor, cur->sort_id, 0);
+              subst           = btor_uf_exp (btor, cur->sort_id, 0);
+              subst->is_array = cur->is_array;
               BTOR_MSG (btor->msg,
                         2,
                         "found unconstrained term %s",
