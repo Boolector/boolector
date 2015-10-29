@@ -2879,7 +2879,9 @@ static inline BtorNode *
 apply_const1_and (Btor *btor, BtorNode *e0, BtorNode *e1)
 {
   assert (applies_const1_and (btor, e0, e1));
-  assert (!BTOR_IS_BV_CONST_NODE (BTOR_REAL_ADDR_NODE (e0->e[1])));
+  // TODO (ma): this assertion may fail if pbr_rewrite_level = 0 (since rewrite
+  //            levels are mixed)
+  //  assert (!BTOR_IS_BV_CONST_NODE (BTOR_REAL_ADDR_NODE (e0->e[1])));
 
   BtorNode *tmp, *result;
 
