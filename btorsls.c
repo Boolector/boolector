@@ -2493,6 +2493,7 @@ inv_udiv_bv (Btor *btor,
   assert (eidx >= 0 && eidx <= 1);
   assert (!BTOR_IS_BV_CONST_NODE (BTOR_REAL_ADDR_NODE (udiv->e[eidx])));
 
+  int i;
   BtorNode *e;
   BtorBitVector *res, *tmp, *lo, *up, *one, *bvmax, *n, *tmpbve;
   BtorMemMgr *mm;
@@ -2614,6 +2615,7 @@ inv_udiv_bv (Btor *btor,
    * -> if bvudiv = 2^bw - 1, x = 0
    * -> if bve = 0 and bvudiv = 0, choose random value for e[1]
    *           |-> and bvudiv < 2^bw - 1 -> conflict
+   * -> if bve < bvudiv -> conflict
    * -> else choose e[1] s.t. bve / e[1] = bvudiv */
   if (eidx)
   {
@@ -2631,11 +2633,12 @@ inv_udiv_bv (Btor *btor,
       {
         res = btor_new_random_range_bv (mm, &btor->rng, bve->width, one, bvmax);
       }
-      else
+      else /* conflict */
       {
 #ifndef NDEBUG
         iscon = 1;
 #endif
+      BVUDIV_CONF:
         /* check for non-recoverable conflict */
         if (btor->options.engine.val == BTOR_ENGINE_SLS
             && BTOR_IS_BV_CONST_NODE (BTOR_REAL_ADDR_NODE (e)))
@@ -2652,13 +2655,41 @@ inv_udiv_bv (Btor *btor,
         else
         {
           /* disregard bve, choose random bve and e[1] such that
-           * bve / e[1] = bvudiv */
-          tmpbve = bve;
-          bve =
-              btor_new_random_range_bv (mm, &btor->rng, bve->width, one, bvmax);
-          goto BVUDIV_E1_REGULAR_CASE;
+           * bve / e[1] = bvudiv (max. 5 tries) */
+          for (i = 0, res = 0; i < 5; i++)
+          {
+            tmpbve = btor_new_random_range_bv (
+                mm, &btor->rng, bve->width, bvudiv, bvmax);
+            /* upper bound */
+            up = btor_udiv_bv (mm, tmpbve, bvudiv);
+            /* lower bound (excl) */
+            tmp = btor_inc_bv (mm, bvudiv);
+            lo  = btor_udiv_bv (mm, tmpbve, tmp);
+            btor_free_bv (mm, tmp);
+            /* lower bound (incl) */
+            tmp = lo;
+            lo  = btor_inc_bv (mm, tmp);
+
+            if (btor_compare_bv (lo, up) <= 0)
+            {
+              res =
+                  btor_new_random_range_bv (mm, &btor->rng, bve->width, lo, up);
+              btor_free_bv (mm, tmpbve);
+              break;
+            }
+            /* else: again, conflict */
+            btor_free_bv (mm, tmpbve);
+          }
         }
       }
+    }
+    /* bve < bvudiv -> conflict */
+    else if (btor_compare_bv (bve, bvudiv) < 0)
+    {
+#ifndef NDEBUG
+      iscon = 1;
+#endif
+      goto BVUDIV_CONF;
     }
     else
     {
@@ -2667,27 +2698,30 @@ inv_udiv_bv (Btor *btor,
 
       /* determine upper and lower bounds for e[1]:
        * upper: bve / bvudiv
-       * lower: bve / (bvudiv +1) + 1 */
-    BVUDIV_E1_REGULAR_CASE:
+       * lower: bve / (bvudiv +1) + 1
+       * if lower > upper -> conflict */
+      up  = btor_udiv_bv (mm, bve, bvudiv); /* upper bound */
       tmp = btor_inc_bv (mm, bvudiv);
-      lo  = btor_udiv_bv (mm, bve, tmp);
+      lo  = btor_udiv_bv (mm, bve, tmp); /* lower bound (excl.) */
       btor_free_bv (mm, tmp);
       tmp = lo;
-      lo  = btor_inc_bv (mm, tmp); /* lower bound */
-      btor_free_bv (mm, tmp);
-      up = btor_udiv_bv (mm, bve, bvudiv); /* upper bound */
+      lo  = btor_inc_bv (mm, tmp); /* lower bound (incl.) */
 
-      res = btor_new_random_range_bv (mm, &btor->rng, bve->width, lo, up);
+      /* lo > up -> conflict */
+      if (btor_compare_bv (lo, up) > 0)
+      {
+        btor_free_bv (mm, lo);
+        btor_free_bv (mm, up);
+        goto BVUDIV_CONF;
+      }
+      /* choose lo <= e[1] <= up */
+      else
+      {
+        res = btor_new_random_range_bv (mm, &btor->rng, bve->width, lo, up);
+      }
 
       btor_free_bv (mm, lo);
-      btor_free_bv (mm, tmp);
-
-      /* cleanup conflict case */
-      if (tmpbve)
-      {
-        btor_free_bv (mm, bve);
-        bve = tmpbve;
-      }
+      btor_free_bv (mm, up);
     }
   }
 
