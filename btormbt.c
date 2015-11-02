@@ -2015,26 +2015,15 @@ btormbt_array_op (BtorMBT *mbt,
   assert (boolector_is_array (mbt->btor, e0));
   assert (is_array_op (op));
 
-  int e0w, e0iw, e1w;
   BoolectorNode *node;
-
-  e0w = boolector_get_width (mbt->btor, e0);
-  assert (e0w <= mbt->g_max_bw);
-  e0iw = boolector_get_index_width (mbt->btor, e0);
-  assert (e0iw >= mbt->g_min_index_bw);
-  assert (e0iw <= mbt->g_max_index_bw);
 
   node = 0;
   if (op == READ || op == WRITE)
   {
-    e1w = boolector_get_width (mbt->btor, e1);
-    assert (e1w <= mbt->g_max_bw);
-
-    e1  = modify_bv (mbt, rng, e1, e0iw);
-    e1w = e0iw;
+    e1 = modify_bv (mbt, rng, e1, boolector_get_index_width (mbt->btor, e0));
     if (op == WRITE)
     {
-      e2   = modify_bv (mbt, rng, e2, e0w);
+      e2   = modify_bv (mbt, rng, e2, boolector_get_width (mbt->btor, e0));
       node = boolector_write (mbt->btor, e0, e1, e2);
     }
     else
@@ -2042,13 +2031,8 @@ btormbt_array_op (BtorMBT *mbt,
   }
   else
   {
-    assert (boolector_is_array (mbt->btor, e1));
-    e1w = boolector_get_width (mbt->btor, e1);
-    assert (e1w == e0w);
-    assert (e1w <= mbt->g_max_bw);
-    assert (boolector_get_index_width (mbt->btor, e1) == e0iw);
-    assert (e0iw >= mbt->g_min_index_bw);
-    assert (e0iw <= mbt->g_max_index_bw);
+    assert (boolector_is_array (mbt->btor, e0));
+    assert (boolector_is_equal_sort (mbt->btor, e0, e1));
 
     if (op == EQ)
       node = boolector_eq (mbt->btor, e0, e1);
@@ -2499,7 +2483,6 @@ btormbt_bv_fun (BtorMBT *mbt, unsigned r, int nlevel)
       btormbt_push_node (mbt, tmp);
     }
 
-#if 1
     /* initialize parameterized stacks to be non-empty */
     if (BTOR_EMPTY_STACK (mbt->parambv->exps))
     {
@@ -2517,19 +2500,24 @@ btormbt_bv_fun (BtorMBT *mbt, unsigned r, int nlevel)
       assert (boolector_get_width (mbt->btor, tmp) > 1);
       modify_bv (mbt, &rng, tmp, 1);
     }
-    if (BTOR_EMPTY_STACK (mbt->paramarr->exps))
-    {
-      /* generate parameterized WRITE */
-      e0   = select_exp (mbt, &rng, BTORMBT_ARR_T, -1);
-      rand = pick (&rng, 1, 2);
-      e1   = select_exp (mbt, &rng, BTORMBT_BV_T, rand == 1 ? 1 : 0);
-      e2   = select_exp (mbt, &rng, BTORMBT_BV_T, rand == 2 ? 1 : 0);
-      assert (btormbt_is_parameterized (mbt, e1)
-              || btormbt_is_parameterized (mbt, e2));
-      // TODO (ma): create parameterized acond?
-      btormbt_array_op (mbt, &rng, WRITE, e0, e1, e2);
-    }
-#endif
+    /* generate parameterized WRITE */
+    assert (BTOR_EMPTY_STACK (mbt->paramarr->exps));
+    rand = pick (&rng, 1, 2);
+    e1   = select_exp (mbt, &rng, BTORMBT_BB_T, rand == 1 ? 1 : 0);
+    e2   = select_exp (mbt, &rng, BTORMBT_BB_T, rand == 2 ? 1 : 0);
+    e0   = select_arr_exp (mbt,
+                         &rng,
+                         0,
+                         boolector_get_width (mbt->btor, e2),
+                         boolector_get_width (mbt->btor, e1),
+                         -1);
+    assert (btormbt_is_parameterized (mbt, e1)
+            || btormbt_is_parameterized (mbt, e2));
+    // TODO (ma): create parameterized acond?
+    btormbt_array_op (mbt, &rng, WRITE, e0, e1, e2);
+    assert (!BTOR_EMPTY_STACK (mbt->parambo->exps));
+    assert (!BTOR_EMPTY_STACK (mbt->parambv->exps));
+    assert (!BTOR_EMPTY_STACK (mbt->paramarr->exps));
 
 #if 0
   /* initialize parameterized stacks if empty. either parambo or parambv
