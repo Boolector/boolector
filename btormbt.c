@@ -2002,7 +2002,7 @@ btormbt_ternary_op (BtorMBT *mbt,
  *
  * if e0 && e1 are arrays they have to be the same size
  */
-static void
+static BtorMBTExp *
 btormbt_array_op (BtorMBT *mbt,
                   RNG *rng,
                   Op op,
@@ -2061,7 +2061,7 @@ btormbt_array_op (BtorMBT *mbt,
     }
   }
   assert (node);
-  btormbt_push_node (mbt, node);
+  return btormbt_push_node (mbt, node);
 }
 
 /*------------------------------------------------------------------------*/
@@ -2211,11 +2211,12 @@ select_arr_exp (BtorMBT *mbt,
   {
     /* generate parameterized WRITE */
     e[0] = select_arr_exp (mbt, rng, NULL, eew, eiw, -1);
-    rand = pick (rng, 1, 2);
-    e[1] = select_exp (mbt, rng, BTORMBT_BV_T, rand == 1 ? 1 : 0);
-    e[2] = select_exp (mbt, rng, BTORMBT_BV_T, rand == 2 ? 1 : 0);
-    btormbt_array_op (mbt, rng, WRITE, e[0], e[1], e[2]);
-    exp   = BTOR_TOP_STACK (mbt->paramarr->exps);
+    assert (boolector_get_index_width (mbt->btor, e[0]) == eiw);
+    assert (boolector_get_width (mbt->btor, e[0]) == eew);
+    rand  = pick (rng, 1, 2);
+    e[1]  = select_exp (mbt, rng, BTORMBT_BV_T, rand == 1 ? 1 : 0);
+    e[2]  = select_exp (mbt, rng, BTORMBT_BV_T, rand == 2 ? 1 : 0);
+    exp   = btormbt_array_op (mbt, rng, WRITE, e[0], e[1], e[2]);
     sel_e = exp->exp;
   }
   else
@@ -2224,6 +2225,8 @@ select_arr_exp (BtorMBT *mbt,
     exp   = btormbt_push_node (mbt, sel_e);
   }
   exp->parents++;
+  assert (boolector_get_index_width (mbt->btor, sel_e) == eiw);
+  assert (boolector_get_width (mbt->btor, sel_e) == eew);
   return sel_e;
 }
 
@@ -2411,8 +2414,8 @@ btormbt_param_array_op (BtorMBT *mbt, RNG *rng)
                            boolector_get_width (mbt->btor, e0),
                            boolector_get_index_width (mbt->btor, e0),
                            force_param ? 1 : pick (rng, 0, 1));
-      e2 = select_exp (mbt, rng, BTORMBT_BO_T, force_param);
       assert (boolector_is_equal_sort (mbt->btor, e0, e1));
+      e2 = select_exp (mbt, rng, BTORMBT_BO_T, force_param);
       break;
     default:
       assert (!force_param);
