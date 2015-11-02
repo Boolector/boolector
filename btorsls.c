@@ -2495,7 +2495,7 @@ inv_udiv_bv (Btor *btor,
 
   int i;
   BtorNode *e;
-  BtorBitVector *res, *tmp, *lo, *up, *one, *bvmax, *n, *tmpbve;
+  BtorBitVector *res, *tmp, *lo, *up, *one, *bvmax, *tmpbve;
   BtorMemMgr *mm;
 #ifndef NDEBUG
   BtorBitVector *tmpdbg;
@@ -2638,7 +2638,7 @@ inv_udiv_bv (Btor *btor,
 #ifndef NDEBUG
         iscon = 1;
 #endif
-      BVUDIV_CONF:
+      BVUDIV_E1_CONF:
         /* check for non-recoverable conflict */
         if (btor->options.engine.val == BTOR_ENGINE_SLS
             && BTOR_IS_BV_CONST_NODE (BTOR_REAL_ADDR_NODE (e)))
@@ -2660,13 +2660,14 @@ inv_udiv_bv (Btor *btor,
           {
             tmpbve = btor_new_random_range_bv (
                 mm, &btor->rng, bve->width, bvudiv, bvmax);
-            /* upper bound */
+            /* upper bound
+             * up = bve / bvudiv */
             up = btor_udiv_bv (mm, tmpbve, bvudiv);
-            /* lower bound (excl) */
+            /* lower bound
+             * lo = bve / (bvudiv + 1) + 1 */
             tmp = btor_inc_bv (mm, bvudiv);
             lo  = btor_udiv_bv (mm, tmpbve, tmp);
             btor_free_bv (mm, tmp);
-            /* lower bound (incl) */
             tmp = lo;
             lo  = btor_inc_bv (mm, tmp);
 
@@ -2689,7 +2690,7 @@ inv_udiv_bv (Btor *btor,
 #ifndef NDEBUG
       iscon = 1;
 #endif
-      goto BVUDIV_CONF;
+      goto BVUDIV_E1_CONF;
     }
     else
     {
@@ -2710,9 +2711,12 @@ inv_udiv_bv (Btor *btor,
       /* lo > up -> conflict */
       if (btor_compare_bv (lo, up) > 0)
       {
+#ifndef NDEBUG
+        iscon = 1;
+#endif
         btor_free_bv (mm, lo);
         btor_free_bv (mm, up);
-        goto BVUDIV_CONF;
+        goto BVUDIV_E1_CONF;
       }
       /* choose lo <= e[1] <= up */
       else
@@ -2725,14 +2729,117 @@ inv_udiv_bv (Btor *btor,
     }
   }
 
-  /* e[0] / bve = bvudiv
+#if 0
+  /* e[0] / bve = bvudiv 
    * -> if bvudiv * bve does not overflow, res  = bvudiv * bve
+   * -> else conflict */ 
+  else
+    {
+      if (btor_is_zero_bv (bve))
+	{
+	  /* e[0] / 0 = 1...1, else conflict */
+	  if (!btor_compare_bv (bvmax, bvudiv))
+	    res = btor_new_random_bv (mm, &btor->rng, bve->width);
+	  else
+	    {
+#ifndef NDEBUG
+	      iscon = 1;
+#endif
+	      /* check for non-recoverable conflict */
+	      if (btor->options.engine.val == BTOR_ENGINE_SLS 
+		  && BTOR_IS_BV_CONST_NODE (BTOR_REAL_ADDR_NODE (e)))
+		{
+		  res = 0;
+#ifndef NDEBUG
+		  char *sbvudiv = btor_bv_to_char_bv (btor->mm, bvudiv);
+		  char *sbve = btor_bv_to_char_bv (btor->mm, bve);
+		  BTORLOG (2, "prop CONFLICT: %s := x / %s", sbvudiv, sbve);
+		  btor_freestr (btor->mm, sbvudiv);
+		  btor_freestr (btor->mm, sbve);
+#endif
+		}
+	      else
+		{
+		  /* res = n * bvudiv s.t. n * bvudiv does not overflow */
+		  n = btor_new_random_range_bv (
+		      mm, &btor->rng, bve->width, one, bvmax);
+		  while (btor_is_umulo_bv (mm, n, bvudiv))
+		    {
+		      tmp = btor_sub_bv (mm, n, one);
+		      btor_free_bv (mm, n);
+		      n = btor_new_random_range_bv (
+			  mm, &btor->rng, bve->width, one, tmp);
+		      btor_free_bv (mm, tmp);
+		    }
+		  res = btor_mul_bv (mm, n, bvudiv);
+		  btor_free_bv (mm, n);
+
+		  BTOR_SLS_SOLVER (btor)->stats.move_prop_rec_conf += 1;
+		}
+	    }
+	}
+      else
+	{
+	  /* check for conflict (overflow) */
+	  if (btor_is_umulo_bv (mm, bve, bvudiv))
+	    {
+#ifndef NDEBUG
+	      iscon = 1;
+#endif
+	      /* check for non-recoverable conflict */
+	      if (btor->options.engine.val == BTOR_ENGINE_SLS 
+		  && BTOR_IS_BV_CONST_NODE (BTOR_REAL_ADDR_NODE (e)))
+		{
+		  res = 0;
+#ifndef NDEBUG
+		  char *sbvudiv = btor_bv_to_char_bv (btor->mm, bvudiv);
+		  char *sbve = btor_bv_to_char_bv (btor->mm, bve);
+		  BTORLOG (2, "prop CONFLICT: %s := x / %s", sbvudiv, sbve);
+		  btor_freestr (btor->mm, sbvudiv);
+		  btor_freestr (btor->mm, sbve);
+#endif
+		}
+	      else
+		{
+		  tmp = btor_sub_bv (mm, bve, one);
+		  res = btor_new_random_range_bv (
+		      mm, &btor->rng, bve->width, one, tmp);
+
+		  while (btor_is_umulo_bv (mm, res, bvudiv))
+		    {
+		      btor_free_bv (mm, tmp);
+		      tmp = btor_sub_bv (mm, res, one);
+		      btor_free_bv (mm, res);
+		      res = btor_new_random_range_bv (
+			  mm, &btor->rng, bve->width, one, tmp);
+		    }
+
+		  btor_free_bv (mm, tmp);
+
+		  tmp = res;
+		  res = btor_mul_bv (mm, tmp, bvudiv);
+		  btor_free_bv (mm, tmp);
+
+		  BTOR_SLS_SOLVER (btor)->stats.move_prop_rec_conf += 1;
+		}
+	    }
+	  /* res = bve * bvudiv */
+	  else
+	    res = btor_mul_bv (mm, bve, bvudiv);
+	}
+    }
+#endif
+
+  /* e[0] / bve = bvudiv
+   * -> if bve = 0 and bvudiv = 1...1, choose e[0] randomly
+   * -> if bve = 0 and bvudiv < 1...1 -> conflict
+   * -> if bve * bvudiv does not overflow, choose e[0] s.t. e[0] / bve = bvudiv
    * -> else conflict */
   else
   {
     if (btor_is_zero_bv (bve))
     {
-      /* e[0] / 0 = 1...1, else conflict */
+      /* e[0] / 0 ) 1...1, else conflict */
       if (!btor_compare_bv (bvmax, bvudiv))
         res = btor_new_random_bv (mm, &btor->rng, bve->width);
       else
@@ -2740,6 +2847,7 @@ inv_udiv_bv (Btor *btor,
 #ifndef NDEBUG
         iscon = 1;
 #endif
+      BVUDIV_E0_CONF:
         /* check for non-recoverable conflict */
         if (btor->options.engine.val == BTOR_ENGINE_SLS
             && BTOR_IS_BV_CONST_NODE (BTOR_REAL_ADDR_NODE (e)))
@@ -2755,17 +2863,45 @@ inv_udiv_bv (Btor *btor,
         }
         else
         {
-          /* res = n * bvudiv s.t. n * bvudiv does not overflow */
-          n = btor_new_random_range_bv (mm, &btor->rng, bve->width, one, bvmax);
-          while (btor_is_umulo_bv (mm, n, bvudiv))
+          /* choose bve s.t. bve * bvudiv does not overflow,
+           * then choose e[0] s.t e[0] / bve = bvudiv */
+          tmpbve =
+              btor_new_random_range_bv (mm, &btor->rng, bve->width, one, bvmax);
+          while (btor_is_umulo_bv (mm, tmpbve, bvudiv))
           {
-            tmp = btor_sub_bv (mm, n, one);
-            btor_free_bv (mm, n);
-            n = btor_new_random_range_bv (mm, &btor->rng, bve->width, one, tmp);
+            tmp = btor_sub_bv (mm, tmpbve, one);
+            btor_free_bv (mm, tmpbve);
+            tmpbve =
+                btor_new_random_range_bv (mm, &btor->rng, bve->width, one, tmp);
             btor_free_bv (mm, tmp);
           }
-          res = btor_mul_bv (mm, n, bvudiv);
-          btor_free_bv (mm, n);
+
+          /* lower bound
+           * lo = bve * bvudiv */
+          lo = btor_mul_bv (mm, tmpbve, bvudiv);
+          /* upper bound
+           * up = (bve + 1) * bvudiv - 1 if (bve + 1) * bvudiv
+           * does not overflow, else 2^bw - 1 */
+          tmp = btor_inc_bv (mm, tmpbve);
+          if (btor_is_umulo_bv (mm, tmp, bvudiv))
+          {
+            btor_free_bv (mm, tmp);
+            up = btor_copy_bv (mm, bvmax);
+          }
+          else
+          {
+            up = btor_mul_bv (mm, tmp, bvudiv);
+            btor_free_bv (mm, tmp);
+            tmp = btor_dec_bv (mm, up);
+            btor_free_bv (mm, up);
+            up = tmp;
+          }
+
+          res = btor_new_random_range_bv (mm, &btor->rng, bve->width, lo, up);
+
+          btor_free_bv (mm, tmpbve);
+          btor_free_bv (mm, up);
+          btor_free_bv (mm, lo);
 
           BTOR_SLS_SOLVER (btor)->stats.move_prop_rec_conf += 1;
         }
@@ -2773,53 +2909,44 @@ inv_udiv_bv (Btor *btor,
     }
     else
     {
-      /* check for conflict (overflow) */
       if (btor_is_umulo_bv (mm, bve, bvudiv))
       {
 #ifndef NDEBUG
         iscon = 1;
 #endif
-        /* check for non-recoverable conflict */
-        if (btor->options.engine.val == BTOR_ENGINE_SLS
-            && BTOR_IS_BV_CONST_NODE (BTOR_REAL_ADDR_NODE (e)))
+        goto BVUDIV_E0_CONF;
+      }
+      else
+      {
+        /* lower bound
+         * lo = bve * bvudiv */
+        lo = btor_mul_bv (mm, bve, bvudiv);
+        /* upper bound
+         * up = (bve + 1) * bvudiv - 1 if (bve + 1) * bvudiv
+         * does not overflow, else 2^bw - 1 */
+        tmp = btor_inc_bv (mm, bve);
+        if (btor_is_umulo_bv (mm, tmp, bvudiv))
         {
-          res = 0;
-#ifndef NDEBUG
-          char *sbvudiv = btor_bv_to_char_bv (btor->mm, bvudiv);
-          char *sbve    = btor_bv_to_char_bv (btor->mm, bve);
-          BTORLOG (2, "prop CONFLICT: %s := x / %s", sbvudiv, sbve);
-          btor_freestr (btor->mm, sbvudiv);
-          btor_freestr (btor->mm, sbve);
-#endif
+          btor_free_bv (mm, tmp);
+          up = btor_copy_bv (mm, bvmax);
         }
         else
         {
-          tmp = btor_sub_bv (mm, bve, one);
-          res = btor_new_random_range_bv (mm, &btor->rng, bve->width, one, tmp);
-
-          while (btor_is_umulo_bv (mm, res, bvudiv))
-          {
-            btor_free_bv (mm, tmp);
-            tmp = btor_sub_bv (mm, res, one);
-            btor_free_bv (mm, res);
-            res =
-                btor_new_random_range_bv (mm, &btor->rng, bve->width, one, tmp);
-          }
-
+          up = btor_mul_bv (mm, tmp, bvudiv);
           btor_free_bv (mm, tmp);
-
-          tmp = res;
-          res = btor_mul_bv (mm, tmp, bvudiv);
-          btor_free_bv (mm, tmp);
-
-          BTOR_SLS_SOLVER (btor)->stats.move_prop_rec_conf += 1;
+          tmp = btor_dec_bv (mm, up);
+          btor_free_bv (mm, up);
+          up = tmp;
         }
+
+        res = btor_new_random_range_bv (mm, &btor->rng, bve->width, lo, up);
+
+        btor_free_bv (mm, up);
+        btor_free_bv (mm, lo);
       }
-      /* res = bve * bvudiv */
-      else
-        res = btor_mul_bv (mm, bve, bvudiv);
     }
   }
+
   btor_free_bv (mm, bvmax);
   btor_free_bv (mm, one);
 #ifndef NDEBUG
