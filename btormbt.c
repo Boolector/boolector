@@ -1602,17 +1602,16 @@ init_pd_ops (BtorMBT *mbt, float ratio_add, float ratio_release)
 /* Modify bit width of node e of width ew to be of width tow.
  * Note: param ew prevents too many boolector_get_width calls. */
 static BoolectorNode *
-modify_bv (
-    BtorMBT *mbt, RNG *rng, BoolectorNode *e, int old_width, int new_width)
+modify_bv (BtorMBT *mbt, RNG *rng, BoolectorNode *e, int new_width)
 {
-  assert (old_width > 0);
   assert (new_width > 0);
 
-  int tmp;
+  int tmp, old_width;
   BoolectorNode *node;
   BtorMBTExp *exp;
 
-  node = 0;
+  old_width = boolector_get_width (mbt->btor, e);
+  node      = 0;
   if (new_width < old_width)
   {
     tmp  = pick (rng, 0, old_width - new_width);
@@ -1885,24 +1884,23 @@ btormbt_binary_op (
     {
       if (e0_width > mbt->g_max_muldiv_bw)
       {
-        e0       = modify_bv (mbt, rng, e0, e0_width, mbt->g_max_muldiv_bw);
+        e0       = modify_bv (mbt, rng, e0, mbt->g_max_muldiv_bw);
         e0_width = mbt->g_max_muldiv_bw;
       }
       else if (e0_width < mbt->g_min_muldiv_bw)
       {
-        e0 = modify_bv (
-            mbt, rng, e0, mbt->g_min_muldiv_bw, mbt->g_max_muldiv_bw);
+        e0       = modify_bv (mbt, rng, e0, mbt->g_max_muldiv_bw);
         e0_width = mbt->g_max_muldiv_bw;
       }
     }
-    e1 = modify_bv (mbt, rng, e1, e1_width, e0_width);
+    e1 = modify_bv (mbt, rng, e1, e0_width);
   }
   else if (op >= SLL && op <= ROR)
   {
     /* modify width of e0 power of 2 and e1 log2(e0) */
     nextpow2 (e0_width, &tmp0, &tmp1);
-    e0       = modify_bv (mbt, rng, e0, e0_width, tmp0);
-    e1       = modify_bv (mbt, rng, e1, e1_width, tmp1);
+    e0       = modify_bv (mbt, rng, e0, tmp0);
+    e1       = modify_bv (mbt, rng, e1, tmp1);
     e0_width = tmp0;
   }
   else if (op == CONCAT)
@@ -1911,12 +1909,12 @@ btormbt_binary_op (
     {
       if (e0_width > 1)
       {
-        e0       = modify_bv (mbt, rng, e0, e0_width, e0_width / 2);
+        e0       = modify_bv (mbt, rng, e0, e0_width / 2);
         e0_width = e0_width / 2;
       }
       if (e1_width > 1)
       {
-        e1       = modify_bv (mbt, rng, e1, e1_width, e1_width / 2);
+        e1       = modify_bv (mbt, rng, e1, e1_width / 2);
         e1_width = e1_width / 2;
       }
     }
@@ -1990,7 +1988,7 @@ btormbt_ternary_op (BtorMBT *mbt,
   assert (e2w <= mbt->g_max_bw);
 
   /* bitvectors must have same bit width */
-  e2 = modify_bv (mbt, rng, e2, e2w, e1w);
+  e2 = modify_bv (mbt, rng, e2, e1w);
   btormbt_push_node (mbt, boolector_cond (mbt->btor, e0, e1, e2));
 }
 
@@ -2017,7 +2015,7 @@ btormbt_array_op (BtorMBT *mbt,
   assert (boolector_is_array (mbt->btor, e0));
   assert (is_array_op (op));
 
-  int e0w, e0iw, e1w, e2w;
+  int e0w, e0iw, e1w;
   BoolectorNode *node;
 
   e0w = boolector_get_width (mbt->btor, e0);
@@ -2032,14 +2030,11 @@ btormbt_array_op (BtorMBT *mbt,
     e1w = boolector_get_width (mbt->btor, e1);
     assert (e1w <= mbt->g_max_bw);
 
-    e1  = modify_bv (mbt, rng, e1, e1w, e0iw);
+    e1  = modify_bv (mbt, rng, e1, e0iw);
     e1w = e0iw;
     if (op == WRITE)
     {
-      e2w = boolector_get_width (mbt->btor, e2);
-      assert (e1w <= mbt->g_max_bw);
-
-      e2   = modify_bv (mbt, rng, e2, e2w, e0w);
+      e2   = modify_bv (mbt, rng, e2, e0w);
       node = boolector_write (mbt->btor, e0, e1, e2);
     }
     else
@@ -2387,7 +2382,7 @@ btormbt_param_array_op (BtorMBT *mbt, RNG *rng)
       op = COND;
     else
     {
-      rand = pick (&rng, 0, NORM_VAL - 1);
+      rand = pick (rng, 0, NORM_VAL - 1);
       op   = rand < mbt->p_eq ? EQ : NE;
     }
   }
@@ -2417,6 +2412,7 @@ btormbt_param_array_op (BtorMBT *mbt, RNG *rng)
                            boolector_get_index_width (mbt->btor, e0),
                            force_param ? 1 : pick (rng, 0, 1));
       e2 = select_exp (mbt, rng, BTORMBT_BO_T, force_param);
+      assert (boolector_is_equal_sort (mbt->btor, e0, e1));
       break;
     default:
       assert (!force_param);
@@ -2432,6 +2428,7 @@ btormbt_param_array_op (BtorMBT *mbt, RNG *rng)
       /* parameterized array equalities not allowed */
       assert (!btormbt_is_parameterized (mbt, e0));
       assert (!btormbt_is_parameterized (mbt, e1));
+      assert (boolector_is_equal_sort (mbt->btor, e0, e1));
   }
 
   btormbt_array_op (mbt, rng, op, e0, e1, e2);
@@ -2507,7 +2504,7 @@ btormbt_bv_fun (BtorMBT *mbt, unsigned r, int nlevel)
       rand = pick (&rng, 0, BTOR_COUNT_STACK (mbt->parambo->exps) - 1);
       tmp  = mbt->parambo->exps.start[rand]->exp;
       assert (boolector_get_width (mbt->btor, tmp) == 1);
-      modify_bv (mbt, &rng, tmp, 1, pick (&rng, mbt->g_min_bw, mbt->g_max_bw));
+      modify_bv (mbt, &rng, tmp, pick (&rng, mbt->g_min_bw, mbt->g_max_bw));
     }
     if (BTOR_EMPTY_STACK (mbt->parambo->exps))
     {
@@ -2515,7 +2512,7 @@ btormbt_bv_fun (BtorMBT *mbt, unsigned r, int nlevel)
       rand = pick (&rng, 0, BTOR_COUNT_STACK (mbt->parambv->exps) - 1);
       tmp  = mbt->parambv->exps.start[rand]->exp;
       assert (boolector_get_width (mbt->btor, tmp) > 1);
-      modify_bv (mbt, &rng, tmp, boolector_get_width (mbt->btor, tmp), 1);
+      modify_bv (mbt, &rng, tmp, 1);
     }
     if (BTOR_EMPTY_STACK (mbt->paramarr->exps))
     {
@@ -2673,11 +2670,7 @@ btormbt_bv_fun (BtorMBT *mbt, unsigned r, int nlevel)
     width = BTOR_PEEK_STACK (param_widths, i);
     // TODO (ma): if width == 1 select BTORMBT_BO_T
     tmp = select_exp (mbt, &rng, BTORMBT_BV_T, 0);
-    BTOR_PUSH_STACK (
-        mbt->mm,
-        args,
-        modify_bv (
-            mbt, &rng, tmp, boolector_get_width (mbt->btor, tmp), width));
+    BTOR_PUSH_STACK (mbt->mm, args, modify_bv (mbt, &rng, tmp, width));
   }
 
   tmp = boolector_apply (mbt->btor, args.start, BTOR_COUNT_STACK (args), fun);
@@ -2725,10 +2718,7 @@ btormbt_bv_uf (BtorMBT *mbt, unsigned r)
     sort = btor_next_tuple_sort_iterator (&it);
     len  = btor_get_width_bitvec_sort (sorts, sort);
     arg  = select_exp (mbt, &rng, BTORMBT_BB_T, 0);
-    BTOR_PUSH_STACK (
-        mbt->mm,
-        stack,
-        modify_bv (mbt, &rng, arg, boolector_get_width (mbt->btor, arg), len));
+    BTOR_PUSH_STACK (mbt->mm, stack, modify_bv (mbt, &rng, arg, len));
   }
 
   /* create apply on UF */
