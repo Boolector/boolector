@@ -167,7 +167,7 @@ btor_optimize_unconstrained (Btor *btor)
                 btor->stats.bv_uc_props++;
               else
                 btor->stats.fun_uc_props++;
-              btor_insert_in_ptr_hash_table (ucs, btor_copy_exp (btor, cur));
+              btor_insert_in_ptr_hash_table (ucs, cur);
               subst = btor_aux_var_exp (btor, btor_get_exp_width (btor, cur));
               BTOR_MSG (btor->msg,
                         2,
@@ -186,7 +186,7 @@ btor_optimize_unconstrained (Btor *btor)
                 btor->stats.bv_uc_props++;
               else
                 btor->stats.fun_uc_props++;
-              btor_insert_in_ptr_hash_table (ucs, btor_copy_exp (btor, cur));
+              btor_insert_in_ptr_hash_table (ucs, cur);
               subst = btor_aux_var_exp (btor, btor_get_exp_width (btor, cur));
               BTOR_MSG (btor->msg,
                         2,
@@ -207,7 +207,7 @@ btor_optimize_unconstrained (Btor *btor)
             if (uc[0] && uc[1])
             {
               btor->stats.bv_uc_props++;
-              btor_insert_in_ptr_hash_table (ucs, btor_copy_exp (btor, cur));
+              btor_insert_in_ptr_hash_table (ucs, cur);
               subst = btor_aux_var_exp (btor, btor_get_exp_width (btor, cur));
               BTOR_MSG (btor->msg,
                         2,
@@ -221,7 +221,7 @@ btor_optimize_unconstrained (Btor *btor)
             if ((uc[1] && uc[2]) || (uc[0] && (uc[1] || uc[2])))
             {
               btor->stats.bv_uc_props++;
-              btor_insert_in_ptr_hash_table (ucs, btor_copy_exp (btor, cur));
+              btor_insert_in_ptr_hash_table (ucs, cur);
               subst = btor_aux_var_exp (btor, btor_get_exp_width (btor, cur));
               BTOR_MSG (btor->msg,
                         2,
@@ -240,7 +240,7 @@ btor_optimize_unconstrained (Btor *btor)
                            BTOR_REAL_ADDR_NODE (cur->first_parent))))
             {
               btor->stats.fun_uc_props++;
-              btor_insert_in_ptr_hash_table (ucs, btor_copy_exp (btor, cur));
+              btor_insert_in_ptr_hash_table (ucs, cur);
               subst           = btor_uf_exp (btor, cur->sort_id, 0);
               subst->is_array = cur->is_array;
               BTOR_MSG (btor->msg,
@@ -262,11 +262,7 @@ btor_optimize_unconstrained (Btor *btor)
 
   /* cleanup */
   btor_delete_substitutions (btor);
-  btor_init_hash_table_iterator (&it, ucs);
-  while (btor_has_next_hash_table_iterator (&it))
-    btor_release_exp (btor, btor_next_node_hash_table_iterator (&it));
   btor_delete_ptr_hash_table (ucs);
-
   BTOR_RELEASE_STACK (btor->mm, stack);
   BTOR_RELEASE_STACK (btor->mm, roots);
 
