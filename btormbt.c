@@ -31,6 +31,7 @@
 #include <stdio.h>
 #include <stdlib.h>
 #include <string.h>
+#include <sys/mman.h>
 #include <sys/time.h>
 #include <sys/times.h>
 #include <sys/types.h>
@@ -368,7 +369,7 @@
 #define BTORMBT_LOG(l, fmt, args...) \
   do                                 \
   {                                  \
-    if (l <= g_verbosity)            \
+    if (l <= g_btormbt->verbosity)   \
     {                                \
       printf ("[btormbt] ");         \
       printf (fmt, ##args);          \
@@ -432,6 +433,10 @@ pick (RNG *rng_ptr, unsigned from, unsigned to)
 
 typedef enum Op
 {
+  /* PARAM must be the first */
+  PARAM,
+  FUN,
+  UF,
   /* const */
   CONST,
   ZERO,
@@ -503,8 +508,22 @@ typedef enum Op
   READ,
   WRITE,
   /* bv funs */
-  APPLY
+  APPLY,
+  /* do not remove */
+  BTORMBT_NUM_OPS
 } Op;
+
+const char *const g_op2str[] = {
+    "param",   "fun",   "uf",    "const", "zero",  "false",  "ones",   "true",
+    "one",     "uint",  "int",   "var",   "array", "not",    "neg",    "slice",
+    "inc",     "dec",   "uext",  "sext",  "redor", "redxor", "redand", "eq",
+    "ne",      "uaddo", "saddo", "usubo", "ssubo", "umulo",  "smulo",  "sdivo",
+    "ult",     "slt",   "ulte",  "slte",  "ugt",   "sgt",    "ugte",   "sgte",
+    "implies", "iff",   "xor",   "xnor",  "and",   "nand",   "or",     "nor",
+    "add",     "sub",   "mul",   "udiv",  "sdiv",  "urem",   "srem",   "smod",
+    "sll",     "srl",   "sra",   "rol",   "ror",   "concat", "cond",   "read",
+    "write",   "apply",
+};
 
 static int
 is_unary_op (Op op)
@@ -742,6 +761,17 @@ btormbt_release_sort_stack (BtorMemMgr *mm, BoolectorSortStack *sortstack)
   } while (0)
 
 /*------------------------------------------------------------------------*/
+struct BtorMBTStatistics
+{
+  /* total numbers for all rounds */
+  unsigned num_sat;
+  unsigned num_unsat;
+  Op num_ops[BTORMBT_NUM_OPS];
+
+  /* avg. numbers per round */
+};
+
+typedef struct BtorMBTStatistics BtorMBTStatistics;
 
 struct BtorMBT
 {
@@ -758,6 +788,7 @@ struct BtorMBT
   int bugs;
   int forked;
   int ppid; /* parent pid */
+  int verbosity;
 
   bool quiet;
   bool terminal;
@@ -1310,8 +1341,8 @@ mk_node (BtorMBT * mbt, Op op, BtorMBTNodeAttr attr)
 /*------------------------------------------------------------------------*/
 
 static BtorMBT *g_btormbt;
-
-static int g_verbosity;
+static BtorMBTStatistics *g_btormbtstats = 0;
+static char g_shmfilename[128];
 
 static int g_caught_sig;
 static void (*sig_int_handler) (int);
@@ -1453,13 +1484,21 @@ btormbt_error (char *msg, ...)
 static void
 btormbt_print_stats (BtorMBT *mbt)
 {
+  int i;
   double t = get_time ();
-  btormbt_msg ("finished after %0.2f seconds", t);
+  btormbt_msg ("runtime %0.2f seconds", t);
   btormbt_msg ("%d rounds = %0.2f rounds per second",
                mbt->rounds,
                average (mbt->rounds, t));
   btormbt_msg (
       "%d bugs = %0.2f bugs per second", mbt->bugs, average (mbt->bugs, t));
+  btormbt_msg ("%u sat calls", g_btormbtstats->num_sat);
+  btormbt_msg ("%u unsat calls", g_btormbtstats->num_unsat);
+
+  /* print total number of created ops */
+  if (mbt->verbosity > 1)
+    for (i = 0; i < BTORMBT_NUM_OPS; i++)
+      btormbt_msg ("  %u %s", g_btormbtstats->num_ops[i], g_op2str[i]);
 }
 
 /*------------------------------------------------------------------------*/
@@ -1618,13 +1657,20 @@ modify_bv (BtorMBT *mbt, RNG *rng, BoolectorNode *e, int new_width)
   {
     tmp  = pick (rng, 0, old_width - new_width);
     node = boolector_slice (mbt->btor, e, tmp + new_width - 1, tmp);
+    g_btormbtstats->num_ops[SLICE]++;
   }
   else if (new_width > old_width)
   {
     if (pick (rng, 0, 1))
+    {
       node = boolector_uext (mbt->btor, e, new_width - old_width);
+      g_btormbtstats->num_ops[UEXT]++;
+    }
     else
+    {
       node = boolector_sext (mbt->btor, e, new_width - old_width);
+      g_btormbtstats->num_ops[SEXT]++;
+    }
   }
 
   if (node)
@@ -1654,6 +1700,7 @@ btormbt_var (BtorMBT *mbt, RNG *rng, BtorMBTExpType type)
     width = pick (rng, 1, mbt->g_max_bw);
   }
   btormbt_push_node (mbt, boolector_var (mbt->btor, width, 0));
+  g_btormbtstats->num_ops[VAR]++;
 }
 
 static void
@@ -1715,6 +1762,7 @@ btormbt_const (BtorMBT *mbt, RNG *rng)
 #endif
   assert (node);
   btormbt_push_node (mbt, node);
+  g_btormbtstats->num_ops[op]++;
   //  attr.bv.val = val;
   //  attr.bv.width = width;
   //  attr.bv.bits = bits;
@@ -1739,6 +1787,7 @@ btormbt_array (BtorMBT *mbt, RNG *rng)
   iw = pick (rng, mbt->g_min_index_bw, mbt->g_max_index_bw);
 
   btormbt_push_node (mbt, boolector_array (mbt->btor, ew, iw, 0));
+  g_btormbtstats->num_ops[ARRAY]++;
 }
 
 #if 0
@@ -1863,6 +1912,7 @@ btormbt_unary_op (BtorMBT *mbt, RNG *rng, Op op, BoolectorNode *e)
   }
   assert (node);
   btormbt_push_node (mbt, node);
+  g_btormbtstats->num_ops[op]++;
 }
 
 static void
@@ -1967,6 +2017,7 @@ btormbt_binary_op (
   }
   assert (node);
   btormbt_push_node (mbt, node);
+  g_btormbtstats->num_ops[op]++;
 }
 
 static void
@@ -1992,6 +2043,7 @@ btormbt_ternary_op (BtorMBT *mbt,
   /* bitvectors must have same bit width */
   e2 = modify_bv (mbt, rng, e2, e1w);
   btormbt_push_node (mbt, boolector_cond (mbt->btor, e0, e1, e2));
+  g_btormbtstats->num_ops[op]++;
 }
 
 /* calling convention:
@@ -2047,6 +2099,7 @@ btormbt_array_op (BtorMBT *mbt,
     }
   }
   assert (node);
+  g_btormbtstats->num_ops[op]++;
   return btormbt_push_node (mbt, node);
 }
 
@@ -2075,7 +2128,6 @@ select_exp (BtorMBT *mbt, RNG *rng, BtorMBTExpType type, int force_param)
   int rand, idx, lower;
   BtorMBTExpStack *expstack, *bo, *bv, *arr;
   BtorMBTExp *exp;
-  BoolectorNode *node, *e[3];
 
   /* choose between param. exps and non-param. exps */
   rand = pick (rng, 0, NORM_VAL - 1);
@@ -2209,6 +2261,7 @@ select_arr_exp (BtorMBT *mbt,
   {
     sel_e = boolector_array (mbt->btor, eew, eiw, NULL);
     exp   = btormbt_push_node (mbt, sel_e);
+    g_btormbtstats->num_ops[ARRAY]++;
   }
   exp->parents++;
   assert (boolector_get_index_width (mbt->btor, sel_e) == eiw);
@@ -2483,6 +2536,7 @@ btormbt_bv_fun (BtorMBT *mbt, unsigned r, int nlevel)
       BTOR_PUSH_STACK (
           mbt->mm, param_widths, boolector_get_width (mbt->btor, tmp));
       btormbt_push_node (mbt, tmp);
+      g_btormbtstats->num_ops[PARAM]++;
     }
 
     /* initialize parameterized stacks to be non-empty */
@@ -2637,6 +2691,7 @@ btormbt_bv_fun (BtorMBT *mbt, unsigned r, int nlevel)
     fun =
         boolector_fun (mbt->btor, params.start, BTOR_COUNT_STACK (params), tmp);
     btormbt_push_node (mbt, fun);
+    g_btormbtstats->num_ops[FUN]++;
 
     /* reset scope for arguments to apply node */
     mbt->parambo  = tmpparambo;
@@ -2668,6 +2723,7 @@ btormbt_bv_fun (BtorMBT *mbt, unsigned r, int nlevel)
 
   tmp = boolector_apply (mbt->btor, args.start, BTOR_COUNT_STACK (args), fun);
   btormbt_push_node (mbt, tmp);
+  g_btormbtstats->num_ops[APPLY]++;
   BTOR_RELEASE_STACK (mbt->mm, param_widths);
   BTOR_RELEASE_STACK (mbt->mm, args);
 }
@@ -2700,6 +2756,7 @@ btormbt_bv_uf (BtorMBT *mbt, unsigned r)
     uf   = boolector_uf (mbt->btor, sort, 0);
     //      btormbt_push_exp_stack (mbt->mm, mbt->uf, uf);
     btormbt_push_node (mbt, uf);
+    g_btormbtstats->num_ops[UF]++;
   }
 
   /* create apply with sort of UF */
@@ -2720,6 +2777,7 @@ btormbt_bv_uf (BtorMBT *mbt, unsigned r)
 
   len = boolector_get_width (mbt->btor, apply);
   btormbt_push_node (mbt, apply);
+  g_btormbtstats->num_ops[APPLY]++;
   BTOR_RELEASE_STACK (mbt->mm, stack);
 }
 
@@ -3284,10 +3342,14 @@ btormbt_state_sat (BtorMBT *mbt, unsigned r)
   BTORMBT_LOG (1, "calling sat...");
   res = boolector_sat (mbt->btor);
   if (res == BOOLECTOR_UNSAT)
+  {
     BTORMBT_LOG (1, "unsat");
+    g_btormbtstats->num_unsat++;
+  }
   else if (res == BOOLECTOR_SAT)
   {
     BTORMBT_LOG (1, "sat");
+    g_btormbtstats->num_sat++;
     if (mbt->print_model)
     {
       if (pick (&rng, 0, NORM_VAL - 1) < mbt->p_model_format)
@@ -3502,11 +3564,13 @@ run (BtorMBT *mbt)
 
     /* redirect output from child to /dev/null if we don't want to have
      * verbose output */
-    if (!mbt->seeded && !g_verbosity)
+    if (!mbt->seeded || !mbt->verbosity)
     {
       null = open ("/dev/null", O_WRONLY);
       dup2 (null, STDOUT_FILENO);
-      dup2 (null, STDERR_FILENO);
+      /* do not redirect stderr if run is seeded (we want to see the failed
+       * assertion or error msg) */
+      if (!mbt->seeded) dup2 (null, STDERR_FILENO);
       close (null);
     }
 
@@ -3533,9 +3597,9 @@ int
 main (int argc, char **argv)
 {
   int exitcode;
-  int i, j, val, mac, pid, prev, res, verbosity, status;
+  int i, j, val, mac, pid, prev, res, status;
   char *name, *cmd, *tmp;
-  int namelen, cmdlen, tmppid;
+  int namelen, cmdlen, tmppid, fd;
   BtorMBTBtorOpt *btoropt, *tmpopt;
 
   g_btormbt             = btormbt_new_btormbt ();
@@ -3564,7 +3628,7 @@ main (int argc, char **argv)
     }
     else if (!strcmp (argv[i], "-v") || !strcmp (argv[i], "--verbose"))
     {
-      g_verbosity++;
+      g_btormbt->verbosity++;
     }
     else if (!strcmp (argv[i], "-q") || !strcmp (argv[i], "--quiet"))
     {
@@ -4414,6 +4478,20 @@ main (int argc, char **argv)
   g_btormbt->ppid = getpid ();
   set_sig_handlers ();
 
+  /* open shared memory file for statistics */
+  sprintf (g_shmfilename, "/tmp/btormbt-shm-%d", getpid ());
+  if ((fd = open (g_shmfilename, O_RDWR | O_CREAT, S_IRWXU)) < 0)
+    btormbt_error ("failed to create shared memory file");
+  g_btormbtstats = mmap (0,
+                         sizeof (BtorMBTStatistics),
+                         PROT_READ | PROT_WRITE,
+                         MAP_ANONYMOUS | MAP_SHARED,
+                         fd,
+                         0);
+  if (close (fd)) btormbt_error ("failed to close shared memory file");
+  (void) unlink (g_shmfilename);
+  memset (g_shmfilename, 0, sizeof (BtorMBTStatistics));
+
   mac = hashmac ();
   for (g_btormbt->rounds = 0; g_btormbt->rounds < g_btormbt->g_max_rounds;
        g_btormbt->rounds++)
@@ -4440,10 +4518,7 @@ main (int argc, char **argv)
       }
 
       /* reset verbosity flag for initial run, only print on replay */
-      verbosity   = g_verbosity;
-      g_verbosity = 0;
-      status      = run (g_btormbt);
-      g_verbosity = verbosity;
+      status = run (g_btormbt);
     }
     else
       status = run (g_btormbt);
@@ -4506,16 +4581,17 @@ main (int argc, char **argv)
 
     if (res == EXIT_SIGNALED)
     {
-      if (g_verbosity) printf ("signal %d", WTERMSIG (status));
+      if (g_btormbt->verbosity) printf ("signal %d", WTERMSIG (status));
     }
     else if (res == EXIT_UNKNOWN)
     {
-      if (g_verbosity) printf ("unknown");
+      if (g_btormbt->verbosity) printf ("unknown");
     }
     else if (res == EXIT_TIMEOUT)
     {
       BTORMBT_LOG (1, "TIMEOUT: time limit %d seconds reached\n", g_set_alarm);
-      if (!g_verbosity) printf ("timed out after %d second(s)\n", g_set_alarm);
+      if (!g_btormbt->verbosity)
+        printf ("timed out after %d second(s)\n", g_set_alarm);
     }
     else if (res == EXIT_ERROR)
     {
@@ -4523,11 +4599,17 @@ main (int argc, char **argv)
       printf ("exit %d\n", res);
     }
 
+    if (g_btormbt->rounds && g_btormbt->rounds % 10000 == 0)
+    {
+      printf ("\n");
+      btormbt_print_stats (g_btormbt);
+    }
+
     if ((res == EXIT_ERROR && g_btormbt->quit_after_first) || g_btormbt->seeded)
       break;
   }
 
-  if (g_verbosity)
+  if (g_btormbt->verbosity)
   {
     if (g_btormbt->terminal) erase ();
     printf ("forked %d\n", g_btormbt->forked);
@@ -4537,6 +4619,8 @@ DONE:
   if (!g_btormbt->quit_after_first && !g_btormbt->seeded)
     btormbt_print_stats (g_btormbt);
 EXIT:
+  if (munmap (g_btormbtstats, sizeof (BtorMBTStatistics)))
+    btormbt_error ("failed to unmap shared memory");
   btormbt_delete_btormbt (g_btormbt);
   exit (exitcode);
 }
