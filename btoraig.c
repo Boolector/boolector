@@ -2,7 +2,7 @@
  *
  *  Copyright (C) 2007-2009 Robert Daniel Brummayer.
  *  Copyright (C) 2007-2015 Armin Biere.
- *  Copyright (C) 2013-2014 Aina Niemetz.
+ *  Copyright (C) 2013-2015 Aina Niemetz.
  *  Copyright (C) 2013-2015 Mathias Preiner.
  *
  *  All rights reserved.
@@ -1455,15 +1455,40 @@ btor_get_assignment_aig (BtorAIGMgr *amgr, BtorAIG *aig)
 }
 
 int
-btor_cmp_aig (BtorAIG *a, BtorAIG *b)
+btor_cmp_aig (BtorAIG *aig0, BtorAIG *aig1)
 {
-  if (a == b) return 0;
-  if (BTOR_INVERT_AIG (a) == b) return BTOR_IS_INVERTED_AIG (a) ? -1 : 1;
-  if (BTOR_IS_INVERTED_AIG (a)) a = BTOR_INVERT_AIG (a);
-  if (a == BTOR_AIG_FALSE) return -1;
-  assert (a != BTOR_AIG_TRUE);
-  if (BTOR_IS_INVERTED_AIG (b)) b = BTOR_INVERT_AIG (b);
-  if (b == BTOR_AIG_FALSE) return 1;
-  assert (b != BTOR_AIG_TRUE);
-  return a->id - b->id;
+  if (aig0 == aig1) return 0;
+  if (BTOR_INVERT_AIG (aig0) == aig1)
+    return BTOR_IS_INVERTED_AIG (aig0) ? -1 : 1;
+  if (BTOR_IS_INVERTED_AIG (aig0)) aig0 = BTOR_INVERT_AIG (aig0);
+  if (aig0 == BTOR_AIG_FALSE) return -1;
+  assert (aig0 != BTOR_AIG_TRUE);
+  if (BTOR_IS_INVERTED_AIG (aig1)) aig1 = BTOR_INVERT_AIG (aig1);
+  if (aig1 == BTOR_AIG_FALSE) return 1;
+  assert (aig1 != BTOR_AIG_TRUE);
+  return aig0->id - aig1->id;
+}
+
+/* hash AIG by id */
+unsigned int
+btor_hash_aig_by_id (BtorAIG *aig)
+{
+  assert (aig);
+  return (unsigned int) BTOR_GET_AIG_ID_AIG (aig) * 7334147u;
+}
+
+/* compare AIG by id */
+int
+btor_compare_aig_by_id (BtorAIG *aig0, BtorAIG *aig1)
+{
+  assert (aig0);
+  assert (aig1);
+
+  int id0, id1;
+
+  id0 = BTOR_GET_AIG_ID_AIG (aig0);
+  id1 = BTOR_GET_AIG_ID_AIG (aig1);
+  if (id0 < id1) return -1;
+  if (id0 > id1) return 1;
+  return 0;
 }

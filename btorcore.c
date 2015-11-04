@@ -1048,8 +1048,8 @@ btor_set_msg_prefix_btor (Btor *btor, const char *prefix)
 }
 
 /* synthesizes unsynthesized constraints and updates constraints tables. */
-static void
-process_unsynthesized_constraints (Btor *btor)
+void
+btor_process_unsynthesized_constraints (Btor *btor)
 {
   assert (btor);
   assert (!btor->inconsistent);
@@ -7598,7 +7598,7 @@ sat_core_solver (Btor *btor, int lod_limit, int sat_limit)
     add_function_inequality_constraints (btor);
   }
 
-  process_unsynthesized_constraints (btor);
+  btor_process_unsynthesized_constraints (btor);
   if (btor->found_constraint_false)
   {
   UNSAT:
@@ -7677,7 +7677,7 @@ sat_core_solver (Btor *btor, int lod_limit, int sat_limit)
      * in case generated lemma is false */
     if (btor->inconsistent) goto UNSAT;
 
-    process_unsynthesized_constraints (btor);
+    btor_process_unsynthesized_constraints (btor);
     if (btor->found_constraint_false) goto UNSAT;
     assert (btor->unsynthesized_constraints->count == 0);
     assert (check_all_hash_tables_proxy_free_dbg (btor));

@@ -2,7 +2,7 @@
  *
  *  Copyright (C) 2007-2009 Robert Daniel Brummayer.
  *  Copyright (C) 2007-2014 Armin Biere.
- *  Copyright (C) 2013-2014 Aina Niemetz.
+ *  Copyright (C) 2013-2015 Aina Niemetz.
  *  Copyright (C) 2014-2015 Mathias Preiner.
  *
  *  All rights reserved.
@@ -192,6 +192,10 @@ int btor_get_assignment_aig (BtorAIGMgr *amgr, BtorAIG *aig);
 /* Orders AIGs (actually assume left child of an AND node is smaller
  * than right child
  */
-int btor_cmp_aig (BtorAIG *a, BtorAIG *b);
+int btor_cmp_aig (BtorAIG *aig0, BtorAIG *aig1);
 
+/* hash AIG by id */
+unsigned int btor_hash_aig_by_id (BtorAIG *aig);
+/* compare AIG by id */
+int btor_compare_aig_by_id (BtorAIG *aig0, BtorAIG *aig1);
 #endif
