@@ -1480,6 +1480,8 @@ catch_sig (int sig)
   if (!g_caught_sig)
   {
     g_caught_sig = sig;
+    printf ("\n");
+    if (!g_btormbt->seeded) btormbt_print_stats (g_btormbt);
     btormbt_msg ("CAUGHT SIGNAL %d", sig);
   }
   reset_sig_handlers ();
