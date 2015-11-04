@@ -501,6 +501,10 @@ btor_print_stats_btor (Btor *btor)
               1,
               "unconstrained array props: %d",
               btor->stats.fun_uc_props);
+    BTOR_MSG (btor->msg,
+              1,
+              "unconstrained parameterized props: %d",
+              btor->stats.param_uc_props);
   }
 #endif
   BTOR_MSG (btor->msg,

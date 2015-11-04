@@ -192,6 +192,7 @@ struct Btor
 #ifndef BTOR_DO_NOT_OPTIMIZE_UNCONSTRAINED
     int bv_uc_props;
     int fun_uc_props;
+    int param_uc_props;
 #endif
     long long lambdas_merged;
     BtorConstraintStats constraints;
