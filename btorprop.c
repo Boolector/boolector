@@ -2669,6 +2669,7 @@ move (Btor *btor, int nmoves)
 
   update_cone (btor, input, assignment);
   BTOR_PROP_SOLVER (btor)->stats.moves += 1;
+  btor_free_bv (btor->mm, assignment);
 
   return 1;
 }
