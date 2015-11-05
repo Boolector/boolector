@@ -2736,7 +2736,7 @@ sat_prop_solver (Btor *btor, int limit0, int limit1)
 {
   assert (btor);
 
-  int j, max_steps, m;
+  int j, max_steps;
   int sat_result;
   int nmoves;
   BtorNode *root;
