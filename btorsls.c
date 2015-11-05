@@ -3362,6 +3362,7 @@ sat_sls_solver (Btor *btor, int limit0, int limit1)
   int j, max_steps;
   int sat_result;
   int nmoves;
+  BtorNode *root;
   BtorPtrHashBucket *b;
   BtorSLSConstrData *d;
   BtorHashTableIterator it;
@@ -3431,11 +3432,14 @@ sat_sls_solver (Btor *btor, int limit0, int limit1)
   btor_queue_node_hash_table_iterator (&it, btor->assumptions);
   while (btor_has_next_node_hash_table_iterator (&it))
   {
-    b = btor_insert_in_ptr_hash_table (
-        slv->roots, btor_next_node_hash_table_iterator (&it));
-    BTOR_CNEW (btor->mm, d);
-    d->weight     = 1; /* initial assertion weight */
-    b->data.asPtr = d;
+    root = btor_next_node_hash_table_iterator (&it);
+    if (!btor_find_in_ptr_hash_table (slv->roots, root))
+    {
+      b = btor_insert_in_ptr_hash_table (slv->roots, root);
+      BTOR_CNEW (btor->mm, d);
+      d->weight     = 1; /* initial assertion weight */
+      b->data.asPtr = d;
+    }
   }
 
   if (!slv->score)
