@@ -4491,7 +4491,7 @@ main (int argc, char **argv)
                          0);
   if (close (fd)) btormbt_error ("failed to close shared memory file");
   (void) unlink (g_shmfilename);
-  memset (g_shmfilename, 0, sizeof (BtorMBTStatistics));
+  memset (g_btormbtstats, 0, sizeof (BtorMBTStatistics));
 
   mac = hashmac ();
   for (g_btormbt->rounds = 0; g_btormbt->rounds < g_btormbt->g_max_rounds;
