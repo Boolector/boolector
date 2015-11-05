@@ -2640,7 +2640,12 @@ move (Btor *btor, int nmoves)
   BtorBitVector *assignment;
 
   root = select_constraint (btor, nmoves);
-  btor_select_prop_move (btor, root, &input, &assignment);
+
+  do
+  {
+    btor_select_prop_move (btor, root, &input, &assignment);
+  } while (!input);
+
 #ifndef NBTORLOG
   char *a;
   BtorBitVector *ass;
@@ -2656,6 +2661,7 @@ move (Btor *btor, int nmoves)
   BTORLOG (1, "  new   assignment: %s", a);
   btor_freestr (btor->mm, a);
 #endif
+
   update_cone (btor, input, assignment);
   BTOR_PROP_SOLVER (btor)->stats.moves += 1;
 }
