@@ -6550,10 +6550,11 @@ DONE:
 }
 
 #ifdef BTOR_ENABLE_BETA_REDUCTION_PROBING
-static int
+static uint32_t
 sum_ops (Btor *btor)
 {
-  int i, sum = 0;
+  int i;
+  uint32_t sum = 0;
 
   for (i = BTOR_BV_CONST_NODE; i < BTOR_PROXY_NODE; i++)
     sum += btor->ops[i].cur;
@@ -6572,7 +6573,8 @@ br_probe (Btor *btor)
   assert (btor_has_clone_support_sat_mgr (btor_get_sat_mgr_btor (btor)));
 
   Btor *clone;
-  int res, num_ops_orig, num_ops_clone;
+  int res;
+  uint32_t num_ops_orig, num_ops_clone;
   double start, delta;
 
   if (btor->last_sat_result || btor->options.incremental.val
