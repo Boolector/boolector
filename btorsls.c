@@ -512,7 +512,10 @@ select_candidate_constraint (Btor *btor, int nmoves)
     b   = it.bucket;
     d   = (BtorSLSConstrData *) b->data.asPtr;
     cur = btor_next_node_hash_table_iterator (&it);
-    sb  = btor_find_in_ptr_hash_table (slv->score, cur);
+    if (BTOR_IS_BV_CONST_NODE (BTOR_REAL_ADDR_NODE (cur))
+        && btor_is_zero_bv (btor_get_bv_model (btor, cur)))
+      return 0; /* contains false constraint -> unsat */
+    sb = btor_find_in_ptr_hash_table (slv->score, cur);
     assert (sb);
     score = sb->data.asDbl;
     if (score >= 1.0) continue;
@@ -1603,7 +1606,7 @@ select_random_move (Btor *btor, BtorNodePtrStack *candidates)
 
 /*------------------------------------------------------------------------*/
 
-static void
+static int
 move (Btor *btor, int nmoves)
 {
   assert (btor);
@@ -1625,6 +1628,8 @@ move (Btor *btor, int nmoves)
   assert (compute_sls_score_formula (btor, slv->score) != -1.0);
 
   constr = select_candidate_constraint (btor, nmoves);
+  /* roots contain false constraint -> unsat */
+  if (!constr) return 0;
 
   slv->max_cans = btor_new_ptr_hash_table (btor->mm,
                                            (BtorHashPtr) btor_hash_exp_by_id,
@@ -1792,6 +1797,7 @@ move (Btor *btor, int nmoves)
   btor_delete_ptr_hash_table (slv->max_cans);
   slv->max_cans = 0;
   BTOR_RELEASE_STACK (btor->mm, candidates);
+  return 1;
 }
 
 /*------------------------------------------------------------------------*/
@@ -2034,7 +2040,7 @@ sat_sls_solver (Btor *btor, int limit0, int limit1)
         goto DONE;
       }
 
-      move (btor, nmoves++);
+      if (!move (btor, nmoves++)) goto UNSAT;
 
       if (compute_sls_score_formula (btor, slv->score) == -1.0)
       {
