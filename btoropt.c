@@ -231,21 +231,27 @@ btor_init_opts (Btor *btor)
             1,
             "enable propagation moves (with given ratio of propagation to "
             " regular moves)");
-  BTOR_OPT (0,
-            sls_move_prop_moves,
-            1,
-            INT_MIN,
-            INT_MAX,
-            "ratio of prop moves versus regular moves (use <n> > 0 for <n> "
-            "prop moves per one regular move, and <n> < 0 for <n> regular "
-            "moves per one prop move)");
-  BTOR_OPT (0,
-            sls_move_prop_no_flip_cond,
-            0,
-            0,
-            1,
-            "do not choose to flip the condition for ITE during path "
-            "selection");
+  BTOR_OPT (
+      0,
+      sls_move_prop_n_prop,
+      1,
+      0,
+      UINT_MAX,
+      "number of prop moves (moves are performed as <n>:m prop to sls moves");
+  BTOR_OPT (
+      0,
+      sls_move_prop_n_sls,
+      1,
+      0,
+      UINT_MAX,
+      "number of sls moves (moves are performed as m:<n> prop to sls moves");
+  BTOR_OPT (
+      0,
+      sls_move_prop_no_flip_cond,
+      0,
+      0,
+      1,
+      "do not choose to flip the condition for ITE during path selection");
   BTOR_OPT (0,
             sls_move_prop_force_rw,
             0,

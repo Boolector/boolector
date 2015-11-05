@@ -101,7 +101,8 @@ typedef struct BtorOpt
 #define BTOR_OPT_SLS_MOVE_RANDOMIZEALL "sls_move_rand_all"
 #define BTOR_OPT_SLS_MOVE_RANDOMIZERANGE "sls_move_rand_range"
 #define BTOR_OPT_SLS_MOVE_PROP "sls_move_prop"
-#define BTOR_OPT_SLS_MOVE_PROP_MOVES "sls_move_prop_moves"
+#define BTOR_OPT_SLS_MOVE_PROP_N_PROP "sls_move_prop_n_prop"
+#define BTOR_OPT_SLS_MOVE_PROP_N_SLS "sls_move_prop_n_sls"
 #define BTOR_OPT_SLS_MOVE_PROP_FORCE_RW "sls_move_prop_force_rw"
 #define BTOR_OPT_SLS_MOVE_PROP_NO_FLIP_COND "sls_move_prop_no_flip_cond"
 #define BTOR_OPT_SLS_MOVE_PROP_FLIP_COND_PROB "sls_move_prop_flip_cond_prob"
@@ -177,8 +178,8 @@ typedef struct BtorOpts
   BtorOpt sls_move_rand_walk;      /* enable random walks */
   BtorOpt sls_move_rand_walk_prob; /* probability to choose a random walk */
   BtorOpt sls_move_prop;           /* enable propagation moves */
-  BtorOpt sls_move_prop_moves;     /* pos: do n:1 prop vs. regular moves
-                                      neg: do n:1 regular vs. prop moves */
+  BtorOpt sls_move_prop_n_prop;    /* number of prop moves (vs. sls moves) */
+  BtorOpt sls_move_prop_n_sls;     /* number of prop moves (vs. sls moves) */
   BtorOpt sls_move_prop_force_rw;  /* force random walk if prop move fails */
   BtorOpt sls_move_prop_no_flip_cond;   /* do not choose cond flip during
                                      path selection for prop moves */
