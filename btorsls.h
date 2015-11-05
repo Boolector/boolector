@@ -62,6 +62,7 @@ struct BtorSLSSolver
 
   BtorSLSMovePtrStack moves; /* record moves for prob rand walk */
   int npropmoves;            /* record #no moves for prop moves */
+  int nslsmoves;             /* record #no moves for sls moves */
   double sum_score;          /* record sum of all scores for prob rand walk */
 
   /* the following maintain data for the next move (i.e. either the move

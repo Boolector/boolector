@@ -117,9 +117,6 @@
 #define BTOR_COND_INVERT_AIG_NODE(exp, aig) \
   ((BtorAIG *) (((unsigned long int) (exp) &1ul) ^ ((unsigned long int) (aig))))
 
-//#define MARK_PROP_UP(exp) ((BtorNode *) (1ul | (unsigned long int) (exp)))
-//#define PROPAGATED_UPWARDS(exp) (1ul & (unsigned long int) (exp)->parent)
-
 /*------------------------------------------------------------------------*/
 
 static BtorSolver *new_core_solver (Btor *);
@@ -506,6 +503,10 @@ btor_print_stats_btor (Btor *btor)
               1,
               "unconstrained array props: %d",
               btor->stats.fun_uc_props);
+    BTOR_MSG (btor->msg,
+              1,
+              "unconstrained parameterized props: %d",
+              btor->stats.param_uc_props);
   }
 #endif
   BTOR_MSG (btor->msg,
@@ -2348,33 +2349,20 @@ rebuild_lambda_exp (Btor *btor, BtorNode *exp)
   assert (BTOR_IS_LAMBDA_NODE (exp));
   assert (!btor_param_cur_assignment (exp->e[0]));
 
-  BtorNode *key, *data, *result;
-  BtorHashTableIterator it;
-  BtorPtrHashTable *static_rho;
+  BtorNode *result;
 
   /* we need to reset the binding lambda here as otherwise it is not possible
    * to create a new lambda term with the same param that substitutes 'exp' */
   btor_param_set_binding_lambda (exp->e[0], 0);
-
-  static_rho = btor_lambda_get_static_rho (exp);
-  result     = btor_lambda_exp (btor, exp->e[0], exp->e[1]);
+  result = btor_lambda_exp (btor, exp->e[0], exp->e[1]);
 
   /* lambda not rebuilt, set binding lambda again */
   if (result == exp) btor_param_set_binding_lambda (exp->e[0], exp);
 
   /* copy static_rho for new lambda */
-  if (static_rho && !btor_lambda_get_static_rho (result))
-  {
-    btor_init_node_hash_table_iterator (&it, static_rho);
-    static_rho = btor_new_ptr_hash_table (btor->mm, 0, 0);
-    while (btor_has_next_node_hash_table_iterator (&it))
-    {
-      data = btor_copy_exp (btor, it.bucket->data.asPtr);
-      key  = btor_copy_exp (btor, btor_next_node_hash_table_iterator (&it));
-      btor_insert_in_ptr_hash_table (static_rho, key)->data.asPtr = data;
-    }
-    btor_lambda_set_static_rho (result, static_rho);
-  }
+  if (btor_lambda_get_static_rho (exp) && !btor_lambda_get_static_rho (result))
+    btor_lambda_set_static_rho (result,
+                                btor_lambda_copy_static_rho (btor, exp));
   if (exp->is_array) result->is_array = 1;
   return result;
 }
@@ -3202,10 +3190,11 @@ btor_simplify (Btor *btor)
       continue;
 
     /* rewrite/beta-reduce applies on lambdas */
-    if (btor->options.beta_reduce_all.val
-        /* FIXME: full beta reduction may produce lambdas that do not have a
-         * static_rho */
-        && btor->feqs->count == 0)
+    if (btor->options.beta_reduce_all.val)
+      //	  /* FIXME: full beta reduction may produce lambdas that do not
+      // have a
+      //	   * static_rho */
+      //	  && btor->feqs->count == 0)
       btor_eliminate_applies (btor);
 
     /* add ackermann constraints for all uninterpreted functions */
@@ -4325,7 +4314,6 @@ search_initial_applies_just (Btor *btor, BtorNodePtrStack *top_applies)
 
       if (BTOR_IS_APPLY_NODE (cur) && !cur->parameterized)
       {
-        assert (BTOR_IS_SYNTH_NODE (cur));
         BTORLOG (1, "initial apply: %s", node2string (cur));
         BTOR_PUSH_STACK (btor->mm, *top_applies, cur);
         continue;
@@ -5819,7 +5807,7 @@ generate_table_select_branch_ite (Btor *btor, BtorNode *fun)
 {
   assert (BTOR_IS_REGULAR_NODE (fun));
   assert (BTOR_IS_LAMBDA_NODE (fun));
-  assert (!((BtorLambdaNode *) fun)->static_rho);
+  assert (!btor_lambda_get_static_rho (fun));
   assert (fun->is_array);
 
   BtorBitVector *evalbv;
@@ -6474,6 +6462,7 @@ add_function_inequality_constraints (Btor *btor)
     btor_assert_exp (btor, con);
     btor_release_exp (btor, con);
     btor_release_exp (btor, neq);
+    BTORLOG (2, "add inequality contraint for %s", node2string (cur));
   }
   BTOR_RELEASE_STACK (btor->mm, feqs);
 }
@@ -6562,10 +6551,11 @@ DONE:
 }
 
 #ifdef BTOR_ENABLE_BETA_REDUCTION_PROBING
-static int
+static uint32_t
 sum_ops (Btor *btor)
 {
-  int i, sum = 0;
+  int i;
+  uint32_t sum = 0;
 
   for (i = BTOR_BV_CONST_NODE; i < BTOR_PROXY_NODE; i++)
     sum += btor->ops[i].cur;
@@ -6584,7 +6574,8 @@ br_probe (Btor *btor)
   assert (btor_has_clone_support_sat_mgr (btor_get_sat_mgr_btor (btor)));
 
   Btor *clone;
-  int res, num_ops_orig, num_ops_clone;
+  int res;
+  uint32_t num_ops_orig, num_ops_clone;
   double start, delta;
 
   if (btor->last_sat_result || btor->options.incremental.val
