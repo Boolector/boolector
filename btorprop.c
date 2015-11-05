@@ -2323,8 +2323,9 @@ btor_select_prop_move (Btor *btor,
 
   if (BTOR_IS_BV_VAR_NODE (BTOR_REAL_ADDR_NODE (cur)))
   {
-    *input      = cur;
-    *assignment = bvcur;
+    *input      = BTOR_REAL_ADDR_NODE (cur);
+    *assignment = BTOR_IS_INVERTED_NODE (cur) ? btor_not_bv (btor->mm, bvcur)
+                                              : btor_copy_bv (btor->mm, bvcur);
   }
   else
   {
@@ -2472,8 +2473,8 @@ btor_select_prop_move (Btor *btor,
       btor_free_bv (btor->mm, bvcur);
       bvcur = bvenew;
     }
-    btor_free_bv (btor->mm, bvcur);
   }
+  btor_free_bv (btor->mm, bvcur);
 }
 
 /*------------------------------------------------------------------------*/
@@ -2488,6 +2489,7 @@ reset_cone (Btor *btor, BtorNode *exp)
   assert (btor);
   assert (check_id_table_mark_unset_dbg (btor));
   assert (exp);
+  assert (BTOR_IS_REGULAR_NODE (exp));
 
   BtorNode *cur;
   BtorNodeIterator nit;
