@@ -2039,7 +2039,8 @@ sat_sls_solver (Btor *btor, int limit0, int limit1)
         goto DONE;
       }
 
-      if (!move (btor, nmoves++)) goto UNSAT;
+      if (!move (btor, nmoves)) goto UNSAT;
+      nmoves += 1;
 
       if (compute_sls_score_formula (btor, slv->score) == -1.0)
       {
@@ -2059,7 +2060,6 @@ sat_sls_solver (Btor *btor, int limit0, int limit1)
 
 SAT:
   assert (sat_result == BTOR_SAT);
-  assert (slv->stats.moves == nmoves);
   goto DONE;
 
 UNSAT:
