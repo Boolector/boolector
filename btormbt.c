@@ -2975,7 +2975,8 @@ btormbt_state_init (BtorMBT *mbt, unsigned r)
     btormbt_var (mbt, &rng, BTORMBT_BO_T);
   if (BTOR_COUNT_STACK (mbt->bv->exps) < 1)
     btormbt_var (mbt, &rng, BTORMBT_BV_T);
-  if (BTOR_COUNT_STACK (mbt->arr->exps) < 1) btormbt_array (mbt, &rng);
+  if (mbt->create_arrays && BTOR_COUNT_STACK (mbt->arr->exps) < 1)
+    btormbt_array (mbt, &rng);
 
   if (mbt->ops < mbt->max_ops)
   {
@@ -3041,7 +3042,7 @@ btormbt_state_main (BtorMBT *mbt, unsigned r)
 
   assert (BTOR_COUNT_STACK (mbt->bo->exps) > 0);
   assert (BTOR_COUNT_STACK (mbt->bv->exps) > 0);
-  assert (BTOR_COUNT_STACK (mbt->arr->exps) > 0);
+  assert (!mbt->create_arrays || BTOR_COUNT_STACK (mbt->arr->exps) > 0);
 
   /* main operations */
   if (mbt->ops < mbt->max_ops)
@@ -3208,12 +3209,11 @@ btormbt_state_input (BtorMBT *mbt, unsigned r)
 
   // TODO (ma): UFs?
   rand = pick (&rng, 0, NORM_VAL - 1);
+  if (mbt->create_arrays && rand < mbt->p_array) btormbt_array (mbt, &rng);
   if (rand < mbt->p_var)
     btormbt_var (mbt, &rng, BTORMBT_BB_T);
-  else if (rand < mbt->p_const + mbt->p_var)
-    btormbt_const (mbt, &rng);
   else
-    btormbt_array (mbt, &rng);
+    btormbt_const (mbt, &rng);
 
   return (mbt->is_init ? btormbt_state_main : btormbt_state_init);
 }
