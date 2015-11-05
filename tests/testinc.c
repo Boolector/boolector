@@ -109,14 +109,17 @@ test_inc_counter (int w, int nondet)
     i++;
 
     boolector_assume (g_btor, allzero);
-    boolector_release (g_btor, allzero);
 
     res = boolector_sat (g_btor);
-    if (res == BOOLECTOR_SAT) break;
-
+    if (res == BOOLECTOR_SAT)
+    {
+      boolector_release (g_btor, allzero);
+      break;
+    }
     assert (res == BOOLECTOR_UNSAT);
     assert (boolector_failed (g_btor, allzero));
     assert (i < (1 << w));
+    boolector_release (g_btor, allzero);
   }
 
   assert (i == (1 << w));
