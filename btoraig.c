@@ -2,7 +2,7 @@
  *
  *  Copyright (C) 2007-2009 Robert Daniel Brummayer.
  *  Copyright (C) 2007-2015 Armin Biere.
- *  Copyright (C) 2013-2014 Aina Niemetz.
+ *  Copyright (C) 2013-2015 Aina Niemetz.
  *  Copyright (C) 2013-2015 Mathias Preiner.
  *
  *  All rights reserved.
@@ -408,8 +408,14 @@ find_and_contradiction_aig (
 static BtorAIG *
 btor_simp_aig_by_sat (BtorAIGMgr *amgr, BtorAIG *aig)
 {
-  int lit = BTOR_GET_CNF_ID_AIG (aig), val, repr, sign;
+  int lit, val, repr, sign;
   BtorAIG *res;
+
+  /* fixed handling for const aigs not supported by minisat
+   * (returns 0) FIXME why? */
+  if (BTOR_IS_CONST_AIG (aig)) return aig;
+
+  lit = BTOR_GET_CNF_ID_AIG (aig);
   if (!lit) return aig;
   val = btor_fixed_sat (amgr->smgr, lit);
   if (val) return (val < 0) ? BTOR_AIG_FALSE : BTOR_AIG_TRUE;
