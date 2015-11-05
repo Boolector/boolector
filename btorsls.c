@@ -1283,7 +1283,6 @@ select_rand_range_move (Btor *btor, BtorNodePtrStack *candidates, int gw)
         clo = ass->width - 1 - cup;
         cup = ass->width - 1;
       }
-      printf ("cup: %d clo: %d\n", cup, clo);
       btor_insert_in_ptr_hash_table (cans, can)->data.asPtr =
           btor_new_random_bit_range_bv (
               btor->mm, &btor->rng, ass->width, cup, clo);
@@ -2077,6 +2076,11 @@ DONE:
               ->asPtr);
     btor_delete_ptr_hash_table (slv->roots);
     slv->roots = 0;
+  }
+  if (slv->score)
+  {
+    btor_delete_ptr_hash_table (slv->score);
+    slv->score = 0;
   }
   btor->last_sat_result = sat_result;
   return sat_result;
