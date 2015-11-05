@@ -2577,7 +2577,10 @@ select_constraint (Btor *btor, int nmoves)
   {
     selected = &it.bucket->data.asInt;
     cur      = btor_next_node_hash_table_iterator (&it);
-    b        = btor_find_in_ptr_hash_table (slv->score, cur);
+    if (BTOR_IS_BV_CONST_NODE (BTOR_REAL_ADDR_NODE (cur))
+        && btor_is_zero_bv (btor_get_bv_model (btor, cur)))
+      return 0; /* contains false constraint -> unsat */
+    b = btor_find_in_ptr_hash_table (slv->score, cur);
     assert (b);
     if ((score = b->data.asDbl) >= 1.0) continue;
     if (!res)
@@ -2601,6 +2604,7 @@ select_constraint (Btor *btor, int nmoves)
   BTORLOG (1, "");
   BTORLOG (1, "*** select constraint: %s", node2string (res));
 
+  printf ("res %s\n", node2string (res));
   return res;
 }
 
@@ -2627,7 +2631,7 @@ all_constraints_sat (Btor *btor)
   return res;
 }
 
-static void
+static int
 move (Btor *btor, int nmoves)
 {
   assert (btor);
@@ -2639,7 +2643,8 @@ move (Btor *btor, int nmoves)
   BtorNode *root, *input;
   BtorBitVector *assignment;
 
-  root = select_constraint (btor, nmoves);
+  /* roots contain false constraint -> unsat */
+  if (!(root = select_constraint (btor, nmoves))) return 0;
 
   do
   {
@@ -2664,6 +2669,8 @@ move (Btor *btor, int nmoves)
 
   update_cone (btor, input, assignment);
   BTOR_PROP_SOLVER (btor)->stats.moves += 1;
+
+  return 1;
 }
 
 /*------------------------------------------------------------------------*/
@@ -2808,7 +2815,7 @@ sat_prop_solver (Btor *btor, int limit0, int limit1)
         goto DONE;
       }
 
-      move (btor, nmoves++);
+      if (!(move (btor, nmoves++))) goto UNSAT;
 
       if (all_constraints_sat (btor))
       {
@@ -2837,12 +2844,6 @@ UNSAT:
 DONE:
   if (slv->roots)
   {
-    btor_init_node_hash_table_iterator (&it, slv->roots);
-    while (btor_has_next_node_hash_table_iterator (&it))
-      BTOR_DELETE (
-          btor->mm,
-          (BtorSLSConstrData *) btor_next_data_node_hash_table_iterator (&it)
-              ->asPtr);
     btor_delete_ptr_hash_table (slv->roots);
     slv->roots = 0;
   }
