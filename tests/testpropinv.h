@@ -8,13 +8,13 @@
  *  See COPYING for more information on using this software.
  */
 
-#ifndef TESTSLSINV_H_INCLUDED
-#define TESTSLSINV_H_INCLUDED
+#ifndef TESTPROPINV_H_INCLUDED
+#define TESTPROPINV_H_INCLUDED
 
-void init_slsinv_tests (void);
+void init_propinv_tests (void);
 
-void run_slsinv_tests (int argc, char **argv);
+void run_propinv_tests (int argc, char **argv);
 
-void finish_slsinv_tests (void);
+void finish_propinv_tests (void);
 
 #endif

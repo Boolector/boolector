@@ -31,11 +31,11 @@
 #include "testmodelgensmt2.h"
 #include "testoverflow.h"
 #include "testparseerror.h"
+#include "testpropinv.h"
 #include "testqueue.h"
 #include "testrunner.h"
 #include "testsat.h"
 #include "testshift.h"
-#include "testslsinv.h"
 #include "testsmtaxioms.h"
 #include "testsort.h"
 #include "testspecial.h"
@@ -130,7 +130,7 @@ main (int argc, char **argv)
   BTOR_RUN_TESTS (hash);
   BTOR_RUN_TESTS (const);
   if (bitvec) BTOR_RUN_TESTS (bitvec);
-  BTOR_RUN_TESTS (slsinv);
+  BTOR_RUN_TESTS (propinv);
   BTOR_RUN_TESTS (sat);
   BTOR_RUN_TESTS (aig);
   BTOR_RUN_TESTS (aigvec);
