@@ -2847,6 +2847,11 @@ DONE:
     btor_delete_ptr_hash_table (slv->roots);
     slv->roots = 0;
   }
+  if (slv->score)
+  {
+    btor_delete_ptr_hash_table (slv->score);
+    slv->score = 0;
+  }
   btor->last_sat_result = sat_result;
   return sat_result;
 }
