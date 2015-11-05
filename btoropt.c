@@ -49,13 +49,13 @@ set_opt_values (BtorOpt *opt,
                 int internal,
                 char *shrt,
                 char *lng,
-                int val,
-                int min,
-                int max,
+                uint32_t val,
+                uint32_t min,
+                uint32_t max,
                 char *desc)
 {
   assert (opt);
-  assert (max <= INT_MAX);
+  assert (max <= UINT_MAX);
   assert (min <= val);
   assert (val <= max);
 
@@ -110,7 +110,7 @@ set_opt_values (BtorOpt *opt,
 void
 btor_init_opts (Btor *btor)
 {
-  int val;
+  uint32_t val;
   char *valstr;
 
   BTOR_OPT ("m", model_gen, 0, 0, 2, "print model for satisfiable instances");
@@ -152,14 +152,19 @@ btor_init_opts (Btor *btor)
             0,
             1,
             "probe -bra until given LOD or SAT limit");
-  BTOR_OPT (0, pbra_lod_limit, 10, 0, INT_MAX, "LOD limit (#lemmas) for -pbra");
   BTOR_OPT (
-      0, pbra_sat_limit, 55000, 0, INT_MAX, "SAT limit (#conflicts) for -pbra");
+      0, pbra_lod_limit, 10, 0, UINT_MAX, "LOD limit (#lemmas) for -pbra");
+  BTOR_OPT (0,
+            pbra_sat_limit,
+            55000,
+            0,
+            UINT_MAX,
+            "SAT limit (#conflicts) for -pbra");
   BTOR_OPT (0,
             pbra_ops_factor,
             10,
             0,
-            INT_MAX,
+            UINT_MAX,
             "factor by which the size of the red. formula may be greater than "
             "the original formula");
 #endif
@@ -287,7 +292,7 @@ btor_init_opts (Btor *btor)
   BTOR_OPT ("p", pretty_print, 1, 0, 1, "pretty print when dumping");
   BTOR_OPT ("e", exit_codes, 1, 0, 1, "use Boolector exit codes");
 #ifndef NBTORLOG
-  BTOR_OPT ("l", loglevel, 0, 0, INT_MAX, "increase loglevel");
+  BTOR_OPT ("l", loglevel, 0, 0, UINT_MAX, "increase loglevel");
 #endif
   BTOR_OPT ("v", verbosity, 0, 0, BTOR_VERBOSITY_MAX, "increase verbosity");
   BTOR_OPT ("s", seed, 0, 0, INT_MAX, "random number generator seed");
@@ -385,7 +390,7 @@ btor_get_opt_desc (Btor *btor, const char *name)
 }
 
 void
-btor_set_opt (Btor *btor, const char *name, int val)
+btor_set_opt (Btor *btor, const char *name, uint32_t val)
 {
   assert (btor);
   assert (name);
@@ -399,7 +404,7 @@ btor_set_opt (Btor *btor, const char *name, int val)
   o = btor_get_opt (btor, name);
   assert (o);
 #ifndef NDEBUG
-  int oldval = o->val;
+  uint32_t oldval = o->val;
 #endif
   if (val > o->max) val = o->max;
   if (val < o->min) val = o->min;
@@ -450,13 +455,13 @@ btor_set_opt (Btor *btor, const char *name, int val)
   }
   else if (!strcmp (name, "rwl") || !strcmp (name, BTOR_OPT_REWRITE_LEVEL))
   {
-    assert (val >= 0 && val <= 3);
-    assert (oldval >= 0 && oldval <= 3);
+    assert (val <= 3);
+    assert (oldval <= 3);
   }
   else if (!strcmp (name, BTOR_OPT_REWRITE_LEVEL_PBR))
   {
-    assert (val >= 0 && val <= 3);
-    assert (oldval >= 0 && oldval <= 3);
+    assert (val <= 3);
+    assert (oldval <= 3);
   }
 }
 
