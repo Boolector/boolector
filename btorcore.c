@@ -1635,26 +1635,41 @@ insert_new_constraint (Btor *btor, BtorNode *exp)
         btor_release_exp (btor, left);
         btor_release_exp (btor, right);
       }
+      /* NOTE: variable substitution constraints need to be added to either
+       * unsynthesized or embedded constraints, as otherwise the constraint
+       * flag won't be set, which might lead to an inconsistent state:
+       * E.g.:
+       *
+       * assume (a0)
+       *   -> a0->simplified = c0 (which is a constraint)
+       *   -> adds true/false as assumption, since a0 simplified to c0
+       * sat ()
+       *   -> c0 gets simplified to c1 (c0->simplified = c1)
+       *   -> c1 is a variable substitution constraint
+       *   -> c1 is added to varsubst_constraints (no constraint flag set)
+       *   -> simplify returns UNSAT before substituting all varsubst
+       *      constraints
+       *   -> sat returns UNSAT
+       * failed (a0)
+       *   -> a0->simplified = c1 (due to pointer chasing)
+       *   -> c1 is not an assumption and thus, failed () aborts
+       */
+      if (constraint_is_inconsistent (btor, exp))
+        btor->inconsistent = 1;
       else
       {
-        if (constraint_is_inconsistent (btor, exp))
-          btor->inconsistent = 1;
+        if (!real_exp->constraint)
+        {
+          if (is_embedded_constraint_exp (btor, exp))
+            insert_embedded_constraint (btor, exp);
+          else
+            insert_unsynthesized_constraint (btor, exp);
+        }
         else
         {
-          if (!real_exp->constraint)
-          {
-            if (is_embedded_constraint_exp (btor, exp))
-              insert_embedded_constraint (btor, exp);
-            else
-              insert_unsynthesized_constraint (btor, exp);
-          }
-          else
-          {
-            assert (btor_find_in_ptr_hash_table (
-                        btor->unsynthesized_constraints, exp)
-                    || btor_find_in_ptr_hash_table (btor->embedded_constraints,
-                                                    exp));
-          }
+          assert (
+              btor_find_in_ptr_hash_table (btor->unsynthesized_constraints, exp)
+              || btor_find_in_ptr_hash_table (btor->embedded_constraints, exp));
         }
       }
     }
