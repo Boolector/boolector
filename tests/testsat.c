@@ -2,7 +2,7 @@
  *
  *  Copyright (C) 2007-2010 Robert Daniel Brummayer.
  *  Copyright (C) 2007-2012 Armin Biere.
- *  Copyright (C) 2014 Aina Niemetz.
+ *  Copyright (C) 2014-2015 Aina Niemetz.
  *
  *  All rights reserved.
  *
@@ -23,7 +23,7 @@
 
 static BtorMemMgr *g_mm;
 static BtorMsg *g_msg;
-static int g_verbosity;
+static uint32_t g_verbosity;
 
 void
 init_sat_tests (void)
