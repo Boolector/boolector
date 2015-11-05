@@ -1438,7 +1438,7 @@ NEXT:
       boolector_release_sort (
           btor, (BoolectorSort) (size_t) hmap_get (hmap, btor_str, arg1_str));
     }
-    else if (!strcmp (tok, "equal_sort"))
+    else if (!strcmp (tok, "is_equal_sort"))
     {
       PARSE_ARGS2 (tok, str, str);
       ret_int = boolector_is_equal_sort (btor,

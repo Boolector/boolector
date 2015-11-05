@@ -352,9 +352,7 @@ btor_compute_scores_dual_prop (Btor *btor)
       cur->aux_mark = 1;
       BTOR_PUSH_STACK (btor->mm, unmark_stack, cur);
 
-      if (BTOR_IS_FEQ_NODE (cur)) continue;
-
-      if (BTOR_IS_APPLY_NODE (cur))
+      if (BTOR_IS_APPLY_NODE (cur) || BTOR_IS_FEQ_NODE (cur))
       {
         assert (!cur->parameterized);
         if (!btor_find_in_ptr_hash_table (slv->score, cur))
