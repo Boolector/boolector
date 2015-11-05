@@ -2321,151 +2321,159 @@ btor_select_prop_move (Btor *btor,
   cur   = root;
   bvcur = btor_one_bv (btor->mm, 1);
 
-  for (;;)
+  if (BTOR_IS_BV_VAR_NODE (BTOR_REAL_ADDR_NODE (cur)))
   {
-    real_cur = BTOR_REAL_ADDR_NODE (cur);
-    assert (!BTOR_IS_BV_COND_NODE (real_cur));
-    assert (!BTOR_IS_BV_CONST_NODE (real_cur));
-    assert (!BTOR_IS_BV_VAR_NODE (real_cur));
-    assert (real_cur->arity <= 2);
-
-    if (BTOR_IS_INVERTED_NODE (cur))
+    *input      = cur;
+    *assignment = bvcur;
+  }
+  else
+  {
+    for (;;)
     {
-      tmp   = bvcur;
-      bvcur = btor_not_bv (btor->mm, tmp);
-      btor_free_bv (btor->mm, tmp);
-    }
-
-    /* choose path */
-    for (i = 0, eidx = -1; i < real_cur->arity; i++)
-    {
-      bve[i] = (BtorBitVector *) btor_get_bv_model (btor, real_cur->e[i]);
-      /* AND: choose 0-branch if only one is 0, else choose randomly
-       * Note: if bvcur = 0, no path is 0 (as the prev assignment of
-       *       bvcur was 1) */
-      if (BTOR_IS_AND_NODE (real_cur) && btor_is_zero_bv (bve[i]))
-        eidx = eidx == -1 ? i : -1;
-    }
-    if (eidx == -1)
-    {
-      eidx = real_cur->arity > 1
-                 ? (int) btor_pick_rand_rng (&btor->rng, 0, real_cur->arity - 1)
-                 : 0;
-    }
-    idx = eidx ? 0 : 1;
-
-    if (BTOR_IS_BV_CONST_NODE (BTOR_REAL_ADDR_NODE (real_cur->e[eidx])))
-    {
-      /* non-recoverable conflict */
-      // TODO how to handle this in the engine=prop case?
-      if (BTOR_IS_BV_CONST_NODE (BTOR_REAL_ADDR_NODE (real_cur->e[idx]))
-          || real_cur->arity == 1)
-        break;
-
-      eidx = idx;
-      idx  = eidx ? 0 : 1;
-    }
-
-    /* determine path assignment */
-    switch (real_cur->kind)
-    {
-      case BTOR_ADD_NODE:
-        bvenew = inv_add_bv (btor, real_cur, bvcur, bve[idx], eidx);
-        break;
-      case BTOR_AND_NODE:
-        bvenew = inv_and_bv (btor, real_cur, bvcur, bve[idx], eidx);
-        break;
-      case BTOR_BEQ_NODE:
-        bvenew = inv_eq_bv (btor, real_cur, bvcur, bve[idx], eidx);
-        break;
-      case BTOR_ULT_NODE:
-        bvenew = inv_ult_bv (btor, real_cur, bvcur, bve[idx], eidx);
-        break;
-      case BTOR_SLL_NODE:
-        bvenew = inv_sll_bv (btor, real_cur, bvcur, bve[idx], eidx);
-        break;
-      case BTOR_SRL_NODE:
-        bvenew = inv_srl_bv (btor, real_cur, bvcur, bve[idx], eidx);
-        break;
-      case BTOR_MUL_NODE:
-        bvenew = inv_mul_bv (btor, real_cur, bvcur, bve[idx], eidx);
-        break;
-      case BTOR_UDIV_NODE:
-        bvenew = inv_udiv_bv (btor, real_cur, bvcur, bve[idx], eidx);
-        break;
-      case BTOR_UREM_NODE:
-        bvenew = inv_urem_bv (btor, real_cur, bvcur, bve[idx], eidx);
-        break;
-      case BTOR_CONCAT_NODE:
-        bvenew = inv_concat_bv (btor, real_cur, bvcur, bve[idx], eidx);
-        break;
-      default:
-        assert (real_cur->kind == BTOR_SLICE_NODE);
-        bvenew = inv_slice_bv (btor, real_cur, bvcur);
-    }
-
-    if (!bvenew) break; /* non-recoverable conflict */
-
-    /* found input and assignment */
-    if (BTOR_IS_BV_VAR_NODE (BTOR_REAL_ADDR_NODE (real_cur->e[eidx])))
-    {
-      cur = real_cur->e[eidx];
-    FOUND_RESULT:
-      *input      = BTOR_REAL_ADDR_NODE (cur);
-      *assignment = BTOR_IS_INVERTED_NODE (cur)
-                        ? btor_not_bv (btor->mm, bvenew)
-                        : btor_copy_bv (btor->mm, bvenew);
-      btor_free_bv (btor->mm, bvenew);
-      break;
-    }
-    else if (BTOR_IS_BV_COND_NODE (BTOR_REAL_ADDR_NODE (real_cur->e[eidx])))
-    {
-      cur      = real_cur->e[eidx];
       real_cur = BTOR_REAL_ADDR_NODE (cur);
-      do
-      {
-        /* either assume that cond is fixed and propagate bvenew
-         * to enabled path, or flip condition */
-        tmp = (BtorBitVector *) btor_get_bv_model (btor, real_cur->e[0]);
-        // TODO RENAME OPTIONS
-        if (btor->options.sls_move_prop_no_flip_cond.val
-            || btor_pick_rand_rng (
-                   &btor->rng,
-                   0,
-                   btor->options.sls_move_prop_flip_cond_prob.val))
-        {
-          /* assume cond to be fixed */
-          cur = btor_is_zero_bv (tmp) ? real_cur->e[2] : real_cur->e[1];
-        }
-        else
-        {
-          /* flip condition */
-          btor_free_bv (btor->mm, bvenew);
-          bvenew = btor_not_bv (btor->mm, tmp);
-          cur    = real_cur->e[0];
-        }
+      assert (!BTOR_IS_BV_COND_NODE (real_cur));
+      assert (!BTOR_IS_BV_CONST_NODE (real_cur));
+      assert (!BTOR_IS_BV_VAR_NODE (real_cur));
+      assert (real_cur->arity <= 2);
 
-        real_cur = BTOR_REAL_ADDR_NODE (cur);
-      } while (BTOR_IS_BV_COND_NODE (real_cur));
-
-      if (BTOR_IS_BV_VAR_NODE (BTOR_REAL_ADDR_NODE (cur)))
+      if (BTOR_IS_INVERTED_NODE (cur))
       {
-        goto FOUND_RESULT;
+        tmp   = bvcur;
+        bvcur = btor_not_bv (btor->mm, tmp);
+        btor_free_bv (btor->mm, tmp);
       }
-      else if (BTOR_IS_BV_CONST_NODE (BTOR_REAL_ADDR_NODE (cur)))
+
+      /* choose path */
+      for (i = 0, eidx = -1; i < real_cur->arity; i++)
       {
-        /* if input is const -> conflict */
+        bve[i] = (BtorBitVector *) btor_get_bv_model (btor, real_cur->e[i]);
+        /* AND: choose 0-branch if only one is 0, else choose randomly
+         * Note: if bvcur = 0, no path is 0 (as the prev assignment of
+         *       bvcur was 1) */
+        if (BTOR_IS_AND_NODE (real_cur) && btor_is_zero_bv (bve[i]))
+          eidx = eidx == -1 ? i : -1;
+      }
+      if (eidx == -1)
+      {
+        eidx = real_cur->arity > 1 ? (int) btor_pick_rand_rng (
+                                         &btor->rng, 0, real_cur->arity - 1)
+                                   : 0;
+      }
+      idx = eidx ? 0 : 1;
+
+      if (BTOR_IS_BV_CONST_NODE (BTOR_REAL_ADDR_NODE (real_cur->e[eidx])))
+      {
+        /* non-recoverable conflict */
+        // TODO how to handle this in the engine=prop case?
+        if (BTOR_IS_BV_CONST_NODE (BTOR_REAL_ADDR_NODE (real_cur->e[idx]))
+            || real_cur->arity == 1)
+          break;
+
+        eidx = idx;
+        idx  = eidx ? 0 : 1;
+      }
+
+      /* determine path assignment */
+      switch (real_cur->kind)
+      {
+        case BTOR_ADD_NODE:
+          bvenew = inv_add_bv (btor, real_cur, bvcur, bve[idx], eidx);
+          break;
+        case BTOR_AND_NODE:
+          bvenew = inv_and_bv (btor, real_cur, bvcur, bve[idx], eidx);
+          break;
+        case BTOR_BEQ_NODE:
+          bvenew = inv_eq_bv (btor, real_cur, bvcur, bve[idx], eidx);
+          break;
+        case BTOR_ULT_NODE:
+          bvenew = inv_ult_bv (btor, real_cur, bvcur, bve[idx], eidx);
+          break;
+        case BTOR_SLL_NODE:
+          bvenew = inv_sll_bv (btor, real_cur, bvcur, bve[idx], eidx);
+          break;
+        case BTOR_SRL_NODE:
+          bvenew = inv_srl_bv (btor, real_cur, bvcur, bve[idx], eidx);
+          break;
+        case BTOR_MUL_NODE:
+          bvenew = inv_mul_bv (btor, real_cur, bvcur, bve[idx], eidx);
+          break;
+        case BTOR_UDIV_NODE:
+          bvenew = inv_udiv_bv (btor, real_cur, bvcur, bve[idx], eidx);
+          break;
+        case BTOR_UREM_NODE:
+          bvenew = inv_urem_bv (btor, real_cur, bvcur, bve[idx], eidx);
+          break;
+        case BTOR_CONCAT_NODE:
+          bvenew = inv_concat_bv (btor, real_cur, bvcur, bve[idx], eidx);
+          break;
+        default:
+          assert (real_cur->kind == BTOR_SLICE_NODE);
+          bvenew = inv_slice_bv (btor, real_cur, bvcur);
+      }
+
+      if (!bvenew) break; /* non-recoverable conflict */
+
+      /* found input and assignment */
+      if (BTOR_IS_BV_VAR_NODE (BTOR_REAL_ADDR_NODE (real_cur->e[eidx])))
+      {
+        cur = real_cur->e[eidx];
+      FOUND_RESULT:
+        *input      = BTOR_REAL_ADDR_NODE (cur);
+        *assignment = BTOR_IS_INVERTED_NODE (cur)
+                          ? btor_not_bv (btor->mm, bvenew)
+                          : btor_copy_bv (btor->mm, bvenew);
         btor_free_bv (btor->mm, bvenew);
         break;
       }
-    }
-    else
-      cur = real_cur->e[eidx];
+      else if (BTOR_IS_BV_COND_NODE (BTOR_REAL_ADDR_NODE (real_cur->e[eidx])))
+      {
+        cur      = real_cur->e[eidx];
+        real_cur = BTOR_REAL_ADDR_NODE (cur);
+        do
+        {
+          /* either assume that cond is fixed and propagate bvenew
+           * to enabled path, or flip condition */
+          tmp = (BtorBitVector *) btor_get_bv_model (btor, real_cur->e[0]);
+          // TODO RENAME OPTIONS
+          if (btor->options.sls_move_prop_no_flip_cond.val
+              || btor_pick_rand_rng (
+                     &btor->rng,
+                     0,
+                     btor->options.sls_move_prop_flip_cond_prob.val))
+          {
+            /* assume cond to be fixed */
+            cur = btor_is_zero_bv (tmp) ? real_cur->e[2] : real_cur->e[1];
+          }
+          else
+          {
+            /* flip condition */
+            btor_free_bv (btor->mm, bvenew);
+            bvenew = btor_not_bv (btor->mm, tmp);
+            cur    = real_cur->e[0];
+          }
 
+          real_cur = BTOR_REAL_ADDR_NODE (cur);
+        } while (BTOR_IS_BV_COND_NODE (real_cur));
+
+        if (BTOR_IS_BV_VAR_NODE (BTOR_REAL_ADDR_NODE (cur)))
+        {
+          goto FOUND_RESULT;
+        }
+        else if (BTOR_IS_BV_CONST_NODE (BTOR_REAL_ADDR_NODE (cur)))
+        {
+          /* if input is const -> conflict */
+          btor_free_bv (btor->mm, bvenew);
+          break;
+        }
+      }
+      else
+        cur = real_cur->e[eidx];
+
+      btor_free_bv (btor->mm, bvcur);
+      bvcur = bvenew;
+    }
     btor_free_bv (btor->mm, bvcur);
-    bvcur = bvenew;
   }
-  btor_free_bv (btor->mm, bvcur);
 }
 
 /*------------------------------------------------------------------------*/
