@@ -2730,6 +2730,7 @@ sat_prop_solver (Btor *btor, int limit0, int limit1)
   int j, max_steps;
   int sat_result;
   int nmoves;
+  BtorNode *root;
   BtorHashTableIterator it;
   BtorPropSolver *slv;
 
@@ -2780,8 +2781,11 @@ sat_prop_solver (Btor *btor, int limit0, int limit1)
   btor_init_node_hash_table_iterator (&it, btor->unsynthesized_constraints);
   btor_queue_node_hash_table_iterator (&it, btor->assumptions);
   while (btor_has_next_node_hash_table_iterator (&it))
-    btor_insert_in_ptr_hash_table (slv->roots,
-                                   btor_next_node_hash_table_iterator (&it));
+  {
+    root = btor_next_node_hash_table_iterator (&it);
+    if (!btor_find_in_ptr_hash_table (slv->roots, root))
+      btor_insert_in_ptr_hash_table (slv->roots, root);
+  }
 
   if (!slv->score)
     slv->score = btor_new_ptr_hash_table (btor->mm,
