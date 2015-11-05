@@ -419,10 +419,10 @@ static int
 pick (RNG *rng_ptr, unsigned from, unsigned to)
 {
   assert (from <= to);
-  assert (to < UINT_MAX);
 
   unsigned tmp;
 
+  to  = to == UINT_MAX ? UINT_MAX - 1 : to;
   tmp = nextrand (rng_ptr);
   tmp %= to - from + 1;
   tmp += from;
