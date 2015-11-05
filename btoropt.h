@@ -13,6 +13,8 @@
 #ifndef BTOROPTS_H_INCLUDED
 #define BTOROPTS_H_INCLUDED
 
+#include <stdint.h>
+
 #define BTOR_INPUT_FORMAT_NONE 0
 #define BTOR_INPUT_FORMAT_BTOR 1
 #define BTOR_INPUT_FORMAT_BTOR2 2
@@ -52,10 +54,10 @@ typedef struct BtorOpt
   const char *shrt; /* short option identifier (may be 0) */
   const char *lng;  /* long option identifier */
   const char *desc; /* description */
-  int val;          /* value */
-  int dflt;         /* default value */
-  int min;          /* min value */
-  int max;          /* max value */
+  uint32_t val;     /* value */
+  uint32_t dflt;    /* default value */
+  uint32_t min;     /* min value */
+  uint32_t max;     /* max value */
 } BtorOpt;
 
 #define BTOR_OPT_MODEL_GEN "model_gen"
@@ -180,7 +182,7 @@ struct Btor;
 
 void btor_init_opts (struct Btor *btor);
 
-void btor_set_opt (struct Btor *btor, const char *name, int val);
+void btor_set_opt (struct Btor *btor, const char *name, uint32_t val);
 
 /* does not assert existing opt with name 'name',
  * not for boolector internal use */
