@@ -2301,7 +2301,7 @@ inv_slice_bv (Btor *btor, BtorNode *slice, BtorBitVector *bvslice)
 }
 
 void
-btor_select_prop_move (Btor *btor,
+btor_select_move_prop (Btor *btor,
                        BtorNode *root,
                        BtorNode **input,
                        BtorBitVector **assignment)
@@ -2659,7 +2659,7 @@ move (Btor *btor, int nmoves)
 
   do
   {
-    btor_select_prop_move (btor, root, &input, &assignment);
+    btor_select_move_prop (btor, root, &input, &assignment);
   } while (!input);
 
 #ifndef NBTORLOG

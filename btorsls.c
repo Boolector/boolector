@@ -1648,7 +1648,7 @@ move (Btor *btor, int nmoves)
      * is chosen via justification. If a non-recoverable conflict is
      * encountered, no move is performed. */
     slv->max_move = BTOR_SLS_MOVE_PROP;
-    btor_select_prop_move (btor, constr, &can, &neigh);
+    btor_select_move_prop (btor, constr, &can, &neigh);
     if (can)
     {
       assert (neigh);
