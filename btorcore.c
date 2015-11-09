@@ -1270,7 +1270,10 @@ btor_insert_varsubst_constraint (Btor *btor, BtorNode *left, BtorNode *right)
   else if (right != (BtorNode *) bucket->data.asPtr)
   {
     eq = btor_eq_exp (btor, left, right);
-    insert_unsynthesized_constraint (btor, eq);
+    /* only add if it is not in a constraint table: can be already in
+     * embedded or unsythesized constraints */
+    if (!BTOR_REAL_ADDR_NODE (eq)->constraint)
+      insert_unsynthesized_constraint (btor, eq);
     btor_release_exp (btor, eq);
   }
 }
@@ -2766,7 +2769,10 @@ substitute_var_exps (Btor *btor)
       assert (right);
 
       constraint = btor_eq_exp (btor, left, right);
-      insert_unsynthesized_constraint (btor, constraint);
+      /* only add if it is not in a constraint table: can be already in
+       * embedded or unsythesized constraints */
+      if (!BTOR_REAL_ADDR_NODE (constraint)->constraint)
+        insert_unsynthesized_constraint (btor, constraint);
       btor_release_exp (btor, constraint);
 
       btor_remove_from_ptr_hash_table (substs, left, 0, 0);
@@ -3127,7 +3133,8 @@ btor_simplify (Btor *btor)
 
       if (btor->inconsistent) break;
 
-      if (btor->varsubst_constraints->count) break;
+      if (btor->varsubst_constraints->count)
+        break;  // TODO (ma): continue instead of break?
 
       process_embedded_constraints (btor);
       assert (check_all_hash_tables_proxy_free_dbg (btor));
