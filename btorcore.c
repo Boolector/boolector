@@ -6672,7 +6672,8 @@ btor_sat_btor (Btor *btor, int lod_limit, int sat_limit)
   assert (btor->slv);
 
 #ifdef BTOR_ENABLE_BETA_REDUCTION_PROBING
-  if (btor_has_clone_support_sat_mgr (btor_get_sat_mgr_btor (btor))
+  if (btor->slv->kind == BTOR_CORE_SOLVER_KIND
+      && btor_has_clone_support_sat_mgr (btor_get_sat_mgr_btor (btor))
       && btor->options.probe_beta_reduce_all.val && lod_limit == -1
       && sat_limit == -1)
   {
