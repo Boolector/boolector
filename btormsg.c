@@ -16,7 +16,7 @@
 #include "assert.h"
 
 BtorMsg *
-btor_new_btor_msg (BtorMemMgr *mm, int *verbosity)
+btor_new_btor_msg (BtorMemMgr *mm, uint32_t *verbosity)
 {
   assert (mm);
   assert (verbosity);

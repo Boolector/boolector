@@ -17,6 +17,8 @@
 #include "btorbitvec.h"
 #include "btorcore.h"
 #include "btoropt.h"
+#include "btorprop.h"
+#include "btorsls.h"
 #include "btorslv.h"
 #include "utils/btoriter.h"
 
@@ -1076,6 +1078,9 @@ btor_chkclone_slv (Btor *btor)
     BTOR_CHKCLONE_SLV_STATS (slv, cslv, move_seg);
     BTOR_CHKCLONE_SLV_STATS (slv, cslv, move_rand);
     BTOR_CHKCLONE_SLV_STATS (slv, cslv, move_rand_walk);
+    BTOR_CHKCLONE_SLV_STATS (slv, cslv, move_prop);
+    BTOR_CHKCLONE_SLV_STATS (slv, cslv, move_prop_rec_conf);
+    BTOR_CHKCLONE_SLV_STATS (slv, cslv, move_prop_non_rec_conf);
     BTOR_CHKCLONE_SLV_STATS (slv, cslv, move_gw_flip);
     BTOR_CHKCLONE_SLV_STATS (slv, cslv, move_gw_inc);
     BTOR_CHKCLONE_SLV_STATS (slv, cslv, move_gw_dec);
@@ -1084,6 +1089,19 @@ btor_chkclone_slv (Btor *btor)
     BTOR_CHKCLONE_SLV_STATS (slv, cslv, move_gw_seg);
     BTOR_CHKCLONE_SLV_STATS (slv, cslv, move_gw_rand);
     BTOR_CHKCLONE_SLV_STATS (slv, cslv, move_gw_rand_walk);
+  }
+  else if (btor->slv->kind == BTOR_PROP_SOLVER_KIND)
+  {
+    BtorPropSolver *slv  = BTOR_PROP_SOLVER (btor);
+    BtorPropSolver *cslv = BTOR_PROP_SOLVER (btor->clone);
+
+    chkclone_node_ptr_hash_table (slv->roots, cslv->roots, cmp_data_as_int);
+    chkclone_node_ptr_hash_table (slv->score, cslv->score, cmp_data_as_dbl);
+
+    BTOR_CHKCLONE_SLV_STATS (slv, cslv, restarts);
+    BTOR_CHKCLONE_SLV_STATS (slv, cslv, moves);
+    BTOR_CHKCLONE_SLV_STATS (slv, cslv, move_prop_rec_conf);
+    BTOR_CHKCLONE_SLV_STATS (slv, cslv, move_prop_non_rec_conf);
   }
 }
 

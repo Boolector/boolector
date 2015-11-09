@@ -13,6 +13,8 @@
 #ifndef BTOROPTS_H_INCLUDED
 #define BTOROPTS_H_INCLUDED
 
+#include <stdint.h>
+
 #define BTOR_ENGINE_CORE 0
 #define BTOR_ENGINE_SLS 1
 #define BTOR_ENGINE_PROP 2
@@ -68,10 +70,10 @@ typedef struct BtorOpt
   const char *shrt; /* short option identifier (may be 0) */
   const char *lng;  /* long option identifier */
   const char *desc; /* description */
-  int val;          /* value */
-  int dflt;         /* default value */
-  int min;          /* min value */
-  int max;          /* max value */
+  uint32_t val;     /* value */
+  uint32_t dflt;    /* default value */
+  uint32_t min;     /* min value */
+  uint32_t max;     /* max value */
 } BtorOpt;
 
 #define BTOR_OPT_ENGINE "engine"
@@ -100,7 +102,8 @@ typedef struct BtorOpt
 #define BTOR_OPT_SLS_MOVE_RANDOMIZEALL "sls_move_rand_all"
 #define BTOR_OPT_SLS_MOVE_RANDOMIZERANGE "sls_move_rand_range"
 #define BTOR_OPT_SLS_MOVE_PROP "sls_move_prop"
-#define BTOR_OPT_SLS_MOVE_PROP_MOVES "sls_move_prop_moves"
+#define BTOR_OPT_SLS_MOVE_PROP_N_PROP "sls_move_prop_n_prop"
+#define BTOR_OPT_SLS_MOVE_PROP_N_SLS "sls_move_prop_n_sls"
 #define BTOR_OPT_SLS_MOVE_PROP_FORCE_RW "sls_move_prop_force_rw"
 #define BTOR_OPT_SLS_MOVE_PROP_NO_FLIP_COND "sls_move_prop_no_flip_cond"
 #define BTOR_OPT_SLS_MOVE_PROP_FLIP_COND_PROB "sls_move_prop_flip_cond_prob"
@@ -176,8 +179,8 @@ typedef struct BtorOpts
   BtorOpt sls_move_rand_walk;      /* enable random walks */
   BtorOpt sls_move_rand_walk_prob; /* probability to choose a random walk */
   BtorOpt sls_move_prop;           /* enable propagation moves */
-  BtorOpt sls_move_prop_moves;     /* pos: do n:1 prop vs. regular moves
-                                      neg: do n:1 regular vs. prop moves */
+  BtorOpt sls_move_prop_n_prop;    /* number of prop moves (vs. sls moves) */
+  BtorOpt sls_move_prop_n_sls;     /* number of prop moves (vs. sls moves) */
   BtorOpt sls_move_prop_force_rw;  /* force random walk if prop move fails */
   BtorOpt sls_move_prop_no_flip_cond;   /* do not choose cond flip during
                                      path selection for prop moves */
@@ -236,7 +239,7 @@ struct Btor;
 
 void btor_init_opts (struct Btor *btor);
 
-void btor_set_opt (struct Btor *btor, const char *name, int val);
+void btor_set_opt (struct Btor *btor, const char *name, uint32_t val);
 
 /* does not assert existing opt with name 'name',
  * not for boolector internal use */

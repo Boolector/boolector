@@ -25,6 +25,7 @@
 #include "btormsg.h"
 #include "btoropt.h"
 #include "btorprintmodel.h"
+#include "btorprop.h"
 #include "btorrewrite.h"
 #include "btorsat.h"
 #include "btorsls.h"
@@ -115,9 +116,6 @@
 
 #define BTOR_COND_INVERT_AIG_NODE(exp, aig) \
   ((BtorAIG *) (((unsigned long int) (exp) &1ul) ^ ((unsigned long int) (aig))))
-
-//#define MARK_PROP_UP(exp) ((BtorNode *) (1ul | (unsigned long int) (exp)))
-//#define PROPAGATED_UPWARDS(exp) (1ul & (unsigned long int) (exp)->parent)
 
 /*------------------------------------------------------------------------*/
 
@@ -505,6 +503,10 @@ btor_print_stats_btor (Btor *btor)
               1,
               "unconstrained array props: %d",
               btor->stats.fun_uc_props);
+    BTOR_MSG (btor->msg,
+              1,
+              "unconstrained parameterized props: %d",
+              btor->stats.param_uc_props);
   }
 #endif
   BTOR_MSG (btor->msg,
@@ -1268,7 +1270,10 @@ btor_insert_varsubst_constraint (Btor *btor, BtorNode *left, BtorNode *right)
   else if (right != (BtorNode *) bucket->data.asPtr)
   {
     eq = btor_eq_exp (btor, left, right);
-    insert_unsynthesized_constraint (btor, eq);
+    /* only add if it is not in a constraint table: can be already in
+     * embedded or unsythesized constraints */
+    if (!BTOR_REAL_ADDR_NODE (eq)->constraint)
+      insert_unsynthesized_constraint (btor, eq);
     btor_release_exp (btor, eq);
   }
 }
@@ -1634,26 +1639,41 @@ insert_new_constraint (Btor *btor, BtorNode *exp)
         btor_release_exp (btor, left);
         btor_release_exp (btor, right);
       }
+      /* NOTE: variable substitution constraints need to be added to either
+       * unsynthesized or embedded constraints, as otherwise the constraint
+       * flag won't be set, which might lead to an inconsistent state:
+       * E.g.:
+       *
+       * assume (a0)
+       *   -> a0->simplified = c0 (which is a constraint)
+       *   -> adds true/false as assumption, since a0 simplified to c0
+       * sat ()
+       *   -> c0 gets simplified to c1 (c0->simplified = c1)
+       *   -> c1 is a variable substitution constraint
+       *   -> c1 is added to varsubst_constraints (no constraint flag set)
+       *   -> simplify returns UNSAT before substituting all varsubst
+       *      constraints
+       *   -> sat returns UNSAT
+       * failed (a0)
+       *   -> a0->simplified = c1 (due to pointer chasing)
+       *   -> c1 is not an assumption and thus, failed () aborts
+       */
+      if (constraint_is_inconsistent (btor, exp))
+        btor->inconsistent = 1;
       else
       {
-        if (constraint_is_inconsistent (btor, exp))
-          btor->inconsistent = 1;
+        if (!real_exp->constraint)
+        {
+          if (is_embedded_constraint_exp (btor, exp))
+            insert_embedded_constraint (btor, exp);
+          else
+            insert_unsynthesized_constraint (btor, exp);
+        }
         else
         {
-          if (!real_exp->constraint)
-          {
-            if (is_embedded_constraint_exp (btor, exp))
-              insert_embedded_constraint (btor, exp);
-            else
-              insert_unsynthesized_constraint (btor, exp);
-          }
-          else
-          {
-            assert (btor_find_in_ptr_hash_table (
-                        btor->unsynthesized_constraints, exp)
-                    || btor_find_in_ptr_hash_table (btor->embedded_constraints,
-                                                    exp));
-          }
+          assert (
+              btor_find_in_ptr_hash_table (btor->unsynthesized_constraints, exp)
+              || btor_find_in_ptr_hash_table (btor->embedded_constraints, exp));
         }
       }
     }
@@ -2347,33 +2367,20 @@ rebuild_lambda_exp (Btor *btor, BtorNode *exp)
   assert (BTOR_IS_LAMBDA_NODE (exp));
   assert (!btor_param_cur_assignment (exp->e[0]));
 
-  BtorNode *key, *data, *result;
-  BtorHashTableIterator it;
-  BtorPtrHashTable *static_rho;
+  BtorNode *result;
 
   /* we need to reset the binding lambda here as otherwise it is not possible
    * to create a new lambda term with the same param that substitutes 'exp' */
   btor_param_set_binding_lambda (exp->e[0], 0);
-
-  static_rho = btor_lambda_get_static_rho (exp);
-  result     = btor_lambda_exp (btor, exp->e[0], exp->e[1]);
+  result = btor_lambda_exp (btor, exp->e[0], exp->e[1]);
 
   /* lambda not rebuilt, set binding lambda again */
   if (result == exp) btor_param_set_binding_lambda (exp->e[0], exp);
 
   /* copy static_rho for new lambda */
-  if (static_rho && !btor_lambda_get_static_rho (result))
-  {
-    btor_init_node_hash_table_iterator (&it, static_rho);
-    static_rho = btor_new_ptr_hash_table (btor->mm, 0, 0);
-    while (btor_has_next_node_hash_table_iterator (&it))
-    {
-      data = btor_copy_exp (btor, it.bucket->data.asPtr);
-      key  = btor_copy_exp (btor, btor_next_node_hash_table_iterator (&it));
-      btor_insert_in_ptr_hash_table (static_rho, key)->data.asPtr = data;
-    }
-    btor_lambda_set_static_rho (result, static_rho);
-  }
+  if (btor_lambda_get_static_rho (exp) && !btor_lambda_get_static_rho (result))
+    btor_lambda_set_static_rho (result,
+                                btor_lambda_copy_static_rho (btor, exp));
   if (exp->is_array) result->is_array = 1;
   return result;
 }
@@ -2762,7 +2769,10 @@ substitute_var_exps (Btor *btor)
       assert (right);
 
       constraint = btor_eq_exp (btor, left, right);
-      insert_unsynthesized_constraint (btor, constraint);
+      /* only add if it is not in a constraint table: can be already in
+       * embedded or unsythesized constraints */
+      if (!BTOR_REAL_ADDR_NODE (constraint)->constraint)
+        insert_unsynthesized_constraint (btor, constraint);
       btor_release_exp (btor, constraint);
 
       btor_remove_from_ptr_hash_table (substs, left, 0, 0);
@@ -3123,7 +3133,8 @@ btor_simplify (Btor *btor)
 
       if (btor->inconsistent) break;
 
-      if (btor->varsubst_constraints->count) break;
+      if (btor->varsubst_constraints->count)
+        break;  // TODO (ma): continue instead of break?
 
       process_embedded_constraints (btor);
       assert (check_all_hash_tables_proxy_free_dbg (btor));
@@ -3201,10 +3212,11 @@ btor_simplify (Btor *btor)
       continue;
 
     /* rewrite/beta-reduce applies on lambdas */
-    if (btor->options.beta_reduce_all.val
-        /* FIXME: full beta reduction may produce lambdas that do not have a
-         * static_rho */
-        && btor->feqs->count == 0)
+    if (btor->options.beta_reduce_all.val)
+      //	  /* FIXME: full beta reduction may produce lambdas that do not
+      // have a
+      //	   * static_rho */
+      //	  && btor->feqs->count == 0)
       btor_eliminate_applies (btor);
 
     /* add ackermann constraints for all uninterpreted functions */
@@ -4324,7 +4336,6 @@ search_initial_applies_just (Btor *btor, BtorNodePtrStack *top_applies)
 
       if (BTOR_IS_APPLY_NODE (cur) && !cur->parameterized)
       {
-        assert (BTOR_IS_SYNTH_NODE (cur));
         BTORLOG (1, "initial apply: %s", node2string (cur));
         BTOR_PUSH_STACK (btor->mm, *top_applies, cur);
         continue;
@@ -5818,7 +5829,7 @@ generate_table_select_branch_ite (Btor *btor, BtorNode *fun)
 {
   assert (BTOR_IS_REGULAR_NODE (fun));
   assert (BTOR_IS_LAMBDA_NODE (fun));
-  assert (!((BtorLambdaNode *) fun)->static_rho);
+  assert (!btor_lambda_get_static_rho (fun));
   assert (fun->is_array);
 
   BtorBitVector *evalbv;
@@ -6473,6 +6484,7 @@ add_function_inequality_constraints (Btor *btor)
     btor_assert_exp (btor, con);
     btor_release_exp (btor, con);
     btor_release_exp (btor, neq);
+    BTORLOG (2, "add inequality contraint for %s", node2string (cur));
   }
   BTOR_RELEASE_STACK (btor->mm, feqs);
 }
@@ -6561,10 +6573,11 @@ DONE:
 }
 
 #ifdef BTOR_ENABLE_BETA_REDUCTION_PROBING
-static int
+static uint32_t
 sum_ops (Btor *btor)
 {
-  int i, sum = 0;
+  int i;
+  uint32_t sum = 0;
 
   for (i = BTOR_BV_CONST_NODE; i < BTOR_PROXY_NODE; i++)
     sum += btor->ops[i].cur;
@@ -6583,7 +6596,8 @@ br_probe (Btor *btor)
   assert (btor_has_clone_support_sat_mgr (btor_get_sat_mgr_btor (btor)));
 
   Btor *clone;
-  int res, num_ops_orig, num_ops_clone;
+  int res;
+  uint32_t num_ops_orig, num_ops_clone;
   double start, delta;
 
   if (btor->last_sat_result || btor->options.incremental.val
@@ -6663,19 +6677,22 @@ btor_sat_btor (Btor *btor, int lod_limit, int sat_limit)
 
   if (!btor->slv)
   {
-    if ((btor->options.engine.val == BTOR_ENGINE_SLS
-         // TODO distinguish properly when prop is stand alone engine
-         || btor->options.engine.val == BTOR_ENGINE_PROP)
-        && btor->ufs->count == 0
+    if ((btor->options.engine.val == BTOR_ENGINE_SLS) && btor->ufs->count == 0
         && (btor->options.beta_reduce_all.val || btor->lambdas->count == 0))
       btor->slv = btor_new_sls_solver (btor);
+    else if ((btor->options.engine.val == BTOR_ENGINE_PROP)
+             && btor->ufs->count == 0
+             && (btor->options.beta_reduce_all.val
+                 || btor->lambdas->count == 0))
+      btor->slv = btor_new_prop_solver (btor);
     else
       btor->slv = new_core_solver (btor);
   }
   assert (btor->slv);
 
 #ifdef BTOR_ENABLE_BETA_REDUCTION_PROBING
-  if (btor_has_clone_support_sat_mgr (btor_get_sat_mgr_btor (btor))
+  if (btor->slv->kind == BTOR_CORE_SOLVER_KIND
+      && btor_has_clone_support_sat_mgr (btor_get_sat_mgr_btor (btor))
       && btor->options.probe_beta_reduce_all.val && lod_limit == -1
       && sat_limit == -1)
   {
@@ -6738,9 +6755,9 @@ btor_sat_btor (Btor *btor, int lod_limit, int sat_limit)
 
   if (btor->options.model_gen.val && res == BTOR_SAT)
   {
-    if (btor->options.engine.val == BTOR_ENGINE_SLS
-        // TODO distinguish properly when prop is stand alone engine
-        || btor->options.engine.val == BTOR_ENGINE_PROP)
+    if (btor->options.engine.val == BTOR_ENGINE_SLS)
+      btor->slv->api.generate_model (btor, btor->options.model_gen.val == 2, 0);
+    else if (btor->options.engine.val == BTOR_ENGINE_PROP)
       btor->slv->api.generate_model (btor, btor->options.model_gen.val == 2, 0);
     else
       btor->slv->api.generate_model (btor, btor->options.model_gen.val == 2, 1);
@@ -6754,9 +6771,9 @@ btor_sat_btor (Btor *btor, int lod_limit, int sat_limit)
     {
       if (!btor->options.model_gen.val)
       {
-        if (btor->options.engine.val == BTOR_ENGINE_SLS
-            // TODO distinguish properly when prop is stand alone engine
-            || btor->options.engine.val == BTOR_ENGINE_PROP)
+        if (btor->options.engine.val == BTOR_ENGINE_SLS)
+          btor->slv->api.generate_model (btor, 0, 0);
+        else if (btor->options.engine.val == BTOR_ENGINE_PROP)
           btor->slv->api.generate_model (btor, 0, 0);
         else
           btor->slv->api.generate_model (btor, 0, 1);

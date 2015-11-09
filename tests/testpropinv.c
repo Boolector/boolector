@@ -12,7 +12,7 @@
 #include "btorconst.h"
 #include "btorcore.h"
 #include "btorexp.h"
-#include "btorsls.h"
+#include "btorprop.h"
 #include "testrunner.h"
 #include "utils/btorutil.h"
 
@@ -24,25 +24,25 @@ static BtorRNG *g_rng;
 #ifndef NDEBUG
 /*------------------------------------------------------------------------*/
 
-#define TEST_SLS_INV_BV(fun, iscon, bw, bve, bvn, eidx) \
-  do                                                    \
-  {                                                     \
-    res = inv_##fun##_bv (g_btor, fun, bvn, bve, eidx); \
-    if (iscon)                                          \
-      assert (!res);                                    \
-    else                                                \
-    {                                                   \
-      if (eidx)                                         \
-        tmp = btor_##fun##_bv (g_mm, bve, res);         \
-      else                                              \
-        tmp = btor_##fun##_bv (g_mm, res, bve);         \
-      assert (!btor_compare_bv (tmp, bvn));             \
-      btor_free_bv (g_mm, tmp);                         \
-      btor_free_bv (g_mm, res);                         \
-    }                                                   \
+#define TEST_PROP_INV_BV(fun, iscon, bw, bve, bvn, eidx) \
+  do                                                     \
+  {                                                      \
+    res = inv_##fun##_bv (g_btor, fun, bvn, bve, eidx);  \
+    if (iscon)                                           \
+      assert (!res);                                     \
+    else                                                 \
+    {                                                    \
+      if (eidx)                                          \
+        tmp = btor_##fun##_bv (g_mm, bve, res);          \
+      else                                               \
+        tmp = btor_##fun##_bv (g_mm, res, bve);          \
+      assert (!btor_compare_bv (tmp, bvn));              \
+      btor_free_bv (g_mm, tmp);                          \
+      btor_free_bv (g_mm, res);                          \
+    }                                                    \
   } while (0)
 
-#define TEST_SLS_INV_VAL(fun, iscon, bw, ve, vn, eidx)                \
+#define TEST_PROP_INV_VAL(fun, iscon, bw, ve, vn, eidx)               \
   do                                                                  \
   {                                                                   \
     idx      = eidx ? 0 : 1;                                          \
@@ -65,7 +65,7 @@ static BtorRNG *g_rng;
     btor_free_bv (g_btor->mm, bv##fun);                               \
   } while (0)
 
-#define TEST_SLS_INIT_INV_VAL_CON(fun, bw, ve, eidx)                 \
+#define TEST_PROP_INIT_INV_VAL_CON(fun, bw, ve, eidx)                \
   do                                                                 \
   {                                                                  \
     idx = eidx ? 0 : 1;                                              \
@@ -84,12 +84,12 @@ static BtorRNG *g_rng;
     fun = btor_##fun##_exp (g_btor, e[0], e[1]);                     \
   } while (0)
 
-#define TEST_SLS_FINISH_INV_VAL_CON(fun, eidx) \
-  do                                           \
-  {                                            \
-    idx = eidx ? 0 : 1;                        \
-    btor_release_exp (g_btor, fun);            \
-    btor_release_exp (g_btor, e[idx]);         \
+#define TEST_PROP_FINISH_INV_VAL_CON(fun, eidx) \
+  do                                            \
+  {                                             \
+    idx = eidx ? 0 : 1;                         \
+    btor_release_exp (g_btor, fun);             \
+    btor_release_exp (g_btor, e[idx]);          \
   } while (0)
 
 /*------------------------------------------------------------------------*/
@@ -97,11 +97,11 @@ static BtorRNG *g_rng;
 /*------------------------------------------------------------------------*/
 
 void
-init_slsinv_tests (void)
+init_propinv_tests (void)
 {
   g_btor                            = btor_new_btor ();
-  g_btor->slv                       = btor_new_sls_solver (g_btor);
-  g_btor->options.engine.val        = BTOR_ENGINE_SLS;
+  g_btor->slv                       = btor_new_prop_solver (g_btor);
+  g_btor->options.engine.val        = BTOR_ENGINE_PROP;
   g_btor->options.rewrite_level.val = 0;
   g_btor->options.sort_exp.val      = 0;
   g_mm                              = g_btor->mm;
@@ -109,7 +109,7 @@ init_slsinv_tests (void)
 }
 
 static void
-sls_inv_add_bv (uint32_t bw)
+prop_inv_add_bv (uint32_t bw)
 {
   (void) bw;
 #ifndef NDEBUG
@@ -128,10 +128,10 @@ sls_inv_add_bv (uint32_t bw)
     bvadd  = btor_new_random_bv (g_mm, g_rng, bw);
 
     /* find assignment for e[0] */
-    TEST_SLS_INV_BV (add, 0, bw, bve[1], bvadd, 0);
+    TEST_PROP_INV_BV (add, 0, bw, bve[1], bvadd, 0);
 
     /* find assignment for e[1] */
-    TEST_SLS_INV_BV (add, 0, bw, bve[1], bvadd, 1);
+    TEST_PROP_INV_BV (add, 0, bw, bve[1], bvadd, 1);
 
     btor_free_bv (g_mm, bvadd);
     btor_free_bv (g_mm, bve[0]);
@@ -145,7 +145,7 @@ sls_inv_add_bv (uint32_t bw)
 }
 
 static void
-sls_inv_and_bv (uint32_t bw)
+prop_inv_and_bv (uint32_t bw)
 {
   (void) bw;
 #ifndef NDEBUG
@@ -176,10 +176,10 @@ sls_inv_and_bv (uint32_t bw)
       if (btor_get_bit_bv (bvand, i)) btor_set_bit_bv (bve[1], i, 1);
 
     /* find assignment for e[0] */
-    TEST_SLS_INV_BV (and, 0, bw, bve[1], bvand, 0);
+    TEST_PROP_INV_BV (and, 0, bw, bve[1], bvand, 0);
 
     /* find assignment for e[1] */
-    TEST_SLS_INV_BV (and, 0, bw, bve[0], bvand, 1);
+    TEST_PROP_INV_BV (and, 0, bw, bve[0], bvand, 1);
 
     btor_free_bv (g_mm, bve[0]);
     btor_free_bv (g_mm, bve[1]);
@@ -223,7 +223,7 @@ sls_inv_and_bv (uint32_t bw)
     e[1] = btor_const_exp (g_btor, bits);
     btor_freestr (g_mm, bits);
     and = btor_and_exp (g_btor, e[0], e[1]);
-    TEST_SLS_INV_BV (and, 1, bw, bve[1], bvand, 0);
+    TEST_PROP_INV_BV (and, 1, bw, bve[1], bvand, 0);
     btor_release_exp (g_btor, and);
     btor_release_exp (g_btor, e[1]);
     e[1] = tmpe[1];
@@ -232,7 +232,7 @@ sls_inv_and_bv (uint32_t bw)
     e[0] = btor_const_exp (g_btor, bits);
     btor_freestr (g_mm, bits);
     and = btor_and_exp (g_btor, e[0], e[1]);
-    TEST_SLS_INV_BV (and, 1, bw, bve[0], bvand, 1);
+    TEST_PROP_INV_BV (and, 1, bw, bve[0], bvand, 1);
     btor_release_exp (g_btor, and);
     btor_release_exp (g_btor, e[0]);
     e[0] = tmpe[0];
@@ -251,7 +251,7 @@ sls_inv_and_bv (uint32_t bw)
 }
 
 static void
-sls_inv_eq_bv (uint32_t bw)
+prop_inv_eq_bv (uint32_t bw)
 {
   (void) bw;
 #ifndef NDEBUG
@@ -290,7 +290,7 @@ sls_inv_eq_bv (uint32_t bw)
 }
 
 static void
-sls_inv_ult_bv (uint32_t bw)
+prop_inv_ult_bv (uint32_t bw)
 {
   (void) bw;
 #ifndef NDEBUG
@@ -315,31 +315,31 @@ sls_inv_ult_bv (uint32_t bw)
   {
     /* search assignment for e[0] */
     bve[1] = btor_new_random_range_bv (g_mm, g_rng, bw, one, bvmax);
-    TEST_SLS_INV_BV (ult, 0, bw, bve[1], tr, 0);
+    TEST_PROP_INV_BV (ult, 0, bw, bve[1], tr, 0);
     btor_free_bv (g_mm, bve[1]);
     bve[1] = btor_new_random_bv (g_mm, g_rng, bw);
-    TEST_SLS_INV_BV (ult, 0, bw, bve[1], fa, 0);
+    TEST_PROP_INV_BV (ult, 0, bw, bve[1], fa, 0);
     btor_free_bv (g_mm, bve[1]);
 
     /* search assignment for e[1] */
     tmp    = btor_add_bv (g_mm, bvmax, neg);
     bve[0] = btor_new_random_range_bv (g_mm, g_rng, bw, zero, tmp);
     btor_free_bv (g_mm, tmp);
-    TEST_SLS_INV_BV (ult, 0, bw, bve[0], tr, 1);
+    TEST_PROP_INV_BV (ult, 0, bw, bve[0], tr, 1);
     btor_free_bv (g_mm, bve[0]);
     bve[0] = btor_new_random_bv (g_mm, g_rng, bw);
-    TEST_SLS_INV_BV (ult, 0, bw, bve[0], fa, 1);
+    TEST_PROP_INV_BV (ult, 0, bw, bve[0], fa, 1);
     btor_free_bv (g_mm, bve[0]);
   }
 
   /* corner case: e[0] >= 0 */
-  TEST_SLS_INV_BV (ult, 0, bw, zero, fa, 0);
+  TEST_PROP_INV_BV (ult, 0, bw, zero, fa, 0);
   /* corner case: e[0] < 1...1 */
-  TEST_SLS_INV_BV (ult, 0, bw, bvmax, tr, 0);
+  TEST_PROP_INV_BV (ult, 0, bw, bvmax, tr, 0);
   /* corner case: 0 < e[1] */
-  TEST_SLS_INV_BV (ult, 0, bw, zero, tr, 1);
+  TEST_PROP_INV_BV (ult, 0, bw, zero, tr, 1);
   /* corner case: 1...1 >= e[1] */
-  TEST_SLS_INV_BV (ult, 0, bw, bvmax, fa, 1);
+  TEST_PROP_INV_BV (ult, 0, bw, bvmax, fa, 1);
 
   tmpe[0] = e[0];
   tmpe[1] = e[1];
@@ -349,14 +349,14 @@ sls_inv_ult_bv (uint32_t bw)
   bits = btor_bv_to_char_bv (g_mm, zero);
   e[1] = btor_const_exp (g_btor, bits);
   ult  = btor_ult_exp (g_btor, e[0], e[1]);
-  TEST_SLS_INV_BV (ult, 1, bw, zero, tr, 0);
+  TEST_PROP_INV_BV (ult, 1, bw, zero, tr, 0);
   btor_release_exp (g_btor, ult);
   btor_release_exp (g_btor, e[1]);
   e[1] = tmpe[1];
   /* conflict: 0 >= e[1] */
   e[0] = btor_const_exp (g_btor, bits);
   ult  = btor_ult_exp (g_btor, e[0], e[1]);
-  TEST_SLS_INV_BV (ult, 1, bw, zero, fa, 1);
+  TEST_PROP_INV_BV (ult, 1, bw, zero, fa, 1);
   btor_release_exp (g_btor, ult);
   btor_release_exp (g_btor, e[0]);
   btor_freestr (g_mm, bits);
@@ -365,14 +365,14 @@ sls_inv_ult_bv (uint32_t bw)
   bits = btor_bv_to_char_bv (g_mm, bvmax);
   e[1] = btor_const_exp (g_btor, bits);
   ult  = btor_ult_exp (g_btor, e[0], e[1]);
-  TEST_SLS_INV_BV (ult, 1, bw, bvmax, fa, 0);
+  TEST_PROP_INV_BV (ult, 1, bw, bvmax, fa, 0);
   btor_release_exp (g_btor, ult);
   btor_release_exp (g_btor, e[1]);
   e[1] = tmpe[1];
   /* conflict: 1...1 < e[1] */
   e[0] = btor_const_exp (g_btor, bits);
   ult  = btor_ult_exp (g_btor, e[0], e[1]);
-  TEST_SLS_INV_BV (ult, 1, bw, bvmax, tr, 1);
+  TEST_PROP_INV_BV (ult, 1, bw, bvmax, tr, 1);
 
   btor_release_exp (g_btor, ult);
   btor_release_exp (g_btor, e[0]);
@@ -389,7 +389,7 @@ sls_inv_ult_bv (uint32_t bw)
 }
 
 static void
-sls_inv_sll_bv (uint32_t bw)
+prop_inv_sll_bv (uint32_t bw)
 {
   (void) bw;
 #ifndef NDEBUG
@@ -425,10 +425,9 @@ sls_inv_sll_bv (uint32_t bw)
       assert (btor_get_bit_bv (bvsll, i) == 0);
 #endif
     /* find assignment for e[0] (value to be shifted) */
-    TEST_SLS_INV_BV (sll, 0, bw, bve[1], bvsll, 0);
-
+    TEST_PROP_INV_BV (sll, 0, bw, bve[1], bvsll, 0);
     /* find assignment for e[1] (shift value) */
-    TEST_SLS_INV_BV (sll, 0, bw, bve[0], bvsll, 1);
+    TEST_PROP_INV_BV (sll, 0, bw, bve[0], bvsll, 1);
 
     btor_free_bv (g_mm, bve[1]);
     btor_free_bv (g_mm, bvsll);
@@ -466,7 +465,7 @@ sls_inv_sll_bv (uint32_t bw)
     e[1] = btor_const_exp (g_btor, bits);
     btor_freestr (g_mm, bits);
     sll = btor_sll_exp (g_btor, e[0], e[1]);
-    TEST_SLS_INV_BV (sll, 1, bw, bve[1], bvsll, 0);
+    TEST_PROP_INV_BV (sll, 1, bw, bve[1], bvsll, 0);
     btor_release_exp (g_btor, e[1]);
     btor_release_exp (g_btor, sll);
     btor_free_bv (g_mm, bvsll);
@@ -478,7 +477,7 @@ sls_inv_sll_bv (uint32_t bw)
     e[0] = btor_const_exp (g_btor, bits);
     btor_freestr (g_mm, bits);
     sll = btor_sll_exp (g_btor, e[0], e[1]);
-    TEST_SLS_INV_BV (sll, 1, bw, bve[0], bvsll, 1);
+    TEST_PROP_INV_BV (sll, 1, bw, bve[0], bvsll, 1);
     btor_release_exp (g_btor, e[0]);
     btor_release_exp (g_btor, sll);
     btor_free_bv (g_mm, bvsll);
@@ -541,7 +540,7 @@ sls_inv_sll_bv (uint32_t bw)
       default: break;
     }
     sll = btor_sll_exp (g_btor, e[0], e[1]);
-    TEST_SLS_INV_BV (sll, 1, bw, bve[0], bvsll, 1);
+    TEST_PROP_INV_BV (sll, 1, bw, bve[0], bvsll, 1);
     btor_release_exp (g_btor, e[0]);
     btor_release_exp (g_btor, sll);
     btor_free_bv (g_btor->mm, bve[0]);
@@ -557,7 +556,7 @@ sls_inv_sll_bv (uint32_t bw)
 }
 
 static void
-sls_inv_srl_bv (uint32_t bw)
+prop_inv_srl_bv (uint32_t bw)
 {
   (void) bw;
 #ifndef NDEBUG
@@ -593,10 +592,10 @@ sls_inv_srl_bv (uint32_t bw)
       assert (btor_get_bit_bv (bvsrl, bvsrl->width - 1 - i) == 0);
 #endif
     /* find assignment for e[0] (value to be shifted) */
-    TEST_SLS_INV_BV (srl, 0, bw, bve[1], bvsrl, 0);
+    TEST_PROP_INV_BV (srl, 0, bw, bve[1], bvsrl, 0);
 
     /* find assignment for e[1] (shift value) */
-    TEST_SLS_INV_BV (srl, 0, bw, bve[0], bvsrl, 1);
+    TEST_PROP_INV_BV (srl, 0, bw, bve[0], bvsrl, 1);
 
     btor_free_bv (g_mm, bve[1]);
     btor_free_bv (g_mm, bvsrl);
@@ -634,7 +633,7 @@ sls_inv_srl_bv (uint32_t bw)
     e[1] = btor_const_exp (g_btor, bits);
     btor_freestr (g_mm, bits);
     srl = btor_srl_exp (g_btor, e[0], e[1]);
-    TEST_SLS_INV_BV (srl, 1, bw, bve[1], bvsrl, 0);
+    TEST_PROP_INV_BV (srl, 1, bw, bve[1], bvsrl, 0);
     btor_release_exp (g_btor, e[1]);
     btor_release_exp (g_btor, srl);
     btor_free_bv (g_mm, bvsrl);
@@ -646,7 +645,7 @@ sls_inv_srl_bv (uint32_t bw)
     e[0] = btor_const_exp (g_btor, bits);
     btor_freestr (g_mm, bits);
     srl = btor_srl_exp (g_btor, e[0], e[1]);
-    TEST_SLS_INV_BV (srl, 1, bw, bve[0], bvsrl, 1);
+    TEST_PROP_INV_BV (srl, 1, bw, bve[0], bvsrl, 1);
     btor_release_exp (g_btor, e[0]);
     btor_release_exp (g_btor, srl);
     btor_free_bv (g_btor->mm, bvsrl);
@@ -709,7 +708,7 @@ sls_inv_srl_bv (uint32_t bw)
       default: break;
     }
     srl = btor_srl_exp (g_btor, e[0], e[1]);
-    TEST_SLS_INV_BV (srl, 1, bw, bve[0], bvsrl, 1);
+    TEST_PROP_INV_BV (srl, 1, bw, bve[0], bvsrl, 1);
     btor_release_exp (g_btor, e[0]);
     btor_release_exp (g_btor, srl);
     btor_free_bv (g_btor->mm, bve[0]);
@@ -725,7 +724,7 @@ sls_inv_srl_bv (uint32_t bw)
 }
 
 static void
-sls_inv_mul_bv (uint32_t bw)
+prop_inv_mul_bv (uint32_t bw)
 {
   (void) bw;
 #ifndef NDEBUG
@@ -742,35 +741,36 @@ sls_inv_mul_bv (uint32_t bw)
   switch (bw)
   {
     case 1:
-      TEST_SLS_INV_VAL (mul, 0, bw, 1, 1, 1);  // 1 * 1 = 1
-      TEST_SLS_INV_VAL (mul, 0, bw, 1, 0, 0);  // 0 * 1 = 0
+      TEST_PROP_INV_VAL (mul, 0, bw, 1, 1, 1);  // 1 * 1 = 1
+      TEST_PROP_INV_VAL (mul, 0, bw, 1, 0, 0);  // 0 * 1 = 0
       break;
 
     case 7:
-      TEST_SLS_INV_VAL (mul, 0, bw, 3, 6, 1);  // 3 * 2 = 6
-      TEST_SLS_INV_VAL (mul, 0, bw, 2, 4, 0);  // 2 * 2 = 4
+      TEST_PROP_INV_VAL (mul, 0, bw, 3, 6, 1);  // 3 * 2 = 6
+      TEST_PROP_INV_VAL (mul, 0, bw, 2, 4, 0);  // 2 * 2 = 4
       break;
 
     case 31:
-      TEST_SLS_INV_VAL (mul, 0, bw, 334, 41416, 1);      // 334 * 124 = 41416
-      TEST_SLS_INV_VAL (mul, 0, bw, 22222, 1511096, 0);  // 68 * 22222 = 1511096
+      TEST_PROP_INV_VAL (mul, 0, bw, 334, 41416, 1);  // 334 * 124 = 41416
+      TEST_PROP_INV_VAL (
+          mul, 0, bw, 22222, 1511096, 0);  // 68 * 22222 = 1511096
       break;
 
     case 33:
-      TEST_SLS_INV_VAL (
-          mul, 0, bw, 556, 89858496, 1);            // 556 * 161616 = 89858496
-      TEST_SLS_INV_VAL (mul, 0, bw, 42, 51828, 0);  // 1234 * 42 = 51828
+      TEST_PROP_INV_VAL (
+          mul, 0, bw, 556, 89858496, 1);             // 556 * 161616 = 89858496
+      TEST_PROP_INV_VAL (mul, 0, bw, 42, 51828, 0);  // 1234 * 42 = 51828
       break;
 
     case 45:
-      TEST_SLS_INV_VAL (
+      TEST_PROP_INV_VAL (
           mul, 0, bw, 354222444, 3896446884, 1);  // 354222444 * 11 = 3896446884
-      TEST_SLS_INV_VAL (mul,
-                        0,
-                        bw,
-                        8293882888,
-                        24881648664,
-                        0);  // 3 * 8293882888 = 24881648664
+      TEST_PROP_INV_VAL (mul,
+                         0,
+                         bw,
+                         8293882888,
+                         24881648664,
+                         0);  // 3 * 8293882888 = 24881648664
       break;
 
     default: break;
@@ -780,36 +780,36 @@ sls_inv_mul_bv (uint32_t bw)
   switch (bw)
   {
     case 7:
-      TEST_SLS_INV_VAL (mul, 0, bw, 5, 11, 1);    // 5 * 79 = 11
-      TEST_SLS_INV_VAL (mul, 0, bw, 105, 34, 0);  // 82 * 105 = 34
+      TEST_PROP_INV_VAL (mul, 0, bw, 5, 11, 1);    // 5 * 79 = 11
+      TEST_PROP_INV_VAL (mul, 0, bw, 105, 34, 0);  // 82 * 105 = 34
       break;
 
     case 31:
-      TEST_SLS_INV_VAL (
+      TEST_PROP_INV_VAL (
           mul, 0, bw, 156797, 17846234, 1);  // 156797 * 1197258850 = 17846234
-      TEST_SLS_INV_VAL (mul,
-                        0,
-                        bw,
-                        34547367,
-                        454656422,
-                        0);  // 579931114 * 34547367 = 454656422
+      TEST_PROP_INV_VAL (mul,
+                         0,
+                         bw,
+                         34547367,
+                         454656422,
+                         0);  // 579931114 * 34547367 = 454656422
       break;
 
     case 33:
-      TEST_SLS_INV_VAL (mul,
-                        0,
-                        bw,
-                        801110083,
-                        1602220165,
-                        1);  // 801110083 * 3887459223 = 1602220165
-      TEST_SLS_INV_VAL (
+      TEST_PROP_INV_VAL (mul,
+                         0,
+                         bw,
+                         801110083,
+                         1602220165,
+                         1);  // 801110083 * 3887459223 = 1602220165
+      TEST_PROP_INV_VAL (
           mul, 0, bw, 125, 4546522, 0);  // 125 * 5772472418 = 4546522
       break;
 
     case 45:
-      TEST_SLS_INV_VAL (
+      TEST_PROP_INV_VAL (
           mul, 0, bw, 25, 234314345, 1);  // 25 * 21110632625873 = 234314345
-      TEST_SLS_INV_VAL (
+      TEST_PROP_INV_VAL (
           mul, 0, bw, 1125, 814546522, 0);  // 25926973578834 * 1125 = 814546522
       break;
 
@@ -823,43 +823,43 @@ sls_inv_mul_bv (uint32_t bw)
   switch (bw)
   {
     case 7:
-      TEST_SLS_INIT_INV_VAL_CON (mul, bw, 6, 0);
-      TEST_SLS_INV_VAL (mul, 1, bw, 6, 8, 0);
-      TEST_SLS_FINISH_INV_VAL_CON (mul, 0);
+      TEST_PROP_INIT_INV_VAL_CON (mul, bw, 6, 0);
+      TEST_PROP_INV_VAL (mul, 1, bw, 6, 8, 0);
+      TEST_PROP_FINISH_INV_VAL_CON (mul, 0);
       e[1] = tmpe[1];
-      TEST_SLS_INIT_INV_VAL_CON (mul, bw, 6, 1);
-      TEST_SLS_INV_VAL (mul, 1, bw, 6, 124, 1);
-      TEST_SLS_FINISH_INV_VAL_CON (mul, 1);
+      TEST_PROP_INIT_INV_VAL_CON (mul, bw, 6, 1);
+      TEST_PROP_INV_VAL (mul, 1, bw, 6, 124, 1);
+      TEST_PROP_FINISH_INV_VAL_CON (mul, 1);
       break;
 
     case 31:
-      TEST_SLS_INIT_INV_VAL_CON (mul, bw, 156798, 0);
-      TEST_SLS_INV_VAL (mul, 1, bw, 156798, 17846234, 0);
-      TEST_SLS_FINISH_INV_VAL_CON (mul, 0);
+      TEST_PROP_INIT_INV_VAL_CON (mul, bw, 156798, 0);
+      TEST_PROP_INV_VAL (mul, 1, bw, 156798, 17846234, 0);
+      TEST_PROP_FINISH_INV_VAL_CON (mul, 0);
       e[1] = tmpe[1];
-      TEST_SLS_INIT_INV_VAL_CON (mul, bw, 33932, 1);
-      TEST_SLS_INV_VAL (mul, 1, bw, 33932, 813457, 1);
-      TEST_SLS_FINISH_INV_VAL_CON (mul, 1);
+      TEST_PROP_INIT_INV_VAL_CON (mul, bw, 33932, 1);
+      TEST_PROP_INV_VAL (mul, 1, bw, 33932, 813457, 1);
+      TEST_PROP_FINISH_INV_VAL_CON (mul, 1);
       break;
 
     case 33:
-      TEST_SLS_INIT_INV_VAL_CON (mul, bw, 801110082, 0);
-      TEST_SLS_INV_VAL (mul, 1, bw, 801110082, 1602220163, 0);
-      TEST_SLS_FINISH_INV_VAL_CON (mul, 0);
+      TEST_PROP_INIT_INV_VAL_CON (mul, bw, 801110082, 0);
+      TEST_PROP_INV_VAL (mul, 1, bw, 801110082, 1602220163, 0);
+      TEST_PROP_FINISH_INV_VAL_CON (mul, 0);
       e[1] = tmpe[1];
-      TEST_SLS_INIT_INV_VAL_CON (mul, bw, 33932, 1);
-      TEST_SLS_INV_VAL (mul, 1, bw, 33932, 508981, 1);
-      TEST_SLS_FINISH_INV_VAL_CON (mul, 1);
+      TEST_PROP_INIT_INV_VAL_CON (mul, bw, 33932, 1);
+      TEST_PROP_INV_VAL (mul, 1, bw, 33932, 508981, 1);
+      TEST_PROP_FINISH_INV_VAL_CON (mul, 1);
       break;
 
     case 45:
-      TEST_SLS_INIT_INV_VAL_CON (mul, bw, 9801110082, 0);
-      TEST_SLS_INV_VAL (mul, 1, bw, 9801110082, 127414431063, 0);
-      TEST_SLS_FINISH_INV_VAL_CON (mul, 0);
+      TEST_PROP_INIT_INV_VAL_CON (mul, bw, 9801110082, 0);
+      TEST_PROP_INV_VAL (mul, 1, bw, 9801110082, 127414431063, 0);
+      TEST_PROP_FINISH_INV_VAL_CON (mul, 0);
       e[1] = tmpe[1];
-      TEST_SLS_INIT_INV_VAL_CON (mul, bw, 313932, 1);
-      TEST_SLS_INV_VAL (mul, 1, bw, 313932, 7848305, 1);
-      TEST_SLS_FINISH_INV_VAL_CON (mul, 1);
+      TEST_PROP_INIT_INV_VAL_CON (mul, bw, 313932, 1);
+      TEST_PROP_INV_VAL (mul, 1, bw, 313932, 7848305, 1);
+      TEST_PROP_FINISH_INV_VAL_CON (mul, 1);
       break;
 
     default: break;
@@ -871,7 +871,7 @@ sls_inv_mul_bv (uint32_t bw)
 }
 
 static void
-sls_inv_udiv_bv (uint32_t bw)
+prop_inv_udiv_bv (uint32_t bw)
 {
   (void) bw;
 #ifndef NDEBUG
@@ -887,34 +887,34 @@ sls_inv_udiv_bv (uint32_t bw)
   switch (bw)
   {
     case 1:
-      TEST_SLS_INV_VAL (udiv, 0, bw, 1, 1, 1);  // 1 / 1 = 1
-      TEST_SLS_INV_VAL (udiv, 0, bw, 1, 0, 0);  // 0 / 1 = 0
+      TEST_PROP_INV_VAL (udiv, 0, bw, 1, 1, 1);  // 1 / 1 = 1
+      TEST_PROP_INV_VAL (udiv, 0, bw, 1, 0, 0);  // 0 / 1 = 0
       break;
 
     case 7:
-      TEST_SLS_INV_VAL (udiv, 0, bw, 6, 3, 1);  // 6 / 2 = 3
-      TEST_SLS_INV_VAL (udiv, 0, bw, 2, 2, 0);  // 4 / 2 = 2
+      TEST_PROP_INV_VAL (udiv, 0, bw, 6, 3, 1);  // 6 / 2 = 3
+      TEST_PROP_INV_VAL (udiv, 0, bw, 2, 2, 0);  // 4 / 2 = 2
       break;
 
     case 31:
-      TEST_SLS_INV_VAL (udiv, 0, bw, 41416, 334, 1);  // 41416 / 124 = 334
-      TEST_SLS_INV_VAL (udiv, 0, bw, 68, 22222, 0);   // 1511096 / 68 = 22222
+      TEST_PROP_INV_VAL (udiv, 0, bw, 41416, 334, 1);  // 41416 / 124 = 334
+      TEST_PROP_INV_VAL (udiv, 0, bw, 68, 22222, 0);   // 1511096 / 68 = 22222
       break;
 
     case 33:
-      TEST_SLS_INV_VAL (
-          udiv, 0, bw, 89858496, 556, 1);           // 89858496 / 161616 = 556
-      TEST_SLS_INV_VAL (udiv, 0, bw, 1234, 42, 0);  // 51828 / 1234 = 42
+      TEST_PROP_INV_VAL (
+          udiv, 0, bw, 89858496, 556, 1);            // 89858496 / 161616 = 556
+      TEST_PROP_INV_VAL (udiv, 0, bw, 1234, 42, 0);  // 51828 / 1234 = 42
       break;
 
     case 45:
-      TEST_SLS_INV_VAL (udiv,
-                        0,
-                        bw,
-                        3896446884,
-                        354222444,
-                        1);  // 3896446884 / 354222444 = 11
-      TEST_SLS_INV_VAL (
+      TEST_PROP_INV_VAL (udiv,
+                         0,
+                         bw,
+                         3896446884,
+                         354222444,
+                         1);  // 3896446884 / 354222444 = 11
+      TEST_PROP_INV_VAL (
           udiv, 0, bw, 3, 8293882888, 0);  // 24881648664 / 3 = 8293882888
       break;
 
@@ -930,103 +930,103 @@ sls_inv_udiv_bv (uint32_t bw)
   {
     case 1:
       /* conflict: e[0] / 0 != 1...1 */
-      TEST_SLS_INIT_INV_VAL_CON (udiv, bw, 0, 0);
-      TEST_SLS_INV_VAL (udiv, 1, bw, 0, 0, 0);
-      TEST_SLS_FINISH_INV_VAL_CON (udiv, 0);
+      TEST_PROP_INIT_INV_VAL_CON (udiv, bw, 0, 0);
+      TEST_PROP_INV_VAL (udiv, 1, bw, 0, 0, 0);
+      TEST_PROP_FINISH_INV_VAL_CON (udiv, 0);
       e[1] = tmpe[1];
       /* conflict: 0 / e[1] != 0 */
-      TEST_SLS_INIT_INV_VAL_CON (udiv, bw, 0, 1);
-      TEST_SLS_INV_VAL (udiv, 1, bw, 0, 1, 1);
-      TEST_SLS_FINISH_INV_VAL_CON (udiv, 1);
+      TEST_PROP_INIT_INV_VAL_CON (udiv, bw, 0, 1);
+      TEST_PROP_INV_VAL (udiv, 1, bw, 0, 1, 1);
+      TEST_PROP_FINISH_INV_VAL_CON (udiv, 1);
       e[0] = tmpe[0];
       break;
 
     case 7:
       /* conflict: e[0] / 0 != 1...1 */
-      TEST_SLS_INIT_INV_VAL_CON (udiv, bw, 0, 0);
-      TEST_SLS_INV_VAL (udiv, 1, bw, 0, 124, 0);
-      TEST_SLS_FINISH_INV_VAL_CON (udiv, 0);
+      TEST_PROP_INIT_INV_VAL_CON (udiv, bw, 0, 0);
+      TEST_PROP_INV_VAL (udiv, 1, bw, 0, 124, 0);
+      TEST_PROP_FINISH_INV_VAL_CON (udiv, 0);
       e[1] = tmpe[1];
       /* conflict: 0 / e[1] != 0 */
-      TEST_SLS_INIT_INV_VAL_CON (udiv, bw, 0, 1);
-      TEST_SLS_INV_VAL (udiv, 1, bw, 0, 124, 1);
-      TEST_SLS_FINISH_INV_VAL_CON (udiv, 1);
+      TEST_PROP_INIT_INV_VAL_CON (udiv, bw, 0, 1);
+      TEST_PROP_INV_VAL (udiv, 1, bw, 0, 124, 1);
+      TEST_PROP_FINISH_INV_VAL_CON (udiv, 1);
       e[0] = tmpe[0];
       /* conflict: e[0] / bve = bvudiv, overflow: bve * bvudiv */
-      TEST_SLS_INIT_INV_VAL_CON (udiv, bw, 124, 0);
-      TEST_SLS_INV_VAL (udiv, 1, bw, 124, 2, 0);
-      TEST_SLS_FINISH_INV_VAL_CON (udiv, 0);
+      TEST_PROP_INIT_INV_VAL_CON (udiv, bw, 124, 0);
+      TEST_PROP_INV_VAL (udiv, 1, bw, 124, 2, 0);
+      TEST_PROP_FINISH_INV_VAL_CON (udiv, 0);
       e[1] = tmpe[1];
       /* conflict: bve / e[1] = bvudiv, bvudiv % bve != 0 */
-      TEST_SLS_INIT_INV_VAL_CON (udiv, bw, 6, 1);
-      TEST_SLS_INV_VAL (udiv, 1, bw, 6, 4, 1);
-      TEST_SLS_FINISH_INV_VAL_CON (udiv, 1);
+      TEST_PROP_INIT_INV_VAL_CON (udiv, bw, 6, 1);
+      TEST_PROP_INV_VAL (udiv, 1, bw, 6, 4, 1);
+      TEST_PROP_FINISH_INV_VAL_CON (udiv, 1);
       break;
 
     case 31:
       /* conflict: e[0] / 0 != 1...1 */
-      TEST_SLS_INIT_INV_VAL_CON (udiv, bw, 0, 0);
-      TEST_SLS_INV_VAL (udiv, 1, bw, 0, 22222, 0);
-      TEST_SLS_FINISH_INV_VAL_CON (udiv, 0);
+      TEST_PROP_INIT_INV_VAL_CON (udiv, bw, 0, 0);
+      TEST_PROP_INV_VAL (udiv, 1, bw, 0, 22222, 0);
+      TEST_PROP_FINISH_INV_VAL_CON (udiv, 0);
       e[1] = tmpe[1];
       /* conflict: 0 / e[1] != 0 */
-      TEST_SLS_INIT_INV_VAL_CON (udiv, bw, 0, 1);
-      TEST_SLS_INV_VAL (udiv, 1, bw, 0, 22222, 1);
-      TEST_SLS_FINISH_INV_VAL_CON (udiv, 1);
+      TEST_PROP_INIT_INV_VAL_CON (udiv, bw, 0, 1);
+      TEST_PROP_INV_VAL (udiv, 1, bw, 0, 22222, 1);
+      TEST_PROP_FINISH_INV_VAL_CON (udiv, 1);
       e[0] = tmpe[0];
       /* conflict: e[0] / bve = bvudiv, overflow: bve * bvudiv */
-      TEST_SLS_INIT_INV_VAL_CON (udiv, bw, 123456, 0);
-      TEST_SLS_INV_VAL (udiv, 1, bw, 123456, 22222, 0);
-      TEST_SLS_FINISH_INV_VAL_CON (udiv, 0);
+      TEST_PROP_INIT_INV_VAL_CON (udiv, bw, 123456, 0);
+      TEST_PROP_INV_VAL (udiv, 1, bw, 123456, 22222, 0);
+      TEST_PROP_FINISH_INV_VAL_CON (udiv, 0);
       e[1] = tmpe[1];
       /* conflict: bve / e[1] = bvudiv, bvudiv % bve != 0 */
-      TEST_SLS_INIT_INV_VAL_CON (udiv, bw, 41416, 1);
-      TEST_SLS_INV_VAL (udiv, 1, bw, 41416, 333, 1);
-      TEST_SLS_FINISH_INV_VAL_CON (udiv, 1);
+      TEST_PROP_INIT_INV_VAL_CON (udiv, bw, 41416, 1);
+      TEST_PROP_INV_VAL (udiv, 1, bw, 41416, 333, 1);
+      TEST_PROP_FINISH_INV_VAL_CON (udiv, 1);
       break;
 
     case 33:
       /* conflict: e[0] / 0 != 1...1 */
-      TEST_SLS_INIT_INV_VAL_CON (udiv, bw, 0, 0);
-      TEST_SLS_INV_VAL (udiv, 1, bw, 0, 4242424242, 0);
-      TEST_SLS_FINISH_INV_VAL_CON (udiv, 0);
+      TEST_PROP_INIT_INV_VAL_CON (udiv, bw, 0, 0);
+      TEST_PROP_INV_VAL (udiv, 1, bw, 0, 4242424242, 0);
+      TEST_PROP_FINISH_INV_VAL_CON (udiv, 0);
       e[1] = tmpe[1];
       /* conflict: 0 / e[1] != 0 */
-      TEST_SLS_INIT_INV_VAL_CON (udiv, bw, 0, 1);
-      TEST_SLS_INV_VAL (udiv, 1, bw, 0, 4242424242, 1);
-      TEST_SLS_FINISH_INV_VAL_CON (udiv, 1);
+      TEST_PROP_INIT_INV_VAL_CON (udiv, bw, 0, 1);
+      TEST_PROP_INV_VAL (udiv, 1, bw, 0, 4242424242, 1);
+      TEST_PROP_FINISH_INV_VAL_CON (udiv, 1);
       e[0] = tmpe[0];
       /* conflict: e[0] / bve = bvudiv, overflow: bve * bvudiv */
-      TEST_SLS_INIT_INV_VAL_CON (udiv, bw, 1234, 0);
-      TEST_SLS_INV_VAL (udiv, 1, bw, 1234, 4242424242, 0);
-      TEST_SLS_FINISH_INV_VAL_CON (udiv, 0);
+      TEST_PROP_INIT_INV_VAL_CON (udiv, bw, 1234, 0);
+      TEST_PROP_INV_VAL (udiv, 1, bw, 1234, 4242424242, 0);
+      TEST_PROP_FINISH_INV_VAL_CON (udiv, 0);
       e[1] = tmpe[1];
       /* conflict: bve / e[1] = bvudiv, bvudiv % bve != 0 */
-      TEST_SLS_INIT_INV_VAL_CON (udiv, bw, 89858496, 1);
-      TEST_SLS_INV_VAL (udiv, 1, bw, 89858496, 555, 1);
-      TEST_SLS_FINISH_INV_VAL_CON (udiv, 1);
+      TEST_PROP_INIT_INV_VAL_CON (udiv, bw, 89858496, 1);
+      TEST_PROP_INV_VAL (udiv, 1, bw, 89858496, 555, 1);
+      TEST_PROP_FINISH_INV_VAL_CON (udiv, 1);
       break;
 
     case 45:
       /* conflict: e[0] / 0 != 1...1 */
-      TEST_SLS_INIT_INV_VAL_CON (udiv, bw, 0, 0);
-      TEST_SLS_INV_VAL (udiv, 1, bw, 0, 8293882888, 0);
-      TEST_SLS_FINISH_INV_VAL_CON (udiv, 0);
+      TEST_PROP_INIT_INV_VAL_CON (udiv, bw, 0, 0);
+      TEST_PROP_INV_VAL (udiv, 1, bw, 0, 8293882888, 0);
+      TEST_PROP_FINISH_INV_VAL_CON (udiv, 0);
       e[1] = tmpe[1];
       /* conflict: 0 / e[1] != 0 */
-      TEST_SLS_INIT_INV_VAL_CON (udiv, bw, 0, 1);
-      TEST_SLS_INV_VAL (udiv, 1, bw, 0, 8293882888, 1);
-      TEST_SLS_FINISH_INV_VAL_CON (udiv, 1);
+      TEST_PROP_INIT_INV_VAL_CON (udiv, bw, 0, 1);
+      TEST_PROP_INV_VAL (udiv, 1, bw, 0, 8293882888, 1);
+      TEST_PROP_FINISH_INV_VAL_CON (udiv, 1);
       e[0] = tmpe[0];
       /* conflict: e[0] / bve = bvudiv, overflow: bve * bvudiv */
-      TEST_SLS_INIT_INV_VAL_CON (udiv, bw, 333333, 0);
-      TEST_SLS_INV_VAL (udiv, 1, bw, 333333, 8293882888, 0);
-      TEST_SLS_FINISH_INV_VAL_CON (udiv, 0);
+      TEST_PROP_INIT_INV_VAL_CON (udiv, bw, 333333, 0);
+      TEST_PROP_INV_VAL (udiv, 1, bw, 333333, 8293882888, 0);
+      TEST_PROP_FINISH_INV_VAL_CON (udiv, 0);
       e[1] = tmpe[1];
       /* conflict: bve / e[1] = bvudiv, bvudiv % bve != 0 */
-      TEST_SLS_INIT_INV_VAL_CON (udiv, bw, 3896446884, 1);
-      TEST_SLS_INV_VAL (udiv, 1, bw, 3896446884, 354222441, 1);
-      TEST_SLS_FINISH_INV_VAL_CON (udiv, 1);
+      TEST_PROP_INIT_INV_VAL_CON (udiv, bw, 3896446884, 1);
+      TEST_PROP_INV_VAL (udiv, 1, bw, 3896446884, 354222441, 1);
+      TEST_PROP_FINISH_INV_VAL_CON (udiv, 1);
       break;
 
     default: break;
@@ -1038,7 +1038,7 @@ sls_inv_udiv_bv (uint32_t bw)
 }
 
 static void
-sls_inv_urem_bv (uint32_t bw)
+prop_inv_urem_bv (uint32_t bw)
 {
   (void) bw;
 #ifndef NDEBUG
@@ -1062,7 +1062,7 @@ sls_inv_urem_bv (uint32_t bw)
     tmp    = btor_add_bv (g_mm, bvmax, neg);
     bve[0] = btor_new_random_range_bv (g_mm, g_rng, bw, zero, tmp);
     btor_free_bv (g_mm, tmp);
-    TEST_SLS_INV_BV (urem, 0, bw, bve[0], bve[0], 1);
+    TEST_PROP_INV_BV (urem, 0, bw, bve[0], bve[0], 1);
     btor_free_bv (g_mm, bve[0]);
 
     /* bve > bvurem */
@@ -1075,7 +1075,7 @@ sls_inv_urem_bv (uint32_t bw)
     tmp2 = btor_add_bv (g_mm, bve[0], tmp);
     btor_free_bv (g_mm, tmp);
     if (btor_compare_bv (tmp2, bvurem) > 0)
-      TEST_SLS_INV_BV (urem, 0, bw, bve[0], bvurem, 1);
+      TEST_PROP_INV_BV (urem, 0, bw, bve[0], bvurem, 1);
     else
     {
       tmpe    = e[0];
@@ -1084,7 +1084,7 @@ sls_inv_urem_bv (uint32_t bw)
       e[0]    = btor_const_exp (g_btor, bits);
       btor_freestr (g_mm, bits);
       urem = btor_urem_exp (g_btor, e[0], e[1]);
-      TEST_SLS_INV_BV (urem, 1, bw, bve[0], bvurem, 1);
+      TEST_PROP_INV_BV (urem, 1, bw, bve[0], bvurem, 1);
       btor_release_exp (g_btor, e[0]);
       btor_release_exp (g_btor, urem);
       e[0] = tmpe;
@@ -1098,11 +1098,11 @@ sls_inv_urem_bv (uint32_t bw)
     tmp    = btor_add_bv (g_mm, bvmax, neg);
     bve[0] = btor_new_random_range_bv (g_mm, g_rng, bw, zero, tmp);
     btor_free_bv (g_mm, tmp);
-    TEST_SLS_INV_BV (urem, 1, bw, bve[0], bvmax, 1);
+    TEST_PROP_INV_BV (urem, 1, bw, bve[0], bvmax, 1);
     btor_free_bv (g_mm, bve[0]);
 
     /* conflict: bve = bvurem = bvmax */
-    TEST_SLS_INV_BV (urem, 1, bw, bvmax, bvmax, 1);
+    TEST_PROP_INV_BV (urem, 1, bw, bvmax, bvmax, 1);
 
     /* conflict: bve < bvurem, e const */
     tmpe    = e[0];
@@ -1115,7 +1115,7 @@ sls_inv_urem_bv (uint32_t bw)
     e[0] = btor_const_exp (g_btor, bits);
     btor_freestr (g_mm, bits);
     urem = btor_urem_exp (g_btor, e[0], e[1]);
-    TEST_SLS_INV_BV (urem, 1, bw, bve[0], bvurem, 1);
+    TEST_PROP_INV_BV (urem, 1, bw, bve[0], bvurem, 1);
     btor_free_bv (g_mm, bve[0]);
     btor_free_bv (g_mm, bvurem);
     btor_release_exp (g_btor, e[0]);
@@ -1126,7 +1126,7 @@ sls_inv_urem_bv (uint32_t bw)
     e[0] = btor_const_exp (g_btor, bits);
     btor_freestr (g_mm, bits);
     urem = btor_urem_exp (g_btor, e[0], e[1]);
-    TEST_SLS_INV_BV (urem, 1, bw, bvmax, bvmax, 1);
+    TEST_PROP_INV_BV (urem, 1, bw, bvmax, bvmax, 1);
     btor_release_exp (g_btor, e[0]);
     btor_release_exp (g_btor, urem);
     e[0] = tmpe;
@@ -1146,7 +1146,7 @@ sls_inv_urem_bv (uint32_t bw)
     tmp2 = btor_add_bv (g_mm, bvmax, tmp);
     btor_free_bv (g_mm, tmp);
     if (btor_compare_bv (tmp2, bvmax) <= 0)
-      TEST_SLS_INV_BV (urem, 0, bw, bve[1], bvurem, 0);
+      TEST_PROP_INV_BV (urem, 0, bw, bve[1], bvurem, 0);
     else
     {
       tmpe    = e[1];
@@ -1155,7 +1155,7 @@ sls_inv_urem_bv (uint32_t bw)
       e[1]    = btor_const_exp (g_btor, bits);
       btor_freestr (g_mm, bits);
       urem = btor_urem_exp (g_btor, e[0], e[1]);
-      TEST_SLS_INV_BV (urem, 1, bw, bve[1], bvurem, 0);
+      TEST_PROP_INV_BV (urem, 1, bw, bve[1], bvurem, 0);
       btor_release_exp (g_btor, e[1]);
       btor_release_exp (g_btor, urem);
       e[1] = tmpe;
@@ -1173,7 +1173,7 @@ sls_inv_urem_bv (uint32_t bw)
     e[1]    = btor_const_exp (g_btor, bits);
     btor_freestr (g_mm, bits);
     urem = btor_urem_exp (g_btor, e[0], e[1]);
-    TEST_SLS_INV_BV (urem, 1, bw, bve[1], bve[1], 0);
+    TEST_PROP_INV_BV (urem, 1, bw, bve[1], bve[1], 0);
     btor_free_bv (g_mm, bve[1]);
     btor_release_exp (g_btor, e[1]);
     btor_release_exp (g_btor, urem);
@@ -1187,7 +1187,7 @@ sls_inv_urem_bv (uint32_t bw)
     e[1] = btor_const_exp (g_btor, bits);
     btor_freestr (g_mm, bits);
     urem = btor_urem_exp (g_btor, e[0], e[1]);
-    TEST_SLS_INV_BV (urem, 1, bw, bve[1], bve[1], 0);
+    TEST_PROP_INV_BV (urem, 1, bw, bve[1], bve[1], 0);
     btor_free_bv (g_mm, bvurem);
     btor_free_bv (g_mm, bve[1]);
     btor_release_exp (g_btor, e[1]);
@@ -1207,7 +1207,7 @@ sls_inv_urem_bv (uint32_t bw)
 }
 
 static void
-sls_inv_concat_bv (uint32_t bw)
+prop_inv_concat_bv (uint32_t bw)
 {
   (void) bw;
 #ifndef NDEBUG
@@ -1236,8 +1236,8 @@ sls_inv_concat_bv (uint32_t bw)
     }
     bvconcat = btor_concat_bv (g_mm, bve[0], bve[1]);
 
-    TEST_SLS_INV_BV (concat, 0, bw, bve[1], bvconcat, 0);
-    TEST_SLS_INV_BV (concat, 0, bw, bve[0], bvconcat, 1);
+    TEST_PROP_INV_BV (concat, 0, bw, bve[1], bvconcat, 0);
+    TEST_PROP_INV_BV (concat, 0, bw, bve[0], bvconcat, 1);
 
     btor_free_bv (g_mm, bvconcat);
     btor_free_bv (g_mm, bve[1]);
@@ -1263,9 +1263,9 @@ sls_inv_concat_bv (uint32_t bw)
     btor_freestr (g_mm, bits);
     concat = btor_concat_exp (g_btor, e[0], e[1]);
     if (iscon)
-      TEST_SLS_INV_BV (concat, 1, bw, bve[1], bvconcat, 0);
+      TEST_PROP_INV_BV (concat, 1, bw, bve[1], bvconcat, 0);
     else
-      TEST_SLS_INV_BV (concat, 0, bw, bve[1], bvconcat, 0);
+      TEST_PROP_INV_BV (concat, 0, bw, bve[1], bvconcat, 0);
     btor_free_bv (g_mm, bve[1]);
     btor_free_bv (g_mm, bvconcat);
     btor_release_exp (g_btor, e[1]);
@@ -1290,9 +1290,9 @@ sls_inv_concat_bv (uint32_t bw)
     btor_freestr (g_mm, bits);
     concat = btor_concat_exp (g_btor, e[0], e[1]);
     if (iscon)
-      TEST_SLS_INV_BV (concat, 1, bw, bve[0], bvconcat, 1);
+      TEST_PROP_INV_BV (concat, 1, bw, bve[0], bvconcat, 1);
     else
-      TEST_SLS_INV_BV (concat, 0, bw, bve[0], bvconcat, 1);
+      TEST_PROP_INV_BV (concat, 0, bw, bve[0], bvconcat, 1);
     btor_free_bv (g_mm, bve[0]);
     btor_free_bv (g_mm, bvconcat);
     btor_release_exp (g_btor, e[0]);
@@ -1308,7 +1308,7 @@ sls_inv_concat_bv (uint32_t bw)
 }
 
 static void
-sls_inv_slice_bv (uint32_t bw)
+prop_inv_slice_bv (uint32_t bw)
 {
   (void) bw;
 #ifndef NDEBUG
@@ -1336,137 +1336,137 @@ sls_inv_slice_bv (uint32_t bw)
 }
 
 static void
-test_slsinv_add_bv (void)
+test_propinv_add_bv (void)
 {
-  sls_inv_add_bv (1);
-  sls_inv_add_bv (7);
-  sls_inv_add_bv (31);
-  sls_inv_add_bv (33);
-  sls_inv_add_bv (45);
+  prop_inv_add_bv (1);
+  prop_inv_add_bv (7);
+  prop_inv_add_bv (31);
+  prop_inv_add_bv (33);
+  prop_inv_add_bv (45);
 }
 
 static void
-test_slsinv_and_bv (void)
+test_propinv_and_bv (void)
 {
-  sls_inv_and_bv (1);
-  sls_inv_and_bv (7);
-  sls_inv_and_bv (31);
-  sls_inv_and_bv (33);
-  sls_inv_and_bv (45);
+  prop_inv_and_bv (1);
+  prop_inv_and_bv (7);
+  prop_inv_and_bv (31);
+  prop_inv_and_bv (33);
+  prop_inv_and_bv (45);
 }
 
 static void
-test_slsinv_eq_bv (void)
+test_propinv_eq_bv (void)
 {
-  sls_inv_eq_bv (1);
-  sls_inv_eq_bv (7);
-  sls_inv_eq_bv (31);
-  sls_inv_eq_bv (33);
-  sls_inv_eq_bv (45);
+  prop_inv_eq_bv (1);
+  prop_inv_eq_bv (7);
+  prop_inv_eq_bv (31);
+  prop_inv_eq_bv (33);
+  prop_inv_eq_bv (45);
 }
 
 static void
-test_slsinv_ult_bv (void)
+test_propinv_ult_bv (void)
 {
-  sls_inv_ult_bv (1);
-  sls_inv_ult_bv (7);
-  sls_inv_ult_bv (31);
-  sls_inv_ult_bv (33);
-  sls_inv_ult_bv (45);
+  prop_inv_ult_bv (1);
+  prop_inv_ult_bv (7);
+  prop_inv_ult_bv (31);
+  prop_inv_ult_bv (33);
+  prop_inv_ult_bv (45);
 }
 
 static void
-test_slsinv_sll_bv (void)
+test_propinv_sll_bv (void)
 {
-  sls_inv_sll_bv (2);
-  sls_inv_sll_bv (4);
-  sls_inv_sll_bv (8);
-  sls_inv_sll_bv (16);
-  sls_inv_sll_bv (32);
-  sls_inv_sll_bv (64);
+  prop_inv_sll_bv (2);
+  prop_inv_sll_bv (4);
+  prop_inv_sll_bv (8);
+  prop_inv_sll_bv (16);
+  prop_inv_sll_bv (32);
+  prop_inv_sll_bv (64);
 }
 
 static void
-test_slsinv_srl_bv (void)
+test_propinv_srl_bv (void)
 {
-  sls_inv_srl_bv (2);
-  sls_inv_srl_bv (4);
-  sls_inv_srl_bv (8);
-  sls_inv_srl_bv (16);
-  sls_inv_srl_bv (32);
-  sls_inv_srl_bv (64);
+  prop_inv_srl_bv (2);
+  prop_inv_srl_bv (4);
+  prop_inv_srl_bv (8);
+  prop_inv_srl_bv (16);
+  prop_inv_srl_bv (32);
+  prop_inv_srl_bv (64);
 }
 
 static void
-test_slsinv_mul_bv (void)
+test_propinv_mul_bv (void)
 {
-  sls_inv_mul_bv (1);
-  sls_inv_mul_bv (7);
-  sls_inv_mul_bv (31);
-  sls_inv_mul_bv (33);
-  sls_inv_mul_bv (45);
+  prop_inv_mul_bv (1);
+  prop_inv_mul_bv (7);
+  prop_inv_mul_bv (31);
+  prop_inv_mul_bv (33);
+  prop_inv_mul_bv (45);
 }
 
 static void
-test_slsinv_udiv_bv (void)
+test_propinv_udiv_bv (void)
 {
-  sls_inv_udiv_bv (1);
-  sls_inv_udiv_bv (7);
-  sls_inv_udiv_bv (31);
-  sls_inv_udiv_bv (33);
-  sls_inv_udiv_bv (45);
+  prop_inv_udiv_bv (1);
+  prop_inv_udiv_bv (7);
+  prop_inv_udiv_bv (31);
+  prop_inv_udiv_bv (33);
+  prop_inv_udiv_bv (45);
 }
 
 static void
-test_slsinv_urem_bv (void)
+test_propinv_urem_bv (void)
 {
-  sls_inv_urem_bv (1);
-  sls_inv_urem_bv (7);
-  sls_inv_urem_bv (31);
-  sls_inv_urem_bv (33);
-  sls_inv_urem_bv (45);
+  prop_inv_urem_bv (1);
+  prop_inv_urem_bv (7);
+  prop_inv_urem_bv (31);
+  prop_inv_urem_bv (33);
+  prop_inv_urem_bv (45);
 }
 
 static void
-test_slsinv_concat_bv (void)
+test_propinv_concat_bv (void)
 {
-  sls_inv_concat_bv (1);
-  sls_inv_concat_bv (7);
-  sls_inv_concat_bv (31);
-  sls_inv_concat_bv (33);
-  sls_inv_concat_bv (45);
+  prop_inv_concat_bv (1);
+  prop_inv_concat_bv (7);
+  prop_inv_concat_bv (31);
+  prop_inv_concat_bv (33);
+  prop_inv_concat_bv (45);
 }
 
 static void
-test_slsinv_slice_bv (void)
+test_propinv_slice_bv (void)
 {
-  sls_inv_slice_bv (1);
-  sls_inv_slice_bv (7);
-  sls_inv_slice_bv (31);
-  sls_inv_slice_bv (33);
-  sls_inv_slice_bv (45);
+  prop_inv_slice_bv (1);
+  prop_inv_slice_bv (7);
+  prop_inv_slice_bv (31);
+  prop_inv_slice_bv (33);
+  prop_inv_slice_bv (45);
 }
 
 void
-run_slsinv_tests (int argc, char **argv)
+run_propinv_tests (int argc, char **argv)
 {
   (void) argc;
   (void) argv;
-  BTOR_RUN_TEST (slsinv_add_bv);
-  BTOR_RUN_TEST (slsinv_and_bv);
-  BTOR_RUN_TEST (slsinv_eq_bv);
-  BTOR_RUN_TEST (slsinv_ult_bv);
-  BTOR_RUN_TEST (slsinv_sll_bv);
-  BTOR_RUN_TEST (slsinv_srl_bv);
-  BTOR_RUN_TEST (slsinv_mul_bv);
-  BTOR_RUN_TEST (slsinv_udiv_bv);
-  BTOR_RUN_TEST (slsinv_urem_bv);
-  BTOR_RUN_TEST (slsinv_concat_bv);
-  BTOR_RUN_TEST (slsinv_slice_bv);
+  BTOR_RUN_TEST (propinv_add_bv);
+  BTOR_RUN_TEST (propinv_and_bv);
+  BTOR_RUN_TEST (propinv_eq_bv);
+  BTOR_RUN_TEST (propinv_ult_bv);
+  BTOR_RUN_TEST (propinv_sll_bv);
+  BTOR_RUN_TEST (propinv_srl_bv);
+  BTOR_RUN_TEST (propinv_mul_bv);
+  BTOR_RUN_TEST (propinv_udiv_bv);
+  BTOR_RUN_TEST (propinv_urem_bv);
+  BTOR_RUN_TEST (propinv_concat_bv);
+  BTOR_RUN_TEST (propinv_slice_bv);
 }
 
 void
-finish_slsinv_tests (void)
+finish_propinv_tests (void)
 {
   btor_delete_btor (g_btor);
 }

@@ -134,40 +134,6 @@ btor_assign_args (Btor *btor, BtorNode *fun, BtorNode *args)
   }
 }
 
-static void
-assign_new_params (Btor *btor, BtorNode *fun)
-{
-  BtorNode *lambda, *param, *arg;
-  BtorNodeIterator it;
-
-  btor_init_lambda_iterator (&it, fun);
-  while (btor_has_next_lambda_iterator (&it))
-  {
-    lambda = btor_next_lambda_iterator (&it);
-    param  = lambda->e[0];
-    arg    = btor_param_exp (btor, btor_get_exp_width (btor, param), 0);
-    btor_assign_param (btor, lambda, arg);
-  }
-}
-
-static void
-unassign_new_params (Btor *btor, BtorNode *fun)
-{
-  BtorNode *lambda;
-  BtorNodeIterator it;
-  BtorParamNode *param;
-
-  btor_init_lambda_iterator (&it, fun);
-  while (btor_has_next_lambda_iterator (&it))
-  {
-    lambda = btor_next_lambda_iterator (&it);
-    param  = (BtorParamNode *) lambda->e[0];
-    if (!param->assigned_exp) break;
-    btor_release_exp (btor, param->assigned_exp);
-    param->assigned_exp = 0;
-  }
-}
-
 void
 btor_assign_param (Btor *btor, BtorNode *lambda, BtorNode *arg)
 {
@@ -375,13 +341,15 @@ btor_beta_reduce (Btor *btor,
 #endif
         btor_assign_args (btor, real_cur, args);
       }
+      /* do not try to reduce lambdas below equalities as lambdas cannot
+       * be eliminated. further, it may produce lambdas that break lemma
+       * generation for extensionality */
       else if (BTOR_IS_LAMBDA_NODE (real_cur) && BTOR_IS_FEQ_NODE (cur_parent))
       {
         assert (!btor_param_cur_assignment (real_cur->e[0]));
-#ifndef NDEBUG
-        BTOR_PUSH_STACK (mm, unassign_stack, real_cur);
-#endif
-        assign_new_params (btor, real_cur);
+        cur_lambda_depth--;
+        BTOR_PUSH_STACK (mm, arg_stack, btor_copy_exp (btor, cur));
+        continue;
       }
 
       real_cur->beta_mark = 1;
@@ -530,6 +498,10 @@ btor_beta_reduce (Btor *btor,
             assert (BTOR_IS_PARAM_NODE (BTOR_REAL_ADDR_NODE (e[1])));
             result = btor_lambda_exp (btor, e[1], e[0]);
             if (real_cur->is_array) result->is_array = 1;
+            if (btor_lambda_get_static_rho (real_cur)
+                && !btor_lambda_get_static_rho (result))
+              btor_lambda_set_static_rho (
+                  result, btor_lambda_copy_static_rho (btor, real_cur));
           }
           /* special case: lambda not reduced (not instantiated)
            *		 and is not constant */
@@ -574,14 +546,6 @@ btor_beta_reduce (Btor *btor,
           && btor_param_cur_assignment (real_cur->e[0]))
       {
         btor_unassign_params (btor, real_cur);
-#ifndef NDEBUG
-        (void) BTOR_POP_STACK (unassign_stack);
-#endif
-      }
-      else if (BTOR_IS_LAMBDA_NODE (real_cur) && BTOR_IS_FEQ_NODE (cur_parent))
-      {
-        assert (btor_param_cur_assignment (real_cur->e[0]));
-        unassign_new_params (btor, real_cur);
 #ifndef NDEBUG
         (void) BTOR_POP_STACK (unassign_stack);
 #endif

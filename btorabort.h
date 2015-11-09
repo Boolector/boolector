@@ -60,7 +60,7 @@
 #define BTOR_ABORT_REFS_NOT_POS_BOOLECTOR(ARG)                               \
   do                                                                         \
   {                                                                          \
-    if (BTOR_REAL_ADDR_NODE ((ARG))->refs < 1)                               \
+    if (BTOR_REAL_ADDR_NODE ((ARG))->ext_refs < 1)                           \
     {                                                                        \
       fprintf (stderr, "[%s] %s: ", __FILE__, __FUNCTION__);                 \
       fprintf (stderr, "reference counter of '%s' must not be < 1\n", #ARG); \

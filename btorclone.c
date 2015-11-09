@@ -17,7 +17,9 @@
 #include "btorcore.h"
 #include "btorlog.h"
 #include "btormsg.h"
+#include "btorprop.h"
 #include "btorsat.h"
+#include "btorsls.h"
 #include "btorsort.h"
 #include "utils/btorhash.h"
 #include "utils/btoriter.h"
@@ -1268,6 +1270,17 @@ clone_aux_btor (Btor *btor, BtorNodeMap **exp_map, bool exp_layer_only)
           allocated +=
               btor_size_bv (btor_next_data_hash_table_iterator (&it)->asPtr);
       }
+    }
+    else if (clone->slv->kind == BTOR_PROP_SOLVER_KIND)
+    {
+      BtorPropSolver *slv  = BTOR_PROP_SOLVER (btor);
+      BtorPropSolver *cslv = BTOR_PROP_SOLVER (clone);
+
+      CHKCLONE_MEM_PTR_HASH_TABLE (slv->roots, cslv->roots);
+      CHKCLONE_MEM_PTR_HASH_TABLE (slv->score, cslv->score);
+
+      allocated += sizeof (BtorPropSolver) + MEM_PTR_HASH_TABLE (cslv->roots)
+                   + MEM_PTR_HASH_TABLE (cslv->score);
     }
     assert (allocated == clone->mm->allocated);
   }

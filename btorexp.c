@@ -1098,6 +1098,8 @@ connect_child_exp (Btor *btor, BtorNode *parent, BtorNode *child, int pos)
       && BTOR_REAL_ADDR_NODE (child)->parameterized)
     parent->parameterized = 1;
 
+  // TODO (ma): why don't we bind params here?
+
   if (BTOR_REAL_ADDR_NODE (child)->lambda_below) parent->lambda_below = 1;
 
   if (BTOR_REAL_ADDR_NODE (child)->apply_below) parent->apply_below = 1;
@@ -4114,6 +4116,28 @@ btor_lambda_set_static_rho (BtorNode *lambda, BtorPtrHashTable *static_rho)
   assert (BTOR_IS_REGULAR_NODE (lambda));
   assert (BTOR_IS_LAMBDA_NODE (lambda));
   ((BtorLambdaNode *) lambda)->static_rho = static_rho;
+}
+
+BtorPtrHashTable *
+btor_lambda_copy_static_rho (Btor *btor, BtorNode *lambda)
+{
+  assert (BTOR_IS_REGULAR_NODE (lambda));
+  assert (BTOR_IS_LAMBDA_NODE (lambda));
+  assert (btor_lambda_get_static_rho (lambda));
+
+  BtorNode *data, *key;
+  BtorHashTableIterator it;
+  BtorPtrHashTable *static_rho;
+
+  btor_init_node_hash_table_iterator (&it, btor_lambda_get_static_rho (lambda));
+  static_rho = btor_new_ptr_hash_table (btor->mm, 0, 0);
+  while (btor_has_next_node_hash_table_iterator (&it))
+  {
+    data = btor_copy_exp (btor, it.bucket->data.asPtr);
+    key  = btor_copy_exp (btor, btor_next_node_hash_table_iterator (&it));
+    btor_insert_in_ptr_hash_table (static_rho, key)->data.asPtr = data;
+  }
+  return static_rho;
 }
 
 void
