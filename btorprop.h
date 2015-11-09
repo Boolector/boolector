@@ -11,6 +11,9 @@
 #ifndef BTORPROP_H_INCLUDED
 #define BTORPROP_H_INCLUDED
 
+#include "btorbitvec.h"
+#include "btortypes.h"
+
 struct BtorPropSolver
 {
   BTOR_SOLVER_STRUCT;
