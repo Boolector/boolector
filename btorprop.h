@@ -35,7 +35,7 @@ BtorSolver *btor_new_prop_solver (Btor *btor);
 
 /*------------------------------------------------------------------------*/
 
-void btor_select_prop_move (Btor *btor,
+void btor_select_move_prop (Btor *btor,
                             BtorNode *root,
                             BtorNode **input,
                             BtorBitVector **assignment);
