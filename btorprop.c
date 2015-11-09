@@ -1092,6 +1092,7 @@ inv_udiv_bv (Btor *btor,
         btor_free_bv (mm, tmp);
         tmp = lo;
         lo  = btor_inc_bv (mm, tmp); /* lower bound (incl.) */
+        btor_free_bv (mm, tmp);
 
         /* lo > up -> conflict */
         if (btor_compare_bv (lo, up) > 0)
@@ -1173,7 +1174,7 @@ inv_udiv_bv (Btor *btor,
     else
     {
       /* if bve * bvudiv does not overflow, choose e[0] = bve * bvudiv
-       * with prob = 0.5 and a bve s.t. bve / e[1] = bvudiv otherwise */
+       * with prob = 0.5 and a bve s.t. e[0] / bve = bvudiv otherwise */
       if (btor_is_umulo_bv (mm, bve, bvudiv))
         goto BVUDIV_E0_CONF;
       else
@@ -1187,19 +1188,20 @@ inv_udiv_bv (Btor *btor,
            * Note: udiv always truncates the results towards 0. */
 
           /* determine upper and lower bounds for e[0]:
-           * up = (bve + 1) * bvudiv - 1 if (bve + 1) * bvudiv does
-           *      not overflow else 2^bw - 1
+           * up = bve * (budiv + 1) - 1
+           *	  if bve * (bvudiv + 1) does not overflow
+           *	  else 2^bw - 1
            * lo = bve * bvudiv */
           lo  = btor_mul_bv (mm, bve, bvudiv);
-          tmp = btor_inc_bv (mm, bve);
-          if (btor_is_umulo_bv (mm, tmp, bvudiv))
+          tmp = btor_inc_bv (mm, bvudiv);
+          if (btor_is_umulo_bv (mm, bve, tmp))
           {
             btor_free_bv (mm, tmp);
             up = btor_copy_bv (mm, bvmax);
           }
           else
           {
-            up = btor_mul_bv (mm, tmp, bvudiv);
+            up = btor_mul_bv (mm, bve, tmp);
             btor_free_bv (mm, tmp);
             tmp = btor_dec_bv (mm, up);
             btor_free_bv (mm, up);
@@ -2614,7 +2616,6 @@ select_constraint (Btor *btor, int nmoves)
   BTORLOG (1, "");
   BTORLOG (1, "*** select constraint: %s", node2string (res));
 
-  printf ("res %s\n", node2string (res));
   return res;
 }
 
