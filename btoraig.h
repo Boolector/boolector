@@ -95,15 +95,15 @@ typedef struct BtorAIGMgr BtorAIGMgr;
 
 #define BTOR_IS_AND_AIG(aig) (!(aig)->is_var)
 
-#define BTOR_GET_NODE_AIG(amgr, id)                               \
+#define BTOR_GET_AIG_BY_ID(amgr, id)                              \
   (id < 0 ? BTOR_INVERT_AIG (BTOR_PEEK_STACK (amgr->id2aig, -id)) \
           : BTOR_PEEK_STACK (amgr->id2aig, id))
 
 #define BTOR_LEFT_CHILD_AIG(amgr, aig) \
-  (BTOR_GET_NODE_AIG (amgr, (aig)->children[0]))
+  (BTOR_GET_AIG_BY_ID (amgr, (aig)->children[0]))
 
 #define BTOR_RIGHT_CHILD_AIG(amgr, aig) \
-  (BTOR_GET_NODE_AIG (amgr, (aig)->children[1]))
+  (BTOR_GET_AIG_BY_ID (amgr, (aig)->children[1]))
 
 #define BTOR_GET_AIG_ID_AIG(aig) \
   (BTOR_IS_INVERTED_AIG (aig) ? -BTOR_REAL_ADDR_AIG (aig)->id : aig->id)

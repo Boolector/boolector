@@ -373,7 +373,7 @@ clone_key_as_aig (BtorMemMgr *mm, const void *cloned_amgr, const void *key)
 
   aig        = (BtorAIG *) key;
   camgr      = (BtorAIGMgr *) cloned_amgr;
-  cloned_aig = BTOR_GET_NODE_AIG (camgr, BTOR_REAL_ADDR_AIG (aig)->id);
+  cloned_aig = BTOR_GET_AIG_BY_ID (camgr, BTOR_REAL_ADDR_AIG (aig)->id);
   assert (cloned_aig);
   if (BTOR_IS_INVERTED_AIG (aig)) cloned_aig = BTOR_INVERT_AIG (cloned_aig);
   return cloned_aig;
