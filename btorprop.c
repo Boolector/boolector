@@ -1105,6 +1105,8 @@ inv_udiv_bv (Btor *btor,
         else
         {
           res = btor_new_random_range_bv (mm, rng, bw, lo, up);
+          btor_free_bv (mm, lo);
+          btor_free_bv (mm, up);
         }
       }
     }
