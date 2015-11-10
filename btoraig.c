@@ -1133,7 +1133,8 @@ btor_aig_to_sat_tseitin (BtorAIGMgr *amgr, BtorAIG *start)
   assert (amgr);
 
   smgr = amgr->smgr;
-  mm   = amgr->mm;
+  assert (btor_is_initialized_sat (smgr));
+  mm = amgr->mm;
 
   start = BTOR_REAL_ADDR_AIG (start);
   BTOR_PUSH_STACK (mm, stack, start);
@@ -1343,6 +1344,11 @@ btor_aig_to_sat (BtorAIGMgr *amgr, BtorAIG *aig)
 void
 btor_add_toplevel_aig_to_sat (BtorAIGMgr *amgr, BtorAIG *root)
 {
+  assert (amgr);
+  assert (root);
+
+  if (!btor_is_initialized_sat (amgr->smgr)) return;
+
 #ifdef BTOR_AIG_TO_CNF_TOP_ELIM
   BtorMemMgr *mm;
   BtorSATMgr *smgr;

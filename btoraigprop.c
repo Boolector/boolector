@@ -131,10 +131,10 @@ sat_aigprop_solver (Btor *btor, int limit0, int limit1)
   while (btor_has_next_node_hash_table_iterator (&it))
   {
     root = btor_next_node_hash_table_iterator (&it);
-    assert (root->av->len == 1);
+    assert (BTOR_REAL_ADDR_NODE (root)->av->len == 1);
     if (!btor_find_in_ptr_hash_table (slv->aprop->roots, root))
-      (void) btor_insert_in_ptr_hash_table (slv->aprop->roots,
-                                            root->av->aigs[0]);
+      (void) btor_insert_in_ptr_hash_table (
+          slv->aprop->roots, BTOR_REAL_ADDR_NODE (root)->av->aigs[0]);
   }
 
   /* Generate intial model, all inputs are initialized with false. We do

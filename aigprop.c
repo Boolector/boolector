@@ -90,13 +90,19 @@ recursively_compute_assignment (AIGProp *aprop, BtorAIG *aig)
       {
         if (get_assignment_aig (aprop->model, left) < 0
             || get_assignment_aig (aprop->model, right) < 0)
+        {
           btor_insert_in_ptr_hash_table (aprop->model,
                                          btor_copy_aig (aprop->amgr, real_cur))
               ->data.asInt = -1;
+          printf ("cur %d aig %d res %d\n", real_cur->id, aig->id, -1);
+        }
         else
+        {
           btor_insert_in_ptr_hash_table (aprop->model,
                                          btor_copy_aig (aprop->amgr, real_cur))
               ->data.asInt = 1;
+          printf ("cur %d aig %d res %d\n", real_cur->id, aig->id, 1);
+        }
       }
     }
   }

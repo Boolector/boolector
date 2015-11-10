@@ -1122,6 +1122,7 @@ btor_process_unsynthesized_constraints (Btor *btor)
       }
       btor_add_toplevel_aig_to_sat (amgr, aig);
       btor_release_aig (amgr, aig);
+      printf ("cur %s\n", node2string (cur));
       (void) btor_insert_in_ptr_hash_table (sc, cur);
       btor_remove_from_ptr_hash_table (uc, cur, 0, 0);
 
