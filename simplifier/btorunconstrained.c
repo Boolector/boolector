@@ -81,7 +81,7 @@ mark_uc (Btor *btor, BtorIntHashTable *uc, BtorNode *exp)
   else
     btor->stats.bv_uc_props++;
 
-  if (BTOR_IS_LAMBDA_NODE (exp))
+  if (BTOR_IS_LAMBDA_NODE (exp) || BTOR_IS_FUN_COND_NODE (exp))
   {
     subst           = btor_uf_exp (btor, exp->sort_id, 0);
     subst->is_array = exp->is_array;

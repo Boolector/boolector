@@ -267,13 +267,13 @@ btor_recursively_compute_assignment (Btor *btor,
       num_args = btor_get_args_arity (btor, cur_parent->e[1]);
       e        = (BtorBitVector **) arg_stack.top - num_args;
 
-      t = btor_new_bv_tuple (btor->mm, num_args);
+      t = btor_new_bv_tuple (mm, num_args);
       for (i = 0; i < num_args; i++)
-        btor_add_to_bv_tuple (btor->mm, t, e[i], num_args - 1 - i);
+        btor_add_to_bv_tuple (mm, t, e[i], num_args - 1 - i);
 
       /* check if there is already a value for given arguments */
       result = get_value_from_fun_model (btor, fun_model, cur_parent->e[0], t);
-      btor_free_bv_tuple (btor->mm, t);
+      btor_free_bv_tuple (mm, t);
 
       if (result) goto PUSH_RESULT;
     }
@@ -284,12 +284,12 @@ btor_recursively_compute_assignment (Btor *btor,
        * it doesn't have one) */
       if (BTOR_IS_BV_VAR_NODE (real_cur))
       {
-        result = btor_assignment_bv (btor->mm, real_cur, 1);
+        result = btor_assignment_bv (mm, real_cur, 1);
         goto CACHE_AND_PUSH_RESULT;
       }
       else if (BTOR_IS_BV_CONST_NODE (real_cur))
       {
-        result = btor_char_to_bv (btor->mm, btor_const_get_bits (real_cur));
+        result = btor_char_to_bv (mm, btor_const_get_bits (real_cur));
         goto CACHE_AND_PUSH_RESULT;
       }
       /* substitute param with its assignment */
@@ -304,7 +304,7 @@ btor_recursively_compute_assignment (Btor *btor,
       }
       else if (BTOR_IS_FEQ_NODE (real_cur))
       {
-        result = btor_assignment_bv (btor->mm, real_cur, 1);
+        result = btor_assignment_bv (mm, real_cur, 1);
         goto CACHE_AND_PUSH_RESULT;
       }
       else if (BTOR_IS_LAMBDA_NODE (real_cur) && cur_parent
@@ -318,33 +318,61 @@ btor_recursively_compute_assignment (Btor *btor,
         btor_insert_in_ptr_hash_table (reset_st, real_cur)->data.asInt =
             BTOR_COUNT_STACK (reset);
       }
+#if 0
+	  else if (BTOR_IS_FUN_COND_NODE (real_cur)
+		   && cur_parent
+		   && BTOR_IS_APPLY_NODE (cur_parent))
+	    {
+	      assert (btor_is_encoded_exp (real_cur->e[0]));
+	      result = btor_assignment_bv (mm, real_cur->e[0], 0);
+	      if (btor_is_true_bv (result))
+		BTOR_PUSH_STACK (mm, work_stack, real_cur->e[1]);
+	      else
+		BTOR_PUSH_STACK (mm, work_stack, real_cur->e[2]);
+	      BTOR_PUSH_STACK (mm, work_stack, cur_parent);
+	      btor_free_bv (mm, result);
+	      continue;
+	    }
+#endif
 
       BTOR_PUSH_STACK (mm, work_stack, cur);
       BTOR_PUSH_STACK (mm, work_stack, cur_parent);
       real_cur->eval_mark = 1;
       BTOR_PUSH_STACK (mm, cleanup, real_cur);
 
-      for (i = 0; i < real_cur->arity; i++)
+      /* special handling for conditionals:
+       *  1) push condition
+       *  2) evaluate condition
+       *  3) push branch w.r.t. value of evaluated condition */
+      if (BTOR_IS_COND_NODE (real_cur))
       {
-        BTOR_PUSH_STACK (mm, work_stack, real_cur->e[i]);
+        real_cur->eval_mark = 3;
+        BTOR_PUSH_STACK (mm, work_stack, real_cur->e[0]);
         BTOR_PUSH_STACK (mm, work_stack, real_cur);
       }
+      else
+      {
+        for (i = 0; i < real_cur->arity; i++)
+        {
+          BTOR_PUSH_STACK (mm, work_stack, real_cur->e[i]);
+          BTOR_PUSH_STACK (mm, work_stack, real_cur);
+        }
+      }
     }
-    else if (real_cur->eval_mark == 1)
+    else if (real_cur->eval_mark == 1 || real_cur->eval_mark == 3)
     {
       assert (!BTOR_IS_PARAM_NODE (real_cur));
       assert (real_cur->arity <= 3);
-      assert (real_cur->arity <= BTOR_COUNT_STACK (arg_stack));
 
       /* leave arguments on stack, we need them later for apply */
       if (BTOR_IS_ARGS_NODE (real_cur))
       {
+        assert (real_cur->eval_mark == 1);
         real_cur->eval_mark = 0;
         continue;
       }
 
-      num_args            = 0;
-      real_cur->eval_mark = 2;
+      num_args = 0;
 
       if (BTOR_IS_APPLY_NODE (real_cur))
       {
@@ -352,87 +380,115 @@ btor_recursively_compute_assignment (Btor *btor,
         arg_stack.top -= 1;        /* value of apply */
         arg_stack.top -= num_args; /* arguments of apply */
       }
-      else
-        arg_stack.top -= real_cur->arity;
+      /* special handling for conditionals:
+       *  1) push condition
+       *  2) evaluate condition
+       *  3) push branch w.r.t. value of evaluated condition */
+      else if (BTOR_IS_COND_NODE (real_cur))
+      {
+        /* only the condition is on the stack */
+        assert (BTOR_COUNT_STACK (arg_stack) >= 1);
+        arg_stack.top -= 1;
+        e = (BtorBitVector **) arg_stack.top;
 
+        /* evaluate condition and select branch */
+        if (real_cur->eval_mark == 3)
+        {
+          /* select branch w.r.t. condition */
+          next = btor_is_true_bv (e[0]) ? real_cur->e[1] : real_cur->e[2];
+          BTOR_PUSH_STACK (mm, work_stack, real_cur);
+          BTOR_PUSH_STACK (mm, work_stack, cur_parent);
+          real_cur->eval_mark = 1;
+          /* for function conditionals we push the function and the
+           * apply */
+          BTOR_PUSH_STACK (mm, work_stack, next);
+          BTOR_PUSH_STACK (mm, work_stack, cur_parent);
+          btor_free_bv (mm, e[0]);
+          continue;
+        }
+        else
+        {
+          assert (real_cur->eval_mark == 1);
+          result = e[0];
+          goto CACHE_AND_PUSH_RESULT;
+        }
+      }
+      else
+      {
+        assert (BTOR_COUNT_STACK (arg_stack) >= real_cur->arity);
+        arg_stack.top -= real_cur->arity;
+      }
+
+      real_cur->eval_mark = 2;
       e = (BtorBitVector **) arg_stack.top; /* arguments in reverse order */
 
       switch (real_cur->kind)
       {
         case BTOR_SLICE_NODE:
-          result = btor_slice_bv (btor->mm,
+          result = btor_slice_bv (mm,
                                   e[0],
                                   btor_slice_get_upper (real_cur),
                                   btor_slice_get_lower (real_cur));
-          btor_free_bv (btor->mm, e[0]);
+          btor_free_bv (mm, e[0]);
           break;
         case BTOR_AND_NODE:
-          result = btor_and_bv (btor->mm, e[1], e[0]);
-          btor_free_bv (btor->mm, e[0]);
-          btor_free_bv (btor->mm, e[1]);
+          result = btor_and_bv (mm, e[1], e[0]);
+          btor_free_bv (mm, e[0]);
+          btor_free_bv (mm, e[1]);
           break;
         case BTOR_BEQ_NODE:
-          result = btor_eq_bv (btor->mm, e[1], e[0]);
-          btor_free_bv (btor->mm, e[0]);
-          btor_free_bv (btor->mm, e[1]);
+          result = btor_eq_bv (mm, e[1], e[0]);
+          btor_free_bv (mm, e[0]);
+          btor_free_bv (mm, e[1]);
           break;
         case BTOR_ADD_NODE:
-          result = btor_add_bv (btor->mm, e[1], e[0]);
-          btor_free_bv (btor->mm, e[0]);
-          btor_free_bv (btor->mm, e[1]);
+          result = btor_add_bv (mm, e[1], e[0]);
+          btor_free_bv (mm, e[0]);
+          btor_free_bv (mm, e[1]);
           break;
         case BTOR_MUL_NODE:
-          result = btor_mul_bv (btor->mm, e[1], e[0]);
-          btor_free_bv (btor->mm, e[0]);
-          btor_free_bv (btor->mm, e[1]);
+          result = btor_mul_bv (mm, e[1], e[0]);
+          btor_free_bv (mm, e[0]);
+          btor_free_bv (mm, e[1]);
           break;
         case BTOR_ULT_NODE:
-          result = btor_ult_bv (btor->mm, e[1], e[0]);
-          btor_free_bv (btor->mm, e[0]);
-          btor_free_bv (btor->mm, e[1]);
+          result = btor_ult_bv (mm, e[1], e[0]);
+          btor_free_bv (mm, e[0]);
+          btor_free_bv (mm, e[1]);
           break;
         case BTOR_SLL_NODE:
-          result = btor_sll_bv (btor->mm, e[1], e[0]);
-          btor_free_bv (btor->mm, e[0]);
-          btor_free_bv (btor->mm, e[1]);
+          result = btor_sll_bv (mm, e[1], e[0]);
+          btor_free_bv (mm, e[0]);
+          btor_free_bv (mm, e[1]);
           break;
         case BTOR_SRL_NODE:
-          result = btor_srl_bv (btor->mm, e[1], e[0]);
-          btor_free_bv (btor->mm, e[0]);
-          btor_free_bv (btor->mm, e[1]);
+          result = btor_srl_bv (mm, e[1], e[0]);
+          btor_free_bv (mm, e[0]);
+          btor_free_bv (mm, e[1]);
           break;
         case BTOR_UDIV_NODE:
-          result = btor_udiv_bv (btor->mm, e[1], e[0]);
-          btor_free_bv (btor->mm, e[0]);
-          btor_free_bv (btor->mm, e[1]);
+          result = btor_udiv_bv (mm, e[1], e[0]);
+          btor_free_bv (mm, e[0]);
+          btor_free_bv (mm, e[1]);
           break;
         case BTOR_UREM_NODE:
-          result = btor_urem_bv (btor->mm, e[1], e[0]);
-          btor_free_bv (btor->mm, e[0]);
-          btor_free_bv (btor->mm, e[1]);
+          result = btor_urem_bv (mm, e[1], e[0]);
+          btor_free_bv (mm, e[0]);
+          btor_free_bv (mm, e[1]);
           break;
         case BTOR_CONCAT_NODE:
-          result = btor_concat_bv (btor->mm, e[1], e[0]);
-          btor_free_bv (btor->mm, e[0]);
-          btor_free_bv (btor->mm, e[1]);
-          break;
-        case BTOR_BCOND_NODE:
-          if (btor_is_true_bv (e[2]))
-            result = btor_copy_bv (btor->mm, e[1]);
-          else
-            result = btor_copy_bv (btor->mm, e[0]);
-          btor_free_bv (btor->mm, e[0]);
-          btor_free_bv (btor->mm, e[1]);
-          btor_free_bv (btor->mm, e[2]);
+          result = btor_concat_bv (mm, e[1], e[0]);
+          btor_free_bv (mm, e[0]);
+          btor_free_bv (mm, e[1]);
           break;
         case BTOR_APPLY_NODE:
           real_cur->eval_mark = 0; /* not inserted into cache */
           assert (num_args);
-          t = btor_new_bv_tuple (btor->mm, num_args);
+          t = btor_new_bv_tuple (mm, num_args);
           for (i = 0; i < num_args; i++)
           {
-            btor_add_to_bv_tuple (btor->mm, t, e[i], num_args - 1 - i);
-            btor_free_bv (btor->mm, e[i]);
+            btor_add_to_bv_tuple (mm, t, e[i], num_args - 1 - i);
+            btor_free_bv (mm, e[i]);
           }
 
           /* check if there is already a value for given arguments */
@@ -445,9 +501,9 @@ btor_recursively_compute_assignment (Btor *btor,
             add_to_fun_model (btor, fun_model, real_cur->e[0], t, result);
           }
           else
-            btor_free_bv (btor->mm, e[num_args]);
+            btor_free_bv (mm, e[num_args]);
 
-          btor_free_bv_tuple (btor->mm, t);
+          btor_free_bv_tuple (mm, t);
           if (real_cur->parameterized)
             goto PUSH_RESULT;
           else
@@ -455,7 +511,7 @@ btor_recursively_compute_assignment (Btor *btor,
         case BTOR_LAMBDA_NODE:
           real_cur->eval_mark = 0; /* not inserted into cache */
           result              = e[0];
-          btor_free_bv (btor->mm, e[1]);
+          btor_free_bv (mm, e[1]);
           if (BTOR_IS_LAMBDA_NODE (real_cur) && cur_parent
               && BTOR_IS_APPLY_NODE (cur_parent))
           {
@@ -480,7 +536,7 @@ btor_recursively_compute_assignment (Btor *btor,
           goto PUSH_RESULT;
         case BTOR_UF_NODE:
           real_cur->eval_mark = 0; /* not inserted into cache */
-          result              = btor_assignment_bv (btor->mm, cur_parent, 1);
+          result              = btor_assignment_bv (mm, cur_parent, 1);
           goto PUSH_RESULT;
         default:
           /* should be unreachable */
@@ -507,8 +563,8 @@ btor_recursively_compute_assignment (Btor *btor,
     PUSH_RESULT:
       if (BTOR_IS_INVERTED_NODE (cur))
       {
-        inv_result = btor_not_bv (btor->mm, result);
-        btor_free_bv (btor->mm, result);
+        inv_result = btor_not_bv (mm, result);
+        btor_free_bv (mm, result);
         result = inv_result;
       }
       BTOR_PUSH_STACK (mm, arg_stack, result);
@@ -522,7 +578,7 @@ btor_recursively_compute_assignment (Btor *btor,
       else
         b = btor_find_in_ptr_hash_table (bv_model, real_cur);
       assert (b);
-      result = btor_copy_bv (btor->mm, (BtorBitVector *) b->data.asPtr);
+      result = btor_copy_bv (mm, (BtorBitVector *) b->data.asPtr);
       goto PUSH_RESULT;
     }
   }
@@ -547,6 +603,8 @@ btor_recursively_compute_assignment (Btor *btor,
 
   return result;
 }
+
+// TODO (ma): recursively compute fun model
 
 static void
 extract_model_from_rhos (Btor *btor, BtorPtrHashTable *fun_model, BtorNode *fun)

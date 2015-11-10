@@ -368,6 +368,11 @@ bdcnode (BtorDumpContext *bdc, BtorNode *node, FILE *file)
       fprintf (file, " %d", btor_get_fun_exp_width (bdc->btor, node));
       fprintf (file, " %d", btor_get_exp_width (bdc->btor, node->e[0]));
     }
+    else if (BTOR_IS_FUN_COND_NODE (node))
+    {
+      fprintf (file, " %d", btor_get_fun_exp_width (bdc->btor, node->e[1]));
+      fprintf (file, " %d", btor_get_exp_width (bdc->btor, node->e[1]->e[0]));
+    }
     else if (!BTOR_IS_UF_NODE (node))
       fprintf (file, " %d", btor_get_exp_width (bdc->btor, node));
 

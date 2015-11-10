@@ -303,8 +303,12 @@ typedef struct BtorArgsNode BtorArgsNode;
 
 #define BTOR_IS_WRITE_NODE(exp) ((exp) && BTOR_IS_WRITE_NODE_KIND ((exp)->kind))
 
-#define BTOR_IS_BV_COND_NODE(exp) \
+#define BTOR_IS_COND_NODE(exp) \
   ((exp) && BTOR_IS_BV_COND_NODE_KIND ((exp)->kind))
+
+#define BTOR_IS_BV_COND_NODE(exp)   \
+  ((exp) && BTOR_IS_COND_NODE (exp) \
+   && btor_is_bitvec_sort (&exp->btor->sorts_unique_table, exp->sort_id))
 
 #define BTOR_IS_PROXY_NODE(exp) ((exp) && BTOR_IS_PROXY_NODE_KIND ((exp)->kind))
 
@@ -355,8 +359,13 @@ typedef struct BtorArgsNode BtorArgsNode;
 
 #define BTOR_IS_SYNTH_NODE(exp) ((exp)->av != 0)
 
-#define BTOR_IS_FUN_NODE(exp) \
-  (BTOR_IS_LAMBDA_NODE (exp) || BTOR_IS_UF_NODE (exp))
+#define BTOR_IS_FUN_COND_NODE(exp) \
+  (BTOR_IS_COND_NODE (exp)         \
+   && btor_is_fun_sort (&exp->btor->sorts_unique_table, exp->sort_id))
+
+#define BTOR_IS_FUN_NODE(exp)                         \
+  (BTOR_IS_LAMBDA_NODE (exp) || BTOR_IS_UF_NODE (exp) \
+   || BTOR_IS_FUN_COND_NODE (exp))
 
 #define BTOR_IS_UF_ARRAY_NODE(exp) \
   ((exp) && BTOR_IS_UF_NODE (exp) && ((BtorUFNode *) exp)->is_array)

@@ -579,14 +579,15 @@ recursively_dump_exp_smt (BtorSMTDumpContext *sdc,
       if (is_bool && expect_bv) fputs ("(ite ", sdc->file);
 
       if (btor_find_in_ptr_hash_table (sdc->dumped, real_exp)
-          || BTOR_IS_FUN_NODE (real_exp))
+          || BTOR_IS_LAMBDA_NODE (real_exp) || BTOR_IS_UF_NODE (real_exp))
       {
 #ifndef NDEBUG
         BtorPtrHashBucket *b;
         b = btor_find_in_ptr_hash_table (sdc->dump, real_exp);
         assert (b);
         /* functions and variables are declared separately */
-        assert (BTOR_IS_FUN_NODE (real_exp) || BTOR_IS_BV_VAR_NODE (real_exp)
+        assert (BTOR_IS_LAMBDA_NODE (real_exp) || BTOR_IS_UF_NODE (real_exp)
+                || BTOR_IS_BV_VAR_NODE (real_exp)
                 || BTOR_IS_PARAM_NODE (real_exp) || b->data.asInt > 1);
 #endif
         dump_smt_id (sdc, exp);
@@ -824,7 +825,7 @@ dump_fun_smt2 (BtorSMTDumpContext *sdc, BtorNode *fun)
   assert (sdc);
   assert (sdc->version == 2);
   assert (BTOR_IS_REGULAR_NODE (fun));
-  assert (BTOR_IS_FUN_NODE (fun));
+  assert (BTOR_IS_LAMBDA_NODE (fun));
   assert (!fun->parameterized);
   assert (!btor_find_in_ptr_hash_table (sdc->dumped, fun));
 
@@ -1128,6 +1129,7 @@ mark_boolean (BtorSMTDumpContext *sdc, BtorNodePtrStack *exps)
       /* boolean function */
       if ((BTOR_IS_LAMBDA_NODE (cur->e[0])
            && is_boolean (sdc, btor_lambda_get_body (cur->e[0])))
+          || (BTOR_IS_FUN_COND_NODE (cur->e[0]) && is_boolean (sdc, cur->e[1]))
           || (BTOR_IS_UF_NODE (cur->e[0])
               && btor_is_bool_sort (
                      &sdc->btor->sorts_unique_table,
@@ -1248,8 +1250,8 @@ dump_smt (BtorSMTDumpContext *sdc)
         /* constants are always printed */
         || BTOR_IS_BV_CONST_NODE (cur)
         /* for variables and functions the resp. symbols are always printed */
-        || BTOR_IS_BV_VAR_NODE (cur)
-        || BTOR_IS_FUN_NODE (cur)
+        || BTOR_IS_BV_VAR_NODE (cur) || BTOR_IS_LAMBDA_NODE (cur)
+        || BTOR_IS_UF_NODE (cur)
         /* argument nodes are never printed */
         || BTOR_IS_ARGS_NODE (cur))
       continue;

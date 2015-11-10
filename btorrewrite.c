@@ -6158,21 +6158,25 @@ rewrite_cond_exp (Btor *btor, BtorNode *e0, BtorNode *e1, BtorNode *e2)
   assert (BTOR_IS_REGULAR_NODE (e0));
 
   ADD_RW_RULE (equal_branches_cond, e0, e1, e2);
-  ADD_RW_RULE (const_cond, e0, e1, e2);
-  ADD_RW_RULE (cond_if_dom_cond, e0, e1, e2);
-  ADD_RW_RULE (cond_if_merge_if_cond, e0, e1, e2);
-  ADD_RW_RULE (cond_if_merge_else_cond, e0, e1, e2);
-  ADD_RW_RULE (cond_else_dom_cond, e0, e1, e2);
-  ADD_RW_RULE (cond_else_merge_if_cond, e0, e1, e2);
-  ADD_RW_RULE (cond_else_merge_else_cond, e0, e1, e2);
-  ADD_RW_RULE (bool_cond, e0, e1, e2);
-  ADD_RW_RULE (add_if_cond, e0, e1, e2);
-  ADD_RW_RULE (add_else_cond, e0, e1, e2);
-  ADD_RW_RULE (concat_cond, e0, e1, e2);
-  ADD_RW_RULE (op_lhs_cond, e0, e1, e2);
-  ADD_RW_RULE (op_rhs_cond, e0, e1, e2);
-  ADD_RW_RULE (comm_op_1_cond, e0, e1, e2);
-  ADD_RW_RULE (comm_op_2_cond, e0, e1, e2);
+  // TODO (ma): check if more rules can be applied for ite on bv and funs
+  if (!BTOR_IS_FUN_NODE (BTOR_REAL_ADDR_NODE (e1)))
+  {
+    ADD_RW_RULE (const_cond, e0, e1, e2);
+    ADD_RW_RULE (cond_if_dom_cond, e0, e1, e2);
+    ADD_RW_RULE (cond_if_merge_if_cond, e0, e1, e2);
+    ADD_RW_RULE (cond_if_merge_else_cond, e0, e1, e2);
+    ADD_RW_RULE (cond_else_dom_cond, e0, e1, e2);
+    ADD_RW_RULE (cond_else_merge_if_cond, e0, e1, e2);
+    ADD_RW_RULE (cond_else_merge_else_cond, e0, e1, e2);
+    ADD_RW_RULE (bool_cond, e0, e1, e2);
+    ADD_RW_RULE (add_if_cond, e0, e1, e2);
+    ADD_RW_RULE (add_else_cond, e0, e1, e2);
+    ADD_RW_RULE (concat_cond, e0, e1, e2);
+    ADD_RW_RULE (op_lhs_cond, e0, e1, e2);
+    ADD_RW_RULE (op_rhs_cond, e0, e1, e2);
+    ADD_RW_RULE (comm_op_1_cond, e0, e1, e2);
+    ADD_RW_RULE (comm_op_2_cond, e0, e1, e2);
+  }
 
   assert (!result);
   result = btor_cond_exp_node (btor, e0, e1, e2);
