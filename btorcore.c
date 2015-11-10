@@ -1241,18 +1241,6 @@ btor_insert_varsubst_constraint (Btor *btor, BtorNode *left, BtorNode *right)
 
   if (!bucket)
   {
-    if (!BTOR_IS_FUN_NODE (BTOR_REAL_ADDR_NODE (right))
-        && !btor_find_in_ptr_hash_table (btor->var_rhs, left))
-    {
-      btor_insert_in_ptr_hash_table (btor->var_rhs, btor_copy_exp (btor, left));
-    }
-
-    if (BTOR_IS_FUN_NODE (BTOR_REAL_ADDR_NODE (right))
-        && !btor_find_in_ptr_hash_table (btor->fun_rhs, left))
-    {
-      btor_insert_in_ptr_hash_table (btor->fun_rhs, btor_copy_exp (btor, left));
-    }
-
     BTORLOG (
         1, "add varsubst: %s -> %s", node2string (left), node2string (right));
     btor_insert_in_ptr_hash_table (vsc, btor_copy_exp (btor, left))
@@ -2151,6 +2139,19 @@ set_simplified_exp (Btor *btor, BtorNode *exp, BtorNode *simplified)
   exp->simplified = btor_copy_exp (btor, simplified);
 
   if (exp->constraint) update_constraints (btor, exp);
+
+  /* if a variable or UF gets simplified we need to save the original input
+   * exp in a hash table (for model generation) */
+  if (BTOR_IS_BV_VAR_NODE (exp)
+      && !btor_find_in_ptr_hash_table (btor->var_rhs, exp))
+  {
+    btor_insert_in_ptr_hash_table (btor->var_rhs, btor_copy_exp (btor, exp));
+  }
+  else if (BTOR_IS_UF_NODE (exp)
+           && !btor_find_in_ptr_hash_table (btor->fun_rhs, exp))
+  {
+    btor_insert_in_ptr_hash_table (btor->fun_rhs, btor_copy_exp (btor, exp));
+  }
 
   btor_set_to_proxy_exp (btor, exp);
 
