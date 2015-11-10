@@ -11,9 +11,13 @@
 #include "btoraigprop.h"
 #include "aigprop.h"
 #include "btorabort.h"
+#include "btorclone.h"
 #include "btorcore.h"
 #include "btordbg.h"
 #include "btormodel.h"
+#include "btorprop.h"
+#include "btorsls.h"  // for score computation
+#include "utils/btorhash.h"
 #include "utils/btoriter.h"
 
 #define BTOR_AIGPROP_MAXSTEPS_CFACT 100
@@ -36,7 +40,6 @@ clone_aigprop_solver (Btor *clone, Btor *btor, BtorNodeMap *exp_map)
   BTOR_NEW (clone->mm, res);
   memcpy (res, slv, sizeof (BtorAIGPropSolver));
 
-  // TODO clone roots
   return res;
 }
 
@@ -50,28 +53,6 @@ delete_aigprop_solver (Btor *btor)
   if (!(slv = BTOR_AIGPROP_SOLVER (btor))) return;
 
   BTOR_DELETE (btor->mm, slv);
-
-  // TODO delete roots
-}
-
-static inline bool
-all_roots_true (BtorPtrHashTable *roots, BtorPtrHashTable *model)
-{
-  assert (roots);
-  assert (model);
-
-  bool res;
-  BtorHashTableIterator it;
-
-  res = true;
-  btor_init_hash_table_iterator (&it, roots);
-  while (btor_has_next_hash_table_iterator (&it))
-    if (btor_next_data_hash_table_iterator (&it)->asInt == -1)
-    {
-      res = false;
-      break;
-    }
-  return res;
 }
 
 /* Note: limits are currently unused */
@@ -80,10 +61,10 @@ sat_aigprop_solver (Btor *btor, int limit0, int limit1)
 {
   assert (btor);
 
-  int i, sat_result, nmoves, max_steps;
+  int j, sat_result, nmoves, max_steps;
   BtorAIGPropSolver *slv;
   BtorHashTableIterator it;
-  BtorNode *cur;
+  BtorNode *root;
 
   (void) limit0;
   (void) limit1;
@@ -137,19 +118,23 @@ sat_aigprop_solver (Btor *btor, int limit0, int limit1)
                  ->simplified);
 #endif
 
+  slv->aprop = aigprop_new_aigprop (btor_get_aig_mgr_btor (btor));
+
   /* collect roots AIGs */
-  assert (!slv->roots);
-  slv->roots = btor_new_ptr_hash_table (btor->mm,
-                                        (BtorHashPtr) btor_hash_aig_by_id,
-                                        (BtorCmpPtr) btor_compare_aig_by_id);
+  slv->aprop->roots =
+      btor_new_ptr_hash_table (btor->mm,
+                               (BtorHashPtr) btor_hash_aig_by_id,
+                               (BtorCmpPtr) btor_compare_aig_by_id);
   assert (btor->unsynthesized_constraints->count == 0);
   btor_init_node_hash_table_iterator (&it, btor->synthesized_constraints);
   btor_queue_node_hash_table_iterator (&it, btor->assumptions);
   while (btor_has_next_node_hash_table_iterator (&it))
   {
-    cur = btor_next_node_hash_table_iterator (&it);
-    assert (cur->av->len == 1);
-    (void) btor_insert_in_ptr_hash_table (slv->roots, cur->av->aigs[0]);
+    root = btor_next_node_hash_table_iterator (&it);
+    assert (root->av->len == 1);
+    if (!btor_find_in_ptr_hash_table (slv->aprop->roots, root))
+      (void) btor_insert_in_ptr_hash_table (slv->aprop->roots,
+                                            root->av->aigs[0]);
   }
 
   /* Generate intial model, all inputs are initialized with false. We do
@@ -157,35 +142,11 @@ sat_aigprop_solver (Btor *btor, int limit0, int limit1)
    * the model generation (if enabled) after SAT has been determined. */
   slv->api.generate_model (btor, 0, 1);
 
-  if (all_roots_true (slv->roots, btor->bv_model)) goto SAT;
-
-  // TODO OPTION FOR DISABLING RESTARTS
-  /* start propagation engine */
-  for (;;)
-  {
-    for (i = 0, max_steps = BTOR_AIGPROP_MAXSTEPS (slv->stats.restarts + 1);
-         i < max_steps;
-         i++)
-    {
-      if (btor_terminate_btor (btor))
-      {
-        sat_result = BTOR_UNKNOWN;
-        goto DONE;
-      }
-
-      aigprop_move (btor_get_aig_mgr_btor (btor), slv->roots, btor->bv_model);
-      nmoves += 1;
-    }
-
-    /* restart */
-    slv->api.generate_model (btor, 0, 1);
-    slv->stats.restarts += 1;
-  }
+  aigprop_sat (slv->aprop);
 
 SAT:
   assert (sat_result == BTOR_SAT);
 DONE:
-  if (slv->roots) btor_delete_ptr_hash_table (slv->roots);
   slv->stats.moves      = nmoves;
   btor->last_sat_result = sat_result;
   return sat_result;
@@ -206,8 +167,8 @@ generate_model_aigprop_solver (Btor *btor, int model_for_all_nodes, int reset)
     btor_init_fun_model (btor, &btor->fun_model);
   }
 
-  aigprop_generate_model (
-      btor_get_aig_mgr_btor (btor), slv->roots, btor->bv_model);
+  // TODO MAP BACK TO EXP LAYER
+  aigprop_generate_model (BTOR_AIGPROP_SOLVER (btor)->aprop);
 
   /* generate model for unreachable nodes */
   if (model_for_all_nodes)

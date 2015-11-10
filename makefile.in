@@ -24,6 +24,7 @@ all: libboolector.a $(TARGETS)
 -include mbt.mk
 -include python.mk
 -include btor2horn.mk
+-include aigprop.mk
 
 %.o: %.c
 	$(CC) $(CFLAGS) $(INCS) -c $< -o $@

@@ -12,6 +12,7 @@
  */
 
 #include "btorcore.h"
+#include "btoraigprop.h"
 #include "btorbeta.h"
 #include "btorbitvec.h"
 #include "btorclone.h"
@@ -6685,8 +6686,13 @@ btor_sat_btor (Btor *btor, int lod_limit, int sat_limit)
              && (btor->options.beta_reduce_all.val
                  || btor->lambdas->count == 0))
       btor->slv = btor_new_prop_solver (btor);
+    else if ((btor->options.engine.val == BTOR_ENGINE_AIGPROP))
+      btor->slv = btor_new_aigprop_solver (btor);
     else
+    {
+      assert (btor->options.engine.val == BTOR_ENGINE_CORE);
       btor->slv = new_core_solver (btor);
+    }
   }
   assert (btor->slv);
 

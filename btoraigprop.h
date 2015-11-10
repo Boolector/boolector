@@ -11,6 +11,7 @@
 #ifndef BTORAIGPROP_H_INCLUDED
 #define BTORAIGPROP_H_INCLUDED
 
+#include "aigprop.h"
 #include "btorslv.h"
 
 #define BTOR_AIGPROP_SOLVER(btor) ((BtorAIGPropSolver *) (btor)->slv)
@@ -19,7 +20,7 @@ struct BtorAIGPropSolver
 {
   BTOR_SOLVER_STRUCT;
 
-  BtorPtrHashTable *roots;
+  AIGProp *aprop;
 
   /* statistics */
   struct

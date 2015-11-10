@@ -972,6 +972,8 @@ boolector_main (int argc, char **argv)
         boolector_set_opt (g_app->btor, BTOR_OPT_ENGINE, BTOR_ENGINE_SLS);
       else if (!strcasecmp (valstr, "prop"))
         boolector_set_opt (g_app->btor, BTOR_OPT_ENGINE, BTOR_ENGINE_PROP);
+      else if (!strcasecmp (valstr, "aigprop"))
+        boolector_set_opt (g_app->btor, BTOR_OPT_ENGINE, BTOR_ENGINE_AIGPROP);
     }
     else if (!strcmp (opt.start, "btor"))
     {

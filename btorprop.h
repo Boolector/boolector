@@ -43,6 +43,8 @@ void btor_select_move_prop (Btor *btor,
                             BtorNode **input,
                             BtorBitVector **assignment);
 
+bool btor_all_constraints_sat_prop (Btor *btor);
+
 /*------------------------------------------------------------------------*/
 
 #ifndef NDEBUG

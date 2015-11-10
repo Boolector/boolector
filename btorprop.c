@@ -2619,8 +2619,8 @@ select_constraint (Btor *btor, int nmoves)
   return res;
 }
 
-static inline bool
-all_constraints_sat (Btor *btor)
+bool
+btor_all_constraints_sat_prop (Btor *btor)
 {
   assert (btor);
 
@@ -2646,7 +2646,7 @@ static int
 move (Btor *btor, int nmoves)
 {
   assert (btor);
-  assert (!all_constraints_sat (btor));
+  assert (!btor_all_constraints_sat_prop (btor));
 
   BTORLOG (1, "");
   BTORLOG (1, "*** move");
@@ -2815,7 +2815,7 @@ sat_prop_solver (Btor *btor, int limit0, int limit1)
     /* compute initial sls score */
     btor_compute_sls_scores (btor, slv->score);
 
-    if (all_constraints_sat (btor))
+    if (btor_all_constraints_sat_prop (btor))
     {
       sat_result = BTOR_SAT;
       goto SAT;
@@ -2834,7 +2834,7 @@ sat_prop_solver (Btor *btor, int limit0, int limit1)
       if (!(move (btor, nmoves))) goto UNSAT;
       nmoves += 1;
 
-      if (all_constraints_sat (btor))
+      if (btor_all_constraints_sat_prop (btor))
       {
         sat_result = BTOR_SAT;
         goto SAT;

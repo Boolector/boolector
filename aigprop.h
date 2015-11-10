@@ -7,14 +7,26 @@
  *  This file is part of Boolector.
  *  See COPYING for more information on using this software.
  */
+#ifndef AIGPROP_H_INCLUDED
+#define AIGPROP_H_INCLUDED
 
 #include "btoraig.h"
 #include "utils/btorhash.h"
 
-void aigprop_generate_model (BtorAIGMgr* amgr,
-                             BtorPtrHashTable* roots,
-                             BtorPtrHashTable* model);
+struct AIGProp
+{
+  BtorAIGMgr *amgr;
+  BtorPtrHashTable *roots;
+  BtorPtrHashTable *score;
+  BtorPtrHashTable *model;
+};
 
-void aigprop_move (BtorAIGMgr* amgr,
-                   BtorPtrHashTable* roots,
-                   BtorPtrHashTable* model);
+typedef struct AIGProp AIGProp;
+
+AIGProp *aigprop_new_aigprop (BtorAIGMgr *amgr);
+
+void aigprop_generate_model (AIGProp *aprop);
+
+int aigprop_sat (AIGProp *aprop);
+
+#endif

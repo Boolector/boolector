@@ -1,3 +1,4 @@
+LIBOBJ+=aigprop.o
 
 all: btoruntrace btormbt
 

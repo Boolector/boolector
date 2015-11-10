@@ -11,6 +11,7 @@
  */
 
 #include "btoraig.h"
+#include "btoraigprop.h"
 #include "btoraigvec.h"
 #include "btorbeta.h"
 #include "btorbitvec.h"
@@ -1282,6 +1283,9 @@ clone_aux_btor (Btor *btor, BtorNodeMap **exp_map, bool exp_layer_only)
       allocated += sizeof (BtorPropSolver) + MEM_PTR_HASH_TABLE (cslv->roots)
                    + MEM_PTR_HASH_TABLE (cslv->score);
     }
+    else if (clone->slv->kind == BTOR_AIGPROP_SOLVER_KIND)
+      allocated += sizeof (BtorAIGPropSolver);
+
     assert (allocated == clone->mm->allocated);
   }
 #endif
