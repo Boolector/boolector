@@ -318,22 +318,6 @@ btor_recursively_compute_assignment (Btor *btor,
         btor_insert_in_ptr_hash_table (reset_st, real_cur)->data.asInt =
             BTOR_COUNT_STACK (reset);
       }
-#if 0
-	  else if (BTOR_IS_FUN_COND_NODE (real_cur)
-		   && cur_parent
-		   && BTOR_IS_APPLY_NODE (cur_parent))
-	    {
-	      assert (btor_is_encoded_exp (real_cur->e[0]));
-	      result = btor_assignment_bv (mm, real_cur->e[0], 0);
-	      if (btor_is_true_bv (result))
-		BTOR_PUSH_STACK (mm, work_stack, real_cur->e[1]);
-	      else
-		BTOR_PUSH_STACK (mm, work_stack, real_cur->e[2]);
-	      BTOR_PUSH_STACK (mm, work_stack, cur_parent);
-	      btor_free_bv (mm, result);
-	      continue;
-	    }
-#endif
 
       BTOR_PUSH_STACK (mm, work_stack, cur);
       BTOR_PUSH_STACK (mm, work_stack, cur_parent);
@@ -379,6 +363,7 @@ btor_recursively_compute_assignment (Btor *btor,
         num_args = btor_get_args_arity (btor, real_cur->e[1]);
         arg_stack.top -= 1;        /* value of apply */
         arg_stack.top -= num_args; /* arguments of apply */
+        real_cur->eval_mark = 2;
       }
       /* special handling for conditionals:
        *  1) push condition
@@ -389,37 +374,14 @@ btor_recursively_compute_assignment (Btor *btor,
         /* only the condition is on the stack */
         assert (BTOR_COUNT_STACK (arg_stack) >= 1);
         arg_stack.top -= 1;
-        e = (BtorBitVector **) arg_stack.top;
-
-        /* evaluate condition and select branch */
-        if (real_cur->eval_mark == 3)
-        {
-          /* select branch w.r.t. condition */
-          next = btor_is_true_bv (e[0]) ? real_cur->e[1] : real_cur->e[2];
-          BTOR_PUSH_STACK (mm, work_stack, real_cur);
-          BTOR_PUSH_STACK (mm, work_stack, cur_parent);
-          real_cur->eval_mark = 1;
-          /* for function conditionals we push the function and the
-           * apply */
-          BTOR_PUSH_STACK (mm, work_stack, next);
-          BTOR_PUSH_STACK (mm, work_stack, cur_parent);
-          btor_free_bv (mm, e[0]);
-          continue;
-        }
-        else
-        {
-          assert (real_cur->eval_mark == 1);
-          result = e[0];
-          goto CACHE_AND_PUSH_RESULT;
-        }
       }
       else
       {
         assert (BTOR_COUNT_STACK (arg_stack) >= real_cur->arity);
         arg_stack.top -= real_cur->arity;
+        real_cur->eval_mark = 2;
       }
 
-      real_cur->eval_mark = 2;
       e = (BtorBitVector **) arg_stack.top; /* arguments in reverse order */
 
       switch (real_cur->kind)
@@ -482,7 +444,6 @@ btor_recursively_compute_assignment (Btor *btor,
           btor_free_bv (mm, e[1]);
           break;
         case BTOR_APPLY_NODE:
-          real_cur->eval_mark = 0; /* not inserted into cache */
           assert (num_args);
           t = btor_new_bv_tuple (mm, num_args);
           for (i = 0; i < num_args; i++)
@@ -504,13 +465,9 @@ btor_recursively_compute_assignment (Btor *btor,
             btor_free_bv (mm, e[num_args]);
 
           btor_free_bv_tuple (mm, t);
-          if (real_cur->parameterized)
-            goto PUSH_RESULT;
-          else
-            break;
+          break;
         case BTOR_LAMBDA_NODE:
-          real_cur->eval_mark = 0; /* not inserted into cache */
-          result              = e[0];
+          result = e[0];
           btor_free_bv (mm, e[1]);
           if (BTOR_IS_LAMBDA_NODE (real_cur) && cur_parent
               && BTOR_IS_APPLY_NODE (cur_parent))
@@ -533,16 +490,54 @@ btor_recursively_compute_assignment (Btor *btor,
               btor_free_bv (mm, d.asPtr);
             }
           }
-          goto PUSH_RESULT;
+          break;
         case BTOR_UF_NODE:
-          real_cur->eval_mark = 0; /* not inserted into cache */
-          result              = btor_assignment_bv (mm, cur_parent, 1);
-          goto PUSH_RESULT;
+          result = btor_assignment_bv (mm, cur_parent, 1);
+          break;
         default:
-          /* should be unreachable */
-          BTOR_ABORT_MODEL (1, "invalid node type");
+          assert (BTOR_IS_COND_NODE (real_cur));
+
+          /* evaluate condition and select branch */
+          if (real_cur->eval_mark == 3)
+          {
+            /* select branch w.r.t. condition */
+            next = btor_is_true_bv (e[0]) ? real_cur->e[1] : real_cur->e[2];
+            BTOR_PUSH_STACK (mm, work_stack, real_cur);
+            BTOR_PUSH_STACK (mm, work_stack, cur_parent);
+            /* for function conditionals we push the function and the
+             * apply */
+            BTOR_PUSH_STACK (mm, work_stack, next);
+            BTOR_PUSH_STACK (mm, work_stack, cur_parent);
+            btor_free_bv (mm, e[0]);
+            /* no result yet, we need to evaluate the selected function
+             */
+            real_cur->eval_mark = 1;
+            continue;
+          }
+          /* cache result */
+          else
+          {
+            assert (real_cur->eval_mark == 1);
+            result              = e[0];
+            real_cur->eval_mark = 2;
+          }
+      }
+
+      /* function nodes are never cached (assignment always depends on the
+       * given arguments) */
+      if (BTOR_IS_FUN_NODE (real_cur))
+      {
+        assert (result);
+        real_cur->eval_mark = 0; /* not inserted into cache */
+        goto PUSH_RESULT;
+      }
+      else if (BTOR_IS_APPLY_NODE (real_cur))
+      {
+        real_cur->eval_mark = 0; /* not inserted into cache */
+        if (real_cur->parameterized) goto PUSH_RESULT;
       }
     CACHE_AND_PUSH_RESULT:
+      assert (!BTOR_IS_FUN_NODE (real_cur));
       /* remember parameterized nodes for resetting 'eval_mark' later */
       if (real_cur->parameterized)
       {
