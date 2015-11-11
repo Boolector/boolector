@@ -110,7 +110,7 @@ node2string (BtorNode *exp)
 
   bufstart = g_strbuf + g_strbufpos;
   sprintf (bufstart, "%s", strbuf);
-  g_strbufpos += cur_len;
+  g_strbufpos += cur_len + 1;
 
   return bufstart;
 }
