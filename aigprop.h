@@ -19,6 +19,8 @@ struct AIGProp
   BtorPtrHashTable *roots;
   BtorPtrHashTable *score;
   BtorPtrHashTable *model;
+
+  uint32_t loglevel;
 };
 
 typedef struct AIGProp AIGProp;

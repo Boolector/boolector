@@ -119,6 +119,9 @@ sat_aigprop_solver (Btor *btor, int limit0, int limit1)
 #endif
 
   slv->aprop = aigprop_new_aigprop (btor_get_aig_mgr_btor (btor));
+#ifndef NBTORLOG
+  slv->aprop->loglevel = btor->options.loglevel.val;
+#endif
 
   /* collect roots AIGs */
   slv->aprop->roots =
