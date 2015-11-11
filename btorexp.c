@@ -14,6 +14,7 @@
 #include "btorexp.h"
 #include "btoraig.h"
 #include "btoraigvec.h"
+#include "btorbeta.h"
 #include "btorconst.h"
 #include "btorexit.h"
 #include "btorlog.h"
@@ -2423,6 +2424,16 @@ btor_apply_exp_node (Btor *btor, BtorNode *fun, BtorNode *args)
   assert (BTOR_IS_FUN_NODE (e[0]));
   assert (BTOR_IS_ARGS_NODE (e[1]));
 
+  /* eliminate nested functions */
+  if (BTOR_IS_LAMBDA_NODE (e[0]) && e[0]->parameterized)
+  {
+    btor_assign_args (btor, e[0], args);
+    BtorNode *result = btor_beta_reduce_bounded (btor, e[0], 1);
+    btor_unassign_params (btor, e[0]);
+    return result;
+  }
+  assert (!BTOR_IS_FUN_COND_NODE (e[0])
+          || (!e[0]->e[1]->parameterized && !e[0]->e[2]->parameterized));
   return create_exp (btor, BTOR_APPLY_NODE, 2, e);
 }
 
@@ -2438,6 +2449,7 @@ btor_apply_exp (Btor *btor, BtorNode *fun, BtorNode *args)
   fun  = btor_simplify_exp (btor, fun);
   args = btor_simplify_exp (btor, args);
 
+  // TODO (ma): do we even allow that? can this happen?
   /* if fun was simplified to a constant value, we return a copy of it */
   if (!BTOR_IS_FUN_NODE (fun))
   {
@@ -2479,11 +2491,47 @@ btor_cond_exp_node (Btor *btor,
                     BtorNode *e_if,
                     BtorNode *e_else)
 {
-  BtorNode *e[3];
+  unsigned i, width, arity;
+  BtorNode *e[3], *cond, *lambda;
+  BtorNodePtrStack params;
+  BtorSort *sort;
+  BtorSortUniqueTable *sorts;
   e[0] = btor_simplify_exp (btor, e_cond);
   e[1] = btor_simplify_exp (btor, e_if);
   e[2] = btor_simplify_exp (btor, e_else);
   assert (btor_precond_cond_exp_dbg (btor, e[0], e[1], e[2]));
+
+  /* represent parameterized function conditionals (with parameterized
+   * functions) as parameterized function
+   * -> gets beta reduced in btor_apply_exp_node */
+  if (BTOR_IS_FUN_NODE (BTOR_REAL_ADDR_NODE (e[1]))
+      && (e[1]->parameterized || e[2]->parameterized))
+  {
+    sorts = &btor->sorts_unique_table;
+    BTOR_INIT_STACK (params);
+    assert (btor_is_fun_sort (sorts, e[1]->sort_id));
+    arity = btor_get_fun_arity (btor, e[1]);
+    sort  = btor_get_sort_by_id (sorts, e[1]->sort_id);
+    assert (sort->fun.domain->kind == BTOR_TUPLE_SORT);
+    assert (sort->fun.domain->tuple.num_elements == arity);
+    for (i = 0; i < arity; i++)
+    {
+      width = btor_get_width_bitvec_sort (
+          sorts, sort->fun.domain->tuple.elements[i]->id);
+      BTOR_PUSH_STACK (btor->mm, params, btor_param_exp (btor, width, 0));
+    }
+    e[1]   = btor_apply_exps (btor, arity, params.start, e[1]);
+    e[2]   = btor_apply_exps (btor, arity, params.start, e[2]);
+    cond   = create_exp (btor, BTOR_BCOND_NODE, 3, e);
+    lambda = btor_fun_exp (btor, arity, params.start, cond);
+    while (!BTOR_EMPTY_STACK (params))
+      btor_release_exp (btor, BTOR_POP_STACK (params));
+    btor_release_exp (btor, e[1]);
+    btor_release_exp (btor, e[2]);
+    btor_release_exp (btor, cond);
+    BTOR_RELEASE_STACK (btor->mm, params);
+    return lambda;
+  }
   return create_exp (btor, BTOR_BCOND_NODE, 3, e);
 }
 
