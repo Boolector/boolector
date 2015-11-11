@@ -633,9 +633,11 @@ extract_model_from_rhos (Btor *btor, BtorPtrHashTable *fun_model, BtorNode *fun)
   while (btor_has_next_node_hash_table_iterator (&it))
   {
     value = (BtorNode *) it.bucket->data.asPtr;
-    args  = btor_next_node_hash_table_iterator (&it);
+    assert (!BTOR_REAL_ADDR_NODE (value)->parameterized);
+    args = btor_next_node_hash_table_iterator (&it);
     assert (BTOR_IS_REGULAR_NODE (args));
     assert (BTOR_IS_ARGS_NODE (args));
+    assert (!args->parameterized);
 
     t = btor_new_bv_tuple (btor->mm, btor_get_args_arity (btor, args));
 
@@ -733,8 +735,10 @@ btor_generate_model (Btor *btor,
     btor_queue_node_hash_table_iterator (&it, btor->synthesized_constraints);
     btor_queue_node_hash_table_iterator (&it, btor->assumptions);
     while (btor_has_next_node_hash_table_iterator (&it))
-      BTOR_PUSH_STACK (
-          btor->mm, stack, btor_next_node_hash_table_iterator (&it));
+    {
+      cur = btor_next_node_hash_table_iterator (&it);
+      BTOR_PUSH_STACK (btor->mm, stack, cur);
+    }
   }
 
   qsort (stack.start,
@@ -745,6 +749,7 @@ btor_generate_model (Btor *btor,
   for (i = 0; i < BTOR_COUNT_STACK (stack); i++)
   {
     cur = BTOR_PEEK_STACK (stack, i);
+    assert (!cur->parameterized);
     BTORLOG (1, "generate model for %s", node2string (cur));
     if (BTOR_IS_FUN_NODE (cur))
       extract_model_from_rhos (btor, fun_model, cur);
