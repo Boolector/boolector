@@ -1096,12 +1096,17 @@ connect_child_exp (Btor *btor, BtorNode *parent, BtorNode *child, int pos)
   int tag, insert_beginning = 1;
   BtorNode *real_child, *first_parent, *last_parent, *tagged_parent;
 
+  /* set specific flags */
+
   /* set parent parameterized if child is parameterized */
   if (!BTOR_IS_LAMBDA_NODE (parent)
       && BTOR_REAL_ADDR_NODE (child)->parameterized)
     parent->parameterized = 1;
 
   // TODO (ma): why don't we bind params here?
+
+  if (BTOR_IS_FUN_COND_NODE (parent) && BTOR_REAL_ADDR_NODE (child)->is_array)
+    parent->is_array = 1;
 
   if (BTOR_REAL_ADDR_NODE (child)->lambda_below) parent->lambda_below = 1;
 
@@ -1112,6 +1117,8 @@ connect_child_exp (Btor *btor, BtorNode *parent, BtorNode *child, int pos)
 
   BTOR_REAL_ADDR_NODE (child)->parents++;
   inc_exp_ref_counter (btor, child);
+
+  /* update parent lists */
 
   if (BTOR_IS_APPLY_NODE (parent)) insert_beginning = 0;
 
@@ -1385,7 +1392,6 @@ new_node (Btor *btor, BtorNodeKind kind, int arity, BtorNode **e)
   {
     case BTOR_BCOND_NODE:
       sort = btor_copy_sort (sorts, BTOR_REAL_ADDR_NODE (e[1])->sort_id);
-      if (BTOR_REAL_ADDR_NODE (e[1])->is_array) exp->is_array = 1;
       break;
 
     case BTOR_CONCAT_NODE:
@@ -3767,6 +3773,7 @@ btor_write_exp (Btor *btor,
                 BtorNode *e_value)
 {
   assert (btor);
+  assert (btor_is_array_exp (btor, e_array));
   assert (BTOR_IS_FUN_NODE (e_array));
   assert (btor == BTOR_REAL_ADDR_NODE (e_array)->btor);
   assert (btor == BTOR_REAL_ADDR_NODE (e_index)->btor);
