@@ -4540,8 +4540,8 @@ applies_cond_if_dom_cond (Btor *btor, BtorNode *e0, BtorNode *e1, BtorNode *e2)
   (void) e2;
   BtorNode *real_e1;
   real_e1 = BTOR_REAL_ADDR_NODE (e1);
-  return btor->rec_rw_calls < BTOR_REC_RW_BOUND
-         && BTOR_IS_BV_COND_NODE (real_e1) && real_e1->e[0] == e0;
+  return btor->rec_rw_calls < BTOR_REC_RW_BOUND && BTOR_IS_COND_NODE (real_e1)
+         && real_e1->e[0] == e0;
 }
 
 static inline BtorNode *
@@ -4570,8 +4570,7 @@ applies_cond_if_merge_if_cond (Btor *btor,
   (void) e0;
   BtorNode *real_e1;
   real_e1 = BTOR_REAL_ADDR_NODE (e1);
-  return btor->rec_rw_calls < BTOR_REC_RW_BOUND
-         && BTOR_IS_BV_COND_NODE (real_e1)
+  return btor->rec_rw_calls < BTOR_REC_RW_BOUND && BTOR_IS_COND_NODE (real_e1)
          && BTOR_COND_INVERT_NODE (e1, real_e1->e[1]) == e2;
 }
 
@@ -4608,8 +4607,7 @@ applies_cond_if_merge_else_cond (Btor *btor,
   (void) e0;
   BtorNode *real_e1;
   real_e1 = BTOR_REAL_ADDR_NODE (e1);
-  return btor->rec_rw_calls < BTOR_REC_RW_BOUND
-         && BTOR_IS_BV_COND_NODE (real_e1)
+  return btor->rec_rw_calls < BTOR_REC_RW_BOUND && BTOR_IS_COND_NODE (real_e1)
          && BTOR_COND_INVERT_NODE (e1, real_e1->e[2]) == e2;
 }
 
@@ -4646,8 +4644,8 @@ applies_cond_else_dom_cond (Btor *btor,
   (void) e1;
   BtorNode *real_e2;
   real_e2 = BTOR_REAL_ADDR_NODE (e2);
-  return btor->rec_rw_calls < BTOR_REC_RW_BOUND
-         && BTOR_IS_BV_COND_NODE (real_e2) && real_e2->e[0] == e0;
+  return btor->rec_rw_calls < BTOR_REC_RW_BOUND && BTOR_IS_COND_NODE (real_e2)
+         && real_e2->e[0] == e0;
 }
 
 static inline BtorNode *
@@ -4676,8 +4674,7 @@ applies_cond_else_merge_if_cond (Btor *btor,
   (void) e0;
   BtorNode *real_e2;
   real_e2 = BTOR_REAL_ADDR_NODE (e2);
-  return btor->rec_rw_calls < BTOR_REC_RW_BOUND
-         && BTOR_IS_BV_COND_NODE (real_e2)
+  return btor->rec_rw_calls < BTOR_REC_RW_BOUND && BTOR_IS_COND_NODE (real_e2)
          && BTOR_COND_INVERT_NODE (e2, real_e2->e[1]) == e1;
 }
 
@@ -4714,8 +4711,7 @@ applies_cond_else_merge_else_cond (Btor *btor,
   (void) e0;
   BtorNode *real_e2;
   real_e2 = BTOR_REAL_ADDR_NODE (e2);
-  return btor->rec_rw_calls < BTOR_REC_RW_BOUND
-         && BTOR_IS_BV_COND_NODE (real_e2)
+  return btor->rec_rw_calls < BTOR_REC_RW_BOUND && BTOR_IS_COND_NODE (real_e2)
          && BTOR_COND_INVERT_NODE (e2, real_e2->e[2]) == e1;
 }
 
@@ -6158,16 +6154,16 @@ rewrite_cond_exp (Btor *btor, BtorNode *e0, BtorNode *e1, BtorNode *e2)
   assert (BTOR_IS_REGULAR_NODE (e0));
 
   ADD_RW_RULE (equal_branches_cond, e0, e1, e2);
+  ADD_RW_RULE (const_cond, e0, e1, e2);
+  ADD_RW_RULE (cond_if_dom_cond, e0, e1, e2);
+  ADD_RW_RULE (cond_if_merge_if_cond, e0, e1, e2);
+  ADD_RW_RULE (cond_if_merge_else_cond, e0, e1, e2);
+  ADD_RW_RULE (cond_else_dom_cond, e0, e1, e2);
+  ADD_RW_RULE (cond_else_merge_if_cond, e0, e1, e2);
+  ADD_RW_RULE (cond_else_merge_else_cond, e0, e1, e2);
   // TODO (ma): check if more rules can be applied for ite on bv and funs
   if (!BTOR_IS_FUN_NODE (BTOR_REAL_ADDR_NODE (e1)))
   {
-    ADD_RW_RULE (const_cond, e0, e1, e2);
-    ADD_RW_RULE (cond_if_dom_cond, e0, e1, e2);
-    ADD_RW_RULE (cond_if_merge_if_cond, e0, e1, e2);
-    ADD_RW_RULE (cond_if_merge_else_cond, e0, e1, e2);
-    ADD_RW_RULE (cond_else_dom_cond, e0, e1, e2);
-    ADD_RW_RULE (cond_else_merge_if_cond, e0, e1, e2);
-    ADD_RW_RULE (cond_else_merge_else_cond, e0, e1, e2);
     ADD_RW_RULE (bool_cond, e0, e1, e2);
     ADD_RW_RULE (add_if_cond, e0, e1, e2);
     ADD_RW_RULE (add_else_cond, e0, e1, e2);
