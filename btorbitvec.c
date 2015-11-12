@@ -90,28 +90,38 @@ btor_new_random_range_bv (BtorMemMgr *mm,
   assert (mm);
   assert (rng);
   assert (bw > 0);
-  assert (bw = from->width);
+  assert (bw == from->width);
   assert (from->width == to->width);
   assert (btor_compare_bv (from, to) <= 0);
 
-  BtorBitVector *res, *tmp1, *tmp2;
+  BtorBitVector *res, *resext, *fromext, *toext, *tmp1, *tmp2;
 
-  bw   = from->width;
-  res  = btor_new_random_bv (mm, rng, bw);
-  tmp1 = btor_inc_bv (mm, to);          // to + 1
-  tmp2 = btor_sub_bv (mm, tmp1, from);  // to + 1 - from
+  /* we allow to = 1...1 */
+  fromext = btor_uext_bv (mm, from, 1);
+  toext   = btor_uext_bv (mm, to, 1);
+
+  res    = btor_new_random_bv (mm, rng, bw);
+  resext = btor_uext_bv (mm, res, 1);
+  btor_free_bv (mm, res);
+
+  tmp1 = btor_inc_bv (mm, toext);          // to + 1
+  tmp2 = btor_sub_bv (mm, tmp1, fromext);  // to + 1 - from
   btor_free_bv (mm, tmp1);
 
-  tmp1 = res;
-  res  = btor_urem_bv (mm, tmp1, tmp2);  // res %= to + 1 - from
+  tmp1   = resext;
+  resext = btor_urem_bv (mm, tmp1, tmp2);  // res %= to + 1 - from
   btor_free_bv (mm, tmp1);
 
-  tmp1 = res;
-  res  = btor_add_bv (mm, tmp1, from);  // res += from
+  tmp1   = resext;
+  resext = btor_add_bv (mm, tmp1, fromext);  // res += from
 
   btor_free_bv (mm, tmp1);
   btor_free_bv (mm, tmp2);
+  btor_free_bv (mm, fromext);
+  btor_free_bv (mm, toext);
 
+  res = btor_slice_bv (mm, resext, from->width - 1, 0);
+  btor_free_bv (mm, resext);
   return res;
 }
 
