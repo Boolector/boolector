@@ -379,26 +379,36 @@ btor_beta_reduce (Btor *btor,
         assert (BTOR_IS_REGULAR_NODE (args));
         assert (BTOR_IS_ARGS_NODE (args));
 
+        /* args is pushed onto 'stack' but was already on 'arg_stack',
+         * hence, we must not visit 'args' again */
+        args->beta_mark = 3;
+        BTOR_PUSH_STACK (mm, cleanup_stack, args);
+
+        // TODO (ma): optimization we do not need to create a new apply
+        //            if function is a lambda (gets reduced anyways), but
+        //            for cond and uf.
+
         /* NOTE: for down propagation we need to introduce new applies on
          * both functions, which will be released in the end. */
         BTOR_PUSH_STACK (mm, stack, btor_simplify_exp (btor, real_cur->e[0]));
         BTOR_PUSH_STACK (mm, stack, real_cur);
+        /* apply if branch */
         result = btor_apply_exp_node (btor, real_cur->e[1], args);
         BTOR_PUSH_STACK (mm, stack, result);
         BTOR_PUSH_STACK (mm, stack, real_cur);
         BTOR_PUSH_STACK (mm, apply_stack, result);
+        /* apply else branch */
         result = btor_apply_exp_node (btor, real_cur->e[2], args);
         BTOR_PUSH_STACK (mm, stack, result);
         BTOR_PUSH_STACK (mm, stack, real_cur);
         BTOR_PUSH_STACK (mm, apply_stack, result);
-        continue;
       }
-
-      for (i = 0; i < real_cur->arity; i++)
-      {
-        BTOR_PUSH_STACK (mm, stack, btor_simplify_exp (btor, real_cur->e[i]));
-        BTOR_PUSH_STACK (mm, stack, real_cur);
-      }
+      else
+        for (i = 0; i < real_cur->arity; i++)
+        {
+          BTOR_PUSH_STACK (mm, stack, btor_simplify_exp (btor, real_cur->e[i]));
+          BTOR_PUSH_STACK (mm, stack, real_cur);
+        }
     }
     else if (real_cur->beta_mark == 1)
     {
@@ -558,17 +568,12 @@ btor_beta_reduce (Btor *btor,
           btor_release_exp (btor, e[0]);
           btor_release_exp (btor, e[1]);
           break;
-        case BTOR_BCOND_NODE:
+        default:
+          assert (BTOR_IS_COND_NODE (real_cur));
           result = btor_cond_exp (btor, e[2], e[1], e[0]);
           btor_release_exp (btor, e[0]);
           btor_release_exp (btor, e[1]);
           btor_release_exp (btor, e[2]);
-          break;
-        default:
-          printf ("%s\n", node2string (real_cur));
-          result = 0;
-          /* not reachable */
-          assert (0);
       }
 
       /* cache rebuilt parameterized node with current arguments */
@@ -602,10 +607,8 @@ btor_beta_reduce (Btor *btor,
 
       BTOR_PUSH_STACK (mm, arg_stack, result);
     }
-    else
+    else if (real_cur->beta_mark == 2)
     {
-      assert (real_cur->beta_mark == 2);
-
       /* check cache if parameterized expressions was already instantiated
        * with current assignment */
       if (BTOR_IS_LAMBDA_NODE (real_cur) || real_cur->parameterized)
@@ -647,6 +650,13 @@ btor_beta_reduce (Btor *btor,
       else
         result = btor_copy_exp (btor, real_cur);
       assert (!BTOR_IS_LAMBDA_NODE (BTOR_REAL_ADDR_NODE (result)));
+      goto BETA_REDUCE_PUSH_RESULT;
+    }
+    else
+    {
+      assert (real_cur->beta_mark == 3);
+      result = btor_copy_exp (btor, real_cur);
+      assert (BTOR_IS_ARGS_NODE (BTOR_REAL_ADDR_NODE (result)));
       goto BETA_REDUCE_PUSH_RESULT;
     }
   }
@@ -938,7 +948,8 @@ btor_beta_reduce_partial_aux (Btor *btor,
           result = e[0];
           btor_release_exp (btor, e[1]);
           break;
-        case BTOR_BCOND_NODE:
+        default:
+          assert (BTOR_IS_COND_NODE (real_cur));
           /* only condition rebuilt, evaluate and choose branch */
           if (real_cur->beta_mark == 3)
           {
@@ -1028,12 +1039,6 @@ btor_beta_reduce_partial_aux (Btor *btor,
             btor_release_exp (btor, e[1]);
             btor_release_exp (btor, e[2]);
           }
-          break;
-        default:
-          printf ("%s\n", node2string (real_cur));
-          result = 0;
-          /* not reachable */
-          assert (0);
       }
 
       next = BTOR_REAL_ADDR_NODE (result);
