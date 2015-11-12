@@ -107,6 +107,7 @@ btor_precond_eq_exp_dbg (Btor *btor, BtorNode *e0, BtorNode *e1)
   assert (!real_e0->simplified);
   assert (!real_e1->simplified);
   assert (real_e0->sort_id == real_e1->sort_id);
+  assert (real_e0->is_array == real_e1->is_array);
   assert (!BTOR_IS_FUN_NODE (real_e0)
           || (BTOR_IS_REGULAR_NODE (e0) && BTOR_IS_REGULAR_NODE (e1)));
   return 1;
@@ -181,6 +182,7 @@ btor_precond_read_exp_dbg (Btor *btor, BtorNode *e_array, BtorNode *e_index)
       == BTOR_REAL_ADDR_NODE (e_index)->sort_id);
   assert (BTOR_REAL_ADDR_NODE (e_array)->btor == btor);
   assert (BTOR_REAL_ADDR_NODE (e_index)->btor == btor);
+  assert (e_array->is_array);
   return 1;
 }
 
@@ -210,6 +212,7 @@ btor_precond_write_exp_dbg (Btor *btor,
   assert (BTOR_REAL_ADDR_NODE (e_array)->btor == btor);
   assert (BTOR_REAL_ADDR_NODE (e_index)->btor == btor);
   assert (BTOR_REAL_ADDR_NODE (e_value)->btor == btor);
+  assert (e_array->is_array);
   return 1;
 }
 
@@ -237,6 +240,7 @@ btor_precond_cond_exp_dbg (Btor *btor,
   assert (BTOR_REAL_ADDR_NODE (e_cond)->btor == btor);
   assert (real_e_if->btor == btor);
   assert (real_e_else->btor == btor);
+  assert (real_e_if->is_array == real_e_else->is_array);
   return 1;
 }
 
