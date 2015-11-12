@@ -4113,8 +4113,7 @@ btor_is_fun_exp (Btor *btor, BtorNode *exp)
   assert (exp);
   assert (btor == BTOR_REAL_ADDR_NODE (exp)->btor);
   exp = btor_simplify_exp (btor, exp);
-  return BTOR_IS_LAMBDA_NODE (BTOR_REAL_ADDR_NODE (exp))
-         || BTOR_IS_UF_NODE (BTOR_REAL_ADDR_NODE (exp));
+  return BTOR_IS_FUN_NODE (BTOR_REAL_ADDR_NODE (exp));
 }
 
 uint32_t
