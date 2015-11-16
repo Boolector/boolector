@@ -381,11 +381,6 @@ cdef extern from "boolector.h":
 
     void boolector_dump_btor (Btor * btor, FILE * file)
 
-    void boolector_dump_smt1_node (Btor * btor, FILE * file,
-                                   BoolectorNode * node)
-
-    void boolector_dump_smt1 (Btor * btor, FILE * file)
-
     void boolector_dump_smt2_node (Btor * btor, FILE * file,
                                    BoolectorNode * node)
 

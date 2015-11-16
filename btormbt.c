@@ -362,7 +362,7 @@
                                       BTORMBT_M2STR (P_MODEL_FORMAT) "]\n" \
   "\n other options:\n" \
   "  --output-format <string>         force dump/model output format\n" \
-  "                                   available formats are: btor,smt1,smt2\n"
+  "                                   available formats are: btor,smt2\n"
 
 /*------------------------------------------------------------------------*/
 
@@ -3258,30 +3258,22 @@ btormbt_state_dump (BtorMBT *mbt, unsigned r)
   assert (!mbt->inc);
   assert (!mbt->mgen);
 
-  int rand;
   RNG rng;
   rng = initrng (r);
 
   // TODO (ma): UF support in BTOR format not yet implemented
-  // TODO (ma): SMT1 dumping not possible for extensional benchmarks (lambdas
-  //		cannot be eliminated)
   if (mbt->output_format)
   {
     if (!strcmp (mbt->output_format, "btor")
         && !BTOR_COUNT_STACK (mbt->uf->exps))
       boolector_dump_btor (mbt->btor, stdout);
-    else if (!mbt->ext && !strcmp (mbt->output_format, "smt1"))
-      boolector_dump_smt1 (mbt->btor, stdout);
     else if (!strcmp (mbt->output_format, "smt2"))
       boolector_dump_smt2 (mbt->btor, stdout);
   }
   else
   {
-    rand = pick (&rng, 0, 2);
-    if (rand == 0 && !BTOR_COUNT_STACK (mbt->uf->exps))
+    if (pick (&rng, 0, 1) && !BTOR_COUNT_STACK (mbt->uf->exps))
       boolector_dump_btor (mbt->btor, stdout);
-    else if (!mbt->ext && rand == 1)
-      boolector_dump_smt1 (mbt->btor, stdout);
     else
       boolector_dump_smt2 (mbt->btor, stdout);
   }
@@ -4426,8 +4418,7 @@ main (int argc, char **argv)
     {
       if (++i == argc)
         btormbt_error ("argument to '--output-format' missing (try '-h')");
-      if (strcmp (argv[i], "btor") && strcmp (argv[i], "smt1")
-          && strcmp (argv[i], "smt2"))
+      if (strcmp (argv[i], "btor") && strcmp (argv[i], "smt2"))
         btormbt_error ("argument to '--output-format' is invalid (try '-h')");
       g_btormbt->output_format = argv[i];
     }

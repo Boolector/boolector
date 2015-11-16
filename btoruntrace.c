@@ -1457,17 +1457,6 @@ NEXT:
       PARSE_ARGS0 (tok);
       boolector_dump_btor (btor, stdout);
     }
-    else if (!strcmp (tok, "dump_smt1_node"))
-    {
-      PARSE_ARGS1 (tok, str);
-      boolector_dump_smt1_node (
-          btor, stdout, hmap_get (hmap, btor_str, arg1_str));
-    }
-    else if (!strcmp (tok, "dump_smt1"))
-    {
-      PARSE_ARGS0 (tok);
-      boolector_dump_smt1 (btor, stdout);
-    }
     else if (!strcmp (tok, "dump_smt2_node"))
     {
       PARSE_ARGS1 (tok, str);
