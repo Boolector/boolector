@@ -12,6 +12,7 @@
 #include "btorconst.h"
 #include "btorcore.h"
 #include "utils/btoriter.h"
+#include "utils/btormisc.h"
 #include "utils/btorutil.h"
 
 #define BTOR_CONST_GET_BITS(c)                           \
@@ -705,6 +706,7 @@ collect_indices_writes (Btor *btor,
       }
       btor_delete_ptr_hash_table (index_cache);
 
+      // TODO (ma): can only be ite now
       if (is_array_ite_exp (cur, &array_if, &array_else))
       {
         BTOR_PUSH_STACK (mm, lambdas, array_if);
@@ -1050,7 +1052,11 @@ extract_lambdas (Btor *btor,
     else
     {
       assert (BTOR_IS_UF_ARRAY_NODE (array));
-      subst     = btor_uf_exp (btor, array->sort_id, 0);
+      subst = btor_array_exp (btor,
+                              btor_get_fun_exp_width (btor, array),
+                              btor_get_index_exp_width (btor, array),
+                              0);
+
       is_top_eq = true;
     }
 
