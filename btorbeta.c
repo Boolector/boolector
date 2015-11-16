@@ -220,7 +220,7 @@ btor_beta_reduce (Btor *btor,
   BtorMemMgr *mm;
   BtorNode *cur, *real_cur, *cur_parent, *next, *result, **e, *args;
   BtorNode *cached;
-  BtorNodePtrStack stack, arg_stack, cleanup_stack, apply_stack;
+  BtorNodePtrStack stack, arg_stack, cleanup_stack;
   BtorPtrHashTable *cache;
   BtorPtrHashTable *param_cache;
   BtorParamCacheTuple *t;
@@ -239,7 +239,6 @@ btor_beta_reduce (Btor *btor,
   BTOR_INIT_STACK (stack);
   BTOR_INIT_STACK (arg_stack);
   BTOR_INIT_STACK (cleanup_stack);
-  BTOR_INIT_STACK (apply_stack);
   param_cache =
       btor_new_ptr_hash_table (mm,
                                (BtorHashPtr) btor_hash_param_cache_tuple,
@@ -367,48 +366,11 @@ btor_beta_reduce (Btor *btor,
       BTOR_PUSH_STACK (mm, stack, cur);
       BTOR_PUSH_STACK (mm, stack, cur_parent);
       BTOR_PUSH_STACK (mm, cleanup_stack, real_cur);
-
-      /* propagate apply down to both branches */
-      if (BTOR_IS_FUN_COND_NODE (real_cur)
-          && BTOR_IS_APPLY_NODE (cur_parent)
-          /* check if we have arguments on the stack */
-          && !BTOR_EMPTY_STACK (arg_stack))
+      for (i = 0; i < real_cur->arity; i++)
       {
-        assert (!BTOR_EMPTY_STACK (arg_stack));
-        args = BTOR_TOP_STACK (arg_stack);
-        assert (BTOR_IS_REGULAR_NODE (args));
-        assert (BTOR_IS_ARGS_NODE (args));
-
-        /* args is pushed onto 'stack' but was already on 'arg_stack',
-         * hence, we must not visit 'args' again */
-        args->beta_mark = 3;
-        BTOR_PUSH_STACK (mm, cleanup_stack, args);
-
-        // TODO (ma): optimization we do not need to create a new apply
-        //            if function is a lambda (gets reduced anyways), but
-        //            for cond and uf.
-
-        /* NOTE: for down propagation we need to introduce new applies on
-         * both functions, which will be released in the end. */
-        BTOR_PUSH_STACK (mm, stack, btor_simplify_exp (btor, real_cur->e[0]));
+        BTOR_PUSH_STACK (mm, stack, btor_simplify_exp (btor, real_cur->e[i]));
         BTOR_PUSH_STACK (mm, stack, real_cur);
-        /* apply if branch */
-        result = btor_apply_exp_node (btor, real_cur->e[1], args);
-        BTOR_PUSH_STACK (mm, stack, result);
-        BTOR_PUSH_STACK (mm, stack, real_cur);
-        BTOR_PUSH_STACK (mm, apply_stack, result);
-        /* apply else branch */
-        result = btor_apply_exp_node (btor, real_cur->e[2], args);
-        BTOR_PUSH_STACK (mm, stack, result);
-        BTOR_PUSH_STACK (mm, stack, real_cur);
-        BTOR_PUSH_STACK (mm, apply_stack, result);
       }
-      else
-        for (i = 0; i < real_cur->arity; i++)
-        {
-          BTOR_PUSH_STACK (mm, stack, btor_simplify_exp (btor, real_cur->e[i]));
-          BTOR_PUSH_STACK (mm, stack, real_cur);
-        }
     }
     else if (real_cur->beta_mark == 1)
     {
@@ -607,22 +569,24 @@ btor_beta_reduce (Btor *btor,
 
       BTOR_PUSH_STACK (mm, arg_stack, result);
     }
-    else if (real_cur->beta_mark == 2)
+    else
     {
+      assert (real_cur->beta_mark == 2);
       /* check cache if parameterized expressions was already instantiated
        * with current assignment */
       if (BTOR_IS_LAMBDA_NODE (real_cur) || real_cur->parameterized)
       {
         if (BTOR_IS_LAMBDA_NODE (real_cur))
         {
+          assert (cur_parent);
           args = 0;
-          /* assign parameters of lambdas in order to create
-           * a param cache tuple. if the parent is either a lambda
-           * ('real_cur' is a curried lambda) or a function
-           * equality we do not assign the parameters. */
-          if (!cur_parent
-              || (!BTOR_IS_LAMBDA_NODE (cur_parent)
-                  && !BTOR_IS_FEQ_NODE (cur_parent)))
+          /* instantiate lambda in order to create a param cache tuple.
+           * we only do this if there are arguments to instantiate on
+           * the 'arg_stack', which is only the case if the current
+           * parent is an apply node. */
+          // TODO (ma): check why !cur_parent here?
+          // why not checking cur_parent && ...
+          if (!cur_parent || BTOR_IS_APPLY_NODE (cur_parent))
           {
             assert (!btor_param_cur_assignment (real_cur->e[0]));
             args = BTOR_TOP_STACK (arg_stack);
@@ -652,13 +616,6 @@ btor_beta_reduce (Btor *btor,
       assert (!BTOR_IS_LAMBDA_NODE (BTOR_REAL_ADDR_NODE (result)));
       goto BETA_REDUCE_PUSH_RESULT;
     }
-    else
-    {
-      assert (real_cur->beta_mark == 3);
-      result = btor_copy_exp (btor, real_cur);
-      assert (BTOR_IS_ARGS_NODE (BTOR_REAL_ADDR_NODE (result)));
-      goto BETA_REDUCE_PUSH_RESULT;
-    }
   }
   assert (BTOR_EMPTY_STACK (unassign_stack));
   assert (cur_lambda_depth == 0);
@@ -683,15 +640,11 @@ btor_beta_reduce (Btor *btor,
     assert (BTOR_IS_REGULAR_NODE (cur));
     cur->beta_mark = 0;
   }
-  while (!BTOR_EMPTY_STACK (apply_stack))
-    btor_release_exp (btor, BTOR_POP_STACK (apply_stack));
-
   assert (check_unique_table_beta_mark_unset_dbg (btor));
 
   BTOR_RELEASE_STACK (mm, stack);
   BTOR_RELEASE_STACK (mm, arg_stack);
   BTOR_RELEASE_STACK (mm, cleanup_stack);
-  BTOR_RELEASE_STACK (mm, apply_stack);
 #ifndef NDEBUG
   BTOR_RELEASE_STACK (mm, unassign_stack);
 #endif
