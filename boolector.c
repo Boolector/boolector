@@ -2717,16 +2717,15 @@ boolector_apply (Btor *btor,
   BTOR_DELETEN (btor->mm, strtrapi, len);
 
   simp = btor_simplify_exp (btor, e_fun);
+  BTOR_ABORT_BOOLECTOR (!btor_is_fun_exp (btor, simp),
+                        "node 'e_fun' is not a function");
   BTOR_ABORT_BOOLECTOR (
       (uint32_t) argc != btor_get_fun_arity (btor, simp),
-      "number of arguments must be equal to the number of parameters in 'fun'");
+      "number of arguments must be equal to the number of parameters in "
+      "'e_fun'");
   BTOR_ABORT_BOOLECTOR (argc < 1, "'argc' must not be < 1");
   BTOR_ABORT_BOOLECTOR (argc >= 1 && !args,
                         "no arguments given but argc defined > 0");
-  BTOR_ABORT_BOOLECTOR (
-      !btor_is_fun_exp (btor, simp)
-          || (uint32_t) argc != btor_get_fun_arity (btor, simp),
-      "number of arguments does not match arity of 'fun'");
   i = btor_fun_sort_check (btor, argc, args, simp);
   BTOR_ABORT_BOOLECTOR (i >= 0, "invalid argument given at position %d", i);
   res = btor_apply_exps (btor, argc, args, simp);
