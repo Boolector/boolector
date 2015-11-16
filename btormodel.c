@@ -502,7 +502,7 @@ btor_recursively_compute_assignment (Btor *btor,
           {
             /* select branch w.r.t. condition */
             next = btor_is_true_bv (e[0]) ? real_cur->e[1] : real_cur->e[2];
-            BTOR_PUSH_STACK (mm, work_stack, real_cur);
+            BTOR_PUSH_STACK (mm, work_stack, cur);
             BTOR_PUSH_STACK (mm, work_stack, cur_parent);
             /* for function conditionals we push the function and the
              * apply */
