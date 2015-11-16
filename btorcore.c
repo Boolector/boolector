@@ -4623,245 +4623,101 @@ hash_assignment (BtorNode *exp)
 }
 
 static int
-lazy_synthesize_and_encode_var_exp (Btor *btor, BtorNode *var, int force_update)
+lazy_synthesize_exp (Btor *btor, BtorNode *exp, bool force_update)
 {
   assert (btor);
   assert (btor->slv);
   assert (btor->slv->kind == BTOR_CORE_SOLVER_KIND);
-  assert (var);
-  assert (BTOR_IS_REGULAR_NODE (var));
-  assert (BTOR_IS_BV_VAR_NODE (var));
-
-  double start;
-  int changed_assignments, update;
-  BtorAIGVecMgr *avmgr = 0;
-  BtorCoreSolver *slv;
-
-  if (!btor->options.lazy_synthesize.val) return 0;
-
-  if (btor_is_encoded_exp (var)) return 0;
-
-  start               = btor_time_stamp ();
-  slv                 = BTOR_CORE_SOLVER (btor);
-  changed_assignments = 0;
-  update              = 0;
-  avmgr               = btor->avmgr;
-  BTORLOG (1, "%s: %s", __FUNCTION__, node2string (var));
-
-  /* synthesize and encode var */
-  if (!BTOR_IS_SYNTH_NODE (var)) synthesize_exp (btor, var, 0);
-
-  if (!btor_is_encoded_exp (var))
-  {
-    update = 1;
-    btor_aigvec_to_sat_tseitin (avmgr, var->av);
-    BTORLOG (1, "  encode: %s", node2string (var));
-  }
-
-  /* update assignments if necessary */
-  if (update && force_update)
-    changed_assignments = update_sat_assignments (btor);
-
-  // TODO: assignment should never change when encoding vars
-  //	   (since unconstrained)
-  if (changed_assignments) slv->stats.synthesis_inconsistency_var++;
-  slv->time.enc_var += btor_time_stamp () - start;
-
-  return changed_assignments;
-}
-
-/* synthesize and encode apply node and all of its arguments into SAT.
- * returns 0 if encoding changed current assignments.
- */
-static int
-lazy_synthesize_and_encode_apply_exp (Btor *btor,
-                                      BtorNode *app,
-                                      int force_update)
-{
-  assert (btor);
-  assert (btor->slv);
-  assert (btor->slv->kind == BTOR_CORE_SOLVER_KIND);
-  assert (app);
-  assert (BTOR_IS_REGULAR_NODE (app));
-  assert (BTOR_IS_APPLY_NODE (app));
-  assert (BTOR_IS_REGULAR_NODE (app->e[1]));
-  assert (BTOR_IS_ARGS_NODE (app->e[1]));
-
-  double start;
-  int changed_assignments, update;
-  BtorNode *arg;
-  BtorAIGVecMgr *avmgr = 0;
-  BtorArgsIterator it;
-  BtorCoreSolver *slv;
-
-  if (app->lazy_synth) return 0;
-
-  start               = btor_time_stamp ();
-  slv                 = BTOR_CORE_SOLVER (btor);
-  changed_assignments = 0;
-  update              = 0;
-  avmgr               = btor->avmgr;
-  BTORLOG (1, "%s: %s", __FUNCTION__, node2string (app));
-
-  btor_init_args_iterator (&it, app->e[1]);
-
-  /* synthesize and encode apply node an all of its arguments */
-  while (btor_has_next_args_iterator (&it))
-  {
-    arg = btor_next_args_iterator (&it);
-    assert (!BTOR_IS_FUN_NODE (BTOR_REAL_ADDR_NODE (arg)));
-    if (btor->options.lazy_synthesize.val
-        && !BTOR_IS_SYNTH_NODE (BTOR_REAL_ADDR_NODE (arg)))
-      synthesize_exp (btor, arg, 0);
-
-    if (!btor_is_encoded_exp (arg))
-    {
-      update = 1;
-      if (!btor->options.lazy_synthesize.val)
-        synthesize_exp (btor, arg, 0);
-      else
-        btor_aigvec_to_sat_tseitin (avmgr, BTOR_REAL_ADDR_NODE (arg)->av);
-      BTORLOG (1, "  encode: %s", node2string (arg));
-    }
-  }
-
-  /* synthesize and encode apply expressions */
-  if (btor->options.lazy_synthesize.val && !BTOR_IS_SYNTH_NODE (app))
-    synthesize_exp (btor, app, 0);
-
-  if (!btor_is_encoded_exp (app))
-  {
-    update = 1;
-    if (!btor->options.lazy_synthesize.val)
-      synthesize_exp (btor, app, 0);
-    else
-      btor_aigvec_to_sat_tseitin (avmgr, app->av);
-    BTORLOG (1, "  encode: %s", node2string (app));
-  }
-
-  /* update assignments if necessary */
-  if (update && force_update)
-    changed_assignments = update_sat_assignments (btor);
-
-  if (changed_assignments) slv->stats.synthesis_inconsistency_apply++;
-  slv->time.enc_app += btor_time_stamp () - start;
-
-  app->lazy_synth = 1;
-
-  return changed_assignments;
-}
-
-static int
-lazy_synthesize_and_encode_lambda_exp (Btor *btor,
-                                       BtorNode *fun,
-                                       int force_update)
-{
-  assert (btor);
-  assert (btor->slv);
-  assert (btor->slv->kind == BTOR_CORE_SOLVER_KIND);
-  assert (fun);
-  assert (BTOR_IS_REGULAR_NODE (fun));
-  assert (BTOR_IS_LAMBDA_NODE (fun) || BTOR_IS_FUN_COND_NODE (fun));
   assert (check_id_table_mark_unset_dbg (btor));
 
   double start;
-  int changed_assignments, update, i;
-  BtorNodePtrStack work_stack, unmark_stack;
+  bool update = false;
+  int i, changed_assignments = 0;
   BtorNode *cur;
+  BtorIntHashTable *cache;
+  BtorPtrHashTable *static_rho;
+  BtorNodePtrStack stack;
+  BtorHashTableIterator it;
   BtorMemMgr *mm;
   BtorAIGVecMgr *avmgr;
-  BtorHashTableIterator it;
   BtorCoreSolver *slv;
 
-  /* lazy_synth may be reset in update_node_hash_tables due to simplifications
-   * of nodes in 'static_rho'. hence, we need to encode them again */
-  if (fun->lazy_synth && !btor->options.lazy_synthesize.val)
+  exp = BTOR_REAL_ADDR_NODE (exp);
+  if (exp->lazy_synth && !btor->options.lazy_synthesize.val) return 0;
+
+  start = btor_time_stamp ();
+  mm    = btor->mm;
+  slv   = BTOR_CORE_SOLVER (btor);
+  avmgr = btor->avmgr;
+  cache = btor_new_int_hash_table (mm);
+  BTOR_INIT_STACK (stack);
+  if (BTOR_IS_LAMBDA_NODE (exp))
   {
-    /* already synthesized and encoded */
-    return 0;
-  }
-
-  start               = btor_time_stamp ();
-  mm                  = btor->mm;
-  slv                 = BTOR_CORE_SOLVER (btor);
-  avmgr               = btor->avmgr;
-  changed_assignments = 0;
-  update              = 0;
-
-  BTOR_INIT_STACK (work_stack);
-  BTOR_INIT_STACK (unmark_stack);
-
-  BTORLOG (1, "%s: %s", __FUNCTION__, node2string (fun));
-
-  /* we only need to encode the condition as e[1] and e[2] are functions */
-  if (BTOR_IS_FUN_COND_NODE (fun))
-    cur = fun->e[0];
-  else
-  {
-    assert (BTOR_IS_LAMBDA_NODE (fun));
-    cur = BTOR_REAL_ADDR_NODE (btor_lambda_get_body (fun));
-  }
-  BTOR_PUSH_STACK (mm, work_stack, cur);
-
-  if (BTOR_IS_LAMBDA_NODE (fun) && btor_lambda_get_static_rho (fun))
-  {
-    btor_init_node_hash_table_iterator (&it, btor_lambda_get_static_rho (fun));
-    while (btor_has_next_node_hash_table_iterator (&it))
+    BTOR_PUSH_STACK (mm, stack, btor_lambda_get_body (exp));
+    /* encode nodes in 'static_rho' also */
+    if ((static_rho = btor_lambda_get_static_rho (exp)))
     {
-      cur = it.bucket->data.asPtr;
-      assert (!BTOR_IS_PROXY_NODE (BTOR_REAL_ADDR_NODE (cur)));
-      BTOR_PUSH_STACK (mm, work_stack, cur);
-      cur = btor_next_node_hash_table_iterator (&it);
-      assert (!BTOR_IS_PROXY_NODE (BTOR_REAL_ADDR_NODE (cur)));
-      BTOR_PUSH_STACK (mm, work_stack, cur);
+      btor_init_node_hash_table_iterator (&it, static_rho);
+      while (btor_has_next_node_hash_table_iterator (&it))
+      {
+        cur = it.bucket->data.asPtr;
+        assert (!BTOR_IS_PROXY_NODE (BTOR_REAL_ADDR_NODE (cur)));
+        BTOR_PUSH_STACK (mm, stack, cur);
+        cur = btor_next_node_hash_table_iterator (&it);
+        assert (!BTOR_IS_PROXY_NODE (BTOR_REAL_ADDR_NODE (cur)));
+        BTOR_PUSH_STACK (mm, stack, cur);
+      }
     }
   }
-
-  while (!BTOR_EMPTY_STACK (work_stack))
+  /* for function conditionals we only need to encode the condition itsel, as
+   * both branches are functions. */
+  else if (BTOR_IS_FUN_COND_NODE (exp))
+    BTOR_PUSH_STACK (mm, stack, exp->e[0]);
+  /* the apply may be already encoded (synthesize_exp), but the arguments
+   * may not be encoded if the lazy_synth flag ist not set */
+  else if (BTOR_IS_APPLY_NODE (exp))
   {
-    cur = BTOR_REAL_ADDR_NODE (BTOR_POP_STACK (work_stack));
-    assert (cur);
+    BTOR_PUSH_STACK (mm, stack, exp);
+    BTOR_PUSH_STACK (mm, stack, exp->e[1]);
+  }
+  else
+    BTOR_PUSH_STACK (mm, stack, exp);
 
-    if (btor_is_encoded_exp (cur) || cur->mark) continue;
+  while (!BTOR_EMPTY_STACK (stack))
+  {
+    cur = BTOR_REAL_ADDR_NODE (BTOR_POP_STACK (stack));
 
-    /* do not encode expressions that are not in the scope of 'fun' */
-    if (BTOR_IS_FUN_NODE (cur) && !cur->parameterized) continue;
+    if (btor_contains_int_hash_table (cache, cur->id)
+        || btor_is_encoded_exp (cur)
+        /* only encode expressions until we reach the next function */
+        || (BTOR_IS_FUN_NODE (cur) && !cur->parameterized))
+      continue;
 
-    cur->mark = 1;
-    BTOR_PUSH_STACK (mm, unmark_stack, cur);
-
-    if (!BTOR_IS_ARGS_NODE (cur) && !BTOR_IS_LAMBDA_NODE (cur)
-        && !cur->parameterized)
+    if (!BTOR_IS_ARGS_NODE (cur) && !cur->parameterized)
     {
+      assert (!BTOR_IS_FUN_NODE (cur));
       if (!BTOR_IS_SYNTH_NODE (cur)) synthesize_exp (btor, cur, 0);
       assert (BTOR_IS_SYNTH_NODE (cur));
       BTORLOG (1, "  encode: %s", node2string (cur));
-      update = 1;
       btor_aigvec_to_sat_tseitin (avmgr, cur->av);
+      update = true;
     }
 
-    for (i = 0; i < cur->arity; i++)
-      BTOR_PUSH_STACK (mm, work_stack, cur->e[i]);
+    btor_add_int_hash_table (cache, cur->id);
+    for (i = 0; i < cur->arity; i++) BTOR_PUSH_STACK (mm, stack, cur->e[i]);
   }
-  BTOR_RELEASE_STACK (mm, work_stack);
 
-  while (!BTOR_EMPTY_STACK (unmark_stack))
-  {
-    cur = BTOR_POP_STACK (unmark_stack);
-    assert (cur->mark);
-    cur->mark = 0;
-  }
-  BTOR_RELEASE_STACK (mm, unmark_stack);
+  BTOR_RELEASE_STACK (mm, stack);
+  btor_free_int_hash_table (cache);
 
-  /* set tseitin flag of lambda expression to indicate that it has been
-   * lazily synthesized already */
-  fun->lazy_synth = 1;
+  /* mark 'exp' to be lazily synthesized */
+  exp->lazy_synth = 1;
 
   if (update && force_update)
     changed_assignments = update_sat_assignments (btor);
 
   if (changed_assignments) slv->stats.synthesis_inconsistency_lambda++;
-  slv->time.enc_lambda += btor_time_stamp () - start;
+  slv->time.lazy_synth += btor_time_stamp () - start;
 
   return changed_assignments;
 }
@@ -5312,7 +5168,7 @@ encode_applies_vars (Btor *btor,
     if (BTOR_IS_BV_VAR_NODE (cur))
     {
       if (!btor_is_encoded_exp (cur))
-        res = lazy_synthesize_and_encode_var_exp (btor, cur, 1);
+        res = lazy_synthesize_exp (btor, cur, true);
     }
     else
     {
@@ -5320,7 +5176,7 @@ encode_applies_vars (Btor *btor,
       insert_synth_app_lambda (btor, lambda, cur);
 
       if (!btor_is_encoded_exp (cur))
-        res = lazy_synthesize_and_encode_apply_exp (btor, cur, 1);
+        res = lazy_synthesize_exp (btor, cur, true);
     }
 
     if (res) assignments_changed = 1;
@@ -5496,7 +5352,7 @@ propagate (Btor *btor,
     BTORLOG (1, "  app: %s", node2string (app));
     BTORLOG (1, "  fun: %s", node2string (fun));
 
-    assignments_changed = lazy_synthesize_and_encode_apply_exp (btor, app, 1);
+    assignments_changed = lazy_synthesize_exp (btor, app, true);
 
     push_applies_for_propagation (
         btor, app->e[1], 0, prop_stack, apply_search_cache);
@@ -5556,7 +5412,7 @@ propagate (Btor *btor,
       continue;
     }
 
-    assignments_changed = lazy_synthesize_and_encode_lambda_exp (btor, fun, 1);
+    assignments_changed = lazy_synthesize_exp (btor, fun, true);
     if (assignments_changed) break;
 
     if (BTOR_IS_FUN_COND_NODE (fun))
@@ -5830,14 +5686,14 @@ generate_table (Btor *btor, BtorNode *fun)
       if (BTOR_IS_LAMBDA_NODE (cur))
       {
         /* we don't care if assignments have changed */
-        (void) lazy_synthesize_and_encode_lambda_exp (btor, cur, 1);
+        (void) lazy_synthesize_exp (btor, cur, true);
         static_rho = btor_lambda_get_static_rho (cur);
         assert (static_rho);
       }
       else if (BTOR_IS_FUN_COND_NODE (cur))
       {
         /* we don't care if assignments have changed */
-        (void) lazy_synthesize_and_encode_lambda_exp (btor, cur, 1);
+        (void) lazy_synthesize_exp (btor, cur, true);
         evalbv = btor_eval_exp (btor, cur->e[0]);
         if (btor_is_true_bv (evalbv))
           BTOR_PUSH_STACK (mm, visit, cur->e[1]);
@@ -5923,8 +5779,10 @@ add_extensionality_lemmas (Btor *btor)
     assert (cur->reachable);
     assert (cur->e[0]->is_array);
     assert (cur->e[1]->is_array);
+    (void) lazy_synthesize_exp (btor, cur, true);
+    assert (btor_is_encoded_exp (cur));
 
-    evalbv = btor_eval_exp (btor, cur);
+    evalbv = btor_assignment_bv (mm, cur, 0);
     assert (evalbv);
     skip = btor_is_false_bv (evalbv);
     btor_free_bv (btor->mm, evalbv);
@@ -7699,11 +7557,10 @@ print_time_stats_core_solver (Btor *btor)
 
   BTOR_MSG (btor->msg, 1, "");
   BTOR_MSG (btor->msg, 1, "%.2f seconds expression evaluation", slv->time.eval);
-  BTOR_MSG (
-      btor->msg, 1, "%.2f seconds lazy apply encoding", slv->time.enc_app);
-  BTOR_MSG (
-      btor->msg, 1, "%.2f seconds lazy lambda encoding", slv->time.enc_lambda);
-  BTOR_MSG (btor->msg, 1, "%.2f seconds lazy var encoding", slv->time.enc_var);
+  BTOR_MSG (btor->msg,
+            1,
+            "%.2f seconds lazy synthesize and encode",
+            slv->time.lazy_synth);
   BTOR_MSG (btor->msg,
             1,
             "%.2f seconds initial applies search",

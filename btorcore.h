@@ -339,9 +339,7 @@ struct BtorCoreSolver
   {
     double sat;
     double eval;
-    double enc_app;
-    double enc_lambda;
-    double enc_var;
+    double lazy_synth;
     double search_init_apps;
     double search_init_apps_compute_scores;
     double search_init_apps_compute_scores_merge_applies;
