@@ -2342,6 +2342,9 @@ update_node_hash_tables (Btor *btor)
       assert (BTOR_IS_REGULAR_NODE (key));
       simp_key  = btor_simplify_exp (btor, key);
       simp_data = btor_simplify_exp (btor, data);
+      /* if a node in 'static_rho' was simplified, we need to ensure that
+       * the new node will be also encoded. */
+      if (simp_key != key || simp_data != data) cur->lazy_synth = 0;
 
       if (!btor_find_in_ptr_hash_table (new_static_rho, simp_key))
       {
@@ -4770,13 +4773,13 @@ lazy_synthesize_and_encode_lambda_exp (Btor *btor,
   BtorHashTableIterator it;
   BtorCoreSolver *slv;
 
-  if (!btor->options.lazy_synthesize.val)
+  /* lazy_synth may be reset in update_node_hash_tables due to simplifications
+   * of nodes in 'static_rho'. hence, we need to encode them again */
+  if (fun->lazy_synth && !btor->options.lazy_synthesize.val)
   {
     /* already synthesized and encoded */
     return 0;
   }
-
-  if (fun->lazy_synth) return 0;
 
   start               = btor_time_stamp ();
   mm                  = btor->mm;
@@ -5928,6 +5931,8 @@ add_extensionality_lemmas (Btor *btor)
 
     if (skip) continue;
 
+    // TODO (ma): we have to consider applies that occur in static_rho, but
+    //            do not occur in the formula: how can this even happen?
     table0 = generate_table (btor, cur->e[0]);
     table1 = generate_table (btor, cur->e[1]);
 #if 1
@@ -6346,7 +6351,7 @@ add_function_inequality_constraints (Btor *btor)
     btor_assert_exp (btor, con);
     btor_release_exp (btor, con);
     btor_release_exp (btor, neq);
-    BTORLOG (2, "add inequality contraint for %s", node2string (cur));
+    BTORLOG (2, "add inequality constraint for %s", node2string (cur));
   }
   BTOR_RELEASE_STACK (btor->mm, feqs);
 }
@@ -7159,7 +7164,10 @@ check_model (Btor *btor, Btor *clone, BtorPtrHashTable *inputs)
     }
     else
     {
-      BTORLOG (2, "assert model for %s", node2string (real_simp));
+      BTORLOG (2,
+               "assert model for %s (%s)",
+               node2string (real_simp),
+               btor_get_symbol_exp (clone, cur));
       /* we need to invert the assignment if simplified is inverted */
       a     = (char *) btor_get_bv_model_str (btor,
                                           BTOR_COND_INVERT_NODE (simp, exp));
