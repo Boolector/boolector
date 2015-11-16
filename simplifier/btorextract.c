@@ -1081,6 +1081,7 @@ extract_lambdas (Btor *btor,
         assert (i_inc < BTOR_COUNT_STACK (increments));
         inc = BTOR_PEEK_STACK (increments, i_inc);
         tmp = create_pattern_memset (btor, lower, upper, value, subst, inc);
+        tmp->is_array = 1;
         btor_release_exp (btor, subst);
         subst = tmp;
         btor_delete_const (mm, inc);
@@ -1137,8 +1138,9 @@ extract_lambdas (Btor *btor,
         lower = BTOR_PEEK_STACK (ranges, i_range);
         upper = BTOR_PEEK_STACK (ranges, i_range + 1);
         assert (i_inc < BTOR_COUNT_STACK (increments));
-        inc = BTOR_PEEK_STACK (increments, i_inc);
-        tmp = create_pattern_itoi (btor, lower, upper, subst, inc);
+        inc           = BTOR_PEEK_STACK (increments, i_inc);
+        tmp           = create_pattern_itoi (btor, lower, upper, subst, inc);
+        tmp->is_array = 1;
         btor_release_exp (btor, subst);
         subst = tmp;
         btor_delete_const (mm, inc);
@@ -1166,8 +1168,9 @@ extract_lambdas (Btor *btor,
         lower = BTOR_PEEK_STACK (ranges, i_range);
         upper = BTOR_PEEK_STACK (ranges, i_range + 1);
         assert (i_inc < BTOR_COUNT_STACK (increments));
-        inc = BTOR_PEEK_STACK (increments, i_inc);
-        tmp = create_pattern_itoip1 (btor, lower, upper, subst, inc);
+        inc           = BTOR_PEEK_STACK (increments, i_inc);
+        tmp           = create_pattern_itoip1 (btor, lower, upper, subst, inc);
+        tmp->is_array = 1;
         btor_release_exp (btor, subst);
         subst = tmp;
         btor_delete_const (mm, inc);
@@ -1204,6 +1207,7 @@ extract_lambdas (Btor *btor,
         /* 'subst' == destination array */
         tmp = create_pattern_cpy (
             btor, lower, upper, src_array, subst, src_addr, dst_addr, inc);
+        tmp->is_array = 1;
         btor_release_exp (btor, subst);
         subst = tmp;
         btor_delete_const (mm, inc);
