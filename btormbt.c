@@ -531,11 +531,14 @@ is_unary_op (Op op)
   return op >= NOT && op <= REDAND;
 }
 
+#if 0
+// NOTE (ma): not required right now
 static int
 is_boolean_unary_op (Op op)
 {
   return (op >= REDOR && op <= REDAND);
 }
+#endif
 
 static int
 is_binary_op (Op op)
@@ -543,11 +546,14 @@ is_binary_op (Op op)
   return (op >= EQ && op <= CONCAT);
 }
 
+#if 0
+// NOTE (ma): not required right now
 static int
 is_boolean_binary_op (Op op)
 {
   return (op >= EQ && op <= IFF);
 }
+#endif
 
 #ifndef NDEBUG
 static int
@@ -1157,6 +1163,7 @@ static bool
 btormbt_is_parameterized (BtorMBT *mbt, BoolectorNode *node)
 {
   assert (node);
+  (void) mbt;
   // TODO (ma): workaround need API for querying parameterized flag
   return BTOR_REAL_ADDR_NODE (((BtorNode *) node))->parameterized == 1;
 }
@@ -2050,13 +2057,11 @@ btormbt_ternary_op (BtorMBT *mbt,
   assert (op == COND);
   assert (boolector_get_width (mbt->btor, e0) == 1);
 
-  (void) op;
-  int e1w, e2w;
+  int e1w;
 
   e1w = boolector_get_width (mbt->btor, e1);
   assert (e1w <= mbt->g_max_bw);
-  e2w = boolector_get_width (mbt->btor, e2);
-  assert (e2w <= mbt->g_max_bw);
+  assert (boolector_get_width (mbt->btor, e2) <= mbt->g_max_bw);
 
   /* bitvectors must have same bit width */
   e2 = modify_bv (mbt, rng, e2, e1w);
