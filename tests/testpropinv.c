@@ -1414,11 +1414,9 @@ prop_inv_slice_bv (uint32_t bw)
       btor_free_bv (g_mm, res);                                 \
       res = 0;                                                  \
     }                                                           \
-    if (res)                                                    \
-    {                                                           \
-      assert (!btor_compare_bv (res, bvres));                   \
-      btor_free_bv (g_mm, res);                                 \
-    }                                                           \
+    assert (res);                                               \
+    assert (!btor_compare_bv (res, bvres));                     \
+    btor_free_bv (g_mm, res);                                   \
   } while (0)
 #endif
 
@@ -1543,6 +1541,7 @@ static void
 test_propinv_complete_urem_bv (void)
 {
 #ifndef NDEBUG
+  TEST_PROP_INV_COMPLETE_BINARY (urem);
 #endif
 }
 
