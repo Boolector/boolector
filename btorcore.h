@@ -368,7 +368,7 @@ int btor_fun_sort_check (Btor *btor,
                          BtorNode *fun);
 
 /* Evaluates expression and returns its value. */
-BtorBitVector *btor_eval_exp (Btor *btor, BtorNode *exp);
+BtorBitVector *btor_eval_exp (Btor *btor, BtorNode *exp, bool init);
 
 /* Synthesizes expression of arbitrary length to an AIG vector. Adds string
  * back annotation to the hash table, if the hash table is a non zero ptr.

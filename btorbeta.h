@@ -21,7 +21,6 @@ BtorNode* btor_beta_reduce_merge (Btor* btor,
 
 BtorNode* btor_beta_reduce_partial (Btor* btor,
                                     BtorNode* exp,
-                                    int* evalerr,
                                     BtorPtrHashTable* to_prop,
                                     BtorPtrHashTable* conds);
 

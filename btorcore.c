@@ -4533,12 +4533,12 @@ compare_argument_assignments (BtorNode *e0, BtorNode *e1)
     arg1 = btor_next_args_iterator (&it1);
 
     if (!BTOR_IS_SYNTH_NODE (BTOR_REAL_ADDR_NODE (arg0)))
-      avec0 = btor_eval_exp (btor, arg0);
+      avec0 = btor_eval_exp (btor, arg0, false);
     else
       avec0 = btor_assignment_bv (btor->mm, arg0, 0);
 
     if (!BTOR_IS_SYNTH_NODE (BTOR_REAL_ADDR_NODE (arg1)))
-      avec1 = btor_eval_exp (btor, arg1);
+      avec1 = btor_eval_exp (btor, arg1, false);
     else
       avec1 = btor_assignment_bv (btor->mm, arg1, 0);
 
@@ -4982,9 +4982,6 @@ add_lemma (Btor *btor, BtorNode *fun, BtorNode *app0, BtorNode *app1)
   assert (!app1 || BTOR_IS_APPLY_NODE (app1));
 
   double start;
-#ifndef NDEBUG
-  int evalerr;
-#endif
   BtorPtrHashTable *cond_sel_if, *cond_sel_else;
   BtorNode *args, *value, *exp;
   BtorMemMgr *mm;
@@ -5019,12 +5016,7 @@ add_lemma (Btor *btor, BtorNode *fun, BtorNode *app0, BtorNode *app1)
   {
     args = app0->e[1];
     btor_assign_args (btor, fun, args);
-#ifndef NDEBUG
-    value = btor_beta_reduce_partial (btor, fun, &evalerr, 0, 0);
-//      assert (!evalerr);
-#else
-    value = btor_beta_reduce_partial (btor, fun, 0, 0, 0);
-#endif
+    value = btor_beta_reduce_partial (btor, fun, 0, 0);
     btor_unassign_params (btor, fun);
     assert (!BTOR_IS_LAMBDA_NODE (BTOR_REAL_ADDR_NODE (value)));
 
@@ -5300,16 +5292,13 @@ propagate (Btor *btor,
   assert (cleanup_table);
   assert (apply_search_cache);
 
-#ifndef NDEBUG
-  int num_restarts;
-#endif
-  int i, values_equal, args_equal, evalerr, assignments_changed;
+  int i, values_equal, args_equal, assignments_changed;
   BtorBitVector *fun_value_assignment, *bv_assignment;
   BtorMemMgr *mm;
   BtorCoreSolver *slv;
   BtorLambdaNode *lambda;
   BtorNode *fun, *app, *args, *fun_value, *param_app;
-  BtorNode *hashed_app, *prev_fun_value;
+  BtorNode *hashed_app;
   BtorPtrHashBucket *b;
   BtorNodePtrStack param_apps;
   BtorHashTableIterator it;
@@ -5437,15 +5426,10 @@ propagate (Btor *btor,
     assert (BTOR_IS_LAMBDA_NODE (fun));
     lambda = (BtorLambdaNode *) fun;
 
-#ifndef NDEBUG
-    num_restarts = 0;
-#endif
-    prev_fun_value = 0;
-  PROPAGATE_BETA_REDUCE_PARTIAL:
     btor_assign_args (btor, fun, args);
     assert (to_prop->count == 0);
-    fun_value = btor_beta_reduce_partial (btor, fun, &evalerr, to_prop, conds);
-    assert (!BTOR_IS_LAMBDA_NODE (BTOR_REAL_ADDR_NODE (fun_value)));
+    fun_value = btor_beta_reduce_partial (btor, fun, to_prop, conds);
+    assert (!BTOR_IS_FUN_NODE (BTOR_REAL_ADDR_NODE (fun_value)));
     btor_unassign_params (btor, fun);
 
     /* push applies onto the propagation stack that are necessary to derive
@@ -5478,17 +5462,6 @@ propagate (Btor *btor,
     }
     assert (to_prop->count == 0);
 
-    /* 'prev_fun_value' is set if we already restarted beta reduction. if the
-     * result does not differ from the previous one, we are safe to
-     * continue with consistency checking. */
-    if (fun_value == prev_fun_value)
-    {
-      assert (prev_fun_value);
-      evalerr = 0;
-      btor_release_exp (btor, prev_fun_value);
-      prev_fun_value = 0;
-    }
-
     if (!btor_is_encoded_exp (fun_value))
     {
       args_equal = 0;
@@ -5507,7 +5480,6 @@ propagate (Btor *btor,
         {
           btor_release_exp (btor, fun_value);
           BTOR_RELEASE_STACK (mm, param_apps);
-          if (prev_fun_value) btor_release_exp (btor, prev_fun_value);
           break;
         }
 
@@ -5527,35 +5499,7 @@ propagate (Btor *btor,
         }
 
         BTOR_RELEASE_STACK (mm, param_apps);
-
-        /* if not all bvcond in 'fun_value' could be evaluated, there are
-         * still some inputs (vars, applies) that are not encoded.
-         * we encode all inputs required for evaluating the bvconds in
-         * 'fun_value' and restart beta reduction. however, it might be
-         * still the case that beta reduction yields fresh applies (not
-         * encoded) and we have to restart again. we have to ensure that
-         * successive beta reduction calls yield the same result as
-         * otherwise it may produce different results for beta reduction.
-         */
-        if (evalerr)
-        {
-          if (prev_fun_value) btor_release_exp (btor, prev_fun_value);
-          prev_fun_value = fun_value;
-          slv->stats.partial_beta_reduction_restarts++;
-          // TODO: stats for max. restarts
-          // TODO: if we reach a certain limit should we just continue
-          //       without encoding everything? if we do so, we need
-          //       means to reproduce the propagation paths.
-#ifndef NDEBUG
-          num_restarts++;
-          assert (num_restarts < 8);
-#endif
-          BTORLOG (1, "restart partial beta reduction");
-          goto PROPAGATE_BETA_REDUCE_PARTIAL;
-        }
       }
-
-      assert (!evalerr);
 
       /* NOTE: this is a special case
        * 'fun_value' is a function application and is not encoded.
@@ -5584,7 +5528,7 @@ propagate (Btor *btor,
         /* compute assignment of 'fun_value' and compare it to the
          * assignment of 'app'. */
         bv_assignment        = btor_assignment_bv (btor->mm, app, 0);
-        fun_value_assignment = btor_eval_exp (btor, fun_value);
+        fun_value_assignment = btor_eval_exp (btor, fun_value, false);
         assert (fun_value_assignment);
         values_equal =
             btor_compare_bv (bv_assignment, fun_value_assignment) == 0;
@@ -5604,8 +5548,6 @@ propagate (Btor *btor,
           slv->stats.beta_reduction_conflicts++;
           add_lemma (btor, fun, app, 0);
           btor_release_exp (btor, fun_value);
-
-          if (prev_fun_value) btor_release_exp (btor, prev_fun_value);
 
           if (btor->options.eager_lemmas.val) continue;
 
@@ -5633,7 +5575,6 @@ propagate (Btor *btor,
     }
 
     btor_release_exp (btor, fun_value);
-    if (prev_fun_value) btor_release_exp (btor, prev_fun_value);
   }
 
   btor_delete_ptr_hash_table (to_prop);
@@ -5694,7 +5635,7 @@ generate_table (Btor *btor, BtorNode *fun)
       {
         /* we don't care if assignments have changed */
         (void) lazy_synthesize_exp (btor, cur, true);
-        evalbv = btor_eval_exp (btor, cur->e[0]);
+        evalbv = btor_eval_exp (btor, cur->e[0], false);
         if (btor_is_true_bv (evalbv))
           BTOR_PUSH_STACK (mm, visit, cur->e[1]);
         else
@@ -6601,8 +6542,13 @@ btor_exp_to_aigvec (Btor *btor, BtorNode *exp, BtorPtrHashTable *backannotation)
   return result;
 }
 
+/* if a parameterized expressions is evaluated, btor_eval_exp requires the
+ * parameters to be assigned. further, if 'init' is true, all not encoded
+ * bit vector variables and function applications that are encountered during
+ * the evaluation will be treated as zero bit vector (since they are
+ * unconstrained anyways). */
 BtorBitVector *
-btor_eval_exp (Btor *btor, BtorNode *exp)
+btor_eval_exp (Btor *btor, BtorNode *exp, bool init)
 {
   assert (btor);
   assert (btor->slv);
@@ -6646,15 +6592,19 @@ btor_eval_exp (Btor *btor, BtorNode *exp)
 
     /* if we do not have an assignment for an apply we cannot compute the
      * corresponding value */
-    if (BTOR_IS_APPLY_NODE (real_cur) && !btor_is_encoded_exp (real_cur))
+    if ((BTOR_IS_BV_VAR_NODE (real_cur) || BTOR_IS_APPLY_NODE (real_cur))
+        && !btor_is_encoded_exp (real_cur))
     {
-      result = 0;
-      goto EVAL_EXP_CLEANUP_EXIT;
-    }
-    else if (BTOR_IS_BV_VAR_NODE (real_cur) && !btor_is_encoded_exp (real_cur))
-    {
-      result = 0;
-      goto EVAL_EXP_CLEANUP_EXIT;
+      if (init)
+      {
+        result = btor_new_bv (mm, btor_get_exp_width (btor, real_cur));
+        goto EVAL_EXP_PUSH_RESULT;
+      }
+      else
+      {
+        result = 0;
+        goto EVAL_EXP_CLEANUP_EXIT;
+      }
     }
 
     if (real_cur->eval_mark == 0)

@@ -664,7 +664,6 @@ btor_beta_reduce_partial_aux (Btor *btor,
                               BtorNode *exp,
                               BtorPtrHashTable *cond_sel_if,
                               BtorPtrHashTable *cond_sel_else,
-                              int *evalerr,
                               BtorPtrHashTable *to_prop,
                               BtorPtrHashTable *conds)
 {
@@ -680,12 +679,10 @@ btor_beta_reduce_partial_aux (Btor *btor,
   BtorMemMgr *mm;
   BtorNode *cur, *real_cur, *cur_parent, *next, *result, **e, *args, *cur_args;
   BtorNodePtrStack stack, arg_stack;
-  BtorPtrHashTable *cache, *mark, *tmp;
+  BtorPtrHashTable *cache, *mark, *t;
   BtorPtrHashBucket *b;
-  BtorParamCacheTuple *t0;
+  BtorParamCacheTuple *tup;
   BtorHashTableIterator it;
-
-  if (evalerr) *evalerr = 0;
 
   if (!BTOR_REAL_ADDR_NODE (exp)->parameterized
       && !BTOR_IS_LAMBDA_NODE (BTOR_REAL_ADDR_NODE (exp)))
@@ -765,7 +762,6 @@ btor_beta_reduce_partial_aux (Btor *btor,
        *  3) push branch w.r.t. value of evaluated condition */
       if (BTOR_IS_COND_NODE (real_cur))
       {
-        real_cur->beta_mark = 3;
         BTOR_PUSH_STACK (mm, stack, real_cur->e[0]);
         BTOR_PUSH_STACK (mm, stack, real_cur);
       }
@@ -783,19 +779,16 @@ btor_beta_reduce_partial_aux (Btor *btor,
       assert (real_cur->parameterized);
       assert (real_cur->arity >= 1);
 
-      if (real_cur->beta_mark == 1)
-      {
-        assert (BTOR_COUNT_STACK (arg_stack) >= real_cur->arity);
-        real_cur->beta_mark = 2;
-        arg_stack.top -= real_cur->arity;
-      }
+      if (BTOR_IS_COND_NODE (real_cur))
+        arg_stack.top -= 1;
       else
       {
-        assert (BTOR_IS_COND_NODE (real_cur));
-        arg_stack.top -= 1;
+        assert (BTOR_COUNT_STACK (arg_stack) >= real_cur->arity);
+        arg_stack.top -= real_cur->arity;
       }
 
-      e = arg_stack.top; /* arguments in reverse order */
+      real_cur->beta_mark = 2;
+      e                   = arg_stack.top; /* arguments in reverse order */
 
       switch (real_cur->kind)
       {
@@ -904,94 +897,47 @@ btor_beta_reduce_partial_aux (Btor *btor,
         default:
           assert (BTOR_IS_COND_NODE (real_cur));
           /* only condition rebuilt, evaluate and choose branch */
-          if (real_cur->beta_mark == 3)
+          assert (!BTOR_REAL_ADDR_NODE (e[0])->parameterized);
+          eval_res = btor_eval_exp (btor, e[0], true);
+          assert (eval_res);
+
+          /* save condition for consistency checking */
+          if (conds
+              && !btor_find_in_ptr_hash_table (conds,
+                                               BTOR_REAL_ADDR_NODE (e[0])))
           {
-            assert (!BTOR_REAL_ADDR_NODE (e[0])->parameterized);
-            eval_res = btor_eval_exp (btor, e[0]);
-            if (eval_res)
-            {
-              // TODO: result for real_cur not cached anymore as we
-              //       skip the bv_cond
+            btor_insert_in_ptr_hash_table (
+                conds, btor_copy_exp (btor, BTOR_REAL_ADDR_NODE (e[0])));
+          }
 
-              if (conds
-                  && !btor_find_in_ptr_hash_table (conds,
-                                                   BTOR_REAL_ADDR_NODE (e[0])))
-              {
-                btor_insert_in_ptr_hash_table (
-                    conds, btor_copy_exp (btor, BTOR_REAL_ADDR_NODE (e[0])));
-              }
-
-              tmp                 = 0;
-              real_cur->beta_mark = 2;
-              if (btor_is_true_bv (eval_res))
-              {
-                if (cond_sel_if) tmp = cond_sel_if;
-                next = real_cur->e[1];
-              }
-              else
-              {
-                assert (btor_is_false_bv (eval_res));
-                if (cond_sel_else) tmp = cond_sel_else;
-                next = real_cur->e[2];
-              }
-
-              if (tmp && !btor_find_in_ptr_hash_table (tmp, e[0]))
-                btor_insert_in_ptr_hash_table (tmp, btor_copy_exp (btor, e[0]));
-              assert (next);
-              btor_free_bv (btor->mm, eval_res);
-
-              real_cur->beta_mark = 0;
-
-              next = BTOR_COND_INVERT_NODE (cur, next);
-              BTOR_PUSH_STACK (mm, stack, next);
-              /* push apply as parent if it is a conditional over
-               * functions */
-              if (BTOR_IS_FUN_COND_NODE (real_cur) && cur_parent
-                  && BTOR_IS_APPLY_NODE (cur_parent))
-              {
-                assert (!BTOR_IS_INVERTED_NODE (cur));
-                BTOR_PUSH_STACK (mm, stack, cur_parent);
-              }
-              else
-                BTOR_PUSH_STACK (mm, stack, real_cur);
-              btor_release_exp (btor, e[0]);
-            }
-            /* rebuild complete bv conditional, push both branches */
-            else
-            {
-              /* build bv cond */
-              real_cur->beta_mark = 1;
-              BTOR_PUSH_STACK (mm, arg_stack, e[0]);
-              BTOR_PUSH_STACK (mm, stack, cur);
-              BTOR_PUSH_STACK (mm, stack, cur_parent);
-              BTOR_PUSH_STACK (mm, stack, real_cur->e[2]);
-              BTOR_PUSH_STACK (mm, stack, real_cur);
-              BTOR_PUSH_STACK (mm, stack, real_cur->e[1]);
-              BTOR_PUSH_STACK (mm, stack, real_cur);
-            }
-            continue;
+          t = 0;
+          if (btor_is_true_bv (eval_res))
+          {
+            if (cond_sel_if) t = cond_sel_if;
+            next = real_cur->e[1];
           }
           else
           {
-            assert (real_cur->beta_mark = 2);
-            result = btor_cond_exp (btor, e[0], e[1], e[2]);
-            /* if result is indeed a bv conditional it could not have
-             * been evaluated due to not encoded inputs.
-             * this is not always the case since rewriting may yield
-             * simplified expressions. */
-            if (evalerr && BTOR_IS_BV_COND_NODE (BTOR_REAL_ADDR_NODE (result)))
-            {
-              assert (!BTOR_IS_BV_CONST_NODE (BTOR_REAL_ADDR_NODE (e[0])));
-              next = BTOR_REAL_ADDR_NODE (result);
-
-              if (!btor_find_in_ptr_hash_table (mark, next))
-                btor_insert_in_ptr_hash_table (mark,
-                                               btor_copy_exp (btor, next));
-            }
-            btor_release_exp (btor, e[0]);
-            btor_release_exp (btor, e[1]);
-            btor_release_exp (btor, e[2]);
+            assert (btor_is_false_bv (eval_res));
+            if (cond_sel_else) t = cond_sel_else;
+            next = real_cur->e[2];
           }
+
+          if (t && !btor_find_in_ptr_hash_table (t, e[0]))
+            btor_insert_in_ptr_hash_table (t, btor_copy_exp (btor, e[0]));
+
+          btor_free_bv (btor->mm, eval_res);
+          btor_release_exp (btor, e[0]);
+
+          assert (next);
+          next = BTOR_COND_INVERT_NODE (cur, next);
+          BTOR_PUSH_STACK (mm, stack, next);
+          BTOR_PUSH_STACK (mm, stack, real_cur);
+          /* conditionals are not cached (e[0] is cached, and thus, the
+           * resp. branch can always be selected without further
+           * overhead. */
+          real_cur->beta_mark = 0;
+          continue;
       }
 
       next = BTOR_REAL_ADDR_NODE (result);
@@ -1007,9 +953,9 @@ btor_beta_reduce_partial_aux (Btor *btor,
       }
 
       /* cache rebuilt parameterized node with current arguments */
-      t0 = btor_new_param_cache_tuple (btor, real_cur);
-      assert (!btor_find_in_ptr_hash_table (cache, t0));
-      btor_insert_in_ptr_hash_table (cache, t0)->data.asPtr =
+      tup = btor_new_param_cache_tuple (btor, real_cur);
+      assert (!btor_find_in_ptr_hash_table (cache, tup));
+      btor_insert_in_ptr_hash_table (cache, tup)->data.asPtr =
           btor_copy_exp (btor, result);
 
       /* we still need the assigned argument for caching */
@@ -1029,14 +975,14 @@ btor_beta_reduce_partial_aux (Btor *btor,
         cur_args = BTOR_TOP_STACK (arg_stack);
         assert (BTOR_IS_ARGS_NODE (BTOR_REAL_ADDR_NODE (cur_args)));
         btor_assign_args (btor, real_cur, cur_args);
-        t0 = btor_new_param_cache_tuple (btor, real_cur);
+        tup = btor_new_param_cache_tuple (btor, real_cur);
         btor_unassign_params (btor, real_cur);
       }
       else
-        t0 = btor_new_param_cache_tuple (btor, real_cur);
+        tup = btor_new_param_cache_tuple (btor, real_cur);
 
-      b = btor_find_in_ptr_hash_table (cache, t0);
-      btor_delete_param_cache_tuple (btor, t0);
+      b = btor_find_in_ptr_hash_table (cache, tup);
+      btor_delete_param_cache_tuple (btor, tup);
       /* real_cur not yet cached with current param assignment, rebuild
        * expression */
       if (!b)
@@ -1059,18 +1005,11 @@ btor_beta_reduce_partial_aux (Btor *btor,
   while (btor_has_next_node_hash_table_iterator (&it))
   {
     btor_release_exp (btor, (BtorNode *) it.bucket->data.asPtr);
-    t0       = (BtorParamCacheTuple *) btor_next_node_hash_table_iterator (&it);
-    real_cur = t0->exp;
+    tup      = (BtorParamCacheTuple *) btor_next_node_hash_table_iterator (&it);
+    real_cur = tup->exp;
     assert (BTOR_IS_REGULAR_NODE (real_cur));
     real_cur->beta_mark = 0;
-    btor_delete_param_cache_tuple (btor, t0);
-  }
-
-  /* check if result contains bv conditions that couldn't be evaluated */
-  if (evalerr)
-  {
-    if (btor_find_in_ptr_hash_table (mark, BTOR_REAL_ADDR_NODE (result)))
-      *evalerr = 1;
+    btor_delete_param_cache_tuple (btor, tup);
   }
 
   btor_init_node_hash_table_iterator (&it, mark);
@@ -1119,13 +1058,11 @@ btor_beta_reduce_bounded (Btor *btor, BtorNode *exp, int bound)
 BtorNode *
 btor_beta_reduce_partial (Btor *btor,
                           BtorNode *exp,
-                          int *evalerr,
                           BtorPtrHashTable *to_prop,
                           BtorPtrHashTable *conds)
 {
   BTORLOG (2, "%s: %s", __FUNCTION__, node2string (exp));
-  return btor_beta_reduce_partial_aux (
-      btor, exp, 0, 0, evalerr, to_prop, conds);
+  return btor_beta_reduce_partial_aux (btor, exp, 0, 0, to_prop, conds);
 }
 
 BtorNode *
@@ -1135,17 +1072,8 @@ btor_beta_reduce_partial_collect (Btor *btor,
                                   BtorPtrHashTable *cond_sel_else)
 {
   BTORLOG (2, "%s: %s", __FUNCTION__, node2string (exp));
-#ifndef NDEBUG
-  int evalerr;
-  BtorNode *res;
-  res = btor_beta_reduce_partial_aux (
-      btor, exp, cond_sel_if, cond_sel_else, &evalerr, 0, 0);
-  //  assert (!evalerr);
-  return res;
-#else
   return btor_beta_reduce_partial_aux (
-      btor, exp, cond_sel_if, cond_sel_else, 0, 0, 0);
-#endif
+      btor, exp, cond_sel_if, cond_sel_else, 0, 0);
 }
 
 BtorNode *
