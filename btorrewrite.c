@@ -4364,7 +4364,8 @@ apply_prop_apply (Btor *btor, BtorNode *e0, BtorNode *e1)
           assert (BTOR_IS_REGULAR_NODE (args));
           assert (BTOR_IS_ARGS_NODE (args));
           /* nested lambda */
-          if (real_cur_branch->e[0]->parameterized)
+          if (BTOR_IS_LAMBDA_NODE (real_cur_branch->e[0])
+              && real_cur_branch->e[0]->parameterized)
           {
             btor_assign_args (btor, real_cur_branch->e[0], args);
             result = btor_beta_reduce_bounded (btor, real_cur_branch->e[0], 1);
@@ -4384,6 +4385,31 @@ apply_prop_apply (Btor *btor, BtorNode *e0, BtorNode *e1)
             }
             else
               done = 1;
+          }
+          else if (BTOR_IS_FUN_COND_NODE (real_cur_branch->e[0]))
+          {
+            /* parameterized condition */
+            if (real_cur_branch->e[0]->parameterized)
+            {
+              assert (real_cur_branch->e[0]->e[0]->parameterized);
+              assert (!real_cur_branch->e[0]->e[1]->parameterized);
+              assert (!real_cur_branch->e[0]->e[2]->parameterized);
+              result = btor_beta_reduce_bounded (
+                  btor, real_cur_branch->e[0]->e[0], 1);
+
+              if (BTOR_IS_BV_CONST_NODE (BTOR_REAL_ADDR_NODE (result)))
+              {
+                if (result == btor->true_exp)
+                  next_fun = real_cur_branch->e[0]->e[1];
+                else
+                  next_fun = real_cur_branch->e[0]->e[2];
+              }
+              btor_release_exp (btor, result);
+              result = 0;
+              if (!next_fun) goto REWRITE_APPLY_NO_RESULT_DONE;
+            }
+            /* else case was already checked when creating the
+             * conditional */
           }
           /* propagate down to 'next_fun' */
           else
