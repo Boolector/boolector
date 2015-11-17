@@ -80,6 +80,7 @@ int btor_is_true_bv (BtorBitVector *bv);
 int btor_is_false_bv (BtorBitVector *bv);
 bool btor_is_zero_bv (const BtorBitVector *bv);
 bool btor_is_one_bv (const BtorBitVector *bv);
+int btor_is_power_of_two_bv (BtorBitVector *bv);
 
 /*------------------------------------------------------------------------*/
 

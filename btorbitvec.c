@@ -313,6 +313,27 @@ btor_is_one_bv (const BtorBitVector *bv)
   return true;
 }
 
+int
+btor_is_power_of_two_bv (BtorBitVector *bv)
+{
+  assert (bv);
+
+  uint32_t i, j;
+  int bit;
+  bool iszero;
+
+  for (i = 0, j = 0, iszero = true; i < bv->width; i++)
+  {
+    bit = btor_get_bit_bv (bv, i);
+    if (!bit) continue;
+    if (bit && !iszero) return -1;
+    assert (bit && iszero);
+    j      = i;
+    iszero = false;
+  }
+  return j;
+}
+
 unsigned int
 btor_hash_bv (BtorBitVector *bv)
 {
