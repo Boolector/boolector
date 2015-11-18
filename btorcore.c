@@ -3861,7 +3861,7 @@ bv_assignment_str_exp (Btor *btor, BtorNode *exp)
     invert_bits = BTOR_IS_INVERTED_NODE (exp);
     if (invert_bits) btor_invert_const (btor->mm, bits);
     assignment = btor_copy_const (btor->mm, bits);
-    if (invert_bits) btor_invert_const (btor->mm, bits);
+    btor_freestr (btor->mm, bits);
   }
   else if (!BTOR_IS_SYNTH_NODE (real_exp))
   {
