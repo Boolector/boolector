@@ -74,6 +74,7 @@ btor_add_to_bv_model (Btor *btor,
                       BtorBitVector *assignment)
 {
   assert (btor);
+  assert (bv_model);
   assert (exp);
   assert (assignment);
 
