@@ -5372,7 +5372,7 @@ propagate (Btor *btor,
           insert_synth_app_lambda (btor, lambda, cur);
           assert (cur->reachable || cur->synth_app);
           assert (cur->refs - cur->ext_refs > 1);
-          if (!cur->propagated && !cur->reachable)
+          if (!cur->propagated)
           {
             BTOR_PUSH_STACK (mm, *prop_stack, cur);
             BTOR_PUSH_STACK (mm, *prop_stack, cur->e[0]);
