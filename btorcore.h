@@ -308,9 +308,9 @@ struct BtorCoreSolver
 
     int synthesis_assignment_inconsistencies; /* number of restarts as a
                                                  result of lazy synthesis */
-    int synthesis_inconsistency_apply;
-    int synthesis_inconsistency_lambda;
-    int synthesis_inconsistency_var;
+    int synthesis_inconsistency_app;
+    int synthesis_inconsistency_fun;
+    int synthesis_inconsistency_feq;
 
     int function_congruence_conflicts;
     int beta_reduction_conflicts;
