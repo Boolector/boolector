@@ -2,7 +2,7 @@
  *
  *  Copyright (C) 2007-2009 Robert Daniel Brummayer.
  *  Copyright (C) 2007-2015 Armin Biere.
- *  Copyright (C) 2013-2014 Aina Niemetz.
+ *  Copyright (C) 2013-2015 Aina Niemetz.
  *  Copyright (C) 2013-2015 Mathias Preiner.
  *
  *  All rights reserved.
@@ -175,12 +175,12 @@ delete_aig_nodes_unique_table_entry (BtorAIGMgr *amgr, BtorAIG *aig)
   assert (BTOR_IS_AND_AIG (aig));
   prev = 0;
   hash = compute_aig_hash (aig, amgr->table.size);
-  cur  = BTOR_GET_NODE_AIG (amgr->table.chains[hash]);
+  cur  = BTOR_GET_AIG_BY_ID (amgr->table.chains[hash]);
   while (cur != aig)
   {
     assert (!BTOR_IS_INVERTED_AIG (cur));
     prev = cur;
-    cur  = BTOR_GET_NODE_AIG (cur->next);
+    cur  = BTOR_GET_AIG_BY_ID (cur->next);
   }
   assert (cur);
   if (!prev)
@@ -224,7 +224,7 @@ find_and_aig (BtorAIGMgr *amgr, BtorAIG *left, BtorAIG *right)
                    BTOR_REAL_ADDR_AIG (right)->id,
                    amgr->table.size);
   result = amgr->table.chains + hash;
-  cur    = BTOR_GET_NODE_AIG (*result);
+  cur    = BTOR_GET_AIG_BY_ID (*result);
   while (cur)
   {
     assert (!BTOR_IS_INVERTED_AIG (cur));
@@ -238,7 +238,7 @@ find_and_aig (BtorAIGMgr *amgr, BtorAIG *left, BtorAIG *right)
               || BTOR_RIGHT_CHILD_AIG (cur) != left);
 #endif
     result = &cur->next;
-    cur    = cur->next == 0 ? 0 : BTOR_GET_NODE_AIG (cur->next);
+    cur    = cur->next == 0 ? 0 : BTOR_GET_AIG_BY_ID (cur->next);
   }
   return result;
 }
@@ -250,7 +250,7 @@ find_and_aig_node (BtorAIGMgr *amgr, BtorAIG *left, BtorAIG *right)
   BtorAIG *res;
   lookup = find_and_aig (amgr, left, right);
   assert (lookup);
-  res = *lookup ? BTOR_GET_NODE_AIG (*lookup) : 0;
+  res = *lookup ? BTOR_GET_AIG_BY_ID (*lookup) : 0;
   return res;
 }
 
@@ -271,12 +271,12 @@ enlarge_aig_nodes_unique_table (BtorAIGMgr *amgr)
   BTOR_CNEWN (mm, new_chains, new_size);
   for (i = 0; i < size; i++)
   {
-    cur = BTOR_GET_NODE_AIG (amgr->table.chains[i]);
+    cur = BTOR_GET_AIG_BY_ID (amgr->table.chains[i]);
     while (cur)
     {
       assert (!BTOR_IS_INVERTED_AIG (cur));
       assert (BTOR_IS_AND_AIG (cur));
-      temp             = BTOR_GET_NODE_AIG (cur->next);
+      temp             = BTOR_GET_AIG_BY_ID (cur->next);
       hash             = compute_aig_hash (cur, new_size);
       cur->next        = new_chains[hash];
       new_chains[hash] = cur->id;
@@ -408,15 +408,21 @@ find_and_contradiction_aig (
 static BtorAIG *
 btor_simp_aig_by_sat (BtorAIGMgr *amgr, BtorAIG *aig)
 {
-  int lit = BTOR_GET_CNF_ID_AIG (aig), val, repr, sign;
+  int lit, val, repr, sign;
   BtorAIG *res;
+
+  /* fixed handling for const aigs not supported by minisat
+   * (returns 0) FIXME why? */
+  if (BTOR_IS_CONST_AIG (aig)) return aig;
+
+  lit = BTOR_GET_CNF_ID_AIG (aig);
   if (!lit) return aig;
   val = btor_fixed_sat (amgr->smgr, lit);
   if (val) return (val < 0) ? BTOR_AIG_FALSE : BTOR_AIG_TRUE;
   repr = btor_repr_sat (amgr->smgr, lit);
   if ((sign = (repr < 0))) repr = -repr;
   assert (repr < BTOR_SIZE_STACK (amgr->cnfid2aig));
-  res = BTOR_GET_NODE_AIG (amgr->cnfid2aig.start[repr]);
+  res = BTOR_GET_AIG_BY_ID (amgr->cnfid2aig.start[repr]);
   if (!res) return aig;
   if (sign) res = BTOR_INVERT_AIG (res);
   return res;
@@ -692,7 +698,7 @@ BTOR_AIG_TWO_LEVEL_OPT_TRY_AGAIN:
 
   lookup = find_and_aig (amgr, left, right);
   assert (lookup);
-  res = *lookup ? BTOR_GET_NODE_AIG (*lookup) : 0;
+  res = *lookup ? BTOR_GET_AIG_BY_ID (*lookup) : 0;
   if (!res)
   {
     if (amgr->table.num_elements == amgr->table.size

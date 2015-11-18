@@ -951,9 +951,9 @@ btor_chkclone_slv (Btor *btor)
     BTOR_CHKCLONE_SLV_STATS (slv, cslv, lod_refinements);
     BTOR_CHKCLONE_SLV_STATS (slv, cslv, refinement_iterations);
     BTOR_CHKCLONE_SLV_STATS (slv, cslv, synthesis_assignment_inconsistencies);
-    BTOR_CHKCLONE_SLV_STATS (slv, cslv, synthesis_inconsistency_apply);
-    BTOR_CHKCLONE_SLV_STATS (slv, cslv, synthesis_inconsistency_lambda);
-    BTOR_CHKCLONE_SLV_STATS (slv, cslv, synthesis_inconsistency_var);
+    BTOR_CHKCLONE_SLV_STATS (slv, cslv, synthesis_inconsistency_app);
+    BTOR_CHKCLONE_SLV_STATS (slv, cslv, synthesis_inconsistency_fun);
+    BTOR_CHKCLONE_SLV_STATS (slv, cslv, synthesis_inconsistency_feq);
     BTOR_CHKCLONE_SLV_STATS (slv, cslv, function_congruence_conflicts);
     BTOR_CHKCLONE_SLV_STATS (slv, cslv, beta_reduction_conflicts);
     BTOR_CHKCLONE_SLV_STATS (slv, cslv, extensionality_lemmas);

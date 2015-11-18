@@ -21,10 +21,11 @@
 #endif
 
 #include <assert.h>
+#include <stdint.h>
 
 static BtorMemMgr *g_mm;
 static BtorMsg *g_msg;
-static int g_verbosity;
+static uint32_t g_verbosity;
 
 void
 init_aigvec_tests (void)

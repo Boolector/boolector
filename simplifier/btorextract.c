@@ -14,6 +14,7 @@
 #include "btorconst.h"
 #include "btorcore.h"
 #include "utils/btoriter.h"
+#include "utils/btormisc.h"
 #include "utils/btorutil.h"
 
 #define BTOR_CONST_GET_BITS(c)                           \
@@ -716,6 +717,7 @@ collect_indices_writes (Btor *btor,
       }
       btor_delete_ptr_hash_table (index_cache);
 
+      // TODO (ma): can only be ite now
       if (is_array_ite_exp (cur, &array_if, &array_else))
       {
         BTOR_PUSH_STACK (mm, lambdas, array_if);
@@ -1061,7 +1063,11 @@ extract_lambdas (Btor *btor,
     else
     {
       assert (BTOR_IS_UF_ARRAY_NODE (array));
-      subst     = btor_uf_exp (btor, array->sort_id, 0);
+      subst = btor_array_exp (btor,
+                              btor_get_fun_exp_width (btor, array),
+                              btor_get_index_exp_width (btor, array),
+                              0);
+
       is_top_eq = true;
     }
 
@@ -1086,6 +1092,7 @@ extract_lambdas (Btor *btor,
         assert (i_inc < BTOR_COUNT_STACK (increments));
         inc = BTOR_PEEK_STACK (increments, i_inc);
         tmp = create_pattern_memset (btor, lower, upper, value, subst, inc);
+        tmp->is_array = 1;
         btor_release_exp (btor, subst);
         subst = tmp;
         btor_free_bv (mm, inc);
@@ -1142,8 +1149,9 @@ extract_lambdas (Btor *btor,
         lower = BTOR_PEEK_STACK (ranges, i_range);
         upper = BTOR_PEEK_STACK (ranges, i_range + 1);
         assert (i_inc < BTOR_COUNT_STACK (increments));
-        inc = BTOR_PEEK_STACK (increments, i_inc);
-        tmp = create_pattern_itoi (btor, lower, upper, subst, inc);
+        inc           = BTOR_PEEK_STACK (increments, i_inc);
+        tmp           = create_pattern_itoi (btor, lower, upper, subst, inc);
+        tmp->is_array = 1;
         btor_release_exp (btor, subst);
         subst = tmp;
         btor_free_bv (mm, inc);
@@ -1171,8 +1179,9 @@ extract_lambdas (Btor *btor,
         lower = BTOR_PEEK_STACK (ranges, i_range);
         upper = BTOR_PEEK_STACK (ranges, i_range + 1);
         assert (i_inc < BTOR_COUNT_STACK (increments));
-        inc = BTOR_PEEK_STACK (increments, i_inc);
-        tmp = create_pattern_itoip1 (btor, lower, upper, subst, inc);
+        inc           = BTOR_PEEK_STACK (increments, i_inc);
+        tmp           = create_pattern_itoip1 (btor, lower, upper, subst, inc);
+        tmp->is_array = 1;
         btor_release_exp (btor, subst);
         subst = tmp;
         btor_free_bv (mm, inc);
@@ -1209,6 +1218,7 @@ extract_lambdas (Btor *btor,
         /* 'subst' == destination array */
         tmp = create_pattern_cpy (
             btor, lower, upper, src_array, subst, src_addr, dst_addr, inc);
+        tmp->is_array = 1;
         btor_release_exp (btor, subst);
         subst = tmp;
         btor_free_bv (mm, inc);

@@ -2880,7 +2880,9 @@ static inline BtorNode *
 apply_const1_and (Btor *btor, BtorNode *e0, BtorNode *e1)
 {
   assert (applies_const1_and (btor, e0, e1));
-  assert (!BTOR_IS_BV_CONST_NODE (BTOR_REAL_ADDR_NODE (e0->e[1])));
+  // TODO (ma): this assertion may fail if pbr_rewrite_level = 0 (since rewrite
+  //            levels are mixed)
+  //  assert (!BTOR_IS_BV_CONST_NODE (BTOR_REAL_ADDR_NODE (e0->e[1])));
 
   BtorNode *tmp, *result;
 
@@ -4174,7 +4176,7 @@ applies_param_lambda_apply (Btor *btor, BtorNode *e0, BtorNode *e1)
 {
   (void) btor;
   (void) e1;
-  return BTOR_IS_LAMBDA_NODE (BTOR_REAL_ADDR_NODE (e0))
+  return BTOR_IS_LAMBDA_NODE (BTOR_REAL_ADDR_NODE (e0)) && !e0->parameterized
          && BTOR_IS_PARAM_NODE (
                 BTOR_REAL_ADDR_NODE (btor_lambda_get_body (e0)));
 }
@@ -4355,7 +4357,8 @@ apply_prop_apply (Btor *btor, BtorNode *e0, BtorNode *e1)
           assert (BTOR_IS_REGULAR_NODE (args));
           assert (BTOR_IS_ARGS_NODE (args));
           /* nested lambda */
-          if (real_cur_branch->e[0]->parameterized)
+          if (BTOR_IS_LAMBDA_NODE (real_cur_branch->e[0])
+              && real_cur_branch->e[0]->parameterized)
           {
             btor_assign_args (btor, real_cur_branch->e[0], args);
             result = btor_beta_reduce_bounded (btor, real_cur_branch->e[0], 1);
@@ -4375,6 +4378,32 @@ apply_prop_apply (Btor *btor, BtorNode *e0, BtorNode *e1)
             }
             else
               done = 1;
+          }
+          /* beta reduce parameterized condition and select branch */
+          else if (BTOR_IS_FUN_COND_NODE (real_cur_branch->e[0])
+                   && real_cur_branch->e[0]->parameterized)
+          {
+            assert (real_cur_branch->e[0]->e[0]->parameterized);
+            assert (!real_cur_branch->e[0]->e[1]->parameterized);
+            assert (!real_cur_branch->e[0]->e[2]->parameterized);
+            result =
+                btor_beta_reduce_bounded (btor, real_cur_branch->e[0]->e[0], 1);
+
+            if (BTOR_IS_BV_CONST_NODE (BTOR_REAL_ADDR_NODE (result)))
+            {
+              if (result == btor->true_exp)
+                next_fun = real_cur_branch->e[0]->e[1];
+              else
+                next_fun = real_cur_branch->e[0]->e[2];
+            }
+            btor_release_exp (btor, result);
+            result = 0;
+            /* no branch can be selected, we are done */
+            if (!next_fun)
+            {
+              btor_release_exp (btor, args);
+              goto REWRITE_APPLY_NO_RESULT_DONE;
+            }
           }
           /* propagate down to 'next_fun' */
           else
@@ -4532,8 +4561,8 @@ applies_cond_if_dom_cond (Btor *btor, BtorNode *e0, BtorNode *e1, BtorNode *e2)
   (void) e2;
   BtorNode *real_e1;
   real_e1 = BTOR_REAL_ADDR_NODE (e1);
-  return btor->rec_rw_calls < BTOR_REC_RW_BOUND
-         && BTOR_IS_BV_COND_NODE (real_e1) && real_e1->e[0] == e0;
+  return btor->rec_rw_calls < BTOR_REC_RW_BOUND && BTOR_IS_COND_NODE (real_e1)
+         && real_e1->e[0] == e0;
 }
 
 static inline BtorNode *
@@ -4562,8 +4591,7 @@ applies_cond_if_merge_if_cond (Btor *btor,
   (void) e0;
   BtorNode *real_e1;
   real_e1 = BTOR_REAL_ADDR_NODE (e1);
-  return btor->rec_rw_calls < BTOR_REC_RW_BOUND
-         && BTOR_IS_BV_COND_NODE (real_e1)
+  return btor->rec_rw_calls < BTOR_REC_RW_BOUND && BTOR_IS_COND_NODE (real_e1)
          && BTOR_COND_INVERT_NODE (e1, real_e1->e[1]) == e2;
 }
 
@@ -4600,8 +4628,7 @@ applies_cond_if_merge_else_cond (Btor *btor,
   (void) e0;
   BtorNode *real_e1;
   real_e1 = BTOR_REAL_ADDR_NODE (e1);
-  return btor->rec_rw_calls < BTOR_REC_RW_BOUND
-         && BTOR_IS_BV_COND_NODE (real_e1)
+  return btor->rec_rw_calls < BTOR_REC_RW_BOUND && BTOR_IS_COND_NODE (real_e1)
          && BTOR_COND_INVERT_NODE (e1, real_e1->e[2]) == e2;
 }
 
@@ -4638,8 +4665,8 @@ applies_cond_else_dom_cond (Btor *btor,
   (void) e1;
   BtorNode *real_e2;
   real_e2 = BTOR_REAL_ADDR_NODE (e2);
-  return btor->rec_rw_calls < BTOR_REC_RW_BOUND
-         && BTOR_IS_BV_COND_NODE (real_e2) && real_e2->e[0] == e0;
+  return btor->rec_rw_calls < BTOR_REC_RW_BOUND && BTOR_IS_COND_NODE (real_e2)
+         && real_e2->e[0] == e0;
 }
 
 static inline BtorNode *
@@ -4668,8 +4695,7 @@ applies_cond_else_merge_if_cond (Btor *btor,
   (void) e0;
   BtorNode *real_e2;
   real_e2 = BTOR_REAL_ADDR_NODE (e2);
-  return btor->rec_rw_calls < BTOR_REC_RW_BOUND
-         && BTOR_IS_BV_COND_NODE (real_e2)
+  return btor->rec_rw_calls < BTOR_REC_RW_BOUND && BTOR_IS_COND_NODE (real_e2)
          && BTOR_COND_INVERT_NODE (e2, real_e2->e[1]) == e1;
 }
 
@@ -4706,8 +4732,7 @@ applies_cond_else_merge_else_cond (Btor *btor,
   (void) e0;
   BtorNode *real_e2;
   real_e2 = BTOR_REAL_ADDR_NODE (e2);
-  return btor->rec_rw_calls < BTOR_REC_RW_BOUND
-         && BTOR_IS_BV_COND_NODE (real_e2)
+  return btor->rec_rw_calls < BTOR_REC_RW_BOUND && BTOR_IS_COND_NODE (real_e2)
          && BTOR_COND_INVERT_NODE (e2, real_e2->e[2]) == e1;
 }
 
@@ -6157,14 +6182,18 @@ rewrite_cond_exp (Btor *btor, BtorNode *e0, BtorNode *e1, BtorNode *e2)
   ADD_RW_RULE (cond_else_dom_cond, e0, e1, e2);
   ADD_RW_RULE (cond_else_merge_if_cond, e0, e1, e2);
   ADD_RW_RULE (cond_else_merge_else_cond, e0, e1, e2);
-  ADD_RW_RULE (bool_cond, e0, e1, e2);
-  ADD_RW_RULE (add_if_cond, e0, e1, e2);
-  ADD_RW_RULE (add_else_cond, e0, e1, e2);
-  ADD_RW_RULE (concat_cond, e0, e1, e2);
-  ADD_RW_RULE (op_lhs_cond, e0, e1, e2);
-  ADD_RW_RULE (op_rhs_cond, e0, e1, e2);
-  ADD_RW_RULE (comm_op_1_cond, e0, e1, e2);
-  ADD_RW_RULE (comm_op_2_cond, e0, e1, e2);
+  // TODO (ma): check if more rules can be applied for ite on bv and funs
+  if (!BTOR_IS_FUN_NODE (BTOR_REAL_ADDR_NODE (e1)))
+  {
+    ADD_RW_RULE (bool_cond, e0, e1, e2);
+    ADD_RW_RULE (add_if_cond, e0, e1, e2);
+    ADD_RW_RULE (add_else_cond, e0, e1, e2);
+    ADD_RW_RULE (concat_cond, e0, e1, e2);
+    ADD_RW_RULE (op_lhs_cond, e0, e1, e2);
+    ADD_RW_RULE (op_rhs_cond, e0, e1, e2);
+    ADD_RW_RULE (comm_op_1_cond, e0, e1, e2);
+    ADD_RW_RULE (comm_op_2_cond, e0, e1, e2);
+  }
 
   assert (!result);
   result = btor_cond_exp_node (btor, e0, e1, e2);

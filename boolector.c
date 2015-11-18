@@ -2720,16 +2720,15 @@ boolector_apply (Btor *btor,
   BTOR_DELETEN (btor->mm, strtrapi, len);
 
   simp = btor_simplify_exp (btor, e_fun);
+  BTOR_ABORT_BOOLECTOR (!btor_is_fun_exp (btor, simp),
+                        "node 'e_fun' is not a function");
   BTOR_ABORT_BOOLECTOR (
       (uint32_t) argc != btor_get_fun_arity (btor, simp),
-      "number of arguments must be equal to the number of parameters in 'fun'");
+      "number of arguments must be equal to the number of parameters in "
+      "'e_fun'");
   BTOR_ABORT_BOOLECTOR (argc < 1, "'argc' must not be < 1");
   BTOR_ABORT_BOOLECTOR (argc >= 1 && !args,
                         "no arguments given but argc defined > 0");
-  BTOR_ABORT_BOOLECTOR (
-      !btor_is_fun_exp (btor, simp)
-          || (uint32_t) argc != btor_get_fun_arity (btor, simp),
-      "number of arguments does not match arity of 'fun'");
   i = btor_fun_sort_check (btor, argc, args, simp);
   BTOR_ABORT_BOOLECTOR (i >= 0, "invalid argument given at position %d", i);
   res = btor_apply_exps (btor, argc, args, simp);
@@ -3821,39 +3820,6 @@ boolector_dump_btor2 (Btor * btor, FILE * file)
 #endif
 }
 #endif
-
-void
-boolector_dump_smt1_node (Btor *btor, FILE *file, BoolectorNode *node)
-{
-  BtorNode *exp;
-
-  exp = BTOR_IMPORT_BOOLECTOR_NODE (node);
-  BTOR_TRAPI_UNFUN (exp);
-  BTOR_ABORT_ARG_NULL_BOOLECTOR (btor);
-  BTOR_ABORT_ARG_NULL_BOOLECTOR (file);
-  BTOR_ABORT_ARG_NULL_BOOLECTOR (exp);
-  BTOR_ABORT_REFS_NOT_POS_BOOLECTOR (exp);
-  BTOR_ABORT_IF_BTOR_DOES_NOT_MATCH (btor, exp);
-  btor_dump_smt1_nodes (btor, file, &exp, 1);
-#ifndef NDEBUG
-  BTOR_CHKCLONE_NORES (dump_smt1_node, file, BTOR_CLONED_EXP (exp));
-#endif
-}
-
-void
-boolector_dump_smt1 (Btor *btor, FILE *file)
-{
-  BTOR_TRAPI ("");
-  BTOR_ABORT_ARG_NULL_BOOLECTOR (btor);
-  BTOR_ABORT_ARG_NULL_BOOLECTOR (file);
-  BTOR_ABORT_BOOLECTOR (btor->options.incremental.val,
-                        "dumping formula in SMT1 format is not supported if "
-                        "'incremental' is enabled");
-  btor_dump_smt1 (btor, file);
-#ifndef NDEBUG
-  BTOR_CHKCLONE_NORES (dump_smt1, file);
-#endif
-}
 
 void
 boolector_dump_smt2_node (Btor *btor, FILE *file, BoolectorNode *node)

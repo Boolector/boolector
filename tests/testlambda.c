@@ -913,11 +913,11 @@ test_lambda_bounded_reduce1 (void)
   BtorNode *x  = btor_param_exp (g_btor, g_index_bw, "x");
   BtorNode *y  = btor_param_exp (g_btor, g_index_bw, "y");
   BtorNode *l2 = btor_lambda_exp (g_btor, y, y);
-  BtorNode *r  = btor_read_exp (g_btor, l2, x);
+  BtorNode *r  = btor_apply_exps (g_btor, 1, &x, l2);
   BtorNode *l1 = btor_lambda_exp (g_btor, x, r);
   BtorNode *v  = btor_var_exp (g_btor, g_index_bw, "v");
 
-  BtorNode *expected = btor_read_exp (g_btor, l2, v);
+  BtorNode *expected = btor_apply_exps (g_btor, 1, &v, l2);
 
   /* bound 2: stop at second lambda */
   btor_assign_param (g_btor, l1, v);
@@ -1087,36 +1087,20 @@ test_lambda_reduce_nested_writes (void)
   init_lambda_test ();
   BtorNode *i = btor_var_exp (g_btor, g_index_bw, "i");
   /* w2 = write (a, i, e2) */
-  BtorNode *a       = btor_array_exp (g_btor, g_elem_bw, g_index_bw, "a");
-  BtorNode *e2      = btor_var_exp (g_btor, g_elem_bw, "e2");
-  BtorNode *param2  = btor_param_exp (g_btor, g_index_bw, "p2");
-  BtorNode *read2   = btor_read_exp (g_btor, a, param2);
-  BtorNode *eq2     = btor_eq_exp (g_btor, param2, i);
-  BtorNode *cond2   = btor_cond_exp (g_btor, eq2, e2, read2);
-  BtorNode *lambda2 = btor_lambda_exp (g_btor, param2, cond2);
+  BtorNode *a  = btor_array_exp (g_btor, g_elem_bw, g_index_bw, "a");
+  BtorNode *e2 = btor_var_exp (g_btor, g_elem_bw, "e2");
+  BtorNode *w2 = btor_write_exp (g_btor, a, i, e2);
   /* w1 = write (w1, not i, e1) */
-  BtorNode *e1      = btor_var_exp (g_btor, g_elem_bw, "e1");
-  BtorNode *param1  = btor_param_exp (g_btor, g_index_bw, "p1");
-  BtorNode *read1   = btor_read_exp (g_btor, lambda2, param1);
-  BtorNode *eq1     = btor_ne_exp (g_btor, param1, i);
-  BtorNode *cond1   = btor_cond_exp (g_btor, eq1, e1, read1);
-  BtorNode *lambda1 = btor_lambda_exp (g_btor, param1, cond1);
-  BtorNode *result  = btor_apply_and_reduce (g_btor, 1, &i, lambda1);
+  BtorNode *e1     = btor_var_exp (g_btor, g_elem_bw, "e1");
+  BtorNode *w1     = btor_write_exp (g_btor, w2, BTOR_INVERT_NODE (i), e1);
+  BtorNode *result = btor_apply_and_reduce (g_btor, 1, &i, w1);
 
   assert (result == e2);
 
   btor_release_exp (g_btor, result);
-  btor_release_exp (g_btor, lambda1);
-  btor_release_exp (g_btor, cond1);
-  btor_release_exp (g_btor, eq1);
-  btor_release_exp (g_btor, read1);
-  btor_release_exp (g_btor, param1);
+  btor_release_exp (g_btor, w1);
   btor_release_exp (g_btor, e1);
-  btor_release_exp (g_btor, lambda2);
-  btor_release_exp (g_btor, cond2);
-  btor_release_exp (g_btor, eq2);
-  btor_release_exp (g_btor, read2);
-  btor_release_exp (g_btor, param2);
+  btor_release_exp (g_btor, w2);
   btor_release_exp (g_btor, e2);
   btor_release_exp (g_btor, a);
   btor_release_exp (g_btor, i);
@@ -1170,8 +1154,8 @@ test_lambda_reduce_nested_lambdas_add2 (void)
   BtorNode *x         = btor_param_exp (g_btor, lambda_index_bw, "x");
   BtorNode *y         = btor_param_exp (g_btor, lambda_index_bw, "y");
   BtorNode *lambda2   = btor_lambda_exp (g_btor, y, y);
-  BtorNode *read      = btor_read_exp (g_btor, lambda2, b);
-  BtorNode *add       = btor_add_exp (g_btor, x, read);
+  BtorNode *app       = btor_apply_exps (g_btor, 1, &b, lambda2);
+  BtorNode *add       = btor_add_exp (g_btor, x, app);
   BtorNode *lambda1   = btor_lambda_exp (g_btor, x, add);
   BtorNode *result    = btor_apply_and_reduce (g_btor, 1, &a, lambda1);
 
@@ -1180,7 +1164,7 @@ test_lambda_reduce_nested_lambdas_add2 (void)
   btor_release_exp (g_btor, result);
   btor_release_exp (g_btor, lambda1);
   btor_release_exp (g_btor, add);
-  btor_release_exp (g_btor, read);
+  btor_release_exp (g_btor, app);
   btor_release_exp (g_btor, lambda2);
   btor_release_exp (g_btor, y);
   btor_release_exp (g_btor, x);
@@ -1200,9 +1184,9 @@ test_lambda_reduce_nested_lambdas_read (void)
   BtorNode *lambda2 = btor_lambda_exp (g_btor, y, y);
   BtorNode *x       = btor_param_exp (g_btor, g_elem_bw, "x");
   BtorNode *add     = btor_add_exp (g_btor, x, var);
-  BtorNode *read    = btor_read_exp (g_btor, lambda2, add);
-  BtorNode *nread   = btor_not_exp (g_btor, read);
-  BtorNode *lambda1 = btor_lambda_exp (g_btor, x, nread);
+  BtorNode *app     = btor_apply_exps (g_btor, 1, &add, lambda2);
+  BtorNode *napp    = btor_not_exp (g_btor, app);
+  BtorNode *lambda1 = btor_lambda_exp (g_btor, x, napp);
   BtorNode *a       = btor_var_exp (g_btor, g_elem_bw, "a");
   /* exptected not (a + var) */
   BtorNode *expected_add = btor_add_exp (g_btor, a, var);
@@ -1216,8 +1200,8 @@ test_lambda_reduce_nested_lambdas_read (void)
   btor_release_exp (g_btor, expected_add);
   btor_release_exp (g_btor, a);
   btor_release_exp (g_btor, lambda1);
-  btor_release_exp (g_btor, nread);
-  btor_release_exp (g_btor, read);
+  btor_release_exp (g_btor, napp);
+  btor_release_exp (g_btor, app);
   btor_release_exp (g_btor, add);
   btor_release_exp (g_btor, x);
   btor_release_exp (g_btor, lambda2);

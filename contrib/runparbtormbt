@@ -26,8 +26,8 @@ collect-stats ()
   num_rounds=0
   num_bugs=0
   for file in ${files[@]}; do
-    ((num_bugs += $(grep bugs $file | awk '{print $1}')))
-    rounds=$(grep rounds $file | awk '{print $1}')
+    ((num_bugs += $(grep bugs $file | awk '{print $2}')))
+    rounds=$(grep rounds $file | awk '{print $2}')
     ((num_rounds += rounds))
   done
 

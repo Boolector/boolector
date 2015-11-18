@@ -62,7 +62,7 @@ test_new_bitvec (void)
 }
 
 static BtorBitVector *
-random_bv (int bw)
+random_bv (uint32_t bw)
 {
   uint32_t i;
   BtorBitVector *res;
@@ -70,8 +70,9 @@ random_bv (int bw)
 
   for (i = 0; i < res->len; i++) res->bits[i] = (BTOR_BV_TYPE) rand ();
 
-  res->bits[0] &= ((((BTOR_BV_TYPE) 1 << (BTOR_BV_TYPE_BW - 1)) - 1)
-                   >> (BTOR_BV_TYPE_BW - 1 - (res->width % BTOR_BV_TYPE_BW)));
+  if (bw != BTOR_BV_TYPE_BW * res->len)
+    res->bits[0] &= ((((BTOR_BV_TYPE) 1 << (BTOR_BV_TYPE_BW - 1)) - 1)
+                     >> (BTOR_BV_TYPE_BW - 1 - (bw % BTOR_BV_TYPE_BW)));
 
   return res;
 }

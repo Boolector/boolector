@@ -1,1 +1,1 @@
-boolector: log/arrayeqerr2.btor:3: array operands have different index width 1 and 2
+boolector: log/arrayeqerr2.btor:3: operands have different sort
