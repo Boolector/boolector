@@ -1570,6 +1570,7 @@ inv_mul_bv (Btor *btor,
             r   = btor_pick_rand_rng (&btor->rng, 1, i);
             tmp = btor_slice_bv (mm, bvmul, bw - 1, r);
             res = btor_uext_bv (mm, tmp, r);
+            btor_free_bv (mm, tmp);
           }
           /* choose random even value with prob 0.2 */
           else
@@ -1640,7 +1641,8 @@ inv_mul_bv (Btor *btor,
           if (btor_get_bit_bv (bvmul, i)) break;
         for (j = 0; j < bw; j++)
           if (btor_get_bit_bv (bve, j)) break;
-        /* number of 0-LSBs in bvmul < number of 0-SLBs in bve -> conflict */
+        /* number of 0-LSBs in bvmul < number of 0-SLBs in bve
+         * -> conflict */
         if (i < j)
         {
           goto BVMUL_CONF;
