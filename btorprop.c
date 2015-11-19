@@ -2007,7 +2007,8 @@ inv_udiv_bv (Btor *btor,
 
   /* bve / e[1] = bvudiv
    *
-   * -> if bvudiv = 2^bw - 1, e[1] = 0
+   * -> if bvudiv = 2^bw - 1: + bve = bvudiv = 2^bw - 1 -> e[1] = 1 or e[1] = 0
+   *                          + bve != bvudiv -> e[1] = 0
    * -> if bvudiv = 0 and 0 < bve < 2^bw - 1 choose random e[1] > bve
    *                  and bve = 0            choose random e[1] > 0
    *                  else conflict
@@ -2020,8 +2021,14 @@ inv_udiv_bv (Btor *btor,
   {
     if (!btor_compare_bv (bvudiv, bvmax))
     {
-      /* bvudiv = 2^bw - 1 -> e[1] = 0 */
-      res = btor_new_bv (mm, bw);
+      /* bve = bvudiv = 2^bw - 1 -> choose either e[1] = 0 or e[1] = 1
+       * with prob 0.5 */
+      if (!btor_compare_bv (bve, bvudiv)
+          && btor_pick_rand_rng (&btor->rng, 0, 1))
+        res = btor_one_bv (mm, bw);
+      /* bvudiv = 2^bw - 1 and bve != bvudiv -> e[1] = 0 */
+      else
+        res = btor_new_bv (mm, bw);
     }
     else if (btor_is_zero_bv (bvudiv))
     {
@@ -2137,9 +2144,8 @@ inv_udiv_bv (Btor *btor,
   {
     if (!btor_compare_bv (bvudiv, bvmax))
     {
-      /* bvudiv = 2^bw - 1 and bve = 0 -> choose random e[0] > 0 */
-      if (btor_is_zero_bv (bve))
-        res = btor_new_random_range_bv (mm, rng, bw, one, bvmax);
+      /* bvudiv = 2^bw - 1 and bve = 0 -> choose random e[0] */
+      if (btor_is_zero_bv (bve)) res = btor_new_random_bv (mm, rng, bw);
       /* conflict */
       else
       {
