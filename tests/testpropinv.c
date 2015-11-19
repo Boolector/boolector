@@ -1345,7 +1345,8 @@ prop_inv_slice_bv (uint32_t bw)
 #ifndef NDEBUG
 /*------------------------------------------------------------------------*/
 
-#define TEST_PROP_INV_COMPLETE_BW 4
+#define TEST_PROP_INV_COMPLETE_BW 8
+#define TEST_PROP_INV_COMPLETE_N_TESTS 10000
 
 #define TEST_PROP_INV_COMPLETE_BINARY_INIT(fun)   \
   do                                              \
@@ -1374,51 +1375,21 @@ prop_inv_slice_bv (uint32_t bw)
     btor_release_exp (g_btor, exp);               \
   } while (0)
 
-#if 0
-#define TEST_PROP_INV_COMPLETE(fun, bve, bvn, bvres, eidx) \
-  do                                                       \
-  {                                                        \
-    for (k = 0, res = 0; k < 1000; k++)                    \
-    {                                                      \
-      res = inv_##fun##_bv (g_btor, fun, bvn, bve, eidx);  \
-      assert (res);                                        \
-      char *bv;                                            \
-      bv = btor_bv_to_char_bv (g_mm, res);                 \
-      printf ("** res %p %d %s\n", res, res->len, bv);     \
-      btor_freestr (g_mm, bv);                             \
-      bv = btor_bv_to_char_bv (g_mm, bve);                 \
-      printf ("bve %s\n", bv);                             \
-      btor_freestr (g_mm, bv);                             \
-      bv = btor_bv_to_char_bv (g_mm, bvn);                 \
-      printf ("bvn %s\n", bv);                             \
-      btor_freestr (g_mm, bv);                             \
-      bv = btor_bv_to_char_bv (g_mm, bvres);               \
-      printf ("bvres %s\n", bv);                           \
-      btor_freestr (g_mm, bv);                             \
-      if (!btor_compare_bv (res, bvres)) break;            \
-      btor_free_bv (g_mm, res);                            \
-      res = 0;                                             \
-    }                                                      \
-    assert (res && !btor_compare_bv (res, bvres));         \
-    btor_free_bv (g_mm, res);                              \
+#define TEST_PROP_INV_COMPLETE_EIDX(fun, bve, bvn, bvres, eidx)   \
+  do                                                              \
+  {                                                               \
+    for (k = 0, res = 0; k < TEST_PROP_INV_COMPLETE_N_TESTS; k++) \
+    {                                                             \
+      res = inv_##fun##_bv (g_btor, exp, bvn, bve, eidx);         \
+      assert (res);                                               \
+      if (!btor_compare_bv (res, bvres)) break;                   \
+      btor_free_bv (g_mm, res);                                   \
+      res = 0;                                                    \
+    }                                                             \
+    assert (res);                                                 \
+    assert (!btor_compare_bv (res, bvres));                       \
+    btor_free_bv (g_mm, res);                                     \
   } while (0)
-#else
-#define TEST_PROP_INV_COMPLETE_EIDX(fun, bve, bvn, bvres, eidx) \
-  do                                                            \
-  {                                                             \
-    for (k = 0, res = 0; k < 1000; k++)                         \
-    {                                                           \
-      res = inv_##fun##_bv (g_btor, exp, bvn, bve, eidx);       \
-      assert (res);                                             \
-      if (!btor_compare_bv (res, bvres)) break;                 \
-      btor_free_bv (g_mm, res);                                 \
-      res = 0;                                                  \
-    }                                                           \
-    assert (res);                                               \
-    assert (!btor_compare_bv (res, bvres));                     \
-    btor_free_bv (g_mm, res);                                   \
-  } while (0)
-#endif
 
 #define TEST_PROP_INV_COMPLETE_BINARY(fun)                           \
   do                                                                 \
