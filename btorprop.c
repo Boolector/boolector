@@ -35,6 +35,584 @@
 
 /*------------------------------------------------------------------------*/
 
+static inline int
+select_path_non_const (BtorNode *exp)
+{
+  assert (exp);
+  assert (BTOR_IS_REGULAR_NODE (exp));
+  assert (exp->arity <= 2);
+  assert (!BTOR_IS_BV_CONST_NODE (BTOR_REAL_ADDR_NODE (exp->e[0]))
+          || (exp->arity > 1
+              && !BTOR_IS_BV_CONST_NODE (BTOR_REAL_ADDR_NODE (exp->e[1]))));
+
+  int i, eidx;
+
+  for (i = 0, eidx = -1; i < exp->arity; i++)
+    if (BTOR_IS_BV_CONST_NODE (BTOR_REAL_ADDR_NODE (exp->e[i])))
+    {
+      eidx = i ? 0 : 1;
+      break;
+    }
+  assert (exp->arity == 1 || !BTOR_IS_BV_CONST_NODE (exp->e[i ? 0 : 1]));
+  return eidx;
+}
+
+static inline int
+select_path_random (Btor *btor, BtorNode *exp)
+{
+  assert (btor);
+  assert (exp);
+  return (int) btor_pick_rand_rng (&btor->rng, 0, exp->arity - 1);
+}
+
+static inline int
+select_path_add (Btor *btor,
+                 BtorNode *add,
+                 BtorBitVector *bvadd,
+                 BtorBitVector **bve)
+{
+  assert (btor);
+  assert (add);
+  assert (BTOR_IS_REGULAR_NODE (add));
+  assert (bvadd);
+  assert (bve);
+
+  (void) bvadd;
+  (void) bve;
+
+  int eidx;
+
+  eidx = select_path_non_const (add);
+  if (eidx == -1) eidx = select_path_random (btor, add);
+  assert (eidx >= 0);
+#ifndef NDEBUG
+  char *a;
+  BTORLOG (1, "");
+  BTORLOG (2, "select path: %s", node2string (add));
+  a = btor_bv_to_char_bv (btor->mm, bve[0]);
+  BTORLOG (2, "       e[0]: %s (%s)", node2string (add->e[0]), a);
+  btor_freestr (btor->mm, a);
+  a = btor_bv_to_char_bv (btor->mm, bve[1]);
+  BTORLOG (2, "       e[1]: %s (%s)", node2string (add->e[1]), a);
+  btor_freestr (btor->mm, a);
+  BTORLOG (2, "    * chose: %d", eidx);
+#endif
+  return eidx;
+}
+
+static inline int
+select_path_and (Btor *btor,
+                 BtorNode *and,
+                 BtorBitVector *bvand,
+                 BtorBitVector **bve)
+{
+  assert (btor);
+  assert (and);
+  assert (BTOR_IS_REGULAR_NODE (and));
+  assert (bvand);
+  assert (bve);
+
+  int i, eidx;
+  BtorBitVector *tmp;
+
+  eidx = select_path_non_const (and);
+
+  if (eidx == -1)
+  {
+    if (btor_get_exp_width (btor, and) == 1)
+    {
+      /* choose 0-branch if exactly one branch is 0, else choose randomly */
+      for (i = 0; i < and->arity; i++)
+        if (btor_is_zero_bv (bve[i])) eidx = eidx == -1 ? i : -1;
+      if (eidx == -1) eidx = select_path_random (btor, and);
+    }
+    else
+    {
+      /* choose branch incompatible with bvand */
+      for (i = 0; i < and->arity; i++)
+      {
+        tmp = btor_and_bv (btor->mm, bvand, bve[i]);
+        if (btor_compare_bv (tmp, bvand)) eidx = eidx == -1 ? i : -1;
+        btor_free_bv (btor->mm, tmp);
+        if (eidx == -1) eidx = select_path_random (btor, and);
+      }
+    }
+  }
+
+  assert (eidx >= 0);
+#ifndef NDEBUG
+  char *a;
+  BTORLOG (1, "");
+  BTORLOG (2, "select path: %s", node2string (and));
+  a = btor_bv_to_char_bv (btor->mm, bve[0]);
+  BTORLOG (2, "       e[0]: %s (%s)", node2string (and->e[0]), a);
+  btor_freestr (btor->mm, a);
+  a = btor_bv_to_char_bv (btor->mm, bve[1]);
+  BTORLOG (2, "       e[1]: %s (%s)", node2string (and->e[1]), a);
+  btor_freestr (btor->mm, a);
+  BTORLOG (2, "    * chose: %d", eidx);
+#endif
+  return eidx;
+}
+
+static inline int
+select_path_eq (Btor *btor,
+                BtorNode *eq,
+                BtorBitVector *bveq,
+                BtorBitVector **bve)
+{
+  assert (btor);
+  assert (eq);
+  assert (BTOR_IS_REGULAR_NODE (eq));
+  assert (bveq);
+  assert (bve);
+
+  (void) bveq;
+  (void) bve;
+
+  int eidx;
+  eidx = select_path_non_const (eq);
+  if (eidx == -1) eidx = select_path_random (btor, eq);
+  assert (eidx >= 0);
+#ifndef NDEBUG
+  char *a;
+  BTORLOG (1, "");
+  BTORLOG (2, "select path: %s", node2string (eq));
+  a = btor_bv_to_char_bv (btor->mm, bve[0]);
+  BTORLOG (2, "       e[0]: %s (%s)", node2string (eq->e[0]), a);
+  btor_freestr (btor->mm, a);
+  a = btor_bv_to_char_bv (btor->mm, bve[1]);
+  BTORLOG (2, "       e[1]: %s (%s)", node2string (eq->e[1]), a);
+  btor_freestr (btor->mm, a);
+  BTORLOG (2, "    * chose: %d", eidx);
+#endif
+  return eidx;
+}
+
+static inline int
+select_path_ult (Btor *btor,
+                 BtorNode *ult,
+                 BtorBitVector *bvult,
+                 BtorBitVector **bve)
+{
+  assert (btor);
+  assert (ult);
+  assert (BTOR_IS_REGULAR_NODE (ult));
+  assert (bvult);
+  assert (bve);
+
+  int eidx;
+  BtorBitVector *bvmax;
+
+  eidx = select_path_non_const (ult);
+
+  if (eidx == -1)
+  {
+    bvmax = btor_ones_bv (btor->mm, bve[0]->width);
+    if (btor_is_one_bv (bvult))
+    {
+      /* 1...1 < bve[1] */
+      if (!btor_compare_bv (bve[0], bvmax)) eidx = 0;
+      /* bve[0] < 0 */
+      if (btor_is_zero_bv (bve[1])) eidx = eidx == -1 ? 1 : -1;
+    }
+    if (eidx == -1) eidx = select_path_random (btor, ult);
+    btor_free_bv (btor->mm, bvmax);
+  }
+
+  assert (eidx >= 0);
+#ifndef NDEBUG
+  char *a;
+  BTORLOG (1, "");
+  BTORLOG (2, "select path: %s", node2string (ult));
+  a = btor_bv_to_char_bv (btor->mm, bve[0]);
+  BTORLOG (2, "       e[0]: %s (%s)", node2string (ult->e[0]), a);
+  btor_freestr (btor->mm, a);
+  a = btor_bv_to_char_bv (btor->mm, bve[1]);
+  BTORLOG (2, "       e[1]: %s (%s)", node2string (ult->e[1]), a);
+  btor_freestr (btor->mm, a);
+  BTORLOG (2, "    * chose: %d", eidx);
+#endif
+  return eidx;
+}
+
+static inline int
+select_path_sll (Btor *btor,
+                 BtorNode *sll,
+                 BtorBitVector *bvsll,
+                 BtorBitVector **bve)
+{
+  assert (btor);
+  assert (sll);
+  assert (BTOR_IS_REGULAR_NODE (sll));
+  assert (bvsll);
+  assert (bve);
+
+  int eidx;
+  uint64_t i, j, shift;
+
+  eidx = select_path_non_const (sll);
+
+  if (eidx == -1)
+  {
+    shift = btor_bv_to_uint64_bv (bve[1]);
+    /* bve[1] and number of LSB 0-bits in bvsll must match */
+    for (i = 0; i < shift; i++)
+      if (btor_get_bit_bv (bvsll, i))
+      {
+        eidx = 1;
+        break;
+      }
+    /* bve[0] and bvsll (except for the bits shifted out) must match */
+    for (i = 0, j = shift; i < bvsll->width - j; i++)
+      if (btor_get_bit_bv (bve[0], i) != btor_get_bit_bv (bvsll, j + i))
+      {
+        eidx = eidx == -1 ? 0 : -1;
+        break;
+      }
+    if (eidx == -1) eidx = select_path_random (btor, sll);
+  }
+  assert (eidx >= 0);
+#ifndef NDEBUG
+  char *a;
+  BTORLOG (1, "");
+  BTORLOG (2, "select path: %s", node2string (sll));
+  a = btor_bv_to_char_bv (btor->mm, bve[0]);
+  BTORLOG (2, "       e[0]: %s (%s)", node2string (sll->e[0]), a);
+  btor_freestr (btor->mm, a);
+  a = btor_bv_to_char_bv (btor->mm, bve[1]);
+  BTORLOG (2, "       e[1]: %s (%s)", node2string (sll->e[1]), a);
+  btor_freestr (btor->mm, a);
+  BTORLOG (2, "    * chose: %d", eidx);
+#endif
+  return eidx;
+}
+
+static inline int
+select_path_srl (Btor *btor,
+                 BtorNode *srl,
+                 BtorBitVector *bvsrl,
+                 BtorBitVector **bve)
+{
+  assert (btor);
+  assert (srl);
+  assert (BTOR_IS_REGULAR_NODE (srl));
+  assert (bvsrl);
+  assert (bve);
+
+  int eidx;
+  uint64_t i, j, shift;
+
+  eidx = select_path_non_const (srl);
+
+  if (eidx == -1)
+  {
+    shift = btor_bv_to_uint64_bv (bve[1]);
+    /* bve[1] and number of MSB 0-bits in bvsrl must match */
+    for (i = 0; i < shift; i++)
+      if (btor_get_bit_bv (bvsrl, bvsrl->width - 1 - i))
+      {
+        eidx = 1;
+        break;
+      }
+    /* bve[0] and bvsrl (except for the bits shifted out) must match */
+    for (i = 0, j = shift; i < bvsrl->width - j; i++)
+      if (btor_get_bit_bv (bve[0], bve[0]->width - 1 - i)
+          != btor_get_bit_bv (bvsrl, bvsrl->width - 1 - (j + i)))
+      {
+        eidx = eidx == -1 ? 0 : -1;
+        break;
+      }
+    if (eidx == -1) eidx = select_path_random (btor, srl);
+  }
+  assert (eidx >= 0);
+#ifndef NDEBUG
+  char *a;
+  BTORLOG (1, "");
+  BTORLOG (2, "select path: %s", node2string (srl));
+  a = btor_bv_to_char_bv (btor->mm, bve[0]);
+  BTORLOG (2, "       e[0]: %s (%s)", node2string (srl->e[0]), a);
+  btor_freestr (btor->mm, a);
+  a = btor_bv_to_char_bv (btor->mm, bve[1]);
+  BTORLOG (2, "       e[1]: %s (%s)", node2string (srl->e[1]), a);
+  btor_freestr (btor->mm, a);
+  BTORLOG (2, "    * chose: %d", eidx);
+#endif
+  return eidx;
+}
+
+static inline int
+select_path_mul (Btor *btor,
+                 BtorNode *mul,
+                 BtorBitVector *bvmul,
+                 BtorBitVector **bve)
+{
+  assert (btor);
+  assert (mul);
+  assert (BTOR_IS_REGULAR_NODE (mul));
+  assert (bvmul);
+  assert (bve);
+
+  (void) bvmul;
+  (void) bve;
+
+  uint32_t i, j;
+  int eidx, lsbve0, lsbve1;
+  bool iszerobve0, iszerobve1;
+
+  eidx = select_path_non_const (mul);
+
+  if (eidx == -1)
+  {
+    iszerobve0 = btor_is_zero_bv (bve[0]);
+    iszerobve1 = btor_is_zero_bv (bve[1]);
+
+    lsbve0 = btor_get_bit_bv (bve[0], 0);
+    lsbve1 = btor_get_bit_bv (bve[1], 0);
+
+    /* either bve[0] or bve[1] are 0 but bvmul > 0 */
+    if ((iszerobve0 || iszerobve1) && !btor_is_zero_bv (bvmul))
+    {
+      if (iszerobve0) eidx = 0;
+      if (iszerobve1) eidx = eidx == -1 ? 1 : -1;
+    }
+    /* bvmul is odd but either bve[0] or bve[1] are even */
+    else if (btor_get_bit_bv (bvmul, 0) && (!lsbve0 || !lsbve1))
+    {
+      if (!lsbve0) eidx = 0;
+      if (!lsbve1) eidx = eidx == -1 ? 1 : -1;
+    }
+    /* number of 0-LSBs in bvmul < number of 0-LSBs in bve[0|1] */
+    else
+    {
+      for (i = 0; i < bvmul->width; i++)
+        if (btor_get_bit_bv (bvmul, i)) break;
+      for (j = 0; j < bve[0]->width; j++)
+        if (btor_get_bit_bv (bve[0], j)) break;
+      if (i < j) eidx = 0;
+      for (j = 0; j < bve[1]->width; j++)
+        if (btor_get_bit_bv (bve[1], j)) break;
+      if (i < j) eidx = eidx == -1 ? 1 : -1;
+    }
+    if (eidx == -1) eidx = select_path_random (btor, mul);
+  }
+  assert (eidx >= 0);
+#ifndef NDEBUG
+  char *a;
+  BTORLOG (1, "");
+  BTORLOG (2, "select path: %s", node2string (mul));
+  a = btor_bv_to_char_bv (btor->mm, bve[0]);
+  BTORLOG (2, "       e[0]: %s (%s)", node2string (mul->e[0]), a);
+  btor_freestr (btor->mm, a);
+  a = btor_bv_to_char_bv (btor->mm, bve[1]);
+  BTORLOG (2, "       e[1]: %s (%s)", node2string (mul->e[1]), a);
+  btor_freestr (btor->mm, a);
+  BTORLOG (2, "    * chose: %d", eidx);
+#endif
+  return eidx;
+}
+
+static inline int
+select_path_udiv (Btor *btor,
+                  BtorNode *udiv,
+                  BtorBitVector *bvudiv,
+                  BtorBitVector **bve)
+{
+  assert (btor);
+  assert (udiv);
+  assert (BTOR_IS_REGULAR_NODE (udiv));
+  assert (bvudiv);
+  assert (bve);
+
+  int eidx;
+  int cmp_udiv_max;
+  BtorBitVector *bvmax;
+
+  eidx = select_path_non_const (udiv);
+
+  if (eidx == -1)
+  {
+    bvmax        = btor_ones_bv (btor->mm, bve[0]->width);
+    cmp_udiv_max = btor_compare_bv (bvudiv, bvmax);
+
+    /* 1...1 / bve[1] = bvudiv > 0 */
+    if (!btor_compare_bv (bve[0], bvmax) && !btor_is_zero_bv (bvudiv)) eidx = 0;
+
+    /* bve[0] / (bve[1] > 0) = 1...1 */
+    if (!cmp_udiv_max && !btor_is_zero_bv (bve[1])) eidx = eidx == -1 ? 1 : -1;
+
+    /* bve[0] / 0 = bvudiv < 1...1 */
+    if (btor_is_zero_bv (bve[1]) && cmp_udiv_max < 0)
+      eidx = eidx == -1 ? 1 : -1;
+
+    /* bve[0] < bvudiv < 1...1 */
+    if (cmp_udiv_max && btor_compare_bv (bve[0], bvudiv) < 0)
+      eidx = eidx == -1 ? 0 : -1;
+
+    if (eidx == -1) eidx = select_path_random (btor, udiv);
+
+    btor_free_bv (btor->mm, bvmax);
+  }
+
+  assert (eidx >= 0);
+#ifndef NDEBUG
+  char *a;
+  BTORLOG (1, "");
+  BTORLOG (2, "select path: %s", node2string (udiv));
+  a = btor_bv_to_char_bv (btor->mm, bve[0]);
+  BTORLOG (2, "       e[0]: %s (%s)", node2string (udiv->e[0]), a);
+  btor_freestr (btor->mm, a);
+  a = btor_bv_to_char_bv (btor->mm, bve[1]);
+  BTORLOG (2, "       e[1]: %s (%s)", node2string (udiv->e[1]), a);
+  btor_freestr (btor->mm, a);
+  BTORLOG (2, "    * chose: %d", eidx);
+#endif
+  return eidx;
+}
+
+static inline int
+select_path_urem (Btor *btor,
+                  BtorNode *urem,
+                  BtorBitVector *bvurem,
+                  BtorBitVector **bve)
+{
+  assert (btor);
+  assert (urem);
+  assert (BTOR_IS_REGULAR_NODE (urem));
+  assert (bvurem);
+  assert (bve);
+
+  int eidx, cmp_e0_urem;
+  ;
+  BtorBitVector *bvmax, *sub;
+
+  eidx = select_path_non_const (urem);
+
+  if (eidx == -1)
+  {
+    bvmax       = btor_ones_bv (btor->mm, bve[0]->width);
+    cmp_e0_urem = btor_compare_bv (bve[0], bvurem);
+    sub         = btor_sub_bv (btor->mm, bve[0], bvurem);
+
+    /* bvurem = 1...1 -> bve[0] = 1...1 and bve[1] = 0...0 */
+    if (!btor_compare_bv (bvurem, bvmax))
+    {
+      if (!btor_is_zero_bv (bve[1])) eidx = 1;
+      if (btor_compare_bv (bve[0], bvmax)) eidx = eidx == -1 ? 0 : -1;
+    }
+    else
+    {
+      /* bve[0] > bvurem and bve[0] - bvurem <= bvurem or
+         bve[0] < bvurem */
+      if ((!cmp_e0_urem && !btor_compare_bv (bvurem, bvmax))
+          || (cmp_e0_urem > 0 && btor_compare_bv (sub, bvurem) <= 0)
+          || cmp_e0_urem < 0)
+        eidx = 0;
+
+      /* bve[1] <= bvurem */
+      if (btor_compare_bv (bve[1], bvurem) <= 0) eidx = eidx == -1 ? 1 : -1;
+    }
+
+    if (eidx == -1) eidx = select_path_random (btor, urem);
+
+    btor_free_bv (btor->mm, bvmax);
+    btor_free_bv (btor->mm, sub);
+  }
+
+  assert (eidx >= 0);
+#ifndef NDEBUG
+  char *a;
+  BTORLOG (1, "");
+  BTORLOG (2, "select path: %s", node2string (urem));
+  a = btor_bv_to_char_bv (btor->mm, bve[0]);
+  BTORLOG (2, "       e[0]: %s (%s)", node2string (urem->e[0]), a);
+  btor_freestr (btor->mm, a);
+  a = btor_bv_to_char_bv (btor->mm, bve[1]);
+  BTORLOG (2, "       e[1]: %s (%s)", node2string (urem->e[1]), a);
+  btor_freestr (btor->mm, a);
+  BTORLOG (2, "    * chose: %d", eidx);
+#endif
+  return eidx;
+}
+
+static inline int
+select_path_concat (Btor *btor,
+                    BtorNode *concat,
+                    BtorBitVector *bvconcat,
+                    BtorBitVector **bve)
+{
+  assert (btor);
+  assert (concat);
+  assert (BTOR_IS_REGULAR_NODE (concat));
+  assert (bvconcat);
+  assert (bve);
+
+  int eidx;
+  BtorBitVector *tmp;
+
+  eidx = select_path_non_const (concat);
+
+  if (eidx == -1)
+  {
+    /* bve[0] o bve[1] = bvconcat
+     * -> bve[0] resp. bve[1] must match with bvconcat */
+    tmp = btor_slice_bv (btor->mm,
+                         bvconcat,
+                         bvconcat->width - 1,
+                         bvconcat->width - bve[0]->width);
+    if (btor_compare_bv (tmp, bve[0])) eidx = 0;
+    btor_free_bv (btor->mm, tmp);
+    tmp = btor_slice_bv (btor->mm, bvconcat, bve[1]->width - 1, 0);
+    if (btor_compare_bv (tmp, bve[1])) eidx = eidx == -1 ? 1 : -1;
+    btor_free_bv (btor->mm, tmp);
+
+    if (eidx == -1) eidx = select_path_random (btor, concat);
+  }
+
+  assert (eidx >= 0);
+#ifndef NDEBUG
+  char *a;
+  BTORLOG (1, "");
+  BTORLOG (2, "select path: %s", node2string (concat));
+  a = btor_bv_to_char_bv (btor->mm, bve[0]);
+  BTORLOG (2, "       e[0]: %s (%s)", node2string (concat->e[0]), a);
+  btor_freestr (btor->mm, a);
+  a = btor_bv_to_char_bv (btor->mm, bve[1]);
+  BTORLOG (2, "       e[1]: %s (%s)", node2string (concat->e[1]), a);
+  btor_freestr (btor->mm, a);
+  BTORLOG (2, "    * chose: %d", eidx);
+#endif
+  return eidx;
+}
+
+static inline int
+select_path_slice (Btor *btor,
+                   BtorNode *slice,
+                   BtorBitVector *bvslice,
+                   BtorBitVector **bve)
+{
+  assert (btor);
+  assert (slice);
+  assert (BTOR_IS_REGULAR_NODE (slice));
+  assert (bvslice);
+  assert (bve);
+
+  assert (!BTOR_IS_BV_CONST_NODE (BTOR_REAL_ADDR_NODE (slice->e[0])));
+#ifndef NDEBUG
+  char *a;
+  BTORLOG (1, "");
+  BTORLOG (2, "select path: %s", node2string (slice));
+  a = btor_bv_to_char_bv (btor->mm, bve[0]);
+  BTORLOG (2, "       e[0]: %s (%s)", node2string (slice->e[0]), a);
+  btor_freestr (btor->mm, a);
+  BTORLOG (2, "    * chose: 0");
+#endif
+
+  return 0;
+}
+
+/*------------------------------------------------------------------------*/
+
 #define BTOR_INC_REC_CONF_STATS(btor, inc)                      \
   do                                                            \
   {                                                             \
@@ -338,6 +916,8 @@ inv_ult_bv (Btor *btor,
   isult = !btor_is_zero_bv (bvult);
   bw    = bve->width;
 
+  res = 0;
+
   if (eidx)
   {
     /* conflict: 1...1 < e[1] */
@@ -492,10 +1072,10 @@ inv_sll_bv (Btor *btor,
   assert (eidx || btor_log_2_util (bvsll->width) == bve->width);
   assert (!BTOR_IS_BV_CONST_NODE (BTOR_REAL_ADDR_NODE (sll->e[eidx])));
 
-  uint32_t i, j, shift;
+  uint32_t i, j, shift, sbw;
   int oneidx;
   BtorNode *e;
-  BtorBitVector *res;
+  BtorBitVector *res, *tmp, *bvmax;
   BtorMemMgr *mm;
 #ifndef NDEBUG
   BtorBitVector *tmpdbg;
@@ -506,49 +1086,38 @@ inv_sll_bv (Btor *btor,
   e  = sll->e[eidx ? 0 : 1];
   assert (e);
 
+  res = 0;
+
   /* bve << e[1] = bvsll
    * -> identify possible shift value via zero LSB in bvsll
    *    (considering zero LSB in bve) */
   if (eidx)
   {
-    for (i = 0, oneidx = -1; i < bvsll->width; i++)
-    {
-      if (btor_get_bit_bv (bvsll, i)) break;
-      if (oneidx == -1 && btor_get_bit_bv (bve, i)) oneidx = i;
-    }
-    shift = oneidx == -1 ? 0 : i - oneidx;
-#ifndef NDEBUG
-    for (i = 0; i < shift; i++) assert (!btor_get_bit_bv (bvsll, i));
-#endif
+    sbw = btor_log_2_util (bvsll->width);
 
-    /* check for conflict -> do not allow shift by bw */
-    if (shift > bvsll->width - 1)
+    /* 0...0 << e[1] = 0...0 */
+    if (btor_is_zero_bv (bve) && btor_is_zero_bv (bvsll))
     {
-      /* check for non-recoverable conflict */
-      if (btor->options.engine.val == BTOR_ENGINE_SLS
-          && BTOR_IS_BV_CONST_NODE (BTOR_REAL_ADDR_NODE (e)))
+    BVSLL_RANDOM_SHIFT:
+      res = btor_new_random_bv (btor->mm, &btor->rng, sbw);
+    }
+    else
+    {
+      for (i = 0, oneidx = -1; i < bvsll->width; i++)
       {
-#ifndef NDEBUG
-        char *sbvsll = btor_bv_to_char_bv (btor->mm, bvsll);
-        char *sbve   = btor_bv_to_char_bv (btor->mm, bve);
-        BTORLOG (2, "prop CONFLICT: %s := %s << x", sbvsll, sbve);
-        btor_freestr (btor->mm, sbvsll);
-        btor_freestr (btor->mm, sbve);
-#endif
-        BTOR_SLS_SOLVER (btor)->stats.move_prop_non_rec_conf += 1;
-        return 0;
+        if (btor_get_bit_bv (bvsll, i)) break;
+        if (oneidx == -1 && btor_get_bit_bv (bve, i)) oneidx = i;
       }
+      shift = oneidx == -1 ? 0 : i - oneidx;
 #ifndef NDEBUG
-      iscon = 1;
+      for (i = 0; i < shift; i++) assert (!btor_get_bit_bv (bvsll, i));
 #endif
-      BTOR_INC_REC_CONF_STATS (btor, 1);
-    }
 
-    /* check for conflict -> shifted bits must match */
-    for (i = 0, j = shift; i < bve->width - j; i++)
-    {
-      if (btor_get_bit_bv (bve, i) != btor_get_bit_bv (bvsll, j + i))
+      /* check for conflict -> do not allow shift by bw */
+      if (shift > bvsll->width - 1)
       {
+        assert (btor_is_zero_bv (bvsll));
+
         /* check for non-recoverable conflict */
         if (btor->options.engine.val == BTOR_ENGINE_SLS
             && BTOR_IS_BV_CONST_NODE (BTOR_REAL_ADDR_NODE (e)))
@@ -567,20 +1136,57 @@ inv_sll_bv (Btor *btor,
         iscon = 1;
 #endif
         BTOR_INC_REC_CONF_STATS (btor, 1);
-        break;
+        goto BVSLL_RANDOM_SHIFT;
+      }
+      /* x...x0 << e[1] = 0...0 */
+      else if (btor_is_zero_bv (bvsll))
+      {
+        bvmax = btor_ones_bv (btor->mm, sbw);
+        tmp   = btor_uint64_to_bv (mm, (uint64_t) shift, sbw);
+        res = btor_new_random_range_bv (btor->mm, &btor->rng, sbw, tmp, bvmax);
+        btor_free_bv (btor->mm, bvmax);
+        btor_free_bv (btor->mm, tmp);
+      }
+      else
+      {
+        /* check for conflict -> shifted bits must match */
+        for (i = 0, j = shift; i < bve->width - j; i++)
+        {
+          if (btor_get_bit_bv (bve, i) != btor_get_bit_bv (bvsll, j + i))
+          {
+            /* check for non-recoverable conflict */
+            if (btor->options.engine.val == BTOR_ENGINE_SLS
+                && BTOR_IS_BV_CONST_NODE (BTOR_REAL_ADDR_NODE (e)))
+            {
+#ifndef NDEBUG
+              char *sbvsll = btor_bv_to_char_bv (btor->mm, bvsll);
+              char *sbve   = btor_bv_to_char_bv (btor->mm, bve);
+              BTORLOG (2, "prop CONFLICT: %s := %s << x", sbvsll, sbve);
+              btor_freestr (btor->mm, sbvsll);
+              btor_freestr (btor->mm, sbve);
+#endif
+              BTOR_SLS_SOLVER (btor)->stats.move_prop_non_rec_conf += 1;
+              return 0;
+            }
+#ifndef NDEBUG
+            iscon = 1;
+#endif
+            BTOR_INC_REC_CONF_STATS (btor, 1);
+            break;
+          }
+        }
+        res = btor_uint64_to_bv (mm, (uint64_t) shift, sbw);
       }
     }
-
-    res = btor_uint64_to_bv (
-        mm, (uint64_t) shift, btor_log_2_util (bvsll->width));
   }
   /* e[0] << bve = bvsll
    * -> e[0] = bvsll >> bve
    *    set irrelevant MSBs (the ones that get shifted out) randomly */
   else
   {
-    /* cast is no problem (max bit width handled by Boolector is INT_MAX) */
-    shift = (int) btor_bv_to_uint64_bv (bve);
+    /* using uint64_t here is no problem
+     * (max bit width currently handled by Boolector is INT_MAX) */
+    shift = btor_bv_to_uint64_bv (bve);
 
     /* check for conflict -> the LSBs shifted must be zero */
     for (i = 0; i < shift; i++)
@@ -666,10 +1272,10 @@ inv_srl_bv (Btor *btor,
   assert (eidx || btor_log_2_util (bvsrl->width) == bve->width);
   assert (!BTOR_IS_BV_CONST_NODE (BTOR_REAL_ADDR_NODE (srl->e[eidx])));
 
-  uint32_t i, j, shift;
+  uint32_t i, j, shift, sbw;
   int oneidx;
   BtorNode *e;
-  BtorBitVector *res;
+  BtorBitVector *res, *bvmax, *tmp;
   BtorMemMgr *mm;
 #ifndef NDEBUG
   BtorBitVector *tmpdbg;
@@ -680,49 +1286,36 @@ inv_srl_bv (Btor *btor,
   e  = srl->e[eidx ? 0 : 1];
   assert (e);
 
+  res = 0;
+
   /* bve >> e[1] = bvsll
    * -> identify possible shift value via zero MSBs in bvsll
    *    (considering zero MSBs in bve) */
   if (eidx)
   {
-    for (i = 0, oneidx = -1; i < bvsrl->width; i++)
-    {
-      if (btor_get_bit_bv (bvsrl, bvsrl->width - 1 - i)) break;
-      if (oneidx == -1 && btor_get_bit_bv (bve, bve->width - 1 - i)) oneidx = i;
-    }
-    shift = oneidx == -1 ? 0 : i - oneidx;
-#ifndef NDEBUG
-    for (i = 0; i < shift; i++)
-      assert (!btor_get_bit_bv (bvsrl, bvsrl->width - 1 - i));
-#endif
-    /* check for conflict -> do not allow shift by bw */
-    if (shift > bvsrl->width - 1)
-    {
-      /* check for non-recoverable conflict */
-      if (btor->options.engine.val == BTOR_ENGINE_SLS
-          && BTOR_IS_BV_CONST_NODE (BTOR_REAL_ADDR_NODE (e)))
-      {
-#ifndef NDEBUG
-        char *sbvsrl = btor_bv_to_char_bv (btor->mm, bvsrl);
-        char *sbve   = btor_bv_to_char_bv (btor->mm, bve);
-        BTORLOG (2, "prop CONFLICT: %s := %s >> x", sbvsrl, sbve);
-        btor_freestr (btor->mm, sbvsrl);
-        btor_freestr (btor->mm, sbve);
-#endif
-        BTOR_SLS_SOLVER (btor)->stats.move_prop_non_rec_conf += 1;
-        return 0;
-      }
-#ifndef NDEBUG
-      iscon = 1;
-#endif
-      BTOR_INC_REC_CONF_STATS (btor, 1);
-    }
+    sbw = btor_log_2_util (bvsrl->width);
 
-    /* check for conflict -> shifted bits must match */
-    for (i = 0, j = shift; i < bve->width - j; i++)
+    /* 0...0 >> e[1] = 0...0 */
+    if (btor_is_zero_bv (bve) && btor_is_zero_bv (bvsrl))
     {
-      if (btor_get_bit_bv (bve, bve->width - 1 - i)
-          != btor_get_bit_bv (bvsrl, bvsrl->width - 1 - (j + i)))
+    BVSRL_RANDOM_SHIFT:
+      res = btor_new_random_bv (btor->mm, &btor->rng, sbw);
+    }
+    else
+    {
+      for (i = 0, oneidx = -1; i < bvsrl->width; i++)
+      {
+        if (btor_get_bit_bv (bvsrl, bvsrl->width - 1 - i)) break;
+        if (oneidx == -1 && btor_get_bit_bv (bve, bve->width - 1 - i))
+          oneidx = i;
+      }
+      shift = oneidx == -1 ? 0 : i - oneidx;
+#ifndef NDEBUG
+      for (i = 0; i < shift; i++)
+        assert (!btor_get_bit_bv (bvsrl, bvsrl->width - 1 - i));
+#endif
+      /* check for conflict -> do not allow shift by bw */
+      if (shift > bvsrl->width - 1)
       {
         /* check for non-recoverable conflict */
         if (btor->options.engine.val == BTOR_ENGINE_SLS
@@ -742,12 +1335,50 @@ inv_srl_bv (Btor *btor,
         iscon = 1;
 #endif
         BTOR_INC_REC_CONF_STATS (btor, 1);
-        break;
+        goto BVSRL_RANDOM_SHIFT;
+      }
+      /* x...x0 >> e[1] = 0...0 */
+      else if (btor_is_zero_bv (bvsrl))
+      {
+        bvmax = btor_ones_bv (btor->mm, sbw);
+        tmp   = btor_uint64_to_bv (mm, (uint64_t) shift, sbw);
+        res = btor_new_random_range_bv (btor->mm, &btor->rng, sbw, tmp, bvmax);
+        btor_free_bv (btor->mm, bvmax);
+        btor_free_bv (btor->mm, tmp);
+      }
+      else
+      {
+        /* check for conflict -> shifted bits must match */
+        for (i = 0, j = shift; i < bve->width - j; i++)
+        {
+          if (btor_get_bit_bv (bve, bve->width - 1 - i)
+              != btor_get_bit_bv (bvsrl, bvsrl->width - 1 - (j + i)))
+          {
+            /* check for non-recoverable conflict */
+            if (btor->options.engine.val == BTOR_ENGINE_SLS
+                && BTOR_IS_BV_CONST_NODE (BTOR_REAL_ADDR_NODE (e)))
+            {
+#ifndef NDEBUG
+              char *sbvsrl = btor_bv_to_char_bv (btor->mm, bvsrl);
+              char *sbve   = btor_bv_to_char_bv (btor->mm, bve);
+              BTORLOG (2, "prop CONFLICT: %s := %s >> x", sbvsrl, sbve);
+              btor_freestr (btor->mm, sbvsrl);
+              btor_freestr (btor->mm, sbve);
+#endif
+              BTOR_SLS_SOLVER (btor)->stats.move_prop_non_rec_conf += 1;
+              return 0;
+            }
+#ifndef NDEBUG
+            iscon = 1;
+#endif
+            BTOR_INC_REC_CONF_STATS (btor, 1);
+            break;
+          }
+        }
+
+        res = btor_uint64_to_bv (mm, (uint64_t) shift, sbw);
       }
     }
-
-    res = btor_uint64_to_bv (
-        mm, (uint64_t) shift, btor_log_2_util (bvsrl->width));
   }
   /* e[0] >> bve = bvsll
    * -> e[0] = bvsll << bve
@@ -840,9 +1471,12 @@ inv_mul_bv (Btor *btor,
   assert (eidx >= 0 && eidx <= 1);
   assert (!BTOR_IS_BV_CONST_NODE (BTOR_REAL_ADDR_NODE (mul->e[eidx])));
 
-  BtorNode *e;
+  int lsbve, lsbvmul, ispow2_bve;
+  uint32_t i, j, bw;
+  unsigned r;
   BtorBitVector *res, *inv, *tmp, *tmp2;
   BtorMemMgr *mm;
+  BtorNode *e;
 #ifndef NDEBUG
   BtorBitVector *tmpdbg;
   int iscon = 0;
@@ -851,38 +1485,46 @@ inv_mul_bv (Btor *btor,
   mm = btor->mm;
   e  = mul->e[eidx ? 0 : 1];
   assert (e);
+  bw = bvmul->width;
 
-  /* res * bve = bve * res = bvmul
-   * -> if bve is a divisor of bvmul, res = bvmul / bve
-   * -> if bve odd (gcd (bve, 2^bw) == 1), determine res via extended euclid
-   * -> else conflict */
+  res = 0;
 
-  tmp = btor_urem_bv (mm, bvmul, bve);
-  if (btor_is_zero_bv (tmp))
+  /* bve * res = bvmul
+   *
+   * -> if bve = 0: * bvmul = 0 -> choose random value for res
+   *                * bvmul > 0 -> conflict
+   *
+   * -> if bvmul odd and bve even -> conflict
+   *
+   * -> if bve odd -> determine res via modular inverse (extended euklid)
+   *		      (unique solution)
+   *
+   * -> else if bve is even (non-unique, multiple solutions possible!)
+   *      * bve = 2^n: + if number of 0-LSBs in bvmul < n -> conflict
+   *                   + else res = bvmul >> n
+   *                     (with all bits shifted in randomly set to 0 or 1)
+   *      * else: bve = 2^n * m, m is odd
+   *		  + if number of 0-LSBs in bvmul < n -> conflict
+   *		  + else c' = bvmul >> n (with all bits shifted in randomly set to
+   *0 or 1)
+   *		         -> res = c' * m^-1 (with m^-1 the mod inverse of m) if
+   *m odd
+   *		         -> else conflict
+   */
+
+  lsbve   = btor_get_bit_bv (bve, 0);
+  lsbvmul = btor_get_bit_bv (bvmul, 0);
+
+  /* bve = 0 -> if bvmul = 0 choose random value, else conflict */
+  if (btor_is_zero_bv (bve))
   {
-    btor_free_bv (mm, tmp);
-    res = btor_udiv_bv (mm, bvmul, bve);
-  }
-  else
-  {
-    btor_free_bv (mm, tmp);
-
-    if (btor_get_bit_bv (bve, 0)) /* odd */
+    if (btor_is_zero_bv (bvmul))
     {
-      inv = btor_mod_inverse_bv (mm, bve);
-      res = btor_mul_bv (mm, inv, bvmul);
-      btor_free_bv (mm, inv);
+      res = btor_new_random_bv (mm, &btor->rng, bw);
     }
     else /* conflict */
     {
-      int i;
-      uint64_t div[4] = {7, 5, 3, 2};
-
-      // TODO if bvmul even, choose m*2 as divisor (1 randomly shifted to left)
-      // TODO else choose random odd number with rem 0
-#ifndef NDEBUG
-      iscon = 1;
-#endif
+    BVMUL_CONF:
       /* check for non-recoverable conflict */
       if (btor->options.engine.val == BTOR_ENGINE_SLS
           && BTOR_IS_BV_CONST_NODE (BTOR_REAL_ADDR_NODE (e)))
@@ -899,34 +1541,139 @@ inv_mul_bv (Btor *btor,
       }
       else
       {
-        res = 0;
-        if (bvmul->width > 2)
+        /* bvmul odd -> do not choose even value for res
+         * bvmul even -> choose either odd or even value for res */
+        if (lsbvmul || btor_pick_rand_rng (&btor->rng, 0, 1))
         {
-          for (i = bvmul->width < 3 ? 2 : 0; i < 4; i++)
+          /* res odd */
+          res = btor_new_random_bv (mm, &btor->rng, bw);
+          if (!btor_get_bit_bv (res, 0)) btor_set_bit_bv (res, 0, 1);
+        }
+        else
+        {
+          /* res even */
+          r = btor_pick_rand_rng (&btor->rng, 0, 9);
+          /* choose res as 2^n with prob 0.4 */
+          if (r < 4)
           {
-            tmp2 = btor_uint64_to_bv (mm, div[i], bvmul->width);
-            if (btor_compare_bv (bvmul, tmp2) > 0)
-            {
-              tmp = btor_urem_bv (mm, bvmul, tmp2);
-              if (btor_is_zero_bv (tmp))
-              {
-                res = btor_udiv_bv (mm, bvmul, tmp2);
-                btor_free_bv (mm, tmp2);
-                btor_free_bv (mm, tmp);
-                break;
-              }
-              btor_free_bv (mm, tmp);
-            }
-            btor_free_bv (mm, tmp2);
+            for (i = 0; i < bw; i++)
+              if (btor_get_bit_bv (bvmul, i)) break;
+            res = btor_new_bv (mm, bw);
+            btor_set_bit_bv (res, btor_pick_rand_rng (&btor->rng, 1, i), 1);
+          }
+          /* choose res as bvmul / 2^n with prob 0.4
+           * (note: bw is not necessarily power of 2 -> do not use srl) */
+          else if (r < 8)
+          {
+            for (i = 0; i < bw; i++)
+              if (btor_get_bit_bv (bvmul, i)) break;
+            r   = btor_pick_rand_rng (&btor->rng, 1, i);
+            tmp = btor_slice_bv (mm, bvmul, bw - 1, r);
+            res = btor_uext_bv (mm, tmp, r);
+          }
+          /* choose random even value with prob 0.2 */
+          else
+          {
+            res = btor_new_random_bv (mm, &btor->rng, bw);
+            if (btor_get_bit_bv (res, 0)) btor_set_bit_bv (res, 0, 0);
           }
         }
-
-        if (!res) res = btor_uint64_to_bv (mm, 1, bvmul->width);
-
         BTOR_INC_REC_CONF_STATS (btor, 1);
+      }
+#ifndef NDEBUG
+      iscon = 1;
+#endif
+    }
+  }
+  /* bvmul odd and bve even -> conflict */
+  else if (lsbvmul && !lsbve)
+  {
+    goto BVMUL_CONF;
+  }
+  else
+  {
+    /* bve odd
+     * -> determine res via modular inverse (extended euklid)
+     *    (unique solution) */
+    if (lsbve)
+    {
+      inv = btor_mod_inverse_bv (mm, bve);
+      res = btor_mul_bv (mm, inv, bvmul);
+      btor_free_bv (mm, inv);
+    }
+    /* bve even
+     * (non-unique, multiple solutions possible!)
+     * if bve = 2^n: + if number of 0-LSBs in bvmul < n -> conflict
+     *               + else res = bvmul >> n
+     *                      (with all bits shifted in set randomly)
+     * else: bve = 2^n * m, m is odd
+     *       + if number of 0-LSBs in bvmul < n -> conflict
+     *       + else c' = bvmul >> n (with all bits shifted in set randomly)
+     *	      res = c' * m^-1 (with m^-1 the mod inverse of m) */
+    else
+    {
+      if ((ispow2_bve = btor_is_power_of_two_bv (bve)) >= 0)
+      {
+        for (i = 0; i < bw; i++)
+          if (btor_get_bit_bv (bvmul, i)) break;
+        /* number of 0-LSBs in bvmul < n (for bve = 2^n) -> conflict */
+        if (i < (uint32_t) ispow2_bve)
+        {
+          goto BVMUL_CONF;
+        }
+        /* res = bvmul >> n with all bits shifted in set randomly
+         * (note: bw is not necessarily power of 2 -> do not use srl) */
+        else
+        {
+          tmp = btor_slice_bv (mm, bvmul, bw - 1, ispow2_bve);
+          res = btor_uext_bv (mm, tmp, ispow2_bve);
+          assert (res->width == bw);
+          for (i = 0; i < (uint32_t) ispow2_bve; i++)
+            btor_set_bit_bv (
+                res, bw - 1 - i, btor_pick_rand_rng (&btor->rng, 0, 1));
+          btor_free_bv (mm, tmp);
+        }
+      }
+      else
+      {
+        for (i = 0; i < bw; i++)
+          if (btor_get_bit_bv (bvmul, i)) break;
+        for (j = 0; j < bw; j++)
+          if (btor_get_bit_bv (bve, j)) break;
+        /* number of 0-LSBs in bvmul < number of 0-SLBs in bve -> conflict */
+        if (i < j)
+        {
+          goto BVMUL_CONF;
+        }
+        /* c' = bvmul >> n (with all bits shifted in set randomly)
+         * (note: bw is not necessarily power of 2 -> do not use srl)
+         * -> res = c' * m^-1 (with m^-1 the mod inverse of m, m odd) */
+        else
+        {
+          tmp = btor_slice_bv (mm, bvmul, bw - 1, j);
+          res = btor_uext_bv (mm, tmp, j);
+          assert (res->width == bw);
+          for (i = 0; i < j; i++)
+            btor_set_bit_bv (
+                res, bw - 1 - i, btor_pick_rand_rng (&btor->rng, 0, 1));
+          btor_free_bv (mm, tmp);
+
+          tmp  = btor_slice_bv (mm, bve, bw - 1, j);
+          tmp2 = btor_uext_bv (mm, tmp, j);
+          assert (tmp2->width == bw);
+          assert (btor_get_bit_bv (tmp2, 0));
+          inv = btor_mod_inverse_bv (mm, tmp2);
+          btor_free_bv (mm, tmp);
+          btor_free_bv (mm, tmp2);
+          tmp = res;
+          res = btor_mul_bv (mm, tmp, inv);
+          btor_free_bv (mm, tmp);
+          btor_free_bv (mm, inv);
+        }
       }
     }
   }
+
 #ifndef NDEBUG
   if (!iscon)
   {
@@ -955,6 +1702,266 @@ inv_mul_bv (Btor *btor,
 #endif
   return res;
 }
+
+#if 0
+#ifdef NDEBUG
+static inline BtorBitVector *
+#else
+BtorBitVector *
+#endif
+inv_mul_bv (Btor * btor,
+	    BtorNode * mul,
+	    BtorBitVector * bvmul,
+	    BtorBitVector * bve,
+	    int eidx)
+{
+  assert (btor);
+  assert (btor->options.engine.val == BTOR_ENGINE_SLS
+	  || btor->options.engine.val == BTOR_ENGINE_PROP);
+  assert (mul);
+  assert (BTOR_IS_REGULAR_NODE (mul));
+  assert (bvmul);
+  assert (bve);
+  assert (bve->width == bvmul->width);
+  assert (eidx >= 0 && eidx <= 1);
+  assert (!BTOR_IS_BV_CONST_NODE (BTOR_REAL_ADDR_NODE (mul->e[eidx])));
+
+  int bitbve, bitbvmul;
+  uint32_t i, bw;
+  int64_t posbve, posbvmul;
+  BtorNode *e;
+  BtorBitVector *res, *n, *m, *inv, *tmp, *tmp2, *bvext;
+  BtorMemMgr *mm;
+#ifndef NDEBUG
+  BtorBitVector *tmpdbg;
+  int iscon = 0;
+#endif
+
+  mm = btor->mm;
+  e = mul->e[eidx ? 0 : 1];
+  assert (e);
+  bw = bvmul->width;
+
+  res = 0;
+
+  /* res * bve = bve * res = bvmul 
+   * -> if bvmul = 0 and bve = 0, choose random value for res
+   *                 and bve != 0, res = 0 or a value s.t. res * bve = 2^bw
+   * -> if bve is a divisor of bvmul, res = bvmul / bve
+   * -> if bve odd (gcd (bve, 2^bw) == 1), determine res via extended euclid
+   * -> else conflict */ 
+
+  if (btor_is_zero_bv (bvmul))
+    {
+      if (btor_is_zero_bv (bve))
+	{
+	  res = btor_new_random_bv (mm, &btor->rng, bw);
+	}
+      else
+	{
+	  /* bve != 0
+	   * -> if we cand find a res s.t. res * bve = 2^bw (overflow)
+	   *    choose with prob 0.5
+	   * -> else choose res = 0 */
+	  tmp = btor_new_bv (mm, bw+1);
+	  btor_set_bit_bv (tmp, bw, 1);
+	  bvext = btor_uext_bv (mm, bve, 1);
+	  tmp2 = btor_urem_bv (mm, tmp, bvext);
+	  if (btor_is_zero_bv (tmp2) && btor_pick_rand_rng (&btor->rng, 0, 1))
+	    {
+	      btor_free_bv (mm, tmp2);
+	      tmp2 = btor_udiv_bv (mm, tmp, bvext);
+	      res = btor_slice_bv (mm, tmp2, bw-1, 0);
+	    }
+	  else
+	    {
+	      res = btor_new_bv (mm, bw);
+	    }
+	}
+    }
+  else
+    {
+      /* bve odd */
+      if (btor_get_bit_bv (bve, 0))
+	{
+	  inv = btor_mod_inverse_bv (mm, bve); 
+	  res = btor_mul_bv (mm, inv, bvmul);
+	  btor_free_bv (mm, inv);
+	}
+      /* bve even
+       * -> if bvmul is a power of 2, then bve must be a power of two
+       *	(else conflict)
+       * -> if 2^n is a divisor of both bve and bvmul
+       *      bve = 2^n * m
+       *      res = bvmul / 2^n * m^-1 (with m^-1 as the mod. inv. of m) 
+       * -> else conflict */
+      else 
+	{
+	  posbvmul = btor_is_power_of_two_bv (bvmul);
+	  if (posbvmul >= 0)
+	    {
+	      /* conflict */
+	      posbve = btor_is_power_of_two_bv (bve);
+	      if (posbve < 0 || posbvmul < posbve)
+		{
+#ifndef NDEBUG
+		  iscon = 1;
+#endif
+		  /* check for non-recoverable conflict */
+		  if (btor->options.engine.val == BTOR_ENGINE_SLS 
+		      && BTOR_IS_BV_CONST_NODE (BTOR_REAL_ADDR_NODE (e)))
+		    {
+		      res = 0;
+		      BTOR_SLS_SOLVER (btor)->stats.move_prop_non_rec_conf += 1;
+#ifndef NDEBUG
+		      char *sbvmul = btor_bv_to_char_bv (btor->mm, bvmul);
+		      char *sbve = btor_bv_to_char_bv (btor->mm, bve);
+		      BTORLOG (2, "prop CONFLICT: %s := %s * x",
+			       sbvmul, sbve);
+		      btor_freestr (btor->mm, sbvmul);
+		      btor_freestr (btor->mm, sbve);
+#endif
+		    }
+		  else
+		    {
+		      /* choose power of 2 < bvmul */
+		      res = btor_new_bv (mm, bw);
+		      btor_set_bit_bv (
+			  res,
+			  btor_pick_rand_rng (
+			    &btor->rng, 0, posbvmul? posbvmul-1 : 0),
+			  1);
+		      BTOR_INC_REC_CONF_STATS (btor, 1);
+		    }
+		}
+	      else
+		{
+		  /* choose either divisor or consider overflow */
+		  res = btor_udiv_bv (mm, bvmul, bve);
+		  if (btor_pick_rand_rng (&btor->rng, 0, 1))
+		    {
+		      /* 2^bw */
+		      tmp = btor_new_bv (mm, bw+1);
+		      btor_set_bit_bv (tmp, bw, 1);
+//			  printf ("2^bw %s\n", btor_bv_to_char_bv (mm, tmp));
+		      bvext = btor_uext_bv (mm, bve, 1);
+//			  printf ("bvext %s\n", btor_bv_to_char_bv (mm, bvext));
+		      /* overflow bound */
+		      tmp2 = btor_udiv_bv (mm, tmp, bvext);
+//			  printf ("2^bw/bvext %s\n", btor_bv_to_char_bv (mm, tmp2));
+		      btor_free_bv (mm, tmp);
+		      tmp = btor_slice_bv (mm, tmp2, bw-1, 0);
+//			  printf ("bound %s\n", btor_bv_to_char_bv (mm, tmp));
+		      btor_free_bv (mm, tmp2);
+		      /* res = 2^bw / bve + bvmul / bve */
+		      tmp2 = res;
+		      res = btor_add_bv (mm, tmp, tmp2);
+//			  printf ("res %s\n", btor_bv_to_char_bv (mm, res));
+		      btor_free_bv (mm, tmp2);
+		    }
+		}
+	    }
+	  else
+	    {
+	      for (i = 0, res = 0; i < bw; i++)
+		{
+		  bitbve = btor_get_bit_bv (bve, i);
+		  bitbvmul = btor_get_bit_bv (bvmul, i);
+		  if (bitbve && bitbvmul) break;
+		  /* 2^n does not divide both bve and bvmul -> conflict */
+		  if ((bitbve && !bitbvmul) || (!bitbve && bitbvmul))
+		    {
+#ifndef NDEBUG
+		      iscon = 1;
+#endif
+		      /* check for non-recoverable conflict */
+		      if (btor->options.engine.val == BTOR_ENGINE_SLS 
+			&& BTOR_IS_BV_CONST_NODE (BTOR_REAL_ADDR_NODE (e)))
+			{
+			  res = 0;
+			  BTOR_SLS_SOLVER (
+			      btor)->stats.move_prop_non_rec_conf += 1;
+#ifndef NDEBUG
+			  char *sbvmul = btor_bv_to_char_bv (btor->mm, bvmul);
+			  char *sbve = btor_bv_to_char_bv (btor->mm, bve);
+			  BTORLOG (2, "prop CONFLICT: %s := %s * x",
+				   sbvmul, sbve);
+			  btor_freestr (btor->mm, sbvmul);
+			  btor_freestr (btor->mm, sbve);
+#endif
+			}
+		      else
+			{
+			  /* choose random number
+			   * -> if even, only pick if bvmul % res = 0 */
+			  res = btor_new_random_bv (mm, &btor->rng, bw);
+			  while (btor_is_zero_bv (res))
+			    {
+			      btor_free_bv (mm, res);
+			      res = btor_new_random_bv (mm, &btor->rng, bw);
+			    }
+			  while (!btor_get_bit_bv (res, 0))
+			    {
+			      tmp = btor_urem_bv (mm, bvmul, res);
+			      if (btor_is_zero_bv (tmp))
+				{ btor_free_bv (mm, tmp); break; }
+			      btor_free_bv (mm, tmp);
+			      btor_free_bv (mm, res);
+
+			      res = btor_new_random_bv (mm, &btor->rng, bw);
+			      while (btor_is_zero_bv (res))
+				{
+				  btor_free_bv (mm, res);
+				  res = btor_new_random_bv (mm, &btor->rng, bw);
+				}
+			    }
+			  BTOR_INC_REC_CONF_STATS (btor, 1);
+			}
+		      goto DONE;
+		    }
+		}
+	      assert (i < bw);
+	      n = btor_uint64_to_bv (mm, i, bw);
+	      m = btor_srl_bv (mm, bve, n);       /* m = bve / 2^n            */
+	      tmp = btor_srl_bv (mm, bvmul, n);   /* tmp = bvmul / 2^n        */
+	      inv = btor_mod_inverse_bv (mm, m);  /* inv = m^-1               */
+	      res = btor_mul_bv (mm, inv, tmp);   /* res = bvmul / 2^n * m^-1 */
+	      btor_free_bv (mm, inv);
+	      btor_free_bv (mm, tmp);
+	      btor_free_bv (mm, m);
+	      btor_free_bv (mm, n);
+	    }
+	}
+    }
+#ifndef NDEBUG
+  if (!iscon)
+    {
+      if (eidx)
+	tmpdbg = btor_mul_bv (mm, bve, res);
+      else
+	tmpdbg = btor_mul_bv (mm, res, bve);
+      assert (!btor_compare_bv (tmpdbg, bvmul));
+      btor_free_bv (mm, tmpdbg);
+
+      char *sbvmul = btor_bv_to_char_bv (btor->mm, bvmul);
+      char *sbve = btor_bv_to_char_bv (btor->mm, bve);
+      char *sres = btor_bv_to_char_bv (btor->mm, res);
+      if (eidx)
+	BTORLOG (3, "prop (e[%d]): %s: %s := %s * %s",
+		 eidx,
+		 node2string (mul),
+		 sbvmul,
+		 eidx ? sbve : sres,
+		 eidx ? sres : sbve);
+      btor_freestr (btor->mm, sbvmul);
+      btor_freestr (btor->mm, sbve);
+      btor_freestr (btor->mm, sres);
+    }
+#endif
+DONE:
+  return res;
+}
+#endif
 
 #ifdef NDEBUG
 static inline BtorBitVector *
@@ -997,9 +2004,12 @@ inv_udiv_bv (Btor *btor,
   one   = btor_one_bv (mm, bve->width);
   bvmax = btor_ones_bv (mm, bvudiv->width); /* 2^bw - 1 */
 
+  res = 0;
+
   /* bve / e[1] = bvudiv
    *
-   * -> if bvudiv = 2^bw - 1, e[1] = 0
+   * -> if bvudiv = 2^bw - 1: + bve = bvudiv = 2^bw - 1 -> e[1] = 1 or e[1] = 0
+   *                          + bve != bvudiv -> e[1] = 0
    * -> if bvudiv = 0 and 0 < bve < 2^bw - 1 choose random e[1] > bve
    *                  and bve = 0            choose random e[1] > 0
    *                  else conflict
@@ -1012,8 +2022,14 @@ inv_udiv_bv (Btor *btor,
   {
     if (!btor_compare_bv (bvudiv, bvmax))
     {
-      /* bvudiv = 2^bw - 1 -> e[1] = 0 */
-      res = btor_new_bv (mm, bw);
+      /* bve = bvudiv = 2^bw - 1 -> choose either e[1] = 0 or e[1] = 1
+       * with prob 0.5 */
+      if (!btor_compare_bv (bve, bvudiv)
+          && btor_pick_rand_rng (&btor->rng, 0, 1))
+        res = btor_one_bv (mm, bw);
+      /* bvudiv = 2^bw - 1 and bve != bvudiv -> e[1] = 0 */
+      else
+        res = btor_new_bv (mm, bw);
     }
     else if (btor_is_zero_bv (bvudiv))
     {
@@ -1022,7 +2038,11 @@ inv_udiv_bv (Btor *btor,
         res = btor_new_random_range_bv (mm, rng, bw, one, bvmax);
       /* bvudiv = 0 and 0 < bve < 2^bw - 1 -> choose random e[1] > bve */
       else if (btor_compare_bv (bve, bvmax))
-        res = btor_new_random_range_bv (mm, rng, bw, bve, bvmax);
+      {
+        tmp = btor_inc_bv (mm, bve);
+        res = btor_new_random_range_bv (mm, rng, bw, tmp, bvmax);
+        btor_free_bv (mm, tmp);
+      }
       /* conflict */
       else
       {
@@ -1105,6 +2125,8 @@ inv_udiv_bv (Btor *btor,
         else
         {
           res = btor_new_random_range_bv (mm, rng, bw, lo, up);
+          btor_free_bv (mm, lo);
+          btor_free_bv (mm, up);
         }
       }
     }
@@ -1123,9 +2145,8 @@ inv_udiv_bv (Btor *btor,
   {
     if (!btor_compare_bv (bvudiv, bvmax))
     {
-      /* bvudiv = 2^bw - 1 and bve = 0 -> choose random e[0] > 0 */
-      if (btor_is_zero_bv (bve))
-        res = btor_new_random_range_bv (mm, rng, bw, one, bvmax);
+      /* bvudiv = 2^bw - 1 and bve = 0 -> choose random e[0] */
+      if (btor_is_zero_bv (bve)) res = btor_new_random_bv (mm, rng, bw);
       /* conflict */
       else
       {
@@ -1808,9 +2829,10 @@ inv_urem_bv (Btor *btor,
   assert (eidx >= 0 && eidx <= 1);
   assert (!BTOR_IS_BV_CONST_NODE (BTOR_REAL_ADDR_NODE (urem->e[eidx])));
 
+  uint32_t bw;
   int cmp;
   BtorNode *e;
-  BtorBitVector *res, *bvmax, *tmp, *tmp2, *one, *n, *mul;
+  BtorBitVector *res, *bvmax, *tmp, *tmp2, *one, *n, *mul, *up, *sub;
   BtorMemMgr *mm;
 #ifndef NDEBUG
   BtorBitVector *tmpdbg;
@@ -1821,86 +2843,29 @@ inv_urem_bv (Btor *btor,
   e  = urem->e[eidx ? 0 : 1];
   assert (e);
 
-  bvmax = btor_ones_bv (mm, bvurem->width); /* 2^bw - 1 */
-  one   = btor_one_bv (mm, bvurem->width);
+  bw = bvurem->width;
+
+  bvmax = btor_ones_bv (mm, bw); /* 2^bw - 1 */
+  one   = btor_one_bv (mm, bw);
+
+  res = 0;
 
   /* bve % e[1] = bvurem
-   * -> if bve = bvurem, choose some e[1] > bve randomly
-   *    (if bve = 2^bw - 1, then conflict)
-   * -> if bve > bvurem, e[1] = bve - bvurem > bvurem, else conflict
+   * -> if bvurem = 1...1 -> x = 0...0
+   * -> if bve = bvurem, choose either e[1] = 0 or some e[1] > bvurem randomly
+   * -> if bve > bvurem, e[1] = ((bve - bvurem) / n) > bvurem, else conflict
    * -> if bve < bvurem, conflict */
   if (eidx)
   {
-    cmp = btor_compare_bv (bve, bvurem);
-    /* bve == bvurem, choose random e[1] if not conflict */
-    if (cmp == 0)
+    /* bve % e[1] = 1...1 -> bve = 1...1, e[1] = 0 */
+    if (!btor_compare_bv (bvurem, bvmax))
     {
-      if (btor_compare_bv (bve, bvmax) < 0)
-      {
-        /* bve < res <= 2^bw - 1 */
-        tmp = btor_add_bv (mm, bve, one);
-        res = btor_new_random_range_bv (mm, &btor->rng, bve->width, tmp, bvmax);
-        btor_free_bv (mm, tmp);
-      }
-      else /* non-recoverable conflict -> bvurem = 2^bw - 1 */
-      {
-      RES_GT_BVUREM_CONF:
-        res = 0;
-        BTOR_INC_NON_REC_CONF_STATS (btor, 1);
-#ifndef NDEBUG
-        char *sbvurem = btor_bv_to_char_bv (btor->mm, bvurem);
-        char *sbve    = btor_bv_to_char_bv (btor->mm, bve);
-        BTORLOG (2, "prop CONFLICT: %s := %s %% x", sbvurem, sbve);
-        btor_freestr (btor->mm, sbvurem);
-        btor_freestr (btor->mm, sbve);
-
-        iscon = 1;
-#endif
-
-// TODO doesn't make a difference if this case produces a randomized
-// result or no result at all
-#if 0
-RES_GT_BVUREM_CONF:
-	      if (btor->options.engine.val == BTOR_ENGINE_SLS)
-		{
-		  assert (btor->options.engine.val == BTOR_ENGINE_SLS);
-		  res = 0;
-		  BTOR_SLS_SOLVER (btor)->stats.move_prop_non_rec_conf += 1;
-#ifndef NDEBUG
-		  char *sbvurem = btor_bv_to_char_bv (btor->mm, bvurem);
-		  char *sbve = btor_bv_to_char_bv (btor->mm, bve);
-		  BTORLOG (2, "prop CONFLICT: %s := %s %% x", sbvurem, sbve);
-		  btor_freestr (btor->mm, sbvurem);
-		  btor_freestr (btor->mm, sbve);
-#endif
-		}
-	      else
-		{
-		  res = btor_new_random_bv (btor->mm, &btor->rng, bve->width);
-		  BTOR_INC_REC_CONF_STATS (btor, 1);
-		}
-#ifndef NDEBUG
-		  iscon = 1;
-#endif
-#endif
-      }
-    }
-    /* bve > bvurem, e[1] = (bve - bvurem) / n */
-    else if (cmp > 0)
-    {
-      /* we choose simplest solution with n = 1
-       * (if res > bvurem, else conflict) */
-      // TODO maybe choose more random solution?
-      // TODO if (bve-bvurem) even, n = m * 2, m >= 0 (shift 1 randomly to left)
-      // TODO if odd, generate random odd numbers (+1 if even) until rem=0
-      res = btor_sub_bv (mm, bve, bvurem);
-      /* check for conflict */
-      if (btor_compare_bv (res, bvurem) <= 0)
+      /* conflict */
+      if (!btor_compare_bv (bve, bvmax))
       {
 #ifndef NDEBUG
         iscon = 1;
 #endif
-        btor_free_bv (mm, res);
         /* check for non-recoverable conflict */
         if (btor->options.engine.val == BTOR_ENGINE_SLS
             && BTOR_IS_BV_CONST_NODE (BTOR_REAL_ADDR_NODE (e)))
@@ -1918,136 +2883,142 @@ RES_GT_BVUREM_CONF:
         else
         {
           BTOR_INC_REC_CONF_STATS (btor, 1);
-          goto RES_EQ_BVUREM_1;
         }
+        res = btor_new_bv (mm, bw);
       }
     }
-    /* bve < bvurem (conflict) */
     else
     {
-#ifndef NDEBUG
-      iscon = 1;
-#endif
-      /* check for non-recoverable conflict */
-      if (btor->options.engine.val == BTOR_ENGINE_SLS
-          && BTOR_IS_BV_CONST_NODE (BTOR_REAL_ADDR_NODE (e)))
+      cmp = btor_compare_bv (bve, bvurem);
+
+      /* bve = bvurem, choose either e[1] = 0 or random e[1] > bvurem */
+      if (cmp == 0)
       {
-        res = 0;
-        BTOR_SLS_SOLVER (btor)->stats.move_prop_non_rec_conf += 1;
-#ifndef NDEBUG
-        char *sbvurem = btor_bv_to_char_bv (btor->mm, bvurem);
-        char *sbve    = btor_bv_to_char_bv (btor->mm, bve);
-        BTORLOG (2, "prop CONFLICT: %s := %s %% x", sbvurem, sbve);
-        btor_freestr (btor->mm, sbvurem);
-        btor_freestr (btor->mm, sbve);
-#endif
+      BVUREM_EQ_1:
+        /* choose e[1] = 0 with prob = 0.25*/
+        if (!btor_pick_rand_rng (&btor->rng, 0, 3)) res = btor_new_bv (mm, bw);
+        /* bvurem < res <= 2^bw - 1 */
+        else
+        {
+          tmp = btor_add_bv (mm, bvurem, one);
+          res = btor_new_random_range_bv (mm, &btor->rng, bw, tmp, bvmax);
+          btor_free_bv (mm, tmp);
+        }
       }
-      /* still non-recoverable if bvurem = 2^bw - 1 */
-      else if (!btor_compare_bv (bvurem, bvmax))
+      /* bve > bvurem, e[1] = (bve - bvurem) / n */
+      else if (cmp > 0)
       {
-        goto RES_GT_BVUREM_CONF;
+        sub = btor_sub_bv (mm, bve, bvurem);
+
+        /* bve - bvurem <= bvurem -> conflict */
+        if (btor_compare_bv (sub, bvurem) <= 0)
+        {
+          goto BVUREM_CONF_1;
+        }
+        else
+        {
+          /* 1 <= n < (bve - bvurem) / bvurem (non-truncating)
+           * (note: div truncates towards 0!) */
+          tmp  = btor_urem_bv (mm, sub, bvurem);
+          tmp2 = btor_udiv_bv (mm, sub, bvurem);
+          if (btor_is_zero_bv (tmp))
+          {
+            /* (bve - bvurem) / bvurem is not truncated (remainder
+             * is 0), therefore the EXclusive upper bound
+             * -> up = (bve - bvurem) / bvurem - 1 */
+            up = btor_sub_bv (mm, tmp2, one);
+            btor_free_bv (mm, tmp2);
+          }
+          else
+          {
+            /* (bve - bvurem) / bvurem  is truncated (remainder
+             * is not 0), therefore the INclusive upper bound
+             * -> up = (bve - bvurem) / bvurem */
+            up = tmp2;
+          }
+          btor_free_bv (mm, tmp);
+
+          if (btor_is_zero_bv (up))
+            res = btor_udiv_bv (mm, sub, one);
+          else
+          {
+            /* choose 1 <= n <= up randomly
+             * s.t (bve - bvurem) % n = 0 */
+            n   = btor_new_random_range_bv (mm, &btor->rng, bw, one, up);
+            tmp = btor_urem_bv (mm, sub, n);
+            while (!btor_is_zero_bv (tmp))
+            {
+              btor_free_bv (mm, n);
+              btor_free_bv (mm, tmp);
+              n   = btor_new_random_range_bv (mm, &btor->rng, bw, one, up);
+              tmp = btor_urem_bv (mm, sub, n);
+            }
+            /* res = (bve - bvurem) / n */
+            res = btor_udiv_bv (mm, sub, n);
+            btor_free_bv (mm, n);
+            btor_free_bv (mm, tmp);
+          }
+          btor_free_bv (mm, up);
+        }
+        btor_free_bv (mm, sub);
       }
+      /* bve < bvurem (conflict) */
       else
       {
-        BTOR_INC_REC_CONF_STATS (btor, 1);
-      RES_EQ_BVUREM_1:
-        /* choose res s.t. e[0] = bvurem (simplest solution)
-           -> bvurem < res <= 2^bw - 1 */
-        tmp = btor_add_bv (mm, bve, one);
-        res = btor_new_random_range_bv (mm, &btor->rng, bve->width, tmp, bvmax);
-        btor_free_bv (mm, tmp);
+      BVUREM_CONF_1:
+        /* check for non-recoverable conflict */
+        if (btor->options.engine.val == BTOR_ENGINE_SLS
+            && BTOR_IS_BV_CONST_NODE (BTOR_REAL_ADDR_NODE (e)))
+        {
+          res = 0;
+          BTOR_SLS_SOLVER (btor)->stats.move_prop_non_rec_conf += 1;
+#ifndef NDEBUG
+          char *sbvurem = btor_bv_to_char_bv (btor->mm, bvurem);
+          char *sbve    = btor_bv_to_char_bv (btor->mm, bve);
+          BTORLOG (2, "prop CONFLICT: %s := %s %% x", sbvurem, sbve);
+          btor_freestr (btor->mm, sbvurem);
+          btor_freestr (btor->mm, sbve);
+#endif
+        }
+        else
+        {
+          BTOR_INC_REC_CONF_STATS (btor, 1);
+
+          /* choose simplest solution with prob 0.5 */
+          if (btor_pick_rand_rng (&btor->rng, 0, 1)) goto BVUREM_EQ_1;
+          /* choose random value > bvurem */
+          else
+          {
+            tmp = btor_add_bv (mm, bvurem, one);
+            res = btor_new_random_range_bv (mm, &btor->rng, bw, tmp, bvmax);
+            btor_free_bv (mm, tmp);
+          }
+        }
+#ifndef NDEBUG
+        iscon = 1;
+#endif
       }
     }
   }
   /* e[0] % bve = bvurem
+   * -> if bve = 0, e[0] = bvurem
+   * -> if bvurem = 1...1 and bve != 0, conflict
    * -> if bve <= bvurem, conflict
    * -> else choose either
    *      - e[0] = bvurem, or
    *      - e[0] = bve * n + b, with n s.t. (bve * n + b) does not overflow */
   else
   {
-    if (btor_compare_bv (bve, bvurem) > 0)
+    /* bve = 0 -> e[0] = bvurem */
+    if (btor_is_zero_bv (bve))
     {
-      /* choose simplest solution (0 <= res < bve -> res = bvurem)
-       * with prob 0.5 */
-      if (btor_pick_rand_rng (&btor->rng, 0, 1))
-      {
-        goto RES_EQ_BVUREM_0;
-      }
-      /* e[0] = bve * n + bvurem,
-       * with n s.t. (bve * n + bvurem) does not overflow */
-      else
-      {
-        tmp2 = btor_sub_bv (mm, bvmax, bve);
-
-        /* check for conflict -> overflow for n = 1 */
-        if (btor_compare_bv (tmp2, bvurem) < 0)
-        {
-          btor_free_bv (mm, tmp2);
-#ifndef NDEBUG
-          iscon = 1;
-#endif
-          /* check for non-recoverable conflict */
-          if (btor->options.engine.val == BTOR_ENGINE_SLS
-              && BTOR_IS_BV_CONST_NODE (BTOR_REAL_ADDR_NODE (e)))
-          {
-            res = 0;
-            BTOR_SLS_SOLVER (btor)->stats.move_prop_non_rec_conf += 1;
-#ifndef NDEBUG
-            char *sbvurem = btor_bv_to_char_bv (btor->mm, bvurem);
-            char *sbve    = btor_bv_to_char_bv (btor->mm, bve);
-            BTORLOG (2, "prop CONFLICT: %s := x %% %s", sbvurem, sbve);
-            btor_freestr (btor->mm, sbvurem);
-            btor_freestr (btor->mm, sbve);
-#endif
-          }
-          else
-          {
-            BTOR_INC_REC_CONF_STATS (btor, 1);
-            goto RES_EQ_BVUREM_0;
-          }
-        }
-        else
-        {
-          btor_free_bv (mm, tmp2);
-
-          tmp = btor_copy_bv (mm, bvmax);
-          n   = btor_new_random_range_bv (mm, &btor->rng, bve->width, one, tmp);
-
-          while (btor_is_umulo_bv (mm, bve, n))
-          {
-            btor_free_bv (mm, tmp);
-            tmp = btor_sub_bv (mm, n, one);
-            btor_free_bv (mm, n);
-            n = btor_new_random_range_bv (mm, &btor->rng, bve->width, one, tmp);
-          }
-
-          mul  = btor_mul_bv (mm, bve, n);
-          tmp2 = btor_sub_bv (mm, bvmax, mul);
-
-          if (btor_compare_bv (tmp2, bvurem) < 0)
-          {
-            btor_free_bv (mm, tmp);
-            tmp = btor_sub_bv (mm, n, one);
-            btor_free_bv (mm, n);
-            n = btor_new_random_range_bv (mm, &btor->rng, bve->width, one, tmp);
-            btor_free_bv (mm, mul);
-            mul = btor_mul_bv (mm, bve, n);
-          }
-
-          res = btor_add_bv (mm, mul, bvurem);
-          assert (btor_compare_bv (res, mul) >= 0);
-          assert (btor_compare_bv (res, bvurem) >= 0);
-
-          btor_free_bv (mm, tmp);
-          btor_free_bv (mm, tmp2);
-          btor_free_bv (mm, mul);
-          btor_free_bv (mm, n);
-        }
-      }
+    BVUREM_ZERO_0:
+      res = btor_copy_bv (btor->mm, bvurem);
     }
-    else /* conflict */
+    /* bvurem = 1...1 -> bve = 0, e[0] = 1...1 */
+    else if (!btor_compare_bv (bvurem, bvmax))
     {
+      /* conflict (bve != 0) */
 #ifndef NDEBUG
       iscon = 1;
 #endif
@@ -2068,10 +3039,102 @@ RES_GT_BVUREM_CONF:
       else
       {
         BTOR_INC_REC_CONF_STATS (btor, 1);
-      RES_EQ_BVUREM_0:
-        /* res = bvurem (simplest solution) */
+        goto BVUREM_ZERO_0;
+      }
+    }
+    else if (btor_compare_bv (bve, bvurem) > 0)
+    {
+      /* choose simplest solution (0 <= res < bve -> res = bvurem)
+       * with prob 0.5 */
+      if (btor_pick_rand_rng (&btor->rng, 0, 1))
+      {
+      BVUREM_EQ_0:
         res = btor_copy_bv (mm, bvurem);
       }
+      /* e[0] = bve * n + bvurem,
+       * with n s.t. (bve * n + bvurem) does not overflow */
+      else
+      {
+        tmp2 = btor_sub_bv (mm, bvmax, bve);
+
+        /* check for conflict -> overflow for n = 1 */
+        if (btor_compare_bv (tmp2, bvurem) < 0)
+        {
+          btor_free_bv (mm, tmp2);
+          goto BVUREM_CONF_0;
+        }
+        else
+        {
+          btor_free_bv (mm, tmp2);
+
+          tmp = btor_copy_bv (mm, bvmax);
+          n   = btor_new_random_range_bv (mm, &btor->rng, bw, one, tmp);
+
+          while (btor_is_umulo_bv (mm, bve, n))
+          {
+            btor_free_bv (mm, tmp);
+            tmp = btor_sub_bv (mm, n, one);
+            btor_free_bv (mm, n);
+            n = btor_new_random_range_bv (mm, &btor->rng, bw, one, tmp);
+          }
+
+          mul  = btor_mul_bv (mm, bve, n);
+          tmp2 = btor_sub_bv (mm, bvmax, mul);
+
+          if (btor_compare_bv (tmp2, bvurem) < 0)
+          {
+            btor_free_bv (mm, tmp);
+            tmp = btor_sub_bv (mm, n, one);
+            btor_free_bv (mm, n);
+            n = btor_new_random_range_bv (mm, &btor->rng, bw, one, tmp);
+            btor_free_bv (mm, mul);
+            mul = btor_mul_bv (mm, bve, n);
+          }
+
+          res = btor_add_bv (mm, mul, bvurem);
+          assert (btor_compare_bv (res, mul) >= 0);
+          assert (btor_compare_bv (res, bvurem) >= 0);
+
+          btor_free_bv (mm, tmp);
+          btor_free_bv (mm, tmp2);
+          btor_free_bv (mm, mul);
+          btor_free_bv (mm, n);
+        }
+      }
+    }
+    else /* conflict */
+    {
+    BVUREM_CONF_0:
+      /* check for non-recoverable conflict */
+      if (btor->options.engine.val == BTOR_ENGINE_SLS
+          && BTOR_IS_BV_CONST_NODE (BTOR_REAL_ADDR_NODE (e)))
+      {
+        res = 0;
+        BTOR_SLS_SOLVER (btor)->stats.move_prop_non_rec_conf += 1;
+#ifndef NDEBUG
+        char *sbvurem = btor_bv_to_char_bv (btor->mm, bvurem);
+        char *sbve    = btor_bv_to_char_bv (btor->mm, bve);
+        BTORLOG (2, "prop CONFLICT: %s := x %% %s", sbvurem, sbve);
+        btor_freestr (btor->mm, sbvurem);
+        btor_freestr (btor->mm, sbve);
+#endif
+      }
+      else
+      {
+        BTOR_INC_REC_CONF_STATS (btor, 1);
+        /* choose simplest solution with prob 0.5 */
+        if (btor_pick_rand_rng (&btor->rng, 0, 1)) goto BVUREM_EQ_0;
+        /* choose random value > bvurem */
+        else
+        {
+          tmp = btor_add_bv (mm, bvurem, one);
+          res = btor_new_random_range_bv (mm, &btor->rng, bw, tmp, bvmax);
+          btor_free_bv (mm, tmp);
+        }
+      }
+#ifndef NDEBUG
+      iscon = 1;
+#endif
     }
   }
 
@@ -2139,6 +3202,8 @@ inv_concat_bv (Btor *btor,
   mm = btor->mm;
   e  = concat->e[eidx ? 0 : 1];
   assert (e);
+
+  res = 0;
 
   /* bve o e[1] = bvconcat, slice e[1] out of the lower bits of bvconcat */
   if (eidx)
@@ -2313,7 +3378,7 @@ btor_select_move_prop (Btor *btor,
       btor_bv_to_uint64_bv ((BtorBitVector *) btor_get_bv_model (btor, root))
       == 0);
 
-  int i, eidx, idx;
+  int i, nconst, eidx, idx;
   BtorNode *cur, *real_cur;
   BtorBitVector *bve[3], *bvcur, *bvenew, *tmp;
 
@@ -2346,72 +3411,115 @@ btor_select_move_prop (Btor *btor,
         btor_free_bv (btor->mm, tmp);
       }
 
-      /* choose path */
-      for (i = 0, eidx = -1; i < real_cur->arity; i++)
+#if 0
+	  /* choose path */
+	  for (i = 0, eidx = -1; i < real_cur->arity; i++)
+	    {
+	      bve[i] = (BtorBitVector *)
+		btor_get_bv_model (btor, real_cur->e[i]);
+	      /* AND: choose 0-branch if only one is 0, else choose randomly 
+	       * Note: if bvcur = 0, no path is 0 (as the prev assignment of
+	       *       bvcur was 1) */
+	      if (BTOR_IS_AND_NODE (real_cur) && btor_is_zero_bv (bve[i]))
+		eidx = eidx == -1 ? i : -1;
+	    }
+	  if (eidx == -1)
+	    {
+	      eidx = real_cur->arity > 1 
+		? (int) btor_pick_rand_rng (&btor->rng, 0, real_cur->arity-1)
+		: 0;
+	    }
+	  idx = eidx ? 0 : 1;
+
+	  if (BTOR_IS_BV_CONST_NODE (BTOR_REAL_ADDR_NODE (real_cur->e[eidx])))
+	    {
+	      /* non-recoverable conflict */
+	      // TODO how to handle this in the engine=prop case?
+	      if (BTOR_IS_BV_CONST_NODE (BTOR_REAL_ADDR_NODE (real_cur->e[idx]))
+		  || real_cur->arity == 1)
+		break;
+
+	      eidx = idx;
+	      idx = eidx ? 0 : 1;
+	    }
+#endif
+      /* conflict */
+      for (i = 0, nconst = 0; i < real_cur->arity; i++)
       {
         bve[i] = (BtorBitVector *) btor_get_bv_model (btor, real_cur->e[i]);
-        /* AND: choose 0-branch if only one is 0, else choose randomly
-         * Note: if bvcur = 0, no path is 0 (as the prev assignment of
-         *       bvcur was 1) */
-        if (BTOR_IS_AND_NODE (real_cur) && btor_is_zero_bv (bve[i]))
-          eidx = eidx == -1 ? i : -1;
+        if (BTOR_IS_BV_CONST_NODE (BTOR_REAL_ADDR_NODE (real_cur->e[i])))
+          nconst += 1;
       }
-      if (eidx == -1)
-      {
-        eidx = real_cur->arity > 1 ? (int) btor_pick_rand_rng (
-                                         &btor->rng, 0, real_cur->arity - 1)
-                                   : 0;
-      }
-      idx = eidx ? 0 : 1;
+      if (nconst > real_cur->arity - 1) break;
 
-      if (BTOR_IS_BV_CONST_NODE (BTOR_REAL_ADDR_NODE (real_cur->e[eidx])))
-      {
-        /* non-recoverable conflict */
-        // TODO how to handle this in the engine=prop case?
-        if (BTOR_IS_BV_CONST_NODE (BTOR_REAL_ADDR_NODE (real_cur->e[idx]))
-            || real_cur->arity == 1)
-          break;
-
-        eidx = idx;
-        idx  = eidx ? 0 : 1;
-      }
-
-      /* determine path assignment */
+      /* select path and determine path assignment */
       switch (real_cur->kind)
       {
         case BTOR_ADD_NODE:
-          bvenew = inv_add_bv (btor, real_cur, bvcur, bve[idx], eidx);
+          eidx = select_path_add (btor, real_cur, bvcur, bve);
+          idx  = eidx ? 0 : 1;
+          assert (eidx >= 0),
+              bvenew = inv_add_bv (btor, real_cur, bvcur, bve[idx], eidx);
           break;
         case BTOR_AND_NODE:
-          bvenew = inv_and_bv (btor, real_cur, bvcur, bve[idx], eidx);
+          eidx = select_path_and (btor, real_cur, bvcur, bve);
+          idx  = eidx ? 0 : 1;
+          assert (eidx >= 0),
+              bvenew = inv_and_bv (btor, real_cur, bvcur, bve[idx], eidx);
           break;
         case BTOR_BEQ_NODE:
-          bvenew = inv_eq_bv (btor, real_cur, bvcur, bve[idx], eidx);
+          eidx = select_path_eq (btor, real_cur, bvcur, bve);
+          idx  = eidx ? 0 : 1;
+          assert (eidx >= 0),
+              bvenew = inv_eq_bv (btor, real_cur, bvcur, bve[idx], eidx);
           break;
         case BTOR_ULT_NODE:
-          bvenew = inv_ult_bv (btor, real_cur, bvcur, bve[idx], eidx);
+          eidx = select_path_ult (btor, real_cur, bvcur, bve);
+          idx  = eidx ? 0 : 1;
+          assert (eidx >= 0),
+              bvenew = inv_ult_bv (btor, real_cur, bvcur, bve[idx], eidx);
           break;
         case BTOR_SLL_NODE:
-          bvenew = inv_sll_bv (btor, real_cur, bvcur, bve[idx], eidx);
+          eidx = select_path_sll (btor, real_cur, bvcur, bve);
+          idx  = eidx ? 0 : 1;
+          assert (eidx >= 0),
+              bvenew = inv_sll_bv (btor, real_cur, bvcur, bve[idx], eidx);
           break;
         case BTOR_SRL_NODE:
-          bvenew = inv_srl_bv (btor, real_cur, bvcur, bve[idx], eidx);
+          eidx = select_path_srl (btor, real_cur, bvcur, bve);
+          idx  = eidx ? 0 : 1;
+          assert (eidx >= 0),
+              bvenew = inv_srl_bv (btor, real_cur, bvcur, bve[idx], eidx);
           break;
         case BTOR_MUL_NODE:
-          bvenew = inv_mul_bv (btor, real_cur, bvcur, bve[idx], eidx);
+          eidx = select_path_mul (btor, real_cur, bvcur, bve);
+          idx  = eidx ? 0 : 1;
+          assert (eidx >= 0),
+              bvenew = inv_mul_bv (btor, real_cur, bvcur, bve[idx], eidx);
           break;
         case BTOR_UDIV_NODE:
-          bvenew = inv_udiv_bv (btor, real_cur, bvcur, bve[idx], eidx);
+          eidx = select_path_udiv (btor, real_cur, bvcur, bve);
+          idx  = eidx ? 0 : 1;
+          assert (eidx >= 0),
+              bvenew = inv_udiv_bv (btor, real_cur, bvcur, bve[idx], eidx);
           break;
         case BTOR_UREM_NODE:
-          bvenew = inv_urem_bv (btor, real_cur, bvcur, bve[idx], eidx);
+          eidx = select_path_urem (btor, real_cur, bvcur, bve);
+          idx  = eidx ? 0 : 1;
+          assert (eidx >= 0),
+              bvenew = inv_urem_bv (btor, real_cur, bvcur, bve[idx], eidx);
           break;
         case BTOR_CONCAT_NODE:
-          bvenew = inv_concat_bv (btor, real_cur, bvcur, bve[idx], eidx);
+          eidx = select_path_concat (btor, real_cur, bvcur, bve);
+          idx  = eidx ? 0 : 1;
+          assert (eidx >= 0),
+              bvenew = inv_concat_bv (btor, real_cur, bvcur, bve[idx], eidx);
           break;
         default:
           assert (real_cur->kind == BTOR_SLICE_NODE);
-          bvenew = inv_slice_bv (btor, real_cur, bvcur);
+          eidx = select_path_slice (btor, real_cur, bvcur, bve);
+          idx  = eidx ? 0 : 1;
+          assert (eidx >= 0), bvenew = inv_slice_bv (btor, real_cur, bvcur);
       }
 
       if (!bvenew) break; /* non-recoverable conflict */
@@ -2614,7 +3722,7 @@ select_constraint (Btor *btor, int nmoves)
   assert (res);
 
   BTORLOG (1, "");
-  BTORLOG (1, "*** select constraint: %s", node2string (res));
+  BTORLOG (1, "select constraint: %s", node2string (res));
 
   return res;
 }
@@ -2667,6 +3775,8 @@ move (Btor *btor, int nmoves)
   BtorBitVector *ass;
   ass = (BtorBitVector *) btor_get_bv_model (btor, input);
   a   = btor_bv_to_char_bv (btor->mm, ass);
+  BTORLOG (1, "");
+  BTORLOG (1, "move");
   BTORLOG (1,
            "  input: %s%s",
            BTOR_IS_REGULAR_NODE (input) ? "" : "-",
