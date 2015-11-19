@@ -128,6 +128,7 @@ select_path_and (Btor *btor,
     }
     else
     {
+      /* choose branch incompatible with bvand */
       for (i = 0; i < and->arity; i++)
       {
         tmp = btor_and_bv (btor->mm, bvand, bve[i]);
@@ -508,7 +509,7 @@ select_path_urem (Btor *btor,
           || cmp_e0_urem < 0)
         eidx = 0;
 
-      /* bve[1} <= bvurem */
+      /* bve[1] <= bvurem */
       if (btor_compare_bv (bve[1], bvurem) <= 0) eidx = eidx == -1 ? 1 : -1;
     }
 
