@@ -1529,6 +1529,40 @@ test_propinv_complete_slice_bv (void)
 {
 #ifndef NDEBUG
   uint32_t bw;
+  uint64_t up, lo, i, k;
+  BtorNode *exp, *e;
+  BtorBitVector *bve, *bvexp, *res;
+
+  bw = TEST_PROP_INV_COMPLETE_BW;
+  e  = btor_var_exp (g_btor, bw, 0);
+
+  for (lo = 0; lo < bw; lo++)
+  {
+    for (up = lo; up < bw; up++)
+    {
+      exp = btor_slice_exp (g_btor, e, up, lo);
+      for (i = 0; i < (uint32_t) (1 << bw); i++)
+      {
+        bve   = btor_uint64_to_bv (g_mm, i, bw);
+        bvexp = btor_slice_bv (g_mm, bve, up, lo);
+        for (k = 0, res = 0; k < TEST_PROP_INV_COMPLETE_N_TESTS; k++)
+        {
+          res = inv_slice_bv (g_btor, exp, bvexp);
+          assert (res);
+          if (!btor_compare_bv (res, bve)) break;
+          btor_free_bv (g_mm, res);
+          res = 0;
+        }
+        assert (res);
+        assert (!btor_compare_bv (res, bve));
+        btor_free_bv (g_mm, res);
+        btor_free_bv (g_mm, bvexp);
+        btor_free_bv (g_mm, bve);
+      }
+      btor_release_exp (g_btor, exp);
+    }
+  }
+  btor_release_exp (g_btor, e);
 #endif
 }
 
