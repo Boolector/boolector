@@ -2,7 +2,7 @@
  *
  *  Copyright (C) 2007-2010 Robert Daniel Brummayer.
  *  Copyright (C) 2007-2012 Armin Biere.
- *  Copyright (C) 2012-2014 Aina Niemetz.
+ *  Copyright (C) 2012-2015 Aina Niemetz.
  *  Copyright (C) 2012 Mathias Preiner.
  *
  *  All rights reserved.
@@ -68,7 +68,6 @@
   "    -s, --slow       run 'slow' testcases also\n"                         \
   "    -f, --fast       run 'fast' testcases only\n"                         \
   "                     (default: run 'fast' and 'normal' testcases)\n"      \
-  "    --bitvec         run 'bitvec' testcases also\n"                       \
   "  patterns:\n"                                                            \
   "    a valid pattern is a substring of an existing test case out of the\n" \
   "    following test case sets:\n"                                          \
@@ -79,7 +78,7 @@
 int
 main (int argc, char **argv)
 {
-  int i, skip_broken = 1, bitvec = 0;
+  int i, skip_broken = 1;
   BtorTestCaseSpeed speed = BTOR_NORMAL_TEST_CASE;
 
   for (i = 1; i < argc; i++)
@@ -105,10 +104,6 @@ main (int argc, char **argv)
     {
       speed = BTOR_SLOW_TEST_CASE;
     }
-    else if (!strcmp (argv[i], "--bitvec"))
-    {
-      bitvec = 1;
-    }
     else if (argv[i][0] == '-')
     {
       printf ("*** test: invalid option '%s'\n", argv[i]);
@@ -127,7 +122,7 @@ main (int argc, char **argv)
   BTOR_RUN_TESTS (queue);
   BTOR_RUN_TESTS (hash);
   BTOR_RUN_TESTS (const);
-  if (bitvec) BTOR_RUN_TESTS (bitvec);
+  BTOR_RUN_TESTS (bitvec);
   BTOR_RUN_TESTS (sat);
   BTOR_RUN_TESTS (aig);
   BTOR_RUN_TESTS (aigvec);

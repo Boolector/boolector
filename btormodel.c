@@ -290,7 +290,7 @@ btor_recursively_compute_assignment (Btor *btor,
       }
       else if (BTOR_IS_BV_CONST_NODE (real_cur))
       {
-        result = btor_char_to_bv (mm, btor_const_get_bits (real_cur));
+        result = btor_copy_bv (mm, btor_const_get_bits (real_cur));
         goto CACHE_AND_PUSH_RESULT;
       }
       /* substitute param with its assignment */
@@ -953,7 +953,8 @@ btor_get_bv_model_aux (Btor *btor,
   BtorBitVector *result;
   BtorPtrHashBucket *b;
 
-  b = btor_find_in_ptr_hash_table (*bv_model, exp);
+  exp = btor_simplify_exp (btor, exp);
+  b   = btor_find_in_ptr_hash_table (*bv_model, exp);
 
   if (!b)
   {
@@ -1032,21 +1033,6 @@ btor_get_fun_model (Btor *btor, BtorNode *exp)
   return btor_get_fun_model_aux (btor, &btor->fun_model, exp);
 }
 
-static BtorNode *
-const_from_bv (Btor *btor, BtorBitVector *bv)
-{
-  assert (btor);
-  assert (bv);
-
-  char *val;
-  BtorNode *res;
-
-  val = btor_bv_to_char_bv (btor->mm, bv);
-  res = btor_const_exp (btor, val);
-  btor_release_bv_assignment_str (btor, val);
-  return res;
-}
-
 BtorNode *
 btor_generate_lambda_model_from_fun_model (Btor *btor,
                                            BtorNode *exp,
@@ -1107,7 +1093,7 @@ btor_generate_lambda_model_from_fun_model (Btor *btor,
     assert (BTOR_COUNT_STACK (params) == args_tuple->arity);
     for (i = 0; i < args_tuple->arity; i++)
     {
-      c = const_from_bv (btor, args_tuple->bv[i]);
+      c = btor_const_exp (btor, args_tuple->bv[i]);
       assert (BTOR_REAL_ADDR_NODE (c)->sort_id
               == BTOR_PEEK_STACK (params, i)->sort_id);
       BTOR_PUSH_STACK (btor->mm, consts, c);
@@ -1134,7 +1120,7 @@ btor_generate_lambda_model_from_fun_model (Btor *btor,
       btor_release_exp (btor, BTOR_POP_STACK (consts));
 
     /* create ITE */
-    e_if = const_from_bv (btor, value);
+    e_if = btor_const_exp (btor, value);
     ite  = btor_cond_exp (btor, cond, e_if, e_else);
 
     /* add to static rho */

@@ -3,7 +3,7 @@
  *  Copyright (C) 2007-2009 Robert Daniel Brummayer.
  *  Copyright (C) 2007-2013 Armin Biere.
  *  Copyright (C) 2012-2015 Mathias Preiner.
- *  Copyright (C) 2012-2014 Aina Niemetz.
+ *  Copyright (C) 2012-2015 Aina Niemetz.
  *
  *  All rights reserved.
  *
@@ -224,7 +224,7 @@ btor_dump_const_value_smt (
 }
 
 static void
-dump_const_value_aux_smt (BtorSMTDumpContext *sdc, const char *bits)
+dump_const_value_aux_smt (BtorSMTDumpContext *sdc, char *bits)
 {
   assert (sdc);
   assert (bits);
@@ -245,7 +245,7 @@ dump_const_value_aux_smt (BtorSMTDumpContext *sdc, const char *bits)
    * subsequent calls. */
   if (base == BTOR_OUTPUT_BASE_DEC)
   {
-    if ((b = btor_find_in_ptr_hash_table (sdc->const_cache, (char *) bits)))
+    if ((b = btor_find_in_ptr_hash_table (sdc->const_cache, bits)))
     {
       val = b->data.asStr;
       assert (val);
@@ -263,7 +263,7 @@ dump_const_value_aux_smt (BtorSMTDumpContext *sdc, const char *bits)
   else if (base == BTOR_OUTPUT_BASE_HEX && strlen (bits) % 4 == 0)
   {
     assert (version == 2);
-    if ((b = btor_find_in_ptr_hash_table (sdc->const_cache, (char *) bits)))
+    if ((b = btor_find_in_ptr_hash_table (sdc->const_cache, bits)))
     {
       val = b->data.asStr;
       assert (val);
@@ -488,7 +488,8 @@ recursively_dump_exp_smt (BtorSMTDumpContext *sdc,
 
   unsigned depth;
   int pad, i, is_bool, add_space, zero_extend, expect_bool;
-  char *inv_bits;
+  BtorBitVector *bitsbv;
+  char *bits;
   const char *op, *fmt;
   BtorNode *arg, *real_exp;
   BtorArgsIterator it;
@@ -548,13 +549,19 @@ recursively_dump_exp_smt (BtorSMTDumpContext *sdc,
           fputs ("false", sdc->file);
         else if (BTOR_IS_INVERTED_NODE (exp))
         {
-          inv_bits =
-              btor_not_const (sdc->btor->mm, btor_const_get_bits (real_exp));
-          dump_const_value_aux_smt (sdc, inv_bits);
-          btor_freestr (sdc->btor->mm, inv_bits);
+          bitsbv = btor_not_bv (sdc->btor->mm, btor_const_get_bits (real_exp));
+          bits   = btor_bv_to_char_bv (sdc->btor->mm, bitsbv);
+          dump_const_value_aux_smt (sdc, bits);
+          btor_free_bv (sdc->btor->mm, bitsbv);
+          btor_freestr (sdc->btor->mm, bits);
         }
         else
-          dump_const_value_aux_smt (sdc, btor_const_get_bits (real_exp));
+        {
+          bits = btor_bv_to_char_bv (sdc->btor->mm,
+                                     btor_const_get_bits (real_exp));
+          dump_const_value_aux_smt (sdc, bits);
+          btor_freestr (sdc->btor->mm, bits);
+        }
 
         /* close zero extend */
         if (zero_extend) fputc (')', sdc->file);

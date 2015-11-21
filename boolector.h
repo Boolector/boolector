@@ -1655,6 +1655,17 @@ int boolector_get_index_width (Btor *btor, BoolectorNode *n_array);
 const char *boolector_get_bits (Btor *btor, BoolectorNode *node);
 
 /*!
+  Free a bits string for bit vector constants.
+
+  :param btor: Boolector instance.
+  :param bits: String which has to be freed.
+
+  .. seealso::
+    boolector_get_bits
+*/
+void boolector_free_bits (Btor *btor, const char *bits);
+
+/*!
   Get the arity of function ``node``.
 
   :param btor: Boolector instance.

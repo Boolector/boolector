@@ -420,8 +420,8 @@ clone_exp (Btor *clone,
   assert (sapps);
   assert (exp_map);
 
-  char *bits;
-  int i, len;
+  int i;
+  BtorBitVector *bits;
   BtorNode *res;
   BtorParamNode *param;
   BtorLambdaNode *lambda;
@@ -436,18 +436,12 @@ clone_exp (Btor *clone,
   /* ----------------- BTOR_BV_VAR_NODE_STRUCT (all nodes) ----------------> */
   if (BTOR_IS_BV_CONST_NODE (exp))
   {
-    len = btor_get_exp_width (exp->btor, exp);
-    BTOR_NEWN (mm, bits, len + 1);
-    memcpy (bits, btor_const_get_bits (exp), len * sizeof (char));
-    bits[len] = '\0';
+    bits = btor_copy_bv (mm, btor_const_get_bits (exp));
     btor_const_set_bits (res, bits);
 
     if (btor_const_get_invbits (exp))
     {
-      len = btor_get_exp_width (exp->btor, exp);
-      BTOR_NEWN (mm, bits, len + 1);
-      memcpy (bits, btor_const_get_invbits (exp), len * sizeof (char));
-      bits[len] = '\0';
+      bits = btor_copy_bv (mm, btor_const_get_invbits (exp));
       btor_const_set_invbits (res, bits);
     }
   }
@@ -755,6 +749,9 @@ clone_nodes_unique_table (BtorMemMgr *mm,
     CHKCLONE_MEM_PTR_HASH_TABLE (btor->table, clone->table);                  \
   } while (0)
 
+#define MEM_BITVEC(bv) \
+  ((bv) ? sizeof (*(bv)) + bv->len * sizeof (BTOR_BV_TYPE) : 0)
+
 static Btor *
 clone_aux_btor (Btor *btor, BtorNodeMap **exp_map, bool exp_layer_only)
 {
@@ -939,9 +936,9 @@ clone_aux_btor (Btor *btor, BtorNodeMap **exp_map, bool exp_layer_only)
     allocated += cur->bytes;
     if (BTOR_IS_BV_CONST_NODE (cur))
     {
-      allocated += strlen (btor_const_get_bits (cur)) + 1;
+      allocated += MEM_BITVEC (btor_const_get_bits (cur));
       if (btor_const_get_invbits (cur))
-        allocated += strlen (btor_const_get_invbits (cur)) + 1;
+        allocated += MEM_BITVEC (btor_const_get_invbits (cur));
     }
     if (!exp_layer_only)
     {

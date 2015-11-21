@@ -27,6 +27,7 @@
 #include "btorprintmodel.h"
 #include "btorrewrite.h"
 #include "btorsat.h"
+#include "dumper/btordumpbtor.h"
 #include "simplifier/btorack.h"
 #include "simplifier/btorelimapplies.h"
 #include "simplifier/btorelimslices.h"
@@ -1175,14 +1176,15 @@ insert_unsynthesized_constraint (Btor *btor, BtorNode *exp)
   assert (exp);
   assert (!BTOR_REAL_ADDR_NODE (exp)->parameterized);
 
-  char *bits;
+  BtorBitVector *bits;
   BtorPtrHashTable *uc;
 
   if (BTOR_IS_BV_CONST_NODE (BTOR_REAL_ADDR_NODE (exp)))
   {
     bits = btor_const_get_bits (exp);
-    if ((BTOR_IS_INVERTED_NODE (exp) && bits[0] == '1')
-        || (!BTOR_IS_INVERTED_NODE (exp) && bits[0] == '0'))
+    assert (bits->width == 1);
+    if ((BTOR_IS_INVERTED_NODE (exp) && btor_get_bit_bv (bits, 0))
+        || (!BTOR_IS_INVERTED_NODE (exp) && !btor_get_bit_bv (bits, 0)))
     {
       btor->inconsistent = 1;
       return;
@@ -1190,8 +1192,8 @@ insert_unsynthesized_constraint (Btor *btor, BtorNode *exp)
     else
     {
       /* we do not add true */
-      assert ((BTOR_IS_INVERTED_NODE (exp) && bits[0] == '0')
-              || (!BTOR_IS_INVERTED_NODE (exp) && bits[0] == '1'));
+      assert ((BTOR_IS_INVERTED_NODE (exp) && !btor_get_bit_bv (bits, 0))
+              || (!BTOR_IS_INVERTED_NODE (exp) && btor_get_bit_bv (bits, 0)));
       return;
     }
   }
@@ -1349,7 +1351,7 @@ normalize_substitution (Btor *btor,
   BtorNode *left, *right, *real_left, *real_right, *tmp, *inv, *var, *lambda;
   BtorNode *const_exp, *real_exp;
   int leadings;
-  char *ic, *fc, *bits;
+  BtorBitVector *ic, *fc, *bits;
   BtorMemMgr *mm;
   BtorSubstCompKind comp;
 
@@ -1423,13 +1425,13 @@ normalize_substitution (Btor *btor,
     if (!BTOR_IS_BV_CONST_NODE (BTOR_REAL_ADDR_NODE (right))) return 0;
 
     if (BTOR_IS_INVERTED_NODE (right))
-      bits = btor_not_const_3vl (mm, btor_const_get_bits (right));
+      bits = btor_not_bv (mm, btor_const_get_bits (right));
     else
-      bits = btor_copy_const (mm, btor_const_get_bits (right));
+      bits = btor_copy_bv (mm, btor_const_get_bits (right));
 
     if (comp == BTOR_SUBST_COMP_ULT_KIND || comp == BTOR_SUBST_COMP_ULTE_KIND)
     {
-      leadings = btor_get_num_leading_zeros_const (btor->mm, bits);
+      leadings = btor_get_num_leading_zeros_bv (bits);
       if (leadings > 0)
       {
         const_exp = btor_zero_exp (btor, leadings);
@@ -1446,7 +1448,7 @@ normalize_substitution (Btor *btor,
     {
       assert (comp == BTOR_SUBST_COMP_UGT_KIND
               || comp == BTOR_SUBST_COMP_UGTE_KIND);
-      leadings = btor_get_num_leading_ones_const (btor->mm, bits);
+      leadings = btor_get_num_leading_ones_bv (bits);
       if (leadings > 0)
       {
         const_exp = btor_ones_exp (btor, leadings);
@@ -1460,7 +1462,7 @@ normalize_substitution (Btor *btor,
       }
     }
 
-    btor_delete_const (btor->mm, bits);
+    btor_free_bv (btor->mm, bits);
     return 0;
   }
 
@@ -1508,10 +1510,10 @@ normalize_substitution (Btor *btor,
     btor->stats.gaussian_eliminations++;
 
     btor_release_exp (btor, tmp);
-    ic = btor_inverse_const (btor->mm, fc);
-    btor_delete_const (btor->mm, fc);
+    ic = btor_mod_inverse_bv (btor->mm, fc);
+    btor_free_bv (btor->mm, fc);
     inv = btor_const_exp (btor, ic);
-    btor_delete_const (btor->mm, ic);
+    btor_free_bv (btor->mm, ic);
     tmp = btor_mul_exp (btor, *right_result, inv);
     btor_release_exp (btor, inv);
     btor_release_exp (btor, *right_result);
@@ -1592,7 +1594,7 @@ insert_new_constraint (Btor *btor, BtorNode *exp)
   assert (btor_get_exp_width (btor, exp) == 1);
   assert (!BTOR_REAL_ADDR_NODE (exp)->parameterized);
 
-  char *bits;
+  BtorBitVector *bits;
   BtorNode *left, *right, *real_exp;
 
   exp      = btor_simplify_exp (btor, exp);
@@ -1601,14 +1603,15 @@ insert_new_constraint (Btor *btor, BtorNode *exp)
   if (BTOR_IS_BV_CONST_NODE (real_exp))
   {
     bits = btor_const_get_bits (real_exp);
+    assert (bits->width == 1);
     /* we do not add true/false */
-    if ((BTOR_IS_INVERTED_NODE (exp) && bits[0] == '1')
-        || (!BTOR_IS_INVERTED_NODE (exp) && bits[0] == '0'))
+    if ((BTOR_IS_INVERTED_NODE (exp) && btor_get_bit_bv (bits, 0))
+        || (!BTOR_IS_INVERTED_NODE (exp) && !btor_get_bit_bv (bits, 0)))
       btor->inconsistent = 1;
     else
     {
-      assert ((BTOR_IS_INVERTED_NODE (exp) && bits[0] == '0')
-              || (!BTOR_IS_INVERTED_NODE (exp) && bits[0] == '1'));
+      assert ((BTOR_IS_INVERTED_NODE (exp) && !btor_get_bit_bv (bits, 0))
+              || (!BTOR_IS_INVERTED_NODE (exp) && btor_get_bit_bv (bits, 0)));
     }
     return;
   }
@@ -4031,7 +4034,6 @@ assume_inputs (Btor *btor,
   assert (key_map->table->count == 0);
   assert (assumptions);
 
-  char *astr;
   int i;
   BtorNode *cur_btor, *cur_clone, *bv_const, *bv_eq;
   BtorBitVector *bv;
@@ -4046,11 +4048,10 @@ assume_inputs (Btor *btor,
     btor_map_node (key_map, cur_clone, cur_btor);
 
     assert (BTOR_IS_REGULAR_NODE (cur_btor));
-    bv   = get_bv_assignment (btor, cur_btor);
-    astr = btor_bv_to_char_bv (btor->mm, bv);
+    bv       = get_bv_assignment (btor, cur_btor);
+    bv_const = btor_const_exp (clone, bv);
     btor_free_bv (btor->mm, bv);
-    bv_const = btor_const_exp (clone, astr);
-    bv_eq    = btor_eq_exp (clone, cur_clone, bv_const);
+    bv_eq = btor_eq_exp (clone, cur_clone, bv_const);
     BTORLOG (1,
              "assume input: %s (%s)",
              node2string (cur_btor),
@@ -4059,7 +4060,6 @@ assume_inputs (Btor *btor,
     btor_map_node (assumptions, bv_eq, cur_clone);
     btor_release_exp (clone, bv_const);
     btor_release_exp (clone, bv_eq);
-    btor_freestr (btor->mm, astr);
   }
 }
 
@@ -6388,7 +6388,7 @@ btor_eval_exp (Btor *btor, BtorNode *exp, bool init)
       }
       else if (BTOR_IS_BV_CONST_NODE (real_cur))
       {
-        result = btor_char_to_bv (mm, btor_const_get_bits (real_cur));
+        result = btor_copy_bv (btor->mm, btor_const_get_bits (real_cur));
         goto EVAL_EXP_PUSH_RESULT;
       }
       /* substitute param with its assignment */
@@ -6642,21 +6642,6 @@ rebuild_formula (Btor *btor, int rewrite_level)
   btor_delete_ptr_hash_table (t);
 }
 
-static BtorNode *
-const_from_bv (Btor *btor, BtorBitVector *bv)
-{
-  assert (btor);
-  assert (bv);
-
-  char *val;
-  BtorNode *res;
-
-  val = btor_bv_to_char_bv (btor->mm, bv);
-  res = btor_const_exp (btor, val);
-  btor_release_bv_assignment_str (btor, val);
-  return res;
-}
-
 static void
 check_model (Btor *btor, Btor *clone, BtorPtrHashTable *inputs)
 {
@@ -6667,7 +6652,6 @@ check_model (Btor *btor, Btor *clone, BtorPtrHashTable *inputs)
 
   uint32_t i;
   int ret;
-  char *a;
   BtorNode *cur, *exp, *simp, *real_simp, *model, *eq, *args, *apply;
   BtorHashTableIterator it;
   const BtorPtrHashTable *fmodel;
@@ -6722,13 +6706,13 @@ check_model (Btor *btor, Btor *clone, BtorPtrHashTable *inputs)
         assert (BTOR_EMPTY_STACK (consts));
         for (i = 0; i < args_tuple->arity; i++)
         {
-          model = const_from_bv (clone, args_tuple->bv[i]);
+          model = btor_const_exp (clone, args_tuple->bv[i]);
           BTOR_PUSH_STACK (clone->mm, consts, model);
         }
 
         args  = btor_args_exp (clone, BTOR_COUNT_STACK (consts), consts.start);
         apply = btor_apply_exp (clone, real_simp, args);
-        model = const_from_bv (clone, value);
+        model = btor_const_exp (clone, value);
         eq    = btor_eq_exp (clone, apply, model);
         btor_assert_exp (clone, eq);
         btor_release_exp (clone, eq);
@@ -6747,11 +6731,10 @@ check_model (Btor *btor, Btor *clone, BtorPtrHashTable *inputs)
                node2string (real_simp),
                btor_get_symbol_exp (clone, cur));
       /* we need to invert the assignment if simplified is inverted */
-      a     = (char *) btor_get_bv_model_str (btor,
-                                          BTOR_COND_INVERT_NODE (simp, exp));
-      model = btor_const_exp (clone, a);
-      btor_release_bv_assignment_str (btor, a);
-      eq = btor_eq_exp (clone, real_simp, model);
+      model = btor_const_exp (clone,
+                              (BtorBitVector *) btor_get_bv_model (
+                                  btor, BTOR_COND_INVERT_NODE (simp, exp)));
+      eq    = btor_eq_exp (clone, real_simp, model);
       btor_assert_exp (clone, eq);
       btor_release_exp (clone, eq);
       btor_release_exp (clone, model);
