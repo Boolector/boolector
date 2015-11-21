@@ -4272,7 +4272,7 @@ btor_param_is_bound (BtorNode *param)
 bool
 btor_is_encoded_exp (BtorNode *exp)
 {
-  unsigned i;
+  unsigned i, num_consts;
   BtorAIG *aig;
 
   exp = BTOR_REAL_ADDR_NODE (exp);
@@ -4283,14 +4283,27 @@ btor_is_encoded_exp (BtorNode *exp)
 
   if (exp->av->encoded) return true;
 
+  num_consts = 0;
   for (i = 0; i < exp->av->len; i++)
   {
     aig = exp->av->aigs[i];
-    if (BTOR_IS_CONST_AIG (aig)) continue;
-    if (!BTOR_REAL_ADDR_AIG (aig)->cnf_id) return false;
+    if (BTOR_IS_CONST_AIG (aig))
+    {
+      num_consts++;
+      continue;
+    }
+    if (BTOR_REAL_ADDR_AIG (aig)->cnf_id)
+    {
+      exp->av->encoded = 1;
+      return true;
+    }
   }
-  exp->av->encoded = 1;
-  return true;
+  if (num_consts == exp->av->len)
+  {
+    exp->av->encoded = 1;
+    return true;
+  }
+  return false;
 }
 
 #ifndef NDEBUG
