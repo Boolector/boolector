@@ -3873,10 +3873,8 @@ get_bv_assignment (Btor *btor, BtorNode *exp)
   b        = btor_find_in_ptr_hash_table (btor->bv_model, real_exp);
   if (b)
     bv = btor_copy_bv (btor->mm, b->data.asPtr);
-  else
+  else /* cache assignment to avoid querying the sat solver multiple times */
   {
-    /* cache assignment in order to not query the sat solver multiple times */
-    //      assert (btor_is_encoded_exp (exp));
     /* 'real_exp' may be partially encoded */
     bv = btor_assignment_bv (btor->mm, real_exp, true);
     btor_add_to_bv_model (btor, btor->bv_model, real_exp, bv);
@@ -4694,7 +4692,6 @@ collect_premisses (Btor *btor,
 
       if (BTOR_IS_FUN_COND_NODE (fun))
       {
-        assert (btor_is_encoded_exp (fun->e[0]));
         bv_assignment = get_bv_assignment (btor, fun->e[0]);
 
         /* propagate over function ite */
@@ -5198,7 +5195,6 @@ propagate (Btor *btor,
     {
       push_applies_for_propagation (
           btor, fun->e[0], 0, prop_stack, apply_search_cache, 0);
-      assert (btor_is_encoded_exp (fun->e[0]));
       bv0 = get_bv_assignment (btor, fun->e[0]);
 
       /* propagate over function ite */
@@ -6359,30 +6355,20 @@ btor_eval_exp (Btor *btor, BtorNode *exp, bool init)
     real_cur = BTOR_REAL_ADDR_NODE (cur);
     assert (!real_cur->simplified);
 
-    /* if we do not have an assignment for an apply we cannot compute the
-     * corresponding value */
-    if ((BTOR_IS_BV_VAR_NODE (real_cur) || BTOR_IS_APPLY_NODE (real_cur))
-        && !has_bv_assignment (btor, real_cur))
-    {
-      if (init)
-      {
-        /* 'real_cur' may be partially encoded */
-        result = btor_assignment_bv (mm, real_cur, true);
-        btor_add_to_bv_model (btor, btor->bv_model, real_cur, result);
-        BTORLOG (1, "zero-initialize %s", node2string (real_cur));
-        goto EVAL_EXP_PUSH_RESULT;
-      }
-      else
-      {
-        result = 0;
-        goto EVAL_EXP_CLEANUP_EXIT;
-      }
-    }
-
     if (real_cur->eval_mark == 0)
     {
-      if (has_bv_assignment (btor, real_cur))
+      if (BTOR_IS_BV_VAR_NODE (real_cur) || BTOR_IS_APPLY_NODE (real_cur)
+          || has_bv_assignment (btor, real_cur))
       {
+#ifndef NDEBUG
+        /* if we do not have an assignment for an apply or a variable
+         * we initialize it with zero */
+        if (!has_bv_assignment (btor, real_cur))
+        {
+          assert (init);
+          BTORLOG (1, "zero-initialize %s", node2string (real_cur));
+        }
+#endif
         result = get_bv_assignment (btor, real_cur);
         goto EVAL_EXP_PUSH_RESULT;
       }
@@ -6521,7 +6507,6 @@ btor_eval_exp (Btor *btor, BtorNode *exp, bool init)
   result = BTOR_POP_STACK (arg_stack);
   assert (result);
 
-EVAL_EXP_CLEANUP_EXIT:
   while (!BTOR_EMPTY_STACK (work_stack))
   {
     cur            = BTOR_REAL_ADDR_NODE (BTOR_POP_STACK (work_stack));
