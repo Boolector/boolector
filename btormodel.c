@@ -663,14 +663,14 @@ recursively_compute_function_model (Btor *btor,
       {
         arg = btor_next_args_iterator (&ait);
         if (btor_is_encoded_exp (arg))
-          bv_arg = btor_assignment_bv (mm, arg, 0);
+          bv_arg = btor_assignment_bv (mm, arg, true);
         else
           bv_arg = btor_copy_bv (mm, btor_get_bv_model (btor, arg));
         btor_add_to_bv_tuple (mm, t, bv_arg, pos++);
         btor_free_bv (mm, bv_arg);
       }
       if (btor_is_encoded_exp (value))
-        bv_value = btor_assignment_bv (mm, value, 0);
+        bv_value = btor_assignment_bv (mm, value, true);
       else
         bv_value = btor_copy_bv (mm, btor_get_bv_model (btor, value));
 
