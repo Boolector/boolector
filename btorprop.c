@@ -3134,6 +3134,9 @@ inv_urem_bv (Btor *btor,
       }
       else
       {
+#ifndef NDEBUG
+        iscon = 1;
+#endif
         BTOR_INC_REC_CONF_STATS (btor, 1);
         /* choose simplest solution with prob 0.5 */
         if (btor_pick_rand_rng (&btor->rng, 0, 1)) goto BVUREM_EQ_0;
@@ -3145,9 +3148,6 @@ inv_urem_bv (Btor *btor,
           btor_free_bv (mm, tmp);
         }
       }
-#ifndef NDEBUG
-      iscon = 1;
-#endif
     }
   }
 
