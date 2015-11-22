@@ -2919,6 +2919,7 @@ inv_urem_bv (Btor *btor,
         /* bve - bvurem <= bvurem -> conflict */
         if (btor_compare_bv (sub, bvurem) <= 0)
         {
+          btor_free_bv (mm, sub);
           goto BVUREM_CONF_1;
         }
         else
