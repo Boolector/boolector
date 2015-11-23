@@ -4260,43 +4260,6 @@ btor_param_is_bound (BtorNode *param)
   return btor_param_get_binding_lambda (param) != 0;
 }
 
-bool
-btor_is_encoded_exp (BtorNode *exp)
-{
-  unsigned i, num_consts;
-  BtorAIG *aig;
-
-  exp = BTOR_REAL_ADDR_NODE (exp);
-
-  if (BTOR_IS_FUN_NODE (exp)) return exp->lazy_synth == 1;
-
-  if (!BTOR_IS_SYNTH_NODE (exp)) return false;
-
-  if (exp->av->encoded) return true;
-
-  num_consts = 0;
-  for (i = 0; i < exp->av->len; i++)
-  {
-    aig = exp->av->aigs[i];
-    if (BTOR_IS_CONST_AIG (aig))
-    {
-      num_consts++;
-      continue;
-    }
-    if (BTOR_REAL_ADDR_AIG (aig)->cnf_id)
-    {
-      exp->av->encoded = 1;
-      return true;
-    }
-  }
-  if (num_consts == exp->av->len)
-  {
-    exp->av->encoded = 1;
-    return true;
-  }
-  return false;
-}
-
 #ifndef NDEBUG
 
 BtorNode *

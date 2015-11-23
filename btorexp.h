@@ -92,7 +92,6 @@ typedef struct BtorNodePair BtorNodePair;
     uint8_t eval_mark : 2;     /* mark for eval_exp */                  \
     uint8_t clone_mark : 2;    /* mark for clone_exp_tree */            \
     uint8_t reachable : 1;     /* reachable from root ? */              \
-    uint8_t lazy_synth : 1;    /* lazy synthesized ? (funs, applies) */ \
     uint8_t synth_app : 1;     /* inserted in synth_apps ? */           \
     uint8_t constraint : 1;    /* top level constraint ? */             \
     uint8_t erased : 1;        /* for debugging purposes */             \
@@ -917,7 +916,6 @@ void btor_set_to_proxy_exp (Btor *btor, BtorNode *exp);
 int btor_cmp_exp_by_id_qsort_desc (const void *p, const void *q);
 int btor_cmp_exp_by_id_qsort_asc (const void *p, const void *q);
 
-bool btor_is_encoded_exp (BtorNode *exp);
 /*------------------------------------------------------------------------*/
 
 BtorNode *btor_slice_exp_node (Btor *btor,

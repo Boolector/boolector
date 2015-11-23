@@ -306,12 +306,6 @@ struct BtorCoreSolver
     int lod_refinements; /* number of lemmas on demand refinements */
     int refinement_iterations;
 
-    int synthesis_assignment_inconsistencies; /* number of restarts as a
-                                                 result of lazy synthesis */
-    int synthesis_inconsistency_app;
-    int synthesis_inconsistency_fun;
-    int synthesis_inconsistency_feq;
-
     int function_congruence_conflicts;
     int beta_reduction_conflicts;
     int extensionality_lemmas;
@@ -368,7 +362,7 @@ int btor_fun_sort_check (Btor *btor,
                          BtorNode *fun);
 
 /* Evaluates expression and returns its value. */
-BtorBitVector *btor_eval_exp (Btor *btor, BtorNode *exp, bool init);
+BtorBitVector *btor_eval_exp (Btor *btor, BtorNode *exp);
 
 /* Synthesizes expression of arbitrary length to an AIG vector. Adds string
  * back annotation to the hash table, if the hash table is a non zero ptr.

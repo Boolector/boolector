@@ -431,7 +431,6 @@ clone_exp (Btor *clone,
 
   res = btor_malloc (mm, exp->bytes);
   memcpy (res, exp, exp->bytes);
-  if (exp_layer_only) res->lazy_synth = 0;
 
   /* ----------------- BTOR_BV_VAR_NODE_STRUCT (all nodes) ----------------> */
   if (BTOR_IS_BV_CONST_NODE (exp))
@@ -1131,7 +1130,7 @@ clone_aux_btor (Btor *btor, BtorNodeMap **exp_map, bool exp_layer_only)
   assert (allocated == clone->mm->allocated);
 #endif
 
-  /* move synthesized contraints to unsynthesized if we only clone the exp
+  /* move synthesized constraints to unsynthesized if we only clone the exp
    * layer */
   if (exp_layer_only)
   {

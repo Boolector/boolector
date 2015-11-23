@@ -389,7 +389,6 @@ btor_chkclone_exp (BtorNode *exp, BtorNode *clone)
   BTOR_CHKCLONE_EXP (beta_mark);
   BTOR_CHKCLONE_EXP (eval_mark);
   BTOR_CHKCLONE_EXP (reachable);
-  BTOR_CHKCLONE_EXP (lazy_synth);
   BTOR_CHKCLONE_EXP (synth_app);
   BTOR_CHKCLONE_EXP (constraint);
   BTOR_CHKCLONE_EXP (erased);
@@ -950,10 +949,6 @@ btor_chkclone_slv (Btor *btor)
 
     BTOR_CHKCLONE_SLV_STATS (slv, cslv, lod_refinements);
     BTOR_CHKCLONE_SLV_STATS (slv, cslv, refinement_iterations);
-    BTOR_CHKCLONE_SLV_STATS (slv, cslv, synthesis_assignment_inconsistencies);
-    BTOR_CHKCLONE_SLV_STATS (slv, cslv, synthesis_inconsistency_app);
-    BTOR_CHKCLONE_SLV_STATS (slv, cslv, synthesis_inconsistency_fun);
-    BTOR_CHKCLONE_SLV_STATS (slv, cslv, synthesis_inconsistency_feq);
     BTOR_CHKCLONE_SLV_STATS (slv, cslv, function_congruence_conflicts);
     BTOR_CHKCLONE_SLV_STATS (slv, cslv, beta_reduction_conflicts);
     BTOR_CHKCLONE_SLV_STATS (slv, cslv, extensionality_lemmas);

@@ -49,6 +49,7 @@ btor_get_bv_model_str (Btor *btor, BtorNode *exp)
 
 void
 btor_get_fun_model_str_aux (Btor *btor,
+                            BtorPtrHashTable **bv_model,
                             BtorPtrHashTable **fun_model,
                             BtorNode *exp,
                             char ***args,
@@ -73,7 +74,7 @@ btor_get_fun_model_str_aux (Btor *btor,
   exp = btor_simplify_exp (btor, exp);
   assert (BTOR_IS_FUN_NODE (exp));
 
-  model = btor_get_fun_model_aux (btor, fun_model, exp);
+  model = btor_get_fun_model_aux (btor, bv_model, fun_model, exp);
 
   if ((BTOR_IS_LAMBDA_NODE (exp) && btor_get_fun_arity (btor, exp) > 1)
       || !(*fun_model) || !model)
@@ -130,7 +131,8 @@ btor_get_fun_model_str (
   assert (values);
   assert (size);
 
-  btor_get_fun_model_str_aux (btor, &btor->fun_model, exp, args, values, size);
+  btor_get_fun_model_str_aux (
+      btor, &btor->bv_model, &btor->fun_model, exp, args, values, size);
 }
 
 static void
