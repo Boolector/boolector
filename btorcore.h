@@ -312,9 +312,9 @@ struct BtorCoreSolver
 
     int synthesis_assignment_inconsistencies; /* number of restarts as a
                                                  result of lazy synthesis */
-    int synthesis_inconsistency_apply;
-    int synthesis_inconsistency_lambda;
-    int synthesis_inconsistency_var;
+    int synthesis_inconsistency_app;
+    int synthesis_inconsistency_fun;
+    int synthesis_inconsistency_feq;
 
     int function_congruence_conflicts;
     int beta_reduction_conflicts;
@@ -343,9 +343,7 @@ struct BtorCoreSolver
   {
     double sat;
     double eval;
-    double enc_app;
-    double enc_lambda;
-    double enc_var;
+    double lazy_synth;
     double search_init_apps;
     double search_init_apps_compute_scores;
     double search_init_apps_compute_scores_merge_applies;
@@ -374,7 +372,7 @@ int btor_fun_sort_check (Btor *btor,
                          BtorNode *fun);
 
 /* Evaluates expression and returns its value. */
-BtorBitVector *btor_eval_exp (Btor *btor, BtorNode *exp);
+BtorBitVector *btor_eval_exp (Btor *btor, BtorNode *exp, bool init);
 
 /* Synthesizes expression of arbitrary length to an AIG vector. Adds string
  * back annotation to the hash table, if the hash table is a non zero ptr.

@@ -958,7 +958,6 @@ parse_compare_and_overflow (BtorBTORParser *parser,
                             int can_be_array)
 {
   BoolectorNode *l, *r, *res;
-  int llen, rlen;
 
   if (len != 1)
   {
@@ -981,13 +980,9 @@ parse_compare_and_overflow (BtorBTORParser *parser,
   if (!(r = parse_exp (parser, 0, can_be_array, 1)))
     goto RELEASE_L_AND_RETURN_ERROR;
 
-  llen = boolector_get_width (parser->btor, l);
-  rlen = boolector_get_width (parser->btor, r);
-
-  if (llen != rlen)
+  if (!boolector_is_equal_sort (parser->btor, l, r))
   {
-    (void) btor_perr_btor (
-        parser, "operands have different bit width %d and %d", llen, rlen);
+    (void) btor_perr_btor (parser, "operands have different sort");
   RELEASE_L_AND_R_AND_RETURN_ZERO:
     boolector_release (parser->btor, r);
     boolector_release (parser->btor, l);
@@ -1008,34 +1003,6 @@ parse_compare_and_overflow (BtorBTORParser *parser,
     {
       (void) btor_perr_btor (parser, "second operand is array and first not");
       goto RELEASE_L_AND_R_AND_RETURN_ZERO;
-    }
-
-    if (boolector_is_array (parser->btor, l)
-        && boolector_is_array (parser->btor, r))
-    {
-      llen = boolector_get_index_width (parser->btor, l);
-      rlen = boolector_get_index_width (parser->btor, r);
-
-      if (llen != rlen)
-      {
-        (void) btor_perr_btor (
-            parser,
-            "array operands have different index width %d and %d",
-            llen,
-            rlen);
-        goto RELEASE_L_AND_R_AND_RETURN_ZERO;
-      }
-
-#if 0
-	  if (boolector_is_fun (parser->btor, l)
-	      || boolector_is_fun (parser->btor, r))
-	    {
-	      (void) btor_perr_btor (
-		       parser, "extensionality on lambdas not supported");
-
-	      goto RELEASE_L_AND_R_AND_RETURN_ZERO;
-	    }
-#endif
     }
   }
 

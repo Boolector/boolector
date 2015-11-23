@@ -81,23 +81,14 @@ init_propinv_tests (void)
     btor_free_bv (g_btor->mm, bv##fun);                               \
   } while (0)
 
-#define TEST_PROP_INIT_INV_VAL_CON(fun, bw, ve, eidx)                \
-  do                                                                 \
-  {                                                                  \
-    idx = eidx ? 0 : 1;                                              \
-    BTOR_CNEWN (g_mm, bits, bw + 1);                                 \
-    if (!ve)                                                         \
-      memset (bits, '0', bw);                                        \
-    else                                                             \
-    {                                                                \
-      tmpbits = btor_decimal_to_const (g_mm, #ve);                   \
-      len     = strlen (#ve);                                        \
-      for (i = 0; i < bw; i++) bits[i] = i < len ? tmpbits[i] : '0'; \
-      btor_freestr (g_mm, tmpbits);                                  \
-    }                                                                \
-    e[idx] = btor_const_exp (g_btor, bits);                          \
-    BTOR_DELETEN (g_mm, bits, bw + 1);                               \
-    fun = btor_##fun##_exp (g_btor, e[0], e[1]);                     \
+#define TEST_PROP_INIT_INV_VAL_CON(fun, bw, ve, eidx) \
+  do                                                  \
+  {                                                   \
+    idx    = eidx ? 0 : 1;                            \
+    bits   = btor_uint64_to_bv (g_mm, ve, bw);        \
+    e[idx] = btor_const_exp (g_btor, bits);           \
+    btor_free_bv (g_mm, bits);                        \
+    fun = btor_##fun##_exp (g_btor, e[0], e[1]);      \
   } while (0)
 
 #define TEST_PROP_FINISH_INV_VAL_CON(fun, eidx) \
@@ -156,7 +147,6 @@ prop_inv_and_bv (uint32_t bw)
   uint32_t i, j;
   BtorNode *and, *e[2], *tmpe[2], *tmpand;
   BtorBitVector *bvand, *bve[2], *res, *one, *bvmax, *tmp;
-  char *bits;
 
   one   = btor_one_bv (g_mm, bw);
   tmp   = btor_new_bv (g_mm, bw);
@@ -223,19 +213,15 @@ prop_inv_and_bv (uint32_t bw)
     tmpe[1] = e[1];
     tmpand  = and;
     /* non-fixable, assignment for e[0] */
-    bits = btor_bv_to_char_bv (g_mm, bve[1]);
-    e[1] = btor_const_exp (g_btor, bits);
-    btor_freestr (g_mm, bits);
-    and = btor_and_exp (g_btor, e[0], e[1]);
+    e[1] = btor_const_exp (g_btor, bve[1]);
+    and  = btor_and_exp (g_btor, e[0], e[1]);
     TEST_PROP_INV_BV (and, 1, bw, bve[1], bvand, 0);
     btor_release_exp (g_btor, and);
     btor_release_exp (g_btor, e[1]);
     e[1] = tmpe[1];
     /* non-fixable, assignment for e[1] */
-    bits = btor_bv_to_char_bv (g_mm, bve[0]);
-    e[0] = btor_const_exp (g_btor, bits);
-    btor_freestr (g_mm, bits);
-    and = btor_and_exp (g_btor, e[0], e[1]);
+    e[0] = btor_const_exp (g_btor, bve[0]);
+    and  = btor_and_exp (g_btor, e[0], e[1]);
     TEST_PROP_INV_BV (and, 1, bw, bve[0], bvand, 1);
     btor_release_exp (g_btor, and);
     btor_release_exp (g_btor, e[0]);
@@ -302,7 +288,6 @@ prop_inv_ult_bv (uint32_t bw)
   BtorNode *ult, *e[2], *tmpe[2];
   BtorBitVector *bve[2], *res, *tmp;
   BtorBitVector *tr, *fa, *zero, *bvmax, *one, *neg;
-  char *bits;
 
   e[0] = btor_var_exp (g_btor, bw, 0);
   e[1] = btor_var_exp (g_btor, bw, 0);
@@ -350,37 +335,33 @@ prop_inv_ult_bv (uint32_t bw)
   btor_release_exp (g_btor, ult);
 
   /* conflict: e[0] < 0 */
-  bits = btor_bv_to_char_bv (g_mm, zero);
-  e[1] = btor_const_exp (g_btor, bits);
+  e[1] = btor_const_exp (g_btor, zero);
   ult  = btor_ult_exp (g_btor, e[0], e[1]);
   TEST_PROP_INV_BV (ult, 1, bw, zero, tr, 0);
   btor_release_exp (g_btor, ult);
   btor_release_exp (g_btor, e[1]);
   e[1] = tmpe[1];
   /* conflict: 0 >= e[1] */
-  e[0] = btor_const_exp (g_btor, bits);
+  e[0] = btor_const_exp (g_btor, zero);
   ult  = btor_ult_exp (g_btor, e[0], e[1]);
   TEST_PROP_INV_BV (ult, 1, bw, zero, fa, 1);
   btor_release_exp (g_btor, ult);
   btor_release_exp (g_btor, e[0]);
-  btor_freestr (g_mm, bits);
   e[0] = tmpe[0];
   /* conflict: e[0] >= 1...1 */
-  bits = btor_bv_to_char_bv (g_mm, bvmax);
-  e[1] = btor_const_exp (g_btor, bits);
+  e[1] = btor_const_exp (g_btor, bvmax);
   ult  = btor_ult_exp (g_btor, e[0], e[1]);
   TEST_PROP_INV_BV (ult, 1, bw, bvmax, fa, 0);
   btor_release_exp (g_btor, ult);
   btor_release_exp (g_btor, e[1]);
   e[1] = tmpe[1];
   /* conflict: 1...1 < e[1] */
-  e[0] = btor_const_exp (g_btor, bits);
+  e[0] = btor_const_exp (g_btor, bvmax);
   ult  = btor_ult_exp (g_btor, e[0], e[1]);
   TEST_PROP_INV_BV (ult, 1, bw, bvmax, tr, 1);
 
   btor_release_exp (g_btor, ult);
   btor_release_exp (g_btor, e[0]);
-  btor_freestr (g_mm, bits);
   btor_free_bv (g_mm, tr);
   btor_free_bv (g_mm, fa);
   btor_free_bv (g_mm, zero);
@@ -400,7 +381,6 @@ prop_inv_sll_bv (uint32_t bw)
   uint32_t i, j, r, sbw;
   BtorNode *sll, *e[2], *tmpe[2];
   BtorBitVector *bvsll, *bve[2], *res, *zero, *one, *bvmaxshift, *tmp;
-  char *bits;
 
   sbw  = btor_log_2_util (bw);
   e[0] = btor_var_exp (g_btor, bw, 0);
@@ -465,10 +445,8 @@ prop_inv_sll_bv (uint32_t bw)
     r   = btor_bv_to_uint64_bv (bve[1]);
     r   = btor_pick_rand_rng (g_rng, 0, r - 1);
     btor_set_bit_bv (bvsll, r, 1);
-    bits = btor_bv_to_char_bv (g_mm, bve[1]);
-    e[1] = btor_const_exp (g_btor, bits);
-    btor_freestr (g_mm, bits);
-    sll = btor_sll_exp (g_btor, e[0], e[1]);
+    e[1] = btor_const_exp (g_btor, bve[1]);
+    sll  = btor_sll_exp (g_btor, e[0], e[1]);
     TEST_PROP_INV_BV (sll, 1, bw, bve[1], bvsll, 0);
     btor_release_exp (g_btor, e[1]);
     btor_release_exp (g_btor, sll);
@@ -477,10 +455,8 @@ prop_inv_sll_bv (uint32_t bw)
     e[1]  = tmpe[1];
 
     /* find assignment for e[1] (non-fixable conflict) */
-    bits = btor_bv_to_char_bv (g_mm, bve[0]);
-    e[0] = btor_const_exp (g_btor, bits);
-    btor_freestr (g_mm, bits);
-    sll = btor_sll_exp (g_btor, e[0], e[1]);
+    e[0] = btor_const_exp (g_btor, bve[0]);
+    sll  = btor_sll_exp (g_btor, e[0], e[1]);
     TEST_PROP_INV_BV (sll, 1, bw, bve[0], bvsll, 1);
     btor_release_exp (g_btor, e[0]);
     btor_release_exp (g_btor, sll);
@@ -498,7 +474,7 @@ prop_inv_sll_bv (uint32_t bw)
       case 4:
         bve[0] = btor_char_to_bv (g_mm, "1101");
         bvsll  = btor_char_to_bv (g_mm, "0010");
-        e[0]   = btor_const_exp (g_btor, "1101");
+        e[0]   = btor_const_exp (g_btor, bve[0]);
         assert (bve[0]->width == bw);
         assert (bvsll->width == bw);
         assert (btor_get_exp_width (g_btor, e[0]) == bw);
@@ -506,7 +482,7 @@ prop_inv_sll_bv (uint32_t bw)
       case 8:
         bve[0] = btor_char_to_bv (g_mm, "11010011");
         bvsll  = btor_char_to_bv (g_mm, "01011100");
-        e[0]   = btor_const_exp (g_btor, "11010011");
+        e[0]   = btor_const_exp (g_btor, bve[0]);
         assert (bve[0]->width == bw);
         assert (bvsll->width == bw);
         assert (btor_get_exp_width (g_btor, e[0]) == bw);
@@ -514,7 +490,7 @@ prop_inv_sll_bv (uint32_t bw)
       case 16:
         bve[0] = btor_char_to_bv (g_mm, "1011110100110100");
         bvsll  = btor_char_to_bv (g_mm, "1111101001101000");
-        e[0]   = btor_const_exp (g_btor, "1011110100110100");
+        e[0]   = btor_const_exp (g_btor, bve[0]);
         assert (bve[0]->width == bw);
         assert (bvsll->width == bw);
         assert (btor_get_exp_width (g_btor, e[0]) == bw);
@@ -522,7 +498,7 @@ prop_inv_sll_bv (uint32_t bw)
       case 32:
         bve[0] = btor_char_to_bv (g_mm, "10100101001101011011110100110111");
         bvsll  = btor_char_to_bv (g_mm, "01101001101111011110100110111000");
-        e[0]   = btor_const_exp (g_btor, "10100101001101011011110100110111");
+        e[0]   = btor_const_exp (g_btor, bve[0]);
         assert (bve[0]->width == bw);
         assert (bvsll->width == bw);
         assert (btor_get_exp_width (g_btor, e[0]) == bw);
@@ -534,9 +510,7 @@ prop_inv_sll_bv (uint32_t bw)
         bvsll = btor_char_to_bv (
             g_mm,
             "1010111010110111101000101100001010111110010111101011101101100000");
-        e[0] = btor_const_exp (
-            g_btor,
-            "1010010101110101101111010101011010010101111100101111010111011011");
+        e[0] = btor_const_exp (g_btor, bve[0]);
         assert (bve[0]->width == bw);
         assert (bvsll->width == bw);
         assert (btor_get_exp_width (g_btor, e[0]) == bw);
@@ -567,7 +541,6 @@ prop_inv_srl_bv (uint32_t bw)
   uint32_t i, j, r, sbw;
   BtorNode *srl, *e[2], *tmpe[2];
   BtorBitVector *bvsrl, *bve[2], *res, *zero, *one, *bvmaxshift, *tmp;
-  char *bits;
 
   sbw  = btor_log_2_util (bw);
   e[0] = btor_var_exp (g_btor, bw, 0);
@@ -633,10 +606,8 @@ prop_inv_srl_bv (uint32_t bw)
     r   = btor_bv_to_uint64_bv (bve[1]);
     r   = btor_pick_rand_rng (g_rng, 0, r - 1);
     btor_set_bit_bv (bvsrl, bvsrl->width - 1 - r, 1);
-    bits = btor_bv_to_char_bv (g_mm, bve[1]);
-    e[1] = btor_const_exp (g_btor, bits);
-    btor_freestr (g_mm, bits);
-    srl = btor_srl_exp (g_btor, e[0], e[1]);
+    e[1] = btor_const_exp (g_btor, bve[1]);
+    srl  = btor_srl_exp (g_btor, e[0], e[1]);
     TEST_PROP_INV_BV (srl, 1, bw, bve[1], bvsrl, 0);
     btor_release_exp (g_btor, e[1]);
     btor_release_exp (g_btor, srl);
@@ -645,10 +616,8 @@ prop_inv_srl_bv (uint32_t bw)
     e[1]  = tmpe[1];
 
     /* find assignment for e[1] (non-fixable conflict) */
-    bits = btor_bv_to_char_bv (g_mm, bve[0]);
-    e[0] = btor_const_exp (g_btor, bits);
-    btor_freestr (g_mm, bits);
-    srl = btor_srl_exp (g_btor, e[0], e[1]);
+    e[0] = btor_const_exp (g_btor, bve[0]);
+    srl  = btor_srl_exp (g_btor, e[0], e[1]);
     TEST_PROP_INV_BV (srl, 1, bw, bve[0], bvsrl, 1);
     btor_release_exp (g_btor, e[0]);
     btor_release_exp (g_btor, srl);
@@ -666,7 +635,7 @@ prop_inv_srl_bv (uint32_t bw)
       case 4:
         bve[0] = btor_char_to_bv (g_mm, "1101");
         bvsrl  = btor_char_to_bv (g_mm, "0010");
-        e[0]   = btor_const_exp (g_btor, "1101");
+        e[0]   = btor_const_exp (g_btor, bve[0]);
         assert (bve[0]->width == bw);
         assert (bvsrl->width == bw);
         assert (btor_get_exp_width (g_btor, e[0]) == bw);
@@ -674,7 +643,7 @@ prop_inv_srl_bv (uint32_t bw)
       case 8:
         bve[0] = btor_char_to_bv (g_mm, "11010011");
         bvsrl  = btor_char_to_bv (g_mm, "01011100");
-        e[0]   = btor_const_exp (g_btor, "11010011");
+        e[0]   = btor_const_exp (g_btor, bve[0]);
         assert (bve[0]->width == bw);
         assert (bvsrl->width == bw);
         assert (btor_get_exp_width (g_btor, e[0]) == bw);
@@ -682,7 +651,7 @@ prop_inv_srl_bv (uint32_t bw)
       case 16:
         bve[0] = btor_char_to_bv (g_mm, "1011110100110100");
         bvsrl  = btor_char_to_bv (g_mm, "0001111101001101");
-        e[0]   = btor_const_exp (g_btor, "1011110100110100");
+        e[0]   = btor_const_exp (g_btor, bve[0]);
         assert (bve[0]->width == bw);
         assert (bvsrl->width == bw);
         assert (btor_get_exp_width (g_btor, e[0]) == bw);
@@ -690,7 +659,7 @@ prop_inv_srl_bv (uint32_t bw)
       case 32:
         bve[0] = btor_char_to_bv (g_mm, "10100101001101011011110100110111");
         bvsrl  = btor_char_to_bv (g_mm, "01101001101111011110100110111000");
-        e[0]   = btor_const_exp (g_btor, "10100101001101011011110100110111");
+        e[0]   = btor_const_exp (g_btor, bve[0]);
         assert (bve[0]->width == bw);
         assert (bvsrl->width == bw);
         assert (btor_get_exp_width (g_btor, e[0]) == bw);
@@ -702,9 +671,7 @@ prop_inv_srl_bv (uint32_t bw)
         bvsrl = btor_char_to_bv (
             g_mm,
             "0001010111010110111101000101100001010111110010111101011101101100");
-        e[0] = btor_const_exp (
-            g_btor,
-            "1010010101110101101111010101011010010101111100101111010111011011");
+        e[0] = btor_const_exp (g_btor, bve[0]);
         assert (bve[0]->width == bw);
         assert (bvsrl->width == bw);
         assert (btor_get_exp_width (g_btor, e[0]) == bw);
@@ -732,10 +699,9 @@ prop_inv_mul_bv (uint32_t bw)
 {
   (void) bw;
 #ifndef NDEBUG
-  uint32_t i, len, idx;
+  uint32_t idx;
   BtorNode *mul, *e[2], *tmpe[2];
-  BtorBitVector *bvmul, *bve[2], *res, *tmp;
-  char *bits, *tmpbits;
+  BtorBitVector *bvmul, *bve[2], *res, *tmp, *bits;
 
   e[0] = btor_var_exp (g_btor, bw, 0);
   e[1] = btor_var_exp (g_btor, bw, 0);
@@ -879,10 +845,9 @@ prop_inv_udiv_bv (uint32_t bw)
 {
   (void) bw;
 #ifndef NDEBUG
-  uint32_t i, len, idx;
+  uint32_t idx;
   BtorNode *udiv, *e[2], *tmpe[2];
-  BtorBitVector *bvudiv, *bve[2], *res, *tmp;
-  char *bits, *tmpbits;
+  BtorBitVector *bvudiv, *bve[2], *res, *tmp, *bits;
 
   e[0] = btor_var_exp (g_btor, bw, 0);
   e[1] = btor_var_exp (g_btor, bw, 0);
@@ -1049,7 +1014,6 @@ prop_inv_urem_bv (uint32_t bw)
   int j;
   BtorNode *urem, *e[2], *tmpe, *tmpurem;
   BtorBitVector *bvurem, *bve[2], *res, *tmp, *tmp2, *bvmax, *one, *neg, *zero;
-  char *bits;
 
   e[0]  = btor_var_exp (g_btor, bw, 0);
   e[1]  = btor_var_exp (g_btor, bw, 0);
@@ -1084,10 +1048,8 @@ prop_inv_urem_bv (uint32_t bw)
     {
       tmpe    = e[0];
       tmpurem = urem;
-      bits    = btor_bv_to_char_bv (g_mm, bve[0]);
-      e[0]    = btor_const_exp (g_btor, bits);
-      btor_freestr (g_mm, bits);
-      urem = btor_urem_exp (g_btor, e[0], e[1]);
+      e[0]    = btor_const_exp (g_btor, bve[0]);
+      urem    = btor_urem_exp (g_btor, e[0], e[1]);
       TEST_PROP_INV_BV (urem, 1, bw, bve[0], bvurem, 1);
       btor_release_exp (g_btor, e[0]);
       btor_release_exp (g_btor, urem);
@@ -1115,9 +1077,7 @@ prop_inv_urem_bv (uint32_t bw)
     tmp     = btor_add_bv (g_mm, bvurem, neg);
     bve[0]  = btor_new_random_range_bv (g_mm, g_rng, bw, zero, tmp);
     btor_free_bv (g_mm, tmp);
-    bits = btor_bv_to_char_bv (g_mm, bve[0]);
-    e[0] = btor_const_exp (g_btor, bits);
-    btor_freestr (g_mm, bits);
+    e[0] = btor_const_exp (g_btor, bve[0]);
     urem = btor_urem_exp (g_btor, e[0], e[1]);
     TEST_PROP_INV_BV (urem, 1, bw, bve[0], bvurem, 1);
     btor_free_bv (g_mm, bve[0]);
@@ -1126,9 +1086,7 @@ prop_inv_urem_bv (uint32_t bw)
     btor_release_exp (g_btor, urem);
 
     /* conflict: bve = bvurem = bvmax, e const */
-    bits = btor_bv_to_char_bv (g_mm, bvmax);
-    e[0] = btor_const_exp (g_btor, bits);
-    btor_freestr (g_mm, bits);
+    e[0] = btor_const_exp (g_btor, bvmax);
     urem = btor_urem_exp (g_btor, e[0], e[1]);
     TEST_PROP_INV_BV (urem, 1, bw, bvmax, bvmax, 1);
     btor_release_exp (g_btor, e[0]);
@@ -1155,10 +1113,8 @@ prop_inv_urem_bv (uint32_t bw)
     {
       tmpe    = e[1];
       tmpurem = urem;
-      bits    = btor_bv_to_char_bv (g_mm, bve[1]);
-      e[1]    = btor_const_exp (g_btor, bits);
-      btor_freestr (g_mm, bits);
-      urem = btor_urem_exp (g_btor, e[0], e[1]);
+      e[1]    = btor_const_exp (g_btor, bve[1]);
+      urem    = btor_urem_exp (g_btor, e[0], e[1]);
       TEST_PROP_INV_BV (urem, 1, bw, bve[1], bvurem, 0);
       btor_release_exp (g_btor, e[1]);
       btor_release_exp (g_btor, urem);
@@ -1173,10 +1129,8 @@ prop_inv_urem_bv (uint32_t bw)
     tmpe    = e[1];
     tmpurem = urem;
     bve[1]  = btor_new_random_bv (g_mm, g_rng, bw);
-    bits    = btor_bv_to_char_bv (g_mm, bve[1]);
-    e[1]    = btor_const_exp (g_btor, bits);
-    btor_freestr (g_mm, bits);
-    urem = btor_urem_exp (g_btor, e[0], e[1]);
+    e[1]    = btor_const_exp (g_btor, bve[1]);
+    urem    = btor_urem_exp (g_btor, e[0], e[1]);
     TEST_PROP_INV_BV (urem, 1, bw, bve[1], bve[1], 0);
     btor_free_bv (g_mm, bve[1]);
     btor_release_exp (g_btor, e[1]);
@@ -1187,9 +1141,7 @@ prop_inv_urem_bv (uint32_t bw)
     tmp    = btor_add_bv (g_mm, bvurem, neg);
     bve[1] = btor_new_random_range_bv (g_mm, g_rng, bw, zero, tmp);
     btor_free_bv (g_mm, tmp);
-    bits = btor_bv_to_char_bv (g_mm, bve[1]);
-    e[1] = btor_const_exp (g_btor, bits);
-    btor_freestr (g_mm, bits);
+    e[1] = btor_const_exp (g_btor, bve[1]);
     urem = btor_urem_exp (g_btor, e[0], e[1]);
     TEST_PROP_INV_BV (urem, 1, bw, bve[1], bve[1], 0);
     btor_free_bv (g_mm, bvurem);
@@ -1219,7 +1171,6 @@ prop_inv_concat_bv (uint32_t bw)
   int iscon;
   BtorNode *concat, *e[2], *tmpe, *tmpconcat;
   BtorBitVector *bvconcat, *bve[2], *res, *tmp;
-  char *bits;
 
   e[0]   = btor_var_exp (g_btor, bw, 0);
   e[1]   = btor_var_exp (g_btor, bw, 0);
@@ -1262,9 +1213,7 @@ prop_inv_concat_bv (uint32_t bw)
         iscon = 1;
         break;
       }
-    bits = btor_bv_to_char_bv (g_mm, bve[1]);
-    e[1] = btor_const_exp (g_btor, bits);
-    btor_freestr (g_mm, bits);
+    e[1]   = btor_const_exp (g_btor, bve[1]);
     concat = btor_concat_exp (g_btor, e[0], e[1]);
     if (iscon)
       TEST_PROP_INV_BV (concat, 1, bw, bve[1], bvconcat, 0);
@@ -1289,9 +1238,7 @@ prop_inv_concat_bv (uint32_t bw)
         iscon = 1;
         break;
       }
-    bits = btor_bv_to_char_bv (g_mm, bve[0]);
-    e[0] = btor_const_exp (g_btor, bits);
-    btor_freestr (g_mm, bits);
+    e[0]   = btor_const_exp (g_btor, bve[0]);
     concat = btor_concat_exp (g_btor, e[0], e[1]);
     if (iscon)
       TEST_PROP_INV_BV (concat, 1, bw, bve[0], bvconcat, 1);

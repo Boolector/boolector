@@ -476,17 +476,17 @@ btor_chkclone_exp (BtorNode *exp, BtorNode *clone)
 
   if (BTOR_IS_BV_CONST_NODE (real_exp))
   {
-    assert (strlen (btor_const_get_bits (real_exp))
-            == strlen (btor_const_get_bits (real_clone)));
-    assert (strcmp (btor_const_get_bits (real_exp),
-                    btor_const_get_bits (real_clone))
+    assert (btor_const_get_bits (real_exp)->width
+            == btor_const_get_bits (real_clone)->width);
+    assert (btor_compare_bv (btor_const_get_bits (real_exp),
+                             btor_const_get_bits (real_clone))
             == 0);
     if (btor_const_get_invbits (real_exp))
     {
-      assert (strlen (btor_const_get_invbits (real_exp))
-              == strlen (btor_const_get_invbits (real_clone)));
-      assert (strcmp (btor_const_get_invbits (real_exp),
-                      btor_const_get_invbits (real_clone))
+      assert (btor_const_get_invbits (real_exp)->width
+              == btor_const_get_invbits (real_clone)->width);
+      assert (btor_compare_bv (btor_const_get_invbits (real_exp),
+                               btor_const_get_invbits (real_clone))
               == 0);
     }
   }
@@ -1026,9 +1026,9 @@ btor_chkclone_slv (Btor *btor)
     BTOR_CHKCLONE_SLV_STATS (slv, cslv, lod_refinements);
     BTOR_CHKCLONE_SLV_STATS (slv, cslv, refinement_iterations);
     BTOR_CHKCLONE_SLV_STATS (slv, cslv, synthesis_assignment_inconsistencies);
-    BTOR_CHKCLONE_SLV_STATS (slv, cslv, synthesis_inconsistency_apply);
-    BTOR_CHKCLONE_SLV_STATS (slv, cslv, synthesis_inconsistency_lambda);
-    BTOR_CHKCLONE_SLV_STATS (slv, cslv, synthesis_inconsistency_var);
+    BTOR_CHKCLONE_SLV_STATS (slv, cslv, synthesis_inconsistency_app);
+    BTOR_CHKCLONE_SLV_STATS (slv, cslv, synthesis_inconsistency_fun);
+    BTOR_CHKCLONE_SLV_STATS (slv, cslv, synthesis_inconsistency_feq);
     BTOR_CHKCLONE_SLV_STATS (slv, cslv, function_congruence_conflicts);
     BTOR_CHKCLONE_SLV_STATS (slv, cslv, beta_reduction_conflicts);
     BTOR_CHKCLONE_SLV_STATS (slv, cslv, extensionality_lemmas);

@@ -66,7 +66,7 @@ node2string (BtorNode *exp)
     case BTOR_UREM_NODE: name = "urem"; break;
     case BTOR_CONCAT_NODE: name = "concat"; break;
     case BTOR_LAMBDA_NODE: name = "lambda"; break;
-    case BTOR_BCOND_NODE: name = "bcond"; break;
+    case BTOR_BCOND_NODE: name = "cond"; break;
     case BTOR_ARGS_NODE: name = "args"; break;
     case BTOR_APPLY_NODE: name = "apply"; break;
     case BTOR_PROXY_NODE: name = "proxy"; break;
@@ -110,7 +110,7 @@ node2string (BtorNode *exp)
 
   bufstart = g_strbuf + g_strbufpos;
   sprintf (bufstart, "%s", strbuf);
-  g_strbufpos += cur_len;
+  g_strbufpos += cur_len + 1;
 
   return bufstart;
 }

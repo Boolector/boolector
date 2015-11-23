@@ -1,6 +1,7 @@
 /*  Boolector: Satisfiablity Modulo Theories (SMT) solver.
  *
  *  Copyright (C) 2015 Mathias Preiner.
+ *  Copyright (C) 2015 Aina Niemetz.
  *
  *  All rights reserved.
  *
@@ -9,9 +10,11 @@
  */
 
 #include "simplifier/btorextract.h"
+#include "btorbitvec.h"
 #include "btorconst.h"
 #include "btorcore.h"
 #include "utils/btoriter.h"
+#include "utils/btormisc.h"
 #include "utils/btorutil.h"
 
 #define BTOR_CONST_GET_BITS(c)                           \
@@ -41,7 +44,7 @@ static int
 cmp_abs_rel_indices (const void *a, const void *b)
 {
   bool is_abs;
-  const char *bx, *by;
+  BtorBitVector *bx, *by;
   BtorNode *x, *y, *x_base_addr, *y_base_addr, *x_offset, *y_offset;
 
   x = *((BtorNode **) a);
@@ -71,7 +74,7 @@ cmp_abs_rel_indices (const void *a, const void *b)
   }
   assert (bx);
   assert (by);
-  return strcmp (bx, by);
+  return btor_compare_bv (bx, by);
 }
 
 /*
@@ -98,8 +101,11 @@ cmp_abs_rel_indices (const void *a, const void *b)
  *   l <= i && i <= u && (u - i)[2:0] = 0
  */
 static inline BtorNode *
-create_range (
-    Btor *btor, BtorNode *lower, BtorNode *upper, BtorNode *param, char *offset)
+create_range (Btor *btor,
+              BtorNode *lower,
+              BtorNode *upper,
+              BtorNode *param,
+              BtorBitVector *offset)
 {
   assert (lower);
   assert (upper);
@@ -122,9 +128,9 @@ create_range (
   and = btor_and_exp (btor, le0, le1);
 
   /* increment by one */
-  if (btor_is_one_const (offset)) res = btor_copy_exp (btor, and);
+  if (btor_is_one_bv (offset)) res = btor_copy_exp (btor, and);
   /* increment by power of two */
-  else if ((pos = btor_is_power_of_two_const (offset)) > -1)
+  else if ((pos = btor_is_power_of_two_bv (offset)) > -1)
   {
     assert (pos > 0);
     sub   = btor_sub_exp (btor, upper, param);
@@ -169,7 +175,7 @@ create_pattern_memset (Btor *btor,
                        BtorNode *upper,
                        BtorNode *value,
                        BtorNode *array,
-                       char *offset)
+                       BtorBitVector *offset)
 {
   assert (lower);
   assert (upper);
@@ -200,8 +206,11 @@ create_pattern_memset (Btor *btor,
 
 /* pattern: lower <= j <= upper && range_cond ? j : a[j] */
 static inline BtorNode *
-create_pattern_itoi (
-    Btor *btor, BtorNode *lower, BtorNode *upper, BtorNode *array, char *offset)
+create_pattern_itoi (Btor *btor,
+                     BtorNode *lower,
+                     BtorNode *upper,
+                     BtorNode *array,
+                     BtorBitVector *offset)
 {
   assert (lower);
   assert (upper);
@@ -234,8 +243,11 @@ create_pattern_itoi (
 
 /* pattern: lower <= j <= upper && range_cond ? j + 1 : a[j] */
 static inline BtorNode *
-create_pattern_itoip1 (
-    Btor *btor, BtorNode *lower, BtorNode *upper, BtorNode *array, char *offset)
+create_pattern_itoip1 (Btor *btor,
+                       BtorNode *lower,
+                       BtorNode *upper,
+                       BtorNode *array,
+                       BtorBitVector *offset)
 {
   assert (lower);
   assert (upper);
@@ -276,7 +288,7 @@ create_pattern_cpy (Btor *btor,
                     BtorNode *dst_array,
                     BtorNode *src_addr,
                     BtorNode *dst_addr,
-                    char *offset)
+                    BtorBitVector *offset)
 {
   assert (!BTOR_IS_INVERTED_NODE (lower));
   assert (!BTOR_IS_INVERTED_NODE (upper));
@@ -578,7 +590,7 @@ add_to_index_map (Btor *btor,
   /* generate inverted bit string for constants if required */
   if (BTOR_IS_INVERTED_NODE (offset) && !btor_const_get_invbits (offset))
     btor_const_set_invbits (offset,
-                            btor_not_const (mm, btor_const_get_bits (offset)));
+                            btor_not_bv (mm, btor_const_get_bits (offset)));
 
   BTOR_PUSH_STACK (mm, *indices, index);
 }
@@ -705,6 +717,7 @@ collect_indices_writes (Btor *btor,
       }
       btor_delete_ptr_hash_table (index_cache);
 
+      // TODO (ma): can only be ite now
       if (is_array_ite_exp (cur, &array_if, &array_else))
       {
         BTOR_PUSH_STACK (mm, lambdas, array_if);
@@ -777,7 +790,7 @@ void
 find_ranges (Btor *btor,
              BtorNodePtrStack *stack,
              BtorNodePtrStack *ranges,
-             BtorCharPtrStack *increments,
+             BtorBitVectorPtrStack *increments,
              BtorNodePtrStack *indices,
              unsigned *num_pat,
              unsigned *num_pat_inc,
@@ -796,7 +809,7 @@ find_ranges (Btor *btor,
   int i;
 #endif
   bool in_range;
-  char *b0, *b1, *inc, *prev_inc;
+  BtorBitVector *b0, *b1, *inc, *prev_inc;
   unsigned cnt, lower, upper;
   unsigned num_pattern = 0, num_pattern_inc = 0, size_pattern = 0;
   unsigned size_pattern_inc = 0;
@@ -865,12 +878,12 @@ find_ranges (Btor *btor,
         }
         assert (b0);
         assert (b1);
-        inc = btor_sub_const (mm, b1, b0);
+        inc = btor_sub_bv (mm, b1, b0);
 
-        if (!prev_inc) prev_inc = btor_copy_const (mm, inc);
+        if (!prev_inc) prev_inc = btor_copy_bv (mm, inc);
 
         /* increment upper bound of range */
-        in_range = strcmp (inc, prev_inc) == 0;
+        in_range = btor_compare_bv (inc, prev_inc) == 0;
         if (in_range) upper += 1;
       }
 
@@ -888,7 +901,7 @@ find_ranges (Btor *btor,
         /* range is too small, push separate indices */
         else if (upper - lower <= 1
                  /* range with an offset greater than 1 */
-                 && btor_is_power_of_two_const (prev_inc) != 0)
+                 && btor_is_power_of_two_bv (prev_inc) != 0)
         {
           /* last iteration step: if range contains all indices
            * up to the last one, we can push all indices */
@@ -917,7 +930,7 @@ find_ranges (Btor *btor,
 #ifndef NDEBUG
           num_indices += upper - lower + 1;
 #endif
-          if (btor_is_one_const (prev_inc))
+          if (btor_is_one_bv (prev_inc))
           {
             size_pattern += upper - lower + 1;
             num_pattern++;
@@ -933,14 +946,14 @@ find_ranges (Btor *btor,
           /* reset range */
           upper += 1;
           lower = upper;
-          if (inc) btor_delete_const (mm, inc);
+          if (inc) btor_free_bv (mm, inc);
           inc = 0;
         }
       }
-      if (prev_inc) btor_delete_const (mm, prev_inc);
+      if (prev_inc) btor_free_bv (mm, prev_inc);
       prev_inc = inc;
     }
-    if (inc) btor_delete_const (mm, inc);
+    if (inc) btor_free_bv (mm, inc);
     assert (num_indices == cnt);
   }
 
@@ -973,7 +986,7 @@ extract_lambdas (Btor *btor,
   assert (map_lambda_base);
 
   bool is_top_eq;
-  char *inc;
+  BtorBitVector *inc;
   unsigned i_range, i_index, i_value, i_inc;
   BtorNode *subst, *base, *tmp, *array, *value, *lower, *upper;
   BtorNode *src_array, *src_addr, *dst_addr;
@@ -982,7 +995,7 @@ extract_lambdas (Btor *btor,
   BtorPtrHashBucket *b;
   BtorNodePtrStack ranges, indices, values, indices_itoi, indices_itoip1;
   BtorNodePtrStack indices_cpy, indices_rem, *stack;
-  BtorCharPtrStack increments;
+  BtorBitVectorPtrStack increments;
   BtorMemMgr *mm;
 
   /* statistics */
@@ -1050,7 +1063,11 @@ extract_lambdas (Btor *btor,
     else
     {
       assert (BTOR_IS_UF_ARRAY_NODE (array));
-      subst     = btor_uf_exp (btor, array->sort_id, 0);
+      subst = btor_array_exp (btor,
+                              btor_get_fun_exp_width (btor, array),
+                              btor_get_index_exp_width (btor, array),
+                              0);
+
       is_top_eq = true;
     }
 
@@ -1075,9 +1092,10 @@ extract_lambdas (Btor *btor,
         assert (i_inc < BTOR_COUNT_STACK (increments));
         inc = BTOR_PEEK_STACK (increments, i_inc);
         tmp = create_pattern_memset (btor, lower, upper, value, subst, inc);
+        tmp->is_array = 1;
         btor_release_exp (btor, subst);
         subst = tmp;
-        btor_delete_const (mm, inc);
+        btor_free_bv (mm, inc);
         i_inc++;
       }
 
@@ -1131,11 +1149,12 @@ extract_lambdas (Btor *btor,
         lower = BTOR_PEEK_STACK (ranges, i_range);
         upper = BTOR_PEEK_STACK (ranges, i_range + 1);
         assert (i_inc < BTOR_COUNT_STACK (increments));
-        inc = BTOR_PEEK_STACK (increments, i_inc);
-        tmp = create_pattern_itoi (btor, lower, upper, subst, inc);
+        inc           = BTOR_PEEK_STACK (increments, i_inc);
+        tmp           = create_pattern_itoi (btor, lower, upper, subst, inc);
+        tmp->is_array = 1;
         btor_release_exp (btor, subst);
         subst = tmp;
-        btor_delete_const (mm, inc);
+        btor_free_bv (mm, inc);
       }
     }
 
@@ -1160,11 +1179,12 @@ extract_lambdas (Btor *btor,
         lower = BTOR_PEEK_STACK (ranges, i_range);
         upper = BTOR_PEEK_STACK (ranges, i_range + 1);
         assert (i_inc < BTOR_COUNT_STACK (increments));
-        inc = BTOR_PEEK_STACK (increments, i_inc);
-        tmp = create_pattern_itoip1 (btor, lower, upper, subst, inc);
+        inc           = BTOR_PEEK_STACK (increments, i_inc);
+        tmp           = create_pattern_itoip1 (btor, lower, upper, subst, inc);
+        tmp->is_array = 1;
         btor_release_exp (btor, subst);
         subst = tmp;
-        btor_delete_const (mm, inc);
+        btor_free_bv (mm, inc);
       }
     }
 
@@ -1198,9 +1218,10 @@ extract_lambdas (Btor *btor,
         /* 'subst' == destination array */
         tmp = create_pattern_cpy (
             btor, lower, upper, src_array, subst, src_addr, dst_addr, inc);
+        tmp->is_array = 1;
         btor_release_exp (btor, subst);
         subst = tmp;
-        btor_delete_const (mm, inc);
+        btor_free_bv (mm, inc);
       }
     }
 

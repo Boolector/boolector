@@ -47,8 +47,6 @@
 /* start segments from MSB rather than LSB */
 #define BTOR_SLS_PROB_SEG_MSB_VS_LSB 1
 
-BTOR_DECLARE_STACK (BtorBitVectorPtr, BtorBitVector *);
-
 /*------------------------------------------------------------------------*/
 
 static int

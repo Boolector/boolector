@@ -15,6 +15,7 @@
 #define BTOREXP_H_INCLUDED
 
 #include "btoraigvec.h"
+#include "btorbitvec.h"
 #include "btorsort.h"
 #include "btortypes.h"
 #include "utils/btorhash.h"
@@ -148,8 +149,8 @@ typedef struct BtorUFNode BtorUFNode;
 struct BtorBVConstNode
 {
   BTOR_BV_NODE_STRUCT;
-  char *bits;    /* three-valued bits */
-  char *invbits; /* inverted three-valued bits */
+  BtorBitVector *bits;
+  BtorBitVector *invbits;
 };
 
 typedef struct BtorBVConstNode BtorBVConstNode;
@@ -311,8 +312,12 @@ typedef struct BtorArgsNode BtorArgsNode;
 
 #define BTOR_IS_WRITE_NODE(exp) ((exp) && BTOR_IS_WRITE_NODE_KIND ((exp)->kind))
 
-#define BTOR_IS_BV_COND_NODE(exp) \
+#define BTOR_IS_COND_NODE(exp) \
   ((exp) && BTOR_IS_BV_COND_NODE_KIND ((exp)->kind))
+
+#define BTOR_IS_BV_COND_NODE(exp)   \
+  ((exp) && BTOR_IS_COND_NODE (exp) \
+   && btor_is_bitvec_sort (&exp->btor->sorts_unique_table, exp->sort_id))
 
 #define BTOR_IS_PROXY_NODE(exp) ((exp) && BTOR_IS_PROXY_NODE_KIND ((exp)->kind))
 
@@ -349,10 +354,9 @@ typedef struct BtorArgsNode BtorArgsNode;
        ? btor_not_aigvec ((btor)->avmgr, BTOR_REAL_ADDR_NODE (exp)->av) \
        : btor_copy_aigvec ((btor)->avmgr, exp->av))
 
-#define BTOR_BITS_NODE(mm, exp)                         \
-  (BTOR_IS_INVERTED_NODE (exp)                          \
-       ? btor_not_const (mm, btor_const_get_bits (exp)) \
-       : btor_copy_const (mm, btor_const_get_bits (exp)))
+#define BTOR_BITS_NODE(mm, exp)                                              \
+  (BTOR_IS_INVERTED_NODE (exp) ? btor_not_bv (mm, btor_const_get_bits (exp)) \
+                               : btor_copy_bv (mm, btor_const_get_bits (exp)))
 
 #define BTOR_TAG_NODE(exp, tag) \
   ((BtorNode *) ((unsigned long int) tag | (unsigned long int) (exp)))
@@ -363,8 +367,13 @@ typedef struct BtorArgsNode BtorArgsNode;
 
 #define BTOR_IS_SYNTH_NODE(exp) ((exp)->av != 0)
 
-#define BTOR_IS_FUN_NODE(exp) \
-  (BTOR_IS_LAMBDA_NODE (exp) || BTOR_IS_UF_NODE (exp))
+#define BTOR_IS_FUN_COND_NODE(exp) \
+  (BTOR_IS_COND_NODE (exp)         \
+   && btor_is_fun_sort (&exp->btor->sorts_unique_table, exp->sort_id))
+
+#define BTOR_IS_FUN_NODE(exp)                         \
+  (BTOR_IS_LAMBDA_NODE (exp) || BTOR_IS_UF_NODE (exp) \
+   || BTOR_IS_FUN_COND_NODE (exp))
 
 #define BTOR_IS_UF_ARRAY_NODE(exp) \
   ((exp) && BTOR_IS_UF_NODE (exp) && ((BtorUFNode *) exp)->is_array)
@@ -406,7 +415,7 @@ void btor_set_btor_id (Btor *btor, BtorNode *exp, int id);
  * strlen(bits) > 0
  * len(result) = strlen(bits)
  */
-BtorNode *btor_const_exp (Btor *btor, const char *bits);
+BtorNode *btor_const_exp (Btor *btor, BtorBitVector *bits);
 
 /* Binary constant representing 'len' zeros.
  * len > 0
@@ -826,10 +835,10 @@ uint32_t btor_get_exp_width (Btor *btor, BtorNode *exp);
 /* Gets the bit width of the array elements. */
 uint32_t btor_get_fun_exp_width (Btor *btor, BtorNode *exp);
 
-char *btor_const_get_bits (BtorNode *exp);
-char *btor_const_get_invbits (BtorNode *exp);
-void btor_const_set_bits (BtorNode *exp, char *bits);
-void btor_const_set_invbits (BtorNode *exp, char *bits);
+BtorBitVector *btor_const_get_bits (BtorNode *exp);
+BtorBitVector *btor_const_get_invbits (BtorNode *exp);
+void btor_const_set_bits (BtorNode *exp, BtorBitVector *bits);
+void btor_const_set_invbits (BtorNode *exp, BtorBitVector *bits);
 
 /* Determines if expression is an array or not. */
 bool btor_is_array_exp (Btor *btor, BtorNode *exp);

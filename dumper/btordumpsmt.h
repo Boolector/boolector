@@ -17,13 +17,6 @@
 #include <stdio.h>
 #include "btorcore.h"
 
-void btor_dump_smt1_nodes (Btor* btor,
-                           FILE* file,
-                           BtorNode** roots,
-                           int nroots);
-
-void btor_dump_smt1 (Btor* btor, FILE* file);
-
 void btor_dump_smt2_nodes (Btor* btor,
                            FILE* file,
                            BtorNode** roots,
