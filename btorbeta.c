@@ -613,7 +613,6 @@ btor_beta_reduce (Btor *btor,
       }
       else
         result = btor_copy_exp (btor, real_cur);
-      assert (!BTOR_IS_LAMBDA_NODE (BTOR_REAL_ADDR_NODE (result)));
       goto BETA_REDUCE_PUSH_RESULT;
     }
   }
@@ -725,9 +724,6 @@ btor_beta_reduce_partial_aux (Btor *btor,
       /* stop at non-parameterized nodes */
       if (!real_cur->parameterized)
       {
-        assert (BTOR_IS_FUN_NODE (real_cur) || BTOR_IS_ARGS_NODE (real_cur)
-                || btor_is_encoded_exp (real_cur)
-                || btor_find_in_ptr_hash_table (btor->bv_model, real_cur));
         BTOR_PUSH_STACK (mm, arg_stack, btor_copy_exp (btor, cur));
         continue;
       }
@@ -899,7 +895,7 @@ btor_beta_reduce_partial_aux (Btor *btor,
           assert (BTOR_IS_COND_NODE (real_cur));
           /* only condition rebuilt, evaluate and choose branch */
           assert (!BTOR_REAL_ADDR_NODE (e[0])->parameterized);
-          eval_res = btor_eval_exp (btor, e[0], true);
+          eval_res = btor_eval_exp (btor, e[0]);
           assert (eval_res);
 
           /* save condition for consistency checking */
