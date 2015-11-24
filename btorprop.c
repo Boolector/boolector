@@ -598,6 +598,11 @@ select_path_slice (Btor *btor,
   assert (bve);
 
   assert (!BTOR_IS_BV_CONST_NODE (BTOR_REAL_ADDR_NODE (slice->e[0])));
+
+  (void) btor;
+  (void) slice;
+  (void) bvslice;
+  (void) bve;
 #ifndef NDEBUG
   char *a;
   BTORLOG (1, "");
