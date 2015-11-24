@@ -408,7 +408,6 @@ clone_exp (Btor *clone,
            BtorNodePtrPtrStack *parents,
            BtorNodePtrPtrStack *nodes,
            BtorPtrHashTablePtrPtrStack *rhos,
-           BtorPtrHashTablePtrPtrStack *sapps,
            BtorNodeMap *exp_map,
            bool exp_layer_only)
 {
@@ -417,7 +416,6 @@ clone_exp (Btor *clone,
   assert (BTOR_IS_REGULAR_NODE (exp));
   assert (parents);
   assert (nodes);
-  assert (sapps);
   assert (exp_map);
 
   int i;
@@ -532,11 +530,6 @@ clone_exp (Btor *clone,
   if (BTOR_IS_LAMBDA_NODE (exp))
   {
     lambda = (BtorLambdaNode *) exp;
-    if (lambda->synth_apps)
-    {
-      BTOR_PUSH_STACK (mm, *sapps, &((BtorLambdaNode *) res)->synth_apps);
-      BTOR_PUSH_STACK (mm, *sapps, &((BtorLambdaNode *) exp)->synth_apps);
-    }
     if (lambda->static_rho)
     {
       BTOR_PUSH_STACK (mm, *rhos, &((BtorLambdaNode *) res)->static_rho);
@@ -608,14 +601,13 @@ clone_nodes_id_table (Btor *clone,
   BtorNode **tmp;
   BtorMemMgr *mm;
   BtorNodePtrPtrStack parents, nodes;
-  BtorPtrHashTablePtrPtrStack sapps, rhos;
+  BtorPtrHashTablePtrPtrStack rhos;
   BtorPtrHashTable **htable, **chtable;
 
   mm = clone->mm;
 
   BTOR_INIT_STACK (parents);
   BTOR_INIT_STACK (nodes);
-  BTOR_INIT_STACK (sapps);
   BTOR_INIT_STACK (rhos);
 
   BTOR_INIT_STACK (*res);
@@ -636,7 +628,6 @@ clone_nodes_id_table (Btor *clone,
                                                       &parents,
                                                       &nodes,
                                                       &rhos,
-                                                      &sapps,
                                                       exp_map,
                                                       exp_layer_only)
                                          : id_table->start[i];
@@ -678,19 +669,9 @@ clone_nodes_id_table (Btor *clone,
                                           exp_map);
   }
 
-  /* clone synth_apps of lambda nodes */
-  while (!BTOR_EMPTY_STACK (sapps))
-  {
-    htable   = BTOR_POP_STACK (sapps);
-    chtable  = BTOR_POP_STACK (sapps);
-    *chtable = btor_clone_ptr_hash_table (
-        mm, *htable, btor_clone_key_as_node, 0, exp_map, 0);
-  }
-
   BTOR_RELEASE_STACK (mm, parents);
   BTOR_RELEASE_STACK (mm, nodes);
   BTOR_RELEASE_STACK (mm, rhos);
-  BTOR_RELEASE_STACK (mm, sapps);
 }
 
 static void
@@ -946,8 +927,6 @@ clone_aux_btor (Btor *btor, BtorNodeMap **exp_map, bool exp_layer_only)
       else if (cur->rho)
         allocated += MEM_PTR_HASH_TABLE (cur->rho);
     }
-    if (BTOR_IS_LAMBDA_NODE (cur) && ((BtorLambdaNode *) cur)->synth_apps)
-      allocated += MEM_PTR_HASH_TABLE (((BtorLambdaNode *) cur)->synth_apps);
     if (BTOR_IS_LAMBDA_NODE (cur) && ((BtorLambdaNode *) cur)->static_rho)
       allocated += MEM_PTR_HASH_TABLE (((BtorLambdaNode *) cur)->static_rho);
   }

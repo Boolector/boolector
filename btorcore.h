@@ -323,7 +323,6 @@ struct BtorCoreSolver
     int dp_assumed_eqs;
 
     long long eval_exp_calls;
-    long long lambda_synth_apps;
     long long propagations;
     long long propagations_down;
     long long partial_beta_reduction_restarts;
@@ -333,7 +332,6 @@ struct BtorCoreSolver
   {
     double sat;
     double eval;
-    double lazy_synth;
     double search_init_apps;
     double search_init_apps_compute_scores;
     double search_init_apps_compute_scores_merge_applies;

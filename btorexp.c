@@ -853,7 +853,7 @@ erase_local_data_exp (Btor *btor, BtorNode *exp, int free_sort)
   assert (!BTOR_IS_INVALID_NODE (exp));
 
   BtorMemMgr *mm;
-  BtorPtrHashTable *synth_apps, *static_rho;
+  BtorPtrHashTable *static_rho;
   BtorHashTableIterator it;
 
   mm = btor->mm;
@@ -869,17 +869,7 @@ erase_local_data_exp (Btor *btor, BtorNode *exp, int free_sort)
       btor_const_set_invbits (exp, 0);
       break;
     case BTOR_LAMBDA_NODE:
-      synth_apps = btor_lambda_get_synth_apps (exp);
-      ;
       static_rho = btor_lambda_get_static_rho (exp);
-      if (synth_apps)
-      {
-        btor_init_node_hash_table_iterator (&it, synth_apps);
-        while (btor_has_next_node_hash_table_iterator (&it))
-          btor_release_exp (btor, btor_next_node_hash_table_iterator (&it));
-        btor_delete_ptr_hash_table (synth_apps);
-        ((BtorLambdaNode *) exp)->synth_apps = 0;
-      }
       if (static_rho)
       {
         btor_init_node_hash_table_iterator (&it, static_rho);
@@ -4162,14 +4152,6 @@ btor_lambda_get_static_rho (BtorNode *lambda)
   return ((BtorLambdaNode *) lambda)->static_rho;
 }
 
-BtorPtrHashTable *
-btor_lambda_get_synth_apps (BtorNode *lambda)
-{
-  assert (BTOR_IS_REGULAR_NODE (lambda));
-  assert (BTOR_IS_LAMBDA_NODE (lambda));
-  return ((BtorLambdaNode *) lambda)->synth_apps;
-}
-
 void
 btor_lambda_set_static_rho (BtorNode *lambda, BtorPtrHashTable *static_rho)
 {
@@ -4198,14 +4180,6 @@ btor_lambda_copy_static_rho (Btor *btor, BtorNode *lambda)
     btor_insert_in_ptr_hash_table (static_rho, key)->data.asPtr = data;
   }
   return static_rho;
-}
-
-void
-btor_lambda_set_synth_apps (BtorNode *lambda, BtorPtrHashTable *synth_apps)
-{
-  assert (BTOR_IS_REGULAR_NODE (lambda));
-  assert (BTOR_IS_LAMBDA_NODE (lambda));
-  ((BtorLambdaNode *) lambda)->synth_apps = synth_apps;
 }
 
 BtorNode *

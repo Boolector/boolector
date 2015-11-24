@@ -92,7 +92,6 @@ typedef struct BtorNodePair BtorNodePair;
     uint8_t eval_mark : 2;     /* mark for eval_exp */                  \
     uint8_t clone_mark : 2;    /* mark for clone_exp_tree */            \
     uint8_t reachable : 1;     /* reachable from root ? */              \
-    uint8_t synth_app : 1;     /* inserted in synth_apps ? */           \
     uint8_t constraint : 1;    /* top level constraint ? */             \
     uint8_t erased : 1;        /* for debugging purposes */             \
     uint8_t disconnected : 1;  /* for debugging purposes */             \
@@ -182,7 +181,6 @@ struct BtorLambdaNode
 {
   BTOR_BV_NODE_STRUCT;
   BTOR_BV_ADDITIONAL_NODE_STRUCT;
-  BtorPtrHashTable *synth_apps;
   BtorPtrHashTable *static_rho;
   BtorNode *body; /* function body (short-cut for curried lambdas) */
 };
@@ -881,16 +879,11 @@ int btor_get_args_arity (Btor *btor, BtorNode *exp);
 
 /* Returns static_rho of given lambda node. */
 BtorPtrHashTable *btor_lambda_get_static_rho (BtorNode *lambda);
-/* Returns synth_apps of given lambda node. */
-BtorPtrHashTable *btor_lambda_get_synth_apps (BtorNode *lambda);
 
 void btor_lambda_set_static_rho (BtorNode *lambda,
                                  BtorPtrHashTable *static_rho);
 
 BtorPtrHashTable *btor_lambda_copy_static_rho (Btor *btor, BtorNode *lambda);
-
-void btor_lambda_set_synth_apps (BtorNode *lambda,
-                                 BtorPtrHashTable *synth_apps);
 
 BtorNode *btor_lambda_get_body (BtorNode *lambda);
 void btor_lambda_set_body (BtorNode *lambda, BtorNode *body);
