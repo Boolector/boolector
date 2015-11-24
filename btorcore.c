@@ -5070,7 +5070,7 @@ propagate (Btor *btor,
     /* we have a conflict and the values are inconsistent, we do not have
      * to push applies onto 'prop_stack' that produce this inconsistent
      * value */
-    if (conflict && false)
+    if (conflict)
     {
       btor_init_node_hash_table_iterator (&it, conds);
       while (btor_has_next_node_hash_table_iterator (&it))
