@@ -4850,8 +4850,7 @@ push_applies_for_propagation (Btor *btor,
                               BtorNode *exp,
                               BtorNode *lambda,
                               BtorNodePtrStack *prop_stack,
-                              BtorIntHashTable *apply_search_cache,
-                              BtorPtrHashTable *to_prop)
+                              BtorIntHashTable *apply_search_cache)
 {
   assert (btor);
   assert (btor->slv);
@@ -4880,8 +4879,7 @@ push_applies_for_propagation (Btor *btor,
 
     if (!cur->apply_below
         || btor_contains_int_hash_table (apply_search_cache, cur->id)
-        || BTOR_IS_FEQ_NODE (cur)
-        || (to_prop && btor_find_in_ptr_hash_table (to_prop, cur)))
+        || BTOR_IS_FEQ_NODE (cur))
       continue;
 
     btor_add_int_hash_table (apply_search_cache, cur->id);
@@ -4922,7 +4920,6 @@ propagate (Btor *btor,
   BtorNode *hashed_app;
   BtorPtrHashBucket *b;
   BtorHashTableIterator it;
-  BtorPtrHashTable *to_prop;
   BtorPtrHashTable *conds;
 
   mm  = btor->mm;
@@ -4955,12 +4952,12 @@ propagate (Btor *btor,
     BTORLOG (1, "  app: %s", node2string (app));
     BTORLOG (1, "  fun: %s", node2string (fun));
 
-    push_applies_for_propagation (
-        btor, app->e[1], 0, prop_stack, apply_search_cache, 0);
-
     args = app->e[1];
     assert (BTOR_IS_REGULAR_NODE (args));
     assert (BTOR_IS_ARGS_NODE (args));
+
+    push_applies_for_propagation (
+        btor, args, 0, prop_stack, apply_search_cache);
 
     if (!fun->rho)
     {
@@ -5010,7 +5007,7 @@ propagate (Btor *btor,
     if (BTOR_IS_FUN_COND_NODE (fun))
     {
       push_applies_for_propagation (
-          btor, fun->e[0], 0, prop_stack, apply_search_cache, 0);
+          btor, fun->e[0], 0, prop_stack, apply_search_cache);
       bv = get_bv_assignment (btor, fun->e[0]);
 
       /* propagate over function ite */
@@ -5026,14 +5023,11 @@ propagate (Btor *btor,
     }
 
     assert (BTOR_IS_LAMBDA_NODE (fun));
-    to_prop = btor_new_ptr_hash_table (mm,
-                                       (BtorHashPtr) btor_hash_exp_by_id,
-                                       (BtorCmpPtr) btor_compare_exp_by_id);
-    conds   = btor_new_ptr_hash_table (mm,
+    conds = btor_new_ptr_hash_table (mm,
                                      (BtorHashPtr) btor_hash_exp_by_id,
                                      (BtorCmpPtr) btor_compare_exp_by_id);
     btor_assign_args (btor, fun, args);
-    fun_value = btor_beta_reduce_partial (btor, fun, to_prop, conds);
+    fun_value = btor_beta_reduce_partial (btor, fun, 0, conds);
     assert (!BTOR_IS_FUN_NODE (BTOR_REAL_ADDR_NODE (fun_value)));
     btor_unassign_params (btor, fun);
 
@@ -5076,10 +5070,9 @@ propagate (Btor *btor,
     /* we have a conflict and the values are inconsistent, we do not have
      * to push applies onto 'prop_stack' that produce this inconsistent
      * value */
-    if (conflict)
+    if (conflict && false)
     {
-      btor_init_node_hash_table_iterator (&it, to_prop);
-      btor_queue_node_hash_table_iterator (&it, conds);
+      btor_init_node_hash_table_iterator (&it, conds);
       while (btor_has_next_node_hash_table_iterator (&it))
         btor_release_exp (btor, btor_next_node_hash_table_iterator (&it));
     }
@@ -5092,7 +5085,7 @@ propagate (Btor *btor,
        * push 'fun_value' onto 'prop_stack'. */
       if (!prop_down)
         push_applies_for_propagation (
-            btor, fun_value, fun, prop_stack, apply_search_cache, to_prop);
+            btor, fun_value, fun, prop_stack, apply_search_cache);
 
       /* push applies in evaluated conditions */
       btor_init_node_hash_table_iterator (&it, conds);
@@ -5100,35 +5093,10 @@ propagate (Btor *btor,
       {
         cur = btor_next_node_hash_table_iterator (&it);
         push_applies_for_propagation (
-            btor, cur, 0, prop_stack, apply_search_cache, to_prop);
-        btor_release_exp (btor, cur);
-      }
-
-      btor_init_node_hash_table_iterator (&it, to_prop);
-      while (btor_has_next_node_hash_table_iterator (&it))
-      {
-        cur = btor_next_node_hash_table_iterator (&it);
-        assert (BTOR_IS_REGULAR_NODE (cur));
-        assert (BTOR_IS_APPLY_NODE (cur));
-        if (cur != BTOR_REAL_ADDR_NODE (fun_value)
-            /* check down propagation condition */
-            || has_bv_assignment (btor, fun_value)
-            // TODO (ma): use prop_down for this
-            || BTOR_IS_INVERTED_NODE (fun_value) || fun_value->e[1] != args)
-        {
-          insert_synth_app_lambda (btor, fun, cur);
-          assert (cur->reachable || cur->synth_app);
-          assert (cur->refs - cur->ext_refs > 1);
-          if (!cur->propagated)
-          {
-            BTOR_PUSH_STACK (mm, *prop_stack, cur);
-            BTOR_PUSH_STACK (mm, *prop_stack, cur->e[0]);
-          }
-        }
+            btor, cur, 0, prop_stack, apply_search_cache);
         btor_release_exp (btor, cur);
       }
     }
-    btor_delete_ptr_hash_table (to_prop);
     btor_delete_ptr_hash_table (conds);
     btor_release_exp (btor, fun_value);
 
@@ -5407,7 +5375,7 @@ check_and_resolve_conflicts (Btor *btor,
   {
     cur = btor_simplify_exp (btor, btor_next_node_hash_table_iterator (&it));
     push_applies_for_propagation (
-        btor, cur, 0, &prop_stack, apply_search_cache, 0);
+        btor, cur, 0, &prop_stack, apply_search_cache);
   }
 
   while (!BTOR_EMPTY_STACK (*tmp_stack))
