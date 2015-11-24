@@ -3521,7 +3521,7 @@ synthesize_exp (Btor *btor, BtorNode *exp, BtorPtrHashTable *backannotation)
 /* Mark all reachable expressions as reachable, reset reachable flag for all
  * previously reachable expressions that became unreachable due to rewriting. */
 static void
-update_reachable (Btor *btor, int check_all_tables)
+update_reachable (Btor *btor, bool check_all_tables)
 {
   assert (btor);
 
@@ -3531,25 +3531,16 @@ update_reachable (Btor *btor, int check_all_tables)
   BtorHashTableIterator it;
 
   assert (check_id_table_mark_unset_dbg (btor));
-  assert (check_all_tables || btor->unsynthesized_constraints->count == 0);
   assert (check_all_tables || btor->embedded_constraints->count == 0);
   assert (check_all_tables || btor->varsubst_constraints->count == 0);
+  assert (check_assumptions_simp_free_dbg (btor));
 
   start = btor_time_stamp ();
-#ifndef NDEBUG
-  btor_init_node_hash_table_iterator (&it, btor->assumptions);
-  while (btor_has_next_node_hash_table_iterator (&it))
-  {
-    cur = btor_next_node_hash_table_iterator (&it);
-    assert (!BTOR_IS_PROXY_NODE (BTOR_REAL_ADDR_NODE (cur)));
-  }
-#endif
-
   btor_init_node_hash_table_iterator (&it, btor->synthesized_constraints);
+  btor_queue_node_hash_table_iterator (&it, btor->unsynthesized_constraints);
   btor_queue_node_hash_table_iterator (&it, btor->assumptions);
   if (check_all_tables)
   {
-    btor_queue_node_hash_table_iterator (&it, btor->unsynthesized_constraints);
     btor_queue_node_hash_table_iterator (&it, btor->embedded_constraints);
     btor_queue_node_hash_table_iterator (&it, btor->varsubst_constraints);
   }
@@ -3560,6 +3551,7 @@ update_reachable (Btor *btor, int check_all_tables)
     mark_exp (btor, cur, 1);
   }
 
+  /* var_rhs and fun_rhs are still part of the formula, and thus, reachable */
   btor_init_node_hash_table_iterator (&it, btor->var_rhs);
   btor_queue_node_hash_table_iterator (&it, btor->fun_rhs);
   while (btor_has_next_node_hash_table_iterator (&it))
@@ -4990,15 +4982,6 @@ propagate (Btor *btor,
     if (!BTOR_IS_INVERTED_NODE (fun_value) && BTOR_IS_APPLY_NODE (fun_value))
       prop_down = fun_value->e[1] == args;
 
-    /* NOTE: this is a special case 'fun_value' is a function application and
-     * is not encoded.  the value of 'fun_value' must be the same as 'app'.
-     * if 'fun_value' and 'app' have the same number of arguments and the
-     * arguments have the same value, we can propagate 'app' instead of
-     * 'fun_value'. in this case, we do not have to additionally encode
-     * 'fun_value', but we can use 'app' instead, which has the same
-     * properties as 'fun_value'. further, we do not have to encode every
-     * intermediate function application we encounter while propagating
-     * 'app'. */
     if (prop_down)
     {
       assert (BTOR_IS_APPLY_NODE (BTOR_REAL_ADDR_NODE (fun_value)));
@@ -5648,8 +5631,7 @@ sat_aux_btor_dual_prop (Btor *btor)
 
   if (btor->feqs->count > 0)
   {
-    // TODO (ma): check if function equalities are arrays only
-    update_reachable (btor, 1);
+    update_reachable (btor, false);
     add_function_inequality_constraints (btor);
   }
 
@@ -5658,16 +5640,9 @@ sat_aux_btor_dual_prop (Btor *btor)
   assert (btor->embedded_constraints->count == 0);
   assert (check_all_hash_tables_proxy_free_dbg (btor));
   assert (check_all_hash_tables_simp_free_dbg (btor));
+  assert (check_assumptions_simp_free_dbg (btor));
 
-#ifndef NDEBUG
-  BtorHashTableIterator it;
-  btor_init_node_hash_table_iterator (&it, btor->assumptions);
-  while (btor_has_next_node_hash_table_iterator (&it))
-    assert (!BTOR_REAL_ADDR_NODE (btor_next_node_hash_table_iterator (&it))
-                 ->simplified);
-#endif
-
-  update_reachable (btor, 0);
+  update_reachable (btor, false);
   assert (check_reachable_flag_dbg (btor));
 
   add_again_assumptions (btor);
@@ -6236,7 +6211,7 @@ map_inputs_check_model (Btor *btor, Btor *clone)
                                     (BtorHashPtr) btor_hash_exp_by_id,
                                     (BtorCmpPtr) btor_compare_exp_by_id);
 
-  update_reachable (clone, 1);
+  update_reachable (clone, true);
 
   btor_init_node_hash_table_iterator (&it, clone->bv_vars);
   while (btor_has_next_node_hash_table_iterator (&it))
@@ -6671,7 +6646,7 @@ sat_core_solver (Btor *btor, int lod_limit, int sat_limit)
 
   if (btor->feqs->count > 0)
   {
-    update_reachable (btor, 1);
+    update_reachable (btor, false);
     add_function_inequality_constraints (btor);
   }
 
@@ -6685,16 +6660,9 @@ sat_core_solver (Btor *btor, int lod_limit, int sat_limit)
   assert (btor->unsynthesized_constraints->count == 0);
   assert (check_all_hash_tables_proxy_free_dbg (btor));
   assert (check_all_hash_tables_simp_free_dbg (btor));
+  assert (check_assumptions_simp_free_dbg (btor));
 
-#ifndef NDEBUG
-  BtorHashTableIterator it;
-  btor_init_node_hash_table_iterator (&it, btor->assumptions);
-  while (btor_has_next_node_hash_table_iterator (&it))
-    assert (!BTOR_REAL_ADDR_NODE (btor_next_node_hash_table_iterator (&it))
-                 ->simplified);
-#endif
-
-  update_reachable (btor, 0);
+  update_reachable (btor, false);
   assert (check_reachable_flag_dbg (btor));
 
   add_again_assumptions (btor);
