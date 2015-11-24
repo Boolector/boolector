@@ -2922,67 +2922,76 @@ inv_urem_bv (Btor *btor,
           btor_free_bv (mm, sub);
           goto BVUREM_CONF_1;
         }
+        /* choose either n = 1 or 1 <= n < (bve - bvurem) / bvurem
+         * with prob = 0.1 */
         else
         {
-          /* 1 <= n < (bve - bvurem) / bvurem (non-truncating)
-           * (note: div truncates towards 0!) */
-
-          /* bvurem = 0 -> 1 <= n <= bve */
-          if (btor_is_zero_bv (bvurem))
+          if (!btor_pick_rand_rng (&btor->rng, 0, 9))
           {
-            up = btor_copy_bv (mm, bve);
+            res = btor_copy_bv (mm, sub);
           }
-          /* e[1] > bvurem
-           * -> (bve - bvurem) / n > bvurem
-           * -> (bve - bvurem) / bvurem > n */
           else
           {
-            tmp  = btor_urem_bv (mm, sub, bvurem);
-            tmp2 = btor_udiv_bv (mm, sub, bvurem);
-            if (btor_is_zero_bv (tmp))
+            /* 1 <= n < (bve - bvurem) / bvurem (non-truncating)
+             * (note: div truncates towards 0!) */
+
+            /* bvurem = 0 -> 1 <= n <= bve */
+            if (btor_is_zero_bv (bvurem))
             {
-              /* (bve - bvurem) / bvurem is not truncated (remainder
-               * is 0), therefore the EXclusive upper bound
-               * -> up = (bve - bvurem) / bvurem - 1 */
-              up = btor_sub_bv (mm, tmp2, one);
-              btor_free_bv (mm, tmp2);
+              up = btor_copy_bv (mm, bve);
             }
+            /* e[1] > bvurem
+             * -> (bve - bvurem) / n > bvurem
+             * -> (bve - bvurem) / bvurem > n */
             else
             {
-              /* (bve - bvurem) / bvurem  is truncated (remainder
-               * is not 0), therefore the INclusive upper bound
-               * -> up = (bve - bvurem) / bvurem */
-              up = tmp2;
-            }
-            btor_free_bv (mm, tmp);
-          }
-
-          if (btor_is_zero_bv (up))
-            res = btor_udiv_bv (mm, sub, one);
-          else
-          {
-            /* choose 1 <= n <= up randomly
-             * s.t (bve - bvurem) % n = 0 */
-            n   = btor_new_random_range_bv (mm, &btor->rng, bw, one, up);
-            tmp = btor_urem_bv (mm, sub, n);
-            for (cnt = 0; cnt < bw && !btor_is_zero_bv (tmp); cnt++)
-            {
-              btor_free_bv (mm, n);
+              tmp  = btor_urem_bv (mm, sub, bvurem);
+              tmp2 = btor_udiv_bv (mm, sub, bvurem);
+              if (btor_is_zero_bv (tmp))
+              {
+                /* (bve - bvurem) / bvurem is not truncated (remainder
+                 * is 0), therefore the EXclusive upper bound
+                 * -> up = (bve - bvurem) / bvurem - 1 */
+                up = btor_sub_bv (mm, tmp2, one);
+                btor_free_bv (mm, tmp2);
+              }
+              else
+              {
+                /* (bve - bvurem) / bvurem  is truncated (remainder
+                 * is not 0), therefore the INclusive upper bound
+                 * -> up = (bve - bvurem) / bvurem */
+                up = tmp2;
+              }
               btor_free_bv (mm, tmp);
+            }
+
+            if (btor_is_zero_bv (up))
+              res = btor_udiv_bv (mm, sub, one);
+            else
+            {
+              /* choose 1 <= n <= up randomly
+               * s.t (bve - bvurem) % n = 0 */
               n   = btor_new_random_range_bv (mm, &btor->rng, bw, one, up);
               tmp = btor_urem_bv (mm, sub, n);
+              for (cnt = 0; cnt < bw && !btor_is_zero_bv (tmp); cnt++)
+              {
+                btor_free_bv (mm, n);
+                btor_free_bv (mm, tmp);
+                n   = btor_new_random_range_bv (mm, &btor->rng, bw, one, up);
+                tmp = btor_urem_bv (mm, sub, n);
+              }
+
+              /* res = (bve - bvurem) / n */
+              if (btor_is_zero_bv (tmp)) res = btor_udiv_bv (mm, sub, n);
+              /* fallback: n = 1 */
+              else
+                res = btor_copy_bv (mm, sub);
+
+              btor_free_bv (mm, n);
+              btor_free_bv (mm, tmp);
             }
-
-            /* res = (bve - bvurem) / n */
-            if (btor_is_zero_bv (tmp)) res = btor_udiv_bv (mm, sub, n);
-            /* fallback: n = 1 */
-            else
-              res = btor_copy_bv (mm, sub);
-
-            btor_free_bv (mm, n);
-            btor_free_bv (mm, tmp);
+            btor_free_bv (mm, up);
           }
-          btor_free_bv (mm, up);
         }
         btor_free_bv (mm, sub);
       }
