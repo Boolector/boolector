@@ -2928,10 +2928,10 @@ inv_urem_bv (Btor *btor,
           goto BVUREM_CONF_1;
         }
         /* choose either n = 1 or 1 <= n < (bve - bvurem) / bvurem
-         * with prob = 0.1 */
+         * with prob = 0.5 */
         else
         {
-          if (!btor_pick_rand_rng (&btor->rng, 0, 9))
+          if (!btor_pick_rand_rng (&btor->rng, 0, 1))
           {
             res = btor_copy_bv (mm, sub);
           }
