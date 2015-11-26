@@ -5847,7 +5847,6 @@ btor_sat_btor (Btor *btor, int lod_limit, int sat_limit)
       if (!btor->options.model_gen.val)
         btor->slv->api.generate_model (btor, 0, 1);
       check_model (btor, mclone, inputs);
-      if (!btor->options.model_gen.val) btor_delete_model (btor);
     }
 
     BtorHashTableIterator it;
