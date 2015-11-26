@@ -671,7 +671,7 @@ btor_beta_reduce_partial_aux (Btor *btor,
   assert (!cond_sel_else || cond_sel_if);
   //  BTORLOG ("%s: %s", __FUNCTION__, node2string (exp));
 
-  int i, rwl;
+  int i;
   double start;
   BtorBitVector *eval_res;
   BtorMemMgr *mm;
@@ -688,10 +688,6 @@ btor_beta_reduce_partial_aux (Btor *btor,
 
   start = btor_time_stamp ();
   btor->stats.beta_reduce_calls++;
-
-  rwl = btor->options.rewrite_level.val;
-  if (btor->options.rewrite_level.val > 0)
-    btor->options.rewrite_level.val = btor->options.rewrite_level_pbr.val;
 
   mm = btor->mm;
   BTOR_INIT_STACK (stack);
@@ -1008,7 +1004,6 @@ btor_beta_reduce_partial_aux (Btor *btor,
   BTOR_RELEASE_STACK (mm, arg_stack);
   btor_delete_ptr_hash_table (cache);
   btor_delete_ptr_hash_table (mark);
-  btor->options.rewrite_level.val = rwl;
 
   BTORLOG (2,
            "%s: result %s (%d)",

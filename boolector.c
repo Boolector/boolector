@@ -665,11 +665,6 @@ boolector_set_opt (Btor *btor, const char *name, int val)
         BTOR_COUNT_STACK (btor->nodes_id_table) > 2,
         "setting rewrite level must be done before creating expressions");
   }
-  else if (!strcmp (name, BTOR_OPT_REWRITE_LEVEL_PBR))
-  {
-    BTOR_ABORT_BOOLECTOR (val < 0 || val > 3,
-                          "'rewrite_level_pbr' must be in [0,3]");
-  }
 #ifdef NBTORLOG
   else if (!strcmp (name, BTOR_OPT_LOGLEVEL))
   {

@@ -69,7 +69,6 @@ typedef struct BtorOpt
 #define BTOR_OPT_OUTPUT_NUMBER_FORMAT "output_number_format"
 #define BTOR_OPT_OUTPUT_FORMAT "output_format"
 #define BTOR_OPT_REWRITE_LEVEL "rewrite_level"
-#define BTOR_OPT_REWRITE_LEVEL_PBR "rewrite_level_pbr"
 #define BTOR_OPT_BETA_REDUCE_ALL "beta_reduce_all"
 #define BTOR_OPT_ACKERMANN "ackermannize"
 #define BTOR_OPT_DUAL_PROP "dual_prop"
@@ -120,7 +119,6 @@ typedef struct BtorOpts
   BtorOpt output_format;        /* output file format */
 
   BtorOpt rewrite_level;
-  BtorOpt rewrite_level_pbr;
 
   BtorOpt beta_reduce_all; /* eagerly eliminate lambda expressions */
   BtorOpt ackermannize;    /* add ackermann constraints */

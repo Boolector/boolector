@@ -139,8 +139,6 @@ btor_init_opts (Btor *btor)
             "output file format");
 
   BTOR_OPT ("rwl", rewrite_level, 3, 0, 3, "rewrite level");
-  BTOR_OPT (
-      0, rewrite_level_pbr, 1, 0, 3, "rewrite level partial beta reduction");
 
   BTOR_OPT (
       "bra", beta_reduce_all, 0, 0, 1, "eagerly eliminate lambda expressions");
@@ -351,11 +349,6 @@ btor_set_opt (Btor *btor, const char *name, uint32_t val)
     assert (!val || !btor->options.dual_prop.val);
   }
   else if (!strcmp (name, "rwl") || !strcmp (name, BTOR_OPT_REWRITE_LEVEL))
-  {
-    assert (val <= 3);
-    assert (oldval <= 3);
-  }
-  else if (!strcmp (name, BTOR_OPT_REWRITE_LEVEL_PBR))
   {
     assert (val <= 3);
     assert (oldval <= 3);
