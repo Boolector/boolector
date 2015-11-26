@@ -416,8 +416,6 @@ prop_inv_conf_and_bv (uint32_t bw)
   BtorBitVector *bvand, *bve[2], *res, *tmp, *tmp2;
   BtorSolver *slv;
 
-#endif
-
   TEST_PROP_INV_CONF_BINARY_INIT (and);
 
   for (i = 0; i < (uint32_t) (1 << bw); i++)
@@ -500,6 +498,7 @@ prop_inv_conf_and_bv (uint32_t bw)
   }
 
   TEST_PROP_INV_CONF_BINARY_FINISH (and);
+#endif
 }
 
 static void
