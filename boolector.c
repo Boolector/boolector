@@ -361,7 +361,7 @@ boolector_assert (Btor *btor, BoolectorNode *node)
 void
 boolector_assume (Btor *btor, BoolectorNode *node)
 {
-  BtorNode *exp, *simp;
+  BtorNode *exp;
 
   exp = BTOR_IMPORT_BOOLECTOR_NODE (node);
   BTOR_ABORT_ARG_NULL_BOOLECTOR (btor);
@@ -399,7 +399,6 @@ boolector_failed (Btor *btor, BoolectorNode *node)
                         "incremental usage has not been enabled");
   BTOR_ABORT_REFS_NOT_POS_BOOLECTOR (exp);
   BTOR_ABORT_IF_BTOR_DOES_NOT_MATCH (btor, exp);
-  /* Note: do not simplify expression (see boolector_assume). */
   BTOR_ABORT_ARRAY_BOOLECTOR (exp);
   BTOR_ABORT_BOOLECTOR (btor_get_exp_width (btor, exp) != 1,
                         "'exp' must have bit-width one");
