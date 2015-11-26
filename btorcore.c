@@ -5249,6 +5249,23 @@ check_and_resolve_conflicts (Btor *btor,
    */
   if (!apply_search_cache) apply_search_cache = btor_new_int_hash_table (mm);
 
+  /* NOTE: terms in var_rhs are always part of the formula (due to the implicit
+   * top level equality). if terms containing applies do not occur in the
+   * formula anymore due to variable substitution, we still need to ensure that
+   * the assignment computed for the substituted variable is correct. hence, we
+   * need to check the applies for consistency and push them onto the
+   * propagation stack.
+   * this also applies for don't care reasoning.
+   */
+  btor_init_node_hash_table_iterator (&it, btor->var_rhs);
+  while (btor_has_next_node_hash_table_iterator (&it))
+  {
+    cur = btor_simplify_exp (btor, btor_next_node_hash_table_iterator (&it));
+    /* no parents -> is not reachable from the roots */
+    if (BTOR_REAL_ADDR_NODE (cur)->parents > 0) continue;
+    push_applies_for_propagation (btor, cur, &prop_stack, apply_search_cache);
+  }
+
   if (clone)
     search_initial_applies_dual_prop (
         btor, clone, clone_root, exp_map, &top_applies);
@@ -5256,17 +5273,6 @@ check_and_resolve_conflicts (Btor *btor,
     search_initial_applies_just (btor, &top_applies);
   else
     search_initial_applies_bv_skeleton (btor, &top_applies);
-
-  /* var_rhs are always part of the formula (due to the implicit top level
-   * equality). thus, we need to check the underlying applies for consistency.
-   * this also applies for don't care reasoning.
-   */
-  btor_init_node_hash_table_iterator (&it, btor->var_rhs);
-  while (btor_has_next_node_hash_table_iterator (&it))
-  {
-    cur = btor_simplify_exp (btor, btor_next_node_hash_table_iterator (&it));
-    push_applies_for_propagation (btor, cur, &prop_stack, apply_search_cache);
-  }
 
   while (!BTOR_EMPTY_STACK (top_applies))
   {
