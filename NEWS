@@ -1,3 +1,7 @@
+* API changes:
+    + boolector_get_bits now requires to free returned bit strings via
+      boolector_free_bits (analogous to boolector_bv_assignment)
+
 news for release 2.1.1 since 2.0.7
 --------------------------------------
 * added support for array extensionality

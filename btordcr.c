@@ -266,10 +266,13 @@ btor_compute_scores (Btor *btor)
   while (btor_has_next_node_hash_table_iterator (&it))
   {
     cur = btor_next_node_hash_table_iterator (&it);
+    if (BTOR_REAL_ADDR_NODE (cur)->simplified)
+      cur = btor_simplify_exp (btor, cur);
     BTOR_PUSH_STACK (btor->mm, stack, cur);
     while (!BTOR_EMPTY_STACK (stack))
     {
       cur = BTOR_REAL_ADDR_NODE (BTOR_POP_STACK (stack));
+      assert (!BTOR_IS_PROXY_NODE (cur));
       if (cur->aux_mark) continue;
       cur->aux_mark = 1;
       BTOR_PUSH_STACK (btor->mm, unmark_stack, cur);
@@ -344,10 +347,13 @@ btor_compute_scores_dual_prop (Btor *btor)
   while (btor_has_next_node_hash_table_iterator (&it))
   {
     cur = btor_next_node_hash_table_iterator (&it);
+    if (BTOR_REAL_ADDR_NODE (cur)->simplified)
+      cur = btor_simplify_exp (btor, cur);
     BTOR_PUSH_STACK (btor->mm, stack, cur);
     while (!BTOR_EMPTY_STACK (stack))
     {
       cur = BTOR_REAL_ADDR_NODE (BTOR_POP_STACK (stack));
+      assert (!BTOR_IS_PROXY_NODE (cur));
       if (cur->aux_mark) continue;
       cur->aux_mark = 1;
       BTOR_PUSH_STACK (btor->mm, unmark_stack, cur);

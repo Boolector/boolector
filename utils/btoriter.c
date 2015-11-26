@@ -23,13 +23,14 @@ btor_init_apply_parent_iterator (BtorNodeIterator *it, BtorNode *exp)
 {
   assert (it);
   assert (exp);
-  it->cur = BTOR_REAL_ADDR_NODE (exp)->last_parent;
+  it->cur = BTOR_REAL_ADDR_NODE (BTOR_REAL_ADDR_NODE (exp)->last_parent);
 }
 
 int
 btor_has_next_apply_parent_iterator (BtorNodeIterator *it)
 {
   assert (it);
+  assert (BTOR_IS_REGULAR_NODE (it->cur));
   /* function child of apply is at position 0, so cur is not tagged */
   return it->cur && BTOR_IS_APPLY_NODE (it->cur);
 }

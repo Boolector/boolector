@@ -363,7 +363,7 @@ cdef class BoolectorNode:
             else:
                 c_str = \
                     btorapi.boolector_bv_assignment(self.btor._c_btor,
-                                                       self._c_node)
+                                                    self._c_node)
                 value = _to_str(c_str)
                 btorapi.boolector_free_bv_assignment(self.btor._c_btor, c_str)
                 return value
@@ -373,7 +373,7 @@ cdef class BoolectorNode:
 
             Dump node to output file.
 
-            :param format: A file format identifier string (use 'btor' for BTOR_, 'smt1' for `SMT-LIB v1`_, and 'smt2' for `SMT-LIB v2`_).
+            :param format: A file format identifier string (use 'btor' for BTOR_ and 'smt2' for `SMT-LIB v2`_).
             :type format: str
             :param outfile: Output file name (default: stdout).
             :type outfile: str
@@ -394,9 +394,6 @@ cdef class BoolectorNode:
 
         if format.lower() == "btor":
             btorapi.boolector_dump_btor_node(self.btor._c_btor, c_file,
-                                             self._c_node)
-        elif format.lower() == "smt1":
-            btorapi.boolector_dump_smt1_node(self.btor._c_btor, c_file,
                                              self._c_node)
         elif format.lower() == "smt2":
             btorapi.boolector_dump_smt2_node(self.btor._c_btor, c_file,
@@ -511,10 +508,14 @@ cdef class BoolectorConstNode(BoolectorBVNode):
         """ The bit string of a Boolector constant node.
         """
         def __get__(self):
+            cdef const char * c_str
             if not self.__is_const():
                 raise BoolectorException("Given node is not a constant")
-            return _to_str(btorapi.boolector_get_bits(self.btor._c_btor,
-                                                      self._c_node))
+            c_str = btorapi.boolector_get_bits(self.btor._c_btor, self._c_node)
+            value = _to_str(c_str)
+            btorapi.boolector_free_bits(self.btor._c_btor, c_str)
+            return value
+
     def __is_const(self):
         return btorapi.boolector_is_const(self.btor._c_btor, self._c_node) == 1
 
@@ -1175,7 +1176,7 @@ cdef class Boolector:
 
             Dump input formula to output file.
 
-            :param format: A file format identifier string (use 'btor' for BTOR_, 'smt1' for `SMT-LIB v1`_, 'smt2' for `SMT-LIB v2`_, 'aig' for binary AIGER (QF_BV only), and 'aag' for ASCII AIGER (QF_BV only)).
+            :param format: A file format identifier string (use 'btor' for BTOR_, 'smt2' for `SMT-LIB v2`_, 'aig' for binary AIGER (QF_BV only), and 'aag' for ASCII AIGER (QF_BV only)).
             :type format: str
             :param outile: Output file name (default: stdout).
             :type format: str.
@@ -1196,8 +1197,6 @@ cdef class Boolector:
 
         if format.lower() == "btor":
             btorapi.boolector_dump_btor(self._c_btor, c_file)
-        elif format.lower() == "smt1":
-            btorapi.boolector_dump_smt1(self._c_btor, c_file)
         elif format.lower() == "smt2":
             btorapi.boolector_dump_smt2(self._c_btor, c_file)
         elif format.lower() == "aig":

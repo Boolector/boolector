@@ -295,6 +295,8 @@ cdef extern from "boolector.h":
 
     const char * boolector_get_bits (Btor *, BoolectorNode * node)
 
+    void boolector_free_bits (Btor *, const char * bits)
+
 #    int boolector_is_array (Btor * btor, BoolectorNode * node)
 
 #    int boolector_is_array_var (Btor * btor, BoolectorNode * node)
@@ -380,11 +382,6 @@ cdef extern from "boolector.h":
                                    BoolectorNode * node)
 
     void boolector_dump_btor (Btor * btor, FILE * file)
-
-    void boolector_dump_smt1_node (Btor * btor, FILE * file,
-                                   BoolectorNode * node)
-
-    void boolector_dump_smt1 (Btor * btor, FILE * file)
 
     void boolector_dump_smt2_node (Btor * btor, FILE * file,
                                    BoolectorNode * node)
