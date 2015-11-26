@@ -1,11 +1,11 @@
 #include "boolector.h"
-#include "btorutil.h"
 #include "maxand.h"
 #include "maxor.h"
 #include "maxxor.h"
 #include "minand.h"
 #include "minor.h"
 #include "minxor.h"
+#include "utils/btorutil.h"
 
 #include <assert.h>
 #include <stdio.h>

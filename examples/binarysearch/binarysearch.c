@@ -1,7 +1,7 @@
 #include <stdio.h>
 #include <stdlib.h>
 #include "boolector.h"
-#include "btorutil.h"
+#include "utils/btorutil.h"
 
 int
 main (int argc, char **argv)

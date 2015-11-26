@@ -1,6 +1,6 @@
 #include "boolector.h"
-#include "btorutil.h"
 #include "maxand.h"
+#include "utils/btorutil.h"
 
 #include <stdio.h>
 #include <stdlib.h>
