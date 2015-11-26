@@ -1,6 +1,23 @@
+news for release 2.2.0 since 2.1.1
+--------------------------------------
+
+* refactored a lot of code
+* refactored and extended btormbt
+* refactored and improved array/lambda engine
+* refactored and extended lambda extraction
+* removed SMT1 dumper (parsing SMT1 still supported)
+* fixed push/pop support in SMT2 with model generation enabled
+  (thanks to James Bornholt)
+* fixed an issue with model generation (thanks to Mikoláš Janota)
+* fixed issues with failed assumptions 
 * API changes:
     + boolector_get_bits now requires to free returned bit strings via
       boolector_free_bits (analogous to boolector_bv_assignment)
+    + removed boolector_dump_smt1 and boolector_dump_smt1_node 
+    + removed deprecated functions boolector_enable_model_gen,
+      boolector_generate_model_for_all_reads, boolector_enable_inc_usage,
+      boolector_set_rewrite_level, boolector_set_verbosity,
+      boolector_set_loglevel, boolector_get_symbol_of_var
 
 news for release 2.1.1 since 2.0.7
 --------------------------------------
