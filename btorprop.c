@@ -1072,7 +1072,7 @@ inv_sll_bv (Btor *btor,
   assert (eidx || btor_log_2_util (bvsll->width) == bve->width);
   assert (!BTOR_IS_BV_CONST_NODE (BTOR_REAL_ADDR_NODE (sll->e[eidx])));
 
-  uint32_t i, j, shift, sbw;
+  uint32_t i, j, shift, shiftconf, sbw;
   int oneidx;
   BtorNode *e;
   BtorBitVector *res, *tmp, *bvmax;
@@ -1105,10 +1105,11 @@ inv_sll_bv (Btor *btor,
     {
       for (i = 0, oneidx = -1; i < bvsll->width; i++)
       {
-        if (btor_get_bit_bv (bvsll, i)) break;
         if (oneidx == -1 && btor_get_bit_bv (bve, i)) oneidx = i;
+        if (btor_get_bit_bv (bvsll, i)) break;
       }
-      shift = oneidx == -1 ? 0 : i - oneidx;
+      shift     = oneidx == -1 ? i : i - oneidx;
+      shiftconf = i;
 #ifndef NDEBUG
       for (i = 0; i < shift; i++) assert (!btor_get_bit_bv (bvsll, i));
 #endif
@@ -1150,7 +1151,7 @@ inv_sll_bv (Btor *btor,
       else
       {
         /* check for conflict -> shifted bits must match */
-        for (i = 0, j = shift; i < bve->width - j; i++)
+        for (i = 0, j = shift, res = 0; i < bve->width - j; i++)
         {
           if (btor_get_bit_bv (bve, i) != btor_get_bit_bv (bvsll, j + i))
           {
@@ -1171,11 +1172,12 @@ inv_sll_bv (Btor *btor,
 #ifndef NDEBUG
             iscon = 1;
 #endif
+            res = btor_uint64_to_bv (mm, (uint64_t) shiftconf, sbw);
             BTOR_INC_REC_CONF_STATS (btor, 1);
             break;
           }
         }
-        res = btor_uint64_to_bv (mm, (uint64_t) shift, sbw);
+        if (!res) res = btor_uint64_to_bv (mm, (uint64_t) shift, sbw);
       }
     }
   }
@@ -1272,7 +1274,7 @@ inv_srl_bv (Btor *btor,
   assert (eidx || btor_log_2_util (bvsrl->width) == bve->width);
   assert (!BTOR_IS_BV_CONST_NODE (BTOR_REAL_ADDR_NODE (srl->e[eidx])));
 
-  uint32_t i, j, shift, sbw;
+  uint32_t i, j, shift, shiftconf, sbw;
   int oneidx;
   BtorNode *e;
   BtorBitVector *res, *bvmax, *tmp;
@@ -1305,11 +1307,12 @@ inv_srl_bv (Btor *btor,
     {
       for (i = 0, oneidx = -1; i < bvsrl->width; i++)
       {
-        if (btor_get_bit_bv (bvsrl, bvsrl->width - 1 - i)) break;
         if (oneidx == -1 && btor_get_bit_bv (bve, bve->width - 1 - i))
           oneidx = i;
+        if (btor_get_bit_bv (bvsrl, bvsrl->width - 1 - i)) break;
       }
-      shift = oneidx == -1 ? 0 : i - oneidx;
+      shift     = oneidx == -1 ? i : i - oneidx;
+      shiftconf = i;
 #ifndef NDEBUG
       for (i = 0; i < shift; i++)
         assert (!btor_get_bit_bv (bvsrl, bvsrl->width - 1 - i));
@@ -1349,7 +1352,7 @@ inv_srl_bv (Btor *btor,
       else
       {
         /* check for conflict -> shifted bits must match */
-        for (i = 0, j = shift; i < bve->width - j; i++)
+        for (i = 0, j = shift, res = 0; i < bve->width - j; i++)
         {
           if (btor_get_bit_bv (bve, bve->width - 1 - i)
               != btor_get_bit_bv (bvsrl, bvsrl->width - 1 - (j + i)))
@@ -1371,12 +1374,13 @@ inv_srl_bv (Btor *btor,
 #ifndef NDEBUG
             iscon = 1;
 #endif
+            res = btor_uint64_to_bv (mm, (uint64_t) shiftconf, sbw);
             BTOR_INC_REC_CONF_STATS (btor, 1);
             break;
           }
         }
 
-        res = btor_uint64_to_bv (mm, (uint64_t) shift, sbw);
+        if (!res) res = btor_uint64_to_bv (mm, (uint64_t) shift, sbw);
       }
     }
   }
@@ -1507,9 +1511,8 @@ inv_mul_bv (Btor *btor,
    *		  + if number of 0-LSBs in bvmul < n -> conflict
    *		  + else c' = bvmul >> n (with all bits shifted in randomly set to
    *0 or 1)
-   *		         -> res = c' * m^-1 (with m^-1 the mod inverse of m) if
-   *m odd
-   *		         -> else conflict
+   *		         -> res = c' * m^-1 (with m^-1 the mod inverse of m, m
+   *odd)
    */
 
   lsbve   = btor_get_bit_bv (bve, 0);
@@ -1562,7 +1565,7 @@ inv_mul_bv (Btor *btor,
             btor_set_bit_bv (res, btor_pick_rand_rng (&btor->rng, 1, i), 1);
           }
           /* choose res as bvmul / 2^n with prob 0.4
-           * (note: bw is not necessarily power of 2 -> do not use srl) */
+           * (note: bw not necessarily power of 2 -> do not use srl) */
           else if (r < 8)
           {
             for (i = 0; i < bw; i++)
@@ -2138,7 +2141,7 @@ inv_udiv_bv (Btor *btor,
    *
    * -> if bvudiv = 2^bw - 1 and bve = 0, choose random e[0] > 0
    *                         and bve > 0 -> conflict
-   * -> if bve = 0 and bve < 2^bw - 1 -> conflict
+   * -> if bve = 0 and bvudiv < 2^bw - 1 -> conflict
    * -> if bve * bvudiv does not overflow, choose with 0.5 prob out of
    *      + e[0] = bve * bvudiv
    *      + choose bve s.t. e[0] / bve = bvudiv
@@ -2191,7 +2194,7 @@ inv_udiv_bv (Btor *btor,
     }
     else if (btor_is_zero_bv (bve))
     {
-      /* bve = 0 and bve < 2^bw - 1 -> conflict */
+      /* bve = 0 and bvudiv < 2^bw - 1 -> conflict */
       goto BVUDIV_E0_CONF;
     }
     else
@@ -2853,7 +2856,7 @@ inv_urem_bv (Btor *btor,
   res = 0;
 
   /* bve % e[1] = bvurem
-   * -> if bvurem = 1...1 -> bve = 1...1 and e[1] = 0...0
+   * -> if bvurem = 1...1 -> bve = 1...1 and e[1] = 0...0, else conflict
    * -> if bve = bvurem, choose either e[1] = 0 or some e[1] > bvurem randomly
    * -> if bve > bvurem, e[1] = ((bve - bvurem) / n) > bvurem, else conflict
    * -> if bve < bvurem, conflict */
@@ -2863,7 +2866,7 @@ inv_urem_bv (Btor *btor,
     if (!btor_compare_bv (bvurem, bvmax))
     {
       /* conflict */
-      if (!btor_compare_bv (bve, bvmax))
+      if (btor_compare_bv (bve, bvmax))
       {
 #ifndef NDEBUG
         iscon = 1;
@@ -2991,6 +2994,9 @@ inv_urem_bv (Btor *btor,
       {
       BVUREM_CONF_1:
         /* check for non-recoverable conflict */
+#ifndef NDEBUG
+        iscon = 1;
+#endif
         if (btor->options.engine.val == BTOR_ENGINE_SLS
             && BTOR_IS_BV_CONST_NODE (BTOR_REAL_ADDR_NODE (e)))
         {
@@ -3006,9 +3012,6 @@ inv_urem_bv (Btor *btor,
         }
         else
         {
-#ifndef NDEBUG
-          iscon = 1;
-#endif
           BTOR_INC_REC_CONF_STATS (btor, 1);
 
           /* choose simplest solution with prob 0.5 */
@@ -3137,6 +3140,9 @@ inv_urem_bv (Btor *btor,
     {
     BVUREM_CONF_0:
       /* check for non-recoverable conflict */
+#ifndef NDEBUG
+      iscon = 1;
+#endif
       if (btor->options.engine.val == BTOR_ENGINE_SLS
           && BTOR_IS_BV_CONST_NODE (BTOR_REAL_ADDR_NODE (e)))
       {
@@ -3152,9 +3158,6 @@ inv_urem_bv (Btor *btor,
       }
       else
       {
-#ifndef NDEBUG
-        iscon = 1;
-#endif
         BTOR_INC_REC_CONF_STATS (btor, 1);
         /* choose simplest solution with prob 0.5 */
         if (btor_pick_rand_rng (&btor->rng, 0, 1)) goto BVUREM_EQ_0;
