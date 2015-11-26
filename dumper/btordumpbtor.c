@@ -280,6 +280,7 @@ bdcnode (BtorDumpContext *bdc, BtorNode *node, FILE *file)
   BtorNode *n, *index, *value;
   BtorArgsIterator ait;
   BtorNodeIterator nit;
+  BtorParameterizedIterator pit;
   BtorPtrHashTable *rho;
   BtorBitVector *bits;
 
@@ -295,6 +296,17 @@ bdcnode (BtorDumpContext *bdc, BtorNode *node, FILE *file)
 	      && BTOR_IS_CURRIED_LAMBDA_NODE (node))))
     return;
 #endif
+
+  /* do not dump parameterized nodes that belong to a "write-lambda" */
+  if (bdc->btor->options.rewrite_level.val == 0 && node->parameterized)
+  {
+    btor_init_parameterized_iterator (&pit, bdc->btor, node);
+    assert (btor_has_next_parameterized_iterator (&pit));
+    n = btor_next_parameterized_iterator (&pit);
+    if (btor_lambda_get_static_rho (btor_param_get_binding_lambda (n))
+        && !btor_has_next_parameterized_iterator (&pit))
+      return;
+  }
 
   switch (node->kind)
   {
@@ -359,7 +371,7 @@ bdcnode (BtorDumpContext *bdc, BtorNode *node, FILE *file)
     fprintf (file, "%d %s", bdcid (bdc, node), op);
 
     /* print index bit width of arrays */
-    if (BTOR_IS_UF_ARRAY_NODE (node))
+    if (BTOR_IS_UF_ARRAY_NODE (node) || BTOR_IS_FUN_COND_NODE (node))
     {
       fprintf (file, " %d", btor_get_fun_exp_width (bdc->btor, node));
       fprintf (file, " %d", btor_get_index_exp_width (bdc->btor, node));
@@ -368,11 +380,6 @@ bdcnode (BtorDumpContext *bdc, BtorNode *node, FILE *file)
     {
       fprintf (file, " %d", btor_get_fun_exp_width (bdc->btor, node));
       fprintf (file, " %d", btor_get_exp_width (bdc->btor, node->e[0]));
-    }
-    else if (BTOR_IS_FUN_COND_NODE (node))
-    {
-      fprintf (file, " %d", btor_get_fun_exp_width (bdc->btor, node->e[1]));
-      fprintf (file, " %d", btor_get_exp_width (bdc->btor, node->e[1]->e[0]));
     }
     else if (!BTOR_IS_UF_NODE (node))
       fprintf (file, " %d", btor_get_exp_width (bdc->btor, node));
