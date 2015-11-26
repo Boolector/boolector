@@ -22,20 +22,229 @@ static BtorMemMgr *g_mm;
 static BtorRNG *g_rng;
 
 /*------------------------------------------------------------------------*/
+#ifndef NDEBUG
+/*------------------------------------------------------------------------*/
 
-void
-init_propinv_tests (void)
+#define TEST_PROP_INV_COMPLETE_BW 8
+#define TEST_PROP_INV_COMPLETE_N_TESTS 10000
+
+#define TEST_PROP_INV_COMPLETE_BINARY_INIT(fun)   \
+  do                                              \
+  {                                               \
+    bw   = TEST_PROP_INV_COMPLETE_BW;             \
+    e[0] = btor_var_exp (g_btor, bw, 0);          \
+    e[1] = btor_var_exp (g_btor, bw, 0);          \
+    exp  = btor_##fun##_exp (g_btor, e[0], e[1]); \
+  } while (0)
+
+#define TEST_PROP_INV_COMPLETE_SHIFT_INIT(fun)    \
+  do                                              \
+  {                                               \
+    bw   = TEST_PROP_INV_COMPLETE_BW;             \
+    sbw  = btor_log_2_util (bw);                  \
+    e[0] = btor_var_exp (g_btor, bw, 0);          \
+    e[1] = btor_var_exp (g_btor, sbw, 0);         \
+    exp  = btor_##fun##_exp (g_btor, e[0], e[1]); \
+  } while (0)
+
+#define TEST_PROP_INV_COMPLETE_BINARY_FINISH(fun) \
+  do                                              \
+  {                                               \
+    btor_release_exp (g_btor, e[0]);              \
+    btor_release_exp (g_btor, e[1]);              \
+    btor_release_exp (g_btor, exp);               \
+  } while (0)
+
+#define TEST_PROP_INV_COMPLETE_EIDX(fun, bve, bvn, bvres, eidx)   \
+  do                                                              \
+  {                                                               \
+    for (k = 0, res = 0; k < TEST_PROP_INV_COMPLETE_N_TESTS; k++) \
+    {                                                             \
+      res = inv_##fun##_bv (g_btor, exp, bvn, bve, eidx);         \
+      assert (res);                                               \
+      if (!btor_compare_bv (res, bvres)) break;                   \
+      btor_free_bv (g_mm, res);                                   \
+      res = 0;                                                    \
+    }                                                             \
+    assert (res);                                                 \
+    assert (!btor_compare_bv (res, bvres));                       \
+    btor_free_bv (g_mm, res);                                     \
+  } while (0)
+
+#define TEST_PROP_INV_COMPLETE_BINARY(fun)                           \
+  do                                                                 \
+  {                                                                  \
+    uint32_t bw;                                                     \
+    uint64_t i, j, k;                                                \
+    BtorNode *exp, *e[2];                                            \
+    BtorBitVector *bve[2], *bvexp, *res;                             \
+    TEST_PROP_INV_COMPLETE_BINARY_INIT (fun);                        \
+    for (i = 0; i < (uint32_t) (1 << bw); i++)                       \
+    {                                                                \
+      bve[0] = btor_uint64_to_bv (g_mm, i, bw);                      \
+      for (j = 0; j < (uint32_t) (1 << bw); j++)                     \
+      {                                                              \
+        bve[1] = btor_uint64_to_bv (g_mm, j, bw);                    \
+        bvexp  = btor_##fun##_bv (g_mm, bve[0], bve[1]);             \
+        TEST_PROP_INV_COMPLETE_EIDX (fun, bve[0], bvexp, bve[1], 1); \
+        TEST_PROP_INV_COMPLETE_EIDX (fun, bve[1], bvexp, bve[0], 0); \
+        btor_free_bv (g_mm, bve[1]);                                 \
+        btor_free_bv (g_mm, bvexp);                                  \
+      }                                                              \
+      btor_free_bv (g_mm, bve[0]);                                   \
+    }                                                                \
+    TEST_PROP_INV_COMPLETE_BINARY_FINISH (fun);                      \
+  } while (0)
+
+#define TEST_PROP_INV_COMPLETE_SHIFT(fun)                            \
+  do                                                                 \
+  {                                                                  \
+    uint32_t bw, sbw;                                                \
+    uint64_t i, j, k;                                                \
+    BtorNode *exp, *e[2];                                            \
+    BtorBitVector *bve[2], *bvexp, *res;                             \
+    TEST_PROP_INV_COMPLETE_SHIFT_INIT (fun);                         \
+    for (i = 0; i < (uint32_t) (1 << bw); i++)                       \
+    {                                                                \
+      bve[0] = btor_uint64_to_bv (g_mm, i, bw);                      \
+      for (j = 0; j < (uint32_t) (1 << sbw); j++)                    \
+      {                                                              \
+        bve[1] = btor_uint64_to_bv (g_mm, j, sbw);                   \
+        bvexp  = btor_##fun##_bv (g_mm, bve[0], bve[1]);             \
+        TEST_PROP_INV_COMPLETE_EIDX (fun, bve[0], bvexp, bve[1], 1); \
+        TEST_PROP_INV_COMPLETE_EIDX (fun, bve[1], bvexp, bve[0], 0); \
+        btor_free_bv (g_mm, bve[1]);                                 \
+        btor_free_bv (g_mm, bvexp);                                  \
+      }                                                              \
+      btor_free_bv (g_mm, bve[0]);                                   \
+    }                                                                \
+    TEST_PROP_INV_COMPLETE_BINARY_FINISH (fun);                      \
+  } while (0)
+/*------------------------------------------------------------------------*/
+#endif
+/*------------------------------------------------------------------------*/
+
+static void
+test_propinv_complete_add_bv (void)
 {
-  g_btor                            = btor_new_btor ();
-  g_btor->slv                       = btor_new_prop_solver (g_btor);
-  g_btor->options.engine.val        = BTOR_ENGINE_PROP;
-  g_btor->options.rewrite_level.val = 0;
-  g_btor->options.sort_exp.val      = 0;
-  g_mm                              = g_btor->mm;
-  g_rng                             = &g_btor->rng;
+#ifndef NDEBUG
+  TEST_PROP_INV_COMPLETE_BINARY (add);
+#endif
 }
 
-/*------------------------------------------------------------------------*/
+static void
+test_propinv_complete_and_bv (void)
+{
+#ifndef NDEBUG
+  TEST_PROP_INV_COMPLETE_BINARY (and);
+#endif
+}
+
+static void
+test_propinv_complete_eq_bv (void)
+{
+#ifndef NDEBUG
+  TEST_PROP_INV_COMPLETE_BINARY (eq);
+#endif
+}
+
+static void
+test_propinv_complete_ult_bv (void)
+{
+#ifndef NDEBUG
+  TEST_PROP_INV_COMPLETE_BINARY (ult);
+#endif
+}
+
+static void
+test_propinv_complete_sll_bv (void)
+{
+#ifndef NDEBUG
+  TEST_PROP_INV_COMPLETE_SHIFT (sll);
+#endif
+}
+
+static void
+test_propinv_complete_srl_bv (void)
+{
+#ifndef NDEBUG
+  TEST_PROP_INV_COMPLETE_SHIFT (srl);
+#endif
+}
+
+static void
+test_propinv_complete_mul_bv (void)
+{
+#ifndef NDEBUG
+  TEST_PROP_INV_COMPLETE_BINARY (mul);
+#endif
+}
+
+static void
+test_propinv_complete_udiv_bv (void)
+{
+#ifndef NDEBUG
+  TEST_PROP_INV_COMPLETE_BINARY (udiv);
+#endif
+}
+
+static void
+test_propinv_complete_urem_bv (void)
+{
+#ifndef NDEBUG
+  TEST_PROP_INV_COMPLETE_BINARY (urem);
+#endif
+}
+
+static void
+test_propinv_complete_concat_bv (void)
+{
+#ifndef NDEBUG
+  TEST_PROP_INV_COMPLETE_BINARY (concat);
+#endif
+}
+
+static void
+test_propinv_complete_slice_bv (void)
+{
+#ifndef NDEBUG
+  uint32_t bw;
+  uint64_t up, lo, i, k;
+  BtorNode *exp, *e;
+  BtorBitVector *bve, *bvexp, *res;
+
+  bw = TEST_PROP_INV_COMPLETE_BW;
+  e  = btor_var_exp (g_btor, bw, 0);
+
+  for (lo = 0; lo < bw; lo++)
+  {
+    for (up = lo; up < bw; up++)
+    {
+      exp = btor_slice_exp (g_btor, e, up, lo);
+      for (i = 0; i < (uint32_t) (1 << bw); i++)
+      {
+        bve   = btor_uint64_to_bv (g_mm, i, bw);
+        bvexp = btor_slice_bv (g_mm, bve, up, lo);
+        for (k = 0, res = 0; k < TEST_PROP_INV_COMPLETE_N_TESTS; k++)
+        {
+          res = inv_slice_bv (g_btor, exp, bvexp);
+          assert (res);
+          if (!btor_compare_bv (res, bve)) break;
+          btor_free_bv (g_mm, res);
+          res = 0;
+        }
+        assert (res);
+        assert (!btor_compare_bv (res, bve));
+        btor_free_bv (g_mm, res);
+        btor_free_bv (g_mm, bvexp);
+        btor_free_bv (g_mm, bve);
+      }
+      btor_release_exp (g_btor, exp);
+    }
+  }
+  btor_release_exp (g_btor, e);
+#endif
+}
 
 /*------------------------------------------------------------------------*/
 #ifndef NDEBUG
@@ -191,66 +400,6 @@ init_propinv_tests (void)
       btor_release_exp (g_btor, cudiv);                                   \
       btor_release_exp (g_btor, ce);                                      \
     }                                                                     \
-  } while (0)
-
-/////
-#define TEST_PROP_INV_BV(fun, iscon, bw, bve, bvn, eidx) \
-  do                                                     \
-  {                                                      \
-    res = inv_##fun##_bv (g_btor, fun, bvn, bve, eidx);  \
-    if (iscon)                                           \
-      assert (!res);                                     \
-    else                                                 \
-    {                                                    \
-      if (eidx)                                          \
-        tmp = btor_##fun##_bv (g_mm, bve, res);          \
-      else                                               \
-        tmp = btor_##fun##_bv (g_mm, res, bve);          \
-      assert (!btor_compare_bv (tmp, bvn));              \
-      btor_free_bv (g_mm, tmp);                          \
-      btor_free_bv (g_mm, res);                          \
-    }                                                    \
-  } while (0)
-
-#define TEST_PROP_INV_VAL(fun, iscon, bw, ve, vn, eidx)               \
-  do                                                                  \
-  {                                                                   \
-    idx      = eidx ? 0 : 1;                                          \
-    bve[idx] = btor_uint64_to_bv (g_mm, ve, bw);                      \
-    bv##fun  = btor_uint64_to_bv (g_mm, vn, bw);                      \
-    res      = inv_##fun##_bv (g_btor, fun, bv##fun, bve[idx], eidx); \
-    if (iscon)                                                        \
-      assert (!res);                                                  \
-    else                                                              \
-    {                                                                 \
-      if (eidx)                                                       \
-        tmp = btor_##fun##_bv (g_mm, bve[idx], res);                  \
-      else                                                            \
-        tmp = btor_##fun##_bv (g_mm, res, bve[idx]);                  \
-      assert (!btor_compare_bv (tmp, bv##fun));                       \
-      btor_free_bv (g_mm, tmp);                                       \
-      btor_free_bv (g_mm, res);                                       \
-    }                                                                 \
-    btor_free_bv (g_btor->mm, bve[idx]);                              \
-    btor_free_bv (g_btor->mm, bv##fun);                               \
-  } while (0)
-
-#define TEST_PROP_INIT_INV_VAL_CON(fun, bw, ve, eidx) \
-  do                                                  \
-  {                                                   \
-    idx    = eidx ? 0 : 1;                            \
-    bits   = btor_uint64_to_bv (g_mm, ve, bw);        \
-    e[idx] = btor_const_exp (g_btor, bits);           \
-    btor_free_bv (g_mm, bits);                        \
-    fun = btor_##fun##_exp (g_btor, e[0], e[1]);      \
-  } while (0)
-
-#define TEST_PROP_FINISH_INV_VAL_CON(fun, eidx) \
-  do                                            \
-  {                                             \
-    idx = eidx ? 0 : 1;                         \
-    btor_release_exp (g_btor, fun);             \
-    btor_release_exp (g_btor, e[idx]);          \
   } while (0)
 
 /*------------------------------------------------------------------------*/
@@ -1216,235 +1365,6 @@ DONE:
 #endif
 }
 
-/*------------------------------------------------------------------------*/
-
-/*------------------------------------------------------------------------*/
-#ifndef NDEBUG
-/*------------------------------------------------------------------------*/
-
-#define TEST_PROP_INV_COMPLETE_BW 8
-#define TEST_PROP_INV_COMPLETE_N_TESTS 10000
-
-#define TEST_PROP_INV_COMPLETE_BINARY_INIT(fun)   \
-  do                                              \
-  {                                               \
-    bw   = TEST_PROP_INV_COMPLETE_BW;             \
-    e[0] = btor_var_exp (g_btor, bw, 0);          \
-    e[1] = btor_var_exp (g_btor, bw, 0);          \
-    exp  = btor_##fun##_exp (g_btor, e[0], e[1]); \
-  } while (0)
-
-#define TEST_PROP_INV_COMPLETE_SHIFT_INIT(fun)    \
-  do                                              \
-  {                                               \
-    bw   = TEST_PROP_INV_COMPLETE_BW;             \
-    sbw  = btor_log_2_util (bw);                  \
-    e[0] = btor_var_exp (g_btor, bw, 0);          \
-    e[1] = btor_var_exp (g_btor, sbw, 0);         \
-    exp  = btor_##fun##_exp (g_btor, e[0], e[1]); \
-  } while (0)
-
-#define TEST_PROP_INV_COMPLETE_BINARY_FINISH(fun) \
-  do                                              \
-  {                                               \
-    btor_release_exp (g_btor, e[0]);              \
-    btor_release_exp (g_btor, e[1]);              \
-    btor_release_exp (g_btor, exp);               \
-  } while (0)
-
-#define TEST_PROP_INV_COMPLETE_EIDX(fun, bve, bvn, bvres, eidx)   \
-  do                                                              \
-  {                                                               \
-    for (k = 0, res = 0; k < TEST_PROP_INV_COMPLETE_N_TESTS; k++) \
-    {                                                             \
-      res = inv_##fun##_bv (g_btor, exp, bvn, bve, eidx);         \
-      assert (res);                                               \
-      if (!btor_compare_bv (res, bvres)) break;                   \
-      btor_free_bv (g_mm, res);                                   \
-      res = 0;                                                    \
-    }                                                             \
-    assert (res);                                                 \
-    assert (!btor_compare_bv (res, bvres));                       \
-    btor_free_bv (g_mm, res);                                     \
-  } while (0)
-
-#define TEST_PROP_INV_COMPLETE_BINARY(fun)                           \
-  do                                                                 \
-  {                                                                  \
-    uint32_t bw;                                                     \
-    uint64_t i, j, k;                                                \
-    BtorNode *exp, *e[2];                                            \
-    BtorBitVector *bve[2], *bvexp, *res;                             \
-    TEST_PROP_INV_COMPLETE_BINARY_INIT (fun);                        \
-    for (i = 0; i < (uint32_t) (1 << bw); i++)                       \
-    {                                                                \
-      bve[0] = btor_uint64_to_bv (g_mm, i, bw);                      \
-      for (j = 0; j < (uint32_t) (1 << bw); j++)                     \
-      {                                                              \
-        bve[1] = btor_uint64_to_bv (g_mm, j, bw);                    \
-        bvexp  = btor_##fun##_bv (g_mm, bve[0], bve[1]);             \
-        TEST_PROP_INV_COMPLETE_EIDX (fun, bve[0], bvexp, bve[1], 1); \
-        TEST_PROP_INV_COMPLETE_EIDX (fun, bve[1], bvexp, bve[0], 0); \
-        btor_free_bv (g_mm, bve[1]);                                 \
-        btor_free_bv (g_mm, bvexp);                                  \
-      }                                                              \
-      btor_free_bv (g_mm, bve[0]);                                   \
-    }                                                                \
-    TEST_PROP_INV_COMPLETE_BINARY_FINISH (fun);                      \
-  } while (0)
-
-#define TEST_PROP_INV_COMPLETE_SHIFT(fun)                            \
-  do                                                                 \
-  {                                                                  \
-    uint32_t bw, sbw;                                                \
-    uint64_t i, j, k;                                                \
-    BtorNode *exp, *e[2];                                            \
-    BtorBitVector *bve[2], *bvexp, *res;                             \
-    TEST_PROP_INV_COMPLETE_SHIFT_INIT (fun);                         \
-    for (i = 0; i < (uint32_t) (1 << bw); i++)                       \
-    {                                                                \
-      bve[0] = btor_uint64_to_bv (g_mm, i, bw);                      \
-      for (j = 0; j < (uint32_t) (1 << sbw); j++)                    \
-      {                                                              \
-        bve[1] = btor_uint64_to_bv (g_mm, j, sbw);                   \
-        bvexp  = btor_##fun##_bv (g_mm, bve[0], bve[1]);             \
-        TEST_PROP_INV_COMPLETE_EIDX (fun, bve[0], bvexp, bve[1], 1); \
-        TEST_PROP_INV_COMPLETE_EIDX (fun, bve[1], bvexp, bve[0], 0); \
-        btor_free_bv (g_mm, bve[1]);                                 \
-        btor_free_bv (g_mm, bvexp);                                  \
-      }                                                              \
-      btor_free_bv (g_mm, bve[0]);                                   \
-    }                                                                \
-    TEST_PROP_INV_COMPLETE_BINARY_FINISH (fun);                      \
-  } while (0)
-/*------------------------------------------------------------------------*/
-#endif
-/*------------------------------------------------------------------------*/
-
-static void
-test_propinv_complete_add_bv (void)
-{
-#ifndef NDEBUG
-  TEST_PROP_INV_COMPLETE_BINARY (add);
-#endif
-}
-
-static void
-test_propinv_complete_and_bv (void)
-{
-#ifndef NDEBUG
-  TEST_PROP_INV_COMPLETE_BINARY (and);
-#endif
-}
-
-static void
-test_propinv_complete_eq_bv (void)
-{
-#ifndef NDEBUG
-  TEST_PROP_INV_COMPLETE_BINARY (eq);
-#endif
-}
-
-static void
-test_propinv_complete_ult_bv (void)
-{
-#ifndef NDEBUG
-  TEST_PROP_INV_COMPLETE_BINARY (ult);
-#endif
-}
-
-static void
-test_propinv_complete_sll_bv (void)
-{
-#ifndef NDEBUG
-  TEST_PROP_INV_COMPLETE_SHIFT (sll);
-#endif
-}
-
-static void
-test_propinv_complete_srl_bv (void)
-{
-#ifndef NDEBUG
-  TEST_PROP_INV_COMPLETE_SHIFT (srl);
-#endif
-}
-
-static void
-test_propinv_complete_mul_bv (void)
-{
-#ifndef NDEBUG
-  TEST_PROP_INV_COMPLETE_BINARY (mul);
-#endif
-}
-
-static void
-test_propinv_complete_udiv_bv (void)
-{
-#ifndef NDEBUG
-  TEST_PROP_INV_COMPLETE_BINARY (udiv);
-#endif
-}
-
-static void
-test_propinv_complete_urem_bv (void)
-{
-#ifndef NDEBUG
-  TEST_PROP_INV_COMPLETE_BINARY (urem);
-#endif
-}
-
-static void
-test_propinv_complete_concat_bv (void)
-{
-#ifndef NDEBUG
-  TEST_PROP_INV_COMPLETE_BINARY (concat);
-#endif
-}
-
-static void
-test_propinv_complete_slice_bv (void)
-{
-#ifndef NDEBUG
-  uint32_t bw;
-  uint64_t up, lo, i, k;
-  BtorNode *exp, *e;
-  BtorBitVector *bve, *bvexp, *res;
-
-  bw = TEST_PROP_INV_COMPLETE_BW;
-  e  = btor_var_exp (g_btor, bw, 0);
-
-  for (lo = 0; lo < bw; lo++)
-  {
-    for (up = lo; up < bw; up++)
-    {
-      exp = btor_slice_exp (g_btor, e, up, lo);
-      for (i = 0; i < (uint32_t) (1 << bw); i++)
-      {
-        bve   = btor_uint64_to_bv (g_mm, i, bw);
-        bvexp = btor_slice_bv (g_mm, bve, up, lo);
-        for (k = 0, res = 0; k < TEST_PROP_INV_COMPLETE_N_TESTS; k++)
-        {
-          res = inv_slice_bv (g_btor, exp, bvexp);
-          assert (res);
-          if (!btor_compare_bv (res, bve)) break;
-          btor_free_bv (g_mm, res);
-          res = 0;
-        }
-        assert (res);
-        assert (!btor_compare_bv (res, bve));
-        btor_free_bv (g_mm, res);
-        btor_free_bv (g_mm, bvexp);
-        btor_free_bv (g_mm, bve);
-      }
-      btor_release_exp (g_btor, exp);
-    }
-  }
-  btor_release_exp (g_btor, e);
-#endif
-}
-
-/*------------------------------------------------------------------------*/
-
 static void
 test_propinv_conf_and_bv (void)
 {
@@ -1507,6 +1427,20 @@ test_propinv_conf_concat_bv (void)
   prop_inv_conf_concat_bv (2);
   prop_inv_conf_concat_bv (4);
   prop_inv_conf_concat_bv (8);
+}
+
+/*------------------------------------------------------------------------*/
+
+void
+init_propinv_tests (void)
+{
+  g_btor                            = btor_new_btor ();
+  g_btor->slv                       = btor_new_prop_solver (g_btor);
+  g_btor->options.engine.val        = BTOR_ENGINE_PROP;
+  g_btor->options.rewrite_level.val = 0;
+  g_btor->options.sort_exp.val      = 0;
+  g_mm                              = g_btor->mm;
+  g_rng                             = &g_btor->rng;
 }
 
 void
