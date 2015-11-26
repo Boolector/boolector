@@ -32,7 +32,7 @@ rem_bits_zero_dbg (BtorBitVector *bv)
 }
 
 static int
-check_bits_sll_dbg (BtorBitVector *bv, BtorBitVector *res, int shift)
+btor_check_bits_sll_dbg (BtorBitVector *bv, BtorBitVector *res, int shift)
 {
   assert (bv);
   assert (res);
@@ -582,7 +582,7 @@ sll_bv (BtorMemMgr *mm, BtorBitVector *a, int shift)
   }
   set_rem_bits_to_zero (res);
   assert (rem_bits_zero_dbg (res));
-  assert (check_bits_sll_dbg (a, res, shift));
+  assert (btor_check_bits_sll_dbg (a, res, shift));
   return res;
 }
 

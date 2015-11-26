@@ -1679,7 +1679,7 @@ add_constraint (Btor *btor, BtorNode *exp)
 {
   assert (btor);
   assert (exp);
-  assert (check_id_table_mark_unset_dbg (btor));
+  assert (btor_check_id_table_mark_unset_dbg (btor));
 
   BtorNode *cur, *child;
   BtorNodePtrStack stack;
@@ -1727,7 +1727,7 @@ add_constraint (Btor *btor, BtorNode *exp)
   else
     insert_new_constraint (btor, exp);
 
-  assert (check_constraints_not_const_dbg (btor));
+  assert (btor_check_constraints_not_const_dbg (btor));
 }
 
 void
@@ -1830,7 +1830,7 @@ btor_failed_exp (Btor *btor, BtorNode *exp)
   assert (btor->options.incremental.val);
   assert (btor->last_sat_result == BTOR_UNSAT);
   assert (exp);
-  assert (check_id_table_mark_unset_dbg (btor));
+  assert (btor_check_id_table_mark_unset_dbg (btor));
   assert (btor_is_assumption_exp (btor, exp));
 
   int i, lit, res;
@@ -2362,7 +2362,7 @@ substitute_vars_and_rebuild_exps (Btor *btor, BtorPtrHashTable *substs)
 {
   assert (btor);
   assert (substs);
-  assert (check_id_table_aux_mark_unset_dbg (btor));
+  assert (btor_check_id_table_aux_mark_unset_dbg (btor));
 
   BtorNodePtrStack stack, root_stack;
   BtorPtrHashBucket *b;
@@ -2480,14 +2480,14 @@ substitute_vars_and_rebuild_exps (Btor *btor, BtorPtrHashTable *substs)
   BTOR_RELEASE_STACK (mm, root_stack);
 
   update_node_hash_tables (btor);
-  assert (check_lambdas_static_rho_proxy_free_dbg (btor));
+  assert (btor_check_lambdas_static_rho_proxy_free_dbg (btor));
 }
 
 static void
 substitute_var_exps (Btor *btor)
 {
   assert (btor);
-  assert (check_id_table_mark_unset_dbg (btor));
+  assert (btor_check_id_table_mark_unset_dbg (btor));
 
   BtorPtrHashTable *varsubst_constraints, *order, *substs;
   BtorNode *cur, *constraint, *left, *right, *child;
@@ -2771,7 +2771,7 @@ substitute_and_rebuild (Btor *btor, BtorPtrHashTable *subst, int bra)
 {
   assert (btor);
   assert (subst);
-  assert (check_id_table_aux_mark_unset_dbg (btor));
+  assert (btor_check_id_table_aux_mark_unset_dbg (btor));
 
   int i;
   double start;
@@ -2911,11 +2911,11 @@ substitute_and_rebuild (Btor *btor, BtorPtrHashTable *subst, int bra)
 
   BTOR_RELEASE_STACK (mm, roots);
 
-  assert (check_id_table_aux_mark_unset_dbg (btor));
-  assert (check_unique_table_children_proxy_free_dbg (btor));
+  assert (btor_check_id_table_aux_mark_unset_dbg (btor));
+  assert (btor_check_unique_table_children_proxy_free_dbg (btor));
 
   update_node_hash_tables (btor);
-  assert (check_lambdas_static_rho_proxy_free_dbg (btor));
+  assert (btor_check_lambdas_static_rho_proxy_free_dbg (btor));
   btor->time.subst_rebuild += btor_time_stamp () - start;
 }
 
@@ -3051,15 +3051,15 @@ btor_simplify (Btor *btor)
   do
   {
     rounds++;
-    assert (check_all_hash_tables_proxy_free_dbg (btor));
-    assert (check_all_hash_tables_simp_free_dbg (btor));
-    assert (check_unique_table_children_proxy_free_dbg (btor));
+    assert (btor_check_all_hash_tables_proxy_free_dbg (btor));
+    assert (btor_check_all_hash_tables_simp_free_dbg (btor));
+    assert (btor_check_unique_table_children_proxy_free_dbg (btor));
     if (btor->options.rewrite_level.val > 1)
     {
       substitute_var_exps (btor);
-      assert (check_all_hash_tables_proxy_free_dbg (btor));
-      assert (check_all_hash_tables_simp_free_dbg (btor));
-      assert (check_unique_table_children_proxy_free_dbg (btor));
+      assert (btor_check_all_hash_tables_proxy_free_dbg (btor));
+      assert (btor_check_all_hash_tables_simp_free_dbg (btor));
+      assert (btor_check_unique_table_children_proxy_free_dbg (btor));
 
       if (btor->inconsistent) break;
 
@@ -3067,9 +3067,9 @@ btor_simplify (Btor *btor)
         break;  // TODO (ma): continue instead of break?
 
       process_embedded_constraints (btor);
-      assert (check_all_hash_tables_proxy_free_dbg (btor));
-      assert (check_all_hash_tables_simp_free_dbg (btor));
-      assert (check_unique_table_children_proxy_free_dbg (btor));
+      assert (btor_check_all_hash_tables_proxy_free_dbg (btor));
+      assert (btor_check_all_hash_tables_simp_free_dbg (btor));
+      assert (btor_check_unique_table_children_proxy_free_dbg (btor));
 
       if (btor->inconsistent) break;
 
@@ -3096,9 +3096,9 @@ btor_simplify (Btor *btor)
       if (skelrounds <= 1)  // TODO only one?
       {
         btor_process_skeleton (btor);
-        assert (check_all_hash_tables_proxy_free_dbg (btor));
-        assert (check_all_hash_tables_simp_free_dbg (btor));
-        assert (check_unique_table_children_proxy_free_dbg (btor));
+        assert (btor_check_all_hash_tables_proxy_free_dbg (btor));
+        assert (btor_check_all_hash_tables_simp_free_dbg (btor));
+        assert (btor_check_unique_table_children_proxy_free_dbg (btor));
         if (btor->inconsistent) break;
       }
 
@@ -3131,9 +3131,9 @@ btor_simplify (Btor *btor)
         && !btor->options.incremental.val && !btor->options.model_gen.val)
     {
       btor_optimize_unconstrained (btor);
-      assert (check_all_hash_tables_proxy_free_dbg (btor));
-      assert (check_all_hash_tables_simp_free_dbg (btor));
-      assert (check_unique_table_children_proxy_free_dbg (btor));
+      assert (btor_check_all_hash_tables_proxy_free_dbg (btor));
+      assert (btor_check_all_hash_tables_simp_free_dbg (btor));
+      assert (btor_check_unique_table_children_proxy_free_dbg (btor));
       if (btor->inconsistent) break;
     }
 #endif
@@ -3477,7 +3477,7 @@ update_reachable (Btor *btor, bool check_all_tables)
   BtorNode *cur;
   BtorHashTableIterator it;
 
-  assert (check_id_table_mark_unset_dbg (btor));
+  assert (btor_check_id_table_mark_unset_dbg (btor));
   assert (check_all_tables || btor->embedded_constraints->count == 0);
   assert (check_all_tables || btor->varsubst_constraints->count == 0);
 
@@ -3551,7 +3551,7 @@ static void
 add_again_assumptions (Btor *btor)
 {
   assert (btor);
-  assert (check_id_table_mark_unset_dbg (btor));
+  assert (btor_check_id_table_mark_unset_dbg (btor));
 
   int i;
   BtorNode *exp, *cur, *e;
@@ -3685,7 +3685,7 @@ search_initial_applies_bv_skeleton (Btor *btor, BtorNodePtrStack *applies)
   assert (btor->slv->kind == BTOR_CORE_SOLVER_KIND);
   assert (applies);
   assert (BTOR_EMPTY_STACK (*applies));
-  assert (check_id_table_aux_mark_unset_dbg (btor));
+  assert (btor_check_id_table_aux_mark_unset_dbg (btor));
 
   double start;
   int i;
@@ -4025,7 +4025,7 @@ search_initial_applies_dual_prop (Btor *btor,
   assert (clone_root);
   assert (exp_map);
   assert (top_applies);
-  assert (check_id_table_aux_mark_unset_dbg (btor));
+  assert (btor_check_id_table_aux_mark_unset_dbg (btor));
 
   double start;
   int i;
@@ -4186,7 +4186,7 @@ search_initial_applies_just (Btor *btor, BtorNodePtrStack *top_applies)
   assert (top_applies);
   assert (btor->unsynthesized_constraints->count == 0);
   assert (btor->embedded_constraints->count == 0);
-  assert (check_id_table_aux_mark_unset_dbg (btor));
+  assert (btor_check_id_table_aux_mark_unset_dbg (btor));
 
   int i, h;
   int a, a0, a1;
@@ -5599,14 +5599,14 @@ sat_aux_btor_dual_prop (Btor *btor)
   assert (btor->synthesized_constraints->count == 0);
   assert (btor->unsynthesized_constraints->count == 0);
   assert (btor->embedded_constraints->count == 0);
-  assert (check_all_hash_tables_proxy_free_dbg (btor));
-  assert (check_all_hash_tables_simp_free_dbg (btor));
+  assert (btor_check_all_hash_tables_proxy_free_dbg (btor));
+  assert (btor_check_all_hash_tables_simp_free_dbg (btor));
 
   update_reachable (btor, false);
-  assert (check_reachable_flag_dbg (btor));
+  assert (btor_check_reachable_flag_dbg (btor));
 
   add_again_assumptions (btor);
-  assert (check_reachable_flag_dbg (btor));
+  assert (btor_check_reachable_flag_dbg (btor));
 
   sat_result = timed_sat_sat (btor, -1);
 
@@ -6616,14 +6616,14 @@ sat_core_solver (Btor *btor, int lod_limit, int sat_limit)
     goto DONE;
   }
   assert (btor->unsynthesized_constraints->count == 0);
-  assert (check_all_hash_tables_proxy_free_dbg (btor));
-  assert (check_all_hash_tables_simp_free_dbg (btor));
+  assert (btor_check_all_hash_tables_proxy_free_dbg (btor));
+  assert (btor_check_all_hash_tables_simp_free_dbg (btor));
 
   update_reachable (btor, false);
-  assert (check_reachable_flag_dbg (btor));
+  assert (btor_check_reachable_flag_dbg (btor));
 
   add_again_assumptions (btor);
-  assert (check_reachable_flag_dbg (btor));
+  assert (btor_check_reachable_flag_dbg (btor));
 
   if (sat_limit > -1)
     sat_result = timed_sat_sat (btor, sat_limit);
@@ -6683,9 +6683,9 @@ sat_core_solver (Btor *btor, int lod_limit, int sat_limit)
     process_unsynthesized_constraints (btor);
     if (btor->found_constraint_false) goto UNSAT;
     assert (btor->unsynthesized_constraints->count == 0);
-    assert (check_all_hash_tables_proxy_free_dbg (btor));
-    assert (check_all_hash_tables_simp_free_dbg (btor));
-    assert (check_reachable_flag_dbg (btor));
+    assert (btor_check_all_hash_tables_proxy_free_dbg (btor));
+    assert (btor_check_all_hash_tables_simp_free_dbg (btor));
+    assert (btor_check_reachable_flag_dbg (btor));
     add_again_assumptions (btor);
     sat_result = timed_sat_sat (btor, -1);
   }

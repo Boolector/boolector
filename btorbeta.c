@@ -24,7 +24,7 @@
 
 #ifndef NDEBUG
 static int
-check_unique_table_beta_mark_unset_dbg (const Btor *btor)
+btor_check_unique_table_beta_mark_unset_dbg (const Btor *btor)
 {
   int i;
   BtorNode *cur;
@@ -210,7 +210,7 @@ btor_beta_reduce (Btor *btor,
           || mode == BETA_RED_BOUNDED);
   assert (bound >= 0);
   assert (bound == 0 || mode == BETA_RED_BOUNDED);
-  assert (check_unique_table_beta_mark_unset_dbg (btor));
+  assert (btor_check_unique_table_beta_mark_unset_dbg (btor));
   assert (mode != BETA_RED_LAMBDA_MERGE || merge_lambdas);
 
   //  BTORLOG ("%s: %s", __FUNCTION__, node2string (exp));
@@ -639,7 +639,7 @@ btor_beta_reduce (Btor *btor,
     assert (BTOR_IS_REGULAR_NODE (cur));
     cur->beta_mark = 0;
   }
-  assert (check_unique_table_beta_mark_unset_dbg (btor));
+  assert (btor_check_unique_table_beta_mark_unset_dbg (btor));
 
   BTOR_RELEASE_STACK (mm, stack);
   BTOR_RELEASE_STACK (mm, arg_stack);
