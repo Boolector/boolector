@@ -882,6 +882,7 @@ btor_generate_model (Btor *btor,
     btor_queue_node_hash_table_iterator (&it, btor->var_rhs);
     btor_queue_node_hash_table_iterator (&it, btor->bv_vars);
     btor_queue_node_hash_table_iterator (&it, btor->ufs);
+    btor_queue_node_hash_table_iterator (&it, btor->assumptions);
   }
   while (btor_has_next_node_hash_table_iterator (&it))
   {
@@ -904,7 +905,6 @@ btor_generate_model (Btor *btor,
   {
     btor_init_node_hash_table_iterator (&it, btor->unsynthesized_constraints);
     btor_queue_node_hash_table_iterator (&it, btor->synthesized_constraints);
-    btor_queue_node_hash_table_iterator (&it, btor->assumptions);
     while (btor_has_next_node_hash_table_iterator (&it))
     {
       cur = btor_next_node_hash_table_iterator (&it);
