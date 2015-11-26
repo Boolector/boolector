@@ -556,19 +556,6 @@ hash_bv_exp (Btor *btor, BtorNodeKind kind, int arity, BtorNode **e)
   return hash;
 }
 
-static inline unsigned int
-hash_bitvec (BtorBitVector *bv)
-{
-  unsigned res, i, j;
-
-  for (i = 0, j = 0, res = 0; i < bv->len; i++)
-  {
-    res += hash_primes[j++] * bv->bits[i];
-    if (j == NPRIMES) j = 0;
-  }
-  return res;
-}
-
 /* Computes hash value of expresssion by children ids */
 static unsigned int
 compute_hash_exp (Btor *btor, BtorNode *exp, int table_size)
@@ -583,7 +570,7 @@ compute_hash_exp (Btor *btor, BtorNode *exp, int table_size)
   unsigned int hash = 0;
 
   if (BTOR_IS_BV_CONST_NODE (exp))
-    hash = hash_bitvec (btor_const_get_bits (exp));
+    hash = btor_hash_bv (btor_const_get_bits (exp));
   /* hash for lambdas is computed once during creation. afterwards, we always
    * have to use the saved hash value since hashing of lambdas requires all
    * parameterized nodes and their inputs (cf. hash_lambda_exp), which may
@@ -1480,7 +1467,7 @@ find_const_exp (Btor *btor, BtorBitVector *bits)
   BtorNode *cur, **result;
   unsigned int hash;
 
-  hash = hash_bitvec (bits);
+  hash = btor_hash_bv (bits);
   hash &= btor->nodes_unique_table.size - 1;
   result = btor->nodes_unique_table.chains + hash;
   cur    = *result;
