@@ -98,8 +98,8 @@ int btor_get_num_leading_ones_bv (const BtorBitVector *bv);
 
 /*------------------------------------------------------------------------*/
 
-BtorBitVector *btor_one_bv (BtorMemMgr *mm, uint32_t width);
-BtorBitVector *btor_ones_bv (BtorMemMgr *mm, uint32_t width);
+BtorBitVector *btor_one_bv (BtorMemMgr *mm, uint32_t bw);
+BtorBitVector *btor_ones_bv (BtorMemMgr *mm, uint32_t bw);
 
 BtorBitVector *btor_neg_bv (BtorMemMgr *mm, BtorBitVector *bv);
 BtorBitVector *btor_not_bv (BtorMemMgr *mm, BtorBitVector *bv);

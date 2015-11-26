@@ -556,19 +556,6 @@ hash_bv_exp (Btor *btor, BtorNodeKind kind, int arity, BtorNode **e)
   return hash;
 }
 
-static inline unsigned int
-hash_bitvec (BtorBitVector *bv)
-{
-  unsigned res, i, j;
-
-  for (i = 0, j = 0, res = 0; i < bv->len; i++)
-  {
-    res += hash_primes[j++] * bv->bits[i];
-    if (j == NPRIMES) j = 0;
-  }
-  return res;
-}
-
 /* Computes hash value of expresssion by children ids */
 static unsigned int
 compute_hash_exp (Btor *btor, BtorNode *exp, int table_size)
@@ -583,7 +570,7 @@ compute_hash_exp (Btor *btor, BtorNode *exp, int table_size)
   unsigned int hash = 0;
 
   if (BTOR_IS_BV_CONST_NODE (exp))
-    hash = hash_bitvec (btor_const_get_bits (exp));
+    hash = btor_hash_bv (btor_const_get_bits (exp));
   /* hash for lambdas is computed once during creation. afterwards, we always
    * have to use the saved hash value since hashing of lambdas requires all
    * parameterized nodes and their inputs (cf. hash_lambda_exp), which may
@@ -853,7 +840,7 @@ erase_local_data_exp (Btor *btor, BtorNode *exp, int free_sort)
   assert (!BTOR_IS_INVALID_NODE (exp));
 
   BtorMemMgr *mm;
-  BtorPtrHashTable *synth_apps, *static_rho;
+  BtorPtrHashTable *static_rho;
   BtorHashTableIterator it;
 
   mm = btor->mm;
@@ -869,17 +856,7 @@ erase_local_data_exp (Btor *btor, BtorNode *exp, int free_sort)
       btor_const_set_invbits (exp, 0);
       break;
     case BTOR_LAMBDA_NODE:
-      synth_apps = btor_lambda_get_synth_apps (exp);
-      ;
       static_rho = btor_lambda_get_static_rho (exp);
-      if (synth_apps)
-      {
-        btor_init_node_hash_table_iterator (&it, synth_apps);
-        while (btor_has_next_node_hash_table_iterator (&it))
-          btor_release_exp (btor, btor_next_node_hash_table_iterator (&it));
-        btor_delete_ptr_hash_table (synth_apps);
-        ((BtorLambdaNode *) exp)->synth_apps = 0;
-      }
       if (static_rho)
       {
         btor_init_node_hash_table_iterator (&it, static_rho);
@@ -1490,7 +1467,7 @@ find_const_exp (Btor *btor, BtorBitVector *bits)
   BtorNode *cur, **result;
   unsigned int hash;
 
-  hash = hash_bitvec (bits);
+  hash = btor_hash_bv (bits);
   hash &= btor->nodes_unique_table.size - 1;
   result = btor->nodes_unique_table.chains + hash;
   cur    = *result;
@@ -4162,14 +4139,6 @@ btor_lambda_get_static_rho (BtorNode *lambda)
   return ((BtorLambdaNode *) lambda)->static_rho;
 }
 
-BtorPtrHashTable *
-btor_lambda_get_synth_apps (BtorNode *lambda)
-{
-  assert (BTOR_IS_REGULAR_NODE (lambda));
-  assert (BTOR_IS_LAMBDA_NODE (lambda));
-  return ((BtorLambdaNode *) lambda)->synth_apps;
-}
-
 void
 btor_lambda_set_static_rho (BtorNode *lambda, BtorPtrHashTable *static_rho)
 {
@@ -4198,14 +4167,6 @@ btor_lambda_copy_static_rho (Btor *btor, BtorNode *lambda)
     btor_insert_in_ptr_hash_table (static_rho, key)->data.asPtr = data;
   }
   return static_rho;
-}
-
-void
-btor_lambda_set_synth_apps (BtorNode *lambda, BtorPtrHashTable *synth_apps)
-{
-  assert (BTOR_IS_REGULAR_NODE (lambda));
-  assert (BTOR_IS_LAMBDA_NODE (lambda));
-  ((BtorLambdaNode *) lambda)->synth_apps = synth_apps;
 }
 
 BtorNode *
@@ -4258,43 +4219,6 @@ btor_param_is_bound (BtorNode *param)
 {
   assert (BTOR_IS_PARAM_NODE (BTOR_REAL_ADDR_NODE (param)));
   return btor_param_get_binding_lambda (param) != 0;
-}
-
-bool
-btor_is_encoded_exp (BtorNode *exp)
-{
-  unsigned i, num_consts;
-  BtorAIG *aig;
-
-  exp = BTOR_REAL_ADDR_NODE (exp);
-
-  if (BTOR_IS_FUN_NODE (exp)) return exp->lazy_synth == 1;
-
-  if (!BTOR_IS_SYNTH_NODE (exp)) return false;
-
-  if (exp->av->encoded) return true;
-
-  num_consts = 0;
-  for (i = 0; i < exp->av->len; i++)
-  {
-    aig = exp->av->aigs[i];
-    if (BTOR_IS_CONST_AIG (aig))
-    {
-      num_consts++;
-      continue;
-    }
-    if (BTOR_REAL_ADDR_AIG (aig)->cnf_id)
-    {
-      exp->av->encoded = 1;
-      return true;
-    }
-  }
-  if (num_consts == exp->av->len)
-  {
-    exp->av->encoded = 1;
-    return true;
-  }
-  return false;
 }
 
 #ifndef NDEBUG

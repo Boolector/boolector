@@ -1969,7 +1969,6 @@ sat_sls_solver (Btor *btor, int limit0, int limit1)
       btor->ufs->count != 0
           || (!btor->options.beta_reduce_all.val && btor->lambdas->count != 0),
       "sls engine supports QF_BV only");
-  btor_update_assumptions (btor);
 
   if (btor->inconsistent) goto UNSAT;
 

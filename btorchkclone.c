@@ -464,8 +464,6 @@ btor_chkclone_exp (BtorNode *exp, BtorNode *clone)
   BTOR_CHKCLONE_EXP (beta_mark);
   BTOR_CHKCLONE_EXP (eval_mark);
   BTOR_CHKCLONE_EXP (reachable);
-  BTOR_CHKCLONE_EXP (lazy_synth);
-  BTOR_CHKCLONE_EXP (synth_app);
   BTOR_CHKCLONE_EXP (constraint);
   BTOR_CHKCLONE_EXP (erased);
   BTOR_CHKCLONE_EXP (disconnected);
@@ -593,35 +591,12 @@ btor_chkclone_exp (BtorNode *exp, BtorNode *clone)
 
   if (BTOR_IS_LAMBDA_NODE (real_exp))
   {
-    if (((BtorLambdaNode *) real_exp)->synth_apps)
+    if (btor_lambda_get_static_rho (real_exp))
     {
       btor_init_node_hash_table_iterator (
-          &it, ((BtorLambdaNode *) real_exp)->synth_apps);
+          &it, btor_lambda_get_static_rho (real_exp));
       btor_init_node_hash_table_iterator (
-          &cit, ((BtorLambdaNode *) real_clone)->synth_apps);
-      while (btor_has_next_node_hash_table_iterator (&it))
-      {
-        assert (btor_has_next_node_hash_table_iterator (&cit));
-        e  = btor_next_node_hash_table_iterator (&it);
-        ce = btor_next_node_hash_table_iterator (&cit);
-        if (e)
-        {
-          assert (ce);
-          assert (e != ce);
-          BTOR_CHKCLONE_EXPID (e, ce);
-        }
-        else
-          assert (!ce);
-      }
-      assert (!btor_has_next_hash_table_iterator (&cit));
-    }
-
-    if (((BtorLambdaNode *) real_exp)->static_rho)
-    {
-      btor_init_node_hash_table_iterator (
-          &it, ((BtorLambdaNode *) real_exp)->static_rho);
-      btor_init_node_hash_table_iterator (
-          &cit, ((BtorLambdaNode *) real_clone)->static_rho);
+          &cit, btor_lambda_get_static_rho (real_clone));
       while (btor_has_next_node_hash_table_iterator (&it))
       {
         assert (btor_has_next_node_hash_table_iterator (&cit));
@@ -1025,10 +1000,6 @@ btor_chkclone_slv (Btor *btor)
 
     BTOR_CHKCLONE_SLV_STATS (slv, cslv, lod_refinements);
     BTOR_CHKCLONE_SLV_STATS (slv, cslv, refinement_iterations);
-    BTOR_CHKCLONE_SLV_STATS (slv, cslv, synthesis_assignment_inconsistencies);
-    BTOR_CHKCLONE_SLV_STATS (slv, cslv, synthesis_inconsistency_app);
-    BTOR_CHKCLONE_SLV_STATS (slv, cslv, synthesis_inconsistency_fun);
-    BTOR_CHKCLONE_SLV_STATS (slv, cslv, synthesis_inconsistency_feq);
     BTOR_CHKCLONE_SLV_STATS (slv, cslv, function_congruence_conflicts);
     BTOR_CHKCLONE_SLV_STATS (slv, cslv, beta_reduction_conflicts);
     BTOR_CHKCLONE_SLV_STATS (slv, cslv, extensionality_lemmas);
@@ -1038,7 +1009,6 @@ btor_chkclone_slv (Btor *btor)
     BTOR_CHKCLONE_SLV_STATS (slv, cslv, dp_failed_applies);
     BTOR_CHKCLONE_SLV_STATS (slv, cslv, dp_assumed_applies);
     BTOR_CHKCLONE_SLV_STATS (slv, cslv, eval_exp_calls);
-    BTOR_CHKCLONE_SLV_STATS (slv, cslv, lambda_synth_apps);
     BTOR_CHKCLONE_SLV_STATS (slv, cslv, propagations);
     BTOR_CHKCLONE_SLV_STATS (slv, cslv, propagations_down);
     BTOR_CHKCLONE_SLV_STATS (slv, cslv, partial_beta_reduction_restarts);

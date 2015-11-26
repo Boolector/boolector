@@ -36,8 +36,9 @@ int g_strbufpos = 0;
 char *
 node2string (BtorNode *exp)
 {
+  Btor *btor;
   BtorNode *real_exp;
-  const char *name;
+  const char *name, *tmp;
   char strbuf[BUFFER_SIZE], *bufstart;
   size_t cur_len, new_len;
   int i;
@@ -45,6 +46,7 @@ node2string (BtorNode *exp)
   if (!exp) return "0";
 
   real_exp = BTOR_REAL_ADDR_NODE (exp);
+  btor     = real_exp->btor;
 
   switch (real_exp->kind)
   {
@@ -100,6 +102,13 @@ node2string (BtorNode *exp)
                " %d %d",
                btor_slice_get_upper (exp),
                btor_slice_get_lower (exp));
+  }
+  else if ((BTOR_IS_BV_VAR_NODE (real_exp) || BTOR_IS_UF_NODE (real_exp))
+           && (tmp = btor_get_symbol_exp (btor, real_exp)))
+  {
+    new_len += strlen (tmp);
+    new_len += 1;
+    BUFCONCAT (strbuf, cur_len, new_len, " %s", tmp);
   }
   // FIXME: len exceeds buf
   //  else if (BTOR_IS_BV_CONST_NODE (exp))

@@ -289,16 +289,23 @@ btor_compare_bv (const BtorBitVector *a, const BtorBitVector *b)
   return -1;
 }
 
-unsigned int
+static uint32_t hash_primes[] = {333444569u, 76891121u, 456790003u};
+
+#define NPRIMES ((int) (sizeof hash_primes / sizeof *hash_primes))
+
+uint32_t
 btor_hash_bv (BtorBitVector *bv)
 {
   assert (bv);
 
-  uint32_t i, hash = 0;
+  uint32_t res = 0, i, j;
 
-  for (i = 0; i < bv->len; i++) hash += bv->bits[i] * 7334147u;
-
-  return hash;
+  for (i = 0, j = 0; i < bv->len; i++)
+  {
+    res += hash_primes[j++] * bv->bits[i];
+    if (j == NPRIMES) j = 0;
+  }
+  return res;
 }
 
 void
@@ -1138,6 +1145,7 @@ btor_flipped_bit_range_bv (BtorMemMgr *mm,
   assert (rem_bits_zero_dbg (res));
   return res;
 }
+
 /*------------------------------------------------------------------------*/
 
 bool

@@ -15,7 +15,7 @@
 #include "btordbg.h"
 #include "utils/btoriter.h"
 
-int
+bool
 check_lambdas_static_rho_proxy_free_dbg (const Btor *btor)
 {
   BtorNode *cur, *data, *key;
@@ -42,7 +42,7 @@ check_lambdas_static_rho_proxy_free_dbg (const Btor *btor)
   return 1;
 }
 
-int
+bool
 check_unique_table_children_proxy_free_dbg (const Btor *btor)
 {
   int i, j;
@@ -55,7 +55,7 @@ check_unique_table_children_proxy_free_dbg (const Btor *btor)
   return 1;
 }
 
-int
+bool
 check_id_table_mark_unset_dbg (const Btor *btor)
 {
   int i;
@@ -70,7 +70,7 @@ check_id_table_mark_unset_dbg (const Btor *btor)
   return 1;
 }
 
-int
+bool
 check_id_table_aux_mark_unset_dbg (const Btor *btor)
 {
   int i;
@@ -85,7 +85,7 @@ check_id_table_aux_mark_unset_dbg (const Btor *btor)
   return 1;
 }
 
-int
+bool
 check_hash_table_proxy_free_dbg (BtorPtrHashTable *table)
 {
   BtorHashTableIterator it;
@@ -100,7 +100,7 @@ check_hash_table_proxy_free_dbg (BtorPtrHashTable *table)
   return 1;
 }
 
-int
+bool
 check_all_hash_tables_proxy_free_dbg (const Btor *btor)
 {
   if (!check_hash_table_proxy_free_dbg (btor->varsubst_constraints)) return 0;
@@ -112,7 +112,7 @@ check_all_hash_tables_proxy_free_dbg (const Btor *btor)
   return 1;
 }
 
-int
+bool
 check_hash_table_simp_free_dbg (BtorPtrHashTable *table)
 {
   BtorHashTableIterator it;
@@ -124,7 +124,7 @@ check_hash_table_simp_free_dbg (BtorPtrHashTable *table)
   return 1;
 }
 
-int
+bool
 check_all_hash_tables_simp_free_dbg (const Btor *btor)
 {
   if (!check_hash_table_simp_free_dbg (btor->varsubst_constraints)) return 0;
@@ -135,7 +135,7 @@ check_all_hash_tables_simp_free_dbg (const Btor *btor)
   return 1;
 }
 
-int
+bool
 check_reachable_flag_dbg (const Btor *btor)
 {
   int i;
@@ -157,8 +157,8 @@ check_reachable_flag_dbg (const Btor *btor)
   return 1;
 }
 
-int
-check_constraints_not_const_dbg (Btor *btor)
+bool
+check_constraints_not_const_dbg (const Btor *btor)
 {
   BtorNode *cur;
   BtorHashTableIterator it;
