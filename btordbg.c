@@ -189,7 +189,7 @@ btor_check_constraints_not_const_dbg (const Btor *btor)
 }
 
 bool
-check_assumptions_simp_free_dbg (const Btor *btor)
+btor_check_assumptions_simp_free_dbg (const Btor *btor)
 {
   BtorHashTableIterator it;
   btor_init_node_hash_table_iterator (&it, btor->assumptions);
