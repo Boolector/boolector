@@ -2449,8 +2449,6 @@ btor_apply_exps (Btor *btor, uint32_t argc, BtorNode **args, BtorNode *fun)
   assert (argc > 0);
   assert (args);
   assert (fun);
-  assert (BTOR_IS_REGULAR_NODE (fun));
-  assert (BTOR_IS_FUN_NODE (fun));
 
   BtorNode *exp, *_args;
 
@@ -3746,7 +3744,6 @@ btor_write_exp (Btor *btor,
 {
   assert (btor);
   assert (btor_is_array_exp (btor, e_array));
-  assert (BTOR_IS_FUN_NODE (e_array));
   assert (btor == BTOR_REAL_ADDR_NODE (e_array)->btor);
   assert (btor == BTOR_REAL_ADDR_NODE (e_index)->btor);
   assert (btor == BTOR_REAL_ADDR_NODE (e_value)->btor);
