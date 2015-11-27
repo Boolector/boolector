@@ -6289,7 +6289,8 @@ check_model (Btor *btor, Btor *clone, BtorPtrHashTable *inputs)
 
   uint32_t i;
   int ret;
-  BtorNode *cur, *exp, *simp, *real_simp, *model, *eq, *args, *apply;
+  BtorNode *cur, *exp, *simp, *simp_clone, *real_simp_clone, *model, *eq;
+  BtorNode *args, *apply;
   BtorHashTableIterator it;
   const BtorPtrHashTable *fmodel;
   BtorBitVector *value;
@@ -6321,18 +6322,20 @@ check_model (Btor *btor, Btor *clone, BtorPtrHashTable *inputs)
     assert (exp);
     assert (BTOR_IS_REGULAR_NODE (exp));
     assert (exp->btor == btor);
-    cur = btor_next_node_hash_table_iterator (&it);
+    /* Note: we do not want simplified constraints here */
+    simp = btor_pointer_chase_simplified_exp (btor, exp);
+    cur  = btor_next_node_hash_table_iterator (&it);
     assert (BTOR_IS_REGULAR_NODE (cur));
     assert (cur->btor == clone);
-    simp      = btor_simplify_exp (clone, cur);
-    real_simp = BTOR_REAL_ADDR_NODE (simp);
+    simp_clone      = btor_simplify_exp (clone, cur);
+    real_simp_clone = BTOR_REAL_ADDR_NODE (simp_clone);
 
-    if (BTOR_IS_FUN_NODE (real_simp))
+    if (BTOR_IS_FUN_NODE (real_simp_clone))
     {
-      fmodel = btor_get_fun_model (btor, exp);
+      fmodel = btor_get_fun_model (btor, simp);
       if (!fmodel) continue;
 
-      BTORLOG (2, "assert model for %s", node2string (real_simp));
+      BTORLOG (2, "assert model for %s", node2string (real_simp_clone));
       btor_init_hash_table_iterator (&it, (BtorPtrHashTable *) fmodel);
       while (btor_has_next_hash_table_iterator (&it))
       {
@@ -6348,7 +6351,7 @@ check_model (Btor *btor, Btor *clone, BtorPtrHashTable *inputs)
         }
 
         args  = btor_args_exp (clone, BTOR_COUNT_STACK (consts), consts.start);
-        apply = btor_apply_exp (clone, real_simp, args);
+        apply = btor_apply_exp (clone, real_simp_clone, args);
         model = btor_const_exp (clone, value);
         eq    = btor_eq_exp (clone, apply, model);
         btor_assert_exp (clone, eq);
@@ -6365,13 +6368,14 @@ check_model (Btor *btor, Btor *clone, BtorPtrHashTable *inputs)
     {
       BTORLOG (2,
                "assert model for %s (%s)",
-               node2string (real_simp),
+               node2string (real_simp_clone),
                btor_get_symbol_exp (clone, cur));
       /* we need to invert the assignment if simplified is inverted */
-      model = btor_const_exp (clone,
-                              (BtorBitVector *) btor_get_bv_model (
-                                  btor, BTOR_COND_INVERT_NODE (simp, exp)));
-      eq    = btor_eq_exp (clone, real_simp, model);
+      model =
+          btor_const_exp (clone,
+                          (BtorBitVector *) btor_get_bv_model (
+                              btor, BTOR_COND_INVERT_NODE (simp_clone, simp)));
+      eq = btor_eq_exp (clone, real_simp_clone, model);
       btor_assert_exp (clone, eq);
       btor_release_exp (clone, eq);
       btor_release_exp (clone, model);

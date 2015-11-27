@@ -404,6 +404,7 @@ print_fun_model (Btor *btor, BtorNode *node, char *format, int base, FILE *file)
   assert (format);
   assert (file);
 
+  node = btor_simplify_exp (btor, node);
   if (!strcmp (format, "btor"))
     print_fun_model_btor (btor, BTOR_REAL_ADDR_NODE (node), base, file);
   else
