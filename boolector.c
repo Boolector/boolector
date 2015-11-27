@@ -2558,7 +2558,8 @@ boolector_fun (Btor *btor,
   sprintf (strtrapi + strlen (strtrapi), NODE_FMT, BTOR_TRAPI_NODE_ID (exp));
   BTOR_TRAPI (strtrapi);
   BTOR_DELETEN (btor->mm, strtrapi, len);
-  BTOR_ABORT_NOT_BV_BOOLECTOR (exp);
+  BTOR_ABORT_BOOLECTOR (btor_is_uf_exp (btor, exp),
+                        "expected bit vector term as function body");
   res = btor_fun_exp (btor, paramc, params, exp);
   inc_exp_ext_ref_counter (btor, res);
   BTOR_TRAPI_RETURN_NODE (res);

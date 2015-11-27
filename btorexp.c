@@ -3967,6 +3967,16 @@ btor_is_uf_array_var_exp (Btor *btor, BtorNode *exp)
 }
 
 bool
+btor_is_uf_exp (Btor *btor, BtorNode *exp)
+{
+  assert (btor);
+  assert (exp);
+  assert (btor == BTOR_REAL_ADDR_NODE (exp)->btor);
+  exp = btor_simplify_exp (btor, exp);
+  return BTOR_IS_UF_NODE (BTOR_REAL_ADDR_NODE (exp));
+}
+
+bool
 btor_is_bv_var_exp (Btor *btor, BtorNode *exp)
 {
   assert (btor);
