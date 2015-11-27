@@ -36,5 +36,7 @@ bool btor_check_reachable_flag_dbg (const Btor* btor);
 
 bool btor_check_constraints_not_const_dbg (const Btor* btor);
 
+bool check_assumptions_simp_free_dbg (const Btor* btor);
+
 #endif
 #endif
