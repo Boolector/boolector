@@ -760,7 +760,7 @@ boolector_get_opt_shrt (Btor *btor, const char *name)
   BTOR_ABORT_BOOLECTOR (
       btor_get_opt_aux (btor, name, 1) == 0, "invalid option '%s'", name);
   res = btor_get_opt_shrt (btor, name);
-  BTOR_TRAPI_RETURN_INT (res);
+  BTOR_TRAPI_RETURN_STR (res);
 #ifndef NDEBUG
   BTOR_CHKCLONE_RES_STR (res, get_opt_shrt, name);
 #endif
@@ -778,7 +778,7 @@ boolector_get_opt_desc (Btor *btor, const char *name)
   BTOR_ABORT_BOOLECTOR (
       btor_get_opt_aux (btor, name, 1) == 0, "invalid option '%s'", name);
   res = btor_get_opt_desc (btor, name);
-  BTOR_TRAPI_RETURN_INT (res);
+  BTOR_TRAPI_RETURN_STR (res);
 #ifndef NDEBUG
   BTOR_CHKCLONE_RES_STR (res, get_opt_desc, name);
 #endif
