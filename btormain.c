@@ -291,7 +291,6 @@ print_opt (BtorMainApp *app,
   else if (!strcmp (lng, BTOR_OPT_ENGINE))
     sprintf (paramstr, "<engine>");
   else if (!strcmp (lng, BTOR_OPT_REWRITE_LEVEL)
-           || !strcmp (lng, BTOR_OPT_REWRITE_LEVEL_PBR)
            || !strcmp (lng, BTOR_OPT_PBRA_LOD_LIMIT)
            || !strcmp (lng, BTOR_OPT_PBRA_SAT_LIMIT)
            || !strcmp (lng, BTOR_OPT_PBRA_OPS_FACTOR)
@@ -1094,7 +1093,6 @@ boolector_main (int argc, char **argv)
       }
       /* options requiring an integer argument */
       else if (IS_BTOR_OPT ("rwl", BTOR_OPT_REWRITE_LEVEL)
-               || IS_BTOR_OPT ("", BTOR_OPT_REWRITE_LEVEL_PBR)
                || IS_BTOR_OPT ("", BTOR_OPT_PBRA_LOD_LIMIT)
                || IS_BTOR_OPT ("", BTOR_OPT_PBRA_SAT_LIMIT)
                || IS_BTOR_OPT ("", BTOR_OPT_PBRA_OPS_FACTOR))

@@ -169,7 +169,7 @@ compute_sls_score_node (Btor *btor,
   assert (bv_model);
   assert (fun_model);
   assert (score);
-  assert (check_id_table_aux_mark_unset_dbg (btor));
+  assert (btor_check_id_table_aux_mark_unset_dbg (btor));
   assert (exp);
 
   int i;
@@ -396,7 +396,7 @@ compute_sls_scores_aux (Btor *btor,
   assert (BTOR_SLS_SOLVER (btor)->roots);
   assert (bv_model);
   assert (fun_model);
-  assert (check_id_table_mark_unset_dbg (btor));
+  assert (btor_check_id_table_mark_unset_dbg (btor));
 
   int i;
   BtorNode *cur, *real_cur;
@@ -545,7 +545,7 @@ static void
 select_candidates (Btor *btor, BtorNode *root, BtorNodePtrStack *candidates)
 {
   assert (btor);
-  assert (check_id_table_mark_unset_dbg (btor));
+  assert (btor_check_id_table_mark_unset_dbg (btor));
   assert (root);
   assert (candidates);
 
@@ -696,7 +696,7 @@ reset_cone (Btor *btor,
             BtorPtrHashTable *score)
 {
   assert (btor);
-  assert (check_id_table_mark_unset_dbg (btor));
+  assert (btor_check_id_table_mark_unset_dbg (btor));
   assert (cans);
   assert (cans->count);
   assert (bv_model);

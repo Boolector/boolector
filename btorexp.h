@@ -843,6 +843,9 @@ bool btor_is_array_exp (Btor *btor, BtorNode *exp);
 /* Determines if expression is an uf or array variable or not. */
 bool btor_is_uf_array_var_exp (Btor *btor, BtorNode *exp);
 
+/* Determines if expression is an uf or not. */
+bool btor_is_uf_exp (Btor *btor, BtorNode *exp);
+
 /* Determines if expression is a bv variable or not. */
 bool btor_is_bv_var_exp (Btor *btor, BtorNode *exp);
 

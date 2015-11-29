@@ -114,7 +114,7 @@ btor_optimize_unconstrained (Btor *btor)
   assert (btor->options.rewrite_level.val > 2);
   assert (!btor->options.incremental.val);
   assert (!btor->options.model_gen.val);
-  assert (check_id_table_mark_unset_dbg (btor));
+  assert (btor_check_id_table_mark_unset_dbg (btor));
 
   double start, delta;
   unsigned num_ucs;

@@ -165,7 +165,6 @@ btor_chkclone_opts (Btor *btor)
   BTOR_CHKCLONE_OPT (output_format);
 
   BTOR_CHKCLONE_OPT (rewrite_level);
-  BTOR_CHKCLONE_OPT (rewrite_level_pbr);
 
   BTOR_CHKCLONE_OPT (beta_reduce_all);
 #ifdef BTOR_ENABLE_BETA_REDUCTION_PROBING

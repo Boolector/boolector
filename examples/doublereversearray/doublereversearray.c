@@ -3,7 +3,7 @@
 #include <stdlib.h>
 #include <string.h>
 #include "boolector.h"
-#include "btorutil.h"
+#include "utils/btorutil.h"
 
 static BoolectorNode *
 reverse_array_mem_xor (Btor *btor,

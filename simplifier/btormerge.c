@@ -18,7 +18,8 @@
 
 //#ifndef NDEBUG
 // static bool
-// check_static_rho_equal_dbg (BtorPtrHashTable * t0, BtorPtrHashTable * t1)
+// btor_check_static_rho_equal_dbg (BtorPtrHashTable * t0, BtorPtrHashTable *
+// t1)
 //{
 //  assert (t0);
 //  assert (t1);
@@ -80,8 +81,8 @@ btor_merge_lambdas (Btor *btor)
 {
   assert (btor);
   assert (btor->options.rewrite_level.val > 0);
-  assert (check_id_table_mark_unset_dbg (btor));
-  assert (check_id_table_aux_mark_unset_dbg (btor));
+  assert (btor_check_id_table_mark_unset_dbg (btor));
+  assert (btor_check_id_table_aux_mark_unset_dbg (btor));
 
   unsigned num_merged_lambdas = 0;
   int i;
@@ -233,7 +234,7 @@ btor_merge_lambdas (Btor *btor)
        * the same elements as static_rho */
       if (btor_lambda_get_static_rho (subst))
       {
-        //	      assert (check_static_rho_equal_dbg (
+        //	      assert (btor_check_static_rho_equal_dbg (
         //			   btor_lambda_get_static_rho (subst),
         // static_rho));
         /* 'static_rho' contains elements so we have to release them
@@ -268,7 +269,7 @@ btor_merge_lambdas (Btor *btor)
   BTOR_RELEASE_STACK (mm, stack);
   BTOR_RELEASE_STACK (mm, unmark);
   BTOR_RELEASE_STACK (mm, params);
-  assert (check_id_table_aux_mark_unset_dbg (btor));
+  assert (btor_check_id_table_aux_mark_unset_dbg (btor));
   delta = btor_time_stamp () - start;
   BTOR_MSG (btor->msg,
             1,

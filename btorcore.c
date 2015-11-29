@@ -1125,6 +1125,44 @@ process_unsynthesized_constraints (Btor *btor)
 }
 
 static void
+update_assumptions (Btor *btor)
+{
+  assert (btor);
+
+  BtorPtrHashTable *ass;
+  BtorNode *cur, *simp;
+  BtorHashTableIterator it;
+
+  ass = btor_new_ptr_hash_table (btor->mm,
+                                 (BtorHashPtr) btor_hash_exp_by_id,
+                                 (BtorCmpPtr) btor_compare_exp_by_id);
+  btor_init_node_hash_table_iterator (&it, btor->assumptions);
+  while (btor_has_next_node_hash_table_iterator (&it))
+  {
+    cur = btor_next_node_hash_table_iterator (&it);
+    if (BTOR_REAL_ADDR_NODE (cur)->simplified)
+    {
+      /* Note: do not simplify constraint expression in order to prevent
+       * constraint expressions from not being added to btor->assumptions.
+       */
+      simp = btor_pointer_chase_simplified_exp (btor, cur);
+      if (!btor_find_in_ptr_hash_table (ass, simp))
+        btor_insert_in_ptr_hash_table (ass, btor_copy_exp (btor, simp));
+      btor_release_exp (btor, cur);
+    }
+    else
+    {
+      if (!btor_find_in_ptr_hash_table (ass, cur))
+        btor_insert_in_ptr_hash_table (ass, cur);
+      else
+        btor_release_exp (btor, cur);
+    }
+  }
+  btor_delete_ptr_hash_table (btor->assumptions);
+  btor->assumptions = ass;
+}
+
+static void
 insert_unsynthesized_constraint (Btor *btor, BtorNode *exp)
 {
   assert (btor);
@@ -1683,7 +1721,7 @@ add_constraint (Btor *btor, BtorNode *exp)
 {
   assert (btor);
   assert (exp);
-  assert (check_id_table_mark_unset_dbg (btor));
+  assert (btor_check_id_table_mark_unset_dbg (btor));
 
   BtorNode *cur, *child;
   BtorNodePtrStack stack;
@@ -1731,7 +1769,7 @@ add_constraint (Btor *btor, BtorNode *exp)
   else
     insert_new_constraint (btor, exp);
 
-  assert (check_constraints_not_const_dbg (btor));
+  assert (btor_check_constraints_not_const_dbg (btor));
 }
 
 void
@@ -1811,6 +1849,10 @@ btor_assume_exp (Btor *btor, BtorNode *exp)
   assert (exp);
   assert (!BTOR_REAL_ADDR_NODE (exp)->parameterized);
 
+  /* Note: do not simplify constraint expression in order to prevent
+   *       constraint expressions from not being added to btor->assumptions. */
+  exp = btor_pointer_chase_simplified_exp (btor, exp);
+
   if (btor->valid_assignments) reset_incremental_usage (btor);
 
   if (!btor_find_in_ptr_hash_table (btor->assumptions, exp))
@@ -1824,6 +1866,10 @@ btor_is_assumption_exp (Btor *btor, BtorNode *exp)
   assert (btor);
   assert (btor->options.incremental.val);
   assert (exp);
+
+  /* Note: do not simplify constraint expression in order to prevent
+   *       constraint expressions from not being added to btor->assumptions. */
+  exp = btor_pointer_chase_simplified_exp (btor, exp);
   return btor_find_in_ptr_hash_table (btor->assumptions, exp) ? 1 : 0;
 }
 
@@ -1834,7 +1880,7 @@ btor_failed_exp (Btor *btor, BtorNode *exp)
   assert (btor->options.incremental.val);
   assert (btor->last_sat_result == BTOR_UNSAT);
   assert (exp);
-  assert (check_id_table_mark_unset_dbg (btor));
+  assert (btor_check_id_table_mark_unset_dbg (btor));
   assert (btor_is_assumption_exp (btor, exp));
 
   int i, lit, res;
@@ -1846,11 +1892,14 @@ btor_failed_exp (Btor *btor, BtorNode *exp)
 
   start = btor_time_stamp ();
 
-  exp = btor_simplify_exp (btor, exp);
+  /* Note: do not simplify constraint expression in order to prevent
+   *       constraint expressions from not being added to btor->assumptions. */
+  exp = btor_pointer_chase_simplified_exp (btor, exp);
   assert (BTOR_REAL_ADDR_NODE (exp)->btor == btor);
   assert (!BTOR_IS_FUN_NODE (BTOR_REAL_ADDR_NODE (exp)));
   assert (btor_get_exp_width (btor, exp) == 1);
   assert (!BTOR_REAL_ADDR_NODE (exp)->parameterized);
+  assert (btor_is_assumption_exp (btor, exp));
 
   if (btor->inconsistent)
   {
@@ -2366,7 +2415,7 @@ substitute_vars_and_rebuild_exps (Btor *btor, BtorPtrHashTable *substs)
 {
   assert (btor);
   assert (substs);
-  assert (check_id_table_aux_mark_unset_dbg (btor));
+  assert (btor_check_id_table_aux_mark_unset_dbg (btor));
 
   BtorNodePtrStack stack, root_stack;
   BtorPtrHashBucket *b;
@@ -2484,14 +2533,14 @@ substitute_vars_and_rebuild_exps (Btor *btor, BtorPtrHashTable *substs)
   BTOR_RELEASE_STACK (mm, root_stack);
 
   update_node_hash_tables (btor);
-  assert (check_lambdas_static_rho_proxy_free_dbg (btor));
+  assert (btor_check_lambdas_static_rho_proxy_free_dbg (btor));
 }
 
 static void
 substitute_var_exps (Btor *btor)
 {
   assert (btor);
-  assert (check_id_table_mark_unset_dbg (btor));
+  assert (btor_check_id_table_mark_unset_dbg (btor));
 
   BtorPtrHashTable *varsubst_constraints, *order, *substs;
   BtorNode *cur, *constraint, *left, *right, *child;
@@ -2775,7 +2824,7 @@ substitute_and_rebuild (Btor *btor, BtorPtrHashTable *subst, int bra)
 {
   assert (btor);
   assert (subst);
-  assert (check_id_table_aux_mark_unset_dbg (btor));
+  assert (btor_check_id_table_aux_mark_unset_dbg (btor));
 
   int i;
   double start;
@@ -2915,11 +2964,11 @@ substitute_and_rebuild (Btor *btor, BtorPtrHashTable *subst, int bra)
 
   BTOR_RELEASE_STACK (mm, roots);
 
-  assert (check_id_table_aux_mark_unset_dbg (btor));
-  assert (check_unique_table_children_proxy_free_dbg (btor));
+  assert (btor_check_id_table_aux_mark_unset_dbg (btor));
+  assert (btor_check_unique_table_children_proxy_free_dbg (btor));
 
   update_node_hash_tables (btor);
-  assert (check_lambdas_static_rho_proxy_free_dbg (btor));
+  assert (btor_check_lambdas_static_rho_proxy_free_dbg (btor));
   btor->time.subst_rebuild += btor_time_stamp () - start;
 }
 
@@ -3055,15 +3104,15 @@ btor_simplify (Btor *btor)
   do
   {
     rounds++;
-    assert (check_all_hash_tables_proxy_free_dbg (btor));
-    assert (check_all_hash_tables_simp_free_dbg (btor));
-    assert (check_unique_table_children_proxy_free_dbg (btor));
+    assert (btor_check_all_hash_tables_proxy_free_dbg (btor));
+    assert (btor_check_all_hash_tables_simp_free_dbg (btor));
+    assert (btor_check_unique_table_children_proxy_free_dbg (btor));
     if (btor->options.rewrite_level.val > 1)
     {
       substitute_var_exps (btor);
-      assert (check_all_hash_tables_proxy_free_dbg (btor));
-      assert (check_all_hash_tables_simp_free_dbg (btor));
-      assert (check_unique_table_children_proxy_free_dbg (btor));
+      assert (btor_check_all_hash_tables_proxy_free_dbg (btor));
+      assert (btor_check_all_hash_tables_simp_free_dbg (btor));
+      assert (btor_check_unique_table_children_proxy_free_dbg (btor));
 
       if (btor->inconsistent) break;
 
@@ -3071,9 +3120,9 @@ btor_simplify (Btor *btor)
         break;  // TODO (ma): continue instead of break?
 
       process_embedded_constraints (btor);
-      assert (check_all_hash_tables_proxy_free_dbg (btor));
-      assert (check_all_hash_tables_simp_free_dbg (btor));
-      assert (check_unique_table_children_proxy_free_dbg (btor));
+      assert (btor_check_all_hash_tables_proxy_free_dbg (btor));
+      assert (btor_check_all_hash_tables_simp_free_dbg (btor));
+      assert (btor_check_unique_table_children_proxy_free_dbg (btor));
 
       if (btor->inconsistent) break;
 
@@ -3100,9 +3149,9 @@ btor_simplify (Btor *btor)
       if (skelrounds <= 1)  // TODO only one?
       {
         btor_process_skeleton (btor);
-        assert (check_all_hash_tables_proxy_free_dbg (btor));
-        assert (check_all_hash_tables_simp_free_dbg (btor));
-        assert (check_unique_table_children_proxy_free_dbg (btor));
+        assert (btor_check_all_hash_tables_proxy_free_dbg (btor));
+        assert (btor_check_all_hash_tables_simp_free_dbg (btor));
+        assert (btor_check_unique_table_children_proxy_free_dbg (btor));
         if (btor->inconsistent) break;
       }
 
@@ -3135,9 +3184,9 @@ btor_simplify (Btor *btor)
         && !btor->options.incremental.val && !btor->options.model_gen.val)
     {
       btor_optimize_unconstrained (btor);
-      assert (check_all_hash_tables_proxy_free_dbg (btor));
-      assert (check_all_hash_tables_simp_free_dbg (btor));
-      assert (check_unique_table_children_proxy_free_dbg (btor));
+      assert (btor_check_all_hash_tables_proxy_free_dbg (btor));
+      assert (btor_check_all_hash_tables_simp_free_dbg (btor));
+      assert (btor_check_unique_table_children_proxy_free_dbg (btor));
       if (btor->inconsistent) break;
     }
 #endif
@@ -3481,13 +3530,15 @@ update_reachable (Btor *btor, bool check_all_tables)
   BtorNode *cur;
   BtorHashTableIterator it;
 
-  assert (check_id_table_mark_unset_dbg (btor));
+  assert (btor_check_id_table_mark_unset_dbg (btor));
   assert (check_all_tables || btor->embedded_constraints->count == 0);
   assert (check_all_tables || btor->varsubst_constraints->count == 0);
+  assert (btor_check_assumptions_simp_free_dbg (btor));
 
   start = btor_time_stamp ();
   btor_init_node_hash_table_iterator (&it, btor->synthesized_constraints);
   btor_queue_node_hash_table_iterator (&it, btor->unsynthesized_constraints);
+  btor_queue_node_hash_table_iterator (&it, btor->assumptions);
   if (check_all_tables)
   {
     btor_queue_node_hash_table_iterator (&it, btor->embedded_constraints);
@@ -3503,7 +3554,6 @@ update_reachable (Btor *btor, bool check_all_tables)
   /* var_rhs and fun_rhs are still part of the formula, and thus, reachable */
   btor_init_node_hash_table_iterator (&it, btor->var_rhs);
   btor_queue_node_hash_table_iterator (&it, btor->fun_rhs);
-  btor_queue_node_hash_table_iterator (&it, btor->assumptions);
   while (btor_has_next_node_hash_table_iterator (&it))
   {
     cur = btor_next_node_hash_table_iterator (&it);
@@ -3555,7 +3605,8 @@ static void
 add_again_assumptions (Btor *btor)
 {
   assert (btor);
-  assert (check_id_table_mark_unset_dbg (btor));
+  assert (btor_check_id_table_mark_unset_dbg (btor));
+  assert (btor_check_assumptions_simp_free_dbg (btor));
 
   int i;
   BtorNode *exp, *cur, *e;
@@ -3580,7 +3631,7 @@ add_again_assumptions (Btor *btor)
   while (btor_has_next_node_hash_table_iterator (&it))
   {
     exp = btor_next_node_hash_table_iterator (&it);
-    exp = btor_simplify_exp (btor, exp);
+    assert (!BTOR_REAL_ADDR_NODE (BTOR_IS_PROXY_NODE (exp)));
 
     if (BTOR_IS_INVERTED_NODE (exp) || !BTOR_IS_AND_NODE (exp))
     {
@@ -3689,7 +3740,7 @@ search_initial_applies_bv_skeleton (Btor *btor, BtorNodePtrStack *applies)
   assert (btor->slv->kind == BTOR_CORE_SOLVER_KIND);
   assert (applies);
   assert (BTOR_EMPTY_STACK (*applies));
-  assert (check_id_table_aux_mark_unset_dbg (btor));
+  assert (btor_check_id_table_aux_mark_unset_dbg (btor));
 
   double start;
   int i;
@@ -3710,14 +3761,11 @@ search_initial_applies_bv_skeleton (Btor *btor, BtorNodePtrStack *applies)
   while (btor_has_next_node_hash_table_iterator (&it))
   {
     cur = btor_next_node_hash_table_iterator (&it);
-    if (BTOR_REAL_ADDR_NODE (cur)->simplified)
-      cur = btor_simplify_exp (btor, cur);
     BTOR_PUSH_STACK (btor->mm, stack, cur);
 
     while (!BTOR_EMPTY_STACK (stack))
     {
       cur = BTOR_REAL_ADDR_NODE (BTOR_POP_STACK (stack));
-      assert (!BTOR_IS_PROXY_NODE (cur));
 
       if (cur->aux_mark) continue;
 
@@ -4029,7 +4077,7 @@ search_initial_applies_dual_prop (Btor *btor,
   assert (clone_root);
   assert (exp_map);
   assert (top_applies);
-  assert (check_id_table_aux_mark_unset_dbg (btor));
+  assert (btor_check_id_table_aux_mark_unset_dbg (btor));
 
   double start;
   int i;
@@ -4062,14 +4110,11 @@ search_initial_applies_dual_prop (Btor *btor,
   while (btor_has_next_node_hash_table_iterator (&it))
   {
     cur = btor_next_node_hash_table_iterator (&it);
-    if (BTOR_REAL_ADDR_NODE (cur)->simplified)
-      cur = btor_simplify_exp (btor, cur);
     BTOR_PUSH_STACK (btor->mm, stack, cur);
 
     while (!BTOR_EMPTY_STACK (stack))
     {
       cur = BTOR_REAL_ADDR_NODE (BTOR_POP_STACK (stack));
-      assert (!BTOR_IS_PROXY_NODE (cur));
 
       if (cur->aux_mark) continue;
 
@@ -4190,7 +4235,7 @@ search_initial_applies_just (Btor *btor, BtorNodePtrStack *top_applies)
   assert (top_applies);
   assert (btor->unsynthesized_constraints->count == 0);
   assert (btor->embedded_constraints->count == 0);
-  assert (check_id_table_aux_mark_unset_dbg (btor));
+  assert (btor_check_id_table_aux_mark_unset_dbg (btor));
 
   int i, h;
   int a, a0, a1;
@@ -4218,14 +4263,11 @@ search_initial_applies_just (Btor *btor, BtorNodePtrStack *top_applies)
   while (btor_has_next_node_hash_table_iterator (&it))
   {
     cur = btor_next_node_hash_table_iterator (&it);
-    if (BTOR_REAL_ADDR_NODE (cur)->simplified)
-      cur = btor_simplify_exp (btor, cur);
     BTOR_PUSH_STACK (btor->mm, stack, cur);
 
     while (!BTOR_EMPTY_STACK (stack))
     {
       cur = BTOR_REAL_ADDR_NODE (BTOR_POP_STACK (stack));
-      assert (!BTOR_IS_PROXY_NODE (cur));
 
       if (cur->aux_mark) continue;
 
@@ -5603,14 +5645,15 @@ sat_aux_btor_dual_prop (Btor *btor)
   assert (btor->synthesized_constraints->count == 0);
   assert (btor->unsynthesized_constraints->count == 0);
   assert (btor->embedded_constraints->count == 0);
-  assert (check_all_hash_tables_proxy_free_dbg (btor));
-  assert (check_all_hash_tables_simp_free_dbg (btor));
+  assert (btor_check_all_hash_tables_proxy_free_dbg (btor));
+  assert (btor_check_all_hash_tables_simp_free_dbg (btor));
+  assert (btor_check_assumptions_simp_free_dbg (btor));
 
   update_reachable (btor, false);
-  assert (check_reachable_flag_dbg (btor));
+  assert (btor_check_reachable_flag_dbg (btor));
 
   add_again_assumptions (btor);
-  assert (check_reachable_flag_dbg (btor));
+  assert (btor_check_reachable_flag_dbg (btor));
 
   sat_result = timed_sat_sat (btor, -1);
 
@@ -6279,7 +6322,8 @@ check_model (Btor *btor, Btor *clone, BtorPtrHashTable *inputs)
 
   uint32_t i;
   int ret;
-  BtorNode *cur, *exp, *simp, *real_simp, *model, *eq, *args, *apply;
+  BtorNode *cur, *exp, *simp, *simp_clone, *real_simp_clone, *model, *eq;
+  BtorNode *args, *apply;
   BtorHashTableIterator it;
   const BtorPtrHashTable *fmodel;
   BtorBitVector *value;
@@ -6311,18 +6355,20 @@ check_model (Btor *btor, Btor *clone, BtorPtrHashTable *inputs)
     assert (exp);
     assert (BTOR_IS_REGULAR_NODE (exp));
     assert (exp->btor == btor);
-    cur = btor_next_node_hash_table_iterator (&it);
+    /* Note: we do not want simplified constraints here */
+    simp = btor_pointer_chase_simplified_exp (btor, exp);
+    cur  = btor_next_node_hash_table_iterator (&it);
     assert (BTOR_IS_REGULAR_NODE (cur));
     assert (cur->btor == clone);
-    simp      = btor_simplify_exp (clone, cur);
-    real_simp = BTOR_REAL_ADDR_NODE (simp);
+    simp_clone      = btor_simplify_exp (clone, cur);
+    real_simp_clone = BTOR_REAL_ADDR_NODE (simp_clone);
 
-    if (BTOR_IS_FUN_NODE (real_simp))
+    if (BTOR_IS_FUN_NODE (real_simp_clone))
     {
-      fmodel = btor_get_fun_model (btor, exp);
+      fmodel = btor_get_fun_model (btor, simp);
       if (!fmodel) continue;
 
-      BTORLOG (2, "assert model for %s", node2string (real_simp));
+      BTORLOG (2, "assert model for %s", node2string (real_simp_clone));
       btor_init_hash_table_iterator (&it, (BtorPtrHashTable *) fmodel);
       while (btor_has_next_hash_table_iterator (&it))
       {
@@ -6338,7 +6384,7 @@ check_model (Btor *btor, Btor *clone, BtorPtrHashTable *inputs)
         }
 
         args  = btor_args_exp (clone, BTOR_COUNT_STACK (consts), consts.start);
-        apply = btor_apply_exp (clone, real_simp, args);
+        apply = btor_apply_exp (clone, real_simp_clone, args);
         model = btor_const_exp (clone, value);
         eq    = btor_eq_exp (clone, apply, model);
         btor_assert_exp (clone, eq);
@@ -6355,13 +6401,14 @@ check_model (Btor *btor, Btor *clone, BtorPtrHashTable *inputs)
     {
       BTORLOG (2,
                "assert model for %s (%s)",
-               node2string (real_simp),
+               node2string (real_simp_clone),
                btor_get_symbol_exp (clone, cur));
       /* we need to invert the assignment if simplified is inverted */
-      model = btor_const_exp (clone,
-                              (BtorBitVector *) btor_get_bv_model (
-                                  btor, BTOR_COND_INVERT_NODE (simp, exp)));
-      eq    = btor_eq_exp (clone, real_simp, model);
+      model =
+          btor_const_exp (clone,
+                          (BtorBitVector *) btor_get_bv_model (
+                              btor, BTOR_COND_INVERT_NODE (simp_clone, simp)));
+      eq = btor_eq_exp (clone, real_simp_clone, model);
       btor_assert_exp (clone, eq);
       btor_release_exp (clone, eq);
       btor_release_exp (clone, model);
@@ -6592,6 +6639,7 @@ sat_core_solver (Btor *btor, int lod_limit, int sat_limit)
   }
 
   simp_sat_result = btor_simplify (btor);
+  update_assumptions (btor);
 
 #ifdef BTOR_CHECK_FAILED
   if (btor_has_clone_support_sat_mgr (btor_get_sat_mgr_btor (btor))
@@ -6649,14 +6697,15 @@ sat_core_solver (Btor *btor, int lod_limit, int sat_limit)
     goto DONE;
   }
   assert (btor->unsynthesized_constraints->count == 0);
-  assert (check_all_hash_tables_proxy_free_dbg (btor));
-  assert (check_all_hash_tables_simp_free_dbg (btor));
+  assert (btor_check_all_hash_tables_proxy_free_dbg (btor));
+  assert (btor_check_all_hash_tables_simp_free_dbg (btor));
+  assert (btor_check_assumptions_simp_free_dbg (btor));
 
   update_reachable (btor, false);
-  assert (check_reachable_flag_dbg (btor));
+  assert (btor_check_reachable_flag_dbg (btor));
 
   add_again_assumptions (btor);
-  assert (check_reachable_flag_dbg (btor));
+  assert (btor_check_reachable_flag_dbg (btor));
 
   if (sat_limit > -1)
     sat_result = timed_sat_sat (btor, sat_limit);
@@ -6716,9 +6765,9 @@ sat_core_solver (Btor *btor, int lod_limit, int sat_limit)
     process_unsynthesized_constraints (btor);
     if (btor->found_constraint_false) goto UNSAT;
     assert (btor->unsynthesized_constraints->count == 0);
-    assert (check_all_hash_tables_proxy_free_dbg (btor));
-    assert (check_all_hash_tables_simp_free_dbg (btor));
-    assert (check_reachable_flag_dbg (btor));
+    assert (btor_check_all_hash_tables_proxy_free_dbg (btor));
+    assert (btor_check_all_hash_tables_simp_free_dbg (btor));
+    assert (btor_check_reachable_flag_dbg (btor));
     add_again_assumptions (btor);
     sat_result = timed_sat_sat (btor, -1);
   }
