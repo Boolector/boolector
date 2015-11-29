@@ -66,7 +66,7 @@ main (int argc, char **argv)
     {
       signed_size_t = 1;
     }
-    else if (!argv[i][0] == '-')
+    else if (argv[i][0] == '-')
       die ("invalid command line option '%s'", argv[i]);
     else if (!isint (argv[i]))
       die ("expected integer but got '%s'", argv[i]);

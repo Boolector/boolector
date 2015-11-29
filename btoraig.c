@@ -102,8 +102,8 @@ new_and_aig (BtorAIGMgr *amgr, BtorAIG *left, BtorAIG *right)
   aig  = btor_malloc (amgr->mm, size);
   memset (aig, 0, size);
   setup_aig_and_add_to_id_table (amgr, aig);
-  aig->children[0] = BTOR_GET_AIG_ID_AIG (left);
-  aig->children[1] = BTOR_GET_AIG_ID_AIG (right);
+  aig->children[0] = BTOR_GET_ID_AIG (left);
+  aig->children[1] = BTOR_GET_ID_AIG (right);
   amgr->cur_num_aigs++;
   if (amgr->max_num_aigs < amgr->cur_num_aigs)
     amgr->max_num_aigs = amgr->cur_num_aigs;

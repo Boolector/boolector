@@ -103,7 +103,7 @@ typedef struct BtorAIGMgr BtorAIGMgr;
 
 #define BTOR_RIGHT_CHILD_AIG(aig) (BTOR_GET_AIG_BY_ID ((aig)->children[1]))
 
-#define BTOR_GET_AIG_ID_AIG(aig) \
+#define BTOR_GET_ID_AIG(aig) \
   (BTOR_IS_INVERTED_AIG (aig) ? -BTOR_REAL_ADDR_AIG (aig)->id : aig->id)
 
 #define BTOR_GET_CNF_ID_AIG(aig)                                             \

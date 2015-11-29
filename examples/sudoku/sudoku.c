@@ -6,7 +6,7 @@
 #include "boolector.h"
 #include "btorconst.h"
 #include "btorexp.h"
-#include "btormem.h"
+#include "utils/btormem.h"
 
 #define SUDOKU_NUM_BITS_INDEX 7
 #define SUDOKU_NUM_BITS_VAL 4

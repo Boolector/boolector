@@ -38,16 +38,14 @@ struct BtorSMTDumpContext
   FILE *file;
   int maxid;
   int pretty_print;
-  int version;
   int open_lets;
 };
 
 typedef struct BtorSMTDumpContext BtorSMTDumpContext;
 
 static BtorSMTDumpContext *
-new_smt_dump_context (Btor *btor, FILE *file, int version)
+new_smt_dump_context (Btor *btor, FILE *file)
 {
-  assert (version == 2);
   BtorSMTDumpContext *sdc;
   BTOR_CNEW (btor->mm, sdc);
 
@@ -74,7 +72,6 @@ new_smt_dump_context (Btor *btor, FILE *file, int version)
   sdc->file         = file;
   sdc->maxid        = 1;
   sdc->pretty_print = btor->options.pretty_print.val;
-  sdc->version      = version;
   return sdc;
 }
 
@@ -190,8 +187,7 @@ is_boolean (BtorSMTDumpContext *sdc, BtorNode *exp)
 }
 
 void
-btor_dump_const_value_smt (
-    Btor *btor, const char *bits, int base, int version, FILE *file)
+btor_dump_const_value_smt (Btor *btor, const char *bits, int base, FILE *file)
 {
   assert (btor);
   assert (bits);
@@ -211,14 +207,12 @@ btor_dump_const_value_smt (
   }
   else if (base == BTOR_OUTPUT_BASE_HEX && strlen (bits) % 4 == 0)
   {
-    assert (version == 2);
     val = btor_const_to_hex (btor->mm, bits);
     fprintf (file, "#x%s", val);
     btor_freestr (btor->mm, val);
   }
   else
   {
-    assert (version == 2);
     fprintf (file, "#b%s", bits);
   }
 }
@@ -229,15 +223,14 @@ dump_const_value_aux_smt (BtorSMTDumpContext *sdc, char *bits)
   assert (sdc);
   assert (bits);
 
-  int base, version;
+  int base;
   FILE *file;
   char *val;
   const char *fmt;
   BtorPtrHashBucket *b;
 
-  base    = sdc->btor->options.output_number_format.val;
-  version = sdc->version;
-  file    = sdc->file;
+  base = sdc->btor->options.output_number_format.val;
+  file = sdc->file;
 
   /* converting consts to decimal/hex is costly. we now always dump the value of
    * constants. in order to avoid computing the same value again we cache
@@ -262,7 +255,6 @@ dump_const_value_aux_smt (BtorSMTDumpContext *sdc, char *bits)
   }
   else if (base == BTOR_OUTPUT_BASE_HEX && strlen (bits) % 4 == 0)
   {
-    assert (version == 2);
     if ((b = btor_find_in_ptr_hash_table (sdc->const_cache, bits)))
     {
       val = b->data.asStr;
@@ -278,11 +270,11 @@ dump_const_value_aux_smt (BtorSMTDumpContext *sdc, char *bits)
     fprintf (file, "#x%s", val);
   }
   else
-    btor_dump_const_value_smt (sdc->btor, bits, base, version, file);
+    btor_dump_const_value_smt (sdc->btor, bits, base, file);
 }
 
 void
-btor_dump_sort_smt (BtorSort *sort, int version, FILE *file)
+btor_dump_sort_smt (BtorSort *sort, FILE *file)
 {
   unsigned i;
   const char *fmt;
@@ -308,23 +300,22 @@ btor_dump_sort_smt (BtorSort *sort, int version, FILE *file)
 
     case BTOR_FUN_SORT:
       /* print domain */
-      if (version == 2) fputc ('(', file);
+      fputc ('(', file);
       if (sort->fun.domain->kind == BTOR_TUPLE_SORT)
       {
         for (i = 0; i < sort->fun.domain->tuple.num_elements; i++)
         {
-          btor_dump_sort_smt (
-              sort->fun.domain->tuple.elements[i], version, file);
+          btor_dump_sort_smt (sort->fun.domain->tuple.elements[i], file);
           if (i < sort->fun.domain->tuple.num_elements - 1) fputc (' ', file);
         }
       }
       else
-        btor_dump_sort_smt (sort->fun.domain, version, file);
-      if (version == 2) fputc (')', file);
+        btor_dump_sort_smt (sort->fun.domain, file);
+      fputc (')', file);
       fputc (' ', file);
 
       /* print co-domain */
-      btor_dump_sort_smt (sort->fun.codomain, version, file);
+      btor_dump_sort_smt (sort->fun.codomain, file);
       break;
 
     default: assert (0);
@@ -332,17 +323,16 @@ btor_dump_sort_smt (BtorSort *sort, int version, FILE *file)
 }
 
 void
-btor_dump_sort_smt_node (BtorNode *exp, int version, FILE *file)
+btor_dump_sort_smt_node (BtorNode *exp, FILE *file)
 {
   assert (exp);
-  assert (version);
   assert (file);
 
   BtorSort *sort;
 
   exp  = BTOR_REAL_ADDR_NODE (exp);
   sort = btor_get_sort_by_id (&exp->btor->sorts_unique_table, exp->sort_id);
-  btor_dump_sort_smt (sort, version, file);
+  btor_dump_sort_smt (sort, file);
 }
 
 #if 0
@@ -785,7 +775,7 @@ dump_let_smt (BtorSMTDumpContext *sdc, BtorNode *exp)
   assert (!btor_find_in_ptr_hash_table (sdc->dumped, exp));
 
   fputs ("(let (", sdc->file);
-  if (sdc->version > 1) fputc ('(', sdc->file);
+  fputc ('(', sdc->file);
   dump_smt_id (sdc, exp);  // TODO (ma): better symbol for lets?
   fputc (' ', sdc->file);
   recursively_dump_exp_smt (sdc, exp, !is_boolean (sdc, exp), 0);
@@ -798,7 +788,6 @@ static void
 dump_fun_let_smt2 (BtorSMTDumpContext *sdc, BtorNode *exp)
 {
   assert (sdc);
-  assert (sdc->version == 2);
   assert (BTOR_IS_REGULAR_NODE (exp));
   assert (!btor_find_in_ptr_hash_table (sdc->dumped, exp));
 
@@ -812,7 +801,7 @@ dump_fun_let_smt2 (BtorSMTDumpContext *sdc, BtorNode *exp)
   if (is_bool)
     fputs ("Bool", sdc->file);
   else
-    btor_dump_sort_smt_node (exp, sdc->version, sdc->file);
+    btor_dump_sort_smt_node (exp, sdc->file);
   fputc (' ', sdc->file);
   recursively_dump_exp_smt (sdc, exp, !is_bool, 0);
   fputs (")\n", sdc->file);
@@ -824,7 +813,6 @@ dump_fun_smt2 (BtorSMTDumpContext *sdc, BtorNode *fun)
 {
   assert (fun);
   assert (sdc);
-  assert (sdc->version == 2);
   assert (BTOR_IS_REGULAR_NODE (fun));
   assert (BTOR_IS_LAMBDA_NODE (fun));
   assert (!fun->parameterized);
@@ -905,7 +893,7 @@ dump_fun_smt2 (BtorSMTDumpContext *sdc, BtorNode *fun)
     fputc ('(', sdc->file);
     dump_smt_id (sdc, param);
     fputc (' ', sdc->file);
-    btor_dump_sort_smt_node (param, sdc->version, sdc->file);
+    btor_dump_sort_smt_node (param, sdc->file);
     fputc (')', sdc->file);
   }
   fputs (") ", sdc->file);
@@ -914,7 +902,7 @@ dump_fun_smt2 (BtorSMTDumpContext *sdc, BtorNode *fun)
   if (is_boolean (sdc, fun_body))
     fputs ("Bool", sdc->file);
   else
-    btor_dump_sort_smt_node (fun_body, sdc->version, sdc->file);
+    btor_dump_sort_smt_node (fun_body, sdc->file);
   fputc (' ', sdc->file);
 
   assert (sdc->open_lets == 0);
@@ -997,7 +985,7 @@ dump_declare_fun_smt (BtorSMTDumpContext *sdc, BtorNode *exp)
   dump_smt_id (sdc, exp);
   fputc (' ', sdc->file);
   if (BTOR_IS_BV_VAR_NODE (exp)) fputs ("() ", sdc->file);
-  btor_dump_sort_smt_node (exp, sdc->version, sdc->file);
+  btor_dump_sort_smt_node (exp, sdc->file);
   fputs (")\n", sdc->file);
   btor_insert_in_ptr_hash_table (sdc->dumped, exp);
 }
@@ -1006,7 +994,6 @@ static void
 dump_assert_smt2 (BtorSMTDumpContext *sdc, BtorNode *exp)
 {
   assert (sdc);
-  assert (sdc->version == 2);
   assert (exp);
   assert (btor_get_exp_width (sdc->btor, exp) == 1);
 
@@ -1055,20 +1042,6 @@ get_references (BtorSMTDumpContext *sdc, BtorNode *exp)
     refs++;
   }
   return refs;
-}
-
-static int
-has_lambda_parent (BtorNode *exp)
-{
-  BtorNode *p;
-  BtorNodeIterator it;
-  btor_init_parent_iterator (&it, exp);
-  while (btor_has_next_parent_iterator (&it))
-  {
-    p = btor_next_parent_iterator (&it);
-    if (BTOR_IS_LAMBDA_NODE (p)) return 1;
-  }
-  return 0;
 }
 
 static int
@@ -1317,20 +1290,16 @@ dump_smt (BtorSMTDumpContext *sdc)
   BTOR_RELEASE_STACK (mm, vars);
   BTOR_RELEASE_STACK (mm, ufs);
 
-  if (sdc->version == 2)
-  {
-    fputs ("(check-sat)\n", sdc->file);
-    fputs ("(exit)\n", sdc->file);
-  }
+  fputs ("(check-sat)\n", sdc->file);
+  fputs ("(exit)\n", sdc->file);
   fflush (sdc->file);
 }
 
 static void
-dump_smt_aux (Btor *btor, FILE *file, int version, BtorNode **roots, int nroots)
+dump_smt_aux (Btor *btor, FILE *file, BtorNode **roots, int nroots)
 {
   assert (btor);
   assert (file);
-  assert (version == 2);
   assert (!btor->options.incremental.val);
   //  assert (!btor->options.model_gen.val);
 
@@ -1339,24 +1308,9 @@ dump_smt_aux (Btor *btor, FILE *file, int version, BtorNode **roots, int nroots)
   BtorHashTableIterator it;
   BtorSMTDumpContext *sdc;
 
-  // TODO (ma): this may be obsolete as we do not have any nested funs anymore
-#ifndef NDEBUG
-  btor_init_node_hash_table_iterator (&it, btor->lambdas);
-  while (btor_has_next_node_hash_table_iterator (&it))
-  {
-    temp = btor_next_node_hash_table_iterator (&it);
-
-    if (temp->parameterized && !has_lambda_parent (temp))
-    {
-      assert (0);
-      break;
-    }
-  }
-#endif
-
   for (i = 0; i < nroots; i++) tmp_roots[i] = roots[i];
 
-  sdc = new_smt_dump_context (btor, file, version);
+  sdc = new_smt_dump_context (btor, file);
 
   if (nroots)
   {
@@ -1396,7 +1350,7 @@ btor_dump_smt2_nodes (Btor *btor, FILE *file, BtorNode **roots, int nroots)
   assert (file);
   assert (roots);
   assert (nroots > 0);
-  dump_smt_aux (btor, file, 2, roots, nroots);
+  dump_smt_aux (btor, file, roots, nroots);
 }
 
 void
@@ -1404,7 +1358,7 @@ btor_dump_smt2 (Btor *btor, FILE *file)
 {
   assert (btor);
   assert (file);
-  dump_smt_aux (btor, file, 2, 0, 0);
+  dump_smt_aux (btor, file, 0, 0);
 }
 
 void
@@ -1424,7 +1378,7 @@ btor_dump_smt2_node (Btor *btor, FILE *file, BtorNode *exp, unsigned depth)
 
   BTOR_INIT_STACK (all);
   BTOR_INIT_STACK (visit);
-  sdc = new_smt_dump_context (btor, file, 2);
+  sdc = new_smt_dump_context (btor, file);
 
   if (!exp)
   {

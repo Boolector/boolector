@@ -83,28 +83,30 @@
     }                                                                     \
   } while (0)
 
-#define BTOR_ABORT_ARRAY_BOOLECTOR(arg)                      \
-  do                                                         \
-  {                                                          \
-    if (BTOR_IS_FUN_NODE (BTOR_REAL_ADDR_NODE ((arg))))      \
-    {                                                        \
-      fprintf (stderr, "[%s] %s: ", __FILE__, __FUNCTION__); \
-      fprintf (stderr, "'%s' must not be an array\n", #arg); \
-      fflush (stderr);                                       \
-      abort ();                                              \
-    }                                                        \
+#define BTOR_ABORT_BV_BOOLECTOR(arg)                              \
+  do                                                              \
+  {                                                               \
+    if (btor_is_bitvec_sort (&btor->sorts_unique_table,           \
+                             BTOR_REAL_ADDR_NODE (arg)->sort_id)) \
+    {                                                             \
+      fprintf (stderr, "[%s] %s: ", __FILE__, __FUNCTION__);      \
+      fprintf (stderr, "'%s' must not be a bit-vector\n", #arg);  \
+      fflush (stderr);                                            \
+      abort ();                                                   \
+    }                                                             \
   } while (0)
 
-#define BTOR_ABORT_BV_BOOLECTOR(arg)                             \
-  do                                                             \
-  {                                                              \
-    if (!BTOR_IS_FUN_NODE (BTOR_REAL_ADDR_NODE ((arg))))         \
-    {                                                            \
-      fprintf (stderr, "[%s] %s: ", __FILE__, __FUNCTION__);     \
-      fprintf (stderr, "'%s' must not be a bit-vector\n", #arg); \
-      fflush (stderr);                                           \
-      abort ();                                                  \
-    }                                                            \
+#define BTOR_ABORT_NOT_BV_BOOLECTOR(arg)                           \
+  do                                                               \
+  {                                                                \
+    if (!btor_is_bitvec_sort (&btor->sorts_unique_table,           \
+                              BTOR_REAL_ADDR_NODE (arg)->sort_id)) \
+    {                                                              \
+      fprintf (stderr, "[%s] %s: ", __FILE__, __FUNCTION__);       \
+      fprintf (stderr, "'%s' must be a bit-vector\n", #arg);       \
+      fflush (stderr);                                             \
+      abort ();                                                    \
+    }                                                              \
   } while (0)
 
 #define BTOR_ABORT_NE_BW(arg1, arg2)                               \
