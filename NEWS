@@ -2,9 +2,9 @@ news for release 2.2.0 since 2.1.1
 --------------------------------------
 
 * refactored a lot of code
-* refactored and extended btormbt
-* refactored and improved array/lambda engine
-* refactored and extended lambda extraction
+  + refactored and extended btormbt
+  + refactored and improved array/lambda engine
+  + refactored and extended lambda extraction
 * removed SMT1 dumper (parsing SMT1 still supported)
 * fixed push/pop support in SMT2 with model generation enabled
   (thanks to James Bornholt)
