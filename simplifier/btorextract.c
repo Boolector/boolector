@@ -1318,7 +1318,7 @@ btor_extract_lambdas (Btor *btor)
   btor_delete_ptr_hash_table (map_lambda_base);
   btor_delete_ptr_hash_table (map_value_index);
 
-  btor_substitute_and_rebuild (btor, btor->substitutions, 0);
+  btor_substitute_and_rebuild (btor, btor->substitutions);
   btor_delete_substitutions (btor);
   delta = btor_time_stamp () - start;
   BTOR_MSG (

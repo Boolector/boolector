@@ -654,9 +654,9 @@ btor_print_stats_btor (Btor *btor)
       percent (btor->time.embedded, btor->time.rewrite));
   BTOR_MSG (btor->msg,
             1,
-            "%.2f seconds in beta reduction during rewriting (%.0f%%)",
-            btor->time.betareduce,
-            percent (btor->time.betareduce, btor->time.rewrite));
+            "%.2f seconds in apply elimination during rewriting (%.0f%%)",
+            btor->time.elimapplies,
+            percent (btor->time.elimapplies, btor->time.rewrite));
   if (btor->options.eliminate_slices.val)
     BTOR_MSG (btor->msg,
               1,
@@ -2797,13 +2797,8 @@ all_exps_below_rebuilt (Btor *btor, BtorNode *exp)
   return true;
 }
 
-/* beta reduction parameter 'bra'
- * -1 ... full beta reduction
- *  0 ... no beta reduction
- * >0 ... bound for bounded beta reduction
- */
 static void
-substitute_and_rebuild (Btor *btor, BtorPtrHashTable *subst, int bra)
+substitute_and_rebuild (Btor *btor, BtorPtrHashTable *subst)
 {
   assert (btor);
   assert (subst);
@@ -2899,18 +2894,7 @@ substitute_and_rebuild (Btor *btor, BtorPtrHashTable *subst, int bra)
       }
 
       if ((sub = btor_find_substitution (btor, cur)))
-      {
         rebuilt_exp = btor_copy_exp (btor, sub);
-      }
-      // TODO: externalize
-      else if (bra && BTOR_IS_APPLY_NODE (cur)
-               && btor_find_in_ptr_hash_table (subst, cur))
-      {
-        if (bra == -1)
-          rebuilt_exp = btor_beta_reduce_full (btor, cur);
-        else
-          rebuilt_exp = btor_beta_reduce_bounded (btor, cur, bra);
-      }
       else
         rebuilt_exp = rebuild_exp (btor, cur);
 
@@ -2956,9 +2940,9 @@ substitute_and_rebuild (Btor *btor, BtorPtrHashTable *subst, int bra)
 }
 
 void
-btor_substitute_and_rebuild (Btor *btor, BtorPtrHashTable *substs, int bra)
+btor_substitute_and_rebuild (Btor *btor, BtorPtrHashTable *substs)
 {
-  substitute_and_rebuild (btor, substs, bra);
+  substitute_and_rebuild (btor, substs);
 }
 
 static void
@@ -2979,7 +2963,7 @@ substitute_embedded_constraints (Btor *btor)
     if (BTOR_REAL_ADDR_NODE (cur)->parents > 0) btor->stats.ec_substitutions++;
   }
 
-  substitute_and_rebuild (btor, btor->embedded_constraints, 0);
+  substitute_and_rebuild (btor, btor->embedded_constraints);
 }
 
 static void
@@ -3149,13 +3133,14 @@ btor_simplify (Btor *btor)
         && btor->feqs->count == 0
         /* FIXME: merging not supported yet for incremental due to
          * extensionality*/
-        && !btor->options.incremental.val && !btor->options.beta_reduce_all.val
+        && !btor->options.incremental.val
+        //	  && !btor->options.beta_reduce_all.val
         && btor->options.extract_lambdas.val)
       btor_extract_lambdas (btor);
 
     if (btor->options.rewrite_level.val > 2
         /* merging lambdas not required if they get eliminated */
-        && !btor->options.beta_reduce_all.val
+        //	  && !btor->options.beta_reduce_all.val
         && btor->options.merge_lambdas.val)
       btor_merge_lambdas (btor);
 
@@ -6262,7 +6247,7 @@ rebuild_formula (Btor *btor, int rewrite_level)
     }
   }
 
-  substitute_and_rebuild (btor, t, 0);
+  substitute_and_rebuild (btor, t);
   btor_delete_ptr_hash_table (t);
 }
 

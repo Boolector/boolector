@@ -309,7 +309,7 @@ btor_optimize_unconstrained (Btor *btor)
   }
 
   num_ucs = btor->substitutions->count;
-  btor_substitute_and_rebuild (btor, btor->substitutions, 0);
+  btor_substitute_and_rebuild (btor, btor->substitutions);
 
   /* cleanup */
   btor_delete_substitutions (btor);
