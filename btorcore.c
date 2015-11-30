@@ -1296,6 +1296,7 @@ occurrence_check (Btor *btor, BtorNode *left, BtorNode *right)
   {
     cur = BTOR_REAL_ADDR_NODE (BTOR_DEQUEUE (queue));
   OCCURRENCE_CHECK_ENTER_WITHOUT_POP:
+    assert (!BTOR_IS_PROXY_NODE (cur));
     if (!btor_contains_int_hash_table (cache, cur->id))
     {
       btor_add_int_hash_table (cache, cur->id);
@@ -2770,27 +2771,30 @@ substitute_var_exps (Btor *btor)
       btor->msg, 1, "%d variables substituted in %.1f seconds", count, delta);
 }
 
-static int
+static bool
 all_exps_below_rebuilt (Btor *btor, BtorNode *exp)
 {
   assert (btor);
   assert (exp);
 
   int i;
-  BtorNode *subst;
+  BtorNode *cur;
 
-  subst = btor_find_substitution (btor, exp);
-  if (subst)
+  cur = btor_find_substitution (btor, exp);
+  if (cur)
   {
-    subst = btor_simplify_exp (btor, subst);
-    return BTOR_REAL_ADDR_NODE (subst)->aux_mark == 0;
+    cur = btor_simplify_exp (btor, cur);
+    return BTOR_REAL_ADDR_NODE (cur)->aux_mark == 0;
   }
 
   exp = BTOR_REAL_ADDR_NODE (exp);
   for (i = 0; i < exp->arity; i++)
-    if (BTOR_REAL_ADDR_NODE (exp->e[i])->aux_mark > 0) return 0;
+  {
+    cur = BTOR_REAL_ADDR_NODE (btor_simplify_exp (btor, exp->e[i]));
+    if (cur->aux_mark > 0) return false;
+  }
 
-  return 1;
+  return true;
 }
 
 /* beta reduction parameter 'bra'
