@@ -13,38 +13,39 @@
 #ifndef BTOROPTS_H_INCLUDED
 #define BTOROPTS_H_INCLUDED
 
-#define BTOR_INPUT_FORMAT_BTOR2 -2
-#define BTOR_INPUT_FORMAT_BTOR -1
+#include <stdint.h>
+
 #define BTOR_INPUT_FORMAT_NONE 0
-#define BTOR_INPUT_FORMAT_SMT1 1
-#define BTOR_INPUT_FORMAT_SMT2 2
+#define BTOR_INPUT_FORMAT_BTOR 1
+#define BTOR_INPUT_FORMAT_BTOR2 2
+#define BTOR_INPUT_FORMAT_SMT1 3
+#define BTOR_INPUT_FORMAT_SMT2 4
 #define BTOR_INPUT_FORMAT_DFLT BTOR_INPUT_FORMAT_NONE
-#define BTOR_INPUT_FORMAT_MIN -2
-#define BTOR_INPUT_FORMAT_MAX 2
+#define BTOR_INPUT_FORMAT_MIN BTOR_INPUT_FORMAT_NONE
+#define BTOR_INPUT_FORMAT_MAX BTOR_INPUT_FORMAT_SMT2
 
 #define BTOR_OUTPUT_BASE_BIN 0
 #define BTOR_OUTPUT_BASE_HEX 1
 #define BTOR_OUTPUT_BASE_DEC 2
 #define BTOR_OUTPUT_BASE_DFLT BTOR_OUTPUT_BASE_BIN
-#define BTOR_OUTPUT_BASE_MIN 0
-#define BTOR_OUTPUT_BASE_MAX 2
+#define BTOR_OUTPUT_BASE_MIN BTOR_OUTPUT_BASE_BIN
+#define BTOR_OUTPUT_BASE_MAX BTOR_OUTPUT_BASE_DEC
 
-#define BTOR_OUTPUT_FORMAT_AIGER_ASCII -4
-#define BTOR_OUTPUT_FORMAT_AIGER_BINARY -3
-#define BTOR_OUTPUT_FORMAT_BTOR2 -2
-#define BTOR_OUTPUT_FORMAT_BTOR -1
-#define BTOR_OUTPUT_FORMAT_SMT1 1
-#define BTOR_OUTPUT_FORMAT_SMT2 2
+#define BTOR_OUTPUT_FORMAT_BTOR 1
+#define BTOR_OUTPUT_FORMAT_BTOR2 2
+#define BTOR_OUTPUT_FORMAT_SMT2 3
+#define BTOR_OUTPUT_FORMAT_AIGER_ASCII 4
+#define BTOR_OUTPUT_FORMAT_AIGER_BINARY 5
 #define BTOR_OUTPUT_FORMAT_DFLT BTOR_OUTPUT_FORMAT_BTOR
-#define BTOR_OUTPUT_FORMAT_MIN -4
-#define BTOR_OUTPUT_FORMAT_MAX 2
+#define BTOR_OUTPUT_FORMAT_MIN BTOR_OUTPUT_FORMAT_BTOR
+#define BTOR_OUTPUT_FORMAT_MAX BTOR_OUTPUT_FORMAT_AIGER_BINARY
 
 #define BTOR_JUST_HEUR_LEFT 0
 #define BTOR_JUST_HEUR_BRANCH_MIN_APP 1
 #define BTOR_JUST_HEUR_BRANCH_MIN_DEP 2
 #define BTOR_JUST_HEUR_DFLT BTOR_JUST_HEUR_BRANCH_MIN_APP
-#define BTOR_JUST_HEUR_MIN 0
-#define BTOR_JUST_HEUR_MAX 2
+#define BTOR_JUST_HEUR_MIN BTOR_JUST_HEUR_LEFT
+#define BTOR_JUST_HEUR_MAX BTOR_JUST_HEUR_BRANCH_MIN_DEP
 
 typedef struct BtorOpt
 {
@@ -52,10 +53,10 @@ typedef struct BtorOpt
   const char *shrt; /* short option identifier (may be 0) */
   const char *lng;  /* long option identifier */
   const char *desc; /* description */
-  int val;          /* value */
-  int dflt;         /* default value */
-  int min;          /* min value */
-  int max;          /* max value */
+  uint32_t val;     /* value */
+  uint32_t dflt;    /* default value */
+  uint32_t min;     /* min value */
+  uint32_t max;     /* max value */
 } BtorOpt;
 
 #define BTOR_OPT_MODEL_GEN "model_gen"
@@ -68,7 +69,6 @@ typedef struct BtorOpt
 #define BTOR_OPT_OUTPUT_NUMBER_FORMAT "output_number_format"
 #define BTOR_OPT_OUTPUT_FORMAT "output_format"
 #define BTOR_OPT_REWRITE_LEVEL "rewrite_level"
-#define BTOR_OPT_REWRITE_LEVEL_PBR "rewrite_level_pbr"
 #define BTOR_OPT_BETA_REDUCE_ALL "beta_reduce_all"
 #define BTOR_OPT_ACKERMANN "ackermannize"
 #define BTOR_OPT_DUAL_PROP "dual_prop"
@@ -93,13 +93,15 @@ typedef struct BtorOpt
 #define BTOR_OPT_UCOPT "ucopt"
 #define BTOR_OPT_LAZY_SYNTHESIZE "lazy_synthesize"
 #define BTOR_OPT_ELIMINATE_SLICES "eliminate_slices"
-#define BTOR_OPT_SKELETON_PREPROCESSING "skeleton_preprocessing"
 #define BTOR_OPT_DELAY_LEMMAS "delay_lemmas"
 #define BTOR_OPT_JUST_HEURISTIC "just_heuristic"
 #define BTOR_OPT_PARSE_INTERACTIVE "parse_interactive"
 #define BTOR_OPT_MERGE_LAMBDAS "merge_lambdas"
 #define BTOR_OPT_EXTRACT_LAMBDAS "extract_lambdas"
 #define BTOR_OPT_SKELETON_PREPROC "skeleton_preproc"
+#define BTOR_OPT_SORT_EXP "sort_exp"
+#define BTOR_OPT_SORT_AIG "sort_aig"
+#define BTOR_OPT_SORT_AIGVEC "sort_aigvec"
 #define BTOR_OPT_RW_NORMALIZE "rw_normalize"
 
 typedef struct BtorOpts
@@ -117,7 +119,6 @@ typedef struct BtorOpts
   BtorOpt output_format;        /* output file format */
 
   BtorOpt rewrite_level;
-  BtorOpt rewrite_level_pbr;
 
   BtorOpt beta_reduce_all; /* eagerly eliminate lambda expressions */
   BtorOpt ackermannize;    /* add ackermann constraints */
@@ -137,12 +138,13 @@ typedef struct BtorOpts
 #endif
   BtorOpt lazy_synthesize;  /* lazily synthesize expressions */
   BtorOpt eliminate_slices; /* eliminate slices on variables */
-  BtorOpt
-      skeleton_preprocessing; /* enable propositional skeleton preprocessing" */
-  BtorOpt eager_lemmas;       /* eager lemma generation */
-  BtorOpt merge_lambdas;      /* merge lambda chains */
-  BtorOpt extract_lambdas;    /* extract lambda terms */
-  BtorOpt skeleton_preproc;   /* skeleton preprocessing */
+  BtorOpt eager_lemmas;     /* eager lemma generation */
+  BtorOpt merge_lambdas;    /* merge lambda chains */
+  BtorOpt extract_lambdas;  /* extract lambda terms */
+  BtorOpt skeleton_preproc; /* skeleton preprocessing */
+  BtorOpt sort_exp;         /* sort commutative expression nodes */
+  BtorOpt sort_aig;         /* sort AIG nodes */
+  BtorOpt sort_aigvec;      /* sort AIG vectors */
 
   BtorOpt auto_cleanup; /* automatic cleanup of exps, assignment
                            strings (external references only) */
@@ -177,7 +179,7 @@ struct Btor;
 
 void btor_init_opts (struct Btor *btor);
 
-void btor_set_opt (struct Btor *btor, const char *name, int val);
+void btor_set_opt (struct Btor *btor, const char *name, uint32_t val);
 
 /* does not assert existing opt with name 'name',
  * not for boolector internal use */

@@ -15,6 +15,7 @@
 #define BTORCORE_H_INCLUDED
 
 #include "btorass.h"
+#include "btorbitvec.h"
 #include "btorexp.h"
 #include "btormsg.h"
 #include "btoropt.h"
@@ -191,6 +192,7 @@ struct Btor
 #ifndef BTOR_DO_NOT_OPTIMIZE_UNCONSTRAINED
     int bv_uc_props;
     int fun_uc_props;
+    int param_uc_props;
 #endif
     long long lambdas_merged;
     BtorConstraintStats constraints;
@@ -304,12 +306,6 @@ struct BtorCoreSolver
     int lod_refinements; /* number of lemmas on demand refinements */
     int refinement_iterations;
 
-    int synthesis_assignment_inconsistencies; /* number of restarts as a
-                                                 result of lazy synthesis */
-    int synthesis_inconsistency_apply;
-    int synthesis_inconsistency_lambda;
-    int synthesis_inconsistency_var;
-
     int function_congruence_conflicts;
     int beta_reduction_conflicts;
     int extensionality_lemmas;
@@ -323,9 +319,10 @@ struct BtorCoreSolver
     int dp_failed_applies; /* number of applies in FA (dual prop) of last
                               sat call (final bv skeleton) */
     int dp_assumed_applies;
+    int dp_failed_eqs;
+    int dp_assumed_eqs;
 
     long long eval_exp_calls;
-    long long lambda_synth_apps;
     long long propagations;
     long long propagations_down;
     long long partial_beta_reduction_restarts;
@@ -335,9 +332,6 @@ struct BtorCoreSolver
   {
     double sat;
     double eval;
-    double enc_app;
-    double enc_lambda;
-    double enc_var;
     double search_init_apps;
     double search_init_apps_compute_scores;
     double search_init_apps_compute_scores_merge_applies;
@@ -366,7 +360,7 @@ int btor_fun_sort_check (Btor *btor,
                          BtorNode *fun);
 
 /* Evaluates expression and returns its value. */
-char *btor_eval_exp (Btor *btor, BtorNode *exp);
+BtorBitVector *btor_eval_exp (Btor *btor, BtorNode *exp);
 
 /* Synthesizes expression of arbitrary length to an AIG vector. Adds string
  * back annotation to the hash table, if the hash table is a non zero ptr.

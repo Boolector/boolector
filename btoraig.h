@@ -14,6 +14,7 @@
 #ifndef BTORAIG_H_INCLUDED
 #define BTORAIG_H_INCLUDED
 
+#include "btoropt.h"
 #include "btorsat.h"
 #include "utils/btorhash.h"
 #include "utils/btormem.h"
@@ -55,6 +56,7 @@ struct BtorAIGMgr
 {
   BtorMemMgr *mm;
   BtorMsg *msg;
+  BtorOpts *opts;
   BtorAIGUniqueTable table;
   int verbosity;
   BtorSATMgr *smgr;
@@ -93,15 +95,15 @@ typedef struct BtorAIGMgr BtorAIGMgr;
 
 #define BTOR_IS_AND_AIG(aig) (!(aig)->is_var)
 
-#define BTOR_GET_NODE_AIG(id)                                     \
+#define BTOR_GET_AIG_BY_ID(id)                                    \
   (id < 0 ? BTOR_INVERT_AIG (BTOR_PEEK_STACK (amgr->id2aig, -id)) \
           : BTOR_PEEK_STACK (amgr->id2aig, id))
 
-#define BTOR_LEFT_CHILD_AIG(aig) (BTOR_GET_NODE_AIG ((aig)->children[0]))
+#define BTOR_LEFT_CHILD_AIG(aig) (BTOR_GET_AIG_BY_ID ((aig)->children[0]))
 
-#define BTOR_RIGHT_CHILD_AIG(aig) (BTOR_GET_NODE_AIG ((aig)->children[1]))
+#define BTOR_RIGHT_CHILD_AIG(aig) (BTOR_GET_AIG_BY_ID ((aig)->children[1]))
 
-#define BTOR_GET_AIG_ID_AIG(aig) \
+#define BTOR_GET_ID_AIG(aig) \
   (BTOR_IS_INVERTED_AIG (aig) ? -BTOR_REAL_ADDR_AIG (aig)->id : aig->id)
 
 #define BTOR_GET_CNF_ID_AIG(aig)                                             \
@@ -117,10 +119,13 @@ typedef struct BtorAIGMgr BtorAIGMgr;
 /* Creates new AIG manager. An AIG manager is used by nearly all functions
  * of the AIG layer.
  */
-BtorAIGMgr *btor_new_aig_mgr (BtorMemMgr *mm, BtorMsg *msg);
+BtorAIGMgr *btor_new_aig_mgr (BtorMemMgr *mm, BtorMsg *msg, BtorOpts *opts);
 
 /* Clones AIG manager. */
-BtorAIGMgr *btor_clone_aig_mgr (BtorMemMgr *mm, BtorMsg *msg, BtorAIGMgr *amgr);
+BtorAIGMgr *btor_clone_aig_mgr (BtorMemMgr *mm,
+                                BtorMsg *msg,
+                                BtorOpts *opts,
+                                BtorAIGMgr *amgr);
 
 /* Sets verbosity [-1,3] */
 void btor_set_verbosity_aig_mgr (BtorAIGMgr *amgr, int verbosity);

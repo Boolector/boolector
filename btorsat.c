@@ -2,7 +2,7 @@
  *
  *  Copyright (C) 2007-2009 Robert Daniel Brummayer.
  *  Copyright (C) 2007-2014 Armin Biere.
- *  Copyright (C) 2012-2014 Mathias Preiner.
+ *  Copyright (C) 2012-2015 Mathias Preiner.
  *  Copyright (C) 2013-2015 Aina Niemetz.
  *
  *  All rights reserved.
@@ -234,7 +234,7 @@ btor_print_stats_sat (BtorSATMgr *smgr)
   if (!smgr || !smgr->initialized) return;
   smgr->api.stats (smgr);
   BTOR_MSG (smgr->msg,
-            0,
+            1,
             "%d SAT calls in %.1f seconds",
             smgr->satcalls,
             smgr->sat_time);
@@ -608,7 +608,7 @@ btor_passdown_lingeling_options (BtorSATMgr *smgr,
 
       if (eq) *eq = '=';
       BTOR_MSG (smgr->msg,
-                0,
+                1,
                 "*** can not pass down to Lingeling invalid option '%s'",
                 optstr);
     }

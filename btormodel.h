@@ -1,6 +1,6 @@
 /*  Boolector: Satisfiablity Modulo Theories (SMT) solver.
  *
- *  Copyright (C) 2014 Mathias Preiner.
+ *  Copyright (C) 2014-2015 Mathias Preiner.
  *  Copyright (C) 2014-2015 Aina Niemetz.
  *
  *  All rights reserved.
@@ -44,6 +44,9 @@ void btor_add_to_bv_model (Btor* btor,
                            BtorPtrHashTable* bv_model,
                            BtorNode* exp,
                            BtorBitVector* assignment);
+void btor_remove_from_bv_model (Btor* btor,
+                                BtorPtrHashTable* bv_model,
+                                BtorNode* exp);
 
 BtorNode* btor_generate_lambda_model_from_fun_model (
     Btor* btor, BtorNode* exp, const BtorPtrHashTable* model);

@@ -3,7 +3,7 @@
  *  Copyright (C) 2007-2009 Robert Daniel Brummayer.
  *  Copyright (C) 2007-2014 Armin Biere.
  *  Copyright (C) 2013-2014 Aina Niemetz
- *  Copyright (C) 2013 Mathias Preiner.
+ *  Copyright (C) 2013-2015 Mathias Preiner.
  *
  *  All rights reserved.
  *
@@ -60,7 +60,7 @@
 #define BTOR_ABORT_REFS_NOT_POS_BOOLECTOR(ARG)                               \
   do                                                                         \
   {                                                                          \
-    if (BTOR_REAL_ADDR_NODE ((ARG))->refs < 1)                               \
+    if (BTOR_REAL_ADDR_NODE ((ARG))->ext_refs < 1)                           \
     {                                                                        \
       fprintf (stderr, "[%s] %s: ", __FILE__, __FUNCTION__);                 \
       fprintf (stderr, "reference counter of '%s' must not be < 1\n", #ARG); \
@@ -83,28 +83,30 @@
     }                                                                     \
   } while (0)
 
-#define BTOR_ABORT_ARRAY_BOOLECTOR(arg)                      \
-  do                                                         \
-  {                                                          \
-    if (BTOR_IS_FUN_NODE (BTOR_REAL_ADDR_NODE ((arg))))      \
-    {                                                        \
-      fprintf (stderr, "[%s] %s: ", __FILE__, __FUNCTION__); \
-      fprintf (stderr, "'%s' must not be an array\n", #arg); \
-      fflush (stderr);                                       \
-      abort ();                                              \
-    }                                                        \
+#define BTOR_ABORT_BV_BOOLECTOR(arg)                              \
+  do                                                              \
+  {                                                               \
+    if (btor_is_bitvec_sort (&btor->sorts_unique_table,           \
+                             BTOR_REAL_ADDR_NODE (arg)->sort_id)) \
+    {                                                             \
+      fprintf (stderr, "[%s] %s: ", __FILE__, __FUNCTION__);      \
+      fprintf (stderr, "'%s' must not be a bit-vector\n", #arg);  \
+      fflush (stderr);                                            \
+      abort ();                                                   \
+    }                                                             \
   } while (0)
 
-#define BTOR_ABORT_BV_BOOLECTOR(arg)                             \
-  do                                                             \
-  {                                                              \
-    if (!BTOR_IS_FUN_NODE (BTOR_REAL_ADDR_NODE ((arg))))         \
-    {                                                            \
-      fprintf (stderr, "[%s] %s: ", __FILE__, __FUNCTION__);     \
-      fprintf (stderr, "'%s' must not be a bit-vector\n", #arg); \
-      fflush (stderr);                                           \
-      abort ();                                                  \
-    }                                                            \
+#define BTOR_ABORT_NOT_BV_BOOLECTOR(arg)                           \
+  do                                                               \
+  {                                                                \
+    if (!btor_is_bitvec_sort (&btor->sorts_unique_table,           \
+                              BTOR_REAL_ADDR_NODE (arg)->sort_id)) \
+    {                                                              \
+      fprintf (stderr, "[%s] %s: ", __FILE__, __FUNCTION__);       \
+      fprintf (stderr, "'%s' must be a bit-vector\n", #arg);       \
+      fflush (stderr);                                             \
+      abort ();                                                    \
+    }                                                              \
   } while (0)
 
 #define BTOR_ABORT_NE_BW(arg1, arg2)                               \

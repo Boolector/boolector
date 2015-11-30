@@ -337,6 +337,6 @@ btor_process_skeleton (Btor* btor)
       "skeleton preprocessing produced %d new constraints in %.1f seconds",
       fixed,
       delta);
-  assert (check_id_table_mark_unset_dbg (btor));
+  assert (btor_check_id_table_mark_unset_dbg (btor));
 }
 #endif

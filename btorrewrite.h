@@ -2,7 +2,8 @@
  *
  *  Copyright (C) 2007-2009 Robert Daniel Brummayer.
  *  Copyright (C) 2007-2014 Armin Biere.
- *  Copyright (C) 2013-2014 Mathias Preiner.
+ *  Copyright (C) 2013-2015 Mathias Preiner.
+ *  Copyright (C) 2015 Aina Niemetz.
  *
  *  All rights reserved.
  *
@@ -22,14 +23,17 @@ BtorNode *btor_rewrite_slice_exp (Btor *btor,
                                   uint32_t upper,
                                   uint32_t lower);
 
-BtorNode *btor_rewrite_binary_exp (Btor *,
-                                   BtorNodeKind,
-                                   BtorNode *,
-                                   BtorNode *);
+BtorNode *btor_rewrite_binary_exp (Btor *btor,
+                                   BtorNodeKind kind,
+                                   BtorNode *e0,
+                                   BtorNode *e1);
 
 BtorNode *btor_rewrite_ternary_exp (
-    Btor *, BtorNodeKind, BtorNode *, BtorNode *, BtorNode *);
+    Btor *btor, BtorNodeKind kind, BtorNode *e0, BtorNode *e1, BtorNode *e2);
 
-int btor_rewrite_linear_term (
-    Btor *btor, BtorNode *term, char **fp, BtorNode **lp, BtorNode **rp);
+int btor_rewrite_linear_term (Btor *btor,
+                              BtorNode *term,
+                              BtorBitVector **fp,
+                              BtorNode **lp,
+                              BtorNode **rp);
 #endif

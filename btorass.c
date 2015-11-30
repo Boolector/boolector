@@ -1,7 +1,7 @@
 /*  Boolector: Satisfiablity Modulo Theories (SMT) solver.
  *
- *  Copyright (C) 2013 Aina Niemetz.
- *  Copyright (C) 2013 Mathias Preiner.
+ *  Copyright (C) 2013-2015 Aina Niemetz.
+ *  Copyright (C) 2013-2015 Mathias Preiner.
  *
  *  All rights reserved.
  *
@@ -38,9 +38,8 @@ btor_clone_bv_assignment_list (BtorMemMgr *mm, BtorBVAssignmentList *list)
 
   res = btor_new_bv_assignment_list (mm);
   for (bvass = list->first; bvass; bvass = bvass->next)
-    bvass->cloned_assignment =
-        btor_get_bv_assignment_str (btor_new_bv_assignment (
-            res, (char *) btor_get_bv_assignment_str (bvass)));
+    (void) btor_new_bv_assignment (res,
+                                   (char *) btor_get_bv_assignment_str (bvass));
 
   return res;
 }

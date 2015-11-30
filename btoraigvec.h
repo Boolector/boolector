@@ -1,9 +1,9 @@
 /*  Boolector: Satisfiablity Modulo Theories (SMT) solver.
  *
  *  Copyright (C) 2007-2009 Robert Daniel Brummayer.
- *  Copyright (C) 2007-2012 Armin Biere.
- *  Copyright (C) 2013-2014 Aina Niemetz.
- *  Copyright (C) 2014 Mathias Preiner.
+ *  Copyright (C) 2007-2015 Armin Biere.
+ *  Copyright (C) 2013-2015 Aina Niemetz.
+ *  Copyright (C) 2014-2015 Mathias Preiner.
  *
  *  All rights reserved.
  *
@@ -15,6 +15,8 @@
 #define BTORAIGVEC_H_INCLUDED
 
 #include "btoraig.h"
+#include "btorbitvec.h"
+#include "btoropt.h"
 #include "utils/btormem.h"
 
 struct BtorAIGMap;
@@ -36,6 +38,7 @@ struct BtorAIGVecMgr
 {
   BtorMemMgr *mm;
   BtorMsg *msg;
+  BtorOpts *opts;
   BtorAIGMgr *amgr;
   long long max_num_aigvecs;
   long long cur_num_aigvecs;
@@ -46,11 +49,14 @@ struct BtorAIGVecMgr
 /* Creates new AIG vector manager. An AIG vector manager is used by nearly
  * all functions of the AIG vector layer.
  */
-BtorAIGVecMgr *btor_new_aigvec_mgr (BtorMemMgr *mm, BtorMsg *msg);
+BtorAIGVecMgr *btor_new_aigvec_mgr (BtorMemMgr *mm,
+                                    BtorMsg *msg,
+                                    BtorOpts *opts);
 
 /* Clones AIG vector manager. */
 BtorAIGVecMgr *btor_clone_aigvec_mgr (BtorMemMgr *mm,
                                       BtorMsg *msg,
+                                      BtorOpts *opts,
                                       BtorAIGVecMgr *avmgr);
 
 /* Returns AIG manager of the AIG vector manager. */
@@ -63,10 +69,10 @@ void btor_delete_aigvec_mgr (BtorAIGVecMgr *avmgr);
  * The length of all input AIG vectors have to be greater than zero.
  */
 
-/* Creates new AIG vector representing a constant specified by bits.
- * len(result) = strlen(bits)
+/* Creates new AIG vector representing the constant specified by bits.
+ * len(result) = width(bits)
  */
-BtorAIGVec *btor_const_aigvec (BtorAIGVecMgr *avmgr, const char *bits);
+BtorAIGVec *btor_const_aigvec (BtorAIGVecMgr *avmgr, BtorBitVector *bits);
 
 /* Creates new AIG vector representing a variable.
  * len > 0

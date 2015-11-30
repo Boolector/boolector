@@ -2,7 +2,7 @@
  *
  *  Copyright (C) 2007-2014 Armin Biere.
  *  Copyright (C) 2007-2009 Robert Daniel Brummayer.
- *  Copyright (C) 2012-2014 Aina Niemetz.
+ *  Copyright (C) 2012-2015 Aina Niemetz.
  *  Copyright (C) 2012-2015 Mathias Preiner.
  *
  *  All rights reserved.
@@ -275,11 +275,14 @@ static void
 bdcnode (BtorDumpContext *bdc, BtorNode *node, FILE *file)
 {
   int i, aspi = -1;
-  char *symbol, *bits;
+  char *symbol;
   const char *op;
-  BtorNode *n;
+  BtorNode *n, *index, *value;
   BtorArgsIterator ait;
   BtorNodeIterator nit;
+  BtorParameterizedIterator pit;
+  BtorPtrHashTable *rho;
+  BtorBitVector *bits;
 
   node = BTOR_REAL_ADDR_NODE (node);
 
@@ -293,6 +296,17 @@ bdcnode (BtorDumpContext *bdc, BtorNode *node, FILE *file)
 	      && BTOR_IS_CURRIED_LAMBDA_NODE (node))))
     return;
 #endif
+
+  /* do not dump parameterized nodes that belong to a "write-lambda" */
+  if (bdc->btor->options.rewrite_level.val == 0 && node->parameterized)
+  {
+    btor_init_parameterized_iterator (&pit, bdc->btor, node);
+    assert (btor_has_next_parameterized_iterator (&pit));
+    n = btor_next_parameterized_iterator (&pit);
+    if (btor_lambda_get_static_rho (btor_param_get_binding_lambda (n))
+        && !btor_has_next_parameterized_iterator (&pit))
+      return;
+  }
 
   switch (node->kind)
   {
@@ -315,26 +329,34 @@ bdcnode (BtorDumpContext *bdc, BtorNode *node, FILE *file)
       break;
     case BTOR_BV_CONST_NODE:
       bits = btor_const_get_bits (node);
-      if (btor_is_zero_const (bits))
+      if (btor_is_zero_bv (bits))
         op = "zero";
-      else if (btor_is_one_const (bits))
+      else if (btor_is_one_bv (bits))
         op = "one";
-      else if (btor_is_ones_const (bits))
+      else if (btor_is_ones_bv (bits))
         op = "ones";
-      else if ((aspi = btor_is_small_positive_int_const (bits)) > 0)
+      else if ((aspi = btor_is_small_positive_int_bv (bits)) > 0)
         op = "constd";
       else
         op = "const";
       break;
     case BTOR_PARAM_NODE: op = "param"; break;
     case BTOR_LAMBDA_NODE:
-      if (bdc->version == 1 || btor_get_fun_arity (bdc->btor, node) == 1)
+      if (bdc->btor->options.rewrite_level.val == 0
+          && btor_lambda_get_static_rho (node))
+      {
+        op = "write";
+      }
+      else if (bdc->version == 1 || btor_get_fun_arity (bdc->btor, node) == 1)
         op = "lambda";
       else
         op = "fun";
       break;
     case BTOR_APPLY_NODE:
-      if (BTOR_IS_UF_ARRAY_NODE (node->e[0]))
+      if (BTOR_IS_UF_ARRAY_NODE (node->e[0])
+          || (bdc->btor->options.rewrite_level.val == 0
+              && BTOR_IS_LAMBDA_NODE (node->e[0])
+              && btor_lambda_get_static_rho (node->e[0])))
         op = "read";
       else
         op = "apply";
@@ -349,7 +371,7 @@ bdcnode (BtorDumpContext *bdc, BtorNode *node, FILE *file)
     fprintf (file, "%d %s", bdcid (bdc, node), op);
 
     /* print index bit width of arrays */
-    if (BTOR_IS_UF_ARRAY_NODE (node))
+    if (BTOR_IS_UF_ARRAY_NODE (node) || BTOR_IS_FUN_COND_NODE (node))
     {
       fprintf (file, " %d", btor_get_fun_exp_width (bdc->btor, node));
       fprintf (file, " %d", btor_get_index_exp_width (bdc->btor, node));
@@ -359,7 +381,7 @@ bdcnode (BtorDumpContext *bdc, BtorNode *node, FILE *file)
       fprintf (file, " %d", btor_get_fun_exp_width (bdc->btor, node));
       fprintf (file, " %d", btor_get_exp_width (bdc->btor, node->e[0]));
     }
-    else
+    else if (!BTOR_IS_UF_NODE (node))
       fprintf (file, " %d", btor_get_exp_width (bdc->btor, node));
 
     if (BTOR_IS_APPLY_NODE (node))
@@ -403,11 +425,37 @@ bdcnode (BtorDumpContext *bdc, BtorNode *node, FILE *file)
 
   /* print children or const values */
   if (strcmp (op, "const") == 0)
-    fprintf (file, " %s", btor_const_get_bits (node));
+  {
+    char *b = btor_bv_to_char_bv (bdc->btor->mm, btor_const_get_bits (node));
+    fprintf (file, " %s", b);
+    btor_freestr (bdc->btor->mm, b);
+  }
   else if (strcmp (op, "constd") == 0)
     fprintf (file, " %d", aspi);
   else if (BTOR_IS_PROXY_NODE (node))
     fprintf (file, " %d", bdcid (bdc, node->simplified));
+  /* print write instead of lambda */
+  else if (bdc->btor->options.rewrite_level.val == 0
+           && BTOR_IS_LAMBDA_NODE (node) && btor_lambda_get_static_rho (node))
+  {
+    assert (btor_get_fun_arity (bdc->btor, node) == 1);
+    rho = btor_lambda_get_static_rho (node);
+    assert (rho->count == 1);
+    index = rho->first->key;
+    value = rho->first->data.asPtr;
+    assert (value);
+    assert (BTOR_IS_REGULAR_NODE (index));
+    assert (BTOR_IS_ARGS_NODE (index));
+    assert (BTOR_IS_REGULAR_NODE (node->e[1]));
+    assert (BTOR_IS_BV_COND_NODE (node->e[1]));
+    assert (BTOR_IS_REGULAR_NODE (node->e[1]->e[2]));
+    assert (BTOR_IS_APPLY_NODE (node->e[1]->e[2]));
+    fprintf (file,
+             " %d %d %d",
+             bdcid (bdc, node->e[1]->e[2]->e[0]),
+             bdcid (bdc, index->e[0]),
+             bdcid (bdc, value));
+  }
   else
     for (i = 0; i < node->arity; i++)
       fprintf (file, " %d", bdcid (bdc, node->e[i]));

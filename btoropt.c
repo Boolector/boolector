@@ -12,6 +12,7 @@
 
 #include "btoropt.h"
 #include <ctype.h>
+#include <limits.h>
 #include "boolector.h"
 #include "btorcore.h"
 #include "btorlog.h"
@@ -48,14 +49,15 @@ set_opt_values (BtorOpt *opt,
                 int internal,
                 char *shrt,
                 char *lng,
-                int val,
-                int min,
-                int max,
+                uint32_t val,
+                uint32_t min,
+                uint32_t max,
                 char *desc)
 {
   assert (opt);
+  assert (max <= UINT_MAX);
   assert (min <= val);
-  assert (max == -1 || val <= max);
+  assert (val <= max);
 
   opt->internal = internal;
   opt->shrt     = shrt;
@@ -108,7 +110,7 @@ set_opt_values (BtorOpt *opt,
 void
 btor_init_opts (Btor *btor)
 {
-  int val;
+  uint32_t val;
   char *valstr;
 
   BTOR_OPT ("m", model_gen, 0, 0, 2, "print model for satisfiable instances");
@@ -137,8 +139,6 @@ btor_init_opts (Btor *btor)
             "output file format");
 
   BTOR_OPT ("rwl", rewrite_level, 3, 0, 3, "rewrite level");
-  BTOR_OPT (
-      0, rewrite_level_pbr, 1, 0, 3, "rewrite level partial beta reduction");
 
   BTOR_OPT (
       "bra", beta_reduce_all, 0, 0, 1, "eagerly eliminate lambda expressions");
@@ -150,14 +150,19 @@ btor_init_opts (Btor *btor)
             0,
             1,
             "probe -bra until given LOD or SAT limit");
-  BTOR_OPT (0, pbra_lod_limit, 10, 0, -1, "LOD limit (#lemmas) for -pbra");
   BTOR_OPT (
-      0, pbra_sat_limit, 55000, 0, -1, "SAT limit (#conflicts) for -pbra");
+      0, pbra_lod_limit, 10, 0, UINT_MAX, "LOD limit (#lemmas) for -pbra");
+  BTOR_OPT (0,
+            pbra_sat_limit,
+            55000,
+            0,
+            UINT_MAX,
+            "SAT limit (#conflicts) for -pbra");
   BTOR_OPT (0,
             pbra_ops_factor,
             10,
             0,
-            -1,
+            UINT_MAX,
             "factor by which the size of the red. formula may be greater than "
             "the original formula");
 #endif
@@ -175,21 +180,19 @@ btor_init_opts (Btor *btor)
 #endif
   BTOR_OPT ("ls", lazy_synthesize, 0, 0, 1, "lazily synthesize expressions");
   BTOR_OPT ("es", eliminate_slices, 1, 0, 1, "eliminate slices on variables");
-  BTOR_OPT ("sp",
-            skeleton_preprocessing,
-            1,
-            0,
-            1,
-            "enable propositional skeletone preprocessing");
   BTOR_OPT ("el", eager_lemmas, 1, 0, 1, "eager lemma generation");
   BTOR_OPT ("ml", merge_lambdas, 1, 0, 1, "merge lambda chains");
   BTOR_OPT ("xl", extract_lambdas, 1, 0, 1, "extract lambda terms");
-  BTOR_OPT ("sp", skeleton_preproc, 1, 0, 1, "boolean skeleton preprocessing");
+  BTOR_OPT (
+      "sp", skeleton_preproc, 1, 0, 1, "propositional skeleton preprocessing");
+  BTOR_OPT (0, sort_exp, 1, 0, 1, "sort commutative expression nodes");
+  BTOR_OPT (0, sort_aig, 1, 0, 1, "sort AIG nodes");
+  BTOR_OPT (0, sort_aigvec, 1, 0, 1, "sort AIG vectors");
   BTOR_OPT ("ac", auto_cleanup, 0, 0, 1, "auto cleanup on exit");
   BTOR_OPT ("p", pretty_print, 1, 0, 1, "pretty print when dumping");
   BTOR_OPT ("e", exit_codes, 1, 0, 1, "use Boolector exit codes");
 #ifndef NBTORLOG
-  BTOR_OPT ("l", loglevel, 0, 0, BTORLOG_LEVEL_MAX, "increase loglevel");
+  BTOR_OPT ("l", loglevel, 0, 0, UINT_MAX, "increase loglevel");
 #endif
   BTOR_OPT ("v", verbosity, 0, 0, BTOR_VERBOSITY_MAX, "increase verbosity");
 
@@ -286,7 +289,7 @@ btor_get_opt_desc (Btor *btor, const char *name)
 }
 
 void
-btor_set_opt (Btor *btor, const char *name, int val)
+btor_set_opt (Btor *btor, const char *name, uint32_t val)
 {
   assert (btor);
   assert (name);
@@ -300,7 +303,7 @@ btor_set_opt (Btor *btor, const char *name, int val)
   o = btor_get_opt (btor, name);
   assert (o);
 #ifndef NDEBUG
-  int oldval = o->val;
+  uint32_t oldval = o->val;
 #endif
   if (val > o->max) val = o->max;
   if (val < o->min) val = o->min;
@@ -347,13 +350,8 @@ btor_set_opt (Btor *btor, const char *name, int val)
   }
   else if (!strcmp (name, "rwl") || !strcmp (name, BTOR_OPT_REWRITE_LEVEL))
   {
-    assert (val >= 0 && val <= 3);
-    assert (oldval >= 0 && oldval <= 3);
-  }
-  else if (!strcmp (name, BTOR_OPT_REWRITE_LEVEL_PBR))
-  {
-    assert (val >= 0 && val <= 3);
-    assert (oldval >= 0 && oldval <= 3);
+    assert (val <= 3);
+    assert (oldval <= 3);
   }
 }
 

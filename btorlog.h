@@ -1,8 +1,8 @@
 /*  Boolector: Satisfiablity Modulo Theories (SMT) solver.
  *
  *  Copyright (C) 2012 Armin Biere.
- *  Copyright (C) 2013-2014 Aina Niemetz.
- *  Copyright (C) 2014 Mathias Preiner.
+ *  Copyright (C) 2013-2015 Aina Niemetz.
+ *  Copyright (C) 2014-2015 Mathias Preiner.
  *
  *  All rights reserved.
 
@@ -13,21 +13,17 @@
 #ifndef BTORLOG_H_INCLUDED
 #define BTORLOG_H_INCLUDED
 
-int btor_log_start (Btor *, const char *filename, const char *, ...);
-void btor_log_end (Btor *);
+#include "btormsg.h"
 
 /*------------------------------------------------------------------------*/
 #ifndef NBTORLOG
 /*------------------------------------------------------------------------*/
 
-#define BTORLOG_LEVEL_MAX 2 /* at the moment we support en/disabling only */
-
-#define BTORLOG(LEVEL, FMT, ARGS...)                     \
-  do                                                     \
-  {                                                      \
-    if (btor->options.loglevel.val < LEVEL) break;       \
-    (void) btor_log_start (btor, __FILE__, FMT, ##ARGS); \
-    btor_log_end (btor);                                 \
+#define BTORLOG(LEVEL, FMT, ARGS...)                   \
+  do                                                   \
+  {                                                    \
+    if (btor->options.loglevel.val < LEVEL) break;     \
+    btor_msg (btor->msg, true, __FILE__, FMT, ##ARGS); \
   } while (0)
 
 #define BTORLOG_TIMESTAMP(start) \

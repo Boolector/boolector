@@ -15,9 +15,97 @@
 #include "btorcore.h"
 #include "btordbg.h"
 #include "btormsg.h"
+#include "utils/btorinthash.h"
 #include "utils/btoriter.h"
 #include "utils/btormisc.h"
 #include "utils/btorutil.h"
+
+static bool
+is_uc_write (Btor *btor, BtorNode *cond)
+{
+  assert (BTOR_IS_REGULAR_NODE (cond));
+  assert (BTOR_IS_BV_COND_NODE (cond));
+  assert (cond->parameterized);
+
+  BtorNode *param, *nonparam, *cond_c, *cond_if, *cond_else;
+  BtorParameterizedIterator it;
+
+  cond_c    = cond->e[0];
+  cond_if   = cond->e[1];
+  cond_else = cond->e[2];
+
+  if (BTOR_IS_INVERTED_NODE (cond_c) || !BTOR_IS_BV_EQ_NODE (cond_c)
+      || !cond_c->parameterized)
+    return false;
+
+  if (BTOR_IS_APPLY_NODE (BTOR_REAL_ADDR_NODE (cond_if))
+      && BTOR_REAL_ADDR_NODE (cond_if)->parameterized)
+    return false;
+
+  if (!BTOR_IS_INVERTED_NODE (cond_c->e[0])
+      && BTOR_IS_PARAM_NODE (cond_c->e[0]))
+  {
+    param    = cond_c->e[0];
+    nonparam = cond_c->e[1];
+  }
+  else if (!BTOR_IS_INVERTED_NODE (cond_c->e[1])
+           && BTOR_IS_PARAM_NODE (cond_c->e[1]))
+  {
+    param    = cond_c->e[1];
+    nonparam = cond_c->e[0];
+  }
+  else
+    return false;
+
+  if (BTOR_REAL_ADDR_NODE (nonparam)->parameterized) return false;
+
+  btor_init_parameterized_iterator (&it, btor, cond_else);
+  assert (btor_has_next_parameterized_iterator (&it));
+  return param == btor_next_parameterized_iterator (&it)
+         && !btor_has_next_parameterized_iterator (&it);
+}
+
+static void
+mark_uc (Btor *btor, BtorIntHashTable *uc, BtorNode *exp)
+{
+  assert (BTOR_IS_REGULAR_NODE (exp));
+  /* no inputs allowed here */
+  assert (exp->arity > 0);
+
+  BtorNode *subst;
+
+  assert (!btor_contains_int_hash_table (uc, exp->id));
+  btor_add_int_hash_table (uc, exp->id);
+
+  BTOR_MSG (btor->msg,
+            2,
+            "found uc (%c) term %s",
+            exp->parameterized ? 'p' : 'n',
+            node2string (exp));
+
+  if (exp->parameterized)
+  {
+    btor->stats.param_uc_props++;
+    return;
+  }
+
+  if (BTOR_IS_APPLY_NODE (exp) || BTOR_IS_LAMBDA_NODE (exp)
+      || BTOR_IS_FEQ_NODE (exp))
+    btor->stats.fun_uc_props++;
+  else
+    btor->stats.bv_uc_props++;
+
+  if (BTOR_IS_LAMBDA_NODE (exp) || BTOR_IS_FUN_COND_NODE (exp))
+  {
+    subst           = btor_uf_exp (btor, exp->sort_id, 0);
+    subst->is_array = exp->is_array;
+  }
+  else
+    subst = btor_aux_var_exp (btor, btor_get_exp_width (btor, exp));
+
+  btor_insert_substitution (btor, exp, subst, 0);
+  btor_release_exp (btor, subst);
+}
 
 void
 btor_optimize_unconstrained (Btor *btor)
@@ -26,19 +114,20 @@ btor_optimize_unconstrained (Btor *btor)
   assert (btor->options.rewrite_level.val > 2);
   assert (!btor->options.incremental.val);
   assert (!btor->options.model_gen.val);
-  assert (check_id_table_mark_unset_dbg (btor));
+  assert (btor_check_id_table_mark_unset_dbg (btor));
 
   double start, delta;
   unsigned num_ucs;
-  int i, uc[3], isuc;
-  BtorNode *cur, *cur_parent, *subst, *lambda;
+  int i;
+  bool isuc, uc[3], ucp[3];
+  BtorNode *cur, *cur_parent, *lambda, *param;
   BtorNodePtrStack stack, roots;
-  BtorPtrHashTable *ucs; /* unconstrained (candidate) nodes */
   BtorHashTableIterator it;
   BtorNodeIterator pit;
   BtorParameterizedIterator parit;
   BtorMemMgr *mm;
-
+  BtorIntHashTable *ucs;  /* unconstrained candidate nodes */
+  BtorIntHashTable *ucsp; /* parameterized unconstrained candidate nodes */
   start = btor_time_stamp ();
 
   if (btor->bv_vars->count == 0 && btor->ufs->count == 0) return;
@@ -47,9 +136,8 @@ btor_optimize_unconstrained (Btor *btor)
   BTOR_INIT_STACK (stack);
   BTOR_INIT_STACK (roots);
 
-  ucs = btor_new_ptr_hash_table (mm,
-                                 (BtorHashPtr) btor_hash_exp_by_id,
-                                 (BtorCmpPtr) btor_compare_exp_by_id);
+  ucs  = btor_new_int_hash_table (mm);
+  ucsp = btor_new_int_hash_table (mm);
   btor_init_substitutions (btor);
 
   /* collect nodes that might contribute to a unconstrained candidate
@@ -63,8 +151,9 @@ btor_optimize_unconstrained (Btor *btor)
     if (cur->parents == 1)
     {
       cur_parent = BTOR_REAL_ADDR_NODE (cur->first_parent);
-      assert (!btor_find_in_ptr_hash_table (ucs, cur));
-      btor_insert_in_ptr_hash_table (ucs, btor_copy_exp (btor, cur));
+      btor_add_int_hash_table (ucs, cur->id);
+      BTOR_MSG (btor->msg, 2, "found uc input %s", node2string (cur));
+      // TODO (ma): why not just collect ufs and vars?
       if (BTOR_IS_UF_NODE (cur)
           || (cur_parent->kind != BTOR_ARGS_NODE
               && cur_parent->kind != BTOR_LAMBDA_NODE))
@@ -116,24 +205,32 @@ btor_optimize_unconstrained (Btor *btor)
       assert (cur->mark == 2);
       cur->mark = 0;
 
-      isuc = 1;
+      /* check if parameterized term can be unconstrained */
+      isuc = true;
       btor_init_parameterized_iterator (&parit, btor, cur);
       while (btor_has_next_parameterized_iterator (&parit))
       {
-        /* parameterized expressions are possibly unconstrained if the
-         * lambda(s) parameterizing it do not have more than 1 parent */
-        lambda = btor_param_get_binding_lambda (
-            btor_next_parameterized_iterator (&parit));
+        /* parameterized expressions are only unconstrained if they
+         * are instantiated once in case full beta reduction is
+         * applied. */
+        param = btor_next_parameterized_iterator (&parit);
+        assert (BTOR_IS_REGULAR_NODE (param));
+        assert (BTOR_IS_PARAM_NODE (param));
+        assert (btor_param_is_bound (param));
+        lambda = btor_param_get_binding_lambda (param);
+        assert (lambda);
         /* get head lambda of function */
-        while (lambda->parents == 1)
+        while (
+            lambda->parents == 1
+            && BTOR_IS_LAMBDA_NODE (BTOR_REAL_ADDR_NODE (lambda->first_parent)))
         {
-          if (!BTOR_IS_LAMBDA_NODE (lambda->first_parent)) break;
-          lambda = lambda->first_parent;
+          assert (BTOR_IS_LAMBDA_NODE (lambda));
+          lambda = BTOR_REAL_ADDR_NODE (lambda->first_parent);
         }
         assert (BTOR_IS_LAMBDA_NODE (lambda));
         if (lambda->parents > 1)
         {
-          isuc = 0;
+          isuc = false;
           break;
         }
       }
@@ -142,11 +239,16 @@ btor_optimize_unconstrained (Btor *btor)
       /* propagate unconstrained candidates */
       if (cur->parents == 0 || (cur->parents == 1 && !cur->constraint))
       {
-        for (i = cur->arity - 1; i >= 0; i--)
-          uc[i] = (btor_find_in_ptr_hash_table (
-                      ucs, BTOR_REAL_ADDR_NODE (cur->e[i])))
-                      ? 1
-                      : 0;
+        for (i = 0; i < cur->arity; i++)
+        {
+          uc[i] = btor_contains_int_hash_table (
+              ucs, BTOR_REAL_ADDR_NODE (cur->e[i])->id);
+          ucp[i] = btor_contains_int_hash_table (
+              ucsp, BTOR_REAL_ADDR_NODE (cur->e[i])->id);
+          assert (!uc[i] || uc[i] != ucp[i]);
+          assert (!ucp[i] || uc[i] != ucp[i]);
+          assert (!ucp[i] || cur->parameterized || BTOR_IS_LAMBDA_NODE (cur));
+        }
 
         switch (cur->kind)
         {
@@ -154,38 +256,19 @@ btor_optimize_unconstrained (Btor *btor)
           case BTOR_APPLY_NODE:
             if (uc[0])
             {
-              if (BTOR_IS_SLICE_NODE (cur))
-                btor->stats.bv_uc_props++;
+              if (cur->parameterized)
+              {
+                if (BTOR_IS_APPLY_NODE (cur)) mark_uc (btor, ucsp, cur);
+              }
               else
-                btor->stats.fun_uc_props++;
-              btor_insert_in_ptr_hash_table (ucs, btor_copy_exp (btor, cur));
-              subst = btor_aux_var_exp (btor, btor_get_exp_width (btor, cur));
-              BTOR_MSG (btor->msg,
-                        2,
-                        "found unconstrained term %s",
-                        node2string (cur));
-              btor_insert_substitution (btor, cur, subst, 0);
-              btor_release_exp (btor, subst);
+                mark_uc (btor, ucs, cur);
             }
             break;
           case BTOR_ADD_NODE:
           case BTOR_BEQ_NODE:
           case BTOR_FEQ_NODE:
-            if (uc[0] || uc[1])
-            {
-              if (BTOR_IS_ADD_NODE (cur) || BTOR_IS_BV_EQ_NODE (cur))
-                btor->stats.bv_uc_props++;
-              else
-                btor->stats.fun_uc_props++;
-              btor_insert_in_ptr_hash_table (ucs, btor_copy_exp (btor, cur));
-              subst = btor_aux_var_exp (btor, btor_get_exp_width (btor, cur));
-              BTOR_MSG (btor->msg,
-                        2,
-                        "found unconstrained term %s",
-                        node2string (cur));
-              btor_insert_substitution (btor, cur, subst, 0);
-              btor_release_exp (btor, subst);
-            }
+            if (!cur->parameterized && (uc[0] || uc[1]))
+              mark_uc (btor, ucs, cur);
             break;
           case BTOR_ULT_NODE:
           case BTOR_CONCAT_NODE:
@@ -195,50 +278,29 @@ btor_optimize_unconstrained (Btor *btor)
           case BTOR_SRL_NODE:
           case BTOR_UDIV_NODE:
           case BTOR_UREM_NODE:
-            if (uc[0] && uc[1])
-            {
-              btor->stats.bv_uc_props++;
-              btor_insert_in_ptr_hash_table (ucs, btor_copy_exp (btor, cur));
-              subst = btor_aux_var_exp (btor, btor_get_exp_width (btor, cur));
-              BTOR_MSG (btor->msg,
-                        2,
-                        "found unconstrained term %s",
-                        node2string (cur));
-              btor_insert_substitution (btor, cur, subst, 0);
-              btor_release_exp (btor, subst);
-            }
+            if (!cur->parameterized && uc[0] && uc[1]) mark_uc (btor, ucs, cur);
             break;
           case BTOR_BCOND_NODE:
             if ((uc[1] && uc[2]) || (uc[0] && (uc[1] || uc[2])))
+              mark_uc (btor, ucs, cur);
+            else if (uc[1] && ucp[2])
             {
-              btor->stats.bv_uc_props++;
-              btor_insert_in_ptr_hash_table (ucs, btor_copy_exp (btor, cur));
-              subst = btor_aux_var_exp (btor, btor_get_exp_width (btor, cur));
-              BTOR_MSG (btor->msg,
-                        2,
-                        "found unconstrained term %s",
-                        node2string (cur));
-              btor_insert_substitution (btor, cur, subst, 0);
-              btor_release_exp (btor, subst);
+              /* case: x = t ? uc : ucp */
+              if (is_uc_write (btor, cur)) mark_uc (btor, ucsp, cur);
             }
             break;
+          // TODO (ma): functions with parents > 1 can still be
+          //            handled as unconstrained, but the applications
+          //            on it cannot be unconstrained anymore
+          //            (function congruence needs to be enforced)
           case BTOR_LAMBDA_NODE:
             assert (cur->parents <= 1);
-            if (uc[1]
+            if (ucp[1]
                 /* only consider head lambda of curried lambdas */
                 && (!cur->first_parent
-                    || !BTOR_IS_LAMBDA_NODE (cur->first_parent)))
-            {
-              btor->stats.fun_uc_props++;
-              btor_insert_in_ptr_hash_table (ucs, btor_copy_exp (btor, cur));
-              subst = btor_uf_exp (btor, cur->sort_id, 0);
-              BTOR_MSG (btor->msg,
-                        2,
-                        "found unconstrained term %s",
-                        node2string (cur));
-              btor_insert_substitution (btor, cur, subst, 0);
-              btor_release_exp (btor, subst);
-            }
+                    || !BTOR_IS_LAMBDA_NODE (
+                           BTOR_REAL_ADDR_NODE (cur->first_parent))))
+              mark_uc (btor, ucs, cur);
             break;
           default: break;
         }
@@ -251,11 +313,8 @@ btor_optimize_unconstrained (Btor *btor)
 
   /* cleanup */
   btor_delete_substitutions (btor);
-  btor_init_hash_table_iterator (&it, ucs);
-  while (btor_has_next_hash_table_iterator (&it))
-    btor_release_exp (btor, btor_next_node_hash_table_iterator (&it));
-  btor_delete_ptr_hash_table (ucs);
-
+  btor_free_int_hash_table (ucs);
+  btor_free_int_hash_table (ucsp);
   BTOR_RELEASE_STACK (btor->mm, stack);
   BTOR_RELEASE_STACK (btor->mm, roots);
 

@@ -1,3 +1,45 @@
+news for release 2.2.0 since 2.1.1
+--------------------------------------
+
+* refactored a lot of code
+  + refactored and extended btormbt
+  + refactored and improved array/lambda engine
+  + refactored and extended lambda extraction
+* removed SMT1 dumper (parsing SMT1 still supported)
+* fixed push/pop support in SMT2 with model generation enabled
+  (thanks to James Bornholt)
+* fixed an issue with model generation (thanks to Mikoláš Janota)
+* fixed issues with failed assumptions 
+* API changes:
+    + boolector_get_bits now requires to free returned bit strings via
+      boolector_free_bits (analogous to boolector_bv_assignment)
+    + removed boolector_dump_smt1 and boolector_dump_smt1_node 
+    + removed deprecated functions boolector_enable_model_gen,
+      boolector_generate_model_for_all_reads, boolector_enable_inc_usage,
+      boolector_set_rewrite_level, boolector_set_verbosity,
+      boolector_set_loglevel, boolector_get_symbol_of_var
+
+news for release 2.1.1 since 2.0.7
+--------------------------------------
+* added support for array extensionality
+* added lambda extraction (enabled by default)
+* added model based testing tools btormbt and btoruntrace
+* reduced memory footprint
+* improved performance of cloning
+* added support for push/pop in SMT-LIBv2 parser
+* added support for :print-success in SMT-LIBv2 parser
+* added support for dumping BV formulas in AIGER format (replaces synthebtor)
+* API changes/additions:
+  + added boolector_fixate_assumptions
+  + added boolector_reset_assumptions
+  + added boolector_dump_aiger_ascii
+  + added boolector_dump_aiger_binary
+  + changed boolector_*_sort
+    - now takes BoolectorSort instead of BoolectorSort* as arguments
+* adpated and updated Python API to support new API
+  - Assert(), Assume(), and Failed() now support variable number of arguments
+
+
 news for release 2.0.7 since 2.0.6
 --------------------------------------
 * added option to (en|di)sable use of Boolector exit codes

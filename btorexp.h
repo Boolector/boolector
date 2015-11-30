@@ -15,6 +15,7 @@
 #define BTOREXP_H_INCLUDED
 
 #include "btoraigvec.h"
+#include "btorbitvec.h"
 #include "btorsort.h"
 #include "btortypes.h"
 #include "utils/btorhash.h"
@@ -91,8 +92,6 @@ typedef struct BtorNodePair BtorNodePair;
     uint8_t eval_mark : 2;     /* mark for eval_exp */                  \
     uint8_t clone_mark : 2;    /* mark for clone_exp_tree */            \
     uint8_t reachable : 1;     /* reachable from root ? */              \
-    uint8_t lazy_synth : 1;    /* lazy synthesized ? (funs, applies) */ \
-    uint8_t synth_app : 1;     /* inserted in synth_apps ? */           \
     uint8_t constraint : 1;    /* top level constraint ? */             \
     uint8_t erased : 1;        /* for debugging purposes */             \
     uint8_t disconnected : 1;  /* for debugging purposes */             \
@@ -148,8 +147,8 @@ typedef struct BtorUFNode BtorUFNode;
 struct BtorBVConstNode
 {
   BTOR_BV_NODE_STRUCT;
-  char *bits;    /* three-valued bits */
-  char *invbits; /* inverted three-valued bits */
+  BtorBitVector *bits;
+  BtorBitVector *invbits;
 };
 
 typedef struct BtorBVConstNode BtorBVConstNode;
@@ -182,7 +181,6 @@ struct BtorLambdaNode
 {
   BTOR_BV_NODE_STRUCT;
   BTOR_BV_ADDITIONAL_NODE_STRUCT;
-  BtorPtrHashTable *synth_apps;
   BtorPtrHashTable *static_rho;
   BtorNode *body; /* function body (short-cut for curried lambdas) */
 };
@@ -303,8 +301,12 @@ typedef struct BtorArgsNode BtorArgsNode;
 
 #define BTOR_IS_WRITE_NODE(exp) ((exp) && BTOR_IS_WRITE_NODE_KIND ((exp)->kind))
 
-#define BTOR_IS_BV_COND_NODE(exp) \
+#define BTOR_IS_COND_NODE(exp) \
   ((exp) && BTOR_IS_BV_COND_NODE_KIND ((exp)->kind))
+
+#define BTOR_IS_BV_COND_NODE(exp)   \
+  ((exp) && BTOR_IS_COND_NODE (exp) \
+   && btor_is_bitvec_sort (&exp->btor->sorts_unique_table, exp->sort_id))
 
 #define BTOR_IS_PROXY_NODE(exp) ((exp) && BTOR_IS_PROXY_NODE_KIND ((exp)->kind))
 
@@ -341,10 +343,9 @@ typedef struct BtorArgsNode BtorArgsNode;
        ? btor_not_aigvec ((btor)->avmgr, BTOR_REAL_ADDR_NODE (exp)->av) \
        : btor_copy_aigvec ((btor)->avmgr, exp->av))
 
-#define BTOR_BITS_NODE(mm, exp)                         \
-  (BTOR_IS_INVERTED_NODE (exp)                          \
-       ? btor_not_const (mm, btor_const_get_bits (exp)) \
-       : btor_copy_const (mm, btor_const_get_bits (exp)))
+#define BTOR_BITS_NODE(mm, exp)                                              \
+  (BTOR_IS_INVERTED_NODE (exp) ? btor_not_bv (mm, btor_const_get_bits (exp)) \
+                               : btor_copy_bv (mm, btor_const_get_bits (exp)))
 
 #define BTOR_TAG_NODE(exp, tag) \
   ((BtorNode *) ((unsigned long int) tag | (unsigned long int) (exp)))
@@ -355,8 +356,13 @@ typedef struct BtorArgsNode BtorArgsNode;
 
 #define BTOR_IS_SYNTH_NODE(exp) ((exp)->av != 0)
 
-#define BTOR_IS_FUN_NODE(exp) \
-  (BTOR_IS_LAMBDA_NODE (exp) || BTOR_IS_UF_NODE (exp))
+#define BTOR_IS_FUN_COND_NODE(exp) \
+  (BTOR_IS_COND_NODE (exp)         \
+   && btor_is_fun_sort (&exp->btor->sorts_unique_table, exp->sort_id))
+
+#define BTOR_IS_FUN_NODE(exp)                         \
+  (BTOR_IS_LAMBDA_NODE (exp) || BTOR_IS_UF_NODE (exp) \
+   || BTOR_IS_FUN_COND_NODE (exp))
 
 #define BTOR_IS_UF_ARRAY_NODE(exp) \
   ((exp) && BTOR_IS_UF_NODE (exp) && ((BtorUFNode *) exp)->is_array)
@@ -391,76 +397,76 @@ void btor_set_btor_id (Btor *btor, BtorNode *exp, int id);
 
 /*------------------------------------------------------------------------*/
 /* Implicit precondition of all functions taking expressions as inputs:
- * The length 'len' of all input expressions have to be greater than zero.
+ * The 'width' of all input expressions has to be greater than zero.
  */
 
 /* Binary constant.
  * strlen(bits) > 0
- * len(result) = strlen(bits)
+ * width(result) = strlen(bits)
  */
-BtorNode *btor_const_exp (Btor *btor, const char *bits);
+BtorNode *btor_const_exp (Btor *btor, BtorBitVector *bits);
 
-/* Binary constant representing 'len' zeros.
- * len > 0
- * len(result) = len
+/* Binary constant representing 'width' zeros.
+ * width > 0
+ * width(result) = width
  */
-BtorNode *btor_zero_exp (Btor *btor, uint32_t len);
+BtorNode *btor_zero_exp (Btor *btor, uint32_t width);
 
 /* Constant respresenting FALSE
- * len(result) = 1
+ * width(result) = 1
  */
 BtorNode *btor_false_exp (Btor *btor);
 
-/* Binary constant representing 'len' ones.
- * len > 0
- * len(result) = len
+/* Binary constant representing 'width' ones.
+ * width > 0
+ * width(result) = width
  */
-BtorNode *btor_ones_exp (Btor *btor, uint32_t len);
+BtorNode *btor_ones_exp (Btor *btor, uint32_t width);
 
 /* Constant respresenting TRUE
- * len(result) = 1
+ * width(result) = 1
  */
 BtorNode *btor_true_exp (Btor *btor);
 
-/* Binary constant representing 1 with 'len' bits.
- * len > 0
- * len(result) = len
+/* Binary constant representing 1 with 'width' bits.
+ * width > 0
+ * width(result) = width
  */
-BtorNode *btor_one_exp (Btor *btor, uint32_t len);
+BtorNode *btor_one_exp (Btor *btor, uint32_t width);
 
 /* Binary constant representing the unsigned integer.
  * The constant is obtained by either truncating bits
  * or by unsigned extension (padding with zeroes).
- * len > 0
+ * width > 0
  */
-BtorNode *btor_unsigned_exp (Btor *btor, uint32_t u, uint32_t len);
+BtorNode *btor_unsigned_exp (Btor *btor, uint32_t u, uint32_t width);
 
 /* Binary constant representing the signed integer.
  * The constant is obtained by either truncating bits
  * or by signed extension (padding with ones).
- * len > 0
+ * width > 0
  */
-BtorNode *btor_int_exp (Btor *emg, int32_t i, uint32_t len);
+BtorNode *btor_int_exp (Btor *emg, int32_t i, uint32_t width);
 
-/* Variable representing 'len' bits.
- * len > 0
- * len(result) = len
+/* Variable representing 'width' bits.
+ * width > 0
+ * width(result) = width
  */
-BtorNode *btor_var_exp (Btor *btor, uint32_t len, const char *symbol);
+BtorNode *btor_var_exp (Btor *btor, uint32_t width, const char *symbol);
 
-/* Lambda variable representing 'len' bits.
- * len > 0
- * len(result) = len
+/* Lambda variable representing 'width' bits.
+ * width > 0
+ * width(result) = width
  */
-BtorNode *btor_param_exp (Btor *btor, uint32_t len, const char *symbol);
+BtorNode *btor_param_exp (Btor *btor, uint32_t width, const char *symbol);
 
-/* Array of size 2 ^ 'index_len' with elements of length 'elem_len'.
- * elem_len > 0
- * index_len > 0
+/* Array of size 2 ^ 'index_width' with elements of width 'elem_width'.
+ * elem_width > 0
+ * index_width > 0
  */
 BtorNode *btor_array_exp (Btor *btor,
-                          uint32_t elem_len,
-                          uint32_t index_len,
+                          uint32_t elem_width,
+                          uint32_t index_width,
                           const char *symbol);
 
 /* Uninterpreted function with sort 'sort'.
@@ -468,301 +474,301 @@ BtorNode *btor_array_exp (Btor *btor,
 BtorNode *btor_uf_exp (Btor *btor, BtorSortId sort, const char *symbol);
 
 /* One's complement.
- * len(result) = len(exp)
+ * width(result) = width(exp)
  */
 BtorNode *btor_not_exp (Btor *btor, BtorNode *exp);
 
 /* Two's complement.
- * len(result) = len(exp)
+ * width(result) = width(exp)
  */
 BtorNode *btor_neg_exp (Btor *btor, BtorNode *exp);
 
 /* OR reduction.
- * len(result) = 1
+ * width(result) = 1
  */
 BtorNode *btor_redor_exp (Btor *btor, BtorNode *exp);
 
 /* XOR reduction.
- * len(result) = 1
+ * width(result) = 1
  */
 BtorNode *btor_redxor_exp (Btor *btor, BtorNode *exp);
 
 /* AND reduction.
- * len(result) = 1
+ * width(result) = 1
  */
 BtorNode *btor_redand_exp (Btor *btor, BtorNode *exp);
 
 /* BtorSlice a sub-vector from 'upper' to 'lower'.
- * upper < len(exp)
+ * upper < width(exp)
  * lower >= 0
  * upper >= lower
- * len(result) = upper - lower + 1
+ * width(result) = upper - lower + 1
  */
 BtorNode *btor_slice_exp (Btor *btor,
                           BtorNode *exp,
                           uint32_t upper,
                           uint32_t lower);
 
-/* Unsigned extension of 'len' bits.
- * len >= 0
- * len(result) = len(exp) + len
+/* Unsigned extension of 'width' bits.
+ * width >= 0
+ * width(result) = width(exp) + width
  */
-BtorNode *btor_uext_exp (Btor *btor, BtorNode *exp, uint32_t len);
+BtorNode *btor_uext_exp (Btor *btor, BtorNode *exp, uint32_t width);
 
-/* Signed extension of 'len' bits (keep sign).
- * len >= 0
- * len(result) = len(exp) + len
+/* Signed extension of 'width' bits (keep sign).
+ * width >= 0
+ * width(result) = width(exp) + width
  */
-BtorNode *btor_sext_exp (Btor *btor, BtorNode *exp, uint32_t len);
+BtorNode *btor_sext_exp (Btor *btor, BtorNode *exp, uint32_t width);
 
 /* Logical IMPLICATION.
- * len(e0) = len(e1) = 1
- * len(result) = 1
+ * width(e0) = width(e1) = 1
+ * width(result) = 1
  */
 BtorNode *btor_implies_exp (Btor *btor, BtorNode *e0, BtorNode *e1);
 
 /* Logical EQUIVALENCE.
- * len(e0) = len(e1) = 1
- * len(result) = 1
+ * width(e0) = width(e1) = 1
+ * width(result) = 1
  */
 BtorNode *btor_iff_exp (Btor *btor, BtorNode *e0, BtorNode *e1);
 
 /* Logical and bit-vector XOR.
- * len(e0) = len(e1)
- * len(result) = len(e0) = len(e1)
+ * width(e0) = width(e1)
+ * width(result) = width(e0) = width(e1)
  */
 BtorNode *btor_xor_exp (Btor *btor, BtorNode *e0, BtorNode *e1);
 
 /* Logical and bit-vector XNOR.
- * len(e0) = len(e1)
- * len(result) = len(e0) = len(e1)
+ * width(e0) = width(e1)
+ * width(result) = width(e0) = width(e1)
  */
 BtorNode *btor_xnor_exp (Btor *btor, BtorNode *e0, BtorNode *e1);
 
 /* Logical and bit-vector AND.
- * len(e0) = len(e1)
- * len(result) = len(e0) = len(e1)
+ * width(e0) = width(e1)
+ * width(result) = width(e0) = width(e1)
  */
 BtorNode *btor_and_exp (Btor *btor, BtorNode *e0, BtorNode *e1);
 
 /* Logical and bit-vector NAND.
- * len(e0) = len(e1)
- * len(result) = len(e0) = len(e1)
+ * width(e0) = width(e1)
+ * width(result) = width(e0) = width(e1)
  */
 BtorNode *btor_nand_exp (Btor *btor, BtorNode *e0, BtorNode *e1);
 
 /* Logical and bit-vector OR.
- * len(e0) = len(e1)
- * len(result) = len(e0) = len(e1)
+ * width(e0) = width(e1)
+ * width(result) = width(e0) = width(e1)
  */
 BtorNode *btor_or_exp (Btor *btor, BtorNode *e0, BtorNode *e1);
 
 /* Logical and bit-vector NOR.
- * len(e0) = len(e1)
- * len(result) = len(e0) = len(e1)
+ * width(e0) = width(e1)
+ * width(result) = width(e0) = width(e1)
  */
 BtorNode *btor_nor_exp (Btor *btor, BtorNode *e0, BtorNode *e1);
 
 /* Bit-vector or array equality.
- * len(e0) = len(e1)
- * len(result) = 1
+ * width(e0) = width(e1)
+ * width(result) = 1
  */
 BtorNode *btor_eq_exp (Btor *btor, BtorNode *e0, BtorNode *e1);
 
 /* Bit-vector or array inequality.
- * len(e0) = len(e1)
- * len(result) = 1
+ * width(e0) = width(e1)
+ * width(result) = 1
  */
 BtorNode *btor_ne_exp (Btor *btor, BtorNode *e0, BtorNode *e1);
 
 /* Adder.
- * len(e0) = len(e1)
- * len(result) = len(e0) = len(e1)
+ * width(e0) = width(e1)
+ * width(result) = width(e0) = width(e1)
  */
 BtorNode *btor_add_exp (Btor *btor, BtorNode *e0, BtorNode *e1);
 
 /* Result represents if adding two unsigned operands leads to an overflow.
- * len(e0) = len(e1)
- * len(result) = 1
+ * width(e0) = width(e1)
+ * width(result) = 1
  */
 BtorNode *btor_uaddo_exp (Btor *btor, BtorNode *e0, BtorNode *e1);
 
 /* Result represents if adding two signed operands leads to an overflow.
- * len(e0) = len(e1)
- * len(result) = 1
+ * width(e0) = width(e1)
+ * width(result) = 1
  */
 BtorNode *btor_saddo_exp (Btor *btor, BtorNode *e0, BtorNode *e1);
 
 /* Multiplier.
- * len(e0) = len(e1)
- * len(result) = len(e0) = len(e1)
+ * width(e0) = width(e1)
+ * width(result) = width(e0) = width(e1)
  */
 BtorNode *btor_mul_exp (Btor *btor, BtorNode *e0, BtorNode *e1);
 
 /* Result represents if multiplying two unsigned operands leads to an overflow.
- * len(e0) = len(e1)
- * len(result) = 1
+ * width(e0) = width(e1)
+ * width(result) = 1
  */
 BtorNode *btor_umulo_exp (Btor *btor, BtorNode *e0, BtorNode *e1);
 
 /* Result represents if multiplying two signed operands leads to an overflow.
- * len(e0) = len(e1)
- * len(result) = 1
+ * width(e0) = width(e1)
+ * width(result) = 1
  */
 BtorNode *btor_smulo_exp (Btor *btor, BtorNode *e0, BtorNode *e1);
 
 /* Unsigned less than.
- * len(e0) = len(e1)
- * len(result) = 1
+ * width(e0) = width(e1)
+ * width(result) = 1
  */
 BtorNode *btor_ult_exp (Btor *btor, BtorNode *e0, BtorNode *e1);
 
 /* Signed less than.
- * len(e0) = len(e1)
- * len(result) = 1
+ * width(e0) = width(e1)
+ * width(result) = 1
  */
 BtorNode *btor_slt_exp (Btor *btor, BtorNode *e0, BtorNode *e1);
 
 /* Unsigned less than or equal.
- * len(e0) = len(e1)
- * len(result) = 1
+ * width(e0) = width(e1)
+ * width(result) = 1
  */
 BtorNode *btor_ulte_exp (Btor *btor, BtorNode *e0, BtorNode *e1);
 
 /* Signed less than or equal.
- * len(e0) = len(e1)
- * len(result) = 1
+ * width(e0) = width(e1)
+ * width(result) = 1
  */
 BtorNode *btor_slte_exp (Btor *btor, BtorNode *e0, BtorNode *e1);
 
 /* Unsigned greater than.
- * len(e0) = len(e1)
- * len(result) = 1
+ * width(e0) = width(e1)
+ * width(result) = 1
  */
 BtorNode *btor_ugt_exp (Btor *btor, BtorNode *e0, BtorNode *e1);
 
 /* Signed greater than.
- * len(e0) = len(e1)
- * len(result) = 1
+ * width(e0) = width(e1)
+ * width(result) = 1
  */
 BtorNode *btor_sgt_exp (Btor *btor, BtorNode *e0, BtorNode *e1);
 
 /* Unsigned greater than or equal.
- * len(e0) = len(e1)
- * len(result) = 1
+ * width(e0) = width(e1)
+ * width(result) = 1
  */
 BtorNode *btor_ugte_exp (Btor *btor, BtorNode *e0, BtorNode *e1);
 
 /* Signed greater than or equal.
- * len(e0) = len(e1)
- * len(result) = 1
+ * width(e0) = width(e1)
+ * width(result) = 1
  */
 BtorNode *btor_sgte_exp (Btor *btor, BtorNode *e0, BtorNode *e1);
 
 /* Shift left logical.
- * is_power_of_2(len(e0))
- * len(e1) = log2(len(e0))
- * len(result) len(e0)
+ * is_power_of_2(width(e0))
+ * width(e1) = log2(width(e0))
+ * width(result) width(e0)
  */
 BtorNode *btor_sll_exp (Btor *btor, BtorNode *e0, BtorNode *e1);
 
 /* Shift right logical.
- * is_power_of_2(len(e0))
- * len(e1) = log2(len(e0))
- * len(result) = len(e0)
+ * is_power_of_2(width(e0))
+ * width(e1) = log2(width(e0))
+ * width(result) = width(e0)
  */
 BtorNode *btor_srl_exp (Btor *btor, BtorNode *e0, BtorNode *e1);
 
 /* Shift right arithmetic.
- * is_power_of_2(len(e0))
- * len(e1) = log2(len(e0))
- * len(result) = len(e0)
+ * is_power_of_2(width(e0))
+ * width(e1) = log2(width(e0))
+ * width(result) = width(e0)
  */
 BtorNode *btor_sra_exp (Btor *btor, BtorNode *e0, BtorNode *e1);
 
 /* Rotate left.
- * is_power_of_2(len(e0))
- * len(e1) = log2(len(e0))
- * len(result) = len(e0)
+ * is_power_of_2(width(e0))
+ * width(e1) = log2(width(e0))
+ * width(result) = width(e0)
  */
 BtorNode *btor_rol_exp (Btor *btor, BtorNode *e0, BtorNode *e1);
 
 /* Rotate right.
- * is_power_of_2(len(e0))
- * len(e1) = log2(len(e0))
- * len(result) = len(e0)
+ * is_power_of_2(width(e0))
+ * width(e1) = log2(width(e0))
+ * width(result) = width(e0)
  */
 BtorNode *btor_ror_exp (Btor *btor, BtorNode *e0, BtorNode *e1);
 
 /* Subtractor.
- * len(e0) = len(e1)
- * len(result) = len(e0) = len(e1)
+ * width(e0) = width(e1)
+ * width(result) = width(e0) = width(e1)
  */
 BtorNode *btor_sub_exp (Btor *btor, BtorNode *e0, BtorNode *e1);
 
 /* Result represents if e0 - e1 leads to an overflow if both are unsigned.
- * len(e0) = len(e1)
- * len(result) = 1
+ * width(e0) = width(e1)
+ * width(result) = 1
  */
 BtorNode *btor_usubo_exp (Btor *btor, BtorNode *e0, BtorNode *e1);
 
 /* Result represents if e0 - e1 leads to an overflow if both are signed.
- * len(e0) = len(e1)
- * len(result) = 1
+ * width(e0) = width(e1)
+ * width(result) = 1
  */
 BtorNode *btor_ssubo_exp (Btor *btor, BtorNode *e0, BtorNode *e1);
 
 /* Unsigned divider.
- * len(e0) = len(e1)
- * len(result) = len(e0) = len(e1)
+ * width(e0) = width(e1)
+ * width(result) = width(e0) = width(e1)
  */
 BtorNode *btor_udiv_exp (Btor *btor, BtorNode *e0, BtorNode *e1);
 
 /* Signed divider.
- * len(e0) = len(e1)
- * len(result) = len(e0) = len(e1)
+ * width(e0) = width(e1)
+ * width(result) = width(e0) = width(e1)
  */
 BtorNode *btor_sdiv_exp (Btor *btor, BtorNode *e0, BtorNode *e1);
 
 /* Result represents if e0 / e1 leads to an overflow if both are signed.
  * For example INT_MIN / -1.
- * len(e0) = len(e1)
- * len(result) = 1
+ * width(e0) = width(e1)
+ * width(result) = 1
  */
 BtorNode *btor_sdivo_exp (Btor *btor, BtorNode *e0, BtorNode *e1);
 
 /* Unsigned modulo.
- * len(e0) = len(e1)
- * len(result) = len(e0) = len(e1)
+ * width(e0) = width(e1)
+ * width(result) = width(e0) = width(e1)
  */
 BtorNode *btor_urem_exp (Btor *btor, BtorNode *e0, BtorNode *e1);
 
 /* Signed modulo.
- * len(e0) = len(e1)
- * len(result) = len(e0) = len(e1)
+ * width(e0) = width(e1)
+ * width(result) = width(e0) = width(e1)
  */
 BtorNode *btor_srem_exp (Btor *btor, BtorNode *e0, BtorNode *e1);
 
 /* Signed modulo variant.
- * len(e0) = len(e1)
- * len(result) = len(e0) = len(e1)
+ * width(e0) = width(e1)
+ * width(result) = width(e0) = width(e1)
  */
 BtorNode *btor_smod_exp (Btor *btor, BtorNode *e0, BtorNode *e1);
 
 /* Concatenation.
- * len(result) = len(e0) + len(e1)
+ * width(result) = width(e0) + width(e1)
  */
 BtorNode *btor_concat_exp (Btor *btor, BtorNode *e0, BtorNode *e1);
 
 /* Array read on array 'e_array' at position 'e_index'.
- * index_len(e_array) = len(e_index)
- * len(result) = elem_len(e_array)
+ * index_width(e_array) = width(e_index)
+ * width(result) = elem_width(e_array)
  */
 BtorNode *btor_read_exp (Btor *btor, BtorNode *e_array, BtorNode *e_index);
 
 /* Array write on array 'e_array' at position 'e_index' with value 'e_value'.
- * index_len(e_array) = len(e_index)
- * elem_len(e_array) = len(e_value)
+ * index_width(e_array) = width(e_index)
+ * elem_width(e_array) = width(e_value)
  */
 BtorNode *btor_write_exp (Btor *btor,
                           BtorNode *e_array,
@@ -797,9 +803,9 @@ BtorNode *btor_apply_exps (Btor *btor,
 BtorNode *btor_args_exp (Btor *btor, uint32_t argc, BtorNode **args);
 
 /* If-then-else.
- * len(e_cond) = 1
- * len(e_if) = len(e_else)
- * len(result) = len(e_if) = len(e_else)
+ * width(e_cond) = 1
+ * width(e_if) = width(e_else)
+ * width(result) = width(e_if) = width(e_else)
  */
 BtorNode *btor_cond_exp (Btor *btor,
                          BtorNode *e_cond,
@@ -818,16 +824,19 @@ uint32_t btor_get_exp_width (Btor *btor, BtorNode *exp);
 /* Gets the bit width of the array elements. */
 uint32_t btor_get_fun_exp_width (Btor *btor, BtorNode *exp);
 
-char *btor_const_get_bits (BtorNode *exp);
-char *btor_const_get_invbits (BtorNode *exp);
-void btor_const_set_bits (BtorNode *exp, char *bits);
-void btor_const_set_invbits (BtorNode *exp, char *bits);
+BtorBitVector *btor_const_get_bits (BtorNode *exp);
+BtorBitVector *btor_const_get_invbits (BtorNode *exp);
+void btor_const_set_bits (BtorNode *exp, BtorBitVector *bits);
+void btor_const_set_invbits (BtorNode *exp, BtorBitVector *bits);
 
 /* Determines if expression is an array or not. */
 bool btor_is_array_exp (Btor *btor, BtorNode *exp);
 
 /* Determines if expression is an uf or array variable or not. */
 bool btor_is_uf_array_var_exp (Btor *btor, BtorNode *exp);
+
+/* Determines if expression is an uf or not. */
+bool btor_is_uf_exp (Btor *btor, BtorNode *exp);
 
 /* Determines if expression is a bv variable or not. */
 bool btor_is_bv_var_exp (Btor *btor, BtorNode *exp);
@@ -873,14 +882,11 @@ int btor_get_args_arity (Btor *btor, BtorNode *exp);
 
 /* Returns static_rho of given lambda node. */
 BtorPtrHashTable *btor_lambda_get_static_rho (BtorNode *lambda);
-/* Returns synth_apps of given lambda node. */
-BtorPtrHashTable *btor_lambda_get_synth_apps (BtorNode *lambda);
 
 void btor_lambda_set_static_rho (BtorNode *lambda,
                                  BtorPtrHashTable *static_rho);
 
-void btor_lambda_set_synth_apps (BtorNode *lambda,
-                                 BtorPtrHashTable *synth_apps);
+BtorPtrHashTable *btor_lambda_copy_static_rho (Btor *btor, BtorNode *lambda);
 
 BtorNode *btor_lambda_get_body (BtorNode *lambda);
 void btor_lambda_set_body (BtorNode *lambda, BtorNode *body);
@@ -906,7 +912,6 @@ void btor_set_to_proxy_exp (Btor *btor, BtorNode *exp);
 int btor_cmp_exp_by_id_qsort_desc (const void *p, const void *q);
 int btor_cmp_exp_by_id_qsort_asc (const void *p, const void *q);
 
-bool btor_is_encoded_exp (BtorNode *exp);
 /*------------------------------------------------------------------------*/
 
 BtorNode *btor_slice_exp_node (Btor *btor,
@@ -991,6 +996,7 @@ int btor_precond_cond_exp_dbg (Btor *btor,
                                BtorNode *e_else);
 
 int btor_precond_apply_exp_dbg (Btor *btor, BtorNode *fun, BtorNode *args);
+
 /*------------------------------------------------------------------------*/
 #endif
 /*------------------------------------------------------------------------*/

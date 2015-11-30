@@ -1,7 +1,7 @@
 #include <stdio.h>
 #include <stdlib.h>
 #include "boolector.h"
-#include "btorutil.h"
+#include "utils/btorutil.h"
 
 /* We verify that the following algorithm is equal to (x & (x - 1)) == 0
  * we assume x > 0

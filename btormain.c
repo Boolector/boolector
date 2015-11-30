@@ -251,7 +251,7 @@ btormain_msg (char *msg, ...)
 
   va_list list;
   va_start (list, msg);
-  fprintf (stdout, "[btormain] ");
+  fprintf (stdout, "[btor>main] ");
   vfprintf (stdout, msg, list);
   fprintf (stdout, "\n");
   va_end (list);
@@ -289,7 +289,6 @@ print_opt (BtorMainApp *app,
   else if (!strcmp (lng, "output"))
     sprintf (paramstr, "<file>");
   else if (!strcmp (lng, BTOR_OPT_REWRITE_LEVEL)
-           || !strcmp (lng, BTOR_OPT_REWRITE_LEVEL_PBR)
            || !strcmp (lng, BTOR_OPT_PBRA_LOD_LIMIT)
            || !strcmp (lng, BTOR_OPT_PBRA_SAT_LIMIT)
            || !strcmp (lng, BTOR_OPT_PBRA_OPS_FACTOR))
@@ -460,10 +459,6 @@ print_help (BtorMainApp *app)
   to.lng  = "dump_smt2";
   to.desc = "dump formula in SMT-LIB v2 format";
   PRINT_MAIN_OPT (app, &to);
-  to.shrt = "ds1";
-  to.lng  = "dump_smt1";
-  to.desc = "dump formula in SMT-LIB v1 format";
-  PRINT_MAIN_OPT (app, &to);
   to.shrt = "daa";
   to.lng  = "dump_aag";
   to.desc = "dump QF_BV formula in ascii AIGER format";
@@ -604,15 +599,14 @@ catch_sig (int sig)
   if (!g_caught_sig)
   {
     g_caught_sig = 1;
-    btormain_msg ("CAUGHT SIGNAL %d", sig);
-    fputs ("unknown\n", stdout);
-    fflush (stdout);
     if (g_verbosity > 0)
     {
       boolector_print_stats (g_app->btor);
       print_static_stats (0);
-      btormain_msg ("CAUGHT SIGNAL %d", sig);
     }
+    btormain_msg ("CAUGHT SIGNAL %d", sig);
+    fputs ("unknown\n", stdout);
+    fflush (stdout);
   }
   reset_sig_handlers ();
   raise (sig);
@@ -1006,11 +1000,6 @@ boolector_main (int argc, char **argv)
       dump = BTOR_OUTPUT_FORMAT_SMT2;
       goto SET_OUTPUT_FORMAT;
     }
-    else if (!strcmp (opt.start, "ds1") || !strcmp (opt.start, "dump_smt1"))
-    {
-      dump = BTOR_OUTPUT_FORMAT_SMT1;
-      goto SET_OUTPUT_FORMAT;
-    }
     else if (!strcmp (opt.start, "daa") || !strcmp (opt.start, "dump_aag"))
     {
       dump = BTOR_OUTPUT_FORMAT_AIGER_ASCII;
@@ -1081,7 +1070,6 @@ boolector_main (int argc, char **argv)
       }
       /* options requiring an integer argument */
       else if (IS_BTOR_OPT ("rwl", BTOR_OPT_REWRITE_LEVEL)
-               || IS_BTOR_OPT ("", BTOR_OPT_REWRITE_LEVEL_PBR)
                || IS_BTOR_OPT ("", BTOR_OPT_PBRA_LOD_LIMIT)
                || IS_BTOR_OPT ("", BTOR_OPT_PBRA_SAT_LIMIT)
                || IS_BTOR_OPT ("", BTOR_OPT_PBRA_OPS_FACTOR))
@@ -1325,10 +1313,6 @@ boolector_main (int argc, char **argv)
 	    boolector_dump_btor2 (g_app->btor, g_app->outfile);
 	    break;
 #endif
-      case BTOR_OUTPUT_FORMAT_SMT1:
-        if (g_verbosity) btormain_msg ("dumping in SMT-LIB v1 format");
-        boolector_dump_smt1 (g_app->btor, g_app->outfile);
-        break;
       case BTOR_OUTPUT_FORMAT_SMT2:
         if (g_verbosity) btormain_msg ("dumping in SMT 2.0 format");
         boolector_dump_smt2 (g_app->btor, g_app->outfile);
