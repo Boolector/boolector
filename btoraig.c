@@ -1497,7 +1497,7 @@ unsigned int
 btor_hash_aig_by_id (BtorAIG *aig)
 {
   assert (aig);
-  return (unsigned int) BTOR_GET_AIG_ID_AIG (aig) * 7334147u;
+  return (unsigned int) BTOR_GET_ID_AIG (aig) * 7334147u;
 }
 
 /* compare AIG by id */
@@ -1509,8 +1509,8 @@ btor_compare_aig_by_id (BtorAIG *aig0, BtorAIG *aig1)
 
   int id0, id1;
 
-  id0 = BTOR_GET_AIG_ID_AIG (aig0);
-  id1 = BTOR_GET_AIG_ID_AIG (aig1);
+  id0 = BTOR_GET_ID_AIG (aig0);
+  id1 = BTOR_GET_ID_AIG (aig1);
   if (id0 < id1) return -1;
   if (id0 > id1) return 1;
   return 0;

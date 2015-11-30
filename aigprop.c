@@ -27,6 +27,7 @@ msg (char *fmt, ...)
 {
   va_list msg;
 
+  fputs ("[aigprop] ", stdout);
   va_start (msg, fmt);
   vfprintf (stdout, fmt, msg);
   va_end (msg);
@@ -50,6 +51,124 @@ get_assignment_aig (BtorPtrHashTable *model, BtorAIG *aig)
       btor_find_in_ptr_hash_table (model, BTOR_REAL_ADDR_AIG (aig))->data.asInt;
   if (BTOR_IS_INVERTED_AIG (aig)) res *= -1;
   return res;
+}
+
+bool
+check_roots_mark_unset_dbg (BtorPtrHashTable *roots)
+{
+  assert (roots);
+
+  BtorHashTableIterator it;
+
+  btor_init_hash_table_iterator (&it, roots);
+  while (btor_has_next_hash_table_iterator (&it))
+    if (((BtorAIG *) btor_next_hash_table_iterator (&it))->mark) return false;
+  return true;
+}
+
+static void
+reset_cone (AIGProp *aprop, BtorAIG *aig)
+{
+  assert (aprop);
+  assert (check_roots_mark_unset_dbg (aprop->roots));
+
+  int i;
+  BtorAIG *cur, *child;
+  BtorHashTableIterator it;
+  BtorPtrHashBucket *b;
+  BtorAIGPtrStack stack, unmark_stack;
+  BtorMemMgr *mm;
+
+  if (BTOR_IS_CONST_AIG (aig)) return;
+
+  mm = aprop->amgr->mm;
+
+  BTOR_INIT_STACK (stack);
+  BTOR_INIT_STACK (unmark_stack);
+
+  assert (btor_find_in_ptr_hash_table (aprop->model, aig));
+  assert (btor_find_in_ptr_hash_table (aprop->model, BTOR_INVERT_AIG (aig)));
+  btor_remove_from_ptr_hash_table (
+      aprop->model, BTOR_REAL_ADDR_AIG (aig), 0, 0);
+
+  btor_init_hash_table_iterator (&it, aprop->roots);
+  while (btor_has_next_hash_table_iterator (&it))
+    BTOR_PUSH_STACK (mm, stack, btor_next_hash_table_iterator (&it));
+
+  while (!BTOR_EMPTY_STACK (stack))
+  {
+    cur = BTOR_POP_STACK (stack);
+    assert (!BTOR_IS_CONST_AIG (cur));
+    assert (BTOR_IS_REGULAR_AIG (cur));
+    if (cur->mark == 2) continue;
+    if (cur->mark == 0)
+    {
+      cur->mark = 1;
+      BTOR_PUSH_STACK (mm, unmark_stack, cur);
+      if (BTOR_IS_VAR_AIG (cur))
+      {
+        cur->mark = 2;
+        continue;
+      }
+      BTOR_PUSH_STACK (mm, stack, cur);
+      for (i = 0; i < 2; i++)
+      {
+        child = BTOR_GET_AIG_BY_ID (aprop->amgr, cur->children[i]);
+        if (!BTOR_IS_CONST_AIG (child)) BTOR_PUSH_STACK (mm, stack, child);
+      }
+    }
+    else
+    {
+      assert (cur->mark == 1);
+      assert (btor_find_in_ptr_hash_table (aprop->model, cur));
+      cur->mark = 2;
+      for (i = 0; i < 2; i++)
+      {
+        child = BTOR_GET_AIG_BY_ID (aprop->amgr, cur->children[i]);
+        if (!(b = btor_find_in_ptr_hash_table (aprop->model, child)))
+        {
+          /* reset previous assignment */
+          assert (btor_find_in_ptr_hash_table (aprop->model, cur));
+          btor_remove_from_ptr_hash_table (aprop->model, cur, 0, 0);
+          btor_release_aig (aprop->amgr, cur);
+          /* reset previous score */
+          assert (btor_find_in_ptr_hash_table (aprop->score, cur));
+          btor_remove_from_ptr_hash_table (aprop->score, cur, 0, 0);
+          assert (btor_find_in_ptr_hash_table (aprop->score,
+                                               BTOR_INVERT_NODE (cur)));
+          btor_remove_from_ptr_hash_table (
+              aprop->score, BTOR_INVERT_NODE (cur), 0, 0);
+          break;
+        }
+      }
+    }
+  }
+
+  /* cleanup */
+  while (!BTOR_EMPTY_STACK (unmark_stack))
+    BTOR_POP_STACK (unmark_stack)->mark = 0;
+
+  BTOR_RELEASE_STACK (mm, stack);
+  BTOR_RELEASE_STACK (mm, unmark_stack);
+}
+
+static void
+update_cone (AIGProp *aprop, BtorAIG *aig, int assignment)
+{
+  assert (aprop);
+  assert (aig);
+  assert (assignment == 1 || assignment == -1);
+
+  BtorAIG *real_aig;
+  int real_ass;
+
+  reset_cone (aprop, aig);
+  real_aig = BTOR_REAL_ADDR_AIG (aig);
+  real_ass = BTOR_IS_INVERTED_AIG (aig) ? -assignment : assignment;
+  btor_insert_in_ptr_hash_table (aprop->model,
+                                 btor_copy_aig (aprop->amgr, real_aig))
+      ->data.asInt = real_ass;
+  aigprop_generate_model (aprop, 0);
 }
 
 static void
@@ -154,14 +273,14 @@ aigprop_init_model (AIGProp *aprop)
 }
 
 void
-aigprop_generate_model (AIGProp *aprop)
+aigprop_generate_model (AIGProp *aprop, int reset)
 {
   assert (aprop);
   assert (aprop->roots);
 
   BtorHashTableIterator it;
 
-  aigprop_init_model (aprop);
+  if (reset) aigprop_init_model (aprop);
 
   btor_init_hash_table_iterator (&it, aprop->roots);
   while (btor_has_next_hash_table_iterator (&it))
@@ -186,31 +305,90 @@ move (AIGProp *aprop)
  * score (aig0 /\ aig1, A) = 1/2 * (score (aig0) + score (aig1), A)
  * score (-(-aig0 /\ -aig1), A) = max (score (-aig0), score (-aig1), A)
  */
+
+#define AIGPROP_COMPUTE_SCORE_AIG_AND(cur, left, right, s0, s1, res)          \
+  do                                                                          \
+  {                                                                           \
+    assert (BTOR_IS_CONST_AIG (left)                                          \
+            || btor_find_in_ptr_hash_table (aprop->score, left));             \
+    assert (BTOR_IS_CONST_AIG (right)                                         \
+            || btor_find_in_ptr_hash_table (aprop->score, right));            \
+    s0 = BTOR_IS_CONST_AIG (left)                                             \
+             ? (left == BTOR_AIG_TRUE ? 1.0 : 0.0)                            \
+             : btor_find_in_ptr_hash_table (aprop->score, left)->data.asDbl;  \
+    s1 = BTOR_IS_CONST_AIG (right)                                            \
+             ? (right == BTOR_AIG_TRUE ? 1.0 : 0.0)                           \
+             : btor_find_in_ptr_hash_table (aprop->score, right)->data.asDbl; \
+    res = (s0 + s1) / 2.0;                                                    \
+    /* fix rounding errors (eg. (0.999+1.0)/2 = 1.0) ->                       \
+       choose minimum (else it might again result in 1.0) */                  \
+    if (res == 1.0 && (s0 < 1.0 || s1 < 1.0)) res = s0 < s1 ? s0 : s1;        \
+  } while (0)
+
+#define AIGPROP_COMPUTE_SCORE_AIG_OR(cur, left, right, s0, s1, res)           \
+  do                                                                          \
+  {                                                                           \
+    assert (BTOR_IS_CONST_AIG (left)                                          \
+            || btor_find_in_ptr_hash_table (aprop->score,                     \
+                                            BTOR_INVERT_AIG (left)));         \
+    assert (BTOR_IS_CONST_AIG (right)                                         \
+            || btor_find_in_ptr_hash_table (aprop->score,                     \
+                                            BTOR_INVERT_AIG (right)));        \
+    s0 = BTOR_IS_CONST_AIG (left) ? (left == BTOR_AIG_TRUE ? 0.0 : 1.0)       \
+                                  : btor_find_in_ptr_hash_table (             \
+                                        aprop->score, BTOR_INVERT_AIG (left)) \
+                                        ->data.asDbl;                         \
+    s1 = BTOR_IS_CONST_AIG (right)                                            \
+             ? (right == BTOR_AIG_TRUE ? 0.0 : 1.0)                           \
+             : btor_find_in_ptr_hash_table (aprop->score,                     \
+                                            BTOR_INVERT_AIG (right))          \
+                   ->data.asDbl;                                              \
+    res = s0 > s1 ? s0 : s1;                                                  \
+  } while (0)
+
+#define AIGPROP_LOG_COMPUTE_SCORE_AIG(cur, left, right, s0, s1, res) \
+  do                                                                 \
+  {                                                                  \
+    a = get_assignment_aig (aprop->model, left);                     \
+    assert (a);                                                      \
+    AIGPROPLOG (2, "assignment aig0: %d", a < 0 ? 0 : 1);            \
+    a = get_assignment_aig (aprop->model, right);                    \
+    assert (a);                                                      \
+    AIGPROPLOG (2, "assignment aig1: %d", a < 0 ? 0 : 1);            \
+    AIGPROPLOG (2, "score      aig0: %f", s0);                       \
+    AIGPROPLOG (2, "score      aig1: %f", s1);                       \
+    AIGPROPLOG (2,                                                   \
+                "score cur (%s%d): %f",                              \
+                BTOR_IS_INVERTED_AIG (cur) ? "-" : "",               \
+                real_cur->id,                                        \
+                a < 0 ? 0 : 1,                                       \
+                res);                                                \
+  } while (0)
+
 static double
-compute_sls_score_aig (AIGProp *aprop, BtorAIG *aig)
+compute_score_aig (AIGProp *aprop, BtorAIG *aig)
 {
   assert (aprop);
-  assert (aig);
+  assert (check_roots_mark_unset_dbg (aprop->roots));
+  assert (!BTOR_IS_CONST_AIG (aig));
 
-  double res, s0, s1;
+  double res, invres, s0, s1, invs0, invs1;
   BtorPtrHashBucket *b;
-  BtorAIGPtrStack stack;
-  BtorIntHashTable *cache;
+  BtorAIGPtrStack stack, unmark_stack;
   BtorAIG *cur, *real_cur, *left, *right;
   BtorMemMgr *mm;
 #ifndef NDEBUG
   int a;
 #endif
 
-  mm = aprop->amgr->mm;
-
-  res = 0.0;
-
   if ((b = btor_find_in_ptr_hash_table (aprop->score, aig)))
     return b->data.asDbl;
 
+  mm  = aprop->amgr->mm;
+  res = 0.0;
+
   BTOR_INIT_STACK (stack);
-  cache = btor_new_int_hash_table (mm);
+  BTOR_INIT_STACK (unmark_stack);
 
   BTOR_PUSH_STACK (mm, stack, aig);
   while (!BTOR_EMPTY_STACK (stack))
@@ -220,32 +398,31 @@ compute_sls_score_aig (AIGProp *aprop, BtorAIG *aig)
 
     if (BTOR_IS_CONST_AIG (real_cur)) continue;
     if (btor_find_in_ptr_hash_table (aprop->score, cur)) continue;
+    if (real_cur->mark == 2) continue;
 
-    if (!btor_contains_int_hash_table (cache, real_cur->id))
+    if (real_cur->mark == 0)
     {
-      btor_add_int_hash_table (cache, real_cur->id);
-      assert (btor_contains_int_hash_table (cache, real_cur->id));
+      real_cur->mark = 1;
+      BTOR_PUSH_STACK (mm, unmark_stack, real_cur);
       assert (BTOR_IS_VAR_AIG (real_cur) || BTOR_IS_AND_AIG (real_cur));
       BTOR_PUSH_STACK (mm, stack, cur);
       if (BTOR_IS_AND_AIG (real_cur))
       {
         left  = BTOR_LEFT_CHILD_AIG (aprop->amgr, real_cur);
         right = BTOR_RIGHT_CHILD_AIG (aprop->amgr, real_cur);
-        if (!BTOR_IS_CONST_AIG (left)
-            && !btor_contains_int_hash_table (cache,
-                                              BTOR_REAL_ADDR_NODE (left)->id))
-          BTOR_PUSH_STACK (mm, stack, left);
-        if (!BTOR_IS_CONST_AIG (right)
-            && !btor_contains_int_hash_table (cache,
-                                              BTOR_REAL_ADDR_NODE (right)->id))
-          BTOR_PUSH_STACK (mm, stack, right);
+        if (!BTOR_IS_CONST_AIG (left)) BTOR_PUSH_STACK (mm, stack, left);
+        if (!BTOR_IS_CONST_AIG (right)) BTOR_PUSH_STACK (mm, stack, right);
       }
     }
     else
     {
+      assert (real_cur->mark == 1);
+      real_cur->mark = 2;
+      assert (get_assignment_aig (aprop->model, cur) != 0);
 #ifndef NDEBUG
       a = get_assignment_aig (aprop->model, cur);
       assert (a);
+      AIGPROPLOG (2, "**");
       AIGPROPLOG (2,
                   "assignment cur (%s%d):  %d",
                   BTOR_IS_INVERTED_AIG (cur) ? "-" : "",
@@ -254,7 +431,6 @@ compute_sls_score_aig (AIGProp *aprop, BtorAIG *aig)
 #endif
       if (BTOR_IS_VAR_AIG (real_cur))
       {
-        assert (get_assignment_aig (aprop->model, cur) != 0);
         res = get_assignment_aig (aprop->model, cur) < 0 ? 0.0 : 1.0;
       }
       else
@@ -264,91 +440,56 @@ compute_sls_score_aig (AIGProp *aprop, BtorAIG *aig)
         right = BTOR_RIGHT_CHILD_AIG (aprop->amgr, real_cur);
         if (BTOR_IS_INVERTED_AIG (cur))
         {
-          assert (BTOR_IS_CONST_AIG (left)
-                  || btor_find_in_ptr_hash_table (aprop->score,
-                                                  BTOR_INVERT_AIG (left)));
-          assert (BTOR_IS_CONST_AIG (right)
-                  || btor_find_in_ptr_hash_table (aprop->score,
-                                                  BTOR_INVERT_AIG (right)));
-
-          s0 = BTOR_IS_CONST_AIG (left)
-                   ? (left == BTOR_AIG_TRUE ? 0.0 : 1.0)
-                   : btor_find_in_ptr_hash_table (aprop->score,
-                                                  BTOR_INVERT_AIG (left))
-                         ->data.asDbl;
-          s1 = BTOR_IS_CONST_AIG (right)
-                   ? (right == BTOR_AIG_TRUE ? 0.0 : 1.0)
-                   : btor_find_in_ptr_hash_table (aprop->score,
-                                                  BTOR_INVERT_AIG (right))
-                         ->data.asDbl;
+          AIGPROP_COMPUTE_SCORE_AIG_OR (cur, left, right, s0, s1, res);
+          AIGPROP_COMPUTE_SCORE_AIG_AND (
+              BTOR_INVERT_AIG (cur), left, right, invs0, invs1, invres);
 #ifndef NDEBUG
-          a = get_assignment_aig (aprop->model, left);
-          assert (a);
-          AIGPROPLOG (2,
-                      "assignment aig0 (%d): %d",
-                      BTOR_REAL_ADDR_AIG (left)->id,
-                      a < 0 ? 0 : 1);
-          a = get_assignment_aig (aprop->model, right);
-          assert (a);
-          AIGPROPLOG (2,
-                      "assignment aig1 (%d): %d",
-                      BTOR_REAL_ADDR_AIG (right)->id,
-                      a < 0 ? 0 : 1);
-          AIGPROPLOG (
-              2, "score      aig0 (%d): %f", BTOR_REAL_ADDR_AIG (left)->id, s0);
-          AIGPROPLOG (2,
-                      "score      aig1 (%d): %f",
-                      BTOR_REAL_ADDR_AIG (right)->id,
-                      s1);
+          AIGPROP_LOG_COMPUTE_SCORE_AIG (cur,
+                                         BTOR_INVERT_AIG (left),
+                                         BTOR_INVERT_AIG (right),
+                                         s0,
+                                         s1,
+                                         res);
+          AIGPROP_LOG_COMPUTE_SCORE_AIG (
+              BTOR_INVERT_AIG (cur), left, right, invs0, invs1, invres);
 #endif
-          res = s0 > s1 ? s0 : s1;
         }
         else
         {
-          assert (BTOR_IS_CONST_AIG (left)
-                  || btor_find_in_ptr_hash_table (aprop->score, left));
-          assert (BTOR_IS_CONST_AIG (right)
-                  || btor_find_in_ptr_hash_table (aprop->score, right));
-
-          s0 = BTOR_IS_CONST_AIG (left)
-                   ? (left == BTOR_AIG_TRUE ? 1.0 : 0.0)
-                   : btor_find_in_ptr_hash_table (aprop->score, left)
-                         ->data.asDbl;
-          s1 = BTOR_IS_CONST_AIG (right)
-                   ? (right == BTOR_AIG_TRUE ? 1.0 : 0.0)
-                   : btor_find_in_ptr_hash_table (aprop->score, right)
-                         ->data.asDbl;
+          AIGPROP_COMPUTE_SCORE_AIG_AND (cur, left, right, s0, s1, res);
+          AIGPROP_COMPUTE_SCORE_AIG_OR (
+              BTOR_INVERT_AIG (cur), left, right, invs0, invs1, invres);
 #ifndef NDEBUG
-          a = get_assignment_aig (aprop->model, left);
-          assert (a);
-          AIGPROPLOG (2, "assignment aig0: %d", a < 0 ? 0 : 1);
-          a = get_assignment_aig (aprop->model, right);
-          assert (a);
-          AIGPROPLOG (2, "assignment aig1: %d", a < 0 ? 0 : 1);
-          AIGPROPLOG (2, "score      aig0: %f", s0);
-          AIGPROPLOG (2, "score      aig1: %f", s1);
+          AIGPROP_LOG_COMPUTE_SCORE_AIG (cur, left, right, s0, s1, res);
+          AIGPROP_LOG_COMPUTE_SCORE_AIG (BTOR_INVERT_AIG (cur),
+                                         BTOR_INVERT_AIG (left),
+                                         BTOR_INVERT_AIG (right),
+                                         invs0,
+                                         invs1,
+                                         invres);
 #endif
-          res = (s0 + s1) / 2.0;
-          /* fix rounding errors (eg. (0.999+1.0)/2 = 1.0) ->
-             choose minimum (else it might again result in 1.0) */
-          if (res == 1.0 && (s0 < 1.0 || s1 < 1.0)) res = s0 < s1 ? s0 : s1;
         }
       }
-      assert (!btor_find_in_ptr_hash_table (aprop->score, aig));
-      b             = btor_insert_in_ptr_hash_table (aprop->score, aig);
+      assert (!btor_find_in_ptr_hash_table (aprop->score, cur));
+      assert (
+          !btor_find_in_ptr_hash_table (aprop->score, BTOR_INVERT_NODE (cur)));
+      b             = btor_insert_in_ptr_hash_table (aprop->score, cur);
       b->data.asDbl = res;
-#ifndef NDEBUG
-      AIGPROPLOG (2,
-                  "score cur (%s%d): %f",
-                  BTOR_IS_INVERTED_AIG (cur) ? "-" : "",
-                  real_cur->id,
-                  a < 0 ? 0 : 1,
-                  res);
-#endif
+      b = btor_insert_in_ptr_hash_table (aprop->score, BTOR_INVERT_NODE (cur));
+      b->data.asDbl = invres;
+      assert (btor_find_in_ptr_hash_table (aprop->score, cur));
+      assert (
+          btor_find_in_ptr_hash_table (aprop->score, BTOR_INVERT_NODE (cur)));
     }
   }
+
+  /* cleanup */
+  while (!BTOR_EMPTY_STACK (unmark_stack))
+    BTOR_POP_STACK (unmark_stack)->mark = 0;
+
   BTOR_RELEASE_STACK (mm, stack);
-  btor_free_int_hash_table (cache);
+  BTOR_RELEASE_STACK (mm, unmark_stack);
+
   assert (btor_find_in_ptr_hash_table (aprop->score, aig));
   assert (res == btor_find_in_ptr_hash_table (aprop->score, aig)->data.asDbl);
   return res;
@@ -406,19 +547,17 @@ compute_scores (AIGProp *aprop)
         if (!BTOR_IS_CONST_AIG (left)
             && !btor_contains_int_hash_table (cache,
                                               BTOR_REAL_ADDR_NODE (left)->id))
-          ;
-        BTOR_PUSH_STACK (mm, stack, left);
+          BTOR_PUSH_STACK (mm, stack, left);
         if (!BTOR_IS_CONST_AIG (right)
             && !btor_contains_int_hash_table (cache,
                                               BTOR_REAL_ADDR_NODE (right)->id))
-          ;
-        BTOR_PUSH_STACK (mm, stack, right);
+          BTOR_PUSH_STACK (mm, stack, right);
       }
     }
     else
     {
-      compute_sls_score_aig (aprop, cur);
-      compute_sls_score_aig (aprop, BTOR_INVERT_AIG (cur));
+      compute_score_aig (aprop, cur);
+      compute_score_aig (aprop, BTOR_INVERT_AIG (cur));
     }
   }
 

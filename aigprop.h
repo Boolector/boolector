@@ -27,7 +27,7 @@ typedef struct AIGProp AIGProp;
 
 AIGProp *aigprop_new_aigprop (BtorAIGMgr *amgr);
 
-void aigprop_generate_model (AIGProp *aprop);
+void aigprop_generate_model (AIGProp *aprop, int reset);
 
 int aigprop_sat (AIGProp *aprop);
 

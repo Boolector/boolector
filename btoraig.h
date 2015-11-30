@@ -91,6 +91,8 @@ typedef struct BtorAIGMgr BtorAIGMgr;
 
 #define BTOR_REAL_ADDR_AIG(aig) ((BtorAIG *) (~1ul & (unsigned long int) (aig)))
 
+#define BTOR_IS_REGULAR_AIG(aig) (!(1ul & (unsigned long int) (aig)))
+
 #define BTOR_IS_VAR_AIG(aig) ((aig)->is_var)
 
 #define BTOR_IS_AND_AIG(aig) (!(aig)->is_var)

@@ -108,8 +108,8 @@ sat_aigprop_solver (Btor *btor, int limit0, int limit1)
     goto DONE;
   }
   assert (btor->unsynthesized_constraints->count == 0);
-  assert (check_all_hash_tables_proxy_free_dbg (btor));
-  assert (check_all_hash_tables_simp_free_dbg (btor));
+  assert (btor_check_all_hash_tables_proxy_free_dbg (btor));
+  assert (btor_check_all_hash_tables_simp_free_dbg (btor));
 
 #ifndef NDEBUG
   btor_init_node_hash_table_iterator (&it, btor->assumptions);
@@ -171,7 +171,7 @@ generate_model_aigprop_solver (Btor *btor, int model_for_all_nodes, int reset)
   }
 
   // TODO MAP BACK TO EXP LAYER
-  aigprop_generate_model (BTOR_AIGPROP_SOLVER (btor)->aprop);
+  aigprop_generate_model (BTOR_AIGPROP_SOLVER (btor)->aprop, reset);
 
   /* generate model for unreachable nodes */
   if (model_for_all_nodes)
