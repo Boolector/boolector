@@ -1269,23 +1269,6 @@ reverse_subst_comp_kind (Btor *btor, BtorSubstCompKind comp)
   }
 }
 
-BtorNode *
-btor_aux_var_exp (Btor *btor, int len)
-{
-  assert (btor);
-  assert (len > 0);
-
-  BtorNode *result;
-#ifndef NDEBUG
-  int id = BTOR_COUNT_STACK (btor->nodes_id_table);
-#endif
-
-  result = btor_var_exp (btor, len, 0);
-  assert (BTOR_IS_REGULAR_NODE (result));
-  assert (result->id == id);
-  return result;
-}
-
 /* check if left does not occur on the right side */
 static int
 occurrence_check (Btor *btor, BtorNode *left, BtorNode *right)
@@ -1425,7 +1408,7 @@ normalize_substitution (Btor *btor,
       {
         const_exp = btor_zero_exp (btor, leadings);
         lambda =
-            btor_aux_var_exp (btor, btor_get_exp_width (btor, var) - leadings);
+            btor_var_exp (btor, btor_get_exp_width (btor, var) - leadings, 0);
         tmp = btor_concat_exp (btor, const_exp, lambda);
         btor_insert_varsubst_constraint (btor, var, tmp);
         btor_release_exp (btor, const_exp);
@@ -1442,7 +1425,7 @@ normalize_substitution (Btor *btor,
       {
         const_exp = btor_ones_exp (btor, leadings);
         lambda =
-            btor_aux_var_exp (btor, btor_get_exp_width (btor, var) - leadings);
+            btor_var_exp (btor, btor_get_exp_width (btor, var) - leadings, 0);
         tmp = btor_concat_exp (btor, const_exp, lambda);
         btor_insert_varsubst_constraint (btor, var, tmp);
         btor_release_exp (btor, const_exp);
@@ -2597,7 +2580,7 @@ substitute_var_exps (Btor *btor)
       cur = btor_next_node_hash_table_iterator (&it);
       assert (BTOR_IS_REGULAR_NODE (cur));
       assert (BTOR_IS_BV_VAR_NODE (cur) || BTOR_IS_UF_NODE (cur));
-      BTOR_PUSH_STACK (mm, stack, (BtorNode *) cur);
+      BTOR_PUSH_STACK (mm, stack, cur);
 
       while (!BTOR_EMPTY_STACK (stack))
       {

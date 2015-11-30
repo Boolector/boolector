@@ -391,6 +391,4 @@ BtorNode *btor_find_substitution (Btor *, BtorNode *);
 void btor_substitute_and_rebuild (Btor *, BtorPtrHashTable *, int);
 void btor_insert_varsubst_constraint (Btor *, BtorNode *, BtorNode *);
 
-BtorNode *btor_aux_var_exp (Btor *, int);
-
 #endif
