@@ -37,7 +37,7 @@ getenv_value (const char *lname)
       i -= 1;
       continue;
     }
-    uname[i] = toupper (lname[j]);
+    uname[i] = toupper ((int) lname[j]);
   }
 
   return getenv (uname);
@@ -113,13 +113,9 @@ btor_init_opts (Btor *btor)
 
   BTOR_OPT ("m", model_gen, 0, 0, 2, "print model for satisfiable instances");
 
-  BTOR_OPT ("i", incremental, 0, 0, 1, "incremental usage (SMT1 only)");
-  BTOR_OPT ("I",
-            incremental_all,
-            0,
-            0,
-            1,
-            "incremental usage, solve all (SMT1 only)");
+  BTOR_OPT ("i", incremental, 0, 0, 1, "incremental usage");
+  BTOR_OPT (
+      "I", incremental_all, 0, 0, 1, "incremental, solve all (SMT1 only)");
 
   BTOR_OPT (0,
             input_format,
@@ -146,13 +142,14 @@ btor_init_opts (Btor *btor)
 
   BTOR_OPT (
       "bra", beta_reduce_all, 0, 0, 1, "eagerly eliminate lambda expressions");
+  BTOR_OPT ("ack", ackermannize, 0, 0, 1, "add ackermann constraints");
 #ifdef BTOR_ENABLE_BETA_REDUCTION_PROBING
   BTOR_OPT ("pbra",
             probe_beta_reduce_all,
             0,
             0,
             1,
-            "probe '-bra' until given LOD or SAT limit");
+            "probe -bra until given LOD or SAT limit");
   BTOR_OPT (0, pbra_lod_limit, 10, 0, -1, "LOD limit (#lemmas) for -pbra");
   BTOR_OPT (
       0, pbra_sat_limit, 55000, 0, -1, "SAT limit (#conflicts) for -pbra");
@@ -176,7 +173,7 @@ btor_init_opts (Btor *btor)
 #ifndef BTOR_DO_NOT_OPTIMIZE_UNCONSTRAINED
   BTOR_OPT ("uc", ucopt, 0, 0, 1, "unconstrained optimization");
 #endif
-  BTOR_OPT ("ls", lazy_synthesize, 1, 0, 1, "lazily synthesize expressions");
+  BTOR_OPT ("ls", lazy_synthesize, 0, 0, 1, "lazily synthesize expressions");
   BTOR_OPT ("es", eliminate_slices, 1, 0, 1, "eliminate slices on variables");
   BTOR_OPT ("sp",
             skeleton_preprocessing,
@@ -184,8 +181,13 @@ btor_init_opts (Btor *btor)
             0,
             1,
             "enable propositional skeletone preprocessing");
+  BTOR_OPT ("el", eager_lemmas, 1, 0, 1, "eager lemma generation");
+  BTOR_OPT ("ml", merge_lambdas, 1, 0, 1, "merge lambda chains");
+  BTOR_OPT ("xl", extract_lambdas, 1, 0, 1, "extract lambda terms");
+  BTOR_OPT ("sp", skeleton_preproc, 1, 0, 1, "boolean skeleton preprocessing");
   BTOR_OPT ("ac", auto_cleanup, 0, 0, 1, "auto cleanup on exit");
   BTOR_OPT ("p", pretty_print, 1, 0, 1, "pretty print when dumping");
+  BTOR_OPT ("e", exit_codes, 1, 0, 1, "use Boolector exit codes");
 #ifndef NBTORLOG
   BTOR_OPT ("l", loglevel, 0, 0, BTORLOG_LEVEL_MAX, "increase loglevel");
 #endif
@@ -215,6 +217,7 @@ btor_init_opts (Btor *btor)
                  1,
                  "incremental interval mode width (SMT1 only)");
   BTOR_OPT_INTL (0, parse_interactive, 1, 0, 1, "interactive parse mode");
+  BTOR_OPT_INTL (0, rw_normalize, 1, 0, 1, "normalize during rewriting");
 }
 
 #define BTOR_FIRST_OPT(btor) (&(btor)->options.first + 1)

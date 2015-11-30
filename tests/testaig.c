@@ -14,6 +14,7 @@
 #include "btoraig.h"
 #include "btormsg.h"
 #include "btorsat.h"
+#include "dumper/btordumpaig.h"
 #include "testrunner.h"
 #include "utils/btormem.h"
 

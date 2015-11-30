@@ -14,10 +14,8 @@ test-clean:
 
 test.dep: btorconfig.h $(SRC) $(TESTSRC) makefile test.mk
 	rm -f $@; \
-	$(CC) $(CFLAGS) -MM $(TESTSRC) -I"$(shell pwd)"| \
-	sed -e 's,:,: $(shell pwd)/makefile,' \
-	    -e 's,^test,tests/test,' \
-	    >$@
+	$(CC) $(CFLAGS) -MM $(TESTSRC) -I. | \
+	sed -e 's,:,: makefile,' -e 's,^test,tests/test,' >$@
 
-test: $(TESTOBJ) libboolector.a  $(LDEPS)
+test: $(TESTOBJ) libboolector.a  $(LDEPS) makefile
 	$(CC) $(CFLAGS) -o $@ $(TESTOBJ) -L. -lboolector $(LIBS)

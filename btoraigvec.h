@@ -23,8 +23,9 @@ struct BtorAIGMap;
 
 struct BtorAIGVec
 {
-  BtorAIG **aigs; /* vector of AIGs */
-  int len;        /* length of the AIG vector */
+  uint32_t len; /* length of the AIG vector */
+  uint8_t encoded : 1;
+  BtorAIG *aigs[]; /* vector of AIGs */
 };
 
 typedef struct BtorAIGVec BtorAIGVec;
@@ -36,6 +37,8 @@ struct BtorAIGVecMgr
   BtorMemMgr *mm;
   BtorMsg *msg;
   BtorAIGMgr *amgr;
+  long long max_num_aigvecs;
+  long long cur_num_aigvecs;
 };
 
 /*------------------------------------------------------------------------*/
@@ -69,7 +72,7 @@ BtorAIGVec *btor_const_aigvec (BtorAIGVecMgr *avmgr, const char *bits);
  * len > 0
  * len(result) = len
  */
-BtorAIGVec *btor_var_aigvec (BtorAIGVecMgr *avmgr, int len);
+BtorAIGVec *btor_var_aigvec (BtorAIGVecMgr *avmgr, uint32_t len);
 
 /* Inverts all AIGs of the AIG vector */
 void btor_invert_aigvec (BtorAIGVecMgr *avmgr, BtorAIGVec *av);
@@ -87,8 +90,8 @@ BtorAIGVec *btor_not_aigvec (BtorAIGVecMgr *avmgr, BtorAIGVec *av);
  */
 BtorAIGVec *btor_slice_aigvec (BtorAIGVecMgr *avmgr,
                                BtorAIGVec *av,
-                               int upper,
-                               int lower);
+                               uint32_t upper,
+                               uint32_t lower);
 
 /* Creates new AIG vector representing av1 AND av2.
  * len(av1) = len(av2)
@@ -186,9 +189,7 @@ BtorAIGVec *btor_cond_aigvec (BtorAIGVecMgr *avmgr,
 BtorAIGVec *btor_copy_aigvec (BtorAIGVecMgr *avmgr, BtorAIGVec *av);
 
 /* Clones an existing AIG vector. All aigs referenced must already be cloned. */
-BtorAIGVec *btor_clone_aigvec (BtorAIGVec *av,
-                               BtorAIGVecMgr *avmgr,
-                               struct BtorAIGMap *aig_map);
+BtorAIGVec *btor_clone_aigvec (BtorAIGVec *av, BtorAIGVecMgr *avmgr);
 
 /* Translates every AIG of the AIG vector into SAT in both phases  */
 void btor_aigvec_to_sat_tseitin (BtorAIGVecMgr *avmgr, BtorAIGVec *av);

@@ -29,12 +29,14 @@
 #define BTOR_OUTPUT_BASE_MIN 0
 #define BTOR_OUTPUT_BASE_MAX 2
 
+#define BTOR_OUTPUT_FORMAT_AIGER_ASCII -4
+#define BTOR_OUTPUT_FORMAT_AIGER_BINARY -3
 #define BTOR_OUTPUT_FORMAT_BTOR2 -2
 #define BTOR_OUTPUT_FORMAT_BTOR -1
 #define BTOR_OUTPUT_FORMAT_SMT1 1
 #define BTOR_OUTPUT_FORMAT_SMT2 2
 #define BTOR_OUTPUT_FORMAT_DFLT BTOR_OUTPUT_FORMAT_BTOR
-#define BTOR_OUTPUT_FORMAT_MIN -2
+#define BTOR_OUTPUT_FORMAT_MIN -4
 #define BTOR_OUTPUT_FORMAT_MAX 2
 
 #define BTOR_JUST_HEUR_LEFT 0
@@ -68,6 +70,7 @@ typedef struct BtorOpt
 #define BTOR_OPT_REWRITE_LEVEL "rewrite_level"
 #define BTOR_OPT_REWRITE_LEVEL_PBR "rewrite_level_pbr"
 #define BTOR_OPT_BETA_REDUCE_ALL "beta_reduce_all"
+#define BTOR_OPT_ACKERMANN "ackermannize"
 #define BTOR_OPT_DUAL_PROP "dual_prop"
 #define BTOR_OPT_JUST "just"
 #ifndef BTOR_DO_NOT_OPTIMIZE_UNCONSTRAINED
@@ -75,6 +78,7 @@ typedef struct BtorOpt
 #endif
 #define BTOR_OPT_AUTO_CLEANUP "auto_cleanup"
 #define BTOR_OPT_PRETTY_PRINT "pretty_print"
+#define BTOR_OPT_EXIT_CODES "exit_codes"
 #define BTOR_OPT_LOGLEVEL "loglevel"
 #define BTOR_OPT_VERBOSITY "verbosity"
 #define BTOR_OPT_SIMPLIFY_CONSTRAINTS "simplify_constraints"
@@ -90,8 +94,13 @@ typedef struct BtorOpt
 #define BTOR_OPT_LAZY_SYNTHESIZE "lazy_synthesize"
 #define BTOR_OPT_ELIMINATE_SLICES "eliminate_slices"
 #define BTOR_OPT_SKELETON_PREPROCESSING "skeleton_preprocessing"
+#define BTOR_OPT_DELAY_LEMMAS "delay_lemmas"
 #define BTOR_OPT_JUST_HEURISTIC "just_heuristic"
 #define BTOR_OPT_PARSE_INTERACTIVE "parse_interactive"
+#define BTOR_OPT_MERGE_LAMBDAS "merge_lambdas"
+#define BTOR_OPT_EXTRACT_LAMBDAS "extract_lambdas"
+#define BTOR_OPT_SKELETON_PREPROC "skeleton_preproc"
+#define BTOR_OPT_RW_NORMALIZE "rw_normalize"
 
 typedef struct BtorOpts
 {
@@ -111,6 +120,7 @@ typedef struct BtorOpts
   BtorOpt rewrite_level_pbr;
 
   BtorOpt beta_reduce_all; /* eagerly eliminate lambda expressions */
+  BtorOpt ackermannize;    /* add ackermann constraints */
 #ifdef BTOR_ENABLE_BETA_REDUCTION_PROBING
   BtorOpt probe_beta_reduce_all; /* probe until given LOD or SAT limit */
   BtorOpt pbra_lod_limit;        /* LOD limit for BR probing */
@@ -125,14 +135,20 @@ typedef struct BtorOpts
 #ifndef BTOR_DO_NOT_OPTIMIZE_UNCONSTRAINED
   BtorOpt ucopt; /* unconstrained optimization */
 #endif
-  BtorOpt lazy_synthesize;        /* lazily synthesize expressions */
-  BtorOpt eliminate_slices;       /* eliminate slices on variables */
-  BtorOpt skeleton_preprocessing; /* enable propositional skeletone
-                                     preprocessing" */
+  BtorOpt lazy_synthesize;  /* lazily synthesize expressions */
+  BtorOpt eliminate_slices; /* eliminate slices on variables */
+  BtorOpt
+      skeleton_preprocessing; /* enable propositional skeleton preprocessing" */
+  BtorOpt eager_lemmas;       /* eager lemma generation */
+  BtorOpt merge_lambdas;      /* merge lambda chains */
+  BtorOpt extract_lambdas;    /* extract lambda terms */
+  BtorOpt skeleton_preproc;   /* skeleton preprocessing */
 
   BtorOpt auto_cleanup; /* automatic cleanup of exps, assignment
                            strings (external references only) */
   BtorOpt pretty_print; /* reindex exps and sorts when dumping */
+  BtorOpt exit_codes;   /* use Boolector exit codes rather than
+                           returning 0 on success and 1 on error */
 #ifndef NBTORLOG
   BtorOpt loglevel;
 #endif
@@ -147,6 +163,7 @@ typedef struct BtorOpts
   BtorOpt incremental_look_ahead; /* incremental usage, look-ahead mode */
   BtorOpt incremental_interval;   /* incremental usage, interval mode */
   BtorOpt parse_interactive;      /* interactive parse mode */
+  BtorOpt rw_normalize;           /* normalization during rewriting */
 
   /* ----------------------------------------------------------------------- */
   BtorOpt last; /* dummy for iteration */

@@ -308,7 +308,7 @@ test_lambda_param_slice (void)
 }
 
 static void
-param_extension_test (BtorNode *(*func) (Btor *, BtorNode *, int) )
+param_extension_test (BtorNode *(*func) (Btor *, BtorNode *, uint32_t))
 {
   init_lambda_test ();
   int lower           = g_elem_bw / 2 + 1;

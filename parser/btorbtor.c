@@ -590,9 +590,9 @@ parse_consth (BtorBTORParser *parser, int len)
 static BoolectorNode *
 parse_constd (BtorBTORParser *parser, int len)
 {
-  char ch, *tmp, *extended;
+  char *tmp, *extended;
   BoolectorNode *res;
-  int clen;
+  int clen, ch;
 
   if (parse_space (parser)) return 0;
 

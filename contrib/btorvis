@@ -89,7 +89,7 @@ info "temp file: $tmpfile_pdf"
 info "generating dot file"
 cat "$inputfile" | "$btor2dot" $btor2dotopts | dot -Tps2 > "$tmpfile_ps"
 
-info "generation pdf file"
+info "generating pdf file"
 "$ps2pdf" "$tmpfile_ps" "${ps2pdfoutputopt}${tmpfile_pdf}"
 if [ $? = 1 ]; then
   die "failed to generate pdf file"

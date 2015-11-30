@@ -14,6 +14,7 @@ LIBOBJ=$(patsubst %.c,%.o,$(foreach d,$(SRCDIRS),$(wildcard $(d)/btor[a-z]*.c)))
 LIBOBJ+=boolector.o $(OBJS)
 SRC=$(foreach d,$(SRCDIRS),$(wildcard $(d)/*.[c|h|cc]))
 TARGETS=@TARGETS@
+ROOT=$(shell pwd|sed -e 's, ,\\ ,g')
 
 all: libboolector.a $(TARGETS)
 
@@ -22,8 +23,6 @@ all: libboolector.a $(TARGETS)
 -include ibv.mk
 -include mbt.mk
 -include python.mk
--include synthebtor.mk
--include btor2horn.mk
 
 %.o: %.c
 	$(CC) $(CFLAGS) $(INCS) -c $< -o $@
@@ -62,10 +61,7 @@ libboolector.so: $(SHOBJS)
 clean:
 	rm -f $(TARGETS)
 	rm -f dependencies makefile btorconfig.h
-	rm -f *.gcda *.gcno *.gcov *.gch *.plist
-	rm -f tests/*.gcda tests/*.gcno tests/*.gcov
-	rm -f parser/*.gcda parser/*.gcno parser/*.gcov
-	rm -f dumper/*.gcda dumper/*.gcno dumper/*.gcov
+	rm -f $(foreach d,$(SRCDIRS),$(d)/*.{o,gcda,gcno,gcov,plist})
 	rm -f log/*.log *.tmp
 	rm -f *.a *.so $(foreach d,$(SRCDIRS),$(d)/*.o)
 

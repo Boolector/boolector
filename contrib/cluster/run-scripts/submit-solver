@@ -44,9 +44,9 @@ cnt=0
 echo -e "\nbenchmarks available:"
 for f in $(ls $pwd/benchmarks_*); do
   b=$(basename $f)
-  b=${b#benchmarks_} 
+  b=${b#benchmarks_}
   benchmark_list[$cnt]=$b
-  num_benchmarks=$(wc -l $f | awk '{print $1}') 
+  num_benchmarks=$(wc -l $f | awk '{print $1}')
   echo "  [$cnt] $b ($num_benchmarks)"
   ((cnt+=1))
 done
@@ -55,7 +55,7 @@ i=0
 while true;
 do
   echo -n "select benchmarks (default: [0] ${benchmark_list[0]}): "
-  read i 
+  read i
   if (( i >= 0 && i < cnt)); then
     break
   fi
@@ -79,7 +79,7 @@ do
 done
 
 working_dir=$pwd/$(basename $working_dir)
-mkdir $working_dir
+mkdir -p $working_dir
 
 # configure solver 
 echo -n "choose '$binary_name' options (default: $default_options): "
@@ -102,6 +102,8 @@ do
   if [[ ! $time_limit =~ $re ]]; then
     msg "time limit '$time_limit' is not a number"
     continue
+  else
+    break
   fi
 done
 
@@ -118,33 +120,27 @@ do
   if [[ ! $space_limit =~ $re ]]; then
     msg "space limit '$space_limit' is not a number"
     continue
+  else
+    break
   fi
 done
 
 # save options, benchmarks file, solver
-cp $benchmarks_file $working_dir
+cp $benchmarks_file $working_dir/benchmarks
 cp $solver $working_dir
 solver=$working_dir/$binary_name
 echo "time limit: $time_limit" > $working_dir/options
 echo "space limit: $space_limit" >> $working_dir/options
 echo "$options" >> $working_dir/options
 
+ntasks=$(wc -l $benchmarks_file | cut -d ' ' -f 1)
 # get most common prefix of all benchmark files
-prefix=$(cat $benchmarks_file | sed -e 'N;s/^\(.*\).*\n\1.*$/\1\n\1/;D')
+prefix=$(cat $benchmarks_file | sed -e 'N;s/^\(.*\).*\n\1\/.*$/\1\n\1\//;D')
 
-# start jobs
-for b in $(cat $benchmarks_file)
-do
-  basename=$(basename $b)
-  out="$(echo ${b#$prefix} | sed -e 's,/,-,g' -e 's,\.smt.*,,')"
-  out="$working_dir/$out"
-  qsub \
-    -e ":$out.err" \
-    -o ":$out.log" \
-    $HOME/bin/launch \
-    --time-limit=$time_limit \
-    --space-limit=$space_limit \
-    $solver \
-    $options \
-    $b
-done
+qsub -t 1-$ntasks $HOME/bin/launch \
+  "$working_dir/benchmarks" \
+  "$prefix" \
+  "$working_dir" \
+  "--time-limit=$time_limit --space-limit=$space_limit" \
+  "$solver" \
+  "$options"

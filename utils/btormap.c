@@ -41,13 +41,13 @@ btor_delete_node_map (BtorNodeMap *map)
   BtorHashTableIterator it;
   BtorNode *cur;
 
-  init_node_hash_table_iterator (&it, map->table);
-  while (has_next_node_hash_table_iterator (&it))
+  btor_init_node_hash_table_iterator (&it, map->table);
+  while (btor_has_next_node_hash_table_iterator (&it))
   {
     btor_release_exp (
         BTOR_REAL_ADDR_NODE ((BtorNode *) it.bucket->data.asPtr)->btor,
         it.bucket->data.asPtr);
-    cur = next_node_hash_table_iterator (&it);
+    cur = btor_next_node_hash_table_iterator (&it);
     btor_release_exp (BTOR_REAL_ADDR_NODE (cur)->btor, cur);
   }
   btor_delete_ptr_hash_table (map->table);
@@ -141,7 +141,7 @@ btor_map_node_internal (Btor *btor, BtorNodeMap *map, BtorNode *exp)
       real_exp = BTOR_REAL_ADDR_NODE (exp);
       if (real_exp->btor != btor)
       {
-        BtorNode *res = btor_const_exp (btor, exp->bits);
+        BtorNode *res = btor_const_exp (btor, btor_const_get_bits (exp));
         if (real_exp != exp) res = BTOR_INVERT_NODE (res);
         return res;
       }
@@ -151,7 +151,8 @@ btor_map_node_internal (Btor *btor, BtorNodeMap *map, BtorNode *exp)
     case BTOR_BV_VAR_NODE:
     case BTOR_UF_NODE: return btor_copy_exp (btor, exp);
     case BTOR_SLICE_NODE:
-      return btor_slice_exp (btor, m[0], exp->upper, exp->lower);
+      return btor_slice_exp (
+          btor, m[0], btor_slice_get_upper (exp), btor_slice_get_lower (exp));
     case BTOR_AND_NODE: return btor_and_exp (btor, m[0], m[1]);
     case BTOR_BEQ_NODE:
     case BTOR_FEQ_NODE: return btor_eq_exp (btor, m[0], m[1]);
@@ -392,11 +393,11 @@ btor_delete_aig_map (BtorAIGMap *map)
 
   btor = map->btor;
 
-  init_hash_table_iterator (&it, map->table);
-  while (has_next_hash_table_iterator (&it))
+  btor_init_hash_table_iterator (&it, map->table);
+  while (btor_has_next_hash_table_iterator (&it))
   {
     btor_release_aig (map->amgr_dst, it.bucket->data.asPtr);
-    btor_release_aig (map->amgr_src, next_hash_table_iterator (&it));
+    btor_release_aig (map->amgr_src, btor_next_hash_table_iterator (&it));
   }
   btor_delete_ptr_hash_table (map->table);
   BTOR_DELETE (btor->mm, map);

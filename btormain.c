@@ -268,7 +268,8 @@ print_opt (BtorMainApp *app,
            const char *lng,
            const char *shrt,
            int dflt,
-           const char *desc)
+           const char *desc,
+           int print_dflt)
 {
   assert (app);
   assert (lng);
@@ -328,18 +329,7 @@ print_opt (BtorMainApp *app,
 
   /* formatted description ---------------------------------- */
   /* append default value to description */
-  if (!strcmp (lng, BTOR_OPT_REWRITE_LEVEL)
-      || !strcmp (lng, BTOR_OPT_REWRITE_LEVEL_PBR)
-      || !strcmp (lng, BTOR_OPT_PBRA_LOD_LIMIT)
-      || !strcmp (lng, BTOR_OPT_PBRA_SAT_LIMIT)
-      || !strcmp (lng, BTOR_OPT_PBRA_OPS_FACTOR)
-      || !strcmp (lng, BTOR_OPT_DUAL_PROP) || !strcmp (lng, BTOR_OPT_JUST)
-      || !strcmp (lng, BTOR_OPT_JUST_HEURISTIC) || !strcmp (lng, BTOR_OPT_UCOPT)
-      || !strcmp (lng, BTOR_OPT_LAZY_SYNTHESIZE)
-      || !strcmp (lng, BTOR_OPT_ELIMINATE_SLICES)
-      || !strcmp (lng, BTOR_OPT_SKELETON_PREPROCESSING)
-      || !strcmp (lng, BTOR_OPT_PRETTY_PRINT)
-      || !strcmp (lng, BTOR_OPT_VERBOSITY) || !strcmp (lng, BTOR_OPT_LOGLEVEL))
+  if (print_dflt)
   {
     len = strlen (desc) + 3 + btor_num_digits_util (dflt);
     BTOR_CNEWN (app->mm, descstr, len + 1);
@@ -390,10 +380,10 @@ print_opt (BtorMainApp *app,
   BTOR_RELEASE_STACK (app->mm, words);
 }
 
-#define PRINT_MAIN_OPT(app, opt)                                        \
-  do                                                                    \
-  {                                                                     \
-    print_opt (app, (opt)->lng, (opt)->shrt, (opt)->dflt, (opt)->desc); \
+#define PRINT_MAIN_OPT(app, opt)                                           \
+  do                                                                       \
+  {                                                                        \
+    print_opt (app, (opt)->lng, (opt)->shrt, (opt)->dflt, (opt)->desc, 0); \
   } while (0)
 
 #define BOOLECTOR_OPTS_INFO_MSG                                                \
@@ -474,6 +464,18 @@ print_help (BtorMainApp *app)
   to.lng  = "dump_smt1";
   to.desc = "dump formula in SMT-LIB v1 format";
   PRINT_MAIN_OPT (app, &to);
+  to.shrt = "daa";
+  to.lng  = "dump_aag";
+  to.desc = "dump QF_BV formula in ascii AIGER format";
+  PRINT_MAIN_OPT (app, &to);
+  to.shrt = "dai";
+  to.lng  = "dump_aig";
+  to.desc = "dump QF_BV formula in binary AIGER format";
+  PRINT_MAIN_OPT (app, &to);
+  to.shrt = "dam";
+  to.lng  = "dump_aiger_merge";
+  to.desc = "merge all roots of AIG [0]";
+  PRINT_MAIN_OPT (app, &to);
   fprintf (out, "\n");
 
   for (mo = BTORMAIN_FIRST_OPT (app->opts); mo <= BTORMAIN_LAST_OPT (app->opts);
@@ -504,7 +506,8 @@ print_help (BtorMainApp *app)
                o,
                boolector_get_opt_shrt (app->btor, o),
                boolector_get_opt_dflt (app->btor, o),
-               boolector_get_opt_desc (app->btor, o));
+               boolector_get_opt_desc (app->btor, o),
+               1);
   }
 
   app->done = 1;
@@ -693,6 +696,7 @@ has_suffix (const char *str, const char *suffix)
 int
 boolector_main (int argc, char **argv)
 {
+  bool dump_merge = false;
   int i, j, len, readval, val, format;
   int isshrt, isdisable, isint;
   int res, parse_res, parse_status, sat_res;
@@ -1007,7 +1011,21 @@ boolector_main (int argc, char **argv)
       dump = BTOR_OUTPUT_FORMAT_SMT1;
       goto SET_OUTPUT_FORMAT;
     }
-
+    else if (!strcmp (opt.start, "daa") || !strcmp (opt.start, "dump_aag"))
+    {
+      dump = BTOR_OUTPUT_FORMAT_AIGER_ASCII;
+      goto SET_OUTPUT_FORMAT;
+    }
+    else if (!strcmp (opt.start, "dai") || !strcmp (opt.start, "dump_aig"))
+    {
+      dump = BTOR_OUTPUT_FORMAT_AIGER_BINARY;
+      goto SET_OUTPUT_FORMAT;
+    }
+    else if (!strcmp (opt.start, "dam")
+             || !strcmp (opt.start, "dump_aiger_merge"))
+    {
+      dump_merge = true;
+    }
     /* >> btor options */
     else
     {
@@ -1283,6 +1301,13 @@ boolector_main (int argc, char **argv)
                              g_app->outfile);
     }
 
+#ifdef BTOR_HAVE_GETRUSAGE
+    if (g_verbosity)
+    {
+      double delta_time = delta_time = btor_time_stamp () - g_start_time;
+      btormain_msg ("%.1f seconds", delta_time);
+    }
+#endif
     goto DONE;
   }
   /* we don't dump formula(s) in incremental mode */
@@ -1304,10 +1329,18 @@ boolector_main (int argc, char **argv)
         if (g_verbosity) btormain_msg ("dumping in SMT-LIB v1 format");
         boolector_dump_smt1 (g_app->btor, g_app->outfile);
         break;
-      default:
-        assert (dump == BTOR_OUTPUT_FORMAT_SMT2);
+      case BTOR_OUTPUT_FORMAT_SMT2:
         if (g_verbosity) btormain_msg ("dumping in SMT 2.0 format");
         boolector_dump_smt2 (g_app->btor, g_app->outfile);
+        break;
+      case BTOR_OUTPUT_FORMAT_AIGER_ASCII:
+        if (g_verbosity) btormain_msg ("dumping in ascii AIGER format");
+        boolector_dump_aiger_ascii (g_app->btor, g_app->outfile, dump_merge);
+        break;
+      default:
+        assert (dump == BTOR_OUTPUT_FORMAT_AIGER_BINARY);
+        if (g_verbosity) btormain_msg ("dumping in binary AIGER format");
+        boolector_dump_aiger_binary (g_app->btor, g_app->outfile, dump_merge);
     }
 
     if (g_verbosity) boolector_print_stats (g_app->btor);
@@ -1371,6 +1404,16 @@ DONE:
   else if (g_app->close_infile == 2)
     pclose (g_app->infile);
   if (g_app->close_outfile) fclose (g_app->outfile);
+
+  if (!boolector_get_opt_val (g_app->btor, BTOR_OPT_EXIT_CODES))
+  {
+    switch (res)
+    {
+      case BTOR_UNSAT_EXIT:
+      case BTOR_SAT_EXIT: res = BTOR_SUCC_EXIT; break;
+      default: res = BTOR_ERR_EXIT;
+    }
+  }
 
   BTOR_RELEASE_STACK (g_app->mm, errarg);
   BTOR_RELEASE_STACK (g_app->mm, opt);

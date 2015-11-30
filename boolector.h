@@ -15,6 +15,7 @@
 
 /*------------------------------------------------------------------------*/
 
+#include <stdbool.h>
 #include <stdio.h>
 #include "btortypes.h"
 
@@ -220,6 +221,26 @@ void boolector_assume (Btor *btor, BoolectorNode *node);
     boolector_assume
 */
 int boolector_failed (Btor *btor, BoolectorNode *node);
+
+/*!
+  Add all assumptions as assertions.
+
+  :param btor: Boolector instance.
+
+  .. seealso::
+    boolector_assume
+*/
+void boolector_fixate_assumptions (Btor *btor);
+
+/*!
+  Resets all added assumptions.
+
+  :param btor: Boolector instance.
+
+  .. seealso::
+    boolector_assume
+*/
+void boolector_reset_assumptions (Btor *btor);
 
 /*!
   Solve an input formula.
@@ -752,7 +773,7 @@ BoolectorNode *boolector_array (Btor *btor,
     boolector_apply, boolector_fun_sort
 */
 BoolectorNode *boolector_uf (Btor *btor,
-                             BoolectorSort *sort,
+                             BoolectorSort sort,
                              const char *symbol);
 
 /*!
@@ -1901,7 +1922,7 @@ void boolector_print_model (Btor *btor, char *format, FILE *file);
   .. seealso::
     boolector_uf
 */
-BoolectorSort *boolector_bool_sort (Btor *btor);
+BoolectorSort boolector_bool_sort (Btor *btor);
 
 /*!
   Create bit vector sort of bit width ``width``.
@@ -1916,7 +1937,7 @@ BoolectorSort *boolector_bool_sort (Btor *btor);
   .. seealso::
     boolector_uf
 */
-BoolectorSort *boolector_bitvec_sort (Btor *btor, int width);
+BoolectorSort boolector_bitvec_sort (Btor *btor, int width);
 
 /*!
   Create function sort.
@@ -1933,10 +1954,10 @@ BoolectorSort *boolector_bitvec_sort (Btor *btor, int width);
   .. seealso::
     boolector_uf
 */
-BoolectorSort *boolector_fun_sort (Btor *btor,
-                                   BoolectorSort **domain,
-                                   int arity,
-                                   BoolectorSort *codomain);
+BoolectorSort boolector_fun_sort (Btor *btor,
+                                  BoolectorSort *domain,
+                                  int arity,
+                                  BoolectorSort codomain);
 
 /*!
   Release sort (decrements reference counter).
@@ -1944,7 +1965,7 @@ BoolectorSort *boolector_fun_sort (Btor *btor,
   :param btor: Boolector instance.
   :param sort: Sort to be released.
 */
-void boolector_release_sort (Btor *btor, BoolectorSort *sort);
+void boolector_release_sort (Btor *btor, BoolectorSort sort);
 
 /*!
   Determine if ``n0`` and ``n1`` have the same sort or not.
@@ -2103,6 +2124,24 @@ void boolector_dump_smt2_node (Btor *btor, FILE *file, BoolectorNode *node);
   :param file: Output file.
 */
 void boolector_dump_smt2 (Btor *btor, FILE *file);
+
+/*!
+  Dumps bit vector formula to file in ascii AIGER format.
+
+  :param btor: Boolector instance
+  :param file: Output file.
+  :param merge_roots: Merge all roots of AIG.
+*/
+void boolector_dump_aiger_ascii (Btor *btor, FILE *file, bool merge_roots);
+
+/*!
+  Dumps bit vector formula to file in ascii AIGER format.
+
+  :param btor: Boolector instance
+  :param file: Output file.
+  :param merge_roots: Merge all roots of AIG.
+*/
+void boolector_dump_aiger_binary (Btor *btor, FILE *file, bool merge_roots);
 
 /* DEPRECATED API */
 
