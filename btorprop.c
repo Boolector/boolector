@@ -2899,7 +2899,7 @@ update_cone (Btor *btor, BtorNode *exp, BtorBitVector *assignment)
 }
 
 static BtorNode *
-select_constraint (Btor *btor, int nmoves)
+select_constraint (Btor *btor, uint32_t nmoves)
 {
   assert (btor);
 
@@ -2976,7 +2976,7 @@ all_constraints_sat (Btor *btor)
 }
 
 static int
-move (Btor *btor, int nmoves)
+move (Btor *btor, uint32_t nmoves)
 {
   assert (btor);
   assert (!all_constraints_sat (btor));
