@@ -2890,8 +2890,8 @@ substitute_and_rebuild (Btor *btor, BtorPtrHashTable *subst, int bra)
       while (btor_has_next_parent_iterator (&it))
       {
         cur_parent = btor_next_parent_iterator (&it);
-        if (cur_parent->aux_mark == 2
-            || !all_exps_below_rebuilt (btor, cur_parent))
+        if (cur_parent->aux_mark == 2)
+          //		  || !all_exps_below_rebuilt (btor, cur_parent))
           continue;
         assert (cur_parent->aux_mark == 0 || cur_parent->aux_mark == 1);
         cur_parent->aux_mark = 2;
