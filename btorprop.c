@@ -3076,7 +3076,7 @@ sat_prop_solver (Btor *btor, int limit0, int limit1)
 
   int j, max_steps;
   int sat_result;
-  int nmoves;
+  uint32_t nmoves;
   BtorNode *root;
   BtorHashTableIterator it;
   BtorPropSolver *slv;
