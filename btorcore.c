@@ -1124,8 +1124,8 @@ process_unsynthesized_constraints (Btor *btor)
   }
 }
 
-static void
-update_assumptions (Btor *btor)
+void
+btor_update_assumptions (Btor *btor)
 {
   assert (btor);
 
@@ -6639,7 +6639,7 @@ sat_core_solver (Btor *btor, int lod_limit, int sat_limit)
   }
 
   simp_sat_result = btor_simplify (btor);
-  update_assumptions (btor);
+  btor_update_assumptions (btor);
 
 #ifdef BTOR_CHECK_FAILED
   if (btor_has_clone_support_sat_mgr (btor_get_sat_mgr_btor (btor))
