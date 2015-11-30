@@ -78,6 +78,7 @@ btor_add_to_bv_model (Btor *btor,
   assert (btor);
   assert (bv_model);
   assert (exp);
+  assert (BTOR_IS_REGULAR_NODE (exp));
   assert (assignment);
 
   BtorPtrHashBucket *b;
