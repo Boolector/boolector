@@ -3,7 +3,7 @@
  *  Copyright (C) 2007-2009 Robert Daniel Brummayer.
  *  Copyright (C) 2007-2013 Armin Biere.
  *  Copyright (C) 2012-2015 Mathias Preiner.
- *  Copyright (C) 2012-2014 Aina Niemetz.
+ *  Copyright (C) 2012-2015 Aina Niemetz.
  *
  *  All rights reserved.
  *
@@ -35,11 +35,11 @@ btor_check_lambdas_static_rho_proxy_free_dbg (const Btor *btor)
       data = iit.bucket->data.asPtr;
       key  = btor_next_node_hash_table_iterator (&iit);
       assert (data);
-      if (BTOR_IS_PROXY_NODE (BTOR_REAL_ADDR_NODE (data))) return 0;
-      if (BTOR_IS_PROXY_NODE (BTOR_REAL_ADDR_NODE (key))) return 0;
+      if (BTOR_IS_PROXY_NODE (BTOR_REAL_ADDR_NODE (data))) return false;
+      if (BTOR_IS_PROXY_NODE (BTOR_REAL_ADDR_NODE (key))) return false;
     }
   }
-  return 1;
+  return true;
 }
 
 bool
@@ -51,8 +51,8 @@ btor_check_unique_table_children_proxy_free_dbg (const Btor *btor)
   for (i = 0; i < btor->nodes_unique_table.size; i++)
     for (cur = btor->nodes_unique_table.chains[i]; cur; cur = cur->next)
       for (j = 0; j < cur->arity; j++)
-        if (BTOR_IS_PROXY_NODE (BTOR_REAL_ADDR_NODE (cur->e[j]))) return 0;
-  return 1;
+        if (BTOR_IS_PROXY_NODE (BTOR_REAL_ADDR_NODE (cur->e[j]))) return false;
+  return true;
 }
 
 bool
@@ -65,9 +65,9 @@ btor_check_id_table_mark_unset_dbg (const Btor *btor)
   {
     cur = BTOR_PEEK_STACK (btor->nodes_id_table, i);
     if (!cur) continue;
-    if (cur->mark != 0) return 0;
+    if (cur->mark != 0) return false;
   }
-  return 1;
+  return true;
 }
 
 bool
@@ -80,9 +80,9 @@ btor_check_id_table_aux_mark_unset_dbg (const Btor *btor)
   {
     cur = BTOR_PEEK_STACK (btor->nodes_id_table, i);
     if (!cur) continue;
-    if (cur->aux_mark != 0) return 0;
+    if (cur->aux_mark != 0) return false;
   }
-  return 1;
+  return true;
 }
 
 bool
@@ -95,23 +95,23 @@ btor_check_hash_table_proxy_free_dbg (BtorPtrHashTable *table)
   while (btor_has_next_node_hash_table_iterator (&it))
   {
     cur = btor_next_node_hash_table_iterator (&it);
-    if (BTOR_IS_PROXY_NODE (BTOR_REAL_ADDR_NODE (cur))) return 0;
+    if (BTOR_IS_PROXY_NODE (BTOR_REAL_ADDR_NODE (cur))) return false;
   }
-  return 1;
+  return true;
 }
 
 bool
 btor_check_all_hash_tables_proxy_free_dbg (const Btor *btor)
 {
   if (!btor_check_hash_table_proxy_free_dbg (btor->varsubst_constraints))
-    return 0;
+    return false;
   if (!btor_check_hash_table_proxy_free_dbg (btor->embedded_constraints))
-    return 0;
+    return false;
   if (!btor_check_hash_table_proxy_free_dbg (btor->unsynthesized_constraints))
-    return 0;
+    return false;
   if (!btor_check_hash_table_proxy_free_dbg (btor->synthesized_constraints))
-    return 0;
-  return 1;
+    return false;
+  return true;
 }
 
 bool
@@ -122,22 +122,22 @@ btor_check_hash_table_simp_free_dbg (BtorPtrHashTable *table)
   while (btor_has_next_node_hash_table_iterator (&it))
     if (BTOR_REAL_ADDR_NODE (btor_next_node_hash_table_iterator (&it))
             ->simplified)
-      return 0;
-  return 1;
+      return false;
+  return true;
 }
 
 bool
 btor_check_all_hash_tables_simp_free_dbg (const Btor *btor)
 {
   if (!btor_check_hash_table_simp_free_dbg (btor->varsubst_constraints))
-    return 0;
+    return false;
   if (!btor_check_hash_table_simp_free_dbg (btor->embedded_constraints))
-    return 0;
+    return false;
   if (!btor_check_hash_table_simp_free_dbg (btor->unsynthesized_constraints))
-    return 0;
+    return false;
   if (!btor_check_hash_table_simp_free_dbg (btor->synthesized_constraints))
-    return 0;
-  return 1;
+    return false;
+  return true;
 }
 
 bool
@@ -156,10 +156,10 @@ btor_check_reachable_flag_dbg (const Btor *btor)
     while (btor_has_next_parent_iterator (&it))
     {
       parent = btor_next_parent_iterator (&it);
-      if (parent->reachable && !cur->reachable) return 0;
+      if (parent->reachable && !cur->reachable) return false;
     }
   }
-  return 1;
+  return true;
 }
 
 bool
@@ -174,7 +174,7 @@ btor_check_constraints_not_const_dbg (const Btor *btor)
     cur = btor_next_node_hash_table_iterator (&it);
     assert (cur);
     cur = BTOR_REAL_ADDR_NODE (cur);
-    if (BTOR_IS_BV_CONST_NODE (cur)) return 0;
+    if (BTOR_IS_BV_CONST_NODE (cur)) return false;
   }
 
   btor_init_node_hash_table_iterator (&it, btor->synthesized_constraints);
@@ -183,9 +183,9 @@ btor_check_constraints_not_const_dbg (const Btor *btor)
     cur = btor_next_node_hash_table_iterator (&it);
     assert (cur);
     cur = BTOR_REAL_ADDR_NODE (cur);
-    if (BTOR_IS_BV_CONST_NODE (cur)) return 0;
+    if (BTOR_IS_BV_CONST_NODE (cur)) return false;
   }
-  return 1;
+  return true;
 }
 
 bool
@@ -194,8 +194,9 @@ btor_check_assumptions_simp_free_dbg (const Btor *btor)
   BtorHashTableIterator it;
   btor_init_node_hash_table_iterator (&it, btor->assumptions);
   while (btor_has_next_node_hash_table_iterator (&it))
-    assert (!BTOR_REAL_ADDR_NODE (btor_next_node_hash_table_iterator (&it))
-                 ->simplified);
+    if (BTOR_REAL_ADDR_NODE (btor_next_node_hash_table_iterator (&it))
+            ->simplified)
+      return false;
   return true;
 }
 
