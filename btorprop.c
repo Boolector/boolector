@@ -3100,6 +3100,7 @@ sat_prop_solver (Btor *btor, int limit0, int limit1)
   }
 
   sat_result = btor_simplify (btor);
+  btor_update_assumptions (btor);
   BTOR_ABORT_BOOLECTOR (
       btor->ufs->count != 0
           || (!btor->options.beta_reduce_all.val && btor->lambdas->count != 0),
