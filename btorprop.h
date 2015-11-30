@@ -23,10 +23,10 @@ struct BtorPropSolver
 
   struct
   {
-    int restarts;
-    int moves;
-    int move_prop_rec_conf;
-    int move_prop_non_rec_conf;
+    uint32_t restarts;
+    uint32_t moves;
+    uint32_t move_prop_rec_conf;
+    uint32_t move_prop_non_rec_conf;
   } stats;
 };
 
