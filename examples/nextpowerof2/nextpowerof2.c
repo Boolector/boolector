@@ -1,7 +1,7 @@
 #include <stdio.h>
 #include <stdlib.h>
 #include "boolector.h"
-#include "btorutil.h"
+#include "utils/btorutil.h"
 
 /* We verifiy that the next power of 2 algorithm
  * from the book "hacker's delight" (Warren Jr., Henry)

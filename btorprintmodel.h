@@ -24,6 +24,7 @@ const char* btor_get_bv_model_str_aux (Btor* btor,
 void btor_get_fun_model_str (
     Btor* btor, BtorNode* exp, char*** args, char*** values, int* size);
 void btor_get_fun_model_str_aux (Btor* btor,
+                                 BtorPtrHashTable** bv_model,
                                  BtorPtrHashTable** fun_model,
                                  BtorNode* exp,
                                  char*** args,

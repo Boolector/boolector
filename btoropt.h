@@ -41,10 +41,9 @@
 
 #define BTOR_OUTPUT_FORMAT_BTOR 1
 #define BTOR_OUTPUT_FORMAT_BTOR2 2
-#define BTOR_OUTPUT_FORMAT_SMT1 3
-#define BTOR_OUTPUT_FORMAT_SMT2 4
-#define BTOR_OUTPUT_FORMAT_AIGER_ASCII 5
-#define BTOR_OUTPUT_FORMAT_AIGER_BINARY 6
+#define BTOR_OUTPUT_FORMAT_SMT2 3
+#define BTOR_OUTPUT_FORMAT_AIGER_ASCII 4
+#define BTOR_OUTPUT_FORMAT_AIGER_BINARY 5
 #define BTOR_OUTPUT_FORMAT_DFLT BTOR_OUTPUT_FORMAT_BTOR
 #define BTOR_OUTPUT_FORMAT_MIN BTOR_OUTPUT_FORMAT_BTOR
 #define BTOR_OUTPUT_FORMAT_MAX BTOR_OUTPUT_FORMAT_AIGER_BINARY
@@ -88,7 +87,6 @@ typedef struct BtorOpt
 #define BTOR_OPT_OUTPUT_NUMBER_FORMAT "output_number_format"
 #define BTOR_OPT_OUTPUT_FORMAT "output_format"
 #define BTOR_OPT_REWRITE_LEVEL "rewrite_level"
-#define BTOR_OPT_REWRITE_LEVEL_PBR "rewrite_level_pbr"
 #define BTOR_OPT_BETA_REDUCE_ALL "beta_reduce_all"
 #define BTOR_OPT_ACKERMANN "ackermannize"
 #define BTOR_OPT_DUAL_PROP "dual_prop"
@@ -158,7 +156,6 @@ typedef struct BtorOpts
   BtorOpt output_format;        /* output file format */
 
   BtorOpt rewrite_level;
-  BtorOpt rewrite_level_pbr;
 
   BtorOpt beta_reduce_all; /* eagerly eliminate lambda expressions */
   BtorOpt ackermannize;    /* add ackermann constraints */

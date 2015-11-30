@@ -15,8 +15,8 @@
 #include "btordbg.h"
 #include "utils/btoriter.h"
 
-int
-check_lambdas_static_rho_proxy_free_dbg (const Btor *btor)
+bool
+btor_check_lambdas_static_rho_proxy_free_dbg (const Btor *btor)
 {
   BtorNode *cur, *data, *key;
   BtorHashTableIterator it, iit;
@@ -42,8 +42,8 @@ check_lambdas_static_rho_proxy_free_dbg (const Btor *btor)
   return 1;
 }
 
-int
-check_unique_table_children_proxy_free_dbg (const Btor *btor)
+bool
+btor_check_unique_table_children_proxy_free_dbg (const Btor *btor)
 {
   int i, j;
   BtorNode *cur;
@@ -55,8 +55,8 @@ check_unique_table_children_proxy_free_dbg (const Btor *btor)
   return 1;
 }
 
-int
-check_id_table_mark_unset_dbg (const Btor *btor)
+bool
+btor_check_id_table_mark_unset_dbg (const Btor *btor)
 {
   int i;
   BtorNode *cur;
@@ -70,8 +70,8 @@ check_id_table_mark_unset_dbg (const Btor *btor)
   return 1;
 }
 
-int
-check_id_table_aux_mark_unset_dbg (const Btor *btor)
+bool
+btor_check_id_table_aux_mark_unset_dbg (const Btor *btor)
 {
   int i;
   BtorNode *cur;
@@ -85,8 +85,8 @@ check_id_table_aux_mark_unset_dbg (const Btor *btor)
   return 1;
 }
 
-int
-check_hash_table_proxy_free_dbg (BtorPtrHashTable *table)
+bool
+btor_check_hash_table_proxy_free_dbg (BtorPtrHashTable *table)
 {
   BtorHashTableIterator it;
   BtorNode *cur;
@@ -100,20 +100,22 @@ check_hash_table_proxy_free_dbg (BtorPtrHashTable *table)
   return 1;
 }
 
-int
-check_all_hash_tables_proxy_free_dbg (const Btor *btor)
+bool
+btor_check_all_hash_tables_proxy_free_dbg (const Btor *btor)
 {
-  if (!check_hash_table_proxy_free_dbg (btor->varsubst_constraints)) return 0;
-  if (!check_hash_table_proxy_free_dbg (btor->embedded_constraints)) return 0;
-  if (!check_hash_table_proxy_free_dbg (btor->unsynthesized_constraints))
+  if (!btor_check_hash_table_proxy_free_dbg (btor->varsubst_constraints))
     return 0;
-  if (!check_hash_table_proxy_free_dbg (btor->synthesized_constraints))
+  if (!btor_check_hash_table_proxy_free_dbg (btor->embedded_constraints))
+    return 0;
+  if (!btor_check_hash_table_proxy_free_dbg (btor->unsynthesized_constraints))
+    return 0;
+  if (!btor_check_hash_table_proxy_free_dbg (btor->synthesized_constraints))
     return 0;
   return 1;
 }
 
-int
-check_hash_table_simp_free_dbg (BtorPtrHashTable *table)
+bool
+btor_check_hash_table_simp_free_dbg (BtorPtrHashTable *table)
 {
   BtorHashTableIterator it;
   btor_init_node_hash_table_iterator (&it, table);
@@ -124,19 +126,22 @@ check_hash_table_simp_free_dbg (BtorPtrHashTable *table)
   return 1;
 }
 
-int
-check_all_hash_tables_simp_free_dbg (const Btor *btor)
+bool
+btor_check_all_hash_tables_simp_free_dbg (const Btor *btor)
 {
-  if (!check_hash_table_simp_free_dbg (btor->varsubst_constraints)) return 0;
-  if (!check_hash_table_simp_free_dbg (btor->embedded_constraints)) return 0;
-  if (!check_hash_table_simp_free_dbg (btor->unsynthesized_constraints))
+  if (!btor_check_hash_table_simp_free_dbg (btor->varsubst_constraints))
     return 0;
-  if (!check_hash_table_simp_free_dbg (btor->synthesized_constraints)) return 0;
+  if (!btor_check_hash_table_simp_free_dbg (btor->embedded_constraints))
+    return 0;
+  if (!btor_check_hash_table_simp_free_dbg (btor->unsynthesized_constraints))
+    return 0;
+  if (!btor_check_hash_table_simp_free_dbg (btor->synthesized_constraints))
+    return 0;
   return 1;
 }
 
-int
-check_reachable_flag_dbg (const Btor *btor)
+bool
+btor_check_reachable_flag_dbg (const Btor *btor)
 {
   int i;
   BtorNode *cur, *parent;
@@ -157,8 +162,8 @@ check_reachable_flag_dbg (const Btor *btor)
   return 1;
 }
 
-int
-check_constraints_not_const_dbg (Btor *btor)
+bool
+btor_check_constraints_not_const_dbg (const Btor *btor)
 {
   BtorNode *cur;
   BtorHashTableIterator it;
@@ -181,6 +186,17 @@ check_constraints_not_const_dbg (Btor *btor)
     if (BTOR_IS_BV_CONST_NODE (cur)) return 0;
   }
   return 1;
+}
+
+bool
+btor_check_assumptions_simp_free_dbg (const Btor *btor)
+{
+  BtorHashTableIterator it;
+  btor_init_node_hash_table_iterator (&it, btor->assumptions);
+  while (btor_has_next_node_hash_table_iterator (&it))
+    assert (!BTOR_REAL_ADDR_NODE (btor_next_node_hash_table_iterator (&it))
+                 ->simplified);
+  return true;
 }
 
 #endif

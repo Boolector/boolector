@@ -23,7 +23,7 @@ compute_scores_aux_min_dep (Btor *btor, BtorNodePtrStack *nodes)
 {
   assert (btor);
   assert (BTOR_CORE_SOLVER (btor)->score);
-  assert (check_id_table_aux_mark_unset_dbg (btor));
+  assert (btor_check_id_table_aux_mark_unset_dbg (btor));
   assert (nodes);
 
   int i, j, min_depth;
@@ -106,7 +106,7 @@ compute_scores_aux_min_app (Btor *btor, BtorNodePtrStack *nodes)
 {
   assert (btor);
   assert (BTOR_CORE_SOLVER (btor)->score);
-  assert (check_id_table_aux_mark_unset_dbg (btor));
+  assert (btor_check_id_table_aux_mark_unset_dbg (btor));
   assert (nodes);
 
   double delta;
@@ -230,7 +230,7 @@ void
 btor_compute_scores (Btor *btor)
 {
   assert (btor);
-  assert (check_id_table_aux_mark_unset_dbg (btor));
+  assert (btor_check_id_table_aux_mark_unset_dbg (btor));
 
   int i;
   double start;
@@ -305,7 +305,7 @@ void
 btor_compute_scores_dual_prop (Btor *btor)
 {
   assert (btor);
-  assert (check_id_table_aux_mark_unset_dbg (btor));
+  assert (btor_check_id_table_aux_mark_unset_dbg (btor));
 
   int i;
   double start;

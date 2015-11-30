@@ -20,32 +20,46 @@
 #include "utils/btormisc.h"
 #include "utils/btorutil.h"
 
-/* Checks if the parameter in the equality 'c' matches the parameter that
- * parameterizes 'e'. */
 static bool
-check_params (Btor *btor, BtorNode *c, BtorNode *e)
+is_uc_write (Btor *btor, BtorNode *cond)
 {
-  assert (BTOR_IS_REGULAR_NODE (c));
-  assert (c->parameterized);
-  assert (BTOR_REAL_ADDR_NODE (e)->parameterized);
+  assert (BTOR_IS_REGULAR_NODE (cond));
+  assert (BTOR_IS_BV_COND_NODE (cond));
+  assert (cond->parameterized);
 
-  BtorNode *param, *nonparam;
+  BtorNode *param, *nonparam, *cond_c, *cond_if, *cond_else;
   BtorParameterizedIterator it;
 
-  if (!BTOR_IS_INVERTED_NODE (c->e[0]) && BTOR_IS_PARAM_NODE (c->e[0]))
+  cond_c    = cond->e[0];
+  cond_if   = cond->e[1];
+  cond_else = cond->e[2];
+
+  if (BTOR_IS_INVERTED_NODE (cond_c) || !BTOR_IS_BV_EQ_NODE (cond_c)
+      || !cond_c->parameterized)
+    return false;
+
+  if (BTOR_IS_APPLY_NODE (BTOR_REAL_ADDR_NODE (cond_if))
+      && BTOR_REAL_ADDR_NODE (cond_if)->parameterized)
+    return false;
+
+  if (!BTOR_IS_INVERTED_NODE (cond_c->e[0])
+      && BTOR_IS_PARAM_NODE (cond_c->e[0]))
   {
-    param    = c->e[0];
-    nonparam = c->e[1];
+    param    = cond_c->e[0];
+    nonparam = cond_c->e[1];
   }
-  else if (!BTOR_IS_INVERTED_NODE (c->e[1]) && BTOR_IS_PARAM_NODE (c->e[1]))
+  else if (!BTOR_IS_INVERTED_NODE (cond_c->e[1])
+           && BTOR_IS_PARAM_NODE (cond_c->e[1]))
   {
-    param    = c->e[1];
-    nonparam = c->e[0];
+    param    = cond_c->e[1];
+    nonparam = cond_c->e[0];
   }
+  else
+    return false;
 
   if (BTOR_REAL_ADDR_NODE (nonparam)->parameterized) return false;
 
-  btor_init_parameterized_iterator (&it, btor, e);
+  btor_init_parameterized_iterator (&it, btor, cond_else);
   assert (btor_has_next_parameterized_iterator (&it));
   return param == btor_next_parameterized_iterator (&it)
          && !btor_has_next_parameterized_iterator (&it);
@@ -81,7 +95,7 @@ mark_uc (Btor *btor, BtorIntHashTable *uc, BtorNode *exp)
   else
     btor->stats.bv_uc_props++;
 
-  if (BTOR_IS_LAMBDA_NODE (exp))
+  if (BTOR_IS_LAMBDA_NODE (exp) || BTOR_IS_FUN_COND_NODE (exp))
   {
     subst           = btor_uf_exp (btor, exp->sort_id, 0);
     subst->is_array = exp->is_array;
@@ -100,7 +114,7 @@ btor_optimize_unconstrained (Btor *btor)
   assert (btor->options.rewrite_level.val > 2);
   assert (!btor->options.incremental.val);
   assert (!btor->options.model_gen.val);
-  assert (check_id_table_mark_unset_dbg (btor));
+  assert (btor_check_id_table_mark_unset_dbg (btor));
 
   double start, delta;
   unsigned num_ucs;
@@ -267,36 +281,12 @@ btor_optimize_unconstrained (Btor *btor)
             if (!cur->parameterized && uc[0] && uc[1]) mark_uc (btor, ucs, cur);
             break;
           case BTOR_BCOND_NODE:
-            if ((uc[1] && uc[2])
-                || (uc[0] && (uc[1] || uc[2]))
-                /* parameterized case: writes */
-                || (uc[1] && ucp[2])
-                /* parameterized case: ite on functions */
-                || (ucp[1] && ucp[2]))
+            if ((uc[1] && uc[2]) || (uc[0] && (uc[1] || uc[2])))
+              mark_uc (btor, ucs, cur);
+            else if (uc[1] && ucp[2])
             {
-              BtorNode *ite_t, *ite_e, *ite_c, *param;
-
-              if (cur->parameterized)
-              {
-                ite_c = cur->e[0];
-                ite_t = BTOR_REAL_ADDR_NODE (cur->e[1]);
-                ite_e = BTOR_REAL_ADDR_NODE (cur->e[2]);
-
-                if (ucp[1] && ucp[2])
-                {
-                  mark_uc (btor, ucsp, cur);
-                }
-                /* case: x = t ? uc : ucp */
-                else if (uc[1] && ucp[2] && !BTOR_IS_INVERTED_NODE (ite_c)
-                         && BTOR_IS_BV_EQ_NODE (ite_c) && ite_c->parameterized
-                         && !BTOR_IS_APPLY_NODE (ite_t) && !ite_t->parameterized
-                         && check_params (btor, ite_c, ite_e))
-                {
-                  mark_uc (btor, ucsp, cur);
-                }
-              }
-              else
-                mark_uc (btor, ucs, cur);
+              /* case: x = t ? uc : ucp */
+              if (is_uc_write (btor, cur)) mark_uc (btor, ucsp, cur);
             }
             break;
           // TODO (ma): functions with parents > 1 can still be

@@ -362,7 +362,7 @@
                                       BTORMBT_M2STR (P_MODEL_FORMAT) "]\n" \
   "\n other options:\n" \
   "  --output-format <string>         force dump/model output format\n" \
-  "                                   available formats are: btor,smt1,smt2\n"
+  "                                   available formats are: btor,smt2\n"
 
 /*------------------------------------------------------------------------*/
 
@@ -531,11 +531,14 @@ is_unary_op (Op op)
   return op >= NOT && op <= REDAND;
 }
 
+#if 0
+// NOTE (ma): not required right now
 static int
 is_boolean_unary_op (Op op)
 {
   return (op >= REDOR && op <= REDAND);
 }
+#endif
 
 static int
 is_binary_op (Op op)
@@ -543,11 +546,14 @@ is_binary_op (Op op)
   return (op >= EQ && op <= CONCAT);
 }
 
+#if 0
+// NOTE (ma): not required right now
 static int
 is_boolean_binary_op (Op op)
 {
   return (op >= EQ && op <= IFF);
 }
+#endif
 
 #ifndef NDEBUG
 static int
@@ -950,7 +956,7 @@ struct BtorMBT
 
   BtorMBTExpStack *assumptions;
   BtorMBTExpStack *bo, *bv, *arr, *fun, *uf;
-  BtorMBTExpStack *parambo, *parambv, *paramarr;
+  BtorMBTExpStack *parambo, *parambv, *paramarr, *paramfun;
   BtorMBTExpStack *cnf;
   BoolectorSortStack *bv_sorts, *fun_sorts;
 
@@ -1157,6 +1163,7 @@ static bool
 btormbt_is_parameterized (BtorMBT *mbt, BoolectorNode *node)
 {
   assert (node);
+  (void) mbt;
   // TODO (ma): workaround need API for querying parameterized flag
   return BTOR_REAL_ADDR_NODE (((BtorNode *) node))->parameterized == 1;
 }
@@ -1176,7 +1183,7 @@ btormbt_push_node (BtorMBT *mbt, BoolectorNode *node)
   else if (BTOR_IS_UF_NODE (BTOR_REAL_ADDR_NODE ((BtorNode *) node)))
     stack = mbt->uf;
   else if (boolector_is_fun (mbt->btor, node))
-    stack = mbt->fun;
+    stack = is_parameterized ? mbt->paramfun : mbt->fun;
   else if (boolector_get_width (mbt->btor, node) == 1)
     stack = is_parameterized ? mbt->parambo : mbt->bo;
   else
@@ -1184,6 +1191,24 @@ btormbt_push_node (BtorMBT *mbt, BoolectorNode *node)
 
   btormbt_push_exp_stack (mbt->mm, stack, node);
   return BTOR_TOP_STACK (stack->exps);
+}
+
+static BtorMBTExpStack *
+btormbt_copy_exp_stack (BtorMBT *mbt, BtorMBTExpStack *expstack)
+{
+  int i;
+  BtorMBTExpStack *res;
+  BtorMBTExp *e;
+
+  res = btormbt_new_exp_stack (mbt->mm);
+  for (i = 0; i < BTOR_COUNT_STACK (expstack->exps); i++)
+  {
+    e = BTOR_PEEK_STACK (expstack->exps, i);
+    btormbt_push_exp_stack (mbt->mm, res, boolector_copy (mbt->btor, e->exp));
+  }
+  res->init_layer_size  = expstack->init_layer_size;
+  res->last_pos_parents = expstack->last_pos_parents;
+  return res;
 }
 
 #if 0
@@ -2032,13 +2057,11 @@ btormbt_ternary_op (BtorMBT *mbt,
   assert (op == COND);
   assert (boolector_get_width (mbt->btor, e0) == 1);
 
-  (void) op;
-  int e1w, e2w;
+  int e1w;
 
   e1w = boolector_get_width (mbt->btor, e1);
   assert (e1w <= mbt->g_max_bw);
-  e2w = boolector_get_width (mbt->btor, e2);
-  assert (e2w <= mbt->g_max_bw);
+  assert (boolector_get_width (mbt->btor, e2) <= mbt->g_max_bw);
 
   /* bitvectors must have same bit width */
   e2 = modify_bv (mbt, rng, e2, e1w);
@@ -2480,8 +2503,8 @@ static void
 btormbt_bv_fun (BtorMBT *mbt, unsigned r, int nlevel)
 {
   int i, n, width, max_ops, rand;
-  BtorMBTExpStack *parambo, *parambv, *paramarr;
-  BtorMBTExpStack *expstack, *tmpparambo, *tmpparambv, *tmpparamarr;
+  BtorMBTExpStack *expstack;
+  BtorMBTExpStack *tmpparambo, *tmpparambv, *tmpparamarr, *tmpparamfun;
   BoolectorNode *tmp, *fun, *e0, *e1, *e2;
   BoolectorNodePtrStack params, args;
   BtorIntStack param_widths;
@@ -2492,10 +2515,18 @@ btormbt_bv_fun (BtorMBT *mbt, unsigned r, int nlevel)
   /* choose between apply on random existing and apply on new function */
   rand = pick (&rng, 0, NORM_VAL - 1);
   /* use existing function */
-  if (!BTOR_EMPTY_STACK (mbt->fun->exps) && rand < mbt->p_apply_fun)
+  if (rand < mbt->p_apply_fun
+      && (!BTOR_EMPTY_STACK (mbt->fun->exps)
+          || (mbt->paramfun && !BTOR_EMPTY_STACK (mbt->paramfun->exps))))
   {
-    rand = pick (&rng, 0, BTOR_COUNT_STACK (mbt->fun->exps) - 1);
-    fun  = mbt->fun->exps.start[rand]->exp;
+    /* pick fun from fun/paramfun with p = 0.5 if non-empty */
+    expstack = !BTOR_EMPTY_STACK (mbt->fun->exps)
+                   ? (mbt->paramfun && !BTOR_EMPTY_STACK (mbt->paramfun->exps)
+                          ? (pick (&rng, 0, 1) ? mbt->fun : mbt->paramfun)
+                          : mbt->fun)
+                   : mbt->paramfun;
+    rand = pick (&rng, 0, BTOR_COUNT_STACK (expstack->exps) - 1);
+    fun  = expstack->exps.start[rand]->exp;
 
     // FIXME (ma): sort workaround
     BtorSort *sort;
@@ -2512,17 +2543,33 @@ btormbt_bv_fun (BtorMBT *mbt, unsigned r, int nlevel)
   }
   else /* generate new function */
   {
-    parambo  = btormbt_new_exp_stack (mbt->mm);
-    parambv  = btormbt_new_exp_stack (mbt->mm);
-    paramarr = btormbt_new_exp_stack (mbt->mm);
-
+    /* save current stacks of previous scope */
     tmpparambo  = mbt->parambo;
     tmpparambv  = mbt->parambv;
     tmpparamarr = mbt->paramarr;
+    tmpparamfun = mbt->paramfun;
 
-    mbt->parambo  = parambo;
-    mbt->parambv  = parambv;
-    mbt->paramarr = paramarr;
+    /* create new stacks for this scope
+     * nested functions can access nodes from the parent function */
+    if (tmpparambo)
+      mbt->parambo = btormbt_copy_exp_stack (mbt, tmpparambo);
+    else
+      mbt->parambo = btormbt_new_exp_stack (mbt->mm);
+
+    if (tmpparambv)
+      mbt->parambv = btormbt_copy_exp_stack (mbt, tmpparambv);
+    else
+      mbt->parambv = btormbt_new_exp_stack (mbt->mm);
+
+    if (tmpparamarr)
+      mbt->paramarr = btormbt_copy_exp_stack (mbt, tmpparamarr);
+    else
+      mbt->paramarr = btormbt_new_exp_stack (mbt->mm);
+
+    if (tmpparamfun)
+      mbt->paramfun = btormbt_copy_exp_stack (mbt, tmpparamfun);
+    else
+      mbt->paramfun = btormbt_new_exp_stack (mbt->mm);
 
     /* choose function parameters */
     BTOR_INIT_STACK (params);
@@ -2556,160 +2603,79 @@ btormbt_bv_fun (BtorMBT *mbt, unsigned r, int nlevel)
       assert (boolector_get_width (mbt->btor, tmp) > 1);
       modify_bv (mbt, &rng, tmp, 1);
     }
-    /* generate parameterized WRITE */
-    assert (BTOR_EMPTY_STACK (mbt->paramarr->exps));
-    rand = pick (&rng, 1, 2);
-    e1   = select_exp (mbt, &rng, BTORMBT_BB_T, rand == 1 ? 1 : 0);
-    e2   = select_exp (mbt, &rng, BTORMBT_BB_T, rand == 2 ? 1 : 0);
-    e0   = select_arr_exp (mbt,
-                         &rng,
-                         0,
-                         boolector_get_width (mbt->btor, e2),
-                         boolector_get_width (mbt->btor, e1),
-                         -1);
-    assert (btormbt_is_parameterized (mbt, e1)
-            || btormbt_is_parameterized (mbt, e2));
-    // TODO (ma): create parameterized acond?
-    btormbt_array_op (mbt, &rng, WRITE, e0, e1, e2);
-    assert (!BTOR_EMPTY_STACK (mbt->parambo->exps));
-    assert (!BTOR_EMPTY_STACK (mbt->parambv->exps));
-    assert (!BTOR_EMPTY_STACK (mbt->paramarr->exps));
-
-#if 0
-  /* initialize parameterized stacks if empty. either parambo or parambv
-   * contains at least on parameter */
-  if (BTOR_EMPTY_STACK (expstack->exps))
+    if (BTOR_EMPTY_STACK (mbt->paramarr->exps))
     {
-      assert (bo == mbt->parambo);
-      assert (bv == mbt->parambv);
-      assert (arr == mbt->paramarr);
-      if (expstack == bo)
-	{
-	  assert (!BTOR_EMPTY_STACK (bv->exps));
-	  rand = pick (rng, 0, BTOR_COUNT_STACK (bv->exps) - 1);
-	  exp = BTOR_PEEK_STACK (bv->exps, rand);
-	  
-	  /* create node with width == 1 */
-	  rand = pick (rng, 0, 3);
-	  if (rand == 0)
-	    node = boolector_redand (mbt->btor, exp->exp);
-	  else if (rand == 1)
-	    node = boolector_redor (mbt->btor, exp->exp);
-	  else if (rand == 2)
-	    node = boolector_redxor (mbt->btor, exp->exp);
-	  else
-	    {
-	      rand = pick (rng, 0,
-			   boolector_get_width (mbt->btor, exp->exp) - 1);
-	      node = boolector_slice (mbt->btor, exp->exp, rand, rand);
-	    }
-	  btormbt_push_node (mbt, node);
-	  assert (btormbt_is_parameterized (mbt, node));
-	  exp->parents++;
-	}
-      else if (expstack == bv)
-	{
-	  assert (!BTOR_EMPTY_STACK (bo->exps));
-	  rand = pick (rng, 0, BTOR_COUNT_STACK (bo->exps) - 1);
-	  exp = BTOR_PEEK_STACK (bo->exps, rand);
-
-	  /* create node with width > 1 */
-	  rand = pick (rng, 1, mbt->g_max_bw - 1); 
-	  if (pick (rng, 0, 1))
-	    node = boolector_uext (mbt->btor, exp->exp, rand);
-	  else
-	    node = boolector_sext (mbt->btor, exp->exp, rand);
-	  btormbt_push_node (mbt, node);
-	  assert (btormbt_is_parameterized (mbt, node));
-	  exp->parents++;
-	}
-      else
-	{
-	  assert (expstack == arr);
-	  /* generate parameterized WRITE */
-	  e[0] = select_exp (mbt, rng, BTORMBT_ARR_T, -1);
-	  rand = pick (rng, 1, 2);
-	  e[1] = select_exp (mbt, rng, BTORMBT_BV_T, rand == 1 ? 1 : 0);
-	  e[2] = select_exp (mbt, rng, BTORMBT_BV_T, rand == 2 ? 1 : 0);
-	  assert (btormbt_is_parameterized (mbt, e[1])
-		  || btormbt_is_parameterized (mbt, e[2]));
-	  // TODO (ma): create parameterized acond?
-	  btormbt_array_op (mbt, rng, WRITE, e[0], e[1], e[2]);
-	}
+      rand = pick (&rng, 1, 2);
+      e1   = select_exp (mbt, &rng, BTORMBT_BB_T, rand == 1 ? 1 : 0);
+      e2   = select_exp (mbt, &rng, BTORMBT_BB_T, rand == 2 ? 1 : 0);
+      e0   = select_arr_exp (mbt,
+                           &rng,
+                           0,
+                           boolector_get_width (mbt->btor, e2),
+                           boolector_get_width (mbt->btor, e1),
+                           -1);
+      assert (btormbt_is_parameterized (mbt, e1)
+              || btormbt_is_parameterized (mbt, e2));
+      // TODO (ma): create parameterized acond?
+      btormbt_array_op (mbt, &rng, WRITE, e0, e1, e2);
+      assert (!BTOR_EMPTY_STACK (mbt->parambo->exps));
+      assert (!BTOR_EMPTY_STACK (mbt->parambv->exps));
+      assert (!BTOR_EMPTY_STACK (mbt->paramarr->exps));
     }
-#endif
-
-    /* at least one parameter is either in parambv or parambo */
-    assert (!BTOR_EMPTY_STACK (mbt->parambv->exps)
-            || !BTOR_EMPTY_STACK (mbt->parambo->exps));
-    //      if (BTOR_EMPTY_STACK (mbt->parambo->exps))
-    //	btormbt_param_op (mbt, &rng, REDOR, IFF);
-    //      assert (!BTOR_EMPTY_STACK (mbt->parambo->exps));
-    //      btormbt_param_arr_op (mbt, &rng, 1);
-    //      assert (!BTOR_EMPTY_STACK (mbt->paramarr->exps));
 
     /* generate parameterized expressions */
     max_ops = pick (&rng, 0, MAX_NPARAMOPS);
     n       = 0;
-    // BFUN_PICK_FUN_TYPE:
     while (n++ < max_ops)
     {
-      assert (!BTOR_EMPTY_STACK (parambo->exps)
-              || !BTOR_EMPTY_STACK (parambv->exps)
-              || !BTOR_EMPTY_STACK (paramarr->exps));
-      //	  assert (!BTOR_EMPTY_STACK (parambv->exps));
-      //	  assert (!BTOR_EMPTY_STACK (paramarr->exps));
       rand = pick (&rng, 0, NORM_VAL - 1);
       if (rand < mbt->p_bitvec_fun)
         btormbt_param_bv_op (mbt, &rng, NOT, COND);
       else if (rand < mbt->p_bitvec_fun + mbt->p_array_op)
         btormbt_param_array_op (mbt, &rng);
       else if (nlevel < MAX_NNESTEDBFUNS)
-      {
         btormbt_bv_fun (mbt, nextrand (&rng), nlevel + 1);
-        assert (mbt->parambo == parambo);
-        assert (mbt->parambv == parambv);
-        assert (mbt->paramarr == paramarr);
-        // TODO (ma): why do we have to reassign parambo etc?
-        mbt->parambo  = parambo;
-        mbt->parambv  = parambv;
-        mbt->paramarr = paramarr;
-      }
-      //	  else
-      //	    goto BFUN_PICK_FUN_TYPE;
     }
 
     /* pick exp from parambo/parambv with p = 0.5 if non-empty */
-    expstack = !BTOR_EMPTY_STACK (parambo->exps)
-                   ? (!BTOR_EMPTY_STACK (parambv->exps)
-                          ? (pick (&rng, 0, 1) ? parambo : parambv)
-                          : parambo)
-                   : parambv;
+    expstack = !BTOR_EMPTY_STACK (mbt->parambo->exps)
+                   ? (!BTOR_EMPTY_STACK (mbt->parambv->exps)
+                          ? (pick (&rng, 0, 1) ? mbt->parambo : mbt->parambv)
+                          : mbt->parambo)
+                   : mbt->parambv;
     assert (!BTOR_EMPTY_STACK (expstack->exps));
     rand = pick (&rng, 0, BTOR_COUNT_STACK (expstack->exps) - 1);
     tmp  = BTOR_PEEK_STACK (expstack->exps, rand)->exp;
     fun =
         boolector_fun (mbt->btor, params.start, BTOR_COUNT_STACK (params), tmp);
-    btormbt_push_node (mbt, fun);
-    g_btormbtstats->num_ops[FUN]++;
+
+    /* cleanup */
+    for (i = 0; i < BTOR_COUNT_STACK (mbt->parambo->exps); i++)
+      btormbt_release_node (mbt, mbt->parambo->exps.start[i]->exp);
+    btormbt_release_exp_stack (mbt->mm, mbt->parambo);
+    for (i = 0; i < BTOR_COUNT_STACK (mbt->parambv->exps); i++)
+      btormbt_release_node (mbt, mbt->parambv->exps.start[i]->exp);
+    btormbt_release_exp_stack (mbt->mm, mbt->parambv);
+    for (i = 0; i < BTOR_COUNT_STACK (mbt->paramarr->exps); i++)
+      btormbt_release_node (mbt, mbt->paramarr->exps.start[i]->exp);
+    btormbt_release_exp_stack (mbt->mm, mbt->paramarr);
+    for (i = 0; i < BTOR_COUNT_STACK (mbt->paramfun->exps); i++)
+      btormbt_release_node (mbt, mbt->paramfun->exps.start[i]->exp);
+    btormbt_release_exp_stack (mbt->mm, mbt->paramfun);
+    BTOR_RELEASE_STACK (mbt->mm, params);
 
     /* reset scope for arguments to apply node */
     mbt->parambo  = tmpparambo;
     mbt->parambv  = tmpparambv;
     mbt->paramarr = tmpparamarr;
+    mbt->paramfun = tmpparamfun;
 
-    /* cleanup */
-    for (i = 0; i < BTOR_COUNT_STACK (parambo->exps); i++)
-      btormbt_release_node (mbt, parambo->exps.start[i]->exp);
-    btormbt_release_exp_stack (mbt->mm, parambo);
-    for (i = 0; i < BTOR_COUNT_STACK (parambv->exps); i++)
-      btormbt_release_node (mbt, parambv->exps.start[i]->exp);
-    btormbt_release_exp_stack (mbt->mm, parambv);
-    for (i = 0; i < BTOR_COUNT_STACK (paramarr->exps); i++)
-      btormbt_release_node (mbt, paramarr->exps.start[i]->exp);
-    btormbt_release_exp_stack (mbt->mm, paramarr);
-    BTOR_RELEASE_STACK (mbt->mm, params);
+    /* new function needs to be put into the scope of the parent */
+    btormbt_push_node (mbt, fun);
+    g_btormbtstats->num_ops[FUN]++;
   }
+  /* on level 0, the resulting function cannot be parameterized */
+  assert (nlevel > 0 || !btormbt_is_parameterized (mbt, fun));
 
   /* generate apply expression with arguments within scope of apply */
   BTOR_INIT_STACK (args);
@@ -3192,12 +3158,16 @@ btormbt_state_bv_uf (BtorMBT *mbt, unsigned r)
 static void *
 btormbt_state_bv_fun (BtorMBT *mbt, unsigned r)
 {
-  assert (!mbt->parambo && !mbt->parambv && !mbt->paramarr);
+  assert (!mbt->parambo);
+  assert (!mbt->parambv);
+  assert (!mbt->paramarr);
+  assert (!mbt->paramfun);
 
   btormbt_bv_fun (mbt, r, 0);
-
-  mbt->parambo = mbt->parambv = mbt->paramarr = NULL; /* cleanup */
-
+  assert (!mbt->parambo);
+  assert (!mbt->parambv);
+  assert (!mbt->paramarr);
+  assert (!mbt->paramfun);
   return (mbt->is_init ? btormbt_state_main : btormbt_state_init);
 }
 
@@ -3293,30 +3263,22 @@ btormbt_state_dump (BtorMBT *mbt, unsigned r)
   assert (!mbt->inc);
   assert (!mbt->mgen);
 
-  int rand;
   RNG rng;
   rng = initrng (r);
 
   // TODO (ma): UF support in BTOR format not yet implemented
-  // TODO (ma): SMT1 dumping not possible for extensional benchmarks (lambdas
-  //		cannot be eliminated)
   if (mbt->output_format)
   {
     if (!strcmp (mbt->output_format, "btor")
         && !BTOR_COUNT_STACK (mbt->uf->exps))
       boolector_dump_btor (mbt->btor, stdout);
-    else if (!mbt->ext && !strcmp (mbt->output_format, "smt1"))
-      boolector_dump_smt1 (mbt->btor, stdout);
     else if (!strcmp (mbt->output_format, "smt2"))
       boolector_dump_smt2 (mbt->btor, stdout);
   }
   else
   {
-    rand = pick (&rng, 0, 2);
-    if (rand == 0 && !BTOR_COUNT_STACK (mbt->uf->exps))
+    if (pick (&rng, 0, 1) && !BTOR_COUNT_STACK (mbt->uf->exps))
       boolector_dump_btor (mbt->btor, stdout);
-    else if (!mbt->ext && rand == 1)
-      boolector_dump_smt1 (mbt->btor, stdout);
     else
       boolector_dump_smt2 (mbt->btor, stdout);
   }
@@ -3495,6 +3457,7 @@ btormbt_state_delete (BtorMBT *mbt, unsigned r)
   assert (mbt->parambo == NULL);
   assert (mbt->parambv == NULL);
   assert (mbt->paramarr == NULL);
+  assert (mbt->paramfun == NULL);
 
   boolector_delete (mbt->btor);
   mbt->btor = NULL;
@@ -3517,6 +3480,7 @@ reset_round_data (BtorMBT *mbt)
   assert (!mbt->parambo);
   assert (!mbt->parambv);
   assert (!mbt->paramarr);
+  assert (!mbt->paramfun);
   assert (!mbt->bv_sorts);
   assert (!mbt->fun_sorts);
 
@@ -4460,8 +4424,7 @@ main (int argc, char **argv)
     {
       if (++i == argc)
         btormbt_error ("argument to '--output-format' missing (try '-h')");
-      if (strcmp (argv[i], "btor") && strcmp (argv[i], "smt1")
-          && strcmp (argv[i], "smt2"))
+      if (strcmp (argv[i], "btor") && strcmp (argv[i], "smt2"))
         btormbt_error ("argument to '--output-format' is invalid (try '-h')");
       g_btormbt->output_format = argv[i];
     }

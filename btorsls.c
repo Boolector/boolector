@@ -47,8 +47,6 @@
 /* start segments from MSB rather than LSB */
 #define BTOR_SLS_PROB_SEG_MSB_VS_LSB 1
 
-BTOR_DECLARE_STACK (BtorBitVectorPtr, BtorBitVector *);
-
 /*------------------------------------------------------------------------*/
 
 static int
@@ -171,7 +169,7 @@ compute_sls_score_node (Btor *btor,
   assert (bv_model);
   assert (fun_model);
   assert (score);
-  assert (check_id_table_aux_mark_unset_dbg (btor));
+  assert (btor_check_id_table_aux_mark_unset_dbg (btor));
   assert (exp);
 
   int i;
@@ -398,7 +396,7 @@ compute_sls_scores_aux (Btor *btor,
   assert (BTOR_SLS_SOLVER (btor)->roots);
   assert (bv_model);
   assert (fun_model);
-  assert (check_id_table_mark_unset_dbg (btor));
+  assert (btor_check_id_table_mark_unset_dbg (btor));
 
   int i;
   BtorNode *cur, *real_cur;
@@ -547,7 +545,7 @@ static void
 select_candidates (Btor *btor, BtorNode *root, BtorNodePtrStack *candidates)
 {
   assert (btor);
-  assert (check_id_table_mark_unset_dbg (btor));
+  assert (btor_check_id_table_mark_unset_dbg (btor));
   assert (root);
   assert (candidates);
 
@@ -698,7 +696,7 @@ reset_cone (Btor *btor,
             BtorPtrHashTable *score)
 {
   assert (btor);
-  assert (check_id_table_mark_unset_dbg (btor));
+  assert (btor_check_id_table_mark_unset_dbg (btor));
   assert (cans);
   assert (cans->count);
   assert (bv_model);
@@ -1971,7 +1969,6 @@ sat_sls_solver (Btor *btor, int limit0, int limit1)
       btor->ufs->count != 0
           || (!btor->options.beta_reduce_all.val && btor->lambdas->count != 0),
       "sls engine supports QF_BV only");
-  btor_update_assumptions (btor);
 
   if (btor->inconsistent) goto UNSAT;
 

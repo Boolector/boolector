@@ -12,6 +12,7 @@
 
 #include "testaigvec.h"
 #include "btoraigvec.h"
+#include "btorbitvec.h"
 #include "testrunner.h"
 #include "utils/btormem.h"
 
@@ -43,12 +44,13 @@ test_new_delete_aigvec_mgr (void)
 static void
 test_const_aigvec (void)
 {
-  const char bits[]    = {'1', '0', '1', '1', '\0'};
+  BtorBitVector *bits  = btor_uint64_to_bv (g_mm, 11, 4);  // "1011"
   BtorAIGVecMgr *avmgr = btor_new_aigvec_mgr (g_mm, g_msg, 0);
   BtorAIGVec *av       = btor_const_aigvec (avmgr, bits);
   assert (av->len == 4);
   btor_release_delete_aigvec (avmgr, av);
   btor_delete_aigvec_mgr (avmgr);
+  btor_free_bv (g_mm, bits);
 }
 
 static void
@@ -66,7 +68,7 @@ test_invert_aigvec (void)
 {
   int i                = 0;
   int len              = 0;
-  const char bits[]    = {'1', '0', '1', '1', '\0'};
+  BtorBitVector *bits  = btor_uint64_to_bv (g_mm, 11, 4);  // "1011"
   BtorAIGVecMgr *avmgr = btor_new_aigvec_mgr (g_mm, g_msg, 0);
   BtorAIGVec *av1      = btor_var_aigvec (avmgr, 32);
   BtorAIGVec *av2      = btor_const_aigvec (avmgr, bits);
@@ -102,6 +104,7 @@ test_invert_aigvec (void)
   btor_release_delete_aigvec (avmgr, av1);
   btor_release_delete_aigvec (avmgr, av2);
   btor_delete_aigvec_mgr (avmgr);
+  btor_free_bv (g_mm, bits);
 }
 
 static void

@@ -710,7 +710,7 @@ BoolectorNode *boolector_int (Btor *btor, int i, int width);
 
   A variable's symbol is used as a simple means of identification, either when
   printing a model via boolector_print_model, or generating file dumps via
-  boolector_dump_btor, boolector_dump_smt1, and boolector_dump_smt2.  A symbol
+  boolector_dump_btor and boolector_dump_smt2.  A symbol
   must be unique but may be NULL in case that no symbol should be assigned.
 
   :param btor: Boolector instance.
@@ -728,7 +728,7 @@ BoolectorNode *boolector_var (Btor *btor, int width, const char *symbol);
 
   An array variable's symbol is used as a simple means of identification,
   either when printing a model via boolector_print_model, or generating file
-  dumps via boolector_dump_btor, boolector_dump_smt1, and boolector_dump_smt2.
+  dumps via boolector_dump_btor and boolector_dump_smt2.
   A symbol must be unique but may be NULL in case that no symbol should be
   assigned.
 
@@ -755,7 +755,7 @@ BoolectorNode *boolector_array (Btor *btor,
 
   An uninterpreted function's symbol is used as a simple means of
   identification, either when printing a model via boolector_print_model, or
-  generating file dumps via boolector_dump_btor, boolector_dump_smt1, and
+  generating file dumps via boolector_dump_btor and
   boolector_dump_smt2.  A symbol must be unique but may be NULL in case that no
   symbol should be assigned.
 
@@ -1655,6 +1655,17 @@ int boolector_get_index_width (Btor *btor, BoolectorNode *n_array);
 const char *boolector_get_bits (Btor *btor, BoolectorNode *node);
 
 /*!
+  Free a bits string for bit vector constants.
+
+  :param btor: Boolector instance.
+  :param bits: String which has to be freed.
+
+  .. seealso::
+    boolector_get_bits
+*/
+void boolector_free_bits (Btor *btor, const char *bits);
+
+/*!
   Get the arity of function ``node``.
 
   :param btor: Boolector instance.
@@ -2092,23 +2103,6 @@ void boolector_dump_btor2 (Btor * btor, FILE * file);
 #endif
 
 /*!
-  Recursively dump ``node`` to file in `SMT-LIB v1`_ format.
-
-  :param btor: Boolector instance.
-  :param file: File to which the expression should be dumped. The file must be have been opened by the user before.
-  :param node: The expression which should be dumped.
-*/
-void boolector_dump_smt1_node (Btor *btor, FILE *file, BoolectorNode *node);
-
-/*!
-  Dump formula to file in `SMT-LIB v1`_ format.
-
-  :param btor: Boolector instance
-  :param file: Output file.
-*/
-void boolector_dump_smt1 (Btor *btor, FILE *file);
-
-/*!
   Recursively dump ``node`` to file in `SMT-LIB v2`_ format.
 
   :param btor: Boolector instance.
@@ -2142,151 +2136,4 @@ void boolector_dump_aiger_ascii (Btor *btor, FILE *file, bool merge_roots);
   :param merge_roots: Merge all roots of AIG.
 */
 void boolector_dump_aiger_binary (Btor *btor, FILE *file, bool merge_roots);
-
-/* DEPRECATED API */
-
-/*!
-  .. deprecated:: 2.0
-
-  Enable model generation.
-
-  :param btor: Boolector instance.
-
-  .. note::
-    This function is deprecated, use boolector_set_opt with model_gen=1
-    instead.
-
-  .. seealso::
-    boolector_set_opt
-*/
-#ifdef __GNUC__
-__attribute__ ((deprecated))
-#endif
-void
-boolector_enable_model_gen (Btor *btor);
-
-/*!
-  .. deprecated:: 2.0
-
-  Enable model generation for all reads.
-
-  :param btor: Boolector instance.
-
-  .. note::
-    This function is deprecated, use boolector_set_opt with model_gen=2
-    instead.
-
-  .. seealso::
-    boolector_set_opt
-*/
-#ifdef __GNUC__
-__attribute__ ((deprecated))
-#endif
-void
-boolector_generate_model_for_all_reads (Btor *btor);
-
-/*!
-  .. deprecated:: 2.0
-
-  Enable incremental usage.
-
-  :param btor: Boolector instance.
-
-  .. note::
-    This function is deprecated, use boolector_set_opt with incremental=1
-    instead.
-
-  .. seealso::
-    boolector_set_opt
-*/
-#ifdef __GNUC__
-__attribute__ ((deprecated))
-#endif
-void
-boolector_enable_inc_usage (Btor *btor);
-
-/*!
-  .. deprecated:: 2.0
-
-  Set the rewrite level of the rewriting engine.
-
-  :param btor: Boolector instance.
-  :param val: Rewrite level ranging from 0 (no rewriting) to 3 (full rewriting).
-
-  .. note::
-    This function is deprecated use boolector_set_opt with
-    rewrite_level=<val> instead.
-
-  .. seealso::
-    boolector_set_opt
-*/
-#ifdef __GNUC__
-__attribute__ ((deprecated))
-#endif
-void
-boolector_set_rewrite_level (Btor *btor, int val);
-
-/*!
-  .. deprecated:: 2.0
-
-  Set level of verbosity.
-
-  :param btor: Boolector instance.
-  :param val: Verbosity level.
-
-  .. note::
-    This function is deprecated, use boolector_set_opt with
-    verbosity=<val> instead.
-
-  .. seealso::
-    boolector_set_opt
-*/
-#ifdef __GNUC__
-__attribute__ ((deprecated))
-#endif
-void
-boolector_set_verbosity (Btor *btor, int val);
-
-/*!
-  .. deprecated:: 2.0
-
-  Set log level.
-
-  :param btor: Boolector instance.
-  :param val: Log level.
-
-  .. note::
-    This function is deprecated, use boolector_set_opt with loglevel=<val>
-    instead.
-
-  .. seealso:
-    boolector_set_opt
-*/
-#ifdef __GNUC__
-__attribute__ ((deprecated))
-#endif
-void
-boolector_set_loglevel (Btor *btor, int val);
-
-/*!
-  .. deprecated:: 2.0
-
-  Get the symbol of a variable.
-
-  :param btor: Boolector instance.
-  :param var: Array or bit vector variable.
-  :return: Symbol of variable.
-
-  .. note::
-    This function is deprecated, use boolector_get_symbol instead.
-
-  .. seealso::
-    boolector_get_symbol
-*/
-#ifdef __GNUC__
-__attribute__ ((deprecated))
-#endif
-const char *
-boolector_get_symbol_of_var (Btor *btor, BoolectorNode *var);
-
 #endif
