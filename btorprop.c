@@ -2749,10 +2749,11 @@ btor_select_move_prop (Btor *btor,
 
       if (!bvenew) break; /* non-recoverable conflict */
 
+      cur = real_cur->e[eidx];
+
       /* found input and assignment */
       if (BTOR_IS_BV_VAR_NODE (BTOR_REAL_ADDR_NODE (real_cur->e[eidx])))
       {
-        cur = real_cur->e[eidx];
       FOUND_RESULT:
         *input      = BTOR_REAL_ADDR_NODE (cur);
         *assignment = BTOR_IS_INVERTED_NODE (cur)
@@ -2763,7 +2764,6 @@ btor_select_move_prop (Btor *btor,
       }
       else if (BTOR_IS_BV_COND_NODE (BTOR_REAL_ADDR_NODE (real_cur->e[eidx])))
       {
-        cur      = real_cur->e[eidx];
         real_cur = BTOR_REAL_ADDR_NODE (cur);
         do
         {
@@ -2802,8 +2802,6 @@ btor_select_move_prop (Btor *btor,
           break;
         }
       }
-      else
-        cur = real_cur->e[eidx];
 
       btor_free_bv (btor->mm, bvcur);
       bvcur = bvenew;
