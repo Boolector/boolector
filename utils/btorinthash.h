@@ -15,6 +15,15 @@
 #include <stdint.h>
 #include "utils/btormem.h"
 
+union BtorIntHashTableData
+{
+  int32_t as_int;
+  void *as_ptr;
+  char *as_str;
+};
+
+typedef union BtorIntHashTableData BtorIntHashTableData;
+
 struct BtorIntHashTable
 {
   BtorMemMgr *mm;
@@ -22,6 +31,7 @@ struct BtorIntHashTable
   size_t size;
   int32_t *keys;
   uint8_t *hop_info; /* displacement information */
+  BtorIntHashTableData *data;
 };
 
 typedef struct BtorIntHashTable BtorIntHashTable;
@@ -49,4 +59,19 @@ size_t btor_remove_int_hash_table (BtorIntHashTable *, int32_t key);
 /* Returns the position at which 'key' is stored in the keys array. It returns
  * 'size' of the hash table if 'key' could not be found. */
 size_t btor_get_pos_int_hash_table (BtorIntHashTable *, int32_t key);
+
+/* map functions */
+
+BtorIntHashTable *btor_new_int_hash_map (BtorMemMgr *);
+
+bool btor_contains_int_hash_map (BtorIntHashTable *, int32_t key);
+
+void btor_remove_int_hash_map (BtorIntHashTable *,
+                               int32_t key,
+                               BtorIntHashTableData *stored_data);
+
+BtorIntHashTableData *btor_add_int_hash_map (BtorIntHashTable *, int32_t key);
+
+void btor_free_int_hash_map (BtorIntHashTable *);
+
 #endif
