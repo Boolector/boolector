@@ -242,6 +242,7 @@ btor_remove_int_hash_table (BtorIntHashTable *t, int32_t key)
   assert (t->keys[pos] == key);
   t->keys[pos]     = 0;
   t->hop_info[pos] = 0;
+  t->count -= 1;
   return pos;
 }
 
