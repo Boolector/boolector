@@ -18,6 +18,7 @@
 #include "btorprop.h"
 #include "btorsls.h"  // for score computation
 #include "utils/btorhash.h"
+#include "utils/btorinthash.h"
 #include "utils/btoriter.h"
 
 #define BTOR_AIGPROP_MAXSTEPS_CFACT 100
@@ -51,8 +52,85 @@ delete_aigprop_solver (Btor *btor)
   BtorAIGPropSolver *slv;
 
   if (!(slv = BTOR_AIGPROP_SOLVER (btor))) return;
-
+  if (slv->aprop) aigprop_delete_aigprop (slv->aprop);
   BTOR_DELETE (btor->mm, slv);
+}
+
+BtorBitVector *
+get_assignment_bv (BtorMemMgr *mm, BtorNode *exp, BtorPtrHashTable *aig_model)
+{
+  assert (mm);
+  assert (exp);
+  assert (BTOR_IS_REGULAR_NODE (exp));
+  assert (aig_model);
+
+  int i, j, len, bit;
+  BtorBitVector *res;
+  BtorAIGVec *av;
+
+  if (!exp->av) return btor_new_bv (mm, btor_get_exp_width (exp->btor, exp));
+
+  av  = exp->av;
+  len = av->len;
+  res = btor_new_bv (mm, len);
+
+  for (i = 0, j = len - 1; i < len; i++, j--)
+  {
+    bit = aigprop_get_assignment_aig (aig_model, av->aigs[j]);
+    assert (bit == -1 || bit == 1);
+    btor_set_bit_bv (res, i, bit == 1 ? 1 : 0);
+  }
+  return res;
+}
+
+static void
+generate_model_aigprop_solver (Btor *btor, int model_for_all_nodes, int reset)
+{
+  assert (btor);
+
+  int i;
+  BtorNode *cur, *real_cur;
+  BtorBitVector *bv;
+  BtorAIGPropSolver *slv;
+  BtorHashTableIterator it;
+  BtorNodePtrStack stack;
+  BtorIntHashTable *cache;
+  AIGProp *aprop;
+
+  if (!(slv = BTOR_AIGPROP_SOLVER (btor))) return;
+
+  btor_init_bv_model (btor, &btor->bv_model);
+  btor_init_fun_model (btor, &btor->fun_model);
+
+  aprop = BTOR_AIGPROP_SOLVER (btor)->aprop;
+  /* generate AIG model */
+  aigprop_generate_model (aprop, reset);
+  /* map back to expression layer */
+  BTOR_INIT_STACK (stack);
+  cache = btor_new_int_hash_table (btor->mm);
+  assert (btor->unsynthesized_constraints->count == 0);
+  btor_init_node_hash_table_iterator (&it, btor->synthesized_constraints);
+  btor_queue_node_hash_table_iterator (&it, btor->assumptions);
+  while (btor_has_next_node_hash_table_iterator (&it))
+    BTOR_PUSH_STACK (btor->mm, stack, btor_next_node_hash_table_iterator (&it));
+  while (!BTOR_EMPTY_STACK (stack))
+  {
+    cur      = BTOR_POP_STACK (stack);
+    real_cur = BTOR_REAL_ADDR_NODE (cur);
+    if (btor_contains_int_hash_table (cache, real_cur->id)) continue;
+    btor_add_int_hash_table (cache, real_cur->id);
+    bv = get_assignment_bv (btor->mm, real_cur, aprop->model);
+    btor_add_to_bv_model (btor, btor->bv_model, real_cur, bv);
+    btor_free_bv (btor->mm, bv);
+    for (i = 0; i < real_cur->arity; i++)
+      BTOR_PUSH_STACK (btor->mm, stack, real_cur->e[i]);
+  }
+  BTOR_RELEASE_STACK (btor->mm, stack);
+  btor_free_int_hash_table (cache);
+  /* generate model for unreachable nodes */
+  if (model_for_all_nodes)
+    btor_generate_model (
+        btor, btor->bv_model, btor->fun_model, model_for_all_nodes);
 }
 
 /* Note: limits are currently unused */
@@ -61,18 +139,17 @@ sat_aigprop_solver (Btor *btor, int limit0, int limit1)
 {
   assert (btor);
 
-  int j, sat_result, nmoves, max_steps;
+  int sat_result;
   BtorAIGPropSolver *slv;
   BtorHashTableIterator it;
   BtorNode *root;
+  BtorAIG *aig;
 
   (void) limit0;
   (void) limit1;
 
   slv = BTOR_AIGPROP_SOLVER (btor);
   assert (slv);
-
-  nmoves = 0;
 
   if (btor->inconsistent) goto UNSAT;
 
@@ -137,47 +214,22 @@ sat_aigprop_solver (Btor *btor, int limit0, int limit1)
     root = btor_next_node_hash_table_iterator (&it);
     assert (BTOR_REAL_ADDR_NODE (root)->av->len == 1);
     if (!btor_find_in_ptr_hash_table (slv->aprop->roots, root))
-      (void) btor_insert_in_ptr_hash_table (
-          slv->aprop->roots, BTOR_REAL_ADDR_NODE (root)->av->aigs[0]);
+    {
+      aig = BTOR_REAL_ADDR_NODE (root)->av->aigs[0];
+      if (BTOR_IS_INVERTED_NODE (root)) aig = BTOR_INVERT_AIG (aig);
+      (void) btor_insert_in_ptr_hash_table (slv->aprop->roots, aig);
+    }
   }
 
-  ///* Generate intial model, all inputs are initialized with false. We do
-  // * not have to consider model_for_all_nodes, but let this be handled by
-  // * the model generation (if enabled) after SAT has been determined. */
-  // slv->api.generate_model (btor, 0, 1);
-
-  sat_result = aigprop_sat (slv->aprop);
-
-SAT:
+  if ((sat_result = aigprop_sat (slv->aprop)) == BTOR_UNSAT) goto UNSAT;
+  generate_model_aigprop_solver (btor, 0, 0);
   assert (sat_result == BTOR_SAT);
 DONE:
-  slv->stats.moves      = nmoves;
+  slv->stats.moves      = slv->aprop->stats.moves;
+  slv->stats.restarts   = slv->aprop->stats.restarts;
+  slv->time.aprop_sat   = slv->aprop->time.sat;
   btor->last_sat_result = sat_result;
   return sat_result;
-}
-
-static void
-generate_model_aigprop_solver (Btor *btor, int model_for_all_nodes, int reset)
-{
-  assert (btor);
-
-  BtorAIGPropSolver *slv;
-
-  if (!(slv = BTOR_AIGPROP_SOLVER (btor))) return;
-
-  if (reset)
-  {
-    btor_init_bv_model (btor, &btor->bv_model);
-    btor_init_fun_model (btor, &btor->fun_model);
-  }
-
-  // TODO MAP BACK TO EXP LAYER
-  aigprop_generate_model (BTOR_AIGPROP_SOLVER (btor)->aprop, reset);
-
-  /* generate model for unreachable nodes */
-  if (model_for_all_nodes)
-    btor_generate_model (
-        btor, btor->bv_model, btor->fun_model, model_for_all_nodes);
 }
 
 static void
@@ -197,7 +249,8 @@ static void
 print_time_stats_aigprop_solver (Btor *btor)
 {
   assert (btor);
-  (void) btor;
+  BTOR_MSG (btor->msg, 1, "");
+  BTOR_MSG (btor->msg, 1, "%.2f seconds in AIG propagator");
 }
 
 BtorSolver *

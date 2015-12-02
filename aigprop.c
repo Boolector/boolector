@@ -65,18 +65,17 @@ check_roots_mark_unset_dbg (BtorPtrHashTable *roots)
 
 /*------------------------------------------------------------------------*/
 
-static int
-get_assignment_aig (BtorPtrHashTable *model, BtorAIG *aig)
+int
+aigprop_get_assignment_aig (BtorPtrHashTable *model, BtorAIG *aig)
 {
   assert (model);
-  assert (aig);
-  assert (btor_find_in_ptr_hash_table (model, BTOR_REAL_ADDR_AIG (aig)));
 
   int res;
 
   if (aig == BTOR_AIG_TRUE) return 1;
   if (aig == BTOR_AIG_FALSE) return -1;
 
+  assert (btor_find_in_ptr_hash_table (model, BTOR_REAL_ADDR_AIG (aig)));
   res =
       btor_find_in_ptr_hash_table (model, BTOR_REAL_ADDR_AIG (aig))->data.asInt;
   res = BTOR_IS_INVERTED_AIG (aig) ? -res : res;
@@ -97,14 +96,14 @@ get_assignment_aig (BtorPtrHashTable *model, BtorAIG *aig)
 #define AIGPROP_LOG_COMPUTE_SCORE_AIG(cur, left, right, s0, s1, res) \
   do                                                                 \
   {                                                                  \
-    a = get_assignment_aig (aprop->model, left);                     \
+    a = aigprop_get_assignment_aig (aprop->model, left);             \
     assert (a);                                                      \
     AIGPROPLOG (2,                                                   \
                 "        assignment aig0 (%s%d): %d",                \
                 BTOR_IS_INVERTED_AIG (left) ? "-" : "",              \
                 BTOR_REAL_ADDR_AIG (left)->id,                       \
                 a < 0 ? 0 : 1);                                      \
-    a = get_assignment_aig (aprop->model, right);                    \
+    a = aigprop_get_assignment_aig (aprop->model, right);            \
     assert (a);                                                      \
     AIGPROPLOG (2,                                                   \
                 "        assignment aig1 (%s%d): %d",                \
@@ -112,20 +111,23 @@ get_assignment_aig (BtorPtrHashTable *model, BtorAIG *aig)
                 BTOR_REAL_ADDR_AIG (right)->id,                      \
                 a < 0 ? 0 : 1);                                      \
     AIGPROPLOG (2,                                                   \
-                "        score      aig0 (%s%d): %f",                \
+                "        score      aig0 (%s%d): %f%s",              \
                 BTOR_IS_INVERTED_AIG (left) ? "-" : "",              \
                 BTOR_REAL_ADDR_AIG (left)->id,                       \
-                s0);                                                 \
+                s0,                                                  \
+                s0 < 1.0 ? " (< 1.0)" : "");                         \
     AIGPROPLOG (2,                                                   \
-                "        score      aig1 (%s%d): %f",                \
+                "        score      aig1 (%s%d): %f%s",              \
                 BTOR_IS_INVERTED_AIG (right) ? "-" : "",             \
                 BTOR_REAL_ADDR_AIG (right)->id,                      \
-                s1);                                                 \
+                s1,                                                  \
+                s1 < 1.0 ? " (< 1.0)" : "");                         \
     AIGPROPLOG (2,                                                   \
-                "      * score cur (%s%d): %f",                      \
+                "      * score cur (%s%d): %f%s",                    \
                 BTOR_IS_INVERTED_AIG (cur) ? "-" : "",               \
                 real_cur->id,                                        \
-                res);                                                \
+                res,                                                 \
+                res < 1.0 ? " (< 1.0)" : "");                        \
   } while (0)
 
 static double
@@ -181,9 +183,9 @@ compute_score_aig (AIGProp *aprop, BtorAIG *aig)
     {
       assert (real_cur->mark == 1);
       real_cur->mark = 2;
-      assert (get_assignment_aig (aprop->model, cur) != 0);
+      assert (aigprop_get_assignment_aig (aprop->model, cur) != 0);
 #ifndef NDEBUG
-      a = get_assignment_aig (aprop->model, cur);
+      a = aigprop_get_assignment_aig (aprop->model, cur);
       assert (a);
       AIGPROPLOG (2, "");
       AIGPROPLOG (2,
@@ -198,7 +200,7 @@ compute_score_aig (AIGProp *aprop, BtorAIG *aig)
 
       if (BTOR_IS_VAR_AIG (real_cur))
       {
-        res = get_assignment_aig (aprop->model, cur) < 0 ? 0.0 : 1.0;
+        res = aigprop_get_assignment_aig (aprop->model, cur) < 0 ? 0.0 : 1.0;
         AIGPROPLOG (2,
                     "        * score cur (%s%d): %f",
                     BTOR_IS_INVERTED_AIG (cur) ? "-" : "",
@@ -412,9 +414,9 @@ recursively_compute_assignment (AIGProp *aprop, BtorAIG *aig)
       }
       else
       {
-        aleft = get_assignment_aig (aprop->model, left);
+        aleft = aigprop_get_assignment_aig (aprop->model, left);
         assert (aleft);
-        aright = get_assignment_aig (aprop->model, right);
+        aright = aigprop_get_assignment_aig (aprop->model, right);
         assert (aright);
         if (aleft < 0 || aright < 0)
           btor_insert_in_ptr_hash_table (aprop->model, real_cur)->data.asInt =
@@ -462,8 +464,14 @@ aigprop_generate_model (AIGProp *aprop, int reset)
   if (reset) aigprop_init_model (aprop);
 
   btor_init_hash_table_iterator (&it, aprop->roots);
+  BtorAIG *tmp;
   while (btor_has_next_hash_table_iterator (&it))
-    recursively_compute_assignment (aprop, btor_next_hash_table_iterator (&it));
+  {
+    tmp = btor_next_hash_table_iterator (&it);
+    recursively_compute_assignment (aprop, tmp);
+    //    recursively_compute_assignment (aprop, btor_next_hash_table_iterator
+    //    (&it));
+  }
 }
 
 /*------------------------------------------------------------------------*/
@@ -653,6 +661,7 @@ select_move (AIGProp *aprop, BtorAIG *root, BtorAIG **input, int *assignment)
   cur    = root;
   asscur = 1;
 
+  // printf ("----\n");
   // printf ("cur %s%d ass %d\n", BTOR_IS_INVERTED_AIG (cur) ? "-" : "",
   // BTOR_REAL_ADDR_AIG (cur)->id, btor_find_in_ptr_hash_table (aprop->model,
   // BTOR_REAL_ADDR_AIG (cur))->data.asInt);
@@ -670,7 +679,7 @@ select_move (AIGProp *aprop, BtorAIG *root, BtorAIG **input, int *assignment)
       asscur = BTOR_IS_INVERTED_AIG (cur) ? -asscur : asscur;
       // printf ("cur %s%d ass %d\n", BTOR_IS_INVERTED_AIG (cur) ? "-" : "",
       // BTOR_REAL_ADDR_AIG (cur)->id, btor_find_in_ptr_hash_table
-      // (aprop->model, BTOR_REAL_ADDR_AIG (cur))->data.asInt); printf ("asscur
+      // (aprop->model, BTOR_REAL_ADDR_AIG (cur))->data.asInt);  printf ("asscur
       // %d\n", asscur);
       c[0] = BTOR_GET_AIG_BY_ID (aprop->amgr, real_cur->children[0]);
       c[1] = BTOR_GET_AIG_BY_ID (aprop->amgr, real_cur->children[1]);
@@ -749,22 +758,21 @@ move (AIGProp *aprop, uint32_t nmoves)
   int assignment;
   BtorAIG *root, *input;
 
-  AIGPROPLOG (1, "");
-  AIGPROPLOG (1, "*** move");
-
   /* roots contain false AIG -> unsat */
   if (!(root = select_root (aprop, nmoves))) return 0;
 
   select_move (aprop, root, &input, &assignment);
 
+  AIGPROPLOG (1, "");
+  AIGPROPLOG (1, "*** move");
 #ifndef NDEBUG
-  int a = get_assignment_aig (aprop->model, input);
+  int a = aigprop_get_assignment_aig (aprop->model, input);
   AIGPROPLOG (1,
-              "  input: %s%d",
+              "    * input: %s%d",
               BTOR_IS_INVERTED_AIG (input) ? "-" : "",
               BTOR_REAL_ADDR_AIG (input)->id);
-  AIGPROPLOG (1, "  prev. assignment: %d", a);
-  AIGPROPLOG (1, "  new   assignment: %d", assignment);
+  AIGPROPLOG (1, "      prev. assignment: %d", a);
+  AIGPROPLOG (1, "      new   assignment: %d", assignment);
 #endif
 
   update_cone (aprop, input, assignment);
@@ -780,6 +788,7 @@ all_roots_sat (AIGProp *aprop)
   assert (aprop);
   assert (aprop->roots);
 
+  int ass;
   bool res;
   BtorAIG *root;
   BtorHashTableIterator it;
@@ -789,8 +798,12 @@ all_roots_sat (AIGProp *aprop)
   while (btor_has_next_hash_table_iterator (&it))
   {
     root = btor_next_hash_table_iterator (&it);
-    assert (btor_find_in_ptr_hash_table (aprop->model, root)->data.asInt);
-    if (btor_find_in_ptr_hash_table (aprop->model, root)->data.asInt == -1)
+    assert (
+        btor_find_in_ptr_hash_table (aprop->model, BTOR_REAL_ADDR_AIG (root)));
+    ass = btor_find_in_ptr_hash_table (aprop->model, BTOR_REAL_ADDR_AIG (root))
+              ->data.asInt;
+    ass = BTOR_IS_INVERTED_NODE (root) ? -ass : ass;
+    if (ass == -1)
     {
       res = false;
       break;
@@ -807,9 +820,11 @@ aigprop_sat (AIGProp *aprop)
   assert (aprop->roots);
   assert (aprop->roots->count);
 
+  double start;
   int j, max_steps, sat_result;
   uint32_t nmoves;
 
+  start      = btor_time_stamp ();
   sat_result = AIGPROP_UNKNOWN;
   nmoves     = 0;
 
@@ -847,6 +862,7 @@ UNSAT:
 DONE:
   if (aprop->score) btor_delete_ptr_hash_table (aprop->score);
   aprop->score = 0;
+  aprop->time.sat += btor_time_stamp () - start;
   return sat_result;
 }
 
@@ -913,4 +929,32 @@ aigprop_new_aigprop (BtorAIGMgr *amgr, uint32_t seed)
   res->seed = seed;
 
   return res;
+}
+
+void
+aigprop_delete_aigprop (AIGProp *aprop)
+{
+  assert (aprop);
+
+  if (aprop->roots) btor_delete_ptr_hash_table (aprop->roots);
+  if (aprop->score) btor_delete_ptr_hash_table (aprop->score);
+  if (aprop->model) btor_delete_ptr_hash_table (aprop->model);
+  BTOR_DELETE (aprop->amgr->mm, aprop);
+}
+
+void
+aigprop_print_stats (AIGProp *aprop)
+{
+  assert (aprop);
+  msg ("");
+  msg ("restarts: %d", aprop->stats.restarts);
+  msg ("moves: %d", aprop->stats.moves);
+}
+
+void
+aigprop_print_time_stats (AIGProp *aprop)
+{
+  assert (aprop);
+  msg ("");
+  msg ("%.2f seconds for sat call (AIG propagation)", aprop->time.sat);
 }

@@ -28,6 +28,10 @@ struct BtorAIGPropSolver
     int moves;
     int restarts;
   } stats;
+  struct
+  {
+    double aprop_sat;
+  } time;
 };
 
 typedef struct BtorAIGPropSolver BtorAIGPropSolver;

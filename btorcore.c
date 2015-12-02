@@ -5885,8 +5885,13 @@ btor_sat_btor (Btor *btor, int lod_limit, int sat_limit)
           btor->slv->api.generate_model (btor, 0, 0);
         else if (btor->options.engine.val == BTOR_ENGINE_PROP)
           btor->slv->api.generate_model (btor, 0, 0);
+        else if (btor->options.engine.val == BTOR_ENGINE_AIGPROP)
+          btor->slv->api.generate_model (btor, 0, 0);
         else
+        {
+          assert (btor->options.engine.val == BTOR_ENGINE_CORE);
           btor->slv->api.generate_model (btor, 0, 1);
+        }
       }
       check_model (btor, mclone, inputs);
     }

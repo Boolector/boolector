@@ -35,14 +35,25 @@ struct AIGProp
     uint32_t moves;
     uint32_t restarts;
   } stats;
+
+  struct
+  {
+    double sat;
+  } time;
 };
 
 typedef struct AIGProp AIGProp;
 
 AIGProp *aigprop_new_aigprop (BtorAIGMgr *amgr, uint32_t seed);
+AIGProp *aigprop_clone_aigprop (BtorAIGMgr *clone, AIGProp *aprop);
+void aigprop_delete_aigprop (AIGProp *aprop);
 
+int aigprop_get_assignment_aig (BtorPtrHashTable *model, BtorAIG *aig);
 void aigprop_generate_model (AIGProp *aprop, int reset);
 
 int aigprop_sat (AIGProp *aprop);
+
+void aigprop_print_stats (AIGProp *aprop);
+void aigprop_print_time_stats (AIGProp *aprop);
 
 #endif
