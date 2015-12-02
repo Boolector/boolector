@@ -118,7 +118,8 @@ sat_aigprop_solver (Btor *btor, int limit0, int limit1)
                  ->simplified);
 #endif
 
-  slv->aprop = aigprop_new_aigprop (btor_get_aig_mgr_btor (btor));
+  slv->aprop = aigprop_new_aigprop (btor_get_aig_mgr_btor (btor),
+                                    btor->options.seed.val);
 #ifndef NBTORLOG
   slv->aprop->loglevel = btor->options.loglevel.val;
 #endif
@@ -140,12 +141,12 @@ sat_aigprop_solver (Btor *btor, int limit0, int limit1)
           slv->aprop->roots, BTOR_REAL_ADDR_NODE (root)->av->aigs[0]);
   }
 
-  /* Generate intial model, all inputs are initialized with false. We do
-   * not have to consider model_for_all_nodes, but let this be handled by
-   * the model generation (if enabled) after SAT has been determined. */
-  slv->api.generate_model (btor, 0, 1);
+  ///* Generate intial model, all inputs are initialized with false. We do
+  // * not have to consider model_for_all_nodes, but let this be handled by
+  // * the model generation (if enabled) after SAT has been determined. */
+  // slv->api.generate_model (btor, 0, 1);
 
-  aigprop_sat (slv->aprop);
+  sat_result = aigprop_sat (slv->aprop);
 
 SAT:
   assert (sat_result == BTOR_SAT);

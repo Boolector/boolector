@@ -12,6 +12,11 @@
 
 #include "btoraig.h"
 #include "utils/btorhash.h"
+#include "utils/btorutil.h"
+
+#define AIGPROP_UNKNOWN 0
+#define AIGPROP_SAT 10
+#define AIGPROP_UNSAT 20
 
 struct AIGProp
 {
@@ -20,12 +25,21 @@ struct AIGProp
   BtorPtrHashTable *score;
   BtorPtrHashTable *model;
 
+  BtorRNG rng;
+
   uint32_t loglevel;
+  uint32_t seed;
+
+  struct
+  {
+    uint32_t moves;
+    uint32_t restarts;
+  } stats;
 };
 
 typedef struct AIGProp AIGProp;
 
-AIGProp *aigprop_new_aigprop (BtorAIGMgr *amgr);
+AIGProp *aigprop_new_aigprop (BtorAIGMgr *amgr, uint32_t seed);
 
 void aigprop_generate_model (AIGProp *aprop, int reset);
 
