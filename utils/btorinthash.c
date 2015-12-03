@@ -197,7 +197,7 @@ btor_new_int_hash_table (BtorMemMgr *mm)
 }
 
 void
-btor_free_int_hash_table (BtorIntHashTable *t)
+btor_delete_int_hash_table (BtorIntHashTable *t)
 {
   assert (!t->data);
   BTOR_DELETEN (t->mm, t->keys, t->size);
@@ -316,10 +316,10 @@ btor_add_int_hash_map (BtorIntHashTable *t, int32_t key)
 }
 
 void
-btor_free_int_hash_map (BtorIntHashTable *t)
+btor_delete_int_hash_map (BtorIntHashTable *t)
 {
   assert (t->data);
   BTOR_DELETEN (t->mm, t->data, t->size);
   t->data = 0;
-  btor_free_int_hash_table (t);
+  btor_delete_int_hash_table (t);
 }

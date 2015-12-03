@@ -58,14 +58,14 @@ cache_beta_result (Btor *btor,
   BtorPtrHashBucket *bucket;
 
   pair   = btor_new_exp_pair (btor, lambda, exp);
-  bucket = btor_find_in_ptr_hash_table (cache, pair);
+  bucket = btor_get_ptr_hash_table (cache, pair);
   if (bucket)
   {
     btor_delete_exp_pair (btor, pair);
-    assert ((BtorNode *) bucket->data.asPtr == result);
+    assert ((BtorNode *) bucket->data.as_ptr == result);
   }
   else
-    btor_insert_in_ptr_hash_table (cache, pair)->data.asPtr =
+    btor_add_ptr_hash_table (cache, pair)->data.as_ptr =
         btor_copy_exp (btor, result);
   BTORLOG (3,
            "%s: (%s, %s) -> %s",
@@ -91,7 +91,7 @@ cached_beta_result (Btor *btor,
   BtorPtrHashBucket *bucket;
 
   pair   = btor_new_exp_pair (btor, lambda, exp);
-  bucket = btor_find_in_ptr_hash_table (cache, pair);
+  bucket = btor_get_ptr_hash_table (cache, pair);
   btor_delete_exp_pair (btor, pair);
 
   if (bucket)
@@ -101,8 +101,8 @@ cached_beta_result (Btor *btor,
              __FUNCTION__,
              node2string (lambda),
              node2string (exp),
-             node2string (bucket->data.asPtr));
-    return (BtorNode *) bucket->data.asPtr;
+             node2string (bucket->data.as_ptr));
+    return (BtorNode *) bucket->data.as_ptr;
   }
 
   return 0;
@@ -285,7 +285,7 @@ btor_beta_reduce (Btor *btor,
       }
       /* skip all lambdas that are not marked for merge */
       else if (mode == BETA_RED_LAMBDA_MERGE && BTOR_IS_LAMBDA_NODE (real_cur)
-               && !btor_find_in_ptr_hash_table (merge_lambdas, real_cur)
+               && !btor_get_ptr_hash_table (merge_lambdas, real_cur)
                /* do not stop at parameterized lambdas, otherwise the
                 * result may contain parameters that are not bound by any
                 * lambda anymore */
@@ -526,8 +526,8 @@ btor_beta_reduce (Btor *btor,
           || real_cur->parameterized)
       {
         t = btor_new_param_cache_tuple (btor, real_cur);
-        assert (!btor_find_in_ptr_hash_table (param_cache, t));
-        btor_insert_in_ptr_hash_table (param_cache, t)->data.asPtr =
+        assert (!btor_get_ptr_hash_table (param_cache, t));
+        btor_add_ptr_hash_table (param_cache, t)->data.as_ptr =
             btor_copy_exp (btor, result);
       }
 
@@ -581,7 +581,7 @@ btor_beta_reduce (Btor *btor,
         else
           t = btor_new_param_cache_tuple (btor, real_cur);
 
-        b = btor_find_in_ptr_hash_table (param_cache, t);
+        b = btor_get_ptr_hash_table (param_cache, t);
         btor_delete_param_cache_tuple (btor, t);
         /* real_cur not yet cached with current param assignment, rebuild
          * expression */
@@ -591,7 +591,7 @@ btor_beta_reduce (Btor *btor,
           goto BETA_REDUCE_START;
         }
         assert (b);
-        result = btor_copy_exp (btor, (BtorNode *) b->data.asPtr);
+        result = btor_copy_exp (btor, (BtorNode *) b->data.as_ptr);
       }
       else
         result = btor_copy_exp (btor, real_cur);
@@ -608,7 +608,7 @@ btor_beta_reduce (Btor *btor,
   btor_init_hash_table_iterator (&it, param_cache);
   while (btor_has_next_hash_table_iterator (&it))
   {
-    btor_release_exp (btor, (BtorNode *) it.bucket->data.asPtr);
+    btor_release_exp (btor, (BtorNode *) it.bucket->data.as_ptr);
     t        = (BtorParamCacheTuple *) btor_next_node_hash_table_iterator (&it);
     real_cur = t->exp;
     assert (BTOR_IS_REGULAR_NODE (real_cur));
@@ -868,10 +868,9 @@ btor_beta_reduce_partial_aux (Btor *btor,
 
           /* save condition for consistency checking */
           if (conds
-              && !btor_find_in_ptr_hash_table (conds,
-                                               BTOR_REAL_ADDR_NODE (e[0])))
+              && !btor_get_ptr_hash_table (conds, BTOR_REAL_ADDR_NODE (e[0])))
           {
-            btor_insert_in_ptr_hash_table (
+            btor_add_ptr_hash_table (
                 conds, btor_copy_exp (btor, BTOR_REAL_ADDR_NODE (e[0])));
           }
 
@@ -888,8 +887,8 @@ btor_beta_reduce_partial_aux (Btor *btor,
             next = real_cur->e[2];
           }
 
-          if (t && !btor_find_in_ptr_hash_table (t, e[0]))
-            btor_insert_in_ptr_hash_table (t, btor_copy_exp (btor, e[0]));
+          if (t && !btor_get_ptr_hash_table (t, e[0]))
+            btor_add_ptr_hash_table (t, btor_copy_exp (btor, e[0]));
 
           btor_free_bv (btor->mm, eval_res);
           btor_release_exp (btor, e[0]);
@@ -908,19 +907,18 @@ btor_beta_reduce_partial_aux (Btor *btor,
       next = BTOR_REAL_ADDR_NODE (result);
       for (i = 0; mark->count > 0 && i < next->arity; i++)
       {
-        if (btor_find_in_ptr_hash_table (mark,
-                                         BTOR_REAL_ADDR_NODE (next->e[i])))
+        if (btor_get_ptr_hash_table (mark, BTOR_REAL_ADDR_NODE (next->e[i])))
         {
-          if (!btor_find_in_ptr_hash_table (mark, next))
-            btor_insert_in_ptr_hash_table (mark, btor_copy_exp (btor, next));
+          if (!btor_get_ptr_hash_table (mark, next))
+            btor_add_ptr_hash_table (mark, btor_copy_exp (btor, next));
           break;
         }
       }
 
       /* cache rebuilt parameterized node with current arguments */
       tup = btor_new_param_cache_tuple (btor, real_cur);
-      assert (!btor_find_in_ptr_hash_table (cache, tup));
-      btor_insert_in_ptr_hash_table (cache, tup)->data.asPtr =
+      assert (!btor_get_ptr_hash_table (cache, tup));
+      btor_add_ptr_hash_table (cache, tup)->data.as_ptr =
           btor_copy_exp (btor, result);
 
       /* we still need the assigned argument for caching */
@@ -946,7 +944,7 @@ btor_beta_reduce_partial_aux (Btor *btor,
       else
         tup = btor_new_param_cache_tuple (btor, real_cur);
 
-      b = btor_find_in_ptr_hash_table (cache, tup);
+      b = btor_get_ptr_hash_table (cache, tup);
       btor_delete_param_cache_tuple (btor, tup);
       /* real_cur not yet cached with current param assignment, rebuild
        * expression */
@@ -956,7 +954,7 @@ btor_beta_reduce_partial_aux (Btor *btor,
         goto BETA_REDUCE_PARTIAL_START;
       }
       assert (b);
-      result = btor_copy_exp (btor, (BtorNode *) b->data.asPtr);
+      result = btor_copy_exp (btor, (BtorNode *) b->data.as_ptr);
       assert (!BTOR_IS_LAMBDA_NODE (BTOR_REAL_ADDR_NODE (result)));
       goto BETA_REDUCE_PARTIAL_PUSH_RESULT;
     }
@@ -969,7 +967,7 @@ btor_beta_reduce_partial_aux (Btor *btor,
   btor_init_hash_table_iterator (&it, cache);
   while (btor_has_next_node_hash_table_iterator (&it))
   {
-    btor_release_exp (btor, (BtorNode *) it.bucket->data.asPtr);
+    btor_release_exp (btor, (BtorNode *) it.bucket->data.as_ptr);
     tup      = (BtorParamCacheTuple *) btor_next_node_hash_table_iterator (&it);
     real_cur = tup->exp;
     assert (BTOR_IS_REGULAR_NODE (real_cur));

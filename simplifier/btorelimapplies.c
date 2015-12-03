@@ -59,7 +59,7 @@ btor_eliminate_applies (Btor *btor)
 
         num_applies++;
         subst = btor_beta_reduce_full_cached (btor, app, cache);
-        assert (!btor_find_in_ptr_hash_table (btor->substitutions, app));
+        assert (!btor_get_ptr_hash_table (btor->substitutions, app));
         btor_insert_substitution (btor, app, subst, 0);
         btor_release_exp (btor, subst);
       }
@@ -95,7 +95,7 @@ btor_eliminate_applies (Btor *btor)
   btor_init_hash_table_iterator (&h_it, cache);
   while (btor_has_next_hash_table_iterator (&h_it))
   {
-    btor_release_exp (btor, h_it.bucket->data.asPtr);
+    btor_release_exp (btor, h_it.bucket->data.as_ptr);
     btor_delete_exp_pair (btor, btor_next_hash_table_iterator (&h_it));
   }
   btor_delete_ptr_hash_table (cache);

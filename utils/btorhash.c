@@ -103,9 +103,9 @@ btor_clone_ptr_hash_table (BtorMemMgr *mem,
     key        = btor_next_hash_table_iterator (&it);
     cloned_key = ckey (mem, key_map, key);
     assert (cloned_key);
-    cloned_b = btor_insert_in_ptr_hash_table (res, cloned_key);
+    cloned_b = btor_add_ptr_hash_table (res, cloned_key);
     if (!cdata)
-      assert (b->data.asPtr == 0);
+      assert (b->data.as_ptr == 0);
     else
       cdata (mem, data_map, &b->data, &cloned_b->data);
   }
@@ -131,7 +131,7 @@ btor_delete_ptr_hash_table (BtorPtrHashTable *p2iht)
 }
 
 BtorPtrHashBucket *
-btor_find_in_ptr_hash_table (BtorPtrHashTable *p2iht, void *key)
+btor_get_ptr_hash_table (BtorPtrHashTable *p2iht, void *key)
 {
   BtorPtrHashBucket *res, **p, *b;
   unsigned i, h;
@@ -176,7 +176,7 @@ btor_findpos_in_ptr_hash_table_pos (BtorPtrHashTable *p2iht, void *key)
 }
 
 BtorPtrHashBucket *
-btor_insert_in_ptr_hash_table (BtorPtrHashTable *p2iht, void *key)
+btor_add_ptr_hash_table (BtorPtrHashTable *p2iht, void *key)
 {
   BtorPtrHashBucket **p, *res;
   p = btor_findpos_in_ptr_hash_table_pos (p2iht, key);
@@ -222,10 +222,10 @@ btor_hash_str (const void *str)
 }
 
 void
-btor_remove_from_ptr_hash_table (BtorPtrHashTable *table,
-                                 void *key,
-                                 void **stored_key_ptr,
-                                 BtorPtrHashData *stored_data_ptr)
+btor_remove_ptr_hash_table (BtorPtrHashTable *table,
+                            void *key,
+                            void **stored_key_ptr,
+                            BtorPtrHashData *stored_data_ptr)
 {
   BtorPtrHashBucket **p, *bucket;
 

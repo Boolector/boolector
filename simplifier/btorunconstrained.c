@@ -313,8 +313,8 @@ btor_optimize_unconstrained (Btor *btor)
 
   /* cleanup */
   btor_delete_substitutions (btor);
-  btor_free_int_hash_table (ucs);
-  btor_free_int_hash_table (ucsp);
+  btor_delete_int_hash_table (ucs);
+  btor_delete_int_hash_table (ucsp);
   BTOR_RELEASE_STACK (btor->mm, stack);
   BTOR_RELEASE_STACK (btor->mm, roots);
 

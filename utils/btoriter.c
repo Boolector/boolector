@@ -208,13 +208,13 @@ btor_init_parameterized_iterator (BtorParameterizedIterator *it,
     return;
   }
 
-  b = btor_find_in_ptr_hash_table (btor->parameterized, exp);
+  b = btor_get_ptr_hash_table (btor->parameterized, exp);
   if (b)
   {
-    assert (b->data.asPtr);
-    it->bucket     = ((BtorPtrHashTable *) b->data.asPtr)->first;
+    assert (b->data.as_ptr);
+    it->bucket     = ((BtorPtrHashTable *) b->data.as_ptr)->first;
     it->cur        = (BtorNode *) it->bucket->key;
-    it->num_params = ((BtorPtrHashTable *) b->data.asPtr)->count;
+    it->num_params = ((BtorPtrHashTable *) b->data.as_ptr)->count;
   }
   else
   {

@@ -32,7 +32,7 @@ btor_check_lambdas_static_rho_proxy_free_dbg (const Btor *btor)
     btor_init_node_hash_table_iterator (&iit, static_rho);
     while (btor_has_next_node_hash_table_iterator (&iit))
     {
-      data = iit.bucket->data.asPtr;
+      data = iit.bucket->data.as_ptr;
       key  = btor_next_node_hash_table_iterator (&iit);
       assert (data);
       if (BTOR_IS_PROXY_NODE (BTOR_REAL_ADDR_NODE (data))) return false;

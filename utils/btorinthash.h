@@ -40,7 +40,7 @@ typedef struct BtorIntHashTable BtorIntHashTable;
 BtorIntHashTable *btor_new_int_hash_table (BtorMemMgr *);
 
 /* Free int32_t hash table. */
-void btor_free_int_hash_table (BtorIntHashTable *);
+void btor_delete_int_hash_table (BtorIntHashTable *);
 
 /* Returns the size of the BtorIntHashTable in Byte. */
 size_t btor_size_int_hash_table (BtorIntHashTable *);
@@ -72,6 +72,6 @@ void btor_remove_int_hash_map (BtorIntHashTable *,
 
 BtorIntHashTableData *btor_add_int_hash_map (BtorIntHashTable *, int32_t key);
 
-void btor_free_int_hash_map (BtorIntHashTable *);
+void btor_delete_int_hash_map (BtorIntHashTable *);
 
 #endif

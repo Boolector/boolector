@@ -5105,14 +5105,14 @@ normalize_bin_comm_ass_exp (Btor *btor,
     }
     else
     {
-      b = btor_find_in_ptr_hash_table (left, cur);
+      b = btor_get_ptr_hash_table (left, cur);
       if (!b)
-        btor_insert_in_ptr_hash_table (left, cur)->data.asInt = 1;
+        btor_add_ptr_hash_table (left, cur)->data.as_int = 1;
       else
-        b->data.asInt++;
+        b->data.as_int++;
     }
   } while (!BTOR_EMPTY_STACK (stack));
-  btor_free_int_hash_table (cache);
+  btor_delete_int_hash_table (cache);
   cache = btor_new_int_hash_table (mm);
 
   BTOR_PUSH_STACK (mm, stack, e1);
@@ -5132,35 +5132,35 @@ normalize_bin_comm_ass_exp (Btor *btor,
     }
     else
     {
-      b = btor_find_in_ptr_hash_table (left, cur);
+      b = btor_get_ptr_hash_table (left, cur);
       if (b)
       {
         /* we found one common operand */
 
         /* remove operand from left */
-        if (b->data.asInt > 1)
-          b->data.asInt--;
+        if (b->data.as_int > 1)
+          b->data.as_int--;
         else
         {
-          assert (b->data.asInt == 1);
-          btor_remove_from_ptr_hash_table (left, cur, 0, 0);
+          assert (b->data.as_int == 1);
+          btor_remove_ptr_hash_table (left, cur, 0, 0);
         }
 
         /* insert into common table */
-        b = btor_find_in_ptr_hash_table (comm, cur);
+        b = btor_get_ptr_hash_table (comm, cur);
         if (!b)
-          btor_insert_in_ptr_hash_table (comm, cur)->data.asInt = 1;
+          btor_add_ptr_hash_table (comm, cur)->data.as_int = 1;
         else
-          b->data.asInt++;
+          b->data.as_int++;
       }
       else
       {
         /* operand is not common */
-        b = btor_find_in_ptr_hash_table (right, cur);
+        b = btor_get_ptr_hash_table (right, cur);
         if (!b)
-          btor_insert_in_ptr_hash_table (right, cur)->data.asInt = 1;
+          btor_add_ptr_hash_table (right, cur)->data.as_int = 1;
         else
-          b->data.asInt++;
+          b->data.as_int++;
       }
     }
   } while (!BTOR_EMPTY_STACK (stack));
@@ -5174,7 +5174,7 @@ normalize_bin_comm_ass_exp (Btor *btor,
     btor_delete_ptr_hash_table (left);
     btor_delete_ptr_hash_table (right);
     btor_delete_ptr_hash_table (comm);
-    btor_free_int_hash_table (cache);
+    btor_delete_int_hash_table (cache);
     *e0_norm = btor_copy_exp (btor, e0);
     *e1_norm = btor_copy_exp (btor, e1);
     return;
@@ -5198,7 +5198,7 @@ normalize_bin_comm_ass_exp (Btor *btor,
   while (b)
   {
     cur = b->key;
-    for (i = 0; i < b->data.asInt; i++) BTOR_PUSH_STACK (mm, stack, cur);
+    for (i = 0; i < b->data.as_int; i++) BTOR_PUSH_STACK (mm, stack, cur);
     b = b->next;
   }
 
@@ -5223,7 +5223,7 @@ normalize_bin_comm_ass_exp (Btor *btor,
     {
       b = it.bucket;
       cur = btor_next_node_hash_table_iterator (&it);
-      for (i = 0; i < b->data.asInt; i++)
+      for (i = 0; i < b->data.as_int; i++)
 	{
 	  temp = fptr (btor, result, cur);
 	  btor_release_exp (btor, result);
@@ -5239,7 +5239,7 @@ normalize_bin_comm_ass_exp (Btor *btor,
     {
       b = it.bucket;
       cur = btor_next_node_hash_table_iterator (&it);
-      for (i = 0; i < b->data.asInt; i++)
+      for (i = 0; i < b->data.as_int; i++)
 	{
 	  temp = fptr (btor, result, cur);
 	  btor_release_exp (btor, result);
@@ -5256,7 +5256,7 @@ normalize_bin_comm_ass_exp (Btor *btor,
   {
     b   = it.bucket;
     cur = btor_next_node_hash_table_iterator (&it);
-    for (i = 0; i < b->data.asInt; i++)
+    for (i = 0; i < b->data.as_int; i++)
     {
       if (result)
       {
@@ -5286,7 +5286,7 @@ normalize_bin_comm_ass_exp (Btor *btor,
   {
     b   = it.bucket;
     cur = btor_next_node_hash_table_iterator (&it);
-    for (i = 0; i < b->data.asInt; i++)
+    for (i = 0; i < b->data.as_int; i++)
     {
       if (result)
       {
@@ -5316,7 +5316,7 @@ normalize_bin_comm_ass_exp (Btor *btor,
   btor_delete_ptr_hash_table (left);
   btor_delete_ptr_hash_table (right);
   btor_delete_ptr_hash_table (comm);
-  btor_free_int_hash_table (cache);
+  btor_delete_int_hash_table (cache);
 }
 
 // TODO (ma): what does this do?

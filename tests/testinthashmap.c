@@ -42,16 +42,16 @@ static void
 finish_int_hash_map_test (void)
 {
   assert (h);
-  btor_free_int_hash_map (h);
+  btor_delete_int_hash_map (h);
   h = 0;
 }
 
 static void
-test_new_free_int_hash_map (void)
+test_new_delete_int_hash_map (void)
 {
   size_t allocated     = mem->allocated;
   BtorIntHashTable *ht = btor_new_int_hash_map (mem);
-  btor_free_int_hash_map (ht);
+  btor_delete_int_hash_map (ht);
   assert (allocated == mem->allocated);
 }
 
@@ -98,7 +98,7 @@ test_add_int_hash_map (void)
 void
 run_int_hash_map_tests (int argc, char **argv)
 {
-  BTOR_RUN_TEST (new_free_int_hash_map);
+  BTOR_RUN_TEST (new_delete_int_hash_map);
   BTOR_RUN_TEST (add_int_hash_map);
 }
 
