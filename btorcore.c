@@ -3020,36 +3020,6 @@ process_embedded_constraints (Btor *btor)
 
 /*------------------------------------------------------------------------*/
 
-static void
-init_cache (Btor *btor)
-{
-  assert (btor);
-  assert (!btor->cache);
-
-  btor->cache = btor_new_ptr_hash_table (
-      btor->mm, (BtorHashPtr) hash_exp_pair, (BtorCmpPtr) compare_exp_pair);
-}
-
-static void
-release_cache (Btor *btor)
-{
-  assert (btor);
-  assert (btor->cache);
-
-  BtorNodePair *pair;
-  BtorHashTableIterator it;
-
-  btor_init_hash_table_iterator (&it, btor->cache);
-  while (btor_has_next_hash_table_iterator (&it))
-  {
-    btor_release_exp (btor, (BtorNode *) it.bucket->data.asPtr);
-    pair = btor_next_hash_table_iterator (&it);
-    delete_exp_pair (btor, pair);
-  }
-  btor_delete_ptr_hash_table (btor->cache);
-  btor->cache = 0;
-}
-
 int
 btor_simplify (Btor *btor)
 {
@@ -3065,8 +3035,6 @@ btor_simplify (Btor *btor)
   start  = btor_time_stamp ();
 
   if (btor->inconsistent) goto DONE;
-
-  if (btor->options.beta_reduce_all.val) init_cache (btor);
 
   do
   {
@@ -3174,8 +3142,6 @@ btor_simplify (Btor *btor)
     if (btor->options.ackermannize.val) btor_add_ackermann_constraints (btor);
   } while (btor->varsubst_constraints->count
            || btor->embedded_constraints->count);
-
-  if (btor->options.beta_reduce_all.val) release_cache (btor);
 
 DONE:
   delta = btor_time_stamp () - start;

@@ -725,7 +725,6 @@ btor_chkclone_tables (Btor *btor)
                                      btor->clone->assumptions);
   BTOR_CHKCLONE_NODE_PTR_HASH_TABLE (btor->var_rhs, btor->clone->var_rhs);
   BTOR_CHKCLONE_NODE_PTR_HASH_TABLE (btor->fun_rhs, btor->clone->fun_rhs);
-  BTOR_CHKCLONE_NODE_PTR_HASH_TABLE (btor->cache, btor->clone->cache);
 
   if (btor->parameterized)
   {

@@ -291,7 +291,7 @@ btor_set_btor_id (Btor *btor, BtorNode *exp, int id)
  * 'compare_exp_pair'
  */
 BtorNodePair *
-new_exp_pair (Btor *btor, BtorNode *exp1, BtorNode *exp2)
+btor_new_exp_pair (Btor *btor, BtorNode *exp1, BtorNode *exp2)
 {
   assert (btor);
   assert (exp1);
@@ -319,7 +319,7 @@ new_exp_pair (Btor *btor, BtorNode *exp1, BtorNode *exp2)
 }
 
 void
-delete_exp_pair (Btor *btor, BtorNodePair *pair)
+btor_delete_exp_pair (Btor *btor, BtorNodePair *pair)
 {
   assert (btor);
   assert (pair);
@@ -329,7 +329,7 @@ delete_exp_pair (Btor *btor, BtorNodePair *pair)
 }
 
 unsigned int
-hash_exp_pair (BtorNodePair *pair)
+btor_hash_exp_pair (BtorNodePair *pair)
 {
   unsigned int result;
   assert (pair);
@@ -340,7 +340,7 @@ hash_exp_pair (BtorNodePair *pair)
 }
 
 int
-compare_exp_pair (BtorNodePair *pair1, BtorNodePair *pair2)
+btor_compare_exp_pair (BtorNodePair *pair1, BtorNodePair *pair2)
 {
   assert (pair1);
   assert (pair2);

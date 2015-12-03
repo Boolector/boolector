@@ -1107,10 +1107,6 @@ clone_aux_btor (Btor *btor, BtorNodeMap **exp_map, bool exp_layer_only)
             == clone->mm->allocated);
   }
 
-  CLONE_PTR_HASH_TABLE_DATA (cache, btor_clone_data_as_node_ptr);
-  assert ((allocated += MEM_PTR_HASH_TABLE (btor->cache))
-          == clone->mm->allocated);
-
   BTORLOG_TIMESTAMP (delta);
   clone->parameterized =
       btor_clone_ptr_hash_table (mm,
