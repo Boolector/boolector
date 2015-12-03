@@ -261,7 +261,7 @@ btor_merge_lambdas (Btor *btor)
     cur->aux_mark = 0;
   }
 
-  btor_substitute_and_rebuild (btor, btor->substitutions, 0);
+  btor_substitute_and_rebuild (btor, btor->substitutions);
   btor_delete_substitutions (btor);
   btor->stats.lambdas_merged += num_merged_lambdas;
 

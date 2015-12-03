@@ -199,7 +199,7 @@ btor_uint64_to_bv (BtorMemMgr *mm, uint64_t value, uint32_t bw)
 }
 
 BtorBitVector *
-btor_assignment_bv (BtorMemMgr *mm, BtorNode *exp, bool init_x_values)
+btor_get_assignment_bv (BtorMemMgr *mm, BtorNode *exp, bool init_x_values)
 {
   assert (mm);
   assert (exp);
