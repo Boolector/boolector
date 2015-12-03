@@ -2063,6 +2063,7 @@ UNSAT:
   sat_result = BTOR_UNSAT;
 
 DONE:
+  btor->valid_assignments = 1;
   if (slv->roots)
   {
     btor_init_node_hash_table_iterator (&it, slv->roots);
