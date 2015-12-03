@@ -12,7 +12,7 @@
  */
 
 #include "utils/btoriter.h"
-#include "utils/btorhash.h"
+#include "utils/btorhashptr.h"
 
 /*------------------------------------------------------------------------*/
 /* node iterators					                  */

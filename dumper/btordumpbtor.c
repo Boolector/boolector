@@ -16,7 +16,7 @@
 #include "btorcore.h"
 #include "btorexp.h"
 #include "btorsort.h"
-#include "utils/btorhash.h"
+#include "utils/btorhashptr.h"
 #include "utils/btoriter.h"
 #include "utils/btormem.h"
 #include "utils/btorstack.h"

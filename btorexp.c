@@ -19,7 +19,7 @@
 #include "btorexit.h"
 #include "btorlog.h"
 #include "btorrewrite.h"
-#include "utils/btorhash.h"
+#include "utils/btorhashptr.h"
 #include "utils/btoriter.h"
 #include "utils/btormisc.h"
 #include "utils/btorutil.h"

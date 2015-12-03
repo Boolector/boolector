@@ -16,7 +16,7 @@
 #include "btorbitvec.h"
 #include "btorconst.h"
 #include "btorlog.h"
-#include "utils/btorinthash.h"
+#include "utils/btorhashint.h"
 #include "utils/btoriter.h"
 #include "utils/btormem.h"
 #include "utils/btormisc.h"

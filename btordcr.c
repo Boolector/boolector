@@ -12,7 +12,7 @@
 #include "btorcore.h"
 #include "btordbg.h"
 #include "btorexp.h"
-#include "utils/btorhash.h"
+#include "utils/btorhashptr.h"
 #include "utils/btoriter.h"
 #include "utils/btorutil.h"
 

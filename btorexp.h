@@ -18,7 +18,7 @@
 #include "btorbitvec.h"
 #include "btorsort.h"
 #include "btortypes.h"
-#include "utils/btorhash.h"
+#include "utils/btorhashptr.h"
 #include "utils/btorqueue.h"
 #include "utils/btorstack.h"
 

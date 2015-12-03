@@ -10,8 +10,8 @@
 
 #include "testinthash.h"
 #include "testrunner.h"
-#include "utils/btorhash.h"
-#include "utils/btorinthash.h"
+#include "utils/btorhashint.h"
+#include "utils/btorhashptr.h"
 #include "utils/btorutil.h"
 
 #ifdef NDEBUG

@@ -19,7 +19,7 @@
 #include "btormsg.h"
 #include "btorsat.h"
 #include "btorsort.h"
-#include "utils/btorhash.h"
+#include "utils/btorhashptr.h"
 #include "utils/btoriter.h"
 #include "utils/btormap.h"
 #include "utils/btorstack.h"

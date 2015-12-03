@@ -13,7 +13,7 @@
 #include "btorconst.h"
 #include "btormodel.h"
 #include "dumper/btordumpsmt.h"
-#include "utils/btorhash.h"
+#include "utils/btorhashptr.h"
 #include "utils/btoriter.h"
 
 const char *

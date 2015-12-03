@@ -34,7 +34,7 @@
 #include "simplifier/btorextract.h"
 #include "simplifier/btormerge.h"
 #include "simplifier/btorunconstrained.h"
-#include "utils/btorinthash.h"
+#include "utils/btorhashint.h"
 #include "utils/btoriter.h"
 #include "utils/btormisc.h"
 #include "utils/btorparamcache.h"

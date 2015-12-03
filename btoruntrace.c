@@ -18,7 +18,7 @@
 #include <stdlib.h>
 #include <string.h>
 #include "boolector.h"
-#include "utils/btorhash.h"
+#include "utils/btorhashptr.h"
 #include "utils/btormem.h"
 #include "utils/btorstack.h"
 
