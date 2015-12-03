@@ -210,7 +210,7 @@ struct Btor
     double rewrite;
     double subst;
     double subst_rebuild;
-    double betareduce;
+    double elimapplies;
     double embedded;
     double slicing;
     double skel;
@@ -392,10 +392,8 @@ void btor_delete_substitutions (Btor *);
 void btor_insert_substitution (Btor *, BtorNode *, BtorNode *, int);
 BtorNode *btor_find_substitution (Btor *, BtorNode *);
 
-void btor_substitute_and_rebuild (Btor *, BtorPtrHashTable *, int);
+void btor_substitute_and_rebuild (Btor *, BtorPtrHashTable *);
 void btor_insert_varsubst_constraint (Btor *, BtorNode *, BtorNode *);
 void btor_process_unsynthesized_constraints (Btor *btor);
-
-BtorNode *btor_aux_var_exp (Btor *, int);
 
 #endif

@@ -657,9 +657,9 @@ btor_print_stats_btor (Btor *btor)
       percent (btor->time.embedded, btor->time.rewrite));
   BTOR_MSG (btor->msg,
             1,
-            "%.2f seconds in beta reduction during rewriting (%.0f%%)",
-            btor->time.betareduce,
-            percent (btor->time.betareduce, btor->time.rewrite));
+            "%.2f seconds in apply elimination during rewriting (%.0f%%)",
+            btor->time.elimapplies,
+            percent (btor->time.elimapplies, btor->time.rewrite));
   if (btor->options.eliminate_slices.val)
     BTOR_MSG (btor->msg,
               1,
@@ -1274,23 +1274,6 @@ reverse_subst_comp_kind (Btor *btor, BtorSubstCompKind comp)
   }
 }
 
-BtorNode *
-btor_aux_var_exp (Btor *btor, int len)
-{
-  assert (btor);
-  assert (len > 0);
-
-  BtorNode *result;
-#ifndef NDEBUG
-  int id = BTOR_COUNT_STACK (btor->nodes_id_table);
-#endif
-
-  result = btor_var_exp (btor, len, 0);
-  assert (BTOR_IS_REGULAR_NODE (result));
-  assert (result->id == id);
-  return result;
-}
-
 /* check if left does not occur on the right side */
 static int
 occurrence_check (Btor *btor, BtorNode *left, BtorNode *right)
@@ -1318,6 +1301,7 @@ occurrence_check (Btor *btor, BtorNode *left, BtorNode *right)
   {
     cur = BTOR_REAL_ADDR_NODE (BTOR_DEQUEUE (queue));
   OCCURRENCE_CHECK_ENTER_WITHOUT_POP:
+    assert (!BTOR_IS_PROXY_NODE (cur));
     if (!btor_contains_int_hash_table (cache, cur->id))
     {
       btor_add_int_hash_table (cache, cur->id);
@@ -1430,7 +1414,7 @@ normalize_substitution (Btor *btor,
       {
         const_exp = btor_zero_exp (btor, leadings);
         lambda =
-            btor_aux_var_exp (btor, btor_get_exp_width (btor, var) - leadings);
+            btor_var_exp (btor, btor_get_exp_width (btor, var) - leadings, 0);
         tmp = btor_concat_exp (btor, const_exp, lambda);
         btor_insert_varsubst_constraint (btor, var, tmp);
         btor_release_exp (btor, const_exp);
@@ -1447,7 +1431,7 @@ normalize_substitution (Btor *btor,
       {
         const_exp = btor_ones_exp (btor, leadings);
         lambda =
-            btor_aux_var_exp (btor, btor_get_exp_width (btor, var) - leadings);
+            btor_var_exp (btor, btor_get_exp_width (btor, var) - leadings, 0);
         tmp = btor_concat_exp (btor, const_exp, lambda);
         btor_insert_varsubst_constraint (btor, var, tmp);
         btor_release_exp (btor, const_exp);
@@ -2602,7 +2586,7 @@ substitute_var_exps (Btor *btor)
       cur = btor_next_node_hash_table_iterator (&it);
       assert (BTOR_IS_REGULAR_NODE (cur));
       assert (BTOR_IS_BV_VAR_NODE (cur) || BTOR_IS_UF_NODE (cur));
-      BTOR_PUSH_STACK (mm, stack, (BtorNode *) cur);
+      BTOR_PUSH_STACK (mm, stack, cur);
 
       while (!BTOR_EMPTY_STACK (stack))
       {
@@ -2792,36 +2776,34 @@ substitute_var_exps (Btor *btor)
       btor->msg, 1, "%d variables substituted in %.1f seconds", count, delta);
 }
 
-static int
+static bool
 all_exps_below_rebuilt (Btor *btor, BtorNode *exp)
 {
   assert (btor);
   assert (exp);
 
   int i;
-  BtorNode *subst;
+  BtorNode *cur;
 
-  subst = btor_find_substitution (btor, exp);
-  if (subst)
+  cur = btor_find_substitution (btor, exp);
+  if (cur)
   {
-    subst = btor_simplify_exp (btor, subst);
-    return BTOR_REAL_ADDR_NODE (subst)->aux_mark == 0;
+    cur = btor_simplify_exp (btor, cur);
+    return BTOR_REAL_ADDR_NODE (cur)->aux_mark == 0;
   }
 
   exp = BTOR_REAL_ADDR_NODE (exp);
   for (i = 0; i < exp->arity; i++)
-    if (BTOR_REAL_ADDR_NODE (exp->e[i])->aux_mark > 0) return 0;
+  {
+    cur = BTOR_REAL_ADDR_NODE (btor_simplify_exp (btor, exp->e[i]));
+    if (cur->aux_mark > 0) return false;
+  }
 
-  return 1;
+  return true;
 }
 
-/* beta reduction parameter 'bra'
- * -1 ... full beta reduction
- *  0 ... no beta reduction
- * >0 ... bound for bounded beta reduction
- */
 static void
-substitute_and_rebuild (Btor *btor, BtorPtrHashTable *subst, int bra)
+substitute_and_rebuild (Btor *btor, BtorPtrHashTable *subst)
 {
   assert (btor);
   assert (subst);
@@ -2908,8 +2890,8 @@ substitute_and_rebuild (Btor *btor, BtorPtrHashTable *subst, int bra)
       while (btor_has_next_parent_iterator (&it))
       {
         cur_parent = btor_next_parent_iterator (&it);
-        if (cur_parent->aux_mark == 2
-            || !all_exps_below_rebuilt (btor, cur_parent))
+        if (cur_parent->aux_mark == 2)
+          //		  || !all_exps_below_rebuilt (btor, cur_parent))
           continue;
         assert (cur_parent->aux_mark == 0 || cur_parent->aux_mark == 1);
         cur_parent->aux_mark = 2;
@@ -2917,18 +2899,7 @@ substitute_and_rebuild (Btor *btor, BtorPtrHashTable *subst, int bra)
       }
 
       if ((sub = btor_find_substitution (btor, cur)))
-      {
         rebuilt_exp = btor_copy_exp (btor, sub);
-      }
-      // TODO: externalize
-      else if (bra && BTOR_IS_APPLY_NODE (cur)
-               && btor_find_in_ptr_hash_table (subst, cur))
-      {
-        if (bra == -1)
-          rebuilt_exp = btor_beta_reduce_full (btor, cur);
-        else
-          rebuilt_exp = btor_beta_reduce_bounded (btor, cur, bra);
-      }
       else
         rebuilt_exp = rebuild_exp (btor, cur);
 
@@ -2974,9 +2945,9 @@ substitute_and_rebuild (Btor *btor, BtorPtrHashTable *subst, int bra)
 }
 
 void
-btor_substitute_and_rebuild (Btor *btor, BtorPtrHashTable *substs, int bra)
+btor_substitute_and_rebuild (Btor *btor, BtorPtrHashTable *substs)
 {
-  substitute_and_rebuild (btor, substs, bra);
+  substitute_and_rebuild (btor, substs);
 }
 
 static void
@@ -2997,7 +2968,7 @@ substitute_embedded_constraints (Btor *btor)
     if (BTOR_REAL_ADDR_NODE (cur)->parents > 0) btor->stats.ec_substitutions++;
   }
 
-  substitute_and_rebuild (btor, btor->embedded_constraints, 0);
+  substitute_and_rebuild (btor, btor->embedded_constraints);
 }
 
 static void
@@ -3167,13 +3138,14 @@ btor_simplify (Btor *btor)
         && btor->feqs->count == 0
         /* FIXME: merging not supported yet for incremental due to
          * extensionality*/
-        && !btor->options.incremental.val && !btor->options.beta_reduce_all.val
+        && !btor->options.incremental.val
+        //	  && !btor->options.beta_reduce_all.val
         && btor->options.extract_lambdas.val)
       btor_extract_lambdas (btor);
 
     if (btor->options.rewrite_level.val > 2
         /* merging lambdas not required if they get eliminated */
-        && !btor->options.beta_reduce_all.val
+        //	  && !btor->options.beta_reduce_all.val
         && btor->options.merge_lambdas.val)
       btor_merge_lambdas (btor);
 
@@ -3823,7 +3795,7 @@ get_bv_assignment (Btor *btor, BtorNode *exp)
   {
     /* synthesized nodes are always encoded and have an assignment */
     if (BTOR_IS_SYNTH_NODE (real_exp))
-      bv = btor_assignment_bv (btor->mm, real_exp, false);
+      bv = btor_get_assignment_bv (btor->mm, real_exp, false);
     else if (BTOR_IS_BV_CONST_NODE (real_exp))
       bv = btor_copy_bv (btor->mm, btor_const_get_bits (real_exp));
     /* initialize var, apply, and feq nodes if they are not yet synthesized
@@ -3833,7 +3805,7 @@ get_bv_assignment (Btor *btor, BtorNode *exp)
     {
       if (!BTOR_IS_SYNTH_NODE (real_exp))
         BTORLOG (1, "zero-initialize: %s", node2string (real_exp));
-      bv = btor_assignment_bv (btor->mm, real_exp, true);
+      bv = btor_get_assignment_bv (btor->mm, real_exp, true);
     }
     else
       bv = btor_eval_exp (btor, real_exp);
@@ -6319,7 +6291,7 @@ rebuild_formula (Btor *btor, int rewrite_level)
     }
   }
 
-  substitute_and_rebuild (btor, t, 0);
+  substitute_and_rebuild (btor, t);
   btor_delete_ptr_hash_table (t);
 }
 
