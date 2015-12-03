@@ -156,8 +156,6 @@ struct Btor
   BtorPtrHashTable *var_rhs;
   BtorPtrHashTable *fun_rhs;
 
-  BtorPtrHashTable *cache; /* for btor_simplify_btor */
-
 #ifndef NDEBUG
   Btor *clone; /* shadow clone (debugging only) */
 #endif

@@ -59,14 +59,14 @@ process_skeleton_tseitin_lit (BtorPtrHashTable* ids, BtorNode* exp)
 
   real_exp = BTOR_REAL_ADDR_NODE (exp);
   assert (btor_get_exp_width (real_exp->btor, real_exp) == 1);
-  b = btor_find_in_ptr_hash_table (ids, real_exp);
+  b = btor_get_ptr_hash_table (ids, real_exp);
   if (!b)
   {
-    b             = btor_insert_in_ptr_hash_table (ids, real_exp);
-    b->data.asInt = (int) ids->count;
+    b              = btor_add_ptr_hash_table (ids, real_exp);
+    b->data.as_int = (int) ids->count;
   }
 
-  res = b->data.asInt;
+  res = b->data.as_int;
   assert (res > 0);
 
   if (BTOR_IS_INVERTED_NODE (exp)) res = -res;
@@ -118,7 +118,7 @@ process_skeleton_tseitin (Btor* btor,
         assert (child->mark == 2);
         if (!BTOR_IS_FUN_NODE (child) && !BTOR_IS_ARGS_NODE (child)
             && !child->parameterized && btor_get_exp_width (btor, child) == 1)
-          assert (btor_find_in_ptr_hash_table (ids, child));
+          assert (btor_get_ptr_hash_table (ids, child));
       }
 #endif
       lhs   = process_skeleton_tseitin_lit (ids, exp);
@@ -306,9 +306,8 @@ btor_process_skeleton (Btor* btor)
       val = lglfixed (lgl, lit);
       if (val)
       {
-        if (!btor_find_in_ptr_hash_table (btor->synthesized_constraints, exp)
-            && !btor_find_in_ptr_hash_table (btor->unsynthesized_constraints,
-                                             exp))
+        if (!btor_get_ptr_hash_table (btor->synthesized_constraints, exp)
+            && !btor_get_ptr_hash_table (btor->unsynthesized_constraints, exp))
         {
           if (val < 0) exp = BTOR_INVERT_NODE (exp);
           btor_assert_exp (btor, exp);
@@ -318,10 +317,9 @@ btor_process_skeleton (Btor* btor)
       }
       else
       {
+        assert (!btor_get_ptr_hash_table (btor->synthesized_constraints, exp));
         assert (
-            !btor_find_in_ptr_hash_table (btor->synthesized_constraints, exp));
-        assert (!btor_find_in_ptr_hash_table (btor->unsynthesized_constraints,
-                                              exp));
+            !btor_get_ptr_hash_table (btor->unsynthesized_constraints, exp));
       }
     }
   }

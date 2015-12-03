@@ -19,7 +19,7 @@
 #include "btoropt.h"
 #include "btorsls.h"  // currently needed, TODO maybe get rid of in the future
 
-#include "utils/btorhash.h"
+#include "utils/btorhashptr.h"
 #include "utils/btoriter.h"
 #include "utils/btormisc.h"
 
@@ -2851,23 +2851,23 @@ reset_cone (Btor *btor, BtorNode *exp)
     BTOR_PUSH_STACK (btor->mm, unmark_stack, cur);
 
     /* reset previous assignment */
-    if ((b = btor_find_in_ptr_hash_table (bv_model, cur)))
+    if ((b = btor_get_ptr_hash_table (bv_model, cur)))
     {
-      btor_free_bv (btor->mm, b->data.asPtr);
-      btor_remove_from_ptr_hash_table (bv_model, cur, 0, 0);
+      btor_free_bv (btor->mm, b->data.as_ptr);
+      btor_remove_ptr_hash_table (bv_model, cur, 0, 0);
       btor_release_exp (btor, cur);
     }
-    if ((b = btor_find_in_ptr_hash_table (bv_model, BTOR_INVERT_NODE (cur))))
+    if ((b = btor_get_ptr_hash_table (bv_model, BTOR_INVERT_NODE (cur))))
     {
-      btor_free_bv (btor->mm, b->data.asPtr);
-      btor_remove_from_ptr_hash_table (bv_model, BTOR_INVERT_NODE (cur), 0, 0);
+      btor_free_bv (btor->mm, b->data.as_ptr);
+      btor_remove_ptr_hash_table (bv_model, BTOR_INVERT_NODE (cur), 0, 0);
       btor_release_exp (btor, cur);
     }
     /* reset previous score */
-    if ((b = btor_find_in_ptr_hash_table (score, cur)))
-      btor_remove_from_ptr_hash_table (score, cur, 0, 0);
-    if ((b = btor_find_in_ptr_hash_table (score, BTOR_INVERT_NODE (cur))))
-      btor_remove_from_ptr_hash_table (score, BTOR_INVERT_NODE (cur), 0, 0);
+    if ((b = btor_get_ptr_hash_table (score, cur)))
+      btor_remove_ptr_hash_table (score, cur, 0, 0);
+    if ((b = btor_get_ptr_hash_table (score, BTOR_INVERT_NODE (cur))))
+      btor_remove_ptr_hash_table (score, BTOR_INVERT_NODE (cur), 0, 0);
 
     /* push parents */
     btor_init_parent_iterator (&nit, cur);
@@ -2918,14 +2918,14 @@ select_constraint (Btor *btor, uint32_t nmoves)
   btor_init_hash_table_iterator (&it, slv->roots);
   while (btor_has_next_node_hash_table_iterator (&it))
   {
-    selected = &it.bucket->data.asInt;
+    selected = &it.bucket->data.as_int;
     cur      = btor_next_node_hash_table_iterator (&it);
     if (BTOR_IS_BV_CONST_NODE (BTOR_REAL_ADDR_NODE (cur))
         && btor_is_zero_bv (btor_get_bv_model (btor, cur)))
       return 0; /* contains false constraint -> unsat */
-    b = btor_find_in_ptr_hash_table (slv->score, cur);
+    b = btor_get_ptr_hash_table (slv->score, cur);
     assert (b);
-    if ((score = b->data.asDbl) >= 1.0) continue;
+    if ((score = b->data.as_dbl) >= 1.0) continue;
     if (!res)
     {
       res = cur;
@@ -3128,8 +3128,8 @@ sat_prop_solver (Btor *btor, int limit0, int limit1)
   while (btor_has_next_node_hash_table_iterator (&it))
   {
     root = btor_next_node_hash_table_iterator (&it);
-    if (!btor_find_in_ptr_hash_table (slv->roots, root))
-      btor_insert_in_ptr_hash_table (slv->roots, root);
+    if (!btor_get_ptr_hash_table (slv->roots, root))
+      btor_add_ptr_hash_table (slv->roots, root);
   }
 
   if (!slv->score)
