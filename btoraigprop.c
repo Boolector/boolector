@@ -56,13 +56,26 @@ delete_aigprop_solver (Btor *btor)
   BTOR_DELETE (btor->mm, slv);
 }
 
+static int
+get_assignment_aig (BtorPtrHashTable *model, BtorAIG *aig)
+{
+  assert (model);
+
+  if (aig == BTOR_AIG_TRUE) return 1;
+  if (aig == BTOR_AIG_FALSE) return -1;
+  /* initialize don't care bits with false */
+  if (!btor_find_in_ptr_hash_table (model, BTOR_REAL_ADDR_AIG (model)))
+    return BTOR_IS_INVERTED_AIG (aig) ? 1 : -1;
+  return aigprop_get_assignment_aig (model, aig);
+}
+
 BtorBitVector *
-get_assignment_bv (BtorMemMgr *mm, BtorNode *exp, BtorPtrHashTable *aig_model)
+get_assignment_bv (BtorMemMgr *mm, BtorNode *exp, BtorPtrHashTable *model)
 {
   assert (mm);
   assert (exp);
   assert (BTOR_IS_REGULAR_NODE (exp));
-  assert (aig_model);
+  assert (model);
 
   int i, j, len, bit;
   BtorBitVector *res;
@@ -76,7 +89,7 @@ get_assignment_bv (BtorMemMgr *mm, BtorNode *exp, BtorPtrHashTable *aig_model)
 
   for (i = 0, j = len - 1; i < len; i++, j--)
   {
-    bit = aigprop_get_assignment_aig (aig_model, av->aigs[j]);
+    bit = get_assignment_aig (model, av->aigs[j]);
     assert (bit == -1 || bit == 1);
     btor_set_bit_bv (res, i, bit == 1 ? 1 : 0);
   }
