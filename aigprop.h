@@ -11,7 +11,7 @@
 #define AIGPROP_H_INCLUDED
 
 #include "btoraig.h"
-#include "utils/btorhashptr.h"
+#include "utils/btorhash.h"
 #include "utils/btorutil.h"
 
 #define AIGPROP_UNKNOWN 0

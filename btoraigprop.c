@@ -17,8 +17,8 @@
 #include "btormodel.h"
 #include "btorprop.h"
 #include "btorsls.h"  // for score computation
-#include "utils/btorhashint.h"
-#include "utils/btorhashptr.h"
+#include "utils/btorhash.h"
+#include "utils/btorinthash.h"
 #include "utils/btoriter.h"
 
 #define BTOR_AIGPROP_MAXSTEPS_CFACT 100
@@ -64,7 +64,7 @@ get_assignment_aig (BtorPtrHashTable *model, BtorAIG *aig)
   if (aig == BTOR_AIG_TRUE) return 1;
   if (aig == BTOR_AIG_FALSE) return -1;
   /* initialize don't care bits with false */
-  if (!btor_get_ptr_hash_table (model, BTOR_REAL_ADDR_AIG (model)))
+  if (!btor_find_in_ptr_hash_table (model, BTOR_REAL_ADDR_AIG (model)))
     return BTOR_IS_INVERTED_AIG (aig) ? 1 : -1;
   return aigprop_get_assignment_aig (model, aig);
 }
@@ -139,7 +139,7 @@ generate_model_aigprop_solver (Btor *btor, int model_for_all_nodes, int reset)
       BTOR_PUSH_STACK (btor->mm, stack, real_cur->e[i]);
   }
   BTOR_RELEASE_STACK (btor->mm, stack);
-  btor_delete_int_hash_table (cache);
+  btor_free_int_hash_table (cache);
   /* generate model for unreachable nodes */
   if (model_for_all_nodes)
     btor_generate_model (
@@ -226,11 +226,11 @@ sat_aigprop_solver (Btor *btor, int limit0, int limit1)
   {
     root = btor_next_node_hash_table_iterator (&it);
     assert (BTOR_REAL_ADDR_NODE (root)->av->len == 1);
-    if (!btor_get_ptr_hash_table (slv->aprop->roots, root))
+    if (!btor_find_in_ptr_hash_table (slv->aprop->roots, root))
     {
       aig = BTOR_REAL_ADDR_NODE (root)->av->aigs[0];
       if (BTOR_IS_INVERTED_NODE (root)) aig = BTOR_INVERT_AIG (aig);
-      (void) btor_add_ptr_hash_table (slv->aprop->roots, aig);
+      (void) btor_insert_in_ptr_hash_table (slv->aprop->roots, aig);
     }
   }
 
