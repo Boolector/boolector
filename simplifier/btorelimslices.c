@@ -270,12 +270,12 @@ btor_eliminate_slices_on_bv_vars (Btor *btor)
            compare_slices_qsort);
 
     s1     = sorted_slices[(int) slices->count - 1];
-    result = btor_aux_var_exp (btor, s1->upper - s1->lower + 1);
+    result = btor_var_exp (btor, s1->upper - s1->lower + 1, 0);
     delete_slice (btor, s1);
     for (i = (int) slices->count - 2; i >= 0; i--)
     {
       s1         = sorted_slices[i];
-      lambda_var = btor_aux_var_exp (btor, s1->upper - s1->lower + 1);
+      lambda_var = btor_var_exp (btor, s1->upper - s1->lower + 1, 0);
       temp       = btor_concat_exp (btor, result, lambda_var);
       btor_release_exp (btor, result);
       result = temp;

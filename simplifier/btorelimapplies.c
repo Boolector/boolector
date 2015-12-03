@@ -9,6 +9,7 @@
  */
 
 #include "simplifier/btorelimapplies.h"
+#include "btorbeta.h"
 #include "btorcore.h"
 #include "btordbg.h"
 #include "utils/btoriter.h"
@@ -21,17 +22,13 @@ btor_eliminate_applies (Btor *btor)
 
   int num_applies, num_applies_total = 0, round;
   double start, delta;
-  BtorPtrHashTable *apps;
-  BtorNode *app, *fun;
+  BtorNode *app, *fun, *subst;
   BtorNodeIterator it;
   BtorHashTableIterator h_it;
-  BtorMemMgr *mm;
 
   if (btor->lambdas->count == 0) return;
 
   start = btor_time_stamp ();
-
-  mm    = btor->mm;
   round = 1;
 
   /* NOTE: in some cases substitute_and_rebuild creates applies that can be
@@ -40,9 +37,8 @@ btor_eliminate_applies (Btor *btor)
    */
   do
   {
-    apps = btor_new_ptr_hash_table (mm,
-                                    (BtorHashPtr) btor_hash_exp_by_id,
-                                    (BtorCmpPtr) btor_compare_exp_by_id);
+    num_applies = 0;
+    btor_init_substitutions (btor);
 
     /* collect function applications */
     btor_init_node_hash_table_iterator (&h_it, btor->lambdas);
@@ -55,15 +51,16 @@ btor_eliminate_applies (Btor *btor)
       {
         app = btor_next_apply_parent_iterator (&it);
 
-        if (btor_find_in_ptr_hash_table (apps, app)) continue;
-
         if (app->parameterized) continue;
 
-        btor_insert_in_ptr_hash_table (apps, btor_copy_exp (btor, app));
+        num_applies++;
+        subst = btor_beta_reduce_full (btor, app);
+        assert (!btor_find_in_ptr_hash_table (btor->substitutions, app));
+        btor_insert_substitution (btor, app, subst, 0);
+        btor_release_exp (btor, subst);
       }
     }
 
-    num_applies = apps->count;
     num_applies_total += num_applies;
     BTOR_MSG (btor->msg,
               1,
@@ -71,12 +68,8 @@ btor_eliminate_applies (Btor *btor)
               num_applies,
               round);
 
-    btor_substitute_and_rebuild (btor, apps, -1);
-
-    btor_init_node_hash_table_iterator (&h_it, apps);
-    while (btor_has_next_node_hash_table_iterator (&h_it))
-      btor_release_exp (btor, btor_next_node_hash_table_iterator (&h_it));
-    btor_delete_ptr_hash_table (apps);
+    btor_substitute_and_rebuild (btor, btor->substitutions);
+    btor_delete_substitutions (btor);
     round++;
   } while (num_applies > 0);
 
@@ -96,7 +89,7 @@ btor_eliminate_applies (Btor *btor)
 #endif
 
   delta = btor_time_stamp () - start;
-  btor->time.betareduce += delta;
+  btor->time.elimapplies += delta;
   BTOR_MSG (btor->msg,
             1,
             "eliminated %d function applications in %.1f seconds",
