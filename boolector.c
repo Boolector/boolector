@@ -29,7 +29,7 @@
 #include "dumper/btordumpaig.h"
 #include "dumper/btordumpbtor.h"
 #include "dumper/btordumpsmt.h"
-#include "utils/btorhash.h"
+#include "utils/btorhashptr.h"
 #include "utils/btoriter.h"
 #include "utils/btorutil.h"
 
@@ -1025,14 +1025,13 @@ boolector_var (Btor *btor, int width, const char *symbol)
   BTOR_TRAPI ("%d %s", width, symb);
   BTOR_ABORT_BOOLECTOR (width < 1, "'width' must not be < 1");
   BTOR_ABORT_BOOLECTOR (
-      symb && btor_find_in_ptr_hash_table (btor->symbols, (char *) symb),
+      symb && btor_get_ptr_hash_table (btor->symbols, (char *) symb),
       "symbol '%s' is already in use",
       symb);
   res = btor_var_exp (btor, width, symb);
   inc_exp_ext_ref_counter (btor, res);
   BTOR_TRAPI_RETURN_NODE (res);
-  (void) btor_insert_in_ptr_hash_table (btor->inputs,
-                                        btor_copy_exp (btor, res));
+  (void) btor_add_ptr_hash_table (btor->inputs, btor_copy_exp (btor, res));
 #ifndef NDEBUG
   BTOR_CHKCLONE_RES_PTR (res, var, width, symbol);
 #endif
@@ -1054,15 +1053,13 @@ boolector_array (Btor *btor,
   BTOR_TRAPI ("%d %d %s", elem_width, index_width, symb);
   BTOR_ABORT_BOOLECTOR (elem_width < 1, "'elem_width' must not be < 1");
   BTOR_ABORT_BOOLECTOR (index_width < 1, "'index_width' must not be < 1");
-  BTOR_ABORT_BOOLECTOR (
-      symb && btor_find_in_ptr_hash_table (btor->symbols, symb),
-      "symbol '%s' is already in use",
-      symb);
+  BTOR_ABORT_BOOLECTOR (symb && btor_get_ptr_hash_table (btor->symbols, symb),
+                        "symbol '%s' is already in use",
+                        symb);
   res = btor_array_exp (btor, elem_width, index_width, symb);
   inc_exp_ext_ref_counter (btor, res);
   BTOR_TRAPI_RETURN_NODE (res);
-  (void) btor_insert_in_ptr_hash_table (btor->inputs,
-                                        btor_copy_exp (btor, res));
+  (void) btor_add_ptr_hash_table (btor->inputs, btor_copy_exp (btor, res));
 #ifndef NDEBUG
   BTOR_CHKCLONE_RES_PTR (res, array, elem_width, index_width, symbol);
 #endif
@@ -1089,16 +1086,14 @@ boolector_uf (Btor *btor, BoolectorSort sort, const char *symbol)
                         symbol ? " '" : "",
                         symbol ? symbol : "",
                         symbol ? "'" : "");
-  BTOR_ABORT_BOOLECTOR (
-      symb && btor_find_in_ptr_hash_table (btor->symbols, symb),
-      "symbol '%s' is already in use",
-      symb);
+  BTOR_ABORT_BOOLECTOR (symb && btor_get_ptr_hash_table (btor->symbols, symb),
+                        "symbol '%s' is already in use",
+                        symb);
 
   res = btor_uf_exp (btor, s, symb);
   assert (BTOR_IS_REGULAR_NODE (res));
   inc_exp_ext_ref_counter (btor, res);
-  (void) btor_insert_in_ptr_hash_table (btor->inputs,
-                                        btor_copy_exp (btor, res));
+  (void) btor_add_ptr_hash_table (btor->inputs, btor_copy_exp (btor, res));
   BTOR_TRAPI_RETURN_NODE (res);
 #ifndef NDEBUG
   BTOR_CHKCLONE_RES_PTR (res, uf, s, symbol);
@@ -2513,10 +2508,9 @@ boolector_param (Btor *btor, int width, const char *symbol)
   symb = (char *) symbol;
   BTOR_TRAPI ("%d %s", width, symb);
   BTOR_ABORT_BOOLECTOR (width < 1, "'width' must not be < 1");
-  BTOR_ABORT_BOOLECTOR (
-      symb && btor_find_in_ptr_hash_table (btor->symbols, symb),
-      "symbol '%s' is already in use",
-      symb);
+  BTOR_ABORT_BOOLECTOR (symb && btor_get_ptr_hash_table (btor->symbols, symb),
+                        "symbol '%s' is already in use",
+                        symb);
   res = btor_param_exp (btor, width, symb);
   inc_exp_ext_ref_counter (btor, res);
 

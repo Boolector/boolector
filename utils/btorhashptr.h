@@ -39,10 +39,10 @@ typedef void (*BtorCloneDataPtr) (BtorMemMgr *mem,
 
 union BtorPtrHashData
 {
-  int asInt;
-  double asDbl;
-  void *asPtr;
-  char *asStr;
+  int as_int;
+  double as_dbl;
+  void *as_ptr;
+  char *as_str;
 };
 
 struct BtorPtrHashBucket
@@ -83,8 +83,8 @@ BtorPtrHashTable *btor_new_ptr_hash_table (BtorMemMgr *,
                                            BtorCmpPtr);
 
 /* Clone hash table. 'ckey' is a function mapping key to cloned key,
- * 'cdata' is a function mapping data to cloned data (note: asPtr vs.
- * asInt!). 'key_map' represents a map mapping key to cloned key values.
+ * 'cdata' is a function mapping data to cloned data (note: as_ptr vs.
+ * as_int!). 'key_map' represents a map mapping key to cloned key values.
  * 'data_map' represents a map mapping data to cloned data values. */
 BtorPtrHashTable *btor_clone_ptr_hash_table (BtorMemMgr *mem,
                                              BtorPtrHashTable *table,
@@ -95,9 +95,9 @@ BtorPtrHashTable *btor_clone_ptr_hash_table (BtorMemMgr *mem,
 
 void btor_delete_ptr_hash_table (BtorPtrHashTable *);
 
-BtorPtrHashBucket *btor_find_in_ptr_hash_table (BtorPtrHashTable *, void *);
+BtorPtrHashBucket *btor_get_ptr_hash_table (BtorPtrHashTable *, void *);
 
-BtorPtrHashBucket *btor_insert_in_ptr_hash_table (BtorPtrHashTable *, void *);
+BtorPtrHashBucket *btor_add_ptr_hash_table (BtorPtrHashTable *, void *);
 
 /* Remove from hash table the bucket with the key.  The key has to be an
  * element of the hash table.  If 'stored_data_ptr' is non zero, then data
@@ -106,10 +106,10 @@ BtorPtrHashBucket *btor_insert_in_ptr_hash_table (BtorPtrHashTable *, void *);
  * through the chronological chains, then you can remove elements while
  * traversing the hash table.
  */
-void btor_remove_from_ptr_hash_table (BtorPtrHashTable *,
-                                      void *key,
-                                      void **stored_key_ptr,
-                                      BtorPtrHashData *stored_data_ptr);
+void btor_remove_ptr_hash_table (BtorPtrHashTable *,
+                                 void *key,
+                                 void **stored_key_ptr,
+                                 BtorPtrHashData *stored_data_ptr);
 
 unsigned btor_hash_str (const void *str);
 

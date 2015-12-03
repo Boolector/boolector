@@ -10,8 +10,8 @@
 
 #include "testinthash.h"
 #include "testrunner.h"
-#include "utils/btorhash.h"
-#include "utils/btorinthash.h"
+#include "utils/btorhashint.h"
+#include "utils/btorhashptr.h"
 #include "utils/btorutil.h"
 
 #ifdef NDEBUG
@@ -42,7 +42,7 @@ static void
 finish_int_hash_table_test (void)
 {
   assert (h);
-  btor_free_int_hash_table (h);
+  btor_delete_int_hash_table (h);
   h = 0;
 }
 
@@ -102,8 +102,8 @@ test_add_int_hash_table (void)
 //      val = i * 7;
 //      val = rand();
       val = rand() % 2123541 + 1;
-      if (!btor_find_in_ptr_hash_table (ht, (void *) (size_t) val))
-	btor_insert_in_ptr_hash_table (ht, (void *) (size_t) val);
+      if (!btor_get_ptr_hash_table (ht, (void *) (size_t) val))
+	btor_add_ptr_hash_table (ht, (void *) (size_t) val);
     }
   printf ("%.3f insert\n", btor_time_stamp () - start);
 
@@ -114,7 +114,7 @@ test_add_int_hash_table (void)
 //      val = i * 7;
 //      val = rand();
       val = rand() % 2123541 + 1;
-      assert (btor_find_in_ptr_hash_table (ht, (void *) (size_t) val));
+      assert (btor_get_ptr_hash_table (ht, (void *) (size_t) val));
     }
   printf ("%.3f find\n", btor_time_stamp () - start);
 
@@ -137,8 +137,8 @@ test_add_int_hash_table (void)
 //      val = i * 7;
 //      val = rand();
       val = rand() % 2123541 + 1;
-      if (btor_find_in_ptr_hash_table (ht, (void *) (size_t) val))
-      btor_remove_from_ptr_hash_table (ht, (void *) (size_t) val, 0, 0);
+      if (btor_get_ptr_hash_table (ht, (void *) (size_t) val))
+      btor_remove_ptr_hash_table (ht, (void *) (size_t) val, 0, 0);
     }
   printf ("%.3f remove\n", btor_time_stamp () - start);
 
@@ -161,11 +161,11 @@ test_add_int_hash_table (void)
 #endif
 
 static void
-test_new_free_int_hash_table (void)
+test_new_delete_int_hash_table (void)
 {
   size_t allocated     = mem->allocated;
   BtorIntHashTable *ht = btor_new_int_hash_table (mem);
-  btor_free_int_hash_table (ht);
+  btor_delete_int_hash_table (ht);
   assert (allocated == mem->allocated);
 }
 
@@ -206,7 +206,7 @@ test_add_int_hash_table (void)
 void
 run_int_hash_table_tests (int argc, char **argv)
 {
-  BTOR_RUN_TEST (new_free_int_hash_table);
+  BTOR_RUN_TEST (new_delete_int_hash_table);
   BTOR_RUN_TEST (add_int_hash_table);
 }
 

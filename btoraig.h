@@ -16,7 +16,7 @@
 
 #include "btoropt.h"
 #include "btorsat.h"
-#include "utils/btorhash.h"
+#include "utils/btorhashptr.h"
 #include "utils/btormem.h"
 #include "utils/btorstack.h"
 
