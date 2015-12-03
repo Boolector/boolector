@@ -366,7 +366,7 @@ BtorBitVector *btor_eval_exp (Btor *btor, BtorNode *exp);
 
 /* Synthesizes expression of arbitrary length to an AIG vector. Adds string
  * back annotation to the hash table, if the hash table is a non zero ptr.
- * The strings in 'data.asStr' are owned by the caller.  The hash table
+ * The strings in 'data.as_str' are owned by the caller.  The hash table
  * is a map from AIG variables to strings.
  */
 BtorAIGVec *btor_exp_to_aigvec (Btor *btor,
