@@ -47,9 +47,9 @@ BtorBitVector *btor_new_bv (BtorMemMgr *mm, uint32_t bw);
 BtorBitVector *btor_char_to_bv (BtorMemMgr *mm, char *assignment);
 BtorBitVector *btor_uint64_to_bv (BtorMemMgr *mm, uint64_t value, uint32_t bw);
 
-BtorBitVector *btor_assignment_bv (BtorMemMgr *mm,
-                                   BtorNode *exp,
-                                   bool init_x_values);
+BtorBitVector *btor_get_assignment_bv (BtorMemMgr *mm,
+                                       BtorNode *exp,
+                                       bool init_x_values);
 
 BtorBitVector *btor_copy_bv (BtorMemMgr *, const BtorBitVector *);
 
