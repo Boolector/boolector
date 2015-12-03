@@ -238,10 +238,11 @@ sat_aigprop_solver (Btor *btor, int limit0, int limit1)
   generate_model_aigprop_solver (btor, 0, 0);
   assert (sat_result == BTOR_SAT);
 DONE:
-  slv->stats.moves      = slv->aprop->stats.moves;
-  slv->stats.restarts   = slv->aprop->stats.restarts;
-  slv->time.aprop_sat   = slv->aprop->time.sat;
-  btor->last_sat_result = sat_result;
+  btor->valid_assignments = 1;
+  slv->stats.moves        = slv->aprop->stats.moves;
+  slv->stats.restarts     = slv->aprop->stats.restarts;
+  slv->time.aprop_sat     = slv->aprop->time.sat;
+  btor->last_sat_result   = sat_result;
   return sat_result;
 }
 
