@@ -3183,6 +3183,7 @@ UNSAT:
   sat_result = BTOR_UNSAT;
 
 DONE:
+  btor->valid_assignments = 1;
   if (slv->roots)
   {
     btor_delete_ptr_hash_table (slv->roots);

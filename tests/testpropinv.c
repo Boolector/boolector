@@ -8,8 +8,8 @@
  *  See COPYING for more information on using this software.
  */
 
+#include "testpropinv.h"
 #include "btorbitvec.h"
-#include "btorconst.h"
 #include "btorcore.h"
 #include "btorexp.h"
 #include "btorprop.h"
