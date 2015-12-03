@@ -21,6 +21,7 @@
 #include "testhash.h"
 #include "testinc.h"
 #include "testinthash.h"
+#include "testinthashmap.h"
 #include "testlambda.h"
 #include "testlogic.h"
 #include "testmap.h"
@@ -147,6 +148,7 @@ main (int argc, char **argv)
   BTOR_RUN_TESTS (mc);
   BTOR_RUN_TESTS (sort);
   BTOR_RUN_TESTS (int_hash_table);
+  BTOR_RUN_TESTS (int_hash_map);
   finish_tests ();
   return 0;
 }

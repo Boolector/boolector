@@ -15,6 +15,10 @@
 
 BtorNode* btor_beta_reduce_full (Btor* btor, BtorNode* exp);
 
+BtorNode* btor_beta_reduce_full_cached (Btor* btor,
+                                        BtorNode* exp,
+                                        BtorPtrHashTable* cache);
+
 BtorNode* btor_beta_reduce_merge (Btor* btor,
                                   BtorNode* exp,
                                   BtorPtrHashTable* merge_lambdas);

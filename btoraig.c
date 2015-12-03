@@ -14,7 +14,7 @@
 #include "btoraig.h"
 #include "btorexit.h"
 #include "btorsat.h"
-#include "utils/btorhash.h"
+#include "utils/btorhashptr.h"
 #include "utils/btormap.h"
 #include "utils/btorutil.h"
 

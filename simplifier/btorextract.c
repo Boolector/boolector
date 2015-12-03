@@ -557,25 +557,25 @@ add_to_index_map (Btor *btor,
 
   mm = btor->mm;
 
-  if (!(b = btor_find_in_ptr_hash_table (map_value_index, lambda)))
+  if (!(b = btor_get_ptr_hash_table (map_value_index, lambda)))
   {
-    b             = btor_insert_in_ptr_hash_table (map_value_index, lambda);
-    t             = btor_new_ptr_hash_table (mm, 0, 0);
-    b->data.asPtr = t;
+    b              = btor_add_ptr_hash_table (map_value_index, lambda);
+    t              = btor_new_ptr_hash_table (mm, 0, 0);
+    b->data.as_ptr = t;
   }
   else
-    t = b->data.asPtr;
+    t = b->data.as_ptr;
   assert (t);
 
-  if (!(b = btor_find_in_ptr_hash_table (t, value)))
+  if (!(b = btor_get_ptr_hash_table (t, value)))
   {
-    b = btor_insert_in_ptr_hash_table (t, value);
+    b = btor_add_ptr_hash_table (t, value);
     BTOR_NEW (mm, indices);
     BTOR_INIT_STACK (*indices);
-    b->data.asPtr = indices;
+    b->data.as_ptr = indices;
   }
   else
-    indices = (BtorNodePtrStack *) b->data.asPtr;
+    indices = (BtorNodePtrStack *) b->data.as_ptr;
   assert (indices);
   if (BTOR_IS_BV_CONST_NODE (BTOR_REAL_ADDR_NODE (index)))
     offset = index;
@@ -621,7 +621,7 @@ collect_indices_writes (Btor *btor,
     assert (BTOR_IS_REGULAR_NODE (lambda));
 
     /* already visited */
-    if (btor_find_in_ptr_hash_table (map_value_index, lambda)) continue;
+    if (btor_get_ptr_hash_table (map_value_index, lambda)) continue;
 
     /* we only consider writes */
     if (btor_get_fun_arity (btor, lambda) > 1) continue;
@@ -647,9 +647,9 @@ collect_indices_writes (Btor *btor,
       lambda = BTOR_POP_STACK (lambdas);
 
       /* already visited */
-      if (btor_find_in_ptr_hash_table (visit_cache, lambda)) continue;
+      if (btor_get_ptr_hash_table (visit_cache, lambda)) continue;
 
-      btor_insert_in_ptr_hash_table (visit_cache, lambda);
+      btor_add_ptr_hash_table (visit_cache, lambda);
 
       cur         = lambda;
       index_cache = btor_new_ptr_hash_table (mm, 0, 0);
@@ -661,7 +661,7 @@ collect_indices_writes (Btor *btor,
 
         /* index already cached, this index will be overwritten anyways,
          * so we can skip it */
-        if (btor_find_in_ptr_hash_table (index_cache, index))
+        if (btor_get_ptr_hash_table (index_cache, index))
         {
           cur = array;
           continue;
@@ -670,7 +670,7 @@ collect_indices_writes (Btor *btor,
         /* collect index/value pairs for absolute set patterns */
         if (is_abs_set_pattern (index, prev_index))
         {
-          btor_insert_in_ptr_hash_table (index_cache, index);
+          btor_add_ptr_hash_table (index_cache, index);
           add_to_index_map (btor, map_value_index, lambda, index, value);
         }
         // TODO (ma): is there a way to recognize base_addr + 0 as
@@ -687,14 +687,14 @@ collect_indices_writes (Btor *btor,
              * are only accessed via this lambda (reduces number of
              * redundant memcopy patterns) */
             if (value->e[0] == array && array->parents == 2)
-              btor_insert_in_ptr_hash_table (visit_cache, array);
-            btor_insert_in_ptr_hash_table (index_cache, index);
+              btor_add_ptr_hash_table (visit_cache, array);
+            btor_add_ptr_hash_table (index_cache, index);
             add_to_index_map (btor, map_value_index, lambda, index, value);
           }
           /* collect index/value pairs for relative set patterns */
           else
           {
-            btor_insert_in_ptr_hash_table (index_cache, index);
+            btor_add_ptr_hash_table (index_cache, index);
             add_to_index_map (btor, map_value_index, lambda, index, value);
           }
         }
@@ -709,11 +709,10 @@ collect_indices_writes (Btor *btor,
         prev_index = index;
         prev_value = value;
       }
-      if (btor_find_in_ptr_hash_table (map_value_index, lambda))
+      if (btor_get_ptr_hash_table (map_value_index, lambda))
       {
-        assert (!btor_find_in_ptr_hash_table (map_lambda_base, lambda));
-        btor_insert_in_ptr_hash_table (map_lambda_base, lambda)->data.asPtr =
-            cur;
+        assert (!btor_get_ptr_hash_table (map_lambda_base, lambda));
+        btor_add_ptr_hash_table (map_lambda_base, lambda)->data.as_ptr = cur;
       }
       btor_delete_ptr_hash_table (index_cache);
 
@@ -771,7 +770,7 @@ collect_indices_top_eqs (Btor *btor, BtorPtrHashTable *map_value_index)
 
     if (!index) continue;
 
-    if (btor_find_in_ptr_hash_table (btor->substitutions, read)) continue;
+    if (btor_get_ptr_hash_table (btor->substitutions, read)) continue;
 
     /* only add each index once */
     add_to_index_map (btor, map_value_index, array, index, value);
@@ -1016,7 +1015,7 @@ extract_lambdas (Btor *btor,
   btor_init_node_hash_table_iterator (&it, map_value_index);
   while (btor_has_next_node_hash_table_iterator (&it))
   {
-    t     = it.bucket->data.asPtr;
+    t     = it.bucket->data.as_ptr;
     array = btor_next_node_hash_table_iterator (&it);
     assert (t);
 
@@ -1025,7 +1024,7 @@ extract_lambdas (Btor *btor,
     btor_init_node_hash_table_iterator (&iit, t);
     while (btor_has_next_node_hash_table_iterator (&iit))
     {
-      stack = iit.bucket->data.asPtr;
+      stack = iit.bucket->data.as_ptr;
       value = btor_next_node_hash_table_iterator (&iit);
       assert (stack);
       find_ranges (btor,
@@ -1052,12 +1051,12 @@ extract_lambdas (Btor *btor,
     /* choose base array for patterns/writes:
      *  1) write chains: base array of the write chains
      *  2) top eqs: a new UF symbol */
-    if ((b = btor_find_in_ptr_hash_table (map_lambda_base, array)))
+    if ((b = btor_get_ptr_hash_table (map_lambda_base, array)))
     {
       assert (BTOR_IS_LAMBDA_NODE (array));
-      b = btor_find_in_ptr_hash_table (map_lambda_base, array);
+      b = btor_get_ptr_hash_table (map_lambda_base, array);
       assert (b);
-      subst     = btor_copy_exp (btor, b->data.asPtr);
+      subst     = btor_copy_exp (btor, b->data.as_ptr);
       is_top_eq = false;
     }
     else
@@ -1109,10 +1108,9 @@ extract_lambdas (Btor *btor,
           i_index++;
           break;
         }
-        assert (!btor_find_in_ptr_hash_table (index_value_map, lower));
+        assert (!btor_get_ptr_hash_table (index_value_map, lower));
         /* save index value pairs for later */
-        btor_insert_in_ptr_hash_table (index_value_map, lower)->data.asPtr =
-            value;
+        btor_add_ptr_hash_table (index_value_map, lower)->data.as_ptr = value;
 
         /* pattern 1: index -> index */
         if (is_itoi_pattern (lower, value))
@@ -1211,8 +1209,8 @@ extract_lambdas (Btor *btor,
         upper = BTOR_PEEK_STACK (ranges, i_range + 1);
         assert (i_inc < BTOR_COUNT_STACK (increments));
         inc   = BTOR_PEEK_STACK (increments, i_inc);
-        b     = btor_find_in_ptr_hash_table (index_value_map, lower);
-        value = b->data.asPtr;
+        b     = btor_get_ptr_hash_table (index_value_map, lower);
+        value = b->data.as_ptr;
         extract_cpy_src_dst_info (
             lower, value, &src_array, &src_addr, &dst_addr, 0);
         /* 'subst' == destination array */
@@ -1237,9 +1235,9 @@ extract_lambdas (Btor *btor,
       for (i_index = 0; i_index < BTOR_COUNT_STACK (indices_rem); i_index++)
       {
         lower = BTOR_PEEK_STACK (indices_rem, i_index);
-        b     = btor_find_in_ptr_hash_table (index_value_map, lower);
+        b     = btor_get_ptr_hash_table (index_value_map, lower);
         assert (b);
-        value = b->data.asPtr;
+        value = b->data.as_ptr;
         tmp   = btor_write_exp (btor, subst, lower, value);
         btor_release_exp (btor, subst);
         subst = tmp;
