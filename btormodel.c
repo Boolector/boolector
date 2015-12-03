@@ -299,7 +299,7 @@ btor_recursively_compute_assignment (Btor *btor,
        * it doesn't have one) */
       if (BTOR_IS_BV_VAR_NODE (real_cur))
       {
-        result = btor_assignment_bv (mm, real_cur, true);
+        result = btor_get_assignment_bv (mm, real_cur, true);
         goto CACHE_AND_PUSH_RESULT;
       }
       else if (BTOR_IS_BV_CONST_NODE (real_cur))
@@ -319,7 +319,7 @@ btor_recursively_compute_assignment (Btor *btor,
       }
       else if (BTOR_IS_FEQ_NODE (real_cur))
       {
-        result = btor_assignment_bv (mm, real_cur, true);
+        result = btor_get_assignment_bv (mm, real_cur, true);
         goto CACHE_AND_PUSH_RESULT;
       }
       else if (BTOR_IS_LAMBDA_NODE (real_cur) && cur_parent
@@ -506,7 +506,7 @@ btor_recursively_compute_assignment (Btor *btor,
           }
           break;
         case BTOR_UF_NODE:
-          result = btor_assignment_bv (mm, cur_parent, true);
+          result = btor_get_assignment_bv (mm, cur_parent, true);
           break;
         default:
           assert (BTOR_IS_COND_NODE (real_cur));
@@ -820,7 +820,7 @@ extract_model_from_rhos (Btor * btor, BtorPtrHashTable * fun_model,
 	   * 'static_rho' might not be encoded and thus we have to obtain the
 	   * assignment from the constructed model. */
 	  if (btor_is_encoded_exp (arg))
-	    bv_arg = btor_assignment_bv (btor->mm, arg, 0);
+	    bv_arg = btor_get_assignment_bv (btor->mm, arg, 0);
 	  else
 	    bv_arg = btor_copy_bv (btor->mm, btor_get_bv_model (btor, arg));
 	  btor_add_to_bv_tuple (btor->mm, t, bv_arg, pos++);
@@ -831,7 +831,7 @@ extract_model_from_rhos (Btor * btor, BtorPtrHashTable * fun_model,
        * not be encoded and thus we have to obtain the assignment from the
        * constructed model. */
       if (btor_is_encoded_exp (value))
-	bv_value = btor_assignment_bv (btor->mm, value, 0);
+	bv_value = btor_get_assignment_bv (btor->mm, value, 0);
       else
 	bv_value = btor_copy_bv (btor->mm, btor_get_bv_model (btor, value));
 

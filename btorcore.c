@@ -3745,7 +3745,7 @@ get_bv_assignment (Btor *btor, BtorNode *exp)
   {
     /* synthesized nodes are always encoded and have an assignment */
     if (BTOR_IS_SYNTH_NODE (real_exp))
-      bv = btor_assignment_bv (btor->mm, real_exp, false);
+      bv = btor_get_assignment_bv (btor->mm, real_exp, false);
     else if (BTOR_IS_BV_CONST_NODE (real_exp))
       bv = btor_copy_bv (btor->mm, btor_const_get_bits (real_exp));
     /* initialize var, apply, and feq nodes if they are not yet synthesized
@@ -3755,7 +3755,7 @@ get_bv_assignment (Btor *btor, BtorNode *exp)
     {
       if (!BTOR_IS_SYNTH_NODE (real_exp))
         BTORLOG (1, "zero-initialize: %s", node2string (real_exp));
-      bv = btor_assignment_bv (btor->mm, real_exp, true);
+      bv = btor_get_assignment_bv (btor->mm, real_exp, true);
     }
     else
       bv = btor_eval_exp (btor, real_exp);
