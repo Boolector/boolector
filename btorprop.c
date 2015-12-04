@@ -134,8 +134,8 @@ select_path_and (Btor *btor,
         tmp = btor_and_bv (btor->mm, bvand, bve[i]);
         if (btor_compare_bv (tmp, bvand)) eidx = eidx == -1 ? i : -1;
         btor_free_bv (btor->mm, tmp);
-        if (eidx == -1) eidx = select_path_random (btor, and);
       }
+      if (eidx == -1) eidx = select_path_random (btor, and);
     }
   }
 
@@ -426,7 +426,7 @@ select_path_udiv (Btor *btor,
 
   int eidx;
   int cmp_udiv_max;
-  BtorBitVector *bvmax;
+  BtorBitVector *bvmax, *up, *lo, *tmp;
 
   eidx = select_path_non_const (udiv);
 
@@ -435,20 +435,39 @@ select_path_udiv (Btor *btor,
     bvmax        = btor_ones_bv (btor->mm, bve[0]->width);
     cmp_udiv_max = btor_compare_bv (bvudiv, bvmax);
 
-    /* 1...1 / bve[1] = bvudiv > 0 */
-    if (!btor_compare_bv (bve[0], bvmax) && !btor_is_zero_bv (bvudiv)) eidx = 0;
+    /* bve[0] / bve[1] = 1...1 -> choose e[1]
+     *   + 1...1 / 0 = 1...1
+     *   + 1...1 / 1 = 1...1
+     *   + x...x / 0 = 1...1 */
+    if (!cmp_udiv_max)
+      eidx = 1;
+    else
+    {
+      /* 1...1 / e[0] = 0 -> choose e[0] */
+      if (btor_is_zero_bv (bvudiv) && !btor_compare_bv (bve[0], bvmax))
+        eidx = 0;
+      /* bve[0] < bvudiv -> choose e[0] */
+      else if (btor_compare_bv (bve[0], bvudiv) < 0)
+        eidx = 0;
+      else
+      {
+        up  = btor_udiv_bv (btor->mm, bve[0], bvudiv);
+        lo  = btor_inc_bv (btor->mm, bvudiv);
+        tmp = btor_udiv_bv (btor->mm, bve[0], lo);
+        btor_free_bv (btor->mm, lo);
+        lo = btor_inc_bv (btor->mm, tmp);
 
-    /* bve[0] / (bve[1] > 0) = 1...1 */
-    if (!cmp_udiv_max && !btor_is_zero_bv (bve[1])) eidx = eidx == -1 ? 1 : -1;
+        if (btor_compare_bv (lo, up) > 0) eidx = 0;
+        btor_free_bv (btor->mm, up);
+        btor_free_bv (btor->mm, lo);
+        btor_free_bv (btor->mm, tmp);
+      }
 
-    /* bve[0] / 0 = bvudiv < 1...1 */
-    if (btor_is_zero_bv (bve[1]) && cmp_udiv_max < 0)
-      eidx = eidx == -1 ? 1 : -1;
-
-    /* bve[0] < bvudiv < 1...1 */
-    if (cmp_udiv_max && btor_compare_bv (bve[0], bvudiv) < 0)
-      eidx = eidx == -1 ? 0 : -1;
-
+      /* e[0] / 0 != 1...1 -> choose e[1] */
+      if (btor_is_zero_bv (bve[1])
+          || btor_is_umulo_bv (btor->mm, bve[1], bvudiv))
+        eidx = eidx == -1 ? 1 : -1;
+    }
     if (eidx == -1) eidx = select_path_random (btor, udiv);
 
     btor_free_bv (btor->mm, bvmax);
@@ -482,17 +501,16 @@ select_path_urem (Btor *btor,
   assert (bvurem);
   assert (bve);
 
-  int eidx, cmp_e0_urem;
-  ;
-  BtorBitVector *bvmax, *sub;
+  int eidx;
+  BtorBitVector *bvmax, *sub, *tmp;
 
   eidx = select_path_non_const (urem);
 
   if (eidx == -1)
   {
-    bvmax       = btor_ones_bv (btor->mm, bve[0]->width);
-    cmp_e0_urem = btor_compare_bv (bve[0], bvurem);
-    sub         = btor_sub_bv (btor->mm, bve[0], bvurem);
+    bvmax = btor_ones_bv (btor->mm, bve[0]->width);
+    sub   = btor_sub_bv (btor->mm, bve[0], bvurem);
+    tmp   = btor_dec_bv (btor->mm, bve[0]);
 
     /* bvurem = 1...1 -> bve[0] = 1...1 and bve[1] = 0...0 */
     if (!btor_compare_bv (bvurem, bvmax))
@@ -500,21 +518,36 @@ select_path_urem (Btor *btor,
       if (!btor_is_zero_bv (bve[1])) eidx = 1;
       if (btor_compare_bv (bve[0], bvmax)) eidx = eidx == -1 ? 0 : -1;
     }
+    /* bvurem > 0 and bve[1] = 1 */
+    else if (!btor_is_zero_bv (bvurem) && btor_is_one_bv (bve[1]))
+    {
+      eidx = 1;
+    }
     else
     {
-      /* bve[0] > bvurem and bve[0] - bvurem <= bvurem or
-         bve[0] < bvurem */
-      if ((!cmp_e0_urem && !btor_compare_bv (bvurem, bvmax))
-          || (cmp_e0_urem > 0 && btor_compare_bv (sub, bvurem) <= 0)
-          || cmp_e0_urem < 0)
+      /* bve[0] < bvurem or
+       * bve[0] > bvurem and bve[0] - bvurem <= bvurem or
+       *                 and bve[0] - 1 = bvurem */
+      if (btor_compare_bv (bve[0], bvurem) < 0
+          || (btor_compare_bv (bve[0], bvurem) > 0
+              && (btor_compare_bv (sub, bvurem) <= 0
+                  || !btor_compare_bv (tmp, bvurem))))
+      {
         eidx = 0;
+      }
 
-      /* bve[1] <= bvurem */
-      if (btor_compare_bv (bve[1], bvurem) <= 0) eidx = eidx == -1 ? 1 : -1;
+      /* 0 < bve[1] <= bvurem or
+       * bvurem > 0 and bve = 1 */
+      if ((!btor_is_zero_bv (bve[1]) && btor_compare_bv (bve[1], bvurem) <= 0)
+          || (!btor_is_zero_bv (bvurem) && btor_is_one_bv (bve[1])))
+      {
+        eidx = eidx == -1 ? 1 : -1;
+      }
     }
 
     if (eidx == -1) eidx = select_path_random (btor, urem);
 
+    btor_free_bv (btor->mm, tmp);
     btor_free_bv (btor->mm, bvmax);
     btor_free_bv (btor->mm, sub);
   }
@@ -1883,7 +1916,8 @@ inv_udiv_bv (Btor *btor,
 
   /* e[0] / bve = bvudiv
    *
-   * -> if bvudiv = 2^bw - 1 and bve = 0, choose random e[0] > 0
+   * -> if bvudiv = 2^bw - 1 and bve = 1 e[0] = 2^bw-1
+   *                         and bve = 0, choose random e[0] > 0
    *                         and bve > 0 -> conflict
    * -> if bve = 0 and bvudiv < 2^bw - 1 -> conflict
    * -> if bve * bvudiv does not overflow, choose with 0.5 prob out of
@@ -1894,8 +1928,11 @@ inv_udiv_bv (Btor *btor,
   {
     if (!btor_compare_bv (bvudiv, bvmax))
     {
+      /* bvudiv = 2^bw-1 and bve = 1 -> e[0] = 2^bw-1 */
+      if (!btor_compare_bv (bve, one)) res = btor_copy_bv (mm, bvmax);
       /* bvudiv = 2^bw - 1 and bve = 0 -> choose random e[0] */
-      if (btor_is_zero_bv (bve)) res = btor_new_random_bv (mm, rng, bw);
+      else if (btor_is_zero_bv (bve))
+        res = btor_new_random_bv (mm, rng, bw);
       /* conflict */
       else
       {
@@ -2070,6 +2107,7 @@ inv_urem_bv (Btor *btor,
   /* bve % e[1] = bvurem
    * -> if bvurem = 1...1 -> bve = 1...1 and e[1] = 0...0, else conflict
    * -> if bve = bvurem, choose either e[1] = 0 or some e[1] > bvurem randomly
+   * -> if bvurem > 0 and bvurem = bve - 1, conflict
    * -> if bve > bvurem, e[1] = ((bve - bvurem) / n) > bvurem, else conflict
    * -> if bve < bvurem, conflict */
   if (eidx)
@@ -2129,6 +2167,18 @@ inv_urem_bv (Btor *btor,
       /* bve > bvurem, e[1] = (bve - bvurem) / n */
       else if (cmp > 0)
       {
+        if (!btor_is_zero_bv (bvurem))
+        {
+          tmp = btor_dec_bv (mm, bve);
+          /* bvurem = bve - 1 ->  conflict */
+          if (!btor_compare_bv (bvurem, tmp))
+          {
+            btor_free_bv (mm, tmp);
+            goto BVUREM_CONF_1;
+          }
+          btor_free_bv (mm, tmp);
+        }
+
         sub = btor_sub_bv (mm, bve, bvurem);
 
         /* bve - bvurem <= bvurem -> conflict */
@@ -2254,6 +2304,7 @@ inv_urem_bv (Btor *btor,
    * -> if bve = 0, e[0] = bvurem
    * -> if bvurem = 1...1 and bve != 0, conflict
    * -> if bve <= bvurem, conflict
+   * -> if bvurem > 0 and bve = 1, conflict
    * -> else choose either
    *      - e[0] = bvurem, or
    *      - e[0] = bve * n + b, with n s.t. (bve * n + b) does not overflow */
@@ -2265,6 +2316,9 @@ inv_urem_bv (Btor *btor,
     BVUREM_ZERO_0:
       res = btor_copy_bv (btor->mm, bvurem);
     }
+    /* bvurem > 0 and bve = 1, conflict */
+    else if (!btor_is_zero_bv (bvurem) && btor_is_one_bv (bve))
+      goto BVUREM_CONF_0;
     /* bvurem = 1...1 -> bve = 0, e[0] = 1...1 */
     else if (!btor_compare_bv (bvurem, bvmax))
     {
@@ -2314,11 +2368,11 @@ inv_urem_bv (Btor *btor,
       {
         tmp2 = btor_sub_bv (mm, bvmax, bve);
 
-        /* check for conflict -> overflow for n = 1 */
+        /* overflow for n = 1 -> only simplest solution possible */
         if (btor_compare_bv (tmp2, bvurem) < 0)
         {
           btor_free_bv (mm, tmp2);
-          goto BVUREM_CONF_0;
+          goto BVUREM_EQ_0;
         }
         else
         {
@@ -3065,10 +3119,14 @@ delete_prop_solver (Btor *btor)
   BTOR_DELETE (btor->mm, slv);
 }
 
-/* Note: failed assumptions -> no handling necessary, prop only works for SAT
- * Note: limits are currently unused */
-static int
-sat_prop_solver (Btor *btor, int limit0, int limit1)
+/* This is an extra function in order to be able to test completeness
+ * via test suite. */
+#ifdef NDEBUG
+static inline int
+#else
+int
+#endif
+sat_prop_solver_aux (Btor *btor, int limit0, int limit1)
 {
   assert (btor);
 
@@ -3086,36 +3144,6 @@ sat_prop_solver (Btor *btor, int limit0, int limit1)
   assert (slv);
 
   nmoves = 0;
-
-  if (btor->inconsistent) goto UNSAT;
-
-  BTOR_MSG (btor->msg, 1, "calling SAT");
-
-  if (btor_terminate_btor (btor))
-  {
-    sat_result = BTOR_UNKNOWN;
-    goto DONE;
-  }
-
-  sat_result = btor_simplify (btor);
-  btor_update_assumptions (btor);
-  BTOR_ABORT_BOOLECTOR (
-      btor->ufs->count != 0
-          || (!btor->options.beta_reduce_all.val && btor->lambdas->count != 0),
-      "prop engine supports QF_BV only");
-
-  if (btor->inconsistent) goto UNSAT;
-
-  if (btor_terminate_btor (btor))
-  {
-    sat_result = BTOR_UNKNOWN;
-    goto DONE;
-  }
-
-  /* Generate intial model, all bv vars are initialized with zero. We do
-   * not have to consider model_for_all_nodes, but let this be handled by
-   * the model generation (if enabled) after SAT has been determined. */
-  slv->api.generate_model (btor, 0, 1);
 
   /* collect roots */
   assert (!slv->roots);
@@ -3195,6 +3223,43 @@ DONE:
     slv->score = 0;
   }
   btor->last_sat_result = sat_result;
+  return sat_result;
+}
+
+/* Note: failed assumptions -> no handling necessary, prop only works for SAT
+ * Note: limits are currently unused */
+static int
+sat_prop_solver (Btor *btor, int limit0, int limit1)
+{
+  assert (btor);
+
+  int sat_result;
+
+  (void) limit0;
+  (void) limit1;
+
+  if (btor->inconsistent) return BTOR_UNSAT;
+
+  BTOR_MSG (btor->msg, 1, "calling SAT");
+
+  if (btor_terminate_btor (btor)) return BTOR_UNKNOWN;
+
+  sat_result = btor_simplify (btor);
+  btor_update_assumptions (btor);
+  BTOR_ABORT_BOOLECTOR (
+      btor->ufs->count != 0
+          || (!btor->options.beta_reduce_all.val && btor->lambdas->count != 0),
+      "prop engine supports QF_BV only");
+
+  if (btor->inconsistent) return BTOR_UNSAT;
+
+  if (btor_terminate_btor (btor)) return BTOR_UNKNOWN;
+
+  /* Generate intial model, all bv vars are initialized with zero. We do
+   * not have to consider model_for_all_nodes, but let this be handled by
+   * the model generation (if enabled) after SAT has been determined. */
+  BTOR_PROP_SOLVER (btor)->api.generate_model (btor, 0, 1);
+  sat_result = sat_prop_solver_aux (btor, limit0, limit1);
   return sat_result;
 }
 

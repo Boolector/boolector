@@ -109,6 +109,8 @@ BtorBitVector *inv_concat_bv (Btor *btor,
 BtorBitVector *inv_slice_bv (Btor *btor,
                              BtorNode *slice_exp,
                              BtorBitVector *bvslice);
+
+int sat_prop_solver_aux (Btor *btor, int limit0, int limit1);
 #endif
 
 #endif
