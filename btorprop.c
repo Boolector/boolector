@@ -261,7 +261,7 @@ select_path_sll (Btor *btor,
       if (btor_get_bit_bv (bvsll, i))
       {
         eidx = 1;
-        break;
+        goto DONE;
       }
     /* bve[0] and bvsll (except for the bits shifted out) must match */
     for (i = 0, j = shift; i < bvsll->width - j; i++)
@@ -272,6 +272,7 @@ select_path_sll (Btor *btor,
       }
     if (eidx == -1) eidx = select_path_random (btor, sll);
   }
+DONE:
   assert (eidx >= 0);
 #ifndef NDEBUG
   char *a;
@@ -313,7 +314,7 @@ select_path_srl (Btor *btor,
       if (btor_get_bit_bv (bvsrl, bvsrl->width - 1 - i))
       {
         eidx = 1;
-        break;
+        goto DONE;
       }
     /* bve[0] and bvsrl (except for the bits shifted out) must match */
     for (i = 0, j = shift; i < bvsrl->width - j; i++)
@@ -325,6 +326,7 @@ select_path_srl (Btor *btor,
       }
     if (eidx == -1) eidx = select_path_random (btor, srl);
   }
+DONE:
   assert (eidx >= 0);
 #ifndef NDEBUG
   char *a;
@@ -1233,6 +1235,7 @@ inv_sll_bv (Btor *btor,
     {
       if (btor_get_bit_bv (bvsll, i))
       {
+        printf ("1\n");
         /* check for non-recoverable conflict */
         if (btor->options.engine.val == BTOR_ENGINE_SLS
             && BTOR_IS_BV_CONST_NODE (BTOR_REAL_ADDR_NODE (e)))
