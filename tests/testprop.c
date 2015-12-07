@@ -34,9 +34,9 @@ static BtorRNG *g_rng;
     g_btor->options.rewrite_level.val = 0;                             \
     g_btor->options.sort_exp.val      = 0;                             \
     g_btor->options.incremental.val   = 1;                             \
-    g_btor->options.loglevel.val      = 1;                             \
-    g_mm                              = g_btor->mm;                    \
-    g_rng                             = &g_btor->rng;                  \
+    /*g_btor->options.loglevel.val = 1; \*/                            \
+    g_mm  = g_btor->mm;                                                \
+    g_rng = &g_btor->rng;                                              \
     bw0 = bw1 = TEST_PROP_ONE_COMPLETE_BW;                             \
   } while (0)
 
@@ -72,7 +72,6 @@ prop_one_complete_binary_eidx (
   eq   = btor_eq_exp (g_btor, exp, val);
 
   bvetmp = btor_new_random_bv (g_mm, g_rng, eidx ? bw1 : bw0);
-  // bvetmp = btor_char_to_bv (g_mm, "1100");
   bvexptmp =
       eidx ? create_bv (g_mm, bve, bvetmp) : create_bv (g_mm, bvetmp, bve);
   /* init bv model */
@@ -113,13 +112,6 @@ prop_one_complete_binary_eidx (
   btor_add_to_bv_model (g_btor, g_btor->bv_model, e[eidx ? 0 : 1], bve);
   btor_add_to_bv_model (g_btor, g_btor->bv_model, e[eidx], bvetmp);
   btor_add_to_bv_model (g_btor, g_btor->bv_model, exp, bvexptmp);
-  //  printf ("eidx %d bve %s bvetmp %s bvexp %s bvexptmp %s\n", eidx,
-  //  btor_bv_to_char_bv (g_mm, bve), btor_bv_to_char_bv (g_mm, bvetmp),
-  //  btor_bv_to_char_bv (g_mm, bvexp), btor_bv_to_char_bv (g_mm, bvexptmp));
-  //  printf ("e[0] %s e[1] %s exp %s\n", btor_bv_to_char_bv (g_mm,
-  //  btor_get_bv_model (g_btor, e[0])), btor_bv_to_char_bv (g_mm,
-  //  btor_get_bv_model (g_btor, e[1])), btor_bv_to_char_bv (g_mm,
-  //  btor_get_bv_model (g_btor, exp)));
   btor_free_bv (g_mm, bvetmp);
   btor_free_bv (g_mm, bvexptmp);
   btor_release_exp (g_btor, eq);
@@ -156,9 +148,6 @@ prop_one_complete_binary (
     {
       bve[1] = btor_uint64_to_bv (g_mm, j, bw1);
       bvexp  = create_bv (g_mm, bve[0], bve[1]);
-      // printf (">>> bve[0] %s bve[1] %s bvexp %s \n", btor_bv_to_char_bv
-      // (g_mm, bve[0]), btor_bv_to_char_bv (g_mm, bve[1]), btor_bv_to_char_bv
-      // (g_mm, bvexp));
       for (k = 0; k < bw0; k++)
       {
         prop_one_complete_binary_eidx (
@@ -271,10 +260,10 @@ test_prop_one_complete_slice_bv (void)
   g_btor->options.rewrite_level.val = 0;
   g_btor->options.sort_exp.val      = 0;
   g_btor->options.incremental.val   = 1;
-  g_btor->options.loglevel.val      = 1;
-  g_mm                              = g_btor->mm;
-  g_rng                             = &g_btor->rng;
-  bw                                = TEST_PROP_ONE_COMPLETE_BW;
+  // g_btor->options.loglevel.val = 1;
+  g_mm  = g_btor->mm;
+  g_rng = &g_btor->rng;
+  bw    = TEST_PROP_ONE_COMPLETE_BW;
 
   for (lo = 0; lo < bw; lo++)
   {
