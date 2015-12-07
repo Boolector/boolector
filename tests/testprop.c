@@ -80,6 +80,7 @@ prop_one_complete_binary_eidx (
   btor_init_fun_model (g_btor, &g_btor->fun_model);
   btor_add_to_bv_model (g_btor, g_btor->bv_model, e[eidx ? 0 : 1], bve);
   btor_add_to_bv_model (g_btor, g_btor->bv_model, e[eidx], bvetmp);
+  btor_add_to_bv_model (g_btor, g_btor->bv_model, exp, bvexptmp);
 
   /* -> first test local completeness  */
   /* we must find a solution within one move */
@@ -111,6 +112,7 @@ prop_one_complete_binary_eidx (
   btor_init_fun_model (g_btor, &g_btor->fun_model);
   btor_add_to_bv_model (g_btor, g_btor->bv_model, e[eidx ? 0 : 1], bve);
   btor_add_to_bv_model (g_btor, g_btor->bv_model, e[eidx], bvetmp);
+  btor_add_to_bv_model (g_btor, g_btor->bv_model, exp, bvexptmp);
   //  printf ("eidx %d bve %s bvetmp %s bvexp %s bvexptmp %s\n", eidx,
   //  btor_bv_to_char_bv (g_mm, bve), btor_bv_to_char_bv (g_mm, bvetmp),
   //  btor_bv_to_char_bv (g_mm, bvexp), btor_bv_to_char_bv (g_mm, bvexptmp));
@@ -157,7 +159,7 @@ prop_one_complete_binary (
       // printf (">>> bve[0] %s bve[1] %s bvexp %s \n", btor_bv_to_char_bv
       // (g_mm, bve[0]), btor_bv_to_char_bv (g_mm, bve[1]), btor_bv_to_char_bv
       // (g_mm, bvexp));
-      for (k = 0; k < bw1; k++)
+      for (k = 0; k < bw0; k++)
       {
         prop_one_complete_binary_eidx (
             1, bw0, bw1, bve[0], bve[1], bvexp, create_exp, create_bv, inv_bv);
@@ -253,47 +255,93 @@ test_prop_one_complete_concat_bv (void)
 #endif
 }
 
-#if 0
 static void
 test_prop_one_complete_slice_bv (void)
 {
 #ifndef NDEBUG
+  int sat_res;
   uint32_t bw;
-  uint64_t up, lo, i, k;
-  BtorNode *exp, *e;
-  BtorBitVector *bve, *bvexp, *res;
+  uint64_t up, lo, i, j, k;
+  BtorNode *exp, *e, *val, *eq;
+  BtorBitVector *bve, *bvexp, *bvetmp, *bvexptmp, *res, *tmp;
 
-  bw = TEST_PROP_ONE_COMPLETE_BW;
-  e = btor_var_exp (g_btor, bw, 0);
+  g_btor                            = btor_new_btor ();
+  g_btor->slv                       = btor_new_prop_solver (g_btor);
+  g_btor->options.engine.val        = BTOR_ENGINE_PROP;
+  g_btor->options.rewrite_level.val = 0;
+  g_btor->options.sort_exp.val      = 0;
+  g_btor->options.incremental.val   = 1;
+  g_btor->options.loglevel.val      = 1;
+  g_mm                              = g_btor->mm;
+  g_rng                             = &g_btor->rng;
+  bw                                = TEST_PROP_ONE_COMPLETE_BW;
 
   for (lo = 0; lo < bw; lo++)
+  {
+    for (up = lo; up < bw; up++)
     {
-      for (up = lo; up < bw; up++)
-	{
-	  exp = btor_slice_exp (g_btor, e, up, lo);
-	  for (i = 0; i < (uint32_t) (1 << bw); i++)
-	    {
-	      bve = btor_uint64_to_bv (g_mm, i, bw);
-	      bvexp = btor_slice_bv (g_mm, bve, up, lo);
-	      for (k = 0, res = 0; k < TEST_PROP_ONE_COMPLETE_N_TESTS; k++)
-		{
-		  res = inv_slice_bv (g_btor, exp, bvexp);
-		  assert (res);
-		  if (!btor_compare_bv (res, bve)) break;
-		  btor_free_bv (g_mm, res);
-		  res = 0;
-		}
-	      assert (res);
-	      assert (!btor_compare_bv (res, bve));
-	      btor_free_bv (g_mm, res);
-	      btor_free_bv (g_mm, bvexp);
-	      btor_free_bv (g_mm, bve);
-	    }
-	  btor_release_exp (g_btor, exp);
-	}
+      for (i = 0; i < (uint32_t) (1 << bw); i++)
+      {
+        for (j = 0; j < bw; j++)
+        {
+          e        = btor_var_exp (g_btor, bw, 0);
+          exp      = btor_slice_exp (g_btor, e, up, lo);
+          bve      = btor_uint64_to_bv (g_mm, i, bw);
+          bvexp    = btor_slice_bv (g_mm, bve, up, lo);
+          val      = btor_const_exp (g_btor, bvexp);
+          eq       = btor_eq_exp (g_btor, exp, val);
+          bvetmp   = btor_new_random_bv (g_mm, g_rng, bw);
+          bvexptmp = btor_slice_bv (g_mm, bvetmp, up, lo);
+          /* init bv model */
+          btor_init_bv_model (g_btor, &g_btor->bv_model);
+          btor_init_fun_model (g_btor, &g_btor->fun_model);
+          btor_add_to_bv_model (g_btor, g_btor->bv_model, e, bvetmp);
+          btor_add_to_bv_model (g_btor, g_btor->bv_model, exp, bvexptmp);
+
+          /* -> first test local completeness
+           *    we must find a solution within one move */
+          res = inv_slice_bv (g_btor, exp, bvexp);
+          assert (res);
+          /* Note: this is also tested within inverse function */
+          tmp = btor_slice_bv (g_mm, res, up, lo);
+          assert (!btor_compare_bv (tmp, bvexp));
+          btor_free_bv (g_mm, tmp);
+          btor_free_bv (g_mm, res);
+          /* try to find exact given solution */
+          for (k = 0, res = 0; k < TEST_PROP_ONE_COMPLETE_N_TESTS; k++)
+          {
+            res = inv_slice_bv (g_btor, exp, bvexp);
+            assert (res);
+            if (!btor_compare_bv (res, bve)) break;
+            btor_free_bv (g_mm, res);
+            res = 0;
+          }
+          assert (res);
+          assert (!btor_compare_bv (res, bve));
+          btor_free_bv (g_mm, res);
+
+          /* -> then test completeness of the whole propagation algorithm
+           *    (we must find a solution within one move) */
+          ((BtorPropSolver *) g_btor->slv)->stats.moves = 0;
+          btor_assume_exp (g_btor, eq);
+          btor_init_bv_model (g_btor, &g_btor->bv_model);
+          btor_init_fun_model (g_btor, &g_btor->fun_model);
+          btor_add_to_bv_model (g_btor, g_btor->bv_model, e, bvetmp);
+          btor_add_to_bv_model (g_btor, g_btor->bv_model, exp, bvexptmp);
+          btor_free_bv (g_mm, bvetmp);
+          btor_free_bv (g_mm, bvexptmp);
+          btor_release_exp (g_btor, eq);
+          btor_release_exp (g_btor, val);
+          btor_release_exp (g_btor, exp);
+          btor_release_exp (g_btor, e);
+          sat_res = sat_prop_solver_aux (g_btor, -1, -1);
+          assert (sat_res == BTOR_SAT);
+          assert (((BtorPropSolver *) g_btor->slv)->stats.moves <= 1);
+        }
+      }
     }
-  btor_release_exp (g_btor, e);
-#endif
+  }
+  btor_delete_btor (g_btor);
 }
 #endif
 
@@ -319,7 +367,7 @@ run_prop_tests (int argc, char **argv)
   BTOR_RUN_TEST (prop_one_complete_udiv_bv);
   BTOR_RUN_TEST (prop_one_complete_urem_bv);
   BTOR_RUN_TEST (prop_one_complete_concat_bv);
-  //  BTOR_RUN_TEST (prop_one_complete_slice_bv);
+  BTOR_RUN_TEST (prop_one_complete_slice_bv);
 }
 
 void
