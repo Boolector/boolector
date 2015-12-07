@@ -788,6 +788,8 @@ all_roots_sat (AIGProp *aprop)
   while (btor_has_next_hash_table_iterator (&it))
   {
     root = btor_next_hash_table_iterator (&it);
+    if (root == BTOR_AIG_FALSE) return false;
+    if (root == BTOR_AIG_TRUE) continue;
     assert (btor_get_ptr_hash_table (aprop->model, BTOR_REAL_ADDR_AIG (root)));
     ass = btor_get_ptr_hash_table (aprop->model, BTOR_REAL_ADDR_AIG (root))
               ->data.as_int;

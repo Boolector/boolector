@@ -64,7 +64,7 @@ get_assignment_aig (BtorPtrHashTable *model, BtorAIG *aig)
   if (aig == BTOR_AIG_TRUE) return 1;
   if (aig == BTOR_AIG_FALSE) return -1;
   /* initialize don't care bits with false */
-  if (!btor_get_ptr_hash_table (model, BTOR_REAL_ADDR_AIG (model)))
+  if (!btor_get_ptr_hash_table (model, BTOR_REAL_ADDR_AIG (aig)))
     return BTOR_IS_INVERTED_AIG (aig) ? 1 : -1;
   return aigprop_get_assignment_aig (model, aig);
 }
@@ -141,9 +141,9 @@ generate_model_aigprop_solver (Btor *btor, int model_for_all_nodes, int reset)
   BTOR_RELEASE_STACK (btor->mm, stack);
   btor_delete_int_hash_table (cache);
   /* generate model for unreachable nodes */
-  if (model_for_all_nodes)
-    btor_generate_model (
-        btor, btor->bv_model, btor->fun_model, model_for_all_nodes);
+  // if (model_for_all_nodes)
+  btor_generate_model (
+      btor, btor->bv_model, btor->fun_model, model_for_all_nodes);
 }
 
 /* Note: limits are currently unused */
@@ -230,6 +230,8 @@ sat_aigprop_solver (Btor *btor, int limit0, int limit1)
     {
       aig = BTOR_REAL_ADDR_NODE (root)->av->aigs[0];
       if (BTOR_IS_INVERTED_NODE (root)) aig = BTOR_INVERT_AIG (aig);
+      if (aig == BTOR_AIG_FALSE) goto UNSAT;
+      if (aig == BTOR_AIG_TRUE) continue;
       (void) btor_add_ptr_hash_table (slv->aprop->roots, aig);
     }
   }
