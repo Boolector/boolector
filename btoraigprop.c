@@ -141,9 +141,9 @@ generate_model_aigprop_solver (Btor *btor, int model_for_all_nodes, int reset)
   BTOR_RELEASE_STACK (btor->mm, stack);
   btor_delete_int_hash_table (cache);
   /* generate model for unreachable nodes */
-  // if (model_for_all_nodes)
-  btor_generate_model (
-      btor, btor->bv_model, btor->fun_model, model_for_all_nodes);
+  if (model_for_all_nodes)
+    btor_generate_model (
+        btor, btor->bv_model, btor->fun_model, model_for_all_nodes);
 }
 
 /* Note: limits are currently unused */
