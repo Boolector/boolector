@@ -525,26 +525,21 @@ select_path_urem (Btor *btor,
     {
       eidx = 1;
     }
-    else
+    /* 0 < bve[1] <= bvurem */
+    else if ((!btor_is_zero_bv (bve[1])
+              && btor_compare_bv (bve[1], bvurem) <= 0))
     {
-      /* bve[0] < bvurem or
-       * bve[0] > bvurem and bve[0] - bvurem <= bvurem or
-       *                 and bve[0] - 1 = bvurem */
-      if (btor_compare_bv (bve[0], bvurem) < 0
-          || (btor_compare_bv (bve[0], bvurem) > 0
-              && (btor_compare_bv (sub, bvurem) <= 0
-                  || !btor_compare_bv (tmp, bvurem))))
-      {
-        eidx = 0;
-      }
-
-      /* 0 < bve[1] <= bvurem or
-       * bvurem > 0 and bve = 1 */
-      if ((!btor_is_zero_bv (bve[1]) && btor_compare_bv (bve[1], bvurem) <= 0)
-          || (!btor_is_zero_bv (bvurem) && btor_is_one_bv (bve[1])))
-      {
-        eidx = eidx == -1 ? 1 : -1;
-      }
+      eidx = eidx == -1 ? 1 : -1;
+    }
+    /* bve[0] < bvurem or
+     * bve[0] > bvurem and bve[0] - bvurem <= bvurem or
+     *                 and bve[0] - 1 = bvurem */
+    else if (btor_compare_bv (bve[0], bvurem) < 0
+             || (btor_compare_bv (bve[0], bvurem) > 0
+                 && (btor_compare_bv (sub, bvurem) <= 0
+                     || !btor_compare_bv (tmp, bvurem))))
+    {
+      eidx = 0;
     }
 
     if (eidx == -1) eidx = select_path_random (btor, urem);
@@ -1596,11 +1591,11 @@ inv_mul_bv (Btor *btor,
         {
           /* res even */
           r = btor_pick_rand_rng (&btor->rng, 0, 9);
+          for (i = 0; i < bw; i++)
+            if (btor_get_bit_bv (bvmul, i)) break;
           /* choose res as 2^n with prob 0.4 */
           if (r < 4)
           {
-            for (i = 0; i < bw; i++)
-              if (btor_get_bit_bv (bvmul, i)) break;
             res = btor_new_bv (mm, bw);
             btor_set_bit_bv (res, btor_pick_rand_rng (&btor->rng, 1, i), 1);
           }
@@ -1608,8 +1603,6 @@ inv_mul_bv (Btor *btor,
            * (note: bw not necessarily power of 2 -> do not use srl) */
           else if (r < 8)
           {
-            for (i = 0; i < bw; i++)
-              if (btor_get_bit_bv (bvmul, i)) break;
             r   = btor_pick_rand_rng (&btor->rng, 1, i);
             tmp = btor_slice_bv (mm, bvmul, bw - 1, r);
             res = btor_uext_bv (mm, tmp, r);
@@ -1620,6 +1613,7 @@ inv_mul_bv (Btor *btor,
           {
             res = btor_new_random_bv (mm, &btor->rng, bw);
             if (btor_get_bit_bv (res, 0)) btor_set_bit_bv (res, 0, 0);
+            btor_set_bit_bv (res, i, 1);
           }
         }
         BTOR_INC_REC_CONF_STATS (btor, 1);
