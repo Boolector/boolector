@@ -193,7 +193,7 @@ compute_score_aig (AIGProp *aprop, BtorAIG *aig)
                   a < 0 ? 0 : 1);
 #endif
       assert (!btor_get_ptr_hash_table (aprop->score, cur));
-      assert (!btor_get_ptr_hash_table (aprop->score, BTOR_INVERT_NODE (cur)));
+      assert (!btor_get_ptr_hash_table (aprop->score, BTOR_INVERT_AIG (cur)));
 
       if (BTOR_IS_VAR_AIG (real_cur))
       {
@@ -209,7 +209,7 @@ compute_score_aig (AIGProp *aprop, BtorAIG *aig)
                     real_cur->id,
                     res == 0.0 ? 1.0 : 0.0);
         btor_add_ptr_hash_table (aprop->score, cur)->data.as_dbl = res;
-        btor_add_ptr_hash_table (aprop->score, BTOR_INVERT_NODE (cur))
+        btor_add_ptr_hash_table (aprop->score, BTOR_INVERT_AIG (cur))
             ->data.as_dbl = res == 0.0 ? 1.0 : 0.0;
       }
       else
@@ -258,7 +258,7 @@ compute_score_aig (AIGProp *aprop, BtorAIG *aig)
         btor_add_ptr_hash_table (aprop->score, BTOR_INVERT_AIG (real_cur))
             ->data.as_dbl = res;
 #ifndef NDEBUG
-        AIGPROP_LOG_COMPUTE_SCORE_AIG (BTOR_INVERT_NODE (real_cur),
+        AIGPROP_LOG_COMPUTE_SCORE_AIG (BTOR_INVERT_AIG (real_cur),
                                        BTOR_INVERT_AIG (left),
                                        BTOR_INVERT_AIG (right),
                                        s0,
@@ -267,7 +267,7 @@ compute_score_aig (AIGProp *aprop, BtorAIG *aig)
 #endif
       }
       assert (btor_get_ptr_hash_table (aprop->score, cur));
-      assert (btor_get_ptr_hash_table (aprop->score, BTOR_INVERT_NODE (cur)));
+      assert (btor_get_ptr_hash_table (aprop->score, BTOR_INVERT_AIG (cur)));
     }
   }
 
@@ -310,7 +310,7 @@ compute_scores (AIGProp *aprop)
                                  (BtorCmpPtr) btor_compare_aig_by_id);
 
   /* collect roots */
-  btor_init_node_hash_table_iterator (&it, aprop->roots);
+  btor_init_hash_table_iterator (&it, aprop->roots);
   while (btor_has_next_hash_table_iterator (&it))
     BTOR_PUSH_STACK (mm, stack, btor_next_hash_table_iterator (&it));
 
@@ -334,11 +334,11 @@ compute_scores (AIGProp *aprop)
         right = BTOR_RIGHT_CHILD_AIG (aprop->amgr, real_cur);
         if (!BTOR_IS_CONST_AIG (left)
             && !btor_contains_int_hash_table (cache,
-                                              BTOR_REAL_ADDR_NODE (left)->id))
+                                              BTOR_REAL_ADDR_AIG (left)->id))
           BTOR_PUSH_STACK (mm, stack, left);
         if (!BTOR_IS_CONST_AIG (right)
             && !btor_contains_int_hash_table (cache,
-                                              BTOR_REAL_ADDR_NODE (right)->id))
+                                              BTOR_REAL_ADDR_AIG (right)->id))
           BTOR_PUSH_STACK (mm, stack, right);
       }
     }
@@ -369,12 +369,14 @@ recursively_compute_assignment (AIGProp *aprop, BtorAIG *aig)
   BtorIntHashTable *cache;
   BtorMemMgr *mm;
 
+  if (BTOR_IS_CONST_AIG (aig)) return;
+
   mm = aprop->amgr->mm;
 
-  BTOR_INIT_STACK (stack);
   cache = btor_new_int_hash_table (mm);
+  BTOR_INIT_STACK (stack);
+  BTOR_PUSH_STACK (mm, stack, aig);
 
-  if (!BTOR_IS_CONST_AIG (aig)) BTOR_PUSH_STACK (mm, stack, aig);
   while (!BTOR_EMPTY_STACK (stack))
   {
     cur      = BTOR_POP_STACK (stack);
@@ -395,16 +397,16 @@ recursively_compute_assignment (AIGProp *aprop, BtorAIG *aig)
 
       if (!btor_contains_int_hash_table (cache, real_cur->id))
       {
+        btor_add_int_hash_table (cache, real_cur->id);
         BTOR_PUSH_STACK (mm, stack, cur);
         if (!BTOR_IS_CONST_AIG (left)
             && !btor_contains_int_hash_table (cache,
-                                              BTOR_REAL_ADDR_NODE (left)->id))
+                                              BTOR_REAL_ADDR_AIG (left)->id))
           BTOR_PUSH_STACK (mm, stack, left);
         if (!BTOR_IS_CONST_AIG (right)
             && !btor_contains_int_hash_table (cache,
-                                              BTOR_REAL_ADDR_NODE (right)->id))
+                                              BTOR_REAL_ADDR_AIG (right)->id))
           BTOR_PUSH_STACK (mm, stack, right);
-        btor_add_int_hash_table (cache, real_cur->id);
       }
       else
       {
@@ -538,9 +540,9 @@ reset_cone (AIGProp *aprop, BtorAIG *aig)
           assert (btor_get_ptr_hash_table (aprop->score, cur));
           btor_remove_ptr_hash_table (aprop->score, cur, 0, 0);
           assert (
-              btor_get_ptr_hash_table (aprop->score, BTOR_INVERT_NODE (cur)));
+              btor_get_ptr_hash_table (aprop->score, BTOR_INVERT_AIG (cur)));
           btor_remove_ptr_hash_table (
-              aprop->score, BTOR_INVERT_NODE (cur), 0, 0);
+              aprop->score, BTOR_INVERT_AIG (cur), 0, 0);
           break;
         }
       }
@@ -731,7 +733,7 @@ select_move (AIGProp *aprop, BtorAIG *root, BtorAIG **input, int *assignment)
       if (BTOR_IS_VAR_AIG (BTOR_REAL_ADDR_AIG (cur)))
       {
         *input      = BTOR_REAL_ADDR_AIG (cur);
-        *assignment = BTOR_IS_INVERTED_NODE (cur) ? -asscur : asscur;
+        *assignment = BTOR_IS_INVERTED_AIG (cur) ? -asscur : asscur;
         break;
       }
     }
@@ -793,7 +795,7 @@ all_roots_sat (AIGProp *aprop)
     assert (btor_get_ptr_hash_table (aprop->model, BTOR_REAL_ADDR_AIG (root)));
     ass = btor_get_ptr_hash_table (aprop->model, BTOR_REAL_ADDR_AIG (root))
               ->data.as_int;
-    ass = BTOR_IS_INVERTED_NODE (root) ? -ass : ass;
+    ass = BTOR_IS_INVERTED_AIG (root) ? -ass : ass;
     if (ass == -1)
     {
       res = false;
