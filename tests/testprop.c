@@ -50,6 +50,7 @@ static BtorRNG *g_rng;
     btor_delete_btor (g_btor);                    \
   } while (0)
 
+#ifndef NDEBUG
 static inline void
 prop_complete_binary_eidx (
     uint32_t n,
@@ -205,6 +206,7 @@ prop_complete_binary (uint32_t n,
 
   TEST_PROP_ONE_COMPLETE_BINARY_FINISH (fun);
 }
+#endif
 
 /*------------------------------------------------------------------------*/
 
@@ -459,8 +461,8 @@ test_prop_complete_slice_bv (void)
     }
   }
   btor_delete_btor (g_btor);
-}
 #endif
+}
 
 /*------------------------------------------------------------------------*/
 
@@ -474,6 +476,9 @@ run_prop_tests (int argc, char **argv)
 {
   (void) argc;
   (void) argv;
+  (void) g_btor;
+  (void) g_mm;
+  (void) g_rng;
   BTOR_RUN_TEST (prop_one_complete_add_bv);
   BTOR_RUN_TEST (prop_one_complete_and_bv);
   BTOR_RUN_TEST (prop_one_complete_eq_bv);
