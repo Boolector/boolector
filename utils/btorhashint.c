@@ -145,9 +145,9 @@ static void
 resize (BtorIntHashTable *t)
 {
 #ifndef NDEBUG
-  size_t new_pos, old_count;
+  size_t old_count;
 #endif
-  size_t i, old_size, new_size;
+  size_t i, new_pos, old_size, new_size;
   int32_t key, *old_keys;
   uint8_t *old_hop_info;
   BtorIntHashTableData *old_data;
