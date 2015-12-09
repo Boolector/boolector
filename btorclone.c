@@ -1286,7 +1286,23 @@ clone_aux_btor (Btor *btor, BtorNodeMap **exp_map, bool exp_layer_only)
                    + MEM_PTR_HASH_TABLE (cslv->score);
     }
     else if (clone->slv->kind == BTOR_AIGPROP_SOLVER_KIND)
+    {
+      BtorAIGPropSolver *slv  = BTOR_AIGPROP_SOLVER (btor);
+      BtorAIGPropSolver *cslv = BTOR_AIGPROP_SOLVER (clone);
+
+      if (slv->aprop)
+      {
+        assert (cslv->aprop);
+        CHKCLONE_MEM_PTR_HASH_TABLE (slv->aprop->roots, cslv->aprop->roots);
+        CHKCLONE_MEM_PTR_HASH_TABLE (slv->aprop->score, cslv->aprop->score);
+        CHKCLONE_MEM_PTR_HASH_TABLE (slv->aprop->model, cslv->aprop->model);
+        allocated += sizeof (AIGProp) + MEM_PTR_HASH_TABLE (cslv->aprop->roots)
+                     + MEM_PTR_HASH_TABLE (cslv->aprop->score)
+                     + MEM_PTR_HASH_TABLE (cslv->aprop->model);
+      }
+
       allocated += sizeof (BtorAIGPropSolver);
+    }
 
     assert (allocated == clone->mm->allocated);
   }

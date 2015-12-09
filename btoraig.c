@@ -1338,6 +1338,7 @@ void
 btor_aig_to_sat (BtorAIGMgr *amgr, BtorAIG *aig)
 {
   assert (amgr);
+  if (!btor_is_initialized_sat (amgr->smgr)) return;
   if (!BTOR_IS_CONST_AIG (aig)) aig_to_sat_tseitin (amgr, aig);
 }
 

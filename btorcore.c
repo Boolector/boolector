@@ -3530,8 +3530,8 @@ mark_reachable (Btor *btor, BtorNode *exp)
 }
 
 /* forward assumptions to the SAT solver */
-static void
-add_again_assumptions (Btor *btor)
+void
+btor_add_again_assumptions (Btor *btor)
 {
   assert (btor);
   assert (btor_check_id_table_mark_unset_dbg (btor));
@@ -3601,8 +3601,11 @@ add_again_assumptions (Btor *btor)
     aig = exp_to_aig (btor, cur);
     btor_aig_to_sat (amgr, aig);
     if (aig == BTOR_AIG_TRUE) continue;
-    assert (BTOR_GET_CNF_ID_AIG (aig) != 0);
-    btor_assume_sat (smgr, BTOR_GET_CNF_ID_AIG (aig));
+    if (btor_is_initialized_sat (smgr))
+    {
+      assert (BTOR_GET_CNF_ID_AIG (aig) != 0);
+      btor_assume_sat (smgr, BTOR_GET_CNF_ID_AIG (aig));
+    }
     btor_release_aig (amgr, aig);
   }
 
@@ -3649,7 +3652,7 @@ update_sat_assignments (Btor * btor)
   BtorSATMgr *smgr;
 
   smgr = btor_get_sat_mgr_btor (btor);
-  add_again_assumptions (btor);
+  btor_add_again_assumptions (btor);
 #ifndef NDEBUG
   int result;
   result = timed_sat_sat (btor, -1);
@@ -5580,7 +5583,7 @@ sat_aux_btor_dual_prop (Btor *btor)
   update_reachable (btor, false);
   assert (btor_check_reachable_flag_dbg (btor));
 
-  add_again_assumptions (btor);
+  btor_add_again_assumptions (btor);
   assert (btor_check_reachable_flag_dbg (btor));
 
   sat_result = timed_sat_sat (btor, -1);
@@ -5795,6 +5798,8 @@ btor_sat_btor (Btor *btor, int lod_limit, int sat_limit)
     if (btor->options.engine.val == BTOR_ENGINE_SLS)
       btor->slv->api.generate_model (btor, btor->options.model_gen.val == 2, 0);
     else if (btor->options.engine.val == BTOR_ENGINE_PROP)
+      btor->slv->api.generate_model (btor, btor->options.model_gen.val == 2, 0);
+    else if (btor->options.engine.val == BTOR_ENGINE_AIGPROP)
       btor->slv->api.generate_model (btor, btor->options.model_gen.val == 2, 0);
     else
       btor->slv->api.generate_model (btor, btor->options.model_gen.val == 2, 1);
@@ -6642,7 +6647,7 @@ sat_core_solver (Btor *btor, int lod_limit, int sat_limit)
   update_reachable (btor, false);
   assert (btor_check_reachable_flag_dbg (btor));
 
-  add_again_assumptions (btor);
+  btor_add_again_assumptions (btor);
   assert (btor_check_reachable_flag_dbg (btor));
 
   if (sat_limit > -1)
@@ -6706,7 +6711,7 @@ sat_core_solver (Btor *btor, int lod_limit, int sat_limit)
     assert (btor_check_all_hash_tables_proxy_free_dbg (btor));
     assert (btor_check_all_hash_tables_simp_free_dbg (btor));
     assert (btor_check_reachable_flag_dbg (btor));
-    add_again_assumptions (btor);
+    btor_add_again_assumptions (btor);
     sat_result = timed_sat_sat (btor, -1);
   }
 

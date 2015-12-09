@@ -458,14 +458,8 @@ aigprop_generate_model (AIGProp *aprop, int reset)
   if (reset) aigprop_init_model (aprop);
 
   btor_init_hash_table_iterator (&it, aprop->roots);
-  BtorAIG *tmp;
   while (btor_has_next_hash_table_iterator (&it))
-  {
-    tmp = btor_next_hash_table_iterator (&it);
-    recursively_compute_assignment (aprop, tmp);
-    //    recursively_compute_assignment (aprop, btor_next_hash_table_iterator
-    //    (&it));
-  }
+    recursively_compute_assignment (aprop, btor_next_hash_table_iterator (&it));
 }
 
 /*------------------------------------------------------------------------*/
@@ -811,7 +805,6 @@ aigprop_sat (AIGProp *aprop)
 {
   assert (aprop);
   assert (aprop->roots);
-  assert (aprop->roots->count);
 
   double start;
   int j, max_steps, sat_result;
@@ -831,7 +824,6 @@ aigprop_sat (AIGProp *aprop)
 
     if (all_roots_sat (aprop)) goto SAT;
 
-    // TODO all roots sat
     for (j = 0; j < (max_steps = AIGPROP_MAXSTEPS (aprop->stats.restarts + 1));
          j++)
     {
@@ -882,11 +874,13 @@ AIGProp *
 aigprop_clone_aigprop (BtorAIGMgr *clone, AIGProp *aprop)
 {
   assert (clone);
-  assert (aprop);
 
   AIGProp *res;
 
+  if (!aprop) return 0;
+
   BTOR_CNEW (clone->mm, res);
+  memcpy (res, aprop, sizeof (AIGProp));
   res->amgr  = clone;
   res->roots = btor_clone_ptr_hash_table (clone->mm,
                                           aprop->roots,

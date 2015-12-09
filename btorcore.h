@@ -393,5 +393,6 @@ BtorNode *btor_find_substitution (Btor *, BtorNode *);
 void btor_substitute_and_rebuild (Btor *, BtorPtrHashTable *);
 void btor_insert_varsubst_constraint (Btor *, BtorNode *, BtorNode *);
 void btor_process_unsynthesized_constraints (Btor *btor);
+void btor_add_again_assumptions (Btor *btor);
 
 #endif

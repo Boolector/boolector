@@ -40,7 +40,8 @@ clone_aigprop_solver (Btor *clone, Btor *btor, BtorNodeMap *exp_map)
 
   BTOR_NEW (clone->mm, res);
   memcpy (res, slv, sizeof (BtorAIGPropSolver));
-
+  res->aprop =
+      aigprop_clone_aigprop (btor_get_aig_mgr_btor (clone), slv->aprop);
   return res;
 }
 
@@ -201,6 +202,8 @@ sat_aigprop_solver (Btor *btor, int limit0, int limit1)
   assert (btor_check_all_hash_tables_proxy_free_dbg (btor));
   assert (btor_check_all_hash_tables_simp_free_dbg (btor));
 
+  btor_add_again_assumptions (btor);
+
 #ifndef NDEBUG
   btor_init_node_hash_table_iterator (&it, btor->assumptions);
   while (btor_has_next_node_hash_table_iterator (&it))
@@ -208,8 +211,22 @@ sat_aigprop_solver (Btor *btor, int limit0, int limit1)
                  ->simplified);
 #endif
 
-  slv->aprop = aigprop_new_aigprop (btor_get_aig_mgr_btor (btor),
-                                    btor->options.seed.val);
+  assert (slv->aprop);
+  if (slv->aprop->roots)
+  {
+    btor_delete_ptr_hash_table (slv->aprop->roots);
+    slv->aprop->roots = 0;
+  }
+  if (slv->aprop->score)
+  {
+    btor_delete_ptr_hash_table (slv->aprop->score);
+    slv->aprop->score = 0;
+  }
+  if (slv->aprop->model)
+  {
+    btor_delete_ptr_hash_table (slv->aprop->model);
+    slv->aprop->model = 0;
+  }
 #ifndef NBTORLOG
   slv->aprop->loglevel = btor->options.loglevel.val;
 #endif
@@ -225,25 +242,24 @@ sat_aigprop_solver (Btor *btor, int limit0, int limit1)
   while (btor_has_next_node_hash_table_iterator (&it))
   {
     root = btor_next_node_hash_table_iterator (&it);
+    if (!BTOR_REAL_ADDR_NODE (root)->av) continue;
     assert (BTOR_REAL_ADDR_NODE (root)->av->len == 1);
-    if (!btor_get_ptr_hash_table (slv->aprop->roots, root))
-    {
-      aig = BTOR_REAL_ADDR_NODE (root)->av->aigs[0];
-      if (BTOR_IS_INVERTED_NODE (root)) aig = BTOR_INVERT_AIG (aig);
-      if (aig == BTOR_AIG_FALSE) goto UNSAT;
-      if (aig == BTOR_AIG_TRUE) continue;
+    aig = BTOR_REAL_ADDR_NODE (root)->av->aigs[0];
+    if (BTOR_IS_INVERTED_NODE (root)) aig = BTOR_INVERT_AIG (aig);
+    if (aig == BTOR_AIG_FALSE) goto UNSAT;
+    if (aig == BTOR_AIG_TRUE) continue;
+    if (!btor_get_ptr_hash_table (slv->aprop->roots, aig))
       (void) btor_add_ptr_hash_table (slv->aprop->roots, aig);
-    }
   }
 
   if ((sat_result = aigprop_sat (slv->aprop)) == BTOR_UNSAT) goto UNSAT;
   generate_model_aigprop_solver (btor, 0, 0);
   assert (sat_result == BTOR_SAT);
+  slv->stats.moves    = slv->aprop->stats.moves;
+  slv->stats.restarts = slv->aprop->stats.restarts;
+  slv->time.aprop_sat = slv->aprop->time.sat;
 DONE:
   btor->valid_assignments = 1;
-  slv->stats.moves        = slv->aprop->stats.moves;
-  slv->stats.restarts     = slv->aprop->stats.restarts;
-  slv->time.aprop_sat     = slv->aprop->time.sat;
   btor->last_sat_result   = sat_result;
   return sat_result;
 }
@@ -285,6 +301,9 @@ btor_new_aigprop_solver (Btor *btor)
   slv->api.generate_model   = generate_model_aigprop_solver;
   slv->api.print_stats      = print_stats_aigprop_solver;
   slv->api.print_time_stats = print_time_stats_aigprop_solver;
+
+  slv->aprop = aigprop_new_aigprop (btor_get_aig_mgr_btor (btor),
+                                    btor->options.seed.val);
 
   BTOR_MSG (btor->msg, 1, "enabled aigprop engine");
 
