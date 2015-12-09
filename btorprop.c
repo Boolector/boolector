@@ -114,6 +114,7 @@ select_path_and (Btor *btor,
 
   int i, eidx;
 
+  (void) bvand;
   eidx = select_path_non_const (and);
 
   if (eidx == -1)
