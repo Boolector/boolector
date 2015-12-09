@@ -209,6 +209,9 @@ typedef enum BtorSMT2Tag
   BTOR_BVSLE_TAG_SMT2        = 33 + BTOR_BITVEC_TAG_CLASS_SMT2,
   BTOR_BVSGT_TAG_SMT2        = 34 + BTOR_BITVEC_TAG_CLASS_SMT2,
   BTOR_BVSGE_TAG_SMT2        = 35 + BTOR_BITVEC_TAG_CLASS_SMT2,
+  /* Z3 extensions */
+  BTOR_BVREDOR_TAG_SMT2  = 36 + BTOR_BITVEC_TAG_CLASS_SMT2,
+  BTOR_BVREDAND_TAG_SMT2 = 37 + BTOR_BITVEC_TAG_CLASS_SMT2,
 
   BTOR_AUFLIA_TAG_SMT2    = 0 + BTOR_LOGIC_TAG_CLASS_SMT2,
   BTOR_AUFLIRA_TAG_SMT2   = 1 + BTOR_LOGIC_TAG_CLASS_SMT2,
@@ -1012,6 +1015,9 @@ btor_insert_bitvec_symbols_smt2 (BtorSMT2Parser *parser)
   INSERT ("bvsle", BTOR_BVSLE_TAG_SMT2);
   INSERT ("bvsgt", BTOR_BVSGT_TAG_SMT2);
   INSERT ("bvsge", BTOR_BVSGE_TAG_SMT2);
+  /* Z3 extensions */
+  INSERT ("bvredor", BTOR_BVREDOR_TAG_SMT2);
+  INSERT ("bvredand", BTOR_BVREDAND_TAG_SMT2);
 }
 
 static void
@@ -2460,6 +2466,16 @@ btor_parse_term_smt2_aux (BtorSMT2Parser *parser,
       else if (tag == BTOR_BVNEG_TAG_SMT2)
       {
         unaryfun = boolector_neg;
+        goto UNARY_BV_FUN;
+      }
+      else if (tag == BTOR_BVREDOR_TAG_SMT2)
+      {
+        unaryfun = boolector_redor;
+        goto UNARY_BV_FUN;
+      }
+      else if (tag == BTOR_BVREDAND_TAG_SMT2)
+      {
+        unaryfun = boolector_redand;
         goto UNARY_BV_FUN;
       }
       else if (tag == BTOR_CONCAT_TAG_SMT2)
