@@ -98,7 +98,7 @@ get_assignment_bv (BtorMemMgr *mm, BtorNode *exp, BtorPtrHashTable *model)
 }
 
 static void
-generate_model_aigprop_solver (Btor *btor, int model_for_all_nodes, int reset)
+generate_model_from_aig_model (Btor *btor)
 {
   assert (btor);
 
@@ -113,13 +113,14 @@ generate_model_aigprop_solver (Btor *btor, int model_for_all_nodes, int reset)
 
   if (!(slv = BTOR_AIGPROP_SOLVER (btor))) return;
 
+  aprop = slv->aprop;
+  assert (aprop);
+  assert (aprop->model);
+
   btor_init_bv_model (btor, &btor->bv_model);
   btor_init_fun_model (btor, &btor->fun_model);
 
-  aprop = BTOR_AIGPROP_SOLVER (btor)->aprop;
-  /* generate AIG model */
-  aigprop_generate_model (aprop, reset);
-  /* map back to expression layer */
+  /* map AIG model back to expression layer */
   BTOR_INIT_STACK (stack);
   cache = btor_new_int_hash_table (btor->mm);
   assert (btor->unsynthesized_constraints->count == 0);
@@ -141,6 +142,22 @@ generate_model_aigprop_solver (Btor *btor, int model_for_all_nodes, int reset)
   }
   BTOR_RELEASE_STACK (btor->mm, stack);
   btor_delete_int_hash_table (cache);
+}
+
+static void
+generate_model_aigprop_solver (Btor *btor, int model_for_all_nodes, int reset)
+{
+  assert (btor);
+
+  if (reset)
+  {
+    btor_init_bv_model (btor, &btor->bv_model);
+    btor_init_fun_model (btor, &btor->fun_model);
+    btor_generate_model (
+        btor, btor->bv_model, btor->fun_model, model_for_all_nodes);
+    return;
+  }
+
   /* generate model for unreachable nodes */
   if (model_for_all_nodes)
     btor_generate_model (
@@ -212,21 +229,9 @@ sat_aigprop_solver (Btor *btor, int limit0, int limit1)
 #endif
 
   assert (slv->aprop);
-  if (slv->aprop->roots)
-  {
-    btor_delete_ptr_hash_table (slv->aprop->roots);
-    slv->aprop->roots = 0;
-  }
-  if (slv->aprop->score)
-  {
-    btor_delete_ptr_hash_table (slv->aprop->score);
-    slv->aprop->score = 0;
-  }
-  if (slv->aprop->model)
-  {
-    btor_delete_ptr_hash_table (slv->aprop->model);
-    slv->aprop->model = 0;
-  }
+  assert (!slv->aprop->roots);
+  assert (!slv->aprop->score);
+  assert (!slv->aprop->model);
 #ifndef NBTORLOG
   slv->aprop->loglevel = btor->options.loglevel.val;
 #endif
@@ -253,12 +258,27 @@ sat_aigprop_solver (Btor *btor, int limit0, int limit1)
   }
 
   if ((sat_result = aigprop_sat (slv->aprop)) == BTOR_UNSAT) goto UNSAT;
-  generate_model_aigprop_solver (btor, 0, 0);
+  generate_model_from_aig_model (btor);
   assert (sat_result == BTOR_SAT);
   slv->stats.moves    = slv->aprop->stats.moves;
   slv->stats.restarts = slv->aprop->stats.restarts;
   slv->time.aprop_sat = slv->aprop->time.sat;
 DONE:
+  if (slv->aprop->roots)
+  {
+    btor_delete_ptr_hash_table (slv->aprop->roots);
+    slv->aprop->roots = 0;
+  }
+  if (slv->aprop->score)
+  {
+    btor_delete_ptr_hash_table (slv->aprop->score);
+    slv->aprop->score = 0;
+  }
+  if (slv->aprop->model)
+  {
+    btor_delete_ptr_hash_table (slv->aprop->model);
+    slv->aprop->model = 0;
+  }
   btor->valid_assignments = 1;
   btor->last_sat_result   = sat_result;
   return sat_result;
