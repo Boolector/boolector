@@ -32,12 +32,12 @@
 //  btor_init_node_hash_table_iterator (&it, t0);
 //  while (btor_has_next_node_hash_table_iterator (&it))
 //    {
-//      value = it.bucket->data.asPtr;
+//      value = it.bucket->data.as_ptr;
 //      args = btor_next_node_hash_table_iterator (&it);
 //      assert (args->arity == 1);
-//      b = btor_find_in_ptr_hash_table (t1, args);
+//      b = btor_get_ptr_hash_table (t1, args);
 //      assert (b);
-//      assert (b->data.asPtr == value);
+//      assert (b->data.as_ptr == value);
 //    }
 //  return true;
 //}
@@ -51,7 +51,7 @@ delete_static_rho (Btor *btor, BtorPtrHashTable *static_rho)
   btor_init_node_hash_table_iterator (&it, static_rho);
   while (btor_has_next_node_hash_table_iterator (&it))
   {
-    btor_release_exp (btor, it.bucket->data.asPtr);
+    btor_release_exp (btor, it.bucket->data.as_ptr);
     btor_release_exp (btor, btor_next_node_hash_table_iterator (&it));
   }
   btor_delete_ptr_hash_table (static_rho);
@@ -68,10 +68,10 @@ add_to_static_rho (Btor *btor, BtorPtrHashTable *to, BtorPtrHashTable *from)
   btor_init_node_hash_table_iterator (&it, from);
   while (btor_has_next_node_hash_table_iterator (&it))
   {
-    data = it.bucket->data.asPtr;
+    data = it.bucket->data.as_ptr;
     key  = btor_next_node_hash_table_iterator (&it);
-    if (btor_find_in_ptr_hash_table (to, key)) continue;
-    btor_insert_in_ptr_hash_table (to, btor_copy_exp (btor, key))->data.asPtr =
+    if (btor_get_ptr_hash_table (to, key)) continue;
+    btor_add_ptr_hash_table (to, btor_copy_exp (btor, key))->data.as_ptr =
         btor_copy_exp (btor, data);
   }
 }
@@ -137,7 +137,7 @@ btor_merge_lambdas (Btor *btor)
     BTOR_RESET_STACK (visit);
     BTOR_PUSH_STACK (mm, visit, btor_lambda_get_body (lambda));
     merge_lambdas = btor_new_ptr_hash_table (mm, 0, 0);
-    btor_insert_in_ptr_hash_table (merge_lambdas, lambda);
+    btor_add_ptr_hash_table (merge_lambdas, lambda);
     while (!BTOR_EMPTY_STACK (visit))
     {
       cur = BTOR_REAL_ADDR_NODE (BTOR_POP_STACK (visit));
@@ -169,8 +169,8 @@ btor_merge_lambdas (Btor *btor)
           continue;
         }
 
-        if (!btor_find_in_ptr_hash_table (merge_lambdas, cur))
-          btor_insert_in_ptr_hash_table (merge_lambdas, cur);
+        if (!btor_get_ptr_hash_table (merge_lambdas, cur))
+          btor_add_ptr_hash_table (merge_lambdas, cur);
         BTOR_PUSH_STACK (mm, visit, btor_lambda_get_body (cur));
       }
       else
@@ -261,7 +261,7 @@ btor_merge_lambdas (Btor *btor)
     cur->aux_mark = 0;
   }
 
-  btor_substitute_and_rebuild (btor, btor->substitutions, 0);
+  btor_substitute_and_rebuild (btor, btor->substitutions);
   btor_delete_substitutions (btor);
   btor->stats.lambdas_merged += num_merged_lambdas;
 

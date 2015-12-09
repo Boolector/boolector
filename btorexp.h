@@ -18,7 +18,7 @@
 #include "btorbitvec.h"
 #include "btorsort.h"
 #include "btortypes.h"
-#include "utils/btorhash.h"
+#include "utils/btorhashptr.h"
 #include "utils/btorqueue.h"
 #include "utils/btorstack.h"
 
@@ -375,13 +375,13 @@ struct BtorNodePair
   BtorNode *exp2;
 };
 
-BtorNodePair *new_exp_pair (Btor *, BtorNode *, BtorNode *);
+BtorNodePair *btor_new_exp_pair (Btor *, BtorNode *, BtorNode *);
 
-void delete_exp_pair (Btor *, BtorNodePair *);
+void btor_delete_exp_pair (Btor *, BtorNodePair *);
 
-unsigned int hash_exp_pair (BtorNodePair *);
+unsigned int btor_hash_exp_pair (BtorNodePair *);
 
-int compare_exp_pair (BtorNodePair *, BtorNodePair *);
+int btor_compare_exp_pair (BtorNodePair *, BtorNodePair *);
 
 /*------------------------------------------------------------------------*/
 

@@ -281,11 +281,11 @@ boolector_delete_mc (BtorMC *mc)
   BTOR_RELEASE_STACK (mm, mc->frames);
   btor_init_hash_table_iterator (&it, mc->inputs);
   while (btor_has_next_hash_table_iterator (&it))
-    btor_delete_mc_input (mc, btor_next_data_hash_table_iterator (&it)->asPtr);
+    btor_delete_mc_input (mc, btor_next_data_hash_table_iterator (&it)->as_ptr);
   btor_delete_ptr_hash_table (mc->inputs);
   btor_init_hash_table_iterator (&it, mc->latches);
   while (btor_has_next_hash_table_iterator (&it))
-    btor_delete_mc_latch (mc, btor_next_data_hash_table_iterator (&it)->asPtr);
+    btor_delete_mc_latch (mc, btor_next_data_hash_table_iterator (&it)->as_ptr);
   btor_delete_ptr_hash_table (mc->latches);
   while (!BTOR_EMPTY_STACK (mc->bad))
     boolector_release (btor, BTOR_POP_STACK (mc->bad));
@@ -318,10 +318,10 @@ boolector_input (BtorMC *mc, int width, const char *name)
   assert (input);
   input->id   = (int) mc->inputs->count;
   input->node = res;
-  bucket      = btor_insert_in_ptr_hash_table (mc->inputs, res);
+  bucket      = btor_add_ptr_hash_table (mc->inputs, res);
   assert (bucket);
-  assert (!bucket->data.asPtr);
-  bucket->data.asPtr = input;
+  assert (!bucket->data.as_ptr);
+  bucket->data.as_ptr = input;
   if (name)
     BTOR_MSG (boolector_get_btor_msg (mc->btor),
               2,
@@ -358,10 +358,10 @@ boolector_latch (BtorMC *mc, int width, const char *name)
   latch->id   = (int) mc->latches->count;
   latch->node = res;
   latch->init = latch->next = 0;
-  bucket                    = btor_insert_in_ptr_hash_table (mc->latches, res);
+  bucket                    = btor_add_ptr_hash_table (mc->latches, res);
   assert (bucket);
-  assert (!bucket->data.asPtr);
-  bucket->data.asPtr = latch;
+  assert (!bucket->data.as_ptr);
+  bucket->data.as_ptr = latch;
   if (name)
     BTOR_MSG (boolector_get_btor_msg (mc->btor),
               2,
@@ -385,9 +385,9 @@ btor_find_mc_latch (BtorMC *mc, BoolectorNode *node)
   BtorMcLatch *res;
   assert (mc);
   assert (node);
-  bucket = btor_find_in_ptr_hash_table (mc->latches, node);
+  bucket = btor_get_ptr_hash_table (mc->latches, node);
   if (!bucket) return 0;
-  res = bucket->data.asPtr;
+  res = bucket->data.as_ptr;
   assert (res->node == bucket->key);
   return res;
 }
@@ -521,7 +521,7 @@ initialize_inputs_of_frame (BtorMC *mc, BtorMcFrame *f)
   while (btor_has_next_hash_table_iterator (&it))
   {
 #ifndef NDEBUG
-    input = it.bucket->data.asPtr;
+    input = it.bucket->data.as_ptr;
     assert (input);
 #endif
     src = (BoolectorNode *) btor_next_hash_table_iterator (&it);
@@ -565,7 +565,7 @@ initialize_latches_of_frame (BtorMC *mc, BtorMcFrame *f)
   btor_init_hash_table_iterator (&it, mc->latches);
   while (btor_has_next_hash_table_iterator (&it))
   {
-    latch = it.bucket->data.asPtr;
+    latch = it.bucket->data.as_ptr;
     assert (latch);
     assert (latch->id == i);
     src = (BoolectorNode *) btor_next_hash_table_iterator (&it);
@@ -625,7 +625,7 @@ initialize_next_state_functions_of_frame (BtorMC *mc,
   btor_init_hash_table_iterator (&it, mc->latches);
   while (btor_has_next_hash_table_iterator (&it))
   {
-    latch = it.bucket->data.asPtr;
+    latch = it.bucket->data.as_ptr;
     assert (latch);
     node = (BoolectorNode *) btor_next_hash_table_iterator (&it);
     assert (latch->node == node);
@@ -1098,11 +1098,11 @@ btor_mc_model2const_mapper (Btor *btor, void *state, BoolectorNode *node)
   assert (0 <= time && time < BTOR_COUNT_STACK (mc->frames));
   frame = mc->frames.start + time;
 
-  bucket = btor_find_in_ptr_hash_table (mc->inputs, node);
+  bucket = btor_get_ptr_hash_table (mc->inputs, node);
 
   if (bucket)
   {
-    input = bucket->data.asPtr;
+    input = bucket->data.as_ptr;
     assert (input);
     assert (input->node == node);
     node_at_time = BTOR_PEEK_STACK (frame->inputs, input->id);
@@ -1117,7 +1117,7 @@ btor_mc_model2const_mapper (Btor *btor, void *state, BoolectorNode *node)
   }
   else
   {
-    bucket = btor_find_in_ptr_hash_table (mc->latches, node);
+    bucket = btor_get_ptr_hash_table (mc->latches, node);
     if (!boolector_is_var (mc->btor, node))
       sym = 0;
     else
@@ -1128,7 +1128,7 @@ btor_mc_model2const_mapper (Btor *btor, void *state, BoolectorNode *node)
     else
       BTOR_ABORT_BOOLECTOR (!bucket,
                             "variable without symbol not a latch nor an input");
-    latch = bucket->data.asPtr;
+    latch = bucket->data.as_ptr;
     assert (latch);
     assert (latch->node == node);
     node_at_time = BTOR_PEEK_STACK (frame->latches, latch->id);
@@ -1195,10 +1195,10 @@ boolector_mc_assignment (BtorMC *mc, BoolectorNode *node, int time)
   BTOR_ABORT_BOOLECTOR (time >= BTOR_COUNT_STACK (mc->frames),
                         "'time' exceeds previously returned bound");
 
-  bucket = btor_find_in_ptr_hash_table (mc->inputs, node);
+  bucket = btor_get_ptr_hash_table (mc->inputs, node);
   if (bucket)
   {
-    input = bucket->data.asPtr;
+    input = bucket->data.as_ptr;
     assert (input);
     assert (input->node == node);
     frame        = mc->frames.start + time;
@@ -1243,7 +1243,7 @@ boolector_dump_btormc (BtorMC *mc, FILE *file)
   btor_init_hash_table_iterator (&it, mc->inputs);
   while (btor_has_next_hash_table_iterator (&it))
   {
-    BtorMcInput *input = btor_next_data_hash_table_iterator (&it)->asPtr;
+    BtorMcInput *input = btor_next_data_hash_table_iterator (&it)->as_ptr;
     assert (input);
     assert (input->node);
     btor_add_input_to_dump_context (bdc,
@@ -1253,7 +1253,7 @@ boolector_dump_btormc (BtorMC *mc, FILE *file)
   btor_init_hash_table_iterator (&it, mc->latches);
   while (btor_has_next_hash_table_iterator (&it))
   {
-    BtorMcLatch *latch = btor_next_data_hash_table_iterator (&it)->asPtr;
+    BtorMcLatch *latch = btor_next_data_hash_table_iterator (&it)->as_ptr;
     assert (latch);
     assert (latch->node);
     assert (BTOR_IS_REGULAR_NODE (latch->node));
