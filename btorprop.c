@@ -87,7 +87,7 @@ select_path_add (Btor *btor,
   assert (eidx >= 0);
 #ifndef NDEBUG
   char *a;
-  BTORLOG (1, "");
+  BTORLOG (2, "");
   BTORLOG (2, "select path: %s", node2string (add));
   a = btor_bv_to_char_bv (btor->mm, bve[0]);
   BTORLOG (2, "       e[0]: %s (%s)", node2string (add->e[0]), a);
@@ -113,7 +113,6 @@ select_path_and (Btor *btor,
   assert (bve);
 
   int i, eidx;
-  BtorBitVector *tmp;
 
   eidx = select_path_non_const (and);
 
@@ -128,21 +127,17 @@ select_path_and (Btor *btor,
     }
     else
     {
-      /* choose branch incompatible with bvand */
-      for (i = 0; i < and->arity; i++)
-      {
-        tmp = btor_and_bv (btor->mm, bvand, bve[i]);
-        if (btor_compare_bv (tmp, bvand)) eidx = eidx == -1 ? i : -1;
-        btor_free_bv (btor->mm, tmp);
-      }
-      if (eidx == -1) eidx = select_path_random (btor, and);
+      /* we can not choose more discriminately in case of bit width n
+       * -> all bits set in bvand must be set in both inputs, but
+       * -> all bits NOT set in bvand can be cancelled out by either or both */
+      eidx = select_path_random (btor, and);
     }
   }
 
   assert (eidx >= 0);
 #ifndef NDEBUG
   char *a;
-  BTORLOG (1, "");
+  BTORLOG (2, "");
   BTORLOG (2, "select path: %s", node2string (and));
   a = btor_bv_to_char_bv (btor->mm, bve[0]);
   BTORLOG (2, "       e[0]: %s (%s)", node2string (and->e[0]), a);
@@ -176,7 +171,7 @@ select_path_eq (Btor *btor,
   assert (eidx >= 0);
 #ifndef NDEBUG
   char *a;
-  BTORLOG (1, "");
+  BTORLOG (2, "");
   BTORLOG (2, "select path: %s", node2string (eq));
   a = btor_bv_to_char_bv (btor->mm, bve[0]);
   BTORLOG (2, "       e[0]: %s (%s)", node2string (eq->e[0]), a);
@@ -223,7 +218,7 @@ select_path_ult (Btor *btor,
   assert (eidx >= 0);
 #ifndef NDEBUG
   char *a;
-  BTORLOG (1, "");
+  BTORLOG (2, "");
   BTORLOG (2, "select path: %s", node2string (ult));
   a = btor_bv_to_char_bv (btor->mm, bve[0]);
   BTORLOG (2, "       e[0]: %s (%s)", node2string (ult->e[0]), a);
@@ -276,7 +271,7 @@ DONE:
   assert (eidx >= 0);
 #ifndef NDEBUG
   char *a;
-  BTORLOG (1, "");
+  BTORLOG (2, "");
   BTORLOG (2, "select path: %s", node2string (sll));
   a = btor_bv_to_char_bv (btor->mm, bve[0]);
   BTORLOG (2, "       e[0]: %s (%s)", node2string (sll->e[0]), a);
@@ -330,7 +325,7 @@ DONE:
   assert (eidx >= 0);
 #ifndef NDEBUG
   char *a;
-  BTORLOG (1, "");
+  BTORLOG (2, "");
   BTORLOG (2, "select path: %s", node2string (srl));
   a = btor_bv_to_char_bv (btor->mm, bve[0]);
   BTORLOG (2, "       e[0]: %s (%s)", node2string (srl->e[0]), a);
@@ -401,7 +396,7 @@ select_path_mul (Btor *btor,
   assert (eidx >= 0);
 #ifndef NDEBUG
   char *a;
-  BTORLOG (1, "");
+  BTORLOG (2, "");
   BTORLOG (2, "select path: %s", node2string (mul));
   a = btor_bv_to_char_bv (btor->mm, bve[0]);
   BTORLOG (2, "       e[0]: %s (%s)", node2string (mul->e[0]), a);
@@ -478,7 +473,7 @@ select_path_udiv (Btor *btor,
   assert (eidx >= 0);
 #ifndef NDEBUG
   char *a;
-  BTORLOG (1, "");
+  BTORLOG (2, "");
   BTORLOG (2, "select path: %s", node2string (udiv));
   a = btor_bv_to_char_bv (btor->mm, bve[0]);
   BTORLOG (2, "       e[0]: %s (%s)", node2string (udiv->e[0]), a);
@@ -552,7 +547,7 @@ select_path_urem (Btor *btor,
   assert (eidx >= 0);
 #ifndef NDEBUG
   char *a;
-  BTORLOG (1, "");
+  BTORLOG (2, "");
   BTORLOG (2, "select path: %s", node2string (urem));
   a = btor_bv_to_char_bv (btor->mm, bve[0]);
   BTORLOG (2, "       e[0]: %s (%s)", node2string (urem->e[0]), a);
@@ -602,7 +597,7 @@ select_path_concat (Btor *btor,
   assert (eidx >= 0);
 #ifndef NDEBUG
   char *a;
-  BTORLOG (1, "");
+  BTORLOG (2, "");
   BTORLOG (2, "select path: %s", node2string (concat));
   a = btor_bv_to_char_bv (btor->mm, bve[0]);
   BTORLOG (2, "       e[0]: %s (%s)", node2string (concat->e[0]), a);
@@ -635,7 +630,7 @@ select_path_slice (Btor *btor,
   (void) bve;
 #ifndef NDEBUG
   char *a;
-  BTORLOG (1, "");
+  BTORLOG (2, "");
   BTORLOG (2, "select path: %s", node2string (slice));
   a = btor_bv_to_char_bv (btor->mm, bve[0]);
   BTORLOG (2, "       e[0]: %s (%s)", node2string (slice->e[0]), a);
