@@ -227,7 +227,7 @@ test_propinv_complete_slice_bv (void)
         bvexp = btor_slice_bv (g_mm, bve, up, lo);
         for (k = 0, res = 0; k < TEST_PROP_INV_COMPLETE_N_TESTS; k++)
         {
-          res = inv_slice_bv (g_btor, exp, bvexp);
+          res = inv_slice_bv (g_btor, exp, bvexp, bve);
           assert (res);
           if (!btor_compare_bv (res, bve)) break;
           btor_free_bv (g_mm, res);

@@ -113,6 +113,7 @@ select_path_and (Btor *btor,
   assert (bve);
 
   int i, eidx;
+  BtorBitVector *tmp;
 
   eidx = select_path_non_const (and);
 
@@ -127,10 +128,17 @@ select_path_and (Btor *btor,
     }
     else
     {
-      /* we can not choose more discriminately in case of bit width n
-       * -> all bits set in bvand must be set in both inputs, but
-       * -> all bits NOT set in bvand can be cancelled out by either or both */
-      eidx = select_path_random (btor, and);
+      /* 1) all bits set in bvand must be set in both inputs, but
+       * 2) all bits NOT set in bvand can be cancelled out by either or both
+       * -> choose single input that violates 1)
+       * -> else choose randomly */
+      for (i = 0; i < and->arity; i++)
+      {
+        tmp = btor_and_bv (btor->mm, bvand, bve[i]);
+        if (btor_compare_bv (tmp, bvand)) eidx = eidx == -1 ? i : -1;
+        btor_free_bv (btor->mm, tmp);
+      }
+      if (eidx == -1) eidx = select_path_random (btor, and);
     }
   }
 
@@ -2616,7 +2624,10 @@ static inline BtorBitVector *
 #else
 BtorBitVector *
 #endif
-inv_slice_bv (Btor *btor, BtorNode *slice, BtorBitVector *bvslice)
+inv_slice_bv (Btor *btor,
+              BtorNode *slice,
+              BtorBitVector *bvslice,
+              BtorBitVector *bve)
 {
   assert (btor);
   assert (btor->options.engine.val == BTOR_ENGINE_SLS
@@ -2641,12 +2652,15 @@ inv_slice_bv (Btor *btor, BtorNode *slice, BtorBitVector *bvslice)
   lower = btor_slice_get_lower (slice);
 
   res = btor_new_bv (mm, btor_get_exp_width (btor, e));
+  /* keep previous value for don't care bits */
   for (i = 0; i < lower; i++)
-    btor_set_bit_bv (res, i, btor_pick_rand_rng (&btor->rng, 0, 1));
+    btor_set_bit_bv (res, i, btor_get_bit_bv (bve, i));
+  /* set sliced bits to propagated value */
   for (i = lower; i <= upper; i++)
     btor_set_bit_bv (res, i, btor_get_bit_bv (bvslice, i - lower));
+  /* keep previous value for don't care bits */
   for (i = upper + 1; i < res->width; i++)
-    btor_set_bit_bv (res, i, btor_pick_rand_rng (&btor->rng, 0, 1));
+    btor_set_bit_bv (res, i, btor_get_bit_bv (bve, i));
 
 #ifndef NDEBUG
   tmpdbg = btor_slice_bv (mm, res, upper, lower);
@@ -2790,7 +2804,8 @@ btor_select_move_prop (Btor *btor,
           assert (real_cur->kind == BTOR_SLICE_NODE);
           eidx = select_path_slice (btor, real_cur, bvcur, bve);
           idx  = eidx ? 0 : 1;
-          assert (eidx >= 0), bvenew = inv_slice_bv (btor, real_cur, bvcur);
+          assert (eidx >= 0),
+              bvenew = inv_slice_bv (btor, real_cur, bvcur, bve[0]);
       }
 
       if (!bvenew) break; /* non-recoverable conflict */

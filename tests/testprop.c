@@ -54,7 +54,6 @@ static BtorRNG *g_rng;
 static inline void
 prop_complete_binary_eidx (
     uint32_t n,
-    bool check_n_moves,
     int eidx,
     uint32_t bw0,
     uint32_t bw1,
@@ -142,12 +141,11 @@ prop_complete_binary_eidx (
   btor_release_exp (g_btor, e[1]);
   sat_res = sat_prop_solver_aux (g_btor, -1, -1);
   assert (sat_res == BTOR_SAT);
-  assert (!check_n_moves || ((BtorPropSolver *) g_btor->slv)->stats.moves <= n);
+  assert (((BtorPropSolver *) g_btor->slv)->stats.moves <= n);
 }
 
 static void
 prop_complete_binary (uint32_t n,
-                      bool check_n_moves,
                       BtorNode *(*create_exp) (Btor *, BtorNode *, BtorNode *),
                       BtorBitVector *(*create_bv) (BtorMemMgr *,
                                                    BtorBitVector *,
@@ -180,7 +178,6 @@ prop_complete_binary (uint32_t n,
       for (k = 0; k < bw0; k++)
       {
         prop_complete_binary_eidx (n,
-                                   check_n_moves,
                                    1,
                                    bw0,
                                    bw1,
@@ -191,7 +188,6 @@ prop_complete_binary (uint32_t n,
                                    create_bv,
                                    inv_bv);
         prop_complete_binary_eidx (n,
-                                   check_n_moves,
                                    0,
                                    bw0,
                                    bw1,
@@ -218,7 +214,7 @@ static void
 test_prop_one_complete_add_bv (void)
 {
 #ifndef NDEBUG
-  prop_complete_binary (1, true, btor_add_exp, btor_add_bv, inv_add_bv);
+  prop_complete_binary (1, btor_add_exp, btor_add_bv, inv_add_bv);
 #endif
 }
 
@@ -226,7 +222,7 @@ static void
 test_prop_one_complete_and_bv (void)
 {
 #ifndef NDEBUG
-  prop_complete_binary (1, false, btor_and_exp, btor_and_bv, inv_and_bv);
+  prop_complete_binary (1, btor_and_exp, btor_and_bv, inv_and_bv);
 #endif
 }
 
@@ -234,7 +230,7 @@ static void
 test_prop_one_complete_eq_bv (void)
 {
 #ifndef NDEBUG
-  prop_complete_binary (1, true, btor_eq_exp, btor_eq_bv, inv_eq_bv);
+  prop_complete_binary (1, btor_eq_exp, btor_eq_bv, inv_eq_bv);
 #endif
 }
 
@@ -242,7 +238,7 @@ static void
 test_prop_one_complete_ult_bv (void)
 {
 #ifndef NDEBUG
-  prop_complete_binary (1, true, btor_ult_exp, btor_ult_bv, inv_ult_bv);
+  prop_complete_binary (1, btor_ult_exp, btor_ult_bv, inv_ult_bv);
 #endif
 }
 
@@ -250,7 +246,7 @@ static void
 test_prop_one_complete_sll_bv (void)
 {
 #ifndef NDEBUG
-  prop_complete_binary (1, true, btor_sll_exp, btor_sll_bv, inv_sll_bv);
+  prop_complete_binary (1, btor_sll_exp, btor_sll_bv, inv_sll_bv);
 #endif
 }
 
@@ -258,7 +254,7 @@ static void
 test_prop_one_complete_srl_bv (void)
 {
 #ifndef NDEBUG
-  prop_complete_binary (1, true, btor_srl_exp, btor_srl_bv, inv_srl_bv);
+  prop_complete_binary (1, btor_srl_exp, btor_srl_bv, inv_srl_bv);
 #endif
 }
 
@@ -266,7 +262,7 @@ static void
 test_prop_one_complete_mul_bv (void)
 {
 #ifndef NDEBUG
-  prop_complete_binary (1, true, btor_mul_exp, btor_mul_bv, inv_mul_bv);
+  prop_complete_binary (1, btor_mul_exp, btor_mul_bv, inv_mul_bv);
 #endif
 }
 
@@ -274,7 +270,7 @@ static void
 test_prop_one_complete_udiv_bv (void)
 {
 #ifndef NDEBUG
-  prop_complete_binary (1, true, btor_udiv_exp, btor_udiv_bv, inv_udiv_bv);
+  prop_complete_binary (1, btor_udiv_exp, btor_udiv_bv, inv_udiv_bv);
 #endif
 }
 
@@ -282,7 +278,7 @@ static void
 test_prop_one_complete_urem_bv (void)
 {
 #ifndef NDEBUG
-  prop_complete_binary (1, true, btor_urem_exp, btor_urem_bv, inv_urem_bv);
+  prop_complete_binary (1, btor_urem_exp, btor_urem_bv, inv_urem_bv);
 #endif
 }
 
@@ -290,8 +286,7 @@ static void
 test_prop_one_complete_concat_bv (void)
 {
 #ifndef NDEBUG
-  prop_complete_binary (
-      1, true, btor_concat_exp, btor_concat_bv, inv_concat_bv);
+  prop_complete_binary (1, btor_concat_exp, btor_concat_bv, inv_concat_bv);
 #endif
 }
 
@@ -301,7 +296,7 @@ static void
 test_prop_complete_add_bv (void)
 {
 #ifndef NDEBUG
-  prop_complete_binary (2, true, btor_add_exp, btor_add_bv, inv_add_bv);
+  prop_complete_binary (2, btor_add_exp, btor_add_bv, inv_add_bv);
 #endif
 }
 
@@ -309,7 +304,7 @@ static void
 test_prop_complete_and_bv (void)
 {
 #ifndef NDEBUG
-  prop_complete_binary (2, false, btor_and_exp, btor_and_bv, inv_and_bv);
+  prop_complete_binary (2, btor_and_exp, btor_and_bv, inv_and_bv);
 #endif
 }
 
@@ -317,7 +312,7 @@ static void
 test_prop_complete_eq_bv (void)
 {
 #ifndef NDEBUG
-  prop_complete_binary (2, true, btor_eq_exp, btor_eq_bv, inv_eq_bv);
+  prop_complete_binary (2, btor_eq_exp, btor_eq_bv, inv_eq_bv);
 #endif
 }
 
@@ -325,7 +320,7 @@ static void
 test_prop_complete_ult_bv (void)
 {
 #ifndef NDEBUG
-  prop_complete_binary (2, true, btor_ult_exp, btor_ult_bv, inv_ult_bv);
+  prop_complete_binary (2, btor_ult_exp, btor_ult_bv, inv_ult_bv);
 #endif
 }
 
@@ -333,7 +328,7 @@ static void
 test_prop_complete_sll_bv (void)
 {
 #ifndef NDEBUG
-  prop_complete_binary (2, true, btor_sll_exp, btor_sll_bv, inv_sll_bv);
+  prop_complete_binary (2, btor_sll_exp, btor_sll_bv, inv_sll_bv);
 #endif
 }
 
@@ -341,7 +336,7 @@ static void
 test_prop_complete_srl_bv (void)
 {
 #ifndef NDEBUG
-  prop_complete_binary (2, true, btor_srl_exp, btor_srl_bv, inv_srl_bv);
+  prop_complete_binary (2, btor_srl_exp, btor_srl_bv, inv_srl_bv);
 #endif
 }
 
@@ -349,7 +344,7 @@ static void
 test_prop_complete_mul_bv (void)
 {
 #ifndef NDEBUG
-  prop_complete_binary (2, true, btor_mul_exp, btor_mul_bv, inv_mul_bv);
+  prop_complete_binary (2, btor_mul_exp, btor_mul_bv, inv_mul_bv);
 #endif
 }
 
@@ -357,7 +352,7 @@ static void
 test_prop_complete_udiv_bv (void)
 {
 #ifndef NDEBUG
-  prop_complete_binary (2, true, btor_udiv_exp, btor_udiv_bv, inv_udiv_bv);
+  prop_complete_binary (2, btor_udiv_exp, btor_udiv_bv, inv_udiv_bv);
 #endif
 }
 
@@ -365,7 +360,7 @@ static void
 test_prop_complete_urem_bv (void)
 {
 #ifndef NDEBUG
-  prop_complete_binary (2, true, btor_urem_exp, btor_urem_bv, inv_urem_bv);
+  prop_complete_binary (2, btor_urem_exp, btor_urem_bv, inv_urem_bv);
 #endif
 }
 
@@ -373,8 +368,7 @@ static void
 test_prop_complete_concat_bv (void)
 {
 #ifndef NDEBUG
-  prop_complete_binary (
-      2, true, btor_concat_exp, btor_concat_bv, inv_concat_bv);
+  prop_complete_binary (2, btor_concat_exp, btor_concat_bv, inv_concat_bv);
 #endif
 }
 
@@ -423,7 +417,7 @@ test_prop_complete_slice_bv (void)
 
           /* -> first test local completeness
            *    we must find a solution within one move */
-          res = inv_slice_bv (g_btor, exp, bvexp);
+          res = inv_slice_bv (g_btor, exp, bvexp, bve);
           assert (res);
           /* Note: this is also tested within inverse function */
           tmp = btor_slice_bv (g_mm, res, up, lo);
@@ -433,7 +427,7 @@ test_prop_complete_slice_bv (void)
           /* try to find exact given solution */
           for (k = 0, res = 0; k < TEST_PROP_COMPLETE_N_TESTS; k++)
           {
-            res = inv_slice_bv (g_btor, exp, bvexp);
+            res = inv_slice_bv (g_btor, exp, bvexp, bve);
             assert (res);
             if (!btor_compare_bv (res, bve)) break;
             btor_free_bv (g_mm, res);
@@ -443,7 +437,7 @@ test_prop_complete_slice_bv (void)
           assert (!btor_compare_bv (res, bve));
           btor_free_bv (g_mm, res);
 
-          /* -> then test completeness of the whole propagation algorithm
+          /* -> then test completeness of whole propagation algorithm
            *    (we must find a solution within one move) */
           ((BtorPropSolver *) g_btor->slv)->stats.moves = 0;
           btor_assume_exp (g_btor, eq);
