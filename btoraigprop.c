@@ -21,6 +21,8 @@
 #include "utils/btorhashptr.h"
 #include "utils/btoriter.h"
 
+/*------------------------------------------------------------------------*/
+
 #define BTOR_AIGPROP_MAXSTEPS_CFACT 100
 #define BTOR_AIGPROP_MAXSTEPS(i) \
   (BTOR_AIGPROP_MAXSTEPS_CFACT * ((i) &1u ? 1 : 1 << ((i) >> 1)))
@@ -120,7 +122,10 @@ generate_model_from_aig_model (Btor *btor)
   btor_init_bv_model (btor, &btor->bv_model);
   btor_init_fun_model (btor, &btor->fun_model);
 
-  /* map AIG model back to expression layer */
+  /* map inputs back to expression layer
+   * Note: we can only map inputs back, since other nodes might have partial
+   *       assignments only (e.g. for a slice we may have AIGs for the sliced
+   *       bits of its input only) */
   BTOR_INIT_STACK (stack);
   cache = btor_new_int_hash_table (btor->mm);
   assert (btor->unsynthesized_constraints->count == 0);
@@ -134,9 +139,15 @@ generate_model_from_aig_model (Btor *btor)
     real_cur = BTOR_REAL_ADDR_NODE (cur);
     if (btor_contains_int_hash_table (cache, real_cur->id)) continue;
     btor_add_int_hash_table (cache, real_cur->id);
-    bv = get_assignment_bv (btor->mm, real_cur, aprop->model);
-    btor_add_to_bv_model (btor, btor->bv_model, real_cur, bv);
-    btor_free_bv (btor->mm, bv);
+    if (BTOR_IS_BV_CONST_NODE (real_cur))
+      btor_add_to_bv_model (
+          btor, btor->bv_model, real_cur, btor_const_get_bits (real_cur));
+    if (BTOR_IS_BV_VAR_NODE (real_cur))
+    {
+      bv = get_assignment_bv (btor->mm, real_cur, aprop->model);
+      btor_add_to_bv_model (btor, btor->bv_model, real_cur, bv);
+      btor_free_bv (btor->mm, bv);
+    }
     for (i = 0; i < real_cur->arity; i++)
       BTOR_PUSH_STACK (btor->mm, stack, real_cur->e[i]);
   }
@@ -158,10 +169,9 @@ generate_model_aigprop_solver (Btor *btor, int model_for_all_nodes, int reset)
     return;
   }
 
-  /* generate model for unreachable nodes */
-  if (model_for_all_nodes)
-    btor_generate_model (
-        btor, btor->bv_model, btor->fun_model, model_for_all_nodes);
+  /* generate model for non-input nodes */
+  btor_generate_model (
+      btor, btor->bv_model, btor->fun_model, model_for_all_nodes);
 }
 
 /* Note: limits are currently unused */

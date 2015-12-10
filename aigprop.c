@@ -97,31 +97,31 @@ aigprop_get_assignment_aig (BtorPtrHashTable *model, BtorAIG *aig)
   {                                                                  \
     a = aigprop_get_assignment_aig (aprop->model, left);             \
     assert (a);                                                      \
-    AIGPROPLOG (2,                                                   \
+    AIGPROPLOG (3,                                                   \
                 "        assignment aig0 (%s%d): %d",                \
                 BTOR_IS_INVERTED_AIG (left) ? "-" : "",              \
                 BTOR_REAL_ADDR_AIG (left)->id,                       \
                 a < 0 ? 0 : 1);                                      \
     a = aigprop_get_assignment_aig (aprop->model, right);            \
     assert (a);                                                      \
-    AIGPROPLOG (2,                                                   \
+    AIGPROPLOG (3,                                                   \
                 "        assignment aig1 (%s%d): %d",                \
                 BTOR_IS_INVERTED_AIG (right) ? "-" : "",             \
                 BTOR_REAL_ADDR_AIG (right)->id,                      \
                 a < 0 ? 0 : 1);                                      \
-    AIGPROPLOG (2,                                                   \
+    AIGPROPLOG (3,                                                   \
                 "        score      aig0 (%s%d): %f%s",              \
                 BTOR_IS_INVERTED_AIG (left) ? "-" : "",              \
                 BTOR_REAL_ADDR_AIG (left)->id,                       \
                 s0,                                                  \
                 s0 < 1.0 ? " (< 1.0)" : "");                         \
-    AIGPROPLOG (2,                                                   \
+    AIGPROPLOG (3,                                                   \
                 "        score      aig1 (%s%d): %f%s",              \
                 BTOR_IS_INVERTED_AIG (right) ? "-" : "",             \
                 BTOR_REAL_ADDR_AIG (right)->id,                      \
                 s1,                                                  \
                 s1 < 1.0 ? " (< 1.0)" : "");                         \
-    AIGPROPLOG (2,                                                   \
+    AIGPROPLOG (3,                                                   \
                 "      * score cur (%s%d): %f%s",                    \
                 BTOR_IS_INVERTED_AIG (cur) ? "-" : "",               \
                 real_cur->id,                                        \
@@ -185,8 +185,8 @@ compute_score_aig (AIGProp *aprop, BtorAIG *aig)
 #ifndef NDEBUG
       a = aigprop_get_assignment_aig (aprop->model, cur);
       assert (a);
-      AIGPROPLOG (2, "");
-      AIGPROPLOG (2,
+      AIGPROPLOG (3, "");
+      AIGPROPLOG (3,
                   "  ** assignment cur (%s%d): %d",
                   BTOR_IS_INVERTED_AIG (cur) ? "-" : "",
                   real_cur->id,
@@ -198,12 +198,12 @@ compute_score_aig (AIGProp *aprop, BtorAIG *aig)
       if (BTOR_IS_VAR_AIG (real_cur))
       {
         res = aigprop_get_assignment_aig (aprop->model, cur) < 0 ? 0.0 : 1.0;
-        AIGPROPLOG (2,
+        AIGPROPLOG (3,
                     "        * score cur (%s%d): %f",
                     BTOR_IS_INVERTED_AIG (cur) ? "-" : "",
                     real_cur->id,
                     res);
-        AIGPROPLOG (2,
+        AIGPROPLOG (3,
                     "        * score cur (%s%d): %f",
                     BTOR_IS_INVERTED_AIG (cur) ? "" : "-",
                     real_cur->id,
@@ -296,7 +296,7 @@ compute_scores (AIGProp *aprop)
   BtorHashTableIterator it;
   BtorMemMgr *mm;
 
-  AIGPROPLOG (2, "*** compute scores");
+  AIGPROPLOG (3, "*** compute scores");
 
   mm = aprop->amgr->mm;
 
@@ -692,7 +692,8 @@ select_move (AIGProp *aprop, BtorAIG *root, BtorAIG **input, int *assignment)
         eidx = 0;
       else
       {
-        /* choose 0-branch if exactly one branch is 0, else choose randomly */
+        /* choose 0-branch if exactly one branch is 0,
+         * else choose randomly */
         for (i = 0; i < 2; i++)
         {
           assert (btor_get_ptr_hash_table (aprop->model,
