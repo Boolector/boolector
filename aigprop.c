@@ -623,8 +623,8 @@ select_root (AIGProp *aprop, uint32_t nmoves)
   AIGPROPLOG (1, "");
   AIGPROPLOG (1,
               "*** select root: %s%d",
-              BTOR_IS_INVERTED_AIG (cur) ? "-" : "",
-              BTOR_REAL_ADDR_AIG (cur)->id);
+              BTOR_IS_INVERTED_AIG (res) ? "-" : "",
+              BTOR_REAL_ADDR_AIG (res)->id);
   return res;
 }
 
