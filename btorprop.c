@@ -2638,7 +2638,7 @@ inv_slice_bv (Btor *btor,
   assert (bvslice);
   assert (!BTOR_IS_BV_CONST_NODE (BTOR_REAL_ADDR_NODE (slice->e[0])));
 
-  uint32_t i, upper, lower;
+  uint32_t i, r, upper, lower;
   BtorNode *e;
   BtorBitVector *res;
   BtorMemMgr *mm;
@@ -2649,19 +2649,28 @@ inv_slice_bv (Btor *btor,
   mm = btor->mm;
   e  = slice->e[0];
   assert (e);
+
+  r = btor_pick_rand_rng (&btor->rng, 0, 1);
+
   upper = btor_slice_get_upper (slice);
   lower = btor_slice_get_lower (slice);
 
   res = btor_new_bv (mm, btor_get_exp_width (btor, e));
-  /* keep previous value for don't care bits */
+  /* keep previous value for don't care bits or set randomly with prob = 0.5 */
   for (i = 0; i < lower; i++)
-    btor_set_bit_bv (res, i, btor_get_bit_bv (bve, i));
+    btor_set_bit_bv (res,
+                     i,
+                     r ? btor_get_bit_bv (bve, i)
+                       : (int) btor_pick_rand_rng (&btor->rng, 0, 1));
   /* set sliced bits to propagated value */
   for (i = lower; i <= upper; i++)
     btor_set_bit_bv (res, i, btor_get_bit_bv (bvslice, i - lower));
-  /* keep previous value for don't care bits */
+  /* keep previous value for don't care bits or set randomly with prob = 0.5 */
   for (i = upper + 1; i < res->width; i++)
-    btor_set_bit_bv (res, i, btor_get_bit_bv (bve, i));
+    btor_set_bit_bv (res,
+                     i,
+                     r ? btor_get_bit_bv (bve, i)
+                       : (int) btor_pick_rand_rng (&btor->rng, 0, 1));
 
 #ifndef NDEBUG
   tmpdbg = btor_slice_bv (mm, res, upper, lower);
@@ -2738,6 +2747,12 @@ btor_select_move_prop (Btor *btor,
       }
       if (nconst > real_cur->arity - 1) break;
 
+#ifndef NDEBUG
+      char *a = btor_bv_to_char_bv (btor->mm, bvcur);
+      BTORLOG (2, "");
+      BTORLOG (2, "propagate: %s", a);
+      btor_freestr (btor->mm, a);
+#endif
       /* select path and determine path assignment */
       switch (real_cur->kind)
       {
