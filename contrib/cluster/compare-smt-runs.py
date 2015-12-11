@@ -426,7 +426,7 @@ def _read_cache_file(dir):
                         expected_keys.extend(FILTER_OUT.keys())
 
                     if len(set(expected_keys) - set(keys)) > 0:
-                        print("column mismatch for directory {}. "\
+                        print("column mismatch for directory '{}'. "\
                               "extracting data from files".format(dir))
                         return False
                 else:
@@ -475,30 +475,29 @@ def _read_data (dirs):
                                 "missing matching .err file for '{}'".format(
                                     "{}{}".format(f_full_log)))
                     # init data
-                    if not g_args.filter or g_args.filter in str(f):
-                        if f_name not in g_benchmarks:
-                            g_benchmarks.append(f_name)
-                        _read_err_file (d, "{}{}".format(f[:-3], "err"))
-                        _read_log_file (d, f)
-                        if g_args.m:
-                            outfile = "{}{}".format(f[:-3], "out")
-                            if not os.path.isfile(os.path.join (d, outfile)):
-                                raise CmpSMTException ("missing '{}'".format (
-                                    os.path.join (d, outfile)))
-                            _read_out_file (d, "{}{}".format(f[:-3], "out"))
-                        # reset timeout if given
-                        if g_args.timeout and \
-                       g_file_stats["time_time"][d][f_name] > g_args.timeout[d]:
-                            g_file_stats["time_time"][d][f_name] = \
-                                   g_args.timeout[d]
-                            g_file_stats["status"][d][f_name] = "time"
-                            g_file_stats["result"][d][f_name] = 1
-                            if g_args.g:
-                                for k in ["g_total", "g_solved", "g_time",
-                                          "g_mem", "g_err"]:
-                                    if k not in g_file_stats:
-                                        continue
-                                    g_file_stats[k][d][f_name] = "time"
+                    if f_name not in g_benchmarks:
+                        g_benchmarks.append(f_name)
+                    _read_err_file (d, "{}{}".format(f[:-3], "err"))
+                    _read_log_file (d, f)
+                    if g_args.m:
+                        outfile = "{}{}".format(f[:-3], "out")
+                        if not os.path.isfile(os.path.join (d, outfile)):
+                            raise CmpSMTException ("missing '{}'".format (
+                                os.path.join (d, outfile)))
+                        _read_out_file (d, "{}{}".format(f[:-3], "out"))
+                    # reset timeout if given
+                    if g_args.timeout and \
+                   g_file_stats["time_time"][d][f_name] > g_args.timeout[d]:
+                        g_file_stats["time_time"][d][f_name] = \
+                               g_args.timeout[d]
+                        g_file_stats["status"][d][f_name] = "time"
+                        g_file_stats["result"][d][f_name] = 1
+                        if g_args.g:
+                            for k in ["g_total", "g_solved", "g_time",
+                                      "g_mem", "g_err"]:
+                                if k not in g_file_stats:
+                                    continue
+                                g_file_stats[k][d][f_name] = "time"
         # create cache file
         _save_cache_file(d)
 
@@ -1241,6 +1240,12 @@ if __name__ == "__main__":
                 g_dir_stats[k][g_args.dirs[-1]] = []
 
         _read_data(g_args.dirs[:-1] if g_args.vb else g_args.dirs)
+
+        # remove files not to display
+        if g_args.filter:
+            for f in g_benchmarks[:]:
+                if g_args.filter not in str(f):
+                    g_benchmarks.remove(f)
 
         if len(g_file_stats.keys()) > 0:
             #assert(len(g_file_stats.keys()) == len(g_args.columns))
