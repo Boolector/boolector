@@ -15,7 +15,7 @@ class CmpSMTException (Exception):
 SCRIPTDIR = os.path.dirname(os.path.realpath(__file__))
 
 g_args = None
-g_benchmarks = []
+g_benchmarks = set() 
 
 COLOR_BEST = '\033[36m'
 COLOR_DIFF = '\033[32m'
@@ -447,7 +447,7 @@ def _read_cache_file(dir):
                     cols = line.split()
                     f = cols[0]
                     if f not in g_benchmarks:
-                        g_benchmarks.append(f)
+                        g_benchmarks.add(f)
                     data = cols[1:]
                     assert(len(data) == len(keys))
                     for i in range(len(keys)):
@@ -490,7 +490,7 @@ def _read_data (dirs):
                                     "{}{}".format(f_full_log)))
                     # init data
                     if f_name not in g_benchmarks:
-                        g_benchmarks.append(f_name)
+                        g_benchmarks.add(f_name)
                     _read_err_file (d, "{}{}".format(f[:-3], "err"))
                     _read_log_file (d, f)
                     if g_args.m:
@@ -1257,7 +1257,7 @@ if __name__ == "__main__":
 
         # remove files not to display
         if g_args.filter:
-            for f in g_benchmarks[:]:
+            for f in g_benchmarks.copy():
                 if g_args.filter not in str(f):
                     g_benchmarks.remove(f)
 
