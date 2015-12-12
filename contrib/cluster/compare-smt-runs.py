@@ -305,11 +305,17 @@ def _filter_data(d, file, filters):
                     g_file_stats[k][d][f_name] = None
             return
         
+        used_filters = set()
         for line in infile:
             line = line.strip()
 
             for k, v in filters.items():
                 assert(len(v) == 5)
+
+                # value already extracted for current file
+                if k in used_filters:
+                    continue
+
                 f_match = v[1]
                 f_val = v[2]
                 f_format = v[3]
@@ -326,7 +332,11 @@ def _filter_data(d, file, filters):
                 # skip columns that are not printed
                 else:
                     assert(k in FILE_STATS_KEYS)
-                    val = f_format(f_val(line)) if f_match(line) else None
+                    if f_match(line):
+                        val = f_format(f_val(line))
+                        used_filters.add(k)
+                    else:
+                        val = None
 
                     if k not in g_file_stats:
                         g_file_stats[k] = {}
