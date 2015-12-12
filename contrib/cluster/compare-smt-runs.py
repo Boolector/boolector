@@ -306,8 +306,12 @@ def _filter_data(d, file, filters):
             return
         
         used_filters = set()
-        for line in infile:
+        lines = infile.readlines()
+        for line in reversed(lines):
             line = line.strip()
+
+            if len(used_filters) == len(filters):
+                break
 
             for k, v in filters.items():
                 assert(len(v) == 5)
