@@ -32,6 +32,7 @@
 #include "testmodelgensmt2.h"
 #include "testoverflow.h"
 #include "testparseerror.h"
+#include "testprop.h"
 #include "testpropinv.h"
 #include "testqueue.h"
 #include "testrunner.h"
@@ -125,6 +126,7 @@ main (int argc, char **argv)
   BTOR_RUN_TESTS (hash);
   BTOR_RUN_TESTS (const);
   BTOR_RUN_TESTS (bitvec);
+  BTOR_RUN_TESTS (prop);
   BTOR_RUN_TESTS (propinv);
   BTOR_RUN_TESTS (sat);
   BTOR_RUN_TESTS (aig);

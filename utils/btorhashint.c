@@ -145,9 +145,9 @@ static void
 resize (BtorIntHashTable *t)
 {
 #ifndef NDEBUG
-  size_t new_pos, old_count;
+  size_t old_count;
 #endif
-  size_t i, old_size, new_size;
+  size_t i, new_pos, old_size, new_size;
   int32_t key, *old_keys;
   uint8_t *old_hop_info;
   BtorIntHashTableData *old_data;
@@ -312,6 +312,17 @@ btor_add_int_hash_map (BtorIntHashTable *t, int32_t key)
 
   size_t pos;
   pos = btor_add_int_hash_table (t, key);
+  return &t->data[pos];
+}
+
+BtorIntHashTableData *
+btor_get_int_hash_map (BtorIntHashTable *t, int32_t key)
+{
+  assert (t->data);
+
+  size_t pos;
+  pos = btor_get_pos_int_hash_table (t, key);
+  if (pos == t->size) return 0;
   return &t->data[pos];
 }
 
