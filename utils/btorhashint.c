@@ -315,6 +315,17 @@ btor_add_int_hash_map (BtorIntHashTable *t, int32_t key)
   return &t->data[pos];
 }
 
+BtorIntHashTableData *
+btor_get_int_hash_map (BtorIntHashTable *t, int32_t key)
+{
+  assert (t->data);
+
+  size_t pos;
+  pos = btor_get_pos_int_hash_table (t, key);
+  if (pos == t->size) return 0;
+  return &t->data[pos];
+}
+
 void
 btor_delete_int_hash_map (BtorIntHashTable *t)
 {
