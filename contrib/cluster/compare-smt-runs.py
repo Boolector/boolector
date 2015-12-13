@@ -16,6 +16,7 @@ SCRIPTDIR = os.path.dirname(os.path.realpath(__file__))
 
 g_args = None
 g_benchmarks = set() 
+g_parse_err_only = False
 
 COLOR_BEST = '\033[36m'
 COLOR_DIFF = '\033[32m'
@@ -434,14 +435,17 @@ def _read_cache_file(dir):
                 if keys is None:
                     keys = line.split()
 
-                    expected_keys = list(FILTER_LOG.keys())
-                    expected_keys.extend(FILTER_ERR.keys())
-                    if g_args.m:
-                        expected_keys.extend(FILTER_OUT.keys())
+                    expected_keys = list(FILTER_ERR.keys())
+                    if not g_parse_err_only:
+                        expected_keys.extend(FILTER_LOG.keys())
+                        if g_args.m:
+                            expected_keys.extend(FILTER_OUT.keys())
 
-                    if len(set(expected_keys) - set(keys)) > 0:
-                        print("column mismatch for directory '{}'. "\
-                              "extracting data from files".format(dir))
+                    missing_keys = set(expected_keys) - set(keys)
+                    if len(missing_keys) > 0:
+                        print("column(s) {} missing for directory '{}'. "\
+                              "extracting data from files".format(
+                                  list(missing_keys), dir))
                         return False
                 else:
                     cols = line.split()
@@ -492,13 +496,16 @@ def _read_data (dirs):
                     if f_name not in g_benchmarks:
                         g_benchmarks.add(f_name)
                     _read_err_file (d, "{}{}".format(f[:-3], "err"))
-                    _read_log_file (d, f)
-                    if g_args.m:
-                        outfile = "{}{}".format(f[:-3], "out")
-                        if not os.path.isfile(os.path.join (d, outfile)):
-                            raise CmpSMTException ("missing '{}'".format (
-                                os.path.join (d, outfile)))
-                        _read_out_file (d, "{}{}".format(f[:-3], "out"))
+                    # do not extract data from log file if only data from error
+                    # file is required
+                    if not g_parse_err_only:
+                        _read_log_file (d, f)
+                        if g_args.m:
+                            outfile = "{}{}".format(f[:-3], "out")
+                            if not os.path.isfile(os.path.join (d, outfile)):
+                                raise CmpSMTException ("missing '{}'".format (
+                                    os.path.join (d, outfile)))
+                            _read_out_file (d, "{}{}".format(f[:-3], "out"))
                     # reset timeout if given
                     if g_args.timeout and \
                    g_file_stats["time_time"][d][f_name] > g_args.timeout[d]:
@@ -1252,6 +1259,9 @@ if __name__ == "__main__":
         if g_args.vb:
             for k in g_dir_stats.keys():
                 g_dir_stats[k][g_args.dirs[-1]] = []
+
+        if len(set(g_args.columns).intersection(FILTER_LOG)) == 0:
+            g_parse_err_only = True
 
         _read_data(g_args.dirs[:-1] if g_args.vb else g_args.dirs)
 
