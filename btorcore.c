@@ -57,6 +57,8 @@
 #define BTOR_CHECK_MODEL
 #define BTOR_CHECK_DUAL_PROP
 #endif
+// TODO (ma): why?
+#undef BTOR_CHECK_FAILED
 
 #define DP_QSORT_JUST 0
 #define DP_QSORT_ASC 1
@@ -125,6 +127,10 @@ static BtorPtrHashTable *map_inputs_check_model (Btor *, Btor *);
 
 #ifdef BTOR_CHECK_DUAL_PROP
 static void check_dual_prop (Btor *, Btor *);
+#endif
+
+#ifdef BTOR_CHECK_FAILED
+static void check_failed_assumptions (Btor *, Btor *);
 #endif
 /*------------------------------------------------------------------------*/
 
@@ -3674,6 +3680,21 @@ btor_sat_btor (Btor *btor, int lod_limit, int sat_limit)
   }
 #endif
 
+#ifdef BTOR_CHECK_FAILED
+  Btor *faclone = 0;
+  if (btor_has_clone_support_sat_mgr (btor_get_sat_mgr_btor (btor))
+      && btor->options.chk_failed_assumptions.val)
+  {
+    faclone                                     = btor_clone_btor (btor);
+    faclone->options.auto_cleanup.val           = 1;
+    faclone->options.auto_cleanup_internal.val  = 1;
+    faclone->options.loglevel.val               = 0;
+    faclone->options.verbosity.val              = 0;
+    faclone->options.chk_failed_assumptions.val = 0;
+    faclone->options.dual_prop.val              = 0;  // FIXME necessary?
+  }
+#endif
+
   res = btor->slv->api.sat (btor, lod_limit, sat_limit);
   btor->btor_sat_btor_called++;
 
@@ -3720,6 +3741,15 @@ btor_sat_btor (Btor *btor, int lod_limit, int sat_limit)
   {
     check_dual_prop (btor, dpclone);
     btor_delete_btor (dpclone);
+  }
+#endif
+
+#ifdef BTOR_CHECK_FAILED
+  if (faclone && btor->options.chk_failed_assumptions.val)
+  {
+    if (!btor->inconsistent && btor->last_sat_result == BTOR_UNSAT)
+      btor_check_failed_assumptions (btor, faclone);
+    btor_delete_btor (faclone);
   }
 #endif
   return res;
@@ -4045,5 +4075,42 @@ check_dual_prop (Btor *btor, Btor *clone)
 
   clone->slv->api.sat (clone, -1, -1);
   assert (btor->last_sat_result == clone->last_sat_result);
+}
+#endif
+
+#ifdef BTOR_CHECK_FAILED
+static void
+check_failed_assumptions (Btor *btor, Btor *clone)
+{
+  assert (btor);
+  assert (btor->last_sat_result == BTOR_UNSAT);
+
+  BtorNode *ass;
+  BtorHashTableIterator it;
+
+  /* assert failed assumptions */
+  btor_init_node_hash_table_iterator (&it, btor->assumptions);
+  while (btor_has_next_node_hash_table_iterator (&it))
+  {
+    ass = btor_next_node_hash_table_iterator (&it);
+    if (btor_failed_exp (btor, ass))
+    {
+      ass = btor_match_node (clone, ass);
+      assert (ass);
+      btor_assert_exp (clone, ass);
+    }
+  }
+
+  /* cleanup assumptions */
+  btor_init_node_hash_table_iterator (&it, clone->assumptions);
+  while (btor_has_next_node_hash_table_iterator (&it))
+    btor_release_exp (clone, btor_next_node_hash_table_iterator (&it));
+  btor_delete_ptr_hash_table (clone->assumptions);
+  clone->assumptions =
+      btor_new_ptr_hash_table (clone->mm,
+                               (BtorHashPtr) btor_hash_exp_by_id,
+                               (BtorCmpPtr) btor_compare_exp_by_id);
+
+  assert (clone->slv->api.sat (clone, -1, -1) == BTOR_UNSAT);
 }
 #endif

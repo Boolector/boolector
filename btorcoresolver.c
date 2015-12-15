@@ -25,9 +25,6 @@
 #include "utils/btorstack.h"
 #include "utils/btorutil.h"
 
-// TODO (ma): this was undefined in btorcore.c why?
-#undef BTOR_CHECK_FAILED
-
 // TODO (ma): better abort handling BTOR_ABORT_INTERNAL?
 #define BTOR_ABORT_CORE(cond, msg)                   \
   do                                                 \
@@ -39,44 +36,6 @@
       exit (BTOR_ERR_EXIT);                          \
     }                                                \
   } while (0)
-
-// TODO (ma): assumptions should always be checked
-#ifdef BTOR_CHECK_FAILED
-void
-btor_check_failed_assumptions (Btor *btor, Btor *clone)
-{
-  assert (btor);
-  assert (btor->last_sat_result == BTOR_UNSAT);
-
-  BtorNode *ass;
-  BtorHashTableIterator it;
-
-  /* assert failed assumptions */
-  btor_init_node_hash_table_iterator (&it, btor->assumptions);
-  while (btor_has_next_node_hash_table_iterator (&it))
-  {
-    ass = btor_next_node_hash_table_iterator (&it);
-    if (btor_failed_exp (btor, ass))
-    {
-      ass = btor_match_node (clone, ass);
-      assert (ass);
-      btor_assert_exp (clone, ass);
-    }
-  }
-
-  /* cleanup assumptions */
-  btor_init_node_hash_table_iterator (&it, clone->assumptions);
-  while (btor_has_next_node_hash_table_iterator (&it))
-    btor_release_exp (clone, btor_next_node_hash_table_iterator (&it));
-  btor_delete_ptr_hash_table (clone->assumptions);
-  clone->assumptions =
-      btor_new_ptr_hash_table (clone->mm,
-                               (BtorHashPtr) btor_hash_exp_by_id,
-                               (BtorCmpPtr) btor_compare_exp_by_id);
-
-  assert (clone->slv->api.sat (clone, -1, -1) == BTOR_UNSAT);
-}
-#endif
 
 static void *
 clone_core_solver (Btor *clone, Btor *btor, BtorNodeMap *exp_map)
@@ -507,27 +466,10 @@ sat_aux_btor_dual_prop (Btor *btor)
 
   int sat_result;
   BtorSATMgr *smgr;
-#ifdef BTOR_CHECK_FAILED
-  Btor *faclone = 0;
-#endif
 
   if (btor->inconsistent) goto DONE;
 
   BTOR_MSG (btor->msg, 1, "calling SAT");
-
-#ifdef BTOR_CHECK_FAILED
-  if (btor_has_clone_support_sat_mgr (btor_get_sat_mgr_btor (btor))
-      && btor->options.chk_failed_assumptions.val)
-  {
-    faclone                                     = btor_clone_btor (btor);
-    faclone->options.auto_cleanup.val           = 1;
-    faclone->options.auto_cleanup_internal.val  = 1;
-    faclone->options.loglevel.val               = 0;
-    faclone->options.verbosity.val              = 0;
-    faclone->options.chk_failed_assumptions.val = 0;
-    faclone->options.dual_prop.val              = 0;  // FIXME necessary?
-  }
-#endif
 
   smgr = btor_get_sat_mgr_btor (btor);
 
@@ -564,14 +506,6 @@ DONE:
   btor->valid_assignments = 1;
 
   btor->last_sat_result = sat_result;
-#ifdef BTOR_CHECK_FAILED
-  if (faclone && btor->options.chk_failed_assumptions.val)
-  {
-    if (!btor->inconsistent && btor->last_sat_result == BTOR_UNSAT)
-      btor_check_failed_assumptions (btor, faclone);
-    btor_delete_btor (faclone);
-  }
-#endif
   return sat_result;
 }
 
@@ -2183,9 +2117,6 @@ sat_core_solver (Btor *btor, int lod_limit, int sat_limit)
   BtorNode *clone_root, *lemma;
   BtorNodeMap *exp_map;
   int simp_sat_result;
-#ifdef BTOR_CHECK_FAILED
-  Btor *faclone = 0;
-#endif
 
   start = btor_time_stamp ();
   slv   = BTOR_CORE_SOLVER (btor);
@@ -2206,25 +2137,6 @@ sat_core_solver (Btor *btor, int lod_limit, int sat_limit)
   }
 
   simp_sat_result = btor_simplify (btor);
-
-  // TODO (ma): we should always check the assumptions in every solver?
-  //            -> implement new check framework for such checks?
-#ifdef BTOR_CHECK_FAILED
-  if (btor_has_clone_support_sat_mgr (btor_get_sat_mgr_btor (btor))
-      && btor->options.chk_failed_assumptions.val)
-  {
-    faclone                           = btor_clone_btor (btor);
-    faclone->options.auto_cleanup.val = 1;
-#ifdef BTOR_CHECK_MODEL
-    /* cleanup dangling references when model validation is enabled */
-    faclone->options.auto_cleanup_internal.val = 1;
-#endif
-    faclone->options.loglevel.val               = 0;
-    faclone->options.verbosity.val              = 0;
-    faclone->options.chk_failed_assumptions.val = 0;
-    faclone->options.dual_prop.val              = 0;  // FIXME necessary?
-  }
-#endif
 
   if (btor->inconsistent) goto UNSAT;
 
@@ -2355,14 +2267,6 @@ DONE:
     btor_release_exp (clone, clone_root);
     btor_delete_btor (clone);
   }
-#ifdef BTOR_CHECK_FAILED
-  if (faclone && btor->options.chk_failed_assumptions.val)
-  {
-    if (!btor->inconsistent && btor->last_sat_result == BTOR_UNSAT)
-      btor_check_failed_assumptions (btor, faclone);
-    btor_delete_btor (faclone);
-  }
-#endif
   BTOR_MSG (btor->msg,
             1,
             "SAT call %d returned %d in %.3f seconds",
