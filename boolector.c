@@ -620,20 +620,7 @@ boolector_set_opt (Btor *btor, const char *name, int val)
                           "Unconstrained optimization cannot be enabled "
                           "if model generation is enabled");
 #endif
-#ifdef BTOR_ENABLE_BETA_REDUCTION_PROBING
-    BTOR_ABORT_BOOLECTOR (btor->options.probe_beta_reduce_all.val,
-                          "Beta reduction probing cannot be enabled if "
-                          "model generation is enabled");
-#endif
   }
-#ifdef BTOR_ENABLE_BETA_REDUCTION_PROBING
-  else if (!strcmp (name, BTOR_OPT_PBRA))
-  {
-    BTOR_ABORT_BOOLECTOR (btor->options.model_gen.val,
-                          "Beta reduction probing cannot be enabled if "
-                          "model generation is enabled");
-  }
-#endif
   else if (!strcmp (name, BTOR_OPT_DUAL_PROP))
   {
     BTOR_ABORT_BOOLECTOR (

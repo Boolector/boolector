@@ -5599,97 +5599,6 @@ DONE:
   return sat_result;
 }
 
-#ifdef BTOR_ENABLE_BETA_REDUCTION_PROBING
-static uint32_t
-sum_ops (Btor *btor)
-{
-  int i;
-  uint32_t sum = 0;
-
-  for (i = BTOR_BV_CONST_NODE; i < BTOR_PROXY_NODE; i++)
-    sum += btor->ops[i].cur;
-  return sum;
-}
-
-static int
-br_probe (Btor *btor)
-{
-  assert (btor);
-  assert (btor->slv);
-  assert (btor->slv->kind == BTOR_CORE_SOLVER_KIND);
-  assert (btor->avmgr);
-  assert (btor->avmgr->amgr);
-  assert (btor->avmgr->amgr->smgr);
-  assert (btor_has_clone_support_sat_mgr (btor_get_sat_mgr_btor (btor)));
-
-  Btor *clone;
-  int res;
-  uint32_t num_ops_orig, num_ops_clone;
-  double start, delta;
-
-  if (btor->last_sat_result || btor->options.incremental.val
-      || btor->options.model_gen.val || btor->options.beta_reduce_all.val
-      || (btor->lambdas->count == 0 && btor->ufs->count == 0))
-    return BTOR_UNKNOWN;
-
-  start = btor_time_stamp ();
-
-  BTOR_MSG (btor->msg, 1, "try full beta reduction probing");
-  assert (btor->assumptions->count == 0);
-  clone                              = btor_clone_btor (btor);
-  clone->options.beta_reduce_all.val = 1;
-  clone->options.verbosity.val       = 0;
-#ifndef NBTORLOG
-  clone->options.loglevel.val = 0;
-#endif
-
-  res           = btor_simplify (clone);
-  num_ops_orig  = sum_ops (btor);
-  num_ops_clone = sum_ops (clone);
-  BTOR_MSG (btor->msg,
-            1,
-            "  number of nodes: %d/%d (factor: %.1f, max: %d)",
-            num_ops_orig,
-            num_ops_clone,
-            (float) num_ops_clone / num_ops_orig,
-            btor->options.pbra_ops_factor.val);
-
-  if (res != BTOR_UNKNOWN)
-  {
-    delta = btor_time_stamp () - start;
-    BTOR_MSG (btor->msg, 1, "  simplified in %.2f seconds", delta);
-    btor->time.br_probing += delta;
-    btor_delete_btor (clone);
-    return res;
-  }
-  else if (num_ops_clone < num_ops_orig * btor->options.pbra_ops_factor.val)
-  {
-    BTOR_MSG (btor->msg,
-              1,
-              "  limit refinement iterations to 10 and SAT conflicts to %d",
-              btor->options.pbra_sat_limit.val);
-    res = clone->slv->api.sat (clone,
-                               btor->options.pbra_lod_limit.val,
-                               btor->options.pbra_sat_limit.val);
-    btor_delete_btor (clone);
-  }
-
-  if (res != BTOR_UNKNOWN)
-  {
-    delta = btor_time_stamp () - start;
-    BTOR_MSG (btor->msg, 1, "  probing succeeded (%.2f seconds)", delta);
-    btor->time.br_probing += delta;
-    return res;
-  }
-
-  delta = btor_time_stamp () - start;
-  BTOR_MSG (btor->msg, 1, "  probing did not succeed (%.2f seconds)", delta);
-  btor->time.br_probing += delta;
-
-  return BTOR_UNKNOWN;
-}
-#endif
-
 int
 btor_sat_btor (Btor *btor, int lod_limit, int sat_limit)
 {
@@ -5701,17 +5610,6 @@ btor_sat_btor (Btor *btor, int lod_limit, int sat_limit)
 
   if (!btor->slv) btor->slv = new_core_solver (btor);
   assert (btor->slv);
-
-#ifdef BTOR_ENABLE_BETA_REDUCTION_PROBING
-  if (btor->slv->kind == BTOR_CORE_SOLVER_KIND
-      && btor_has_clone_support_sat_mgr (btor_get_sat_mgr_btor (btor))
-      && btor->options.probe_beta_reduce_all.val && lod_limit == -1
-      && sat_limit == -1)
-  {
-    res = br_probe (btor);
-    if (res != BTOR_UNKNOWN) return res;
-  }
-#endif
 
 #ifdef BTOR_CHECK_UNCONSTRAINED
   Btor *uclone = 0;
