@@ -1815,7 +1815,7 @@ btor_failed_exp (Btor *btor, BtorNode *exp)
 {
   assert (btor);
   assert (btor->options.incremental.val);
-  assert (btor->last_sat_result == BTOR_UNSAT);
+  assert (btor->last_sat_result == BTOR_RESULT_UNSAT);
   assert (exp);
   assert (btor_check_id_table_mark_unset_dbg (btor));
   assert (btor_is_assumption_exp (btor, exp));
@@ -3014,7 +3014,8 @@ btor_simplify (Btor *btor)
 {
   assert (btor);
 
-  int rounds, result;
+  BtorSolverResult result;
+  int rounds;
   double start, delta;
 #ifndef BTOR_DO_NOT_PROCESS_SKELETON
   int skelrounds = 0;
@@ -3138,12 +3139,12 @@ DONE:
   BTOR_MSG (btor->msg, 1, "%d rewriting rounds in %.1f seconds", rounds, delta);
 
   if (btor->inconsistent)
-    result = BTOR_UNSAT;
+    result = BTOR_RESULT_UNSAT;
   else if (btor->unsynthesized_constraints->count == 0u
            && btor->synthesized_constraints->count == 0u)
-    result = BTOR_SAT;
+    result = BTOR_RESULT_SAT;
   else
-    result = BTOR_UNKNOWN;
+    result = BTOR_RESULT_UNKNOWN;
 
   BTOR_MSG (btor->msg, 1, "simplification returned %d", result);
   update_assumptions (btor);
@@ -3638,7 +3639,7 @@ btor_sat_btor (Btor *btor, int lod_limit, int sat_limit)
   assert (btor->btor_sat_btor_called >= 0);
   assert (btor->options.incremental.val || btor->btor_sat_btor_called == 0);
 
-  int res;
+  BtorSolverResult res;
 
   if (!btor->slv) btor->slv = btor_new_core_solver (btor);
   assert (btor->slv);
@@ -3705,22 +3706,24 @@ btor_sat_btor (Btor *btor, int lod_limit, int sat_limit)
     assert (btor->options.rewrite_level.val > 2);
     assert (!btor->options.incremental.val);
     assert (!btor->options.model_gen.val);
-    int ucres = uclone->slv->api.sat (uclone, lod_limit, sat_limit);
+    BtorSolverResult ucres =
+        uclone->slv->api.sat (uclone, lod_limit, sat_limit);
     assert (res == ucres);
   }
 #endif
 
-  if (btor->options.model_gen.val && res == BTOR_SAT)
-    btor->slv->api.generate_model (btor, btor->options.model_gen.val == 2, 1);
+  if (btor->options.model_gen.val && res == BTOR_RESULT_SAT)
+    btor->slv->api.generate_model (
+        btor, btor->options.model_gen.val == 2, true);
 
 #ifdef BTOR_CHECK_MODEL
   if (mclone)
   {
     assert (inputs);
-    if (res == BTOR_SAT && !btor->options.ucopt.val)
+    if (res == BTOR_RESULT_SAT && !btor->options.ucopt.val)
     {
       if (!btor->options.model_gen.val)
-        btor->slv->api.generate_model (btor, 0, 1);
+        btor->slv->api.generate_model (btor, false, true);
       check_model (btor, mclone, inputs);
     }
 
@@ -3747,7 +3750,7 @@ btor_sat_btor (Btor *btor, int lod_limit, int sat_limit)
 #ifdef BTOR_CHECK_FAILED
   if (faclone && btor->options.chk_failed_assumptions.val)
   {
-    if (!btor->inconsistent && btor->last_sat_result == BTOR_UNSAT)
+    if (!btor->inconsistent && btor->last_sat_result == BTOR_RESULT_UNSAT)
       btor_check_failed_assumptions (btor, faclone);
     btor_delete_btor (faclone);
   }
@@ -3950,7 +3953,7 @@ static void
 check_model (Btor *btor, Btor *clone, BtorPtrHashTable *inputs)
 {
   assert (btor);
-  assert (btor->last_sat_result == BTOR_SAT);
+  assert (btor->last_sat_result == BTOR_RESULT_SAT);
   assert (clone);
   assert (inputs);
 
@@ -4057,11 +4060,11 @@ check_model (Btor *btor, Btor *clone, BtorPtrHashTable *inputs)
   ret                                = btor_simplify (clone);
 
   //  btor_print_model (btor, "btor", stdout);
-  assert (ret != BTOR_UNKNOWN
-          || clone->slv->api.sat (clone, -1, -1) == BTOR_SAT);
+  assert (ret != BTOR_RESULT_UNKNOWN
+          || clone->slv->api.sat (clone, -1, -1) == BTOR_RESULT_SAT);
   // TODO: check if roots have been simplified through aig rewriting
-  // BTOR_ABORT_CORE (ret == BTOR_UNKNOWN, "rewriting needed");
-  BTOR_ABORT_CORE (ret == BTOR_UNSAT, "invalid model");
+  // BTOR_ABORT_CORE (ret == BTOR_RESULT_UNKNOWN, "rewriting needed");
+  BTOR_ABORT_CORE (ret == BTOR_RESULT_UNSAT, "invalid model");
 }
 #endif
 
@@ -4083,7 +4086,7 @@ static void
 check_failed_assumptions (Btor *btor, Btor *clone)
 {
   assert (btor);
-  assert (btor->last_sat_result == BTOR_UNSAT);
+  assert (btor->last_sat_result == BTOR_RESULT_UNSAT);
 
   BtorNode *ass;
   BtorHashTableIterator it;
@@ -4111,6 +4114,6 @@ check_failed_assumptions (Btor *btor, Btor *clone)
                                (BtorHashPtr) btor_hash_exp_by_id,
                                (BtorCmpPtr) btor_compare_exp_by_id);
 
-  assert (clone->slv->api.sat (clone, -1, -1) == BTOR_UNSAT);
+  assert (clone->slv->api.sat (clone, -1, -1) == BTOR_RESULT_UNSAT);
 }
 #endif

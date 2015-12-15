@@ -141,9 +141,9 @@ struct Btor
   int vis_idx; /* file index for visualizing expressions */
   int inconsistent;
   int found_constraint_false;
-  int external_refs;        /* external references (library mode) */
-  int btor_sat_btor_called; /* how often is btor_sat_btor been called */
-  int last_sat_result;      /* status of last SAT call (SAT/UNSAT) */
+  int external_refs;                /* external references (library mode) */
+  int btor_sat_btor_called;         /* how often is btor_sat_btor been called */
+  BtorSolverResult last_sat_result; /* status of last SAT call (SAT/UNSAT) */
 
   BtorPtrHashTable *varsubst_constraints;
   BtorPtrHashTable *embedded_constraints;

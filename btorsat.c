@@ -251,11 +251,11 @@ btor_add_sat (BtorSATMgr *smgr, int lit)
   (void) smgr->api.add (smgr, lit);
 }
 
-int
+BtorSatResult
 btor_sat_sat (BtorSATMgr *smgr, int limit)
 {
   double start = btor_time_stamp ();
-  int res;
+  BtorSatResult res;
   assert (smgr != NULL);
   assert (smgr->initialized);
   BTOR_MSG (

@@ -464,7 +464,7 @@ sat_aux_btor_dual_prop (Btor *btor)
 {
   assert (btor);
 
-  int sat_result;
+  BtorSolverResult sat_result;
   BtorSATMgr *smgr;
 
   if (btor->inconsistent) goto DONE;
@@ -498,11 +498,11 @@ sat_aux_btor_dual_prop (Btor *btor)
 
   sat_result = timed_sat_sat (btor, -1);
 
-  assert (sat_result == BTOR_UNSAT
-          || (btor_terminate_btor (btor) && sat_result == BTOR_UNKNOWN));
+  assert (sat_result == BTOR_RESULT_UNSAT
+          || (btor_terminate_btor (btor) && sat_result == BTOR_RESULT_UNKNOWN));
 
 DONE:
-  sat_result              = BTOR_UNSAT;
+  sat_result              = BTOR_RESULT_UNSAT;
   btor->valid_assignments = 1;
 
   btor->last_sat_result = sat_result;
@@ -667,7 +667,7 @@ set_up_dual_and_collect (Btor *btor,
   /* let solver determine failed assumptions */
   delta = btor_time_stamp ();
   sat_aux_btor_dual_prop (clone);
-  assert (clone->last_sat_result == BTOR_UNSAT);
+  assert (clone->last_sat_result == BTOR_RESULT_UNSAT);
   slv->time.search_init_apps_sat += btor_time_stamp () - delta;
 
   /* extract partial model via failed assumptions */
@@ -2102,7 +2102,7 @@ check_and_resolve_conflicts (Btor *btor,
   apply_search_cache = 0;
 }
 
-static int
+static BtorSolverResult
 sat_core_solver (Btor *btor, int lod_limit, int sat_limit)
 {
   assert (btor);
@@ -2116,7 +2116,7 @@ sat_core_solver (Btor *btor, int lod_limit, int sat_limit)
   Btor *clone;
   BtorNode *clone_root, *lemma;
   BtorNodeMap *exp_map;
-  int simp_sat_result;
+  BtorSolverResult simp_sat_result;
 
   start = btor_time_stamp ();
   slv   = BTOR_CORE_SOLVER (btor);
@@ -2132,7 +2132,7 @@ sat_core_solver (Btor *btor, int lod_limit, int sat_limit)
 
   if (btor_terminate_btor (btor))
   {
-    sat_result = BTOR_UNKNOWN;
+    sat_result = BTOR_RESULT_UNKNOWN;
     goto DONE;
   }
 
@@ -2142,7 +2142,7 @@ sat_core_solver (Btor *btor, int lod_limit, int sat_limit)
 
   if (btor_terminate_btor (btor))
   {
-    sat_result = BTOR_UNKNOWN;
+    sat_result = BTOR_RESULT_UNKNOWN;
     goto DONE;
   }
 
@@ -2173,7 +2173,7 @@ sat_core_solver (Btor *btor, int lod_limit, int sat_limit)
   if (btor->found_constraint_false)
   {
   UNSAT:
-    sat_result = BTOR_UNSAT;
+    sat_result = BTOR_RESULT_UNSAT;
     goto DONE;
   }
   assert (btor->unsynthesized_constraints->count == 0);
@@ -2192,18 +2192,18 @@ sat_core_solver (Btor *btor, int lod_limit, int sat_limit)
   else
     sat_result = timed_sat_sat (btor, -1);
 
-  if (btor->options.dual_prop.val && sat_result == BTOR_SAT
-      && simp_sat_result != BTOR_SAT)
+  if (btor->options.dual_prop.val && sat_result == BTOR_SAT_SAT
+      && simp_sat_result != BTOR_RESULT_SAT)
   {
     clone = new_exp_layer_clone_for_dual_prop (btor, &exp_map, &clone_root);
   }
 
-  while (sat_result == BTOR_SAT)
+  while (sat_result == BTOR_SAT_SAT)
   {
     if (btor_terminate_btor (btor)
         || (lod_limit > -1 && slv->stats.lod_refinements >= lod_limit))
     {
-      sat_result = BTOR_UNKNOWN;
+      sat_result = BTOR_RESULT_UNKNOWN;
       goto DONE;
     }
 
@@ -2279,7 +2279,7 @@ DONE:
 /*------------------------------------------------------------------------*/
 
 static void
-generate_model_core_solver (Btor *btor, int model_for_all_nodes, int reset)
+generate_model_core_solver (Btor *btor, bool model_for_all_nodes, bool reset)
 {
   assert (btor);
   /* already created during check_and_resolve_conflicts */
