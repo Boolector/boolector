@@ -512,16 +512,16 @@ clone_exp (Btor *btor,
   if (BTOR_IS_PARAM_NODE (exp))
   {
     param = (BtorParamNode *) exp;
-    assert (!param->lambda_exp
-            || !BTOR_IS_INVALID_NODE (BTOR_REAL_ADDR_NODE (param->lambda_exp)));
+    assert (!btor_param_is_bound (exp)
+            || !BTOR_IS_INVALID_NODE (btor_param_get_binding_lambda (exp)));
     assert (
         !param->assigned_exp
         || !BTOR_IS_INVALID_NODE (BTOR_REAL_ADDR_NODE (param->assigned_exp)));
 
-    BTOR_PUSH_STACK_IF (param->lambda_exp,
+    BTOR_PUSH_STACK_IF (param->bound,
                         mm,
                         *nodes,
-                        (BtorNode **) &((BtorParamNode *) res)->lambda_exp);
+                        (BtorNode **) &((BtorParamNode *) res)->bound);
     BTOR_PUSH_STACK_IF (param->assigned_exp,
                         mm,
                         *nodes,

@@ -2133,6 +2133,8 @@ create_exp (Btor *btor, BtorNodeKind kind, uint32_t arity, BtorNode **e)
         btor_get_ptr_hash_table (btor->lambdas, *lookup)->data.as_int =
             lambda_hash;
         break;
+      case BTOR_FORALL_NODE: break;
+      case BTOR_EXISTS_NODE: break;
       case BTOR_ARGS_NODE:
         *lookup = new_args_exp_node (btor, arity, simp_e);
         break;
@@ -2256,11 +2258,11 @@ btor_concat_exp_node (Btor *btor, BtorNode *e0, BtorNode *e1)
 }
 
 BtorNode *
-btor_lambda_exp_node (Btor *btor, BtorNode *e_param, BtorNode *e_exp)
+btor_lambda_exp_node (Btor *btor, BtorNode *param, BtorNode *body)
 {
   BtorNode *e[2];
-  e[0] = btor_simplify_exp (btor, e_param);
-  e[1] = btor_simplify_exp (btor, e_exp);
+  e[0] = btor_simplify_exp (btor, param);
+  e[1] = btor_simplify_exp (btor, body);
   return create_exp (btor, BTOR_LAMBDA_NODE, 2, e);
 }
 
@@ -2282,6 +2284,111 @@ btor_lambda_exp (Btor *btor, BtorNode *e_param, BtorNode *e_exp)
     result = btor_lambda_exp_node (btor, e_param, e_exp);
   assert (BTOR_IS_FUN_NODE (BTOR_REAL_ADDR_NODE (result)));
   return result;
+}
+
+static BtorNode *
+quantifier_exp_node (Btor *btor,
+                     BtorNodeKind kind,
+                     BtorNode *param,
+                     BtorNode *body)
+{
+  assert (btor);
+  assert (kind == BTOR_FORALL_NODE || kind == BTOR_EXISTS_NODE);
+  assert (param);
+
+  BtorNode *e[2];
+  e[0] = btor_simplify_exp (btor, param);
+  e[1] = btor_simplify_exp (btor, body);
+
+  assert (BTOR_IS_REGULAR_NODE (e[0]));
+  assert (BTOR_IS_PARAM_NODE (e[0]));
+  assert (e[1]);
+  assert (btor_is_bool_sort (&btor->sorts_unique_table,
+                             BTOR_REAL_ADDR_NODE (e[1])->sort_id));
+  return create_exp (btor, kind, 2, e);
+}
+
+static BtorNode *
+quantifier_exp (Btor *btor, BtorNodeKind kind, BtorNode *param, BtorNode *body)
+{
+  assert (btor);
+  assert (kind == BTOR_FORALL_NODE || kind == BTOR_EXISTS_NODE);
+  assert (param);
+
+  param = btor_simplify_exp (btor, param);
+  body  = btor_simplify_exp (btor, body);
+
+  assert (BTOR_IS_REGULAR_NODE (param));
+  assert (BTOR_IS_PARAM_NODE (param));
+  assert (body);
+  assert (btor_is_bool_sort (&btor->sorts_unique_table,
+                             BTOR_REAL_ADDR_NODE (body)->sort_id));
+  if (btor->options.rewrite_level.val > 0)
+    return btor_rewrite_binary_exp (btor, kind, param, body);
+  return quantifier_exp_node (btor, kind, param, body);
+}
+
+static BtorNode *
+quantifier_n_exp (
+    Btor *btor, BtorNodeKind kind, BtorNode **params, int n, BtorNode *body)
+{
+  assert (btor);
+  assert (kind == BTOR_FORALL_NODE || kind == BTOR_EXISTS_NODE);
+  assert (params);
+  assert (n > 0);
+  assert (body);
+  assert (btor == BTOR_REAL_ADDR_NODE (body)->btor);
+
+  int i;
+  BtorNode *res, *tmp;
+
+  res = btor_copy_exp (btor, body);
+  for (i = n - 1; i >= 0; i--)
+  {
+    assert (params[i]);
+    assert (btor == BTOR_REAL_ADDR_NODE (params[i])->btor);
+    assert (BTOR_IS_PARAM_NODE (BTOR_REAL_ADDR_NODE (params[i])));
+    tmp = quantifier_exp (btor, kind, params[i], res);
+    btor_release_exp (btor, res);
+    res = tmp;
+  }
+  return res;
+}
+
+BtorNode *
+btor_forall_exp_node (Btor *btor, BtorNode *param, BtorNode *body)
+{
+  return quantifier_exp_node (btor, BTOR_FORALL_NODE, param, body);
+}
+
+BtorNode *
+btor_forall_exp (Btor *btor, BtorNode *param, BtorNode *body)
+{
+  return quantifier_exp (btor, BTOR_FORALL_NODE, param, body);
+}
+
+BtorNode *
+btor_forall_n_exp (Btor *btor, BtorNode **params, int n, BtorNode *body)
+{
+  return quantifier_n_exp (btor, BTOR_FORALL_NODE, params, n, body);
+}
+
+BtorNode *
+btor_exists_exp_node (Btor *btor, BtorNode *param, BtorNode *body)
+{
+  return quantifier_exp_node (btor, BTOR_EXISTS_NODE, param, body);
+}
+
+BtorNode *
+btor_exists_exp (Btor *btor, BtorNode *param, BtorNode *body)
+{
+  return quantifier_exp (btor, BTOR_EXISTS_NODE, param, body);
+}
+
+BtorNode *
+btor_exists_n_exp (Btor *btor, BtorNode **params, int n, BtorNode *body)
+{
+  return quantifier_n_exp (btor, BTOR_EXISTS_NODE, params, n, body);
 }
 
 BtorNode *
@@ -4204,7 +4311,7 @@ BtorNode *
 btor_param_get_binding_lambda (BtorNode *param)
 {
   assert (BTOR_IS_PARAM_NODE (BTOR_REAL_ADDR_NODE (param)));
-  return ((BtorParamNode *) BTOR_REAL_ADDR_NODE (param))->lambda_exp;
+  return ((BtorParamNode *) BTOR_REAL_ADDR_NODE (param))->bound;
 }
 
 void
@@ -4212,7 +4319,7 @@ btor_param_set_binding_lambda (BtorNode *param, BtorNode *lambda)
 {
   assert (BTOR_IS_PARAM_NODE (BTOR_REAL_ADDR_NODE (param)));
   assert (!lambda || BTOR_IS_LAMBDA_NODE (BTOR_REAL_ADDR_NODE (lambda)));
-  ((BtorParamNode *) BTOR_REAL_ADDR_NODE (param))->lambda_exp = lambda;
+  ((BtorParamNode *) BTOR_REAL_ADDR_NODE (param))->bound = lambda;
 }
 
 bool

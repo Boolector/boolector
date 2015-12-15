@@ -68,12 +68,14 @@ enum BtorNodeKind
   BTOR_UREM_NODE     = 14,
   BTOR_CONCAT_NODE   = 15,
   BTOR_APPLY_NODE    = 16,
-  BTOR_LAMBDA_NODE   = 17, /* lambda expression */
-  BTOR_BCOND_NODE    = 18, /* conditional on bit vectors */
-  BTOR_ARGS_NODE     = 19,
-  BTOR_UF_NODE       = 20,
-  BTOR_PROXY_NODE    = 21, /* simplified expression without children */
-  BTOR_NUM_OPS_NODE  = 22
+  BTOR_FORALL_NODE   = 17,
+  BTOR_EXISTS_NODE   = 18,
+  BTOR_LAMBDA_NODE   = 19, /* lambda expression */
+  BTOR_BCOND_NODE    = 20, /* conditional on bit vectors */
+  BTOR_ARGS_NODE     = 21,
+  BTOR_UF_NODE       = 22,
+  BTOR_PROXY_NODE    = 23, /* simplified expression without children */
+  BTOR_NUM_OPS_NODE  = 24
 
   // NOTE: do not change this without changing 'g_btor_op2string' too ...
 };
@@ -177,12 +179,25 @@ struct BtorNode
   BTOR_BV_ADDITIONAL_NODE_STRUCT;
 };
 
+#define BTOR_BINDER_STRUCT                                   \
+  struct                                                     \
+  {                                                          \
+    BTOR_BV_NODE_STRUCT;                                     \
+    BTOR_BV_ADDITIONAL_NODE_STRUCT;                          \
+    BtorNode *body; /* short-cut for curried binder terms */ \
+  }
+
+struct BtorBinderNode
+{
+  BTOR_BINDER_STRUCT;
+};
+
+typedef struct BtorBinderNode BtorBinderNode;
+
 struct BtorLambdaNode
 {
-  BTOR_BV_NODE_STRUCT;
-  BTOR_BV_ADDITIONAL_NODE_STRUCT;
+  BTOR_BINDER_STRUCT;
   BtorPtrHashTable *static_rho;
-  BtorNode *body; /* function body (short-cut for curried lambdas) */
 };
 
 typedef struct BtorLambdaNode BtorLambdaNode;
@@ -190,7 +205,7 @@ typedef struct BtorLambdaNode BtorLambdaNode;
 struct BtorParamNode
 {
   BTOR_BV_NODE_STRUCT;
-  BtorNode *lambda_exp; /* 1:1 relation param:lambda_exp */
+  BtorNode *bound; /* exp that bound the param (lambda, forall, exists) */
   BtorNode *assigned_exp;
 };
 
@@ -231,6 +246,10 @@ typedef struct BtorArgsNode BtorArgsNode;
 #define BTOR_IS_UDIV_NODE_KIND(kind) ((kind) == BTOR_UDIV_NODE)
 
 #define BTOR_IS_UREM_NODE_KIND(kind) ((kind) == BTOR_UREM_NODE)
+
+#define BTOR_IS_FORALL_NODE_KIND(kind) ((kind) == BTOR_FORALL_NODE)
+
+#define BTOR_IS_EXISTS_NODE_KIND(kind) ((kind) == BTOR_EXISTS_NODE)
 
 #define BTOR_IS_LAMBDA_NODE_KIND(kind) ((kind) == BTOR_LAMBDA_NODE)
 
@@ -289,6 +308,12 @@ typedef struct BtorArgsNode BtorArgsNode;
 #define BTOR_IS_UDIV_NODE(exp) ((exp) && BTOR_IS_UDIV_NODE_KIND ((exp)->kind))
 
 #define BTOR_IS_UREM_NODE(exp) ((exp) && BTOR_IS_UREM_NODE_KIND ((exp)->kind))
+
+#define BTOR_IS_FORALL_NODE(exp) \
+  ((exp) && BTOR_IS_FORALL_NODE_KIND ((exp)->kind))
+
+#define BTOR_IS_EXISTS_NODE(exp) \
+  ((exp) && BTOR_IS_EXISTS_NODE_KIND ((exp)->kind))
 
 #define BTOR_IS_LAMBDA_NODE(exp) \
   ((exp) && BTOR_IS_LAMBDA_NODE_KIND ((exp)->kind))
@@ -366,6 +391,10 @@ typedef struct BtorArgsNode BtorArgsNode;
 
 #define BTOR_IS_UF_ARRAY_NODE(exp) \
   ((exp) && BTOR_IS_UF_NODE (exp) && ((BtorUFNode *) exp)->is_array)
+
+#define BTOR_IS_QUANTIFIER_NODE(exp)                \
+  ((BTOR_IS_FORALL_NODE (BTOR_REAL_ADDR_NODE (exp)) \
+    || BTOR_IS_EXISTS_NODE (BTOR_REAL_ADDR_NODE (exp))
 
 /*------------------------------------------------------------------------*/
 
@@ -508,6 +537,10 @@ BtorNode *btor_slice_exp (Btor *btor,
                           BtorNode *exp,
                           uint32_t upper,
                           uint32_t lower);
+BtorNode *btor_slice_exp_node (Btor *btor,
+                               BtorNode *exp,
+                               uint32_t upper,
+                               uint32_t lower);
 
 /* Unsigned extension of 'width' bits.
  * width >= 0
@@ -550,6 +583,7 @@ BtorNode *btor_xnor_exp (Btor *btor, BtorNode *e0, BtorNode *e1);
  * width(result) = width(e0) = width(e1)
  */
 BtorNode *btor_and_exp (Btor *btor, BtorNode *e0, BtorNode *e1);
+BtorNode *btor_and_exp_node (Btor *btor, BtorNode *e0, BtorNode *e1);
 
 /* Logical and bit-vector NAND.
  * width(e0) = width(e1)
@@ -574,6 +608,7 @@ BtorNode *btor_nor_exp (Btor *btor, BtorNode *e0, BtorNode *e1);
  * width(result) = 1
  */
 BtorNode *btor_eq_exp (Btor *btor, BtorNode *e0, BtorNode *e1);
+BtorNode *btor_eq_exp_node (Btor *btor, BtorNode *e0, BtorNode *e1);
 
 /* Bit-vector or array inequality.
  * width(e0) = width(e1)
@@ -586,6 +621,7 @@ BtorNode *btor_ne_exp (Btor *btor, BtorNode *e0, BtorNode *e1);
  * width(result) = width(e0) = width(e1)
  */
 BtorNode *btor_add_exp (Btor *btor, BtorNode *e0, BtorNode *e1);
+BtorNode *btor_add_exp_node (Btor *btor, BtorNode *e0, BtorNode *e1);
 
 /* Result represents if adding two unsigned operands leads to an overflow.
  * width(e0) = width(e1)
@@ -604,6 +640,7 @@ BtorNode *btor_saddo_exp (Btor *btor, BtorNode *e0, BtorNode *e1);
  * width(result) = width(e0) = width(e1)
  */
 BtorNode *btor_mul_exp (Btor *btor, BtorNode *e0, BtorNode *e1);
+BtorNode *btor_mul_exp_node (Btor *btor, BtorNode *e0, BtorNode *e1);
 
 /* Result represents if multiplying two unsigned operands leads to an overflow.
  * width(e0) = width(e1)
@@ -622,6 +659,7 @@ BtorNode *btor_smulo_exp (Btor *btor, BtorNode *e0, BtorNode *e1);
  * width(result) = 1
  */
 BtorNode *btor_ult_exp (Btor *btor, BtorNode *e0, BtorNode *e1);
+BtorNode *btor_ult_exp_node (Btor *btor, BtorNode *e0, BtorNode *e1);
 
 /* Signed less than.
  * width(e0) = width(e1)
@@ -671,6 +709,7 @@ BtorNode *btor_sgte_exp (Btor *btor, BtorNode *e0, BtorNode *e1);
  * width(result) width(e0)
  */
 BtorNode *btor_sll_exp (Btor *btor, BtorNode *e0, BtorNode *e1);
+BtorNode *btor_sll_exp_node (Btor *btor, BtorNode *e0, BtorNode *e1);
 
 /* Shift right logical.
  * is_power_of_2(width(e0))
@@ -678,6 +717,7 @@ BtorNode *btor_sll_exp (Btor *btor, BtorNode *e0, BtorNode *e1);
  * width(result) = width(e0)
  */
 BtorNode *btor_srl_exp (Btor *btor, BtorNode *e0, BtorNode *e1);
+BtorNode *btor_srl_exp_node (Btor *btor, BtorNode *e0, BtorNode *e1);
 
 /* Shift right arithmetic.
  * is_power_of_2(width(e0))
@@ -723,6 +763,7 @@ BtorNode *btor_ssubo_exp (Btor *btor, BtorNode *e0, BtorNode *e1);
  * width(result) = width(e0) = width(e1)
  */
 BtorNode *btor_udiv_exp (Btor *btor, BtorNode *e0, BtorNode *e1);
+BtorNode *btor_udiv_exp_node (Btor *btor, BtorNode *e0, BtorNode *e1);
 
 /* Signed divider.
  * width(e0) = width(e1)
@@ -742,6 +783,7 @@ BtorNode *btor_sdivo_exp (Btor *btor, BtorNode *e0, BtorNode *e1);
  * width(result) = width(e0) = width(e1)
  */
 BtorNode *btor_urem_exp (Btor *btor, BtorNode *e0, BtorNode *e1);
+BtorNode *btor_urem_exp_node (Btor *btor, BtorNode *e0, BtorNode *e1);
 
 /* Signed modulo.
  * width(e0) = width(e1)
@@ -759,12 +801,14 @@ BtorNode *btor_smod_exp (Btor *btor, BtorNode *e0, BtorNode *e1);
  * width(result) = width(e0) + width(e1)
  */
 BtorNode *btor_concat_exp (Btor *btor, BtorNode *e0, BtorNode *e1);
+BtorNode *btor_concat_exp_node (Btor *btor, BtorNode *e0, BtorNode *e1);
 
 /* Array read on array 'e_array' at position 'e_index'.
  * index_width(e_array) = width(e_index)
  * width(result) = elem_width(e_array)
  */
 BtorNode *btor_read_exp (Btor *btor, BtorNode *e_array, BtorNode *e_index);
+BtorNode *btor_read_exp_node (Btor *btor, BtorNode *e_array, BtorNode *e_index);
 
 /* Array write on array 'e_array' at position 'e_index' with value 'e_value'.
  * index_width(e_array) = width(e_index)
@@ -774,10 +818,31 @@ BtorNode *btor_write_exp (Btor *btor,
                           BtorNode *e_array,
                           BtorNode *e_index,
                           BtorNode *e_value);
+BtorNode *btor_write_exp_node (Btor *btor,
+                               BtorNode *e_array,
+                               BtorNode *e_index,
+                               BtorNode *e_value);
 
 /* Lambda expression with variable 'e_param' bound in 'e_exp'.
  */
-BtorNode *btor_lambda_exp (Btor *btor, BtorNode *e_param, BtorNode *e_exp);
+BtorNode *btor_lambda_exp (Btor *btor, BtorNode *param, BtorNode *body);
+BtorNode *btor_lambda_exp_node (Btor *btor, BtorNode *param, BtorNode *body);
+
+/* Forall expression with variable 'param' and 'body'. */
+BtorNode *btor_forall_exp (Btor *btor, BtorNode *param, BtorNode *body);
+BtorNode *btor_forall_exp_node (Btor *btor, BtorNode *param, BtorNode *body);
+BtorNode *btor_forall_n_exp (Btor *btor,
+                             BtorNode *params[],
+                             int paramc,
+                             BtorNode *body);
+
+/* Exists expression with variable 'param' and 'body' */
+BtorNode *btor_exists_exp (Btor *btor, BtorNode *param, BtorNode *body);
+BtorNode *btor_exists_exp_node (Btor *btor, BtorNode *param, BtorNode *body);
+BtorNode *btor_exists_n_exp (Btor *btor,
+                             BtorNode *params[],
+                             int paramc,
+                             BtorNode *body);
 
 /* Function expression with 'paramc' number of parameters 'params' and a
  * function body 'exp'.
@@ -790,6 +855,7 @@ BtorNode *btor_fun_exp (Btor *btor,
 /* Apply expression that applies argument expression 'args' to 'fun'.
  */
 BtorNode *btor_apply_exp (Btor *btor, BtorNode *fun, BtorNode *args);
+BtorNode *btor_apply_exp_node (Btor *btor, BtorNode *fun, BtorNode *args);
 
 /* Apply expression that applies 'argc' number of arguments to 'fun'.
  */
@@ -811,12 +877,24 @@ BtorNode *btor_cond_exp (Btor *btor,
                          BtorNode *e_cond,
                          BtorNode *e_if,
                          BtorNode *e_else);
+BtorNode *btor_cond_exp_node (Btor *btor,
+                              BtorNode *e_cond,
+                              BtorNode *e_if,
+                              BtorNode *e_else);
 
 /* Increments bit-vector expression by one */
 BtorNode *btor_inc_exp (Btor *btor, BtorNode *exp);
 
 /* Decrements bit-vector expression by one */
 BtorNode *btor_dec_exp (Btor *btor, BtorNode *exp);
+
+/* Create binary or ternary expressions (no rewriting). */
+BtorNode *btor_create_exp (Btor *btor,
+                           BtorNodeKind kind,
+                           uint32_t arity,
+                           BtorNode **e);
+
+/*------------------------------------------------------------------------*/
 
 /* Gets the bit width of a bit vector expression */
 uint32_t btor_get_exp_width (Btor *btor, BtorNode *exp);
@@ -911,54 +989,6 @@ void btor_set_to_proxy_exp (Btor *btor, BtorNode *exp);
 
 int btor_cmp_exp_by_id_qsort_desc (const void *p, const void *q);
 int btor_cmp_exp_by_id_qsort_asc (const void *p, const void *q);
-
-/*------------------------------------------------------------------------*/
-
-BtorNode *btor_slice_exp_node (Btor *btor,
-                               BtorNode *exp,
-                               uint32_t upper,
-                               uint32_t lower);
-
-BtorNode *btor_and_exp_node (Btor *btor, BtorNode *e0, BtorNode *e1);
-
-BtorNode *btor_eq_exp_node (Btor *btor, BtorNode *e0, BtorNode *e1);
-
-BtorNode *btor_add_exp_node (Btor *btor, BtorNode *e0, BtorNode *e1);
-
-BtorNode *btor_mul_exp_node (Btor *btor, BtorNode *e0, BtorNode *e1);
-
-BtorNode *btor_ult_exp_node (Btor *btor, BtorNode *e0, BtorNode *e1);
-
-BtorNode *btor_sll_exp_node (Btor *btor, BtorNode *e0, BtorNode *e1);
-
-BtorNode *btor_srl_exp_node (Btor *btor, BtorNode *e0, BtorNode *e1);
-
-BtorNode *btor_udiv_exp_node (Btor *btor, BtorNode *e0, BtorNode *e1);
-
-BtorNode *btor_urem_exp_node (Btor *btor, BtorNode *e0, BtorNode *e1);
-
-BtorNode *btor_concat_exp_node (Btor *btor, BtorNode *e0, BtorNode *e1);
-
-BtorNode *btor_read_exp_node (Btor *btor, BtorNode *e_array, BtorNode *e_index);
-
-BtorNode *btor_write_exp_node (Btor *btor,
-                               BtorNode *e_array,
-                               BtorNode *e_index,
-                               BtorNode *e_value);
-
-BtorNode *btor_cond_exp_node (Btor *btor,
-                              BtorNode *e_cond,
-                              BtorNode *e_if,
-                              BtorNode *e_else);
-
-BtorNode *btor_apply_exp_node (Btor *btor, BtorNode *fun, BtorNode *args);
-
-BtorNode *btor_lambda_exp_node (Btor *btor, BtorNode *param, BtorNode *body);
-
-BtorNode *btor_create_exp (Btor *btor,
-                           BtorNodeKind kind,
-                           uint32_t arity,
-                           BtorNode **e);
 
 /*------------------------------------------------------------------------*/
 #ifndef NDEBUG

@@ -481,6 +481,8 @@ static BtorNode *rewrite_sll_exp (Btor *, BtorNode *, BtorNode *);
 static BtorNode *rewrite_srl_exp (Btor *, BtorNode *, BtorNode *);
 static BtorNode *rewrite_apply_exp (Btor *, BtorNode *, BtorNode *);
 static BtorNode *rewrite_lambda_exp (Btor *, BtorNode *, BtorNode *);
+static BtorNode *rewrite_forall_exp (Btor *, BtorNode *, BtorNode *);
+static BtorNode *rewrite_exists_exp (Btor *, BtorNode *, BtorNode *);
 static BtorNode *rewrite_cond_exp (Btor *, BtorNode *, BtorNode *, BtorNode *);
 
 /* -------------------------------------------------------------------------- */
@@ -4505,6 +4507,106 @@ apply_lambda_lambda (Btor * btor, BtorNode * e0, BtorNode * e1)
 }
 #endif
 
+/* FORALL rules */
+
+/* match:  (\forall x . c) where c is either true or false
+ * result: c
+ */
+static inline int
+applies_const_body_forall (Btor *btor, BtorNode *e0, BtorNode *e1)
+{
+  (void) btor;
+  (void) e0;
+  return BTOR_IS_BV_CONST_NODE (BTOR_REAL_ADDR_NODE (e1));
+}
+
+static inline BtorNode *
+apply_const_body_forall (Btor *btor, BtorNode *e0, BtorNode *e1)
+{
+  assert (applies_const_body_forall (btor, e0, e1));
+  assert (btor_is_bool_sort (&btor->sorts_unique_table,
+                             BTOR_REAL_ADDR_NODE (e1)->sort_id));
+  (void) e0;
+  return btor_copy_exp (btor, e1);
+}
+
+/* match:  (\forall x . t) where t does not contain x
+ * result: t
+ */
+static inline int
+applies_param_not_used_forall (Btor *btor, BtorNode *e0, BtorNode *e1)
+{
+  BtorPtrHashBucket *b;
+  BtorPtrHashTable *t;
+
+  e1 = BTOR_REAL_ADDR_NODE (e1);
+
+  return !e1->parameterized || (BTOR_IS_PARAM_NODE (e1) && e0 != e1)
+         || ((b = btor_get_ptr_hash_table (btor->parameterized, e1))
+             && (t = (BtorPtrHashTable *) b->data.as_ptr)
+             && !btor_get_ptr_hash_table (t, e0));
+}
+
+static inline BtorNode *
+apply_param_not_used_forall (Btor *btor, BtorNode *e0, BtorNode *e1)
+{
+  assert (applies_param_not_used_forall (btor, e0, e1));
+  assert (btor_is_bool_sort (&btor->sorts_unique_table,
+                             BTOR_REAL_ADDR_NODE (e1)->sort_id));
+  (void) e0;
+  return btor_copy_exp (btor, e1);
+}
+
+/* EXISTS rules */
+
+/* match:  (\exists x . c) where c is either true or false
+ * result: c
+ */
+static inline int
+applies_const_body_exists (Btor *btor, BtorNode *e0, BtorNode *e1)
+{
+  (void) btor;
+  (void) e0;
+  return BTOR_IS_BV_CONST_NODE (BTOR_REAL_ADDR_NODE (e1));
+}
+
+static inline BtorNode *
+apply_const_body_exists (Btor *btor, BtorNode *e0, BtorNode *e1)
+{
+  assert (applies_const_body_exists (btor, e0, e1));
+  assert (btor_is_bool_sort (&btor->sorts_unique_table,
+                             BTOR_REAL_ADDR_NODE (e1)->sort_id));
+  (void) e0;
+  return btor_copy_exp (btor, e1);
+}
+
+/* match:  (\exists x . t) where t does not contain x
+ * result: t
+ */
+static inline int
+applies_param_not_used_exists (Btor *btor, BtorNode *e0, BtorNode *e1)
+{
+  BtorPtrHashBucket *b;
+  BtorPtrHashTable *t;
+
+  e1 = BTOR_REAL_ADDR_NODE (e1);
+
+  return !e1->parameterized || (BTOR_IS_PARAM_NODE (e1) && e0 != e1)
+         || ((b = btor_get_ptr_hash_table (btor->parameterized, e1))
+             && (t = (BtorPtrHashTable *) b->data.as_ptr)
+             && !btor_get_ptr_hash_table (t, e0));
+}
+
+static inline BtorNode *
+apply_param_not_used_exists (Btor *btor, BtorNode *e0, BtorNode *e1)
+{
+  assert (applies_param_not_used_exists (btor, e0, e1));
+  assert (btor_is_bool_sort (&btor->sorts_unique_table,
+                             BTOR_REAL_ADDR_NODE (e1)->sort_id));
+  (void) e0;
+  return btor_copy_exp (btor, e1);
+}
+
 /* COND rules */
 
 /* match: c ? a : a
@@ -6159,6 +6261,44 @@ rewrite_lambda_exp (Btor *btor, BtorNode *e0, BtorNode *e1)
 }
 
 static BtorNode *
+rewrite_forall_exp (Btor *btor, BtorNode *e0, BtorNode *e1)
+{
+  BtorNode *result = 0;
+
+  e0 = btor_simplify_exp (btor, e0);
+  e1 = btor_simplify_exp (btor, e1);
+
+  // TODO (ma): check rules
+  //  ADD_RW_RULE (const_body_forall, e0, e1);
+  //  ADD_RW_RULE (param_not_used_forall, e0, e1);
+
+  assert (!result);
+  result = btor_forall_exp_node (btor, e0, e1);
+DONE:
+  assert (result);
+  return result;
+}
+
+static BtorNode *
+rewrite_exists_exp (Btor *btor, BtorNode *e0, BtorNode *e1)
+{
+  BtorNode *result = 0;
+
+  e0 = btor_simplify_exp (btor, e0);
+  e1 = btor_simplify_exp (btor, e1);
+
+  // TODO (ma): check rules
+  //  ADD_RW_RULE (const_body_exists, e0, e1);
+  //  ADD_RW_RULE (param_not_used_exists, e0, e1);
+
+  assert (!result);
+  result = btor_exists_exp_node (btor, e0, e1);
+DONE:
+  assert (result);
+  return result;
+}
+
+static BtorNode *
 rewrite_cond_exp (Btor *btor, BtorNode *e0, BtorNode *e1, BtorNode *e2)
 {
   BtorNode *result = 0;
@@ -6256,6 +6396,10 @@ btor_rewrite_binary_exp (Btor *btor,
     case BTOR_SRL_NODE: return rewrite_srl_exp (btor, e0, e1);
 
     case BTOR_APPLY_NODE: return rewrite_apply_exp (btor, e0, e1);
+
+    case BTOR_FORALL_NODE: return rewrite_forall_exp (btor, e0, e1);
+
+    case BTOR_EXISTS_NODE: return rewrite_exists_exp (btor, e0, e1);
 
     default:
       assert (kind == BTOR_LAMBDA_NODE);
