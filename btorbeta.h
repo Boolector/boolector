@@ -11,7 +11,8 @@
 #ifndef BTORBETA_H_INCLUDED
 #define BTORBETA_H_INCLUDED
 
-#include "btorcore.h"
+#include "btortypes.h"
+#include "utils/btorhashptr.h"
 
 BtorNode* btor_beta_reduce_full (Btor* btor, BtorNode* exp);
 

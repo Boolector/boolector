@@ -9,7 +9,7 @@
  *  See COPYING for more information on using this software.
  */
 
-#include "btorcore.h"
+#include "btorcoresolver.h"
 #include "btordbg.h"
 #include "btorexp.h"
 #include "utils/btorhashptr.h"

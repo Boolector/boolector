@@ -285,70 +285,6 @@ int btor_simplify (Btor *btor);
 
 /*------------------------------------------------------------------------*/
 
-#define BTOR_CORE_SOLVER(btor) ((BtorCoreSolver *) (btor)->slv)
-
-struct BtorCoreSolver
-{
-  BTOR_SOLVER_STRUCT;
-
-  BtorPtrHashTable *lemmas;
-  BtorNodePtrStack cur_lemmas;
-
-  BtorPtrHashTable *score; /* dcr score */
-
-  /* compare fun for sorting the inputs in search_inital_applies_dual_prop */
-  int (*dp_cmp_inputs) (const void *, const void *);
-
-  struct
-  {
-    int lod_refinements; /* number of lemmas on demand refinements */
-    int refinement_iterations;
-
-    int function_congruence_conflicts;
-    int beta_reduction_conflicts;
-    int extensionality_lemmas;
-
-    BtorIntStack lemmas_size;      /* distribution of n-size lemmas */
-    long long int lemmas_size_sum; /* sum of the size of all added lemmas */
-
-    int dp_failed_vars; /* number of vars in FA (dual prop) of last
-                           sat call (final bv skeleton) */
-    int dp_assumed_vars;
-    int dp_failed_applies; /* number of applies in FA (dual prop) of last
-                              sat call (final bv skeleton) */
-    int dp_assumed_applies;
-    int dp_failed_eqs;
-    int dp_assumed_eqs;
-
-    long long eval_exp_calls;
-    long long propagations;
-    long long propagations_down;
-    long long partial_beta_reduction_restarts;
-  } stats;
-
-  struct
-  {
-    double sat;
-    double eval;
-    double search_init_apps;
-    double search_init_apps_compute_scores;
-    double search_init_apps_compute_scores_merge_applies;
-    double search_init_apps_cloning;
-    double search_init_apps_sat;
-    double search_init_apps_collect_var_apps;
-    double search_init_apps_collect_fa;
-    double search_init_apps_collect_fa_cone;
-    double lemma_gen;
-    double find_nenc_app;
-    double find_prop_app;
-    double find_cond_prop_app;
-  } time;
-};
-
-typedef struct BtorCoreSolver BtorCoreSolver;
-
-/*------------------------------------------------------------------------*/
-
 /* Check whether the sorts of given arguments match the signature of the
  * function. If sorts are correct -1 is returned, otherwise the position of
  * the invalid argument is returned. */
@@ -356,9 +292,6 @@ int btor_fun_sort_check (Btor *btor,
                          uint32_t argc,
                          BtorNode **args,
                          BtorNode *fun);
-
-/* Evaluates expression and returns its value. */
-BtorBitVector *btor_eval_exp (Btor *btor, BtorNode *exp);
 
 /* Synthesizes expression of arbitrary length to an AIG vector. Adds string
  * back annotation to the hash table, if the hash table is a non zero ptr.
@@ -389,4 +322,12 @@ BtorNode *btor_find_substitution (Btor *, BtorNode *);
 void btor_substitute_and_rebuild (Btor *, BtorPtrHashTable *);
 void btor_insert_varsubst_constraint (Btor *, BtorNode *, BtorNode *);
 
+// TODO (ma): make these functions public until we have a common framework for
+//            calling sat simplify etc.
+void btor_mark_reachable (Btor *btor, BtorNode *root);
+void btor_update_reachable (Btor *btor, bool check_all_tables);
+void btor_reset_incremental_usage (Btor *btor);
+void btor_add_again_assumptions (Btor *btor);
+void btor_process_unsynthesized_constraints (Btor *btor);
+void btor_insert_unsynthesized_constraint (Btor *btor, BtorNode *constraint);
 #endif

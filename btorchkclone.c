@@ -16,6 +16,7 @@
 #include "btorchkclone.h"
 #include "btorbitvec.h"
 #include "btorcore.h"
+#include "btorcoresolver.h"
 #include "btoropt.h"
 #include "btorslv.h"
 #include "utils/btoriter.h"

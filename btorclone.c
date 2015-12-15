@@ -15,6 +15,7 @@
 #include "btorbeta.h"
 #include "btorbitvec.h"
 #include "btorcore.h"
+#include "btorcoresolver.h"
 #include "btorlog.h"
 #include "btormsg.h"
 #include "btorsat.h"

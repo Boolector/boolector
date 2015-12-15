@@ -11,6 +11,7 @@
  */
 
 #include "btorbeta.h"
+#include "btorcoresolver.h"
 #include "btorlog.h"
 #include "btorrewrite.h"
 #include "utils/btoriter.h"
