@@ -332,7 +332,7 @@ is_write_exp (BtorNode *exp,
     return 0;
 
   param = exp->e[0];
-  body  = btor_lambda_get_body (exp);
+  body  = btor_binder_get_body (exp);
 
   if (BTOR_IS_INVERTED_NODE (body) || !BTOR_IS_BV_COND_NODE (body)) return 0;
 
@@ -370,7 +370,7 @@ is_array_ite_exp (BtorNode *exp, BtorNode **array_if, BtorNode **array_else)
     return 0;
 
   param = exp->e[0];
-  body  = btor_lambda_get_body (exp);
+  body  = btor_binder_get_body (exp);
 
   if (BTOR_IS_INVERTED_NODE (body) || !BTOR_IS_BV_COND_NODE (body)) return 0;
 

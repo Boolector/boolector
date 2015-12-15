@@ -494,10 +494,10 @@ btor_chkclone_exp (BtorNode *exp, BtorNode *clone)
   {
     if (btor_param_is_bound (real_exp))
     {
-      assert (btor_param_get_binding_lambda (real_exp)
-              != btor_param_get_binding_lambda (real_clone));
-      BTOR_CHKCLONE_EXPID (((BtorParamNode *) real_exp)->bound,
-                           ((BtorParamNode *) real_clone)->bound);
+      assert (btor_param_get_binder (real_exp)
+              != btor_param_get_binder (real_clone));
+      BTOR_CHKCLONE_EXPID (btor_param_get_binder (real_exp),
+                           btor_param_get_binder (real_clone));
     }
     else
       assert (!btor_param_is_bound (real_clone));

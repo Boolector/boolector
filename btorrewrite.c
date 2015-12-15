@@ -385,7 +385,7 @@ is_write_exp (BtorNode *exp,
     return 0;
 
   param = exp->e[0];
-  body  = btor_lambda_get_body (exp);
+  body  = btor_binder_get_body (exp);
 
   if (BTOR_IS_INVERTED_NODE (body) || !BTOR_IS_BV_COND_NODE (body)) return 0;
 
@@ -4159,7 +4159,7 @@ applies_const_lambda_apply (Btor *btor, BtorNode *e0, BtorNode *e1)
   (void) btor;
   (void) e1;
   return BTOR_IS_LAMBDA_NODE (BTOR_REAL_ADDR_NODE (e0))
-         && !BTOR_REAL_ADDR_NODE (btor_lambda_get_body (e0))->parameterized;
+         && !BTOR_REAL_ADDR_NODE (btor_binder_get_body (e0))->parameterized;
 }
 
 static inline BtorNode *
@@ -4167,7 +4167,7 @@ apply_const_lambda_apply (Btor *btor, BtorNode *e0, BtorNode *e1)
 {
   assert (applies_const_lambda_apply (btor, e0, e1));
   (void) e1;
-  return btor_copy_exp (btor, btor_lambda_get_body (BTOR_REAL_ADDR_NODE (e0)));
+  return btor_copy_exp (btor, btor_binder_get_body (BTOR_REAL_ADDR_NODE (e0)));
 }
 
 /* match:  (\lambda x . x)(a)
@@ -4180,7 +4180,7 @@ applies_param_lambda_apply (Btor *btor, BtorNode *e0, BtorNode *e1)
   (void) e1;
   return BTOR_IS_LAMBDA_NODE (BTOR_REAL_ADDR_NODE (e0)) && !e0->parameterized
          && BTOR_IS_PARAM_NODE (
-                BTOR_REAL_ADDR_NODE (btor_lambda_get_body (e0)));
+                BTOR_REAL_ADDR_NODE (btor_binder_get_body (e0)));
 }
 
 static inline BtorNode *
@@ -4190,7 +4190,7 @@ apply_param_lambda_apply (Btor *btor, BtorNode *e0, BtorNode *e1)
 
   BtorNode *result, *body;
 
-  body = btor_lambda_get_body (e0);
+  body = btor_binder_get_body (e0);
   btor_assign_args (btor, e0, e1);
   result = btor_copy_exp (
       btor, btor_param_cur_assignment (BTOR_REAL_ADDR_NODE (body)));
@@ -4210,7 +4210,7 @@ applies_apply_apply (Btor *btor, BtorNode *e0, BtorNode *e1)
   return btor->rec_rw_calls < BTOR_REC_RW_BOUND
          && BTOR_IS_LAMBDA_NODE (BTOR_REAL_ADDR_NODE (e0))
          && BTOR_IS_APPLY_NODE (
-                (real_body = BTOR_REAL_ADDR_NODE (btor_lambda_get_body (e0))))
+                (real_body = BTOR_REAL_ADDR_NODE (btor_binder_get_body (e0))))
          && !real_body->e[0]->parameterized;
 }
 
@@ -4221,7 +4221,7 @@ apply_apply_apply (Btor *btor, BtorNode *e0, BtorNode *e1)
 
   BtorNode *result, *real_body, *body;
 
-  body      = btor_lambda_get_body (e0);
+  body      = btor_binder_get_body (e0);
   real_body = BTOR_REAL_ADDR_NODE (body);
   BTOR_INC_REC_RW_CALL (btor);
   btor_assign_args (btor, e0, e1);
@@ -4248,7 +4248,7 @@ applies_prop_apply (Btor *btor, BtorNode *e0, BtorNode *e1)
   (void) e1;
   return BTOR_IS_LAMBDA_NODE (BTOR_REAL_ADDR_NODE (e0))
          && BTOR_IS_BV_COND_NODE (
-                BTOR_REAL_ADDR_NODE (btor_lambda_get_body (e0)));
+                BTOR_REAL_ADDR_NODE (btor_binder_get_body (e0)));
   ;
 }
 
@@ -4276,7 +4276,7 @@ apply_prop_apply (Btor *btor, BtorNode *e0, BtorNode *e1)
 
   /* try to propagate apply over bv conditionals were conditions evaluate to
    * true if beta reduced with 'cur_args'. */
-  cur_cond = BTOR_IS_LAMBDA_NODE (cur_fun) ? btor_lambda_get_body (cur_fun) : 0;
+  cur_cond = BTOR_IS_LAMBDA_NODE (cur_fun) ? btor_binder_get_body (cur_fun) : 0;
   while (!done && BTOR_IS_LAMBDA_NODE (cur_fun) && !cur_fun->parameterized
          && !cur_args->parameterized
          && (real_cur_cond = BTOR_REAL_ADDR_NODE (cur_cond))
@@ -4465,7 +4465,7 @@ apply_prop_apply (Btor *btor, BtorNode *e0, BtorNode *e1)
     {
       cur_fun = next_fun;
       cur_cond =
-          BTOR_IS_LAMBDA_NODE (cur_fun) ? btor_lambda_get_body (cur_fun) : 0;
+          BTOR_IS_LAMBDA_NODE (cur_fun) ? btor_binder_get_body (cur_fun) : 0;
     }
     assert (!result || done);
   }

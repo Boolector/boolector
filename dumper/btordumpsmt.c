@@ -845,7 +845,7 @@ dump_fun_smt2 (BtorSMTDumpContext *sdc, BtorNode *fun)
 #endif
 
   /* collect shared parameterized expressions in function body */
-  fun_body = btor_lambda_get_body (fun);
+  fun_body = btor_binder_get_body (fun);
   BTOR_PUSH_STACK (mm, visit, fun_body);
   while (!BTOR_EMPTY_STACK (visit))
   {
@@ -1081,7 +1081,7 @@ mark_boolean (BtorSMTDumpContext *sdc, BtorNodePtrStack *exps)
     {
       /* boolean function */
       if ((BTOR_IS_LAMBDA_NODE (cur->e[0])
-           && is_boolean (sdc, btor_lambda_get_body (cur->e[0])))
+           && is_boolean (sdc, btor_binder_get_body (cur->e[0])))
           || (BTOR_IS_FUN_COND_NODE (cur->e[0]) && is_boolean (sdc, cur->e[1]))
           || (BTOR_IS_UF_NODE (cur->e[0])
               && btor_is_bool_sort (

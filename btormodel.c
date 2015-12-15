@@ -709,7 +709,7 @@ recursively_compute_function_model (Btor *btor,
       if (btor_lambda_get_static_rho (cur_fun))
       {
         BTOR_INIT_STACK (stack);
-        BTOR_PUSH_STACK (mm, stack, btor_lambda_get_body (cur_fun));
+        BTOR_PUSH_STACK (mm, stack, btor_binder_get_body (cur_fun));
         cur_fun = 0;
         while (!BTOR_EMPTY_STACK (stack))
         {

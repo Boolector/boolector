@@ -46,6 +46,10 @@ void btor_init_parent_iterator (BtorNodeIterator *, BtorNode *);
 int btor_has_next_parent_iterator (BtorNodeIterator *);
 BtorNode *btor_next_parent_iterator (BtorNodeIterator *);
 
+void btor_init_binder_iterator (BtorNodeIterator *, BtorNode *);
+int btor_has_next_binder_iterator (BtorNodeIterator *);
+BtorNode *btor_next_binder_iterator (BtorNodeIterator *);
+
 void btor_init_lambda_iterator (BtorNodeIterator *, BtorNode *);
 int btor_has_next_lambda_iterator (BtorNodeIterator *);
 BtorNode *btor_next_lambda_iterator (BtorNodeIterator *);

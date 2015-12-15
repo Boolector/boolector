@@ -513,15 +513,15 @@ clone_exp (Btor *btor,
   {
     param = (BtorParamNode *) exp;
     assert (!btor_param_is_bound (exp)
-            || !BTOR_IS_INVALID_NODE (btor_param_get_binding_lambda (exp)));
+            || !BTOR_IS_INVALID_NODE (btor_param_get_binder (exp)));
     assert (
         !param->assigned_exp
         || !BTOR_IS_INVALID_NODE (BTOR_REAL_ADDR_NODE (param->assigned_exp)));
 
-    BTOR_PUSH_STACK_IF (param->bound,
+    BTOR_PUSH_STACK_IF (param->binder,
                         mm,
                         *nodes,
-                        (BtorNode **) &((BtorParamNode *) res)->bound);
+                        (BtorNode **) &((BtorParamNode *) res)->binder);
     BTOR_PUSH_STACK_IF (param->assigned_exp,
                         mm,
                         *nodes,
@@ -535,10 +535,10 @@ clone_exp (Btor *btor,
       BTOR_PUSH_STACK (mm, *static_rhos, res);
       BTOR_PUSH_STACK (mm, *static_rhos, exp);
     }
-    assert (!btor_lambda_get_body (exp)
+    assert (!btor_binder_get_body (exp)
             || !BTOR_IS_INVALID_NODE (
-                   BTOR_REAL_ADDR_NODE (btor_lambda_get_body (exp))));
-    BTOR_PUSH_STACK_IF (btor_lambda_get_body (exp),
+                   BTOR_REAL_ADDR_NODE (btor_binder_get_body (exp))));
+    BTOR_PUSH_STACK_IF (btor_binder_get_body (exp),
                         mm,
                         *nodes,
                         &((BtorLambdaNode *) res)->body);
@@ -1364,7 +1364,7 @@ btor_recursively_rebuild_exp_clone (Btor *btor,
           break;
         case BTOR_LAMBDA_NODE:
           assert (!btor_param_cur_assignment (e[0]));
-          btor_param_set_binding_lambda (e[0], 0);
+          btor_param_set_binder (e[0], 0);
           cur_clone = btor_lambda_exp (clone, e[0], e[1]);
           break;
         case BTOR_APPLY_NODE:

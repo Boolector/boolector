@@ -302,7 +302,7 @@ bdcnode (BtorDumpContext *bdc, BtorNode *node, FILE *file)
     btor_init_parameterized_iterator (&pit, bdc->btor, node);
     assert (btor_has_next_parameterized_iterator (&pit));
     n = btor_next_parameterized_iterator (&pit);
-    if (btor_lambda_get_static_rho (btor_param_get_binding_lambda (n))
+    if (btor_lambda_get_static_rho (btor_param_get_binder (n))
         && !btor_has_next_parameterized_iterator (&pit))
       return;
   }
@@ -417,7 +417,7 @@ bdcnode (BtorDumpContext *bdc, BtorNode *node, FILE *file)
         n = btor_next_lambda_iterator (&nit);
         fprintf (file, " %d", bdcid (bdc, n->e[0]));
       }
-      fprintf (file, " %d", bdcid (bdc, btor_lambda_get_body (node)));
+      fprintf (file, " %d", bdcid (bdc, btor_binder_get_body (node)));
       goto DONE;
     }
   }

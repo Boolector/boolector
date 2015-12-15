@@ -205,7 +205,7 @@ typedef struct BtorLambdaNode BtorLambdaNode;
 struct BtorParamNode
 {
   BTOR_BV_NODE_STRUCT;
-  BtorNode *bound; /* exp that bound the param (lambda, forall, exists) */
+  BtorNode *binder; /* exp that binds the param (lambda, forall, exists) */
   BtorNode *assigned_exp;
 };
 
@@ -392,9 +392,13 @@ typedef struct BtorArgsNode BtorArgsNode;
 #define BTOR_IS_UF_ARRAY_NODE(exp) \
   ((exp) && BTOR_IS_UF_NODE (exp) && ((BtorUFNode *) exp)->is_array)
 
-#define BTOR_IS_QUANTIFIER_NODE(exp)                \
-  ((BTOR_IS_FORALL_NODE (BTOR_REAL_ADDR_NODE (exp)) \
-    || BTOR_IS_EXISTS_NODE (BTOR_REAL_ADDR_NODE (exp))
+#define BTOR_IS_QUANTIFIER_NODE(exp)               \
+  (BTOR_IS_FORALL_NODE (BTOR_REAL_ADDR_NODE (exp)) \
+   || BTOR_IS_EXISTS_NODE (BTOR_REAL_ADDR_NODE (exp)))
+
+#define BTOR_IS_BINDER_NODE(exp) \
+  (BTOR_IS_QUANTIFIER_NODE (exp) \
+   || BTOR_IS_LAMBDA_NODE (BTOR_REAL_ADDR_NODE (exp)))
 
 /*------------------------------------------------------------------------*/
 
@@ -966,15 +970,15 @@ void btor_lambda_set_static_rho (BtorNode *lambda,
 
 BtorPtrHashTable *btor_lambda_copy_static_rho (Btor *btor, BtorNode *lambda);
 
-BtorNode *btor_lambda_get_body (BtorNode *lambda);
-void btor_lambda_set_body (BtorNode *lambda, BtorNode *body);
+BtorNode *btor_binder_get_body (BtorNode *lambda);
+void btor_binder_set_body (BtorNode *lambda, BtorNode *body);
 
 /* Getter for BtorSliceNode fields */
 uint32_t btor_slice_get_upper (BtorNode *slice);
 uint32_t btor_slice_get_lower (BtorNode *slice);
 
-BtorNode *btor_param_get_binding_lambda (BtorNode *param);
-void btor_param_set_binding_lambda (BtorNode *param, BtorNode *lambda);
+BtorNode *btor_param_get_binder (BtorNode *param);
+void btor_param_set_binder (BtorNode *param, BtorNode *binder);
 bool btor_param_is_bound (BtorNode *param);
 
 /* Copies expression (increments reference counter). */

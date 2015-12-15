@@ -347,7 +347,8 @@ boolector_assert (Btor *btor, BoolectorNode *node)
   BTOR_ABORT_REFS_NOT_POS_BOOLECTOR (exp);
   BTOR_ABORT_IF_BTOR_DOES_NOT_MATCH (btor, exp);
   BTOR_ABORT_NOT_BV_BOOLECTOR (exp);
-  BTOR_ABORT_BOOLECTOR (btor_get_exp_width (btor, exp) != 1,
+  BTOR_ABORT_BOOLECTOR (!btor_is_bool_sort (&btor->sorts_unique_table,
+                                            BTOR_REAL_ADDR_NODE (exp)->sort_id),
                         "'exp' must have bit-width one");
   BTOR_ABORT_BOOLECTOR (BTOR_REAL_ADDR_NODE (exp)->parameterized,
                         "assertion must not be parameterized");
@@ -371,7 +372,8 @@ boolector_assume (Btor *btor, BoolectorNode *node)
   BTOR_ABORT_REFS_NOT_POS_BOOLECTOR (exp);
   BTOR_ABORT_IF_BTOR_DOES_NOT_MATCH (btor, exp);
   BTOR_ABORT_NOT_BV_BOOLECTOR (exp);
-  BTOR_ABORT_BOOLECTOR (btor_get_exp_width (btor, exp) != 1,
+  BTOR_ABORT_BOOLECTOR (!btor_is_bool_sort (&btor->sorts_unique_table,
+                                            BTOR_REAL_ADDR_NODE (exp)->sort_id),
                         "'exp' must have bit-width one");
   BTOR_ABORT_BOOLECTOR (BTOR_REAL_ADDR_NODE (exp)->parameterized,
                         "assumption must not be parameterized");

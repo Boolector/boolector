@@ -217,7 +217,7 @@ btor_optimize_unconstrained (Btor *btor)
         assert (BTOR_IS_REGULAR_NODE (param));
         assert (BTOR_IS_PARAM_NODE (param));
         assert (btor_param_is_bound (param));
-        lambda = btor_param_get_binding_lambda (param);
+        lambda = btor_param_get_binder (param);
         assert (lambda);
         /* get head lambda of function */
         while (

@@ -720,7 +720,11 @@ new_aux_btor (int init_opts)
   btor->lambdas = btor_new_ptr_hash_table (mm,
                                            (BtorHashPtr) btor_hash_exp_by_id,
                                            (BtorCmpPtr) btor_compare_exp_by_id);
-  btor->feqs    = btor_new_ptr_hash_table (mm,
+  btor->quantifiers =
+      btor_new_ptr_hash_table (mm,
+                               (BtorHashPtr) btor_hash_exp_by_id,
+                               (BtorCmpPtr) btor_compare_exp_by_id);
+  btor->feqs = btor_new_ptr_hash_table (mm,
                                         (BtorHashPtr) btor_hash_exp_by_id,
                                         (BtorCmpPtr) btor_compare_exp_by_id);
 
@@ -1016,6 +1020,7 @@ btor_delete_btor (Btor *btor)
   btor_delete_ptr_hash_table (btor->bv_vars);
   btor_delete_ptr_hash_table (btor->ufs);
   btor_delete_ptr_hash_table (btor->lambdas);
+  btor_delete_ptr_hash_table (btor->quantifiers);
   btor_delete_ptr_hash_table (btor->feqs);
   btor_delete_ptr_hash_table (btor->parameterized);
 
@@ -2327,11 +2332,11 @@ rebuild_lambda_exp (Btor *btor, BtorNode *exp)
 
   /* we need to reset the binding lambda here as otherwise it is not possible
    * to create a new lambda term with the same param that substitutes 'exp' */
-  btor_param_set_binding_lambda (exp->e[0], 0);
+  btor_param_set_binder (exp->e[0], 0);
   result = btor_lambda_exp (btor, exp->e[0], exp->e[1]);
 
   /* lambda not rebuilt, set binding lambda again */
-  if (result == exp) btor_param_set_binding_lambda (exp->e[0], exp);
+  if (result == exp) btor_param_set_binder (exp->e[0], exp);
 
   /* copy static_rho for new lambda */
   if (btor_lambda_get_static_rho (exp) && !btor_lambda_get_static_rho (result))
@@ -6567,7 +6572,8 @@ sat_core_solver (Btor *btor, int lod_limit, int sat_limit)
   /* reset SAT solver to non-incremental if all functions have been
    * eliminated */
   if (!btor->options.incremental.val && smgr->inc_required
-      && btor->lambdas->count == 0 && btor->ufs->count == 0)
+      && btor->lambdas->count == 0 && btor->quantifiers->count == 0
+      && btor->ufs->count == 0)
   {
     smgr->inc_required = 0;
     BTOR_MSG (btor->msg,
