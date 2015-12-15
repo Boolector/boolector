@@ -2666,6 +2666,120 @@ boolector_dec (Btor *btor, BoolectorNode *node)
   return BTOR_EXPORT_BOOLECTOR_NODE (res);
 }
 
+BoolectorNode *
+boolector_forall (Btor *btor,
+                  BoolectorNode *param_nodes[],
+                  int paramc,
+                  BoolectorNode *body_node)
+{
+  int i, len;
+  char *strtrapi;
+  BtorNode **params, *body, *res;
+
+  params = BTOR_IMPORT_BOOLECTOR_NODE_ARRAY (param_nodes);
+  body   = BTOR_IMPORT_BOOLECTOR_NODE (body_node);
+  BTOR_ABORT_ARG_NULL_BOOLECTOR (btor);
+  BTOR_ABORT_ARG_NULL_BOOLECTOR (params);
+  BTOR_ABORT_ARG_NULL_BOOLECTOR (body);
+  BTOR_ABORT_BOOLECTOR (paramc < 1, "'paramc' must not be < 1");
+
+  len = 5 + 10 + paramc * 20 + 20;
+  BTOR_NEWN (btor->mm, strtrapi, len);
+  sprintf (strtrapi, "%d ", paramc);
+
+  for (i = 0; i < paramc; i++)
+  {
+    BTOR_ABORT_BOOLECTOR (
+        !params[i] || !BTOR_IS_PARAM_NODE (BTOR_REAL_ADDR_NODE (params[i])),
+        "'params[%d]' is not a parameter",
+        i);
+    BTOR_ABORT_REFS_NOT_POS_BOOLECTOR (params[i]);
+    BTOR_ABORT_IF_BTOR_DOES_NOT_MATCH (btor, params[i]);
+    sprintf (
+        strtrapi + strlen (strtrapi), NODE_FMT, BTOR_TRAPI_NODE_ID (params[i]));
+  }
+  sprintf (strtrapi + strlen (strtrapi), NODE_FMT, BTOR_TRAPI_NODE_ID (body));
+  BTOR_TRAPI (strtrapi);
+  BTOR_DELETEN (btor->mm, strtrapi, len);
+
+  BTOR_ABORT_REFS_NOT_POS_BOOLECTOR (body);
+  BTOR_ABORT_IF_BTOR_DOES_NOT_MATCH (btor, body);
+  BTOR_ABORT_BOOLECTOR (
+      !btor_is_bool_sort (&btor->sorts_unique_table, body->sort_id),
+      "body of forall must be bit width 1, but has "
+      "%d instead",
+      btor_get_exp_width (btor, body));
+
+  res = btor_forall_n_exp (btor, params, paramc, body);
+  inc_exp_ext_ref_counter (btor, res);
+  BTOR_TRAPI_RETURN_NODE (res);
+#ifndef NDEBUG
+  BoolectorNode *cparam_nodes[paramc];
+  for (i = 0; btor->clone && i < paramc; i++)
+    cparam_nodes[i] = BTOR_CLONED_EXP (params[i]);
+  BTOR_CHKCLONE_RES_PTR (
+      res, forall, cparam_nodes, paramc, BTOR_CLONED_EXP (body));
+#endif
+  return BTOR_EXPORT_BOOLECTOR_NODE (res);
+}
+
+BoolectorNode *
+boolector_exists (Btor *btor,
+                  BoolectorNode *param_nodes[],
+                  int paramc,
+                  BoolectorNode *body_node)
+{
+  int i, len;
+  char *strtrapi;
+  BtorNode **params, *body, *res;
+
+  params = BTOR_IMPORT_BOOLECTOR_NODE_ARRAY (param_nodes);
+  body   = BTOR_IMPORT_BOOLECTOR_NODE (body_node);
+  BTOR_ABORT_ARG_NULL_BOOLECTOR (btor);
+  BTOR_ABORT_ARG_NULL_BOOLECTOR (params);
+  BTOR_ABORT_ARG_NULL_BOOLECTOR (body);
+  BTOR_ABORT_BOOLECTOR (paramc < 1, "'paramc' must not be < 1");
+
+  len = 5 + 10 + paramc * 20 + 20;
+  BTOR_NEWN (btor->mm, strtrapi, len);
+  sprintf (strtrapi, "%d ", paramc);
+
+  for (i = 0; i < paramc; i++)
+  {
+    BTOR_ABORT_BOOLECTOR (
+        !params[i] || !BTOR_IS_PARAM_NODE (BTOR_REAL_ADDR_NODE (params[i])),
+        "'params[%d]' is not a parameter",
+        i);
+    BTOR_ABORT_REFS_NOT_POS_BOOLECTOR (params[i]);
+    BTOR_ABORT_IF_BTOR_DOES_NOT_MATCH (btor, params[i]);
+    sprintf (
+        strtrapi + strlen (strtrapi), NODE_FMT, BTOR_TRAPI_NODE_ID (params[i]));
+  }
+  sprintf (strtrapi + strlen (strtrapi), NODE_FMT, BTOR_TRAPI_NODE_ID (body));
+  BTOR_TRAPI (strtrapi);
+  BTOR_DELETEN (btor->mm, strtrapi, len);
+
+  BTOR_ABORT_REFS_NOT_POS_BOOLECTOR (body);
+  BTOR_ABORT_IF_BTOR_DOES_NOT_MATCH (btor, body);
+  BTOR_ABORT_BOOLECTOR (
+      !btor_is_bool_sort (&btor->sorts_unique_table, body->sort_id),
+      "body of exists must be bit width 1, but has "
+      "%d instead",
+      btor_get_exp_width (btor, body));
+
+  res = btor_exists_n_exp (btor, params, paramc, body);
+  inc_exp_ext_ref_counter (btor, res);
+  BTOR_TRAPI_RETURN_NODE (res);
+#ifndef NDEBUG
+  BoolectorNode *cparam_nodes[paramc];
+  for (i = 0; btor->clone && i < paramc; i++)
+    cparam_nodes[i] = BTOR_CLONED_EXP (params[i]);
+  BTOR_CHKCLONE_RES_PTR (
+      res, exists, cparam_nodes, paramc, BTOR_CLONED_EXP (body));
+#endif
+  return BTOR_EXPORT_BOOLECTOR_NODE (res);
+}
+
 /*------------------------------------------------------------------------*/
 
 Btor *

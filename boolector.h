@@ -1544,6 +1544,38 @@ BoolectorNode *boolector_inc (Btor *btor, BoolectorNode *node);
 */
 BoolectorNode *boolector_dec (Btor *btor, BoolectorNode *node);
 
+/*!
+  Create a universally quantified term.
+
+  \forall (params[0] ... params[paramc - 1]) body
+
+  :param btor: Boolector instance.
+  :param params: Array of quantified variables.
+  :param paramc: length of ``params`` array.
+  :param body: Term where ``params`` may occur.
+  :return: Universally quantified term with bit width 1.
+ */
+BoolectorNode *boolector_forall (Btor *btor,
+                                 BoolectorNode *params[],
+                                 int paramc,
+                                 BoolectorNode *body);
+
+/*!
+  Create an existentially quantifed term.
+
+  \exists (params[0] ... params[paramc - 1]) body
+
+  :param btor: Boolector instance.
+  :param params: Array of quantified variables.
+  :param paramc: length of ``params`` array.
+  :param body: Term where ``params`` may occur.
+  :return: Existentially quantified term with bit width 1.
+ */
+BoolectorNode *boolector_exists (Btor *btor,
+                                 BoolectorNode *param[],
+                                 int paramc,
+                                 BoolectorNode *body);
+
 /*------------------------------------------------------------------------*/
 
 /*!
