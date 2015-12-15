@@ -4191,7 +4191,7 @@ apply_param_lambda_apply (Btor *btor, BtorNode *e0, BtorNode *e1)
   body = btor_lambda_get_body (e0);
   btor_assign_args (btor, e0, e1);
   result = btor_copy_exp (
-      btor, btor_param_cur_assignment (BTOR_REAL_ADDR_NODE (body)));
+      btor, btor_param_get_assigned_exp (BTOR_REAL_ADDR_NODE (body)));
   btor_unassign_params (btor, e0);
   result = BTOR_COND_INVERT_NODE (body, result);
   return result;
@@ -4343,7 +4343,7 @@ apply_prop_apply (Btor *btor, BtorNode *e0, BtorNode *e1)
         }
         else if (BTOR_IS_PARAM_NODE (real_cur_branch))
         {
-          if ((value = btor_param_cur_assignment (real_cur_branch)))
+          if ((value = btor_param_get_assigned_exp (real_cur_branch)))
             result = btor_copy_exp (btor, value);
           else
             result = btor_copy_exp (btor, real_cur_branch);

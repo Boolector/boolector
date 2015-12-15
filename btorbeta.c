@@ -109,17 +109,6 @@ cached_beta_result (Btor *btor,
   return 0;
 }
 
-BtorNode *
-btor_param_cur_assignment (BtorNode *param)
-{
-  assert (param);
-  assert (BTOR_IS_REGULAR_NODE (param));
-  assert (BTOR_IS_PARAM_NODE (param));
-
-  param = BTOR_REAL_ADDR_NODE (param);
-  return ((BtorParamNode *) param)->assigned_exp;
-}
-
 void
 btor_assign_args (Btor *btor, BtorNode *fun, BtorNode *args)
 {
@@ -160,14 +149,8 @@ btor_assign_param (Btor *btor, BtorNode *lambda, BtorNode *arg)
   assert (arg);
   assert (BTOR_IS_REGULAR_NODE (lambda));
   assert (BTOR_IS_LAMBDA_NODE (lambda));
-
-  BtorParamNode *param;
-
-  param = (BtorParamNode *) lambda->e[0];
-  assert (BTOR_IS_REGULAR_NODE (param));
-  assert (BTOR_REAL_ADDR_NODE (arg)->sort_id == param->sort_id);
-  assert (!param->assigned_exp);
-  param->assigned_exp = arg;
+  assert (!btor_param_get_assigned_exp (lambda->e[0]));
+  btor_param_set_assigned_exp (lambda->e[0], arg);
 }
 
 void
@@ -179,16 +162,12 @@ btor_unassign_params (Btor *btor, BtorNode *lambda)
   assert (BTOR_IS_LAMBDA_NODE (lambda));
   assert (BTOR_IS_PARAM_NODE (lambda->e[0]));
 
-  BtorParamNode *param;
-
   do
   {
-    param = (BtorParamNode *) lambda->e[0];
+    if (!btor_param_get_assigned_exp (lambda->e[0])) break;
 
-    if (!param->assigned_exp) break;
-
-    param->assigned_exp = 0;
-    lambda              = BTOR_REAL_ADDR_NODE (lambda->e[1]);
+    btor_param_set_assigned_exp (lambda->e[0], 0);
+    lambda = BTOR_REAL_ADDR_NODE (lambda->e[1]);
   } while (BTOR_IS_LAMBDA_NODE (lambda));
 }
 
@@ -307,7 +286,7 @@ btor_beta_reduce (Btor *btor,
       /* push assigned argument of parameter on argument stack */
       else if (BTOR_IS_PARAM_NODE (real_cur))
       {
-        next = btor_param_cur_assignment (real_cur);
+        next = btor_param_get_assigned_exp (real_cur);
         if (!next) next = real_cur;
         if (BTOR_IS_INVERTED_NODE (cur)) next = BTOR_INVERT_NODE (next);
         BTOR_PUSH_STACK (mm, arg_stack, btor_copy_exp (btor, next));
@@ -319,7 +298,7 @@ btor_beta_reduce (Btor *btor,
                /* check if we have arguments on the stack */
                && !BTOR_EMPTY_STACK (arg_stack)
                /* if it is nested, its parameter is already assigned */
-               && !btor_param_cur_assignment (real_cur->e[0]))
+               && !btor_param_get_assigned_exp (real_cur->e[0]))
       {
         args = BTOR_TOP_STACK (arg_stack);
         assert (BTOR_IS_REGULAR_NODE (args));
@@ -350,7 +329,7 @@ btor_beta_reduce (Btor *btor,
                && (BTOR_IS_FEQ_NODE (cur_parent)
                    || BTOR_IS_FUN_COND_NODE (cur_parent)))
       {
-        assert (!btor_param_cur_assignment (real_cur->e[0]));
+        assert (!btor_param_get_assigned_exp (real_cur->e[0]));
         cur_lambda_depth--;
         BTOR_PUSH_STACK (mm, arg_stack, btor_copy_exp (btor, cur));
         continue;
@@ -488,7 +467,7 @@ btor_beta_reduce (Btor *btor,
            * as argument */
           if (BTOR_IS_FEQ_NODE (cur_parent)
               || (BTOR_IS_FUN_COND_NODE (cur_parent)
-                  && !btor_param_cur_assignment (real_cur->e[0])))
+                  && !btor_param_get_assigned_exp (real_cur->e[0])))
           {
             assert (BTOR_IS_PARAM_NODE (BTOR_REAL_ADDR_NODE (e[1])));
             result = btor_lambda_exp (btor, e[1], e[0]);
@@ -523,7 +502,7 @@ btor_beta_reduce (Btor *btor,
 
       /* cache rebuilt parameterized node with current arguments */
       if ((BTOR_IS_LAMBDA_NODE (real_cur)
-           && btor_param_cur_assignment (real_cur->e[0]))
+           && btor_param_get_assigned_exp (real_cur->e[0]))
           || real_cur->parameterized)
       {
         t = btor_new_param_cache_tuple (btor, real_cur);
@@ -533,7 +512,7 @@ btor_beta_reduce (Btor *btor,
       }
 
       if (BTOR_IS_LAMBDA_NODE (real_cur) && BTOR_IS_APPLY_NODE (cur_parent)
-          && btor_param_cur_assignment (real_cur->e[0]))
+          && btor_param_get_assigned_exp (real_cur->e[0]))
       {
         btor_unassign_params (btor, real_cur);
 #ifndef NDEBUG
@@ -571,7 +550,7 @@ btor_beta_reduce (Btor *btor,
           // why not checking cur_parent && ...
           if (!cur_parent || BTOR_IS_APPLY_NODE (cur_parent))
           {
-            assert (!btor_param_cur_assignment (real_cur->e[0]));
+            assert (!btor_param_get_assigned_exp (real_cur->e[0]));
             args = BTOR_TOP_STACK (arg_stack);
             assert (BTOR_IS_ARGS_NODE (BTOR_REAL_ADDR_NODE (args)));
             btor_assign_args (btor, real_cur, args);
@@ -707,7 +686,7 @@ btor_beta_reduce_partial_aux (Btor *btor,
       /* push assigned argument of parameter on argument stack */
       else if (BTOR_IS_PARAM_NODE (real_cur))
       {
-        next = btor_param_cur_assignment (real_cur);
+        next = btor_param_get_assigned_exp (real_cur);
         assert (next);
         if (BTOR_IS_INVERTED_NODE (cur)) next = BTOR_INVERT_NODE (next);
         BTOR_PUSH_STACK (mm, arg_stack, btor_copy_exp (btor, next));
@@ -719,7 +698,7 @@ btor_beta_reduce_partial_aux (Btor *btor,
                /* check if we have arguments on the stack */
                && !BTOR_EMPTY_STACK (arg_stack)
                /* if it is nested, its parameter is already assigned */
-               && !btor_param_cur_assignment (real_cur->e[0]))
+               && !btor_param_get_assigned_exp (real_cur->e[0]))
       {
         args = BTOR_TOP_STACK (arg_stack);
         assert (BTOR_IS_ARGS_NODE (args));

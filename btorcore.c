@@ -12,14 +12,11 @@
  */
 
 #include "btorcore.h"
-#include "btorbeta.h"
-#include "btorbitvec.h"
 #include "btorclone.h"
 #include "btorconfig.h"
 #include "btorconst.h"
 #include "btorcoresolver.h"
 #include "btordbg.h"
-#include "btordcr.h"
 #include "btorexit.h"
 #include "btorlog.h"
 #include "btormodel.h"
@@ -60,7 +57,6 @@
 #define BTOR_CHECK_MODEL
 #define BTOR_CHECK_DUAL_PROP
 #endif
-#undef BTOR_CHECK_FAILED
 
 #define DP_QSORT_JUST 0
 #define DP_QSORT_ASC 1
@@ -2278,7 +2274,7 @@ rebuild_lambda_exp (Btor *btor, BtorNode *exp)
 {
   assert (BTOR_IS_REGULAR_NODE (exp));
   assert (BTOR_IS_LAMBDA_NODE (exp));
-  assert (!btor_param_cur_assignment (exp->e[0]));
+  assert (!btor_param_get_assigned_exp (exp->e[0]));
 
   BtorNode *result;
 

@@ -25,6 +25,9 @@
 #include "utils/btorstack.h"
 #include "utils/btorutil.h"
 
+// TODO (ma): this was undefined in btorcore.c why?
+#undef BTOR_CHECK_FAILED
+
 // TODO (ma): better abort handling BTOR_ABORT_INTERNAL?
 #define BTOR_ABORT_CORE(cond, msg)                   \
   do                                                 \
@@ -2624,7 +2627,7 @@ btor_eval_exp (Btor *btor, BtorNode *exp)
       /* substitute param with its assignment */
       else if (BTOR_IS_PARAM_NODE (real_cur))
       {
-        next = btor_param_cur_assignment (real_cur);
+        next = btor_param_get_assigned_exp (real_cur);
         assert (next);
         if (BTOR_IS_INVERTED_NODE (cur)) next = BTOR_INVERT_NODE (next);
         BTOR_PUSH_STACK (mm, work_stack, next);

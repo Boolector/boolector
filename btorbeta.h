@@ -35,8 +35,6 @@ BtorNode* btor_beta_reduce_partial_collect (Btor* btor,
 
 BtorNode* btor_beta_reduce_bounded (Btor* btor, BtorNode* exp, int bound);
 
-BtorNode* btor_param_cur_assignment (BtorNode* exp);
-
 BtorNode* btor_apply_and_reduce (Btor* btor,
                                  int argc,
                                  BtorNode** args,
