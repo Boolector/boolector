@@ -2889,10 +2889,6 @@ btor_select_move_prop (Btor *btor,
 
 /*------------------------------------------------------------------------*/
 
-// TODO currently both reset_cone and update_cone do almost exactly the
-// same as their sls counter parts, if this does not change (e.g. if
-// using a score is not eliminated) the functions in sls and prop should
-// be merged
 static void
 reset_cone (Btor *btor, BtorNode *exp)
 {
@@ -2913,7 +2909,7 @@ reset_cone (Btor *btor, BtorNode *exp)
   slv = BTOR_PROP_SOLVER (btor);
   assert (slv);
   score = slv->score;
-  assert (score);
+  assert (!btor->options.prop_use_bandit.val || score);
 
   BTOR_INIT_STACK (stack);
   BTOR_INIT_STACK (unmark_stack);
@@ -2941,10 +2937,13 @@ reset_cone (Btor *btor, BtorNode *exp)
       btor_release_exp (btor, cur);
     }
     /* reset previous score */
-    if ((b = btor_get_ptr_hash_table (score, cur)))
-      btor_remove_ptr_hash_table (score, cur, 0, 0);
-    if ((b = btor_get_ptr_hash_table (score, BTOR_INVERT_NODE (cur))))
-      btor_remove_ptr_hash_table (score, BTOR_INVERT_NODE (cur), 0, 0);
+    if (btor->options.prop_use_bandit.val)
+    {
+      if ((b = btor_get_ptr_hash_table (score, cur)))
+        btor_remove_ptr_hash_table (score, cur, 0, 0);
+      if ((b = btor_get_ptr_hash_table (score, BTOR_INVERT_NODE (cur))))
+        btor_remove_ptr_hash_table (score, BTOR_INVERT_NODE (cur), 0, 0);
+    }
 
     /* push parents */
     btor_init_parent_iterator (&nit, cur);
@@ -2970,7 +2969,8 @@ update_cone (Btor *btor, BtorNode *exp, BtorBitVector *assignment)
   reset_cone (btor, exp);
   btor_add_to_bv_model (btor, btor->bv_model, exp, assignment);
   btor_generate_model (btor, btor->bv_model, btor->fun_model, 0);
-  btor_compute_sls_scores (btor, BTOR_PROP_SOLVER (btor)->score);
+  if (btor->options.prop_use_bandit.val)
+    btor_compute_sls_scores (btor, BTOR_PROP_SOLVER (btor)->score);
 }
 
 static BtorNode *
@@ -2978,45 +2978,72 @@ select_constraint (Btor *btor, uint32_t nmoves)
 {
   assert (btor);
 
-  int *selected;
-  double value, max_value, score;
   BtorNode *res, *cur;
   BtorPropSolver *slv;
   BtorHashTableIterator it;
-  BtorPtrHashBucket *b;
 
   slv = BTOR_PROP_SOLVER (btor);
   assert (slv);
   assert (slv->roots);
-  assert (slv->score);
 
-  res       = 0;
-  max_value = 0.0;
-  btor_init_hash_table_iterator (&it, slv->roots);
-  while (btor_has_next_node_hash_table_iterator (&it))
+  if (btor->options.prop_use_bandit.val)
   {
-    selected = &it.bucket->data.as_int;
-    cur      = btor_next_node_hash_table_iterator (&it);
-    if (BTOR_IS_BV_CONST_NODE (BTOR_REAL_ADDR_NODE (cur))
-        && btor_is_zero_bv (btor_get_bv_model (btor, cur)))
-      return 0; /* contains false constraint -> unsat */
-    b = btor_get_ptr_hash_table (slv->score, cur);
-    assert (b);
-    if ((score = b->data.as_dbl) >= 1.0) continue;
-    if (!res)
-    {
-      res = cur;
-      *selected += 1;
-      continue;
-    }
+    assert (slv->score);
 
-    value = score + BTOR_PROP_SELECT_CFACT * sqrt (log (*selected) / nmoves);
-    if (value > max_value)
+    int *selected;
+    double value, max_value, score;
+    BtorPtrHashBucket *b;
+
+    res       = 0;
+    max_value = 0.0;
+    btor_init_hash_table_iterator (&it, slv->roots);
+    while (btor_has_next_node_hash_table_iterator (&it))
     {
-      res       = cur;
-      max_value = value;
-      *selected += 1;
+      selected = &it.bucket->data.as_int;
+      cur      = btor_next_node_hash_table_iterator (&it);
+      if (BTOR_IS_BV_CONST_NODE (BTOR_REAL_ADDR_NODE (cur))
+          && btor_is_zero_bv (btor_get_bv_model (btor, cur)))
+        return 0; /* contains false constraint -> unsat */
+      b = btor_get_ptr_hash_table (slv->score, cur);
+      assert (b);
+      if ((score = b->data.as_dbl) >= 1.0) continue;
+      if (!res)
+      {
+        res = cur;
+        *selected += 1;
+        continue;
+      }
+
+      value = score + BTOR_PROP_SELECT_CFACT * sqrt (log (*selected) / nmoves);
+      if (value > max_value)
+      {
+        res       = cur;
+        max_value = value;
+        *selected += 1;
+      }
     }
+  }
+  else
+  {
+    uint32_t r;
+    BtorNodePtrStack stack;
+
+    res = 0;
+    BTOR_INIT_STACK (stack);
+    btor_init_hash_table_iterator (&it, slv->roots);
+    while (btor_has_next_node_hash_table_iterator (&it))
+    {
+      cur = btor_next_node_hash_table_iterator (&it);
+      if (BTOR_IS_BV_CONST_NODE (BTOR_REAL_ADDR_NODE (cur))
+          && btor_is_zero_bv (btor_get_bv_model (btor, cur)))
+        return 0; /* contains false constraint -> unsat */
+      if (!btor_is_zero_bv (btor_get_bv_model (btor, cur))) continue;
+      BTOR_PUSH_STACK (btor->mm, stack, cur);
+    }
+    assert (BTOR_COUNT_STACK (stack));
+    r   = btor_pick_rand_rng (&btor->rng, 0, BTOR_COUNT_STACK (stack) - 1);
+    res = stack.start[r];
+    BTOR_RELEASE_STACK (btor->mm, stack);
   }
 
   assert (res);
@@ -3183,7 +3210,7 @@ sat_prop_solver_aux (Btor *btor, int limit0, int limit1)
       btor_add_ptr_hash_table (slv->roots, root);
   }
 
-  if (!slv->score)
+  if (!slv->score && btor->options.prop_use_bandit.val)
     slv->score = btor_new_ptr_hash_table (btor->mm,
                                           (BtorHashPtr) btor_hash_exp_by_id,
                                           (BtorCmpPtr) btor_compare_exp_by_id);
@@ -3197,12 +3224,13 @@ sat_prop_solver_aux (Btor *btor, int limit0, int limit1)
     }
 
     /* compute initial sls score */
-    btor_compute_sls_scores (btor, slv->score);
+    if (btor->options.prop_use_bandit.val)
+      btor_compute_sls_scores (btor, slv->score);
 
     if (all_constraints_sat (btor)) goto SAT;
 
     for (j = 0, max_steps = BTOR_PROP_MAXSTEPS (slv->stats.restarts + 1);
-         j < max_steps;
+         !btor->options.prop_use_restarts.val || j < max_steps;
          j++)
     {
       if (btor_terminate_btor (btor))
@@ -3219,10 +3247,14 @@ sat_prop_solver_aux (Btor *btor, int limit0, int limit1)
 
     /* restart */
     slv->api.generate_model (btor, 0, 1);
-    btor_delete_ptr_hash_table (slv->score);
-    slv->score = btor_new_ptr_hash_table (btor->mm,
-                                          (BtorHashPtr) btor_hash_exp_by_id,
-                                          (BtorCmpPtr) btor_compare_exp_by_id);
+    if (btor->options.prop_use_bandit.val)
+    {
+      btor_delete_ptr_hash_table (slv->score);
+      slv->score =
+          btor_new_ptr_hash_table (btor->mm,
+                                   (BtorHashPtr) btor_hash_exp_by_id,
+                                   (BtorCmpPtr) btor_compare_exp_by_id);
+    }
     slv->stats.restarts += 1;
   }
 
@@ -3256,12 +3288,15 @@ sat_prop_solver (Btor *btor, int limit0, int limit1)
 {
   assert (btor);
 
+  double start;
   int sat_result;
 
   (void) limit0;
   (void) limit1;
 
   if (btor->inconsistent) return BTOR_UNSAT;
+
+  start = btor_time_stamp ();
 
   BTOR_MSG (btor->msg, 1, "calling SAT");
 
@@ -3283,6 +3318,7 @@ sat_prop_solver (Btor *btor, int limit0, int limit1)
    * the model generation (if enabled) after SAT has been determined. */
   BTOR_PROP_SOLVER (btor)->api.generate_model (btor, 0, 1);
   sat_result = sat_prop_solver_aux (btor, limit0, limit1);
+  BTOR_PROP_SOLVER (btor)->time.sat += btor_time_stamp () - start;
   return sat_result;
 }
 
@@ -3310,6 +3346,10 @@ print_stats_prop_solver (Btor *btor)
   BTOR_MSG (btor->msg, 1, "");
   BTOR_MSG (btor->msg, 1, "restarts: %d", slv->stats.restarts);
   BTOR_MSG (btor->msg, 1, "moves: %d", slv->stats.moves);
+  BTOR_MSG (btor->msg,
+            1,
+            "moves per second: %.2f",
+            (double) slv->stats.moves / slv->time.sat);
   BTOR_MSG (btor->msg, 1, "");
   BTOR_MSG (btor->msg,
             1,
@@ -3324,7 +3364,15 @@ print_stats_prop_solver (Btor *btor)
 static void
 print_time_stats_prop_solver (Btor *btor)
 {
-  (void) btor;
+  assert (btor);
+
+  BtorPropSolver *slv;
+
+  if (!(slv = BTOR_PROP_SOLVER (btor))) return;
+
+  BTOR_MSG (btor->msg, 1, "");
+  BTOR_MSG (btor->msg, 1, "%.2f seconds for sat call", slv->time.sat);
+  BTOR_MSG (btor->msg, 1, "");
 }
 
 BtorSolver *

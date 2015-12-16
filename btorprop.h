@@ -28,6 +28,11 @@ struct BtorPropSolver
     uint32_t move_prop_rec_conf;
     uint32_t move_prop_non_rec_conf;
   } stats;
+
+  struct
+  {
+    double sat;
+  } time;
 };
 
 typedef struct BtorPropSolver BtorPropSolver;
