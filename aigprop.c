@@ -625,7 +625,11 @@ select_root (AIGProp *aprop, uint32_t nmoves)
     while (btor_has_next_hash_table_iterator (&it))
     {
       cur = btor_next_hash_table_iterator (&it);
-      if (cur == BTOR_AIG_FALSE) return 0; /* contains false root -> unsat */
+      if (cur == BTOR_AIG_FALSE)
+      {
+        BTOR_RELEASE_STACK (aprop->amgr->mm, stack);
+        return 0; /* contains false root -> unsat */
+      }
       if (cur == BTOR_AIG_TRUE) continue;
       if (aigprop_get_assignment_aig (aprop->model, cur) == 1) continue;
       BTOR_PUSH_STACK (aprop->amgr->mm, stack, cur);
