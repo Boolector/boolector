@@ -37,7 +37,7 @@
     }                                                \
   } while (0)
 
-static void *
+static BtorSolver *
 clone_core_solver (Btor *clone, Btor *btor, BtorNodeMap *exp_map)
 {
   assert (clone);
@@ -101,7 +101,7 @@ clone_core_solver (Btor *clone, Btor *btor, BtorNodeMap *exp_map)
             BTOR_SIZE_STACK (slv->stats.lemmas_size) * sizeof (int));
   }
 
-  return res;
+  return (BtorSolver *) res;
 }
 
 static void

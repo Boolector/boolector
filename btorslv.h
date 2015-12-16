@@ -30,19 +30,19 @@ enum BtorSolverKind
 };
 typedef enum BtorSolverKind BtorSolverKind;
 
-#define BTOR_SOLVER_STRUCT                            \
-  struct                                              \
-  {                                                   \
-    BtorSolverKind kind;                              \
-    struct                                            \
-    {                                                 \
-      void *(*clone) (Btor *, Btor *, BtorNodeMap *); \
-      void (*delet) (Btor *);                         \
-      BtorSolverResult (*sat) (Btor *, int, int);     \
-      void (*generate_model) (Btor *, bool, bool);    \
-      void (*print_stats) (Btor *);                   \
-      void (*print_time_stats) (Btor *);              \
-    } api;                                            \
+#define BTOR_SOLVER_STRUCT                                         \
+  struct                                                           \
+  {                                                                \
+    BtorSolverKind kind;                                           \
+    struct                                                         \
+    {                                                              \
+      struct BtorSolver *(*clone) (Btor *, Btor *, BtorNodeMap *); \
+      void (*delet) (Btor *);                                      \
+      BtorSolverResult (*sat) (Btor *, int, int);                  \
+      void (*generate_model) (Btor *, bool, bool);                 \
+      void (*print_stats) (Btor *);                                \
+      void (*print_time_stats) (Btor *);                           \
+    } api;                                                         \
   }
 
 struct BtorSolver
