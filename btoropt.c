@@ -271,6 +271,15 @@ btor_init_opts (Btor *btor)
             1,
             "use prev. neighbor with better score as base for next move test");
 
+  // FIXME rename?
+  BTOR_OPT (0, prop_use_restarts, 1, 0, 1, "use restarts");
+  BTOR_OPT (0,
+            prop_use_bandit,
+            1,
+            0,
+            1,
+            "use bandit scheme for constraint selection");
+
   BTOR_OPT ("dp", dual_prop, 0, 0, 1, "dual propagation optimization");
   BTOR_OPT ("ju", just, 0, 0, 1, "justification optimization");
   BTOR_OPT (0,
