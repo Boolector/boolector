@@ -802,7 +802,7 @@ btor_dump_btor (Btor *btor, FILE *file, int version)
   bdc          = btor_new_dump_context (btor);
   bdc->version = 1;  // NOTE: version 2 not yet supported
 
-  if (ret == BTOR_UNKNOWN)
+  if (ret == BTOR_RESULT_UNKNOWN)
   {
     btor_init_node_hash_table_iterator (&it, btor->unsynthesized_constraints);
     btor_queue_node_hash_table_iterator (&it, btor->synthesized_constraints);
@@ -813,8 +813,9 @@ btor_dump_btor (Btor *btor, FILE *file, int version)
   }
   else
   {
-    assert (ret == BTOR_SAT || ret == BTOR_UNSAT);
-    temp = (ret == BTOR_SAT) ? btor_true_exp (btor) : btor_false_exp (btor);
+    assert (ret == BTOR_RESULT_SAT || ret == BTOR_RESULT_UNSAT);
+    temp =
+        (ret == BTOR_RESULT_SAT) ? btor_true_exp (btor) : btor_false_exp (btor);
     btor_add_root_to_dump_context (bdc, temp);
     btor_release_exp (btor, temp);
   }

@@ -1303,7 +1303,8 @@ dump_smt_aux (Btor *btor, FILE *file, BtorNode **roots, int nroots)
   assert (!btor->options.incremental.val);
   //  assert (!btor->options.model_gen.val);
 
-  int i, ret;
+  BtorSolverResult ret;
+  int i;
   BtorNode *temp, *tmp_roots[nroots];
   BtorHashTableIterator it;
   BtorSMTDumpContext *sdc;
@@ -1321,7 +1322,7 @@ dump_smt_aux (Btor *btor, FILE *file, BtorNode **roots, int nroots)
   {
     ret = btor_simplify (btor);
 
-    if (ret == BTOR_UNKNOWN)
+    if (ret == BTOR_RESULT_UNKNOWN)
     {
       btor_init_node_hash_table_iterator (&it, btor->unsynthesized_constraints);
       btor_queue_node_hash_table_iterator (&it, btor->synthesized_constraints);
@@ -1332,8 +1333,9 @@ dump_smt_aux (Btor *btor, FILE *file, BtorNode **roots, int nroots)
     }
     else
     {
-      assert (ret == BTOR_SAT || ret == BTOR_UNSAT);
-      temp = (ret == BTOR_SAT) ? btor_true_exp (btor) : btor_false_exp (btor);
+      assert (ret == BTOR_RESULT_SAT || ret == BTOR_RESULT_UNSAT);
+      temp = (ret == BTOR_RESULT_SAT) ? btor_true_exp (btor)
+                                      : btor_false_exp (btor);
       add_root_to_smt_dump_context (sdc, temp);
       btor_release_exp (btor, temp);
     }

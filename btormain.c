@@ -288,10 +288,7 @@ print_opt (BtorMainApp *app,
     sprintf (paramstr, "<seconds>");
   else if (!strcmp (lng, "output"))
     sprintf (paramstr, "<file>");
-  else if (!strcmp (lng, BTOR_OPT_REWRITE_LEVEL)
-           || !strcmp (lng, BTOR_OPT_PBRA_LOD_LIMIT)
-           || !strcmp (lng, BTOR_OPT_PBRA_SAT_LIMIT)
-           || !strcmp (lng, BTOR_OPT_PBRA_OPS_FACTOR))
+  else if (!strcmp (lng, BTOR_OPT_REWRITE_LEVEL))
     sprintf (paramstr, "<n>");
   else if (!strcmp (lng, "lingeling_opts"))
     sprintf (paramstr, "[,<opt>=<val>]+");
@@ -1069,10 +1066,7 @@ boolector_main (int argc, char **argv)
         }
       }
       /* options requiring an integer argument */
-      else if (IS_BTOR_OPT ("rwl", BTOR_OPT_REWRITE_LEVEL)
-               || IS_BTOR_OPT ("", BTOR_OPT_PBRA_LOD_LIMIT)
-               || IS_BTOR_OPT ("", BTOR_OPT_PBRA_SAT_LIMIT)
-               || IS_BTOR_OPT ("", BTOR_OPT_PBRA_OPS_FACTOR))
+      else if (IS_BTOR_OPT ("rwl", BTOR_OPT_REWRITE_LEVEL))
       {
         if (!readval) goto ERR_MISSING_ARGUMENT;
         if (!isint) goto ERR_INVALID_ARGUMENT;
