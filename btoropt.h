@@ -15,6 +15,8 @@
 
 #include <stdint.h>
 
+#define BTOR_VERBOSITY_MAX 4
+
 #define BTOR_INPUT_FORMAT_NONE 0
 #define BTOR_INPUT_FORMAT_BTOR 1
 #define BTOR_INPUT_FORMAT_BTOR2 2
