@@ -124,7 +124,6 @@
 static BtorSolver *new_core_solver (Btor *);
 static int sat_aux_btor_dual_prop (Btor *);
 static BtorAIG *exp_to_aig (Btor *, BtorNode *);
-static void synthesize_exp (Btor *, BtorNode *, BtorPtrHashTable *);
 
 #ifdef BTOR_CHECK_MODEL
 static void check_model (Btor *, Btor *, BtorPtrHashTable *);
@@ -3159,9 +3158,11 @@ DONE:
 
 /* bit vector skeleton is always encoded, i.e., if BTOR_IS_SYNTH_NODE is true,
  * then it is also encoded. with option lazy_synthesize enabled,
- * 'synthesize_exp' stops at feq and apply nodes */
-static void
-synthesize_exp (Btor *btor, BtorNode *exp, BtorPtrHashTable *backannotation)
+ * 'btor_synthesize_exp' stops at feq and apply nodes */
+void
+btor_synthesize_exp (Btor *btor,
+                     BtorNode *exp,
+                     BtorPtrHashTable *backannotation)
 {
   BtorNodePtrStack exp_stack;
   BtorNode *cur, *value, *args;
@@ -5913,7 +5914,7 @@ exp_to_aig (Btor *btor, BtorNode *exp)
 
   amgr = btor_get_aig_mgr_btor (btor);
 
-  synthesize_exp (btor, exp, 0);
+  btor_synthesize_exp (btor, exp, 0);
   av = BTOR_REAL_ADDR_NODE (exp)->av;
 
   assert (av);
@@ -5939,7 +5940,7 @@ btor_exp_to_aigvec (Btor *btor, BtorNode *exp, BtorPtrHashTable *backannotation)
 
   avmgr = btor->avmgr;
 
-  synthesize_exp (btor, exp, backannotation);
+  btor_synthesize_exp (btor, exp, backannotation);
   result = BTOR_REAL_ADDR_NODE (exp)->av;
   assert (result);
 

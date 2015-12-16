@@ -229,8 +229,6 @@ sat_aigprop_solver (Btor *btor, int limit0, int limit1)
   assert (btor_check_all_hash_tables_proxy_free_dbg (btor));
   assert (btor_check_all_hash_tables_simp_free_dbg (btor));
 
-  btor_add_again_assumptions (btor);
-
 #ifndef NDEBUG
   btor_init_node_hash_table_iterator (&it, btor->assumptions);
   while (btor_has_next_node_hash_table_iterator (&it))
@@ -245,6 +243,9 @@ sat_aigprop_solver (Btor *btor, int limit0, int limit1)
 #ifndef NBTORLOG
   slv->aprop->loglevel = btor->options.loglevel.val;
 #endif
+  slv->aprop->seed         = btor->options.seed.val;
+  slv->aprop->use_restarts = btor->options.aigprop_use_restarts.val;
+  slv->aprop->use_bandit   = btor->options.aigprop_use_bandit.val;
 
   /* collect roots AIGs */
   slv->aprop->roots =
@@ -257,7 +258,8 @@ sat_aigprop_solver (Btor *btor, int limit0, int limit1)
   while (btor_has_next_node_hash_table_iterator (&it))
   {
     root = btor_next_node_hash_table_iterator (&it);
-    if (!BTOR_REAL_ADDR_NODE (root)->av) continue;
+
+    if (!BTOR_REAL_ADDR_NODE (root)->av) btor_synthesize_exp (btor, root, 0);
     assert (BTOR_REAL_ADDR_NODE (root)->av->len == 1);
     aig = BTOR_REAL_ADDR_NODE (root)->av->aigs[0];
     if (BTOR_IS_INVERTED_NODE (root)) aig = BTOR_INVERT_AIG (aig);
@@ -303,16 +305,26 @@ print_stats_aigprop_solver (Btor *btor)
   if (!(slv = BTOR_AIGPROP_SOLVER (btor))) return;
 
   BTOR_MSG (btor->msg, 1, "");
-  BTOR_MSG (btor->msg, 1, "moves: %d", slv->stats.moves);
   BTOR_MSG (btor->msg, 1, "restarts: %d", slv->stats.restarts);
+  BTOR_MSG (btor->msg, 1, "moves: %d", slv->stats.moves);
+  BTOR_MSG (btor->msg,
+            1,
+            "moves per second: %.2f",
+            (double) slv->stats.moves / slv->time.aprop_sat);
 }
 
 static void
 print_time_stats_aigprop_solver (Btor *btor)
 {
   assert (btor);
+  BtorAIGPropSolver *slv;
+
+  if (!(slv = BTOR_AIGPROP_SOLVER (btor))) return;
+
   BTOR_MSG (btor->msg, 1, "");
-  BTOR_MSG (btor->msg, 1, "%.2f seconds in AIG propagator");
+  BTOR_MSG (
+      btor->msg, 1, "%.2f seconds in AIG propagator", slv->time.aprop_sat);
+  BTOR_MSG (btor->msg, 1, "");
 }
 
 BtorSolver *
@@ -333,7 +345,9 @@ btor_new_aigprop_solver (Btor *btor)
   slv->api.print_time_stats = print_time_stats_aigprop_solver;
 
   slv->aprop = aigprop_new_aigprop (btor_get_aig_mgr_btor (btor),
-                                    btor->options.seed.val);
+                                    btor->options.seed.val,
+                                    btor->options.aigprop_use_restarts.val,
+                                    btor->options.aigprop_use_bandit.val);
 
   BTOR_MSG (btor->msg, 1, "enabled aigprop engine");
 

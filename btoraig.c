@@ -1365,6 +1365,8 @@ btor_add_toplevel_aig_to_sat (BtorAIGMgr *amgr, BtorAIG *root)
   mm   = amgr->mm;
   smgr = amgr->smgr;
 
+  if (!btor_is_initialized_sat (smgr)) return;
+
   if (root == BTOR_AIG_TRUE) return;
 
   if (root == BTOR_AIG_FALSE)

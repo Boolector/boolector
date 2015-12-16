@@ -578,44 +578,62 @@ select_root (AIGProp *aprop, uint32_t nmoves)
   assert (aprop->roots);
   assert (aprop->score);
 
-  int *selected;
-  double value, max_value, score;
   BtorAIG *res, *cur;
   BtorHashTableIterator it;
-  BtorPtrHashBucket *b;
 
-  res       = 0;
-  max_value = 0.0;
-  btor_init_hash_table_iterator (&it, aprop->roots);
-  while (btor_has_next_hash_table_iterator (&it))
+  res = 0;
+
+  if (aprop->use_bandit)
   {
-    selected = &it.bucket->data.as_int;
-    cur      = btor_next_hash_table_iterator (&it);
-    if (cur == BTOR_AIG_FALSE) return 0; /* contains false root -> unsat */
-    if (cur == BTOR_AIG_TRUE) continue;
-    b = btor_get_ptr_hash_table (aprop->score, cur);
-    assert (b);
-    // printf ("root %s%d ass %d score %f\n",
-    //	  BTOR_IS_INVERTED_AIG (cur) ? "-" : "",
-    //	  BTOR_REAL_ADDR_AIG (cur)->id,
-    //	  btor_get_ptr_hash_table (aprop->model, BTOR_REAL_ADDR_AIG
-    //(cur))->data.as_int, 	  btor_get_ptr_hash_table (aprop->score,
-    // cur)->data.as_dbl);
+    int *selected;
+    double value, max_value, score;
+    BtorPtrHashBucket *b;
 
-    if ((score = b->data.as_dbl) >= 1.0) continue;
-    if (!res)
+    max_value = 0.0;
+    btor_init_hash_table_iterator (&it, aprop->roots);
+    while (btor_has_next_hash_table_iterator (&it))
     {
-      res = cur;
-      *selected += 1;
-      continue;
+      selected = &it.bucket->data.as_int;
+      cur      = btor_next_hash_table_iterator (&it);
+      if (cur == BTOR_AIG_FALSE) return 0; /* contains false root -> unsat */
+      if (cur == BTOR_AIG_TRUE) continue;
+      b = btor_get_ptr_hash_table (aprop->score, cur);
+      assert (b);
+      if ((score = b->data.as_dbl) >= 1.0) continue;
+      if (!res)
+      {
+        res = cur;
+        *selected += 1;
+        continue;
+      }
+      value = score + AIGPROP_SELECT_CFACT * sqrt (log (*selected) / nmoves);
+      if (value > max_value)
+      {
+        res       = cur;
+        max_value = value;
+        *selected *= 1;
+      }
     }
-    value = score + AIGPROP_SELECT_CFACT * sqrt (log (*selected) / nmoves);
-    if (value > max_value)
+  }
+  else
+  {
+    uint32_t r;
+    BtorAIGPtrStack stack;
+
+    BTOR_INIT_STACK (stack);
+    btor_init_hash_table_iterator (&it, aprop->roots);
+    while (btor_has_next_hash_table_iterator (&it))
     {
-      res       = cur;
-      max_value = value;
-      *selected *= 1;
+      cur = btor_next_hash_table_iterator (&it);
+      if (cur == BTOR_AIG_FALSE) return 0; /* contains false root -> unsat */
+      if (cur == BTOR_AIG_TRUE) continue;
+      if (aigprop_get_assignment_aig (aprop->model, cur) == 1) continue;
+      BTOR_PUSH_STACK (aprop->amgr->mm, stack, cur);
     }
+    assert (BTOR_COUNT_STACK (stack));
+    r   = btor_pick_rand_rng (&aprop->rng, 0, BTOR_COUNT_STACK (stack) - 1);
+    res = stack.start[r];
+    BTOR_RELEASE_STACK (aprop->amgr->mm, stack);
   }
 
   assert (res);
@@ -825,7 +843,8 @@ aigprop_sat (AIGProp *aprop)
 
     if (all_roots_sat (aprop)) goto SAT;
 
-    for (j = 0; j < (max_steps = AIGPROP_MAXSTEPS (aprop->stats.restarts + 1));
+    for (j = 0, max_steps = AIGPROP_MAXSTEPS (aprop->stats.restarts + 1);
+         !aprop->use_restarts || j < max_steps;
          j++)
     {
       if (!(move (aprop, nmoves))) goto UNSAT;
@@ -905,7 +924,10 @@ aigprop_clone_aigprop (BtorAIGMgr *clone, AIGProp *aprop)
 }
 
 AIGProp *
-aigprop_new_aigprop (BtorAIGMgr *amgr, uint32_t seed)
+aigprop_new_aigprop (BtorAIGMgr *amgr,
+                     uint32_t seed,
+                     uint32_t use_restarts,
+                     uint32_t use_bandit)
 {
   assert (amgr);
 
@@ -914,7 +936,9 @@ aigprop_new_aigprop (BtorAIGMgr *amgr, uint32_t seed)
   BTOR_CNEW (amgr->mm, res);
   res->amgr = amgr;
   btor_init_rng (&res->rng, seed);
-  res->seed = seed;
+  res->seed         = seed;
+  res->use_restarts = use_restarts;
+  res->use_bandit   = use_bandit;
 
   return res;
 }
