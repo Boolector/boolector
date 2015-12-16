@@ -14,18 +14,13 @@
 #include "btorcore.h"
 #include "btorclone.h"
 #include "btorconfig.h"
-#include "btorconst.h"
-#include "btorcoresolver.h"
 #include "btordbg.h"
 #include "btorexit.h"
 #include "btorlog.h"
 #include "btormodel.h"
 #include "btormsg.h"
 #include "btoropt.h"
-#include "btorprintmodel.h"
 #include "btorrewrite.h"
-#include "btorsat.h"
-#include "dumper/btordumpbtor.h"
 #include "simplifier/btorack.h"
 #include "simplifier/btorelimapplies.h"
 #include "simplifier/btorelimslices.h"
@@ -35,20 +30,13 @@
 #include "utils/btorhashint.h"
 #include "utils/btoriter.h"
 #include "utils/btormisc.h"
-#include "utils/btorparamcache.h"
 #include "utils/btorutil.h"
-
-#include <limits.h>
-
-/*------------------------------------------------------------------------*/
-
-#ifndef BTOR_USE_LINGELING
-#define BTOR_DO_NOT_PROCESS_SKELETON
-#endif
-
 #ifndef BTOR_DO_NOT_PROCESS_SKELETON
 #include "simplifier/btorskel.h"
 #endif
+#include "btorcoresolver.h"
+
+#include <limits.h>
 
 /*------------------------------------------------------------------------*/
 

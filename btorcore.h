@@ -40,6 +40,10 @@
 // TODO (ma): why?
 #undef BTOR_CHECK_FAILED
 
+#ifndef BTOR_USE_LINGELING
+#define BTOR_DO_NOT_PROCESS_SKELETON
+#endif
+
 // Currently, 'BoolectorNode' (external) vs. 'BtorNode' (internal)
 // syntactically hides internal nodes.  Hence, we assume that both structs
 // 'BoolectorNode' and 'BtorNode' have/ the same structure and provide the
