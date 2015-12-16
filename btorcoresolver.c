@@ -2103,7 +2103,7 @@ check_and_resolve_conflicts (Btor *btor,
 }
 
 static BtorSolverResult
-sat_core_solver (Btor *btor, int lod_limit, int sat_limit)
+sat_core_solver (Btor *btor)
 {
   assert (btor);
   assert (btor->slv);
@@ -2187,8 +2187,8 @@ sat_core_solver (Btor *btor, int lod_limit, int sat_limit)
   btor_add_again_assumptions (btor);
   assert (btor_check_reachable_flag_dbg (btor));
 
-  if (sat_limit > -1)
-    sat_result = timed_sat_sat (btor, sat_limit);
+  if (slv->sat_limit > -1)
+    sat_result = timed_sat_sat (btor, slv->sat_limit);
   else
     sat_result = timed_sat_sat (btor, -1);
 
@@ -2201,7 +2201,8 @@ sat_core_solver (Btor *btor, int lod_limit, int sat_limit)
   while (sat_result == BTOR_SAT_SAT)
   {
     if (btor_terminate_btor (btor)
-        || (lod_limit > -1 && slv->stats.lod_refinements >= lod_limit))
+        || (slv->lod_limit > -1
+            && slv->stats.lod_refinements >= slv->lod_limit))
     {
       sat_result = BTOR_RESULT_UNKNOWN;
       goto DONE;
@@ -2460,6 +2461,9 @@ btor_new_core_solver (Btor *btor)
   slv->api.generate_model   = generate_model_core_solver;
   slv->api.print_stats      = print_stats_core_solver;
   slv->api.print_time_stats = print_time_stats_core_solver;
+
+  slv->lod_limit = -1;
+  slv->sat_limit = -1;
 
   slv->lemmas = btor_new_ptr_hash_table (btor->mm,
                                          (BtorHashPtr) btor_hash_exp_by_id,

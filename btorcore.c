@@ -3643,6 +3643,10 @@ btor_sat_btor (Btor *btor, int lod_limit, int sat_limit)
 
   if (!btor->slv) btor->slv = btor_new_core_solver (btor);
   assert (btor->slv);
+  assert (btor->slv->kind == BTOR_CORE_SOLVER_KIND);
+  // TODO (ma): make options for lod_limit and sat_limit
+  BTOR_CORE_SOLVER (btor)->lod_limit = lod_limit;
+  BTOR_CORE_SOLVER (btor)->sat_limit = sat_limit;
 
 #ifdef BTOR_CHECK_UNCONSTRAINED
   Btor *uclone = 0;
@@ -3696,7 +3700,7 @@ btor_sat_btor (Btor *btor, int lod_limit, int sat_limit)
   }
 #endif
 
-  res = btor->slv->api.sat (btor, lod_limit, sat_limit);
+  res = btor->slv->api.sat (btor);
   btor->btor_sat_btor_called++;
 
 #ifdef BTOR_CHECK_UNCONSTRAINED
@@ -3706,8 +3710,7 @@ btor_sat_btor (Btor *btor, int lod_limit, int sat_limit)
     assert (btor->options.rewrite_level.val > 2);
     assert (!btor->options.incremental.val);
     assert (!btor->options.model_gen.val);
-    BtorSolverResult ucres =
-        uclone->slv->api.sat (uclone, lod_limit, sat_limit);
+    BtorSolverResult ucres = uclone->slv->api.sat (uclone);
     assert (res == ucres);
   }
 #endif
@@ -4061,7 +4064,7 @@ check_model (Btor *btor, Btor *clone, BtorPtrHashTable *inputs)
 
   //  btor_print_model (btor, "btor", stdout);
   assert (ret != BTOR_RESULT_UNKNOWN
-          || clone->slv->api.sat (clone, -1, -1) == BTOR_RESULT_SAT);
+          || clone->slv->api.sat (clone) == BTOR_RESULT_SAT);
   // TODO: check if roots have been simplified through aig rewriting
   // BTOR_ABORT_CORE (ret == BTOR_RESULT_UNKNOWN, "rewriting needed");
   BTOR_ABORT_CORE (ret == BTOR_RESULT_UNSAT, "invalid model");
@@ -4076,7 +4079,7 @@ check_dual_prop (Btor *btor, Btor *clone)
   assert (btor->options.dual_prop.val);
   assert (clone);
 
-  clone->slv->api.sat (clone, -1, -1);
+  clone->slv->api.sat (clone);
   assert (btor->last_sat_result == clone->last_sat_result);
 }
 #endif
@@ -4114,6 +4117,6 @@ check_failed_assumptions (Btor *btor, Btor *clone)
                                (BtorHashPtr) btor_hash_exp_by_id,
                                (BtorCmpPtr) btor_compare_exp_by_id);
 
-  assert (clone->slv->api.sat (clone, -1, -1) == BTOR_RESULT_UNSAT);
+  assert (clone->slv->api.sat (clone) == BTOR_RESULT_UNSAT);
 }
 #endif

@@ -38,7 +38,7 @@ typedef enum BtorSolverKind BtorSolverKind;
     {                                                              \
       struct BtorSolver *(*clone) (Btor *, Btor *, BtorNodeMap *); \
       void (*delet) (Btor *);                                      \
-      BtorSolverResult (*sat) (Btor *, int, int);                  \
+      BtorSolverResult (*sat) (Btor *);                            \
       void (*generate_model) (Btor *, bool, bool);                 \
       void (*print_stats) (Btor *);                                \
       void (*print_time_stats) (Btor *);                           \
