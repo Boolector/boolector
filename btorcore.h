@@ -15,7 +15,6 @@
 #define BTORCORE_H_INCLUDED
 
 #include "btorass.h"
-#include "btorbitvec.h"
 #include "btorexp.h"
 #include "btormsg.h"
 #include "btoropt.h"
@@ -47,19 +46,6 @@
 #define BTOR_EXPORT_BOOLECTOR_NODE(node) (((BoolectorNode *) (node)))
 #define BTOR_IMPORT_BOOLECTOR_SORT(sort) (((BtorSortId) (sort)))
 #define BTOR_EXPORT_BOOLECTOR_SORT(sort) (((BoolectorSort) (sort)))
-
-/*------------------------------------------------------------------------*/
-
-#define BOOLECTOR_IS_REGULAR_NODE BTOR_IS_INVERTED_NODE
-#define BOOLECTOR_IS_INVERTED_NODE BTOR_IS_INVERTED_NODE
-
-#define BOOLECTOR_REAL_ADDR_NODE(node) \
-  BTOR_EXPORT_BOOLECTOR_NODE (         \
-      BTOR_REAL_ADDR_NODE (BTOR_IMPORT_BOOLECTOR_NODE (node)))
-
-#define BOOLECTOR_INVERT_NODE(node) \
-  BTOR_EXPORT_BOOLECTOR_NODE (      \
-      BTOR_INVERT_NODE (BTOR_IMPORT_BOOLECTOR_NODE (node)))
 
 /*------------------------------------------------------------------------*/
 

@@ -80,8 +80,6 @@ enum BtorNodeKind
 
 typedef enum BtorNodeKind BtorNodeKind;
 
-typedef struct BtorNodePair BtorNodePair;
-
 #define BTOR_BV_NODE_STRUCT                                             \
   struct                                                                \
   {                                                                     \
@@ -374,6 +372,8 @@ struct BtorNodePair
   BtorNode *exp1;
   BtorNode *exp2;
 };
+
+typedef struct BtorNodePair BtorNodePair;
 
 BtorNodePair *btor_new_exp_pair (Btor *, BtorNode *, BtorNode *);
 

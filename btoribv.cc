@@ -1,7 +1,8 @@
 /*  Boolector: Satisfiablity Modulo Theories (SMT) solver.
  *
  *  Copyright (C) 2012-2014 Armin Biere.
- *  Copyright (C) 2014 Aina niemetz.
+ *  Copyright (C) 2014 Aina Niemetz.
+ *  Copyright (C) 2015 Mathias Preiner.
  *
  *  All rights reserved.
  *
@@ -2508,11 +2509,12 @@ BtorIBV::translate_assignment_conquer (BtorIBVAtom *a,
           }
           else
           {
-            BoolectorNode *l =
-                boolector_or (btor, BOOLECTOR_INVERT_NODE (c), d);
-            BoolectorNode *i = boolector_not (btor, c);
-            BoolectorNode *r =
-                boolector_or (btor, BOOLECTOR_INVERT_NODE (i), res);
+            BoolectorNode *inv = boolector_not (btor, c);
+            BoolectorNode *l   = boolector_or (btor, inv, d);
+            BoolectorNode *i   = boolector_not (btor, c);
+            boolector_release (btor, inv);
+            inv                = boolector_not (btor, i);
+            BoolectorNode *r   = boolector_or (btor, inv, res);
             BoolectorNode *tmp = boolector_and (btor, l, r);
             boolector_release (btor, l);
             boolector_release (btor, i);
@@ -3410,8 +3412,9 @@ BtorIBV::translate ()
         boolector_release (btor, zero);
         boolector_release (btor, one);
       }
-      BoolectorNode *tmp = boolector_implies (
-          btor, BOOLECTOR_INVERT_NODE (initialized_latch), constraint);
+      BoolectorNode *inv = boolector_not (btor, initialized_latch);
+      BoolectorNode *tmp = boolector_implies (btor, inv, constraint);
+      boolector_release (btor, inv);
       boolector_release (btor, constraint);
       constraint = tmp;
       ninitialized++;
