@@ -3035,7 +3035,10 @@ select_constraint (Btor *btor, uint32_t nmoves)
       cur = btor_next_node_hash_table_iterator (&it);
       if (BTOR_IS_BV_CONST_NODE (BTOR_REAL_ADDR_NODE (cur))
           && btor_is_zero_bv (btor_get_bv_model (btor, cur)))
+      {
+        BTOR_RELEASE_STACK (btor->mm, stack);
         return 0; /* contains false constraint -> unsat */
+      }
       if (!btor_is_zero_bv (btor_get_bv_model (btor, cur))) continue;
       BTOR_PUSH_STACK (btor->mm, stack, cur);
     }
