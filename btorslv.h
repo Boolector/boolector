@@ -27,6 +27,7 @@ typedef enum BtorSolverResult BtorSolverResult;
 enum BtorSolverKind
 {
   BTOR_CORE_SOLVER_KIND,
+  BTOR_EF_SOLVER_KIND,
 };
 typedef enum BtorSolverKind BtorSolverKind;
 
