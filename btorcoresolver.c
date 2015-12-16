@@ -25,6 +25,13 @@
 #include "utils/btorstack.h"
 #include "utils/btorutil.h"
 
+#define DP_QSORT_JUST 0
+#define DP_QSORT_ASC 1
+#define DP_QSORT_DESC 2
+#define DP_QSORT_ASC_DESC_FIRST 3
+#define DP_QSORT_ASC_DESC_ALW 4
+#define DP_QSORT DP_QSORT_JUST
+
 // TODO (ma): better abort handling BTOR_ABORT_INTERNAL?
 #define BTOR_ABORT_CORE(cond, msg)                   \
   do                                                 \

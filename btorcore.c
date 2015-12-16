@@ -50,23 +50,6 @@
 #include "simplifier/btorskel.h"
 #endif
 
-#if !defined(NDEBUG) && defined(BTOR_USE_LINGELING)
-#ifndef BTOR_DO_NOT_OPTIMIZE_UNCONSTRAINED
-#define BTOR_CHECK_UNCONSTRAINED
-#endif
-#define BTOR_CHECK_MODEL
-#define BTOR_CHECK_DUAL_PROP
-#endif
-// TODO (ma): why?
-#undef BTOR_CHECK_FAILED
-
-#define DP_QSORT_JUST 0
-#define DP_QSORT_ASC 1
-#define DP_QSORT_DESC 2
-#define DP_QSORT_ASC_DESC_FIRST 3
-#define DP_QSORT_ASC_DESC_ALW 4
-#define DP_QSORT DP_QSORT_JUST
-
 /*------------------------------------------------------------------------*/
 
 #define BTOR_INIT_UNIQUE_TABLE(mm, table) \
