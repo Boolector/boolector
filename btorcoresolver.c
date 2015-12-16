@@ -44,7 +44,7 @@
     }                                                \
   } while (0)
 
-static BtorSolver *
+static BtorCoreSolver *
 clone_core_solver (Btor *clone, Btor *btor, BtorNodeMap *exp_map)
 {
   assert (clone);
@@ -62,6 +62,7 @@ clone_core_solver (Btor *clone, Btor *btor, BtorNodeMap *exp_map)
   BTOR_NEW (clone->mm, res);
   memcpy (res, slv, sizeof (BtorCoreSolver));
 
+  res->btor   = clone;
   res->lemmas = btor_clone_ptr_hash_table (
       clone->mm, slv->lemmas, btor_clone_key_as_node, 0, exp_map, 0);
 
@@ -108,22 +109,23 @@ clone_core_solver (Btor *clone, Btor *btor, BtorNodeMap *exp_map)
             BTOR_SIZE_STACK (slv->stats.lemmas_size) * sizeof (int));
   }
 
-  return (BtorSolver *) res;
+  return res;
 }
 
 static void
-delete_core_solver (Btor *btor)
+delete_core_solver (BtorCoreSolver *slv)
 {
-  assert (btor);
-  assert (btor->slv);
-  assert (btor->slv->kind == BTOR_CORE_SOLVER_KIND);
+  assert (slv);
+  assert (slv->kind == BTOR_CORE_SOLVER_KIND);
+  assert (slv->btor);
+  assert (slv->btor->slv == (BtorSolver *) slv);
 
-  BtorCoreSolver *slv;
   BtorPtrHashTable *t;
   BtorHashTableIterator it, iit;
   BtorNode *exp;
+  Btor *btor;
 
-  if (!(slv = BTOR_CORE_SOLVER (btor))) return;
+  btor = slv->btor;
 
   btor_init_node_hash_table_iterator (&it, slv->lemmas);
   while (btor_has_next_node_hash_table_iterator (&it))
@@ -2110,24 +2112,23 @@ check_and_resolve_conflicts (Btor *btor,
 }
 
 static BtorSolverResult
-sat_core_solver (Btor *btor)
+sat_core_solver (BtorCoreSolver *slv)
 {
-  assert (btor);
-  assert (btor->slv);
-  assert (btor->slv->kind == BTOR_CORE_SOLVER_KIND);
+  assert (slv);
+  assert (slv->kind == BTOR_CORE_SOLVER_KIND);
+  assert (slv->btor);
+  assert (slv->btor->slv == (BtorSolver *) slv);
 
-  BtorCoreSolver *slv;
   double start;
   int i, sat_result;
   BtorSATMgr *smgr;
-  Btor *clone;
+  Btor *btor, *clone;
   BtorNode *clone_root, *lemma;
   BtorNodeMap *exp_map;
   BtorSolverResult simp_sat_result;
 
   start = btor_time_stamp ();
-  slv   = BTOR_CORE_SOLVER (btor);
-  assert (slv);
+  btor  = slv->btor;
 
   clone      = 0;
   clone_root = 0;
@@ -2287,28 +2288,38 @@ DONE:
 /*------------------------------------------------------------------------*/
 
 static void
-generate_model_core_solver (Btor *btor, bool model_for_all_nodes, bool reset)
+generate_model_core_solver (BtorCoreSolver *slv,
+                            bool model_for_all_nodes,
+                            bool reset)
 {
-  assert (btor);
+  assert (slv);
+  assert (slv->kind == BTOR_CORE_SOLVER_KIND);
+  assert (slv->btor);
+  assert (slv->btor->slv == (BtorSolver *) slv);
   /* already created during check_and_resolve_conflicts */
-  assert (btor->bv_model);
+  assert (slv->btor->bv_model);
 
   (void) reset;
-  btor_init_fun_model (btor, &btor->fun_model);
+  btor_init_fun_model (slv->btor, &slv->btor->fun_model);
 
-  btor_generate_model (
-      btor, btor->bv_model, btor->fun_model, model_for_all_nodes);
+  btor_generate_model (slv->btor,
+                       slv->btor->bv_model,
+                       slv->btor->fun_model,
+                       model_for_all_nodes);
 }
 
 static void
-print_stats_core_solver (Btor *btor)
+print_stats_core_solver (BtorCoreSolver *slv)
 {
-  assert (btor);
-  assert (btor->slv);
-  assert (btor->slv->kind == BTOR_CORE_SOLVER_KIND);
+  assert (slv);
+  assert (slv->kind == BTOR_CORE_SOLVER_KIND);
+  assert (slv->btor);
+  assert (slv->btor->slv == (BtorSolver *) slv);
 
   int i;
-  BtorCoreSolver *slv;
+  Btor *btor;
+
+  btor = slv->btor;
 
   if (!(slv = BTOR_CORE_SOLVER (btor))) return;
 
@@ -2375,15 +2386,16 @@ print_stats_core_solver (Btor *btor)
 }
 
 static void
-print_time_stats_core_solver (Btor *btor)
+print_time_stats_core_solver (BtorCoreSolver *slv)
 {
-  assert (btor);
-  assert (btor->slv);
-  assert (btor->slv->kind == BTOR_CORE_SOLVER_KIND);
+  assert (slv);
+  assert (slv->kind == BTOR_CORE_SOLVER_KIND);
+  assert (slv->btor);
+  assert (slv->btor->slv == (BtorSolver *) slv);
 
-  BtorCoreSolver *slv;
+  Btor *btor;
 
-  if (!(slv = BTOR_CORE_SOLVER (btor))) return;
+  btor = slv->btor;
 
   BTOR_MSG (btor->msg, 1, "");
   BTOR_MSG (btor->msg, 1, "%.2f seconds expression evaluation", slv->time.eval);
@@ -2461,13 +2473,16 @@ btor_new_core_solver (Btor *btor)
 
   BTOR_CNEW (btor->mm, slv);
 
-  slv->kind                 = BTOR_CORE_SOLVER_KIND;
-  slv->api.clone            = clone_core_solver;
-  slv->api.delet            = delete_core_solver;
-  slv->api.sat              = sat_core_solver;
-  slv->api.generate_model   = generate_model_core_solver;
-  slv->api.print_stats      = print_stats_core_solver;
-  slv->api.print_time_stats = print_time_stats_core_solver;
+  slv->kind      = BTOR_CORE_SOLVER_KIND;
+  slv->btor      = btor;
+  slv->api.clone = (BtorSolverClone) clone_core_solver;
+  slv->api.delet = (BtorSolverDelete) delete_core_solver;
+  slv->api.sat   = (BtorSolverSat) sat_core_solver;
+  slv->api.generate_model =
+      (BtorSolverGenerateModel) generate_model_core_solver;
+  slv->api.print_stats = (BtorSolverPrintStats) print_stats_core_solver;
+  slv->api.print_time_stats =
+      (BtorSolverPrintTimeStats) print_time_stats_core_solver;
 
   slv->lod_limit = -1;
   slv->sat_limit = -1;
