@@ -24,6 +24,10 @@ struct BtorCoreSolver
 
   BtorPtrHashTable *score; /* dcr score */
 
+  // TODO (ma): make options for these
+  int lod_limit;
+  int sat_limit;
+
   /* compare fun for sorting the inputs in search_inital_applies_dual_prop */
   int (*dp_cmp_inputs) (const void *, const void *);
 

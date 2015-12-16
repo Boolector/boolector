@@ -14,18 +14,13 @@
 #include "btorcore.h"
 #include "btorclone.h"
 #include "btorconfig.h"
-#include "btorconst.h"
-#include "btorcoresolver.h"
 #include "btordbg.h"
 #include "btorexit.h"
 #include "btorlog.h"
 #include "btormodel.h"
 #include "btormsg.h"
 #include "btoropt.h"
-#include "btorprintmodel.h"
 #include "btorrewrite.h"
-#include "btorsat.h"
-#include "dumper/btordumpbtor.h"
 #include "simplifier/btorack.h"
 #include "simplifier/btorelimapplies.h"
 #include "simplifier/btorelimslices.h"
@@ -35,37 +30,13 @@
 #include "utils/btorhashint.h"
 #include "utils/btoriter.h"
 #include "utils/btormisc.h"
-#include "utils/btorparamcache.h"
 #include "utils/btorutil.h"
-
-#include <limits.h>
-
-/*------------------------------------------------------------------------*/
-
-#ifndef BTOR_USE_LINGELING
-#define BTOR_DO_NOT_PROCESS_SKELETON
-#endif
-
 #ifndef BTOR_DO_NOT_PROCESS_SKELETON
 #include "simplifier/btorskel.h"
 #endif
+#include "btorcoresolver.h"
 
-#if !defined(NDEBUG) && defined(BTOR_USE_LINGELING)
-#ifndef BTOR_DO_NOT_OPTIMIZE_UNCONSTRAINED
-#define BTOR_CHECK_UNCONSTRAINED
-#endif
-#define BTOR_CHECK_MODEL
-#define BTOR_CHECK_DUAL_PROP
-#endif
-// TODO (ma): why?
-#undef BTOR_CHECK_FAILED
-
-#define DP_QSORT_JUST 0
-#define DP_QSORT_ASC 1
-#define DP_QSORT_DESC 2
-#define DP_QSORT_ASC_DESC_FIRST 3
-#define DP_QSORT_ASC_DESC_ALW 4
-#define DP_QSORT DP_QSORT_JUST
+#include <limits.h>
 
 /*------------------------------------------------------------------------*/
 
@@ -602,7 +573,7 @@ btor_print_stats_btor (Btor *btor)
       btor->msg, 1, "beta reductions: %lld", btor->stats.beta_reduce_calls);
   BTOR_MSG (btor->msg, 1, "clone calls: %lld", btor->stats.clone_calls);
 
-  if (btor->slv) btor->slv->api.print_stats (btor);
+  if (btor->slv) btor->slv->api.print_stats (btor->slv);
 
   BTOR_MSG (btor->msg, 1, "");
   BTOR_MSG (btor->msg, 1, "%.2f seconds beta-reduction", btor->time.beta);
@@ -668,7 +639,7 @@ btor_print_stats_btor (Btor *btor)
             percent (btor->time.skel, btor->time.rewrite));
 #endif
 
-  if (btor->slv) btor->slv->api.print_time_stats (btor);
+  if (btor->slv) btor->slv->api.print_time_stats (btor->slv);
 
   BTOR_MSG (btor->msg, 1, "");
   BTOR_MSG (
@@ -888,7 +859,7 @@ btor_delete_btor (Btor *btor)
 
   mm = btor->mm;
 
-  if (btor->slv) btor->slv->api.delet (btor);
+  if (btor->slv) btor->slv->api.delet (btor->slv);
 
   if (btor->parse_error_msg) btor_freestr (mm, btor->parse_error_msg);
 
@@ -3648,6 +3619,10 @@ btor_sat_btor (Btor *btor, int lod_limit, int sat_limit)
 
   if (!btor->slv) btor->slv = btor_new_core_solver (btor);
   assert (btor->slv);
+  assert (btor->slv->kind == BTOR_CORE_SOLVER_KIND);
+  // TODO (ma): make options for lod_limit and sat_limit
+  BTOR_CORE_SOLVER (btor)->lod_limit = lod_limit;
+  BTOR_CORE_SOLVER (btor)->sat_limit = sat_limit;
 
 #ifdef BTOR_CHECK_UNCONSTRAINED
   Btor *uclone = 0;
@@ -3701,7 +3676,7 @@ btor_sat_btor (Btor *btor, int lod_limit, int sat_limit)
   }
 #endif
 
-  res = btor->slv->api.sat (btor, lod_limit, sat_limit);
+  res = btor->slv->api.sat (btor->slv);
   btor->btor_sat_btor_called++;
 
 #ifdef BTOR_CHECK_UNCONSTRAINED
@@ -3711,15 +3686,14 @@ btor_sat_btor (Btor *btor, int lod_limit, int sat_limit)
     assert (btor->options.rewrite_level.val > 2);
     assert (!btor->options.incremental.val);
     assert (!btor->options.model_gen.val);
-    BtorSolverResult ucres =
-        uclone->slv->api.sat (uclone, lod_limit, sat_limit);
+    BtorSolverResult ucres = uclone->slv->api.sat (uclone->slv);
     assert (res == ucres);
   }
 #endif
 
   if (btor->options.model_gen.val && res == BTOR_RESULT_SAT)
     btor->slv->api.generate_model (
-        btor, btor->options.model_gen.val == 2, true);
+        btor->slv, btor->options.model_gen.val == 2, true);
 
 #ifdef BTOR_CHECK_MODEL
   if (mclone)
@@ -3728,7 +3702,7 @@ btor_sat_btor (Btor *btor, int lod_limit, int sat_limit)
     if (res == BTOR_RESULT_SAT && !btor->options.ucopt.val)
     {
       if (!btor->options.model_gen.val)
-        btor->slv->api.generate_model (btor, false, true);
+        btor->slv->api.generate_model (btor->slv, false, true);
       check_model (btor, mclone, inputs);
     }
 
@@ -4066,7 +4040,7 @@ check_model (Btor *btor, Btor *clone, BtorPtrHashTable *inputs)
 
   //  btor_print_model (btor, "btor", stdout);
   assert (ret != BTOR_RESULT_UNKNOWN
-          || clone->slv->api.sat (clone, -1, -1) == BTOR_RESULT_SAT);
+          || clone->slv->api.sat (clone->slv) == BTOR_RESULT_SAT);
   // TODO: check if roots have been simplified through aig rewriting
   // BTOR_ABORT_CORE (ret == BTOR_RESULT_UNKNOWN, "rewriting needed");
   BTOR_ABORT_CORE (ret == BTOR_RESULT_UNSAT, "invalid model");
@@ -4081,7 +4055,7 @@ check_dual_prop (Btor *btor, Btor *clone)
   assert (btor->options.dual_prop.val);
   assert (clone);
 
-  clone->slv->api.sat (clone, -1, -1);
+  clone->slv->api.sat (clone->slv);
   assert (btor->last_sat_result == clone->last_sat_result);
 }
 #endif
@@ -4119,6 +4093,6 @@ check_failed_assumptions (Btor *btor, Btor *clone)
                                (BtorHashPtr) btor_hash_exp_by_id,
                                (BtorCmpPtr) btor_compare_exp_by_id);
 
-  assert (clone->slv->api.sat (clone, -1, -1) == BTOR_RESULT_UNSAT);
+  assert (clone->slv->api.sat (clone->slv) == BTOR_RESULT_UNSAT);
 }
 #endif
