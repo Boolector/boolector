@@ -3302,7 +3302,7 @@ clone_data_as_sls_constr_data_ptr (BtorMemMgr *mm,
   cloned_data->as_ptr = cd;
 }
 
-static void *
+static BtorSLSSolver *
 clone_sls_solver (Btor *clone, Btor *btor, BtorNodeMap *exp_map)
 {
   assert (clone);
@@ -3369,15 +3369,18 @@ clone_sls_solver (Btor *clone, Btor *btor, BtorNodeMap *exp_map)
 }
 
 static void
-delete_sls_solver (Btor *btor)
+delete_sls_solver (BtorSLSSolver *slv)
 {
-  assert (btor);
+  assert (slv);
+  assert (slv->kind == BTOR_SLS_SOLVER_KIND);
+  assert (slv->btor);
+  assert (slv->btor->slv == (BtorSolver *) slv);
 
+  Btor *btor;
   BtorHashTableIterator it;
   BtorSLSMove *m;
-  BtorSLSSolver *slv;
 
-  if (!(slv = BTOR_SLS_SOLVER (btor))) return;
+  btor = slv->btor;
 
   if (slv->score) btor_delete_ptr_hash_table (slv->score);
   if (slv->roots) btor_delete_ptr_hash_table (slv->roots);
@@ -3402,26 +3405,24 @@ delete_sls_solver (Btor *btor)
 
 /* Note: failed assumptions -> no handling necessary, sls only works for SAT
  * Note: limits are currently unused */
-static int
-sat_sls_solver (Btor *btor, int limit0, int limit1)
+static BtorSolverResult
+sat_sls_solver (BtorSLSSolver *slv)
 {
-  assert (btor);
+  assert (slv);
+  assert (slv->kind == BTOR_SLS_SOLVER_KIND);
+  assert (slv->btor);
+  assert (slv->btor->slv == (BtorSolver *) slv);
 
   int j, max_steps;
-  int sat_result;
+  BtorSolverResult sat_result;
   int nmoves;
   BtorNode *root;
   BtorPtrHashBucket *b;
   BtorSLSConstrData *d;
   BtorHashTableIterator it;
-  BtorSLSSolver *slv;
+  Btor *btor;
 
-  (void) limit0;
-  (void) limit1;
-
-  slv = BTOR_SLS_SOLVER (btor);
-  assert (slv);
-
+  btor   = slv->btor;
   nmoves = 0;
 
   //#ifndef NDEBUG
@@ -3446,12 +3447,11 @@ sat_sls_solver (Btor *btor, int limit0, int limit1)
 
   if (btor_terminate_btor (btor))
   {
-    sat_result = BTOR_UNKNOWN;
+    sat_result = BTOR_RESULT_UNKNOWN;
     goto DONE;
   }
 
   sat_result = btor_simplify (btor);
-  btor_update_assumptions (btor);
   BTOR_ABORT_BOOLECTOR (
       btor->ufs->count != 0
           || (!btor->options.beta_reduce_all.val && btor->lambdas->count != 0),
@@ -3461,14 +3461,14 @@ sat_sls_solver (Btor *btor, int limit0, int limit1)
 
   if (btor_terminate_btor (btor))
   {
-    sat_result = BTOR_UNKNOWN;
+    sat_result = BTOR_RESULT_UNKNOWN;
     goto DONE;
   }
 
   /* Generate intial model, all bv vars are initialized with zero. We do
    * not have to consider model_for_all_nodes, but let this be handled by
    * the model generation (if enabled) after SAT has been determined. */
-  slv->api.generate_model (btor, 0, 1);
+  slv->api.generate_model ((BtorSolver *) slv, false, true);
 
   /* collect roots */
   assert (!slv->roots);
@@ -3499,7 +3499,7 @@ sat_sls_solver (Btor *btor, int limit0, int limit1)
   {
     if (btor_terminate_btor (btor))
     {
-      sat_result = BTOR_UNKNOWN;
+      sat_result = BTOR_RESULT_UNKNOWN;
       goto DONE;
     }
 
@@ -3508,7 +3508,7 @@ sat_sls_solver (Btor *btor, int limit0, int limit1)
 
     if (compute_sls_score_formula (btor, slv->score) == -1.0)
     {
-      sat_result = BTOR_SAT;
+      sat_result = BTOR_RESULT_SAT;
       goto SAT;
     }
 
@@ -3518,7 +3518,7 @@ sat_sls_solver (Btor *btor, int limit0, int limit1)
     {
       if (btor_terminate_btor (btor))
       {
-        sat_result = BTOR_UNKNOWN;
+        sat_result = BTOR_RESULT_UNKNOWN;
         goto DONE;
       }
 
@@ -3527,13 +3527,13 @@ sat_sls_solver (Btor *btor, int limit0, int limit1)
 
       if (compute_sls_score_formula (btor, slv->score) == -1.0)
       {
-        sat_result = BTOR_SAT;
+        sat_result = BTOR_RESULT_SAT;
         goto SAT;
       }
     }
 
     /* restart */
-    slv->api.generate_model (btor, 0, 1);
+    slv->api.generate_model ((BtorSolver *) slv, false, true);
     btor_delete_ptr_hash_table (slv->score);
     slv->score = btor_new_ptr_hash_table (btor->mm,
                                           (BtorHashPtr) btor_hash_exp_by_id,
@@ -3542,11 +3542,11 @@ sat_sls_solver (Btor *btor, int limit0, int limit1)
   }
 
 SAT:
-  assert (sat_result == BTOR_SAT);
+  assert (sat_result == BTOR_RESULT_SAT);
   goto DONE;
 
 UNSAT:
-  sat_result = BTOR_UNSAT;
+  sat_result = BTOR_RESULT_UNSAT;
 
 DONE:
   btor->valid_assignments = 1;
@@ -3571,9 +3571,18 @@ DONE:
 }
 
 static void
-generate_model_sls_solver (Btor *btor, int model_for_all_nodes, int reset)
+generate_model_sls_solver (BtorSLSSolver *slv,
+                           bool model_for_all_nodes,
+                           bool reset)
 {
-  assert (btor);
+  assert (slv);
+  assert (slv->kind == BTOR_SLS_SOLVER_KIND);
+  assert (slv->btor);
+  assert (slv->btor->slv == (BtorSolver *) slv);
+
+  Btor *btor;
+
+  btor = slv->btor;
 
   if (!reset && btor->bv_model) return;
   btor_init_bv_model (btor, &btor->bv_model);
@@ -3583,13 +3592,16 @@ generate_model_sls_solver (Btor *btor, int model_for_all_nodes, int reset)
 }
 
 static void
-print_stats_sls_solver (Btor *btor)
+print_stats_sls_solver (BtorSLSSolver *slv)
 {
-  assert (btor);
+  assert (slv);
+  assert (slv->kind == BTOR_SLS_SOLVER_KIND);
+  assert (slv->btor);
+  assert (slv->btor->slv == (BtorSolver *) slv);
 
-  BtorSLSSolver *slv;
+  Btor *btor;
 
-  if (!(slv = BTOR_SLS_SOLVER (btor))) return;
+  btor = slv->btor;
 
   BTOR_MSG (btor->msg, 1, "");
   BTOR_MSG (btor->msg, 1, "sls restarts: %d", slv->stats.restarts);
@@ -3639,9 +3651,9 @@ print_stats_sls_solver (Btor *btor)
 }
 
 static void
-print_time_stats_sls_solver (Btor *btor)
+print_time_stats_sls_solver (BtorSLSSolver *slv)
 {
-  (void) btor;
+  (void) slv;
 }
 
 BtorSolver *
@@ -3654,13 +3666,15 @@ btor_new_sls_solver (Btor *btor)
   BTOR_CNEW (btor->mm, slv);
 
   slv->kind = BTOR_SLS_SOLVER_KIND;
+  slv->btor = btor;
 
-  slv->api.clone            = clone_sls_solver;
-  slv->api.delet            = delete_sls_solver;
-  slv->api.sat              = sat_sls_solver;
-  slv->api.generate_model   = generate_model_sls_solver;
-  slv->api.print_stats      = print_stats_sls_solver;
-  slv->api.print_time_stats = print_time_stats_sls_solver;
+  slv->api.clone          = (BtorSolverClone) clone_sls_solver;
+  slv->api.delet          = (BtorSolverDelete) delete_sls_solver;
+  slv->api.sat            = (BtorSolverSat) sat_sls_solver;
+  slv->api.generate_model = (BtorSolverGenerateModel) generate_model_sls_solver;
+  slv->api.print_stats    = (BtorSolverPrintStats) print_stats_sls_solver;
+  slv->api.print_time_stats =
+      (BtorSolverPrintTimeStats) print_time_stats_sls_solver;
 
   BTOR_MSG (btor->msg, 1, "enabled sls engine");
 

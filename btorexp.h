@@ -80,8 +80,6 @@ enum BtorNodeKind
 
 typedef enum BtorNodeKind BtorNodeKind;
 
-typedef struct BtorNodePair BtorNodePair;
-
 #define BTOR_BV_NODE_STRUCT                                             \
   struct                                                                \
   {                                                                     \
@@ -382,6 +380,8 @@ struct BtorNodePair
   BtorNode *exp1;
   BtorNode *exp2;
 };
+
+typedef struct BtorNodePair BtorNodePair;
 
 BtorNodePair *btor_new_exp_pair (Btor *, BtorNode *, BtorNode *);
 
@@ -904,8 +904,14 @@ uint32_t btor_slice_get_upper (BtorNode *slice);
 uint32_t btor_slice_get_lower (BtorNode *slice);
 
 BtorNode *btor_param_get_binding_lambda (BtorNode *param);
+
 void btor_param_set_binding_lambda (BtorNode *param, BtorNode *lambda);
+
 bool btor_param_is_bound (BtorNode *param);
+
+BtorNode *btor_param_get_assigned_exp (BtorNode *param);
+
+BtorNode *btor_param_set_assigned_exp (BtorNode *param, BtorNode *exp);
 
 /* Copies expression (increments reference counter). */
 BtorNode *btor_copy_exp (Btor *btor, BtorNode *exp);

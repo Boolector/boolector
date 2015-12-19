@@ -390,7 +390,7 @@ boolector_failed (Btor *btor, BoolectorNode *node)
   exp = BTOR_IMPORT_BOOLECTOR_NODE (node);
   BTOR_ABORT_ARG_NULL_BOOLECTOR (btor);
   BTOR_ABORT_BOOLECTOR (
-      btor->last_sat_result != BTOR_UNSAT,
+      btor->last_sat_result != BTOR_RESULT_UNSAT,
       "cannot check failed assumptions if input formula is not UNSAT");
   BTOR_ABORT_ARG_NULL_BOOLECTOR (exp);
   BTOR_TRAPI_UNFUN (exp);
@@ -620,20 +620,7 @@ boolector_set_opt (Btor *btor, const char *name, int val)
                           "Unconstrained optimization cannot be enabled "
                           "if model generation is enabled");
 #endif
-#ifdef BTOR_ENABLE_BETA_REDUCTION_PROBING
-    BTOR_ABORT_BOOLECTOR (btor->options.probe_beta_reduce_all.val,
-                          "Beta reduction probing cannot be enabled if "
-                          "model generation is enabled");
-#endif
   }
-#ifdef BTOR_ENABLE_BETA_REDUCTION_PROBING
-  else if (!strcmp (name, BTOR_OPT_PBRA))
-  {
-    BTOR_ABORT_BOOLECTOR (btor->options.model_gen.val,
-                          "Beta reduction probing cannot be enabled if "
-                          "model generation is enabled");
-  }
-#endif
   else if (!strcmp (name, BTOR_OPT_DUAL_PROP))
   {
     BTOR_ABORT_BOOLECTOR (
@@ -3119,7 +3106,7 @@ boolector_bv_assignment (Btor *btor, BoolectorNode *node)
   BTOR_ABORT_ARG_NULL_BOOLECTOR (exp);
   BTOR_TRAPI_UNFUN (exp);
   BTOR_ABORT_BOOLECTOR (
-      btor->last_sat_result != BTOR_SAT,
+      btor->last_sat_result != BTOR_RESULT_SAT,
       "cannot retrieve assignment if input formula is not SAT");
   BTOR_ABORT_REFS_NOT_POS_BOOLECTOR (exp);
   BTOR_ABORT_IF_BTOR_DOES_NOT_MATCH (btor, exp);
@@ -3209,7 +3196,7 @@ boolector_array_assignment (Btor *btor,
   e_array = BTOR_IMPORT_BOOLECTOR_NODE (n_array);
   BTOR_ABORT_ARG_NULL_BOOLECTOR (btor);
   BTOR_ABORT_BOOLECTOR (
-      btor->last_sat_result != BTOR_SAT,
+      btor->last_sat_result != BTOR_RESULT_SAT,
       "cannot retrieve assignment if input formula is not SAT");
   BTOR_ABORT_ARG_NULL_BOOLECTOR (e_array);
   BTOR_TRAPI_UNFUN (e_array);
@@ -3297,7 +3284,7 @@ boolector_uf_assignment (
   e_uf = BTOR_IMPORT_BOOLECTOR_NODE (n_uf);
   BTOR_ABORT_ARG_NULL_BOOLECTOR (btor);
   BTOR_ABORT_BOOLECTOR (
-      btor->last_sat_result != BTOR_SAT,
+      btor->last_sat_result != BTOR_RESULT_SAT,
       "cannot retrieve assignment if input formula is not SAT");
   BTOR_ABORT_ARG_NULL_BOOLECTOR (e_uf);
   BTOR_TRAPI_UNFUN (e_uf);

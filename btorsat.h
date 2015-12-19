@@ -100,9 +100,14 @@ struct BtorLGL
 
 /*------------------------------------------------------------------------*/
 
-#define BTOR_SAT 10
-#define BTOR_UNSAT 20
-#define BTOR_UNKNOWN 0
+enum BtorSatResult
+{
+  BTOR_SAT_SAT     = 10,
+  BTOR_SAT_UNSAT   = 20,
+  BTOR_SAT_UNKNOWN = 0
+};
+
+typedef enum BtorSatResult BtorSatResult;
 
 /*------------------------------------------------------------------------*/
 
@@ -167,7 +172,7 @@ int btor_failed_sat (BtorSATMgr *smgr, int lit);
 /* Solves the SAT instance.
  * limit < 0 -> no limit.
  */
-int btor_sat_sat (BtorSATMgr *smgr, int limit);
+BtorSatResult btor_sat_sat (BtorSATMgr *smgr, int limit);
 
 /* Gets assignment of a literal (in the SAT case).
  * Do not call before calling btor_sat_sat.

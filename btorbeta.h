@@ -11,7 +11,8 @@
 #ifndef BTORBETA_H_INCLUDED
 #define BTORBETA_H_INCLUDED
 
-#include "btorcore.h"
+#include "btortypes.h"
+#include "utils/btorhashptr.h"
 
 BtorNode* btor_beta_reduce_full (Btor* btor, BtorNode* exp);
 
@@ -33,8 +34,6 @@ BtorNode* btor_beta_reduce_partial_collect (Btor* btor,
                                             BtorPtrHashTable* cond_sel_else);
 
 BtorNode* btor_beta_reduce_bounded (Btor* btor, BtorNode* exp, int bound);
-
-BtorNode* btor_param_cur_assignment (BtorNode* exp);
 
 BtorNode* btor_apply_and_reduce (Btor* btor,
                                  int argc,

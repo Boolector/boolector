@@ -2879,12 +2879,6 @@ btormbt_state_opt (BtorMBT *mbt, unsigned r)
               || boolector_get_opt_val (mbt->btor, BTOR_OPT_INCREMENTAL)))
         continue;
 #endif
-      /* do not enable beta reduction probing if model generation is
-       * enabled */
-      if (!strcmp (btoropt->name, BTOR_OPT_PBRA)
-          && boolector_get_opt_val (mbt->btor, BTOR_OPT_MODEL_GEN))
-        continue;
-
       /* do not enable justification if dual propagation is enabled */
       if (!strcmp (btoropt->name, BTOR_OPT_JUST)
           && boolector_get_opt_val (mbt->btor, BTOR_OPT_DUAL_PROP))
@@ -3324,7 +3318,7 @@ btormbt_state_sat (BtorMBT *mbt, unsigned r)
     BTORMBT_LOG (1, "sat call returned %d", res);
 
   if (res == BOOLECTOR_UNSAT
-      && !boolector_get_opt_val (mbt->btor, BTOR_OPT_ENGINE) == BTOR_ENGINE_SLS)
+      && boolector_get_opt_val (mbt->btor, BTOR_OPT_ENGINE) != BTOR_ENGINE_SLS)
   {
     /* check failed assumptions */
     for (i = 0; i < BTOR_COUNT_STACK (mbt->assumptions->exps); i++)

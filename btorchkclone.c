@@ -16,6 +16,7 @@
 #include "btorchkclone.h"
 #include "btorbitvec.h"
 #include "btorcore.h"
+#include "btorcoresolver.h"
 #include "btoropt.h"
 #include "btorslv.h"
 #include "utils/btoriter.h"
@@ -165,12 +166,6 @@ btor_chkclone_opts (Btor *btor)
   BTOR_CHKCLONE_OPT (rewrite_level);
 
   BTOR_CHKCLONE_OPT (beta_reduce_all);
-#ifdef BTOR_ENABLE_BETA_REDUCTION_PROBING
-  BTOR_CHKCLONE_OPT (probe_beta_reduce_all);
-  BTOR_CHKCLONE_OPT (pbra_lod_limit);
-  BTOR_CHKCLONE_OPT (pbra_sat_limit);
-  BTOR_CHKCLONE_OPT (pbra_ops_factor);
-#endif
 
   BTOR_CHKCLONE_OPT (dual_prop);
   BTOR_CHKCLONE_OPT (just);

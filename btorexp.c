@@ -4222,6 +4222,23 @@ btor_param_is_bound (BtorNode *param)
   return btor_param_get_binding_lambda (param) != 0;
 }
 
+BtorNode *
+btor_param_get_assigned_exp (BtorNode *param)
+{
+  assert (BTOR_IS_PARAM_NODE (BTOR_REAL_ADDR_NODE (param)));
+  return ((BtorParamNode *) BTOR_REAL_ADDR_NODE (param))->assigned_exp;
+}
+
+BtorNode *
+btor_param_set_assigned_exp (BtorNode *param, BtorNode *exp)
+{
+  assert (BTOR_IS_PARAM_NODE (BTOR_REAL_ADDR_NODE (param)));
+  assert (!exp
+          || BTOR_REAL_ADDR_NODE (param)->sort_id
+                 == BTOR_REAL_ADDR_NODE (exp)->sort_id);
+  return ((BtorParamNode *) BTOR_REAL_ADDR_NODE (param))->assigned_exp = exp;
+}
+
 #ifndef NDEBUG
 
 BtorNode *

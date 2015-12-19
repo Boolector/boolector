@@ -312,7 +312,7 @@ btor_recursively_compute_assignment (Btor *btor,
       /* substitute param with its assignment */
       else if (BTOR_IS_PARAM_NODE (real_cur))
       {
-        next = btor_param_cur_assignment (real_cur);
+        next = btor_param_get_assigned_exp (real_cur);
         assert (next);
         next = BTOR_COND_INVERT_NODE (cur, next);
         BTOR_PUSH_STACK (mm, work_stack, next);

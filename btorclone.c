@@ -15,6 +15,7 @@
 #include "btorbeta.h"
 #include "btorbitvec.h"
 #include "btorcore.h"
+#include "btorcoresolver.h"
 #include "btorlog.h"
 #include "btormsg.h"
 #include "btorsat.h"
@@ -1421,7 +1422,7 @@ btor_recursively_rebuild_exp_clone (Btor *btor,
           cur_clone = btor_concat_exp (clone, e[0], e[1]);
           break;
         case BTOR_LAMBDA_NODE:
-          assert (!btor_param_cur_assignment (e[0]));
+          assert (!btor_param_get_assigned_exp (e[0]));
           btor_param_set_binding_lambda (e[0], 0);
           cur_clone = btor_lambda_exp (clone, e[0], e[1]);
           break;

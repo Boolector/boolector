@@ -415,7 +415,7 @@ void
 btor_print_model (Btor *btor, char *format, FILE *file)
 {
   assert (btor);
-  assert (btor->last_sat_result == BTOR_SAT);
+  assert (btor->last_sat_result == BTOR_RESULT_SAT);
   assert (format);
   assert (!strcmp (format, "btor") || !strcmp (format, "smt2"));
   assert (file);
@@ -582,7 +582,7 @@ btor_print_value (
     Btor *btor, BtorNode *exp, char *exp_str, char *format, FILE *file)
 {
   assert (btor);
-  assert (btor->last_sat_result == BTOR_SAT);
+  assert (btor->last_sat_result == BTOR_RESULT_SAT);
   assert (exp);
   assert (format);
   assert (!strcmp (format, "btor") || !strcmp (format, "smt2"));

@@ -15,6 +15,15 @@
 #include "utils/btormap.h"
 #include "utils/btormem.h"
 
+enum BtorSolverResult
+{
+  BTOR_RESULT_SAT     = 10,
+  BTOR_RESULT_UNSAT   = 20,
+  BTOR_RESULT_UNKNOWN = 0,
+};
+
+typedef enum BtorSolverResult BtorSolverResult;
+
 enum BtorSolverKind
 {
   BTOR_CORE_SOLVER_KIND,
@@ -22,19 +31,27 @@ enum BtorSolverKind
 };
 typedef enum BtorSolverKind BtorSolverKind;
 
-#define BTOR_SOLVER_STRUCT                            \
-  struct                                              \
-  {                                                   \
-    BtorSolverKind kind;                              \
-    struct                                            \
-    {                                                 \
-      void *(*clone) (Btor *, Btor *, BtorNodeMap *); \
-      void (*delet) (Btor *);                         \
-      int (*sat) (Btor *, int, int);                  \
-      void (*generate_model) (Btor *, int, int);      \
-      void (*print_stats) (Btor *);                   \
-      void (*print_time_stats) (Btor *);              \
-    } api;                                            \
+typedef struct BtorSolver *(*BtorSolverClone) (Btor *, Btor *, BtorNodeMap *);
+typedef void (*BtorSolverDelete) (struct BtorSolver *);
+typedef BtorSolverResult (*BtorSolverSat) (struct BtorSolver *);
+typedef void (*BtorSolverGenerateModel) (struct BtorSolver *, bool, bool);
+typedef void (*BtorSolverPrintStats) (struct BtorSolver *);
+typedef void (*BtorSolverPrintTimeStats) (struct BtorSolver *);
+
+#define BTOR_SOLVER_STRUCT                       \
+  struct                                         \
+  {                                              \
+    BtorSolverKind kind;                         \
+    Btor *btor;                                  \
+    struct                                       \
+    {                                            \
+      BtorSolverClone clone;                     \
+      BtorSolverDelete delet;                    \
+      BtorSolverSat sat;                         \
+      BtorSolverGenerateModel generate_model;    \
+      BtorSolverPrintStats print_stats;          \
+      BtorSolverPrintTimeStats print_time_stats; \
+    } api;                                       \
   }
 
 struct BtorSolver
