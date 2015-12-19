@@ -398,9 +398,9 @@ generate_model_ef_solver (BtorEFSolver *slv,
   while (btor_has_next_node_hash_table_iterator (&it))
   {
     cur = btor_next_node_hash_table_iterator (&it);
-    //      printf ("cur: %s\n", node2string (cur));
-    bv = btor_get_bv_model (slv->exists_solver,
+    bv  = btor_get_bv_model (slv->exists_solver,
                             btor_simplify_exp (slv->exists_solver, cur));
+    // TODO (ma): map exists variables back to exists params
     btor_add_to_bv_model (slv->btor,
                           slv->btor->bv_model,
                           btor_get_node_by_id (slv->btor, cur->id),
