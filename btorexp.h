@@ -972,8 +972,8 @@ void btor_lambda_set_static_rho (BtorNode *lambda,
 
 BtorPtrHashTable *btor_lambda_copy_static_rho (Btor *btor, BtorNode *lambda);
 
-BtorNode *btor_binder_get_body (BtorNode *lambda);
-void btor_binder_set_body (BtorNode *lambda, BtorNode *body);
+BtorNode *btor_binder_get_body (BtorNode *binder);
+void btor_binder_set_body (BtorNode *binder, BtorNode *body);
 
 /* Getter for BtorSliceNode fields */
 uint32_t btor_slice_get_upper (BtorNode *slice);

@@ -4417,19 +4417,19 @@ btor_lambda_copy_static_rho (Btor *btor, BtorNode *lambda)
 }
 
 BtorNode *
-btor_binder_get_body (BtorNode *lambda)
+btor_binder_get_body (BtorNode *binder)
 {
-  assert (BTOR_IS_REGULAR_NODE (lambda));
-  assert (BTOR_IS_LAMBDA_NODE (lambda));
-  return ((BtorLambdaNode *) lambda)->body;
+  assert (BTOR_IS_REGULAR_NODE (binder));
+  assert (BTOR_IS_BINDER_NODE (binder));
+  return ((BtorBinderNode *) binder)->body;
 }
 
 void
-btor_binder_set_body (BtorNode *lambda, BtorNode *body)
+btor_binder_set_body (BtorNode *binder, BtorNode *body)
 {
-  assert (BTOR_IS_REGULAR_NODE (lambda));
-  assert (BTOR_IS_LAMBDA_NODE (lambda));
-  ((BtorLambdaNode *) lambda)->body = body;
+  assert (BTOR_IS_REGULAR_NODE (binder));
+  assert (BTOR_IS_BINDER_NODE (binder));
+  ((BtorBinderNode *) binder)->body = body;
 }
 
 uint32_t
