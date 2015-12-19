@@ -962,6 +962,8 @@ boolector_main (int argc, char **argv)
         boolector_set_opt (g_app->btor, BTOR_OPT_ENGINE, BTOR_ENGINE_CORE);
       else if (!strcasecmp (valstr, "sls"))
         boolector_set_opt (g_app->btor, BTOR_OPT_ENGINE, BTOR_ENGINE_SLS);
+      else if (!strcasecmp (valstr, "ef"))
+        boolector_set_opt (g_app->btor, BTOR_OPT_ENGINE, BTOR_ENGINE_EF);
     }
     else if (!strcmp (opt.start, "btor"))
     {
