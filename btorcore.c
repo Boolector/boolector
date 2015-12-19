@@ -34,8 +34,8 @@
 #ifndef BTOR_DO_NOT_PROCESS_SKELETON
 #include "simplifier/btorskel.h"
 #endif
-#include "btorefsolver.h"
 #include "btorslvcore.h"
+#include "btorslvef.h"
 #include "btorslvsls.h"
 
 #include <limits.h>

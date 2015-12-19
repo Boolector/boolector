@@ -8,8 +8,8 @@
  *  See COPYING for more information on using this software.
  */
 
-#ifndef BTOREFSOLVER_H_INCLUDED
-#define BTOREFSOLVER_H_INCLUDED
+#ifndef BTORSLVEF_H_INCLUDED
+#define BTORSLVEF_H_INCLUDED
 
 #include "btorslv.h"
 #include "btortypes.h"
