@@ -13,9 +13,9 @@
 #include "btorbitvec.h"
 #include "btorclone.h"
 #include "btorcore.h"
-#include "btorcoresolver.h"
 #include "btorexp.h"
 #include "btormodel.h"
+#include "btorslvcore.h"
 #include "utils/btoriter.h"
 
 /*------------------------------------------------------------------------*/

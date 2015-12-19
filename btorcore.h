@@ -20,9 +20,11 @@
 #include "btoropt.h"
 #include "btorsat.h"
 #include "btorslv.h"
+#include "btorslvsls.h"
 #include "btorsort.h"
 #include "btortypes.h"
 #include "utils/btormem.h"
+#include "utils/btorutil.h"
 
 /*------------------------------------------------------------------------*/
 
@@ -165,6 +167,7 @@ struct Btor
 
   BtorOpts options;
   BtorMsg *msg;
+  BtorRNG rng;
 
   struct
   {

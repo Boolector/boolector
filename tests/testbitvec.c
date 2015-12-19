@@ -41,6 +41,7 @@ init_bitvec_tests (void)
 {
   g_btor = btor_new_btor ();
   g_mm   = btor_get_mem_mgr_btor (g_btor);
+  btor_init_rng (&g_btor->rng, g_btor->options.seed.val);
 }
 
 static void
@@ -75,6 +76,44 @@ random_bv (uint32_t bw)
                      >> (BTOR_BV_TYPE_BW - 1 - (bw % BTOR_BV_TYPE_BW)));
 
   return res;
+}
+
+static void
+test_new_random_range_bitvec (void)
+{
+  uint32_t bw;
+  uint64_t val;
+  BtorBitVector *bv, *from, *to, *tmp;
+
+  for (bw = 1; bw <= 64; bw++)
+  {
+    from = random_bv (bw);
+    // from == to
+    bv  = btor_new_random_range_bv (g_mm, &g_btor->rng, bw, from, from);
+    val = btor_bv_to_uint64_bv (bv);
+    assert (val == btor_bv_to_uint64_bv (from));
+    btor_free_bv (g_mm, bv);
+    // from < to
+    to = random_bv (bw);
+    while (!btor_compare_bv (from, to))
+    {
+      btor_free_bv (g_mm, to);
+      to = random_bv (bw);
+    }
+    if (btor_bv_to_uint64_bv (to) < btor_bv_to_uint64_bv (from))
+    {
+      tmp  = to;
+      to   = from;
+      from = tmp;
+    }
+    bv  = btor_new_random_range_bv (g_mm, &g_btor->rng, bw, from, to);
+    val = btor_bv_to_uint64_bv (bv);
+    assert (val >= btor_bv_to_uint64_bv (from));
+    assert (val <= btor_bv_to_uint64_bv (to));
+    btor_free_bv (g_mm, from);
+    btor_free_bv (g_mm, to);
+    btor_free_bv (g_mm, bv);
+  }
 }
 
 static void
@@ -510,6 +549,43 @@ binary_bitvec (char *(*const_func) (BtorMemMgr *, const char *, const char *),
 }
 
 static void
+ext_bitvec (char *(*const_func) (BtorMemMgr *, const char *, uint32_t),
+            BtorBitVector *(*bitvec_func) (BtorMemMgr *,
+                                           BtorBitVector *,
+                                           uint32_t),
+            int num_tests,
+            uint32_t bit_width)
+{
+  assert (const_func);
+  assert (bitvec_func);
+
+  int i, bw;
+  char *c_a, *c_res, *str;
+  BtorBitVector *a, *res;
+
+  printf (" %d", bit_width);
+  fflush (stdout);
+  for (i = 0; i < num_tests; i++)
+  {
+    a     = random_bv (bit_width);
+    c_a   = btor_bv_to_char_bv (g_mm, a);
+    bw    = btor_pick_rand_rng (&g_btor->rng, a->width + 1, 100);
+    c_res = const_func (g_mm, c_a, bw);
+    res   = bitvec_func (g_mm, a, bw);
+    str   = btor_bv_to_char_bv (g_mm, res);
+
+    assert (strlen (str) == strlen (c_res));
+    assert (memcmp (c_res, str, strlen (str)) == 0);
+
+    btor_freestr (g_mm, str);
+    btor_delete_const (g_mm, c_res);
+    btor_free_bv (g_mm, res);
+    btor_delete_const (g_mm, c_a);
+    btor_free_bv (g_mm, a);
+  }
+}
+
+static void
 test_not_bitvec (void)
 {
   unary_bitvec (btor_not_const, btor_not_bv, BTOR_TEST_BITVEC_TESTS, 1);
@@ -561,7 +637,6 @@ test_eq_bitvec (void)
 static void
 test_ult_bitvec (void)
 {
-  binary_bitvec (btor_ult_const, btor_ult_bv, BTOR_TEST_BITVEC_TESTS, 1);
   binary_bitvec (btor_ult_const, btor_ult_bv, BTOR_TEST_BITVEC_TESTS, 7);
   binary_bitvec (btor_ult_const, btor_ult_bv, BTOR_TEST_BITVEC_TESTS, 31);
   binary_bitvec (btor_ult_const, btor_ult_bv, BTOR_TEST_BITVEC_TESTS, 33);
@@ -574,6 +649,7 @@ test_ult_bitvec (void)
 static void
 test_and_bitvec (void)
 {
+  binary_bitvec (btor_ult_const, btor_ult_bv, BTOR_TEST_BITVEC_TESTS, 1);
   binary_bitvec (btor_and_const, btor_and_bv, BTOR_TEST_BITVEC_TESTS, 1);
   binary_bitvec (btor_and_const, btor_and_bv, BTOR_TEST_BITVEC_TESTS, 7);
   binary_bitvec (btor_and_const, btor_and_bv, BTOR_TEST_BITVEC_TESTS, 31);
@@ -679,6 +755,78 @@ test_srl_bitvec (void)
   shift_bitvec (btor_srl_const, btor_srl_bv, BTOR_TEST_BITVEC_TESTS, 32);
   shift_bitvec (btor_srl_const, btor_srl_bv, BTOR_TEST_BITVEC_TESTS, 64);
   shift_bitvec (btor_srl_const, btor_srl_bv, BTOR_TEST_BITVEC_TESTS, 128);
+}
+
+static void
+test_uext_bitvec (void)
+{
+  ext_bitvec (btor_uext_const, btor_uext_bv, BTOR_TEST_BITVEC_TESTS, 1);
+  ext_bitvec (btor_uext_const, btor_uext_bv, BTOR_TEST_BITVEC_TESTS, 7);
+  ext_bitvec (btor_uext_const, btor_uext_bv, BTOR_TEST_BITVEC_TESTS, 31);
+  ext_bitvec (btor_uext_const, btor_uext_bv, BTOR_TEST_BITVEC_TESTS, 33);
+  ext_bitvec (btor_uext_const,
+              btor_uext_bv,
+              BTOR_TEST_BITVEC_TESTS,
+              BTOR_TEST_BITVEC_NUM_BITS);
+}
+
+static void
+test_sext_bitvec (void)
+{
+  ext_bitvec (btor_sext_const, btor_sext_bv, BTOR_TEST_BITVEC_TESTS, 1);
+  ext_bitvec (btor_sext_const, btor_sext_bv, BTOR_TEST_BITVEC_TESTS, 7);
+  ext_bitvec (btor_sext_const, btor_sext_bv, BTOR_TEST_BITVEC_TESTS, 31);
+  ext_bitvec (btor_sext_const, btor_sext_bv, BTOR_TEST_BITVEC_TESTS, 33);
+  ext_bitvec (btor_sext_const,
+              btor_sext_bv,
+              BTOR_TEST_BITVEC_TESTS,
+              BTOR_TEST_BITVEC_NUM_BITS);
+}
+
+#define TEST_IS_UMULO_BITVEC(bw, v0, v1, res)          \
+  do                                                   \
+  {                                                    \
+    bv0 = btor_uint64_to_bv (g_mm, v0, bw);            \
+    bv1 = btor_uint64_to_bv (g_mm, v1, bw);            \
+    assert (btor_is_umulo_bv (g_mm, bv0, bv1) == res); \
+    btor_free_bv (g_mm, bv0);                          \
+    btor_free_bv (g_mm, bv1);                          \
+  } while (0)
+
+static void
+is_umulo_bitvec (int bw)
+{
+  BtorBitVector *bv0, *bv1;
+
+  switch (bw)
+  {
+    case 1:
+      TEST_IS_UMULO_BITVEC (bw, 0, 0, false);
+      TEST_IS_UMULO_BITVEC (bw, 0, 1, false);
+      TEST_IS_UMULO_BITVEC (bw, 1, 1, false);
+      break;
+    case 7:
+      TEST_IS_UMULO_BITVEC (bw, 3, 6, false);
+      TEST_IS_UMULO_BITVEC (bw, 124, 2, true);
+      break;
+    case 31:
+      TEST_IS_UMULO_BITVEC (bw, 15, 78, false);
+      TEST_IS_UMULO_BITVEC (bw, 1073742058, 2, true);
+      break;
+    case 33:
+      TEST_IS_UMULO_BITVEC (bw, 15, 78, false);
+      TEST_IS_UMULO_BITVEC (bw, 4294967530, 4294967530, true);
+      break;
+  }
+}
+
+static void
+test_is_umulo_bitvec (void)
+{
+  is_umulo_bitvec (1);
+  is_umulo_bitvec (7);
+  is_umulo_bitvec (31);
+  is_umulo_bitvec (33);
 }
 
 static void
@@ -1581,6 +1729,7 @@ run_bitvec_tests (int argc, char **argv)
   srand (42);
   BTOR_RUN_TEST (bv_to_ll_bitvec);
   BTOR_RUN_TEST (new_bitvec);
+  BTOR_RUN_TEST (new_random_range_bitvec);
   BTOR_RUN_TEST (uint64_to_bitvec);
   BTOR_RUN_TEST (char_to_bitvec);
   BTOR_RUN_TEST (not_bitvec);
@@ -1596,6 +1745,9 @@ run_bitvec_tests (int argc, char **argv)
   BTOR_RUN_TEST (mul_bitvec);
   BTOR_RUN_TEST (udiv_bitvec);
   BTOR_RUN_TEST (urem_bitvec);
+  BTOR_RUN_TEST (uext_bitvec);
+  BTOR_RUN_TEST (sext_bitvec);
+  BTOR_RUN_TEST (is_umulo_bitvec);
 
   BTOR_RUN_TEST (perf_and_bitvec);
   BTOR_RUN_TEST (perf_eq_bitvec);

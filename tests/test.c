@@ -36,6 +36,7 @@
 #include "testrunner.h"
 #include "testsat.h"
 #include "testshift.h"
+#include "testslsinv.h"
 #include "testsmtaxioms.h"
 #include "testsort.h"
 #include "testspecial.h"
@@ -123,6 +124,7 @@ main (int argc, char **argv)
   BTOR_RUN_TESTS (queue);
   BTOR_RUN_TESTS (hash);
   BTOR_RUN_TESTS (const);
+  BTOR_RUN_TESTS (slsinv);
   BTOR_RUN_TESTS (bitvec);
   BTOR_RUN_TESTS (sat);
   BTOR_RUN_TESTS (aig);

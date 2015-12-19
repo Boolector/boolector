@@ -1,6 +1,7 @@
 /*  Boolector: Satisfiablity Modulo Theories (SMT) solver.
  *
  *  Copyright (C) 2015 Aina Niemetz.
+ *  Copyright (C) 2015 Mathias Preiner.
  *
  *  All rights reserved.
  *
@@ -27,6 +28,7 @@ typedef enum BtorSolverResult BtorSolverResult;
 enum BtorSolverKind
 {
   BTOR_CORE_SOLVER_KIND,
+  BTOR_SLS_SOLVER_KIND,
   BTOR_EF_SOLVER_KIND,
 };
 typedef enum BtorSolverKind BtorSolverKind;

@@ -34,8 +34,9 @@
 #ifndef BTOR_DO_NOT_PROCESS_SKELETON
 #include "simplifier/btorskel.h"
 #endif
-#include "btorcoresolver.h"
 #include "btorefsolver.h"
+#include "btorslvcore.h"
+#include "btorslvsls.h"
 
 #include <limits.h>
 
@@ -664,6 +665,8 @@ new_aux_btor (int init_opts)
   btor->avmgr = btor_new_aigvec_mgr (mm, btor->msg, &btor->options);
 
   if (init_opts) btor_init_opts (btor);
+
+  btor_init_rng (&btor->rng, btor->options.seed.val);
 
   btor->bv_assignments    = btor_new_bv_assignment_list (mm);
   btor->array_assignments = btor_new_array_assignment_list (mm);
@@ -3633,17 +3636,24 @@ btor_sat_btor (Btor *btor, int lod_limit, int sat_limit)
 
   BtorSolverResult res;
 
-#if 0
-  if (!btor->slv) btor->slv = btor_new_core_solver (btor);
+  if (!btor->slv)
+  {
+    if (btor->options.engine.val == BTOR_ENGINE_SLS && btor->ufs->count == 0
+        && (btor->options.beta_reduce_all.val || btor->lambdas->count == 0))
+      btor->slv = btor_new_sls_solver (btor);
+    else if (btor->options.engine.val == BTOR_ENGINE_EF)
+    {
+      btor->slv = btor_new_ef_solver (btor);
+    }
+    else
+    {
+      btor->slv = btor_new_core_solver (btor);
+      // TODO (ma): make options for lod_limit and sat_limit
+      BTOR_CORE_SOLVER (btor)->lod_limit = lod_limit;
+      BTOR_CORE_SOLVER (btor)->sat_limit = sat_limit;
+    }
+  }
   assert (btor->slv);
-  assert (btor->slv->kind == BTOR_CORE_SOLVER_KIND);
-  // TODO (ma): make options for lod_limit and sat_limit
-  BTOR_CORE_SOLVER (btor)->lod_limit = lod_limit;
-  BTOR_CORE_SOLVER (btor)->sat_limit = sat_limit;
-#endif
-  if (!btor->slv) btor->slv = btor_new_ef_solver (btor);
-  assert (btor->slv);
-  assert (btor->slv->kind == BTOR_EF_SOLVER_KIND);
 
 #ifdef BTOR_CHECK_UNCONSTRAINED
   Btor *uclone = 0;
@@ -3713,8 +3723,14 @@ btor_sat_btor (Btor *btor, int lod_limit, int sat_limit)
 #endif
 
   if (btor->options.model_gen.val && res == BTOR_RESULT_SAT)
-    btor->slv->api.generate_model (
-        btor->slv, btor->options.model_gen.val == 2, true);
+  {
+    if (btor->options.engine.val == BTOR_ENGINE_SLS)
+      btor->slv->api.generate_model (
+          btor->slv, btor->options.model_gen.val == 2, false);
+    else
+      btor->slv->api.generate_model (
+          btor->slv, btor->options.model_gen.val == 2, true);
+  }
 
 #ifdef BTOR_CHECK_MODEL
   if (mclone)
@@ -3723,7 +3739,12 @@ btor_sat_btor (Btor *btor, int lod_limit, int sat_limit)
     if (res == BTOR_RESULT_SAT && !btor->options.ucopt.val)
     {
       if (!btor->options.model_gen.val)
-        btor->slv->api.generate_model (btor->slv, false, true);
+      {
+        if (btor->options.engine.val == BTOR_ENGINE_SLS)
+          btor->slv->api.generate_model (btor->slv, false, false);
+        else
+          btor->slv->api.generate_model (btor->slv, false, true);
+      }
       check_model (btor, mclone, inputs);
     }
 

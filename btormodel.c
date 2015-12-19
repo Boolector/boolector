@@ -11,8 +11,10 @@
 
 #include "btormodel.h"
 #include "btorbeta.h"
+#include "btordbg.h"
 #include "btorexit.h"
 #include "btorlog.h"
+#include "btorslvsls.h"
 #include "utils/btoriter.h"
 #include "utils/btormem.h"
 #include "utils/btormisc.h"

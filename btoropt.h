@@ -17,6 +17,13 @@
 
 #define BTOR_VERBOSITY_MAX 4
 
+#define BTOR_ENGINE_CORE 0
+#define BTOR_ENGINE_SLS 1
+#define BTOR_ENGINE_EF 2
+#define BTOR_ENGINE_DFLT BTOR_ENGINE_CORE
+#define BTOR_ENGINE_MIN BTOR_ENGINE_CORE
+#define BTOR_ENGINE_MAX BTOR_ENGINE_EF
+
 #define BTOR_INPUT_FORMAT_NONE 0
 #define BTOR_INPUT_FORMAT_BTOR 1
 #define BTOR_INPUT_FORMAT_BTOR2 2
@@ -49,6 +56,15 @@
 #define BTOR_JUST_HEUR_MIN BTOR_JUST_HEUR_LEFT
 #define BTOR_JUST_HEUR_MAX BTOR_JUST_HEUR_BRANCH_MIN_DEP
 
+#define BTOR_SLS_STRAT_BEST_MOVE 0
+#define BTOR_SLS_STRAT_PROB_RAND_WALK 1
+#define BTOR_SLS_STRAT_FIRST_BEST_MOVE 2
+#define BTOR_SLS_STRAT_BEST_SAME_MOVE 3
+#define BTOR_SLS_STRAT_ALWAYS_PROP 4
+#define BTOR_SLS_STRAT_DFLT BTOR_SLS_STRAT_BEST_MOVE
+#define BTOR_SLS_STRAT_MIN 0
+#define BTOR_SLS_STRAT_MAX 4
+
 typedef struct BtorOpt
 {
   int internal;     /* internal option? */
@@ -61,6 +77,7 @@ typedef struct BtorOpt
   uint32_t max;     /* max value */
 } BtorOpt;
 
+#define BTOR_OPT_ENGINE "engine"
 #define BTOR_OPT_MODEL_GEN "model_gen"
 #define BTOR_OPT_INCREMENTAL "incremental"
 #define BTOR_OPT_INCREMENTAL_ALL "incremental_all"
@@ -75,6 +92,24 @@ typedef struct BtorOpt
 #define BTOR_OPT_ACKERMANN "ackermannize"
 #define BTOR_OPT_DUAL_PROP "dual_prop"
 #define BTOR_OPT_JUST "just"
+#define BTOR_OPT_SLS "sls"
+#define BTOR_OPT_SLS_STRATEGY "sls_strategy"
+#define BTOR_OPT_SLS_MOVE_GW "sls_move_gw"
+#define BTOR_OPT_SLS_MOVE_RANGE "sls_move_range"
+#define BTOR_OPT_SLS_MOVE_SEGMENT "sls_move_segment"
+#define BTOR_OPT_SLS_MOVE_RAND_WALK "sls_move_rand_walk"
+#define BTOR_OPT_SLS_MOVE_RAND_WALK_PROB "sls_move_rand_walk_prob"
+#define BTOR_OPT_SLS_MOVE_RANDOMIZEALL "sls_move_rand_all"
+#define BTOR_OPT_SLS_MOVE_RANDOMIZERANGE "sls_move_rand_range"
+#define BTOR_OPT_SLS_MOVE_PROP "sls_move_prop"
+#define BTOR_OPT_SLS_MOVE_PROP_N_PROP "sls_move_prop_n_prop"
+#define BTOR_OPT_SLS_MOVE_PROP_N_SLS "sls_move_prop_n_sls"
+#define BTOR_OPT_SLS_MOVE_PROP_FORCE_RW "sls_move_prop_force_rw"
+#define BTOR_OPT_SLS_MOVE_PROP_NO_FLIP_COND "sls_move_prop_no_flip_cond"
+#define BTOR_OPT_SLS_MOVE_PROP_FLIP_COND_PROB "sls_move_prop_flip_cond_prob"
+#define BTOR_OPT_SLS_MOVE_INC_MOVE_TEST "sls_move_inc_move_test"
+#define BTOR_OPT_SLS_USE_RESTARTS "sls_use_restarts"
+#define BTOR_OPT_SLS_USE_BANDIT "sls_use_bandit"
 #ifndef BTOR_DO_NOT_OPTIMIZE_UNCONSTRAINED
 #define BTOR_OPT_UCOPT "ucopt"
 #endif
@@ -83,6 +118,7 @@ typedef struct BtorOpt
 #define BTOR_OPT_EXIT_CODES "exit_codes"
 #define BTOR_OPT_LOGLEVEL "loglevel"
 #define BTOR_OPT_VERBOSITY "verbosity"
+#define BTOR_OPT_SEED "seed"
 #define BTOR_OPT_SIMPLIFY_CONSTRAINTS "simplify_constraints"
 #define BTOR_OPT_AUTO_CLEANUP_INTERNAL "auto_cleanup_internal"
 #ifdef BTOR_CHECK_FAILED
@@ -106,6 +142,8 @@ typedef struct BtorOpts
 {
   BtorOpt first; /* dummy for iteration */
   /* ----------------------------------------------------------------------- */
+  BtorOpt engine; /* Boolector engine */
+
   BtorOpt model_gen; /* model generation enabled */
 
   BtorOpt incremental;     /* incremental usage */
@@ -120,10 +158,34 @@ typedef struct BtorOpts
 
   BtorOpt beta_reduce_all; /* eagerly eliminate lambda expressions */
   BtorOpt ackermannize;    /* add ackermann constraints */
-  BtorOpt dual_prop;       /* dual prop optimization */
-  BtorOpt just;            /* justification optimization */
-  BtorOpt just_heuristic;  /* use heuristic (else: input [0] if both
-                              are controlling) */
+
+  BtorOpt sls_strategy;
+  BtorOpt sls_move_gw;
+  BtorOpt sls_move_range;          /* enable range flip neighbors */
+  BtorOpt sls_move_segment;        /* enable segment flip neighbors */
+  BtorOpt sls_move_rand_all;       /* randomize all candidates
+                                      (rather than just one) */
+  BtorOpt sls_move_rand_range;     /* ranomize range-wise and choose best guess
+                                      (rather than randomizing all bits) */
+  BtorOpt sls_move_rand_walk;      /* enable random walks */
+  BtorOpt sls_move_rand_walk_prob; /* probability to choose a random walk */
+  BtorOpt sls_move_prop;           /* enable propagation moves */
+  BtorOpt sls_move_prop_n_prop;    /* number of prop moves (vs. sls moves) */
+  BtorOpt sls_move_prop_n_sls;     /* number of prop moves (vs. sls moves) */
+  BtorOpt sls_move_prop_force_rw;  /* force random walk if prop move fails */
+  BtorOpt sls_move_prop_no_flip_cond;   /* do not choose cond flip during
+                                     path selection for prop moves */
+  BtorOpt sls_move_prop_flip_cond_prob; /* probability to choose cond flip
+                                     during path selection for prop moves */
+  BtorOpt sls_move_inc_move_test;
+
+  BtorOpt sls_use_restarts;
+  BtorOpt sls_use_bandit;
+
+  BtorOpt dual_prop;      /* dual prop optimization */
+  BtorOpt just;           /* justification optimization */
+  BtorOpt just_heuristic; /* use heuristic (else: input [0] if both
+                             are controlling) */
 #ifndef BTOR_DO_NOT_OPTIMIZE_UNCONSTRAINED
   BtorOpt ucopt; /* unconstrained optimization */
 #endif
@@ -147,6 +209,7 @@ typedef struct BtorOpts
 #endif
   BtorOpt verbosity;
 
+  BtorOpt seed; /* seed for random number generator */
   /* internal */
   BtorOpt simplify_constraints;  /* force constraints to true/false */
   BtorOpt auto_cleanup_internal; /* force cleanup of exps, assignm. strings

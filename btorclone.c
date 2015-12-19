@@ -15,10 +15,10 @@
 #include "btorbeta.h"
 #include "btorbitvec.h"
 #include "btorcore.h"
-#include "btorcoresolver.h"
 #include "btorlog.h"
 #include "btormsg.h"
 #include "btorsat.h"
+#include "btorslvcore.h"
 #include "btorsort.h"
 #include "utils/btorhashptr.h"
 #include "utils/btoriter.h"
@@ -78,7 +78,6 @@ btor_clone_data_as_node_ptr (BtorMemMgr *mm,
                              BtorPtrHashData *data,
                              BtorPtrHashData *cloned_data)
 {
-  assert (mm);
   assert (map);
   assert (data);
   assert (cloned_data);
@@ -130,6 +129,21 @@ btor_clone_data_as_int (BtorMemMgr *mm,
 }
 
 void
+btor_clone_data_as_dbl (BtorMemMgr *mm,
+                        const void *map,
+                        BtorPtrHashData *data,
+                        BtorPtrHashData *cloned_data)
+{
+  assert (data);
+  assert (cloned_data);
+
+  (void) mm;
+  (void) map;
+
+  cloned_data->as_dbl = data->as_dbl;
+}
+
+void
 btor_clone_data_as_bv_ptr (BtorMemMgr *mm,
                            const void *map,
                            BtorPtrHashData *data,
@@ -141,27 +155,6 @@ btor_clone_data_as_bv_ptr (BtorMemMgr *mm,
 
   (void) map;
   cloned_data->as_ptr = btor_copy_bv (mm, (BtorBitVector *) data->as_ptr);
-}
-
-void
-btor_clone_data_as_bv_htable_ptr (BtorMemMgr *mm,
-                                  const void *map,
-                                  BtorPtrHashData *data,
-                                  BtorPtrHashData *cloned_data)
-{
-  assert (mm);
-  assert (map);
-  assert (data);
-  assert (cloned_data);
-
-  BtorPtrHashTable *table;
-  table               = (BtorPtrHashTable *) data->as_ptr;
-  cloned_data->as_ptr = btor_clone_ptr_hash_table (mm,
-                                                   table,
-                                                   btor_clone_key_as_bv_tuple,
-                                                   btor_clone_data_as_bv_ptr,
-                                                   map,
-                                                   map);
 }
 
 void
@@ -183,6 +176,27 @@ btor_clone_data_as_htable_ptr (BtorMemMgr *mm,
 
   cloned_data->as_ptr = btor_clone_ptr_hash_table (
       mm, table, btor_clone_key_as_node, 0, exp_map, 0);
+}
+
+void
+btor_clone_data_as_bv_htable_ptr (BtorMemMgr *mm,
+                                  const void *map,
+                                  BtorPtrHashData *data,
+                                  BtorPtrHashData *cloned_data)
+{
+  assert (mm);
+  assert (map);
+  assert (data);
+  assert (cloned_data);
+
+  BtorPtrHashTable *table;
+  table               = (BtorPtrHashTable *) data->as_ptr;
+  cloned_data->as_ptr = btor_clone_ptr_hash_table (mm,
+                                                   table,
+                                                   btor_clone_key_as_bv_tuple,
+                                                   btor_clone_data_as_bv_ptr,
+                                                   map,
+                                                   map);
 }
 
 /*------------------------------------------------------------------------*/
@@ -1228,9 +1242,53 @@ clone_aux_btor (Btor *btor,
       assert (BTOR_COUNT_STACK (slv->stats.lemmas_size)
               == BTOR_COUNT_STACK (cslv->stats.lemmas_size));
       allocated += BTOR_SIZE_STACK (slv->stats.lemmas_size) * sizeof (int);
-
-      assert (allocated == clone->mm->allocated);
     }
+    else if (clone->slv->kind == BTOR_SLS_SOLVER_KIND)
+    {
+      BtorSLSMove *m;
+      BtorSLSSolver *slv  = BTOR_SLS_SOLVER (btor);
+      BtorSLSSolver *cslv = BTOR_SLS_SOLVER (clone);
+
+      CHKCLONE_MEM_PTR_HASH_TABLE (slv->roots, cslv->roots);
+      CHKCLONE_MEM_PTR_HASH_TABLE (slv->score, cslv->score);
+
+      allocated += sizeof (BtorSLSSolver) + MEM_PTR_HASH_TABLE (cslv->roots)
+                   + MEM_PTR_HASH_TABLE (cslv->score);
+
+      if (slv->roots)
+        allocated += slv->roots->count * sizeof (BtorSLSConstrData);
+
+      assert (BTOR_SIZE_STACK (slv->moves) == BTOR_SIZE_STACK (cslv->moves));
+      assert (BTOR_COUNT_STACK (slv->moves) == BTOR_COUNT_STACK (cslv->moves));
+
+      allocated += BTOR_SIZE_STACK (cslv->moves) * sizeof (BtorSLSMove *)
+                   + BTOR_COUNT_STACK (cslv->moves) * sizeof (BtorSLSMove);
+
+      for (i = 0; i < BTOR_COUNT_STACK (cslv->moves); i++)
+      {
+        assert (BTOR_PEEK_STACK (cslv->moves, i));
+        m = BTOR_PEEK_STACK (cslv->moves, i);
+        assert (MEM_PTR_HASH_TABLE (m->cans)
+                == MEM_PTR_HASH_TABLE (BTOR_PEEK_STACK (cslv->moves, i)->cans));
+        allocated += MEM_PTR_HASH_TABLE (m->cans);
+        btor_init_node_hash_table_iterator (&it, m->cans);
+        while (btor_has_next_node_hash_table_iterator (&it))
+          allocated +=
+              btor_size_bv (btor_next_data_hash_table_iterator (&it)->as_ptr);
+      }
+
+      if (cslv->max_cans)
+      {
+        assert (slv->max_cans);
+        assert (slv->max_cans->count == cslv->max_cans->count);
+        allocated += MEM_PTR_HASH_TABLE (cslv->max_cans);
+        btor_init_node_hash_table_iterator (&it, cslv->max_cans);
+        while (btor_has_next_node_hash_table_iterator (&it))
+          allocated +=
+              btor_size_bv (btor_next_data_hash_table_iterator (&it)->as_ptr);
+      }
+    }
+    assert (allocated == clone->mm->allocated);
   }
 #endif
 
