@@ -13,14 +13,26 @@
 
 #include "btorslv.h"
 #include "btortypes.h"
+#include "utils/btorhashptr.h"
 
 struct BtorEFSolver
 {
   BTOR_SOLVER_STRUCT;
+
+  Btor *exists_solver;
+  BtorPtrHashTable *e_exists_vars;
+  Btor *forall_solver;
+  BtorPtrHashTable *f_exists_vars;
+  BtorPtrHashTable *f_forall_vars;
+
+  struct
+  {
+    uint32_t refinements;
+  } stats;
 };
 
 typedef struct BtorEFSolver BtorEFSolver;
 
-BtorSolver* btor_new_ef_solver (Btor* btor);
+BtorSolver *btor_new_ef_solver (Btor *btor);
 
 #endif

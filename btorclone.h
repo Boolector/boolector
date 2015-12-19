@@ -19,6 +19,9 @@ Btor *btor_clone_btor (Btor *btor);
 /* Clone the expression layer of an existing boolector instance. */
 Btor *btor_clone_exp_layer (Btor *btor, BtorNodeMap **exp_map);
 
+/* Clone the expression layer and no btor->slv */
+Btor *btor_clone_formula (Btor *btor);
+
 /* Rebuild 'exp' (and all expressions below) of an existing boolector instance
  * 'btor' in an existing boolector instance 'clone' with rewrite level
  * 'rewrite_level'. 'exp_map' must contain all previously cloned expressions.

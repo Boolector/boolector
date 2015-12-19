@@ -741,7 +741,10 @@ clone_nodes_unique_table (BtorMemMgr *mm,
   ((bv) ? sizeof (*(bv)) + bv->len * sizeof (BTOR_BV_TYPE) : 0)
 
 static Btor *
-clone_aux_btor (Btor *btor, BtorNodeMap **exp_map, bool exp_layer_only)
+clone_aux_btor (Btor *btor,
+                BtorNodeMap **exp_map,
+                bool exp_layer_only,
+                bool clone_slv)
 {
   assert (btor);
   assert (exp_layer_only
@@ -992,6 +995,15 @@ clone_aux_btor (Btor *btor, BtorNodeMap **exp_map, bool exp_layer_only)
   CLONE_PTR_HASH_TABLE_DATA (lambdas, btor_clone_data_as_int);
   assert ((allocated += MEM_PTR_HASH_TABLE (btor->lambdas))
           == clone->mm->allocated);
+  CLONE_PTR_HASH_TABLE_DATA (quantifiers, btor_clone_data_as_int);
+  assert ((allocated += MEM_PTR_HASH_TABLE (btor->quantifiers))
+          == clone->mm->allocated);
+  CLONE_PTR_HASH_TABLE (exists_vars);
+  assert ((allocated += MEM_PTR_HASH_TABLE (btor->exists_vars))
+          == clone->mm->allocated);
+  CLONE_PTR_HASH_TABLE (forall_vars);
+  assert ((allocated += MEM_PTR_HASH_TABLE (btor->forall_vars))
+          == clone->mm->allocated);
   CLONE_PTR_HASH_TABLE_DATA (feqs, btor_clone_data_as_int);
   assert ((allocated += MEM_PTR_HASH_TABLE (btor->feqs))
           == clone->mm->allocated);
@@ -1163,8 +1175,12 @@ clone_aux_btor (Btor *btor, BtorNodeMap **exp_map, bool exp_layer_only)
 #endif
   }
 
-  if (btor->slv) clone->slv = btor->slv->api.clone (clone, btor, emap);
-  assert ((btor->slv && clone->slv) || (!btor->slv && !clone->slv));
+  if (clone_slv && btor->slv)
+    clone->slv = btor->slv->api.clone (clone, btor, emap);
+  else
+    clone->slv = 0;
+  assert (!clone_slv || (btor->slv && clone->slv)
+          || (!btor->slv && !clone->slv));
 #ifndef NDEBUG
   if (clone->slv)
   {
@@ -1252,14 +1268,24 @@ btor_clone_btor (Btor *btor)
 {
   assert (btor);
   return clone_aux_btor (
-      btor, 0, !btor_has_clone_support_sat_mgr (btor_get_sat_mgr_btor (btor)));
+      btor,
+      0,
+      !btor_has_clone_support_sat_mgr (btor_get_sat_mgr_btor (btor)),
+      true);
 }
 
 Btor *
 btor_clone_exp_layer (Btor *btor, BtorNodeMap **exp_map)
 {
   assert (btor);
-  return clone_aux_btor (btor, exp_map, true);
+  return clone_aux_btor (btor, exp_map, true, true);
+}
+
+Btor *
+btor_clone_formula (Btor *btor)
+{
+  assert (btor);
+  return clone_aux_btor (btor, 0, true, false);
 }
 
 BtorNode *
@@ -1278,9 +1304,6 @@ btor_recursively_rebuild_exp_clone (Btor *btor,
   char *symbol;
   BtorNode *real_exp, *cur, *cur_clone, *e[3];
   BtorNodePtrStack work_stack, unmark_stack;
-#ifndef NDEBUG
-  BtorNodeMap *key_map = btor_new_node_map (btor);
-#endif
 
   /* in some cases we may want to rebuild the expressions with a certain
    * rewrite level */
@@ -1298,6 +1321,7 @@ btor_recursively_rebuild_exp_clone (Btor *btor,
 
     if (btor_mapped_node (exp_map, cur)) continue;
 
+    // TODO (ma): clone_mark is never set to 2
     if (cur->clone_mark == 2) continue;
 
     if (cur->clone_mark == 0)
@@ -1382,11 +1406,6 @@ btor_recursively_rebuild_exp_clone (Btor *btor,
           cur_clone = btor_cond_exp (clone, e[0], e[1], e[2]);
       }
       btor_map_node (exp_map, cur, cur_clone);
-#ifndef NDEBUG
-      assert (!btor_mapped_node (key_map, cur_clone));
-      assert (cur->kind == cur_clone->kind);
-      btor_map_node (key_map, cur_clone, cur);
-#endif
       btor_release_exp (clone, cur_clone);
     }
   }
@@ -1399,8 +1418,5 @@ btor_recursively_rebuild_exp_clone (Btor *btor,
 
   /* reset rewrite_level to original value */
   clone->options.rewrite_level.val = rwl;
-#ifndef NDEBUG
-  btor_delete_node_map (key_map);
-#endif
   return btor_copy_exp (clone, btor_mapped_node (exp_map, exp));
 }
