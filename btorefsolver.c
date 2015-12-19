@@ -224,6 +224,40 @@ construct_generalization (BtorEFSolver *slv)
   return res;
 }
 
+static bool
+is_ef_formula (BtorEFSolver *slv)
+{
+  BtorNode *cur, *param;
+  BtorNodeIterator it, nit;
+  bool exists_allowed;
+
+  btor_init_node_hash_table_iterator (&it, slv->btor->quantifiers);
+  while (btor_has_next_node_hash_table_iterator (&it))
+  {
+    cur = btor_next_node_hash_table_iterator (&it);
+    assert (BTOR_IS_QUANTIFIER_NODE (cur));
+
+    if (cur->parameterized) continue;
+
+    btor_init_param_iterator (&nit, cur);
+    exists_allowed = true;
+    while (btor_has_next_param_iterator (&nit))
+    {
+      param = btor_next_param_iterator (&nit);
+      if (btor_param_is_exists_var (param))
+      {
+        if (!exists_allowed) return false;
+      }
+      else
+      {
+        assert (btor_param_is_forall_var (param));
+        exists_allowed = false;
+      }
+    }
+  }
+  return true;
+}
+
 /*------------------------------------------------------------------------*/
 
 static BtorEFSolver *
@@ -284,7 +318,13 @@ sat_ef_solver (BtorEFSolver *slv)
   BtorNode *var, *c, *eq, *var_fs, *g;
   const BtorBitVector *bv;
 
-  // TODO (ma): check if formula is really a exists/forall
+  if (!is_ef_formula (slv))
+  {
+    // TODO (ma): proper abort
+    printf ("not an exists/forall formula\n");
+    abort ();
+  }
+
   setup_forall_solver (slv);
   setup_exists_solver (slv);
 
