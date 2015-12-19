@@ -68,6 +68,7 @@ setup_forall_solver (BtorEFSolver *slv)
   Btor *forall_solver;
   BtorNode *cur, *param, *subst, *var, *root = 0, *and;
   BtorHashTableIterator it;
+  BtorNodeIterator nit;
 
   forall_solver = btor_clone_formula (slv->btor);
 
@@ -92,27 +93,40 @@ setup_forall_solver (BtorEFSolver *slv)
   {
     cur = btor_next_node_hash_table_iterator (&it);
     assert (BTOR_IS_QUANTIFIER_NODE (cur));
-    param = cur->e[0];
-    var   = btor_var_exp (
-        forall_solver, btor_get_exp_width (forall_solver, param), 0);
+    /* nested quantifiers are instantiated via the top-most quantifier term */
+    if (cur->parameterized) continue;
+
+    btor_init_param_iterator (&nit, cur);
+    while (btor_has_next_param_iterator (&nit))
+    {
+      param = btor_next_param_iterator (&nit);
+      var   = btor_var_exp (
+          forall_solver, btor_get_exp_width (forall_solver, param), 0);
+      assert (!btor_param_get_assigned_exp (param));
+      btor_param_set_assigned_exp (param, var);
+      if (btor_param_is_exists_var (param))
+      {
+        printf ("exists var: %s (%d)\n", node2string (var), var->refs);
+        btor_add_ptr_hash_table (slv->f_exists_vars, var);
+      }
+      else
+      {
+        printf ("forall var: %s (%d)\n", node2string (var), var->refs);
+        btor_add_ptr_hash_table (slv->f_forall_vars, var);
+      }
+    }
+
+    subst = btor_beta_reduce_full (forall_solver, btor_binder_get_body (cur));
+
+    btor_init_param_iterator (&nit, cur);
+    while (btor_has_next_param_iterator (&nit))
+    {
+      param = btor_next_param_iterator (&nit);
+      btor_param_set_assigned_exp (param, 0);
+    }
     assert (!btor_get_ptr_hash_table (forall_solver->substitutions, cur));
-    assert (!btor_param_get_assigned_exp (param));
-    // TODO (ma): handle nested quantifiers
-    btor_param_set_assigned_exp (param, var);
-    subst = btor_beta_reduce_full (forall_solver, cur->e[1]);
-    btor_param_set_assigned_exp (param, 0);
     btor_insert_substitution (forall_solver, cur, subst, 0);
     btor_release_exp (forall_solver, subst);
-    if (btor_param_is_exists_var (param))
-    {
-      printf ("exists var: %s (%d)\n", node2string (var), var->refs);
-      btor_add_ptr_hash_table (slv->f_exists_vars, var);
-    }
-    else
-    {
-      printf ("forall var: %s (%d)\n", node2string (var), var->refs);
-      btor_add_ptr_hash_table (slv->f_forall_vars, var);
-    }
   }
 
   btor_substitute_and_rebuild (forall_solver, forall_solver->substitutions);
@@ -270,6 +284,7 @@ sat_ef_solver (BtorEFSolver *slv)
   BtorNode *var, *c, *eq, *var_fs, *g;
   const BtorBitVector *bv;
 
+  // TODO (ma): check if formula is really a exists/forall
   setup_forall_solver (slv);
   setup_exists_solver (slv);
 
