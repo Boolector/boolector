@@ -123,6 +123,8 @@ btor_parse_aux (Btor *btor,
               parse_res.noutputs);
     if (parse_res.logic == BTOR_LOGIC_QF_BV)
       BTOR_MSG (btor->msg, 1, "logic QF_BV");
+    else if (parse_res.logic == BTOR_LOGIC_BV)
+      BTOR_MSG (btor->msg, 1, "logic BV");
     else
     {
       assert (parse_res.logic == BTOR_LOGIC_QF_AUFBV);
