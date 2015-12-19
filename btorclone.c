@@ -529,9 +529,9 @@ clone_exp (Btor *btor,
                         (BtorNode **) &((BtorParamNode *) res)->assigned_exp);
   }
 
-  if (BTOR_IS_LAMBDA_NODE (exp))
+  if (BTOR_IS_BINDER_NODE (exp))
   {
-    if (btor_lambda_get_static_rho (exp))
+    if (BTOR_IS_LAMBDA_NODE (exp) && btor_lambda_get_static_rho (exp))
     {
       BTOR_PUSH_STACK (mm, *static_rhos, res);
       BTOR_PUSH_STACK (mm, *static_rhos, exp);
@@ -542,7 +542,7 @@ clone_exp (Btor *btor,
     BTOR_PUSH_STACK_IF (btor_binder_get_body (exp),
                         mm,
                         *nodes,
-                        &((BtorLambdaNode *) res)->body);
+                        &((BtorBinderNode *) res)->body);
   }
 
   btor_map_node (exp_map, exp, res);
