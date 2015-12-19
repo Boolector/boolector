@@ -419,6 +419,20 @@ disconnect_child_exp (Btor *btor, BtorNode *parent, int pos)
       && btor_param_get_binder (parent->e[0]) == parent)
     btor_param_set_binder (parent->e[0], 0);
 
+  if (BTOR_IS_QUANTIFIER_NODE (parent) && pos == 0)
+  {
+    if (BTOR_IS_EXISTS_NODE (parent))
+    {
+      assert (btor_get_ptr_hash_table (btor->exists_vars, real_child));
+      btor_remove_ptr_hash_table (btor->exists_vars, real_child, 0, 0);
+    }
+    else
+    {
+      assert (btor_get_ptr_hash_table (btor->forall_vars, real_child));
+      btor_remove_ptr_hash_table (btor->forall_vars, real_child, 0, 0);
+    }
+  }
+
   /* only one parent? */
   if (first_parent == tagged_parent && first_parent == last_parent)
   {
@@ -1428,6 +1442,17 @@ new_quantifier_exp_node (Btor *btor,
   assert (!BTOR_REAL_ADDR_NODE (res->body)->simplified);
   assert (!BTOR_IS_LAMBDA_NODE (BTOR_REAL_ADDR_NODE (res->body)));
   btor_param_set_binder (param, (BtorNode *) res);
+  if (kind == BTOR_EXISTS_NODE)
+  {
+    assert (!btor_get_ptr_hash_table (btor->exists_vars, param));
+    (void) btor_add_ptr_hash_table (btor->exists_vars, param);
+  }
+  else
+  {
+    assert (kind == BTOR_FORALL_NODE);
+    assert (!btor_get_ptr_hash_table (btor->forall_vars, param));
+    (void) btor_add_ptr_hash_table (btor->forall_vars, param);
+  }
   //  mark_cone_quantified (btor, param);
   assert (!btor_get_ptr_hash_table (btor->quantifiers, res));
   (void) btor_add_ptr_hash_table (btor->quantifiers, res);
@@ -1694,6 +1719,7 @@ find_binder_exp (Btor *btor,
   return result;
 }
 
+// TODO (ma): distinguish between forall/exists params
 static int
 compare_binder_exp (Btor *btor,
                     BtorNode *param,
@@ -4245,6 +4271,15 @@ btor_match_node (Btor *btor, BtorNode *exp)
   return BTOR_IS_INVERTED_NODE (exp) ? BTOR_INVERT_NODE (res) : res;
 }
 
+BtorNode *
+btor_get_node_by_id (Btor *btor, int32_t id)
+{
+  assert (btor);
+  assert (id > 0);
+  if (id >= BTOR_COUNT_STACK (btor->nodes_id_table)) return 0;
+  return BTOR_PEEK_STACK (btor->nodes_id_table, id);
+}
+
 char *
 btor_get_symbol_exp (Btor *btor, BtorNode *exp)
 {
@@ -4448,6 +4483,20 @@ btor_param_set_assigned_exp (BtorNode *param, BtorNode *exp)
           || BTOR_REAL_ADDR_NODE (param)->sort_id
                  == BTOR_REAL_ADDR_NODE (exp)->sort_id);
   return ((BtorParamNode *) BTOR_REAL_ADDR_NODE (param))->assigned_exp = exp;
+}
+
+bool
+btor_param_is_exists_var (BtorNode *param)
+{
+  assert (BTOR_IS_PARAM_NODE (BTOR_REAL_ADDR_NODE (param)));
+  return BTOR_IS_EXISTS_NODE (btor_param_get_binder (param));
+}
+
+bool
+btor_param_is_forall_var (BtorNode *param)
+{
+  assert (BTOR_IS_PARAM_NODE (BTOR_REAL_ADDR_NODE (param)));
+  return BTOR_IS_FORALL_NODE (btor_param_get_binder (param));
 }
 
 #ifndef NDEBUG

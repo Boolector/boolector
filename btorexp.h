@@ -941,6 +941,8 @@ BtorNode *btor_match_node_by_id (Btor *btor, int32_t id);
  * (Note: increases ref counter of return match!) */
 BtorNode *btor_match_node (Btor *btor, BtorNode *exp);
 
+BtorNode *btor_get_node_by_id (Btor *btor, int32_t id);
+
 /* Gets the symbol of an expression. */
 char *btor_get_symbol_exp (Btor *btor, BtorNode *exp);
 
@@ -984,6 +986,10 @@ bool btor_param_is_bound (BtorNode *param);
 BtorNode *btor_param_get_assigned_exp (BtorNode *param);
 
 BtorNode *btor_param_set_assigned_exp (BtorNode *param, BtorNode *exp);
+
+bool btor_param_is_exists_var (BtorNode *param);
+
+bool btor_param_is_forall_var (BtorNode *param);
 
 /* Copies expression (increments reference counter). */
 BtorNode *btor_copy_exp (Btor *btor, BtorNode *exp);
