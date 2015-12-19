@@ -35,6 +35,7 @@
 #include "simplifier/btorskel.h"
 #endif
 #include "btorcoresolver.h"
+#include "btorefsolver.h"
 
 #include <limits.h>
 
@@ -123,11 +124,12 @@ const char *const g_btor_op2string[] = {
     "urem",     // 14
     "concat",   // 15
     "apply",    // 16
-    "lambda",   // 17
-    "bcond",    // 18
-    "args",     // 19
-    "uf",       // 20
-    "proxy"     // 21
+    "forall",  "exists",
+    "lambda",  // 17
+    "bcond",   // 18
+    "args",    // 19
+    "uf",      // 20
+    "proxy"    // 21
 };
 
 enum BtorSubstCompKind
@@ -692,6 +694,14 @@ new_aux_btor (int init_opts)
       btor_new_ptr_hash_table (mm,
                                (BtorHashPtr) btor_hash_exp_by_id,
                                (BtorCmpPtr) btor_compare_exp_by_id);
+  btor->exists_vars =
+      btor_new_ptr_hash_table (mm,
+                               (BtorHashPtr) btor_hash_exp_by_id,
+                               (BtorCmpPtr) btor_compare_exp_by_id);
+  btor->forall_vars =
+      btor_new_ptr_hash_table (mm,
+                               (BtorHashPtr) btor_hash_exp_by_id,
+                               (BtorCmpPtr) btor_compare_exp_by_id);
   btor->feqs = btor_new_ptr_hash_table (mm,
                                         (BtorHashPtr) btor_hash_exp_by_id,
                                         (BtorCmpPtr) btor_compare_exp_by_id);
@@ -989,6 +999,10 @@ btor_delete_btor (Btor *btor)
   btor_delete_ptr_hash_table (btor->ufs);
   btor_delete_ptr_hash_table (btor->lambdas);
   btor_delete_ptr_hash_table (btor->quantifiers);
+  assert (btor->exists_vars->count == 0);
+  btor_delete_ptr_hash_table (btor->exists_vars);
+  assert (btor->forall_vars->count == 0);
+  btor_delete_ptr_hash_table (btor->forall_vars);
   btor_delete_ptr_hash_table (btor->feqs);
   btor_delete_ptr_hash_table (btor->parameterized);
 
@@ -2310,6 +2324,8 @@ rebuild_exp (Btor *btor, BtorNode *exp)
     case BTOR_LAMBDA_NODE: return rebuild_lambda_exp (btor, exp);
     case BTOR_APPLY_NODE: return btor_apply_exp (btor, exp->e[0], exp->e[1]);
     case BTOR_ARGS_NODE: return btor_args_exp (btor, exp->arity, exp->e);
+    case BTOR_EXISTS_NODE: return btor_exists_exp (btor, exp->e[0], exp->e[1]);
+    case BTOR_FORALL_NODE: return btor_forall_exp (btor, exp->e[0], exp->e[1]);
     default:
       assert (BTOR_IS_COND_NODE (exp));
       return btor_cond_exp (btor, exp->e[0], exp->e[1], exp->e[2]);
@@ -3617,12 +3633,17 @@ btor_sat_btor (Btor *btor, int lod_limit, int sat_limit)
 
   BtorSolverResult res;
 
+#if 0
   if (!btor->slv) btor->slv = btor_new_core_solver (btor);
   assert (btor->slv);
   assert (btor->slv->kind == BTOR_CORE_SOLVER_KIND);
   // TODO (ma): make options for lod_limit and sat_limit
   BTOR_CORE_SOLVER (btor)->lod_limit = lod_limit;
   BTOR_CORE_SOLVER (btor)->sat_limit = sat_limit;
+#endif
+  if (!btor->slv) btor->slv = btor_new_ef_solver (btor);
+  assert (btor->slv);
+  assert (btor->slv->kind == BTOR_EF_SOLVER_KIND);
 
 #ifdef BTOR_CHECK_UNCONSTRAINED
   Btor *uclone = 0;

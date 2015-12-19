@@ -32,10 +32,10 @@
 
 #if !defined(NDEBUG) && defined(BTOR_USE_LINGELING)
 #ifndef BTOR_DO_NOT_OPTIMIZE_UNCONSTRAINED
-#define BTOR_CHECK_UNCONSTRAINED
+//#define BTOR_CHECK_UNCONSTRAINED
 #endif
-#define BTOR_CHECK_MODEL
-#define BTOR_CHECK_DUAL_PROP
+//#define BTOR_CHECK_MODEL
+//#define BTOR_CHECK_DUAL_PROP
 #endif
 // TODO (ma): why?
 #undef BTOR_CHECK_FAILED
@@ -122,6 +122,8 @@ struct Btor
   BtorPtrHashTable *ufs;
   BtorPtrHashTable *lambdas;
   BtorPtrHashTable *quantifiers;
+  BtorPtrHashTable *exists_vars;
+  BtorPtrHashTable *forall_vars;
   BtorPtrHashTable *feqs;
   BtorPtrHashTable *parameterized;
 
