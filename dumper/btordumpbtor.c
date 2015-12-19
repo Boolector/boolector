@@ -340,6 +340,8 @@ bdcnode (BtorDumpContext *bdc, BtorNode *node, FILE *file)
         op = "const";
       break;
     case BTOR_PARAM_NODE: op = "param"; break;
+    case BTOR_FORALL_NODE: op = "forall"; break;
+    case BTOR_EXISTS_NODE: op = "exists"; break;
     case BTOR_LAMBDA_NODE:
       if (bdc->btor->options.rewrite_level.val == 0
           && btor_lambda_get_static_rho (node))
