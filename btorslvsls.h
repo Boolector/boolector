@@ -8,8 +8,8 @@
  *  See COPYING for more information on using this software.
  */
 
-#ifndef BTORSLS_H_INCLUDED
-#define BTORSLS_H_INCLUDED
+#ifndef BTORSLVSLS_H_INCLUDED
+#define BTORSLVSLS_H_INCLUDED
 
 #include "utils/btormap.h"
 #ifndef NDEBUG

@@ -12,7 +12,7 @@
 #include "btorconst.h"
 #include "btorcore.h"
 #include "btorexp.h"
-#include "btorsls.h"
+#include "btorslvsls.h"
 #include "testrunner.h"
 #include "utils/btorutil.h"
 

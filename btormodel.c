@@ -14,7 +14,7 @@
 #include "btordbg.h"
 #include "btorexit.h"
 #include "btorlog.h"
-#include "btorsls.h"
+#include "btorslvsls.h"
 #include "utils/btoriter.h"
 #include "utils/btormem.h"
 #include "utils/btormisc.h"
