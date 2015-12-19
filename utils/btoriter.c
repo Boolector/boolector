@@ -189,14 +189,14 @@ btor_has_next_lambda_iterator (BtorNodeIterator *it)
 void
 btor_init_param_iterator (BtorNodeIterator *it, BtorNode *exp)
 {
-  btor_init_lambda_iterator (it, exp);
+  btor_init_binder_iterator (it, exp);
 }
 
 BtorNode *
 btor_next_param_iterator (BtorNodeIterator *it)
 {
   BtorNode *result;
-  result = btor_next_lambda_iterator (it);
+  result = btor_next_binder_iterator (it);
   assert (BTOR_IS_PARAM_NODE (result->e[0]));
   return result->e[0];
 }
@@ -204,7 +204,7 @@ btor_next_param_iterator (BtorNodeIterator *it)
 int
 btor_has_next_param_iterator (BtorNodeIterator *it)
 {
-  return btor_has_next_lambda_iterator (it);
+  return btor_has_next_binder_iterator (it);
 }
 
 /*------------------------------------------------------------------------*/
