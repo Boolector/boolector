@@ -496,12 +496,14 @@ hash_binder_exp (Btor *btor, BtorNode *param, BtorNode *body)
 
     if (btor_get_ptr_hash_table (marked, real_cur)) continue;
 
-    // TODO (ma): hashing arbitrarily deep lambdas might be too expensive
-    if (marked->count > 10)
-    {
-      hash = BTOR_GET_ID_NODE (param) + BTOR_GET_ID_NODE (body);
-      break;
-    }
+      // TODO (ma): hashing arbitrarily deep lambdas might be too expensive
+#if 0
+      if (marked->count > 10)
+	{
+	  hash = BTOR_GET_ID_NODE (param) + BTOR_GET_ID_NODE (body); 
+	  break;
+	}
+#endif
 
     if (!real_cur->parameterized)
     {
@@ -1678,14 +1680,18 @@ find_bv_exp (Btor *btor, BtorNodeKind kind, int arity, BtorNode **e)
   return result;
 }
 
-static int compare_binder_exp (Btor *, BtorNode *, BtorNode *, BtorNode *);
+static int compare_binder_exp (Btor *btor,
+                               BtorNode *param,
+                               BtorNode *body,
+                               BtorNode *binder);
 
 static BtorNode **
 find_binder_exp (Btor *btor,
+                 BtorNodeKind kind,
                  BtorNode *param,
                  BtorNode *body,
                  unsigned int *binder_hash,
-                 int compare_binders)
+                 bool compare_binders)
 {
   assert (btor);
   assert (param);
@@ -1704,7 +1710,7 @@ find_binder_exp (Btor *btor,
   while (cur)
   {
     assert (BTOR_IS_REGULAR_NODE (cur));
-    if (cur->kind == BTOR_LAMBDA_NODE
+    if (cur->kind == kind
         && ((param == cur->e[0] && body == cur->e[1])
             || ((!cur->parameterized && compare_binders
                  && compare_binder_exp (btor, param, body, cur)))))
@@ -1715,11 +1721,10 @@ find_binder_exp (Btor *btor,
       cur    = *result;
     }
   }
-  assert (!*result || BTOR_IS_LAMBDA_NODE (BTOR_REAL_ADDR_NODE (*result)));
+  assert (!*result || BTOR_IS_BINDER_NODE (BTOR_REAL_ADDR_NODE (*result)));
   return result;
 }
 
-// TODO (ma): distinguish between forall/exists params
 static int
 compare_binder_exp (Btor *btor,
                     BtorNode *param,
@@ -1737,7 +1742,7 @@ compare_binder_exp (Btor *btor,
 
   int i, equal = 0;
   BtorMemMgr *mm;
-  BtorNode *cur, *real_cur, **result, *subst_param, **e, *l0, *l1;
+  BtorNode *cur, *real_cur, **result, *subst_param, **e, *b0, *b1;
   BtorPtrHashTable *cache, *param_map;
   BtorPtrHashBucket *b, *bb;
   BtorNodePtrStack stack, args;
@@ -1766,13 +1771,13 @@ compare_binder_exp (Btor *btor,
     {
       if (!btor_has_next_binder_iterator (&iit)) goto NOT_EQUAL;
 
-      l0 = btor_next_binder_iterator (&it);
-      l1 = btor_next_binder_iterator (&iit);
+      b0 = btor_next_binder_iterator (&it);
+      b1 = btor_next_binder_iterator (&iit);
 
-      if (l0->sort_id != l1->sort_id) goto NOT_EQUAL;
+      if (b0->sort_id != b1->sort_id || b0->kind != b1->kind) goto NOT_EQUAL;
 
-      param       = l0->e[0];
-      subst_param = l1->e[0];
+      param       = b0->e[0];
+      subst_param = b1->e[0];
       assert (BTOR_IS_REGULAR_NODE (param));
       assert (BTOR_IS_REGULAR_NODE (subst_param));
       assert (BTOR_IS_PARAM_NODE (param));
@@ -1825,7 +1830,7 @@ compare_binder_exp (Btor *btor,
       }
       else if (BTOR_IS_BINDER_NODE (real_cur))
       {
-        result = find_binder_exp (btor, e[0], e[1], 0, 0);
+        result = find_binder_exp (btor, real_cur->kind, e[0], e[1], 0, false);
       }
       else if (BTOR_IS_PARAM_NODE (real_cur))
       {
@@ -1885,7 +1890,7 @@ find_exp (Btor *btor,
 
   if (kind == BTOR_LAMBDA_NODE || kind == BTOR_FORALL_NODE
       || kind == BTOR_EXISTS_NODE)
-    return find_binder_exp (btor, e[0], e[1], binder_hash, 1);
+    return find_binder_exp (btor, kind, e[0], e[1], binder_hash, true);
   else if (binder_hash)
     *binder_hash = 0;
 

@@ -1370,6 +1370,157 @@ test_lambda_hashing_4 (void)
   finish_lambda_test ();
 }
 
+static void
+test_quantifier_hashing_1 (void)
+{
+  init_lambda_test ();
+
+  BtorNode *x0, *y0, *eq0, *f0, *e0;
+  BtorNode *x1, *y1, *eq1, *f1, *e1;
+
+  x0  = btor_param_exp (g_btor, 32, 0);
+  y0  = btor_param_exp (g_btor, 32, 0);
+  eq0 = btor_eq_exp (g_btor, x0, y0);
+  f0  = btor_forall_exp (g_btor, y0, eq0);
+  e0  = btor_exists_exp (g_btor, x0, f0);
+
+  x1  = btor_param_exp (g_btor, 32, 0);
+  y1  = btor_param_exp (g_btor, 32, 0);
+  eq1 = btor_eq_exp (g_btor, x1, y1);
+  f1  = btor_forall_exp (g_btor, y1, eq1);
+  e1  = btor_exists_exp (g_btor, x1, f1);
+  assert (e0 == e1);
+
+  btor_release_exp (g_btor, x0);
+  btor_release_exp (g_btor, y0);
+  btor_release_exp (g_btor, eq0);
+  btor_release_exp (g_btor, f0);
+  btor_release_exp (g_btor, e0);
+  btor_release_exp (g_btor, x1);
+  btor_release_exp (g_btor, y1);
+  btor_release_exp (g_btor, eq1);
+  btor_release_exp (g_btor, f1);
+  btor_release_exp (g_btor, e1);
+  finish_lambda_test ();
+}
+
+static void
+test_quantifier_hashing_2 (void)
+{
+  init_lambda_test ();
+
+  BtorNode *x0, *x1, *x2, *x3, *y0, *y1, *y2, *y3;
+  BtorNode *a0, *a1, *a2, *a3, *a4, *a5, *a6, *r0;
+  BtorNode *f0, *e0, *f1, *e1, *f2, *e2, *f3, *e3;
+  BtorNode *x10, *x11, *x12, *x13, *y10, *y11, *y12, *y13;
+  BtorNode *a10, *a11, *a12, *a13, *a14, *a15, *a16, *r10;
+  BtorNode *f10, *e10, *f11, *e11, *f12, *e12, *f13, *e13;
+
+  x0 = btor_param_exp (g_btor, 32, 0);
+  x1 = btor_param_exp (g_btor, 32, 0);
+  x2 = btor_param_exp (g_btor, 32, 0);
+  x3 = btor_param_exp (g_btor, 32, 0);
+  y0 = btor_param_exp (g_btor, 32, 0);
+  y1 = btor_param_exp (g_btor, 32, 0);
+  y2 = btor_param_exp (g_btor, 32, 0);
+  y3 = btor_param_exp (g_btor, 32, 0);
+
+  a0 = btor_and_exp (g_btor, x0, y0);
+  a1 = btor_and_exp (g_btor, a0, x1);
+  a2 = btor_and_exp (g_btor, a1, y1);
+  a3 = btor_and_exp (g_btor, a2, x2);
+  a4 = btor_and_exp (g_btor, a3, y2);
+  a5 = btor_and_exp (g_btor, a4, x3);
+  a6 = btor_and_exp (g_btor, a5, y3);
+  r0 = btor_redor_exp (g_btor, a6);
+  f0 = btor_forall_exp (g_btor, x0, r0);
+  e0 = btor_exists_exp (g_btor, y0, f0);
+  e1 = btor_exists_exp (g_btor, y1, e0);
+  f1 = btor_forall_exp (g_btor, x1, e1);
+  f2 = btor_forall_exp (g_btor, x2, f1);
+  e2 = btor_exists_exp (g_btor, y2, f2);
+  f3 = btor_forall_exp (g_btor, x3, e2);
+  e3 = btor_exists_exp (g_btor, y3, f3);
+
+  x10 = btor_param_exp (g_btor, 32, 0);
+  x11 = btor_param_exp (g_btor, 32, 0);
+  x12 = btor_param_exp (g_btor, 32, 0);
+  x13 = btor_param_exp (g_btor, 32, 0);
+  y10 = btor_param_exp (g_btor, 32, 0);
+  y11 = btor_param_exp (g_btor, 32, 0);
+  y12 = btor_param_exp (g_btor, 32, 0);
+  y13 = btor_param_exp (g_btor, 32, 0);
+
+  a10 = btor_and_exp (g_btor, x10, y10);
+  a11 = btor_and_exp (g_btor, a10, x11);
+  a12 = btor_and_exp (g_btor, a11, y11);
+  a13 = btor_and_exp (g_btor, a12, x12);
+  a14 = btor_and_exp (g_btor, a13, y12);
+  a15 = btor_and_exp (g_btor, a14, x13);
+  a16 = btor_and_exp (g_btor, a15, y13);
+  r10 = btor_redor_exp (g_btor, a16);
+  f10 = btor_forall_exp (g_btor, x10, r10);
+  e10 = btor_exists_exp (g_btor, y10, f10);
+  e11 = btor_exists_exp (g_btor, y11, e10);
+  f11 = btor_forall_exp (g_btor, x11, e11);
+  f12 = btor_forall_exp (g_btor, x12, f11);
+  e12 = btor_exists_exp (g_btor, y12, f12);
+  f13 = btor_forall_exp (g_btor, x13, e12);
+  e13 = btor_exists_exp (g_btor, y13, f13);
+
+  assert (e3 == e13);
+
+  btor_release_exp (g_btor, x0);
+  btor_release_exp (g_btor, x1);
+  btor_release_exp (g_btor, x2);
+  btor_release_exp (g_btor, x3);
+  btor_release_exp (g_btor, y0);
+  btor_release_exp (g_btor, y1);
+  btor_release_exp (g_btor, y2);
+  btor_release_exp (g_btor, y3);
+  btor_release_exp (g_btor, a0);
+  btor_release_exp (g_btor, a1);
+  btor_release_exp (g_btor, a2);
+  btor_release_exp (g_btor, a3);
+  btor_release_exp (g_btor, a4);
+  btor_release_exp (g_btor, a5);
+  btor_release_exp (g_btor, a6);
+  btor_release_exp (g_btor, r0);
+  btor_release_exp (g_btor, f0);
+  btor_release_exp (g_btor, e0);
+  btor_release_exp (g_btor, e1);
+  btor_release_exp (g_btor, f1);
+  btor_release_exp (g_btor, f2);
+  btor_release_exp (g_btor, e2);
+  btor_release_exp (g_btor, f3);
+  btor_release_exp (g_btor, e3);
+  btor_release_exp (g_btor, x10);
+  btor_release_exp (g_btor, x11);
+  btor_release_exp (g_btor, x12);
+  btor_release_exp (g_btor, x13);
+  btor_release_exp (g_btor, y10);
+  btor_release_exp (g_btor, y11);
+  btor_release_exp (g_btor, y12);
+  btor_release_exp (g_btor, y13);
+  btor_release_exp (g_btor, a10);
+  btor_release_exp (g_btor, a11);
+  btor_release_exp (g_btor, a12);
+  btor_release_exp (g_btor, a13);
+  btor_release_exp (g_btor, a14);
+  btor_release_exp (g_btor, a15);
+  btor_release_exp (g_btor, a16);
+  btor_release_exp (g_btor, r10);
+  btor_release_exp (g_btor, f10);
+  btor_release_exp (g_btor, e10);
+  btor_release_exp (g_btor, e11);
+  btor_release_exp (g_btor, f11);
+  btor_release_exp (g_btor, f12);
+  btor_release_exp (g_btor, e12);
+  btor_release_exp (g_btor, f13);
+  btor_release_exp (g_btor, e13);
+  finish_lambda_test ();
+}
+
 #if 0
 /* (lambda x . (lambda y . (x + y))) (a) */
 static void
@@ -1552,6 +1703,10 @@ run_lambda_tests (int argc, char **argv)
   BTOR_RUN_TEST (lambda_hashing_2);
   BTOR_RUN_TEST (lambda_hashing_3);
   BTOR_RUN_TEST (lambda_hashing_4);
+
+  /* binder hashing tests */
+  BTOR_RUN_TEST (quantifier_hashing_1);
+  BTOR_RUN_TEST (quantifier_hashing_2);
 
   /* partial reduction tests */
   // TODO: should we really support this? use case?
