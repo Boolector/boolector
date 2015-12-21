@@ -2700,7 +2700,8 @@ boolector_forall (Btor *btor,
   BTOR_ABORT_REFS_NOT_POS_BOOLECTOR (body);
   BTOR_ABORT_IF_BTOR_DOES_NOT_MATCH (btor, body);
   BTOR_ABORT_BOOLECTOR (
-      !btor_is_bool_sort (&btor->sorts_unique_table, body->sort_id),
+      !btor_is_bool_sort (&btor->sorts_unique_table,
+                          BTOR_REAL_ADDR_NODE (body)->sort_id),
       "body of forall must be bit width 1, but has "
       "%d instead",
       btor_get_exp_width (btor, body));
@@ -2757,7 +2758,8 @@ boolector_exists (Btor *btor,
   BTOR_ABORT_REFS_NOT_POS_BOOLECTOR (body);
   BTOR_ABORT_IF_BTOR_DOES_NOT_MATCH (btor, body);
   BTOR_ABORT_BOOLECTOR (
-      !btor_is_bool_sort (&btor->sorts_unique_table, body->sort_id),
+      !btor_is_bool_sort (&btor->sorts_unique_table,
+                          BTOR_REAL_ADDR_NODE (body)->sort_id),
       "body of exists must be bit width 1, but has "
       "%d instead",
       btor_get_exp_width (btor, body));
