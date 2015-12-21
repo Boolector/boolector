@@ -1167,8 +1167,8 @@ insert_embedded_constraint (Btor *btor, BtorNode *exp)
   }
 }
 
-void
-btor_insert_varsubst_constraint (Btor *btor, BtorNode *left, BtorNode *right)
+static void
+insert_varsubst_constraint (Btor *btor, BtorNode *left, BtorNode *right)
 {
   assert (btor);
   assert (left);
@@ -1272,6 +1272,8 @@ normalize_substitution (Btor *btor,
                         BtorNode **left_result,
                         BtorNode **right_result)
 {
+  assert (btor->options.var_subst.val);
+
   BtorNode *left, *right, *real_left, *real_right, *tmp, *inv, *var, *lambda;
   BtorNode *const_exp, *real_exp;
   int leadings;
@@ -1362,7 +1364,7 @@ normalize_substitution (Btor *btor,
         lambda =
             btor_var_exp (btor, btor_get_exp_width (btor, var) - leadings, 0);
         tmp = btor_concat_exp (btor, const_exp, lambda);
-        btor_insert_varsubst_constraint (btor, var, tmp);
+        insert_varsubst_constraint (btor, var, tmp);
         btor_release_exp (btor, const_exp);
         btor_release_exp (btor, lambda);
         btor_release_exp (btor, tmp);
@@ -1379,7 +1381,7 @@ normalize_substitution (Btor *btor,
         lambda =
             btor_var_exp (btor, btor_get_exp_width (btor, var) - leadings, 0);
         tmp = btor_concat_exp (btor, const_exp, lambda);
-        btor_insert_varsubst_constraint (btor, var, tmp);
+        insert_varsubst_constraint (btor, var, tmp);
         btor_release_exp (btor, const_exp);
         btor_release_exp (btor, lambda);
         btor_release_exp (btor, tmp);
@@ -1544,9 +1546,10 @@ insert_new_constraint (Btor *btor, BtorNode *exp)
   {
     if (btor->options.rewrite_level.val > 1)
     {
-      if (normalize_substitution (btor, exp, &left, &right))
+      if (btor->options.var_subst.val
+          && normalize_substitution (btor, exp, &left, &right))
       {
-        btor_insert_varsubst_constraint (btor, left, right);
+        insert_varsubst_constraint (btor, left, right);
         btor_release_exp (btor, left);
         btor_release_exp (btor, right);
       }
@@ -3021,6 +3024,19 @@ btor_simplify (Btor *btor)
 
   if (btor->inconsistent) goto DONE;
 
+  /* empty varsubst_constraints table if variable substitution was disabled
+   * after adding variable substitution constraints (they are still in
+   * unsynthesized_constraints).
+   */
+  if (btor->options.var_subst.val == 0 && btor->varsubst_constraints->count > 0)
+  {
+    btor_delete_ptr_hash_table (btor->varsubst_constraints);
+    btor->varsubst_constraints =
+        btor_new_ptr_hash_table (btor->mm,
+                                 (BtorHashPtr) btor_hash_exp_by_id,
+                                 (BtorCmpPtr) btor_compare_exp_by_id);
+  }
+
   do
   {
     rounds++;
@@ -3029,15 +3045,18 @@ btor_simplify (Btor *btor)
     assert (btor_check_unique_table_children_proxy_free_dbg (btor));
     if (btor->options.rewrite_level.val > 1)
     {
-      substitute_var_exps (btor);
-      assert (btor_check_all_hash_tables_proxy_free_dbg (btor));
-      assert (btor_check_all_hash_tables_simp_free_dbg (btor));
-      assert (btor_check_unique_table_children_proxy_free_dbg (btor));
+      if (btor->options.var_subst.val)
+      {
+        substitute_var_exps (btor);
+        assert (btor_check_all_hash_tables_proxy_free_dbg (btor));
+        assert (btor_check_all_hash_tables_simp_free_dbg (btor));
+        assert (btor_check_unique_table_children_proxy_free_dbg (btor));
 
-      if (btor->inconsistent) break;
+        if (btor->inconsistent) break;
 
-      if (btor->varsubst_constraints->count)
-        break;  // TODO (ma): continue instead of break?
+        if (btor->varsubst_constraints->count)
+          break;  // TODO (ma): continue instead of break?
+      }
 
       process_embedded_constraints (btor);
       assert (btor_check_all_hash_tables_proxy_free_dbg (btor));

@@ -322,7 +322,6 @@ void btor_insert_substitution (Btor *, BtorNode *, BtorNode *, int);
 BtorNode *btor_find_substitution (Btor *, BtorNode *);
 
 void btor_substitute_and_rebuild (Btor *, BtorPtrHashTable *);
-void btor_insert_varsubst_constraint (Btor *, BtorNode *, BtorNode *);
 
 // TODO (ma): make these functions public until we have a common framework for
 //            calling sat simplify etc.
