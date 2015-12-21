@@ -1,1 +1,1 @@
-boolector: log/smt2perr152.smt2:1:10: unsupported reserved word 'forall'
+boolector: log/smt2perr152.smt2:2:1: expected '(' after 'forall' at end-of-file
