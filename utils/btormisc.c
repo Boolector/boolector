@@ -67,6 +67,8 @@ node2string (BtorNode *exp)
     case BTOR_UDIV_NODE: name = "udiv"; break;
     case BTOR_UREM_NODE: name = "urem"; break;
     case BTOR_CONCAT_NODE: name = "concat"; break;
+    case BTOR_FORALL_NODE: name = "forall"; break;
+    case BTOR_EXISTS_NODE: name = "exists"; break;
     case BTOR_LAMBDA_NODE: name = "lambda"; break;
     case BTOR_BCOND_NODE: name = "cond"; break;
     case BTOR_ARGS_NODE: name = "args"; break;
