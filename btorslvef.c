@@ -73,9 +73,10 @@ setup_forall_solver (BtorEFSolver *slv)
   forall_solver = btor_clone_formula (slv->btor);
 
   /* configure options */
-  forall_solver->options.model_gen.val     = 1;
-  forall_solver->options.incremental.val   = 1;
-  forall_solver->options.rewrite_level.val = 1;
+  forall_solver->options.model_gen.val   = 1;
+  forall_solver->options.incremental.val = 1;
+  /* disable variable substitution (not sound in the context of quantifiers) */
+  forall_solver->options.var_subst.val = 0;
 
   btor_init_node_hash_table_iterator (&it, forall_solver->bv_vars);
   while (btor_has_next_node_hash_table_iterator (&it))
