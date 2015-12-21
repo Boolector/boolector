@@ -136,6 +136,7 @@ typedef struct BtorOpt
 #define BTOR_OPT_SORT_AIG "sort_aig"
 #define BTOR_OPT_SORT_AIGVEC "sort_aigvec"
 #define BTOR_OPT_RW_NORMALIZE "rw_normalize"
+#define BTOR_OPT_VAR_SUBST "var_subst"
 
 typedef struct BtorOpts
 {
@@ -194,6 +195,7 @@ typedef struct BtorOpts
   BtorOpt merge_lambdas;    /* merge lambda chains */
   BtorOpt extract_lambdas;  /* extract lambda terms */
   BtorOpt skeleton_preproc; /* skeleton preprocessing */
+  BtorOpt var_subst;        /* variable substitution */
   BtorOpt sort_exp;         /* sort commutative expression nodes */
   BtorOpt sort_aig;         /* sort AIG nodes */
   BtorOpt sort_aigvec;      /* sort AIG vectors */
