@@ -4558,11 +4558,10 @@ apply_equal_branches_cond (Btor *btor, BtorNode *e0, BtorNode *e1, BtorNode *e2)
 static inline int
 applies_const_cond (Btor *btor, BtorNode *e0, BtorNode *e1, BtorNode *e2)
 {
-  assert (BTOR_IS_REGULAR_NODE (e0));
   (void) btor;
   (void) e1;
   (void) e2;
-  return BTOR_IS_BV_CONST_NODE (e0);
+  return BTOR_IS_BV_CONST_NODE (BTOR_REAL_ADDR_NODE (e0));
 }
 
 static inline BtorNode *
@@ -6193,8 +6192,11 @@ rewrite_cond_exp (Btor *btor, BtorNode *e0, BtorNode *e1, BtorNode *e2)
   e0 = btor_copy_exp (btor, e0);
   e1 = btor_copy_exp (btor, e1);
   e2 = btor_copy_exp (btor, e2);
-  if (btor->options.rw_normalize.val) normalize_cond (btor, &e0, &e1, &e2);
-  assert (BTOR_IS_REGULAR_NODE (e0));
+  if (btor->options.rw_normalize.val)
+  {
+    normalize_cond (btor, &e0, &e1, &e2);
+    assert (BTOR_IS_REGULAR_NODE (e0));
+  }
 
   ADD_RW_RULE (equal_branches_cond, e0, e1, e2);
   ADD_RW_RULE (const_cond, e0, e1, e2);
