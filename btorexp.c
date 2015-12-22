@@ -4035,6 +4035,27 @@ btor_match_node (Btor *btor, BtorNode *exp)
   return BTOR_IS_INVERTED_NODE (exp) ? BTOR_INVERT_NODE (res) : res;
 }
 
+BtorNode *
+btor_get_node_by_id (Btor *btor, int32_t id)
+{
+  assert (btor);
+  assert (id > 0);
+  if (id >= BTOR_COUNT_STACK (btor->nodes_id_table)) return 0;
+  return BTOR_PEEK_STACK (btor->nodes_id_table, id);
+}
+
+BtorNode *
+btor_get_node_by_symbol (Btor *btor, const char *sym)
+{
+  assert (btor);
+  assert (sym);
+  BtorPtrHashBucket *b;
+  // FIXME (ma): const...
+  b = btor_get_ptr_hash_table (btor->symbols, (char *) sym);
+  if (!b) return 0;
+  return b->data.as_ptr;
+}
+
 char *
 btor_get_symbol_exp (Btor *btor, BtorNode *exp)
 {
@@ -4063,7 +4084,7 @@ btor_set_symbol_exp (Btor *btor, BtorNode *exp, const char *symbol)
 
   exp = BTOR_REAL_ADDR_NODE (exp);
   sym = btor_strdup (btor->mm, symbol);
-  (void) btor_add_ptr_hash_table (btor->symbols, sym);
+  btor_add_ptr_hash_table (btor->symbols, sym)->data.as_ptr = exp;
   b = btor_get_ptr_hash_table (btor->node2symbol, exp);
 
   if (b)

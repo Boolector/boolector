@@ -867,6 +867,10 @@ BtorNode *btor_match_node_by_id (Btor *btor, int32_t id);
  * (Note: increases ref counter of return match!) */
 BtorNode *btor_match_node (Btor *btor, BtorNode *exp);
 
+BtorNode *btor_get_node_by_id (Btor *btor, int32_t id);
+
+BtorNode *btor_get_node_by_symbol (Btor *btor, const char *sym);
+
 /* Gets the symbol of an expression. */
 char *btor_get_symbol_exp (Btor *btor, BtorNode *exp);
 
