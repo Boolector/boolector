@@ -24,7 +24,7 @@ static void
 setup_exists_solver (BtorEFSolver *slv)
 {
   Btor *exists_solver;
-  BtorNode *cur;
+  BtorNode *cur, *param;
   BtorHashTableIterator it;
 
   exists_solver = btor_clone_formula (slv->forall_solver);
@@ -33,9 +33,11 @@ setup_exists_solver (BtorEFSolver *slv)
   btor_init_node_hash_table_iterator (&it, slv->f_exists_vars);
   while (btor_has_next_node_hash_table_iterator (&it))
   {
-    cur = btor_next_node_hash_table_iterator (&it);
+    param = it.bucket->data.as_ptr;
+    cur   = btor_next_node_hash_table_iterator (&it);
     btor_add_ptr_hash_table (slv->e_exists_vars,
-                             btor_get_node_by_id (exists_solver, cur->id));
+                             btor_get_node_by_id (exists_solver, cur->id))
+        ->data.as_ptr = btor_get_node_by_id (exists_solver, param->id);
   }
   btor_init_node_hash_table_iterator (&it, slv->f_forall_vars);
   while (btor_has_next_node_hash_table_iterator (&it))
@@ -83,7 +85,8 @@ setup_forall_solver (BtorEFSolver *slv)
   {
     cur = btor_next_node_hash_table_iterator (&it);
     btor_add_ptr_hash_table (slv->f_exists_vars,
-                             btor_copy_exp (forall_solver, cur));
+                             btor_copy_exp (forall_solver, cur))
+        ->data.as_ptr = btor_copy_exp (forall_solver, cur);
     //      printf ("exists var: %s (%d)\n", node2string (cur), cur->refs);
   }
 
@@ -109,7 +112,8 @@ setup_forall_solver (BtorEFSolver *slv)
       {
         //	    printf ("exists var: %s (%d)\n", node2string (var),
         // var->refs);
-        btor_add_ptr_hash_table (slv->f_exists_vars, var);
+        btor_add_ptr_hash_table (slv->f_exists_vars, var)->data.as_ptr =
+            btor_copy_exp (forall_solver, param);
       }
       else
       {
@@ -287,12 +291,20 @@ delete_ef_solver (BtorEFSolver *slv)
   btor_init_node_hash_table_iterator (&it, slv->e_exists_vars);
   while (btor_has_next_node_hash_table_iterator (&it))
   {
+    btor_release_exp (slv->exists_solver, it.bucket->data.as_ptr);
     cur = btor_next_node_hash_table_iterator (&it);
     btor_release_exp (slv->exists_solver, cur);
   }
 
   btor_init_node_hash_table_iterator (&it, slv->f_exists_vars);
-  btor_queue_node_hash_table_iterator (&it, slv->f_forall_vars);
+  while (btor_has_next_node_hash_table_iterator (&it))
+  {
+    btor_release_exp (slv->forall_solver, it.bucket->data.as_ptr);
+    cur = btor_next_node_hash_table_iterator (&it);
+    btor_release_exp (slv->forall_solver, cur);
+  }
+
+  btor_init_node_hash_table_iterator (&it, slv->f_forall_vars);
   while (btor_has_next_node_hash_table_iterator (&it))
   {
     cur = btor_next_node_hash_table_iterator (&it);
@@ -326,6 +338,13 @@ sat_ef_solver (BtorEFSolver *slv)
   {
     // TODO (ma): proper abort
     printf ("not an exists/forall formula\n");
+    abort ();
+  }
+  else if (slv->btor->ufs->count > 0)
+  {
+    // TODO (ma): proper abort
+    printf (
+        "uninterpreted functions in exists/forall formula not yet supported\n");
     abort ();
   }
 
@@ -391,7 +410,7 @@ generate_model_ef_solver (BtorEFSolver *slv,
   assert (slv->btor);
   assert (slv->btor->slv == (BtorSolver *) slv);
 
-  BtorNode *cur;
+  BtorNode *cur, *param;
   BtorHashTableIterator it;
   const BtorBitVector *bv;
 
@@ -400,13 +419,14 @@ generate_model_ef_solver (BtorEFSolver *slv,
   btor_init_node_hash_table_iterator (&it, slv->e_exists_vars);
   while (btor_has_next_node_hash_table_iterator (&it))
   {
-    cur = btor_next_node_hash_table_iterator (&it);
-    bv  = btor_get_bv_model (slv->exists_solver,
+    param = it.bucket->data.as_ptr;
+    cur   = btor_next_node_hash_table_iterator (&it);
+    bv    = btor_get_bv_model (slv->exists_solver,
                             btor_simplify_exp (slv->exists_solver, cur));
-    // TODO (ma): map exists variables back to exists params
+    assert (btor_get_node_by_id (slv->btor, param->id));
     btor_add_to_bv_model (slv->btor,
                           slv->btor->bv_model,
-                          btor_get_node_by_id (slv->btor, cur->id),
+                          btor_get_node_by_id (slv->btor, param->id),
                           (BtorBitVector *) bv);
   }
 }
