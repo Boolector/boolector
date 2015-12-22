@@ -3153,7 +3153,6 @@ btor_parse_term_smt2_aux (BtorSMT2Parser *parser,
                    + 2];
           sprintf (buf, "%s!%d", s->name, parser->bound_vars++);
           s->exp = boolector_param (parser->btor, width, buf);
-          printf ("sym: %s\n", buf);
         }
         open++;
       }
