@@ -363,6 +363,7 @@ btor_queue_hash_table_iterator (BtorHashTableIterator *it, BtorPtrHashTable *t)
   {
     it->bucket = it->reversed ? t->last : t->first;
     it->cur    = it->bucket ? it->bucket->key : 0;
+    it->pos += 1;
   }
   else
   {
