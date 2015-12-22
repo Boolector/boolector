@@ -3666,6 +3666,8 @@ btor_sat_btor (Btor *btor, int lod_limit, int sat_limit)
     }
     else
     {
+      BTOR_ABORT_CORE (btor->quantifiers->count > 0,
+                       "core engine cannot handle quantifiers");
       btor->slv = btor_new_core_solver (btor);
       // TODO (ma): make options for lod_limit and sat_limit
       BTOR_CORE_SOLVER (btor)->lod_limit = lod_limit;
