@@ -972,8 +972,12 @@ clone_aux_btor (Btor *btor, BtorNodeMap **exp_map, bool exp_layer_only)
   assert ((allocated += btor->nodes_unique_table.size * sizeof (BtorNode *))
           == clone->mm->allocated);
 
-  clone->symbols = btor_clone_ptr_hash_table (
-      mm, btor->symbols, btor_clone_key_as_str, 0, 0, 0);
+  clone->symbols = btor_clone_ptr_hash_table (mm,
+                                              btor->symbols,
+                                              btor_clone_key_as_str,
+                                              btor_clone_data_as_node_ptr,
+                                              0,
+                                              emap);
 #ifndef NDEBUG
   int str_bytes = 0;
   btor_init_hash_table_iterator (&it, btor->symbols);
