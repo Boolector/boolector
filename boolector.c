@@ -2750,6 +2750,9 @@ boolector_exists (Btor *btor,
     BTOR_ABORT_IF_BTOR_DOES_NOT_MATCH (btor, params[i]);
     sprintf (
         strtrapi + strlen (strtrapi), NODE_FMT, BTOR_TRAPI_NODE_ID (params[i]));
+
+    (void) btor_add_ptr_hash_table (btor->inputs,
+                                    btor_copy_exp (btor, params[i]));
   }
   sprintf (strtrapi + strlen (strtrapi), NODE_FMT, BTOR_TRAPI_NODE_ID (body));
   BTOR_TRAPI (strtrapi);
