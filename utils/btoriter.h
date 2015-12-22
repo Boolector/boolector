@@ -100,9 +100,9 @@ typedef struct BtorHashTableIterator
 {
   BtorPtrHashBucket *bucket;
   void *cur;
-  char reversed;
-  int num_queued;
-  int pos;
+  bool reversed;
+  uint8_t num_queued;
+  uint8_t pos;
   BtorPtrHashTable *stack[BTOR_HASH_TABLE_ITERATOR_STACK_SIZE];
 } BtorHashTableIterator;
 
