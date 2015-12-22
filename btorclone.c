@@ -806,6 +806,8 @@ clone_aux_btor (Btor *btor,
   /* always auto cleanup external references (dangling, not held from extern) */
   clone->options.auto_cleanup.val = 1;
 
+  assert ((allocated = sizeof (Btor)) == clone->mm->allocated);
+
   if (exp_layer_only)
   {
     /* reset */
@@ -815,9 +817,9 @@ clone_aux_btor (Btor *btor,
     clone->stats.rw_rules_applied = 0;
 #endif
     btor_reset_stats_btor (clone);
+    assert ((allocated += MEM_PTR_HASH_TABLE (clone->stats.rw_rules_applied))
+            == clone->mm->allocated);
   }
-
-  assert ((allocated = sizeof (Btor)) == clone->mm->allocated);
 
   clone->msg = btor_new_btor_msg (clone->mm, &clone->options.verbosity.val);
   assert ((allocated += sizeof (BtorMsg)) == clone->mm->allocated);
