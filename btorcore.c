@@ -362,7 +362,12 @@ void
 btor_reset_stats_btor (Btor *btor)
 {
   assert (btor);
+#ifndef NDEBUG
+  if (btor->stats.rw_rules_applied)
+    btor_delete_ptr_hash_table (btor->stats.rw_rules_applied);
+#endif
   BTOR_CLR (&btor->stats);
+  assert (!btor->stats.rw_rules_applied);
 }
 
 static int
@@ -545,6 +550,19 @@ btor_print_stats_btor (Btor *btor)
       btor->msg, 1, " CNF literals: %lld", btor->avmgr->amgr->num_cnf_literals);
 
   BTOR_MSG (btor->msg, 1, "");
+#ifndef NDEBUG
+  BtorHashTableIterator it;
+  char *rule;
+  int num = 0;
+  BTOR_MSG (btor->msg, 1, "applied rewriting rules:");
+  btor_init_hash_table_iterator (&it, btor->stats.rw_rules_applied);
+  while (btor_has_next_hash_table_iterator (&it))
+  {
+    num  = it.bucket->data.as_int;
+    rule = btor_next_hash_table_iterator (&it);
+    BTOR_MSG (btor->msg, 1, "  %s: %d", rule, num);
+  }
+#endif
   BTOR_MSG (btor->msg,
             1,
             "linear constraint equations: %d",
@@ -737,13 +755,16 @@ new_aux_btor (int init_opts)
       btor_new_ptr_hash_table (mm,
                                (BtorHashPtr) btor_hash_exp_by_id,
                                (BtorCmpPtr) btor_compare_exp_by_id);
-  btor->var_rhs = btor_new_ptr_hash_table (btor->mm,
+  btor->var_rhs = btor_new_ptr_hash_table (mm,
                                            (BtorHashPtr) btor_hash_exp_by_id,
                                            (BtorCmpPtr) btor_compare_exp_by_id);
-
-  btor->fun_rhs = btor_new_ptr_hash_table (btor->mm,
+  btor->fun_rhs = btor_new_ptr_hash_table (mm,
                                            (BtorHashPtr) btor_hash_exp_by_id,
                                            (BtorCmpPtr) btor_compare_exp_by_id);
+#ifndef NDEBUG
+  btor->stats.rw_rules_applied = btor_new_ptr_hash_table (
+      mm, (BtorHashPtr) btor_hash_str, (BtorCmpPtr) strcmp);
+#endif
 
   BTOR_INIT_STACK (btor->functions_with_model);
 
@@ -1008,6 +1029,10 @@ btor_delete_btor (Btor *btor)
   btor_delete_ptr_hash_table (btor->forall_vars);
   btor_delete_ptr_hash_table (btor->feqs);
   btor_delete_ptr_hash_table (btor->parameterized);
+#ifndef NDEBUG
+  if (btor->stats.rw_rules_applied)
+    btor_delete_ptr_hash_table (btor->stats.rw_rules_applied);
+#endif
 
   btor_delete_aigvec_mgr (btor->avmgr);
 

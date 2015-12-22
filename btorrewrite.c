@@ -88,6 +88,27 @@
 
 // TODO: special_const_binary rewriting may return 0, hence the check if
 //       (result), may be obsolete if special_const_binary will be split
+#ifndef NDEBUG
+#define ADD_RW_RULE(rw_rule, ...)                                             \
+  if (applies_##rw_rule (btor, __VA_ARGS__))                                  \
+  {                                                                           \
+    assert (!result);                                                         \
+    result = apply_##rw_rule (btor, __VA_ARGS__);                             \
+    if (result)                                                               \
+    {                                                                         \
+      if (btor->stats.rw_rules_applied)                                       \
+      {                                                                       \
+        BtorPtrHashBucket *b =                                                \
+            btor_get_ptr_hash_table (btor->stats.rw_rules_applied, #rw_rule); \
+        if (!b)                                                               \
+          b = btor_add_ptr_hash_table (btor->stats.rw_rules_applied,          \
+                                       #rw_rule);                             \
+        b->data.as_int += 1;                                                  \
+      }                                                                       \
+      goto DONE;                                                              \
+    }                                                                         \
+  }
+#else
 #define ADD_RW_RULE(rw_rule, ...)                 \
   if (applies_##rw_rule (btor, __VA_ARGS__))      \
   {                                               \
@@ -95,6 +116,7 @@
     result = apply_##rw_rule (btor, __VA_ARGS__); \
     if (result) goto DONE;                        \
   }
+#endif
 //{fprintf (stderr, "apply: %s (%s)\n", #rw_rule, __FUNCTION__);
 
 /* -------------------------------------------------------------------------- */

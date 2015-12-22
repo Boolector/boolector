@@ -64,6 +64,14 @@ btor_clone_key_as_str (BtorMemMgr *mm, const void *map, const void *key)
 }
 
 void *
+btor_clone_key_as_static_str (BtorMemMgr *mm, const void *map, const void *key)
+{
+  (void) mm;
+  (void) map;
+  return key;
+}
+
+void *
 btor_clone_key_as_bv_tuple (BtorMemMgr *mm, const void *map, const void *t)
 {
   assert (mm);
@@ -803,6 +811,9 @@ clone_aux_btor (Btor *btor,
     /* reset */
     clone->btor_sat_btor_called = 0;
     btor_reset_time_btor (clone);
+#ifndef NDEBUG
+    clone->stats.rw_rules_applied = 0;
+#endif
     btor_reset_stats_btor (clone);
   }
 
@@ -1050,6 +1061,20 @@ clone_aux_btor (Btor *btor,
   assert ((allocated += MEM_PTR_HASH_TABLE (btor->fun_rhs))
           == clone->mm->allocated);
   CLONE_PTR_HASH_TABLE_DATA (bv_model, btor_clone_data_as_bv_ptr);
+#ifndef NDEBUG
+  if (!exp_layer_only && btor->stats.rw_rules_applied)
+  {
+    clone->stats.rw_rules_applied =
+        btor_clone_ptr_hash_table (mm,
+                                   btor->stats.rw_rules_applied,
+                                   btor_clone_key_as_static_str,
+                                   btor_clone_data_as_int,
+                                   0,
+                                   0);
+    assert ((allocated += MEM_PTR_HASH_TABLE (btor->stats.rw_rules_applied))
+            == clone->mm->allocated);
+  }
+#endif
 #ifndef NDEBUG
   if (btor->bv_model)
   {
