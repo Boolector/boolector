@@ -327,6 +327,7 @@ typedef struct BtorSMT2Parser
   int nprefix;
   int var_binding;
   int sorted_var;
+  uint32_t bound_vars; /* used for exists/forall vars to enumerate symbols */
   const char *expecting_body;
   char *error;
   unsigned char cc[256];
@@ -3148,9 +3149,11 @@ btor_parse_term_smt2_aux (BtorSMT2Parser *parser,
 
           q       = btor_push_item_smt2 (parser, BTOR_SYMBOL_TAG_SMT2);
           q->node = s;
-          // TODO (ma): rename param symbols in order to prevent symbol
-          // conflicts
-          s->exp = boolector_param (parser->btor, width, 0);  // s->name);
+          char buf[strlen (s->name) + btor_num_digits_util (parser->bound_vars)
+                   + 2];
+          sprintf (buf, "%s!%d", s->name, parser->bound_vars++);
+          s->exp = boolector_param (parser->btor, width, buf);
+          printf ("sym: %s\n", buf);
         }
         open++;
       }
