@@ -57,7 +57,6 @@ setup_exists_solver (BtorEFSolver *slv)
   }
 
   btor_reset_assumptions (exists_solver);
-  assert (exists_solver->bv_vars->count == slv->e_exists_vars->count);
   assert (exists_solver->unsynthesized_constraints->count == 0);
   exists_solver->slv = btor_new_core_solver (exists_solver);
   /* exists solver only holds references for exists_vars */
@@ -71,6 +70,7 @@ setup_forall_solver (BtorEFSolver *slv)
   BtorNode *cur, *param, *subst, *var, *root = 0, *and;
   BtorHashTableIterator it;
   BtorNodeIterator nit;
+  BtorPtrHashTable *t;
 
   forall_solver = btor_clone_formula (slv->btor);
 
@@ -87,7 +87,7 @@ setup_forall_solver (BtorEFSolver *slv)
     btor_add_ptr_hash_table (slv->f_exists_vars,
                              btor_copy_exp (forall_solver, cur))
         ->data.as_ptr = btor_copy_exp (forall_solver, cur);
-    //      printf ("exists var: %s (%d)\n", node2string (cur), cur->refs);
+    printf ("exists var: %s (%d)\n", node2string (cur), cur->refs);
   }
 
   /* instantiate exists/forall params with fresh variables */
@@ -99,6 +99,8 @@ setup_forall_solver (BtorEFSolver *slv)
     assert (BTOR_IS_QUANTIFIER_NODE (cur));
     /* nested quantifiers are instantiated via the top-most quantifier term */
     if (cur->parameterized) continue;
+    assert (!BTOR_IS_QUANTIFIER_NODE (BTOR_REAL_ADDR_NODE (cur->e[1]))
+            || BTOR_REAL_ADDR_NODE (cur->e[1])->parameterized);
 
     btor_init_param_iterator (&nit, cur);
     while (btor_has_next_param_iterator (&nit))
@@ -110,15 +112,13 @@ setup_forall_solver (BtorEFSolver *slv)
       btor_param_set_assigned_exp (param, var);
       if (btor_param_is_exists_var (param))
       {
-        //	    printf ("exists var: %s (%d)\n", node2string (var),
-        // var->refs);
+        printf ("exists var: %s (%d)\n", node2string (var), var->refs);
         btor_add_ptr_hash_table (slv->f_exists_vars, var)->data.as_ptr =
             btor_copy_exp (forall_solver, param);
       }
       else
       {
-        //	    printf ("forall var: %s (%d)\n", node2string (var),
-        // var->refs);
+        printf ("forall var: %s (%d)\n", node2string (var), var->refs);
         btor_add_ptr_hash_table (slv->f_forall_vars, var);
       }
     }
@@ -139,41 +139,43 @@ setup_forall_solver (BtorEFSolver *slv)
   btor_substitute_and_rebuild (forall_solver, forall_solver->substitutions);
   btor_delete_substitutions (forall_solver);
 
-  (void) btor_simplify (forall_solver);
-
   assert (forall_solver->exists_vars->count == 0);
   assert (forall_solver->forall_vars->count == 0);
   assert (forall_solver->quantifiers->count == 0);
   assert (forall_solver->synthesized_constraints->count == 0);
-  assert (forall_solver->embedded_constraints->count == 0);
   assert (forall_solver->varsubst_constraints->count == 0);
 
   /* make conjunction of constraints and add negated formula */
   btor_init_node_hash_table_iterator (&it,
                                       forall_solver->unsynthesized_constraints);
+  btor_queue_node_hash_table_iterator (&it,
+                                       forall_solver->embedded_constraints);
   while (btor_has_next_node_hash_table_iterator (&it))
   {
+    t   = it.stack[it.pos];
     cur = btor_next_node_hash_table_iterator (&it);
+    assert (btor_get_ptr_hash_table (t, cur));
+    btor_remove_ptr_hash_table (t, cur, 0, 0);
     BTOR_REAL_ADDR_NODE (cur)->constraint = 0;
-    if (!root)
-    {
-      root = btor_copy_exp (forall_solver, cur);
-    }
-    else
+    if (root)
     {
       and = btor_and_exp (forall_solver, root, cur);
       btor_release_exp (forall_solver, root);
       root = and;
     }
-    btor_remove_ptr_hash_table (
-        forall_solver->unsynthesized_constraints, cur, 0, 0);
+    else
+      root = btor_copy_exp (forall_solver, cur);
     btor_release_exp (forall_solver, cur);
   }
   assert (root);
   assert (forall_solver->unsynthesized_constraints->count == 0);
+  assert (forall_solver->embedded_constraints->count == 0);
+
   btor_assert_exp (forall_solver, BTOR_INVERT_NODE (root));
   btor_release_exp (forall_solver, root);
-  assert (forall_solver->unsynthesized_constraints->count == 1);
+
+  (void) btor_simplify (forall_solver);
+
   assert (!forall_solver->slv);
   forall_solver->slv = btor_new_core_solver (forall_solver);
   slv->forall_solver = forall_solver;
@@ -186,7 +188,7 @@ construct_generalization (BtorEFSolver *slv)
   BtorNodeMap *map;
   BtorHashTableIterator it;
   BtorNode *var, *c, *res, *f;
-  BtorNodePtrStack consts;
+  BtorNodePtrStack consts, constraints;
   const BtorBitVector *bv;
   BtorMemMgr *mm;
 
@@ -216,16 +218,34 @@ construct_generalization (BtorEFSolver *slv)
     btor_map_node (map, var, btor_get_node_by_id (exists_solver, var->id));
   }
 
-  assert (forall_solver->synthesized_constraints->count == 1);
+  assert (forall_solver->unsynthesized_constraints->count == 0);
+  assert (forall_solver->embedded_constraints->count == 0);
+  assert (forall_solver->varsubst_constraints->count == 0);
+  BTOR_INIT_STACK (constraints);
+  btor_init_node_hash_table_iterator (&it,
+                                      forall_solver->synthesized_constraints);
+  while (btor_has_next_node_hash_table_iterator (&it))
+  {
+    f   = btor_next_node_hash_table_iterator (&it);
+    res = btor_recursively_rebuild_exp_clone (
+        forall_solver,
+        exists_solver,
+        f,
+        map,
+        exists_solver->options.rewrite_level.val);
+    BTOR_PUSH_STACK (mm, constraints, res);
+  }
 
-  f = forall_solver->synthesized_constraints->first->key;
-
-  res = btor_recursively_rebuild_exp_clone (
-      forall_solver, exists_solver, f, map, 3);
+  res = btor_and_n_exp (
+      exists_solver, BTOR_COUNT_STACK (constraints), constraints.start);
 
   while (!BTOR_EMPTY_STACK (consts))
     btor_release_exp (exists_solver, BTOR_POP_STACK (consts));
   BTOR_RELEASE_STACK (mm, consts);
+
+  while (!BTOR_EMPTY_STACK (constraints))
+    btor_release_exp (exists_solver, BTOR_POP_STACK (constraints));
+  BTOR_RELEASE_STACK (mm, constraints);
 
   btor_delete_node_map (map);
   return res;
@@ -328,6 +348,7 @@ sat_ef_solver (BtorEFSolver *slv)
   assert (slv->btor);
   assert (slv->btor->slv == (BtorSolver *) slv);
 
+  double start;
   Btor *exists_solver, *forall_solver;
   BtorSolverResult res;
   BtorHashTableIterator it;
@@ -348,6 +369,7 @@ sat_ef_solver (BtorEFSolver *slv)
     abort ();
   }
 
+  // TODO (ma): incremental support
   setup_forall_solver (slv);
   setup_exists_solver (slv);
 
@@ -357,7 +379,9 @@ sat_ef_solver (BtorEFSolver *slv)
   res = BTOR_RESULT_UNKNOWN;
   while (true)
   {
-    res = exists_solver->slv->api.sat (exists_solver->slv);
+    start = btor_time_stamp ();
+    res   = exists_solver->slv->api.sat (exists_solver->slv);
+    slv->time.exists_solver += btor_time_stamp () - start;
 
     if (res == BTOR_RESULT_UNSAT) /* formula is UNSAT */
       break;
@@ -380,7 +404,9 @@ sat_ef_solver (BtorEFSolver *slv)
       btor_release_exp (forall_solver, c);
     }
 
-    res = forall_solver->slv->api.sat (forall_solver->slv);
+    start = btor_time_stamp ();
+    res   = forall_solver->slv->api.sat (forall_solver->slv);
+    slv->time.forall_solver += btor_time_stamp () - start;
     if (res == BTOR_RESULT_UNSAT) /* formula is SAT */
     {
       res = BTOR_RESULT_SAT;
@@ -389,8 +415,9 @@ sat_ef_solver (BtorEFSolver *slv)
 
     forall_solver->slv->api.generate_model (forall_solver->slv, false, false);
     g = construct_generalization (slv);
-    //      printf ("refine (%u): %s\n", slv->stats.refinements + 1, node2string
-    //      (BTOR_INVERT_NODE (g)));
+    printf ("refine (%u): %s\n",
+            slv->stats.refinements + 1,
+            node2string (BTOR_INVERT_NODE (g)));
     btor_assert_exp (exists_solver, BTOR_INVERT_NODE (g));
     btor_release_exp (exists_solver, g);
     slv->stats.refinements++;
@@ -453,6 +480,11 @@ print_time_stats_ef_solver (BtorEFSolver *slv)
   assert (slv->kind == BTOR_EF_SOLVER_KIND);
   assert (slv->btor);
   assert (slv->btor->slv == (BtorSolver *) slv);
+
+  BTOR_MSG (
+      slv->btor->msg, 1, "%.2f seconds exists solver", slv->time.exists_solver);
+  BTOR_MSG (
+      slv->btor->msg, 1, "%.2f seconds forall solver", slv->time.forall_solver);
 }
 
 BtorSolver *

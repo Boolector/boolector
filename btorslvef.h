@@ -29,6 +29,12 @@ struct BtorEFSolver
   {
     uint32_t refinements;
   } stats;
+
+  struct
+  {
+    double exists_solver;
+    double forall_solver;
+  } time;
 };
 
 typedef struct BtorEFSolver BtorEFSolver;

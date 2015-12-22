@@ -2441,6 +2441,8 @@ quantifier_exp_node (Btor *btor,
   assert (e[1]);
   assert (btor_is_bool_sort (&btor->sorts_unique_table,
                              BTOR_REAL_ADDR_NODE (e[1])->sort_id));
+  /* param not used in e[1] */
+  if (e[0]->parents == 0) return btor_copy_exp (btor, e[1]);
   return create_exp (btor, kind, 2, e);
 }
 
