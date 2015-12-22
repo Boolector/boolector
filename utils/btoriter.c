@@ -365,10 +365,7 @@ btor_queue_hash_table_iterator (BtorHashTableIterator *it, BtorPtrHashTable *t)
     it->cur    = it->bucket ? it->bucket->key : 0;
     it->pos += 1;
   }
-  else
-  {
-    it->stack[it->num_queued++] = t;
-  }
+  it->stack[it->num_queued++] = t;
 }
 
 int
