@@ -2686,6 +2686,38 @@ btor_and_exp (Btor *btor, BtorNode *e0, BtorNode *e1)
   return result;
 }
 
+static BtorNode *
+create_bin_n_exp (Btor *btor,
+                  BtorNode *(*func) (Btor *, BtorNode *, BtorNode *),
+                  uint32_t argc,
+                  BtorNode *args[])
+{
+  uint32_t i;
+  BtorNode *result, *tmp, *arg;
+
+  result = 0;
+  for (i = 0; i < argc; i++)
+  {
+    arg = args[i];
+    if (result)
+    {
+      tmp = func (btor, arg, result);
+      btor_release_exp (btor, result);
+      result = tmp;
+    }
+    else
+      result = btor_copy_exp (btor, arg);
+  }
+  assert (result);
+  return result;
+}
+
+BtorNode *
+btor_and_n_exp (Btor *btor, uint32_t argc, BtorNode *args[])
+{
+  return create_bin_n_exp (btor, btor_and_exp, argc, args);
+}
+
 BtorNode *
 btor_xor_exp (Btor *btor, BtorNode *e0, BtorNode *e1)
 {
