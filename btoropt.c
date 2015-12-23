@@ -271,6 +271,7 @@ btor_init_opts (Btor *btor)
   BTOR_OPT (
       "sp", skeleton_preproc, 1, 0, 1, "propositional skeleton preprocessing");
   BTOR_OPT ("vs", var_subst, 1, 0, 1, "variable substitution");
+  BTOR_OPT ("ms", miniscoping, 1, 0, 1, "miniscoping");
   BTOR_OPT (0, sort_exp, 1, 0, 1, "sort commutative expression nodes");
   BTOR_OPT (0, sort_aig, 1, 0, 1, "sort AIG nodes");
   BTOR_OPT (0, sort_aigvec, 1, 0, 1, "sort AIG vectors");
