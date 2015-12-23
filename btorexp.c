@@ -2441,8 +2441,6 @@ quantifier_exp_node (Btor *btor,
   assert (e[1]);
   assert (btor_is_bool_sort (&btor->sorts_unique_table,
                              BTOR_REAL_ADDR_NODE (e[1])->sort_id));
-  /* param not used in e[1] */
-  if (e[0]->parents == 0) return btor_copy_exp (btor, e[1]);
   return create_exp (btor, kind, 2, e);
 }
 
@@ -4549,6 +4547,22 @@ btor_param_is_forall_var (BtorNode *param)
 {
   assert (BTOR_IS_PARAM_NODE (BTOR_REAL_ADDR_NODE (param)));
   return BTOR_IS_FORALL_NODE (btor_param_get_binder (param));
+}
+
+bool
+btor_param_is_free (Btor *btor, BtorNode *param, BtorNode *term)
+{
+  assert (BTOR_IS_REGULAR_NODE (param));
+  assert (BTOR_IS_PARAM_NODE (param));
+
+  BtorPtrHashBucket *b;
+  BtorPtrHashTable *t;
+
+  term = BTOR_REAL_ADDR_NODE (term);
+  b    = btor_get_ptr_hash_table (btor->parameterized, term);
+  if (!b) return true;
+  t = b->data.as_ptr;
+  return btor_get_ptr_hash_table (t, param) == 0;
 }
 
 #ifndef NDEBUG
