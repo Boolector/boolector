@@ -2300,6 +2300,34 @@ update_node_hash_tables (Btor *btor)
 }
 
 static BtorNode *
+rebuild_binder_exp (Btor *btor, BtorNode *exp)
+{
+  assert (BTOR_IS_REGULAR_NODE (exp));
+  assert (BTOR_IS_BINDER_NODE (exp));
+  assert (!btor_param_get_assigned_exp (exp->e[0]));
+
+  BtorNode *result;
+
+  /* we need to reset the binder here as otherwise it is not possible
+   * to create a new binder term with the same param that substitutes 'exp' */
+  btor_param_set_binder (exp->e[0], 0);
+  if (BTOR_IS_FORALL_NODE (exp))
+    result = btor_forall_exp (btor, exp->e[0], exp->e[1]);
+  else if (BTOR_IS_EXISTS_NODE (exp))
+    result = btor_exists_exp (btor, exp->e[0], exp->e[1]);
+  else
+  {
+    assert (BTOR_IS_LAMBDA_NODE (exp));
+    result = btor_lambda_exp (btor, exp->e[0], exp->e[1]);
+  }
+
+  /* binder not rebuilt, set binder again */
+  if (result == exp) btor_param_set_binder (exp->e[0], exp);
+
+  return result;
+}
+
+static BtorNode *
 rebuild_lambda_exp (Btor *btor, BtorNode *exp)
 {
   assert (BTOR_IS_REGULAR_NODE (exp));
@@ -2308,13 +2336,7 @@ rebuild_lambda_exp (Btor *btor, BtorNode *exp)
 
   BtorNode *result;
 
-  /* we need to reset the binding lambda here as otherwise it is not possible
-   * to create a new lambda term with the same param that substitutes 'exp' */
-  btor_param_set_binder (exp->e[0], 0);
-  result = btor_lambda_exp (btor, exp->e[0], exp->e[1]);
-
-  /* lambda not rebuilt, set binding lambda again */
-  if (result == exp) btor_param_set_binder (exp->e[0], exp);
+  result = rebuild_binder_exp (btor, exp);
 
   /* copy static_rho for new lambda */
   if (btor_lambda_get_static_rho (exp) && !btor_lambda_get_static_rho (result))
@@ -2358,8 +2380,8 @@ rebuild_exp (Btor *btor, BtorNode *exp)
     case BTOR_LAMBDA_NODE: return rebuild_lambda_exp (btor, exp);
     case BTOR_APPLY_NODE: return btor_apply_exp (btor, exp->e[0], exp->e[1]);
     case BTOR_ARGS_NODE: return btor_args_exp (btor, exp->arity, exp->e);
-    case BTOR_EXISTS_NODE: return btor_exists_exp (btor, exp->e[0], exp->e[1]);
-    case BTOR_FORALL_NODE: return btor_forall_exp (btor, exp->e[0], exp->e[1]);
+    case BTOR_EXISTS_NODE:
+    case BTOR_FORALL_NODE: return rebuild_binder_exp (btor, exp);
     default:
       assert (BTOR_IS_COND_NODE (exp));
       return btor_cond_exp (btor, exp->e[0], exp->e[1], exp->e[2]);
