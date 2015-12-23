@@ -420,20 +420,6 @@ disconnect_child_exp (Btor *btor, BtorNode *parent, int pos)
       && btor_param_get_binder (parent->e[0]) == parent)
     btor_param_set_binder (parent->e[0], 0);
 
-  if (BTOR_IS_QUANTIFIER_NODE (parent) && pos == 0)
-  {
-    if (BTOR_IS_EXISTS_NODE (parent))
-    {
-      assert (btor_get_ptr_hash_table (btor->exists_vars, real_child));
-      btor_remove_ptr_hash_table (btor->exists_vars, real_child, 0, 0);
-    }
-    else
-    {
-      assert (btor_get_ptr_hash_table (btor->forall_vars, real_child));
-      btor_remove_ptr_hash_table (btor->forall_vars, real_child, 0, 0);
-    }
-  }
-
   /* only one parent? */
   if (first_parent == tagged_parent && first_parent == last_parent)
   {
@@ -1445,17 +1431,6 @@ new_quantifier_exp_node (Btor *btor,
   assert (!BTOR_REAL_ADDR_NODE (res->body)->simplified);
   assert (!BTOR_IS_LAMBDA_NODE (BTOR_REAL_ADDR_NODE (res->body)));
   btor_param_set_binder (param, (BtorNode *) res);
-  if (kind == BTOR_EXISTS_NODE)
-  {
-    assert (!btor_get_ptr_hash_table (btor->exists_vars, param));
-    (void) btor_add_ptr_hash_table (btor->exists_vars, param);
-  }
-  else
-  {
-    assert (kind == BTOR_FORALL_NODE);
-    assert (!btor_get_ptr_hash_table (btor->forall_vars, param));
-    (void) btor_add_ptr_hash_table (btor->forall_vars, param);
-  }
   //  mark_cone_quantified (btor, param);
   assert (!btor_get_ptr_hash_table (btor->quantifiers, res));
   (void) btor_add_ptr_hash_table (btor->quantifiers, res);
@@ -4508,6 +4483,26 @@ btor_param_set_binder (BtorNode *param, BtorNode *binder)
 {
   assert (BTOR_IS_PARAM_NODE (BTOR_REAL_ADDR_NODE (param)));
   assert (!binder || BTOR_IS_BINDER_NODE (BTOR_REAL_ADDR_NODE (binder)));
+
+  BtorNode *q;
+
+  /* param is not bound anymore, remove from exists/forall vars tables */
+  if (!binder)
+  {
+    q = btor_param_get_binder (param);
+    if (BTOR_IS_EXISTS_NODE (q))
+      btor_remove_ptr_hash_table (param->btor->exists_vars, param, 0, 0);
+    else if (BTOR_IS_FORALL_NODE (q))
+      btor_remove_ptr_hash_table (param->btor->forall_vars, param, 0, 0);
+  }
+  /* param is bound, add to exists/forall vars tables */
+  else
+  {
+    if (BTOR_IS_EXISTS_NODE (binder))
+      (void) btor_add_ptr_hash_table (param->btor->exists_vars, param);
+    else if (BTOR_IS_FORALL_NODE (binder))
+      (void) btor_add_ptr_hash_table (param->btor->forall_vars, param);
+  }
   ((BtorParamNode *) BTOR_REAL_ADDR_NODE (param))->binder = binder;
 }
 
