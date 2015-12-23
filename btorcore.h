@@ -326,6 +326,11 @@ BtorNode *btor_find_substitution (Btor *, BtorNode *);
 
 void btor_substitute_and_rebuild (Btor *, BtorPtrHashTable *);
 
+/* Create a new term with 'substs' substituted in root. */
+BtorNode *btor_substitute_terms (Btor *btor,
+                                 BtorNode *root,
+                                 BtorNodeMap *substs);
+
 // TODO (ma): make these functions public until we have a common framework for
 //            calling sat simplify etc.
 void btor_mark_reachable (Btor *btor, BtorNode *root);

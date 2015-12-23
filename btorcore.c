@@ -2796,6 +2796,103 @@ all_exps_below_rebuilt (Btor *btor, BtorNode *exp)
   return true;
 }
 
+BtorNode *
+btor_substitute_terms (Btor *btor, BtorNode *root, BtorNodeMap *substs)
+{
+  assert (btor);
+  assert (root);
+  assert (substs);
+
+  int32_t i;
+  BtorMemMgr *mm;
+  BtorNode *cur, *real_cur, *subst, *result, **e;
+  BtorNodePtrStack visit, args, cleanup;
+  BtorIntHashTable *mark, *cache;
+  BtorIntHashTableData *d;
+
+  mm    = btor->mm;
+  mark  = btor_new_int_hash_map (mm);
+  cache = btor_new_int_hash_map (mm);
+  BTOR_INIT_STACK (visit);
+  BTOR_INIT_STACK (args);
+  BTOR_INIT_STACK (cleanup);
+  BTOR_PUSH_STACK (mm, visit, root);
+
+  while (!BTOR_EMPTY_STACK (visit))
+  {
+    cur      = BTOR_POP_STACK (visit);
+    real_cur = BTOR_REAL_ADDR_NODE (cur);
+    subst    = btor_mapped_node (substs, real_cur);
+    // TODO (ma): for now we only support bit vector terms
+    assert (!BTOR_IS_LAMBDA_NODE (real_cur));
+
+    if (subst)
+    {
+      result = btor_copy_exp (btor, subst);
+      goto PUSH_RESULT;
+    }
+
+    d = btor_get_int_hash_map (mark, real_cur->id);
+    if (!d)
+    {
+      (void) btor_add_int_hash_map (mark, real_cur->id);
+      BTOR_PUSH_STACK (mm, visit, real_cur);
+      for (i = real_cur->arity - 1; i >= 0; i--)
+        BTOR_PUSH_STACK (mm, visit, real_cur->e[i]);
+    }
+    else if (d->as_int == 0)
+    {
+      d->as_int = 1;
+
+      args.top -= real_cur->arity;
+      e = args.top;
+
+      if (real_cur->arity == 0)
+      {
+        result = btor_copy_exp (btor, real_cur);
+      }
+      else if (real_cur->arity == 1)
+      {
+        assert (BTOR_IS_SLICE_NODE (real_cur));
+        result = btor_slice_exp (btor,
+                                 e[0],
+                                 btor_slice_get_upper (real_cur),
+                                 btor_slice_get_lower (real_cur));
+      }
+      else
+      {
+        result = btor_create_exp (btor, real_cur->kind, real_cur->arity, e);
+      }
+      for (i = 0; i < real_cur->arity; i++) btor_release_exp (btor, e[i]);
+      assert (!btor_get_int_hash_map (cache, real_cur->id));
+      btor_add_int_hash_map (cache, real_cur->id)->as_ptr =
+          btor_copy_exp (btor, result);
+      BTOR_PUSH_STACK (mm, cleanup, result);
+    PUSH_RESULT:
+      BTOR_PUSH_STACK (mm, args, BTOR_COND_INVERT_NODE (cur, result));
+    }
+    else
+    {
+      assert (d->as_int == 1);
+      d = btor_get_int_hash_map (cache, real_cur->id);
+      assert (d);
+      result = btor_copy_exp (btor, d->as_ptr);
+      goto PUSH_RESULT;
+    }
+  }
+  assert (BTOR_COUNT_STACK (args) == 1);
+  result = BTOR_POP_STACK (args);
+
+  while (!BTOR_EMPTY_STACK (cleanup))
+    btor_release_exp (btor, BTOR_POP_STACK (cleanup));
+  BTOR_RELEASE_STACK (mm, cleanup);
+  BTOR_RELEASE_STACK (mm, visit);
+  BTOR_RELEASE_STACK (mm, args);
+  btor_delete_int_hash_map (cache);
+  btor_delete_int_hash_map (mark);
+  return result;
+}
+
 static void
 substitute_and_rebuild (Btor *btor, BtorPtrHashTable *subst)
 {
