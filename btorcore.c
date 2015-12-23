@@ -2793,7 +2793,7 @@ btor_substitute_terms (Btor *btor, BtorNode *root, BtorNodeMap *substs)
     if (!d)
     {
       (void) btor_add_int_hash_map (mark, real_cur->id);
-      BTOR_PUSH_STACK (mm, visit, real_cur);
+      BTOR_PUSH_STACK (mm, visit, cur);
       for (i = real_cur->arity - 1; i >= 0; i--)
         BTOR_PUSH_STACK (mm, visit, real_cur->e[i]);
     }
