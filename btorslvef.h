@@ -24,6 +24,7 @@ struct BtorEFSolver
   Btor *forall_solver;
   BtorPtrHashTable *f_exists_vars;
   BtorPtrHashTable *f_forall_vars;
+  BtorNode *f_formula;
 
   struct
   {
