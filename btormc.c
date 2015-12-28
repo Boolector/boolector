@@ -17,8 +17,8 @@
 #include "btorexp.h"
 #include "btormsg.h"
 #include "dumper/btordumpbtor.h"
+#include "utils/boolectormap.h"
 #include "utils/btoriter.h"
-#include "utils/btormap.h"
 
 /*------------------------------------------------------------------------*/
 

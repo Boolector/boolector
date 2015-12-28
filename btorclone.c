@@ -2,7 +2,7 @@
  *
  *  Copyright (C) 2013-2015 Aina Niemetz.
  *  Copyright (C) 2014-2015 Mathias Preiner.
- *  Copyright (C) 2014 Armin Biere.
+ *  Copyright (C) 2014-2015 Armin Biere.
  *
  *  All rights reserved.
  *
@@ -21,7 +21,7 @@
 #include "btorsort.h"
 #include "utils/btorhash.h"
 #include "utils/btoriter.h"
-#include "utils/btormap.h"
+#include "utils/btornodemap.h"
 #include "utils/btorstack.h"
 #include "utils/btorutil.h"
 
