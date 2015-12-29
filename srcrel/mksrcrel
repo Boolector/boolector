@@ -56,7 +56,7 @@ cp -p \
   deltabtor.c \
 $dir/
 
-for subdir in dumper parser utils simplifier
+for subdir in dumper parser utils btorfmt simplifier
 do
   mkdir $dir/$subdir/
   cp -p $subdir/*.[ch] $dir/$subdir/
@@ -115,16 +115,11 @@ do
   sed -i 's/\t/        /g' $f
 done
 
-if [ $intel = yes ]
+cp -p makefile.in $dir/
+if [ $intel = no ]
 then
-intelfilter=""
-else
-intelfilter='-e /ibv.mk/d'
+  sed -i -e '/ibv.mk/d' $dir/makefile.in
 fi
-
-sed \
-  $intelfilter \
-  makefile.in > $dir/makefile.in
 
 date=`date`
 sed -e 's,@VERSION@,'"`cat VERSION`," \
