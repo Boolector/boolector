@@ -960,6 +960,14 @@ BtorNode *btor_create_exp (Btor *btor,
                            uint32_t arity,
                            BtorNode **e);
 
+/*------------------------------------------------------------------------*/
+/* These are only necessary in kind of internal wrapper code, which uses
+ * the internal structure of expressions, e.g., BtorNode, but otherwise
+ * works through the external API, e.g., BoolectorNode, particularly if
+ * call backs are provided by the user which have the external view.
+ * Consider for example the substitution functions in 'boolectormap.h'
+ * which in turn is heavily used in the model checker 'btormc.c'.
+ */
 void btor_inc_exp_ext_ref_counter (Btor *btor, BtorNode *e);
 
 void btor_dec_exp_ext_ref_counter (Btor *btor, BtorNode *e);
