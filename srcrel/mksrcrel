@@ -54,7 +54,6 @@ cp -p \
   `ls btor*.[ch]|grep -v btoribv.h` \
   `ls btor*.cc |grep -v btoribv|grep -v btorimc` \
   deltabtor.c \
-  btor2horn.mk \
 $dir/
 
 for subdir in dumper parser utils simplifier
@@ -124,7 +123,6 @@ intelfilter='-e /ibv.mk/d'
 fi
 
 sed \
-  -e '/btor2horn/d' \
   $intelfilter \
   makefile.in > $dir/makefile.in
 

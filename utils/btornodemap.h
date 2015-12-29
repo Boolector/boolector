@@ -12,6 +12,17 @@
 #ifndef BTORNODEMAP_H_INCLUDED
 #define BTORNODEMAP_H_INCLUDED
 
+/*========================================================================*/
+/* After 'defactorizing' this code into 'btornodemap.h' and 'boolectormap.h'
+ * this internal version became obsolete and currently only is used in the
+ * regression suite.  We might want to keep it around for a while until
+ * the external version in 'boolectormap.h' which goes through the external
+ * API (that is 'boolector_...' functions and not 'btor_...' function) is
+ * stable.  This split into two versions became necessary after we introduced
+ * and now check proper external reference counting.
+ */
+/*========================================================================*/
+
 #include "boolector.h"
 
 /*------------------------------------------------------------------------*/
