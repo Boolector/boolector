@@ -80,37 +80,56 @@ test_mcnewdel ()
 static void
 test_mctoggle ()
 {
-  int k;
+  int k, mode;
 
-  init_mc_test ();
-
-  BoolectorNode *bit;
-
-  // boolector_set_verbosity_mc (g_mc, 3);
-
-  bit = boolector_latch (g_mc, 1, "counter");
-
+  for (mode = 0; mode < 2; mode++)
   {
-    BoolectorNode *one  = boolector_one (g_btor, 1);
-    BoolectorNode *zero = boolector_zero (g_btor, 1);
-    BoolectorNode *add  = boolector_add (g_btor, bit, one);
-    BoolectorNode *bad  = boolector_eq (g_btor, bit, one);
-    boolector_next (g_mc, bit, add);
-    boolector_init (g_mc, bit, zero);
-    boolector_bad (g_mc, bad);
-    boolector_release (g_btor, one);
-    boolector_release (g_btor, zero);
-    boolector_release (g_btor, add);
-    boolector_release (g_btor, bad);
+    init_mc_test ();
+    if (mode) boolector_enable_trace_gen (g_mc);
+
+    BoolectorNode *bit;
+
+    // boolector_set_verbosity_mc (g_mc, 3);
+
+    bit = boolector_latch (g_mc, 1, "counter");
+
+    {
+      BoolectorNode *one  = boolector_one (g_btor, 1);
+      BoolectorNode *zero = boolector_zero (g_btor, 1);
+      BoolectorNode *add  = boolector_add (g_btor, bit, one);
+      BoolectorNode *bad  = boolector_eq (g_btor, bit, one);
+      boolector_next (g_mc, bit, add);
+      boolector_init (g_mc, bit, zero);
+      boolector_bad (g_mc, bad);
+      boolector_release (g_btor, one);
+      boolector_release (g_btor, zero);
+      boolector_release (g_btor, add);
+      boolector_release (g_btor, bad);
+    }
+
+    k = boolector_bmc (g_mc, 0, 0);
+    assert (k < 0);  // can not reach bad within k=0 steps
+
+    k = boolector_bmc (g_mc, 0, 1);
+    assert (0 <= k && k <= 1);  // bad reached within k=1 steps
+
+    if (mode)
+    {
+      FILE *file = fopen ("log/mctoggle.log", "w");
+      int i;
+      assert (file);
+      fprintf (file, "Bad state property satisfied at k = %d:\n", k);
+      for (i = 0; i <= k; i++)
+      {
+        fprintf (file, "\n");
+        fprintf (file, "[ state at time %d ]\n", i);
+        PRINT (bit, i);
+      }
+      fclose (file);
+    }
+
+    finish_mc_test ();
   }
-
-  k = boolector_bmc (g_mc, 0, 0);
-  assert (k < 0);  // can not reach bad within k=0 steps
-
-  k = boolector_bmc (g_mc, 0, 1);
-  assert (0 <= k && k <= 1);  // bad reached within k=1 steps
-
-  finish_mc_test ();
 }
 
 static void
