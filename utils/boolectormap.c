@@ -1,6 +1,6 @@
 /*  Boolector: Satisfiablity Modulo Theories (SMT) solver.
  *
- *  Copyright (C) 2013-2014 Armin Biere.
+ *  Copyright (C) 2013-2015 Armin Biere.
  *  Copyright (C) 2013-2015 Aina Niemetz.
  *  Copyright (C) 2013-2015 Mathias Preiner.
  *
@@ -213,9 +213,9 @@ boolector_non_recursive_extended_substitute_node (Btor *btor,
   BtorNodePtrStack working_stack, marked_stack;
   BtorNode *node, *mapped;
   BoolectorNode *res;
-  int i, ext_refs_inc;
   BtorNode *eroot;
   BtorMemMgr *mm;
+  int i;
 
   eroot = BTOR_IMPORT_BOOLECTOR_NODE (nroot);
   eroot = btor_simplify_exp (BTOR_REAL_ADDR_NODE (eroot)->btor, eroot);
@@ -228,11 +228,9 @@ boolector_non_recursive_extended_substitute_node (Btor *btor,
 
   while (!BTOR_EMPTY_STACK (working_stack))
   {
-    node         = BTOR_POP_STACK (working_stack);
-    node         = BTOR_REAL_ADDR_NODE (node);
-    ext_refs_inc = !node->ext_refs;
-    node->ext_refs += ext_refs_inc;
-    assert (node->ext_refs <= UINT_MAX - ext_refs_inc);
+    node = BTOR_POP_STACK (working_stack);
+    node = BTOR_REAL_ADDR_NODE (node);
+    btor_inc_exp_ext_ref_counter (node->btor, node);
     assert (node->kind != BTOR_PROXY_NODE);
     if (boolector_mapped_node (map, BTOR_EXPORT_BOOLECTOR_NODE (node)))
       goto DEC_EXT_REFS_AND_CONTINUE;
@@ -267,9 +265,7 @@ boolector_non_recursive_extended_substitute_node (Btor *btor,
     }
   DEC_EXT_REFS_AND_CONTINUE:
     assert (!BTOR_IS_INVERTED_NODE (node));
-    assert (node->ext_refs > 0);
-    assert (node->ext_refs >= (unsigned) ext_refs_inc);
-    node->ext_refs -= ext_refs_inc;
+    btor_dec_exp_ext_ref_counter (node->btor, node);
   }
   BTOR_RELEASE_STACK (mm, working_stack);
   while (!BTOR_EMPTY_STACK (marked_stack))
