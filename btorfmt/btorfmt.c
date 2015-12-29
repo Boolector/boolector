@@ -464,12 +464,16 @@ parse_next_bfr (BtorFormatReader *bfr, BtorFormatLine *l)
 static int
 parse_output_bfr (BtorFormatReader *bfr, BtorFormatLine *l)
 {
+  (void) bfr;
+  (void) l;
   return 0;
 }
 
 static int
 parse_output1_bfr (BtorFormatReader *bfr, BtorFormatLine *l)
 {
+  (void) bfr;
+  (void) l;
   return 1;
 }
 
