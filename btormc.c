@@ -1110,7 +1110,7 @@ btor_mc_model2const_mapper (Btor *btor, void *state, BoolectorNode *node)
     assert (BTOR_REAL_ADDR_NODE (node_at_time)->btor == mc->forward);
     constbits = boolector_bv_assignment (mc->forward, node_at_time);
     bits      = btor_strdup (mc->btor->mm, constbits);
-    boolector_free_bv_assignment (mc->btor, constbits);
+    boolector_free_bv_assignment (mc->forward, constbits);
     btor_zero_normalize_assignment (bits);
     res = boolector_const (mc->btor, bits);
     btor_freestr (mc->btor->mm, bits);
