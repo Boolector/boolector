@@ -16,6 +16,10 @@
 
 /*------------------------------------------------------------------------*/
 
+#include <limits.h>
+
+/*------------------------------------------------------------------------*/
+
 BoolectorNodeMap *
 boolector_new_node_map (Btor *btor)
 {
@@ -209,9 +213,9 @@ boolector_non_recursive_extended_substitute_node (Btor *btor,
   BtorNodePtrStack working_stack, marked_stack;
   BtorNode *node, *mapped;
   BoolectorNode *res;
+  int i, ext_refs_inc;
   BtorNode *eroot;
   BtorMemMgr *mm;
-  int i;
 
   eroot = BTOR_IMPORT_BOOLECTOR_NODE (nroot);
   eroot = btor_simplify_exp (BTOR_REAL_ADDR_NODE (eroot)->btor, eroot);
@@ -224,12 +228,15 @@ boolector_non_recursive_extended_substitute_node (Btor *btor,
 
   while (!BTOR_EMPTY_STACK (working_stack))
   {
-    node = BTOR_POP_STACK (working_stack);
-    node = BTOR_REAL_ADDR_NODE (node);
+    node         = BTOR_POP_STACK (working_stack);
+    node         = BTOR_REAL_ADDR_NODE (node);
+    ext_refs_inc = !node->ext_refs;
+    node->ext_refs += ext_refs_inc;
+    assert (node->ext_refs <= UINT_MAX - ext_refs_inc);
     assert (node->kind != BTOR_PROXY_NODE);
     if (boolector_mapped_node (map, BTOR_EXPORT_BOOLECTOR_NODE (node)))
-      continue;
-    if (node->mark == 2) continue;
+      goto DEC_EXT_REFS_AND_CONTINUE;
+    if (node->mark == 2) goto DEC_EXT_REFS_AND_CONTINUE;
     mapped = BTOR_IMPORT_BOOLECTOR_NODE (
         mapper (btor, state, BTOR_EXPORT_BOOLECTOR_NODE (node)));
     if (mapped)
@@ -258,6 +265,11 @@ boolector_non_recursive_extended_substitute_node (Btor *btor,
       assert (node->mark == 1);
       node->mark = 2;
     }
+  DEC_EXT_REFS_AND_CONTINUE:
+    assert (!BTOR_IS_INVERTED_NODE (node));
+    assert (node->ext_refs > 0);
+    assert (node->ext_refs >= (unsigned) ext_refs_inc);
+    node->ext_refs -= ext_refs_inc;
   }
   BTOR_RELEASE_STACK (mm, working_stack);
   while (!BTOR_EMPTY_STACK (marked_stack))

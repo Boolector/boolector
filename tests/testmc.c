@@ -133,45 +133,70 @@ test_mctoggle ()
 }
 
 static void
-test_mccount2enablenomodel ()
+test_mccount2enable ()
 {
-  int k;
+  int k, mode;
 
-  init_mc_test ();
-
-  BoolectorNode *counter;  // 2-bit state
-  BoolectorNode *enable;   // one boolean control input
-
-  // boolector_set_verbosity_mc (g_mc, 3);
-
-  counter = boolector_latch (g_mc, 2, "counter");
-  enable  = boolector_input (g_mc, 1, "enable");
-
+  for (mode = 0; mode < 2; mode++)
   {
-    BoolectorNode *one      = boolector_one (g_btor, 2);
-    BoolectorNode *zero     = boolector_zero (g_btor, 2);
-    BoolectorNode *three    = boolector_const (g_btor, "11");
-    BoolectorNode *add      = boolector_add (g_btor, counter, one);
-    BoolectorNode *ifenable = boolector_cond (g_btor, enable, add, counter);
-    BoolectorNode *bad      = boolector_eq (g_btor, counter, three);
-    boolector_next (g_mc, counter, add);  // ifenable);
-    boolector_init (g_mc, counter, zero);
-    boolector_bad (g_mc, bad);
-    boolector_release (g_btor, one);
-    boolector_release (g_btor, zero);
-    boolector_release (g_btor, three);
-    boolector_release (g_btor, add);
-    boolector_release (g_btor, ifenable);
-    boolector_release (g_btor, bad);
+    init_mc_test ();
+
+    if (mode) boolector_enable_trace_gen (g_mc);
+
+    BoolectorNode *counter;  // 2-bit state
+    BoolectorNode *enable;   // one boolean control input
+
+    // boolector_set_verbosity_mc (g_mc, 3);
+
+    counter = boolector_latch (g_mc, 2, "counter");
+    enable  = boolector_input (g_mc, 1, "enable");
+
+    {
+      BoolectorNode *one      = boolector_one (g_btor, 2);
+      BoolectorNode *zero     = boolector_zero (g_btor, 2);
+      BoolectorNode *three    = boolector_const (g_btor, "11");
+      BoolectorNode *add      = boolector_add (g_btor, counter, one);
+      BoolectorNode *ifenable = boolector_cond (g_btor, enable, add, counter);
+      BoolectorNode *bad      = boolector_eq (g_btor, counter, three);
+      boolector_next (g_mc, counter, ifenable);
+      boolector_init (g_mc, counter, zero);
+      boolector_bad (g_mc, bad);
+      boolector_release (g_btor, one);
+      boolector_release (g_btor, zero);
+      boolector_release (g_btor, three);
+      boolector_release (g_btor, add);
+      boolector_release (g_btor, ifenable);
+      boolector_release (g_btor, bad);
+    }
+
+    k = boolector_bmc (g_mc, 0, 1);
+    assert (k < 0);  // can not reach bad within k=1 steps
+
+    k = boolector_bmc (g_mc, 0, 5);
+    assert (0 <= k && k <= 5);  // bad reached within k=4 steps
+
+    if (mode)
+    {
+      FILE *file = fopen ("log/mccount2enable.log", "w");
+      int i;
+      assert (file);
+      boolector_dump_btormc (g_mc, file);
+      fflush (file);
+      fprintf (file, "Bad state property satisfied at k = %d:\n", k);
+      for (i = 0; i <= k; i++)
+      {
+        fprintf (file, "\n");
+        fprintf (file, "[ state at time %d ]\n", i);
+        PRINT (counter, i);
+        fprintf (file, "\n");
+        fprintf (file, "[ input at time %d ]\n", i);
+        PRINT (enable, i);
+      }
+      fclose (file);
+    }
+
+    finish_mc_test ();
   }
-
-  k = boolector_bmc (g_mc, 0, 1);
-  assert (k < 0);  // can not reach bad within k=1 steps
-
-  k = boolector_bmc (g_mc, 0, 5);
-  assert (0 <= k && k <= 5);  // bad reached within k=4 steps
-
-  finish_mc_test ();
 }
 
 static void
@@ -434,7 +459,7 @@ run_mc_tests (int argc, char **argv)
 {
   BTOR_RUN_TEST (mcnewdel);
   BTOR_RUN_TEST (mctoggle);
-  BTOR_RUN_TEST (mccount2enablenomodel);
+  BTOR_RUN_TEST (mccount2enable);
   BTOR_RUN_TEST (mccount2resetenable);
   // BTOR_RUN_TEST (mctwostepsmodel);
   BTOR_RUN_TEST (mccount2multi);
