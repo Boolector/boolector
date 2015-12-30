@@ -66,7 +66,7 @@ btor_map_aig (BtorAIGMap *map, BtorAIG *src, BtorAIG *dst)
     src = BTOR_INVERT_AIG (src);
     dst = BTOR_INVERT_AIG (dst);
   }
-  assert (!btor_find_in_ptr_hash_table (map->table, src));
+  assert (!btor_get_ptr_hash_table (map->table, src));
   bucket = btor_add_ptr_hash_table (map->table, src);
   assert (bucket);
   assert (bucket->key == src);
