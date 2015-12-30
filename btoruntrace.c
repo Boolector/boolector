@@ -18,7 +18,7 @@
 #include <stdlib.h>
 #include <string.h>
 #include "boolector.h"
-#include "utils/btorhash.h"
+#include "utils/btorhashptr.h"
 #include "utils/btormem.h"
 #include "utils/btorstack.h"
 
@@ -211,11 +211,11 @@ hmap_get (BtorPtrHashTable *hmap, char *btor_str, char *key)
   len = (btor_str ? strlen (btor_str) : 0) + strlen (key) + 1;
   BTOR_NEWN (btorunt->mm, tmp_key, len);
   sprintf (tmp_key, "%s%s", btor_str ? btor_str : "", key);
-  bucket = btor_find_in_ptr_hash_table (hmap, tmp_key);
+  bucket = btor_get_ptr_hash_table (hmap, tmp_key);
   if (!bucket) die ("'%s' is not hashed", tmp_key);
   assert (bucket);
   BTOR_DELETEN (btorunt->mm, tmp_key, len);
-  return bucket->data.asPtr;
+  return bucket->data.as_ptr;
 }
 
 static void
@@ -231,16 +231,16 @@ hmap_add (BtorPtrHashTable *hmap, char *btor_str, char *key, void *value)
   len = (btor_str ? strlen (btor_str) : 0) + strlen (key) + 1;
   BTOR_NEWN (btorunt->mm, tmp_key, len);
   sprintf (tmp_key, "%s%s", btor_str ? btor_str : "", key);
-  bucket = btor_find_in_ptr_hash_table (hmap, tmp_key);
+  bucket = btor_get_ptr_hash_table (hmap, tmp_key);
   if (!bucket)
   {
     char *key_cp;
     BTOR_NEWN (hmap->mem, key_cp, (strlen (tmp_key) + 1));
     strcpy (key_cp, tmp_key);
-    bucket = btor_insert_in_ptr_hash_table (hmap, key_cp);
+    bucket = btor_add_ptr_hash_table (hmap, key_cp);
   }
   assert (bucket);
-  bucket->data.asPtr = value;
+  bucket->data.as_ptr = value;
   BTOR_DELETEN (btorunt->mm, tmp_key, len);
 }
 
@@ -254,7 +254,7 @@ hmap_clear (BtorPtrHashTable *hmap)
   for (bucket = hmap->first; bucket; bucket = hmap->first)
   {
     char *key = (char *) bucket->key;
-    btor_remove_from_ptr_hash_table (hmap, key, NULL, NULL);
+    btor_remove_ptr_hash_table (hmap, key, NULL, NULL);
     BTOR_DELETEN (hmap->mem, key, (strlen (key) + 1));
   }
 }

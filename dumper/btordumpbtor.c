@@ -16,7 +16,7 @@
 #include "btorcore.h"
 #include "btorexp.h"
 #include "btorsort.h"
-#include "utils/btorhash.h"
+#include "utils/btorhashptr.h"
 #include "utils/btoriter.h"
 #include "utils/btormem.h"
 #include "utils/btorstack.h"
@@ -103,7 +103,7 @@ btor_delete_dump_context (BtorDumpContext *bdc)
   btor_init_node_hash_table_iterator (&it, bdc->latches);
   while (btor_has_next_node_hash_table_iterator (&it))
   {
-    BtorDumpContextLatch *l = it.bucket->data.asPtr;
+    BtorDumpContextLatch *l = it.bucket->data.as_ptr;
     btor_release_exp (bdc->btor, l->latch);
     if (l->next) btor_release_exp (bdc->btor, l->next);
     if (l->init) btor_release_exp (bdc->btor, l->init);
@@ -126,10 +126,10 @@ btor_add_input_to_dump_context (BtorDumpContext *bdc, BtorNode *input)
 {
   assert (BTOR_IS_REGULAR_NODE (input));
   assert (BTOR_IS_BV_VAR_NODE (input));
-  assert (!btor_find_in_ptr_hash_table (bdc->inputs, input));
-  assert (!btor_find_in_ptr_hash_table (bdc->latches, input));
+  assert (!btor_get_ptr_hash_table (bdc->inputs, input));
+  assert (!btor_get_ptr_hash_table (bdc->latches, input));
   (void) btor_copy_exp (bdc->btor, input);
-  (void) btor_insert_in_ptr_hash_table (bdc->inputs, input);
+  (void) btor_add_ptr_hash_table (bdc->inputs, input);
 }
 
 void
@@ -139,12 +139,12 @@ btor_add_latch_to_dump_context (BtorDumpContext *bdc, BtorNode *latch)
   BtorDumpContextLatch *bdcl;
   assert (BTOR_IS_REGULAR_NODE (latch));
   assert (BTOR_IS_BV_VAR_NODE (latch));
-  assert (!btor_find_in_ptr_hash_table (bdc->inputs, latch));
-  assert (!btor_find_in_ptr_hash_table (bdc->latches, latch));
-  b = btor_insert_in_ptr_hash_table (bdc->latches, latch);
+  assert (!btor_get_ptr_hash_table (bdc->inputs, latch));
+  assert (!btor_get_ptr_hash_table (bdc->latches, latch));
+  b = btor_add_ptr_hash_table (bdc->latches, latch);
   BTOR_CNEW (bdc->btor->mm, bdcl);
-  bdcl->latch   = btor_copy_exp (bdc->btor, latch);
-  b->data.asPtr = bdcl;
+  bdcl->latch    = btor_copy_exp (bdc->btor, latch);
+  b->data.as_ptr = bdcl;
 }
 
 void
@@ -154,9 +154,9 @@ btor_add_next_to_dump_context (BtorDumpContext *bdc,
 {
   BtorDumpContextLatch *l;
   BtorPtrHashBucket *b;
-  b = btor_find_in_ptr_hash_table (bdc->latches, latch);
+  b = btor_get_ptr_hash_table (bdc->latches, latch);
   assert (b);
-  l = b->data.asPtr;
+  l = b->data.as_ptr;
   assert (l);
   assert (l->latch == latch);
   assert (!l->next);
@@ -170,9 +170,9 @@ btor_add_init_to_dump_context (BtorDumpContext *bdc,
 {
   BtorDumpContextLatch *l;
   BtorPtrHashBucket *b;
-  b = btor_find_in_ptr_hash_table (bdc->latches, latch);
+  b = btor_get_ptr_hash_table (bdc->latches, latch);
   assert (b);
-  l = b->data.asPtr;
+  l = b->data.as_ptr;
   assert (l);
   assert (l->latch == latch);
   assert (!l->init);
@@ -214,17 +214,16 @@ bdcid (BtorDumpContext *bdc, BtorNode *node)
   BtorNode *real;
   int res;
   real = BTOR_REAL_ADDR_NODE (node);
-  b    = btor_find_in_ptr_hash_table (bdc->idtab, real);
+  b    = btor_get_ptr_hash_table (bdc->idtab, real);
   if (!b)
   {
-    b = btor_insert_in_ptr_hash_table (bdc->idtab,
-                                       btor_copy_exp (bdc->btor, node));
+    b = btor_add_ptr_hash_table (bdc->idtab, btor_copy_exp (bdc->btor, node));
     if (bdc->btor->options.pretty_print.val)
-      b->data.asInt = ++bdc->maxid;
+      b->data.as_int = ++bdc->maxid;
     else
-      b->data.asInt = real->id;
+      b->data.as_int = real->id;
   }
-  res = b->data.asInt;
+  res = b->data.as_int;
   if (!BTOR_IS_REGULAR_NODE (node)) res = -res;
   return res;
 }
@@ -232,8 +231,8 @@ bdcid (BtorDumpContext *bdc, BtorNode *node)
 static int
 bdcsortid (BtorDumpContext *bdc, BtorSort *sort)
 {
-  assert (btor_find_in_ptr_hash_table (bdc->sorts, sort));
-  return btor_find_in_ptr_hash_table (bdc->sorts, sort)->data.asInt;
+  assert (btor_get_ptr_hash_table (bdc->sorts, sort));
+  return btor_get_ptr_hash_table (bdc->sorts, sort)->data.as_int;
 }
 
 static int
@@ -250,7 +249,7 @@ get_sort (BtorDumpContext *bdc, BtorNode *node)
 {
   BtorSort *sort;
   sort = btor_get_sort_by_id (&bdc->btor->sorts_unique_table, node->sort_id);
-  assert (btor_find_in_ptr_hash_table (bdc->sorts, sort));
+  assert (btor_get_ptr_hash_table (bdc->sorts, sort));
   assert (sort->refs > 1);
   return sort;
 }
@@ -442,7 +441,7 @@ bdcnode (BtorDumpContext *bdc, BtorNode *node, FILE *file)
     rho = btor_lambda_get_static_rho (node);
     assert (rho->count == 1);
     index = rho->first->key;
-    value = rho->first->data.asPtr;
+    value = rho->first->data.as_ptr;
     assert (value);
     assert (BTOR_IS_REGULAR_NODE (index));
     assert (BTOR_IS_ARGS_NODE (index));
@@ -482,7 +481,7 @@ bdcsort (BtorDumpContext *bdc, BtorSort *sort, FILE *file)
   const char *kind;
 
   /* already dumped */
-  if (btor_find_in_ptr_hash_table (bdc->sorts, sort)) return;
+  if (btor_get_ptr_hash_table (bdc->sorts, sort)) return;
 
   switch (sort->kind)
   {
@@ -519,7 +518,7 @@ bdcsort (BtorDumpContext *bdc, BtorSort *sort, FILE *file)
   }
   fputc ('\n', file);
 
-  btor_insert_in_ptr_hash_table (bdc->sorts, sort)->data.asInt = id;
+  btor_add_ptr_hash_table (bdc->sorts, sort)->data.as_int = id;
 }
 
 static void
@@ -547,16 +546,16 @@ bdcsorts (BtorDumpContext *bdc, BtorNode *start, FILE *file)
   {
     cur = BTOR_REAL_ADDR_NODE (BTOR_POP_STACK (work));
 
-    if (btor_find_in_ptr_hash_table (mark_nodes, cur)) continue;
+    if (btor_get_ptr_hash_table (mark_nodes, cur)) continue;
 
-    (void) btor_insert_in_ptr_hash_table (mark_nodes, cur);
+    (void) btor_add_ptr_hash_table (mark_nodes, cur);
 
     sort = btor_get_sort_by_id (&bdc->btor->sorts_unique_table, cur->sort_id);
 
-    if (!(btor_find_in_ptr_hash_table (bdc->sorts, sort)
-          || btor_find_in_ptr_hash_table (mark_sorts, sort)))
+    if (!(btor_get_ptr_hash_table (bdc->sorts, sort)
+          || btor_get_ptr_hash_table (mark_sorts, sort)))
     {
-      (void) btor_insert_in_ptr_hash_table (mark_sorts, sort);
+      (void) btor_add_ptr_hash_table (mark_sorts, sort);
       BTOR_PUSH_STACK (mm, sorts, sort);
     }
 
@@ -597,7 +596,7 @@ bdcrec (BtorDumpContext *bdc, BtorNode *start, FILE *file)
     if (node)
     {
       node = BTOR_REAL_ADDR_NODE (node);
-      if (btor_find_in_ptr_hash_table (bdc->idtab, node)) continue;
+      if (btor_get_ptr_hash_table (bdc->idtab, node)) continue;
       BTOR_PUSH_STACK (bdc->btor->mm, bdc->work, node);
       BTOR_PUSH_STACK (bdc->btor->mm, bdc->work, 0);
 
@@ -658,7 +657,7 @@ btor_dump_btor_bdc (BtorDumpContext *bdc, FILE *file)
   btor_init_node_hash_table_iterator (&it, bdc->latches);
   while (btor_has_next_node_hash_table_iterator (&it))
   {
-    BtorDumpContextLatch *bdcl = it.bucket->data.asPtr;
+    BtorDumpContextLatch *bdcl = it.bucket->data.as_ptr;
     int id;
     assert (bdcl->latch);
     assert (BTOR_IS_REGULAR_NODE (bdcl->latch));
@@ -803,7 +802,7 @@ btor_dump_btor (Btor *btor, FILE *file, int version)
   bdc          = btor_new_dump_context (btor);
   bdc->version = 1;  // NOTE: version 2 not yet supported
 
-  if (ret == BTOR_UNKNOWN)
+  if (ret == BTOR_RESULT_UNKNOWN)
   {
     btor_init_node_hash_table_iterator (&it, btor->unsynthesized_constraints);
     btor_queue_node_hash_table_iterator (&it, btor->synthesized_constraints);
@@ -814,8 +813,9 @@ btor_dump_btor (Btor *btor, FILE *file, int version)
   }
   else
   {
-    assert (ret == BTOR_SAT || ret == BTOR_UNSAT);
-    temp = (ret == BTOR_SAT) ? btor_true_exp (btor) : btor_false_exp (btor);
+    assert (ret == BTOR_RESULT_SAT || ret == BTOR_RESULT_UNSAT);
+    temp =
+        (ret == BTOR_RESULT_SAT) ? btor_true_exp (btor) : btor_false_exp (btor);
     btor_add_root_to_dump_context (bdc, temp);
     btor_release_exp (btor, temp);
   }

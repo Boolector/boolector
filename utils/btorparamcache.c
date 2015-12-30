@@ -48,7 +48,7 @@ btor_new_param_cache_tuple (Btor *btor, BtorNode *exp)
       while (btor_has_next_lambda_iterator (&pit))
       {
         cur = btor_next_lambda_iterator (&pit);
-        arg = btor_param_cur_assignment (cur->e[0]);
+        arg = btor_param_get_assigned_exp (cur->e[0]);
         if (!arg) arg = cur->e[0];
         assert (arg);
         t->args[i++] = btor_copy_exp (btor, arg);
@@ -61,7 +61,7 @@ btor_new_param_cache_tuple (Btor *btor, BtorNode *exp)
       param = btor_next_parameterized_iterator (&it);
       assert (BTOR_IS_REGULAR_NODE (param));
       assert (BTOR_IS_PARAM_NODE (param));
-      arg = btor_param_cur_assignment (param);
+      arg = btor_param_get_assigned_exp (param);
       if (!arg) arg = param;
       assert (arg);
       t->args[i++] = btor_copy_exp (btor, arg);
@@ -78,7 +78,7 @@ btor_new_param_cache_tuple (Btor *btor, BtorNode *exp)
     while (btor_has_next_lambda_iterator (&pit))
     {
       cur = btor_next_lambda_iterator (&pit);
-      arg = btor_param_cur_assignment (cur->e[0]);
+      arg = btor_param_get_assigned_exp (cur->e[0]);
       if (!arg) arg = cur->e[0];
       assert (arg);
       t->args[i++] = btor_copy_exp (btor, arg);

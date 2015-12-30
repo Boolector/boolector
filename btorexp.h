@@ -18,7 +18,7 @@
 #include "btorbitvec.h"
 #include "btorsort.h"
 #include "btortypes.h"
-#include "utils/btorhash.h"
+#include "utils/btorhashptr.h"
 #include "utils/btorqueue.h"
 #include "utils/btorstack.h"
 
@@ -79,8 +79,6 @@ enum BtorNodeKind
 };
 
 typedef enum BtorNodeKind BtorNodeKind;
-
-typedef struct BtorNodePair BtorNodePair;
 
 #define BTOR_BV_NODE_STRUCT                                             \
   struct                                                                \
@@ -375,13 +373,15 @@ struct BtorNodePair
   BtorNode *exp2;
 };
 
-BtorNodePair *new_exp_pair (Btor *, BtorNode *, BtorNode *);
+typedef struct BtorNodePair BtorNodePair;
 
-void delete_exp_pair (Btor *, BtorNodePair *);
+BtorNodePair *btor_new_exp_pair (Btor *, BtorNode *, BtorNode *);
 
-unsigned int hash_exp_pair (BtorNodePair *);
+void btor_delete_exp_pair (Btor *, BtorNodePair *);
 
-int compare_exp_pair (BtorNodePair *, BtorNodePair *);
+unsigned int btor_hash_exp_pair (BtorNodePair *);
+
+int btor_compare_exp_pair (BtorNodePair *, BtorNodePair *);
 
 /*------------------------------------------------------------------------*/
 
@@ -896,8 +896,14 @@ uint32_t btor_slice_get_upper (BtorNode *slice);
 uint32_t btor_slice_get_lower (BtorNode *slice);
 
 BtorNode *btor_param_get_binding_lambda (BtorNode *param);
+
 void btor_param_set_binding_lambda (BtorNode *param, BtorNode *lambda);
+
 bool btor_param_is_bound (BtorNode *param);
+
+BtorNode *btor_param_get_assigned_exp (BtorNode *param);
+
+BtorNode *btor_param_set_assigned_exp (BtorNode *param, BtorNode *exp);
 
 /* Copies expression (increments reference counter). */
 BtorNode *btor_copy_exp (Btor *btor, BtorNode *exp);

@@ -15,7 +15,7 @@
 #include "btorcore.h"
 #include "btordbg.h"
 #include "btormsg.h"
-#include "utils/btorinthash.h"
+#include "utils/btorhashint.h"
 #include "utils/btoriter.h"
 #include "utils/btormisc.h"
 #include "utils/btorutil.h"
@@ -101,7 +101,7 @@ mark_uc (Btor *btor, BtorIntHashTable *uc, BtorNode *exp)
     subst->is_array = exp->is_array;
   }
   else
-    subst = btor_aux_var_exp (btor, btor_get_exp_width (btor, exp));
+    subst = btor_var_exp (btor, btor_get_exp_width (btor, exp), 0);
 
   btor_insert_substitution (btor, exp, subst, 0);
   btor_release_exp (btor, subst);
@@ -309,12 +309,12 @@ btor_optimize_unconstrained (Btor *btor)
   }
 
   num_ucs = btor->substitutions->count;
-  btor_substitute_and_rebuild (btor, btor->substitutions, 0);
+  btor_substitute_and_rebuild (btor, btor->substitutions);
 
   /* cleanup */
   btor_delete_substitutions (btor);
-  btor_free_int_hash_table (ucs);
-  btor_free_int_hash_table (ucsp);
+  btor_delete_int_hash_table (ucs);
+  btor_delete_int_hash_table (ucsp);
   BTOR_RELEASE_STACK (btor->mm, stack);
   BTOR_RELEASE_STACK (btor->mm, roots);
 

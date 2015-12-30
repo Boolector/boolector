@@ -29,7 +29,7 @@
 #include "dumper/btordumpaig.h"
 #include "dumper/btordumpbtor.h"
 #include "dumper/btordumpsmt.h"
-#include "utils/btorhash.h"
+#include "utils/btorhashptr.h"
 #include "utils/btoriter.h"
 #include "utils/btorutil.h"
 
@@ -403,7 +403,7 @@ boolector_failed (Btor *btor, BoolectorNode *node)
   exp = BTOR_IMPORT_BOOLECTOR_NODE (node);
   BTOR_ABORT_ARG_NULL_BOOLECTOR (btor);
   BTOR_ABORT_BOOLECTOR (
-      btor->last_sat_result != BTOR_UNSAT,
+      btor->last_sat_result != BTOR_RESULT_UNSAT,
       "cannot check failed assumptions if input formula is not UNSAT");
   BTOR_ABORT_ARG_NULL_BOOLECTOR (exp);
   BTOR_TRAPI_UNFUN (exp);
@@ -633,20 +633,7 @@ boolector_set_opt (Btor *btor, const char *name, int val)
                           "Unconstrained optimization cannot be enabled "
                           "if model generation is enabled");
 #endif
-#ifdef BTOR_ENABLE_BETA_REDUCTION_PROBING
-    BTOR_ABORT_BOOLECTOR (btor->options.probe_beta_reduce_all.val,
-                          "Beta reduction probing cannot be enabled if "
-                          "model generation is enabled");
-#endif
   }
-#ifdef BTOR_ENABLE_BETA_REDUCTION_PROBING
-  else if (!strcmp (name, BTOR_OPT_PBRA))
-  {
-    BTOR_ABORT_BOOLECTOR (btor->options.model_gen.val,
-                          "Beta reduction probing cannot be enabled if "
-                          "model generation is enabled");
-  }
-#endif
   else if (!strcmp (name, BTOR_OPT_DUAL_PROP))
   {
     BTOR_ABORT_BOOLECTOR (
@@ -1032,14 +1019,13 @@ boolector_var (Btor *btor, int width, const char *symbol)
   BTOR_TRAPI ("%d %s", width, symb);
   BTOR_ABORT_BOOLECTOR (width < 1, "'width' must not be < 1");
   BTOR_ABORT_BOOLECTOR (
-      symb && btor_find_in_ptr_hash_table (btor->symbols, (char *) symb),
+      symb && btor_get_ptr_hash_table (btor->symbols, (char *) symb),
       "symbol '%s' is already in use",
       symb);
   res = btor_var_exp (btor, width, symb);
   inc_exp_ext_ref_counter (btor, res);
   BTOR_TRAPI_RETURN_NODE (res);
-  (void) btor_insert_in_ptr_hash_table (btor->inputs,
-                                        btor_copy_exp (btor, res));
+  (void) btor_add_ptr_hash_table (btor->inputs, btor_copy_exp (btor, res));
 #ifndef NDEBUG
   BTOR_CHKCLONE_RES_PTR (res, var, width, symbol);
 #endif
@@ -1061,15 +1047,13 @@ boolector_array (Btor *btor,
   BTOR_TRAPI ("%d %d %s", elem_width, index_width, symb);
   BTOR_ABORT_BOOLECTOR (elem_width < 1, "'elem_width' must not be < 1");
   BTOR_ABORT_BOOLECTOR (index_width < 1, "'index_width' must not be < 1");
-  BTOR_ABORT_BOOLECTOR (
-      symb && btor_find_in_ptr_hash_table (btor->symbols, symb),
-      "symbol '%s' is already in use",
-      symb);
+  BTOR_ABORT_BOOLECTOR (symb && btor_get_ptr_hash_table (btor->symbols, symb),
+                        "symbol '%s' is already in use",
+                        symb);
   res = btor_array_exp (btor, elem_width, index_width, symb);
   inc_exp_ext_ref_counter (btor, res);
   BTOR_TRAPI_RETURN_NODE (res);
-  (void) btor_insert_in_ptr_hash_table (btor->inputs,
-                                        btor_copy_exp (btor, res));
+  (void) btor_add_ptr_hash_table (btor->inputs, btor_copy_exp (btor, res));
 #ifndef NDEBUG
   BTOR_CHKCLONE_RES_PTR (res, array, elem_width, index_width, symbol);
 #endif
@@ -1096,16 +1080,14 @@ boolector_uf (Btor *btor, BoolectorSort sort, const char *symbol)
                         symbol ? " '" : "",
                         symbol ? symbol : "",
                         symbol ? "'" : "");
-  BTOR_ABORT_BOOLECTOR (
-      symb && btor_find_in_ptr_hash_table (btor->symbols, symb),
-      "symbol '%s' is already in use",
-      symb);
+  BTOR_ABORT_BOOLECTOR (symb && btor_get_ptr_hash_table (btor->symbols, symb),
+                        "symbol '%s' is already in use",
+                        symb);
 
   res = btor_uf_exp (btor, s, symb);
   assert (BTOR_IS_REGULAR_NODE (res));
   inc_exp_ext_ref_counter (btor, res);
-  (void) btor_insert_in_ptr_hash_table (btor->inputs,
-                                        btor_copy_exp (btor, res));
+  (void) btor_add_ptr_hash_table (btor->inputs, btor_copy_exp (btor, res));
   BTOR_TRAPI_RETURN_NODE (res);
 #ifndef NDEBUG
   BTOR_CHKCLONE_RES_PTR (res, uf, s, symbol);
@@ -2520,10 +2502,9 @@ boolector_param (Btor *btor, int width, const char *symbol)
   symb = (char *) symbol;
   BTOR_TRAPI ("%d %s", width, symb);
   BTOR_ABORT_BOOLECTOR (width < 1, "'width' must not be < 1");
-  BTOR_ABORT_BOOLECTOR (
-      symb && btor_find_in_ptr_hash_table (btor->symbols, symb),
-      "symbol '%s' is already in use",
-      symb);
+  BTOR_ABORT_BOOLECTOR (symb && btor_get_ptr_hash_table (btor->symbols, symb),
+                        "symbol '%s' is already in use",
+                        symb);
   res = btor_param_exp (btor, width, symb);
   inc_exp_ext_ref_counter (btor, res);
 
@@ -3132,7 +3113,7 @@ boolector_bv_assignment (Btor *btor, BoolectorNode *node)
   BTOR_ABORT_ARG_NULL_BOOLECTOR (exp);
   BTOR_TRAPI_UNFUN (exp);
   BTOR_ABORT_BOOLECTOR (
-      btor->last_sat_result != BTOR_SAT,
+      btor->last_sat_result != BTOR_RESULT_SAT,
       "cannot retrieve assignment if input formula is not SAT");
   BTOR_ABORT_REFS_NOT_POS_BOOLECTOR (exp);
   BTOR_ABORT_IF_BTOR_DOES_NOT_MATCH (btor, exp);
@@ -3222,7 +3203,7 @@ boolector_array_assignment (Btor *btor,
   e_array = BTOR_IMPORT_BOOLECTOR_NODE (n_array);
   BTOR_ABORT_ARG_NULL_BOOLECTOR (btor);
   BTOR_ABORT_BOOLECTOR (
-      btor->last_sat_result != BTOR_SAT,
+      btor->last_sat_result != BTOR_RESULT_SAT,
       "cannot retrieve assignment if input formula is not SAT");
   BTOR_ABORT_ARG_NULL_BOOLECTOR (e_array);
   BTOR_TRAPI_UNFUN (e_array);
@@ -3310,7 +3291,7 @@ boolector_uf_assignment (
   e_uf = BTOR_IMPORT_BOOLECTOR_NODE (n_uf);
   BTOR_ABORT_ARG_NULL_BOOLECTOR (btor);
   BTOR_ABORT_BOOLECTOR (
-      btor->last_sat_result != BTOR_SAT,
+      btor->last_sat_result != BTOR_RESULT_SAT,
       "cannot retrieve assignment if input formula is not SAT");
   BTOR_ABORT_ARG_NULL_BOOLECTOR (e_uf);
   BTOR_TRAPI_UNFUN (e_uf);

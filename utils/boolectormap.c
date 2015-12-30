@@ -48,7 +48,7 @@ boolector_delete_node_map (BoolectorNodeMap *map)
   btor_init_node_hash_table_iterator (&it, map->table);
   while (btor_has_next_node_hash_table_iterator (&it))
   {
-    e    = it.bucket->data.asPtr;
+    e    = it.bucket->data.as_ptr;
     btor = BTOR_REAL_ADDR_NODE (e)->btor;
     btor_dec_exp_ext_ref_counter (btor, e);
     btor_release_exp (btor, e);
@@ -75,10 +75,10 @@ boolector_mapped_node (BoolectorNodeMap *map, BoolectorNode *n)
   e = btor_simplify_exp (BTOR_REAL_ADDR_NODE (e)->btor, e);
 
   real_node = BTOR_REAL_ADDR_NODE (e);
-  bucket    = btor_find_in_ptr_hash_table (map->table, real_node);
+  bucket    = btor_get_ptr_hash_table (map->table, real_node);
   if (!bucket) return 0;
   assert (bucket->key == real_node);
-  eres = bucket->data.asPtr;
+  eres = bucket->data.as_ptr;
   if (BTOR_IS_INVERTED_NODE (n)) eres = BTOR_INVERT_NODE (eres);
   nres = BTOR_EXPORT_BOOLECTOR_NODE (eres);
   return nres;
@@ -115,8 +115,8 @@ boolector_map_node (BoolectorNodeMap *map,
     esrc = BTOR_INVERT_NODE (esrc);
     edst = BTOR_INVERT_NODE (edst);
   }
-  assert (!btor_find_in_ptr_hash_table (map->table, esrc));
-  bucket = btor_insert_in_ptr_hash_table (map->table, esrc);
+  assert (!btor_get_ptr_hash_table (map->table, esrc));
+  bucket = btor_add_ptr_hash_table (map->table, esrc);
   assert (bucket);
 
   sbtor = BTOR_REAL_ADDR_NODE (esrc)->btor;
@@ -126,10 +126,10 @@ boolector_map_node (BoolectorNodeMap *map,
   bucket->key = esrc;
 
   dbtor = BTOR_REAL_ADDR_NODE (edst)->btor;
-  assert (!bucket->data.asPtr);
+  assert (!bucket->data.as_ptr);
   edst = btor_copy_exp (dbtor, edst);
   btor_inc_exp_ext_ref_counter (dbtor, edst);
-  bucket->data.asPtr = edst;
+  bucket->data.as_ptr = edst;
 }
 
 /*------------------------------------------------------------------------*/

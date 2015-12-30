@@ -13,7 +13,7 @@
 #include "btorconst.h"
 #include "btormodel.h"
 #include "dumper/btordumpsmt.h"
-#include "utils/btorhash.h"
+#include "utils/btorhashptr.h"
 #include "utils/btoriter.h"
 
 const char *
@@ -93,7 +93,7 @@ btor_get_fun_model_str_aux (Btor *btor,
   btor_init_hash_table_iterator (&it, (BtorPtrHashTable *) model);
   while (btor_has_next_hash_table_iterator (&it))
   {
-    value = (BtorBitVector *) it.bucket->data.asPtr;
+    value = (BtorBitVector *) it.bucket->data.as_ptr;
 
     /* build assignment string for all arguments */
     t   = (BtorBitVectorTuple *) btor_next_hash_table_iterator (&it);
@@ -312,7 +312,7 @@ print_fun_model_smt2 (Btor *btor, BtorNode *node, int base, FILE *file)
   while (btor_has_next_hash_table_iterator (&it))
   {
     fprintf (file, "%4c(ite ", ' ');
-    assignment = it.bucket->data.asPtr;
+    assignment = it.bucket->data.as_ptr;
     args       = btor_next_hash_table_iterator (&it);
     x          = 0;
     if (args->arity > 1)
@@ -415,7 +415,7 @@ void
 btor_print_model (Btor *btor, char *format, FILE *file)
 {
   assert (btor);
-  assert (btor->last_sat_result == BTOR_SAT);
+  assert (btor->last_sat_result == BTOR_RESULT_SAT);
   assert (format);
   assert (!strcmp (format, "btor") || !strcmp (format, "smt2"));
   assert (file);
@@ -522,7 +522,7 @@ print_fun_value_smt2 (
   while (btor_has_next_hash_table_iterator (&it))
   {
     fprintf (file, "%s((%s ", n++ ? "\n  " : "", symbol);
-    assignment = it.bucket->data.asPtr;
+    assignment = it.bucket->data.as_ptr;
     args       = btor_next_hash_table_iterator (&it);
     if (args->arity > 1)
     {
@@ -582,7 +582,7 @@ btor_print_value (
     Btor *btor, BtorNode *exp, char *exp_str, char *format, FILE *file)
 {
   assert (btor);
-  assert (btor->last_sat_result == BTOR_SAT);
+  assert (btor->last_sat_result == BTOR_RESULT_SAT);
   assert (exp);
   assert (format);
   assert (!strcmp (format, "btor") || !strcmp (format, "smt2"));

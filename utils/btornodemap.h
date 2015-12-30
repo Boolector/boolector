@@ -24,6 +24,7 @@
 /*========================================================================*/
 
 #include "boolector.h"
+#include "utils/btorhashptr.h"
 
 /*------------------------------------------------------------------------*/
 /* Simple map for expression node.  The 'map' owns references to the non

@@ -143,30 +143,6 @@ btor_init_opts (Btor *btor)
   BTOR_OPT (
       "bra", beta_reduce_all, 0, 0, 1, "eagerly eliminate lambda expressions");
   BTOR_OPT ("ack", ackermannize, 0, 0, 1, "add ackermann constraints");
-#ifdef BTOR_ENABLE_BETA_REDUCTION_PROBING
-  BTOR_OPT ("pbra",
-            probe_beta_reduce_all,
-            0,
-            0,
-            1,
-            "probe -bra until given LOD or SAT limit");
-  BTOR_OPT (
-      0, pbra_lod_limit, 10, 0, UINT_MAX, "LOD limit (#lemmas) for -pbra");
-  BTOR_OPT (0,
-            pbra_sat_limit,
-            55000,
-            0,
-            UINT_MAX,
-            "SAT limit (#conflicts) for -pbra");
-  BTOR_OPT (0,
-            pbra_ops_factor,
-            10,
-            0,
-            UINT_MAX,
-            "factor by which the size of the red. formula may be greater than "
-            "the original formula");
-#endif
-
   BTOR_OPT ("dp", dual_prop, 0, 0, 1, "dual propagation optimization");
   BTOR_OPT ("ju", just, 0, 0, 1, "justification optimization");
   BTOR_OPT (0,
@@ -313,9 +289,6 @@ btor_set_opt (Btor *btor, const char *name, uint32_t val)
   {
     if (!val && btor->options.model_gen.val) btor_delete_model (btor);
     assert (!val || !btor->options.ucopt.val);
-#ifdef BTOR_ENABLE_BETA_REDUCTION_PROBING
-    assert (!val || !btor->options.probe_beta_reduce_all.val);
-#endif
   }
   else if (!strcmp (name, "i") || !strcmp (name, BTOR_OPT_INCREMENTAL))
   {

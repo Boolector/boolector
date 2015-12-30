@@ -8,7 +8,7 @@
  *  See COPYING for more information on using this software.
  */
 
-#include "utils/btorinthash.h"
+#include "utils/btorhashint.h"
 #include <assert.h>
 
 #define HOP_RANGE 32
@@ -63,10 +63,12 @@ add (BtorIntHashTable *t, int32_t key)
   uint32_t h;
   uint8_t move_hop_info, *hop_info;
   int32_t *keys;
+  BtorIntHashTableData *data;
 
   keys     = t->keys;
   hop_info = t->hop_info;
   size     = t->size;
+  data     = t->data;
   h        = hash (key);
   i        = h & (size - 1);
 
@@ -125,8 +127,9 @@ add (BtorIntHashTable *t, int32_t key)
       hop_info[pos]      = move_hop_info + j; /* update hop info */
       keys[move_pos]     = 0;
       hop_info[move_pos] = 0;
-      pos                = move_pos;
-      moved              = true;
+      if (data) data[pos] = data[move_pos];
+      pos   = move_pos;
+      moved = true;
       break;
     }
   } while (true);
@@ -142,15 +145,17 @@ static void
 resize (BtorIntHashTable *t)
 {
 #ifndef NDEBUG
-  size_t new_pos, old_count;
+  size_t old_count;
 #endif
-  size_t i, old_size, new_size;
+  size_t i, new_pos, old_size, new_size;
   int32_t key, *old_keys;
   uint8_t *old_hop_info;
+  BtorIntHashTableData *old_data;
 
   old_size     = t->size;
   old_keys     = t->keys;
   old_hop_info = t->hop_info;
+  old_data     = t->data;
 #ifndef NDEBUG
   old_count = t->count;
 #endif
@@ -158,6 +163,7 @@ resize (BtorIntHashTable *t)
   new_size = old_size * 2;
   BTOR_CNEWN (t->mm, t->keys, new_size);
   BTOR_CNEWN (t->mm, t->hop_info, new_size);
+  if (old_data) BTOR_CNEWN (t->mm, t->data, new_size);
   t->count = 0;
   t->size  = new_size;
 
@@ -165,16 +171,15 @@ resize (BtorIntHashTable *t)
   {
     key = old_keys[i];
     if (!key) continue;
-#ifndef NDEBUG
-    new_pos =
-#endif
-        add (t, key);
+    new_pos = add (t, key);
+    if (old_data) t->data[new_pos] = old_data[i];
     /* after resizing it should alwys be possible to find a new position */
     assert (new_pos < new_size);
   }
 
   BTOR_DELETEN (t->mm, old_keys, old_size);
   BTOR_DELETEN (t->mm, old_hop_info, old_size);
+  if (old_data) BTOR_DELETEN (t->mm, old_data, old_size);
   assert (old_count == t->count);
 }
 
@@ -192,8 +197,9 @@ btor_new_int_hash_table (BtorMemMgr *mm)
 }
 
 void
-btor_free_int_hash_table (BtorIntHashTable *t)
+btor_delete_int_hash_table (BtorIntHashTable *t)
 {
+  assert (!t->data);
   BTOR_DELETEN (t->mm, t->keys, t->size);
   BTOR_DELETEN (t->mm, t->hop_info, t->size);
   BTOR_DELETE (t->mm, t);
@@ -242,6 +248,7 @@ btor_remove_int_hash_table (BtorIntHashTable *t, int32_t key)
   assert (t->keys[pos] == key);
   t->keys[pos]     = 0;
   t->hop_info[pos] = 0;
+  t->count -= 1;
   return pos;
 }
 
@@ -262,4 +269,68 @@ btor_get_pos_int_hash_table (BtorIntHashTable *t, int32_t key)
     if (keys[pos] == key) return pos;
   }
   return size;
+}
+
+/* map functions */
+
+BtorIntHashTable *
+btor_new_int_hash_map (BtorMemMgr *mm)
+{
+  BtorIntHashTable *res;
+
+  res = btor_new_int_hash_table (mm);
+  BTOR_CNEWN (mm, res->data, res->size);
+  return res;
+}
+
+bool
+btor_contains_int_hash_map (BtorIntHashTable *t, int32_t key)
+{
+  assert (t->data);
+  return btor_contains_int_hash_table (t, key);
+}
+
+void
+btor_remove_int_hash_map (BtorIntHashTable *t,
+                          int32_t key,
+                          BtorIntHashTableData *stored_data)
+{
+  assert (t->data);
+  assert (btor_contains_int_hash_map (t, key));
+
+  size_t pos;
+
+  pos = btor_remove_int_hash_table (t, key);
+
+  if (stored_data) *stored_data = t->data[pos];
+}
+
+BtorIntHashTableData *
+btor_add_int_hash_map (BtorIntHashTable *t, int32_t key)
+{
+  assert (t->data);
+
+  size_t pos;
+  pos = btor_add_int_hash_table (t, key);
+  return &t->data[pos];
+}
+
+BtorIntHashTableData *
+btor_get_int_hash_map (BtorIntHashTable *t, int32_t key)
+{
+  assert (t->data);
+
+  size_t pos;
+  pos = btor_get_pos_int_hash_table (t, key);
+  if (pos == t->size) return 0;
+  return &t->data[pos];
+}
+
+void
+btor_delete_int_hash_map (BtorIntHashTable *t)
+{
+  assert (t->data);
+  BTOR_DELETEN (t->mm, t->data, t->size);
+  t->data = 0;
+  btor_delete_int_hash_table (t);
 }

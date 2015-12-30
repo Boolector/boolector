@@ -15,6 +15,8 @@
 
 #include <stdint.h>
 
+#define BTOR_VERBOSITY_MAX 4
+
 #define BTOR_INPUT_FORMAT_NONE 0
 #define BTOR_INPUT_FORMAT_BTOR 1
 #define BTOR_INPUT_FORMAT_BTOR2 2
@@ -86,10 +88,6 @@ typedef struct BtorOpt
 #ifdef BTOR_CHECK_FAILED
 #define BTOR_OPT_CHK_FAILED_ASSUMPTIONS "chk_failed_assumptions"
 #endif
-#define BTOR_OPT_PBRA "probe_beta_reduce_all"
-#define BTOR_OPT_PBRA_LOD_LIMIT "pbra_lod_limit"
-#define BTOR_OPT_PBRA_SAT_LIMIT "pbra_sat_limit"
-#define BTOR_OPT_PBRA_OPS_FACTOR "pbra_ops_factor"
 #define BTOR_OPT_UCOPT "ucopt"
 #define BTOR_OPT_LAZY_SYNTHESIZE "lazy_synthesize"
 #define BTOR_OPT_ELIMINATE_SLICES "eliminate_slices"
@@ -122,17 +120,10 @@ typedef struct BtorOpts
 
   BtorOpt beta_reduce_all; /* eagerly eliminate lambda expressions */
   BtorOpt ackermannize;    /* add ackermann constraints */
-#ifdef BTOR_ENABLE_BETA_REDUCTION_PROBING
-  BtorOpt probe_beta_reduce_all; /* probe until given LOD or SAT limit */
-  BtorOpt pbra_lod_limit;        /* LOD limit for BR probing */
-  BtorOpt pbra_sat_limit;        /* SAT limit for BR probing */
-  BtorOpt pbra_ops_factor;       /* factor by which the beta reduced formula
-                                    may be greater than the original */
-#endif
-  BtorOpt dual_prop;      /* dual prop optimization */
-  BtorOpt just;           /* justification optimization */
-  BtorOpt just_heuristic; /* use heuristic (else: input [0] if both
-                             are controlling) */
+  BtorOpt dual_prop;       /* dual prop optimization */
+  BtorOpt just;            /* justification optimization */
+  BtorOpt just_heuristic;  /* use heuristic (else: input [0] if both
+                              are controlling) */
 #ifndef BTOR_DO_NOT_OPTIMIZE_UNCONSTRAINED
   BtorOpt ucopt; /* unconstrained optimization */
 #endif
