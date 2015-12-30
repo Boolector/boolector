@@ -307,11 +307,12 @@ btor_init_hash_table_iterator (BtorHashTableIterator *it, BtorPtrHashTable *t)
   assert (it);
   assert (t);
 
-  it->bucket     = t->first;
-  it->cur        = it->bucket ? it->bucket->key : 0;
-  it->reversed   = 0;
-  it->num_queued = 0;
-  it->pos        = 0;
+  it->bucket                  = t->first;
+  it->cur                     = it->bucket ? it->bucket->key : 0;
+  it->reversed                = false;
+  it->num_queued              = 0;
+  it->pos                     = 0;
+  it->stack[it->num_queued++] = t;
 }
 
 void
@@ -321,11 +322,12 @@ btor_init_reversed_hash_table_iterator (BtorHashTableIterator *it,
   assert (it);
   assert (t);
 
-  it->bucket     = t->last;
-  it->cur        = it->bucket ? it->bucket->key : 0;
-  it->reversed   = 1;
-  it->num_queued = 0;
-  it->pos        = 0;
+  it->bucket                  = t->last;
+  it->cur                     = it->bucket ? it->bucket->key : 0;
+  it->reversed                = true;
+  it->num_queued              = 0;
+  it->pos                     = 0;
+  it->stack[it->num_queued++] = t;
 }
 
 void
@@ -338,13 +340,11 @@ btor_queue_hash_table_iterator (BtorHashTableIterator *it, BtorPtrHashTable *t)
   /* if initial table is empty, initialize with queued table */
   if (!it->bucket)
   {
-    it->bucket = t->first;
+    it->bucket = it->reversed ? t->last : t->first;
     it->cur    = it->bucket ? it->bucket->key : 0;
+    it->pos += 1;
   }
-  else
-  {
-    it->stack[it->num_queued++] = t;
-  }
+  it->stack[it->num_queued++] = t;
 }
 
 int
@@ -366,9 +366,13 @@ btor_next_hash_table_iterator (BtorHashTableIterator *it)
   if (it->bucket)
     it->bucket = it->reversed ? it->bucket->prev : it->bucket->next;
 
-  while (!it->bucket && it->pos < it->num_queued)
+  while (!it->bucket)
+  {
+    it->pos += 1;
+    if (it->pos >= it->num_queued) break;
     it->bucket =
-        it->reversed ? it->stack[it->pos++]->last : it->stack[it->pos++]->first;
+        it->reversed ? it->stack[it->pos]->last : it->stack[it->pos]->first;
+  }
 
   it->cur = it->bucket ? it->bucket->key : 0;
   return res;
@@ -384,15 +388,7 @@ btor_next_data_hash_table_iterator (BtorHashTableIterator *it)
   void *res;
 
   res = &it->bucket->data;
-
-  if (it->bucket)
-    it->bucket = it->reversed ? it->bucket->prev : it->bucket->next;
-
-  while (!it->bucket && it->pos < it->num_queued)
-    it->bucket =
-        it->reversed ? it->stack[it->pos++]->last : it->stack[it->pos++]->first;
-
-  it->cur = it->bucket ? it->bucket->key : 0;
+  btor_next_hash_table_iterator (it);
   return res;
 }
 

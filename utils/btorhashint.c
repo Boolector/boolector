@@ -127,7 +127,11 @@ add (BtorIntHashTable *t, int32_t key)
       hop_info[pos]      = move_hop_info + j; /* update hop info */
       keys[move_pos]     = 0;
       hop_info[move_pos] = 0;
-      if (data) data[pos] = data[move_pos];
+      if (data)
+      {
+        data[pos]             = data[move_pos];
+        data[move_pos].as_ptr = 0;
+      }
       pos   = move_pos;
       moved = true;
       break;

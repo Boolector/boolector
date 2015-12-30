@@ -20,9 +20,11 @@
 #include "btoropt.h"
 #include "btorsat.h"
 #include "btorslv.h"
+#include "btorslvsls.h"
 #include "btorsort.h"
 #include "btortypes.h"
 #include "utils/btormem.h"
+#include "utils/btorutil.h"
 
 /*------------------------------------------------------------------------*/
 
@@ -162,6 +164,7 @@ struct Btor
 
   BtorOpts options;
   BtorMsg *msg;
+  BtorRNG rng;
 
   struct
   {
@@ -195,6 +198,9 @@ struct Btor
     long long clone_calls;
     size_t node_bytes_alloc;
     long long beta_reduce_calls;
+#ifndef NDEBUG
+    BtorPtrHashTable *rw_rules_applied;
+#endif
   } stats;
 
   struct
@@ -316,7 +322,11 @@ void btor_insert_substitution (Btor *, BtorNode *, BtorNode *, int);
 BtorNode *btor_find_substitution (Btor *, BtorNode *);
 
 void btor_substitute_and_rebuild (Btor *, BtorPtrHashTable *);
-void btor_insert_varsubst_constraint (Btor *, BtorNode *, BtorNode *);
+
+/* Create a new term with 'substs' substituted in root. */
+BtorNode *btor_substitute_terms (Btor *btor,
+                                 BtorNode *root,
+                                 BtorNodeMap *substs);
 
 // TODO (ma): make these functions public until we have a common framework for
 //            calling sat simplify etc.

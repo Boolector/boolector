@@ -2,6 +2,7 @@
  *
  *  Copyright (C) 2007-2009 Robert Daniel Brummayer.
  *  Copyright (C) 2007-2014 Armin Biere.
+ *  Copyright (C) 2015 Aina Niemetz.
  *  Copyright (C) 2015 Mathias Preiner.
  *
  *  All rights reserved.
@@ -94,6 +95,8 @@ char *btor_sll_const (BtorMemMgr *mm, const char *a, const char *b);
 char *btor_srl_const (BtorMemMgr *mm, const char *a, const char *b);
 
 char *btor_uext_const (BtorMemMgr *mm, const char *c, uint32_t len);
+
+char *btor_sext_const (BtorMemMgr *mm, const char *c, uint32_t len);
 
 char *btor_concat_const (BtorMemMgr *mm, const char *a, const char *b);
 

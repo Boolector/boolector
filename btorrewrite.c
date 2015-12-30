@@ -88,6 +88,27 @@
 
 // TODO: special_const_binary rewriting may return 0, hence the check if
 //       (result), may be obsolete if special_const_binary will be split
+#ifndef NDEBUG
+#define ADD_RW_RULE(rw_rule, ...)                                             \
+  if (applies_##rw_rule (btor, __VA_ARGS__))                                  \
+  {                                                                           \
+    assert (!result);                                                         \
+    result = apply_##rw_rule (btor, __VA_ARGS__);                             \
+    if (result)                                                               \
+    {                                                                         \
+      if (btor->stats.rw_rules_applied)                                       \
+      {                                                                       \
+        BtorPtrHashBucket *b =                                                \
+            btor_get_ptr_hash_table (btor->stats.rw_rules_applied, #rw_rule); \
+        if (!b)                                                               \
+          b = btor_add_ptr_hash_table (btor->stats.rw_rules_applied,          \
+                                       #rw_rule);                             \
+        b->data.as_int += 1;                                                  \
+      }                                                                       \
+      goto DONE;                                                              \
+    }                                                                         \
+  }
+#else
 #define ADD_RW_RULE(rw_rule, ...)                 \
   if (applies_##rw_rule (btor, __VA_ARGS__))      \
   {                                               \
@@ -95,6 +116,7 @@
     result = apply_##rw_rule (btor, __VA_ARGS__); \
     if (result) goto DONE;                        \
   }
+#endif
 //{fprintf (stderr, "apply: %s (%s)\n", #rw_rule, __FUNCTION__);
 
 /* -------------------------------------------------------------------------- */
@@ -4536,11 +4558,10 @@ apply_equal_branches_cond (Btor *btor, BtorNode *e0, BtorNode *e1, BtorNode *e2)
 static inline int
 applies_const_cond (Btor *btor, BtorNode *e0, BtorNode *e1, BtorNode *e2)
 {
-  assert (BTOR_IS_REGULAR_NODE (e0));
   (void) btor;
   (void) e1;
   (void) e2;
-  return BTOR_IS_BV_CONST_NODE (e0);
+  return BTOR_IS_BV_CONST_NODE (BTOR_REAL_ADDR_NODE (e0));
 }
 
 static inline BtorNode *
@@ -6171,8 +6192,11 @@ rewrite_cond_exp (Btor *btor, BtorNode *e0, BtorNode *e1, BtorNode *e2)
   e0 = btor_copy_exp (btor, e0);
   e1 = btor_copy_exp (btor, e1);
   e2 = btor_copy_exp (btor, e2);
-  if (btor->options.rw_normalize.val) normalize_cond (btor, &e0, &e1, &e2);
-  assert (BTOR_IS_REGULAR_NODE (e0));
+  if (btor->options.rw_normalize.val)
+  {
+    normalize_cond (btor, &e0, &e1, &e2);
+    assert (BTOR_IS_REGULAR_NODE (e0));
+  }
 
   ADD_RW_RULE (equal_branches_cond, e0, e1, e2);
   ADD_RW_RULE (const_cond, e0, e1, e2);

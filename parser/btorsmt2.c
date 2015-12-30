@@ -206,8 +206,10 @@ typedef enum BtorSMT2Tag
   BTOR_BVSGT_TAG_SMT2        = 34 + BTOR_BITVEC_TAG_CLASS_SMT2,
   BTOR_BVSGE_TAG_SMT2        = 35 + BTOR_BITVEC_TAG_CLASS_SMT2,
   /* Z3 extensions */
-  BTOR_BVREDOR_TAG_SMT2  = 36 + BTOR_BITVEC_TAG_CLASS_SMT2,
-  BTOR_BVREDAND_TAG_SMT2 = 37 + BTOR_BITVEC_TAG_CLASS_SMT2,
+  BTOR_BVREDOR_TAG_SMT2          = 36 + BTOR_BITVEC_TAG_CLASS_SMT2,
+  BTOR_BVREDAND_TAG_SMT2         = 37 + BTOR_BITVEC_TAG_CLASS_SMT2,
+  BTOR_EXT_ROTATE_LEFT_TAG_SMT2  = 38 + BTOR_BITVEC_TAG_CLASS_SMT2,
+  BTOR_EXT_ROTATE_RIGHT_TAG_SMT2 = 39 + BTOR_BITVEC_TAG_CLASS_SMT2,
 
   BTOR_AUFLIA_TAG_SMT2    = 0 + BTOR_LOGIC_TAG_CLASS_SMT2,
   BTOR_AUFLIRA_TAG_SMT2   = 1 + BTOR_LOGIC_TAG_CLASS_SMT2,
@@ -1010,6 +1012,8 @@ btor_insert_bitvec_symbols_smt2 (BtorSMT2Parser *parser)
   /* Z3 extensions */
   INSERT ("bvredor", BTOR_BVREDOR_TAG_SMT2);
   INSERT ("bvredand", BTOR_BVREDAND_TAG_SMT2);
+  INSERT ("ext_rotate_left", BTOR_EXT_ROTATE_LEFT_TAG_SMT2);
+  INSERT ("ext_rotate_right", BTOR_EXT_ROTATE_RIGHT_TAG_SMT2);
 }
 
 static void
@@ -2043,6 +2047,24 @@ btor_rotate_right_smt2 (Btor *btor, BoolectorNode *exp, int shift)
   return btor_translate_rotate_smt2 (btor, exp, shift, 0);
 }
 
+static BoolectorNode *
+translate_ext_rotate_smt2 (Btor *btor,
+                           BoolectorNode *exp,
+                           BoolectorNode *shift,
+                           int left)
+{
+  assert (boolector_is_const (btor, shift));
+
+  char *len;
+  int shift_len;
+
+  len = btor_const_to_decimal (btor->mm, boolector_get_bits (btor, shift));
+  shift_len = atoi (len);
+  assert (shift_len < boolector_get_width (btor, exp));
+  btor_freestr (btor->mm, len);
+  return btor_translate_rotate_smt2 (btor, exp, shift_len, left);
+}
+
 /* Note: we need look ahead and tokens string only for get-value
  *	 (for parsing a term list and printing the originally parsed,
  *	 non-simplified expression) */
@@ -2654,6 +2676,28 @@ btor_parse_term_smt2_aux (BtorSMT2Parser *parser,
       {
         rotatefun = btor_rotate_right_smt2;
         goto ROTATE_BV_FUN;
+      }
+      /* Z3 bit vector extension */
+      else if (tag == BTOR_EXT_ROTATE_LEFT_TAG_SMT2
+               || tag == BTOR_EXT_ROTATE_RIGHT_TAG_SMT2)
+      {
+        if (!btor_check_nargs_smt2 (parser, p, nargs, 2)) return 0;
+        if (!btor_check_not_array_or_uf_args_smt2 (parser, p, nargs)) return 0;
+        if (!boolector_is_const (parser->btor, p[2].exp))
+        {
+          parser->perrcoo = p[2].coo;
+          return !btor_perr_smt2 (
+              parser,
+              "second argument '%s' of ext_rotate_%s"
+              "is not a bit vector constant",
+              p[2].node->name,
+              tag == BTOR_EXT_ROTATE_LEFT_TAG_SMT2 ? "left" : "right");
+        }
+        exp = translate_ext_rotate_smt2 (parser->btor,
+                                         p[1].exp,
+                                         p[2].exp,
+                                         tag == BTOR_EXT_ROTATE_LEFT_TAG_SMT2);
+        goto RELEASE_EXP_AND_OVERWRITE;
       }
       else if (tag == BTOR_BVULE_TAG_SMT2)
       {

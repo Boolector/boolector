@@ -3317,7 +3317,8 @@ btormbt_state_sat (BtorMBT *mbt, unsigned r)
   else
     BTORMBT_LOG (1, "sat call returned %d", res);
 
-  if (res == BOOLECTOR_UNSAT)
+  if (res == BOOLECTOR_UNSAT
+      && boolector_get_opt_val (mbt->btor, BTOR_OPT_ENGINE) != BTOR_ENGINE_SLS)
   {
     /* check failed assumptions */
     for (i = 0; i < BTOR_COUNT_STACK (mbt->assumptions->exps); i++)

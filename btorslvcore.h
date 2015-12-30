@@ -9,6 +9,9 @@
  *  See COPYING for more information on using this software.
  */
 
+#ifndef BTORSLVCORE_H_INCLUDED
+#define BTORSLVCORE_H_INCLUDED
+
 #include "btorexp.h"
 #include "btorslv.h"
 #include "utils/btorhashptr.h"
@@ -84,3 +87,4 @@ BtorSolver *btor_new_core_solver (Btor *btor);
 // TODO (ma): this is just a fix for now, this should be moved elsewhere
 /* Evaluates expression and returns its value. */
 BtorBitVector *btor_eval_exp (Btor *btor, BtorNode *exp);
+#endif

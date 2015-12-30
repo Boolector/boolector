@@ -32,8 +32,7 @@ new_aigvec (BtorAIGVecMgr *avmgr, uint32_t len)
 
   result =
       btor_malloc (avmgr->mm, sizeof (BtorAIGVec) + sizeof (BtorAIG *) * len);
-  result->len     = len;
-  result->encoded = 0;
+  result->len = len;
   avmgr->cur_num_aigvecs++;
   if (avmgr->max_num_aigvecs < avmgr->cur_num_aigvecs)
     avmgr->max_num_aigvecs = avmgr->cur_num_aigvecs;
@@ -54,7 +53,6 @@ btor_const_aigvec (BtorAIGVecMgr *avmgr, BtorBitVector *bits)
   for (i = 0; i < len; i++)
     result->aigs[i] =
         !btor_get_bit_bv (bits, len - 1 - i) ? BTOR_AIG_FALSE : BTOR_AIG_TRUE;
-  result->encoded = 1;
   return result;
 }
 
@@ -700,7 +698,6 @@ btor_aigvec_to_sat_tseitin (BtorAIGVecMgr *avmgr, BtorAIGVec *av)
   if (!btor_is_initialized_sat (amgr->smgr)) return;
   len = av->len;
   for (i = 0; i < len; i++) btor_aig_to_sat_tseitin (amgr, av->aigs[i]);
-  av->encoded = 1;
 }
 
 void

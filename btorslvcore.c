@@ -9,7 +9,7 @@
  *  See COPYING for more information on using this software.
  */
 
-#include "btorcoresolver.h"
+#include "btorslvcore.h"
 #include "btorbeta.h"
 #include "btorclone.h"
 #include "btorcore.h"

@@ -11,9 +11,9 @@
  */
 
 #include "btorbeta.h"
-#include "btorcoresolver.h"
 #include "btorlog.h"
 #include "btorrewrite.h"
+#include "btorslvcore.h"
 #include "utils/btoriter.h"
 #include "utils/btormisc.h"
 #include "utils/btorparamcache.h"

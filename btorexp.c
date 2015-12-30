@@ -19,6 +19,7 @@
 #include "btorexit.h"
 #include "btorlog.h"
 #include "btorrewrite.h"
+#include "utils/btorhashint.h"
 #include "utils/btorhashptr.h"
 #include "utils/btoriter.h"
 #include "utils/btormisc.h"
@@ -469,9 +470,9 @@ hash_lambda_exp (Btor *btor, BtorNode *param, BtorNode *body)
   unsigned int hash = 0;
   BtorNode *cur, *real_cur;
   BtorNodePtrStack visit;
-  BtorPtrHashTable *marked;
+  BtorIntHashTable *marked;
 
-  marked = btor_new_ptr_hash_table (btor->mm, 0, 0);
+  marked = btor_new_int_hash_table (btor->mm);
   BTOR_INIT_STACK (visit);
   BTOR_PUSH_STACK (btor->mm, visit, body);
 
@@ -480,7 +481,7 @@ hash_lambda_exp (Btor *btor, BtorNode *param, BtorNode *body)
     cur      = BTOR_POP_STACK (visit);
     real_cur = BTOR_REAL_ADDR_NODE (cur);
 
-    if (btor_get_ptr_hash_table (marked, real_cur)) continue;
+    if (btor_contains_int_hash_table (marked, real_cur->id)) continue;
 
     // TODO (ma): hashing arbitrarily deep lambdas might be too expensive
     if (marked->count > 10)
@@ -495,13 +496,13 @@ hash_lambda_exp (Btor *btor, BtorNode *param, BtorNode *body)
       continue;
     }
 
-    (void) btor_add_ptr_hash_table (marked, real_cur);
+    btor_add_int_hash_table (marked, real_cur->id);
     hash += BTOR_IS_INVERTED_NODE (cur) ? -real_cur->kind : real_cur->kind;
     for (i = 0; i < real_cur->arity; i++)
       BTOR_PUSH_STACK (btor->mm, visit, real_cur->e[i]);
   }
   BTOR_RELEASE_STACK (btor->mm, visit);
-  btor_delete_ptr_hash_table (marked);
+  btor_delete_int_hash_table (marked);
   return hash;
 }
 
@@ -2685,6 +2686,38 @@ btor_and_exp (Btor *btor, BtorNode *e0, BtorNode *e1)
   return result;
 }
 
+static BtorNode *
+create_bin_n_exp (Btor *btor,
+                  BtorNode *(*func) (Btor *, BtorNode *, BtorNode *),
+                  uint32_t argc,
+                  BtorNode *args[])
+{
+  uint32_t i;
+  BtorNode *result, *tmp, *arg;
+
+  result = 0;
+  for (i = 0; i < argc; i++)
+  {
+    arg = args[i];
+    if (result)
+    {
+      tmp = func (btor, arg, result);
+      btor_release_exp (btor, result);
+      result = tmp;
+    }
+    else
+      result = btor_copy_exp (btor, arg);
+  }
+  assert (result);
+  return result;
+}
+
+BtorNode *
+btor_and_n_exp (Btor *btor, uint32_t argc, BtorNode *args[])
+{
+  return create_bin_n_exp (btor, btor_and_exp, argc, args);
+}
+
 BtorNode *
 btor_xor_exp (Btor *btor, BtorNode *e0, BtorNode *e1)
 {
@@ -4034,6 +4067,27 @@ btor_match_node (Btor *btor, BtorNode *exp)
   return BTOR_IS_INVERTED_NODE (exp) ? BTOR_INVERT_NODE (res) : res;
 }
 
+BtorNode *
+btor_get_node_by_id (Btor *btor, int32_t id)
+{
+  assert (btor);
+  assert (id > 0);
+  if (id >= BTOR_COUNT_STACK (btor->nodes_id_table)) return 0;
+  return BTOR_PEEK_STACK (btor->nodes_id_table, id);
+}
+
+BtorNode *
+btor_get_node_by_symbol (Btor *btor, const char *sym)
+{
+  assert (btor);
+  assert (sym);
+  BtorPtrHashBucket *b;
+  // FIXME (ma): const...
+  b = btor_get_ptr_hash_table (btor->symbols, (char *) sym);
+  if (!b) return 0;
+  return b->data.as_ptr;
+}
+
 char *
 btor_get_symbol_exp (Btor *btor, BtorNode *exp)
 {
@@ -4062,7 +4116,7 @@ btor_set_symbol_exp (Btor *btor, BtorNode *exp, const char *symbol)
 
   exp = BTOR_REAL_ADDR_NODE (exp);
   sym = btor_strdup (btor->mm, symbol);
-  (void) btor_add_ptr_hash_table (btor->symbols, sym);
+  btor_add_ptr_hash_table (btor->symbols, sym)->data.as_ptr = exp;
   b = btor_get_ptr_hash_table (btor->node2symbol, exp);
 
   if (b)

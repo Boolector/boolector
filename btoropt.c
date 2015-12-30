@@ -143,6 +143,115 @@ btor_init_opts (Btor *btor)
   BTOR_OPT (
       "bra", beta_reduce_all, 0, 0, 1, "eagerly eliminate lambda expressions");
   BTOR_OPT ("ack", ackermannize, 0, 0, 1, "add ackermann constraints");
+
+  BTOR_OPT ("E",
+            engine,
+            BTOR_ENGINE_DFLT,
+            BTOR_ENGINE_MIN,
+            BTOR_ENGINE_MAX,
+            "enable specific engine");
+
+  // TODO MAKE SLS FACTORS CONFIGURABLE VIA BTOROPT
+  BTOR_OPT (0,
+            sls_strategy,
+            BTOR_SLS_STRAT_DFLT,
+            BTOR_SLS_STRAT_MIN,
+            BTOR_SLS_STRAT_MAX,
+            "move strategy for sls");
+  BTOR_OPT (0,
+            sls_move_gw,
+            0,
+            0,
+            1,
+            "select move by altering not only one but all candidate variables "
+            "at once");
+  BTOR_OPT (
+      0, sls_move_range, 0, 0, 1, "try range-wise flips when selecting moves");
+  BTOR_OPT (0,
+            sls_move_segment,
+            0,
+            0,
+            1,
+            "try segment-wise flips when selecting moves");
+  BTOR_OPT (0,
+            sls_move_rand_walk,
+            0,
+            0,
+            1,
+            "do a random walk (with given probability)");
+  BTOR_OPT (0,
+            sls_move_rand_walk_prob,
+            10,
+            0,
+            INT_MAX,
+            "probability for choosing random walks (interpreted as 1:<n>)");
+  BTOR_OPT (0,
+            sls_move_rand_all,
+            0,
+            0,
+            1,
+            "randomize all candidate variables (instead of only one) if no "
+            "neighbor with better score is found");
+  BTOR_OPT (0,
+            sls_move_rand_range,
+            0,
+            0,
+            1,
+            "randomize a range of bits of a randomly chosen candidate variable "
+            "if neighbor with better score is found");
+  BTOR_OPT (0,
+            sls_move_prop,
+            0,
+            0,
+            1,
+            "enable propagation moves (with given ratio of propagation to "
+            " regular moves)");
+  BTOR_OPT (
+      0,
+      sls_move_prop_n_prop,
+      1,
+      0,
+      UINT_MAX,
+      "number of prop moves (moves are performed as <n>:m prop to sls moves");
+  BTOR_OPT (
+      0,
+      sls_move_prop_n_sls,
+      1,
+      0,
+      UINT_MAX,
+      "number of sls moves (moves are performed as m:<n> prop to sls moves");
+  BTOR_OPT (
+      0,
+      sls_move_prop_no_flip_cond,
+      0,
+      0,
+      1,
+      "do not choose to flip the condition for ITE during path selection");
+  BTOR_OPT (0,
+            sls_move_prop_force_rw,
+            0,
+            0,
+            1,
+            "force random walk if propagation move fails");
+  BTOR_OPT (0,
+            sls_move_prop_flip_cond_prob,
+            10,
+            0,
+            INT_MAX,
+            "probability for choosing to flip the condition (rather than "
+            "choosing the enabled path) for ITE during path selection "
+            "for prop moves (interpreted as 1:<n>)");
+  BTOR_OPT (0,
+            sls_move_inc_move_test,
+            0,
+            0,
+            1,
+            "use prev. neighbor with better score as base for next move test");
+
+  BTOR_OPT (0, sls_use_restarts, 1, 0, 1, "use restarts");
+  BTOR_OPT (
+      0, sls_use_bandit, 1, 0, 1, "use bandit scheme for constraint selection");
+
   BTOR_OPT ("dp", dual_prop, 0, 0, 1, "dual propagation optimization");
   BTOR_OPT ("ju", just, 0, 0, 1, "justification optimization");
   BTOR_OPT (0,
@@ -161,6 +270,7 @@ btor_init_opts (Btor *btor)
   BTOR_OPT ("xl", extract_lambdas, 1, 0, 1, "extract lambda terms");
   BTOR_OPT (
       "sp", skeleton_preproc, 1, 0, 1, "propositional skeleton preprocessing");
+  BTOR_OPT ("vs", var_subst, 1, 0, 1, "variable substitution");
   BTOR_OPT (0, sort_exp, 1, 0, 1, "sort commutative expression nodes");
   BTOR_OPT (0, sort_aig, 1, 0, 1, "sort AIG nodes");
   BTOR_OPT (0, sort_aigvec, 1, 0, 1, "sort AIG vectors");
@@ -171,6 +281,7 @@ btor_init_opts (Btor *btor)
   BTOR_OPT ("l", loglevel, 0, 0, UINT_MAX, "increase loglevel");
 #endif
   BTOR_OPT ("v", verbosity, 0, 0, BTOR_VERBOSITY_MAX, "increase verbosity");
+  BTOR_OPT ("s", seed, 0, 0, INT_MAX, "random number generator seed");
 
   BTOR_OPT_INTL (0, simplify_constraints, 1, 0, 1, 0);
   BTOR_OPT_INTL (0, auto_cleanup_internal, 0, 0, 1, 0);
@@ -320,6 +431,10 @@ btor_set_opt (Btor *btor, const char *name, uint32_t val)
   else if (!strcmp (name, "ju") || !strcmp (name, BTOR_OPT_JUST))
   {
     assert (!val || !btor->options.dual_prop.val);
+  }
+  else if (!strcmp (name, "sls") || !strcmp (name, BTOR_OPT_SLS))
+  {
+    assert (btor->btor_sat_btor_called == 0);
   }
   else if (!strcmp (name, "rwl") || !strcmp (name, BTOR_OPT_REWRITE_LEVEL))
   {

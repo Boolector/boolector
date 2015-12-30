@@ -222,6 +222,8 @@ typedef struct BtorArgsNode BtorArgsNode;
 
 #define BTOR_IS_FEQ_NODE_KIND(kind) (kind == BTOR_FEQ_NODE)
 
+#define BTOR_IS_MUL_NODE_KIND(kind) ((kind) == BTOR_MUL_NODE)
+
 #define BTOR_IS_ADD_NODE_KIND(kind) ((kind) == BTOR_ADD_NODE)
 
 #define BTOR_IS_MUL_NODE_KIND(kind) ((kind) == BTOR_MUL_NODE)
@@ -231,6 +233,8 @@ typedef struct BtorArgsNode BtorArgsNode;
 #define BTOR_IS_UREM_NODE_KIND(kind) ((kind) == BTOR_UREM_NODE)
 
 #define BTOR_IS_LAMBDA_NODE_KIND(kind) ((kind) == BTOR_LAMBDA_NODE)
+
+#define BTOR_IS_BCOND_NODE_KIND(kind) ((kind) == BTOR_BCOND_NODE)
 
 #define BTOR_IS_UF_NODE_KIND(kind) ((kind) == BTOR_UF_NODE)
 
@@ -280,6 +284,8 @@ typedef struct BtorArgsNode BtorArgsNode;
 #define BTOR_IS_ARRAY_OR_BV_EQ_NODE(exp) \
   (BTOR_IS_FEQ_NODE (exp) || BTOR_IS_BV_EQ_NODE (exp))
 
+#define BTOR_IS_MUL_NODE(exp) ((exp) && BTOR_IS_MUL_NODE_KIND ((exp)->kind))
+
 #define BTOR_IS_ADD_NODE(exp) ((exp) && BTOR_IS_ADD_NODE_KIND ((exp)->kind))
 
 #define BTOR_IS_MUL_NODE(exp) ((exp) && BTOR_IS_MUL_NODE_KIND ((exp)->kind))
@@ -290,6 +296,8 @@ typedef struct BtorArgsNode BtorArgsNode;
 
 #define BTOR_IS_LAMBDA_NODE(exp) \
   ((exp) && BTOR_IS_LAMBDA_NODE_KIND ((exp)->kind))
+
+#define BTOR_IS_BCOND_NODE(exp) ((exp) && BTOR_IS_BCOND_NODE_KIND ((exp)->kind))
 
 #define BTOR_IS_UF_NODE(exp) ((exp) && BTOR_IS_UF_NODE_KIND ((exp)->kind))
 
@@ -550,6 +558,8 @@ BtorNode *btor_xnor_exp (Btor *btor, BtorNode *e0, BtorNode *e1);
  * width(result) = width(e0) = width(e1)
  */
 BtorNode *btor_and_exp (Btor *btor, BtorNode *e0, BtorNode *e1);
+
+BtorNode *btor_and_n_exp (Btor *btor, uint32_t argc, BtorNode *args[]);
 
 /* Logical and bit-vector NAND.
  * width(e0) = width(e1)
@@ -858,6 +868,10 @@ BtorNode *btor_match_node_by_id (Btor *btor, int32_t id);
  * expression is an identical copy of the parent expression).
  * (Note: increases ref counter of return match!) */
 BtorNode *btor_match_node (Btor *btor, BtorNode *exp);
+
+BtorNode *btor_get_node_by_id (Btor *btor, int32_t id);
+
+BtorNode *btor_get_node_by_symbol (Btor *btor, const char *sym);
 
 /* Gets the symbol of an expression. */
 char *btor_get_symbol_exp (Btor *btor, BtorNode *exp);
