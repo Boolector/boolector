@@ -1,6 +1,6 @@
 /*  Boolector: Satisfiablity Modulo Theories (SMT) solver.
  *
- *  Copyright (C) 2013-2014 Armin Biere.
+ *  Copyright (C) 2013-2015 Armin Biere.
  *  Copyright (C) 2013-2015 Aina Niemetz.
  *  Copyright (C) 2013-2015 Mathias Preiner.
  *
@@ -10,7 +10,7 @@
  *  See COPYING for more information on using this software.
  */
 
-#include "utils/btormap.h"
+#include "utils/btornodemap.h"
 #include "btorcore.h"
 #include "utils/btoriter.h"
 
@@ -24,12 +24,10 @@ btor_new_node_map (Btor *btor)
   assert (btor);
 
   BTOR_NEW (btor->mm, res);
-  res->btor     = btor;
-  res->table    = btor_new_ptr_hash_table (btor->mm,
+  res->btor  = btor;
+  res->table = btor_new_ptr_hash_table (btor->mm,
                                         (BtorHashPtr) btor_hash_exp_by_id,
                                         (BtorCmpPtr) btor_compare_exp_by_id);
-  res->simplify = 0;
-
   return res;
 }
 
@@ -61,9 +59,6 @@ btor_mapped_node (BtorNodeMap *map, BtorNode *node)
   BtorNode *real_node;
   BtorNode *res;
 
-  if (map->simplify)
-    node = btor_simplify_exp (BTOR_REAL_ADDR_NODE (node)->btor, node);
-
   real_node = BTOR_REAL_ADDR_NODE (node);
   bucket    = btor_get_ptr_hash_table (map->table, real_node);
   if (!bucket) return 0;
@@ -88,12 +83,6 @@ btor_map_node (BtorNodeMap *map, BtorNode *src, BtorNode *dst)
   assert (map);
   assert (src);
   assert (dst);
-
-  if (map->simplify)
-  {
-    src = btor_simplify_exp (BTOR_REAL_ADDR_NODE (src)->btor, src);
-    dst = btor_simplify_exp (BTOR_REAL_ADDR_NODE (dst)->btor, dst);
-  }
 
   if (BTOR_IS_INVERTED_NODE (src))
   {
@@ -184,9 +173,6 @@ btor_non_recursive_extended_substitute_node (Btor *btor,
   BtorMemMgr *mm;
   int i;
 
-  if (map->simplify)
-    root = btor_simplify_exp (BTOR_REAL_ADDR_NODE (root)->btor, root);
-
   mm = btor->mm;
 
   BTOR_INIT_STACK (working_stack);
@@ -252,153 +238,4 @@ btor_non_recursive_substitute_node (Btor *btor,
 {
   return btor_non_recursive_extended_substitute_node (
       btor, map, 0, btor_never_map_mapper, 0, root);
-}
-
-/*------------------------------------------------------------------------*/
-
-BoolectorNodeMap *
-boolector_new_node_map (Btor *btor)
-{
-  BtorNodeMap *map;
-  map           = btor_new_node_map (btor);
-  map->simplify = 1;
-  return (BoolectorNodeMap *) map;
-}
-
-void
-boolector_delete_node_map (BoolectorNodeMap *map)
-{
-  btor_delete_node_map ((BtorNodeMap *) map);
-}
-
-int
-boolector_count_map (BoolectorNodeMap *map)
-{
-  return btor_count_map ((BtorNodeMap *) map);
-}
-
-BoolectorNode *
-boolector_mapped_node (BoolectorNodeMap *map, BoolectorNode *node)
-{
-  BtorNode *exp = BTOR_IMPORT_BOOLECTOR_NODE (node);
-  BtorNode *res = btor_mapped_node ((BtorNodeMap *) map, exp);
-  return BTOR_EXPORT_BOOLECTOR_NODE (res);
-}
-
-void
-boolector_map_node (BoolectorNodeMap *map,
-                    BoolectorNode *src,
-                    BoolectorNode *dst)
-{
-  btor_map_node ((BtorNodeMap *) map,
-                 BTOR_IMPORT_BOOLECTOR_NODE (src),
-                 BTOR_IMPORT_BOOLECTOR_NODE (dst));
-}
-
-BoolectorNode *
-boolector_non_recursive_extended_substitute_node (Btor *btor,
-                                                  BoolectorNodeMap *map,
-                                                  void *state,
-                                                  BoolectorNodeMapper mapper,
-                                                  BoolectorNodeReleaser release,
-                                                  BoolectorNode *root)
-{
-  return BTOR_EXPORT_BOOLECTOR_NODE (
-      btor_non_recursive_extended_substitute_node (
-          btor,
-          (BtorNodeMap *) map,
-          state,
-          (BtorNodeMapper) mapper,
-          (BtorNodeReleaser) release,
-          BTOR_IMPORT_BOOLECTOR_NODE (root)));
-}
-
-BoolectorNode *
-boolector_non_recursive_substitute_node (Btor *btor,
-                                         BoolectorNodeMap *map,
-                                         BoolectorNode *root)
-{
-  return BTOR_EXPORT_BOOLECTOR_NODE (btor_non_recursive_substitute_node (
-      btor, (BtorNodeMap *) map, BTOR_IMPORT_BOOLECTOR_NODE (root)));
-}
-
-/*------------------------------------------------------------------------*/
-
-BtorAIGMap *
-btor_new_aig_map (Btor *btor, BtorAIGMgr *amgr_src, BtorAIGMgr *amgr_dst)
-{
-  assert (btor);
-  assert (amgr_src);
-  assert (amgr_dst);
-
-  BtorAIGMap *res;
-
-  BTOR_NEW (btor->mm, res);
-  res->btor     = btor;
-  res->amgr_src = amgr_src;
-  res->amgr_dst = amgr_dst;
-  res->table    = btor_new_ptr_hash_table (btor->mm, 0, 0);
-  return res;
-}
-
-BtorAIG *
-btor_mapped_aig (BtorAIGMap *map, BtorAIG *aig)
-{
-  assert (map);
-  assert (aig);
-
-  BtorPtrHashBucket *bucket;
-  BtorAIG *real_aig, *res;
-
-  real_aig = BTOR_REAL_ADDR_AIG (aig);
-  bucket   = btor_get_ptr_hash_table (map->table, real_aig);
-  if (!bucket) return 0;
-  assert (bucket->key == real_aig);
-  res = bucket->data.as_ptr;
-  if (BTOR_IS_INVERTED_AIG (aig)) res = BTOR_INVERT_AIG (res);
-  return res;
-}
-
-void
-btor_map_aig (BtorAIGMap *map, BtorAIG *src, BtorAIG *dst)
-{
-  assert (map);
-  assert (src);
-  assert (dst);
-
-  BtorPtrHashBucket *bucket;
-
-  if (BTOR_IS_INVERTED_AIG (src))
-  {
-    assert (BTOR_IS_INVERTED_AIG (dst));
-    src = BTOR_INVERT_AIG (src);
-    dst = BTOR_INVERT_AIG (dst);
-  }
-  assert (!btor_get_ptr_hash_table (map->table, src));
-  bucket = btor_add_ptr_hash_table (map->table, src);
-  assert (bucket);
-  assert (bucket->key == src);
-  bucket->key = btor_copy_aig (map->amgr_src, src);
-  assert (!bucket->data.as_ptr);
-  bucket->data.as_ptr = btor_copy_aig (map->amgr_dst, dst);
-}
-
-void
-btor_delete_aig_map (BtorAIGMap *map)
-{
-  assert (map);
-
-  Btor *btor;
-  BtorHashTableIterator it;
-
-  btor = map->btor;
-
-  btor_init_hash_table_iterator (&it, map->table);
-  while (btor_has_next_hash_table_iterator (&it))
-  {
-    btor_release_aig (map->amgr_dst, it.bucket->data.as_ptr);
-    btor_release_aig (map->amgr_src, btor_next_hash_table_iterator (&it));
-  }
-  btor_delete_ptr_hash_table (map->table);
-  BTOR_DELETE (btor->mm, map);
 }

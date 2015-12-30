@@ -12,7 +12,7 @@
  */
 
 #include "btoraigvec.h"
-#include "utils/btormap.h"
+#include "utils/btoraigmap.h"
 #include "utils/btorutil.h"
 
 #include <assert.h>

@@ -43,7 +43,7 @@ test_testcase (void)
     sprintf (syscall_string + len, "%s ", BTOR_PEEK_STACK (g_args, i));
     len += strlen (BTOR_PEEK_STACK (g_args, i)) + 1;
   }
-  (void) system (syscall_string);
+  if (system (syscall_string) < 0) abort ();
   free (syscall_string);
 }
 

@@ -1,7 +1,7 @@
 /*  Boolector: Satisfiablity Modulo Theories (SMT) solver.
  *
  *  Copyright (C) 2007-2009 Robert Daniel Brummayer.
- *  Copyright (C) 2007-2014 Armin Biere.
+ *  Copyright (C) 2007-2015 Armin Biere.
  *  Copyright (C) 2012-2015 Aina Niemetz.
  *  Copyright (C) 2012-2015 Mathias Preiner.
  *
@@ -1017,6 +1017,18 @@ void btor_set_to_proxy_exp (Btor *btor, BtorNode *exp);
 
 int btor_cmp_exp_by_id_qsort_desc (const void *p, const void *q);
 int btor_cmp_exp_by_id_qsort_asc (const void *p, const void *q);
+
+/*------------------------------------------------------------------------*/
+/* These are only necessary in kind of internal wrapper code, which uses
+ * the internal structure of expressions, e.g., BtorNode, but otherwise
+ * works through the external API, e.g., BoolectorNode, particularly if
+ * call backs are provided by the user which have the external view.
+ * Consider for example the substitution functions in 'boolectormap.h'
+ * which in turn is heavily used in the model checker 'btormc.c'.
+ */
+void btor_inc_exp_ext_ref_counter (Btor *btor, BtorNode *e);
+
+void btor_dec_exp_ext_ref_counter (Btor *btor, BtorNode *e);
 
 /*------------------------------------------------------------------------*/
 #ifndef NDEBUG

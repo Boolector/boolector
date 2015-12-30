@@ -53,6 +53,8 @@ if __name__ == "__main__":
 
     try:
         for line in sys.stdin:
+            if line.startswith(';'):
+                continue
             t = line.split()
             if len(t) == 0:
                 continue

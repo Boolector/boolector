@@ -1,7 +1,7 @@
 /*  Boolector: Satisfiablity Modulo Theories (SMT) solver.
  *
  *  Copyright (C) 2007-2009 Robert Daniel Brummayer.
- *  Copyright (C) 2007-2014 Armin Biere.
+ *  Copyright (C) 2007-2015 Armin Biere.
  *  Copyright (C) 2012-2014 Mathias Preiner.
  *  Copyright (C) 2013-2015 Aina Niemetz.
  *
@@ -63,6 +63,7 @@ dec_exp_ext_ref_counter (Btor *btor, BtorNode *exp)
   BTOR_REAL_ADDR_NODE (exp)->ext_refs -= 1;
   btor->external_refs -= 1;
 }
+
 static void
 inc_sort_ext_ref_counter (Btor *btor, BtorSortId id)
 {
@@ -76,6 +77,18 @@ inc_sort_ext_ref_counter (Btor *btor, BtorSortId id)
                         "Node reference counter overflow");
   sort->ext_refs += 1;
   btor->external_refs += 1;
+}
+
+void
+btor_dec_exp_ext_ref_counter (Btor *btor, BtorNode *exp)
+{
+  dec_exp_ext_ref_counter (btor, exp);
+}
+
+void
+btor_inc_exp_ext_ref_counter (Btor *btor, BtorNode *exp)
+{
+  inc_exp_ext_ref_counter (btor, exp);
 }
 
 static void

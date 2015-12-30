@@ -16,7 +16,7 @@
 
 #include "btorcore.h"
 #include "utils/btorhashptr.h"
-#include "utils/btormap.h"
+#include "utils/btornodemap.h"
 
 /*------------------------------------------------------------------------*/
 /* node iterators                                                         */

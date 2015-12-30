@@ -13,8 +13,8 @@
 #define BTORSLV_H_INCLUDED
 
 #include "btortypes.h"
-#include "utils/btormap.h"
 #include "utils/btormem.h"
+#include "utils/btornodemap.h"
 
 enum BtorSolverResult
 {
