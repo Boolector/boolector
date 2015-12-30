@@ -68,7 +68,7 @@ btor_clone_key_as_static_str (BtorMemMgr *mm, const void *map, const void *key)
 {
   (void) mm;
   (void) map;
-  return key;
+  return (void *) key;
 }
 
 void *
