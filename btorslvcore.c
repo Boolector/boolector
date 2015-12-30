@@ -2146,13 +2146,6 @@ sat_core_solver (BtorCoreSolver *slv)
 
   simp_sat_result = btor_simplify (btor);
 
-  if (simp_sat_result == BTOR_RESULT_SAT && btor->lambdas->count == 0
-      && btor->ufs->count == 0 && btor->assumptions->count == 0)
-  {
-    sat_result = BTOR_RESULT_SAT;
-    goto DONE;
-  }
-
   if (btor->inconsistent) goto UNSAT;
 
   if (btor_terminate_btor (btor))
@@ -2202,7 +2195,10 @@ sat_core_solver (BtorCoreSolver *slv)
   btor_add_again_assumptions (btor);
   assert (btor_check_reachable_flag_dbg (btor));
 
-  sat_result = timed_sat_sat (btor, slv->sat_limit);
+  if (slv->sat_limit > -1)
+    sat_result = timed_sat_sat (btor, slv->sat_limit);
+  else
+    sat_result = timed_sat_sat (btor, -1);
 
   if (btor->options.dual_prop.val && sat_result == BTOR_SAT_SAT
       && simp_sat_result != BTOR_RESULT_SAT)
@@ -2300,12 +2296,10 @@ generate_model_core_solver (BtorCoreSolver *slv,
   assert (slv->kind == BTOR_CORE_SOLVER_KIND);
   assert (slv->btor);
   assert (slv->btor->slv == (BtorSolver *) slv);
+  /* already created during check_and_resolve_conflicts */
+  assert (slv->btor->bv_model);
 
   (void) reset;
-  /* model is not constructed if btor_simplify already returns SAT and we
-   * have no assumptions and do not need consistency checking */
-  if (!slv->btor->bv_model)
-    btor_init_bv_model (slv->btor, &slv->btor->bv_model);
   btor_init_fun_model (slv->btor, &slv->btor->fun_model);
 
   btor_generate_model (slv->btor,
