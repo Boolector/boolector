@@ -15,6 +15,8 @@
 #include "btortypes.h"
 #include "utils/btorhashptr.h"
 
+#include <stdint.h>
+
 struct BtorEFSolver
 {
   BTOR_SOLVER_STRUCT;
