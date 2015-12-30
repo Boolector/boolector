@@ -19,8 +19,8 @@
 #include "btormodel.h"
 #include "utils/btorhashptr.h"
 #include "utils/btoriter.h"
-#include "utils/btormap.h"
 #include "utils/btormisc.h"
+#include "utils/btornodemap.h"
 #ifndef NDEBUG
 #include "btorprintmodel.h"
 #endif

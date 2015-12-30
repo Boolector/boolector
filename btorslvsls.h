@@ -11,12 +11,13 @@
 #ifndef BTORSLVSLS_H_INCLUDED
 #define BTORSLVSLS_H_INCLUDED
 
-#include "utils/btormap.h"
+#include "utils/btornodemap.h"
 #ifndef NDEBUG
 #include "btorbitvec.h"
 #endif
 
 #include "btorslv.h"
+#include "utils/btorstack.h"
 
 enum BtorSLSMoveKind
 {
