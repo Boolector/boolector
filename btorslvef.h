@@ -13,7 +13,7 @@
 
 #include "btorslv.h"
 #include "btortypes.h"
-#include "utils/btorhashptr.h"
+#include "utils/btornodemap.h"
 
 #include <stdint.h>
 
@@ -22,10 +22,10 @@ struct BtorEFSolver
   BTOR_SOLVER_STRUCT;
 
   Btor *exists_solver;
-  BtorPtrHashTable *e_exists_vars;
+  BtorNodeMap *e_exists_vars;
   Btor *forall_solver;
-  BtorPtrHashTable *f_exists_vars;
-  BtorPtrHashTable *f_forall_vars;
+  BtorNodeMap *f_exists_vars;
+  BtorNodeMap *f_forall_vars;
   BtorNode *f_formula;
 
   struct
