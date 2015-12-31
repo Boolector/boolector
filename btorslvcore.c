@@ -2195,10 +2195,7 @@ sat_core_solver (BtorCoreSolver *slv)
   btor_add_again_assumptions (btor);
   assert (btor_check_reachable_flag_dbg (btor));
 
-  if (slv->sat_limit > -1)
-    sat_result = timed_sat_sat (btor, slv->sat_limit);
-  else
-    sat_result = timed_sat_sat (btor, -1);
+  sat_result = timed_sat_sat (btor, slv->sat_limit);
 
   if (btor->options.dual_prop.val && sat_result == BTOR_SAT_SAT
       && simp_sat_result != BTOR_RESULT_SAT)
