@@ -39,7 +39,7 @@ struct BtorSATMgr
   int inc_required;
   int used_that_inc_was_not_required;
 #ifdef BTOR_USE_LINGELING
-  int nofork;
+  bool fork;
 #endif
   FILE *output;
 
@@ -213,7 +213,7 @@ void btor_enable_picosat_sat (BtorSATMgr *smgr);
 /* Enables Lingeling as SAT preprocessor. */
 int btor_enable_lingeling_sat (BtorSATMgr *smgr,
                                const char *options,
-                               int nofork);
+                               bool fork);
 #endif
 
 #ifdef BTOR_USE_MINISAT
@@ -225,7 +225,7 @@ void btor_enable_minisat_sat (BtorSATMgr *smgr);
 int btor_set_sat_solver (BtorSATMgr *smgr,
                          const char *solver,
                          const char *optstr,
-                         int nofork);
+                         bool fork);
 
 /* Only used for debugging purposes at this point */
 int btor_provides_incremental_sat (BtorSATMgr *smgr);

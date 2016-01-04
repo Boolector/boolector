@@ -1020,6 +1020,9 @@ btor_delete_btor (Btor *btor)
 
   btor_delete_aigvec_mgr (btor->avmgr);
 
+  if (btor->options.sat_engine.valstr)
+    btor_freestr (mm, btor->options.sat_engine.valstr);
+
   assert (btor->rec_rw_calls == 0);
   btor_delete_btor_msg (btor->msg);
   BTOR_DELETE (mm, btor);

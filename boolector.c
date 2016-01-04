@@ -504,7 +504,7 @@ boolector_simplify (Btor *btor)
 int
 boolector_set_sat_solver (Btor *btor, const char *solver)
 {
-  int res;
+  uint32_t sat_engine;
 
   BTOR_ABORT_ARG_NULL_BOOLECTOR (btor);
   BTOR_TRAPI ("%s", solver);
@@ -512,32 +512,49 @@ boolector_set_sat_solver (Btor *btor, const char *solver)
   BTOR_ABORT_BOOLECTOR (
       btor->btor_sat_btor_called > 0,
       "setting the SAT solver must be done before calling 'boolector_sat'");
-  res = btor_set_sat_solver (btor_get_sat_mgr_btor (btor), solver, 0, 0);
-  BTOR_TRAPI_RETURN_INT (res);
-#ifndef NDEBUG
-  BTOR_CHKCLONE_RES (res, set_sat_solver, solver);
+
+#ifdef BTOR_USE_LINGELING
+  if (!strcasecmp (solver, "lingeling"))
+    sat_engine = BTOR_SAT_ENGINE_LINGELING;
+  else
 #endif
-  return res;
+#ifdef BTOR_USE_PICOSAT
+      if (!strcasecmp (solver, "picosat"))
+    sat_engine = BTOR_SAT_ENGINE_PICOSAT;
+  else
+#endif
+#ifdef BTOR_USE_MINISAT
+      if (!strcasecmp (solver, "minisat"))
+    sat_engine = BTOR_SAT_ENGINE_MINISAT;
+  else
+#endif
+    BTOR_ABORT_BOOLECTOR (1, "invalid sat engine '%s' selected", solver);
+
+  btor_set_opt (btor, BTOR_OPT_SAT_ENGINE, sat_engine);
+  BTOR_TRAPI_RETURN_INT (1);
+#ifndef NDEBUG
+  BTOR_CHKCLONE_NORES (set_sat_solver, solver);
+#endif
+  return 1;
 }
 
 #ifdef BTOR_USE_LINGELING
 int
 boolector_set_sat_solver_lingeling (Btor *btor, const char *optstr, int nofork)
 {
-  int res;
-
   BTOR_ABORT_ARG_NULL_BOOLECTOR (btor);
   BTOR_TRAPI ("%s %d", optstr, nofork);
   BTOR_ABORT_BOOLECTOR (
       btor->btor_sat_btor_called > 0,
       "setting the SAT solver must be done before calling 'boolector_sat'");
-  res = btor_set_sat_solver (
-      btor_get_sat_mgr_btor (btor), "lingeling", optstr, nofork);
-  BTOR_TRAPI_RETURN_INT (res);
+  btor_set_opt (btor, BTOR_OPT_SAT_ENGINE, BTOR_SAT_ENGINE_LINGELING);
+  btor_set_opt_str (btor, BTOR_OPT_SAT_ENGINE, optstr);
+  btor_set_opt (btor, BTOR_OPT_SAT_ENGINE_LGL_FORK, nofork ? 0 : 1);
+  BTOR_TRAPI_RETURN_INT (1);
 #ifndef NDEBUG
-  BTOR_CHKCLONE_RES (res, set_sat_solver_lingeling, optstr, nofork);
+  BTOR_CHKCLONE_NORES (set_sat_solver_lingeling, optstr, nofork);
 #endif
-  return res;
+  return 1;
 }
 #endif
 
@@ -545,19 +562,17 @@ boolector_set_sat_solver_lingeling (Btor *btor, const char *optstr, int nofork)
 int
 boolector_set_sat_solver_picosat (Btor *btor)
 {
-  int res;
-
   BTOR_ABORT_ARG_NULL_BOOLECTOR (btor);
   BTOR_TRAPI ("");
   BTOR_ABORT_BOOLECTOR (
       btor->btor_sat_btor_called > 0,
       "setting the SAT solver must be done before calling 'boolector_sat'");
-  res = btor_set_sat_solver (btor_get_sat_mgr_btor (btor), "picosat", 0, 0);
-  BTOR_TRAPI_RETURN_INT (res);
+  btor_set_opt (btor, BTOR_OPT_SAT_ENGINE, BTOR_SAT_ENGINE_PICOSAT);
+  BTOR_TRAPI_RETURN_INT (1);
 #ifndef NDEBUG
-  BTOR_CHKCLONE_RES (res, set_sat_solver_picosat);
+  BTOR_CHKCLONE_NORES (set_sat_solver_picosat);
 #endif
-  return res;
+  return 1;
 }
 #endif
 
@@ -565,19 +580,17 @@ boolector_set_sat_solver_picosat (Btor *btor)
 int
 boolector_set_sat_solver_minisat (Btor *btor)
 {
-  int res;
-
   BTOR_ABORT_ARG_NULL_BOOLECTOR (btor);
   BTOR_TRAPI ("");
   BTOR_ABORT_BOOLECTOR (
       btor->btor_sat_btor_called > 0,
       "setting the SAT solver must be done before calling 'boolector_sat'");
-  res = btor_set_sat_solver (btor_get_sat_mgr_btor (btor), "minisat", 0, 0);
-  BTOR_TRAPI_RETURN_INT (res);
+  btor_set_opt (btor, BTOR_OPT_SAT_ENGINE, BTOR_SAT_ENGINE_MINISAT);
+  BTOR_TRAPI_RETURN_INT (1);
 #ifndef NDEBUG
-  BTOR_CHKCLONE_RES (res, set_sat_solver_minisat);
+  BTOR_CHKCLONE_NORES (set_sat_solver_minisat);
 #endif
-  return res;
+  return 1;
 }
 #endif
 

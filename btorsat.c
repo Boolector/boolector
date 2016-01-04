@@ -705,7 +705,7 @@ btor_lingeling_sat (BtorSATMgr *smgr, int limit)
     return res;
   }
 
-  if (smgr->nofork || (0 <= limit && limit < blgl->blimit))
+  if (!smgr->fork || (0 <= limit && limit < blgl->blimit))
   {
     if (limit < INT_MAX) lglsetopt (lgl, "clim", limit);
     res = lglsat (lgl);
@@ -906,7 +906,7 @@ btor_lingeling_setterm (BtorSATMgr *smgr)
 /*------------------------------------------------------------------------*/
 
 int
-btor_enable_lingeling_sat (BtorSATMgr *smgr, const char *optstr, int nofork)
+btor_enable_lingeling_sat (BtorSATMgr *smgr, const char *optstr, bool fork)
 {
   assert (smgr != NULL);
 
@@ -917,8 +917,8 @@ btor_enable_lingeling_sat (BtorSATMgr *smgr, const char *optstr, int nofork)
   if (smgr->optstr && !btor_passdown_lingeling_options (smgr, optstr, 0))
     return 0;
 
-  smgr->name   = "Lingeling";
-  smgr->nofork = nofork;
+  smgr->name = "Lingeling";
+  smgr->fork = fork;
 
   BTOR_CLR (&smgr->api);
   smgr->api.add              = btor_lingeling_add;
@@ -945,6 +945,9 @@ btor_enable_lingeling_sat (BtorSATMgr *smgr, const char *optstr, int nofork)
   BTOR_MSG (smgr->msg,
             1,
             "Lingeling allows both incremental and non-incremental mode");
+  if (smgr->optstr)
+    BTOR_MSG (
+        smgr->msg, 1, "Configured options for Lingeling: %s", smgr->optstr);
 
   return 1;
 }
@@ -996,19 +999,19 @@ int
 btor_set_sat_solver (BtorSATMgr *smgr,
                      const char *solver,
                      const char *optstr,
-                     int nofork)
+                     bool fork)
 {
   assert (smgr);
   assert (solver);
 #ifndef BTOR_USE_LINGELING
   (void) optstr;
-  (void) nofork;
+  (void) fork;
 #endif
 
   if (!strcasecmp (solver, "lingeling"))
 #ifdef BTOR_USE_LINGELING
   {
-    btor_enable_lingeling_sat (smgr, optstr, nofork);
+    btor_enable_lingeling_sat (smgr, optstr, fork);
     return 1;
   }
 #else
