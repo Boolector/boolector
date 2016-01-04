@@ -800,13 +800,23 @@ clone_aux_btor (Btor *btor,
 
   mm = btor_new_mem_mgr ();
   BTOR_CNEW (mm, clone);
+#ifndef NDEBUG
+  allocated = sizeof (Btor);
+#endif
   memcpy (clone, btor, sizeof (Btor));
   clone->mm = mm;
+  if (btor->options.sat_engine.valstr)
+  {
+    clone->options.sat_engine.valstr =
+        btor_strdup (mm, btor->options.sat_engine.valstr);
+#ifndef NDEBUG
+    allocated += strlen (btor->options.sat_engine.valstr) + 1;
+#endif
+  }
+  assert (allocated == clone->mm->allocated);
 
   /* always auto cleanup external references (dangling, not held from extern) */
   clone->options.auto_cleanup.val = 1;
-
-  assert ((allocated = sizeof (Btor)) == clone->mm->allocated);
 
   if (exp_layer_only)
   {

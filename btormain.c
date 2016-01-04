@@ -70,17 +70,6 @@ typedef struct BtorMainOpts
   BtorMainOpt time;
   BtorMainOpt output;
   BtorMainOpt smt2_model;
-#ifdef BTOR_USE_LINGELING
-  BtorMainOpt lingeling;
-  BtorMainOpt lingeling_nofork;
-  BtorMainOpt lingeling_opts;
-#endif
-#ifdef BTOR_USE_PICOSAT
-  BtorMainOpt picosat;
-#endif
-#ifdef BTOR_USE_MINISAT
-  BtorMainOpt minisat;
-#endif
   /* ------------------------------------ */
   BtorMainOpt last; /* dummy for iteration */
 } BtorMainOpts;
@@ -180,52 +169,6 @@ btormain_init_opts (BtorMainApp *app)
       0,
       1,
       "print model in SMT-LIB v2 format if model generation is enabled");
-#ifdef BTOR_USE_LINGELING
-  BTORMAIN_INIT_OPT (app->opts.lingeling,
-                     0,
-                     0,
-                     "lingeling",
-                     0,
-                     0,
-                     1,
-                     "force Lingeling as SAT solver");
-  BTORMAIN_INIT_OPT (app->opts.lingeling_opts,
-                     0,
-                     0,
-                     "lingeling_opts",
-                     0,
-                     0,
-                     0,
-                     "set lingeling option(s) '--<opt>=<val>'");
-  BTORMAIN_INIT_OPT (app->opts.lingeling_nofork,
-                     0,
-                     0,
-                     "lingeling_nofork",
-                     0,
-                     0,
-                     0,
-                     "do not use 'fork/clone' for Lingeling");
-#endif
-#ifdef BTOR_USE_PICOSAT
-  BTORMAIN_INIT_OPT (app->opts.picosat,
-                     0,
-                     0,
-                     "picosat",
-                     0,
-                     0,
-                     1,
-                     "force PicoSAT as SAT solver");
-#endif
-#ifdef BTOR_USE_MINISAT
-  BTORMAIN_INIT_OPT (app->opts.minisat,
-                     0,
-                     0,
-                     "minisat",
-                     0,
-                     0,
-                     1,
-                     "force MiniSAT as SAT solver");
-#endif
 }
 
 /*------------------------------------------------------------------------*/
@@ -288,7 +231,7 @@ print_opt (BtorMainApp *app,
     sprintf (paramstr, "<seconds>");
   else if (!strcmp (lng, "output"))
     sprintf (paramstr, "<file>");
-  else if (!strcmp (lng, BTOR_OPT_ENGINE))
+  else if (!strcmp (lng, BTOR_OPT_ENGINE) || !strcmp (lng, BTOR_OPT_SAT_ENGINE))
     sprintf (paramstr, "<engine>");
   else if (!strcmp (lng, BTOR_OPT_REWRITE_LEVEL)
            || !strcmp (lng, BTOR_OPT_SLS_MOVE_RAND_WALK_PROB)
@@ -428,6 +371,20 @@ print_help (BtorMainApp *app)
   to.lng  = "engine";
   to.desc = "set engine (core, sls) [core]";
   PRINT_MAIN_OPT (app, &to);
+  to.shrt = "SE";
+  to.lng  = "sat_engine";
+  to.desc = "set SAT engine (lingeling, picosat, minisat) [lingeling]";
+  PRINT_MAIN_OPT (app, &to);
+#ifdef BTOR_USE_LINGELING
+  to.shrt = 0;
+  to.lng  = "lingeling_opts";
+  to.desc = "set lingeling option(s) '--<opt>=<val>'";
+  PRINT_MAIN_OPT (app, &to);
+  to.shrt = 0;
+  to.lng  = "lingeling_nofork";
+  to.desc = "do not use 'fork/clone' for Lingeling";
+  PRINT_MAIN_OPT (app, &to);
+#endif
 
   fprintf (app->outfile, "\n");
   to.shrt = "x";
@@ -496,7 +453,8 @@ print_help (BtorMainApp *app)
   for (o = (char *) boolector_first_opt (app->btor); o;
        o = (char *) boolector_next_opt (app->btor, o))
   {
-    if (!strcmp (o, BTOR_OPT_ENGINE) || !strcmp (o, BTOR_OPT_INPUT_FORMAT)
+    if (!strcmp (o, BTOR_OPT_ENGINE) || !strcmp (o, BTOR_OPT_SAT_ENGINE)
+        || !strcmp (o, BTOR_OPT_INPUT_FORMAT)
         || !strcmp (o, BTOR_OPT_OUTPUT_NUMBER_FORMAT)
         || !strcmp (o, BTOR_OPT_OUTPUT_FORMAT))
       continue;
@@ -702,13 +660,10 @@ boolector_main (int argc, char **argv)
   int i, j, len, readval, val, format;
   int isshrt, isdisable, isint;
   int res, parse_res, parse_status, sat_res;
-  int mgen, pmodel, inc, dump, force_sat;
+  int mgen, pmodel, inc, dump;
   char *arg, *cmd, *valstr, *tmp, *parse_err_msg;
   char *o;
   const char *oshrt;
-#ifdef BTOR_USE_LINGELING
-  char *lglopts = 0;
-#endif
   BtorCharStack opt, errarg;
 
 #ifdef BTOR_HAVE_GETRUSAGE
@@ -726,7 +681,6 @@ boolector_main (int argc, char **argv)
   mgen         = 0;
   pmodel       = 0;
   dump         = 0;
-  force_sat    = 0;
 
   mgen = boolector_get_opt_val (g_app->btor, BTOR_OPT_MODEL_GEN);
 
@@ -913,45 +867,21 @@ boolector_main (int argc, char **argv)
     }
     /* >> sat solver options */
 #ifdef BTOR_USE_LINGELING
-    else if (IS_MAIN_OPT (lingeling))
+    else if (!strcmp (opt.start, "lingeling_nofork"))
     {
       if (isdisable) goto ERR_INVALID_OPTION;
       if (HAS_UNEXPECTED_ARGUMENT) goto ERR_UNEXPECTED_ARGUMENT;
-
-      g_app->opts.lingeling.val = 1;
+      boolector_set_opt (g_app->btor, BTOR_OPT_SAT_ENGINE_LGL_FORK, 0);
     }
-    else if (IS_MAIN_OPT (lingeling_nofork))
-    {
-      if (isdisable) goto ERR_INVALID_OPTION;
-      if (HAS_UNEXPECTED_ARGUMENT) goto ERR_UNEXPECTED_ARGUMENT;
-
-      g_app->opts.lingeling_nofork.val = 1;
-    }
-    else if (IS_MAIN_OPT (lingeling_opts))
+    else if (!strcmp (opt.start, "lingeling_opts"))
     {
       if (isdisable) goto ERR_INVALID_OPTION;
       if (!readval) goto ERR_MISSING_ARGUMENT;
 
-      lglopts = valstr;
+      // FIXME (ma): will be fixed with new option handling
+      btor_set_opt_str (g_app->btor, BTOR_OPT_SAT_ENGINE, valstr);
     }
 #endif
-#ifdef BTOR_USE_PICOSAT
-    else if (IS_MAIN_OPT (picosat))
-    {
-      if (isdisable) goto ERR_INVALID_OPTION;
-      if (HAS_UNEXPECTED_ARGUMENT) goto ERR_UNEXPECTED_ARGUMENT;
-      g_app->opts.picosat.val = 1;
-    }
-#endif
-#ifdef BTOR_USE_MINISAT
-    else if (IS_MAIN_OPT (minisat))
-    {
-      if (isdisable) goto ERR_INVALID_OPTION;
-      if (HAS_UNEXPECTED_ARGUMENT) goto ERR_UNEXPECTED_ARGUMENT;
-      g_app->opts.minisat.val = 1;
-    }
-#endif
-
     /* >> meta options */
     else if (!strcmp (opt.start, "E") || !strcmp (opt.start, BTOR_OPT_ENGINE))
     {
@@ -964,6 +894,39 @@ boolector_main (int argc, char **argv)
         boolector_set_opt (g_app->btor, BTOR_OPT_ENGINE, BTOR_ENGINE_SLS);
       else if (!strcasecmp (valstr, "ef"))
         boolector_set_opt (g_app->btor, BTOR_OPT_ENGINE, BTOR_ENGINE_EF);
+      else
+      {
+      ERR_INVALID_ENGINE:
+        btormain_error (
+            g_app, "invalid engine '%s' for '%s'", valstr, errarg.start);
+        goto DONE;
+      }
+    }
+    else if (!strcmp (opt.start, "SE")
+             || !strcmp (opt.start, BTOR_OPT_SAT_ENGINE))
+    {
+      if (isdisable) goto ERR_INVALID_OPTION;
+      if (!readval) goto ERR_MISSING_ARGUMENT;
+      if (isint) goto ERR_INVALID_ARGUMENT;
+#ifdef BTOR_USE_LINGELING
+      if (!strcasecmp (valstr, "lingeling"))
+        boolector_set_opt (
+            g_app->btor, BTOR_OPT_SAT_ENGINE, BTOR_SAT_ENGINE_LINGELING);
+      else
+#endif
+#ifdef BTOR_USE_PICOSAT
+          if (!strcasecmp (valstr, "picosat"))
+        boolector_set_opt (
+            g_app->btor, BTOR_OPT_SAT_ENGINE, BTOR_SAT_ENGINE_PICOSAT);
+      else
+#endif
+#ifdef BTOR_USE_MINISAT
+          if (!strcasecmp (valstr, "minisat"))
+        boolector_set_opt (
+            g_app->btor, BTOR_OPT_SAT_ENGINE, BTOR_SAT_ENGINE_MINISAT);
+      else
+#endif
+        goto ERR_INVALID_ENGINE;
     }
     else if (!strcmp (opt.start, "btor"))
     {
@@ -1151,53 +1114,6 @@ boolector_main (int argc, char **argv)
 
   // TODO: disabling model generation not yet supported (ma)
   if (mgen > 0) boolector_set_opt (g_app->btor, BTOR_OPT_MODEL_GEN, mgen);
-
-    /* force sat solver */
-#ifdef BTOR_USE_LINGELING
-  if (g_app->opts.lingeling.val)
-  {
-    if (force_sat++)
-    {
-      btormain_error (g_app, "multiple sat solvers forced");
-      goto DONE;
-    }
-    if (!boolector_set_sat_solver_lingeling (
-            g_app->btor, lglopts, g_app->opts.lingeling_nofork.val))
-      btormain_error (g_app, "invalid options to Lingeling: '%s'", lglopts);
-  }
-#endif
-#ifdef BTOR_USE_PICOSAT
-  if (g_app->opts.picosat.val)
-  {
-    if (force_sat++)
-    {
-      btormain_error (g_app, "multiple sat solvers forced");
-      goto DONE;
-    }
-    boolector_set_sat_solver_picosat (g_app->btor);
-  }
-#endif
-#ifdef BTOR_USE_MINISAT
-  if (g_app->opts.minisat.val)
-  {
-    if (force_sat++)
-    {
-      btormain_error (g_app, "multiple sat solvers forced");
-      goto DONE;
-    }
-    boolector_set_sat_solver_minisat (g_app->btor);
-  }
-#endif
-#ifdef BTOR_USE_LINGELING
-  if (g_app->opts.lingeling_nofork.val && !g_app->opts.lingeling.val)
-  {
-    btormain_error (g_app,
-                    "option '%s' is invalid if Lingeling is not "
-                    "configured as SAT solver",
-                    errarg.start);
-    goto DONE;
-  }
-#endif
 
   /* print verbose info and set signal handlers */
   if (g_verbosity)

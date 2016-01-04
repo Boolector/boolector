@@ -17,6 +17,22 @@
 
 #define BTOR_VERBOSITY_MAX 4
 
+enum BtorOptSatEngines
+{
+  BTOR_SAT_ENGINE_MIN,
+#ifdef BTOR_USE_LINGELING
+  BTOR_SAT_ENGINE_LINGELING,
+#endif
+#ifdef BTOR_USE_PICOSAT
+  BTOR_SAT_ENGINE_PICOSAT,
+#endif
+#ifdef BTOR_USE_MINISAT
+  BTOR_SAT_ENGINE_MINISAT,
+#endif
+  BTOR_SAT_ENGINE_MAX,
+};
+#define BTOR_SAT_ENGINE_DFLT (BTOR_SAT_ENGINE_MIN + 1)
+
 #define BTOR_ENGINE_CORE 0
 #define BTOR_ENGINE_SLS 1
 #define BTOR_ENGINE_EF 2
@@ -75,9 +91,14 @@ typedef struct BtorOpt
   uint32_t dflt;    /* default value */
   uint32_t min;     /* min value */
   uint32_t max;     /* max value */
+  char *valstr;     /* optional option string value */
 } BtorOpt;
 
 #define BTOR_OPT_ENGINE "engine"
+#define BTOR_OPT_SAT_ENGINE "sat_engine"
+#ifdef BTOR_USE_LINGELING
+#define BTOR_OPT_SAT_ENGINE_LGL_FORK "sat_engine_lgl_fork"
+#endif
 #define BTOR_OPT_MODEL_GEN "model_gen"
 #define BTOR_OPT_INCREMENTAL "incremental"
 #define BTOR_OPT_INCREMENTAL_ALL "incremental_all"
@@ -144,7 +165,11 @@ typedef struct BtorOpts
 {
   BtorOpt first; /* dummy for iteration */
   /* ----------------------------------------------------------------------- */
-  BtorOpt engine; /* Boolector engine */
+  BtorOpt engine;     /* Boolector engine */
+  BtorOpt sat_engine; /* configured sat solver */
+#ifdef BTOR_USE_LINGELING
+  BtorOpt sat_engine_lgl_fork; /* fork Lingeling */
+#endif
 
   BtorOpt model_gen; /* model generation enabled */
 
@@ -238,6 +263,7 @@ struct Btor;
 void btor_init_opts (struct Btor *btor);
 
 void btor_set_opt (struct Btor *btor, const char *name, uint32_t val);
+void btor_set_opt_str (struct Btor *btor, const char *name, const char *val);
 
 /* does not assert existing opt with name 'name',
  * not for boolector internal use */

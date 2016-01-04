@@ -150,6 +150,12 @@ btor_init_opts (Btor *btor)
             BTOR_ENGINE_MIN,
             BTOR_ENGINE_MAX,
             "enable specific engine");
+  BTOR_OPT ("SE",
+            sat_engine,
+            BTOR_SAT_ENGINE_DFLT,
+            BTOR_SAT_ENGINE_MIN + 1,
+            BTOR_SAT_ENGINE_MAX - 1,
+            "enable specific SAT solver");
 
   // TODO MAKE SLS FACTORS CONFIGURABLE VIA BTOROPT
   BTOR_OPT (0,
@@ -309,6 +315,9 @@ btor_init_opts (Btor *btor)
                  "incremental interval mode width (SMT1 only)");
   BTOR_OPT_INTL (0, parse_interactive, 1, 0, 1, "interactive parse mode");
   BTOR_OPT_INTL (0, rw_normalize, 1, 0, 1, "normalize during rewriting");
+#ifdef BTOR_USE_LINGELING
+  BTOR_OPT_INTL (0, sat_engine_lgl_fork, 1, 0, 1, "fork lingeling");
+#endif
 }
 
 #define BTOR_FIRST_OPT(btor) (&(btor)->options.first + 1)
@@ -442,6 +451,20 @@ btor_set_opt (Btor *btor, const char *name, uint32_t val)
     assert (val <= 3);
     assert (oldval <= 3);
   }
+}
+
+void
+btor_set_opt_str (Btor *btor, const char *name, const char *val)
+{
+  assert (btor);
+  assert (name);
+  assert (!strcmp (name, "se") || !strcmp (name, BTOR_OPT_SAT_ENGINE));
+
+  BtorOpt *o;
+
+  o = btor_get_opt (btor, name);
+  assert (o);
+  o->valstr = btor_strdup (btor->mm, val);
 }
 
 const char *

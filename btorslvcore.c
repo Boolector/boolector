@@ -166,6 +166,46 @@ delete_core_solver (BtorCoreSolver *slv)
 
 /*------------------------------------------------------------------------*/
 
+static void
+configure_sat_mgr (Btor *btor)
+{
+  BtorSATMgr *smgr;
+
+  smgr = btor_get_sat_mgr_btor (btor);
+  if (btor_is_initialized_sat (smgr)) return;
+
+  switch (btor->options.sat_engine.val)
+  {
+#ifdef BTOR_USE_LINGELING
+    case BTOR_SAT_ENGINE_LINGELING:
+      btor_enable_lingeling_sat (smgr,
+                                 btor->options.sat_engine.valstr,
+                                 btor->options.sat_engine_lgl_fork.val == 1);
+      break;
+#endif
+#ifdef BTOR_USE_PICOSAT
+    case BTOR_SAT_ENGINE_PICOSAT: btor_enable_picosat_sat (smgr); break;
+#endif
+#ifdef BTOR_USE_MINISAT
+    case BTOR_SAT_ENGINE_MINISAT: btor_enable_minisat_sat (smgr); break;
+#endif
+    default: BTOR_ABORT_CORE (1, "no SAT solver configured");
+  }
+
+  btor_init_sat (smgr);
+
+  /* reset SAT solver to non-incremental if all functions have been
+   * eliminated */
+  if (!btor->options.incremental.val && smgr->inc_required
+      && btor->lambdas->count == 0 && btor->ufs->count == 0)
+  {
+    smgr->inc_required = 0;
+    BTOR_MSG (btor->msg,
+              1,
+              "no functions found, resetting SAT solver to non-incremental");
+  }
+}
+
 static int
 timed_sat_sat (Btor *btor, int limit)
 {
@@ -260,7 +300,6 @@ new_exp_layer_clone_for_dual_prop (Btor *btor,
   Btor *clone;
   BtorNode *cur, *and;
   BtorHashTableIterator it;
-  BtorSATMgr *smgr;
 
   start = btor_time_stamp ();
 
@@ -280,10 +319,9 @@ new_exp_layer_clone_for_dual_prop (Btor *btor,
   clone->options.verbosity.val = 0;
   clone->options.dual_prop.val = 0;
 
-  smgr = btor_get_sat_mgr_btor (clone);
-  assert (!btor_is_initialized_sat (smgr));
-  btor_set_sat_solver (smgr, btor_get_sat_mgr_btor (btor)->name, "plain=1", 0);
-  btor_init_sat (smgr);
+  assert (!btor_is_initialized_sat (btor_get_sat_mgr_btor (clone)));
+  btor_set_opt_str (clone, BTOR_OPT_SAT_ENGINE, "plain=1");
+  configure_sat_mgr (clone);
 
   btor_init_node_hash_table_iterator (&it, clone->unsynthesized_constraints);
   btor_queue_node_hash_table_iterator (&it, clone->assumptions);
@@ -474,15 +512,11 @@ sat_aux_btor_dual_prop (Btor *btor)
   assert (btor);
 
   BtorSolverResult sat_result;
-  BtorSATMgr *smgr;
 
   if (btor->inconsistent) goto DONE;
 
   BTOR_MSG (btor->msg, 1, "calling SAT");
-
-  smgr = btor_get_sat_mgr_btor (btor);
-
-  if (!btor_is_initialized_sat (smgr)) btor_init_sat (smgr);
+  configure_sat_mgr (btor);
 
   if (btor->valid_assignments == 1) btor_reset_incremental_usage (btor);
 
@@ -2121,7 +2155,6 @@ sat_core_solver (BtorCoreSolver *slv)
 
   double start;
   int i, sat_result;
-  BtorSATMgr *smgr;
   Btor *btor, *clone;
   BtorNode *clone_root, *lemma;
   BtorNodeMap *exp_map;
@@ -2154,20 +2187,7 @@ sat_core_solver (BtorCoreSolver *slv)
     goto DONE;
   }
 
-  smgr = btor_get_sat_mgr_btor (btor);
-
-  if (!btor_is_initialized_sat (smgr)) btor_init_sat (smgr);
-
-  /* reset SAT solver to non-incremental if all functions have been
-   * eliminated */
-  if (!btor->options.incremental.val && smgr->inc_required
-      && btor->lambdas->count == 0 && btor->ufs->count == 0)
-  {
-    smgr->inc_required = 0;
-    BTOR_MSG (btor->msg,
-              1,
-              "no functions found, resetting SAT solver to non-incremental");
-  }
+  configure_sat_mgr (btor);
 
   if (btor->valid_assignments == 1) btor_reset_incremental_usage (btor);
 
