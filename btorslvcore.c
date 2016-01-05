@@ -454,39 +454,56 @@ create_function_inequality (Btor *btor, BtorNode *feq)
 static void
 add_function_inequality_constraints (Btor *btor)
 {
+  uint32_t i;
   BtorNode *cur, *neq, *con;
-  BtorNodePtrStack feqs;
+  BtorNodePtrStack feqs, visit;
   BtorHashTableIterator it;
   BtorPtrHashBucket *b;
+  BtorMemMgr *mm;
+  BtorIntHashTable *cache;
 
+  mm = btor->mm;
+  BTOR_INIT_STACK (visit);
   /* we have to add inequality constraints for every function equality
    * in the formula (var_rhs and fun_rhs are still part of the formula). */
   btor_init_node_hash_table_iterator (&it, btor->var_rhs);
   btor_queue_node_hash_table_iterator (&it, btor->fun_rhs);
+  btor_queue_node_hash_table_iterator (&it, btor->unsynthesized_constraints);
+  btor_queue_node_hash_table_iterator (&it, btor->assumptions);
+  assert (btor->embedded_constraints->count == 0);
+  assert (btor->varsubst_constraints->count == 0);
+  /* we don't have to traverse synthesized_constraints as we already created
+   * inequality constraints for them in a previous sat call */
   while (btor_has_next_node_hash_table_iterator (&it))
   {
     cur = btor_next_node_hash_table_iterator (&it);
-    cur = btor_simplify_exp (btor, cur);
-    btor_mark_reachable (btor, cur);
+    cur = btor_pointer_chase_simplified_exp (btor, cur);
+    BTOR_PUSH_STACK (mm, visit, cur);
   }
 
   /* collect all reachable function equalities */
+  cache = btor_new_int_hash_table (mm);
   BTOR_INIT_STACK (feqs);
-  btor_init_node_hash_table_iterator (&it, btor->feqs);
-  while (btor_has_next_node_hash_table_iterator (&it))
+  while (!BTOR_EMPTY_STACK (visit))
   {
-    b   = it.bucket;
-    cur = btor_next_node_hash_table_iterator (&it);
-    assert (BTOR_IS_REGULAR_NODE (cur));
-    assert (BTOR_IS_FEQ_NODE (cur));
-    if (!cur->reachable || b->data.as_int) continue;
-    btor_mark_reachable (btor, cur);
-    BTOR_PUSH_STACK (btor->mm, feqs, cur);
-    b->data.as_int = 1; /* mark function equality for inequality witness */
-    BTOR_ABORT_CORE (
-        (!cur->e[0]->is_array || !cur->e[1]->is_array)
-            && (!BTOR_IS_UF_NODE (cur->e[0]) || !BTOR_IS_UF_NODE (cur->e[1])),
-        "equality over lambda not supported yet");
+    cur = BTOR_REAL_ADDR_NODE (BTOR_POP_STACK (visit));
+
+    if (btor_contains_int_hash_table (cache, cur->id)) continue;
+
+    btor_add_int_hash_table (cache, cur->id);
+    if (BTOR_IS_FEQ_NODE (cur))
+    {
+      b = btor_get_ptr_hash_table (btor->feqs, cur);
+      /* already visited and created inequality constraint in a previous
+       * sat call */
+      if (b->data.as_int) continue;
+      BTOR_PUSH_STACK (mm, feqs, cur);
+      BTOR_ABORT_CORE (
+          (!cur->e[0]->is_array || !cur->e[1]->is_array)
+              && (!BTOR_IS_UF_NODE (cur->e[0]) || !BTOR_IS_UF_NODE (cur->e[1])),
+          "equality over lambda not supported yet");
+    }
+    for (i = 0; i < cur->arity; i++) BTOR_PUSH_STACK (mm, visit, cur->e[i]);
   }
 
   /* add inequality constraint for every reachable function equality */
@@ -495,15 +512,20 @@ add_function_inequality_constraints (Btor *btor)
     cur = BTOR_POP_STACK (feqs);
     assert (BTOR_IS_FEQ_NODE (cur));
     assert (!cur->parameterized);
-    assert (cur->reachable);
-    neq = create_function_inequality (btor, cur);
-    con = btor_implies_exp (btor, BTOR_INVERT_NODE (cur), neq);
+    b = btor_get_ptr_hash_table (btor->feqs, cur);
+    assert (b);
+    assert (b->data.as_int == 0);
+    b->data.as_int = 1;
+    neq            = create_function_inequality (btor, cur);
+    con            = btor_implies_exp (btor, BTOR_INVERT_NODE (cur), neq);
     btor_assert_exp (btor, con);
     btor_release_exp (btor, con);
     btor_release_exp (btor, neq);
     BTORLOG (2, "add inequality constraint for %s", node2string (cur));
   }
-  BTOR_RELEASE_STACK (btor->mm, feqs);
+  BTOR_RELEASE_STACK (mm, visit);
+  BTOR_RELEASE_STACK (mm, feqs);
+  btor_delete_int_hash_table (cache);
 }
 
 static int
@@ -520,11 +542,7 @@ sat_aux_btor_dual_prop (Btor *btor)
 
   if (btor->valid_assignments == 1) btor_reset_incremental_usage (btor);
 
-  if (btor->feqs->count > 0)
-  {
-    btor_update_reachable (btor, false);
-    add_function_inequality_constraints (btor);
-  }
+  if (btor->feqs->count > 0) add_function_inequality_constraints (btor);
 
   assert (btor->synthesized_constraints->count == 0);
   assert (btor->unsynthesized_constraints->count == 0);
@@ -533,11 +551,7 @@ sat_aux_btor_dual_prop (Btor *btor)
   assert (btor_check_all_hash_tables_simp_free_dbg (btor));
   assert (btor_check_assumptions_simp_free_dbg (btor));
 
-  btor_update_reachable (btor, false);
-  assert (btor_check_reachable_flag_dbg (btor));
-
   btor_add_again_assumptions (btor);
-  assert (btor_check_reachable_flag_dbg (btor));
 
   sat_result = timed_sat_sat (btor, -1);
 
@@ -1910,7 +1924,6 @@ add_extensionality_lemmas (Btor *btor)
   {
     cur = btor_next_node_hash_table_iterator (&it);
     assert (BTOR_IS_FEQ_NODE (cur));
-    if (!cur->reachable) continue;
     BTOR_PUSH_STACK (btor->mm, feqs, cur);
   }
 
@@ -1918,7 +1931,6 @@ add_extensionality_lemmas (Btor *btor)
   {
     cur = BTOR_POP_STACK (feqs);
     assert (BTOR_IS_FEQ_NODE (cur));
-    assert (cur->reachable);
     assert (cur->e[0]->is_array);
     assert (cur->e[1]->is_array);
 
@@ -2072,7 +2084,6 @@ check_and_resolve_conflicts (Btor *btor,
     app = BTOR_POP_STACK (top_applies);
     assert (BTOR_IS_REGULAR_NODE (app));
     assert (BTOR_IS_APPLY_NODE (app));
-    assert (app->reachable);
     assert (!app->parameterized);
     assert (!app->propagated);
     BTOR_PUSH_STACK (mm, prop_stack, app);
@@ -2191,11 +2202,7 @@ sat_core_solver (BtorCoreSolver *slv)
 
   if (btor->valid_assignments == 1) btor_reset_incremental_usage (btor);
 
-  if (btor->feqs->count > 0)
-  {
-    btor_update_reachable (btor, false);
-    add_function_inequality_constraints (btor);
-  }
+  if (btor->feqs->count > 0) add_function_inequality_constraints (btor);
 
   btor_process_unsynthesized_constraints (btor);
   if (btor->found_constraint_false)
@@ -2209,11 +2216,7 @@ sat_core_solver (BtorCoreSolver *slv)
   assert (btor_check_all_hash_tables_simp_free_dbg (btor));
   assert (btor_check_assumptions_simp_free_dbg (btor));
 
-  btor_update_reachable (btor, false);
-  assert (btor_check_reachable_flag_dbg (btor));
-
   btor_add_again_assumptions (btor);
-  assert (btor_check_reachable_flag_dbg (btor));
 
   sat_result = timed_sat_sat (btor, slv->sat_limit);
 
@@ -2246,7 +2249,6 @@ sat_core_solver (BtorCoreSolver *slv)
       assert (!BTOR_REAL_ADDR_NODE (lemma)->simplified);
       // TODO (ma): use btor_assert_exp?
       btor_insert_unsynthesized_constraint (btor, lemma);
-      btor_mark_reachable (btor, lemma);
       if (clone)
         add_lemma_to_dual_prop_clone (btor, clone, &clone_root, lemma, exp_map);
     }
@@ -2274,7 +2276,6 @@ sat_core_solver (BtorCoreSolver *slv)
     assert (btor->unsynthesized_constraints->count == 0);
     assert (btor_check_all_hash_tables_proxy_free_dbg (btor));
     assert (btor_check_all_hash_tables_simp_free_dbg (btor));
-    assert (btor_check_reachable_flag_dbg (btor));
     btor_add_again_assumptions (btor);
     sat_result = timed_sat_sat (btor, -1);
   }

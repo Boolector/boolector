@@ -214,7 +214,6 @@ struct Btor
     double skel;
     double propagate;
     double beta;
-    double reachable;
     double failed;
     double cloning;
     double synth_exp;
@@ -330,8 +329,6 @@ BtorNode *btor_substitute_terms (Btor *btor,
 
 // TODO (ma): make these functions public until we have a common framework for
 //            calling sat simplify etc.
-void btor_mark_reachable (Btor *btor, BtorNode *root);
-void btor_update_reachable (Btor *btor, bool check_all_tables);
 void btor_reset_incremental_usage (Btor *btor);
 void btor_add_again_assumptions (Btor *btor);
 void btor_process_unsynthesized_constraints (Btor *btor);

@@ -89,7 +89,6 @@ typedef enum BtorNodeKind BtorNodeKind;
     uint8_t beta_mark : 2;     /* mark for beta_reduce */               \
     uint8_t eval_mark : 2;     /* mark for eval_exp */                  \
     uint8_t clone_mark : 2;    /* mark for clone_exp_tree */            \
-    uint8_t reachable : 1;     /* reachable from root ? */              \
     uint8_t constraint : 1;    /* top level constraint ? */             \
     uint8_t erased : 1;        /* for debugging purposes */             \
     uint8_t disconnected : 1;  /* for debugging purposes */             \
