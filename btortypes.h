@@ -14,6 +14,15 @@
 typedef struct Btor Btor;
 typedef struct BtorNode BtorNode;
 
+enum BtorSolverResult
+{
+  BTOR_RESULT_SAT     = 10,
+  BTOR_RESULT_UNSAT   = 20,
+  BTOR_RESULT_UNKNOWN = 0,
+};
+
+typedef enum BtorSolverResult BtorSolverResult;
+
 /* public API types */
 typedef struct BoolectorNode BoolectorNode;
 typedef unsigned BoolectorSort;

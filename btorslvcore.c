@@ -206,7 +206,7 @@ configure_sat_mgr (Btor *btor)
   }
 }
 
-static int
+static BtorSolverResult
 timed_sat_sat (Btor *btor, int limit)
 {
   assert (btor);
@@ -214,7 +214,7 @@ timed_sat_sat (Btor *btor, int limit)
   assert (btor->slv->kind == BTOR_CORE_SOLVER_KIND);
 
   double start, delta;
-  int res;
+  BtorSolverResult res;
   BtorSATMgr *smgr;
 
   smgr  = btor_get_sat_mgr_btor (btor);
@@ -301,8 +301,10 @@ new_exp_layer_clone_for_dual_prop (Btor *btor,
   BtorNode *cur, *and;
   BtorHashTableIterator it;
 
-  start = btor_time_stamp ();
+  /* empty formula */
+  if (btor->unsynthesized_constraints->count == 0) return 0;
 
+  start = btor_time_stamp ();
   clone = btor_clone_exp_layer (btor, exp_map);
   assert (!clone->synthesized_constraints->count);
   assert (clone->unsynthesized_constraints->count);
@@ -533,7 +535,7 @@ sat_aux_btor_dual_prop (Btor *btor)
 {
   assert (btor);
 
-  BtorSolverResult sat_result;
+  BtorSolverResult result;
 
   if (btor->inconsistent) goto DONE;
 
@@ -553,17 +555,17 @@ sat_aux_btor_dual_prop (Btor *btor)
 
   btor_add_again_assumptions (btor);
 
-  sat_result = timed_sat_sat (btor, -1);
+  result = timed_sat_sat (btor, -1);
 
-  assert (sat_result == BTOR_RESULT_UNSAT
-          || (btor_terminate_btor (btor) && sat_result == BTOR_RESULT_UNKNOWN));
+  assert (result == BTOR_RESULT_UNSAT
+          || (btor_terminate_btor (btor) && result == BTOR_RESULT_UNKNOWN));
 
 DONE:
-  sat_result              = BTOR_RESULT_UNSAT;
+  result                  = BTOR_RESULT_UNSAT;
   btor->valid_assignments = 1;
 
-  btor->last_sat_result = sat_result;
-  return sat_result;
+  btor->last_sat_result = result;
+  return result;
 }
 
 static void
@@ -2165,11 +2167,11 @@ sat_core_solver (BtorCoreSolver *slv)
   assert (slv->btor->slv == (BtorSolver *) slv);
 
   double start;
-  int i, sat_result;
+  int i;
+  BtorSolverResult result;
   Btor *btor, *clone;
   BtorNode *clone_root, *lemma;
   BtorNodeMap *exp_map;
-  BtorSolverResult simp_sat_result;
 
   start = btor_time_stamp ();
   btor  = slv->btor;
@@ -2178,23 +2180,20 @@ sat_core_solver (BtorCoreSolver *slv)
   clone_root = 0;
   exp_map    = 0;
 
-  if (btor->inconsistent) goto UNSAT;
-
   BTOR_MSG (btor->msg, 1, "calling SAT");
 
-  if (btor_terminate_btor (btor))
+  result = btor_simplify (btor);
+
+  if (result == BTOR_RESULT_UNSAT)
   {
-    sat_result = BTOR_RESULT_UNKNOWN;
+    assert (btor->inconsistent);
     goto DONE;
   }
 
-  simp_sat_result = btor_simplify (btor);
-
-  if (btor->inconsistent) goto UNSAT;
-
   if (btor_terminate_btor (btor))
   {
-    sat_result = BTOR_RESULT_UNKNOWN;
+  UNKNOWN:
+    result = BTOR_RESULT_UNKNOWN;
     goto DONE;
   }
 
@@ -2204,40 +2203,45 @@ sat_core_solver (BtorCoreSolver *slv)
 
   if (btor->feqs->count > 0) add_function_inequality_constraints (btor);
 
-  btor_process_unsynthesized_constraints (btor);
-  if (btor->found_constraint_false)
-  {
-  UNSAT:
-    sat_result = BTOR_RESULT_UNSAT;
-    goto DONE;
-  }
-  assert (btor->unsynthesized_constraints->count == 0);
-  assert (btor_check_all_hash_tables_proxy_free_dbg (btor));
-  assert (btor_check_all_hash_tables_simp_free_dbg (btor));
-  assert (btor_check_assumptions_simp_free_dbg (btor));
-
-  btor_add_again_assumptions (btor);
-
-  sat_result = timed_sat_sat (btor, slv->sat_limit);
-
-  if (btor->options.dual_prop.val && sat_result == BTOR_SAT_SAT
-      && simp_sat_result != BTOR_RESULT_SAT)
-  {
+  /* initialize dual prop clone */
+  if (btor->options.dual_prop.val)
     clone = new_exp_layer_clone_for_dual_prop (btor, &exp_map, &clone_root);
-  }
 
-  while (sat_result == BTOR_SAT_SAT)
+  while (true)
   {
     if (btor_terminate_btor (btor)
         || (slv->lod_limit > -1
             && slv->stats.lod_refinements >= slv->lod_limit))
     {
-      sat_result = BTOR_RESULT_UNKNOWN;
+      goto UNKNOWN;
+    }
+
+    btor_process_unsynthesized_constraints (btor);
+    if (btor->found_constraint_false)
+    {
+    UNSAT:
+      result = BTOR_RESULT_UNSAT;
+      goto DONE;
+    }
+    assert (btor->unsynthesized_constraints->count == 0);
+    assert (btor_check_all_hash_tables_proxy_free_dbg (btor));
+    assert (btor_check_all_hash_tables_simp_free_dbg (btor));
+
+    /* make SAT call on bv skeleton */
+    btor_add_again_assumptions (btor);
+    result = timed_sat_sat (btor, slv->sat_limit);
+
+    if (result == BTOR_RESULT_UNSAT)
+      goto DONE;
+    else if (result == BTOR_RESULT_UNKNOWN)
+    {
+      assert (slv->sat_limit > -1);
       goto DONE;
     }
 
-    check_and_resolve_conflicts (btor, clone, clone_root, exp_map);
+    assert (result == BTOR_RESULT_SAT);
 
+    check_and_resolve_conflicts (btor, clone, clone_root, exp_map);
     if (BTOR_EMPTY_STACK (slv->cur_lemmas)) break;
     slv->stats.refinement_iterations++;
 
@@ -2270,14 +2274,6 @@ sat_core_solver (BtorCoreSolver *slv)
     /* may be set via insert_unsythesized_constraint
      * in case generated lemma is false */
     if (btor->inconsistent) goto UNSAT;
-
-    btor_process_unsynthesized_constraints (btor);
-    if (btor->found_constraint_false) goto UNSAT;
-    assert (btor->unsynthesized_constraints->count == 0);
-    assert (btor_check_all_hash_tables_proxy_free_dbg (btor));
-    assert (btor_check_all_hash_tables_simp_free_dbg (btor));
-    btor_add_again_assumptions (btor);
-    sat_result = timed_sat_sat (btor, -1);
   }
 
 DONE:
@@ -2285,7 +2281,7 @@ DONE:
     fprintf (stdout, "\n");
 
   btor->valid_assignments = 1;
-  btor->last_sat_result   = sat_result;
+  btor->last_sat_result   = result;
 
   if (clone)
   {
@@ -2298,9 +2294,9 @@ DONE:
             1,
             "SAT call %d returned %d in %.3f seconds",
             btor->btor_sat_btor_called + 1,
-            sat_result,
+            result,
             btor_time_stamp () - start);
-  return sat_result;
+  return result;
 }
 
 /*------------------------------------------------------------------------*/

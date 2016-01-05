@@ -251,19 +251,26 @@ btor_add_sat (BtorSATMgr *smgr, int lit)
   (void) smgr->api.add (smgr, lit);
 }
 
-BtorSatResult
+BtorSolverResult
 btor_sat_sat (BtorSATMgr *smgr, int limit)
 {
   double start = btor_time_stamp ();
-  BtorSatResult res;
+  int sat_res;
+  BtorSolverResult res;
   assert (smgr != NULL);
   assert (smgr->initialized);
   BTOR_MSG (
       smgr->msg, 2, "calling SAT solver %s with limit %d", smgr->name, limit);
   assert (!smgr->satcalls || smgr->inc_required);
   smgr->satcalls++;
-  res = smgr->api.sat (smgr, limit);
+  sat_res = smgr->api.sat (smgr, limit);
   smgr->sat_time += btor_time_stamp () - start;
+  switch (sat_res)
+  {
+    case 10: res = BTOR_RESULT_SAT; break;
+    case 20: res = BTOR_RESULT_UNSAT; break;
+    default: assert (res == 0); res = BTOR_RESULT_UNKNOWN;
+  }
   return res;
 }
 
