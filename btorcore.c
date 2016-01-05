@@ -2827,7 +2827,6 @@ btor_substitute_terms (Btor *btor, BtorNode *root, BtorNodeMap *substs)
     real_cur = BTOR_REAL_ADDR_NODE (cur);
     subst    = btor_mapped_node (substs, real_cur);
     // TODO (ma): for now we only support bit vector terms
-    assert (!BTOR_IS_LAMBDA_NODE (real_cur));
 
     if (subst)
     {
@@ -2835,6 +2834,7 @@ btor_substitute_terms (Btor *btor, BtorNode *root, BtorNodeMap *substs)
       goto PUSH_RESULT;
     }
 
+    assert (!BTOR_IS_BINDER_NODE (real_cur));
     d = btor_get_int_hash_map (mark, real_cur->id);
     if (!d)
     {
