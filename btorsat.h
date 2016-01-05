@@ -15,6 +15,7 @@
 #define BTORSAT_H_INCLUDED
 
 #include "btormsg.h"
+#include "btortypes.h"
 #include "utils/btormem.h"
 
 #include <stdio.h>
@@ -100,17 +101,6 @@ struct BtorLGL
 
 /*------------------------------------------------------------------------*/
 
-enum BtorSatResult
-{
-  BTOR_SAT_SAT     = 10,
-  BTOR_SAT_UNSAT   = 20,
-  BTOR_SAT_UNKNOWN = 0
-};
-
-typedef enum BtorSatResult BtorSatResult;
-
-/*------------------------------------------------------------------------*/
-
 /* Creates new SAT manager.
  * A SAT manager is used by nearly all functions of the SAT layer.
  */
@@ -172,7 +162,7 @@ int btor_failed_sat (BtorSATMgr *smgr, int lit);
 /* Solves the SAT instance.
  * limit < 0 -> no limit.
  */
-BtorSatResult btor_sat_sat (BtorSATMgr *smgr, int limit);
+BtorSolverResult btor_sat_sat (BtorSATMgr *smgr, int limit);
 
 /* Gets assignment of a literal (in the SAT case).
  * Do not call before calling btor_sat_sat.

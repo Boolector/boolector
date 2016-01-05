@@ -16,15 +16,6 @@
 #include "utils/btormem.h"
 #include "utils/btornodemap.h"
 
-enum BtorSolverResult
-{
-  BTOR_RESULT_SAT     = 10,
-  BTOR_RESULT_UNSAT   = 20,
-  BTOR_RESULT_UNKNOWN = 0,
-};
-
-typedef enum BtorSolverResult BtorSolverResult;
-
 enum BtorSolverKind
 {
   BTOR_CORE_SOLVER_KIND,

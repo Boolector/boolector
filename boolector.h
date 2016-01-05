@@ -27,21 +27,21 @@
   .. seealso::
     boolector_sat, boolector_limited_sat, boolector_simplify
 */
-#define BOOLECTOR_UNKNOWN 0
+#define BOOLECTOR_UNKNOWN BTOR_RESULT_UNKNOWN
 /*!
   Preprocessor constant representing status ``satisfiable``.
 
   .. seealso::
     boolector_sat, boolector_limited_sat, boolector_simplify
 */
-#define BOOLECTOR_SAT 10
+#define BOOLECTOR_SAT BTOR_RESULT_SAT
 /*!
   Preprocessor constant representing status ``unsatisfiable``.
 
   .. seealso::
     boolector_sat, boolector_limited_sat, boolector_simplify
 */
-#define BOOLECTOR_UNSAT 20
+#define BOOLECTOR_UNSAT BTOR_RESULT_UNSAT
 /*!
   Preprocessor constant representing status ``parse error``.
 

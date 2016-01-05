@@ -606,8 +606,6 @@ btor_print_stats_btor (Btor *btor)
             1,
             "%.2f seconds synthesize expressions",
             btor->time.synth_exp);
-  BTOR_MSG (
-      btor->msg, 1, "%.2f seconds reachable search", btor->time.reachable);
   BTOR_MSG (btor->msg,
             1,
             "%.2f seconds determining failed assumptions",
@@ -3605,88 +3603,6 @@ synthesize_exp (Btor *btor, BtorNode *exp, BtorPtrHashTable *backannotation)
   btor->time.synth_exp += btor_time_stamp () - start;
 }
 
-/* Mark all reachable expressions as reachable, reset reachable flag for all
- * previously reachable expressions that became unreachable due to rewriting. */
-void
-btor_update_reachable (Btor *btor, bool check_all_tables)
-{
-  assert (btor);
-
-  int i;
-  double start;
-  BtorNode *cur;
-  BtorHashTableIterator it;
-
-  assert (btor_check_id_table_mark_unset_dbg (btor));
-  assert (check_all_tables || btor->embedded_constraints->count == 0);
-  assert (check_all_tables || btor->varsubst_constraints->count == 0);
-  assert (btor_check_assumptions_simp_free_dbg (btor));
-
-  start = btor_time_stamp ();
-  btor_init_node_hash_table_iterator (&it, btor->synthesized_constraints);
-  btor_queue_node_hash_table_iterator (&it, btor->unsynthesized_constraints);
-  btor_queue_node_hash_table_iterator (&it, btor->assumptions);
-  if (check_all_tables)
-  {
-    btor_queue_node_hash_table_iterator (&it, btor->embedded_constraints);
-    btor_queue_node_hash_table_iterator (&it, btor->varsubst_constraints);
-  }
-
-  while (btor_has_next_node_hash_table_iterator (&it))
-  {
-    cur = btor_next_node_hash_table_iterator (&it);
-    mark_exp (btor, cur, 1);
-  }
-
-  /* var_rhs and fun_rhs are still part of the formula, and thus, reachable */
-  btor_init_node_hash_table_iterator (&it, btor->var_rhs);
-  btor_queue_node_hash_table_iterator (&it, btor->fun_rhs);
-  while (btor_has_next_node_hash_table_iterator (&it))
-  {
-    cur = btor_next_node_hash_table_iterator (&it);
-    mark_exp (btor, btor_simplify_exp (btor, cur), 1);
-  }
-
-  for (i = 1; i < BTOR_COUNT_STACK (btor->nodes_id_table); i++)
-  {
-    if (!(cur = BTOR_PEEK_STACK (btor->nodes_id_table, i))) continue;
-    cur->reachable = cur->mark;
-    cur->mark      = 0;
-  }
-  btor->time.reachable += btor_time_stamp () - start;
-}
-
-void
-btor_mark_reachable (Btor *btor, BtorNode *exp)
-{
-  assert (btor);
-  assert (exp);
-
-  int i;
-  double start;
-  BtorNode *cur;
-  BtorNodePtrStack stack;
-
-  start = btor_time_stamp ();
-  BTOR_INIT_STACK (stack);
-  BTOR_PUSH_STACK (btor->mm, stack, exp);
-
-  while (!BTOR_EMPTY_STACK (stack))
-  {
-    cur = BTOR_REAL_ADDR_NODE (BTOR_POP_STACK (stack));
-
-    if (cur->reachable) continue;
-
-    cur->reachable = 1;
-
-    for (i = 0; i < cur->arity; i++)
-      BTOR_PUSH_STACK (btor->mm, stack, cur->e[i]);
-  }
-
-  BTOR_RELEASE_STACK (btor->mm, stack);
-  btor->time.reachable += btor_time_stamp () - start;
-}
-
 /* forward assumptions to the SAT solver */
 void
 btor_add_again_assumptions (Btor *btor)
@@ -4075,14 +3991,11 @@ map_inputs_check_model (Btor *btor, Btor *clone)
                                     (BtorHashPtr) btor_hash_exp_by_id,
                                     (BtorCmpPtr) btor_compare_exp_by_id);
 
-  btor_update_reachable (clone, true);
-
   btor_init_node_hash_table_iterator (&it, clone->bv_vars);
   while (btor_has_next_node_hash_table_iterator (&it))
   {
     cur = btor_next_node_hash_table_iterator (&it);
-    if (!cur->reachable) continue;
-    b = btor_get_ptr_hash_table (btor->bv_vars, cur);
+    b   = btor_get_ptr_hash_table (btor->bv_vars, cur);
     assert (b);
 
     assert (!btor_get_ptr_hash_table (inputs, cur));
@@ -4094,8 +4007,7 @@ map_inputs_check_model (Btor *btor, Btor *clone)
   while (btor_has_next_node_hash_table_iterator (&it))
   {
     cur = btor_next_node_hash_table_iterator (&it);
-    if (!cur->reachable) continue;
-    b = btor_get_ptr_hash_table (btor->ufs, cur);
+    b   = btor_get_ptr_hash_table (btor->ufs, cur);
     assert (b);
 
     assert (!btor_get_ptr_hash_table (inputs, cur));
