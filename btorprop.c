@@ -702,8 +702,16 @@ inv_add_bv (Btor *btor,
   (void) add;
   (void) eidx;
 
-  /* res + bve = bve + res = bvadd -> res = bvadd - bve */
-  res = btor_sub_bv (mm, bvadd, bve);
+  /* choose random value with prob = 0.1 */
+  if (!btor_pick_rand_rng (&btor->rng, 0, 9))
+  {
+    res = btor_new_random_bv (btor->mm, &btor->rng, bve->width);
+  }
+  else
+  {
+    /* res + bve = bve + res = bvadd -> res = bvadd - bve */
+    res = btor_sub_bv (mm, bvadd, bve);
+  }
 #ifndef NDEBUG
   if (eidx)
     tmpdbg = btor_add_bv (mm, bve, res);
@@ -2171,7 +2179,8 @@ inv_urem_bv (Btor *btor,
         if (!btor_is_zero_bv (bvurem))
         {
           tmp = btor_dec_bv (mm, bve);
-          /* bvurem = bve - 1 ->  conflict */
+          /* bvurem = bve - 1 -> bve % e[1] = bve - 1
+           * -> not possible if bvurem > 0 -> conflict */
           if (!btor_compare_bv (bvurem, tmp))
           {
             btor_free_bv (mm, tmp);
