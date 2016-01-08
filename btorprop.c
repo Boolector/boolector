@@ -702,8 +702,8 @@ inv_add_bv (Btor *btor,
   (void) add;
   (void) eidx;
 
-  /* choose random value with prob = 0.1 */
-  if (!btor_pick_rand_rng (&btor->rng, 0, 9))
+  /* choose random value with prob = 0.01 */
+  if (!btor_pick_rand_rng (&btor->rng, 0, 99))
   {
     res = btor_new_random_bv (btor->mm, &btor->rng, bve->width);
   }
