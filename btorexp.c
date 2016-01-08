@@ -1417,7 +1417,7 @@ new_quantifier_exp_node (Btor *btor,
   connect_child_exp (btor, (BtorNode *) res, param, 0);
   connect_child_exp (btor, (BtorNode *) res, body, 1);
 
-  /* curried quantifiers */
+  /* curried (non-inverted) quantifiers */
   if (!BTOR_IS_INVERTED_NODE (body) && BTOR_IS_QUANTIFIER_NODE (body))
     res->body = btor_simplify_exp (btor, btor_binder_get_body (body));
   else
