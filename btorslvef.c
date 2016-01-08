@@ -15,6 +15,7 @@
 #include "btorexp.h"
 #include "btormodel.h"
 #include "btorslvcore.h"
+#include "utils/btorhashint.h"
 #include "utils/btoriter.h"
 
 /*------------------------------------------------------------------------*/
@@ -223,38 +224,93 @@ construct_generalization (BtorEFSolver *slv)
 }
 
 static bool
+is_quantifier_below (BtorEFSolver *slv, BtorNode *root, BtorIntHashTable *cache)
+{
+  assert (slv);
+  assert (root);
+  assert (cache);
+
+  uint32_t i;
+  BtorNodePtrStack visit;
+  BtorMemMgr *mm;
+  BtorNode *cur;
+
+  mm = slv->btor->mm;
+  BTOR_INIT_STACK (visit);
+  BTOR_PUSH_STACK (mm, visit, root);
+  while (!BTOR_EMPTY_STACK (visit))
+  {
+    cur = BTOR_REAL_ADDR_NODE (BTOR_POP_STACK (visit));
+    if (BTOR_IS_QUANTIFIER_NODE (cur))
+    {
+      BTOR_RELEASE_STACK (mm, visit);
+      return true;
+    }
+    if (btor_contains_int_hash_table (cache, cur->id)) continue;
+    btor_add_int_hash_table (cache, cur->id);
+    for (i = 0; i < cur->arity; i++) BTOR_PUSH_STACK (mm, visit, cur->e[i]);
+  }
+  BTOR_RELEASE_STACK (mm, visit);
+  return false;
+}
+
+static bool
 is_ef_formula (BtorEFSolver *slv)
 {
-  BtorNode *cur, *param;
-  BtorHashTableIterator it;
-  BtorNodeIterator nit;
-  bool exists_allowed;
+  assert (slv->btor->synthesized_constraints->count == 0);
+  assert (slv->btor->embedded_constraints->count == 0);
+  assert (slv->btor->varsubst_constraints->count == 0);
 
-  btor_init_node_hash_table_iterator (&it, slv->btor->quantifiers);
+  Btor *btor;
+  bool exists_allowed, result = true;
+  BtorNode *cur, *real_cur;
+  BtorHashTableIterator it;
+  BtorIntHashTable *cache;
+  BtorMemMgr *mm;
+  BtorNodeIterator nit;
+
+  btor  = slv->btor;
+  mm    = btor->mm;
+  cache = btor_new_int_hash_table (mm);
+  btor_init_node_hash_table_iterator (&it, btor->unsynthesized_constraints);
   while (btor_has_next_node_hash_table_iterator (&it))
   {
-    cur = btor_next_node_hash_table_iterator (&it);
-    assert (BTOR_IS_QUANTIFIER_NODE (cur));
+    cur      = btor_next_node_hash_table_iterator (&it);
+    real_cur = BTOR_REAL_ADDR_NODE (cur);
 
-    if (cur->parameterized) continue;
+    if (!is_quantifier_below (slv, real_cur, cache)) continue;
 
-    btor_init_param_iterator (&nit, cur);
-    exists_allowed = true;
-    while (btor_has_next_param_iterator (&nit))
+    if ((BTOR_IS_INVERTED_NODE (cur) && BTOR_IS_QUANTIFIER_NODE (real_cur))
+        || !BTOR_IS_QUANTIFIER_NODE (real_cur)
+        || is_quantifier_below (slv, btor_binder_get_body (real_cur), cache))
     {
-      param = btor_next_param_iterator (&nit);
-      if (btor_param_is_exists_var (param))
+      result = false;
+      goto CLEANUP_AND_EXIT;
+    }
+    assert (BTOR_IS_QUANTIFIER_NODE (real_cur));
+    btor_init_binder_iterator (&nit, real_cur);
+    exists_allowed = true;
+    while (btor_has_next_binder_iterator (&nit))
+    {
+      cur = btor_next_binder_iterator (&nit);
+      if (BTOR_IS_EXISTS_NODE (cur))
       {
-        if (!exists_allowed) return false;
+        if (!exists_allowed)
+        {
+          result = false;
+          goto CLEANUP_AND_EXIT;
+        }
       }
       else
       {
-        assert (btor_param_is_forall_var (param));
+        assert (BTOR_IS_FORALL_NODE (cur));
         exists_allowed = false;
       }
     }
   }
-  return true;
+CLEANUP_AND_EXIT:
+  btor_delete_int_hash_table (cache);
+  return result;
 }
 
 /*------------------------------------------------------------------------*/
@@ -324,6 +380,8 @@ sat_ef_solver (BtorEFSolver *slv)
   BtorNode *var, *c, *var_fs, *g;
   BtorNodeMap *map, *e_exists_vars;
   const BtorBitVector *bv;
+
+  (void) btor_simplify (slv->btor);
 
   if (!is_ef_formula (slv))
   {
@@ -431,14 +489,18 @@ generate_model_ef_solver (BtorEFSolver *slv,
   assert (slv->btor);
   assert (slv->btor->slv == (BtorSolver *) slv);
 
-  BtorNode *cur, *param, *var_fs, *param_fs;
+  // TODO (ma): for now not supported
+  (void) model_for_all_nodes;
+  (void) reset;
+
+  BtorNode *cur, *param, *var_fs;
   BtorNodeMapIterator it;
   const BtorBitVector *bv;
 
   btor_init_bv_model (slv->btor, &slv->btor->bv_model);
   btor_init_fun_model (slv->btor, &slv->btor->fun_model);
   btor_init_node_map_iterator (&it, slv->e_exists_vars);
-  while (btor_has_next_node_hash_table_iterator (&it))
+  while (btor_has_next_node_map_iterator (&it))
   {
     cur    = btor_next_node_map_iterator (&it);
     var_fs = btor_mapped_node (slv->e_exists_vars, cur);
