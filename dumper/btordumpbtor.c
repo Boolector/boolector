@@ -302,7 +302,8 @@ bdcnode (BtorDumpContext *bdc, BtorNode *node, FILE *file)
     btor_init_parameterized_iterator (&pit, bdc->btor, node);
     assert (btor_has_next_parameterized_iterator (&pit));
     n = btor_next_parameterized_iterator (&pit);
-    if (btor_lambda_get_static_rho (btor_param_get_binder (n))
+    if (BTOR_IS_LAMBDA_NODE (btor_param_get_binder (n))
+        && btor_lambda_get_static_rho (btor_param_get_binder (n))
         && !btor_has_next_parameterized_iterator (&pit))
       return;
   }
