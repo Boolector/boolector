@@ -162,7 +162,7 @@ btor_has_next_binder_iterator (BtorNodeIterator *it)
 {
   assert (it);
   assert (it->cur);
-  return BTOR_IS_BINDER_NODE (BTOR_REAL_ADDR_NODE (it->cur));
+  return !BTOR_IS_INVERTED_NODE (it->cur) && BTOR_IS_BINDER_NODE (it->cur);
 }
 
 void
