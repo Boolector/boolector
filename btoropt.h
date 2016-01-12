@@ -108,6 +108,7 @@ typedef struct BtorOpt
 #define BTOR_OPT_SLS_MOVE_INC_MOVE_TEST "sls_move_inc_move_test"
 #define BTOR_OPT_PROP_USE_RESTARTS "prop_use_restarts"
 #define BTOR_OPT_PROP_USE_BANDIT "prop_use_bandit"
+#define BTOR_OPT_PROP_USE_INV_VALUE "prop_use_inv_value"
 #ifndef BTOR_DO_NOT_OPTIMIZE_UNCONSTRAINED
 #define BTOR_OPT_UCOPT "ucopt"
 #endif
@@ -189,6 +190,9 @@ typedef struct BtorOpts
 
   BtorOpt prop_use_restarts;
   BtorOpt prop_use_bandit;
+  BtorOpt prop_use_inv_value; /* prob for producing inverse rather
+                                 than consistent values
+                                 (inverse \subseteq consistent) */
 
   BtorOpt dual_prop;      /* dual prop optimization */
   BtorOpt just;           /* justification optimization */

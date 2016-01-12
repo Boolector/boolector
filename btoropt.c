@@ -279,6 +279,12 @@ btor_init_opts (Btor *btor)
             0,
             1,
             "use bandit scheme for constraint selection");
+  BTOR_OPT (0,
+            prop_use_inv_value,
+            99,
+            0,
+            100,
+            "produce inverse rather than consistent values");
 
   BTOR_OPT ("dp", dual_prop, 0, 0, 1, "dual propagation optimization");
   BTOR_OPT ("ju", just, 0, 0, 1, "justification optimization");
