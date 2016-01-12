@@ -4122,6 +4122,12 @@ btor_create_exp (Btor *btor, BtorNodeKind kind, uint32_t arity, BtorNode **e)
     case BTOR_LAMBDA_NODE:
       assert (arity == 2);
       return btor_lambda_exp (btor, e[0], e[1]);
+    case BTOR_EXISTS_NODE:
+      assert (arity == 2);
+      return btor_exists_exp (btor, e[0], e[1]);
+    case BTOR_FORALL_NODE:
+      assert (arity == 2);
+      return btor_forall_exp (btor, e[0], e[1]);
     case BTOR_BCOND_NODE:
       assert (arity == 3);
       return btor_cond_exp (btor, e[0], e[1], e[2]);
