@@ -15,6 +15,7 @@
 #include "btorexp.h"
 #include "btormodel.h"
 #include "btorslvcore.h"
+#include "simplifier/btorminiscope.h"
 #include "utils/btorhashint.h"
 #include "utils/btoriter.h"
 
@@ -28,13 +29,13 @@ setup_exists_solver (BtorEFSolver *slv)
   BtorNodeMapIterator it;
   BtorNodeMap *exists_vars;
 
-  exists_solver                          = btor_new_btor ();
-  exists_solver->options.model_gen.val   = 1;
-  exists_solver->options.incremental.val = 1;
-  exists_vars                            = btor_new_node_map (exists_solver);
+  forall_solver = slv->forall_solver;
+  exists_solver = btor_new_btor ();
+  btor_copy_opts (
+      exists_solver->mm, &forall_solver->options, &exists_solver->options);
+  exists_vars = btor_new_node_map (exists_solver);
   btor_set_msg_prefix_btor (exists_solver, "exists");
 
-  forall_solver = slv->forall_solver;
   btor_init_node_map_iterator (&it, slv->f_exists_vars);
   while (btor_has_next_node_map_iterator (&it))
   {
@@ -94,11 +95,16 @@ setup_forall_solver (BtorEFSolver *slv)
         forall_solver, btor_get_exp_width (forall_solver, param), 0);
     btor_map_node (map, param, var);
     if (btor_param_is_exists_var (param))
+    {
       m = exists_vars;
+      //	  printf ("exists var: %s (%s)\n", node2string (param),
+      // node2string (var));
+    }
     else
     {
       assert (btor_param_is_forall_var (param));
       m = forall_vars;
+      //	  printf ("forall var: %s\n", node2string (param));
     }
     btor_map_node (m, var, btor_copy_exp (forall_solver, param));
   }
@@ -382,6 +388,8 @@ sat_ef_solver (BtorEFSolver *slv)
   const BtorBitVector *bv;
 
   (void) btor_simplify (slv->btor);
+  btor_miniscope (slv->btor);
+  //  btor_dump_btor (slv->btor, stdout, 1);
 
   if (!is_ef_formula (slv))
   {
