@@ -3754,13 +3754,13 @@ sat_prop_solver (Btor *btor, int limit0, int limit1)
   (void) limit0;
   (void) limit1;
 
+  start = btor_time_stamp ();
+
   if (btor->inconsistent)
   {
     sat_result = BTOR_UNSAT;
     goto DONE;
   }
-
-  start = btor_time_stamp ();
 
   BTOR_MSG (btor->msg, 1, "calling SAT");
 
