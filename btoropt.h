@@ -14,6 +14,8 @@
 #define BTOROPTS_H_INCLUDED
 
 #include <stdint.h>
+#include "btortypes.h"
+#include "utils/btormem.h"
 
 #define BTOR_VERBOSITY_MAX 4
 
@@ -255,28 +257,27 @@ typedef struct BtorOpts
 
 } BtorOpts;
 
-struct Btor;
+void btor_init_opts (Btor *btor);
 
-void btor_init_opts (struct Btor *btor);
+void btor_copy_opts (BtorMemMgr *mm, BtorOpts *src, BtorOpts *dst);
+void btor_delete_opts (Btor *btor);
 
-void btor_set_opt (struct Btor *btor, const char *name, uint32_t val);
-void btor_set_opt_str (struct Btor *btor, const char *name, const char *val);
+void btor_set_opt (Btor *btor, const char *name, uint32_t val);
+void btor_set_opt_str (Btor *btor, const char *name, const char *val);
 
 /* does not assert existing opt with name 'name',
  * not for boolector internal use */
-BtorOpt *btor_get_opt_aux (struct Btor *btor,
-                           const char *name,
-                           int skip_internal);
+BtorOpt *btor_get_opt_aux (Btor *btor, const char *name, int skip_internal);
 /* asserts existing opt with name 'opt' */
-BtorOpt *btor_get_opt (struct Btor *btor, const char *name);
+BtorOpt *btor_get_opt (Btor *btor, const char *name);
 
-int btor_get_opt_val (struct Btor *btor, const char *name);
-int btor_get_opt_min (struct Btor *btor, const char *name);
-int btor_get_opt_max (struct Btor *btor, const char *name);
-int btor_get_opt_dflt (struct Btor *btor, const char *name);
-const char *btor_get_opt_shrt (struct Btor *btor, const char *name);
-const char *btor_get_opt_desc (struct Btor *btor, const char *name);
+int btor_get_opt_val (Btor *btor, const char *name);
+int btor_get_opt_min (Btor *btor, const char *name);
+int btor_get_opt_max (Btor *btor, const char *name);
+int btor_get_opt_dflt (Btor *btor, const char *name);
+const char *btor_get_opt_shrt (Btor *btor, const char *name);
+const char *btor_get_opt_desc (Btor *btor, const char *name);
 
-const char *btor_first_opt (struct Btor *btor);
-const char *btor_next_opt (struct Btor *btor, const char *cur);
+const char *btor_first_opt (Btor *btor);
+const char *btor_next_opt (Btor *btor, const char *cur);
 #endif

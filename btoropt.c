@@ -322,6 +322,41 @@ btor_init_opts (Btor *btor)
 #define BTOR_FIRST_OPT(btor) (&(btor)->options.first + 1)
 #define BTOR_LAST_OPT(btor) (&(btor)->options.last - 1)
 
+void
+btor_copy_opts (BtorMemMgr *mm, BtorOpts *src, BtorOpts *dst)
+{
+  assert (mm);
+  assert (src);
+  assert (dst);
+  assert (src != dst);
+
+  BtorOpt *so, *o;
+
+  /* copy all option values */
+  memcpy (dst, src, sizeof (BtorOpts));
+
+  /* copy all string values if present */
+  for (so = &src->first + 1, o = &dst->first + 1; so < &src->last; so++, o++)
+    o->valstr = btor_strdup (mm, so->valstr);
+}
+
+void
+btor_delete_opts (Btor *btor)
+{
+  assert (btor);
+
+  BtorOpt *o;
+
+  for (o = BTOR_FIRST_OPT (btor); o < BTOR_LAST_OPT (btor); o++)
+  {
+    if (o->valstr)
+    {
+      btor_freestr (btor->mm, o->valstr);
+      o->valstr = 0;
+    }
+  }
+}
+
 BtorOpt *
 btor_get_opt_aux (Btor *btor, const char *name, int skip_internal)
 {
