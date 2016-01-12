@@ -142,7 +142,7 @@ invert_quantifiers (Btor *btor, BtorNode *quantifier)
   assert (BTOR_IS_REGULAR_NODE (quantifier));
   assert (BTOR_IS_QUANTIFIER_NODE (quantifier));
 
-  BtorNode *cur, *param, *new_param, *body, *new_body, *result, *tmp;
+  BtorNode *cur, *param, *new_param, *body, *result, *tmp;
   BtorNodeIterator it;
   BtorNodeMap *param_substs;
   BtorNodePtrStack params;
@@ -168,11 +168,6 @@ invert_quantifiers (Btor *btor, BtorNode *quantifier)
       btor_remove_ptr_hash_table (btor->inputs, param, 0, 0);
       btor_release_exp (btor, param);
     }
-    else
-    {
-      assert (BTOR_IS_FORALL_NODE (cur));
-      btor_add_ptr_hash_table (btor->inputs, btor_copy_exp (btor, new_param));
-    }
   }
 
   body   = btor_binder_get_body (quantifier);
@@ -190,7 +185,14 @@ invert_quantifiers (Btor *btor, BtorNode *quantifier)
     assert (BTOR_IS_PARAM_NODE (param));
     assert (BTOR_IS_QUANTIFIER_NODE (cur));
     if (BTOR_IS_FORALL_NODE (cur))
+    {
       tmp = btor_exists_exp (btor, param, result);
+      //	  printf ("add input: %s\n", node2string (new_param));
+      /* add existential param to inputs in order to correctly print
+       * models.  do not use param here as tmp might be a cached
+       * existential quantifier */
+      btor_add_ptr_hash_table (btor->inputs, btor_copy_exp (btor, tmp->e[0]));
+    }
     else
       tmp = btor_forall_exp (btor, param, result);
     btor_release_exp (btor, result);
@@ -229,8 +231,8 @@ push_down_quantifier (Btor *btor, BtorNode *quantifier)
 
   cache = btor_new_int_hash_table (mm);
   map   = btor_new_int_hash_map (mm);
-  printf ("quant: %s\n", node2string (quantifier));
-  printf ("  body: %s\n", node2string (body));
+  //  printf ("quant: %s\n", node2string (quantifier));
+  //  printf ("  body: %s\n", node2string (body));
 
   BTOR_INIT_STACK (visit);
   BTOR_INIT_STACK (args);
@@ -244,15 +246,14 @@ push_down_quantifier (Btor *btor, BtorNode *quantifier)
     cur      = BTOR_POP_STACK (visit);
     real_cur = BTOR_REAL_ADDR_NODE (cur);
     cur_kind = BTOR_POP_STACK (kind);
-    printf ("visit: %s (%s)\n",
-            node2string (cur),
-            cur_kind == BTOR_FORALL_NODE ? "forall" : "exists");
+    //      printf ("visit: %s (%s)\n", node2string (cur), cur_kind ==
+    //      BTOR_FORALL_NODE ? "forall" : "exists");
     assert (real_cur->parameterized);
 
     // TODO (ma): push over quantifiers of same kind?
     if (!BTOR_IS_AND_NODE (real_cur))
     {
-      printf ("  no and\n");
+      //	  printf ("  no and\n");
       BTOR_PUSH_STACK (mm, args, btor_copy_exp (btor, cur));
       BTOR_PUSH_STACK (mm, args_kind, cur_kind);
       continue;
@@ -267,7 +268,7 @@ push_down_quantifier (Btor *btor, BtorNode *quantifier)
 
       if (btor_param_is_free (btor, param, real_cur->e[0]))
       {
-        printf ("  free: %s\n", node2string (real_cur->e[0]));
+        //	      printf ("  free: %s\n", node2string (real_cur->e[0]));
         assert (!btor_param_is_free (btor, param, real_cur->e[1]));
         BTOR_PUSH_STACK (mm, args, btor_copy_exp (btor, real_cur->e[0]));
         BTOR_PUSH_STACK (mm, args_kind, 0);
@@ -277,7 +278,7 @@ push_down_quantifier (Btor *btor, BtorNode *quantifier)
       }
       else if (btor_param_is_free (btor, param, real_cur->e[1]))
       {
-        printf ("  free: %s\n", node2string (real_cur->e[1]));
+        //	      printf ("  free: %s\n", node2string (real_cur->e[1]));
         assert (!btor_param_is_free (btor, param, real_cur->e[0]));
         BTOR_PUSH_STACK (mm, args, btor_copy_exp (btor, real_cur->e[1]));
         BTOR_PUSH_STACK (mm, args_kind, 0);
@@ -291,7 +292,7 @@ push_down_quantifier (Btor *btor, BtorNode *quantifier)
       else if (BTOR_IS_FORALL_NODE_KIND (cur_kind)
                && !BTOR_IS_INVERTED_NODE (cur))
       {
-        printf ("  push forall\n");
+        //	      printf ("  push forall\n");
         BTOR_PUSH_STACK (mm, visit, real_cur->e[0]);
         BTOR_PUSH_STACK (mm, kind, cur_kind);
         BTOR_PUSH_STACK (mm, visit, real_cur->e[1]);
@@ -300,7 +301,7 @@ push_down_quantifier (Btor *btor, BtorNode *quantifier)
       else if (BTOR_IS_EXISTS_NODE_KIND (cur_kind)
                && BTOR_IS_INVERTED_NODE (cur))
       {
-        printf ("  push exists\n");
+        //	      printf ("  push exists\n");
         //	      cur_kind = INV_KIND (cur_kind);
         BTOR_PUSH_STACK (mm, visit, real_cur->e[0]);
         BTOR_PUSH_STACK (mm, kind, cur_kind);
@@ -309,7 +310,7 @@ push_down_quantifier (Btor *btor, BtorNode *quantifier)
       }
       else
       {
-        printf ("  no push\n");
+        //	      printf ("  no push\n");
         BTOR_PUSH_STACK (mm, args, btor_copy_exp (btor, cur));
         BTOR_PUSH_STACK (mm, args_kind, cur_kind);
       }
@@ -344,7 +345,8 @@ push_down_quantifier (Btor *btor, BtorNode *quantifier)
           //    2) substitute 'param' with p in t1 and obtain t1'
           //    3) create new quantifier with p and t1'
         }
-        printf ("  %d: %s (%s)\n", i, node2string (e[i]), node2string (t));
+        //	      printf ("  %d: %s (%s)\n", i, node2string (e[i]),
+        // node2string (t));
         btor_release_exp (btor, t);
       }
 
@@ -352,7 +354,8 @@ push_down_quantifier (Btor *btor, BtorNode *quantifier)
       btor_release_exp (btor, e[0]);
       btor_release_exp (btor, e[1]);
 
-      printf ("  result: %s\n", node2string (BTOR_COND_INVERT_NODE (cur, and)));
+      //	  printf ("  result: %s\n", node2string (BTOR_COND_INVERT_NODE
+      //(cur, and)));
       BTOR_PUSH_STACK (mm, args, BTOR_COND_INVERT_NODE (cur, and));
       BTOR_PUSH_STACK (mm, args_kind, 0);
     }
@@ -379,12 +382,12 @@ elimininate_negated_quantifiers (Btor *btor)
 
   int32_t i;
   BtorMemMgr *mm;
-  BtorNode *cur, *real_cur, *subst, *result, **e, *cnstr, *child;
+  BtorNode *cur, *real_cur, *result, **e, *cnstr, *child;
   BtorNodePtrStack visit, args, cleanup;
   BtorIntHashTable *mark, *cache;
   BtorIntHashTableData *d;
   BtorHashTableIterator it;
-  BtorPtrHashTable *new_constraints, *usc;
+  BtorPtrHashTable *usc;
 
   mm    = btor->mm;
   mark  = btor_new_int_hash_map (mm);
@@ -417,8 +420,7 @@ elimininate_negated_quantifiers (Btor *btor)
     {
       cur      = BTOR_POP_STACK (visit);
       real_cur = BTOR_REAL_ADDR_NODE (cur);
-      // TODO (ma): for now we only support bit vector terms
-      // printf ("visit: %s\n", node2string (cur));
+      //	  printf ("visit: %s\n", node2string (cur));
       assert (!BTOR_IS_QUANTIFIER_NODE (real_cur)
               || !BTOR_IS_INVERTED_NODE (cur));
 
@@ -435,6 +437,7 @@ elimininate_negated_quantifiers (Btor *btor)
             child = invert_quantifiers (btor, BTOR_REAL_ADDR_NODE (child));
             BTOR_PUSH_STACK (mm, cleanup, child);
           }
+          //		  printf ("  child: %s\n", node2string (child));
           BTOR_PUSH_STACK (mm, visit, child);
         }
       }
@@ -467,7 +470,8 @@ elimininate_negated_quantifiers (Btor *btor)
             btor_copy_exp (btor, result);
         BTOR_PUSH_STACK (mm, cleanup, result);
       PUSH_RESULT:
-        // printf ("  result: %s\n", node2string (result));
+        //	      printf ("  result: %s\n", node2string
+        //(BTOR_COND_INVERT_NODE (cur, result)));
         BTOR_PUSH_STACK (mm, args, BTOR_COND_INVERT_NODE (cur, result));
       }
       else
@@ -482,6 +486,14 @@ elimininate_negated_quantifiers (Btor *btor)
 
     assert (BTOR_COUNT_STACK (args) == 1);
     result = BTOR_POP_STACK (args);
+
+    if (BTOR_IS_INVERTED_NODE (result) && BTOR_IS_QUANTIFIER_NODE (result))
+    {
+      child = invert_quantifiers (btor, BTOR_REAL_ADDR_NODE (result));
+      btor_release_exp (btor, result);
+      result = child;
+    }
+
     btor_assert_exp (btor, result);
     btor_release_exp (btor, result);
     btor_release_exp (btor, cnstr);
@@ -496,7 +508,6 @@ elimininate_negated_quantifiers (Btor *btor)
   BTOR_RELEASE_STACK (mm, args);
   btor_delete_int_hash_map (cache);
   btor_delete_int_hash_map (mark);
-  return result;
 }
 
 void
