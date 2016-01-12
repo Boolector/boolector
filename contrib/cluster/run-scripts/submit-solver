@@ -125,6 +125,27 @@ do
   fi
 done
 
+while true
+do
+  echo -n "choose jobs per host (default: 1): " 
+  read jobs_per_host
+
+  if [[ "$jobs_per_host" == "" ]]; then
+    jobs_per_host=1
+    break
+  fi
+  if [[ ! $jobs_per_host =~ $re ]]; then
+    msg "jobs per host '$jobs_per_host' is not a number"
+    continue
+  fi
+  if [[ $jobs_per_host -lt 1 || $jobs_per_host -gt 3 ]]; then
+    msg "jobs per host must be between 1 and 3"
+    continue
+  else
+    break
+  fi
+done
+
 # save options, benchmarks file, solver
 cp $benchmarks_file $working_dir/benchmarks
 cp $solver $working_dir
@@ -137,7 +158,9 @@ ntasks=$(wc -l $benchmarks_file | cut -d ' ' -f 1)
 # get most common prefix of all benchmark files
 prefix=$(cat $benchmarks_file | sed -e 'N;s/^\(.*\).*\n\1\/.*$/\1\n\1\//;D')
 
-qsub -t 1-$ntasks $HOME/bin/launch \
+((jobs_per_host = 6 / jobs_per_host))
+
+qsub -l use_cores_per_job=$jobs_per_host -t 1-$ntasks $HOME/bin/launch \
   "$working_dir/benchmarks" \
   "$prefix" \
   "$working_dir" \

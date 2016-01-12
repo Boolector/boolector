@@ -793,6 +793,7 @@ clone_aux_btor (Btor *btor,
   char **ind, **val;
   amgr = exp_layer_only ? 0 : btor_get_aig_mgr_aigvec_mgr (btor->avmgr);
   BtorPtrHashData *data, *cdata;
+  BtorOpt *o;
 #endif
 
   BTORLOG (1, "start cloning btor %p ...", btor);
@@ -805,14 +806,11 @@ clone_aux_btor (Btor *btor,
 #endif
   memcpy (clone, btor, sizeof (Btor));
   clone->mm = mm;
-  if (btor->options.sat_engine.valstr)
-  {
-    clone->options.sat_engine.valstr =
-        btor_strdup (mm, btor->options.sat_engine.valstr);
+  btor_copy_opts (mm, &btor->options, &clone->options);
 #ifndef NDEBUG
-    allocated += strlen (btor->options.sat_engine.valstr) + 1;
+  for (o = &btor->options.first + 1; o < &btor->options.last; o++)
+    if (o->valstr) allocated += strlen (o->valstr) + 1;
 #endif
-  }
   assert (allocated == clone->mm->allocated);
 
   /* always auto cleanup external references (dangling, not held from extern) */
