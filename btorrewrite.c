@@ -4548,82 +4548,6 @@ apply_param_free_forall (Btor *btor, BtorNode *param, BtorNode *body)
   return btor_copy_exp (btor, body);
 }
 
-static inline int
-applies_miniscope_free_forall (Btor *btor, BtorNode *param, BtorNode *body)
-{
-  body = BTOR_REAL_ADDR_NODE (body);
-  return btor->options.miniscoping.val && BTOR_IS_AND_NODE (body)
-         && (btor_param_is_free (btor, param, body->e[0])
-             || btor_param_is_free (btor, param, body->e[1]));
-}
-
-static inline BtorNode *
-apply_miniscope_free_forall (Btor *btor, BtorNode *param, BtorNode *body)
-{
-  assert (applies_miniscope_free_forall (btor, param, body));
-
-  BtorNode *res, *l, *r;
-
-  l = BTOR_REAL_ADDR_NODE (body)->e[0];
-  r = BTOR_REAL_ADDR_NODE (body)->e[1];
-
-  if (btor_param_is_free (btor, param, l))
-  {
-    assert (!btor_param_is_free (btor, param, r));
-    l = btor_copy_exp (btor, l);
-    r = rewrite_forall_exp (btor, param, r);
-  }
-  else
-  {
-    assert (btor_param_is_free (btor, param, r));
-    assert (!btor_param_is_free (btor, param, l));
-    r = btor_copy_exp (btor, r);
-    l = rewrite_forall_exp (btor, param, l);
-  }
-
-  res = btor_rewrite_binary_exp (btor, BTOR_REAL_ADDR_NODE (body)->kind, l, r);
-  btor_release_exp (btor, l);
-  btor_release_exp (btor, r);
-  return BTOR_COND_INVERT_NODE (body, res);
-}
-
-static inline int
-applies_miniscope_and_forall (Btor *btor, BtorNode *param, BtorNode *body)
-{
-  (void) param;
-  return btor->options.miniscoping.val && !BTOR_IS_INVERTED_NODE (body)
-         && BTOR_IS_AND_NODE (body);
-}
-
-static inline BtorNode *
-apply_miniscope_and_forall (Btor *btor, BtorNode *param, BtorNode *body)
-{
-  assert (applies_miniscope_and_forall (btor, param, body));
-
-  BtorNode *res, *e0, *e1, *f0, *f1, *p0, *p1, *b0, *b1;
-
-  e0 = body->e[0];
-  e1 = body->e[1];
-  p0 = btor_param_exp (btor, btor_get_exp_width (btor, param), 0);
-  p1 = btor_param_exp (btor, btor_get_exp_width (btor, param), 0);
-  btor_param_set_assigned_exp (param, p0);
-  b0 = btor_beta_reduce_full (btor, e0);
-  btor_param_set_assigned_exp (param, p1);
-  b1 = btor_beta_reduce_full (btor, e1);
-  btor_param_set_assigned_exp (param, 0);
-
-  f0  = rewrite_forall_exp (btor, p0, b0);
-  f1  = rewrite_forall_exp (btor, p1, b1);
-  res = rewrite_and_exp (btor, f0, f1);
-  btor_release_exp (btor, p0);
-  btor_release_exp (btor, p1);
-  btor_release_exp (btor, b0);
-  btor_release_exp (btor, b1);
-  btor_release_exp (btor, f0);
-  btor_release_exp (btor, f1);
-  return res;
-}
-
 /* EXISTS rules */
 
 /* match:  (\exists x . t) where x is free in t
@@ -4641,82 +4565,6 @@ apply_param_free_exists (Btor *btor, BtorNode *param, BtorNode *body)
   assert (applies_param_free_exists (btor, param, body));
   (void) param;
   return btor_copy_exp (btor, body);
-}
-
-static inline int
-applies_miniscope_free_exists (Btor *btor, BtorNode *param, BtorNode *body)
-{
-  body = BTOR_REAL_ADDR_NODE (body);
-  return btor->options.miniscoping.val && BTOR_IS_AND_NODE (body)
-         && (btor_param_is_free (btor, param, body->e[0])
-             || btor_param_is_free (btor, param, body->e[1]));
-}
-
-static inline BtorNode *
-apply_miniscope_free_exists (Btor *btor, BtorNode *param, BtorNode *body)
-{
-  assert (applies_miniscope_free_exists (btor, param, body));
-
-  BtorNode *res, *l, *r;
-
-  l = BTOR_REAL_ADDR_NODE (body)->e[0];
-  r = BTOR_REAL_ADDR_NODE (body)->e[1];
-
-  if (btor_param_is_free (btor, param, l))
-  {
-    assert (!btor_param_is_free (btor, param, r));
-    l = btor_copy_exp (btor, l);
-    r = rewrite_exists_exp (btor, param, r);
-  }
-  else
-  {
-    assert (btor_param_is_free (btor, param, r));
-    assert (!btor_param_is_free (btor, param, l));
-    r = btor_copy_exp (btor, r);
-    l = rewrite_exists_exp (btor, param, l);
-  }
-
-  res = btor_rewrite_binary_exp (btor, BTOR_REAL_ADDR_NODE (body)->kind, l, r);
-  btor_release_exp (btor, l);
-  btor_release_exp (btor, r);
-  return BTOR_COND_INVERT_NODE (body, res);
-}
-
-static inline int
-applies_miniscope_or_exists (Btor *btor, BtorNode *param, BtorNode *body)
-{
-  (void) param;
-  return btor->options.miniscoping.val && BTOR_IS_INVERTED_NODE (body)
-         && BTOR_IS_AND_NODE (BTOR_REAL_ADDR_NODE (body));
-}
-
-static inline BtorNode *
-apply_miniscope_or_exists (Btor *btor, BtorNode *param, BtorNode *body)
-{
-  assert (applies_miniscope_or_exists (btor, param, body));
-
-  BtorNode *res, *e0, *e1, *f0, *f1, *p0, *p1, *b0, *b1;
-
-  e0 = BTOR_REAL_ADDR_NODE (body)->e[0];
-  e1 = BTOR_REAL_ADDR_NODE (body)->e[1];
-  p0 = btor_param_exp (btor, btor_get_exp_width (btor, param), 0);
-  p1 = btor_param_exp (btor, btor_get_exp_width (btor, param), 0);
-  btor_param_set_assigned_exp (param, p0);
-  b0 = btor_beta_reduce_full (btor, e0);
-  btor_param_set_assigned_exp (param, p1);
-  b1 = btor_beta_reduce_full (btor, e1);
-  btor_param_set_assigned_exp (param, 0);
-
-  f0  = BTOR_INVERT_NODE (rewrite_exists_exp (btor, p0, b0));
-  f1  = BTOR_INVERT_NODE (rewrite_exists_exp (btor, p1, b1));
-  res = BTOR_INVERT_NODE (rewrite_and_exp (btor, f0, f1));
-  btor_release_exp (btor, p0);
-  btor_release_exp (btor, p1);
-  btor_release_exp (btor, b0);
-  btor_release_exp (btor, b1);
-  btor_release_exp (btor, f0);
-  btor_release_exp (btor, f1);
-  return res;
 }
 
 /* COND rules */
@@ -6380,8 +6228,6 @@ rewrite_forall_exp (Btor *btor, BtorNode *e0, BtorNode *e1)
   e1 = btor_simplify_exp (btor, e1);
 
   ADD_RW_RULE (param_free_forall, e0, e1);
-  ADD_RW_RULE (miniscope_free_forall, e0, e1);
-  ADD_RW_RULE (miniscope_and_forall, e0, e1);
 
   assert (!result);
   result = btor_forall_exp_node (btor, e0, e1);
@@ -6399,8 +6245,6 @@ rewrite_exists_exp (Btor *btor, BtorNode *e0, BtorNode *e1)
   e1 = btor_simplify_exp (btor, e1);
 
   ADD_RW_RULE (param_free_exists, e0, e1);
-  ADD_RW_RULE (miniscope_free_exists, e0, e1);
-  ADD_RW_RULE (miniscope_or_exists, e0, e1);
 
   assert (!result);
   result = btor_exists_exp_node (btor, e0, e1);
