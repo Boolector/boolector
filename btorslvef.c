@@ -230,37 +230,6 @@ construct_generalization (BtorEFSolver *slv)
 }
 
 static bool
-is_quantifier_below (BtorEFSolver *slv, BtorNode *root, BtorIntHashTable *cache)
-{
-  assert (slv);
-  assert (root);
-  assert (cache);
-
-  uint32_t i;
-  BtorNodePtrStack visit;
-  BtorMemMgr *mm;
-  BtorNode *cur;
-
-  mm = slv->btor->mm;
-  BTOR_INIT_STACK (visit);
-  BTOR_PUSH_STACK (mm, visit, root);
-  while (!BTOR_EMPTY_STACK (visit))
-  {
-    cur = BTOR_REAL_ADDR_NODE (BTOR_POP_STACK (visit));
-    if (BTOR_IS_QUANTIFIER_NODE (cur))
-    {
-      BTOR_RELEASE_STACK (mm, visit);
-      return true;
-    }
-    if (btor_contains_int_hash_table (cache, cur->id)) continue;
-    btor_add_int_hash_table (cache, cur->id);
-    for (i = 0; i < cur->arity; i++) BTOR_PUSH_STACK (mm, visit, cur->e[i]);
-  }
-  BTOR_RELEASE_STACK (mm, visit);
-  return false;
-}
-
-static bool
 is_ef_formula (BtorEFSolver *slv)
 {
   assert (slv->btor->synthesized_constraints->count == 0);
@@ -268,53 +237,57 @@ is_ef_formula (BtorEFSolver *slv)
   assert (slv->btor->varsubst_constraints->count == 0);
 
   Btor *btor;
+  uint32_t i, s;
   bool exists_allowed, result = true;
   BtorNode *cur, *real_cur;
   BtorHashTableIterator it;
   BtorIntHashTable *cache;
   BtorMemMgr *mm;
   BtorNodeIterator nit;
+  BtorNodePtrStack visit;
+  BtorIntStack state;
 
   btor  = slv->btor;
   mm    = btor->mm;
   cache = btor_new_int_hash_table (mm);
+  BTOR_INIT_STACK (visit);
+  BTOR_INIT_STACK (state);
   btor_init_node_hash_table_iterator (&it, btor->unsynthesized_constraints);
   while (btor_has_next_node_hash_table_iterator (&it))
   {
-    cur      = btor_next_node_hash_table_iterator (&it);
-    real_cur = BTOR_REAL_ADDR_NODE (cur);
-
-    if (!is_quantifier_below (slv, real_cur, cache)) continue;
-
-    if ((BTOR_IS_INVERTED_NODE (cur) && BTOR_IS_QUANTIFIER_NODE (real_cur))
-        || !BTOR_IS_QUANTIFIER_NODE (real_cur)
-        || is_quantifier_below (slv, btor_binder_get_body (real_cur), cache))
+    cur = btor_next_node_hash_table_iterator (&it);
+    BTOR_PUSH_STACK (mm, visit, cur);
+    BTOR_PUSH_STACK (mm, state, 0);
+    while (!BTOR_EMPTY_STACK (visit))
     {
-      result = false;
-      goto CLEANUP_AND_EXIT;
-    }
-    assert (BTOR_IS_QUANTIFIER_NODE (real_cur));
-    btor_init_binder_iterator (&nit, real_cur);
-    exists_allowed = true;
-    while (btor_has_next_binder_iterator (&nit))
-    {
-      cur = btor_next_binder_iterator (&nit);
-      if (BTOR_IS_EXISTS_NODE (cur))
+      cur      = BTOR_POP_STACK (visit);
+      s        = BTOR_POP_STACK (state);
+      real_cur = BTOR_REAL_ADDR_NODE (cur);
+      assert (!BTOR_IS_QUANTIFIER_NODE (real_cur)
+              || !BTOR_IS_INVERTED_NODE (cur));
+
+      if (btor_contains_int_hash_table (cache, real_cur->id)) continue;
+
+      btor_add_int_hash_table (cache, real_cur->id);
+
+      if (s == 1 && BTOR_IS_EXISTS_NODE (real_cur))
       {
-        if (!exists_allowed)
-        {
-          result = false;
-          goto CLEANUP_AND_EXIT;
-        }
+        result = false;
+        goto CLEANUP_AND_EXIT;
       }
-      else
+
+      if (s == 0 && BTOR_IS_FORALL_NODE (real_cur)) s = 1;
+
+      for (i = 0; i < real_cur->arity; i++)
       {
-        assert (BTOR_IS_FORALL_NODE (cur));
-        exists_allowed = false;
+        BTOR_PUSH_STACK (mm, visit, real_cur->e[i]);
+        BTOR_PUSH_STACK (mm, state, s);
       }
     }
   }
 CLEANUP_AND_EXIT:
+  BTOR_RELEASE_STACK (mm, state);
+  BTOR_RELEASE_STACK (mm, visit);
   btor_delete_int_hash_table (cache);
   return result;
 }
@@ -388,7 +361,7 @@ sat_ef_solver (BtorEFSolver *slv)
   const BtorBitVector *bv;
 
   (void) btor_simplify (slv->btor);
-  btor_miniscope (slv->btor);
+  //  btor_miniscope (slv->btor);
   //  btor_dump_btor (slv->btor, stdout, 1);
 
   if (!is_ef_formula (slv))
