@@ -857,6 +857,8 @@ BtorNode *btor_exists_n_exp (Btor *btor,
                              int paramc,
                              BtorNode *body);
 
+BtorNode *btor_invert_quantifier (Btor *btor, BtorNode *quantifier);
+
 /* Function expression with 'paramc' number of parameters 'params' and a
  * function body 'exp'.
  */

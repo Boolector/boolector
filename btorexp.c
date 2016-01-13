@@ -1387,6 +1387,75 @@ mark_cone_quantified (Btor * btor, BtorNode * param)
 }
 #endif
 
+BtorNode *
+btor_invert_quantifier (Btor *btor, BtorNode *quantifier)
+{
+  assert (BTOR_IS_REGULAR_NODE (quantifier));
+  assert (BTOR_IS_QUANTIFIER_NODE (quantifier));
+
+  BtorNode *cur, *param, *new_param, *body, *result, *tmp;
+  BtorNodeIterator it;
+  BtorNodeMap *param_substs;
+  BtorNodePtrStack params;
+  BtorMemMgr *mm;
+
+  mm = btor->mm;
+  BTOR_INIT_STACK (params);
+  param_substs = btor_new_node_map (btor);
+  btor_init_binder_iterator (&it, quantifier);
+  while (btor_has_next_binder_iterator (&it))
+  {
+    cur = btor_next_binder_iterator (&it);
+    assert (BTOR_IS_REGULAR_NODE (cur));
+    assert (BTOR_IS_QUANTIFIER_NODE (cur));
+    param = cur->e[0];
+    // TODO (ma): symbol handling?
+    new_param = btor_param_exp (btor, btor_get_exp_width (btor, param), 0);
+    btor_map_node (param_substs, param, new_param);
+    BTOR_PUSH_STACK (mm, params, cur);
+    BTOR_PUSH_STACK (mm, params, new_param);
+    if (btor_get_ptr_hash_table (btor->inputs, param))
+    {
+      btor_remove_ptr_hash_table (btor->inputs, param, 0, 0);
+      btor_release_exp (btor, param);
+    }
+  }
+
+  body   = btor_binder_get_body (quantifier);
+  result = btor_substitute_terms (btor, body, param_substs);
+  result = BTOR_INVERT_NODE (result); /* push negation down to body */
+  btor_delete_node_map (param_substs);
+
+  /* create inverted quantifier prefix */
+  while (!BTOR_EMPTY_STACK (params))
+  {
+    param = BTOR_POP_STACK (params);
+    cur   = BTOR_POP_STACK (params);
+    assert (BTOR_IS_REGULAR_NODE (param));
+    assert (BTOR_IS_REGULAR_NODE (cur));
+    assert (BTOR_IS_PARAM_NODE (param));
+    assert (BTOR_IS_QUANTIFIER_NODE (cur));
+    if (BTOR_IS_FORALL_NODE (cur))
+    {
+      tmp = btor_exists_exp (btor, param, result);
+      /* add existential param to inputs in order to correctly print
+       * models.  do not use param here as tmp might be a cached
+       * existential quantifier */
+      btor_add_ptr_hash_table (btor->inputs, btor_copy_exp (btor, tmp->e[0]));
+    }
+    else
+      tmp = btor_forall_exp (btor, param, result);
+    btor_release_exp (btor, result);
+    btor_release_exp (btor, param);
+    result = tmp;
+  }
+  BTOR_RELEASE_STACK (mm, params);
+
+  assert (BTOR_IS_REGULAR_NODE (result));
+  assert (BTOR_IS_QUANTIFIER_NODE (result));
+  return result;
+}
+
 static BtorNode *
 new_quantifier_exp_node (Btor *btor,
                          BtorNodeKind kind,
@@ -2159,13 +2228,20 @@ unary_exp_slice_exp (Btor *btor, BtorNode *exp, uint32_t upper, uint32_t lower)
   assert (btor == BTOR_REAL_ADDR_NODE (exp)->btor);
 
   int inv;
-  BtorNode **lookup;
+  BtorNode **lookup, *q = 0;
 
   exp = btor_simplify_exp (btor, exp);
 
   assert (!BTOR_IS_FUN_NODE (BTOR_REAL_ADDR_NODE (exp)));
   assert (upper >= lower);
   assert (upper < btor_get_exp_width (btor, exp));
+
+  if (BTOR_IS_INVERTED_NODE (exp)
+      && BTOR_IS_QUANTIFIER_NODE (BTOR_REAL_ADDR_NODE (exp)))
+  {
+    q   = btor_invert_quantifier (btor, BTOR_REAL_ADDR_NODE (exp));
+    exp = q;
+  }
 
   if (btor->options.rewrite_level.val > 0 && BTOR_IS_INVERTED_NODE (exp))
   {
@@ -2191,6 +2267,7 @@ unary_exp_slice_exp (Btor *btor, BtorNode *exp, uint32_t upper, uint32_t lower)
   else
     inc_exp_ref_counter (btor, *lookup);
   assert (BTOR_IS_REGULAR_NODE (*lookup));
+  if (q) btor_release_exp (btor, q);
   if (inv) return BTOR_INVERT_NODE (*lookup);
   return *lookup;
 }
@@ -2214,12 +2291,21 @@ create_exp (Btor *btor, BtorNodeKind kind, uint32_t arity, BtorNode **e)
 
   uint32_t i;
   unsigned int binder_hash;
-  BtorNode **lookup, *simp_e[3];
+  BtorNode **lookup, *simp_e[3], *quant_e[3];
 
   for (i = 0; i < arity; i++)
   {
     assert (BTOR_REAL_ADDR_NODE (e[i])->btor == btor);
-    simp_e[i] = btor_simplify_exp (btor, e[i]);
+    simp_e[i]  = btor_simplify_exp (btor, e[i]);
+    quant_e[i] = 0;
+
+    if (BTOR_IS_INVERTED_NODE (simp_e[i])
+        && BTOR_IS_QUANTIFIER_NODE (BTOR_REAL_ADDR_NODE (simp_e[i])))
+    {
+      simp_e[i] =
+          btor_invert_quantifier (btor, BTOR_REAL_ADDR_NODE (simp_e[i]));
+      quant_e[i] = simp_e[i];
+    }
   }
 
   lookup = find_exp (btor, kind, arity, simp_e, &binder_hash);
@@ -2258,6 +2344,8 @@ create_exp (Btor *btor, BtorNodeKind kind, uint32_t arity, BtorNode **e)
   else
     inc_exp_ref_counter (btor, *lookup);
   assert (BTOR_IS_REGULAR_NODE (*lookup));
+  for (i = 0; i < arity; i++)
+    if (quant_e[i]) btor_release_exp (btor, quant_e[i]);
   //  printf ("created: %s\n", node2string (*lookup));
   return *lookup;
 }
