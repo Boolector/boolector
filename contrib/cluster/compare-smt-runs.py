@@ -391,17 +391,29 @@ def _init_missing_files(data):
                     data[k][d][f] = None
 
 def _normalize_data(data):
+    assert('result' in data)
+    # reset timeout if given
+    if g_args.timeout:
+        for d in data['time_time']:
+            for f in data['time_time'][d]:
+                if data['time_time'][d][f] > g_args.timeout[d]:
+                    data['time_time'][d][f] = g_args.timeout[d]
+                    data['status'][d][f] = "time"
+                    data['result'][d][f] = 1
+                    if g_args.g:
+                        for k in ["g_total", "g_solved", "g_time",
+                                  "g_mem", "g_err"]:
+                            g_file_stats[k][d][f] = "time"
+
     # normalize status ok, time, mem, err
     for k in ['status', 'g_total', 'g_solved', 'g_time', 'g_mem', 'g_err']:
         if k not in data:
             continue
         for d in data[k]:
             for f in data[k][d]:
-                assert('result' in data)
                 if data[k][d][f] == 'ok' \
                    and data['result'][d][f] not in (10, 20):
                     data[k][d][f] = 'err'
-
 
 def _read_out_file(d, f):
     _filter_data(d, f, FILTER_OUT)
@@ -506,19 +518,6 @@ def _read_data (dirs):
                                 raise CmpSMTException ("missing '{}'".format (
                                     os.path.join (d, outfile)))
                             _read_out_file (d, "{}{}".format(f[:-3], "out"))
-                    # reset timeout if given
-                    if g_args.timeout and \
-                   g_file_stats["time_time"][d][f_name] > g_args.timeout[d]:
-                        g_file_stats["time_time"][d][f_name] = \
-                               g_args.timeout[d]
-                        g_file_stats["status"][d][f_name] = "time"
-                        g_file_stats["result"][d][f_name] = 1
-                        if g_args.g:
-                            for k in ["g_total", "g_solved", "g_time",
-                                      "g_mem", "g_err"]:
-                                if k not in g_file_stats:
-                                    continue
-                                g_file_stats[k][d][f_name] = "time"
         # create cache file
         _save_cache_file(d)
 
