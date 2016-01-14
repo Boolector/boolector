@@ -160,7 +160,7 @@ prefix=$(cat $benchmarks_file | sed -e 'N;s/^\(.*\).*\n\1\/.*$/\1\n\1\//;D')
 
 ((jobs_per_host = 6 / jobs_per_host))
 
-qsub -l use_cores_per_job=$jobs_per_host -t 1-$ntasks $HOME/bin/launch \
+qsub -l job_tickets=$jobs_per_host -t 1-$ntasks $HOME/bin/launch \
   "$working_dir/benchmarks" \
   "$prefix" \
   "$working_dir" \
