@@ -157,17 +157,19 @@ FILTER_LOG = {
 
 
 def err_extract_status(line):
-    status = line.split()[2:]
-    if b'ok' == status[0]:
+    status = line.split(b':')[1].strip()
+    if b'ok' in status:
         return 'ok'
-    elif b'time' == status[-1]:
+    elif b'time' in status:
         return 'time'
-    elif b'memory' == status[-1]:
+    elif b'memory' in status:
         return 'mem'
-    elif b'segmentation' == status[-2]:
+    elif b'segmentation' in status:
         return 'segf'
+    elif b'signal' in status:
+        return 'sig'
     else:
-        raise CmpSMTException("invalid status")
+        raise CmpSMTException("invalid status: '{}'".format(status.decode()))
 
 
 def err_extract_opts(line):
