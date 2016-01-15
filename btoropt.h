@@ -109,6 +109,7 @@ typedef struct BtorOpt
 #define BTOR_OPT_PROP_USE_RESTARTS "prop_use_restarts"
 #define BTOR_OPT_PROP_USE_BANDIT "prop_use_bandit"
 #define BTOR_OPT_PROP_USE_INV_VALUE "prop_use_inv_value"
+#define BTOR_OPT_PROP_USE_FULL_PATH "prop_use_full_path"
 #ifndef BTOR_DO_NOT_OPTIMIZE_UNCONSTRAINED
 #define BTOR_OPT_UCOPT "ucopt"
 #endif
@@ -193,6 +194,8 @@ typedef struct BtorOpts
   BtorOpt prop_use_inv_value; /* prob for producing inverse rather
                                  than consistent values
                                  (inverse \subseteq consistent) */
+  BtorOpt prop_use_full_path; /* perform path selection over the full
+                                 set of operators */
 
   BtorOpt dual_prop;      /* dual prop optimization */
   BtorOpt just;           /* justification optimization */

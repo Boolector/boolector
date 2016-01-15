@@ -285,6 +285,13 @@ btor_init_opts (Btor *btor)
             0,
             100,
             "produce inverse rather than consistent values");
+  // TODO this is temporary for paper purposes only (eliminate)
+  BTOR_OPT (0,
+            prop_use_full_path,
+            1,
+            0,
+            1,
+            "perform path selection over the full set of operators");
 
   BTOR_OPT ("dp", dual_prop, 0, 0, 1, "dual propagation optimization");
   BTOR_OPT ("ju", just, 0, 0, 1, "justification optimization");

@@ -127,7 +127,7 @@ select_path_and (Btor *btor,
         if (btor_is_zero_bv (bve[i])) eidx = eidx == -1 ? i : -1;
       if (eidx == -1) eidx = select_path_random (btor, and);
     }
-    else
+    else if (btor->options.prop_use_full_path.val == 1)
     {
       /* 1) all bits set in bvand must be set in both inputs, but
        * 2) all bits NOT set in bvand can be cancelled out by either or both
@@ -139,8 +139,8 @@ select_path_and (Btor *btor,
         if (btor_compare_bv (tmp, bvand)) eidx = eidx == -1 ? i : -1;
         btor_free_bv (btor->mm, tmp);
       }
-      if (eidx == -1) eidx = select_path_random (btor, and);
     }
+    if (eidx == -1) eidx = select_path_random (btor, and);
   }
 
   assert (eidx >= 0);
@@ -212,16 +212,19 @@ select_path_ult (Btor *btor,
 
   if (eidx == -1)
   {
-    bvmax = btor_ones_bv (btor->mm, bve[0]->width);
-    if (btor_is_one_bv (bvult))
+    if (btor->options.prop_use_full_path.val == 1)
     {
-      /* 1...1 < bve[1] */
-      if (!btor_compare_bv (bve[0], bvmax)) eidx = 0;
-      /* bve[0] < 0 */
-      if (btor_is_zero_bv (bve[1])) eidx = eidx == -1 ? 1 : -1;
+      bvmax = btor_ones_bv (btor->mm, bve[0]->width);
+      if (btor_is_one_bv (bvult))
+      {
+        /* 1...1 < bve[1] */
+        if (!btor_compare_bv (bve[0], bvmax)) eidx = 0;
+        /* bve[0] < 0 */
+        if (btor_is_zero_bv (bve[1])) eidx = eidx == -1 ? 1 : -1;
+      }
+      btor_free_bv (btor->mm, bvmax);
     }
     if (eidx == -1) eidx = select_path_random (btor, ult);
-    btor_free_bv (btor->mm, bvmax);
   }
 
   assert (eidx >= 0);
@@ -259,21 +262,24 @@ select_path_sll (Btor *btor,
 
   if (eidx == -1)
   {
-    shift = btor_bv_to_uint64_bv (bve[1]);
-    /* bve[1] and number of LSB 0-bits in bvsll must match */
-    for (i = 0; i < shift; i++)
-      if (btor_get_bit_bv (bvsll, i))
-      {
-        eidx = 1;
-        goto DONE;
-      }
-    /* bve[0] and bvsll (except for the bits shifted out) must match */
-    for (i = 0, j = shift; i < bvsll->width - j; i++)
-      if (btor_get_bit_bv (bve[0], i) != btor_get_bit_bv (bvsll, j + i))
-      {
-        eidx = eidx == -1 ? 0 : -1;
-        break;
-      }
+    if (btor->options.prop_use_full_path.val == 1)
+    {
+      shift = btor_bv_to_uint64_bv (bve[1]);
+      /* bve[1] and number of LSB 0-bits in bvsll must match */
+      for (i = 0; i < shift; i++)
+        if (btor_get_bit_bv (bvsll, i))
+        {
+          eidx = 1;
+          goto DONE;
+        }
+      /* bve[0] and bvsll (except for the bits shifted out) must match */
+      for (i = 0, j = shift; i < bvsll->width - j; i++)
+        if (btor_get_bit_bv (bve[0], i) != btor_get_bit_bv (bvsll, j + i))
+        {
+          eidx = eidx == -1 ? 0 : -1;
+          break;
+        }
+    }
     if (eidx == -1) eidx = select_path_random (btor, sll);
   }
 DONE:
@@ -312,22 +318,25 @@ select_path_srl (Btor *btor,
 
   if (eidx == -1)
   {
-    shift = btor_bv_to_uint64_bv (bve[1]);
-    /* bve[1] and number of MSB 0-bits in bvsrl must match */
-    for (i = 0; i < shift; i++)
-      if (btor_get_bit_bv (bvsrl, bvsrl->width - 1 - i))
-      {
-        eidx = 1;
-        goto DONE;
-      }
-    /* bve[0] and bvsrl (except for the bits shifted out) must match */
-    for (i = 0, j = shift; i < bvsrl->width - j; i++)
-      if (btor_get_bit_bv (bve[0], bve[0]->width - 1 - i)
-          != btor_get_bit_bv (bvsrl, bvsrl->width - 1 - (j + i)))
-      {
-        eidx = eidx == -1 ? 0 : -1;
-        break;
-      }
+    if (btor->options.prop_use_full_path.val == 1)
+    {
+      shift = btor_bv_to_uint64_bv (bve[1]);
+      /* bve[1] and number of MSB 0-bits in bvsrl must match */
+      for (i = 0; i < shift; i++)
+        if (btor_get_bit_bv (bvsrl, bvsrl->width - 1 - i))
+        {
+          eidx = 1;
+          goto DONE;
+        }
+      /* bve[0] and bvsrl (except for the bits shifted out) must match */
+      for (i = 0, j = shift; i < bvsrl->width - j; i++)
+        if (btor_get_bit_bv (bve[0], bve[0]->width - 1 - i)
+            != btor_get_bit_bv (bvsrl, bvsrl->width - 1 - (j + i)))
+        {
+          eidx = eidx == -1 ? 0 : -1;
+          break;
+        }
+    }
     if (eidx == -1) eidx = select_path_random (btor, srl);
   }
 DONE:
@@ -370,35 +379,38 @@ select_path_mul (Btor *btor,
 
   if (eidx == -1)
   {
-    iszerobve0 = btor_is_zero_bv (bve[0]);
-    iszerobve1 = btor_is_zero_bv (bve[1]);
+    if (btor->options.prop_use_full_path.val == 1)
+    {
+      iszerobve0 = btor_is_zero_bv (bve[0]);
+      iszerobve1 = btor_is_zero_bv (bve[1]);
 
-    lsbve0 = btor_get_bit_bv (bve[0], 0);
-    lsbve1 = btor_get_bit_bv (bve[1], 0);
+      lsbve0 = btor_get_bit_bv (bve[0], 0);
+      lsbve1 = btor_get_bit_bv (bve[1], 0);
 
-    /* either bve[0] or bve[1] are 0 but bvmul > 0 */
-    if ((iszerobve0 || iszerobve1) && !btor_is_zero_bv (bvmul))
-    {
-      if (iszerobve0) eidx = 0;
-      if (iszerobve1) eidx = eidx == -1 ? 1 : -1;
-    }
-    /* bvmul is odd but either bve[0] or bve[1] are even */
-    else if (btor_get_bit_bv (bvmul, 0) && (!lsbve0 || !lsbve1))
-    {
-      if (!lsbve0) eidx = 0;
-      if (!lsbve1) eidx = eidx == -1 ? 1 : -1;
-    }
-    /* number of 0-LSBs in bvmul < number of 0-LSBs in bve[0|1] */
-    else
-    {
-      for (i = 0; i < bvmul->width; i++)
-        if (btor_get_bit_bv (bvmul, i)) break;
-      for (j = 0; j < bve[0]->width; j++)
-        if (btor_get_bit_bv (bve[0], j)) break;
-      if (i < j) eidx = 0;
-      for (j = 0; j < bve[1]->width; j++)
-        if (btor_get_bit_bv (bve[1], j)) break;
-      if (i < j) eidx = eidx == -1 ? 1 : -1;
+      /* either bve[0] or bve[1] are 0 but bvmul > 0 */
+      if ((iszerobve0 || iszerobve1) && !btor_is_zero_bv (bvmul))
+      {
+        if (iszerobve0) eidx = 0;
+        if (iszerobve1) eidx = eidx == -1 ? 1 : -1;
+      }
+      /* bvmul is odd but either bve[0] or bve[1] are even */
+      else if (btor_get_bit_bv (bvmul, 0) && (!lsbve0 || !lsbve1))
+      {
+        if (!lsbve0) eidx = 0;
+        if (!lsbve1) eidx = eidx == -1 ? 1 : -1;
+      }
+      /* number of 0-LSBs in bvmul < number of 0-LSBs in bve[0|1] */
+      else
+      {
+        for (i = 0; i < bvmul->width; i++)
+          if (btor_get_bit_bv (bvmul, i)) break;
+        for (j = 0; j < bve[0]->width; j++)
+          if (btor_get_bit_bv (bve[0], j)) break;
+        if (i < j) eidx = 0;
+        for (j = 0; j < bve[1]->width; j++)
+          if (btor_get_bit_bv (bve[1], j)) break;
+        if (i < j) eidx = eidx == -1 ? 1 : -1;
+      }
     }
     if (eidx == -1) eidx = select_path_random (btor, mul);
   }
@@ -438,45 +450,47 @@ select_path_udiv (Btor *btor,
 
   if (eidx == -1)
   {
-    bvmax        = btor_ones_bv (btor->mm, bve[0]->width);
-    cmp_udiv_max = btor_compare_bv (bvudiv, bvmax);
-
-    /* bve[0] / bve[1] = 1...1 -> choose e[1]
-     *   + 1...1 / 0 = 1...1
-     *   + 1...1 / 1 = 1...1
-     *   + x...x / 0 = 1...1 */
-    if (!cmp_udiv_max)
-      eidx = 1;
-    else
+    if (btor->options.prop_use_full_path.val == 1)
     {
-      /* 1...1 / e[0] = 0 -> choose e[0] */
-      if (btor_is_zero_bv (bvudiv) && !btor_compare_bv (bve[0], bvmax))
-        eidx = 0;
-      /* bve[0] < bvudiv -> choose e[0] */
-      else if (btor_compare_bv (bve[0], bvudiv) < 0)
-        eidx = 0;
+      bvmax        = btor_ones_bv (btor->mm, bve[0]->width);
+      cmp_udiv_max = btor_compare_bv (bvudiv, bvmax);
+
+      /* bve[0] / bve[1] = 1...1 -> choose e[1]
+       *   + 1...1 / 0 = 1...1
+       *   + 1...1 / 1 = 1...1
+       *   + x...x / 0 = 1...1 */
+      if (!cmp_udiv_max)
+        eidx = 1;
       else
       {
-        up  = btor_udiv_bv (btor->mm, bve[0], bvudiv);
-        lo  = btor_inc_bv (btor->mm, bvudiv);
-        tmp = btor_udiv_bv (btor->mm, bve[0], lo);
-        btor_free_bv (btor->mm, lo);
-        lo = btor_inc_bv (btor->mm, tmp);
+        /* 1...1 / e[0] = 0 -> choose e[0] */
+        if (btor_is_zero_bv (bvudiv) && !btor_compare_bv (bve[0], bvmax))
+          eidx = 0;
+        /* bve[0] < bvudiv -> choose e[0] */
+        else if (btor_compare_bv (bve[0], bvudiv) < 0)
+          eidx = 0;
+        else
+        {
+          up  = btor_udiv_bv (btor->mm, bve[0], bvudiv);
+          lo  = btor_inc_bv (btor->mm, bvudiv);
+          tmp = btor_udiv_bv (btor->mm, bve[0], lo);
+          btor_free_bv (btor->mm, lo);
+          lo = btor_inc_bv (btor->mm, tmp);
 
-        if (btor_compare_bv (lo, up) > 0) eidx = 0;
-        btor_free_bv (btor->mm, up);
-        btor_free_bv (btor->mm, lo);
-        btor_free_bv (btor->mm, tmp);
+          if (btor_compare_bv (lo, up) > 0) eidx = 0;
+          btor_free_bv (btor->mm, up);
+          btor_free_bv (btor->mm, lo);
+          btor_free_bv (btor->mm, tmp);
+        }
+
+        /* e[0] / 0 != 1...1 -> choose e[1] */
+        if (btor_is_zero_bv (bve[1])
+            || btor_is_umulo_bv (btor->mm, bve[1], bvudiv))
+          eidx = eidx == -1 ? 1 : -1;
       }
-
-      /* e[0] / 0 != 1...1 -> choose e[1] */
-      if (btor_is_zero_bv (bve[1])
-          || btor_is_umulo_bv (btor->mm, bve[1], bvudiv))
-        eidx = eidx == -1 ? 1 : -1;
+      btor_free_bv (btor->mm, bvmax);
     }
     if (eidx == -1) eidx = select_path_random (btor, udiv);
-
-    btor_free_bv (btor->mm, bvmax);
   }
 
   assert (eidx >= 0);
@@ -514,42 +528,46 @@ select_path_urem (Btor *btor,
 
   if (eidx == -1)
   {
-    bvmax = btor_ones_bv (btor->mm, bve[0]->width);
-    sub   = btor_sub_bv (btor->mm, bve[0], bvurem);
-    tmp   = btor_dec_bv (btor->mm, bve[0]);
+    if (btor->options.prop_use_full_path.val == 1)
+    {
+      bvmax = btor_ones_bv (btor->mm, bve[0]->width);
+      sub   = btor_sub_bv (btor->mm, bve[0], bvurem);
+      tmp   = btor_dec_bv (btor->mm, bve[0]);
 
-    /* bvurem = 1...1 -> bve[0] = 1...1 and bve[1] = 0...0 */
-    if (!btor_compare_bv (bvurem, bvmax))
-    {
-      if (!btor_is_zero_bv (bve[1])) eidx = 1;
-      if (btor_compare_bv (bve[0], bvmax)) eidx = eidx == -1 ? 0 : -1;
-    }
-    /* bvurem > 0 and bve[1] = 1 */
-    else if (!btor_is_zero_bv (bvurem) && btor_is_one_bv (bve[1]))
-    {
-      eidx = 1;
-    }
-    /* 0 < bve[1] <= bvurem */
-    else if (!btor_is_zero_bv (bve[1]) && btor_compare_bv (bve[1], bvurem) <= 0)
-    {
-      eidx = eidx == -1 ? 1 : -1;
-    }
-    /* bve[0] < bvurem or
-     * bve[0] > bvurem and bve[0] - bvurem <= bvurem or
-     *                 and bve[0] - 1 = bvurem */
-    else if (btor_compare_bv (bve[0], bvurem) < 0
-             || (btor_compare_bv (bve[0], bvurem) > 0
-                 && (btor_compare_bv (sub, bvurem) <= 0
-                     || !btor_compare_bv (tmp, bvurem))))
-    {
-      eidx = 0;
+      /* bvurem = 1...1 -> bve[0] = 1...1 and bve[1] = 0...0 */
+      if (!btor_compare_bv (bvurem, bvmax))
+      {
+        if (!btor_is_zero_bv (bve[1])) eidx = 1;
+        if (btor_compare_bv (bve[0], bvmax)) eidx = eidx == -1 ? 0 : -1;
+      }
+      /* bvurem > 0 and bve[1] = 1 */
+      else if (!btor_is_zero_bv (bvurem) && btor_is_one_bv (bve[1]))
+      {
+        eidx = 1;
+      }
+      /* 0 < bve[1] <= bvurem */
+      else if (!btor_is_zero_bv (bve[1])
+               && btor_compare_bv (bve[1], bvurem) <= 0)
+      {
+        eidx = eidx == -1 ? 1 : -1;
+      }
+      /* bve[0] < bvurem or
+       * bve[0] > bvurem and bve[0] - bvurem <= bvurem or
+       *                 and bve[0] - 1 = bvurem */
+      else if (btor_compare_bv (bve[0], bvurem) < 0
+               || (btor_compare_bv (bve[0], bvurem) > 0
+                   && (btor_compare_bv (sub, bvurem) <= 0
+                       || !btor_compare_bv (tmp, bvurem))))
+      {
+        eidx = 0;
+      }
+
+      btor_free_bv (btor->mm, tmp);
+      btor_free_bv (btor->mm, bvmax);
+      btor_free_bv (btor->mm, sub);
     }
 
     if (eidx == -1) eidx = select_path_random (btor, urem);
-
-    btor_free_bv (btor->mm, tmp);
-    btor_free_bv (btor->mm, bvmax);
-    btor_free_bv (btor->mm, sub);
   }
 
   assert (eidx >= 0);
@@ -587,17 +605,20 @@ select_path_concat (Btor *btor,
 
   if (eidx == -1)
   {
-    /* bve[0] o bve[1] = bvconcat
-     * -> bve[0] resp. bve[1] must match with bvconcat */
-    tmp = btor_slice_bv (btor->mm,
-                         bvconcat,
-                         bvconcat->width - 1,
-                         bvconcat->width - bve[0]->width);
-    if (btor_compare_bv (tmp, bve[0])) eidx = 0;
-    btor_free_bv (btor->mm, tmp);
-    tmp = btor_slice_bv (btor->mm, bvconcat, bve[1]->width - 1, 0);
-    if (btor_compare_bv (tmp, bve[1])) eidx = eidx == -1 ? 1 : -1;
-    btor_free_bv (btor->mm, tmp);
+    if (btor->options.prop_use_full_path.val == 1)
+    {
+      /* bve[0] o bve[1] = bvconcat
+       * -> bve[0] resp. bve[1] must match with bvconcat */
+      tmp = btor_slice_bv (btor->mm,
+                           bvconcat,
+                           bvconcat->width - 1,
+                           bvconcat->width - bve[0]->width);
+      if (btor_compare_bv (tmp, bve[0])) eidx = 0;
+      btor_free_bv (btor->mm, tmp);
+      tmp = btor_slice_bv (btor->mm, bvconcat, bve[1]->width - 1, 0);
+      if (btor_compare_bv (tmp, bve[1])) eidx = eidx == -1 ? 1 : -1;
+      btor_free_bv (btor->mm, tmp);
+    }
 
     if (eidx == -1) eidx = select_path_random (btor, concat);
   }
