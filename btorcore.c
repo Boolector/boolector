@@ -1814,7 +1814,7 @@ btor_is_assumption_exp (Btor *btor, BtorNode *exp)
   return btor_get_ptr_hash_table (btor->assumptions, exp) ? 1 : 0;
 }
 
-int
+bool
 btor_failed_exp (Btor *btor, BtorNode *exp)
 {
   assert (btor);
@@ -1824,7 +1824,8 @@ btor_failed_exp (Btor *btor, BtorNode *exp)
   assert (btor_check_id_table_mark_unset_dbg (btor));
   assert (btor_is_assumption_exp (btor, exp));
 
-  int i, lit, res;
+  bool res;
+  int i, lit;
   double start;
   BtorAIG *aig;
   BtorNode *real_exp, *cur, *e;
@@ -1844,15 +1845,15 @@ btor_failed_exp (Btor *btor, BtorNode *exp)
 
   if (btor->inconsistent)
   {
-    res = 0;
+    res = false;
   }
   else if (exp == btor->true_exp)
   {
-    res = 0;
+    res = false;
   }
   else if (exp == BTOR_INVERT_NODE (btor->true_exp))
   {
-    res = 1;
+    res = true;
   }
   else if (BTOR_IS_INVERTED_NODE (exp) || !BTOR_IS_AND_NODE (exp))
   {
@@ -1861,7 +1862,7 @@ btor_failed_exp (Btor *btor, BtorNode *exp)
 
     if (!BTOR_IS_SYNTH_NODE (real_exp))
     {
-      res = 0;
+      res = false;
     }
     else if (btor->found_constraint_false)
     {
@@ -1877,22 +1878,22 @@ btor_failed_exp (Btor *btor, BtorNode *exp)
           || (!BTOR_IS_INVERTED_NODE (exp)
               && real_exp->av->aigs[0] == BTOR_AIG_TRUE))
       {
-        res = 0;
+        res = false;
       }
       else
       {
         smgr = btor_get_sat_mgr_btor (btor);
         lit  = exp_to_cnf_lit (btor, exp);
         if (abs (lit) == smgr->true_lit)
-          res = lit < 0 ? 1 : 0;
+          res = lit < 0;
         else
-          res = btor_failed_sat (smgr, lit);
+          res = btor_failed_sat (smgr, lit) > 0;
       }
     }
   }
   else
   {
-    res = 0;
+    res = false;
     BTOR_INIT_STACK (assumptions);
     BTOR_INIT_STACK (work_stack);
     BTOR_PUSH_STACK (btor->mm, work_stack, exp);
@@ -1940,7 +1941,7 @@ btor_failed_exp (Btor *btor, BtorNode *exp)
         BTOR_RELEASE_STACK (btor->mm, work_stack);
         BTOR_RELEASE_STACK (btor->mm, assumptions);
         mark_exp (btor, exp, 0);
-        res = 1;
+        res = true;
       }
     }
     BTOR_RELEASE_STACK (btor->mm, work_stack);

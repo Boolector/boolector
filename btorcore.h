@@ -265,7 +265,7 @@ void btor_assume_exp (Btor *btor, BtorNode *exp);
 int btor_is_assumption_exp (Btor *btor, BtorNode *exp);
 
 /* Determines if assumption is a failed assumption. */
-int btor_failed_exp (Btor *btor, BtorNode *exp);
+bool btor_failed_exp (Btor *btor, BtorNode *exp);
 
 /* Adds assumptions as assertions and resets the assumptions. */
 void btor_fixate_assumptions (Btor *btor);
