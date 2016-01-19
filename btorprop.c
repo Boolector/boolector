@@ -2733,8 +2733,9 @@ cons_add_bv (Btor *btor,
   assert (eidx >= 0 && eidx <= 1);
   assert (!BTOR_IS_BV_CONST_NODE (BTOR_REAL_ADDR_NODE (add->e[eidx])));
 
-  (void) eidx;
+  (void) add;
   (void) bve;
+  (void) eidx;
 
   return btor_new_random_bv (btor->mm, &btor->rng, bvadd->width);
 }
@@ -2758,8 +2759,9 @@ cons_and_bv (Btor *btor,
   uint32_t i;
   BtorBitVector *res;
 
-  (void) eidx;
+  (void) and;
   (void) bve;
+  (void) eidx;
 
   res = btor_new_bv (btor->mm, bvand->width);
 
@@ -2790,8 +2792,10 @@ cons_eq_bv (
   assert (eidx >= 0 && eidx <= 1);
   assert (!BTOR_IS_BV_CONST_NODE (BTOR_REAL_ADDR_NODE (eq->e[eidx])));
 
-  (void) eidx;
+  (void) eq;
+  (void) bveq;
   (void) bve;
+  (void) eidx;
 
   return btor_new_random_bv (btor->mm, &btor->rng, bve->width);
 }
@@ -2815,6 +2819,8 @@ cons_ult_bv (Btor *btor,
   bool isult;
   uint32_t bw;
   BtorBitVector *bvmax, *zero, *tmp, *res;
+
+  (void) ult;
 
   bw    = bve->width;
   isult = !btor_is_zero_bv (bvult);
@@ -2866,6 +2872,9 @@ cons_sll_bv (Btor *btor,
   uint32_t i, s, bw, sbw;
   BtorBitVector *res, *from, *to, *shift;
 
+  (void) sll;
+  (void) bve;
+
   bw  = bvsll->width;
   sbw = btor_log_2_util (bw);
 
@@ -2914,6 +2923,9 @@ cons_srl_bv (Btor *btor,
   uint32_t i, s, bw, sbw;
   BtorBitVector *res, *from, *to, *shift;
 
+  (void) srl;
+  (void) bve;
+
   bw  = bvsrl->width;
   sbw = btor_log_2_util (bw);
 
@@ -2961,8 +2973,9 @@ cons_mul_bv (Btor *btor,
   uint32_t bw;
   BtorBitVector *res, *zero, *bvmax;
 
-  (void) eidx;
+  (void) mul;
   (void) bve;
+  (void) eidx;
 
   bw  = bvmul->width;
   res = btor_new_random_bv (btor->mm, &btor->rng, bw);
@@ -2993,8 +3006,6 @@ cons_udiv_bv (Btor *btor,
               int eidx)
 {
   assert (btor);
-  assert (btor->options.engine.val == BTOR_ENGINE_SLS
-          || btor->options.engine.val == BTOR_ENGINE_PROP);
   assert (udiv);
   assert (BTOR_IS_REGULAR_NODE (udiv));
   assert (bvudiv);
@@ -3009,6 +3020,9 @@ cons_udiv_bv (Btor *btor,
   bw    = bvudiv->width;
   one   = btor_one_bv (btor->mm, bw);
   bvmax = btor_ones_bv (btor->mm, bw);
+
+  (void) udiv;
+  (void) bve;
 
   if (eidx)
   {
@@ -3050,8 +3064,6 @@ cons_urem_bv (Btor *btor,
               int eidx)
 {
   assert (btor);
-  assert (btor->options.engine.val == BTOR_ENGINE_SLS
-          || btor->options.engine.val == BTOR_ENGINE_PROP);
   assert (urem);
   assert (BTOR_IS_REGULAR_NODE (urem));
   assert (bvurem);
@@ -3062,6 +3074,9 @@ cons_urem_bv (Btor *btor,
 
   uint32_t bw;
   BtorBitVector *res, *bvmax, *zero, *tmp;
+
+  (void) urem;
+  (void) bve;
 
   bw    = bvurem->width;
   bvmax = btor_ones_bv (btor->mm, bw);
@@ -3131,6 +3146,8 @@ cons_concat_bv (Btor *btor,
   assert (bve);
   assert (eidx >= 0 && eidx <= 1);
   assert (!BTOR_IS_BV_CONST_NODE (BTOR_REAL_ADDR_NODE (concat->e[eidx])));
+
+  (void) concat;
 
   if (eidx)
     return btor_slice_bv (
