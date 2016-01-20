@@ -1442,7 +1442,7 @@ add_symbolic_lemma (Btor *btor,
   while (btor_has_next_node_hash_table_iterator (&it))
   {
     cond = btor_next_node_hash_table_iterator (&it);
-    BTORLOG (2, "  p %s", node2string (cond));
+    BTORLOG (2, "  p %s", node2string (BTOR_INVERT_NODE (cond)));
     assert (btor_get_exp_width (btor, cond) == 1);
     assert (!BTOR_REAL_ADDR_NODE (cond)->parameterized);
     if (premise)
