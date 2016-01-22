@@ -272,13 +272,26 @@ btor_init_opts (Btor *btor)
             "use prev. neighbor with better score as base for next move test");
 
   // FIXME rename?
-  BTOR_OPT (0, prop_use_restarts, 1, 0, 1, "use restarts");
+  BTOR_OPT (0, prop_use_restarts, 0, 0, 1, "use restarts");
   BTOR_OPT (0,
             prop_use_bandit,
-            1,
+            0,
             0,
             1,
             "use bandit scheme for constraint selection");
+  BTOR_OPT (0,
+            prop_use_inv_value,
+            99,
+            0,
+            100,
+            "produce inverse rather than consistent values");
+  // TODO this is temporary for paper purposes only (eliminate)
+  BTOR_OPT (0,
+            prop_use_full_path,
+            1,
+            0,
+            1,
+            "perform path selection over the full set of operators");
 
   // FIXME rename?
   BTOR_OPT (0, aigprop_use_restarts, 1, 0, 1, "use restarts");
