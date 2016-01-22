@@ -36,6 +36,8 @@ clone_aigprop_solver (Btor *clone, Btor *btor, BtorNodeMap *exp_map)
   assert (btor);
   assert (exp_map);
 
+  (void) exp_map;
+
   BtorAIGPropSolver *slv, *res;
 
   if (!(slv = BTOR_AIGPROP_SOLVER (btor))) return 0;
