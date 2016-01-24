@@ -3232,6 +3232,7 @@ btor_select_move_prop (Btor *btor,
       /* we either select a consistent or inverse value
        * as path assignment, depending on the given probability p
        * -> if r < p then inverse else consistent */
+      // FIXME move up
       p = btor->options.prop_use_inv_value.val;
       r = btor_pick_rand_rng (&btor->rng,
                               btor->options.prop_use_inv_value.min,
