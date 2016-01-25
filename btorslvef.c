@@ -388,7 +388,7 @@ check_subst_cond (Btor *btor, BtorNode *param, BtorNode *subst)
 static void
 map_substitute_node (BtorNodeMap *map, BtorNode *left, BtorNode *right)
 {
-  bool inv;
+  bool inv = false;
   BtorNode *mapped;
 
   if (BTOR_IS_INVERTED_NODE (left))
