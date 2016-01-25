@@ -2970,7 +2970,7 @@ cons_mul_bv (Btor *btor,
   assert (eidx >= 0 && eidx <= 1);
   assert (!BTOR_IS_BV_CONST_NODE (BTOR_REAL_ADDR_NODE (mul->e[eidx])));
 
-  uint32_t bw;
+  uint32_t i, j, bw;
   BtorBitVector *res, *zero, *bvmax;
 
   (void) mul;
@@ -2981,8 +2981,6 @@ cons_mul_bv (Btor *btor,
   res = btor_new_random_bv (btor->mm, &btor->rng, bw);
   if (!btor_is_zero_bv (bvmul))
   {
-    /* bvmul odd -> choose odd value > 0
-     * bvmul even -> choose random value > 0 */
     if (btor_is_zero_bv (res))
     {
       zero  = res;
@@ -2991,8 +2989,23 @@ cons_mul_bv (Btor *btor,
       btor_free_bv (btor->mm, zero);
       btor_free_bv (btor->mm, bvmax);
     }
-    if (btor_get_bit_bv (bvmul, 0) && !btor_get_bit_bv (res, 0))
-      btor_set_bit_bv (res, 0, 1);
+    /* bvmul odd -> choose odd value > 0 */
+    if (btor_get_bit_bv (bvmul, 0))
+    {
+      if (!btor_get_bit_bv (res, 0)) btor_set_bit_bv (res, 0, 1);
+    }
+    /* bvmul even -> choose random value > 0
+     *               with number of 0-LSBs in res less or equal
+     *               than in bvmul */
+    else
+    {
+      for (i = 0; i < bw; i++)
+        if (btor_get_bit_bv (bvmul, bw - 1 - i)) break;
+      for (j = 0; j < bw; j++)
+        if (btor_get_bit_bv (res, bw - 1 - j)) break;
+      if (j > i)
+        btor_set_bit_bv (res, btor_pick_rand_rng (&btor->rng, 0, i), 1);
+    }
   }
 
   return res;
@@ -3015,9 +3028,10 @@ cons_udiv_bv (Btor *btor,
   assert (!BTOR_IS_BV_CONST_NODE (BTOR_REAL_ADDR_NODE (udiv->e[eidx])));
 
   uint32_t bw;
-  BtorBitVector *res, *tmp, *tmpbve, *one, *bvmax;
+  BtorBitVector *res, *tmp, *tmpbve, *zero, *one, *bvmax;
 
   bw    = bvudiv->width;
+  zero  = btor_new_bv (btor->mm, bw);
   one   = btor_one_bv (btor->mm, bw);
   bvmax = btor_ones_bv (btor->mm, bw);
 
@@ -3026,29 +3040,51 @@ cons_udiv_bv (Btor *btor,
 
   if (eidx)
   {
-    /* choose res s.t. res * bvudiv does not overflow */
-    res = btor_new_random_range_bv (btor->mm, &btor->rng, bw, one, bvmax);
-    while (btor_is_umulo_bv (btor->mm, res, bvudiv))
+    /* -> bvudiv = 1...1 then res = 0 or res = 1
+     * -> else choose res s.t. res * bvudiv does not overflow */
+    if (!btor_compare_bv (bvudiv, bvmax))
+      res = btor_uint64_to_bv (
+          btor->mm, btor_pick_rand_rng (&btor->rng, 0, 1), bw);
+    else
     {
-      tmp = btor_sub_bv (btor->mm, res, one);
-      btor_free_bv (btor->mm, res);
-      res = btor_new_random_range_bv (btor->mm, &btor->rng, bw, one, tmp);
-      btor_free_bv (btor->mm, tmp);
+      res = btor_new_random_range_bv (btor->mm, &btor->rng, bw, one, bvmax);
+      while (btor_is_umulo_bv (btor->mm, res, bvudiv))
+      {
+        tmp = btor_sub_bv (btor->mm, res, one);
+        btor_free_bv (btor->mm, res);
+        res = btor_new_random_range_bv (btor->mm, &btor->rng, bw, one, tmp);
+        btor_free_bv (btor->mm, tmp);
+      }
     }
   }
   else
   {
-    /* choose tmpbve s.t. res = tmpbve * bvudiv does not overflow */
-    tmpbve = btor_new_random_range_bv (btor->mm, &btor->rng, bw, one, bvmax);
-    while (btor_is_umulo_bv (btor->mm, tmpbve, bvudiv))
+    /* -> bvudiv = 0 then res < 1...1
+     * -> bvudiv = 1...1 then choose random res
+     * -> else choose tmpbve s.t. res = tmpbve * bvudiv does not overflow */
+    if (btor_is_zero_bv (bvudiv))
     {
-      tmp = btor_sub_bv (btor->mm, tmpbve, one);
-      btor_free_bv (btor->mm, tmpbve);
-      tmpbve = btor_new_random_range_bv (btor->mm, &btor->rng, bw, one, tmp);
+      tmp = btor_dec_bv (btor->mm, bvmax);
+      res = btor_new_random_range_bv (btor->mm, &btor->rng, bw, zero, tmp);
       btor_free_bv (btor->mm, tmp);
     }
-    res = btor_mul_bv (btor->mm, tmpbve, bvudiv);
-    btor_free_bv (btor->mm, tmpbve);
+    else if (!btor_compare_bv (bvudiv, bvmax))
+    {
+      res = btor_new_random_bv (btor->mm, &btor->rng, bw);
+    }
+    else
+    {
+      tmpbve = btor_new_random_range_bv (btor->mm, &btor->rng, bw, one, bvmax);
+      while (btor_is_umulo_bv (btor->mm, tmpbve, bvudiv))
+      {
+        tmp = btor_sub_bv (btor->mm, tmpbve, one);
+        btor_free_bv (btor->mm, tmpbve);
+        tmpbve = btor_new_random_range_bv (btor->mm, &btor->rng, bw, one, tmp);
+        btor_free_bv (btor->mm, tmp);
+      }
+      res = btor_mul_bv (btor->mm, tmpbve, bvudiv);
+      btor_free_bv (btor->mm, tmpbve);
+    }
   }
 
   btor_free_bv (btor->mm, one);
@@ -3073,7 +3109,7 @@ cons_urem_bv (Btor *btor,
   assert (!BTOR_IS_BV_CONST_NODE (BTOR_REAL_ADDR_NODE (urem->e[eidx])));
 
   uint32_t bw;
-  BtorBitVector *res, *bvmax, *zero, *tmp;
+  BtorBitVector *res, *bvmax, *tmp;
 
   (void) urem;
   (void) bve;
@@ -3083,19 +3119,12 @@ cons_urem_bv (Btor *btor,
 
   if (eidx)
   {
-    /* bvurem = 0  ->  res > 0 */
-    if (btor_is_zero_bv (bvurem))
-    {
-      tmp = btor_one_bv (btor->mm, bw);
-      res = btor_new_random_range_bv (btor->mm, &btor->rng, bw, tmp, bvmax);
-      btor_free_bv (btor->mm, tmp);
-    }
     /* bvurem = 1...1  ->  res = 0 */
-    else if (!btor_compare_bv (bvurem, bvmax))
+    if (!btor_compare_bv (bvurem, bvmax))
     {
       res = btor_new_bv (btor->mm, bw);
     }
-    /* else res > c */
+    /* else res > bvurem */
     else
     {
       tmp = btor_inc_bv (btor->mm, bvurem);
@@ -3105,17 +3134,8 @@ cons_urem_bv (Btor *btor,
   }
   else
   {
-    /* bvurem = 0  ->  res < 1...1 */
-    if (btor_is_zero_bv (bvurem))
-    {
-      zero = btor_new_bv (btor->mm, bw);
-      tmp  = btor_dec_bv (btor->mm, bvmax);
-      res  = btor_new_random_range_bv (btor->mm, &btor->rng, bw, zero, tmp);
-      btor_free_bv (btor->mm, tmp);
-      btor_free_bv (btor->mm, zero);
-    }
     /* bvurem = 1...1  ->  res = 1...1 */
-    else if (!btor_compare_bv (bvurem, bvmax))
+    if (!btor_compare_bv (bvurem, bvmax))
     {
       res = btor_copy_bv (btor->mm, bvmax);
     }
@@ -3199,6 +3219,8 @@ btor_select_move_prop (Btor *btor,
   }
   else
   {
+    p = btor->options.prop_use_inv_value.val;
+
     for (;;)
     {
       real_cur = BTOR_REAL_ADDR_NODE (cur);
@@ -3232,8 +3254,6 @@ btor_select_move_prop (Btor *btor,
       /* we either select a consistent or inverse value
        * as path assignment, depending on the given probability p
        * -> if r < p then inverse else consistent */
-      // FIXME move up
-      p = btor->options.prop_use_inv_value.val;
       r = btor_pick_rand_rng (&btor->rng,
                               btor->options.prop_use_inv_value.min,
                               btor->options.prop_use_inv_value.max - 1);
