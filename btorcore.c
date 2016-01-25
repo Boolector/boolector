@@ -2831,19 +2831,18 @@ btor_substitute_terms (Btor *btor, BtorNode *root, BtorNodeMap *substs)
   {
     cur      = BTOR_POP_STACK (visit);
     real_cur = BTOR_REAL_ADDR_NODE (cur);
-    subst    = btor_mapped_node (substs, real_cur);
     // TODO (ma): for now we only support bit vector terms
-
-    if (subst)
-    {
-      result = btor_copy_exp (btor, subst);
-      goto PUSH_RESULT;
-    }
-
     assert (!BTOR_IS_BINDER_NODE (real_cur));
     d = btor_get_int_hash_map (mark, real_cur->id);
     if (!d)
     {
+      subst = btor_mapped_node (substs, real_cur);
+      if (subst)
+      {
+        BTOR_PUSH_STACK (mm, visit, BTOR_COND_INVERT_NODE (cur, subst));
+        continue;
+      }
+
       (void) btor_add_int_hash_map (mark, real_cur->id);
       BTOR_PUSH_STACK (mm, visit, cur);
       for (i = real_cur->arity - 1; i >= 0; i--)
