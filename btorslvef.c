@@ -440,7 +440,7 @@ der (BtorEFSolver *slv)
   while (!BTOR_EMPTY_STACK (quantifiers))
   {
     cur = BTOR_POP_STACK (quantifiers);
-    printf ("%s\n", node2string (cur));
+    //      printf ("%s\n", node2string (cur));
     body = btor_binder_get_body (cur);
 
     if (!BTOR_IS_INVERTED_NODE (body)
@@ -469,21 +469,19 @@ der (BtorEFSolver *slv)
           if (check_subst_cond (btor, cur->e[0], cur->e[1]))
           {
             map_substitute_node (map, cur->e[0], cur->e[1]);
-            printf ("subst %s -> %s\n",
-                    node2string (cur->e[0]),
-                    node2string (cur->e[1]));
+            //		      printf ("subst %s -> %s\n", node2string
+            //(cur->e[0]), node2string (cur->e[1]));
             continue;
           }
           else if (check_subst_cond (btor, cur->e[1], cur->e[0]))
           {
             map_substitute_node (map, cur->e[1], cur->e[0]);
-            printf ("subst %s -> %s\n",
-                    node2string (cur->e[1]),
-                    node2string (cur->e[0]));
+            //		      printf ("subst %s -> %s\n", node2string
+            //(cur->e[1]), node2string (cur->e[0]));
             continue;
           }
         }
-        printf ("push leaf: %s\n", node2string (cur));
+        //	      printf ("push leaf: %s\n", node2string (cur));
         BTOR_PUSH_STACK (mm, leafs, cur);
       }
     }
@@ -493,9 +491,11 @@ der (BtorEFSolver *slv)
     {
       subst = 0;
 
+      //	  printf ("%d leafs\n", BTOR_COUNT_STACK (leafs));
       while (!BTOR_EMPTY_STACK (leafs))
       {
         cur = BTOR_POP_STACK (leafs);
+        //	      printf ("############################\n");
         tmp = btor_substitute_terms (btor, cur, map);
 
         if (subst)
@@ -593,9 +593,10 @@ sat_ef_solver (BtorEFSolver *slv)
   const BtorBitVector *bv;
 
   (void) btor_simplify (slv->btor);
-  der (slv);
+  if (slv->btor->options.ef_der.val) der (slv);
   //  btor_miniscope (slv->btor);
   //  btor_dump_smt2 (slv->btor, stdout);
+  // btor_dump_btor (slv->btor, stdout, 1);
 
   if (!is_ef_formula (slv))
   {

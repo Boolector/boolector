@@ -163,6 +163,7 @@ typedef struct BtorOpt
 #define BTOR_OPT_VAR_SUBST "var_subst"
 #define BTOR_OPT_MINISCOPING "miniscoping"
 #define BTOR_OPT_EF_DP "ef_dual_prop"
+#define BTOR_OPT_EF_DER "ef_der"
 
 typedef struct BtorOpts
 {
@@ -213,6 +214,7 @@ typedef struct BtorOpts
   BtorOpt sls_use_bandit;
 
   BtorOpt ef_dual_prop; /* dual prop optimization in EF solver */
+  BtorOpt ef_der;       /* destructive equality resolution */
 
   BtorOpt dual_prop;      /* dual prop optimization */
   BtorOpt just;           /* justification optimization */

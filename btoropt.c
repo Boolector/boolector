@@ -260,6 +260,8 @@ btor_init_opts (Btor *btor)
 
   BTOR_OPT (
       0, ef_dual_prop, 0, 0, 1, "dual propagation optimization for EF solver");
+  BTOR_OPT (
+      0, ef_der, 1, 0, 1, "destructive equality resolution for EF solver");
 
   BTOR_OPT ("dp", dual_prop, 0, 0, 1, "dual propagation optimization");
   BTOR_OPT ("ju", just, 0, 0, 1, "justification optimization");
