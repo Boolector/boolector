@@ -1718,9 +1718,6 @@ inv_mul_bv (Btor *btor,
           tmp = btor_slice_bv (mm, bvmul, bw - 1, j);
           res = btor_uext_bv (mm, tmp, j);
           assert (res->width == bw);
-          for (i = 0; i < j; i++)
-            btor_set_bit_bv (
-                res, bw - 1 - i, btor_pick_rand_rng (&btor->rng, 0, 1));
           btor_free_bv (mm, tmp);
 
           tmp  = btor_slice_bv (mm, bve, bw - 1, j);
@@ -1732,6 +1729,10 @@ inv_mul_bv (Btor *btor,
           btor_free_bv (mm, tmp2);
           tmp = res;
           res = btor_mul_bv (mm, tmp, inv);
+          /* choose one of all possible values */
+          for (i = 0; i < j; i++)
+            btor_set_bit_bv (
+                res, bw - 1 - i, btor_pick_rand_rng (&btor->rng, 0, 1));
           btor_free_bv (mm, tmp);
           btor_free_bv (mm, inv);
         }
