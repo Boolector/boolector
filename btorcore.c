@@ -22,6 +22,7 @@
 #include "btoropt.h"
 #include "btorrewrite.h"
 #include "simplifier/btorack.h"
+#include "simplifier/btorder.h"
 #include "simplifier/btorelimapplies.h"
 #include "simplifier/btorelimslices.h"
 #include "simplifier/btorextract.h"
@@ -3299,6 +3300,9 @@ btor_simplify (Btor *btor)
 
     /* add ackermann constraints for all uninterpreted functions */
     if (btor->options.ackermannize.val) btor_add_ackermann_constraints (btor);
+
+    /* apply destructive equality resolution */
+    if (btor->options.ef_der.val) btor_der (btor);
   } while (btor->varsubst_constraints->count
            || btor->embedded_constraints->count);
 
