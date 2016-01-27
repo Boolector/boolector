@@ -1256,7 +1256,6 @@ inv_sll_bv (Btor *btor,
     {
       if (btor_get_bit_bv (bvsll, i))
       {
-        printf ("1\n");
         /* check for non-recoverable conflict */
         if (btor->options.engine.val == BTOR_ENGINE_SLS
             && BTOR_IS_BV_CONST_NODE (BTOR_REAL_ADDR_NODE (e)))
