@@ -105,7 +105,8 @@ node2string (BtorNode *exp)
                btor_slice_get_upper (exp),
                btor_slice_get_lower (exp));
   }
-  else if ((BTOR_IS_BV_VAR_NODE (real_exp) || BTOR_IS_UF_NODE (real_exp))
+  else if ((BTOR_IS_BV_VAR_NODE (real_exp) || BTOR_IS_UF_NODE (real_exp)
+            || BTOR_IS_PARAM_NODE (real_exp))
            && (tmp = btor_get_symbol_exp (btor, real_exp)))
   {
     new_len += strlen (tmp);
