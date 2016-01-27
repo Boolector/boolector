@@ -471,18 +471,14 @@ sat_ef_solver (BtorEFSolver *slv)
   forall_solver = slv->forall_solver;
   e_exists_vars = slv->e_exists_vars;
 
-  res = BTOR_RESULT_UNKNOWN;
+  g = btor_copy_exp (forall_solver, slv->f_formula);
+  goto CHECK_FORALL;
+
   while (true)
   {
-    /* first round is always sat since exists_vars are not constrained */
-    if (res == BTOR_RESULT_UNKNOWN)
-      res = BTOR_RESULT_SAT;
-    else
-    {
-      start = btor_time_stamp ();
-      res   = exists_solver->slv->api.sat (exists_solver->slv);
-      slv->time.exists_solver += btor_time_stamp () - start;
-    }
+    start = btor_time_stamp ();
+    res   = exists_solver->slv->api.sat (exists_solver->slv);
+    slv->time.exists_solver += btor_time_stamp () - start;
 
     if (res == BTOR_RESULT_UNSAT) /* formula is UNSAT */
       break;
@@ -519,9 +515,6 @@ sat_ef_solver (BtorEFSolver *slv)
     if (failed_vars) btor_delete_ptr_hash_table (failed_vars);
 
     g = btor_substitute_terms (forall_solver, slv->f_formula, map);
-    btor_assume_exp (forall_solver, g);
-    btor_release_exp (forall_solver, g);
-
     btor_init_node_map_iterator (&it, map);
     while (btor_has_next_node_map_iterator (&it))
     {
@@ -529,6 +522,10 @@ sat_ef_solver (BtorEFSolver *slv)
       (void) btor_next_node_map_iterator (&it);
     }
     btor_delete_node_map (map);
+
+  CHECK_FORALL:
+    btor_assume_exp (forall_solver, g);
+    btor_release_exp (forall_solver, g);
 
     //      printf ("check candidate model\n");
     start = btor_time_stamp ();
