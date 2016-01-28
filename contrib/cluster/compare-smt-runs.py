@@ -944,7 +944,13 @@ def _print_data ():
         print("</thead><tbody>")
 
     # print data rows
-    for f in sorted(benchmarks, key=lambda s: s.lower()):
+    rows = sorted(benchmarks, key=lambda s: s.lower())
+    # totals row should always be on the bottom
+    if g_args.g:
+        assert ('totals' in rows)
+        rows.remove('totals')
+        rows.append('totals')
+    for f in rows:
         if not g_args.g:
             if g_args.timeof \
                and not g_file_stats['status'][g_args.timeof][f] == 'time':
