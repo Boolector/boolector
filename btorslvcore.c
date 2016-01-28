@@ -216,7 +216,16 @@ timed_sat_sat (Btor *btor, int limit)
   double start, delta;
   BtorSolverResult res;
   BtorSATMgr *smgr;
+  BtorAIGMgr *amgr;
 
+  amgr = btor_get_aig_mgr_btor (btor);
+  BTOR_MSG (btor->msg,
+            1,
+            "%u AIG vars, %u AIG ands, %u CNF vars, %u CNF clauses",
+            amgr->cur_num_aig_vars,
+            amgr->cur_num_aigs,
+            amgr->num_cnf_vars,
+            amgr->num_cnf_clauses);
   smgr  = btor_get_sat_mgr_btor (btor);
   start = btor_time_stamp ();
   res   = btor_sat_sat (smgr, limit);
