@@ -417,6 +417,33 @@ def _normalize_data(data):
                    and data['result'][d][f] not in (10, 20):
                     data[k][d][f] = 'err'
 
+    # add uniquely solved column
+    if g_args.u:
+        FILE_STATS_KEYS.append('g_uniq')
+        g_args.columns.append('g_uniq')
+        FILTER_ERR['g_uniq'] = ['UNIQ',
+                                lambda x: False,
+                                lambda x: None,
+                                lambda x: None,
+                                False]
+        data['g_uniq'] = {}
+        for b in g_benchmarks:
+            stats = []
+            for d in data['status']:
+                if d not in data['g_uniq']:
+                    data['g_uniq'][d] = {}
+                stats.append(data['status'][d][b])
+            set_uniq = False
+            if stats.count('ok') == 1:
+                for d in data['status']:
+                    if data['status'][d][b] == 'ok':
+                        assert (not set_uniq)
+                        data['g_uniq'][d][b] = 1
+                        set_uniq = True
+                    else:
+                        data['g_uniq'][d][b] = None
+
+
 def _read_out_file(d, f):
     _filter_data(d, f, FILTER_OUT)
 
@@ -944,7 +971,13 @@ def _print_data ():
         print("</thead><tbody>")
 
     # print data rows
-    for f in sorted(benchmarks, key=lambda s: s.lower()):
+    rows = sorted(benchmarks, key=lambda s: s.lower())
+    # totals row should always be on the bottom
+    if g_args.g:
+        assert ('totals' in rows)
+        rows.remove('totals')
+        rows.append('totals')
+    for f in rows:
         if not g_args.g:
             if g_args.timeof \
                and not g_file_stats['status'][g_args.timeof][f] == 'time':
@@ -1152,6 +1185,12 @@ if __name__ == "__main__":
                 "-g",
                 action="store_true",
                 help="group benchmarks into families"
+              )
+        aparser.add_argument \
+              (
+                "-u",
+                action="store_true",
+                help="uniquely solved instances"
               )
         aparser.add_argument \
               (
