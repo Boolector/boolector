@@ -162,6 +162,7 @@ setup_forall_solver (BtorEFSolver *slv)
 
   btor_substitute_and_rebuild (forall_solver, forall_solver->substitutions);
   btor_delete_substitutions (forall_solver);
+  (void) btor_simplify (forall_solver);
 
   assert (forall_solver->exists_vars->count == 0);
   assert (forall_solver->forall_vars->count == 0);
@@ -539,6 +540,7 @@ sat_ef_solver (BtorEFSolver *slv)
 
     forall_solver->slv->api.generate_model (forall_solver->slv, false, false);
     g = construct_generalization (slv);
+    //      btor_dump_smt2_node (exists_solver, stdout, BTOR_INVERT_NODE (g));
     //      printf ("refine (%u): %s\n", slv->stats.refinements + 1, node2string
     //      (BTOR_INVERT_NODE (g))); btor_dump_btor_node (exists_solver, stdout,
     //      BTOR_INVERT_NODE (g));
