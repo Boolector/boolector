@@ -17,6 +17,7 @@ enum BtorLogic
   BTOR_LOGIC_QF_BV = 0,
   BTOR_LOGIC_QF_AUFBV,
   BTOR_LOGIC_BV,
+  BTOR_LOGIC_UFBV,
 };
 
 typedef enum BtorLogic BtorLogic;
