@@ -2832,9 +2832,7 @@ btor_substitute_terms (Btor *btor, BtorNode *root, BtorNodeMap *substs)
   {
     cur      = BTOR_POP_STACK (visit);
     real_cur = BTOR_REAL_ADDR_NODE (cur);
-    // TODO (ma): for now we only support bit vector terms
-    assert (!BTOR_IS_BINDER_NODE (real_cur));
-    d = btor_get_int_hash_map (mark, real_cur->id);
+    d        = btor_get_int_hash_map (mark, real_cur->id);
     if (!d)
     {
       subst = btor_mapped_node (substs, real_cur);
@@ -2860,9 +2858,8 @@ btor_substitute_terms (Btor *btor, BtorNode *root, BtorNodeMap *substs)
       {
         result = btor_copy_exp (btor, real_cur);
       }
-      else if (real_cur->arity == 1)
+      else if (BTOR_IS_SLICE_NODE (real_cur))
       {
-        assert (BTOR_IS_SLICE_NODE (real_cur));
         result = btor_slice_exp (btor,
                                  e[0],
                                  btor_slice_get_upper (real_cur),
