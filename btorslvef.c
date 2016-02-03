@@ -600,6 +600,8 @@ sat_ef_solver (BtorEFSolver *slv)
       var      = btor_next_node_map_iterator (&it);
       var_fs   = btor_mapped_node (slv->e_exists_ufs, var);
       uf_model = btor_get_fun_model (exists_solver, var);
+
+      if (!uf_model) continue;
       //	  printf ("var: %s (%d, %d)\n", node2string (var_fs),
       //		  uf_model->count,
       //		  btor_get_fun_arity (forall_solver, var_fs));
