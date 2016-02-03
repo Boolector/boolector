@@ -2261,7 +2261,10 @@ sat_core_solver (BtorCoreSolver *slv)
       lemma = BTOR_PEEK_STACK (slv->cur_lemmas, i);
       assert (!BTOR_REAL_ADDR_NODE (lemma)->simplified);
       // TODO (ma): use btor_assert_exp?
-      btor_insert_unsynthesized_constraint (btor, lemma);
+      if (slv->assume_lemmas)
+        btor_assume_exp (btor, lemma);
+      else
+        btor_insert_unsynthesized_constraint (btor, lemma);
       if (clone)
         add_lemma_to_dual_prop_clone (btor, clone, &clone_root, lemma, exp_map);
     }
