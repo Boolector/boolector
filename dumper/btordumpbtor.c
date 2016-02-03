@@ -468,7 +468,8 @@ bdcnode (BtorDumpContext *bdc, BtorNode *node, FILE *file)
              " %d %d",
              btor_slice_get_upper (node),
              btor_slice_get_lower (node));
-  else if (BTOR_IS_BV_VAR_NODE (node) || BTOR_IS_UF_NODE (node))
+  else if (BTOR_IS_BV_VAR_NODE (node) || BTOR_IS_UF_NODE (node)
+           || BTOR_IS_PARAM_NODE (node))
   {
     symbol = btor_get_symbol_exp (bdc->btor, node);
     if (symbol) fprintf (file, " %s", symbol);
