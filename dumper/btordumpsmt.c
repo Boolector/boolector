@@ -16,6 +16,7 @@
 #include "btorcore.h"
 #include "btorexit.h"
 #include "btorsort.h"
+#include "utils/btorhashint.h"
 #include "utils/btorhashptr.h"
 #include "utils/btoriter.h"
 #ifndef NDEBUG
@@ -39,6 +40,8 @@ struct BtorSMTDumpContext
   int maxid;
   int pretty_print;
   int open_lets;
+  int indent;
+  bool newline;
 };
 
 typedef struct BtorSMTDumpContext BtorSMTDumpContext;
@@ -72,6 +75,7 @@ new_smt_dump_context (Btor *btor, FILE *file)
   sdc->file         = file;
   sdc->maxid        = 1;
   sdc->pretty_print = btor->options.pretty_print.val;
+  sdc->newline      = sdc->pretty_print == 1;
   return sdc;
 }
 
@@ -467,6 +471,38 @@ get_children (BtorSMTDumpContext *sdc,
 }
 
 static void
+print_indent (BtorSMTDumpContext *sdc)
+{
+  int i;
+  for (i = 0; i < sdc->indent; i++) fputc (' ', sdc->file);
+}
+
+static inline void
+open_sexp (BtorSMTDumpContext *sdc)
+{
+  if (sdc->pretty_print && sdc->indent > 0 && sdc->newline)
+  {
+    fputc ('\n', sdc->file);
+    print_indent (sdc);
+  }
+  fputc ('(', sdc->file);
+  sdc->indent++;
+}
+
+static inline void
+close_sexp (BtorSMTDumpContext *sdc)
+{
+  fputc (')', sdc->file);
+  assert (sdc->indent >= 0);
+  sdc->indent--;
+}
+
+static void recursively_dump_exp_let_smt (BtorSMTDumpContext *sdc,
+                                          BtorNode *exp,
+                                          int expect_bv,
+                                          unsigned depth_limit);
+
+static void
 recursively_dump_exp_smt (BtorSMTDumpContext *sdc,
                           BtorNode *exp,
                           int expect_bv,
@@ -526,7 +562,9 @@ recursively_dump_exp_smt (BtorSMTDumpContext *sdc,
       /* wrap node with zero_extend */
       if (zero_extend)
       {
-        fmt = " ((_ zero_extend %d) ";
+        fputc (' ', sdc->file);
+        open_sexp (sdc);
+        fmt = "(_ zero_extend %d) ";
         fprintf (sdc->file, fmt, zero_extend);
       }
 
@@ -554,24 +592,32 @@ recursively_dump_exp_smt (BtorSMTDumpContext *sdc,
         }
 
         /* close zero extend */
-        if (zero_extend) fputc (')', sdc->file);
+        if (zero_extend) close_sexp (sdc);
         continue;
       }
 
       /* wrap non-bool node and make it bool */
       if (expect_bool && !is_bool)
       {
-        fputs ("(= ", sdc->file);
+        open_sexp (sdc);
+        fputs ("= ", sdc->file);
         dump_const_value_aux_smt (sdc, "1");
         fputc (' ', sdc->file);
       }
 
       /* wrap node with bvnot/not */
       if (BTOR_IS_INVERTED_NODE (exp))
-        fputs (expect_bv || !is_bool ? "(bvnot " : "(not ", sdc->file);
+      {
+        open_sexp (sdc);
+        fputs (expect_bv || !is_bool ? "bvnot " : "not ", sdc->file);
+      }
 
       /* wrap bool node and make it a bit vector expression */
-      if (is_bool && expect_bv) fputs ("(ite ", sdc->file);
+      if (is_bool && expect_bv)
+      {
+        open_sexp (sdc);
+        fputs ("ite ", sdc->file);
+      }
 
       if (btor_get_ptr_hash_table (sdc->dumped, real_exp)
           || BTOR_IS_LAMBDA_NODE (real_exp) || BTOR_IS_UF_NODE (real_exp))
@@ -692,6 +738,14 @@ recursively_dump_exp_smt (BtorSMTDumpContext *sdc,
               assert (!is_bool);
               op = "concat";
               break;
+            case BTOR_FORALL_NODE:
+              assert (is_bool);
+              op = "forall";
+              break;
+            case BTOR_EXISTS_NODE:
+              assert (is_bool);
+              op = "exists";
+              break;
             default: assert (0); op = "unknown";
           }
           if (BTOR_IS_AND_NODE (real_exp) && is_bool)
@@ -705,6 +759,13 @@ recursively_dump_exp_smt (BtorSMTDumpContext *sdc,
             }
             BTOR_RESET_STACK (args);
           }
+          else if (BTOR_IS_QUANTIFIER_NODE (real_exp))
+          {
+            /* body of quantifiers are handled differently (let
+             * bindings etc.) */
+            if (real_exp->e[1] != btor_binder_get_body (real_exp))
+              PUSH_DUMP_NODE (real_exp->e[1], 0, 1, 1, 0, depth + 1);
+          }
           else
             for (i = real_exp->arity - 1; i >= 0; i--)
               PUSH_DUMP_NODE (real_exp->e[i], expect_bv, 0, 1, 0, depth + 1);
@@ -712,7 +773,8 @@ recursively_dump_exp_smt (BtorSMTDumpContext *sdc,
 
       /* open s-expression */
       assert (op);
-      fprintf (sdc->file, "(%s", op);
+      open_sexp (sdc);
+      fprintf (sdc->file, "%s", op);
 
       if (BTOR_IS_SLICE_NODE (real_exp))
       {
@@ -722,6 +784,19 @@ recursively_dump_exp_smt (BtorSMTDumpContext *sdc,
                  btor_slice_get_upper (real_exp),
                  btor_slice_get_lower (real_exp));
       }
+      else if (BTOR_IS_QUANTIFIER_NODE (real_exp))
+      {
+        assert (btor_get_symbol_exp (sdc->btor, real_exp->e[0]));
+        fprintf (sdc->file,
+                 " ((%s ",
+                 btor_get_symbol_exp (sdc->btor, real_exp->e[0]));
+        btor_dump_sort_smt_node (real_exp->e[0], sdc->file);
+        fprintf (sdc->file, "))");
+        btor_add_ptr_hash_table (sdc->dumped, real_exp->e[0]);
+        if (real_exp->e[1] == btor_binder_get_body (real_exp))
+          recursively_dump_exp_let_smt (
+              sdc, real_exp->e[1], 0, depth_limit ? depth_limit - depth : 0);
+      }
     }
     /* close s-expression */
     else
@@ -730,7 +805,7 @@ recursively_dump_exp_smt (BtorSMTDumpContext *sdc,
         btor_add_ptr_hash_table (sdc->dumped, real_exp);
 
       /* close s-expression */
-      if (real_exp->arity > 0) fputc (')', sdc->file);
+      if (real_exp->arity > 0) close_sexp (sdc);
 
     CLOSE_WRAPPER:
       /* close wrappers */
@@ -742,18 +817,18 @@ recursively_dump_exp_smt (BtorSMTDumpContext *sdc,
         dump_const_value_aux_smt (sdc, "1");
         fputc (' ', sdc->file);
         dump_const_value_aux_smt (sdc, "0");
-        fputc (')', sdc->file);
+        close_sexp (sdc);
       }
 
       /* close bvnot for non-constants */
       if (BTOR_IS_INVERTED_NODE (exp) && !BTOR_IS_BV_CONST_NODE (real_exp))
-        fputc (')', sdc->file);
+        close_sexp (sdc);
 
       /* close bool wrapper */
-      if (expect_bool && !is_boolean (sdc, real_exp)) fputc (')', sdc->file);
+      if (expect_bool && !is_boolean (sdc, real_exp)) close_sexp (sdc);
 
       /* close zero extend wrapper */
-      if (zero_extend) fputc (')', sdc->file);
+      if (zero_extend) close_sexp (sdc);
     }
   }
   assert (BTOR_EMPTY_STACK (expect_bv_stack));
@@ -774,14 +849,105 @@ dump_let_smt (BtorSMTDumpContext *sdc, BtorNode *exp)
   assert (BTOR_IS_REGULAR_NODE (exp));
   assert (!btor_get_ptr_hash_table (sdc->dumped, exp));
 
-  fputs ("(let (", sdc->file);
+  bool newline;
+
+  open_sexp (sdc);
+  fputs ("let (", sdc->file);
   fputc ('(', sdc->file);
   dump_smt_id (sdc, exp);  // TODO (ma): better symbol for lets?
   fputc (' ', sdc->file);
+  newline      = sdc->newline;
+  sdc->newline = false;
   recursively_dump_exp_smt (sdc, exp, !is_boolean (sdc, exp), 0);
+  sdc->newline = newline;
   fputs ("))", sdc->file);
   sdc->open_lets++;
   assert (btor_get_ptr_hash_table (sdc->dumped, exp));
+}
+
+static void
+collect_shared_exps (BtorSMTDumpContext *sdc,
+                     BtorNode *root,
+                     BtorNodePtrStack *shared)
+{
+  int i, refs;
+  BtorNode *cur;
+  BtorIntHashTable *cache;
+  BtorMemMgr *mm;
+  BtorNodePtrStack visit;
+  BtorPtrHashBucket *b;
+
+  mm    = sdc->btor->mm;
+  cache = btor_new_int_hash_table (mm);
+
+  BTOR_INIT_STACK (visit);
+  BTOR_INIT_STACK (*shared);
+  BTOR_PUSH_STACK (mm, visit, root);
+
+  while (!BTOR_EMPTY_STACK (visit))
+  {
+    cur = BTOR_REAL_ADDR_NODE (BTOR_POP_STACK (visit));
+
+    if (btor_contains_int_hash_table (cache, cur->id)
+        || btor_get_ptr_hash_table (sdc->dumped, cur)
+        || BTOR_IS_LAMBDA_NODE (cur))
+      continue;
+
+    b = btor_get_ptr_hash_table (sdc->dump, cur);
+    assert (b);
+    refs = b->data.as_int;
+
+    if (!BTOR_IS_ARGS_NODE (cur)
+        && !BTOR_IS_PARAM_NODE (cur)
+        /* constants are always printed */
+        && !BTOR_IS_BV_CONST_NODE (cur) && refs > 1)
+      BTOR_PUSH_STACK (mm, *shared, cur);
+
+    btor_add_int_hash_table (cache, cur->id);
+    for (i = 0; i < cur->arity; i++) BTOR_PUSH_STACK (mm, visit, cur->e[i]);
+  }
+
+  btor_delete_int_hash_table (cache);
+  BTOR_RELEASE_STACK (mm, visit);
+}
+
+static void
+recursively_dump_exp_let_smt (BtorSMTDumpContext *sdc,
+                              BtorNode *exp,
+                              int expect_bv,
+                              unsigned depth_limit)
+{
+  int i;
+  BtorNode *cur;
+  BtorNodePtrStack shared;
+
+  BTOR_INIT_STACK (shared);
+  collect_shared_exps (sdc, exp, &shared);
+
+  if (shared.start)
+    qsort (shared.start,
+           BTOR_COUNT_STACK (shared),
+           sizeof (BtorNode *),
+           cmp_node_id);
+
+  for (i = 0; i < BTOR_COUNT_STACK (shared); i++)
+  {
+    cur = BTOR_PEEK_STACK (shared, i);
+    assert (BTOR_IS_REGULAR_NODE (cur));
+    dump_let_smt (sdc, cur);
+    fputc (' ', sdc->file);
+  }
+
+  recursively_dump_exp_smt (sdc, exp, expect_bv, depth_limit);
+
+  /* close lets */
+  for (i = 0; i < BTOR_COUNT_STACK (shared); i++)
+  {
+    close_sexp (sdc);
+    sdc->open_lets--;
+  }
+
+  BTOR_RELEASE_STACK (sdc->btor->mm, shared);
 }
 
 static void
@@ -925,7 +1091,7 @@ dump_fun_smt2 (BtorSMTDumpContext *sdc, BtorNode *fun)
   recursively_dump_exp_smt (sdc, fun_body, !is_boolean (sdc, fun_body), 0);
 
   /* close lets */
-  for (i = 0; i < sdc->open_lets; i++) fputc (')', sdc->file);
+  for (i = 0; i < sdc->open_lets; i++) close_sexp (sdc);
   sdc->open_lets = 0;
 
   /* close define-fun */
@@ -997,11 +1163,13 @@ dump_assert_smt2 (BtorSMTDumpContext *sdc, BtorNode *exp)
   assert (exp);
   assert (btor_get_exp_width (sdc->btor, exp) == 1);
 
-  fputs ("(assert ", sdc->file);
+  open_sexp (sdc);
+  fputs ("assert ", sdc->file);
   if (!is_boolean (sdc, exp)) fputs ("(distinct ", sdc->file);
   recursively_dump_exp_smt (sdc, exp, 0, 0);
   if (!is_boolean (sdc, exp)) fputs (" #b0)", sdc->file);
-  fputs (")\n", sdc->file);
+  close_sexp (sdc);
+  fputc ('\n', sdc->file);
 }
 
 static void
@@ -1072,7 +1240,8 @@ mark_boolean (BtorSMTDumpContext *sdc, BtorNodePtrStack *exps)
     /* these nodes are boolean by definition */
     if (BTOR_IS_BV_EQ_NODE (cur) || BTOR_IS_FUN_EQ_NODE (cur)
         || BTOR_IS_ULT_NODE (cur)
-        || cur == BTOR_REAL_ADDR_NODE (sdc->btor->true_exp))
+        || cur == BTOR_REAL_ADDR_NODE (sdc->btor->true_exp)
+        || BTOR_IS_QUANTIFIER_NODE (cur))
     {
       btor_add_ptr_hash_table (sdc->boolean, cur);
       continue;
@@ -1273,8 +1442,8 @@ dump_smt (BtorSMTDumpContext *sdc)
   while (btor_has_next_node_hash_table_iterator (&it))
   {
     cur = btor_next_node_hash_table_iterator (&it);
-    /* constants and function applications are always dumped (hence, not in
-     * mark) */
+    /* constants and function applications are always dumped (hence,
+     * not in mark) */
     if (BTOR_IS_BV_CONST_NODE (cur)
         || BTOR_IS_APPLY_NODE (cur)
         /* argument nodes are never dumped and not in mark */
@@ -1448,7 +1617,7 @@ btor_dump_smt2_node (Btor *btor, FILE *file, BtorNode *exp, unsigned depth)
     dump_fun_smt2 (sdc, exp);
   else
   {
-    recursively_dump_exp_smt (sdc, exp, 0, depth);
+    recursively_dump_exp_let_smt (sdc, exp, 0, depth);
     fprintf (file, "\n");
   }
 CLEANUP:
