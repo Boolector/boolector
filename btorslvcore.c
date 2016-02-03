@@ -2250,6 +2250,8 @@ sat_core_solver (BtorCoreSolver *slv)
 
     assert (result == BTOR_RESULT_SAT);
 
+    if (btor->ufs->count == 0 && btor->lambdas->count == 0) break;
+
     check_and_resolve_conflicts (btor, clone, clone_root, exp_map);
     if (BTOR_EMPTY_STACK (slv->cur_lemmas)) break;
     slv->stats.refinement_iterations++;
