@@ -29,19 +29,26 @@ static BtorRNG *g_rng;
 
 /*------------------------------------------------------------------------*/
 
-#define TEST_PROP_ONE_COMPLETE_BINARY_INIT(fun)                        \
-  do                                                                   \
-  {                                                                    \
-    g_btor                            = btor_new_btor ();              \
-    g_btor->slv                       = btor_new_prop_solver (g_btor); \
-    g_btor->options.engine.val        = BTOR_ENGINE_PROP;              \
-    g_btor->options.rewrite_level.val = 0;                             \
-    g_btor->options.sort_exp.val      = 0;                             \
-    g_btor->options.incremental.val   = 1;                             \
-    /*g_btor->options.loglevel.val = 1;*/                              \
-    g_mm  = g_btor->mm;                                                \
-    g_rng = &g_btor->rng;                                              \
-    bw0 = bw1 = TEST_PROP_COMPLETE_BW;                                 \
+#define TEST_PROP_INIT                                                      \
+  do                                                                        \
+  {                                                                         \
+    g_btor                                 = btor_new_btor ();              \
+    g_btor->slv                            = btor_new_prop_solver (g_btor); \
+    g_btor->options.engine.val             = BTOR_ENGINE_PROP;              \
+    g_btor->options.prop_use_inv_value.val = 100;                           \
+    g_btor->options.rewrite_level.val      = 0;                             \
+    g_btor->options.sort_exp.val           = 0;                             \
+    g_btor->options.incremental.val        = 1;                             \
+    /*g_btor->options.loglevel.val = 1;*/                                   \
+    g_mm  = g_btor->mm;                                                     \
+    g_rng = &g_btor->rng;                                                   \
+  } while (0)
+
+#define TEST_PROP_ONE_COMPLETE_BINARY_INIT(fun) \
+  do                                            \
+  {                                             \
+    TEST_PROP_INIT;                             \
+    bw0 = bw1 = TEST_PROP_COMPLETE_BW;          \
   } while (0)
 
 #define TEST_PROP_ONE_COMPLETE_BINARY_FINISH(fun) \
@@ -382,16 +389,8 @@ test_prop_complete_slice_bv (void)
   BtorNode *exp, *e, *val, *eq;
   BtorBitVector *bve, *bvexp, *bvetmp, *bvexptmp, *res, *tmp;
 
-  g_btor                            = btor_new_btor ();
-  g_btor->slv                       = btor_new_prop_solver (g_btor);
-  g_btor->options.engine.val        = BTOR_ENGINE_PROP;
-  g_btor->options.rewrite_level.val = 0;
-  g_btor->options.sort_exp.val      = 0;
-  g_btor->options.incremental.val   = 1;
-  // g_btor->options.loglevel.val = 1;
-  g_mm  = g_btor->mm;
-  g_rng = &g_btor->rng;
-  bw    = TEST_PROP_COMPLETE_BW;
+  TEST_PROP_INIT;
+  bw = TEST_PROP_COMPLETE_BW;
 
   for (lo = 0; lo < bw; lo++)
   {

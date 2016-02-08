@@ -1,7 +1,7 @@
 /*  Boolector: Satisfiablity Modulo Theories (SMT) solver.
  *
  *  Copyright (C) 2013 Mathias Preiner.
- *  Copyright (C) 2015 Aina Niemetz.
+ *  Copyright (C) 2015-2016 Aina Niemetz.
  *
  *  All rights reserved.
  *
@@ -1607,6 +1607,67 @@ test_is_small_positive_int_bitvec (void)
 }
 
 static void
+test_get_num_trailing_zeros_bitvec (void)
+{
+  BtorBitVector *bv;
+
+  // 1000
+  bv = btor_uint64_to_bv (g_mm, 8, 4);
+  assert (btor_get_num_trailing_zeros_bv (bv) == 3);
+  btor_free_bv (g_mm, bv);
+
+  // 0100
+  bv = btor_uint64_to_bv (g_mm, 4, 4);
+  assert (btor_get_num_trailing_zeros_bv (bv) == 2);
+  btor_free_bv (g_mm, bv);
+
+  // 0010
+  bv = btor_uint64_to_bv (g_mm, 2, 4);
+  assert (btor_get_num_trailing_zeros_bv (bv) == 1);
+  btor_free_bv (g_mm, bv);
+
+  // 0001
+  bv = btor_uint64_to_bv (g_mm, 1, 4);
+  assert (btor_get_num_trailing_zeros_bv (bv) == 0);
+  btor_free_bv (g_mm, bv);
+
+  // 0000
+  bv = btor_uint64_to_bv (g_mm, 0, 4);
+  assert (btor_get_num_trailing_zeros_bv (bv) == 4);
+  btor_free_bv (g_mm, bv);
+
+  // 1111
+  bv = btor_uint64_to_bv (g_mm, 15, 4);
+  assert (btor_get_num_trailing_zeros_bv (bv) == 0);
+  btor_free_bv (g_mm, bv);
+
+  // 0110
+  bv = btor_uint64_to_bv (g_mm, 6, 4);
+  assert (btor_get_num_trailing_zeros_bv (bv) == 1);
+  btor_free_bv (g_mm, bv);
+
+  // 0111
+  bv = btor_uint64_to_bv (g_mm, 7, 4);
+  assert (btor_get_num_trailing_zeros_bv (bv) == 0);
+  btor_free_bv (g_mm, bv);
+
+  // 1010
+  bv = btor_uint64_to_bv (g_mm, 10, 4);
+  assert (btor_get_num_trailing_zeros_bv (bv) == 1);
+  btor_free_bv (g_mm, bv);
+
+  // 0
+  bv = btor_uint64_to_bv (g_mm, 0, 1);
+  assert (btor_get_num_trailing_zeros_bv (bv) == 1);
+  btor_free_bv (g_mm, bv);
+
+  // 1
+  bv = btor_uint64_to_bv (g_mm, 1, 1);
+  assert (btor_get_num_trailing_zeros_bv (bv) == 0);
+  btor_free_bv (g_mm, bv);
+}
+
+static void
 test_get_num_leading_zeros_bitvec (void)
 {
   BtorBitVector *bv;
@@ -1638,7 +1699,7 @@ test_get_num_leading_zeros_bitvec (void)
 
   // 1111
   bv = btor_uint64_to_bv (g_mm, 15, 4);
-  assert (btor_get_num_leading_ones_bv (bv) == 4);
+  assert (btor_get_num_leading_zeros_bv (bv) == 0);
   btor_free_bv (g_mm, bv);
 
   // 0110
@@ -1767,6 +1828,7 @@ run_bitvec_tests (int argc, char **argv)
   BTOR_RUN_TEST (is_special_const_bitvec);
   BTOR_RUN_TEST (is_small_positive_int_bitvec);
   BTOR_RUN_TEST (is_power_of_two_bitvec);
+  BTOR_RUN_TEST (get_num_trailing_zeros_bitvec);
   BTOR_RUN_TEST (get_num_leading_zeros_bitvec);
   BTOR_RUN_TEST (get_num_leading_ones_bitvec);
 }
