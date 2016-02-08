@@ -1393,6 +1393,8 @@ btor_invert_quantifier (Btor *btor, BtorNode *quantifier)
   assert (BTOR_IS_REGULAR_NODE (quantifier));
   assert (BTOR_IS_QUANTIFIER_NODE (quantifier));
 
+  size_t len;
+  char *sym, *buf;
   BtorNode *cur, *param, *new_param, *body, *result, *tmp;
   BtorNodeIterator it;
   BtorNodeMap *param_substs;
@@ -1409,8 +1411,13 @@ btor_invert_quantifier (Btor *btor, BtorNode *quantifier)
     assert (BTOR_IS_REGULAR_NODE (cur));
     assert (BTOR_IS_QUANTIFIER_NODE (cur));
     param = cur->e[0];
-    // TODO (ma): symbol handling?
-    new_param = btor_param_exp (btor, btor_get_exp_width (btor, param), 0);
+    sym   = btor_get_symbol_exp (btor, param);
+    assert (sym);
+    len = strlen (sym) + 5;
+    buf = btor_malloc (mm, len);
+    sprintf (buf, "%s_inv", sym);
+    new_param = btor_param_exp (btor, btor_get_exp_width (btor, param), buf);
+    btor_free (mm, buf, len);
     btor_map_node (param_substs, param, new_param);
     BTOR_PUSH_STACK (mm, params, cur);
     BTOR_PUSH_STACK (mm, params, new_param);
