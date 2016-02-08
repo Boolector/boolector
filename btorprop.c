@@ -690,6 +690,34 @@ select_path_slice (Btor *btor,
       BTOR_SLS_SOLVER (btor)->stats.move_prop_non_rec_conf += inc;  \
   } while (0)
 
+static inline BtorBitVector *
+non_rec_conf (
+    Btor *btor, BtorBitVector *bve, BtorBitVector *bvexp, int eidx, char *op)
+{
+  assert (btor);
+  assert (bve);
+  assert (bvexp);
+  assert (op);
+
+  (void) bve;
+  (void) bvexp;
+  (void) eidx;
+  (void) op;
+
+#ifndef NDEBUG
+  char *sbve   = btor_bv_to_char_bv (btor->mm, bve);
+  char *sbvexp = btor_bv_to_char_bv (btor->mm, bvexp);
+  if (eidx)
+    BTORLOG (2, "prop CONFLICT: %s := %s %s x", sbvexp, sbve, op);
+  else
+    BTORLOG (2, "prop CONFLICT: %s := x %s %s", sbvexp, op, sbve);
+  btor_freestr (btor->mm, sbve);
+  btor_freestr (btor->mm, sbvexp);
+#endif
+  BTOR_SLS_SOLVER (btor)->stats.move_prop_non_rec_conf += 1;
+  return 0;
+}
+
 #ifdef NDEBUG
 static inline BtorBitVector *
 #else
@@ -804,15 +832,7 @@ inv_and_bv (Btor *btor,
           && BTOR_IS_BV_CONST_NODE (BTOR_REAL_ADDR_NODE (e)))
       {
         btor_free_bv (mm, res);
-        res = 0;
-        BTOR_SLS_SOLVER (btor)->stats.move_prop_non_rec_conf += 1;
-#ifndef NDEBUG
-        char *sbvand = btor_bv_to_char_bv (btor->mm, bvand);
-        char *sbve   = btor_bv_to_char_bv (btor->mm, bve);
-        BTORLOG (2, "prop CONFLICT: %s := %s AND x", sbvand, sbve);
-        btor_freestr (btor->mm, sbvand);
-        btor_freestr (btor->mm, sbve);
-#endif
+        res = non_rec_conf (btor, bve, bvand, eidx, "AND");
         break;
       }
 
@@ -991,15 +1011,7 @@ inv_ult_bv (Btor *btor,
       if (btor->options.engine.val == BTOR_ENGINE_SLS
           && BTOR_IS_BV_CONST_NODE (BTOR_REAL_ADDR_NODE (e)))
       {
-        res = 0;
-        BTOR_SLS_SOLVER (btor)->stats.move_prop_non_rec_conf += 1;
-#ifndef NDEBUG
-        char *sbvult = btor_bv_to_char_bv (btor->mm, bvult);
-        char *sbve   = btor_bv_to_char_bv (btor->mm, bve);
-        BTORLOG (2, "prop CONFLICT: %s := %s < x", sbvult, sbve);
-        btor_freestr (btor->mm, sbvult);
-        btor_freestr (btor->mm, sbve);
-#endif
+        res = non_rec_conf (btor, bve, bvult, eidx, "<");
       }
       else if (isult)
       {
@@ -1041,15 +1053,7 @@ inv_ult_bv (Btor *btor,
       if (btor->options.engine.val == BTOR_ENGINE_SLS
           && BTOR_IS_BV_CONST_NODE (BTOR_REAL_ADDR_NODE (e)))
       {
-        res = 0;
-        BTOR_SLS_SOLVER (btor)->stats.move_prop_non_rec_conf += 1;
-#ifndef NDEBUG
-        char *sbvult = btor_bv_to_char_bv (btor->mm, bvult);
-        char *sbve   = btor_bv_to_char_bv (btor->mm, bve);
-        BTORLOG (2, "prop CONFLICT: %s := x < %s", sbvult, sbve);
-        btor_freestr (btor->mm, sbvult);
-        btor_freestr (btor->mm, sbve);
-#endif
+        res = non_rec_conf (btor, bve, bvult, eidx, "<");
       }
       else if (!isult)
       {
@@ -1186,17 +1190,7 @@ inv_sll_bv (Btor *btor,
           /* check for non-recoverable conflict */
           if (btor->options.engine.val == BTOR_ENGINE_SLS
               && BTOR_IS_BV_CONST_NODE (BTOR_REAL_ADDR_NODE (e)))
-          {
-#ifndef NDEBUG
-            char *sbvsll = btor_bv_to_char_bv (btor->mm, bvsll);
-            char *sbve   = btor_bv_to_char_bv (btor->mm, bve);
-            BTORLOG (2, "prop CONFLICT: %s := %s << x", sbvsll, sbve);
-            btor_freestr (btor->mm, sbvsll);
-            btor_freestr (btor->mm, sbve);
-#endif
-            BTOR_SLS_SOLVER (btor)->stats.move_prop_non_rec_conf += 1;
-            return 0;
-          }
+            return non_rec_conf (btor, bve, bvsll, eidx, "<<");
 #ifndef NDEBUG
           iscon = 1;
 #endif
@@ -1225,17 +1219,7 @@ inv_sll_bv (Btor *btor,
               /* check for non-recoverable conflict */
               if (btor->options.engine.val == BTOR_ENGINE_SLS
                   && BTOR_IS_BV_CONST_NODE (BTOR_REAL_ADDR_NODE (e)))
-              {
-#ifndef NDEBUG
-                char *sbvsll = btor_bv_to_char_bv (btor->mm, bvsll);
-                char *sbve   = btor_bv_to_char_bv (btor->mm, bve);
-                BTORLOG (2, "prop CONFLICT: %s := %s << x", sbvsll, sbve);
-                btor_freestr (btor->mm, sbvsll);
-                btor_freestr (btor->mm, sbve);
-#endif
-                BTOR_SLS_SOLVER (btor)->stats.move_prop_non_rec_conf += 1;
-                return 0;
-              }
+                return non_rec_conf (btor, bve, bvsll, eidx, "<<");
 #ifndef NDEBUG
               iscon = 1;
 #endif
@@ -1366,17 +1350,7 @@ inv_sll_bv (Btor *btor,
         /* check for non-recoverable conflict */
         if (btor->options.engine.val == BTOR_ENGINE_SLS
             && BTOR_IS_BV_CONST_NODE (BTOR_REAL_ADDR_NODE (e)))
-        {
-#ifndef NDEBUG
-          char *sbvsll = btor_bv_to_char_bv (btor->mm, bvsll);
-          char *sbve   = btor_bv_to_char_bv (btor->mm, bve);
-          BTORLOG (2, "prop CONFLICT: %s := x << %s", sbvsll, sbve);
-          btor_freestr (btor->mm, sbvsll);
-          btor_freestr (btor->mm, sbve);
-#endif
-          BTOR_SLS_SOLVER (btor)->stats.move_prop_non_rec_conf += 1;
-          return 0;
-        }
+          return non_rec_conf (btor, bve, bvsll, eidx, "<<");
 #ifndef NDEBUG
         iscon = 1;
 #endif
@@ -1491,17 +1465,7 @@ inv_srl_bv (Btor *btor,
           /* check for non-recoverable conflict */
           if (btor->options.engine.val == BTOR_ENGINE_SLS
               && BTOR_IS_BV_CONST_NODE (BTOR_REAL_ADDR_NODE (e)))
-          {
-#ifndef NDEBUG
-            char *sbvsrl = btor_bv_to_char_bv (btor->mm, bvsrl);
-            char *sbve   = btor_bv_to_char_bv (btor->mm, bve);
-            BTORLOG (2, "prop CONFLICT: %s := %s >> x", sbvsrl, sbve);
-            btor_freestr (btor->mm, sbvsrl);
-            btor_freestr (btor->mm, sbve);
-#endif
-            BTOR_SLS_SOLVER (btor)->stats.move_prop_non_rec_conf += 1;
-            return 0;
-          }
+            return non_rec_conf (btor, bve, bvsrl, eidx, ">>");
 #ifndef NDEBUG
           iscon = 1;
 #endif
@@ -1531,17 +1495,7 @@ inv_srl_bv (Btor *btor,
               /* check for non-recoverable conflict */
               if (btor->options.engine.val == BTOR_ENGINE_SLS
                   && BTOR_IS_BV_CONST_NODE (BTOR_REAL_ADDR_NODE (e)))
-              {
-#ifndef NDEBUG
-                char *sbvsrl = btor_bv_to_char_bv (btor->mm, bvsrl);
-                char *sbve   = btor_bv_to_char_bv (btor->mm, bve);
-                BTORLOG (2, "prop CONFLICT: %s := %s >> x", sbvsrl, sbve);
-                btor_freestr (btor->mm, sbvsrl);
-                btor_freestr (btor->mm, sbve);
-#endif
-                BTOR_SLS_SOLVER (btor)->stats.move_prop_non_rec_conf += 1;
-                return 0;
-              }
+                return non_rec_conf (btor, bve, bvsrl, eidx, ">>");
 #ifndef NDEBUG
               iscon = 1;
 #endif
@@ -1674,17 +1628,7 @@ inv_srl_bv (Btor *btor,
         /* check for non-recoverable conflict */
         if (btor->options.engine.val == BTOR_ENGINE_SLS
             && BTOR_IS_BV_CONST_NODE (BTOR_REAL_ADDR_NODE (e)))
-        {
-#ifndef NDEBUG
-          char *sbvsrl = btor_bv_to_char_bv (btor->mm, bvsrl);
-          char *sbve   = btor_bv_to_char_bv (btor->mm, bve);
-          BTORLOG (2, "prop CONFLICT: %s := x >> %s", sbvsrl, sbve);
-          btor_freestr (btor->mm, sbvsrl);
-          btor_freestr (btor->mm, sbve);
-#endif
-          BTOR_SLS_SOLVER (btor)->stats.move_prop_non_rec_conf += 1;
-          return 0;
-        }
+          return non_rec_conf (btor, bve, bvsrl, eidx, ">>");
 #ifndef NDEBUG
         iscon = 1;
 #endif
@@ -1805,15 +1749,7 @@ inv_mul_bv (Btor *btor,
       if (btor->options.engine.val == BTOR_ENGINE_SLS
           && BTOR_IS_BV_CONST_NODE (BTOR_REAL_ADDR_NODE (e)))
       {
-        res = 0;
-        BTOR_SLS_SOLVER (btor)->stats.move_prop_non_rec_conf += 1;
-#ifndef NDEBUG
-        char *sbvmul = btor_bv_to_char_bv (btor->mm, bvmul);
-        char *sbve   = btor_bv_to_char_bv (btor->mm, bve);
-        BTORLOG (2, "prop CONFLICT: %s := %s * x", sbvmul, sbve);
-        btor_freestr (btor->mm, sbvmul);
-        btor_freestr (btor->mm, sbve);
-#endif
+        res = non_rec_conf (btor, bve, bvmul, eidx, "*");
       }
       else
       {
@@ -2069,15 +2005,7 @@ inv_udiv_bv (Btor *btor,
         if (btor->options.engine.val == BTOR_ENGINE_SLS
             && BTOR_IS_BV_CONST_NODE (BTOR_REAL_ADDR_NODE (e)))
         {
-          res = 0;
-          BTOR_SLS_SOLVER (btor)->stats.move_prop_non_rec_conf += 1;
-#ifndef NDEBUG
-          char *sbvudiv = btor_bv_to_char_bv (btor->mm, bvudiv);
-          char *sbve    = btor_bv_to_char_bv (btor->mm, bve);
-          BTORLOG (2, "prop CONFLICT: %s := %s / x", sbvudiv, sbve);
-          btor_freestr (btor->mm, sbvudiv);
-          btor_freestr (btor->mm, sbve);
-#endif
+          res = non_rec_conf (btor, bve, bvudiv, eidx, "/");
         }
         /* disregard bve, choose e[1] s.t. e[1] * bvudiv does
          * not overflow */
@@ -2177,15 +2105,7 @@ inv_udiv_bv (Btor *btor,
         if (btor->options.engine.val == BTOR_ENGINE_SLS
             && BTOR_IS_BV_CONST_NODE (BTOR_REAL_ADDR_NODE (e)))
         {
-          res = 0;
-          BTOR_SLS_SOLVER (btor)->stats.move_prop_non_rec_conf += 1;
-#ifndef NDEBUG
-          char *sbvudiv = btor_bv_to_char_bv (btor->mm, bvudiv);
-          char *sbve    = btor_bv_to_char_bv (btor->mm, bve);
-          BTORLOG (2, "prop CONFLICT: %s := x / %s", sbvudiv, sbve);
-          btor_freestr (btor->mm, sbvudiv);
-          btor_freestr (btor->mm, sbve);
-#endif
+          res = non_rec_conf (btor, bve, bvudiv, eidx, "/");
         }
         /* disregard bve, choose bve s.t. e[0] = bve * bvudiv does
          * not overflow */
@@ -2361,15 +2281,7 @@ inv_urem_bv (Btor *btor,
         if (btor->options.engine.val == BTOR_ENGINE_SLS
             && BTOR_IS_BV_CONST_NODE (BTOR_REAL_ADDR_NODE (e)))
         {
-          res = 0;
-          BTOR_SLS_SOLVER (btor)->stats.move_prop_non_rec_conf += 1;
-#ifndef NDEBUG
-          char *sbvurem = btor_bv_to_char_bv (btor->mm, bvurem);
-          char *sbve    = btor_bv_to_char_bv (btor->mm, bve);
-          BTORLOG (2, "prop CONFLICT: %s := %s %% x", sbvurem, sbve);
-          btor_freestr (btor->mm, sbvurem);
-          btor_freestr (btor->mm, sbve);
-#endif
+          res = non_rec_conf (btor, bve, bvurem, eidx, "%");
         }
         else
         {
@@ -2510,15 +2422,7 @@ inv_urem_bv (Btor *btor,
         if (btor->options.engine.val == BTOR_ENGINE_SLS
             && BTOR_IS_BV_CONST_NODE (BTOR_REAL_ADDR_NODE (e)))
         {
-          res = 0;
-          BTOR_SLS_SOLVER (btor)->stats.move_prop_non_rec_conf += 1;
-#ifndef NDEBUG
-          char *sbvurem = btor_bv_to_char_bv (btor->mm, bvurem);
-          char *sbve    = btor_bv_to_char_bv (btor->mm, bve);
-          BTORLOG (2, "prop CONFLICT: %s := %s %% x", sbvurem, sbve);
-          btor_freestr (btor->mm, sbvurem);
-          btor_freestr (btor->mm, sbve);
-#endif
+          res = non_rec_conf (btor, bve, bvurem, eidx, "%");
         }
         else
         {
@@ -2569,15 +2473,7 @@ inv_urem_bv (Btor *btor,
         if (btor->options.engine.val == BTOR_ENGINE_SLS
             && BTOR_IS_BV_CONST_NODE (BTOR_REAL_ADDR_NODE (e)))
         {
-          res = 0;
-          BTOR_SLS_SOLVER (btor)->stats.move_prop_non_rec_conf += 1;
-#ifndef NDEBUG
-          char *sbvurem = btor_bv_to_char_bv (btor->mm, bvurem);
-          char *sbve    = btor_bv_to_char_bv (btor->mm, bve);
-          BTORLOG (2, "prop CONFLICT: %s := x %% %s", sbvurem, sbve);
-          btor_freestr (btor->mm, sbvurem);
-          btor_freestr (btor->mm, sbve);
-#endif
+          res = non_rec_conf (btor, bve, bvurem, eidx, "%");
         }
         else
         {
@@ -2660,15 +2556,7 @@ inv_urem_bv (Btor *btor,
       if (btor->options.engine.val == BTOR_ENGINE_SLS
           && BTOR_IS_BV_CONST_NODE (BTOR_REAL_ADDR_NODE (e)))
       {
-        res = 0;
-        BTOR_SLS_SOLVER (btor)->stats.move_prop_non_rec_conf += 1;
-#ifndef NDEBUG
-        char *sbvurem = btor_bv_to_char_bv (btor->mm, bvurem);
-        char *sbve    = btor_bv_to_char_bv (btor->mm, bve);
-        BTORLOG (2, "prop CONFLICT: %s := x %% %s", sbvurem, sbve);
-        btor_freestr (btor->mm, sbvurem);
-        btor_freestr (btor->mm, sbve);
-#endif
+        res = non_rec_conf (btor, bve, bvurem, eidx, "%");
       }
       else
       {
@@ -2768,15 +2656,7 @@ inv_concat_bv (Btor *btor,
       if (btor->options.engine.val == BTOR_ENGINE_SLS
           && BTOR_IS_BV_CONST_NODE (BTOR_REAL_ADDR_NODE (e)))
       {
-        res = 0;
-        BTOR_SLS_SOLVER (btor)->stats.move_prop_non_rec_conf += 1;
-#ifndef NDEBUG
-        char *sbvconcat = btor_bv_to_char_bv (btor->mm, bvconcat);
-        char *sbve      = btor_bv_to_char_bv (btor->mm, bve);
-        BTORLOG (2, "prop CONFLICT: %s := %s o x", sbvconcat, sbve);
-        btor_freestr (btor->mm, sbvconcat);
-        btor_freestr (btor->mm, sbve);
-#endif
+        res = non_rec_conf (btor, bve, bvconcat, eidx, "o");
       }
       else
       {
@@ -2804,15 +2684,7 @@ inv_concat_bv (Btor *btor,
       if (btor->options.engine.val == BTOR_ENGINE_SLS
           && BTOR_IS_BV_CONST_NODE (BTOR_REAL_ADDR_NODE (e)))
       {
-        res = 0;
-        BTOR_SLS_SOLVER (btor)->stats.move_prop_non_rec_conf += 1;
-#ifndef NDEBUG
-        char *sbvconcat = btor_bv_to_char_bv (btor->mm, bvconcat);
-        char *sbve      = btor_bv_to_char_bv (btor->mm, bve);
-        BTORLOG (2, "prop CONFLICT: %s := x o %s", sbvconcat, sbve);
-        btor_freestr (btor->mm, sbvconcat);
-        btor_freestr (btor->mm, sbve);
-#endif
+        res = non_rec_conf (btor, bve, bvconcat, eidx, "o");
       }
       else
       {
