@@ -6322,41 +6322,61 @@ btor_rewrite_binary_exp (Btor *btor,
   assert (e1);
   assert (btor->options.rewrite_level.val > 0);
 
+  BtorNode *result, *q_e0, *q_e1;
+
+  q_e0 = q_e1 = 0;
+  if (BTOR_IS_INVERTED_NODE (e0)
+      && BTOR_IS_QUANTIFIER_NODE (BTOR_REAL_ADDR_NODE (e0)))
+  {
+    q_e0 = btor_invert_quantifier (btor, BTOR_REAL_ADDR_NODE (e0));
+    e0   = q_e0;
+  }
+
+  if (BTOR_IS_INVERTED_NODE (e1)
+      && BTOR_IS_QUANTIFIER_NODE (BTOR_REAL_ADDR_NODE (e1)))
+  {
+    q_e1 = btor_invert_quantifier (btor, BTOR_REAL_ADDR_NODE (e1));
+    e1   = q_e1;
+  }
+
   switch (kind)
   {
     case BTOR_FEQ_NODE:
-    case BTOR_BEQ_NODE: return rewrite_eq_exp (btor, e0, e1);
+    case BTOR_BEQ_NODE: result = rewrite_eq_exp (btor, e0, e1); break;
 
-    case BTOR_ULT_NODE: return rewrite_ult_exp (btor, e0, e1);
+    case BTOR_ULT_NODE: result = rewrite_ult_exp (btor, e0, e1); break;
 
-    case BTOR_AND_NODE: return rewrite_and_exp (btor, e0, e1);
+    case BTOR_AND_NODE: result = rewrite_and_exp (btor, e0, e1); break;
 
-    case BTOR_ADD_NODE: return rewrite_add_exp (btor, e0, e1);
+    case BTOR_ADD_NODE: result = rewrite_add_exp (btor, e0, e1); break;
 
-    case BTOR_MUL_NODE: return rewrite_mul_exp (btor, e0, e1);
+    case BTOR_MUL_NODE: result = rewrite_mul_exp (btor, e0, e1); break;
 
-    case BTOR_UDIV_NODE: return rewrite_udiv_exp (btor, e0, e1);
+    case BTOR_UDIV_NODE: result = rewrite_udiv_exp (btor, e0, e1); break;
 
-    case BTOR_UREM_NODE: return rewrite_urem_exp (btor, e0, e1);
+    case BTOR_UREM_NODE: result = rewrite_urem_exp (btor, e0, e1); break;
 
-    case BTOR_CONCAT_NODE: return rewrite_concat_exp (btor, e0, e1);
+    case BTOR_CONCAT_NODE: result = rewrite_concat_exp (btor, e0, e1); break;
 
-    case BTOR_SLL_NODE: return rewrite_sll_exp (btor, e0, e1);
+    case BTOR_SLL_NODE: result = rewrite_sll_exp (btor, e0, e1); break;
 
-    case BTOR_SRL_NODE: return rewrite_srl_exp (btor, e0, e1);
+    case BTOR_SRL_NODE: result = rewrite_srl_exp (btor, e0, e1); break;
 
-    case BTOR_APPLY_NODE: return rewrite_apply_exp (btor, e0, e1);
+    case BTOR_APPLY_NODE: result = rewrite_apply_exp (btor, e0, e1); break;
 
-    case BTOR_FORALL_NODE: return rewrite_forall_exp (btor, e0, e1);
+    case BTOR_FORALL_NODE: result = rewrite_forall_exp (btor, e0, e1); break;
 
-    case BTOR_EXISTS_NODE: return rewrite_exists_exp (btor, e0, e1);
+    case BTOR_EXISTS_NODE: result = rewrite_exists_exp (btor, e0, e1); break;
 
     default:
       assert (kind == BTOR_LAMBDA_NODE);
-      return rewrite_lambda_exp (btor, e0, e1);
+      result = rewrite_lambda_exp (btor, e0, e1);
   }
 
-  return 0;
+  if (q_e0) btor_release_exp (btor, q_e0);
+  if (q_e1) btor_release_exp (btor, q_e1);
+
+  return result;
 }
 
 BtorNode *
@@ -6372,5 +6392,35 @@ btor_rewrite_ternary_exp (
   assert (btor->options.rewrite_level.val > 0);
   (void) kind;
 
-  return rewrite_cond_exp (btor, e0, e1, e2);
+  BtorNode *result, *q_e0, *q_e1, *q_e2;
+
+  q_e0 = q_e1 = q_e2 = 0;
+  if (BTOR_IS_INVERTED_NODE (e0)
+      && BTOR_IS_QUANTIFIER_NODE (BTOR_REAL_ADDR_NODE (e0)))
+  {
+    q_e0 = btor_invert_quantifier (btor, BTOR_REAL_ADDR_NODE (e0));
+    e0   = q_e0;
+  }
+
+  if (BTOR_IS_INVERTED_NODE (e1)
+      && BTOR_IS_QUANTIFIER_NODE (BTOR_REAL_ADDR_NODE (e1)))
+  {
+    q_e1 = btor_invert_quantifier (btor, BTOR_REAL_ADDR_NODE (e1));
+    e1   = q_e1;
+  }
+
+  if (BTOR_IS_INVERTED_NODE (e2)
+      && BTOR_IS_QUANTIFIER_NODE (BTOR_REAL_ADDR_NODE (e2)))
+  {
+    q_e2 = btor_invert_quantifier (btor, BTOR_REAL_ADDR_NODE (e2));
+    e2   = q_e2;
+  }
+
+  result = rewrite_cond_exp (btor, e0, e1, e2);
+
+  if (q_e0) btor_release_exp (btor, q_e0);
+  if (q_e1) btor_release_exp (btor, q_e1);
+  if (q_e2) btor_release_exp (btor, q_e2);
+
+  return result;
 }
