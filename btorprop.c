@@ -1240,13 +1240,15 @@ inv_sll_bv (Btor *btor,
               iscon = 1;
 #endif
               // FIXME this should be random res <= ctz_bvsll
-              res = btor_uint64_to_bv (mm, (uint64_t) ctz_bvsll, sbw);
+              // res = btor_uint64_to_bv (
+              //    mm, (uint64_t) ctz_bvsll, sbw);
+              shift = ctz_bvsll;
               BTOR_INC_REC_CONF_STATS (btor, 1);
               break;
             }
           }
 
-          if (!res) res = btor_uint64_to_bv (mm, (uint64_t) shift, sbw);
+          res = btor_uint64_to_bv (mm, (uint64_t) shift, sbw);
         }
       }
       else
@@ -1544,13 +1546,15 @@ inv_srl_bv (Btor *btor,
               iscon = 1;
 #endif
               // FIXME this should be random res <= clz_bvsrl
-              res = btor_uint64_to_bv (mm, (uint64_t) clz_bvsrl, sbw);
+              // res = btor_uint64_to_bv (
+              //    mm, (uint64_t) clz_bvsrl, sbw);
+              shift = clz_bvsrl;
               BTOR_INC_REC_CONF_STATS (btor, 1);
               break;
             }
           }
 
-          if (!res) res = btor_uint64_to_bv (mm, (uint64_t) shift, sbw);
+          res = btor_uint64_to_bv (mm, (uint64_t) shift, sbw);
         }
       }
       else
