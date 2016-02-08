@@ -450,10 +450,7 @@ get_children (BtorSMTDumpContext *sdc,
     cur      = BTOR_DEQUEUE (visit);
     real_cur = BTOR_REAL_ADDR_NODE (cur);
 
-    if (btor_get_ptr_hash_table (mark, real_cur)) continue;
-
     b = btor_get_ptr_hash_table (sdc->dump, real_cur);
-    btor_add_ptr_hash_table (mark, real_cur);
     if (!BTOR_IS_AND_NODE (real_cur) || (b && b->data.as_int > 1)
         || (is_and && BTOR_IS_INVERTED_NODE (cur)))
     {
@@ -461,6 +458,9 @@ get_children (BtorSMTDumpContext *sdc,
       continue;
     }
 
+    if (btor_get_ptr_hash_table (mark, real_cur)) continue;
+
+    btor_add_ptr_hash_table (mark, real_cur);
     assert (!btor_get_ptr_hash_table (sdc->dumped, real_cur));
     btor_add_ptr_hash_table (sdc->dumped, real_cur);
     for (i = 0; i < real_cur->arity; i++)
@@ -517,8 +517,9 @@ recursively_dump_exp_smt (BtorSMTDumpContext *sdc,
   BtorBitVector *bitsbv;
   char *bits;
   const char *op, *fmt;
-  BtorNode *arg, *real_exp;
+  BtorNode *tmp, *real_exp;
   BtorArgsIterator it;
+  BtorNodeIterator node_it;
   BtorNodePtrStack dump, args;
   BtorIntStack expect_bv_stack, expect_bool_stack, depth_stack;
   BtorIntStack add_space_stack, zero_extend_stack;
@@ -669,14 +670,14 @@ recursively_dump_exp_smt (BtorSMTDumpContext *sdc,
           btor_init_args_iterator (&it, real_exp->e[1]);
           while (btor_has_next_args_iterator (&it))
           {
-            arg = btor_next_args_iterator (&it);
-            BTOR_PUSH_STACK (mm, args, arg);
+            tmp = btor_next_args_iterator (&it);
+            BTOR_PUSH_STACK (mm, args, tmp);
           }
           while (!BTOR_EMPTY_STACK (args))
           {
-            arg = BTOR_POP_STACK (args);
+            tmp = BTOR_POP_STACK (args);
             // TODO (ma): what about bool arguments/indices
-            PUSH_DUMP_NODE (arg, 1, 0, 1, 0, depth + 1);
+            PUSH_DUMP_NODE (tmp, 1, 0, 1, 0, depth + 1);
           }
           PUSH_DUMP_NODE (real_exp->e[0], 1, 0, 0, 0, depth + 1);
           break;
@@ -754,19 +755,24 @@ recursively_dump_exp_smt (BtorSMTDumpContext *sdc,
             get_children (sdc, exp, &args);
             for (i = 0; i < BTOR_COUNT_STACK (args); i++)
             {
-              arg = BTOR_PEEK_STACK (args, i);
-              PUSH_DUMP_NODE (arg, expect_bv, 0, 1, 0, depth + 1);
+              tmp = BTOR_PEEK_STACK (args, i);
+              PUSH_DUMP_NODE (tmp, expect_bv, 0, 1, 0, depth + 1);
             }
             BTOR_RESET_STACK (args);
           }
-          else if (BTOR_IS_QUANTIFIER_NODE (real_exp))
-          {
-            /* body of quantifiers are handled differently (let
-             * bindings etc.) */
-            if (real_exp->e[1] != btor_binder_get_body (real_exp))
-              PUSH_DUMP_NODE (real_exp->e[1], 0, 1, 1, 0, depth + 1);
-          }
-          else
+#if 0
+		else if (BTOR_IS_QUANTIFIER_NODE (real_exp))
+		  {
+		    /* body of quantifiers are handled differently (let
+		     * bindings etc.) */
+		    if (real_exp->e[1] != btor_binder_get_body (real_exp)
+			&& real_exp->kind
+			   != BTOR_REAL_ADDR_NODE (real_exp->e[1])->kind)
+		      PUSH_DUMP_NODE (real_exp->e[1], 0, 1, 1, 0,
+				      depth + 1);
+		  }
+#endif
+          else if (!BTOR_IS_QUANTIFIER_NODE (real_exp))
             for (i = real_exp->arity - 1; i >= 0; i--)
               PUSH_DUMP_NODE (real_exp->e[i], expect_bv, 0, 1, 0, depth + 1);
       }
@@ -786,16 +792,54 @@ recursively_dump_exp_smt (BtorSMTDumpContext *sdc,
       }
       else if (BTOR_IS_QUANTIFIER_NODE (real_exp))
       {
-        assert (btor_get_symbol_exp (sdc->btor, real_exp->e[0]));
-        fprintf (sdc->file,
-                 " ((%s ",
-                 btor_get_symbol_exp (sdc->btor, real_exp->e[0]));
-        btor_dump_sort_smt_node (real_exp->e[0], sdc->file);
-        fprintf (sdc->file, "))");
-        btor_add_ptr_hash_table (sdc->dumped, real_exp->e[0]);
-        if (real_exp->e[1] == btor_binder_get_body (real_exp))
+        fputs (" (", sdc->file);
+        btor_init_binder_iterator (&node_it, real_exp);
+        tmp = 0;
+        while (btor_has_next_binder_iterator (&node_it))
+        {
+          tmp = btor_next_binder_iterator (&node_it);
+
+          if (tmp->kind != real_exp->kind) break;
+
+          assert (btor_get_symbol_exp (sdc->btor, tmp->e[0]));
+          if (tmp != real_exp) fputc (' ', sdc->file);
+          if (sdc->pretty_print)
+          {
+            fputc ('\n', sdc->file);
+            print_indent (sdc);
+          }
+          fprintf (
+              sdc->file, "(%s ", btor_get_symbol_exp (sdc->btor, tmp->e[0]));
+          btor_dump_sort_smt_node (tmp->e[0], sdc->file);
+          fputc (')', sdc->file);
+          btor_add_ptr_hash_table (sdc->dumped, tmp->e[0]);
+          btor_add_ptr_hash_table (sdc->dumped, tmp);
+        }
+        assert (tmp);
+        assert (BTOR_IS_REGULAR_NODE (tmp));
+        assert (BTOR_IS_QUANTIFIER_NODE (tmp));
+        fputc (')', sdc->file);
+
+        if (tmp->kind == real_exp->kind)
+        {
+          assert (tmp->e[1] == btor_binder_get_body (tmp));
           recursively_dump_exp_let_smt (
-              sdc, real_exp->e[1], 0, depth_limit ? depth_limit - depth : 0);
+              sdc, tmp->e[1], 0, depth_limit ? depth_limit - depth : 0);
+        }
+        else
+          PUSH_DUMP_NODE (tmp, 0, 1, 1, 0, depth + 1);
+
+#if 0
+	      fprintf (sdc->file, " ((%s ",
+		       btor_get_symbol_exp (sdc->btor, real_exp->e[0]));
+	      btor_dump_sort_smt_node (real_exp->e[0], sdc->file);
+	      fprintf (sdc->file, "))");
+	      btor_add_ptr_hash_table (sdc->dumped, real_exp->e[0]);
+	      if (real_exp->e[1] == btor_binder_get_body (real_exp))
+		recursively_dump_exp_let_smt (
+		    sdc, real_exp->e[1], 0,
+		    depth_limit ? depth_limit - depth : 0);
+#endif
       }
     }
     /* close s-expression */
@@ -852,6 +896,7 @@ dump_let_smt (BtorSMTDumpContext *sdc, BtorNode *exp)
   bool newline;
 
   open_sexp (sdc);
+  sdc->indent--;
   fputs ("let (", sdc->file);
   fputc ('(', sdc->file);
   dump_smt_id (sdc, exp);  // TODO (ma): better symbol for lets?
@@ -943,7 +988,8 @@ recursively_dump_exp_let_smt (BtorSMTDumpContext *sdc,
   /* close lets */
   for (i = 0; i < BTOR_COUNT_STACK (shared); i++)
   {
-    close_sexp (sdc);
+    fputc (')', sdc->file);
+    //      close_sexp (sdc);
     sdc->open_lets--;
   }
 
@@ -960,7 +1006,8 @@ dump_fun_let_smt2 (BtorSMTDumpContext *sdc, BtorNode *exp)
   int is_bool;
 
   is_bool = is_boolean (sdc, exp);
-  fputs ("(define-fun ", sdc->file);
+  open_sexp (sdc);
+  fputs ("define-fun ", sdc->file);
   dump_smt_id (sdc, exp);
   fputs (" () ", sdc->file);
   // TODO (ma): workaround for now until dump_sort_smt merged from aina
@@ -970,7 +1017,9 @@ dump_fun_let_smt2 (BtorSMTDumpContext *sdc, BtorNode *exp)
     btor_dump_sort_smt_node (exp, sdc->file);
   fputc (' ', sdc->file);
   recursively_dump_exp_smt (sdc, exp, !is_bool, 0);
-  fputs (")\n", sdc->file);
+  //  fputs (")\n", sdc->file);
+  close_sexp (sdc);
+  fputc ('\n', sdc->file);
   assert (btor_get_ptr_hash_table (sdc->dumped, exp));
 }
 
@@ -1091,7 +1140,8 @@ dump_fun_smt2 (BtorSMTDumpContext *sdc, BtorNode *fun)
   recursively_dump_exp_smt (sdc, fun_body, !is_boolean (sdc, fun_body), 0);
 
   /* close lets */
-  for (i = 0; i < sdc->open_lets; i++) close_sexp (sdc);
+  for (i = 0; i < sdc->open_lets; i++) fputc (')', sdc->file);
+  //    close_sexp (sdc);
   sdc->open_lets = 0;
 
   /* close define-fun */
@@ -1285,6 +1335,7 @@ dump_smt (BtorSMTDumpContext *sdc)
 {
   assert (sdc);
 
+  bool quantifiers = false;
   int i, j;
   BtorNode *e, *cur;
   BtorMemMgr *mm;
@@ -1326,6 +1377,8 @@ dump_smt (BtorSMTDumpContext *sdc)
     else if (BTOR_IS_LAMBDA_NODE (cur) && !cur->parameterized
              && !has_lambda_parents_only (cur))
       BTOR_PUSH_STACK (mm, shared, cur);
+    else if (BTOR_IS_QUANTIFIER_NODE (cur))
+      quantifiers = true;
 
     for (j = 0; j < cur->arity; j++)
       BTOR_PUSH_STACK (mm, visit, BTOR_REAL_ADDR_NODE (cur->e[j]));
@@ -1385,10 +1438,20 @@ dump_smt (BtorSMTDumpContext *sdc)
   mark_boolean (sdc, &all);
 
   /* begin dump */
-  if (BTOR_EMPTY_STACK (ufs))
-    set_logic_smt (sdc, "QF_BV");
+  if (quantifiers)
+  {
+    if (BTOR_EMPTY_STACK (ufs))
+      set_logic_smt (sdc, "BV");
+    else
+      set_logic_smt (sdc, "UFBV");
+  }
   else
-    set_logic_smt (sdc, "QF_UFBV");
+  {
+    if (BTOR_EMPTY_STACK (ufs))
+      set_logic_smt (sdc, "QF_BV");
+    else
+      set_logic_smt (sdc, "QF_UFBV");
+  }
 
   /* dump inputs */
   if (vars.start)
