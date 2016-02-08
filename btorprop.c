@@ -1013,17 +1013,9 @@ inv_ult_bv (Btor *btor,
       {
         res = non_rec_conf (btor, bve, bvult, eidx, "<");
       }
-      else if (isult)
-      {
-        res = btor_new_random_range_bv (mm, &btor->rng, bw, one, bvmax);
-        BTOR_INC_REC_CONF_STATS (btor, 1);
-      }
       else
       {
-        // FIXME not reachable
-        tmp = btor_sub_bv (mm, bvmax, one);
-        res = btor_new_random_range_bv (mm, &btor->rng, bw, zero, tmp);
-        btor_free_bv (mm, tmp);
+        res = btor_new_random_range_bv (mm, &btor->rng, bw, one, bvmax);
         BTOR_INC_REC_CONF_STATS (btor, 1);
       }
     }
@@ -1054,12 +1046,6 @@ inv_ult_bv (Btor *btor,
           && BTOR_IS_BV_CONST_NODE (BTOR_REAL_ADDR_NODE (e)))
       {
         res = non_rec_conf (btor, bve, bvult, eidx, "<");
-      }
-      else if (!isult)
-      {
-        // FIXME not reachable
-        res = btor_new_random_range_bv (btor->mm, &btor->rng, bw, one, bvmax);
-        BTOR_INC_REC_CONF_STATS (btor, 1);
       }
       else
       {
