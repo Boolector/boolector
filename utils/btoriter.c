@@ -19,7 +19,7 @@
 /*------------------------------------------------------------------------*/
 
 void
-btor_init_apply_parent_iterator (BtorNodeIterator *it, BtorNode *exp)
+btor_init_apply_parent_iterator (BtorNodeIterator *it, const BtorNode *exp)
 {
   assert (it);
   assert (exp);
@@ -51,7 +51,7 @@ btor_next_apply_parent_iterator (BtorNodeIterator *it)
 /*------------------------------------------------------------------------*/
 
 void
-btor_init_parent_iterator (BtorNodeIterator *it, BtorNode *exp)
+btor_init_parent_iterator (BtorNodeIterator *it, const BtorNode *exp)
 {
   assert (it);
   assert (exp);
@@ -81,7 +81,7 @@ btor_next_parent_iterator (BtorNodeIterator *it)
 /*------------------------------------------------------------------------*/
 
 void
-btor_init_args_iterator (BtorArgsIterator *it, BtorNode *exp)
+btor_init_args_iterator (BtorArgsIterator *it, const BtorNode *exp)
 {
   assert (it);
   assert (exp);
@@ -211,7 +211,7 @@ btor_has_next_param_iterator (BtorNodeIterator *it)
 
 void
 btor_init_parameterized_iterator (BtorParameterizedIterator *it,
-                                  Btor *btor,
+                                  const Btor *btor,
                                   BtorNode *exp)
 {
   assert (btor);
@@ -277,7 +277,7 @@ find_next_unique_node (BtorNodeIterator *it)
 }
 
 void
-btor_init_unique_table_iterator (BtorNodeIterator *it, Btor *btor)
+btor_init_unique_table_iterator (BtorNodeIterator *it, const Btor *btor)
 {
   assert (btor);
   assert (it);
@@ -323,7 +323,8 @@ btor_next_unique_table_iterator (BtorNodeIterator *it)
 /*------------------------------------------------------------------------*/
 
 void
-btor_init_hash_table_iterator (BtorHashTableIterator *it, BtorPtrHashTable *t)
+btor_init_hash_table_iterator (BtorHashTableIterator *it,
+                               const BtorPtrHashTable *t)
 {
   assert (it);
   assert (t);
@@ -338,7 +339,7 @@ btor_init_hash_table_iterator (BtorHashTableIterator *it, BtorPtrHashTable *t)
 
 void
 btor_init_reversed_hash_table_iterator (BtorHashTableIterator *it,
-                                        BtorPtrHashTable *t)
+                                        const BtorPtrHashTable *t)
 {
   assert (it);
   assert (t);
@@ -352,7 +353,8 @@ btor_init_reversed_hash_table_iterator (BtorHashTableIterator *it,
 }
 
 void
-btor_queue_hash_table_iterator (BtorHashTableIterator *it, BtorPtrHashTable *t)
+btor_queue_hash_table_iterator (BtorHashTableIterator *it,
+                                const BtorPtrHashTable *t)
 {
   assert (it);
   assert (t);
@@ -417,7 +419,7 @@ btor_next_data_hash_table_iterator (BtorHashTableIterator *it)
 
 void
 btor_init_node_hash_table_iterator (BtorHashTableIterator *it,
-                                    BtorPtrHashTable *t)
+                                    const BtorPtrHashTable *t)
 {
   assert (it);
   assert (t);
@@ -426,7 +428,7 @@ btor_init_node_hash_table_iterator (BtorHashTableIterator *it,
 
 void
 btor_init_reversed_node_hash_table_iterator (BtorHashTableIterator *it,
-                                             BtorPtrHashTable *t)
+                                             const BtorPtrHashTable *t)
 {
   assert (it);
   assert (t);
@@ -435,7 +437,7 @@ btor_init_reversed_node_hash_table_iterator (BtorHashTableIterator *it,
 
 void
 btor_queue_node_hash_table_iterator (BtorHashTableIterator *it,
-                                     BtorPtrHashTable *t)
+                                     const BtorPtrHashTable *t)
 {
   assert (it);
   assert (t);
@@ -473,14 +475,15 @@ btor_next_data_node_hash_table_iterator (BtorHashTableIterator *it)
 /*------------------------------------------------------------------------*/
 
 void
-btor_init_node_map_iterator (BtorNodeMapIterator *it, BtorNodeMap *map)
+btor_init_node_map_iterator (BtorNodeMapIterator *it, const BtorNodeMap *map)
 {
   assert (map);
   btor_init_node_hash_table_iterator (&it->it, map->table);
 }
 
 void
-btor_init_reversed_node_map_iterator (BtorNodeMapIterator *it, BtorNodeMap *map)
+btor_init_reversed_node_map_iterator (BtorNodeMapIterator *it,
+                                      const BtorNodeMap *map)
 {
   assert (map);
   btor_init_reversed_node_hash_table_iterator (&it->it, map->table);
@@ -493,7 +496,7 @@ btor_has_next_node_map_iterator (BtorNodeMapIterator *it)
 }
 
 void
-btor_queue_node_map_iterator (BtorNodeMapIterator *it, BtorNodeMap *map)
+btor_queue_node_map_iterator (BtorNodeMapIterator *it, const BtorNodeMap *map)
 {
   assert (map);
   btor_queue_node_hash_table_iterator (&it->it, map->table);
