@@ -1,7 +1,7 @@
 /*  Boolector: Satisfiablity Modulo Theories (SMT) solver.
  *
  *  Copyright (C) 2013-2015 Mathias Preiner.
- *  Copyright (C) 2015 Aina Niemetz.
+ *  Copyright (C) 2015-2016 Aina Niemetz.
  *
  *  All rights reserved.
  *
@@ -505,7 +505,24 @@ btor_is_small_positive_int_bv (const BtorBitVector *bv)
   return bv->bits[bv->len - 1];
 }
 
-int
+uint32_t
+btor_get_num_trailing_zeros_bv (const BtorBitVector *bv)
+{
+  assert (bv);
+
+  uint32_t i;
+  int res;
+
+  for (i = 0, res = 0; i < bv->width; i++)
+  {
+    if (btor_get_bit_bv (bv, i)) break;
+    res += 1;
+  }
+
+  return res;
+}
+
+uint32_t
 btor_get_num_leading_zeros_bv (const BtorBitVector *bv)
 {
   assert (bv);
@@ -522,7 +539,7 @@ btor_get_num_leading_zeros_bv (const BtorBitVector *bv)
   return res;
 }
 
-int
+uint32_t
 btor_get_num_leading_ones_bv (const BtorBitVector *bv)
 {
   assert (bv);
