@@ -3136,7 +3136,7 @@ select_constraint (Btor *btor, uint32_t nmoves)
   return res;
 }
 
-static bool
+static inline bool
 all_constraints_sat (Btor *btor)
 {
   assert (btor);
