@@ -928,8 +928,8 @@ cons_mul_bv (Btor *btor,
   assert (eidx >= 0 && eidx <= 1);
   assert (!BTOR_IS_BV_CONST_NODE (BTOR_REAL_ADDR_NODE (mul->e[eidx])));
 
-  uint32_t bw, ctz_res, ctz_bvmul;
-  BtorBitVector *res, *zero, *bvmax;
+  uint32_t r, bw, ctz_res, ctz_bvmul;
+  BtorBitVector *res, *zero, *bvmax, *tmp;
 
   (void) mul;
   (void) bve;
@@ -958,10 +958,32 @@ cons_mul_bv (Btor *btor,
     else
     {
       ctz_bvmul = btor_get_num_trailing_zeros_bv (bvmul);
-      ctz_res   = btor_get_num_trailing_zeros_bv (res);
-      if (ctz_res > ctz_bvmul)
+      r         = btor_pick_rand_rng (&btor->rng, 0, 9);
+      /* choose res as 2^n with prob 0.4 */
+      if (r < 4)
+      {
+        btor_free_bv (btor->mm, res);
+        res = btor_new_bv (btor->mm, bw);
         btor_set_bit_bv (
             res, btor_pick_rand_rng (&btor->rng, 0, ctz_bvmul - 1), 1);
+      }
+      /* choose res as bvmul / 2^n with prob 0.4
+       * (note: bw not necessarily power of 2 -> do not use srl) */
+      else if (r < 8)
+      {
+        r   = btor_pick_rand_rng (&btor->rng, 1, ctz_bvmul);
+        tmp = btor_slice_bv (btor->mm, bvmul, bw - 1, r);
+        res = btor_uext_bv (btor->mm, tmp, r);
+        btor_free_bv (btor->mm, tmp);
+      }
+      /* choose random even value with prob 0.2 */
+      else
+      {
+        ctz_res = btor_get_num_trailing_zeros_bv (res);
+        if (ctz_res > ctz_bvmul)
+          btor_set_bit_bv (
+              res, btor_pick_rand_rng (&btor->rng, 0, ctz_bvmul - 1), 1);
+      }
     }
   }
 
