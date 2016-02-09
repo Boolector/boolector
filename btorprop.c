@@ -959,24 +959,24 @@ cons_mul_bv (Btor *btor,
     {
       ctz_bvmul = btor_get_num_trailing_zeros_bv (bvmul);
       r         = btor_pick_rand_rng (&btor->rng, 0, 9);
-      /* choose res as 2^n with prob 0.4 */
-      if (r < 4)
+      /* choose res as 2^n with prob 0.1 */
+      if (r < 1)
       {
         btor_free_bv (btor->mm, res);
         res = btor_new_bv (btor->mm, bw);
         btor_set_bit_bv (
             res, btor_pick_rand_rng (&btor->rng, 0, ctz_bvmul - 1), 1);
       }
-      /* choose res as bvmul / 2^n with prob 0.4
+      /* choose res as bvmul / 2^n with prob 0.1
        * (note: bw not necessarily power of 2 -> do not use srl) */
-      else if (r < 8)
+      else if (r < 2)
       {
         r   = btor_pick_rand_rng (&btor->rng, 1, ctz_bvmul);
         tmp = btor_slice_bv (btor->mm, bvmul, bw - 1, r);
         res = btor_uext_bv (btor->mm, tmp, r);
         btor_free_bv (btor->mm, tmp);
       }
-      /* choose random even value with prob 0.2 */
+      /* choose random even value with prob 0.8 */
       else
       {
         ctz_res = btor_get_num_trailing_zeros_bv (res);
