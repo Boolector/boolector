@@ -3067,6 +3067,8 @@ select_constraint (Btor *btor, uint32_t nmoves)
   assert (slv->roots);
   res = 0;
 
+  res = 0;
+
   if (btor->options.prop_use_bandit.val)
   {
     assert (slv->score);
