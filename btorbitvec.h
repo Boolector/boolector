@@ -95,11 +95,11 @@ int btor_is_power_of_two_bv (const BtorBitVector *bv);
 int btor_is_small_positive_int_bv (const BtorBitVector *bv);
 
 /* count trailing zeros (starting from LSB) */
-int btor_get_num_trailing_zeros_bv (const BtorBitVector *bv);
+uint32_t btor_get_num_trailing_zeros_bv (const BtorBitVector *bv);
 /* count leading zeros (starting from MSB) */
-int btor_get_num_leading_zeros_bv (const BtorBitVector *bv);
+uint32_t btor_get_num_leading_zeros_bv (const BtorBitVector *bv);
 /* count leading ones (starting from MSB) */
-int btor_get_num_leading_ones_bv (const BtorBitVector *bv);
+uint32_t btor_get_num_leading_ones_bv (const BtorBitVector *bv);
 
 /*------------------------------------------------------------------------*/
 

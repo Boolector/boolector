@@ -505,7 +505,7 @@ btor_is_small_positive_int_bv (const BtorBitVector *bv)
   return bv->bits[bv->len - 1];
 }
 
-int
+uint32_t
 btor_get_num_trailing_zeros_bv (const BtorBitVector *bv)
 {
   assert (bv);
@@ -522,7 +522,7 @@ btor_get_num_trailing_zeros_bv (const BtorBitVector *bv)
   return res;
 }
 
-int
+uint32_t
 btor_get_num_leading_zeros_bv (const BtorBitVector *bv)
 {
   assert (bv);
@@ -539,7 +539,7 @@ btor_get_num_leading_zeros_bv (const BtorBitVector *bv)
   return res;
 }
 
-int
+uint32_t
 btor_get_num_leading_ones_bv (const BtorBitVector *bv)
 {
   assert (bv);
