@@ -668,6 +668,13 @@ select_path_slice (Btor *btor,
 
 /*------------------------------------------------------------------------*/
 
+#ifdef NDEBUG
+static inline BtorBitVector *inv_slice_bv (Btor *,
+                                           BtorNode *,
+                                           BtorBitVector *,
+                                           BtorBitVector *);
+#endif
+
 static inline BtorBitVector *
 cons_add_bv (Btor *btor,
              BtorNode *add,
@@ -1203,6 +1210,9 @@ check_result_binary_dbg (Btor *btor,
   assert (bvexp);
   assert (res);
   assert (op);
+
+  (void) exp;
+  (void) op;
 
   BtorBitVector *tmp;
   char *sbve, *sbvexp, *sres;
