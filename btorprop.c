@@ -3065,7 +3065,6 @@ select_constraint (Btor *btor, uint32_t nmoves)
   slv = BTOR_PROP_SOLVER (btor);
   assert (slv);
   assert (slv->roots);
-  res = 0;
 
   res = 0;
 
