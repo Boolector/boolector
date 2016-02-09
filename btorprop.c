@@ -3066,6 +3066,8 @@ select_constraint (Btor *btor, uint32_t nmoves)
   assert (slv);
   assert (slv->roots);
 
+  res = 0;
+
   if (btor->options.prop_use_bandit.val)
   {
     assert (slv->score);
@@ -3074,7 +3076,6 @@ select_constraint (Btor *btor, uint32_t nmoves)
     double value, max_value, score;
     BtorPtrHashBucket *b;
 
-    res       = 0;
     max_value = 0.0;
     btor_init_hash_table_iterator (&it, slv->roots);
     while (btor_has_next_node_hash_table_iterator (&it))
@@ -3108,7 +3109,6 @@ select_constraint (Btor *btor, uint32_t nmoves)
     uint32_t r;
     BtorNodePtrStack stack;
 
-    res = 0;
     BTOR_INIT_STACK (stack);
     btor_init_hash_table_iterator (&it, slv->roots);
     while (btor_has_next_node_hash_table_iterator (&it))
