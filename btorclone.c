@@ -822,6 +822,7 @@ clone_aux_btor (Btor *btor, BtorNodeMap **exp_map, bool exp_layer_only)
   {
     /* reset */
     clone->btor_sat_btor_called = 0;
+    clone->last_sat_result      = 0;
     btor_reset_time_btor (clone);
 #ifndef NDEBUG
     clone->stats.rw_rules_applied = 0;
