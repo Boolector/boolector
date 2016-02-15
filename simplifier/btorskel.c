@@ -3,7 +3,7 @@
  *  Copyright (C) 2007-2009 Robert Daniel Brummayer.
  *  Copyright (C) 2007-2014 Armin Biere.
  *  Copyright (C) 2012-2015 Mathias Preiner.
- *  Copyright (C) 2012-2015 Aina Niemetz.
+ *  Copyright (C) 2012-2016 Aina Niemetz.
  *
  *  All rights reserved.
  *
@@ -235,9 +235,9 @@ btor_process_skeleton (Btor* btor)
   lgl = lglinit ();
   lglsetprefix (lgl, "[lglskel] ");
 
-  if (btor->options.verbosity.val >= 2)
+  if (btor_get_opt (btor, BTOR_OPT_VERBOSITY) >= 2)
   {
-    lglsetopt (lgl, "verbose", btor->options.verbosity.val - 1);
+    lglsetopt (lgl, "verbose", btor_get_opt (btor, BTOR_OPT_VERBOSITY) - 1);
     lglbnr ("Lingeling", "[lglskel] ", stdout);
     fflush (stdout);
   }
@@ -281,7 +281,7 @@ btor_process_skeleton (Btor* btor)
 
   res = lglsimp (lgl, 0);
 
-  if (btor->options.verbosity.val)
+  if (btor_get_opt (btor, BTOR_OPT_VERBOSITY))
   {
     BTOR_MSG (btor->msg, 1, "skeleton preprocessing result %d", res);
     lglstats (lgl);

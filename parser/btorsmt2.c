@@ -1,7 +1,7 @@
 /*  Boolector: Satisfiablity Modulo Theories (SMT) solver.
  *
  *  Copyright (C) 2011-2014 Armin Biere.
- *  Copyright (C) 2013-2015 Aina Niemetz.
+ *  Copyright (C) 2013-2016 Aina Niemetz.
  *  Copyright (C) 2013-2015 Mathias Preiner.
  *
  *  All rights reserved.
@@ -3798,7 +3798,7 @@ btor_set_option_smt2 (BtorSMT2Parser *parser)
         assert (parser->error);
         return 0;
       }
-      val = boolector_get_opt_val (parser->btor, opt);
+      val = boolector_get_opt (parser->btor, opt);
       if (tag == BTOR_FALSE_TAG_SMT2)
         val = 0;
       else if (tag == BTOR_TRUE_TAG_SMT2)
@@ -4033,7 +4033,7 @@ btor_read_command_smt2 (BtorSMT2Parser *parser)
 
     case BTOR_GET_MODEL_TAG_SMT2:
       if (!btor_read_rpar_smt2 (parser, " after 'get-model'")) return 0;
-      if (!boolector_get_opt_val (parser->btor, "model_gen"))
+      if (!boolector_get_opt (parser->btor, "model_gen"))
         return !btor_perr_smt2 (parser, "model generation is not enabled");
       if (parser->res->result != BOOLECTOR_SAT) break;
       boolector_print_model (parser->btor, "smt2", parser->outfile);
@@ -4042,7 +4042,7 @@ btor_read_command_smt2 (BtorSMT2Parser *parser)
 
     case BTOR_GET_VALUE_TAG_SMT2:
       if (!btor_read_lpar_smt2 (parser, " after 'get-value'")) return 0;
-      if (!boolector_get_opt_val (parser->btor, "model_gen"))
+      if (!boolector_get_opt (parser->btor, "model_gen"))
         return !btor_perr_smt2 (parser, "model generation is not enabled");
       if (parser->res->result != BOOLECTOR_SAT) break;
       tag = 0;

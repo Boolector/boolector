@@ -3,7 +3,7 @@
  *  Copyright (C) 2007-2009 Robert Daniel Brummayer.
  *  Copyright (C) 2007-2014 Armin Biere.
  *  Copyright (C) 2012-2015 Mathias Preiner.
- *  Copyright (C) 2012-2015 Aina Niemetz.
+ *  Copyright (C) 2012-2016 Aina Niemetz.
  *
  *  All rights reserved.
  *
@@ -162,7 +162,7 @@ struct Btor
   FILE *apitrace;
   int close_apitrace;
 
-  BtorOpts options;
+  BtorPtrHashTable *options;
   BtorMsg *msg;
   BtorRNG rng;
 
@@ -227,9 +227,6 @@ struct Btor
 
 /* Creates new boolector instance. */
 Btor *btor_new_btor (void);
-
-/* Creates new boolector instance without initializing options. */
-Btor *btor_new_btor_no_init (void);
 
 /* Deletes boolector. */
 void btor_delete_btor (Btor *btor);

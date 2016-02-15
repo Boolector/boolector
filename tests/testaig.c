@@ -2,7 +2,7 @@
  *
  *  Copyright (C) 2007-2010 Robert Daniel Brummayer.
  *  Copyright (C) 2007-2012 Armin Biere.
- *  Copyright (C) 2014-2015 Aina Niemetz.
+ *  Copyright (C) 2014-2016 Aina Niemetz.
  *
  *  All rights reserved.
  *
@@ -12,6 +12,7 @@
 
 #include "testaig.h"
 #include "btoraig.h"
+#include "btorcore.h"
 #include "btormsg.h"
 #include "btorsat.h"
 #include "dumper/btordumpaig.h"
@@ -25,28 +26,25 @@
 #include <assert.h>
 #include <stdio.h>
 
-static BtorMemMgr *g_mm;
-static BtorMsg *g_msg;
-static uint32_t g_verbosity;
+static Btor *g_btor;
 
 void
 init_aig_tests (void)
 {
-  g_mm  = btor_new_mem_mgr ();
-  g_msg = btor_new_btor_msg (g_mm, &g_verbosity);
+  g_btor = btor_new_btor ();
 }
 
 static void
 test_new_delete_aig_mgr (void)
 {
-  BtorAIGMgr *amgr = btor_new_aig_mgr (g_mm, g_msg, 0);
+  BtorAIGMgr *amgr = btor_new_aig_mgr (g_btor);
   btor_delete_aig_mgr (amgr);
 }
 
 static void
 test_false_aig (void)
 {
-  BtorAIGMgr *amgr = btor_new_aig_mgr (g_mm, g_msg, 0);
+  BtorAIGMgr *amgr = btor_new_aig_mgr (g_btor);
   btor_dump_aig (amgr, 0, g_logfile, BTOR_AIG_FALSE);
   btor_delete_aig_mgr (amgr);
 }
@@ -54,7 +52,7 @@ test_false_aig (void)
 static void
 test_true_aig (void)
 {
-  BtorAIGMgr *amgr = btor_new_aig_mgr (g_mm, g_msg, 0);
+  BtorAIGMgr *amgr = btor_new_aig_mgr (g_btor);
   btor_dump_aig (amgr, 0, g_logfile, BTOR_AIG_TRUE);
   btor_delete_aig_mgr (amgr);
 }
@@ -62,7 +60,7 @@ test_true_aig (void)
 static void
 test_var_aig (void)
 {
-  BtorAIGMgr *amgr = btor_new_aig_mgr (g_mm, g_msg, 0);
+  BtorAIGMgr *amgr = btor_new_aig_mgr (g_btor);
   BtorAIG *var     = btor_var_aig (amgr);
   assert (BTOR_IS_VAR_AIG (var));
   btor_dump_aig (amgr, 0, g_logfile, var);
@@ -73,7 +71,7 @@ test_var_aig (void)
 static void
 test_not_aig (void)
 {
-  BtorAIGMgr *amgr = btor_new_aig_mgr (g_mm, g_msg, 0);
+  BtorAIGMgr *amgr = btor_new_aig_mgr (g_btor);
   BtorAIG *var     = btor_var_aig (amgr);
   BtorAIG *not     = btor_not_aig (amgr, var);
   btor_dump_aig (amgr, 0, g_logfile, not);
@@ -87,7 +85,7 @@ binary_commutative_aig_test (BtorAIG *(*func) (BtorAIGMgr *,
                                                BtorAIG *,
                                                BtorAIG *) )
 {
-  BtorAIGMgr *amgr = btor_new_aig_mgr (g_mm, g_msg, 0);
+  BtorAIGMgr *amgr = btor_new_aig_mgr (g_btor);
   BtorAIG *aig1    = btor_var_aig (amgr);
   BtorAIG *aig2    = btor_var_aig (amgr);
   BtorAIG *aig3    = func (amgr, aig1, aig2);
@@ -125,7 +123,7 @@ test_eq_aig (void)
 static void
 test_cond_aig (void)
 {
-  BtorAIGMgr *amgr = btor_new_aig_mgr (g_mm, g_msg, 0);
+  BtorAIGMgr *amgr = btor_new_aig_mgr (g_btor);
   BtorAIG *aig1    = btor_var_aig (amgr);
   BtorAIG *aig2    = btor_var_aig (amgr);
   BtorAIG *aig3    = btor_var_aig (amgr);
@@ -144,7 +142,7 @@ test_cond_aig (void)
 static void
 test_aig_to_sat (void)
 {
-  BtorAIGMgr *amgr = btor_new_aig_mgr (g_mm, g_msg, 0);
+  BtorAIGMgr *amgr = btor_new_aig_mgr (g_btor);
   BtorSATMgr *smgr = btor_get_sat_mgr_aig_mgr (amgr);
   BtorAIG *var1    = btor_var_aig (amgr);
   BtorAIG *var2    = btor_var_aig (amgr);
@@ -184,6 +182,5 @@ run_aig_tests (int argc, char **argv)
 void
 finish_aig_tests (void)
 {
-  btor_delete_btor_msg (g_msg);
-  btor_delete_mem_mgr (g_mm);
+  btor_delete_btor (g_btor);
 }

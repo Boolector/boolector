@@ -1,6 +1,6 @@
 /*  Boolector: Satisfiablity Modulo Theories (SMT) solver.
  *
- *  Copyright (C) 2013-2015 Aina Niemetz.
+ *  Copyright (C) 2013-2016 Aina Niemetz.
  *  Copyright (C) 2013-2015 Mathias Preiner.
  *
  *  All rights reserved.
@@ -19,6 +19,7 @@
 #include "btoropt.h"
 #include "btorslv.h"
 #include "btorslvcore.h"
+#include "utils/btorhashptr.h"
 #include "utils/btoriter.h"
 
 static void
@@ -121,87 +122,40 @@ btor_chkclone_stats (Btor *btor)
   BTOR_CHKCLONE_STATS (beta_reduce_calls);
 }
 
-#define BTOR_CHKCLONE_OPT(field)                                          \
-  do                                                                      \
-  {                                                                       \
-    BTOR_CHKCLONE_STATE (options.field.internal);                         \
-    assert ((!btor->options.field.shrt && !clone->options.field.shrt)     \
-            || (btor->options.field.shrt                                  \
-                && !strcmp (clone->options.field.shrt,                    \
-                            btor->options.field.shrt)));                  \
-    assert (!strcmp (clone->options.field.lng, btor->options.field.lng)); \
-    assert ((!btor->options.field.desc && !clone->options.field.desc)     \
-            || (btor->options.field.desc                                  \
-                && !strcmp (clone->options.field.desc,                    \
-                            btor->options.field.desc)));                  \
-    BTOR_CHKCLONE_STATE (options.field.val);                              \
-    BTOR_CHKCLONE_STATE (options.field.dflt);                             \
-    BTOR_CHKCLONE_STATE (options.field.min);                              \
-    BTOR_CHKCLONE_STATE (options.field.max);                              \
-  } while (0)
-
 static void
 btor_chkclone_opts (Btor *btor)
 {
   assert (btor);
 
   Btor *clone;
+  BtorOpt *opt, *copt;
+  BtorHashTableIterator it, cit;
 
   clone = btor->clone;
   assert (clone);
 
-  BTOR_CHKCLONE_OPT (model_gen);
-
-  BTOR_CHKCLONE_OPT (incremental);
-  BTOR_CHKCLONE_OPT (incremental_all);
-  BTOR_CHKCLONE_OPT (incremental_in_depth);
-  BTOR_CHKCLONE_OPT (incremental_look_ahead);
-  BTOR_CHKCLONE_OPT (incremental_interval);
-
-  BTOR_CHKCLONE_OPT (input_format);
-
-  BTOR_CHKCLONE_OPT (output_number_format);
-  BTOR_CHKCLONE_OPT (output_format);
-
-  BTOR_CHKCLONE_OPT (rewrite_level);
-
-  BTOR_CHKCLONE_OPT (beta_reduce_all);
-
-  BTOR_CHKCLONE_OPT (dual_prop);
-  BTOR_CHKCLONE_OPT (just);
-#ifndef BTOR_DO_NOT_OPTIMIZE_UNCONSTRAINED
-  BTOR_CHKCLONE_OPT (ucopt);
-#endif
-
-  /* Note: auto_cleanup.val = 1 in clone! */
-  BTOR_CHKCLONE_STATE (options.auto_cleanup.internal);
-  assert (
-      (!btor->options.auto_cleanup.shrt && !clone->options.auto_cleanup.shrt)
-      || (btor->options.auto_cleanup.shrt
-          && !strcmp (clone->options.auto_cleanup.shrt,
-                      btor->options.auto_cleanup.shrt)));
-  assert (!strcmp (clone->options.auto_cleanup.lng,
-                   btor->options.auto_cleanup.lng));
-  assert (
-      (!btor->options.auto_cleanup.desc && !clone->options.auto_cleanup.desc)
-      || (btor->options.auto_cleanup.desc
-          && !strcmp (clone->options.auto_cleanup.desc,
-                      btor->options.auto_cleanup.desc)));
-  BTOR_CHKCLONE_STATE (options.auto_cleanup.dflt);
-  BTOR_CHKCLONE_STATE (options.auto_cleanup.min);
-  BTOR_CHKCLONE_STATE (options.auto_cleanup.max);
-
-  BTOR_CHKCLONE_OPT (pretty_print);
-#ifndef NBTORLOG
-  BTOR_CHKCLONE_OPT (loglevel);
-#endif
-  BTOR_CHKCLONE_OPT (verbosity);
-
-  BTOR_CHKCLONE_OPT (simplify_constraints);
-  BTOR_CHKCLONE_OPT (auto_cleanup_internal);
-#ifdef BTOR_CHECK_FAILED
-  BTOR_CHKCLONE_OPT (chk_failed_assumptions);
-#endif
+  btor_init_hash_table_iterator (&it, btor->options);
+  btor_init_hash_table_iterator (&cit, clone->options);
+  while (btor_has_next_hash_table_iterator (&it))
+  {
+    assert (btor_has_next_hash_table_iterator (&cit));
+    opt  = (BtorOpt *) btor_next_data_hash_table_iterator (&it)->as_ptr;
+    copt = (BtorOpt *) btor_next_data_hash_table_iterator (&cit)->as_ptr;
+    assert (opt->internal == copt->internal);
+    /* Note: auto_cleanup.val = 1 in clone! */
+    if (strcmp (opt->lng, BTOR_OPT_AUTO_CLEANUP))
+      assert (opt->val == copt->val);
+    assert (opt->dflt == copt->dflt);
+    assert (opt->min == copt->min);
+    assert (opt->max == copt->max);
+    assert (opt->lng && !strcmp (opt->lng, copt->lng));
+    assert ((!opt->shrt && !copt->shrt)
+            || (opt->shrt && !strcmp (opt->shrt, copt->shrt)));
+    assert ((!opt->desc && !copt->desc)
+            || (opt->desc && !strcmp (opt->desc, copt->desc)));
+    assert ((!opt->valstr && !copt->valstr)
+            || (opt->valstr && !strcmp (opt->valstr, copt->valstr)));
+  }
 }
 
 #define BTOR_CHKCLONE_AIG(field)                   \
@@ -933,7 +887,9 @@ btor_chkclone_sort (const BtorSort *sort, const BtorSort *clone)
 void
 btor_chkclone_slv (Btor *btor)
 {
-  int i, h = btor->options.just_heuristic.val;
+  int i, h;
+
+  h = btor_get_opt (btor, BTOR_OPT_JUST_HEURISTIC);
 
   assert ((!btor->slv && !btor->clone->slv) || (btor->slv && btor->clone->slv));
   if (!btor->slv) return;
@@ -1060,15 +1016,20 @@ btor_chkclone (Btor *btor)
   btor_chkclone_stats (btor);
   btor_chkclone_opts (btor);
   btor_chkclone_assignment_lists (btor);
-  BTOR_CHKCLONE_AIG_UNIQUE_TABLE (
-      btor_get_aig_mgr_aigvec_mgr (btor->avmgr)->table,
-      btor_get_aig_mgr_aigvec_mgr (btor->clone->avmgr)->table);
-  BTOR_CHKCLONE_AIG_ID_TABLE (
-      btor_get_aig_mgr_aigvec_mgr (btor->avmgr)->id2aig,
-      btor_get_aig_mgr_aigvec_mgr (btor->clone->avmgr)->id2aig);
-  BTOR_CHKCLONE_AIG_CNF_ID_TABLE (
-      btor_get_aig_mgr_aigvec_mgr (btor->avmgr)->cnfid2aig,
-      btor_get_aig_mgr_aigvec_mgr (btor->clone->avmgr)->cnfid2aig);
+  assert ((!btor->avmgr && !btor->clone->avmgr)
+          || (btor->avmgr && btor->clone->avmgr));
+  if (btor->avmgr)
+  {
+    BTOR_CHKCLONE_AIG_UNIQUE_TABLE (
+        btor_get_aig_mgr_aigvec_mgr (btor->avmgr)->table,
+        btor_get_aig_mgr_aigvec_mgr (btor->clone->avmgr)->table);
+    BTOR_CHKCLONE_AIG_ID_TABLE (
+        btor_get_aig_mgr_aigvec_mgr (btor->avmgr)->id2aig,
+        btor_get_aig_mgr_aigvec_mgr (btor->clone->avmgr)->id2aig);
+    BTOR_CHKCLONE_AIG_CNF_ID_TABLE (
+        btor_get_aig_mgr_aigvec_mgr (btor->avmgr)->cnfid2aig,
+        btor_get_aig_mgr_aigvec_mgr (btor->clone->avmgr)->cnfid2aig);
+  }
   BTOR_CHKCLONE_NODE_ID_TABLE (btor->nodes_id_table,
                                btor->clone->nodes_id_table);
   BTOR_CHKCLONE_NODE_UNIQUE_TABLE (btor->nodes_unique_table,

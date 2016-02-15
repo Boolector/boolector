@@ -3,7 +3,7 @@
  *  Copyright (C) 2007-2009 Robert Daniel Brummayer.
  *  Copyright (C) 2007-2013 Armin Biere.
  *  Copyright (C) 2012-2015 Mathias Preiner.
- *  Copyright (C) 2012-2015 Aina Niemetz.
+ *  Copyright (C) 2012-2016 Aina Niemetz.
  *
  *  All rights reserved.
  *
@@ -71,7 +71,7 @@ new_smt_dump_context (Btor *btor, FILE *file)
   sdc->roots        = btor_new_ptr_hash_table (btor->mm, 0, 0);
   sdc->file         = file;
   sdc->maxid        = 1;
-  sdc->pretty_print = btor->options.pretty_print.val;
+  sdc->pretty_print = btor_get_opt (btor, BTOR_OPT_PRETTY_PRINT);
   return sdc;
 }
 
@@ -229,7 +229,7 @@ dump_const_value_aux_smt (BtorSMTDumpContext *sdc, char *bits)
   const char *fmt;
   BtorPtrHashBucket *b;
 
-  base = sdc->btor->options.output_number_format.val;
+  base = btor_get_opt (sdc->btor, BTOR_OPT_OUTPUT_NUMBER_FORMAT);
   file = sdc->file;
 
   /* converting consts to decimal/hex is costly. we now always dump the value of
@@ -1300,8 +1300,8 @@ dump_smt_aux (Btor *btor, FILE *file, BtorNode **roots, int nroots)
 {
   assert (btor);
   assert (file);
-  assert (!btor->options.incremental.val);
-  //  assert (!btor->options.model_gen.val);
+  assert (!btor_get_opt (btor, BTOR_OPT_INCREMENTAL));
+  //  assert (!btor_get_opt (btor, BTOR_OPT_MODEL_GEN));
 
   BtorSolverResult ret;
   int i;

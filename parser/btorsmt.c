@@ -1,7 +1,7 @@
 /*  Boolector: Satisfiablity Modulo Theories (SMT) solver.
  *
  *  Copyright (C) 2007-2013 Armin Biere.
- *  Copyright (C) 2013-2015 Aina Niemetz.
+ *  Copyright (C) 2013-2016 Aina Niemetz.
  *  Copyright (C) 2014-2015 Mathias Preiner.
  *
  *  All rights reserved.
@@ -184,7 +184,6 @@ struct BtorSMTParser
   int parsed;
 
   int incremental;
-  int max_window_size;
   int model;
 
   struct
@@ -237,7 +236,6 @@ struct BtorSMTParser
 
   BoolectorNodePtrStack inputs;
   BoolectorNodePtrStack outputs;
-  BoolectorNodePtrStack window;
 };
 
 /*------------------------------------------------------------------------*/
@@ -584,10 +582,6 @@ btor_delete_smt_parser (BtorSMTParser *parser)
     boolector_release (parser->btor, *p);
   BTOR_RELEASE_STACK (mm, parser->outputs);
 
-  for (p = parser->window.start; p != parser->window.top; p++)
-    boolector_release (parser->btor, *p);
-  BTOR_RELEASE_STACK (mm, parser->window);
-
   BTOR_DELETE (mm, parser);
   btor_delete_mem_mgr (mm);
 }
@@ -679,10 +673,9 @@ btor_new_smt_parser (Btor *btor, BtorParseOpt *opts)
   BTOR_NEW (mem, res);
   BTOR_CLR (res);
 
-  res->verbosity       = opts->verbosity;
-  res->incremental     = opts->incremental;
-  res->max_window_size = opts->window;
-  res->model           = opts->need_model;
+  res->verbosity   = opts->verbosity;
+  res->incremental = opts->incremental;
+  res->model       = opts->need_model;
 
   btor_smt_message (res, 2, "initializing SMT parser");
   if (opts->incremental
@@ -694,24 +687,6 @@ btor_new_smt_parser (Btor *btor, BtorParseOpt *opts)
       btor_smt_message (res, 2, "stop after first satisfiable ':formula'");
     else if (opts->incremental & BTOR_PARSE_MODE_INCREMENTAL_BUT_CONTINUE)
       btor_smt_message (res, 2, "check all ':formula' for satisfiability");
-
-    if (opts->incremental & BTOR_PARSE_MODE_INCREMENTAL_IN_DEPTH)
-      btor_smt_message (res,
-                        2,
-                        "incremental in-depth mode with window size %d",
-                        res->max_window_size);
-
-    if (opts->incremental & BTOR_PARSE_MODE_INCREMENTAL_LOOK_AHEAD)
-      btor_smt_message (res,
-                        2,
-                        "incremental look-ahead mode with window size %d",
-                        res->max_window_size);
-
-    if (opts->incremental & BTOR_PARSE_MODE_INCREMENTAL_INTERVAL)
-      btor_smt_message (res,
-                        2,
-                        "incremental interval mode with window size %d",
-                        res->max_window_size);
   }
 
   res->mem  = mem;
@@ -2589,22 +2564,10 @@ btor_smt_parser_inc_add_release_sat (BtorSMTParser *parser,
                                      BoolectorNode *exp)
 {
   char formula[40], *prefix;
-  int satres, maxformula, checked, ndigits;
+  int satres, checked, ndigits;
   assert (parser->formulas.checked < parser->formulas.parsed);
-  if (parser->incremental & BTOR_PARSE_MODE_INCREMENTAL_INTERVAL)
-  {
-    maxformula = parser->formulas.checked;
-    maxformula += parser->max_window_size - 1;
-    if (maxformula >= parser->formulas.parsed)
-      maxformula = parser->formulas.parsed - 1;
-    sprintf (formula, "%d - %d", parser->formulas.checked, maxformula);
-    checked = maxformula - parser->formulas.checked + 1;
-  }
-  else
-  {
-    sprintf (formula, "%d", parser->formulas.checked);
-    checked = 1;
-  }
+  sprintf (formula, "%d", parser->formulas.checked);
+  checked = 1;
 
   if (parser->formulas.checked + 1 == parser->formulas.parsed)
   {
@@ -2654,38 +2617,14 @@ continue_parsing (BtorSMTParser *parser, BtorParseResult *res)
   return parser->incremental & BTOR_PARSE_MODE_INCREMENTAL_BUT_CONTINUE;
 }
 
-static BoolectorNode *
-or_and_flush_window (BtorSMTParser *parser)
-{
-  BoolectorNode *next, *res, *tmp;
-
-  res = 0;
-  while (!BTOR_EMPTY_STACK (parser->window))
-  {
-    next = BTOR_POP_STACK (parser->window);
-    if (res)
-    {
-      tmp = boolector_or (parser->btor, next, res);
-      boolector_release (parser->btor, res);
-      boolector_release (parser->btor, next);
-      res = tmp;
-    }
-    else
-      res = next;
-  }
-  assert (res);
-  return res;
-}
-
 static char *
 translate_benchmark (BtorSMTParser *parser,
                      BtorSMTNode *top,
                      BtorParseResult *res)
 {
-  int count_window, missing, indepth, lookahead, interval;
   BtorSMTSymbol *symbol, *logic, *benchmark;
   BtorSMTNode *p, *node, *q;
-  BoolectorNode *exp, *next;
+  BoolectorNode *exp;
   BtorSMTToken status;
 
   btor_smt_message (parser, 2, "extracting expressions");
@@ -2705,10 +2644,6 @@ translate_benchmark (BtorSMTParser *parser,
   benchmark = strip (benchmark);
 
   btor_smt_message (parser, 2, "benchmark %s", benchmark->name);
-
-  indepth   = parser->incremental & BTOR_PARSE_MODE_INCREMENTAL_IN_DEPTH;
-  lookahead = parser->incremental & BTOR_PARSE_MODE_INCREMENTAL_LOOK_AHEAD;
-  interval  = parser->incremental & BTOR_PARSE_MODE_INCREMENTAL_INTERVAL;
 
   symbol = 0;
 
@@ -2870,80 +2805,6 @@ translate_benchmark (BtorSMTParser *parser,
         {
           BTOR_PUSH_STACK (parser->mem, parser->outputs, exp);
         }
-        else if (indepth || lookahead)
-        {
-          count_window = BTOR_COUNT_STACK (parser->window);
-          missing      = parser->max_window_size - count_window;
-
-          assert (missing >= 0);
-
-          if (!missing
-              || parser->formulas.checked + 1 == parser->formulas.parsed)
-          {
-            if (indepth)
-              btor_smt_message (
-                  parser,
-                  3,
-                  "found last in-depth ':formula' %d at window position %d",
-                  parser->formulas.handled,
-                  count_window);
-            else
-              btor_smt_message (parser,
-                                3,
-                                "saving next ':formula' %d outside of current "
-                                "look-ahead window",
-                                parser->formulas.handled);
-
-            BTOR_PUSH_STACK (parser->mem, parser->window, exp);
-
-            do
-            {
-              BTOR_DEQUEUE_STACK (parser->window, next);
-              btor_smt_parser_inc_add_release_sat (parser, res, next);
-            } while (indepth && continue_parsing (parser, res)
-                     && !BTOR_EMPTY_STACK (parser->window));
-          }
-          else
-          {
-            btor_smt_message (
-                parser,
-                3,
-                "saving ':formula' %d at window position %d still %d missing",
-                parser->formulas.handled,
-                count_window,
-                missing);
-
-            BTOR_PUSH_STACK (parser->mem, parser->window, exp);
-          }
-        }
-        else if (interval)
-        {
-          BTOR_PUSH_STACK (parser->mem, parser->window, exp);
-
-          if (parser->formulas.checked + 1 == parser->formulas.parsed)
-            count_window = missing = 0;
-          else
-          {
-            count_window = BTOR_COUNT_STACK (parser->window);
-            missing      = parser->max_window_size - count_window;
-          }
-
-          assert (missing >= 0);
-
-          if (missing)
-            btor_smt_message (
-                parser,
-                3,
-                "saving ':formula' %d at window position %d still %d missing",
-                parser->formulas.handled,
-                count_window,
-                missing);
-          else
-          {
-            next = or_and_flush_window (parser);
-            btor_smt_parser_inc_add_release_sat (parser, res, next);
-          }
-        }
         else
           btor_smt_parser_inc_add_release_sat (parser, res, exp);
 
@@ -2964,39 +2825,6 @@ translate_benchmark (BtorSMTParser *parser,
       btor_recursively_delete_smt_node (parser, node);
       if (q == p) break;
       q = cdr (q);
-    }
-  }
-
-  if (!BTOR_EMPTY_STACK (parser->window))
-  {
-    assert (parser->incremental & BTOR_PARSE_MODE_INCREMENTAL_WINDOW);
-    if ((parser->incremental & BTOR_PARSE_MODE_INCREMENTAL_BUT_CONTINUE)
-        || res->result != BOOLECTOR_SAT)
-    {
-      btor_smt_message (parser,
-                        1,
-                        "finished parsing + added all assumptions in "
-                        "incremental window %d mode",
-                        parser->max_window_size);
-      btor_smt_message (parser,
-                        1,
-                        "still need to work on %d remaining unchecked formulas",
-                        BTOR_COUNT_STACK (parser->window));
-      while (
-          !BTOR_EMPTY_STACK (parser->window)
-          && ((parser->incremental & BTOR_PARSE_MODE_INCREMENTAL_BUT_CONTINUE)
-              || res->result != BOOLECTOR_SAT))
-      {
-        BoolectorNode *next;
-        if (interval)
-        {
-          next = or_and_flush_window (parser);
-          assert (BTOR_EMPTY_STACK (parser->window));
-        }
-        else
-          BTOR_DEQUEUE_STACK (parser->window, next);
-        btor_smt_parser_inc_add_release_sat (parser, res, next);
-      }
     }
   }
 

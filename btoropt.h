@@ -1,6 +1,6 @@
 /*  Boolector: Satisfiablity Modulo Theories (SMT) solver.
  *
- *  Copyright (C) 2014-2015 Aina Niemetz.
+ *  Copyright (C) 2014-2016 Aina Niemetz.
  *  Copyright (C) 2014-2015 Mathias Preiner.
  *  Copyright (C) 2014-2015 Armin Biere.
  *
@@ -13,8 +13,10 @@
 #ifndef BTOROPTS_H_INCLUDED
 #define BTOROPTS_H_INCLUDED
 
+#include <stdbool.h>
 #include <stdint.h>
 #include "btortypes.h"
+#include "utils/btorhashptr.h"
 #include "utils/btormem.h"
 
 #define BTOR_VERBOSITY_MAX 4
@@ -103,9 +105,6 @@ typedef struct BtorOpt
 #define BTOR_OPT_MODEL_GEN "model_gen"
 #define BTOR_OPT_INCREMENTAL "incremental"
 #define BTOR_OPT_INCREMENTAL_ALL "incremental_all"
-#define BTOR_OPT_INCREMENTAL_IN_DEPTH "incremental_in_depth"
-#define BTOR_OPT_INCREMENTAL_LOOK_AHEAD "incremental_look_ahead"
-#define BTOR_OPT_INCREMENTAL_INTERVAL "incremental_interval"
 #define BTOR_OPT_INPUT_FORMAT "input_format"
 #define BTOR_OPT_OUTPUT_NUMBER_FORMAT "output_number_format"
 #define BTOR_OPT_OUTPUT_FORMAT "output_format"
@@ -121,8 +120,8 @@ typedef struct BtorOpt
 #define BTOR_OPT_SLS_MOVE_SEGMENT "sls_move_segment"
 #define BTOR_OPT_SLS_MOVE_RAND_WALK "sls_move_rand_walk"
 #define BTOR_OPT_SLS_MOVE_RAND_WALK_PROB "sls_move_rand_walk_prob"
-#define BTOR_OPT_SLS_MOVE_RANDOMIZEALL "sls_move_rand_all"
-#define BTOR_OPT_SLS_MOVE_RANDOMIZERANGE "sls_move_rand_range"
+#define BTOR_OPT_SLS_MOVE_RAND_ALL "sls_move_rand_all"
+#define BTOR_OPT_SLS_MOVE_RAND_RANGE "sls_move_rand_range"
 #define BTOR_OPT_SLS_MOVE_PROP "sls_move_prop"
 #define BTOR_OPT_SLS_MOVE_PROP_N_PROP "sls_move_prop_n_prop"
 #define BTOR_OPT_SLS_MOVE_PROP_N_SLS "sls_move_prop_n_sls"
@@ -149,7 +148,7 @@ typedef struct BtorOpt
 #define BTOR_OPT_UCOPT "ucopt"
 #define BTOR_OPT_LAZY_SYNTHESIZE "lazy_synthesize"
 #define BTOR_OPT_ELIMINATE_SLICES "eliminate_slices"
-#define BTOR_OPT_DELAY_LEMMAS "delay_lemmas"
+#define BTOR_OPT_EAGER_LEMMAS "eager_lemmas"
 #define BTOR_OPT_JUST_HEURISTIC "just_heuristic"
 #define BTOR_OPT_PARSE_INTERACTIVE "parse_interactive"
 #define BTOR_OPT_MERGE_LAMBDAS "merge_lambdas"
@@ -161,122 +160,31 @@ typedef struct BtorOpt
 #define BTOR_OPT_RW_NORMALIZE "rw_normalize"
 #define BTOR_OPT_VAR_SUBST "var_subst"
 
-typedef struct BtorOpts
-{
-  BtorOpt first; /* dummy for iteration */
-  /* ----------------------------------------------------------------------- */
-  BtorOpt engine;     /* Boolector engine */
-  BtorOpt sat_engine; /* configured sat solver */
-#ifdef BTOR_USE_LINGELING
-  BtorOpt sat_engine_lgl_fork; /* fork Lingeling */
-#endif
-
-  BtorOpt model_gen; /* model generation enabled */
-
-  BtorOpt incremental;     /* incremental usage */
-  BtorOpt incremental_all; /* incremental usage, solve all */
-
-  BtorOpt input_format; /* force input format */
-
-  BtorOpt output_number_format; /* output number format */
-  BtorOpt output_format;        /* output file format */
-
-  BtorOpt rewrite_level;
-
-  BtorOpt beta_reduce_all; /* eagerly eliminate lambda expressions */
-  BtorOpt ackermannize;    /* add ackermann constraints */
-
-  BtorOpt sls_strategy;
-  BtorOpt sls_move_gw;
-  BtorOpt sls_move_range;          /* enable range flip neighbors */
-  BtorOpt sls_move_segment;        /* enable segment flip neighbors */
-  BtorOpt sls_move_rand_all;       /* randomize all candidates
-                                      (rather than just one) */
-  BtorOpt sls_move_rand_range;     /* ranomize range-wise and choose best guess
-                                      (rather than randomizing all bits) */
-  BtorOpt sls_move_rand_walk;      /* enable random walks */
-  BtorOpt sls_move_rand_walk_prob; /* probability to choose a random walk */
-  BtorOpt sls_move_prop;           /* enable propagation moves */
-  BtorOpt sls_move_prop_n_prop;    /* number of prop moves (vs. sls moves) */
-  BtorOpt sls_move_prop_n_sls;     /* number of prop moves (vs. sls moves) */
-  BtorOpt sls_move_prop_force_rw;  /* force random walk if prop move fails */
-  BtorOpt sls_move_prop_no_flip_cond;   /* do not choose cond flip during
-                                     path selection for prop moves */
-  BtorOpt sls_move_prop_flip_cond_prob; /* probability to choose cond flip
-                                     during path selection for prop moves */
-  BtorOpt sls_move_inc_move_test;
-
-  BtorOpt sls_use_restarts;
-  BtorOpt sls_use_bandit;
-
-  BtorOpt dual_prop;      /* dual prop optimization */
-  BtorOpt just;           /* justification optimization */
-  BtorOpt just_heuristic; /* use heuristic (else: input [0] if both
-                             are controlling) */
-#ifndef BTOR_DO_NOT_OPTIMIZE_UNCONSTRAINED
-  BtorOpt ucopt; /* unconstrained optimization */
-#endif
-  BtorOpt lazy_synthesize;  /* lazily synthesize expressions */
-  BtorOpt eliminate_slices; /* eliminate slices on variables */
-  BtorOpt eager_lemmas;     /* eager lemma generation */
-  BtorOpt merge_lambdas;    /* merge lambda chains */
-  BtorOpt extract_lambdas;  /* extract lambda terms */
-  BtorOpt skeleton_preproc; /* skeleton preprocessing */
-  BtorOpt var_subst;        /* variable substitution */
-  BtorOpt sort_exp;         /* sort commutative expression nodes */
-  BtorOpt sort_aig;         /* sort AIG nodes */
-  BtorOpt sort_aigvec;      /* sort AIG vectors */
-
-  BtorOpt auto_cleanup; /* automatic cleanup of exps, assignment
-                           strings (external references only) */
-  BtorOpt pretty_print; /* reindex exps and sorts when dumping */
-  BtorOpt exit_codes;   /* use Boolector exit codes rather than
-                           returning 0 on success and 1 on error */
-#ifndef NBTORLOG
-  BtorOpt loglevel;
-#endif
-  BtorOpt verbosity;
-
-  BtorOpt seed; /* seed for random number generator */
-  /* internal */
-  BtorOpt simplify_constraints;  /* force constraints to true/false */
-  BtorOpt auto_cleanup_internal; /* force cleanup of exps, assignm. strings
-                                    (internal references only) */
-
-  BtorOpt incremental_in_depth;   /* incremental usage, in-depth mode */
-  BtorOpt incremental_look_ahead; /* incremental usage, look-ahead mode */
-  BtorOpt incremental_interval;   /* incremental usage, interval mode */
-  BtorOpt parse_interactive;      /* interactive parse mode */
-  BtorOpt rw_normalize;           /* normalization during rewriting */
-
-  /* ----------------------------------------------------------------------- */
-  BtorOpt last; /* dummy for iteration */
-#ifdef BTOR_CHECK_FAILED
-  BtorOpt chk_failed_assumptions;
-#endif
-
-} BtorOpts;
+void btor_init_opt (Btor *btor,
+                    bool internal,
+                    char *lng,
+                    char *shrt,
+                    uint32_t val,
+                    uint32_t min,
+                    uint32_t max,
+                    char *desc);
 
 void btor_init_opts (Btor *btor);
-
-void btor_copy_opts (BtorMemMgr *mm, BtorOpts *src, BtorOpts *dst);
+BtorPtrHashTable *btor_clone_opts (BtorMemMgr *mm, BtorPtrHashTable *options);
 void btor_delete_opts (Btor *btor);
 
-void btor_set_opt (Btor *btor, const char *name, uint32_t val);
-void btor_set_opt_str (Btor *btor, const char *name, const char *val);
+bool btor_has_opt (Btor *btor, const char *name);
 
-/* does not assert existing opt with name 'name',
- * not for boolector internal use */
-BtorOpt *btor_get_opt_aux (Btor *btor, const char *name, int skip_internal);
-/* asserts existing opt with name 'opt' */
-BtorOpt *btor_get_opt (Btor *btor, const char *name);
-
-int btor_get_opt_val (Btor *btor, const char *name);
-int btor_get_opt_min (Btor *btor, const char *name);
-int btor_get_opt_max (Btor *btor, const char *name);
-int btor_get_opt_dflt (Btor *btor, const char *name);
+uint32_t btor_get_opt (Btor *btor, const char *name);
+uint32_t btor_get_opt_min (Btor *btor, const char *name);
+uint32_t btor_get_opt_max (Btor *btor, const char *name);
+uint32_t btor_get_opt_dflt (Btor *btor, const char *name);
 const char *btor_get_opt_shrt (Btor *btor, const char *name);
 const char *btor_get_opt_desc (Btor *btor, const char *name);
+const char *btor_get_opt_valstr (Btor *btor, const char *name);
+
+void btor_set_opt (Btor *btor, const char *name, uint32_t val);
+void btor_set_opt_str (Btor *btor, const char *name, const char *str);
 
 const char *btor_first_opt (Btor *btor);
 const char *btor_next_opt (Btor *btor, const char *cur);

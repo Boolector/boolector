@@ -1,7 +1,7 @@
 /*  Boolector: Satisfiablity Modulo Theories (SMT) solver.
  *
  *  Copyright (C) 2013 Christian Reisenberger.
- *  Copyright (C) 2013-2015 Aina Niemetz.
+ *  Copyright (C) 2013-2016 Aina Niemetz.
  *  Copyright (C) 2013-2015 Mathias Preiner.
  *  Copyright (C) 2013-2014 Armin Biere.
  *
@@ -1014,7 +1014,7 @@ btormbt_new_btormbt (void)
     BTOR_NEW (mm, btoropt);
     btoropt->name = btor_strdup (mm, opt);
     btoropt->shrt = btor_strdup (mm, boolector_get_opt_shrt (tmpbtor, opt));
-    btoropt->val  = boolector_get_opt_val (tmpbtor, opt);
+    btoropt->val  = boolector_get_opt (tmpbtor, opt);
     btoropt->min  = boolector_get_opt_min (tmpbtor, opt);
     btoropt->max  = boolector_get_opt_max (tmpbtor, opt);
     /* disabling incremental not supported */
@@ -2875,13 +2875,13 @@ btormbt_state_opt (BtorMBT *mbt, unsigned r)
       /* do not enable unconstrained optimization if either model
        * generation or incremental is enabled */
       if (!strcmp (btoropt->name, BTOR_OPT_UCOPT)
-          && (boolector_get_opt_val (mbt->btor, BTOR_OPT_MODEL_GEN)
-              || boolector_get_opt_val (mbt->btor, BTOR_OPT_INCREMENTAL)))
+          && (boolector_get_opt (mbt->btor, BTOR_OPT_MODEL_GEN)
+              || boolector_get_opt (mbt->btor, BTOR_OPT_INCREMENTAL)))
         continue;
 #endif
       /* do not enable justification if dual propagation is enabled */
       if (!strcmp (btoropt->name, BTOR_OPT_JUST)
-          && boolector_get_opt_val (mbt->btor, BTOR_OPT_DUAL_PROP))
+          && boolector_get_opt (mbt->btor, BTOR_OPT_DUAL_PROP))
         continue;
 
       btoropt->val = pick (&rng, btoropt->min, btoropt->max);
@@ -3318,7 +3318,7 @@ btormbt_state_sat (BtorMBT *mbt, unsigned r)
     BTORMBT_LOG (1, "sat call returned %d", res);
 
   if (res == BOOLECTOR_UNSAT
-      && boolector_get_opt_val (mbt->btor, BTOR_OPT_ENGINE) != BTOR_ENGINE_SLS)
+      && boolector_get_opt (mbt->btor, BTOR_OPT_ENGINE) != BTOR_ENGINE_SLS)
   {
     /* check failed assumptions */
     for (i = 0; i < BTOR_COUNT_STACK (mbt->assumptions->exps); i++)

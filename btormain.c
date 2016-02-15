@@ -2,7 +2,7 @@
  *
  *  Copyright (C) 2007-2009 Robert Daniel Brummayer.
  *  Copyright (C) 2007-2014 Armin Biere.
- *  Copyright (C) 2012-2015 Aina Niemetz.
+ *  Copyright (C) 2012-2016 Aina Niemetz.
  *  Copyright (C) 2012-2015 Mathias Preiner.
  *
  *  All rights reserved.
@@ -223,11 +223,7 @@ print_opt (BtorMainApp *app,
   int i, j, len;
   BtorCharPtrStack words;
 
-  if (!strcmp (lng, BTOR_OPT_INCREMENTAL_LOOK_AHEAD)
-      || !strcmp (lng, BTOR_OPT_INCREMENTAL_IN_DEPTH)
-      || !strcmp (lng, BTOR_OPT_INCREMENTAL_INTERVAL))
-    sprintf (paramstr, "<w>");
-  else if (!strcmp (lng, "time"))
+  if (!strcmp (lng, "time"))
     sprintf (paramstr, "<seconds>");
   else if (!strcmp (lng, "output"))
     sprintf (paramstr, "<file>");
@@ -682,7 +678,7 @@ boolector_main (int argc, char **argv)
   pmodel       = 0;
   dump         = 0;
 
-  mgen = boolector_get_opt_val (g_app->btor, BTOR_OPT_MODEL_GEN);
+  mgen = boolector_get_opt (g_app->btor, BTOR_OPT_MODEL_GEN);
 
   BTOR_INIT_STACK (opt);
   BTOR_INIT_STACK (errarg);
@@ -1062,9 +1058,9 @@ boolector_main (int argc, char **argv)
         if (isdisable && HAS_UNEXPECTED_ARGUMENT) goto ERR_UNEXPECTED_ARGUMENT;
 
         if ((IS_BTOR_OPT ("dp", BTOR_OPT_DUAL_PROP)
-             && boolector_get_opt_val (g_app->btor, BTOR_OPT_JUST))
+             && boolector_get_opt (g_app->btor, BTOR_OPT_JUST))
             || (IS_BTOR_OPT ("ju", BTOR_OPT_JUST)
-                && boolector_get_opt_val (g_app->btor, BTOR_OPT_DUAL_PROP)))
+                && boolector_get_opt (g_app->btor, BTOR_OPT_DUAL_PROP)))
         {
           btormain_error (g_app,
                           "can only set one out of '--%s' and '--%s'",
@@ -1079,14 +1075,14 @@ boolector_main (int argc, char **argv)
           boolector_set_opt (g_app->btor, o, val);
         else
           boolector_set_opt (
-              g_app->btor, o, boolector_get_opt_val (g_app->btor, o) + 1);
+              g_app->btor, o, boolector_get_opt (g_app->btor, o) + 1);
       }
     }
   }
 
   assert (!g_app->done && !g_app->err);
 
-  g_verbosity = boolector_get_opt_val (g_app->btor, BTOR_OPT_VERBOSITY);
+  g_verbosity = boolector_get_opt (g_app->btor, BTOR_OPT_VERBOSITY);
 
   /* open output file */
   if (g_app->outfile_name)
@@ -1139,7 +1135,7 @@ boolector_main (int argc, char **argv)
   if (inc && g_verbosity) btormain_msg ("starting incremental mode");
 
   /* parse */
-  if ((val = boolector_get_opt_val (g_app->btor, "input_format")))
+  if ((val = boolector_get_opt (g_app->btor, "input_format")))
   {
     switch (val)
     {
@@ -1184,7 +1180,7 @@ boolector_main (int argc, char **argv)
                                  &parse_status);
 
   /* verbosity may have been increased via input (set-option) */
-  g_verbosity = boolector_get_opt_val (g_app->btor, BTOR_OPT_VERBOSITY);
+  g_verbosity = boolector_get_opt (g_app->btor, BTOR_OPT_VERBOSITY);
 
   if (parse_res == BOOLECTOR_PARSE_ERROR)
   {
@@ -1214,7 +1210,7 @@ boolector_main (int argc, char **argv)
 
     if (pmodel && sat_res == BOOLECTOR_SAT)
     {
-      assert (boolector_get_opt_val (g_app->btor, BTOR_OPT_MODEL_GEN));
+      assert (boolector_get_opt (g_app->btor, BTOR_OPT_MODEL_GEN));
       boolector_print_model (g_app->btor,
                              g_app->opts.smt2_model.val ? "smt2" : "btor",
                              g_app->outfile);
@@ -1295,7 +1291,7 @@ boolector_main (int argc, char **argv)
   /* print model */
   if (pmodel && sat_res == BOOLECTOR_SAT)
   {
-    assert (boolector_get_opt_val (g_app->btor, BTOR_OPT_MODEL_GEN));
+    assert (boolector_get_opt (g_app->btor, BTOR_OPT_MODEL_GEN));
     boolector_print_model (g_app->btor,
                            g_app->opts.smt2_model.val ? "smt2" : "btor",
                            g_app->outfile);
@@ -1320,7 +1316,7 @@ DONE:
     pclose (g_app->infile);
   if (g_app->close_outfile) fclose (g_app->outfile);
 
-  if (!boolector_get_opt_val (g_app->btor, BTOR_OPT_EXIT_CODES))
+  if (!boolector_get_opt (g_app->btor, BTOR_OPT_EXIT_CODES))
   {
     switch (res)
     {

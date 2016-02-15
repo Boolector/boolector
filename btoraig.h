@@ -2,7 +2,7 @@
  *
  *  Copyright (C) 2007-2009 Robert Daniel Brummayer.
  *  Copyright (C) 2007-2014 Armin Biere.
- *  Copyright (C) 2013-2014 Aina Niemetz.
+ *  Copyright (C) 2013-2016 Aina Niemetz.
  *  Copyright (C) 2014-2015 Mathias Preiner.
  *
  *  All rights reserved.
@@ -16,6 +16,7 @@
 
 #include "btoropt.h"
 #include "btorsat.h"
+#include "btortypes.h"
 #include "utils/btorhashptr.h"
 #include "utils/btormem.h"
 #include "utils/btorstack.h"
@@ -54,11 +55,8 @@ typedef struct BtorAIGUniqueTable BtorAIGUniqueTable;
 
 struct BtorAIGMgr
 {
-  BtorMemMgr *mm;
-  BtorMsg *msg;
-  BtorOpts *opts;
+  Btor *btor;
   BtorAIGUniqueTable table;
-  int verbosity;
   BtorSATMgr *smgr;
   BtorAIGPtrStack id2aig; /* id to AIG node */
   BtorIntStack cnfid2aig; /* cnf id to AIG id */
@@ -116,25 +114,12 @@ typedef struct BtorAIGMgr BtorAIGMgr;
 
 /*------------------------------------------------------------------------*/
 
-/* Creates new AIG manager. An AIG manager is used by nearly all functions
- * of the AIG layer.
- */
-BtorAIGMgr *btor_new_aig_mgr (BtorMemMgr *mm, BtorMsg *msg, BtorOpts *opts);
-
-/* Clones AIG manager. */
-BtorAIGMgr *btor_clone_aig_mgr (BtorMemMgr *mm,
-                                BtorMsg *msg,
-                                BtorOpts *opts,
-                                BtorAIGMgr *amgr);
-
-/* Sets verbosity [-1,3] */
-void btor_set_verbosity_aig_mgr (BtorAIGMgr *amgr, int verbosity);
-
-/* Gets SAT manager of AIG manager. */
-BtorSATMgr *btor_get_sat_mgr_aig_mgr (const BtorAIGMgr *amgr);
-
-/* Deletes AIG manager from memory. */
+BtorAIGMgr *btor_new_aig_mgr (Btor *btor);
+BtorAIGMgr *btor_clone_aig_mgr (Btor *btor, BtorAIGMgr *amgr);
 void btor_delete_aig_mgr (BtorAIGMgr *amgr);
+
+// TODO remove
+BtorSATMgr *btor_get_sat_mgr_aig_mgr (const BtorAIGMgr *amgr);
 
 /* Variable representing 1 bit. */
 BtorAIG *btor_var_aig (BtorAIGMgr *amgr);

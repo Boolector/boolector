@@ -2,7 +2,7 @@
  *
  *  Copyright (C) 2007-2014 Armin Biere.
  *  Copyright (C) 2007-2009 Robert Daniel Brummayer.
- *  Copyright (C) 2012-2015 Aina Niemetz.
+ *  Copyright (C) 2012-2016 Aina Niemetz.
  *  Copyright (C) 2012-2015 Mathias Preiner.
  *
  *  All rights reserved.
@@ -66,7 +66,7 @@ btor_new_dump_context (Btor *btor)
   res->sorts   = btor_new_ptr_hash_table (btor->mm, 0, 0);
 
   /* set start id for roots */
-  if (!btor->options.pretty_print.val)
+  if (!btor_get_opt (btor, BTOR_OPT_PRETTY_PRINT))
     res->maxid = BTOR_COUNT_STACK (btor->nodes_id_table);
 
   return res;
@@ -218,7 +218,7 @@ bdcid (BtorDumpContext *bdc, BtorNode *node)
   if (!b)
   {
     b = btor_add_ptr_hash_table (bdc->idtab, btor_copy_exp (bdc->btor, node));
-    if (bdc->btor->options.pretty_print.val)
+    if (btor_get_opt (bdc->btor, BTOR_OPT_PRETTY_PRINT))
       b->data.as_int = ++bdc->maxid;
     else
       b->data.as_int = real->id;
@@ -297,7 +297,8 @@ bdcnode (BtorDumpContext *bdc, BtorNode *node, FILE *file)
 #endif
 
   /* do not dump parameterized nodes that belong to a "write-lambda" */
-  if (bdc->btor->options.rewrite_level.val == 0 && node->parameterized)
+  if (btor_get_opt (bdc->btor, BTOR_OPT_REWRITE_LEVEL) == 0
+      && node->parameterized)
   {
     btor_init_parameterized_iterator (&pit, bdc->btor, node);
     assert (btor_has_next_parameterized_iterator (&pit));
@@ -341,7 +342,7 @@ bdcnode (BtorDumpContext *bdc, BtorNode *node, FILE *file)
       break;
     case BTOR_PARAM_NODE: op = "param"; break;
     case BTOR_LAMBDA_NODE:
-      if (bdc->btor->options.rewrite_level.val == 0
+      if (btor_get_opt (bdc->btor, BTOR_OPT_REWRITE_LEVEL) == 0
           && btor_lambda_get_static_rho (node))
       {
         op = "write";
@@ -353,7 +354,7 @@ bdcnode (BtorDumpContext *bdc, BtorNode *node, FILE *file)
       break;
     case BTOR_APPLY_NODE:
       if (BTOR_IS_UF_ARRAY_NODE (node->e[0])
-          || (bdc->btor->options.rewrite_level.val == 0
+          || (btor_get_opt (bdc->btor, BTOR_OPT_REWRITE_LEVEL) == 0
               && BTOR_IS_LAMBDA_NODE (node->e[0])
               && btor_lambda_get_static_rho (node->e[0])))
         op = "read";
@@ -434,7 +435,7 @@ bdcnode (BtorDumpContext *bdc, BtorNode *node, FILE *file)
   else if (BTOR_IS_PROXY_NODE (node))
     fprintf (file, " %d", bdcid (bdc, node->simplified));
   /* print write instead of lambda */
-  else if (bdc->btor->options.rewrite_level.val == 0
+  else if (btor_get_opt (bdc->btor, BTOR_OPT_REWRITE_LEVEL) == 0
            && BTOR_IS_LAMBDA_NODE (node) && btor_lambda_get_static_rho (node))
   {
     assert (btor_get_fun_arity (bdc->btor, node) == 1);
@@ -493,7 +494,7 @@ bdcsort (BtorDumpContext *bdc, BtorSort *sort, FILE *file)
   }
 
   id = sort->id;
-  if (bdc->btor->options.pretty_print.val) id = ++bdc->maxsortid;
+  if (btor_get_opt (bdc->btor, BTOR_OPT_PRETTY_PRINT)) id = ++bdc->maxsortid;
 
   fprintf (file, "%d sort %s", id, kind);
 

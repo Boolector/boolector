@@ -1,7 +1,7 @@
 # Boolector: Satisfiablity Modulo Theories (SMT) solver.
 #
 # Copyright (C) 2013-2015 Mathias Preiner.
-# Copyright (C) 2014-2015 Aina Niemetz.
+# Copyright (C) 2014-2016 Aina Niemetz.
 #
 # All rights reserved.
 #
@@ -227,8 +227,8 @@ cdef class BoolectorOpt:
         """ The current value of a Boolector option. 
         """
         def __get__(self):
-            return btorapi.boolector_get_opt_val(self.btor._c_btor,
-                                                 self.__chptr._c_str)
+            return btorapi.boolector_get_opt(self.btor._c_btor,
+                                             self.__chptr._c_str)
 
     property dflt:
         """ The default value of a Boolector option. 

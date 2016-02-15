@@ -1,7 +1,7 @@
 /*  Boolector: Satisfiablity Modulo Theories (SMT) solver.
  *
  *  Copyright (C) 2013 Christian Reisenberger.
- *  Copyright (C) 2013-2015 Aina Niemetz.
+ *  Copyright (C) 2013-2016 Aina Niemetz.
  *  Copyright (C) 2013-2015 Mathias Preiner.
  *
  *  All rights reserved.
@@ -545,12 +545,12 @@ NEXT:
       PARSE_ARGS2 (tok, str, int);
       boolector_set_opt (btor, arg1_str, arg2_int);
     }
-    else if (!strcmp (tok, "get_opt_val"))
+    else if (!strcmp (tok, "get_opt"))
     {
       if (!btorunt->skip)
       {
         PARSE_ARGS1 (tok, str);
-        ret_int = boolector_get_opt_val (btor, arg1_str);
+        ret_int = boolector_get_opt (btor, arg1_str);
         exp_ret = RET_INT;
       }
       else

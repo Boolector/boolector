@@ -1,7 +1,7 @@
 /*  Boolector: Satisfiablity Modulo Theories (SMT) solver.
  *
  *  Copyright (C) 2012-2015 Mathias Preiner.
- *  Copyright (C) 2012-2015 Aina Niemetz.
+ *  Copyright (C) 2012-2016 Aina Niemetz.
  *
  *  All rights reserved.
  *
@@ -71,7 +71,7 @@ clone_core_solver (Btor *clone, Btor *btor, BtorNodeMap *exp_map)
 
   if (slv->score)
   {
-    h = btor->options.just_heuristic.val;
+    h = btor_get_opt (btor, BTOR_OPT_JUST_HEURISTIC);
     if (h == BTOR_JUST_HEUR_BRANCH_MIN_APP)
     {
       res->score = btor_clone_ptr_hash_table (clone->mm,
@@ -137,7 +137,8 @@ delete_core_solver (BtorCoreSolver *slv)
     btor_init_node_hash_table_iterator (&it, slv->score);
     while (btor_has_next_node_hash_table_iterator (&it))
     {
-      if (btor->options.just_heuristic.val == BTOR_JUST_HEUR_BRANCH_MIN_APP)
+      if (btor_get_opt (btor, BTOR_OPT_JUST_HEURISTIC)
+          == BTOR_JUST_HEUR_BRANCH_MIN_APP)
       {
         t   = (BtorPtrHashTable *) it.bucket->data.as_ptr;
         exp = btor_next_node_hash_table_iterator (&it);
@@ -150,7 +151,7 @@ delete_core_solver (BtorCoreSolver *slv)
       }
       else
       {
-        assert (btor->options.just_heuristic.val
+        assert (btor_get_opt (btor, BTOR_OPT_JUST_HEURISTIC)
                 == BTOR_JUST_HEUR_BRANCH_MIN_DEP);
         btor_release_exp (btor, btor_next_node_hash_table_iterator (&it));
       }
@@ -174,13 +175,14 @@ configure_sat_mgr (Btor *btor)
   smgr = btor_get_sat_mgr_btor (btor);
   if (btor_is_initialized_sat (smgr)) return;
 
-  switch (btor->options.sat_engine.val)
+  switch (btor_get_opt (btor, BTOR_OPT_SAT_ENGINE))
   {
 #ifdef BTOR_USE_LINGELING
     case BTOR_SAT_ENGINE_LINGELING:
-      btor_enable_lingeling_sat (smgr,
-                                 btor->options.sat_engine.valstr,
-                                 btor->options.sat_engine_lgl_fork.val == 1);
+      btor_enable_lingeling_sat (
+          smgr,
+          btor_get_opt_valstr (btor, BTOR_OPT_SAT_ENGINE),
+          btor_get_opt (btor, BTOR_OPT_SAT_ENGINE_LGL_FORK) == 1);
       break;
 #endif
 #ifdef BTOR_USE_PICOSAT
@@ -196,7 +198,7 @@ configure_sat_mgr (Btor *btor)
 
   /* reset SAT solver to non-incremental if all functions have been
    * eliminated */
-  if (!btor->options.incremental.val && smgr->inc_required
+  if (!btor_get_opt (btor, BTOR_OPT_INCREMENTAL) && smgr->inc_required
       && btor->lambdas->count == 0 && btor->ufs->count == 0)
   {
     smgr->inc_required = 0;
@@ -309,17 +311,17 @@ new_exp_layer_clone_for_dual_prop (Btor *btor,
   assert (!clone->synthesized_constraints->count);
   assert (clone->unsynthesized_constraints->count);
 
-  clone->options.model_gen.val   = 0;
-  clone->options.incremental.val = 1;
+  btor_set_opt (clone, BTOR_OPT_MODEL_GEN, 0);
+  btor_set_opt (clone, BTOR_OPT_INCREMENTAL, 1);
 #ifdef BTOR_CHECK_MODEL
   /* cleanup dangling references when model validation is enabled */
-  clone->options.auto_cleanup_internal.val = 1;
+  btor_set_opt (clone, BTOR_OPT_AUTO_CLEANUP_INTERNAL, 1);
 #endif
 #ifndef NBTORLOG
-  clone->options.loglevel.val = 0;
+  btor_set_opt (clone, BTOR_OPT_LOGLEVEL, 0);
 #endif
-  clone->options.verbosity.val = 0;
-  clone->options.dual_prop.val = 0;
+  btor_set_opt (clone, BTOR_OPT_VERBOSITY, 0);
+  btor_set_opt (clone, BTOR_OPT_DUAL_PROP, 0);
 
   assert (!btor_is_initialized_sat (btor_get_sat_mgr_btor (clone)));
   btor_set_opt_str (clone, BTOR_OPT_SAT_ENGINE, "plain=1");
@@ -1014,7 +1016,7 @@ search_initial_applies_just (Btor *btor, BtorNodePtrStack *top_applies)
   BTORLOG (1, "*** search initial applies");
 
   amgr = btor_get_aig_mgr_btor (btor);
-  h    = btor->options.just_heuristic.val;
+  h    = btor_get_opt (btor, BTOR_OPT_JUST_HEURISTIC);
 
   BTOR_INIT_STACK (stack);
   BTOR_INIT_STACK (unmark_stack);
@@ -1701,7 +1703,7 @@ propagate (Btor *btor,
           add_lemma (btor, fun, hashed_app, app);
           conflict = true;
           /* stop at first conflict */
-          if (!btor->options.eager_lemmas.val) break;
+          if (!btor_get_opt (btor, BTOR_OPT_EAGER_LEMMAS)) break;
         }
         continue;
       }
@@ -1802,7 +1804,7 @@ propagate (Btor *btor,
     btor_release_exp (btor, fun_value);
 
     /* stop at first conflict */
-    if (!btor->options.eager_lemmas.val && conflict) break;
+    if (!btor_get_opt (btor, BTOR_OPT_EAGER_LEMMAS) && conflict) break;
   }
 }
 
@@ -2076,7 +2078,7 @@ check_and_resolve_conflicts (Btor *btor,
   if (clone)
     search_initial_applies_dual_prop (
         btor, clone, clone_root, exp_map, &top_applies);
-  else if (btor->options.just.val)
+  else if (btor_get_opt (btor, BTOR_OPT_JUST))
     search_initial_applies_just (btor, &top_applies);
   else
     search_initial_applies_bv_skeleton (btor, &top_applies);
@@ -2204,7 +2206,7 @@ sat_core_solver (BtorCoreSolver *slv)
   if (btor->feqs->count > 0) add_function_inequality_constraints (btor);
 
   /* initialize dual prop clone */
-  if (btor->options.dual_prop.val)
+  if (btor_get_opt (btor, BTOR_OPT_DUAL_PROP))
     clone = new_exp_layer_clone_for_dual_prop (btor, &exp_map, &clone_root);
 
   while (true)
@@ -2258,7 +2260,7 @@ sat_core_solver (BtorCoreSolver *slv)
     }
     BTOR_RESET_STACK (slv->cur_lemmas);
 
-    if (btor->options.verbosity.val)
+    if (btor_get_opt (btor, BTOR_OPT_VERBOSITY))
     {
       fprintf (stdout,
                "\r[btorcore] %d iterations, %d lemmas, %d ext. lemmas, "
@@ -2277,7 +2279,7 @@ sat_core_solver (BtorCoreSolver *slv)
   }
 
 DONE:
-  if (btor->options.verbosity.val && slv->stats.lod_refinements > 0)
+  if (btor_get_opt (btor, BTOR_OPT_VERBOSITY) && slv->stats.lod_refinements > 0)
     fprintf (stdout, "\n");
 
   btor->valid_assignments = 1;
@@ -2384,7 +2386,7 @@ print_stats_core_solver (BtorCoreSolver *slv)
             "partial beta reduction restarts: %lld",
             slv->stats.partial_beta_reduction_restarts);
 
-  if (btor->options.dual_prop.val)
+  if (btor_get_opt (btor, BTOR_OPT_DUAL_PROP))
   {
     BTOR_MSG (btor->msg,
               1,
@@ -2418,7 +2420,8 @@ print_time_stats_core_solver (BtorCoreSolver *slv)
             "%.2f seconds initial applies search",
             slv->time.search_init_apps);
 
-  if (btor->options.just.val || btor->options.dual_prop.val)
+  if (btor_get_opt (btor, BTOR_OPT_JUST)
+      || btor_get_opt (btor, BTOR_OPT_DUAL_PROP))
   {
     BTOR_MSG (btor->msg,
               1,
@@ -2431,7 +2434,7 @@ print_time_stats_core_solver (BtorCoreSolver *slv)
         slv->time.search_init_apps_compute_scores_merge_applies);
   }
 
-  if (btor->options.dual_prop.val)
+  if (btor_get_opt (btor, BTOR_OPT_DUAL_PROP))
   {
     BTOR_MSG (btor->msg,
               1,
@@ -2468,7 +2471,7 @@ print_time_stats_core_solver (BtorCoreSolver *slv)
             "%.2f seconds propagation apply search",
             slv->time.find_prop_app);
 
-  if (btor->options.dual_prop.val)
+  if (btor_get_opt (btor, BTOR_OPT_DUAL_PROP))
     BTOR_MSG (btor->msg,
               1,
               "%.2f seconds propagation apply in conds search",
@@ -2487,8 +2490,10 @@ btor_new_core_solver (Btor *btor)
 
   BTOR_CNEW (btor->mm, slv);
 
-  slv->kind      = BTOR_CORE_SOLVER_KIND;
-  slv->btor      = btor;
+  slv->kind        = BTOR_CORE_SOLVER_KIND;
+  slv->btor        = btor;
+  slv->btor->avmgr = btor_new_aigvec_mgr (btor);
+
   slv->api.clone = (BtorSolverClone) clone_core_solver;
   slv->api.delet = (BtorSolverDelete) delete_core_solver;
   slv->api.sat   = (BtorSolverSat) sat_core_solver;

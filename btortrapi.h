@@ -27,6 +27,13 @@
     btor_trapi (btor, __FUNCTION__, ##args); \
   } while (0)
 
+#define BTOR_TRAPI_AUX(fun, args...) \
+  do                                 \
+  {                                  \
+    if (!btor->apitrace) break;      \
+    btor_trapi (btor, fun, ##args);  \
+  } while (0)
+
 #define BTOR_TRAPI_RETURN(args...) \
   do                               \
   {                                \
