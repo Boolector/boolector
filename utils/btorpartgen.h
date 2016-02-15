@@ -19,9 +19,9 @@
 struct BtorPartitionGenerator
 {
   uint32_t n;
-  uint32_t cnt_1;
-  uint32_t cnt_2;
-  uint32_t cnt_3;
+  int32_t cnt_1;
+  int32_t cnt_2;
+  int32_t cnt_3;
   uint32_t size;
   uint32_t tuple[BTOR_PART_GEN_MAX_TUPLE_SIZE];
   bool permutate;
