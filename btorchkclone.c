@@ -18,7 +18,7 @@
 #include "btorcore.h"
 #include "btoropt.h"
 #include "btorslv.h"
-#include "btorslvcore.h"
+#include "btorslvfun.h"
 #include "utils/btorhashptr.h"
 #include "utils/btoriter.h"
 
@@ -955,7 +955,7 @@ btor_chkclone_slv (Btor *btor)
 {
   int i, h;
 
-  h = btor_get_opt (btor, BTOR_OPT_JUST_HEURISTIC);
+  h = btor_get_opt (btor, BTOR_OPT_FUN_JUST_HEURISTIC);
 
   assert ((!btor->slv && !btor->clone->slv) || (btor->slv && btor->clone->slv));
   if (!btor->slv) return;

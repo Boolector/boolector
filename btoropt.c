@@ -246,48 +246,6 @@ btor_init_opts (Btor *btor)
       btor, false, BTOR_OPT_VAR_SUBST, "vs", 1, 0, 1, "variable substitution");
   btor_init_opt (
       btor, false, BTOR_OPT_UCOPT, "uc", 0, 0, 1, "unconstrained optimization");
-
-  /* core engine -------------------------------------------------------- */
-  btor_init_opt (btor,
-                 false,
-                 BTOR_OPT_DUAL_PROP,
-                 "dp",
-                 0,
-                 0,
-                 1,
-                 "dual propagation optimization");
-  btor_init_opt (btor,
-                 false,
-                 BTOR_OPT_JUST,
-                 "just",
-                 0,
-                 0,
-                 1,
-                 "justification optimization");
-  btor_init_opt (btor,
-                 false,
-                 BTOR_OPT_JUST_HEURISTIC,
-                 0,
-                 BTOR_JUST_HEUR_DFLT,
-                 BTOR_JUST_HEUR_MIN,
-                 BTOR_JUST_HEUR_MAX,
-                 "justification heuristic");
-  btor_init_opt (btor,
-                 false,
-                 BTOR_OPT_LAZY_SYNTHESIZE,
-                 "ls",
-                 0,
-                 0,
-                 1,
-                 "lazily synthesize expressions");
-  btor_init_opt (btor,
-                 false,
-                 BTOR_OPT_EAGER_LEMMAS,
-                 "el",
-                 1,
-                 0,
-                 1,
-                 "eager lemma generation");
   btor_init_opt (btor,
                  false,
                  BTOR_OPT_MERGE_LAMBDAS,
@@ -304,6 +262,48 @@ btor_init_opts (Btor *btor)
                  0,
                  1,
                  "extract lambda terms");
+
+  /* fun engine ---------------------------------------------------------- */
+  btor_init_opt (btor,
+                 false,
+                 BTOR_OPT_FUN_DUAL_PROP,
+                 "dp",
+                 0,
+                 0,
+                 1,
+                 "dual propagation optimization");
+  btor_init_opt (btor,
+                 false,
+                 BTOR_OPT_FUN_JUST,
+                 "just",
+                 0,
+                 0,
+                 1,
+                 "justification optimization");
+  btor_init_opt (btor,
+                 false,
+                 BTOR_OPT_FUN_JUST_HEURISTIC,
+                 0,
+                 BTOR_JUST_HEUR_DFLT,
+                 BTOR_JUST_HEUR_MIN,
+                 BTOR_JUST_HEUR_MAX,
+                 "justification heuristic");
+  btor_init_opt (btor,
+                 false,
+                 BTOR_OPT_FUN_LAZY_SYNTHESIZE,
+                 "ls",
+                 0,
+                 0,
+                 1,
+                 "lazily synthesize expressions");
+  btor_init_opt (btor,
+                 false,
+                 BTOR_OPT_FUN_EAGER_LEMMAS,
+                 "el",
+                 1,
+                 0,
+                 1,
+                 "eager lemma generation");
 
   /* SLS engine ---------------------------------------------------------- */
   btor_init_opt (btor,
@@ -678,13 +678,13 @@ btor_set_opt (Btor *btor, const char *name, uint32_t val)
   {
     assert (btor->btor_sat_btor_called == 0);
   }
-  else if (!strcmp (name, BTOR_OPT_DUAL_PROP))
+  else if (!strcmp (name, BTOR_OPT_FUN_DUAL_PROP))
   {
-    assert (!val || !btor_get_opt (btor, BTOR_OPT_JUST));
+    assert (!val || !btor_get_opt (btor, BTOR_OPT_FUN_JUST));
   }
-  else if (!strcmp (name, BTOR_OPT_JUST))
+  else if (!strcmp (name, BTOR_OPT_FUN_JUST))
   {
-    assert (!val || !btor_get_opt (btor, BTOR_OPT_DUAL_PROP));
+    assert (!val || !btor_get_opt (btor, BTOR_OPT_FUN_DUAL_PROP));
   }
   else if (!strcmp (name, BTOR_OPT_REWRITE_LEVEL))
   {

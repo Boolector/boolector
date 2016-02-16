@@ -2883,11 +2883,11 @@ btormbt_state_opt (BtorMBT *mbt, unsigned r)
           && boolector_get_opt (mbt->btor, BTOR_OPT_UCOPT))
         continue;
       /* do not enable justification if dual propagation is enabled */
-      if (!strcmp (btoropt->name, BTOR_OPT_JUST)
-          && boolector_get_opt (mbt->btor, BTOR_OPT_DUAL_PROP))
+      if (!strcmp (btoropt->name, BTOR_OPT_FUN_JUST)
+          && boolector_get_opt (mbt->btor, BTOR_OPT_FUN_DUAL_PROP))
         continue;
-      if (!strcmp (btoropt->name, BTOR_OPT_DUAL_PROP)
-          && boolector_get_opt (mbt->btor, BTOR_OPT_JUST))
+      if (!strcmp (btoropt->name, BTOR_OPT_FUN_DUAL_PROP)
+          && boolector_get_opt (mbt->btor, BTOR_OPT_FUN_JUST))
         continue;
 
       btoropt->val = pick (&rng, btoropt->min, btoropt->max);

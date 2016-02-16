@@ -9,7 +9,7 @@
  *  See COPYING for more information on using this software.
  */
 
-#include "btorslvcore.h"
+#include "btorslvfun.h"
 #include "btorbeta.h"
 #include "btorclone.h"
 #include "btorcore.h"
@@ -71,7 +71,7 @@ clone_core_solver (Btor *clone, Btor *btor, BtorNodeMap *exp_map)
 
   if (slv->score)
   {
-    h = btor_get_opt (btor, BTOR_OPT_JUST_HEURISTIC);
+    h = btor_get_opt (btor, BTOR_OPT_FUN_JUST_HEURISTIC);
     if (h == BTOR_JUST_HEUR_BRANCH_MIN_APP)
     {
       res->score = btor_clone_ptr_hash_table (clone->mm,
@@ -137,7 +137,7 @@ delete_core_solver (BtorCoreSolver *slv)
     btor_init_node_hash_table_iterator (&it, slv->score);
     while (btor_has_next_node_hash_table_iterator (&it))
     {
-      if (btor_get_opt (btor, BTOR_OPT_JUST_HEURISTIC)
+      if (btor_get_opt (btor, BTOR_OPT_FUN_JUST_HEURISTIC)
           == BTOR_JUST_HEUR_BRANCH_MIN_APP)
       {
         t   = (BtorPtrHashTable *) it.bucket->data.as_ptr;
@@ -151,7 +151,7 @@ delete_core_solver (BtorCoreSolver *slv)
       }
       else
       {
-        assert (btor_get_opt (btor, BTOR_OPT_JUST_HEURISTIC)
+        assert (btor_get_opt (btor, BTOR_OPT_FUN_JUST_HEURISTIC)
                 == BTOR_JUST_HEUR_BRANCH_MIN_DEP);
         btor_release_exp (btor, btor_next_node_hash_table_iterator (&it));
       }
@@ -321,7 +321,7 @@ new_exp_layer_clone_for_dual_prop (Btor *btor,
   btor_set_opt (clone, BTOR_OPT_LOGLEVEL, 0);
 #endif
   btor_set_opt (clone, BTOR_OPT_VERBOSITY, 0);
-  btor_set_opt (clone, BTOR_OPT_DUAL_PROP, 0);
+  btor_set_opt (clone, BTOR_OPT_FUN_DUAL_PROP, 0);
 
   assert (!btor_is_initialized_sat (btor_get_sat_mgr_btor (clone)));
   btor_set_opt_str (clone, BTOR_OPT_SAT_ENGINE, "plain=1");
@@ -1016,7 +1016,7 @@ search_initial_applies_just (Btor *btor, BtorNodePtrStack *top_applies)
   BTORLOG (1, "*** search initial applies");
 
   amgr = btor_get_aig_mgr_btor (btor);
-  h    = btor_get_opt (btor, BTOR_OPT_JUST_HEURISTIC);
+  h    = btor_get_opt (btor, BTOR_OPT_FUN_JUST_HEURISTIC);
 
   BTOR_INIT_STACK (stack);
   BTOR_INIT_STACK (unmark_stack);
@@ -1703,7 +1703,7 @@ propagate (Btor *btor,
           add_lemma (btor, fun, hashed_app, app);
           conflict = true;
           /* stop at first conflict */
-          if (!btor_get_opt (btor, BTOR_OPT_EAGER_LEMMAS)) break;
+          if (!btor_get_opt (btor, BTOR_OPT_FUN_EAGER_LEMMAS)) break;
         }
         continue;
       }
@@ -1804,7 +1804,7 @@ propagate (Btor *btor,
     btor_release_exp (btor, fun_value);
 
     /* stop at first conflict */
-    if (!btor_get_opt (btor, BTOR_OPT_EAGER_LEMMAS) && conflict) break;
+    if (!btor_get_opt (btor, BTOR_OPT_FUN_EAGER_LEMMAS) && conflict) break;
   }
 }
 
@@ -2078,7 +2078,7 @@ check_and_resolve_conflicts (Btor *btor,
   if (clone)
     search_initial_applies_dual_prop (
         btor, clone, clone_root, exp_map, &top_applies);
-  else if (btor_get_opt (btor, BTOR_OPT_JUST))
+  else if (btor_get_opt (btor, BTOR_OPT_FUN_JUST))
     search_initial_applies_just (btor, &top_applies);
   else
     search_initial_applies_bv_skeleton (btor, &top_applies);
@@ -2206,7 +2206,7 @@ sat_core_solver (BtorCoreSolver *slv)
   if (btor->feqs->count > 0) add_function_inequality_constraints (btor);
 
   /* initialize dual prop clone */
-  if (btor_get_opt (btor, BTOR_OPT_DUAL_PROP))
+  if (btor_get_opt (btor, BTOR_OPT_FUN_DUAL_PROP))
     clone = new_exp_layer_clone_for_dual_prop (btor, &exp_map, &clone_root);
 
   while (true)
@@ -2386,7 +2386,7 @@ print_stats_core_solver (BtorCoreSolver *slv)
             "partial beta reduction restarts: %lld",
             slv->stats.partial_beta_reduction_restarts);
 
-  if (btor_get_opt (btor, BTOR_OPT_DUAL_PROP))
+  if (btor_get_opt (btor, BTOR_OPT_FUN_DUAL_PROP))
   {
     BTOR_MSG (btor->msg,
               1,
@@ -2420,8 +2420,8 @@ print_time_stats_core_solver (BtorCoreSolver *slv)
             "%.2f seconds initial applies search",
             slv->time.search_init_apps);
 
-  if (btor_get_opt (btor, BTOR_OPT_JUST)
-      || btor_get_opt (btor, BTOR_OPT_DUAL_PROP))
+  if (btor_get_opt (btor, BTOR_OPT_FUN_JUST)
+      || btor_get_opt (btor, BTOR_OPT_FUN_DUAL_PROP))
   {
     BTOR_MSG (btor->msg,
               1,
@@ -2434,7 +2434,7 @@ print_time_stats_core_solver (BtorCoreSolver *slv)
         slv->time.search_init_apps_compute_scores_merge_applies);
   }
 
-  if (btor_get_opt (btor, BTOR_OPT_DUAL_PROP))
+  if (btor_get_opt (btor, BTOR_OPT_FUN_DUAL_PROP))
   {
     BTOR_MSG (btor->msg,
               1,
@@ -2471,7 +2471,7 @@ print_time_stats_core_solver (BtorCoreSolver *slv)
             "%.2f seconds propagation apply search",
             slv->time.find_prop_app);
 
-  if (btor_get_opt (btor, BTOR_OPT_DUAL_PROP))
+  if (btor_get_opt (btor, BTOR_OPT_FUN_DUAL_PROP))
     BTOR_MSG (btor->msg,
               1,
               "%.2f seconds propagation apply in conds search",

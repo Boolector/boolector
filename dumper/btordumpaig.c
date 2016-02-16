@@ -84,8 +84,8 @@ btor_dump_aiger (Btor *btor, FILE *output, bool is_binary, bool merge_roots)
       "functions");
 
   /* do not encode AIGs to SAT */
-  lazy_synthesize = btor_get_opt (btor, BTOR_OPT_LAZY_SYNTHESIZE);
-  btor_set_opt (btor, BTOR_OPT_LAZY_SYNTHESIZE, 1);
+  lazy_synthesize = btor_get_opt (btor, BTOR_OPT_FUN_LAZY_SYNTHESIZE);
+  btor_set_opt (btor, BTOR_OPT_FUN_LAZY_SYNTHESIZE, 1);
   btor_init_node_hash_table_iterator (&it, btor->unsynthesized_constraints);
   btor_queue_node_hash_table_iterator (&it, btor->synthesized_constraints);
   merged = BTOR_AIG_TRUE;
@@ -104,7 +104,7 @@ btor_dump_aiger (Btor *btor, FILE *output, bool is_binary, bool merge_roots)
       BTOR_PUSH_STACK (btor->mm, roots, btor_copy_aig (amgr, av->aigs[0]));
     btor_release_delete_aigvec (avmgr, av);
   }
-  btor_set_opt (btor, BTOR_OPT_LAZY_SYNTHESIZE, lazy_synthesize);
+  btor_set_opt (btor, BTOR_OPT_FUN_LAZY_SYNTHESIZE, lazy_synthesize);
   if (merge_roots) BTOR_PUSH_STACK (btor->mm, roots, merged);
 
   if (BTOR_EMPTY_STACK (roots))

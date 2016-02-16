@@ -18,7 +18,7 @@
 #include "btorlog.h"
 #include "btormsg.h"
 #include "btorsat.h"
-#include "btorslvcore.h"
+#include "btorslvfun.h"
 #include "btorsort.h"
 #include "utils/btorhashptr.h"
 #include "utils/btoriter.h"
@@ -1242,7 +1242,7 @@ clone_aux_btor (Btor *btor, BtorNodeMap **exp_map, bool exp_layer_only)
 
       if (slv->score)
       {
-        h = btor_get_opt (btor, BTOR_OPT_JUST_HEURISTIC);
+        h = btor_get_opt (btor, BTOR_OPT_FUN_JUST_HEURISTIC);
         if (h == BTOR_JUST_HEUR_BRANCH_MIN_APP)
         {
           CHKCLONE_MEM_PTR_HASH_TABLE (slv->score, cslv->score);

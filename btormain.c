@@ -456,8 +456,9 @@ print_help (BtorMainApp *app)
       continue;
     if (!strcmp (o, BTOR_OPT_INCREMENTAL) || !strcmp (o, BTOR_OPT_REWRITE_LEVEL)
         || !strcmp (o, BTOR_OPT_BETA_REDUCE_ALL)
-        || !strcmp (o, BTOR_OPT_AUTO_CLEANUP) || !strcmp (o, BTOR_OPT_DUAL_PROP)
-        || !strcmp (o, BTOR_OPT_LAZY_SYNTHESIZE))
+        || !strcmp (o, BTOR_OPT_AUTO_CLEANUP)
+        || !strcmp (o, BTOR_OPT_FUN_DUAL_PROP)
+        || !strcmp (o, BTOR_OPT_FUN_LAZY_SYNTHESIZE))
       fprintf (out, "\n");
     print_opt (app,
                o,
@@ -480,7 +481,7 @@ print_copyright (BtorMainApp *app)
   fprintf (out, "This software is\n");
   fprintf (out, "Copyright (c) 2007-2009 Robert Brummayer\n");
   fprintf (out, "Copyright (c) 2007-2015 Armin Biere\n");
-  fprintf (out, "Copyright (c) 2012-2015 Aina Niemetz, Mathias Preiner\n");
+  fprintf (out, "Copyright (c) 2012-2016 Aina Niemetz, Mathias Preiner\n");
   fprintf (out, "Institute for Formal Models and Verification\n");
   fprintf (out, "Johannes Kepler University, Linz, Austria\n");
 #ifdef BTOR_USE_LINGELING
@@ -1057,15 +1058,15 @@ boolector_main (int argc, char **argv)
       {
         if (isdisable && HAS_UNEXPECTED_ARGUMENT) goto ERR_UNEXPECTED_ARGUMENT;
 
-        if ((IS_BTOR_OPT ("dp", BTOR_OPT_DUAL_PROP)
-             && boolector_get_opt (g_app->btor, BTOR_OPT_JUST))
-            || (IS_BTOR_OPT ("ju", BTOR_OPT_JUST)
-                && boolector_get_opt (g_app->btor, BTOR_OPT_DUAL_PROP)))
+        if ((IS_BTOR_OPT ("dp", BTOR_OPT_FUN_DUAL_PROP)
+             && boolector_get_opt (g_app->btor, BTOR_OPT_FUN_JUST))
+            || (IS_BTOR_OPT ("ju", BTOR_OPT_FUN_JUST)
+                && boolector_get_opt (g_app->btor, BTOR_OPT_FUN_DUAL_PROP)))
         {
           btormain_error (g_app,
                           "can only set one out of '--%s' and '--%s'",
-                          BTOR_OPT_DUAL_PROP,
-                          BTOR_OPT_JUST);
+                          BTOR_OPT_FUN_DUAL_PROP,
+                          BTOR_OPT_FUN_JUST);
           goto DONE;
         }
 

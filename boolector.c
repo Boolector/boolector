@@ -635,16 +635,16 @@ boolector_set_opt (Btor *btor, const char *name, int val)
                           "Unconstrained optimization cannot be enabled "
                           "in incremental mode");
   }
-  else if (!strcmp (name, BTOR_OPT_DUAL_PROP))
+  else if (!strcmp (name, BTOR_OPT_FUN_DUAL_PROP))
   {
     BTOR_ABORT_BOOLECTOR (
-        val && btor_get_opt (btor, BTOR_OPT_JUST),
+        val && btor_get_opt (btor, BTOR_OPT_FUN_JUST),
         "enabling multiple optimization techniques is not allowed");
   }
-  else if (!strcmp (name, BTOR_OPT_JUST))
+  else if (!strcmp (name, BTOR_OPT_FUN_JUST))
   {
     BTOR_ABORT_BOOLECTOR (
-        val && btor_get_opt (btor, BTOR_OPT_DUAL_PROP),
+        val && btor_get_opt (btor, BTOR_OPT_FUN_DUAL_PROP),
         "enabling multiple optimization techniques is not allowed");
   }
   else if (!strcmp (name, BTOR_OPT_UCOPT))

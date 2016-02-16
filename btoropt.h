@@ -126,15 +126,15 @@ typedef struct BtorOpt
 #define BTOR_OPT_ELIMINATE_SLICES "eliminate_slices"
 #define BTOR_OPT_VAR_SUBST "var_subst"
 #define BTOR_OPT_UCOPT "ucopt"
-
-/* core engine -------------------------------------------------------- */
-#define BTOR_OPT_DUAL_PROP "dual_prop"
-#define BTOR_OPT_JUST "just"
-#define BTOR_OPT_JUST_HEURISTIC "just_heuristic"
-#define BTOR_OPT_LAZY_SYNTHESIZE "lazy_synthesize"
-#define BTOR_OPT_EAGER_LEMMAS "eager_lemmas"
 #define BTOR_OPT_MERGE_LAMBDAS "merge_lambdas"
 #define BTOR_OPT_EXTRACT_LAMBDAS "extract_lambdas"
+
+/* fun engine --------------------------------------------------------- */
+#define BTOR_OPT_FUN_DUAL_PROP "fun_dual_prop"
+#define BTOR_OPT_FUN_JUST "fun_just"
+#define BTOR_OPT_FUN_JUST_HEURISTIC "fun_just_heuristic"
+#define BTOR_OPT_FUN_LAZY_SYNTHESIZE "fun_lazy_synthesize"
+#define BTOR_OPT_FUN_EAGER_LEMMAS "fun_eager_lemmas"
 
 /* SLS engine --------------------------------------------------------- */
 #define BTOR_OPT_SLS_STRATEGY "sls_strategy"

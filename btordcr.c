@@ -11,7 +11,7 @@
 
 #include "btordbg.h"
 #include "btorexp.h"
-#include "btorslvcore.h"
+#include "btorslvfun.h"
 #include "utils/btorhashptr.h"
 #include "utils/btoriter.h"
 #include "utils/btorutil.h"
@@ -216,7 +216,7 @@ compute_scores_aux (Btor *btor, BtorNodePtrStack *nodes)
 
   int h;
 
-  h = btor_get_opt (btor, BTOR_OPT_JUST_HEURISTIC);
+  h = btor_get_opt (btor, BTOR_OPT_FUN_JUST_HEURISTIC);
   if (h == BTOR_JUST_HEUR_BRANCH_MIN_APP)
     compute_scores_aux_min_app (btor, nodes);
   else if (h == BTOR_JUST_HEUR_BRANCH_MIN_DEP)
@@ -240,7 +240,7 @@ btor_compute_scores (Btor *btor)
 
   /* computing scores only required for BTOR_JUST_HEUR_BRANCH_MIN_DEP and
    * BTOR_JUST_HEUR_BRANCH_MIN_APP */
-  if (btor_get_opt (btor, BTOR_OPT_JUST_HEURISTIC) == BTOR_JUST_HEUR_LEFT)
+  if (btor_get_opt (btor, BTOR_OPT_FUN_JUST_HEURISTIC) == BTOR_JUST_HEUR_LEFT)
     return;
 
   /* Collect all nodes we actually need the score for.  If just is enabled, we
@@ -316,7 +316,7 @@ btor_compute_scores_dual_prop (Btor *btor)
 
   /* computing scores only required for BTOR_JUST_HEUR_BRANCH_MIN_DEP and
    * BTOR_JUST_HEUR_BRANCH_MIN_APP */
-  if (btor_get_opt (btor, BTOR_OPT_JUST_HEURISTIC) == BTOR_JUST_HEUR_LEFT)
+  if (btor_get_opt (btor, BTOR_OPT_FUN_JUST_HEURISTIC) == BTOR_JUST_HEUR_LEFT)
     return;
 
   start = btor_time_stamp ();
@@ -397,7 +397,7 @@ btor_compare_scores (Btor *btor, BtorNode *a, BtorNode *b)
 
   slv = BTOR_CORE_SOLVER (btor);
 
-  h  = btor_get_opt (btor, BTOR_OPT_JUST_HEURISTIC);
+  h  = btor_get_opt (btor, BTOR_OPT_FUN_JUST_HEURISTIC);
   a  = BTOR_REAL_ADDR_NODE (a);
   b  = BTOR_REAL_ADDR_NODE (b);
   sa = sb = 0;
@@ -454,7 +454,7 @@ btor_compare_scores_qsort (const void *p1, const void *p2)
   btor = a->btor;
   slv  = BTOR_CORE_SOLVER (btor);
 
-  h = btor_get_opt (btor, BTOR_OPT_JUST_HEURISTIC);
+  h = btor_get_opt (btor, BTOR_OPT_FUN_JUST_HEURISTIC);
 
   if (!slv->score) return 0;
 

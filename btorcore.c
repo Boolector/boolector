@@ -34,7 +34,7 @@
 #ifndef BTOR_DO_NOT_PROCESS_SKELETON
 #include "simplifier/btorskel.h"
 #endif
-#include "btorslvcore.h"
+#include "btorslvfun.h"
 #include "btorslvsls.h"
 
 #include <limits.h>
@@ -2156,7 +2156,8 @@ simplify_constraint_exp (Btor *btor, BtorNode *exp)
 
   /* Do not simplify top-level constraint applies (we need the implication
    * dependencies for determining top applies when dual prop enabled) */
-  if (btor_get_opt (btor, BTOR_OPT_DUAL_PROP) && BTOR_IS_APPLY_NODE (real_exp))
+  if (btor_get_opt (btor, BTOR_OPT_FUN_DUAL_PROP)
+      && BTOR_IS_APPLY_NODE (real_exp))
     return exp;
 
   not_exp = BTOR_INVERT_NODE (real_exp);
@@ -3343,19 +3344,20 @@ synthesize_exp (Btor *btor, BtorNode *exp, BtorPtrHashTable *backannotation)
 
         /* continue synthesizing children for apply and feq nodes if
          * lazy_synthesize is disabled */
-        if (!btor_get_opt (btor, BTOR_OPT_LAZY_SYNTHESIZE)) goto PUSH_CHILDREN;
+        if (!btor_get_opt (btor, BTOR_OPT_FUN_LAZY_SYNTHESIZE))
+          goto PUSH_CHILDREN;
       }
       /* we stop at function nodes as they will be lazily synthesized and
        * encoded during consistency checking */
       else if (BTOR_IS_FUN_NODE (cur)
-               && btor_get_opt (btor, BTOR_OPT_LAZY_SYNTHESIZE))
+               && btor_get_opt (btor, BTOR_OPT_FUN_LAZY_SYNTHESIZE))
       {
         continue;
       }
       else
       {
       PUSH_CHILDREN:
-        assert (!btor_get_opt (btor, BTOR_OPT_LAZY_SYNTHESIZE)
+        assert (!btor_get_opt (btor, BTOR_OPT_FUN_LAZY_SYNTHESIZE)
                 || !BTOR_IS_FUN_NODE (cur));
 
         btor_add_int_hash_table (cache, cur->id);
@@ -3386,7 +3388,7 @@ synthesize_exp (Btor *btor, BtorNode *exp, BtorPtrHashTable *backannotation)
     else if (!cur->parameterized && !BTOR_IS_ARGS_NODE (cur)
              && !BTOR_IS_FUN_NODE (cur))
     {
-      if (!btor_get_opt (btor, BTOR_OPT_LAZY_SYNTHESIZE))
+      if (!btor_get_opt (btor, BTOR_OPT_FUN_LAZY_SYNTHESIZE))
       {
         /* due to pushing nodes from static_rho onto 'exp_stack' a strict
          * DFS order is not guaranteed anymore. hence, we have to check
@@ -3482,7 +3484,7 @@ synthesize_exp (Btor *btor, BtorNode *exp, BtorPtrHashTable *backannotation)
           if (invert_av0) btor_invert_aigvec (avmgr, av0);
           if (invert_av1) btor_invert_aigvec (avmgr, av1);
         }
-        if (!btor_get_opt (btor, BTOR_OPT_LAZY_SYNTHESIZE))
+        if (!btor_get_opt (btor, BTOR_OPT_FUN_LAZY_SYNTHESIZE))
           btor_aigvec_to_sat_tseitin (avmgr, cur->av);
       }
       else
@@ -3701,7 +3703,7 @@ btor_sat_btor (Btor *btor, int lod_limit, int sat_limit)
   mclone                   = btor_clone_exp_layer (btor, 0);
   btor_set_opt (mclone, BTOR_OPT_LOGLEVEL, 0);
   btor_set_opt (mclone, BTOR_OPT_VERBOSITY, 0);
-  btor_set_opt (mclone, BTOR_OPT_DUAL_PROP, 0);
+  btor_set_opt (mclone, BTOR_OPT_FUN_DUAL_PROP, 0);
   inputs = map_inputs_check_model (btor, mclone);
   btor_set_opt (mclone, BTOR_OPT_AUTO_CLEANUP, 1);
 #endif
@@ -3709,14 +3711,14 @@ btor_sat_btor (Btor *btor, int lod_limit, int sat_limit)
 #ifdef BTOR_CHECK_DUAL_PROP
   Btor *dpclone = 0;
   if (btor_has_clone_support_sat_mgr (btor_get_sat_mgr_btor (btor))
-      && btor_get_opt (btor, BTOR_OPT_DUAL_PROP))
+      && btor_get_opt (btor, BTOR_OPT_FUN_DUAL_PROP))
   {
     dpclone = btor_clone_btor (btor);
     btor_set_opt (dpclone, BTOR_OPT_LOGLEVEL, 0);
     btor_set_opt (dpclone, BTOR_OPT_VERBOSITY, 0);
     btor_set_opt (dpclone, BTOR_OPT_AUTO_CLEANUP, 1);
     btor_set_opt (dpclone, BTOR_OPT_AUTO_CLEANUP_INTERNAL, 1);
-    btor_set_opt (dpclone, BTOR_OPT_DUAL_PROP, 0);
+    btor_set_opt (dpclone, BTOR_OPT_FUN_DUAL_PROP, 0);
   }
 #endif
 
@@ -3731,7 +3733,7 @@ btor_sat_btor (Btor *btor, int lod_limit, int sat_limit)
     btor_set_opt (faclone, BTOR_OPT_LOGLEVEL, 0);
     btor_set_opt (faclone, BTOR_OPT_VERBOSITY, 0);
     btor_set_opt (faclone, BTOR_OPT_CHK_FAILED_ASSUMPTIONS, 0);
-    btor_set_opt (faclone, BTOR_OPT_DUAL_PROP, 0);
+    btor_set_opt (faclone, BTOR_OPT_FUN_DUAL_PROP, 0);
   }
 #endif
 
@@ -3789,7 +3791,7 @@ btor_sat_btor (Btor *btor, int lod_limit, int sat_limit)
 #endif
 
 #ifdef BTOR_CHECK_DUAL_PROP
-  if (dpclone && btor_get_opt (btor, BTOR_OPT_DUAL_PROP))
+  if (dpclone && btor_get_opt (btor, BTOR_OPT_FUN_DUAL_PROP))
   {
     check_dual_prop (btor, dpclone);
     btor_delete_btor (dpclone);
@@ -4118,7 +4120,7 @@ static void
 check_dual_prop (Btor *btor, Btor *clone)
 {
   assert (btor);
-  assert (btor_get_opt (btor, BTOR_OPT_DUAL_PROP));
+  assert (btor_get_opt (btor, BTOR_OPT_FUN_DUAL_PROP));
   assert (clone);
 
   clone->slv->api.sat (clone->slv);
