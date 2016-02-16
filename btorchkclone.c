@@ -144,25 +144,22 @@ chkclone_node_ptr_hash_table (BtorPtrHashTable *table,
 /*------------------------------------------------------------------------*/
 
 static void
-btor_chkclone_mem (Btor *btor, bool exp_layer_only)
+btor_chkclone_mem (Btor *btor)
 {
   assert (btor);
   assert (btor->clone);
   assert (btor->mm);
   assert (btor->clone->mm);
-  if (!exp_layer_only)
-  {
-    assert (
-        btor->mm->allocated
-            - (btor->msg->prefix
-                   ? (strlen (btor->msg->prefix) + 1) * sizeof (char)
-                   : 0)
-        == btor->clone->mm->allocated
-               - (btor->clone->msg->prefix
-                      ? (strlen (btor->clone->msg->prefix) + 1) * sizeof (char)
-                      : 0));
-    assert (btor->mm->sat_allocated == btor->clone->mm->sat_allocated);
-  }
+  assert (
+      btor->mm->allocated
+          - (btor->msg->prefix
+                 ? (strlen (btor->msg->prefix) + 1) * sizeof (char)
+                 : 0)
+      == btor->clone->mm->allocated
+             - (btor->clone->msg->prefix
+                    ? (strlen (btor->clone->msg->prefix) + 1) * sizeof (char)
+                    : 0));
+  assert (btor->mm->sat_allocated == btor->clone->mm->sat_allocated);
   /* Note: both maxallocated and sat_maxallocated may differ! */
 }
 
@@ -175,7 +172,7 @@ btor_chkclone_mem (Btor *btor, bool exp_layer_only)
   } while (0)
 
 static void
-btor_chkclone_state (Btor *btor, bool exp_layer_only)
+btor_chkclone_state (Btor *btor)
 {
   assert (btor);
 
@@ -190,11 +187,8 @@ btor_chkclone_state (Btor *btor, bool exp_layer_only)
   BTOR_CHKCLONE_STATE (inconsistent);
   BTOR_CHKCLONE_STATE (found_constraint_false);
   BTOR_CHKCLONE_STATE (external_refs);
-  if (!exp_layer_only)
-  {
-    BTOR_CHKCLONE_STATE (btor_sat_btor_called);
-    BTOR_CHKCLONE_STATE (last_sat_result);
-  }
+  BTOR_CHKCLONE_STATE (btor_sat_btor_called);
+  BTOR_CHKCLONE_STATE (last_sat_result);
 }
 
 /*------------------------------------------------------------------------*/
@@ -212,7 +206,7 @@ btor_chkclone_state (Btor *btor, bool exp_layer_only)
   } while (0)
 
 static void
-btor_chkclone_stats (Btor *btor, bool exp_layer_only)
+btor_chkclone_stats (Btor *btor)
 {
   assert (btor);
 
@@ -225,8 +219,6 @@ btor_chkclone_stats (Btor *btor, bool exp_layer_only)
 
   clone = btor->clone;
   assert (clone);
-
-  if (exp_layer_only) return;
 
   BTOR_CHKCLONE_STATS (max_rec_rw_calls);
   BTOR_CHKCLONE_STATS (var_substitutions);
@@ -383,38 +375,35 @@ btor_chkclone_aig (BtorAIG *aig, BtorAIG *clone)
   }
 }
 
-#define BTOR_CHKCLONE_AIG_UNIQUE_TABLE(table, clone, exp_layer_only) \
-  do                                                                 \
-  {                                                                  \
-    int i;                                                           \
-    if (exp_layer_only) break;                                       \
-    assert (table.size == clone.size);                               \
-    assert (table.num_elements == clone.num_elements);               \
-    for (i = 0; i < table.size; i++)                                 \
-      assert (table.chains[i] == clone.chains[i]);                   \
+#define BTOR_CHKCLONE_AIG_UNIQUE_TABLE(table, clone)   \
+  do                                                   \
+  {                                                    \
+    int i;                                             \
+    assert (table.size == clone.size);                 \
+    assert (table.num_elements == clone.num_elements); \
+    for (i = 0; i < table.size; i++)                   \
+      assert (table.chains[i] == clone.chains[i]);     \
   } while (0)
 
-#define BTOR_CHKCLONE_AIG_ID_TABLE(table, clone, exp_layer_only)   \
+#define BTOR_CHKCLONE_AIG_ID_TABLE(table, clone)                   \
   do                                                               \
   {                                                                \
     int i;                                                         \
-    if (exp_layer_only) break;                                     \
     assert (BTOR_COUNT_STACK (table) == BTOR_COUNT_STACK (clone)); \
     assert (BTOR_SIZE_STACK (table) == BTOR_SIZE_STACK (clone));   \
     for (i = 0; i < BTOR_COUNT_STACK (table); i++)                 \
       btor_chkclone_aig (table.start[i], clone.start[i]);          \
   } while (0)
 
-#define BTOR_CHKCLONE_AIG_CNF_ID_TABLE(table, clone, exp_layer_only) \
-  do                                                                 \
-  {                                                                  \
-    int i;                                                           \
-    if (exp_layer_only) break;                                       \
-    assert (BTOR_COUNT_STACK (table) == 0);                          \
-    assert (BTOR_COUNT_STACK (table) == BTOR_COUNT_STACK (clone));   \
-    assert (BTOR_SIZE_STACK (table) == BTOR_SIZE_STACK (clone));     \
-    for (i = 0; i < BTOR_SIZE_STACK (table); i++)                    \
-      assert (table.start[i] == clone.start[i]);                     \
+#define BTOR_CHKCLONE_AIG_CNF_ID_TABLE(table, clone)               \
+  do                                                               \
+  {                                                                \
+    int i;                                                         \
+    assert (BTOR_COUNT_STACK (table) == 0);                        \
+    assert (BTOR_COUNT_STACK (table) == BTOR_COUNT_STACK (clone)); \
+    assert (BTOR_SIZE_STACK (table) == BTOR_SIZE_STACK (clone));   \
+    for (i = 0; i < BTOR_SIZE_STACK (table); i++)                  \
+      assert (table.start[i] == clone.start[i]);                   \
   } while (0)
 
 /*------------------------------------------------------------------------*/
@@ -446,13 +435,17 @@ btor_chkclone_aig (BtorAIG *aig, BtorAIG *clone)
 /*------------------------------------------------------------------------*/
 
 void
-btor_chkclone_exp (BtorNode *exp, BtorNode *clone, bool exp_layer_only)
+btor_chkclone_exp (BtorNode *exp, BtorNode *clone)
 {
   assert (exp);
   assert (clone);
   assert (exp != clone);
   assert ((!BTOR_IS_INVERTED_NODE (exp) && !BTOR_IS_INVERTED_NODE (clone))
           || (BTOR_IS_INVERTED_NODE (exp) && BTOR_IS_INVERTED_NODE (clone)));
+
+  if (!btor_has_clone_support_sat_mgr (
+          btor_get_sat_mgr_btor (BTOR_REAL_ADDR_NODE (exp)->btor)))
+    return;
 
   unsigned i;
   BtorNode *real_exp, *real_clone, *e, *ce;
@@ -493,34 +486,31 @@ btor_chkclone_exp (BtorNode *exp, BtorNode *clone, bool exp_layer_only)
               == 0);
     }
   }
-  else if (!exp_layer_only)
+  else
   {
     assert ((real_exp->av && real_clone->av)
             || (!real_exp->av && !real_clone->av));
   }
 
   BTOR_CHKCLONE_EXP (id);
-  if (!exp_layer_only) BTOR_CHKCLONE_EXP (refs);
+  BTOR_CHKCLONE_EXP (refs);
   BTOR_CHKCLONE_EXP (ext_refs);
   BTOR_CHKCLONE_EXP (parents);
   BTOR_CHKCLONE_EXP (arity);
 
-  if (!exp_layer_only)
+  if (!BTOR_IS_FUN_NODE (real_exp))
   {
-    if (!BTOR_IS_FUN_NODE (real_exp))
+    if (real_exp->av)
     {
-      if (real_exp->av)
-      {
-        assert (real_exp->av->len == real_clone->av->len);
-        for (i = 0; i < real_exp->av->len; i++)
-          btor_chkclone_aig (real_exp->av->aigs[i], real_clone->av->aigs[i]);
-      }
-      else
-        assert (real_exp->av == real_clone->av);
+      assert (real_exp->av->len == real_clone->av->len);
+      for (i = 0; i < real_exp->av->len; i++)
+        btor_chkclone_aig (real_exp->av->aigs[i], real_clone->av->aigs[i]);
     }
-    else if (real_exp->rho)
-      chkclone_node_ptr_hash_table (real_exp->rho, real_clone->rho, 0);
+    else
+      assert (real_exp->av == real_clone->av);
   }
+  else if (real_exp->rho)
+    chkclone_node_ptr_hash_table (real_exp->rho, real_clone->rho, 0);
 
   BTOR_CHKCLONE_EXPPID (next);
   BTOR_CHKCLONE_EXPPINV (simplified);
@@ -597,7 +587,7 @@ btor_chkclone_exp (BtorNode *exp, BtorNode *clone, bool exp_layer_only)
       assert (!((BtorParamNode *) real_clone)->assigned_exp);
   }
 
-  if (BTOR_IS_LAMBDA_NODE (real_exp) && !exp_layer_only)
+  if (BTOR_IS_LAMBDA_NODE (real_exp))
   {
     if (btor_lambda_get_static_rho (real_exp))
     {
@@ -648,11 +638,10 @@ btor_chkclone_exp (BtorNode *exp, BtorNode *clone, bool exp_layer_only)
 
 /*------------------------------------------------------------------------*/
 
-#define BTOR_CHKCLONE_NODE_PTR_STACK(stack, clone, exp_layer_only) \
+#define BTOR_CHKCLONE_NODE_PTR_STACK(stack, clone)                 \
   do                                                               \
   {                                                                \
     int i;                                                         \
-    if (exp_layer_only) break;                                     \
     assert (BTOR_COUNT_STACK (stack) == BTOR_COUNT_STACK (clone)); \
     for (i = 0; i < BTOR_COUNT_STACK (stack); i++)                 \
     {                                                              \
@@ -668,7 +657,7 @@ btor_chkclone_exp (BtorNode *exp, BtorNode *clone, bool exp_layer_only)
 
 /*------------------------------------------------------------------------*/
 
-#define BTOR_CHKCLONE_NODE_ID_TABLE(stack, clone, exp_layer_only)  \
+#define BTOR_CHKCLONE_NODE_ID_TABLE(stack, clone)                  \
   do                                                               \
   {                                                                \
     int i;                                                         \
@@ -681,8 +670,7 @@ btor_chkclone_exp (BtorNode *exp, BtorNode *clone, bool exp_layer_only)
         continue;                                                  \
       }                                                            \
       btor_chkclone_exp (BTOR_PEEK_STACK (stack, i),               \
-                         BTOR_PEEK_STACK (clone, i),               \
-                         exp_layer_only);                          \
+                         BTOR_PEEK_STACK (clone, i));              \
     }                                                              \
   } while (0)
 
@@ -710,14 +698,12 @@ btor_chkclone_exp (BtorNode *exp, BtorNode *clone, bool exp_layer_only)
 /*------------------------------------------------------------------------*/
 
 static void
-btor_chkclone_assignment_lists (Btor *btor, bool exp_layer_only)
+btor_chkclone_assignment_lists (Btor *btor)
 {
   BtorBVAssignment *bvass, *cbvass;
   BtorArrayAssignment *arrass, *carrass;
   char **ind, **val, **cind, **cval;
   int i;
-
-  if (exp_layer_only) return;
 
   assert (btor->bv_assignments->count == btor->clone->bv_assignments->count);
   for (bvass = btor->bv_assignments->first,
@@ -753,11 +739,8 @@ btor_chkclone_assignment_lists (Btor *btor, bool exp_layer_only)
 /*------------------------------------------------------------------------*/
 
 static void
-btor_chkclone_tables (Btor *btor, bool exp_layer_only)
+btor_chkclone_tables (Btor *btor)
 {
-  BtorNode *exp, *cexp;
-  BtorPtrHashTable *ct, *cct;
-  BtorPtrHashBucket *b;
   BtorHashTableIterator it, cit, nit, cnit;
   char *sym, *csym;
 
@@ -818,43 +801,10 @@ btor_chkclone_tables (Btor *btor, bool exp_layer_only)
                                      btor->clone->varsubst_constraints);
   BTOR_CHKCLONE_NODE_PTR_HASH_TABLE (btor->embedded_constraints,
                                      btor->clone->embedded_constraints);
-  if (exp_layer_only)
-  {
-    ct  = btor->unsynthesized_constraints;
-    cct = btor->clone->unsynthesized_constraints;
-    assert ((!ct && !cct) || (ct && cct));
-    assert (ct->hash == cct->hash);
-    assert (ct->cmp == cct->cmp);
-    btor_init_node_hash_table_iterator (&it, ct);
-    btor_init_node_hash_table_iterator (&cit, cct);
-    while (btor_has_next_node_hash_table_iterator (&it))
-    {
-      assert (btor_has_next_node_hash_table_iterator (&cit));
-      exp  = btor_next_node_hash_table_iterator (&it);
-      cexp = btor_next_node_hash_table_iterator (&cit);
-      BTOR_CHKCLONE_EXPID (exp, cexp);
-    }
-
-    ct = btor->synthesized_constraints;
-    while (btor_has_next_node_hash_table_iterator (&it))
-    {
-      exp = btor_next_node_hash_table_iterator (&it);
-      b   = btor_get_ptr_hash_table (btor->clone->synthesized_constraints, exp);
-      if (!b)
-        b = btor_get_ptr_hash_table (btor->clone->unsynthesized_constraints,
-                                     exp);
-      assert (b);
-      cexp = (BtorNode *) b->key;
-      BTOR_CHKCLONE_EXPID (exp, cexp);
-    }
-  }
-  else
-  {
-    BTOR_CHKCLONE_NODE_PTR_HASH_TABLE (btor->unsynthesized_constraints,
-                                       btor->clone->unsynthesized_constraints);
-    BTOR_CHKCLONE_NODE_PTR_HASH_TABLE (btor->synthesized_constraints,
-                                       btor->clone->synthesized_constraints);
-  }
+  BTOR_CHKCLONE_NODE_PTR_HASH_TABLE (btor->unsynthesized_constraints,
+                                     btor->clone->unsynthesized_constraints);
+  BTOR_CHKCLONE_NODE_PTR_HASH_TABLE (btor->synthesized_constraints,
+                                     btor->clone->synthesized_constraints);
 
   BTOR_CHKCLONE_NODE_PTR_HASH_TABLE (btor->assumptions,
                                      btor->clone->assumptions);
@@ -1131,18 +1081,15 @@ btor_chkclone (Btor *btor)
 {
   if (!btor->clone) return;
 
-  bool exp_layer_only;
+  if (!btor_has_clone_support_sat_mgr (btor_get_sat_mgr_btor (btor))) return;
 
-  exp_layer_only =
-      !btor_has_clone_support_sat_mgr (btor_get_sat_mgr_btor (btor));
-
-  btor_chkclone_mem (btor, exp_layer_only);
-  btor_chkclone_state (btor, exp_layer_only);
-  btor_chkclone_stats (btor, exp_layer_only);
+  btor_chkclone_mem (btor);
+  btor_chkclone_state (btor);
+  btor_chkclone_stats (btor);
 
   btor_chkclone_opts (btor);
 
-  btor_chkclone_assignment_lists (btor, exp_layer_only);
+  btor_chkclone_assignment_lists (btor);
 
   assert ((!btor->avmgr && !btor->clone->avmgr)
           || (btor->avmgr && btor->clone->avmgr));
@@ -1151,29 +1098,25 @@ btor_chkclone (Btor *btor)
   {
     BTOR_CHKCLONE_AIG_UNIQUE_TABLE (
         btor_get_aig_mgr_aigvec_mgr (btor->avmgr)->table,
-        btor_get_aig_mgr_aigvec_mgr (btor->clone->avmgr)->table,
-        exp_layer_only);
+        btor_get_aig_mgr_aigvec_mgr (btor->clone->avmgr)->table);
     BTOR_CHKCLONE_AIG_ID_TABLE (
         btor_get_aig_mgr_aigvec_mgr (btor->avmgr)->id2aig,
-        btor_get_aig_mgr_aigvec_mgr (btor->clone->avmgr)->id2aig,
-        exp_layer_only);
+        btor_get_aig_mgr_aigvec_mgr (btor->clone->avmgr)->id2aig);
     BTOR_CHKCLONE_AIG_CNF_ID_TABLE (
         btor_get_aig_mgr_aigvec_mgr (btor->avmgr)->cnfid2aig,
-        btor_get_aig_mgr_aigvec_mgr (btor->clone->avmgr)->cnfid2aig,
-        exp_layer_only);
+        btor_get_aig_mgr_aigvec_mgr (btor->clone->avmgr)->cnfid2aig);
   }
 
-  BTOR_CHKCLONE_NODE_ID_TABLE (
-      btor->nodes_id_table, btor->clone->nodes_id_table, exp_layer_only);
+  BTOR_CHKCLONE_NODE_ID_TABLE (btor->nodes_id_table,
+                               btor->clone->nodes_id_table);
 
   BTOR_CHKCLONE_NODE_UNIQUE_TABLE (btor->nodes_unique_table,
                                    btor->clone->nodes_unique_table);
 
   BTOR_CHKCLONE_NODE_PTR_STACK (btor->functions_with_model,
-                                btor->clone->functions_with_model,
-                                exp_layer_only);
+                                btor->clone->functions_with_model);
 
-  btor_chkclone_tables (btor, exp_layer_only);
+  btor_chkclone_tables (btor);
 
   btor_chkclone_slv (btor);
 }
