@@ -73,6 +73,8 @@ btor_next_part_gen (BtorPartitionGenerator* pg)
       pg->perm_cnt = 0;
     else
       pg->perm_cnt = 1;
+    assert (pg->tuple[0] < pg->n);
+    assert (pg->tuple[1] < pg->n);
   }
   else
   {
@@ -96,6 +98,9 @@ btor_next_part_gen (BtorPartitionGenerator* pg)
       pg->perm_cnt = 2;
     else
       pg->perm_cnt = 5;
+    assert (pg->tuple[0] < pg->n);
+    assert (pg->tuple[1] < pg->n);
+    assert (pg->tuple[2] < pg->n);
   }
   return pg->tuple;
 }
