@@ -218,7 +218,16 @@ timed_sat_sat (Btor *btor, int limit)
   double start, delta;
   BtorSolverResult res;
   BtorSATMgr *smgr;
+  BtorAIGMgr *amgr;
 
+  amgr = btor_get_aig_mgr_btor (btor);
+  BTOR_MSG (btor->msg,
+            1,
+            "%u AIG vars, %u AIG ands, %u CNF vars, %u CNF clauses",
+            amgr->cur_num_aig_vars,
+            amgr->cur_num_aigs,
+            amgr->num_cnf_vars,
+            amgr->num_cnf_clauses);
   smgr  = btor_get_sat_mgr_btor (btor);
   start = btor_time_stamp ();
   res   = btor_sat_sat (smgr, limit);
@@ -1444,7 +1453,7 @@ add_symbolic_lemma (Btor *btor,
   while (btor_has_next_node_hash_table_iterator (&it))
   {
     cond = btor_next_node_hash_table_iterator (&it);
-    BTORLOG (2, "  p %s", node2string (cond));
+    BTORLOG (2, "  p %s", node2string (BTOR_INVERT_NODE (cond)));
     assert (btor_get_exp_width (btor, cond) == 1);
     assert (!BTOR_REAL_ADDR_NODE (cond)->parameterized);
     if (premise)
@@ -2242,6 +2251,8 @@ sat_core_solver (BtorCoreSolver *slv)
     }
 
     assert (result == BTOR_RESULT_SAT);
+
+    if (btor->ufs->count == 0 && btor->lambdas->count == 0) break;
 
     check_and_resolve_conflicts (btor, clone, clone_root, exp_map);
     if (BTOR_EMPTY_STACK (slv->cur_lemmas)) break;

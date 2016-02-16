@@ -5437,14 +5437,6 @@ normalize_eq (Btor *btor, BtorNode **left, BtorNode **right)
       e0 = BTOR_INVERT_NODE (e0);
       e1 = BTOR_INVERT_NODE (e1);
     }
-    else if (BTOR_IS_INVERTED_NODE (e1)
-             && BTOR_IS_BV_VAR_NODE (BTOR_REAL_ADDR_NODE (e1))
-             && (BTOR_IS_INVERTED_NODE (e0) || !BTOR_IS_BV_VAR_NODE (e1)))
-    {
-      tmp1 = BTOR_INVERT_NODE (e0);
-      e0   = BTOR_INVERT_NODE (e1);
-      e1   = tmp1;
-    }
   }
 
   /* normalize adds and muls on demand */
