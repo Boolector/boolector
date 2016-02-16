@@ -112,7 +112,6 @@ btor_init_opts (Btor *btor)
                  0,
                  2,
                  "print model for satisfiable instances");
-
   btor_init_opt (
       btor, false, BTOR_OPT_INCREMENTAL, "i", 0, 0, 1, "incremental usage");
   btor_init_opt (btor,
@@ -123,7 +122,6 @@ btor_init_opts (Btor *btor)
                  0,
                  1,
                  "incremental, solve all (SMT1 only)");
-
   btor_init_opt (btor,
                  false,
                  BTOR_OPT_INPUT_FORMAT,
@@ -132,7 +130,6 @@ btor_init_opts (Btor *btor)
                  BTOR_INPUT_FORMAT_MIN,
                  BTOR_INPUT_FORMAT_MAX,
                  "input file format");
-
   btor_init_opt (btor,
                  false,
                  BTOR_OPT_OUTPUT_NUMBER_FORMAT,
@@ -141,7 +138,6 @@ btor_init_opts (Btor *btor)
                  BTOR_OUTPUT_BASE_MIN,
                  BTOR_OUTPUT_BASE_MAX,
                  "output number format");
-
   btor_init_opt (btor,
                  false,
                  BTOR_OPT_OUTPUT_FORMAT,
@@ -150,10 +146,86 @@ btor_init_opts (Btor *btor)
                  BTOR_OUTPUT_FORMAT_MIN,
                  BTOR_OUTPUT_FORMAT_MAX,
                  "output file format");
+  btor_init_opt (btor,
+                 false,
+                 BTOR_OPT_ENGINE,
+                 "E",
+                 BTOR_ENGINE_DFLT,
+                 BTOR_ENGINE_MIN,
+                 BTOR_ENGINE_MAX,
+                 "enable specific engine");
+  btor_init_opt (btor,
+                 false,
+                 BTOR_OPT_SAT_ENGINE,
+                 "SE",
+                 BTOR_SAT_ENGINE_DFLT,
+                 BTOR_SAT_ENGINE_MIN + 1,
+                 BTOR_SAT_ENGINE_MAX - 1,
+                 "enable specific SAT solver");
+  btor_init_opt (btor,
+                 false,
+                 BTOR_OPT_AUTO_CLEANUP,
+                 "ac",
+                 0,
+                 0,
+                 1,
+                 "auto cleanup on exit");
+  btor_init_opt (btor,
+                 false,
+                 BTOR_OPT_PRETTY_PRINT,
+                 "p",
+                 1,
+                 0,
+                 1,
+                 "pretty print when dumping");
+  btor_init_opt (btor,
+                 false,
+                 BTOR_OPT_EXIT_CODES,
+                 "e",
+                 1,
+                 0,
+                 1,
+                 "use Boolector exit codes");
+  btor_init_opt (btor,
+                 false,
+                 BTOR_OPT_SEED,
+                 "s",
+                 0,
+                 0,
+                 INT_MAX,
+                 "random number generator seed");
+  btor_init_opt (btor,
+                 false,
+                 BTOR_OPT_VERBOSITY,
+                 "v",
+                 0,
+                 0,
+                 BTOR_VERBOSITY_MAX,
+                 "increase verbosity");
+#ifndef NBTORLOG
+  btor_init_opt (
+      btor, false, BTOR_OPT_LOGLEVEL, "l", 0, 0, UINT_MAX, "increase loglevel");
+#endif
 
+  /* simplifier --------------------------------------------------------- */
   btor_init_opt (
       btor, false, BTOR_OPT_REWRITE_LEVEL, "rwl", 3, 0, 3, "rewrite level");
-
+  btor_init_opt (btor,
+                 false,
+                 BTOR_OPT_SKELETON_PREPROC,
+                 "sp",
+                 1,
+                 0,
+                 1,
+                 "propositional skeleton preprocessing");
+  btor_init_opt (btor,
+                 false,
+                 BTOR_OPT_ACKERMANN,
+                 "ack",
+                 0,
+                 0,
+                 1,
+                 "add ackermann constraints");
   btor_init_opt (btor,
                  false,
                  BTOR_OPT_BETA_REDUCE_ALL,
@@ -164,31 +236,76 @@ btor_init_opts (Btor *btor)
                  "eagerly eliminate lambda expressions");
   btor_init_opt (btor,
                  false,
-                 BTOR_OPT_ACKERMANN,
-                 "ack",
+                 BTOR_OPT_ELIMINATE_SLICES,
+                 "es",
+                 1,
+                 0,
+                 1,
+                 "eliminate slices on variables");
+  btor_init_opt (
+      btor, false, BTOR_OPT_VAR_SUBST, "vs", 1, 0, 1, "variable substitution");
+  btor_init_opt (
+      btor, false, BTOR_OPT_UCOPT, "uc", 0, 0, 1, "unconstrained optimization");
+
+  /* core engine -------------------------------------------------------- */
+  btor_init_opt (btor,
+                 false,
+                 BTOR_OPT_DUAL_PROP,
+                 "dp",
                  0,
                  0,
                  1,
-                 "add ackermann constraints");
-
+                 "dual propagation optimization");
   btor_init_opt (btor,
                  false,
-                 BTOR_OPT_ENGINE,
-                 "E",
-                 BTOR_ENGINE_DFLT,
-                 BTOR_ENGINE_MIN,
-                 BTOR_ENGINE_MAX,
-                 "enable specific engine");
-
+                 BTOR_OPT_JUST,
+                 "just",
+                 0,
+                 0,
+                 1,
+                 "justification optimization");
   btor_init_opt (btor,
                  false,
-                 BTOR_OPT_SAT_ENGINE,
-                 "SE",
-                 BTOR_SAT_ENGINE_DFLT,
-                 BTOR_SAT_ENGINE_MIN + 1,
-                 BTOR_SAT_ENGINE_MAX - 1,
-                 "enable specific SAT solver");
+                 BTOR_OPT_JUST_HEURISTIC,
+                 0,
+                 BTOR_JUST_HEUR_DFLT,
+                 BTOR_JUST_HEUR_MIN,
+                 BTOR_JUST_HEUR_MAX,
+                 "justification heuristic");
+  btor_init_opt (btor,
+                 false,
+                 BTOR_OPT_LAZY_SYNTHESIZE,
+                 "ls",
+                 0,
+                 0,
+                 1,
+                 "lazily synthesize expressions");
+  btor_init_opt (btor,
+                 false,
+                 BTOR_OPT_EAGER_LEMMAS,
+                 "el",
+                 1,
+                 0,
+                 1,
+                 "eager lemma generation");
+  btor_init_opt (btor,
+                 false,
+                 BTOR_OPT_MERGE_LAMBDAS,
+                 "ml",
+                 1,
+                 0,
+                 1,
+                 "merge lambda chains");
+  btor_init_opt (btor,
+                 false,
+                 BTOR_OPT_EXTRACT_LAMBDAS,
+                 "xl",
+                 1,
+                 0,
+                 1,
+                 "extract lambda terms");
 
+  /* SLS engine ---------------------------------------------------------- */
   btor_init_opt (btor,
                  false,
                  BTOR_OPT_SLS_STRATEGY,
@@ -197,6 +314,8 @@ btor_init_opts (Btor *btor)
                  BTOR_SLS_STRAT_MIN,
                  BTOR_SLS_STRAT_MAX,
                  "move strategy for sls");
+  btor_init_opt (
+      btor, false, BTOR_OPT_SLS_JUST, 0, 0, 0, 1, "justification optimization");
   btor_init_opt (btor,
                  false,
                  BTOR_OPT_SLS_MOVE_GW,
@@ -333,86 +452,7 @@ btor_init_opts (Btor *btor)
                  1,
                  "use bandit scheme for constraint selection");
 
-  btor_init_opt (btor,
-                 false,
-                 BTOR_OPT_DUAL_PROP,
-                 "dp",
-                 0,
-                 0,
-                 1,
-                 "dual propagation optimization");
-  btor_init_opt (btor,
-                 false,
-                 BTOR_OPT_JUST,
-                 "just",
-                 0,
-                 0,
-                 1,
-                 "justification optimization");
-  btor_init_opt (btor,
-                 false,
-                 BTOR_OPT_JUST_HEURISTIC,
-                 0,
-                 BTOR_JUST_HEUR_DFLT,
-                 BTOR_JUST_HEUR_MIN,
-                 BTOR_JUST_HEUR_MAX,
-                 "justification heuristic");
-
-#ifndef BTOR_DO_NOT_OPTIMIZE_UNCONSTRAINED
-  btor_init_opt (
-      btor, false, BTOR_OPT_UCOPT, "uc", 0, 0, 1, "unconstrained optimization");
-#endif
-
-  btor_init_opt (btor,
-                 false,
-                 BTOR_OPT_LAZY_SYNTHESIZE,
-                 "ls",
-                 0,
-                 0,
-                 1,
-                 "lazily synthesize expressions");
-  btor_init_opt (btor,
-                 false,
-                 BTOR_OPT_ELIMINATE_SLICES,
-                 "es",
-                 1,
-                 0,
-                 1,
-                 "eliminate slices on variables");
-  btor_init_opt (btor,
-                 false,
-                 BTOR_OPT_EAGER_LEMMAS,
-                 "el",
-                 1,
-                 0,
-                 1,
-                 "eager lemma generation");
-  btor_init_opt (btor,
-                 false,
-                 BTOR_OPT_MERGE_LAMBDAS,
-                 "ml",
-                 1,
-                 0,
-                 1,
-                 "merge lambda chains");
-  btor_init_opt (btor,
-                 false,
-                 BTOR_OPT_EXTRACT_LAMBDAS,
-                 "xl",
-                 1,
-                 0,
-                 1,
-                 "extract lambda terms");
-  btor_init_opt (btor,
-                 false,
-                 BTOR_OPT_SKELETON_PREPROC,
-                 "sp",
-                 1,
-                 0,
-                 1,
-                 "propositional skeleton preprocessing");
-  btor_init_opt (
-      btor, false, BTOR_OPT_VAR_SUBST, "vs", 1, 0, 1, "variable substitution");
+  /* internal options ---------------------------------------------------- */
   btor_init_opt (btor,
                  false,
                  BTOR_OPT_SORT_EXP,
@@ -424,56 +464,8 @@ btor_init_opts (Btor *btor)
   btor_init_opt (btor, false, BTOR_OPT_SORT_AIG, 0, 1, 0, 1, "sort AIG nodes");
   btor_init_opt (
       btor, false, BTOR_OPT_SORT_AIGVEC, 0, 1, 0, 1, "sort AIG vectors");
-  btor_init_opt (btor,
-                 false,
-                 BTOR_OPT_AUTO_CLEANUP,
-                 "ac",
-                 0,
-                 0,
-                 1,
-                 "auto cleanup on exit");
-  btor_init_opt (btor,
-                 false,
-                 BTOR_OPT_PRETTY_PRINT,
-                 "p",
-                 1,
-                 0,
-                 1,
-                 "pretty print when dumping");
-  btor_init_opt (btor,
-                 false,
-                 BTOR_OPT_EXIT_CODES,
-                 "e",
-                 1,
-                 0,
-                 1,
-                 "use Boolector exit codes");
-
-#ifndef NBTORLOG
-  btor_init_opt (
-      btor, false, BTOR_OPT_LOGLEVEL, "l", 0, 0, UINT_MAX, "increase loglevel");
-#endif
-
-  btor_init_opt (btor,
-                 false,
-                 BTOR_OPT_VERBOSITY,
-                 "v",
-                 0,
-                 0,
-                 BTOR_VERBOSITY_MAX,
-                 "increase verbosity");
-  btor_init_opt (btor,
-                 false,
-                 BTOR_OPT_SEED,
-                 "s",
-                 0,
-                 0,
-                 INT_MAX,
-                 "random number generator seed");
-
-  /* internal options */
-  btor_init_opt (btor, true, BTOR_OPT_SIMPLIFY_CONSTRAINTS, 0, 1, 0, 1, 0);
   btor_init_opt (btor, true, BTOR_OPT_AUTO_CLEANUP_INTERNAL, 0, 0, 0, 1, 0);
+  btor_init_opt (btor, true, BTOR_OPT_SIMPLIFY_CONSTRAINTS, 0, 1, 0, 1, 0);
 #ifdef BTOR_CHECK_FAILED
   btor_init_opt (btor, true, BTOR_OPT_CHK_FAILED_ASSUMPTIONS, 0, 1, 0, 1, 0);
 #endif
@@ -676,6 +668,11 @@ btor_set_opt (Btor *btor, const char *name, uint32_t val)
     if (!val && btor_get_opt (btor, name)) btor_delete_model (btor);
     assert (!val || !btor_get_opt (btor, BTOR_OPT_UCOPT));
   }
+  else if (!strcmp (name, BTOR_OPT_UCOPT))
+  {
+    assert (!val || !btor_get_opt (btor, BTOR_OPT_MODEL_GEN));
+    assert (!val || !btor_get_opt (btor, BTOR_OPT_INCREMENTAL));
+  }
 #ifndef NDEBUG
   else if (!strcmp (name, BTOR_OPT_INCREMENTAL))
   {
@@ -688,10 +685,6 @@ btor_set_opt (Btor *btor, const char *name, uint32_t val)
   else if (!strcmp (name, BTOR_OPT_JUST))
   {
     assert (!val || !btor_get_opt (btor, BTOR_OPT_DUAL_PROP));
-  }
-  else if (!strcmp (name, BTOR_OPT_SLS))
-  {
-    assert (btor->btor_sat_btor_called == 0);
   }
   else if (!strcmp (name, BTOR_OPT_REWRITE_LEVEL))
   {

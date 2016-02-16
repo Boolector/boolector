@@ -472,7 +472,6 @@ btor_print_stats_btor (Btor *btor)
   verbosity = btor_get_opt (btor, BTOR_OPT_VERBOSITY);
 
   report_constraint_stats (btor, 1);
-#ifndef BTOR_DO_NOT_OPTIMIZE_UNCONSTRAINED
   if (btor_get_opt (btor, BTOR_OPT_UCOPT))
   {
     BTOR_MSG (
@@ -486,7 +485,6 @@ btor_print_stats_btor (Btor *btor)
               "unconstrained parameterized props: %d",
               btor->stats.param_uc_props);
   }
-#endif
   BTOR_MSG (btor->msg,
             1,
             "variable substitutions: %d",
@@ -618,13 +616,11 @@ btor_print_stats_btor (Btor *btor)
             1,
             "%.2f seconds substitute and rebuild",
             btor->time.subst_rebuild);
-#ifndef BTOR_DO_NOT_OPTIMIZE_UNCONSTRAINED
   if (btor_get_opt (btor, BTOR_OPT_UCOPT))
     BTOR_MSG (btor->msg,
               1,
               "%.2f seconds for unconstrained optimization",
               btor->time.ucopt);
-#endif
   if (btor_get_opt (btor, BTOR_OPT_MODEL_GEN))
     BTOR_MSG (
         btor->msg, 1, "%.2f seconds model generation", btor->time.model_gen);
@@ -3210,7 +3206,6 @@ btor_simplify (Btor *btor)
     if (btor->varsubst_constraints->count || btor->embedded_constraints->count)
       continue;
 
-#ifndef BTOR_DO_NOT_OPTIMIZE_UNCONSTRAINED
     if (btor_get_opt (btor, BTOR_OPT_UCOPT)
         && btor_get_opt (btor, BTOR_OPT_REWRITE_LEVEL) > 2
         && !btor_get_opt (btor, BTOR_OPT_INCREMENTAL)
@@ -3222,7 +3217,6 @@ btor_simplify (Btor *btor)
       assert (btor_check_unique_table_children_proxy_free_dbg (btor));
       if (btor->inconsistent) break;
     }
-#endif
 
     if (btor->varsubst_constraints->count || btor->embedded_constraints->count)
       continue;

@@ -2868,9 +2868,9 @@ btormbt_state_opt (BtorMBT *mbt, unsigned r)
       {
         if (pick (&rng, 0, 9)) continue;
       }
-      /* exclude some combinations of options (dependent on option order in
-       * btoropts.h) */
-#ifndef BTOR_DO_NOT_OPTIMIZE_UNCONSTRAINED
+
+      /* avoid invalid option combinations */
+
       // FIXME remove as soon as ucopt works with mgen
       /* do not enable unconstrained optimization if either model
        * generation or incremental is enabled */
@@ -2878,10 +2878,16 @@ btormbt_state_opt (BtorMBT *mbt, unsigned r)
           && (boolector_get_opt (mbt->btor, BTOR_OPT_MODEL_GEN)
               || boolector_get_opt (mbt->btor, BTOR_OPT_INCREMENTAL)))
         continue;
-#endif
+      if ((!strcmp (btoropt->name, BTOR_OPT_MODEL_GEN)
+           || !strcmp (btoropt->name, BTOR_OPT_INCREMENTAL))
+          && boolector_get_opt (mbt->btor, BTOR_OPT_UCOPT))
+        continue;
       /* do not enable justification if dual propagation is enabled */
       if (!strcmp (btoropt->name, BTOR_OPT_JUST)
           && boolector_get_opt (mbt->btor, BTOR_OPT_DUAL_PROP))
+        continue;
+      if (!strcmp (btoropt->name, BTOR_OPT_DUAL_PROP)
+          && boolector_get_opt (mbt->btor, BTOR_OPT_JUST))
         continue;
 
       btoropt->val = pick (&rng, btoropt->min, btoropt->max);

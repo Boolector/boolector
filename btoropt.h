@@ -19,6 +19,8 @@
 #include "utils/btorhashptr.h"
 #include "utils/btormem.h"
 
+/*------------------------------------------------------------------------*/
+
 #define BTOR_VERBOSITY_MAX 4
 
 enum BtorOptSatEngines
@@ -84,6 +86,8 @@ enum BtorOptSatEngines
 #define BTOR_SLS_STRAT_MIN 0
 #define BTOR_SLS_STRAT_MAX 4
 
+/*------------------------------------------------------------------------*/
+
 typedef struct BtorOpt
 {
   int internal;     /* internal option? */
@@ -97,24 +101,44 @@ typedef struct BtorOpt
   char *valstr;     /* optional option string value */
 } BtorOpt;
 
-#define BTOR_OPT_ENGINE "engine"
-#define BTOR_OPT_SAT_ENGINE "sat_engine"
-#ifdef BTOR_USE_LINGELING
-#define BTOR_OPT_SAT_ENGINE_LGL_FORK "sat_engine_lgl_fork"
-#endif
+/*------------------------------------------------------------------------*/
+
 #define BTOR_OPT_MODEL_GEN "model_gen"
 #define BTOR_OPT_INCREMENTAL "incremental"
 #define BTOR_OPT_INCREMENTAL_ALL "incremental_all"
 #define BTOR_OPT_INPUT_FORMAT "input_format"
 #define BTOR_OPT_OUTPUT_NUMBER_FORMAT "output_number_format"
 #define BTOR_OPT_OUTPUT_FORMAT "output_format"
+#define BTOR_OPT_ENGINE "engine"
+#define BTOR_OPT_SAT_ENGINE "sat_engine"
+#define BTOR_OPT_AUTO_CLEANUP "auto_cleanup"
+#define BTOR_OPT_PRETTY_PRINT "pretty_print"
+#define BTOR_OPT_EXIT_CODES "exit_codes"
+#define BTOR_OPT_SEED "seed"
+#define BTOR_OPT_VERBOSITY "verbosity"
+#define BTOR_OPT_LOGLEVEL "loglevel"
+
+/* simplifier --------------------------------------------------------- */
 #define BTOR_OPT_REWRITE_LEVEL "rewrite_level"
-#define BTOR_OPT_BETA_REDUCE_ALL "beta_reduce_all"
+#define BTOR_OPT_SKELETON_PREPROC "skeleton_preproc"
 #define BTOR_OPT_ACKERMANN "ackermannize"
+#define BTOR_OPT_BETA_REDUCE_ALL "beta_reduce_all"
+#define BTOR_OPT_ELIMINATE_SLICES "eliminate_slices"
+#define BTOR_OPT_VAR_SUBST "var_subst"
+#define BTOR_OPT_UCOPT "ucopt"
+
+/* core engine -------------------------------------------------------- */
 #define BTOR_OPT_DUAL_PROP "dual_prop"
 #define BTOR_OPT_JUST "just"
-#define BTOR_OPT_SLS "sls"
+#define BTOR_OPT_JUST_HEURISTIC "just_heuristic"
+#define BTOR_OPT_LAZY_SYNTHESIZE "lazy_synthesize"
+#define BTOR_OPT_EAGER_LEMMAS "eager_lemmas"
+#define BTOR_OPT_MERGE_LAMBDAS "merge_lambdas"
+#define BTOR_OPT_EXTRACT_LAMBDAS "extract_lambdas"
+
+/* SLS engine --------------------------------------------------------- */
 #define BTOR_OPT_SLS_STRATEGY "sls_strategy"
+#define BTOR_OPT_SLS_JUST "sls_just"
 #define BTOR_OPT_SLS_MOVE_GW "sls_move_gw"
 #define BTOR_OPT_SLS_MOVE_RANGE "sls_move_range"
 #define BTOR_OPT_SLS_MOVE_SEGMENT "sls_move_segment"
@@ -131,34 +155,23 @@ typedef struct BtorOpt
 #define BTOR_OPT_SLS_MOVE_INC_MOVE_TEST "sls_move_inc_move_test"
 #define BTOR_OPT_SLS_USE_RESTARTS "sls_use_restarts"
 #define BTOR_OPT_SLS_USE_BANDIT "sls_use_bandit"
-#ifndef BTOR_DO_NOT_OPTIMIZE_UNCONSTRAINED
-#define BTOR_OPT_UCOPT "ucopt"
-#endif
-#define BTOR_OPT_AUTO_CLEANUP "auto_cleanup"
-#define BTOR_OPT_PRETTY_PRINT "pretty_print"
-#define BTOR_OPT_EXIT_CODES "exit_codes"
-#define BTOR_OPT_LOGLEVEL "loglevel"
-#define BTOR_OPT_VERBOSITY "verbosity"
-#define BTOR_OPT_SEED "seed"
-#define BTOR_OPT_SIMPLIFY_CONSTRAINTS "simplify_constraints"
-#define BTOR_OPT_AUTO_CLEANUP_INTERNAL "auto_cleanup_internal"
-#ifdef BTOR_CHECK_FAILED
-#define BTOR_OPT_CHK_FAILED_ASSUMPTIONS "chk_failed_assumptions"
-#endif
-#define BTOR_OPT_UCOPT "ucopt"
-#define BTOR_OPT_LAZY_SYNTHESIZE "lazy_synthesize"
-#define BTOR_OPT_ELIMINATE_SLICES "eliminate_slices"
-#define BTOR_OPT_EAGER_LEMMAS "eager_lemmas"
-#define BTOR_OPT_JUST_HEURISTIC "just_heuristic"
-#define BTOR_OPT_PARSE_INTERACTIVE "parse_interactive"
-#define BTOR_OPT_MERGE_LAMBDAS "merge_lambdas"
-#define BTOR_OPT_EXTRACT_LAMBDAS "extract_lambdas"
-#define BTOR_OPT_SKELETON_PREPROC "skeleton_preproc"
+
+/* internal options --------------------------------------------------- */
 #define BTOR_OPT_SORT_EXP "sort_exp"
 #define BTOR_OPT_SORT_AIG "sort_aig"
 #define BTOR_OPT_SORT_AIGVEC "sort_aigvec"
+#define BTOR_OPT_AUTO_CLEANUP_INTERNAL "auto_cleanup_internal"
+#define BTOR_OPT_SIMPLIFY_CONSTRAINTS "simplify_constraints"
 #define BTOR_OPT_RW_NORMALIZE "rw_normalize"
-#define BTOR_OPT_VAR_SUBST "var_subst"
+#ifdef BTOR_CHECK_FAILED
+#define BTOR_OPT_CHK_FAILED_ASSUMPTIONS "chk_failed_assumptions"
+#endif
+#define BTOR_OPT_PARSE_INTERACTIVE "parse_interactive"
+#ifdef BTOR_USE_LINGELING
+#define BTOR_OPT_SAT_ENGINE_LGL_FORK "sat_engine_lgl_fork"
+#endif
+
+/*------------------------------------------------------------------------*/
 
 void btor_init_opt (Btor *btor,
                     bool internal,

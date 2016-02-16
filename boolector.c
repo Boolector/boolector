@@ -622,11 +622,18 @@ boolector_set_opt (Btor *btor, const char *name, int val)
   }
   else if (!strcmp (name, BTOR_OPT_MODEL_GEN))
   {
-#ifndef BTOR_DO_NOT_OPTIMIZE_UNCONSTRAINED
     BTOR_ABORT_BOOLECTOR (btor_get_opt (btor, BTOR_OPT_UCOPT),
                           "Unconstrained optimization cannot be enabled "
                           "if model generation is enabled");
-#endif
+  }
+  else if (!strcmp (name, BTOR_OPT_UCOPT))
+  {
+    BTOR_ABORT_BOOLECTOR (btor_get_opt (btor, BTOR_OPT_MODEL_GEN),
+                          "Unconstrained optimization cannot be enabled "
+                          "if model generation is enabled");
+    BTOR_ABORT_BOOLECTOR (btor_get_opt (btor, BTOR_OPT_INCREMENTAL),
+                          "Unconstrained optimization cannot be enabled "
+                          "in incremental mode");
   }
   else if (!strcmp (name, BTOR_OPT_DUAL_PROP))
   {
@@ -640,21 +647,11 @@ boolector_set_opt (Btor *btor, const char *name, int val)
         val && btor_get_opt (btor, BTOR_OPT_DUAL_PROP),
         "enabling multiple optimization techniques is not allowed");
   }
-  else if (!strcmp (name, BTOR_OPT_SLS))
-  {
-    BTOR_ABORT_BOOLECTOR (
-        btor->btor_sat_btor_called > 0,
-        "enabling sls engine after calling 'boolector_sat' is not allowed");
-  }
   else if (!strcmp (name, BTOR_OPT_UCOPT))
   {
-#ifdef BTOR_DO_NOT_OPTIMIZE_UNCONSTRAINED
-    return;
-#else
     BTOR_ABORT_BOOLECTOR (btor_get_opt (btor, BTOR_OPT_MODEL_GEN),
                           "Unconstrained optimization cannot be enabled "
                           "if model generation is enabled");
-#endif
   }
   else if (!strcmp (name, BTOR_OPT_REWRITE_LEVEL))
   {

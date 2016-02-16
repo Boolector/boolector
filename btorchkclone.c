@@ -232,10 +232,8 @@ btor_chkclone_stats (Btor *btor)
   BTOR_CHKCLONE_STATS (ands_normalized);
   BTOR_CHKCLONE_STATS (muls_normalized);
   BTOR_CHKCLONE_STATS (apply_props_construct);
-#ifndef BTOR_DO_NOT_OPTIMIZE_UNCONSTRAINED
   BTOR_CHKCLONE_STATS (bv_uc_props);
   BTOR_CHKCLONE_STATS (fun_uc_props);
-#endif
   BTOR_CHKCLONE_STATS (lambdas_merged);
 
   BTOR_CHKCLONE_CONSTRAINTSTATS (constraints, varsubst);

@@ -613,7 +613,7 @@ select_candidates (Btor *btor, BtorNode *root, BtorNodePtrStack *candidates)
     }
 
     /* push children */
-    if (btor_get_opt (btor, BTOR_OPT_JUST) && BTOR_IS_AND_NODE (real_cur)
+    if (btor_get_opt (btor, BTOR_OPT_SLS_JUST) && BTOR_IS_AND_NODE (real_cur)
         && btor_get_exp_width (btor, real_cur) == 1)
     {
       bv = btor_get_bv_model (btor, real_cur);
@@ -638,8 +638,8 @@ select_candidates (Btor *btor, BtorNode *root, BtorNodePtrStack *candidates)
                     &btor->rng, 0, BTOR_COUNT_STACK (controlling) - 1)));
       }
     }
-    //      else if (btor_get_opt (btor, BTOR_OPT_JUST) && BTOR_IS_BCOND_NODE
-    //      (real_cur))
+    //      else if (btor_get_opt (btor, BTOR_OPT_SLS_JUST) &&
+    //      BTOR_IS_BCOND_NODE (real_cur))
     //	{
     //	  BTOR_PUSH_STACK (btor->mm, stack, real_cur->e[0]);
     //	  bv = btor_get_bv_model (btor, real_cur->e[0]);
@@ -3439,22 +3439,6 @@ sat_sls_solver (BtorSLSSolver *slv)
   btor   = slv->btor;
   nmoves = 0;
 
-  //#ifndef NDEBUG
-  //  Btor *clone = btor_clone_exp_layer (btor, 0, 0);
-  //  btor_set_opt (clone, BTOR_OPT_SLS, 0);
-  //  btor_set_opt (clone, BTOR_OPT_AUTO_CLEANUP, 1);
-  //  btor_set_opt (clone, BTOR_OPT_AUTO_CLEANUP_INTERNAl, 1);
-  //  btor_set_opt (clone, BTOR_OPT_LOGLEVEL, 0);
-  //  btor_set_opt (clone, BTOR_OPT_VERBOSITY, 0);
-  //  btor_set_opt (clone, BTOR_OPT_MODEL_GEN, 1);
-  //  btor_set_opt (clone, BTOR_OPT_BETA_REDUCE_ALL, 1);
-  //  int csat_result = btor_sat_btor (clone, -1, -1);
-  //  if (csat_result == BTOR_UNSAT) goto UNSAT;
-  //  assert (!clone->lambdas->count && !clone->ufs->count);
-  //  printf ("clone sat\n");
-  //  btor_delete_btor (clone);
-  //#endif
-  //
   if (btor->inconsistent) goto UNSAT;
 
   BTOR_MSG (btor->msg, 1, "calling SAT");

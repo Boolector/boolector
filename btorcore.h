@@ -28,14 +28,8 @@
 
 /*------------------------------------------------------------------------*/
 
-//#define BTOR_DO_NOT_OPTIMIZE_UNCONSTRAINED
-
-/*------------------------------------------------------------------------*/
-
 #if !defined(NDEBUG) && defined(BTOR_USE_LINGELING)
-#ifndef BTOR_DO_NOT_OPTIMIZE_UNCONSTRAINED
 #define BTOR_CHECK_UNCONSTRAINED
-#endif
 #define BTOR_CHECK_MODEL
 #define BTOR_CHECK_DUAL_PROP
 #endif
@@ -186,11 +180,9 @@ struct Btor
     int muls_normalized;       /* number of mul chains normalizations */
     int ackermann_constraints;
     long long apply_props_construct; /* number of static apply propagations */
-#ifndef BTOR_DO_NOT_OPTIMIZE_UNCONSTRAINED
     int bv_uc_props;
     int fun_uc_props;
     int param_uc_props;
-#endif
     long long lambdas_merged;
     BtorConstraintStats constraints;
     BtorConstraintStats oldconstraints;
@@ -219,9 +211,7 @@ struct Btor
     double synth_exp;
     double model_gen;
     double br_probing;
-#ifndef BTOR_DO_NOT_OPTIMIZE_UNCONSTRAINED
     double ucopt;
-#endif
   } time;
 };
 
