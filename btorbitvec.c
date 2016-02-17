@@ -1394,17 +1394,15 @@ btor_compare_bv_tuple (BtorBitVectorTuple *t0, BtorBitVectorTuple *t1)
   assert (t0->arity == t1->arity);
 
   uint32_t i;
-  int j;
 
   for (i = 0; i < t0->arity; i++)
   {
     assert (t0->bv[i]);
     assert (t1->bv[i]);
-    if (t0->bv[i]->width != t1->bv[i]->width) return j;
-    j = btor_compare_bv (t0->bv[i], t1->bv[i]);
-    if (j != 0) return j;
+    if (t0->bv[i]->width != t1->bv[i]->width
+        || btor_compare_bv (t0->bv[i], t1->bv[i]) != 0)
+      return 1;
   }
-
   return 0;
 }
 
