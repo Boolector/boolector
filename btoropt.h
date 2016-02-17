@@ -91,6 +91,7 @@ enum BtorOptSatEngines
 typedef struct BtorOpt
 {
   int internal;     /* internal option? */
+  bool isflag;      /* flag? */
   const char *shrt; /* short option identifier (may be 0) */
   const char *lng;  /* long option identifier */
   const char *desc; /* description */
@@ -172,15 +173,6 @@ typedef struct BtorOpt
 #endif
 
 /*------------------------------------------------------------------------*/
-
-void btor_init_opt (Btor *btor,
-                    bool internal,
-                    char *lng,
-                    char *shrt,
-                    uint32_t val,
-                    uint32_t min,
-                    uint32_t max,
-                    char *desc);
 
 void btor_init_opts (Btor *btor);
 BtorPtrHashTable *btor_clone_opts (BtorMemMgr *mm, BtorPtrHashTable *options);

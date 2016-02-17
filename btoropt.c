@@ -46,15 +46,16 @@ getenv_value (const char *lname)
   return getenv (uname);
 }
 
-void
-btor_init_opt (Btor *btor,
-               bool internal,
-               char *lng,
-               char *shrt,
-               uint32_t val,
-               uint32_t min,
-               uint32_t max,
-               char *desc)
+static void
+init_opt (Btor *btor,
+          bool internal,
+          bool isflag,
+          char *lng,
+          char *shrt,
+          uint32_t val,
+          uint32_t min,
+          uint32_t max,
+          char *desc)
 {
   assert (btor);
   assert (lng);
@@ -70,6 +71,7 @@ btor_init_opt (Btor *btor,
 
   BTOR_CNEW (btor->mm, opt);
   opt->internal = internal;
+  opt->isflag   = isflag;
   opt->shrt     = shrt;
   opt->lng      = lng;
   opt->val      = val;
@@ -104,390 +106,481 @@ btor_init_opts (Btor *btor)
   btor->options = btor_new_ptr_hash_table (
       btor->mm, (BtorHashPtr) btor_hash_str, (BtorCmpPtr) strcmp);
 
-  btor_init_opt (btor,
-                 false,
-                 BTOR_OPT_MODEL_GEN,
-                 "m",
-                 0,
-                 0,
-                 2,
-                 "print model for satisfiable instances");
-  btor_init_opt (
-      btor, false, BTOR_OPT_INCREMENTAL, "i", 0, 0, 1, "incremental usage");
-  btor_init_opt (btor,
-                 0,
-                 BTOR_OPT_INCREMENTAL_ALL,
-                 "I",
-                 0,
-                 0,
-                 1,
-                 "incremental, solve all (SMT1 only)");
-  btor_init_opt (btor,
-                 false,
-                 BTOR_OPT_INPUT_FORMAT,
-                 0,
-                 BTOR_INPUT_FORMAT_DFLT,
-                 BTOR_INPUT_FORMAT_MIN,
-                 BTOR_INPUT_FORMAT_MAX,
-                 "input file format");
-  btor_init_opt (btor,
-                 false,
-                 BTOR_OPT_OUTPUT_NUMBER_FORMAT,
-                 0,
-                 BTOR_OUTPUT_BASE_DFLT,
-                 BTOR_OUTPUT_BASE_MIN,
-                 BTOR_OUTPUT_BASE_MAX,
-                 "output number format");
-  btor_init_opt (btor,
-                 false,
-                 BTOR_OPT_OUTPUT_FORMAT,
-                 0,
-                 BTOR_OUTPUT_FORMAT_DFLT,
-                 BTOR_OUTPUT_FORMAT_MIN,
-                 BTOR_OUTPUT_FORMAT_MAX,
-                 "output file format");
-  btor_init_opt (btor,
-                 false,
-                 BTOR_OPT_ENGINE,
-                 "E",
-                 BTOR_ENGINE_DFLT,
-                 BTOR_ENGINE_MIN,
-                 BTOR_ENGINE_MAX,
-                 "enable specific engine");
-  btor_init_opt (btor,
-                 false,
-                 BTOR_OPT_SAT_ENGINE,
-                 "SE",
-                 BTOR_SAT_ENGINE_DFLT,
-                 BTOR_SAT_ENGINE_MIN + 1,
-                 BTOR_SAT_ENGINE_MAX - 1,
-                 "enable specific SAT solver");
-  btor_init_opt (btor,
-                 false,
-                 BTOR_OPT_AUTO_CLEANUP,
-                 "ac",
-                 0,
-                 0,
-                 1,
-                 "auto cleanup on exit");
-  btor_init_opt (btor,
-                 false,
-                 BTOR_OPT_PRETTY_PRINT,
-                 "p",
-                 1,
-                 0,
-                 1,
-                 "pretty print when dumping");
-  btor_init_opt (btor,
-                 false,
-                 BTOR_OPT_EXIT_CODES,
-                 "e",
-                 1,
-                 0,
-                 1,
-                 "use Boolector exit codes");
-  btor_init_opt (btor,
-                 false,
-                 BTOR_OPT_SEED,
-                 "s",
-                 0,
-                 0,
-                 INT_MAX,
-                 "random number generator seed");
-  btor_init_opt (btor,
-                 false,
-                 BTOR_OPT_VERBOSITY,
-                 "v",
-                 0,
-                 0,
-                 BTOR_VERBOSITY_MAX,
-                 "increase verbosity");
+  init_opt (btor,
+            false,
+            true,
+            BTOR_OPT_MODEL_GEN,
+            "m",
+            0,
+            0,
+            2,
+            "print model for satisfiable instances");
+  init_opt (btor,
+            false,
+            true,
+            BTOR_OPT_INCREMENTAL,
+            "i",
+            0,
+            0,
+            1,
+            "incremental usage");
+  init_opt (btor,
+            false,
+            true,
+            BTOR_OPT_INCREMENTAL_ALL,
+            "I",
+            0,
+            0,
+            1,
+            "incremental, solve all (SMT1 only)");
+  init_opt (btor,
+            false,
+            false,
+            BTOR_OPT_INPUT_FORMAT,
+            0,
+            BTOR_INPUT_FORMAT_DFLT,
+            BTOR_INPUT_FORMAT_MIN,
+            BTOR_INPUT_FORMAT_MAX,
+            "input file format");
+  init_opt (btor,
+            false,
+            false,
+            BTOR_OPT_OUTPUT_NUMBER_FORMAT,
+            0,
+            BTOR_OUTPUT_BASE_DFLT,
+            BTOR_OUTPUT_BASE_MIN,
+            BTOR_OUTPUT_BASE_MAX,
+            "output number format");
+  init_opt (btor,
+            false,
+            false,
+            BTOR_OPT_OUTPUT_FORMAT,
+            0,
+            BTOR_OUTPUT_FORMAT_DFLT,
+            BTOR_OUTPUT_FORMAT_MIN,
+            BTOR_OUTPUT_FORMAT_MAX,
+            "output file format");
+  init_opt (btor,
+            false,
+            false,
+            BTOR_OPT_ENGINE,
+            "E",
+            BTOR_ENGINE_DFLT,
+            BTOR_ENGINE_MIN,
+            BTOR_ENGINE_MAX,
+            "enable specific engine");
+  init_opt (btor,
+            false,
+            false,
+            BTOR_OPT_SAT_ENGINE,
+            "SE",
+            BTOR_SAT_ENGINE_DFLT,
+            BTOR_SAT_ENGINE_MIN + 1,
+            BTOR_SAT_ENGINE_MAX - 1,
+            "enable specific SAT solver");
+  init_opt (btor,
+            false,
+            true,
+            BTOR_OPT_AUTO_CLEANUP,
+            "ac",
+            0,
+            0,
+            1,
+            "auto cleanup on exit");
+  init_opt (btor,
+            false,
+            true,
+            BTOR_OPT_PRETTY_PRINT,
+            "p",
+            1,
+            0,
+            1,
+            "pretty print when dumping");
+  init_opt (btor,
+            false,
+            true,
+            BTOR_OPT_EXIT_CODES,
+            "e",
+            1,
+            0,
+            1,
+            "use Boolector exit codes");
+  init_opt (btor,
+            false,
+            false,
+            BTOR_OPT_SEED,
+            "s",
+            0,
+            0,
+            INT_MAX,
+            "random number generator seed");
+  init_opt (btor,
+            false,
+            false,
+            BTOR_OPT_VERBOSITY,
+            "v",
+            0,
+            0,
+            BTOR_VERBOSITY_MAX,
+            "increase verbosity");
 #ifndef NBTORLOG
-  btor_init_opt (
-      btor, false, BTOR_OPT_LOGLEVEL, "l", 0, 0, UINT_MAX, "increase loglevel");
+  init_opt (btor,
+            false,
+            false,
+            BTOR_OPT_LOGLEVEL,
+            "l",
+            0,
+            0,
+            UINT_MAX,
+            "increase loglevel");
 #endif
 
   /* simplifier --------------------------------------------------------- */
-  btor_init_opt (
-      btor, false, BTOR_OPT_REWRITE_LEVEL, "rwl", 3, 0, 3, "rewrite level");
-  btor_init_opt (btor,
-                 false,
-                 BTOR_OPT_SKELETON_PREPROC,
-                 "sp",
-                 1,
-                 0,
-                 1,
-                 "propositional skeleton preprocessing");
-  btor_init_opt (btor,
-                 false,
-                 BTOR_OPT_ACKERMANN,
-                 "ack",
-                 0,
-                 0,
-                 1,
-                 "add ackermann constraints");
-  btor_init_opt (btor,
-                 false,
-                 BTOR_OPT_BETA_REDUCE_ALL,
-                 "bra",
-                 0,
-                 0,
-                 1,
-                 "eagerly eliminate lambda expressions");
-  btor_init_opt (btor,
-                 false,
-                 BTOR_OPT_ELIMINATE_SLICES,
-                 "es",
-                 1,
-                 0,
-                 1,
-                 "eliminate slices on variables");
-  btor_init_opt (
-      btor, false, BTOR_OPT_VAR_SUBST, "vs", 1, 0, 1, "variable substitution");
-  btor_init_opt (
-      btor, false, BTOR_OPT_UCOPT, "uc", 0, 0, 1, "unconstrained optimization");
-  btor_init_opt (btor,
-                 false,
-                 BTOR_OPT_MERGE_LAMBDAS,
-                 "ml",
-                 1,
-                 0,
-                 1,
-                 "merge lambda chains");
-  btor_init_opt (btor,
-                 false,
-                 BTOR_OPT_EXTRACT_LAMBDAS,
-                 "xl",
-                 1,
-                 0,
-                 1,
-                 "extract lambda terms");
+  init_opt (btor,
+            false,
+            false,
+            BTOR_OPT_REWRITE_LEVEL,
+            "rwl",
+            3,
+            0,
+            3,
+            "rewrite level");
+  init_opt (btor,
+            false,
+            true,
+            BTOR_OPT_SKELETON_PREPROC,
+            "sp",
+            1,
+            0,
+            1,
+            "propositional skeleton preprocessing");
+  init_opt (btor,
+            false,
+            true,
+            BTOR_OPT_ACKERMANN,
+            "ack",
+            0,
+            0,
+            1,
+            "add ackermann constraints");
+  init_opt (btor,
+            false,
+            true,
+            BTOR_OPT_BETA_REDUCE_ALL,
+            "bra",
+            0,
+            0,
+            1,
+            "eagerly eliminate lambda expressions");
+  init_opt (btor,
+            false,
+            true,
+            BTOR_OPT_ELIMINATE_SLICES,
+            "es",
+            1,
+            0,
+            1,
+            "eliminate slices on variables");
+  init_opt (btor,
+            false,
+            true,
+            BTOR_OPT_VAR_SUBST,
+            "vs",
+            1,
+            0,
+            1,
+            "variable substitution");
+  init_opt (btor,
+            false,
+            true,
+            BTOR_OPT_UCOPT,
+            "uc",
+            0,
+            0,
+            1,
+            "unconstrained optimization");
+  init_opt (btor,
+            false,
+            true,
+            BTOR_OPT_MERGE_LAMBDAS,
+            "ml",
+            1,
+            0,
+            1,
+            "merge lambda chains");
+  init_opt (btor,
+            false,
+            true,
+            BTOR_OPT_EXTRACT_LAMBDAS,
+            "xl",
+            1,
+            0,
+            1,
+            "extract lambda terms");
 
   /* fun engine ---------------------------------------------------------- */
-  btor_init_opt (btor,
-                 false,
-                 BTOR_OPT_FUN_DUAL_PROP,
-                 "dp",
-                 0,
-                 0,
-                 1,
-                 "dual propagation optimization");
-  btor_init_opt (btor,
-                 false,
-                 BTOR_OPT_FUN_JUST,
-                 "just",
-                 0,
-                 0,
-                 1,
-                 "justification optimization");
-  btor_init_opt (btor,
-                 false,
-                 BTOR_OPT_FUN_JUST_HEURISTIC,
-                 0,
-                 BTOR_JUST_HEUR_DFLT,
-                 BTOR_JUST_HEUR_MIN,
-                 BTOR_JUST_HEUR_MAX,
-                 "justification heuristic");
-  btor_init_opt (btor,
-                 false,
-                 BTOR_OPT_FUN_LAZY_SYNTHESIZE,
-                 "ls",
-                 0,
-                 0,
-                 1,
-                 "lazily synthesize expressions");
-  btor_init_opt (btor,
-                 false,
-                 BTOR_OPT_FUN_EAGER_LEMMAS,
-                 "el",
-                 1,
-                 0,
-                 1,
-                 "eager lemma generation");
+  init_opt (btor,
+            false,
+            true,
+            BTOR_OPT_FUN_DUAL_PROP,
+            "dp",
+            0,
+            0,
+            1,
+            "dual propagation optimization");
+  init_opt (btor,
+            false,
+            true,
+            BTOR_OPT_FUN_JUST,
+            "just",
+            0,
+            0,
+            1,
+            "justification optimization");
+  init_opt (btor,
+            false,
+            false,
+            BTOR_OPT_FUN_JUST_HEURISTIC,
+            0,
+            BTOR_JUST_HEUR_DFLT,
+            BTOR_JUST_HEUR_MIN,
+            BTOR_JUST_HEUR_MAX,
+            "justification heuristic");
+  init_opt (btor,
+            false,
+            true,
+            BTOR_OPT_FUN_LAZY_SYNTHESIZE,
+            "ls",
+            0,
+            0,
+            1,
+            "lazily synthesize expressions");
+  init_opt (btor,
+            false,
+            true,
+            BTOR_OPT_FUN_EAGER_LEMMAS,
+            "el",
+            1,
+            0,
+            1,
+            "eager lemma generation");
 
   /* SLS engine ---------------------------------------------------------- */
-  btor_init_opt (btor,
-                 false,
-                 BTOR_OPT_SLS_STRATEGY,
-                 0,
-                 BTOR_SLS_STRAT_DFLT,
-                 BTOR_SLS_STRAT_MIN,
-                 BTOR_SLS_STRAT_MAX,
-                 "move strategy for sls");
-  btor_init_opt (
-      btor, false, BTOR_OPT_SLS_JUST, 0, 0, 0, 1, "justification optimization");
-  btor_init_opt (btor,
-                 false,
-                 BTOR_OPT_SLS_MOVE_GW,
-                 0,
-                 0,
-                 0,
-                 1,
-                 "select move by altering not only one "
-                 "but all candidate variables at once");
-  btor_init_opt (btor,
-                 false,
-                 BTOR_OPT_SLS_MOVE_RANGE,
-                 0,
-                 0,
-                 0,
-                 1,
-                 "try range-wise flips when selecting moves");
-  btor_init_opt (btor,
-                 false,
-                 BTOR_OPT_SLS_MOVE_SEGMENT,
-                 0,
-                 0,
-                 0,
-                 1,
-                 "try segment-wise flips when selecting moves");
-  btor_init_opt (btor,
-                 false,
-                 BTOR_OPT_SLS_MOVE_RAND_WALK,
-                 0,
-                 0,
-                 0,
-                 1,
-                 "do a random walk (with given probability)");
-  btor_init_opt (btor,
-                 false,
-                 BTOR_OPT_SLS_MOVE_RAND_WALK_PROB,
-                 0,
-                 10,
-                 0,
-                 INT_MAX,
-                 "probability for choosing random walks "
-                 "(interpreted as 1:<n>)");
-  btor_init_opt (btor,
-                 false,
-                 BTOR_OPT_SLS_MOVE_RAND_ALL,
-                 0,
-                 0,
-                 0,
-                 1,
-                 "randomize all candidate variables (instead of only one) "
-                 "if no neighbor with better score is found");
-  btor_init_opt (btor,
-                 false,
-                 BTOR_OPT_SLS_MOVE_RAND_RANGE,
-                 0,
-                 0,
-                 0,
-                 1,
-                 "randomize a range of bits of a randomly chosen candidate "
-                 "variable if neighbor with better score is found");
+  init_opt (btor,
+            false,
+            false,
+            BTOR_OPT_SLS_STRATEGY,
+            0,
+            BTOR_SLS_STRAT_DFLT,
+            BTOR_SLS_STRAT_MIN,
+            BTOR_SLS_STRAT_MAX,
+            "move strategy for sls");
+  init_opt (btor,
+            false,
+            true,
+            BTOR_OPT_SLS_JUST,
+            0,
+            0,
+            0,
+            1,
+            "justification optimization");
+  init_opt (btor,
+            false,
+            true,
+            BTOR_OPT_SLS_MOVE_GW,
+            0,
+            0,
+            0,
+            1,
+            "select move by altering not only one "
+            "but all candidate variables at once");
+  init_opt (btor,
+            false,
+            true,
+            BTOR_OPT_SLS_MOVE_RANGE,
+            0,
+            0,
+            0,
+            1,
+            "try range-wise flips when selecting moves");
+  init_opt (btor,
+            false,
+            true,
+            BTOR_OPT_SLS_MOVE_SEGMENT,
+            0,
+            0,
+            0,
+            1,
+            "try segment-wise flips when selecting moves");
+  init_opt (btor,
+            false,
+            true,
+            BTOR_OPT_SLS_MOVE_RAND_WALK,
+            0,
+            0,
+            0,
+            1,
+            "do a random walk (with given probability)");
+  init_opt (btor,
+            false,
+            false,
+            BTOR_OPT_SLS_MOVE_RAND_WALK_PROB,
+            0,
+            10,
+            0,
+            INT_MAX,
+            "probability for choosing random walks "
+            "(interpreted as 1:<n>)");
+  init_opt (btor,
+            false,
+            true,
+            BTOR_OPT_SLS_MOVE_RAND_ALL,
+            0,
+            0,
+            0,
+            1,
+            "randomize all candidate variables (instead of only one) "
+            "if no neighbor with better score is found");
+  init_opt (btor,
+            false,
+            true,
+            BTOR_OPT_SLS_MOVE_RAND_RANGE,
+            0,
+            0,
+            0,
+            1,
+            "randomize a range of bits of a randomly chosen candidate "
+            "variable if neighbor with better score is found");
 
-  btor_init_opt (btor,
-                 false,
-                 BTOR_OPT_SLS_MOVE_PROP,
-                 0,
-                 0,
-                 0,
-                 1,
-                 "enable propagation moves (with given ratio of propagation "
-                 "to regular moves)");
-  btor_init_opt (btor,
-                 false,
-                 BTOR_OPT_SLS_MOVE_PROP_N_PROP,
-                 0,
-                 1,
-                 0,
-                 UINT_MAX,
-                 "number of prop moves (moves are performed as <n>:m prop "
-                 "to sls moves");
-  btor_init_opt (btor,
-                 false,
-                 BTOR_OPT_SLS_MOVE_PROP_N_SLS,
-                 0,
-                 1,
-                 0,
-                 UINT_MAX,
-                 "number of sls moves (moves are performed as m:<n> prop "
-                 "to sls moves");
-  btor_init_opt (btor,
-                 false,
-                 BTOR_OPT_SLS_MOVE_PROP_NO_FLIP_COND,
-                 0,
-                 0,
-                 0,
-                 1,
-                 "do not choose to flip the condition for ITE during "
-                 "path selection");
-  btor_init_opt (btor,
-                 false,
-                 BTOR_OPT_SLS_MOVE_PROP_FORCE_RW,
-                 0,
-                 0,
-                 0,
-                 1,
-                 "force random walk if propagation move fails");
-  btor_init_opt (btor,
-                 false,
-                 BTOR_OPT_SLS_MOVE_PROP_FLIP_COND_PROB,
-                 0,
-                 10,
-                 0,
-                 INT_MAX,
-                 "probability for choosing to flip the condition (rather than "
-                 "choosing the enabled path) for ITE during path selection "
-                 "for prop moves (interpreted as 1:<n>)");
-  btor_init_opt (btor,
-                 false,
-                 BTOR_OPT_SLS_MOVE_INC_MOVE_TEST,
-                 0,
-                 0,
-                 0,
-                 1,
-                 "use prev. neighbor with better score as base for "
-                 "next move test");
+  init_opt (btor,
+            false,
+            true,
+            BTOR_OPT_SLS_MOVE_PROP,
+            0,
+            0,
+            0,
+            1,
+            "enable propagation moves (with given ratio of propagation "
+            "to regular moves)");
+  init_opt (btor,
+            false,
+            false,
+            BTOR_OPT_SLS_MOVE_PROP_N_PROP,
+            0,
+            1,
+            0,
+            UINT_MAX,
+            "number of prop moves (moves are performed as <n>:m prop "
+            "to sls moves");
+  init_opt (btor,
+            false,
+            false,
+            BTOR_OPT_SLS_MOVE_PROP_N_SLS,
+            0,
+            1,
+            0,
+            UINT_MAX,
+            "number of sls moves (moves are performed as m:<n> prop "
+            "to sls moves");
+  init_opt (btor,
+            false,
+            true,
+            BTOR_OPT_SLS_MOVE_PROP_NO_FLIP_COND,
+            0,
+            0,
+            0,
+            1,
+            "do not choose to flip the condition for ITE during "
+            "path selection");
+  init_opt (btor,
+            false,
+            true,
+            BTOR_OPT_SLS_MOVE_PROP_FORCE_RW,
+            0,
+            0,
+            0,
+            1,
+            "force random walk if propagation move fails");
+  init_opt (btor,
+            false,
+            false,
+            BTOR_OPT_SLS_MOVE_PROP_FLIP_COND_PROB,
+            0,
+            10,
+            0,
+            INT_MAX,
+            "probability for choosing to flip the condition (rather than "
+            "choosing the enabled path) for ITE during path selection "
+            "for prop moves (interpreted as 1:<n>)");
+  init_opt (btor,
+            false,
+            true,
+            BTOR_OPT_SLS_MOVE_INC_MOVE_TEST,
+            0,
+            0,
+            0,
+            1,
+            "use prev. neighbor with better score as base for "
+            "next move test");
 
-  btor_init_opt (
-      btor, false, BTOR_OPT_SLS_USE_RESTARTS, 0, 1, 0, 1, "use restarts");
-  btor_init_opt (btor,
-                 false,
-                 BTOR_OPT_SLS_USE_BANDIT,
-                 0,
-                 1,
-                 0,
-                 1,
-                 "use bandit scheme for constraint selection");
+  init_opt (
+      btor, false, true, BTOR_OPT_SLS_USE_RESTARTS, 0, 1, 0, 1, "use restarts");
+  init_opt (btor,
+            false,
+            true,
+            BTOR_OPT_SLS_USE_BANDIT,
+            0,
+            1,
+            0,
+            1,
+            "use bandit scheme for constraint selection");
 
   /* internal options ---------------------------------------------------- */
-  btor_init_opt (btor,
-                 false,
-                 BTOR_OPT_SORT_EXP,
-                 0,
-                 1,
-                 0,
-                 1,
-                 "sort commutative expression nodes");
-  btor_init_opt (btor, false, BTOR_OPT_SORT_AIG, 0, 1, 0, 1, "sort AIG nodes");
-  btor_init_opt (
-      btor, false, BTOR_OPT_SORT_AIGVEC, 0, 1, 0, 1, "sort AIG vectors");
-  btor_init_opt (btor, true, BTOR_OPT_AUTO_CLEANUP_INTERNAL, 0, 0, 0, 1, 0);
-  btor_init_opt (btor, true, BTOR_OPT_SIMPLIFY_CONSTRAINTS, 0, 1, 0, 1, 0);
+  init_opt (btor,
+            false,
+            true,
+            BTOR_OPT_SORT_EXP,
+            0,
+            1,
+            0,
+            1,
+            "sort commutative expression nodes");
+  init_opt (btor, false, true, BTOR_OPT_SORT_AIG, 0, 1, 0, 1, "sort AIG nodes");
+  init_opt (
+      btor, false, true, BTOR_OPT_SORT_AIGVEC, 0, 1, 0, 1, "sort AIG vectors");
+  init_opt (btor, true, true, BTOR_OPT_AUTO_CLEANUP_INTERNAL, 0, 0, 0, 1, 0);
+  init_opt (btor, true, true, BTOR_OPT_SIMPLIFY_CONSTRAINTS, 0, 1, 0, 1, 0);
 #ifdef BTOR_CHECK_FAILED
-  btor_init_opt (btor, true, BTOR_OPT_CHK_FAILED_ASSUMPTIONS, 0, 1, 0, 1, 0);
+  init_opt (btor, true, true, BTOR_OPT_CHK_FAILED_ASSUMPTIONS, 0, 1, 0, 1, 0);
 #endif
-  btor_init_opt (btor,
-                 true,
-                 BTOR_OPT_PARSE_INTERACTIVE,
-                 0,
-                 1,
-                 0,
-                 1,
-                 "interactive parse mode");
-  btor_init_opt (btor,
-                 true,
-                 BTOR_OPT_RW_NORMALIZE,
-                 0,
-                 1,
-                 0,
-                 1,
-                 "normalize during rewriting");
+  init_opt (btor,
+            true,
+            true,
+            BTOR_OPT_PARSE_INTERACTIVE,
+            0,
+            1,
+            0,
+            1,
+            "interactive parse mode");
+  init_opt (btor,
+            true,
+            true,
+            BTOR_OPT_RW_NORMALIZE,
+            0,
+            1,
+            0,
+            1,
+            "normalize during rewriting");
 #ifdef BTOR_USE_LINGELING
-  btor_init_opt (
-      btor, true, BTOR_OPT_SAT_ENGINE_LGL_FORK, 0, 1, 0, 1, "fork lingeling");
+  init_opt (btor,
+            true,
+            true,
+            BTOR_OPT_SAT_ENGINE_LGL_FORK,
+            0,
+            1,
+            0,
+            1,
+            "fork lingeling");
 #endif
 }
 
