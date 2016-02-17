@@ -2326,6 +2326,8 @@ generate_model_core_solver (BtorCoreSolver *slv,
   assert (slv->btor->slv == (BtorSolver *) slv);
 
   (void) reset;
+
+  /* already created during check_and_resolve_conflicts */
   if (!slv->btor->bv_model)
     btor_init_bv_model (slv->btor, &slv->btor->bv_model);
   btor_init_fun_model (slv->btor, &slv->btor->fun_model);
