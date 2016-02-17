@@ -82,6 +82,8 @@ enum BtorNodeKind
 
 typedef enum BtorNodeKind BtorNodeKind;
 
+extern const char *const g_btor_op2str[BTOR_NUM_OPS_NODE];
+
 #define BTOR_BV_NODE_STRUCT                                             \
   struct                                                                \
   {                                                                     \

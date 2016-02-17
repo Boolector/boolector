@@ -47,35 +47,7 @@ node2string (BtorNode *exp)
 
   real_exp = BTOR_REAL_ADDR_NODE (exp);
   btor     = real_exp->btor;
-
-  switch (real_exp->kind)
-  {
-    case BTOR_INVALID_NODE: name = "invalid"; break;
-    case BTOR_BV_CONST_NODE: name = "const"; break;
-    case BTOR_BV_VAR_NODE: name = "var"; break;
-    case BTOR_PARAM_NODE: name = "param"; break;
-    case BTOR_UF_NODE: name = "uf"; break;
-    case BTOR_SLICE_NODE: name = "slice"; break;
-    case BTOR_AND_NODE: name = "and"; break;
-    case BTOR_BEQ_NODE:
-    case BTOR_FEQ_NODE: name = "eq"; break;
-    case BTOR_ADD_NODE: name = "add"; break;
-    case BTOR_MUL_NODE: name = "mul"; break;
-    case BTOR_ULT_NODE: name = "ult"; break;
-    case BTOR_SLL_NODE: name = "sll"; break;
-    case BTOR_SRL_NODE: name = "srl"; break;
-    case BTOR_UDIV_NODE: name = "udiv"; break;
-    case BTOR_UREM_NODE: name = "urem"; break;
-    case BTOR_CONCAT_NODE: name = "concat"; break;
-    case BTOR_FORALL_NODE: name = "forall"; break;
-    case BTOR_EXISTS_NODE: name = "exists"; break;
-    case BTOR_LAMBDA_NODE: name = "lambda"; break;
-    case BTOR_BCOND_NODE: name = "cond"; break;
-    case BTOR_ARGS_NODE: name = "args"; break;
-    case BTOR_APPLY_NODE: name = "apply"; break;
-    case BTOR_PROXY_NODE: name = "proxy"; break;
-    default: name = "unknown";
-  }
+  name     = g_btor_op2str[real_exp->kind];
 
   strbuf[0] = '\0';
   cur_len   = 0;
