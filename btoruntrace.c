@@ -1132,6 +1132,32 @@ NEXT:
       BTOR_DELETEN (btorunt->mm, tmp, arg1_int);
       exp_ret = RET_VOIDPTR;
     }
+    else if (!strcmp (tok, "exists"))
+    {
+      arg1_int = intarg (tok);
+      BTOR_NEWN (btorunt->mm, tmp, arg1_int); /* vars */
+      for (i = 0; i < arg1_int; i++)
+        tmp[i] = hmap_get (hmap, btor_str, strarg (tok));
+      arg1_str = strarg (tok); /* body */
+      checklastarg (tok);
+      ret_ptr = boolector_exists (
+          btor, tmp, arg1_int, hmap_get (hmap, btor_str, arg1_str));
+      BTOR_DELETEN (btorunt->mm, tmp, arg1_int);
+      exp_ret = RET_VOIDPTR;
+    }
+    else if (!strcmp (tok, "forall"))
+    {
+      arg1_int = intarg (tok);
+      BTOR_NEWN (btorunt->mm, tmp, arg1_int); /* vars */
+      for (i = 0; i < arg1_int; i++)
+        tmp[i] = hmap_get (hmap, btor_str, strarg (tok));
+      arg1_str = strarg (tok); /* body */
+      checklastarg (tok);
+      ret_ptr = boolector_forall (
+          btor, tmp, arg1_int, hmap_get (hmap, btor_str, arg1_str));
+      BTOR_DELETEN (btorunt->mm, tmp, arg1_int);
+      exp_ret = RET_VOIDPTR;
+    }
     else if (!strcmp (tok, "apply"))
     {
       arg1_int = intarg (tok);                /* argc */
