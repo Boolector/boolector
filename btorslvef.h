@@ -21,14 +21,15 @@ struct BtorEFSolver
 {
   BTOR_SOLVER_STRUCT;
 
-  Btor *exists_solver;
+  Btor *e_solver;
   BtorNodeMap *e_exists_vars;
   BtorNodeMap *e_exists_ufs;
-  Btor *forall_solver;
+  Btor *f_solver;
   BtorNodeMap *f_exists_vars;
   BtorNodeMap *f_forall_vars;
   BtorNodeMap *f_forall_ufs;
   BtorNode *f_formula;
+  BtorNodeMap *f_uf_models;
 
   struct
   {
@@ -37,8 +38,8 @@ struct BtorEFSolver
 
   struct
   {
-    double exists_solver;
-    double forall_solver;
+    double e_solver;
+    double f_solver;
   } time;
 };
 
