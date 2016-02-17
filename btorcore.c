@@ -106,31 +106,6 @@ static void check_failed_assumptions (Btor *, Btor *);
 #endif
 /*------------------------------------------------------------------------*/
 
-const char *const g_btor_op2string[] = {
-    "invalid",  //  0
-    "const",    //  1
-    "var",      //  2
-    "param",    //  3
-    "slice",    //  4
-    "and",      //  5
-    "beq",      //  6
-    "aeq",      //  7
-    "add",      //  8
-    "mul",      //  9
-    "ult",      // 10
-    "sll",      // 11
-    "srl",      // 12
-    "udiv",     // 13
-    "urem",     // 14
-    "concat",   // 15
-    "apply",    // 16
-    "lambda",   // 17
-    "bcond",    // 18
-    "args",     // 19
-    "uf",       // 20
-    "proxy"     // 21
-};
-
 enum BtorSubstCompKind
 {
   BTOR_SUBST_COMP_ULT_KIND,
@@ -510,8 +485,7 @@ btor_print_stats_btor (Btor *btor)
     num_final_ops = number_of_ops (btor);
     assert (num_final_ops >= 0);
     BTOR_MSG (btor->msg, 2, "number of final expressions: %d", num_final_ops);
-    assert (sizeof g_btor_op2string / sizeof *g_btor_op2string
-            == BTOR_NUM_OPS_NODE);
+    assert (sizeof g_btor_op2str / sizeof *g_btor_op2str == BTOR_NUM_OPS_NODE);
 
     BTOR_MSG (btor->msg,
               1,
@@ -523,7 +497,7 @@ btor_print_stats_btor (Btor *btor)
           BTOR_MSG (btor->msg,
                     2,
                     " %s: %d max %d",
-                    g_btor_op2string[i],
+                    g_btor_op2str[i],
                     btor->ops[i].cur,
                     btor->ops[i].max);
   }
