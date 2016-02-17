@@ -16,6 +16,7 @@
 
 BtorNode* btor_synthesize_fun (Btor* btor,
                                BtorNode* uf,
-                               const BtorPtrHashTable* model);
+                               const BtorPtrHashTable* model,
+                               BtorNode* candidate);
 
 #endif
