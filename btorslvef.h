@@ -40,6 +40,8 @@ struct BtorEFSolver
   {
     double e_solver;
     double f_solver;
+    double synth;
+    double qinst;
   } time;
 };
 

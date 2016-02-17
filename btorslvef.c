@@ -634,7 +634,9 @@ sat_ef_solver (BtorEFSolver *slv)
 	  lambda = btor_generate_lambda_model_from_fun_model (
 		       f_solver, var_fs, uf_model);
 #else
+      start  = btor_time_stamp ();
       lambda = btor_synthesize_fun (f_solver, var_fs, uf_model);
+      slv->time.synth += btor_time_stamp () - start;
 #endif
       btor_map_node (map, var_fs, lambda);
     }
@@ -663,7 +665,9 @@ sat_ef_solver (BtorEFSolver *slv)
     }
 
     f_solver->slv->api.generate_model (f_solver->slv, false, false);
-    g = construct_generalization (slv);
+    start = btor_time_stamp ();
+    g     = construct_generalization (slv);
+    slv->time.qinst += btor_time_stamp () - start;
     btor_assert_exp (e_solver, BTOR_INVERT_NODE (g));
     btor_release_exp (e_solver, g);
     slv->stats.refinements++;
@@ -742,6 +746,14 @@ print_time_stats_ef_solver (BtorEFSolver *slv)
       slv->btor->msg, 1, "%.2f seconds exists solver", slv->time.e_solver);
   BTOR_MSG (
       slv->btor->msg, 1, "%.2f seconds forall solver", slv->time.f_solver);
+  BTOR_MSG (slv->btor->msg,
+            1,
+            "%.2f seconds synthesizing functions",
+            slv->time.synth);
+  BTOR_MSG (slv->btor->msg,
+            1,
+            "%.2f seconds quantifier instantiation",
+            slv->time.qinst);
 }
 
 BtorSolver *
