@@ -2321,10 +2321,12 @@ generate_model_core_solver (BtorCoreSolver *slv,
   assert (slv->kind == BTOR_CORE_SOLVER_KIND);
   assert (slv->btor);
   assert (slv->btor->slv == (BtorSolver *) slv);
-  /* already created during check_and_resolve_conflicts */
-  assert (slv->btor->bv_model);
 
   (void) reset;
+
+  /* already created during check_and_resolve_conflicts */
+  if (!slv->btor->bv_model)
+    btor_init_bv_model (slv->btor, &slv->btor->bv_model);
   btor_init_fun_model (slv->btor, &slv->btor->fun_model);
 
   btor_generate_model (slv->btor,
