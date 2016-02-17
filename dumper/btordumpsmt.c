@@ -1015,7 +1015,7 @@ dump_fun_let_smt2 (BtorSMTDumpContext *sdc, BtorNode *exp)
     fputs ("Bool", sdc->file);
   else
     btor_dump_sort_smt_node (exp, sdc->file);
-  fputc (' ', sdc->file);
+  fputc (sdc->pretty_print ? '\n' : ' ', sdc->file);
   recursively_dump_exp_smt (sdc, exp, !is_bool, 0);
   //  fputs (")\n", sdc->file);
   close_sexp (sdc);
@@ -1118,7 +1118,7 @@ dump_fun_smt2 (BtorSMTDumpContext *sdc, BtorNode *fun)
     fputs ("Bool", sdc->file);
   else
     btor_dump_sort_smt_node (fun_body, sdc->file);
-  fputc (' ', sdc->file);
+  fputc (sdc->pretty_print ? '\n' : ' ', sdc->file);
 
   assert (sdc->open_lets == 0);
 
