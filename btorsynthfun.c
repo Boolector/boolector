@@ -20,6 +20,8 @@
 // TODO (ma): for debugging only
 #include "dumper/btordumpbtor.h"
 
+//#define PRINT_DBG
+
 typedef BtorNode *(*BtorUnOp) (Btor *, BtorNode *);
 typedef BtorNode *(*BtorBinOp) (Btor *, BtorNode *, BtorNode *);
 typedef BtorNode *(*BtorTerOp) (Btor *, BtorNode *, BtorNode *, BtorNode *);
@@ -320,7 +322,6 @@ add_exp (Btor *btor,
 
   if (exp_size >= BTOR_COUNT_STACK (*candidates))
   {
-    //      printf ("new_size: %d\n", exp_size);
     sorted_exps = btor_new_int_hash_map (mm);
     BTOR_PUSH_STACK (mm, *candidates, sorted_exps);
     assert (exp_size == BTOR_COUNT_STACK (*candidates) - 1);
@@ -336,7 +337,6 @@ add_exp (Btor *btor,
     BTOR_CNEW (mm, exps);
     btor_add_int_hash_map (sorted_exps, sort)->as_ptr = exps;
   }
-  //  printf ("  add_exp (%u): %s\n", exp_size, node2string (exp));
   BTOR_PUSH_STACK (mm, *exps, exp);
 }
 
@@ -478,8 +478,11 @@ btor_synthesize_fun (Btor *btor, BtorNode *uf, const BtorPtrHashTable *uf_model)
   sort     = btor_get_domain_fun_sort (sorts, uf->sort_id);
   codomain = btor_get_codomain_fun_sort (sorts, uf->sort_id);
 
-  //  printf ("model size: %u\n", uf_model->count);
-  //  printf ("codomain: %u\n", btor_get_width_bitvec_sort (sorts, codomain));
+#ifdef PRINT_DBG
+  uint32_t num_ops[BTOR_NUM_OPS_NODE];
+  memset (num_ops, 0, BTOR_NUM_OPS_NODE * sizeof (uint32_t));
+  for (i = 0; i < BTOR_NUM_OPS_NODE; i++) num_ops[i] = btor->ops[i].cur;
+#endif
 
   /* create parameters */
   btor_init_tuple_sort_iterator (&it, sorts, sort);
@@ -521,6 +524,7 @@ btor_synthesize_fun (Btor *btor, BtorNode *uf, const BtorPtrHashTable *uf_model)
               num_checks / delta,
               delta,
               (float) btor->mm->allocated / 1024 / 1024);
+#ifdef PRINT_DBG
     printf ("size: %u, num_exps: %u/%u/%u/%u/%u, %.2f/s, %.2fs, %.2f MiB\n",
             cur_size,
             num_init_exps,
@@ -531,6 +535,11 @@ btor_synthesize_fun (Btor *btor, BtorNode *uf, const BtorPtrHashTable *uf_model)
             num_checks / delta,
             delta,
             (float) btor->mm->allocated / 1024 / 1024);
+
+    for (i = 0; i < BTOR_NUM_OPS_NODE; i++)
+      if (btor->ops[i].cur - num_ops[i] > 0)
+        printf ("%s: %d\n", g_btor_op2str[i], btor->ops[i].cur - num_ops[i]);
+#endif
 
     sorted_exps = BTOR_PEEK_STACK (candidates, cur_size - 1);
     for (i = 0, unop = unops[i]; unop; i++, unop = unops[i])
@@ -653,11 +662,15 @@ DONE:
 
   if (result)
   {
-    //    btor_dump_btor_node (btor, stdout, result);
+#ifdef PRINT_DBG
     printf ("FOUND CANDIDATE\n");
+    btor_dump_btor_node (btor, stdout, result);
+#endif
     return result;
   }
 
+#ifdef PRINT_DBG
   printf ("NO CANDIDATE\n");
+#endif
   return btor_generate_lambda_model_from_fun_model (btor, uf, uf_model);
 }
