@@ -353,32 +353,33 @@ add_exp (Btor *btor,
  * Further, check if its signature was already produced by a previously added
  * expression. If this is the case, do not add 'EXP' to the candidate
  * expressions. */
-#define CHECK_CANDIDATE(EXP)                                      \
-  {                                                               \
-    id = BTOR_GET_ID_NODE (EXP);                                  \
-    num_checks++;                                                 \
-    if (btor_contains_int_hash_table (cache, id))                 \
-    {                                                             \
-      btor_release_exp (btor, EXP);                               \
-      continue;                                                   \
-    }                                                             \
-    found_candidate =                                             \
-        check_candidate_exp (btor, EXP, &params, uf_model, &sig); \
-    if (found_candidate)                                          \
-    {                                                             \
-      assert (BTOR_REAL_ADDR_NODE (EXP)->sort_id == codomain);    \
-      btor_free_bv_tuple (mm, sig);                               \
-      goto DONE;                                                  \
-    }                                                             \
-    if (btor_get_ptr_hash_table (sigs, sig))                      \
-    {                                                             \
-      btor_free_bv_tuple (mm, sig);                               \
-      btor_release_exp (btor, EXP);                               \
-      continue;                                                   \
-    }                                                             \
-    btor_add_ptr_hash_table (sigs, sig);                          \
-    btor_add_int_hash_table (cache, id);                          \
-    add_exp (btor, cur_size, &candidates, EXP);                   \
+#define CHECK_CANDIDATE(EXP)                                       \
+  {                                                                \
+    id = BTOR_GET_ID_NODE (EXP);                                   \
+    num_checks++;                                                  \
+    if (btor_contains_int_hash_table (cache, id))                  \
+    {                                                              \
+      btor_release_exp (btor, EXP);                                \
+      continue;                                                    \
+    }                                                              \
+    found_candidate =                                              \
+        check_candidate_exp (btor, EXP, &params, uf_model, &sig);  \
+    if (found_candidate)                                           \
+    {                                                              \
+      assert (BTOR_REAL_ADDR_NODE (EXP)->sort_id                   \
+              == btor_get_codomain_fun_sort (sorts, uf->sort_id)); \
+      btor_free_bv_tuple (mm, sig);                                \
+      goto DONE;                                                   \
+    }                                                              \
+    if (btor_get_ptr_hash_table (sigs, sig))                       \
+    {                                                              \
+      btor_free_bv_tuple (mm, sig);                                \
+      btor_release_exp (btor, EXP);                                \
+      continue;                                                    \
+    }                                                              \
+    btor_add_ptr_hash_table (sigs, sig);                           \
+    btor_add_int_hash_table (cache, id);                           \
+    add_exp (btor, cur_level, &candidates, EXP);                   \
   }
 
 struct BinOp
@@ -401,7 +402,7 @@ btor_synthesize_fun (Btor *btor,
   bool found_candidate;
   double start, delta;
   int32_t id;
-  uint32_t i, j, k, *tuple, cur_size;
+  uint32_t i, j, k, *tuple, cur_level;
   uint32_t num_init_exps, num_un_exps, num_bin_exps, num_ter_exps, num_checks;
   BtorNodePtrStack params, *exps;
   BtorVoidPtrStack candidates;
@@ -409,7 +410,7 @@ btor_synthesize_fun (Btor *btor,
   BtorHashTableIterator hit;
   BtorNode *p, *candidate_exp, **exp_tuple, *result = 0;
   BtorSortUniqueTable *sorts;
-  BtorSortId sort, bool_sort, codomain;
+  BtorSortId sort, bool_sort;
   BtorMemMgr *mm;
   BtorPtrHashTable *sigs;
   BtorIntHashTable *cache, *sorted_exps, *e0_exps, *e1_exps, *e2_exps;
@@ -485,9 +486,6 @@ btor_synthesize_fun (Btor *btor,
   BTOR_INIT_STACK (candidates);
   BTOR_PUSH_STACK (mm, candidates, 0);
 
-  sort     = btor_get_domain_fun_sort (sorts, uf->sort_id);
-  codomain = btor_get_codomain_fun_sort (sorts, uf->sort_id);
-
 #ifdef PRINT_DBG
   uint32_t num_ops[BTOR_NUM_OPS_NODE];
   memset (num_ops, 0, BTOR_NUM_OPS_NODE * sizeof (uint32_t));
@@ -495,6 +493,7 @@ btor_synthesize_fun (Btor *btor,
 #endif
 
   /* create parameters */
+  sort = btor_get_domain_fun_sort (sorts, uf->sort_id);
   btor_init_tuple_sort_iterator (&it, sorts, sort);
   while (btor_has_next_tuple_sort_iterator (&it))
   {
@@ -503,7 +502,8 @@ btor_synthesize_fun (Btor *btor,
     BTOR_PUSH_STACK (mm, params, p);
   }
 
-  cur_size = 1;
+  start     = btor_time_stamp ();
+  cur_level = 1;
   if (candidate)
   {
     assert (BTOR_IS_REGULAR_NODE (candidate));
@@ -530,7 +530,8 @@ btor_synthesize_fun (Btor *btor,
 #ifdef PRINT_DBG
       printf ("NOT CHANGED\n");
 #endif
-      assert (BTOR_REAL_ADDR_NODE (candidate_exp)->sort_id == codomain);
+      assert (BTOR_REAL_ADDR_NODE (candidate_exp)->sort_id
+              == btor_get_codomain_fun_sort (sorts, uf->sort_id));
       //	  btor_free_bv_tuple (mm, sig);
       result = btor_copy_exp (btor, candidate);
       goto CLEANUP;
@@ -538,7 +539,7 @@ btor_synthesize_fun (Btor *btor,
     //      assert (!btor_get_ptr_hash_table (sigs, sig));
     //      btor_add_ptr_hash_table (sigs, sig);
     //      btor_add_int_hash_table (cache, id);
-    //      add_exp (btor, cur_size, &candidates, candidate_exp);
+    //      add_exp (btor, cur_level, &candidates, candidate_exp);
   }
 
   /* check size one (inital) expressions */
@@ -550,19 +551,18 @@ btor_synthesize_fun (Btor *btor,
   }
 
   // TODO (ma): max tries?
-  start = btor_time_stamp ();
-  for (cur_size = 2;; cur_size++)
+  for (cur_level = 2;; cur_level++)
   {
     /* initialize current level */
     sorted_exps = btor_new_int_hash_map (mm);
     BTOR_PUSH_STACK (mm, candidates, sorted_exps);
-    assert (cur_size == BTOR_COUNT_STACK (candidates) - 1);
+    assert (cur_level == BTOR_COUNT_STACK (candidates) - 1);
 
     delta = btor_time_stamp () - start;
     BTOR_MSG (btor->msg,
               1,
               "size: %u, exps: %u/%u/%u/%u/%u, %.2f/s, %.2fs, %.2f MiB",
-              cur_size,
+              cur_level,
               num_init_exps,
               num_un_exps,
               num_bin_exps,
@@ -573,7 +573,7 @@ btor_synthesize_fun (Btor *btor,
               (float) btor->mm->allocated / 1024 / 1024);
 #ifdef PRINT_DBG
     printf ("size: %u, num_exps: %u/%u/%u/%u/%u, %.2f/s, %.2fs, %.2f MiB\n",
-            cur_size,
+            cur_level,
             num_init_exps,
             num_un_exps,
             num_bin_exps,
@@ -589,7 +589,7 @@ btor_synthesize_fun (Btor *btor,
 #endif
 
     /* use all expressions from previous level and apply unary operators */
-    sorted_exps = BTOR_PEEK_STACK (candidates, cur_size - 1);
+    sorted_exps = BTOR_PEEK_STACK (candidates, cur_level - 1);
     for (i = 0, unop = unops[i]; unop; i++, unop = unops[i])
     {
       for (j = 0; j < sorted_exps->size; j++)
@@ -608,7 +608,7 @@ btor_synthesize_fun (Btor *btor,
 
     for (i = 0, binop = binops[i]; binop.op; i++, binop = binops[i])
     {
-      btor_init_part_gen (&pg, cur_size, 2, !binop.assoc);
+      btor_init_part_gen (&pg, cur_level, 2, !binop.assoc);
       while (btor_has_next_part_gen (&pg))
       {
         tuple   = btor_next_part_gen (&pg);
@@ -626,11 +626,11 @@ btor_synthesize_fun (Btor *btor,
       }
     }
 
-    if (cur_size < 3) continue;
+    if (cur_level < 3) continue;
 
     for (i = 0, terop = terops[i]; terop; i++, terop = terops[i])
     {
-      btor_init_part_gen (&pg, cur_size, 3, true);
+      btor_init_part_gen (&pg, cur_level, 3, true);
       while (btor_has_next_part_gen (&pg))
       {
         tuple   = btor_next_part_gen (&pg);
@@ -653,6 +653,7 @@ btor_synthesize_fun (Btor *btor,
 		}
 #endif
 
+        /* no bool expression in level 'tuple[0]' */
         d = btor_get_int_hash_map (e0_exps, bool_sort);
         if (!d) continue;
 
@@ -679,7 +680,7 @@ DONE:
   BTOR_MSG (btor->msg,
             1,
             "size: %u, exps: %u/%u/%u/%u/%u, %.2f/s, %.2fs, %.2f MiB",
-            cur_size,
+            cur_level,
             num_init_exps,
             num_un_exps,
             num_bin_exps,
