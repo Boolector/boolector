@@ -22,6 +22,74 @@
 #include "utils/btorhashptr.h"
 #include "utils/btoriter.h"
 
+/*------------------------------------------------------------------------*/
+
+#define BTOR_OPT_MODEL_GEN_SHRT "m"
+#define BTOR_OPT_INCREMENTAL_SHRT "i"
+#define BTOR_OPT_INCREMENTAL_ALL_SHRT "I"
+#define BTOR_OPT_INPUT_FORMAT_SHRT 0
+#define BTOR_OPT_OUTPUT_NUMBER_FORMAT_SHRT 0
+#define BTOR_OPT_OUTPUT_FORMAT_SHRT 0
+#define BTOR_OPT_ENGINE_SHRT "E"
+#define BTOR_OPT_SAT_ENGINE_SHRT "SE"
+#define BTOR_OPT_AUTO_CLEANUP_SHRT "ac"
+#define BTOR_OPT_PRETTY_PRINT_SHRT "p"
+#define BTOR_OPT_EXIT_CODES_SHRT "e"
+#define BTOR_OPT_SEED_SHRT "s"
+#define BTOR_OPT_VERBOSITY_SHRT "v"
+#define BTOR_OPT_LOGLEVEL_SHRT "l"
+/* simplifier --------------------------------------------------------- */
+#define BTOR_OPT_REWRITE_LEVEL_SHRT "rwl"
+#define BTOR_OPT_SKELETON_PREPROC_SHRT "sp"
+#define BTOR_OPT_ACKERMANN_SHRT "ack"
+#define BTOR_OPT_BETA_REDUCE_ALL_SHRT "bra"
+#define BTOR_OPT_ELIMINATE_SLICES_SHRT "es"
+#define BTOR_OPT_VAR_SUBST_SHRT "vs"
+#define BTOR_OPT_UCOPT_SHRT "uc"
+#define BTOR_OPT_MERGE_LAMBDAS_SHRT "ml"
+#define BTOR_OPT_EXTRACT_LAMBDAS_SHRT "xl"
+/* fun engine --------------------------------------------------------- */
+#define BTOR_OPT_FUN_DUAL_PROP_SHRT "fun:dp"
+#define BTOR_OPT_FUN_JUST_SHRT "fun:ju"
+#define BTOR_OPT_FUN_JUST_HEURISTIC_SHRT 0
+#define BTOR_OPT_FUN_LAZY_SYNTHESIZE_SHRT "fun:ls"
+#define BTOR_OPT_FUN_EAGER_LEMMAS_SHRT "fun:el"
+/* SLS engine --------------------------------------------------------- */
+#define BTOR_OPT_SLS_STRATEGY_SHRT 0
+#define BTOR_OPT_SLS_JUST_SHRT 0
+#define BTOR_OPT_SLS_MOVE_GW_SHRT 0
+#define BTOR_OPT_SLS_MOVE_RANGE_SHRT 0
+#define BTOR_OPT_SLS_MOVE_SEGMENT_SHRT 0
+#define BTOR_OPT_SLS_MOVE_RAND_WALK_SHRT 0
+#define BTOR_OPT_SLS_MOVE_RAND_WALK_PROB_SHRT 0
+#define BTOR_OPT_SLS_MOVE_RAND_ALL_SHRT 0
+#define BTOR_OPT_SLS_MOVE_RAND_RANGE_SHRT 0
+#define BTOR_OPT_SLS_MOVE_PROP_SHRT 0
+#define BTOR_OPT_SLS_MOVE_PROP_N_PROP_SHRT 0
+#define BTOR_OPT_SLS_MOVE_PROP_N_SLS_SHRT 0
+#define BTOR_OPT_SLS_MOVE_PROP_FORCE_RW_SHRT 0
+#define BTOR_OPT_SLS_MOVE_PROP_NO_FLIP_COND_SHRT 0
+#define BTOR_OPT_SLS_MOVE_PROP_FLIP_COND_PROB_SHRT 0
+#define BTOR_OPT_SLS_MOVE_INC_MOVE_TEST_SHRT 0
+#define BTOR_OPT_SLS_USE_RESTARTS_SHRT 0
+#define BTOR_OPT_SLS_USE_BANDIT_SHRT 0
+/* internal options --------------------------------------------------- */
+#define BTOR_OPT_SORT_EXP_SHRT 0
+#define BTOR_OPT_SORT_AIG_SHRT 0
+#define BTOR_OPT_SORT_AIGVEC_SHRT 0
+#define BTOR_OPT_AUTO_CLEANUP_INTERNAL_SHRT 0
+#define BTOR_OPT_SIMPLIFY_CONSTRAINTS_SHRT 0
+#define BTOR_OPT_RW_NORMALIZE_SHRT 0
+#ifdef BTOR_CHECK_FAILED_SHRT
+#define BTOR_OPT_CHK_FAILED_ASSUMPTIONS_SHRT 0
+#endif
+#define BTOR_OPT_PARSE_INTERACTIVE_SHRT 0
+#ifdef BTOR_USE_LINGELING
+#define BTOR_OPT_SAT_ENGINE_LGL_FORK_SHRT 0
+#endif
+
+/*------------------------------------------------------------------------*/
+
 static char *
 getenv_value (const char *lname)
 {
@@ -110,7 +178,7 @@ btor_init_opts (Btor *btor)
             false,
             true,
             BTOR_OPT_MODEL_GEN,
-            "m",
+            BTOR_OPT_MODEL_GEN_SHRT,
             0,
             0,
             2,
@@ -119,7 +187,7 @@ btor_init_opts (Btor *btor)
             false,
             true,
             BTOR_OPT_INCREMENTAL,
-            "i",
+            BTOR_OPT_INCREMENTAL_SHRT,
             0,
             0,
             1,
@@ -128,7 +196,7 @@ btor_init_opts (Btor *btor)
             false,
             true,
             BTOR_OPT_INCREMENTAL_ALL,
-            "I",
+            BTOR_OPT_INCREMENTAL_ALL_SHRT,
             0,
             0,
             1,
@@ -137,7 +205,7 @@ btor_init_opts (Btor *btor)
             false,
             false,
             BTOR_OPT_INPUT_FORMAT,
-            0,
+            BTOR_OPT_INPUT_FORMAT_SHRT,
             BTOR_INPUT_FORMAT_DFLT,
             BTOR_INPUT_FORMAT_MIN,
             BTOR_INPUT_FORMAT_MAX,
@@ -146,7 +214,7 @@ btor_init_opts (Btor *btor)
             false,
             false,
             BTOR_OPT_OUTPUT_NUMBER_FORMAT,
-            0,
+            BTOR_OPT_OUTPUT_NUMBER_FORMAT_SHRT,
             BTOR_OUTPUT_BASE_DFLT,
             BTOR_OUTPUT_BASE_MIN,
             BTOR_OUTPUT_BASE_MAX,
@@ -155,7 +223,7 @@ btor_init_opts (Btor *btor)
             false,
             false,
             BTOR_OPT_OUTPUT_FORMAT,
-            0,
+            BTOR_OPT_OUTPUT_FORMAT_SHRT,
             BTOR_OUTPUT_FORMAT_DFLT,
             BTOR_OUTPUT_FORMAT_MIN,
             BTOR_OUTPUT_FORMAT_MAX,
@@ -164,7 +232,7 @@ btor_init_opts (Btor *btor)
             false,
             false,
             BTOR_OPT_ENGINE,
-            "E",
+            BTOR_OPT_ENGINE_SHRT,
             BTOR_ENGINE_DFLT,
             BTOR_ENGINE_MIN,
             BTOR_ENGINE_MAX,
@@ -173,7 +241,7 @@ btor_init_opts (Btor *btor)
             false,
             false,
             BTOR_OPT_SAT_ENGINE,
-            "SE",
+            BTOR_OPT_SAT_ENGINE_SHRT,
             BTOR_SAT_ENGINE_DFLT,
             BTOR_SAT_ENGINE_MIN + 1,
             BTOR_SAT_ENGINE_MAX - 1,
@@ -182,7 +250,7 @@ btor_init_opts (Btor *btor)
             false,
             true,
             BTOR_OPT_AUTO_CLEANUP,
-            "ac",
+            BTOR_OPT_AUTO_CLEANUP_SHRT,
             0,
             0,
             1,
@@ -191,7 +259,7 @@ btor_init_opts (Btor *btor)
             false,
             true,
             BTOR_OPT_PRETTY_PRINT,
-            "p",
+            BTOR_OPT_PRETTY_PRINT_SHRT,
             1,
             0,
             1,
@@ -200,7 +268,7 @@ btor_init_opts (Btor *btor)
             false,
             true,
             BTOR_OPT_EXIT_CODES,
-            "e",
+            BTOR_OPT_EXIT_CODES_SHRT,
             1,
             0,
             1,
@@ -209,7 +277,7 @@ btor_init_opts (Btor *btor)
             false,
             false,
             BTOR_OPT_SEED,
-            "s",
+            BTOR_OPT_SEED_SHRT,
             0,
             0,
             INT_MAX,
@@ -218,7 +286,7 @@ btor_init_opts (Btor *btor)
             false,
             true,
             BTOR_OPT_VERBOSITY,
-            "v",
+            BTOR_OPT_VERBOSITY_SHRT,
             0,
             0,
             BTOR_VERBOSITY_MAX,
@@ -228,7 +296,7 @@ btor_init_opts (Btor *btor)
             false,
             true,
             BTOR_OPT_LOGLEVEL,
-            "l",
+            BTOR_OPT_LOGLEVEL_SHRT,
             0,
             0,
             UINT_MAX,
@@ -240,7 +308,7 @@ btor_init_opts (Btor *btor)
             false,
             false,
             BTOR_OPT_REWRITE_LEVEL,
-            "rwl",
+            BTOR_OPT_REWRITE_LEVEL_SHRT,
             3,
             0,
             3,
@@ -249,7 +317,7 @@ btor_init_opts (Btor *btor)
             false,
             true,
             BTOR_OPT_SKELETON_PREPROC,
-            "sp",
+            BTOR_OPT_SKELETON_PREPROC_SHRT,
             1,
             0,
             1,
@@ -258,7 +326,7 @@ btor_init_opts (Btor *btor)
             false,
             true,
             BTOR_OPT_ACKERMANN,
-            "ack",
+            BTOR_OPT_ACKERMANN_SHRT,
             0,
             0,
             1,
@@ -267,7 +335,7 @@ btor_init_opts (Btor *btor)
             false,
             true,
             BTOR_OPT_BETA_REDUCE_ALL,
-            "bra",
+            BTOR_OPT_BETA_REDUCE_ALL_SHRT,
             0,
             0,
             1,
@@ -276,7 +344,7 @@ btor_init_opts (Btor *btor)
             false,
             true,
             BTOR_OPT_ELIMINATE_SLICES,
-            "es",
+            BTOR_OPT_ELIMINATE_SLICES_SHRT,
             1,
             0,
             1,
@@ -285,7 +353,7 @@ btor_init_opts (Btor *btor)
             false,
             true,
             BTOR_OPT_VAR_SUBST,
-            "vs",
+            BTOR_OPT_VAR_SUBST_SHRT,
             1,
             0,
             1,
@@ -294,7 +362,7 @@ btor_init_opts (Btor *btor)
             false,
             true,
             BTOR_OPT_UCOPT,
-            "uc",
+            BTOR_OPT_UCOPT_SHRT,
             0,
             0,
             1,
@@ -303,7 +371,7 @@ btor_init_opts (Btor *btor)
             false,
             true,
             BTOR_OPT_MERGE_LAMBDAS,
-            "ml",
+            BTOR_OPT_MERGE_LAMBDAS_SHRT,
             1,
             0,
             1,
@@ -312,7 +380,7 @@ btor_init_opts (Btor *btor)
             false,
             true,
             BTOR_OPT_EXTRACT_LAMBDAS,
-            "xl",
+            BTOR_OPT_EXTRACT_LAMBDAS_SHRT,
             1,
             0,
             1,
@@ -323,7 +391,7 @@ btor_init_opts (Btor *btor)
             false,
             true,
             BTOR_OPT_FUN_DUAL_PROP,
-            "dp",
+            BTOR_OPT_FUN_DUAL_PROP_SHRT,
             0,
             0,
             1,
@@ -332,7 +400,7 @@ btor_init_opts (Btor *btor)
             false,
             true,
             BTOR_OPT_FUN_JUST,
-            "just",
+            BTOR_OPT_FUN_JUST_SHRT,
             0,
             0,
             1,
@@ -341,7 +409,7 @@ btor_init_opts (Btor *btor)
             false,
             false,
             BTOR_OPT_FUN_JUST_HEURISTIC,
-            0,
+            BTOR_OPT_FUN_JUST_HEURISTIC_SHRT,
             BTOR_JUST_HEUR_DFLT,
             BTOR_JUST_HEUR_MIN,
             BTOR_JUST_HEUR_MAX,
@@ -350,7 +418,7 @@ btor_init_opts (Btor *btor)
             false,
             true,
             BTOR_OPT_FUN_LAZY_SYNTHESIZE,
-            "ls",
+            BTOR_OPT_FUN_LAZY_SYNTHESIZE_SHRT,
             0,
             0,
             1,
@@ -359,7 +427,7 @@ btor_init_opts (Btor *btor)
             false,
             true,
             BTOR_OPT_FUN_EAGER_LEMMAS,
-            "el",
+            BTOR_OPT_FUN_EAGER_LEMMAS_SHRT,
             1,
             0,
             1,
@@ -370,7 +438,7 @@ btor_init_opts (Btor *btor)
             false,
             false,
             BTOR_OPT_SLS_STRATEGY,
-            0,
+            BTOR_OPT_SLS_STRATEGY_SHRT,
             BTOR_SLS_STRAT_DFLT,
             BTOR_SLS_STRAT_MIN,
             BTOR_SLS_STRAT_MAX,
@@ -379,7 +447,7 @@ btor_init_opts (Btor *btor)
             false,
             true,
             BTOR_OPT_SLS_JUST,
-            0,
+            BTOR_OPT_SLS_JUST_SHRT,
             0,
             0,
             1,
@@ -388,7 +456,7 @@ btor_init_opts (Btor *btor)
             false,
             true,
             BTOR_OPT_SLS_MOVE_GW,
-            0,
+            BTOR_OPT_SLS_MOVE_GW_SHRT,
             0,
             0,
             1,
@@ -398,7 +466,7 @@ btor_init_opts (Btor *btor)
             false,
             true,
             BTOR_OPT_SLS_MOVE_RANGE,
-            0,
+            BTOR_OPT_SLS_MOVE_RANGE_SHRT,
             0,
             0,
             1,
@@ -407,7 +475,7 @@ btor_init_opts (Btor *btor)
             false,
             true,
             BTOR_OPT_SLS_MOVE_SEGMENT,
-            0,
+            BTOR_OPT_SLS_MOVE_SEGMENT_SHRT,
             0,
             0,
             1,
@@ -416,7 +484,7 @@ btor_init_opts (Btor *btor)
             false,
             true,
             BTOR_OPT_SLS_MOVE_RAND_WALK,
-            0,
+            BTOR_OPT_SLS_MOVE_RAND_WALK_SHRT,
             0,
             0,
             1,
@@ -425,7 +493,7 @@ btor_init_opts (Btor *btor)
             false,
             false,
             BTOR_OPT_SLS_MOVE_RAND_WALK_PROB,
-            0,
+            BTOR_OPT_SLS_MOVE_RAND_WALK_PROB_SHRT,
             10,
             0,
             INT_MAX,
@@ -435,7 +503,7 @@ btor_init_opts (Btor *btor)
             false,
             true,
             BTOR_OPT_SLS_MOVE_RAND_ALL,
-            0,
+            BTOR_OPT_SLS_MOVE_RAND_ALL_SHRT,
             0,
             0,
             1,
@@ -445,7 +513,7 @@ btor_init_opts (Btor *btor)
             false,
             true,
             BTOR_OPT_SLS_MOVE_RAND_RANGE,
-            0,
+            BTOR_OPT_SLS_MOVE_RAND_RANGE_SHRT,
             0,
             0,
             1,
@@ -456,7 +524,7 @@ btor_init_opts (Btor *btor)
             false,
             true,
             BTOR_OPT_SLS_MOVE_PROP,
-            0,
+            BTOR_OPT_SLS_MOVE_PROP_SHRT,
             0,
             0,
             1,
@@ -466,7 +534,7 @@ btor_init_opts (Btor *btor)
             false,
             false,
             BTOR_OPT_SLS_MOVE_PROP_N_PROP,
-            0,
+            BTOR_OPT_SLS_MOVE_PROP_N_PROP_SHRT,
             1,
             0,
             UINT_MAX,
@@ -476,7 +544,7 @@ btor_init_opts (Btor *btor)
             false,
             false,
             BTOR_OPT_SLS_MOVE_PROP_N_SLS,
-            0,
+            BTOR_OPT_SLS_MOVE_PROP_N_SLS_SHRT,
             1,
             0,
             UINT_MAX,
@@ -486,7 +554,7 @@ btor_init_opts (Btor *btor)
             false,
             true,
             BTOR_OPT_SLS_MOVE_PROP_NO_FLIP_COND,
-            0,
+            BTOR_OPT_SLS_MOVE_PROP_NO_FLIP_COND_SHRT,
             0,
             0,
             1,
@@ -496,7 +564,7 @@ btor_init_opts (Btor *btor)
             false,
             true,
             BTOR_OPT_SLS_MOVE_PROP_FORCE_RW,
-            0,
+            BTOR_OPT_SLS_MOVE_PROP_FORCE_RW_SHRT,
             0,
             0,
             1,
@@ -505,7 +573,7 @@ btor_init_opts (Btor *btor)
             false,
             false,
             BTOR_OPT_SLS_MOVE_PROP_FLIP_COND_PROB,
-            0,
+            BTOR_OPT_SLS_MOVE_PROP_FLIP_COND_PROB_SHRT,
             10,
             0,
             INT_MAX,
@@ -516,15 +584,22 @@ btor_init_opts (Btor *btor)
             false,
             true,
             BTOR_OPT_SLS_MOVE_INC_MOVE_TEST,
-            0,
+            BTOR_OPT_SLS_MOVE_INC_MOVE_TEST_SHRT,
             0,
             0,
             1,
             "use prev. neighbor with better score as base for "
             "next move test");
 
-  init_opt (
-      btor, false, true, BTOR_OPT_SLS_USE_RESTARTS, 0, 1, 0, 1, "use restarts");
+  init_opt (btor,
+            false,
+            true,
+            BTOR_OPT_SLS_USE_RESTARTS,
+            BTOR_OPT_SLS_USE_RESTARTS_SHRT,
+            1,
+            0,
+            1,
+            "use restarts");
   init_opt (btor,
             false,
             true,
@@ -540,24 +615,63 @@ btor_init_opts (Btor *btor)
             true,
             true,
             BTOR_OPT_SORT_EXP,
-            0,
+            BTOR_OPT_SORT_EXP_SHRT,
             1,
             0,
             1,
             "sort commutative expression nodes");
-  init_opt (btor, true, true, BTOR_OPT_SORT_AIG, 0, 1, 0, 1, "sort AIG nodes");
-  init_opt (
-      btor, true, true, BTOR_OPT_SORT_AIGVEC, 0, 1, 0, 1, "sort AIG vectors");
-  init_opt (btor, true, true, BTOR_OPT_AUTO_CLEANUP_INTERNAL, 0, 0, 0, 1, 0);
-  init_opt (btor, true, true, BTOR_OPT_SIMPLIFY_CONSTRAINTS, 0, 1, 0, 1, 0);
+  init_opt (btor,
+            true,
+            true,
+            BTOR_OPT_SORT_AIG,
+            BTOR_OPT_SORT_AIG_SHRT,
+            1,
+            0,
+            1,
+            "sort AIG nodes");
+  init_opt (btor,
+            true,
+            true,
+            BTOR_OPT_SORT_AIGVEC,
+            BTOR_OPT_SORT_AIGVEC_SHRT,
+            1,
+            0,
+            1,
+            "sort AIG vectors");
+  init_opt (btor,
+            true,
+            true,
+            BTOR_OPT_AUTO_CLEANUP_INTERNAL,
+            BTOR_OPT_AUTO_CLEANUP_INTERNAL_SHRT,
+            0,
+            0,
+            1,
+            0);
+  init_opt (btor,
+            true,
+            true,
+            BTOR_OPT_SIMPLIFY_CONSTRAINTS,
+            BTOR_OPT_SIMPLIFY_CONSTRAINTS_SHRT,
+            1,
+            0,
+            1,
+            0);
 #ifdef BTOR_CHECK_FAILED
-  init_opt (btor, true, true, BTOR_OPT_CHK_FAILED_ASSUMPTIONS, 0, 1, 0, 1, 0);
+  init_opt (btor,
+            true,
+            true,
+            BTOR_OPT_CHK_FAILED_ASSUMPTIONS,
+            BTOR_OPT_CHK_FAILED_ASSUMPTIONS_SHRT,
+            1,
+            0,
+            1,
+            0);
 #endif
   init_opt (btor,
             true,
             true,
             BTOR_OPT_PARSE_INTERACTIVE,
-            0,
+            BTOR_OPT_PARSE_INTERACTIVE_SHRT,
             1,
             0,
             1,
@@ -566,7 +680,7 @@ btor_init_opts (Btor *btor)
             true,
             true,
             BTOR_OPT_RW_NORMALIZE,
-            0,
+            BTOR_OPT_PARSE_INTERACTIVE_SHRT,
             1,
             0,
             1,
@@ -576,7 +690,7 @@ btor_init_opts (Btor *btor)
             true,
             true,
             BTOR_OPT_SAT_ENGINE_LGL_FORK,
-            0,
+            BTOR_OPT_SAT_ENGINE_LGL_FORK_SHRT,
             1,
             0,
             1,

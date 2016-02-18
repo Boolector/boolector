@@ -118,7 +118,6 @@ typedef struct BtorOpt
 #define BTOR_OPT_SEED "seed"
 #define BTOR_OPT_VERBOSITY "verbosity"
 #define BTOR_OPT_LOGLEVEL "loglevel"
-
 /* simplifier --------------------------------------------------------- */
 #define BTOR_OPT_REWRITE_LEVEL "rewrite_level"
 #define BTOR_OPT_SKELETON_PREPROC "skeleton_preproc"
@@ -129,14 +128,12 @@ typedef struct BtorOpt
 #define BTOR_OPT_UCOPT "ucopt"
 #define BTOR_OPT_MERGE_LAMBDAS "merge_lambdas"
 #define BTOR_OPT_EXTRACT_LAMBDAS "extract_lambdas"
-
 /* fun engine --------------------------------------------------------- */
 #define BTOR_OPT_FUN_DUAL_PROP "fun:dual_prop"
 #define BTOR_OPT_FUN_JUST "fun:just"
 #define BTOR_OPT_FUN_JUST_HEURISTIC "fun:just_heuristic"
 #define BTOR_OPT_FUN_LAZY_SYNTHESIZE "fun:lazy_synthesize"
 #define BTOR_OPT_FUN_EAGER_LEMMAS "fun:eager_lemmas"
-
 /* SLS engine --------------------------------------------------------- */
 #define BTOR_OPT_SLS_STRATEGY "sls:strategy"
 #define BTOR_OPT_SLS_JUST "sls:just"
@@ -156,7 +153,6 @@ typedef struct BtorOpt
 #define BTOR_OPT_SLS_MOVE_INC_MOVE_TEST "sls:move_inc_move_test"
 #define BTOR_OPT_SLS_USE_RESTARTS "sls:use_restarts"
 #define BTOR_OPT_SLS_USE_BANDIT "sls:use_bandit"
-
 /* internal options --------------------------------------------------- */
 #define BTOR_OPT_SORT_EXP "sort_exp"
 #define BTOR_OPT_SORT_AIG "sort_aig"
