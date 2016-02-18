@@ -506,23 +506,29 @@ btor_print_stats_btor (Btor *btor)
   BTOR_MSG (btor->msg,
             1,
             " AIG vectors (cur/max): %lld/%lld",
-            btor->avmgr->cur_num_aigvecs,
-            btor->avmgr->max_num_aigvecs);
+            btor->avmgr ? btor->avmgr->cur_num_aigvecs : 0,
+            btor->avmgr ? btor->avmgr->max_num_aigvecs : 0);
   BTOR_MSG (btor->msg,
             1,
             " AIG ANDs (cur/max): %lld/%lld",
-            btor->avmgr->amgr->cur_num_aigs,
-            btor->avmgr->amgr->max_num_aigs);
+            btor->avmgr ? btor->avmgr->amgr->cur_num_aigs : 0,
+            btor->avmgr ? btor->avmgr->amgr->max_num_aigs : 0);
   BTOR_MSG (btor->msg,
             1,
             " AIG variables: %lld",
-            btor->avmgr->amgr->max_num_aig_vars);
-  BTOR_MSG (
-      btor->msg, 1, " CNF variables: %lld", btor->avmgr->amgr->num_cnf_vars);
-  BTOR_MSG (
-      btor->msg, 1, " CNF clauses: %lld", btor->avmgr->amgr->num_cnf_clauses);
-  BTOR_MSG (
-      btor->msg, 1, " CNF literals: %lld", btor->avmgr->amgr->num_cnf_literals);
+            btor->avmgr ? btor->avmgr->amgr->max_num_aig_vars : 0);
+  BTOR_MSG (btor->msg,
+            1,
+            " CNF variables: %lld",
+            btor->avmgr ? btor->avmgr->amgr->num_cnf_vars : 0);
+  BTOR_MSG (btor->msg,
+            1,
+            " CNF clauses: %lld",
+            btor->avmgr ? btor->avmgr->amgr->num_cnf_clauses : 0);
+  BTOR_MSG (btor->msg,
+            1,
+            " CNF literals: %lld",
+            btor->avmgr ? btor->avmgr->amgr->num_cnf_literals : 0);
 
   BTOR_MSG (btor->msg, 1, "");
 #ifndef NDEBUG

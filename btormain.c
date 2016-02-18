@@ -167,7 +167,7 @@ btormain_init_opts (BtorPtrHashTable *options)
                  "set output file for dumping");
   init_main_opt (options,
                  true,
-                 "engine",
+                 BTOR_OPT_ENGINE,
                  "E",
                  BTOR_ENGINE_DFLT,
                  BTOR_ENGINE_MIN,
@@ -177,7 +177,7 @@ btormain_init_opts (BtorPtrHashTable *options)
                  "set engine (core sls) [core]");
   init_main_opt (options,
                  true,
-                 "sat_engine",
+                 BTOR_OPT_SAT_ENGINE,
                  "SE",
                  BTOR_SAT_ENGINE_DFLT,
                  BTOR_SAT_ENGINE_MIN + 1,
@@ -572,7 +572,7 @@ print_help (BtorMainApp *app)
   {
     mo = btor_next_data_hash_table_iterator (&it)->as_ptr;
     if (!mo->general) continue;
-    if (IS_OPT (mo->lng, "time") || IS_OPT (mo->lng, "engine")
+    if (IS_OPT (mo->lng, "time") || IS_OPT (mo->lng, BTOR_OPT_ENGINE)
         || IS_OPT (mo->lng, "lingeling_opts") || IS_OPT (mo->lng, "hex")
         || IS_OPT (mo->lng, "btor") || IS_OPT (mo->lng, "dump_btor"))
       fprintf (out, "\n");
@@ -953,7 +953,7 @@ boolector_main (int argc, char **argv)
         btormain_error (g_app, "invalid option '%s'", errarg.start);
         goto DONE;
       }
-      if (mo->arg != BTORMAIN_OPT_ARG_NONE)
+      if (mo->arg == BTORMAIN_OPT_ARG_NONE)
       {
         if (HAS_UNEXPECTED_ARGUMENT (mo->arg))
         {

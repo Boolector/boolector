@@ -216,7 +216,7 @@ btor_init_opts (Btor *btor)
             "random number generator seed");
   init_opt (btor,
             false,
-            false,
+            true,
             BTOR_OPT_VERBOSITY,
             "v",
             0,
@@ -226,7 +226,7 @@ btor_init_opts (Btor *btor)
 #ifndef NBTORLOG
   init_opt (btor,
             false,
-            false,
+            true,
             BTOR_OPT_LOGLEVEL,
             "l",
             0,
