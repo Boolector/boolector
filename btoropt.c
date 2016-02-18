@@ -680,7 +680,7 @@ btor_init_opts (Btor *btor)
             true,
             true,
             BTOR_OPT_RW_NORMALIZE,
-            BTOR_OPT_PARSE_INTERACTIVE_SHRT,
+            BTOR_OPT_RW_NORMALIZE_SHRT,
             1,
             0,
             1,
