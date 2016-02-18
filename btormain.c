@@ -1209,6 +1209,20 @@ boolector_main (int argc, char **argv)
                             BTOR_OPT_FUN_JUST);
             goto DONE;
           }
+#ifndef NBTORLOG
+          else if (IS_OPT (o->lng, BTOR_OPT_VERBOSITY)
+                   || IS_OPT (o->lng, BTOR_OPT_LOGLEVEL))
+#else
+          else if (IS_OPT (o->lng, BTOR_OPT_VERBOSITY))
+#endif
+          {
+            if (readval && isint)
+              boolector_set_opt (g_app->btor, o->lng, val);
+            else
+              boolector_set_opt (g_app->btor,
+                                 o->lng,
+                                 boolector_get_opt (g_app->btor, o->lng) + 1);
+          }
           else
           {
             if (readval && isint)
@@ -1220,26 +1234,9 @@ boolector_main (int argc, char **argv)
       }
       else
       {
-#ifndef NBTORLOG
-        if (IS_OPT (o->lng, BTOR_OPT_VERBOSITY)
-            || IS_OPT (o->lng, BTOR_OPT_LOGLEVEL))
-#else
-        if (IS_OPT (o->lng, BTOR_OPT_VERBOSITY))
-#endif
-        {
-          if (readval && isint)
-            boolector_set_opt (g_app->btor, o->lng, val);
-          else
-            boolector_set_opt (g_app->btor,
-                               o->lng,
-                               boolector_get_opt (g_app->btor, o->lng) + 1);
-        }
-        else
-        {
-          assert (readval);
-          assert (isint);
-          boolector_set_opt (g_app->btor, o->lng, val);
-        }
+        assert (readval);
+        assert (isint);
+        boolector_set_opt (g_app->btor, o->lng, val);
       }
     }
   }
