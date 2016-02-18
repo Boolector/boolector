@@ -82,17 +82,17 @@ btor_new_sat_mgr (BtorMemMgr *mm, BtorMsg *msg)
   return smgr;
 }
 
-int
+bool
 btor_has_clone_support_sat_mgr (BtorSATMgr *smgr)
 {
-  assert (smgr);
+  if (!smgr) return true;
   return smgr->api.clone != 0;
 }
 
-int
+bool
 btor_has_term_support_sat_mgr (BtorSATMgr *smgr)
 {
-  assert (smgr);
+  if (!smgr) return false;
   return (!strcmp (smgr->name, "Lingeling"));
 }
 
@@ -148,7 +148,8 @@ btor_next_cnf_id_sat_mgr (BtorSATMgr *smgr)
   result = smgr->api.inc_max_var (smgr);
   if (abs (result) > smgr->maxvar) smgr->maxvar = abs (result);
   BTOR_ABORT_SAT (result <= 0, "CNF id overflow");
-  if (*smgr->msg->verbosity > 2 && !(result % 100000))
+  if (btor_get_opt (smgr->msg->btor, BTOR_OPT_VERBOSITY) > 2
+      && !(result % 100000))
     BTOR_MSG (smgr->msg, 2, "reached CNF id %d", result);
   return result;
 }
@@ -368,6 +369,7 @@ static void *
 btor_picosat_init (BtorSATMgr *smgr)
 {
   PicoSAT *res;
+  uint32_t verb;
 
   BTOR_MSG (smgr->msg, 1, "PicoSAT Version %s", picosat_version ());
 
@@ -377,8 +379,8 @@ btor_picosat_init (BtorSATMgr *smgr)
                        (picosat_free) btor_sat_free);
 
   picosat_set_global_default_phase (res, 0);
-  if (*smgr->msg->verbosity >= 2)
-    picosat_set_verbosity (res, *smgr->msg->verbosity - 1);
+  verb = btor_get_opt (smgr->msg->btor, BTOR_OPT_VERBOSITY);
+  if (verb >= 2) picosat_set_verbosity (res, verb - 1);
 
   return res;
 }
@@ -635,8 +637,9 @@ static void *
 btor_lingeling_init (BtorSATMgr *smgr)
 {
   BtorLGL *res;
+  uint32_t verb;
 
-  if (*smgr->msg->verbosity >= 1)
+  if (btor_get_opt (smgr->msg->btor, BTOR_OPT_VERBOSITY) >= 1)
   {
     lglbnr ("Lingeling", "[lingeling] ", stdout);
     fflush (stdout);
@@ -647,11 +650,11 @@ btor_lingeling_init (BtorSATMgr *smgr)
                        (lglalloc) btor_sat_malloc,
                        (lglrealloc) btor_sat_realloc,
                        (lgldealloc) btor_sat_free);
-
-  if (*smgr->msg->verbosity <= 0)
+  verb     = btor_get_opt (smgr->msg->btor, BTOR_OPT_VERBOSITY);
+  if (verb <= 0)
     lglsetopt (res->lgl, "verbose", -1);
-  else if (*smgr->msg->verbosity >= 2)
-    lglsetopt (res->lgl, "verbose", *smgr->msg->verbosity - 1);
+  else if (verb >= 2)
+    lglsetopt (res->lgl, "verbose", verb - 1);
 
   if (smgr->optstr)
     btor_passdown_lingeling_options (smgr, smgr->optstr, res->lgl);
@@ -743,7 +746,8 @@ btor_lingeling_sat (BtorSATMgr *smgr, int limit)
       (void)
 #endif
           lglsat (clone);
-      if (*smgr->msg->verbosity > 0) lglstats (clone);
+      if (btor_get_opt (smgr->msg->btor, BTOR_OPT_VERBOSITY) > 0)
+        lglstats (clone);
       bfres = lglunclone (lgl, clone);
       lglrelease (clone);
       assert (!res || bfres == res);

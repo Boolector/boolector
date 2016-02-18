@@ -1,6 +1,6 @@
 /*  Boolector: Satisfiablity Modulo Theories (SMT) solver.
  *
- *  Copyright (C) 2013-2015 Aina Niemetz.
+ *  Copyright (C) 2013-2016 Aina Niemetz.
  *  Copyright (C) 2013-2015 Mathias Preiner.
  *
  *  All rights reserved.
@@ -17,6 +17,7 @@
 
 #include "btorcore.h"
 #include "btoropt.h"
+#include "btorsat.h"
 
 void btor_chkclone (Btor *btor);
 void btor_chkclone_exp (BtorNode *exp, BtorNode *clone);

@@ -16,9 +16,9 @@
 #include "btorslv.h"
 #include "utils/btorhashptr.h"
 
-#define BTOR_CORE_SOLVER(btor) ((BtorCoreSolver *) (btor)->slv)
+#define BTOR_FUN_SOLVER(btor) ((BtorFunSolver *) (btor)->slv)
 
-struct BtorCoreSolver
+struct BtorFunSolver
 {
   BTOR_SOLVER_STRUCT;
 
@@ -81,9 +81,9 @@ struct BtorCoreSolver
   } time;
 };
 
-typedef struct BtorCoreSolver BtorCoreSolver;
+typedef struct BtorFunSolver BtorFunSolver;
 
-BtorSolver *btor_new_core_solver (Btor *btor);
+BtorSolver *btor_new_fun_solver (Btor *btor);
 
 // TODO (ma): this is just a fix for now, this should be moved elsewhere
 /* Evaluates expression and returns its value. */

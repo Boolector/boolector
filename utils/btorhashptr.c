@@ -37,7 +37,7 @@ btor_enlarge_ptr_hash_table (BtorPtrHashTable *p2iht)
   old_table = p2iht->table;
 
   new_size = old_size ? 2 * old_size : 1;
-  BTOR_CNEWN (p2iht->mem, new_table, new_size);
+  BTOR_CNEWN (p2iht->mm, new_table, new_size);
 
   hash = p2iht->hash;
 
@@ -51,21 +51,21 @@ btor_enlarge_ptr_hash_table (BtorPtrHashTable *p2iht)
       new_table[h] = p;
     }
 
-  BTOR_DELETEN (p2iht->mem, old_table, old_size);
+  BTOR_DELETEN (p2iht->mm, old_table, old_size);
 
   p2iht->size  = new_size;
   p2iht->table = new_table;
 }
 
 BtorPtrHashTable *
-btor_new_ptr_hash_table (BtorMemMgr *mem, BtorHashPtr hash, BtorCmpPtr cmp)
+btor_new_ptr_hash_table (BtorMemMgr *mm, BtorHashPtr hash, BtorCmpPtr cmp)
 {
   BtorPtrHashTable *res;
 
-  BTOR_NEW (mem, res);
+  BTOR_NEW (mm, res);
   BTOR_CLR (res);
 
-  res->mem  = mem;
+  res->mm   = mm;
   res->hash = hash ? hash : btor_hash_ptr;
   res->cmp  = cmp ? cmp : btor_cmp_ptr;
 
@@ -75,14 +75,14 @@ btor_new_ptr_hash_table (BtorMemMgr *mem, BtorHashPtr hash, BtorCmpPtr cmp)
 }
 
 BtorPtrHashTable *
-btor_clone_ptr_hash_table (BtorMemMgr *mem,
+btor_clone_ptr_hash_table (BtorMemMgr *mm,
                            BtorPtrHashTable *table,
                            BtorCloneKeyPtr ckey,
                            BtorCloneDataPtr cdata,
                            const void *key_map,
                            const void *data_map)
 {
-  assert (mem);
+  assert (mm);
   assert (ckey);
 
   BtorPtrHashTable *res;
@@ -92,7 +92,7 @@ btor_clone_ptr_hash_table (BtorMemMgr *mem,
 
   if (!table) return NULL;
 
-  res = btor_new_ptr_hash_table (mem, table->hash, table->cmp);
+  res = btor_new_ptr_hash_table (mm, table->hash, table->cmp);
   while (res->size < table->size) btor_enlarge_ptr_hash_table (res);
   assert (res->size == table->size);
 
@@ -101,13 +101,13 @@ btor_clone_ptr_hash_table (BtorMemMgr *mem,
   {
     b          = it.bucket;
     key        = btor_next_hash_table_iterator (&it);
-    cloned_key = ckey (mem, key_map, key);
+    cloned_key = ckey (mm, key_map, key);
     assert (cloned_key);
     cloned_b = btor_add_ptr_hash_table (res, cloned_key);
     if (!cdata)
       assert (b->data.as_ptr == 0);
     else
-      cdata (mem, data_map, &b->data, &cloned_b->data);
+      cdata (mm, data_map, &b->data, &cloned_b->data);
   }
 
   assert (table->count == res->count);
@@ -123,11 +123,11 @@ btor_delete_ptr_hash_table (BtorPtrHashTable *p2iht)
   for (p = p2iht->first; p; p = next)
   {
     next = p->next;
-    BTOR_DELETE (p2iht->mem, p);
+    BTOR_DELETE (p2iht->mm, p);
   }
 
-  BTOR_DELETEN (p2iht->mem, p2iht->table, p2iht->size);
-  BTOR_DELETE (p2iht->mem, p2iht);
+  BTOR_DELETEN (p2iht->mm, p2iht->table, p2iht->size);
+  BTOR_DELETE (p2iht->mm, p2iht);
 }
 
 BtorPtrHashBucket *
@@ -181,7 +181,7 @@ btor_add_ptr_hash_table (BtorPtrHashTable *p2iht, void *key)
   BtorPtrHashBucket **p, *res;
   p = btor_findpos_in_ptr_hash_table_pos (p2iht, key);
   assert (!*p);
-  BTOR_CNEW (p2iht->mem, res);
+  BTOR_CNEW (p2iht->mm, res);
   res->key = key;
   *p       = res;
   p2iht->count++;
@@ -252,5 +252,5 @@ btor_remove_ptr_hash_table (BtorPtrHashTable *table,
 
   if (stored_data_ptr) *stored_data_ptr = bucket->data;
 
-  BTOR_DELETE (table->mem, bucket);
+  BTOR_DELETE (table->mm, bucket);
 }

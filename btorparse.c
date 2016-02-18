@@ -2,7 +2,7 @@
  *
  *  Copyright (C) 2007-2009 Robert Daniel Brummayer.
  *  Copyright (C) 2007-2014 Armin Biere.
- *  Copyright (C) 2012-2015 Aina Niemetz.
+ *  Copyright (C) 2012-2016 Aina Niemetz.
  *  Copyright (C) 2012-2015 Mathias Preiner.
  *
  *  All rights reserved.
@@ -62,25 +62,10 @@ btor_parse_aux (Btor *btor,
 
   res                   = BOOLECTOR_UNKNOWN;
   *error_msg            = 0;
-  parse_opt.verbosity   = btor->options.verbosity.val;
-  parse_opt.incremental = btor->options.incremental.val;
-  parse_opt.interactive = btor->options.parse_interactive.val;
-  if (btor->options.incremental_in_depth.val)
-  {
-    parse_opt.incremental |= BTOR_PARSE_MODE_INCREMENTAL_IN_DEPTH;
-    parse_opt.window = btor->options.incremental_in_depth.val;
-  }
-  else if (btor->options.incremental_look_ahead.val)
-  {
-    parse_opt.incremental |= BTOR_PARSE_MODE_INCREMENTAL_LOOK_AHEAD;
-    parse_opt.window = btor->options.incremental_look_ahead.val;
-  }
-  else if (btor->options.incremental_interval.val)
-  {
-    parse_opt.incremental |= BTOR_PARSE_MODE_INCREMENTAL_INTERVAL;
-    parse_opt.window = btor->options.incremental_interval.val;
-  }
-  parse_opt.need_model = btor->options.model_gen.val;
+  parse_opt.verbosity   = btor_get_opt (btor, BTOR_OPT_VERBOSITY);
+  parse_opt.incremental = btor_get_opt (btor, BTOR_OPT_INCREMENTAL);
+  parse_opt.interactive = btor_get_opt (btor, BTOR_OPT_PARSE_INTERACTIVE);
+  parse_opt.need_model  = btor_get_opt (btor, BTOR_OPT_MODEL_GEN);
 
   BTOR_MSG (btor->msg, 1, "%s", msg);
   parser = parser_api->init (btor, &parse_opt);

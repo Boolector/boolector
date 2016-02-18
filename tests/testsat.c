@@ -2,7 +2,7 @@
  *
  *  Copyright (C) 2007-2010 Robert Daniel Brummayer.
  *  Copyright (C) 2007-2012 Armin Biere.
- *  Copyright (C) 2014-2015 Aina Niemetz.
+ *  Copyright (C) 2014-2016 Aina Niemetz.
  *
  *  All rights reserved.
  *
@@ -11,6 +11,7 @@
  */
 
 #include "testsat.h"
+#include "btorcore.h"
 #include "btorsat.h"
 #include "testrunner.h"
 #include "utils/btormem.h"
@@ -21,15 +22,16 @@
 
 #include <assert.h>
 
+static Btor *g_btor;
 static BtorMemMgr *g_mm;
 static BtorMsg *g_msg;
-static uint32_t g_verbosity;
 
 void
 init_sat_tests (void)
 {
-  g_mm  = btor_new_mem_mgr ();
-  g_msg = btor_new_btor_msg (g_mm, &g_verbosity);
+  g_btor = btor_new_btor ();
+  g_mm   = g_btor->mm;
+  g_msg  = g_btor->msg;
 }
 
 static void
@@ -61,6 +63,5 @@ run_sat_tests (int argc, char **argv)
 void
 finish_sat_tests (void)
 {
-  btor_delete_btor_msg (g_msg);
-  btor_delete_mem_mgr (g_mm);
+  btor_delete_btor (g_btor);
 }

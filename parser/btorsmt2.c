@@ -1,7 +1,7 @@
 /*  Boolector: Satisfiablity Modulo Theories (SMT) solver.
  *
  *  Copyright (C) 2011-2014 Armin Biere.
- *  Copyright (C) 2013-2015 Aina Niemetz.
+ *  Copyright (C) 2013-2016 Aina Niemetz.
  *  Copyright (C) 2013-2015 Mathias Preiner.
  *
  *  All rights reserved.
@@ -147,16 +147,14 @@ typedef enum BtorSMT2Tag
   BTOR_OPT_OUTPUT_FORMAT_TAG_SMT2        = 37 + BTOR_KEYWORD_TAG_CLASS_SMT2,
   BTOR_OPT_REWRITE_LEVEL_TAG_SMT2        = 38 + BTOR_KEYWORD_TAG_CLASS_SMT2,
   BTOR_OPT_BETA_REDUCE_ALL_TAG_SMT2      = 40 + BTOR_KEYWORD_TAG_CLASS_SMT2,
-  BTOR_OPT_DUAL_PROP_TAG_SMT2            = 41 + BTOR_KEYWORD_TAG_CLASS_SMT2,
-  BTOR_OPT_JUST_TAG_SMT2                 = 42 + BTOR_KEYWORD_TAG_CLASS_SMT2,
-#ifndef BTOR_DO_NOT_OPTIMIZE_UNCONSTRAINED
-  BTOR_OPT_UCOPT_TAG_SMT2 = 47 + BTOR_KEYWORD_TAG_CLASS_SMT2,
-#endif
-  BTOR_OPT_AUTO_CLEANUP_TAG_SMT2     = 48 + BTOR_KEYWORD_TAG_CLASS_SMT2,
-  BTOR_OPT_PRETTY_PRINT_TAG_SMT2     = 49 + BTOR_KEYWORD_TAG_CLASS_SMT2,
-  BTOR_OPT_LOGLEVEL_TAG_SMT2         = 50 + BTOR_KEYWORD_TAG_CLASS_SMT2,
-  BTOR_OPT_LAZY_SYNTHESIZE_TAG_SMT2  = 51 + BTOR_KEYWORD_TAG_CLASS_SMT2,
-  BTOR_OPT_ELIMINATE_SLICES_TAG_SMT2 = 52 + BTOR_KEYWORD_TAG_CLASS_SMT2,
+  BTOR_OPT_FUN_DUAL_PROP_TAG_SMT2        = 41 + BTOR_KEYWORD_TAG_CLASS_SMT2,
+  BTOR_OPT_FUN_JUST_TAG_SMT2             = 42 + BTOR_KEYWORD_TAG_CLASS_SMT2,
+  BTOR_OPT_UCOPT_TAG_SMT2                = 47 + BTOR_KEYWORD_TAG_CLASS_SMT2,
+  BTOR_OPT_AUTO_CLEANUP_TAG_SMT2         = 48 + BTOR_KEYWORD_TAG_CLASS_SMT2,
+  BTOR_OPT_PRETTY_PRINT_TAG_SMT2         = 49 + BTOR_KEYWORD_TAG_CLASS_SMT2,
+  BTOR_OPT_LOGLEVEL_TAG_SMT2             = 50 + BTOR_KEYWORD_TAG_CLASS_SMT2,
+  BTOR_OPT_FUN_LAZY_SYNTHESIZE_TAG_SMT2  = 51 + BTOR_KEYWORD_TAG_CLASS_SMT2,
+  BTOR_OPT_ELIMINATE_SLICES_TAG_SMT2     = 52 + BTOR_KEYWORD_TAG_CLASS_SMT2,
   /* ---------------------------------------------------------------------- */
 
   BTOR_BOOL_TAG_SMT2     = 0 + BTOR_CORE_TAG_CLASS_SMT2,
@@ -905,15 +903,13 @@ btor_insert_keywords_smt2 (BtorSMT2Parser *parser)
   INSERT (":output-format", BTOR_OPT_OUTPUT_FORMAT_TAG_SMT2);
   INSERT (":rewrite-level", BTOR_OPT_REWRITE_LEVEL_TAG_SMT2);
   INSERT (":beta-reduce-all", BTOR_OPT_BETA_REDUCE_ALL_TAG_SMT2);
-  INSERT (":dual-prop", BTOR_OPT_DUAL_PROP_TAG_SMT2);
-  INSERT (":just", BTOR_OPT_JUST_TAG_SMT2);
-#ifndef BTOR_DO_NOT_OPTIMIZE_UNCONSTRAINED
+  INSERT (":dual-prop", BTOR_OPT_FUN_DUAL_PROP_TAG_SMT2);
+  INSERT (":just", BTOR_OPT_FUN_JUST_TAG_SMT2);
   INSERT (":ucopt", BTOR_OPT_UCOPT_TAG_SMT2);
-#endif
   INSERT (":auto-cleanup", BTOR_OPT_AUTO_CLEANUP_TAG_SMT2);
   INSERT (":pretty-print", BTOR_OPT_PRETTY_PRINT_TAG_SMT2);
   INSERT (":loglevel", BTOR_OPT_LOGLEVEL_TAG_SMT2);
-  INSERT (":lazy-synthesize", BTOR_OPT_LAZY_SYNTHESIZE_TAG_SMT2);
+  INSERT (":lazy-synthesize", BTOR_OPT_FUN_LAZY_SYNTHESIZE_TAG_SMT2);
   INSERT (":eliminate-slices", BTOR_OPT_ELIMINATE_SLICES_TAG_SMT2);
 }
 
@@ -3955,16 +3951,14 @@ btor_set_option_smt2 (BtorSMT2Parser *parser)
       case BTOR_OPT_BETA_REDUCE_ALL_TAG_SMT2:
         opt = BTOR_OPT_BETA_REDUCE_ALL;
         break;
-      case BTOR_OPT_DUAL_PROP_TAG_SMT2: opt = BTOR_OPT_DUAL_PROP; break;
-      case BTOR_OPT_JUST_TAG_SMT2: opt = BTOR_OPT_JUST; break;
-#ifndef BTOR_DO_NOT_OPTIMIZE_UNCONSTRAINED
+      case BTOR_OPT_FUN_DUAL_PROP_TAG_SMT2: opt = BTOR_OPT_FUN_DUAL_PROP; break;
+      case BTOR_OPT_FUN_JUST_TAG_SMT2: opt = BTOR_OPT_FUN_JUST; break;
       case BTOR_OPT_UCOPT_TAG_SMT2: opt = BTOR_OPT_UCOPT; break;
-#endif
       case BTOR_OPT_AUTO_CLEANUP_TAG_SMT2: opt = BTOR_OPT_AUTO_CLEANUP; break;
       case BTOR_OPT_PRETTY_PRINT_TAG_SMT2: opt = BTOR_OPT_PRETTY_PRINT; break;
       case BTOR_OPT_LOGLEVEL_TAG_SMT2: opt = BTOR_OPT_LOGLEVEL; break;
-      case BTOR_OPT_LAZY_SYNTHESIZE_TAG_SMT2:
-        opt = BTOR_OPT_LAZY_SYNTHESIZE;
+      case BTOR_OPT_FUN_LAZY_SYNTHESIZE_TAG_SMT2:
+        opt = BTOR_OPT_FUN_LAZY_SYNTHESIZE;
         break;
       case BTOR_OPT_ELIMINATE_SLICES_TAG_SMT2:
         opt = BTOR_OPT_ELIMINATE_SLICES;
@@ -3980,7 +3974,7 @@ btor_set_option_smt2 (BtorSMT2Parser *parser)
         assert (parser->error);
         return 0;
       }
-      val = boolector_get_opt_val (parser->btor, opt);
+      val = boolector_get_opt (parser->btor, opt);
       if (tag == BTOR_FALSE_TAG_SMT2)
         val = 0;
       else if (tag == BTOR_TRUE_TAG_SMT2)
@@ -4221,7 +4215,7 @@ btor_read_command_smt2 (BtorSMT2Parser *parser)
 
     case BTOR_GET_MODEL_TAG_SMT2:
       if (!btor_read_rpar_smt2 (parser, " after 'get-model'")) return 0;
-      if (!boolector_get_opt_val (parser->btor, "model_gen"))
+      if (!boolector_get_opt (parser->btor, "model_gen"))
         return !btor_perr_smt2 (parser, "model generation is not enabled");
       if (parser->res->result != BOOLECTOR_SAT) break;
       boolector_print_model (parser->btor, "smt2", parser->outfile);
@@ -4230,7 +4224,7 @@ btor_read_command_smt2 (BtorSMT2Parser *parser)
 
     case BTOR_GET_VALUE_TAG_SMT2:
       if (!btor_read_lpar_smt2 (parser, " after 'get-value'")) return 0;
-      if (!boolector_get_opt_val (parser->btor, "model_gen"))
+      if (!boolector_get_opt (parser->btor, "model_gen"))
         return !btor_perr_smt2 (parser, "model generation is not enabled");
       if (parser->res->result != BOOLECTOR_SAT) break;
       tag = 0;

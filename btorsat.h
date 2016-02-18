@@ -106,9 +106,9 @@ struct BtorLGL
  */
 BtorSATMgr *btor_new_sat_mgr (BtorMemMgr *mm, BtorMsg *msg);
 
-int btor_has_clone_support_sat_mgr (BtorSATMgr *smgr);
+bool btor_has_clone_support_sat_mgr (BtorSATMgr *smgr);
 
-int btor_has_term_support_sat_mgr (BtorSATMgr *smgr);
+bool btor_has_term_support_sat_mgr (BtorSATMgr *smgr);
 
 void btor_set_term_sat_mgr (BtorSATMgr *smgr, int (*fun) (void *), void *state);
 

@@ -1,6 +1,6 @@
 /*  Boolector: Satisfiablity Modulo Theories (SMT) solver.
  *
- *  Copyright (C) 2015 Aina Niemetz.
+ *  Copyright (C) 2015-2016 Aina Niemetz.
  *
  *  All rights reserved.
  *
@@ -93,13 +93,13 @@ static BtorRNG *g_rng;
 void
 init_slsinv_tests (void)
 {
-  g_btor                            = btor_new_btor ();
-  g_btor->slv                       = btor_new_sls_solver (g_btor);
-  g_btor->options.engine.val        = BTOR_ENGINE_SLS;
-  g_btor->options.rewrite_level.val = 0;
-  g_btor->options.sort_exp.val      = 0;
-  g_mm                              = g_btor->mm;
-  g_rng                             = &g_btor->rng;
+  g_btor      = btor_new_btor ();
+  g_btor->slv = btor_new_sls_solver (g_btor);
+  btor_set_opt (g_btor, BTOR_OPT_ENGINE, BTOR_ENGINE_SLS);
+  btor_set_opt (g_btor, BTOR_OPT_REWRITE_LEVEL, 0);
+  btor_set_opt (g_btor, BTOR_OPT_SORT_EXP, 0);
+  g_mm  = g_btor->mm;
+  g_rng = &g_btor->rng;
 }
 
 static void

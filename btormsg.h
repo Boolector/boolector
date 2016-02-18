@@ -1,6 +1,6 @@
 /*  Boolector: Satisfiablity Modulo Theories (SMT) solver.
  *
- *  Copyright (C) 2014-2015 Aina Niemetz.
+ *  Copyright (C) 2014-2016 Aina Niemetz.
  *  Copyright (C) 2015 Mathias Preiner.
  *
  *  All rights reserved.
@@ -15,23 +15,25 @@
 #include <stdbool.h>
 #include <stdint.h>
 #include <string.h>
+#include "btoropt.h"
+#include "btortypes.h"
 #include "utils/btormem.h"
 
-#define BTOR_MSG(btormsg, level, msg...)             \
-  do                                                 \
-  {                                                  \
-    if (level && *btormsg->verbosity < level) break; \
-    btor_msg (btormsg, false, __FILE__, ##msg);      \
+#define BTOR_MSG(btormsg, level, msg...)                                   \
+  do                                                                       \
+  {                                                                        \
+    if (level && btor_get_opt (btormsg->btor, BTOR_OPT_VERBOSITY) < level) \
+      break;                                                               \
+    btor_msg (btormsg, false, __FILE__, ##msg);                            \
   } while (0)
 
 typedef struct
 {
-  BtorMemMgr *mm;
+  Btor *btor;
   char *prefix;
-  uint32_t *verbosity;
 } BtorMsg;
 
-BtorMsg *btor_new_btor_msg (BtorMemMgr *mm, uint32_t *verbosity);
+BtorMsg *btor_new_btor_msg (Btor *btor);
 void btor_delete_btor_msg (BtorMsg *msg);
 void btor_msg (BtorMsg *msg, bool log, char *filename, char *fmt, ...);
 

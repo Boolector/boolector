@@ -1,6 +1,6 @@
 /*  Boolector: Satisfiablity Modulo Theories (SMT) solver.
  *
- *  Copyright (C) 2013-2015 Aina Niemetz.
+ *  Copyright (C) 2013-2016 Aina Niemetz.
  *  Copyright (C) 2014-2015 Mathias Preiner.
  *  Copyright (C) 2014-2015 Armin Biere.
  *
@@ -18,7 +18,7 @@
 #include "btorlog.h"
 #include "btormsg.h"
 #include "btorsat.h"
-#include "btorslvcore.h"
+#include "btorslvfun.h"
 #include "btorsort.h"
 #include "utils/btorhashptr.h"
 #include "utils/btoriter.h"
@@ -771,7 +771,6 @@ clone_aux_btor (Btor *btor,
   assert (btor);
   assert (exp_layer_only
           || btor_has_clone_support_sat_mgr (btor_get_sat_mgr_btor (btor)));
-
   Btor *clone;
   BtorNodeMap *emap = 0;
   BtorMemMgr *mm;
@@ -805,21 +804,28 @@ clone_aux_btor (Btor *btor,
   allocated = sizeof (Btor);
 #endif
   memcpy (clone, btor, sizeof (Btor));
-  clone->mm = mm;
-  btor_copy_opts (mm, &btor->options, &clone->options);
+  clone->mm      = mm;
+  clone->options = btor_clone_opts (clone->mm, btor->options);
 #ifndef NDEBUG
-  for (o = &btor->options.first + 1; o < &btor->options.last; o++)
+  allocated += MEM_PTR_HASH_TABLE (clone->options)
+               + clone->options->count * sizeof (BtorOpt);
+  btor_init_hash_table_iterator (&it, btor->options);
+  while (btor_has_next_hash_table_iterator (&it))
+  {
+    o = (BtorOpt *) btor_next_data_hash_table_iterator (&it)->as_ptr;
     if (o->valstr) allocated += strlen (o->valstr) + 1;
+  }
 #endif
   assert (allocated == clone->mm->allocated);
 
   /* always auto cleanup external references (dangling, not held from extern) */
-  clone->options.auto_cleanup.val = 1;
+  btor_set_opt (clone, BTOR_OPT_AUTO_CLEANUP, 1);
 
   if (exp_layer_only)
   {
     /* reset */
     clone->btor_sat_btor_called = 0;
+    clone->last_sat_result      = 0;
     btor_reset_time_btor (clone);
 #ifndef NDEBUG
     clone->stats.rw_rules_applied = 0;
@@ -829,7 +835,7 @@ clone_aux_btor (Btor *btor,
             == clone->mm->allocated);
   }
 
-  clone->msg = btor_new_btor_msg (clone->mm, &clone->options.verbosity.val);
+  clone->msg = btor_new_btor_msg (clone);
   assert ((allocated += sizeof (BtorMsg)) == clone->mm->allocated);
 
   /* set msg prefix for clone */
@@ -893,37 +899,40 @@ clone_aux_btor (Btor *btor,
 #endif
   }
 
-  if (exp_layer_only)
+  if (btor->avmgr)
   {
-    clone->avmgr = btor_new_aigvec_mgr (mm, clone->msg, &clone->options);
-    assert ((allocated += sizeof (BtorAIGVecMgr) + sizeof (BtorAIGMgr)
-                          + sizeof (BtorSATMgr)
-                          /* true and false AIGs */
-                          + 2 * sizeof (BtorAIG *)
-                          + sizeof (int32_t)) /* unique table chains */
-            == clone->mm->allocated);
-  }
-  else
-  {
-    BTORLOG_TIMESTAMP (delta);
-    clone->avmgr =
-        btor_clone_aigvec_mgr (mm, clone->msg, &clone->options, btor->avmgr);
-    BTORLOG (1, "  clone AIG mgr: %.3f s", (btor_time_stamp () - delta));
-    assert ((allocated +=
-             sizeof (BtorAIGVecMgr) + sizeof (BtorAIGMgr) + sizeof (BtorSATMgr)
+    if (exp_layer_only)
+    {
+      clone->avmgr = btor_new_aigvec_mgr (clone);
+      assert ((allocated += sizeof (BtorAIGVecMgr) + sizeof (BtorAIGMgr)
+                            + sizeof (BtorSATMgr)
+                            /* true and false AIGs */
+                            + 2 * sizeof (BtorAIG *)
+                            + sizeof (int32_t)) /* unique table chains */
+              == clone->mm->allocated);
+    }
+    else
+    {
+      BTORLOG_TIMESTAMP (delta);
+      clone->avmgr = btor_clone_aigvec_mgr (clone, btor->avmgr);
+      BTORLOG (1, "  clone AIG mgr: %.3f s", (btor_time_stamp () - delta));
+      assert (
+          (allocated +=
+           sizeof (BtorAIGVecMgr) + sizeof (BtorAIGMgr) + sizeof (BtorSATMgr)
 #ifdef BTOR_USE_LINGELING
-             + (amgr->smgr->solver ? sizeof (BtorLGL) : 0)
+           + (amgr->smgr->solver ? sizeof (BtorLGL) : 0)
 #endif
-             + (amgr->smgr->optstr ? strlen (amgr->smgr->optstr) + 1 : 0)
-             /* memory of AIG nodes */
-             + (amgr->cur_num_aigs + amgr->cur_num_aig_vars) * sizeof (BtorAIG)
-             /* children for AND AIGs */
-             + amgr->cur_num_aigs * sizeof (int32_t) * 2
-             /* unique table chain */
-             + amgr->table.size * sizeof (int32_t)
-             + BTOR_SIZE_STACK (amgr->id2aig) * sizeof (BtorAIG *)
-             + BTOR_SIZE_STACK (amgr->cnfid2aig) * sizeof (int32_t))
-            == clone->mm->allocated);
+           + (amgr->smgr->optstr ? strlen (amgr->smgr->optstr) + 1 : 0)
+           /* memory of AIG nodes */
+           + (amgr->cur_num_aigs + amgr->cur_num_aig_vars) * sizeof (BtorAIG)
+           /* children for AND AIGs */
+           + amgr->cur_num_aigs * sizeof (int32_t) * 2
+           /* unique table chain */
+           + amgr->table.size * sizeof (int32_t)
+           + BTOR_SIZE_STACK (amgr->id2aig) * sizeof (BtorAIG *)
+           + BTOR_SIZE_STACK (amgr->cnfid2aig) * sizeof (int32_t))
+          == clone->mm->allocated);
+    }
   }
 
   BTORLOG_TIMESTAMP (delta);
@@ -1237,19 +1246,19 @@ clone_aux_btor (Btor *btor,
 #ifndef NDEBUG
   if (clone->slv)
   {
-    if (clone->slv->kind == BTOR_CORE_SOLVER_KIND)
+    if (clone->slv->kind == BTOR_FUN_SOLVER_KIND)
     {
-      BtorCoreSolver *slv  = BTOR_CORE_SOLVER (btor);
-      BtorCoreSolver *cslv = BTOR_CORE_SOLVER (clone);
+      BtorFunSolver *slv  = BTOR_FUN_SOLVER (btor);
+      BtorFunSolver *cslv = BTOR_FUN_SOLVER (clone);
 
-      allocated += sizeof (BtorCoreSolver);
+      allocated += sizeof (BtorFunSolver);
 
       allocated += MEM_PTR_HASH_TABLE (slv->lemmas);
       allocated += BTOR_SIZE_STACK (slv->cur_lemmas) * sizeof (BtorNode *);
 
       if (slv->score)
       {
-        h = btor->options.just_heuristic.val;
+        h = btor_get_opt (btor, BTOR_OPT_FUN_JUST_HEURISTIC);
         if (h == BTOR_JUST_HEUR_BRANCH_MIN_APP)
         {
           CHKCLONE_MEM_PTR_HASH_TABLE (slv->score, cslv->score);
@@ -1404,8 +1413,8 @@ btor_recursively_rebuild_exp_clone (Btor *btor,
 
   /* in some cases we may want to rebuild the expressions with a certain
    * rewrite level */
-  rwl = clone->options.rewrite_level.val;
-  if (rwl > 0) clone->options.rewrite_level.val = rewrite_level;
+  rwl = btor_get_opt (clone, BTOR_OPT_REWRITE_LEVEL);
+  if (rwl > 0) btor_set_opt (clone, BTOR_OPT_REWRITE_LEVEL, rewrite_level);
 
   BTOR_INIT_STACK (work_stack);
   BTOR_INIT_STACK (unmark_stack);
@@ -1514,6 +1523,6 @@ btor_recursively_rebuild_exp_clone (Btor *btor,
   BTOR_RELEASE_STACK (btor->mm, unmark_stack);
 
   /* reset rewrite_level to original value */
-  clone->options.rewrite_level.val = rwl;
+  btor_set_opt (clone, BTOR_OPT_REWRITE_LEVEL, rwl);
   return btor_copy_exp (clone, btor_mapped_node (exp_map, exp));
 }

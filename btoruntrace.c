@@ -1,7 +1,7 @@
 /*  Boolector: Satisfiablity Modulo Theories (SMT) solver.
  *
  *  Copyright (C) 2013 Christian Reisenberger.
- *  Copyright (C) 2013-2015 Aina Niemetz.
+ *  Copyright (C) 2013-2016 Aina Niemetz.
  *  Copyright (C) 2013-2015 Mathias Preiner.
  *
  *  All rights reserved.
@@ -235,7 +235,7 @@ hmap_add (BtorPtrHashTable *hmap, char *btor_str, char *key, void *value)
   if (!bucket)
   {
     char *key_cp;
-    BTOR_NEWN (hmap->mem, key_cp, (strlen (tmp_key) + 1));
+    BTOR_NEWN (hmap->mm, key_cp, (strlen (tmp_key) + 1));
     strcpy (key_cp, tmp_key);
     bucket = btor_add_ptr_hash_table (hmap, key_cp);
   }
@@ -255,7 +255,7 @@ hmap_clear (BtorPtrHashTable *hmap)
   {
     char *key = (char *) bucket->key;
     btor_remove_ptr_hash_table (hmap, key, NULL, NULL);
-    BTOR_DELETEN (hmap->mem, key, (strlen (key) + 1));
+    BTOR_DELETEN (hmap->mm, key, (strlen (key) + 1));
   }
 }
 
@@ -545,12 +545,12 @@ NEXT:
       PARSE_ARGS2 (tok, str, int);
       boolector_set_opt (btor, arg1_str, arg2_int);
     }
-    else if (!strcmp (tok, "get_opt_val"))
+    else if (!strcmp (tok, "get_opt"))
     {
       if (!btorunt->skip)
       {
         PARSE_ARGS1 (tok, str);
-        ret_int = boolector_get_opt_val (btor, arg1_str);
+        ret_int = boolector_get_opt (btor, arg1_str);
         exp_ret = RET_INT;
       }
       else
