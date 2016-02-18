@@ -799,8 +799,11 @@ sat_ef_solver (BtorEFSolver *slv)
       if (synth_fun)
         btor_map_node (synth_funs, var_fs, btor_copy_exp (f_solver, synth_fun));
       else
+      {
+        slv->stats.synth_aborts++;
         synth_fun = btor_generate_lambda_model_from_fun_model (
             f_solver, var_fs, uf_model);
+      }
       slv->time.synth += btor_time_stamp () - start;
 #endif
       btor_map_node (map, var_fs, synth_fun);
@@ -912,6 +915,10 @@ print_stats_ef_solver (BtorEFSolver *slv)
             1,
             "exists solver refinements: %u",
             slv->stats.refinements);
+  BTOR_MSG (slv->btor->msg,
+            1,
+            "synthesize function aborts: %u",
+            slv->stats.synth_aborts);
   //  printf ("****************\n");
   //  btor_print_stats_btor (slv->e_solver);
   //  btor_print_stats_btor (slv->f_solver);
