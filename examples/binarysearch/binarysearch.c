@@ -1,6 +1,7 @@
 #include <stdio.h>
 #include <stdlib.h>
 #include "boolector.h"
+#include "btoropt.h"
 #include "utils/btorutil.h"
 
 int
@@ -37,7 +38,7 @@ main (int argc, char **argv)
   /* binary search needs log2(size(array)) + 1 iterations in the worst case */
   num_iterations = num_bits_index + 1;
   btor           = boolector_new ();
-  boolector_set_opt (btor, "rewrite_level", 0);
+  boolector_set_opt (btor, BTOR_OPT_REWRITE_LEVEL, 0);
   indices = (BoolectorNode **) malloc (sizeof (BtorNode *) * num_elements);
   for (i = 0; i < num_elements; i++)
     indices[i] = boolector_int (btor, i, num_bits_index);

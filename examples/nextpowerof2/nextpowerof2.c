@@ -1,6 +1,7 @@
 #include <stdio.h>
 #include <stdlib.h>
 #include "boolector.h"
+#include "btoropt.h"
 #include "utils/btorutil.h"
 
 /* We verifiy that the next power of 2 algorithm
@@ -49,7 +50,7 @@ main (int argc, char **argv)
   const_string           = (char *) malloc (sizeof (char) * (num_bits + 1));
   const_string[num_bits] = '\0';
   btor                   = boolector_new ();
-  boolector_set_opt (btor, "rewrite_level", 0);
+  boolector_set_opt (btor, BTOR_OPT_REWRITE_LEVEL, 0);
   for (i = 0; i < num_bits; i++) const_string[i] = '0';
   for (i = 0; i < num_bits; i++)
   {

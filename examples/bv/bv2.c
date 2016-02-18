@@ -2,6 +2,7 @@
 #include <stdio.h>
 #include <stdlib.h>
 #include "boolector.h"
+#include "btoropt.h"
 
 #define BV2_EXAMPLE_NUM_BITS 8
 
@@ -22,7 +23,7 @@ main (void)
   int result, i;
 
   btor = boolector_new ();
-  boolector_set_opt (btor, "model_gen", 1);
+  boolector_set_opt (btor, BTOR_OPT_MODEL_GEN, 1);
 
   v1   = boolector_var (btor, BV2_EXAMPLE_NUM_BITS, NULL);
   v2   = boolector_var (btor, BV2_EXAMPLE_NUM_BITS, NULL);

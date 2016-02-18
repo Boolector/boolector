@@ -905,7 +905,7 @@ boolector_main (int argc, char **argv)
     isdisable =
         len > 3 && arg[j] == 'n' && arg[j + 1] == 'o' && arg[j + 2] == '-';
     for (j = isdisable ? j + 3 : j; j < len && arg[j] != '='; j++)
-      BTOR_PUSH_STACK (g_app->mm, opt, arg[j] == '-' ? '_' : arg[j]);
+      BTOR_PUSH_STACK (g_app->mm, opt, arg[j]);
     BTOR_PUSH_STACK (g_app->mm, opt, '\0');
 
     /* extract option argument (if any) */
@@ -1209,6 +1209,20 @@ boolector_main (int argc, char **argv)
                             BTOR_OPT_FUN_JUST);
             goto DONE;
           }
+#ifndef NBTORLOG
+          else if (IS_OPT (o->lng, BTOR_OPT_VERBOSITY)
+                   || IS_OPT (o->lng, BTOR_OPT_LOGLEVEL))
+#else
+          else if (IS_OPT (o->lng, BTOR_OPT_VERBOSITY))
+#endif
+          {
+            if (readval && isint)
+              boolector_set_opt (g_app->btor, o->lng, val);
+            else
+              boolector_set_opt (g_app->btor,
+                                 o->lng,
+                                 boolector_get_opt (g_app->btor, o->lng) + 1);
+          }
           else
           {
             if (readval && isint)
@@ -1220,26 +1234,9 @@ boolector_main (int argc, char **argv)
       }
       else
       {
-#ifndef NBTORLOG
-        if (IS_OPT (o->lng, BTOR_OPT_VERBOSITY)
-            || IS_OPT (o->lng, BTOR_OPT_LOGLEVEL))
-#else
-        if (IS_OPT (o->lng, BTOR_OPT_VERBOSITY))
-#endif
-        {
-          if (readval && isint)
-            boolector_set_opt (g_app->btor, o->lng, val);
-          else
-            boolector_set_opt (g_app->btor,
-                               o->lng,
-                               boolector_get_opt (g_app->btor, o->lng) + 1);
-        }
-        else
-        {
-          assert (readval);
-          assert (isint);
-          boolector_set_opt (g_app->btor, o->lng, val);
-        }
+        assert (readval);
+        assert (isint);
+        boolector_set_opt (g_app->btor, o->lng, val);
       }
     }
   }
@@ -1377,7 +1374,7 @@ boolector_main (int argc, char **argv)
     if (pmodel && sat_res == BOOLECTOR_SAT)
     {
       assert (boolector_get_opt (g_app->btor, BTOR_OPT_MODEL_GEN));
-      val = ((BtorMainOpt *) btor_get_ptr_hash_table (g_app->opts, "smt2_model")
+      val = ((BtorMainOpt *) btor_get_ptr_hash_table (g_app->opts, "smt2-model")
                  ->data.as_ptr)
                 ->val;
       boolector_print_model (

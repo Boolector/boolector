@@ -697,7 +697,7 @@ open_new_btor_scope (BtorSMT2Parser *parser)
   start = btor_time_stamp ();
   /* create new boolector instance (new scope) */
   scope = boolector_clone (get_current_btor_scope (parser));
-  //  boolector_set_opt (scope, "auto_cleanup", 1);
+  //  boolector_set_opt (scope, BTOR_OPT_AUTO_CLEANUP, 1);
   BTOR_PUSH_STACK (parser->mem, parser->btor_scopes, scope);
   BTOR_PUSH_STACK (
       parser->mem, parser->outputs_trail, BTOR_COUNT_STACK (parser->outputs));
