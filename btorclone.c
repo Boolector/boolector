@@ -1230,12 +1230,12 @@ clone_aux_btor (Btor *btor, BtorNodeMap **exp_map, bool exp_layer_only)
 #ifndef NDEBUG
   if (clone->slv)
   {
-    if (clone->slv->kind == BTOR_CORE_SOLVER_KIND)
+    if (clone->slv->kind == BTOR_FUN_SOLVER_KIND)
     {
-      BtorCoreSolver *slv  = BTOR_CORE_SOLVER (btor);
-      BtorCoreSolver *cslv = BTOR_CORE_SOLVER (clone);
+      BtorFunSolver *slv  = BTOR_FUN_SOLVER (btor);
+      BtorFunSolver *cslv = BTOR_FUN_SOLVER (clone);
 
-      allocated += sizeof (BtorCoreSolver);
+      allocated += sizeof (BtorFunSolver);
 
       allocated += MEM_PTR_HASH_TABLE (slv->lemmas);
       allocated += BTOR_SIZE_STACK (slv->cur_lemmas) * sizeof (BtorNode *);

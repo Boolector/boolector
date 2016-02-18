@@ -44,23 +44,23 @@
     }                                                \
   } while (0)
 
-static BtorCoreSolver *
-clone_core_solver (Btor *clone, Btor *btor, BtorNodeMap *exp_map)
+static BtorFunSolver *
+clone_fun_solver (Btor *clone, Btor *btor, BtorNodeMap *exp_map)
 {
   assert (clone);
   assert (btor);
   assert (btor->slv);
-  assert (btor->slv->kind == BTOR_CORE_SOLVER_KIND);
+  assert (btor->slv->kind == BTOR_FUN_SOLVER_KIND);
   assert (exp_map);
 
   int h;
-  BtorCoreSolver *slv;
-  BtorCoreSolver *res;
+  BtorFunSolver *slv;
+  BtorFunSolver *res;
 
-  if (!(slv = BTOR_CORE_SOLVER (btor))) return 0;
+  if (!(slv = BTOR_FUN_SOLVER (btor))) return 0;
 
   BTOR_NEW (clone->mm, res);
-  memcpy (res, slv, sizeof (BtorCoreSolver));
+  memcpy (res, slv, sizeof (BtorFunSolver));
 
   res->btor   = clone;
   res->lemmas = btor_clone_ptr_hash_table (
@@ -113,10 +113,10 @@ clone_core_solver (Btor *clone, Btor *btor, BtorNodeMap *exp_map)
 }
 
 static void
-delete_core_solver (BtorCoreSolver *slv)
+delete_fun_solver (BtorFunSolver *slv)
 {
   assert (slv);
-  assert (slv->kind == BTOR_CORE_SOLVER_KIND);
+  assert (slv->kind == BTOR_FUN_SOLVER_KIND);
   assert (slv->btor);
   assert (slv->btor->slv == (BtorSolver *) slv);
 
@@ -213,7 +213,7 @@ timed_sat_sat (Btor *btor, int limit)
 {
   assert (btor);
   assert (btor->slv);
-  assert (btor->slv->kind == BTOR_CORE_SOLVER_KIND);
+  assert (btor->slv->kind == BTOR_FUN_SOLVER_KIND);
 
   double start, delta;
   BtorSolverResult res;
@@ -232,7 +232,7 @@ timed_sat_sat (Btor *btor, int limit)
   start = btor_time_stamp ();
   res   = btor_sat_sat (smgr, limit);
   delta = btor_time_stamp () - start;
-  BTOR_CORE_SOLVER (btor)->time.sat += delta;
+  BTOR_FUN_SOLVER (btor)->time.sat += delta;
 
   BTOR_MSG (
       btor->msg, 2, "SAT solver returns %d after %.1f seconds", res, delta);
@@ -303,7 +303,7 @@ new_exp_layer_clone_for_dual_prop (Btor *btor,
 {
   assert (btor);
   assert (btor->slv);
-  assert (btor->slv->kind == BTOR_CORE_SOLVER_KIND);
+  assert (btor->slv->kind == BTOR_FUN_SOLVER_KIND);
   assert (exp_map);
   assert (root);
 
@@ -369,7 +369,7 @@ new_exp_layer_clone_for_dual_prop (Btor *btor,
                                (BtorHashPtr) btor_hash_exp_by_id,
                                (BtorCmpPtr) btor_compare_exp_by_id);
 
-  BTOR_CORE_SOLVER (btor)->time.search_init_apps_cloning +=
+  BTOR_FUN_SOLVER (btor)->time.search_init_apps_cloning +=
       btor_time_stamp () - start;
   return clone;
 }
@@ -588,7 +588,7 @@ collect_applies (Btor *btor,
 {
   assert (btor);
   assert (btor->slv);
-  assert (btor->slv->kind == BTOR_CORE_SOLVER_KIND);
+  assert (btor->slv->kind == BTOR_FUN_SOLVER_KIND);
   assert (clone);
   assert (key_map);
   assert (assumptions);
@@ -596,7 +596,7 @@ collect_applies (Btor *btor,
   double start;
   int i;
   BtorMemMgr *mm;
-  BtorCoreSolver *slv;
+  BtorFunSolver *slv;
   BtorNode *cur_btor, *cur_clone, *bv_eq;
   BtorNodePtrStack unmark_stack, failed_eqs;
   BtorNodeMapIterator it;
@@ -604,7 +604,7 @@ collect_applies (Btor *btor,
   start = btor_time_stamp ();
 
   mm  = btor->mm;
-  slv = BTOR_CORE_SOLVER (btor);
+  slv = BTOR_FUN_SOLVER (btor);
 
   BTOR_INIT_STACK (unmark_stack);
   BTOR_INIT_STACK (failed_eqs);
@@ -704,7 +704,7 @@ set_up_dual_and_collect (Btor *btor,
 {
   assert (btor);
   assert (btor->slv);
-  assert (btor->slv->kind == BTOR_CORE_SOLVER_KIND);
+  assert (btor->slv->kind == BTOR_FUN_SOLVER_KIND);
   assert (clone);
   assert (clone_root);
   assert (exp_map);
@@ -713,11 +713,11 @@ set_up_dual_and_collect (Btor *btor,
   assert (dp_cmp_inputs);
 
   double delta;
-  BtorCoreSolver *slv;
+  BtorFunSolver *slv;
   BtorNodeMap *assumptions, *key_map;
 
   delta = btor_time_stamp ();
-  slv   = BTOR_CORE_SOLVER (btor);
+  slv   = BTOR_FUN_SOLVER (btor);
 
   assumptions = btor_new_node_map (btor);
   key_map     = btor_new_node_map (btor);
@@ -756,7 +756,7 @@ search_initial_applies_dual_prop (Btor *btor,
 {
   assert (btor);
   assert (btor->slv);
-  assert (btor->slv->kind == BTOR_CORE_SOLVER_KIND);
+  assert (btor->slv->kind == BTOR_FUN_SOLVER_KIND);
   assert (clone);
   assert (clone_root);
   assert (exp_map);
@@ -769,14 +769,14 @@ search_initial_applies_dual_prop (Btor *btor,
   BtorNodePtrStack stack, unmark_stack, inputs;
   BtorHashTableIterator it;
   BtorSATMgr *smgr;
-  BtorCoreSolver *slv;
+  BtorFunSolver *slv;
 
   start = btor_time_stamp ();
 
   BTORLOG (1, "");
   BTORLOG (1, "*** search initial applies");
 
-  slv                           = BTOR_CORE_SOLVER (btor);
+  slv                           = BTOR_FUN_SOLVER (btor);
   slv->stats.dp_failed_vars     = 0;
   slv->stats.dp_assumed_vars    = 0;
   slv->stats.dp_failed_applies  = 0;
@@ -919,7 +919,7 @@ add_lemma_to_dual_prop_clone (Btor *btor,
 {
   assert (btor);
   assert (btor->slv);
-  assert (btor->slv->kind == BTOR_CORE_SOLVER_KIND);
+  assert (btor->slv->kind == BTOR_FUN_SOLVER_KIND);
   assert (clone);
   assert (lemma);
 
@@ -942,7 +942,7 @@ search_initial_applies_bv_skeleton (Btor *btor, BtorNodePtrStack *applies)
 {
   assert (btor);
   assert (btor->slv);
-  assert (btor->slv->kind == BTOR_CORE_SOLVER_KIND);
+  assert (btor->slv->kind == BTOR_FUN_SOLVER_KIND);
   assert (applies);
   assert (BTOR_EMPTY_STACK (*applies));
   assert (btor_check_id_table_aux_mark_unset_dbg (btor));
@@ -997,7 +997,7 @@ search_initial_applies_bv_skeleton (Btor *btor, BtorNodePtrStack *applies)
   BTOR_RELEASE_STACK (btor->mm, stack);
   BTOR_RELEASE_STACK (btor->mm, unmark_stack);
 
-  BTOR_CORE_SOLVER (btor)->time.search_init_apps += btor_time_stamp () - start;
+  BTOR_FUN_SOLVER (btor)->time.search_init_apps += btor_time_stamp () - start;
 }
 
 static void
@@ -1005,7 +1005,7 @@ search_initial_applies_just (Btor *btor, BtorNodePtrStack *top_applies)
 {
   assert (btor);
   assert (btor->slv);
-  assert (btor->slv->kind == BTOR_CORE_SOLVER_KIND);
+  assert (btor->slv->kind == BTOR_FUN_SOLVER_KIND);
   assert (top_applies);
   assert (btor->unsynthesized_constraints->count == 0);
   assert (btor->embedded_constraints->count == 0);
@@ -1166,7 +1166,7 @@ search_initial_applies_just (Btor *btor, BtorNodePtrStack *top_applies)
   BTOR_RELEASE_STACK (btor->mm, unmark_stack);
   BTOR_RELEASE_STACK (btor->mm, stack);
 
-  BTOR_CORE_SOLVER (btor)->time.search_init_apps += btor_time_stamp () - start;
+  BTOR_FUN_SOLVER (btor)->time.search_init_apps += btor_time_stamp () - start;
 }
 
 static bool
@@ -1360,7 +1360,7 @@ add_symbolic_lemma (Btor *btor,
 {
   assert (btor);
   assert (btor->slv);
-  assert (btor->slv->kind == BTOR_CORE_SOLVER_KIND);
+  assert (btor->slv->kind == BTOR_FUN_SOLVER_KIND);
   assert (bconds_sel1);
   assert (bconds_sel2);
   assert (a);
@@ -1377,13 +1377,13 @@ add_symbolic_lemma (Btor *btor,
   assert (!BTOR_REAL_ADDR_NODE (b)->parameterized);
 
   int lemma_size = 0;
-  BtorCoreSolver *slv;
+  BtorFunSolver *slv;
   BtorNode *cond, *eq, *and, *arg0, *arg1;
   BtorNode *premise = 0, *conclusion = 0, *lemma;
   BtorArgsIterator it0, it1;
   BtorHashTableIterator it;
 
-  slv = BTOR_CORE_SOLVER (btor);
+  slv = BTOR_FUN_SOLVER (btor);
 
   BTORLOG (2, "lemma:");
   /* function congruence axiom conflict:
@@ -1499,7 +1499,7 @@ add_lemma (Btor *btor, BtorNode *fun, BtorNode *app0, BtorNode *app1)
 {
   assert (btor);
   assert (btor->slv);
-  assert (btor->slv->kind == BTOR_CORE_SOLVER_KIND);
+  assert (btor->slv->kind == BTOR_FUN_SOLVER_KIND);
   assert (fun);
   assert (app0);
   assert (BTOR_IS_REGULAR_NODE (fun));
@@ -1567,7 +1567,7 @@ add_lemma (Btor *btor, BtorNode *fun, BtorNode *app0, BtorNode *app1)
 
   btor_delete_ptr_hash_table (cond_sel_if);
   btor_delete_ptr_hash_table (cond_sel_else);
-  BTOR_CORE_SOLVER (btor)->time.lemma_gen += btor_time_stamp () - start;
+  BTOR_FUN_SOLVER (btor)->time.lemma_gen += btor_time_stamp () - start;
 }
 
 static void
@@ -1578,19 +1578,19 @@ push_applies_for_propagation (Btor *btor,
 {
   assert (btor);
   assert (btor->slv);
-  assert (btor->slv->kind == BTOR_CORE_SOLVER_KIND);
+  assert (btor->slv->kind == BTOR_FUN_SOLVER_KIND);
   assert (exp);
   assert (prop_stack);
 
   int i;
   double start;
-  BtorCoreSolver *slv;
+  BtorFunSolver *slv;
   BtorNode *cur;
   BtorNodePtrStack visit;
   BtorMemMgr *mm;
 
   start = btor_time_stamp ();
-  slv   = BTOR_CORE_SOLVER (btor);
+  slv   = BTOR_FUN_SOLVER (btor);
   mm    = btor->mm;
 
   BTOR_INIT_STACK (visit);
@@ -1629,7 +1629,7 @@ propagate (Btor *btor,
 {
   assert (btor);
   assert (btor->slv);
-  assert (btor->slv->kind == BTOR_CORE_SOLVER_KIND);
+  assert (btor->slv->kind == BTOR_FUN_SOLVER_KIND);
   assert (prop_stack);
   assert (cleanup_table);
   assert (apply_search_cache);
@@ -1637,7 +1637,7 @@ propagate (Btor *btor,
   bool prop_down, conflict;
   BtorBitVector *bv;
   BtorMemMgr *mm;
-  BtorCoreSolver *slv;
+  BtorFunSolver *slv;
   BtorNode *fun, *app, *args, *fun_value, *cur;
   BtorNode *hashed_app;
   BtorPtrHashBucket *b;
@@ -1645,7 +1645,7 @@ propagate (Btor *btor,
   BtorPtrHashTable *conds;
 
   mm  = btor->mm;
-  slv = BTOR_CORE_SOLVER (btor);
+  slv = BTOR_FUN_SOLVER (btor);
 
   BTORLOG (1, "");
   BTORLOG (1, "*** %s", __FUNCTION__);
@@ -1910,7 +1910,7 @@ add_extensionality_lemmas (Btor *btor)
 {
   assert (btor);
   assert (btor->slv);
-  assert (btor->slv->kind == BTOR_CORE_SOLVER_KIND);
+  assert (btor->slv->kind == BTOR_FUN_SOLVER_KIND);
 
   bool skip;
   BtorBitVector *evalbv;
@@ -1922,12 +1922,12 @@ add_extensionality_lemmas (Btor *btor)
   BtorNodePtrStack feqs;
   BtorMemMgr *mm;
   BtorPtrHashBucket *b;
-  BtorCoreSolver *slv;
+  BtorFunSolver *slv;
 
   BTORLOG (1, "");
   BTORLOG (1, "*** %s", __FUNCTION__);
 
-  slv = BTOR_CORE_SOLVER (btor);
+  slv = BTOR_FUN_SOLVER (btor);
   mm  = btor->mm;
   BTOR_INIT_STACK (feqs);
 
@@ -2029,11 +2029,11 @@ check_and_resolve_conflicts (Btor *btor,
 {
   assert (btor);
   assert (btor->slv);
-  assert (btor->slv->kind == BTOR_CORE_SOLVER_KIND);
+  assert (btor->slv->kind == BTOR_FUN_SOLVER_KIND);
 
   bool found_conflicts;
   BtorMemMgr *mm;
-  BtorCoreSolver *slv;
+  BtorFunSolver *slv;
   BtorNode *app, *cur;
   BtorNodePtrStack prop_stack;
   BtorNodePtrStack top_applies;
@@ -2041,11 +2041,11 @@ check_and_resolve_conflicts (Btor *btor,
   BtorIntHashTable *apply_search_cache;
   BtorHashTableIterator it;
 
-  slv                = BTOR_CORE_SOLVER (btor);
+  slv                = BTOR_FUN_SOLVER (btor);
   apply_search_cache = 0;
   found_conflicts    = false;
   mm                 = btor->mm;
-  slv                = BTOR_CORE_SOLVER (btor);
+  slv                = BTOR_FUN_SOLVER (btor);
 
   /* initialize new bit vector model, which will be constructed while
    * consistency checking. this also deletes the model from the previous run */
@@ -2170,10 +2170,10 @@ check_and_resolve_conflicts (Btor *btor,
 }
 
 static BtorSolverResult
-sat_core_solver (BtorCoreSolver *slv)
+sat_fun_solver (BtorFunSolver *slv)
 {
   assert (slv);
-  assert (slv->kind == BTOR_CORE_SOLVER_KIND);
+  assert (slv->kind == BTOR_FUN_SOLVER_KIND);
   assert (slv->btor);
   assert (slv->btor->slv == (BtorSolver *) slv);
 
@@ -2315,12 +2315,12 @@ DONE:
 /*------------------------------------------------------------------------*/
 
 static void
-generate_model_core_solver (BtorCoreSolver *slv,
-                            bool model_for_all_nodes,
-                            bool reset)
+generate_model_fun_solver (BtorFunSolver *slv,
+                           bool model_for_all_nodes,
+                           bool reset)
 {
   assert (slv);
-  assert (slv->kind == BTOR_CORE_SOLVER_KIND);
+  assert (slv->kind == BTOR_FUN_SOLVER_KIND);
   assert (slv->btor);
   assert (slv->btor->slv == (BtorSolver *) slv);
 
@@ -2338,10 +2338,10 @@ generate_model_core_solver (BtorCoreSolver *slv,
 }
 
 static void
-print_stats_core_solver (BtorCoreSolver *slv)
+print_stats_fun_solver (BtorFunSolver *slv)
 {
   assert (slv);
-  assert (slv->kind == BTOR_CORE_SOLVER_KIND);
+  assert (slv->kind == BTOR_FUN_SOLVER_KIND);
   assert (slv->btor);
   assert (slv->btor->slv == (BtorSolver *) slv);
 
@@ -2350,7 +2350,7 @@ print_stats_core_solver (BtorCoreSolver *slv)
 
   btor = slv->btor;
 
-  if (!(slv = BTOR_CORE_SOLVER (btor))) return;
+  if (!(slv = BTOR_FUN_SOLVER (btor))) return;
 
   BTOR_MSG (btor->msg, 1, "");
   BTOR_MSG (btor->msg, 1, "lemmas on demand statistics:");
@@ -2415,10 +2415,10 @@ print_stats_core_solver (BtorCoreSolver *slv)
 }
 
 static void
-print_time_stats_core_solver (BtorCoreSolver *slv)
+print_time_stats_fun_solver (BtorFunSolver *slv)
 {
   assert (slv);
-  assert (slv->kind == BTOR_CORE_SOLVER_KIND);
+  assert (slv->kind == BTOR_FUN_SOLVER_KIND);
   assert (slv->btor);
   assert (slv->btor->slv == (BtorSolver *) slv);
 
@@ -2495,26 +2495,25 @@ print_time_stats_core_solver (BtorCoreSolver *slv)
 }
 
 BtorSolver *
-btor_new_core_solver (Btor *btor)
+btor_new_fun_solver (Btor *btor)
 {
   assert (btor);
 
-  BtorCoreSolver *slv;
+  BtorFunSolver *slv;
 
   BTOR_CNEW (btor->mm, slv);
 
-  slv->kind        = BTOR_CORE_SOLVER_KIND;
+  slv->kind        = BTOR_FUN_SOLVER_KIND;
   slv->btor        = btor;
   slv->btor->avmgr = btor_new_aigvec_mgr (btor);
 
-  slv->api.clone = (BtorSolverClone) clone_core_solver;
-  slv->api.delet = (BtorSolverDelete) delete_core_solver;
-  slv->api.sat   = (BtorSolverSat) sat_core_solver;
-  slv->api.generate_model =
-      (BtorSolverGenerateModel) generate_model_core_solver;
-  slv->api.print_stats = (BtorSolverPrintStats) print_stats_core_solver;
+  slv->api.clone          = (BtorSolverClone) clone_fun_solver;
+  slv->api.delet          = (BtorSolverDelete) delete_fun_solver;
+  slv->api.sat            = (BtorSolverSat) sat_fun_solver;
+  slv->api.generate_model = (BtorSolverGenerateModel) generate_model_fun_solver;
+  slv->api.print_stats    = (BtorSolverPrintStats) print_stats_fun_solver;
   slv->api.print_time_stats =
-      (BtorSolverPrintTimeStats) print_time_stats_core_solver;
+      (BtorSolverPrintTimeStats) print_time_stats_fun_solver;
 
   slv->lod_limit = -1;
   slv->sat_limit = -1;
@@ -2537,7 +2536,7 @@ btor_eval_exp (Btor *btor, BtorNode *exp)
 {
   assert (btor);
   assert (btor->slv);
-  assert (btor->slv->kind == BTOR_CORE_SOLVER_KIND);
+  assert (btor->slv->kind == BTOR_FUN_SOLVER_KIND);
   assert (exp);
   assert (btor->bv_model);
 
@@ -2551,11 +2550,11 @@ btor_eval_exp (Btor *btor, BtorNode *exp)
   BtorPtrHashBucket *b;
   BtorHashTableIterator it;
   BtorBitVector *result = 0, *inv_result, **e;
-  BtorCoreSolver *slv;
+  BtorFunSolver *slv;
 
   start = btor_time_stamp ();
   mm    = btor->mm;
-  slv   = BTOR_CORE_SOLVER (btor);
+  slv   = BTOR_FUN_SOLVER (btor);
   slv->stats.eval_exp_calls++;
 
   BTOR_INIT_STACK (work_stack);

@@ -962,10 +962,10 @@ chkclone_slv (Btor *btor)
   assert (btor->slv != btor->clone->slv);
   assert (btor->slv->kind == btor->clone->slv->kind);
 
-  if (btor->slv->kind == BTOR_CORE_SOLVER_KIND)
+  if (btor->slv->kind == BTOR_FUN_SOLVER_KIND)
   {
-    BtorCoreSolver *slv  = BTOR_CORE_SOLVER (btor);
-    BtorCoreSolver *cslv = BTOR_CORE_SOLVER (btor->clone);
+    BtorFunSolver *slv  = BTOR_FUN_SOLVER (btor);
+    BtorFunSolver *cslv = BTOR_FUN_SOLVER (btor->clone);
     BtorHashTableIterator it;
     BtorHashTableIterator cit;
 
