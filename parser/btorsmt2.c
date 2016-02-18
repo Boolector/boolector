@@ -133,22 +133,6 @@ typedef enum BtorSMT2Tag
   BTOR_VALUES_TAG_SMT2                 = 30 + BTOR_KEYWORD_TAG_CLASS_SMT2,
   BTOR_VERBOSITY_TAG_SMT2              = 31 + BTOR_KEYWORD_TAG_CLASS_SMT2,
   BTOR_VERSION_TAG_SMT2                = 32 + BTOR_KEYWORD_TAG_CLASS_SMT2,
-  /* we define Boolector options as keywords, too ------------------------- */
-  BTOR_OPT_MODEL_GEN_TAG_SMT2            = 33 + BTOR_KEYWORD_TAG_CLASS_SMT2,
-  BTOR_OPT_INCREMENTAL_TAG_SMT2          = 34 + BTOR_KEYWORD_TAG_CLASS_SMT2,
-  BTOR_OPT_INPUT_FORMAT_TAG_SMT2         = 35 + BTOR_KEYWORD_TAG_CLASS_SMT2,
-  BTOR_OPT_OUTPUT_NUMBER_FORMAT_TAG_SMT2 = 36 + BTOR_KEYWORD_TAG_CLASS_SMT2,
-  BTOR_OPT_OUTPUT_FORMAT_TAG_SMT2        = 37 + BTOR_KEYWORD_TAG_CLASS_SMT2,
-  BTOR_OPT_REWRITE_LEVEL_TAG_SMT2        = 38 + BTOR_KEYWORD_TAG_CLASS_SMT2,
-  BTOR_OPT_BETA_REDUCE_ALL_TAG_SMT2      = 40 + BTOR_KEYWORD_TAG_CLASS_SMT2,
-  BTOR_OPT_FUN_DUAL_PROP_TAG_SMT2        = 41 + BTOR_KEYWORD_TAG_CLASS_SMT2,
-  BTOR_OPT_FUN_JUST_TAG_SMT2             = 42 + BTOR_KEYWORD_TAG_CLASS_SMT2,
-  BTOR_OPT_UCOPT_TAG_SMT2                = 47 + BTOR_KEYWORD_TAG_CLASS_SMT2,
-  BTOR_OPT_AUTO_CLEANUP_TAG_SMT2         = 48 + BTOR_KEYWORD_TAG_CLASS_SMT2,
-  BTOR_OPT_PRETTY_PRINT_TAG_SMT2         = 49 + BTOR_KEYWORD_TAG_CLASS_SMT2,
-  BTOR_OPT_LOGLEVEL_TAG_SMT2             = 50 + BTOR_KEYWORD_TAG_CLASS_SMT2,
-  BTOR_OPT_FUN_LAZY_SYNTHESIZE_TAG_SMT2  = 51 + BTOR_KEYWORD_TAG_CLASS_SMT2,
-  BTOR_OPT_ELIMINATE_SLICES_TAG_SMT2     = 52 + BTOR_KEYWORD_TAG_CLASS_SMT2,
   /* ---------------------------------------------------------------------- */
 
   BTOR_BOOL_TAG_SMT2     = 0 + BTOR_CORE_TAG_CLASS_SMT2,
@@ -884,22 +868,6 @@ btor_insert_keywords_smt2 (BtorSMT2Parser *parser)
   INSERT (":values", BTOR_VALUES_TAG_SMT2);
   INSERT (":verbosity", BTOR_VERBOSITY_TAG_SMT2);
   INSERT (":version", BTOR_VERSION_TAG_SMT2);
-  /* we define Boolector options as keywords, too */
-  INSERT (":model-gen", BTOR_OPT_MODEL_GEN_TAG_SMT2);
-  INSERT (":incremental", BTOR_OPT_INCREMENTAL_TAG_SMT2);
-  INSERT (":input-format", BTOR_OPT_INPUT_FORMAT_TAG_SMT2);
-  INSERT (":output-number-format", BTOR_OPT_OUTPUT_NUMBER_FORMAT_TAG_SMT2);
-  INSERT (":output-format", BTOR_OPT_OUTPUT_FORMAT_TAG_SMT2);
-  INSERT (":rewrite-level", BTOR_OPT_REWRITE_LEVEL_TAG_SMT2);
-  INSERT (":beta-reduce-all", BTOR_OPT_BETA_REDUCE_ALL_TAG_SMT2);
-  INSERT (":dual-prop", BTOR_OPT_FUN_DUAL_PROP_TAG_SMT2);
-  INSERT (":just", BTOR_OPT_FUN_JUST_TAG_SMT2);
-  INSERT (":ucopt", BTOR_OPT_UCOPT_TAG_SMT2);
-  INSERT (":auto-cleanup", BTOR_OPT_AUTO_CLEANUP_TAG_SMT2);
-  INSERT (":pretty-print", BTOR_OPT_PRETTY_PRINT_TAG_SMT2);
-  INSERT (":loglevel", BTOR_OPT_LOGLEVEL_TAG_SMT2);
-  INSERT (":lazy-synthesize", BTOR_OPT_FUN_LAZY_SYNTHESIZE_TAG_SMT2);
-  INSERT (":eliminate-slices", BTOR_OPT_ELIMINATE_SLICES_TAG_SMT2);
 }
 
 static void
@@ -3746,70 +3714,45 @@ btor_set_option_smt2 (BtorSMT2Parser *parser)
       parser->print_success = false;
     else
       return !btor_perr_smt2 (
-          parser, "expected boolean argument at '%s'", parser->token.start);
+          parser, "expected Boolean argument at '%s'", parser->token.start);
   }
   /* boolector specific options */
   else
   {
-    switch (tag)
-    {
-      case BTOR_PRODUCE_MODELS_TAG_SMT2:
-      case BTOR_OPT_MODEL_GEN_TAG_SMT2: opt = BTOR_OPT_MODEL_GEN; break;
-      case BTOR_VERBOSITY_TAG_SMT2:
-        opt  = BTOR_OPT_VERBOSITY;
-        verb = 1;
-        break;
-      case BTOR_OPT_INCREMENTAL_TAG_SMT2: opt = BTOR_OPT_INCREMENTAL; break;
-      case BTOR_OPT_INPUT_FORMAT_TAG_SMT2: opt = BTOR_OPT_INPUT_FORMAT; break;
-      case BTOR_OPT_OUTPUT_NUMBER_FORMAT_TAG_SMT2:
-        opt = BTOR_OPT_OUTPUT_NUMBER_FORMAT;
-        break;
-      case BTOR_OPT_OUTPUT_FORMAT_TAG_SMT2: opt = BTOR_OPT_OUTPUT_FORMAT; break;
-      case BTOR_OPT_REWRITE_LEVEL_TAG_SMT2: opt = BTOR_OPT_REWRITE_LEVEL; break;
-      case BTOR_OPT_BETA_REDUCE_ALL_TAG_SMT2:
-        opt = BTOR_OPT_BETA_REDUCE_ALL;
-        break;
-      case BTOR_OPT_FUN_DUAL_PROP_TAG_SMT2: opt = BTOR_OPT_FUN_DUAL_PROP; break;
-      case BTOR_OPT_FUN_JUST_TAG_SMT2: opt = BTOR_OPT_FUN_JUST; break;
-      case BTOR_OPT_UCOPT_TAG_SMT2: opt = BTOR_OPT_UCOPT; break;
-      case BTOR_OPT_AUTO_CLEANUP_TAG_SMT2: opt = BTOR_OPT_AUTO_CLEANUP; break;
-      case BTOR_OPT_PRETTY_PRINT_TAG_SMT2: opt = BTOR_OPT_PRETTY_PRINT; break;
-      case BTOR_OPT_LOGLEVEL_TAG_SMT2: opt = BTOR_OPT_LOGLEVEL; break;
-      case BTOR_OPT_FUN_LAZY_SYNTHESIZE_TAG_SMT2:
-        opt = BTOR_OPT_FUN_LAZY_SYNTHESIZE;
-        break;
-      case BTOR_OPT_ELIMINATE_SLICES_TAG_SMT2:
-        opt = BTOR_OPT_ELIMINATE_SLICES;
-        break;
-      default: opt = 0;
-    }
-
-    if (opt)
-    {
-      tag = btor_read_token_smt2 (parser);
-      if (tag == BTOR_INVALID_TAG_SMT2)
-      {
-        assert (parser->error);
-        return 0;
-      }
-      val = boolector_get_opt (parser->btor, opt);
-      if (tag == BTOR_FALSE_TAG_SMT2)
-        val = 0;
-      else if (tag == BTOR_TRUE_TAG_SMT2)
-        val = 1;
-      else
-        val = verb ? val + atoi (parser->token.start)
-                   : atoi (parser->token.start);
-      boolector_set_opt (parser->btor, opt, val);
-
-      /* update parser options */
-      if (!strcmp (opt, BTOR_OPT_INCREMENTAL))
-        parser->incremental = val;
-      else if (!strcmp (opt, BTOR_OPT_VERBOSITY))
-        parser->verbosity = val;
-    }
+    if (tag == BTOR_PRODUCE_MODELS_TAG_SMT2)
+      opt = btor_strdup (parser->mem, BTOR_OPT_MODEL_GEN);
     else
-      return !btor_perr_smt2 (parser, "unsupported option");
+    {
+      opt = btor_strdup (parser->mem, parser->token.start + 1);
+      if (!btor_has_opt (parser->btor, opt))
+      {
+        btor_freestr (parser->mem, opt);
+        return !btor_perr_smt2 (parser, "unsupported option");
+      }
+    }
+
+    tag = btor_read_token_smt2 (parser);
+    if (tag == BTOR_INVALID_TAG_SMT2)
+    {
+      assert (parser->error);
+      return 0;
+    }
+    val = boolector_get_opt (parser->btor, opt);
+    if (tag == BTOR_FALSE_TAG_SMT2)
+      val = 0;
+    else if (tag == BTOR_TRUE_TAG_SMT2)
+      val = 1;
+    else
+      val =
+          verb ? val + atoi (parser->token.start) : atoi (parser->token.start);
+    boolector_set_opt (parser->btor, opt, val);
+    btor_freestr (parser->mem, opt);
+
+    /* update parser options */
+    if (!strcmp (opt, BTOR_OPT_INCREMENTAL))
+      parser->incremental = val;
+    else if (!strcmp (opt, BTOR_OPT_VERBOSITY))
+      parser->verbosity = val;
   }
   return btor_skip_sexprs (parser, 1);
 }
@@ -4027,7 +3970,7 @@ btor_read_command_smt2 (BtorSMT2Parser *parser)
 
     case BTOR_GET_MODEL_TAG_SMT2:
       if (!btor_read_rpar_smt2 (parser, " after 'get-model'")) return 0;
-      if (!boolector_get_opt (parser->btor, "model_gen"))
+      if (!boolector_get_opt (parser->btor, BTOR_OPT_MODEL_GEN))
         return !btor_perr_smt2 (parser, "model generation is not enabled");
       if (parser->res->result != BOOLECTOR_SAT) break;
       boolector_print_model (parser->btor, "smt2", parser->outfile);
@@ -4036,7 +3979,7 @@ btor_read_command_smt2 (BtorSMT2Parser *parser)
 
     case BTOR_GET_VALUE_TAG_SMT2:
       if (!btor_read_lpar_smt2 (parser, " after 'get-value'")) return 0;
-      if (!boolector_get_opt (parser->btor, "model_gen"))
+      if (!boolector_get_opt (parser->btor, BTOR_OPT_MODEL_GEN))
         return !btor_perr_smt2 (parser, "model generation is not enabled");
       if (parser->res->result != BOOLECTOR_SAT) break;
       tag = 0;
