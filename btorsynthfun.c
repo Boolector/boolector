@@ -125,6 +125,8 @@ btor_has_next_cart_prod_iterator (BtorCartProdIterator *it)
   return it->cur_sort != 0;
 }
 
+/* ------------------------------------------------------------------------- */
+
 static BtorBitVector *
 eval (Btor *btor, BtorNode *exp, BtorIntHashTable *param_map)
 {
@@ -251,6 +253,9 @@ eval (Btor *btor, BtorNode *exp, BtorIntHashTable *param_map)
   return result;
 }
 
+/* Check for every input/output pair in the uf model if 'exp' produces
+ * the same outputs and generate a signature, which is a tuple of all
+ * values produced by 'exp'. */
 static bool
 check_candidate_exp (Btor *btor,
                      BtorNode *exp,
@@ -303,6 +308,8 @@ check_candidate_exp (Btor *btor,
   return is_equal;
 }
 
+/* Add expression 'exp' to expression candidates 'candidates' at level
+ * 'exp_size'. */
 static void
 add_exp (Btor *btor,
          uint32_t exp_size,
@@ -341,6 +348,11 @@ add_exp (Btor *btor,
   BTOR_PUSH_STACK (mm, *exps, exp);
 }
 
+/* Check if expression 'EXP' was already created, or if it is an expressions
+ * that matches the concrete model for the uf.
+ * Further, check if its signature was already produced by a previously added
+ * expression. If this is the case, do not add 'EXP' to the candidate
+ * expressions. */
 #define CHECK_CANDIDATE(EXP)                                      \
   {                                                               \
     id = BTOR_GET_ID_NODE (EXP);                                  \
@@ -355,12 +367,6 @@ add_exp (Btor *btor,
     if (found_candidate)                                          \
     {                                                             \
       assert (BTOR_REAL_ADDR_NODE (EXP)->sort_id == codomain);    \
-      btor_free_bv_tuple (mm, sig);                               \
-      goto DONE;                                                  \
-    }                                                             \
-    if (false && num_checks > 1000000)                            \
-    {                                                             \
-      btor_release_exp (btor, EXP);                               \
       btor_free_bv_tuple (mm, sig);                               \
       goto DONE;                                                  \
     }                                                             \
@@ -582,6 +588,7 @@ btor_synthesize_fun (Btor *btor,
         printf ("%s: %d\n", g_btor_op2str[i], btor->ops[i].cur - num_ops[i]);
 #endif
 
+    /* use all expressions from previous level and apply unary operators */
     sorted_exps = BTOR_PEEK_STACK (candidates, cur_size - 1);
     for (i = 0, unop = unops[i]; unop; i++, unop = unops[i])
     {
@@ -623,24 +630,30 @@ btor_synthesize_fun (Btor *btor,
 
     for (i = 0, terop = terops[i]; terop; i++, terop = terops[i])
     {
-      uint32_t cnt;
       btor_init_part_gen (&pg, cur_size, 3, true);
       while (btor_has_next_part_gen (&pg))
       {
-        tuple = btor_next_part_gen (&pg);
-        //	      e0_exps = BTOR_PEEK_STACK (candidates, tuple[0]);
+        tuple   = btor_next_part_gen (&pg);
+        e0_exps = BTOR_PEEK_STACK (candidates, tuple[0]);
         e1_exps = BTOR_PEEK_STACK (candidates, tuple[1]);
         e2_exps = BTOR_PEEK_STACK (candidates, tuple[2]);
 
-        cnt = tuple[0];
-        while (cnt >= 1)
-        {
-          e0_exps = BTOR_PEEK_STACK (candidates, cnt);
-          d       = btor_get_int_hash_map (e0_exps, bool_sort);
-          cnt--;
-          if (d) break;
-        }
+#if 0
+	      // TODO (ma): this speeds up AR-fixpoint by ~3 seconds each, but
+	      //            is not the original sygus algorithm
+	      uint32_t cnt;
+	      cnt = tuple[0];
+	      while (cnt >= 1)
+		{
+		  e0_exps = BTOR_PEEK_STACK (candidates, cnt);
+		  d = btor_get_int_hash_map (e0_exps, bool_sort);
+		  cnt--;
+		  if (d)
+		    break;
+		}
+#endif
 
+        d = btor_get_int_hash_map (e0_exps, bool_sort);
         if (!d) continue;
 
         exps = d->as_ptr;
@@ -728,5 +741,7 @@ CLEANUP:
 #ifdef PRINT_DBG
   printf ("NO CANDIDATE\n");
 #endif
+  // TODO (ma): not reachable yet, do we need some criteria to stop
+  //            finding a synthesized function?
   return btor_generate_lambda_model_from_fun_model (btor, uf, uf_model);
 }
