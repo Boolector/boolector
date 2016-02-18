@@ -6,6 +6,7 @@
 #include "boolector.h"
 #include "btorconst.h"
 #include "btorexp.h"
+#include "btoropt.h"
 #include "utils/btormem.h"
 
 #define SUDOKU_NUM_BITS_INDEX 7
@@ -256,10 +257,10 @@ main (int argc, char **argv)
   error = 0;
 
   btor = boolector_new ();
-  boolector_set_opt (btor, "model_gen", 1);
+  boolector_set_opt (btor, BTOR_OPT_MODEL_GEN, 1);
   mm = btor_new_mem_mgr ();
 
-  if (dump_formula) boolector_set_opt (btor, "rewrite_level", 0);
+  if (dump_formula) boolector_set_opt (btor, BTOR_OPT_REWRITE_LEVEL, 0);
 
   indices =
       (BoolectorNode **) malloc (sizeof (BoolectorNode *) * SUDOKU_NUM_FIELDS);
@@ -346,11 +347,11 @@ main (int argc, char **argv)
     boolector_assert (btor, formula);
 
     sat_result = boolector_sat (btor);
-    if (sat_result == BTOR_UNSAT)
+    if (sat_result == BOOLECTOR_UNSAT)
       printf ("Sudoku instance is not solvable\n");
     else
     {
-      assert (sat_result == BTOR_SAT);
+      assert (sat_result == BOOLECTOR_SAT);
       counter      = 0;
       line_counter = 0;
       for (i = 0; i < SUDOKU_NUM_FIELDS; i++)
