@@ -35,7 +35,7 @@ getenv_value (const char *lname)
   uname[3] = 'R';
   for (i = 4, j = 0; i < sizeof (uname); i++, j++)
   {
-    if (lname[j] == '_')
+    if (lname[j] == '_' || lname[j] == ':')
     {
       i -= 1;
       continue;
@@ -537,7 +537,7 @@ btor_init_opts (Btor *btor)
 
   /* internal options ---------------------------------------------------- */
   init_opt (btor,
-            false,
+            true,
             true,
             BTOR_OPT_SORT_EXP,
             0,
@@ -545,9 +545,9 @@ btor_init_opts (Btor *btor)
             0,
             1,
             "sort commutative expression nodes");
-  init_opt (btor, false, true, BTOR_OPT_SORT_AIG, 0, 1, 0, 1, "sort AIG nodes");
+  init_opt (btor, true, true, BTOR_OPT_SORT_AIG, 0, 1, 0, 1, "sort AIG nodes");
   init_opt (
-      btor, false, true, BTOR_OPT_SORT_AIGVEC, 0, 1, 0, 1, "sort AIG vectors");
+      btor, true, true, BTOR_OPT_SORT_AIGVEC, 0, 1, 0, 1, "sort AIG vectors");
   init_opt (btor, true, true, BTOR_OPT_AUTO_CLEANUP_INTERNAL, 0, 0, 0, 1, 0);
   init_opt (btor, true, true, BTOR_OPT_SIMPLIFY_CONSTRAINTS, 0, 1, 0, 1, 0);
 #ifdef BTOR_CHECK_FAILED

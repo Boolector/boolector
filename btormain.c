@@ -550,7 +550,7 @@ print_opt (BtorMainApp *app,
   "disabling, and '-<short name>' and '--<long name>' for enabling flags.\n"   \
   "Note that all of the following options can also be set via env. variables " \
   "of\n"                                                                       \
-  "the form 'BTOR<capitalized long name without '-'>=<int>'.\n\n"
+  "the form 'BTOR<capitalized long name without '-' and ':'>=<int>'.\n\n"
 
 static void
 print_help (BtorMainApp *app)
@@ -606,7 +606,7 @@ print_help (BtorMainApp *app)
         || !strcmp (o, BTOR_OPT_BETA_REDUCE_ALL)
         || !strcmp (o, BTOR_OPT_AUTO_CLEANUP)
         || !strcmp (o, BTOR_OPT_FUN_DUAL_PROP)
-        || !strcmp (o, BTOR_OPT_FUN_LAZY_SYNTHESIZE))
+        || !strcmp (o, BTOR_OPT_SLS_STRATEGY) || !strcmp (o, BTOR_OPT_SORT_EXP))
       fprintf (out, "\n");
     print_opt (app,
                o,
