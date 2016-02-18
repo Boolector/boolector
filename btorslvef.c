@@ -14,7 +14,7 @@
 #include "btorcore.h"
 #include "btorexp.h"
 #include "btormodel.h"
-#include "btorslvcore.h"
+#include "btorslvfun.h"
 #include "btorsynthfun.h"
 #include "normalizer/btorskolemize.h"
 #include "simplifier/btorder.h"
@@ -46,7 +46,7 @@ setup_exists_solver (BtorEFSolver *slv)
   exists_vars = btor_new_node_map (e_solver);
   exists_ufs  = btor_new_node_map (e_solver);
   btor_set_msg_prefix_btor (e_solver, "exists");
-  e_solver->options.auto_cleanup_internal.val = 1;
+  btor_set_opt (e_solver, BTOR_OPT_AUTO_CLEANUP_INTERNAL, 1);
 
   btor_init_node_map_iterator (&it, slv->f_exists_vars);
   while (btor_has_next_node_map_iterator (&it))
@@ -79,7 +79,7 @@ setup_exists_solver (BtorEFSolver *slv)
                     btor_match_node_by_id (
                         e_solver, BTOR_REAL_ADDR_NODE (slv->f_formula)->id));
 
-  e_solver->slv      = btor_new_core_solver (e_solver);
+  e_solver->slv      = btor_new_fun_solver (e_solver);
   slv->e_solver      = e_solver;
   slv->e_exists_vars = exists_vars;
   slv->e_exists_ufs  = exists_ufs;
@@ -128,7 +128,7 @@ setup_forall_solver (BtorEFSolver *slv)
   BtorNode *cur, *param, *subst, *var, *root;
   BtorHashTableIterator it;
   BtorNodeMap *map, *exists_vars, *forall_vars, *m;
-  BtorCoreSolver *cslv;
+  BtorFunSolver *fslv;
 
   f_solver = btor_clone_formula (slv->btor);
   btor_set_msg_prefix_btor (f_solver, "forall");
@@ -136,12 +136,12 @@ setup_forall_solver (BtorEFSolver *slv)
   forall_vars = btor_new_node_map (f_solver);
 
   /* configure options */
-  f_solver->options.model_gen.val   = 1;
-  f_solver->options.incremental.val = 1;
+  btor_set_opt (f_solver, BTOR_OPT_MODEL_GEN, 1);
+  btor_set_opt (f_solver, BTOR_OPT_INCREMENTAL, 1);
   /* disable variable substitution (not sound in the context of quantifiers) */
   // TODO (ma): check if it can still be used (may be sound since we are in
   // QF_BV)
-  f_solver->options.var_subst.val = 0;
+  btor_set_opt (f_solver, BTOR_OPT_VAR_SUBST, 1);
 
   btor_init_node_hash_table_iterator (&it, f_solver->bv_vars);
   while (btor_has_next_node_hash_table_iterator (&it))
@@ -207,9 +207,9 @@ setup_forall_solver (BtorEFSolver *slv)
   slv->f_formula = root;
 
   assert (!f_solver->slv);
-  cslv                = (BtorCoreSolver *) btor_new_core_solver (f_solver);
-  cslv->assume_lemmas = true;
-  f_solver->slv       = (BtorSolver *) cslv;
+  fslv                = (BtorFunSolver *) btor_new_fun_solver (f_solver);
+  fslv->assume_lemmas = true;
+  f_solver->slv       = (BtorSolver *) fslv;
   slv->f_solver       = f_solver;
   slv->f_exists_vars  = exists_vars;
   slv->f_forall_vars  = forall_vars;
@@ -334,12 +334,12 @@ refine_exists_solver (BtorEFSolver *slv, BtorNodeMap *synth_funs)
   assert (f_solver->varsubst_constraints->count == 0);
   // TODO (ma): search for symbolic candidates
   /* quantifier instantiation with counter example of universal variables */
-  res =
-      btor_recursively_rebuild_exp_clone (f_solver,
-                                          e_solver,
-                                          BTOR_INVERT_NODE (slv->f_formula),
-                                          map,
-                                          e_solver->options.rewrite_level.val);
+  res = btor_recursively_rebuild_exp_clone (
+      f_solver,
+      e_solver,
+      BTOR_INVERT_NODE (slv->f_formula),
+      map,
+      btor_get_opt (e_solver, BTOR_OPT_REWRITE_LEVEL));
 
   while (!BTOR_EMPTY_STACK (consts))
     btor_release_exp (e_solver, BTOR_POP_STACK (consts));
@@ -543,11 +543,11 @@ get_failed_vars (BtorEFSolver *slv, BtorPtrHashTable *failed_vars)
   BtorSolverResult result;
 #endif
 
-  e_solver                                 = slv->e_solver;
-  clone                                    = btor_clone_formula (e_solver);
-  clone->options.auto_cleanup.val          = 1;
-  clone->options.auto_cleanup_internal.val = 1;
-  root                                     = invert_formula (clone);
+  e_solver = slv->e_solver;
+  clone    = btor_clone_formula (e_solver);
+  btor_set_opt (clone, BTOR_OPT_AUTO_CLEANUP, 1);
+  btor_set_opt (clone, BTOR_OPT_AUTO_CLEANUP_INTERNAL, 1);
+  root = invert_formula (clone);
   assert (clone->varsubst_constraints->count == 0);
   assert (clone->embedded_constraints->count == 0);
   assert (clone->synthesized_constraints->count == 0);
@@ -560,7 +560,7 @@ get_failed_vars (BtorEFSolver *slv, BtorPtrHashTable *failed_vars)
 
   assumptions = btor_new_ptr_hash_table (slv->btor->mm, 0, 0);
   btor_set_msg_prefix_btor (clone, "dp");
-  clone->slv = btor_new_core_solver (clone);
+  clone->slv = btor_new_fun_solver (clone);
   btor_assert_exp (clone, root);
 
   btor_init_node_map_iterator (&it, slv->e_exists_vars);
@@ -720,7 +720,7 @@ sat_ef_solver (BtorEFSolver *slv)
     e_solver->slv->api.generate_model (e_solver->slv, false, false);
 
     failed_vars = 0;
-    if (slv->btor->options.ef_dual_prop.val)
+    if (btor_get_opt (slv->btor, BTOR_OPT_EF_DUAL_PROP))
     {
       failed_vars = btor_new_ptr_hash_table (slv->btor->mm, 0, 0);
       get_failed_vars (slv, failed_vars);
@@ -944,7 +944,7 @@ btor_new_ef_solver (Btor *btor)
 {
   assert (btor);
   // TODO (ma): incremental calls not supported yet
-  assert (btor->options.incremental.val == 0);
+  assert (!btor_get_opt (btor, BTOR_OPT_INCREMENTAL));
 
   BtorEFSolver *slv;
 

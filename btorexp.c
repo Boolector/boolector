@@ -2545,7 +2545,7 @@ quantifier_exp (Btor *btor, BtorNodeKind kind, BtorNode *param, BtorNode *body)
   assert (body);
   assert (btor_is_bool_sort (&btor->sorts_unique_table,
                              BTOR_REAL_ADDR_NODE (body)->sort_id));
-  if (btor->options.rewrite_level.val > 0)
+  if (btor_get_opt (btor, BTOR_OPT_REWRITE_LEVEL) > 0)
     return btor_rewrite_binary_exp (btor, kind, param, body);
   return quantifier_exp_node (btor, kind, param, body);
 }

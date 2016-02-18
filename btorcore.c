@@ -3262,9 +3262,6 @@ btor_simplify (Btor *btor)
     /* add ackermann constraints for all uninterpreted functions */
     if (btor_get_opt (btor, BTOR_OPT_ACKERMANN))
       btor_add_ackermann_constraints (btor);
-
-    /* apply destructive equality resolution */
-    if (btor->options.ef_der.val) btor_der (btor);
   } while (btor->varsubst_constraints->count
            || btor->embedded_constraints->count);
 
@@ -3705,7 +3702,7 @@ btor_sat_btor (Btor *btor, int lod_limit, int sat_limit)
         && (btor_get_opt (btor, BTOR_OPT_BETA_REDUCE_ALL)
             || btor->lambdas->count == 0))
       btor->slv = btor_new_sls_solver (btor);
-    else if (btor->options.engine.val == BTOR_ENGINE_EF)
+    else if (btor_get_opt (btor, BTOR_OPT_ENGINE) == BTOR_ENGINE_EF)
     {
       btor->slv = btor_new_ef_solver (btor);
     }
