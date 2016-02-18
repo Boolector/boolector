@@ -539,7 +539,9 @@ get_failed_vars (BtorEFSolver *slv, BtorPtrHashTable *failed_vars)
   BtorNode *var, *c, *a, *var_clone, *root;
   BtorPtrHashTable *assumptions;
   const BtorBitVector *bv;
+#ifndef NDEBUG
   BtorSolverResult result;
+#endif
 
   e_solver                                 = slv->e_solver;
   clone                                    = btor_clone_formula (e_solver);
@@ -576,7 +578,10 @@ get_failed_vars (BtorEFSolver *slv, BtorPtrHashTable *failed_vars)
     btor_assume_exp (clone, a);
   }
 
-  result = clone->slv->api.sat (clone->slv);
+#ifndef NDEBUG
+  result =
+#endif
+      clone->slv->api.sat (clone->slv);
   assert (result == BTOR_RESULT_UNSAT);
 
   btor_init_hash_table_iterator (&hit, assumptions);
