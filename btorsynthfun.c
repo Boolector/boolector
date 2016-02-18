@@ -371,6 +371,12 @@ add_exp (Btor *btor,
       btor_free_bv_tuple (mm, sig);                                \
       goto DONE;                                                   \
     }                                                              \
+    if (num_checks > 100000)                                       \
+    {                                                              \
+      btor_free_bv_tuple (mm, sig);                                \
+      btor_release_exp (btor, EXP);                                \
+      goto CLEANUP;                                                \
+    }                                                              \
     if (btor_get_ptr_hash_table (sigs, sig))                       \
     {                                                              \
       btor_free_bv_tuple (mm, sig);                                \
@@ -390,6 +396,7 @@ struct BinOp
 
 typedef struct BinOp BinOp;
 
+// TODO (ma): more performance measurements what costs the most?
 BtorNode *
 btor_synthesize_fun (Btor *btor,
                      BtorNode *uf,
@@ -504,6 +511,11 @@ btor_synthesize_fun (Btor *btor,
 
   start     = btor_time_stamp ();
   cur_level = 1;
+  BTOR_MSG (btor->msg,
+            1,
+            "arity: %u, model size: %u",
+            BTOR_COUNT_STACK (params),
+            uf_model->count);
   if (candidate)
   {
     assert (BTOR_IS_REGULAR_NODE (candidate));
@@ -561,7 +573,7 @@ btor_synthesize_fun (Btor *btor,
     delta = btor_time_stamp () - start;
     BTOR_MSG (btor->msg,
               1,
-              "size: %u, exps: %u/%u/%u/%u/%u, %.2f/s, %.2fs, %.2f MiB",
+              "level: %u, exps: %u/%u/%u/%u/%u, %.2f/s, %.2fs, %.2f MiB",
               cur_level,
               num_init_exps,
               num_un_exps,
@@ -572,7 +584,7 @@ btor_synthesize_fun (Btor *btor,
               delta,
               (float) btor->mm->allocated / 1024 / 1024);
 #ifdef PRINT_DBG
-    printf ("size: %u, num_exps: %u/%u/%u/%u/%u, %.2f/s, %.2fs, %.2f MiB\n",
+    printf ("level: %u, num_exps: %u/%u/%u/%u/%u, %.2f/s, %.2fs, %.2f MiB\n",
             cur_level,
             num_init_exps,
             num_un_exps,
@@ -679,7 +691,7 @@ DONE:
   delta = btor_time_stamp () - start;
   BTOR_MSG (btor->msg,
             1,
-            "size: %u, exps: %u/%u/%u/%u/%u, %.2f/s, %.2fs, %.2f MiB",
+            "level: %u, exps: %u/%u/%u/%u/%u, %.2f/s, %.2fs, %.2f MiB",
             cur_level,
             num_init_exps,
             num_un_exps,
