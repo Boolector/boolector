@@ -830,8 +830,6 @@ boolector_main (int argc, char **argv)
   pmodel       = 0;
   dump         = 0;
   dump_merge   = false;
-  o            = 0;
-  mo           = 0;
 
   mgen = boolector_get_opt (g_app->btor, BTOR_OPT_MODEL_GEN);
 
@@ -938,6 +936,7 @@ boolector_main (int argc, char **argv)
     }
 
     /* main options ----------------------------------------------------- */
+    mo = 0;
     btor_init_hash_table_iterator (&it, g_app->opts);
     while (btor_has_next_hash_table_iterator (&it))
     {
@@ -1132,6 +1131,7 @@ boolector_main (int argc, char **argv)
     /* >> btor options ------------------------------------------------ */
     else
     {
+      o = 0;
       btor_init_hash_table_iterator (&it, g_app->btor->options);
       while (btor_has_next_hash_table_iterator (&it))
       {
