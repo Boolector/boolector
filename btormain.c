@@ -830,6 +830,8 @@ boolector_main (int argc, char **argv)
   pmodel       = 0;
   dump         = 0;
   dump_merge   = false;
+  o            = 0;
+  mo           = 0;
 
   mgen = boolector_get_opt (g_app->btor, BTOR_OPT_MODEL_GEN);
 
