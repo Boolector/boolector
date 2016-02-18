@@ -18,6 +18,7 @@
 #include <stdlib.h>
 #include <string.h>
 #include "boolector.h"
+#include "btoropt.h"
 #include "utils/btorhashptr.h"
 #include "utils/btormem.h"
 #include "utils/btorstack.h"
@@ -412,10 +413,13 @@ NEXT:
     {
       PARSE_ARGS0 (tok);
       btor = boolector_new ();
+#ifndef NBTORLOG
       if (btorunt->blog_level)
-        boolector_set_opt (btor, "loglevel", btorunt->blog_level);
-      if (btorunt->dual_prop) boolector_set_opt (btor, "dual_prop", 1);
-      if (btorunt->just) boolector_set_opt (btor, "just", 1);
+        boolector_set_opt (btor, BTOR_OPT_LOGLEVEL, btorunt->blog_level);
+#endif
+      if (btorunt->dual_prop)
+        boolector_set_opt (btor, BTOR_OPT_FUN_DUAL_PROP, 1);
+      if (btorunt->just) boolector_set_opt (btor, BTOR_OPT_FUN_JUST, 1);
       exp_ret = RET_VOIDPTR;
       ret_ptr = btor;
     }

@@ -29,7 +29,7 @@ Quickstart
 
   .. code-block:: c
 
-    boolector_set_opt (btor, "model_gen", 1);
+    boolector_set_opt (btor, "model-gen", 1);
 
   For a detailed description of all configurable options, see
   :c:func:`boolector_set_opt`.
@@ -213,7 +213,7 @@ Options
   Boolector can be configured either via :c:func:`boolector_set_opt`, 
   or via environment variables of the form: ::
 
-    BTOR<capitalized option name without '_'>=<value>
+    BTOR<capitalized option name without '_' and ':'>=<value>
 
   For a list and detailed descriptions of all available options, 
   see :c:func:`boolector_set_opt`.
@@ -223,7 +223,7 @@ Options
 
   .. code-block:: c
 
-    boolector_set_opt (btor, "model_gen", 1);
+    boolector_set_opt (btor, "model-gen", 1);
 
   or via setting the environment variable:: 
 
