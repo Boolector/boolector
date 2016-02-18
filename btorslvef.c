@@ -685,6 +685,7 @@ sat_ef_solver (BtorEFSolver *slv)
   //  btor_dump_smt2 (slv->btor, stdout);
   // btor_dump_btor (slv->btor, stdout, 1);
   btor_skolemize (slv->btor);
+  // TODO (ma): optional
   btor_der (slv->btor);
 
   if (!is_ef_formula (slv))
@@ -794,8 +795,12 @@ sat_ef_solver (BtorEFSolver *slv)
         prev_synth_fun = 0;
       synth_fun =
           btor_synthesize_fun (f_solver, var_fs, uf_model, prev_synth_fun);
-      btor_map_node (synth_funs, var_fs, btor_copy_exp (f_solver, synth_fun));
       if (prev_synth_fun) btor_release_exp (f_solver, prev_synth_fun);
+      if (synth_fun)
+        btor_map_node (synth_funs, var_fs, btor_copy_exp (f_solver, synth_fun));
+      else
+        synth_fun = btor_generate_lambda_model_from_fun_model (
+            f_solver, var_fs, uf_model);
       slv->time.synth += btor_time_stamp () - start;
 #endif
       btor_map_node (map, var_fs, synth_fun);

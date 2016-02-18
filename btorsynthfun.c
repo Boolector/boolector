@@ -756,5 +756,6 @@ CLEANUP:
 #endif
   // TODO (ma): not reachable yet, do we need some criteria to stop
   //            finding a synthesized function?
-  return btor_generate_lambda_model_from_fun_model (btor, uf, uf_model);
+  //  return btor_generate_lambda_model_from_fun_model (btor, uf, uf_model);
+  return 0;
 }
