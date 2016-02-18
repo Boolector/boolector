@@ -1012,7 +1012,7 @@ boolector_main (int argc, char **argv)
       else if (IS_OPT (mo->lng, BTOR_OPT_ENGINE))
       {
         if (!strcasecmp (valstr, "core"))
-          boolector_set_opt (g_app->btor, BTOR_OPT_ENGINE, BTOR_ENGINE_CORE);
+          boolector_set_opt (g_app->btor, BTOR_OPT_ENGINE, BTOR_ENGINE_FUN);
         else if (!strcasecmp (valstr, "sls"))
           boolector_set_opt (g_app->btor, BTOR_OPT_ENGINE, BTOR_ENGINE_SLS);
         else
