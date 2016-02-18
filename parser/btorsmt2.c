@@ -3746,13 +3746,13 @@ btor_set_option_smt2 (BtorSMT2Parser *parser)
       val =
           verb ? val + atoi (parser->token.start) : atoi (parser->token.start);
     boolector_set_opt (parser->btor, opt, val);
-    btor_freestr (parser->mem, opt);
 
     /* update parser options */
     if (!strcmp (opt, BTOR_OPT_INCREMENTAL))
       parser->incremental = val;
     else if (!strcmp (opt, BTOR_OPT_VERBOSITY))
       parser->verbosity = val;
+    btor_freestr (parser->mem, opt);
   }
   return btor_skip_sexprs (parser, 1);
 }
