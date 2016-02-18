@@ -264,6 +264,20 @@ btor_precond_apply_exp_dbg (Btor *btor, BtorNode *fun, BtorNode *args)
 #endif
 /*------------------------------------------------------------------------*/
 
+const char *const g_btor_op2str[BTOR_NUM_OPS_NODE] = {
+    [BTOR_INVALID_NODE] = "invalid", [BTOR_BV_CONST_NODE] = "const",
+    [BTOR_BV_VAR_NODE] = "var",      [BTOR_PARAM_NODE] = "param",
+    [BTOR_SLICE_NODE] = "slice",     [BTOR_AND_NODE] = "and",
+    [BTOR_BEQ_NODE] = "beq",         [BTOR_FEQ_NODE] = "feq",
+    [BTOR_ADD_NODE] = "add",         [BTOR_MUL_NODE] = "mul",
+    [BTOR_ULT_NODE] = "ult",         [BTOR_SLL_NODE] = "sll",
+    [BTOR_SRL_NODE] = "srl",         [BTOR_UDIV_NODE] = "udiv",
+    [BTOR_UREM_NODE] = "urem",       [BTOR_CONCAT_NODE] = "concat",
+    [BTOR_APPLY_NODE] = "apply",     [BTOR_LAMBDA_NODE] = "lambda",
+    [BTOR_BCOND_NODE] = "cond",      [BTOR_ARGS_NODE] = "args",
+    [BTOR_UF_NODE] = "uf",           [BTOR_PROXY_NODE] = "proxy",
+};
+
 void
 btor_set_btor_id (Btor *btor, BtorNode *exp, int id)
 {
