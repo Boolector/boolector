@@ -2506,9 +2506,8 @@ btor_new_fun_solver (Btor *btor)
 
   BTOR_CNEW (btor->mm, slv);
 
-  slv->kind        = BTOR_FUN_SOLVER_KIND;
-  slv->btor        = btor;
-  slv->btor->avmgr = btor_new_aigvec_mgr (btor);
+  slv->kind = BTOR_FUN_SOLVER_KIND;
+  slv->btor = btor;
 
   slv->api.clone          = (BtorSolverClone) clone_fun_solver;
   slv->api.delet          = (BtorSolverDelete) delete_fun_solver;

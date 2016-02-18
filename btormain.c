@@ -188,7 +188,7 @@ btormain_init_opts (BtorPtrHashTable *options)
 #ifdef BTOR_USE_LINGELING
   init_main_opt (options,
                  true,
-                 "lingeling_nofork",
+                 "lingeling-nofork",
                  0,
                  0,
                  0,
@@ -198,7 +198,7 @@ btormain_init_opts (BtorPtrHashTable *options)
                  "do not use 'fork/clone' for Lingeling");
   init_main_opt (options,
                  true,
-                 "lingeling_opts",
+                 "lingeling-opts",
                  0,
                  0,
                  0,
@@ -259,7 +259,7 @@ btormain_init_opts (BtorPtrHashTable *options)
                  "force SMT-LIB v1 input format");
   init_main_opt (options,
                  true,
-                 "dump_btor",
+                 "dump-btor",
                  "db",
                  0,
                  0,
@@ -268,13 +268,13 @@ btormain_init_opts (BtorPtrHashTable *options)
                  BTORMAIN_OPT_ARG_NONE,
                  "dump formula in BTOR format");
 #if 0
-  init_main_opt (options, true, "dump_btor2", "db2", 0, 0, 1,
+  init_main_opt (options, true, "dump-btor2", "db2", 0, 0, 1,
 		 false, BTORMAIN_OPT_ARG_NONE,
 		 "dump formula in BTOR 2.0 format");
 #endif
   init_main_opt (options,
                  true,
-                 "dump_smt",
+                 "dump-smt",
                  "ds",
                  0,
                  0,
@@ -284,7 +284,7 @@ btormain_init_opts (BtorPtrHashTable *options)
                  "dump formula in SMT-LIB v2 format");
   init_main_opt (options,
                  true,
-                 "dump_aag",
+                 "dump-aag",
                  "daa",
                  0,
                  0,
@@ -294,7 +294,7 @@ btormain_init_opts (BtorPtrHashTable *options)
                  "dump QF_BV formula in ascii AIGER format");
   init_main_opt (options,
                  true,
-                 "dump_aig",
+                 "dump-aig",
                  "dai",
                  0,
                  0,
@@ -304,7 +304,7 @@ btormain_init_opts (BtorPtrHashTable *options)
                  "dump QF_BV formula in binary AIGER format");
   init_main_opt (options,
                  true,
-                 "dump_aiger_merge",
+                 "dump-aiger-merge",
                  "dam",
                  0,
                  0,
@@ -315,7 +315,7 @@ btormain_init_opts (BtorPtrHashTable *options)
 
   init_main_opt (options,
                  false,
-                 "smt2_model",
+                 "smt2-model",
                  0,
                  0,
                  0,
@@ -434,7 +434,7 @@ print_opt (BtorMainApp *app,
   assert (desc);
 
   char optstr[LEN_OPTSTR], paramstr[LEN_PARAMSTR];
-  char *descstr, descstrline[LEN_HELPSTR], *lngstr, *word;
+  char *descstr, descstrline[LEN_HELPSTR], *word;
   int i, j, len;
   BtorCharPtrStack words;
 
@@ -448,12 +448,12 @@ print_opt (BtorMainApp *app,
            || !strcmp (lng, BTOR_OPT_SLS_MOVE_RAND_WALK_PROB)
            || !strcmp (lng, BTOR_OPT_SLS_MOVE_PROP_FLIP_COND_PROB))
     sprintf (paramstr, "<n>");
-  else if (!strcmp (lng, "lingeling_opts"))
+  else if (!strcmp (lng, "lingeling-opts"))
     sprintf (paramstr, "[,<opt>=<val>]+");
   else
     paramstr[0] = '\0';
 
-  assert (!strcmp (lng, "lingeling_opts")
+  assert (!strcmp (lng, "lingeling-opts")
           || (shrt
               && (2 * strlen (paramstr) + strlen (shrt) + strlen (lng) + 7
                   <= LEN_OPTSTR))
@@ -463,9 +463,6 @@ print_opt (BtorMainApp *app,
   memset (optstr, ' ', LEN_OPTSTR * sizeof (char));
   optstr[LEN_OPTSTR - 1] = '\0';
   len                    = strlen (lng);
-  BTOR_NEWN (app->mm, lngstr, (len + 1) * sizeof (char));
-  for (i = 0; i < len; i++) lngstr[i] = lng[i] == '_' ? '-' : lng[i];
-  lngstr[len] = '\0';
   sprintf (optstr,
            "  %s%s%s%s%s--%s%s%s",
            shrt ? "-" : "",
@@ -473,10 +470,9 @@ print_opt (BtorMainApp *app,
            shrt && strlen (paramstr) > 0 ? " " : "",
            shrt ? paramstr : "",
            shrt ? ", " : "",
-           lngstr,
+           lng,
            strlen (paramstr) > 0 ? "=" : "",
            paramstr);
-  BTOR_DELETEN (app->mm, lngstr, len + 1);
   len = strlen (optstr);
   for (i = len; i < LEN_OPTSTR - 1; i++) optstr[i] = ' ';
   optstr[LEN_OPTSTR - 1] = '\0';
@@ -573,8 +569,8 @@ print_help (BtorMainApp *app)
     mo = btor_next_data_hash_table_iterator (&it)->as_ptr;
     if (!mo->general) continue;
     if (IS_OPT (mo->lng, "time") || IS_OPT (mo->lng, BTOR_OPT_ENGINE)
-        || IS_OPT (mo->lng, "lingeling_opts") || IS_OPT (mo->lng, "hex")
-        || IS_OPT (mo->lng, "btor") || IS_OPT (mo->lng, "dump_btor"))
+        || IS_OPT (mo->lng, "lingeling-opts") || IS_OPT (mo->lng, "hex")
+        || IS_OPT (mo->lng, "btor") || IS_OPT (mo->lng, "dump-btor"))
       fprintf (out, "\n");
     PRINT_MAIN_OPT (app, mo);
   }
@@ -587,7 +583,7 @@ print_help (BtorMainApp *app)
     mo = btor_next_data_hash_table_iterator (&it)->as_ptr;
     if (mo->general) continue;
     PRINT_MAIN_OPT (app, mo);
-    if (!strcmp (mo->lng, "smt2_model")) fprintf (out, "\n");
+    if (!strcmp (mo->lng, "smt2-model")) fprintf (out, "\n");
   }
 
   fprintf (out, "\n");
@@ -1007,16 +1003,16 @@ boolector_main (int argc, char **argv)
         g_app->outfile_name = valstr;
         if (readval == 1) i += 1;
       }
-      else if (IS_OPT (mo->lng, "smt2_model"))
+      else if (IS_OPT (mo->lng, "smt2-model"))
       {
-        ((BtorMainOpt *) btor_get_ptr_hash_table (g_app->opts, "smt2_model")
+        ((BtorMainOpt *) btor_get_ptr_hash_table (g_app->opts, "smt2-model")
              ->data.as_ptr)
             ->val += 1;
       }
       else if (IS_OPT (mo->lng, BTOR_OPT_ENGINE))
       {
         if (!strcasecmp (valstr, "core"))
-          boolector_set_opt (g_app->btor, BTOR_OPT_ENGINE, BTOR_ENGINE_CORE);
+          boolector_set_opt (g_app->btor, BTOR_OPT_ENGINE, BTOR_ENGINE_FUN);
         else if (!strcasecmp (valstr, "sls"))
           boolector_set_opt (g_app->btor, BTOR_OPT_ENGINE, BTOR_ENGINE_SLS);
         else if (!strcasecmp (valstr, "ef"))
@@ -1059,11 +1055,11 @@ boolector_main (int argc, char **argv)
         }
       }
 #ifdef BTOR_USE_LINGELING
-      else if (IS_OPT (opt.start, "lingeling_nofork"))
+      else if (IS_OPT (opt.start, "lingeling-nofork"))
       {
         boolector_set_opt (g_app->btor, BTOR_OPT_SAT_ENGINE_LGL_FORK, 0);
       }
-      else if (IS_OPT (mo->lng, "lingeling_opts"))
+      else if (IS_OPT (mo->lng, "lingeling-opts"))
       {
         btor_set_opt_str (g_app->btor, BTOR_OPT_SAT_ENGINE, valstr);
       }
@@ -1095,7 +1091,7 @@ boolector_main (int argc, char **argv)
         format = BTOR_INPUT_FORMAT_SMT1;
         goto SET_INPUT_FORMAT;
       }
-      else if (IS_OPT (mo->lng, "dump_btor"))
+      else if (IS_OPT (mo->lng, "dump-btor"))
       {
         dump = BTOR_OUTPUT_FORMAT_BTOR;
       SET_OUTPUT_FORMAT:
@@ -1103,28 +1099,28 @@ boolector_main (int argc, char **argv)
         boolector_set_opt (g_app->btor, BTOR_OPT_PARSE_INTERACTIVE, 0);
       }
 #if 0
-	  else if (IS_OPT (mo->lng, "dump_btor2"))
+	  else if (IS_OPT (mo->lng, "dump-btor2"))
 	    {
 	      dump = BTOR_OUTPUT_FORMAT_BTOR2;
 	      goto SET_OUTPUT_FORMAT;
 	    }
 #endif
-      else if (IS_OPT (mo->lng, "dump_smt2"))
+      else if (IS_OPT (mo->lng, "dump-smt2"))
       {
         dump = BTOR_OUTPUT_FORMAT_SMT2;
         goto SET_OUTPUT_FORMAT;
       }
-      else if (IS_OPT (mo->lng, "dump_aag"))
+      else if (IS_OPT (mo->lng, "dump-aag"))
       {
         dump = BTOR_OUTPUT_FORMAT_AIGER_ASCII;
         goto SET_OUTPUT_FORMAT;
       }
-      else if (IS_OPT (mo->lng, "dump_aig"))
+      else if (IS_OPT (mo->lng, "dump-aig"))
       {
         dump = BTOR_OUTPUT_FORMAT_AIGER_BINARY;
         goto SET_OUTPUT_FORMAT;
       }
-      else if (IS_OPT (mo->lng, "dump_aiger_merge"))
+      else if (IS_OPT (mo->lng, "dump-aiger_merge"))
       {
         dump_merge = true;
       }
@@ -1273,7 +1269,7 @@ boolector_main (int argc, char **argv)
   }
 
   /* automatically enable model generation if smt2 models are forced */
-  val = ((BtorMainOpt *) btor_get_ptr_hash_table (g_app->opts, "smt2_model")
+  val = ((BtorMainOpt *) btor_get_ptr_hash_table (g_app->opts, "smt2-model")
              ->data.as_ptr)
             ->val;
   mgen = !mgen && val ? val : mgen;
@@ -1307,7 +1303,7 @@ boolector_main (int argc, char **argv)
   if (inc && g_verbosity) btormain_msg ("starting incremental mode");
 
   /* parse */
-  if ((val = boolector_get_opt (g_app->btor, "input_format")))
+  if ((val = boolector_get_opt (g_app->btor, BTOR_OPT_INPUT_FORMAT)))
   {
     switch (val)
     {
@@ -1466,7 +1462,7 @@ boolector_main (int argc, char **argv)
   if (pmodel && sat_res == BOOLECTOR_SAT)
   {
     assert (boolector_get_opt (g_app->btor, BTOR_OPT_MODEL_GEN));
-    val = ((BtorMainOpt *) btor_get_ptr_hash_table (g_app->opts, "smt2_model")
+    val = ((BtorMainOpt *) btor_get_ptr_hash_table (g_app->opts, "smt2-model")
                ->data.as_ptr)
               ->val;
     boolector_print_model (g_app->btor, val ? "smt2" : "btor", g_app->outfile);
