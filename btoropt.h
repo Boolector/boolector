@@ -21,6 +21,28 @@
 
 /*------------------------------------------------------------------------*/
 
+struct BtorOpt
+{
+  int internal;     /* internal option? */
+  bool isflag;      /* flag? */
+  const char *shrt; /* short option identifier (may be 0) */
+  const char *lng;  /* long option identifier */
+  const char *desc; /* description */
+  uint32_t val;     /* value */
+  uint32_t dflt;    /* default value */
+  uint32_t min;     /* min value */
+  uint32_t max;     /* max value */
+  char *valstr;     /* optional option string value */
+};
+
+typedef struct BtorOpt BtorOpt;
+
+/*------------------------------------------------------------------------*/
+
+/* enum BtorOption is in btortypes.h */
+
+/*------------------------------------------------------------------------*/
+
 #define BTOR_VERBOSITY_MAX 4
 
 enum BtorOptSatEngines
@@ -88,105 +110,24 @@ enum BtorOptSatEngines
 
 /*------------------------------------------------------------------------*/
 
-typedef struct BtorOpt
-{
-  int internal;     /* internal option? */
-  bool isflag;      /* flag? */
-  const char *shrt; /* short option identifier (may be 0) */
-  const char *lng;  /* long option identifier */
-  const char *desc; /* description */
-  uint32_t val;     /* value */
-  uint32_t dflt;    /* default value */
-  uint32_t min;     /* min value */
-  uint32_t max;     /* max value */
-  char *valstr;     /* optional option string value */
-} BtorOpt;
-
-/*------------------------------------------------------------------------*/
-
-#define BTOR_OPT_MODEL_GEN "model-gen"
-#define BTOR_OPT_INCREMENTAL "incremental"
-#define BTOR_OPT_INCREMENTAL_ALL "incremental-all"
-#define BTOR_OPT_INPUT_FORMAT "input-format"
-#define BTOR_OPT_OUTPUT_NUMBER_FORMAT "output-number-format"
-#define BTOR_OPT_OUTPUT_FORMAT "output-format"
-#define BTOR_OPT_ENGINE "engine"
-#define BTOR_OPT_SAT_ENGINE "sat-engine"
-#define BTOR_OPT_AUTO_CLEANUP "auto-cleanup"
-#define BTOR_OPT_PRETTY_PRINT "pretty-print"
-#define BTOR_OPT_EXIT_CODES "exit-codes"
-#define BTOR_OPT_SEED "seed"
-#define BTOR_OPT_VERBOSITY "verbosity"
-#define BTOR_OPT_LOGLEVEL "loglevel"
-/* simplifier --------------------------------------------------------- */
-#define BTOR_OPT_REWRITE_LEVEL "rewrite-level"
-#define BTOR_OPT_SKELETON_PREPROC "skeleton-preproc"
-#define BTOR_OPT_ACKERMANN "ackermannize"
-#define BTOR_OPT_BETA_REDUCE_ALL "beta-reduce-all"
-#define BTOR_OPT_ELIMINATE_SLICES "eliminate-slices"
-#define BTOR_OPT_VAR_SUBST "var-subst"
-#define BTOR_OPT_UCOPT "ucopt"
-#define BTOR_OPT_MERGE_LAMBDAS "merge-lambdas"
-#define BTOR_OPT_EXTRACT_LAMBDAS "extract-lambdas"
-/* fun engine --------------------------------------------------------- */
-#define BTOR_OPT_FUN_DUAL_PROP "fun:dual-prop"
-#define BTOR_OPT_FUN_JUST "fun:just"
-#define BTOR_OPT_FUN_JUST_HEURISTIC "fun:just-heuristic"
-#define BTOR_OPT_FUN_LAZY_SYNTHESIZE "fun:lazy-synthesize"
-#define BTOR_OPT_FUN_EAGER_LEMMAS "fun:eager-lemmas"
-/* SLS engine --------------------------------------------------------- */
-#define BTOR_OPT_SLS_STRATEGY "sls:strategy"
-#define BTOR_OPT_SLS_JUST "sls:just"
-#define BTOR_OPT_SLS_MOVE_GW "sls:move-gw"
-#define BTOR_OPT_SLS_MOVE_RANGE "sls:move-range"
-#define BTOR_OPT_SLS_MOVE_SEGMENT "sls:move-segment"
-#define BTOR_OPT_SLS_MOVE_RAND_WALK "sls:move-rand-walk"
-#define BTOR_OPT_SLS_MOVE_RAND_WALK_PROB "sls:move-rand-walk-prob"
-#define BTOR_OPT_SLS_MOVE_RAND_ALL "sls:move-rand-all"
-#define BTOR_OPT_SLS_MOVE_RAND_RANGE "sls:move-rand-range"
-#define BTOR_OPT_SLS_MOVE_PROP "sls:move-prop"
-#define BTOR_OPT_SLS_MOVE_PROP_N_PROP "sls:move-prop-n-prop"
-#define BTOR_OPT_SLS_MOVE_PROP_N_SLS "sls:move-prop-n-sls"
-#define BTOR_OPT_SLS_MOVE_PROP_FORCE_RW "sls:move-prop-force-rw"
-#define BTOR_OPT_SLS_MOVE_PROP_NO_FLIP_COND "sls:move-prop-no-flip-cond"
-#define BTOR_OPT_SLS_MOVE_PROP_FLIP_COND_PROB "sls:move-prop-flip-cond-prob"
-#define BTOR_OPT_SLS_MOVE_INC_MOVE_TEST "sls:move-inc-move-test"
-#define BTOR_OPT_SLS_USE_RESTARTS "sls:use-restarts"
-#define BTOR_OPT_SLS_USE_BANDIT "sls:use-bandit"
-/* internal options --------------------------------------------------- */
-#define BTOR_OPT_SORT_EXP "sort-exp"
-#define BTOR_OPT_SORT_AIG "sort-aig"
-#define BTOR_OPT_SORT_AIGVEC "sort-aigvec"
-#define BTOR_OPT_AUTO_CLEANUP_INTERNAL "auto-cleanup-internal"
-#define BTOR_OPT_SIMPLIFY_CONSTRAINTS "simplify-constraints"
-#define BTOR_OPT_RW_NORMALIZE "rw-normalize"
-#ifdef BTOR_CHECK_FAILED
-#define BTOR_OPT_CHK_FAILED_ASSUMPTIONS "chk-failed-assumptions"
-#endif
-#define BTOR_OPT_PARSE_INTERACTIVE "parse-interactive"
-#ifdef BTOR_USE_LINGELING
-#define BTOR_OPT_SAT_ENGINE_LGL_FORK "sat-engine-lgl-fork"
-#endif
-
-/*------------------------------------------------------------------------*/
-
 void btor_init_opts (Btor *btor);
-BtorPtrHashTable *btor_clone_opts (BtorMemMgr *mm, BtorPtrHashTable *options);
+void btor_clone_opts (Btor *btor, Btor *clone);
 void btor_delete_opts (Btor *btor);
 
-bool btor_has_opt (Btor *btor, const char *name);
+bool btor_has_opt (Btor *btor, BtorOption opt);
 
-uint32_t btor_get_opt (Btor *btor, const char *name);
-uint32_t btor_get_opt_min (Btor *btor, const char *name);
-uint32_t btor_get_opt_max (Btor *btor, const char *name);
-uint32_t btor_get_opt_dflt (Btor *btor, const char *name);
-const char *btor_get_opt_shrt (Btor *btor, const char *name);
-const char *btor_get_opt_desc (Btor *btor, const char *name);
-const char *btor_get_opt_valstr (Btor *btor, const char *name);
+uint32_t btor_get_opt (Btor *btor, BtorOption opt);
+uint32_t btor_get_opt_min (Btor *btor, BtorOption opt);
+uint32_t btor_get_opt_max (Btor *btor, BtorOption opt);
+uint32_t btor_get_opt_dflt (Btor *btor, BtorOption opt);
+const char *btor_get_opt_lng (Btor *btor, BtorOption opt);
+const char *btor_get_opt_shrt (Btor *btor, BtorOption opt);
+const char *btor_get_opt_desc (Btor *btor, BtorOption opt);
+const char *btor_get_opt_valstr (Btor *btor, BtorOption opt);
 
-void btor_set_opt (Btor *btor, const char *name, uint32_t val);
-void btor_set_opt_str (Btor *btor, const char *name, const char *str);
+void btor_set_opt (Btor *btor, BtorOption name, uint32_t val);
+void btor_set_opt_str (Btor *btor, BtorOption name, const char *str);
 
-const char *btor_first_opt (Btor *btor);
-const char *btor_next_opt (Btor *btor, const char *cur);
+BtorOption btor_first_opt (Btor *btor);
+BtorOption btor_next_opt (Btor *btor, BtorOption cur);
 #endif

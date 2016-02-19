@@ -16,6 +16,7 @@
 /*------------------------------------------------------------------------*/
 
 #include <stdbool.h>
+#include <stdint.h>
 #include <stdio.h>
 #include "btortypes.h"
 
@@ -385,21 +386,21 @@ int boolector_set_sat_solver_minisat (Btor *btor);
 
   * **incremental_in_depth**
 
-    | Set incremental in-depth mode width (``value``: int) when parsing an input
-  file. | Note that currently, incremental mode while parsing an input file is
-  only supported for `SMT-LIB v1`_ input.
+    | Set incremental in-depth mode width (``value``: uint32_t) when parsing an
+  input file. | Note that currently, incremental mode while parsing an input
+  file is only supported for `SMT-LIB v1`_ input.
 
   * **incremental_look_ahead**
 
-    | Set incremental look_ahead mode width (``value``: int) when parsing an
-  input file. | Note that currently, incremental mode while parsing an input
+    | Set incremental look_ahead mode width (``value``: uint32_t) when parsing
+  an input file. | Note that currently, incremental mode while parsing an input
   file is only supported for `SMT-LIB v1`_ input.
 
   * **incremental_interval**
 
-    | Set incremental interval mode width (``value``: int) when parsing an input
-  file. | Note that currently, incremental mode while parsing an input file is
-  only supported for `SMT-LIB v1`_ input.
+    | Set incremental interval mode width (``value``: uint_32) when parsing an
+  input file. | Note that currently, incremental mode while parsing an input
+  file is only supported for `SMT-LIB v1`_ input.
 
   * **input_format**
 
@@ -499,89 +500,116 @@ int boolector_set_sat_solver_minisat (Btor *btor);
     Set the level of verbosity.
 
   :param btor: Boolector instance.
-  :param name: Option name.
+  :param opt: Option opt.
   :param val:  Option value.
 */
-void boolector_set_opt (Btor *btor, const char *name, int val);
+void boolector_set_opt (Btor *btor, BtorOption opt, uint32_t val);
 
 /*!
   Get the current value of an option.
 
   :param btor: Btor instance.
-  :param name: Option name.
-  :return: Current value of ``name``.
+  :param opt: Option opt.
+  :return: Current value of ``opt``.
 */
-int boolector_get_opt (Btor *btor, const char *name);
+uint32_t boolector_get_opt (Btor *btor, BtorOption opt);
 
 /*!
   Get the min value of an option.
 
   :param btor: Btor instance.
-  :param name: Option name.
-  :return: Min value of ``name``.
+  :param opt: Option opt.
+  :return: Min value of ``opt``.
 */
-int boolector_get_opt_min (Btor *btor, const char *name);
+uint32_t boolector_get_opt_min (Btor *btor, BtorOption opt);
 
 /*!
   Get the max value of an option.
 
   :param btor: Btor instance.
-  :param name: Option name.
-  :return: Max value of ``name``.
+  :param opt: Option opt.
+  :return: Max value of ``opt``.
 */
-int boolector_get_opt_max (Btor *btor, const char *name);
+uint32_t boolector_get_opt_max (Btor *btor, BtorOption opt);
 
 /*!
   Get the default value of an option.
 
   :param btor: Btor instance.
-  :param name: Option name.
-  :return: Default value of ``name``.
+  :param opt: Option opt.
+  :return: Default value of ``opt``.
 */
-int boolector_get_opt_dflt (Btor *btor, const char *name);
+uint32_t boolector_get_opt_dflt (Btor *btor, BtorOption opt);
+
+/*!
+  Get the long name of an option.
+
+  :param btor: Btor instance.
+  :param opt: Option opt.
+  :return: Short opt of ``opt``.
+*/
+const char *boolector_get_opt_lng (Btor *btor, BtorOption opt);
 
 /*!
   Get the short name of an option.
 
   :param btor: Btor instance.
-  :param name: Option name.
-  :return: Short name of ``name``.
+  :param opt: Option opt.
+  :return: Short opt of ``opt``.
 */
-const char *boolector_get_opt_shrt (Btor *btor, const char *name);
+const char *boolector_get_opt_shrt (Btor *btor, BtorOption opt);
 
 /*!
   Get the description of an option.
 
   :param btor: Btor instance.
-  :param name: Option name.
-  :return: Description of ``name``.
+  :param opt: Option opt.
+  :return: Description of ``opt``.
 */
-const char *boolector_get_opt_desc (Btor *btor, const char *name);
+const char *boolector_get_opt_desc (Btor *btor, BtorOption opt);
 
 /*!
-  Get the name of the first option in Boolector's option list.
+  Check if Boolector has a given option.
 
   Given a Boolector instance ``btor``, you can use this in combination
-  with boolector_next_opt in order to iterate over Boolector options
-  as follows:
+  with boolector_has_opt and boolector_next_opt in order to iterate over
+  Boolector options as follows:
 
   .. code-block:: c
 
-    for (s = boolector_first_opt_noref (btor); s; s = boolector_next_opt_noref
-  (btor, s)) {...}
+    for (s = boolector_first_opt_noref (btor); boolector_has_opt_noref (btor,
+  s); s = boolector_next_opt_noref (btor, s)) {...}
 
   :param btor: Btor instance.
-  :return: Name of the first option in Boolector's option list.
+  :param opt: Option opt.
+  :return true if Boolector has the given option, and false otherwise.
 */
-const char *boolector_first_opt (Btor *btor);
+bool boolector_has_opt (Btor *Btor, BtorOption opt);
 
 /*!
-  Given current option ``name``, get the name of the next option in Boolector's
+  Get the opt of the first option in Boolector's option list.
+
+  Given a Boolector instance ``btor``, you can use this in combination
+  with boolector_has_opt and boolector_next_opt in order to iterate over
+  Boolector options as follows:
+
+  .. code-block:: c
+
+    for (s = boolector_first_opt_noref (btor); boolector_has_opt_noref (btor,
+  s); s = boolector_next_opt_noref (btor, s)) {...}
+
+  :param btor: Btor instance.
+  :return: opt of the first option in Boolector's option list.
+*/
+BtorOption boolector_first_opt (Btor *btor);
+
+/*!
+  Given current option ``opt``, get the opt of the next option in Boolector's
   option list.
 
   Given a Boolector instance ``btor``, you can use this in combination
-  with boolector_first_opt in order to iterate over Boolector options
-  as follows:
+  with boolector_has_opt and boolector_next_opt in order to iterate over
+  Boolector options as follows:
 
   .. code-block:: c
 
@@ -589,10 +617,10 @@ const char *boolector_first_opt (Btor *btor);
   (btor, s)) {...}
 
   :param btor: Btor instance.
-  :param name: Option name.
-  :return: Name of the next option in Boolector's option list, or 0 if no such next option does exist.
+  :param opt: Option opt.
+  :return: opt of the next option in Boolector's option list, or 0 if no such next option does exist.
 */
-const char *boolector_next_opt (Btor *btor, const char *name);
+BtorOption boolector_next_opt (Btor *btor, BtorOption opt);
 
 /*------------------------------------------------------------------------*/
 

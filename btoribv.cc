@@ -1,7 +1,7 @@
 /*  Boolector: Satisfiablity Modulo Theories (SMT) solver.
  *
  *  Copyright (C) 2012-2014 Armin Biere.
- *  Copyright (C) 2014 Aina Niemetz.
+ *  Copyright (C) 2014-2016 Aina Niemetz.
  *  Copyright (C) 2015 Mathias Preiner.
  *
  *  All rights reserved.
@@ -11,6 +11,7 @@
  */
 
 #include "btoribv.h"
+#include "btortypes.h"
 
 #include <climits>
 #include <cstdarg>
@@ -300,7 +301,7 @@ BtorIBV::setRewriteLevel (int rwl)
 {
   BTOR_ABORT_BOOLECTOR (rwl < 1, "rewrite level has to be at least 1");
   BTOR_ABORT_BOOLECTOR (rwl > 3, "rewrite level has to be at most 3");
-  boolector_set_opt (btor, "rewrite_level", rwl);
+  boolector_set_opt (btor, BTOR_OPT_REWRITE_LEVEL, rwl);
 }
 
 void

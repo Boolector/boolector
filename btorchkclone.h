@@ -41,6 +41,26 @@ void btor_chkclone_sort (const BtorSort *sort, const BtorSort *clone);
     btor_chkclone (btor);                                 \
   } while (0)
 
+#define BTOR_CHKCLONE_RES_UINT(res, fun, args...)              \
+  do                                                           \
+  {                                                            \
+    if (!btor->clone) break;                                   \
+    uint32_t cloneres = boolector_##fun (btor->clone, ##args); \
+    (void) cloneres;                                           \
+    assert (cloneres == res);                                  \
+    btor_chkclone (btor);                                      \
+  } while (0)
+
+#define BTOR_CHKCLONE_RES_BOOL(res, fun, args...)          \
+  do                                                       \
+  {                                                        \
+    if (!btor->clone) break;                               \
+    bool cloneres = boolector_##fun (btor->clone, ##args); \
+    (void) cloneres;                                       \
+    assert (cloneres == res);                              \
+    btor_chkclone (btor);                                  \
+  } while (0)
+
 #define BTOR_CHKCLONE_RES_PTR(res, fun, args...)                            \
   do                                                                        \
   {                                                                         \

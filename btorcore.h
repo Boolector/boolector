@@ -33,8 +33,6 @@
 #define BTOR_CHECK_MODEL
 #define BTOR_CHECK_DUAL_PROP
 #endif
-// TODO (ma): why?
-#undef BTOR_CHECK_FAILED
 
 #ifndef BTOR_USE_LINGELING
 #define BTOR_DO_NOT_PROCESS_SKELETON
@@ -156,7 +154,9 @@ struct Btor
   FILE *apitrace;
   int close_apitrace;
 
-  BtorPtrHashTable *options;
+  BtorOpt *options;
+  BtorPtrHashTable *str2opt;
+
   BtorMsg *msg;
   BtorRNG rng;
 

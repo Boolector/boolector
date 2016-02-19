@@ -3674,6 +3674,7 @@ btor_set_option_smt2 (BtorSMT2Parser *parser)
 {
   int tag, val, verb = 0;
   char *opt;
+  BtorOption o;
 
   tag = btor_read_token_smt2 (parser);
   if (tag == BTOR_INVALID_TAG_SMT2) return 0;
@@ -3724,20 +3725,21 @@ btor_set_option_smt2 (BtorSMT2Parser *parser)
     else
     {
       opt = btor_strdup (parser->mem, parser->token.start + 1);
-      if (!btor_has_opt (parser->btor, opt))
+      if (!btor_get_ptr_hash_table (parser->btor->str2opt, opt))
       {
         btor_freestr (parser->mem, opt);
         return !btor_perr_smt2 (parser, "unsupported option");
       }
     }
 
+    o   = btor_get_ptr_hash_table (parser->btor->str2opt, opt)->data.as_int;
     tag = btor_read_token_smt2 (parser);
     if (tag == BTOR_INVALID_TAG_SMT2)
     {
       assert (parser->error);
       return 0;
     }
-    val = boolector_get_opt (parser->btor, opt);
+    val = boolector_get_opt (parser->btor, o);
     if (tag == BTOR_FALSE_TAG_SMT2)
       val = 0;
     else if (tag == BTOR_TRUE_TAG_SMT2)
@@ -3745,12 +3747,12 @@ btor_set_option_smt2 (BtorSMT2Parser *parser)
     else
       val =
           verb ? val + atoi (parser->token.start) : atoi (parser->token.start);
-    boolector_set_opt (parser->btor, opt, val);
+    boolector_set_opt (parser->btor, o, val);
 
     /* update parser options */
-    if (!strcmp (opt, BTOR_OPT_INCREMENTAL))
+    if (o == BTOR_OPT_INCREMENTAL)
       parser->incremental = val;
-    else if (!strcmp (opt, BTOR_OPT_VERBOSITY))
+    else if (o == BTOR_OPT_VERBOSITY)
       parser->verbosity = val;
     btor_freestr (parser->mem, opt);
   }
