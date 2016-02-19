@@ -792,7 +792,7 @@ clone_aux_btor (Btor *btor,
   char **ind, **val;
   amgr = exp_layer_only ? 0 : btor_get_aig_mgr_aigvec_mgr (btor->avmgr);
   BtorPtrHashData *data, *cdata;
-  BtorOpt *o;
+  BtorOption o;
 #endif
 
   BTORLOG (1, "start cloning btor %p ...", btor);
@@ -804,17 +804,17 @@ clone_aux_btor (Btor *btor,
   allocated = sizeof (Btor);
 #endif
   memcpy (clone, btor, sizeof (Btor));
-  clone->mm      = mm;
-  clone->options = btor_clone_opts (clone->mm, btor->options);
+  clone->mm = mm;
+  btor_clone_opts (btor, clone);
 #ifndef NDEBUG
-  allocated += MEM_PTR_HASH_TABLE (clone->options)
-               + clone->options->count * sizeof (BtorOpt);
-  btor_init_hash_table_iterator (&it, btor->options);
-  while (btor_has_next_hash_table_iterator (&it))
+  allocated += BTOR_OPT_NUM_OPTS * sizeof (BtorOpt);
+  for (o = btor_first_opt (btor); btor_has_opt (btor, o);
+       o = btor_next_opt (btor, o))
   {
-    o = (BtorOpt *) btor_next_data_hash_table_iterator (&it)->as_ptr;
-    if (o->valstr) allocated += strlen (o->valstr) + 1;
+    if (btor->options[o].valstr)
+      allocated += strlen (btor->options[o].valstr) + 1;
   }
+  allocated += MEM_PTR_HASH_TABLE (clone->str2opt);
 #endif
   assert (allocated == clone->mm->allocated);
 

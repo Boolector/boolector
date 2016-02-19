@@ -41,6 +41,8 @@
 
 #include <limits.h>
 
+#undef BTOR_CHECK_FAILED
+
 /*------------------------------------------------------------------------*/
 
 #define BTOR_INIT_UNIQUE_TABLE(mm, table) \
@@ -3839,7 +3841,7 @@ btor_sat_btor (Btor *btor, int lod_limit, int sat_limit)
   if (faclone && btor_get_opt (btor, BTOR_OPT_CHK_FAILED_ASSUMPTIONS))
   {
     if (!btor->inconsistent && btor->last_sat_result == BTOR_RESULT_UNSAT)
-      btor_check_failed_assumptions (btor, faclone);
+      check_failed_assumptions (btor, faclone);
     btor_delete_btor (faclone);
   }
 #endif

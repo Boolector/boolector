@@ -18,6 +18,7 @@
 #include <stdlib.h>
 #include <string.h>
 #include "boolector.h"
+#include "btoropt.h"
 #include "utils/btorhashptr.h"
 #include "utils/btormem.h"
 #include "utils/btorstack.h"
@@ -156,6 +157,18 @@ checklastarg (char *op)
   }
 }
 
+static bool
+boolarg (char *op)
+{
+  const char *tok;
+  if (!(tok = strtok (0, " ")) || strcmp (tok, "true") || strcmp (tok, "false"))
+  {
+    perr ("expected Boolean argument for '%s'", op);
+  }
+  assert (tok);
+  return !strcmp (tok, "true") ? true : false;
+}
+
 static int
 intarg (char *op)
 {
@@ -266,6 +279,7 @@ hmap_clear (BtorPtrHashTable *hmap)
 #define RET_INT 2
 #define RET_CHARPTR 3
 #define RET_ARRASS 4
+#define RET_BOOL 5
 #define RET_SKIP -1
 
 BTOR_DECLARE_STACK (BoolectorSort, BoolectorSort);
@@ -284,9 +298,10 @@ parse (FILE *file)
   Btor *btor;
 
   int exp_ret;                   /* expected return value */
-  int ret_int;                   /* actual return value */
-  char *ret_str;                 /* actual return string */
-  void *ret_ptr;                 /* actual return string */
+  bool ret_bool;                 /* actual return value bool */
+  int ret_int;                   /* actual return value int */
+  char *ret_str;                 /* actual return value string */
+  void *ret_ptr;                 /* actual return value string */
   char **res1_pptr, **res2_pptr; /* result pointer */
 
   char *btor_str; /* btor pointer string */
@@ -355,6 +370,14 @@ NEXT:
         checklastarg ("return");
         hmap_add (hmap, clone ? 0 : btor_str, exp_str, ret_ptr);
       }
+      else if (exp_ret == RET_BOOL)
+      {
+        bool exp_bool = boolarg ("return");
+        if (exp_bool != ret_bool)
+          die ("expected return value %s but got %s",
+               exp_bool ? "true" : "false",
+               ret_bool ? "true" : "false");
+      }
       else if (exp_ret == RET_INT)
       {
         int exp_int = intarg ("return");
@@ -412,10 +435,13 @@ NEXT:
     {
       PARSE_ARGS0 (tok);
       btor = boolector_new ();
+#ifndef NBTORLOG
       if (btorunt->blog_level)
-        boolector_set_opt (btor, "loglevel", btorunt->blog_level);
-      if (btorunt->dual_prop) boolector_set_opt (btor, "dual_prop", 1);
-      if (btorunt->just) boolector_set_opt (btor, "just", 1);
+        boolector_set_opt (btor, BTOR_OPT_LOGLEVEL, btorunt->blog_level);
+#endif
+      if (btorunt->dual_prop)
+        boolector_set_opt (btor, BTOR_OPT_FUN_DUAL_PROP, 1);
+      if (btorunt->just) boolector_set_opt (btor, BTOR_OPT_FUN_JUST, 1);
       exp_ret = RET_VOIDPTR;
       ret_ptr = btor;
     }
@@ -542,15 +568,15 @@ NEXT:
 #endif
     else if (!strcmp (tok, "set_opt"))
     {
-      PARSE_ARGS2 (tok, str, int);
-      boolector_set_opt (btor, arg1_str, arg2_int);
+      PARSE_ARGS2 (tok, int, int);
+      boolector_set_opt (btor, arg1_int, arg2_int);
     }
     else if (!strcmp (tok, "get_opt"))
     {
       if (!btorunt->skip)
       {
-        PARSE_ARGS1 (tok, str);
-        ret_int = boolector_get_opt (btor, arg1_str);
+        PARSE_ARGS1 (tok, int);
+        ret_int = boolector_get_opt (btor, arg1_int);
         exp_ret = RET_INT;
       }
       else
@@ -560,8 +586,8 @@ NEXT:
     {
       if (!btorunt->skip)
       {
-        PARSE_ARGS1 (tok, str);
-        ret_int = boolector_get_opt_min (btor, arg1_str);
+        PARSE_ARGS1 (tok, int);
+        ret_int = boolector_get_opt_min (btor, arg1_int);
         exp_ret = RET_INT;
       }
       else
@@ -571,8 +597,8 @@ NEXT:
     {
       if (!btorunt->skip)
       {
-        PARSE_ARGS1 (tok, str);
-        ret_int = boolector_get_opt_max (btor, arg1_str);
+        PARSE_ARGS1 (tok, int);
+        ret_int = boolector_get_opt_max (btor, arg1_int);
         exp_ret = RET_INT;
       }
       else
@@ -582,8 +608,8 @@ NEXT:
     {
       if (!btorunt->skip)
       {
-        PARSE_ARGS1 (tok, str);
-        ret_int = boolector_get_opt_dflt (btor, arg1_str);
+        PARSE_ARGS1 (tok, int);
+        ret_int = boolector_get_opt_dflt (btor, arg1_int);
         exp_ret = RET_INT;
       }
       else
@@ -593,8 +619,8 @@ NEXT:
     {
       if (!btorunt->skip)
       {
-        PARSE_ARGS1 (tok, str);
-        ret_ptr = (void *) boolector_get_opt_shrt (btor, arg1_str);
+        PARSE_ARGS1 (tok, int);
+        ret_ptr = (void *) boolector_get_opt_shrt (btor, arg1_int);
         exp_ret = RET_CHARPTR;
       }
       else
@@ -604,9 +630,20 @@ NEXT:
     {
       if (!btorunt->skip)
       {
-        PARSE_ARGS1 (tok, str);
-        ret_ptr = (void *) boolector_get_opt_desc (btor, arg1_str);
+        PARSE_ARGS1 (tok, int);
+        ret_ptr = (void *) boolector_get_opt_desc (btor, arg1_int);
         exp_ret = RET_CHARPTR;
+      }
+      else
+        exp_ret = RET_SKIP;
+    }
+    else if (!strcmp (tok, "has_opt"))
+    {
+      if (!btorunt->skip)
+      {
+        PARSE_ARGS1 (tok, int);
+        ret_bool = boolector_has_opt (btor, arg1_int);
+        exp_ret  = RET_BOOL;
       }
       else
         exp_ret = RET_SKIP;
@@ -626,8 +663,8 @@ NEXT:
     {
       if (!btorunt->skip)
       {
-        PARSE_ARGS1 (tok, str);
-        ret_str = (char *) boolector_next_opt (btor, arg1_str);
+        PARSE_ARGS1 (tok, int);
+        ret_str = (char *) boolector_next_opt (btor, arg1_int);
         if (!ret_str) ret_str = "(null)";
         exp_ret = RET_CHARPTR;
       }

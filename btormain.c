@@ -73,6 +73,7 @@ typedef struct BtorMainOpt
   BtorMainOptArg arg; /* expects argument? */
 } BtorMainOpt;
 
+// FIXME TODO get rid of pointer hash table for main opts, use enum instead
 static void
 init_main_opt (BtorPtrHashTable *options,
                bool general,
@@ -111,7 +112,7 @@ init_main_opt (BtorPtrHashTable *options,
 }
 
 static void
-btormain_init_opts (BtorPtrHashTable *options)
+btormain_init_opts (Btor *btor, BtorPtrHashTable *options)
 {
   assert (options);
 
@@ -167,8 +168,8 @@ btormain_init_opts (BtorPtrHashTable *options)
                  "set output file for dumping");
   init_main_opt (options,
                  true,
-                 BTOR_OPT_ENGINE,
-                 "E",
+                 (char *) boolector_get_opt_lng (btor, BTOR_OPT_ENGINE),
+                 (char *) boolector_get_opt_shrt (btor, BTOR_OPT_ENGINE),
                  BTOR_ENGINE_DFLT,
                  BTOR_ENGINE_MIN,
                  BTOR_ENGINE_MAX,
@@ -177,8 +178,8 @@ btormain_init_opts (BtorPtrHashTable *options)
                  "set engine (core sls) [core]");
   init_main_opt (options,
                  true,
-                 BTOR_OPT_SAT_ENGINE,
-                 "SE",
+                 (char *) boolector_get_opt_lng (btor, BTOR_OPT_SAT_ENGINE),
+                 (char *) boolector_get_opt_shrt (btor, BTOR_OPT_SAT_ENGINE),
                  BTOR_SAT_ENGINE_DFLT,
                  BTOR_SAT_ENGINE_MIN + 1,
                  BTOR_SAT_ENGINE_MAX - 1,
@@ -227,6 +228,16 @@ btormain_init_opts (BtorPtrHashTable *options)
                  false,
                  BTORMAIN_OPT_ARG_NONE,
                  "force decimal number output");
+  init_main_opt (options,
+                 true,
+                 "bin",
+                 "b",
+                 0,
+                 0,
+                 1,
+                 false,
+                 BTORMAIN_OPT_ARG_NONE,
+                 "force binary number output");
   init_main_opt (options,
                  true,
                  "btor",
@@ -360,7 +371,7 @@ btormain_new_btormain (Btor *btor)
   res->outfile     = stdout;
   res->opts        = btor_new_ptr_hash_table (
       mm, (BtorHashPtr) btor_hash_str, (BtorCmpPtr) strcmp);
-  btormain_init_opts (res->opts);
+  btormain_init_opts (btor, res->opts);
   return res;
 }
 
@@ -442,11 +453,18 @@ print_opt (BtorMainApp *app,
     sprintf (paramstr, "<seconds>");
   else if (!strcmp (lng, "output"))
     sprintf (paramstr, "<file>");
-  else if (!strcmp (lng, BTOR_OPT_ENGINE) || !strcmp (lng, BTOR_OPT_SAT_ENGINE))
+  else if (!strcmp (lng, boolector_get_opt_lng (app->btor, BTOR_OPT_ENGINE))
+           || !strcmp (lng,
+                       boolector_get_opt_lng (app->btor, BTOR_OPT_SAT_ENGINE)))
     sprintf (paramstr, "<engine>");
-  else if (!strcmp (lng, BTOR_OPT_REWRITE_LEVEL)
-           || !strcmp (lng, BTOR_OPT_SLS_MOVE_RAND_WALK_PROB)
-           || !strcmp (lng, BTOR_OPT_SLS_MOVE_PROP_FLIP_COND_PROB))
+  else if (!strcmp (lng,
+                    boolector_get_opt_lng (app->btor, BTOR_OPT_REWRITE_LEVEL))
+           || !strcmp (lng,
+                       boolector_get_opt_lng (app->btor,
+                                              BTOR_OPT_SLS_MOVE_RAND_WALK_PROB))
+           || !strcmp (lng,
+                       boolector_get_opt_lng (
+                           app->btor, BTOR_OPT_SLS_MOVE_PROP_FLIP_COND_PROB)))
     sprintf (paramstr, "<n>");
   else if (!strcmp (lng, "lingeling-opts"))
     sprintf (paramstr, "[,<opt>=<val>]+");
@@ -553,7 +571,7 @@ print_help (BtorMainApp *app)
 {
   assert (app);
 
-  char *o;
+  BtorOption o;
   BtorMainOpt *mo;
   BtorHashTableIterator it;
   FILE *out = app->outfile;
@@ -568,7 +586,8 @@ print_help (BtorMainApp *app)
   {
     mo = btor_next_data_hash_table_iterator (&it)->as_ptr;
     if (!mo->general) continue;
-    if (IS_OPT (mo->lng, "time") || IS_OPT (mo->lng, BTOR_OPT_ENGINE)
+    if (IS_OPT (mo->lng, "time")
+        || IS_OPT (mo->lng, boolector_get_opt_lng (app->btor, BTOR_OPT_ENGINE))
         || IS_OPT (mo->lng, "lingeling-opts") || IS_OPT (mo->lng, "hex")
         || IS_OPT (mo->lng, "btor") || IS_OPT (mo->lng, "dump-btor"))
       fprintf (out, "\n");
@@ -590,22 +609,21 @@ print_help (BtorMainApp *app)
 
   fprintf (out, BOOLECTOR_OPTS_INFO_MSG);
 
-  for (o = (char *) boolector_first_opt (app->btor); o;
-       o = (char *) boolector_next_opt (app->btor, o))
+  for (o = boolector_first_opt (app->btor); boolector_has_opt (app->btor, o);
+       o = boolector_next_opt (app->btor, o))
   {
-    if (!strcmp (o, BTOR_OPT_ENGINE) || !strcmp (o, BTOR_OPT_SAT_ENGINE)
-        || !strcmp (o, BTOR_OPT_INPUT_FORMAT)
-        || !strcmp (o, BTOR_OPT_OUTPUT_NUMBER_FORMAT)
-        || !strcmp (o, BTOR_OPT_OUTPUT_FORMAT))
+    if (app->btor->options[o].internal) continue;
+    if (o == BTOR_OPT_ENGINE || o == BTOR_OPT_SAT_ENGINE
+        || o == BTOR_OPT_INPUT_FORMAT || o == BTOR_OPT_OUTPUT_NUMBER_FORMAT
+        || o == BTOR_OPT_OUTPUT_FORMAT)
       continue;
-    if (!strcmp (o, BTOR_OPT_INCREMENTAL) || !strcmp (o, BTOR_OPT_REWRITE_LEVEL)
-        || !strcmp (o, BTOR_OPT_BETA_REDUCE_ALL)
-        || !strcmp (o, BTOR_OPT_AUTO_CLEANUP)
-        || !strcmp (o, BTOR_OPT_FUN_DUAL_PROP)
-        || !strcmp (o, BTOR_OPT_SLS_STRATEGY) || !strcmp (o, BTOR_OPT_SORT_EXP))
+    if (o == BTOR_OPT_INCREMENTAL || o == BTOR_OPT_REWRITE_LEVEL
+        || o == BTOR_OPT_BETA_REDUCE_ALL || o == BTOR_OPT_AUTO_CLEANUP
+        || o == BTOR_OPT_FUN_DUAL_PROP || o == BTOR_OPT_SLS_STRATEGY
+        || o == BTOR_OPT_SORT_EXP)
       fprintf (out, "\n");
     print_opt (app,
-               o,
+               boolector_get_opt_lng (app->btor, o),
                boolector_get_opt_shrt (app->btor, o),
                boolector_get_opt_dflt (app->btor, o),
                boolector_get_opt_desc (app->btor, o),
@@ -808,8 +826,9 @@ boolector_main (int argc, char **argv)
   char *arg, *cmd, *valstr, *tmp, *parse_err_msg;
   BtorCharStack opt, errarg;
   BtorHashTableIterator it;
-  BtorOpt *o;
+  BtorOption k;
   BtorMainOpt *mo;
+  BtorOpt *o;
 
 #ifdef BTOR_HAVE_GETRUSAGE
   g_start_time = btor_time_stamp ();
@@ -905,7 +924,7 @@ boolector_main (int argc, char **argv)
     isdisable =
         len > 3 && arg[j] == 'n' && arg[j + 1] == 'o' && arg[j + 2] == '-';
     for (j = isdisable ? j + 3 : j; j < len && arg[j] != '='; j++)
-      BTOR_PUSH_STACK (g_app->mm, opt, arg[j] == '-' ? '_' : arg[j]);
+      BTOR_PUSH_STACK (g_app->mm, opt, arg[j]);
     BTOR_PUSH_STACK (g_app->mm, opt, '\0');
 
     /* extract option argument (if any) */
@@ -1009,7 +1028,8 @@ boolector_main (int argc, char **argv)
              ->data.as_ptr)
             ->val += 1;
       }
-      else if (IS_OPT (mo->lng, BTOR_OPT_ENGINE))
+      else if (IS_OPT (mo->lng,
+                       boolector_get_opt_lng (g_app->btor, BTOR_OPT_ENGINE)))
       {
         if (!strcasecmp (valstr, "core"))
           boolector_set_opt (g_app->btor, BTOR_OPT_ENGINE, BTOR_ENGINE_FUN);
@@ -1024,7 +1044,9 @@ boolector_main (int argc, char **argv)
           goto DONE;
         }
       }
-      else if (IS_OPT (mo->lng, BTOR_OPT_SAT_ENGINE))
+      else if (IS_OPT (
+                   mo->lng,
+                   boolector_get_opt_lng (g_app->btor, BTOR_OPT_SAT_ENGINE)))
       {
 #ifdef BTOR_USE_LINGELING
         if (!strcasecmp (valstr, "lingeling"))
@@ -1075,6 +1097,11 @@ boolector_main (int argc, char **argv)
         format = BTOR_OUTPUT_BASE_DEC;
         goto SET_OUTPUT_NUMBER_FORMAT;
       }
+      else if (IS_OPT (mo->lng, "bin"))
+      {
+        format = BTOR_OUTPUT_BASE_BIN;
+        goto SET_OUTPUT_NUMBER_FORMAT;
+      }
       else if (IS_OPT (mo->lng, "btor"))
       {
         format = BTOR_INPUT_FORMAT_BTOR;
@@ -1120,7 +1147,7 @@ boolector_main (int argc, char **argv)
         dump = BTOR_OUTPUT_FORMAT_AIGER_BINARY;
         goto SET_OUTPUT_FORMAT;
       }
-      else if (IS_OPT (mo->lng, "dump-aiger_merge"))
+      else if (IS_OPT (mo->lng, "dump-aiger-merge"))
       {
         dump_merge = true;
       }
@@ -1129,11 +1156,11 @@ boolector_main (int argc, char **argv)
     /* >> btor options ------------------------------------------------ */
     else
     {
-      o = 0;
-      btor_init_hash_table_iterator (&it, g_app->btor->options);
-      while (btor_has_next_hash_table_iterator (&it))
+      for (k = boolector_first_opt (g_app->btor);
+           boolector_has_opt (g_app->btor, k);
+           k = btor_next_opt (g_app->btor, k))
       {
-        o = (BtorOpt *) btor_next_data_hash_table_iterator (&it)->as_ptr;
+        o = &g_app->btor->options[k];
         if ((isshrt && o->shrt && !strcmp (o->shrt, opt.start))
             || (!isshrt && !strcmp (o->lng, opt.start)))
           break;
@@ -1160,88 +1187,90 @@ boolector_main (int argc, char **argv)
       {
         if (isdisable)
         {
-          if (IS_OPT (o->lng, BTOR_OPT_MODEL_GEN))
+          if (k == BTOR_OPT_MODEL_GEN)
           {
             mgen   = 0;
             pmodel = 0;
           }
           else
-            boolector_set_opt (g_app->btor, o->lng, 0);
+            boolector_set_opt (g_app->btor, k, 0);
         }
         else
         {
-          if (IS_OPT (o->lng, BTOR_OPT_INCREMENTAL))
+          switch (k)
           {
-            inc = (readval && isint && val == 0)
-                      ? 0
-                      : inc | BTOR_PARSE_MODE_BASIC_INCREMENTAL;
-            boolector_set_opt (g_app->btor, BTOR_OPT_INCREMENTAL, inc);
-          }
-          else if (IS_OPT (o->lng, BTOR_OPT_INCREMENTAL_ALL))
-          {
-            boolector_set_opt (
-                g_app->btor, o->lng, BTOR_PARSE_MODE_INCREMENTAL_BUT_CONTINUE);
-            inc = (readval && isint && val == 0)
-                      ? 0
-                      : inc | BTOR_PARSE_MODE_INCREMENTAL_BUT_CONTINUE;
-            boolector_set_opt (g_app->btor, BTOR_OPT_INCREMENTAL, inc);
-          }
-          else if (IS_OPT (o->lng, BTOR_OPT_MODEL_GEN))
-          {
-            if (readval && isint && val == 0)
-            {
-              mgen   = 0;
-              pmodel = 0;
-            }
-            else
-            {
-              mgen += 1;
-              pmodel = 1;
-            }
-          }
-          else if ((IS_OPT (o->lng, BTOR_OPT_FUN_DUAL_PROP)
-                    && boolector_get_opt (g_app->btor, BTOR_OPT_FUN_JUST))
-                   || (IS_OPT (o->lng, BTOR_OPT_FUN_JUST)
-                       && boolector_get_opt (g_app->btor,
-                                             BTOR_OPT_FUN_DUAL_PROP)))
-          {
-            btormain_error (g_app,
-                            "can only set one out of '--%s' and '--%s'",
-                            BTOR_OPT_FUN_DUAL_PROP,
-                            BTOR_OPT_FUN_JUST);
-            goto DONE;
-          }
-          else
-          {
-            if (readval && isint)
-              boolector_set_opt (g_app->btor, o->lng, val);
-            else
-              boolector_set_opt (g_app->btor, o->lng, 1);
+            case BTOR_OPT_INCREMENTAL:
+              inc = (readval && isint && val == 0)
+                        ? 0
+                        : inc | BTOR_PARSE_MODE_BASIC_INCREMENTAL;
+              boolector_set_opt (g_app->btor, k, inc);
+              break;
+            case BTOR_OPT_INCREMENTAL_ALL:
+              boolector_set_opt (
+                  g_app->btor, k, BTOR_PARSE_MODE_INCREMENTAL_BUT_CONTINUE);
+              inc = (readval && isint && val == 0)
+                        ? 0
+                        : inc | BTOR_PARSE_MODE_INCREMENTAL_BUT_CONTINUE;
+              boolector_set_opt (g_app->btor, BTOR_OPT_INCREMENTAL, inc);
+              break;
+            case BTOR_OPT_MODEL_GEN:
+              if (readval && isint && val == 0)
+              {
+                mgen   = 0;
+                pmodel = 0;
+              }
+              else
+              {
+                mgen += 1;
+                pmodel = 1;
+              }
+              break;
+            case BTOR_OPT_FUN_DUAL_PROP:
+              if (boolector_get_opt (g_app->btor, BTOR_OPT_FUN_JUST))
+              {
+                btormain_error (g_app,
+                                "can only set one out of '--%s' and '--%s'",
+                                BTOR_OPT_FUN_DUAL_PROP,
+                                BTOR_OPT_FUN_JUST);
+                goto DONE;
+              }
+              goto DEFAULT;
+            case BTOR_OPT_FUN_JUST:
+              if (boolector_get_opt (g_app->btor, BTOR_OPT_FUN_DUAL_PROP))
+              {
+                btormain_error (g_app,
+                                "can only set one out of '--%s' and '--%s'",
+                                BTOR_OPT_FUN_DUAL_PROP,
+                                BTOR_OPT_FUN_JUST);
+                goto DONE;
+              }
+              goto DEFAULT;
+#ifndef NBTORLOG
+            case BTOR_OPT_VERBOSITY:
+            case BTOR_OPT_LOGLEVEL:
+#else
+            case BTOR_OPT_VERBOSITY:
+#endif
+              if (readval && isint)
+                boolector_set_opt (g_app->btor, k, val);
+              else
+                boolector_set_opt (
+                    g_app->btor, k, boolector_get_opt (g_app->btor, k) + 1);
+              break;
+            default:
+            DEFAULT:
+              if (readval && isint)
+                boolector_set_opt (g_app->btor, k, val);
+              else
+                boolector_set_opt (g_app->btor, k, 1);
           }
         }
       }
       else
       {
-#ifndef NBTORLOG
-        if (IS_OPT (o->lng, BTOR_OPT_VERBOSITY)
-            || IS_OPT (o->lng, BTOR_OPT_LOGLEVEL))
-#else
-        if (IS_OPT (o->lng, BTOR_OPT_VERBOSITY))
-#endif
-        {
-          if (readval && isint)
-            boolector_set_opt (g_app->btor, o->lng, val);
-          else
-            boolector_set_opt (g_app->btor,
-                               o->lng,
-                               boolector_get_opt (g_app->btor, o->lng) + 1);
-        }
-        else
-        {
-          assert (readval);
-          assert (isint);
-          boolector_set_opt (g_app->btor, o->lng, val);
-        }
+        assert (readval);
+        assert (isint);
+        boolector_set_opt (g_app->btor, k, val);
       }
     }
   }
@@ -1379,7 +1408,7 @@ boolector_main (int argc, char **argv)
     if (pmodel && sat_res == BOOLECTOR_SAT)
     {
       assert (boolector_get_opt (g_app->btor, BTOR_OPT_MODEL_GEN));
-      val = ((BtorMainOpt *) btor_get_ptr_hash_table (g_app->opts, "smt2_model")
+      val = ((BtorMainOpt *) btor_get_ptr_hash_table (g_app->opts, "smt2-model")
                  ->data.as_ptr)
                 ->val;
       boolector_print_model (

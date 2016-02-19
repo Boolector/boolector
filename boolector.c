@@ -207,19 +207,20 @@ boolector_new (void)
 {
   char *trname;
   Btor *btor;
-  BtorHashTableIterator it;
-  BtorOpt *opt;
+  BtorOption o;
 
   btor = btor_new_btor ();
   if ((trname = getenv ("BTORAPITRACE"))) btor_open_apitrace (btor, trname);
   BTOR_TRAPI ("");
   BTOR_TRAPI_RETURN_PTR (btor);
   /* trace opts */
-  btor_init_hash_table_iterator (&it, btor->options);
-  while (btor_has_next_hash_table_iterator (&it))
+  for (o = btor_first_opt (btor); btor_has_opt (btor, o);
+       o = btor_next_opt (btor, o))
   {
-    opt = (BtorOpt *) btor_next_data_hash_table_iterator (&it)->as_ptr;
-    BTOR_TRAPI_AUX ("boolector_set_opt", "%s %d", opt->lng, opt->val);
+    BTOR_TRAPI_AUX ("boolector_set_opt",
+                    "%s %d",
+                    btor_get_opt_lng (btor, o),
+                    btor_get_opt (btor, o));
   }
   return btor;
 }
@@ -609,26 +610,25 @@ boolector_set_sat_solver_minisat (Btor *btor)
 /*------------------------------------------------------------------------*/
 
 void
-boolector_set_opt (Btor *btor, const char *name, int val)
+boolector_set_opt (Btor *btor, BtorOption opt, uint32_t val)
 {
   BTOR_ABORT_ARG_NULL_BOOLECTOR (btor);
-  BTOR_TRAPI ("%s %d", name, val);
-  BTOR_ABORT_BOOLECTOR (
-      !btor_has_opt (btor, name), "invalid option '%s'", name);
+  BTOR_TRAPI ("%s %d", opt, val);
+  BTOR_ABORT_BOOLECTOR (!btor_has_opt (btor, opt), "invalid option");
 
-  if (!strcmp (name, BTOR_OPT_INCREMENTAL))
+  if (opt == BTOR_OPT_INCREMENTAL)
   {
     BTOR_ABORT_BOOLECTOR (btor->btor_sat_btor_called > 0,
                           "enabling/disabling incremental usage must be done "
                           "before calling 'boolector_sat'");
   }
-  else if (!strcmp (name, BTOR_OPT_MODEL_GEN))
+  else if (opt == BTOR_OPT_MODEL_GEN)
   {
     BTOR_ABORT_BOOLECTOR (btor_get_opt (btor, BTOR_OPT_UCOPT),
                           "Unconstrained optimization cannot be enabled "
                           "if model generation is enabled");
   }
-  else if (!strcmp (name, BTOR_OPT_UCOPT))
+  else if (opt == BTOR_OPT_UCOPT)
   {
     BTOR_ABORT_BOOLECTOR (btor_get_opt (btor, BTOR_OPT_MODEL_GEN),
                           "Unconstrained optimization cannot be enabled "
@@ -637,168 +637,188 @@ boolector_set_opt (Btor *btor, const char *name, int val)
                           "Unconstrained optimization cannot be enabled "
                           "in incremental mode");
   }
-  else if (!strcmp (name, BTOR_OPT_FUN_DUAL_PROP))
+  else if (opt == BTOR_OPT_FUN_DUAL_PROP)
   {
     BTOR_ABORT_BOOLECTOR (
         val && btor_get_opt (btor, BTOR_OPT_FUN_JUST),
         "enabling multiple optimization techniques is not allowed");
   }
-  else if (!strcmp (name, BTOR_OPT_FUN_JUST))
+  else if (opt == BTOR_OPT_FUN_JUST)
   {
     BTOR_ABORT_BOOLECTOR (
         val && btor_get_opt (btor, BTOR_OPT_FUN_DUAL_PROP),
         "enabling multiple optimization techniques is not allowed");
   }
-  else if (!strcmp (name, BTOR_OPT_UCOPT))
+  else if (opt == BTOR_OPT_UCOPT)
   {
     BTOR_ABORT_BOOLECTOR (btor_get_opt (btor, BTOR_OPT_MODEL_GEN),
                           "Unconstrained optimization cannot be enabled "
                           "if model generation is enabled");
   }
-  else if (!strcmp (name, BTOR_OPT_REWRITE_LEVEL))
+  else if (opt == BTOR_OPT_REWRITE_LEVEL)
   {
-    BTOR_ABORT_BOOLECTOR (val < 0 || val > 3,
-                          "'rewrite_level' must be in [0,3]");
+    BTOR_ABORT_BOOLECTOR (val > 3, "'rewrite_level' must be in [0,3]");
     BTOR_ABORT_BOOLECTOR (
         BTOR_COUNT_STACK (btor->nodes_id_table) > 2,
         "setting rewrite level must be done before creating expressions");
   }
 #ifdef NBTORLOG
-  else if (!strcmp (name, BTOR_OPT_LOGLEVEL))
+  else if (opt == BTOR_OPT_LOGLEVEL)
   {
     return;
   }
 #endif
 
-  btor_set_opt (btor, name, val);
+  btor_set_opt (btor, opt, val);
 #ifndef NDEBUG
-  BTOR_CHKCLONE_NORES (set_opt, name, val);
+  BTOR_CHKCLONE_NORES (set_opt, opt, val);
 #endif
 }
 
-int
-boolector_get_opt (Btor *btor, const char *name)
+uint32_t
+boolector_get_opt (Btor *btor, BtorOption opt)
 {
-  int res;
+  uint32_t res;
   BTOR_ABORT_ARG_NULL_BOOLECTOR (btor);
-  BTOR_TRAPI ("%s", name);
-  BTOR_ABORT_BOOLECTOR (
-      !btor_has_opt (btor, name), "invalid option '%s'", name);
-  res = btor_get_opt (btor, name);
+  BTOR_TRAPI ("%d", opt);
+  BTOR_ABORT_BOOLECTOR (!btor_has_opt (btor, opt), "invalid option");
+  res = btor_get_opt (btor, opt);
   BTOR_TRAPI_RETURN_INT (res);
 #ifndef NDEBUG
-  BTOR_CHKCLONE_RES (res, get_opt, name);
-#endif
-  return res;
-}
-
-int
-boolector_get_opt_min (Btor *btor, const char *name)
-{
-  int res;
-  BTOR_ABORT_ARG_NULL_BOOLECTOR (btor);
-  BTOR_TRAPI ("%s", name);
-  BTOR_ABORT_BOOLECTOR (
-      !btor_has_opt (btor, name), "invalid option '%s'", name);
-  res = btor_get_opt_min (btor, name);
-  BTOR_TRAPI_RETURN_INT (res);
-#ifndef NDEBUG
-  BTOR_CHKCLONE_RES (res, get_opt_min, name);
+  BTOR_CHKCLONE_RES_UINT (res, get_opt, opt);
 #endif
   return res;
 }
 
-int
-boolector_get_opt_max (Btor *btor, const char *name)
+uint32_t
+boolector_get_opt_min (Btor *btor, BtorOption opt)
 {
-  int res;
+  uint32_t res;
   BTOR_ABORT_ARG_NULL_BOOLECTOR (btor);
-  BTOR_TRAPI ("%s", name);
-  BTOR_ABORT_BOOLECTOR (
-      !btor_has_opt (btor, name), "invalid option '%s'", name);
-  res = btor_get_opt_max (btor, name);
+  BTOR_TRAPI ("%d", opt);
+  BTOR_ABORT_BOOLECTOR (!btor_has_opt (btor, opt), "invalid option");
+  res = btor_get_opt_min (btor, opt);
   BTOR_TRAPI_RETURN_INT (res);
 #ifndef NDEBUG
-  BTOR_CHKCLONE_RES (res, get_opt_max, name);
+  BTOR_CHKCLONE_RES_UINT (res, get_opt_min, opt);
 #endif
   return res;
 }
 
-int
-boolector_get_opt_dflt (Btor *btor, const char *name)
+uint32_t
+boolector_get_opt_max (Btor *btor, BtorOption opt)
 {
-  int res;
+  uint32_t res;
   BTOR_ABORT_ARG_NULL_BOOLECTOR (btor);
-  BTOR_TRAPI ("%s", name);
-  BTOR_ABORT_BOOLECTOR (
-      !btor_has_opt (btor, name), "invalid option '%s'", name);
-  res = btor_get_opt_dflt (btor, name);
+  BTOR_TRAPI ("%d", opt);
+  BTOR_ABORT_BOOLECTOR (!btor_has_opt (btor, opt), "invalid option");
+  res = btor_get_opt_max (btor, opt);
   BTOR_TRAPI_RETURN_INT (res);
 #ifndef NDEBUG
-  BTOR_CHKCLONE_RES (res, get_opt_dflt, name);
+  BTOR_CHKCLONE_RES_UINT (res, get_opt_max, opt);
+#endif
+  return res;
+}
+
+uint32_t
+boolector_get_opt_dflt (Btor *btor, BtorOption opt)
+{
+  uint32_t res;
+  BTOR_ABORT_ARG_NULL_BOOLECTOR (btor);
+  BTOR_TRAPI ("%d", opt);
+  BTOR_ABORT_BOOLECTOR (!btor_has_opt (btor, opt), "invalid option");
+  res = btor_get_opt_dflt (btor, opt);
+  BTOR_TRAPI_RETURN_INT (res);
+#ifndef NDEBUG
+  BTOR_CHKCLONE_RES_UINT (res, get_opt_dflt, opt);
 #endif
   return res;
 }
 
 const char *
-boolector_get_opt_shrt (Btor *btor, const char *name)
+boolector_get_opt_lng (Btor *btor, BtorOption opt)
 {
   const char *res;
   BTOR_ABORT_ARG_NULL_BOOLECTOR (btor);
-  BTOR_TRAPI ("%s", name);
-  BTOR_ABORT_BOOLECTOR (
-      !btor_has_opt (btor, name), "invalid option '%s'", name);
-  res = btor_get_opt_shrt (btor, name);
+  BTOR_TRAPI ("%d", opt);
+  BTOR_ABORT_BOOLECTOR (!btor_has_opt (btor, opt), "invalid option");
+  res = btor_get_opt_lng (btor, opt);
   BTOR_TRAPI_RETURN_STR (res);
 #ifndef NDEBUG
-  BTOR_CHKCLONE_RES_STR (res, get_opt_shrt, name);
+  BTOR_CHKCLONE_RES_STR (res, get_opt_lng, opt);
 #endif
   return res;
 }
 
 const char *
-boolector_get_opt_desc (Btor *btor, const char *name)
+boolector_get_opt_shrt (Btor *btor, BtorOption opt)
 {
   const char *res;
   BTOR_ABORT_ARG_NULL_BOOLECTOR (btor);
-  BTOR_TRAPI ("%s", name);
-  BTOR_ABORT_BOOLECTOR (
-      !btor_has_opt (btor, name), "invalid option '%s'", name);
-  res = btor_get_opt_desc (btor, name);
+  BTOR_TRAPI ("%d", opt);
+  BTOR_ABORT_BOOLECTOR (!btor_has_opt (btor, opt), "invalid option");
+  res = btor_get_opt_shrt (btor, opt);
   BTOR_TRAPI_RETURN_STR (res);
 #ifndef NDEBUG
-  BTOR_CHKCLONE_RES_STR (res, get_opt_desc, name);
+  BTOR_CHKCLONE_RES_STR (res, get_opt_shrt, opt);
 #endif
   return res;
 }
 
 const char *
+boolector_get_opt_desc (Btor *btor, BtorOption opt)
+{
+  const char *res;
+  BTOR_ABORT_ARG_NULL_BOOLECTOR (btor);
+  BTOR_TRAPI ("%d", opt);
+  BTOR_ABORT_BOOLECTOR (!btor_has_opt (btor, opt), "invalid option");
+  res = btor_get_opt_desc (btor, opt);
+  BTOR_TRAPI_RETURN_STR (res);
+#ifndef NDEBUG
+  BTOR_CHKCLONE_RES_STR (res, get_opt_desc, opt);
+#endif
+  return res;
+}
+
+bool
+boolector_has_opt (Btor *btor, BtorOption opt)
+{
+  bool res;
+  BTOR_ABORT_ARG_NULL_BOOLECTOR (btor);
+  BTOR_TRAPI ("%d", opt);
+  res = btor_has_opt (btor, opt);
+  BTOR_TRAPI_RETURN_BOOL (res);
+#ifndef NDEBUG
+  BTOR_CHKCLONE_RES_BOOL (res, next_opt, opt);
+#endif
+  return res;
+}
+
+BtorOption
 boolector_first_opt (Btor *btor)
 {
-  const char *res;
+  BtorOption res;
   BTOR_ABORT_ARG_NULL_BOOLECTOR (btor);
   BTOR_TRAPI ("");
   res = btor_first_opt (btor);
   BTOR_TRAPI_RETURN_STR (res);
 #ifndef NDEBUG
-  BTOR_CHKCLONE_RES_STR (res, first_opt);
+  BTOR_CHKCLONE_RES_UINT (res, first_opt);
 #endif
   return res;
 }
 
-const char *
-boolector_next_opt (Btor *btor, const char *name)
+BtorOption
+boolector_next_opt (Btor *btor, BtorOption opt)
 {
-  const char *res;
+  BtorOption res;
   BTOR_ABORT_ARG_NULL_BOOLECTOR (btor);
-  BTOR_ABORT_ARG_NULL_BOOLECTOR (name);
-  BTOR_TRAPI ("%s", name);
-  BTOR_ABORT_BOOLECTOR (
-      !btor_has_opt (btor, name), "invalid option '%s'", name);
-  res = btor_next_opt (btor, name);
+  BTOR_TRAPI ("%d", opt);
+  BTOR_ABORT_BOOLECTOR (!btor_has_opt (btor, opt), "invalid option");
+  res = btor_next_opt (btor, opt);
   BTOR_TRAPI_RETURN_STR (res);
 #ifndef NDEBUG
-  BTOR_CHKCLONE_RES_STR (res, next_opt, name);
+  BTOR_CHKCLONE_RES_UINT (res, next_opt, opt);
 #endif
   return res;
 }

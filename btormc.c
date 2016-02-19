@@ -1,7 +1,7 @@
 /*  Boolector: Satisfiablity Modulo Theories (SMT) solver.
  *
  *  Copyright (C) 2013-2014 Armin Biere.
- *  Copyright (C) 2013-2015 Aina Niemetz.
+ *  Copyright (C) 2013-2016 Aina Niemetz.
  *  Copyright (C) 2014-2015 Mathias Preiner.
  *
  *  All rights reserved.
@@ -16,6 +16,7 @@
 #include "btorconst.h"
 #include "btorexp.h"
 #include "btormsg.h"
+#include "btoropt.h"
 #include "dumper/btordumpbtor.h"
 #include "utils/boolectormap.h"
 #include "utils/btoriter.h"
@@ -136,7 +137,7 @@ boolector_set_verbosity_mc (BtorMC *mc, int verbosity)
 {
   BTOR_ABORT_ARG_NULL_BOOLECTOR (mc);
   mc->verbosity = verbosity;
-  boolector_set_opt (mc->btor, "verbosity", verbosity);
+  boolector_set_opt (mc->btor, BTOR_OPT_VERBOSITY, verbosity);
 }
 
 void
@@ -794,10 +795,11 @@ initialize_new_forward_frame (BtorMC *mc)
   {
     BTOR_MSG (boolector_get_btor_msg (mc->btor), 1, "new forward manager");
     mc->forward = btor_new_btor ();
-    boolector_set_opt (mc->forward, "incremental", 1);
-    if (mc->trace_enabled) boolector_set_opt (mc->forward, "model_gen", 1);
+    boolector_set_opt (mc->forward, BTOR_OPT_INCREMENTAL, 1);
+    if (mc->trace_enabled)
+      boolector_set_opt (mc->forward, BTOR_OPT_MODEL_GEN, 1);
     if (mc->verbosity)
-      boolector_set_opt (mc->forward, "verbosity", mc->verbosity);
+      boolector_set_opt (mc->forward, BTOR_OPT_VERBOSITY, mc->verbosity);
   }
 
   initialize_inputs_of_frame (mc, f);

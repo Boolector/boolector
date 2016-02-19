@@ -285,22 +285,22 @@ chkclone_opts (Btor *btor)
 
   Btor *clone;
   BtorOpt *opt, *copt;
-  BtorHashTableIterator it, cit;
+  BtorOption o;
 
   clone = btor->clone;
   assert (clone);
 
-  btor_init_hash_table_iterator (&it, btor->options);
-  btor_init_hash_table_iterator (&cit, clone->options);
-  while (btor_has_next_hash_table_iterator (&it))
+  assert (btor->options);
+  assert (clone->options);
+
+  for (o = btor_first_opt (btor); btor_has_opt (btor, o);
+       o = btor_next_opt (btor, o))
   {
-    assert (btor_has_next_hash_table_iterator (&cit));
-    opt  = (BtorOpt *) btor_next_data_hash_table_iterator (&it)->as_ptr;
-    copt = (BtorOpt *) btor_next_data_hash_table_iterator (&cit)->as_ptr;
+    opt  = &btor->options[o];
+    copt = &clone->options[o];
     assert (opt->internal == copt->internal);
     /* Note: auto_cleanup.val = 1 in clone! */
-    if (strcmp (opt->lng, BTOR_OPT_AUTO_CLEANUP))
-      assert (opt->val == copt->val);
+    if (o == BTOR_OPT_AUTO_CLEANUP) assert (opt->val == copt->val);
     assert (opt->dflt == copt->dflt);
     assert (opt->min == copt->min);
     assert (opt->max == copt->max);
