@@ -296,7 +296,7 @@ refine_exists_solver (BtorEFSolver *slv, BtorNodeMap *synth_funs)
 
         app = btor_apply_exps (
             e_solver, BTOR_COUNT_STACK (args), args.start, uf_es);
-        eq = btor_eq_exp (e_solver, app, c);
+        eq = btor_ne_exp (e_solver, app, c);
         btor_assert_exp (e_solver, eq);
         btor_release_exp (e_solver, app);
         btor_release_exp (e_solver, eq);
