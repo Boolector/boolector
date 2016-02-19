@@ -217,10 +217,7 @@ boolector_new (void)
   for (o = btor_first_opt (btor); btor_has_opt (btor, o);
        o = btor_next_opt (btor, o))
   {
-    BTOR_TRAPI_AUX ("boolector_set_opt",
-                    "%s %d",
-                    btor_get_opt_lng (btor, o),
-                    btor_get_opt (btor, o));
+    BTOR_TRAPI_AUX ("boolector_set_opt", "%d %d", o, btor_get_opt (btor, o));
   }
   return btor;
 }
