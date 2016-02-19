@@ -611,7 +611,7 @@ void
 boolector_set_opt (Btor *btor, BtorOption opt, uint32_t val)
 {
   BTOR_ABORT_ARG_NULL_BOOLECTOR (btor);
-  BTOR_TRAPI ("%s %d", opt, val);
+  BTOR_TRAPI ("%d %d", opt, val);
   BTOR_ABORT_BOOLECTOR (!btor_has_opt (btor, opt), "invalid option");
 
   if (opt == BTOR_OPT_INCREMENTAL)
