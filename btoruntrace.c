@@ -161,7 +161,8 @@ static bool
 boolarg (char *op)
 {
   const char *tok;
-  if (!(tok = strtok (0, " ")) || strcmp (tok, "true") || strcmp (tok, "false"))
+  if (!(tok = strtok (0, " "))
+      || (strcmp (tok, "true") && strcmp (tok, "false")))
   {
     perr ("expected Boolean argument for '%s'", op);
   }
@@ -664,8 +665,8 @@ NEXT:
       if (!btorunt->skip)
       {
         PARSE_ARGS0 (tok);
-        ret_str = (char *) boolector_first_opt (btor);
-        exp_ret = RET_CHARPTR;
+        ret_int = boolector_first_opt (btor);
+        exp_ret = RET_INT;
       }
       else
         exp_ret = RET_SKIP;
@@ -675,9 +676,8 @@ NEXT:
       if (!btorunt->skip)
       {
         PARSE_ARGS1 (tok, int);
-        ret_str = (char *) boolector_next_opt (btor, arg1_int);
-        if (!ret_str) ret_str = "(null)";
-        exp_ret = RET_CHARPTR;
+        ret_int = boolector_next_opt (btor, arg1_int);
+        exp_ret = RET_INT;
       }
       else
         exp_ret = RET_SKIP;
