@@ -796,7 +796,7 @@ boolector_first_opt (Btor *btor)
   BTOR_ABORT_ARG_NULL_BOOLECTOR (btor);
   BTOR_TRAPI ("");
   res = btor_first_opt (btor);
-  BTOR_TRAPI_RETURN_STR (res);
+  BTOR_TRAPI_RETURN_INT (res);
 #ifndef NDEBUG
   BTOR_CHKCLONE_RES_UINT (res, first_opt);
 #endif
@@ -811,7 +811,7 @@ boolector_next_opt (Btor *btor, BtorOption opt)
   BTOR_TRAPI ("%d", opt);
   BTOR_ABORT_BOOLECTOR (!btor_has_opt (btor, opt), "invalid option");
   res = btor_next_opt (btor, opt);
-  BTOR_TRAPI_RETURN_STR (res);
+  BTOR_TRAPI_RETURN_INT (res);
 #ifndef NDEBUG
   BTOR_CHKCLONE_RES_UINT (res, next_opt, opt);
 #endif
