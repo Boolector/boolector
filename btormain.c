@@ -1145,7 +1145,7 @@ boolector_main (int argc, char **argv)
         dump = BTOR_OUTPUT_FORMAT_AIGER_BINARY;
         goto SET_OUTPUT_FORMAT;
       }
-      else if (IS_OPT (mo->lng, "dump-aiger_merge"))
+      else if (IS_OPT (mo->lng, "dump-aiger-merge"))
       {
         dump_merge = true;
       }
