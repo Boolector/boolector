@@ -642,7 +642,7 @@ NEXT:
       if (!btorunt->skip)
       {
         PARSE_ARGS1 (tok, int);
-        ret_ptr = (void *) boolector_get_opt_desc (btor, arg1_int);
+        ret_str = (void *) boolector_get_opt_desc (btor, arg1_int);
         exp_ret = RET_CHARPTR;
       }
       else
