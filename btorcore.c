@@ -3697,6 +3697,9 @@ btor_sat_btor (Btor *btor, int lod_limit, int sat_limit)
   assert (btor_get_opt (btor, BTOR_OPT_INCREMENTAL)
           || btor->btor_sat_btor_called == 0);
 
+#ifndef NDEBUG
+  bool check = true;
+#endif
   BtorSolverResult res;
 
   if (!btor->slv)
@@ -3709,6 +3712,9 @@ btor_sat_btor (Btor *btor, int lod_limit, int sat_limit)
     else if (btor_get_opt (btor, BTOR_OPT_ENGINE) == BTOR_ENGINE_EF)
     {
       btor->slv = btor_new_ef_solver (btor);
+#ifndef NDEBUG
+      check = false;
+#endif
     }
     else
     {
@@ -3724,7 +3730,7 @@ btor_sat_btor (Btor *btor, int lod_limit, int sat_limit)
 
 #ifdef BTOR_CHECK_UNCONSTRAINED
   Btor *uclone = 0;
-  if (btor_has_clone_support_sat_mgr (btor_get_sat_mgr_btor (btor))
+  if (check && btor_has_clone_support_sat_mgr (btor_get_sat_mgr_btor (btor))
       && btor_get_opt (btor, BTOR_OPT_UCOPT)
       && btor_get_opt (btor, BTOR_OPT_REWRITE_LEVEL) > 2
       && !btor_get_opt (btor, BTOR_OPT_INCREMENTAL)
@@ -3739,17 +3745,21 @@ btor_sat_btor (Btor *btor, int lod_limit, int sat_limit)
 #ifdef BTOR_CHECK_MODEL
   Btor *mclone             = 0;
   BtorPtrHashTable *inputs = 0;
-  mclone                   = btor_clone_exp_layer (btor, 0);
-  btor_set_opt (mclone, BTOR_OPT_LOGLEVEL, 0);
-  btor_set_opt (mclone, BTOR_OPT_VERBOSITY, 0);
-  btor_set_opt (mclone, BTOR_OPT_FUN_DUAL_PROP, 0);
-  inputs = map_inputs_check_model (btor, mclone);
-  btor_set_opt (mclone, BTOR_OPT_AUTO_CLEANUP, 1);
+  if (check)
+  {
+    mclone = btor_clone_exp_layer (btor, 0);
+    btor_set_opt (mclone, BTOR_OPT_LOGLEVEL, 0);
+    btor_set_opt (mclone, BTOR_OPT_VERBOSITY, 0);
+    btor_set_opt (mclone, BTOR_OPT_FUN_DUAL_PROP, 0);
+    inputs = map_inputs_check_model (btor, mclone);
+    btor_set_opt (mclone, BTOR_OPT_AUTO_CLEANUP, 1);
+    btor_set_opt (mclone, BTOR_OPT_AUTO_CLEANUP_INTERNAL, 1);
+  }
 #endif
 
 #ifdef BTOR_CHECK_DUAL_PROP
   Btor *dpclone = 0;
-  if (btor_has_clone_support_sat_mgr (btor_get_sat_mgr_btor (btor))
+  if (check && btor_has_clone_support_sat_mgr (btor_get_sat_mgr_btor (btor))
       && btor_get_opt (btor, BTOR_OPT_FUN_DUAL_PROP))
   {
     dpclone = btor_clone_btor (btor);
@@ -3763,7 +3773,7 @@ btor_sat_btor (Btor *btor, int lod_limit, int sat_limit)
 
 #ifdef BTOR_CHECK_FAILED
   Btor *faclone = 0;
-  if (btor_has_clone_support_sat_mgr (btor_get_sat_mgr_btor (btor))
+  if (check && btor_has_clone_support_sat_mgr (btor_get_sat_mgr_btor (btor))
       && btor_get_opt (btor, BTOR_OPT_CHK_FAILED_ASSUMPTIONS))
   {
     faclone = btor_clone_btor (btor);
