@@ -280,35 +280,39 @@ refine_exists_solver (BtorEFSolver *slv, BtorNodeMap *synth_funs)
 
       uf_es = btor_mapped_node (map, uf_fs);
 
-      btor_init_hash_table_iterator (&h_it, uf_model);
-      while (btor_has_next_hash_table_iterator (&h_it))
-      {
-        bv     = h_it.bucket->data.as_ptr;
-        bv_tup = btor_next_hash_table_iterator (&h_it);
+#if 0
+	  btor_init_hash_table_iterator (&h_it, uf_model);
+	  while (btor_has_next_hash_table_iterator (&h_it))
+	    {
+	      bv = h_it.bucket->data.as_ptr;
+	      bv_tup = btor_next_hash_table_iterator (&h_it); 
 
-        BTOR_INIT_STACK (args);
-        for (i = 0; i < bv_tup->arity; i++)
-        {
-          c = btor_const_exp (e_solver, bv_tup->bv[i]);
-          BTOR_PUSH_STACK (mm, args, c);
-        }
-        c = btor_const_exp (e_solver, (BtorBitVector *) bv);
+	      BTOR_INIT_STACK (args);
+	      for (i = 0; i < bv_tup->arity; i++)
+		{
+		  c = btor_const_exp (e_solver, bv_tup->bv[i]);
+		  BTOR_PUSH_STACK (mm, args, c);
+		}
+	      c = btor_const_exp (e_solver, (BtorBitVector *) bv);
 
-        app = btor_apply_exps (
-            e_solver, BTOR_COUNT_STACK (args), args.start, uf_es);
-        eq = btor_ne_exp (e_solver, app, c);
-        btor_assert_exp (e_solver, eq);
-        btor_release_exp (e_solver, app);
-        btor_release_exp (e_solver, eq);
-        btor_release_exp (e_solver, c);
+	      app = btor_apply_exps (e_solver,
+				     BTOR_COUNT_STACK (args), args.start,
+				     uf_es);
+	      // FIXME (ma): still wrong what can we do with these counter examples?
+	      eq = btor_ne_exp (e_solver, app, c);
+	      btor_assert_exp (e_solver, eq);
+	      btor_release_exp (e_solver, app);
+	      btor_release_exp (e_solver, eq);
+	      btor_release_exp (e_solver, c);
 
-        while (!BTOR_EMPTY_STACK (args))
-          btor_release_exp (e_solver, BTOR_POP_STACK (args));
-        BTOR_RELEASE_STACK (mm, args);
-      }
+	      while (!BTOR_EMPTY_STACK (args))
+		btor_release_exp (e_solver, BTOR_POP_STACK (args));
+	      BTOR_RELEASE_STACK (mm, args);
+	    }
+#endif
 
 #ifdef PRINT_DBG
-      printf ("%s\n", node2string (var));
+      printf ("%s\n", node2string (uf_es));
       BtorHashTableIterator mit;
       BtorBitVectorTuple *tup;
       btor_init_hash_table_iterator (&mit, uf_model);
@@ -346,6 +350,7 @@ refine_exists_solver (BtorEFSolver *slv, BtorNodeMap *synth_funs)
   BTOR_RELEASE_STACK (mm, consts);
 
   btor_delete_node_map (map);
+  assert (res != e_solver->true_exp);
   btor_assert_exp (e_solver, res);
   btor_release_exp (e_solver, res);
 }
@@ -710,7 +715,8 @@ sat_ef_solver (BtorEFSolver *slv)
   while (true)
   {
     start = btor_time_stamp ();
-    res   = e_solver->slv->api.sat (e_solver->slv);
+    //      res = e_solver->slv->api.sat (e_solver->slv);
+    res = btor_sat_btor (e_solver, -1, -1);
     slv->time.e_solver += btor_time_stamp () - start;
 
     if (res == BTOR_RESULT_UNSAT) /* formula is UNSAT */
@@ -825,7 +831,8 @@ sat_ef_solver (BtorEFSolver *slv)
 
     //      printf ("check candidate model\n");
     start = btor_time_stamp ();
-    res   = f_solver->slv->api.sat (f_solver->slv);
+    res   = btor_sat_btor (f_solver, -1, -1);
+    //      res = f_solver->slv->api.sat (f_solver->slv);
     slv->time.f_solver += btor_time_stamp () - start;
     if (res == BTOR_RESULT_UNSAT) /* formula is SAT */
     {
