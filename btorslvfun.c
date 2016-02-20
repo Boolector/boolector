@@ -2169,6 +2169,22 @@ check_and_resolve_conflicts (Btor *btor,
   apply_search_cache = 0;
 }
 
+static void
+reset_lemma_cache (BtorFunSolver *slv)
+{
+  Btor *btor;
+  BtorHashTableIterator it;
+  btor = slv->btor;
+  btor_init_node_hash_table_iterator (&it, slv->lemmas);
+  while (btor_has_next_node_hash_table_iterator (&it))
+    btor_release_exp (btor, btor_next_node_hash_table_iterator (&it));
+  btor_delete_ptr_hash_table (slv->lemmas);
+
+  slv->lemmas = btor_new_ptr_hash_table (btor->mm,
+                                         (BtorHashPtr) btor_hash_exp_by_id,
+                                         (BtorCmpPtr) btor_compare_exp_by_id);
+}
+
 static BtorSolverResult
 sat_fun_solver (BtorFunSolver *slv)
 {
@@ -2209,6 +2225,8 @@ sat_fun_solver (BtorFunSolver *slv)
   }
 
   configure_sat_mgr (btor);
+
+  if (slv->assume_lemmas) reset_lemma_cache (slv);
 
   if (btor->valid_assignments == 1) btor_reset_incremental_usage (btor);
 
