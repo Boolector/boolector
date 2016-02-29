@@ -317,13 +317,16 @@ parse (FILE *file)
 
   delete = 1;
 
-  exp_ret = RET_NONE;
-  ret_ptr = ret_str = 0;
-  len               = 0;
-  buffer_len        = 256;
-  arg2_int          = 0;
-  btor              = 0;
-  clone             = 0;
+  exp_ret    = RET_NONE;
+  ret_int    = 0;
+  ret_ptr    = 0;
+  ret_str    = 0;
+  ret_bool   = false;
+  len        = 0;
+  buffer_len = 256;
+  arg2_int   = 0;
+  btor       = 0;
+  clone      = 0;
 
   hmap = btor_new_ptr_hash_table (
       btorunt->mm, (BtorHashPtr) btor_hash_str, (BtorCmpPtr) strcmp);
