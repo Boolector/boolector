@@ -3721,18 +3721,15 @@ btor_set_option_smt2 (BtorSMT2Parser *parser)
   else
   {
     if (tag == BTOR_PRODUCE_MODELS_TAG_SMT2)
-      opt = btor_strdup (parser->mem, BTOR_OPT_MODEL_GEN);
+      o = BTOR_OPT_MODEL_GEN;
     else
     {
-      opt = btor_strdup (parser->mem, parser->token.start + 1);
+      opt = parser->token.start + 1;
       if (!btor_get_ptr_hash_table (parser->btor->str2opt, opt))
-      {
-        btor_freestr (parser->mem, opt);
-        return !btor_perr_smt2 (parser, "unsupported option");
-      }
+        return !btor_perr_smt2 (parser, "unsupported option: '%s'", opt);
+      o = btor_get_ptr_hash_table (parser->btor->str2opt, opt)->data.as_int;
     }
 
-    o   = btor_get_ptr_hash_table (parser->btor->str2opt, opt)->data.as_int;
     tag = btor_read_token_smt2 (parser);
     if (tag == BTOR_INVALID_TAG_SMT2)
     {
@@ -3754,7 +3751,6 @@ btor_set_option_smt2 (BtorSMT2Parser *parser)
       parser->incremental = val;
     else if (o == BTOR_OPT_VERBOSITY)
       parser->verbosity = val;
-    btor_freestr (parser->mem, opt);
   }
   return btor_skip_sexprs (parser, 1);
 }
