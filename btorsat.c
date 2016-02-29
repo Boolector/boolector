@@ -215,11 +215,10 @@ btor_init_sat (BtorSATMgr *smgr)
   assert (!smgr->initialized);
   BTOR_MSG (smgr->msg, 1, "initialized %s", smgr->name);
 
-  smgr->solver                         = smgr->api.init (smgr);
-  smgr->initialized                    = 1;
-  smgr->inc_required                   = 1;
-  smgr->sat_time                       = 0;
-  smgr->used_that_inc_was_not_required = 0;
+  smgr->solver       = smgr->api.init (smgr);
+  smgr->initialized  = 1;
+  smgr->inc_required = 1;
+  smgr->sat_time     = 0;
 
   if (smgr->api.setterm) smgr->api.setterm (smgr);
 
@@ -818,10 +817,7 @@ btor_lingeling_inc_max_var (BtorSATMgr *smgr)
 {
   BtorLGL *blgl = smgr->solver;
   int res       = lglincvar (blgl->lgl);
-  if (smgr->inc_required)
-    lglfreeze (blgl->lgl, res);
-  else
-    smgr->used_that_inc_was_not_required = 1;
+  if (smgr->inc_required) lglfreeze (blgl->lgl, res);
   return res;
 }
 
@@ -853,11 +849,7 @@ static void
 btor_lingeling_melt (BtorSATMgr *smgr, int lit)
 {
   BtorLGL *blgl = smgr->solver;
-  if (smgr->inc_required)
-  {
-    assert (!smgr->used_that_inc_was_not_required);
-    lglmelt (blgl->lgl, lit);
-  }
+  if (smgr->inc_required) lglmelt (blgl->lgl, lit);
 }
 
 static int

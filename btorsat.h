@@ -38,7 +38,6 @@ struct BtorSATMgr
   /* Note: do not change order! (btor_clone_sat_mgr relies on inc_required
    * to come first of all fields following below.) */
   int inc_required;
-  int used_that_inc_was_not_required;
 #ifdef BTOR_USE_LINGELING
   bool fork;
 #endif
