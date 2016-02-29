@@ -179,10 +179,11 @@ configure_sat_mgr (Btor *btor)
   {
 #ifdef BTOR_USE_LINGELING
     case BTOR_SAT_ENGINE_LINGELING:
-      btor_enable_lingeling_sat (
-          smgr,
-          btor_get_opt_valstr (btor, BTOR_OPT_SAT_ENGINE),
-          btor_get_opt (btor, BTOR_OPT_SAT_ENGINE_LGL_FORK) == 1);
+      if (!btor_enable_lingeling_sat (
+              smgr,
+              btor_get_opt_valstr (btor, BTOR_OPT_SAT_ENGINE),
+              btor_get_opt (btor, BTOR_OPT_SAT_ENGINE_LGL_FORK) == 1))
+        BTOR_ABORT_CORE (1, "failed to enable sat solver Lingeling");
       break;
 #endif
 #ifdef BTOR_USE_PICOSAT
@@ -201,7 +202,7 @@ configure_sat_mgr (Btor *btor)
   if (!btor_get_opt (btor, BTOR_OPT_INCREMENTAL) && smgr->inc_required
       && btor->lambdas->count == 0 && btor->ufs->count == 0)
   {
-    smgr->inc_required = 0;
+    smgr->inc_required = false;
     BTOR_MSG (btor->msg,
               1,
               "no functions found, resetting SAT solver to non-incremental");

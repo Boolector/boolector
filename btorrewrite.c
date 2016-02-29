@@ -392,7 +392,7 @@ concat_simplifiable (BtorNode *exp)
   return BTOR_IS_BV_VAR_NODE (exp) || BTOR_IS_BV_CONST_NODE (exp);
 }
 
-static int
+static bool
 is_write_exp (BtorNode *exp,
               BtorNode **array,
               BtorNode **index,
@@ -404,33 +404,34 @@ is_write_exp (BtorNode *exp,
   BtorNode *param, *body, *eq, *app;
 
   if (!BTOR_IS_LAMBDA_NODE (exp) || btor_get_fun_arity (exp->btor, exp) > 1)
-    return 0;
+    return false;
 
   param = exp->e[0];
   body  = btor_lambda_get_body (exp);
 
-  if (BTOR_IS_INVERTED_NODE (body) || !BTOR_IS_BV_COND_NODE (body)) return 0;
+  if (BTOR_IS_INVERTED_NODE (body) || !BTOR_IS_BV_COND_NODE (body))
+    return false;
 
   /* check condition */
   eq = body->e[0];
   if (BTOR_IS_INVERTED_NODE (eq) || !BTOR_IS_BV_EQ_NODE (eq)
       || !eq->parameterized || (eq->e[0] != param && eq->e[1] != param))
-    return 0;
+    return false;
 
   /* check value */
-  if (BTOR_REAL_ADDR_NODE (body->e[1])->parameterized) return 0;
+  if (BTOR_REAL_ADDR_NODE (body->e[1])->parameterized) return false;
 
   /* check apply on unmodified array */
   app = body->e[2];
   if (BTOR_IS_INVERTED_NODE (app) || !BTOR_IS_APPLY_NODE (app)
       || btor_get_args_arity (app->btor, app->e[1]) > 1
       || app->e[1]->e[0] != param)
-    return 0;
+    return false;
 
   if (array) *array = app->e[0];
   if (index) *index = eq->e[1] == param ? eq->e[0] : eq->e[1];
   if (value) *value = body->e[1];
-  return 1;
+  return true;
 }
 
 static bool
@@ -511,7 +512,7 @@ static BtorNode *rewrite_cond_exp (Btor *, BtorNode *, BtorNode *, BtorNode *);
 /* match:  binary op with two constants
  * result: constant
  */
-static inline int
+static inline bool
 applies_const_binary_exp (Btor *btor,
                           BtorNodeKind kind,
                           BtorNode *e0,
@@ -573,7 +574,7 @@ apply_const_binary_exp (Btor *btor,
 /* match:  binary op with one constant
  * result: constant
  */
-static inline int
+static inline bool
 applies_special_const_lhs_binary_exp (Btor *btor,
                                       BtorNodeKind kind,
                                       BtorNode *e0,
@@ -839,7 +840,7 @@ apply_special_const_lhs_binary_exp (Btor *btor,
 /* match:  binary op with one constant
  * result: constant
  */
-static inline int
+static inline bool
 applies_special_const_rhs_binary_exp (Btor *btor,
                                       BtorNodeKind kind,
                                       BtorNode *e0,
@@ -1108,7 +1109,7 @@ apply_special_const_rhs_binary_exp (Btor *btor,
  * and 'factor' is odd?  We check whether this is possible but do not use
  * more than 'bound' recursive calls.
  */
-static int
+static bool
 rewrite_linear_term_bounded (Btor *btor,
                              BtorNode *term,
                              BtorBitVector **factor_ptr,
@@ -1120,7 +1121,7 @@ rewrite_linear_term_bounded (Btor *btor,
   BtorBitVector *factor;
   int term_width;
 
-  if (*bound_ptr <= 0) return 0;
+  if (*bound_ptr <= 0) return false;
 
   *bound_ptr -= 1;
 
@@ -1138,7 +1139,7 @@ rewrite_linear_term_bounded (Btor *btor,
                                       lhs_ptr,
                                       rhs_ptr,
                                       bound_ptr))
-      return 0;
+      return false;
 
     *rhs_ptr    = BTOR_INVERT_NODE (*rhs_ptr);
     *factor_ptr = btor_neg_bv (btor->mm, factor);
@@ -1165,7 +1166,7 @@ rewrite_linear_term_bounded (Btor *btor,
       other = term->e[0];
     }
     else
-      return 0;
+      return false;
 
     *rhs_ptr = rewrite_add_exp (btor, other, tmp);
     btor_release_exp (btor, tmp);
@@ -1176,7 +1177,7 @@ rewrite_linear_term_bounded (Btor *btor,
     {
       if (!rewrite_linear_term_bounded (
               btor, term->e[1], &factor, lhs_ptr, &tmp, bound_ptr))
-        return 0;
+        return false;
 
       /* term = e0 * e1
        *      = e0 * (factor * lhs + rhs)
@@ -1189,7 +1190,7 @@ rewrite_linear_term_bounded (Btor *btor,
     {
       if (!rewrite_linear_term_bounded (
               btor, term->e[0], &factor, lhs_ptr, &tmp, bound_ptr))
-        return 0;
+        return false;
 
       /* term = e0 * e1
        *      = (factor * lhs + rhs) * e1
@@ -1199,7 +1200,7 @@ rewrite_linear_term_bounded (Btor *btor,
       other = term->e[1];
     }
     else
-      return 0;
+      return false;
 
     assert (!BTOR_IS_INVERTED_NODE (other));
     *factor_ptr = btor_mul_bv (btor->mm, btor_const_get_bits (other), factor);
@@ -1215,9 +1216,9 @@ rewrite_linear_term_bounded (Btor *btor,
     *factor_ptr = btor_one_bv (btor->mm, term_width);
   }
   else
-    return 0;
+    return false;
 
-  return 1;
+  return true;
 }
 
 int
@@ -1238,7 +1239,7 @@ btor_rewrite_linear_term (Btor *btor,
  *
  * for each rule we define two functions:
 
-static inline int
+static inline bool
 applies_<rw_rule> (Btor * btor, ...)
 {
 
@@ -1263,7 +1264,7 @@ apply_<rw_rule> (Btor * btor, ...)
 /* match:  exp[len(exp) - 1:0]
  * result: exp
  */
-static inline int
+static inline bool
 applies_full_slice (Btor *btor, BtorNode *exp, uint32_t upper, uint32_t lower)
 {
   (void) btor;
@@ -1283,7 +1284,7 @@ apply_full_slice (Btor *btor, BtorNode *exp, uint32_t upper, uint32_t lower)
 /* match: exp[upper:lower], where exp is a constant
  * result: constant
  */
-static inline int
+static inline bool
 applies_const_slice (Btor *btor, BtorNode *exp, uint32_t upper, uint32_t lower)
 {
   (void) btor;
@@ -1310,7 +1311,7 @@ apply_const_slice (Btor *btor, BtorNode *exp, uint32_t upper, uint32_t lower)
 /* match:  (exp[u:l])[upper:lower]
  * result: exp[l+upper:l+lower]
  */
-static inline int
+static inline bool
 applies_slice_slice (Btor *btor, BtorNode *exp, uint32_t upper, uint32_t lower)
 {
   (void) upper;
@@ -1339,7 +1340,7 @@ apply_slice_slice (Btor *btor, BtorNode *exp, uint32_t upper, uint32_t lower)
 /* match: (a::b)[len(b)-1:0]
  * result: b
  */
-static inline int
+static inline bool
 applies_concat_lower_slice (Btor *btor,
                             BtorNode *exp,
                             uint32_t upper,
@@ -1370,7 +1371,7 @@ apply_concat_lower_slice (Btor *btor,
 /* match: (a::b)[len(a)+len(b)-1:len(b)]
  * result: a
  */
-static inline int
+static inline bool
 applies_concat_upper_slice (Btor *btor,
                             BtorNode *exp,
                             uint32_t upper,
@@ -1405,7 +1406,7 @@ apply_concat_upper_slice (Btor *btor,
  * concats are normalized at rewrite level 3,
  * we recursively check if slice and child of concat matches
  */
-static inline int
+static inline bool
 applies_concat_rec_upper_slice (Btor *btor,
                                 BtorNode *exp,
                                 uint32_t upper,
@@ -1446,7 +1447,7 @@ apply_concat_rec_upper_slice (Btor *btor,
  * concats are normalized at rewrite level 3,
  * we recursively check if slice and child of concat matches
  */
-static inline int
+static inline bool
 applies_concat_rec_lower_slice (Btor *btor,
                                 BtorNode *exp,
                                 uint32_t upper,
@@ -1485,7 +1486,7 @@ apply_concat_rec_lower_slice (Btor *btor,
  * concats are normalized at rewrite level 3,
  * we recursively check if slice and child of concat matches
  */
-static inline int
+static inline bool
 applies_concat_rec_slice (Btor *btor,
                           BtorNode *exp,
                           uint32_t upper,
@@ -1524,7 +1525,7 @@ apply_concat_rec_slice (Btor *btor,
 /* match:  (a & b)[upper:lower]
  * result: a[upper:lower] & b[upper:lower]
  */
-static inline int
+static inline bool
 applies_and_slice (Btor *btor, BtorNode *exp, uint32_t upper, uint32_t lower)
 {
   (void) upper;
@@ -1558,7 +1559,7 @@ apply_and_slice (Btor *btor, BtorNode *exp, uint32_t upper, uint32_t lower)
 /* match:  (c ? a : b)[upper:lower]
  * result: c ? a[upper:lower] : b[upper:lower]
  */
-static inline int
+static inline bool
 applies_bcond_slice (Btor *btor, BtorNode *exp, uint32_t upper, uint32_t lower)
 {
   (void) upper;
@@ -1589,7 +1590,7 @@ apply_bcond_slice (Btor *btor, BtorNode *exp, uint32_t upper, uint32_t lower)
   return result;
 }
 
-static inline int
+static inline bool
 applies_zero_lower_slice (Btor *btor,
                           BtorNode *exp,
                           uint32_t upper,
@@ -1629,7 +1630,7 @@ apply_zero_lower_slice (Btor *btor,
 /* match:  a = a
  * result: true
  */
-static inline int
+static inline bool
 applies_true_eq (Btor *btor, BtorNode *e0, BtorNode *e1)
 {
   (void) btor;
@@ -1648,7 +1649,7 @@ apply_true_eq (Btor *btor, BtorNode *e0, BtorNode *e1)
 /* match:  a = b, where a != b
  * result: false
  */
-static inline int
+static inline bool
 applies_false_eq (Btor *btor, BtorNode *e0, BtorNode *e1)
 {
   return is_always_unequal (btor, e0, e1);
@@ -1669,7 +1670,7 @@ apply_false_eq (Btor *btor, BtorNode *e0, BtorNode *e1)
  * This rule does not lead to less substitutions. 'a' cannot
  * be substituted as the occurrence check would fail
  */
-static inline int
+static inline bool
 applies_add_left_eq (Btor *btor, BtorNode *e0, BtorNode *e1)
 {
   return btor_get_opt (btor, BTOR_OPT_REWRITE_LEVEL) > 2
@@ -1700,7 +1701,7 @@ apply_add_left_eq (Btor *btor, BtorNode *e0, BtorNode *e1)
  * This rule does not lead to less substitutions. 'a' cannot
  * be substituted as the occurrence check would fail
  */
-static inline int
+static inline bool
 applies_add_right_eq (Btor *btor, BtorNode *e0, BtorNode *e1)
 {
   return btor_get_opt (btor, BTOR_OPT_REWRITE_LEVEL) > 2
@@ -1728,7 +1729,7 @@ apply_add_right_eq (Btor *btor, BtorNode *e0, BtorNode *e1)
 /* match:  a + b = a + c
  * result: b = c
  */
-static inline int
+static inline bool
 applies_add_add_1_eq (Btor *btor, BtorNode *e0, BtorNode *e1)
 {
   return btor_get_opt (btor, BTOR_OPT_REWRITE_LEVEL) > 2
@@ -1753,7 +1754,7 @@ apply_add_add_1_eq (Btor *btor, BtorNode *e0, BtorNode *e1)
 /* match:  a + b = c + a
  * result: b = c
  */
-static inline int
+static inline bool
 applies_add_add_2_eq (Btor *btor, BtorNode *e0, BtorNode *e1)
 {
   return btor_get_opt (btor, BTOR_OPT_REWRITE_LEVEL) > 2
@@ -1778,7 +1779,7 @@ apply_add_add_2_eq (Btor *btor, BtorNode *e0, BtorNode *e1)
 /* match:  b + a = a + c
  * result: b = c
  */
-static inline int
+static inline bool
 applies_add_add_3_eq (Btor *btor, BtorNode *e0, BtorNode *e1)
 {
   return btor_get_opt (btor, BTOR_OPT_REWRITE_LEVEL) > 2
@@ -1803,7 +1804,7 @@ apply_add_add_3_eq (Btor *btor, BtorNode *e0, BtorNode *e1)
 /* match:  b + a = c + a
  * result: b = c
  */
-static inline int
+static inline bool
 applies_add_add_4_eq (Btor *btor, BtorNode *e0, BtorNode *e1)
 {
   return btor_get_opt (btor, BTOR_OPT_REWRITE_LEVEL) > 2
@@ -1831,7 +1832,7 @@ apply_add_add_4_eq (Btor *btor, BtorNode *e0, BtorNode *e1)
  * Commutative operators are normalized ignoring signs, so we do not have to
  * check cases like a & b ==  ~b & a as they are represented as a & b == a & ~b
  */
-static inline int
+static inline bool
 applies_and_and_1_eq (Btor *btor, BtorNode *e0, BtorNode *e1)
 {
   return btor_get_opt (btor, BTOR_OPT_REWRITE_LEVEL) > 2
@@ -1865,7 +1866,7 @@ appy_and_and_1_eq (Btor *btor, BtorNode *e0, BtorNode *e1)
  * Commutative operators are normalized ignoring signs, so we do not have to
  * check cases like a & b ==  ~b & a as they are represented as a & b == a & ~b
  */
-static inline int
+static inline bool
 applies_and_and_2_eq (Btor *btor, BtorNode *e0, BtorNode *e1)
 {
   return btor_get_opt (btor, BTOR_OPT_REWRITE_LEVEL) > 2
@@ -1900,7 +1901,7 @@ appy_and_and_2_eq (Btor *btor, BtorNode *e0, BtorNode *e1)
  * Commutative operators are normalized ignoring signs, so we do not have to
  * check cases like a & b ==  ~b & a as they are represented as a & b == a & ~b
  */
-static inline int
+static inline bool
 applies_and_and_3_eq (Btor *btor, BtorNode *e0, BtorNode *e1)
 {
   return btor_get_opt (btor, BTOR_OPT_REWRITE_LEVEL) > 2
@@ -1932,7 +1933,7 @@ appy_and_and_3_eq (Btor *btor, BtorNode *e0, BtorNode *e1)
  * Commutative operators are normalized ignoring signs, so we do not have to
  * check cases like a & b ==  ~b & a as they are represented as a & b == a & ~b
  */
-static inline int
+static inline bool
 applies_and_and_4_eq (Btor *btor, BtorNode *e0, BtorNode *e1)
 {
   return btor_get_opt (btor, BTOR_OPT_REWRITE_LEVEL) > 2
@@ -1961,7 +1962,7 @@ appy_and_and_4_eq (Btor *btor, BtorNode *e0, BtorNode *e1)
 /* match:  b ? a : t = d, where a != d
  * result: !b AND d = t
  */
-static inline int
+static inline bool
 applies_bcond_uneq_if_eq (Btor *btor, BtorNode *e0, BtorNode *e1)
 {
   return btor_get_opt (btor, BTOR_OPT_REWRITE_LEVEL) > 2
@@ -1988,7 +1989,7 @@ apply_bcond_uneq_if_eq (Btor *btor, BtorNode *e0, BtorNode *e1)
 /* match:  b ? a : t = d, where a != d
  * result: !b AND d = t
  */
-static inline int
+static inline bool
 applies_bcond_uneq_else_eq (Btor *btor, BtorNode *e0, BtorNode *e1)
 {
   return btor_get_opt (btor, BTOR_OPT_REWRITE_LEVEL) > 2
@@ -2017,7 +2018,7 @@ apply_bcond_uneq_else_eq (Btor *btor, BtorNode *e0, BtorNode *e1)
  * match:  a = ~(b ? a : c)
  * result: !b AND a = ~c
  */
-static inline int
+static inline bool
 applies_bcond_if_eq (Btor *btor, BtorNode *e0, BtorNode *e1)
 {
   return btor_get_opt (btor, BTOR_OPT_REWRITE_LEVEL) > 2
@@ -2056,7 +2057,7 @@ apply_bcond_if_eq (Btor *btor, BtorNode *e0, BtorNode *e1)
  * match:  a = ~(b ? c : a)
  * result: b AND a = ~c
  */
-static inline int
+static inline bool
 applies_bcond_else_eq (Btor *btor, BtorNode *e0, BtorNode *e1)
 {
   return btor_get_opt (btor, BTOR_OPT_REWRITE_LEVEL) > 2
@@ -2093,7 +2094,7 @@ apply_bcond_else_eq (Btor *btor, BtorNode *e0, BtorNode *e1)
 /* match:  (x ? a : b) = (x : c : d), where either a = c or b = d
  * result: x ? a = c : b = d
  */
-static inline int
+static inline bool
 applies_bcond_eq (Btor *btor, BtorNode *e0, BtorNode *e1)
 {
   BtorNode *real_e0, *real_e1;
@@ -2133,7 +2134,7 @@ apply_bcond_eq (Btor *btor, BtorNode *e0, BtorNode *e1)
 /* match:  a * b + a * c
  * result: a * (b + c)
  */
-static inline int
+static inline bool
 applies_add_mul_distrib (Btor *btor, BtorNode *e0, BtorNode *e1)
 {
   return btor_get_opt (btor, BTOR_OPT_REWRITE_LEVEL) > 2
@@ -2184,7 +2185,7 @@ apply_add_mul_distrib (Btor *btor, BtorNode *e0, BtorNode *e1)
  *
  *
  */
-static inline int
+static inline bool
 applies_distrib_add_mul_eq (Btor *btor, BtorNode *e0, BtorNode *e1)
 {
   int result;
@@ -2216,7 +2217,7 @@ apply_distrib_add_mul_eq (Btor *btor, BtorNode *e0, BtorNode *e1)
  *
  * push eq down over concats
  */
-static inline int
+static inline bool
 applies_concat_eq (Btor *btor, BtorNode *e0, BtorNode *e1)
 {
   (void) e1;
@@ -2268,7 +2269,7 @@ apply_concat_eq (Btor *btor, BtorNode *e0, BtorNode *e1)
   return result;
 }
 
-static inline int
+static inline bool
 applies_zero_eq_and_eq (Btor *btor, BtorNode *e0, BtorNode *e1)
 {
   BtorNode *real_e1;
@@ -2313,7 +2314,7 @@ apply_zero_eq_and_eq (Btor *btor, BtorNode *e0, BtorNode *e1)
 /* match:  a < a
  * result: false
  */
-static inline int
+static inline bool
 applies_false_ult (Btor *btor, BtorNode *e0, BtorNode *e1)
 {
   (void) btor;
@@ -2332,7 +2333,7 @@ apply_false_ult (Btor *btor, BtorNode *e0, BtorNode *e1)
 /* match:  a < b, where len(a) = 1
  * result: !a AND b
  */
-static inline int
+static inline bool
 applies_bool_ult (Btor *btor, BtorNode *e0, BtorNode *e1)
 {
   (void) e1;
@@ -2356,7 +2357,7 @@ apply_bool_ult (Btor *btor, BtorNode *e0, BtorNode *e1)
 /* match:  (a::b) < (a::c)
  * result: b < c
  */
-static inline int
+static inline bool
 applies_concat_upper_ult (Btor *btor, BtorNode *e0, BtorNode *e1)
 {
   return btor_get_opt (btor, BTOR_OPT_REWRITE_LEVEL) > 2
@@ -2382,7 +2383,7 @@ apply_concat_upper_ult (Btor *btor, BtorNode *e0, BtorNode *e1)
 /* match:  (b::a) < (c::a)
  * result: b < c
  */
-static inline int
+static inline bool
 applies_concat_lower_ult (Btor *btor, BtorNode *e0, BtorNode *e1)
 {
   return btor_get_opt (btor, BTOR_OPT_REWRITE_LEVEL) > 2
@@ -2408,7 +2409,7 @@ apply_concat_lower_ult (Btor *btor, BtorNode *e0, BtorNode *e1)
 /* match:  (x ? a : b) < (x : c : d), where either a = c or b = d
  * result: x ? a < c : b < d
  */
-static inline int
+static inline bool
 applies_bcond_ult (Btor *btor, BtorNode *e0, BtorNode *e1)
 {
   BtorNode *real_e0, *real_e1;
@@ -2450,7 +2451,7 @@ apply_bcond_ult (Btor *btor, BtorNode *e0, BtorNode *e1)
 /* match:  a & a
  * result: a
  */
-static inline int
+static inline bool
 applies_idem1_and (Btor *btor, BtorNode *e0, BtorNode *e1)
 {
   (void) btor;
@@ -2468,7 +2469,7 @@ apply_idem1_and (Btor *btor, BtorNode *e0, BtorNode *e1)
 /* match:  a & ~a
  * result: 0
  */
-static inline int
+static inline bool
 applies_contr1_and (Btor *btor, BtorNode *e0, BtorNode *e1)
 {
   (void) btor;
@@ -2488,7 +2489,7 @@ apply_contr1_and (Btor *btor, BtorNode *e0, BtorNode *e1)
  *
  * second rule of contradiction
  */
-static inline int
+static inline bool
 applies_contr2_and (Btor *btor, BtorNode *e0, BtorNode *e1)
 {
   (void) btor;
@@ -2514,7 +2515,7 @@ apply_contr2_and (Btor *btor, BtorNode *e0, BtorNode *e1)
  *
  * symmetric rule of idempotency
  */
-static inline int
+static inline bool
 applies_idem2_and (Btor *btor, BtorNode *e0, BtorNode *e1)
 {
   BtorNode *real_e0, *real_e1;
@@ -2545,7 +2546,7 @@ apply_idem2_and (Btor *btor, BtorNode *e0, BtorNode *e1)
  *
  * use commutativity
  */
-static inline int
+static inline bool
 applies_comm_and (Btor *btor, BtorNode *e0, BtorNode *e1)
 {
   BtorNode *real_e0, *real_e1;
@@ -2574,7 +2575,7 @@ apply_comm_and (Btor *btor, BtorNode *e0, BtorNode *e1)
 /* match: a & b & ~(c & d), where a = c OR a = d OR b = c OR b = d
  * result: a & b
  */
-static inline int
+static inline bool
 applies_subsum1_and (Btor *btor, BtorNode *e0, BtorNode *e1)
 {
   (void) btor;
@@ -2606,7 +2607,7 @@ apply_subsum1_and (Btor *btor, BtorNode *e0, BtorNode *e1)
  *
  * symmetric rule of substitution
  */
-static inline int
+static inline bool
 applies_subst1_and (Btor *btor, BtorNode *e0, BtorNode *e1)
 {
   BtorNode *real_e0, *real_e1;
@@ -2637,7 +2638,7 @@ apply_subst1_and (Btor *btor, BtorNode *e0, BtorNode *e1)
  *
  * symmetric rule of substitution
  */
-static inline int
+static inline bool
 applies_subst2_and (Btor *btor, BtorNode *e0, BtorNode *e1)
 {
   BtorNode *real_e0, *real_e1;
@@ -2666,7 +2667,7 @@ apply_subst2_and (Btor *btor, BtorNode *e0, BtorNode *e1)
 /* match: a XNOR b, where len(a) = 1
  * result: a = b
  */
-static inline int
+static inline bool
 applies_bool_xnor_and (Btor *btor, BtorNode *e0, BtorNode *e1)
 {
   BtorNode *real_e0, *real_e1;
@@ -2708,7 +2709,7 @@ apply_bool_xnor_and (Btor *btor, BtorNode *e0, BtorNode *e1)
  *
  * rule of resolution
  */
-static inline int
+static inline bool
 applies_resol1_and (Btor *btor, BtorNode *e0, BtorNode *e1)
 {
   BtorNode *real_e0, *real_e1;
@@ -2737,7 +2738,7 @@ apply_resol1_and (Btor *btor, BtorNode *e0, BtorNode *e1)
  *
  * rule of resolution
  */
-static inline int
+static inline bool
 applies_resol2_and (Btor *btor, BtorNode *e0, BtorNode *e1)
 {
   BtorNode *real_e0, *real_e1;
@@ -2766,7 +2767,7 @@ apply_resol2_and (Btor *btor, BtorNode *e0, BtorNode *e1)
  *
  * first rule of subsumption
  */
-static inline int
+static inline bool
 applies_subsum2_and (Btor *btor, BtorNode *e0, BtorNode *e1)
 {
   (void) btor;
@@ -2790,7 +2791,7 @@ apply_subsum2_and (Btor *btor, BtorNode *e0, BtorNode *e1)
  *
  * asymmetric rule of substitution
  */
-static inline int
+static inline bool
 applies_subst3_and (Btor *btor, BtorNode *e0, BtorNode *e1)
 {
   BtorNode *real_e0;
@@ -2818,7 +2819,7 @@ apply_subst3_and (Btor *btor, BtorNode *e0, BtorNode *e1)
  *
  * asymmetric rule of substitution
  */
-static inline int
+static inline bool
 applies_subst4_and (Btor *btor, BtorNode *e0, BtorNode *e1)
 {
   BtorNode *real_e0;
@@ -2846,7 +2847,7 @@ apply_subst4_and (Btor *btor, BtorNode *e0, BtorNode *e1)
  *
  * first rule of contradiction
  */
-static inline int
+static inline bool
 applies_contr3_and (Btor *btor, BtorNode *e0, BtorNode *e1)
 {
   (void) btor;
@@ -2869,7 +2870,7 @@ apply_contr3_and (Btor *btor, BtorNode *e0, BtorNode *e1)
  *
  * asymmetric rule of idempotency
  */
-static inline int
+static inline bool
 applies_idem3_and (Btor *btor, BtorNode *e0, BtorNode *e1)
 {
   (void) btor;
@@ -2888,7 +2889,7 @@ apply_idem3_and (Btor *btor, BtorNode *e0, BtorNode *e1)
 /* match: a & b & c, where a and c are constants
  * result: d & b, where d is a new constant obtained from a & c
  */
-static inline int
+static inline bool
 applies_const1_and (Btor *btor, BtorNode *e0, BtorNode *e1)
 {
   return btor->rec_rw_calls < BTOR_REC_RW_BOUND
@@ -2919,7 +2920,7 @@ apply_const1_and (Btor *btor, BtorNode *e0, BtorNode *e1)
 /* match: a & b & c, where b and c are constants
  * result: d & a, where d is a new constant obtained from b & c
  */
-static inline int
+static inline bool
 applies_const2_and (Btor *btor, BtorNode *e0, BtorNode *e1)
 {
   return btor->rec_rw_calls < BTOR_REC_RW_BOUND
@@ -2948,7 +2949,7 @@ apply_const2_and (Btor *btor, BtorNode *e0, BtorNode *e1)
 /* match: (a < b) & (b < a)
  * result: false
  */
-static inline int
+static inline bool
 applies_ult_false_and (Btor *btor, BtorNode *e0, BtorNode *e1)
 {
   (void) btor;
@@ -2970,7 +2971,7 @@ apply_ult_false_and (Btor *btor, BtorNode *e0, BtorNode *e1)
 /* match: ~(a < b) & ~(b < a)
  * result: a = b
  */
-static inline int
+static inline bool
 applies_ult_and (Btor *btor, BtorNode *e0, BtorNode *e1)
 {
   BtorNode *real_e0, *real_e1;
@@ -3001,7 +3002,7 @@ apply_ult_and (Btor *btor, BtorNode *e0, BtorNode *e1)
  *
  * recursively find contradicting ands
  */
-static inline int
+static inline bool
 applies_contr_rec_and (Btor *btor, BtorNode *e0, BtorNode *e1)
 {
   int calls = 0;
@@ -3026,7 +3027,7 @@ apply_contr_rec_and (Btor *btor, BtorNode *e0, BtorNode *e1)
  * match: (1::a) & (b::1)
  * result: b::a
  */
-static inline int
+static inline bool
 applies_concat_and (Btor *btor, BtorNode *e0, BtorNode *e1)
 {
   int result;
@@ -3080,7 +3081,7 @@ apply_concat_and (Btor *btor, BtorNode *e0, BtorNode *e1)
 /* match:
  * result: 
  */
-static inline int
+static inline bool
 applies_and (Btor * btor, BtorNode * e0, BtorNode * e1)
 {
   return btor_get_opt (btor, BTOR_OPT_REWRITE_LEVEL) > 2
@@ -3147,7 +3148,7 @@ apply_and (Btor * btor, BtorNode * e0, BtorNode * e1)
 /* match:  a + b, where len(a) = 1
  * result: a XOR b
  */
-static inline int
+static inline bool
 applies_bool_add (Btor *btor, BtorNode *e0, BtorNode *e1)
 {
   (void) e1;
@@ -3171,7 +3172,7 @@ apply_bool_add (Btor *btor, BtorNode *e0, BtorNode *e1)
 /* match:  a - b OR -a + b, where a = b
  * result: 0
  */
-static inline int
+static inline bool
 applies_neg_add (Btor *btor, BtorNode *e0, BtorNode *e1)
 {
   (void) btor;
@@ -3193,7 +3194,7 @@ apply_neg_add (Btor *btor, BtorNode *e0, BtorNode *e1)
 /* match: 0 + b
  * result: b
  */
-static inline int
+static inline bool
 applies_zero_add (Btor *btor, BtorNode *e0, BtorNode *e1)
 {
   (void) e1;
@@ -3215,7 +3216,7 @@ apply_zero_add (Btor *btor, BtorNode *e0, BtorNode *e1)
  * folding of constants, and the other call can not
  * trigger the same kind of recursion anymore.
  */
-static inline int
+static inline bool
 applies_const_lhs_add (Btor *btor, BtorNode *e0, BtorNode *e1)
 {
   return btor->rec_rw_calls < BTOR_REC_RW_BOUND
@@ -3247,7 +3248,7 @@ apply_const_lhs_add (Btor *btor, BtorNode *e0, BtorNode *e1)
  * folding of constants, and the other call can not
  * trigger the same kind of recursion anymore.
  */
-static inline int
+static inline bool
 applies_const_rhs_add (Btor *btor, BtorNode *e0, BtorNode *e1)
 {
   return btor->rec_rw_calls < BTOR_REC_RW_BOUND
@@ -3335,7 +3336,7 @@ apply_const_rhs_add (Btor *btor, BtorNode *e0, BtorNode *e1)
 /* match:  ~(c * a) + b
  * result: ((-c) * a - 1) + b
  */
-static inline int
+static inline bool
 applies_const_neg_lhs_add (Btor *btor, BtorNode *e0, BtorNode *e1)
 {
   (void) e1;
@@ -3377,7 +3378,7 @@ apply_const_neg_lhs_add (Btor *btor, BtorNode *e0, BtorNode *e1)
 /* match:  ~(a * c) + b
  * result: (a * (-c) - 1) + b
  */
-static inline int
+static inline bool
 applies_const_neg_rhs_add (Btor *btor, BtorNode *e0, BtorNode *e1)
 {
   (void) e1;
@@ -3419,7 +3420,7 @@ apply_const_neg_rhs_add (Btor *btor, BtorNode *e0, BtorNode *e1)
 /* match:  a + a
  * result: 2 * a
  */
-static inline int
+static inline bool
 applies_mult_add (Btor *btor, BtorNode *e0, BtorNode *e1)
 {
   return btor->rec_rw_calls < BTOR_REC_RW_BOUND && e0 == e1
@@ -3445,7 +3446,7 @@ apply_mult_add (Btor *btor, BtorNode *e0, BtorNode *e1)
 /* match:  a + ~a
  * result: -1
  */
-static inline int
+static inline bool
 applies_not_add (Btor *btor, BtorNode *e0, BtorNode *e1)
 {
   (void) btor;
@@ -3464,7 +3465,7 @@ apply_not_add (Btor *btor, BtorNode *e0, BtorNode *e1)
 /* match:  (x ? a : b) + (x : c : d), where either a = c or b = d
  * result: x ? a + c : b + d
  */
-static inline int
+static inline bool
 applies_bcond_add (Btor *btor, BtorNode *e0, BtorNode *e1)
 {
   BtorNode *real_e0, *real_e1;
@@ -3506,7 +3507,7 @@ apply_bcond_add (Btor *btor, BtorNode *e0, BtorNode *e1)
 /* match:  a * b, wher len(a) = 1
  * result: a & b
  */
-static inline int
+static inline bool
 applies_bool_mul (Btor *btor, BtorNode *e0, BtorNode *e1)
 {
   (void) e1;
@@ -3529,7 +3530,7 @@ apply_bool_mul (Btor *btor, BtorNode *e0, BtorNode *e1)
 /* match: c0 * (c1 * b), where c0 and c1 are constants
  * result: c * b, where c is a new constant from c0 * c1
  */
-static inline int
+static inline bool
 applies_const_lhs_mul (Btor *btor, BtorNode *e0, BtorNode *e1)
 {
   return btor->rec_rw_calls < BTOR_REC_RW_BOUND
@@ -3556,7 +3557,7 @@ apply_const_lhs_mul (Btor *btor, BtorNode *e0, BtorNode *e1)
 /* match: c0 * (b * c1), where c0 and c1 are constants
  * result: c * b, where c is a new constant from c0 * c1
  */
-static inline int
+static inline bool
 applies_const_rhs_mul (Btor *btor, BtorNode *e0, BtorNode *e1)
 {
   return btor->rec_rw_calls < BTOR_REC_RW_BOUND
@@ -3583,7 +3584,7 @@ apply_const_rhs_mul (Btor *btor, BtorNode *e0, BtorNode *e1)
 /* match: c0 * (a + c1)
  * result: c0 * a + c, where c is a new constant from c0 * c1
  */
-static inline int
+static inline bool
 applies_const_mul (Btor *btor, BtorNode *e0, BtorNode *e1)
 {
   return btor_get_opt (btor, BTOR_OPT_REWRITE_LEVEL) > 2
@@ -3642,7 +3643,7 @@ apply_const_mul (Btor *btor, BtorNode *e0, BtorNode *e1)
 /* match:  (x ? a : b) * (x : c : d), where either a = c or b = d
  * result: x ? a * c : b * d
  */
-static inline int
+static inline bool
 applies_bcond_mul (Btor *btor, BtorNode *e0, BtorNode *e1)
 {
   BtorNode *real_e0, *real_e1;
@@ -3684,7 +3685,7 @@ apply_bcond_mul (Btor *btor, BtorNode *e0, BtorNode *e1)
 /* match: a / b, where len(a) = 1
  * result: ~(~a & b)
  */
-static inline int
+static inline bool
 applies_bool_udiv (Btor *btor, BtorNode *e0, BtorNode *e1)
 {
   (void) e1;
@@ -3708,13 +3709,13 @@ apply_bool_udiv (Btor *btor, BtorNode *e0, BtorNode *e1)
 /* match:  a / 2^n
  * result: 0 :: a[len(a)-1:n]
  */
-static inline int
+static inline bool
 applies_power2_udiv (Btor *btor, BtorNode *e0, BtorNode *e1)
 {
   (void) e0;
   return btor->rec_rw_calls < BTOR_REC_RW_BOUND && !BTOR_IS_INVERTED_NODE (e1)
          && BTOR_IS_BV_CONST_NODE (e1)
-         && btor_is_power_of_two_bv (btor_const_get_bits (e1)) > 0;
+         && btor_power_of_two_bv (btor_const_get_bits (e1)) > 0;
 }
 
 static inline BtorNode *
@@ -3725,7 +3726,7 @@ apply_power2_udiv (Btor *btor, BtorNode *e0, BtorNode *e1)
   unsigned l, n;
   BtorNode *slice, *pad, *result;
 
-  n = btor_is_power_of_two_bv (btor_const_get_bits (e1));
+  n = btor_power_of_two_bv (btor_const_get_bits (e1));
   l = btor_get_exp_width (btor, e0);
   assert (l > n);
 
@@ -3743,7 +3744,7 @@ apply_power2_udiv (Btor *btor, BtorNode *e0, BtorNode *e1)
 /* match: a / a
  * result: 1, if a != 0 and UINT_MAX otherwise
  */
-static inline int
+static inline bool
 applies_one_udiv (Btor *btor, BtorNode *e0, BtorNode *e1)
 {
   return btor->rec_rw_calls < BTOR_REC_RW_BOUND && e0 == e1;
@@ -3776,7 +3777,7 @@ apply_one_udiv (Btor *btor, BtorNode *e0, BtorNode *e1)
 /* match:  (x ? a : b) / (x : c : d), where either a = c or b = d
  * result: x ? a / c : b / d
  */
-static inline int
+static inline bool
 applies_bcond_udiv (Btor *btor, BtorNode *e0, BtorNode *e1)
 {
   BtorNode *real_e0, *real_e1;
@@ -3818,7 +3819,7 @@ apply_bcond_udiv (Btor *btor, BtorNode *e0, BtorNode *e1)
 /* match:  a % b, where len(a) = 1
  * result: a & ~b
  */
-static inline int
+static inline bool
 applies_bool_urem (Btor *btor, BtorNode *e0, BtorNode *e1)
 {
   (void) e1;
@@ -3842,7 +3843,7 @@ apply_bool_urem (Btor *btor, BtorNode *e0, BtorNode *e1)
 /* match:  a % a
  * result: 0
  */
-static inline int
+static inline bool
 applies_zero_urem (Btor *btor, BtorNode *e0, BtorNode *e1)
 {
   (void) btor;
@@ -3862,7 +3863,7 @@ apply_zero_urem (Btor *btor, BtorNode *e0, BtorNode *e1)
 /* match:  (a::c0)::c1
  * result: a::c, where c is a new constant obtained from c0::c1
  */
-static inline int
+static inline bool
 applies_const_concat (Btor *btor, BtorNode *e0, BtorNode *e1)
 {
   BtorNode *real_e0;
@@ -3895,7 +3896,7 @@ apply_const_concat (Btor *btor, BtorNode *e0, BtorNode *e1)
 /* match:  a[u1:l1]::a[u2:l2], where l1 = u2 + 1
  * result: a[u1:l2]
  */
-static inline int
+static inline bool
 applies_slice_concat (Btor *btor, BtorNode *e0, BtorNode *e1)
 {
   BtorNode *real_e0, *real_e1;
@@ -4007,7 +4008,7 @@ apply_slice_concat (Btor *btor, BtorNode *e0, BtorNode *e1)
 /* match: (a & b)::c
  * result: (a::c) & (b::c)
  */
-static inline int
+static inline bool
 applies_and_lhs_concat (Btor *btor, BtorNode *e0, BtorNode *e1)
 {
   (void) e1;
@@ -4043,7 +4044,7 @@ apply_and_lhs_concat (Btor *btor, BtorNode *e0, BtorNode *e1)
 /* match: a::(b & c)
  * result: (a::b) & (a::c)
  */
-static inline int
+static inline bool
 applies_and_rhs_concat (Btor *btor, BtorNode *e0, BtorNode *e1)
 {
   (void) e0;
@@ -4081,7 +4082,7 @@ apply_and_rhs_concat (Btor *btor, BtorNode *e0, BtorNode *e1)
 /* match:  a << c, where c is a constant
  * result: a[len(a)-val(c)-1:0]::0
  */
-static inline int
+static inline bool
 applies_const_sll (Btor *btor, BtorNode *e0, BtorNode *e1)
 {
   (void) e0;
@@ -4127,7 +4128,7 @@ apply_const_sll (Btor *btor, BtorNode *e0, BtorNode *e1)
 /* match:  a >> c, where c is a constant
  * result: 0::a[len(a)-1:val(c)]
  */
-static inline int
+static inline bool
 applies_const_srl (Btor *btor, BtorNode *e0, BtorNode *e1)
 {
   (void) e0;
@@ -4173,7 +4174,7 @@ apply_const_srl (Btor *btor, BtorNode *e0, BtorNode *e1)
 /* match:  (\lambda x . t)(a), where term t does not contain param x
  * result: t
  */
-static inline int
+static inline bool
 applies_const_lambda_apply (Btor *btor, BtorNode *e0, BtorNode *e1)
 {
   (void) btor;
@@ -4193,7 +4194,7 @@ apply_const_lambda_apply (Btor *btor, BtorNode *e0, BtorNode *e1)
 /* match:  (\lambda x . x)(a)
  * result: a
  */
-static inline int
+static inline bool
 applies_param_lambda_apply (Btor *btor, BtorNode *e0, BtorNode *e1)
 {
   (void) btor;
@@ -4222,7 +4223,7 @@ apply_param_lambda_apply (Btor *btor, BtorNode *e0, BtorNode *e1)
 /* match:  (\lambda x . f(x))(a)
  * result: f(a)
  */
-static inline int
+static inline bool
 applies_apply_apply (Btor *btor, BtorNode *e0, BtorNode *e1)
 {
   (void) e1;
@@ -4261,7 +4262,7 @@ apply_apply_apply (Btor *btor, BtorNode *e0, BtorNode *e1)
  *
  * propagate apply over parameterized bv conditionals
  */
-static inline int
+static inline bool
 applies_prop_apply (Btor *btor, BtorNode *e0, BtorNode *e1)
 {
   (void) btor;
@@ -4510,7 +4511,7 @@ apply_prop_apply (Btor *btor, BtorNode *e0, BtorNode *e1)
 /* match: (\lambda j . (\lambda k . t)(j))
  * result: \lambda k . t
  */
-static inline int
+static inline bool
 applies_lambda_lambda (Btor * btor, BtorNode * e0, BtorNode * e1)
 {
   return !BTOR_IS_INVERTED_NODE (e1)
@@ -4532,7 +4533,7 @@ apply_lambda_lambda (Btor * btor, BtorNode * e0, BtorNode * e1)
 /* match: c ? a : a
  * result: a
  */
-static inline int
+static inline bool
 applies_equal_branches_cond (Btor *btor,
                              BtorNode *e0,
                              BtorNode *e1,
@@ -4555,7 +4556,7 @@ apply_equal_branches_cond (Btor *btor, BtorNode *e0, BtorNode *e1, BtorNode *e2)
 /* match: c ? a : b, where c is a constant
  * result: a if c is true, and b otherwise
  */
-static inline int
+static inline bool
 applies_const_cond (Btor *btor, BtorNode *e0, BtorNode *e1, BtorNode *e2)
 {
   (void) btor;
@@ -4576,7 +4577,7 @@ apply_const_cond (Btor *btor, BtorNode *e0, BtorNode *e1, BtorNode *e2)
 /* match: c0 ? (c0 ? a : b) : c
  * result: c0 ? a : c
  */
-static inline int
+static inline bool
 applies_cond_if_dom_cond (Btor *btor, BtorNode *e0, BtorNode *e1, BtorNode *e2)
 {
   (void) e2;
@@ -4603,7 +4604,7 @@ apply_cond_if_dom_cond (Btor *btor, BtorNode *e0, BtorNode *e1, BtorNode *e2)
 /* match: c0 ? (c1 ? a : b) : a
  * result: c0 AND ~c1 ? a : b
  */
-static inline int
+static inline bool
 applies_cond_if_merge_if_cond (Btor *btor,
                                BtorNode *e0,
                                BtorNode *e1,
@@ -4640,7 +4641,7 @@ apply_cond_if_merge_if_cond (Btor *btor,
 /* match: c0 ? (c1 ? b : a) : a
  * result: c0 AND c1 ? b : a
  */
-static inline int
+static inline bool
 applies_cond_if_merge_else_cond (Btor *btor,
                                  BtorNode *e0,
                                  BtorNode *e1,
@@ -4677,7 +4678,7 @@ apply_cond_if_merge_else_cond (Btor *btor,
 /* match: c0 ? a : (c0 ? b : c)
  * result: c0 ? a : c
  */
-static inline int
+static inline bool
 applies_cond_else_dom_cond (Btor *btor,
                             BtorNode *e0,
                             BtorNode *e1,
@@ -4707,7 +4708,7 @@ apply_cond_else_dom_cond (Btor *btor, BtorNode *e0, BtorNode *e1, BtorNode *e2)
 /* match: c0 ? a : (c1 ? a : b)
  * result: ~c0 AND ~c1 ? b : a
  */
-static inline int
+static inline bool
 applies_cond_else_merge_if_cond (Btor *btor,
                                  BtorNode *e0,
                                  BtorNode *e1,
@@ -4744,7 +4745,7 @@ apply_cond_else_merge_if_cond (Btor *btor,
 /* match: c0 ? a : (c1 ? b : a)
  * result: ~c0 AND c1 ? b : a
  */
-static inline int
+static inline bool
 applies_cond_else_merge_else_cond (Btor *btor,
                                    BtorNode *e0,
                                    BtorNode *e1,
@@ -4781,7 +4782,7 @@ apply_cond_else_merge_else_cond (Btor *btor,
 /* match:  c ? a : b, where len(a) = 1
  * result: (~c OR a) AND (c OR b)
  */
-static inline int
+static inline bool
 applies_bool_cond (Btor *btor, BtorNode *e0, BtorNode *e1, BtorNode *e2)
 {
   (void) e0;
@@ -4811,7 +4812,7 @@ apply_bool_cond (Btor *btor, BtorNode *e0, BtorNode *e1, BtorNode *e2)
  * match:  c ? (1 + a) : a
  * result: a + 0::c
  */
-static inline int
+static inline bool
 applies_add_if_cond (Btor *btor, BtorNode *e0, BtorNode *e1, BtorNode *e2)
 {
   (void) e0;
@@ -4840,7 +4841,7 @@ apply_add_if_cond (Btor *btor, BtorNode *e0, BtorNode *e1, BtorNode *e2)
  * match:  c ? a : (1 + a)
  * result: a + 0::c
  */
-static inline int
+static inline bool
 applies_add_else_cond (Btor *btor, BtorNode *e0, BtorNode *e1, BtorNode *e2)
 {
   (void) e0;
@@ -4873,7 +4874,7 @@ apply_add_else_cond (Btor *btor, BtorNode *e0, BtorNode *e1, BtorNode *e2)
  * match:  c ? (a::b) : (d::b)
  * result: (c ? a : d) :: b
  */
-static inline int
+static inline bool
 applies_concat_cond (Btor *btor, BtorNode *e0, BtorNode *e1, BtorNode *e2)
 {
   (void) e0;
@@ -4921,7 +4922,7 @@ apply_concat_cond (Btor *btor, BtorNode *e0, BtorNode *e1, BtorNode *e2)
 /* match:  c ? a OP b : a OP d, where OP is either +, &, *, /, %
  * result: a OP (c ? b : d)
  */
-static inline int
+static inline bool
 applies_op_lhs_cond (Btor *btor, BtorNode *e0, BtorNode *e1, BtorNode *e2)
 {
   (void) e0;
@@ -4953,7 +4954,7 @@ apply_op_lhs_cond (Btor *btor, BtorNode *e0, BtorNode *e1, BtorNode *e2)
 /* match:  c ? a OP b : d OP b, where OP is either +, &, *, /, %
  * result: (c ? a : d) OP b
  */
-static inline int
+static inline bool
 applies_op_rhs_cond (Btor *btor, BtorNode *e0, BtorNode *e1, BtorNode *e2)
 {
   (void) e0;
@@ -4985,7 +4986,7 @@ apply_op_rhs_cond (Btor *btor, BtorNode *e0, BtorNode *e1, BtorNode *e2)
 /* match:  c ? a OP b : d OP a, where OP is either +, &, *
  * result: a OP (c ? b : d)
  */
-static inline int
+static inline bool
 applies_comm_op_1_cond (Btor *btor, BtorNode *e0, BtorNode *e1, BtorNode *e2)
 {
   (void) e0;
@@ -5016,7 +5017,7 @@ apply_comm_op_1_cond (Btor *btor, BtorNode *e0, BtorNode *e1, BtorNode *e2)
 /* match:  c ? a OP b : b OP d, where OP is either +, &, *
  * result: b OP (c ? a : d)
  */
-static inline int
+static inline bool
 applies_comm_op_2_cond (Btor *btor, BtorNode *e0, BtorNode *e1, BtorNode *e2)
 {
   (void) e0;
@@ -5048,7 +5049,7 @@ apply_comm_op_2_cond (Btor *btor, BtorNode *e0, BtorNode *e1, BtorNode *e2)
 /* match:
  * result:
  */
-static inline int
+static inline bool
 applies_cond (Btor * btor, BtorNode * e0, BtorNode * e1, BtorNode * e2)
 {
 }

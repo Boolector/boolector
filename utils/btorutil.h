@@ -2,7 +2,7 @@
  *
  *  Copyright (C) 2007-2009 Robert Daniel Brummayer.
  *  Copyright (C) 2007-2015 Armin Biere.
- *  Copyright (C) 2015 Aina Niemetz.
+ *  Copyright (C) 2015-2016 Aina Niemetz.
  *  Copyright (C) 2015 Mathias Preiner.
  *
  *  All rights reserved.
@@ -14,6 +14,7 @@
 #ifndef BTORUTIL_H_INCLUDED
 #define BTORUTIL_H_INCLUDED
 
+#include <stdbool.h>
 #include <stdint.h>
 
 #define BTOR_HAVE_GETRUSAGE  // TODO make this a configuration option
@@ -32,7 +33,7 @@
     (B)                = BTOR_SWAP_TMP; \
   } while (0)
 
-int btor_is_power_of_2_util (uint32_t x);
+bool btor_is_power_of_2_util (uint32_t x);
 
 uint32_t btor_log_2_util (uint32_t x);
 

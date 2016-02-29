@@ -132,7 +132,7 @@ btor_clone_sat_mgr (BtorMemMgr *mm, BtorMsg *msg, BtorSATMgr *smgr)
   return res;
 }
 
-int
+bool
 btor_is_initialized_sat (BtorSATMgr *smgr)
 {
   assert (smgr != NULL);
@@ -216,8 +216,8 @@ btor_init_sat (BtorSATMgr *smgr)
   BTOR_MSG (smgr->msg, 1, "initialized %s", smgr->name);
 
   smgr->solver       = smgr->api.init (smgr);
-  smgr->initialized  = 1;
-  smgr->inc_required = 1;
+  smgr->initialized  = true;
+  smgr->inc_required = true;
   smgr->sat_time     = 0;
 
   if (smgr->api.setterm) smgr->api.setterm (smgr);
@@ -307,7 +307,7 @@ btor_reset_sat (BtorSATMgr *smgr)
     btor_freestr (smgr->mm, smgr->optstr);
     smgr->optstr = 0;
   }
-  smgr->initialized = 0;
+  smgr->initialized = false;
 }
 
 int
@@ -363,7 +363,7 @@ btor_changed_sat (BtorSATMgr *smgr)
 
 /*------------------------------------------------------------------------*/
 #ifdef BTOR_USE_PICOSAT
-
+/*------------------------------------------------------------------------*/
 static void *
 btor_picosat_init (BtorSATMgr *smgr)
 {
@@ -488,7 +488,7 @@ btor_picosat_inconsistent (BtorSATMgr *smgr)
 
 /*------------------------------------------------------------------------*/
 
-void
+bool
 btor_enable_picosat_sat (BtorSATMgr *smgr)
 {
   assert (smgr != NULL);
@@ -521,20 +521,25 @@ btor_enable_picosat_sat (BtorSATMgr *smgr)
 
   BTOR_MSG (
       smgr->msg, 1, "PicoSAT allows both incremental and non-incremental mode");
-}
 
+  return true;
+}
+/*------------------------------------------------------------------------*/
 #endif
 /*------------------------------------------------------------------------*/
-#ifdef BTOR_USE_LINGELING
 
-static int
+/*------------------------------------------------------------------------*/
+#ifdef BTOR_USE_LINGELING
+/*------------------------------------------------------------------------*/
+static bool
 btor_passdown_lingeling_options (BtorSATMgr *smgr,
                                  const char *optstr,
                                  LGL *external_lgl)
 {
   char *str, *p, *next, *eq, *opt, *val;
   LGL *lgl = external_lgl ? external_lgl : 0;
-  int len, valid, res = 1;
+  int len, valid;
+  bool res;
 
   assert (optstr);
   len = strlen (optstr);
@@ -542,7 +547,7 @@ btor_passdown_lingeling_options (BtorSATMgr *smgr,
   BTOR_NEWN (smgr->mm, str, len + 1);
   strcpy (str, optstr);
 
-  res = 1;
+  res = true;
 
   for (p = str; *p; p = next)
   {
@@ -611,7 +616,7 @@ btor_passdown_lingeling_options (BtorSATMgr *smgr,
           valid = 0;
       }
 
-      if (!valid) res = 0;
+      if (!valid) res = false;
       if (valid || external_lgl) continue;
 
       if (eq) *eq = '=';
@@ -908,7 +913,7 @@ btor_lingeling_setterm (BtorSATMgr *smgr)
 
 /*------------------------------------------------------------------------*/
 
-int
+bool
 btor_enable_lingeling_sat (BtorSATMgr *smgr, const char *optstr, bool fork)
 {
   assert (smgr != NULL);
@@ -918,7 +923,7 @@ btor_enable_lingeling_sat (BtorSATMgr *smgr, const char *optstr, bool fork)
 
   smgr->optstr = btor_strdup (smgr->mm, optstr);
   if (smgr->optstr && !btor_passdown_lingeling_options (smgr, optstr, 0))
-    return 0;
+    return false;
 
   smgr->name = "Lingeling";
   smgr->fork = fork;
@@ -952,17 +957,16 @@ btor_enable_lingeling_sat (BtorSATMgr *smgr, const char *optstr, bool fork)
     BTOR_MSG (
         smgr->msg, 1, "Configured options for Lingeling: %s", smgr->optstr);
 
-  return 1;
+  return true;
 }
+/*------------------------------------------------------------------------*/
 #endif
-
 /*------------------------------------------------------------------------*/
 
+/*------------------------------------------------------------------------*/
 #ifdef BTOR_USE_MINISAT
-
 /*------------------------------------------------------------------------*/
-
-void
+bool
 btor_enable_minisat_sat (BtorSATMgr *smgr)
 {
   assert (smgr != NULL);
@@ -994,6 +998,9 @@ btor_enable_minisat_sat (BtorSATMgr *smgr)
 
   BTOR_MSG (
       smgr->msg, 1, "MiniSAT allows both incremental and non-incremental mode");
-}
 
+  return true;
+}
+/*------------------------------------------------------------------------*/
 #endif
+/*------------------------------------------------------------------------*/

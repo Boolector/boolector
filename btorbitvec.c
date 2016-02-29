@@ -472,7 +472,7 @@ btor_is_one_bv (const BtorBitVector *bv)
 }
 
 int
-btor_is_power_of_two_bv (const BtorBitVector *bv)
+btor_power_of_two_bv (const BtorBitVector *bv)
 {
   assert (bv);
 
@@ -493,7 +493,7 @@ btor_is_power_of_two_bv (const BtorBitVector *bv)
 }
 
 int
-btor_is_small_positive_int_bv (const BtorBitVector *bv)
+btor_small_positive_int_bv (const BtorBitVector *bv)
 {
   assert (bv);
 

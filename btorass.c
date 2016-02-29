@@ -1,6 +1,6 @@
 /*  Boolector: Satisfiablity Modulo Theories (SMT) solver.
  *
- *  Copyright (C) 2013-2015 Aina Niemetz.
+ *  Copyright (C) 2013-2016 Aina Niemetz.
  *  Copyright (C) 2013-2015 Mathias Preiner.
  *
  *  All rights reserved.
@@ -10,7 +10,9 @@
  */
 
 #include "btorass.h"
-#include "assert.h"
+
+#include <assert.h>
+#include <stdbool.h>
 
 /*------------------------------------------------------------------------*/
 
@@ -95,13 +97,13 @@ btor_new_bv_assignment (BtorBVAssignmentList *list, char *ass)
   return res;
 }
 
-int
+bool
 btor_find_bv_assignment_dbg (BtorBVAssignmentList *list, BtorBVAssignment *ass)
 {
   assert (list);
   assert (ass);
 
-  int res;
+  bool res;
   BtorBVAssignment *b;
 
   for (res = 0, b = list->first; b; b = b->next)
@@ -266,14 +268,14 @@ btor_new_array_assignment (BtorArrayAssignmentList *list,
   return res;
 }
 
-int
+bool
 btor_find_array_assignment_dbg (BtorArrayAssignmentList *list,
                                 BtorArrayAssignment *ass)
 {
   assert (list);
   assert (ass);
 
-  int res;
+  bool res;
   BtorArrayAssignment *a;
 
   for (res = 0, a = list->first; a; a = a->next)

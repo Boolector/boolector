@@ -255,7 +255,7 @@ get_sort (BtorDumpContext *bdc, BtorNode *node)
 }
 
 #ifndef NDEBUG
-static int
+static bool
 has_lambda_parent (BtorNode *exp)
 {
   BtorNode *p;
@@ -264,9 +264,9 @@ has_lambda_parent (BtorNode *exp)
   while (btor_has_next_parent_iterator (&it))
   {
     p = btor_next_parent_iterator (&it);
-    if (BTOR_IS_LAMBDA_NODE (p)) return 1;
+    if (BTOR_IS_LAMBDA_NODE (p)) return true;
   }
-  return 0;
+  return false;
 }
 #endif
 
@@ -335,7 +335,7 @@ bdcnode (BtorDumpContext *bdc, BtorNode *node, FILE *file)
         op = "one";
       else if (btor_is_ones_bv (bits))
         op = "ones";
-      else if ((aspi = btor_is_small_positive_int_bv (bits)) > 0)
+      else if ((aspi = btor_small_positive_int_bv (bits)) > 0)
         op = "constd";
       else
         op = "const";
@@ -825,7 +825,7 @@ btor_dump_btor (Btor *btor, FILE *file, int version)
   btor_delete_dump_context (bdc);
 }
 
-int
+bool
 btor_can_be_dumped (Btor *btor)
 {
   BtorNode *cur;
@@ -835,7 +835,7 @@ btor_can_be_dumped (Btor *btor)
   while (btor_has_next_node_hash_table_iterator (&it))
   {
     cur = btor_next_node_hash_table_iterator (&it);
-    if (!BTOR_IS_UF_ARRAY_NODE (cur)) return 0;
+    if (!BTOR_IS_UF_ARRAY_NODE (cur)) return false;
   }
-  return 1;
+  return true;
 }

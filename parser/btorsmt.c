@@ -19,6 +19,7 @@
 #include <assert.h>
 #include <ctype.h>
 #include <stdarg.h>
+#include <stdbool.h>
 
 BTOR_DECLARE_STACK (BoolectorNodePtr, BoolectorNode *);
 
@@ -465,10 +466,10 @@ length (BtorSMTNode *node)
   return res;
 }
 
-static int
+static bool
 is_list_of_length (BtorSMTNode *node, unsigned l)
 {
-  if (isleaf (node)) return 0;
+  if (isleaf (node)) return false;
 
   return length (node) == l;
 }
@@ -867,15 +868,14 @@ int2type (BtorSMTParser *parser, int ch)
   return parser->types[ch];
 }
 
-static int
+static bool
 has_prefix (const char *str, const char *prefix)
 {
   const char *p, *q;
 
   for (p = str, q = prefix; *q && *p == *q; p++, q++)
     ;
-
-  return !*q;
+  return *q == 0;
 }
 
 static BtorSMTToken

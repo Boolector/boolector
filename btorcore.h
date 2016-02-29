@@ -26,6 +26,8 @@
 #include "utils/btormem.h"
 #include "utils/btorutil.h"
 
+#include <stdbool.h>
+
 /*------------------------------------------------------------------------*/
 
 #if !defined(NDEBUG) && defined(BTOR_USE_LINGELING)
@@ -249,7 +251,7 @@ void btor_assert_exp (Btor *btor, BtorNode *exp);
 void btor_assume_exp (Btor *btor, BtorNode *exp);
 
 /* Determines if expression has been previously assumed. */
-int btor_is_assumption_exp (Btor *btor, BtorNode *exp);
+bool btor_is_assumption_exp (Btor *btor, BtorNode *exp);
 
 /* Determines if assumption is a failed assumption. */
 bool btor_failed_exp (Btor *btor, BtorNode *exp);

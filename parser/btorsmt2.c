@@ -1099,7 +1099,7 @@ delete_smt2_parser (BtorSMT2Parser *parser)
   btor_delete_mem_mgr (mem);
 }
 
-static int
+static bool
 isspace_smt2 (int ch)
 {
   return ch == ' ' || ch == '\t' || ch == '\r' || ch == '\n';
@@ -1601,7 +1601,7 @@ parse_int32_smt2 (BtorSMT2Parser *parser,
   return str2int32_smt2 (parser, posonly, parser->token.start, resptr);
 }
 
-static int
+static bool
 check_boolean_args_smt2 (BtorSMT2Parser *parser, BtorSMT2Item *p, int nargs)
 {
   int i, width;
@@ -1623,10 +1623,10 @@ check_boolean_args_smt2 (BtorSMT2Parser *parser, BtorSMT2Item *p, int nargs)
                          width);
     }
   }
-  return 1;
+  return true;
 }
 
-static int
+static bool
 check_arg_sorts_match_smt2 (BtorSMT2Parser *parser, BtorSMT2Item *p, int nargs)
 {
   int i, domain, width, len;
@@ -1711,10 +1711,10 @@ check_arg_sorts_match_smt2 (BtorSMT2Parser *parser, BtorSMT2Item *p, int nargs)
     }
   }
   parser->perrcoo.x = 0;
-  return 1;
+  return true;
 }
 
-static int
+static bool
 check_ite_args_sorts_match_smt2 (BtorSMT2Parser *parser, BtorSMT2Item *p)
 {
   int domain, width, len;
@@ -1790,10 +1790,10 @@ check_ite_args_sorts_match_smt2 (BtorSMT2Parser *parser, BtorSMT2Item *p)
           len);
     }
   }
-  return 1;
+  return true;
 }
 
-static int
+static bool
 check_nargs_smt2 (BtorSMT2Parser *parser,
                   BtorSMT2Item *p,
                   int actual,
@@ -1810,10 +1810,10 @@ check_nargs_smt2 (BtorSMT2Parser *parser,
     return !perr_smt2 (parser, "'%s' has one argument too much", op);
   if (diff > 0)
     return !perr_smt2 (parser, "'%s' has %d arguments too much", op, diff);
-  return 1;
+  return true;
 }
 
-static int
+static bool
 check_not_array_or_uf_args_smt2 (BtorSMT2Parser *parser,
                                  BtorSMT2Item *p,
                                  int nargs)
@@ -1834,7 +1834,7 @@ check_not_array_or_uf_args_smt2 (BtorSMT2Parser *parser,
           parser, "argument %d of '%s' is a function", i, p->node->name);
     }
   }
-  return 1;
+  return true;
 }
 
 static BoolectorNode *

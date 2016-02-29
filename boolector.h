@@ -216,12 +216,12 @@ void boolector_assume (Btor *btor, BoolectorNode *node);
 
   :param btor: Boolector instance.
   :param node: Bit vector expression with bit width one.
-  :return: 1 if assumption is failed, and 0 otherwise.
+  :return: true if assumption is failed, and false otherwise.
 
   .. seealso::
     boolector_assume
 */
-int boolector_failed (Btor *btor, BoolectorNode *node);
+bool boolector_failed (Btor *btor, BoolectorNode *node);
 
 /*!
   Add all assumptions as assertions.
@@ -1709,7 +1709,7 @@ int boolector_get_fun_arity (Btor *btor, BoolectorNode *node);
   :param node: Boolector node.
   :return: True if ``node`` is a constant, and false otherwise.
 */
-int boolector_is_const (Btor *btor, BoolectorNode *node);
+bool boolector_is_const (Btor *btor, BoolectorNode *node);
 
 /*!
   Determine if given node is a bit vector variable.
@@ -1718,7 +1718,7 @@ int boolector_is_const (Btor *btor, BoolectorNode *node);
   :param node: Boolector node.
   :return: True if ``node`` is a bit vector variable, and false otherwise.
 */
-int boolector_is_var (Btor *btor, BoolectorNode *node);
+bool boolector_is_var (Btor *btor, BoolectorNode *node);
 
 /*!
   Determine if given node is an array node.
@@ -1727,7 +1727,7 @@ int boolector_is_var (Btor *btor, BoolectorNode *node);
   :param node: Boolector node.
   :return: True if ``node`` is an array, and false otherwise.
 */
-int boolector_is_array (Btor *btor, BoolectorNode *node);
+bool boolector_is_array (Btor *btor, BoolectorNode *node);
 
 /*!
   Determine if expression is an array variable.
@@ -1736,7 +1736,7 @@ int boolector_is_array (Btor *btor, BoolectorNode *node);
   :param node: Boolector node.
   :return: True if ``node`` is an array variable, and false otherwise.
 */
-int boolector_is_array_var (Btor *btor, BoolectorNode *node);
+bool boolector_is_array_var (Btor *btor, BoolectorNode *node);
 
 /*!
   Determine if given node is a parameter node.
@@ -1745,7 +1745,7 @@ int boolector_is_array_var (Btor *btor, BoolectorNode *node);
   :param node: Boolector node.
   :return: True if ``node`` is a parameter, and false otherwise.
 */
-int boolector_is_param (Btor *btor, BoolectorNode *node);
+bool boolector_is_param (Btor *btor, BoolectorNode *node);
 
 /*!
   Determine if given parameter node is bound by a function.
@@ -1754,7 +1754,7 @@ int boolector_is_param (Btor *btor, BoolectorNode *node);
   :param node: Parameter node.
   :return: True if ``node`` is bound, and false otherwise.
 */
-int boolector_is_bound_param (Btor *btor, BoolectorNode *node);
+bool boolector_is_bound_param (Btor *btor, BoolectorNode *node);
 
 /*!
   Determine if given node is a function node.
@@ -1763,7 +1763,7 @@ int boolector_is_bound_param (Btor *btor, BoolectorNode *node);
   :param node: Boolector node.
   :return: True if ``node`` is a function, and false otherwise.
 */
-int boolector_is_fun (Btor *btor, BoolectorNode *node);
+bool boolector_is_fun (Btor *btor, BoolectorNode *node);
 
 /*!
   Check if sorts of given arguments matches the function signature.
@@ -2014,7 +2014,7 @@ void boolector_release_sort (Btor *btor, BoolectorSort sort);
   :param n1: Second operand.
   :return: True if ``n0`` and ``n1`` have the same sort, and false otherwise.
 */
-int boolector_is_equal_sort (Btor *btor, BoolectorNode *n0, BoolectorNode *n1);
+bool boolector_is_equal_sort (Btor *btor, BoolectorNode *n0, BoolectorNode *n1);
 
 /*------------------------------------------------------------------------*/
 

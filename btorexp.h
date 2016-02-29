@@ -997,38 +997,38 @@ void btor_dec_exp_ext_ref_counter (Btor *btor, BtorNode *e);
 #ifndef NDEBUG
 /*------------------------------------------------------------------------*/
 
-int btor_precond_slice_exp_dbg (Btor *btor,
-                                BtorNode *exp,
-                                uint32_t upper,
-                                uint32_t lower);
+bool btor_precond_slice_exp_dbg (Btor *btor,
+                                 BtorNode *exp,
+                                 uint32_t upper,
+                                 uint32_t lower);
 
-int btor_precond_regular_unary_bv_exp_dbg (Btor *btor, BtorNode *exp);
+bool btor_precond_regular_unary_bv_exp_dbg (Btor *btor, BtorNode *exp);
 
-int btor_precond_regular_binary_bv_exp_dbg (Btor *btor,
-                                            BtorNode *e0,
-                                            BtorNode *e1);
+bool btor_precond_regular_binary_bv_exp_dbg (Btor *btor,
+                                             BtorNode *e0,
+                                             BtorNode *e1);
 
-int btor_precond_eq_exp_dbg (Btor *btor, BtorNode *e0, BtorNode *e1);
+bool btor_precond_eq_exp_dbg (Btor *btor, BtorNode *e0, BtorNode *e1);
 
-int btor_precond_shift_exp_dbg (Btor *btor, BtorNode *e0, BtorNode *e1);
+bool btor_precond_shift_exp_dbg (Btor *btor, BtorNode *e0, BtorNode *e1);
 
-int btor_precond_concat_exp_dbg (Btor *btor, BtorNode *e0, BtorNode *e1);
+bool btor_precond_concat_exp_dbg (Btor *btor, BtorNode *e0, BtorNode *e1);
 
-int btor_precond_read_exp_dbg (Btor *btor,
-                               BtorNode *e_array,
-                               BtorNode *e_index);
-
-int btor_precond_write_exp_dbg (Btor *btor,
+bool btor_precond_read_exp_dbg (Btor *btor,
                                 BtorNode *e_array,
-                                BtorNode *e_index,
-                                BtorNode *e_value);
+                                BtorNode *e_index);
 
-int btor_precond_cond_exp_dbg (Btor *btor,
-                               BtorNode *e_cond,
-                               BtorNode *e_if,
-                               BtorNode *e_else);
+bool btor_precond_write_exp_dbg (Btor *btor,
+                                 BtorNode *e_array,
+                                 BtorNode *e_index,
+                                 BtorNode *e_value);
 
-int btor_precond_apply_exp_dbg (Btor *btor, BtorNode *fun, BtorNode *args);
+bool btor_precond_cond_exp_dbg (Btor *btor,
+                                BtorNode *e_cond,
+                                BtorNode *e_if,
+                                BtorNode *e_else);
+
+bool btor_precond_apply_exp_dbg (Btor *btor, BtorNode *fun, BtorNode *args);
 
 /*------------------------------------------------------------------------*/
 #endif

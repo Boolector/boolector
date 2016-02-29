@@ -2,7 +2,7 @@
  *
  *  Copyright (C) 2007-2009 Robert Daniel Brummayer.
  *  Copyright (C) 2007-2012 Armin Biere.
- *  Copyright (C) 2015 Aina Niemetz.
+ *  Copyright (C) 2015-2016 Aina Niemetz.
  *  Copyright (C) 2015 Mathias Preiner.
  *
  *  All rights reserved.
@@ -21,7 +21,7 @@
 
 /*------------------------------------------------------------------------*/
 
-int
+bool
 btor_is_power_of_2_util (uint32_t x)
 {
   assert (x > 0);
