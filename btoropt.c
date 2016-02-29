@@ -752,7 +752,7 @@ bool
 btor_has_opt (Btor *btor, BtorOption opt)
 {
   assert (btor);
-
+  (void) btor;
   return opt >= 0 && opt < BTOR_OPT_NUM_OPTS;
 }
 
@@ -891,6 +891,7 @@ BtorOption
 btor_first_opt (Btor *btor)
 {
   assert (btor);
+  (void) btor;
   return (BtorOption) 0;
 }
 
@@ -899,6 +900,6 @@ btor_next_opt (Btor *btor, BtorOption cur)
 {
   assert (btor);
   assert (btor_has_opt (btor, cur));
-
+  (void) btor;
   return (BtorOption) cur + 1;
 }

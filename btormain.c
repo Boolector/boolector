@@ -51,6 +51,37 @@ static void (*sig_alrm_handler) (int);
 
 /*------------------------------------------------------------------------*/
 
+enum BtorMainOption
+{
+  BTORMAIN_OPT_HELP,
+  BTORMAIN_OPT_COPYRIGHT,
+  BTORMAIN_OPT_VERSION,
+  BTORMAIN_OPT_TIME,
+  BTORMAIN_OPT_OUTPUT,
+  BTORMAIN_OPT_ENGINE,
+  BTORMAIN_OPT_SAT_ENGINE,
+  BTORMAIN_OPT_LGL_NOFORK,
+  BTORMAIN_OPT_LGL_OPTS,
+  BTORMAIN_OPT_HEX,
+  BTORMAIN_OPT_DEC,
+  BTORMAIN_OPT_BIN,
+  BTORMAIN_OPT_BTOR,
+  BTORMAIN_OPT_SMT2,
+  BTORMAIN_OPT_SMT1,
+  BTORMAIN_OPT_DUMP_BTOR,
+#if 0
+  BTORMAIN_OPT_DUMP_BTOR2,
+#endif
+  BTORMAIN_OPT_DUMP_SMT,
+  BTORMAIN_OPT_DUMP_AAG,
+  BTORMAIN_OPT_DUMP_AIG,
+  BTORMAIN_OPT_DUMP_AIGER_MERGE,
+  BTORMAIN_OPT_SMT2_MODEL,
+  /* this MUST be the last entry! */
+  BTORMAIN_OPT_NUM_OPTS,
+};
+typedef enum BtorMainOption BtorMainOption;
+
 enum BtorMainOptArg
 {
   BTORMAIN_OPT_ARG_NONE,
@@ -73,9 +104,28 @@ typedef struct BtorMainOpt
   BtorMainOptArg arg; /* expects argument? */
 } BtorMainOpt;
 
-// FIXME TODO get rid of pointer hash table for main opts, use enum instead
+/*------------------------------------------------------------------------*/
+
+struct BtorMainApp
+{
+  Btor *btor;
+  BtorMemMgr *mm;
+  BtorMainOpt *options;
+  int done;
+  int err;
+  char *infile_name;
+  FILE *infile;
+  int close_infile;
+  FILE *outfile;
+  char *outfile_name;
+  int close_outfile;
+};
+
+/*------------------------------------------------------------------------*/
+
 static void
-init_main_opt (BtorPtrHashTable *options,
+init_main_opt (BtorMainApp *app,
+               BtorMainOption opt,
                bool general,
                char *lng,
                char *shrt,
@@ -86,37 +136,34 @@ init_main_opt (BtorPtrHashTable *options,
                BtorMainOptArg arg,
                char *desc)
 {
-  assert (options);
+  assert (app);
   assert (lng);
   assert (desc);
   assert (max <= UINT_MAX);
   assert (min <= val);
   assert (val <= max);
 
-  BtorMainOpt *opt;
-
-  assert (!btor_get_ptr_hash_table (options, lng));
-  BTOR_CNEW (options->mm, opt);
-  opt->general    = general;
-  opt->lng        = lng;
-  opt->shrt       = shrt;
-  opt->val        = val;
-  opt->dflt       = val;
-  opt->min        = min;
-  opt->max        = max;
-  opt->desc       = desc;
-  opt->candisable = candisable;
-  opt->arg        = arg;
-
-  btor_add_ptr_hash_table (options, lng)->data.as_ptr = opt;
+  app->options[opt].general    = general;
+  app->options[opt].lng        = lng;
+  app->options[opt].shrt       = shrt;
+  app->options[opt].val        = val;
+  app->options[opt].dflt       = val;
+  app->options[opt].min        = min;
+  app->options[opt].max        = max;
+  app->options[opt].desc       = desc;
+  app->options[opt].candisable = candisable;
+  app->options[opt].arg        = arg;
 }
 
 static void
-btormain_init_opts (Btor *btor, BtorPtrHashTable *options)
+btormain_init_opts (BtorMainApp *app)
 {
-  assert (options);
+  assert (app);
 
-  init_main_opt (options,
+  BTOR_CNEWN (app->mm, app->options, BTORMAIN_OPT_NUM_OPTS);
+
+  init_main_opt (app,
+                 BTORMAIN_OPT_HELP,
                  true,
                  "help",
                  "h",
@@ -126,7 +173,8 @@ btormain_init_opts (Btor *btor, BtorPtrHashTable *options)
                  false,
                  BTORMAIN_OPT_ARG_NONE,
                  "print this message and exit");
-  init_main_opt (options,
+  init_main_opt (app,
+                 BTORMAIN_OPT_COPYRIGHT,
                  true,
                  "copyright",
                  "c",
@@ -136,7 +184,8 @@ btormain_init_opts (Btor *btor, BtorPtrHashTable *options)
                  false,
                  BTORMAIN_OPT_ARG_NONE,
                  "print copyright and exit");
-  init_main_opt (options,
+  init_main_opt (app,
+                 BTORMAIN_OPT_VERSION,
                  true,
                  "version",
                  "V",
@@ -146,7 +195,8 @@ btormain_init_opts (Btor *btor, BtorPtrHashTable *options)
                  false,
                  BTORMAIN_OPT_ARG_NONE,
                  "print version and exit");
-  init_main_opt (options,
+  init_main_opt (app,
+                 BTORMAIN_OPT_TIME,
                  true,
                  "time",
                  "t",
@@ -156,7 +206,8 @@ btormain_init_opts (Btor *btor, BtorPtrHashTable *options)
                  false,
                  BTORMAIN_OPT_ARG_INT,
                  "set time limit");
-  init_main_opt (options,
+  init_main_opt (app,
+                 BTORMAIN_OPT_OUTPUT,
                  true,
                  "output",
                  "o",
@@ -166,28 +217,32 @@ btormain_init_opts (Btor *btor, BtorPtrHashTable *options)
                  false,
                  BTORMAIN_OPT_ARG_STR,
                  "set output file for dumping");
-  init_main_opt (options,
+  init_main_opt (app,
+                 BTORMAIN_OPT_ENGINE,
                  true,
-                 (char *) boolector_get_opt_lng (btor, BTOR_OPT_ENGINE),
-                 (char *) boolector_get_opt_shrt (btor, BTOR_OPT_ENGINE),
+                 (char *) boolector_get_opt_lng (app->btor, BTOR_OPT_ENGINE),
+                 (char *) boolector_get_opt_shrt (app->btor, BTOR_OPT_ENGINE),
                  BTOR_ENGINE_DFLT,
                  BTOR_ENGINE_MIN,
                  BTOR_ENGINE_MAX,
                  false,
                  BTORMAIN_OPT_ARG_STR,
                  "set engine (core sls) [core]");
-  init_main_opt (options,
-                 true,
-                 (char *) boolector_get_opt_lng (btor, BTOR_OPT_SAT_ENGINE),
-                 (char *) boolector_get_opt_shrt (btor, BTOR_OPT_SAT_ENGINE),
-                 BTOR_SAT_ENGINE_DFLT,
-                 BTOR_SAT_ENGINE_MIN + 1,
-                 BTOR_SAT_ENGINE_MAX - 1,
-                 false,
-                 BTORMAIN_OPT_ARG_STR,
-                 "set sat solver");
+  init_main_opt (
+      app,
+      BTORMAIN_OPT_SAT_ENGINE,
+      true,
+      (char *) boolector_get_opt_lng (app->btor, BTOR_OPT_SAT_ENGINE),
+      (char *) boolector_get_opt_shrt (app->btor, BTOR_OPT_SAT_ENGINE),
+      BTOR_SAT_ENGINE_DFLT,
+      BTOR_SAT_ENGINE_MIN + 1,
+      BTOR_SAT_ENGINE_MAX - 1,
+      false,
+      BTORMAIN_OPT_ARG_STR,
+      "set sat solver");
 #ifdef BTOR_USE_LINGELING
-  init_main_opt (options,
+  init_main_opt (app,
+                 BTORMAIN_OPT_LGL_NOFORK,
                  true,
                  "lingeling-nofork",
                  0,
@@ -197,7 +252,8 @@ btormain_init_opts (Btor *btor, BtorPtrHashTable *options)
                  false,
                  BTORMAIN_OPT_ARG_NONE,
                  "do not use 'fork/clone' for Lingeling");
-  init_main_opt (options,
+  init_main_opt (app,
+                 BTORMAIN_OPT_LGL_OPTS,
                  true,
                  "lingeling-opts",
                  0,
@@ -208,7 +264,8 @@ btormain_init_opts (Btor *btor, BtorPtrHashTable *options)
                  BTORMAIN_OPT_ARG_STR,
                  "set lingeling option(s) '--<opt>=<val>'");
 #endif
-  init_main_opt (options,
+  init_main_opt (app,
+                 BTORMAIN_OPT_HEX,
                  true,
                  "hex",
                  "x",
@@ -218,7 +275,8 @@ btormain_init_opts (Btor *btor, BtorPtrHashTable *options)
                  false,
                  BTORMAIN_OPT_ARG_NONE,
                  "force hexadecimal number output");
-  init_main_opt (options,
+  init_main_opt (app,
+                 BTORMAIN_OPT_DEC,
                  true,
                  "dec",
                  "d",
@@ -228,7 +286,8 @@ btormain_init_opts (Btor *btor, BtorPtrHashTable *options)
                  false,
                  BTORMAIN_OPT_ARG_NONE,
                  "force decimal number output");
-  init_main_opt (options,
+  init_main_opt (app,
+                 BTORMAIN_OPT_BIN,
                  true,
                  "bin",
                  "b",
@@ -238,7 +297,8 @@ btormain_init_opts (Btor *btor, BtorPtrHashTable *options)
                  false,
                  BTORMAIN_OPT_ARG_NONE,
                  "force binary number output");
-  init_main_opt (options,
+  init_main_opt (app,
+                 BTORMAIN_OPT_BTOR,
                  true,
                  "btor",
                  0,
@@ -248,7 +308,8 @@ btormain_init_opts (Btor *btor, BtorPtrHashTable *options)
                  false,
                  BTORMAIN_OPT_ARG_NONE,
                  "force BTOR input format");
-  init_main_opt (options,
+  init_main_opt (app,
+                 BTORMAIN_OPT_SMT2,
                  true,
                  "smt2",
                  0,
@@ -258,7 +319,8 @@ btormain_init_opts (Btor *btor, BtorPtrHashTable *options)
                  false,
                  BTORMAIN_OPT_ARG_NONE,
                  "force SMT-LIB v2 input format");
-  init_main_opt (options,
+  init_main_opt (app,
+                 BTORMAIN_OPT_SMT1,
                  true,
                  "smt1",
                  0,
@@ -268,7 +330,8 @@ btormain_init_opts (Btor *btor, BtorPtrHashTable *options)
                  false,
                  BTORMAIN_OPT_ARG_NONE,
                  "force SMT-LIB v1 input format");
-  init_main_opt (options,
+  init_main_opt (app,
+                 BTORMAIN_OPT_DUMP_BTOR,
                  true,
                  "dump-btor",
                  "db",
@@ -279,11 +342,12 @@ btormain_init_opts (Btor *btor, BtorPtrHashTable *options)
                  BTORMAIN_OPT_ARG_NONE,
                  "dump formula in BTOR format");
 #if 0
-  init_main_opt (options, true, "dump-btor2", "db2", 0, 0, 1,
+  init_main_opt (app, BTORMAIN_OPT_DUMP_BTOR2, true, "dump-btor2", "db2", 0, 0, 1,
 		 false, BTORMAIN_OPT_ARG_NONE,
 		 "dump formula in BTOR 2.0 format");
 #endif
-  init_main_opt (options,
+  init_main_opt (app,
+                 BTORMAIN_OPT_DUMP_SMT,
                  true,
                  "dump-smt",
                  "ds",
@@ -293,7 +357,8 @@ btormain_init_opts (Btor *btor, BtorPtrHashTable *options)
                  false,
                  BTORMAIN_OPT_ARG_NONE,
                  "dump formula in SMT-LIB v2 format");
-  init_main_opt (options,
+  init_main_opt (app,
+                 BTORMAIN_OPT_DUMP_AAG,
                  true,
                  "dump-aag",
                  "daa",
@@ -303,7 +368,8 @@ btormain_init_opts (Btor *btor, BtorPtrHashTable *options)
                  false,
                  BTORMAIN_OPT_ARG_NONE,
                  "dump QF_BV formula in ascii AIGER format");
-  init_main_opt (options,
+  init_main_opt (app,
+                 BTORMAIN_OPT_DUMP_AIG,
                  true,
                  "dump-aig",
                  "dai",
@@ -313,7 +379,8 @@ btormain_init_opts (Btor *btor, BtorPtrHashTable *options)
                  false,
                  BTORMAIN_OPT_ARG_NONE,
                  "dump QF_BV formula in binary AIGER format");
-  init_main_opt (options,
+  init_main_opt (app,
+                 BTORMAIN_OPT_DUMP_AIGER_MERGE,
                  true,
                  "dump-aiger-merge",
                  "dam",
@@ -323,8 +390,8 @@ btormain_init_opts (Btor *btor, BtorPtrHashTable *options)
                  false,
                  BTORMAIN_OPT_ARG_NONE,
                  "merge all roots of AIG [0]");
-
-  init_main_opt (options,
+  init_main_opt (app,
+                 BTORMAIN_OPT_SMT2_MODEL,
                  false,
                  "smt2-model",
                  0,
@@ -338,21 +405,6 @@ btormain_init_opts (Btor *btor, BtorPtrHashTable *options)
 }
 
 /*------------------------------------------------------------------------*/
-
-struct BtorMainApp
-{
-  Btor *btor;
-  BtorMemMgr *mm;
-  BtorPtrHashTable *opts;
-  int done;
-  int err;
-  char *infile_name;
-  FILE *infile;
-  int close_infile;
-  FILE *outfile;
-  char *outfile_name;
-  int close_outfile;
-};
 
 static BtorMainApp *
 btormain_new_btormain (Btor *btor)
@@ -369,9 +421,7 @@ btormain_new_btormain (Btor *btor)
   res->infile      = stdin;
   res->infile_name = "<stdin>";
   res->outfile     = stdout;
-  res->opts        = btor_new_ptr_hash_table (
-      mm, (BtorHashPtr) btor_hash_str, (BtorCmpPtr) strcmp);
-  btormain_init_opts (btor, res->opts);
+  btormain_init_opts (res);
   return res;
 }
 
@@ -381,15 +431,9 @@ btormain_delete_btormain (BtorMainApp *app)
   assert (app);
 
   BtorMemMgr *mm;
-  BtorHashTableIterator it;
 
   mm = app->mm;
-  assert (app->opts);
-  btor_init_hash_table_iterator (&it, app->opts);
-  while (btor_has_next_hash_table_iterator (&it))
-    BTOR_DELETE (
-        mm, (BtorMainOpt *) btor_next_data_hash_table_iterator (&it)->as_ptr);
-  btor_delete_ptr_hash_table (app->opts);
+  BTOR_DELETEN (mm, app->options, BTORMAIN_OPT_NUM_OPTS);
   boolector_delete (app->btor);
   BTOR_DELETE (mm, app);
   btor_delete_mem_mgr (mm);
@@ -572,37 +616,33 @@ print_help (BtorMainApp *app)
   assert (app);
 
   BtorOption o;
-  BtorMainOpt *mo;
-  BtorHashTableIterator it;
-  FILE *out = app->outfile;
+  BtorMainOption mo;
+  FILE *out;
+
+  out = app->outfile;
 
   fprintf (out, "usage: boolector [<option>...][<input>]\n");
   fprintf (out, "\n");
   fprintf (out, "where <option> is one of the following:\n");
   fprintf (out, "\n");
 
-  btor_init_hash_table_iterator (&it, app->opts);
-  while (btor_has_next_hash_table_iterator (&it))
+  for (mo = 0; mo < BTORMAIN_OPT_NUM_OPTS; mo++)
   {
-    mo = btor_next_data_hash_table_iterator (&it)->as_ptr;
-    if (!mo->general) continue;
-    if (IS_OPT (mo->lng, "time")
-        || IS_OPT (mo->lng, boolector_get_opt_lng (app->btor, BTOR_OPT_ENGINE))
-        || IS_OPT (mo->lng, "lingeling-opts") || IS_OPT (mo->lng, "hex")
-        || IS_OPT (mo->lng, "btor") || IS_OPT (mo->lng, "dump-btor"))
+    if (!app->options[mo].general) continue;
+    if (mo == BTORMAIN_OPT_TIME || mo == BTORMAIN_OPT_ENGINE
+        || mo == BTORMAIN_OPT_LGL_OPTS || mo == BTORMAIN_OPT_HEX
+        || mo == BTORMAIN_OPT_BTOR || mo == BTORMAIN_OPT_DUMP_BTOR)
       fprintf (out, "\n");
-    PRINT_MAIN_OPT (app, mo);
+    PRINT_MAIN_OPT (app, &app->options[mo]);
   }
 
   fprintf (out, "\n");
 
-  btor_init_hash_table_iterator (&it, app->opts);
-  while (btor_has_next_hash_table_iterator (&it))
+  for (mo = 0; mo < BTORMAIN_OPT_NUM_OPTS; mo++)
   {
-    mo = btor_next_data_hash_table_iterator (&it)->as_ptr;
-    if (mo->general) continue;
-    PRINT_MAIN_OPT (app, mo);
-    if (!strcmp (mo->lng, "smt2-model")) fprintf (out, "\n");
+    if (app->options[mo].general) continue;
+    PRINT_MAIN_OPT (app, &app->options[mo]);
+    if (mo == BTORMAIN_OPT_SMT2_MODEL) fprintf (out, "\n");
   }
 
   fprintf (out, "\n");
@@ -825,8 +865,8 @@ boolector_main (int argc, char **argv)
   int mgen, pmodel, inc, dump;
   char *arg, *cmd, *valstr, *tmp, *parse_err_msg;
   BtorCharStack opt, errarg;
-  BtorHashTableIterator it;
   BtorOption k;
+  BtorMainOption l;
   BtorMainOpt *mo;
   BtorOpt *o;
 
@@ -951,11 +991,9 @@ boolector_main (int argc, char **argv)
     }
 
     /* main options ----------------------------------------------------- */
-    mo = 0;
-    btor_init_hash_table_iterator (&it, g_app->opts);
-    while (btor_has_next_hash_table_iterator (&it))
+    for (l = 0, mo = 0; l < BTORMAIN_OPT_NUM_OPTS; l++)
     {
-      mo = btor_next_data_hash_table_iterator (&it)->as_ptr;
+      mo = &g_app->options[l];
       if ((isshrt && mo->shrt && !strcmp (mo->shrt, opt.start))
           || (!isshrt && !strcmp (mo->lng, opt.start)))
         break;
@@ -993,168 +1031,149 @@ boolector_main (int argc, char **argv)
         }
       }
       /* set opt */
-      if (IS_OPT (mo->lng, "help"))
+      switch (l)
       {
-        print_help (g_app);
-        goto DONE;
-      }
-      else if (IS_OPT (mo->lng, "copyright"))
-      {
-        print_copyright (g_app);
-        goto DONE;
-      }
-      else if (IS_OPT (mo->lng, "version"))
-      {
-        print_version (g_app);
-        goto DONE;
-      }
-      else if (IS_OPT (mo->lng, "time"))
-      {
-        g_set_alarm = val;
-      }
-      else if (IS_OPT (mo->lng, "output"))
-      {
-        if (g_app->close_outfile)
-        {
-          btormain_error (g_app, "multiple output files");
-          goto DONE;
-        }
-        g_app->outfile_name = valstr;
-        if (readval == 1) i += 1;
-      }
-      else if (IS_OPT (mo->lng, "smt2-model"))
-      {
-        ((BtorMainOpt *) btor_get_ptr_hash_table (g_app->opts, "smt2-model")
-             ->data.as_ptr)
-            ->val += 1;
-      }
-      else if (IS_OPT (mo->lng,
-                       boolector_get_opt_lng (g_app->btor, BTOR_OPT_ENGINE)))
-      {
-        if (!strcasecmp (valstr, "core"))
-          boolector_set_opt (g_app->btor, BTOR_OPT_ENGINE, BTOR_ENGINE_FUN);
-        else if (!strcasecmp (valstr, "sls"))
-          boolector_set_opt (g_app->btor, BTOR_OPT_ENGINE, BTOR_ENGINE_SLS);
-        else
-        {
-          btormain_error (
-              g_app, "invalid engine '%s' for '%s'", valstr, errarg.start);
-          goto DONE;
-        }
-      }
-      else if (IS_OPT (
-                   mo->lng,
-                   boolector_get_opt_lng (g_app->btor, BTOR_OPT_SAT_ENGINE)))
-      {
+        case BTORMAIN_OPT_HELP: print_help (g_app); goto DONE;
+
+        case BTORMAIN_OPT_COPYRIGHT: print_copyright (g_app); goto DONE;
+
+        case BTORMAIN_OPT_VERSION: print_version (g_app); goto DONE;
+
+        case BTORMAIN_OPT_TIME: g_set_alarm = val; break;
+
+        case BTORMAIN_OPT_OUTPUT:
+          if (g_app->close_outfile)
+          {
+            btormain_error (g_app, "multiple output files");
+            goto DONE;
+          }
+          g_app->outfile_name = valstr;
+          if (readval == 1) i += 1;
+          break;
+
+        case BTORMAIN_OPT_SMT2_MODEL:
+          g_app->options[BTORMAIN_OPT_SMT2_MODEL].val += 1;
+          break;
+
+        case BTORMAIN_OPT_ENGINE:
+          if (!strcasecmp (valstr, "core"))
+            boolector_set_opt (g_app->btor, BTOR_OPT_ENGINE, BTOR_ENGINE_FUN);
+          else if (!strcasecmp (valstr, "sls"))
+            boolector_set_opt (g_app->btor, BTOR_OPT_ENGINE, BTOR_ENGINE_SLS);
+          else
+          {
+            btormain_error (
+                g_app, "invalid engine '%s' for '%s'", valstr, errarg.start);
+            goto DONE;
+          }
+          break;
+
+        case BTORMAIN_OPT_SAT_ENGINE:
 #ifdef BTOR_USE_LINGELING
-        if (!strcasecmp (valstr, "lingeling"))
-        {
-          boolector_set_opt (
-              g_app->btor, BTOR_OPT_SAT_ENGINE, BTOR_SAT_ENGINE_LINGELING);
-        }
-        else
+          if (!strcasecmp (valstr, "lingeling"))
+          {
+            boolector_set_opt (
+                g_app->btor, BTOR_OPT_SAT_ENGINE, BTOR_SAT_ENGINE_LINGELING);
+          }
+          else
 #endif
 #ifdef BTOR_USE_PICOSAT
-            if (!strcasecmp (valstr, "picosat"))
-        {
-          boolector_set_opt (
-              g_app->btor, BTOR_OPT_SAT_ENGINE, BTOR_SAT_ENGINE_PICOSAT);
-        }
-        else
+              if (!strcasecmp (valstr, "picosat"))
+          {
+            boolector_set_opt (
+                g_app->btor, BTOR_OPT_SAT_ENGINE, BTOR_SAT_ENGINE_PICOSAT);
+          }
+          else
 #endif
 #ifdef BTOR_USE_MINISAT
-            if (!strcasecmp (valstr, "minisat"))
-          boolector_set_opt (
-              g_app->btor, BTOR_OPT_SAT_ENGINE, BTOR_SAT_ENGINE_MINISAT);
-        else
+              if (!strcasecmp (valstr, "minisat"))
+            boolector_set_opt (
+                g_app->btor, BTOR_OPT_SAT_ENGINE, BTOR_SAT_ENGINE_MINISAT);
+          else
 #endif
-        {
-          btormain_error (
-              g_app, "invalid sat solver '%s' for '%s'", valstr, errarg.start);
-          goto DONE;
-        }
-      }
+          {
+            btormain_error (g_app,
+                            "invalid sat solver '%s' for '%s'",
+                            valstr,
+                            errarg.start);
+            goto DONE;
+          }
+          break;
+
 #ifdef BTOR_USE_LINGELING
-      else if (IS_OPT (opt.start, "lingeling-nofork"))
-      {
-        boolector_set_opt (g_app->btor, BTOR_OPT_SAT_ENGINE_LGL_FORK, 0);
-      }
-      else if (IS_OPT (mo->lng, "lingeling-opts"))
-      {
-        btor_set_opt_str (g_app->btor, BTOR_OPT_SAT_ENGINE, valstr);
-      }
+        case BTORMAIN_OPT_LGL_NOFORK:
+          boolector_set_opt (g_app->btor, BTOR_OPT_SAT_ENGINE_LGL_FORK, 0);
+          break;
+
+        case BTORMAIN_OPT_LGL_OPTS:
+          btor_set_opt_str (g_app->btor, BTOR_OPT_SAT_ENGINE, valstr);
+          break;
 #endif
-      else if (IS_OPT (mo->lng, "hex"))
-      {
-        format = BTOR_OUTPUT_BASE_HEX;
-      SET_OUTPUT_NUMBER_FORMAT:
-        boolector_set_opt (g_app->btor, BTOR_OPT_OUTPUT_NUMBER_FORMAT, format);
-      }
-      else if (IS_OPT (mo->lng, "dec"))
-      {
-        format = BTOR_OUTPUT_BASE_DEC;
-        goto SET_OUTPUT_NUMBER_FORMAT;
-      }
-      else if (IS_OPT (mo->lng, "bin"))
-      {
-        format = BTOR_OUTPUT_BASE_BIN;
-        goto SET_OUTPUT_NUMBER_FORMAT;
-      }
-      else if (IS_OPT (mo->lng, "btor"))
-      {
-        format = BTOR_INPUT_FORMAT_BTOR;
-      SET_INPUT_FORMAT:
-        boolector_set_opt (g_app->btor, BTOR_OPT_INPUT_FORMAT, format);
-      }
-      else if (IS_OPT (mo->lng, "smt2"))
-      {
-        format = BTOR_INPUT_FORMAT_SMT2;
-        goto SET_INPUT_FORMAT;
-      }
-      else if (IS_OPT (mo->lng, "smt1"))
-      {
-        format = BTOR_INPUT_FORMAT_SMT1;
-        goto SET_INPUT_FORMAT;
-      }
-      else if (IS_OPT (mo->lng, "dump-btor"))
-      {
-        dump = BTOR_OUTPUT_FORMAT_BTOR;
-      SET_OUTPUT_FORMAT:
-        boolector_set_opt (g_app->btor, BTOR_OPT_OUTPUT_FORMAT, dump);
-        boolector_set_opt (g_app->btor, BTOR_OPT_PARSE_INTERACTIVE, 0);
-      }
+
+        case BTORMAIN_OPT_HEX:
+          format = BTOR_OUTPUT_BASE_HEX;
+        SET_OUTPUT_NUMBER_FORMAT:
+          boolector_set_opt (
+              g_app->btor, BTOR_OPT_OUTPUT_NUMBER_FORMAT, format);
+          break;
+
+        case BTORMAIN_OPT_DEC:
+          format = BTOR_OUTPUT_BASE_DEC;
+          goto SET_OUTPUT_NUMBER_FORMAT;
+
+        case BTORMAIN_OPT_BIN:
+          format = BTOR_OUTPUT_BASE_BIN;
+          goto SET_OUTPUT_NUMBER_FORMAT;
+
+        case BTORMAIN_OPT_BTOR:
+          format = BTOR_INPUT_FORMAT_BTOR;
+        SET_INPUT_FORMAT:
+          boolector_set_opt (g_app->btor, BTOR_OPT_INPUT_FORMAT, format);
+          break;
+
+        case BTORMAIN_OPT_SMT2:
+          format = BTOR_INPUT_FORMAT_SMT2;
+          goto SET_INPUT_FORMAT;
+
+        case BTORMAIN_OPT_SMT1:
+          format = BTOR_INPUT_FORMAT_SMT1;
+          goto SET_INPUT_FORMAT;
+
+        case BTORMAIN_OPT_DUMP_BTOR:
+          dump = BTOR_OUTPUT_FORMAT_BTOR;
+        SET_OUTPUT_FORMAT:
+          boolector_set_opt (g_app->btor, BTOR_OPT_OUTPUT_FORMAT, dump);
+          boolector_set_opt (g_app->btor, BTOR_OPT_PARSE_INTERACTIVE, 0);
+          break;
 #if 0
-	  else if (IS_OPT (mo->lng, "dump-btor2"))
-	    {
-	      dump = BTOR_OUTPUT_FORMAT_BTOR2;
-	      goto SET_OUTPUT_FORMAT;
-	    }
+	      case BTORMAIN_OPT_DUMP_BTOR2:
+		dump = BTOR_OUTPUT_FORMAT_BTOR2;
+		goto SET_OUTPUT_FORMAT;
 #endif
-      else if (IS_OPT (mo->lng, "dump-smt2"))
-      {
-        dump = BTOR_OUTPUT_FORMAT_SMT2;
-        goto SET_OUTPUT_FORMAT;
-      }
-      else if (IS_OPT (mo->lng, "dump-aag"))
-      {
-        dump = BTOR_OUTPUT_FORMAT_AIGER_ASCII;
-        goto SET_OUTPUT_FORMAT;
-      }
-      else if (IS_OPT (mo->lng, "dump-aig"))
-      {
-        dump = BTOR_OUTPUT_FORMAT_AIGER_BINARY;
-        goto SET_OUTPUT_FORMAT;
-      }
-      else if (IS_OPT (mo->lng, "dump-aiger-merge"))
-      {
-        dump_merge = true;
+        case BTORMAIN_OPT_DUMP_SMT:
+          dump = BTOR_OUTPUT_FORMAT_SMT2;
+          goto SET_OUTPUT_FORMAT;
+
+        case BTORMAIN_OPT_DUMP_AAG:
+          dump = BTOR_OUTPUT_FORMAT_AIGER_ASCII;
+          goto SET_OUTPUT_FORMAT;
+
+        case BTORMAIN_OPT_DUMP_AIG:
+          dump = BTOR_OUTPUT_FORMAT_AIGER_BINARY;
+          goto SET_OUTPUT_FORMAT;
+
+        case BTORMAIN_OPT_DUMP_AIGER_MERGE: dump_merge = true; break;
+
+        default:
+          /* get rid of compiler warnings, should be unreachable */
+          assert (l == BTORMAIN_OPT_NUM_OPTS);
       }
     }
 
     /* >> btor options ------------------------------------------------ */
     else
     {
-      for (k = boolector_first_opt (g_app->btor);
+      for (k = boolector_first_opt (g_app->btor), o = 0;
            boolector_has_opt (g_app->btor, k);
            k = btor_next_opt (g_app->btor, k))
       {
@@ -1256,6 +1275,7 @@ boolector_main (int argc, char **argv)
                     g_app->btor, k, boolector_get_opt (g_app->btor, k) + 1);
               break;
             default:
+              assert (k != BTOR_OPT_NUM_OPTS);
             DEFAULT:
               if (readval && isint)
                 boolector_set_opt (g_app->btor, k, val);
@@ -1296,9 +1316,7 @@ boolector_main (int argc, char **argv)
   }
 
   /* automatically enable model generation if smt2 models are forced */
-  val = ((BtorMainOpt *) btor_get_ptr_hash_table (g_app->opts, "smt2-model")
-             ->data.as_ptr)
-            ->val;
+  val  = g_app->options[BTORMAIN_OPT_SMT2_MODEL].val;
   mgen = !mgen && val ? val : mgen;
 
   // TODO: disabling model generation not yet supported (ma)
@@ -1406,9 +1424,7 @@ boolector_main (int argc, char **argv)
     if (pmodel && sat_res == BOOLECTOR_SAT)
     {
       assert (boolector_get_opt (g_app->btor, BTOR_OPT_MODEL_GEN));
-      val = ((BtorMainOpt *) btor_get_ptr_hash_table (g_app->opts, "smt2-model")
-                 ->data.as_ptr)
-                ->val;
+      val = g_app->options[BTORMAIN_OPT_SMT2_MODEL].val;
       boolector_print_model (
           g_app->btor, val ? "smt2" : "btor", g_app->outfile);
     }
@@ -1489,9 +1505,7 @@ boolector_main (int argc, char **argv)
   if (pmodel && sat_res == BOOLECTOR_SAT)
   {
     assert (boolector_get_opt (g_app->btor, BTOR_OPT_MODEL_GEN));
-    val = ((BtorMainOpt *) btor_get_ptr_hash_table (g_app->opts, "smt2-model")
-               ->data.as_ptr)
-              ->val;
+    val = g_app->options[BTORMAIN_OPT_SMT2_MODEL].val;
     boolector_print_model (g_app->btor, val ? "smt2" : "btor", g_app->outfile);
   }
 
