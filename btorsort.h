@@ -151,6 +151,8 @@ BtorSortId btor_get_index_array_sort (const BtorSortUniqueTable *table,
 BtorSortId btor_get_element_array_sort (const BtorSortUniqueTable *table,
                                         BtorSortId id);
 
+bool btor_is_valid_sort (BtorSortUniqueTable *table, BtorSortId id);
+
 bool btor_is_bool_sort (BtorSortUniqueTable *table, BtorSortId id);
 
 bool btor_is_bitvec_sort (BtorSortUniqueTable *table, BtorSortId id);

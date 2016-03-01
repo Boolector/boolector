@@ -1585,6 +1585,7 @@ BoolectorNode *boolector_dec (Btor *btor, BoolectorNode *node);
 */
 Btor *boolector_get_btor (BoolectorNode *node);
 
+// TODO (ma): obsolete with BoolectorNode * -> id
 /*!
   Get the id of a given node.
 
@@ -1594,6 +1595,16 @@ Btor *boolector_get_btor (BoolectorNode *node);
 */
 int boolector_get_id (Btor *btor, BoolectorNode *node);
 
+/*!
+  Get the sort of given ``node``. The result does not have to be released.
+
+  :param btor: Boolector instance.
+  :param node: Boolector node.
+  :return: Sort of ``node``.
+*/
+BoolectorSort boolector_get_sort (Btor *btor, const BoolectorNode *node);
+
+// TODO (ma): obsolete with BoolectorNode * -> id
 /*!
   Retrieve the node belonging to Boolector instance ``btor`` that matches
   given ``id``.
@@ -2030,6 +2041,15 @@ void boolector_release_sort (Btor *btor, BoolectorSort sort);
   :return: True if ``n0`` and ``n1`` have the same sort, and false otherwise.
 */
 bool boolector_is_equal_sort (Btor *btor, BoolectorNode *n0, BoolectorNode *n1);
+
+/*!
+  Determine if ``sort`` is an array sort.
+
+  :param btor: Boolector instance.
+  :param sort: Sort.
+  :return True if ``sort`` is an array sort, and false otherwise.
+ */
+bool boolector_is_array_sort (Btor *btor, BoolectorSort sort);
 
 /*------------------------------------------------------------------------*/
 
