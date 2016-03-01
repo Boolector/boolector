@@ -274,7 +274,7 @@ test_propinv_complete_slice_bv (void)
     btor_release_exp (g_btor, e[1]);          \
   } while (0)
 
-#define TEST_PROP_INV_CONF_SHIFT(eidx, fun, ve, vshift, rval)        \
+#define TEST_PROP_INV_CONF_SHIFT(eidx, fun, ve, vshift, rvalmax)     \
   do                                                                 \
   {                                                                  \
     bve     = btor_char_to_bv (g_mm, ve);                            \
@@ -285,7 +285,7 @@ test_propinv_complete_slice_bv (void)
       c##fun = btor_##fun##_exp (g_btor, ce, e[1]);                  \
       res    = inv_##fun##_bv (g_btor, fun, bv##fun, bve, 1);        \
       assert (res);                                                  \
-      assert (btor_bv_to_uint64_bv (res) == rval);                   \
+      assert (btor_bv_to_uint64_bv (res) <= rvalmax);                \
       btor_free_bv (g_mm, res);                                      \
       res = inv_##fun##_bv (g_btor, c##fun, bv##fun, bve, 1);        \
       if (btor_get_opt (g_btor, BTOR_OPT_ENGINE) == BTOR_ENGINE_SLS) \
@@ -295,7 +295,7 @@ test_propinv_complete_slice_bv (void)
       else                                                           \
       {                                                              \
         assert (res);                                                \
-        assert (btor_bv_to_uint64_bv (res) == rval);                 \
+        assert (btor_bv_to_uint64_bv (res) <= rvalmax);              \
         btor_free_bv (g_mm, res);                                    \
       }                                                              \
     }                                                                \
