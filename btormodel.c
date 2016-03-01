@@ -1,7 +1,7 @@
 /*  Boolector: Satisfiablity Modulo Theories (SMT) solver.
  *
  *  Copyright (C) 2014-2015 Mathias Preiner.
- *  Copyright (C) 2014-2015 Aina Niemetz.
+ *  Copyright (C) 2014-2016 Aina Niemetz.
  *
  *  All rights reserved.
  *
@@ -860,7 +860,7 @@ void
 btor_generate_model (Btor *btor,
                      BtorPtrHashTable *bv_model,
                      BtorPtrHashTable *fun_model,
-                     int model_for_all_nodes)
+                     bool model_for_all_nodes)
 {
   assert (btor);
   assert (bv_model);
