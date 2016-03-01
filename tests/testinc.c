@@ -3,6 +3,7 @@
  *  Copyright (C) 2007-2010 Robert Daniel Brummayer.
  *  Copyright (C) 2007-2012 Armin Biere.
  *  Copyright (C) 2012-2016 Aina Niemetz
+ *  Copyright (C) 2016 Mathias Preiner
  *
  *  All rights reserved.
  *
@@ -69,6 +70,7 @@ test_inc_counter (int w, int nondet)
 {
   BoolectorNode *nonzero, *allzero, *one, *oracle;
   BoolectorNode *current, *next, *inc;
+  BoolectorSort s;
   char name[100];
   int i, res;
 
@@ -77,9 +79,11 @@ test_inc_counter (int w, int nondet)
   init_inc_test ();
 
   boolector_set_opt (g_btor, BTOR_OPT_INCREMENTAL, 1);
-  one     = boolector_one (g_btor, w);
-  current = boolector_zero (g_btor, w);
-  i       = 0;
+  s       = boolector_bitvec_sort (g_btor, w);
+  one     = boolector_one (g_btor, s);
+  current = boolector_zero (g_btor, s);
+  boolector_release_sort (g_btor, s);
+  i = 0;
 
   for (;;)
   {
@@ -89,7 +93,11 @@ test_inc_counter (int w, int nondet)
     {
       sprintf (name, "oracle%d", i);
       if (i)
-        oracle = boolector_var (g_btor, 1, name);
+      {
+        s      = boolector_bool_sort (g_btor);
+        oracle = boolector_var (g_btor, s, name);
+        boolector_release_sort (g_btor, s);
+      }
 
       else
         oracle = boolector_true (g_btor);
@@ -195,6 +203,7 @@ static void
 test_inc_lt (int w)
 {
   BoolectorNode *prev, *next, *lt;
+  BoolectorSort s;
   char name[100];
   int i, res;
 
@@ -210,7 +219,9 @@ test_inc_lt (int w)
     i++;
 
     sprintf (name, "%d", i);
-    next = boolector_var (g_btor, w, name);
+    s    = boolector_bitvec_sort (g_btor, w);
+    next = boolector_var (g_btor, s, name);
+    boolector_release_sort (g_btor, s);
 
     if (prev)
     {
@@ -271,13 +282,16 @@ test_inc_assume_assert1 (void)
 {
   int sat_result;
   BoolectorNode *array, *index1, *index2, *read1, *read2, *eq_index, *ne_read;
+  BoolectorSort s, as;
 
   init_inc_test ();
   boolector_set_opt (g_btor, BTOR_OPT_INCREMENTAL, 1);
   boolector_set_opt (g_btor, BTOR_OPT_REWRITE_LEVEL, 0);
-  array    = boolector_array (g_btor, 1, 1, "array1");
-  index1   = boolector_var (g_btor, 1, "index1");
-  index2   = boolector_var (g_btor, 1, "index2");
+  s        = boolector_bool_sort (g_btor);
+  as       = boolector_array_sort (g_btor, s, s);
+  array    = boolector_array (g_btor, as, "array1");
+  index1   = boolector_var (g_btor, s, "index1");
+  index2   = boolector_var (g_btor, s, "index2");
   read1    = boolector_read (g_btor, array, index1);
   read2    = boolector_read (g_btor, array, index2);
   eq_index = boolector_eq (g_btor, index1, index2);
@@ -298,6 +312,8 @@ test_inc_assume_assert1 (void)
   boolector_release (g_btor, read2);
   boolector_release (g_btor, eq_index);
   boolector_release (g_btor, ne_read);
+  boolector_release_sort (g_btor, s);
+  boolector_release_sort (g_btor, as);
 
   finish_inc_test ();
 }
@@ -307,13 +323,16 @@ test_inc_lemmas_on_demand_1 ()
 {
   int sat_result;
   BoolectorNode *array, *index1, *index2, *read1, *read2, *eq, *ne;
+  BoolectorSort s, as;
 
   init_inc_test ();
   boolector_set_opt (g_btor, BTOR_OPT_INCREMENTAL, 1);
   boolector_set_opt (g_btor, BTOR_OPT_REWRITE_LEVEL, 0);
-  array  = boolector_array (g_btor, 1, 1, "array1");
-  index1 = boolector_var (g_btor, 1, "index1");
-  index2 = boolector_var (g_btor, 1, "index2");
+  s      = boolector_bool_sort (g_btor);
+  as     = boolector_array_sort (g_btor, s, s);
+  array  = boolector_array (g_btor, as, "array1");
+  index1 = boolector_var (g_btor, s, "index1");
+  index2 = boolector_var (g_btor, s, "index2");
   read1  = boolector_read (g_btor, array, index1);
   read2  = boolector_read (g_btor, array, index2);
   eq     = boolector_eq (g_btor, index1, index2);
@@ -332,6 +351,8 @@ test_inc_lemmas_on_demand_1 ()
   boolector_release (g_btor, read2);
   boolector_release (g_btor, eq);
   boolector_release (g_btor, ne);
+  boolector_release_sort (g_btor, s);
+  boolector_release_sort (g_btor, as);
   boolector_delete (g_btor);
 }
 

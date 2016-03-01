@@ -391,11 +391,14 @@ static BoolectorNode *
 parse_var (BtorBTORParser *parser, int len)
 {
   BoolectorNode *res;
+  BoolectorSort s;
 
   if (!parse_symbol (parser)) return 0;
 
+  s   = boolector_bitvec_sort (parser->btor, len);
   res = boolector_var (
-      parser->btor, len, parser->symbol.start[0] ? parser->symbol.start : 0);
+      parser->btor, s, parser->symbol.start[0] ? parser->symbol.start : 0);
+  boolector_release_sort (parser->btor, s);
   boolector_set_btor_id (parser->btor, res, parser->idx);
   BTOR_PUSH_STACK (parser->mem, parser->inputs, res);
   parser->info.start[parser->idx].var = 1;
@@ -407,11 +410,14 @@ static BoolectorNode *
 parse_param (BtorBTORParser *parser, int len)
 {
   BoolectorNode *res;
+  BoolectorSort s;
 
   if (!parse_symbol (parser)) return 0;
 
+  s   = boolector_bitvec_sort (parser->btor, len);
   res = boolector_param (
-      parser->btor, len, parser->symbol.start[0] ? parser->symbol.start : 0);
+      parser->btor, s, parser->symbol.start[0] ? parser->symbol.start : 0);
+  boolector_release_sort (parser->btor, s);
   BTOR_PUSH_STACK (parser->mem, parser->params, res);
 
   return res;
@@ -437,6 +443,7 @@ static BoolectorNode *
 parse_array (BtorBTORParser *parser, int len)
 {
   BoolectorNode *res;
+  BoolectorSort s, is, es;
   int idx_len;
 
   if (parse_space (parser)) return 0;
@@ -445,10 +452,14 @@ parse_array (BtorBTORParser *parser, int len)
 
   if (!parse_symbol (parser)) return 0;
 
-  res = boolector_array (parser->btor,
-                         len,
-                         idx_len,
-                         parser->symbol.start[0] ? parser->symbol.start : 0);
+  is  = boolector_bitvec_sort (parser->btor, idx_len);
+  es  = boolector_bitvec_sort (parser->btor, len);
+  s   = boolector_array_sort (parser->btor, is, es);
+  res = boolector_array (
+      parser->btor, s, parser->symbol.start[0] ? parser->symbol.start : 0);
+  boolector_release_sort (parser->btor, is);
+  boolector_release_sort (parser->btor, es);
+  boolector_release_sort (parser->btor, s);
   boolector_set_btor_id (parser->btor, res, parser->idx);
   BTOR_PUSH_STACK (parser->mem, parser->inputs, res);
   parser->info.start[parser->idx].array = 1;
@@ -664,19 +675,37 @@ parse_constd (BtorBTORParser *parser, int len)
 static BoolectorNode *
 parse_zero (BtorBTORParser *parser, int len)
 {
-  return boolector_zero (parser->btor, len);
+  BoolectorNode *res;
+  BoolectorSort s;
+
+  s   = boolector_bitvec_sort (parser->btor, len);
+  res = boolector_zero (parser->btor, s);
+  boolector_release_sort (parser->btor, s);
+  return res;
 }
 
 static BoolectorNode *
 parse_one (BtorBTORParser *parser, int len)
 {
-  return boolector_one (parser->btor, len);
+  BoolectorNode *res;
+  BoolectorSort s;
+
+  s   = boolector_bitvec_sort (parser->btor, len);
+  res = boolector_one (parser->btor, s);
+  boolector_release_sort (parser->btor, s);
+  return res;
 }
 
 static BoolectorNode *
 parse_ones (BtorBTORParser *parser, int len)
 {
-  return boolector_ones (parser->btor, len);
+  BoolectorNode *res;
+  BoolectorSort s;
+
+  s   = boolector_bitvec_sort (parser->btor, len);
+  res = boolector_ones (parser->btor, s);
+  boolector_release_sort (parser->btor, s);
+  return res;
 }
 
 static BoolectorNode *

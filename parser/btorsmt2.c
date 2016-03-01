@@ -2,7 +2,7 @@
  *
  *  Copyright (C) 2011-2014 Armin Biere.
  *  Copyright (C) 2013-2016 Aina Niemetz.
- *  Copyright (C) 2013-2015 Mathias Preiner.
+ *  Copyright (C) 2013-2016 Mathias Preiner.
  *
  *  All rights reserved.
  *
@@ -1846,6 +1846,7 @@ translate_shift_smt2 (Btor *btor,
                                            BoolectorNode *) )
 {
   BoolectorNode *c, *e, *t, *e0, *u, *l, *tmp, *res;
+  BoolectorSort s;
   int len, l0, l1, p0, p1;
 
   len = boolector_get_width (btor, a0);
@@ -1901,7 +1902,11 @@ translate_shift_smt2 (Btor *btor,
       boolector_release (btor, tmp);
     }
     else
-      t = boolector_zero (btor, len);
+    {
+      s = boolector_bitvec_sort (btor, len);
+      t = boolector_zero (btor, s);
+      boolector_release_sort (btor, s);
+    }
 
     if (!p0)
       e0 = boolector_copy (btor, a0);
@@ -2030,6 +2035,7 @@ parse_term_aux_smt2 (BtorSMT2Parser *parser,
   BoolectorNode *(*rotatefun) (Btor *, BoolectorNode *, int);
   BoolectorNode *(*unaryfun) (Btor *, BoolectorNode *);
   BoolectorNode *res, *exp, *tmp, *old;
+  BoolectorSort s;
   BtorSMT2Item *l, *p;
 
   assert (!tokens || !BTOR_COUNT_STACK (*tokens));
@@ -2961,7 +2967,11 @@ parse_term_aux_smt2 (BtorSMT2Parser *parser,
               else if (len == width)
                 exp = boolector_const (parser->btor, constr);
               else if (!len)
-                exp = boolector_zero (parser->btor, width);
+              {
+                s   = boolector_bitvec_sort (parser->btor, width);
+                exp = boolector_zero (parser->btor, s);
+                boolector_release_sort (parser->btor, s);
+              }
               else
               {
                 char *uconstr =
@@ -3229,6 +3239,7 @@ declare_fun_smt2 (BtorSMT2Parser *parser)
   BtorSMT2Node *fun;
   fun   = 0;
   width = domain = 0;
+  BoolectorSort s, is, es;
 
   if (!read_symbol (parser, " after 'declare-fun'", &fun)) return 0;
   assert (fun && fun->tag == BTOR_SYMBOL_TAG_SMT2);
@@ -3270,7 +3281,13 @@ declare_fun_smt2 (BtorSMT2Parser *parser)
       BTOR_RELEASE_STACK (parser->mem, args);
       return !perr_smt2 (parser, "sort Array is not supported for arity > 0");
     }
-    fun->exp = boolector_array (parser->btor, width, domain, fun->name);
+    is       = boolector_bitvec_sort (parser->btor, domain);
+    es       = boolector_bitvec_sort (parser->btor, width);
+    s        = boolector_array_sort (parser->btor, is, es);
+    fun->exp = boolector_array (parser->btor, s, fun->name);
+    boolector_release_sort (parser->btor, is);
+    boolector_release_sort (parser->btor, es);
+    boolector_release_sort (parser->btor, s);
     BTOR_MSG (boolector_get_btor_msg (parser->btor),
               2,
               "declared bit-vector array '%s' "
@@ -3287,7 +3304,9 @@ declare_fun_smt2 (BtorSMT2Parser *parser)
     if (BTOR_EMPTY_STACK (args))
     {
       symbol   = create_symbol_current_scope (parser, fun->name);
-      fun->exp = boolector_var (parser->btor, width, symbol);
+      s        = boolector_bitvec_sort (parser->btor, width);
+      fun->exp = boolector_var (parser->btor, s, symbol);
+      boolector_release_sort (parser->btor, s);
       btor_freestr (parser->mem, symbol);
       BTOR_MSG (boolector_get_btor_msg (parser->btor),
                 2,
@@ -3352,6 +3371,7 @@ define_fun_smt2 (BtorSMT2Parser *parser)
   BtorSMT2Node *fun, *arg;
   BoolectorNodePtrStack args;
   char *psym, *symbol;
+  BoolectorSort s;
 
   fun   = 0;
   arg   = 0;
@@ -3404,7 +3424,9 @@ define_fun_smt2 (BtorSMT2Parser *parser)
       len = strlen (fun->name) + strlen (arg->name) + 3;
       BTOR_CNEWN (parser->mem, psym, len);
       sprintf (psym, "_%s_%s", fun->name, arg->name);
-      arg->exp = boolector_param (parser->btor, width, psym);
+      s        = boolector_bitvec_sort (parser->btor, width);
+      arg->exp = boolector_param (parser->btor, s, psym);
+      boolector_release_sort (parser->btor, s);
       BTOR_DELETEN (parser->mem, psym, len);
       item       = push_item_smt2 (parser, arg->tag);
       item->node = arg;

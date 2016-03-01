@@ -661,13 +661,13 @@ void boolector_release_all (Btor *btor);
 BoolectorNode *boolector_const (Btor *btor, const char *bits);
 
 /*!
-  Create bit vector constant zero with bit width ``width``.
+  Create bit vector constant zero of sort ``sort``.
 
   :param btor: Boolector instance.
-  :param width: Number of bits which must be greater than zero.
-  :return: Bit vector constant zero with bit width ``width``.
+  :param sort: Sort of bit vector constant.
+  :return: Bit vector constant zero of sort ``sort``.
 */
-BoolectorNode *boolector_zero (Btor *btor, int width);
+BoolectorNode *boolector_zero (Btor *btor, BoolectorSort sort);
 
 /*!
   Create bit vector constant zero with bit width one.
@@ -678,14 +678,13 @@ BoolectorNode *boolector_zero (Btor *btor, int width);
 BoolectorNode *boolector_false (Btor *btor);
 
 /*!
-  Create bit vector constant with bit width ``width``, where each bit is set to
-  one.
+  Create bit vector constant of sort ``sort``, where each bit is set to one.
 
   :param btor: Boolector instance.
-  :param width: Number of bits which must be greater than zero.
-  :return: Bit vector constant -1 with bit width ``width``.
+  :param sort: Sort of constant.
+  :return: Bit vector constant -1 of sort ``sort``.
 */
-BoolectorNode *boolector_ones (Btor *btor, int width);
+BoolectorNode *boolector_ones (Btor *btor, BoolectorSort sort);
 
 /*!
   Create constant true. This is represented by the bit vector constant one
@@ -697,44 +696,46 @@ BoolectorNode *boolector_ones (Btor *btor, int width);
 BoolectorNode *boolector_true (Btor *btor);
 
 /*!
-  Create bit vector constant one with bit width ``width``.
+  Create bit vector constant one of sort ``sort``.
 
   :param btor: Boolector instance.
-  :param width: Number of bits which must be greater than zero.
-  :return: Bit vector constant one with bit width ``width``.
+  :param sort: Sort of constant.
+  :return: Bit vector constant one of sort ``sort``.
 */
-BoolectorNode *boolector_one (Btor *btor, int width);
+BoolectorNode *boolector_one (Btor *btor, BoolectorSort sort);
 
 /*!
-  Create bit vector constant representing the unsigned integer ``u`` with bit
-  width ``width``.
+  Create bit vector constant representing the unsigned integer ``u`` of sort
+  ``sort``.
 
   The constant is obtained by either truncating bits or by
   unsigned extension (padding with zeroes).
 
   :param btor: Boolector instance.
   :param u: Unsigned integer value.
-  :param width: Number of bits which must be greater than zero.
-  :return: Bit vector constant with bit width ``width``.
+  :param sort: Sort of constant.
+  :return: Bit vector constant of sort ``sort``.
 */
-BoolectorNode *boolector_unsigned_int (Btor *btor, unsigned u, int width);
+BoolectorNode *boolector_unsigned_int (Btor *btor,
+                                       unsigned u,
+                                       BoolectorSort sort);
 
 /*!
-  Create bit vector constant representing the signed integer ``i`` with bit
-  width ``width``.
+  Create bit vector constant representing the signed integer ``i`` of sort
+  ``sort``.
 
   The constant is obtained by either truncating bits or by
   signed extension (padding with ones).
 
   :param btor: Boolector instance.
   :param i: Signed integer value.
-  :param width: Number of bits which must be greater than zero.
-  :return: Bit vector constant with bit width ``width``.
+  :param sort: Sort of constant.
+  :return: Bit vector constant of sort ``sort``.
 */
-BoolectorNode *boolector_int (Btor *btor, int i, int width);
+BoolectorNode *boolector_int (Btor *btor, int i, BoolectorSort sort);
 
 /*!
-  Create a bit vector variable with bit width ``width`` and symbol ``symbol``.
+  Create a bit vector variable of sort ``sort`` and with symbol ``symbol``.
 
   A variable's symbol is used as a simple means of identification, either when
   printing a model via boolector_print_model, or generating file dumps via
@@ -742,17 +743,18 @@ BoolectorNode *boolector_int (Btor *btor, int i, int width);
   must be unique but may be NULL in case that no symbol should be assigned.
 
   :param btor: Boolector instance.
-  :param width: Number of bits which must be greater than zero.
+  :param sort: Variable sort.
   :param symbol: Name of variable.
-  :return: Bit vector variable with bit width ``width`` and symbol ``symbol``.
+  :return: Bit vector variable of sort ``sort`` and with symbol ``symbol``.
 
   .. note:: In contrast to composite expressions, which are maintained uniquely w.r.t. to their kind, inputs (and consequently, bit width), variables are not. Hence, each call to this function returns a fresh bit vector variable.
 */
-BoolectorNode *boolector_var (Btor *btor, int width, const char *symbol);
+BoolectorNode *boolector_var (Btor *btor,
+                              BoolectorSort sort,
+                              const char *symbol);
 
 /*!
-  Create a one-dimensional bit vector array of size ``2^index_width``
-  with elements of bit width ``elem_width``.
+  Create a one-dimensional bit vector array with sort ``sort``.
 
   An array variable's symbol is used as a simple means of identification,
   either when printing a model via boolector_print_model, or generating file
@@ -761,10 +763,9 @@ BoolectorNode *boolector_var (Btor *btor, int width, const char *symbol);
   assigned.
 
   :param btor: Boolector instance.
-  :param elem_width: Bit width of array elements (must be greater than zero).
-  :param index_width: Bit width of array indices (must be greater than zero).
+  :param sort: Array sort which maps bit vectors to bit vectors.
   :param symbol: Name of array variable.
-  :return: Bit vector array of size ``2^index_width`` with elements of bit width ``elem_width``, and symbol ``symbol``.
+  :return: Bit vector array of sort ``sort`` and with symbol ``symbol``.
 
   .. note::
     In contrast to composite expressions, which are maintained uniquely w.r.t.
@@ -773,12 +774,12 @@ BoolectorNode *boolector_var (Btor *btor, int width, const char *symbol);
     return a fresh array variable.
 */
 BoolectorNode *boolector_array (Btor *btor,
-                                int elem_width,
-                                int index_width,
+                                BoolectorSort sort,
                                 const char *symbol);
 
 /*!
-  Create an uninterpreted function with sort ``sort`` and symbol ``symbol``.
+  Create an uninterpreted function with sort ``sort`` and with symbol
+  ``symbol``.
   ``btor`` Boolector instance.
 
   An uninterpreted function's symbol is used as a simple means of
@@ -789,7 +790,7 @@ BoolectorNode *boolector_array (Btor *btor,
 
   :param sort: Sort of the uninterpreted function.
   :param symbol: Name of the uninterpreted function.
-  :return: Uninterpreted function of sort ``sort`` and symbol ``symbol``.
+  :return: Uninterpreted function of sort ``sort`` and with symbol ``symbol``.
 
   .. note::
     In contrast to composite expressions, which are maintained
@@ -1497,21 +1498,23 @@ BoolectorNode *boolector_cond (Btor *btor,
                                BoolectorNode *n_else);
 
 /*!
-  Create function parameter.
+  Create function parameter of sort ``sort``.
 
   This kind of node is used to create parameterized expressions, which are
   used to create functions. Once a parameter is bound to a function, it
   cannot be re-used in other functions.
 
   :param btor: Boolector instance.
-  :param width: Number of bits which must be greater than zero.
+  :param sort: Parameter sort.
   :param symbol: Name of parameter.
-  :return: Parameter expression with bit width ``width`` and symbol ``symbol``.
+  :return: Parameter expression of sort ``sort`` and with symbol ``symbol``.
 
   .. seealso::
     boolector_fun, boolector_apply
 */
-BoolectorNode *boolector_param (Btor *btor, int width, const char *symbol);
+BoolectorNode *boolector_param (Btor *btor,
+                                BoolectorSort sort,
+                                const char *symbol);
 
 /*!
   Create a function with body ``node`` parameterized over parameters
@@ -1987,9 +1990,6 @@ BoolectorSort boolector_bitvec_sort (Btor *btor, int width);
   :param codomain: The sort of the function's return value.
   :return: Function sort which maps given domain to given codomain.
 
-  .. note::
-    Currently, sorts in Boolector are used for uninterpreted functions, only.
-
   .. seealso::
     boolector_uf
 */
@@ -1997,6 +1997,21 @@ BoolectorSort boolector_fun_sort (Btor *btor,
                                   BoolectorSort *domain,
                                   int arity,
                                   BoolectorSort codomain);
+
+/*!
+  Create array sort.
+
+  :param btor: Boolector instance.
+  :param index: Index sort of array.
+  :param element: Element sort of array.
+  :return: Array sort which maps sort ``index`` to sort ``element``.
+
+  .. seealso::
+    boolector_array
+*/
+BoolectorSort boolector_array_sort (Btor *btor,
+                                    BoolectorSort index,
+                                    BoolectorSort element);
 
 /*!
   Release sort (decrements reference counter).

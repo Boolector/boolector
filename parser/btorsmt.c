@@ -2,7 +2,7 @@
  *
  *  Copyright (C) 2007-2013 Armin Biere.
  *  Copyright (C) 2013-2016 Aina Niemetz.
- *  Copyright (C) 2014-2015 Mathias Preiner.
+ *  Copyright (C) 2014-2016 Mathias Preiner.
  *
  *  All rights reserved.
  *
@@ -1260,6 +1260,7 @@ extrafun (BtorSMTParser *parser, BtorSMTNode *fdecl)
   BtorSMTNode *node, *sort;
   int addrlen, datalen;
   const char *p;
+  BoolectorSort s, is, es;
 
   if (!fdecl || !cdr (fdecl) || isleaf (fdecl) || !isleaf (node = car (fdecl))
       || (symbol = strip (node))->token != BTOR_SMTOK_IDENTIFIER)
@@ -1288,7 +1289,9 @@ extrafun (BtorSMTParser *parser, BtorSMTNode *fdecl)
 
   if (!strcmp (p, "Bool"))
   {
-    symbol->exp = boolector_var (parser->btor, 1, symbol->name);
+    s           = boolector_bool_sort (parser->btor);
+    symbol->exp = boolector_var (parser->btor, s, symbol->name);
+    boolector_release_sort (parser->btor, s);
     push_input (parser, symbol->exp);
   }
   else if (has_prefix (p, "BitVec"))
@@ -1298,7 +1301,9 @@ extrafun (BtorSMTParser *parser, BtorSMTNode *fdecl)
     datalen = atoi (p); /* TODO Overflow? */
     if (!datalen) goto INVALID_SORT;
 
-    symbol->exp = boolector_var (parser->btor, datalen, symbol->name);
+    s           = boolector_bitvec_sort (parser->btor, datalen);
+    symbol->exp = boolector_var (parser->btor, s, symbol->name);
+    boolector_release_sort (parser->btor, s);
     push_input (parser, symbol->exp);
   }
   else if (has_prefix (p, "Array"))
@@ -1313,8 +1318,13 @@ extrafun (BtorSMTParser *parser, BtorSMTNode *fdecl)
     datalen = atoi (p); /* TODO Overflow? */
     if (!datalen) goto INVALID_SORT;
 
-    symbol->exp =
-        boolector_array (parser->btor, datalen, addrlen, symbol->name);
+    es          = boolector_bitvec_sort (parser->btor, datalen);
+    is          = boolector_bitvec_sort (parser->btor, addrlen);
+    s           = boolector_array_sort (parser->btor, is, es);
+    symbol->exp = boolector_array (parser->btor, s, symbol->name);
+    boolector_release_sort (parser->btor, is);
+    boolector_release_sort (parser->btor, es);
+    boolector_release_sort (parser->btor, s);
 
     if (parser->required_logic == BTOR_LOGIC_QF_BV)
     {
@@ -1352,6 +1362,7 @@ extrapred (BtorSMTParser *parser, BtorSMTNode *pdecl)
 {
   BtorSMTSymbol *symbol;
   BtorSMTNode *node;
+  BoolectorSort s;
 
   if (!pdecl || isleaf (pdecl) || !isleaf (node = car (pdecl))
       || (symbol = strip (node))->token != BTOR_SMTOK_IDENTIFIER)
@@ -1365,7 +1376,9 @@ extrapred (BtorSMTParser *parser, BtorSMTNode *pdecl)
     return !btor_perr_smt (
         parser, "multiple definitions for '%s'", symbol->name);
 
-  symbol->exp = boolector_var (parser->btor, 1, symbol->name);
+  s           = boolector_bool_sort (parser->btor);
+  symbol->exp = boolector_var (parser->btor, s, symbol->name);
+  boolector_release_sort (parser->btor, s);
   push_input (parser, symbol->exp);
 
   return 1;
@@ -2014,6 +2027,7 @@ translate_shift (BtorSMTParser *parser,
   BoolectorNode *a0, *a1, *c, *e, *t, *e0, *u, *l, *tmp;
   int len, l0, l1, p0, p1;
   BtorSMTNode *c0, *c1;
+  BoolectorSort s;
 
   assert (!node->exp);
 
@@ -2096,7 +2110,11 @@ translate_shift (BtorSMTParser *parser,
       boolector_release (parser->btor, tmp);
     }
     else
-      t = boolector_zero (parser->btor, len);
+    {
+      s = boolector_bitvec_sort (parser->btor, len);
+      t = boolector_zero (parser->btor, s);
+      boolector_release_sort (parser->btor, s);
+    }
 
     if (!p0)
       e0 = boolector_copy (parser->btor, a0);
