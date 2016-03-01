@@ -217,7 +217,11 @@ boolector_new (void)
   for (o = btor_first_opt (btor); btor_has_opt (btor, o);
        o = btor_next_opt (btor, o))
   {
-    BTOR_TRAPI_AUX ("boolector_set_opt", "%d %d", o, btor_get_opt (btor, o));
+    BTOR_TRAPI_AUX ("boolector_set_opt",
+                    "%d %s %d",
+                    o,
+                    btor_get_opt_lng (btor, o),
+                    btor_get_opt (btor, o));
   }
   return btor;
 }
@@ -608,7 +612,7 @@ void
 boolector_set_opt (Btor *btor, BtorOption opt, uint32_t val)
 {
   BTOR_ABORT_ARG_NULL_BOOLECTOR (btor);
-  BTOR_TRAPI ("%d %d", opt, val);
+  BTOR_TRAPI ("%d %s %d", opt, btor_get_opt_lng (btor, opt), val);
   BTOR_ABORT_BOOLECTOR (!btor_has_opt (btor, opt), "invalid option");
 
   if (opt == BTOR_OPT_INCREMENTAL)

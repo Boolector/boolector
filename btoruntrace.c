@@ -572,8 +572,8 @@ NEXT:
 #endif
     else if (!strcmp (tok, "set_opt"))
     {
-      PARSE_ARGS2 (tok, int, int);
-      boolector_set_opt (btor, arg1_int, arg2_int);
+      PARSE_ARGS3 (tok, int, str, int);
+      boolector_set_opt (btor, arg1_int, arg3_int);
     }
     else if (!strcmp (tok, "get_opt"))
     {
