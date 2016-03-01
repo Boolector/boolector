@@ -1009,7 +1009,7 @@ btormbt_new_btormbt (void)
 
   /* retrieve all available boolector options */
   tmpbtor = boolector_new ();
-  for (opt = boolector_first_opt (tmpbtor); opt;
+  for (opt = boolector_first_opt (tmpbtor); opt < BTOR_OPT_NUM_OPTS;
        opt = boolector_next_opt (tmpbtor, opt))
   {
     BTOR_NEW (mm, btoropt);
@@ -3682,11 +3682,12 @@ main (int argc, char **argv)
     else if (!strcmp (argv[i], "-b"))
     {
       if (++i == argc) btormbt_error ("argument to '-b' missing (try '-h')");
-      btoropt = 0;
-      for (j = 0; j < BTOR_COUNT_STACK (g_btormbt->btor_opts); j++)
+      assert (BTOR_COUNT_STACK (g_btormbt->btor_opts));
+      for (j = 0, btoropt = 0; j < BTOR_COUNT_STACK (g_btormbt->btor_opts); j++)
       {
         tmpopt = BTOR_PEEK_STACK (g_btormbt->btor_opts, j);
         assert (tmpopt);
+        printf ("tmpopt %s opt %s\n", tmpopt->name, argv[i]);
         if (!strcmp (tmpopt->name, argv[i])
             || (tmpopt->shrt && !strcmp (tmpopt->shrt, argv[i])))
         {
