@@ -3673,7 +3673,7 @@ set_option_smt2 (BtorSMT2Parser *parser)
     {
       opt = parser->token.start + 1;
       if (!btor_get_ptr_hash_table (parser->btor->str2opt, opt))
-        return !btor_perr_smt2 (parser, "unsupported option: '%s'", opt);
+        return !perr_smt2 (parser, "unsupported option: '%s'", opt);
       o = btor_get_ptr_hash_table (parser->btor->str2opt, opt)->data.as_int;
     }
 
