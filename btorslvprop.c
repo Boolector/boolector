@@ -3342,7 +3342,7 @@ sat_prop_solver_aux (Btor *btor)
     }
 
     /* restart */
-    slv->api.generate_model (btor->slv, 0, true);
+    slv->api.generate_model (btor->slv, false, true);
     if (btor_get_opt (btor, BTOR_OPT_PROP_USE_BANDIT))
     {
       btor_delete_ptr_hash_table (slv->score);
@@ -3429,7 +3429,7 @@ sat_prop_solver (BtorPropSolver *slv)
   /* Generate intial model, all bv vars are initialized with zero. We do
    * not have to consider model_for_all_nodes, but let this be handled by
    * the model generation (if enabled) after SAT has been determined. */
-  btor->slv->api.generate_model (btor->slv, 0, true);
+  btor->slv->api.generate_model (btor->slv, false, true);
   sat_result = sat_prop_solver_aux (btor);
 DONE:
   BTOR_PROP_SOLVER (btor)->time.sat += btor_time_stamp () - start;
@@ -3439,8 +3439,8 @@ DONE:
 
 static void
 generate_model_prop_solver (BtorPropSolver *slv,
-                            int model_for_all_nodes,
-                            int reset)
+                            bool model_for_all_nodes,
+                            bool reset)
 {
   assert (slv);
   assert (slv->kind == BTOR_PROP_SOLVER_KIND);

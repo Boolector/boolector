@@ -3752,6 +3752,7 @@ btor_sat_btor (Btor *btor, int lod_limit, int sat_limit)
       case BTOR_ENGINE_PROP:
         btor->slv->api.generate_model (
             btor->slv, btor_get_opt (btor, BTOR_OPT_MODEL_GEN) == 2, false);
+        break;
       default:
         btor->slv->api.generate_model (
             btor->slv, btor_get_opt (btor, BTOR_OPT_MODEL_GEN) == 2, true);
@@ -3772,7 +3773,7 @@ btor_sat_btor (Btor *btor, int lod_limit, int sat_limit)
           case BTOR_ENGINE_PROP:
             btor->slv->api.generate_model (btor->slv, false, false);
             break;
-          default: btor->slv->api.generate_model (btor->slv, false, false);
+          default: btor->slv->api.generate_model (btor->slv, false, true);
         }
       }
       check_model (btor, mclone, inputs);
@@ -4106,7 +4107,7 @@ check_model (Btor *btor, Btor *clone, BtorPtrHashTable *inputs)
   btor_set_opt (clone, BTOR_OPT_BETA_REDUCE_ALL, 1);
   ret = btor_simplify (clone);
 
-  //  btor_print_model (btor, "btor", stdout);
+  // btor_print_model (btor, "btor", stdout);
   assert (ret != BTOR_RESULT_UNKNOWN
           || clone->slv->api.sat (clone->slv) == BTOR_RESULT_SAT);
   // TODO: check if roots have been simplified through aig rewriting
