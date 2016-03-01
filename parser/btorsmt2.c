@@ -228,10 +228,12 @@ typedef struct BtorSMT2Node
 {
   BtorSMT2Tag tag;
   unsigned bound : 1;
+  unsigned sort : 1;
   unsigned scope_level;
   BtorSMT2Coo coo;
   char *name;
   BoolectorNode *exp;
+  BoolectorSort sort_alias;
   struct BtorSMT2Node *next;
 } BtorSMT2Node;
 
@@ -257,7 +259,7 @@ typedef struct BtorSMT2Item
 
 BTOR_DECLARE_STACK (BtorSMT2Item, BtorSMT2Item);
 BTOR_DECLARE_STACK (BtorPtr, Btor *);
-BTOR_DECLARE_STACK (BtorBoolectorSort, BoolectorSort);
+BTOR_DECLARE_STACK (BoolectorSort, BoolectorSort);
 
 /*------------------------------------------------------------------------*/
 
@@ -309,6 +311,7 @@ typedef struct BtorSMT2Parser
   FILE *outfile;
   BtorCharStack *prefix, token;
   BoolectorNodePtrStack outputs, inputs;
+  BoolectorSortStack sorts;
   BtorUIntStack outputs_trail, inputs_trail;
   BtorSMT2ItemStack work;
   BtorSMT2Coo coo, lastcoo, nextcoo, perrcoo;
@@ -1031,6 +1034,7 @@ new_smt2_parser (Btor *btor, BtorParseOpt *opts)
 #endif
   BTOR_INIT_STACK (res->outputs_trail);
   BTOR_INIT_STACK (res->inputs_trail);
+  BTOR_INIT_STACK (res->sorts);
 
   BTOR_INIT_STACK (res->assumptions);
   BTOR_INIT_STACK (res->assumptions_trail);
@@ -1086,6 +1090,10 @@ delete_smt2_parser (BtorSMT2Parser *parser)
   while (!BTOR_EMPTY_STACK (parser->outputs))
     boolector_release (parser->btor, BTOR_POP_STACK (parser->outputs));
   BTOR_RELEASE_STACK (mem, parser->outputs);
+
+  while (!BTOR_EMPTY_STACK (parser->sorts))
+    boolector_release_sort (parser->btor, BTOR_POP_STACK (parser->sorts));
+  BTOR_RELEASE_STACK (mem, parser->sorts);
 
   BTOR_RELEASE_STACK (mem, parser->outputs_trail);
   BTOR_RELEASE_STACK (mem, parser->inputs_trail);
@@ -3164,9 +3172,10 @@ parse_bitvec_sort (BtorSMT2Parser *parser,
             3,
             "parsed bit-vector sort of width %d",
             width);
-  if (!read_rpar_smt2 (parser, " to close bit-vector sort")) return 0;
+
   *resptr = boolector_bitvec_sort (parser->btor, width);
-  return 1;
+  BTOR_PUSH_STACK (parser->mem, parser->sorts, *resptr);
+  return read_rpar_smt2 (parser, " to close bit-vector sort");
 }
 
 static int parse_sort (BtorSMT2Parser *parser,
@@ -3186,20 +3195,10 @@ parse_array_sort (BtorSMT2Parser *parser, int tag, BoolectorSort *sort)
     tag = read_token_smt2 (parser);
     if (!parse_sort (parser, tag, false, &index)) return 0;
     tag = read_token_smt2 (parser);
-    if (!parse_sort (parser, tag, false, &value))
-    {
-      boolector_release_sort (parser->btor, index);
-      return 0;
-    }
-    if (!read_rpar_smt2 (parser, " after element sort of Array"))
-    {
-      boolector_release_sort (parser->btor, index);
-      boolector_release_sort (parser->btor, value);
-      return 0;
-    }
+    if (!parse_sort (parser, tag, false, &value)) return 0;
+    if (!read_rpar_smt2 (parser, " after element sort of Array")) return 0;
     *sort = boolector_array_sort (parser->btor, index, value);
-    boolector_release_sort (parser->btor, index);
-    boolector_release_sort (parser->btor, value);
+    BTOR_PUSH_STACK (parser->mem, parser->sorts, *sort);
     return 1;
   }
   else if (tag == EOF)
@@ -3213,9 +3212,12 @@ parse_sort (BtorSMT2Parser *parser,
             bool allow_array_sort,
             BoolectorSort *sort)
 {
+  BtorSMT2Node *alias;
+
   if (tag == BTOR_BOOL_TAG_SMT2)
   {
     *sort = boolector_bool_sort (parser->btor);
+    BTOR_PUSH_STACK (parser->mem, parser->sorts, *sort);
     return 1;
   }
   else if (tag == BTOR_LPAR_TAG_SMT2)
@@ -3239,6 +3241,14 @@ parse_sort (BtorSMT2Parser *parser,
     else
       return parse_bitvec_sort (parser, 1, sort);
   }
+  else if (tag == BTOR_SYMBOL_TAG_SMT2)
+  {
+    alias = find_symbol_smt2 (parser, parser->token.start);
+    if (!alias || !alias->sort)
+      return !perr_smt2 (parser, "invalid sort '%s'", parser->token.start);
+    *sort = alias->sort_alias;
+    return 1;
+  }
   else if (tag == EOF)
     return !perr_smt2 (parser,
                        "reached end-of-file but expected '(' or 'Bool'");
@@ -3251,7 +3261,7 @@ declare_fun_smt2 (BtorSMT2Parser *parser)
 {
   char *symbol;
   int tag;
-  BtorBoolectorSortStack args;
+  BoolectorSortStack args;
   BtorSMT2Node *fun;
   fun = 0;
   BoolectorSort sort, s;
@@ -3275,8 +3285,6 @@ declare_fun_smt2 (BtorSMT2Parser *parser)
     {
       if (!parse_sort (parser, tag, false, &sort))
       {
-        while (!BTOR_EMPTY_STACK (args))
-          boolector_release_sort (parser->btor, BTOR_POP_STACK (args));
         BTOR_RELEASE_STACK (parser->mem, args);
         return 0;
       }
@@ -3288,8 +3296,6 @@ declare_fun_smt2 (BtorSMT2Parser *parser)
   tag = read_token_smt2 (parser);
   if (!parse_sort (parser, tag, true, &sort))
   {
-    while (!BTOR_EMPTY_STACK (args))
-      boolector_release_sort (parser->btor, BTOR_POP_STACK (args));
     BTOR_RELEASE_STACK (parser->mem, args);
     return 0;
   }
@@ -3297,9 +3303,6 @@ declare_fun_smt2 (BtorSMT2Parser *parser)
   {
     if (!BTOR_EMPTY_STACK (args))
     {
-      boolector_release_sort (parser->btor, sort);
-      while (!BTOR_EMPTY_STACK (args))
-        boolector_release_sort (parser->btor, BTOR_POP_STACK (args));
       BTOR_RELEASE_STACK (parser->mem, args);
       return !perr_smt2 (parser, "sort Array is not supported for arity > 0");
     }
@@ -3343,11 +3346,8 @@ declare_fun_smt2 (BtorSMT2Parser *parser)
       parser->need_functions = 1;
     }
   }
-  boolector_release_sort (parser->btor, sort);
   (void) boolector_copy (parser->btor, fun->exp);
   BTOR_PUSH_STACK (parser->mem, parser->inputs, fun->exp);
-  while (!BTOR_EMPTY_STACK (args))
-    boolector_release_sort (parser->btor, BTOR_POP_STACK (args));
   BTOR_RELEASE_STACK (parser->mem, args);
   return read_rpar_smt2 (parser, " to close declaration");
 }
@@ -3420,7 +3420,6 @@ define_fun_smt2 (BtorSMT2Parser *parser)
       BTOR_CNEWN (parser->mem, psym, len);
       sprintf (psym, "_%s_%s", fun->name, arg->name);
       arg->exp = boolector_param (parser->btor, s, psym);
-      boolector_release_sort (parser->btor, s);
       BTOR_DELETEN (parser->mem, psym, len);
       item       = push_item_smt2 (parser, arg->tag);
       item->node = arg;
@@ -3436,7 +3435,6 @@ define_fun_smt2 (BtorSMT2Parser *parser)
   {
     if (nargs)
     {
-      boolector_release_sort (parser->btor, sort);
       return !perr_smt2 (parser, "sort Array is not supported for arity > 0");
     }
 
@@ -3453,15 +3451,9 @@ define_fun_smt2 (BtorSMT2Parser *parser)
     else
     {
       if (!boolector_is_array (parser->btor, fun->exp))
-      {
-        boolector_release_sort (parser->btor, sort);
         return !perr_smt2 (parser, "sort Array expected");
-      }
       if (boolector_get_sort (parser->btor, fun->exp) != sort)
-      {
-        boolector_release_sort (parser->btor, sort);
         return !perr_smt2 (parser, "array sort mismatch");
-      }
       BTOR_MSG (boolector_get_btor_msg (parser->btor),
                 2,
                 "parsed bit-vector array '%s' at line %d column %d",
@@ -3483,10 +3475,7 @@ define_fun_smt2 (BtorSMT2Parser *parser)
     else
     {
       if (boolector_get_sort (parser->btor, fun->exp) != sort)
-      {
-        boolector_release_sort (parser->btor, sort);
         return !perr_smt2 (parser, "invalid sort, expected");
-      }
       BTOR_MSG (boolector_get_btor_msg (parser->btor),
                 2,
                 "parsed '%s' as bit-vector at line %d column %d",
@@ -3496,18 +3485,13 @@ define_fun_smt2 (BtorSMT2Parser *parser)
     }
   }
 
-  if (!parse_term_smt2 (parser, &exp, &coo))
-  {
-    boolector_release_sort (parser->btor, sort);
-    return 0;
-  }
+  if (!parse_term_smt2 (parser, &exp, &coo)) return 0;
 
   // TODO (ma): this temporarily disables the sort check for function models
   //            until we have a api function for retrieving the index/element
   //            sorts of an array sort.
   if (!parser->commands.model && boolector_get_sort (parser->btor, exp) != sort)
   {
-    boolector_release_sort (parser->btor, sort);
     boolector_release (parser->btor, exp);
     return !perr_smt2 (parser, "invalid term sort");
   }
@@ -3535,7 +3519,6 @@ define_fun_smt2 (BtorSMT2Parser *parser)
     {
       if (!boolector_is_equal_sort (parser->btor, fun->exp, tmp))
       {
-        boolector_release_sort (parser->btor, sort);
         boolector_release (parser->btor, tmp);
         while (!BTOR_EMPTY_STACK (args))
           boolector_release (parser->btor, BTOR_POP_STACK (args));
@@ -3567,7 +3550,6 @@ define_fun_smt2 (BtorSMT2Parser *parser)
     {
       if (!boolector_is_equal_sort (parser->btor, fun->exp, exp))
       {
-        boolector_release_sort (parser->btor, sort);
         boolector_release (parser->btor, exp);
         return !perr_smt2 (parser, "model must have equal sort");
       }
@@ -3579,8 +3561,41 @@ define_fun_smt2 (BtorSMT2Parser *parser)
     else
       fun->exp = exp;
   }
-  boolector_release_sort (parser->btor, sort);
   return read_rpar_smt2 (parser, " to close definition");
+}
+
+static int
+define_sort_smt2 (BtorSMT2Parser *parser)
+{
+  int tag;
+  BtorSMT2Node *sort_alias;
+  BoolectorSort sort;
+
+  if (!read_symbol (parser, " after 'define-sort'", &sort_alias)) return 0;
+  assert (sort_alias);
+  assert (sort_alias->tag == BTOR_SYMBOL_TAG_SMT2);
+
+  if (sort_alias->coo.x)
+  {
+    return !perr_smt2 (parser,
+                       "sort '%s' already defined at line %d column %d",
+                       sort_alias->name,
+                       sort_alias->coo.x,
+                       sort_alias->coo.y);
+  }
+
+  if (!read_lpar_smt2 (parser, " after sort definition")) return 0;
+  // TODO (ma): for now we do not support parameterized sort defintions
+  if (!read_rpar_smt2 (parser,
+                       " parameterized sort definitions not supported yet"))
+    return 0;
+
+  tag = read_token_smt2 (parser);
+  if (!parse_sort (parser, tag, true, &sort)) return 0;
+
+  sort_alias->sort       = 1;
+  sort_alias->sort_alias = sort;
+  return read_rpar_smt2 (parser, " to close sort definition");
 }
 
 static int
@@ -3868,6 +3883,11 @@ read_command_smt2 (BtorSMT2Parser *parser)
 
     case BTOR_DEFINE_FUN_TAG_SMT2:
       if (!define_fun_smt2 (parser)) return 0;
+      print_success (parser);
+      break;
+
+    case BTOR_DEFINE_SORT_TAG_SMT2:
+      if (!define_sort_smt2 (parser)) return 0;
       print_success (parser);
       break;
 
