@@ -827,7 +827,7 @@ cons_sll_bv (Btor *btor,
   assert (eidx || btor_log_2_util (bvsll->width) == bve->width);
   assert (!BTOR_IS_BV_CONST_NODE (BTOR_REAL_ADDR_NODE (sll->e[eidx])));
 
-  uint32_t i, s, bw, sbw;
+  uint32_t i, s, bw, sbw, ctz_bvsll;
   BtorBitVector *res, *from, *to, *shift;
 
   (void) sll;
@@ -836,11 +836,10 @@ cons_sll_bv (Btor *btor,
   bw  = bvsll->width;
   sbw = btor_log_2_util (bw);
 
-  for (i = 0; i < bw; i++)
-    if (btor_get_bit_bv (bvsll, i)) break;
-
-  from  = btor_new_bv (btor->mm, sbw);
-  to    = btor_uint64_to_bv (btor->mm, i == bw ? i - 1 : i, sbw);
+  ctz_bvsll = btor_get_num_trailing_zeros_bv (bvsll);
+  from      = btor_new_bv (btor->mm, sbw);
+  to        = btor_uint64_to_bv (
+      btor->mm, ctz_bvsll == bw ? ctz_bvsll - 1 : ctz_bvsll, sbw);
   shift = btor_new_random_range_bv (btor->mm, &btor->rng, sbw, from, to);
   btor_free_bv (btor->mm, from);
   btor_free_bv (btor->mm, to);
