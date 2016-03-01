@@ -1795,7 +1795,7 @@ btor_assume_exp (Btor *btor, BtorNode *exp)
                                     btor_copy_exp (btor, exp));
 }
 
-int
+bool
 btor_is_assumption_exp (Btor *btor, BtorNode *exp)
 {
   assert (btor);
@@ -1805,7 +1805,7 @@ btor_is_assumption_exp (Btor *btor, BtorNode *exp)
   /* Note: do not simplify constraint expression in order to prevent
    *       constraint expressions from not being added to btor->assumptions. */
   exp = btor_pointer_chase_simplified_exp (btor, exp);
-  return btor_get_ptr_hash_table (btor->assumptions, exp) ? 1 : 0;
+  return btor_get_ptr_hash_table (btor->assumptions, exp) ? true : false;
 }
 
 bool

@@ -55,7 +55,7 @@
 #ifndef NDEBUG
 /*------------------------------------------------------------------------*/
 
-int
+bool
 btor_precond_slice_exp_dbg (Btor *btor,
                             BtorNode *exp,
                             uint32_t upper,
@@ -68,17 +68,17 @@ btor_precond_slice_exp_dbg (Btor *btor,
   assert (upper >= lower);
   assert (upper < btor_get_exp_width (btor, exp));
   assert (BTOR_REAL_ADDR_NODE (exp)->btor == btor);
-  return 1;
+  return true;
 }
 
-static int
+static bool
 btor_precond_ext_exp_dbg (Btor *btor, BtorNode *exp)
 {
   assert (btor_precond_regular_unary_bv_exp_dbg (btor, exp));
-  return 1;
+  return true;
 }
 
-int
+bool
 btor_precond_regular_unary_bv_exp_dbg (Btor *btor, BtorNode *exp)
 {
   assert (btor);
@@ -86,10 +86,10 @@ btor_precond_regular_unary_bv_exp_dbg (Btor *btor, BtorNode *exp)
   assert (!BTOR_REAL_ADDR_NODE (exp)->simplified);
   assert (!BTOR_IS_FUN_NODE (BTOR_REAL_ADDR_NODE (exp)));
   assert (BTOR_REAL_ADDR_NODE (exp)->btor == btor);
-  return 1;
+  return true;
 }
 
-int
+bool
 btor_precond_eq_exp_dbg (Btor *btor, BtorNode *e0, BtorNode *e1)
 {
   BtorNode *real_e0, *real_e1;
@@ -111,10 +111,10 @@ btor_precond_eq_exp_dbg (Btor *btor, BtorNode *e0, BtorNode *e1)
   assert (real_e0->is_array == real_e1->is_array);
   assert (!BTOR_IS_FUN_NODE (real_e0)
           || (BTOR_IS_REGULAR_NODE (e0) && BTOR_IS_REGULAR_NODE (e1)));
-  return 1;
+  return true;
 }
 
-int
+bool
 btor_precond_concat_exp_dbg (Btor *btor, BtorNode *e0, BtorNode *e1)
 {
   assert (btor);
@@ -128,10 +128,10 @@ btor_precond_concat_exp_dbg (Btor *btor, BtorNode *e0, BtorNode *e1)
           <= INT_MAX - btor_get_exp_width (btor, e1));
   assert (BTOR_REAL_ADDR_NODE (e0)->btor == btor);
   assert (BTOR_REAL_ADDR_NODE (e1)->btor == btor);
-  return 1;
+  return true;
 }
 
-int
+bool
 btor_precond_shift_exp_dbg (Btor *btor, BtorNode *e0, BtorNode *e1)
 {
   assert (btor);
@@ -147,10 +147,10 @@ btor_precond_shift_exp_dbg (Btor *btor, BtorNode *e0, BtorNode *e1)
           == btor_get_exp_width (btor, e1));
   assert (BTOR_REAL_ADDR_NODE (e0)->btor == btor);
   assert (BTOR_REAL_ADDR_NODE (e1)->btor == btor);
-  return 1;
+  return true;
 }
 
-int
+bool
 btor_precond_regular_binary_bv_exp_dbg (Btor *btor, BtorNode *e0, BtorNode *e1)
 {
   assert (btor);
@@ -164,10 +164,10 @@ btor_precond_regular_binary_bv_exp_dbg (Btor *btor, BtorNode *e0, BtorNode *e1)
           == BTOR_REAL_ADDR_NODE (e1)->sort_id);
   assert (BTOR_REAL_ADDR_NODE (e0)->btor == btor);
   assert (BTOR_REAL_ADDR_NODE (e1)->btor == btor);
-  return 1;
+  return true;
 }
 
-int
+bool
 btor_precond_read_exp_dbg (Btor *btor, BtorNode *e_array, BtorNode *e_index)
 {
   assert (btor);
@@ -184,10 +184,10 @@ btor_precond_read_exp_dbg (Btor *btor, BtorNode *e_array, BtorNode *e_index)
   assert (BTOR_REAL_ADDR_NODE (e_array)->btor == btor);
   assert (BTOR_REAL_ADDR_NODE (e_index)->btor == btor);
   assert (e_array->is_array);
-  return 1;
+  return true;
 }
 
-int
+bool
 btor_precond_write_exp_dbg (Btor *btor,
                             BtorNode *e_array,
                             BtorNode *e_index,
@@ -214,10 +214,10 @@ btor_precond_write_exp_dbg (Btor *btor,
   assert (BTOR_REAL_ADDR_NODE (e_index)->btor == btor);
   assert (BTOR_REAL_ADDR_NODE (e_value)->btor == btor);
   assert (e_array->is_array);
-  return 1;
+  return true;
 }
 
-int
+bool
 btor_precond_cond_exp_dbg (Btor *btor,
                            BtorNode *e_cond,
                            BtorNode *e_if,
@@ -242,10 +242,10 @@ btor_precond_cond_exp_dbg (Btor *btor,
   assert (real_e_if->btor == btor);
   assert (real_e_else->btor == btor);
   assert (real_e_if->is_array == real_e_else->is_array);
-  return 1;
+  return true;
 }
 
-int
+bool
 btor_precond_apply_exp_dbg (Btor *btor, BtorNode *fun, BtorNode *args)
 {
   assert (btor);
@@ -257,7 +257,7 @@ btor_precond_apply_exp_dbg (Btor *btor, BtorNode *fun, BtorNode *args)
   assert (BTOR_IS_ARGS_NODE (args));
   assert (btor_get_domain_fun_sort (&btor->sorts_unique_table, fun->sort_id)
           == args->sort_id);
-  return 1;
+  return true;
 }
 
 /*------------------------------------------------------------------------*/
@@ -523,7 +523,7 @@ hash_binder_exp (Btor *btor, BtorNode *param, BtorNode *body)
   return hash;
 }
 
-static int
+static bool
 is_sorted_bv_exp (Btor *btor, BtorNodeKind kind, BtorNode **e)
 {
   if (!btor_get_opt (btor, BTOR_OPT_SORT_EXP)) return 1;
@@ -659,7 +659,7 @@ remove_parameterized (Btor *btor, BtorNode *exp)
   btor_remove_ptr_hash_table (btor->parameterized, exp, 0, 0);
 }
 
-static int
+static bool
 is_parameterized (Btor *btor, BtorNode *exp)
 {
   assert (btor);
@@ -924,7 +924,7 @@ erase_local_data_exp (Btor *btor, BtorNode *exp, int free_sort)
 }
 
 #ifndef NDEBUG
-static int
+static bool
 is_valid_kind (BtorNodeKind kind)
 {
   return 0 <= (int) kind && kind < BTOR_NUM_OPS_NODE;

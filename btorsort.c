@@ -713,6 +713,13 @@ btor_get_element_array_sort (const BtorSortUniqueTable *table, BtorSortId id)
 }
 
 bool
+btor_is_valid_sort (BtorSortUniqueTable *table, BtorSortId id)
+{
+  return id < BTOR_COUNT_STACK (table->id2sort)
+         && BTOR_PEEK_STACK (table->id2sort, id) != 0;
+}
+
+bool
 btor_is_bool_sort (BtorSortUniqueTable *table, BtorSortId id)
 {
 #if 0

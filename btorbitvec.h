@@ -91,9 +91,14 @@ bool btor_is_zero_bv (const BtorBitVector *bv);
 bool btor_is_ones_bv (const BtorBitVector *bv);
 bool btor_is_one_bv (const BtorBitVector *bv);
 
-int btor_is_power_of_two_bv (const BtorBitVector *bv);
-int btor_is_small_positive_int_bv (const BtorBitVector *bv);
+/* return p for bv = 2^p, and -1 if bv is not a power of 2 */
+int btor_power_of_two_bv (const BtorBitVector *bv);
+/* return bv as int if its value can be converted into a positive
+ * integer of bw 32, and -1 otherwise */
+int btor_small_positive_int_bv (const BtorBitVector *bv);
+/* return the number of leading zeroes (starting from the MSB) */
 int btor_get_num_leading_zeros_bv (const BtorBitVector *bv);
+/* return the number of leading ones (starting from the MSB) */
 int btor_get_num_leading_ones_bv (const BtorBitVector *bv);
 
 /*------------------------------------------------------------------------*/

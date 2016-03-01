@@ -2,7 +2,7 @@
  *
  *  Copyright (C) 2007-2009 Robert Daniel Brummayer.
  *  Copyright (C) 2007-2014 Armin Biere.
- *  Copyright (C) 2013-2015 Aina Niemetz.
+ *  Copyright (C) 2013-2016 Aina Niemetz.
  *  Copyright (C) 2012-2015 Mathias Preiner.
  *
  *  All rights reserved.
@@ -37,15 +37,14 @@ struct BtorSATMgr
 
   /* Note: do not change order! (btor_clone_sat_mgr relies on inc_required
    * to come first of all fields following below.) */
-  int inc_required;
-  int used_that_inc_was_not_required;
+  bool inc_required;
 #ifdef BTOR_USE_LINGELING
   bool fork;
 #endif
   FILE *output;
 
+  bool initialized;
   int satcalls;
-  int initialized;
   int clauses;
   int true_lit;
   int maxvar;
@@ -120,7 +119,7 @@ BtorMemMgr *btor_mem_mgr_sat (BtorSATMgr *smgr);
 void *btor_get_solver_sat (BtorSATMgr *smgr);
 
 /* Returns if the SAT solver has already been initialized */
-int btor_is_initialized_sat (BtorSATMgr *smgr);
+bool btor_is_initialized_sat (BtorSATMgr *smgr);
 
 /* Deletes SAT manager from memory. */
 void btor_delete_sat_mgr (BtorSATMgr *smgr);
@@ -195,29 +194,17 @@ int btor_changed_sat (BtorSATMgr *smgr);
 int btor_inconsistent_sat (BtorSATMgr *smgr);
 
 #ifdef BTOR_USE_PICOSAT
-/* Enables PicoSAT as SAT preprocessor. */
-void btor_enable_picosat_sat (BtorSATMgr *smgr);
+bool btor_enable_picosat_sat (BtorSATMgr *smgr);
 #endif
 
 #ifdef BTOR_USE_LINGELING
-/* Enables Lingeling as SAT preprocessor. */
-int btor_enable_lingeling_sat (BtorSATMgr *smgr,
-                               const char *options,
-                               bool fork);
+bool btor_enable_lingeling_sat (BtorSATMgr *smgr,
+                                const char *options,
+                                bool fork);
 #endif
 
 #ifdef BTOR_USE_MINISAT
-/* Enables MiniSAT as SAT preprocessor. */
-void btor_enable_minisat_sat (BtorSATMgr *smgr);
+bool btor_enable_minisat_sat (BtorSATMgr *smgr);
 #endif
-
-/* Wrapper for btor_enable_(picosat|lingeling|minisat). */
-int btor_set_sat_solver (BtorSATMgr *smgr,
-                         const char *solver,
-                         const char *optstr,
-                         bool fork);
-
-/* Only used for debugging purposes at this point */
-int btor_provides_incremental_sat (BtorSATMgr *smgr);
 
 #endif

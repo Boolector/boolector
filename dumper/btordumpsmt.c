@@ -183,7 +183,7 @@ dump_smt_id (BtorSMTDumpContext *sdc, BtorNode *exp)
   fprintf (sdc->file, "%s%d", type, smt_id (sdc, exp));
 }
 
-static int
+static bool
 is_boolean (BtorSMTDumpContext *sdc, BtorNode *exp)
 {
   exp = BTOR_REAL_ADDR_NODE (exp);
@@ -1262,7 +1262,7 @@ get_references (BtorSMTDumpContext *sdc, BtorNode *exp)
   return refs;
 }
 
-static int
+static bool
 has_lambda_parents_only (BtorNode *exp)
 {
   BtorNode *p;
@@ -1271,9 +1271,9 @@ has_lambda_parents_only (BtorNode *exp)
   while (btor_has_next_parent_iterator (&it))
   {
     p = btor_next_parent_iterator (&it);
-    if (!BTOR_IS_LAMBDA_NODE (p)) return 0;
+    if (!BTOR_IS_LAMBDA_NODE (p)) return false;
   }
-  return 1;
+  return true;
 }
 
 static void
