@@ -968,6 +968,7 @@ cons_mul_bv (Btor *btor,
        * (note: bw not necessarily power of 2 -> do not use srl) */
       else if (r < 2)
       {
+        btor_free_bv (btor->mm, res);
         r   = btor_pick_rand_rng (&btor->rng, 1, ctz_bvmul);
         tmp = btor_slice_bv (btor->mm, bvmul, bw - 1, r);
         res = btor_uext_bv (btor->mm, tmp, r);
