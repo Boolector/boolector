@@ -3222,6 +3222,7 @@ move (Btor *btor, uint32_t nmoves)
 
 /*------------------------------------------------------------------------*/
 
+// FIXME args should be BtorPropSolver
 static void *
 clone_prop_solver (Btor *clone, Btor *btor, BtorNodeMap *exp_map)
 {
@@ -3236,6 +3237,7 @@ clone_prop_solver (Btor *clone, Btor *btor, BtorNodeMap *exp_map)
   BTOR_NEW (clone->mm, res);
   memcpy (res, slv, sizeof (BtorPropSolver));
 
+  res->btor  = clone;
   res->roots = btor_clone_ptr_hash_table (clone->mm,
                                           slv->roots,
                                           btor_clone_key_as_node,
@@ -3506,6 +3508,7 @@ btor_new_prop_solver (Btor *btor)
 
   BTOR_CNEW (btor->mm, slv);
 
+  slv->btor = btor;
   slv->kind = BTOR_PROP_SOLVER_KIND;
 
   slv->api.clone = (BtorSolverClone) clone_prop_solver;
