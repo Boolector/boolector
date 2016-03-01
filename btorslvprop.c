@@ -1342,7 +1342,6 @@ inv_and_bv (Btor *btor,
       if (btor_get_opt (btor, BTOR_OPT_ENGINE) == BTOR_ENGINE_SLS
           && BTOR_IS_BV_CONST_NODE (BTOR_REAL_ADDR_NODE (e)))
       {
-        btor_free_bv (mm, res);
         res = non_rec_conf (btor, bve, bvand, eidx, "AND");
       }
       else
