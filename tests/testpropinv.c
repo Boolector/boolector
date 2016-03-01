@@ -1068,11 +1068,11 @@ PROP_INV_CONF_UDIV_TESTS:
     btor_free_bv (g_mm, bvudiv);
     btor_free_bv (g_mm, bve);
   }
-  /* bvudiv = 1...1 and bve > 0 */
+  /* bvudiv = 1...1 and bve > 1 */
   for (k = 0; bw > 1 && k < 10; k++)
   {
     bvudiv = btor_copy_bv (g_mm, bvmax);
-    tmp    = btor_inc_bv (g_mm, zero);
+    tmp    = btor_uint64_to_bv (g_mm, 2, bw);
     bve    = btor_new_random_range_bv (g_mm, &g_btor->rng, bw, tmp, bvmax);
     btor_free_bv (g_mm, tmp);
     TEST_PROP_INV_CONF_UDIV (0);
