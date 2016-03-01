@@ -3326,7 +3326,7 @@ btormbt_state_sat (BtorMBT *mbt, unsigned r)
     BTORMBT_LOG (1, "sat call returned %d", res);
 
   if (res == BOOLECTOR_UNSAT
-      && boolector_get_opt (mbt->btor, BTOR_OPT_ENGINE) != BTOR_ENGINE_SLS)
+      && boolector_get_opt (mbt->btor, BTOR_OPT_ENGINE) == BTOR_ENGINE_FUN)
   {
     /* check failed assumptions */
     for (i = 0; i < BTOR_COUNT_STACK (mbt->assumptions->exps); i++)
@@ -3687,7 +3687,6 @@ main (int argc, char **argv)
       {
         tmpopt = BTOR_PEEK_STACK (g_btormbt->btor_opts, j);
         assert (tmpopt);
-        printf ("tmpopt %s opt %s\n", tmpopt->name, argv[i]);
         if (!strcmp (tmpopt->name, argv[i])
             || (tmpopt->shrt && !strcmp (tmpopt->shrt, argv[i])))
         {

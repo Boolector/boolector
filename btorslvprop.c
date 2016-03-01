@@ -3373,7 +3373,6 @@ DONE:
     btor_delete_ptr_hash_table (slv->score);
     slv->score = 0;
   }
-  btor->last_sat_result = sat_result;
   return sat_result;
 }
 
@@ -3434,6 +3433,7 @@ sat_prop_solver (BtorPropSolver *slv)
   sat_result = sat_prop_solver_aux (btor);
 DONE:
   BTOR_PROP_SOLVER (btor)->time.sat += btor_time_stamp () - start;
+  btor->last_sat_result = sat_result;
   return sat_result;
 }
 
