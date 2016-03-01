@@ -929,7 +929,7 @@ cons_mul_bv (Btor *btor,
   assert (!BTOR_IS_BV_CONST_NODE (BTOR_REAL_ADDR_NODE (mul->e[eidx])));
 
   uint32_t r, bw, ctz_res, ctz_bvmul;
-  BtorBitVector *res, *zero, *bvmax, *tmp;
+  BtorBitVector *res, *bvmax, *tmp;
 
   (void) mul;
   (void) bve;
@@ -941,10 +941,11 @@ cons_mul_bv (Btor *btor,
   {
     if (btor_is_zero_bv (res))
     {
-      zero  = res;
+      btor_free_bv (btor->mm, res);
+      tmp   = btor_one_bv (btor->mm, bw);
       bvmax = btor_ones_bv (btor->mm, bw);
-      res   = btor_new_random_range_bv (btor->mm, &btor->rng, bw, zero, bvmax);
-      btor_free_bv (btor->mm, zero);
+      res   = btor_new_random_range_bv (btor->mm, &btor->rng, bw, tmp, bvmax);
+      btor_free_bv (btor->mm, tmp);
       btor_free_bv (btor->mm, bvmax);
     }
     /* bvmul odd -> choose odd value > 0 */
