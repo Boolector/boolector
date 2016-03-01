@@ -1,4 +1,5 @@
 #include "boolector.h"
+#include "btoropt.h"
 #include "maxor.h"
 #include "utils/btorutil.h"
 
@@ -32,7 +33,7 @@ main (int argc, char **argv)
   }
 
   btor = boolector_new ();
-  boolector_set_opt (btor, "rewrite_level", 0);
+  boolector_set_opt (btor, BTOR_OPT_REWRITE_LEVEL, 0);
 
   one               = boolector_one (btor, 1);
   zero_num_bits_m_1 = boolector_zero (btor, num_bits - 1);

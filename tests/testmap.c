@@ -14,7 +14,7 @@
 #include "btorcore.h"
 #include "btorexp.h"
 #include "testrunner.h"
-#include "utils/btormap.h"
+#include "utils/btornodemap.h"
 
 #ifdef NDEBUG
 #undef NDEBUG

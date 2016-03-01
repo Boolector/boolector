@@ -1,7 +1,7 @@
 /*  Boolector: Satisfiablity Modulo Theories (SMT) solver.
  *
  *  Copyright (C) 2015 Mathias Preiner.
- *  Copyright (C) 2015 Aina Niemetz.
+ *  Copyright (C) 2015-2016 Aina Niemetz.
  *
  *  All rights reserved.
  *
@@ -130,7 +130,7 @@ create_range (Btor *btor,
   /* increment by one */
   if (btor_is_one_bv (offset)) res = btor_copy_exp (btor, and);
   /* increment by power of two */
-  else if ((pos = btor_is_power_of_two_bv (offset)) > -1)
+  else if ((pos = btor_power_of_two_bv (offset)) > -1)
   {
     assert (pos > 0);
     sub   = btor_sub_exp (btor, upper, param);
@@ -317,7 +317,7 @@ create_pattern_cpy (Btor *btor,
   return res;
 }
 
-static int
+static bool
 is_write_exp (BtorNode *exp,
               BtorNode **array,
               BtorNode **index,
@@ -329,36 +329,37 @@ is_write_exp (BtorNode *exp,
   BtorNode *param, *body, *eq, *app;
 
   if (!BTOR_IS_LAMBDA_NODE (exp) || btor_get_fun_arity (exp->btor, exp) > 1)
-    return 0;
+    return false;
 
   param = exp->e[0];
   body  = btor_lambda_get_body (exp);
 
-  if (BTOR_IS_INVERTED_NODE (body) || !BTOR_IS_BV_COND_NODE (body)) return 0;
+  if (BTOR_IS_INVERTED_NODE (body) || !BTOR_IS_BV_COND_NODE (body))
+    return false;
 
   /* check condition */
   eq = body->e[0];
   if (BTOR_IS_INVERTED_NODE (eq) || !BTOR_IS_BV_EQ_NODE (eq)
       || !eq->parameterized || (eq->e[0] != param && eq->e[1] != param))
-    return 0;
+    return false;
 
   /* check value */
-  if (BTOR_REAL_ADDR_NODE (body->e[1])->parameterized) return 0;
+  if (BTOR_REAL_ADDR_NODE (body->e[1])->parameterized) return false;
 
   /* check apply on unmodified array */
   app = body->e[2];
   if (BTOR_IS_INVERTED_NODE (app) || !BTOR_IS_APPLY_NODE (app)
       || btor_get_fun_arity (app->btor, app->e[0]) > 1
       || app->e[1]->e[0] != param)
-    return 0;
+    return false;
 
   if (array) *array = app->e[0];
   if (index) *index = eq->e[1] == param ? eq->e[0] : eq->e[1];
   if (value) *value = body->e[1];
-  return 1;
+  return true;
 }
 
-static int
+static bool
 is_array_ite_exp (BtorNode *exp, BtorNode **array_if, BtorNode **array_else)
 {
   assert (exp);
@@ -367,34 +368,35 @@ is_array_ite_exp (BtorNode *exp, BtorNode **array_if, BtorNode **array_else)
   BtorNode *param, *body, *app_if, *app_else;
 
   if (!BTOR_IS_LAMBDA_NODE (exp) || btor_get_fun_arity (exp->btor, exp) > 1)
-    return 0;
+    return false;
 
   param = exp->e[0];
   body  = btor_lambda_get_body (exp);
 
-  if (BTOR_IS_INVERTED_NODE (body) || !BTOR_IS_BV_COND_NODE (body)) return 0;
+  if (BTOR_IS_INVERTED_NODE (body) || !BTOR_IS_BV_COND_NODE (body))
+    return false;
 
   /* check value */
   if (!BTOR_REAL_ADDR_NODE (body->e[1])->parameterized
       || !BTOR_REAL_ADDR_NODE (body->e[2])->parameterized)
-    return 0;
+    return false;
 
   /* check applies in if and else branch */
   app_if = body->e[1];
   if (BTOR_IS_INVERTED_NODE (app_if) || !BTOR_IS_APPLY_NODE (app_if)
       || btor_get_fun_arity (app_if->btor, app_if->e[0]) > 1
       || app_if->e[1]->e[0] != param)
-    return 0;
+    return false;
 
   app_else = body->e[1];
   if (BTOR_IS_INVERTED_NODE (app_else) || !BTOR_IS_APPLY_NODE (app_else)
       || btor_get_fun_arity (app_else->btor, app_else->e[0]) > 1
       || app_else->e[1]->e[0] != param)
-    return 0;
+    return false;
 
   if (array_if) *array_if = app_if->e[0];
   if (array_else) *array_else = app_else->e[0];
-  return 1;
+  return true;
 }
 
 inline static bool
@@ -900,7 +902,7 @@ find_ranges (Btor *btor,
         /* range is too small, push separate indices */
         else if (upper - lower <= 1
                  /* range with an offset greater than 1 */
-                 && btor_is_power_of_two_bv (prev_inc) != 0)
+                 && btor_power_of_two_bv (prev_inc) != 0)
         {
           /* last iteration step: if range contains all indices
            * up to the last one, we can push all indices */

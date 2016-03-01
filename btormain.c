@@ -2,7 +2,7 @@
  *
  *  Copyright (C) 2007-2009 Robert Daniel Brummayer.
  *  Copyright (C) 2007-2014 Armin Biere.
- *  Copyright (C) 2012-2015 Aina Niemetz.
+ *  Copyright (C) 2012-2016 Aina Niemetz.
  *  Copyright (C) 2012-2015 Mathias Preiner.
  *
  *  All rights reserved.
@@ -17,10 +17,13 @@
 #include "btorexit.h"
 #include "btoropt.h"
 #include "btorparse.h"
+#include "utils/btorhashptr.h"
+#include "utils/btoriter.h"
 #include "utils/btormem.h"
 #include "utils/btorutil.h"
 
 #include <assert.h>
+#include <limits.h>
 #include <signal.h>
 #include <stdarg.h>
 #include <stdio.h>
@@ -48,63 +51,66 @@ static void (*sig_alrm_handler) (int);
 
 /*------------------------------------------------------------------------*/
 
+enum BtorMainOption
+{
+  BTORMAIN_OPT_HELP,
+  BTORMAIN_OPT_COPYRIGHT,
+  BTORMAIN_OPT_VERSION,
+  BTORMAIN_OPT_TIME,
+  BTORMAIN_OPT_OUTPUT,
+  BTORMAIN_OPT_ENGINE,
+  BTORMAIN_OPT_SAT_ENGINE,
+  BTORMAIN_OPT_LGL_NOFORK,
+  BTORMAIN_OPT_LGL_OPTS,
+  BTORMAIN_OPT_HEX,
+  BTORMAIN_OPT_DEC,
+  BTORMAIN_OPT_BIN,
+  BTORMAIN_OPT_BTOR,
+  BTORMAIN_OPT_SMT2,
+  BTORMAIN_OPT_SMT1,
+  BTORMAIN_OPT_DUMP_BTOR,
+#if 0
+  BTORMAIN_OPT_DUMP_BTOR2,
+#endif
+  BTORMAIN_OPT_DUMP_SMT,
+  BTORMAIN_OPT_DUMP_AAG,
+  BTORMAIN_OPT_DUMP_AIG,
+  BTORMAIN_OPT_DUMP_AIGER_MERGE,
+  BTORMAIN_OPT_SMT2_MODEL,
+  /* this MUST be the last entry! */
+  BTORMAIN_OPT_NUM_OPTS,
+};
+typedef enum BtorMainOption BtorMainOption;
+
+enum BtorMainOptArg
+{
+  BTORMAIN_OPT_ARG_NONE,
+  BTORMAIN_OPT_ARG_INT,
+  BTORMAIN_OPT_ARG_STR,
+};
+typedef enum BtorMainOptArg BtorMainOptArg;
+
 typedef struct BtorMainOpt
 {
-  int general;      /* general option? */
-  const char *shrt; /* short option identifier (may be 0) */
-  const char *lng;  /* long option identifier */
-  const char *desc; /* description */
-  int val;          /* value */
-  int dflt;         /* default value */
-  int min;          /* min value */
-  int max;          /* max value */
+  bool general;       /* general option? */
+  const char *shrt;   /* short option identifier (may be 0) */
+  const char *lng;    /* long option identifier */
+  const char *desc;   /* description */
+  uint32_t val;       /* value */
+  uint32_t dflt;      /* default value */
+  uint32_t min;       /* min value */
+  uint32_t max;       /* max value */
+  bool candisable;    /* can be disabled via '-(-)no-XX'? */
+  BtorMainOptArg arg; /* expects argument? */
 } BtorMainOpt;
 
-typedef struct BtorMainOpts
-{
-  BtorMainOpt first; /* dummy for iteration */
-  /* ------------------------------------ */
-  BtorMainOpt help;
-  BtorMainOpt copyright;
-  BtorMainOpt version;
-  BtorMainOpt time;
-  BtorMainOpt output;
-  BtorMainOpt smt2_model;
-#ifdef BTOR_USE_LINGELING
-  BtorMainOpt lingeling;
-  BtorMainOpt lingeling_nofork;
-  BtorMainOpt lingeling_opts;
-#endif
-#ifdef BTOR_USE_PICOSAT
-  BtorMainOpt picosat;
-#endif
-#ifdef BTOR_USE_MINISAT
-  BtorMainOpt minisat;
-#endif
-  /* ------------------------------------ */
-  BtorMainOpt last; /* dummy for iteration */
-} BtorMainOpts;
-
-#define BTORMAIN_FIRST_OPT(OPTS) (&OPTS.first + 1)
-#define BTORMAIN_LAST_OPT(OPTS) (&OPTS.last - 1)
-
-#define BTORMAIN_INIT_OPT(OPT, GEN, SHRT, LNG, VAL, MIN, MAX, DESC) \
-  do                                                                \
-  {                                                                 \
-    OPT.general = GEN;                                              \
-    OPT.shrt    = SHRT;                                             \
-    OPT.lng     = LNG;                                              \
-    OPT.dflt = OPT.val = VAL;                                       \
-    OPT.min            = MIN;                                       \
-    OPT.max            = MAX;                                       \
-    OPT.desc           = DESC;                                      \
-  } while (0)
+/*------------------------------------------------------------------------*/
 
 struct BtorMainApp
 {
   Btor *btor;
   BtorMemMgr *mm;
-  BtorMainOpts opts;
+  BtorMainOpt *options;
   int done;
   int err;
   char *infile_name;
@@ -114,6 +120,291 @@ struct BtorMainApp
   char *outfile_name;
   int close_outfile;
 };
+
+/*------------------------------------------------------------------------*/
+
+static void
+init_main_opt (BtorMainApp *app,
+               BtorMainOption opt,
+               bool general,
+               char *lng,
+               char *shrt,
+               uint32_t val,
+               uint32_t min,
+               uint32_t max,
+               bool candisable,
+               BtorMainOptArg arg,
+               char *desc)
+{
+  assert (app);
+  assert (lng);
+  assert (desc);
+  assert (max <= UINT_MAX);
+  assert (min <= val);
+  assert (val <= max);
+
+  app->options[opt].general    = general;
+  app->options[opt].lng        = lng;
+  app->options[opt].shrt       = shrt;
+  app->options[opt].val        = val;
+  app->options[opt].dflt       = val;
+  app->options[opt].min        = min;
+  app->options[opt].max        = max;
+  app->options[opt].desc       = desc;
+  app->options[opt].candisable = candisable;
+  app->options[opt].arg        = arg;
+}
+
+static void
+btormain_init_opts (BtorMainApp *app)
+{
+  assert (app);
+
+  BTOR_CNEWN (app->mm, app->options, BTORMAIN_OPT_NUM_OPTS);
+
+  init_main_opt (app,
+                 BTORMAIN_OPT_HELP,
+                 true,
+                 "help",
+                 "h",
+                 0,
+                 0,
+                 1,
+                 false,
+                 BTORMAIN_OPT_ARG_NONE,
+                 "print this message and exit");
+  init_main_opt (app,
+                 BTORMAIN_OPT_COPYRIGHT,
+                 true,
+                 "copyright",
+                 "c",
+                 0,
+                 0,
+                 1,
+                 false,
+                 BTORMAIN_OPT_ARG_NONE,
+                 "print copyright and exit");
+  init_main_opt (app,
+                 BTORMAIN_OPT_VERSION,
+                 true,
+                 "version",
+                 "V",
+                 0,
+                 0,
+                 1,
+                 false,
+                 BTORMAIN_OPT_ARG_NONE,
+                 "print version and exit");
+  init_main_opt (app,
+                 BTORMAIN_OPT_TIME,
+                 true,
+                 "time",
+                 "t",
+                 0,
+                 0,
+                 UINT_MAX,
+                 false,
+                 BTORMAIN_OPT_ARG_INT,
+                 "set time limit");
+  init_main_opt (app,
+                 BTORMAIN_OPT_OUTPUT,
+                 true,
+                 "output",
+                 "o",
+                 0,
+                 0,
+                 0,
+                 false,
+                 BTORMAIN_OPT_ARG_STR,
+                 "set output file for dumping");
+  init_main_opt (app,
+                 BTORMAIN_OPT_ENGINE,
+                 true,
+                 (char *) boolector_get_opt_lng (app->btor, BTOR_OPT_ENGINE),
+                 (char *) boolector_get_opt_shrt (app->btor, BTOR_OPT_ENGINE),
+                 BTOR_ENGINE_DFLT,
+                 BTOR_ENGINE_MIN,
+                 BTOR_ENGINE_MAX,
+                 false,
+                 BTORMAIN_OPT_ARG_STR,
+                 "set engine (core sls) [core]");
+  init_main_opt (
+      app,
+      BTORMAIN_OPT_SAT_ENGINE,
+      true,
+      (char *) boolector_get_opt_lng (app->btor, BTOR_OPT_SAT_ENGINE),
+      (char *) boolector_get_opt_shrt (app->btor, BTOR_OPT_SAT_ENGINE),
+      BTOR_SAT_ENGINE_DFLT,
+      BTOR_SAT_ENGINE_MIN + 1,
+      BTOR_SAT_ENGINE_MAX - 1,
+      false,
+      BTORMAIN_OPT_ARG_STR,
+      "set sat solver");
+#ifdef BTOR_USE_LINGELING
+  init_main_opt (app,
+                 BTORMAIN_OPT_LGL_NOFORK,
+                 true,
+                 "lingeling-nofork",
+                 0,
+                 0,
+                 0,
+                 1,
+                 false,
+                 BTORMAIN_OPT_ARG_NONE,
+                 "do not use 'fork/clone' for Lingeling");
+  init_main_opt (app,
+                 BTORMAIN_OPT_LGL_OPTS,
+                 true,
+                 "lingeling-opts",
+                 0,
+                 0,
+                 0,
+                 1,
+                 false,
+                 BTORMAIN_OPT_ARG_STR,
+                 "set lingeling option(s) '--<opt>=<val>'");
+#endif
+  init_main_opt (app,
+                 BTORMAIN_OPT_HEX,
+                 true,
+                 "hex",
+                 "x",
+                 0,
+                 0,
+                 1,
+                 false,
+                 BTORMAIN_OPT_ARG_NONE,
+                 "force hexadecimal number output");
+  init_main_opt (app,
+                 BTORMAIN_OPT_DEC,
+                 true,
+                 "dec",
+                 "d",
+                 0,
+                 0,
+                 1,
+                 false,
+                 BTORMAIN_OPT_ARG_NONE,
+                 "force decimal number output");
+  init_main_opt (app,
+                 BTORMAIN_OPT_BIN,
+                 true,
+                 "bin",
+                 "b",
+                 0,
+                 0,
+                 1,
+                 false,
+                 BTORMAIN_OPT_ARG_NONE,
+                 "force binary number output");
+  init_main_opt (app,
+                 BTORMAIN_OPT_BTOR,
+                 true,
+                 "btor",
+                 0,
+                 0,
+                 0,
+                 1,
+                 false,
+                 BTORMAIN_OPT_ARG_NONE,
+                 "force BTOR input format");
+  init_main_opt (app,
+                 BTORMAIN_OPT_SMT2,
+                 true,
+                 "smt2",
+                 0,
+                 0,
+                 0,
+                 1,
+                 false,
+                 BTORMAIN_OPT_ARG_NONE,
+                 "force SMT-LIB v2 input format");
+  init_main_opt (app,
+                 BTORMAIN_OPT_SMT1,
+                 true,
+                 "smt1",
+                 0,
+                 0,
+                 0,
+                 1,
+                 false,
+                 BTORMAIN_OPT_ARG_NONE,
+                 "force SMT-LIB v1 input format");
+  init_main_opt (app,
+                 BTORMAIN_OPT_DUMP_BTOR,
+                 true,
+                 "dump-btor",
+                 "db",
+                 0,
+                 0,
+                 1,
+                 false,
+                 BTORMAIN_OPT_ARG_NONE,
+                 "dump formula in BTOR format");
+#if 0
+  init_main_opt (app, BTORMAIN_OPT_DUMP_BTOR2, true, "dump-btor2", "db2", 0, 0, 1,
+		 false, BTORMAIN_OPT_ARG_NONE,
+		 "dump formula in BTOR 2.0 format");
+#endif
+  init_main_opt (app,
+                 BTORMAIN_OPT_DUMP_SMT,
+                 true,
+                 "dump-smt",
+                 "ds",
+                 0,
+                 0,
+                 1,
+                 false,
+                 BTORMAIN_OPT_ARG_NONE,
+                 "dump formula in SMT-LIB v2 format");
+  init_main_opt (app,
+                 BTORMAIN_OPT_DUMP_AAG,
+                 true,
+                 "dump-aag",
+                 "daa",
+                 0,
+                 0,
+                 1,
+                 false,
+                 BTORMAIN_OPT_ARG_NONE,
+                 "dump QF_BV formula in ascii AIGER format");
+  init_main_opt (app,
+                 BTORMAIN_OPT_DUMP_AIG,
+                 true,
+                 "dump-aig",
+                 "dai",
+                 0,
+                 0,
+                 1,
+                 false,
+                 BTORMAIN_OPT_ARG_NONE,
+                 "dump QF_BV formula in binary AIGER format");
+  init_main_opt (app,
+                 BTORMAIN_OPT_DUMP_AIGER_MERGE,
+                 true,
+                 "dump-aiger-merge",
+                 "dam",
+                 0,
+                 0,
+                 1,
+                 false,
+                 BTORMAIN_OPT_ARG_NONE,
+                 "merge all roots of AIG [0]");
+  init_main_opt (app,
+                 BTORMAIN_OPT_SMT2_MODEL,
+                 false,
+                 "smt2-model",
+                 0,
+                 0,
+                 0,
+                 1,
+                 true,
+                 BTORMAIN_OPT_ARG_INT,
+                 "print model in SMT-LIB v2 format "
+                 "if model generation is enabled");
+}
+
+/*------------------------------------------------------------------------*/
 
 static BtorMainApp *
 btormain_new_btormain (Btor *btor)
@@ -130,6 +421,7 @@ btormain_new_btormain (Btor *btor)
   res->infile      = stdin;
   res->infile_name = "<stdin>";
   res->outfile     = stdout;
+  btormain_init_opts (res);
   return res;
 }
 
@@ -137,95 +429,14 @@ static void
 btormain_delete_btormain (BtorMainApp *app)
 {
   assert (app);
-  BtorMemMgr *mm = app->mm;
 
+  BtorMemMgr *mm;
+
+  mm = app->mm;
+  BTOR_DELETEN (mm, app->options, BTORMAIN_OPT_NUM_OPTS);
   boolector_delete (app->btor);
-  BTOR_DELETEN (mm, app, 1);
+  BTOR_DELETE (mm, app);
   btor_delete_mem_mgr (mm);
-}
-
-static void
-btormain_init_opts (BtorMainApp *app)
-{
-  assert (app);
-
-  BTORMAIN_INIT_OPT (
-      app->opts.help, 1, "h", "help", 0, 0, 1, "print this message and exit");
-  BTORMAIN_INIT_OPT (app->opts.copyright,
-                     1,
-                     "c",
-                     "copyright",
-                     0,
-                     0,
-                     1,
-                     "print copyright and exit");
-  BTORMAIN_INIT_OPT (
-      app->opts.version, 1, "V", "version", 0, 0, 1, "print version and exit");
-  BTORMAIN_INIT_OPT (
-      app->opts.time, 1, "t", "time", 0, 0, -1, "set time limit");
-  BTORMAIN_INIT_OPT (app->opts.output,
-                     1,
-                     "o",
-                     "output",
-                     0,
-                     0,
-                     0,
-                     "set output file for dumping");
-  BTORMAIN_INIT_OPT (
-      app->opts.smt2_model,
-      0,
-      0,
-      "smt2_model",
-      0,
-      0,
-      1,
-      "print model in SMT-LIB v2 format if model generation is enabled");
-#ifdef BTOR_USE_LINGELING
-  BTORMAIN_INIT_OPT (app->opts.lingeling,
-                     0,
-                     0,
-                     "lingeling",
-                     0,
-                     0,
-                     1,
-                     "force Lingeling as SAT solver");
-  BTORMAIN_INIT_OPT (app->opts.lingeling_opts,
-                     0,
-                     0,
-                     "lingeling_opts",
-                     0,
-                     0,
-                     0,
-                     "set lingeling option(s) '--<opt>=<val>'");
-  BTORMAIN_INIT_OPT (app->opts.lingeling_nofork,
-                     0,
-                     0,
-                     "lingeling_nofork",
-                     0,
-                     0,
-                     0,
-                     "do not use 'fork/clone' for Lingeling");
-#endif
-#ifdef BTOR_USE_PICOSAT
-  BTORMAIN_INIT_OPT (app->opts.picosat,
-                     0,
-                     0,
-                     "picosat",
-                     0,
-                     0,
-                     1,
-                     "force PicoSAT as SAT solver");
-#endif
-#ifdef BTOR_USE_MINISAT
-  BTORMAIN_INIT_OPT (app->opts.minisat,
-                     0,
-                     0,
-                     "minisat",
-                     0,
-                     0,
-                     1,
-                     "force MiniSAT as SAT solver");
-#endif
 }
 
 /*------------------------------------------------------------------------*/
@@ -263,6 +474,8 @@ btormain_msg (char *msg, ...)
 #define LEN_PARAMSTR 16
 #define LEN_HELPSTR 80
 
+#define IS_OPT(optlng, lng) (!strcmp (optlng, lng))
+
 static void
 print_opt (BtorMainApp *app,
            const char *lng,
@@ -276,33 +489,33 @@ print_opt (BtorMainApp *app,
   assert (desc);
 
   char optstr[LEN_OPTSTR], paramstr[LEN_PARAMSTR];
-  char *descstr, descstrline[LEN_HELPSTR], *lngstr, *word;
+  char *descstr, descstrline[LEN_HELPSTR], *word;
   int i, j, len;
   BtorCharPtrStack words;
 
-  if (!strcmp (lng, BTOR_OPT_INCREMENTAL_LOOK_AHEAD)
-      || !strcmp (lng, BTOR_OPT_INCREMENTAL_IN_DEPTH)
-      || !strcmp (lng, BTOR_OPT_INCREMENTAL_INTERVAL))
-    sprintf (paramstr, "<w>");
-  else if (!strcmp (lng, "time"))
+  if (!strcmp (lng, "time"))
     sprintf (paramstr, "<seconds>");
   else if (!strcmp (lng, "output"))
     sprintf (paramstr, "<file>");
-  else if (!strcmp (lng, BTOR_OPT_ENGINE))
+  else if (!strcmp (lng, boolector_get_opt_lng (app->btor, BTOR_OPT_ENGINE))
+           || !strcmp (lng,
+                       boolector_get_opt_lng (app->btor, BTOR_OPT_SAT_ENGINE)))
     sprintf (paramstr, "<engine>");
-  else if (!strcmp (lng, BTOR_OPT_REWRITE_LEVEL)
-           || !strcmp (lng, BTOR_OPT_PBRA_LOD_LIMIT)
-           || !strcmp (lng, BTOR_OPT_PBRA_SAT_LIMIT)
-           || !strcmp (lng, BTOR_OPT_PBRA_OPS_FACTOR)
-           || !strcmp (lng, BTOR_OPT_SLS_MOVE_RAND_WALK_PROB)
-           || !strcmp (lng, BTOR_OPT_SLS_MOVE_PROP_FLIP_COND_PROB))
+  else if (!strcmp (lng,
+                    boolector_get_opt_lng (app->btor, BTOR_OPT_REWRITE_LEVEL))
+           || !strcmp (lng,
+                       boolector_get_opt_lng (app->btor,
+                                              BTOR_OPT_SLS_MOVE_RAND_WALK_PROB))
+           || !strcmp (lng,
+                       boolector_get_opt_lng (
+                           app->btor, BTOR_OPT_SLS_MOVE_PROP_FLIP_COND_PROB)))
     sprintf (paramstr, "<n>");
-  else if (!strcmp (lng, "lingeling_opts"))
+  else if (!strcmp (lng, "lingeling-opts"))
     sprintf (paramstr, "[,<opt>=<val>]+");
   else
     paramstr[0] = '\0';
 
-  assert (!strcmp (lng, "lingeling_opts")
+  assert (!strcmp (lng, "lingeling-opts")
           || (shrt
               && (2 * strlen (paramstr) + strlen (shrt) + strlen (lng) + 7
                   <= LEN_OPTSTR))
@@ -312,9 +525,6 @@ print_opt (BtorMainApp *app,
   memset (optstr, ' ', LEN_OPTSTR * sizeof (char));
   optstr[LEN_OPTSTR - 1] = '\0';
   len                    = strlen (lng);
-  BTOR_NEWN (app->mm, lngstr, (len + 1) * sizeof (char));
-  for (i = 0; i < len; i++) lngstr[i] = lng[i] == '_' ? '-' : lng[i];
-  lngstr[len] = '\0';
   sprintf (optstr,
            "  %s%s%s%s%s--%s%s%s",
            shrt ? "-" : "",
@@ -322,10 +532,9 @@ print_opt (BtorMainApp *app,
            shrt && strlen (paramstr) > 0 ? " " : "",
            shrt ? paramstr : "",
            shrt ? ", " : "",
-           lngstr,
+           lng,
            strlen (paramstr) > 0 ? "=" : "",
            paramstr);
-  BTOR_DELETEN (app->mm, lngstr, len + 1);
   len = strlen (optstr);
   for (i = len; i < LEN_OPTSTR - 1; i++) optstr[i] = ' ';
   optstr[LEN_OPTSTR - 1] = '\0';
@@ -399,117 +608,62 @@ print_opt (BtorMainApp *app,
   "disabling, and '-<short name>' and '--<long name>' for enabling flags.\n"   \
   "Note that all of the following options can also be set via env. variables " \
   "of\n"                                                                       \
-  "the form 'BTOR<capitalized long name without '-'>=<int>'.\n\n"
+  "the form 'BTOR<capitalized long name without '-' and ':'>=<int>'.\n\n"
 
 static void
 print_help (BtorMainApp *app)
 {
   assert (app);
 
-  char *o;
-  BtorMainOpt to;
-  BtorMainOpt *mo;
-  FILE *out = app->outfile;
+  BtorOption o;
+  BtorMainOption mo;
+  FILE *out;
+
+  out = app->outfile;
 
   fprintf (out, "usage: boolector [<option>...][<input>]\n");
   fprintf (out, "\n");
   fprintf (out, "where <option> is one of the following:\n");
   fprintf (out, "\n");
 
-  for (mo = BTORMAIN_FIRST_OPT (app->opts); mo <= BTORMAIN_LAST_OPT (app->opts);
-       mo++)
+  for (mo = 0; mo < BTORMAIN_OPT_NUM_OPTS; mo++)
   {
-    if (!mo->general) continue;
-    if (!strcmp (mo->lng, "time")) fprintf (out, "\n");
-    PRINT_MAIN_OPT (app, mo);
+    if (!app->options[mo].general) continue;
+    if (mo == BTORMAIN_OPT_TIME || mo == BTORMAIN_OPT_ENGINE
+        || mo == BTORMAIN_OPT_LGL_OPTS || mo == BTORMAIN_OPT_HEX
+        || mo == BTORMAIN_OPT_BTOR || mo == BTORMAIN_OPT_DUMP_BTOR)
+      fprintf (out, "\n");
+    PRINT_MAIN_OPT (app, &app->options[mo]);
   }
 
-  to.dflt = 0;
-
-  fprintf (app->outfile, "\n");
-  to.shrt = "E";
-  to.lng  = "engine";
-  to.desc = "set engine (core, sls) [core]";
-  PRINT_MAIN_OPT (app, &to);
-
-  fprintf (app->outfile, "\n");
-  to.shrt = "x";
-  to.lng  = "hex";
-  to.desc = "force hexadecimal number output";
-  PRINT_MAIN_OPT (app, &to);
-  to.shrt = "d";
-  to.lng  = "dec";
-  to.desc = "force decimal number output";
-  PRINT_MAIN_OPT (app, &to);
-
-  fprintf (app->outfile, "\n");
-  to.shrt = 0;
-  to.lng  = "btor";
-  to.desc = "force BTOR input format";
-  PRINT_MAIN_OPT (app, &to);
-  to.shrt = 0;
-  to.lng  = "smt2";
-  to.desc = "force SMT-LIB v2 input format";
-  PRINT_MAIN_OPT (app, &to);
-  to.shrt = 0;
-  to.lng  = "smt1";
-  to.desc = "force SMT-LIB v1 input format";
-  PRINT_MAIN_OPT (app, &to);
-  fprintf (app->outfile, "\n");
-
-  to.shrt = "db";
-  to.lng  = "dump_btor";
-  to.desc = "dump formula in BTOR format";
-  PRINT_MAIN_OPT (app, &to);
-#if 0
-  to.shrt = "db2"; to.lng = "dump_btor2";
-  to.desc = "dump formula in BTOR 2.0 format";
-  PRINT_MAIN_OPT (app, &to);
-#endif
-  to.shrt = "ds";
-  to.lng  = "dump_smt2";
-  to.desc = "dump formula in SMT-LIB v2 format";
-  PRINT_MAIN_OPT (app, &to);
-  to.shrt = "daa";
-  to.lng  = "dump_aag";
-  to.desc = "dump QF_BV formula in ascii AIGER format";
-  PRINT_MAIN_OPT (app, &to);
-  to.shrt = "dai";
-  to.lng  = "dump_aig";
-  to.desc = "dump QF_BV formula in binary AIGER format";
-  PRINT_MAIN_OPT (app, &to);
-  to.shrt = "dam";
-  to.lng  = "dump_aiger_merge";
-  to.desc = "merge all roots of AIG [0]";
-  PRINT_MAIN_OPT (app, &to);
   fprintf (out, "\n");
 
-  for (mo = BTORMAIN_FIRST_OPT (app->opts); mo <= BTORMAIN_LAST_OPT (app->opts);
-       mo++)
+  for (mo = 0; mo < BTORMAIN_OPT_NUM_OPTS; mo++)
   {
-    if (mo->general) continue;
-    PRINT_MAIN_OPT (app, mo);
-    if (!strcmp (mo->lng, "smt2_model")) fprintf (out, "\n");
+    if (app->options[mo].general) continue;
+    PRINT_MAIN_OPT (app, &app->options[mo]);
+    if (mo == BTORMAIN_OPT_SMT2_MODEL) fprintf (out, "\n");
   }
 
   fprintf (out, "\n");
 
   fprintf (out, BOOLECTOR_OPTS_INFO_MSG);
 
-  for (o = (char *) boolector_first_opt (app->btor); o;
-       o = (char *) boolector_next_opt (app->btor, o))
+  for (o = boolector_first_opt (app->btor); boolector_has_opt (app->btor, o);
+       o = boolector_next_opt (app->btor, o))
   {
-    if (!strcmp (o, BTOR_OPT_ENGINE) || !strcmp (o, BTOR_OPT_INPUT_FORMAT)
-        || !strcmp (o, BTOR_OPT_OUTPUT_NUMBER_FORMAT)
-        || !strcmp (o, BTOR_OPT_OUTPUT_FORMAT))
+    if (app->btor->options[o].internal) continue;
+    if (o == BTOR_OPT_ENGINE || o == BTOR_OPT_SAT_ENGINE
+        || o == BTOR_OPT_INPUT_FORMAT || o == BTOR_OPT_OUTPUT_NUMBER_FORMAT
+        || o == BTOR_OPT_OUTPUT_FORMAT)
       continue;
-    if (!strcmp (o, BTOR_OPT_INCREMENTAL) || !strcmp (o, BTOR_OPT_REWRITE_LEVEL)
-        || !strcmp (o, BTOR_OPT_BETA_REDUCE_ALL)
-        || !strcmp (o, BTOR_OPT_AUTO_CLEANUP) || !strcmp (o, BTOR_OPT_DUAL_PROP)
-        || !strcmp (o, BTOR_OPT_LAZY_SYNTHESIZE))
+    if (o == BTOR_OPT_INCREMENTAL || o == BTOR_OPT_REWRITE_LEVEL
+        || o == BTOR_OPT_BETA_REDUCE_ALL || o == BTOR_OPT_AUTO_CLEANUP
+        || o == BTOR_OPT_FUN_DUAL_PROP || o == BTOR_OPT_SLS_STRATEGY
+        || o == BTOR_OPT_SORT_EXP)
       fprintf (out, "\n");
     print_opt (app,
-               o,
+               boolector_get_opt_lng (app->btor, o),
                boolector_get_opt_shrt (app->btor, o),
                boolector_get_opt_dflt (app->btor, o),
                boolector_get_opt_desc (app->btor, o),
@@ -529,7 +683,7 @@ print_copyright (BtorMainApp *app)
   fprintf (out, "This software is\n");
   fprintf (out, "Copyright (c) 2007-2009 Robert Brummayer\n");
   fprintf (out, "Copyright (c) 2007-2015 Armin Biere\n");
-  fprintf (out, "Copyright (c) 2012-2015 Aina Niemetz, Mathias Preiner\n");
+  fprintf (out, "Copyright (c) 2012-2016 Aina Niemetz, Mathias Preiner\n");
   fprintf (out, "Institute for Formal Models and Verification\n");
   fprintf (out, "Johannes Kepler University, Linz, Austria\n");
 #ifdef BTOR_USE_LINGELING
@@ -685,41 +839,42 @@ has_suffix (const char *str, const char *suffix)
 
 /*------------------------------------------------------------------------*/
 
-#define IS_MAIN_OPT(lng_opt)                          \
-  ((isshrt && g_app->opts.lng_opt.shrt                \
-    && !strcmp (opt.start, g_app->opts.lng_opt.shrt)) \
-   || (!isshrt && !strcmp (opt.start, g_app->opts.lng_opt.lng)))
+#define NO_VALUE_READ(val) (readval == 0 || readval == 3)
 
-#define IS_BTOR_OPT(shrt_opt, lng_opt)            \
-  ((isshrt && oshrt && !strcmp (oshrt, shrt_opt)) \
-   || (!isshrt && !strcmp (o, lng_opt)))
+#define HAS_UNEXPECTED_ARGUMENT(arg)               \
+  ((arg == BTORMAIN_OPT_ARG_NONE                   \
+    || (arg == BTORMAIN_OPT_ARG_INT && isdisable)) \
+   && (readval == 2 || (readval == 1 && isint)))
 
-#define HAS_UNEXPECTED_ARGUMENT ((readval == 2 || (readval == 1 && isint)))
-#define HAS_MISSING_ARGUMENT ((!readval || (readval == 1 && !isint)))
-#define HAS_INVALID_ARGUMENT ((readval == 2 && !isint))
+#define HAS_MISSING_ARGUMENT(arg, candisable)                 \
+  ((arg == BTORMAIN_OPT_ARG_STR && NO_VALUE_READ (readval))   \
+   || (arg == BTORMAIN_OPT_ARG_INT                            \
+       && (((!candisable && (NO_VALUE_READ (val) || !isint))) \
+           || (readval == 3))))
+
+#define HAS_INVALID_ARGUMENT(arg, candisable) \
+  (arg == BTORMAIN_OPT_ARG_INT && readval == 2 && !isint)
 
 int
 boolector_main (int argc, char **argv)
 {
-  bool dump_merge = false;
+  bool dump_merge;
   int i, j, len, readval, val, format;
   int isshrt, isdisable, isint;
   int res, parse_res, parse_status, sat_res;
-  int mgen, pmodel, inc, dump, force_sat;
+  int mgen, pmodel, inc, dump;
   char *arg, *cmd, *valstr, *tmp, *parse_err_msg;
-  char *o;
-  const char *oshrt;
-#ifdef BTOR_USE_LINGELING
-  char *lglopts = 0;
-#endif
   BtorCharStack opt, errarg;
+  BtorOption k;
+  BtorMainOption l;
+  BtorMainOpt *mo;
+  BtorOpt *o;
 
 #ifdef BTOR_HAVE_GETRUSAGE
   g_start_time = btor_time_stamp ();
 #endif
 
   g_app = btormain_new_btormain (boolector_new ());
-  btormain_init_opts (g_app);
 
   res          = BTOR_UNKNOWN_EXIT;
   parse_res    = BOOLECTOR_UNKNOWN;
@@ -729,9 +884,9 @@ boolector_main (int argc, char **argv)
   mgen         = 0;
   pmodel       = 0;
   dump         = 0;
-  force_sat    = 0;
+  dump_merge   = false;
 
-  mgen = boolector_get_opt_val (g_app->btor, BTOR_OPT_MODEL_GEN);
+  mgen = boolector_get_opt (g_app->btor, BTOR_OPT_MODEL_GEN);
 
   BTOR_INIT_STACK (opt);
   BTOR_INIT_STACK (errarg);
@@ -793,7 +948,7 @@ boolector_main (int argc, char **argv)
       continue;
     }
 
-    /* options */
+    /* options ========================================================== */
 
     BTOR_RESET_STACK (errarg);
     BTOR_RESET_STACK (opt);
@@ -809,13 +964,14 @@ boolector_main (int argc, char **argv)
     isdisable =
         len > 3 && arg[j] == 'n' && arg[j + 1] == 'o' && arg[j + 2] == '-';
     for (j = isdisable ? j + 3 : j; j < len && arg[j] != '='; j++)
-      BTOR_PUSH_STACK (g_app->mm, opt, arg[j] == '-' ? '_' : arg[j]);
+      BTOR_PUSH_STACK (g_app->mm, opt, arg[j]);
     BTOR_PUSH_STACK (g_app->mm, opt, '\0');
 
     /* extract option argument (if any) */
     if (arg[j] == '=')
     {
-      valstr = arg + j + 1;
+      readval = 3;
+      valstr  = arg + j + 1;
       if (valstr[0] != 0)
       {
         readval = 2;
@@ -834,304 +990,314 @@ boolector_main (int argc, char **argv)
       }
     }
 
-    /* set options */
-    /* >> main options */
-    if (IS_MAIN_OPT (help))
+    /* main options ----------------------------------------------------- */
+    for (l = 0, mo = 0; l < BTORMAIN_OPT_NUM_OPTS; l++)
     {
-      if (isdisable)
+      mo = &g_app->options[l];
+      if ((isshrt && mo->shrt && !strcmp (mo->shrt, opt.start))
+          || (!isshrt && !strcmp (mo->lng, opt.start)))
+        break;
+      mo = 0;
+    }
+    if (mo)
+    {
+      /* check opt */
+      if (isdisable && !mo->candisable)
       {
-      ERR_INVALID_OPTION:
         btormain_error (g_app, "invalid option '%s'", errarg.start);
         goto DONE;
       }
-
-      if (HAS_UNEXPECTED_ARGUMENT)
+      if (mo->arg == BTORMAIN_OPT_ARG_NONE)
       {
-      ERR_UNEXPECTED_ARGUMENT:
-        btormain_error (
-            g_app, "option '%s' does not expect an argument", errarg.start);
+        if (HAS_UNEXPECTED_ARGUMENT (mo->arg))
+        {
+          btormain_error (
+              g_app, "option '%s' does not expect an argument", errarg.start);
+          goto DONE;
+        }
+      }
+      else
+      {
+        if (HAS_MISSING_ARGUMENT (mo->arg, mo->candisable))
+        {
+          btormain_error (g_app, "missing argument for '%s'", errarg.start);
+          goto DONE;
+        }
+        if (HAS_INVALID_ARGUMENT (mo->arg, mo->candisable))
+        {
+          btormain_error (
+              g_app, "invalid argument for '%s', expected int", errarg.start);
+          goto DONE;
+        }
+      }
+      /* set opt */
+      switch (l)
+      {
+        case BTORMAIN_OPT_HELP: print_help (g_app); goto DONE;
+
+        case BTORMAIN_OPT_COPYRIGHT: print_copyright (g_app); goto DONE;
+
+        case BTORMAIN_OPT_VERSION: print_version (g_app); goto DONE;
+
+        case BTORMAIN_OPT_TIME: g_set_alarm = val; break;
+
+        case BTORMAIN_OPT_OUTPUT:
+          if (g_app->close_outfile)
+          {
+            btormain_error (g_app, "multiple output files");
+            goto DONE;
+          }
+          g_app->outfile_name = valstr;
+          if (readval == 1) i += 1;
+          break;
+
+        case BTORMAIN_OPT_SMT2_MODEL:
+          g_app->options[BTORMAIN_OPT_SMT2_MODEL].val += 1;
+          break;
+
+        case BTORMAIN_OPT_ENGINE:
+          if (!strcasecmp (valstr, "core"))
+            boolector_set_opt (g_app->btor, BTOR_OPT_ENGINE, BTOR_ENGINE_FUN);
+          else if (!strcasecmp (valstr, "sls"))
+            boolector_set_opt (g_app->btor, BTOR_OPT_ENGINE, BTOR_ENGINE_SLS);
+          else if (!strcasecmp (valstr, "prop"))
+            boolector_set_opt (g_app->btor, BTOR_OPT_ENGINE, BTOR_ENGINE_PROP);
+          else
+          {
+            btormain_error (
+                g_app, "invalid engine '%s' for '%s'", valstr, errarg.start);
+            goto DONE;
+          }
+          break;
+
+        case BTORMAIN_OPT_SAT_ENGINE:
+#ifdef BTOR_USE_LINGELING
+          if (!strcasecmp (valstr, "lingeling"))
+          {
+            boolector_set_opt (
+                g_app->btor, BTOR_OPT_SAT_ENGINE, BTOR_SAT_ENGINE_LINGELING);
+          }
+          else
+#endif
+#ifdef BTOR_USE_PICOSAT
+              if (!strcasecmp (valstr, "picosat"))
+          {
+            boolector_set_opt (
+                g_app->btor, BTOR_OPT_SAT_ENGINE, BTOR_SAT_ENGINE_PICOSAT);
+          }
+          else
+#endif
+#ifdef BTOR_USE_MINISAT
+              if (!strcasecmp (valstr, "minisat"))
+            boolector_set_opt (
+                g_app->btor, BTOR_OPT_SAT_ENGINE, BTOR_SAT_ENGINE_MINISAT);
+          else
+#endif
+          {
+            btormain_error (g_app,
+                            "invalid sat solver '%s' for '%s'",
+                            valstr,
+                            errarg.start);
+            goto DONE;
+          }
+          break;
+
+#ifdef BTOR_USE_LINGELING
+        case BTORMAIN_OPT_LGL_NOFORK:
+          boolector_set_opt (g_app->btor, BTOR_OPT_SAT_ENGINE_LGL_FORK, 0);
+          break;
+
+        case BTORMAIN_OPT_LGL_OPTS:
+          btor_set_opt_str (g_app->btor, BTOR_OPT_SAT_ENGINE, valstr);
+          break;
+#endif
+
+        case BTORMAIN_OPT_HEX:
+          format = BTOR_OUTPUT_BASE_HEX;
+        SET_OUTPUT_NUMBER_FORMAT:
+          boolector_set_opt (
+              g_app->btor, BTOR_OPT_OUTPUT_NUMBER_FORMAT, format);
+          break;
+
+        case BTORMAIN_OPT_DEC:
+          format = BTOR_OUTPUT_BASE_DEC;
+          goto SET_OUTPUT_NUMBER_FORMAT;
+
+        case BTORMAIN_OPT_BIN:
+          format = BTOR_OUTPUT_BASE_BIN;
+          goto SET_OUTPUT_NUMBER_FORMAT;
+
+        case BTORMAIN_OPT_BTOR:
+          format = BTOR_INPUT_FORMAT_BTOR;
+        SET_INPUT_FORMAT:
+          boolector_set_opt (g_app->btor, BTOR_OPT_INPUT_FORMAT, format);
+          break;
+
+        case BTORMAIN_OPT_SMT2:
+          format = BTOR_INPUT_FORMAT_SMT2;
+          goto SET_INPUT_FORMAT;
+
+        case BTORMAIN_OPT_SMT1:
+          format = BTOR_INPUT_FORMAT_SMT1;
+          goto SET_INPUT_FORMAT;
+
+        case BTORMAIN_OPT_DUMP_BTOR:
+          dump = BTOR_OUTPUT_FORMAT_BTOR;
+        SET_OUTPUT_FORMAT:
+          boolector_set_opt (g_app->btor, BTOR_OPT_OUTPUT_FORMAT, dump);
+          boolector_set_opt (g_app->btor, BTOR_OPT_PARSE_INTERACTIVE, 0);
+          break;
+#if 0
+	      case BTORMAIN_OPT_DUMP_BTOR2:
+		dump = BTOR_OUTPUT_FORMAT_BTOR2;
+		goto SET_OUTPUT_FORMAT;
+#endif
+        case BTORMAIN_OPT_DUMP_SMT:
+          dump = BTOR_OUTPUT_FORMAT_SMT2;
+          goto SET_OUTPUT_FORMAT;
+
+        case BTORMAIN_OPT_DUMP_AAG:
+          dump = BTOR_OUTPUT_FORMAT_AIGER_ASCII;
+          goto SET_OUTPUT_FORMAT;
+
+        case BTORMAIN_OPT_DUMP_AIG:
+          dump = BTOR_OUTPUT_FORMAT_AIGER_BINARY;
+          goto SET_OUTPUT_FORMAT;
+
+        case BTORMAIN_OPT_DUMP_AIGER_MERGE: dump_merge = true; break;
+
+        default:
+          /* get rid of compiler warnings, should be unreachable */
+          assert (l == BTORMAIN_OPT_NUM_OPTS);
+      }
+    }
+
+    /* >> btor options ------------------------------------------------ */
+    else
+    {
+      for (k = boolector_first_opt (g_app->btor), o = 0;
+           boolector_has_opt (g_app->btor, k);
+           k = btor_next_opt (g_app->btor, k))
+      {
+        o = &g_app->btor->options[k];
+        if ((isshrt && o->shrt && !strcmp (o->shrt, opt.start))
+            || (!isshrt && !strcmp (o->lng, opt.start)))
+          break;
+        o = 0;
+      }
+      /* check opt */
+      if (!o)
+      {
+        btormain_error (g_app, "invalid option '%s'", errarg.start);
         goto DONE;
       }
-
-      print_help (g_app);
-      goto DONE;
-    }
-    else if (IS_MAIN_OPT (copyright))
-    {
-      if (isdisable) goto ERR_INVALID_OPTION;
-      if (HAS_UNEXPECTED_ARGUMENT) goto ERR_UNEXPECTED_ARGUMENT;
-
-      print_copyright (g_app);
-      goto DONE;
-    }
-    else if (IS_MAIN_OPT (version))
-    {
-      if (isdisable) goto ERR_INVALID_OPTION;
-      if (HAS_UNEXPECTED_ARGUMENT) goto ERR_UNEXPECTED_ARGUMENT;
-
-      print_version (g_app);
-      goto DONE;
-    }
-    else if (IS_MAIN_OPT (time))
-    {
-      if (isdisable) goto ERR_INVALID_OPTION;
-
-      if (HAS_MISSING_ARGUMENT)
+      if (HAS_MISSING_ARGUMENT (BTORMAIN_OPT_ARG_INT, o->isflag))
       {
-      ERR_MISSING_ARGUMENT:
         btormain_error (g_app, "missing argument for '%s'", errarg.start);
         goto DONE;
       }
-
-      if (HAS_INVALID_ARGUMENT)
+      if (HAS_INVALID_ARGUMENT (BTORMAIN_OPT_ARG_INT, o->isflag))
       {
-      ERR_INVALID_ARGUMENT:
         btormain_error (
             g_app, "invalid argument for '%s', expected int", errarg.start);
         goto DONE;
       }
-
-      g_set_alarm = val;
-    }
-    else if (IS_MAIN_OPT (output))
-    {
-      if (isdisable) goto ERR_INVALID_OPTION;
-      if (!readval) goto ERR_MISSING_ARGUMENT;
-
-      if (g_app->close_outfile)
+      if (o->isflag)
       {
-        btormain_error (g_app, "multiple output files");
-        goto DONE;
-      }
-
-      g_app->outfile_name = valstr;
-      if (readval == 1) i += 1;
-    }
-    else if (IS_MAIN_OPT (smt2_model))
-    {
-      if (isdisable) goto ERR_INVALID_OPTION;
-      if (HAS_UNEXPECTED_ARGUMENT) goto ERR_UNEXPECTED_ARGUMENT;
-
-      g_app->opts.smt2_model.val += 1;
-    }
-    /* >> sat solver options */
-#ifdef BTOR_USE_LINGELING
-    else if (IS_MAIN_OPT (lingeling))
-    {
-      if (isdisable) goto ERR_INVALID_OPTION;
-      if (HAS_UNEXPECTED_ARGUMENT) goto ERR_UNEXPECTED_ARGUMENT;
-
-      g_app->opts.lingeling.val = 1;
-    }
-    else if (IS_MAIN_OPT (lingeling_nofork))
-    {
-      if (isdisable) goto ERR_INVALID_OPTION;
-      if (HAS_UNEXPECTED_ARGUMENT) goto ERR_UNEXPECTED_ARGUMENT;
-
-      g_app->opts.lingeling_nofork.val = 1;
-    }
-    else if (IS_MAIN_OPT (lingeling_opts))
-    {
-      if (isdisable) goto ERR_INVALID_OPTION;
-      if (!readval) goto ERR_MISSING_ARGUMENT;
-
-      lglopts = valstr;
-    }
-#endif
-#ifdef BTOR_USE_PICOSAT
-    else if (IS_MAIN_OPT (picosat))
-    {
-      if (isdisable) goto ERR_INVALID_OPTION;
-      if (HAS_UNEXPECTED_ARGUMENT) goto ERR_UNEXPECTED_ARGUMENT;
-      g_app->opts.picosat.val = 1;
-    }
-#endif
-#ifdef BTOR_USE_MINISAT
-    else if (IS_MAIN_OPT (minisat))
-    {
-      if (isdisable) goto ERR_INVALID_OPTION;
-      if (HAS_UNEXPECTED_ARGUMENT) goto ERR_UNEXPECTED_ARGUMENT;
-      g_app->opts.minisat.val = 1;
-    }
-#endif
-
-    /* >> meta options */
-    else if (!strcmp (opt.start, "E") || !strcmp (opt.start, BTOR_OPT_ENGINE))
-    {
-      if (isdisable) goto ERR_INVALID_OPTION;
-      if (!readval) goto ERR_MISSING_ARGUMENT;
-      if (isint) goto ERR_INVALID_ARGUMENT;
-      if (!strcasecmp (valstr, "core"))
-        boolector_set_opt (g_app->btor, BTOR_OPT_ENGINE, BTOR_ENGINE_CORE);
-      else if (!strcasecmp (valstr, "sls"))
-        boolector_set_opt (g_app->btor, BTOR_OPT_ENGINE, BTOR_ENGINE_SLS);
-      else if (!strcasecmp (valstr, "prop"))
-        boolector_set_opt (g_app->btor, BTOR_OPT_ENGINE, BTOR_ENGINE_PROP);
-    }
-    else if (!strcmp (opt.start, "btor"))
-    {
-      format = BTOR_INPUT_FORMAT_BTOR;
-    SET_INPUT_FORMAT:
-      if (isdisable) goto ERR_INVALID_OPTION;
-      if (HAS_UNEXPECTED_ARGUMENT) goto ERR_UNEXPECTED_ARGUMENT;
-
-      boolector_set_opt (g_app->btor, BTOR_OPT_INPUT_FORMAT, format);
-    }
-    else if (!strcmp (opt.start, "smt2"))
-    {
-      format = BTOR_INPUT_FORMAT_SMT2;
-      goto SET_INPUT_FORMAT;
-    }
-    else if (!strcmp (opt.start, "smt1"))
-    {
-      format = BTOR_INPUT_FORMAT_SMT1;
-      goto SET_INPUT_FORMAT;
-    }
-    else if (!strcmp (opt.start, "x") || !strcmp (opt.start, "hex"))
-    {
-      format = BTOR_OUTPUT_BASE_HEX;
-    SET_OUTPUT_NUMBER_FORMAT:
-      if (isdisable) goto ERR_INVALID_OPTION;
-      if (HAS_UNEXPECTED_ARGUMENT) goto ERR_UNEXPECTED_ARGUMENT;
-
-      boolector_set_opt (g_app->btor, BTOR_OPT_OUTPUT_NUMBER_FORMAT, format);
-    }
-    else if (!strcmp (opt.start, "d") || !strcmp (opt.start, "dec"))
-    {
-      format = BTOR_OUTPUT_BASE_DEC;
-      goto SET_OUTPUT_NUMBER_FORMAT;
-    }
-    else if (!strcmp (opt.start, "db") || !strcmp (opt.start, "dump_btor"))
-    {
-      dump = BTOR_OUTPUT_FORMAT_BTOR;
-    SET_OUTPUT_FORMAT:
-      if (isdisable) goto ERR_INVALID_OPTION;
-      if (HAS_UNEXPECTED_ARGUMENT) goto ERR_UNEXPECTED_ARGUMENT;
-
-      boolector_set_opt (g_app->btor, BTOR_OPT_OUTPUT_FORMAT, dump);
-      boolector_set_opt (g_app->btor, BTOR_OPT_PARSE_INTERACTIVE, 0);
-    }
-#if 0
-      else if (!strcmp (opt.start, "db2") || !strcmp (opt.start, "dump_btor2"))
-	{
-	  dump = BTOR_OUTPUT_FORMAT_BTOR2;
-	  goto SET_OUTPUT_FORMAT;
-	}
-#endif
-    else if (!strcmp (opt.start, "ds") || !strcmp (opt.start, "dump_smt2"))
-    {
-      dump = BTOR_OUTPUT_FORMAT_SMT2;
-      goto SET_OUTPUT_FORMAT;
-    }
-    else if (!strcmp (opt.start, "daa") || !strcmp (opt.start, "dump_aag"))
-    {
-      dump = BTOR_OUTPUT_FORMAT_AIGER_ASCII;
-      goto SET_OUTPUT_FORMAT;
-    }
-    else if (!strcmp (opt.start, "dai") || !strcmp (opt.start, "dump_aig"))
-    {
-      dump = BTOR_OUTPUT_FORMAT_AIGER_BINARY;
-      goto SET_OUTPUT_FORMAT;
-    }
-    else if (!strcmp (opt.start, "dam")
-             || !strcmp (opt.start, "dump_aiger_merge"))
-    {
-      dump_merge = true;
-    }
-    /* >> btor options */
-    else
-    {
-      for (o = (char *) boolector_first_opt (g_app->btor); o;
-           o = (char *) boolector_next_opt (g_app->btor, o))
-      {
-        oshrt = boolector_get_opt_shrt (g_app->btor, o);
-        if ((isshrt && oshrt && !strcmp (oshrt, opt.start))
-            || (!isshrt && !strcmp (o, opt.start)))
-          break;
-      }
-
-      if (!o) goto ERR_INVALID_OPTION;
-
-      /* flags */
-      if (IS_BTOR_OPT ("i", BTOR_OPT_INCREMENTAL))
-      {
-        if (readval == 2 && !isint) goto ERR_INVALID_ARGUMENT;
-
-        inc = isdisable || (readval && isint && val == 0)
-                  ? 0
-                  : inc | BTOR_PARSE_MODE_BASIC_INCREMENTAL;
-        boolector_set_opt (g_app->btor, o, inc);
-      }
-      else if (IS_BTOR_OPT ("I", BTOR_OPT_INCREMENTAL_ALL))
-      {
-        if (readval == 2 && !isint) goto ERR_INVALID_ARGUMENT;
-
-        if (isdisable || (readval && isint && val == 0))
-          boolector_set_opt (g_app->btor, o, 0);
-        else
+        if (isdisable)
         {
-          boolector_set_opt (
-              g_app->btor, o, BTOR_PARSE_MODE_INCREMENTAL_BUT_CONTINUE);
-          inc |= BTOR_PARSE_MODE_INCREMENTAL_BUT_CONTINUE;
-          boolector_set_opt (g_app->btor, BTOR_OPT_INCREMENTAL, inc);
-        }
-      }
-      else if (IS_BTOR_OPT ("m", BTOR_OPT_MODEL_GEN))
-      {
-        if (readval == 2 && !isint) goto ERR_INVALID_ARGUMENT;
-
-        if (isdisable || (readval && isint && val == 0))
-        {
-          mgen   = 0;
-          pmodel = 0;
+          if (k == BTOR_OPT_MODEL_GEN)
+          {
+            mgen   = 0;
+            pmodel = 0;
+          }
+          else
+            boolector_set_opt (g_app->btor, k, 0);
         }
         else
         {
-          mgen += 1;
-          pmodel = 1;
+          switch (k)
+          {
+            case BTOR_OPT_INCREMENTAL:
+              inc = (readval && isint && val == 0)
+                        ? 0
+                        : inc | BTOR_PARSE_MODE_BASIC_INCREMENTAL;
+              boolector_set_opt (g_app->btor, k, inc);
+              break;
+            case BTOR_OPT_INCREMENTAL_ALL:
+              boolector_set_opt (
+                  g_app->btor, k, BTOR_PARSE_MODE_INCREMENTAL_BUT_CONTINUE);
+              inc = (readval && isint && val == 0)
+                        ? 0
+                        : inc | BTOR_PARSE_MODE_INCREMENTAL_BUT_CONTINUE;
+              boolector_set_opt (g_app->btor, BTOR_OPT_INCREMENTAL, inc);
+              break;
+            case BTOR_OPT_MODEL_GEN:
+              if (readval && isint && val == 0)
+              {
+                mgen   = 0;
+                pmodel = 0;
+              }
+              else
+              {
+                mgen += 1;
+                pmodel = 1;
+              }
+              break;
+            case BTOR_OPT_FUN_DUAL_PROP:
+              if (boolector_get_opt (g_app->btor, BTOR_OPT_FUN_JUST))
+              {
+                btormain_error (g_app,
+                                "can only set one out of '--%s' and '--%s'",
+                                BTOR_OPT_FUN_DUAL_PROP,
+                                BTOR_OPT_FUN_JUST);
+                goto DONE;
+              }
+              goto DEFAULT;
+            case BTOR_OPT_FUN_JUST:
+              if (boolector_get_opt (g_app->btor, BTOR_OPT_FUN_DUAL_PROP))
+              {
+                btormain_error (g_app,
+                                "can only set one out of '--%s' and '--%s'",
+                                BTOR_OPT_FUN_DUAL_PROP,
+                                BTOR_OPT_FUN_JUST);
+                goto DONE;
+              }
+              goto DEFAULT;
+#ifndef NBTORLOG
+            case BTOR_OPT_VERBOSITY:
+            case BTOR_OPT_LOGLEVEL:
+#else
+            case BTOR_OPT_VERBOSITY:
+#endif
+              if (readval && isint)
+                boolector_set_opt (g_app->btor, k, val);
+              else
+                boolector_set_opt (
+                    g_app->btor, k, boolector_get_opt (g_app->btor, k) + 1);
+              break;
+            default:
+              assert (k != BTOR_OPT_NUM_OPTS);
+            DEFAULT:
+              if (readval && isint)
+                boolector_set_opt (g_app->btor, k, val);
+              else
+                boolector_set_opt (g_app->btor, k, 1);
+          }
         }
       }
-      /* options requiring an integer argument */
-      else if (IS_BTOR_OPT ("rwl", BTOR_OPT_REWRITE_LEVEL)
-               || IS_BTOR_OPT ("", BTOR_OPT_PBRA_LOD_LIMIT)
-               || IS_BTOR_OPT ("", BTOR_OPT_PBRA_SAT_LIMIT)
-               || IS_BTOR_OPT ("", BTOR_OPT_PBRA_OPS_FACTOR))
-      {
-        if (!readval) goto ERR_MISSING_ARGUMENT;
-        if (!isint) goto ERR_INVALID_ARGUMENT;
-        boolector_set_opt (g_app->btor, o, val);
-      }
-      /* options that can be used as a flag or with an argument */
       else
       {
-        if (isdisable && HAS_UNEXPECTED_ARGUMENT) goto ERR_UNEXPECTED_ARGUMENT;
-
-        if ((IS_BTOR_OPT ("dp", BTOR_OPT_DUAL_PROP)
-             && boolector_get_opt_val (g_app->btor, BTOR_OPT_JUST))
-            || (IS_BTOR_OPT ("ju", BTOR_OPT_JUST)
-                && boolector_get_opt_val (g_app->btor, BTOR_OPT_DUAL_PROP)))
-        {
-          btormain_error (g_app,
-                          "can only set one out of '--%s' and '--%s'",
-                          BTOR_OPT_DUAL_PROP,
-                          BTOR_OPT_JUST);
-          goto DONE;
-        }
-
-        if (isdisable || (readval && isint && val == 0))
-          boolector_set_opt (g_app->btor, o, 0);
-        else if (readval && isint)
-          boolector_set_opt (g_app->btor, o, val);
-        else
-          boolector_set_opt (
-              g_app->btor, o, boolector_get_opt_val (g_app->btor, o) + 1);
+        assert (readval);
+        assert (isint);
+        boolector_set_opt (g_app->btor, k, val);
       }
     }
   }
 
   assert (!g_app->done && !g_app->err);
 
-  g_verbosity = boolector_get_opt_val (g_app->btor, BTOR_OPT_VERBOSITY);
+  g_verbosity = boolector_get_opt (g_app->btor, BTOR_OPT_VERBOSITY);
 
   /* open output file */
   if (g_app->outfile_name)
@@ -1152,58 +1318,11 @@ boolector_main (int argc, char **argv)
   }
 
   /* automatically enable model generation if smt2 models are forced */
-  mgen =
-      !mgen && g_app->opts.smt2_model.val ? g_app->opts.smt2_model.val : mgen;
+  val  = g_app->options[BTORMAIN_OPT_SMT2_MODEL].val;
+  mgen = !mgen && val ? val : mgen;
 
   // TODO: disabling model generation not yet supported (ma)
   if (mgen > 0) boolector_set_opt (g_app->btor, BTOR_OPT_MODEL_GEN, mgen);
-
-    /* force sat solver */
-#ifdef BTOR_USE_LINGELING
-  if (g_app->opts.lingeling.val)
-  {
-    if (force_sat++)
-    {
-      btormain_error (g_app, "multiple sat solvers forced");
-      goto DONE;
-    }
-    if (!boolector_set_sat_solver_lingeling (
-            g_app->btor, lglopts, g_app->opts.lingeling_nofork.val))
-      btormain_error (g_app, "invalid options to Lingeling: '%s'", lglopts);
-  }
-#endif
-#ifdef BTOR_USE_PICOSAT
-  if (g_app->opts.picosat.val)
-  {
-    if (force_sat++)
-    {
-      btormain_error (g_app, "multiple sat solvers forced");
-      goto DONE;
-    }
-    boolector_set_sat_solver_picosat (g_app->btor);
-  }
-#endif
-#ifdef BTOR_USE_MINISAT
-  if (g_app->opts.minisat.val)
-  {
-    if (force_sat++)
-    {
-      btormain_error (g_app, "multiple sat solvers forced");
-      goto DONE;
-    }
-    boolector_set_sat_solver_minisat (g_app->btor);
-  }
-#endif
-#ifdef BTOR_USE_LINGELING
-  if (g_app->opts.lingeling_nofork.val && !g_app->opts.lingeling.val)
-  {
-    btormain_error (g_app,
-                    "option '%s' is invalid if Lingeling is not "
-                    "configured as SAT solver",
-                    errarg.start);
-    goto DONE;
-  }
-#endif
 
   /* print verbose info and set signal handlers */
   if (g_verbosity)
@@ -1231,7 +1350,7 @@ boolector_main (int argc, char **argv)
   if (inc && g_verbosity) btormain_msg ("starting incremental mode");
 
   /* parse */
-  if ((val = boolector_get_opt_val (g_app->btor, "input_format")))
+  if ((val = boolector_get_opt (g_app->btor, BTOR_OPT_INPUT_FORMAT)))
   {
     switch (val)
     {
@@ -1276,7 +1395,7 @@ boolector_main (int argc, char **argv)
                                  &parse_status);
 
   /* verbosity may have been increased via input (set-option) */
-  g_verbosity = boolector_get_opt_val (g_app->btor, BTOR_OPT_VERBOSITY);
+  g_verbosity = boolector_get_opt (g_app->btor, BTOR_OPT_VERBOSITY);
 
   if (parse_res == BOOLECTOR_PARSE_ERROR)
   {
@@ -1306,10 +1425,10 @@ boolector_main (int argc, char **argv)
 
     if (pmodel && sat_res == BOOLECTOR_SAT)
     {
-      assert (boolector_get_opt_val (g_app->btor, BTOR_OPT_MODEL_GEN));
-      boolector_print_model (g_app->btor,
-                             g_app->opts.smt2_model.val ? "smt2" : "btor",
-                             g_app->outfile);
+      assert (boolector_get_opt (g_app->btor, BTOR_OPT_MODEL_GEN));
+      val = g_app->options[BTORMAIN_OPT_SMT2_MODEL].val;
+      boolector_print_model (
+          g_app->btor, val ? "smt2" : "btor", g_app->outfile);
     }
 
 #ifdef BTOR_HAVE_GETRUSAGE
@@ -1387,10 +1506,9 @@ boolector_main (int argc, char **argv)
   /* print model */
   if (pmodel && sat_res == BOOLECTOR_SAT)
   {
-    assert (boolector_get_opt_val (g_app->btor, BTOR_OPT_MODEL_GEN));
-    boolector_print_model (g_app->btor,
-                           g_app->opts.smt2_model.val ? "smt2" : "btor",
-                           g_app->outfile);
+    assert (boolector_get_opt (g_app->btor, BTOR_OPT_MODEL_GEN));
+    val = g_app->options[BTORMAIN_OPT_SMT2_MODEL].val;
+    boolector_print_model (g_app->btor, val ? "smt2" : "btor", g_app->outfile);
   }
 
 DONE:
@@ -1412,7 +1530,7 @@ DONE:
     pclose (g_app->infile);
   if (g_app->close_outfile) fclose (g_app->outfile);
 
-  if (!boolector_get_opt_val (g_app->btor, BTOR_OPT_EXIT_CODES))
+  if (!boolector_get_opt (g_app->btor, BTOR_OPT_EXIT_CODES))
   {
     switch (res)
     {

@@ -11,7 +11,7 @@ LDEPS=@LDEPS@
 VERSION=$(shell cat VERSION)
 SRCDIRS=@SRCDIRS@
 LIBOBJ=$(patsubst %.c,%.o,$(foreach d,$(SRCDIRS),$(wildcard $(d)/btor[a-z]*.c)))
-LIBOBJ+=boolector.o $(OBJS)
+LIBOBJ+=boolector.o utils/boolectormap.o $(OBJS)
 SRC=$(foreach d,$(SRCDIRS),$(wildcard $(d)/*.[c|h|cc]))
 TARGETS=@TARGETS@
 ROOT=$(shell pwd|sed -e 's, ,\\ ,g')
@@ -23,7 +23,6 @@ all: libboolector.a $(TARGETS)
 -include ibv.mk
 -include mbt.mk
 -include python.mk
--include btor2horn.mk
 
 %.o: %.c
 	$(CC) $(CFLAGS) $(INCS) -c $< -o $@

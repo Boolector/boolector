@@ -141,28 +141,6 @@ btor_check_all_hash_tables_simp_free_dbg (const Btor *btor)
 }
 
 bool
-btor_check_reachable_flag_dbg (const Btor *btor)
-{
-  int i;
-  BtorNode *cur, *parent;
-  BtorNodeIterator it;
-
-  for (i = BTOR_COUNT_STACK (btor->nodes_id_table) - 1; i >= 0; i--)
-  {
-    if (!(cur = BTOR_PEEK_STACK (btor->nodes_id_table, i))) continue;
-
-    btor_init_parent_iterator (&it, cur);
-
-    while (btor_has_next_parent_iterator (&it))
-    {
-      parent = btor_next_parent_iterator (&it);
-      if (parent->reachable && !cur->reachable) return false;
-    }
-  }
-  return true;
-}
-
-bool
 btor_check_constraints_not_const_dbg (const Btor *btor)
 {
   BtorNode *cur;

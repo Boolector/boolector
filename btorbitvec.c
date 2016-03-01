@@ -253,7 +253,7 @@ btor_copy_bv (BtorMemMgr *mm, const BtorBitVector *bv)
 /*------------------------------------------------------------------------*/
 
 size_t
-btor_size_bv (BtorBitVector *bv)
+btor_size_bv (const BtorBitVector *bv)
 {
   assert (bv);
   return sizeof (BtorBitVector) + bv->len * sizeof (BTOR_BV_TYPE);
@@ -294,7 +294,7 @@ static uint32_t hash_primes[] = {333444569u, 76891121u, 456790003u};
 #define NPRIMES ((int) (sizeof hash_primes / sizeof *hash_primes))
 
 uint32_t
-btor_hash_bv (BtorBitVector *bv)
+btor_hash_bv (const BtorBitVector *bv)
 {
   assert (bv);
 
@@ -309,7 +309,7 @@ btor_hash_bv (BtorBitVector *bv)
 }
 
 void
-btor_print_bv (BtorBitVector *bv)
+btor_print_bv (const BtorBitVector *bv)
 {
   assert (bv);
 
@@ -320,7 +320,7 @@ btor_print_bv (BtorBitVector *bv)
 }
 
 void
-btor_print_all_bv (BtorBitVector *bv)
+btor_print_all_bv (const BtorBitVector *bv)
 {
   assert (bv);
 
@@ -359,7 +359,7 @@ btor_bv_to_char_bv (BtorMemMgr *mm, const BtorBitVector *bv)
 }
 
 uint64_t
-btor_bv_to_uint64_bv (BtorBitVector *bv)
+btor_bv_to_uint64_bv (const BtorBitVector *bv)
 {
   assert (bv);
   assert ((unsigned) bv->width <= sizeof (uint64_t) * 8);
@@ -472,7 +472,7 @@ btor_is_one_bv (const BtorBitVector *bv)
 }
 
 int
-btor_is_power_of_two_bv (const BtorBitVector *bv)
+btor_power_of_two_bv (const BtorBitVector *bv)
 {
   assert (bv);
 
@@ -493,7 +493,7 @@ btor_is_power_of_two_bv (const BtorBitVector *bv)
 }
 
 int
-btor_is_small_positive_int_bv (const BtorBitVector *bv)
+btor_small_positive_int_bv (const BtorBitVector *bv)
 {
   assert (bv);
 
@@ -1411,16 +1411,15 @@ btor_compare_bv_tuple (BtorBitVectorTuple *t0, BtorBitVectorTuple *t1)
   assert (t0->arity == t1->arity);
 
   uint32_t i;
-  int j;
 
   for (i = 0; i < t0->arity; i++)
   {
     assert (t0->bv[i]);
     assert (t1->bv[i]);
-    j = btor_compare_bv (t0->bv[i], t1->bv[i]);
-    if (j != 0) return j;
+    if (t0->bv[i]->width != t1->bv[i]->width
+        || btor_compare_bv (t0->bv[i], t1->bv[i]) != 0)
+      return 1;
   }
-
   return 0;
 }
 

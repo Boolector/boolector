@@ -1,7 +1,7 @@
 # Boolector: Satisfiablity Modulo Theories (SMT) solver.
 #
 # Copyright (C) 2013-2015 Mathias Preiner.
-# Copyright (C) 2014-2015 Aina Niemetz.
+# Copyright (C) 2014-2016 Aina Niemetz.
 #
 # All rights reserved.
 #
@@ -116,7 +116,9 @@ def _check_precond_cond(cond, a, b):
     if not (isinstance(a, BoolectorBVNode) or
             isinstance(b, BoolectorBVNode)) and \
        not (isinstance(a, BoolectorArrayNode) and
-            isinstance(b, BoolectorArrayNode)):
+            isinstance(b, BoolectorArrayNode)) and \
+       not (isinstance(a, BoolectorFunNode) and
+            isinstance(b, BoolectorFunNode)):
         raise BoolectorException(
                   "At least one of the operands must be a bit vector")
 
@@ -225,8 +227,8 @@ cdef class BoolectorOpt:
         """ The current value of a Boolector option. 
         """
         def __get__(self):
-            return btorapi.boolector_get_opt_val(self.btor._c_btor,
-                                                 self.__chptr._c_str)
+            return btorapi.boolector_get_opt(self.btor._c_btor,
+                                             self.__chptr._c_str)
 
     property dflt:
         """ The default value of a Boolector option. 
@@ -1743,7 +1745,10 @@ cdef class Boolector:
             :return:  A bit vector node with bit width one.
             :rtype: :class:`~boolector.BoolectorNode`
         """
-        if not (isinstance(a, BoolectorArrayNode) and isinstance(b, BoolectorArrayNode)):
+        if not (isinstance(a, BoolectorArrayNode)
+                and isinstance(b, BoolectorArrayNode))\
+           and not (isinstance(a, BoolectorFunNode)
+                    and isinstance(b, BoolectorFunNode)):
           a, b = _to_node(a, b)
         r = BoolectorBVNode(self)
         r._c_node = btorapi.boolector_eq(self._c_btor, _c_node(a), _c_node(b))
@@ -1769,9 +1774,11 @@ cdef class Boolector:
             :return:  A bit vector node with bit width one.
             :rtype: :class:`~boolector.BoolectorNode`
         """
-        if not (isinstance(a, BoolectorArrayNode) and isinstance(b, BoolectorArrayNode)):
+        if not (isinstance(a, BoolectorArrayNode)
+                and isinstance(b, BoolectorArrayNode))\
+           and not (isinstance(a, BoolectorFunNode)
+                    and isinstance(b, BoolectorFunNode)):
           a, b = _to_node(a, b)
-        a, b = _to_node(a, b)
         r = BoolectorBVNode(self)
         r._c_node = btorapi.boolector_ne(self._c_btor, _c_node(a), _c_node(b))
         return r

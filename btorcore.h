@@ -3,7 +3,7 @@
  *  Copyright (C) 2007-2009 Robert Daniel Brummayer.
  *  Copyright (C) 2007-2014 Armin Biere.
  *  Copyright (C) 2012-2015 Mathias Preiner.
- *  Copyright (C) 2012-2015 Aina Niemetz.
+ *  Copyright (C) 2012-2016 Aina Niemetz.
  *
  *  All rights reserved.
  *
@@ -15,7 +15,6 @@
 #define BTORCORE_H_INCLUDED
 
 #include "btorass.h"
-#include "btorbitvec.h"
 #include "btorexp.h"
 #include "btormsg.h"
 #include "btoropt.h"
@@ -26,15 +25,19 @@
 #include "utils/btormem.h"
 #include "utils/btorutil.h"
 
-/*------------------------------------------------------------------------*/
-
-#define BTOR_VERBOSITY_MAX 4
+#include <stdbool.h>
 
 /*------------------------------------------------------------------------*/
 
-//#define BTOR_DO_NOT_OPTIMIZE_UNCONSTRAINED
+#if !defined(NDEBUG) && defined(BTOR_USE_LINGELING)
+#define BTOR_CHECK_UNCONSTRAINED
+#define BTOR_CHECK_MODEL
+#define BTOR_CHECK_DUAL_PROP
+#endif
 
-/*------------------------------------------------------------------------*/
+#ifndef BTOR_USE_LINGELING
+#define BTOR_DO_NOT_PROCESS_SKELETON
+#endif
 
 // Currently, 'BoolectorNode' (external) vs. 'BtorNode' (internal)
 // syntactically hides internal nodes.  Hence, we assume that both structs
@@ -52,19 +55,6 @@
 #define BTOR_EXPORT_BOOLECTOR_NODE(node) (((BoolectorNode *) (node)))
 #define BTOR_IMPORT_BOOLECTOR_SORT(sort) (((BtorSortId) (sort)))
 #define BTOR_EXPORT_BOOLECTOR_SORT(sort) (((BoolectorSort) (sort)))
-
-/*------------------------------------------------------------------------*/
-
-#define BOOLECTOR_IS_REGULAR_NODE BTOR_IS_INVERTED_NODE
-#define BOOLECTOR_IS_INVERTED_NODE BTOR_IS_INVERTED_NODE
-
-#define BOOLECTOR_REAL_ADDR_NODE(node) \
-  BTOR_EXPORT_BOOLECTOR_NODE (         \
-      BTOR_REAL_ADDR_NODE (BTOR_IMPORT_BOOLECTOR_NODE (node)))
-
-#define BOOLECTOR_INVERT_NODE(node) \
-  BTOR_EXPORT_BOOLECTOR_NODE (      \
-      BTOR_INVERT_NODE (BTOR_IMPORT_BOOLECTOR_NODE (node)))
 
 /*------------------------------------------------------------------------*/
 
@@ -142,9 +132,9 @@ struct Btor
   int vis_idx; /* file index for visualizing expressions */
   int inconsistent;
   int found_constraint_false;
-  int external_refs;        /* external references (library mode) */
-  int btor_sat_btor_called; /* how often is btor_sat_btor been called */
-  int last_sat_result;      /* status of last SAT call (SAT/UNSAT) */
+  int external_refs;                /* external references (library mode) */
+  int btor_sat_btor_called;         /* how often is btor_sat_btor been called */
+  BtorSolverResult last_sat_result; /* status of last SAT call (SAT/UNSAT) */
 
   BtorPtrHashTable *varsubst_constraints;
   BtorPtrHashTable *embedded_constraints;
@@ -165,7 +155,9 @@ struct Btor
   FILE *apitrace;
   int close_apitrace;
 
-  BtorOpts options;
+  BtorOpt *options;
+  BtorPtrHashTable *str2opt;
+
   BtorMsg *msg;
   BtorRNG rng;
 
@@ -189,11 +181,9 @@ struct Btor
     int muls_normalized;       /* number of mul chains normalizations */
     int ackermann_constraints;
     long long apply_props_construct; /* number of static apply propagations */
-#ifndef BTOR_DO_NOT_OPTIMIZE_UNCONSTRAINED
     int bv_uc_props;
     int fun_uc_props;
     int param_uc_props;
-#endif
     long long lambdas_merged;
     BtorConstraintStats constraints;
     BtorConstraintStats oldconstraints;
@@ -201,6 +191,9 @@ struct Btor
     long long clone_calls;
     size_t node_bytes_alloc;
     long long beta_reduce_calls;
+#ifndef NDEBUG
+    BtorPtrHashTable *rw_rules_applied;
+#endif
   } stats;
 
   struct
@@ -214,23 +207,17 @@ struct Btor
     double skel;
     double propagate;
     double beta;
-    double reachable;
     double failed;
     double cloning;
     double synth_exp;
     double model_gen;
     double br_probing;
-#ifndef BTOR_DO_NOT_OPTIMIZE_UNCONSTRAINED
     double ucopt;
-#endif
   } time;
 };
 
 /* Creates new boolector instance. */
 Btor *btor_new_btor (void);
-
-/* Creates new boolector instance without initializing options. */
-Btor *btor_new_btor_no_init (void);
 
 /* Deletes boolector. */
 void btor_delete_btor (Btor *btor);
@@ -263,12 +250,10 @@ void btor_assert_exp (Btor *btor, BtorNode *exp);
 void btor_assume_exp (Btor *btor, BtorNode *exp);
 
 /* Determines if expression has been previously assumed. */
-int btor_is_assumption_exp (Btor *btor, BtorNode *exp);
-
-void btor_update_assumptions (Btor *btor);
+bool btor_is_assumption_exp (Btor *btor, BtorNode *exp);
 
 /* Determines if assumption is a failed assumption. */
-int btor_failed_exp (Btor *btor, BtorNode *exp);
+bool btor_failed_exp (Btor *btor, BtorNode *exp);
 
 /* Adds assumptions as assertions and resets the assumptions. */
 void btor_fixate_assumptions (Btor *btor);
@@ -289,70 +274,6 @@ int btor_simplify (Btor *btor);
 
 /*------------------------------------------------------------------------*/
 
-#define BTOR_CORE_SOLVER(btor) ((BtorCoreSolver *) (btor)->slv)
-
-struct BtorCoreSolver
-{
-  BTOR_SOLVER_STRUCT;
-
-  BtorPtrHashTable *lemmas;
-  BtorNodePtrStack cur_lemmas;
-
-  BtorPtrHashTable *score; /* dcr score */
-
-  /* compare fun for sorting the inputs in search_inital_applies_dual_prop */
-  int (*dp_cmp_inputs) (const void *, const void *);
-
-  struct
-  {
-    int lod_refinements; /* number of lemmas on demand refinements */
-    int refinement_iterations;
-
-    int function_congruence_conflicts;
-    int beta_reduction_conflicts;
-    int extensionality_lemmas;
-
-    BtorIntStack lemmas_size;      /* distribution of n-size lemmas */
-    long long int lemmas_size_sum; /* sum of the size of all added lemmas */
-
-    int dp_failed_vars; /* number of vars in FA (dual prop) of last
-                           sat call (final bv skeleton) */
-    int dp_assumed_vars;
-    int dp_failed_applies; /* number of applies in FA (dual prop) of last
-                              sat call (final bv skeleton) */
-    int dp_assumed_applies;
-    int dp_failed_eqs;
-    int dp_assumed_eqs;
-
-    long long eval_exp_calls;
-    long long propagations;
-    long long propagations_down;
-    long long partial_beta_reduction_restarts;
-  } stats;
-
-  struct
-  {
-    double sat;
-    double eval;
-    double search_init_apps;
-    double search_init_apps_compute_scores;
-    double search_init_apps_compute_scores_merge_applies;
-    double search_init_apps_cloning;
-    double search_init_apps_sat;
-    double search_init_apps_collect_var_apps;
-    double search_init_apps_collect_fa;
-    double search_init_apps_collect_fa_cone;
-    double lemma_gen;
-    double find_nenc_app;
-    double find_prop_app;
-    double find_cond_prop_app;
-  } time;
-};
-
-typedef struct BtorCoreSolver BtorCoreSolver;
-
-/*------------------------------------------------------------------------*/
-
 /* Check whether the sorts of given arguments match the signature of the
  * function. If sorts are correct -1 is returned, otherwise the position of
  * the invalid argument is returned. */
@@ -360,9 +281,6 @@ int btor_fun_sort_check (Btor *btor,
                          uint32_t argc,
                          BtorNode **args,
                          BtorNode *fun);
-
-/* Evaluates expression and returns its value. */
-BtorBitVector *btor_eval_exp (Btor *btor, BtorNode *exp);
 
 /* Synthesizes expression of arbitrary length to an AIG vector. Adds string
  * back annotation to the hash table, if the hash table is a non zero ptr.
@@ -391,6 +309,16 @@ void btor_insert_substitution (Btor *, BtorNode *, BtorNode *, int);
 BtorNode *btor_find_substitution (Btor *, BtorNode *);
 
 void btor_substitute_and_rebuild (Btor *, BtorPtrHashTable *);
-void btor_insert_varsubst_constraint (Btor *, BtorNode *, BtorNode *);
 
+/* Create a new term with 'substs' substituted in root. */
+BtorNode *btor_substitute_terms (Btor *btor,
+                                 BtorNode *root,
+                                 BtorNodeMap *substs);
+
+// TODO (ma): make these functions public until we have a common framework for
+//            calling sat simplify etc.
+void btor_reset_incremental_usage (Btor *btor);
+void btor_add_again_assumptions (Btor *btor);
+void btor_process_unsynthesized_constraints (Btor *btor);
+void btor_insert_unsynthesized_constraint (Btor *btor, BtorNode *constraint);
 #endif

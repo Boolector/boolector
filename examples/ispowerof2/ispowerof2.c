@@ -1,6 +1,7 @@
 #include <stdio.h>
 #include <stdlib.h>
 #include "boolector.h"
+#include "btoropt.h"
 #include "utils/btorutil.h"
 
 /* We verify that the following algorithm is equal to (x & (x - 1)) == 0
@@ -44,7 +45,7 @@ main (int argc, char **argv)
     return 1;
   }
   btor = boolector_new ();
-  boolector_set_opt (btor, "rewrite_leve", 0);
+  boolector_set_opt (btor, BTOR_OPT_REWRITE_LEVEL, 0);
   var       = boolector_var (btor, num_bits, "var");
   var_shift = boolector_copy (btor, var);
   zero      = boolector_zero (btor, num_bits);

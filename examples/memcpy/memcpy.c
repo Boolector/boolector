@@ -1,4 +1,5 @@
 #include "boolector.h"
+#include "btoropt.h"
 
 #include <ctype.h>
 #include <stdarg.h>
@@ -85,7 +86,7 @@ main (int argc, char **argv)
     die ("negative <len> while 'size_t' is unsigned (try '-s')");
 
   btor = boolector_new ();
-  boolector_set_opt (btor, "rewrite_level", 0);
+  boolector_set_opt (btor, BTOR_OPT_REWRITE_LEVEL, 0);
 
   mem = boolector_array (btor, 8, 32, "mem");
 

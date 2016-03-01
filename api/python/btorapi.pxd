@@ -1,7 +1,7 @@
 # Boolector: Satisfiablity Modulo Theories (SMT) solver.
 #
 # Copyright (C) 2013-2014 Mathias Preiner.
-# Copyright (C) 2014-2015 Aina Niemetz.
+# Copyright (C) 2014-2016 Aina Niemetz.
 #
 # All rights reserved.
 #
@@ -72,7 +72,7 @@ cdef extern from "boolector.h":
 
     void boolector_set_opt (Btor * btor, const char * opt, int val)
 
-    int boolector_get_opt_val (Btor * btor, const char * opt)
+    int boolector_get_opt (Btor * btor, const char * opt)
 
     int boolector_get_opt_min (Btor * btor, const char * opt)
 

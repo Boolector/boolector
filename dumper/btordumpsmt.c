@@ -3,7 +3,7 @@
  *  Copyright (C) 2007-2009 Robert Daniel Brummayer.
  *  Copyright (C) 2007-2013 Armin Biere.
  *  Copyright (C) 2012-2015 Mathias Preiner.
- *  Copyright (C) 2012-2015 Aina Niemetz.
+ *  Copyright (C) 2012-2016 Aina Niemetz.
  *
  *  All rights reserved.
  *
@@ -71,7 +71,7 @@ new_smt_dump_context (Btor *btor, FILE *file)
   sdc->roots        = btor_new_ptr_hash_table (btor->mm, 0, 0);
   sdc->file         = file;
   sdc->maxid        = 1;
-  sdc->pretty_print = btor->options.pretty_print.val;
+  sdc->pretty_print = btor_get_opt (btor, BTOR_OPT_PRETTY_PRINT);
   return sdc;
 }
 
@@ -179,7 +179,7 @@ dump_smt_id (BtorSMTDumpContext *sdc, BtorNode *exp)
   fprintf (sdc->file, "%s%d", type, smt_id (sdc, exp));
 }
 
-static int
+static bool
 is_boolean (BtorSMTDumpContext *sdc, BtorNode *exp)
 {
   exp = BTOR_REAL_ADDR_NODE (exp);
@@ -229,7 +229,7 @@ dump_const_value_aux_smt (BtorSMTDumpContext *sdc, char *bits)
   const char *fmt;
   BtorPtrHashBucket *b;
 
-  base = sdc->btor->options.output_number_format.val;
+  base = btor_get_opt (sdc->btor, BTOR_OPT_OUTPUT_NUMBER_FORMAT);
   file = sdc->file;
 
   /* converting consts to decimal/hex is costly. we now always dump the value of
@@ -1044,7 +1044,7 @@ get_references (BtorSMTDumpContext *sdc, BtorNode *exp)
   return refs;
 }
 
-static int
+static bool
 has_lambda_parents_only (BtorNode *exp)
 {
   BtorNode *p;
@@ -1053,9 +1053,9 @@ has_lambda_parents_only (BtorNode *exp)
   while (btor_has_next_parent_iterator (&it))
   {
     p = btor_next_parent_iterator (&it);
-    if (!BTOR_IS_LAMBDA_NODE (p)) return 0;
+    if (!BTOR_IS_LAMBDA_NODE (p)) return false;
   }
-  return 1;
+  return true;
 }
 
 static void
@@ -1300,10 +1300,11 @@ dump_smt_aux (Btor *btor, FILE *file, BtorNode **roots, int nroots)
 {
   assert (btor);
   assert (file);
-  assert (!btor->options.incremental.val);
-  //  assert (!btor->options.model_gen.val);
+  assert (!btor_get_opt (btor, BTOR_OPT_INCREMENTAL));
+  //  assert (!btor_get_opt (btor, BTOR_OPT_MODEL_GEN));
 
-  int i, ret;
+  BtorSolverResult ret;
+  int i;
   BtorNode *temp, *tmp_roots[nroots];
   BtorHashTableIterator it;
   BtorSMTDumpContext *sdc;
@@ -1321,7 +1322,7 @@ dump_smt_aux (Btor *btor, FILE *file, BtorNode **roots, int nroots)
   {
     ret = btor_simplify (btor);
 
-    if (ret == BTOR_UNKNOWN)
+    if (ret == BTOR_RESULT_UNKNOWN)
     {
       btor_init_node_hash_table_iterator (&it, btor->unsynthesized_constraints);
       btor_queue_node_hash_table_iterator (&it, btor->synthesized_constraints);
@@ -1332,8 +1333,9 @@ dump_smt_aux (Btor *btor, FILE *file, BtorNode **roots, int nroots)
     }
     else
     {
-      assert (ret == BTOR_SAT || ret == BTOR_UNSAT);
-      temp = (ret == BTOR_SAT) ? btor_true_exp (btor) : btor_false_exp (btor);
+      assert (ret == BTOR_RESULT_SAT || ret == BTOR_RESULT_UNSAT);
+      temp = (ret == BTOR_RESULT_SAT) ? btor_true_exp (btor)
+                                      : btor_false_exp (btor);
       add_root_to_smt_dump_context (sdc, temp);
       btor_release_exp (btor, temp);
     }

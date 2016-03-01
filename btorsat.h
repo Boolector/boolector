@@ -2,7 +2,7 @@
  *
  *  Copyright (C) 2007-2009 Robert Daniel Brummayer.
  *  Copyright (C) 2007-2014 Armin Biere.
- *  Copyright (C) 2013-2015 Aina Niemetz.
+ *  Copyright (C) 2013-2016 Aina Niemetz.
  *  Copyright (C) 2012-2015 Mathias Preiner.
  *
  *  All rights reserved.
@@ -15,6 +15,7 @@
 #define BTORSAT_H_INCLUDED
 
 #include "btormsg.h"
+#include "btortypes.h"
 #include "utils/btormem.h"
 
 #include <stdio.h>
@@ -36,15 +37,14 @@ struct BtorSATMgr
 
   /* Note: do not change order! (btor_clone_sat_mgr relies on inc_required
    * to come first of all fields following below.) */
-  int inc_required;
-  int used_that_inc_was_not_required;
+  bool inc_required;
 #ifdef BTOR_USE_LINGELING
-  int nofork;
+  bool fork;
 #endif
   FILE *output;
 
+  bool initialized;
   int satcalls;
-  int initialized;
   int clauses;
   int true_lit;
   int maxvar;
@@ -100,20 +100,14 @@ struct BtorLGL
 
 /*------------------------------------------------------------------------*/
 
-#define BTOR_SAT 10
-#define BTOR_UNSAT 20
-#define BTOR_UNKNOWN 0
-
-/*------------------------------------------------------------------------*/
-
 /* Creates new SAT manager.
  * A SAT manager is used by nearly all functions of the SAT layer.
  */
 BtorSATMgr *btor_new_sat_mgr (BtorMemMgr *mm, BtorMsg *msg);
 
-int btor_has_clone_support_sat_mgr (BtorSATMgr *smgr);
+bool btor_has_clone_support_sat_mgr (BtorSATMgr *smgr);
 
-int btor_has_term_support_sat_mgr (BtorSATMgr *smgr);
+bool btor_has_term_support_sat_mgr (BtorSATMgr *smgr);
 
 void btor_set_term_sat_mgr (BtorSATMgr *smgr, int (*fun) (void *), void *state);
 
@@ -125,7 +119,7 @@ BtorMemMgr *btor_mem_mgr_sat (BtorSATMgr *smgr);
 void *btor_get_solver_sat (BtorSATMgr *smgr);
 
 /* Returns if the SAT solver has already been initialized */
-int btor_is_initialized_sat (BtorSATMgr *smgr);
+bool btor_is_initialized_sat (BtorSATMgr *smgr);
 
 /* Deletes SAT manager from memory. */
 void btor_delete_sat_mgr (BtorSATMgr *smgr);
@@ -167,7 +161,7 @@ int btor_failed_sat (BtorSATMgr *smgr, int lit);
 /* Solves the SAT instance.
  * limit < 0 -> no limit.
  */
-int btor_sat_sat (BtorSATMgr *smgr, int limit);
+BtorSolverResult btor_sat_sat (BtorSATMgr *smgr, int limit);
 
 /* Gets assignment of a literal (in the SAT case).
  * Do not call before calling btor_sat_sat.
@@ -200,29 +194,17 @@ int btor_changed_sat (BtorSATMgr *smgr);
 int btor_inconsistent_sat (BtorSATMgr *smgr);
 
 #ifdef BTOR_USE_PICOSAT
-/* Enables PicoSAT as SAT preprocessor. */
-void btor_enable_picosat_sat (BtorSATMgr *smgr);
+bool btor_enable_picosat_sat (BtorSATMgr *smgr);
 #endif
 
 #ifdef BTOR_USE_LINGELING
-/* Enables Lingeling as SAT preprocessor. */
-int btor_enable_lingeling_sat (BtorSATMgr *smgr,
-                               const char *options,
-                               int nofork);
+bool btor_enable_lingeling_sat (BtorSATMgr *smgr,
+                                const char *options,
+                                bool fork);
 #endif
 
 #ifdef BTOR_USE_MINISAT
-/* Enables MiniSAT as SAT preprocessor. */
-void btor_enable_minisat_sat (BtorSATMgr *smgr);
+bool btor_enable_minisat_sat (BtorSATMgr *smgr);
 #endif
-
-/* Wrapper for btor_enable_(picosat|lingeling|minisat). */
-int btor_set_sat_solver (BtorSATMgr *smgr,
-                         const char *solver,
-                         const char *optstr,
-                         int nofork);
-
-/* Only used for debugging purposes at this point */
-int btor_provides_incremental_sat (BtorSATMgr *smgr);
 
 #endif

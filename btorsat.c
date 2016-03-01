@@ -82,17 +82,17 @@ btor_new_sat_mgr (BtorMemMgr *mm, BtorMsg *msg)
   return smgr;
 }
 
-int
+bool
 btor_has_clone_support_sat_mgr (BtorSATMgr *smgr)
 {
-  assert (smgr);
+  if (!smgr) return true;
   return smgr->api.clone != 0;
 }
 
-int
+bool
 btor_has_term_support_sat_mgr (BtorSATMgr *smgr)
 {
-  assert (smgr);
+  if (!smgr) return false;
   return (!strcmp (smgr->name, "Lingeling"));
 }
 
@@ -132,7 +132,7 @@ btor_clone_sat_mgr (BtorMemMgr *mm, BtorMsg *msg, BtorSATMgr *smgr)
   return res;
 }
 
-int
+bool
 btor_is_initialized_sat (BtorSATMgr *smgr)
 {
   assert (smgr != NULL);
@@ -148,7 +148,8 @@ btor_next_cnf_id_sat_mgr (BtorSATMgr *smgr)
   result = smgr->api.inc_max_var (smgr);
   if (abs (result) > smgr->maxvar) smgr->maxvar = abs (result);
   BTOR_ABORT_SAT (result <= 0, "CNF id overflow");
-  if (*smgr->msg->verbosity > 2 && !(result % 100000))
+  if (btor_get_opt (smgr->msg->btor, BTOR_OPT_VERBOSITY) > 2
+      && !(result % 100000))
     BTOR_MSG (smgr->msg, 2, "reached CNF id %d", result);
   return result;
 }
@@ -214,11 +215,10 @@ btor_init_sat (BtorSATMgr *smgr)
   assert (!smgr->initialized);
   BTOR_MSG (smgr->msg, 1, "initialized %s", smgr->name);
 
-  smgr->solver                         = smgr->api.init (smgr);
-  smgr->initialized                    = 1;
-  smgr->inc_required                   = 1;
-  smgr->sat_time                       = 0;
-  smgr->used_that_inc_was_not_required = 0;
+  smgr->solver       = smgr->api.init (smgr);
+  smgr->initialized  = true;
+  smgr->inc_required = true;
+  smgr->sat_time     = 0;
 
   if (smgr->api.setterm) smgr->api.setterm (smgr);
 
@@ -251,19 +251,26 @@ btor_add_sat (BtorSATMgr *smgr, int lit)
   (void) smgr->api.add (smgr, lit);
 }
 
-int
+BtorSolverResult
 btor_sat_sat (BtorSATMgr *smgr, int limit)
 {
   double start = btor_time_stamp ();
-  int res;
+  int sat_res;
+  BtorSolverResult res;
   assert (smgr != NULL);
   assert (smgr->initialized);
   BTOR_MSG (
       smgr->msg, 2, "calling SAT solver %s with limit %d", smgr->name, limit);
   assert (!smgr->satcalls || smgr->inc_required);
   smgr->satcalls++;
-  res = smgr->api.sat (smgr, limit);
+  sat_res = smgr->api.sat (smgr, limit);
   smgr->sat_time += btor_time_stamp () - start;
+  switch (sat_res)
+  {
+    case 10: res = BTOR_RESULT_SAT; break;
+    case 20: res = BTOR_RESULT_UNSAT; break;
+    default: assert (res == 0); res = BTOR_RESULT_UNKNOWN;
+  }
   return res;
 }
 
@@ -300,7 +307,7 @@ btor_reset_sat (BtorSATMgr *smgr)
     btor_freestr (smgr->mm, smgr->optstr);
     smgr->optstr = 0;
   }
-  smgr->initialized = 0;
+  smgr->initialized = false;
 }
 
 int
@@ -356,11 +363,12 @@ btor_changed_sat (BtorSATMgr *smgr)
 
 /*------------------------------------------------------------------------*/
 #ifdef BTOR_USE_PICOSAT
-
+/*------------------------------------------------------------------------*/
 static void *
 btor_picosat_init (BtorSATMgr *smgr)
 {
   PicoSAT *res;
+  uint32_t verb;
 
   BTOR_MSG (smgr->msg, 1, "PicoSAT Version %s", picosat_version ());
 
@@ -370,8 +378,8 @@ btor_picosat_init (BtorSATMgr *smgr)
                        (picosat_free) btor_sat_free);
 
   picosat_set_global_default_phase (res, 0);
-  if (*smgr->msg->verbosity >= 2)
-    picosat_set_verbosity (res, *smgr->msg->verbosity - 1);
+  verb = btor_get_opt (smgr->msg->btor, BTOR_OPT_VERBOSITY);
+  if (verb >= 2) picosat_set_verbosity (res, verb - 1);
 
   return res;
 }
@@ -480,7 +488,7 @@ btor_picosat_inconsistent (BtorSATMgr *smgr)
 
 /*------------------------------------------------------------------------*/
 
-void
+bool
 btor_enable_picosat_sat (BtorSATMgr *smgr)
 {
   assert (smgr != NULL);
@@ -513,20 +521,25 @@ btor_enable_picosat_sat (BtorSATMgr *smgr)
 
   BTOR_MSG (
       smgr->msg, 1, "PicoSAT allows both incremental and non-incremental mode");
-}
 
+  return true;
+}
+/*------------------------------------------------------------------------*/
 #endif
 /*------------------------------------------------------------------------*/
-#ifdef BTOR_USE_LINGELING
 
-static int
+/*------------------------------------------------------------------------*/
+#ifdef BTOR_USE_LINGELING
+/*------------------------------------------------------------------------*/
+static bool
 btor_passdown_lingeling_options (BtorSATMgr *smgr,
                                  const char *optstr,
                                  LGL *external_lgl)
 {
   char *str, *p, *next, *eq, *opt, *val;
   LGL *lgl = external_lgl ? external_lgl : 0;
-  int len, valid, res = 1;
+  int len, valid;
+  bool res;
 
   assert (optstr);
   len = strlen (optstr);
@@ -534,7 +547,7 @@ btor_passdown_lingeling_options (BtorSATMgr *smgr,
   BTOR_NEWN (smgr->mm, str, len + 1);
   strcpy (str, optstr);
 
-  res = 1;
+  res = true;
 
   for (p = str; *p; p = next)
   {
@@ -603,7 +616,7 @@ btor_passdown_lingeling_options (BtorSATMgr *smgr,
           valid = 0;
       }
 
-      if (!valid) res = 0;
+      if (!valid) res = false;
       if (valid || external_lgl) continue;
 
       if (eq) *eq = '=';
@@ -628,8 +641,9 @@ static void *
 btor_lingeling_init (BtorSATMgr *smgr)
 {
   BtorLGL *res;
+  uint32_t verb;
 
-  if (*smgr->msg->verbosity >= 1)
+  if (btor_get_opt (smgr->msg->btor, BTOR_OPT_VERBOSITY) >= 1)
   {
     lglbnr ("Lingeling", "[lingeling] ", stdout);
     fflush (stdout);
@@ -640,11 +654,11 @@ btor_lingeling_init (BtorSATMgr *smgr)
                        (lglalloc) btor_sat_malloc,
                        (lglrealloc) btor_sat_realloc,
                        (lgldealloc) btor_sat_free);
-
-  if (*smgr->msg->verbosity <= 0)
+  verb     = btor_get_opt (smgr->msg->btor, BTOR_OPT_VERBOSITY);
+  if (verb <= 0)
     lglsetopt (res->lgl, "verbose", -1);
-  else if (*smgr->msg->verbosity >= 2)
-    lglsetopt (res->lgl, "verbose", *smgr->msg->verbosity - 1);
+  else if (verb >= 2)
+    lglsetopt (res->lgl, "verbose", verb - 1);
 
   if (smgr->optstr)
     btor_passdown_lingeling_options (smgr, smgr->optstr, res->lgl);
@@ -705,7 +719,7 @@ btor_lingeling_sat (BtorSATMgr *smgr, int limit)
     return res;
   }
 
-  if (smgr->nofork || (0 <= limit && limit < blgl->blimit))
+  if (!smgr->fork || (0 <= limit && limit < blgl->blimit))
   {
     if (limit < INT_MAX) lglsetopt (lgl, "clim", limit);
     res = lglsat (lgl);
@@ -736,7 +750,8 @@ btor_lingeling_sat (BtorSATMgr *smgr, int limit)
       (void)
 #endif
           lglsat (clone);
-      if (*smgr->msg->verbosity > 0) lglstats (clone);
+      if (btor_get_opt (smgr->msg->btor, BTOR_OPT_VERBOSITY) > 0)
+        lglstats (clone);
       bfres = lglunclone (lgl, clone);
       lglrelease (clone);
       assert (!res || bfres == res);
@@ -807,10 +822,7 @@ btor_lingeling_inc_max_var (BtorSATMgr *smgr)
 {
   BtorLGL *blgl = smgr->solver;
   int res       = lglincvar (blgl->lgl);
-  if (smgr->inc_required)
-    lglfreeze (blgl->lgl, res);
-  else
-    smgr->used_that_inc_was_not_required = 1;
+  if (smgr->inc_required) lglfreeze (blgl->lgl, res);
   return res;
 }
 
@@ -842,11 +854,7 @@ static void
 btor_lingeling_melt (BtorSATMgr *smgr, int lit)
 {
   BtorLGL *blgl = smgr->solver;
-  if (smgr->inc_required)
-  {
-    assert (!smgr->used_that_inc_was_not_required);
-    lglmelt (blgl->lgl, lit);
-  }
+  if (smgr->inc_required) lglmelt (blgl->lgl, lit);
 }
 
 static int
@@ -905,8 +913,8 @@ btor_lingeling_setterm (BtorSATMgr *smgr)
 
 /*------------------------------------------------------------------------*/
 
-int
-btor_enable_lingeling_sat (BtorSATMgr *smgr, const char *optstr, int nofork)
+bool
+btor_enable_lingeling_sat (BtorSATMgr *smgr, const char *optstr, bool fork)
 {
   assert (smgr != NULL);
 
@@ -915,10 +923,10 @@ btor_enable_lingeling_sat (BtorSATMgr *smgr, const char *optstr, int nofork)
 
   smgr->optstr = btor_strdup (smgr->mm, optstr);
   if (smgr->optstr && !btor_passdown_lingeling_options (smgr, optstr, 0))
-    return 0;
+    return false;
 
-  smgr->name   = "Lingeling";
-  smgr->nofork = nofork;
+  smgr->name = "Lingeling";
+  smgr->fork = fork;
 
   BTOR_CLR (&smgr->api);
   smgr->api.add              = btor_lingeling_add;
@@ -945,18 +953,20 @@ btor_enable_lingeling_sat (BtorSATMgr *smgr, const char *optstr, int nofork)
   BTOR_MSG (smgr->msg,
             1,
             "Lingeling allows both incremental and non-incremental mode");
+  if (smgr->optstr)
+    BTOR_MSG (
+        smgr->msg, 1, "Configured options for Lingeling: %s", smgr->optstr);
 
-  return 1;
+  return true;
 }
+/*------------------------------------------------------------------------*/
 #endif
-
 /*------------------------------------------------------------------------*/
 
+/*------------------------------------------------------------------------*/
 #ifdef BTOR_USE_MINISAT
-
 /*------------------------------------------------------------------------*/
-
-void
+bool
 btor_enable_minisat_sat (BtorSATMgr *smgr)
 {
   assert (smgr != NULL);
@@ -988,54 +998,9 @@ btor_enable_minisat_sat (BtorSATMgr *smgr)
 
   BTOR_MSG (
       smgr->msg, 1, "MiniSAT allows both incremental and non-incremental mode");
+
+  return true;
 }
-
+/*------------------------------------------------------------------------*/
 #endif
-
-int
-btor_set_sat_solver (BtorSATMgr *smgr,
-                     const char *solver,
-                     const char *optstr,
-                     int nofork)
-{
-  assert (smgr);
-  assert (solver);
-#ifndef BTOR_USE_LINGELING
-  (void) optstr;
-  (void) nofork;
-#endif
-
-  if (!strcasecmp (solver, "lingeling"))
-#ifdef BTOR_USE_LINGELING
-  {
-    btor_enable_lingeling_sat (smgr, optstr, nofork);
-    return 1;
-  }
-#else
-    return 0;
-#endif
-
-  if (!strcasecmp (solver, "minisat"))
-#ifdef BTOR_USE_MINISAT
-  {
-    btor_enable_minisat_sat (smgr);
-    return 1;
-  }
-#else
-    return 0;
-#endif
-
-  if (!strcasecmp (solver, "picosat"))
-#ifdef BTOR_USE_PICOSAT
-  {
-    btor_enable_picosat_sat (smgr);
-    return 1;
-  }
-#else
-    return 0;
-#endif
-
-  return 0;
-}
-
 /*------------------------------------------------------------------------*/

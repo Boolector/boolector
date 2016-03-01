@@ -1,7 +1,7 @@
 /*  Boolector: Satisfiablity Modulo Theories (SMT) solver.
  *
  *  Copyright (C) 2013 Christian Reisenberger.
- *  Copyright (C) 2013-2015 Aina Niemetz.
+ *  Copyright (C) 2013-2016 Aina Niemetz.
  *  Copyright (C) 2013-2015 Mathias Preiner.
  *  Copyright (C) 2013-2014 Armin Biere.
  *
@@ -576,6 +576,7 @@ static void btormbt_release_node (BtorMBT *mbt, BoolectorNode *node);
 
 struct BtorMBTBtorOpt
 {
+  BtorOption kind;
   char *name;
   char *shrt;
   int val; /* only used for options specified via command line */
@@ -994,7 +995,7 @@ typedef void *(*BtorMBTState) (BtorMBT *, unsigned rand);
 static BtorMBT *
 btormbt_new_btormbt (void)
 {
-  const char *opt;
+  BtorOption opt;
   BtorMBT *mbt;
   BtorMemMgr *mm;
   Btor *tmpbtor;
@@ -1012,13 +1013,14 @@ btormbt_new_btormbt (void)
        opt = boolector_next_opt (tmpbtor, opt))
   {
     BTOR_NEW (mm, btoropt);
-    btoropt->name = btor_strdup (mm, opt);
+    btoropt->kind = opt;
+    btoropt->name = btor_strdup (mm, boolector_get_opt_lng (tmpbtor, opt));
     btoropt->shrt = btor_strdup (mm, boolector_get_opt_shrt (tmpbtor, opt));
-    btoropt->val  = boolector_get_opt_val (tmpbtor, opt);
+    btoropt->val  = boolector_get_opt (tmpbtor, opt);
     btoropt->min  = boolector_get_opt_min (tmpbtor, opt);
     btoropt->max  = boolector_get_opt_max (tmpbtor, opt);
     /* disabling incremental not supported */
-    if (!strcmp (opt, "incremental")) btoropt->min = btoropt->max;
+    if (opt == BTOR_OPT_INCREMENTAL) btoropt->min = btoropt->max;
     btoropt->set_by_cl = false;
     BTOR_PUSH_STACK (mm, mbt->btor_opts, btoropt);
   }
@@ -2859,8 +2861,8 @@ btormbt_state_opt (BtorMBT *mbt, unsigned r)
     if (!btoropt->set_by_cl)
     {
       /* choose options with probability 0.5 */
-      if (!strcmp (btoropt->name, BTOR_OPT_INCREMENTAL)
-          || !strcmp (btoropt->name, BTOR_OPT_MODEL_GEN))
+      if (btoropt->kind == BTOR_OPT_INCREMENTAL
+          || btoropt->kind == BTOR_OPT_MODEL_GEN)
       {
         if (pick (&rng, 0, 1)) continue;
       }
@@ -2868,26 +2870,26 @@ btormbt_state_opt (BtorMBT *mbt, unsigned r)
       {
         if (pick (&rng, 0, 9)) continue;
       }
-      /* exclude some combinations of options (dependent on option order in
-       * btoropts.h) */
-#ifndef BTOR_DO_NOT_OPTIMIZE_UNCONSTRAINED
+
+      /* avoid invalid option combinations */
+
       // FIXME remove as soon as ucopt works with mgen
       /* do not enable unconstrained optimization if either model
        * generation or incremental is enabled */
-      if (!strcmp (btoropt->name, BTOR_OPT_UCOPT)
-          && (boolector_get_opt_val (mbt->btor, BTOR_OPT_MODEL_GEN)
-              || boolector_get_opt_val (mbt->btor, BTOR_OPT_INCREMENTAL)))
+      if (btoropt->kind == BTOR_OPT_UCOPT
+          && (boolector_get_opt (mbt->btor, BTOR_OPT_MODEL_GEN)
+              || boolector_get_opt (mbt->btor, BTOR_OPT_INCREMENTAL)))
         continue;
-#endif
-      /* do not enable beta reduction probing if model generation is
-       * enabled */
-      if (!strcmp (btoropt->name, BTOR_OPT_PBRA)
-          && boolector_get_opt_val (mbt->btor, BTOR_OPT_MODEL_GEN))
+      if ((btoropt->kind == BTOR_OPT_MODEL_GEN
+           || btoropt->kind == BTOR_OPT_INCREMENTAL)
+          && boolector_get_opt (mbt->btor, BTOR_OPT_UCOPT))
         continue;
-
       /* do not enable justification if dual propagation is enabled */
-      if (!strcmp (btoropt->name, BTOR_OPT_JUST)
-          && boolector_get_opt_val (mbt->btor, BTOR_OPT_DUAL_PROP))
+      if (btoropt->kind == BTOR_OPT_FUN_JUST
+          && boolector_get_opt (mbt->btor, BTOR_OPT_FUN_DUAL_PROP))
+        continue;
+      if (btoropt->kind == BTOR_OPT_FUN_DUAL_PROP
+          && boolector_get_opt (mbt->btor, BTOR_OPT_FUN_JUST))
         continue;
 
       btoropt->val = pick (&rng, btoropt->min, btoropt->max);
@@ -2898,12 +2900,12 @@ btormbt_state_opt (BtorMBT *mbt, unsigned r)
                  btoropt->val);
     /* if an option is set via command line the value is saved in
      * btoropt->val */
-    boolector_set_opt (mbt->btor, btoropt->name, btoropt->val);
+    boolector_set_opt (mbt->btor, btoropt->kind, btoropt->val);
 
     /* set some mbt specific options */
-    if (!strcmp (btoropt->name, BTOR_OPT_INCREMENTAL) && btoropt->val == 1)
+    if (btoropt->kind == BTOR_OPT_INCREMENTAL && btoropt->val == 1)
       mbt->inc = 1;
-    else if (!strcmp (btoropt->name, BTOR_OPT_MODEL_GEN) && btoropt->val > 0)
+    else if (btoropt->kind == BTOR_OPT_MODEL_GEN && btoropt->val > 0)
     {
       mbt->mgen = 1;
       if (pick (&rng, 0, NORM_VAL - 1) < mbt->p_print_model)
@@ -3324,7 +3326,7 @@ btormbt_state_sat (BtorMBT *mbt, unsigned r)
     BTORMBT_LOG (1, "sat call returned %d", res);
 
   if (res == BOOLECTOR_UNSAT
-      && !boolector_get_opt_val (mbt->btor, BTOR_OPT_ENGINE) == BTOR_ENGINE_SLS)
+      && boolector_get_opt (mbt->btor, BTOR_OPT_ENGINE) != BTOR_ENGINE_SLS)
   {
     /* check failed assumptions */
     for (i = 0; i < BTOR_COUNT_STACK (mbt->assumptions->exps); i++)

@@ -2,7 +2,7 @@
  *
  *  Copyright (C) 2007-2014 Armin Biere.
  *  Copyright (C) 2007-2009 Robert Daniel Brummayer.
- *  Copyright (C) 2012-2015 Aina Niemetz.
+ *  Copyright (C) 2012-2016 Aina Niemetz.
  *  Copyright (C) 2012-2015 Mathias Preiner.
  *
  *  All rights reserved.
@@ -66,7 +66,7 @@ btor_new_dump_context (Btor *btor)
   res->sorts   = btor_new_ptr_hash_table (btor->mm, 0, 0);
 
   /* set start id for roots */
-  if (!btor->options.pretty_print.val)
+  if (!btor_get_opt (btor, BTOR_OPT_PRETTY_PRINT))
     res->maxid = BTOR_COUNT_STACK (btor->nodes_id_table);
 
   return res;
@@ -218,7 +218,7 @@ bdcid (BtorDumpContext *bdc, BtorNode *node)
   if (!b)
   {
     b = btor_add_ptr_hash_table (bdc->idtab, btor_copy_exp (bdc->btor, node));
-    if (bdc->btor->options.pretty_print.val)
+    if (btor_get_opt (bdc->btor, BTOR_OPT_PRETTY_PRINT))
       b->data.as_int = ++bdc->maxid;
     else
       b->data.as_int = real->id;
@@ -255,7 +255,7 @@ get_sort (BtorDumpContext *bdc, BtorNode *node)
 }
 
 #ifndef NDEBUG
-static int
+static bool
 has_lambda_parent (BtorNode *exp)
 {
   BtorNode *p;
@@ -264,9 +264,9 @@ has_lambda_parent (BtorNode *exp)
   while (btor_has_next_parent_iterator (&it))
   {
     p = btor_next_parent_iterator (&it);
-    if (BTOR_IS_LAMBDA_NODE (p)) return 1;
+    if (BTOR_IS_LAMBDA_NODE (p)) return true;
   }
-  return 0;
+  return false;
 }
 #endif
 
@@ -297,7 +297,8 @@ bdcnode (BtorDumpContext *bdc, BtorNode *node, FILE *file)
 #endif
 
   /* do not dump parameterized nodes that belong to a "write-lambda" */
-  if (bdc->btor->options.rewrite_level.val == 0 && node->parameterized)
+  if (btor_get_opt (bdc->btor, BTOR_OPT_REWRITE_LEVEL) == 0
+      && node->parameterized)
   {
     btor_init_parameterized_iterator (&pit, bdc->btor, node);
     assert (btor_has_next_parameterized_iterator (&pit));
@@ -334,14 +335,14 @@ bdcnode (BtorDumpContext *bdc, BtorNode *node, FILE *file)
         op = "one";
       else if (btor_is_ones_bv (bits))
         op = "ones";
-      else if ((aspi = btor_is_small_positive_int_bv (bits)) > 0)
+      else if ((aspi = btor_small_positive_int_bv (bits)) > 0)
         op = "constd";
       else
         op = "const";
       break;
     case BTOR_PARAM_NODE: op = "param"; break;
     case BTOR_LAMBDA_NODE:
-      if (bdc->btor->options.rewrite_level.val == 0
+      if (btor_get_opt (bdc->btor, BTOR_OPT_REWRITE_LEVEL) == 0
           && btor_lambda_get_static_rho (node))
       {
         op = "write";
@@ -353,7 +354,7 @@ bdcnode (BtorDumpContext *bdc, BtorNode *node, FILE *file)
       break;
     case BTOR_APPLY_NODE:
       if (BTOR_IS_UF_ARRAY_NODE (node->e[0])
-          || (bdc->btor->options.rewrite_level.val == 0
+          || (btor_get_opt (bdc->btor, BTOR_OPT_REWRITE_LEVEL) == 0
               && BTOR_IS_LAMBDA_NODE (node->e[0])
               && btor_lambda_get_static_rho (node->e[0])))
         op = "read";
@@ -434,7 +435,7 @@ bdcnode (BtorDumpContext *bdc, BtorNode *node, FILE *file)
   else if (BTOR_IS_PROXY_NODE (node))
     fprintf (file, " %d", bdcid (bdc, node->simplified));
   /* print write instead of lambda */
-  else if (bdc->btor->options.rewrite_level.val == 0
+  else if (btor_get_opt (bdc->btor, BTOR_OPT_REWRITE_LEVEL) == 0
            && BTOR_IS_LAMBDA_NODE (node) && btor_lambda_get_static_rho (node))
   {
     assert (btor_get_fun_arity (bdc->btor, node) == 1);
@@ -493,7 +494,7 @@ bdcsort (BtorDumpContext *bdc, BtorSort *sort, FILE *file)
   }
 
   id = sort->id;
-  if (bdc->btor->options.pretty_print.val) id = ++bdc->maxsortid;
+  if (btor_get_opt (bdc->btor, BTOR_OPT_PRETTY_PRINT)) id = ++bdc->maxsortid;
 
   fprintf (file, "%d sort %s", id, kind);
 
@@ -802,7 +803,7 @@ btor_dump_btor (Btor *btor, FILE *file, int version)
   bdc          = btor_new_dump_context (btor);
   bdc->version = 1;  // NOTE: version 2 not yet supported
 
-  if (ret == BTOR_UNKNOWN)
+  if (ret == BTOR_RESULT_UNKNOWN)
   {
     btor_init_node_hash_table_iterator (&it, btor->unsynthesized_constraints);
     btor_queue_node_hash_table_iterator (&it, btor->synthesized_constraints);
@@ -813,8 +814,9 @@ btor_dump_btor (Btor *btor, FILE *file, int version)
   }
   else
   {
-    assert (ret == BTOR_SAT || ret == BTOR_UNSAT);
-    temp = (ret == BTOR_SAT) ? btor_true_exp (btor) : btor_false_exp (btor);
+    assert (ret == BTOR_RESULT_SAT || ret == BTOR_RESULT_UNSAT);
+    temp =
+        (ret == BTOR_RESULT_SAT) ? btor_true_exp (btor) : btor_false_exp (btor);
     btor_add_root_to_dump_context (bdc, temp);
     btor_release_exp (btor, temp);
   }
@@ -823,7 +825,7 @@ btor_dump_btor (Btor *btor, FILE *file, int version)
   btor_delete_dump_context (bdc);
 }
 
-int
+bool
 btor_can_be_dumped (Btor *btor)
 {
   BtorNode *cur;
@@ -833,7 +835,7 @@ btor_can_be_dumped (Btor *btor)
   while (btor_has_next_node_hash_table_iterator (&it))
   {
     cur = btor_next_node_hash_table_iterator (&it);
-    if (!BTOR_IS_UF_ARRAY_NODE (cur)) return 0;
+    if (!BTOR_IS_UF_ARRAY_NODE (cur)) return false;
   }
-  return 1;
+  return true;
 }

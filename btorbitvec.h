@@ -67,15 +67,15 @@ BtorBitVector *btor_copy_bv (BtorMemMgr *mm, const BtorBitVector *bv);
 
 /*------------------------------------------------------------------------*/
 
-size_t btor_size_bv (BtorBitVector *bv);
+size_t btor_size_bv (const BtorBitVector *bv);
 void btor_free_bv (BtorMemMgr *mm, BtorBitVector *bv);
 int btor_compare_bv (const BtorBitVector *a, const BtorBitVector *b);
-uint32_t btor_hash_bv (BtorBitVector *bv);
+uint32_t btor_hash_bv (const BtorBitVector *bv);
 
-void btor_print_bv (BtorBitVector *bv);
-void btor_print_all_bv (BtorBitVector *bv);
+void btor_print_bv (const BtorBitVector *bv);
+void btor_print_all_bv (const BtorBitVector *bv);
 char *btor_bv_to_char_bv (BtorMemMgr *mm, const BtorBitVector *bv);
-uint64_t btor_bv_to_uint64_bv (BtorBitVector *bv);
+uint64_t btor_bv_to_uint64_bv (const BtorBitVector *bv);
 
 /*------------------------------------------------------------------------*/
 
@@ -91,8 +91,11 @@ bool btor_is_zero_bv (const BtorBitVector *bv);
 bool btor_is_ones_bv (const BtorBitVector *bv);
 bool btor_is_one_bv (const BtorBitVector *bv);
 
-int btor_is_power_of_two_bv (const BtorBitVector *bv);
-int btor_is_small_positive_int_bv (const BtorBitVector *bv);
+/* return p for bv = 2^p, and -1 if bv is not a power of 2 */
+int btor_power_of_two_bv (const BtorBitVector *bv);
+/* return bv as int if its value can be converted into a positive
+ * integer of bw 32, and -1 otherwise */
+int btor_small_positive_int_bv (const BtorBitVector *bv);
 
 /* count trailing zeros (starting from LSB) */
 uint32_t btor_get_num_trailing_zeros_bv (const BtorBitVector *bv);

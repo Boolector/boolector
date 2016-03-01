@@ -274,7 +274,6 @@ if __name__ == "__main__":
     _apply4.Dump()
     # Dump to file 'dump.btor'
     _apply4.Dump(outfile="dump.btor")
-    _apply4.Dump("smt1")
     _apply4.Dump("smt2")
     # Dump to file 'dump.smt2'
 #    _apply4.Dump("smt2", "dump.smt2")

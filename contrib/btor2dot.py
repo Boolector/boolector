@@ -53,6 +53,8 @@ if __name__ == "__main__":
 
     try:
         for line in sys.stdin:
+            if line.startswith(';'):
+                continue
             t = line.split()
             if len(t) == 0:
                 continue
@@ -113,12 +115,13 @@ if __name__ == "__main__":
             elif kind == "apply":
                 style = "filled"
                 fillcolor = "lightyellow"
-            elif kind == "param":
-                param_nodes[id] = True
-            elif kind == "var" and args.s and len(t) > 3:
+            elif kind in ["var", "uf", "param", "array"] and args.s and len(t) > 3:
                 label = "{}\n{}".format(label, t[3])
             elif args.c and "const" in kind:
                 label = "{}\n{}".format(label, t[3])
+
+            if kind == "param":
+                param_nodes[id] = True
 
             # check if node has parameterized children (stop at lambda)
             if kind != "lambda":

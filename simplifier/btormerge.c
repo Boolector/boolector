@@ -1,6 +1,7 @@
 /*  Boolector: Satisfiablity Modulo Theories (SMT) solver.
  *
  *  Copyright (C) 2014-2015 Mathias Preiner.
+ *  Copyright (C) 2016 Aina Niemetz.
  *
  *  All rights reserved.
  *
@@ -80,7 +81,7 @@ void
 btor_merge_lambdas (Btor *btor)
 {
   assert (btor);
-  assert (btor->options.rewrite_level.val > 0);
+  assert (btor_get_opt (btor, BTOR_OPT_REWRITE_LEVEL) > 0);
   assert (btor_check_id_table_mark_unset_dbg (btor));
   assert (btor_check_id_table_aux_mark_unset_dbg (btor));
 

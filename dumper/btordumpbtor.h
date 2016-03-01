@@ -2,6 +2,7 @@
  *
  *  Copyright (C) 2013 Armin Biere.
  *  Copyright (C) 2013-2015 Mathias Preiner.
+ *  Copyright (C) 2016 Aina Niemetz.
  *
  *  All rights reserved.
  *
@@ -11,6 +12,7 @@
 #ifndef BTORDUMPBTOR_H_INCLUDED
 #define BTORDUMPBTOR_H_INCLUDED
 
+#include <stdbool.h>
 #include <stdio.h>
 #include "btortypes.h"
 
@@ -35,6 +37,6 @@ void btor_dump_btor (Btor *, FILE *, int);
 
 /* FIXME: right now we cannot dump UF in BTOR as the format does not support UF
  *        yet */
-int btor_can_be_dumped (Btor *);
+bool btor_can_be_dumped (Btor *);
 
 #endif

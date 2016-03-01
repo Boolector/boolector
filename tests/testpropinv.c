@@ -1,6 +1,6 @@
 /*  Boolector: Satisfiablity Modulo Theories (SMT) solver.
  *
- *  Copyright (C) 2015 Aina Niemetz.
+ *  Copyright (C) 2015-2016 Aina Niemetz.
  *
  *  All rights reserved.
  *
@@ -12,8 +12,8 @@
 #include "btorbitvec.h"
 #include "btorcore.h"
 #include "btorexp.h"
-#include "btorprop.h"
-#include "btorsls.h"
+#include "btorslvprop.h"
+#include "btorslvsls.h"
 #include "testrunner.h"
 #include "utils/btorutil.h"
 
@@ -274,132 +274,138 @@ test_propinv_complete_slice_bv (void)
     btor_release_exp (g_btor, e[1]);          \
   } while (0)
 
-#define TEST_PROP_INV_CONF_SHIFT(eidx, fun, ve, vshift, rval) \
-  do                                                          \
-  {                                                           \
-    bve     = btor_char_to_bv (g_mm, ve);                     \
-    bv##fun = btor_char_to_bv (g_mm, vshift);                 \
-    ce      = btor_const_exp (g_btor, bve);                   \
-    if (eidx)                                                 \
-    {                                                         \
-      c##fun = btor_##fun##_exp (g_btor, ce, e[1]);           \
-      res    = inv_##fun##_bv (g_btor, fun, bv##fun, bve, 1); \
-      assert (res);                                           \
-      assert (btor_bv_to_uint64_bv (res) == rval);            \
-      btor_free_bv (g_mm, res);                               \
-      res = inv_##fun##_bv (g_btor, c##fun, bv##fun, bve, 1); \
-      if (g_btor->options.engine.val == BTOR_ENGINE_SLS)      \
-      {                                                       \
-        assert (!res);                                        \
-      }                                                       \
-      else                                                    \
-      {                                                       \
-        assert (res);                                         \
-        assert (btor_bv_to_uint64_bv (res) == rval);          \
-        btor_free_bv (g_mm, res);                             \
-      }                                                       \
-    }                                                         \
-    else                                                      \
-    {                                                         \
-      c##fun = btor_##fun##_exp (g_btor, e[0], ce);           \
-      res    = inv_##fun##_bv (g_btor, fun, bv##fun, bve, 0); \
-      assert (res);                                           \
-      btor_free_bv (g_mm, res);                               \
-      res = inv_##fun##_bv (g_btor, c##fun, bv##fun, bve, 0); \
-      if (g_btor->options.engine.val == BTOR_ENGINE_SLS)      \
-      {                                                       \
-        assert (!res);                                        \
-      }                                                       \
-      else                                                    \
-      {                                                       \
-        assert (res);                                         \
-        btor_free_bv (g_mm, res);                             \
-      }                                                       \
-    }                                                         \
-    btor_free_bv (g_mm, bv##fun);                             \
-    btor_free_bv (g_mm, bve);                                 \
-    btor_release_exp (g_btor, ce);                            \
-    btor_release_exp (g_btor, c##fun);                        \
+#define TEST_PROP_INV_CONF_SHIFT(eidx, fun, ve, vshift, rval)        \
+  do                                                                 \
+  {                                                                  \
+    bve     = btor_char_to_bv (g_mm, ve);                            \
+    bv##fun = btor_char_to_bv (g_mm, vshift);                        \
+    ce      = btor_const_exp (g_btor, bve);                          \
+    if (eidx)                                                        \
+    {                                                                \
+      c##fun = btor_##fun##_exp (g_btor, ce, e[1]);                  \
+      res    = inv_##fun##_bv (g_btor, fun, bv##fun, bve, 1);        \
+      assert (res);                                                  \
+      assert (btor_bv_to_uint64_bv (res) == rval);                   \
+      btor_free_bv (g_mm, res);                                      \
+      res = inv_##fun##_bv (g_btor, c##fun, bv##fun, bve, 1);        \
+      if (btor_get_opt (g_btor, BTOR_OPT_ENGINE) == BTOR_ENGINE_SLS) \
+      {                                                              \
+        assert (!res);                                               \
+      }                                                              \
+      else                                                           \
+      {                                                              \
+        assert (res);                                                \
+        assert (btor_bv_to_uint64_bv (res) == rval);                 \
+        btor_free_bv (g_mm, res);                                    \
+      }                                                              \
+    }                                                                \
+    else                                                             \
+    {                                                                \
+      c##fun = btor_##fun##_exp (g_btor, e[0], ce);                  \
+      res    = inv_##fun##_bv (g_btor, fun, bv##fun, bve, 0);        \
+      assert (res);                                                  \
+      btor_free_bv (g_mm, res);                                      \
+      res = inv_##fun##_bv (g_btor, c##fun, bv##fun, bve, 0);        \
+      if (btor_get_opt (g_btor, BTOR_OPT_ENGINE) == BTOR_ENGINE_SLS) \
+      {                                                              \
+        assert (!res);                                               \
+      }                                                              \
+      else                                                           \
+      {                                                              \
+        assert (res);                                                \
+        btor_free_bv (g_mm, res);                                    \
+      }                                                              \
+    }                                                                \
+    btor_free_bv (g_mm, bv##fun);                                    \
+    btor_free_bv (g_mm, bve);                                        \
+    btor_release_exp (g_btor, ce);                                   \
+    btor_release_exp (g_btor, c##fun);                               \
   } while (0)
 
-#define TEST_PROP_INV_CONF_MUL(cinit)                                    \
-  do                                                                     \
-  {                                                                      \
-    if (cinit)                                                           \
-    {                                                                    \
-      ce[0]   = btor_const_exp (g_btor, bve);                            \
-      ce[1]   = btor_const_exp (g_btor, bve);                            \
-      cmul[0] = btor_mul_exp (g_btor, ce[0], e[1]);                      \
-      cmul[1] = btor_mul_exp (g_btor, e[0], ce[1]);                      \
-    }                                                                    \
-    res = inv_mul_bv (g_btor, mul, bvmul, bve, 0);                       \
-    assert (res);                                                        \
-    btor_free_bv (g_mm, res);                                            \
-    res = inv_mul_bv (g_btor, mul, bvmul, bve, 1);                       \
-    assert (res);                                                        \
-    btor_free_bv (g_mm, res);                                            \
-    res = inv_mul_bv (g_btor, cmul[1], bvmul, bve, 0);                   \
-    assert ((g_btor->options.engine.val == BTOR_ENGINE_SLS && !res)      \
-            || (g_btor->options.engine.val != BTOR_ENGINE_SLS && res));  \
-    if (res)                                                             \
-    {                                                                    \
-      if (btor_get_bit_bv (bvmul, 0)) assert (btor_get_bit_bv (res, 0)); \
-      btor_free_bv (g_mm, res);                                          \
-    }                                                                    \
-    res = inv_mul_bv (g_btor, cmul[0], bvmul, bve, 1);                   \
-    assert ((g_btor->options.engine.val == BTOR_ENGINE_SLS && !res)      \
-            || (g_btor->options.engine.val != BTOR_ENGINE_SLS && res));  \
-    if (res)                                                             \
-    {                                                                    \
-      if (btor_get_bit_bv (bvmul, 0)) assert (btor_get_bit_bv (res, 0)); \
-      btor_free_bv (g_mm, res);                                          \
-    }                                                                    \
-    if (cinit)                                                           \
-    {                                                                    \
-      btor_release_exp (g_btor, ce[0]);                                  \
-      btor_release_exp (g_btor, ce[1]);                                  \
-      btor_release_exp (g_btor, cmul[0]);                                \
-      btor_release_exp (g_btor, cmul[1]);                                \
-    }                                                                    \
+#define TEST_PROP_INV_CONF_MUL(cinit)                                       \
+  do                                                                        \
+  {                                                                         \
+    if (cinit)                                                              \
+    {                                                                       \
+      ce[0]   = btor_const_exp (g_btor, bve);                               \
+      ce[1]   = btor_const_exp (g_btor, bve);                               \
+      cmul[0] = btor_mul_exp (g_btor, ce[0], e[1]);                         \
+      cmul[1] = btor_mul_exp (g_btor, e[0], ce[1]);                         \
+    }                                                                       \
+    res = inv_mul_bv (g_btor, mul, bvmul, bve, 0);                          \
+    assert (res);                                                           \
+    btor_free_bv (g_mm, res);                                               \
+    res = inv_mul_bv (g_btor, mul, bvmul, bve, 1);                          \
+    assert (res);                                                           \
+    btor_free_bv (g_mm, res);                                               \
+    res = inv_mul_bv (g_btor, cmul[1], bvmul, bve, 0);                      \
+    assert (                                                                \
+        (btor_get_opt (g_btor, BTOR_OPT_ENGINE) == BTOR_ENGINE_SLS && !res) \
+        || (btor_get_opt (g_btor, BTOR_OPT_ENGINE) != BTOR_ENGINE_SLS       \
+            && res));                                                       \
+    if (res)                                                                \
+    {                                                                       \
+      if (btor_get_bit_bv (bvmul, 0)) assert (btor_get_bit_bv (res, 0));    \
+      btor_free_bv (g_mm, res);                                             \
+    }                                                                       \
+    res = inv_mul_bv (g_btor, cmul[0], bvmul, bve, 1);                      \
+    assert (                                                                \
+        (btor_get_opt (g_btor, BTOR_OPT_ENGINE) == BTOR_ENGINE_SLS && !res) \
+        || (btor_get_opt (g_btor, BTOR_OPT_ENGINE) != BTOR_ENGINE_SLS       \
+            && res));                                                       \
+    if (res)                                                                \
+    {                                                                       \
+      if (btor_get_bit_bv (bvmul, 0)) assert (btor_get_bit_bv (res, 0));    \
+      btor_free_bv (g_mm, res);                                             \
+    }                                                                       \
+    if (cinit)                                                              \
+    {                                                                       \
+      btor_release_exp (g_btor, ce[0]);                                     \
+      btor_release_exp (g_btor, ce[1]);                                     \
+      btor_release_exp (g_btor, cmul[0]);                                   \
+      btor_release_exp (g_btor, cmul[1]);                                   \
+    }                                                                       \
   } while (0)
 
-#define TEST_PROP_INV_CONF_UDIV(eidx)                                     \
-  do                                                                      \
-  {                                                                       \
-    if (eidx)                                                             \
-    {                                                                     \
-      ce    = btor_const_exp (g_btor, bve);                               \
-      cudiv = btor_udiv_exp (g_btor, ce, e[1]);                           \
-      res   = inv_udiv_bv (g_btor, udiv, bvudiv, bve, 1);                 \
-      assert (res);                                                       \
-      assert (!btor_is_umulo_bv (g_mm, res, bvudiv));                     \
-      btor_free_bv (g_mm, res);                                           \
-      res = inv_udiv_bv (g_btor, cudiv, bvudiv, bve, 1);                  \
-      if (g_btor->options.engine.val == BTOR_ENGINE_SLS)                  \
-        assert (!res);                                                    \
-      else                                                                \
-      {                                                                   \
-        assert (res);                                                     \
-        assert (!btor_is_umulo_bv (g_mm, res, bvudiv));                   \
-        btor_free_bv (g_mm, res);                                         \
-      }                                                                   \
-      btor_release_exp (g_btor, cudiv);                                   \
-      btor_release_exp (g_btor, ce);                                      \
-    }                                                                     \
-    else                                                                  \
-    {                                                                     \
-      ce    = btor_const_exp (g_btor, bve);                               \
-      cudiv = btor_udiv_exp (g_btor, e[0], ce);                           \
-      res   = inv_udiv_bv (g_btor, udiv, bvudiv, bve, 0);                 \
-      assert (res);                                                       \
-      btor_free_bv (g_mm, res);                                           \
-      res = inv_udiv_bv (g_btor, cudiv, bvudiv, bve, 0);                  \
-      assert ((g_btor->options.engine.val == BTOR_ENGINE_SLS && !res)     \
-              || (g_btor->options.engine.val != BTOR_ENGINE_SLS && res)); \
-      if (res) btor_free_bv (g_mm, res);                                  \
-      btor_release_exp (g_btor, cudiv);                                   \
-      btor_release_exp (g_btor, ce);                                      \
-    }                                                                     \
+#define TEST_PROP_INV_CONF_UDIV(eidx)                                         \
+  do                                                                          \
+  {                                                                           \
+    if (eidx)                                                                 \
+    {                                                                         \
+      ce    = btor_const_exp (g_btor, bve);                                   \
+      cudiv = btor_udiv_exp (g_btor, ce, e[1]);                               \
+      res   = inv_udiv_bv (g_btor, udiv, bvudiv, bve, 1);                     \
+      assert (res);                                                           \
+      assert (!btor_is_umulo_bv (g_mm, res, bvudiv));                         \
+      btor_free_bv (g_mm, res);                                               \
+      res = inv_udiv_bv (g_btor, cudiv, bvudiv, bve, 1);                      \
+      if (btor_get_opt (g_btor, BTOR_OPT_ENGINE) == BTOR_ENGINE_SLS)          \
+        assert (!res);                                                        \
+      else                                                                    \
+      {                                                                       \
+        assert (res);                                                         \
+        assert (!btor_is_umulo_bv (g_mm, res, bvudiv));                       \
+        btor_free_bv (g_mm, res);                                             \
+      }                                                                       \
+      btor_release_exp (g_btor, cudiv);                                       \
+      btor_release_exp (g_btor, ce);                                          \
+    }                                                                         \
+    else                                                                      \
+    {                                                                         \
+      ce    = btor_const_exp (g_btor, bve);                                   \
+      cudiv = btor_udiv_exp (g_btor, e[0], ce);                               \
+      res   = inv_udiv_bv (g_btor, udiv, bvudiv, bve, 0);                     \
+      assert (res);                                                           \
+      btor_free_bv (g_mm, res);                                               \
+      res = inv_udiv_bv (g_btor, cudiv, bvudiv, bve, 0);                      \
+      assert (                                                                \
+          (btor_get_opt (g_btor, BTOR_OPT_ENGINE) == BTOR_ENGINE_SLS && !res) \
+          || (btor_get_opt (g_btor, BTOR_OPT_ENGINE) != BTOR_ENGINE_SLS       \
+              && res));                                                       \
+      if (res) btor_free_bv (g_mm, res);                                      \
+      btor_release_exp (g_btor, cudiv);                                       \
+      btor_release_exp (g_btor, ce);                                          \
+    }                                                                         \
   } while (0)
 
 /*------------------------------------------------------------------------*/
@@ -450,7 +456,7 @@ prop_inv_conf_and_bv (uint32_t bw)
         btor_free_bv (g_mm, tmp2);
 
         res = inv_and_bv (g_btor, cand[0], bvand, bve[0], 1);
-        if (g_btor->options.engine.val == BTOR_ENGINE_SLS)
+        if (btor_get_opt (g_btor, BTOR_OPT_ENGINE) == BTOR_ENGINE_SLS)
           assert (!res);
         else
         {
@@ -462,7 +468,7 @@ prop_inv_conf_and_bv (uint32_t bw)
         }
 
         res = inv_and_bv (g_btor, cand[1], bvand, bve[1], 0);
-        if (g_btor->options.engine.val == BTOR_ENGINE_SLS)
+        if (btor_get_opt (g_btor, BTOR_OPT_ENGINE) == BTOR_ENGINE_SLS)
           assert (!res);
         else
         {
@@ -473,17 +479,18 @@ prop_inv_conf_and_bv (uint32_t bw)
           btor_free_bv (g_mm, tmp2);
         }
 
-        if (g_btor->options.engine.val == BTOR_ENGINE_SLS) goto DONE;
+        if (btor_get_opt (g_btor, BTOR_OPT_ENGINE) == BTOR_ENGINE_SLS)
+          goto DONE;
 
         /* sls engine: only fixable if non-const inputs */
-        slv                        = g_btor->slv;
-        g_btor->slv                = btor_new_sls_solver (g_btor);
-        g_btor->options.engine.val = BTOR_ENGINE_SLS;
+        slv         = g_btor->slv;
+        g_btor->slv = btor_new_sls_solver (g_btor);
+        btor_set_opt (g_btor, BTOR_OPT_ENGINE, BTOR_ENGINE_SLS);
 
         goto PROP_INV_CONF_AND_TESTS;
       DONE:
-        g_btor->options.engine.val = BTOR_ENGINE_PROP;
-        g_btor->slv->api.delet (g_btor);
+        btor_set_opt (g_btor, BTOR_OPT_ENGINE, BTOR_ENGINE_PROP);
+        g_btor->slv->api.delet (g_btor->slv);
         g_btor->slv = slv;
       }
       btor_free_bv (g_mm, bvand);
@@ -528,7 +535,7 @@ PROP_INV_CONF_ULT_TESTS:
   ce   = btor_const_exp (g_btor, bve);
   cult = btor_ult_exp (g_btor, ce, e[1]);
   res  = inv_ult_bv (g_btor, cult, bvult, bve, 1);
-  if (g_btor->options.engine.val == BTOR_ENGINE_SLS)
+  if (btor_get_opt (g_btor, BTOR_OPT_ENGINE) == BTOR_ENGINE_SLS)
     assert (!res);
   else
   {
@@ -548,7 +555,7 @@ PROP_INV_CONF_ULT_TESTS:
   ce   = btor_const_exp (g_btor, bve);
   cult = btor_ult_exp (g_btor, e[0], ce);
   res  = inv_ult_bv (g_btor, cult, bvult, bve, 0);
-  if (g_btor->options.engine.val == BTOR_ENGINE_SLS)
+  if (btor_get_opt (g_btor, BTOR_OPT_ENGINE) == BTOR_ENGINE_SLS)
     assert (!res);
   else
   {
@@ -560,18 +567,18 @@ PROP_INV_CONF_ULT_TESTS:
   btor_release_exp (g_btor, ce);
   btor_free_bv (g_mm, bve);
 
-  if (g_btor->options.engine.val == BTOR_ENGINE_SLS) goto DONE;
+  if (btor_get_opt (g_btor, BTOR_OPT_ENGINE) == BTOR_ENGINE_SLS) goto DONE;
 
   /* sls engine: only fixable if non-const inputs */
-  slv                        = g_btor->slv;
-  g_btor->slv                = btor_new_sls_solver (g_btor);
-  g_btor->options.engine.val = BTOR_ENGINE_SLS;
+  slv         = g_btor->slv;
+  g_btor->slv = btor_new_sls_solver (g_btor);
+  btor_set_opt (g_btor, BTOR_OPT_ENGINE, BTOR_ENGINE_SLS);
 
   goto PROP_INV_CONF_ULT_TESTS;
 
 DONE:
-  g_btor->options.engine.val = BTOR_ENGINE_PROP;
-  g_btor->slv->api.delet (g_btor);
+  btor_set_opt (g_btor, BTOR_OPT_ENGINE, BTOR_ENGINE_PROP);
+  g_btor->slv->api.delet (g_btor->slv);
   g_btor->slv = slv;
 
   btor_free_bv (g_mm, bvult);
@@ -611,8 +618,9 @@ PROP_INV_CONF_SLL_TESTS:
     assert (res);
     btor_free_bv (g_mm, res);
     res = inv_sll_bv (g_btor, csll, bvsll, bve, 1);
-    assert ((g_btor->options.engine.val == BTOR_ENGINE_SLS && !res)
-            || (g_btor->options.engine.val != BTOR_ENGINE_SLS && res));
+    assert (
+        (btor_get_opt (g_btor, BTOR_OPT_ENGINE) == BTOR_ENGINE_SLS && !res)
+        || (btor_get_opt (g_btor, BTOR_OPT_ENGINE) != BTOR_ENGINE_SLS && res));
     if (res) btor_free_bv (g_mm, res);
     btor_free_bv (g_mm, bve);
     btor_release_exp (g_btor, ce);
@@ -719,18 +727,18 @@ PROP_INV_CONF_SLL_TESTS:
     default: break;
   }
 
-  if (g_btor->options.engine.val == BTOR_ENGINE_SLS) goto DONE;
+  if (btor_get_opt (g_btor, BTOR_OPT_ENGINE) == BTOR_ENGINE_SLS) goto DONE;
 
   /* sls engine: only fixable if non-const inputs */
-  slv                        = g_btor->slv;
-  g_btor->slv                = btor_new_sls_solver (g_btor);
-  g_btor->options.engine.val = BTOR_ENGINE_SLS;
+  slv         = g_btor->slv;
+  g_btor->slv = btor_new_sls_solver (g_btor);
+  btor_set_opt (g_btor, BTOR_OPT_ENGINE, BTOR_ENGINE_SLS);
 
   goto PROP_INV_CONF_SLL_TESTS;
 
 DONE:
-  g_btor->options.engine.val = BTOR_ENGINE_PROP;
-  g_btor->slv->api.delet (g_btor);
+  btor_set_opt (g_btor, BTOR_OPT_ENGINE, BTOR_ENGINE_PROP);
+  g_btor->slv->api.delet (g_btor->slv);
   g_btor->slv = slv;
 
   TEST_PROP_INV_CONF_BINARY_FINISH (sll);
@@ -766,8 +774,9 @@ PROP_INV_CONF_SRL_TESTS:
     assert (res);
     btor_free_bv (g_mm, res);
     res = inv_srl_bv (g_btor, csrl, bvsrl, bve, 1);
-    assert ((g_btor->options.engine.val == BTOR_ENGINE_SLS && !res)
-            || (g_btor->options.engine.val != BTOR_ENGINE_SLS && res));
+    assert (
+        (btor_get_opt (g_btor, BTOR_OPT_ENGINE) == BTOR_ENGINE_SLS && !res)
+        || (btor_get_opt (g_btor, BTOR_OPT_ENGINE) != BTOR_ENGINE_SLS && res));
     if (res) btor_free_bv (g_mm, res);
     btor_free_bv (g_mm, bve);
     btor_release_exp (g_btor, ce);
@@ -874,20 +883,20 @@ PROP_INV_CONF_SRL_TESTS:
     default: break;
   }
 
-  if (g_btor->options.engine.val == BTOR_ENGINE_SLS) goto DONE;
+  if (btor_get_opt (g_btor, BTOR_OPT_ENGINE) == BTOR_ENGINE_SLS) goto DONE;
 
   /* sls engine: only fixable if non-const inputs */
-  slv                        = g_btor->slv;
-  g_btor->slv                = btor_new_sls_solver (g_btor);
-  g_btor->options.engine.val = BTOR_ENGINE_SLS;
+  slv         = g_btor->slv;
+  g_btor->slv = btor_new_sls_solver (g_btor);
+  btor_set_opt (g_btor, BTOR_OPT_ENGINE, BTOR_ENGINE_SLS);
 
   goto PROP_INV_CONF_SRL_TESTS;
 
 DONE:
   TEST_PROP_INV_CONF_BINARY_FINISH (srl);
 
-  g_btor->options.engine.val = BTOR_ENGINE_PROP;
-  g_btor->slv->api.delet (g_btor);
+  btor_set_opt (g_btor, BTOR_OPT_ENGINE, BTOR_ENGINE_PROP);
+  g_btor->slv->api.delet (g_btor->slv);
   g_btor->slv = slv;
 #endif
 }
@@ -965,7 +974,7 @@ PROP_INV_CONF_MUL_TESTS:
     for (i = 0; bw > 1 && i < 10; i++)
     {
       bve = btor_new_random_bv (g_mm, &g_btor->rng, bw);
-      while (btor_is_power_of_two_bv (bve) >= 0)
+      while (btor_power_of_two_bv (bve) >= 0)
       {
         btor_free_bv (g_mm, bve);
         bve = btor_new_random_bv (g_mm, &g_btor->rng, bw);
@@ -990,17 +999,17 @@ PROP_INV_CONF_MUL_TESTS:
     }
   }
 
-  if (g_btor->options.engine.val == BTOR_ENGINE_SLS) goto DONE;
+  if (btor_get_opt (g_btor, BTOR_OPT_ENGINE) == BTOR_ENGINE_SLS) goto DONE;
 
   /* sls engine: only fixable if non-const inputs */
-  slv                        = g_btor->slv;
-  g_btor->slv                = btor_new_sls_solver (g_btor);
-  g_btor->options.engine.val = BTOR_ENGINE_SLS;
+  slv         = g_btor->slv;
+  g_btor->slv = btor_new_sls_solver (g_btor);
+  btor_set_opt (g_btor, BTOR_OPT_ENGINE, BTOR_ENGINE_SLS);
   goto PROP_INV_CONF_MUL_TESTS;
 
 DONE:
-  g_btor->options.engine.val = BTOR_ENGINE_PROP;
-  g_btor->slv->api.delet (g_btor);
+  btor_set_opt (g_btor, BTOR_OPT_ENGINE, BTOR_ENGINE_PROP);
+  g_btor->slv->api.delet (g_btor->slv);
   g_btor->slv = slv;
 
   TEST_PROP_INV_CONF_BINARY_FINISH (mul);
@@ -1071,17 +1080,17 @@ PROP_INV_CONF_UDIV_TESTS:
     btor_free_bv (g_mm, bve);
   }
 
-  if (g_btor->options.engine.val == BTOR_ENGINE_SLS) goto DONE;
+  if (btor_get_opt (g_btor, BTOR_OPT_ENGINE) == BTOR_ENGINE_SLS) goto DONE;
 
   /* sls engine: only fixable if non-const inputs */
-  slv                        = g_btor->slv;
-  g_btor->slv                = btor_new_sls_solver (g_btor);
-  g_btor->options.engine.val = BTOR_ENGINE_SLS;
+  slv         = g_btor->slv;
+  g_btor->slv = btor_new_sls_solver (g_btor);
+  btor_set_opt (g_btor, BTOR_OPT_ENGINE, BTOR_ENGINE_SLS);
 
   goto PROP_INV_CONF_UDIV_TESTS;
 DONE:
-  g_btor->options.engine.val = BTOR_ENGINE_PROP;
-  g_btor->slv->api.delet (g_btor);
+  btor_set_opt (g_btor, BTOR_OPT_ENGINE, BTOR_ENGINE_PROP);
+  g_btor->slv->api.delet (g_btor->slv);
   g_btor->slv = slv;
 
   btor_free_bv (g_mm, bvmax);
@@ -1123,7 +1132,7 @@ PROP_INV_CONF_UREM_TESTS:
     assert (btor_is_zero_bv (res));
     btor_free_bv (g_mm, res);
     res = inv_urem_bv (g_btor, curem, bvurem, bve, 1);
-    if (g_btor->options.engine.val == BTOR_ENGINE_SLS)
+    if (btor_get_opt (g_btor, BTOR_OPT_ENGINE) == BTOR_ENGINE_SLS)
       assert (!res);
     else
     {
@@ -1152,7 +1161,7 @@ PROP_INV_CONF_UREM_TESTS:
     assert (res);
     btor_free_bv (g_mm, res);
     res = inv_urem_bv (g_btor, curem, bvurem, bve, 1);
-    if (g_btor->options.engine.val == BTOR_ENGINE_SLS)
+    if (btor_get_opt (g_btor, BTOR_OPT_ENGINE) == BTOR_ENGINE_SLS)
       assert (!res);
     else
     {
@@ -1184,7 +1193,7 @@ PROP_INV_CONF_UREM_TESTS:
     assert (res);
     btor_free_bv (g_mm, res);
     res = inv_urem_bv (g_btor, curem, bvurem, bve, 1);
-    if (g_btor->options.engine.val == BTOR_ENGINE_SLS)
+    if (btor_get_opt (g_btor, BTOR_OPT_ENGINE) == BTOR_ENGINE_SLS)
       assert (!res);
     else
     {
@@ -1212,7 +1221,7 @@ PROP_INV_CONF_UREM_TESTS:
     assert (!btor_compare_bv (res, bvurem));
     btor_free_bv (g_mm, res);
     res = inv_urem_bv (g_btor, curem, bvurem, bve, 0);
-    if (g_btor->options.engine.val == BTOR_ENGINE_SLS)
+    if (btor_get_opt (g_btor, BTOR_OPT_ENGINE) == BTOR_ENGINE_SLS)
       assert (!res);
     else
     {
@@ -1238,7 +1247,7 @@ PROP_INV_CONF_UREM_TESTS:
     assert (res);
     btor_free_bv (g_mm, res);
     res = inv_urem_bv (g_btor, curem, bvurem, bve, 0);
-    if (g_btor->options.engine.val == BTOR_ENGINE_SLS)
+    if (btor_get_opt (g_btor, BTOR_OPT_ENGINE) == BTOR_ENGINE_SLS)
       assert (!res);
     else
     {
@@ -1252,18 +1261,18 @@ PROP_INV_CONF_UREM_TESTS:
     btor_free_bv (g_mm, bve);
   }
 
-  if (g_btor->options.engine.val == BTOR_ENGINE_SLS) goto DONE;
+  if (btor_get_opt (g_btor, BTOR_OPT_ENGINE) == BTOR_ENGINE_SLS) goto DONE;
 
   /* sls engine: only fixable if non-const inputs */
-  slv                        = g_btor->slv;
-  g_btor->slv                = btor_new_sls_solver (g_btor);
-  g_btor->options.engine.val = BTOR_ENGINE_SLS;
+  slv         = g_btor->slv;
+  g_btor->slv = btor_new_sls_solver (g_btor);
+  btor_set_opt (g_btor, BTOR_OPT_ENGINE, BTOR_ENGINE_SLS);
 
   goto PROP_INV_CONF_UREM_TESTS;
 
 DONE:
-  g_btor->options.engine.val = BTOR_ENGINE_PROP;
-  g_btor->slv->api.delet (g_btor);
+  btor_set_opt (g_btor, BTOR_OPT_ENGINE, BTOR_ENGINE_PROP);
+  g_btor->slv->api.delet (g_btor->slv);
   g_btor->slv = slv;
 
   btor_free_bv (g_mm, zero);
@@ -1326,7 +1335,7 @@ PROP_INV_CONF_CONCAT_TESTS:
       btor_free_bv (g_mm, res);
       res = inv_concat_bv (
           g_btor, cconcat[j ? 0 : 1], bvconcat, bve[j ? 0 : 1], j);
-      if (g_btor->options.engine.val == BTOR_ENGINE_SLS)
+      if (btor_get_opt (g_btor, BTOR_OPT_ENGINE) == BTOR_ENGINE_SLS)
         assert (!res);
       else
       {
@@ -1348,18 +1357,18 @@ PROP_INV_CONF_CONCAT_TESTS:
     btor_free_bv (g_mm, bvconcat);
   }
 
-  if (g_btor->options.engine.val == BTOR_ENGINE_SLS) goto DONE;
+  if (btor_get_opt (g_btor, BTOR_OPT_ENGINE) == BTOR_ENGINE_SLS) goto DONE;
 
   /* sls engine: only fixable if non-const inputs */
-  slv                        = g_btor->slv;
-  g_btor->slv                = btor_new_sls_solver (g_btor);
-  g_btor->options.engine.val = BTOR_ENGINE_SLS;
+  slv         = g_btor->slv;
+  g_btor->slv = btor_new_sls_solver (g_btor);
+  btor_set_opt (g_btor, BTOR_OPT_ENGINE, BTOR_ENGINE_SLS);
 
   goto PROP_INV_CONF_CONCAT_TESTS;
 
 DONE:
-  g_btor->options.engine.val = BTOR_ENGINE_PROP;
-  g_btor->slv->api.delet (g_btor);
+  btor_set_opt (g_btor, BTOR_OPT_ENGINE, BTOR_ENGINE_PROP);
+  g_btor->slv->api.delet (g_btor->slv);
   g_btor->slv = slv;
 #endif
 }
@@ -1433,13 +1442,14 @@ test_propinv_conf_concat_bv (void)
 void
 init_propinv_tests (void)
 {
-  g_btor                            = btor_new_btor ();
-  g_btor->slv                       = btor_new_prop_solver (g_btor);
-  g_btor->options.engine.val        = BTOR_ENGINE_PROP;
-  g_btor->options.rewrite_level.val = 0;
-  g_btor->options.sort_exp.val      = 0;
-  g_mm                              = g_btor->mm;
-  g_rng                             = &g_btor->rng;
+  g_btor            = btor_new_btor ();
+  g_btor->slv       = btor_new_prop_solver (g_btor);
+  g_btor->slv->btor = g_btor;
+  btor_set_opt (g_btor, BTOR_OPT_ENGINE, BTOR_ENGINE_PROP);
+  btor_set_opt (g_btor, BTOR_OPT_REWRITE_LEVEL, 0);
+  btor_set_opt (g_btor, BTOR_OPT_SORT_EXP, 0);
+  g_mm  = g_btor->mm;
+  g_rng = &g_btor->rng;
 }
 
 void

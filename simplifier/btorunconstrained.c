@@ -3,7 +3,7 @@
  *  Copyright (C) 2007-2009 Robert Daniel Brummayer.
  *  Copyright (C) 2007-2014 Armin Biere.
  *  Copyright (C) 2012-2015 Mathias Preiner.
- *  Copyright (C) 2012-2015 Aina Niemetz.
+ *  Copyright (C) 2012-2016 Aina Niemetz.
  *
  *  All rights reserved.
  *
@@ -111,9 +111,9 @@ void
 btor_optimize_unconstrained (Btor *btor)
 {
   assert (btor);
-  assert (btor->options.rewrite_level.val > 2);
-  assert (!btor->options.incremental.val);
-  assert (!btor->options.model_gen.val);
+  assert (btor_get_opt (btor, BTOR_OPT_REWRITE_LEVEL) > 2);
+  assert (!btor_get_opt (btor, BTOR_OPT_INCREMENTAL));
+  assert (!btor_get_opt (btor, BTOR_OPT_MODEL_GEN));
   assert (btor_check_id_table_mark_unset_dbg (btor));
 
   double start, delta;

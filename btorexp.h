@@ -1,7 +1,7 @@
 /*  Boolector: Satisfiablity Modulo Theories (SMT) solver.
  *
  *  Copyright (C) 2007-2009 Robert Daniel Brummayer.
- *  Copyright (C) 2007-2014 Armin Biere.
+ *  Copyright (C) 2007-2015 Armin Biere.
  *  Copyright (C) 2012-2015 Aina Niemetz.
  *  Copyright (C) 2012-2015 Mathias Preiner.
  *
@@ -80,7 +80,7 @@ enum BtorNodeKind
 
 typedef enum BtorNodeKind BtorNodeKind;
 
-typedef struct BtorNodePair BtorNodePair;
+extern const char *const g_btor_op2str[BTOR_NUM_OPS_NODE];
 
 #define BTOR_BV_NODE_STRUCT                                             \
   struct                                                                \
@@ -91,7 +91,6 @@ typedef struct BtorNodePair BtorNodePair;
     uint8_t beta_mark : 2;     /* mark for beta_reduce */               \
     uint8_t eval_mark : 2;     /* mark for eval_exp */                  \
     uint8_t clone_mark : 2;    /* mark for clone_exp_tree */            \
-    uint8_t reachable : 1;     /* reachable from root ? */              \
     uint8_t constraint : 1;    /* top level constraint ? */             \
     uint8_t erased : 1;        /* for debugging purposes */             \
     uint8_t disconnected : 1;  /* for debugging purposes */             \
@@ -383,6 +382,8 @@ struct BtorNodePair
   BtorNode *exp2;
 };
 
+typedef struct BtorNodePair BtorNodePair;
+
 BtorNodePair *btor_new_exp_pair (Btor *, BtorNode *, BtorNode *);
 
 void btor_delete_exp_pair (Btor *, BtorNodePair *);
@@ -558,6 +559,8 @@ BtorNode *btor_xnor_exp (Btor *btor, BtorNode *e0, BtorNode *e1);
  * width(result) = width(e0) = width(e1)
  */
 BtorNode *btor_and_exp (Btor *btor, BtorNode *e0, BtorNode *e1);
+
+BtorNode *btor_and_n_exp (Btor *btor, uint32_t argc, BtorNode *args[]);
 
 /* Logical and bit-vector NAND.
  * width(e0) = width(e1)
@@ -867,6 +870,10 @@ BtorNode *btor_match_node_by_id (Btor *btor, int32_t id);
  * (Note: increases ref counter of return match!) */
 BtorNode *btor_match_node (Btor *btor, BtorNode *exp);
 
+BtorNode *btor_get_node_by_id (Btor *btor, int32_t id);
+
+BtorNode *btor_get_node_by_symbol (Btor *btor, const char *sym);
+
 /* Gets the symbol of an expression. */
 char *btor_get_symbol_exp (Btor *btor, BtorNode *exp);
 
@@ -904,8 +911,14 @@ uint32_t btor_slice_get_upper (BtorNode *slice);
 uint32_t btor_slice_get_lower (BtorNode *slice);
 
 BtorNode *btor_param_get_binding_lambda (BtorNode *param);
+
 void btor_param_set_binding_lambda (BtorNode *param, BtorNode *lambda);
+
 bool btor_param_is_bound (BtorNode *param);
+
+BtorNode *btor_param_get_assigned_exp (BtorNode *param);
+
+BtorNode *btor_param_set_assigned_exp (BtorNode *param, BtorNode *exp);
 
 /* Copies expression (increments reference counter). */
 BtorNode *btor_copy_exp (Btor *btor, BtorNode *exp);
@@ -969,41 +982,53 @@ BtorNode *btor_create_exp (Btor *btor,
                            BtorNode **e);
 
 /*------------------------------------------------------------------------*/
+/* These are only necessary in kind of internal wrapper code, which uses
+ * the internal structure of expressions, e.g., BtorNode, but otherwise
+ * works through the external API, e.g., BoolectorNode, particularly if
+ * call backs are provided by the user which have the external view.
+ * Consider for example the substitution functions in 'boolectormap.h'
+ * which in turn is heavily used in the model checker 'btormc.c'.
+ */
+void btor_inc_exp_ext_ref_counter (Btor *btor, BtorNode *e);
+
+void btor_dec_exp_ext_ref_counter (Btor *btor, BtorNode *e);
+
+/*------------------------------------------------------------------------*/
 #ifndef NDEBUG
 /*------------------------------------------------------------------------*/
 
-int btor_precond_slice_exp_dbg (Btor *btor,
-                                BtorNode *exp,
-                                uint32_t upper,
-                                uint32_t lower);
+bool btor_precond_slice_exp_dbg (Btor *btor,
+                                 BtorNode *exp,
+                                 uint32_t upper,
+                                 uint32_t lower);
 
-int btor_precond_regular_unary_bv_exp_dbg (Btor *btor, BtorNode *exp);
+bool btor_precond_regular_unary_bv_exp_dbg (Btor *btor, BtorNode *exp);
 
-int btor_precond_regular_binary_bv_exp_dbg (Btor *btor,
-                                            BtorNode *e0,
-                                            BtorNode *e1);
+bool btor_precond_regular_binary_bv_exp_dbg (Btor *btor,
+                                             BtorNode *e0,
+                                             BtorNode *e1);
 
-int btor_precond_eq_exp_dbg (Btor *btor, BtorNode *e0, BtorNode *e1);
+bool btor_precond_eq_exp_dbg (Btor *btor, BtorNode *e0, BtorNode *e1);
 
-int btor_precond_shift_exp_dbg (Btor *btor, BtorNode *e0, BtorNode *e1);
+bool btor_precond_shift_exp_dbg (Btor *btor, BtorNode *e0, BtorNode *e1);
 
-int btor_precond_concat_exp_dbg (Btor *btor, BtorNode *e0, BtorNode *e1);
+bool btor_precond_concat_exp_dbg (Btor *btor, BtorNode *e0, BtorNode *e1);
 
-int btor_precond_read_exp_dbg (Btor *btor,
-                               BtorNode *e_array,
-                               BtorNode *e_index);
-
-int btor_precond_write_exp_dbg (Btor *btor,
+bool btor_precond_read_exp_dbg (Btor *btor,
                                 BtorNode *e_array,
-                                BtorNode *e_index,
-                                BtorNode *e_value);
+                                BtorNode *e_index);
 
-int btor_precond_cond_exp_dbg (Btor *btor,
-                               BtorNode *e_cond,
-                               BtorNode *e_if,
-                               BtorNode *e_else);
+bool btor_precond_write_exp_dbg (Btor *btor,
+                                 BtorNode *e_array,
+                                 BtorNode *e_index,
+                                 BtorNode *e_value);
 
-int btor_precond_apply_exp_dbg (Btor *btor, BtorNode *fun, BtorNode *args);
+bool btor_precond_cond_exp_dbg (Btor *btor,
+                                BtorNode *e_cond,
+                                BtorNode *e_if,
+                                BtorNode *e_else);
+
+bool btor_precond_apply_exp_dbg (Btor *btor, BtorNode *fun, BtorNode *args);
 
 /*------------------------------------------------------------------------*/
 #endif

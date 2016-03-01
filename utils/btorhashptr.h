@@ -29,10 +29,10 @@ typedef int (*BtorCmpPtr) (const void *a, const void *b);
 
 typedef union BtorPtrHashData BtorPtrHashData;
 
-typedef void *(*BtorCloneKeyPtr) (BtorMemMgr *mem,
+typedef void *(*BtorCloneKeyPtr) (BtorMemMgr *mm,
                                   const void *map,
                                   const void *key);
-typedef void (*BtorCloneDataPtr) (BtorMemMgr *mem,
+typedef void (*BtorCloneDataPtr) (BtorMemMgr *mm,
                                   const void *map,
                                   BtorPtrHashData *data,
                                   BtorPtrHashData *cloned_data);
@@ -63,7 +63,7 @@ struct BtorPtrHashBucket
 
 struct BtorPtrHashTable
 {
-  BtorMemMgr *mem;
+  BtorMemMgr *mm;
 
   unsigned size;
   unsigned count;
@@ -86,7 +86,7 @@ BtorPtrHashTable *btor_new_ptr_hash_table (BtorMemMgr *,
  * 'cdata' is a function mapping data to cloned data (note: as_ptr vs.
  * as_int!). 'key_map' represents a map mapping key to cloned key values.
  * 'data_map' represents a map mapping data to cloned data values. */
-BtorPtrHashTable *btor_clone_ptr_hash_table (BtorMemMgr *mem,
+BtorPtrHashTable *btor_clone_ptr_hash_table (BtorMemMgr *mm,
                                              BtorPtrHashTable *table,
                                              BtorCloneKeyPtr ckey,
                                              BtorCloneDataPtr cdata,

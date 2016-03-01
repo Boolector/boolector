@@ -1,6 +1,6 @@
 /*  Boolector: Satisfiablity Modulo Theories (SMT) solver.
  *
- *  Copyright (C) 2015 Aina Niemetz.
+ *  Copyright (C) 2015-2016 Aina Niemetz.
  *
  *  All rights reserved.
  *
@@ -13,8 +13,8 @@
 #include "btorcore.h"
 #include "btorexp.h"
 #include "btormodel.h"
-#include "btorprop.h"
-#include "btorsls.h"
+#include "btorslvprop.h"
+#include "btorslvsls.h"
 #include "testrunner.h"
 #include "utils/btorutil.h"
 
@@ -29,19 +29,20 @@ static BtorRNG *g_rng;
 
 /*------------------------------------------------------------------------*/
 
-#define TEST_PROP_INIT                                                      \
-  do                                                                        \
-  {                                                                         \
-    g_btor                                 = btor_new_btor ();              \
-    g_btor->slv                            = btor_new_prop_solver (g_btor); \
-    g_btor->options.engine.val             = BTOR_ENGINE_PROP;              \
-    g_btor->options.prop_use_inv_value.val = 100;                           \
-    g_btor->options.rewrite_level.val      = 0;                             \
-    g_btor->options.sort_exp.val           = 0;                             \
-    g_btor->options.incremental.val        = 1;                             \
-    /*g_btor->options.loglevel.val = 1;*/                                   \
-    g_mm  = g_btor->mm;                                                     \
-    g_rng = &g_btor->rng;                                                   \
+#define TEST_PROP_INIT                                        \
+  do                                                          \
+  {                                                           \
+    g_btor            = btor_new_btor ();                     \
+    g_btor->slv       = btor_new_prop_solver (g_btor);        \
+    g_btor->slv->btor = g_btor;                               \
+    btor_set_opt (g_btor, BTOR_OPT_ENGINE, BTOR_ENGINE_PROP); \
+    btor_set_opt (g_btor, BTOR_OPT_PROP_USE_INV_VALUE, 100);  \
+    btor_set_opt (g_btor, BTOR_OPT_REWRITE_LEVEL, 0);         \
+    btor_set_opt (g_btor, BTOR_OPT_SORT_EXP, 0);              \
+    btor_set_opt (g_btor, BTOR_OPT_INCREMENTAL, 1);           \
+    /*btor_set_opt (g_btor, BTOR_OPT_LOGLEVEL, 1);*/          \
+    g_mm  = g_btor->mm;                                       \
+    g_rng = &g_btor->rng;                                     \
   } while (0)
 
 #define TEST_PROP_ONE_COMPLETE_BINARY_INIT(fun) \
@@ -146,8 +147,8 @@ prop_complete_binary_eidx (
   btor_release_exp (g_btor, exp);
   btor_release_exp (g_btor, e[0]);
   btor_release_exp (g_btor, e[1]);
-  sat_res = sat_prop_solver_aux (g_btor, -1, -1);
-  assert (sat_res == BTOR_SAT);
+  sat_res = sat_prop_solver_aux (g_btor);
+  assert (sat_res == BTOR_RESULT_SAT);
   assert (((BtorPropSolver *) g_btor->slv)->stats.moves <= n);
 }
 
@@ -452,8 +453,8 @@ test_prop_complete_slice_bv (void)
           btor_release_exp (g_btor, val);
           btor_release_exp (g_btor, exp);
           btor_release_exp (g_btor, e);
-          sat_res = sat_prop_solver_aux (g_btor, -1, -1);
-          assert (sat_res == BTOR_SAT);
+          sat_res = sat_prop_solver_aux (g_btor);
+          assert (sat_res == BTOR_RESULT_SAT);
           assert (((BtorPropSolver *) g_btor->slv)->stats.moves <= 1);
         }
       }

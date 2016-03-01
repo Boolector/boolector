@@ -177,7 +177,6 @@ btor_strdup (BtorMemMgr *mm, const char *str)
   if (str)
   {
     res = btor_malloc (mm, strlen (str) + 1);
-    ADJUST ();
     strcpy (res, str);
   }
   else

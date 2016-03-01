@@ -3,7 +3,7 @@
  *  Copyright (C) 2007-2009 Robert Daniel Brummayer.
  *  Copyright (C) 2007-2015 Armin Biere.
  *  Copyright (C) 2013-2015 Mathias Preiner.
- *  Copyright (C) 2014-2015 Aina Niemetz.
+ *  Copyright (C) 2014-2016 Aina Niemetz.
  *
  *  All rights reserved.
  *
@@ -88,6 +88,27 @@
 
 // TODO: special_const_binary rewriting may return 0, hence the check if
 //       (result), may be obsolete if special_const_binary will be split
+#ifndef NDEBUG
+#define ADD_RW_RULE(rw_rule, ...)                                             \
+  if (applies_##rw_rule (btor, __VA_ARGS__))                                  \
+  {                                                                           \
+    assert (!result);                                                         \
+    result = apply_##rw_rule (btor, __VA_ARGS__);                             \
+    if (result)                                                               \
+    {                                                                         \
+      if (btor->stats.rw_rules_applied)                                       \
+      {                                                                       \
+        BtorPtrHashBucket *b =                                                \
+            btor_get_ptr_hash_table (btor->stats.rw_rules_applied, #rw_rule); \
+        if (!b)                                                               \
+          b = btor_add_ptr_hash_table (btor->stats.rw_rules_applied,          \
+                                       #rw_rule);                             \
+        b->data.as_int += 1;                                                  \
+      }                                                                       \
+      goto DONE;                                                              \
+    }                                                                         \
+  }
+#else
 #define ADD_RW_RULE(rw_rule, ...)                 \
   if (applies_##rw_rule (btor, __VA_ARGS__))      \
   {                                               \
@@ -95,6 +116,7 @@
     result = apply_##rw_rule (btor, __VA_ARGS__); \
     if (result) goto DONE;                        \
   }
+#endif
 //{fprintf (stderr, "apply: %s (%s)\n", #rw_rule, __FUNCTION__);
 
 /* -------------------------------------------------------------------------- */
@@ -280,7 +302,7 @@ is_always_unequal (Btor *btor, BtorNode *e0, BtorNode *e1)
   assert (e1);
   /* we need this so that a + 0 is rewritten to a,
    * and constants are normalized (all inverted constants are odd) */
-  assert (btor->options.rewrite_level.val > 0);
+  assert (btor_get_opt (btor, BTOR_OPT_REWRITE_LEVEL) > 0);
 
   real_e0 = BTOR_REAL_ADDR_NODE (e0);
   real_e1 = BTOR_REAL_ADDR_NODE (e1);
@@ -370,7 +392,7 @@ concat_simplifiable (BtorNode *exp)
   return BTOR_IS_BV_VAR_NODE (exp) || BTOR_IS_BV_CONST_NODE (exp);
 }
 
-static int
+static bool
 is_write_exp (BtorNode *exp,
               BtorNode **array,
               BtorNode **index,
@@ -382,33 +404,34 @@ is_write_exp (BtorNode *exp,
   BtorNode *param, *body, *eq, *app;
 
   if (!BTOR_IS_LAMBDA_NODE (exp) || btor_get_fun_arity (exp->btor, exp) > 1)
-    return 0;
+    return false;
 
   param = exp->e[0];
   body  = btor_lambda_get_body (exp);
 
-  if (BTOR_IS_INVERTED_NODE (body) || !BTOR_IS_BV_COND_NODE (body)) return 0;
+  if (BTOR_IS_INVERTED_NODE (body) || !BTOR_IS_BV_COND_NODE (body))
+    return false;
 
   /* check condition */
   eq = body->e[0];
   if (BTOR_IS_INVERTED_NODE (eq) || !BTOR_IS_BV_EQ_NODE (eq)
       || !eq->parameterized || (eq->e[0] != param && eq->e[1] != param))
-    return 0;
+    return false;
 
   /* check value */
-  if (BTOR_REAL_ADDR_NODE (body->e[1])->parameterized) return 0;
+  if (BTOR_REAL_ADDR_NODE (body->e[1])->parameterized) return false;
 
   /* check apply on unmodified array */
   app = body->e[2];
   if (BTOR_IS_INVERTED_NODE (app) || !BTOR_IS_APPLY_NODE (app)
       || btor_get_args_arity (app->btor, app->e[1]) > 1
       || app->e[1]->e[0] != param)
-    return 0;
+    return false;
 
   if (array) *array = app->e[0];
   if (index) *index = eq->e[1] == param ? eq->e[0] : eq->e[1];
   if (value) *value = body->e[1];
-  return 1;
+  return true;
 }
 
 static bool
@@ -489,7 +512,7 @@ static BtorNode *rewrite_cond_exp (Btor *, BtorNode *, BtorNode *, BtorNode *);
 /* match:  binary op with two constants
  * result: constant
  */
-static inline int
+static inline bool
 applies_const_binary_exp (Btor *btor,
                           BtorNodeKind kind,
                           BtorNode *e0,
@@ -551,7 +574,7 @@ apply_const_binary_exp (Btor *btor,
 /* match:  binary op with one constant
  * result: constant
  */
-static inline int
+static inline bool
 applies_special_const_lhs_binary_exp (Btor *btor,
                                       BtorNodeKind kind,
                                       BtorNode *e0,
@@ -817,7 +840,7 @@ apply_special_const_lhs_binary_exp (Btor *btor,
 /* match:  binary op with one constant
  * result: constant
  */
-static inline int
+static inline bool
 applies_special_const_rhs_binary_exp (Btor *btor,
                                       BtorNodeKind kind,
                                       BtorNode *e0,
@@ -1086,7 +1109,7 @@ apply_special_const_rhs_binary_exp (Btor *btor,
  * and 'factor' is odd?  We check whether this is possible but do not use
  * more than 'bound' recursive calls.
  */
-static int
+static bool
 rewrite_linear_term_bounded (Btor *btor,
                              BtorNode *term,
                              BtorBitVector **factor_ptr,
@@ -1098,7 +1121,7 @@ rewrite_linear_term_bounded (Btor *btor,
   BtorBitVector *factor;
   int term_width;
 
-  if (*bound_ptr <= 0) return 0;
+  if (*bound_ptr <= 0) return false;
 
   *bound_ptr -= 1;
 
@@ -1116,7 +1139,7 @@ rewrite_linear_term_bounded (Btor *btor,
                                       lhs_ptr,
                                       rhs_ptr,
                                       bound_ptr))
-      return 0;
+      return false;
 
     *rhs_ptr    = BTOR_INVERT_NODE (*rhs_ptr);
     *factor_ptr = btor_neg_bv (btor->mm, factor);
@@ -1143,7 +1166,7 @@ rewrite_linear_term_bounded (Btor *btor,
       other = term->e[0];
     }
     else
-      return 0;
+      return false;
 
     *rhs_ptr = rewrite_add_exp (btor, other, tmp);
     btor_release_exp (btor, tmp);
@@ -1154,7 +1177,7 @@ rewrite_linear_term_bounded (Btor *btor,
     {
       if (!rewrite_linear_term_bounded (
               btor, term->e[1], &factor, lhs_ptr, &tmp, bound_ptr))
-        return 0;
+        return false;
 
       /* term = e0 * e1
        *      = e0 * (factor * lhs + rhs)
@@ -1167,7 +1190,7 @@ rewrite_linear_term_bounded (Btor *btor,
     {
       if (!rewrite_linear_term_bounded (
               btor, term->e[0], &factor, lhs_ptr, &tmp, bound_ptr))
-        return 0;
+        return false;
 
       /* term = e0 * e1
        *      = (factor * lhs + rhs) * e1
@@ -1177,7 +1200,7 @@ rewrite_linear_term_bounded (Btor *btor,
       other = term->e[1];
     }
     else
-      return 0;
+      return false;
 
     assert (!BTOR_IS_INVERTED_NODE (other));
     *factor_ptr = btor_mul_bv (btor->mm, btor_const_get_bits (other), factor);
@@ -1193,9 +1216,9 @@ rewrite_linear_term_bounded (Btor *btor,
     *factor_ptr = btor_one_bv (btor->mm, term_width);
   }
   else
-    return 0;
+    return false;
 
-  return 1;
+  return true;
 }
 
 int
@@ -1216,7 +1239,7 @@ btor_rewrite_linear_term (Btor *btor,
  *
  * for each rule we define two functions:
 
-static inline int
+static inline bool
 applies_<rw_rule> (Btor * btor, ...)
 {
 
@@ -1241,7 +1264,7 @@ apply_<rw_rule> (Btor * btor, ...)
 /* match:  exp[len(exp) - 1:0]
  * result: exp
  */
-static inline int
+static inline bool
 applies_full_slice (Btor *btor, BtorNode *exp, uint32_t upper, uint32_t lower)
 {
   (void) btor;
@@ -1261,7 +1284,7 @@ apply_full_slice (Btor *btor, BtorNode *exp, uint32_t upper, uint32_t lower)
 /* match: exp[upper:lower], where exp is a constant
  * result: constant
  */
-static inline int
+static inline bool
 applies_const_slice (Btor *btor, BtorNode *exp, uint32_t upper, uint32_t lower)
 {
   (void) btor;
@@ -1288,7 +1311,7 @@ apply_const_slice (Btor *btor, BtorNode *exp, uint32_t upper, uint32_t lower)
 /* match:  (exp[u:l])[upper:lower]
  * result: exp[l+upper:l+lower]
  */
-static inline int
+static inline bool
 applies_slice_slice (Btor *btor, BtorNode *exp, uint32_t upper, uint32_t lower)
 {
   (void) upper;
@@ -1317,7 +1340,7 @@ apply_slice_slice (Btor *btor, BtorNode *exp, uint32_t upper, uint32_t lower)
 /* match: (a::b)[len(b)-1:0]
  * result: b
  */
-static inline int
+static inline bool
 applies_concat_lower_slice (Btor *btor,
                             BtorNode *exp,
                             uint32_t upper,
@@ -1348,14 +1371,14 @@ apply_concat_lower_slice (Btor *btor,
 /* match: (a::b)[len(a)+len(b)-1:len(b)]
  * result: a
  */
-static inline int
+static inline bool
 applies_concat_upper_slice (Btor *btor,
                             BtorNode *exp,
                             uint32_t upper,
                             uint32_t lower)
 {
   return BTOR_IS_CONCAT_NODE (BTOR_REAL_ADDR_NODE (exp))
-         && btor->options.rewrite_level.val < 3
+         && btor_get_opt (btor, BTOR_OPT_REWRITE_LEVEL) < 3
          && upper == btor_get_exp_width (btor, exp) - 1
          && btor_get_exp_width (btor, BTOR_REAL_ADDR_NODE (exp)->e[0])
                 == upper - lower + 1;
@@ -1383,14 +1406,14 @@ apply_concat_upper_slice (Btor *btor,
  * concats are normalized at rewrite level 3,
  * we recursively check if slice and child of concat matches
  */
-static inline int
+static inline bool
 applies_concat_rec_upper_slice (Btor *btor,
                                 BtorNode *exp,
                                 uint32_t upper,
                                 uint32_t lower)
 {
   (void) upper;
-  return btor->options.rewrite_level.val >= 3
+  return btor_get_opt (btor, BTOR_OPT_REWRITE_LEVEL) >= 3
          && btor->rec_rw_calls < BTOR_REC_RW_BOUND
          && BTOR_IS_CONCAT_NODE (BTOR_REAL_ADDR_NODE (exp))
          && lower >= btor_get_exp_width (btor, BTOR_REAL_ADDR_NODE (exp)->e[1]);
@@ -1424,14 +1447,14 @@ apply_concat_rec_upper_slice (Btor *btor,
  * concats are normalized at rewrite level 3,
  * we recursively check if slice and child of concat matches
  */
-static inline int
+static inline bool
 applies_concat_rec_lower_slice (Btor *btor,
                                 BtorNode *exp,
                                 uint32_t upper,
                                 uint32_t lower)
 {
   (void) lower;
-  return btor->options.rewrite_level.val >= 3
+  return btor_get_opt (btor, BTOR_OPT_REWRITE_LEVEL) >= 3
          && btor->rec_rw_calls < BTOR_REC_RW_BOUND
          && BTOR_IS_CONCAT_NODE (BTOR_REAL_ADDR_NODE (exp))
          && upper < btor_get_exp_width (btor, BTOR_REAL_ADDR_NODE (exp)->e[1]);
@@ -1463,14 +1486,14 @@ apply_concat_rec_lower_slice (Btor *btor,
  * concats are normalized at rewrite level 3,
  * we recursively check if slice and child of concat matches
  */
-static inline int
+static inline bool
 applies_concat_rec_slice (Btor *btor,
                           BtorNode *exp,
                           uint32_t upper,
                           uint32_t lower)
 {
   return BTOR_IS_CONCAT_NODE (BTOR_REAL_ADDR_NODE (exp))
-         && btor->options.rewrite_level.val >= 3
+         && btor_get_opt (btor, BTOR_OPT_REWRITE_LEVEL) >= 3
          && btor->rec_rw_calls < BTOR_REC_RW_BOUND && lower == 0
          && upper >= btor_get_exp_width (btor, BTOR_REAL_ADDR_NODE (exp)->e[1]);
 }
@@ -1502,12 +1525,12 @@ apply_concat_rec_slice (Btor *btor,
 /* match:  (a & b)[upper:lower]
  * result: a[upper:lower] & b[upper:lower]
  */
-static inline int
+static inline bool
 applies_and_slice (Btor *btor, BtorNode *exp, uint32_t upper, uint32_t lower)
 {
   (void) upper;
   (void) lower;
-  return btor->options.rewrite_level.val >= 3
+  return btor_get_opt (btor, BTOR_OPT_REWRITE_LEVEL) >= 3
          && btor->rec_rw_calls < BTOR_REC_RW_BOUND
          && BTOR_IS_AND_NODE (BTOR_REAL_ADDR_NODE (exp))
          && (slice_simplifiable (BTOR_REAL_ADDR_NODE (exp)->e[0])
@@ -1536,12 +1559,12 @@ apply_and_slice (Btor *btor, BtorNode *exp, uint32_t upper, uint32_t lower)
 /* match:  (c ? a : b)[upper:lower]
  * result: c ? a[upper:lower] : b[upper:lower]
  */
-static inline int
+static inline bool
 applies_bcond_slice (Btor *btor, BtorNode *exp, uint32_t upper, uint32_t lower)
 {
   (void) upper;
   (void) lower;
-  return btor->options.rewrite_level.val >= 3
+  return btor_get_opt (btor, BTOR_OPT_REWRITE_LEVEL) >= 3
          && btor->rec_rw_calls < BTOR_REC_RW_BOUND
          && BTOR_IS_BV_COND_NODE (BTOR_REAL_ADDR_NODE (exp))
          && (slice_simplifiable (BTOR_REAL_ADDR_NODE (exp)->e[1])
@@ -1567,14 +1590,14 @@ apply_bcond_slice (Btor *btor, BtorNode *exp, uint32_t upper, uint32_t lower)
   return result;
 }
 
-static inline int
+static inline bool
 applies_zero_lower_slice (Btor *btor,
                           BtorNode *exp,
                           uint32_t upper,
                           uint32_t lower)
 {
   (void) upper;
-  return btor->options.rewrite_level.val > 2
+  return btor_get_opt (btor, BTOR_OPT_REWRITE_LEVEL) > 2
          && btor->rec_rw_calls < BTOR_REC_RW_BOUND && lower == 0
          && upper < btor_get_exp_width (btor, exp) / 2
          && (BTOR_IS_MUL_NODE (BTOR_REAL_ADDR_NODE (exp))
@@ -1607,7 +1630,7 @@ apply_zero_lower_slice (Btor *btor,
 /* match:  a = a
  * result: true
  */
-static inline int
+static inline bool
 applies_true_eq (Btor *btor, BtorNode *e0, BtorNode *e1)
 {
   (void) btor;
@@ -1626,7 +1649,7 @@ apply_true_eq (Btor *btor, BtorNode *e0, BtorNode *e1)
 /* match:  a = b, where a != b
  * result: false
  */
-static inline int
+static inline bool
 applies_false_eq (Btor *btor, BtorNode *e0, BtorNode *e1)
 {
   return is_always_unequal (btor, e0, e1);
@@ -1647,10 +1670,10 @@ apply_false_eq (Btor *btor, BtorNode *e0, BtorNode *e1)
  * This rule does not lead to less substitutions. 'a' cannot
  * be substituted as the occurrence check would fail
  */
-static inline int
+static inline bool
 applies_add_left_eq (Btor *btor, BtorNode *e0, BtorNode *e1)
 {
-  return btor->options.rewrite_level.val > 2
+  return btor_get_opt (btor, BTOR_OPT_REWRITE_LEVEL) > 2
          && btor->rec_rw_calls < BTOR_REC_RW_BOUND
          && !BTOR_IS_INVERTED_NODE (e0) && e0->kind == BTOR_ADD_NODE
          && e0->e[0] == e1;
@@ -1678,10 +1701,10 @@ apply_add_left_eq (Btor *btor, BtorNode *e0, BtorNode *e1)
  * This rule does not lead to less substitutions. 'a' cannot
  * be substituted as the occurrence check would fail
  */
-static inline int
+static inline bool
 applies_add_right_eq (Btor *btor, BtorNode *e0, BtorNode *e1)
 {
-  return btor->options.rewrite_level.val > 2
+  return btor_get_opt (btor, BTOR_OPT_REWRITE_LEVEL) > 2
          && btor->rec_rw_calls < BTOR_REC_RW_BOUND
          && !BTOR_IS_INVERTED_NODE (e0) && e0->kind == BTOR_ADD_NODE
          && e0->e[1] == e1;
@@ -1706,10 +1729,10 @@ apply_add_right_eq (Btor *btor, BtorNode *e0, BtorNode *e1)
 /* match:  a + b = a + c
  * result: b = c
  */
-static inline int
+static inline bool
 applies_add_add_1_eq (Btor *btor, BtorNode *e0, BtorNode *e1)
 {
-  return btor->options.rewrite_level.val > 2
+  return btor_get_opt (btor, BTOR_OPT_REWRITE_LEVEL) > 2
          && btor->rec_rw_calls < BTOR_REC_RW_BOUND
          && !BTOR_IS_INVERTED_NODE (e0) && !BTOR_IS_INVERTED_NODE (e1)
          && e0->kind == BTOR_ADD_NODE && e1->kind == BTOR_ADD_NODE
@@ -1731,10 +1754,10 @@ apply_add_add_1_eq (Btor *btor, BtorNode *e0, BtorNode *e1)
 /* match:  a + b = c + a
  * result: b = c
  */
-static inline int
+static inline bool
 applies_add_add_2_eq (Btor *btor, BtorNode *e0, BtorNode *e1)
 {
-  return btor->options.rewrite_level.val > 2
+  return btor_get_opt (btor, BTOR_OPT_REWRITE_LEVEL) > 2
          && btor->rec_rw_calls < BTOR_REC_RW_BOUND
          && !BTOR_IS_INVERTED_NODE (e0) && !BTOR_IS_INVERTED_NODE (e1)
          && e0->kind == BTOR_ADD_NODE && e1->kind == BTOR_ADD_NODE
@@ -1756,10 +1779,10 @@ apply_add_add_2_eq (Btor *btor, BtorNode *e0, BtorNode *e1)
 /* match:  b + a = a + c
  * result: b = c
  */
-static inline int
+static inline bool
 applies_add_add_3_eq (Btor *btor, BtorNode *e0, BtorNode *e1)
 {
-  return btor->options.rewrite_level.val > 2
+  return btor_get_opt (btor, BTOR_OPT_REWRITE_LEVEL) > 2
          && btor->rec_rw_calls < BTOR_REC_RW_BOUND
          && !BTOR_IS_INVERTED_NODE (e0) && !BTOR_IS_INVERTED_NODE (e1)
          && e0->kind == BTOR_ADD_NODE && e1->kind == BTOR_ADD_NODE
@@ -1781,10 +1804,10 @@ apply_add_add_3_eq (Btor *btor, BtorNode *e0, BtorNode *e1)
 /* match:  b + a = c + a
  * result: b = c
  */
-static inline int
+static inline bool
 applies_add_add_4_eq (Btor *btor, BtorNode *e0, BtorNode *e1)
 {
-  return btor->options.rewrite_level.val > 2
+  return btor_get_opt (btor, BTOR_OPT_REWRITE_LEVEL) > 2
          && btor->rec_rw_calls < BTOR_REC_RW_BOUND
          && !BTOR_IS_INVERTED_NODE (e0) && !BTOR_IS_INVERTED_NODE (e1)
          && e0->kind == BTOR_ADD_NODE && e1->kind == BTOR_ADD_NODE
@@ -1809,10 +1832,10 @@ apply_add_add_4_eq (Btor *btor, BtorNode *e0, BtorNode *e1)
  * Commutative operators are normalized ignoring signs, so we do not have to
  * check cases like a & b ==  ~b & a as they are represented as a & b == a & ~b
  */
-static inline int
+static inline bool
 applies_and_and_1_eq (Btor *btor, BtorNode *e0, BtorNode *e1)
 {
-  return btor->options.rewrite_level.val > 2
+  return btor_get_opt (btor, BTOR_OPT_REWRITE_LEVEL) > 2
          && btor->rec_rw_calls < BTOR_REC_RW_BOUND
          && !BTOR_IS_INVERTED_NODE (e0) && !BTOR_IS_INVERTED_NODE (e1)
          && e0->kind == BTOR_AND_NODE && e1->kind == BTOR_AND_NODE
@@ -1843,10 +1866,10 @@ appy_and_and_1_eq (Btor *btor, BtorNode *e0, BtorNode *e1)
  * Commutative operators are normalized ignoring signs, so we do not have to
  * check cases like a & b ==  ~b & a as they are represented as a & b == a & ~b
  */
-static inline int
+static inline bool
 applies_and_and_2_eq (Btor *btor, BtorNode *e0, BtorNode *e1)
 {
-  return btor->options.rewrite_level.val > 2
+  return btor_get_opt (btor, BTOR_OPT_REWRITE_LEVEL) > 2
          && btor->rec_rw_calls < BTOR_REC_RW_BOUND
          && !BTOR_IS_INVERTED_NODE (e0) && !BTOR_IS_INVERTED_NODE (e1)
          && e0->kind == BTOR_AND_NODE && e1->kind == BTOR_AND_NODE
@@ -1878,10 +1901,10 @@ appy_and_and_2_eq (Btor *btor, BtorNode *e0, BtorNode *e1)
  * Commutative operators are normalized ignoring signs, so we do not have to
  * check cases like a & b ==  ~b & a as they are represented as a & b == a & ~b
  */
-static inline int
+static inline bool
 applies_and_and_3_eq (Btor *btor, BtorNode *e0, BtorNode *e1)
 {
-  return btor->options.rewrite_level.val > 2
+  return btor_get_opt (btor, BTOR_OPT_REWRITE_LEVEL) > 2
          && btor->rec_rw_calls < BTOR_REC_RW_BOUND
          && !BTOR_IS_INVERTED_NODE (e0) && !BTOR_IS_INVERTED_NODE (e1)
          && e0->kind == BTOR_AND_NODE && e1->kind == BTOR_AND_NODE
@@ -1910,10 +1933,10 @@ appy_and_and_3_eq (Btor *btor, BtorNode *e0, BtorNode *e1)
  * Commutative operators are normalized ignoring signs, so we do not have to
  * check cases like a & b ==  ~b & a as they are represented as a & b == a & ~b
  */
-static inline int
+static inline bool
 applies_and_and_4_eq (Btor *btor, BtorNode *e0, BtorNode *e1)
 {
-  return btor->options.rewrite_level.val > 2
+  return btor_get_opt (btor, BTOR_OPT_REWRITE_LEVEL) > 2
          && btor->rec_rw_calls < BTOR_REC_RW_BOUND
          && !BTOR_IS_INVERTED_NODE (e0) && !BTOR_IS_INVERTED_NODE (e1)
          && e0->kind == BTOR_AND_NODE && e1->kind == BTOR_AND_NODE
@@ -1939,10 +1962,10 @@ appy_and_and_4_eq (Btor *btor, BtorNode *e0, BtorNode *e1)
 /* match:  b ? a : t = d, where a != d
  * result: !b AND d = t
  */
-static inline int
+static inline bool
 applies_bcond_uneq_if_eq (Btor *btor, BtorNode *e0, BtorNode *e1)
 {
-  return btor->options.rewrite_level.val > 2
+  return btor_get_opt (btor, BTOR_OPT_REWRITE_LEVEL) > 2
          && btor->rec_rw_calls < BTOR_REC_RW_BOUND
          && !BTOR_IS_INVERTED_NODE (e0) && BTOR_IS_BV_COND_NODE (e0)
          && is_always_unequal (btor, e0->e[1], e1);
@@ -1966,10 +1989,10 @@ apply_bcond_uneq_if_eq (Btor *btor, BtorNode *e0, BtorNode *e1)
 /* match:  b ? a : t = d, where a != d
  * result: !b AND d = t
  */
-static inline int
+static inline bool
 applies_bcond_uneq_else_eq (Btor *btor, BtorNode *e0, BtorNode *e1)
 {
-  return btor->options.rewrite_level.val > 2
+  return btor_get_opt (btor, BTOR_OPT_REWRITE_LEVEL) > 2
          && btor->rec_rw_calls < BTOR_REC_RW_BOUND
          && !BTOR_IS_INVERTED_NODE (e0) && BTOR_IS_BV_COND_NODE (e0)
          && is_always_unequal (btor, e0->e[2], e1);
@@ -1995,10 +2018,10 @@ apply_bcond_uneq_else_eq (Btor *btor, BtorNode *e0, BtorNode *e1)
  * match:  a = ~(b ? a : c)
  * result: !b AND a = ~c
  */
-static inline int
+static inline bool
 applies_bcond_if_eq (Btor *btor, BtorNode *e0, BtorNode *e1)
 {
-  return btor->options.rewrite_level.val > 2
+  return btor_get_opt (btor, BTOR_OPT_REWRITE_LEVEL) > 2
          && btor->rec_rw_calls < BTOR_REC_RW_BOUND
          && BTOR_IS_BV_COND_NODE (BTOR_REAL_ADDR_NODE (e1))
          && BTOR_REAL_ADDR_NODE (e1)->e[1] == e0;
@@ -2034,10 +2057,10 @@ apply_bcond_if_eq (Btor *btor, BtorNode *e0, BtorNode *e1)
  * match:  a = ~(b ? c : a)
  * result: b AND a = ~c
  */
-static inline int
+static inline bool
 applies_bcond_else_eq (Btor *btor, BtorNode *e0, BtorNode *e1)
 {
-  return btor->options.rewrite_level.val > 2
+  return btor_get_opt (btor, BTOR_OPT_REWRITE_LEVEL) > 2
          && btor->rec_rw_calls < BTOR_REC_RW_BOUND
          && BTOR_IS_BV_COND_NODE (BTOR_REAL_ADDR_NODE (e1))
          && BTOR_REAL_ADDR_NODE (e1)->e[2] == e0;
@@ -2071,7 +2094,7 @@ apply_bcond_else_eq (Btor *btor, BtorNode *e0, BtorNode *e1)
 /* match:  (x ? a : b) = (x : c : d), where either a = c or b = d
  * result: x ? a = c : b = d
  */
-static inline int
+static inline bool
 applies_bcond_eq (Btor *btor, BtorNode *e0, BtorNode *e1)
 {
   BtorNode *real_e0, *real_e1;
@@ -2111,10 +2134,10 @@ apply_bcond_eq (Btor *btor, BtorNode *e0, BtorNode *e1)
 /* match:  a * b + a * c
  * result: a * (b + c)
  */
-static inline int
+static inline bool
 applies_add_mul_distrib (Btor *btor, BtorNode *e0, BtorNode *e1)
 {
-  return btor->options.rewrite_level.val > 2
+  return btor_get_opt (btor, BTOR_OPT_REWRITE_LEVEL) > 2
          && btor->rec_rw_calls < BTOR_REC_RW_BOUND
          && !BTOR_IS_INVERTED_NODE (e0) && !BTOR_IS_INVERTED_NODE (e1)
          && BTOR_IS_MUL_NODE (e0) && BTOR_IS_MUL_NODE (e1)
@@ -2162,15 +2185,15 @@ apply_add_mul_distrib (Btor *btor, BtorNode *e0, BtorNode *e1)
  *
  *
  */
-static inline int
+static inline bool
 applies_distrib_add_mul_eq (Btor *btor, BtorNode *e0, BtorNode *e1)
 {
   int result;
   BtorNode *tmp = 0;
 
-  result = btor->options.rewrite_level.val > 2 && !BTOR_IS_INVERTED_NODE (e0)
-           && !BTOR_IS_INVERTED_NODE (e1) && BTOR_IS_MUL_NODE (e0)
-           && BTOR_IS_ADD_NODE (e1)
+  result = btor_get_opt (btor, BTOR_OPT_REWRITE_LEVEL) > 2
+           && !BTOR_IS_INVERTED_NODE (e0) && !BTOR_IS_INVERTED_NODE (e1)
+           && BTOR_IS_MUL_NODE (e0) && BTOR_IS_ADD_NODE (e1)
            && applies_add_mul_distrib (btor, e1->e[0], e1->e[1])
            && (tmp = apply_add_mul_distrib (btor, e1->e[0], e1->e[1]))
            && tmp == e0;
@@ -2194,11 +2217,11 @@ apply_distrib_add_mul_eq (Btor *btor, BtorNode *e0, BtorNode *e1)
  *
  * push eq down over concats
  */
-static inline int
+static inline bool
 applies_concat_eq (Btor *btor, BtorNode *e0, BtorNode *e1)
 {
   (void) e1;
-  return btor->options.rewrite_level.val > 2
+  return btor_get_opt (btor, BTOR_OPT_REWRITE_LEVEL) > 2
          && btor->rec_rw_calls < BTOR_REC_RW_BOUND
          && BTOR_REAL_ADDR_NODE (e0)->kind == BTOR_CONCAT_NODE;
 }
@@ -2246,12 +2269,12 @@ apply_concat_eq (Btor *btor, BtorNode *e0, BtorNode *e1)
   return result;
 }
 
-static inline int
+static inline bool
 applies_zero_eq_and_eq (Btor *btor, BtorNode *e0, BtorNode *e1)
 {
   BtorNode *real_e1;
   real_e1 = BTOR_REAL_ADDR_NODE (e1);
-  return btor->options.rewrite_level.val > 2
+  return btor_get_opt (btor, BTOR_OPT_REWRITE_LEVEL) > 2
          && btor->rec_rw_calls < BTOR_REC_RW_BOUND
          && is_const_zero_exp (btor, e0) && BTOR_IS_AND_NODE (real_e1)
          && (BTOR_IS_BV_CONST_NODE (BTOR_REAL_ADDR_NODE (real_e1->e[0]))
@@ -2291,7 +2314,7 @@ apply_zero_eq_and_eq (Btor *btor, BtorNode *e0, BtorNode *e1)
 /* match:  a < a
  * result: false
  */
-static inline int
+static inline bool
 applies_false_ult (Btor *btor, BtorNode *e0, BtorNode *e1)
 {
   (void) btor;
@@ -2310,7 +2333,7 @@ apply_false_ult (Btor *btor, BtorNode *e0, BtorNode *e1)
 /* match:  a < b, where len(a) = 1
  * result: !a AND b
  */
-static inline int
+static inline bool
 applies_bool_ult (Btor *btor, BtorNode *e0, BtorNode *e1)
 {
   (void) e1;
@@ -2334,10 +2357,10 @@ apply_bool_ult (Btor *btor, BtorNode *e0, BtorNode *e1)
 /* match:  (a::b) < (a::c)
  * result: b < c
  */
-static inline int
+static inline bool
 applies_concat_upper_ult (Btor *btor, BtorNode *e0, BtorNode *e1)
 {
-  return btor->options.rewrite_level.val > 2
+  return btor_get_opt (btor, BTOR_OPT_REWRITE_LEVEL) > 2
          && btor->rec_rw_calls < BTOR_REC_RW_BOUND
          && !BTOR_IS_INVERTED_NODE (e0) && !BTOR_IS_INVERTED_NODE (e1)
          && BTOR_IS_CONCAT_NODE (e0) && e0->kind == e1->kind
@@ -2360,10 +2383,10 @@ apply_concat_upper_ult (Btor *btor, BtorNode *e0, BtorNode *e1)
 /* match:  (b::a) < (c::a)
  * result: b < c
  */
-static inline int
+static inline bool
 applies_concat_lower_ult (Btor *btor, BtorNode *e0, BtorNode *e1)
 {
-  return btor->options.rewrite_level.val > 2
+  return btor_get_opt (btor, BTOR_OPT_REWRITE_LEVEL) > 2
          && btor->rec_rw_calls < BTOR_REC_RW_BOUND
          && !BTOR_IS_INVERTED_NODE (e0) && !BTOR_IS_INVERTED_NODE (e1)
          && BTOR_IS_CONCAT_NODE (e0) && e0->kind == e1->kind
@@ -2386,7 +2409,7 @@ apply_concat_lower_ult (Btor *btor, BtorNode *e0, BtorNode *e1)
 /* match:  (x ? a : b) < (x : c : d), where either a = c or b = d
  * result: x ? a < c : b < d
  */
-static inline int
+static inline bool
 applies_bcond_ult (Btor *btor, BtorNode *e0, BtorNode *e1)
 {
   BtorNode *real_e0, *real_e1;
@@ -2428,7 +2451,7 @@ apply_bcond_ult (Btor *btor, BtorNode *e0, BtorNode *e1)
 /* match:  a & a
  * result: a
  */
-static inline int
+static inline bool
 applies_idem1_and (Btor *btor, BtorNode *e0, BtorNode *e1)
 {
   (void) btor;
@@ -2446,7 +2469,7 @@ apply_idem1_and (Btor *btor, BtorNode *e0, BtorNode *e1)
 /* match:  a & ~a
  * result: 0
  */
-static inline int
+static inline bool
 applies_contr1_and (Btor *btor, BtorNode *e0, BtorNode *e1)
 {
   (void) btor;
@@ -2466,7 +2489,7 @@ apply_contr1_and (Btor *btor, BtorNode *e0, BtorNode *e1)
  *
  * second rule of contradiction
  */
-static inline int
+static inline bool
 applies_contr2_and (Btor *btor, BtorNode *e0, BtorNode *e1)
 {
   (void) btor;
@@ -2492,7 +2515,7 @@ apply_contr2_and (Btor *btor, BtorNode *e0, BtorNode *e1)
  *
  * symmetric rule of idempotency
  */
-static inline int
+static inline bool
 applies_idem2_and (Btor *btor, BtorNode *e0, BtorNode *e1)
 {
   BtorNode *real_e0, *real_e1;
@@ -2523,7 +2546,7 @@ apply_idem2_and (Btor *btor, BtorNode *e0, BtorNode *e1)
  *
  * use commutativity
  */
-static inline int
+static inline bool
 applies_comm_and (Btor *btor, BtorNode *e0, BtorNode *e1)
 {
   BtorNode *real_e0, *real_e1;
@@ -2552,7 +2575,7 @@ apply_comm_and (Btor *btor, BtorNode *e0, BtorNode *e1)
 /* match: a & b & ~(c & d), where a = c OR a = d OR b = c OR b = d
  * result: a & b
  */
-static inline int
+static inline bool
 applies_subsum1_and (Btor *btor, BtorNode *e0, BtorNode *e1)
 {
   (void) btor;
@@ -2584,7 +2607,7 @@ apply_subsum1_and (Btor *btor, BtorNode *e0, BtorNode *e1)
  *
  * symmetric rule of substitution
  */
-static inline int
+static inline bool
 applies_subst1_and (Btor *btor, BtorNode *e0, BtorNode *e1)
 {
   BtorNode *real_e0, *real_e1;
@@ -2615,7 +2638,7 @@ apply_subst1_and (Btor *btor, BtorNode *e0, BtorNode *e1)
  *
  * symmetric rule of substitution
  */
-static inline int
+static inline bool
 applies_subst2_and (Btor *btor, BtorNode *e0, BtorNode *e1)
 {
   BtorNode *real_e0, *real_e1;
@@ -2644,7 +2667,7 @@ apply_subst2_and (Btor *btor, BtorNode *e0, BtorNode *e1)
 /* match: a XNOR b, where len(a) = 1
  * result: a = b
  */
-static inline int
+static inline bool
 applies_bool_xnor_and (Btor *btor, BtorNode *e0, BtorNode *e1)
 {
   BtorNode *real_e0, *real_e1;
@@ -2686,7 +2709,7 @@ apply_bool_xnor_and (Btor *btor, BtorNode *e0, BtorNode *e1)
  *
  * rule of resolution
  */
-static inline int
+static inline bool
 applies_resol1_and (Btor *btor, BtorNode *e0, BtorNode *e1)
 {
   BtorNode *real_e0, *real_e1;
@@ -2715,7 +2738,7 @@ apply_resol1_and (Btor *btor, BtorNode *e0, BtorNode *e1)
  *
  * rule of resolution
  */
-static inline int
+static inline bool
 applies_resol2_and (Btor *btor, BtorNode *e0, BtorNode *e1)
 {
   BtorNode *real_e0, *real_e1;
@@ -2744,7 +2767,7 @@ apply_resol2_and (Btor *btor, BtorNode *e0, BtorNode *e1)
  *
  * first rule of subsumption
  */
-static inline int
+static inline bool
 applies_subsum2_and (Btor *btor, BtorNode *e0, BtorNode *e1)
 {
   (void) btor;
@@ -2768,7 +2791,7 @@ apply_subsum2_and (Btor *btor, BtorNode *e0, BtorNode *e1)
  *
  * asymmetric rule of substitution
  */
-static inline int
+static inline bool
 applies_subst3_and (Btor *btor, BtorNode *e0, BtorNode *e1)
 {
   BtorNode *real_e0;
@@ -2796,7 +2819,7 @@ apply_subst3_and (Btor *btor, BtorNode *e0, BtorNode *e1)
  *
  * asymmetric rule of substitution
  */
-static inline int
+static inline bool
 applies_subst4_and (Btor *btor, BtorNode *e0, BtorNode *e1)
 {
   BtorNode *real_e0;
@@ -2824,7 +2847,7 @@ apply_subst4_and (Btor *btor, BtorNode *e0, BtorNode *e1)
  *
  * first rule of contradiction
  */
-static inline int
+static inline bool
 applies_contr3_and (Btor *btor, BtorNode *e0, BtorNode *e1)
 {
   (void) btor;
@@ -2847,7 +2870,7 @@ apply_contr3_and (Btor *btor, BtorNode *e0, BtorNode *e1)
  *
  * asymmetric rule of idempotency
  */
-static inline int
+static inline bool
 applies_idem3_and (Btor *btor, BtorNode *e0, BtorNode *e1)
 {
   (void) btor;
@@ -2866,7 +2889,7 @@ apply_idem3_and (Btor *btor, BtorNode *e0, BtorNode *e1)
 /* match: a & b & c, where a and c are constants
  * result: d & b, where d is a new constant obtained from a & c
  */
-static inline int
+static inline bool
 applies_const1_and (Btor *btor, BtorNode *e0, BtorNode *e1)
 {
   return btor->rec_rw_calls < BTOR_REC_RW_BOUND
@@ -2897,7 +2920,7 @@ apply_const1_and (Btor *btor, BtorNode *e0, BtorNode *e1)
 /* match: a & b & c, where b and c are constants
  * result: d & a, where d is a new constant obtained from b & c
  */
-static inline int
+static inline bool
 applies_const2_and (Btor *btor, BtorNode *e0, BtorNode *e1)
 {
   return btor->rec_rw_calls < BTOR_REC_RW_BOUND
@@ -2926,7 +2949,7 @@ apply_const2_and (Btor *btor, BtorNode *e0, BtorNode *e1)
 /* match: (a < b) & (b < a)
  * result: false
  */
-static inline int
+static inline bool
 applies_ult_false_and (Btor *btor, BtorNode *e0, BtorNode *e1)
 {
   (void) btor;
@@ -2948,7 +2971,7 @@ apply_ult_false_and (Btor *btor, BtorNode *e0, BtorNode *e1)
 /* match: ~(a < b) & ~(b < a)
  * result: a = b
  */
-static inline int
+static inline bool
 applies_ult_and (Btor *btor, BtorNode *e0, BtorNode *e1)
 {
   BtorNode *real_e0, *real_e1;
@@ -2979,7 +3002,7 @@ apply_ult_and (Btor *btor, BtorNode *e0, BtorNode *e1)
  *
  * recursively find contradicting ands
  */
-static inline int
+static inline bool
 applies_contr_rec_and (Btor *btor, BtorNode *e0, BtorNode *e1)
 {
   int calls = 0;
@@ -3004,7 +3027,7 @@ apply_contr_rec_and (Btor *btor, BtorNode *e0, BtorNode *e1)
  * match: (1::a) & (b::1)
  * result: b::a
  */
-static inline int
+static inline bool
 applies_concat_and (Btor *btor, BtorNode *e0, BtorNode *e1)
 {
   int result;
@@ -3058,10 +3081,10 @@ apply_concat_and (Btor *btor, BtorNode *e0, BtorNode *e1)
 /* match:
  * result: 
  */
-static inline int
+static inline bool
 applies_and (Btor * btor, BtorNode * e0, BtorNode * e1)
 {
-  return btor->options.rewrite_level.val > 2
+  return btor_get_opt (btor, BTOR_OPT_REWRITE_LEVEL) > 2
          && btor->rec_rw_calls < BTOR_REC_RW_BOUND
 	 && !BTOR_IS_INVERTED_NODE (e0)
 	 && BTOR_IS_BV_COND_NODE (e0);
@@ -3077,7 +3100,7 @@ apply_and (Btor * btor, BtorNode * e0, BtorNode * e1)
 // TODO (ma): uses shallow substitute, which does not really work
   if (!BTOR_IS_INVERTED_NODE (e0) &&
       e0->kind == BTOR_BEQ_NODE &&
-      btor->options.rewrite_level.val > 2 &&
+      btor_get_opt (btor, BTOR_OPT_REWRITE_LEVEL) > 2 &&
       btor->rec_rw_calls < BTOR_REC_RW_BOUND)
     {
       BtorNode * e1_simp = condrewrite (btor, e1, e0);
@@ -3099,7 +3122,7 @@ apply_and (Btor * btor, BtorNode * e0, BtorNode * e1)
 
   if (!BTOR_IS_INVERTED_NODE (e1) &&
       e1->kind == BTOR_BEQ_NODE &&
-      btor->options.rewrite_level.val > 2 &&
+      btor_get_opt (btor, BTOR_OPT_REWRITE_LEVEL) > 2 &&
       btor->rec_rw_calls < BTOR_REC_RW_BOUND)
     {
       BtorNode * e0_simp = condrewrite (btor, e0, e1);
@@ -3125,7 +3148,7 @@ apply_and (Btor * btor, BtorNode * e0, BtorNode * e1)
 /* match:  a + b, where len(a) = 1
  * result: a XOR b
  */
-static inline int
+static inline bool
 applies_bool_add (Btor *btor, BtorNode *e0, BtorNode *e1)
 {
   (void) e1;
@@ -3149,7 +3172,7 @@ apply_bool_add (Btor *btor, BtorNode *e0, BtorNode *e1)
 /* match:  a - b OR -a + b, where a = b
  * result: 0
  */
-static inline int
+static inline bool
 applies_neg_add (Btor *btor, BtorNode *e0, BtorNode *e1)
 {
   (void) btor;
@@ -3171,7 +3194,7 @@ apply_neg_add (Btor *btor, BtorNode *e0, BtorNode *e1)
 /* match: 0 + b
  * result: b
  */
-static inline int
+static inline bool
 applies_zero_add (Btor *btor, BtorNode *e0, BtorNode *e1)
 {
   (void) e1;
@@ -3193,7 +3216,7 @@ apply_zero_add (Btor *btor, BtorNode *e0, BtorNode *e1)
  * folding of constants, and the other call can not
  * trigger the same kind of recursion anymore.
  */
-static inline int
+static inline bool
 applies_const_lhs_add (Btor *btor, BtorNode *e0, BtorNode *e1)
 {
   return btor->rec_rw_calls < BTOR_REC_RW_BOUND
@@ -3225,7 +3248,7 @@ apply_const_lhs_add (Btor *btor, BtorNode *e0, BtorNode *e1)
  * folding of constants, and the other call can not
  * trigger the same kind of recursion anymore.
  */
-static inline int
+static inline bool
 applies_const_rhs_add (Btor *btor, BtorNode *e0, BtorNode *e1)
 {
   return btor->rec_rw_calls < BTOR_REC_RW_BOUND
@@ -3259,7 +3282,7 @@ apply_const_rhs_add (Btor *btor, BtorNode *e0, BtorNode *e1)
   //         == (~e00 + 1) + (~e01 + 1) - 1 + e1
   //         == ((~e00 + ~e01) + 1) + e1
   //
-  if (btor->options.rewrite_level.val > 2 &&
+  if (btor_get_opt (btor, BTOR_OPT_REWRITE_LEVEL) > 2 &&
       BTOR_IS_INVERTED_NODE (e0) &&
       btor->rec_rw_calls < BTOR_REC_RW_BOUND &&
       (temp = BTOR_REAL_ADDR_NODE (e0))->kind == BTOR_ADD_NODE)
@@ -3288,7 +3311,7 @@ apply_const_rhs_add (Btor *btor, BtorNode *e0, BtorNode *e1)
   //         == e0 + (~e10 + 1) + (~e11 + 1) - 1
   //         == e0 + ((~e10 + ~e11) + 1)
   //
-  if (btor->options.rewrite_level.val > 2 &&
+  if (btor_get_opt (btor, BTOR_OPT_REWRITE_LEVEL) > 2 &&
       BTOR_IS_INVERTED_NODE (e1) &&
       btor->rec_rw_calls < BTOR_REC_RW_BOUND &&
       (temp = BTOR_REAL_ADDR_NODE (e1))->kind == BTOR_ADD_NODE)
@@ -3313,13 +3336,13 @@ apply_const_rhs_add (Btor *btor, BtorNode *e0, BtorNode *e1)
 /* match:  ~(c * a) + b
  * result: ((-c) * a - 1) + b
  */
-static inline int
+static inline bool
 applies_const_neg_lhs_add (Btor *btor, BtorNode *e0, BtorNode *e1)
 {
   (void) e1;
   BtorNode *real_e0;
   real_e0 = BTOR_REAL_ADDR_NODE (e0);
-  return btor->options.rewrite_level.val > 2
+  return btor_get_opt (btor, BTOR_OPT_REWRITE_LEVEL) > 2
          && btor->rec_rw_calls < BTOR_REC_RW_BOUND && BTOR_IS_INVERTED_NODE (e0)
          && BTOR_IS_MUL_NODE (real_e0)
          && BTOR_IS_BV_CONST_NODE (BTOR_REAL_ADDR_NODE (real_e0->e[0]));
@@ -3355,13 +3378,13 @@ apply_const_neg_lhs_add (Btor *btor, BtorNode *e0, BtorNode *e1)
 /* match:  ~(a * c) + b
  * result: (a * (-c) - 1) + b
  */
-static inline int
+static inline bool
 applies_const_neg_rhs_add (Btor *btor, BtorNode *e0, BtorNode *e1)
 {
   (void) e1;
   BtorNode *real_e0;
   real_e0 = BTOR_REAL_ADDR_NODE (e0);
-  return btor->options.rewrite_level.val > 2
+  return btor_get_opt (btor, BTOR_OPT_REWRITE_LEVEL) > 2
          && btor->rec_rw_calls < BTOR_REC_RW_BOUND && BTOR_IS_INVERTED_NODE (e0)
          && BTOR_IS_MUL_NODE (real_e0)
          && BTOR_IS_BV_CONST_NODE (BTOR_REAL_ADDR_NODE (real_e0->e[1]));
@@ -3397,7 +3420,7 @@ apply_const_neg_rhs_add (Btor *btor, BtorNode *e0, BtorNode *e1)
 /* match:  a + a
  * result: 2 * a
  */
-static inline int
+static inline bool
 applies_mult_add (Btor *btor, BtorNode *e0, BtorNode *e1)
 {
   return btor->rec_rw_calls < BTOR_REC_RW_BOUND && e0 == e1
@@ -3423,7 +3446,7 @@ apply_mult_add (Btor *btor, BtorNode *e0, BtorNode *e1)
 /* match:  a + ~a
  * result: -1
  */
-static inline int
+static inline bool
 applies_not_add (Btor *btor, BtorNode *e0, BtorNode *e1)
 {
   (void) btor;
@@ -3442,7 +3465,7 @@ apply_not_add (Btor *btor, BtorNode *e0, BtorNode *e1)
 /* match:  (x ? a : b) + (x : c : d), where either a = c or b = d
  * result: x ? a + c : b + d
  */
-static inline int
+static inline bool
 applies_bcond_add (Btor *btor, BtorNode *e0, BtorNode *e1)
 {
   BtorNode *real_e0, *real_e1;
@@ -3484,7 +3507,7 @@ apply_bcond_add (Btor *btor, BtorNode *e0, BtorNode *e1)
 /* match:  a * b, wher len(a) = 1
  * result: a & b
  */
-static inline int
+static inline bool
 applies_bool_mul (Btor *btor, BtorNode *e0, BtorNode *e1)
 {
   (void) e1;
@@ -3507,7 +3530,7 @@ apply_bool_mul (Btor *btor, BtorNode *e0, BtorNode *e1)
 /* match: c0 * (c1 * b), where c0 and c1 are constants
  * result: c * b, where c is a new constant from c0 * c1
  */
-static inline int
+static inline bool
 applies_const_lhs_mul (Btor *btor, BtorNode *e0, BtorNode *e1)
 {
   return btor->rec_rw_calls < BTOR_REC_RW_BOUND
@@ -3534,7 +3557,7 @@ apply_const_lhs_mul (Btor *btor, BtorNode *e0, BtorNode *e1)
 /* match: c0 * (b * c1), where c0 and c1 are constants
  * result: c * b, where c is a new constant from c0 * c1
  */
-static inline int
+static inline bool
 applies_const_rhs_mul (Btor *btor, BtorNode *e0, BtorNode *e1)
 {
   return btor->rec_rw_calls < BTOR_REC_RW_BOUND
@@ -3561,10 +3584,10 @@ apply_const_rhs_mul (Btor *btor, BtorNode *e0, BtorNode *e1)
 /* match: c0 * (a + c1)
  * result: c0 * a + c, where c is a new constant from c0 * c1
  */
-static inline int
+static inline bool
 applies_const_mul (Btor *btor, BtorNode *e0, BtorNode *e1)
 {
-  return btor->options.rewrite_level.val > 2
+  return btor_get_opt (btor, BTOR_OPT_REWRITE_LEVEL) > 2
          && btor->rec_rw_calls < BTOR_REC_RW_BOUND
          && BTOR_IS_BV_CONST_NODE (BTOR_REAL_ADDR_NODE (e0))
          && !BTOR_IS_INVERTED_NODE (e1) && BTOR_IS_ADD_NODE (e1)
@@ -3620,7 +3643,7 @@ apply_const_mul (Btor *btor, BtorNode *e0, BtorNode *e1)
 /* match:  (x ? a : b) * (x : c : d), where either a = c or b = d
  * result: x ? a * c : b * d
  */
-static inline int
+static inline bool
 applies_bcond_mul (Btor *btor, BtorNode *e0, BtorNode *e1)
 {
   BtorNode *real_e0, *real_e1;
@@ -3662,7 +3685,7 @@ apply_bcond_mul (Btor *btor, BtorNode *e0, BtorNode *e1)
 /* match: a / b, where len(a) = 1
  * result: ~(~a & b)
  */
-static inline int
+static inline bool
 applies_bool_udiv (Btor *btor, BtorNode *e0, BtorNode *e1)
 {
   (void) e1;
@@ -3686,13 +3709,13 @@ apply_bool_udiv (Btor *btor, BtorNode *e0, BtorNode *e1)
 /* match:  a / 2^n
  * result: 0 :: a[len(a)-1:n]
  */
-static inline int
+static inline bool
 applies_power2_udiv (Btor *btor, BtorNode *e0, BtorNode *e1)
 {
   (void) e0;
   return btor->rec_rw_calls < BTOR_REC_RW_BOUND && !BTOR_IS_INVERTED_NODE (e1)
          && BTOR_IS_BV_CONST_NODE (e1)
-         && btor_is_power_of_two_bv (btor_const_get_bits (e1)) > 0;
+         && btor_power_of_two_bv (btor_const_get_bits (e1)) > 0;
 }
 
 static inline BtorNode *
@@ -3703,7 +3726,7 @@ apply_power2_udiv (Btor *btor, BtorNode *e0, BtorNode *e1)
   unsigned l, n;
   BtorNode *slice, *pad, *result;
 
-  n = btor_is_power_of_two_bv (btor_const_get_bits (e1));
+  n = btor_power_of_two_bv (btor_const_get_bits (e1));
   l = btor_get_exp_width (btor, e0);
   assert (l > n);
 
@@ -3721,7 +3744,7 @@ apply_power2_udiv (Btor *btor, BtorNode *e0, BtorNode *e1)
 /* match: a / a
  * result: 1, if a != 0 and UINT_MAX otherwise
  */
-static inline int
+static inline bool
 applies_one_udiv (Btor *btor, BtorNode *e0, BtorNode *e1)
 {
   return btor->rec_rw_calls < BTOR_REC_RW_BOUND && e0 == e1;
@@ -3754,7 +3777,7 @@ apply_one_udiv (Btor *btor, BtorNode *e0, BtorNode *e1)
 /* match:  (x ? a : b) / (x : c : d), where either a = c or b = d
  * result: x ? a / c : b / d
  */
-static inline int
+static inline bool
 applies_bcond_udiv (Btor *btor, BtorNode *e0, BtorNode *e1)
 {
   BtorNode *real_e0, *real_e1;
@@ -3796,7 +3819,7 @@ apply_bcond_udiv (Btor *btor, BtorNode *e0, BtorNode *e1)
 /* match:  a % b, where len(a) = 1
  * result: a & ~b
  */
-static inline int
+static inline bool
 applies_bool_urem (Btor *btor, BtorNode *e0, BtorNode *e1)
 {
   (void) e1;
@@ -3820,7 +3843,7 @@ apply_bool_urem (Btor *btor, BtorNode *e0, BtorNode *e1)
 /* match:  a % a
  * result: 0
  */
-static inline int
+static inline bool
 applies_zero_urem (Btor *btor, BtorNode *e0, BtorNode *e1)
 {
   (void) btor;
@@ -3840,7 +3863,7 @@ apply_zero_urem (Btor *btor, BtorNode *e0, BtorNode *e1)
 /* match:  (a::c0)::c1
  * result: a::c, where c is a new constant obtained from c0::c1
  */
-static inline int
+static inline bool
 applies_const_concat (Btor *btor, BtorNode *e0, BtorNode *e1)
 {
   BtorNode *real_e0;
@@ -3873,13 +3896,13 @@ apply_const_concat (Btor *btor, BtorNode *e0, BtorNode *e1)
 /* match:  a[u1:l1]::a[u2:l2], where l1 = u2 + 1
  * result: a[u1:l2]
  */
-static inline int
+static inline bool
 applies_slice_concat (Btor *btor, BtorNode *e0, BtorNode *e1)
 {
   BtorNode *real_e0, *real_e1;
   real_e0 = BTOR_REAL_ADDR_NODE (e0);
   real_e1 = BTOR_REAL_ADDR_NODE (e1);
-  return btor->options.rewrite_level.val > 0
+  return btor_get_opt (btor, BTOR_OPT_REWRITE_LEVEL) > 0
          && btor->rec_rw_calls < BTOR_REC_RW_BOUND
          && BTOR_IS_INVERTED_NODE (e0) == BTOR_IS_INVERTED_NODE (e1)
          && BTOR_IS_SLICE_NODE (real_e0) && BTOR_IS_SLICE_NODE (real_e1)
@@ -3908,7 +3931,7 @@ apply_slice_concat (Btor *btor, BtorNode *e0, BtorNode *e1)
 
 // NOTE: disabled for now, conflicts with rewriting rule of cond
 #if 0
-  if (btor->options.rewrite_level.val > 2 &&
+  if (btor_get_opt (btor, BTOR_OPT_REWRITE_LEVEL) > 2 &&
       !BTOR_IS_INVERTED_NODE (e0) &&
       e0->kind == BTOR_BCOND_NODE &&
       (btor_concat_simplifiable (e0->e[1]) ||
@@ -3927,7 +3950,7 @@ apply_slice_concat (Btor *btor, BtorNode *e0, BtorNode *e1)
 
 // NOTE: disabled for now, conflicts with rewriting rule of cond
 #if 0
-  if (btor->options.rewrite_level.val > 2 &&
+  if (btor_get_opt (btor, BTOR_OPT_REWRITE_LEVEL) > 2 &&
       BTOR_IS_INVERTED_NODE (e0) &&
       (real_e0 = BTOR_REAL_ADDR_NODE (e0))->kind == BTOR_BCOND_NODE &&
       (btor_concat_simplifiable (real_e0->e[1]) ||
@@ -3946,7 +3969,7 @@ apply_slice_concat (Btor *btor, BtorNode *e0, BtorNode *e1)
 
 // NOTE: disabled for now, conflicts with rewriting rule of cond
 #if 0
-  if (btor->options.rewrite_level.val > 2 &&
+  if (btor_get_opt (btor, BTOR_OPT_REWRITE_LEVEL) > 2 &&
       !BTOR_IS_INVERTED_NODE (e1) &&
       e1->kind == BTOR_BCOND_NODE &&
       (btor_concat_simplifiable (e1->e[1]) ||
@@ -3965,7 +3988,7 @@ apply_slice_concat (Btor *btor, BtorNode *e0, BtorNode *e1)
 
 // NOTE: disabled for now, conflicts with rewriting rule of cond
 #if 0
-  if (btor->options.rewrite_level.val > 2 &&
+  if (btor_get_opt (btor, BTOR_OPT_REWRITE_LEVEL) > 2 &&
       BTOR_IS_INVERTED_NODE (e1) &&
       (real_e1 = BTOR_REAL_ADDR_NODE (e1))->kind == BTOR_BCOND_NODE &&
       (btor_concat_simplifiable (real_e1->e[1]) ||
@@ -3985,13 +4008,13 @@ apply_slice_concat (Btor *btor, BtorNode *e0, BtorNode *e1)
 /* match: (a & b)::c
  * result: (a::c) & (b::c)
  */
-static inline int
+static inline bool
 applies_and_lhs_concat (Btor *btor, BtorNode *e0, BtorNode *e1)
 {
   (void) e1;
   BtorNode *real_e0;
   real_e0 = BTOR_REAL_ADDR_NODE (e0);
-  return btor->options.rewrite_level.val > 2
+  return btor_get_opt (btor, BTOR_OPT_REWRITE_LEVEL) > 2
          && btor->rec_rw_calls < BTOR_REC_RW_BOUND && BTOR_IS_AND_NODE (real_e0)
          && (concat_simplifiable (real_e0->e[0])
              || concat_simplifiable (real_e0->e[1]));
@@ -4021,13 +4044,13 @@ apply_and_lhs_concat (Btor *btor, BtorNode *e0, BtorNode *e1)
 /* match: a::(b & c)
  * result: (a::b) & (a::c)
  */
-static inline int
+static inline bool
 applies_and_rhs_concat (Btor *btor, BtorNode *e0, BtorNode *e1)
 {
   (void) e0;
   BtorNode *real_e1;
   real_e1 = BTOR_REAL_ADDR_NODE (e1);
-  return btor->options.rewrite_level.val > 2
+  return btor_get_opt (btor, BTOR_OPT_REWRITE_LEVEL) > 2
          && btor->rec_rw_calls < BTOR_REC_RW_BOUND && BTOR_IS_AND_NODE (real_e1)
          && (concat_simplifiable (real_e1->e[0])
              || concat_simplifiable (real_e1->e[1]));
@@ -4059,7 +4082,7 @@ apply_and_rhs_concat (Btor *btor, BtorNode *e0, BtorNode *e1)
 /* match:  a << c, where c is a constant
  * result: a[len(a)-val(c)-1:0]::0
  */
-static inline int
+static inline bool
 applies_const_sll (Btor *btor, BtorNode *e0, BtorNode *e1)
 {
   (void) e0;
@@ -4105,7 +4128,7 @@ apply_const_sll (Btor *btor, BtorNode *e0, BtorNode *e1)
 /* match:  a >> c, where c is a constant
  * result: 0::a[len(a)-1:val(c)]
  */
-static inline int
+static inline bool
 applies_const_srl (Btor *btor, BtorNode *e0, BtorNode *e1)
 {
   (void) e0;
@@ -4151,7 +4174,7 @@ apply_const_srl (Btor *btor, BtorNode *e0, BtorNode *e1)
 /* match:  (\lambda x . t)(a), where term t does not contain param x
  * result: t
  */
-static inline int
+static inline bool
 applies_const_lambda_apply (Btor *btor, BtorNode *e0, BtorNode *e1)
 {
   (void) btor;
@@ -4171,7 +4194,7 @@ apply_const_lambda_apply (Btor *btor, BtorNode *e0, BtorNode *e1)
 /* match:  (\lambda x . x)(a)
  * result: a
  */
-static inline int
+static inline bool
 applies_param_lambda_apply (Btor *btor, BtorNode *e0, BtorNode *e1)
 {
   (void) btor;
@@ -4191,7 +4214,7 @@ apply_param_lambda_apply (Btor *btor, BtorNode *e0, BtorNode *e1)
   body = btor_lambda_get_body (e0);
   btor_assign_args (btor, e0, e1);
   result = btor_copy_exp (
-      btor, btor_param_cur_assignment (BTOR_REAL_ADDR_NODE (body)));
+      btor, btor_param_get_assigned_exp (BTOR_REAL_ADDR_NODE (body)));
   btor_unassign_params (btor, e0);
   result = BTOR_COND_INVERT_NODE (body, result);
   return result;
@@ -4200,7 +4223,7 @@ apply_param_lambda_apply (Btor *btor, BtorNode *e0, BtorNode *e1)
 /* match:  (\lambda x . f(x))(a)
  * result: f(a)
  */
-static inline int
+static inline bool
 applies_apply_apply (Btor *btor, BtorNode *e0, BtorNode *e1)
 {
   (void) e1;
@@ -4239,7 +4262,7 @@ apply_apply_apply (Btor *btor, BtorNode *e0, BtorNode *e1)
  *
  * propagate apply over parameterized bv conditionals
  */
-static inline int
+static inline bool
 applies_prop_apply (Btor *btor, BtorNode *e0, BtorNode *e1)
 {
   (void) btor;
@@ -4343,7 +4366,7 @@ apply_prop_apply (Btor *btor, BtorNode *e0, BtorNode *e1)
         }
         else if (BTOR_IS_PARAM_NODE (real_cur_branch))
         {
-          if ((value = btor_param_cur_assignment (real_cur_branch)))
+          if ((value = btor_param_get_assigned_exp (real_cur_branch)))
             result = btor_copy_exp (btor, value);
           else
             result = btor_copy_exp (btor, real_cur_branch);
@@ -4488,7 +4511,7 @@ apply_prop_apply (Btor *btor, BtorNode *e0, BtorNode *e1)
 /* match: (\lambda j . (\lambda k . t)(j))
  * result: \lambda k . t
  */
-static inline int
+static inline bool
 applies_lambda_lambda (Btor * btor, BtorNode * e0, BtorNode * e1)
 {
   return !BTOR_IS_INVERTED_NODE (e1)
@@ -4510,7 +4533,7 @@ apply_lambda_lambda (Btor * btor, BtorNode * e0, BtorNode * e1)
 /* match: c ? a : a
  * result: a
  */
-static inline int
+static inline bool
 applies_equal_branches_cond (Btor *btor,
                              BtorNode *e0,
                              BtorNode *e1,
@@ -4533,14 +4556,13 @@ apply_equal_branches_cond (Btor *btor, BtorNode *e0, BtorNode *e1, BtorNode *e2)
 /* match: c ? a : b, where c is a constant
  * result: a if c is true, and b otherwise
  */
-static inline int
+static inline bool
 applies_const_cond (Btor *btor, BtorNode *e0, BtorNode *e1, BtorNode *e2)
 {
-  assert (BTOR_IS_REGULAR_NODE (e0));
   (void) btor;
   (void) e1;
   (void) e2;
-  return BTOR_IS_BV_CONST_NODE (e0);
+  return BTOR_IS_BV_CONST_NODE (BTOR_REAL_ADDR_NODE (e0));
 }
 
 static inline BtorNode *
@@ -4555,7 +4577,7 @@ apply_const_cond (Btor *btor, BtorNode *e0, BtorNode *e1, BtorNode *e2)
 /* match: c0 ? (c0 ? a : b) : c
  * result: c0 ? a : c
  */
-static inline int
+static inline bool
 applies_cond_if_dom_cond (Btor *btor, BtorNode *e0, BtorNode *e1, BtorNode *e2)
 {
   (void) e2;
@@ -4582,7 +4604,7 @@ apply_cond_if_dom_cond (Btor *btor, BtorNode *e0, BtorNode *e1, BtorNode *e2)
 /* match: c0 ? (c1 ? a : b) : a
  * result: c0 AND ~c1 ? a : b
  */
-static inline int
+static inline bool
 applies_cond_if_merge_if_cond (Btor *btor,
                                BtorNode *e0,
                                BtorNode *e1,
@@ -4619,7 +4641,7 @@ apply_cond_if_merge_if_cond (Btor *btor,
 /* match: c0 ? (c1 ? b : a) : a
  * result: c0 AND c1 ? b : a
  */
-static inline int
+static inline bool
 applies_cond_if_merge_else_cond (Btor *btor,
                                  BtorNode *e0,
                                  BtorNode *e1,
@@ -4656,7 +4678,7 @@ apply_cond_if_merge_else_cond (Btor *btor,
 /* match: c0 ? a : (c0 ? b : c)
  * result: c0 ? a : c
  */
-static inline int
+static inline bool
 applies_cond_else_dom_cond (Btor *btor,
                             BtorNode *e0,
                             BtorNode *e1,
@@ -4686,7 +4708,7 @@ apply_cond_else_dom_cond (Btor *btor, BtorNode *e0, BtorNode *e1, BtorNode *e2)
 /* match: c0 ? a : (c1 ? a : b)
  * result: ~c0 AND ~c1 ? b : a
  */
-static inline int
+static inline bool
 applies_cond_else_merge_if_cond (Btor *btor,
                                  BtorNode *e0,
                                  BtorNode *e1,
@@ -4723,7 +4745,7 @@ apply_cond_else_merge_if_cond (Btor *btor,
 /* match: c0 ? a : (c1 ? b : a)
  * result: ~c0 AND c1 ? b : a
  */
-static inline int
+static inline bool
 applies_cond_else_merge_else_cond (Btor *btor,
                                    BtorNode *e0,
                                    BtorNode *e1,
@@ -4760,7 +4782,7 @@ apply_cond_else_merge_else_cond (Btor *btor,
 /* match:  c ? a : b, where len(a) = 1
  * result: (~c OR a) AND (c OR b)
  */
-static inline int
+static inline bool
 applies_bool_cond (Btor *btor, BtorNode *e0, BtorNode *e1, BtorNode *e2)
 {
   (void) e0;
@@ -4790,7 +4812,7 @@ apply_bool_cond (Btor *btor, BtorNode *e0, BtorNode *e1, BtorNode *e2)
  * match:  c ? (1 + a) : a
  * result: a + 0::c
  */
-static inline int
+static inline bool
 applies_add_if_cond (Btor *btor, BtorNode *e0, BtorNode *e1, BtorNode *e2)
 {
   (void) e0;
@@ -4819,7 +4841,7 @@ apply_add_if_cond (Btor *btor, BtorNode *e0, BtorNode *e1, BtorNode *e2)
  * match:  c ? a : (1 + a)
  * result: a + 0::c
  */
-static inline int
+static inline bool
 applies_add_else_cond (Btor *btor, BtorNode *e0, BtorNode *e1, BtorNode *e2)
 {
   (void) e0;
@@ -4852,7 +4874,7 @@ apply_add_else_cond (Btor *btor, BtorNode *e0, BtorNode *e1, BtorNode *e2)
  * match:  c ? (a::b) : (d::b)
  * result: (c ? a : d) :: b
  */
-static inline int
+static inline bool
 applies_concat_cond (Btor *btor, BtorNode *e0, BtorNode *e1, BtorNode *e2)
 {
   (void) e0;
@@ -4861,7 +4883,7 @@ applies_concat_cond (Btor *btor, BtorNode *e0, BtorNode *e1, BtorNode *e2)
 
   real_e1 = BTOR_REAL_ADDR_NODE (e1);
   real_e2 = BTOR_REAL_ADDR_NODE (e2);
-  result  = btor->options.rewrite_level.val > 2
+  result  = btor_get_opt (btor, BTOR_OPT_REWRITE_LEVEL) > 2
            && btor->rec_rw_calls < BTOR_REC_RW_BOUND
            && BTOR_IS_CONCAT_NODE (real_e1) && BTOR_IS_CONCAT_NODE (real_e2);
 
@@ -4900,11 +4922,11 @@ apply_concat_cond (Btor *btor, BtorNode *e0, BtorNode *e1, BtorNode *e2)
 /* match:  c ? a OP b : a OP d, where OP is either +, &, *, /, %
  * result: a OP (c ? b : d)
  */
-static inline int
+static inline bool
 applies_op_lhs_cond (Btor *btor, BtorNode *e0, BtorNode *e1, BtorNode *e2)
 {
   (void) e0;
-  return btor->options.rewrite_level.val > 2
+  return btor_get_opt (btor, BTOR_OPT_REWRITE_LEVEL) > 2
          && btor->rec_rw_calls < BTOR_REC_RW_BOUND
          && !BTOR_IS_INVERTED_NODE (e1) && !BTOR_IS_INVERTED_NODE (e2)
          && e1->kind == e2->kind
@@ -4932,11 +4954,11 @@ apply_op_lhs_cond (Btor *btor, BtorNode *e0, BtorNode *e1, BtorNode *e2)
 /* match:  c ? a OP b : d OP b, where OP is either +, &, *, /, %
  * result: (c ? a : d) OP b
  */
-static inline int
+static inline bool
 applies_op_rhs_cond (Btor *btor, BtorNode *e0, BtorNode *e1, BtorNode *e2)
 {
   (void) e0;
-  return btor->options.rewrite_level.val > 2
+  return btor_get_opt (btor, BTOR_OPT_REWRITE_LEVEL) > 2
          && btor->rec_rw_calls < BTOR_REC_RW_BOUND
          && !BTOR_IS_INVERTED_NODE (e1) && !BTOR_IS_INVERTED_NODE (e2)
          && e1->kind == e2->kind
@@ -4964,11 +4986,11 @@ apply_op_rhs_cond (Btor *btor, BtorNode *e0, BtorNode *e1, BtorNode *e2)
 /* match:  c ? a OP b : d OP a, where OP is either +, &, *
  * result: a OP (c ? b : d)
  */
-static inline int
+static inline bool
 applies_comm_op_1_cond (Btor *btor, BtorNode *e0, BtorNode *e1, BtorNode *e2)
 {
   (void) e0;
-  return btor->options.rewrite_level.val > 2
+  return btor_get_opt (btor, BTOR_OPT_REWRITE_LEVEL) > 2
          && btor->rec_rw_calls < BTOR_REC_RW_BOUND
          && !BTOR_IS_INVERTED_NODE (e1) && !BTOR_IS_INVERTED_NODE (e2)
          && e1->kind == e2->kind
@@ -4995,11 +5017,11 @@ apply_comm_op_1_cond (Btor *btor, BtorNode *e0, BtorNode *e1, BtorNode *e2)
 /* match:  c ? a OP b : b OP d, where OP is either +, &, *
  * result: b OP (c ? a : d)
  */
-static inline int
+static inline bool
 applies_comm_op_2_cond (Btor *btor, BtorNode *e0, BtorNode *e1, BtorNode *e2)
 {
   (void) e0;
-  return btor->options.rewrite_level.val > 2
+  return btor_get_opt (btor, BTOR_OPT_REWRITE_LEVEL) > 2
          && btor->rec_rw_calls < BTOR_REC_RW_BOUND
          && !BTOR_IS_INVERTED_NODE (e1) && !BTOR_IS_INVERTED_NODE (e2)
          && e1->kind == e2->kind
@@ -5027,7 +5049,7 @@ apply_comm_op_2_cond (Btor *btor, BtorNode *e0, BtorNode *e1, BtorNode *e2)
 /* match:
  * result:
  */
-static inline int
+static inline bool
 applies_cond (Btor * btor, BtorNode * e0, BtorNode * e1, BtorNode * e2)
 {
 }
@@ -5051,7 +5073,7 @@ normalize_bin_comm_ass_exp (Btor *btor,
                             BtorNode **e1_norm)
 {
   assert (btor);
-  assert (btor->options.rewrite_level.val > 2);
+  assert (btor_get_opt (btor, BTOR_OPT_REWRITE_LEVEL) > 2);
   assert (e0);
   assert (e1);
   assert (!BTOR_REAL_ADDR_NODE (e0)->simplified);
@@ -5378,7 +5400,8 @@ normalize_adds_muls_ands (Btor *btor, BtorNode **left, BtorNode **right)
   real_e0 = BTOR_REAL_ADDR_NODE (e0);
   real_e1 = BTOR_REAL_ADDR_NODE (e1);
 
-  if (btor->options.rewrite_level.val > 2 && real_e0->kind == real_e1->kind
+  if (btor_get_opt (btor, BTOR_OPT_REWRITE_LEVEL) > 2
+      && real_e0->kind == real_e1->kind
       && (BTOR_IS_ADD_NODE (real_e0) || BTOR_IS_MUL_NODE (real_e0)
           || BTOR_IS_AND_NODE (real_e0)))
   {
@@ -5407,7 +5430,7 @@ normalize_eq (Btor *btor, BtorNode **left, BtorNode **right)
     e1 = BTOR_INVERT_NODE (e1);
   }
 
-  if (btor->options.rewrite_level.val > 1)
+  if (btor_get_opt (btor, BTOR_OPT_REWRITE_LEVEL) > 1)
   {
     if (BTOR_IS_INVERTED_NODE (e0)
         && BTOR_IS_BV_VAR_NODE (BTOR_REAL_ADDR_NODE (e0)))
@@ -5415,22 +5438,15 @@ normalize_eq (Btor *btor, BtorNode **left, BtorNode **right)
       e0 = BTOR_INVERT_NODE (e0);
       e1 = BTOR_INVERT_NODE (e1);
     }
-    else if (BTOR_IS_INVERTED_NODE (e1)
-             && BTOR_IS_BV_VAR_NODE (BTOR_REAL_ADDR_NODE (e1))
-             && (BTOR_IS_INVERTED_NODE (e0) || !BTOR_IS_BV_VAR_NODE (e1)))
-    {
-      tmp1 = BTOR_INVERT_NODE (e0);
-      e0   = BTOR_INVERT_NODE (e1);
-      e1   = tmp1;
-    }
   }
 
   /* normalize adds and muls on demand */
   normalize_adds_muls_ands (btor, &e0, &e1);
 
   // TODO (ma): what does this do?
-  if (btor->options.rewrite_level.val > 2 && (c0 = find_top_add (btor, e0))
-      && (c1 = find_top_add (btor, e1)) && c0->sort_id == c1->sort_id)
+  if (btor_get_opt (btor, BTOR_OPT_REWRITE_LEVEL) > 2
+      && (c0 = find_top_add (btor, e0)) && (c1 = find_top_add (btor, e1))
+      && c0->sort_id == c1->sort_id)
   {
     normalize_bin_comm_ass_exp (btor, c0, c1, &n0, &n1);
     tmp1 = rebuild_top_add (btor, e0, c0, n0);
@@ -5451,7 +5467,7 @@ normalize_eq (Btor *btor, BtorNode **left, BtorNode **right)
    *
    * c0 = ~(c1 + b) -> ~c0 = c1 + b
    */
-  if (btor->options.rewrite_level.val > 2
+  if (btor_get_opt (btor, BTOR_OPT_REWRITE_LEVEL) > 2
       && ((BTOR_IS_ADD_NODE (BTOR_REAL_ADDR_NODE (e0))
            && BTOR_IS_BV_CONST_NODE (BTOR_REAL_ADDR_NODE (e1)))
           || (BTOR_IS_ADD_NODE (BTOR_REAL_ADDR_NODE (e1))
@@ -5629,7 +5645,7 @@ normalize_concat (Btor *btor, BtorNode **left, BtorNode **right)
   e1 = *right;
 
   /* normalize concats --> left-associative */
-  if (btor->options.rewrite_level.val > 2
+  if (btor_get_opt (btor, BTOR_OPT_REWRITE_LEVEL) > 2
       && btor->rec_rw_calls < BTOR_REC_RW_BOUND
       && BTOR_IS_CONCAT_NODE (BTOR_REAL_ADDR_NODE (e1)))
   {
@@ -5752,7 +5768,7 @@ rewrite_eq_exp (Btor *btor, BtorNode *e0, BtorNode *e1)
 
   e0 = btor_copy_exp (btor, e0);
   e1 = btor_copy_exp (btor, e1);
-  if (btor->options.rw_normalize.val) normalize_eq (btor, &e0, &e1);
+  if (btor_get_opt (btor, BTOR_OPT_RW_NORMALIZE)) normalize_eq (btor, &e0, &e1);
 
   ADD_RW_RULE (const_binary_exp, kind, e0, e1);
   /* We do not rewrite eq in the boolean case, as we cannot extract the
@@ -5810,7 +5826,8 @@ rewrite_ult_exp (Btor *btor, BtorNode *e0, BtorNode *e1)
 
   e0 = btor_copy_exp (btor, e0);
   e1 = btor_copy_exp (btor, e1);
-  if (btor->options.rw_normalize.val) normalize_ult (btor, &e0, &e1);
+  if (btor_get_opt (btor, BTOR_OPT_RW_NORMALIZE))
+    normalize_ult (btor, &e0, &e1);
 
   ADD_RW_RULE (const_binary_exp, BTOR_ULT_NODE, e0, e1);
   ADD_RW_RULE (special_const_lhs_binary_exp, BTOR_ULT_NODE, e0, e1);
@@ -5842,7 +5859,8 @@ rewrite_and_exp (Btor *btor, BtorNode *e0, BtorNode *e1)
 
   e0 = btor_copy_exp (btor, e0);
   e1 = btor_copy_exp (btor, e1);
-  if (btor->options.rw_normalize.val) normalize_and (btor, &e0, &e1);
+  if (btor_get_opt (btor, BTOR_OPT_RW_NORMALIZE))
+    normalize_and (btor, &e0, &e1);
 
   ADD_RW_RULE (const_binary_exp, BTOR_AND_NODE, e0, e1);
   ADD_RW_RULE (special_const_lhs_binary_exp, BTOR_AND_NODE, e0, e1);
@@ -5901,7 +5919,8 @@ rewrite_add_exp (Btor *btor, BtorNode *e0, BtorNode *e1)
 
   e0 = btor_copy_exp (btor, e0);
   e1 = btor_copy_exp (btor, e1);
-  if (btor->options.rw_normalize.val) normalize_add (btor, &e0, &e1);
+  if (btor_get_opt (btor, BTOR_OPT_RW_NORMALIZE))
+    normalize_add (btor, &e0, &e1);
 
   ADD_RW_RULE (const_binary_exp, BTOR_ADD_NODE, e0, e1);
   ADD_RW_RULE (special_const_lhs_binary_exp, BTOR_ADD_NODE, e0, e1);
@@ -5948,7 +5967,8 @@ rewrite_mul_exp (Btor *btor, BtorNode *e0, BtorNode *e1)
 
   e0 = btor_copy_exp (btor, e0);
   e1 = btor_copy_exp (btor, e1);
-  if (btor->options.rw_normalize.val) normalize_mul (btor, &e0, &e1);
+  if (btor_get_opt (btor, BTOR_OPT_RW_NORMALIZE))
+    normalize_mul (btor, &e0, &e1);
 
   ADD_RW_RULE (const_binary_exp, BTOR_MUL_NODE, e0, e1);
   ADD_RW_RULE (special_const_lhs_binary_exp, BTOR_MUL_NODE, e0, e1);
@@ -5990,7 +6010,8 @@ rewrite_udiv_exp (Btor *btor, BtorNode *e0, BtorNode *e1)
 
   e0 = btor_copy_exp (btor, e0);
   e1 = btor_copy_exp (btor, e1);
-  if (btor->options.rw_normalize.val) normalize_udiv (btor, &e0, &e1);
+  if (btor_get_opt (btor, BTOR_OPT_RW_NORMALIZE))
+    normalize_udiv (btor, &e0, &e1);
 
   // TODO what about non powers of 2, like divisor 3, which means that
   // some upper bits are 0 ...
@@ -6023,7 +6044,8 @@ rewrite_urem_exp (Btor *btor, BtorNode *e0, BtorNode *e1)
 
   e0 = btor_copy_exp (btor, e0);
   e1 = btor_copy_exp (btor, e1);
-  if (btor->options.rw_normalize.val) normalize_urem (btor, &e0, &e1);
+  if (btor_get_opt (btor, BTOR_OPT_RW_NORMALIZE))
+    normalize_urem (btor, &e0, &e1);
 
   // TODO do optimize for powers of two even AIGs do it as well !!!
 
@@ -6056,7 +6078,8 @@ rewrite_concat_exp (Btor *btor, BtorNode *e0, BtorNode *e1)
 
   e0 = btor_copy_exp (btor, e0);
   e1 = btor_copy_exp (btor, e1);
-  if (btor->options.rw_normalize.val) normalize_concat (btor, &e0, &e1);
+  if (btor_get_opt (btor, BTOR_OPT_RW_NORMALIZE))
+    normalize_concat (btor, &e0, &e1);
 
   ADD_RW_RULE (const_binary_exp, BTOR_CONCAT_NODE, e0, e1);
   ADD_RW_RULE (special_const_lhs_binary_exp, BTOR_CONCAT_NODE, e0, e1);
@@ -6171,8 +6194,11 @@ rewrite_cond_exp (Btor *btor, BtorNode *e0, BtorNode *e1, BtorNode *e2)
   e0 = btor_copy_exp (btor, e0);
   e1 = btor_copy_exp (btor, e1);
   e2 = btor_copy_exp (btor, e2);
-  if (btor->options.rw_normalize.val) normalize_cond (btor, &e0, &e1, &e2);
-  assert (BTOR_IS_REGULAR_NODE (e0));
+  if (btor_get_opt (btor, BTOR_OPT_RW_NORMALIZE))
+  {
+    normalize_cond (btor, &e0, &e1, &e2);
+    assert (BTOR_IS_REGULAR_NODE (e0));
+  }
 
   ADD_RW_RULE (equal_branches_cond, e0, e1, e2);
   ADD_RW_RULE (const_cond, e0, e1, e2);
@@ -6215,7 +6241,7 @@ btor_rewrite_slice_exp (Btor *btor,
                         uint32_t lower)
 {
   assert (btor);
-  assert (btor->options.rewrite_level.val > 0);
+  assert (btor_get_opt (btor, BTOR_OPT_REWRITE_LEVEL) > 0);
 
   return rewrite_slice_exp (btor, exp, upper, lower);
 }
@@ -6230,7 +6256,7 @@ btor_rewrite_binary_exp (Btor *btor,
   assert (kind);
   assert (e0);
   assert (e1);
-  assert (btor->options.rewrite_level.val > 0);
+  assert (btor_get_opt (btor, BTOR_OPT_REWRITE_LEVEL) > 0);
 
   switch (kind)
   {
@@ -6275,7 +6301,7 @@ btor_rewrite_ternary_exp (
   assert (e0);
   assert (e1);
   assert (e2);
-  assert (btor->options.rewrite_level.val > 0);
+  assert (btor_get_opt (btor, BTOR_OPT_REWRITE_LEVEL) > 0);
   (void) kind;
 
   return rewrite_cond_exp (btor, e0, e1, e2);

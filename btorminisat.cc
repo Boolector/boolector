@@ -2,6 +2,7 @@
  *
  *  Copyright (C) 2011-2014 Armin Biere.
  *  Copyright (C) 2014 Mathias Preiner.
+ *  Copyright (C) 2016 Aina Niemetz.
  *
  *  All rights reserved.
  *
@@ -28,6 +29,7 @@
 extern "C" {
 
 #include "btorminisat.h"
+#include "btoropt.h"
 #include "btorsat.h"
 
 using namespace Minisat;
@@ -124,7 +126,8 @@ void *
 btor_minisat_init (BtorSATMgr *smgr)
 {
   BtorMiniSAT *res = new BtorMiniSAT ();
-  if (*smgr->msg->verbosity >= 2) res->verbosity = *smgr->msg->verbosity - 1;
+  if (btor_get_opt (smgr->msg->btor, BTOR_OPT_VERBOSITY) >= 2)
+    res->verbosity = btor_get_opt (smgr->msg->btor, BTOR_OPT_VERBOSITY) - 1;
   return res;
 }
 

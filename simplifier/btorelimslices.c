@@ -287,7 +287,9 @@ btor_eliminate_slices_on_bv_vars (Btor *btor)
 
     count++;
     btor->stats.eliminated_slices++;
-    btor_insert_varsubst_constraint (btor, var, result);
+    temp = btor_eq_exp (btor, var, result);
+    btor_assert_exp (btor, temp);
+    btor_release_exp (btor, temp);
     btor_release_exp (btor, result);
   }
 

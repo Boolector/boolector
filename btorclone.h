@@ -1,7 +1,8 @@
 /*  Boolector: Satisfiablity Modulo Theories (SMT) solver.
  *
- *  Copyright (C) 2013-2015 Aina Niemetz.
+ *  Copyright (C) 2013-2016 Aina Niemetz.
  *  Copyright (C) 2015 Mathias Preiner.
+ *  Copyright (C) 2015 Armin Biere.
  *
  *  All rights reserved.
  *
@@ -11,7 +12,7 @@
 #ifndef BTORCLONE_H_INCLUDED
 #define BTORCLONE_H_INCLUDED
 
-#include "utils/btormap.h"
+#include "utils/btornodemap.h"
 
 /* Clone an existing boolector instance. */
 Btor *btor_clone_btor (Btor *btor);
@@ -33,6 +34,10 @@ BtorNode *btor_recursively_rebuild_exp_clone (Btor *btor,
 void *btor_clone_key_as_node (BtorMemMgr *mm, const void *map, const void *key);
 
 void *btor_clone_key_as_str (BtorMemMgr *mm, const void *map, const void *key);
+
+void *btor_clone_key_as_static_str (BtorMemMgr *mm,
+                                    const void *map,
+                                    const void *key);
 
 void *btor_clone_key_as_bv_tuple (BtorMemMgr *mm,
                                   const void *map,

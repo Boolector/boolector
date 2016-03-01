@@ -32,8 +32,6 @@ bool btor_check_hash_table_simp_free_dbg (BtorPtrHashTable* table);
 
 bool btor_check_all_hash_tables_simp_free_dbg (const Btor* btor);
 
-bool btor_check_reachable_flag_dbg (const Btor* btor);
-
 bool btor_check_constraints_not_const_dbg (const Btor* btor);
 
 bool btor_check_assumptions_simp_free_dbg (const Btor* btor);
