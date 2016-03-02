@@ -573,6 +573,7 @@ NEXT:
     else if (!strcmp (tok, "set_opt"))
     {
       PARSE_ARGS3 (tok, int, str, int);
+      assert (!strcmp (boolector_get_opt_lng (btor, arg1_int), arg2_str));
       boolector_set_opt (btor, arg1_int, arg3_int);
     }
     else if (!strcmp (tok, "get_opt"))
