@@ -686,16 +686,6 @@ btor_init_opts (Btor *btor)
             0,
             1,
             0);
-  init_opt (btor,
-            BTOR_OPT_RW_NORMALIZE,
-            true,
-            true,
-            "rw-normalize",
-            0,
-            1,
-            0,
-            1,
-            "normalize during rewriting");
 #ifdef BTOR_CHECK_FAILED
   init_opt (btor,
             BTOR_OPT_CHK_FAILED_ASSUMPTIONS,
