@@ -511,6 +511,7 @@ sat_ef_solver (BtorEFSolver *slv)
   BtorHashTableIterator hit;
   const BtorBitVector *bv;
   const BtorPtrHashTable *uf_model;
+  BtorPtrHashTable *synth_fun_cache;
 
   (void) btor_simplify (slv->btor);
   //  btor_miniscope (slv->btor);
@@ -531,9 +532,10 @@ sat_ef_solver (BtorEFSolver *slv)
   setup_forall_solver (slv);
   setup_exists_solver (slv);
 
-  e_solver      = slv->e_solver;
-  f_solver      = slv->f_solver;
-  e_exists_vars = slv->e_exists_vars;
+  e_solver        = slv->e_solver;
+  f_solver        = slv->f_solver;
+  e_exists_vars   = slv->e_exists_vars;
+  synth_fun_cache = btor_new_ptr_hash_table (f_solver->mm, 0, 0);
 
   g = btor_copy_exp (f_solver, slv->f_formula);
   goto CHECK_FORALL;
@@ -611,14 +613,23 @@ sat_ef_solver (BtorEFSolver *slv)
         btor_print_bv (bv);
       }
 #endif
-      start     = btor_time_stamp ();
-      synth_fun = btor_synthesize_fun (f_solver, var_fs, uf_model, 0);
+      start = btor_time_stamp ();
+      synth_fun =
+          btor_synthesize_fun (f_solver, var_fs, uf_model, synth_fun_cache);
       if (!synth_fun)
       {
         slv->stats.synth_aborts++;
         synth_fun = btor_generate_lambda_model_from_fun_model (
             f_solver, var_fs, uf_model);
       }
+      else if (!btor_get_ptr_hash_table (synth_fun_cache, synth_fun))
+      {
+        slv->stats.synth_funs++;
+        btor_add_ptr_hash_table (synth_fun_cache,
+                                 btor_copy_exp (f_solver, synth_fun));
+      }
+      else
+        slv->stats.synth_funs_reused++;
       slv->time.synth += btor_time_stamp () - start;
       btor_map_node (map, var_fs, synth_fun);
     }
@@ -653,6 +664,10 @@ sat_ef_solver (BtorEFSolver *slv)
     slv->time.qinst += btor_time_stamp () - start;
     slv->stats.refinements++;
   }
+  btor_init_node_hash_table_iterator (&hit, synth_fun_cache);
+  while (btor_has_next_node_hash_table_iterator (&hit))
+    btor_release_exp (f_solver, btor_next_node_hash_table_iterator (&hit));
+  btor_delete_ptr_hash_table (synth_fun_cache);
   slv->btor->last_sat_result = res;
   return res;
 }
@@ -713,6 +728,12 @@ print_stats_ef_solver (BtorEFSolver *slv)
             1,
             "synthesize function aborts: %u",
             slv->stats.synth_aborts);
+  BTOR_MSG (
+      slv->btor->msg, 1, "synthesized functions: %u", slv->stats.synth_funs);
+  BTOR_MSG (slv->btor->msg,
+            1,
+            "synthesized functions reused: %u",
+            slv->stats.synth_funs_reused);
   //  printf ("****************\n");
   //  btor_print_stats_btor (slv->e_solver);
   //  btor_print_stats_btor (slv->f_solver);

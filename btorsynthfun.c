@@ -9,6 +9,7 @@
  */
 
 #include "btorsynthfun.h"
+#include "btorbeta.h"
 #include "btorbitvec.h"
 #include "btorcore.h"
 #include "btormodel.h"
@@ -401,7 +402,7 @@ BtorNode *
 btor_synthesize_fun (Btor *btor,
                      BtorNode *uf,
                      const BtorPtrHashTable *uf_model,
-                     BtorNode *candidate)
+                     BtorPtrHashTable *synth_fun_cache)
 {
   assert (BTOR_IS_REGULAR_NODE (uf));
   assert (BTOR_IS_UF_NODE (uf));
@@ -516,42 +517,23 @@ btor_synthesize_fun (Btor *btor,
             "arity: %u, model size: %u",
             BTOR_COUNT_STACK (params),
             uf_model->count);
-  if (candidate)
+
+  /* check previously synthesized functions */
+  if (synth_fun_cache)
   {
-    assert (BTOR_IS_REGULAR_NODE (candidate));
-    assert (BTOR_IS_FUN_NODE (candidate));
-
-    BtorNodePtrStack cparams;
-    BtorNodeIterator p_it;
-
-    BTOR_INIT_STACK (cparams);
-    btor_init_param_iterator (&p_it, candidate);
-    while (btor_has_next_param_iterator (&p_it))
+    btor_init_node_hash_table_iterator (&hit, synth_fun_cache);
+    while (btor_has_next_node_hash_table_iterator (&hit))
     {
-      p = btor_next_param_iterator (&p_it);
-      BTOR_PUSH_STACK (mm, cparams, p);
+      p = btor_next_node_hash_table_iterator (&hit);
+      assert (BTOR_IS_REGULAR_NODE (p));
+      assert (BTOR_IS_LAMBDA_NODE (p));
+      if (p->sort_id == uf->sort_id)
+      {
+        candidate_exp = btor_apply_and_reduce (
+            btor, BTOR_COUNT_STACK (params), params.start, p);
+        CHECK_CANDIDATE (candidate_exp);
+      }
     }
-    candidate_exp = btor_binder_get_body (candidate);
-    id            = BTOR_GET_ID_NODE (candidate_exp);
-    num_checks++;
-    found_candidate =
-        check_candidate_exp (btor, candidate_exp, &cparams, uf_model, 0);
-    BTOR_RELEASE_STACK (mm, cparams);
-    if (found_candidate)
-    {
-#ifdef PRINT_DBG
-      printf ("NOT CHANGED\n");
-#endif
-      assert (BTOR_REAL_ADDR_NODE (candidate_exp)->sort_id
-              == btor_get_codomain_fun_sort (sorts, uf->sort_id));
-      //	  btor_free_bv_tuple (mm, sig);
-      result = btor_copy_exp (btor, candidate);
-      goto CLEANUP;
-    }
-    //      assert (!btor_get_ptr_hash_table (sigs, sig));
-    //      btor_add_ptr_hash_table (sigs, sig);
-    //      btor_add_int_hash_table (cache, id);
-    //      add_exp (btor, cur_level, &candidates, candidate_exp);
   }
 
   /* check size one (inital) expressions */

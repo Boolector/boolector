@@ -34,6 +34,8 @@ struct BtorEFSolver
   {
     uint32_t refinements;
     uint32_t synth_aborts;
+    uint32_t synth_funs;
+    uint32_t synth_funs_reused;
   } stats;
 
   struct
