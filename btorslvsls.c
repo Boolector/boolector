@@ -1834,17 +1834,16 @@ clone_data_as_sls_constr_data_ptr (BtorMemMgr *mm,
 }
 
 static BtorSLSSolver *
-clone_sls_solver (Btor *clone, Btor *btor, BtorNodeMap *exp_map)
+clone_sls_solver (Btor *clone, BtorSLSSolver *slv, BtorNodeMap *exp_map)
 {
   assert (clone);
-  assert (btor);
+  assert (slv);
+  assert (slv->kind == BTOR_SLS_SOLVER_KIND);
   assert (exp_map);
 
   int i;
-  BtorSLSSolver *slv, *res;
+  BtorSLSSolver *res;
   BtorSLSMove *m, *cm;
-
-  if (!(slv = BTOR_SLS_SOLVER (btor))) return 0;
 
   BTOR_NEW (clone->mm, res);
   memcpy (res, slv, sizeof (BtorSLSSolver));

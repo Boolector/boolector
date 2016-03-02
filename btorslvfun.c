@@ -45,19 +45,18 @@
   } while (0)
 
 static BtorFunSolver *
-clone_fun_solver (Btor *clone, Btor *btor, BtorNodeMap *exp_map)
+clone_fun_solver (Btor *clone, BtorFunSolver *slv, BtorNodeMap *exp_map)
 {
   assert (clone);
-  assert (btor);
-  assert (btor->slv);
-  assert (btor->slv->kind == BTOR_FUN_SOLVER_KIND);
+  assert (slv);
+  assert (slv->kind == BTOR_FUN_SOLVER_KIND);
   assert (exp_map);
 
   int h;
-  BtorFunSolver *slv;
+  Btor *btor;
   BtorFunSolver *res;
 
-  if (!(slv = BTOR_FUN_SOLVER (btor))) return 0;
+  btor = slv->btor;
 
   BTOR_NEW (clone->mm, res);
   memcpy (res, slv, sizeof (BtorFunSolver));

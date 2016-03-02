@@ -1227,7 +1227,7 @@ clone_aux_btor (Btor *btor, BtorNodeMap **exp_map, bool exp_layer_only)
 #endif
   }
 
-  if (btor->slv) clone->slv = btor->slv->api.clone (clone, btor, emap);
+  if (btor->slv) clone->slv = btor->slv->api.clone (clone, btor->slv, emap);
   assert ((btor->slv && clone->slv) || (!btor->slv && !clone->slv));
 #ifndef NDEBUG
   if (clone->slv)

@@ -3222,17 +3222,15 @@ move (Btor *btor, uint32_t nmoves)
 
 /*------------------------------------------------------------------------*/
 
-// FIXME args should be BtorPropSolver
-static void *
-clone_prop_solver (Btor *clone, Btor *btor, BtorNodeMap *exp_map)
+static BtorPropSolver *
+clone_prop_solver (Btor *clone, BtorPropSolver *slv, BtorNodeMap *exp_map)
 {
   assert (clone);
-  assert (btor);
+  assert (slv);
+  assert (slv->kind == BTOR_PROP_SOLVER_KIND);
   assert (exp_map);
 
-  BtorPropSolver *slv, *res;
-
-  if (!(slv = BTOR_PROP_SOLVER (btor))) return 0;
+  BtorPropSolver *res;
 
   BTOR_NEW (clone->mm, res);
   memcpy (res, slv, sizeof (BtorPropSolver));
