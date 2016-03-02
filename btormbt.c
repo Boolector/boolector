@@ -188,7 +188,8 @@
   "QF_AUFBV\n"                                                                 \
   "                                   (default: QF_AUFBV)\n"                   \
   "  -e, --extensionality             use extensionality\n"                    \
-  "  -b <btoropt> <val>               set boolector option <btoropt>\n"
+  "  -b <btoropt> <val>               set boolector option <btoropt> to "      \
+  "<val>\n"
 
 /*------------------------------------------------------------------------*/
 
@@ -579,9 +580,9 @@ struct BtorMBTBtorOpt
   BtorOption kind;
   char *name;
   char *shrt;
-  int val; /* only used for options specified via command line */
-  int min;
-  int max;
+  uint32_t val; /* only used for options specified via command line */
+  uint32_t min;
+  uint32_t max;
   bool set_by_cl; /* if option is already set by command line, we do not
                      choose a random value for this option */
 };
@@ -785,7 +786,7 @@ struct BtorMBT
   BtorMemMgr *mm;
 
   Btor *btor;
-  BtorMBTBtorOptPtrStack btor_opts; /* all available boolector options */
+  BtorMBTBtorOptPtrStack btor_opts; /* maintains all available boolector opts */
 
   double start_time;
 
@@ -3564,7 +3565,8 @@ int
 main (int argc, char **argv)
 {
   int exitcode;
-  int i, j, val, mac, pid, prev, res, status;
+  int i, j, mac, pid, prev, res, status;
+  uint32_t val;
   char *name, *cmd, *tmp;
   int namelen, cmdlen, tmppid, fd;
   BtorMBTBtorOpt *btoropt, *tmpopt;
@@ -3696,7 +3698,7 @@ main (int argc, char **argv)
       }
       if (!btoropt) btormbt_error ("invalid boolector option '%s'", argv[i]);
       if (++i == argc) btormbt_error ("argument to '-b' missing (try '-h')");
-      val = (int) strtol (argv[i], &tmp, 10);
+      val = (uint32_t) strtol (argv[i], &tmp, 10);
       if (tmp[0] != 0) btormbt_error ("invalid argument to '-b' (try '-h')");
       btoropt->val       = val;
       btoropt->set_by_cl = true;

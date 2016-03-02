@@ -207,22 +207,11 @@ boolector_new (void)
 {
   char *trname;
   Btor *btor;
-  BtorOption o;
 
   btor = btor_new_btor ();
   if ((trname = getenv ("BTORAPITRACE"))) btor_open_apitrace (btor, trname);
   BTOR_TRAPI ("");
   BTOR_TRAPI_RETURN_PTR (btor);
-  /* trace opts */
-  for (o = btor_first_opt (btor); btor_has_opt (btor, o);
-       o = btor_next_opt (btor, o))
-  {
-    BTOR_TRAPI_AUX ("boolector_set_opt",
-                    "%d %s %d",
-                    o,
-                    btor_get_opt_lng (btor, o),
-                    btor_get_opt (btor, o));
-  }
   return btor;
 }
 
