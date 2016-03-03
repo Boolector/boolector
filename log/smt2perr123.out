@@ -1,1 +1,1 @@
-boolector: log/smt2perr123.smt2:1:38: symbol '$1' to be bound already bound with 'let' at line 1 column 16
+boolector: log/smt2perr123.smt2:1:52: body to 'let' at line 1 column 32 missing
