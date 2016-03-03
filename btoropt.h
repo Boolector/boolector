@@ -131,4 +131,8 @@ void btor_set_opt_str (Btor *btor, BtorOption name, const char *str);
 
 BtorOption btor_first_opt (Btor *btor);
 BtorOption btor_next_opt (Btor *btor, BtorOption cur);
+
+#ifndef NBTORLOG
+void btor_log_opts (Btor *btor);
+#endif
 #endif

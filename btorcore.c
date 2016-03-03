@@ -3723,6 +3723,9 @@ btor_sat_btor (Btor *btor, int lod_limit, int sat_limit)
   }
 #endif
 
+#ifndef NBTORLOG
+  btor_log_opts (btor);
+#endif
   res = btor->slv->api.sat (btor->slv);
   btor->btor_sat_btor_called++;
 

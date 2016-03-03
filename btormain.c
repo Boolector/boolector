@@ -409,8 +409,8 @@ btormain_init_opts (BtorMainApp *app)
                  0,
                  0,
                  1,
-                 true,
-                 BTORMAIN_OPT_ARG_INT,
+                 false,
+                 BTORMAIN_OPT_ARG_NONE,
                  "print model in SMT-LIB v2 format "
                  "if model generation is enabled");
 }
@@ -1199,10 +1199,7 @@ boolector_main (int argc, char **argv)
     /* >> btor options ------------------------------------------------ */
     else
     {
-      if (readval == BTORMAIN_READ_ARG_STR_VIA_EQ
-          || readval == BTORMAIN_READ_ARG_INT_VIA_EQ
-          || readval == BTORMAIN_READ_ARG_INT)
-        i += 1;
+      if (readval == BTORMAIN_READ_ARG_INT) i += 1;
 
       for (k = boolector_first_opt (g_app->btor), o = 0;
            boolector_has_opt (g_app->btor, k);

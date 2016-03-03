@@ -935,3 +935,20 @@ btor_next_opt (Btor *btor, BtorOption cur)
   (void) btor;
   return (BtorOption) cur + 1;
 }
+
+#ifndef NBTORLOG
+void
+btor_log_opts (Btor *btor)
+{
+  assert (btor);
+
+  BtorOption opt;
+
+  for (opt = btor_first_opt (btor); btor_has_opt (btor, opt);
+       opt = btor_next_opt (btor, opt))
+    BTORLOG (2,
+             "set option '%s' to %u",
+             btor_get_opt_lng (btor, opt),
+             btor_get_opt (btor, opt));
+}
+#endif
