@@ -262,7 +262,6 @@ refine_exists_solver (BtorEFSolver *slv)
         continue;
 
       bv = btor_get_bv_model (e_solver, var_es);
-      btor_print_bv (bv);
       if (!btor_get_ptr_hash_table (var_es_assignments, (void *) bv))
         btor_add_ptr_hash_table (var_es_assignments, (void *) bv)->data.as_ptr =
             var_es;
