@@ -2802,7 +2802,7 @@ btor_select_move_prop (Btor *btor,
   }
   else
   {
-    p     = btor_get_opt (btor, BTOR_OPT_PROP_USE_INV_VALUE);
+    p     = btor_get_opt (btor, BTOR_OPT_PROP_USE_INV_VALUE_PROB);
     pcond = btor_get_opt (btor, BTOR_OPT_PROP_FLIP_COND_PROB);
 
     for (;;)
@@ -2840,8 +2840,8 @@ btor_select_move_prop (Btor *btor,
        * -> if r < p then inverse else consistent */
       r = btor_pick_rand_rng (
           &btor->rng,
-          btor_get_opt_min (btor, BTOR_OPT_PROP_USE_INV_VALUE),
-          btor_get_opt_max (btor, BTOR_OPT_PROP_USE_INV_VALUE) - 1);
+          btor_get_opt_min (btor, BTOR_OPT_PROP_USE_INV_VALUE_PROB),
+          btor_get_opt_max (btor, BTOR_OPT_PROP_USE_INV_VALUE_PROB) - 1);
 
       /* select path and determine path assignment */
       switch (real_cur->kind)

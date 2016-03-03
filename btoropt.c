@@ -590,16 +590,6 @@ btor_init_opts (Btor *btor)
             0,
             1,
             "use bandit scheme for constraint selection");
-  init_opt (btor,
-            BTOR_OPT_PROP_USE_INV_VALUE,
-            false,
-            false,
-            "prop:use-inv-value",
-            0,
-            99,
-            0,
-            100,
-            "produce inverse rather than consistent values");
   // TODO this is temporary for paper purposes only (eliminate)?
   init_opt (btor,
             BTOR_OPT_PROP_USE_FULL_PATH,
@@ -611,6 +601,17 @@ btor_init_opts (Btor *btor)
             0,
             1,
             "perform path selection over the full set of operators");
+  init_opt (btor,
+            BTOR_OPT_PROP_USE_INV_VALUE_PROB,
+            false,
+            false,
+            "prop:use-inv-value-prob",
+            0,
+            99,
+            0,
+            100,
+            "probability for producing inverse rather than consistent values "
+            "(interpreted as <n>%)");
   init_opt (btor,
             BTOR_OPT_PROP_FLIP_COND_PROB,
             false,

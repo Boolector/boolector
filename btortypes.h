@@ -79,8 +79,8 @@ enum BtorOption
   /* PROP engine --------------------------------------------------------- */
   BTOR_OPT_PROP_USE_RESTARTS,
   BTOR_OPT_PROP_USE_BANDIT,
-  BTOR_OPT_PROP_USE_INV_VALUE,
   BTOR_OPT_PROP_USE_FULL_PATH,
+  BTOR_OPT_PROP_USE_INV_VALUE_PROB,
   BTOR_OPT_PROP_FLIP_COND_PROB,
   /* internal options --------------------------------------------------- */
   BTOR_OPT_SORT_EXP,
