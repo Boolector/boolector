@@ -272,10 +272,10 @@ btor_compare_bv (const BtorBitVector *a, const BtorBitVector *b)
 {
   assert (a);
   assert (b);
-  assert (a->len == b->len);
-  assert (a->width == b->width);
 
   uint32_t i;
+
+  if (a->width != b->width) return -1;
 
   /* find index on which a and b differ */
   for (i = 0; i < a->len && a->bits[i] == b->bits[i]; i++)
