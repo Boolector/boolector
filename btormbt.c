@@ -1772,9 +1772,10 @@ btormbt_const (BtorMBT *mbt, RNG *rng)
 #endif
 
 #if 1
+  node = 0;
+  s    = 0;
   if (op != TRUE && op != FALSE && op != CONST)
     s = boolector_bitvec_sort (mbt->btor, width);
-  node = 0;
   switch (op)
   {
     case CONST:
