@@ -1717,6 +1717,7 @@ static void
 btormbt_var (BtorMBT *mbt, RNG *rng, BtorMBTExpType type)
 {
   int width;
+  BoolectorSort s;
 
   if (type == BTORMBT_BO_T)
     width = 1;
@@ -1727,7 +1728,9 @@ btormbt_var (BtorMBT *mbt, RNG *rng, BtorMBTExpType type)
     assert (type = BTORMBT_BB_T);
     width = pick (rng, 1, mbt->g_max_bw);
   }
-  btormbt_push_node (mbt, boolector_var (mbt->btor, width, 0));
+  s = boolector_bitvec_sort (mbt->btor, width);
+  btormbt_push_node (mbt, boolector_var (mbt->btor, s, 0));
+  boolector_release_sort (mbt->btor, s);
   g_btormbtstats->num_ops[VAR]++;
 }
 
@@ -1739,6 +1742,7 @@ btormbt_const (BtorMBT *mbt, RNG *rng)
   BoolectorNode *node;
   //  BtorMBTNodeAttr attr;
   Op op;
+  BoolectorSort s;
 
   op    = pick (rng, CONST, INT);
   width = 0;
@@ -1768,6 +1772,8 @@ btormbt_const (BtorMBT *mbt, RNG *rng)
 #endif
 
 #if 1
+  if (op != TRUE && op != FALSE && op != CONST)
+    s = boolector_bitvec_sort (mbt->btor, width);
   node = 0;
   switch (op)
   {
@@ -1779,14 +1785,16 @@ btormbt_const (BtorMBT *mbt, RNG *rng)
       node        = boolector_const (mbt->btor, bits);
       BTOR_DELETEN (mbt->mm, bits, width + 1);
       break;
-    case ZERO: node = boolector_zero (mbt->btor, width); break;
+    case ZERO: node = boolector_zero (mbt->btor, s); break;
     case FALSE: node = boolector_false (mbt->btor); break;
-    case ONES: node = boolector_ones (mbt->btor, width); break;
+    case ONES: node = boolector_ones (mbt->btor, s); break;
     case TRUE: node = boolector_true (mbt->btor); break;
-    case ONE: node = boolector_one (mbt->btor, width); break;
-    case UINT: node = boolector_unsigned_int (mbt->btor, val, width); break;
-    default: assert (op == INT); node = boolector_int (mbt->btor, val, width);
+    case ONE: node = boolector_one (mbt->btor, s); break;
+    case UINT: node = boolector_unsigned_int (mbt->btor, val, s); break;
+    default: assert (op == INT); node = boolector_int (mbt->btor, val, s);
   }
+  if (op != TRUE && op != FALSE && op != CONST)
+    boolector_release_sort (mbt->btor, s);
 #endif
   assert (node);
   btormbt_push_node (mbt, node);
@@ -1809,12 +1817,18 @@ static void
 btormbt_array (BtorMBT *mbt, RNG *rng)
 {
   int ew, iw;
+  BoolectorSort es, is, as;
 
   // TODO (ma): remove ite here and use g_min_bw
   ew = pick (rng, mbt->g_min_bw > 2 ? mbt->g_min_bw : 1, mbt->g_max_bw);
   iw = pick (rng, mbt->g_min_index_bw, mbt->g_max_index_bw);
-
-  btormbt_push_node (mbt, boolector_array (mbt->btor, ew, iw, 0));
+  es = boolector_bitvec_sort (mbt->btor, ew);
+  is = boolector_bitvec_sort (mbt->btor, iw);
+  as = boolector_array_sort (mbt->btor, is, es);
+  btormbt_push_node (mbt, boolector_array (mbt->btor, as, 0));
+  boolector_release_sort (mbt->btor, es);
+  boolector_release_sort (mbt->btor, is);
+  boolector_release_sort (mbt->btor, as);
   g_btormbtstats->num_ops[ARRAY]++;
 }
 
@@ -2239,6 +2253,7 @@ select_arr_exp (BtorMBT *mbt,
   BtorMBTExp *exp;
   BtorMBTExpStack *expstack;
   BoolectorNode *sel_e, *e[3];
+  BoolectorSort es, is, as;
 
   /* choose between param. exps and non-param. array exps */
   rand = pick (rng, 0, NORM_VAL - 1);
@@ -2285,8 +2300,14 @@ select_arr_exp (BtorMBT *mbt,
   }
   else
   {
-    sel_e = boolector_array (mbt->btor, eew, eiw, NULL);
-    exp   = btormbt_push_node (mbt, sel_e);
+    es    = boolector_bitvec_sort (mbt->btor, eew);
+    is    = boolector_bitvec_sort (mbt->btor, eiw);
+    as    = boolector_array_sort (mbt->btor, is, es);
+    sel_e = boolector_array (mbt->btor, as, NULL);
+    boolector_release_sort (mbt->btor, es);
+    boolector_release_sort (mbt->btor, is);
+    boolector_release_sort (mbt->btor, as);
+    exp = btormbt_push_node (mbt, sel_e);
     g_btormbtstats->num_ops[ARRAY]++;
   }
   exp->parents++;
@@ -2510,6 +2531,7 @@ btormbt_bv_fun (BtorMBT *mbt, unsigned r, int nlevel)
   BtorMBTExpStack *tmpparambo, *tmpparambv, *tmpparamarr, *tmpparamfun;
   BoolectorNode *tmp, *fun, *e0, *e1, *e2;
   BoolectorNodePtrStack params, args;
+  BoolectorSort s;
   BtorIntStack param_widths;
   RNG rng;
 
@@ -2581,7 +2603,9 @@ btormbt_bv_fun (BtorMBT *mbt, unsigned r, int nlevel)
     {
       // TODO (ma): remove ite here?
       width = pick (&rng, mbt->g_min_bw > 2 ? mbt->g_min_bw : 1, mbt->g_max_bw);
-      tmp   = boolector_param (mbt->btor, width, 0);
+      s     = boolector_bitvec_sort (mbt->btor, width);
+      tmp   = boolector_param (mbt->btor, s, 0);
+      boolector_release_sort (mbt->btor, s);
       BTOR_PUSH_STACK (mbt->mm, params, tmp);
       BTOR_PUSH_STACK (
           mbt->mm, param_widths, boolector_get_width (mbt->btor, tmp));

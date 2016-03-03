@@ -920,16 +920,7 @@ btor_delete_btor (Btor *btor)
   BTOR_RELEASE_STACK (mm, stack);
 
   if (btor_get_opt (btor, BTOR_OPT_AUTO_CLEANUP) && btor->external_refs)
-  {
     release_all_ext_exp_refs (btor);
-
-    if (!btor_get_opt (btor, BTOR_OPT_AUTO_CLEANUP_INTERNAL)
-        && !getenv ("BTORLEAK") && !getenv ("BTORLEAKEXP"))
-    {
-      for (i = BTOR_COUNT_STACK (btor->nodes_id_table) - 1; i >= 0; i--)
-        assert (!BTOR_PEEK_STACK (btor->nodes_id_table, i));
-    }
-  }
 
   if (btor_get_opt (btor, BTOR_OPT_AUTO_CLEANUP_INTERNAL))
   {
@@ -951,17 +942,20 @@ btor_delete_btor (Btor *btor)
   assert (btor->external_refs == 0);
 
 #ifndef NDEBUG
+  bool node_leak = false;
   BtorNode *cur;
-  if (btor->nodes_unique_table.num_elements)
-    BTORLOG (1,
-             "*** btor->nodes_unique_table.num_elements: %d",
-             btor->nodes_unique_table.num_elements);
-  for (i = 0; i < btor->nodes_unique_table.size; i++)
-    for (cur = btor->nodes_unique_table.chains[i]; cur; cur = cur->next)
+  /* we need to check id_table here as not all nodes are in the unique table */
+  for (i = 0; i < BTOR_COUNT_STACK (btor->nodes_id_table); i++)
+  {
+    cur = BTOR_PEEK_STACK (btor->nodes_id_table, i);
+    if (cur)
+    {
       BTORLOG (1, "  unreleased node: %s (%d)", node2string (cur), cur->refs);
+      node_leak = true;
+    }
+  }
+  assert (getenv ("BTORLEAK") || getenv ("BTORLEAKEXP") || !node_leak);
 #endif
-  assert (getenv ("BTORLEAK") || getenv ("BTORLEAKEXP")
-          || btor->nodes_unique_table.num_elements == 0);
   BTOR_RELEASE_UNIQUE_TABLE (mm, btor->nodes_unique_table);
   BTOR_RELEASE_STACK (mm, btor->nodes_id_table);
 

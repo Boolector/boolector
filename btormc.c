@@ -2,7 +2,7 @@
  *
  *  Copyright (C) 2013-2014 Armin Biere.
  *  Copyright (C) 2013-2016 Aina Niemetz.
- *  Copyright (C) 2014-2015 Mathias Preiner.
+ *  Copyright (C) 2014-2016 Mathias Preiner.
  *
  *  All rights reserved.
  *
@@ -307,6 +307,7 @@ boolector_input (BtorMC *mc, int width, const char *name)
   BtorMcInput *input;
   BtorMemMgr *mm;
   BoolectorNode *res;
+  BoolectorSort s;
   Btor *btor;
   BTOR_ABORT_ARG_NULL_BOOLECTOR (mc);
   BTOR_ABORT_BOOLECTOR (mc->state != BTOR_NO_MC_STATE,
@@ -314,7 +315,9 @@ boolector_input (BtorMC *mc, int width, const char *name)
   BTOR_ABORT_BOOLECTOR (1 > width, "given width < 1");
   btor = mc->btor;
   mm   = btor->mm;
-  res  = boolector_var (btor, width, name);
+  s    = boolector_bitvec_sort (btor, width);
+  res  = boolector_var (btor, s, name);
+  boolector_release_sort (btor, s);
   BTOR_NEW (mm, input);
   assert (input);
   input->id   = (int) mc->inputs->count;
@@ -346,6 +349,7 @@ boolector_latch (BtorMC *mc, int width, const char *name)
   BtorMcLatch *latch;
   BtorMemMgr *mm;
   BoolectorNode *res;
+  BoolectorSort s;
   Btor *btor;
   BTOR_ABORT_ARG_NULL_BOOLECTOR (mc);
   BTOR_ABORT_BOOLECTOR (mc->state != BTOR_NO_MC_STATE,
@@ -353,7 +357,9 @@ boolector_latch (BtorMC *mc, int width, const char *name)
   assert (1 <= width);
   btor = mc->btor;
   mm   = btor->mm;
-  res  = boolector_var (btor, width, name);
+  s    = boolector_bitvec_sort (btor, width);
+  res  = boolector_var (btor, s, name);
+  boolector_release_sort (btor, s);
   BTOR_NEW (mm, latch);
   assert (latch);
   latch->id   = (int) mc->latches->count;
@@ -503,6 +509,7 @@ static void
 initialize_inputs_of_frame (BtorMC *mc, BtorMcFrame *f)
 {
   BoolectorNode *src, *dst;
+  BoolectorSort s;
   BtorHashTableIterator it;
   char *sym;
   int w;
@@ -534,7 +541,9 @@ initialize_inputs_of_frame (BtorMC *mc, BtorMcFrame *f)
 #endif
     sym = timed_symbol (mc->btor, src, f->time);
     w   = boolector_get_width (mc->btor, src);
-    dst = boolector_var (mc->forward, w, sym);
+    s   = boolector_bitvec_sort (mc->forward, w);
+    dst = boolector_var (mc->forward, s, sym);
+    boolector_release_sort (mc->forward, s);
     btor_freestr (mc->btor->mm, sym);
     assert (BTOR_COUNT_STACK (f->inputs) == i++);
     BTOR_PUSH_STACK (mc->btor->mm, f->inputs, dst);
@@ -545,6 +554,7 @@ static void
 initialize_latches_of_frame (BtorMC *mc, BtorMcFrame *f)
 {
   BoolectorNode *src, *dst;
+  BoolectorSort s;
   BtorHashTableIterator it;
   BtorMcLatch *latch;
   const char *bits;
@@ -590,7 +600,9 @@ initialize_latches_of_frame (BtorMC *mc, BtorMcFrame *f)
     {
       sym = timed_symbol (mc->btor, src, f->time);
       w   = boolector_get_width (mc->btor, src);
-      dst = boolector_var (mc->forward, w, sym);
+      s   = boolector_bitvec_sort (mc->forward, w);
+      dst = boolector_var (mc->forward, s, sym);
+      boolector_release_sort (mc->forward, s);
       btor_freestr (mc->btor->mm, sym);
     }
     assert (BTOR_COUNT_STACK (f->latches) == i);

@@ -2,7 +2,7 @@
  *
  *  Copyright (C) 2011-2014 Armin Biere.
  *  Copyright (C) 2013-2016 Aina Niemetz.
- *  Copyright (C) 2013-2015 Mathias Preiner.
+ *  Copyright (C) 2013-2016 Mathias Preiner.
  *
  *  All rights reserved.
  *
@@ -228,10 +228,12 @@ typedef struct BtorSMT2Node
 {
   BtorSMT2Tag tag;
   unsigned bound : 1;
+  unsigned sort : 1;
   unsigned scope_level;
   BtorSMT2Coo coo;
   char *name;
   BoolectorNode *exp;
+  BoolectorSort sort_alias;
   struct BtorSMT2Node *next;
 } BtorSMT2Node;
 
@@ -257,6 +259,7 @@ typedef struct BtorSMT2Item
 
 BTOR_DECLARE_STACK (BtorSMT2Item, BtorSMT2Item);
 BTOR_DECLARE_STACK (BtorPtr, Btor *);
+BTOR_DECLARE_STACK (BoolectorSort, BoolectorSort);
 
 /*------------------------------------------------------------------------*/
 
@@ -308,6 +311,7 @@ typedef struct BtorSMT2Parser
   FILE *outfile;
   BtorCharStack *prefix, token;
   BoolectorNodePtrStack outputs, inputs;
+  BoolectorSortStack sorts;
   BtorUIntStack outputs_trail, inputs_trail;
   BtorSMT2ItemStack work;
   BtorSMT2Coo coo, lastcoo, nextcoo, perrcoo;
@@ -1030,6 +1034,7 @@ new_smt2_parser (Btor *btor, BtorParseOpt *opts)
 #endif
   BTOR_INIT_STACK (res->outputs_trail);
   BTOR_INIT_STACK (res->inputs_trail);
+  BTOR_INIT_STACK (res->sorts);
 
   BTOR_INIT_STACK (res->assumptions);
   BTOR_INIT_STACK (res->assumptions_trail);
@@ -1085,6 +1090,10 @@ delete_smt2_parser (BtorSMT2Parser *parser)
   while (!BTOR_EMPTY_STACK (parser->outputs))
     boolector_release (parser->btor, BTOR_POP_STACK (parser->outputs));
   BTOR_RELEASE_STACK (mem, parser->outputs);
+
+  while (!BTOR_EMPTY_STACK (parser->sorts))
+    boolector_release_sort (parser->btor, BTOR_POP_STACK (parser->sorts));
+  BTOR_RELEASE_STACK (mem, parser->sorts);
 
   BTOR_RELEASE_STACK (mem, parser->outputs_trail);
   BTOR_RELEASE_STACK (mem, parser->inputs_trail);
@@ -1846,6 +1855,7 @@ translate_shift_smt2 (Btor *btor,
                                            BoolectorNode *) )
 {
   BoolectorNode *c, *e, *t, *e0, *u, *l, *tmp, *res;
+  BoolectorSort s;
   int len, l0, l1, p0, p1;
 
   len = boolector_get_width (btor, a0);
@@ -1901,7 +1911,11 @@ translate_shift_smt2 (Btor *btor,
       boolector_release (btor, tmp);
     }
     else
-      t = boolector_zero (btor, len);
+    {
+      s = boolector_bitvec_sort (btor, len);
+      t = boolector_zero (btor, s);
+      boolector_release_sort (btor, s);
+    }
 
     if (!p0)
       e0 = boolector_copy (btor, a0);
@@ -2030,6 +2044,7 @@ parse_term_aux_smt2 (BtorSMT2Parser *parser,
   BoolectorNode *(*rotatefun) (Btor *, BoolectorNode *, int);
   BoolectorNode *(*unaryfun) (Btor *, BoolectorNode *);
   BoolectorNode *res, *exp, *tmp, *old;
+  BoolectorSort s;
   BtorSMT2Item *l, *p;
 
   assert (!tokens || !BTOR_COUNT_STACK (*tokens));
@@ -2961,7 +2976,11 @@ parse_term_aux_smt2 (BtorSMT2Parser *parser,
               else if (len == width)
                 exp = boolector_const (parser->btor, constr);
               else if (!len)
-                exp = boolector_zero (parser->btor, width);
+              {
+                s   = boolector_bitvec_sort (parser->btor, width);
+                exp = boolector_zero (parser->btor, s);
+                boolector_release_sort (parser->btor, s);
+              }
               else
               {
                 char *uconstr =
@@ -3107,12 +3126,14 @@ parse_term_smt2 (BtorSMT2Parser *parser,
  * skiptokens = 2 -> skip BTOR_UNDERSCORE_TAG_SMT2
  */
 static int
-parse_bitvec_sort (BtorSMT2Parser *parser, int skiptokens, int *resptr)
+parse_bitvec_sort (BtorSMT2Parser *parser,
+                   int skiptokens,
+                   BoolectorSort *resptr)
 {
   assert (skiptokens >= 0);
   assert (skiptokens <= 2);
 
-  int tag, res;
+  int tag, width;
   if (skiptokens < 1 && !read_lpar_smt2 (parser, 0)) return 0;
   if (skiptokens < 2)
   {
@@ -3145,34 +3166,39 @@ parse_bitvec_sort (BtorSMT2Parser *parser, int skiptokens, int *resptr)
     assert (!parser->token.start[1]);
     return !perr_smt2 (parser, "invalid zero bit-width");
   }
-  res = 0;
-  if (!str2int32_smt2 (parser, 1, parser->token.start, &res)) return 0;
-  *resptr = res;
+  width = 0;
+  if (!str2int32_smt2 (parser, 1, parser->token.start, &width)) return 0;
   BTOR_MSG (boolector_get_btor_msg (parser->btor),
             3,
             "parsed bit-vector sort of width %d",
-            res);
+            width);
+
+  *resptr = boolector_bitvec_sort (parser->btor, width);
+  BTOR_PUSH_STACK (parser->mem, parser->sorts, *resptr);
   return read_rpar_smt2 (parser, " to close bit-vector sort");
 }
 
 static int parse_sort (BtorSMT2Parser *parser,
                        int tag,
-                       int *width,
-                       int *domain,
-                       bool allow_array_sort);
+                       bool allow_array_sort,
+                       BoolectorSort *sort);
 
 static int
-parse_array_sort (BtorSMT2Parser *parser, int tag, int *domain, int *width)
+parse_array_sort (BtorSMT2Parser *parser, int tag, BoolectorSort *sort)
 {
+  BoolectorSort index, value;
   if (tag == BTOR_ARRAY_TAG_SMT2)
   {
+    // TODO (ma): check all logics with no arrays?
     if (parser->commands.set_logic && parser->res->logic == BTOR_LOGIC_QF_BV)
       return !perr_smt2 (parser, "'Array' invalid for logic 'QF_BV'");
     tag = read_token_smt2 (parser);
-    if (!parse_sort (parser, tag, domain, 0, false)) return 0;
+    if (!parse_sort (parser, tag, false, &index)) return 0;
     tag = read_token_smt2 (parser);
-    if (!parse_sort (parser, tag, width, 0, false)) return 0;
+    if (!parse_sort (parser, tag, false, &value)) return 0;
     if (!read_rpar_smt2 (parser, " after element sort of Array")) return 0;
+    *sort = boolector_array_sort (parser->btor, index, value);
+    BTOR_PUSH_STACK (parser->mem, parser->sorts, *sort);
     return 1;
   }
   else if (tag == EOF)
@@ -3183,13 +3209,15 @@ parse_array_sort (BtorSMT2Parser *parser, int tag, int *domain, int *width)
 static int
 parse_sort (BtorSMT2Parser *parser,
             int tag,
-            int *width,
-            int *domain,
-            bool allow_array_sort)
+            bool allow_array_sort,
+            BoolectorSort *sort)
 {
+  BtorSMT2Node *alias;
+
   if (tag == BTOR_BOOL_TAG_SMT2)
   {
-    *width = 1;
+    *sort = boolector_bool_sort (parser->btor);
+    BTOR_PUSH_STACK (parser->mem, parser->sorts, *sort);
     return 1;
   }
   else if (tag == BTOR_LPAR_TAG_SMT2)
@@ -3198,7 +3226,7 @@ parse_sort (BtorSMT2Parser *parser,
     {
       tag = read_token_smt2 (parser);
       if (tag == BTOR_ARRAY_TAG_SMT2)
-        return parse_array_sort (parser, tag, domain, width);
+        return parse_array_sort (parser, tag, sort);
       else
       {
         if (tag == EOF)
@@ -3207,11 +3235,19 @@ parse_sort (BtorSMT2Parser *parser,
         if (tag != BTOR_UNDERSCORE_TAG_SMT2)
           return !perr_smt2 (
               parser, "expected '_' or 'Array' at '%s'", parser->token.start);
-        return parse_bitvec_sort (parser, 2, width);
+        return parse_bitvec_sort (parser, 2, sort);
       }
     }
     else
-      return parse_bitvec_sort (parser, 1, width);
+      return parse_bitvec_sort (parser, 1, sort);
+  }
+  else if (tag == BTOR_SYMBOL_TAG_SMT2)
+  {
+    alias = find_symbol_smt2 (parser, parser->token.start);
+    if (!alias || !alias->sort)
+      return !perr_smt2 (parser, "invalid sort '%s'", parser->token.start);
+    *sort = alias->sort_alias;
+    return 1;
   }
   else if (tag == EOF)
     return !perr_smt2 (parser,
@@ -3224,11 +3260,11 @@ static int
 declare_fun_smt2 (BtorSMT2Parser *parser)
 {
   char *symbol;
-  int i, tag, domain, width;
-  BtorIntStack args;
+  int tag;
+  BoolectorSortStack args;
   BtorSMT2Node *fun;
-  fun   = 0;
-  width = domain = 0;
+  fun = 0;
+  BoolectorSort sort, s;
 
   if (!read_symbol (parser, " after 'declare-fun'", &fun)) return 0;
   assert (fun && fun->tag == BTOR_SYMBOL_TAG_SMT2);
@@ -3247,37 +3283,34 @@ declare_fun_smt2 (BtorSMT2Parser *parser)
     tag = read_token_smt2 (parser);
     if (tag != BTOR_RPAR_TAG_SMT2)
     {
-      if (!parse_sort (parser, tag, &width, 0, false))
+      if (!parse_sort (parser, tag, false, &sort))
       {
         BTOR_RELEASE_STACK (parser->mem, args);
         return 0;
       }
-      BTOR_PUSH_STACK (parser->mem, args, width);
+      BTOR_PUSH_STACK (parser->mem, args, sort);
     }
   } while (tag != BTOR_RPAR_TAG_SMT2);
 
   /* parse return sort */
   tag = read_token_smt2 (parser);
-  if (!parse_sort (parser, tag, &width, &domain, true))
+  if (!parse_sort (parser, tag, true, &sort))
   {
     BTOR_RELEASE_STACK (parser->mem, args);
     return 0;
   }
-  if (domain > 0)
+  if (boolector_is_array_sort (parser->btor, sort))
   {
     if (!BTOR_EMPTY_STACK (args))
     {
       BTOR_RELEASE_STACK (parser->mem, args);
       return !perr_smt2 (parser, "sort Array is not supported for arity > 0");
     }
-    fun->exp = boolector_array (parser->btor, width, domain, fun->name);
+    fun->exp = boolector_array (parser->btor, sort, fun->name);
     BTOR_MSG (boolector_get_btor_msg (parser->btor),
               2,
-              "declared bit-vector array '%s' "
-              "index element width %d %d at line %d column %d",
+              "declared bit-vector array '%s' at line %d column %d",
               fun->name,
-              domain,
-              width,
               fun->coo.x,
               fun->coo.y);
     parser->need_functions = 1;
@@ -3287,41 +3320,23 @@ declare_fun_smt2 (BtorSMT2Parser *parser)
     if (BTOR_EMPTY_STACK (args))
     {
       symbol   = create_symbol_current_scope (parser, fun->name);
-      fun->exp = boolector_var (parser->btor, width, symbol);
+      fun->exp = boolector_var (parser->btor, sort, symbol);
       btor_freestr (parser->mem, symbol);
       BTOR_MSG (boolector_get_btor_msg (parser->btor),
                 2,
-                "declared '%s' as bit-vector of width %d at line %d column %d",
+                "declared '%s' as bit-vector at line %d column %d",
                 fun->name,
-                width,
                 fun->coo.x,
                 fun->coo.y);
     }
     else
     {
-      BoolectorSort sort, scodomain;
-      BoolectorSort sdomain[BTOR_COUNT_STACK (args)];
-
-      if (BTOR_COUNT_STACK (args) > 1)
-      {
-        for (i = 0; i < BTOR_COUNT_STACK (args); i++)
-          sdomain[i] =
-              boolector_bitvec_sort (parser->btor, BTOR_PEEK_STACK (args, i));
-      }
-      else
-        sdomain[0] =
-            boolector_bitvec_sort (parser->btor, BTOR_TOP_STACK (args));
-
-      scodomain = boolector_bitvec_sort (parser->btor, width);
-      sort      = boolector_fun_sort (
-          parser->btor, sdomain, BTOR_COUNT_STACK (args), scodomain);
+      s = boolector_fun_sort (
+          parser->btor, args.start, BTOR_COUNT_STACK (args), sort);
       symbol   = create_symbol_current_scope (parser, fun->name);
-      fun->exp = boolector_uf (parser->btor, sort, symbol);
+      fun->exp = boolector_uf (parser->btor, s, symbol);
+      boolector_release_sort (parser->btor, s);
       btor_freestr (parser->mem, symbol);
-      for (i = 0; i < BTOR_COUNT_STACK (args); i++)
-        boolector_release_sort (parser->btor, sdomain[i]);
-      boolector_release_sort (parser->btor, scodomain);
-      boolector_release_sort (parser->btor, sort);
       BTOR_MSG (boolector_get_btor_msg (parser->btor),
                 2,
                 "declared '%s' as uninterpreted function at line %d column %d",
@@ -3345,17 +3360,17 @@ declare_fun_smt2 (BtorSMT2Parser *parser)
 static int
 define_fun_smt2 (BtorSMT2Parser *parser)
 {
-  int tag, domain, width, nargs = 0, len;
+  int tag, nargs = 0, len;
   BoolectorNode *eq, *tmp, *exp = 0;
   BtorSMT2Coo coo;
   BtorSMT2Item *item;
   BtorSMT2Node *fun, *arg;
   BoolectorNodePtrStack args;
   char *psym, *symbol;
+  BoolectorSort sort, s;
 
   fun   = 0;
   arg   = 0;
-  width = domain = 0;
   coo.x = coo.y = 0;
 
   if (!read_symbol (parser, " after 'define-fun'", &fun)) return 0;
@@ -3399,12 +3414,12 @@ define_fun_smt2 (BtorSMT2Parser *parser)
       arg->coo = parser->coo;
 
       tag = read_token_smt2 (parser);
-      if (!parse_sort (parser, tag, &width, 0, false)) return 0;
+      if (!parse_sort (parser, tag, false, &s)) return 0;
       nargs++;
       len = strlen (fun->name) + strlen (arg->name) + 3;
       BTOR_CNEWN (parser->mem, psym, len);
       sprintf (psym, "_%s_%s", fun->name, arg->name);
-      arg->exp = boolector_param (parser->btor, width, psym);
+      arg->exp = boolector_param (parser->btor, s, psym);
       BTOR_DELETEN (parser->mem, psym, len);
       item       = push_item_smt2 (parser, arg->tag);
       item->node = arg;
@@ -3415,21 +3430,20 @@ define_fun_smt2 (BtorSMT2Parser *parser)
 
   /* parse return sort */
   tag = read_token_smt2 (parser);
-  if (!parse_sort (parser, tag, &width, &domain, true)) return 0;
-  if (domain > 0)
+  if (!parse_sort (parser, tag, true, &sort)) return 0;
+  if (boolector_is_array_sort (parser->btor, sort))
   {
     if (nargs)
+    {
       return !perr_smt2 (parser, "sort Array is not supported for arity > 0");
+    }
 
     if (!parser->commands.model)
     {
       BTOR_MSG (boolector_get_btor_msg (parser->btor),
                 2,
-                "defined bit-vector array '%s' "
-                "index element width %d %d at line %d column %d",
+                "defined bit-vector array '%s' at line %d column %d",
                 fun->name,
-                domain,
-                width,
                 fun->coo.x,
                 fun->coo.y);
       parser->need_functions = 1;
@@ -3438,23 +3452,12 @@ define_fun_smt2 (BtorSMT2Parser *parser)
     {
       if (!boolector_is_array (parser->btor, fun->exp))
         return !perr_smt2 (parser, "sort Array expected");
-      if (boolector_get_index_width (parser->btor, fun->exp) != domain)
-        return !perr_smt2 (parser,
-                           "expected index bit-width '%d' but was '%d'",
-                           boolector_get_index_width (parser->btor, fun->exp),
-                           domain);
-      if (boolector_get_width (parser->btor, fun->exp) != width)
-        return !perr_smt2 (parser,
-                           "expected element bit-width '%d' but was '%d'",
-                           boolector_get_width (parser->btor, fun->exp),
-                           width);
+      if (boolector_get_sort (parser->btor, fun->exp) != sort)
+        return !perr_smt2 (parser, "array sort mismatch");
       BTOR_MSG (boolector_get_btor_msg (parser->btor),
                 2,
-                "parsed bit-vector array '%s' "
-                "index element width %d %d at line %d column %d",
+                "parsed bit-vector array '%s' at line %d column %d",
                 fun->name,
-                domain,
-                width,
                 fun->coo.x,
                 fun->coo.y);
       assert (parser->need_functions);
@@ -3465,23 +3468,18 @@ define_fun_smt2 (BtorSMT2Parser *parser)
     if (!parser->commands.model)
       BTOR_MSG (boolector_get_btor_msg (parser->btor),
                 2,
-                "defined '%s' as bit-vector of width %d at line %d column %d",
+                "defined '%s' as bit-vector at line %d column %d",
                 fun->name,
-                width,
                 fun->coo.x,
                 fun->coo.y);
     else
     {
-      if (boolector_get_width (parser->btor, fun->exp) != width)
-        return !perr_smt2 (parser,
-                           "invalid sort, expected bit-width '%d' but was '%d'",
-                           boolector_get_width (parser->btor, fun->exp),
-                           width);
+      if (boolector_get_sort (parser->btor, fun->exp) != sort)
+        return !perr_smt2 (parser, "invalid sort, expected");
       BTOR_MSG (boolector_get_btor_msg (parser->btor),
                 2,
-                "parsed '%s' as bit-vector of width %d at line %d column %d",
+                "parsed '%s' as bit-vector at line %d column %d",
                 fun->name,
-                width,
                 fun->coo.x,
                 fun->coo.y);
     }
@@ -3489,25 +3487,13 @@ define_fun_smt2 (BtorSMT2Parser *parser)
 
   if (!parse_term_smt2 (parser, &exp, &coo)) return 0;
 
-  if (boolector_get_width (parser->btor, exp) != width)
+  // TODO (ma): this temporarily disables the sort check for function models
+  //            until we have a api function for retrieving the index/element
+  //            sorts of an array sort.
+  if (!parser->commands.model && boolector_get_sort (parser->btor, exp) != sort)
   {
-    domain = boolector_get_width (parser->btor, exp);
     boolector_release (parser->btor, exp);
-    return !perr_smt2 (parser,
-                       "invalid term bit-width, expected %d but was %d",
-                       width,
-                       domain);
-  }
-  if (boolector_is_array (parser->btor, exp)
-      && boolector_get_index_width (parser->btor, exp) != domain)
-  {
-    width = boolector_get_index_width (parser->btor, exp);
-    boolector_release (parser->btor, exp);
-    return !perr_smt2 (parser,
-                       "invalid array index bit-width, expected %d but "
-                       "was %d",
-                       domain,
-                       width);
+    return !perr_smt2 (parser, "invalid term sort");
   }
 
   if (nargs)
@@ -3575,8 +3561,41 @@ define_fun_smt2 (BtorSMT2Parser *parser)
     else
       fun->exp = exp;
   }
-
   return read_rpar_smt2 (parser, " to close definition");
+}
+
+static int
+define_sort_smt2 (BtorSMT2Parser *parser)
+{
+  int tag;
+  BtorSMT2Node *sort_alias;
+  BoolectorSort sort;
+
+  if (!read_symbol (parser, " after 'define-sort'", &sort_alias)) return 0;
+  assert (sort_alias);
+  assert (sort_alias->tag == BTOR_SYMBOL_TAG_SMT2);
+
+  if (sort_alias->coo.x)
+  {
+    return !perr_smt2 (parser,
+                       "sort '%s' already defined at line %d column %d",
+                       sort_alias->name,
+                       sort_alias->coo.x,
+                       sort_alias->coo.y);
+  }
+
+  if (!read_lpar_smt2 (parser, " after sort definition")) return 0;
+  // TODO (ma): for now we do not support parameterized sort defintions
+  if (!read_rpar_smt2 (parser,
+                       " parameterized sort definitions not supported yet"))
+    return 0;
+
+  tag = read_token_smt2 (parser);
+  if (!parse_sort (parser, tag, true, &sort)) return 0;
+
+  sort_alias->sort       = 1;
+  sort_alias->sort_alias = sort;
+  return read_rpar_smt2 (parser, " to close sort definition");
 }
 
 static int
@@ -3864,6 +3883,11 @@ read_command_smt2 (BtorSMT2Parser *parser)
 
     case BTOR_DEFINE_FUN_TAG_SMT2:
       if (!define_fun_smt2 (parser)) return 0;
+      print_success (parser);
+      break;
+
+    case BTOR_DEFINE_SORT_TAG_SMT2:
+      if (!define_sort_smt2 (parser)) return 0;
       print_success (parser);
       break;
 
