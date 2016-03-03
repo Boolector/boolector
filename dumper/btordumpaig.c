@@ -10,22 +10,12 @@
  *  See COPYING for more information on using this software.
  */
 
-#include "dumper/btordumpaig.h"
+#include "btordumpaig.h"
+
+#include "btorabort.h"
 #include "btoraigvec.h"
-#include "btorexit.h"
 #include "utils/btoriter.h"
 #include "utils/btorutil.h"
-
-#define BTOR_ABORT_DUMPAIG(cond, msg)                   \
-  do                                                    \
-  {                                                     \
-    if (cond)                                           \
-    {                                                   \
-      printf ("[btordumpaig] %s: %s\n", __func__, msg); \
-      fflush (stdout);                                  \
-      exit (BTOR_ERR_EXIT);                             \
-    }                                                   \
-  } while (0)
 
 static unsigned
 aiger_encode_aig (BtorPtrHashTable *table, BtorAIG *aig)
@@ -78,7 +68,7 @@ btor_dump_aiger (Btor *btor, FILE *output, bool is_binary, bool merge_roots)
 
   (void) btor_simplify (btor);
 
-  BTOR_ABORT_DUMPAIG (
+  BTOR_ABORT (
       btor->ops[BTOR_UF_NODE].cur > 0 || btor->ops[BTOR_LAMBDA_NODE].cur > 0,
       "cannot dump to AIGER format if formula contains "
       "functions");

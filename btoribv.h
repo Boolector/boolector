@@ -427,14 +427,14 @@ class BtorIBV : public BitVector
 
   //------------------------------------------------------------------------
 
-#define BTOR_IBV_REQUIRE_START()                                          \
-  do                                                                      \
-  {                                                                       \
-    BTOR_ABORT_BOOLECTOR (state == BTOR_IBV_ANALYZED,                     \
-                          "can not change model it has been analyzed");   \
-    BTOR_ABORT_BOOLECTOR (state == BTOR_IBV_TRANSLATED,                   \
-                          "can not change model it has been translated"); \
-    assert (state == BTOR_IBV_START);                                     \
+#define BTOR_IBV_REQUIRE_START()                                \
+  do                                                            \
+  {                                                             \
+    BTOR_ABORT (state == BTOR_IBV_ANALYZED,                     \
+                "can not change model it has been analyzed");   \
+    BTOR_ABORT (state == BTOR_IBV_TRANSLATED,                   \
+                "can not change model it has been translated"); \
+    assert (state == BTOR_IBV_START);                           \
   } while (0)
 
   void addConstant (unsigned, const string &, unsigned);

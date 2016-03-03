@@ -512,9 +512,6 @@ def _normalize_data(data):
                 else:
                     data['g_uniq'][d][f] = None
 
-
-
-
 def _read_out_file(d, f):
     _filter_data(d, f, FILTER_OUT)
 

@@ -53,7 +53,7 @@ enum BtorOption
   BTOR_OPT_UCOPT,
   BTOR_OPT_MERGE_LAMBDAS,
   BTOR_OPT_EXTRACT_LAMBDAS,
-  /* fun engine --------------------------------------------------------- */
+  /* FUN engine --------------------------------------------------------- */
   BTOR_OPT_FUN_DUAL_PROP,
   BTOR_OPT_FUN_JUST,
   BTOR_OPT_FUN_JUST_HEURISTIC,
@@ -78,6 +78,11 @@ enum BtorOption
   BTOR_OPT_SLS_MOVE_INC_MOVE_TEST,
   BTOR_OPT_SLS_USE_RESTARTS,
   BTOR_OPT_SLS_USE_BANDIT,
+  /* PROP engine --------------------------------------------------------- */
+  BTOR_OPT_PROP_USE_RESTARTS,
+  BTOR_OPT_PROP_USE_BANDIT,
+  BTOR_OPT_PROP_USE_INV_VALUE,
+  BTOR_OPT_PROP_USE_FULL_PATH,
   /* EF engine ---------------------------------------------------------- */
   BTOR_OPT_EF_MINISCOPING,
   BTOR_OPT_EF_DUAL_PROP,
@@ -88,7 +93,6 @@ enum BtorOption
   BTOR_OPT_SORT_AIGVEC,
   BTOR_OPT_AUTO_CLEANUP_INTERNAL,
   BTOR_OPT_SIMPLIFY_CONSTRAINTS,
-  BTOR_OPT_RW_NORMALIZE,
 #ifdef BTOR_CHECK_FAILED
   BTOR_OPT_CHK_FAILED_ASSUMPTIONS,
 #endif

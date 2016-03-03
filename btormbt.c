@@ -188,7 +188,8 @@
   "QF_AUFBV\n"                                                                 \
   "                                   (default: QF_AUFBV)\n"                   \
   "  -e, --extensionality             use extensionality\n"                    \
-  "  -b <btoropt> <val>               set boolector option <btoropt>\n"
+  "  -b <btoropt> <val>               set boolector option <btoropt> to "      \
+  "<val>\n"
 
 /*------------------------------------------------------------------------*/
 
@@ -579,9 +580,9 @@ struct BtorMBTBtorOpt
   BtorOption kind;
   char *name;
   char *shrt;
-  int val; /* only used for options specified via command line */
-  int min;
-  int max;
+  uint32_t val; /* only used for options specified via command line */
+  uint32_t min;
+  uint32_t max;
   bool set_by_cl; /* if option is already set by command line, we do not
                      choose a random value for this option */
 };
@@ -785,7 +786,7 @@ struct BtorMBT
   BtorMemMgr *mm;
 
   Btor *btor;
-  BtorMBTBtorOptPtrStack btor_opts; /* all available boolector options */
+  BtorMBTBtorOptPtrStack btor_opts; /* maintains all available boolector opts */
 
   double start_time;
 
@@ -1009,7 +1010,7 @@ btormbt_new_btormbt (void)
 
   /* retrieve all available boolector options */
   tmpbtor = boolector_new ();
-  for (opt = boolector_first_opt (tmpbtor); opt;
+  for (opt = boolector_first_opt (tmpbtor); opt < BTOR_OPT_NUM_OPTS;
        opt = boolector_next_opt (tmpbtor, opt))
   {
     BTOR_NEW (mm, btoropt);
@@ -1771,9 +1772,10 @@ btormbt_const (BtorMBT *mbt, RNG *rng)
 #endif
 
 #if 1
+  node = 0;
+  s    = 0;
   if (op != TRUE && op != FALSE && op != CONST)
     s = boolector_bitvec_sort (mbt->btor, width);
-  node = 0;
   switch (op)
   {
     case CONST:
@@ -3350,7 +3352,7 @@ btormbt_state_sat (BtorMBT *mbt, unsigned r)
     BTORMBT_LOG (1, "sat call returned %d", res);
 
   if (res == BOOLECTOR_UNSAT
-      && boolector_get_opt (mbt->btor, BTOR_OPT_ENGINE) != BTOR_ENGINE_SLS)
+      && boolector_get_opt (mbt->btor, BTOR_OPT_ENGINE) == BTOR_ENGINE_FUN)
   {
     /* check failed assumptions */
     for (i = 0; i < BTOR_COUNT_STACK (mbt->assumptions->exps); i++)
@@ -3588,7 +3590,8 @@ int
 main (int argc, char **argv)
 {
   int exitcode;
-  int i, j, val, mac, pid, prev, res, status;
+  int i, j, mac, pid, prev, res, status;
+  uint32_t val;
   char *name, *cmd, *tmp;
   int namelen, cmdlen, tmppid, fd;
   BtorMBTBtorOpt *btoropt, *tmpopt;
@@ -3706,8 +3709,8 @@ main (int argc, char **argv)
     else if (!strcmp (argv[i], "-b"))
     {
       if (++i == argc) btormbt_error ("argument to '-b' missing (try '-h')");
-      btoropt = 0;
-      for (j = 0; j < BTOR_COUNT_STACK (g_btormbt->btor_opts); j++)
+      assert (BTOR_COUNT_STACK (g_btormbt->btor_opts));
+      for (j = 0, btoropt = 0; j < BTOR_COUNT_STACK (g_btormbt->btor_opts); j++)
       {
         tmpopt = BTOR_PEEK_STACK (g_btormbt->btor_opts, j);
         assert (tmpopt);
@@ -3720,7 +3723,7 @@ main (int argc, char **argv)
       }
       if (!btoropt) btormbt_error ("invalid boolector option '%s'", argv[i]);
       if (++i == argc) btormbt_error ("argument to '-b' missing (try '-h')");
-      val = (int) strtol (argv[i], &tmp, 10);
+      val = (uint32_t) strtol (argv[i], &tmp, 10);
       if (tmp[0] != 0) btormbt_error ("invalid argument to '-b' (try '-h')");
       btoropt->val       = val;
       btoropt->set_by_cl = true;

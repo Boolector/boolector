@@ -90,6 +90,17 @@ enum BtorMainOptArg
 };
 typedef enum BtorMainOptArg BtorMainOptArg;
 
+enum BtorMainReadArg
+{
+  BTORMAIN_READ_ARG_NONE,
+  BTORMAIN_READ_ARG_NONE_VIA_EQ,
+  BTORMAIN_READ_ARG_STR,
+  BTORMAIN_READ_ARG_STR_VIA_EQ,
+  BTORMAIN_READ_ARG_INT,
+  BTORMAIN_READ_ARG_INT_VIA_EQ,
+};
+typedef enum BtorMainReadArg BtorMainReadArg;
+
 typedef struct BtorMainOpt
 {
   bool general;       /* general option? */
@@ -398,8 +409,8 @@ btormain_init_opts (BtorMainApp *app)
                  0,
                  0,
                  1,
-                 true,
-                 BTORMAIN_OPT_ARG_INT,
+                 false,
+                 BTORMAIN_OPT_ARG_NONE,
                  "print model in SMT-LIB v2 format "
                  "if model generation is enabled");
 }
@@ -839,28 +850,36 @@ has_suffix (const char *str, const char *suffix)
 
 /*------------------------------------------------------------------------*/
 
-#define NO_VALUE_READ(val) (readval == 0 || readval == 3)
+#define NO_VALUE_READ(val) \
+  (val == BTORMAIN_READ_ARG_NONE || val == BTORMAIN_READ_ARG_NONE_VIA_EQ)
+
+#define READ_ARG_IS_INT(val) \
+  (val == BTORMAIN_READ_ARG_INT || val == BTORMAIN_READ_ARG_INT_VIA_EQ)
 
 #define HAS_UNEXPECTED_ARGUMENT(arg)               \
   ((arg == BTORMAIN_OPT_ARG_NONE                   \
     || (arg == BTORMAIN_OPT_ARG_INT && isdisable)) \
-   && (readval == 2 || (readval == 1 && isint)))
+   && (readval == BTORMAIN_READ_ARG_STR_VIA_EQ     \
+       || readval == BTORMAIN_READ_ARG_INT_VIA_EQ  \
+       || readval == BTORMAIN_READ_ARG_INT))
 
-#define HAS_MISSING_ARGUMENT(arg, candisable)                 \
-  ((arg == BTORMAIN_OPT_ARG_STR && NO_VALUE_READ (readval))   \
-   || (arg == BTORMAIN_OPT_ARG_INT                            \
-       && (((!candisable && (NO_VALUE_READ (val) || !isint))) \
-           || (readval == 3))))
+#define HAS_MISSING_ARGUMENT(arg, candisable)                             \
+  ((arg == BTORMAIN_OPT_ARG_STR && NO_VALUE_READ (readval))               \
+   || (arg == BTORMAIN_OPT_ARG_INT                                        \
+       && (((!candisable                                                  \
+             && (NO_VALUE_READ (readval) || !READ_ARG_IS_INT (readval)))) \
+           || (readval == BTORMAIN_READ_ARG_NONE_VIA_EQ))))
 
 #define HAS_INVALID_ARGUMENT(arg, candisable) \
-  (arg == BTORMAIN_OPT_ARG_INT && readval == 2 && !isint)
+  (arg == BTORMAIN_OPT_ARG_INT && readval == BTORMAIN_READ_ARG_STR_VIA_EQ)
 
 int
 boolector_main (int argc, char **argv)
 {
   bool dump_merge;
-  int i, j, len, readval, val, format;
-  int isshrt, isdisable, isint;
+  int i, j, len, val, format;
+  BtorMainReadArg readval;
+  int isshrt, isdisable;
   int res, parse_res, parse_status, sat_res;
   int mgen, pmodel, inc, dump;
   char *arg, *cmd, *valstr, *tmp, *parse_err_msg;
@@ -897,8 +916,7 @@ boolector_main (int argc, char **argv)
     len       = strlen (argv[i]);
     isshrt    = 0;
     isdisable = 0;
-    isint     = 0;
-    readval   = 0;
+    readval   = BTORMAIN_READ_ARG_NONE;
     val       = 0;
     valstr    = 0;
 
@@ -970,23 +988,23 @@ boolector_main (int argc, char **argv)
     /* extract option argument (if any) */
     if (arg[j] == '=')
     {
-      readval = 3;
+      readval = BTORMAIN_READ_ARG_NONE_VIA_EQ;
       valstr  = arg + j + 1;
       if (valstr[0] != 0)
       {
-        readval = 2;
+        readval = BTORMAIN_READ_ARG_STR_VIA_EQ;
         val     = (int) strtol (valstr, &tmp, 10);
-        isint   = tmp[0] == 0;
+        if (tmp[0] == 0) readval = BTORMAIN_READ_ARG_INT_VIA_EQ;
       }
     }
-    else if ((readval = i + 1 < argc && argv[i + 1][0] != '-'))
+    else
     {
-      valstr = argv[i + 1];
-      val    = (int) strtol (valstr, &tmp, 10);
-      if (tmp[0] == 0)
+      if (i + 1 < argc && argv[i + 1][0] != '-')
       {
-        isint = 1;
-        i += 1;
+        readval = BTORMAIN_READ_ARG_STR;
+        valstr  = argv[i + 1];
+        val     = (int) strtol (valstr, &tmp, 10);
+        if (tmp[0] == 0) readval = BTORMAIN_READ_ARG_INT;
       }
     }
 
@@ -1001,6 +1019,11 @@ boolector_main (int argc, char **argv)
     }
     if (mo)
     {
+      if (mo->arg != BTORMAIN_OPT_ARG_NONE
+          && (readval == BTORMAIN_READ_ARG_STR
+              || readval == BTORMAIN_READ_ARG_INT))
+        i += 1;
+
       /* check opt */
       if (isdisable && !mo->candisable)
       {
@@ -1048,7 +1071,6 @@ boolector_main (int argc, char **argv)
             goto DONE;
           }
           g_app->outfile_name = valstr;
-          if (readval == 1) i += 1;
           break;
 
         case BTORMAIN_OPT_SMT2_MODEL:
@@ -1060,6 +1082,10 @@ boolector_main (int argc, char **argv)
             boolector_set_opt (g_app->btor, BTOR_OPT_ENGINE, BTOR_ENGINE_FUN);
           else if (!strcasecmp (valstr, "sls"))
             boolector_set_opt (g_app->btor, BTOR_OPT_ENGINE, BTOR_ENGINE_SLS);
+          else if (!strcasecmp (valstr, "prop"))
+          {
+            boolector_set_opt (g_app->btor, BTOR_OPT_ENGINE, BTOR_ENGINE_PROP);
+          }
           else if (!strcasecmp (valstr, "ef"))
             boolector_set_opt (g_app->btor, BTOR_OPT_ENGINE, BTOR_ENGINE_EF);
           else
@@ -1175,6 +1201,8 @@ boolector_main (int argc, char **argv)
     /* >> btor options ------------------------------------------------ */
     else
     {
+      if (readval == BTORMAIN_READ_ARG_INT) i += 1;
+
       for (k = boolector_first_opt (g_app->btor), o = 0;
            boolector_has_opt (g_app->btor, k);
            k = btor_next_opt (g_app->btor, k))
@@ -1219,7 +1247,7 @@ boolector_main (int argc, char **argv)
           switch (k)
           {
             case BTOR_OPT_INCREMENTAL:
-              inc = (readval && isint && val == 0)
+              inc = READ_ARG_IS_INT (readval) && val == 0
                         ? 0
                         : inc | BTOR_PARSE_MODE_BASIC_INCREMENTAL;
               boolector_set_opt (g_app->btor, k, inc);
@@ -1227,13 +1255,13 @@ boolector_main (int argc, char **argv)
             case BTOR_OPT_INCREMENTAL_ALL:
               boolector_set_opt (
                   g_app->btor, k, BTOR_PARSE_MODE_INCREMENTAL_BUT_CONTINUE);
-              inc = (readval && isint && val == 0)
+              inc = READ_ARG_IS_INT (readval) && val == 0
                         ? 0
                         : inc | BTOR_PARSE_MODE_INCREMENTAL_BUT_CONTINUE;
               boolector_set_opt (g_app->btor, BTOR_OPT_INCREMENTAL, inc);
               break;
             case BTOR_OPT_MODEL_GEN:
-              if (readval && isint && val == 0)
+              if (READ_ARG_IS_INT (readval) && val == 0)
               {
                 mgen   = 0;
                 pmodel = 0;
@@ -1270,7 +1298,7 @@ boolector_main (int argc, char **argv)
 #else
             case BTOR_OPT_VERBOSITY:
 #endif
-              if (readval && isint)
+              if (READ_ARG_IS_INT (readval))
                 boolector_set_opt (g_app->btor, k, val);
               else
                 boolector_set_opt (
@@ -1279,7 +1307,7 @@ boolector_main (int argc, char **argv)
             default:
               assert (k != BTOR_OPT_NUM_OPTS);
             DEFAULT:
-              if (readval && isint)
+              if (READ_ARG_IS_INT (readval))
                 boolector_set_opt (g_app->btor, k, val);
               else
                 boolector_set_opt (g_app->btor, k, 1);
@@ -1288,8 +1316,7 @@ boolector_main (int argc, char **argv)
       }
       else
       {
-        assert (readval);
-        assert (isint);
+        assert (READ_ARG_IS_INT (readval));
         boolector_set_opt (g_app->btor, k, val);
       }
     }

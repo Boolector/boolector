@@ -12,11 +12,11 @@
  */
 
 #include "btorexp.h"
+
+#include "btorabort.h"
 #include "btoraig.h"
 #include "btoraigvec.h"
 #include "btorbeta.h"
-#include "btorconst.h"
-#include "btorexit.h"
 #include "btorlog.h"
 #include "btorrewrite.h"
 #include "utils/btorhashint.h"
@@ -33,17 +33,6 @@
 #include <string.h>
 
 /*------------------------------------------------------------------------*/
-
-#define BTOR_ABORT_NODE(cond, msg)                  \
-  do                                                \
-  {                                                 \
-    if (cond)                                       \
-    {                                               \
-      printf ("[btorexp] %s: %s\n", __func__, msg); \
-      fflush (stdout);                              \
-      exit (BTOR_ERR_EXIT);                         \
-    }                                               \
-  } while (0)
 
 #define BTOR_UNIQUE_TABLE_LIMIT 30
 
@@ -383,8 +372,7 @@ inc_exp_ref_counter (Btor *btor, BtorNode *exp)
 
   (void) btor;
   real_exp = BTOR_REAL_ADDR_NODE (exp);
-  BTOR_ABORT_NODE (real_exp->refs == INT_MAX,
-                   "Node reference counter overflow");
+  BTOR_ABORT (real_exp->refs == INT_MAX, "Node reference counter overflow");
   real_exp->refs++;
 }
 
@@ -1191,7 +1179,7 @@ setup_node_and_add_to_id_table (Btor *btor, void *ptr)
   exp->btor = btor;
   btor->stats.expressions++;
   id = BTOR_COUNT_STACK (btor->nodes_id_table);
-  BTOR_ABORT_NODE (id == INT_MAX, "expression id overflow");
+  BTOR_ABORT (id == INT_MAX, "expression id overflow");
   exp->id = id;
   BTOR_PUSH_STACK (btor->mm, btor->nodes_id_table, exp);
   assert (BTOR_COUNT_STACK (btor->nodes_id_table) == exp->id + 1);
@@ -1711,7 +1699,8 @@ find_slice_exp (Btor *btor, BtorNode *e0, uint32_t upper, uint32_t lower)
 static BtorNode **
 find_bv_exp (Btor *btor, BtorNodeKind kind, int arity, BtorNode **e)
 {
-  int i, equal;
+  bool equal;
+  int i;
   unsigned int hash;
   BtorNode *cur, **result;
 
@@ -1729,9 +1718,13 @@ find_bv_exp (Btor *btor, BtorNodeKind kind, int arity, BtorNode **e)
     assert (BTOR_IS_REGULAR_NODE (cur));
     if (cur->kind == kind && cur->arity == arity)
     {
-      equal = 1;
+      equal = true;
+      /* special case for bv eq; (= (bvnot a) b) == (= a (bvnot b)) */
+      if (kind == BTOR_BEQ_NODE && cur->e[0] == BTOR_INVERT_NODE (e[0])
+          && cur->e[1] == BTOR_INVERT_NODE (e[1]))
+        break;
       for (i = 0; i < arity && equal; i++)
-        if (cur->e[i] != e[i]) equal = 0;
+        if (cur->e[i] != e[i]) equal = false;
       if (equal) break;
 #ifndef NDEBUG
       if (btor_get_opt (btor, BTOR_OPT_SORT_EXP) > 0

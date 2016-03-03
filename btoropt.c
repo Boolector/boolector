@@ -18,7 +18,6 @@
 #include "btorcore.h"
 #include "btorlog.h"
 #include "btormodel.h"
-#include "btortrapi.h"
 #include "utils/btorhashptr.h"
 #include "utils/btoriter.h"
 
@@ -347,7 +346,7 @@ btor_init_opts (Btor *btor)
             1,
             "extract lambda terms");
 
-  /* fun engine ---------------------------------------------------------- */
+  /* FUN engine ---------------------------------------------------------- */
   init_opt (btor,
             BTOR_OPT_FUN_DUAL_PROP,
             false,
@@ -593,6 +592,49 @@ btor_init_opts (Btor *btor)
             1,
             "use bandit scheme for constraint selection");
 
+  /* PROP engine ---------------------------------------------------------- */
+  init_opt (btor,
+            BTOR_OPT_PROP_USE_RESTARTS,
+            false,
+            true,
+            "prop:use-restarts",
+            0,
+            0,
+            0,
+            1,
+            "use restarts");
+  init_opt (btor,
+            BTOR_OPT_PROP_USE_BANDIT,
+            false,
+            true,
+            "prop:use-bandit",
+            0,
+            0,
+            0,
+            1,
+            "use bandit scheme for constraint selection");
+  init_opt (btor,
+            BTOR_OPT_PROP_USE_INV_VALUE,
+            false,
+            false,
+            "prop:use-inv-value",
+            0,
+            99,
+            0,
+            100,
+            "produce inverse rather than consistent values");
+  // TODO this is temporary for paper purposes only (eliminate)?
+  init_opt (btor,
+            BTOR_OPT_PROP_USE_FULL_PATH,
+            false,
+            true,
+            "prop:use-full-path",
+            0,
+            1,
+            0,
+            1,
+            "perform path selection over the full set of operators");
+
   /* EF engine ----------------------------------------------------------- */
   init_opt (btor,
             BTOR_OPT_EF_MINISCOPING,
@@ -677,16 +719,6 @@ btor_init_opts (Btor *btor)
             0,
             1,
             0);
-  init_opt (btor,
-            BTOR_OPT_RW_NORMALIZE,
-            true,
-            true,
-            "rw-normalize",
-            0,
-            1,
-            0,
-            1,
-            "normalize during rewriting");
 #ifdef BTOR_CHECK_FAILED
   init_opt (btor,
             BTOR_OPT_CHK_FAILED_ASSUMPTIONS,
@@ -936,3 +968,20 @@ btor_next_opt (Btor *btor, BtorOption cur)
   (void) btor;
   return (BtorOption) cur + 1;
 }
+
+#ifndef NBTORLOG
+void
+btor_log_opts (Btor *btor)
+{
+  assert (btor);
+
+  BtorOption opt;
+
+  for (opt = btor_first_opt (btor); btor_has_opt (btor, opt);
+       opt = btor_next_opt (btor, opt))
+    BTORLOG (2,
+             "set option '%s' to %u",
+             btor_get_opt_lng (btor, opt),
+             btor_get_opt (btor, opt));
+}
+#endif

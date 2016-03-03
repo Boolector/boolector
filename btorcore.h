@@ -20,7 +20,6 @@
 #include "btoropt.h"
 #include "btorsat.h"
 #include "btorslv.h"
-#include "btorslvsls.h"
 #include "btorsort.h"
 #include "btortypes.h"
 #include "utils/btormem.h"

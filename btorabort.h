@@ -2,7 +2,7 @@
  *
  *  Copyright (C) 2007-2009 Robert Daniel Brummayer.
  *  Copyright (C) 2007-2014 Armin Biere.
- *  Copyright (C) 2013-2014 Aina Niemetz
+ *  Copyright (C) 2013-2016 Aina Niemetz
  *  Copyright (C) 2013-2015 Mathias Preiner.
  *
  *  All rights reserved.
@@ -13,131 +13,83 @@
 #ifndef BTORABORT_H_INCLUDED
 #define BTORABORT_H_INCLUDED
 
-/*------------------------------------------------------------------------*/
-
-#include "btorexit.h"
+#include "btortypes.h"
 
 #include <stdlib.h>
 
 /*------------------------------------------------------------------------*/
 
-#define BTOR_WARN_DEPRECATED(msg...)                             \
-  do                                                             \
-  {                                                              \
-    fprintf (stderr,                                             \
-             "[%s] function %s is deprected, use %s instead \n", \
-             __FILE__,                                           \
-             __FUNCTION__,                                       \
-             ##msg);                                             \
-    fflush (stderr);                                             \
-  } while (0)
-
-/*------------------------------------------------------------------------*/
-
-#define BTOR_ABORT_BOOLECTOR(cond, fmt, msg...)                              \
-  do                                                                         \
-  {                                                                          \
-    if (cond)                                                                \
-    {                                                                        \
-      fprintf (stderr, "[%s] %s: " fmt "\n", __FILE__, __FUNCTION__, ##msg); \
-      fflush (stderr);                                                       \
-      abort ();                                                              \
-    }                                                                        \
-  } while (0)
-
-#define BTOR_ABORT_ARG_NULL_BOOLECTOR(arg)                   \
-  do                                                         \
-  {                                                          \
-    if ((arg) == 0)                                          \
-    {                                                        \
-      fprintf (stderr, "[%s] %s: ", __FILE__, __FUNCTION__); \
-      fprintf (stderr, "'%s' must not be NULL\n", #arg);     \
-      fflush (stderr);                                       \
-      abort ();                                              \
-    }                                                        \
-  } while (0)
-
-#define BTOR_ABORT_REFS_NOT_POS_BOOLECTOR(ARG)                               \
-  do                                                                         \
-  {                                                                          \
-    if (BTOR_REAL_ADDR_NODE ((ARG))->ext_refs < 1)                           \
-    {                                                                        \
-      fprintf (stderr, "[%s] %s: ", __FILE__, __FUNCTION__);                 \
-      fprintf (stderr, "reference counter of '%s' must not be < 1\n", #ARG); \
-      fflush (stderr);                                                       \
-      abort ();                                                              \
-    }                                                                        \
-  } while (0)
-
-#define BTOR_ABORT_IF_BTOR_DOES_NOT_MATCH(BTOR, ARG)                      \
-  do                                                                      \
-  {                                                                       \
-    if (BTOR_REAL_ADDR_NODE (ARG)->btor != (BTOR))                        \
-    {                                                                     \
-      fprintf (stderr, "[%s] %s: ", __FILE__, __FUNCTION__);              \
-      fprintf (stderr,                                                    \
-               "argument '%s' belongs to different Boolector instance\n", \
-               #ARG);                                                     \
-      fflush (stderr);                                                    \
-      abort ();                                                           \
-    }                                                                     \
-  } while (0)
-
-#define BTOR_ABORT_BV_BOOLECTOR(arg)                              \
+#define BTOR_WARN_DEPRECATED(msg...)                              \
   do                                                              \
   {                                                               \
-    if (btor_is_bitvec_sort (&btor->sorts_unique_table,           \
-                             BTOR_REAL_ADDR_NODE (arg)->sort_id)) \
-    {                                                             \
-      fprintf (stderr, "[%s] %s: ", __FILE__, __FUNCTION__);      \
-      fprintf (stderr, "'%s' must not be a bit-vector\n", #arg);  \
-      fflush (stderr);                                            \
-      abort ();                                                   \
-    }                                                             \
-  } while (0)
-
-#define BTOR_ABORT_NOT_BV_BOOLECTOR(arg)                           \
-  do                                                               \
-  {                                                                \
-    if (!btor_is_bitvec_sort (&btor->sorts_unique_table,           \
-                              BTOR_REAL_ADDR_NODE (arg)->sort_id)) \
-    {                                                              \
-      fprintf (stderr, "[%s] %s: ", __FILE__, __FUNCTION__);       \
-      fprintf (stderr, "'%s' must be a bit-vector\n", #arg);       \
-      fflush (stderr);                                             \
-      abort ();                                                    \
-    }                                                              \
-  } while (0)
-
-#define BTOR_ABORT_NE_BW(arg1, arg2)                               \
-  do                                                               \
-  {                                                                \
-    if (BTOR_REAL_ADDR_NODE ((arg1))->sort_id                      \
-        != BTOR_REAL_ADDR_NODE ((arg2))->sort_id)                  \
-    {                                                              \
-      fprintf (stderr, "[%s] %s: ", __FILE__, __FUNCTION__);       \
-      fprintf (stderr,                                             \
-               "bit-width of '%s' and '%s' must not be unequal\n", \
-               #arg1,                                              \
-               #arg2);                                             \
-      fflush (stderr);                                             \
-      abort ();                                                    \
-    }                                                              \
+    fprintf (stderr,                                              \
+             "[%s] function %s is deprecated, use %s instead \n", \
+             __FILE__,                                            \
+             __FUNCTION__,                                        \
+             ##msg);                                              \
+    fflush (stderr);                                              \
   } while (0)
 
 /*------------------------------------------------------------------------*/
 
-#define BTOR_COVER(COND)                                        \
+void btor_abort (const char* filename, const char* fun, const char* fmt, ...);
+
+#define BTOR_ABORT(cond, msg...)                          \
+  do                                                      \
+  {                                                       \
+    if (cond) btor_abort (__FILE__, __FUNCTION__, ##msg); \
+  } while (0)
+
+#define BTOR_ABORT_ARG_NULL(arg)                              \
+  do                                                          \
+  {                                                           \
+    BTOR_ABORT ((arg) == 0, "'%s' must not be NULL\n", #arg); \
+  } while (0)
+
+#define BTOR_ABORT_REFS_NOT_POS(arg)                           \
+  do                                                           \
+  {                                                            \
+    BTOR_ABORT (BTOR_REAL_ADDR_NODE ((arg))->ext_refs < 1,     \
+                "reference counter of '%s' must not be < 1\n", \
+                #arg);                                         \
+  } while (0)
+
+#define BTOR_ABORT_BTOR_MISMATCH(argbtor, argnode)                         \
+  do                                                                       \
+  {                                                                        \
+    BTOR_ABORT (BTOR_REAL_ADDR_NODE (argnode)->btor != (argbtor),          \
+                "argument '%s' belongs to different Boolector instance\n", \
+                #argnode);                                                 \
+  } while (0)
+
+#define BTOR_ABORT_IS_BV(arg)                                             \
+  do                                                                      \
+  {                                                                       \
+    BTOR_ABORT (btor_is_bitvec_sort (&btor->sorts_unique_table,           \
+                                     BTOR_REAL_ADDR_NODE (arg)->sort_id), \
+                "'%s' must not be a bit-vector\n",                        \
+                #arg);                                                    \
+  } while (0)
+
+#define BTOR_ABORT_IS_NOT_BV(arg)                                          \
+  do                                                                       \
+  {                                                                        \
+    BTOR_ABORT (!btor_is_bitvec_sort (&btor->sorts_unique_table,           \
+                                      BTOR_REAL_ADDR_NODE (arg)->sort_id), \
+                "'%s' must be a bit-vector\n",                             \
+                #arg);                                                     \
+  } while (0)
+
+#define BTOR_ABORT_BW_MISMATCH(argbw1, argbw2)                  \
   do                                                            \
   {                                                             \
-    if (!(COND)) break;                                         \
-    fprintf (stderr,                                            \
-             "%s:%d: in %s: Coverage target '" #COND "' hit\n", \
-             __FILE__,                                          \
-             __LINE__,                                          \
-             __FUNCTION__);                                     \
-    fflush (stderr);                                            \
-    abort ();                                                   \
+    BTOR_ABORT (BTOR_REAL_ADDR_NODE ((argbw1))->sort_id         \
+                    != BTOR_REAL_ADDR_NODE ((argbw2))->sort_id, \
+                "bit-width of '%s' and '%s' must match\n",      \
+                #argbw1,                                        \
+                #argbw2);                                       \
   } while (0)
+
+/*------------------------------------------------------------------------*/
 
 #endif

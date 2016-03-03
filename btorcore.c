@@ -12,15 +12,14 @@
  */
 
 #include "btorcore.h"
+
 #include "btorclone.h"
-#include "btorconfig.h"
-#include "btordbg.h"
-#include "btorexit.h"
-#include "btorlog.h"
 #include "btormodel.h"
-#include "btormsg.h"
-#include "btoropt.h"
 #include "btorrewrite.h"
+#include "btorslvef.h"
+#include "btorslvfun.h"
+#include "btorslvprop.h"
+#include "btorslvsls.h"
 #include "simplifier/btorack.h"
 #include "simplifier/btorder.h"
 #include "simplifier/btorelimapplies.h"
@@ -35,9 +34,11 @@
 #ifndef BTOR_DO_NOT_PROCESS_SKELETON
 #include "simplifier/btorskel.h"
 #endif
-#include "btorslvef.h"
-#include "btorslvfun.h"
-#include "btorslvsls.h"
+#include "btorabort.h"
+#include "btorconfig.h"
+#include "btordbg.h"
+#include "btorlog.h"
+#include "btoropt.h"
 
 #include <limits.h>
 
@@ -75,17 +76,6 @@
   {                                               \
     BTOR_RELEASE_UNIQUE_TABLE (mm, table);        \
     BTOR_RELEASE_STACK (mm, table.id2sort);       \
-  } while (0)
-
-#define BTOR_ABORT_CORE(cond, msg)                   \
-  do                                                 \
-  {                                                  \
-    if (cond)                                        \
-    {                                                \
-      printf ("[btorcore] %s: %s\n", __func__, msg); \
-      fflush (stdout);                               \
-      exit (BTOR_ERR_EXIT);                          \
-    }                                                \
   } while (0)
 
 #define BTOR_COND_INVERT_AIG_NODE(exp, aig) \
@@ -3703,7 +3693,13 @@ btor_sat_btor (Btor *btor, int lod_limit, int sat_limit)
         && (btor_get_opt (btor, BTOR_OPT_BETA_REDUCE_ALL)
             || btor->lambdas->count == 0))
       btor->slv = btor_new_sls_solver (btor);
-    else if (btor_get_opt (btor, BTOR_OPT_ENGINE) == BTOR_ENGINE_EF)
+    else if ((btor_get_opt (btor, BTOR_OPT_ENGINE) == BTOR_ENGINE_PROP)
+             && btor->ufs->count == 0
+             && (btor_get_opt (btor, BTOR_OPT_BETA_REDUCE_ALL)
+                 || btor->lambdas->count == 0))
+      btor->slv = btor_new_prop_solver (btor);
+    else if (btor_get_opt (btor, BTOR_OPT_ENGINE) == BTOR_ENGINE_EF
+             && btor->quantifiers->count > 0)
     {
       btor->slv = btor_new_ef_solver (btor);
 #ifndef NDEBUG
@@ -3712,8 +3708,8 @@ btor_sat_btor (Btor *btor, int lod_limit, int sat_limit)
     }
     else
     {
-      BTOR_ABORT_CORE (btor->quantifiers->count > 0,
-                       "function engine cannot handle quantifiers");
+      BTOR_ABORT (btor->quantifiers->count > 0,
+                  "function engine cannot handle quantifiers");
       btor->slv = btor_new_fun_solver (btor);
       // TODO (ma): make options for lod_limit and sat_limit
       BTOR_FUN_SOLVER (btor)->lod_limit = lod_limit;
@@ -3780,6 +3776,9 @@ btor_sat_btor (Btor *btor, int lod_limit, int sat_limit)
   }
 #endif
 
+#ifndef NBTORLOG
+  btor_log_opts (btor);
+#endif
   res = btor->slv->api.sat (btor->slv);
   btor->btor_sat_btor_called++;
 
@@ -3797,12 +3796,17 @@ btor_sat_btor (Btor *btor, int lod_limit, int sat_limit)
 
   if (btor_get_opt (btor, BTOR_OPT_MODEL_GEN) && res == BTOR_RESULT_SAT)
   {
-    if (btor_get_opt (btor, BTOR_OPT_ENGINE) == BTOR_ENGINE_SLS)
-      btor->slv->api.generate_model (
-          btor->slv, btor_get_opt (btor, BTOR_OPT_MODEL_GEN) == 2, false);
-    else
-      btor->slv->api.generate_model (
-          btor->slv, btor_get_opt (btor, BTOR_OPT_MODEL_GEN) == 2, true);
+    switch (btor_get_opt (btor, BTOR_OPT_ENGINE))
+    {
+      case BTOR_ENGINE_SLS:
+      case BTOR_ENGINE_PROP:
+        btor->slv->api.generate_model (
+            btor->slv, btor_get_opt (btor, BTOR_OPT_MODEL_GEN) == 2, false);
+        break;
+      default:
+        btor->slv->api.generate_model (
+            btor->slv, btor_get_opt (btor, BTOR_OPT_MODEL_GEN) == 2, true);
+    }
   }
 
 #ifdef BTOR_CHECK_MODEL
@@ -3813,10 +3817,14 @@ btor_sat_btor (Btor *btor, int lod_limit, int sat_limit)
     {
       if (!btor_get_opt (btor, BTOR_OPT_MODEL_GEN))
       {
-        if (btor_get_opt (btor, BTOR_OPT_ENGINE) == BTOR_ENGINE_SLS)
-          btor->slv->api.generate_model (btor->slv, false, false);
-        else
-          btor->slv->api.generate_model (btor->slv, false, true);
+        switch (btor_get_opt (btor, BTOR_OPT_ENGINE))
+        {
+          case BTOR_ENGINE_SLS:
+          case BTOR_ENGINE_PROP:
+            btor->slv->api.generate_model (btor->slv, false, false);
+            break;
+          default: btor->slv->api.generate_model (btor->slv, false, true);
+        }
       }
       check_model (btor, mclone, inputs);
     }
@@ -4149,12 +4157,12 @@ check_model (Btor *btor, Btor *clone, BtorPtrHashTable *inputs)
   btor_set_opt (clone, BTOR_OPT_BETA_REDUCE_ALL, 1);
   ret = btor_simplify (clone);
 
-  //  btor_print_model (btor, "btor", stdout);
+  // btor_print_model (btor, "btor", stdout);
   assert (ret != BTOR_RESULT_UNKNOWN
           || clone->slv->api.sat (clone->slv) == BTOR_RESULT_SAT);
   // TODO: check if roots have been simplified through aig rewriting
-  // BTOR_ABORT_CORE (ret == BTOR_RESULT_UNKNOWN, "rewriting needed");
-  BTOR_ABORT_CORE (ret == BTOR_RESULT_UNSAT, "invalid model");
+  // BTOR_ABORT (ret == BTOR_RESULT_UNKNOWN, "rewriting needed");
+  BTOR_ABORT (ret == BTOR_RESULT_UNSAT, "invalid model");
 }
 #endif
 

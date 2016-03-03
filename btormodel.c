@@ -1,7 +1,7 @@
 /*  Boolector: Satisfiablity Modulo Theories (SMT) solver.
  *
  *  Copyright (C) 2014-2015 Mathias Preiner.
- *  Copyright (C) 2014-2015 Aina Niemetz.
+ *  Copyright (C) 2014-2016 Aina Niemetz.
  *
  *  All rights reserved.
  *
@@ -10,26 +10,14 @@
  */
 
 #include "btormodel.h"
+
 #include "btorbeta.h"
 #include "btordbg.h"
-#include "btorexit.h"
 #include "btorlog.h"
-#include "btorslvsls.h"
 #include "utils/btoriter.h"
 #include "utils/btormem.h"
 #include "utils/btormisc.h"
 #include "utils/btorutil.h"
-
-#define BTOR_ABORT_MODEL(cond, msg)                   \
-  do                                                  \
-  {                                                   \
-    if (cond)                                         \
-    {                                                 \
-      printf ("[btormodel] %s: %s\n", __func__, msg); \
-      fflush (stdout);                                \
-      exit (BTOR_ERR_EXIT);                           \
-    }                                                 \
-  } while (0)
 
 void
 btor_delete_bv_model (Btor *btor, BtorPtrHashTable **bv_model)
@@ -860,7 +848,7 @@ void
 btor_generate_model (Btor *btor,
                      BtorPtrHashTable *bv_model,
                      BtorPtrHashTable *fun_model,
-                     int model_for_all_nodes)
+                     bool model_for_all_nodes)
 {
   assert (btor);
   assert (bv_model);

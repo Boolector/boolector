@@ -25,25 +25,17 @@
 
 /*------------------------------------------------------------------------*/
 
-#ifndef NBTORLOG
-#define BTORUNT_LOG_USAGE \
-  "\n"                    \
-  "  --blog <loglevel>          enable boolector logging\n"
-#else
-#define BTORUNT_LOG_USAGE ""
-#endif
-
-#define BTORUNT_USAGE                                                    \
-  "usage: btoruntrace [ <option> ... ] [ <trace> ]\n"                    \
-  "\n"                                                                   \
-  "where <option> is one of the following:\n"                            \
-  "\n"                                                                   \
-  "  -v, --verbose              increase verbosity\n"                    \
-  "  -e, --exit-on-abort        exit on boolector abort\n"               \
-  "  -s, --skip-getters         skip 'getter' functions\n"               \
-  "  -i, --ignore-sat-result    do not exit on mismatching sat result\n" \
-  "  -dp, --dual-prop           enable dual prop "                       \
-  "optimization\n" BTORUNT_LOG_USAGE
+#define BTORUNT_USAGE                                                      \
+  "usage: btoruntrace [ <option> ... ] [ <trace> ]\n"                      \
+  "\n"                                                                     \
+  "where <option> is one of the following:\n"                              \
+  "\n"                                                                     \
+  "  -v, --verbosity              increase verbosity\n"                    \
+  "  -e, --exit-on-abort        exit on boolector abort\n"                 \
+  "  -s, --skip-getters         skip 'getter' functions\n"                 \
+  "  -i, --ignore-sat-result    do not exit on mismatching sat result\n"   \
+  "  -b <btoropt> <val>         set boolector option <btoropt> to <val>\n" \
+  "                             (Note: overrides trace opt settings!)\n"
 
 /*------------------------------------------------------------------------*/
 
@@ -53,87 +45,128 @@ void boolector_get_btor_msg (Btor *);
 void boolector_print_value (Btor *, BoolectorNode *, char *, char *, FILE *);
 
 /*------------------------------------------------------------------------*/
-typedef struct BtorUNT
+typedef struct BtorUNT BtorUNT;
+
+struct BtorUNTBtorOpt
+{
+  BtorOption kind;
+  char *name;
+  int val;
+};
+
+typedef struct BtorUNTBtorOpt BtorUNTBtorOpt;
+
+BTOR_DECLARE_STACK (BtorUNTBtorOptPtr, BtorUNTBtorOpt *);
+
+struct BtorUNT
 {
   BtorMemMgr *mm;
-  int verbose;
+  BtorUNTBtorOptPtrStack btor_opts;
+  int verbosity;
   int exit_on_abort;
   int line;
   int skip;
   int ignore_sat;
-  int dual_prop;
-  int just;
-  int blog_level;
   char *filename;
-} BtorUNT;
+};
 
-static BtorUNT *btorunt;
+/*------------------------------------------------------------------------*/
 
 static BtorUNT *
 new_btorunt (void)
 {
-  BtorUNT *btorunt;
+  BtorUNT *res;
   BtorMemMgr *mm;
 
   mm = btor_new_mem_mgr ();
-  BTOR_CNEW (mm, btorunt);
-  btorunt->mm   = mm;
-  btorunt->line = 1;
-
-  return btorunt;
+  BTOR_CNEW (mm, res);
+  res->mm = mm;
+  BTOR_INIT_STACK (res->btor_opts);
+  res->line = 1;
+  return res;
 }
 
 static void
-delete_btorunt (BtorUNT *btorunt)
+delete_btorunt (BtorUNT *unt)
 {
-  BtorMemMgr *mm = btorunt->mm;
-  BTOR_DELETE (mm, btorunt);
+  int i;
+  BtorUNTBtorOpt *o;
+  BtorMemMgr *mm;
+
+  mm = unt->mm;
+  for (i = 0; i < BTOR_COUNT_STACK (unt->btor_opts); i++)
+  {
+    o = BTOR_PEEK_STACK (unt->btor_opts, i);
+    assert (o);
+    btor_freestr (mm, o->name);
+    BTOR_DELETE (mm, o);
+  }
+  BTOR_RELEASE_STACK (mm, unt->btor_opts);
+  BTOR_DELETE (mm, unt);
   btor_delete_mem_mgr (mm);
+}
+
+static bool
+has_btor_opt (BtorUNT *unt, BtorOption opt)
+{
+  assert (unt);
+
+  int i;
+  BtorUNTBtorOpt *o;
+
+  for (i = 0; i < BTOR_COUNT_STACK (unt->btor_opts); i++)
+  {
+    o = BTOR_PEEK_STACK (unt->btor_opts, i);
+    if (o->kind == opt) return true;
+  }
+  return false;
 }
 
 /*------------------------------------------------------------------------*/
 
+static BtorUNT *g_btorunt;
+
+/*------------------------------------------------------------------------*/
+
 static void
-die (const char *fmt, ...)
+btorunt_error (const char *msg, ...)
 {
-  va_list ap;
-  fputs ("*** btoruntrace: ", stderr);
-  va_start (ap, fmt);
-  vfprintf (stderr, fmt, ap);
-  va_end (ap);
+  va_list list;
+  fputs ("btoruntrace: ", stderr);
+  va_start (list, msg);
+  vfprintf (stderr, msg, list);
+  va_end (list);
   fputc ('\n', stderr);
   fflush (stderr);
   exit (1);
 }
 
 static void
-perr (const char *fmt, ...)
+btorunt_parse_error (const char *msg, ...)
 {
-  va_list ap;
+  va_list list;
   fprintf (stderr,
-           "*** btoruntrace: parse error in '%s' line %d: ",
-           btorunt->filename,
-           btorunt->line);
-  va_start (ap, fmt);
-  vfprintf (stderr, fmt, ap);
-  va_end (ap);
+           "btoruntrace: parse error in '%s' line %d: ",
+           g_btorunt->filename,
+           g_btorunt->line);
+  va_start (list, msg);
+  vfprintf (stderr, msg, list);
+  va_end (list);
   fputc ('\n', stderr);
   fflush (stderr);
   exit (1);
 }
 
-static void
-msg (const char *fmt, ...)
-{
-  va_list ap;
-  if (!btorunt->verbose) return;
-  fputs ("c [btoruntrace] ", stdout);
-  va_start (ap, fmt);
-  vprintf (fmt, ap);
-  va_end (ap);
-  fputc ('\n', stdout);
-  fflush (stdout);
-}
+#define BTORUNT_LOG(fmt, args...) \
+  do                              \
+  {                               \
+    if (g_btorunt->verbosity)     \
+    {                             \
+      printf ("[btorunt] ");      \
+      printf (fmt, ##args);       \
+      printf ("\n");              \
+    }                             \
+  } while (0)
 
 /*------------------------------------------------------------------------*/
 
@@ -153,7 +186,7 @@ checklastarg (char *op)
 {
   if (strtok (0, " "))
   {
-    perr ("too many arguments for '%s'", op);
+    btorunt_parse_error ("too many arguments for '%s'", op);
   }
 }
 
@@ -164,7 +197,7 @@ boolarg (char *op)
   if (!(tok = strtok (0, " "))
       || (strcmp (tok, "true") && strcmp (tok, "false")))
   {
-    perr ("expected Boolean argument for '%s'", op);
+    btorunt_parse_error ("expected Boolean argument for '%s'", op);
   }
   assert (tok);
   return !strcmp (tok, "true") ? true : false;
@@ -176,7 +209,7 @@ intarg (char *op)
   const char *tok;
   if (!(tok = strtok (0, " ")) || !isnumstr (tok))
   {
-    perr ("expected integer argument for '%s'", op);
+    btorunt_parse_error ("expected integer argument for '%s'", op);
   }
   assert (tok);
   return atoi (tok);
@@ -188,7 +221,7 @@ strarg (char *op)
   char *tok;
   if (!(tok = strtok (0, " ")))
   {
-    perr ("expected string argument for '%s'", op);
+    btorunt_parse_error ("expected string argument for '%s'", op);
   }
   return tok;
 }
@@ -223,12 +256,12 @@ hmap_get (BtorPtrHashTable *hmap, char *btor_str, char *key)
   BtorPtrHashBucket *bucket;
 
   len = (btor_str ? strlen (btor_str) : 0) + strlen (key) + 1;
-  BTOR_NEWN (btorunt->mm, tmp_key, len);
+  BTOR_NEWN (g_btorunt->mm, tmp_key, len);
   sprintf (tmp_key, "%s%s", btor_str ? btor_str : "", key);
   bucket = btor_get_ptr_hash_table (hmap, tmp_key);
-  if (!bucket) die ("'%s' is not hashed", tmp_key);
+  if (!bucket) btorunt_error ("'%s' is not hashed", tmp_key);
   assert (bucket);
-  BTOR_DELETEN (btorunt->mm, tmp_key, len);
+  BTOR_DELETEN (g_btorunt->mm, tmp_key, len);
   return bucket->data.as_ptr;
 }
 
@@ -249,7 +282,7 @@ hmap_add (BtorPtrHashTable *hmap, char *btor_str, char *key, void *value)
   BtorPtrHashBucket *bucket;
 
   len = (btor_str ? strlen (btor_str) : 0) + strlen (key) + 1;
-  BTOR_NEWN (btorunt->mm, tmp_key, len);
+  BTOR_NEWN (g_btorunt->mm, tmp_key, len);
   sprintf (tmp_key, "%s%s", btor_str ? btor_str : "", key);
   bucket = btor_get_ptr_hash_table (hmap, tmp_key);
   if (!bucket)
@@ -261,7 +294,7 @@ hmap_add (BtorPtrHashTable *hmap, char *btor_str, char *key, void *value)
   }
   assert (bucket);
   bucket->data.as_ptr = value;
-  BTOR_DELETEN (btorunt->mm, tmp_key, len);
+  BTOR_DELETEN (g_btorunt->mm, tmp_key, len);
 }
 
 static void
@@ -319,7 +352,7 @@ parse (FILE *file)
   BtorCharPtrStack arg_str;
   BoolectorSortStack sort_stack;
 
-  msg ("reading %s", btorunt->filename);
+  BTORUNT_LOG ("parsing %s", g_btorunt->filename);
 
   delete = 1;
 
@@ -335,15 +368,15 @@ parse (FILE *file)
   clone      = 0;
 
   hmap = btor_new_ptr_hash_table (
-      btorunt->mm, (BtorHashPtr) btor_hash_str, (BtorCmpPtr) strcmp);
+      g_btorunt->mm, (BtorHashPtr) btor_hash_str, (BtorCmpPtr) strcmp);
 
-  BTOR_CNEWN (btorunt->mm, buffer, buffer_len);
+  BTOR_CNEWN (g_btorunt->mm, buffer, buffer_len);
 
   BTOR_INIT_STACK (arg_int);
   BTOR_INIT_STACK (arg_str);
   BTOR_INIT_STACK (sort_stack);
 
-  BTOR_CNEWN (btorunt->mm, btor_str, BTOR_STR_LEN);
+  BTOR_CNEWN (g_btorunt->mm, btor_str, BTOR_STR_LEN);
 
 NEXT:
   BTOR_RESET_STACK (arg_int);
@@ -356,20 +389,20 @@ NEXT:
   {
     if (len + 1 >= buffer_len)
     {
-      BTOR_REALLOC (btorunt->mm, buffer, buffer_len, buffer_len * 2);
+      BTOR_REALLOC (g_btorunt->mm, buffer, buffer_len, buffer_len * 2);
       buffer_len *= 2;
-      msg ("buffer resized");
+      BTORUNT_LOG ("buffer resized");
     }
     buffer[len++] = ch;
     buffer[len]   = 0;
     goto NEXT;
   }
-  msg ("line %d : %s", btorunt->line, buffer);
+  BTORUNT_LOG ("  %d: %s", g_btorunt->line, buffer);
 
   /* NOTE take care of c function parameter evaluation order with more
    * than 1 argument */
   if (!(tok = strtok (buffer, " ")))
-    perr ("empty line");
+    btorunt_parse_error ("empty line");
   else if (exp_ret)
   {
     if (!strcmp (tok, "return"))
@@ -384,23 +417,25 @@ NEXT:
       {
         bool exp_bool = boolarg ("return");
         if (exp_bool != ret_bool)
-          die ("expected return value %s but got %s",
-               exp_bool ? "true" : "false",
-               ret_bool ? "true" : "false");
+          btorunt_error ("expected return value %s but got %s",
+                         exp_bool ? "true" : "false",
+                         ret_bool ? "true" : "false");
       }
       else if (exp_ret == RET_INT)
       {
         int exp_int = intarg ("return");
         checklastarg ("return");
         if (exp_int != ret_int)
-          die ("expected return value %d but got %d", exp_int, ret_int);
+          btorunt_error (
+              "expected return value %d but got %d", exp_int, ret_int);
       }
       else if (exp_ret == RET_CHARPTR)
       {
         exp_str = strarg ("return");
         checklastarg ("return");
         if (strcmp (exp_str, ret_str))
-          die ("expected return string %s but got %s", exp_str, ret_str);
+          btorunt_error (
+              "expected return string %s but got %s", exp_str, ret_str);
       }
       else if (exp_ret == RET_ARRASS)
       {
@@ -411,14 +446,15 @@ NEXT:
           hmap_add (hmap, btor_str, arg2_str, res2_pptr);
         }
         if (arg3_int != ret_int)
-          die ("expected return value %d but got %d", arg3_int, ret_int);
+          btorunt_error (
+              "expected return value %d but got %d", arg3_int, ret_int);
       }
       else
         assert (exp_ret == RET_SKIP);
     }
     else
     {
-      perr ("return expected");
+      btorunt_parse_error ("return expected");
     }
     exp_ret = RET_NONE;
     clone   = 0;
@@ -445,13 +481,18 @@ NEXT:
     {
       PARSE_ARGS0 (tok);
       btor = boolector_new ();
-#ifndef NBTORLOG
-      if (btorunt->blog_level)
-        boolector_set_opt (btor, BTOR_OPT_LOGLEVEL, btorunt->blog_level);
-#endif
-      if (btorunt->dual_prop)
-        boolector_set_opt (btor, BTOR_OPT_FUN_DUAL_PROP, 1);
-      if (btorunt->just) boolector_set_opt (btor, BTOR_OPT_FUN_JUST, 1);
+      /* set btor options given via CL
+       * (Note: overrules opt values set via trace file!) */
+      for (i = 0; i < BTOR_COUNT_STACK (g_btorunt->btor_opts); i++)
+      {
+        boolector_set_opt (btor,
+                           BTOR_PEEK_STACK (g_btorunt->btor_opts, i)->kind,
+                           BTOR_PEEK_STACK (g_btorunt->btor_opts, i)->val);
+        BTORUNT_LOG ("     set boolector option '%s' to '%u' (via CL)",
+                     BTOR_PEEK_STACK (g_btorunt->btor_opts, i)->name,
+                     BTOR_PEEK_STACK (g_btorunt->btor_opts, i)->val);
+      }
+
       exp_ret = RET_VOIDPTR;
       ret_ptr = btor;
     }
@@ -531,13 +572,13 @@ NEXT:
     {
       PARSE_ARGS0 (tok);
       ret_int = boolector_sat (btor);
-      exp_ret = btorunt->ignore_sat ? RET_SKIP : RET_INT;
+      exp_ret = g_btorunt->ignore_sat ? RET_SKIP : RET_INT;
     }
     else if (!strcmp (tok, "limited_sat"))
     {
       PARSE_ARGS2 (tok, int, int);
       ret_int = boolector_limited_sat (btor, arg1_int, arg2_int);
-      exp_ret = btorunt->ignore_sat ? RET_SKIP : RET_INT;
+      exp_ret = g_btorunt->ignore_sat ? RET_SKIP : RET_INT;
     }
     else if (!strcmp (tok, "simplify"))
     {
@@ -578,12 +619,19 @@ NEXT:
 #endif
     else if (!strcmp (tok, "set_opt"))
     {
-      PARSE_ARGS2 (tok, int, int);
-      boolector_set_opt (btor, arg1_int, arg2_int);
+      PARSE_ARGS3 (tok, int, str, int);
+      assert (!strcmp (boolector_get_opt_lng (btor, arg1_int), arg2_str));
+      if (!has_btor_opt (g_btorunt, arg1_int))
+      {
+        boolector_set_opt (btor, arg1_int, arg3_int);
+        BTORUNT_LOG ("     set boolector option '%s' to '%u' (via trace)",
+                     arg2_str,
+                     arg3_int);
+      }
     }
     else if (!strcmp (tok, "get_opt"))
     {
-      if (!btorunt->skip)
+      if (!g_btorunt->skip)
       {
         PARSE_ARGS1 (tok, int);
         ret_int = boolector_get_opt (btor, arg1_int);
@@ -594,7 +642,7 @@ NEXT:
     }
     else if (!strcmp (tok, "get_opt_min"))
     {
-      if (!btorunt->skip)
+      if (!g_btorunt->skip)
       {
         PARSE_ARGS1 (tok, int);
         ret_int = boolector_get_opt_min (btor, arg1_int);
@@ -605,7 +653,7 @@ NEXT:
     }
     else if (!strcmp (tok, "get_opt_max"))
     {
-      if (!btorunt->skip)
+      if (!g_btorunt->skip)
       {
         PARSE_ARGS1 (tok, int);
         ret_int = boolector_get_opt_max (btor, arg1_int);
@@ -616,7 +664,7 @@ NEXT:
     }
     else if (!strcmp (tok, "get_opt_dflt"))
     {
-      if (!btorunt->skip)
+      if (!g_btorunt->skip)
       {
         PARSE_ARGS1 (tok, int);
         ret_int = boolector_get_opt_dflt (btor, arg1_int);
@@ -627,7 +675,7 @@ NEXT:
     }
     else if (!strcmp (tok, "get_opt_shrt"))
     {
-      if (!btorunt->skip)
+      if (!g_btorunt->skip)
       {
         PARSE_ARGS1 (tok, int);
         ret_str = (void *) boolector_get_opt_shrt (btor, arg1_int);
@@ -638,7 +686,7 @@ NEXT:
     }
     else if (!strcmp (tok, "get_opt_lng"))
     {
-      if (!btorunt->skip)
+      if (!g_btorunt->skip)
       {
         PARSE_ARGS1 (tok, int);
         ret_str = (void *) boolector_get_opt_lng (btor, arg1_int);
@@ -649,7 +697,7 @@ NEXT:
     }
     else if (!strcmp (tok, "get_opt_desc"))
     {
-      if (!btorunt->skip)
+      if (!g_btorunt->skip)
       {
         PARSE_ARGS1 (tok, int);
         ret_str = (void *) boolector_get_opt_desc (btor, arg1_int);
@@ -660,7 +708,7 @@ NEXT:
     }
     else if (!strcmp (tok, "has_opt"))
     {
-      if (!btorunt->skip)
+      if (!g_btorunt->skip)
       {
         PARSE_ARGS1 (tok, int);
         ret_bool = boolector_has_opt (btor, arg1_int);
@@ -671,7 +719,7 @@ NEXT:
     }
     else if (!strcmp (tok, "first_opt"))
     {
-      if (!btorunt->skip)
+      if (!g_btorunt->skip)
       {
         PARSE_ARGS0 (tok);
         ret_int = boolector_first_opt (btor);
@@ -682,7 +730,7 @@ NEXT:
     }
     else if (!strcmp (tok, "next_opt"))
     {
-      if (!btorunt->skip)
+      if (!g_btorunt->skip)
       {
         PARSE_ARGS1 (tok, int);
         ret_int = boolector_next_opt (btor, arg1_int);
@@ -1180,54 +1228,54 @@ NEXT:
     }
     else if (!strcmp (tok, "fun"))
     {
-      arg1_int = intarg (tok);                /* paramc */
-      BTOR_NEWN (btorunt->mm, tmp, arg1_int); /* params */
+      arg1_int = intarg (tok);                  /* paramc */
+      BTOR_NEWN (g_btorunt->mm, tmp, arg1_int); /* params */
       for (i = 0; i < arg1_int; i++)
         tmp[i] = hmap_get (hmap, btor_str, strarg (tok));
       arg1_str = strarg (tok); /* function body */
       checklastarg (tok);
       ret_ptr = boolector_fun (
           btor, tmp, arg1_int, hmap_get (hmap, btor_str, arg1_str));
-      BTOR_DELETEN (btorunt->mm, tmp, arg1_int);
+      BTOR_DELETEN (g_btorunt->mm, tmp, arg1_int);
       exp_ret = RET_VOIDPTR;
     }
     else if (!strcmp (tok, "exists"))
     {
       arg1_int = intarg (tok);
-      BTOR_NEWN (btorunt->mm, tmp, arg1_int); /* vars */
+      BTOR_NEWN (g_btorunt->mm, tmp, arg1_int); /* vars */
       for (i = 0; i < arg1_int; i++)
         tmp[i] = hmap_get (hmap, btor_str, strarg (tok));
       arg1_str = strarg (tok); /* body */
       checklastarg (tok);
       ret_ptr = boolector_exists (
           btor, tmp, arg1_int, hmap_get (hmap, btor_str, arg1_str));
-      BTOR_DELETEN (btorunt->mm, tmp, arg1_int);
+      BTOR_DELETEN (g_btorunt->mm, tmp, arg1_int);
       exp_ret = RET_VOIDPTR;
     }
     else if (!strcmp (tok, "forall"))
     {
       arg1_int = intarg (tok);
-      BTOR_NEWN (btorunt->mm, tmp, arg1_int); /* vars */
+      BTOR_NEWN (g_btorunt->mm, tmp, arg1_int); /* vars */
       for (i = 0; i < arg1_int; i++)
         tmp[i] = hmap_get (hmap, btor_str, strarg (tok));
       arg1_str = strarg (tok); /* body */
       checklastarg (tok);
       ret_ptr = boolector_forall (
           btor, tmp, arg1_int, hmap_get (hmap, btor_str, arg1_str));
-      BTOR_DELETEN (btorunt->mm, tmp, arg1_int);
+      BTOR_DELETEN (g_btorunt->mm, tmp, arg1_int);
       exp_ret = RET_VOIDPTR;
     }
     else if (!strcmp (tok, "apply"))
     {
-      arg1_int = intarg (tok);                /* argc */
-      BTOR_NEWN (btorunt->mm, tmp, arg1_int); /* args */
+      arg1_int = intarg (tok);                  /* argc */
+      BTOR_NEWN (g_btorunt->mm, tmp, arg1_int); /* args */
       for (i = 0; i < arg1_int; i++)
         tmp[i] = hmap_get (hmap, btor_str, strarg (tok));
       arg1_str = strarg (tok); /* function */
       checklastarg (tok);
       ret_ptr = boolector_apply (
           btor, tmp, arg1_int, hmap_get (hmap, btor_str, arg1_str));
-      BTOR_DELETEN (btorunt->mm, tmp, arg1_int);
+      BTOR_DELETEN (g_btorunt->mm, tmp, arg1_int);
       exp_ret = RET_VOIDPTR;
     }
     else if (!strcmp (tok, "inc"))
@@ -1246,7 +1294,7 @@ NEXT:
     else if (!strcmp (tok, "get_refs"))
     {
       PARSE_ARGS0 (tok);
-      if (!btorunt->skip)
+      if (!g_btorunt->skip)
       {
         ret_int = boolector_get_refs (btor);
         exp_ret = RET_INT;
@@ -1257,7 +1305,7 @@ NEXT:
     else if (!strcmp (tok, "get_id"))
     {
       PARSE_ARGS1 (tok, str);
-      if (!btorunt->skip)
+      if (!g_btorunt->skip)
       {
         ret_int = boolector_get_id (btor, hmap_get (hmap, btor_str, arg1_str));
         exp_ret = RET_INT;
@@ -1268,7 +1316,7 @@ NEXT:
     else if (!strcmp (tok, "get_symbol"))
     {
       PARSE_ARGS1 (tok, str);
-      if (!btorunt->skip)
+      if (!g_btorunt->skip)
       {
         ret_str = (char *) boolector_get_symbol (
             btor, hmap_get (hmap, btor_str, arg1_str));
@@ -1287,7 +1335,7 @@ NEXT:
     else if (!strcmp (tok, "get_width"))
     {
       PARSE_ARGS1 (tok, str);
-      if (!btorunt->skip)
+      if (!g_btorunt->skip)
       {
         ret_int =
             boolector_get_width (btor, hmap_get (hmap, btor_str, arg1_str));
@@ -1299,7 +1347,7 @@ NEXT:
     else if (!strcmp (tok, "get_index_width"))
     {
       PARSE_ARGS1 (tok, str);
-      if (!btorunt->skip)
+      if (!g_btorunt->skip)
       {
         ret_int = boolector_get_index_width (
             btor, hmap_get (hmap, btor_str, arg1_str));
@@ -1311,7 +1359,7 @@ NEXT:
     else if (!strcmp (tok, "get_bits"))
     {
       PARSE_ARGS1 (tok, str);
-      if (!btorunt->skip)
+      if (!g_btorunt->skip)
       {
         ret_str = (char *) boolector_get_bits (
             btor, hmap_get (hmap, btor_str, arg1_str));
@@ -1328,7 +1376,7 @@ NEXT:
     else if (!strcmp (tok, "get_fun_arity"))
     {
       PARSE_ARGS1 (tok, str);
-      if (!btorunt->skip)
+      if (!g_btorunt->skip)
       {
         ret_int =
             boolector_get_fun_arity (btor, hmap_get (hmap, btor_str, arg1_str));
@@ -1340,7 +1388,7 @@ NEXT:
     else if (!strcmp (tok, "is_const"))
     {
       PARSE_ARGS1 (tok, str);
-      if (!btorunt->skip)
+      if (!g_btorunt->skip)
       {
         ret_bool =
             boolector_is_const (btor, hmap_get (hmap, btor_str, arg1_str));
@@ -1352,7 +1400,7 @@ NEXT:
     else if (!strcmp (tok, "is_var"))
     {
       PARSE_ARGS1 (tok, str);
-      if (!btorunt->skip)
+      if (!g_btorunt->skip)
       {
         ret_bool = boolector_is_var (btor, hmap_get (hmap, btor_str, arg1_str));
         exp_ret  = RET_BOOL;
@@ -1363,7 +1411,7 @@ NEXT:
     else if (!strcmp (tok, "is_array"))
     {
       PARSE_ARGS1 (tok, str);
-      if (!btorunt->skip)
+      if (!g_btorunt->skip)
       {
         ret_bool =
             boolector_is_array (btor, hmap_get (hmap, btor_str, arg1_str));
@@ -1375,7 +1423,7 @@ NEXT:
     else if (!strcmp (tok, "is_array_var"))
     {
       PARSE_ARGS1 (tok, str);
-      if (!btorunt->skip)
+      if (!g_btorunt->skip)
       {
         ret_bool =
             boolector_is_array_var (btor, hmap_get (hmap, btor_str, arg1_str));
@@ -1387,7 +1435,7 @@ NEXT:
     else if (!strcmp (tok, "is_param"))
     {
       PARSE_ARGS1 (tok, str);
-      if (!btorunt->skip)
+      if (!g_btorunt->skip)
       {
         ret_bool =
             boolector_is_param (btor, hmap_get (hmap, btor_str, arg1_str));
@@ -1399,7 +1447,7 @@ NEXT:
     else if (!strcmp (tok, "is_bound_param"))
     {
       PARSE_ARGS1 (tok, str);
-      if (!btorunt->skip)
+      if (!g_btorunt->skip)
       {
         ret_bool = boolector_is_bound_param (
             btor, hmap_get (hmap, btor_str, arg1_str));
@@ -1411,7 +1459,7 @@ NEXT:
     else if (!strcmp (tok, "is_fun"))
     {
       PARSE_ARGS1 (tok, str);
-      if (!btorunt->skip)
+      if (!g_btorunt->skip)
       {
         ret_bool = boolector_is_fun (btor, hmap_get (hmap, btor_str, arg1_str));
         exp_ret  = RET_BOOL;
@@ -1422,7 +1470,7 @@ NEXT:
     else if (!strcmp (tok, "fun_sort_check"))
     {
       arg1_int = intarg (tok); /* argc */
-      BTOR_NEWN (btorunt->mm, tmp, arg1_int);
+      BTOR_NEWN (g_btorunt->mm, tmp, arg1_int);
       for (i = 0; i < arg1_int; i++) /* args */
         tmp[i] = hmap_get (hmap, btor_str, strarg (tok));
       arg1_str = strarg (tok); /* function body */
@@ -1430,7 +1478,7 @@ NEXT:
       ret_int = boolector_fun_sort_check (
           btor, tmp, arg1_int, hmap_get (hmap, btor_str, arg1_str));
       exp_ret = RET_SKIP;
-      BTOR_DELETEN (btorunt->mm, tmp, arg1_int);
+      BTOR_DELETEN (g_btorunt->mm, tmp, arg1_int);
     }
     else if (!strcmp (tok, "bv_assignment"))
     {
@@ -1511,7 +1559,7 @@ NEXT:
     {
       while ((tok = strtok (0, " ")))
         BTOR_PUSH_STACK (
-            btorunt->mm,
+            g_btorunt->mm,
             sort_stack,
             (BoolectorSort) (size_t) hmap_get (hmap, btor_str, tok));
       assert (BTOR_COUNT_STACK (sort_stack) >= 2);
@@ -1559,18 +1607,18 @@ NEXT:
       boolector_dump_smt2 (btor, stdout);
     }
     else
-      perr ("invalid command '%s'", tok);
+      btorunt_parse_error ("invalid command '%s'", tok);
   }
-  btorunt->line++;
+  g_btorunt->line++;
   len = 0;
   goto NEXT;
 DONE:
-  msg ("done %s", btorunt->filename);
-  BTOR_DELETEN (btorunt->mm, btor_str, BTOR_STR_LEN);
-  BTOR_RELEASE_STACK (btorunt->mm, arg_int);
-  BTOR_RELEASE_STACK (btorunt->mm, arg_str);
-  BTOR_RELEASE_STACK (btorunt->mm, sort_stack);
-  BTOR_DELETEN (btorunt->mm, buffer, buffer_len);
+  BTORUNT_LOG ("done %s", g_btorunt->filename);
+  BTOR_DELETEN (g_btorunt->mm, btor_str, BTOR_STR_LEN);
+  BTOR_RELEASE_STACK (g_btorunt->mm, arg_int);
+  BTOR_RELEASE_STACK (g_btorunt->mm, arg_str);
+  BTOR_RELEASE_STACK (g_btorunt->mm, sort_stack);
+  BTOR_DELETEN (g_btorunt->mm, buffer, buffer_len);
   hmap_clear (hmap);
   btor_delete_ptr_hash_table (hmap);
   if (delete) boolector_delete (btor);
@@ -1579,7 +1627,7 @@ DONE:
 static void
 exitonsig (int sig)
 {
-  msg ("exit(%d) on signal %d", sig, sig);
+  BTORUNT_LOG ("exit on signal %d", sig);
   exit (sig);
 }
 
@@ -1587,11 +1635,17 @@ int
 main (int argc, char **argv)
 {
   int i;
+  uint32_t val;
+  Btor *tmpbtor;
+  BtorOption o;
+  BtorUNTBtorOpt *btoropt;
+  char *tmp;
+  const char *lng;
   FILE *file;
 
-  btorunt = new_btorunt ();
+  g_btorunt = new_btorunt ();
 
-  for (i = 1; i < argc; i++)
+  for (i = 1, tmpbtor = 0; i < argc; i++)
   {
     if (!strcmp (argv[i], "-h"))
     {
@@ -1599,47 +1653,56 @@ main (int argc, char **argv)
       exit (0);
     }
     else if (!strcmp (argv[i], "-v") || !strcmp (argv[i], "--verbose"))
-      btorunt->verbose = 1;
+      g_btorunt->verbosity = 1;
     else if (!strcmp (argv[i], "-e") || !strcmp (argv[i], "--exit-on-abort"))
-      btorunt->exit_on_abort = 1;
+      g_btorunt->exit_on_abort = 1;
     else if (!strcmp (argv[i], "-s") || !strcmp (argv[i], "--skip-getters"))
-      btorunt->skip = 1;
+      g_btorunt->skip = 1;
     else if (!strcmp (argv[i], "-i")
              || !strcmp (argv[i], "--ignore-sat-result"))
-      btorunt->ignore_sat = 1;
-    else if (!strcmp (argv[i], "-dp")
-             || !strcmp (argv[i], "--enable-dual-prop"))
-      btorunt->dual_prop = 1;
-    else if (!strcmp (argv[i], "-ju") || !strcmp (argv[i], "--enable-just"))
-      btorunt->just = 1;
-    else if (!strcmp (argv[i], "--blog"))
+      g_btorunt->ignore_sat = 1;
+    else if (!strcmp (argv[i], "-b"))
     {
-      if (++i == argc) die ("argument to '--blog' missing (try '-h')");
-      if (!isnumstr (argv[i]))
-        die ("argument to '--blog' is not a number (try '-h')");
-      btorunt->blog_level = atoi (argv[i]);
+      if (++i == argc) btorunt_error ("argument to '-b' missing (try '-h')");
+      if (!tmpbtor) tmpbtor = boolector_new ();
+      for (o = boolector_first_opt (tmpbtor), lng = 0;
+           boolector_has_opt (tmpbtor, o);
+           o = boolector_next_opt (tmpbtor, o))
+      {
+        lng = boolector_get_opt_lng (tmpbtor, o);
+        if (!strcmp (lng, argv[i])) break;
+      }
+      if (!lng) btorunt_error ("invalid boolector option '%s'", argv[i]);
+      if (++i == argc) btorunt_error ("argument to '-b' missing (try '-h')");
+      val = (uint32_t) strtol (argv[i], &tmp, 10);
+      if (tmp[0] != 0) btorunt_error ("invalid argument to '-b' (try -h)");
+      BTOR_NEW (g_btorunt->mm, btoropt);
+      btoropt->kind = o;
+      btoropt->name = btor_strdup (g_btorunt->mm, lng);
+      btoropt->val  = val;
+      BTOR_PUSH_STACK (g_btorunt->mm, g_btorunt->btor_opts, btoropt);
     }
     else if (argv[i][0] == '-')
-      die ("invalid command line option '%s' (try '-h')", argv[i]);
-    else if (btorunt->filename)
-      die ("two traces '%s' and '%s' specified (try '-h')",
-           btorunt->filename,
-           argv[i]);
+      btorunt_error ("invalid command line option '%s' (try '-h')", argv[i]);
+    else if (g_btorunt->filename)
+      btorunt_error ("multiple trace files specified (try '-h')");
     else
-      btorunt->filename = argv[i];
+      g_btorunt->filename = argv[i];
   }
 
-  if (btorunt->filename)
+  if (tmpbtor) boolector_delete (tmpbtor);
+
+  if (g_btorunt->filename)
   {
-    file = fopen (btorunt->filename, "r");
-    if (!file) die ("can not read '%s'", btorunt->filename);
+    file = fopen (g_btorunt->filename, "r");
+    if (!file) btorunt_error ("can not read '%s'", g_btorunt->filename);
   }
   else
-    btorunt->filename = "<stdin>", file = stdin;
+    g_btorunt->filename = "<stdin>", file = stdin;
 
-  if (btorunt->exit_on_abort)
+  if (g_btorunt->exit_on_abort)
   {
-    msg ("setting signal handlers since '-e' specified");
+    BTORUNT_LOG ("setting signal handlers since '-e' specified");
     signal (SIGINT, exitonsig);
     signal (SIGSEGV, exitonsig);
     signal (SIGABRT, exitonsig);
@@ -1648,6 +1711,6 @@ main (int argc, char **argv)
 
   parse (file);
   fclose (file);
-  delete_btorunt (btorunt);
+  delete_btorunt (g_btorunt);
   return 0;
 }

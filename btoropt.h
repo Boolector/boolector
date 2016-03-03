@@ -63,7 +63,8 @@ enum BtorOptSatEngines
 
 #define BTOR_ENGINE_FUN 0
 #define BTOR_ENGINE_SLS 1
-#define BTOR_ENGINE_EF 2
+#define BTOR_ENGINE_PROP 2
+#define BTOR_ENGINE_EF 3
 #define BTOR_ENGINE_DFLT BTOR_ENGINE_FUN
 #define BTOR_ENGINE_MIN BTOR_ENGINE_FUN
 #define BTOR_ENGINE_MAX BTOR_ENGINE_EF
@@ -131,4 +132,8 @@ void btor_set_opt_str (Btor *btor, BtorOption name, const char *str);
 
 BtorOption btor_first_opt (Btor *btor);
 BtorOption btor_next_opt (Btor *btor, BtorOption cur);
+
+#ifndef NBTORLOG
+void btor_log_opts (Btor *btor);
+#endif
 #endif

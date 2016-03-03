@@ -12,8 +12,9 @@
  */
 
 #include "btoraig.h"
+
+#include "btorabort.h"
 #include "btorcore.h"
-#include "btorexit.h"
 #include "btorsat.h"
 #include "utils/btoraigmap.h"
 #include "utils/btorhashptr.h"
@@ -26,16 +27,6 @@
 #include <stdlib.h>
 
 /*------------------------------------------------------------------------*/
-
-#define BTOR_ABORT_AIG(cond, msg)            \
-  do                                         \
-  {                                          \
-    if (cond)                                \
-    {                                        \
-      fputs ("[btoraig] " msg "\n", stdout); \
-      exit (BTOR_ERR_EXIT);                  \
-    }                                        \
-  } while (0)
 
 #define BTOR_INIT_AIG_UNIQUE_TABLE(mm, table) \
   do                                          \
@@ -81,7 +72,7 @@ setup_aig_and_add_to_id_table (BtorAIGMgr *amgr, BtorAIG *aig)
   int32_t id;
 
   id = BTOR_COUNT_STACK (amgr->id2aig);
-  BTOR_ABORT_AIG (id == INT_MAX, "AIG id overflow");
+  BTOR_ABORT (id == INT_MAX, "AIG id overflow");
   aig->refs = 1;
   aig->id   = id;
   BTOR_PUSH_STACK (amgr->btor->mm, amgr->id2aig, aig);
@@ -196,8 +187,8 @@ inc_aig_ref_counter (BtorAIG *aig)
 {
   if (!BTOR_IS_CONST_AIG (aig))
   {
-    BTOR_ABORT_AIG (BTOR_REAL_ADDR_AIG (aig)->refs == UINT_MAX,
-                    "reference counter overflow");
+    BTOR_ABORT (BTOR_REAL_ADDR_AIG (aig)->refs == UINT_MAX,
+                "reference counter overflow");
     BTOR_REAL_ADDR_AIG (aig)->refs++;
   }
 }
