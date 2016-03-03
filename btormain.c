@@ -518,8 +518,8 @@ print_opt (BtorMainApp *app,
                        boolector_get_opt_lng (app->btor,
                                               BTOR_OPT_SLS_MOVE_RAND_WALK_PROB))
            || !strcmp (lng,
-                       boolector_get_opt_lng (
-                           app->btor, BTOR_OPT_SLS_MOVE_PROP_FLIP_COND_PROB)))
+                       boolector_get_opt_lng (app->btor,
+                                              BTOR_OPT_PROP_FLIP_COND_PROB)))
     sprintf (paramstr, "<n>");
   else if (!strcmp (lng, "lingeling-opts"))
     sprintf (paramstr, "[,<opt>=<val>]+");
