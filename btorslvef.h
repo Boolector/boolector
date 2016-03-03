@@ -29,6 +29,7 @@ struct BtorEFSolver
   BtorNodeMap *f_forall_vars;
   BtorNodeMap *f_forall_ufs;
   BtorNode *f_formula;
+  BtorNodeMap *f_synth_fun_models;
 
   struct
   {
