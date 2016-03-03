@@ -2784,7 +2784,7 @@ btor_select_move_prop (Btor *btor,
       == 0);
 
   int i, nconst, eidx, idx;
-  uint32_t r, p, val;
+  uint32_t r, p;
   BtorNode *cur, *real_cur;
   BtorBitVector *bve[3], *bvcur, *bvenew, *tmp;
 
@@ -2947,8 +2947,13 @@ btor_select_move_prop (Btor *btor,
           /* either assume that cond is fixed and propagate bvenew
            * to enabled path, or flip condition */
           tmp = (BtorBitVector *) btor_get_bv_model (btor, real_cur->e[0]);
-          val = btor_get_opt (btor, BTOR_OPT_SLS_MOVE_PROP_NO_FLIP_COND);
-          if (val || btor_pick_rand_rng (&btor->rng, 0, val))
+          if (btor_get_opt (btor, BTOR_OPT_SLS_MOVE_PROP_NO_FLIP_COND)
+              || btor_pick_rand_rng (
+                     &btor->rng,
+                     0,
+                     btor_get_opt (btor,
+                                   BTOR_OPT_SLS_MOVE_PROP_FLIP_COND_PROB)))
+
           {
             /* assume cond to be fixed */
             cur = btor_is_zero_bv (tmp) ? real_cur->e[2] : real_cur->e[1];
