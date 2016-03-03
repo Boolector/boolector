@@ -1534,7 +1534,8 @@ find_slice_exp (Btor *btor, BtorNode *e0, uint32_t upper, uint32_t lower)
 static BtorNode **
 find_bv_exp (Btor *btor, BtorNodeKind kind, int arity, BtorNode **e)
 {
-  int i, equal;
+  bool equal;
+  int i;
   unsigned int hash;
   BtorNode *cur, **result;
 
@@ -1552,9 +1553,13 @@ find_bv_exp (Btor *btor, BtorNodeKind kind, int arity, BtorNode **e)
     assert (BTOR_IS_REGULAR_NODE (cur));
     if (cur->kind == kind && cur->arity == arity)
     {
-      equal = 1;
+      equal = true;
+      /* special case for bv eq; (= (bvnot a) b) == (= a (bvnot b)) */
+      if (kind == BTOR_BEQ_NODE && cur->e[0] == BTOR_INVERT_NODE (e[0])
+          && cur->e[1] == BTOR_INVERT_NODE (e[1]))
+        break;
       for (i = 0; i < arity && equal; i++)
-        if (cur->e[i] != e[i]) equal = 0;
+        if (cur->e[i] != e[i]) equal = false;
       if (equal) break;
 #ifndef NDEBUG
       if (btor_get_opt (btor, BTOR_OPT_SORT_EXP) > 0
