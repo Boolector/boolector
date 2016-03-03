@@ -106,6 +106,22 @@ delete_btorunt (BtorUNT *unt)
   btor_delete_mem_mgr (mm);
 }
 
+static bool
+has_btor_opt (BtorUNT *unt, BtorOption opt)
+{
+  assert (unt);
+
+  int i;
+  BtorUNTBtorOpt *o;
+
+  for (i = 0; i < BTOR_COUNT_STACK (unt->btor_opts); i++)
+  {
+    o = BTOR_PEEK_STACK (unt->btor_opts, i);
+    if (o->kind == opt) return true;
+  }
+  return false;
+}
+
 /*------------------------------------------------------------------------*/
 
 static BtorUNT *g_btorunt;
@@ -375,7 +391,7 @@ NEXT:
     buffer[len]   = 0;
     goto NEXT;
   }
-  BTORUNT_LOG ("line %d: %s", g_btorunt->line, buffer);
+  BTORUNT_LOG ("  %d: %s", g_btorunt->line, buffer);
 
   /* NOTE take care of c function parameter evaluation order with more
    * than 1 argument */
@@ -460,13 +476,13 @@ NEXT:
       PARSE_ARGS0 (tok);
       btor = boolector_new ();
       /* set btor options given via CL
-       * (Note: will be overruled by opt values set via trace file!) */
+       * (Note: overrules opt values set via trace file!) */
       for (i = 0; i < BTOR_COUNT_STACK (g_btorunt->btor_opts); i++)
       {
         boolector_set_opt (btor,
                            BTOR_PEEK_STACK (g_btorunt->btor_opts, i)->kind,
                            BTOR_PEEK_STACK (g_btorunt->btor_opts, i)->val);
-        BTORUNT_LOG ("set boolector option '%s' to '%u' (via CL)",
+        BTORUNT_LOG ("     set boolector option '%s' to '%u' (via CL)",
                      BTOR_PEEK_STACK (g_btorunt->btor_opts, i)->name,
                      BTOR_PEEK_STACK (g_btorunt->btor_opts, i)->val);
       }
@@ -599,9 +615,13 @@ NEXT:
     {
       PARSE_ARGS3 (tok, int, str, int);
       assert (!strcmp (boolector_get_opt_lng (btor, arg1_int), arg2_str));
-      boolector_set_opt (btor, arg1_int, arg3_int);
-      BTORUNT_LOG (
-          "set boolector option '%s' to '%u' (via trace)", arg2_str, arg3_int);
+      if (!has_btor_opt (g_btorunt, arg1_int))
+      {
+        boolector_set_opt (btor, arg1_int, arg3_int);
+        BTORUNT_LOG ("     set boolector option '%s' to '%u' (via trace)",
+                     arg2_str,
+                     arg3_int);
+      }
     }
     else if (!strcmp (tok, "get_opt"))
     {
