@@ -989,7 +989,7 @@ boolector_one (Btor *btor, BoolectorSort sort)
   inc_exp_ext_ref_counter (btor, res);
   BTOR_TRAPI_RETURN_NODE (res);
 #ifndef NDEBUG
-  BTOR_CHKCLONE_RES_PTR (res, one, width);
+  BTOR_CHKCLONE_RES_PTR (res, one, sort);
 #endif
   return BTOR_EXPORT_BOOLECTOR_NODE (res);
 }
