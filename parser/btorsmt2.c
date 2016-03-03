@@ -3571,6 +3571,7 @@ define_sort_smt2 (BtorSMT2Parser *parser)
   BtorSMT2Node *sort_alias;
   BoolectorSort sort;
 
+  sort_alias = 0;
   if (!read_symbol (parser, " after 'define-sort'", &sort_alias)) return 0;
   assert (sort_alias);
   assert (sort_alias->tag == BTOR_SYMBOL_TAG_SMT2);
