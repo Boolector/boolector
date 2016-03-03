@@ -511,6 +511,8 @@ boolector_set_sat_solver (Btor *btor, const char *solver)
       btor->btor_sat_btor_called > 0,
       "setting the SAT solver must be done before calling 'boolector_sat'");
 
+  sat_engine = BTOR_SAT_ENGINE_DFLT;
+
 #ifdef BTOR_USE_LINGELING
   if (!strcasecmp (solver, "lingeling"))
     sat_engine = BTOR_SAT_ENGINE_LINGELING;

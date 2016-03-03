@@ -1959,8 +1959,8 @@ BtorIBV::analyze ()
 
       case BTOR_IBV_CURRENT_STATE:
       {
-        BtorIBVAssignment *next;
-        if (!n->next || !(next = n->next[b.bit]))
+        BtorIBVAssignment *next = n->next[b.bit];
+        if (!n->next || !next)
           BTOR_ABORT (1,
                       "id %u current state '%s[%u]' without next state",
                       b.id,
