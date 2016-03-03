@@ -12,11 +12,11 @@
  */
 
 #include "btorexp.h"
+
+#include "btorabort.h"
 #include "btoraig.h"
 #include "btoraigvec.h"
 #include "btorbeta.h"
-#include "btorconst.h"
-#include "btorexit.h"
 #include "btorlog.h"
 #include "btorrewrite.h"
 #include "utils/btorhashint.h"
@@ -33,17 +33,6 @@
 #include <string.h>
 
 /*------------------------------------------------------------------------*/
-
-#define BTOR_ABORT_NODE(cond, msg)                  \
-  do                                                \
-  {                                                 \
-    if (cond)                                       \
-    {                                               \
-      printf ("[btorexp] %s: %s\n", __func__, msg); \
-      fflush (stdout);                              \
-      exit (BTOR_ERR_EXIT);                         \
-    }                                               \
-  } while (0)
 
 #define BTOR_UNIQUE_TABLE_LIMIT 30
 
@@ -382,8 +371,7 @@ inc_exp_ref_counter (Btor *btor, BtorNode *exp)
 
   (void) btor;
   real_exp = BTOR_REAL_ADDR_NODE (exp);
-  BTOR_ABORT_NODE (real_exp->refs == INT_MAX,
-                   "Node reference counter overflow");
+  BTOR_ABORT (real_exp->refs == INT_MAX, "Node reference counter overflow");
   real_exp->refs++;
 }
 
@@ -1182,7 +1170,7 @@ setup_node_and_add_to_id_table (Btor *btor, void *ptr)
   exp->btor = btor;
   btor->stats.expressions++;
   id = BTOR_COUNT_STACK (btor->nodes_id_table);
-  BTOR_ABORT_NODE (id == INT_MAX, "expression id overflow");
+  BTOR_ABORT (id == INT_MAX, "expression id overflow");
   exp->id = id;
   BTOR_PUSH_STACK (btor->mm, btor->nodes_id_table, exp);
   assert (BTOR_COUNT_STACK (btor->nodes_id_table) == exp->id + 1);

@@ -11,7 +11,8 @@
  */
 
 #include "btorsort.h"
-#include "btorexit.h"
+
+#include "btorabort.h"
 #include "btorexp.h"
 #include "utils/btoriter.h"
 #include "utils/btorutil.h"
@@ -26,22 +27,11 @@
   ((table)->num_elements >= (table)->size  \
    && btor_log_2_util ((table)->size) < BTOR_SORT_UNIQUE_TABLE_LIMIT)
 
-#define BTOR_ABORT_SORT(cond, msg)                   \
-  do                                                 \
-  {                                                  \
-    if (cond)                                        \
-    {                                                \
-      printf ("[btorsort] %s: %s\n", __func__, msg); \
-      fflush (stdout);                               \
-      exit (BTOR_ERR_EXIT);                          \
-    }                                                \
-  } while (0)
-
 static void
 inc_sort_ref_counter (BtorSort *sort)
 {
   assert (sort);
-  BTOR_ABORT_SORT (sort->refs == INT_MAX, "Sort reference counter overflow");
+  BTOR_ABORT (sort->refs == INT_MAX, "Sort reference counter overflow");
   sort->refs++;
 }
 

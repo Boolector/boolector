@@ -3,7 +3,7 @@
  *  Copyright (C) 2007-2009 Robert Daniel Brummayer.
  *  Copyright (C) 2007-2014 Armin Biere.
  *  Copyright (C) 2012-2015 Mathias Preiner.
- *  Copyright (C) 2013-2015 Aina Niemetz.
+ *  Copyright (C) 2013-2016 Aina Niemetz.
  *
  *  All rights reserved.
  *
@@ -11,20 +11,18 @@
  *  See COPYING for more information on using this software.
  */
 
+#include "btorsat.h"
+
 #ifdef BTOR_USE_PICOSAT
 #include "picosat.h"
 #endif
-
 #ifdef BTOR_USE_LINGELING
 #include "lglib.h"
 #endif
-
 #ifdef BTOR_USE_MINISAT
 #include "btorminisat.h"
 #endif
-
-#include "btorexit.h"
-#include "btorsat.h"
+#include "btorabort.h"
 #include "utils/btorutil.h"
 
 #include <assert.h>
@@ -39,19 +37,6 @@
 #include <sys/types.h>  // for getpid
 #include <unistd.h>     // for getpid
 #endif
-/*------------------------------------------------------------------------*/
-
-#define BTOR_ABORT_SAT(cond, msg)                   \
-  do                                                \
-  {                                                 \
-    if (cond)                                       \
-    {                                               \
-      printf ("[btorsat] %s: %s\n", __func__, msg); \
-      fflush (stdout);                              \
-      exit (BTOR_ERR_EXIT);                         \
-    }                                               \
-  } while (0)
-
 /*------------------------------------------------------------------------*/
 
 #if defined(BTOR_USE_LINGELING)
@@ -117,8 +102,8 @@ btor_clone_sat_mgr (BtorMemMgr *mm, BtorMsg *msg, BtorSATMgr *smgr)
 
   BtorSATMgr *res;
 
-  BTOR_ABORT_SAT (!btor_has_clone_support_sat_mgr (smgr),
-                  "SAT solver does not support cloning");
+  BTOR_ABORT (!btor_has_clone_support_sat_mgr (smgr),
+              "SAT solver does not support cloning");
   BTOR_NEW (mm, res);
   res->solver = smgr->api.clone (smgr, mm);
   res->mm     = mm;
@@ -147,7 +132,7 @@ btor_next_cnf_id_sat_mgr (BtorSATMgr *smgr)
   assert (smgr->initialized);
   result = smgr->api.inc_max_var (smgr);
   if (abs (result) > smgr->maxvar) smgr->maxvar = abs (result);
-  BTOR_ABORT_SAT (result <= 0, "CNF id overflow");
+  BTOR_ABORT (result <= 0, "CNF id overflow");
   if (btor_get_opt (smgr->msg->btor, BTOR_OPT_VERBOSITY) > 2
       && !(result % 100000))
     BTOR_MSG (smgr->msg, 2, "reached CNF id %d", result);
@@ -493,8 +478,8 @@ btor_enable_picosat_sat (BtorSATMgr *smgr)
 {
   assert (smgr != NULL);
 
-  BTOR_ABORT_SAT (smgr->initialized,
-                  "'btor_init_sat' called before 'btor_enable_picosat_sat'");
+  BTOR_ABORT (smgr->initialized,
+              "'btor_init_sat' called before 'btor_enable_picosat_sat'");
 
   smgr->name   = "PicoSAT";
   smgr->optstr = 0;
@@ -918,8 +903,8 @@ btor_enable_lingeling_sat (BtorSATMgr *smgr, const char *optstr, bool fork)
 {
   assert (smgr != NULL);
 
-  BTOR_ABORT_SAT (smgr->initialized,
-                  "'btor_init_sat' called before 'btor_enable_lingeling_sat'");
+  BTOR_ABORT (smgr->initialized,
+              "'btor_init_sat' called before 'btor_enable_lingeling_sat'");
 
   smgr->optstr = btor_strdup (smgr->mm, optstr);
   if (smgr->optstr && !btor_passdown_lingeling_options (smgr, optstr, 0))
@@ -971,8 +956,8 @@ btor_enable_minisat_sat (BtorSATMgr *smgr)
 {
   assert (smgr != NULL);
 
-  BTOR_ABORT_SAT (smgr->initialized,
-                  "'btor_init_sat' called before 'btor_enable_minisat_sat'");
+  BTOR_ABORT (smgr->initialized,
+              "'btor_init_sat' called before 'btor_enable_minisat_sat'");
 
   smgr->name   = "MiniSAT";
   smgr->optstr = 0;

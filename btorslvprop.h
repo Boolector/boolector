@@ -12,6 +12,7 @@
 #define BTORPROP_H_INCLUDED
 
 #include "btorbitvec.h"
+#include "btorslv.h"
 #include "btortypes.h"
 
 struct BtorPropSolver

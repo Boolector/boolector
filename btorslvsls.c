@@ -10,12 +10,10 @@
  */
 
 #include "btorslvsls.h"
-#include "btorabort.h"
+
 #include "btorbitvec.h"
 #include "btorclone.h"
 #include "btorcore.h"
-#include "btordbg.h"
-#include "btorlog.h"
 #include "btormodel.h"
 #include "btorslvprop.h"
 #include "utils/btorhashptr.h"
@@ -25,6 +23,9 @@
 #ifndef NDEBUG
 #include "btorprintmodel.h"
 #endif
+#include "btorabort.h"
+#include "btordbg.h"
+#include "btorlog.h"
 
 #include <math.h>
 
@@ -1966,10 +1967,10 @@ sat_sls_solver (BtorSLSSolver *slv)
   }
 
   sat_result = btor_simplify (btor);
-  BTOR_ABORT_BOOLECTOR (btor->ufs->count != 0
-                            || (!btor_get_opt (btor, BTOR_OPT_BETA_REDUCE_ALL)
-                                && btor->lambdas->count != 0),
-                        "sls engine supports QF_BV only");
+  BTOR_ABORT (btor->ufs->count != 0
+                  || (!btor_get_opt (btor, BTOR_OPT_BETA_REDUCE_ALL)
+                      && btor->lambdas->count != 0),
+              "sls engine supports QF_BV only");
 
   if (btor->inconsistent) goto UNSAT;
 

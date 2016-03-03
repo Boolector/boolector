@@ -23,6 +23,19 @@ extern "C" {
 #include "utils/btorutil.h"
 };
 
+#define BTORIBV_COVER(COND)                                     \
+  do                                                            \
+  {                                                             \
+    if (!(COND)) break;                                         \
+    fprintf (stderr,                                            \
+             "%s:%d: in %s: Coverage target '" #COND "' hit\n", \
+             __FILE__,                                          \
+             __LINE__,                                          \
+             __FUNCTION__);                                     \
+    fflush (stderr);                                            \
+    abort ();                                                   \
+  } while (0)
+
 static void
 btoribv_msghead ()
 {
@@ -255,12 +268,11 @@ BtorIBV::setStartingBoundCallBack (void *state,
 int
 BtorIBV::hasAssertionBeenViolatedAtBound (int assertion_number)
 {
-  BTOR_ABORT_BOOLECTOR (assertion_number < 0, "negative assertion number");
-  BTOR_ABORT_BOOLECTOR (
-      (int) BTOR_COUNT_STACK (assertions) <= assertion_number,
-      "assertion number %d out of range (only added %d assertions)",
-      assertion_number,
-      (int) BTOR_COUNT_STACK (assertions));
+  BTOR_ABORT (assertion_number < 0, "negative assertion number");
+  BTOR_ABORT ((int) BTOR_COUNT_STACK (assertions) <= assertion_number,
+              "assertion number %d out of range (only added %d assertions)",
+              assertion_number,
+              (int) BTOR_COUNT_STACK (assertions));
   return boolector_reached_bad_at_bound_mc (btormc, assertion_number);
 }
 
@@ -299,8 +311,8 @@ BtorIBV::setStartingBoundListener (BtorIBV::StartingBoundListener *listener)
 void
 BtorIBV::setRewriteLevel (int rwl)
 {
-  BTOR_ABORT_BOOLECTOR (rwl < 1, "rewrite level has to be at least 1");
-  BTOR_ABORT_BOOLECTOR (rwl > 3, "rewrite level has to be at most 3");
+  BTOR_ABORT (rwl < 1, "rewrite level has to be at least 1");
+  BTOR_ABORT (rwl > 3, "rewrite level has to be at most 3");
   boolector_set_opt (btor, BTOR_OPT_REWRITE_LEVEL, rwl);
 }
 
@@ -337,12 +349,11 @@ BtorIBV::addConstant (unsigned id, const string &str, unsigned width)
   BtorIBVNode *node;
   assert (0 < id);
   assert (0 < width);  // TODO really?
-  BTOR_ABORT_BOOLECTOR (
-      str.size () != width,
-      "constant '%s' width %ld does not match width argument %u",
-      str.c_str (),
-      (long) str.size (),
-      width);
+  BTOR_ABORT (str.size () != width,
+              "constant '%s' width %ld does not match width argument %u",
+              str.c_str (),
+              (long) str.size (),
+              width);
   node = new_node (id, width);
   for (size_t i = 0; i < str.size (); i++)
     assert (str[i] == '0' || str[i] == '1' || str[i] == 'x');
@@ -472,11 +483,11 @@ BtorIBV::mark_assigned (BtorIBVNode *n, BitRange r)
   assert (r.m_nMsb < n->width);
   for (unsigned i = r.m_nLsb; i <= r.m_nMsb; i++)
   {
-    BTOR_ABORT_BOOLECTOR (n->flags[i].assigned,
-                          "id %u node '%s[%u]' assigned twice",
-                          n->id,
-                          n->name,
-                          i);
+    BTOR_ABORT (n->flags[i].assigned,
+                "id %u node '%s[%u]' assigned twice",
+                n->id,
+                n->name,
+                i);
     msg (3, "id %u assigning '%s[%u]'", n->id, n->name, i);
     if (n->flags[i].state.current)
       wrn ("id %u bit '%s[%u]' marked current of state and is now assigned",
@@ -899,11 +910,11 @@ btor_ibv_classified_to_str (BtorIBVClassification c)
 void
 BtorIBV::analyze ()
 {
-  BTOR_ABORT_BOOLECTOR (state == BTOR_IBV_ANALYZED,
-                        "can not analyze model a second time");
+  BTOR_ABORT (state == BTOR_IBV_ANALYZED,
+              "can not analyze model a second time");
 
-  BTOR_ABORT_BOOLECTOR (state == BTOR_IBV_TRANSLATED,
-                        "can not analyze model after translation");
+  BTOR_ABORT (state == BTOR_IBV_TRANSLATED,
+              "can not analyze model after translation");
 
   assert (state == BTOR_IBV_START);
 
@@ -1016,7 +1027,7 @@ BtorIBV::analyze ()
     if (n->is_constant) continue;
     if (!n->is_next_state) continue;
     for (unsigned i = 0; i < n->width; i++)
-      BTOR_ABORT_BOOLECTOR (
+      BTOR_ABORT (
           n->flags[i].used && !n->flags[i].assigned && n->flags[i].state.next,
           "next state '%s[%u]' unassigned",
           n->name,
@@ -1196,7 +1207,7 @@ BtorIBV::analyze ()
                   }
                   else if (!m->flags[k].depends.mark == 1)
                   {
-                    BTOR_ABORT_BOOLECTOR (
+                    BTOR_ABORT (
                         m->flags[k].depends.mark != 2,
                         "can not set next/current flag for cyclic '%s[%u]'",
                         m->name,
@@ -1702,7 +1713,7 @@ BtorIBV::analyze ()
           || n->flags[i].classified == BTOR_IBV_PHANTOM_CURRENT_INPUT)
         mark_used (n, i);
 
-      BTOR_ABORT_BOOLECTOR (
+      BTOR_ABORT (
           !n->flags[i].classified, "unclassified bit %s[%u]", n->name, i);
     }
   }
@@ -1773,13 +1784,12 @@ BtorIBV::analyze ()
     switch (c)
     {
       default:
-        BTOR_ABORT_BOOLECTOR (
-            1,
-            "id %u unexpected '%s[%u]' classified as '%s' in COI",
-            b.id,
-            n->name,
-            b.bit,
-            btor_ibv_classified_to_str (c));
+        BTOR_ABORT (1,
+                    "id %u unexpected '%s[%u]' classified as '%s' in COI",
+                    b.id,
+                    n->name,
+                    b.bit,
+                    btor_ibv_classified_to_str (c));
         break;
 
         // TODO need to handle this one too?
@@ -1935,14 +1945,13 @@ BtorIBV::analyze ()
             break;
 
           default:
-            BTOR_ABORT_BOOLECTOR (
-                1,
-                "id %u unexpected '%s[%u]' assignment tag '%s%s'",
-                b.id,
-                n->name,
-                b.bit,
-                btor_ibv_tag_to_str (a->tag),
-                (a->tag & BTOR_IBV_IS_PREDICATE) ? "_PRED" : "");
+            BTOR_ABORT (1,
+                        "id %u unexpected '%s[%u]' assignment tag '%s%s'",
+                        b.id,
+                        n->name,
+                        b.bit,
+                        btor_ibv_tag_to_str (a->tag),
+                        (a->tag & BTOR_IBV_IS_PREDICATE) ? "_PRED" : "");
             break;
         }
       }
@@ -1952,12 +1961,11 @@ BtorIBV::analyze ()
       {
         BtorIBVAssignment *next;
         if (!n->next || !(next = n->next[b.bit]))
-          BTOR_ABORT_BOOLECTOR (
-              1,
-              "id %u current state '%s[%u]' without next state",
-              b.id,
-              n->name,
-              b.bit);
+          BTOR_ABORT (1,
+                      "id %u current state '%s[%u]' without next state",
+                      b.id,
+                      n->name,
+                      b.bit);
         assert (next->range.msb >= b.bit && b.bit >= next->range.lsb);
         {
           unsigned k = b.bit - next->range.lsb + next->ranges[1].lsb;
@@ -2152,11 +2160,11 @@ BtorIBV::is_relevant_atom_for_assigned_atom (BtorIBVAtom *lhs,
     case BTOR_IBV_PARCASE:  // TODO not done yet ...
 
     default:
-      BTOR_ABORT_BOOLECTOR (1,
-                            "operator '%s%s' (%d) not handled yet",
-                            btor_ibv_tag_to_str (ass->tag),
-                            (ass->tag & BTOR_IBV_IS_PREDICATE) ? "_PRED" : "",
-                            (int) ass->tag);
+      BTOR_ABORT (1,
+                  "operator '%s%s' (%d) not handled yet",
+                  btor_ibv_tag_to_str (ass->tag),
+                  (ass->tag & BTOR_IBV_IS_PREDICATE) ? "_PRED" : "",
+                  (int) ass->tag);
       break;
   }
   return true;
@@ -2209,16 +2217,16 @@ BtorIBV::push_atom_ptr_next (BtorIBVAtom *b,
   }
   else
   {
-    BTOR_ABORT_BOOLECTOR (pushed >= cycle_limit,
-                          "potential cyclic synthesis for id %u [%u:%u] "
-                          "'%s[%u:%u]' %d (giving up)",
-                          r.id,
-                          r.msb,
-                          r.lsb,
-                          id2node (r.id)->name,
-                          r.msb,
-                          r.lsb,
-                          forward);
+    BTOR_ABORT (pushed >= cycle_limit,
+                "potential cyclic synthesis for id %u [%u:%u] '%s[%u:%u]' %d "
+                "(giving up)",
+                r.id,
+                r.msb,
+                r.lsb,
+                id2node (r.id)->name,
+                r.msb,
+                r.lsb,
+                forward);
     if (pushed >= 2)
       warn (
           "potential cyclic synthesis for id %u [%u:%u] '%s[%u:%u]' %d (pushed "
@@ -2263,8 +2271,7 @@ BtorIBV::translate_atom_divide (BtorIBVAtom *a,
     case BTOR_IBV_NOT_USED: break;
 
     default:
-      BTOR_ABORT_BOOLECTOR (
-          1, "%s not handled", btor_ibv_classified_to_str (c));
+      BTOR_ABORT (1, "%s not handled", btor_ibv_classified_to_str (c));
       break;
 
     case BTOR_IBV_TWO_PHASE_INPUT:
@@ -2293,7 +2300,7 @@ BtorIBV::translate_atom_divide (BtorIBVAtom *a,
         assert (b->range.id == prev->id);
         if (b->range.msb < pr.lsb) continue;
         if (b->range.lsb > pr.msb) continue;
-        BTOR_COVER (!(b->range.lsb <= pr.lsb && pr.msb <= b->range.msb));
+        BTORIBV_COVER (!(b->range.lsb <= pr.lsb && pr.msb <= b->range.msb));
 #if 1
         push_atom_ptr_next (b, true, apnwork);
 #else
@@ -2688,11 +2695,11 @@ BtorIBV::translate_assignment_conquer (BtorIBVAtom *a,
     case BTOR_IBV_STATE:
     default:
       res = 0;
-      BTOR_ABORT_BOOLECTOR (1,
-                            "operator '%s%s' (%d) not handled yet",
-                            btor_ibv_tag_to_str (ass->tag),
-                            (ass->tag & BTOR_IBV_IS_PREDICATE) ? "_PRED" : "",
-                            (int) ass->tag);
+      BTOR_ABORT (1,
+                  "operator '%s%s' (%d) not handled yet",
+                  btor_ibv_tag_to_str (ass->tag),
+                  (ass->tag & BTOR_IBV_IS_PREDICATE) ? "_PRED" : "",
+                  (int) ass->tag);
       break;
   }
   assert (res);
@@ -2779,15 +2786,14 @@ BtorIBV::translate_atom_conquer (BtorIBVAtom *a, bool forward)
 
     case BTOR_IBV_ASSIGNED_IMPLICIT_NEXT:
 
-      BTOR_ABORT_BOOLECTOR (
-          forward,
-          "can not forward implict next id %u [%u:%u] '%s[%u:%u]'",
-          r.id,
-          r.msb,
-          r.lsb,
-          id2node (r.id)->name,
-          r.msb,
-          r.lsb);
+      BTOR_ABORT (forward,
+                  "can not forward implict next id %u [%u:%u] '%s[%u:%u]'",
+                  r.id,
+                  r.msb,
+                  r.lsb,
+                  id2node (r.id)->name,
+                  r.msb,
+                  r.lsb);
 
       assert (n->is_next_state);
       {
@@ -2847,8 +2853,7 @@ BtorIBV::translate_atom_conquer (BtorIBVAtom *a, bool forward)
     case BTOR_IBV_ASSIGNED_IMPLICIT_CURRENT:
     case BTOR_IBV_ONE_PHASE_ONLY_CURRENT_INPUT:
     case BTOR_IBV_ONE_PHASE_ONLY_NEXT_INPUT:
-      BTOR_ABORT_BOOLECTOR (
-          1, "%s not handled yet", btor_ibv_classified_to_str (c));
+      BTOR_ABORT (1, "%s not handled yet", btor_ibv_classified_to_str (c));
       break;
 
     case BTOR_IBV_ASSIGNED:
@@ -2927,8 +2932,7 @@ BtorIBV::translate_atom_base (BtorIBVAtom *a)
   switch (c)
   {
     default:
-      BTOR_ABORT_BOOLECTOR (
-          1, "%s not handled yet", btor_ibv_classified_to_str (c));
+      BTOR_ABORT (1, "%s not handled yet", btor_ibv_classified_to_str (c));
       break;
 
     case BTOR_IBV_CONSTANT:
@@ -2961,7 +2965,7 @@ BtorIBV::translate_atom_base (BtorIBVAtom *a)
                   i,
                   c);
             else
-              BTOR_ABORT_BOOLECTOR (
+              BTOR_ABORT (
                   1,
                   "invalid constant bit '%s[%u] = %c' in cone-of-influence",
                   n->name,
@@ -3125,12 +3129,10 @@ BtorIBV::is_phantom_current (BtorIBVNode *n, unsigned i)
 void
 BtorIBV::translate ()
 {
-  BTOR_ABORT_BOOLECTOR (
-      state == BTOR_IBV_START,
-      "model needs to be analyzed before it can be translated");
+  BTOR_ABORT (state == BTOR_IBV_START,
+              "model needs to be analyzed before it can be translated");
 
-  BTOR_ABORT_BOOLECTOR (state == BTOR_IBV_TRANSLATED,
-                        "can not translate model twice");
+  BTOR_ABORT (state == BTOR_IBV_TRANSLATED, "can not translate model twice");
 
   assert (state == BTOR_IBV_ANALYZED);
 
@@ -3165,9 +3167,8 @@ BtorIBV::translate ()
            msb,
            lsb);
 
-      BTOR_ABORT_BOOLECTOR (
-          classified == BTOR_IBV_ASSIGNED_IMPLICIT_CURRENT,
-          "can not translate implicitly assigned current non-state");
+      BTOR_ABORT (classified == BTOR_IBV_ASSIGNED_IMPLICIT_CURRENT,
+                  "can not translate implicitly assigned current non-state");
 
       assert (classified != BTOR_IBV_UNCLASSIFIED);
 
@@ -3356,7 +3357,7 @@ BtorIBV::translate ()
         case BTOR_IBV_NOT_USED:
         case BTOR_IBV_ASSIGNED: break;
         default:
-          BTOR_ABORT_BOOLECTOR (
+          BTOR_ABORT (
               1,
               "id %u '%s[%u:%u]' classified as '%s' not handled yet",
               n->id,
@@ -3450,8 +3451,8 @@ BtorIBV::translate ()
 void
 BtorIBV::dump_btor (FILE *file)
 {
-  BTOR_ABORT_BOOLECTOR (state == BTOR_IBV_START,
-                        "model needs to be translated before it can be dumped");
+  BTOR_ABORT (state == BTOR_IBV_START,
+              "model needs to be translated before it can be dumped");
 
   boolector_dump_btormc (btormc, file);
 }
@@ -3461,9 +3462,8 @@ BtorIBV::dump_btor (FILE *file)
 int
 BtorIBV::bmc (int mink, int maxk)
 {
-  BTOR_ABORT_BOOLECTOR (
-      state == BTOR_IBV_START,
-      "model needs to be translated before it can be checked");
+  BTOR_ABORT (state == BTOR_IBV_START,
+              "model needs to be translated before it can be checked");
 
   return boolector_bmc (btormc, mink, maxk);
 }
@@ -3483,7 +3483,7 @@ repeat_char (Btor *btor, unsigned length, char ch)
 string
 BtorIBV::assignment (BitRange r, int k)
 {
-  BTOR_ABORT_BOOLECTOR (
+  BTOR_ABORT (
       !gentrace,
       "'BtorIBV::enableTraceGeneration' was not called before checking");
   BtorIBVNode *n = id2node (r.m_nId);

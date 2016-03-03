@@ -10,12 +10,13 @@
  */
 
 #include "btorslvfun.h"
+
+#include "btorabort.h"
 #include "btorbeta.h"
 #include "btorclone.h"
 #include "btorcore.h"
 #include "btordbg.h"
 #include "btordcr.h"
-#include "btorexit.h"
 #include "btorlog.h"
 #include "btormodel.h"
 #include "utils/btorhashint.h"
@@ -25,6 +26,8 @@
 #include "utils/btorstack.h"
 #include "utils/btorutil.h"
 
+/*------------------------------------------------------------------------*/
+
 #define DP_QSORT_JUST 0
 #define DP_QSORT_ASC 1
 #define DP_QSORT_DESC 2
@@ -32,17 +35,7 @@
 #define DP_QSORT_ASC_DESC_ALW 4
 #define DP_QSORT DP_QSORT_JUST
 
-// TODO (ma): better abort handling BTOR_ABORT_INTERNAL?
-#define BTOR_ABORT_CORE(cond, msg)                   \
-  do                                                 \
-  {                                                  \
-    if (cond)                                        \
-    {                                                \
-      printf ("[btorcore] %s: %s\n", __func__, msg); \
-      fflush (stdout);                               \
-      exit (BTOR_ERR_EXIT);                          \
-    }                                                \
-  } while (0)
+/*------------------------------------------------------------------------*/
 
 static BtorFunSolver *
 clone_fun_solver (Btor *clone, BtorFunSolver *slv, BtorNodeMap *exp_map)
@@ -182,7 +175,7 @@ configure_sat_mgr (Btor *btor)
               smgr,
               btor_get_opt_valstr (btor, BTOR_OPT_SAT_ENGINE),
               btor_get_opt (btor, BTOR_OPT_SAT_ENGINE_LGL_FORK) == 1))
-        BTOR_ABORT_CORE (1, "failed to enable sat solver Lingeling");
+        BTOR_ABORT (1, "failed to enable sat solver Lingeling");
       break;
 #endif
 #ifdef BTOR_USE_PICOSAT
@@ -191,7 +184,7 @@ configure_sat_mgr (Btor *btor)
 #ifdef BTOR_USE_MINISAT
     case BTOR_SAT_ENGINE_MINISAT: btor_enable_minisat_sat (smgr); break;
 #endif
-    default: BTOR_ABORT_CORE (1, "no SAT solver configured");
+    default: BTOR_ABORT (1, "no SAT solver configured");
   }
 
   btor_init_sat (smgr);
@@ -511,7 +504,7 @@ add_function_inequality_constraints (Btor *btor)
        * sat call */
       if (b->data.as_int) continue;
       BTOR_PUSH_STACK (mm, feqs, cur);
-      BTOR_ABORT_CORE (
+      BTOR_ABORT (
           (!cur->e[0]->is_array || !cur->e[1]->is_array)
               && (!BTOR_IS_UF_NODE (cur->e[0]) || !BTOR_IS_UF_NODE (cur->e[1])),
           "equality over lambda not supported yet");

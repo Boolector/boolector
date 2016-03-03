@@ -12,15 +12,11 @@
  */
 
 #include "btorcore.h"
+
 #include "btorclone.h"
-#include "btorconfig.h"
-#include "btordbg.h"
-#include "btordcr.h"
-#include "btorexit.h"
-#include "btorlog.h"
 #include "btormodel.h"
-#include "btoropt.h"
 #include "btorrewrite.h"
+#include "btorslvfun.h"
 #include "btorslvprop.h"
 #include "btorslvsls.h"
 #include "simplifier/btorack.h"
@@ -36,8 +32,11 @@
 #ifndef BTOR_DO_NOT_PROCESS_SKELETON
 #include "simplifier/btorskel.h"
 #endif
-#include "btorslvfun.h"
-#include "btorslvsls.h"
+#include "btorabort.h"
+#include "btorconfig.h"
+#include "btordbg.h"
+#include "btorlog.h"
+#include "btoropt.h"
 
 #include <limits.h>
 
@@ -75,17 +74,6 @@
   {                                               \
     BTOR_RELEASE_UNIQUE_TABLE (mm, table);        \
     BTOR_RELEASE_STACK (mm, table.id2sort);       \
-  } while (0)
-
-#define BTOR_ABORT_CORE(cond, msg)                   \
-  do                                                 \
-  {                                                  \
-    if (cond)                                        \
-    {                                                \
-      printf ("[btorcore] %s: %s\n", __func__, msg); \
-      fflush (stdout);                               \
-      exit (BTOR_ERR_EXIT);                          \
-    }                                                \
   } while (0)
 
 #define BTOR_COND_INVERT_AIG_NODE(exp, aig) \
@@ -4108,8 +4096,8 @@ check_model (Btor *btor, Btor *clone, BtorPtrHashTable *inputs)
   assert (ret != BTOR_RESULT_UNKNOWN
           || clone->slv->api.sat (clone->slv) == BTOR_RESULT_SAT);
   // TODO: check if roots have been simplified through aig rewriting
-  // BTOR_ABORT_CORE (ret == BTOR_RESULT_UNKNOWN, "rewriting needed");
-  BTOR_ABORT_CORE (ret == BTOR_RESULT_UNSAT, "invalid model");
+  // BTOR_ABORT (ret == BTOR_RESULT_UNKNOWN, "rewriting needed");
+  BTOR_ABORT (ret == BTOR_RESULT_UNSAT, "invalid model");
 }
 #endif
 

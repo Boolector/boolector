@@ -10,26 +10,14 @@
  */
 
 #include "btormodel.h"
+
 #include "btorbeta.h"
 #include "btordbg.h"
-#include "btorexit.h"
 #include "btorlog.h"
-#include "btorslvsls.h"
 #include "utils/btoriter.h"
 #include "utils/btormem.h"
 #include "utils/btormisc.h"
 #include "utils/btorutil.h"
-
-#define BTOR_ABORT_MODEL(cond, msg)                   \
-  do                                                  \
-  {                                                   \
-    if (cond)                                         \
-    {                                                 \
-      printf ("[btormodel] %s: %s\n", __func__, msg); \
-      fflush (stdout);                                \
-      exit (BTOR_ERR_EXIT);                           \
-    }                                                 \
-  } while (0)
 
 void
 btor_delete_bv_model (Btor *btor, BtorPtrHashTable **bv_model)

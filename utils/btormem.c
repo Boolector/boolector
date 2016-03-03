@@ -3,16 +3,17 @@
  *  Copyright (C) 2007-2009 Robert Daniel Brummayer.
  *  Copyright (C) 2007-2012 Armin Biere.
  *  Copyright (C) 2012-2015 Mathias Preiner.
+ *  Copyright (C) 2016 Aina Niemetz.
  *
  *  All rights reserved.
  *
  *  This file is part of Boolector.
  *  See COPYING for more information on using this software.
- *  This file is part of Boolector.
  */
 
-#include "utils/btormem.h"
-#include "btorexit.h"
+#include "btormem.h"
+
+#include "btorabort.h"
 
 #include <assert.h>
 #include <stdarg.h>
@@ -21,16 +22,6 @@
 #include <string.h>
 
 /*------------------------------------------------------------------------*/
-
-#define BTOR_ABORT_MEM(cond, msg)            \
-  do                                         \
-  {                                          \
-    if (cond)                                \
-    {                                        \
-      fputs ("[btormem] " msg "\n", stdout); \
-      exit (BTOR_ERR_EXIT);                  \
-    }                                        \
-  } while (0)
 
 #define ADJUST()                                                            \
   do                                                                        \
@@ -69,7 +60,7 @@ BtorMemMgr *
 btor_new_mem_mgr (void)
 {
   BtorMemMgr *mm = (BtorMemMgr *) malloc (sizeof (BtorMemMgr));
-  BTOR_ABORT_MEM (!mm, "out of memory in 'btor_new_mem_mgr'");
+  BTOR_ABORT (!mm, "out of memory in 'btor_new_mem_mgr'");
   mm->allocated        = 0;
   mm->maxallocated     = 0;
   mm->sat_allocated    = 0;
@@ -84,7 +75,7 @@ btor_malloc (BtorMemMgr *mm, size_t size)
   if (!size) return 0;
   assert (mm);
   result = malloc (size);
-  BTOR_ABORT_MEM (!result, "out of memory in 'btor_malloc'");
+  BTOR_ABORT (!result, "out of memory in 'btor_malloc'");
   mm->allocated += size;
   ADJUST ();
   BTOR_LOG_MEM ("%p malloc %10ld\n", result, size);
@@ -98,7 +89,7 @@ btor_sat_malloc (BtorMemMgr *mm, size_t size)
   if (!size) return 0;
   assert (mm);
   result = malloc (size);
-  BTOR_ABORT_MEM (!result, "out of memory in 'btor_sat_malloc'");
+  BTOR_ABORT (!result, "out of memory in 'btor_sat_malloc'");
   mm->sat_allocated += size;
   SAT_ADJUST ();
   return result;
@@ -113,7 +104,7 @@ btor_realloc (BtorMemMgr *mm, void *p, size_t old_size, size_t new_size)
   assert (mm->allocated >= old_size);
   BTOR_LOG_MEM ("%p free   %10ld (realloc)\n", p, old_size);
   result = realloc (p, new_size);
-  BTOR_ABORT_MEM (!result, "out of memory in 'btor_realloc'");
+  BTOR_ABORT (!result, "out of memory in 'btor_realloc'");
   mm->allocated -= old_size;
   mm->allocated += new_size;
   ADJUST ();
@@ -129,7 +120,7 @@ btor_sat_realloc (BtorMemMgr *mm, void *p, size_t old_size, size_t new_size)
   assert (!p == !old_size);
   assert (mm->sat_allocated >= old_size);
   result = realloc (p, new_size);
-  BTOR_ABORT_MEM (!result, "out of memory in 'btor_sat_realloc'");
+  BTOR_ABORT (!result, "out of memory in 'btor_sat_realloc'");
   mm->sat_allocated -= old_size;
   mm->sat_allocated += new_size;
   SAT_ADJUST ();
@@ -143,7 +134,7 @@ btor_calloc (BtorMemMgr *mm, size_t nobj, size_t size)
   void *result;
   assert (mm);
   result = calloc (nobj, size);
-  BTOR_ABORT_MEM (!result, "out of memory in 'btor_calloc'");
+  BTOR_ABORT (!result, "out of memory in 'btor_calloc'");
   mm->allocated += bytes;
   ADJUST ();
   BTOR_LOG_MEM ("%p malloc %10ld (calloc)\n", result, bytes);

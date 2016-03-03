@@ -11,9 +11,9 @@
  */
 
 #include "btormc.h"
+
 #include "boolector.h"
 #include "btorabort.h"
-#include "btorconst.h"
 #include "btorexp.h"
 #include "btormsg.h"
 #include "btoropt.h"
@@ -27,20 +27,21 @@
 
 /*------------------------------------------------------------------------*/
 
-#define BTOR_ABORT_IF_STATE(MC)                            \
-  do                                                       \
-  {                                                        \
-    BTOR_ABORT_BOOLECTOR ((MC)->state != BTOR_NO_MC_STATE, \
-                          "model checker was run before"); \
+#define BTOR_ABORT_IF_STATE(MC)                  \
+  do                                             \
+  {                                              \
+    BTOR_ABORT ((MC)->state != BTOR_NO_MC_STATE, \
+                "model checker was run before"); \
   } while (0)
 
-#define BTOR_MC_CHECK_OWNS_NODE_ARG(NODE)                                    \
-  do                                                                         \
-  {                                                                          \
-    BTOR_ABORT_ARG_NULL_BOOLECTOR (NODE);                                    \
-    BTOR_ABORT_BOOLECTOR (                                                   \
-        BTOR_REAL_ADDR_NODE (NODE)->btor != mc->btor,                        \
-        "node '" #NODE "' does not belong to 'Btor' of this model checker"); \
+// TODO
+#define BTOR_MC_CHECK_OWNS_NODE_ARG(NODE)                             \
+  do                                                                  \
+  {                                                                   \
+    BTOR_ABORT_ARG_NULL (NODE);                                       \
+    BTOR_ABORT (BTOR_REAL_ADDR_NODE (NODE)->btor != mc->btor,         \
+                "node '" #NODE                                        \
+                "' does not belong to 'Btor' of this model checker"); \
   } while (0)
 
 /*------------------------------------------------------------------------*/
@@ -135,7 +136,7 @@ boolector_new_mc (void)
 void
 boolector_set_verbosity_mc (BtorMC *mc, int verbosity)
 {
-  BTOR_ABORT_ARG_NULL_BOOLECTOR (mc);
+  BTOR_ABORT_ARG_NULL (mc);
   mc->verbosity = verbosity;
   boolector_set_opt (mc->btor, BTOR_OPT_VERBOSITY, verbosity);
 }
@@ -143,7 +144,7 @@ boolector_set_verbosity_mc (BtorMC *mc, int verbosity)
 void
 boolector_set_stop_at_first_reached_property_mc (BtorMC *mc, int stop)
 {
-  BTOR_ABORT_ARG_NULL_BOOLECTOR (mc);
+  BTOR_ABORT_ARG_NULL (mc);
   mc->stop = stop;
 }
 
@@ -168,7 +169,7 @@ boolector_set_starting_bound_call_back_mc (BtorMC *mc,
 void
 boolector_enable_trace_gen (BtorMC *mc)
 {
-  BTOR_ABORT_ARG_NULL_BOOLECTOR (mc);
+  BTOR_ABORT_ARG_NULL (mc);
   BTOR_ABORT_IF_STATE (mc);
   assert (!BTOR_COUNT_STACK (mc->frames));
   mc->trace_enabled = 1;
@@ -177,7 +178,7 @@ boolector_enable_trace_gen (BtorMC *mc)
 Btor *
 boolector_btor_mc (BtorMC *mc)
 {
-  BTOR_ABORT_ARG_NULL_BOOLECTOR (mc);
+  BTOR_ABORT_ARG_NULL (mc);
   return mc->btor;
 }
 
@@ -265,7 +266,7 @@ boolector_delete_mc (BtorMC *mc)
   BtorMemMgr *mm;
   BtorMcFrame *f;
   Btor *btor;
-  BTOR_ABORT_ARG_NULL_BOOLECTOR (mc);
+  BTOR_ABORT_ARG_NULL (mc);
   btor_mc_release_assignment (mc);
   BTOR_MSG (
       boolector_get_btor_msg (mc->btor),
@@ -309,10 +310,10 @@ boolector_input (BtorMC *mc, int width, const char *name)
   BoolectorNode *res;
   BoolectorSort s;
   Btor *btor;
-  BTOR_ABORT_ARG_NULL_BOOLECTOR (mc);
-  BTOR_ABORT_BOOLECTOR (mc->state != BTOR_NO_MC_STATE,
-                        "can only be called before checking");
-  BTOR_ABORT_BOOLECTOR (1 > width, "given width < 1");
+  BTOR_ABORT_ARG_NULL (mc);
+  BTOR_ABORT (mc->state != BTOR_NO_MC_STATE,
+              "can only be called before checking");
+  BTOR_ABORT (1 > width, "given width < 1");
   btor = mc->btor;
   mm   = btor->mm;
   s    = boolector_bitvec_sort (btor, width);
@@ -351,9 +352,9 @@ boolector_latch (BtorMC *mc, int width, const char *name)
   BoolectorNode *res;
   BoolectorSort s;
   Btor *btor;
-  BTOR_ABORT_ARG_NULL_BOOLECTOR (mc);
-  BTOR_ABORT_BOOLECTOR (mc->state != BTOR_NO_MC_STATE,
-                        "can only be callsed before checking");
+  BTOR_ABORT_ARG_NULL (mc);
+  BTOR_ABORT (mc->state != BTOR_NO_MC_STATE,
+              "can only be callsed before checking");
   assert (1 <= width);
   btor = mc->btor;
   mm   = btor->mm;
@@ -405,7 +406,7 @@ boolector_next (BtorMC *mc, BoolectorNode *node, BoolectorNode *next)
   BtorMcLatch *latch;
   Btor *btor;
   (void) btor;
-  BTOR_ABORT_ARG_NULL_BOOLECTOR (mc);
+  BTOR_ABORT_ARG_NULL (mc);
   BTOR_ABORT_IF_STATE (mc);
   BTOR_MC_CHECK_OWNS_NODE_ARG (node);
   BTOR_MC_CHECK_OWNS_NODE_ARG (next);
@@ -429,7 +430,7 @@ boolector_init (BtorMC *mc, BoolectorNode *node, BoolectorNode *init)
   BtorMcLatch *latch;
   Btor *btor;
   (void) btor;
-  BTOR_ABORT_ARG_NULL_BOOLECTOR (mc);
+  BTOR_ABORT_ARG_NULL (mc);
   BTOR_ABORT_IF_STATE (mc);
   BTOR_MC_CHECK_OWNS_NODE_ARG (node);
   BTOR_MC_CHECK_OWNS_NODE_ARG (init);
@@ -450,7 +451,7 @@ int
 boolector_bad (BtorMC *mc, BoolectorNode *bad)
 {
   int res;
-  BTOR_ABORT_ARG_NULL_BOOLECTOR (mc);
+  BTOR_ABORT_ARG_NULL (mc);
   BTOR_ABORT_IF_STATE (mc);
   BTOR_MC_CHECK_OWNS_NODE_ARG (bad);
   assert (boolector_get_width (mc->btor, bad) == 1);
@@ -469,7 +470,7 @@ int
 boolector_constraint (BtorMC *mc, BoolectorNode *constraint)
 {
   int res;
-  BTOR_ABORT_ARG_NULL_BOOLECTOR (mc);
+  BTOR_ABORT_ARG_NULL (mc);
   BTOR_ABORT_IF_STATE (mc);
   BTOR_MC_CHECK_OWNS_NODE_ARG (constraint);
   assert (!boolector_is_array (mc->btor, constraint));
@@ -964,7 +965,7 @@ boolector_bmc (BtorMC *mc, int mink, int maxk)
 {
   int k;
 
-  BTOR_ABORT_ARG_NULL_BOOLECTOR (mc);
+  BTOR_ABORT_ARG_NULL (mc);
 
   btor_mc_release_assignment (mc);
 
@@ -1137,11 +1138,9 @@ btor_mc_model2const_mapper (Btor *btor, void *state, BoolectorNode *node)
     else
       sym = boolector_get_symbol (mc->btor, node);
     if (sym)
-      BTOR_ABORT_BOOLECTOR (
-          !bucket, "variable '%s' not a latch nor an input", sym);
+      BTOR_ABORT (!bucket, "variable '%s' not a latch nor an input", sym);
     else
-      BTOR_ABORT_BOOLECTOR (!bucket,
-                            "variable without symbol not a latch nor an input");
+      BTOR_ABORT (!bucket, "variable without symbol not a latch nor an input");
     latch = bucket->data.as_ptr;
     assert (latch);
     assert (latch->node == node);
@@ -1187,27 +1186,27 @@ boolector_mc_assignment (BtorMC *mc, BoolectorNode *node, int time)
   BtorMcFrame *frame;
   char *res;
 
-  BTOR_ABORT_ARG_NULL_BOOLECTOR (mc);
+  BTOR_ABORT_ARG_NULL (mc);
 
-  BTOR_ABORT_BOOLECTOR (mc->state == BTOR_NO_MC_STATE,
-                        "model checker was not run before");
+  BTOR_ABORT (mc->state == BTOR_NO_MC_STATE,
+              "model checker was not run before");
 
-  BTOR_ABORT_BOOLECTOR (mc->state == BTOR_UNSAT_MC_STATE,
-                        "model checking status is UNSAT");
-
-  assert (mc->state == BTOR_SAT_MC_STATE);
-  BTOR_ABORT_BOOLECTOR (!mc->trace_enabled,
-                        "'boolector_enable_trace_gen' was not called before");
+  BTOR_ABORT (mc->state == BTOR_UNSAT_MC_STATE,
+              "model checking status is UNSAT");
 
   assert (mc->state == BTOR_SAT_MC_STATE);
-  BTOR_ABORT_ARG_NULL_BOOLECTOR (node);
-  BTOR_ABORT_REFS_NOT_POS_BOOLECTOR (node);
+  BTOR_ABORT (!mc->trace_enabled,
+              "'boolector_enable_trace_gen' was not called before");
+
+  assert (mc->state == BTOR_SAT_MC_STATE);
+  BTOR_ABORT_ARG_NULL (node);
+  BTOR_ABORT_REFS_NOT_POS (node);
 
   BTOR_MC_CHECK_OWNS_NODE_ARG (node);
 
-  BTOR_ABORT_BOOLECTOR (0 > time, "negative 'time' argument");
-  BTOR_ABORT_BOOLECTOR (time >= BTOR_COUNT_STACK (mc->frames),
-                        "'time' exceeds previously returned bound");
+  BTOR_ABORT (0 > time, "negative 'time' argument");
+  BTOR_ABORT (time >= BTOR_COUNT_STACK (mc->frames),
+              "'time' exceeds previously returned bound");
 
   bucket = btor_get_ptr_hash_table (mc->inputs, node);
   if (bucket)
@@ -1240,8 +1239,8 @@ boolector_mc_assignment (BtorMC *mc, BoolectorNode *node, int time)
 void
 boolector_free_mc_assignment (BtorMC *mc, char *assignment)
 {
-  BTOR_ABORT_ARG_NULL_BOOLECTOR (mc);
-  BTOR_ABORT_ARG_NULL_BOOLECTOR (assignment);
+  BTOR_ABORT_ARG_NULL (mc);
+  BTOR_ABORT_ARG_NULL (assignment);
   btor_freestr (mc->btor->mm, assignment);
 }
 
@@ -1303,13 +1302,13 @@ boolector_dump_btormc (BtorMC *mc, FILE *file)
 int
 boolector_reached_bad_at_bound_mc (BtorMC *mc, int badidx)
 {
-  BTOR_ABORT_ARG_NULL_BOOLECTOR (mc);
-  BTOR_ABORT_BOOLECTOR (mc->state == BTOR_NO_MC_STATE,
-                        "model checker was not run before");
-  BTOR_ABORT_BOOLECTOR (
-      mc->stop, "stopping at first reached property has to be disabled");
-  BTOR_ABORT_BOOLECTOR (badidx < 0, "negative bad state property index");
-  BTOR_ABORT_BOOLECTOR (badidx >= BTOR_COUNT_STACK (mc->bad),
-                        "bad state property index too large");
+  BTOR_ABORT_ARG_NULL (mc);
+  BTOR_ABORT (mc->state == BTOR_NO_MC_STATE,
+              "model checker was not run before");
+  BTOR_ABORT (mc->stop,
+              "stopping at first reached property has to be disabled");
+  BTOR_ABORT (badidx < 0, "negative bad state property index");
+  BTOR_ABORT (badidx >= BTOR_COUNT_STACK (mc->bad),
+              "bad state property index too large");
   return BTOR_PEEK_STACK (mc->reached, badidx);
 }
