@@ -2910,7 +2910,7 @@ boolector_get_sort (Btor *btor, const BoolectorNode *node)
   BTOR_ABORT_ARG_NULL_BOOLECTOR (btor);
   exp = BTOR_IMPORT_BOOLECTOR_NODE (node);
   BTOR_TRAPI_UNFUN (exp);
-  res = exp->sort_id;
+  res = BTOR_REAL_ADDR_NODE (exp)->sort_id;
 #ifndef NDEBUG
   BTOR_CHKCLONE_RES_SORT (res, get_sort, node);
 #endif
