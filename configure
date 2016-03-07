@@ -132,14 +132,19 @@ fi
 
 #--------------------------------------------------------------------------#
 
+BUILDIR="build"
+TESTDIR="tests"
+
+#--------------------------------------------------------------------------#
+
 SRCDIRS=". simplifier parser dumper utils btorfmt"
 if [ $python = yes ]
 then
   SRCDIRS="$SRCDIRS api/python"
 fi
 
-TARGETS="boolector"
-[ $shared = yes ] && TARGETS="$TARGETS libboolector.so"
+TARGETS="$BUILDIR/boolector"
+[ $shared = yes ] && TARGETS="$TARGETS $BUILDIR/libboolector.so"
 
 #--------------------------------------------------------------------------#
 
@@ -199,8 +204,8 @@ LIBM=no
 LIBSTDCPP=no
 if [ $shared = yes ]
 then
-  LIBS="-Wl\,-rpath=$ROOT/."
-  LDEPS="libboolector.so"
+  LIBS="-Wl\,-rpath=$ROOT/$BUILDIR/."
+  LDEPS="$BUILDIR/libboolector.so"
   LIBSTDCPP=yes
 fi
 
@@ -398,7 +403,7 @@ else
     [ X"$LIBS" = X ] || LIBS="$LIBS "
     [ X"$INCS" = X ] || INCS="$INCS "
     CFLAGS="${CFLAGS}-DBTOR_USE_MINISAT"
-    OBJS="${OBJS}btorminisat.o"
+    OBJS="${OBJS}$BUILDIR/btorminisat.o"
     if [ $shared = yes ]
     then
       LIBS="${LIBS}-L../minisat/build/dynamic/lib -Wl\,-rpath=$ROOT/../minisat/build/dynamic/lib -lminisat"
@@ -468,7 +473,7 @@ then
     py_libraries="$py_libraries minisat"
     py_library_dirs="$py_library_dirs ../minisat/build/dynamic/lib"
   fi
-  OBJS="api/python/boolector_py.o $OBJS" 
+  OBJS="$BUILDIR/api/python/boolector_py.o $OBJS" 
   pyinc=`$PYTHON -c "import sysconfig; print(sysconfig.get_config_var('CONFINCLUDEPY'))"`
   pylib=`$PYTHON -c "import sysconfig; print(sysconfig.get_config_var('BINLIBDEST'))"`
   pyld=`basename $pyinc`
@@ -528,7 +533,6 @@ msg "LIBS=$LIBS"
 msg "OBJS=$OBJS"
 msg "INCS=$INCS"
 
-rm -f makefile
 sed \
   -e "s,@CC@,$CC," \
   -e "s,@CXX@,$CXX," \
@@ -539,5 +543,7 @@ sed \
   -e "s,@OBJS@,$OBJS," \
   -e "s,@TARGETS@,$TARGETS," \
   -e "s,@SRCDIRS@,$SRCDIRS," \
+  -e "s,@BUILDIR@,$BUILDIR," \
+  -e "s,@TESTDIR@,$TESTDIR," \
   makefile.in > makefile
 msg "makefile generated"

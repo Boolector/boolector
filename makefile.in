@@ -3,66 +3,79 @@
 MAKEFLAGS=-j $(if $(CORES),$(CORES),1)
 CC=@CC@
 CXX=@CXX@
-INCS=-I. @INCS@
+BUILDIR=@BUILDIR@
+TESTDIR=@TESTDIR@
+SRCDIRS=@SRCDIRS@
+INCS=-I. -I $(BUILDIR) @INCS@
 CFLAGS=@CFLAGS@
 OBJS=@OBJS@
 LIBS=@LIBS@
 LDEPS=@LDEPS@
 VERSION=$(shell cat VERSION)
-SRCDIRS=@SRCDIRS@
-LIBOBJ=$(patsubst %.c,%.o,$(foreach d,$(SRCDIRS),$(wildcard $(d)/btor[a-z]*.c)))
-LIBOBJ+=boolector.o utils/boolectormap.o $(OBJS)
 SRC=$(foreach d,$(SRCDIRS),$(wildcard $(d)/*.[c|h|cc]))
+SRC+=$(foreach d,$(SRCDIRS),$(wildcard $(d)/boolector*.[c|h|cc]))
+LIBOBJ=$(patsubst %.c,$(BUILDIR)/%.o,$(filter %.c, $(SRC))) $(OBJS)
 TARGETS=@TARGETS@
 ROOT=$(shell pwd|sed -e 's, ,\\ ,g')
 
-all: libboolector.a $(TARGETS)
+all: $(BUILDIR)/libboolector.a $(TARGETS)
 
--include dependencies
+-include $(BUILDIR)/dependencies
 -include test.mk
 -include ibv.mk
 -include mbt.mk
 -include python.mk
 
-%.o: %.c
+$(BUILDIR)/%.o: %.c
+	@mkdir -p $(@D)
 	$(CC) $(CFLAGS) $(INCS) -c $< -o $@
 
-%.o: %.cc
+$(BUILDIR)/%.o: %.cc
+	@mkdir -p $(@D)
 	$(CC) $(CFLAGS) $(INCS) -c $< -o $@
 
-analyze:
+$(BUILDIR)/analyze:
+	@mkdir -p $(@D)
 	clang --analyze $(CFLAGS) $(INCS) \
 	  $(shell find $(SRCDIRS) -maxdepth 1 -name "*.[ch]" -o -name "*.cc")
 
-dependencies: btorconfig.h $(SRC) makefile
+$(BUILDIR)/dependencies: $(BUILDIR)/btorconfig.h $(SRC) makefile
+	@mkdir -p $(@D)
 	rm -f $@
 	for srcdir in $(SRCDIRS); \
 	do \
 	  find $$srcdir/ -maxdepth 1 -name "*.[ch]" -o -name \*.cc | \
 	  xargs $(CC) $(CFLAGS) $(INCS) -MM | \
-	  sed -e 's,\(.*\):,'$$srcdir/'\1: makefile,' >>$@; \
+	  sed -e 's,\(.*\):,'$(BUILDIR)/$$srcdir/'\1: makefile,' >>$@; \
 	done
-boolector: boolectormain.o libboolector.a $(LDEPS)
-	$(CC) $(CFLAGS) $(INCS) -o $@ boolectormain.o -L. -lboolector $(LIBS) $(LDEPS)
 
-libboolector.a: $(LIBOBJ)
+$(BUILDIR)/boolector: $(BUILDIR)/boolectormain.o $(BUILDIR)/libboolector.a $(LDEPS)
+	@mkdir -p $(@D)
+	$(CC) $(CFLAGS) $(INCS) -o $@ $(BUILDIR)/boolectormain.o -L$(BUILDIR) -lboolector $(LIBS) $(LDEPS)
+
+$(BUILDIR)/libboolector.a: $(LIBOBJ)
+	@mkdir -p $(@D)
 	rm -f $@
 	ar rc $@ $(LIBOBJ)
 	ranlib $@
 
-btorconfig.h: makefile VERSION mkconfig
+$(BUILDIR)/btorconfig.h: makefile VERSION mkconfig
+	@mkdir -p $(@D)
 	rm -f $@; ./mkconfig > $@
 
-SONAME=-Xlinker -soname -Xlinker libboolector.so
-SHOBJS=$(filter-out ./btormbt.o ./btoruntrace.o ./btormain, $(LIBOBJ))
-libboolector.so: $(SHOBJS)
+SONAME=-Xlinker -soname -Xlinker $(BUILDIR)/libboolector.so
+SHOBJS=$(filter-out ./$(BUILDIR)/btormbt.o ./$(BUILDIR)/btoruntrace.o ./$(BUILDIR)/btormain, $(LIBOBJ))
+$(BUILDIR)/libboolector.so: $(SHOBJS)
+	@mkdir -p $(@D)
 	$(CC) $(CFLAGS) -shared -o $@ $(SHOBJS) $(LIBS) $(SONAME)
 
 clean:
 	rm -f $(TARGETS)
-	rm -f dependencies makefile btorconfig.h
-	rm -f $(foreach d,$(SRCDIRS),$(d)/*.{o,gcda,gcno,gcov,plist})
+	rm -f makefile
+	rm -f $(foreach d,$(SRCDIRS),$(d)/*.{gcda,gcno,gcov,plist})
 	rm -f log/*.log *.tmp
-	rm -f *.a *.so $(foreach d,$(SRCDIRS),$(d)/*.o)
+	rm -f *.a *.so $(foreach d,$(SRCDIRS),$(d)/*.o)# TODO remove
+	rm -f -r $(BUILDIR)
+
 
 .PHONY: all analyze clean
