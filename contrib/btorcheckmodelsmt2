@@ -9,7 +9,7 @@ die ()
 trap "exit 2" SIGHUP SIGINT SIGTERM
 
 CONTRIBDIR=$(dirname "$(readlink -f $0)")
-BOOLECTOR="$CONTRIBDIR/../boolector"
+BOOLECTOR="$CONTRIBDIR/../build/boolector"
 INFILE=""
 MODEL=""
 TMPFILE=/tmp/btorcheckmodelsmt2-$$.smt2

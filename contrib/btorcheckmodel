@@ -11,7 +11,7 @@ pid = os.getpid();
 foutname = "/tmp/btorcheckmodel" + str(pid) +".btor"
 # get absolute path to boolector binary
 pathname = os.path.dirname(sys.argv[0])        
-boolector = (os.path.abspath(pathname + "/../") + "/boolector").replace (" ", "\ ")
+boolector = (os.path.abspath(pathname + "/../build/") + "/boolector").replace (" ", "\ ")
 
 
 def cleanup():

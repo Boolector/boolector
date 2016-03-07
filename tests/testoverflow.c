@@ -2,7 +2,7 @@
  *
  *  Copyright (C) 2007-2010 Robert Daniel Brummayer.
  *  Copyright (C) 2007-2012 Armin Biere.
- *  Copyright (C) 2012-2014 Aina Niemetz
+ *  Copyright (C) 2012-2016 Aina Niemetz
  *
  *  All rights reserved.
  *
@@ -11,6 +11,7 @@
  */
 
 #include "testoverflow.h"
+
 #include "btorexit.h"
 #include "btormain.h"
 #include "testrunner.h"
@@ -24,14 +25,16 @@
 #include <limits.h>
 #include <stdio.h>
 #include <stdlib.h>
+#include <string.h>
 
 #define BTOR_TEST_OVERFLOW_TEMP_FILE_NAME "of.tmp"
 
 #define BTOR_TEST_OVERFLOW_LOW 1
 #define BTOR_TEST_OVERFLOW_HIGH 4
 
-static int g_argc    = 6;
-static char **g_argv = NULL;
+static int g_argc       = 6;
+static char **g_argv    = NULL;
+static char *g_btor_str = NULL;
 
 void
 init_overflow_tests (void)
@@ -46,9 +49,13 @@ init_overflow_tests (void)
 
   if (g_rwreads) pos_rwr = g_argc++ - 1;
 
+  g_btor_str =
+      (char *) malloc (sizeof (char *) * (strlen (BTOR_BUILD_DIR) + 20));
+  sprintf (g_btor_str, "%sboolector", BTOR_BUILD_DIR);
+
   g_argv = (char **) malloc (g_argc * sizeof (char *));
 
-  g_argv[0] = "./boolector";
+  g_argv[0] = g_btor_str;
   g_argv[1] = "-rwl";
   g_argv[2] = "1";
   g_argv[3] = "-o";
@@ -310,5 +317,6 @@ finish_overflow_tests (void)
 {
   int result = remove (BTOR_TEST_OVERFLOW_TEMP_FILE_NAME);
   assert (result == 0);
+  free (g_btor_str);
   free (g_argv);
 }

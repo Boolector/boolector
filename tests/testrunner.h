@@ -14,6 +14,7 @@
 #define TESTRUNNER_H_INCLUDED
 
 #include <stdio.h>
+#include "btorconfig.h"
 
 extern int g_rwreads;
 extern FILE *g_logfile;

@@ -2,7 +2,7 @@
  *
  *  Copyright (C) 2007-2010 Robert Daniel Brummayer.
  *  Copyright (C) 2007-2012 Armin Biere.
- *  Copyright (C) 2012 Aina Niemetz
+ *  Copyright (C) 2012-2016 Aina Niemetz
  *
  *  All rights reserved.
  *
@@ -17,6 +17,7 @@
 #endif
 
 #include <assert.h>
+#include <stdbool.h>
 #include <stdio.h>
 #include <stdlib.h>
 #include <string.h>
@@ -211,7 +212,9 @@ static int
 cmp_file (const char *a, const char *b)
 {
   FILE *f, *g;
-  int res, c, d;
+  char *stack_a, *stack_b, *sa, *sb;
+  int res, c, d, init_size = 100, size, nelems = 0;
+  bool isperr_a, isperr_b;
 
   assert (a);
   assert (b);
@@ -226,12 +229,64 @@ cmp_file (const char *a, const char *b)
     return 0;
   }
 
-  do
+  stack_a    = malloc (sizeof (char) * init_size);
+  stack_b    = malloc (sizeof (char) * init_size);
+  stack_a[0] = 0;
+  stack_b[0] = 0;
+
+  for (nelems = 0, size = init_size, c = getc (f); c != EOF; c = getc (f))
   {
-    c   = getc (f);
-    d   = getc (g);
-    res = (c == d);
-  } while (res && c != EOF);
+    assert (nelems < size);
+    stack_a[nelems] = c;
+    nelems += 1;
+    if (nelems == size)
+    {
+      stack_a = realloc (stack_a, sizeof (char) * 2 * size);
+      size *= 2;
+    }
+  }
+  stack_a[nelems] = 0;
+
+  for (nelems = 0, size = init_size, d = getc (g); d != EOF; d = getc (g))
+  {
+    assert (nelems < size);
+    stack_b[nelems] = d;
+    nelems += 1;
+    if (nelems == size)
+    {
+      stack_b = realloc (stack_b, sizeof (char) * 2 * size);
+      size *= 2;
+    }
+  }
+  stack_b[nelems] = 0;
+
+  /* trim path */
+  isperr_a = strncmp (stack_a, "boolector:", strlen ("boolector:")) == 0;
+  isperr_b = strncmp (stack_b, "boolector:", strlen ("boolector:")) == 0;
+
+  if (isperr_a != isperr_b) return 0;
+
+  if (isperr_a)
+  {
+    sa = strstr (stack_a, "log");
+    sb = strstr (stack_b, "log");
+    if (!sa || !sb)
+    {
+      res = 0;
+      goto DONE;
+    }
+  }
+  else
+  {
+    sa = stack_a;
+    sb = stack_b;
+  }
+
+  res = !strcmp (sa, sb);
+
+DONE:
+  free (stack_a);
+  free (stack_b);
 
   fclose (f);
   fclose (g);
@@ -351,12 +406,13 @@ run_test_case (
       len = 0;
       /* "log/" + name + ".log" or ".out" + \0 */
       len          = 4 + strlen (name) + 4 + 1;
-      logfile_name = (char *) malloc (len);
-      outfile_name = (char *) malloc (len);
-      sprintf (logfile_name, "%s%s.log", "log/", name);
-      sprintf (outfile_name, "%s%s.out", "log/", name);
+      logfile_name = (char *) malloc (len + strlen (BTOR_LOG_DIR));
+      outfile_name = (char *) malloc (len + strlen (BTOR_LOG_DIR));
+      sprintf (logfile_name, "%s%s.log", BTOR_LOG_DIR, name);
+      sprintf (outfile_name, "%s%s.out", BTOR_LOG_DIR, name);
 
       g_logfile = fopen (logfile_name, "w");
+      assert (g_logfile);
     }
 
     funcp ();
