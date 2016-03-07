@@ -719,9 +719,8 @@ sat_ef_solver (BtorEFSolver *slv)
     slv->time.qinst += btor_time_stamp () - start;
     slv->stats.refinements++;
   }
-  if (res == BTOR_RESULT_SAT)
+  if (res == BTOR_RESULT_SAT && synth_fun_model)
   {
-    assert (synth_fun_model);
     /* increment reference counts for UF models */
     btor_init_node_map_iterator (&it, synth_fun_model);
     while (btor_has_next_node_map_iterator (&it))
