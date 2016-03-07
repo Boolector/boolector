@@ -251,7 +251,7 @@ refine_exists_solver (BtorEFSolver *slv)
     btor_map_node (map, var_fs, var_es);
   }
 
-  if (e_solver->bv_model)
+  if (btor_get_opt (slv->btor, BTOR_OPT_EF_SYMQINST) && e_solver->bv_model)
   {
     for (i = 1; i < BTOR_COUNT_STACK (e_solver->nodes_id_table); i++)
     {
@@ -543,6 +543,7 @@ sat_ef_solver (BtorEFSolver *slv)
   assert (slv->btor->slv == (BtorSolver *) slv);
 
   double start;
+  bool opt_synth_fun;
   Btor *e_solver, *f_solver;
   BtorSolverResult res;
   BtorNodeMapIterator it;
@@ -579,6 +580,7 @@ sat_ef_solver (BtorEFSolver *slv)
   e_exists_vars   = slv->e_exists_vars;
   synth_fun_cache = btor_new_ptr_hash_table (f_solver->mm, 0, 0);
   synth_fun_model = 0;
+  opt_synth_fun   = btor_get_opt (slv->btor, BTOR_OPT_EF_SYNTH) == 1;
 
   g = btor_copy_exp (f_solver, slv->f_formula);
   goto CHECK_FORALL;
@@ -658,8 +660,12 @@ sat_ef_solver (BtorEFSolver *slv)
       }
 #endif
       start = btor_time_stamp ();
-      synth_fun =
-          btor_synthesize_fun (f_solver, var_fs, uf_model, synth_fun_cache);
+      if (opt_synth_fun)
+        synth_fun =
+            btor_synthesize_fun (f_solver, var_fs, uf_model, synth_fun_cache);
+      else
+        synth_fun = 0;
+
       if (!synth_fun)
       {
         slv->stats.synth_aborts++;

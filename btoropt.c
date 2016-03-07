@@ -667,6 +667,26 @@ btor_init_opts (Btor *btor)
             0,
             1,
             "destructive equality resolution for EF solver");
+  init_opt (btor,
+            BTOR_OPT_EF_SYNTH,
+            false,
+            true,
+            "ef:synth",
+            0,
+            1,
+            0,
+            1,
+            "use synthesis for UF models");
+  init_opt (btor,
+            BTOR_OPT_EF_SYMQINST,
+            false,
+            true,
+            "ef:symqinst",
+            0,
+            0,
+            0,
+            1,
+            "use symbolic terms for quantifier instantiation");
 
   /* internal options ---------------------------------------------------- */
   init_opt (btor,
