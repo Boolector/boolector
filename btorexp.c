@@ -461,13 +461,10 @@ disconnect_child_exp (Btor *btor, BtorNode *parent, int pos)
 }
 
 static unsigned int
-hash_binder_exp (Btor *btor, BtorNode *param, BtorNode *body)
+hash_binder_exp (Btor *btor, BtorNode *body)
 {
   assert (btor);
-  assert (param);
   assert (body);
-  assert (BTOR_IS_REGULAR_NODE (param));
-  assert (BTOR_IS_PARAM_NODE (param));
 
   int i;
   unsigned int hash = 0;
@@ -485,15 +482,6 @@ hash_binder_exp (Btor *btor, BtorNode *param, BtorNode *body)
     real_cur = BTOR_REAL_ADDR_NODE (cur);
 
     if (btor_contains_int_hash_table (marked, real_cur->id)) continue;
-
-      // TODO (ma): hashing arbitrarily deep lambdas might be too expensive
-#if 0
-      if (marked->count > 10)
-	{
-	  hash = BTOR_GET_ID_NODE (param) + BTOR_GET_ID_NODE (body); 
-	  break;
-	}
-#endif
 
     if (!real_cur->parameterized)
     {
@@ -1762,7 +1750,7 @@ find_binder_exp (Btor *btor,
   BtorNode *cur, **result;
   unsigned int hash;
 
-  hash = hash_binder_exp (btor, param, body);
+  hash = hash_binder_exp (btor, body);
   if (binder_hash) *binder_hash = hash;
   hash &= btor->nodes_unique_table.size - 1;
   result = btor->nodes_unique_table.chains + hash;

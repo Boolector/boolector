@@ -223,13 +223,10 @@ refine_exists_solver (BtorEFSolver *slv)
   Btor *f_solver, *e_solver;
   BtorNodeMap *map;
   BtorNodeMapIterator it;
-  BtorHashTableIterator h_it;
-  BtorNode *var_es, *var_fs, *uf_fs, *uf_es, *c, *res, *app, *eq;
-  BtorNodePtrStack consts, args;
+  BtorNode *var_es, *var_fs, *c, *res;
+  BtorNodePtrStack consts;
   const BtorBitVector *bv;
-  const BtorPtrHashTable *uf_model;
   BtorPtrHashTable *var_es_assignments;
-  BtorBitVectorTuple *bv_tup;
   BtorMemMgr *mm;
   BtorPtrHashBucket *b;
 
