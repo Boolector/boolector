@@ -364,27 +364,28 @@ is_ef_formula (BtorEFSolver *slv)
       cur            = btor_binder_get_body (real_cur);
       exists_allowed = false;
     }
+
     BTOR_PUSH_STACK (mm, visit, cur);
     while (!BTOR_EMPTY_STACK (visit))
     {
       cur      = BTOR_POP_STACK (visit);
       real_cur = BTOR_REAL_ADDR_NODE (cur);
-      assert (!BTOR_IS_QUANTIFIER_NODE (real_cur)
-              || !BTOR_IS_INVERTED_NODE (cur));
 
-      if (btor_contains_int_hash_table (cache, real_cur->id)) continue;
-
-      btor_add_int_hash_table (cache, real_cur->id);
-
-      if ((!exists_allowed && BTOR_IS_EXISTS_NODE (real_cur))
-          || BTOR_IS_FORALL_NODE (real_cur))
+      if (BTOR_IS_QUANTIFIER_NODE (real_cur))
       {
-        result = false;
+        // TODO (ma): negate quantifier and add subst
+        result = BTOR_IS_INVERTED_NODE (cur) == 0;
         goto CLEANUP_AND_EXIT;
       }
 
+      if (!BTOR_IS_AND_NODE (real_cur)
+          || btor_contains_int_hash_table (cache, BTOR_GET_ID_NODE (cur)))
+        continue;
+
+      btor_add_int_hash_table (cache, real_cur->id);
       for (i = 0; i < real_cur->arity; i++)
-        BTOR_PUSH_STACK (mm, visit, real_cur->e[i]);
+        BTOR_PUSH_STACK (
+            mm, visit, BTOR_COND_INVERT_NODE (cur, real_cur->e[i]));
     }
   }
 CLEANUP_AND_EXIT:
