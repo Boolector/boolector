@@ -1,17 +1,9 @@
 
 all: $(BINDIR)/btoruntrace $(BINDIR)/btormbt
 
-$(BUILDIR)/btormbt.o: btormbt.c
-	@mkdir -p $(@D)
-	$(CC) $(CFLAGS) $(INCS) -c $< -o $@
-
 $(BINDIR)/btormbt: $(BUILDIR)/btormbt.o $(BUILDIR)/libboolector.a $(LDEPS)
 	@mkdir -p $(@D)
 	$(CC) $(CFLAGS) $(INCS) -o $@ -L$(BUILDIR) -lboolector $(LIBS)
-
-$(BUILDIR)/btoruntrace.o: btoruntrace.c
-	@mkdir -p $(@D)
-	$(CC) $(CFLAGS) $(INCS) -c $< -o $@
 
 $(BINDIR)/btoruntrace: $(BUILDIR)/btoruntrace.o $(BUILDIR)/libboolector.a $(LDEPS)
 	@mkdir -p $(@D)

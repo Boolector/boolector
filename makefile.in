@@ -6,16 +6,17 @@ CXX=@CXX@
 BINDIR=@BINDIR@
 BUILDIR=@BUILDIR@
 TESTDIR=@TESTDIR@
+SRCDIR=@SRCDIR@
 SRCDIRS=@SRCDIRS@
-INCS=-I. -I $(BUILDIR) @INCS@
+INCS=-I$(SRCDIR) -I $(BUILDIR) @INCS@
 CFLAGS=@CFLAGS@
 OBJS=@OBJS@
 LIBS=@LIBS@
 LDEPS=@LDEPS@
 VERSION=$(shell cat VERSION)
-SRC=$(foreach d,$(SRCDIRS),$(wildcard $(d)/*.[c|h|cc]))
-SRC+=$(foreach d,$(SRCDIRS),$(wildcard $(d)/boolector*.[c|h|cc]))
-LIBOBJ=$(patsubst %.c,$(BUILDIR)/%.o,$(filter %.c, $(SRC))) $(OBJS)
+SRCS=$(foreach d,$(SRCDIRS),$(wildcard $(d)/*.[c|h|cc]))
+SRCS+=$(foreach d,$(SRCDIRS),$(wildcard $(d)/boolector*.[c|h|cc]))
+LIBOBJS=$(subst $(SRCDIR), $(BUILDIR), $(patsubst %.c,%.o,$(filter %.c, $(SRCS)))) $(OBJS)
 TARGETS=@TARGETS@
 ROOT=$(shell pwd|sed -e 's, ,\\ ,g')
 
@@ -27,44 +28,45 @@ all: $(BUILDIR)/libboolector.a $(TARGETS)
 -include mbt.mk
 -include python.mk
 
-$(BUILDIR)/%.o: %.c
+$(BUILDIR)/%.o: $(SRCDIR)/%.c
 	@mkdir -p $(@D)
 	$(CC) $(CFLAGS) $(INCS) -c $< -o $@
 
-$(BUILDIR)/%.o: %.cc
+$(BUILDIR)/%.o: $(SRCDIR)/%.cc
 	@mkdir -p $(@D)
 	$(CC) $(CFLAGS) $(INCS) -c $< -o $@
 
-$(BUILDIR)/analyze:
+$(BUILDIR)/btorconfig.h: makefile VERSION mkconfig
 	@mkdir -p $(@D)
-	clang --analyze $(CFLAGS) $(INCS) \
-	  $(shell find $(SRCDIRS) -maxdepth 1 -name "*.[ch]" -o -name "*.cc")
+	rm -f $@; ./mkconfig > $@
 
-$(BUILDIR)/dependencies: $(BUILDIR)/btorconfig.h $(SRC) makefile
+$(BUILDIR)/dependencies: $(BUILDIR)/btorconfig.h $(SRCS) makefile
 	@mkdir -p $(@D)
 	rm -f $@
 	for srcdir in $(SRCDIRS); \
 	do \
 	  find $$srcdir/ -maxdepth 1 -name "*.[ch]" -o -name \*.cc | \
 	  xargs $(CC) $(CFLAGS) $(INCS) -MM | \
-	  sed -e 's,\(.*\):,'$(BUILDIR)/$$srcdir/'\1: makefile,' >>$@; \
+	  sed -e 's,\(.*\):,'$(BUILDIR)/$$srcdir/'\1: makefile,' | \
+		sed -e 's,$(SRCDIR)/\(.*\.o\),\1,' >>$@; \
 	done
 
-$(BUILDIR)/libboolector.a: $(LIBOBJ)
+$(BUILDIR)/libboolector.a: $(LIBOBJS)
 	@mkdir -p $(@D)
 	rm -f $@
-	ar rc $@ $(LIBOBJ)
+	ar rc $@ $(LIBOBJS)
 	ranlib $@
 
-$(BUILDIR)/btorconfig.h: makefile VERSION mkconfig
-	@mkdir -p $(@D)
-	rm -f $@; ./mkconfig > $@
-
 SONAME=-Xlinker -soname -Xlinker $(BUILDIR)/libboolector.so
-SHOBJS=$(filter-out ./$(BUILDIR)/btormbt.o ./$(BUILDIR)/btoruntrace.o ./$(BUILDIR)/btormain, $(LIBOBJ))
+SHOBJS=$(filter-out ./$(BUILDIR)/btormbt.o ./$(BUILDIR)/btoruntrace.o ./$(BUILDIR)/btormain, $(LIBOBJS))
 $(BUILDIR)/libboolector.so: $(SHOBJS)
 	@mkdir -p $(@D)
 	$(CC) $(CFLAGS) -shared -o $@ $(SHOBJS) $(LIBS) $(SONAME)
+
+$(BUILDIR)/analyze:
+	@mkdir -p $(@D)
+	clang --analyze $(CFLAGS) $(INCS) \
+	  $(shell find $(SRCDIRS) -maxdepth 1 -name "*.[ch]" -o -name "*.cc")
 
 $(BINDIR)/boolector: $(BUILDIR)/boolectormain.o $(BUILDIR)/libboolector.a $(LDEPS)
 	@mkdir -p $(@D)
