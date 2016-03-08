@@ -81,6 +81,8 @@ static const char *slowtests[] = {
     "mul_bitvec",
     "udiv_bitvec",
     "urem_bitvec",
+    "uext_bitvec",
+    "sext_bitvec",
     "perf_and_bitvec",
     "perf_eq_bitvec",
     "perf_ult_bitvec",
@@ -90,6 +92,17 @@ static const char *slowtests[] = {
     "perf_urem_bitvec",
     "perf_sll_bitvec",
     "perf_srl_bitvec",
+    "propinv_complete_add_bv",
+    "propinv_complete_and_bv",
+    "propinv_complete_eq_bv",
+    "propinv_complete_ult_bv",
+    "propinv_complete_sll_bv",
+    "propinv_complete_srl_bv",
+    "propinv_complete_mul_bv",
+    "propinv_complete_udiv_bv",
+    "propinv_complete_urem_bv",
+    "propinv_complete_concat_bv",
+    "propinv_complete_slice_bv",
 
     0, /* NOTE: DO NOT REMOVE AND KEEP AT SENTINEL */
 };
