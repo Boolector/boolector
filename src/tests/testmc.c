@@ -80,32 +80,32 @@ test_mcnewdel ()
 static void
 test_mctoggle ()
 {
-  int k, mode;
+  int i, k, mode;
+  BoolectorNode *bit, *one, *zero, *add, *bad;
+  char *fname, *suffix = "mctoggle.log";
+  FILE *file;
 
   for (mode = 0; mode < 2; mode++)
   {
     init_mc_test ();
     if (mode) boolector_enable_trace_gen (g_mc);
 
-    BoolectorNode *bit;
-
     // boolector_set_verbosity_mc (g_mc, 3);
 
-    bit = boolector_latch (g_mc, 1, "counter");
+    bit  = boolector_latch (g_mc, 1, "counter");
+    one  = boolector_one (g_btor, 1);
+    zero = boolector_zero (g_btor, 1);
+    add  = boolector_add (g_btor, bit, one);
+    bad  = boolector_eq (g_btor, bit, one);
 
-    {
-      BoolectorNode *one  = boolector_one (g_btor, 1);
-      BoolectorNode *zero = boolector_zero (g_btor, 1);
-      BoolectorNode *add  = boolector_add (g_btor, bit, one);
-      BoolectorNode *bad  = boolector_eq (g_btor, bit, one);
-      boolector_next (g_mc, bit, add);
-      boolector_init (g_mc, bit, zero);
-      boolector_bad (g_mc, bad);
-      boolector_release (g_btor, one);
-      boolector_release (g_btor, zero);
-      boolector_release (g_btor, add);
-      boolector_release (g_btor, bad);
-    }
+    boolector_next (g_mc, bit, add);
+    boolector_init (g_mc, bit, zero);
+    boolector_bad (g_mc, bad);
+
+    boolector_release (g_btor, one);
+    boolector_release (g_btor, zero);
+    boolector_release (g_btor, add);
+    boolector_release (g_btor, bad);
 
     k = boolector_bmc (g_mc, 0, 0);
     assert (k < 0);  // can not reach bad within k=0 steps
@@ -115,8 +115,10 @@ test_mctoggle ()
 
     if (mode)
     {
-      FILE *file = fopen ("log/mctoggle.log", "w");
-      int i;
+      fname = (char *) malloc (sizeof (char)
+                               * (strlen (BTOR_LOG_DIR) + strlen (suffix) + 1));
+      sprintf (fname, "%s%s", BTOR_LOG_DIR, suffix);
+      file = fopen (fname, "w");
       assert (file);
       fprintf (file, "Bad state property satisfied at k = %d:\n", k);
       for (i = 0; i <= k; i++)
@@ -126,6 +128,7 @@ test_mctoggle ()
         PRINT (bit, i);
       }
       fclose (file);
+      free (fname);
     }
 
     finish_mc_test ();
@@ -135,7 +138,12 @@ test_mctoggle ()
 static void
 test_mccount2enable ()
 {
-  int k, mode;
+  int i, k, mode;
+  BoolectorNode *counter;  // 2-bit state
+  BoolectorNode *enable;   // one boolean control input
+  BoolectorNode *one, *zero, *three, *add, *ifenable, *bad;
+  char *fname, *suffix = "mccount2enable.log";
+  FILE *file;
 
   for (mode = 0; mode < 2; mode++)
   {
@@ -143,31 +151,28 @@ test_mccount2enable ()
 
     if (mode) boolector_enable_trace_gen (g_mc);
 
-    BoolectorNode *counter;  // 2-bit state
-    BoolectorNode *enable;   // one boolean control input
-
     // boolector_set_verbosity_mc (g_mc, 3);
 
     counter = boolector_latch (g_mc, 2, "counter");
     enable  = boolector_input (g_mc, 1, "enable");
 
-    {
-      BoolectorNode *one      = boolector_one (g_btor, 2);
-      BoolectorNode *zero     = boolector_zero (g_btor, 2);
-      BoolectorNode *three    = boolector_const (g_btor, "11");
-      BoolectorNode *add      = boolector_add (g_btor, counter, one);
-      BoolectorNode *ifenable = boolector_cond (g_btor, enable, add, counter);
-      BoolectorNode *bad      = boolector_eq (g_btor, counter, three);
-      boolector_next (g_mc, counter, ifenable);
-      boolector_init (g_mc, counter, zero);
-      boolector_bad (g_mc, bad);
-      boolector_release (g_btor, one);
-      boolector_release (g_btor, zero);
-      boolector_release (g_btor, three);
-      boolector_release (g_btor, add);
-      boolector_release (g_btor, ifenable);
-      boolector_release (g_btor, bad);
-    }
+    one      = boolector_one (g_btor, 2);
+    zero     = boolector_zero (g_btor, 2);
+    three    = boolector_const (g_btor, "11");
+    add      = boolector_add (g_btor, counter, one);
+    ifenable = boolector_cond (g_btor, enable, add, counter);
+    bad      = boolector_eq (g_btor, counter, three);
+
+    boolector_next (g_mc, counter, ifenable);
+    boolector_init (g_mc, counter, zero);
+    boolector_bad (g_mc, bad);
+
+    boolector_release (g_btor, one);
+    boolector_release (g_btor, zero);
+    boolector_release (g_btor, three);
+    boolector_release (g_btor, add);
+    boolector_release (g_btor, ifenable);
+    boolector_release (g_btor, bad);
 
     k = boolector_bmc (g_mc, 0, 1);
     assert (k < 0);  // can not reach bad within k=1 steps
@@ -177,8 +182,10 @@ test_mccount2enable ()
 
     if (mode)
     {
-      FILE *file = fopen ("log/mccount2enable.log", "w");
-      int i;
+      fname = (char *) malloc (sizeof (char)
+                               * (strlen (BTOR_LOG_DIR) + strlen (suffix) + 1));
+      sprintf (fname, "%s%s", BTOR_LOG_DIR, suffix);
+      file = fopen (fname, "w");
       assert (file);
       boolector_dump_btormc (g_mc, file);
       fflush (file);
@@ -193,6 +200,7 @@ test_mccount2enable ()
         PRINT (enable, i);
       }
       fclose (file);
+      free (fname);
     }
 
     finish_mc_test ();
@@ -202,11 +210,12 @@ test_mccount2enable ()
 static void
 test_mccount2resetenable ()
 {
-  FILE *file;
   int k, i;
-
+  BoolectorNode *one, *zero, *three, *add, *ifenable, *ifreset, *bad;
   BoolectorNode *counter;         // 2-bit state
   BoolectorNode *enable, *reset;  // two boolean control inputs
+  char *fname, *suffix = "mccount2resetenable.log";
+  FILE *file;
 
   init_mc_test ();
 
@@ -217,25 +226,24 @@ test_mccount2resetenable ()
   enable  = boolector_input (g_mc, 1, "enable");
   reset   = boolector_input (g_mc, 1, "reset");
 
-  {
-    BoolectorNode *one      = boolector_one (g_btor, 2);
-    BoolectorNode *zero     = boolector_zero (g_btor, 2);
-    BoolectorNode *three    = boolector_const (g_btor, "11");
-    BoolectorNode *add      = boolector_add (g_btor, counter, one);
-    BoolectorNode *ifenable = boolector_cond (g_btor, enable, add, counter);
-    BoolectorNode *ifreset  = boolector_cond (g_btor, reset, ifenable, zero);
-    BoolectorNode *bad      = boolector_eq (g_btor, counter, three);
-    boolector_next (g_mc, counter, ifreset);
-    boolector_init (g_mc, counter, zero);
-    boolector_bad (g_mc, bad);
-    boolector_release (g_btor, one);
-    boolector_release (g_btor, zero);
-    boolector_release (g_btor, three);
-    boolector_release (g_btor, add);
-    boolector_release (g_btor, ifenable);
-    boolector_release (g_btor, ifreset);
-    boolector_release (g_btor, bad);
-  }
+  one      = boolector_one (g_btor, 2);
+  zero     = boolector_zero (g_btor, 2);
+  three    = boolector_const (g_btor, "11");
+  add      = boolector_add (g_btor, counter, one);
+  ifenable = boolector_cond (g_btor, enable, add, counter);
+  ifreset  = boolector_cond (g_btor, reset, ifenable, zero);
+  bad      = boolector_eq (g_btor, counter, three);
+
+  boolector_next (g_mc, counter, ifreset);
+  boolector_init (g_mc, counter, zero);
+  boolector_bad (g_mc, bad);
+  boolector_release (g_btor, one);
+  boolector_release (g_btor, zero);
+  boolector_release (g_btor, three);
+  boolector_release (g_btor, add);
+  boolector_release (g_btor, ifenable);
+  boolector_release (g_btor, ifreset);
+  boolector_release (g_btor, bad);
 
   k = boolector_bmc (g_mc, 0, 2);
   assert (k < 0);  // can not reach bad within k=1 steps
@@ -243,7 +251,10 @@ test_mccount2resetenable ()
   k = boolector_bmc (g_mc, 0, 4);
   assert (0 <= k && k <= 4);  // bad reached within k=4 steps
 
-  file = fopen ("log/mccount2resetenable.log", "w");
+  fname = (char *) malloc (sizeof (char)
+                           * (strlen (BTOR_LOG_DIR) + strlen (suffix) + 1));
+  sprintf (fname, "%s%s", BTOR_LOG_DIR, suffix);
+  file = fopen (fname, "w");
   assert (file);
   fprintf (file, "Bad state property satisfied at k = %d:\n", k);
   for (i = 0; i <= k; i++)
@@ -256,6 +267,7 @@ test_mccount2resetenable ()
     PRINT (enable, i);
   }
   fclose (file);
+  free (fname);
 
   finish_mc_test ();
 }
@@ -264,14 +276,14 @@ test_mccount2resetenable ()
 static void
 test_mctwostepsmodel () 
 {
-  FILE * file;
   int k, i;
-
+  FILE * file;
   BoolectorNode * zero, * one;
   BoolectorNode * a, * b, * t, * n, * or, * xor;
   BoolectorNode * nexta, * nexta1, * nexta2;
   BoolectorNode * nextb, * nextb1, * nextb2;
   BoolectorNode * bad, * bada, *badb;
+  char *fname, *suffix = "mctwostepsmodel.log";
 
   init_mc_test ();
 
@@ -313,42 +325,47 @@ test_mctwostepsmodel ()
   k = boolector_bmc (g_mc, 0, 2);
   assert (k == 2);			// can reach bad within k=2 steps
 
-  file = fopen ("log/mctwostepsmodel.log", "w");
+  fname = (char *) malloc (
+      sizeof (char) * (strlen (BTOR_LOG_DIR) + strlen (suffix) + 1));
+  sprintf (fname, "%s%s", BTOR_LOG_DIR, suffix);
+  file = fopen (fname, "w");
   assert (file);
   fprintf (file, "Bad state property satisfied at k = %d:\n", k);
-  for (i = 0; i <= k; i++) {
-    fprintf (file, "\n");
-    fprintf (file, "[ state at time %d ]\n", i);
-    fprintf (file, "\n");
-    PRINT (a, i);
-    PRINT (b, i);
-    fprintf (file, "\n");
-    fprintf (file, "[ input at time %d ]\n", i);
-    fprintf (file, "\n");
-    PRINT (t, i);
-    PRINT (n, i);
-    fprintf (file, "\n");
-    fprintf (file, "[ logic at time %d ]\n", i);
-    fprintf (file, "\n");
-    PRINT (nexta1, i);
-    PRINT (nexta2, i);
-    PRINT (nexta, i);
-    PRINT (nextb1, i);
-    PRINT (nextb2, i);
-    PRINT (nextb, i);
-    fprintf (file, "\n");
-    fprintf (file, "[ dangling logic at time %d ]\n", i);
-    fprintf (file, "\n");
-    PRINT (or, i);
-    PRINT (xor, i);
-    fprintf (file, "\n");
-    fprintf (file, "[ output at time %d ]\n", i);
-    fprintf (file, "\n");
-    PRINT (bada, i);
-    PRINT (badb, i);
-    PRINT (bad, i);
-  }
+  for (i = 0; i <= k; i++)
+    {
+      fprintf (file, "\n");
+      fprintf (file, "[ state at time %d ]\n", i);
+      fprintf (file, "\n");
+      PRINT (a, i);
+      PRINT (b, i);
+      fprintf (file, "\n");
+      fprintf (file, "[ input at time %d ]\n", i);
+      fprintf (file, "\n");
+      PRINT (t, i);
+      PRINT (n, i);
+      fprintf (file, "\n");
+      fprintf (file, "[ logic at time %d ]\n", i);
+      fprintf (file, "\n");
+      PRINT (nexta1, i);
+      PRINT (nexta2, i);
+      PRINT (nexta, i);
+      PRINT (nextb1, i);
+      PRINT (nextb2, i);
+      PRINT (nextb, i);
+      fprintf (file, "\n");
+      fprintf (file, "[ dangling logic at time %d ]\n", i);
+      fprintf (file, "\n");
+      PRINT (or, i);
+      PRINT (xor, i);
+      fprintf (file, "\n");
+      fprintf (file, "[ output at time %d ]\n", i);
+      fprintf (file, "\n");
+      PRINT (bada, i);
+      PRINT (badb, i);
+      PRINT (bad, i);
+    }
   fclose (file);
+  free (fname);
 
   boolector_release (g_btor, or);
   boolector_release (g_btor, xor);

@@ -112,7 +112,7 @@ hassuffix (const char *str, const char *suffix)
 void
 run_parseerror_tests (int argc, char **argv)
 {
-  DIR *dir = opendir ("log/");
+  DIR *dir = opendir (BTOR_LOG_DIR);
   struct dirent *de;
   char *base = NULL;
   while ((de = readdir (dir)))

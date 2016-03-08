@@ -2,7 +2,7 @@
  *
  *  Copyright (C) 2007-2010 Robert Daniel Brummayer.
  *  Copyright (C) 2007-2012 Armin Biere.
- *  Copyright (C) 2012 Aina Niemetz
+ *  Copyright (C) 2012-2016 Aina Niemetz
  *
  *  All rights reserved.
  *
@@ -25,7 +25,7 @@
 
 static BtorCharPtrStack g_args;
 
-static char* axioms[] = {
+static char *axioms[] = {
     "bvashr",
     "bvnand",
     "bvnor",
@@ -53,10 +53,9 @@ test_g_args_unsat (void)
 }
 
 static void
-test_smtaxiom (BtorMemMgr* mem, int argc, char** argv, char* p, int i)
+test_smtaxiom (BtorMemMgr *mem, int argc, char **argv, char *p, int i)
 {
-  static char buffer[80];
-  static char name[80];
+  char *buffer, *name, *prefix = "smtaxiom";
 
   BTOR_PUSH_STACK (mem, g_args, p);
 
@@ -65,13 +64,19 @@ test_smtaxiom (BtorMemMgr* mem, int argc, char** argv, char* p, int i)
 
   if (g_rwreads) BTOR_PUSH_STACK (mem, g_args, "-bra");
 
+  name =
+      (char *) malloc (sizeof (char) * (strlen (prefix) + strlen (p) + 10 + 1));
   sprintf (name, "smtaxiom%s%d", p, i);
-  sprintf (buffer, "log/%s.smt", name);
+
+  buffer = (char *) malloc (strlen (BTOR_LOG_DIR) + strlen (name) + 4 + 1);
+  sprintf (buffer, "%s%s.smt", BTOR_LOG_DIR, name);
   BTOR_PUSH_STACK (mem, g_args, buffer);
 
   run_test_case (argc, argv, test_g_args_unsat, name, 0);
 
   BTOR_RESET_STACK (g_args);
+  free (name);
+  free (buffer);
 }
 
 void
@@ -80,11 +85,11 @@ init_smtaxioms_tests (void)
 }
 
 void
-run_smtaxioms_tests (int argc, char** argv)
+run_smtaxioms_tests (int argc, char **argv)
 {
-  BtorMemMgr* mem;
+  BtorMemMgr *mem;
   int i, first;
-  char** p;
+  char **p;
 
   mem = btor_new_mem_mgr ();
 

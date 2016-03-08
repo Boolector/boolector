@@ -54,8 +54,9 @@ run_test (char *name, int expected)
 {
   char *full_name;
 
-  full_name = (char *) malloc (sizeof (char) * (strlen (name) + 4 + 1));
-  strcpy (full_name, "log/");
+  full_name = (char *) malloc (sizeof (char)
+                               * (strlen (BTOR_LOG_DIR) + strlen (name) + 1));
+  strcpy (full_name, BTOR_LOG_DIR);
   strcat (full_name, name);
   g_argv[g_argc - 1] = full_name;
   assert (boolector_main (g_argc, g_argv) == expected);
@@ -1276,18 +1277,25 @@ test_regrcalypto3_special ()
 static int
 run_verbose_test (char *name, int verbosity)
 {
-  char *full_name = (char *) malloc (sizeof (char) * (strlen (name) + 4 + 1));
-  char *redirect_str = "> /dev/null";
-  char *v1_str       = "-v";
-  char *v2_str       = "-v -v";
-  char *v3_str       = "-v -v -v";
-  char *v_str;
-  char *syscall_str;
-  int res;
-  strcpy (full_name, "log/");
-  strcat (full_name, name);
   assert (verbosity > 0);
   assert (verbosity <= 3);
+
+  char *full_name;
+  char *redirect_str, *v1_str, *v2_str, *v3_str, *v_str;
+  char *syscall_str;
+  int res;
+
+  full_name = (char *) malloc (sizeof (char)
+                               * (strlen (BTOR_LOG_DIR) + strlen (name) + 1));
+
+  redirect_str = "> /dev/null";
+  v1_str       = "-v";
+  v2_str       = "-v -v";
+  v3_str       = "-v -v -v";
+
+  strcpy (full_name, BTOR_LOG_DIR);
+  strcat (full_name, name);
+
   switch (verbosity)
   {
     case 1: v_str = v1_str; break;
@@ -1297,6 +1305,7 @@ run_verbose_test (char *name, int verbosity)
       v_str = v3_str;
       break;
   }
+
   syscall_str =
       (char *) malloc (sizeof (char)
                        * (strlen (g_btor_str) + 1 + strlen (full_name) + 1
