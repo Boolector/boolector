@@ -1,7 +1,7 @@
 TESTSRC=$(wildcard $(TESTDIR)/test*.c $(TESTDIR)/test*.cc )
 TESTOBJ=$(patsubst %.c, $(BUILDIR)/%.o, $(TESTSRC))
 
-all: $(BUILDIR)/test
+all: $(BINDIR)/test
 
 -include $(BUILDIR)/$(TESTDIR)/test.dep
 
@@ -11,7 +11,7 @@ $(BUILDIR)/$(TESTDIR)/test.dep: $(BUILDIR)/btorconfig.h $(SRC) $(TESTSRC) makefi
 	$(CC) $(CFLAGS) $(INCS) -MM $(TESTSRC) | \
 	sed -e 's,:,: makefile,' -e 's,^test,$(BUILDIR)/$(TESTDIR)/test,' >$@
 
-$(BUILDIR)/test: $(TESTOBJ) $(BUILDIR)/libboolector.a  $(LDEPS) makefile
+$(BINDIR)/test: $(TESTOBJ) $(BUILDIR)/libboolector.a  $(LDEPS) makefile
 	@mkdir -p $(@D)
 	$(CC) $(CFLAGS) -o $@ $(TESTOBJ) $(INCS) -L$(BUILDIR) -lboolector $(LIBS)
 

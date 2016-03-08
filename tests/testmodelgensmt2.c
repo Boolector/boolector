@@ -49,12 +49,12 @@ modelgensmt2_test (const char *fname, int rwl)
   syscall_string = (char *) malloc (
       sizeof (char)
       * (len + 5 + len + 4 + strlen ("boolector -rwl 3 -m --smt2-model ")
-         + strlen (" -o ") + strlen (BTOR_BUILD_DIR) + strlen (BTOR_LOG_DIR) * 2
+         + strlen (" -o ") + strlen (BTOR_BIN_DIR) + strlen (BTOR_LOG_DIR) * 2
          + 1));
 
   sprintf (syscall_string,
            "%sboolector -rwl %d -m --smt2-model %s%s -o %s%s",
-           BTOR_BUILD_DIR,
+           BTOR_BIN_DIR,
            rwl,
            BTOR_LOG_DIR,
            btor_fname,

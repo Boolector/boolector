@@ -132,8 +132,9 @@ fi
 
 #--------------------------------------------------------------------------#
 
+BINDIR="bin"
 BUILDIR="build"
-TESTDIR="tests"
+TESTDIR="tests" # TODO should be $BUILDIR/tests
 
 #--------------------------------------------------------------------------#
 
@@ -143,7 +144,7 @@ then
   SRCDIRS="$SRCDIRS api/python"
 fi
 
-TARGETS="$BUILDIR/boolector"
+TARGETS="$BINDIR/boolector"
 [ $shared = yes ] && TARGETS="$TARGETS $BUILDIR/libboolector.so"
 
 #--------------------------------------------------------------------------#
@@ -544,6 +545,7 @@ sed \
   -e "s,@TARGETS@,$TARGETS," \
   -e "s,@SRCDIRS@,$SRCDIRS," \
   -e "s,@BUILDIR@,$BUILDIR," \
+  -e "s,@BINDIR@,$BINDIR," \
   -e "s,@TESTDIR@,$TESTDIR," \
   makefile.in > makefile
 msg "makefile generated"

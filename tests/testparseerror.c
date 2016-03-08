@@ -64,12 +64,12 @@ run_smt_parse_error_test (void)
   syscall_string = (char *) malloc (
       sizeof (char)
       * (len + suff_len + 1 + len + 4 + strlen ("boolector  ")
-         + strlen (BTOR_BUILD_DIR) + strlen (smt_opt) + strlen (" > ")
+         + strlen (BTOR_BIN_DIR) + strlen (smt_opt) + strlen (" > ")
          + strlen (BTOR_LOG_DIR) * 2 + strlen (" 2>&1") + 1));
 
   sprintf (syscall_string,
            "%sboolector %s %s%s > %s%s 2>&1",
-           BTOR_BUILD_DIR,
+           BTOR_BIN_DIR,
            smt_opt,
            BTOR_LOG_DIR,
            smt_fname,

@@ -37,6 +37,7 @@ echo "#define BTOR_ID \"`./getgitid`\""
 
 curpath=`pwd`
 echo "#define BTOR_SRC_DIR   \"$curpath/\""
+echo "#define BTOR_BIN_DIR   \"$curpath/bin/\""
 echo "#define BTOR_BUILD_DIR \"$curpath/build/\""
 echo "#define BTOR_LOG_DIR   \"$curpath/log/\""
 echo "#define BTOR_TEST_DIR  \"$curpath/tests/\""

@@ -36,7 +36,7 @@ test_testcase (void)
   for (i = 1, len = 1; i < BTOR_COUNT_STACK (g_args); i++)
     len += strlen (BTOR_PEEK_STACK (g_args, i));
   syscall_string = (char *) malloc (sizeof (char *) * len);
-  sprintf (syscall_string, "%sboolector ", BTOR_BUILD_DIR);
+  sprintf (syscall_string, "%sboolector ", BTOR_BIN_DIR);
   len = strlen (syscall_string);
   for (i = 1; i < BTOR_COUNT_STACK (g_args); i++)
   {
