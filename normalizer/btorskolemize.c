@@ -44,8 +44,8 @@ btor_skolemize_node (Btor *btor, BtorNode *root)
   {
     cur      = BTOR_POP_STACK (visit);
     real_cur = BTOR_REAL_ADDR_NODE (cur);
-    assert (!BTOR_IS_QUANTIFIER_NODE (real_cur)
-            || !BTOR_IS_INVERTED_NODE (cur));
+    //      assert (!BTOR_IS_QUANTIFIER_NODE (real_cur) ||
+    //      !BTOR_IS_INVERTED_NODE (cur));
 
     d = btor_get_int_hash_map (map, real_cur->id);
 

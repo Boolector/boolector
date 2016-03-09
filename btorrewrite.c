@@ -6322,22 +6322,7 @@ btor_rewrite_binary_exp (Btor *btor,
   assert (e1);
   assert (btor_get_opt (btor, BTOR_OPT_REWRITE_LEVEL) > 0);
 
-  BtorNode *result, *q_e0, *q_e1;
-
-  q_e0 = q_e1 = 0;
-  if (BTOR_IS_INVERTED_NODE (e0)
-      && BTOR_IS_QUANTIFIER_NODE (BTOR_REAL_ADDR_NODE (e0)))
-  {
-    q_e0 = btor_invert_quantifier (btor, BTOR_REAL_ADDR_NODE (e0));
-    e0   = q_e0;
-  }
-
-  if (BTOR_IS_INVERTED_NODE (e1)
-      && BTOR_IS_QUANTIFIER_NODE (BTOR_REAL_ADDR_NODE (e1)))
-  {
-    q_e1 = btor_invert_quantifier (btor, BTOR_REAL_ADDR_NODE (e1));
-    e1   = q_e1;
-  }
+  BtorNode *result;
 
   switch (kind)
   {
@@ -6373,9 +6358,6 @@ btor_rewrite_binary_exp (Btor *btor,
       result = rewrite_lambda_exp (btor, e0, e1);
   }
 
-  if (q_e0) btor_release_exp (btor, q_e0);
-  if (q_e1) btor_release_exp (btor, q_e1);
-
   return result;
 }
 
@@ -6392,35 +6374,5 @@ btor_rewrite_ternary_exp (
   assert (btor_get_opt (btor, BTOR_OPT_REWRITE_LEVEL) > 0);
   (void) kind;
 
-  BtorNode *result, *q_e0, *q_e1, *q_e2;
-
-  q_e0 = q_e1 = q_e2 = 0;
-  if (BTOR_IS_INVERTED_NODE (e0)
-      && BTOR_IS_QUANTIFIER_NODE (BTOR_REAL_ADDR_NODE (e0)))
-  {
-    q_e0 = btor_invert_quantifier (btor, BTOR_REAL_ADDR_NODE (e0));
-    e0   = q_e0;
-  }
-
-  if (BTOR_IS_INVERTED_NODE (e1)
-      && BTOR_IS_QUANTIFIER_NODE (BTOR_REAL_ADDR_NODE (e1)))
-  {
-    q_e1 = btor_invert_quantifier (btor, BTOR_REAL_ADDR_NODE (e1));
-    e1   = q_e1;
-  }
-
-  if (BTOR_IS_INVERTED_NODE (e2)
-      && BTOR_IS_QUANTIFIER_NODE (BTOR_REAL_ADDR_NODE (e2)))
-  {
-    q_e2 = btor_invert_quantifier (btor, BTOR_REAL_ADDR_NODE (e2));
-    e2   = q_e2;
-  }
-
-  result = rewrite_cond_exp (btor, e0, e1, e2);
-
-  if (q_e0) btor_release_exp (btor, q_e0);
-  if (q_e1) btor_release_exp (btor, q_e1);
-  if (q_e2) btor_release_exp (btor, q_e2);
-
-  return result;
+  return rewrite_cond_exp (btor, e0, e1, e2);
 }

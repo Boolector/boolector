@@ -1633,7 +1633,7 @@ add_constraint (Btor *btor, BtorNode *exp)
   assert (exp);
   assert (btor_check_id_table_mark_unset_dbg (btor));
 
-  BtorNode *cur, *child, *q = 0;
+  BtorNode *cur, *child;
   BtorNodePtrStack stack;
   BtorMemMgr *mm;
 
@@ -1644,13 +1644,6 @@ add_constraint (Btor *btor, BtorNode *exp)
 
   mm = btor->mm;
   if (btor->valid_assignments) btor_reset_incremental_usage (btor);
-
-  if (BTOR_IS_INVERTED_NODE (exp)
-      && BTOR_IS_QUANTIFIER_NODE (BTOR_REAL_ADDR_NODE (exp)))
-  {
-    q   = btor_invert_quantifier (btor, BTOR_REAL_ADDR_NODE (exp));
-    exp = q;
-  }
 
   if (!BTOR_IS_INVERTED_NODE (exp) && BTOR_IS_AND_NODE (exp))
   {
@@ -1685,8 +1678,6 @@ add_constraint (Btor *btor, BtorNode *exp)
   }
   else
     insert_new_constraint (btor, exp);
-
-  if (q) btor_release_exp (btor, q);
 
   assert (btor_check_constraints_not_const_dbg (btor));
 }
