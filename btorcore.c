@@ -2818,7 +2818,13 @@ btor_substitute_terms (Btor *btor, BtorNode *root, BtorNodeMap *substs)
       }
       else
       {
-        result = btor_create_exp (btor, real_cur->kind, real_cur->arity, e);
+        /* if the param of a quantifier gets subtituted by a non-param, we do
+         * not create a quantifier, but return the body instead */
+        if (BTOR_IS_QUANTIFIER_NODE (real_cur)
+            && !BTOR_IS_PARAM_NODE (BTOR_REAL_ADDR_NODE (e[0])))
+          result = btor_copy_exp (btor, e[1]);
+        else
+          result = btor_create_exp (btor, real_cur->kind, real_cur->arity, e);
       }
       for (i = 0; i < real_cur->arity; i++) btor_release_exp (btor, e[i]);
       assert (!btor_get_int_hash_map (cache, real_cur->id));
