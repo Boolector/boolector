@@ -22,6 +22,7 @@
 #include "btorslvprop.h"
 #include "btorslvsls.h"
 #include "btorsort.h"
+#include "utils/btorhashint.h"
 #include "utils/btorhashptr.h"
 #include "utils/btoriter.h"
 #include "utils/btornodemap.h"
@@ -1407,6 +1408,115 @@ btor_clone_formula (Btor *btor)
   return clone_aux_btor (btor, 0, true, false);
 }
 
+static BtorSortId
+recursively_rebuild_sort_clone (Btor *btor, Btor *clone, BtorSortId sort)
+{
+  uint32_t i;
+  BtorSort *s;
+  BtorSortId r, s0, s1;
+  BtorSortUniqueTable *sorts, *sorts_clone;
+  BtorSortPtrStack sort_stack;
+  BtorIntHashTable *map;
+  BtorIntHashTableData *d;
+  BtorMemMgr *mm;
+  BtorSortIdStack sort_ids;
+
+  mm          = btor->mm;
+  sorts       = &btor->sorts_unique_table;
+  sorts_clone = &clone->sorts_unique_table;
+  map         = btor_new_int_hash_map (mm);
+
+  s = btor_get_sort_by_id (sorts, sort);
+
+  BTOR_INIT_STACK (sort_ids);
+  BTOR_INIT_STACK (sort_stack);
+  BTOR_PUSH_STACK (mm, sort_stack, s);
+  while (!BTOR_EMPTY_STACK (sort_stack))
+  {
+    s = BTOR_POP_STACK (sort_stack);
+    d = btor_get_int_hash_map (map, s->id);
+    if (!d)
+    {
+      btor_add_int_hash_map (map, s->id);
+
+      BTOR_PUSH_STACK (mm, sort_stack, s);
+      switch (s->kind)
+      {
+        case BTOR_ARRAY_SORT:
+          BTOR_PUSH_STACK (mm, sort_stack, s->array.element);
+          BTOR_PUSH_STACK (mm, sort_stack, s->array.index);
+          break;
+        case BTOR_LST_SORT:
+          BTOR_PUSH_STACK (mm, sort_stack, s->lst.head);
+          BTOR_PUSH_STACK (mm, sort_stack, s->lst.tail);
+          break;
+        case BTOR_FUN_SORT:
+          BTOR_PUSH_STACK (mm, sort_stack, s->fun.domain);
+          BTOR_PUSH_STACK (mm, sort_stack, s->fun.codomain);
+          break;
+        case BTOR_TUPLE_SORT:
+          for (i = 0; i < s->tuple.num_elements; i++)
+            BTOR_PUSH_STACK (mm, sort_stack, s->tuple.elements[i]);
+          break;
+        default:
+          assert (s->kind == BTOR_BOOL_SORT || s->kind == BTOR_BITVEC_SORT);
+      }
+    }
+    else if (!d->as_int)
+    {
+      switch (s->kind)
+      {
+        case BTOR_ARRAY_SORT:
+          s0 = btor_get_int_hash_map (map, s->array.index->id)->as_int;
+          s1 = btor_get_int_hash_map (map, s->array.element->id)->as_int;
+          r  = btor_array_sort (sorts_clone, s0, s1);
+          break;
+        case BTOR_LST_SORT:
+          s0 = btor_get_int_hash_map (map, s->lst.head->id)->as_int;
+          s1 = btor_get_int_hash_map (map, s->lst.tail->id)->as_int;
+          r  = btor_lst_sort (sorts_clone, s0, s1);
+          break;
+        case BTOR_FUN_SORT:
+          s0 = btor_get_int_hash_map (map, s->fun.domain->id)->as_int;
+          s1 = btor_get_int_hash_map (map, s->fun.codomain->id)->as_int;
+          r  = btor_fun_sort (sorts_clone, s0, s1);
+          break;
+        case BTOR_TUPLE_SORT:
+          for (i = 0; i < s->tuple.num_elements; i++)
+          {
+            s0 = btor_get_int_hash_map (map, s->tuple.elements[i]->id)->as_int;
+            BTOR_PUSH_STACK (mm, sort_ids, s0);
+          }
+          r = btor_tuple_sort (
+              sorts_clone, sort_ids.start, s->tuple.num_elements);
+          BTOR_RESET_STACK (sort_ids);
+          break;
+        case BTOR_BOOL_SORT: r = btor_bool_sort (sorts_clone); break;
+        default:
+          assert (s->kind == BTOR_BITVEC_SORT);
+          r = btor_bitvec_sort (sorts_clone, s->bitvec.width);
+      }
+      assert (r);
+      d->as_int = r;
+    }
+  }
+  d = btor_get_int_hash_map (map, sort);
+  assert (d);
+  assert (d->as_int);
+  r = btor_copy_sort (sorts_clone, d->as_int);
+
+  for (i = 0; i < map->size; i++)
+  {
+    if (!map->keys[i]) continue;
+    s0 = map->data[i].as_int;
+    btor_release_sort (sorts_clone, s0);
+  }
+  btor_delete_int_hash_map (map);
+  BTOR_RELEASE_STACK (mm, sort_ids);
+  BTOR_RELEASE_STACK (mm, sort_stack);
+  return r;
+}
+
 BtorNode *
 btor_recursively_rebuild_exp_clone (Btor *btor,
                                     Btor *clone,
@@ -1423,6 +1533,8 @@ btor_recursively_rebuild_exp_clone (Btor *btor,
   char *symbol;
   BtorNode *real_exp, *cur, *cur_clone, *e[3];
   BtorNodePtrStack work_stack, unmark_stack;
+  BtorSortId sort;
+  BtorPtrHashBucket *b;
 
   /* in some cases we may want to rebuild the expressions with a certain
    * rewrite level */
@@ -1467,21 +1579,23 @@ btor_recursively_rebuild_exp_clone (Btor *btor,
           cur_clone = btor_const_exp (clone, btor_const_get_bits (cur));
           break;
         case BTOR_BV_VAR_NODE:
-          symbol =
-              btor_get_ptr_hash_table (btor->node2symbol, cur)->data.as_str;
+          b      = btor_get_ptr_hash_table (btor->node2symbol, cur);
+          symbol = b ? b->data.as_str : 0;
           cur_clone =
               btor_var_exp (clone, btor_get_exp_width (btor, cur), symbol);
           break;
         case BTOR_PARAM_NODE:
-          symbol =
-              btor_get_ptr_hash_table (btor->node2symbol, cur)->data.as_str;
+          b      = btor_get_ptr_hash_table (btor->node2symbol, cur);
+          symbol = b ? b->data.as_str : 0;
           cur_clone =
               btor_param_exp (clone, btor_get_exp_width (btor, cur), symbol);
           break;
         case BTOR_UF_NODE:
-          symbol =
-              btor_get_ptr_hash_table (btor->node2symbol, cur)->data.as_str;
-          cur_clone = btor_uf_exp (clone, cur->sort_id, symbol);
+          b      = btor_get_ptr_hash_table (btor->node2symbol, cur);
+          symbol = b ? b->data.as_str : 0;
+          sort   = recursively_rebuild_sort_clone (btor, clone, cur->sort_id);
+          cur_clone = btor_uf_exp (clone, sort, symbol);
+          btor_release_sort (&clone->sorts_unique_table, sort);
           break;
         case BTOR_SLICE_NODE:
           cur_clone = btor_slice_exp (clone,
@@ -1519,6 +1633,12 @@ btor_recursively_rebuild_exp_clone (Btor *btor,
           break;
         case BTOR_ARGS_NODE:
           cur_clone = btor_args_exp (clone, cur->arity, e);
+          break;
+        case BTOR_EXISTS_NODE:
+          cur_clone = btor_exists_exp (clone, e[0], e[1]);
+          break;
+        case BTOR_FORALL_NODE:
+          cur_clone = btor_forall_exp (clone, e[0], e[1]);
           break;
         default:
           assert (BTOR_IS_BV_COND_NODE (cur));
