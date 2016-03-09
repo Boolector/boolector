@@ -15,4 +15,6 @@
 
 void btor_skolemize (Btor* btor);
 
+BtorNode* btor_skolemize_node (Btor* btor, BtorNode* root);
+
 #endif
