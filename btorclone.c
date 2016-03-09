@@ -1581,21 +1581,44 @@ btor_recursively_rebuild_exp_clone (Btor *btor,
         case BTOR_BV_VAR_NODE:
           b      = btor_get_ptr_hash_table (btor->node2symbol, cur);
           symbol = b ? b->data.as_str : 0;
-          cur_clone =
-              btor_var_exp (clone, btor_get_exp_width (btor, cur), symbol);
+          if (symbol && (b = btor_get_ptr_hash_table (clone->symbols, symbol)))
+          {
+            cur_clone = btor_copy_exp (clone, b->data.as_ptr);
+            assert (cur_clone->sort_id == cur->sort_id);
+            assert (cur_clone->kind == cur->kind);
+          }
+          else
+            cur_clone =
+                btor_var_exp (clone, btor_get_exp_width (btor, cur), symbol);
           break;
         case BTOR_PARAM_NODE:
           b      = btor_get_ptr_hash_table (btor->node2symbol, cur);
           symbol = b ? b->data.as_str : 0;
-          cur_clone =
-              btor_param_exp (clone, btor_get_exp_width (btor, cur), symbol);
+          if (symbol && (b = btor_get_ptr_hash_table (clone->symbols, symbol)))
+          {
+            cur_clone = btor_copy_exp (clone, b->data.as_ptr);
+            assert (cur_clone->sort_id == cur->sort_id);
+            assert (cur_clone->kind == cur->kind);
+          }
+          else
+            cur_clone =
+                btor_param_exp (clone, btor_get_exp_width (btor, cur), symbol);
           break;
         case BTOR_UF_NODE:
           b      = btor_get_ptr_hash_table (btor->node2symbol, cur);
           symbol = b ? b->data.as_str : 0;
-          sort   = recursively_rebuild_sort_clone (btor, clone, cur->sort_id);
-          cur_clone = btor_uf_exp (clone, sort, symbol);
-          btor_release_sort (&clone->sorts_unique_table, sort);
+          if (symbol && (b = btor_get_ptr_hash_table (clone->symbols, symbol)))
+          {
+            cur_clone = btor_copy_exp (clone, b->data.as_ptr);
+            assert (cur_clone->sort_id == cur->sort_id);
+            assert (cur_clone->kind == cur->kind);
+          }
+          else
+          {
+            sort = recursively_rebuild_sort_clone (btor, clone, cur->sort_id);
+            cur_clone = btor_uf_exp (clone, sort, symbol);
+            btor_release_sort (&clone->sorts_unique_table, sort);
+          }
           break;
         case BTOR_SLICE_NODE:
           cur_clone = btor_slice_exp (clone,
