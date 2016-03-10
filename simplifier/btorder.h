@@ -13,6 +13,8 @@
 
 #include "btortypes.h"
 
-void btor_der (Btor* btor);
+// void btor_der (Btor * btor);
+
+BtorNode* btor_der_node (Btor* btor, BtorNode* root);
 
 #endif
