@@ -36,9 +36,9 @@ doc
 btorimc
 btormbt
 .vimrc
-api/python/boolector.c
-api/python/boolector.pix
-api/python/*.so
+src/api/python/boolector.c
+src/api/python/boolector.pix
+src/api/python/*.so
 python.mk
 setup.py
 testibv
