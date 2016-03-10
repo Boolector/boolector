@@ -8,15 +8,15 @@ BUILDIR=@BUILDIR@
 TESTDIR=@TESTDIR@
 SRCDIR=@SRCDIR@
 SRCDIRS=@SRCDIRS@
-INCS=-I$(SRCDIR) -I$(BUILDIR) @INCS@
+INCS=@INCS@
 CFLAGS=@CFLAGS@
 OBJS=@OBJS@
 LIBS=@LIBS@
 LDEPS=@LDEPS@
 VERSION=$(shell cat VERSION)
+LIBOBJS=$(filter-out $(BUILDIR)/btormain.o $(BUILDIR)/btormbt.o $(BUILDIR)/btoruntrace.o, $(subst $(SRCDIR), $(BUILDIR), $(patsubst %.c,%.o,$(foreach d,$(SRCDIRS),$(wildcard $(d)/btor[a-z]*.c)))))
+LIBOBJS+=$(BUILDIR)/boolector.o $(BUILDIR)/utils/boolectormap.o $(OBJS)
 SRCS=$(foreach d,$(SRCDIRS),$(wildcard $(d)/*.[c|h|cc]))
-SRCS+=$(foreach d,$(SRCDIRS),$(wildcard $(d)/boolector*.[c|h|cc]))
-LIBOBJS=$(subst $(SRCDIR), $(BUILDIR), $(patsubst %.c,%.o,$(filter %.c, $(SRCS)))) $(OBJS)
 TARGETS=@TARGETS@
 ROOT=$(shell pwd|sed -e 's, ,\\ ,g')
 
@@ -51,6 +51,11 @@ $(BUILDIR)/dependencies: $(BUILDIR)/btorconfig.h $(SRCS) makefile
 		sed -e 's,$(SRCDIR)/\(.*\.o\),\1,' >>$@; \
 	done
 
+$(BUILDIR)/analyze:
+	@mkdir -p $(@D)
+	clang --analyze $(CFLAGS) $(INCS) \
+	  $(shell find $(SRCDIRS) -maxdepth 1 -name "*.[ch]" -o -name "*.cc")
+
 $(BUILDIR)/libboolector.a: $(LIBOBJS)
 	@mkdir -p $(@D)
 	rm -f $@
@@ -58,19 +63,14 @@ $(BUILDIR)/libboolector.a: $(LIBOBJS)
 	ranlib $@
 
 SONAME=-Xlinker -soname -Xlinker $(BUILDIR)/libboolector.so
-SHOBJS=$(filter-out ./$(BUILDIR)/btormbt.o ./$(BUILDIR)/btoruntrace.o ./$(BUILDIR)/btormain, $(LIBOBJS))
+SHOBJS=$(filter-out $(BUILDIR)/btormbt.o $(BUILDIR)/btoruntrace.o $(BUILDIR)/btormain.o $(BUILDIR)/boolectormain.o, $(LIBOBJS))
 $(BUILDIR)/libboolector.so: $(SHOBJS)
 	@mkdir -p $(@D)
 	$(CC) $(CFLAGS) -shared -o $@ $(SHOBJS) $(LIBS) $(SONAME)
 
-$(BUILDIR)/analyze:
+$(BINDIR)/boolector: $(BUILDIR)/btormain.o $(BUILDIR)/boolectormain.o $(BUILDIR)/libboolector.a $(LDEPS)
 	@mkdir -p $(@D)
-	clang --analyze $(CFLAGS) $(INCS) \
-	  $(shell find $(SRCDIRS) -maxdepth 1 -name "*.[ch]" -o -name "*.cc")
-
-$(BINDIR)/boolector: $(BUILDIR)/boolectormain.o $(BUILDIR)/libboolector.a $(LDEPS)
-	@mkdir -p $(@D)
-	$(CC) $(CFLAGS) $(INCS) -o $@ $(BUILDIR)/boolectormain.o -L$(BUILDIR) -lboolector $(LIBS) $(LDEPS)
+	$(CC) $(CFLAGS) $(INCS) -o $@ $(BUILDIR)/btormain.o $(BUILDIR)/boolectormain.o -L$(BUILDIR) -lboolector $(LIBS) $(LDEPS)
 
 clean:
 	rm -f $(TARGETS)

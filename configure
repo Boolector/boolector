@@ -137,10 +137,10 @@ BUILDIR="build"
 TESTDIR="tests" # TODO should be $BUILDIR/tests
 SRCDIR="src"
 
-SRCDIRS="$(echo -n `find $SRCDIR -maxdepth 1 -type d`)"
+SRCDIRS="src src/btorfmt src/dumper src/parser src/simplifier src/tests src/utils"
 if [ $python = yes ]
 then
-  SRCDIRS="$SRCDIRS api/python"
+  SRCDIRS="$SRCDIRS $SRCDIR/api/python"
 fi
 
 #--------------------------------------------------------------------------#
@@ -199,7 +199,7 @@ fi
 
 LIBS=""
 OBJS=""
-INCS=""
+INCS="-I$SRCDIR -I$BUILDIR "
 
 LIBZ=no
 LIBM=no
@@ -462,18 +462,22 @@ then
   [ $? -gt 0 ] && die "Python command '$PYTHON' does not exist"
 
   py_libraries="boolector"
-  py_library_dirs="."
+  py_library_dirs="$BUILDIR"
+  py_inc_dirs=""
   if [ $lingeling = yes ]; then
     py_libraries="$py_libraries lgl"
     py_library_dirs="$py_library_dirs ../lingeling"
+    py_inc_dirs="$py_inc_dirs ../lingeling"
   fi
   if [ $picosat = yes ]; then
     py_libraries="$py_libraries picosat"
     py_library_dirs="$py_library_dirs ../picosat"
+    py_inc_dirs="$py_inc_dirs ../picosat"
   fi
   if [ $minisat = yes ]; then
     py_libraries="$py_libraries minisat"
     py_library_dirs="$py_library_dirs ../minisat/build/dynamic/lib"
+    py_inc_dirs="$py_inc_dirs ../minisat/build/dynamic/lib"
   fi
   OBJS="$BUILDIR/api/python/boolector_py.o $OBJS" 
   pyinc=`$PYTHON -c "import sysconfig; print(sysconfig.get_config_var('CONFINCLUDEPY'))"`
@@ -487,14 +491,16 @@ from distutils.core import setup
 from distutils.extension import Extension
 from Cython.Distutils import build_ext
 cwd=os.getcwd()
+incdirs=[cwd+"/"+"$SRCDIR"]
+incdirs.extend([cwd+"/"+s for s in "$py_inc_dirs".split()])
 ext_modules=[
     Extension("boolector",
-              sources=[cwd+"/api/python/boolector.pyx"],
-              include_dirs=[cwd],
+              sources=[cwd+"/$SRCDIR/api/python/boolector.pyx"],
+	      include_dirs=incdirs,
               library_dirs=[cwd+"/"+s for s in "$py_library_dirs".split()],
               libraries="$py_libraries".split(),
               extra_compile_args=[s for s in "$CFLAGS".split() if "-D" in s],
-	      extra_link_args=["-Wl,-rpath="+":".join([cwd+"/"+s for s in "$py_library_dirs".split()])]
+       extra_link_args=["-Wl,-rpath="+":".join([cwd+"/"+s for s in "$py_library_dirs".split()])]
     )
 ]
 setup(cmdclass={'build_ext': build_ext}, ext_modules=ext_modules)
@@ -504,15 +510,13 @@ cat > python.mk <<EOF
 
 all: python
 
-python: boolector_py setup.py
+python: \$(BUILDIR)/api/python/boolector_py.o setup.py
 	$PYTHON setup.py build_ext -i
-	@echo "Compiled Boolector Python module. Please read api/python/README on how to use the module"
-
-boolector_py: api/python/boolector_py.h api/python/boolector_py.c
+	@echo "Compiled Boolector Python module. Please read $SRCDIR/api/python/README on how to use the module"
 
 python-clean:
-	rm -rf build
-	rm -f api/python/boolector.c boolector.cpython*.so
+	rm -rf build/api/python/boolector_py.o
+	rm -f \$(SRCDIR)/api/python/boolector.c boolector.cpython*.so
 
 python-clean-mk:
 	rm -f python.mk setup.py
