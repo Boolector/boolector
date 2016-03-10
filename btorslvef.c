@@ -87,8 +87,55 @@ setup_exists_solver (BtorEFSolver *slv)
   slv->e_exists_ufs  = exists_ufs;
 }
 
-// TODO (ma): all quantifiers have to be reached via boolean layer from roots?
+static BtorNode *
+create_skolem_ite (Btor *btor, BtorNode *ite, BtorIntHashTable *map)
+{
+  assert (BTOR_IS_REGULAR_NODE (ite));
+  assert (BTOR_IS_BV_COND_NODE (ite));
 
+  char buf[128];
+  BtorParameterizedIterator p_it;
+  BtorNodePtrStack params;
+  BtorSortIdStack tsorts;
+  BtorNode *param, *uf, *result;
+  BtorSortId domain, funsort;
+  BtorMemMgr *mm;
+  BtorIntHashTableData *d;
+  BtorSortUniqueTable *sorts;
+
+  mm    = btor->mm;
+  sorts = &btor->sorts_unique_table;
+
+  BTOR_INIT_STACK (params);
+  BTOR_INIT_STACK (tsorts);
+  btor_init_parameterized_iterator (&p_it, btor, ite);
+  while (btor_has_next_parameterized_iterator (&p_it))
+  {
+    param = btor_next_parameterized_iterator (&p_it);
+    d     = btor_get_int_hash_map (map, param->id);
+    assert (d);
+    assert (d->as_ptr);
+    param = d->as_ptr;
+    BTOR_PUSH_STACK (mm, params, param);
+    BTOR_PUSH_STACK (mm, tsorts, param->sort_id);
+  }
+
+  domain  = btor_tuple_sort (sorts, tsorts.start, BTOR_COUNT_STACK (tsorts));
+  funsort = btor_fun_sort (sorts, domain, ite->sort_id);
+
+  sprintf (buf, "ite_%d", ite->id);
+  uf     = btor_uf_exp (btor, funsort, buf);
+  result = btor_apply_exps (btor, BTOR_COUNT_STACK (params), params.start, uf);
+  btor_release_sort (sorts, domain);
+  btor_release_sort (sorts, funsort);
+  btor_release_exp (btor, uf);
+  BTOR_RELEASE_STACK (mm, params);
+  BTOR_RELEASE_STACK (mm, tsorts);
+  BTOR_MSG (btor->msg, 1, "create fresh skolem constant %s", buf);
+  return result;
+}
+
+// TODO (ma): all quantifiers have to be reached via boolean layer from roots?
 static BtorNode *
 nnf_aig (Btor *btor)
 {
@@ -99,13 +146,14 @@ nnf_aig (Btor *btor)
   int32_t i, id, opt_simp_const;
   uint32_t j;
   BtorNode *root, *cur, *cur_pol, *e_pol, *real_cur, *tmp, *result, **e;
+  BtorNode *ite_var, *ite_cond, *ite_if, *ite_else, *ite_c1, *ite_c2, *ite_c3;
   BtorHashTableIterator it;
   BtorMemMgr *mm;
-  BtorNodePtrStack visit, args;
+  BtorNodePtrStack visit, args, conds;
   BtorNodeIterator nit;
   BtorNodeIterator n_it;
   BtorIntHashTable *map;
-  BtorIntHashTableData *d;
+  BtorIntHashTableData *d, *d_p;
   BtorNodeKind kind;
 
   mm  = btor->mm;
@@ -119,6 +167,7 @@ nnf_aig (Btor *btor)
 
   BTOR_INIT_STACK (visit);
   BTOR_INIT_STACK (args);
+  BTOR_INIT_STACK (conds);
   btor_init_node_hash_table_iterator (&it, btor->unsynthesized_constraints);
   while (btor_has_next_node_hash_table_iterator (&it))
   {
@@ -147,6 +196,8 @@ nnf_aig (Btor *btor)
     {
       btor_add_int_hash_map (map, id);
 
+      // TODO: extra handling for bv_conds to eliminate them, we have to push
+      // both phasesof cond
       BTOR_PUSH_STACK (mm, visit, cur_pol);
       BTOR_PUSH_STACK (mm, visit, cur);
       for (i = real_cur->arity - 1; i >= 0; i--)
@@ -185,15 +236,72 @@ nnf_aig (Btor *btor)
                                  btor_slice_get_upper (real_cur),
                                  btor_slice_get_lower (real_cur));
       }
+      // TODO: do only for quantified conds (no lambdas)
+      else if (BTOR_IS_BV_COND_NODE (real_cur)
+               && BTOR_REAL_ADDR_NODE (real_cur->e[0])->quantifier_below)
+      {
+        result = create_skolem_ite (btor, real_cur, map);
+
+#if 0
+
+	      result = btor_param_exp (btor,
+				     btor_get_exp_width (btor, real_cur), buf);
+	      printf ("buf: %s\n", buf);
+#endif
+        /* save ite arguments for later */
+        BTOR_PUSH_STACK (mm, conds, btor_copy_exp (btor, result));
+        BTOR_PUSH_STACK (mm, conds, btor_copy_exp (btor, e[0]));
+        BTOR_PUSH_STACK (mm, conds, btor_copy_exp (btor, e[1]));
+        BTOR_PUSH_STACK (mm, conds, btor_copy_exp (btor, e[2]));
+      }
       else
       {
+        if (BTOR_IS_QUANTIFIER_NODE (real_cur) && BTOR_COUNT_STACK (conds) > 0)
+        {
+          /* add ite contraints to scope of quantifier */
+          while (!BTOR_EMPTY_STACK (conds))
+          {
+            ite_else = BTOR_POP_STACK (conds);
+            ite_if   = BTOR_POP_STACK (conds);
+            ite_cond = BTOR_POP_STACK (conds);
+            ite_var  = BTOR_POP_STACK (conds);
+
+            tmp    = btor_eq_exp (btor, ite_var, ite_if);
+            ite_c1 = btor_implies_exp (btor, ite_cond, tmp);
+            btor_release_exp (btor, tmp);
+
+            tmp    = btor_eq_exp (btor, ite_var, ite_else);
+            ite_c2 = btor_implies_exp (btor, BTOR_INVERT_NODE (ite_cond), tmp);
+            btor_release_exp (btor, tmp);
+
+            ite_c3 = btor_and_exp (btor, ite_c1, ite_c2);
+            btor_release_exp (btor, ite_c1);
+            btor_release_exp (btor, ite_c2);
+
+            tmp = btor_and_exp (btor, ite_c3, e[1]);
+            btor_release_exp (btor, ite_c3);
+            btor_release_exp (btor, e[1]);
+#if 0
+		      e[1] = btor_exists_exp (btor, ite_var, tmp);
+		      btor_release_exp (btor, tmp);
+#else
+            e[1] = tmp;
+#endif
+
+            btor_release_exp (btor, ite_else);
+            btor_release_exp (btor, ite_if);
+            btor_release_exp (btor, ite_cond);
+            btor_release_exp (btor, ite_var);
+          }
+        }
+
         if (BTOR_IS_QUANTIFIER_NODE (real_cur)
             && BTOR_IS_INVERTED_NODE (cur_pol))
         {
           /* flip quantification */
           kind = real_cur->kind == BTOR_FORALL_NODE ? BTOR_EXISTS_NODE
                                                     : BTOR_FORALL_NODE;
-          //		  printf ("INVERT QUANT: %s\n", node2string (real_cur));
+          printf ("INVERT QUANT: %s\n", node2string (real_cur));
         }
         else
           kind = real_cur->kind;
@@ -233,6 +341,7 @@ nnf_aig (Btor *btor)
   }
   BTOR_RELEASE_STACK (mm, visit);
   BTOR_RELEASE_STACK (mm, args);
+  BTOR_RELEASE_STACK (mm, conds);
 
   for (j = 0; j < map->size; j++)
   {
@@ -413,7 +522,9 @@ setup_forall_solver (BtorEFSolver *slv)
   btor = slv->btor;
 
   (void) btor_simplify (btor);
-  elim_quantified_ite (btor);
+  btor->options[BTOR_OPT_PRETTY_PRINT].val = 0;
+  // elim_quantified_ite (btor);
+  // btor_dump_btor (btor, stdout, 1);
 
   f_solver = btor_new_btor ();
   btor_delete_opts (f_solver);
@@ -442,10 +553,12 @@ setup_forall_solver (BtorEFSolver *slv)
       nnf_root,
       exp_map,
       btor_get_opt (f_solver, BTOR_OPT_REWRITE_LEVEL));
+  printf ("root: %s\n", node2string (root));
   btor_release_exp (btor, nnf_root);
   // TODO (ma): DER on root
   // TODO (ma): CER on root
   sk_root = btor_skolemize_node (f_solver, root);
+  printf ("sk_root: %s\n", node2string (sk_root));
   btor_release_exp (f_solver, root);
   root = sk_root;
   btor_delete_node_map (exp_map);
