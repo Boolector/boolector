@@ -20,11 +20,11 @@ btor_skolemize_node (Btor *btor, BtorNode *root)
   uint32_t j;
   char *symbol, *buf;
   size_t len;
-  BtorNode *cur, *real_cur, *result, *quant, *uf, **e;
+  BtorNode *cur, *real_cur, *result, *quant, *param, *uf, **e;
   BtorNodePtrStack visit, quants, args, params;
   BtorMemMgr *mm;
   BtorIntHashTable *map;
-  BtorIntHashTableData *d;
+  BtorIntHashTableData *d, *d_p;
   BtorSortIdStack sorts;
   BtorSortId tuple_s, fun_s;
   BtorSortUniqueTable *suniq;
@@ -88,8 +88,12 @@ btor_skolemize_node (Btor *btor, BtorNode *root)
               for (i = 0; i < BTOR_COUNT_STACK (quants); i++)
               {
                 quant = BTOR_PEEK_STACK (quants, i);
-                BTOR_PUSH_STACK (mm, params, quant->e[0]);
-                BTOR_PUSH_STACK (mm, sorts, quant->e[0]->sort_id);
+                d_p   = btor_get_int_hash_map (map, quant->e[0]->id);
+                assert (d_p);
+                assert (d_p->as_ptr);
+                param = d_p->as_ptr;
+                BTOR_PUSH_STACK (mm, params, param);
+                BTOR_PUSH_STACK (mm, sorts, param->sort_id);
               }
 
               tuple_s = btor_tuple_sort (
@@ -101,7 +105,7 @@ btor_skolemize_node (Btor *btor, BtorNode *root)
               btor_release_sort (suniq, fun_s);
 
               result = btor_apply_exps (
-                  btor, BTOR_COUNT_STACK (params), args.start, uf);
+                  btor, BTOR_COUNT_STACK (params), params.start, uf);
 
               btor_release_exp (btor, uf);
               BTOR_RESET_STACK (sorts);
