@@ -491,11 +491,11 @@ from distutils.core import setup
 from distutils.extension import Extension
 from Cython.Distutils import build_ext
 cwd=os.getcwd()
-incdirs=[cwd+"/"+"$SRCDIR"]
-incdirs.extend([cwd+"/"+s for s in "$py_inc_dirs".split()])
+incdirs=["$SRCDIR"]
+incdirs.extend("$py_inc_dirs".split())
 ext_modules=[
     Extension("boolector",
-              sources=[cwd+"/$SRCDIR/api/python/boolector.pyx"],
+              sources=["$SRCDIR/api/python/boolector.pyx"],
 	      include_dirs=incdirs,
               library_dirs=[cwd+"/"+s for s in "$py_library_dirs".split()],
               libraries="$py_libraries".split(),
@@ -511,7 +511,7 @@ cat > python.mk <<EOF
 all: python
 
 python: \$(BUILDIR)/api/python/boolector_py.o setup.py
-	$PYTHON setup.py build_ext -i
+	$PYTHON setup.py build_ext -b $BUILDIR -t $BUILDIR/api/python/tmp
 	@echo "Compiled Boolector Python module. Please read $SRCDIR/api/python/README on how to use the module"
 
 python-clean:
