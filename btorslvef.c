@@ -9,6 +9,7 @@
  */
 
 #include "btorslvef.h"
+#include "btorabort.h"
 #include "btorbitvec.h"
 #include "btorclone.h"
 #include "btorcore.h"
@@ -95,11 +96,9 @@ nnf_aig (Btor *btor)
   assert (btor->embedded_constraints->count == 0);
   assert (btor->varsubst_constraints->count == 0);
 
-  int32_t i, id;
+  int32_t i, id, opt_simp_const;
   uint32_t j;
-  BtorNode *root, *cur, *cur_pol, *e_pol, *real_cur, *tmp, *param, *cur_parent,
-      *result, **e;
-  BtorNode *new_body;
+  BtorNode *root, *cur, *cur_pol, *e_pol, *real_cur, *tmp, *result, **e;
   BtorHashTableIterator it;
   BtorMemMgr *mm;
   BtorNodePtrStack visit, args;
@@ -111,6 +110,11 @@ nnf_aig (Btor *btor)
 
   mm  = btor->mm;
   map = btor_new_int_hash_map (mm);
+
+  /* we do not want simplification of constraints here as we need the
+   * complete formula in nnf */
+  opt_simp_const = btor_get_opt (btor, BTOR_OPT_SIMPLIFY_CONSTRAINTS);
+  btor_set_opt (btor, BTOR_OPT_SIMPLIFY_CONSTRAINTS, 0);
   // TODO (ma): check if all quants checked
 
   BTOR_INIT_STACK (visit);
@@ -145,7 +149,6 @@ nnf_aig (Btor *btor)
 
       BTOR_PUSH_STACK (mm, visit, cur_pol);
       BTOR_PUSH_STACK (mm, visit, cur);
-      // TODO: if quant is inverted, we need to invert children also
       for (i = real_cur->arity - 1; i >= 0; i--)
       {
         if (BTOR_IS_AND_NODE (real_cur) || BTOR_IS_QUANTIFIER_NODE (real_cur))
@@ -237,6 +240,7 @@ nnf_aig (Btor *btor)
     btor_release_exp (btor, map->data[j].as_ptr);
   }
   btor_delete_int_hash_map (map);
+  btor_set_opt (btor, BTOR_OPT_SIMPLIFY_CONSTRAINTS, opt_simp_const);
   return result;
 }
 
@@ -414,8 +418,8 @@ setup_forall_solver (BtorEFSolver *slv)
   f_solver = btor_new_btor ();
   btor_delete_opts (f_solver);
   btor_clone_opts (btor, f_solver);
-  //  f_solver = btor_clone_formula (slv->btor);
   btor_set_msg_prefix_btor (f_solver, "forall");
+
   exists_vars = btor_new_node_map (f_solver);
   forall_vars = btor_new_node_map (f_solver);
   exp_map     = btor_new_node_map (btor);
@@ -424,9 +428,12 @@ setup_forall_solver (BtorEFSolver *slv)
   btor_set_opt (f_solver, BTOR_OPT_MODEL_GEN, 1);
   btor_set_opt (f_solver, BTOR_OPT_INCREMENTAL, 1);
   /* disable variable substitution (not sound in the context of quantifiers) */
-  // TODO (ma): check if it can still be used (may be sound since we are in
+  // FIXME (ma): check if it can still be used (may be sound since we are in
   // QF_BV)
   btor_set_opt (f_solver, BTOR_OPT_VAR_SUBST, 1);
+  // FIXME (ma): if -bra is enabled then test_synth5.smt2 fails without
+  // disabling this since f_formula will be simplified
+  btor_set_opt (f_solver, BTOR_OPT_BETA_REDUCE_ALL, 0);
 
   nnf_root = nnf_aig (btor);
   root     = btor_recursively_rebuild_exp_clone (
@@ -470,7 +477,6 @@ setup_forall_solver (BtorEFSolver *slv)
   /* eliminate quantified terms by substituting bound variables with fresh
    * variables */
   formula = btor_substitute_terms (f_solver, sk_root, map);
-
   btor_release_exp (f_solver, sk_root);
   btor_delete_node_map (map);
 
@@ -478,6 +484,7 @@ setup_forall_solver (BtorEFSolver *slv)
   assert (f_solver->quantifiers->count == 0);
 
   slv->f_formula = BTOR_INVERT_NODE (formula);
+  assert (!BTOR_IS_PROXY_NODE (BTOR_REAL_ADDR_NODE (slv->f_formula)));
   assert (!f_solver->slv);
   fslv                = (BtorFunSolver *) btor_new_fun_solver (f_solver);
   fslv->assume_lemmas = true;
@@ -567,6 +574,7 @@ refine_exists_solver (BtorEFSolver *slv)
   assert (f_solver->synthesized_constraints->count == 0);
   assert (f_solver->embedded_constraints->count == 0);
   assert (f_solver->varsubst_constraints->count == 0);
+  //  assert (!BTOR_IS_PROXY_NODE (BTOR_REAL_ADDR_NODE (slv->f_formula)));
   // TODO (ma): search for symbolic candidates
   /* quantifier instantiation with counter example of universal variables */
   res = btor_recursively_rebuild_exp_clone (
@@ -583,6 +591,8 @@ refine_exists_solver (BtorEFSolver *slv)
   btor_delete_ptr_hash_table (var_es_assignments);
   btor_delete_node_map (map);
   assert (res != e_solver->true_exp);
+  BTOR_ABORT (
+      res == e_solver->true_exp, "invalid refinement '%s'", node2string (res));
   btor_assert_exp (e_solver, res);
   btor_release_exp (e_solver, res);
 }
@@ -766,146 +776,6 @@ get_failed_vars (BtorEFSolver *slv, BtorPtrHashTable *failed_vars)
   btor_delete_ptr_hash_table (assumptions);
   btor_delete_btor (clone);
 }
-
-#if 0
-static void
-fix_quantifier_polarity (Btor * btor)
-{
-  assert (btor->synthesized_constraints->count == 0);
-  assert (btor->embedded_constraints->count == 0);
-  assert (btor->varsubst_constraints->count == 0);
-
-  uint32_t i;
-  BtorNode *root, *cur, *cur_pol, *real_cur, *subst, *param, *cur_parent;
-  BtorNode *new_body;
-  BtorHashTableIterator it;
-  BtorIntHashTable *cache;
-  BtorMemMgr *mm;
-  BtorNodePtrStack visit;
-  BtorNodeIterator nit;
-  BtorNodeMap *map;
-  BtorNodeIterator n_it;
-
-  mm = btor->mm;
-  cache = btor_new_int_hash_table (mm);
-
-  BTOR_INIT_STACK (visit);
-  btor_init_substitutions (btor);
-  btor_init_node_hash_table_iterator (&it, btor->unsynthesized_constraints);
-  while (btor_has_next_node_hash_table_iterator (&it))
-    {
-      root = btor_next_node_hash_table_iterator (&it);
-
-      BTOR_PUSH_STACK (mm, visit, root);
-      BTOR_PUSH_STACK (mm, visit, root);
-      BTOR_PUSH_STACK (mm, visit, root);
-      while (!BTOR_EMPTY_STACK (visit))
-	{
-	  cur_parent = BTOR_POP_STACK (visit);
-	  cur_pol = BTOR_POP_STACK (visit);
-	  cur = BTOR_POP_STACK (visit);
-	  real_cur = BTOR_REAL_ADDR_NODE (cur);
-	  printf ("visit: %s\n", node2string (cur));
-
-	  if (BTOR_IS_QUANTIFIER_NODE (real_cur))
-	    {
-	      printf ("quant: %s\n", node2string (cur));
-	      printf ("cur_parent: %s\n", node2string (cur_parent));
-	      assert (real_cur->parents == 1);
-
-	      if (BTOR_IS_INVERTED_NODE (cur)
-		  && real_cur->parents == 1)
-		{
-		  btor_init_binder_iterator (&n_it, real_cur);
-		  while (btor_has_next_binder_iterator (&n_it))
-		    {
-		      cur = btor_next_binder_iterator (&n_it);
-		      assert (cur->parents == 1);
-		      param = cur->e[0];
-		      btor_param_set_binder (param, 0);
-		      btor->ops[real_cur->kind].cur--;
-		      if (BTOR_IS_EXISTS_NODE (cur))
-			cur->kind = BTOR_FORALL_NODE;
-		      else
-			cur->kind = BTOR_EXISTS_NODE;
-		      btor_param_set_binder (param, cur);
-		      btor->ops[real_cur->kind].cur++;
-
-		    }
-#if 0
-		  if (real_cur->parents == 1)
-		    {
-		      param = real_cur->e[0];
-		      btor_param_set_binder (param, 0);
-		      btor->ops[real_cur->kind].cur--;
-		      if (BTOR_IS_EXISTS_NODE (cur))
-			real_cur->kind = BTOR_FORALL_NODE;
-		      else
-			real_cur->kind = BTOR_EXISTS_NODE;
-		      btor_param_set_binder (param, real_cur);
-		      btor->ops[real_cur->kind].cur++;
-		    }
-#endif
-		}
-#if 0
-	      if (BTOR_IS_INVERTED_NODE (cur))
-		{
-	      map = btor_new_node_map (btor);
-	      btor_map_node (map, real_cur, real_cur->e[1]);
-	      new_body = btor_substitute_terms (btor, cur_parent, map); 
-	      btor_delete_node_map (map);
-	      assert (BTOR_REAL_ADDR_NODE (new_body)->parameterized);
-
-	      param = real_cur->e[0];
-	      btor_param_set_binder (param, 0);
-	      if (BTOR_IS_EXISTS_NODE (real_cur))
-		subst = btor_forall_exp (btor, param, new_body);
-	      else
-		subst = btor_exists_exp (btor, param, new_body);
-	      assert (!subst->parameterized);
-	      btor_insert_substitution (btor, cur_parent, subst, 0);
-	      if (BTOR_REAL_ADDR_NODE (cur_parent)->constraint)
-		{
-		  btor_remove_ptr_hash_table (
-		      btor->unsynthesized_constraints, cur_parent, 0, 0);
-		  BTOR_REAL_ADDR_NODE (cur_parent)->constraint = 0;
-		  btor_add_ptr_hash_table (btor->unsynthesized_constraints, subst);
-		  subst->constraint = 1;
-		}
-	      btor_release_exp (btor, subst);
-	      btor_release_exp (btor, new_body);
-		}
-#endif
-	      // TODO (ma): negate quantifier and add subst
-	      continue;
-	    }
-
-	  if (!BTOR_IS_AND_NODE (real_cur)
-	      || btor_contains_int_hash_table (cache, BTOR_GET_ID_NODE (cur)))
-	    continue;
-
-	  if (BTOR_IS_INVERTED_NODE (cur_pol))
-	    cur_parent = cur_pol;
-
-	  btor_add_int_hash_table (cache, real_cur->id);
-	  for (i = 0; i < real_cur->arity; i++)
-	    {
-	      BTOR_PUSH_STACK (mm, visit,
-			       BTOR_COND_INVERT_NODE (cur, real_cur->e[i]));
-	      BTOR_PUSH_STACK (mm, visit, real_cur->e[i]);
-	      BTOR_PUSH_STACK (mm, visit, cur_parent);
-	    }
-	}
-    }
-
-  btor_substitute_and_rebuild (btor, btor->substitutions);
-  btor_delete_substitutions (btor);
-
-CLEANUP_AND_EXIT:
-  BTOR_RELEASE_STACK (mm, visit);
-  btor_delete_int_hash_table (cache);
-}
-#endif
 
 /*------------------------------------------------------------------------*/
 
