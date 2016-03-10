@@ -1,9 +1,16 @@
+import boolector
 from boolector import Boolector
 
 if __name__ == "__main__":
     b = Boolector() 
 
 ### Creating Boolector nodes
+
+    # Sorts
+    _boolsort = b.BoolSort()
+    _bvsort   = b.BitVecSort(128)
+    _arrsort  = b.ArraySort(_bvsort, _bvsort)
+    _funsort  = b.FunSort([_boolsort, _boolsort, _bvsort, _bvsort], _boolsort)
 
     # Constants
     _const = b.Const("10010101")
@@ -16,9 +23,10 @@ if __name__ == "__main__":
     _int   = b.Const(-77, 128)
 
     # Variables
-    _var   = b.Var(128, "var_symbol")
-    _param = b.Param(128, "param_symbol")  # used as function parameters
-    _array = b.Array(128, 128, "array_symbol")
+    _var   = b.Var(_bvsort, "var_symbol")
+    _param = b.Param(_bvsort, "param_symbol")  # used as function parameters
+    _array = b.Array(_arrsort, "array_symbol")
+    _uf    = b.UF(_funsort)
 
     # One's complement  
     _not0    = b.Not(_const)
@@ -228,15 +236,9 @@ if __name__ == "__main__":
     _cond3    = b.Cond(0, _write0, _write1)
 
     # Function
-    p0        = b.Param(128)
-    p1        = b.Param(128)
+    p0        = b.Param(_bvsort)
+    p1        = b.Param(_bvsort)
     _fun      = b.Fun([p0, p1], b.Cond(p0 < p1, p0, p1))
-
-    # Uninterpreted function
-    _boolsort = b.BoolSort()
-    _bvsort   = b.BitVecSort(128)
-    _funsort  = b.FunSort([_boolsort, _boolsort, _bvsort, _bvsort], _boolsort)
-    _uf       = b.UF(_funsort)
 
     # Function applications
     _apply0   = b.Apply([_var, _var], _fun)
@@ -287,11 +289,11 @@ if __name__ == "__main__":
     print("\n".join(["  " + str(o) for o in b.Options()]))
 
     # Set options
-    b.Set_opt("incremental", 1)
-    b.Set_opt("model_gen", 1)
+    b.Set_opt(boolector.BTOR_OPT_INCREMENTAL, 1)
+    b.Set_opt(boolector.BTOR_OPT_MODEL_GEN, 1)
 
     # Get options
-    o = b.Get_opt("model_gen")
+    o = b.Get_opt(boolector.BTOR_OPT_MODEL_GEN)
 #    print(o.lng)  # long option name
 #    print(o.shrt) # short option name
 #    print(o.desc) # description
