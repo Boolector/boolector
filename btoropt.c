@@ -728,7 +728,7 @@ btor_clone_opts (Btor *btor, Btor *clone)
       memcpy (&clone->options[o], &btor->options[o], sizeof (BtorOpt));
       if (btor->options[o].valstr)
         clone->options[o].valstr =
-            btor_strdup (btor->mm, btor->options[o].valstr);
+            btor_strdup (clone->mm, btor->options[o].valstr);
     }
   }
   if (btor->str2opt)
