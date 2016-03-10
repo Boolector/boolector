@@ -514,7 +514,8 @@ btor_synthesize_fun (Btor *btor,
   cur_level = 1;
   BTOR_MSG (btor->msg,
             1,
-            "arity: %u, model size: %u",
+            "function: %s, arity: %u, model size: %u",
+            btor_get_symbol_exp (btor, uf),
             BTOR_COUNT_STACK (params),
             uf_model->count);
 
