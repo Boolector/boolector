@@ -1102,6 +1102,9 @@ connect_child_exp (Btor *btor, BtorNode *parent, BtorNode *child, int pos)
 
   if (BTOR_REAL_ADDR_NODE (child)->lambda_below) parent->lambda_below = 1;
 
+  if (BTOR_REAL_ADDR_NODE (child)->quantifier_below)
+    parent->quantifier_below = 1;
+
   if (BTOR_REAL_ADDR_NODE (child)->apply_below) parent->apply_below = 1;
 
   if (BTOR_REAL_ADDR_NODE (child)->parameterized)
@@ -1479,9 +1482,10 @@ new_quantifier_exp_node (Btor *btor,
 
   BTOR_CNEW (btor->mm, res);
   set_kind (btor, (BtorNode *) res, kind);
-  res->bytes   = sizeof *res;
-  res->arity   = 2;
-  res->sort_id = btor_copy_sort (&btor->sorts_unique_table,
+  res->bytes            = sizeof *res;
+  res->arity            = 2;
+  res->quantifier_below = 1;
+  res->sort_id          = btor_copy_sort (&btor->sorts_unique_table,
                                  BTOR_REAL_ADDR_NODE (body)->sort_id);
   setup_node_and_add_to_id_table (btor, (BtorNode *) res);
   connect_child_exp (btor, (BtorNode *) res, param, 0);
