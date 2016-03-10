@@ -95,6 +95,8 @@ btor_merge_lambdas (Btor *btor)
   BtorNodePtrStack stack, unmark, visit, params;
   BtorPtrHashTable *merge_lambdas, *static_rho;
 
+  if (btor->lambdas->count == 0) return;
+
   start = btor_time_stamp ();
   mm    = btor->mm;
 

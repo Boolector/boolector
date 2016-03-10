@@ -506,6 +506,7 @@ boolector_py: api/python/boolector_py.h api/python/boolector_py.c
 python-clean:
 	rm -rf build
 	rm -f api/python/boolector.c boolector.cpython*.so
+	rm -f api/python/boolector.pix
 
 python-clean-mk:
 	rm -f python.mk setup.py
@@ -513,9 +514,17 @@ python-clean-mk:
 clean: python-clean python-clean-mk
 
 EOF
+
+#opts=`grep BTOR_OPT btortypes.h | xargs`
+opts=`grep BTOR_OPT btortypes.h | awk 'BEGIN{i=0} { gsub(",", "="); print $1i; i += 1}'`
+cat > api/python/boolector.pix << EOF
+$opts
+EOF
+
 else
   touch python.mk
 fi
+
 
 #--------------------------------------------------------------------------#
 

@@ -27,9 +27,9 @@ py_terminate_btor (void *btor)
   res = PyObject_CallObject ((PyObject *) bt->cbs.term.fun,
                              (PyObject *) bt->cbs.term.state);
   if (PyErr_Occurred ()) PyErr_Print ();
-  BTOR_ABORT_BOOLECTOR (!res, "call to callback termination function failed");
-  BTOR_ABORT_BOOLECTOR (!PyBool_Check (res),
-                        "expected Boolean result for termination callback");
+  BTOR_ABORT (!res, "call to callback termination function failed");
+  BTOR_ABORT (!PyBool_Check (res),
+              "expected Boolean result for termination callback");
   if (res == Py_True)
     bt->cbs.term.done = 1;
   else
@@ -42,15 +42,15 @@ py_terminate_btor (void *btor)
 void
 boolector_py_set_term (Btor *btor, PyObject *fun, PyObject *state)
 {
-  BTOR_ABORT_ARG_NULL_BOOLECTOR (btor);
-  BTOR_ABORT_ARG_NULL_BOOLECTOR (fun);
+  BTOR_ABORT_ARG_NULL (btor);
+  BTOR_ABORT_ARG_NULL (fun);
 
   Py_ssize_t i, size;
   PyObject *t, *tmp;
   BtorSATMgr *smgr;
 
-  BTOR_ABORT_BOOLECTOR (!PyCallable_Check (fun),
-                        "termination callback parameter is not callable");
+  BTOR_ABORT (!PyCallable_Check (fun),
+              "termination callback parameter is not callable");
   btor->cbs.term.termfun = py_terminate_btor;
 
   Py_XINCREF (fun);       /* inc ref to new callback */
@@ -94,7 +94,7 @@ boolector_py_set_term (Btor *btor, PyObject *fun, PyObject *state)
 void
 boolector_py_delete (Btor *btor)
 {
-  BTOR_ABORT_ARG_NULL_BOOLECTOR (btor);
+  BTOR_ABORT_ARG_NULL (btor);
   if (btor->cbs.term.fun) Py_XDECREF (btor->cbs.term.fun);
   if (btor->cbs.term.state) Py_XDECREF (btor->cbs.term.state);
   boolector_delete (btor);

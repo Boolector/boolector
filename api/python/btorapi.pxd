@@ -67,26 +67,30 @@ cdef extern from "boolector.h":
 
     int boolector_set_sat_solver (Btor * btor, const char * solver)
 
-    int boolector_set_sat_solver_lingeling (Btor * btor, const char * optstr,
-                                            int nofork)
+    int boolector_set_sat_solver_lingeling (
+        Btor * btor, const char * optstr, int nofork)
 
-    void boolector_set_opt (Btor * btor, const char * opt, int val)
+    void boolector_set_opt (Btor * btor, int opt, int val)
 
-    int boolector_get_opt (Btor * btor, const char * opt)
+    int boolector_get_opt (Btor * btor, int opt)
 
-    int boolector_get_opt_min (Btor * btor, const char * opt)
+    int boolector_get_opt_min (Btor * btor, int opt)
 
-    int boolector_get_opt_max (Btor * btor, const char * opt)
+    int boolector_get_opt_max (Btor * btor, int opt)
 
-    int boolector_get_opt_dflt (Btor * btor, const char * opt)
+    int boolector_get_opt_dflt (Btor * btor, int opt)
 
-    const char * boolector_get_opt_shrt (Btor * btor, const char * opt)
+    const char * boolector_get_opt_shrt (Btor * btor, int opt)
 
-    const char * boolector_get_opt_desc (Btor * btor, const char * opt)
+    const char * boolector_get_opt_lng (Btor * btor, int opt)
 
-    const char * boolector_first_opt (Btor * btor)
+    const char * boolector_get_opt_desc (Btor * btor, int opt)
 
-    const char * boolector_next_opt (Btor * btor, const char * opt)
+    int boolector_first_opt (Btor * btor)
+
+    int boolector_next_opt (Btor * btor, int opt)
+
+    int boolector_has_opt (Btor * btor, int opt)
 
     BoolectorNode *boolector_copy (Btor * btor, BoolectorNode * node)
 
@@ -94,43 +98,49 @@ cdef extern from "boolector.h":
 
     BoolectorNode *boolector_const (Btor * btor, const char *bits)
 
-#    BoolectorNode *boolector_zero (Btor * btor, int width)
+#    BoolectorNode *boolector_zero (Btor * btor, BoolectorSort sort)
 
     BoolectorNode *boolector_false (Btor * btor)
 
-#    BoolectorNode *boolector_ones (Btor * btor, int width)
+#    BoolectorNode *boolector_ones (Btor * btor, BoolectorSort sort)
 
     BoolectorNode *boolector_true (Btor * btor)
 
-#    BoolectorNode *boolector_one (Btor * btor, int width)
+#    BoolectorNode *boolector_one (Btor * btor, BoolectorSort sort)
 
-#    BoolectorNode *boolector_unsigned_int (Btor * btor, unsigned u, int width)
+#    BoolectorNode *boolector_unsigned_int (Btor * btor, unsigned u, BoolectorSort sort)
 
-#    BoolectorNode *boolector_int (Btor * btor, int i, int width)
+#    BoolectorNode *boolector_int (Btor * btor, int i, BoolectorSort sort)
 
-    BoolectorNode *boolector_var (Btor * btor, int width, const char *symbol)
+    BoolectorNode *boolector_var (
+        Btor * btor, BoolectorSort sort, const char *symbol)
 
-    BoolectorNode *boolector_array (Btor * btor, 
-                                   int elem_width, 
-                                   int index_width, 
-                                   const char *symbol)
+    BoolectorNode *boolector_array (
+        Btor * btor, BoolectorSort  sort, const char *symbol)
 
-    BoolectorNode *boolector_not (Btor * btor, BoolectorNode * node)
+    BoolectorNode *boolector_not (
+        Btor * btor, BoolectorNode * node)
 
-    BoolectorNode *boolector_neg (Btor * btor, BoolectorNode * node)
+    BoolectorNode *boolector_neg (
+        Btor * btor, BoolectorNode * node)
 
-    BoolectorNode *boolector_redor (Btor * btor, BoolectorNode * node)
+    BoolectorNode *boolector_redor (
+        Btor * btor, BoolectorNode * node)
 
-    BoolectorNode *boolector_redxor (Btor * btor, BoolectorNode * node)
+    BoolectorNode *boolector_redxor (
+        Btor * btor, BoolectorNode * node)
 
-    BoolectorNode *boolector_redand (Btor * btor, BoolectorNode * node)
+    BoolectorNode *boolector_redand (
+        Btor * btor, BoolectorNode * node)
 
     BoolectorNode *boolector_slice (
         Btor * btor, BoolectorNode * node, int upper, int lower)
 
-    BoolectorNode *boolector_uext (Btor * btor, BoolectorNode * node, int width)
+    BoolectorNode *boolector_uext (
+        Btor * btor, BoolectorNode * node, int width)
 
-    BoolectorNode *boolector_sext (Btor * btor, BoolectorNode * node, int width)
+    BoolectorNode *boolector_sext (
+        Btor * btor, BoolectorNode * node, int width)
 
     BoolectorNode *boolector_implies (
         Btor * btor, BoolectorNode * n0, BoolectorNode * n1)
@@ -262,7 +272,8 @@ cdef extern from "boolector.h":
                                    BoolectorNode * n_if, 
                                    BoolectorNode * n_else)
 
-    BoolectorNode *boolector_param (Btor * btor, int width, const char * symbol) 
+    BoolectorNode *boolector_param (
+            Btor * btor, BoolectorSort sort, const char * symbol) 
 
     BoolectorNode *boolector_fun (Btor * btor, 
                                   BoolectorNode ** param_nodes, 
@@ -345,6 +356,10 @@ cdef extern from "boolector.h":
     BoolectorSort boolector_bool_sort (Btor * btor)
 
     BoolectorSort boolector_bitvec_sort (Btor * btor, int len)
+
+    BoolectorSort boolector_array_sort (Btor * btor,
+                                        BoolectorSort index,
+                                        BoolectorSort elem)
 
     BoolectorSort boolector_fun_sort (Btor * btor,
                                       BoolectorSort * domain,
