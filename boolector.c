@@ -2770,6 +2770,7 @@ boolector_get_sort (Btor *btor, const BoolectorNode *node)
   exp = BTOR_IMPORT_BOOLECTOR_NODE (node);
   BTOR_TRAPI_UNFUN (exp);
   res = BTOR_REAL_ADDR_NODE (exp)->sort_id;
+  BTOR_TRAPI_RETURN_SORT (res);
 #ifndef NDEBUG
   BTOR_CHKCLONE_RES_SORT (res, get_sort, node);
 #endif
@@ -3138,7 +3139,7 @@ boolector_fun_sort_check (Btor *btor,
 
   len = 15 + 10 + argc * 20 + 20;
   BTOR_NEWN (btor->mm, strtrapi, len);
-  sprintf (strtrapi, "%d", argc);
+  sprintf (strtrapi, "%d ", argc);
 
   for (i = 0; i < argc; i++)
   {
@@ -3623,6 +3624,7 @@ boolector_is_array_sort (Btor *btor, BoolectorSort sort)
   BTOR_ABORT (!btor_is_valid_sort (sorts, s), "'sort' is not a valid sort");
 
   res = btor_is_array_sort (&btor->sorts_unique_table, s);
+  BTOR_TRAPI_RETURN_BOOL (res);
 #ifndef NDEBUG
   BTOR_CHKCLONE_RES_BOOL (res, is_array_sort, sort);
 #endif
