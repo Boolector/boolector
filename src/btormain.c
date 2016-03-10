@@ -491,6 +491,7 @@ static void
 print_opt (BtorMainApp *app,
            const char *lng,
            const char *shrt,
+           bool isflag,
            int dflt,
            const char *desc,
            int print_dflt)
@@ -512,14 +513,7 @@ print_opt (BtorMainApp *app,
            || !strcmp (lng,
                        boolector_get_opt_lng (app->btor, BTOR_OPT_SAT_ENGINE)))
     sprintf (paramstr, "<engine>");
-  else if (!strcmp (lng,
-                    boolector_get_opt_lng (app->btor, BTOR_OPT_REWRITE_LEVEL))
-           || !strcmp (lng,
-                       boolector_get_opt_lng (app->btor,
-                                              BTOR_OPT_SLS_MOVE_RAND_WALK_PROB))
-           || !strcmp (lng,
-                       boolector_get_opt_lng (
-                           app->btor, BTOR_OPT_SLS_MOVE_PROP_FLIP_COND_PROB)))
+  else if (!isflag)
     sprintf (paramstr, "<n>");
   else if (!strcmp (lng, "lingeling-opts"))
     sprintf (paramstr, "[,<opt>=<val>]+");
@@ -606,7 +600,8 @@ print_opt (BtorMainApp *app,
 #define PRINT_MAIN_OPT(app, opt)                                           \
   do                                                                       \
   {                                                                        \
-    print_opt (app, (opt)->lng, (opt)->shrt, (opt)->dflt, (opt)->desc, 0); \
+    print_opt (                                                            \
+        app, (opt)->lng, (opt)->shrt, false, (opt)->dflt, (opt)->desc, 0); \
   } while (0)
 
 #define BOOLECTOR_OPTS_INFO_MSG                                                \
@@ -674,10 +669,11 @@ print_help (BtorMainApp *app)
         || o == BTOR_OPT_SORT_EXP)
       fprintf (out, "\n");
     print_opt (app,
-               boolector_get_opt_lng (app->btor, o),
-               boolector_get_opt_shrt (app->btor, o),
-               boolector_get_opt_dflt (app->btor, o),
-               boolector_get_opt_desc (app->btor, o),
+               app->btor->options[o].lng,
+               app->btor->options[o].shrt,
+               app->btor->options[o].isflag,
+               app->btor->options[o].dflt,
+               app->btor->options[o].desc,
                1);
   }
 

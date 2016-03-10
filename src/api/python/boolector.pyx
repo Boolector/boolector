@@ -16,6 +16,8 @@ from cpython cimport bool
 from cpython.ref cimport PyObject
 import math, os, sys
 
+include "boolector.pix"
+
 g_tunable_options = {"rewrite_level", "rewrite_level_pbr",
                      "beta_reduce_all", "probe_beta_reduce_all",
                      "pbra_lod_limit", "pbra_sat_limit", "pbra_ops_factor",
@@ -139,6 +141,10 @@ cdef class BoolectorSort:
     def __dealloc__(self):
         btorapi.boolector_release_sort(self._c_btor, self._c_sort)
 
+cdef class _BoolectorArraySort(BoolectorSort):
+    cdef BoolectorSort _index
+    cdef BoolectorSort _elem
+
 cdef class _BoolectorFunSort(BoolectorSort):
     cdef list _domain
     cdef BoolectorSort _codomain
@@ -163,7 +169,7 @@ cdef class BoolectorOptions:
     def __init__(self, Boolector btor):
         self.btor = btor
         self.__cur = BoolectorOpt(btor,
-                         _to_str(btorapi.boolector_first_opt(btor._c_btor)))
+                         btorapi.boolector_first_opt(btor._c_btor))
 
     def __iter__(self):
         return self
@@ -172,33 +178,29 @@ cdef class BoolectorOptions:
         if self.__cur is None:
             raise StopIteration
         next = self.__cur
-        name = _to_str(btorapi.boolector_next_opt(self.btor._c_btor,
-                                                  next.__chptr._c_str))
-        if name is None:
+        opt = btorapi.boolector_next_opt(self.btor._c_btor, next.opt)
+        if not btorapi.boolector_has_opt(self.btor._c_btor, opt):
             self.__cur = None
         else:
-            self.__cur = BoolectorOpt(self.btor, name)
+            self.__cur = BoolectorOpt(self.btor, opt)
         return next
-
 
 cdef class BoolectorOpt:
     """
     The class representing a Boolector option.
     """
     cdef Boolector btor
-    cdef _ChPtr __chptr
-    cdef str name
+    cdef int opt
 
-    def __init__(self, Boolector boolector, str name):
+    def __init__(self, Boolector boolector, int opt):
         self.btor = boolector
-        self.name = name
-        self.__chptr = _ChPtr(name)
+        self.opt = opt
 
     def __richcmp__(BoolectorOpt opt0, BoolectorOpt opt1, opcode):
         if opcode == 2:
-            return opt0.name == opt1.name
+            return opt0.opt == opt1.opt
         elif opcode == 3:
-            return opt0.name != opt1.name
+            return opt0.opt != opt1.opt
         else:
             raise BoolectorException("Opcode '{}' not implemented for "\
                                      "__richcmp__".format(opcode))
@@ -208,48 +210,49 @@ cdef class BoolectorOpt:
         """
         def __get__(self):
             return _to_str(btorapi.boolector_get_opt_shrt(self.btor._c_btor,
-                                                          self.__chptr._c_str))
+                                                          self.opt))
 
     property lng:
         """ The long name of a Boolector option.
         """
         def __get__(self):
-            return self.name
+            return _to_str(btorapi.boolector_get_opt_lng(self.btor._c_btor,
+                                                         self.opt))
 
     property desc:
         """ The description of a Boolector option. 
         """
         def __get__(self):
             return _to_str(btorapi.boolector_get_opt_desc(self.btor._c_btor,
-                                                          self.__chptr._c_str))
+                                                          self.opt))
 
     property val:
         """ The current value of a Boolector option. 
         """
         def __get__(self):
             return btorapi.boolector_get_opt(self.btor._c_btor,
-                                             self.__chptr._c_str)
+                                             self.opt)
 
     property dflt:
         """ The default value of a Boolector option. 
         """
         def __get__(self):
             return btorapi.boolector_get_opt_dflt(self.btor._c_btor,
-                                                  self.__chptr._c_str)
+                                                  self.opt)
 
     property min:
         """ The minimum value of a Boolector option. 
         """
         def __get__(self):
             return btorapi.boolector_get_opt_min(self.btor._c_btor,
-                                                 self.__chptr._c_str)
+                                                 self.opt)
 
     property max:
         """ The maximum value of a Boolector option. 
         """
         def __get__(self):
             return btorapi.boolector_get_opt_max(self.btor._c_btor,
-                                                 self.__chptr._c_str)
+                                                 self.opt)
 
     property tunable:
         def __get__(self):
@@ -257,8 +260,8 @@ cdef class BoolectorOpt:
 
     def __str__(self):
         return "{}, [{}, {}], default: {}".format(self.lng,
-                                                      self.min, self.max,
-                                                      self.dflt)
+                                                  self.min, self.max,
+                                                  self.dflt)
 # wrapper classes for BoolectorNode
 
 cdef class BoolectorNode:
@@ -409,6 +412,8 @@ cdef class BoolectorBVNode(BoolectorNode):
     """
     The class representing a Boolector bit vector node.
     """
+    cdef _BoolectorBitVecSort _sort
+
     def __richcmp__(x, y, opcode):
         x, y = _to_node(x, y)
         b = (<BoolectorBVNode> x).btor
@@ -526,6 +531,8 @@ cdef class BoolectorArrayNode(BoolectorNode):
     """
     The class representing a Boolector array node.
     """
+    cdef _BoolectorArraySort _sort
+
     # TODO: allow slices on arrays
     #       array[2:4] -> memcpy from index 2 to 4 
     #       array[:] -> copy whole array
@@ -568,6 +575,7 @@ cdef class Boolector:
     The class representing a Boolector instance.
     """
     cdef btorapi.Btor * _c_btor
+    cdef _BoolectorBitVecSort _sort
     cdef list _option_names
 
     UNKNOWN = 0
@@ -853,7 +861,7 @@ cdef class Boolector:
         return r
 
     # Boolector options
-    def Set_opt(self, str opt, int value):
+    def Set_opt(self, int opt, int value):
         """ Set_opt(opt, value)
 
             Set option.
@@ -988,11 +996,11 @@ cdef class Boolector:
             :param value: Option value.
             :type value:  int
         """
-        if opt not in self._option_names:
-            raise BoolectorException("Invalid Boolector option name")
-        btorapi.boolector_set_opt(self._c_btor, _ChPtr(opt)._c_str, value)
+        if not btorapi.boolector_has_opt (self._c_btor, opt):
+            raise BoolectorException("Invalid Boolector option")
+        btorapi.boolector_set_opt(self._c_btor, opt, value)
 
-    def Get_opt(self, str opt):
+    def Get_opt(self, int opt):
         """ Get_opt(opt)
 
             Get the Boolector option with name ``opt``.
@@ -1005,8 +1013,8 @@ cdef class Boolector:
             :return: Option with name ``opt``.
             :rtype: :class:`~boolector.BoolectorOpt`
         """
-        if opt not in self._option_names:
-            raise BoolectorException("Invalid Boolector option name")
+        if not btorapi.boolector_has_opt (self._c_btor, opt):
+            raise BoolectorException("Invalid Boolector option")
         return BoolectorOpt(self, opt)
 
     def Options(self):
@@ -1263,10 +1271,10 @@ cdef class Boolector:
                       "Cannot convert type '{}' to bit vector".format(
                           type(c)))
 
-    def Var(self, int width, str symbol = None):
-        """ Var(width, symbol = None)
+    def Var(self, BoolectorSort sort, str symbol = None):
+        """ Var(sort, symbol = None)
 
-            Create a bit vector variable with bit width ``width``.
+            Create a bit vector variable of sort ``sort''.
 
             A variable's symbol is used as a simple means of identification,
             either when printing a model via 
@@ -1276,11 +1284,11 @@ cdef class Boolector:
             A symbol must be unique but may be None in case that no
             symbol should be assigned.
 
-            :param width: Bit width of the variable.
-            :type width: int
+            :param sort: Sort of the variable.
+            :type sort: :class: ~boolector.BoolectorSort
             :param symbol: Symbol of the variable.
             :type symbol: str
-            :return: A bit vector variable with bit width ``width``.
+            :return: A bit vector variable of sort ``sort''.
             :rtype: :class:`~boolector.BoolectorNode`
 
             .. note::
@@ -1289,15 +1297,19 @@ cdef class Boolector:
                 width), variables are not.  Hence, each call to this
                 function returns a fresh bit vector variable.
         """
+        if not isinstance(sort, _BoolectorBitVecSort):
+            raise BoolectorException(
+                    "Sort must be of sort '_BoolectorBitVecSort'")
         r = BoolectorBVNode(self)
-        r._c_node = btorapi.boolector_var(self._c_btor, width,
+        r._sort = sort
+        r._c_node = btorapi.boolector_var(self._c_btor, sort._c_sort,
                                           _ChPtr(symbol)._c_str)
         return r
 
-    def Param(self, int width, str symbol = None):
-        """ Param(width, symbol = None)
+    def Param(self, BoolectorSort sort, str symbol = None):
+        """ Param(sort, symbol = None)
 
-            Create a function parameter with bit width ``width``.
+            Create a function parameter of sort ``sort''.
 
             This kind of node is used to create parameterized expressions,
             which in turn are used to create functions.
@@ -1307,23 +1319,27 @@ cdef class Boolector:
             See :func:`~boolector.Boolector.Fun`, 
             :func:`~boolector.Boolector.Apply`.
             
-            :param width: Bit width of the function parameter.
-            :type width: int
+            :param sort: Sort of the function parameter.
+            :type sort: :class: ~boolector.BoolectorSort
             :param symbol: Symbol of the function parameter.
             :type symbol: str
-            :return: A function parameter with bit width ``width``.
+            :return: A function parameter of sort ``sort''.
             :rtype: :class:`~boolector.BoolectorNode`
         """
+        if not isinstance(sort, _BoolectorBitVecSort):
+            raise BoolectorException(
+                    "Sort must be of sort '_BoolectorBitVecSort'")
         r = _BoolectorParamNode(self)
-        r._c_node = btorapi.boolector_param(self._c_btor, width,
+        r._sort = sort
+        r._c_node = btorapi.boolector_param(self._c_btor, sort._c_sort,
                                             _ChPtr(symbol)._c_str)
         return r
 
-    def Array(self, int elem_width, int index_width, str symbol = None):
-        """ Array(elem_width, index_width, symbol = None)
+    def Array(self, BoolectorSort sort, str symbol = None):
+        """ Array(sort, symbol = None)
 
-            Create a one-dimensional bit vector array variable of size
-            ``2**index_width`` with elements of bit width ``elem_width``.
+            Create a one-dimensional bit vector array variable of sort
+            ``sort'' with symbol ``symbol''.
 
             An array variable's symbol is used as a simple means of
             identfication, either when printing a model via 
@@ -1333,13 +1349,11 @@ cdef class Boolector:
             A symbol must be unique but may be None in case that no
             symbol should be assigned.
             
-            :param elem_width: Bit width of the array elements.
-            :type width: int
-            :param index_width: Bit width of the array indices.
-            :type width: int
+            :param sort: Sort of the array elements.
+            :type sort: BoolectorSort
             :param symbol: Symbol of the array variable.
             :type symbol: str
-            :return: An array variable of size ``2**index_width`` with elements of bit width ``elem_width``.
+            :return: A bit vector array variable of sort ``sort'' with symbol ``symbol''.
             :rtype: :class:`~boolector.BoolectorNode`
 
             .. note::
@@ -1349,9 +1363,52 @@ cdef class Boolector:
                 Hence, each call to this function returns a fresh bit vector
                 array variable.
         """
+        if not isinstance(sort, _BoolectorArraySort):
+            raise BoolectorException(
+                    "Sort must be of sort '_BoolectorArraySort'")
         r = BoolectorArrayNode(self)
-        r._c_node = btorapi.boolector_array(self._c_btor, elem_width,
-                                            index_width, _ChPtr(symbol)._c_str)
+        r._sort = sort
+        r._c_node = btorapi.boolector_array(self._c_btor, sort._c_sort,
+                                            _ChPtr(symbol)._c_str)
+        return r
+
+    def UF(self, BoolectorSort sort, str symbol = None):
+        """ UF(sort, symbol)
+          
+            Create an uninterpreted function with sort ``sort`` and symbol
+            ``symbol``.
+
+            An uninterpreted function's symbol is used as a simple means of 
+            identification, either when printing a model via 
+            :func:`~boolector.Boolector.Print_model`,
+            or generating file dumps via 
+            :func:`~boolector.Boolector.Dump`.
+            A symbol must be unique but may be None in case that no
+            symbol should be assigned.
+
+            See :func:`~boolector.Boolector.Apply`,
+            :func:`~boolector.Boolector.FunSort`.
+
+            :param sort: Sort of the uninterpreted function.
+            :type sort:  BoolectorSort
+            :param symbol: Name of the uninterpreted function. 
+            :type symbol: str
+            :return:  A function over parameterized expression ``body``.
+            :rtype: :class:`~boolector.BoolectorNode`
+
+            .. note::
+                In contrast to composite expressions, which are maintained
+                uniquely w.r.t. to their kind, inputs (and consequently, bit
+                width), uninterpreted functions are not.  Hence, each
+                call to this function returns a fresh uninterpreted function.
+        """
+        if not isinstance(sort, _BoolectorFunSort):
+            raise BoolectorException(
+                     "Sort must be of sort '_BoolectorFunSort'")
+        r = BoolectorFunNode(self)
+        r._sort = sort
+        r._c_node = btorapi.boolector_uf(self._c_btor, sort._c_sort,
+                                         _ChPtr(symbol)._c_str)
         return r
 
     # Unary operators
@@ -2742,9 +2799,6 @@ cdef class Boolector:
           
             Create bit vector sort of bit width ``width``.
             
-            Currently, sorts in Boolector are used for uninterpreted functions,
-            only.
-
             See :func:`~boolector.Boolector.UF`.
 
             :param width: Bit width.
@@ -2757,14 +2811,32 @@ cdef class Boolector:
         r._c_sort = btorapi.boolector_bitvec_sort(self._c_btor, width)
         return r
 
+    def ArraySort(self, BoolectorSort index, BoolectorSort elem):
+        """ ArraySort(index, elem)
+          
+            Create array sort.
+            
+            See :func:`~boolector.Boolector.Array`.
+
+            :param index: The sort of the array index.
+            :type index: :class: ~boolector.BoolectorSort
+            :param elem: The sort of the array elements.
+            :type elem: :class:`~boolector.BoolectorSort`
+            :return:  Array sort.
+            :rtype: :class:`~boolector.BoolectorSort`
+          """
+        r = _BoolectorArraySort(self)
+        r._index = index
+        r._elem = elem
+        r._c_sort = btorapi.boolector_array_sort(
+                self._c_btor, index._c_sort, elem._c_sort)
+        return r
+
     def FunSort(self, list domain, BoolectorSort codomain):
         """ FunSort(domain, codomain)
           
             Create function sort.
             
-            Currently, sorts in Boolector are used for uninterpreted functions,
-            only.
-
             See :func:`~boolector.Boolector.UF`.
 
             :param domain: A list of all the function arguments' sorts.

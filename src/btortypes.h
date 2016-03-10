@@ -1,6 +1,7 @@
 /*  Boolector: Satisfiablity Modulo Theories (SMT) solver.
  *
  *  Copyright (C) 2015 Mathias Preiner.
+ *  Copyright (C) 2016 Aina Niemetz.
  *
  *  All rights reserved.
  *
@@ -27,6 +28,7 @@ typedef enum BtorSolverResult BtorSolverResult;
 typedef struct BoolectorNode BoolectorNode;
 typedef unsigned BoolectorSort;
 
+/* Boolector options */
 enum BtorOption
 {
   BTOR_OPT_MODEL_GEN,
@@ -73,16 +75,15 @@ enum BtorOption
   BTOR_OPT_SLS_MOVE_PROP_N_PROP,
   BTOR_OPT_SLS_MOVE_PROP_N_SLS,
   BTOR_OPT_SLS_MOVE_PROP_FORCE_RW,
-  BTOR_OPT_SLS_MOVE_PROP_NO_FLIP_COND,
-  BTOR_OPT_SLS_MOVE_PROP_FLIP_COND_PROB,
   BTOR_OPT_SLS_MOVE_INC_MOVE_TEST,
   BTOR_OPT_SLS_USE_RESTARTS,
   BTOR_OPT_SLS_USE_BANDIT,
   /* PROP engine --------------------------------------------------------- */
   BTOR_OPT_PROP_USE_RESTARTS,
   BTOR_OPT_PROP_USE_BANDIT,
-  BTOR_OPT_PROP_USE_INV_VALUE,
   BTOR_OPT_PROP_USE_FULL_PATH,
+  BTOR_OPT_PROP_USE_INV_VALUE_PROB,
+  BTOR_OPT_PROP_FLIP_COND_PROB,
   /* internal options --------------------------------------------------- */
   BTOR_OPT_SORT_EXP,
   BTOR_OPT_SORT_AIG,

@@ -517,6 +517,7 @@ python: \$(BUILDIR)/api/python/boolector_py.o setup.py
 python-clean:
 	rm -rf build/api/python/boolector_py.o
 	rm -f \$(SRCDIR)/api/python/boolector.c boolector.cpython*.so
+	rm -f \$(SRCDIR)/api/python/boolector.pix
 
 python-clean-mk:
 	rm -f python.mk setup.py
@@ -524,9 +525,16 @@ python-clean-mk:
 clean: python-clean python-clean-mk
 
 EOF
+
+opts=`grep BTOR_OPT $SRCDIR/btortypes.h | awk 'BEGIN{i=0} { gsub(",", "="); print $1i; i += 1}'`
+cat > $SRCDIR/api/python/boolector.pix << EOF
+$opts
+EOF
+
 else
   touch python.mk
 fi
+
 
 #--------------------------------------------------------------------------#
 

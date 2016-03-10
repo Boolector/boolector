@@ -528,17 +528,6 @@ btor_init_opts (Btor *btor)
             "number of sls moves (moves are performed as m:<n> prop "
             "to sls moves");
   init_opt (btor,
-            BTOR_OPT_SLS_MOVE_PROP_NO_FLIP_COND,
-            false,
-            true,
-            "sls:move-prop-no-flip-cond",
-            0,
-            0,
-            0,
-            1,
-            "do not choose to flip the condition for ITE during "
-            "path selection");
-  init_opt (btor,
             BTOR_OPT_SLS_MOVE_PROP_FORCE_RW,
             false,
             true,
@@ -548,18 +537,6 @@ btor_init_opts (Btor *btor)
             0,
             1,
             "force random walk if propagation move fails");
-  init_opt (btor,
-            BTOR_OPT_SLS_MOVE_PROP_FLIP_COND_PROB,
-            false,
-            false,
-            "sls:move-prop-flip-cond-prob",
-            0,
-            10,
-            0,
-            INT_MAX,
-            "probability for choosing to flip the condition (rather than "
-            "choosing the enabled path) for ITE during path selection "
-            "for prop moves (interpreted as 1:<n>)");
   init_opt (btor,
             BTOR_OPT_SLS_MOVE_INC_MOVE_TEST,
             false,
@@ -613,16 +590,6 @@ btor_init_opts (Btor *btor)
             0,
             1,
             "use bandit scheme for constraint selection");
-  init_opt (btor,
-            BTOR_OPT_PROP_USE_INV_VALUE,
-            false,
-            false,
-            "prop:use-inv-value",
-            0,
-            99,
-            0,
-            100,
-            "produce inverse rather than consistent values");
   // TODO this is temporary for paper purposes only (eliminate)?
   init_opt (btor,
             BTOR_OPT_PROP_USE_FULL_PATH,
@@ -634,6 +601,29 @@ btor_init_opts (Btor *btor)
             0,
             1,
             "perform path selection over the full set of operators");
+  init_opt (btor,
+            BTOR_OPT_PROP_USE_INV_VALUE_PROB,
+            false,
+            false,
+            "prop:use-inv-value-prob",
+            0,
+            99,
+            0,
+            100,
+            "probability for producing inverse rather than consistent values "
+            "(interpreted as <n>%)");
+  init_opt (btor,
+            BTOR_OPT_PROP_FLIP_COND_PROB,
+            false,
+            false,
+            "prop:flip-cond-prob",
+            0,
+            10,
+            0,
+            100,
+            "probability for choosing to flip the condition (rather than "
+            "choosing the enabled path) for ITE during path selection "
+            "for prop moves (interpreted as <n>%)");
 
   /* internal options ---------------------------------------------------- */
   init_opt (btor,
@@ -738,7 +728,7 @@ btor_clone_opts (Btor *btor, Btor *clone)
       memcpy (&clone->options[o], &btor->options[o], sizeof (BtorOpt));
       if (btor->options[o].valstr)
         clone->options[o].valstr =
-            btor_strdup (btor->mm, btor->options[o].valstr);
+            btor_strdup (clone->mm, btor->options[o].valstr);
     }
   }
   if (btor->str2opt)

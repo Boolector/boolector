@@ -896,6 +896,7 @@ boolector_zero (Btor *btor, BoolectorSort sort)
   BTOR_TRAPI (SORT_FMT, sort);
   sorts = &btor->sorts_unique_table;
   s     = BTOR_IMPORT_BOOLECTOR_SORT (sort);
+  BTOR_ABORT (!btor_is_valid_sort (sorts, s), "'sort' is not a valid sort");
   BTOR_ABORT (!btor_is_bitvec_sort (sorts, s),
               "'sort' is not a bit vector sort");
   width = btor_get_width_bitvec_sort (sorts, s);
@@ -937,6 +938,7 @@ boolector_ones (Btor *btor, BoolectorSort sort)
   BTOR_TRAPI (SORT_FMT, sort);
   sorts = &btor->sorts_unique_table;
   s     = BTOR_IMPORT_BOOLECTOR_SORT (sort);
+  BTOR_ABORT (!btor_is_valid_sort (sorts, s), "'sort' is not a valid sort");
   BTOR_ABORT (!btor_is_bitvec_sort (sorts, s),
               "'sort' is not a bit vector sort");
   width = btor_get_width_bitvec_sort (sorts, s);
@@ -978,6 +980,7 @@ boolector_one (Btor *btor, BoolectorSort sort)
   BTOR_TRAPI (SORT_FMT, sort);
   sorts = &btor->sorts_unique_table;
   s     = BTOR_IMPORT_BOOLECTOR_SORT (sort);
+  BTOR_ABORT (!btor_is_valid_sort (sorts, s), "'sort' is not a valid sort");
   BTOR_ABORT (!btor_is_bitvec_sort (sorts, s),
               "'sort' is not a bit vector sort");
   width = btor_get_width_bitvec_sort (sorts, s);
@@ -1003,6 +1006,7 @@ boolector_unsigned_int (Btor *btor, unsigned int u, BoolectorSort sort)
   BTOR_TRAPI ("%u " SORT_FMT, u, sort);
   sorts = &btor->sorts_unique_table;
   s     = BTOR_IMPORT_BOOLECTOR_SORT (sort);
+  BTOR_ABORT (!btor_is_valid_sort (sorts, s), "'sort' is not a valid sort");
   BTOR_ABORT (!btor_is_bitvec_sort (sorts, s),
               "'sort' is not a bit vector sort");
   width = btor_get_width_bitvec_sort (sorts, s);
@@ -1028,6 +1032,7 @@ boolector_int (Btor *btor, int i, BoolectorSort sort)
   BTOR_TRAPI ("%d " SORT_FMT, i, sort);
   sorts = &btor->sorts_unique_table;
   s     = BTOR_IMPORT_BOOLECTOR_SORT (sort);
+  BTOR_ABORT (!btor_is_valid_sort (sorts, s), "'sort' is not a valid sort");
   BTOR_ABORT (!btor_is_bitvec_sort (sorts, s),
               "'sort' is not a bit vector sort");
   width = btor_get_width_bitvec_sort (sorts, s);
@@ -1054,6 +1059,7 @@ boolector_var (Btor *btor, BoolectorSort sort, const char *symbol)
 
   sorts = &btor->sorts_unique_table;
   s     = BTOR_IMPORT_BOOLECTOR_SORT (sort);
+  BTOR_ABORT (!btor_is_valid_sort (sorts, s), "'sort' is not a valid sort");
   BTOR_ABORT (!btor_is_bitvec_sort (sorts, s),
               "'sort' is not a bit vector sort");
   width = btor_get_width_bitvec_sort (sorts, s);
@@ -1087,6 +1093,7 @@ boolector_array (Btor *btor, BoolectorSort sort, const char *symbol)
   sorts = &btor->sorts_unique_table;
   symb  = (char *) symbol;
   s     = BTOR_IMPORT_BOOLECTOR_SORT (sort);
+  BTOR_ABORT (!btor_is_valid_sort (sorts, s), "'sort' is not a valid sort");
   BTOR_ABORT (!btor_is_array_sort (sorts, s), "'sort' is not an array sort");
   elem_width = btor_get_width_bitvec_sort (
       sorts, btor_get_element_array_sort (sorts, s));
@@ -2551,6 +2558,9 @@ boolector_param (Btor *btor, BoolectorSort sort, const char *symbol)
   BTOR_TRAPI (SORT_FMT " %s", sort, symb);
   sorts = &btor->sorts_unique_table;
   s     = BTOR_IMPORT_BOOLECTOR_SORT (sort);
+  BTOR_ABORT (!btor_is_valid_sort (sorts, s), "'sort' is not a valid sort");
+  BTOR_ABORT (!btor_is_bitvec_sort (sorts, s),
+              "'sort' is not a bit vector sort");
   width = btor_get_width_bitvec_sort (sorts, s);
   BTOR_ABORT (width < 1, "'width' must not be < 1");
   BTOR_ABORT (symb && btor_get_ptr_hash_table (btor->symbols, symb),
@@ -2770,6 +2780,7 @@ boolector_get_sort (Btor *btor, const BoolectorNode *node)
   exp = BTOR_IMPORT_BOOLECTOR_NODE (node);
   BTOR_TRAPI_UNFUN (exp);
   res = BTOR_REAL_ADDR_NODE (exp)->sort_id;
+  BTOR_TRAPI_RETURN_SORT (res);
 #ifndef NDEBUG
   BTOR_CHKCLONE_RES_SORT (res, get_sort, node);
 #endif
@@ -3138,7 +3149,7 @@ boolector_fun_sort_check (Btor *btor,
 
   len = 15 + 10 + argc * 20 + 20;
   BTOR_NEWN (btor->mm, strtrapi, len);
-  sprintf (strtrapi, "%d", argc);
+  sprintf (strtrapi, "%d ", argc);
 
   for (i = 0; i < argc; i++)
   {
@@ -3623,6 +3634,7 @@ boolector_is_array_sort (Btor *btor, BoolectorSort sort)
   BTOR_ABORT (!btor_is_valid_sort (sorts, s), "'sort' is not a valid sort");
 
   res = btor_is_array_sort (&btor->sorts_unique_table, s);
+  BTOR_TRAPI_RETURN_BOOL (res);
 #ifndef NDEBUG
   BTOR_CHKCLONE_RES_BOOL (res, is_array_sort, sort);
 #endif

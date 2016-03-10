@@ -100,7 +100,7 @@ def _sort_bw(id):
         return 1
     elif sort == "bitvec_sort":
         return int(t[1])
-    elif sort == "fun_sort":
+    elif sort in ["fun_sort", "array_sort"]:
         return [_sort_bw(s) for s in t[1:]]
     elif sort == "tuple_sort":
         pass
@@ -117,12 +117,10 @@ def _node_bw(tokens):
     tokens = t
     kind = tokens[0]
     bw = 0
-    if kind in ["var", "param", "zero", "one", "ones"]:
-        bw = int(tokens[1])
+    if kind in ["var", "param", "zero", "one", "ones", "uf", "array"]:
+        bw = _sort_bw(tokens[1])
     elif kind in ["int", "unsigned_int"]:
-        bw = int(tokens[2])
-    elif kind == "array":
-        bw = [int(tokens[1]), int(tokens[2])]
+        bw = _sort_bw(tokens[2])
     elif kind == "slice":
         bw = int(tokens[2]) - int(tokens[3]) + 1
     elif kind in ["true", "false",
@@ -133,8 +131,6 @@ def _node_bw(tokens):
                   "ugt", "sgt", "ugte", "sgte",
                   "uaddo", "saddo", "usubo", "ssubo", "sdivo"]:
         bw = 1 
-    elif kind == "uf":
-        bw = _sort_bw(tokens[1])
     else:
         children = _tokens_children(tokens)
         cbw = [g_node_map[c].bw for c in children]
