@@ -1,6 +1,7 @@
 /*  Boolector: Satisfiablity Modulo Theories (SMT) solver.
  *
  *  Copyright (C) 2015 Mathias Preiner.
+ *  Copyright (C) 2016 Aina Niemetz.
  *
  *  All rights reserved.
  *
@@ -27,6 +28,7 @@ typedef enum BtorSolverResult BtorSolverResult;
 typedef struct BoolectorNode BoolectorNode;
 typedef unsigned BoolectorSort;
 
+/* Boolector options */
 enum BtorOption
 {
   BTOR_OPT_MODEL_GEN,
