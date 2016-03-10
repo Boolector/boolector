@@ -37,6 +37,7 @@ btorimc
 btormbt
 .vimrc
 api/python/boolector.c
+api/python/boolector.pix
 api/python/*.so
 python.mk
 setup.py
