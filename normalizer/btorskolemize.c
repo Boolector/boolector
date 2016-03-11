@@ -77,7 +77,6 @@ btor_skolemize_node (Btor *btor, BtorNode *root)
               len = strlen (symbol) + 5;
               buf = btor_malloc (mm, len);
               sprintf (buf, "sk(%s)", symbol);
-              printf ("%s\n", buf);
             }
             else
               buf = 0;
