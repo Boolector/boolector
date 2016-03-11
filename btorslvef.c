@@ -353,8 +353,9 @@ nnf_aig (Btor *btor)
   return result;
 }
 
+#if 0 
 static BtorNode *
-get_quantifier_of_scope (Btor *btor, BtorNode *node)
+get_quantifier_of_scope (Btor * btor, BtorNode * node)
 {
   BtorParameterizedIterator it;
   BtorNode *cur, *quant, *result = 0;
@@ -362,22 +363,22 @@ get_quantifier_of_scope (Btor *btor, BtorNode *node)
   /* get quantifier with lowest id */
   btor_init_parameterized_iterator (&it, btor, node);
   while (btor_has_next_parameterized_iterator (&it))
-  {
-    cur   = btor_next_parameterized_iterator (&it);
-    quant = btor_param_get_binder (cur);
-    assert (BTOR_IS_REGULAR_NODE (cur));
-    assert (BTOR_IS_REGULAR_NODE (quant));
+    {
+      cur = btor_next_parameterized_iterator (&it);
+      quant = btor_param_get_binder (cur);
+      assert (BTOR_IS_REGULAR_NODE (cur));
+      assert (BTOR_IS_REGULAR_NODE (quant));
 
-    if (!result)
-      result = quant;
-    else if (result->id > quant->id)
-      result = quant;
-  }
+      if (!result)
+	result = quant;
+      else if (result->id > quant->id)
+	result = quant;
+    }
   return result;
 }
 
 static void
-elim_quantified_ite (Btor *btor)
+elim_quantified_ite (Btor * btor)
 {
   BtorHashTableIterator h_it;
   BtorNodeIterator it;
@@ -389,131 +390,135 @@ elim_quantified_ite (Btor *btor)
   BtorPtrHashTable *map;
   BtorPtrHashBucket *b;
 
-  mm  = btor->mm;
+  mm = btor->mm;
   map = btor_new_ptr_hash_table (mm, 0, 0);
 
   BTOR_INIT_STACK (non_q_conds);
   btor_init_unique_table_iterator (&it, btor);
   while (btor_has_next_unique_table_iterator (&it))
-  {
-    cur = btor_next_unique_table_iterator (&it);
-    if (!BTOR_IS_BV_COND_NODE (cur)) continue;
-
-    quant = get_quantifier_of_scope (btor, cur);
-    if (!quant)
     {
-      BTOR_PUSH_STACK (mm, non_q_conds, cur);
-      continue;
-    }
-    assert (BTOR_IS_REGULAR_NODE (quant));
-    assert (BTOR_IS_QUANTIFIER_NODE (quant));
-    body = btor_binder_get_body (quant);
-    assert (BTOR_REAL_ADDR_NODE (body)->parents == 1);
-    quant = BTOR_REAL_ADDR_NODE (BTOR_REAL_ADDR_NODE (body)->first_parent);
-    b     = btor_get_ptr_hash_table (map, quant);
+      cur = btor_next_unique_table_iterator (&it);
+      if (!BTOR_IS_BV_COND_NODE (cur))
+	continue;
 
-    if (!b)
-    {
-      b = btor_add_ptr_hash_table (map, quant);
-      BTOR_CNEW (mm, conds);
-      BTOR_INIT_STACK (*conds);
-      b->data.as_ptr = conds;
+      quant = get_quantifier_of_scope (btor, cur);
+      if (!quant)
+	{
+	  BTOR_PUSH_STACK (mm, non_q_conds, cur);
+	  continue;
+	}
+      assert (BTOR_IS_REGULAR_NODE (quant));
+      assert (BTOR_IS_QUANTIFIER_NODE (quant));
+      body = btor_binder_get_body (quant);
+      assert (BTOR_REAL_ADDR_NODE (body)->parents == 1);
+      quant = BTOR_REAL_ADDR_NODE (BTOR_REAL_ADDR_NODE (body)->first_parent);
+      b = btor_get_ptr_hash_table (map, quant);
+
+      if (!b)
+	{
+	  b = btor_add_ptr_hash_table (map, quant);
+	  BTOR_CNEW (mm, conds);
+	  BTOR_INIT_STACK (*conds);
+	  b->data.as_ptr = conds;
+	}
+      else
+	conds = b->data.as_ptr;
+      BTOR_PUSH_STACK (mm, *conds, cur);
+//      printf ("*** %s -> %s\n", node2string (quant), node2string (cur));
     }
-    else
-      conds = b->data.as_ptr;
-    BTOR_PUSH_STACK (mm, *conds, cur);
-    //      printf ("*** %s -> %s\n", node2string (quant), node2string (cur));
-  }
 
   btor_init_substitutions (btor);
   while (!BTOR_EMPTY_STACK (non_q_conds))
-  {
-    cond = BTOR_POP_STACK (non_q_conds);
-    assert (!cond->parameterized);
-    sprintf (buf, "ite_%d", cond->id);
-    var = btor_var_exp (btor, btor_get_exp_width (btor, cond), buf);
-    btor_insert_substitution (btor, cond, var, 0);
-    btor_release_exp (btor, var);
-
-    eq        = btor_eq_exp (btor, var, cond->e[1]);
-    if_branch = btor_implies_exp (btor, cond->e[0], eq);
-    btor_release_exp (btor, eq);
-
-    eq          = btor_eq_exp (btor, var, cond->e[2]);
-    else_branch = btor_implies_exp (btor, BTOR_INVERT_NODE (cond->e[0]), eq);
-    btor_release_exp (btor, eq);
-
-    btor_assert_exp (btor, if_branch);
-    btor_assert_exp (btor, else_branch);
-    btor_release_exp (btor, if_branch);
-    btor_release_exp (btor, else_branch);
-  }
-  BTOR_RELEASE_STACK (mm, non_q_conds);
-
-  btor_init_node_hash_table_iterator (&h_it, map);
-  while (btor_has_next_node_hash_table_iterator (&h_it))
-  {
-    conds = h_it.bucket->data.as_ptr;
-    cur   = btor_next_node_hash_table_iterator (&h_it);
-    param = cur->e[0];
-
-    /* eliminate all quantified ite in body of 'cur' */
-    new_body = btor_copy_exp (btor, btor_binder_get_body (cur));
-    while (!BTOR_EMPTY_STACK (*conds))
     {
-      cond = BTOR_POP_STACK (*conds);
-      assert (BTOR_IS_REGULAR_NODE (cond));
-
+      cond = BTOR_POP_STACK (non_q_conds);
+      assert (!cond->parameterized);
       sprintf (buf, "ite_%d", cond->id);
       var = btor_var_exp (btor, btor_get_exp_width (btor, cond), buf);
       btor_insert_substitution (btor, cond, var, 0);
       btor_release_exp (btor, var);
 
-      eq        = btor_eq_exp (btor, var, cond->e[1]);
+      eq = btor_eq_exp (btor, var, cond->e[1]);
       if_branch = btor_implies_exp (btor, cond->e[0], eq);
       btor_release_exp (btor, eq);
 
-      eq          = btor_eq_exp (btor, var, cond->e[2]);
-      else_branch = btor_implies_exp (btor, BTOR_INVERT_NODE (cond->e[0]), eq);
+      eq = btor_eq_exp (btor, var, cond->e[2]);
+      else_branch =
+	btor_implies_exp (btor, BTOR_INVERT_NODE (cond->e[0]), eq);
       btor_release_exp (btor, eq);
 
-      and = btor_and_exp (btor, if_branch, else_branch);
+      btor_assert_exp (btor, if_branch);
+      btor_assert_exp (btor, else_branch);
       btor_release_exp (btor, if_branch);
       btor_release_exp (btor, else_branch);
-
-      tmp = btor_and_exp (btor, and, new_body);
-      btor_release_exp (btor, new_body);
-      btor_release_exp (btor, and);
-      new_body = tmp;
     }
+  BTOR_RELEASE_STACK (mm, non_q_conds);
 
-    btor_param_set_binder (param, 0);
-    if (BTOR_IS_EXISTS_NODE (cur))
-      subst = btor_exists_exp (btor, param, new_body);
-    else
+  btor_init_node_hash_table_iterator (&h_it, map);
+  while (btor_has_next_node_hash_table_iterator (&h_it))
     {
-      assert (BTOR_IS_FORALL_NODE (cur));
-      subst = btor_forall_exp (btor, param, new_body);
-    }
+      conds = h_it.bucket->data.as_ptr;
+      cur = btor_next_node_hash_table_iterator (&h_it);
+      param = cur->e[0];
 
-    //      printf ("%s -> %s\n", node2string (cur), node2string (subst));
-    btor_insert_substitution (btor, cur, subst, 0);
-    btor_release_exp (btor, new_body);
-    btor_release_exp (btor, subst);
-    BTOR_RELEASE_STACK (mm, *conds);
-    BTOR_DELETE (mm, conds);
-  }
+      /* eliminate all quantified ite in body of 'cur' */
+      new_body = btor_copy_exp (btor, btor_binder_get_body (cur));
+      while (!BTOR_EMPTY_STACK (*conds))
+	{
+	  cond = BTOR_POP_STACK (*conds);
+	  assert (BTOR_IS_REGULAR_NODE (cond));
+
+	  sprintf (buf, "ite_%d", cond->id);
+	  var = btor_var_exp (btor, btor_get_exp_width (btor, cond), buf);
+	  btor_insert_substitution (btor, cond, var, 0);
+	  btor_release_exp (btor, var);
+
+	  eq = btor_eq_exp (btor, var, cond->e[1]);
+	  if_branch = btor_implies_exp (btor, cond->e[0], eq);
+	  btor_release_exp (btor, eq);
+
+	  eq = btor_eq_exp (btor, var, cond->e[2]);
+	  else_branch =
+	    btor_implies_exp (btor, BTOR_INVERT_NODE (cond->e[0]), eq);
+	  btor_release_exp (btor, eq);
+
+	  and = btor_and_exp (btor, if_branch, else_branch);
+	  btor_release_exp (btor, if_branch);
+	  btor_release_exp (btor, else_branch);
+
+	  tmp = btor_and_exp (btor, and, new_body);
+	  btor_release_exp (btor, new_body);
+	  btor_release_exp (btor, and);
+	  new_body = tmp;
+	}
+
+      btor_param_set_binder (param, 0);
+      if (BTOR_IS_EXISTS_NODE (cur))
+	subst = btor_exists_exp (btor, param, new_body);
+      else
+	{
+	  assert (BTOR_IS_FORALL_NODE (cur));
+	  subst = btor_forall_exp (btor, param, new_body);
+	}
+
+//      printf ("%s -> %s\n", node2string (cur), node2string (subst));
+      btor_insert_substitution (btor, cur, subst, 0);
+      btor_release_exp (btor, new_body);
+      btor_release_exp (btor, subst);
+      BTOR_RELEASE_STACK (mm, *conds);
+      BTOR_DELETE (mm, conds);
+    }
   btor_substitute_and_rebuild (btor, btor->substitutions);
   btor_delete_substitutions (btor);
   btor_delete_ptr_hash_table (map);
   assert (btor->ops[BTOR_BCOND_NODE].cur == 0);
 }
+#endif
 
 static void
 setup_forall_solver (BtorEFSolver *slv)
 {
   Btor *f_solver, *btor;
-  BtorNode *cur, *param, *subst, *var, *root, *nnf_root, *formula, *sk_root;
+  BtorNode *cur, *param, *subst, *var, *root, *tmp;
   BtorHashTableIterator it;
   BtorNodeMap *map, *exists_vars, *forall_vars;
   BtorFunSolver *fslv;
@@ -546,22 +551,30 @@ setup_forall_solver (BtorEFSolver *slv)
   // disabling this since f_formula will be simplified
   btor_set_opt (f_solver, BTOR_OPT_BETA_REDUCE_ALL, 0);
 
-  nnf_root = nnf_aig (btor);
-  root     = btor_recursively_rebuild_exp_clone (
+  root = nnf_aig (btor);
+  printf ("nnf_root: %s\n", node2string (root));
+  tmp = btor_recursively_rebuild_exp_clone (
       btor,
       f_solver,
-      nnf_root,
+      root,
       exp_map,
       btor_get_opt (f_solver, BTOR_OPT_REWRITE_LEVEL));
-  printf ("root: %s\n", node2string (root));
-  btor_release_exp (btor, nnf_root);
+  printf ("root: %s\n", node2string (tmp));
+  btor_delete_node_map (exp_map);
+  btor_release_exp (btor, root);
+  root = tmp;
+
   // TODO (ma): DER on root
   // TODO (ma): CER on root
-  sk_root = btor_skolemize_node (f_solver, root);
-  printf ("sk_root: %s\n", node2string (sk_root));
+  tmp = btor_skolemize_node (f_solver, root);
+  printf ("sk_root: %s\n", node2string (tmp));
   btor_release_exp (f_solver, root);
-  root = sk_root;
-  btor_delete_node_map (exp_map);
+  root = tmp;
+
+  tmp = btor_der_node (f_solver, root);
+  btor_release_exp (f_solver, root);
+  root = tmp;
+
   assert (f_solver->exists_vars->count == 0);
 
   btor_init_node_hash_table_iterator (&it, f_solver->bv_vars);
@@ -589,14 +602,15 @@ setup_forall_solver (BtorEFSolver *slv)
 
   /* eliminate quantified terms by substituting bound variables with fresh
    * variables */
-  formula = btor_substitute_terms (f_solver, sk_root, map);
-  btor_release_exp (f_solver, sk_root);
+  tmp = btor_substitute_terms (f_solver, root, map);
+  btor_release_exp (f_solver, root);
   btor_delete_node_map (map);
+  root = tmp;
 
   assert (f_solver->forall_vars->count == 0);
   assert (f_solver->quantifiers->count == 0);
 
-  slv->f_formula = BTOR_INVERT_NODE (formula);
+  slv->f_formula = BTOR_INVERT_NODE (root);
   assert (!BTOR_IS_PROXY_NODE (BTOR_REAL_ADDR_NODE (slv->f_formula)));
   assert (!f_solver->slv);
   fslv                = (BtorFunSolver *) btor_new_fun_solver (f_solver);
