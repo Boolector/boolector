@@ -564,8 +564,10 @@ setup_forall_solver (BtorEFSolver *slv)
   btor_release_exp (btor, root);
   root = tmp;
 
-  // TODO (ma): DER on root
-  // TODO (ma): CER on root
+  tmp = btor_cer_node (f_solver, root);
+  btor_release_exp (f_solver, root);
+  root = tmp;
+
   tmp = btor_skolemize_node (f_solver, root);
   printf ("sk_root: %s\n", node2string (tmp));
   btor_release_exp (f_solver, root);
