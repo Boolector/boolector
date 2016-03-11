@@ -4641,7 +4641,7 @@ btor_param_is_free (Btor *btor, BtorNode *param, BtorNode *term)
 
   term = BTOR_REAL_ADDR_NODE (term);
   b    = btor_get_ptr_hash_table (btor->parameterized, term);
-  if (!b) return true;
+  if (!b) return param != BTOR_REAL_ADDR_NODE (term);
   t = b->data.as_ptr;
   return btor_get_ptr_hash_table (t, param) == 0;
 }
