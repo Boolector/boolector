@@ -17,4 +17,6 @@
 
 BtorNode* btor_der_node (Btor* btor, BtorNode* root);
 
+BtorNode* btor_cer_node (Btor* btor, BtorNode* root);
+
 #endif
