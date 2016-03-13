@@ -564,18 +564,24 @@ setup_forall_solver (BtorEFSolver *slv)
   btor_release_exp (btor, root);
   root = tmp;
 
-  tmp = btor_cer_node (f_solver, root);
-  btor_release_exp (f_solver, root);
-  root = tmp;
+  if (btor_get_opt (f_solver, BTOR_OPT_EF_CER))
+  {
+    tmp = btor_cer_node (f_solver, root);
+    btor_release_exp (f_solver, root);
+    root = tmp;
+  }
 
   tmp = btor_skolemize_node (f_solver, root);
   printf ("sk_root: %s\n", node2string (tmp));
   btor_release_exp (f_solver, root);
   root = tmp;
 
-  tmp = btor_der_node (f_solver, root);
-  btor_release_exp (f_solver, root);
-  root = tmp;
+  if (btor_get_opt (f_solver, BTOR_OPT_EF_DER))
+  {
+    tmp = btor_der_node (f_solver, root);
+    btor_release_exp (f_solver, root);
+    root = tmp;
+  }
 
   assert (f_solver->exists_vars->count == 0);
 
