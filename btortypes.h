@@ -88,6 +88,7 @@ enum BtorOption
   BTOR_OPT_EF_MINISCOPING,
   BTOR_OPT_EF_DUAL_PROP,
   BTOR_OPT_EF_DER,
+  BTOR_OPT_EF_CER,
   BTOR_OPT_EF_SYNTH,
   BTOR_OPT_EF_SYMQINST,
   /* internal options --------------------------------------------------- */

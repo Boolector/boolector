@@ -658,6 +658,16 @@ btor_init_opts (Btor *btor)
             1,
             "destructive equality resolution for EF solver");
   init_opt (btor,
+            BTOR_OPT_EF_CER,
+            false,
+            true,
+            "ef:cer",
+            0,
+            0,
+            0,
+            1,
+            "constructive equality resolution for EF solver");
+  init_opt (btor,
             BTOR_OPT_EF_SYNTH,
             false,
             true,
