@@ -134,13 +134,14 @@ enum BtorOption
       Set the level of verbosity.
   */
   BTOR_OPT_VERBOSITY,
+#ifndef NBTORLOG
   /*
     * **BTOR_OPT_LOGLEVEL**
 
       Set the log level.
   */
   BTOR_OPT_LOGLEVEL,
-
+#endif
   /* simplifier --------------------------------------------------------- */
 
   /*!
