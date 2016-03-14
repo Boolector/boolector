@@ -50,7 +50,7 @@ dirs:
 	-mkdir -p $(TEMPLATESDIR)
 
 html: dirs
-	python mkcdoc.py ../boolector.h
+	python mkcdoc.py ../src/boolector.h
 	$(SPHINXBUILD) -b html $(ALLSPHINXOPTS) $(BUILDDIR)/html
 	@echo
 	@echo "Build finished. The HTML pages are in $(BUILDDIR)/html."
