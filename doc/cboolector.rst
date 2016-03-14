@@ -229,6 +229,9 @@ Options
 
     BTORMODELGEN=1
 
+..toctree::
+    cboolector_options.rst
+
 API Tracing
 ^^^^^^^^^^^
 

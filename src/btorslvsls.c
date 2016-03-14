@@ -1404,7 +1404,9 @@ select_move (Btor *btor, BtorNodePtrStack *candidates)
     if ((done = select_move_aux (btor, candidates, 1))) goto DONE;
   }
 
-  /* select probabilistic random walk move */
+  /* select probabilistic random walk move
+   * (weighted by score; the higher the score, the higher the probability
+   * that a move gets chosen) */
   if (btor_get_opt (btor, BTOR_OPT_SLS_STRATEGY)
       == BTOR_SLS_STRAT_PROB_RAND_WALK)
   {

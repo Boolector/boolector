@@ -229,7 +229,7 @@ btor_init_opts (Btor *btor)
             "s",
             0,
             0,
-            INT_MAX,
+            UINT_MAX,
             "random number generator seed");
   init_opt (btor,
             BTOR_OPT_VERBOSITY,
