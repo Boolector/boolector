@@ -651,12 +651,6 @@ boolector_set_opt (Btor *btor, BtorOption opt, uint32_t val)
         BTOR_COUNT_STACK (btor->nodes_id_table) > 2,
         "setting rewrite level must be done before creating expressions");
   }
-#ifdef NBTORLOG
-  else if (opt == BTOR_OPT_LOGLEVEL)
-  {
-    return;
-  }
-#endif
 
   btor_set_opt (btor, opt, val);
 #ifndef NDEBUG
