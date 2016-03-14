@@ -104,8 +104,8 @@ map_subst_node (BtorIntHashTable *map,
   // TODO (ma): overwrite subst if substitution is "better"?
   if (btor_contains_int_hash_map (map, left->id)) return;
 
-  //  printf ("subst: (%s) %s -> %s\n", node2string (scope), node2string (left),
-  //  node2string (right));
+  // printf ("subst: (%s) %s -> %s\n", node2string (scope), node2string (left),
+  // node2string (right));
 
   //  assert (!btor_contains_int_hash_map (map, left->id));
   btor_add_int_hash_map (map, left->id)->as_ptr = right;
@@ -196,10 +196,10 @@ der_cer_node (Btor *btor, BtorNode *root, bool is_cer)
 {
   uint32_t i, num_quant_vars = 0, num_occ = 0;
   BtorNode *cur, *real_cur, *e[3], *result, *n;
-  BtorNodePtrStack visit, *substs;
+  BtorNodePtrStack visit, reset, *substs;
   BtorMemMgr *mm;
   BtorIntHashTable *map, *subst_map, *subst_scope, *cache;
-  BtorIntHashTableData *cur_d, *d;
+  BtorIntHashTableData *cur_d, *d, d_s;
 
   mm          = btor->mm;
   map         = btor_new_int_hash_map (mm);
@@ -207,19 +207,21 @@ der_cer_node (Btor *btor, BtorNode *root, bool is_cer)
   subst_scope = btor_new_int_hash_map (mm);
   cache       = btor_new_int_hash_table (mm);
 
+  BTOR_INIT_STACK (reset);
   BTOR_INIT_STACK (visit);
   BTOR_PUSH_STACK (mm, visit, root);
   while (!BTOR_EMPTY_STACK (visit))
   {
     cur      = BTOR_POP_STACK (visit);
     real_cur = BTOR_REAL_ADDR_NODE (cur);
-    cur_d    = btor_get_int_hash_map (map, cur->id);
+    cur_d    = btor_get_int_hash_map (map, real_cur->id);
 
     if (!cur_d)
     {
-      //	  printf ("_visit: %s\n", node2string (cur));
+      //	  printf ("_visit1: %s\n", node2string (cur));
       btor_add_int_hash_map (map, real_cur->id);
 
+      if (real_cur->arity > 0) BTOR_PUSH_STACK (mm, reset, real_cur);
       if (BTOR_IS_AND_NODE (real_cur))
       {
         //	    printf ("find substs: %s\n", node2string (cur));
@@ -267,6 +269,7 @@ der_cer_node (Btor *btor, BtorNode *root, bool is_cer)
     }
     else if (!cur_d->as_ptr)
     {
+      //	  printf ("_visit2: %s\n", node2string (cur));
       for (i = 0; i < real_cur->arity; i++)
       {
         e[i] = find_subst (subst_map, real_cur->e[i]);
@@ -333,6 +336,19 @@ der_cer_node (Btor *btor, BtorNode *root, bool is_cer)
         }
         BTOR_RELEASE_STACK (mm, *substs);
         BTOR_DELETE (mm, substs);
+
+        /* reset cache for this substitution scope */
+        n = BTOR_POP_STACK (reset);
+        printf ("reset: %s\n", node2string (n));
+        while (n != real_cur)
+        {
+          printf ("reset: %s\n", node2string (n));
+          btor_remove_int_hash_map (map, n->id, &d_s);
+          assert (d_s.as_ptr);
+          btor_release_exp (btor, d_s.as_ptr);
+          assert (!BTOR_EMPTY_STACK (reset));
+          n = BTOR_POP_STACK (reset);
+        }
       }
     }
   }
@@ -360,6 +376,7 @@ der_cer_node (Btor *btor, BtorNode *root, bool is_cer)
   btor_delete_int_hash_map (subst_scope);
   btor_delete_int_hash_table (cache);
   BTOR_RELEASE_STACK (mm, visit);
+  BTOR_RELEASE_STACK (mm, reset);
   return result;
 }
 
