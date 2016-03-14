@@ -73,11 +73,9 @@ $(BINDIR)/boolector: $(BUILDIR)/btormain.o $(BUILDIR)/boolectormain.o $(BUILDIR)
 	$(CC) $(CFLAGS) $(INCS) -o $@ $(BUILDIR)/btormain.o $(BUILDIR)/boolectormain.o -L$(BUILDIR) -lboolector $(LIBS) $(LDEPS)
 
 clean:
-	rm -f $(TARGETS)
 	rm -f makefile
 	rm -f $(foreach d,$(SRCDIRS),$(d)/*.{gcda,gcno,gcov,plist})
-	rm -f log/*.log *.tmp
-	rm -f *.a *.so $(foreach d,$(SRCDIRS),$(d)/*.o)# TODO remove
+	rm -f $(SRCDIR)/$(TESTDIR)/log/*.log
 	rm -f -r $(BINDIR)
 	rm -f -r $(BUILDIR)
 
