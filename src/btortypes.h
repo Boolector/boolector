@@ -44,7 +44,9 @@ enum BtorOption
   BTOR_OPT_EXIT_CODES,
   BTOR_OPT_SEED,
   BTOR_OPT_VERBOSITY,
+#ifndef NBTORLOG
   BTOR_OPT_LOGLEVEL,
+#endif
   /* simplifier --------------------------------------------------------- */
   BTOR_OPT_REWRITE_LEVEL,
   BTOR_OPT_SKELETON_PREPROC,
