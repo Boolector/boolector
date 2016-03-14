@@ -222,10 +222,13 @@ der_cer_node (Btor *btor, BtorNode *root, bool is_cer)
       btor_add_int_hash_map (map, real_cur->id);
 
       if (real_cur->arity > 0) BTOR_PUSH_STACK (mm, reset, real_cur);
-      if (BTOR_IS_AND_NODE (real_cur))
+      //	  if (BTOR_IS_AND_NODE (real_cur))
+      if (BTOR_IS_QUANTIFIER_NODE (real_cur)
+          && !BTOR_IS_QUANTIFIER_NODE (BTOR_REAL_ADDR_NODE (real_cur->e[1])))
       {
         //	    printf ("find substs: %s\n", node2string (cur));
-        find_substitutions (btor, cur, subst_map, subst_scope, is_cer);
+        find_substitutions (
+            btor, real_cur->e[1], subst_map, subst_scope, is_cer);
       }
 
 #if 0
@@ -317,39 +320,41 @@ der_cer_node (Btor *btor, BtorNode *root, bool is_cer)
       //	  printf ("  result: %s\n", node2string (result));
       cur_d->as_ptr = result;
 
-      d = btor_get_int_hash_map (subst_scope, real_cur->id);
-      if (d)
-      {
-        //	      printf ("close scope: %s\n", node2string (real_cur));
-        assert (BTOR_IS_AND_NODE (real_cur));
-        substs = d->as_ptr;
-        assert (substs);
-        btor_remove_int_hash_map (subst_scope, real_cur->id, 0);
+#if 0
+	  d = btor_get_int_hash_map (subst_scope, real_cur->id);
+	  if (d)
+	    {
+//	      printf ("close scope: %s\n", node2string (real_cur));
+	      assert (BTOR_IS_AND_NODE (real_cur));
+	      substs = d->as_ptr;
+	      assert (substs);
+	      btor_remove_int_hash_map (subst_scope, real_cur->id, 0);
 
-        while (!BTOR_EMPTY_STACK (*substs))
-        {
-          n = BTOR_POP_STACK (*substs);
-          //		  printf ("  remove: %s\n", node2string (n));
-          assert (btor_contains_int_hash_map (subst_map, n->id));
-          btor_remove_int_hash_map (subst_map, n->id, 0);
-          num_occ++;
-        }
-        BTOR_RELEASE_STACK (mm, *substs);
-        BTOR_DELETE (mm, substs);
+	      while (!BTOR_EMPTY_STACK (*substs))
+		{
+		  n = BTOR_POP_STACK (*substs);
+//		  printf ("  remove: %s\n", node2string (n));
+		  assert (btor_contains_int_hash_map (subst_map, n->id));
+		  btor_remove_int_hash_map (subst_map, n->id, 0);
+		  num_occ++;
+		}
+	      BTOR_RELEASE_STACK (mm, *substs);
+	      BTOR_DELETE (mm, substs);
 
-        /* reset cache for this substitution scope */
-        n = BTOR_POP_STACK (reset);
-        printf ("reset: %s\n", node2string (n));
-        while (n != real_cur)
-        {
-          printf ("reset: %s\n", node2string (n));
-          btor_remove_int_hash_map (map, n->id, &d_s);
-          assert (d_s.as_ptr);
-          btor_release_exp (btor, d_s.as_ptr);
-          assert (!BTOR_EMPTY_STACK (reset));
-          n = BTOR_POP_STACK (reset);
-        }
-      }
+	      /* reset cache for this substitution scope */
+	      n = BTOR_POP_STACK (reset);
+	      printf ("reset: %s\n", node2string (n));
+	      while (n != real_cur)
+		{
+		  printf ("reset: %s\n", node2string (n));
+		  btor_remove_int_hash_map (map, n->id, &d_s);
+		  assert (d_s.as_ptr);
+		  btor_release_exp (btor, d_s.as_ptr);
+		  assert (!BTOR_EMPTY_STACK (reset));
+		  n = BTOR_POP_STACK (reset);
+		}
+	    }
+#endif
     }
   }
   assert (subst_scope->count == 0);
