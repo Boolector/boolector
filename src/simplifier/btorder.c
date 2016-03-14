@@ -110,19 +110,21 @@ map_subst_node (BtorIntHashTable *map,
   //  assert (!btor_contains_int_hash_map (map, left->id));
   btor_add_int_hash_map (map, left->id)->as_ptr = right;
 
+#if 0
   d = btor_get_int_hash_map (subst_scope, scope->id);
 
   if (!d)
-  {
-    BTOR_CNEW (subst_scope->mm, substs);
-    BTOR_INIT_STACK (*substs);
-    d         = btor_add_int_hash_map (subst_scope, scope->id);
-    d->as_ptr = substs;
-  }
+    {
+      BTOR_CNEW (subst_scope->mm, substs);
+      BTOR_INIT_STACK (*substs);
+      d = btor_add_int_hash_map (subst_scope, scope->id);
+      d->as_ptr = substs;
+    }
   else
     substs = d->as_ptr;
 
   BTOR_PUSH_STACK (subst_scope->mm, *substs, left);
+#endif
 }
 
 static void
