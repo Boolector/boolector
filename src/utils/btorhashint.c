@@ -307,6 +307,7 @@ btor_remove_int_hash_map (BtorIntHashTable *t,
   pos = btor_remove_int_hash_table (t, key);
 
   if (stored_data) *stored_data = t->data[pos];
+  memset (&t->data[pos], 0, sizeof (BtorIntHashTableData));
 }
 
 BtorIntHashTableData *
