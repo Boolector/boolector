@@ -2,7 +2,7 @@
  *
  *  Copyright (C) 2007-2010 Robert Daniel Brummayer.
  *  Copyright (C) 2007-2012 Armin Biere.
- *  Copyright (C) 2012-2014 Aina Niemetz
+ *  Copyright (C) 2012-2016 Aina Niemetz
  *
  *  All rights reserved.
  *
@@ -30,8 +30,9 @@
 #define BTOR_TEST_SHIFT_LOW 2
 #define BTOR_TEST_SHIFT_HIGH 8
 
-static int g_argc    = 6;
-static char **g_argv = NULL;
+static int g_argc       = 6;
+static char **g_argv    = NULL;
+static char *g_btor_str = NULL;
 
 static BtorMemMgr *g_mm;
 
@@ -49,9 +50,12 @@ init_shift_tests (void)
 
   if (g_rwreads) pos_rwr = g_argc++ - 1;
 
+  g_btor_str = (char *) malloc (sizeof (char *) * (strlen (BTOR_BIN_DIR) + 20));
+  sprintf (g_btor_str, "%sboolector", BTOR_BIN_DIR);
+
   g_argv = (char **) malloc (g_argc * sizeof (char *));
 
-  g_argv[0] = "./boolector";
+  g_argv[0] = g_btor_str;
   g_argv[1] = "-rwl";
   g_argv[2] = "1";
   g_argv[3] = "-o";
@@ -267,5 +271,6 @@ finish_shift_tests (void)
   int result = remove (BTOR_TEST_SHIFT_TEMP_FILE_NAME);
   assert (result == 0);
   btor_delete_mem_mgr (g_mm);
+  free (g_btor_str);
   free (g_argv);
 }

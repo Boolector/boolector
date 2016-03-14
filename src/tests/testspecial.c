@@ -2,7 +2,7 @@
  *
  *  Copyright (C) 2007-2010 Robert Daniel Brummayer.
  *  Copyright (C) 2007-2012 Armin Biere.
- *  Copyright (C) 2012-2013 Aina Niemetz.
+ *  Copyright (C) 2012-2016 Aina Niemetz.
  *  Copyright (C) 2012-2014 Mathias Preiner.
  *
  *  All rights reserved.
@@ -24,8 +24,9 @@
 #include <stdlib.h>
 #include <string.h>
 
-static int g_argc    = 4;
-static char **g_argv = NULL;
+static int g_argc       = 4;
+static char **g_argv    = NULL;
+static char *g_btor_str = NULL;
 
 void
 init_special_tests (void)
@@ -36,9 +37,12 @@ init_special_tests (void)
 
   if (g_rwreads) pos_rwr = g_argc++ - 1;
 
+  g_btor_str = (char *) malloc (sizeof (char *) * (strlen (BTOR_BIN_DIR) + 20));
+  sprintf (g_btor_str, "%sboolector", BTOR_BIN_DIR);
+
   g_argv = (char **) malloc (g_argc * sizeof (char *));
 
-  g_argv[0] = "./boolector";
+  g_argv[0] = g_btor_str;
   g_argv[1] = "-o";
   g_argv[2] = "/dev/null";
 
@@ -50,8 +54,9 @@ run_test (char *name, int expected)
 {
   char *full_name;
 
-  full_name = (char *) malloc (sizeof (char) * (strlen (name) + 4 + 1));
-  strcpy (full_name, "log/");
+  full_name = (char *) malloc (sizeof (char)
+                               * (strlen (BTOR_LOG_DIR) + strlen (name) + 1));
+  strcpy (full_name, BTOR_LOG_DIR);
   strcat (full_name, name);
   g_argv[g_argc - 1] = full_name;
   assert (boolector_main (g_argc, g_argv) == expected);
@@ -1272,19 +1277,25 @@ test_regrcalypto3_special ()
 static int
 run_verbose_test (char *name, int verbosity)
 {
-  char *full_name = (char *) malloc (sizeof (char) * (strlen (name) + 4 + 1));
-  char *boolector_str = "./boolector";
-  char *redirect_str  = "> /dev/null";
-  char *v1_str        = "-v";
-  char *v2_str        = "-v -v";
-  char *v3_str        = "-v -v -v";
-  char *v_str;
-  char *syscall_str;
-  int res;
-  strcpy (full_name, "log/");
-  strcat (full_name, name);
   assert (verbosity > 0);
   assert (verbosity <= 3);
+
+  char *full_name;
+  char *redirect_str, *v1_str, *v2_str, *v3_str, *v_str;
+  char *syscall_str;
+  int res;
+
+  full_name = (char *) malloc (sizeof (char)
+                               * (strlen (BTOR_LOG_DIR) + strlen (name) + 1));
+
+  redirect_str = "> /dev/null";
+  v1_str       = "-v";
+  v2_str       = "-v -v";
+  v3_str       = "-v -v -v";
+
+  strcpy (full_name, BTOR_LOG_DIR);
+  strcat (full_name, name);
+
   switch (verbosity)
   {
     case 1: v_str = v1_str; break;
@@ -1294,16 +1305,13 @@ run_verbose_test (char *name, int verbosity)
       v_str = v3_str;
       break;
   }
+
   syscall_str =
       (char *) malloc (sizeof (char)
-                       * (strlen (boolector_str) + 1 + strlen (full_name) + 1
+                       * (strlen (g_btor_str) + 1 + strlen (full_name) + 1
                           + strlen (v_str) + 1 + strlen (redirect_str) + 1));
-  sprintf (syscall_str,
-           "%s %s %s %s",
-           boolector_str,
-           full_name,
-           v_str,
-           redirect_str);
+  sprintf (
+      syscall_str, "%s %s %s %s", g_btor_str, full_name, v_str, redirect_str);
   /* we are not interested in the output,
    * we just want to run 'verbosity' code
    * A system call is used, as verbose messages
@@ -1542,5 +1550,6 @@ run_special_tests (int argc, char **argv)
 void
 finish_special_tests (void)
 {
+  free (g_btor_str);
   free (g_argv);
 }

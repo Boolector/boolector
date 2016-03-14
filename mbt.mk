@@ -1,11 +1,16 @@
 
-all: btoruntrace btormbt
+all: $(BINDIR)/btoruntrace $(BINDIR)/btormbt
 
-btoruntrace: btoruntrace.c libboolector.a $(LDEPS)
-	$(CC) $(CFLAGS) $(INCS) -o $@ btoruntrace.o -L. -lboolector $(LIBS)
-btormbt: btormbt.c libboolector.a $(LDEPS)
-	$(CC) $(CFLAGS) $(INCS) -o $@ btormbt.o -L. -lboolector $(LIBS)
+$(BINDIR)/btormbt: $(BUILDIR)/btormbt.o $(BUILDIR)/libboolector.a $(LDEPS)
+	@mkdir -p $(@D)
+	$(CC) $(CFLAGS) $(INCS) -o $@ $(BUILDIR)/btormbt.o -L$(BUILDIR) -lboolector $(LIBS)
+
+$(BINDIR)/btoruntrace: $(BUILDIR)/btoruntrace.o $(BUILDIR)/libboolector.a $(LDEPS)
+	@mkdir -p $(@D)
+	$(CC) $(CFLAGS) $(INCS) -o $@ $(BUILDIR)/btoruntrace.o -L$(BUILDIR) -lboolector $(LIBS)
 
 clean: btormbt-clean
+
 btormbt-clean:
-	rm -f btoruntrace btormbt
+	rm -f $(BUILDIR)/btoruntrace $(BUILDIR)/btormbt
+	rm -f $(BUILDIR)/btoruntrace.o $(BUILDIR)/btormbt.o

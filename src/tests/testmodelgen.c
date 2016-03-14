@@ -2,6 +2,7 @@
  *
  *  Copyright (C) 2007-2010 Robert Daniel Brummayer.
  *  Copyright (C) 2007-2012 Armin Biere.
+ *  Copyright (C) 2016 Aina Niemetz.
  *
  *  All rights reserved.
  *
@@ -10,6 +11,7 @@
  */
 
 #include "testmodelgen.h"
+
 #include "testrunner.h"
 
 #ifdef NDEBUG
@@ -44,15 +46,18 @@ modelgen_test (const char *fname, int rwl)
   log_fname = (char *) malloc (sizeof (char) * (len + 5));
   sprintf (log_fname, "%s.log", fname);
 
-  syscall_string = (char *) malloc (sizeof (char)
-                                    * (+len + 5 + len + 4
-                                       + strlen ("./boolector -rwl 3 -m log/")
-                                       + strlen (" -o log/") + 1));
+  syscall_string = (char *) malloc (
+      sizeof (char)
+      * (len + 5 + len + 4 + strlen ("boolector -rwl 3 -m ") + +strlen (" -o ")
+         + strlen (BTOR_BIN_DIR) + strlen (BTOR_LOG_DIR) * 2 + 1));
 
   sprintf (syscall_string,
-           "./boolector -rwl %d -m log/%s -o log/%s",
+           "%sboolector -rwl %d -m %s%s -o %s%s",
+           BTOR_BIN_DIR,
            rwl,
+           BTOR_LOG_DIR,
            btor_fname,
+           BTOR_LOG_DIR,
            log_fname);
 
   ret_val = system (syscall_string); /* save to avoid warning */
@@ -61,12 +66,15 @@ modelgen_test (const char *fname, int rwl)
 
   syscall_string = (char *) malloc (
       sizeof (char)
-      * (len + 5 + len + 4 + strlen ("contrib/btorcheckmodel log/")
-         + strlen (" log/") + strlen (" > /dev/null") + 1));
+      * (len + 5 + len + 4 + strlen ("btorcheckmodel   > /dev/null")
+         + strlen (BTOR_CONTRIB_DIR) + strlen (BTOR_LOG_DIR) * 2 + 1));
 
   sprintf (syscall_string,
-           "contrib/btorcheckmodel log/%s log/%s > /dev/null",
+           "%sbtorcheckmodel %s%s %s%s > /dev/null",
+           BTOR_CONTRIB_DIR,
+           BTOR_LOG_DIR,
            btor_fname,
+           BTOR_LOG_DIR,
            log_fname);
   ret_val = system (syscall_string);
   assert (ret_val == 0);

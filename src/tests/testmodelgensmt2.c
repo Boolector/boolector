@@ -2,7 +2,7 @@
  *
  *  Copyright (C) 2007-2010 Robert Daniel Brummayer.
  *  Copyright (C) 2007-2012 Armin Biere.
- *  Copyright (C) 2014 Aina Niemetz.
+ *  Copyright (C) 2014-2016 Aina Niemetz.
  *
  *  All rights reserved.
  *
@@ -11,6 +11,7 @@
  */
 
 #include "testmodelgensmt2.h"
+
 #include "testrunner.h"
 
 #ifdef NDEBUG
@@ -47,13 +48,17 @@ modelgensmt2_test (const char *fname, int rwl)
 
   syscall_string = (char *) malloc (
       sizeof (char)
-      * (+len + 5 + len + 4 + strlen ("./boolector -rwl 3 -m --smt2-model log/")
-         + strlen (" -o log/") + 1));
+      * (len + 5 + len + 4 + strlen ("boolector -rwl 3 -m --smt2-model ")
+         + strlen (" -o ") + strlen (BTOR_BIN_DIR) + strlen (BTOR_LOG_DIR) * 2
+         + 1));
 
   sprintf (syscall_string,
-           "./boolector -rwl %d -m --smt2-model log/%s -o log/%s",
+           "%sboolector -rwl %d -m --smt2-model %s%s -o %s%s",
+           BTOR_BIN_DIR,
            rwl,
+           BTOR_LOG_DIR,
            btor_fname,
+           BTOR_LOG_DIR,
            log_fname);
 
   ret_val = system (syscall_string); /* save to avoid warning */
@@ -62,13 +67,17 @@ modelgensmt2_test (const char *fname, int rwl)
 
   syscall_string = (char *) malloc (
       sizeof (char)
-      * (len + 5 + len + 4 + strlen ("contrib/btorcheckmodelsmt2 log/")
-         + strlen (" log/") + strlen (" > /dev/null") + 1));
+      * (len + 5 + len + 4 + strlen ("btorcheckmodelsmt2   > /dev/null")
+         + strlen (BTOR_CONTRIB_DIR) + strlen (BTOR_LOG_DIR) * 2 + 1));
 
   sprintf (syscall_string,
-           "contrib/btorcheckmodelsmt2 log/%s log/%s > /dev/null",
+           "%sbtorcheckmodelsmt2 %s%s %s%s > /dev/null",
+           BTOR_CONTRIB_DIR,
+           BTOR_LOG_DIR,
            btor_fname,
+           BTOR_LOG_DIR,
            log_fname);
+
   ret_val = system (syscall_string);
   assert (ret_val == 0);
 

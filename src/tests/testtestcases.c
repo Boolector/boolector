@@ -2,7 +2,7 @@
  *
  *  Copyright (C) 2007-2010 Robert Daniel Brummayer.
  *  Copyright (C) 2007-2012 Armin Biere.
- *  Copyright (C) 2012-2014 Aina Niemetz
+ *  Copyright (C) 2012-2016 Aina Niemetz
  *
  *  All rights reserved.
  *
@@ -36,8 +36,8 @@ test_testcase (void)
   for (i = 1, len = 1; i < BTOR_COUNT_STACK (g_args); i++)
     len += strlen (BTOR_PEEK_STACK (g_args, i));
   syscall_string = (char *) malloc (sizeof (char *) * len);
-  sprintf (syscall_string, "./boolector ");
-  len = strlen ("./boolector ");
+  sprintf (syscall_string, "%sboolector ", BTOR_BIN_DIR);
+  len = strlen (syscall_string);
   for (i = 1; i < BTOR_COUNT_STACK (g_args); i++)
   {
     sprintf (syscall_string + len, "%s ", BTOR_PEEK_STACK (g_args, i));
@@ -57,11 +57,14 @@ run_testcases_tests (int argc, char **argv)
 {
   BtorCharStack buffer;
   BtorMemMgr *mem;
-  char *token;
+  char *s, *token;
   FILE *file;
   int ch;
 
-  assert ((file = fopen ("tests/testcases", "r")));
+  s = (char *) malloc (sizeof (char *) * (strlen (BTOR_TEST_DIR) + 20));
+  sprintf (s, "%stestcases", BTOR_TEST_DIR);
+  assert ((file = fopen (s, "r")));
+  free (s);
 
   mem = btor_new_mem_mgr ();
 

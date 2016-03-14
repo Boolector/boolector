@@ -2,7 +2,7 @@
  *
  *  Copyright (C) 2007-2010 Robert Daniel Brummayer.
  *  Copyright (C) 2007-2012 Armin Biere.
- *  Copyright (C) 2014 Aina Niemetz.
+ *  Copyright (C) 2014-2016 Aina Niemetz.
  *
  *  All rights reserved.
  *
@@ -11,6 +11,7 @@
  */
 
 #include "testparseerror.h"
+
 #include "btormain.h"
 #include "testrunner.h"
 
@@ -45,40 +46,53 @@ file_exists (const char *path)
 static void
 run_smt_parse_error_test (void)
 {
-  char *inpath, *logpath;
-  char *name       = g_name;
+  char *fname      = g_name, *smt_fname, *log_fname, *log_path;
   char *smt_suffix = (g_smtlib == 1) ? "smt" : "smt2";
   char *smt_opt    = (g_smtlib == 1) ? "--smt1" : "--smt2";
   char *syscall_string;
-  int res, name_len;
+  int res, len, suff_len;
 
-  name_len = strlen (name);
-  inpath   = malloc (name_len + 20);
-  sprintf (inpath, "log/%s.%s", name, smt_suffix);
-  assert (file_exists (inpath));
+  len      = strlen (fname);
+  suff_len = strlen (smt_suffix);
 
-  logpath = malloc (name_len + 20);
-  sprintf (logpath, "log/%s.log", name);
+  smt_fname = (char *) malloc (sizeof (char) * (len + suff_len + 2));
+  sprintf (smt_fname, "%s.%s", fname, smt_suffix);
+
+  log_fname = (char *) malloc (sizeof (char) * (len + 5));
+  sprintf (log_fname, "%s.log", fname);
 
   syscall_string = (char *) malloc (
-      sizeof (char *)
-          * (strlen ("./boolector ") + strlen (smt_opt) + 1 + strlen (inpath)
-             + 1 + strlen (logpath) + 1 + strlen ("> ") + strlen ("2>&1"))
-      + 1);
-  sprintf (
-      syscall_string, "./boolector %s %s > %s 2>&1", smt_opt, inpath, logpath);
+      sizeof (char)
+      * (len + suff_len + 1 + len + 4 + strlen ("boolector  ")
+         + strlen (BTOR_BIN_DIR) + strlen (smt_opt) + strlen (" > ")
+         + strlen (BTOR_LOG_DIR) * 2 + strlen (" 2>&1") + 1));
+
+  sprintf (syscall_string,
+           "%sboolector %s %s%s > %s%s 2>&1",
+           BTOR_BIN_DIR,
+           smt_opt,
+           BTOR_LOG_DIR,
+           smt_fname,
+           BTOR_LOG_DIR,
+           log_fname);
 
   if ((res = WEXITSTATUS (system (syscall_string))) != 1)
   {
-    FILE *file = fopen (logpath, "a");
+    FILE *file;
+
+    log_path = malloc (len + strlen (BTOR_LOG_DIR) + 4 + 1);
+    sprintf (log_path, "%s%s.log", BTOR_LOG_DIR, log_fname);
+    assert (file_exists (log_path));
+    file = fopen (log_path, "a");
     fprintf (
         file, "test_parse_error_%s_test: exit code %d != 1\n", smt_suffix, res);
     fclose (file);
+    free (log_path);
   }
 
+  free (log_fname);
+  free (smt_fname);
   free (syscall_string);
-  free (inpath);
-  free (logpath);
 }
 
 static int
@@ -98,7 +112,7 @@ hassuffix (const char *str, const char *suffix)
 void
 run_parseerror_tests (int argc, char **argv)
 {
-  DIR *dir = opendir ("log/");
+  DIR *dir = opendir (BTOR_LOG_DIR);
   struct dirent *de;
   char *base = NULL;
   while ((de = readdir (dir)))

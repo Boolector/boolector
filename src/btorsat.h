@@ -83,7 +83,7 @@ struct BtorSATMgr
 };
 
 #if defined(BTOR_USE_LINGELING)
-#include "../lingeling/lglib.h"
+#include "lglib.h"
 typedef struct BtorLGL BtorLGL;
 
 struct BtorLGL
