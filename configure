@@ -526,7 +526,7 @@ clean: python-clean python-clean-mk
 
 EOF
 
-opts=`grep BTOR_OPT $SRCDIR/btortypes.h | awk 'BEGIN{i=0} { gsub(",", "="); print $1i; i += 1}'`
+opts=`grep "BTOR_OPT.*," $SRCDIR/btortypes.h | awk 'BEGIN{i=0} { gsub(",", "="); print $1i; i += 1}'`
 cat > $SRCDIR/api/python/boolector.pix << EOF
 $opts
 EOF

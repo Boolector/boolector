@@ -599,7 +599,7 @@ BtorNode *btor_xnor_exp (Btor *btor, BtorNode *e0, BtorNode *e1);
 BtorNode *btor_and_exp (Btor *btor, BtorNode *e0, BtorNode *e1);
 BtorNode *btor_and_exp_node (Btor *btor, BtorNode *e0, BtorNode *e1);
 
-BtorNode *btor_and_n_exp (Btor *btor, uint32_t argc, BtorNode *args[]);
+BtorNode *btor_and_n_exp (Btor *btor, BtorNode *args[], uint32_t argc);
 
 /* Logical and bit-vector NAND.
  * width(e0) = width(e1)
@@ -868,8 +868,8 @@ BtorNode *btor_invert_quantifier (Btor * btor, BtorNode * quantifier);
  * function body 'exp'.
  */
 BtorNode *btor_fun_exp (Btor *btor,
+                        BtorNode *params[],
                         uint32_t paramc,
-                        BtorNode **params,
                         BtorNode *exp);
 
 /* Apply expression that applies argument expression 'args' to 'fun'.
@@ -880,13 +880,13 @@ BtorNode *btor_apply_exp_node (Btor *btor, BtorNode *fun, BtorNode *args);
 /* Apply expression that applies 'argc' number of arguments to 'fun'.
  */
 BtorNode *btor_apply_exps (Btor *btor,
+                           BtorNode *args[],
                            uint32_t argc,
-                           BtorNode **args,
                            BtorNode *fun);
 
 /* Argument expression with 'argc' arguments.
  */
-BtorNode *btor_args_exp (Btor *btor, uint32_t argc, BtorNode **args);
+BtorNode *btor_args_exp (Btor *btor, BtorNode *args[], uint32_t argc);
 
 /* If-then-else.
  * width(e_cond) = 1
@@ -911,8 +911,8 @@ BtorNode *btor_dec_exp (Btor *btor, BtorNode *exp);
 /* Create binary or ternary expressions (no rewriting). */
 BtorNode *btor_create_exp (Btor *btor,
                            BtorNodeKind kind,
-                           uint32_t arity,
-                           BtorNode **e);
+                           BtorNode *e[],
+                           uint32_t arity);
 
 /*------------------------------------------------------------------------*/
 

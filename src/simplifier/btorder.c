@@ -313,7 +313,7 @@ der_cer_node (Btor *btor, BtorNode *root, bool is_cer)
         result = btor_copy_exp (btor, e[1]);
       else
       {
-        result = btor_create_exp (btor, real_cur->kind, real_cur->arity, e);
+        result = btor_create_exp (btor, real_cur->kind, e, real_cur->arity);
         //	    if (BTOR_IS_QUANTIFIER_NODE (real_cur)
         //		&& !BTOR_IS_QUANTIFIER_NODE (BTOR_REAL_ADDR_NODE
         //(result))) 	      printf ("%s ::: %s\n", node2string (real_cur),

@@ -104,7 +104,7 @@ btor_skolemize_node (Btor *btor, BtorNode *root)
               btor_release_sort (suniq, fun_s);
 
               result = btor_apply_exps (
-                  btor, BTOR_COUNT_STACK (params), params.start, uf);
+                  btor, params.start, BTOR_COUNT_STACK (params), uf);
 
               btor_release_exp (btor, uf);
               BTOR_RESET_STACK (sorts);
@@ -136,7 +136,7 @@ btor_skolemize_node (Btor *btor, BtorNode *root)
         result = btor_copy_exp (btor, e[1]);
       }
       else
-        result = btor_create_exp (btor, real_cur->kind, real_cur->arity, e);
+        result = btor_create_exp (btor, real_cur->kind, e, real_cur->arity);
 
       for (i = 0; i < real_cur->arity; i++) btor_release_exp (btor, e[i]);
 
@@ -268,7 +268,7 @@ btor_skolemize (Btor *btor)
         else
           buf = 0;
         uf  = btor_uf_exp (btor, fun_s, buf);
-        app = btor_apply_exps (btor, BTOR_COUNT_STACK (args), args.start, uf);
+        app = btor_apply_exps (btor, args.start, BTOR_COUNT_STACK (args), uf);
         //	      printf ("%s -> %s\n", node2string (param), node2string
         //(uf));
 

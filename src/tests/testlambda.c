@@ -913,11 +913,11 @@ test_lambda_bounded_reduce1 (void)
   BtorNode *x  = btor_param_exp (g_btor, g_index_bw, "x");
   BtorNode *y  = btor_param_exp (g_btor, g_index_bw, "y");
   BtorNode *l2 = btor_lambda_exp (g_btor, y, y);
-  BtorNode *r  = btor_apply_exps (g_btor, 1, &x, l2);
+  BtorNode *r  = btor_apply_exps (g_btor, &x, 1, l2);
   BtorNode *l1 = btor_lambda_exp (g_btor, x, r);
   BtorNode *v  = btor_var_exp (g_btor, g_index_bw, "v");
 
-  BtorNode *expected = btor_apply_exps (g_btor, 1, &v, l2);
+  BtorNode *expected = btor_apply_exps (g_btor, &v, 1, l2);
 
   /* bound 2: stop at second lambda */
   btor_assign_param (g_btor, l1, v);
@@ -990,10 +990,10 @@ test_lambda_bounded_reduce3 (void)
   BtorNode *x        = btor_param_exp (g_btor, g_index_bw, "x");
   BtorNode *y        = btor_param_exp (g_btor, g_index_bw, "y");
   BtorNode *l1       = btor_lambda_exp (g_btor, x, x);
-  BtorNode *a        = btor_apply_exps (g_btor, 1, &y, l1);
+  BtorNode *a        = btor_apply_exps (g_btor, &y, 1, l1);
   BtorNode *l2       = btor_lambda_exp (g_btor, y, a);
   BtorNode *i        = btor_var_exp (g_btor, g_index_bw, "i");
-  BtorNode *expected = btor_apply_exps (g_btor, 1, &i, l1);
+  BtorNode *expected = btor_apply_exps (g_btor, &i, 1, l1);
 
   btor_assign_param (g_btor, l2, i);
   BtorNode *result = btor_beta_reduce_bounded (g_btor, l2, 1);
@@ -1119,14 +1119,14 @@ test_lambda_reduce_nested_lambdas_add1 (void)
   BtorNode *y         = btor_param_exp (g_btor, g_elem_bw, "y");
   BtorNode *add       = btor_add_exp (g_btor, x, y);
   BtorNode *params[2] = {x, y};
-  BtorNode *fun       = btor_fun_exp (g_btor, 2, params, add);
+  BtorNode *fun       = btor_fun_exp (g_btor, params, 2, add);
 
   BtorNode *args[2] = {a, b};
   BtorNode *result  = btor_apply_and_reduce (g_btor, 2, args, fun);
   assert (result == expected);
   btor_release_exp (g_btor, result);
 
-  BtorNode *apply = btor_apply_exps (g_btor, 2, args, fun);
+  BtorNode *apply = btor_apply_exps (g_btor, args, 2, fun);
   result          = btor_beta_reduce_full (g_btor, apply);
   assert (result == expected);
 
@@ -1154,7 +1154,7 @@ test_lambda_reduce_nested_lambdas_add2 (void)
   BtorNode *x         = btor_param_exp (g_btor, lambda_index_bw, "x");
   BtorNode *y         = btor_param_exp (g_btor, lambda_index_bw, "y");
   BtorNode *lambda2   = btor_lambda_exp (g_btor, y, y);
-  BtorNode *app       = btor_apply_exps (g_btor, 1, &b, lambda2);
+  BtorNode *app       = btor_apply_exps (g_btor, &b, 1, lambda2);
   BtorNode *add       = btor_add_exp (g_btor, x, app);
   BtorNode *lambda1   = btor_lambda_exp (g_btor, x, add);
   BtorNode *result    = btor_apply_and_reduce (g_btor, 1, &a, lambda1);
@@ -1184,7 +1184,7 @@ test_lambda_reduce_nested_lambdas_read (void)
   BtorNode *lambda2 = btor_lambda_exp (g_btor, y, y);
   BtorNode *x       = btor_param_exp (g_btor, g_elem_bw, "x");
   BtorNode *add     = btor_add_exp (g_btor, x, var);
-  BtorNode *app     = btor_apply_exps (g_btor, 1, &add, lambda2);
+  BtorNode *app     = btor_apply_exps (g_btor, &add, 1, lambda2);
   BtorNode *napp    = btor_not_exp (g_btor, app);
   BtorNode *lambda1 = btor_lambda_exp (g_btor, x, napp);
   BtorNode *a       = btor_var_exp (g_btor, g_elem_bw, "a");
@@ -1232,13 +1232,13 @@ test_lambda_reduce_nested_lambdas_const_n1000 (void)
     indices[i] = btor_var_exp (g_btor, g_index_bw, 0);
     params[i]  = btor_param_exp (g_btor, g_index_bw, 0);
   }
-  fun = btor_fun_exp (g_btor, nesting_lvl, params, var);
+  fun = btor_fun_exp (g_btor, params, nesting_lvl, var);
 
   result = btor_apply_and_reduce (g_btor, nesting_lvl, indices, fun);
   assert (result == var);
   btor_release_exp (g_btor, result);
 
-  BtorNode *apply = btor_apply_exps (g_btor, nesting_lvl, indices, fun);
+  BtorNode *apply = btor_apply_exps (g_btor, indices, nesting_lvl, fun);
   result          = btor_beta_reduce_full (g_btor, apply);
   assert (result == var);
 
@@ -1355,8 +1355,8 @@ test_lambda_hashing_4 (void)
   eq0 = btor_eq_exp (g_btor, p0[0], p0[1]);
   eq1 = btor_eq_exp (g_btor, p1[0], p1[1]);
 
-  f0 = btor_fun_exp (g_btor, 2, p0, eq0);
-  f1 = btor_fun_exp (g_btor, 2, p1, eq1);
+  f0 = btor_fun_exp (g_btor, p0, 2, eq0);
+  f1 = btor_fun_exp (g_btor, p1, 2, eq1);
   assert (f0 == f1);
 
   btor_release_exp (g_btor, p0[0]);
@@ -1532,7 +1532,7 @@ test_lambda_partial_reduce_nested_lambdas_add1 (void)
   BtorNode *y = btor_param_exp (g_btor, g_elem_bw, "y");
   BtorNode *add = btor_add_exp (g_btor, x, y);
   BtorNode *params[2] = {x, y};
-  BtorNode *fun = btor_fun_exp (g_btor, 2, params, add); 
+  BtorNode *fun = btor_fun_exp (g_btor, params, 2, add); 
   BtorNode *result = btor_apply_and_reduce (g_btor, 1, &a, fun);
 
   /* expected: lambda y' . (a + y') */
@@ -1598,7 +1598,7 @@ test_lambda_define_fun (void)
     expected   = lambdas[i];
   }
 
-  result = btor_fun_exp (g_btor, nesting_lvl, params, ands[nesting_lvl - 2]);
+  result = btor_fun_exp (g_btor, params, nesting_lvl, ands[nesting_lvl - 2]);
 
   assert (result == expected);
 

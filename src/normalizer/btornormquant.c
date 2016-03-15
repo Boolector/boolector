@@ -52,7 +52,7 @@ create_skolem_ite (Btor *btor, BtorNode *ite, BtorIntHashTable *map)
 
   sprintf (buf, "ite_%d", ite->id);
   uf     = btor_uf_exp (btor, funsort, buf);
-  result = btor_apply_exps (btor, BTOR_COUNT_STACK (params), params.start, uf);
+  result = btor_apply_exps (btor, params.start, BTOR_COUNT_STACK (params), uf);
   btor_release_sort (sorts, domain);
   btor_release_sort (sorts, funsort);
   btor_release_exp (btor, uf);
@@ -216,7 +216,7 @@ normalize_quantifiers (Btor *btor, BtorNode *roots[], uint32_t num_roots)
         }
         else
           kind = real_cur->kind;
-        result = btor_create_exp (btor, kind, real_cur->arity, e);
+        result = btor_create_exp (btor, kind, e, real_cur->arity);
       }
 
       for (i = 0; i < real_cur->arity; i++) btor_release_exp (btor, e[i]);

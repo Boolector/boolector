@@ -440,7 +440,7 @@ create_function_inequality (Btor *btor, BtorNode *feq)
     BTOR_PUSH_STACK (mm, args, var);
   }
 
-  arg  = btor_args_exp (btor, BTOR_COUNT_STACK (args), args.start);
+  arg  = btor_args_exp (btor, args.start, BTOR_COUNT_STACK (args));
   app0 = btor_apply_exp_node (btor, feq->e[0], arg);
   app1 = btor_apply_exp_node (btor, feq->e[1], arg);
   eq   = btor_eq_exp (btor, app0, app1);

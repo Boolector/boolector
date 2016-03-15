@@ -2613,7 +2613,7 @@ boolector_fun (Btor *btor,
   BTOR_DELETEN (btor->mm, strtrapi, len);
   BTOR_ABORT (btor_is_uf_exp (btor, exp),
               "expected bit vector term as function body");
-  res = btor_fun_exp (btor, paramc, params, exp);
+  res = btor_fun_exp (btor, params, paramc, exp);
   inc_exp_ext_ref_counter (btor, res);
   BTOR_TRAPI_RETURN_NODE (res);
 #ifndef NDEBUG
@@ -2665,9 +2665,9 @@ boolector_apply (Btor *btor,
       "'e_fun'");
   BTOR_ABORT (argc < 1, "'argc' must not be < 1");
   BTOR_ABORT (argc >= 1 && !args, "no arguments given but argc defined > 0");
-  i = btor_fun_sort_check (btor, argc, args, e_fun);
+  i = btor_fun_sort_check (btor, args, argc, e_fun);
   BTOR_ABORT (i >= 0, "invalid argument given at position %d", i);
-  res = btor_apply_exps (btor, argc, args, e_fun);
+  res = btor_apply_exps (btor, args, argc, e_fun);
   inc_exp_ext_ref_counter (btor, res);
   BTOR_TRAPI_RETURN_NODE (res);
 #ifndef NDEBUG
@@ -3277,7 +3277,7 @@ boolector_fun_sort_check (Btor *btor,
   sprintf (strtrapi + strlen (strtrapi), NODE_FMT, BTOR_TRAPI_NODE_ID (e_fun));
   BTOR_TRAPI (strtrapi);
   BTOR_DELETEN (btor->mm, strtrapi, len);
-  res = btor_fun_sort_check (btor, argc, args, e_fun);
+  res = btor_fun_sort_check (btor, args, argc, e_fun);
   BTOR_TRAPI_RETURN_INT (res);
 #ifndef NDEBUG
   BoolectorNode *carg_nodes[argc];

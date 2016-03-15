@@ -687,7 +687,7 @@ DONE:
   if (found_candidate)
   {
     result = btor_fun_exp (
-        btor, BTOR_COUNT_STACK (params), params.start, candidate_exp);
+        btor, params.start, BTOR_COUNT_STACK (params), candidate_exp);
     btor_release_exp (btor, candidate_exp);
   }
 

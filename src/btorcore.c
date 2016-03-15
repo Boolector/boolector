@@ -2331,7 +2331,7 @@ rebuild_exp (Btor *btor, BtorNode *exp)
     case BTOR_CONCAT_NODE: return btor_concat_exp (btor, exp->e[0], exp->e[1]);
     case BTOR_LAMBDA_NODE: return rebuild_lambda_exp (btor, exp);
     case BTOR_APPLY_NODE: return btor_apply_exp (btor, exp->e[0], exp->e[1]);
-    case BTOR_ARGS_NODE: return btor_args_exp (btor, exp->arity, exp->e);
+    case BTOR_ARGS_NODE: return btor_args_exp (btor, exp->e, exp->arity);
     case BTOR_EXISTS_NODE:
     case BTOR_FORALL_NODE: return rebuild_binder_exp (btor, exp);
     default:
@@ -2809,13 +2809,13 @@ btor_substitute_terms (Btor *btor, BtorNode *root, BtorNodeMap *substs)
       }
       else
       {
-        /* if the param of a quantifier gets subtituted by a non-param, we do
-         * not create a quantifier, but return the body instead */
+        /* if the param of a quantifier gets subtituted by a non-param,
+         * we do not create a quantifier, but return the body instead */
         if (BTOR_IS_QUANTIFIER_NODE (real_cur)
             && !BTOR_IS_PARAM_NODE (BTOR_REAL_ADDR_NODE (e[0])))
           result = btor_copy_exp (btor, e[1]);
         else
-          result = btor_create_exp (btor, real_cur->kind, real_cur->arity, e);
+          result = btor_create_exp (btor, real_cur->kind, e, real_cur->arity);
       }
       for (i = 0; i < real_cur->arity; i++) btor_release_exp (btor, e[i]);
       assert (!btor_get_int_hash_map (cache, real_cur->id));
@@ -3869,7 +3869,7 @@ is_valid_argument (Btor *btor, BtorNode *exp)
 }
 
 int
-btor_fun_sort_check (Btor *btor, uint32_t argc, BtorNode **args, BtorNode *fun)
+btor_fun_sort_check (Btor *btor, BtorNode *args[], uint32_t argc, BtorNode *fun)
 {
   (void) btor;
   assert (btor);
@@ -4115,7 +4115,7 @@ check_model (Btor *btor, Btor *clone, BtorPtrHashTable *inputs)
           BTOR_PUSH_STACK (clone->mm, consts, model);
         }
 
-        args  = btor_args_exp (clone, BTOR_COUNT_STACK (consts), consts.start);
+        args  = btor_args_exp (clone, consts.start, BTOR_COUNT_STACK (consts));
         apply = btor_apply_exp (clone, real_simp_clone, args);
         model = btor_const_exp (clone, value);
         eq    = btor_eq_exp (clone, apply, model);
