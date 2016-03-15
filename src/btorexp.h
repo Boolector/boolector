@@ -849,7 +849,7 @@ BtorNode *btor_forall_exp (Btor *btor, BtorNode *param, BtorNode *body);
 BtorNode *btor_forall_exp_node (Btor *btor, BtorNode *param, BtorNode *body);
 BtorNode *btor_forall_n_exp (Btor *btor,
                              BtorNode *params[],
-                             int paramc,
+                             uint32_t paramc,
                              BtorNode *body);
 
 /* Exists expression with variable 'param' and 'body' */
@@ -857,7 +857,7 @@ BtorNode *btor_exists_exp (Btor *btor, BtorNode *param, BtorNode *body);
 BtorNode *btor_exists_exp_node (Btor *btor, BtorNode *param, BtorNode *body);
 BtorNode *btor_exists_n_exp (Btor *btor,
                              BtorNode *params[],
-                             int paramc,
+                             uint32_t paramc,
                              BtorNode *body);
 
 #if 0

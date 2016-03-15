@@ -30,6 +30,7 @@
 #include "testmisc.h"
 #include "testmodelgen.h"
 #include "testmodelgensmt2.h"
+#include "testnormquant.h"
 #include "testoverflow.h"
 #include "testparseerror.h"
 #include "testprop.h"
@@ -134,6 +135,7 @@ main (int argc, char **argv)
   BTOR_RUN_TESTS (exp);
   BTOR_RUN_TESTS (map);
   BTOR_RUN_TESTS (lambda);
+  BTOR_RUN_TESTS (normquant);
   BTOR_RUN_TESTS (logic);
   BTOR_RUN_TESTS (comp);
   BTOR_RUN_TESTS (arithmetic);

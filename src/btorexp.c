@@ -2520,8 +2520,11 @@ quantifier_exp (Btor *btor, BtorNodeKind kind, BtorNode *param, BtorNode *body)
 }
 
 static BtorNode *
-quantifier_n_exp (
-    Btor *btor, BtorNodeKind kind, BtorNode **params, int n, BtorNode *body)
+quantifier_n_exp (Btor *btor,
+                  BtorNodeKind kind,
+                  BtorNode *params[],
+                  uint32_t n,
+                  BtorNode *body)
 {
   assert (btor);
   assert (kind == BTOR_FORALL_NODE || kind == BTOR_EXISTS_NODE);
@@ -2559,7 +2562,7 @@ btor_forall_exp (Btor *btor, BtorNode *param, BtorNode *body)
 }
 
 BtorNode *
-btor_forall_n_exp (Btor *btor, BtorNode **params, int n, BtorNode *body)
+btor_forall_n_exp (Btor *btor, BtorNode *params[], uint32_t n, BtorNode *body)
 {
   return quantifier_n_exp (btor, BTOR_FORALL_NODE, params, n, body);
 }
@@ -2577,7 +2580,7 @@ btor_exists_exp (Btor *btor, BtorNode *param, BtorNode *body)
 }
 
 BtorNode *
-btor_exists_n_exp (Btor *btor, BtorNode **params, int n, BtorNode *body)
+btor_exists_n_exp (Btor *btor, BtorNode *params[], uint32_t n, BtorNode *body)
 {
   return quantifier_n_exp (btor, BTOR_EXISTS_NODE, params, n, body);
 }
