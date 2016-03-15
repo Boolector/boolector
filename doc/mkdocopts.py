@@ -32,17 +32,21 @@ if __name__ == "__main__":
                      desc = []
                      desc_open = False
             elif desc_open:  # collect opt desc
-                desc.append(line)
+                desc.append(line.strip())
 
 
         
     with open('cboolector_options.rst', 'w') as file:
-        #file.write("Options\n")
-        #file.write("-------\n\n")
         for o in opts:
             for l in o:
+                if not l:
+                    file.write("\n")
+                    continue
+                if l[0:4] != "* **" and l[0:2] != "**":
+                      file.write(' ' * 2) 
                 file.write(l)
-            file.write("\n\n")
+                file.write(" \n")
+            file.write(" \n")
 
 
 #    with open('pyboolector_options.rst', 'w') as file:

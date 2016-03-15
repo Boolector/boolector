@@ -28,9 +28,17 @@ typedef enum BtorSolverResult BtorSolverResult;
 typedef struct BoolectorNode BoolectorNode;
 typedef unsigned BoolectorSort;
 
+/* --------------------------------------------------------------------- */
+
 /* Boolector options */
+
 enum BtorOption
 {
+  /* --------------------------------------------------------------------- */
+  /*!
+   **General Options:**
+   */
+  /* --------------------------------------------------------------------- */
   /*!
     * **BTOR_OPT_MODEL_GEN**
 
@@ -41,6 +49,7 @@ enum BtorOption
       * generate model for all expressions (``value``: 2)
   */
   BTOR_OPT_MODEL_GEN,
+
   /*!
     * **BTOR_OPT_INCREMENTAL**
 
@@ -49,6 +58,7 @@ enum BtorOption
     Disabling incremental usage is currently not supported.
   */
   BTOR_OPT_INCREMENTAL,
+
   /*!
     * **BTOR_OPT_INCREMENTAL_ALL**
 
@@ -57,6 +67,7 @@ enum BtorOption
     mode while parsing an input file is only supported for `SMT-LIB v1`_ input.
   */
   BTOR_OPT_INCREMENTAL_ALL,
+
   /*!
     * **BTOR_OPT_INPUT_FORMAT**
 
@@ -68,6 +79,7 @@ enum BtorOption
     2) when parsing an input file. | If unspecified, Boolector automatically
     detects the input file format while parsing.
   */
+
   BTOR_OPT_INPUT_FORMAT,
   /*!
     * **BTOR_OPT_OUTPUT_NUMBER_FORMAT**
@@ -76,6 +88,7 @@ enum BtorOption
     decimal: 2). | Boolector uses binary by default.
   */
   BTOR_OPT_OUTPUT_NUMBER_FORMAT,
+
   /*!
     * **BTOR_OPT_OUTPUT_FORMAT**
 
@@ -83,6 +96,7 @@ enum BtorOption
     `SMT-LIB v2`_: 2). | Boolector uses BTOR_ by default.
   */
   BTOR_OPT_OUTPUT_FORMAT,
+
   /*!
     * **BTOR_OPT_ENGINE**
 
@@ -90,6 +104,7 @@ enum BtorOption
     BTOR_ENGINE_PROP: 2). | Boolector uses BTOR_ENGINE_FUN by default.
   */
   BTOR_OPT_ENGINE,
+
   /*!
     * **BTOR_OPT_SAT_ENGINE**
 
@@ -98,20 +113,23 @@ enum BtorOption
     and default values depend on the sat solvers configured.
   */
   BTOR_OPT_SAT_ENGINE,
+
   /*!
     * **BTOR_OPT_AUTO_CLEANUP**
 
       Enable (``value``:1) or disable (``value``:0) auto cleanup of all
     references held on exit.
-  */
+    */
   BTOR_OPT_AUTO_CLEANUP,
+
   /*!
     * **BTOR_OPT_PRETTY_PRINT**
 
-      Enable (``value``: 1) or disable (``value``: 0) pretty printing
-      when dumping.
+      Enable (``value``: 1) or disable (``value``: 0) pretty printing when
+    dumping.
   */
   BTOR_OPT_PRETTY_PRINT,
+
   /*!
     * **BTOR_OPT_EXIT_CODES**
 
@@ -121,6 +139,7 @@ enum BtorOption
     and BTOR_RESULT_UNSAT, BTOR_ERR_EXIT: 1 in any other case) on exit.
   */
   BTOR_OPT_EXIT_CODES,
+
   /*!
     * **BTOR_OPT_SEED**
 
@@ -128,12 +147,14 @@ enum BtorOption
       | Boolector uses 0 by default.
   */
   BTOR_OPT_SEED,
+
   /*
     * **BTOR_OPT_VERBOSITY**
 
       Set the level of verbosity.
   */
   BTOR_OPT_VERBOSITY,
+
 #ifndef NBTORLOG
   /*
     * **BTOR_OPT_LOGLEVEL**
@@ -142,7 +163,12 @@ enum BtorOption
   */
   BTOR_OPT_LOGLEVEL,
 #endif
-  /* simplifier --------------------------------------------------------- */
+
+  /* --------------------------------------------------------------------- */
+  /*!
+   **Simplifier Options:**
+   */
+  /* --------------------------------------------------------------------- */
 
   /*!
     * **BTOR_OPT_REWRITE_LEVEL**
@@ -160,98 +186,114 @@ enum BtorOption
     expressions.
   */
   BTOR_OPT_REWRITE_LEVEL,
+
   /*!
     * **BTOR_OPT_SKELETON_PREPROC**
 
       Enable (``value``: 1) or disable (``value``: 0) skeleton  preprocessing
-      during simplification.
+    during simplification.
   */
   BTOR_OPT_SKELETON_PREPROC,
+
   /*!
     * **BTOR_OPT_ACKERMANN**
 
       Enable (``value``: 1) or disable (``value``: 0) the eager addition of
-      ackermann constraints for function applications.
+    Ackermann constraints for function applications.
   */
   BTOR_OPT_ACKERMANN,
+
   /*!
     * **BTOR_OPT_BETA_REDUCE_ALL**
 
-      Enable (``value``: 1) or disable (``value``: 0) the eager
-      elimination of lambda expressions via beta reduction.
+      Enable (``value``: 1) or disable (``value``: 0) the eager elimination of
+    lambda expressions via beta reduction.
   */
   BTOR_OPT_BETA_REDUCE_ALL,
+
   /*!
     * **BTOR_OPT_ELIMINATE_SLICES**
 
-      Enable (``value``: 1) or disable (``value``: 0) slice elimination
-      on bit vector variables.
+      Enable (``value``: 1) or disable (``value``: 0) slice elimination on bit
+    vector variables.
   */
   BTOR_OPT_ELIMINATE_SLICES,
+
   /*!
     * **BTOR_OPT_VAR_SUBST**
 
       Enable (``value``: 1) or disable (``value``: 0) variable substitution
-      during simplification.
+    during simplification.
   */
   BTOR_OPT_VAR_SUBST,
+
   /*!
     * **BTOR_OPT_UCOPT**
 
       Enable (``value``: 1) or disable (``value``: 0) unconstrained
-      optimization.
+    optimization.
   */
   BTOR_OPT_UCOPT,
+
   /*!
     * **BTOR_OPT_MERGE_LAMBDAS**
 
       Enable (``value``: 1) or disable (``value``: 0) merging of lambda
-      expressions.
+    expressions.
   */
   BTOR_OPT_MERGE_LAMBDAS,
+
   /*!
     * **BTOR_OPT_EXTRACT_LAMBDAS**
 
-      Enable (``value``: 1) or disable (``value``: 0) extraction of common
-      array patterns as lambda terms.
+      Enable (``value``: 1) or disable (``value``: 0) extraction of common array
+    patterns as lambda terms.
   */
   BTOR_OPT_EXTRACT_LAMBDAS,
 
-  /* FUN engine --------------------------------------------------------- */
+  /* --------------------------------------------------------------------- */
+  /*!
+   **Fun Engine Options:**
+   */
+  /* --------------------------------------------------------------------- */
 
   /*!
-  * **BTOR_OPT_DUAL_PROP**
+    * **BTOR_OPT_DUAL_PROP**
 
-    Enable (``value``: 1) or disable (``value``: 0) dual propagation
+      Enable (``value``: 1) or disable (``value``: 0) dual propagation
     optimization.
   */
   BTOR_OPT_FUN_DUAL_PROP,
+
   /*!
     * **BTOR_OPT_JUST**
 
       Enable (``value``: 1) or disable (``value``: 0) justification
-      optimization.
+    optimization.
   */
   BTOR_OPT_FUN_JUST,
+
   /*!
     * **BTOR_OPT_JUST_HEURISTIC**
 
       | Set heuristic that determines path selection for justification
     optimization. | Boolector uses BTOR_JUST_HEUR_BRANCH_MIN_APP by default.
 
-        * BTOR_JUST_HEUR_LEF (0): always choose left branch
-        * BTOR_JUST_HEUR_BRANCH_MIN_APP (1): choose branch with minimum number
-    of applies
-        * BTOR_JUST_HEUR_BRANCH_MIN_DEP (2): choose branch with minimum depth
+      * BTOR_JUST_HEUR_LEF (0): always choose left branch
+      * BTOR_JUST_HEUR_BRANCH_MIN_APP (1): choose branch with minimum number of
+    applies
+      * BTOR_JUST_HEUR_BRANCH_MIN_DEP (2): choose branch with minimum depth
   */
   BTOR_OPT_FUN_JUST_HEURISTIC,
+
   /*!
     * **BTOR_OPT_LAZY_SYNTHESIZE**
 
-      Enable (``value``: 1) or disable (``value``: 0) lazy synthesis of
-      bit vector expressions.
+      Enable (``value``: 1) or disable (``value``: 0) lazy synthesis of bit
+    vector expressions.
   */
   BTOR_OPT_FUN_LAZY_SYNTHESIZE,
+
   /*!
     * **BTOR_OPT_EAGER_LEMMAS**
 
@@ -259,11 +301,14 @@ enum BtorOption
       | If enabled, in each refinement iteration, lemmas for all possible
     conflicts for the candidate model are generated (rather than generating one
     single lemma per refinement iteration).
-
   */
   BTOR_OPT_FUN_EAGER_LEMMAS,
 
-  /* SLS engine --------------------------------------------------------- */
+  /* --------------------------------------------------------------------- */
+  /*!
+   **SLS Engine Options:**
+   */
+  /* --------------------------------------------------------------------- */
 
   /*!
     * **BTOR_OPT_SLS_STRATEGY**
@@ -282,105 +327,115 @@ enum BtorOption
     recover with SLS move in case of conflict)
   */
   BTOR_OPT_SLS_STRATEGY,
+
   /*!
     * **BTOR_OPT_SLS_JUST**
 
-      Enable (``value``: 1) or disable (``value``: 0) justification based
-      path selection during candidate selection.
+      Enable (``value``: 1) or disable (``value``: 0) justification based path
+    selection during candidate selection.
   */
   BTOR_OPT_SLS_JUST,
+
   /*!
     * **BTOR_OPT_SLS_MOVE_GW**
 
-      Enable (``value``: 1) or disable (``value``: 0) group-wise moves,
-      where rather than changing the assignment of one single candidate
-      variable, all candidate variables are set at the same time (using
-      the same strategy).
+      Enable (``value``: 1) or disable (``value``: 0) group-wise moves, where
+    rather than changing the assignment of one single candidate variable, all
+    candidate variables are set at the same time (using the same strategy).
   */
   BTOR_OPT_SLS_MOVE_GW,
+
   /*!
     * **BTOR_OPT_SLS_MOVE_RANGE**
 
-      Enable (``value``: 1) or disable (``value``: 0) range-wise bit-flip
-      moves, where the bits within all ranges from 2 to the bit width
-      (starting from the LSB) are flipped at once.
+      Enable (``value``: 1) or disable (``value``: 0) range-wise bit-flip moves,
+    where the bits within all ranges from 2 to the bit width (starting from the
+    LSB) are flipped at once.
   */
   BTOR_OPT_SLS_MOVE_RANGE,
+
   /*!
     * **BTOR_OPT_SLS_MOVE_SEGMENT**
 
       Enable (``value``: 1) or disable (``value``: 0) segment-wise bit-flip
-      moves, where the bits within segments of multiples of 2
-      are flipped at once.
+    moves, where the bits within segments of multiples of 2 are flipped at once.
   */
   BTOR_OPT_SLS_MOVE_SEGMENT,
+
   /*!
     * **BTOR_OPT_SLS_MOVE_RAND_WALK**
 
-      Enable (``value``: 1) or disable (``value``: 0) random walk moves,
-      where one out of all possible neighbors is randomly selected
-      (with given probability, see BTOR_OPT_SLS_MOVE_RAND_WALK_PROB) for a
-      randomly selected candidate variable.
+      Enable (``value``: 1) or disable (``value``: 0) random walk moves, where
+    one out of all possible neighbors is randomly selected (with given
+    probability, see BTOR_OPT_SLS_MOVE_RAND_WALK_PROB) for a randomly selected
+    candidate variable.
   */
   BTOR_OPT_SLS_MOVE_RAND_WALK,
+
   /*!
     * **BTOR_OPT_SLS_MOVE_RAND_WALK_PROB**
 
-      Set the probability with which a random walk is chosen if
-      random walks are enabled (see BTOR_OPT_SLS_MOVE_RAND_WALK).
+      Set the probability with which a random walk is chosen if random walks are
+    enabled (see BTOR_OPT_SLS_MOVE_RAND_WALK).
   */
   BTOR_OPT_SLS_MOVE_RAND_WALK_PROB,
+
   /*!
     * **BTOR_OPT_SLS_MOVE_RAND_ALL**
 
-      Enable (``value``: 1) or disable (``value``: 0) the randomization
-      of all candidate variables (rather than a single randomly selected
-      candidate variable) in case no best move has been found.
+      Enable (``value``: 1) or disable (``value``: 0) the randomization of all
+    candidate variables (rather than a single randomly selected candidate
+    variable) in case no best move has been found.
   */
   BTOR_OPT_SLS_MOVE_RAND_ALL,
+
   /*!
     * **BTOR_OPT_SLS_MOVE_RAND_RANGE**
 
-      Enable (``value``: 1) or disable (``value``: 0) the randomization
-      of bit ranges (rather than all bits) of a candidate variable(s)
-      to be randomized in case no best move has been found.
+      Enable (``value``: 1) or disable (``value``: 0) the randomization of bit
+    ranges (rather than all bits) of a candidate variable(s) to be randomized in
+    case no best move has been found.
   */
   BTOR_OPT_SLS_MOVE_RAND_RANGE,
+
   /*!
     * **BTOR_OPT_SLS_MOVE_PROP**
 
-      Enable (``value``: 1) or disable (``value``: 0) propagation
-      moves (chosen with a given ratio of number of propagation moves
-      to number of regular SLS moves, see BTOR_OPT_SLS_MOVE_PROP_N_PROP and
-      BTOR_OPT_SLS_MOVE_PROP_N_SLS).
+      Enable (``value``: 1) or disable (``value``: 0) propagation moves (chosen
+    with a given ratio of number of propagation moves to number of regular SLS
+    moves, see BTOR_OPT_SLS_MOVE_PROP_N_PROP and BTOR_OPT_SLS_MOVE_PROP_N_SLS).
   */
   BTOR_OPT_SLS_MOVE_PROP,
+
   /*!
     * **BTOR_OPT_SLS_MOVE_PROP_N_PROP**
 
-      Set the number of propagation moves to be performed when propagation
-      moves are enabled (propagation moves are chosen with a ratio of
-      propagation moves to regular SLS moves, see BTOR_OPT_SLS_MOVE_PROP
-      and BTOR_OPT_SLS_MOVE_PROP_N_SLS).
+      Set the number of propagation moves to be performed when propagation moves
+    are enabled (propagation moves are chosen with a ratio of propagation moves
+    to regular SLS moves, see BTOR_OPT_SLS_MOVE_PROP and
+    BTOR_OPT_SLS_MOVE_PROP_N_SLS).
   */
   BTOR_OPT_SLS_MOVE_PROP_N_PROP,
+
   /*!
     * **BTOR_OPT_SLS_MOVE_PROP_N_SLS**
 
-      Set the number of regular SLS moves to be performed when propagation
-      moves are enabled (propagation moves are chosen with a ratio of
-    propagation moves to regular SLS moves, see BTOR_OPT_SLS_MOVE_PROP and
-      BTOR_OPT_SLS_MOVE_PROP_N_PROP).
+      Set the number of regular SLS moves to be performed when propagation moves
+    are enabled (propagation moves are chosen with a ratio of propagation moves
+    to regular SLS moves, see BTOR_OPT_SLS_MOVE_PROP and
+    BTOR_OPT_SLS_MOVE_PROP_N_PROP).
   */
   BTOR_OPT_SLS_MOVE_PROP_N_SLS,
+
   /*!
     * **BTOR_OPT_SLS_MOVE_PROP_FORCE_RW**
 
       Enable (``value``: 1) or disable (``value``: 0) that random walks are
-      forcibly chosen as recovery moves in case of conflicts when a propagation
-      move is performed (rather than performing a regular SLS move).
+    forcibly chosen as recovery moves in case of conflicts when a propagation
+    move is performed (rather than performing a regular SLS move).
   */
   BTOR_OPT_SLS_MOVE_PROP_FORCE_RW,
+
   /*!
     * **BTOR_OPT_SLS_MOVE_INC_MOVE_TEST**
 
@@ -390,12 +445,14 @@ enum BtorOption
     further neighborhood exploration (rather than its current assignment).
   */
   BTOR_OPT_SLS_MOVE_INC_MOVE_TEST,
+
   /*!
     * **BTOR_OPT_SLS_MOVE_RESTARTS**
 
       Enable (``value``: 1) or disable (``value``: 0) restarts.
   */
   BTOR_OPT_SLS_USE_RESTARTS,
+
   /*!
     * **BTOR_OPT_SLS_MOVE_RESTARTS**
 
@@ -405,7 +462,11 @@ enum BtorOption
   */
   BTOR_OPT_SLS_USE_BANDIT,
 
-  /* PROP engine --------------------------------------------------------- */
+  /* --------------------------------------------------------------------- */
+  /*!
+   **Prop Engine Options**:
+   */
+  /* --------------------------------------------------------------------- */
 
   /*!
     * **BTOR_OPT_PROP_MOVE_RESTARTS**
@@ -413,6 +474,7 @@ enum BtorOption
       Enable (``value``: 1) or disable (``value``: 0) restarts.
   */
   BTOR_OPT_PROP_USE_RESTARTS,
+
   /*!
     * **BTOR_OPT_PROP_MOVE_RESTARTS**
 
@@ -423,13 +485,15 @@ enum BtorOption
     selected randomly.
   */
   BTOR_OPT_PROP_USE_BANDIT,
+
   /*!
     * **BTOR_OPT_PROP_USE_FULL_PATH**
 
       Enable (``value``: 1) or disable (``value``: 0) path selection over the
-      full set of operators (rather than just Boolean operators).
+    full set of operators (rather than just Boolean operators).
   */
   BTOR_OPT_PROP_USE_FULL_PATH,
+
   /*!
     * **BTOR_OPT_PROP_USE_INV_VALUE_PROB**
 
@@ -437,12 +501,13 @@ enum BtorOption
     values.
   */
   BTOR_OPT_PROP_USE_INV_VALUE_PROB,
+
   /*!
     * **BTOR_OPT_PROP_FLIP_COND_PROB**
 
      Set probabiality with which to select the path to the condition (in case of
-     an if-then-else operation) rather than the enabled branch during
-     down propagation.
+    an if-then-else operation) rather than the enabled branch during down
+    propagation.
   */
   BTOR_OPT_PROP_FLIP_COND_PROB,
 
