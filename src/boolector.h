@@ -365,6 +365,11 @@ int boolector_set_sat_solver_minisat (Btor *btor);
 
   .. include:: cboolector_options.rst
 
+  .. toctree::
+      :hidden:
+
+      cboolector_options.rst
+
   :param btor: Boolector instance.
   :param opt: Option opt.
   :param val:  Option value.
