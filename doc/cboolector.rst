@@ -215,19 +215,19 @@ Options
 
     BTOR<capitalized option name without '_' and ':'>=<value>
 
-  For a list and detailed descriptions of all available options, 
-  see :c:func:`boolector_set_opt`.
-
   E.g., given a Boolector instance ``btor``, model generation is enabled either 
   via 
 
   .. code-block:: c
 
-    boolector_set_opt (btor, "model-gen", 1);
+    boolector_set_opt (btor, BTOR_OPT_MODEL_GEN, 1);
 
   or via setting the environment variable:: 
 
     BTORMODELGEN=1
+
+  For a list and detailed descriptions of all available options, 
+  see :c:func:`boolector_set_opt`.
 
 API Tracing
 ^^^^^^^^^^^
