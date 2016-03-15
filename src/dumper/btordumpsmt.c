@@ -801,15 +801,15 @@ recursively_dump_exp_smt (BtorSMTDumpContext *sdc,
 
           if (tmp->kind != real_exp->kind) break;
 
-          assert (btor_get_symbol_exp (sdc->btor, tmp->e[0]));
           if (tmp != real_exp) fputc (' ', sdc->file);
           if (sdc->pretty_print)
           {
             fputc ('\n', sdc->file);
             print_indent (sdc);
           }
-          fprintf (
-              sdc->file, "(%s ", btor_get_symbol_exp (sdc->btor, tmp->e[0]));
+          fputc ('(', sdc->file);
+          dump_smt_id (sdc, tmp->e[0]);
+          fputc (' ', sdc->file);
           btor_dump_sort_smt_node (tmp->e[0], sdc->file);
           fputc (')', sdc->file);
           btor_add_ptr_hash_table (sdc->dumped, tmp->e[0]);
@@ -966,34 +966,39 @@ recursively_dump_exp_let_smt (BtorSMTDumpContext *sdc,
   BtorNode *cur;
   BtorNodePtrStack shared;
 
-  BTOR_INIT_STACK (shared);
-  collect_shared_exps (sdc, exp, &shared);
-
-  if (shared.start)
-    qsort (shared.start,
-           BTOR_COUNT_STACK (shared),
-           sizeof (BtorNode *),
-           cmp_node_id);
-
-  for (i = 0; i < BTOR_COUNT_STACK (shared); i++)
+  if (BTOR_IS_QUANTIFIER_NODE (BTOR_REAL_ADDR_NODE (exp)))
+    recursively_dump_exp_smt (sdc, exp, expect_bv, depth_limit);
+  else
   {
-    cur = BTOR_PEEK_STACK (shared, i);
-    assert (BTOR_IS_REGULAR_NODE (cur));
-    dump_let_smt (sdc, cur);
-    fputc (' ', sdc->file);
+    BTOR_INIT_STACK (shared);
+    collect_shared_exps (sdc, exp, &shared);
+
+    if (shared.start)
+      qsort (shared.start,
+             BTOR_COUNT_STACK (shared),
+             sizeof (BtorNode *),
+             cmp_node_id);
+
+    for (i = 0; i < BTOR_COUNT_STACK (shared); i++)
+    {
+      cur = BTOR_PEEK_STACK (shared, i);
+      assert (BTOR_IS_REGULAR_NODE (cur));
+      dump_let_smt (sdc, cur);
+      fputc (' ', sdc->file);
+    }
+
+    recursively_dump_exp_smt (sdc, exp, expect_bv, depth_limit);
+
+    /* close lets */
+    for (i = 0; i < BTOR_COUNT_STACK (shared); i++)
+    {
+      fputc (')', sdc->file);
+      //      close_sexp (sdc);
+      sdc->open_lets--;
+    }
+
+    BTOR_RELEASE_STACK (sdc->btor->mm, shared);
   }
-
-  recursively_dump_exp_smt (sdc, exp, expect_bv, depth_limit);
-
-  /* close lets */
-  for (i = 0; i < BTOR_COUNT_STACK (shared); i++)
-  {
-    fputc (')', sdc->file);
-    //      close_sexp (sdc);
-    sdc->open_lets--;
-  }
-
-  BTOR_RELEASE_STACK (sdc->btor->mm, shared);
 }
 
 static void
@@ -1638,7 +1643,9 @@ btor_dump_smt2_node (Btor *btor, FILE *file, BtorNode *exp, unsigned depth)
     if (btor_get_ptr_hash_table (sdc->dump, cur)) continue;
 
     if (BTOR_IS_BV_VAR_NODE (cur) || BTOR_IS_UF_NODE (cur)
-        || (!BTOR_IS_LAMBDA_NODE (real_exp) && BTOR_IS_PARAM_NODE (cur)))
+        || (BTOR_IS_PARAM_NODE (cur)
+            && !btor_get_ptr_hash_table (sdc->dump,
+                                         btor_param_get_binder (cur))))
       btor_add_ptr_hash_table (sdc->dumped, cur);
 
     btor_add_ptr_hash_table (sdc->dump, cur);
