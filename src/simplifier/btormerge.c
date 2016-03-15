@@ -205,7 +205,7 @@ btor_merge_lambdas (Btor *btor)
     body = btor_beta_reduce_merge (
         btor, btor_lambda_get_body (lambda), merge_lambdas);
     btor_unassign_params (btor, lambda);
-    subst = btor_fun_exp (btor, BTOR_COUNT_STACK (params), params.start, body);
+    subst = btor_fun_exp (btor, params.start, BTOR_COUNT_STACK (params), body);
     if (lambda->is_array) subst->is_array = 1;
     btor_release_exp (btor, body);
 

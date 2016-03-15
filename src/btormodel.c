@@ -1071,7 +1071,7 @@ btor_generate_lambda_model_from_fun_model (Btor *btor,
     BTOR_PUSH_STACK (btor->mm, params, p);
   }
   uf   = btor_uf_exp (btor, exp->sort_id, 0);
-  args = btor_args_exp (btor, BTOR_COUNT_STACK (params), params.start);
+  args = btor_args_exp (btor, params.start, BTOR_COUNT_STACK (params));
   assert (args->sort_id = btor_get_domain_fun_sort (sorts, uf->sort_id));
   e_else = btor_apply_exp (btor, uf, args);
   assert (BTOR_REAL_ADDR_NODE (e_else)->sort_id
@@ -1115,7 +1115,7 @@ btor_generate_lambda_model_from_fun_model (Btor *btor,
     }
 
     /* args for static_rho */
-    args = btor_args_exp (btor, BTOR_COUNT_STACK (consts), consts.start);
+    args = btor_args_exp (btor, consts.start, BTOR_COUNT_STACK (consts));
 
     while (!BTOR_EMPTY_STACK (consts))
       btor_release_exp (btor, BTOR_POP_STACK (consts));
@@ -1137,7 +1137,7 @@ btor_generate_lambda_model_from_fun_model (Btor *btor,
   assert (ite);
   if (ite) /* get rid of compiler warning */
   {
-    res = btor_fun_exp (btor, BTOR_COUNT_STACK (params), params.start, ite);
+    res = btor_fun_exp (btor, params.start, BTOR_COUNT_STACK (params), ite);
     btor_release_exp (btor, ite);
   }
 
