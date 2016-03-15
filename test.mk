@@ -1,21 +1,23 @@
-TESTDIR=tests
-TESTSRC=$(wildcard $(TESTDIR)/test*.c $(TESTDIR)/test*.cc )
-TESTOBJ=$(addsuffix .o,$(basename $(TESTSRC)))
+TESTSRCS=$(wildcard $(SRCDIR)/$(TESTDIR)/test*.c)
+TESTOBJS=$(subst $(SRCDIR), $(BUILDIR), $(patsubst %.c, %.o, $(TESTSRCS)))
 
-all: test
+all: $(BINDIR)/test
 
--include test.dep
+-include $(BUILDIR)/$(TESTDIR)/test.dep
+
+$(BUILDIR)/$(TESTDIR)/test.dep: $(BUILDIR)/btorconfig.h $(SRCS) $(TESTSRCS) makefile test.mk
+	@mkdir -p $(@D)
+	rm -f $@; \
+	$(CC) $(CFLAGS) $(INCS) -MM $(TESTSRCS) | \
+	sed -e 's,:,: makefile,' -e 's,^test,$(BUILDIR)/$(TESTDIR)/test,' >$@
+
+$(BINDIR)/test: $(TESTOBJS) $(BUILDIR)/btormain.o $(BUILDIR)/libboolector.a  $(LDEPS) makefile
+	@mkdir -p $(@D)
+	$(CC) $(CFLAGS) -o $@ $(TESTOBJS) $(BUILDIR)/btormain.o $(INCS) -L$(BUILDIR) -lboolector $(LIBS)
 
 clean: test-clean
 
 test-clean:
-	rm -f $(TESTDIR)/*.o
-	rm -f test.dep
+	rm -f $(BUILDIR)/$(TESTDIR)/*.o
+	rm -f $(BUILDIR)/$(TESTDIR)/test.dep
 
-test.dep: btorconfig.h $(SRC) $(TESTSRC) makefile test.mk
-	rm -f $@; \
-	$(CC) $(CFLAGS) -MM $(TESTSRC) -I. | \
-	sed -e 's,:,: makefile,' -e 's,^test,tests/test,' >$@
-
-test: $(TESTOBJ) libboolector.a  $(LDEPS) makefile
-	$(CC) $(CFLAGS) -o $@ $(TESTOBJ) -L. -lboolector $(LIBS)

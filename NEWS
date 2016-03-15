@@ -1,3 +1,6 @@
+* improved and extended option handling
+    + boolector_get_opt_val -> boolector_get_opt
+
 news for release 2.2.0 since 2.1.1
 --------------------------------------
 

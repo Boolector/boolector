@@ -1,6 +1,7 @@
 #include <assert.h>
 #include <limits.h>
-#include "../../boolector.h"
+#include "boolector.h"
+#include "btoropt.h"
 
 #define ARRAY3_EXAMPLE_VALUE_BW 8
 #define ARRAY3_EXAMPLE_INDEX_BW 1
@@ -13,7 +14,7 @@ main ()
   Btor *btor;
 
   btor = boolector_new ();
-  boolector_set_opt (btor, "incremental", 1);
+  boolector_set_opt (btor, BTOR_OPT_INCREMENTAL, 1);
 
   array = boolector_array (
       btor, ARRAY3_EXAMPLE_VALUE_BW, ARRAY3_EXAMPLE_INDEX_BW, NULL);

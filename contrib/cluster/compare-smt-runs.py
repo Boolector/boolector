@@ -157,17 +157,19 @@ FILTER_LOG = {
 
 
 def err_extract_status(line):
-    status = line.split()[2:]
-    if b'ok' == status[0]:
+    status = line.split(b':')[1].strip()
+    if b'ok' in status:
         return 'ok'
-    elif b'time' == status[-1]:
+    elif b'time' in status:
         return 'time'
-    elif b'memory' == status[-1]:
+    elif b'memory' in status:
         return 'mem'
-    elif b'segmentation' == status[-2]:
+    elif b'segmentation' in status:
         return 'segf'
+    elif b'signal' in status:
+        return 'sig'
     else:
-        raise CmpSMTException("invalid status")
+        raise CmpSMTException("invalid status: '{}'".format(status.decode()))
 
 
 def err_extract_opts(line):
@@ -391,17 +393,124 @@ def _init_missing_files(data):
                     data[k][d][f] = None
 
 def _normalize_data(data):
+    global g_args, g_dir_stats
+
+    assert('result' in data)
+    # reset timeout if given
+    if g_args.timeout:
+        for d in data['time_time']:
+            for f in data['time_time'][d]:
+                if data['time_time'][d][f] > g_args.timeout[d]:
+                    data['time_time'][d][f] = g_args.timeout[d]
+                    data['status'][d][f] = "time"
+                    data['result'][d][f] = 1
+                    if g_args.g:
+                        for k in ["g_total", "g_solved", "g_time",
+                                  "g_mem", "g_err"]:
+                            g_file_stats[k][d][f] = "time"
+
     # normalize status ok, time, mem, err
     for k in ['status', 'g_total', 'g_solved', 'g_time', 'g_mem', 'g_err']:
         if k not in data:
             continue
         for d in data[k]:
             for f in data[k][d]:
-                assert('result' in data)
                 if data[k][d][f] == 'ok' \
                    and data['result'][d][f] not in (10, 20):
                     data[k][d][f] = 'err'
 
+    # collect data for virtual best solver
+    if g_args.vb:
+        if g_args.vbp:
+            bdir = g_args.dirs[0]   # base run
+            prep_dirs = g_args.dirs[1:] # "preprocessing" runs
+
+            for pdir in prep_dirs:
+                vbpdir = "{} + {}".format(_base_dir(bdir), _base_dir(pdir))
+
+                # initialize for virtual best solver
+                for k in g_dir_stats.keys():
+                    g_dir_stats[k][vbpdir] = []
+
+                for k in data.keys():
+                    if vbpdir not in data[k]:
+                        data[k][vbpdir] = {}
+
+                for f in g_benchmarks:
+                    if data["time_time"][bdir][f] < g_args.timeout[bdir]:
+                        time_bdir = data["time_time"][bdir][f]
+                    else:
+                        time_bdir = g_args.timeout[bdir]
+
+                    if data["time_time"][pdir][f] < g_args.timeout[pdir]:
+                        time_pdir = data["time_time"][pdir][f]
+                    else:
+                        time_pdir = g_args.timeout[pdir]
+
+                    if data["status"][pdir][f] in ["ok", "time"] \
+                       and time_pdir < g_args.timeout[pdir]:
+                        for k in data.keys():
+                            data[k][vbpdir][f] = data[k][pdir][f]
+                    elif data["status"][bdir][f] == "ok":
+                        for k in data.keys():
+                            data[k][vbpdir][f] = data[k][bdir][f]
+                        time_vbp = round(time_bdir + g_args.timeout[pdir], 2)
+                        data["time_time"][vbpdir][f] = time_vbp
+                        if time_vbp >= g_args.timeout[bdir]:
+                            data["status"][vbpdir][f] = "time"
+                            data["time_time"][vbpdir][f] = g_args.timeout[bdir]
+                            if not g_args.g:
+                                data["result"][vbpdir][f] = 1
+                    else:
+                        for k in data.keys():
+                            data[k][vbpdir][f] = data[k][bdir][f]
+                g_args.dirs.append(vbpdir)
+        else:
+            vb_dir = "virtual best solver (portfolio)"
+
+            # initialize for virtual best solver
+            for k in g_dir_stats.keys():
+                g_dir_stats[k][vb_dir] = []
+
+            for f in g_benchmarks:
+                v = sorted(
+                    [(data['time_time'][d][f], d) \
+                        for d in g_args.dirs \
+                            if data['time_time'][d][f] is not None])
+
+                best_dir = v[0][1]
+                for k in data.keys():
+                    if vb_dir not in data[k]:
+                        data[k][vb_dir] = {}
+                    data[k][vb_dir][f] = data[k][best_dir][f]
+            g_args.dirs.append(vb_dir)
+
+
+    # add uniquely solved column
+    if g_args.u:
+        FILE_STATS_KEYS.append('g_uniq')
+        g_args.columns.append('g_uniq')
+        FILTER_ERR['g_uniq'] = ['UNIQ',
+                                lambda x: False,
+                                lambda x: None,
+                                lambda x: None,
+                                False]
+        data['g_uniq'] = {}
+        for f in g_benchmarks:
+            stats = []
+            for d in data['status']:
+                if d not in data['g_uniq']:
+                    data['g_uniq'][d] = {}
+                stats.append(data['status'][d][f])
+            set_uniq = False
+            uniq_exists = stats.count('ok') == 1
+            for d in data['status']:
+                if uniq_exists and data['status'][d][f] == 'ok':
+                    assert (not set_uniq)
+                    data['g_uniq'][d][f] = 1
+                    set_uniq = True
+                else:
+                    data['g_uniq'][d][f] = None
 
 def _read_out_file(d, f):
     _filter_data(d, f, FILTER_OUT)
@@ -506,26 +615,12 @@ def _read_data (dirs):
                                 raise CmpSMTException ("missing '{}'".format (
                                     os.path.join (d, outfile)))
                             _read_out_file (d, "{}{}".format(f[:-3], "out"))
-                    # reset timeout if given
-                    if g_args.timeout and \
-                   g_file_stats["time_time"][d][f_name] > g_args.timeout[d]:
-                        g_file_stats["time_time"][d][f_name] = \
-                               g_args.timeout[d]
-                        g_file_stats["status"][d][f_name] = "time"
-                        g_file_stats["result"][d][f_name] = 1
-                        if g_args.g:
-                            for k in ["g_total", "g_solved", "g_time",
-                                      "g_mem", "g_err"]:
-                                if k not in g_file_stats:
-                                    continue
-                                g_file_stats[k][d][f_name] = "time"
         # create cache file
         _save_cache_file(d)
 
-def _pick_data(benchmarks, data, generate_vbs):
+def _pick_data(benchmarks, data):
     global g_args
 
-    dirs = g_args.dirs[:-1] if g_args.vb else g_args.dirs
     sort_reverse = False
     f_cmp = lambda x, y: x * (1 + g_args.diff) <= y
     if g_args.cmp_col == 'g_solved':
@@ -534,88 +629,34 @@ def _pick_data(benchmarks, data, generate_vbs):
 
     best_stats = dict((k, {}) for k in FILE_STATS_KEYS)
     diff_stats = dict((k, {}) for k in FILE_STATS_KEYS)
-    vb_stats = None if not generate_vbs\
-                    else dict((k, {}) for k in FILE_STATS_KEYS)
-    vbdir = g_args.dirs[-1]
 
     for f in benchmarks:
         for k in data.keys():
-            # initialize missing files in a directory
-            for d in dirs:
-                if f not in data[k][d]: data[k][d][f] = None
-            if generate_vbs: 
-                if vbdir not in data[k]: data[k][vbdir] = {}
-                if f not in data[k][vbdir]: data[k][vbdir][f] = None
-
             v = sorted(\
-                [(data[k][d][f], d) for d in dirs if data[k][d][f] is not None],
+                [(data[k][d][f], d) \
+                    for d in g_args.dirs if data[k][d][f] is not None],
                 reverse=sort_reverse)
 
             # strings are not considered for diff/best values
             if len(v) == 0 or isinstance(v[0][0], str):
                 best_stats[k][f] = None
                 diff_stats[k][f] = None
-                if generate_vbs: vb_stats[k][f] = None
                 continue
 
-            best_stats[k][f] = None \
-                if len(set([t[0] for t in v])) <= 1 \
-                   or 'status' in data and f not in data['status'][d] \
-                   or not g_args.vbsd \
-                      and 'status' in data and data['status'][d][f] != 'ok' \
-                else v[0][1]
+            best_dir = v[0][1]
 
-            diff_stats[k][f] = None \
-                if best_stats[k][f] is None or not f_cmp(v[0][0], v[1][0]) \
-                else v[0][1]
+            if len(set([t[0] for t in v])) <= 1:
+                best_stats[k][f] = None
+            else:
+                best_stats[k][f] = best_dir
 
-            if generate_vbs:
-                vb_stats[k][f] = v[0][1]
+            if best_stats[k][f] is None or not f_cmp(v[0][0], v[1][0]):
+                diff_stats[k][f] = None
+            else:
+                diff_stats[k][f] = best_dir
 
     assert(diff_stats.keys() == best_stats.keys())
-
-    # collect data for virtual best solver
-    if generate_vbs:
-        if not g_args.vbp or len(g_args.dirs) < 3:
-            for f in vb_stats[g_args.cmp_col]:
-                for k in data.keys():
-                    if vb_stats[g_args.cmp_col][f]:
-                        data[k][vbdir][f] = \
-                            data[k][vb_stats[g_args.cmp_col][f]][f]
-        else:
-            assert (len(g_args.dirs) <= 3)
-            if g_args.timeout[g_args.dirs[0]] < g_args.timeout[g_args.dirs[1]]:
-                bdir = g_args.dirs[1]  # base run
-                pdir = g_args.dirs[0]  # "preprocessing" run
-            else:
-                bdir = g_args.dirs[0]
-                pdir = g_args.dirs[1]
-            for f in benchmarks:
-                time_bdir = data["time_time"][bdir][f] \
-                        if data["time_time"][bdir][f] < g_args.timeout[bdir] \
-                        else g_args.timeout[bdir]
-                time_pdir = data["time_time"][pdir][f] \
-                        if data["time_time"][pdir][f] < g_args.timeout[pdir] \
-                        else g_args.timeout[pdir]
-                if data["status"][pdir][f] in ["ok", "time"] \
-                   and time_pdir < g_args.timeout[pdir]:
-                       for k in data.keys():
-                           data[k][vbdir][f] = data[k][pdir][f]
-                elif data["status"][bdir][f] == "ok":
-                    for k in data.keys():
-                        data[k][vbdir][f] = data[k][bdir][f]
-                    time_vbp = round(time_bdir + g_args.timeout[pdir], 2)
-                    data["time_time"][vbdir][f] = time_vbp
-                    if time_vbp >= g_args.timeout[bdir]:
-                        data["status"][vbdir][f] = "time"
-                        data["time_time"][vbdir][f] = g_args.timeout[bdir]
-                        if not g_args.g:
-                            data["result"][vbdir][f] = 1
-                else:
-                    for k in data.keys():
-                        data[k][vbdir][f] = data[k][bdir][f]
-
-    return diff_stats, best_stats, vb_stats
+    return diff_stats, best_stats
 
 
 def _format_field(field, width, color=None, colspan=0, classes=[]):
@@ -719,7 +760,7 @@ def _get_column_name(key):
     return FILTER_OUT[key][0]
 
 
-def _get_color(f, d, diff_stats, best_stats, vb_stats):
+def _get_color(f, d, diff_stats, best_stats):
     global g_args
 
     for k in diff_stats.keys():
@@ -728,12 +769,6 @@ def _get_color(f, d, diff_stats, best_stats, vb_stats):
                 return COLOR_DIFF
             elif best_stats[k][f] == d:
                 return COLOR_BEST
-            elif not g_args.g and vb_stats and d == g_args.dirs[-1] \
-                 and diff_stats[k][f] == vb_stats[k][f]:
-                     return COLOR_DIFF
-            elif not g_args.g and vb_stats and d == g_args.dirs[-1] \
-                 and best_stats[k][f] == vb_stats[k][f]:
-                     return COLOR_BEST
     return COLOR_NOCOLOR
 
 
@@ -795,7 +830,7 @@ def _base_dir(path):
     return os.path.basename(path.rstrip('/'))
 
 
-def _print_totals(vb_stats=None):
+def _print_totals():
 
     data, benchmarks = _get_group_totals()
 
@@ -847,17 +882,12 @@ def _get_column_widths(data, benchmarks):
         padding + max(max(len(b) for b in benchmarks), len("DIRECTORY"))
 
     data_column_widths = dict((k, {}) for k in g_args.columns)
-    dirs = g_args.dirs[:-1] if g_args.vb else g_args.dirs
-    for d in dirs:
+    for d in g_args.dirs:
         for k in columns:
             data_column_widths[k][d] = \
                 padding + \
                 max(len(_get_column_name(k)),
                     max(len(str(v)) for v in data[k][d].values()))
-    if g_args.vb:
-        for k in columns:
-            data_column_widths[k][g_args.dirs[-1]] = \
-                    max(data_column_widths[k][d] for d in dirs)
 
 
     # header column widths
@@ -882,11 +912,10 @@ def _get_column_widths(data, benchmarks):
 def _print_data ():
     global g_file_stats, g_dir_stats
 
-    diff_stats, best_stats, vb_stats = \
-            _pick_data(g_benchmarks, g_file_stats, g_args.vb)
+    diff_stats, best_stats = _pick_data(g_benchmarks, g_file_stats)
     if g_args.g:
         data, benchmarks = _get_group_totals()
-        diff_stats, best_stats, vbs_stats = _pick_data(benchmarks, data, False)
+        diff_stats, best_stats = _pick_data(benchmarks, data)
     else:
         data = g_file_stats
         benchmarks = g_benchmarks
@@ -907,7 +936,7 @@ def _print_data ():
                  </table><table>""".format(g_args.cmp_col, g_args.diff))
 
     if g_args.t or g_args.html:
-        _print_totals(vb_stats)
+        _print_totals()
         
     # print header
     columns = ["DIRECTORY"]
@@ -943,7 +972,13 @@ def _print_data ():
         print("</thead><tbody>")
 
     # print data rows
-    for f in sorted(benchmarks, key=lambda s: s.lower()):
+    rows = sorted(benchmarks, key=lambda s: s.lower())
+    # totals row should always be on the bottom
+    if g_args.g:
+        assert ('totals' in rows)
+        rows.remove('totals')
+        rows.append('totals')
+    for f in rows:
         if not g_args.g:
             if g_args.timeof \
                and not g_file_stats['status'][g_args.timeof][f] == 'time':
@@ -992,7 +1027,7 @@ def _print_data ():
             columns.append([data[k][d][f] for k in g_args.columns])
             widths.append([data_column_widths[k][d] for k in g_args.columns])
             colors.append(color if color != COLOR_NOCOLOR \
-                        else _get_color(f, d, diff_stats, best_stats, vb_stats))
+                        else _get_color(f, d, diff_stats, best_stats))
 
         _print_row(columns, widths, colors=colors, classes=classes)
 
@@ -1154,6 +1189,12 @@ if __name__ == "__main__":
               )
         aparser.add_argument \
               (
+                "-u",
+                action="store_true",
+                help="uniquely solved instances"
+              )
+        aparser.add_argument \
+              (
                 "-t",
                 action="store_true",
                 help="show totals table"
@@ -1174,8 +1215,7 @@ if __name__ == "__main__":
                 unique_dirs.append(d)
         g_args.dirs = unique_dirs
 
-        if len(g_args.dirs) < 1 \
-           or g_args.vbp and len(g_args.dirs) > 2:
+        if len(g_args.dirs) < 1:
             raise CmpSMTException ("invalid number of dirs given")
 
         if g_args.vbp: g_args.vb = True
@@ -1248,22 +1288,13 @@ if __name__ == "__main__":
         if g_args.timeof and not g_args.timeof in g_args.dirs:
             raise CmpSMTException ("invalid dir given")
 
-        if g_args.vbp:
-            g_args.dirs.append("virtual best solver (prep)")
-        elif g_args.vb:
-            g_args.dirs.append("virtual best solver (portfolio)")
-
         # initialize global data
         g_dir_stats = dict((k, {}) for k in DIR_STATS_KEYS)
-        # initialize for virtual best solver
-        if g_args.vb:
-            for k in g_dir_stats.keys():
-                g_dir_stats[k][g_args.dirs[-1]] = []
 
         if len(set(g_args.columns).intersection(FILTER_LOG)) == 0:
             g_parse_err_only = True
 
-        _read_data(g_args.dirs[:-1] if g_args.vb else g_args.dirs)
+        _read_data(g_args.dirs)
 
         # remove files not to display
         if g_args.filter:

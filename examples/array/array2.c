@@ -2,6 +2,7 @@
 #include <stdio.h>
 #include <stdlib.h>
 #include "boolector.h"
+#include "btoropt.h"
 
 #define ARRAY2_EXAMPLE_VALUE_BW 8
 #define ARRAY2_EXAMPLE_INDEX_BW 1
@@ -21,7 +22,7 @@ main (void)
   int result, size, i;
 
   btor = boolector_new ();
-  boolector_set_opt (btor, "model_gen", 1);
+  boolector_set_opt (btor, BTOR_OPT_MODEL_GEN, 1);
 
   zero   = boolector_zero (btor, ARRAY2_EXAMPLE_INDEX_BW);
   one    = boolector_one (btor, ARRAY2_EXAMPLE_INDEX_BW);

@@ -3,6 +3,7 @@
 #include <stdlib.h>
 #include <string.h>
 #include "boolector.h"
+#include "btoropt.h"
 #include "utils/btorutil.h"
 
 static BoolectorNode *
@@ -147,7 +148,7 @@ main (int argc, char **argv)
   }
 
   btor = boolector_new ();
-  boolector_set_opt (btor, "rewrite_level", 0);
+  boolector_set_opt (btor, BTOR_OPT_REWRITE_LEVEL, 0);
 
   orig_mem = boolector_array (btor, 8, 32, "mem");
   mem1     = boolector_copy (btor, orig_mem);

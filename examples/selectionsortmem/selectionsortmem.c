@@ -1,6 +1,7 @@
 #include <stdio.h>
 #include <stdlib.h>
 #include "boolector.h"
+#include "btoropt.h"
 #include "utils/btorutil.h"
 
 int
@@ -26,7 +27,7 @@ main (int argc, char **argv)
   }
 
   btor = boolector_new ();
-  boolector_set_opt (btor, "rewrite_level", 0);
+  boolector_set_opt (btor, BTOR_OPT_REWRITE_LEVEL, 0);
   one = boolector_one (btor, 32);
 
   mem = boolector_array (btor, 8, 32, "array");
