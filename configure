@@ -496,7 +496,7 @@ incdirs.extend("$py_inc_dirs".split())
 ext_modules=[
     Extension("boolector",
               sources=["$SRCDIR/api/python/boolector.pyx"],
-	      include_dirs=incdirs,
+              include_dirs=incdirs,
               library_dirs=[cwd+"/"+s for s in "$py_library_dirs".split()],
               libraries="$py_libraries".split(),
               extra_compile_args=[s for s in "$CFLAGS".split() if "-D" in s],

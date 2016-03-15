@@ -362,6 +362,11 @@ int boolector_set_sat_solver_minisat (Btor *btor);
 /*!
   Set option.
 
+  E.g., given a Boolector instance ``btor``, model generation is enabled via
+
+  .. code-block:: c
+
+    boolector_set_opt (btor, BTOR_OPT_MODEL_GEN, 1);
 
   .. include:: cboolector_options.rst
 
