@@ -437,7 +437,7 @@ btor_beta_reduce (Btor *btor,
             e[0] = e[2];
             e[2] = next;
           }
-          result = btor_args_exp (btor, real_cur->arity, e);
+          result = btor_args_exp (btor, e, real_cur->arity);
           btor_release_exp (btor, e[0]);
           if (real_cur->arity >= 2) btor_release_exp (btor, e[1]);
           if (real_cur->arity >= 3) btor_release_exp (btor, e[2]);
@@ -818,7 +818,7 @@ btor_beta_reduce_partial_aux (Btor *btor,
             e[0] = e[2];
             e[2] = next;
           }
-          result = btor_args_exp (btor, real_cur->arity, e);
+          result = btor_args_exp (btor, e, real_cur->arity);
           btor_release_exp (btor, e[0]);
           if (real_cur->arity >= 2) btor_release_exp (btor, e[1]);
           if (real_cur->arity >= 3) btor_release_exp (btor, e[2]);
@@ -1026,7 +1026,7 @@ btor_beta_reduce_partial_collect (Btor *btor,
 }
 
 BtorNode *
-btor_apply_and_reduce (Btor *btor, int argc, BtorNode **args, BtorNode *lambda)
+btor_apply_and_reduce (Btor *btor, int argc, BtorNode *args[], BtorNode *lambda)
 {
   assert (btor);
   assert (argc >= 0);

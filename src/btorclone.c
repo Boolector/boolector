@@ -1494,7 +1494,7 @@ btor_recursively_rebuild_exp_clone (Btor *btor,
           cur_clone = btor_apply_exp_node (clone, e[0], e[1]);
           break;
         case BTOR_ARGS_NODE:
-          cur_clone = btor_args_exp (clone, cur->arity, e);
+          cur_clone = btor_args_exp (clone, e, cur->arity);
           break;
         default:
           assert (BTOR_IS_BV_COND_NODE (cur));
