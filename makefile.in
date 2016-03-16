@@ -59,10 +59,9 @@ $(BUILDIR)/libboolector.a: $(LIBOBJS)
 	ar rc $@ $(LIBOBJS)
 	ranlib $@
 
-SONAME=-Xlinker -soname -Xlinker $(BUILDIR)/libboolector.so
 SHOBJS=$(filter-out $(BUILDIR)/btormbt.o $(BUILDIR)/btoruntrace.o $(BUILDIR)/btormain.o $(BUILDIR)/boolectormain.o, $(LIBOBJS))
 $(BUILDIR)/libboolector.so: $(SHOBJS)
-	$(CC) $(CFLAGS) -shared -o $@ $(SHOBJS) $(LIBS) $(SONAME)
+	$(CC) $(CFLAGS) -shared -o $@ $(SHOBJS) $(LIBS) -Xlinker -soname=$@
 
 $(BINDIR)/boolector: $(BUILDIR)/btormain.o $(BUILDIR)/boolectormain.o $(BUILDIR)/libboolector.a $(LDEPS)
 	@mkdir -p $(@D)
