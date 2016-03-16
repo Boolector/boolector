@@ -12,7 +12,6 @@ $(BUILDIR)/$(TESTDIR)/test.dep: $(BUILDIR)/btorconfig.h $(SRCS) $(TESTSRCS) make
 	sed -e 's,:,: makefile,' -e 's,^test,$(BUILDIR)/$(TESTDIR)/test,' >$@
 
 $(BINDIR)/test: $(TESTOBJS) $(BUILDIR)/btormain.o $(BUILDIR)/libboolector.a  $(LDEPS) makefile
-	@mkdir -p $(@D)
 	$(CC) $(CFLAGS) -o $@ $(TESTOBJS) $(BUILDIR)/btormain.o $(INCS) -L$(BUILDIR) -lboolector $(LIBS)
 
 clean: test-clean

@@ -18,7 +18,7 @@ gcov=no
 gprof=no
 python=no
 
-ROOT="\$(ROOT)"
+ROOT="`pwd|sed -e 's, ,\\ ,g'`"
 
 #--------------------------------------------------------------------------#
 
@@ -134,7 +134,7 @@ fi
 
 BINDIR="bin"
 BUILDIR="build"
-TESTDIR="tests" # TODO should be $BUILDIR/tests
+TESTDIR="tests"
 SRCDIR="src"
 
 SRCDIRS="src src/btorfmt src/dumper src/parser src/simplifier src/tests src/utils"
@@ -207,7 +207,7 @@ LIBSTDCPP=no
 if [ $shared = yes ]
 then
   LIBS="-Wl\,-rpath=$ROOT/$BUILDIR/."
-  LDEPS="$BUILDIR/libboolector.so"
+  LDEPS="libboolector.so"
   LIBSTDCPP=yes
 fi
 
@@ -247,8 +247,7 @@ else
     [ X"$LDEPS" = X ] || LDEPS="$LDEPS "
     [ X"$LIBS" = X ] || LIBS="$LIBS "
     CFLAGS="${CFLAGS}-DBTOR_USE_PICOSAT"
-    #if [ $shared = yes ]		
-    if false
+    if [ $shared = yes ]		
     then
       LIBS="${LIBS}-L../picosat -Wl\,-rpath=$ROOT/../picosat/ -lpicosat"
       LDEPS="${LDEPS}../picosat/libpicosat.so"
@@ -561,5 +560,6 @@ sed \
   -e "s,@BUILDIR@,$BUILDIR," \
   -e "s,@BINDIR@,$BINDIR," \
   -e "s,@TESTDIR@,$TESTDIR," \
+  -e "s,@ROOT@,$ROOT,"\
   makefile.in > makefile
 msg "makefile generated"
