@@ -61,15 +61,14 @@ $(BUILDIR)/libboolector.a: $(LIBOBJS)
 
 SHOBJS=$(filter-out $(BUILDIR)/btormbt.o $(BUILDIR)/btoruntrace.o $(BUILDIR)/btormain.o $(BUILDIR)/boolectormain.o, $(LIBOBJS))
 $(BUILDIR)/libboolector.so: $(SHOBJS)
-	$(CC) $(CFLAGS) -shared -o $@ $(SHOBJS) $(LIBS) -Xlinker -soname=$@
+	$(CC) $(CFLAGS) -shared -o $@ $(SHOBJS) $(LIBS) -Xlinker -soname=libboolector.so
 
-$(BINDIR)/boolector: $(BUILDIR)/btormain.o $(BUILDIR)/boolectormain.o $(BUILDIR)/libboolector.a $(LDEPS)
+$(BINDIR)/boolector: $(BUILDIR)/btormain.o $(BUILDIR)/boolectormain.o $(LDEPS)
 	@mkdir -p $(@D)
-	$(CC) $(CFLAGS) $(INCS) -o $@ $(BUILDIR)/btormain.o $(BUILDIR)/boolectormain.o -L$(BUILDIR) -lboolector $(LIBS) $(LDEPS)
+	$(CC) $(CFLAGS) $(INCS) -o $@ $(BUILDIR)/btormain.o $(BUILDIR)/boolectormain.o $(LDEPS) $(LIBS) -lboolector
 
 clean:
 	rm -f makefile
-	rm -f $(foreach d,$(SRCDIRS),$(d)/*.{gcda,gcno,gcov,plist})
 	rm -f $(SRCDIR)/$(TESTDIR)/log/*.log
 	rm -f -r $(BINDIR)
 	rm -f -r $(BUILDIR)

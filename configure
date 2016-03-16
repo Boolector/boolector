@@ -197,17 +197,19 @@ fi
 
 #--------------------------------------------------------------------------#
 
-LIBS=""
+LIBS="-L$BUILDIR"
 OBJS=""
 INCS="-I$SRCDIR -I$BUILDIR "
+RPATHS=""
+LDEPS="$BUILDIR/libboolector.a"
 
 LIBZ=no
 LIBM=no
 LIBSTDCPP=no
 if [ $shared = yes ]
 then
-  LIBS="-Wl\,-rpath=$ROOT/$BUILDIR/."
-  LDEPS="libboolector.so"
+  RPATHS="-rpath=$ROOT/$BUILDIR"
+  LDEPS="$BUILDIR/libboolector.so"
   LIBSTDCPP=yes
 fi
 
@@ -249,7 +251,8 @@ else
     CFLAGS="${CFLAGS}-DBTOR_USE_PICOSAT"
     if [ $shared = yes ]		
     then
-      LIBS="${LIBS}-L../picosat -Wl\,-rpath=$ROOT/../picosat/ -lpicosat"
+      RPATHS="${RPATHS},-rpath=$ROOT/../picosat/"
+      LIBS="${LIBS}-L../picosat -lpicosat"
       LDEPS="${LDEPS}../picosat/libpicosat.so"
     else
       LIBS="${LIBS}-L../picosat -lpicosat"
@@ -407,7 +410,8 @@ else
     OBJS="${OBJS}$BUILDIR/btorminisat.o"
     if [ $shared = yes ]
     then
-      LIBS="${LIBS}-L../minisat/build/dynamic/lib -Wl\,-rpath=$ROOT/../minisat/build/dynamic/lib -lminisat"
+      RPATHS="${RPATHS},-rpath=$ROOT/../minisat/build/dynamic/lib"
+      LIBS="${LIBS}-L../minisat/build/dynamic/lib -lminisat"
       LDEPS="${LDEPS}../minisat/build/dynamic/lib/libminisat.so"
     else
       LIBS="${LIBS}-L../minisat/build/release/lib -lminisat"
@@ -451,6 +455,11 @@ then
 fi
 
 #--------------------------------------------------------------------------#
+
+if [ $shared = yes ]
+then
+  LIBS="-Wl\,${RPATHS} ${LIBS}"
+fi
 
 if [ $python = yes ]
 then
