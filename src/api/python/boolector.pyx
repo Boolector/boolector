@@ -1160,7 +1160,7 @@ cdef class Boolector:
     def Var(self, BoolectorSort sort, str symbol = None):
         """ Var(sort, symbol = None)
 
-            Create a bit vector variable of sort ``sort''.
+            Create a bit vector variable of sort ``sort``.
 
             A variable's symbol is used as a simple means of identification,
             either when printing a model via 
@@ -1174,7 +1174,7 @@ cdef class Boolector:
             :type sort: :class: ~boolector.BoolectorSort
             :param symbol: Symbol of the variable.
             :type symbol: str
-            :return: A bit vector variable of sort ``sort''.
+            :return: A bit vector variable of sort ``sort``.
             :rtype: :class:`~boolector.BoolectorNode`
 
             .. note::
@@ -1194,8 +1194,7 @@ cdef class Boolector:
 
     def Param(self, BoolectorSort sort, str symbol = None):
         """ Param(sort, symbol = None)
-
-            Create a function parameter of sort ``sort''.
+            Create a function parameter of sort ``sort``.
 
             This kind of node is used to create parameterized expressions,
             which in turn are used to create functions.
@@ -1203,14 +1202,15 @@ cdef class Boolector:
             other functions.
 
             See :func:`~boolector.Boolector.Fun`, 
-            :func:`~boolector.Boolector.Apply`.
+                :func:`~boolector.Boolector.Apply`.
             
             :param sort: Sort of the function parameter.
             :type sort: :class: ~boolector.BoolectorSort
             :param symbol: Symbol of the function parameter.
             :type symbol: str
-            :return: A function parameter of sort ``sort''.
+            :return: A function parameter of sort ``sort``.
             :rtype: :class:`~boolector.BoolectorNode`
+
         """
         if not isinstance(sort, _BoolectorBitVecSort):
             raise BoolectorException(
@@ -1225,7 +1225,7 @@ cdef class Boolector:
         """ Array(sort, symbol = None)
 
             Create a one-dimensional bit vector array variable of sort
-            ``sort'' with symbol ``symbol''.
+            ``sort`` with symbol ``symbol``.
 
             An array variable's symbol is used as a simple means of
             identfication, either when printing a model via 
@@ -1239,7 +1239,7 @@ cdef class Boolector:
             :type sort: BoolectorSort
             :param symbol: Symbol of the array variable.
             :type symbol: str
-            :return: A bit vector array variable of sort ``sort'' with symbol ``symbol''.
+            :return: A bit vector array variable of sort ``sort`` with symbol ``symbol``.
             :rtype: :class:`~boolector.BoolectorNode`
 
             .. note::

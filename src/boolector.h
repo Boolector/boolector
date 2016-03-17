@@ -458,7 +458,7 @@ const char *boolector_get_opt_desc (Btor *btor, BtorOption opt);
 
   :param btor: Btor instance.
   :param opt: Option opt.
-  :return true if Boolector has the given option, and false otherwise.
+  :return: True if Boolector has the given option, and false otherwise.
 */
 bool boolector_has_opt (Btor *Btor, BtorOption opt);
 
@@ -489,7 +489,7 @@ BtorOption boolector_first_opt (Btor *btor);
 
   .. code-block:: c
 
-    for (s = boolector_first_opt_noref (btor); boolector_has_oprt_noref (btor,
+    for (s = boolector_first_opt_noref (btor); boolector_has_opt_noref (btor,
   s); s = boolector_next_opt_noref (btor, s)) {...}
 
   :param btor: Btor instance.
@@ -1923,7 +1923,7 @@ bool boolector_is_equal_sort (Btor *btor, BoolectorNode *n0, BoolectorNode *n1);
 
   :param btor: Boolector instance.
   :param sort: Sort.
-  :return True if ``sort`` is an array sort, and false otherwise.
+  :return: True if ``sort`` is an array sort, and false otherwise.
  */
 bool boolector_is_array_sort (Btor *btor, BoolectorSort sort);
 
