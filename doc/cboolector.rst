@@ -29,7 +29,7 @@ Quickstart
 
   .. code-block:: c
 
-    boolector_set_opt (btor, "model-gen", 1);
+    boolector_set_opt (btor, BTOR_OPT_MODEL_GEN, 1);
 
   For a detailed description of all configurable options, see
   :c:func:`boolector_set_opt`.

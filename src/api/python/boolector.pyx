@@ -866,6 +866,10 @@ cdef class Boolector:
 
             Set option.
 
+            E.g., given a Boolector instance ``btor``, model generation is enabled via  ::
+
+              btor.Set_opt(BTOR_OPT_MODEL_GEN, 1)
+
             .. include:: pyboolector_options.rst
 
             .. toctree:: 
