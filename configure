@@ -251,7 +251,7 @@ else
     CFLAGS="${CFLAGS}-DBTOR_USE_PICOSAT"
     if [ $shared = yes ]		
     then
-      RPATHS="${RPATHS},-rpath=$ROOT/../picosat/"
+      RPATHS="${RPATHS}\,-rpath=$ROOT/../picosat/"
       LIBS="${LIBS}-L../picosat -lpicosat"
       LDEPS="${LDEPS}../picosat/libpicosat.so"
     else
@@ -410,7 +410,7 @@ else
     OBJS="${OBJS}$BUILDIR/btorminisat.o"
     if [ $shared = yes ]
     then
-      RPATHS="${RPATHS},-rpath=$ROOT/../minisat/build/dynamic/lib"
+      RPATHS="${RPATHS}\,-rpath=$ROOT/../minisat/build/dynamic/lib"
       LIBS="${LIBS}-L../minisat/build/dynamic/lib -lminisat"
       LDEPS="${LDEPS}../minisat/build/dynamic/lib/libminisat.so"
     else
