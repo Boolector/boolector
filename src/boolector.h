@@ -366,7 +366,7 @@ int boolector_set_sat_solver_minisat (Btor *btor);
 
   .. code-block:: c
 
-    boolector_set_opt (btor, BTOR_OPT_MODEL_GEN, 1);
+    boolector_set_opt_noref (btor, BTOR_OPT_MODEL_GEN, 1);
 
   .. include:: cboolector_options.rst
 
@@ -489,8 +489,8 @@ BtorOption boolector_first_opt (Btor *btor);
 
   .. code-block:: c
 
-    for (s = boolector_first_opt_noref (btor); s; s = boolector_next_opt_noref
-  (btor, s)) {...}
+    for (s = boolector_first_opt_noref (btor); boolector_has_oprt_noref (btor,
+  s); s = boolector_next_opt_noref (btor, s)) {...}
 
   :param btor: Btor instance.
   :param opt: Option opt.
@@ -1798,7 +1798,7 @@ void boolector_free_uf_assignment (Btor *btor,
 
     .. code-block:: c
 
-      boolector_print_model (btor, "btor", stdout);
+      boolector_print_model_noref (btor, "btor", stdout);
 
     A possible model would be: ::
 
@@ -1818,7 +1818,7 @@ void boolector_free_uf_assignment (Btor *btor,
 
     .. code-block:: c
 
-      boolector_print_model (btor, "smt2", stdout);
+      boolector_print_model_noref (btor, "smt2", stdout);
 
     A possible model would be: ::
 
