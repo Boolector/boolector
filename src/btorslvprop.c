@@ -2954,15 +2954,15 @@ btor_select_move_prop (Btor *btor,
               btor_get_opt_max (btor, BTOR_OPT_PROP_FLIP_COND_PROB) - 1);
           if (r < pcond)
           {
-            /* assume cond to be fixed */
-            cur = btor_is_zero_bv (tmp) ? real_cur->e[2] : real_cur->e[1];
-          }
-          else
-          {
             /* flip condition */
             btor_free_bv (btor->mm, bvenew);
             bvenew = btor_not_bv (btor->mm, tmp);
             cur    = real_cur->e[0];
+          }
+          else
+          {
+            /* assume cond to be fixed */
+            cur = btor_is_zero_bv (tmp) ? real_cur->e[2] : real_cur->e[1];
           }
 
           real_cur = BTOR_REAL_ADDR_NODE (cur);
