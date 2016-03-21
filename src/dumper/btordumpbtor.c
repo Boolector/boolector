@@ -12,7 +12,6 @@
  */
 
 #include "btordumpbtor.h"
-#include "btorconst.h"
 #include "btorcore.h"
 #include "btorexp.h"
 #include "btorsort.h"

@@ -17,7 +17,6 @@
 #include "btorabort.h"
 #include "btorchkclone.h"
 #include "btorclone.h"
-#include "btorconst.h"
 #include "btorcore.h"
 #include "btorexit.h"
 #include "btormodel.h"

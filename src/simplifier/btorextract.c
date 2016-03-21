@@ -11,7 +11,6 @@
 
 #include "simplifier/btorextract.h"
 #include "btorbitvec.h"
-#include "btorconst.h"
 #include "btorcore.h"
 #include "utils/btoriter.h"
 #include "utils/btormisc.h"

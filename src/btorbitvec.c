@@ -12,7 +12,6 @@
 #include "btorbitvec.h"
 #include "btoraig.h"
 #include "btoraigvec.h"
-#include "btorconst.h"
 #include "btorcore.h"
 #include "utils/btorutil.h"
 

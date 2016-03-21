@@ -14,7 +14,6 @@
 
 #include <stdbool.h>
 #include <stdint.h>
-#include "btorconst.h"
 #include "btortypes.h"
 #include "utils/btormem.h"
 #include "utils/btorstack.h"

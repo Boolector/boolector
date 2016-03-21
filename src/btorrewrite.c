@@ -14,7 +14,6 @@
 #include "btorrewrite.h"
 #include "btorbeta.h"
 #include "btorbitvec.h"
-#include "btorconst.h"
 #include "btorlog.h"
 #include "utils/btorhashint.h"
 #include "utils/btoriter.h"
