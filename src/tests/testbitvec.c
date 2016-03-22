@@ -369,6 +369,108 @@ test_char_to_bitvec (void)
 }
 
 static void
+bv_to_hex_char_bitvec (FILE *g_logfile, char *c)
+{
+  BtorBitVector *bv = btor_char_to_bv (g_mm, c);
+  char *h           = btor_bv_to_hex_char_bv (g_mm, bv);
+  fprintf (g_logfile, "2'%s = 16'%s\n", c, h);
+  btor_freestr (g_mm, h);
+  btor_free_bv (g_mm, bv);
+}
+
+static void
+test_bv_to_hex_char_bitvec (void)
+{
+  bv_to_hex_char_bitvec (g_logfile, "1");
+  bv_to_hex_char_bitvec (g_logfile, "10");
+  bv_to_hex_char_bitvec (g_logfile, "11");
+  bv_to_hex_char_bitvec (g_logfile, "100");
+  bv_to_hex_char_bitvec (g_logfile, "101");
+  bv_to_hex_char_bitvec (g_logfile, "110");
+  bv_to_hex_char_bitvec (g_logfile, "111");
+  bv_to_hex_char_bitvec (g_logfile, "1000");
+  bv_to_hex_char_bitvec (g_logfile, "1001");
+  bv_to_hex_char_bitvec (g_logfile, "1010");
+  bv_to_hex_char_bitvec (g_logfile, "1011");
+  bv_to_hex_char_bitvec (g_logfile, "1100");
+  bv_to_hex_char_bitvec (g_logfile, "1101");
+  bv_to_hex_char_bitvec (g_logfile, "1110");
+  bv_to_hex_char_bitvec (g_logfile, "1111");
+  bv_to_hex_char_bitvec (g_logfile, "10000");
+  bv_to_hex_char_bitvec (g_logfile, "10001");
+  bv_to_hex_char_bitvec (g_logfile, "1111111111111111");
+  bv_to_hex_char_bitvec (g_logfile, "11111111111111111");
+  bv_to_hex_char_bitvec (g_logfile, "00001111111111111111");
+  bv_to_hex_char_bitvec (g_logfile, "000011111111111111111");
+}
+
+static void
+bv_to_dec_char_bitvec (FILE *g_logfile, char *c)
+{
+  BtorBitVector *bv = btor_char_to_bv (g_mm, c);
+  char *d           = btor_bv_to_dec_char_bv (g_mm, bv);
+  fprintf (g_logfile, "2'%s = 10'%s\n", c, d);
+  btor_freestr (g_mm, d);
+  btor_free_bv (g_mm, bv);
+}
+
+static void
+test_bv_to_dec_char_bitvec (void)
+{
+  bv_to_dec_char_bitvec (g_logfile, "1");
+  bv_to_dec_char_bitvec (g_logfile, "10");
+  bv_to_dec_char_bitvec (g_logfile, "11");
+  bv_to_dec_char_bitvec (g_logfile, "100");
+  bv_to_dec_char_bitvec (g_logfile, "101");
+  bv_to_dec_char_bitvec (g_logfile, "110");
+  bv_to_dec_char_bitvec (g_logfile, "111");
+  bv_to_dec_char_bitvec (g_logfile, "1000");
+  bv_to_dec_char_bitvec (g_logfile, "1001");
+  bv_to_dec_char_bitvec (g_logfile, "1010");
+  bv_to_dec_char_bitvec (g_logfile, "1011");
+  bv_to_dec_char_bitvec (g_logfile, "1100");
+  bv_to_dec_char_bitvec (g_logfile, "1101");
+  bv_to_dec_char_bitvec (g_logfile, "1110");
+  bv_to_dec_char_bitvec (g_logfile, "1111");
+  bv_to_dec_char_bitvec (g_logfile, "10000");
+  bv_to_dec_char_bitvec (g_logfile, "10001");
+  bv_to_dec_char_bitvec (g_logfile, "10000000000000000");
+  bv_to_dec_char_bitvec (g_logfile,
+                         "1"
+                         "00000000"
+                         "00000000"
+                         "00000000"
+                         "00000000");
+  bv_to_dec_char_bitvec (g_logfile,
+                         "1"
+                         "00000000"
+                         "00000000"
+                         "00000000"
+                         "00000000"
+                         "00000000"
+                         "00000000"
+                         "00000000"
+                         "00000000");
+  bv_to_dec_char_bitvec (g_logfile,
+                         "1"
+                         "00000000"
+                         "00000000"
+                         "00000000"
+                         "00000000"
+                         "00000000"
+                         "00000000"
+                         "00000000"
+                         "00000000"
+                         "00000000"
+                         "00000000"
+                         "00000000"
+                         "00000000"
+                         "00000000"
+                         "00000000"
+                         "00000000"
+                         "00000000");
+}
+static void
 unary_bitvec (char *(*const_func) (BtorMemMgr *, const char *),
               BtorBitVector *(*bitvec_func) (BtorMemMgr *, BtorBitVector *),
               int num_tests,
@@ -1794,6 +1896,8 @@ run_bitvec_tests (int argc, char **argv)
   BTOR_RUN_TEST (new_random_range_bitvec);
   BTOR_RUN_TEST (uint64_to_bitvec);
   BTOR_RUN_TEST (char_to_bitvec);
+  BTOR_RUN_TEST_CHECK_LOG (bv_to_hex_char_bitvec);
+  BTOR_RUN_TEST_CHECK_LOG (bv_to_dec_char_bitvec);
   BTOR_RUN_TEST (not_bitvec);
   BTOR_RUN_TEST (neg_bitvec);
   BTOR_RUN_TEST (slice_bitvec);
