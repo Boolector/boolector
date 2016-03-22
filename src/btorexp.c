@@ -1738,7 +1738,8 @@ find_bv_exp (Btor *btor, BtorNodeKind kind, BtorNode *e[], uint32_t arity)
 static int compare_binder_exp (Btor *btor,
                                BtorNode *param,
                                BtorNode *body,
-                               BtorNode *binder);
+                               BtorNode *binder,
+                               BtorPtrHashTable *map);
 
 static BtorNode **
 find_binder_exp (Btor *btor,
@@ -1746,7 +1747,7 @@ find_binder_exp (Btor *btor,
                  BtorNode *param,
                  BtorNode *body,
                  unsigned int *binder_hash,
-                 bool compare_binders)
+                 BtorPtrHashTable *map)
 {
   assert (btor);
   assert (param);
@@ -1766,9 +1767,9 @@ find_binder_exp (Btor *btor,
   {
     assert (BTOR_IS_REGULAR_NODE (cur));
     if (cur->kind == kind
-        && ((param == cur->e[0] && body == cur->e[1])
-            || ((!cur->parameterized && compare_binders
-                 && compare_binder_exp (btor, param, body, cur)))))
+        && ((!map && param == cur->e[0] && body == cur->e[1])
+            || (((map || !cur->parameterized)
+                 && compare_binder_exp (btor, param, body, cur, map)))))
       break;
     else
     {
@@ -1784,7 +1785,8 @@ static int
 compare_binder_exp (Btor *btor,
                     BtorNode *param,
                     BtorNode *body,
-                    BtorNode *binder)
+                    BtorNode *binder,
+                    BtorPtrHashTable *map)
 {
   assert (btor);
   assert (param);
@@ -1793,15 +1795,16 @@ compare_binder_exp (Btor *btor,
   assert (BTOR_IS_PARAM_NODE (param));
   assert (BTOR_IS_REGULAR_NODE (binder));
   assert (BTOR_IS_BINDER_NODE (binder));
-  assert (!binder->parameterized);
+  assert (!binder->parameterized || map);
 
   int i, equal = 0;
   BtorMemMgr *mm;
-  BtorNode *cur, *real_cur, **result, *subst_param, **e, *b0, *b1;
+  BtorNode *cur, *real_cur, *result, *subst_param, **e, *b0, *b1;
   BtorPtrHashTable *cache, *param_map;
   BtorPtrHashBucket *b, *bb;
   BtorNodePtrStack stack, args;
   BtorNodeIterator it, iit;
+  BtorHashTableIterator h_it;
 
   mm          = btor->mm;
   subst_param = binder->e[0];
@@ -1817,11 +1820,23 @@ compare_binder_exp (Btor *btor,
   param_map = btor_new_ptr_hash_table (mm, 0, 0);
   btor_add_ptr_hash_table (param_map, param)->data.as_ptr = subst_param;
 
-  if (BTOR_IS_BINDER_NODE (BTOR_REAL_ADDR_NODE (body))
-      && BTOR_IS_BINDER_NODE (BTOR_REAL_ADDR_NODE (binder->e[1])))
+  if (map)
   {
-    btor_init_binder_iterator (&it, body);
-    btor_init_binder_iterator (&iit, binder->e[1]);
+    btor_init_node_hash_table_iterator (&h_it, map);
+    while (btor_has_next_node_hash_table_iterator (&h_it))
+    {
+      subst_param = h_it.bucket->data.as_ptr;
+      cur         = btor_next_node_hash_table_iterator (&h_it);
+      btor_add_ptr_hash_table (param_map, cur)->data.as_ptr = subst_param;
+    }
+  }
+
+  if (BTOR_IS_BINDER_NODE (BTOR_REAL_ADDR_NODE (body))
+      && BTOR_IS_BINDER_NODE (BTOR_REAL_ADDR_NODE (binder->e[1]))
+      && BTOR_IS_INVERTED_NODE (body) == BTOR_IS_INVERTED_NODE (binder->e[1]))
+  {
+    btor_init_binder_iterator (&it, BTOR_REAL_ADDR_NODE (body));
+    btor_init_binder_iterator (&iit, BTOR_REAL_ADDR_NODE (binder->e[1]));
     while (btor_has_next_binder_iterator (&it))
     {
       if (!btor_has_next_binder_iterator (&iit)) goto NOT_EQUAL;
@@ -1842,6 +1857,7 @@ compare_binder_exp (Btor *btor,
 
       btor_add_ptr_hash_table (param_map, param)->data.as_ptr = subst_param;
     }
+    body = btor_binder_get_body (BTOR_REAL_ADDR_NODE (body));
   }
   else if (BTOR_IS_BINDER_NODE (BTOR_REAL_ADDR_NODE (body))
            || BTOR_IS_BINDER_NODE (BTOR_REAL_ADDR_NODE (binder->e[1])))
@@ -1866,48 +1882,63 @@ compare_binder_exp (Btor *btor,
     if (!b)
     {
       b = btor_add_ptr_hash_table (cache, real_cur);
+
+      if (BTOR_IS_BINDER_NODE (real_cur))
+      {
+        result = *find_binder_exp (
+            btor, real_cur->kind, real_cur->e[0], real_cur->e[1], 0, param_map);
+        if (result)
+        {
+          b->data.as_ptr = result;
+          BTOR_PUSH_STACK (mm, args, BTOR_COND_INVERT_NODE (cur, result));
+          continue;
+        }
+        else
+        {
+          BTOR_RESET_STACK (args);
+          break;
+        }
+      }
+
       BTOR_PUSH_STACK (mm, stack, cur);
       for (i = real_cur->arity - 1; i >= 0; i--)
         BTOR_PUSH_STACK (mm, stack, real_cur->e[i]);
     }
     else if (!b->data.as_ptr)
     {
+      assert (!BTOR_IS_BINDER_NODE (real_cur));
       assert (BTOR_COUNT_STACK (args) >= real_cur->arity);
       args.top -= real_cur->arity;
       e = args.top;
 
       if (BTOR_IS_SLICE_NODE (real_cur))
       {
-        result = find_slice_exp (btor,
-                                 e[0],
-                                 btor_slice_get_upper (real_cur),
-                                 btor_slice_get_lower (real_cur));
-      }
-      else if (BTOR_IS_BINDER_NODE (real_cur))
-      {
-        result = find_binder_exp (btor, real_cur->kind, e[0], e[1], 0, false);
+        result = *find_slice_exp (btor,
+                                  e[0],
+                                  btor_slice_get_upper (real_cur),
+                                  btor_slice_get_lower (real_cur));
       }
       else if (BTOR_IS_PARAM_NODE (real_cur))
       {
         if ((bb = btor_get_ptr_hash_table (param_map, real_cur)))
-          result = (BtorNode **) &bb->data.as_ptr;
+          result = bb->data.as_ptr;
         else
-          result = &real_cur;
+          result = real_cur;
       }
       else
       {
         assert (!BTOR_IS_BINDER_NODE (real_cur));
-        result = find_bv_exp (btor, real_cur->kind, e, real_cur->arity);
+        result = *find_bv_exp (btor, real_cur->kind, e, real_cur->arity);
       }
 
-      if (!*result)
+      if (!result)
       {
         BTOR_RESET_STACK (args);
         break;
       }
 
-      BTOR_PUSH_STACK (mm, args, BTOR_COND_INVERT_NODE (cur, *result));
-      b->data.as_ptr = *result;
+      BTOR_PUSH_STACK (mm, args, BTOR_COND_INVERT_NODE (cur, result));
+      b->data.as_ptr = result;
     }
     else
     {
@@ -1917,7 +1948,8 @@ compare_binder_exp (Btor *btor,
   }
   assert (BTOR_COUNT_STACK (args) <= 1);
 
-  if (!BTOR_EMPTY_STACK (args)) equal = BTOR_TOP_STACK (args) == binder->e[1];
+  if (!BTOR_EMPTY_STACK (args))
+    equal = BTOR_TOP_STACK (args) == btor_binder_get_body (binder);
 
   BTOR_RELEASE_STACK (mm, stack);
   BTOR_RELEASE_STACK (mm, args);
@@ -1945,7 +1977,7 @@ find_exp (Btor *btor,
 
   if (kind == BTOR_LAMBDA_NODE || kind == BTOR_FORALL_NODE
       || kind == BTOR_EXISTS_NODE)
-    return find_binder_exp (btor, kind, e[0], e[1], binder_hash, true);
+    return find_binder_exp (btor, kind, e[0], e[1], binder_hash, 0);
   else if (binder_hash)
     *binder_hash = 0;
 
