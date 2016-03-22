@@ -95,8 +95,9 @@ delete_smt_dump_context (BtorSMTDumpContext *sdc)
   while (btor_has_next_hash_table_iterator (&it))
   {
     assert (it.bucket->data.as_str);
-    btor_free_bv (sdc->btor->mm, it.bucket->data.as_str);
-    btor_freestr (sdc->btor->mm, (char *) btor_next_hash_table_iterator (&it));
+    btor_freestr (sdc->btor->mm, it.bucket->data.as_str);
+    btor_free_bv (sdc->btor->mm,
+                  (BtorBitVector *) btor_next_hash_table_iterator (&it));
   }
   btor_delete_ptr_hash_table (sdc->const_cache);
   BTOR_DELETE (sdc->btor->mm, sdc);
