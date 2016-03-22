@@ -10,7 +10,6 @@
  */
 
 #include "btorprintmodel.h"
-#include "btorconst.h"
 #include "btormodel.h"
 #include "dumper/btordumpsmt.h"
 #include "utils/btorhashptr.h"
@@ -27,13 +26,20 @@ btor_get_bv_model_str_aux (Btor *btor,
   assert (fun_model);
   assert (exp);
 
-  const char *res;
+  char *res;
+  uint32_t width;
   const BtorBitVector *bv;
 
   exp = btor_simplify_exp (btor, exp);
-  if (!(bv = btor_get_bv_model_aux (btor, bv_model, fun_model, exp)))
-    return btor_x_const_3vl (btor->mm, btor_get_exp_width (btor, exp));
-  res = btor_bv_to_char_bv (btor->mm, bv);
+  if ((bv = btor_get_bv_model_aux (btor, bv_model, fun_model, exp)))
+    res = btor_bv_to_char_bv (btor->mm, bv);
+  else
+  {
+    width = btor_get_exp_width (btor, exp);
+    BTOR_NEWN (btor->mm, res, width + 1);
+    memset (res, 'x', width);
+    res[width] = 0;
+  }
   return res;
 }
 
