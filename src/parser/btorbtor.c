@@ -17,7 +17,6 @@
 #include "btorparse.h"
 #include "utils/btormem.h"
 #include "utils/btorstack.h"
-#include "utils/btorutil.h"
 
 #include <assert.h>
 #include <ctype.h>

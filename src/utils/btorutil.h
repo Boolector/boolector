@@ -55,15 +55,4 @@ int btor_file_exists (const char *);
 
 /*------------------------------------------------------------------------*/
 
-struct BtorRNG
-{
-  unsigned z, w;
-};
-typedef struct BtorRNG BtorRNG;
-
-void btor_init_rng (BtorRNG *rng, unsigned seed);
-unsigned btor_rand_rng (BtorRNG *rng);
-unsigned btor_pick_rand_rng (BtorRNG *rng, unsigned from, unsigned to);
-double btor_pick_rand_dbl_rng (BtorRNG *rng, double from, double to);
-
 #endif

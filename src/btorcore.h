@@ -23,7 +23,7 @@
 #include "btorsort.h"
 #include "btortypes.h"
 #include "utils/btormem.h"
-#include "utils/btorutil.h"
+#include "utils/btorrng.h"
 
 #include <stdbool.h>
 
