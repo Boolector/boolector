@@ -3,7 +3,7 @@
  *  Copyright (C) 2007-2009 Robert Daniel Brummayer.
  *  Copyright (C) 2007-2012 Armin Biere.
  *  Copyright (C) 2013-2015 Mathias Preiner.
- *  Copyright (C) 2013-2015 Aina Niemetz.
+ *  Copyright (C) 2013-2016 Aina Niemetz.
  *
  *  All rights reserved.
  *
@@ -11,12 +11,14 @@
  *  See COPYING for more information on using this software.
  */
 
-#include "btorbtor.h"
-#include "btorconst.h"
+#include "btorbitvec.h"
 #include "btormsg.h"
 #include "btorparse.h"
 #include "utils/btormem.h"
 #include "utils/btorstack.h"
+#include "utils/btorutil.h"
+
+#include "btorbtor.h"
 
 #include <assert.h>
 #include <ctype.h>
@@ -542,7 +544,8 @@ parse_const (BtorBTORParser *parser, int len)
 static BoolectorNode *
 parse_consth (BtorBTORParser *parser, int len)
 {
-  char *tmp, *extended;
+  char *tmp, *ext;
+  BtorBitVector *tmpbv, *extbv;
   BoolectorNode *res;
   int ch, clen;
 
@@ -567,7 +570,7 @@ parse_consth (BtorBTORParser *parser, int len)
   BTOR_PUSH_STACK (parser->mem, parser->constant, 0);
   BTOR_RESET_STACK (parser->constant);
 
-  tmp  = btor_hex_to_const_n (parser->mem, parser->constant.start, clen);
+  tmp  = btor_hex_to_bin_str_n_util (parser->mem, parser->constant.start, clen);
   clen = (int) strlen (tmp);
 
   if (clen > len)
@@ -576,16 +579,19 @@ parse_consth (BtorBTORParser *parser, int len)
                            "hexadecimal constant '%s' exceeds bit width %d",
                            parser->constant.start,
                            len);
-
     btor_freestr (parser->mem, tmp);
     return 0;
   }
 
   if (clen < len)
   {
-    extended = btor_uext_const (parser->mem, tmp, len - clen);
-    btor_delete_const (parser->mem, tmp);
-    tmp = extended;
+    tmpbv = btor_char_to_bv (parser->mem, tmp);
+    extbv = btor_uext_bv (parser->mem, tmpbv, len - clen);
+    ext   = btor_bv_to_char_bv (parser->mem, extbv);
+    btor_freestr (parser->mem, tmp);
+    btor_free_bv (parser->mem, extbv);
+    btor_free_bv (parser->mem, tmpbv);
+    tmp = ext;
   }
 
   assert (len == (int) strlen (tmp));
@@ -600,7 +606,8 @@ parse_consth (BtorBTORParser *parser, int len)
 static BoolectorNode *
 parse_constd (BtorBTORParser *parser, int len)
 {
-  char *tmp, *extended;
+  char *tmp, *ext;
+  BtorBitVector *tmpbv, *extbv;
   BoolectorNode *res;
   int clen, ch;
 
@@ -636,7 +643,8 @@ parse_constd (BtorBTORParser *parser, int len)
 
     clen = BTOR_COUNT_STACK (parser->constant);
 
-    tmp = btor_decimal_to_const_n (parser->mem, parser->constant.start, clen);
+    tmp =
+        btor_dec_to_bin_str_n_util (parser->mem, parser->constant.start, clen);
   }
 
   BTOR_PUSH_STACK (parser->mem, parser->constant, 0);
@@ -657,14 +665,24 @@ parse_constd (BtorBTORParser *parser, int len)
 
   if (clen < len)
   {
-    extended = btor_uext_const (parser->mem, tmp, len - clen);
-    btor_delete_const (parser->mem, tmp);
-    tmp = extended;
+    tmpbv = 0;
+    if (!strcmp (tmp, ""))
+      extbv = btor_new_bv (parser->mem, len - clen);
+    else
+    {
+      tmpbv = btor_char_to_bv (parser->mem, tmp);
+      extbv = btor_uext_bv (parser->mem, tmpbv, len - clen);
+    }
+    ext = btor_bv_to_char_bv (parser->mem, extbv);
+    btor_freestr (parser->mem, tmp);
+    btor_free_bv (parser->mem, extbv);
+    if (tmpbv) btor_free_bv (parser->mem, tmpbv);
+    tmp = ext;
   }
 
   assert (len == (int) strlen (tmp));
   res = boolector_const (parser->btor, tmp);
-  btor_delete_const (parser->mem, tmp);
+  btor_freestr (parser->mem, tmp);
 
   assert (boolector_get_width (parser->btor, res) == len);
 

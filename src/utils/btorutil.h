@@ -14,8 +14,12 @@
 #ifndef BTORUTIL_H_INCLUDED
 #define BTORUTIL_H_INCLUDED
 
+#include "utils/btormem.h"
+
 #include <stdbool.h>
 #include <stdint.h>
+
+/*------------------------------------------------------------------------*/
 
 #define BTOR_HAVE_GETRUSAGE  // TODO make this a configuration option
 
@@ -33,6 +37,8 @@
     (B)                = BTOR_SWAP_TMP; \
   } while (0)
 
+/*------------------------------------------------------------------------*/
+
 bool btor_is_power_of_2_util (uint32_t x);
 
 uint32_t btor_log_2_util (uint32_t x);
@@ -41,7 +47,23 @@ int btor_pow_2_util (int x);
 
 int btor_next_power_of_2_util (int x);
 
+/*------------------------------------------------------------------------*/
+
 int btor_num_digits_util (int x);
+
+/*------------------------------------------------------------------------*/
+
+char *btor_dec_to_bin_str_util (BtorMemMgr *mm, const char *str);
+
+char *btor_dec_to_bin_str_n_util (BtorMemMgr *mm,
+                                  const char *str,
+                                  uint32_t len);
+
+char *btor_hex_to_bin_str_util (BtorMemMgr *mm, const char *str);
+
+char *btor_hex_to_bin_str_n_util (BtorMemMgr *mm,
+                                  const char *str,
+                                  uint32_t len);
 
 /*------------------------------------------------------------------------*/
 
