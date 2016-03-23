@@ -585,12 +585,18 @@ parse_consth (BtorBTORParser *parser, int len)
 
   if (clen < len)
   {
-    tmpbv = btor_char_to_bv (parser->mem, tmp);
-    extbv = btor_uext_bv (parser->mem, tmpbv, len - clen);
-    ext   = btor_bv_to_char_bv (parser->mem, extbv);
+    tmpbv = 0;
+    if (!strcmp (tmp, ""))
+      extbv = btor_new_bv (parser->mem, len - clen);
+    else
+    {
+      tmpbv = btor_char_to_bv (parser->mem, tmp);
+      extbv = btor_uext_bv (parser->mem, tmpbv, len - clen);
+    }
+    ext = btor_bv_to_char_bv (parser->mem, extbv);
     btor_freestr (parser->mem, tmp);
     btor_free_bv (parser->mem, extbv);
-    btor_free_bv (parser->mem, tmpbv);
+    if (tmpbv) btor_free_bv (parser->mem, tmpbv);
     tmp = ext;
   }
 

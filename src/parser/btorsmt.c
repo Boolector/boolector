@@ -11,7 +11,7 @@
  */
 
 #include "btorsmt.h"
-#include "btorconst.h"
+#include "btorbitvec.h"
 #include "utils/btormem.h"
 #include "utils/btorstack.h"
 #include "utils/btorutil.h"
@@ -1416,7 +1416,8 @@ static BoolectorNode *
 node2exp (BtorSMTParser *parser, BtorSMTNode *node)
 {
   const char *p, *start, *end;
-  char *tmp, *extended, ch;
+  char *tmp, *ext, ch;
+  BtorBitVector *tmpbv, *extbv;
   BtorSMTSymbol *symbol;
   int len, tlen, token;
 
@@ -1451,7 +1452,8 @@ node2exp (BtorSMTParser *parser, BtorSMTNode *node)
             len = atoi (end + 1);
             if (len)
             {
-              tmp = btor_decimal_to_const_n (parser->mem, start, end - start);
+              tmp =
+                  btor_dec_to_bin_str_n_util (parser->mem, start, end - start);
 
               tlen = (int) strlen (tmp);
 
@@ -1459,17 +1461,26 @@ node2exp (BtorSMTParser *parser, BtorSMTNode *node)
               {
                 if (tlen < len)
                 {
-                  extended = btor_uext_const (parser->mem, tmp, len - tlen);
-
-                  btor_delete_const (parser->mem, tmp);
-                  tmp = extended;
+                  tmpbv = 0;
+                  if (!strcmp (tmp, ""))
+                    extbv = btor_new_bv (parser->mem, len - tlen);
+                  else
+                  {
+                    tmpbv = btor_char_to_bv (parser->mem, tmp);
+                    extbv = btor_uext_bv (parser->mem, tmpbv, len - tlen);
+                  }
+                  ext = btor_bv_to_char_bv (parser->mem, extbv);
+                  btor_freestr (parser->mem, tmp);
+                  btor_free_bv (parser->mem, extbv);
+                  if (tmpbv) btor_free_bv (parser->mem, tmpbv);
+                  tmp = ext;
                 }
 
                 symbol->exp = boolector_const (parser->btor, tmp);
                 parser->constants++;
               }
 
-              btor_delete_const (parser->mem, tmp);
+              btor_freestr (parser->mem, tmp);
             }
           }
         }
@@ -1496,17 +1507,27 @@ node2exp (BtorSMTParser *parser, BtorSMTNode *node)
         if (start < p && !*p)
         {
           len  = 4 * (p - start);
-          tmp  = btor_hex_to_const (parser->mem, start);
+          tmp  = btor_hex_to_bin_str_util (parser->mem, start);
           tlen = (int) strlen (tmp);
           assert (tlen <= len);
           if (tlen < len)
           {
-            extended = btor_uext_const (parser->mem, tmp, len - tlen);
-            btor_delete_const (parser->mem, tmp);
-            tmp = extended;
+            tmpbv = 0;
+            if (!strcmp (tmp, ""))
+              extbv = btor_new_bv (parser->mem, len - tlen);
+            else
+            {
+              tmpbv = btor_char_to_bv (parser->mem, tmp);
+              extbv = btor_uext_bv (parser->mem, tmpbv, len - tlen);
+            }
+            ext = btor_bv_to_char_bv (parser->mem, extbv);
+            btor_freestr (parser->mem, tmp);
+            btor_free_bv (parser->mem, extbv);
+            if (tmpbv) btor_free_bv (parser->mem, tmpbv);
+            tmp = ext;
           }
           symbol->exp = boolector_const (parser->btor, tmp);
-          btor_delete_const (parser->mem, tmp);
+          btor_freestr (parser->mem, tmp);
           parser->constants++;
         }
       }
