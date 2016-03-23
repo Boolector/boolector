@@ -79,7 +79,7 @@ struct BtorIBVRange
   {
   }
   BtorIBVRange (const BitVector::BitRange &r);
-  unsigned getWidth () const { return msb - lsb + 1; }
+  uint32_t getWidth () const { return msb - lsb + 1; }
 };
 
 extern "C" {

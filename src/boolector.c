@@ -661,7 +661,7 @@ boolector_get_opt (Btor *btor, BtorOption opt)
   BTOR_TRAPI ("%d", opt);
   BTOR_ABORT (!btor_has_opt (btor, opt), "invalid option");
   res = btor_get_opt (btor, opt);
-  BTOR_TRAPI_RETURN_INT (res);
+  BTOR_TRAPI_RETURN_UINT (res);
 #ifndef NDEBUG
   BTOR_CHKCLONE_RES_UINT (res, get_opt, opt);
 #endif
@@ -676,7 +676,7 @@ boolector_get_opt_min (Btor *btor, BtorOption opt)
   BTOR_TRAPI ("%d", opt);
   BTOR_ABORT (!btor_has_opt (btor, opt), "invalid option");
   res = btor_get_opt_min (btor, opt);
-  BTOR_TRAPI_RETURN_INT (res);
+  BTOR_TRAPI_RETURN_UINT (res);
 #ifndef NDEBUG
   BTOR_CHKCLONE_RES_UINT (res, get_opt_min, opt);
 #endif
@@ -691,7 +691,7 @@ boolector_get_opt_max (Btor *btor, BtorOption opt)
   BTOR_TRAPI ("%d", opt);
   BTOR_ABORT (!btor_has_opt (btor, opt), "invalid option");
   res = btor_get_opt_max (btor, opt);
-  BTOR_TRAPI_RETURN_INT (res);
+  BTOR_TRAPI_RETURN_UINT (res);
 #ifndef NDEBUG
   BTOR_CHKCLONE_RES_UINT (res, get_opt_max, opt);
 #endif
@@ -706,7 +706,7 @@ boolector_get_opt_dflt (Btor *btor, BtorOption opt)
   BTOR_TRAPI ("%d", opt);
   BTOR_ABORT (!btor_has_opt (btor, opt), "invalid option");
   res = btor_get_opt_dflt (btor, opt);
-  BTOR_TRAPI_RETURN_INT (res);
+  BTOR_TRAPI_RETURN_UINT (res);
 #ifndef NDEBUG
   BTOR_CHKCLONE_RES_UINT (res, get_opt_dflt, opt);
 #endif
@@ -1251,7 +1251,10 @@ boolector_redand (Btor *btor, BoolectorNode *node)
 }
 
 BoolectorNode *
-boolector_slice (Btor *btor, BoolectorNode *node, int upper, int lower)
+boolector_slice (Btor *btor,
+                 BoolectorNode *node,
+                 uint32_t upper,
+                 uint32_t lower)
 {
   BtorNode *exp, *res;
 
@@ -1262,7 +1265,6 @@ boolector_slice (Btor *btor, BoolectorNode *node, int upper, int lower)
   BTOR_ABORT_REFS_NOT_POS (exp);
   BTOR_ABORT_BTOR_MISMATCH (btor, exp);
   BTOR_ABORT_IS_NOT_BV (exp);
-  BTOR_ABORT (lower < 0, "'lower' must not be negative");
   BTOR_ABORT (upper < lower, "'upper' must not be < 'lower'");
   BTOR_ABORT ((uint32_t) upper >= btor_get_exp_width (btor, exp),
               "'upper' must not be >= width of 'exp'");
@@ -2852,10 +2854,10 @@ boolector_set_symbol (Btor *btor, BoolectorNode *node, const char *symbol)
 #endif
 }
 
-int
+uint32_t
 boolector_get_width (Btor *btor, BoolectorNode *node)
 {
-  int res;
+  uint32_t res;
   BtorNode *exp;
   BtorSortUniqueTable *sorts;
 
@@ -2870,17 +2872,17 @@ boolector_get_width (Btor *btor, BoolectorNode *node)
     res = btor_get_fun_exp_width (btor, exp);
   else
     res = btor_get_exp_width (btor, exp);
-  BTOR_TRAPI_RETURN_INT (res);
+  BTOR_TRAPI_RETURN_UINT (res);
 #ifndef NDEBUG
-  BTOR_CHKCLONE_RES (res, get_width, BTOR_CLONED_EXP (exp));
+  BTOR_CHKCLONE_RES_UINT (res, get_width, BTOR_CLONED_EXP (exp));
 #endif
   return res;
 }
 
-int
+uint32_t
 boolector_get_index_width (Btor *btor, BoolectorNode *n_array)
 {
-  int res;
+  uint32_t res;
   BtorNode *e_array;
 
   e_array = BTOR_IMPORT_BOOLECTOR_NODE (n_array);
@@ -2893,9 +2895,9 @@ boolector_get_index_width (Btor *btor, BoolectorNode *n_array)
   BTOR_ABORT (btor_get_fun_arity (btor, e_array) > 1,
               "'n_array' is a function with arity > 1");
   res = btor_get_index_exp_width (btor, e_array);
-  BTOR_TRAPI_RETURN_INT (res);
+  BTOR_TRAPI_RETURN_UINT (res);
 #ifndef NDEBUG
-  BTOR_CHKCLONE_RES (res, get_index_width, BTOR_CLONED_EXP (e_array));
+  BTOR_CHKCLONE_RES_UINT (res, get_index_width, BTOR_CLONED_EXP (e_array));
 #endif
   return res;
 }
@@ -2959,10 +2961,10 @@ boolector_free_bits (Btor *btor, const char *bits)
 #endif
 }
 
-int
+uint32_t
 boolector_get_fun_arity (Btor *btor, BoolectorNode *node)
 {
-  int res;
+  uint32_t res;
   BtorNode *exp;
 
   exp = BTOR_IMPORT_BOOLECTOR_NODE (node);
@@ -2974,9 +2976,9 @@ boolector_get_fun_arity (Btor *btor, BoolectorNode *node)
   BTOR_ABORT (!btor_is_fun_exp (btor, exp),
               "given expression is not a function node");
   res = btor_get_fun_arity (btor, exp);
-  BTOR_TRAPI_RETURN_INT (res);
+  BTOR_TRAPI_RETURN_UINT (res);
 #ifndef NDEBUG
-  BTOR_CHKCLONE_RES (res, get_fun_arity, BTOR_CLONED_EXP (exp));
+  BTOR_CHKCLONE_RES_UINT (res, get_fun_arity, BTOR_CLONED_EXP (exp));
 #endif
   return res;
 }
@@ -3123,7 +3125,7 @@ boolector_is_fun (Btor *btor, BoolectorNode *node)
   return res;
 }
 
-int
+int32_t
 boolector_fun_sort_check (Btor *btor,
                           BoolectorNode **arg_nodes,
                           int argc,
@@ -3131,7 +3133,8 @@ boolector_fun_sort_check (Btor *btor,
 {
   BtorNode **args, *e_fun;
   char *strtrapi;
-  int i, len, res;
+  int i, len;
+  int32_t res;
 
   args  = BTOR_IMPORT_BOOLECTOR_NODE_ARRAY (arg_nodes);
   e_fun = BTOR_IMPORT_BOOLECTOR_NODE (n_fun);
