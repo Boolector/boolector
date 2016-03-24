@@ -46,9 +46,8 @@ if __name__ == "__main__":
             opts_str.append(" \n")
         opts_str.append(" \n")
 
-        
     with open('cboolector_options.rst', 'w') as file:
         file.write(''.join(opts_str))
 
-
-    #with open('pyboolector_options.rst', 'w') as file:
+    with open('pyboolector_options.rst', 'w') as file:
+        file.write(''.join(opts_str))

@@ -366,7 +366,7 @@ int boolector_set_sat_solver_minisat (Btor *btor);
 
   .. code-block:: c
 
-    boolector_set_opt (btor, BTOR_OPT_MODEL_GEN, 1);
+    boolector_set_opt_noref (btor, BTOR_OPT_MODEL_GEN, 1);
 
   .. include:: cboolector_options.rst
 
@@ -458,7 +458,7 @@ const char *boolector_get_opt_desc (Btor *btor, BtorOption opt);
 
   :param btor: Btor instance.
   :param opt: Option opt.
-  :return true if Boolector has the given option, and false otherwise.
+  :return: True if Boolector has the given option, and false otherwise.
 */
 bool boolector_has_opt (Btor *Btor, BtorOption opt);
 
@@ -489,8 +489,8 @@ BtorOption boolector_first_opt (Btor *btor);
 
   .. code-block:: c
 
-    for (s = boolector_first_opt_noref (btor); s; s = boolector_next_opt_noref
-  (btor, s)) {...}
+    for (s = boolector_first_opt_noref (btor); boolector_has_opt_noref (btor,
+  s); s = boolector_next_opt_noref (btor, s)) {...}
 
   :param btor: Btor instance.
   :param opt: Option opt.
@@ -1798,7 +1798,7 @@ void boolector_free_uf_assignment (Btor *btor,
 
     .. code-block:: c
 
-      boolector_print_model (btor, "btor", stdout);
+      boolector_print_model_noref (btor, "btor", stdout);
 
     A possible model would be: ::
 
@@ -1818,7 +1818,7 @@ void boolector_free_uf_assignment (Btor *btor,
 
     .. code-block:: c
 
-      boolector_print_model (btor, "smt2", stdout);
+      boolector_print_model_noref (btor, "smt2", stdout);
 
     A possible model would be: ::
 
@@ -1923,7 +1923,7 @@ bool boolector_is_equal_sort (Btor *btor, BoolectorNode *n0, BoolectorNode *n1);
 
   :param btor: Boolector instance.
   :param sort: Sort.
-  :return True if ``sort`` is an array sort, and false otherwise.
+  :return: True if ``sort`` is an array sort, and false otherwise.
  */
 bool boolector_is_array_sort (Btor *btor, BoolectorSort sort);
 

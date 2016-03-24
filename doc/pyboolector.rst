@@ -26,7 +26,7 @@ Quickstart
   You can configure this instance via :func:`~boolector.Boolector.Set_opt`.
   E.g., if you want to enable model generation: ::
    
-    btor.Set_opt("model_gen", 1)
+    btor.Set_opt(BTOR_OPT_MODEL_GEN, 1)
   
   For a detailed description of all configurable options, see
   :func:`~boolector.Boolector.Set_opt`.
@@ -268,7 +268,7 @@ Options
   E.g., given a Boolector instance ``btor``, model generation is enabled either 
   via ::
   
-    btor.Set_opt("model_gen", 1)
+    btor.Set_opt(BTOR_OPT_MODEL_GEN, 1)
   
   or via setting the environment variable ::
 
