@@ -343,6 +343,68 @@ test_normquant_elim_ite (void)
   btor_release_exp (g_btor, expected);
 }
 
+static void
+test_normquant_elim_top_ite (void)
+{
+  BtorNode *exists, *y, *v0, *v1, *v2, *ult, *ite, *eqv;
+  BtorNode *expected, *existsY, *forallY, *Y[2], *Z, *ugte, *ultY;
+  BtorNode *eqZv2, *eqZv1, *eqZv0, *imp_if, *imp_else, *and0;
+  BtorNode *result;
+
+  v0     = btor_var_exp (g_btor, 32, "v0");
+  v1     = btor_var_exp (g_btor, 32, "v1");
+  v2     = btor_var_exp (g_btor, 32, "v2");
+  y      = btor_param_exp (g_btor, 32, 0);
+  ult    = btor_ult_exp (g_btor, v2, y);
+  exists = btor_exists_exp (g_btor, y, ult);
+  ite    = btor_cond_exp (g_btor, exists, v0, v1);
+  eqv    = btor_eq_exp (g_btor, v2, ite);
+
+  result = btor_normalize_quantifiers_node (g_btor, eqv);
+  assert (g_btor->bv_vars->count == 4);
+
+  Y[0] = btor_param_exp (g_btor, 32, 0);
+  Y[1] = btor_param_exp (g_btor, 32, 0);
+  Z    = g_btor->bv_vars->last->key;
+
+  eqZv2    = btor_eq_exp (g_btor, v2, Z);
+  eqZv0    = btor_eq_exp (g_btor, Z, v0);
+  eqZv1    = btor_eq_exp (g_btor, Z, v1);
+  ultY     = btor_ult_exp (g_btor, v2, Y[0]);
+  ugte     = btor_ugte_exp (g_btor, v2, Y[1]);
+  existsY  = btor_exists_exp (g_btor, Y[0], ultY);
+  forallY  = btor_forall_exp (g_btor, Y[1], ugte);
+  imp_if   = btor_implies_exp (g_btor, forallY, eqZv0);
+  imp_else = btor_implies_exp (g_btor, existsY, eqZv1);
+  and0     = btor_and_exp (g_btor, imp_if, imp_else);
+  expected = btor_and_exp (g_btor, eqZv2, and0);
+
+  assert (result == expected);
+
+  btor_release_exp (g_btor, v0);
+  btor_release_exp (g_btor, v1);
+  btor_release_exp (g_btor, v2);
+  btor_release_exp (g_btor, y);
+  btor_release_exp (g_btor, ult);
+  btor_release_exp (g_btor, exists);
+  btor_release_exp (g_btor, ite);
+  btor_release_exp (g_btor, eqv);
+  btor_release_exp (g_btor, result);
+  btor_release_exp (g_btor, Y[0]);
+  btor_release_exp (g_btor, Y[1]);
+  btor_release_exp (g_btor, eqZv2);
+  btor_release_exp (g_btor, eqZv0);
+  btor_release_exp (g_btor, eqZv1);
+  btor_release_exp (g_btor, ultY);
+  btor_release_exp (g_btor, ugte);
+  btor_release_exp (g_btor, existsY);
+  btor_release_exp (g_btor, forallY);
+  btor_release_exp (g_btor, imp_if);
+  btor_release_exp (g_btor, imp_else);
+  btor_release_exp (g_btor, and0);
+  btor_release_exp (g_btor, expected);
+}
+
 void
 run_normquant_tests (int argc, char **argv)
 {
@@ -353,4 +415,5 @@ run_normquant_tests (int argc, char **argv)
   RUN_TEST (normquant_inv_prefix);
   RUN_TEST (normquant_inv_and_exists);
   RUN_TEST (normquant_elim_ite);
+  RUN_TEST (normquant_elim_top_ite);
 }
