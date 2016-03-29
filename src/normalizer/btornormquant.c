@@ -47,15 +47,21 @@ create_skolem_ite (Btor *btor, BtorNode *ite, BtorIntHashTable *map)
     BTOR_PUSH_STACK (mm, tsorts, param->sort_id);
   }
 
-  domain  = btor_tuple_sort (sorts, tsorts.start, BTOR_COUNT_STACK (tsorts));
-  funsort = btor_fun_sort (sorts, domain, ite->sort_id);
-
   sprintf (buf, "ite_%d", ite->id);
-  uf     = btor_uf_exp (btor, funsort, buf);
-  result = btor_apply_exps (btor, params.start, BTOR_COUNT_STACK (params), uf);
-  btor_release_sort (sorts, domain);
-  btor_release_sort (sorts, funsort);
-  btor_release_exp (btor, uf);
+  if (BTOR_EMPTY_STACK (params))
+    result = btor_var_exp (btor, btor_get_exp_width (btor, ite), buf);
+  else
+  {
+    domain  = btor_tuple_sort (sorts, tsorts.start, BTOR_COUNT_STACK (tsorts));
+    funsort = btor_fun_sort (sorts, domain, ite->sort_id);
+    uf      = btor_uf_exp (btor, funsort, buf);
+    result =
+        btor_apply_exps (btor, params.start, BTOR_COUNT_STACK (params), uf);
+    btor_release_sort (sorts, domain);
+    btor_release_sort (sorts, funsort);
+    btor_release_exp (btor, uf);
+  }
+
   BTOR_RELEASE_STACK (mm, params);
   BTOR_RELEASE_STACK (mm, tsorts);
   BTOR_MSG (btor->msg, 1, "create fresh skolem constant %s", buf);
@@ -91,6 +97,10 @@ elim_quantified_ite (Btor *btor, BtorNode *roots[], uint32_t num_roots)
 
     if (!d)
     {
+      /* mark new scope of 'real_cur' */
+      if (BTOR_IS_QUANTIFIER_NODE (real_cur))
+        BTOR_PUSH_STACK (mm, conds, real_cur);
+
       btor_add_int_hash_map (map, real_cur->id);
       BTOR_PUSH_STACK (mm, visit, cur);
       for (i = real_cur->arity - 1; i >= 0; i--)
@@ -139,17 +149,20 @@ elim_quantified_ite (Btor *btor, BtorNode *roots[], uint32_t num_roots)
       }
       else
       {
-        if (BTOR_IS_QUANTIFIER_NODE (real_cur) && BTOR_COUNT_STACK (conds) > 0)
+        if (BTOR_IS_QUANTIFIER_NODE (real_cur))
         {
-          /* add ite contraints to scope of quantifier */
-          while (!BTOR_EMPTY_STACK (conds))
+          assert (!BTOR_EMPTY_STACK (conds));
+          /* add ite contraints in scope of 'real_cur' to body of
+           * quantifier */
+          do
           {
             ite = BTOR_POP_STACK (conds);
+            if (ite == real_cur) break;
             tmp = btor_and_exp (btor, ite, e[1]);
             btor_release_exp (btor, ite);
             btor_release_exp (btor, e[1]);
             e[1] = tmp;
-          }
+          } while (!BTOR_EMPTY_STACK (conds));
         }
         result = btor_create_exp (btor, real_cur->kind, e, real_cur->arity);
       }
@@ -172,7 +185,11 @@ elim_quantified_ite (Btor *btor, BtorNode *roots[], uint32_t num_roots)
 
   /* add remaining constraints to top level */
   while (!BTOR_EMPTY_STACK (conds))
-    BTOR_PUSH_STACK (mm, args, BTOR_POP_STACK (conds));
+  {
+    tmp = BTOR_POP_STACK (conds);
+    assert (!BTOR_IS_QUANTIFIER_NODE (BTOR_REAL_ADDR_NODE (tmp)));
+    BTOR_PUSH_STACK (mm, args, tmp);
+  }
 
   result = BTOR_POP_STACK (args);
   while (!BTOR_EMPTY_STACK (args))
@@ -314,15 +331,20 @@ normalize_quantifiers (Btor *btor, BtorNode *roots[], uint32_t num_roots)
 
       /* scope of 'real_cur' is closed remove all parameterized nodes from
        * cache that are in the scope of 'real_cur'. */
+      // TODO (ma): this removes all parameterized nodes from the reset
+      //		stack, which is not necessary. try to only remove
+      //		parameterized nodes in the scope of real_cur
       if (BTOR_IS_QUANTIFIER_NODE (real_cur))
       {
         while (!BTOR_EMPTY_STACK (reset))
         {
           tmp = BTOR_POP_STACK (reset);
+          id  = BTOR_GET_ID_NODE (tmp);
+          tmp = BTOR_REAL_ADDR_NODE (tmp);
           /* do not remove params other than real_cur->e[0] */
           if (BTOR_IS_PARAM_NODE (tmp) && tmp->id != real_cur->e[0]->id)
             continue;
-          btor_remove_int_hash_map (map, BTOR_GET_ID_NODE (tmp), &data);
+          btor_remove_int_hash_map (map, id, &data);
           btor_release_exp (btor, data.as_ptr);
         }
       }
