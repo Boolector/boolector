@@ -452,7 +452,6 @@ refine_exists_solver (BtorEFSolver *slv)
       btor_add_ptr_hash_table (model, sig)->data.as_ptr = (BtorBitVector *) bv;
       synth_fun = btor_synthesize_fun (e_solver, 0, model, 0, 100000);
       btor_delete_ptr_hash_table (model);
-      btor_free_bv_tuple (mm, sig);
       if (synth_fun)
       {
         inst_exp = btor_apply_and_reduce (
@@ -504,6 +503,7 @@ refine_exists_solver (BtorEFSolver *slv)
   BTOR_RELEASE_STACK (mm, inputs);
   btor_delete_ptr_hash_table (var_es_assignments);
   btor_delete_node_map (map);
+  if (sig) btor_free_bv_tuple (mm, sig);
   assert (res != e_solver->true_exp);
   BTOR_ABORT (
       res == e_solver->true_exp, "invalid refinement '%s'", node2string (res));
