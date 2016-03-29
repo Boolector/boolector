@@ -2,7 +2,7 @@
  *
  *  Copyright (C) 2007-2010 Robert Daniel Brummayer.
  *  Copyright (C) 2007-2012 Armin Biere.
- *  Copyright (C) 2012-2015 Aina Niemetz.
+ *  Copyright (C) 2012-2016 Aina Niemetz.
  *  Copyright (C) 2012 Mathias Preiner.
  *
  *  All rights reserved.
@@ -16,7 +16,6 @@
 #include "testarithmetic.h"
 #include "testbitvec.h"
 #include "testcomp.h"
-#include "testconst.h"
 #include "testexp.h"
 #include "testhash.h"
 #include "testinc.h"
@@ -74,9 +73,11 @@
   "  patterns:\n"                                                            \
   "    a valid pattern is a substring of an existing test case out of the\n" \
   "    following test case sets:\n"                                          \
-  "      aig, aigvec, arithmetic, comp, const, exp, hash, inc, logic,\n"     \
-  "      mem, misc, modelgen, modelgensmt2, overflow, parseerror, queue,\n " \
-  "      sat, shift, smtaxioms, special, stack, util, testcases\n\n"
+  "      aig, aigvec, arithmetic, bitvec, comp, exp, hash, inc,"             \
+  "      int_hash_map, int_hash_table, lambda, logic, map, mc, mem,\n"       \
+  "      misc, modelgen, modelgensmt2, overflow, parseerror, prop,\n"        \
+  "      propinv, queue, sat, shift, smtaxioms, sort, special, stack,\n"     \
+  "      util, testcases\n\n"
 
 int
 main (int argc, char **argv)
@@ -124,7 +125,6 @@ main (int argc, char **argv)
   BTOR_RUN_TESTS (stack);
   BTOR_RUN_TESTS (queue);
   BTOR_RUN_TESTS (hash);
-  BTOR_RUN_TESTS (const);
   BTOR_RUN_TESTS (bitvec);
   BTOR_RUN_TESTS (prop);
   BTOR_RUN_TESTS (propinv);
