@@ -11,12 +11,14 @@
 #ifndef BTORSYNTHFUN_H_INCLUDED
 #define BTORSYNTHFUN_H_INCLUDED
 
+#include <stdint.h>
 #include "btortypes.h"
 #include "utils/btorhashptr.h"
 
 BtorNode* btor_synthesize_fun (Btor* btor,
                                BtorNode* uf,
                                const BtorPtrHashTable* model,
-                               BtorPtrHashTable* synth_fun_cache);
+                               BtorPtrHashTable* synth_fun_cache,
+                               uint32_t limit);
 
 #endif

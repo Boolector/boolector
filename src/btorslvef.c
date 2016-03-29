@@ -10,6 +10,7 @@
 
 #include "btorslvef.h"
 #include "btorabort.h"
+#include "btorbeta.h"
 #include "btorbitvec.h"
 #include "btorclone.h"
 #include "btorcore.h"
@@ -368,16 +369,17 @@ setup_forall_solver (BtorEFSolver *slv)
 static void
 refine_exists_solver (BtorEFSolver *slv)
 {
-  uint32_t i;
+  uint32_t i, j;
   Btor *f_solver, *e_solver;
   BtorNodeMap *map;
   BtorNodeMapIterator it;
   BtorNode *var_es, *var_fs, *c, *res;
-  BtorNodePtrStack consts;
+  BtorNodePtrStack consts, terms;
   const BtorBitVector *bv;
   BtorPtrHashTable *var_es_assignments;
   BtorMemMgr *mm;
   BtorPtrHashBucket *b;
+  BtorBitVectorTuple *sig = 0;
 
   mm       = slv->btor->mm;
   f_solver = slv->f_solver;
@@ -399,19 +401,52 @@ refine_exists_solver (BtorEFSolver *slv)
 
   if (btor_get_opt (slv->btor, BTOR_OPT_EF_SYMQINST) && e_solver->bv_model)
   {
+    BTOR_INIT_STACK (terms);
     for (i = 1; i < BTOR_COUNT_STACK (e_solver->nodes_id_table); i++)
     {
       var_es = BTOR_PEEK_STACK (e_solver->nodes_id_table, i);
+
+      if (!var_es
+          || !BTOR_IS_BV_VAR_NODE (var_es))  // && !BTOR_IS_APPLY_NODE (var_es))
+        continue;
+
       if (!var_es || BTOR_IS_BV_CONST_NODE (var_es) || BTOR_IS_FUN_NODE (var_es)
           || BTOR_IS_ARGS_NODE (var_es) || !BTOR_IS_SYNTH_NODE (var_es)
           || BTOR_IS_PROXY_NODE (var_es))
         continue;
 
-      bv = btor_get_bv_model (e_solver, var_es);
-      if (!btor_get_ptr_hash_table (var_es_assignments, (void *) bv))
-        btor_add_ptr_hash_table (var_es_assignments, (void *) bv)->data.as_ptr =
-            var_es;
+      //	  bv = btor_get_bv_model (e_solver, var_es);
+      BTOR_PUSH_STACK (mm, terms, var_es);
+//	  sig->bv[j++] = bv;
+#if 0
+	  if (!var_es
+	      || BTOR_IS_BV_CONST_NODE (var_es)
+	      || BTOR_IS_FUN_NODE (var_es)
+	      || BTOR_IS_ARGS_NODE (var_es)
+	      || !BTOR_IS_SYNTH_NODE (var_es)
+	      || BTOR_IS_PROXY_NODE (var_es))
+	    continue;
+
+	  bv = btor_get_bv_model (e_solver, var_es);
+	  if (!btor_get_ptr_hash_table (var_es_assignments, (void *) bv))
+	    btor_add_ptr_hash_table (var_es_assignments,
+				     (void *) bv)->data.as_ptr = var_es;
+#endif
     }
+
+    //      j = 0;
+    if (BTOR_COUNT_STACK (terms) > 0)
+    {
+      sig = btor_new_bv_tuple (mm, BTOR_COUNT_STACK (terms));
+      for (i = 0; i < BTOR_COUNT_STACK (terms); i++)
+      {
+        var_es     = BTOR_PEEK_STACK (terms, i);
+        bv         = btor_get_bv_model (e_solver, var_es);
+        sig->bv[i] = bv;
+      }
+    }
+    else
+      sig = 0;
   }
 
   BTOR_INIT_STACK (consts);
@@ -424,6 +459,30 @@ refine_exists_solver (BtorEFSolver *slv)
   {
     var_fs = btor_next_node_map_iterator (&it);
     bv     = btor_get_bv_model (f_solver, btor_simplify_exp (f_solver, var_fs));
+
+    bool found_cand = false;
+
+    if (sig)
+    {
+      BtorPtrHashTable *model =
+          btor_new_ptr_hash_table (mm,
+                                   (BtorHashPtr) btor_hash_bv_tuple,
+                                   (BtorCmpPtr) btor_compare_bv_tuple);
+      assert (sig);
+      btor_add_ptr_hash_table (model, sig)->data.as_ptr = bv;
+      BtorNode *tmp = btor_synthesize_fun (e_solver, 0, model, 0, 100000);
+      if (tmp)
+      {
+        BtorNode *tmp2 = btor_apply_and_reduce (
+            e_solver, BTOR_COUNT_STACK (terms), terms.start, tmp);
+        btor_dump_smt2_node (e_solver, stdout, tmp2, -1);
+        btor_map_node (map, var_fs, tmp2);
+        found_cand = true;
+      }
+    }
+
+    if (found_cand) continue;
+#if 1
     if ((b = btor_get_ptr_hash_table (var_es_assignments, (void *) bv)))
     {
       btor_map_node (map, var_fs, b->data.as_ptr);
@@ -439,6 +498,7 @@ refine_exists_solver (BtorEFSolver *slv)
       btor_map_node (map, var_fs, c);
       BTOR_PUSH_STACK (mm, consts, c);
     }
+#endif
   }
 
   assert (f_solver->unsynthesized_constraints->count == 0);
@@ -834,8 +894,8 @@ sat_ef_solver (BtorEFSolver *slv)
 #endif
       start = btor_time_stamp ();
       if (opt_synth_fun)
-        synth_fun =
-            btor_synthesize_fun (f_solver, var_fs, uf_model, synth_fun_cache);
+        synth_fun = btor_synthesize_fun (
+            f_solver, var_fs, uf_model, synth_fun_cache, 100000);
       else
         synth_fun = 0;
 
