@@ -1607,7 +1607,7 @@ btor_dump_smt2_node (Btor *btor, FILE *file, BtorNode *exp, unsigned depth)
   assert (depth);
 
   int i;
-  BtorNode *cur, *real_exp;
+  BtorNode *cur, *real_exp, *binder;
   BtorSMTDumpContext *sdc;
   BtorNodePtrStack visit, all;
   BtorArgsIterator ait;
@@ -1644,8 +1644,8 @@ btor_dump_smt2_node (Btor *btor, FILE *file, BtorNode *exp, unsigned depth)
 
     if (BTOR_IS_BV_VAR_NODE (cur) || BTOR_IS_UF_NODE (cur)
         || (BTOR_IS_PARAM_NODE (cur)
-            && !btor_get_ptr_hash_table (sdc->dump,
-                                         btor_param_get_binder (cur))))
+            && (!(binder = btor_param_get_binder (cur))
+                || !btor_get_ptr_hash_table (sdc->dump, binder))))
       btor_add_ptr_hash_table (sdc->dumped, cur);
 
     btor_add_ptr_hash_table (sdc->dump, cur);
