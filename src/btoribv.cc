@@ -2198,7 +2198,8 @@ BtorIBV::push_atom_ptr_next (BtorIBVAtom *b,
 
   if (pushed >= cycle_limit && force >= 2)
   {
-    BoolectorNode *exp = boolector_zero (btor, b->range.getWidth ());
+    BoolectorNode *exp = boolector_zero (
+        btor, boolector_bitvec_sort (btor, b->range.getWidth ()));
     if (forward)
       b->next.exp = exp;
     else
@@ -2399,7 +2400,8 @@ btor_ibv_atoms_in_range_collect_exp (Btor *btor,
     if (tmp)
       tmp = boolector_copy (btor, tmp);
     else
-      tmp = boolector_zero (btor, b->range.getWidth ());
+      tmp = boolector_zero (btor,
+                            boolector_bitvec_sort (btor, b->range.getWidth ()));
     if (exp)
     {
       BoolectorNode *concat = boolector_concat (btor, tmp, exp);
@@ -2470,7 +2472,8 @@ BtorIBV::translate_assignment_conquer (BtorIBVAtom *a,
         if (tmp)
           tmp = boolector_copy (btor, tmp);
         else
-          tmp = boolector_zero (btor, b->range.getWidth ());
+          tmp = boolector_zero (
+              btor, boolector_bitvec_sort (btor, b->range.getWidth ()));
         if (exp)
         {
           BoolectorNode *concat = boolector_concat (btor, tmp, exp);
@@ -2482,7 +2485,7 @@ BtorIBV::translate_assignment_conquer (BtorIBVAtom *a,
           exp = tmp;
       }
       assert (exp);
-      argexp = boolector_slice (btor, exp, (int) r.msb, (int) r.lsb);
+      argexp = boolector_slice (btor, exp, r.msb, r.lsb);
       boolector_release (btor, exp);
     }
     BTOR_PUSH_STACK (btor->mm, stack, argexp);
@@ -2743,7 +2746,8 @@ BtorIBV::translate_atom_conquer (BtorIBVAtom *a, bool forward)
     case BTOR_IBV_PHANTOM_NEXT_INPUT:
     case BTOR_IBV_NOT_USED:
     {
-      BoolectorNode *exp = boolector_zero (btor, r.getWidth ());
+      BoolectorNode *exp =
+          boolector_zero (btor, boolector_bitvec_sort (btor, r.getWidth ()));
       if (forward)
         assert (!a->next.exp), a->next.exp = exp;
       else
@@ -2987,7 +2991,7 @@ BtorIBV::translate_atom_base (BtorIBVAtom *a)
     case BTOR_IBV_ONE_PHASE_ONLY_NEXT_INPUT:
     {
       char *nextname = btor_ibv_atom_base_name (btor, n, r, 0);
-      a->current.exp = boolector_input (btormc, (int) r.getWidth (), nextname);
+      a->current.exp = boolector_input (btormc, r.getWidth (), nextname);
       btor_freestr (btor->mm, nextname);
       (void) boolector_copy (btor, a->current.exp);
       stats.inputs++;
@@ -2999,7 +3003,7 @@ BtorIBV::translate_atom_base (BtorIBVAtom *a)
     case BTOR_IBV_ONE_PHASE_ONLY_CURRENT_INPUT:
     {
       char *name     = btor_ibv_atom_base_name (btor, n, r, 0);
-      a->current.exp = boolector_latch (btormc, (int) r.getWidth (), name);
+      a->current.exp = boolector_latch (btormc, r.getWidth (), name);
       btor_freestr (btor->mm, name);
       (void) boolector_copy (btor, a->current.exp);
       stats.latches++;
@@ -3009,7 +3013,7 @@ BtorIBV::translate_atom_base (BtorIBVAtom *a)
     case BTOR_IBV_PHANTOM_NEXT_INPUT:
     {
       char *name     = btor_ibv_atom_base_name (btor, n, r, 0);
-      a->current.exp = boolector_input (btormc, (int) r.getWidth (), name);
+      a->current.exp = boolector_input (btormc, r.getWidth (), name);
       btor_freestr (btor->mm, name);
       (void) boolector_copy (btor, a->current.exp);
       stats.inputs++;
@@ -3021,8 +3025,7 @@ BtorIBV::translate_atom_base (BtorIBVAtom *a)
       {
         {
           char *currentname = btor_ibv_atom_base_name (btor, n, r, 0);
-          a->current.exp =
-              boolector_latch (btormc, (int) r.getWidth (), currentname);
+          a->current.exp = boolector_latch (btormc, r.getWidth (), currentname);
           btor_freestr (btor->mm, currentname);
           (void) boolector_copy (btor, a->current.exp);
           stats.latches++;
@@ -3040,8 +3043,7 @@ BtorIBV::translate_atom_base (BtorIBVAtom *a)
                            na->ranges[pos].lsb);
           char *nextname =
               btor_ibv_atom_base_name (btor, next, nr, "BtorIBV::past1");
-          a->next.exp =
-              boolector_input (btormc, (int) nr.getWidth (), nextname);
+          a->next.exp = boolector_input (btormc, nr.getWidth (), nextname);
           btor_freestr (btor->mm, nextname);
           (void) boolector_copy (btor, a->next.exp);
           stats.inputs++;
@@ -3050,7 +3052,7 @@ BtorIBV::translate_atom_base (BtorIBVAtom *a)
         {
           char *nextname = btor_ibv_atom_base_name (
               btor, n, r, "BtorIBV::past2");  // TODO Why?
-          a->next.exp = boolector_input (btormc, (int) r.getWidth (), nextname);
+          a->next.exp = boolector_input (btormc, r.getWidth (), nextname);
           btor_freestr (btor->mm, nextname);
           (void) boolector_copy (btor, a->next.exp);
           stats.inputs++;
@@ -3061,7 +3063,7 @@ BtorIBV::translate_atom_base (BtorIBVAtom *a)
     case BTOR_IBV_CURRENT_STATE:
     {
       char *name     = btor_ibv_atom_base_name (btor, n, r, 0);
-      a->current.exp = boolector_latch (btormc, (int) r.getWidth (), name);
+      a->current.exp = boolector_latch (btormc, r.getWidth (), name);
       btor_freestr (btor->mm, name);
       (void) boolector_copy (btor, a->current.exp);
       stats.latches++;
@@ -3402,8 +3404,10 @@ BtorIBV::translate ()
       {
         assert (!ninitialized);
         initialized_latch = boolector_latch (btormc, 1, "BtorIBV::initialized");
-        BoolectorNode *zero = boolector_zero (btor, 1);
-        BoolectorNode *one  = boolector_one (btor, 1);
+        BoolectorNode *zero =
+            boolector_zero (btor, boolector_bitvec_sort (btor, 1));
+        BoolectorNode *one =
+            boolector_one (btor, boolector_bitvec_sort (btor, 1));
         boolector_init (btormc, initialized_latch, zero);
         boolector_next (btormc, initialized_latch, one);
         boolector_release (btor, zero);

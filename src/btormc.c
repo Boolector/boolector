@@ -302,7 +302,7 @@ boolector_delete_mc (BtorMC *mc)
 }
 
 BoolectorNode *
-boolector_input (BtorMC *mc, int width, const char *name)
+boolector_input (BtorMC *mc, uint32_t width, const char *name)
 {
   BtorPtrHashBucket *bucket;
   BtorMcInput *input;
@@ -344,7 +344,7 @@ boolector_input (BtorMC *mc, int width, const char *name)
 }
 
 BoolectorNode *
-boolector_latch (BtorMC *mc, int width, const char *name)
+boolector_latch (BtorMC *mc, uint32_t width, const char *name)
 {
   BtorPtrHashBucket *bucket;
   BtorMcLatch *latch;
