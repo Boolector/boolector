@@ -389,12 +389,12 @@ print_fun_model (Btor *btor, BtorNode *node, char *format, int base, FILE *file)
   assert (node);
   assert (format);
   assert (file);
+  assert (BTOR_IS_REGULAR_NODE (node));
 
-  node = btor_simplify_exp (btor, node);
   if (!strcmp (format, "btor"))
-    print_fun_model_btor (btor, BTOR_REAL_ADDR_NODE (node), base, file);
+    print_fun_model_btor (btor, node, base, file);
   else
-    print_fun_model_smt2 (btor, BTOR_REAL_ADDR_NODE (node), base, file);
+    print_fun_model_smt2 (btor, node, base, file);
 }
 
 void
