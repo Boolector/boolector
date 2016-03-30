@@ -1,6 +1,6 @@
 /*  Boolector: Satisfiablity Modulo Theories (SMT) solver.
  *
- *  Copyright (C) 2015 Aina Niemetz.
+ *  Copyright (C) 2015-2016 Aina Niemetz.
  *
  *  All rights reserved.
  *
@@ -12,7 +12,7 @@
 
 #include "btoraig.h"
 #include "utils/btorhashptr.h"
-#include "utils/btorutil.h"
+#include "utils/btorrng.h"
 
 #define AIGPROP_UNKNOWN 0
 #define AIGPROP_SAT 10
