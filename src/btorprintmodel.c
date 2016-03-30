@@ -361,7 +361,8 @@ print_fun_model_btor (Btor *btor, BtorNode *node, int base, FILE *file)
   BtorPtrHashTable *fun_model;
   BtorHashTableIterator it;
 
-  fun_model = (BtorPtrHashTable *) btor_get_fun_model (btor, node);
+  fun_model = (BtorPtrHashTable *) btor_get_fun_model (
+      btor, btor_simplify_exp (btor, node));
   if (!fun_model) return;
 
   symbol = btor_get_symbol_exp (btor, node);
