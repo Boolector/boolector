@@ -18,7 +18,7 @@ LIBOBJS=$(filter-out $(BUILDIR)/btormain.o $(BUILDIR)/btormbt.o $(BUILDIR)/btoru
 LIBOBJS+=$(BUILDIR)/boolector.o $(BUILDIR)/utils/boolectormap.o $(OBJS)
 SRCS=$(foreach d,$(SRCDIRS),$(wildcard $(d)/*.[c|h|cc]))
 TARGETS=@TARGETS@
-ROOT=$(shell pwd|sed -e 's, ,\\ ,g')
+ROOT=@ROOT@
 
 all: $(BUILDIR)/libboolector.a $(TARGETS)
 
@@ -41,7 +41,6 @@ $(BUILDIR)/btorconfig.h: makefile VERSION mkconfig
 	rm -f $@; ./mkconfig > $@
 
 $(BUILDIR)/dependencies: $(BUILDIR)/btorconfig.h $(SRCS) makefile
-	@mkdir -p $(@D)
 	rm -f $@
 	for srcdir in $(SRCDIRS); \
 	do \
@@ -52,29 +51,24 @@ $(BUILDIR)/dependencies: $(BUILDIR)/btorconfig.h $(SRCS) makefile
 	done
 
 $(BUILDIR)/analyze:
-	@mkdir -p $(@D)
 	clang --analyze $(CFLAGS) $(INCS) \
 	  $(shell find $(SRCDIRS) -maxdepth 1 -name "*.[ch]" -o -name "*.cc")
 
 $(BUILDIR)/libboolector.a: $(LIBOBJS)
-	@mkdir -p $(@D)
 	rm -f $@
 	ar rc $@ $(LIBOBJS)
 	ranlib $@
 
-SONAME=-Xlinker -soname -Xlinker $(BUILDIR)/libboolector.so
 SHOBJS=$(filter-out $(BUILDIR)/btormbt.o $(BUILDIR)/btoruntrace.o $(BUILDIR)/btormain.o $(BUILDIR)/boolectormain.o, $(LIBOBJS))
 $(BUILDIR)/libboolector.so: $(SHOBJS)
-	@mkdir -p $(@D)
-	$(CC) $(CFLAGS) -shared -o $@ $(SHOBJS) $(LIBS) $(SONAME)
+	$(CC) $(CFLAGS) -shared -o $@ $(SHOBJS) $(LIBS) -Xlinker -soname=libboolector.so
 
-$(BINDIR)/boolector: $(BUILDIR)/btormain.o $(BUILDIR)/boolectormain.o $(BUILDIR)/libboolector.a $(LDEPS)
+$(BINDIR)/boolector: $(BUILDIR)/btormain.o $(BUILDIR)/boolectormain.o $(LDEPS)
 	@mkdir -p $(@D)
-	$(CC) $(CFLAGS) $(INCS) -o $@ $(BUILDIR)/btormain.o $(BUILDIR)/boolectormain.o -L$(BUILDIR) -lboolector $(LIBS) $(LDEPS)
+	$(CC) $(CFLAGS) $(INCS) -o $@ $(BUILDIR)/btormain.o $(BUILDIR)/boolectormain.o $(LDEPS) $(LIBS) -lboolector
 
 clean:
 	rm -f makefile
-	rm -f $(foreach d,$(SRCDIRS),$(d)/*.{gcda,gcno,gcov,plist})
 	rm -f $(SRCDIR)/$(TESTDIR)/log/*.log
 	rm -f -r $(BINDIR)
 	rm -f -r $(BUILDIR)

@@ -4,7 +4,6 @@
 #include <stdlib.h>
 #include <string.h>
 #include "boolector.h"
-#include "btorconst.h"
 #include "btorexp.h"
 #include "btoropt.h"
 #include "utils/btormem.h"

@@ -2,7 +2,7 @@
  *
  *  Copyright (C) 2012-2015 Armin Biere.
  *  Copyright (C) 2013-2015 Mathias Preiner.
- *  Copyright (C) 2014-2015 Aina Niemetz.
+ *  Copyright (C) 2014-2016 Aina Niemetz.
  *
  *  All rights reserved.
  *
@@ -13,11 +13,13 @@
 #ifndef BTORSORT_H_INCLUDED
 #define BTORSORT_H_INCLUDED
 
-#include <stdbool.h>
 #include "utils/btormem.h"
 #include "utils/btorstack.h"
 
-typedef unsigned BtorSortId;
+#include <stdbool.h>
+#include <stdint.h>
+
+typedef uint32_t BtorSortId;
 
 enum BtorSortKind
 {
@@ -41,7 +43,7 @@ typedef struct BtorTupleSort BtorTupleSort;
 
 struct BtorBitVecSort
 {
-  unsigned width;
+  uint32_t width;
 };
 
 struct BtorArraySort
@@ -58,14 +60,14 @@ struct BtorLstSort
 
 struct BtorFunSort
 {
-  unsigned arity;
+  uint32_t arity;
   BtorSort *domain;
   BtorSort *codomain;
 };
 
 struct BtorTupleSort
 {
-  unsigned num_elements;
+  uint32_t num_elements;
   BtorSort **elements;
 };
 
@@ -74,7 +76,7 @@ typedef struct BtorSortUniqueTable BtorSortUniqueTable;
 struct BtorSort
 {
   BtorSortKind kind;  // what kind of sort
-  unsigned id;        // fixed id
+  uint32_t id;        // fixed id
   int refs;           // reference counter
   int ext_refs;       // reference counter for API references
   BtorSort *next;     // collision chain for unique table
@@ -106,7 +108,7 @@ struct BtorSortUniqueTable
 
 BtorSortId btor_bool_sort (BtorSortUniqueTable *table);
 
-BtorSortId btor_bitvec_sort (BtorSortUniqueTable *table, unsigned width);
+BtorSortId btor_bitvec_sort (BtorSortUniqueTable *table, uint32_t width);
 
 BtorSortId btor_array_sort (BtorSortUniqueTable *table,
                             BtorSortId index_id,
@@ -130,10 +132,10 @@ void btor_release_sort (BtorSortUniqueTable *table, BtorSortId id);
 
 BtorSort *btor_get_sort_by_id (const BtorSortUniqueTable *table, BtorSortId id);
 
-unsigned btor_get_width_bitvec_sort (const BtorSortUniqueTable *table,
+uint32_t btor_get_width_bitvec_sort (const BtorSortUniqueTable *table,
                                      BtorSortId id);
 
-unsigned btor_get_arity_tuple_sort (const BtorSortUniqueTable *table,
+uint32_t btor_get_arity_tuple_sort (const BtorSortUniqueTable *table,
                                     BtorSortId id);
 
 BtorSortId btor_get_codomain_fun_sort (const BtorSortUniqueTable *table,
@@ -142,7 +144,7 @@ BtorSortId btor_get_codomain_fun_sort (const BtorSortUniqueTable *table,
 BtorSortId btor_get_domain_fun_sort (const BtorSortUniqueTable *table,
                                      BtorSortId id);
 
-unsigned btor_get_arity_fun_sort (const BtorSortUniqueTable *table,
+uint32_t btor_get_arity_fun_sort (const BtorSortUniqueTable *table,
                                   BtorSortId id);
 
 BtorSortId btor_get_index_array_sort (const BtorSortUniqueTable *table,

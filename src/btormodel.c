@@ -756,8 +756,6 @@ recursively_compute_function_model (Btor *btor,
   }
 }
 
-// TODO (ma): recursively compute fun model
-
 #if 0
 static void
 extract_model_from_rhos (Btor * btor, BtorPtrHashTable * fun_model,

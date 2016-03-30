@@ -12,7 +12,6 @@
 #include "btorbitvec.h"
 #include "btoraig.h"
 #include "btoraigvec.h"
-#include "btorconst.h"
 #include "btorcore.h"
 #include "utils/btorutil.h"
 
@@ -156,6 +155,8 @@ btor_new_random_bv (BtorMemMgr *mm, BtorRNG *rng, uint32_t bw)
   return btor_new_random_bit_range_bv (mm, rng, bw, bw - 1, 0);
 }
 
+/*------------------------------------------------------------------------*/
+
 BtorBitVector *
 btor_char_to_bv (BtorMemMgr *mm, char *assignment)
 {
@@ -198,6 +199,8 @@ btor_uint64_to_bv (BtorMemMgr *mm, uint64_t value, uint32_t bw)
   return res;
 }
 
+/*------------------------------------------------------------------------*/
+
 BtorBitVector *
 btor_get_assignment_bv (BtorMemMgr *mm, BtorNode *exp, bool init_x_values)
 {
@@ -233,6 +236,8 @@ btor_get_assignment_bv (BtorMemMgr *mm, BtorNode *exp, bool init_x_values)
   }
   return res;
 }
+
+/*------------------------------------------------------------------------*/
 
 BtorBitVector *
 btor_copy_bv (BtorMemMgr *mm, const BtorBitVector *bv)
@@ -308,6 +313,8 @@ btor_hash_bv (const BtorBitVector *bv)
   return res;
 }
 
+/*------------------------------------------------------------------------*/
+
 void
 btor_print_bv (const BtorBitVector *bv)
 {
@@ -337,6 +344,8 @@ btor_print_all_bv (const BtorBitVector *bv)
   printf ("\n");
 }
 
+/*------------------------------------------------------------------------*/
+
 char *
 btor_bv_to_char_bv (BtorMemMgr *mm, const BtorBitVector *bv)
 {
@@ -357,6 +366,108 @@ btor_bv_to_char_bv (BtorMemMgr *mm, const BtorBitVector *bv)
 
   return res;
 }
+
+char *
+btor_bv_to_hex_char_bv (BtorMemMgr *mm, const BtorBitVector *bv)
+{
+  assert (mm);
+  assert (bv);
+
+  uint32_t len, i, j, k;
+  int tmp;
+  char *res, ch;
+
+  len = (bv->width + 3) / 4;
+  BTOR_CNEWN (mm, res, len + 1);
+  for (i = 0, j = len - 1; i < bv->width;)
+  {
+    tmp = btor_get_bit_bv (bv, i++);
+    for (k = 1; i < bv->width && k <= 3; i++, k++)
+      tmp |= btor_get_bit_bv (bv, i) << k;
+    ch       = tmp < 10 ? '0' + tmp : 'a' + (tmp - 10);
+    res[j--] = ch;
+  }
+
+  return res;
+}
+
+static uint32_t
+get_first_one_bit_idx (const BtorBitVector *bv)
+{
+  assert (bv);
+
+  uint32_t i;
+
+  for (i = bv->width - 1; i < UINT_MAX; i--)
+  {
+    if (btor_get_bit_bv (bv, i)) break;
+    if (i == 0) return UINT_MAX;
+  }
+  return i;
+}
+
+char *
+btor_bv_to_dec_char_bv (BtorMemMgr *mm, const BtorBitVector *bv)
+{
+  assert (mm);
+  assert (bv);
+
+  BtorBitVector *tmp, *div, *rem, *ten;
+  uint32_t i;
+  char *res, ch, *p, *q;
+  BtorCharStack stack;
+
+  if (btor_is_zero_bv (bv))
+  {
+    BTOR_CNEWN (mm, res, 2);
+    res[0] = '0';
+    return res;
+  }
+
+  BTOR_INIT_STACK (stack);
+
+  if (bv->width < 4)
+  {
+    ten = btor_uint64_to_bv (mm, 10, 4);
+    tmp = btor_uext_bv (mm, (BtorBitVector *) bv, 4 - bv->width);
+  }
+  else
+  {
+    ten = btor_uint64_to_bv (mm, 10, bv->width);
+    tmp = btor_copy_bv (mm, bv);
+  }
+  while (!btor_is_zero_bv (tmp))
+  {
+    div = btor_udiv_bv (mm, tmp, ten);
+    rem = btor_urem_bv (mm, tmp, ten);
+    ch  = 0;
+    for (i = get_first_one_bit_idx (rem); i < UINT_MAX; i--)
+    {
+      ch <<= 1;
+      if (btor_get_bit_bv (rem, i)) ch += 1;
+    }
+    assert (ch < 10);
+    ch += '0';
+    BTOR_PUSH_STACK (mm, stack, ch);
+    btor_free_bv (mm, rem);
+    btor_free_bv (mm, tmp);
+    tmp = div;
+  }
+  btor_free_bv (mm, tmp);
+  btor_free_bv (mm, ten);
+  if (BTOR_EMPTY_STACK (stack)) BTOR_PUSH_STACK (mm, stack, '0');
+  BTOR_NEWN (mm, res, BTOR_COUNT_STACK (stack) + 1);
+  q = res;
+  p = stack.top;
+  while (p > stack.start) *q++ = *--p;
+  assert (res + BTOR_COUNT_STACK (stack) == q);
+  *q = 0;
+  assert ((uint32_t) BTOR_COUNT_STACK (stack) == strlen (res));
+  BTOR_RELEASE_STACK (mm, stack);
+  return res;
+}
+
+/*------------------------------------------------------------------------*/
 
 uint64_t
 btor_bv_to_uint64_bv (const BtorBitVector *bv)
@@ -1408,9 +1519,10 @@ btor_compare_bv_tuple (BtorBitVectorTuple *t0, BtorBitVectorTuple *t1)
 {
   assert (t0);
   assert (t1);
-  assert (t0->arity == t1->arity);
 
   uint32_t i;
+
+  if (t0->arity != t1->arity) return -1;
 
   for (i = 0; i < t0->arity; i++)
   {

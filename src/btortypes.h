@@ -134,9 +134,9 @@ enum BtorOption
     * **BTOR_OPT_EXIT_CODES**
 
       | Enable (``value``:1) or disable (``value``:0) the use of Boolector exit
-    codes (BTOR_RESULT_SAT: 10, BTOR_RESULT_UNSAT: 20, BTOR_RESULT_UNKNOWN: 0).
-      | If disabled, Boolector returns (BTOR_SUCC_EXIT: 0 for BTOR_RESULT_SAT
-    and BTOR_RESULT_UNSAT, BTOR_ERR_EXIT: 1 in any other case) on exit.
+    codes (BOOLECTOR_SAT, BOOLECTOR_UNSAT, BOOLECTOR_UNKNOWN - see
+    :ref:`macros`). | If disabled, on exit Boolector returns 0 if success (sat
+    or unsat), and 1 in any other case.
   */
   BTOR_OPT_EXIT_CODES,
 

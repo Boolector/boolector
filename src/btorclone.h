@@ -12,6 +12,7 @@
 #ifndef BTORCLONE_H_INCLUDED
 #define BTORCLONE_H_INCLUDED
 
+#include "btorexp.h"
 #include "utils/btornodemap.h"
 
 /* Clone an existing boolector instance. */

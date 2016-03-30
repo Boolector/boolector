@@ -66,32 +66,6 @@ static const char *slowtests[] = {
     "hd10",
     "hd14",
     "problem_130",
-    "bv_to_ll_bitvec",
-    "new_bitvec",
-    "not_bitvec",
-    "neg_bitvec",
-    "slice_bitvec",
-    "eq_bitvec",
-    "ult_bitvec",
-    "and_bitvec",
-    "concat_bitvec",
-    "add_bitvec",
-    "sll_bitvec",
-    "srl_bitvec",
-    "mul_bitvec",
-    "udiv_bitvec",
-    "urem_bitvec",
-    "uext_bitvec",
-    "sext_bitvec",
-    "perf_and_bitvec",
-    "perf_eq_bitvec",
-    "perf_ult_bitvec",
-    "perf_add_bitvec",
-    "perf_mul_bitvec",
-    "perf_udiv_bitvec",
-    "perf_urem_bitvec",
-    "perf_sll_bitvec",
-    "perf_srl_bitvec",
     "propinv_complete_add_bv",
     "propinv_complete_and_bv",
     "propinv_complete_eq_bv",
@@ -419,8 +393,8 @@ run_test_case (
       len = 0;
       /* "log/" + name + ".log" or ".out" + \0 */
       len          = 4 + strlen (name) + 4 + 1;
-      logfile_name = (char *) malloc (len + strlen (BTOR_LOG_DIR));
-      outfile_name = (char *) malloc (len + strlen (BTOR_LOG_DIR));
+      logfile_name = (char *) malloc (len + 4 + strlen (BTOR_LOG_DIR));
+      outfile_name = (char *) malloc (len + 4 + strlen (BTOR_LOG_DIR));
       sprintf (logfile_name, "%s%s.log", BTOR_LOG_DIR, name);
       sprintf (outfile_name, "%s%s.out", BTOR_LOG_DIR, name);
 

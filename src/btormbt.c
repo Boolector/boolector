@@ -810,15 +810,15 @@ struct BtorMBT
 
   int g_max_rounds;
 
-  int g_min_bw;
-  int g_max_bw;
-  int g_min_index_bw;
-  int g_max_index_bw;
-  int g_min_muldiv_bw;
-  int g_max_muldiv_bw;
+  uint32_t g_min_bw;
+  uint32_t g_max_bw;
+  uint32_t g_min_index_bw;
+  uint32_t g_max_index_bw;
+  uint32_t g_min_muldiv_bw;
+  uint32_t g_max_muldiv_bw;
 
-  int g_min_sort_fun_arity;
-  int g_max_sort_fun_arity;
+  uint32_t g_min_sort_fun_arity;
+  uint32_t g_max_sort_fun_arity;
 
   int g_min_inputs; /* min number of inputs in a round */
   int g_max_inputs; /* max number of inputs in a round */
@@ -1671,11 +1671,11 @@ init_pd_ops (BtorMBT *mbt, float ratio_add, float ratio_release)
 /* Modify bit width of node e of width ew to be of width tow.
  * Note: param ew prevents too many boolector_get_width calls. */
 static BoolectorNode *
-modify_bv (BtorMBT *mbt, RNG *rng, BoolectorNode *e, int new_width)
+modify_bv (BtorMBT *mbt, RNG *rng, BoolectorNode *e, uint32_t new_width)
 {
   assert (new_width > 0);
 
-  int tmp, old_width;
+  uint32_t tmp, old_width;
   BoolectorNode *node;
   BtorMBTExp *exp;
 
@@ -1924,7 +1924,7 @@ btormbt_unary_op (BtorMBT *mbt, RNG *rng, Op op, BoolectorNode *e)
 {
   assert (is_unary_op (op));
 
-  int upper, lower, width;
+  uint32_t upper, lower, width;
   BoolectorNode *node;
 
   upper = lower = 0;
@@ -1964,7 +1964,8 @@ btormbt_binary_op (
 {
   assert (is_binary_op (op));
 
-  int tmp0, tmp1, e0_width, e1_width;
+  int tmp0, tmp1;
+  uint32_t e0_width, e1_width;
   BoolectorNode *node;
 
   e0_width = boolector_get_width (mbt->btor, e0);
@@ -2075,7 +2076,7 @@ btormbt_ternary_op (BtorMBT *mbt,
   assert (op == COND);
   assert (boolector_get_width (mbt->btor, e0) == 1);
 
-  int e1w;
+  uint32_t e1w;
 
   e1w = boolector_get_width (mbt->btor, e1);
   assert (e1w <= mbt->g_max_bw);
@@ -2246,11 +2247,12 @@ static BoolectorNode *
 select_arr_exp (BtorMBT *mbt,
                 RNG *rng,
                 BoolectorNode *node,
-                int eew,
-                int eiw,
+                uint32_t eew,
+                uint32_t eiw,
                 int force_param)
 {
-  int i, rand, idx, sel_eew, sel_eiw;
+  int rand;
+  uint32_t i, idx, sel_eew, sel_eiw;
   BtorMBTExp *exp;
   BtorMBTExpStack *expstack;
   BoolectorNode *sel_e, *e[3];

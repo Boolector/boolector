@@ -17,7 +17,7 @@ import sys, os
 # If extensions (or modules to document with autodoc) are in another directory,
 # add these directories to sys.path here. If the directory is relative to the
 # documentation root, use os.path.abspath to make it absolute, like shown here.
-sys.path.insert(0, os.path.abspath('../'))
+sys.path.insert(0, os.path.abspath('../build/'))
 
 # -- General configuration -----------------------------------------------------
 
@@ -42,7 +42,7 @@ master_doc = 'index'
 
 # General information about the project.
 project = 'Boolector'
-copyright = '2007-2015, Institute for Formal Models and Verification, Johannes Kepler University, Linz, Austria'
+copyright = '2007-2016, Institute for Formal Models and Verification, Johannes Kepler University, Linz, Austria'
 
 # The version info for the project you're documenting, acts as replacement for
 # |version| and |release|, also used in various other places throughout the

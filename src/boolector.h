@@ -362,8 +362,18 @@ int boolector_set_sat_solver_minisat (Btor *btor);
 /*!
   Set option.
 
+  E.g., given a Boolector instance ``btor``, model generation is enabled via
+
+  .. code-block:: c
+
+    boolector_set_opt_noref (btor, BTOR_OPT_MODEL_GEN, 1);
 
   .. include:: cboolector_options.rst
+
+  .. toctree::
+      :hidden:
+
+      cboolector_options.rst
 
   :param btor: Boolector instance.
   :param opt: Option opt.
@@ -448,7 +458,7 @@ const char *boolector_get_opt_desc (Btor *btor, BtorOption opt);
 
   :param btor: Btor instance.
   :param opt: Option opt.
-  :return true if Boolector has the given option, and false otherwise.
+  :return: True if Boolector has the given option, and false otherwise.
 */
 bool boolector_has_opt (Btor *Btor, BtorOption opt);
 
@@ -479,8 +489,8 @@ BtorOption boolector_first_opt (Btor *btor);
 
   .. code-block:: c
 
-    for (s = boolector_first_opt_noref (btor); s; s = boolector_next_opt_noref
-  (btor, s)) {...}
+    for (s = boolector_first_opt_noref (btor); boolector_has_opt_noref (btor,
+  s); s = boolector_next_opt_noref (btor, s)) {...}
 
   :param btor: Btor instance.
   :param opt: Option opt.
@@ -733,8 +743,8 @@ BoolectorNode *boolector_redand (Btor *btor, BoolectorNode *node);
 */
 BoolectorNode *boolector_slice (Btor *btor,
                                 BoolectorNode *node,
-                                int upper,
-                                int lower);
+                                uint32_t upper,
+                                uint32_t lower);
 
 /*!
   Create unsigned extension.
@@ -1574,7 +1584,7 @@ void boolector_set_symbol (Btor *btor, BoolectorNode *var, const char *symbol);
   :param node: Boolector node.
   :return: Bit width of ``node``.
 */
-int boolector_get_width (Btor *btor, BoolectorNode *node);
+uint32_t boolector_get_width (Btor *btor, BoolectorNode *node);
 
 /*!
   Get the bit width of indices of ``n_array``.
@@ -1583,7 +1593,7 @@ int boolector_get_width (Btor *btor, BoolectorNode *node);
   :param n_array: Array operand.
   :return: Bit width of indices of ``n_array``
 */
-int boolector_get_index_width (Btor *btor, BoolectorNode *n_array);
+uint32_t boolector_get_index_width (Btor *btor, BoolectorNode *n_array);
 
 /*!
   Get the bit vector of a constant node as a bit string.
@@ -1612,7 +1622,7 @@ void boolector_free_bits (Btor *btor, const char *bits);
   :param node: Function node.
   :return: Arity of ``node``.
 */
-int boolector_get_fun_arity (Btor *btor, BoolectorNode *node);
+uint32_t boolector_get_fun_arity (Btor *btor, BoolectorNode *node);
 
 /*!
   Determine if given node is a constant node.
@@ -1820,7 +1830,7 @@ void boolector_free_uf_assignment (Btor *btor,
 
     .. code-block:: c
 
-      boolector_print_model (btor, "btor", stdout);
+      boolector_print_model_noref (btor, "btor", stdout);
 
     A possible model would be: ::
 
@@ -1840,7 +1850,7 @@ void boolector_free_uf_assignment (Btor *btor,
 
     .. code-block:: c
 
-      boolector_print_model (btor, "smt2", stdout);
+      boolector_print_model_noref (btor, "smt2", stdout);
 
     A possible model would be: ::
 
@@ -1945,7 +1955,7 @@ bool boolector_is_equal_sort (Btor *btor, BoolectorNode *n0, BoolectorNode *n1);
 
   :param btor: Boolector instance.
   :param sort: Sort.
-  :return True if ``sort`` is an array sort, and false otherwise.
+  :return: True if ``sort`` is an array sort, and false otherwise.
  */
 bool boolector_is_array_sort (Btor *btor, BoolectorSort sort);
 

@@ -2,7 +2,7 @@
  *
  *  Copyright (C) 2007-2009 Robert Daniel Brummayer.
  *  Copyright (C) 2007-2015 Armin Biere.
- *  Copyright (C) 2012-2015 Aina Niemetz.
+ *  Copyright (C) 2012-2016 Aina Niemetz.
  *  Copyright (C) 2012-2015 Mathias Preiner.
  *
  *  All rights reserved.
@@ -940,7 +940,7 @@ bool btor_is_uf_exp (Btor *btor, BtorNode *exp);
 bool btor_is_bv_var_exp (Btor *btor, BtorNode *exp);
 
 /* Gets the number of bits used by indices on 'e_array'. */
-int btor_get_index_exp_width (Btor *btor, BtorNode *e_array);
+uint32_t btor_get_index_exp_width (Btor *btor, BtorNode *e_array);
 
 /* Get the id of an expression. */
 int btor_get_id (Btor *btor, BtorNode *exp);

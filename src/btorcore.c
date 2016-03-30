@@ -3868,7 +3868,7 @@ is_valid_argument (Btor *btor, BtorNode *exp)
   return 1;
 }
 
-int
+int32_t
 btor_fun_sort_check (Btor *btor, BtorNode *args[], uint32_t argc, BtorNode *fun)
 {
   (void) btor;
@@ -3880,8 +3880,7 @@ btor_fun_sort_check (Btor *btor, BtorNode *args[], uint32_t argc, BtorNode *fun)
   assert (btor_is_fun_exp (btor, fun));
   assert (argc == btor_get_fun_arity (btor, fun));
 
-  uint32_t i;
-  int pos = -1;
+  uint32_t i, pos = -1;
   BtorSortId sort;
   BtorSortUniqueTable *sorts;
   BtorTupleSortIterator it;

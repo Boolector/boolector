@@ -75,11 +75,12 @@ enum BtorIBVTag
 struct BtorIBVRange
 {
   unsigned id, msb, lsb;
+  BtorSort sort;
   BtorIBVRange (unsigned i, unsigned m, unsigned l) : id (i), msb (m), lsb (l)
   {
   }
   BtorIBVRange (const BitVector::BitRange &r);
-  unsigned getWidth () const { return msb - lsb + 1; }
+  uint32_t getWidth () const { return msb - lsb + 1; }
 };
 
 extern "C" {

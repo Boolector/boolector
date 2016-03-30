@@ -65,6 +65,8 @@
 
 #define BTOR_TRAPI_RETURN_INT(res) BTOR_TRAPI_RETURN ("%d", res)
 
+#define BTOR_TRAPI_RETURN_UINT(res) BTOR_TRAPI_RETURN ("%u", res)
+
 #define BTOR_TRAPI_RETURN_BOOL(res) \
   BTOR_TRAPI_RETURN ("%s", res ? "true" : "false")
 

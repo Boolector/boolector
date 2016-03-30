@@ -866,130 +866,16 @@ cdef class Boolector:
 
             Set option.
 
-            List of available options:
+            E.g., given a Boolector instance ``btor``, model generation is enabled via  ::
 
-            * **model_gen**
+              btor.Set_opt(BTOR_OPT_MODEL_GEN, 1)
 
-              | Enable (``value``: 1 or 2) or disable (``value``: 0) generation of a model for satisfiable instances. 
-              | There are two modes for model generation: 
+            .. include:: pyboolector_options.rst
 
-              * generate model for asserted expressions only (``value``: 1)
-              * generate model for all expressions (``value``: 2)
+            .. toctree:: 
+                :hidden:
 
-            * **incremental**
-
-              | Enable (``value``: 1) incremental mode.
-              | Note that incremental usage turns off some optimization techniques. Disabling incremental usage is currently not supported.
-
-            * **incremental_all**
-
-              | Enable (``value``: 1) or disable (``value``: 0) incremental solving of all formulas when parsing an input file.
-              | Note that currently, incremental mode while parsing an input file is only supported for `SMT-LIB v1`_ input.
-
-            * **incremental_in_depth**
-
-              | Set incremental in-depth mode width (``value``: int) when parsing an input file.
-              | Note that currently, incremental mode while parsing an input file is only supported for `SMT-LIB v1`_ input.  
-
-            * **incremental_look_ahead**
-
-              | Set incremental look_ahead mode width (``value``: int) when parsing an input file.
-              | Note that currently, incremental mode while parsing an input file is only supported for `SMT-LIB v1`_ input.
-               
-            * **incremental_interval**
-
-              | Set incremental interval mode width (``value``: int) when parsing an input file.
-              | Note that currently, incremental mode while parsing an input file is only supported for `SMT-LIB v1`_ input.
-
-            * **input_format**
-              
-              | Force input file format (``value``: `BTOR <http://fmv.jku.at/papers/BrummayerBiereLonsing-BPR08.pdf>`_: -1, `SMT-LIB v1 <http://smtlib.cs.uiowa.edu/papers/format-v1.2-r06.08.30.pdf>`_: 1, `SMT-LIB v2 <http://smtlib.cs.uiowa.edu/papers/smt-lib-reference-v2.0-r12.09.09.pdf>`_: 2) when parsing an input file.
-              | If unspecified, Boolector automatically detects the input file format while parsing.
-
-            * **output_number_format**
-
-              | Force output number format (``value``: binary: 0, hexadecimal: 1, decimal: 2):
-              | Boolector uses binary by default.
-
-            * **output_format**
-          
-              | Force output file format (``value``: BTOR_: -1, `SMT-LIB v1`_: 1, `SMT-LIB v2`_: 2).
-              | Boolector uses BTOR_ by default.
-
-            * **rewrite_level**
-
-              | Set the rewrite level (``value``: 0-3) of the rewriting engine.
-              | Boolector uses rewrite level 3 by default, rewrite levels are classified as follows:
-
-              * 0: no rewriting
-              * 1: term level rewriting
-              * 2: more simplification techniques
-              * 3: full rewriting/simplification
-
-              | Do not alter the rewrite level of the rewriting engine after creating expressions.
-
-            * **rewrite_level_pbr**
-
-              | Set the rewrite level (``value``: 0-3) for partial beta reduction.
-              | Boolector uses rewrite level 1 by default. Rewrite levels are classified as above.
-
-            * **beta_reduce_all**
-              
-              Enable (``value``: 1) or disable (``value``: 0) the eager
-              elimination of lambda expressions via beta reduction.
-
-            * **probe_beta_reduce_all**
-
-              Enable (``value``: 1) or disable (``value``: 0) probing of
-              *beta_reduce_all* until a given lemmas on demand
-              (*pbr_lod_limit*) or SAT conflicts limit (*pbra_sat_limit*).
-
-            * **pbra_lod_limit**
-
-              Set lemmas on demand limit for *probe_beta_reduce_all*.
-
-            * **pbra_sat_limit**
-
-              Set SAT conflicts limit for *probe_beta_reduce_all*.
-
-            * **pbra_ops_factor**
-
-              Set factor by which the size of the beta reduced formula may be
-              greater than the original formula (for *probe_beta_reduce_all*).
-
-            * **dual_prop**
-
-              Enable (``value``: 1) or disable (``value``: 0) dual propagation
-              optimization.
-
-            * **just**
-
-              Enable (``value``: 1) or disable (``value``: 0) justification
-              optimization.
-              
-            * **ucopt**
-
-              Enable (``value``: 1) or disable (``value``: 0) unconstrained
-              optimization.
-
-            * **lazy_synthesize**
-
-              Enable (``value``: 1) or disable (``value``: 0) lazy synthesis of
-              bit vector expressions.
-
-            * **eliminate_slices**
-
-              Enable (``value``: 1) or disable (``value``: 0) slice elimination
-              on bit vector variables.
-
-            * **pretty_print**
-
-              Enable (``value``: 1) or disable (``value``: 0) pretty printing
-              when dumping.
-
-            * **verbosity**
-
-              Set the level of verbosity.
+                pyboolector_options.rst
 
             :param opt:   Option name.
             :type opt:    str
@@ -1274,7 +1160,7 @@ cdef class Boolector:
     def Var(self, BoolectorSort sort, str symbol = None):
         """ Var(sort, symbol = None)
 
-            Create a bit vector variable of sort ``sort''.
+            Create a bit vector variable of sort ``sort``.
 
             A variable's symbol is used as a simple means of identification,
             either when printing a model via 
@@ -1288,7 +1174,7 @@ cdef class Boolector:
             :type sort: :class: ~boolector.BoolectorSort
             :param symbol: Symbol of the variable.
             :type symbol: str
-            :return: A bit vector variable of sort ``sort''.
+            :return: A bit vector variable of sort ``sort``.
             :rtype: :class:`~boolector.BoolectorNode`
 
             .. note::
@@ -1308,8 +1194,7 @@ cdef class Boolector:
 
     def Param(self, BoolectorSort sort, str symbol = None):
         """ Param(sort, symbol = None)
-
-            Create a function parameter of sort ``sort''.
+            Create a function parameter of sort ``sort``.
 
             This kind of node is used to create parameterized expressions,
             which in turn are used to create functions.
@@ -1317,14 +1202,15 @@ cdef class Boolector:
             other functions.
 
             See :func:`~boolector.Boolector.Fun`, 
-            :func:`~boolector.Boolector.Apply`.
+                :func:`~boolector.Boolector.Apply`.
             
             :param sort: Sort of the function parameter.
             :type sort: :class: ~boolector.BoolectorSort
             :param symbol: Symbol of the function parameter.
             :type symbol: str
-            :return: A function parameter of sort ``sort''.
+            :return: A function parameter of sort ``sort``.
             :rtype: :class:`~boolector.BoolectorNode`
+
         """
         if not isinstance(sort, _BoolectorBitVecSort):
             raise BoolectorException(
@@ -1339,7 +1225,7 @@ cdef class Boolector:
         """ Array(sort, symbol = None)
 
             Create a one-dimensional bit vector array variable of sort
-            ``sort'' with symbol ``symbol''.
+            ``sort`` with symbol ``symbol``.
 
             An array variable's symbol is used as a simple means of
             identfication, either when printing a model via 
@@ -1353,7 +1239,7 @@ cdef class Boolector:
             :type sort: BoolectorSort
             :param symbol: Symbol of the array variable.
             :type symbol: str
-            :return: A bit vector array variable of sort ``sort'' with symbol ``symbol''.
+            :return: A bit vector array variable of sort ``sort`` with symbol ``symbol``.
             :rtype: :class:`~boolector.BoolectorNode`
 
             .. note::
