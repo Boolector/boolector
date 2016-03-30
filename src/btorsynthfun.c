@@ -17,6 +17,7 @@
 #include "utils/btoriter.h"
 #include "utils/btorpartgen.h"
 #include "utils/btorstack.h"
+#include "utils/btorutil.h"
 
 // TODO (ma): for debugging only
 #include "dumper/btordumpbtor.h"
