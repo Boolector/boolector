@@ -11,7 +11,8 @@
  */
 
 #include "btorsmt2.h"
-#include "btorconst.h"
+
+#include "btorbitvec.h"
 #include "btorcore.h"
 #include "btormsg.h"
 #include "btoropt.h"
@@ -243,10 +244,10 @@ typedef struct BtorSMT2Item
   BtorSMT2Coo coo;
   union
   {
-    int num;
+    int32_t num;
     struct
     {
-      int hi, lo;
+      int32_t hi, lo;
     };
   };
   union
@@ -1638,7 +1639,7 @@ check_boolean_args_smt2 (BtorSMT2Parser *parser, BtorSMT2Item *p, int nargs)
 static bool
 check_arg_sorts_match_smt2 (BtorSMT2Parser *parser, BtorSMT2Item *p, int nargs)
 {
-  int i, domain, width, len;
+  int i, domain, width, width2;
   assert (nargs >= 1);
   width           = boolector_get_width (parser->btor, p[1].exp);
   parser->perrcoo = p->coo;
@@ -1653,7 +1654,7 @@ check_arg_sorts_match_smt2 (BtorSMT2Parser *parser, BtorSMT2Item *p, int nargs)
             "first argument of '%s' is an array but argument %d not",
             p->node->name,
             i);
-      if ((len = boolector_get_width (parser->btor, p[i].exp)) != width)
+      if ((width2 = boolector_get_width (parser->btor, p[i].exp)) != width)
         return !perr_smt2 (
             parser,
             "first argument of '%s' is an array of bit-vectors of width %d "
@@ -1661,8 +1662,9 @@ check_arg_sorts_match_smt2 (BtorSMT2Parser *parser, BtorSMT2Item *p, int nargs)
             p->node->name,
             width,
             i,
-            len);
-      if ((len = boolector_get_index_width (parser->btor, p[i].exp)) != domain)
+            width2);
+      if ((width2 = boolector_get_index_width (parser->btor, p[i].exp))
+          != domain)
         return !perr_smt2 (
             parser,
             "first argument of '%s' is an array with index bit-vectors of "
@@ -1671,7 +1673,7 @@ check_arg_sorts_match_smt2 (BtorSMT2Parser *parser, BtorSMT2Item *p, int nargs)
             p->node->name,
             domain,
             i,
-            len);
+            width2);
     }
   }
   else if (boolector_is_fun (parser->btor, p[1].exp))
@@ -1709,14 +1711,14 @@ check_arg_sorts_match_smt2 (BtorSMT2Parser *parser, BtorSMT2Item *p, int nargs)
             "argument %d of '%s' is a function but first argument not",
             i,
             p->node->name);
-      if ((len = boolector_get_width (parser->btor, p[i].exp)) != width)
+      if ((width2 = boolector_get_width (parser->btor, p[i].exp)) != width)
         return !perr_smt2 (parser,
                            "first argument of '%s' is bit-vector of width %d "
                            "but argument %d is a bit-vector of width %d",
                            p->node->name,
                            width,
                            i,
-                           len);
+                           width2);
     }
   }
   parser->perrcoo.x = 0;
@@ -1726,7 +1728,7 @@ check_arg_sorts_match_smt2 (BtorSMT2Parser *parser, BtorSMT2Item *p, int nargs)
 static bool
 check_ite_args_sorts_match_smt2 (BtorSMT2Parser *parser, BtorSMT2Item *p)
 {
-  int domain, width, len;
+  int domain, width, width2;
   assert (p->tag == BTOR_ITE_TAG_SMT2);
   if (boolector_is_array (parser->btor, p[1].exp))
   {
@@ -1738,11 +1740,12 @@ check_ite_args_sorts_match_smt2 (BtorSMT2Parser *parser, BtorSMT2Item *p)
     parser->perrcoo = p[1].coo;
     return !perr_smt2 (parser, "first argument of 'ite' is a function");
   }
-  if ((len = boolector_get_width (parser->btor, p[1].exp)) != 1)
+  if ((width2 = boolector_get_width (parser->btor, p[1].exp)) != 1)
   {
     parser->perrcoo = p[1].coo;
-    return !perr_smt2 (
-        parser, "first argument of 'ite' is bit-vector of bit-width %d", len);
+    return !perr_smt2 (parser,
+                       "first argument of 'ite' is bit-vector of bit-width %u",
+                       width2);
   }
   if (boolector_is_array (parser->btor, p[2].exp))
   {
@@ -1752,30 +1755,30 @@ check_ite_args_sorts_match_smt2 (BtorSMT2Parser *parser, BtorSMT2Item *p)
       return !perr_smt2 (parser,
                          "second argument of 'ite' is an array but third not");
     }
-    width = boolector_get_width (parser->btor, p[2].exp);
-    len   = boolector_get_width (parser->btor, p[3].exp);
-    if (width != len)
+    width  = boolector_get_width (parser->btor, p[2].exp);
+    width2 = boolector_get_width (parser->btor, p[3].exp);
+    if (width != width2)
     {
       parser->perrcoo = p->coo;
       return !perr_smt2 (
           parser,
-          "second argument of 'ite' is array of bit-vectors of width %d and "
-          "third argument is array of bit-vectors of width %d",
+          "second argument of 'ite' is array of bit-vectors of width %u and "
+          "third argument is array of bit-vectors of width %u",
           width,
-          len);
+          width2);
     }
     domain = boolector_get_index_width (parser->btor, p[2].exp);
-    len    = boolector_get_index_width (parser->btor, p[3].exp);
-    if (domain != len)
+    width2 = boolector_get_index_width (parser->btor, p[3].exp);
+    if (domain != width2)
     {
       parser->perrcoo = p->coo;
       return !perr_smt2 (
           parser,
           "second argument of 'ite' is array with index bit-vectors of width "
-          "%d and "
-          "third argument is array with index bit-vectors of width %d",
+          "%u and "
+          "third argument is array with index bit-vectors of width %u",
           domain,
-          len);
+          width2);
     }
   }
   else
@@ -1786,9 +1789,9 @@ check_ite_args_sorts_match_smt2 (BtorSMT2Parser *parser, BtorSMT2Item *p)
       return !perr_smt2 (parser,
                          "third argument of 'ite' is an array but second not");
     }
-    width = boolector_get_width (parser->btor, p[2].exp);
-    len   = boolector_get_width (parser->btor, p[3].exp);
-    if (width != len)
+    width  = boolector_get_width (parser->btor, p[2].exp);
+    width2 = boolector_get_width (parser->btor, p[3].exp);
+    if (width != width2)
     {
       parser->perrcoo = p->coo;
       return !perr_smt2 (
@@ -1796,7 +1799,7 @@ check_ite_args_sorts_match_smt2 (BtorSMT2Parser *parser, BtorSMT2Item *p)
           "second argument of 'ite' is bit-vector of width %d and "
           "third argument is bit-vector of width %d",
           width,
-          len);
+          width2);
     }
   }
   return true;
@@ -1856,18 +1859,18 @@ translate_shift_smt2 (Btor *btor,
 {
   BoolectorNode *c, *e, *t, *e0, *u, *l, *tmp, *res;
   BoolectorSort s;
-  int len, l0, l1, p0, p1;
+  uint32_t width, l0, l1, p0, p1;
 
-  len = boolector_get_width (btor, a0);
+  width = boolector_get_width (btor, a0);
 
-  assert (len == boolector_get_width (btor, a1));
+  assert (width == boolector_get_width (btor, a1));
 
   l1 = 0;
-  for (l0 = 1; l0 < len; l0 *= 2) l1++;
+  for (l0 = 1; l0 < width; l0 *= 2) l1++;
 
-  assert (l0 == (1 << l1));
+  assert (l0 == (1u << l1));
 
-  if (len == 1)
+  if (width == 1)
   {
     assert (l0 == 1);
     assert (l1 == 0);
@@ -1883,15 +1886,15 @@ translate_shift_smt2 (Btor *btor,
   }
   else
   {
-    assert (len >= 1);
+    assert (width >= 1);
+    assert (width <= l0);
 
-    p0 = l0 - len;
-    p1 = len - l1;
+    p0 = l0 - width;
+    p1 = width - l1;
 
-    assert (p0 >= 0);
     assert (p1 > 0);
 
-    u = boolector_slice (btor, a1, len - 1, len - p1);
+    u = boolector_slice (btor, a1, width - 1, width - p1);
     l = boolector_slice (btor, a1, l1 - 1, 0);
 
     assert (boolector_get_width (btor, u) == p1);
@@ -1906,13 +1909,13 @@ translate_shift_smt2 (Btor *btor,
 
     if (f == boolector_sra)
     {
-      tmp = boolector_slice (btor, a0, len - 1, len - 1);
-      t   = boolector_sext (btor, tmp, len - 1);
+      tmp = boolector_slice (btor, a0, width - 1, width - 1);
+      t   = boolector_sext (btor, tmp, width - 1);
       boolector_release (btor, tmp);
     }
     else
     {
-      s = boolector_bitvec_sort (btor, len);
+      s = boolector_bitvec_sort (btor, width);
       t = boolector_zero (btor, s);
       boolector_release_sort (btor, s);
     }
@@ -1932,7 +1935,7 @@ translate_shift_smt2 (Btor *btor,
 
     if (p0 > 0)
     {
-      tmp = boolector_slice (btor, e, len - 1, 0);
+      tmp = boolector_slice (btor, e, width - 1, 0);
       boolector_release (btor, e);
       e = tmp;
     }
@@ -1965,25 +1968,26 @@ lshr_smt2 (Btor *btor, BoolectorNode *a, BoolectorNode *b)
 }
 
 static BoolectorNode *
-translate_rotate_smt2 (Btor *btor, BoolectorNode *exp, int shift, int left)
+translate_rotate_smt2 (Btor *btor,
+                       BoolectorNode *exp,
+                       uint32_t shift,
+                       uint32_t left)
 {
   BoolectorNode *l, *r, *res;
-  int len;
+  uint32_t width;
 
-  assert (shift >= 0);
-
-  len = boolector_get_width (btor, exp);
-  assert (len > 0);
-  shift %= len;
+  width = boolector_get_width (btor, exp);
+  assert (width > 0);
+  shift %= width;
 
   if (shift)
   {
-    if (left) shift = len - shift;
+    if (left) shift = width - shift;
 
-    assert (1 <= shift && shift < len);
+    assert (1 <= shift && shift < width);
 
     l = boolector_slice (btor, exp, shift - 1, 0);
-    r = boolector_slice (btor, exp, len - 1, shift);
+    r = boolector_slice (btor, exp, width - 1, shift);
 
     res = boolector_concat (btor, l, r);
 
@@ -1992,7 +1996,7 @@ translate_rotate_smt2 (Btor *btor, BoolectorNode *exp, int shift, int left)
   }
   else
     res = boolector_copy (btor, exp);
-  assert (boolector_get_width (btor, res) == len);
+  assert (boolector_get_width (btor, res) == width);
   return res;
 }
 
@@ -2016,14 +2020,18 @@ translate_ext_rotate_smt2 (Btor *btor,
 {
   assert (boolector_is_const (btor, shift));
 
-  char *len;
-  int shift_len;
+  BtorBitVector *shift_width_bv;
+  uint32_t shift_width;
 
-  len = btor_const_to_decimal (btor->mm, boolector_get_bits (btor, shift));
-  shift_len = atoi (len);
-  assert (shift_len < boolector_get_width (btor, exp));
-  btor_freestr (btor->mm, len);
-  return translate_rotate_smt2 (btor, exp, shift_len, left);
+  /* max width of a bit vector is uint32_t -> conversion not a problem */
+  shift_width_bv =
+      btor_char_to_bv (btor->mm, (char *) boolector_get_bits (btor, shift));
+  shift_width = (uint32_t) btor_bv_to_uint64_bv (shift_width_bv);
+  btor_free_bv (btor->mm, shift_width_bv);
+
+  assert (shift_width < boolector_get_width (btor, exp));
+
+  return translate_rotate_smt2 (btor, exp, shift_width, left);
 }
 
 /* Note: we need look ahead and tokens string only for get-value
@@ -2038,7 +2046,8 @@ parse_term_aux_smt2 (BtorSMT2Parser *parser,
                      BtorCharStack *tokens)
 {
   char c, t;
-  int tag, width, domain, len, nargs, i, j, open = 0, work_cnt;
+  int32_t k, tag, open = 0, work_cnt;
+  uint32_t i, j, nargs, width, width2, domain;
   BoolectorNode *(*binfun) (Btor *, BoolectorNode *, BoolectorNode *);
   BoolectorNode *(*extfun) (Btor *, BoolectorNode *, int);
   BoolectorNode *(*rotatefun) (Btor *, BoolectorNode *, int);
@@ -2155,11 +2164,11 @@ parse_term_aux_smt2 (BtorSMT2Parser *parser,
           BTOR_RELEASE_STACK (parser->mem, fargs);
           return !perr_smt2 (parser, "invalid number of arguments");
         }
-        i = boolector_fun_sort_check (parser->btor, fargs.start, nargs, tmp);
-        if (i >= 0)
+        k = boolector_fun_sort_check (parser->btor, fargs.start, nargs, tmp);
+        if (k >= 0)
         {
           BTOR_RELEASE_STACK (parser->mem, fargs);
-          return !perr_smt2 (parser, "invalid sort for argument %d", i + 1);
+          return !perr_smt2 (parser, "invalid sort for argument %d", k + 1);
         }
         parser->work.top = p;
         l->tag           = BTOR_EXP_TAG_SMT2;
@@ -2346,8 +2355,8 @@ parse_term_aux_smt2 (BtorSMT2Parser *parser,
           parser->perrcoo = p->coo;
           return !perr_smt2 (parser,
                              "first (array) argument of 'select' has index "
-                             "bit-width %d but the second (index) argument "
-                             "has bit-width %d",
+                             "bit-width %u but the second (index) argument "
+                             "has bit-width %u",
                              domain,
                              width);
         }
@@ -2380,22 +2389,22 @@ parse_term_aux_smt2 (BtorSMT2Parser *parser,
           parser->perrcoo = p->coo;
           return !perr_smt2 (parser,
                              "first (array) argument of 'store' has index "
-                             "bit-width %d but the second (index) argument "
-                             "has bit-width %d",
+                             "bit-width %u but the second (index) argument "
+                             "has bit-width %u",
                              domain,
                              width);
         }
-        width = boolector_get_width (parser->btor, p[1].exp);
-        len   = boolector_get_width (parser->btor, p[3].exp);
-        if (width != len)
+        width  = boolector_get_width (parser->btor, p[1].exp);
+        width2 = boolector_get_width (parser->btor, p[3].exp);
+        if (width != width2)
         {
           parser->perrcoo = p->coo;
           return !perr_smt2 (parser,
                              "first (array) argument of 'store' has element "
-                             "bit-width %d but the third (stored bit-vector) "
-                             "argument has bit-width %d",
+                             "bit-width %u but the third (stored bit-vector) "
+                             "argument has bit-width %u",
                              width,
-                             len);
+                             width2);
         }
         exp = boolector_write (parser->btor, p[1].exp, p[2].exp, p[3].exp);
         goto RELEASE_EXP_AND_OVERWRITE;
@@ -2405,12 +2414,12 @@ parse_term_aux_smt2 (BtorSMT2Parser *parser,
         if (!check_nargs_smt2 (parser, p, nargs, 1)) return 0;
         if (!check_not_array_or_uf_args_smt2 (parser, p, nargs)) return 0;
         width = boolector_get_width (parser->btor, p[1].exp);
-        if (width <= p->hi)
+        if (width <= (uint32_t) p->hi)
         {
           parser->perrcoo = p->coo;
           return !perr_smt2 (parser,
-                             "first (high) 'extract' parameter %d too large "
-                             "for bit-vector argument of bit-width %d",
+                             "first (high) 'extract' parameter %u too large "
+                             "for bit-vector argument of bit-width %u",
                              p->hi,
                              width);
         }
@@ -2574,14 +2583,14 @@ parse_term_aux_smt2 (BtorSMT2Parser *parser,
         if (!check_nargs_smt2 (parser, p, nargs, 1)) return 0;
         if (!check_not_array_or_uf_args_smt2 (parser, p, nargs)) return 0;
         width = boolector_get_width (parser->btor, p[1].exp);
-        if (p->num && ((INT_MAX / p->num) < width))
+        if (p->num && ((uint32_t) (INT_MAX / p->num) < width))
         {
           parser->perrcoo = p->coo;
           return !perr_smt2 (parser,
                              "resulting bit-width of 'repeat' too large");
         }
         exp = boolector_copy (parser->btor, p[1].exp);
-        for (i = 1; i < p->num; i++)
+        for (k = 1; k < p->num; k++)
         {
           old = exp;
           exp = boolector_concat (parser->btor, old, p[1].exp);
@@ -2596,7 +2605,7 @@ parse_term_aux_smt2 (BtorSMT2Parser *parser,
         if (!check_nargs_smt2 (parser, p, nargs, 1)) return 0;
         if (!check_not_array_or_uf_args_smt2 (parser, p, nargs)) return 0;
         width = boolector_get_width (parser->btor, p[1].exp);
-        if (INT_MAX - p->num < width)
+        if ((uint32_t) (INT_MAX - p->num) < width)
         {
           parser->perrcoo = p->coo;
           return !perr_smt2 (
@@ -2935,8 +2944,8 @@ parse_term_aux_smt2 (BtorSMT2Parser *parser,
               {
                 parser->perrcoo = firstcoo;
                 return !perr_smt2 (parser,
-                                   "first parameter '%d' of '(_ extract' "
-                                   "smaller than second '%d'",
+                                   "first parameter '%u' of '(_ extract' "
+                                   "smaller than second '%u'",
                                    l->hi,
                                    l->lo);
               }
@@ -2953,29 +2962,28 @@ parse_term_aux_smt2 (BtorSMT2Parser *parser,
             {
               char *constr, *decstr;
               BtorSMT2Coo coo;
-              int len;
               exp    = 0;
               decstr = btor_strdup (parser->mem, parser->token.start + 2);
-              constr =
-                  btor_decimal_to_const (parser->mem, parser->token.start + 2);
-              coo = parser->coo;
+              constr = btor_dec_to_bin_str_util (parser->mem,
+                                                 parser->token.start + 2);
+              coo    = parser->coo;
               coo.y += 2;
-              if (!parse_int32_smt2 (parser, 1, &width, tokens))
+              if (!parse_int32_smt2 (parser, 1, (int32_t *) &width, tokens))
                 goto UNDERSCORE_DONE;
-              len = (int) strlen (constr);
-              if (len > width)
+              width2 = strlen (constr);
+              if (width2 > width)
               {
                 parser->perrcoo = coo;
                 (void) perr_smt2 (parser,
                                   "decimal constant '%s' needs %d bits which "
                                   "exceeds bit-width '%d'",
                                   decstr,
-                                  len,
+                                  width2,
                                   width);
               }
-              else if (len == width)
+              else if (width2 == width)
                 exp = boolector_const (parser->btor, constr);
-              else if (!len)
+              else if (!width2)
               {
                 s   = boolector_bitvec_sort (parser->btor, width);
                 exp = boolector_zero (parser->btor, s);
@@ -2983,14 +2991,25 @@ parse_term_aux_smt2 (BtorSMT2Parser *parser,
               }
               else
               {
-                char *uconstr =
-                    btor_uext_const (parser->mem, constr, width - len);
-                exp = boolector_const (parser->btor, uconstr);
+                BtorBitVector *constrbv = 0, *uconstrbv;
+                char *uconstr;
+                if (!strcmp (constr, ""))
+                  uconstrbv = btor_new_bv (parser->mem, width - width2);
+                else
+                {
+                  constrbv = btor_char_to_bv (parser->mem, constr);
+                  uconstrbv =
+                      btor_uext_bv (parser->mem, constrbv, width - width2);
+                }
+                uconstr = btor_bv_to_char_bv (parser->mem, uconstrbv);
+                exp     = boolector_const (parser->btor, uconstr);
                 btor_freestr (parser->mem, uconstr);
+                btor_free_bv (parser->mem, uconstrbv);
+                if (constrbv) btor_free_bv (parser->mem, constrbv);
               }
             UNDERSCORE_DONE:
               btor_freestr (parser->mem, decstr);
-              btor_delete_const (parser->mem, constr);
+              btor_freestr (parser->mem, constr);
               if (!exp) return 0;
               assert (boolector_get_width (parser->btor, exp) == width);
               assert (p > parser->work.start);
@@ -3064,19 +3083,32 @@ parse_term_aux_smt2 (BtorSMT2Parser *parser,
       }
       else if (tag == BTOR_HEXADECIMAL_CONSTANT_TAG_SMT2)
       {
-        char *constr = btor_hex_to_const (parser->mem, parser->token.start + 2);
-        int len      = strlen (constr);
-        int width    = strlen (parser->token.start + 2) * 4;
-        char *uconstr;
-        assert (len <= width);
-        if (len == width)
-          uconstr = constr;
+        char *constr, *uconstr;
+        BtorBitVector *constrbv = 0, *uconstrbv;
+        constr =
+            btor_hex_to_bin_str_util (parser->mem, parser->token.start + 2);
+        width2 = strlen (constr);
+        width  = strlen (parser->token.start + 2) * 4;
+        assert (width2 <= width);
+        if (width2 == width)
+          uconstr = btor_strdup (parser->mem, constr);
         else
-          uconstr = btor_uext_const (parser->mem, constr, width - len);
+        {
+          if (!strcmp (constr, ""))
+            uconstrbv = btor_new_bv (parser->mem, width - width2);
+          else
+          {
+            constrbv  = btor_char_to_bv (parser->mem, constr);
+            uconstrbv = btor_uext_bv (parser->mem, constrbv, width - width2);
+          }
+          uconstr = btor_bv_to_char_bv (parser->mem, uconstrbv);
+          btor_free_bv (parser->mem, uconstrbv);
+          if (constrbv) btor_free_bv (parser->mem, constrbv);
+        }
         p->tag = BTOR_EXP_TAG_SMT2;
         p->exp = boolector_const (parser->btor, uconstr);
-        if (uconstr != constr) btor_delete_const (parser->mem, uconstr);
-        btor_delete_const (parser->mem, constr);
+        btor_freestr (parser->mem, uconstr);
+        btor_freestr (parser->mem, constr);
       }
       else
         return !perr_smt2 (

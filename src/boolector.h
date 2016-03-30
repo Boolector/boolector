@@ -743,8 +743,8 @@ BoolectorNode *boolector_redand (Btor *btor, BoolectorNode *node);
 */
 BoolectorNode *boolector_slice (Btor *btor,
                                 BoolectorNode *node,
-                                int upper,
-                                int lower);
+                                uint32_t upper,
+                                uint32_t lower);
 
 /*!
   Create unsigned extension.
@@ -1552,7 +1552,7 @@ void boolector_set_symbol (Btor *btor, BoolectorNode *var, const char *symbol);
   :param node: Boolector node.
   :return: Bit width of ``node``.
 */
-int boolector_get_width (Btor *btor, BoolectorNode *node);
+uint32_t boolector_get_width (Btor *btor, BoolectorNode *node);
 
 /*!
   Get the bit width of indices of ``n_array``.
@@ -1561,7 +1561,7 @@ int boolector_get_width (Btor *btor, BoolectorNode *node);
   :param n_array: Array operand.
   :return: Bit width of indices of ``n_array``
 */
-int boolector_get_index_width (Btor *btor, BoolectorNode *n_array);
+uint32_t boolector_get_index_width (Btor *btor, BoolectorNode *n_array);
 
 /*!
   Get the bit vector of a constant node as a bit string.
@@ -1590,7 +1590,7 @@ void boolector_free_bits (Btor *btor, const char *bits);
   :param node: Function node.
   :return: Arity of ``node``.
 */
-int boolector_get_fun_arity (Btor *btor, BoolectorNode *node);
+uint32_t boolector_get_fun_arity (Btor *btor, BoolectorNode *node);
 
 /*!
   Determine if given node is a constant node.

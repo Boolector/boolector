@@ -11,16 +11,16 @@
  *  See COPYING for more information on using this software.
  */
 
-#include "btorrewrite.h"
 #include "btorbeta.h"
 #include "btorbitvec.h"
-#include "btorconst.h"
 #include "btorlog.h"
 #include "utils/btorhashint.h"
 #include "utils/btoriter.h"
 #include "utils/btormem.h"
 #include "utils/btormisc.h"
 #include "utils/btorutil.h"
+
+#include "btorrewrite.h"
 
 #include <assert.h>
 

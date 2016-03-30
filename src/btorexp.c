@@ -4023,7 +4023,7 @@ btor_is_bv_var_exp (Btor *btor, BtorNode *exp)
   return BTOR_IS_BV_VAR_NODE (BTOR_REAL_ADDR_NODE (exp));
 }
 
-int
+uint32_t
 btor_get_index_exp_width (Btor *btor, BtorNode *e_array)
 {
   assert (btor);

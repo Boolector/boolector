@@ -23,6 +23,7 @@
 #include "utils/btorhashptr.h"
 #include "utils/btoriter.h"
 #include "utils/btormisc.h"
+#include "utils/btorutil.h"
 
 #include <math.h>
 

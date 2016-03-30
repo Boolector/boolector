@@ -2,7 +2,7 @@
  *
  *  Copyright (C) 2007-2009 Robert Daniel Brummayer.
  *  Copyright (C) 2007-2013 Armin Biere.
- *  Copyright (C) 2012-2013 Aina Niemetz.
+ *  Copyright (C) 2012-2016 Aina Niemetz.
  *  Copyright (C) 2012-2015 Mathias Preiner.
  *
  *  All rights reserved.
@@ -15,6 +15,7 @@
 #define BTORDUMPSMT_H_INCLUDED
 
 #include <stdio.h>
+#include "btorbitvec.h"
 #include "btorcore.h"
 
 void btor_dump_smt2_nodes (Btor* btor,
@@ -30,7 +31,7 @@ void btor_dump_smt2_node (Btor* btor,
 void btor_dump_smt2 (Btor* btor, FILE* file);
 
 void btor_dump_const_value_smt (Btor* btor,
-                                const char* bits,
+                                const BtorBitVector* bits,
                                 int base,
                                 FILE* file);
 
