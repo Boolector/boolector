@@ -2815,7 +2815,6 @@ boolector_fun_get_codomain_sort (Btor *btor, const BoolectorNode *node)
   BTOR_ABORT_ARG_NULL (btor);
   BTOR_ABORT_ARG_NULL (node);
   exp = BTOR_IMPORT_BOOLECTOR_NODE (node);
-  printf ("adsf %s\n", node2string (exp));
   BTOR_ABORT (!BTOR_IS_FUN_NODE (BTOR_REAL_ADDR_NODE (exp)),
               "node must be a function node");
   BTOR_TRAPI_UNFUN (exp);
