@@ -164,6 +164,7 @@ if __name__ == "__main__":
         file.write("C Interface\n")
         file.write("===========\n\n")
 
+        file.write(".. _macros:\n\n")
         file.write("Macros\n")
         file.write("^^^^^^\n\n")
         for m in sorted(macros.keys()):

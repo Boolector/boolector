@@ -43,6 +43,7 @@ help:
 clean:
 	-rm -rf $(BUILDDIR) $(STATICDIR) $(TEMPLATESDIR)
 	-rm -f cboolector_index.rst
+	-rm -f cboolector_options.rst
 
 dirs:
 	-mkdir -p $(BUILDDIR)
@@ -50,7 +51,8 @@ dirs:
 	-mkdir -p $(TEMPLATESDIR)
 
 html: dirs
-	python mkcdoc.py ../boolector.h
+	python mkcdoc.py ../src/boolector.h
+	python mkdocopts.py ../src/btortypes.h
 	$(SPHINXBUILD) -b html $(ALLSPHINXOPTS) $(BUILDDIR)/html
 	@echo
 	@echo "Build finished. The HTML pages are in $(BUILDDIR)/html."

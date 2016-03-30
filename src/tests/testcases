@@ -1,0 +1,725 @@
+regsmtparse0 src/tests/log/regsmtparse0.smt > src/tests/log/regsmtparse0.log 2>&1
+regsmtparse1 src/tests/log/regsmtparse1.smt > src/tests/log/regsmtparse1.log 2>&1
+regsmtparse2 src/tests/log/regsmtparse2.smt > src/tests/log/regsmtparse2.log 2>&1
+smttrue -m -o src/tests/log/smttrue.log src/tests/log/smttrue.smt
+smtfalse -m -o src/tests/log/smtfalse.log src/tests/log/smtfalse.smt
+smtvar -m -o src/tests/log/smtvar.log src/tests/log/smtvar.smt
+smtnotvar -m -o src/tests/log/smtnotvar.log src/tests/log/smtnotvar.smt
+smtandvar -m -o src/tests/log/smtandvar.log src/tests/log/smtandvar.smt
+smtxor -m -o src/tests/log/smtxor.log src/tests/log/smtxor.smt
+smtor -m -o src/tests/log/smtor.log src/tests/log/smtor.smt
+smtiff -m -o src/tests/log/smtiff.log src/tests/log/smtiff.smt
+smtflet -o src/tests/log/smtflet.log src/tests/log/smtflet.smt
+smtbv255 -o src/tests/log/smtbv255.log src/tests/log/smtbv255.smt
+smtshl1 -o src/tests/log/smtshl1.log src/tests/log/smtshl1.smt
+smtshl2 -o src/tests/log/smtshl2.log src/tests/log/smtshl2.smt
+smtshl3 -o src/tests/log/smtshl3.log src/tests/log/smtshl3.smt
+smtlshr1 -o src/tests/log/smtlshr1.log src/tests/log/smtlshr1.smt
+smtlshr2 -o src/tests/log/smtlshr2.log src/tests/log/smtlshr2.smt
+smtlshr3 -o src/tests/log/smtlshr3.log src/tests/log/smtlshr3.smt
+smtashr1 -o src/tests/log/smtashr1.log src/tests/log/smtashr1.smt
+smtashr2 -o src/tests/log/smtashr2.log src/tests/log/smtashr2.smt
+smtashr3 -o src/tests/log/smtashr3.log src/tests/log/smtashr3.smt
+smtbvbin -o src/tests/log/smtbvbin.log src/tests/log/smtbvbin.smt
+smtbvhex -o src/tests/log/smtbvhex.log src/tests/log/smtbvhex.smt
+smtrepeat -o src/tests/log/smtrepeat.log src/tests/log/smtrepeat.smt
+smtzeroextend -o src/tests/log/smtzeroextend.log src/tests/log/smtzeroextend.smt
+smtsignextend -o src/tests/log/smtsignextend.log src/tests/log/smtsignextend.smt
+smtrotate -o src/tests/log/smtrotate.log src/tests/log/smtrotate.smt
+uremudivaxiom4 -o src/tests/log/uremudivaxiom4.log src/tests/log/uremudivaxiom4.btor
+uremudivaxiom4no -o src/tests/log/uremudivaxiom4no.log src/tests/log/uremudivaxiom4no.btor
+regsmod1 -o src/tests/log/regsmod1.log src/tests/log/regsmod1.smt
+regr-5smod3 -o src/tests/log/regr-5smod3.log src/tests/log/regr-5smod3.btor -m -d
+regr-5srem3 -o src/tests/log/regr-5srem3.log src/tests/log/regr-5srem3.btor -m -d
+regr5smod-3 -o src/tests/log/regr5smod-3.log src/tests/log/regr5smod-3.btor -m -d
+regr5srem-3 -o src/tests/log/regr5srem-3.log src/tests/log/regr5srem-3.btor -m -d
+regr-6smod3 -o src/tests/log/regr-6smod3.log src/tests/log/regr-6smod3.btor -m -d
+regr-6srem3 -o src/tests/log/regr-6srem3.log src/tests/log/regr-6srem3.btor -m -d
+regr6smod-3 -o src/tests/log/regr6smod-3.log src/tests/log/regr6smod-3.btor -m -d
+regr6srem-3 -o src/tests/log/regr6srem-3.log src/tests/log/regr6srem-3.btor -m -d
+gtewithsub -o src/tests/log/gtewithsub.log src/tests/log/gtewithsub.btor
+smtaxiommccarthy -o src/tests/log/smtaxiommccarthy.log src/tests/log/smtaxiommccarthy.smt
+mulassoc4 -o src/tests/log/mulassoc4.log src/tests/log/mulassoc4.smt
+mulassoc5 -o src/tests/log/mulassoc5.log src/tests/log/mulassoc5.smt
+mulassoc6 -o src/tests/log/mulassoc6.log src/tests/log/mulassoc6.smt
+udiv8castdown4 -o src/tests/log/udiv8castdown4.log src/tests/log/udiv8castdown4.btor
+udiv8castdown5 -o src/tests/log/udiv8castdown5.log src/tests/log/udiv8castdown5.btor
+udiv8castdown6 -o src/tests/log/udiv8castdown6.log src/tests/log/udiv8castdown6.btor
+udiv8castdown7 -o src/tests/log/udiv8castdown7.log src/tests/log/udiv8castdown7.btor
+udiv16castdown8 -o src/tests/log/udiv16castdown8.log src/tests/log/udiv16castdown8.btor
+lazyreadwritebug1 -o src/tests/log/lazyreadwritebug1.log src/tests/log/lazyreadwritebug1.btor
+arrayand src/tests/log/arrayand.btor > src/tests/log/arrayand.log 2>&1
+arrayeqerr0 src/tests/log/arrayeqerr0.btor > src/tests/log/arrayeqerr0.log 2>&1
+arrayeqerr1 src/tests/log/arrayeqerr1.btor > src/tests/log/arrayeqerr1.log 2>&1
+arrayeqerr2 src/tests/log/arrayeqerr2.btor > src/tests/log/arrayeqerr2.log 2>&1
+dumpbtor1 -rwl 0 -db -o src/tests/log/dumpbtor1.log src/tests/log/dumpbtor1.btor
+dumpbtor2 -rwl 0 -db -o src/tests/log/dumpbtor2.log src/tests/log/dumpbtor2.btor
+dumpbtor3 -db -o src/tests/log/dumpbtor3.log src/tests/log/dumpbtor3.btor
+dumpsmt1 -rwl 0 -ds -o src/tests/log/dumpsmt1.log src/tests/log/dumpsmt1.btor
+dumpsmt2 -rwl 0 -ds -o src/tests/log/dumpsmt2.log src/tests/log/dumpsmt2.btor
+smtextarrayaxiom1uf -o src/tests/log/smtextarrayaxiom1uf.log src/tests/log/smtextarrayaxiom1uf.smt
+smtextarrayaxiom1 -o src/tests/log/smtextarrayaxiom1.log src/tests/log/smtextarrayaxiom1.smt
+smtextarray1sat0 -o src/tests/log/smtextarray1sat0.log src/tests/log/smtextarray1sat0.smt
+smtextarray1sat1 -o src/tests/log/smtextarray1sat1.log src/tests/log/smtextarray1sat1.smt
+smtextarrayaxiom2uf -o src/tests/log/smtextarrayaxiom2uf.log src/tests/log/smtextarrayaxiom2uf.smt
+smtextarrayaxiom2 -o src/tests/log/smtextarrayaxiom2.log src/tests/log/smtextarrayaxiom2.smt
+smtextarray2sat0 -o src/tests/log/smtextarray2sat0.log src/tests/log/smtextarray2sat0.smt
+smtextarray2sat1 -o src/tests/log/smtextarray2sat1.log src/tests/log/smtextarray2sat1.smt
+smtextarray2sat2 -o src/tests/log/smtextarray2sat2.log src/tests/log/smtextarray2sat2.smt
+smtextarray2sat3 -o src/tests/log/smtextarray2sat3.log src/tests/log/smtextarray2sat3.smt
+smtextarrayaxiom3uf -o src/tests/log/smtextarrayaxiom3uf.log src/tests/log/smtextarrayaxiom3uf.smt
+smtextarrayaxiom3 -o src/tests/log/smtextarrayaxiom3.log src/tests/log/smtextarrayaxiom3.smt
+smtextarray3sat0 -o src/tests/log/smtextarray3sat0.log src/tests/log/smtextarray3sat0.smt
+smtextarray3sat1 -o src/tests/log/smtextarray3sat1.log src/tests/log/smtextarray3sat1.smt
+smtextarray3sat2 -o src/tests/log/smtextarray3sat2.log src/tests/log/smtextarray3sat2.smt
+smtextarray3sat3 -o src/tests/log/smtextarray3sat3.log src/tests/log/smtextarray3sat3.smt
+smtextarray3sat4 -o src/tests/log/smtextarray3sat4.log src/tests/log/smtextarray3sat4.smt
+smtextarray3sat5 -o src/tests/log/smtextarray3sat5.log src/tests/log/smtextarray3sat5.smt
+smtextarray3sat6 -o src/tests/log/smtextarray3sat6.log src/tests/log/smtextarray3sat6.smt
+smtextarray3sat7 -o src/tests/log/smtextarray3sat7.log src/tests/log/smtextarray3sat7.smt
+smtextarrayaxiom4uf -o src/tests/log/smtextarrayaxiom4uf.log src/tests/log/smtextarrayaxiom4uf.smt
+smtextarrayaxiom4 -o src/tests/log/smtextarrayaxiom4.log src/tests/log/smtextarrayaxiom4.smt
+extarraywrite1 -o src/tests/log/extarraywrite1.log src/tests/log/extarraywrite1.btor
+extarraywrite2 -o src/tests/log/extarraywrite2.log src/tests/log/extarraywrite2.btor
+extarraywrite3 -o src/tests/log/extarraywrite3.log src/tests/log/extarraywrite3.smt
+extarraywrite3sat -o src/tests/log/extarraywrite3sat.log src/tests/log/extarraywrite3sat.smt
+smtarraycond1 -o src/tests/log/smtarraycond1.log src/tests/log/smtarraycond1.smt
+smtarraycond2 -o src/tests/log/smtarraycond2.log src/tests/log/smtarraycond2.smt
+smtarraycond3 -o src/tests/log/smtarraycond3.log src/tests/log/smtarraycond3.smt
+rwpropindexplusconst1 -o src/tests/log/rwpropindexplusconst1.log src/tests/log/rwpropindexplusconst1.btor
+rwpropindexplusconst2 -o src/tests/log/rwpropindexplusconst2.log src/tests/log/rwpropindexplusconst2.btor
+rwpropindexplusconst3 -o src/tests/log/rwpropindexplusconst3.log src/tests/log/rwpropindexplusconst3.btor
+rwpropindexplusconst4 -o src/tests/log/rwpropindexplusconst4.log src/tests/log/rwpropindexplusconst4.btor
+rwpropindexplusconst1 -rwl 0 -o src/tests/log/rwpropindexplusconst1.log src/tests/log/rwpropindexplusconst1.btor
+rwpropindexplusconst2 -rwl 0 -o src/tests/log/rwpropindexplusconst2.log src/tests/log/rwpropindexplusconst2.btor
+rwpropindexplusconst3 -rwl 0 -o src/tests/log/rwpropindexplusconst3.log src/tests/log/rwpropindexplusconst3.btor
+rwpropindexplusconst4 -rwl 0 -o src/tests/log/rwpropindexplusconst4.log src/tests/log/rwpropindexplusconst4.btor
+rwpropindexpluszero1 -o src/tests/log/rwpropindexpluszero1.log src/tests/log/rwpropindexpluszero1.btor
+rwpropindexpluszero2 -o src/tests/log/rwpropindexpluszero2.log src/tests/log/rwpropindexpluszero2.btor
+rwpropindexpluszero3 -o src/tests/log/rwpropindexpluszero3.log src/tests/log/rwpropindexpluszero3.btor
+rwpropindexpluszero4 -o src/tests/log/rwpropindexpluszero4.log src/tests/log/rwpropindexpluszero4.btor
+rwpropindexpluszero5 -o src/tests/log/rwpropindexpluszero5.log src/tests/log/rwpropindexpluszero5.btor
+rwpropindexpluszero6 -o src/tests/log/rwpropindexpluszero6.log src/tests/log/rwpropindexpluszero6.btor
+rwpropindexpluszero7 -o src/tests/log/rwpropindexpluszero7.log src/tests/log/rwpropindexpluszero7.btor
+rwpropindexpluszero8 -o src/tests/log/rwpropindexpluszero8.log src/tests/log/rwpropindexpluszero8.btor
+rwpropindexpluszero1 -rwl 0 -o src/tests/log/rwpropindexpluszero1.log src/tests/log/rwpropindexpluszero1.btor
+rwpropindexpluszero2 -rwl 0 -o src/tests/log/rwpropindexpluszero2.log src/tests/log/rwpropindexpluszero2.btor
+rwpropindexpluszero3 -rwl 0 -o src/tests/log/rwpropindexpluszero3.log src/tests/log/rwpropindexpluszero3.btor
+rwpropindexpluszero4 -rwl 0 -o src/tests/log/rwpropindexpluszero4.log src/tests/log/rwpropindexpluszero4.btor
+rwpropindexpluszero5 -rwl 0 -o src/tests/log/rwpropindexpluszero5.log src/tests/log/rwpropindexpluszero5.btor
+rwpropindexpluszero6 -rwl 0 -o src/tests/log/rwpropindexpluszero6.log src/tests/log/rwpropindexpluszero6.btor
+rwpropindexpluszero7 -rwl 0 -o src/tests/log/rwpropindexpluszero7.log src/tests/log/rwpropindexpluszero7.btor
+rwpropindexpluszero8 -rwl 0 -o src/tests/log/rwpropindexpluszero8.log src/tests/log/rwpropindexpluszero8.btor
+arraycondconst -rwl 0 -o src/tests/log/arraycondconst.log src/tests/log/arraycondconst.btor
+arraycondconstaig -rwl 0 -o src/tests/log/arraycondconstaig.log src/tests/log/arraycondconstaig.btor
+random1 -o src/tests/log/random1.log src/tests/log/random1.btor
+random2 -o src/tests/log/random2.log src/tests/log/random2.btor
+random3 -o src/tests/log/random3.log src/tests/log/random3.btor
+random4 -o src/tests/log/random4.log src/tests/log/random4.btor
+random5 -rwl 0 -o src/tests/log/random5.log src/tests/log/random5.btor
+random5 -rwl 1 -o src/tests/log/random5.log src/tests/log/random5.btor
+rw16 -rwl 0 -o src/tests/log/rw16.log src/tests/log/rw16.btor
+rw16 -rwl 1 -o src/tests/log/rw16.log src/tests/log/rw16.btor
+rw17 -rwl 0 -o src/tests/log/rw17.log src/tests/log/rw17.btor
+rw17 -rwl 1 -o src/tests/log/rw17.log src/tests/log/rw17.btor
+rw18 -rwl 0 -o src/tests/log/rw18.log src/tests/log/rw18.btor
+rw18 -rwl 1 -o src/tests/log/rw18.log src/tests/log/rw18.btor
+rw19 -rwl 0 -o src/tests/log/rw19.log src/tests/log/rw19.btor
+rw19 -rwl 1 -o src/tests/log/rw19.log src/tests/log/rw19.btor
+rw20 -rwl 0 -o src/tests/log/rw20.log src/tests/log/rw20.btor
+rw20 -rwl 1 -o src/tests/log/rw20.log src/tests/log/rw20.btor
+rw21 -rwl 0 -o src/tests/log/rw21.log src/tests/log/rw21.btor
+rw21 -rwl 1 -o src/tests/log/rw21.log src/tests/log/rw21.btor
+rw22 -rwl 0 -o src/tests/log/rw22.log src/tests/log/rw22.btor
+rw22 -rwl 1 -o src/tests/log/rw22.log src/tests/log/rw22.btor
+rw23 -rwl 0 -o src/tests/log/rw23.log src/tests/log/rw23.btor
+rw23 -rwl 1 -o src/tests/log/rw23.log src/tests/log/rw23.btor
+rw24 -rwl 0 -o src/tests/log/rw24.log src/tests/log/rw24.btor
+rw24 -rwl 1 -o src/tests/log/rw24.log src/tests/log/rw24.btor
+rw25 -rwl 0 -o src/tests/log/rw25.log src/tests/log/rw25.btor
+rw25 -rwl 1 -o src/tests/log/rw25.log src/tests/log/rw25.btor
+rw26 -rwl 0 -o src/tests/log/rw26.log src/tests/log/rw26.btor
+rw26 -rwl 1 -o src/tests/log/rw26.log src/tests/log/rw26.btor
+rw27 -rwl 0 -o src/tests/log/rw27.log src/tests/log/rw27.btor
+rw27 -rwl 1 -o src/tests/log/rw27.log src/tests/log/rw27.btor
+rw28 -rwl 0 -o src/tests/log/rw28.log src/tests/log/rw28.btor
+rw28 -rwl 1 -o src/tests/log/rw28.log src/tests/log/rw28.btor
+rw29 -rwl 0 -o src/tests/log/rw29.log src/tests/log/rw29.btor
+rw29 -rwl 1 -o src/tests/log/rw29.log src/tests/log/rw29.btor
+rw30 -rwl 0 -o src/tests/log/rw30.log src/tests/log/rw30.btor
+rw30 -rwl 1 -o src/tests/log/rw30.log src/tests/log/rw30.btor
+rw31 -rwl 0 -o src/tests/log/rw31.log src/tests/log/rw31.btor
+rw31 -rwl 1 -o src/tests/log/rw31.log src/tests/log/rw31.btor
+rw32 -rwl 0 -o src/tests/log/rw32.log src/tests/log/rw32.btor
+rw32 -rwl 1 -o src/tests/log/rw32.log src/tests/log/rw32.btor
+rw33 -rwl 0 -o src/tests/log/rw33.log src/tests/log/rw33.btor
+rw33 -rwl 1 -o src/tests/log/rw33.log src/tests/log/rw33.btor
+rw34 -rwl 0 -o src/tests/log/rw34.log src/tests/log/rw34.btor
+rw34 -rwl 1 -o src/tests/log/rw34.log src/tests/log/rw34.btor
+rw35 -rwl 0 -o src/tests/log/rw35.log src/tests/log/rw35.btor
+rw35 -rwl 1 -o src/tests/log/rw35.log src/tests/log/rw35.btor
+rw36 -rwl 0 -o src/tests/log/rw36.log src/tests/log/rw36.btor
+rw36 -rwl 1 -o src/tests/log/rw36.log src/tests/log/rw36.btor
+rw37 -rwl 0 -o src/tests/log/rw37.log src/tests/log/rw37.btor
+rw37 -rwl 1 -o src/tests/log/rw37.log src/tests/log/rw37.btor
+rw38 -rwl 0 -o src/tests/log/rw38.log src/tests/log/rw38.btor
+rw38 -rwl 1 -o src/tests/log/rw38.log src/tests/log/rw38.btor
+rw39 -rwl 0 -o src/tests/log/rw39.log src/tests/log/rw39.btor
+rw39 -rwl 1 -o src/tests/log/rw39.log src/tests/log/rw39.btor
+rw40 -rwl 0 -o src/tests/log/rw40.log src/tests/log/rw40.btor
+rw40 -rwl 1 -o src/tests/log/rw40.log src/tests/log/rw40.btor
+rw41 -rwl 0 -o src/tests/log/rw41.log src/tests/log/rw41.btor
+rw41 -rwl 1 -o src/tests/log/rw41.log src/tests/log/rw41.btor
+rw42 -rwl 0 -o src/tests/log/rw42.log src/tests/log/rw42.btor
+rw42 -rwl 1 -o src/tests/log/rw42.log src/tests/log/rw42.btor
+rw43 -rwl 0 -o src/tests/log/rw43.log src/tests/log/rw43.btor
+rw43 -rwl 1 -o src/tests/log/rw43.log src/tests/log/rw43.btor
+rw44 -rwl 0 -o src/tests/log/rw44.log src/tests/log/rw44.btor
+rw44 -rwl 1 -o src/tests/log/rw44.log src/tests/log/rw44.btor
+rw45 -rwl 0 -o src/tests/log/rw45.log src/tests/log/rw45.btor
+rw45 -rwl 1 -o src/tests/log/rw45.log src/tests/log/rw45.btor
+rw46 -o src/tests/log/rw46.log src/tests/log/rw46.btor
+rw47 -o src/tests/log/rw47.log src/tests/log/rw47.btor
+rw48 -o src/tests/log/rw48.log src/tests/log/rw48.btor
+rw49 -o src/tests/log/rw49.log src/tests/log/rw49.btor
+rw50 -o src/tests/log/rw50.log src/tests/log/rw50.btor
+rw51 -o src/tests/log/rw51.log src/tests/log/rw51.btor
+rw52 -rwl 0 -o src/tests/log/rw52.log src/tests/log/rw52.btor
+rw52 -rwl 1 -o src/tests/log/rw52.log src/tests/log/rw52.btor
+rw53 -rwl 0 -o src/tests/log/rw53.log src/tests/log/rw53.btor
+rw53 -rwl 3 -o src/tests/log/rw53.log src/tests/log/rw53.btor
+rw54 -rwl 0 -o src/tests/log/rw54.log src/tests/log/rw54.btor
+rw54 -rwl 3 -o src/tests/log/rw54.log src/tests/log/rw54.btor
+rw55 -rwl 0 -o src/tests/log/rw55.log src/tests/log/rw55.btor
+rw55 -rwl 3 -o src/tests/log/rw55.log src/tests/log/rw55.btor
+rw56 -rwl 0 -o src/tests/log/rw56.log src/tests/log/rw56.btor
+rw56 -rwl 3 -o src/tests/log/rw56.log src/tests/log/rw56.btor
+rw57 -rwl 0 -o src/tests/log/rw57.log src/tests/log/rw57.btor
+rw57 -rwl 3 -o src/tests/log/rw57.log src/tests/log/rw57.btor
+rw58 -rwl 0 -o src/tests/log/rw58.log src/tests/log/rw58.btor
+rw58 -rwl 3 -o src/tests/log/rw58.log src/tests/log/rw58.btor
+rw59 -rwl 0 -o src/tests/log/rw59.log src/tests/log/rw59.btor
+rw59 -rwl 3 -o src/tests/log/rw59.log src/tests/log/rw59.btor
+rw60 -o src/tests/log/rw60.log src/tests/log/rw60.btor
+rw61 -rwl 0 -o src/tests/log/rw61.log src/tests/log/rw61.btor
+rw61 -rwl 1 -o src/tests/log/rw61.log src/tests/log/rw61.btor
+rw62 -rwl 0 -o src/tests/log/rw62.log src/tests/log/rw62.btor
+rw62 -rwl 1 -o src/tests/log/rw62.log src/tests/log/rw62.btor
+rw63 -rwl 0 -o src/tests/log/rw63.log src/tests/log/rw63.btor
+rw63 -rwl 1 -o src/tests/log/rw63.log src/tests/log/rw63.btor
+rw64 -rwl 0 -o src/tests/log/rw64.log src/tests/log/rw64.btor
+rw64 -rwl 1 -o src/tests/log/rw64.log src/tests/log/rw64.btor
+rw65 -rwl 0 -o src/tests/log/rw65.log src/tests/log/rw65.btor
+rw65 -rwl 1 -o src/tests/log/rw65.log src/tests/log/rw65.btor
+rw66 -rwl 0 -o src/tests/log/rw66.log src/tests/log/rw66.btor
+rw66 -rwl 1 -o src/tests/log/rw66.log src/tests/log/rw66.btor
+rw67 -rwl 0 -o src/tests/log/rw67.log src/tests/log/rw67.btor
+rw67 -rwl 1 -o src/tests/log/rw67.log src/tests/log/rw67.btor
+rw68 -rwl 0 -o src/tests/log/rw68.log src/tests/log/rw68.btor
+rw68 -rwl 1 -o src/tests/log/rw68.log src/tests/log/rw68.btor
+rw69 -rwl 0 -o src/tests/log/rw69.log src/tests/log/rw69.btor
+rw69 -rwl 3 -o src/tests/log/rw69.log src/tests/log/rw69.btor
+rw70 -rwl 0 -o src/tests/log/rw70.log src/tests/log/rw70.btor
+rw70 -rwl 3 -o src/tests/log/rw70.log src/tests/log/rw70.btor
+rw71 -rwl 0 -o src/tests/log/rw71.log src/tests/log/rw71.btor
+rw71 -rwl 3 -o src/tests/log/rw71.log src/tests/log/rw71.btor
+rw72 -rwl 0 -o src/tests/log/rw72.log src/tests/log/rw72.btor
+rw72 -rwl 3 -o src/tests/log/rw72.log src/tests/log/rw72.btor
+rw73 -rwl 0 -o src/tests/log/rw73.log src/tests/log/rw73.btor
+rw73 -rwl 3 -o src/tests/log/rw73.log src/tests/log/rw73.btor
+rw74 -rwl 0 -o src/tests/log/rw74.log src/tests/log/rw74.btor
+rw74 -rwl 3 -o src/tests/log/rw74.log src/tests/log/rw74.btor
+rw75 -rwl 0 -o src/tests/log/rw75.log src/tests/log/rw75.btor
+rw75 -rwl 3 -o src/tests/log/rw75.log src/tests/log/rw75.btor
+rw76 -rwl 0 -o src/tests/log/rw76.log src/tests/log/rw76.btor
+rw76 -rwl 3 -o src/tests/log/rw76.log src/tests/log/rw76.btor
+rw77 -rwl 0 -o src/tests/log/rw77.log src/tests/log/rw77.btor
+rw77 -rwl 3 -o src/tests/log/rw77.log src/tests/log/rw77.btor
+rw78 -rwl 0 -o src/tests/log/rw78.log src/tests/log/rw78.btor
+rw78 -rwl 3 -o src/tests/log/rw78.log src/tests/log/rw78.btor
+rw79 -rwl 0 -o src/tests/log/rw79.log src/tests/log/rw79.btor
+rw79 -rwl 3 -o src/tests/log/rw79.log src/tests/log/rw79.btor
+rw80 -rwl 0 -o src/tests/log/rw80.log src/tests/log/rw80.btor
+rw80 -rwl 3 -o src/tests/log/rw80.log src/tests/log/rw80.btor
+rw81 -rwl 0 -o src/tests/log/rw81.log src/tests/log/rw81.btor
+rw81 -rwl 1 -o src/tests/log/rw81.log src/tests/log/rw81.btor
+rw82 -rwl 0 -o src/tests/log/rw82.log src/tests/log/rw82.btor
+rw82 -rwl 1 -o src/tests/log/rw82.log src/tests/log/rw82.btor
+rw83 -rwl 0 -o src/tests/log/rw83.log src/tests/log/rw83.btor
+rw83 -rwl 1 -o src/tests/log/rw83.log src/tests/log/rw83.btor
+rw84 -rwl 0 -o src/tests/log/rw84.log src/tests/log/rw84.btor
+rw84 -rwl 1 -o src/tests/log/rw84.log src/tests/log/rw84.btor
+rw85 -rwl 0 -o src/tests/log/rw85.log src/tests/log/rw85.btor
+rw85 -rwl 1 -o src/tests/log/rw85.log src/tests/log/rw85.btor
+rw86 -rwl 0 -o src/tests/log/rw86.log src/tests/log/rw86.btor
+rw86 -rwl 1 -o src/tests/log/rw86.log src/tests/log/rw86.btor
+rw87 -rwl 0 -o src/tests/log/rw87.log src/tests/log/rw87.btor
+rw87 -rwl 1 -o src/tests/log/rw87.log src/tests/log/rw87.btor
+rw88 -rwl 0 -o src/tests/log/rw88.log src/tests/log/rw88.btor
+rw88 -rwl 1 -o src/tests/log/rw88.log src/tests/log/rw88.btor
+rw89 -rwl 0 -o src/tests/log/rw89.log src/tests/log/rw89.btor
+rw89 -rwl 1 -o src/tests/log/rw89.log src/tests/log/rw89.btor
+rw90 -rwl 0 -o src/tests/log/rw90.log src/tests/log/rw90.btor
+rw90 -rwl 1 -o src/tests/log/rw90.log src/tests/log/rw90.btor
+rw91 -rwl 0 -o src/tests/log/rw91.log src/tests/log/rw91.btor
+rw91 -rwl 1 -o src/tests/log/rw91.log src/tests/log/rw91.btor
+rw92 -rwl 0 -o src/tests/log/rw92.log src/tests/log/rw92.btor
+rw92 -rwl 1 -o src/tests/log/rw92.log src/tests/log/rw92.btor
+rw93 -rwl 0 -o src/tests/log/rw93.log src/tests/log/rw93.btor
+rw93 -rwl 1 -o src/tests/log/rw93.log src/tests/log/rw93.btor
+rw94 -rwl 0 -o src/tests/log/rw94.log src/tests/log/rw94.btor
+rw94 -rwl 1 -o src/tests/log/rw94.log src/tests/log/rw94.btor
+rw95 -rwl 0 -o src/tests/log/rw95.log src/tests/log/rw95.btor
+rw95 -rwl 1 -o src/tests/log/rw95.log src/tests/log/rw95.btor
+rw96 -rwl 0 -o src/tests/log/rw96.log src/tests/log/rw96.btor
+rw96 -rwl 1 -o src/tests/log/rw96.log src/tests/log/rw96.btor
+rw97 -rwl 0 -o src/tests/log/rw97.log src/tests/log/rw97.btor
+rw97 -rwl 1 -o src/tests/log/rw97.log src/tests/log/rw97.btor
+rw98 -rwl 0 -o src/tests/log/rw98.log src/tests/log/rw98.btor
+rw98 -rwl 1 -o src/tests/log/rw98.log src/tests/log/rw98.btor
+rw99 -rwl 0 -o src/tests/log/rw99.log src/tests/log/rw99.btor
+rw99 -rwl 1 -o src/tests/log/rw99.log src/tests/log/rw99.btor
+rw100 -rwl 0 -o src/tests/log/rw100.log src/tests/log/rw100.btor
+rw100 -rwl 1 -o src/tests/log/rw100.log src/tests/log/rw100.btor
+rw101 -rwl 0 -o src/tests/log/rw101.log src/tests/log/rw101.btor
+rw101 -rwl 1 -o src/tests/log/rw101.log src/tests/log/rw101.btor
+rw102 -rwl 0 -o src/tests/log/rw102.log src/tests/log/rw102.btor
+rw102 -rwl 1 -o src/tests/log/rw102.log src/tests/log/rw102.btor
+rw103 -rwl 0 -o src/tests/log/rw103.log src/tests/log/rw103.btor
+rw103 -rwl 1 -o src/tests/log/rw103.log src/tests/log/rw103.btor
+rw104 -rwl 0 -o src/tests/log/rw104.log src/tests/log/rw104.btor
+rw104 -rwl 1 -o src/tests/log/rw104.log src/tests/log/rw104.btor
+rw105 -rwl 0 -o src/tests/log/rw105.log src/tests/log/rw105.btor
+rw105 -rwl 1 -o src/tests/log/rw105.log src/tests/log/rw105.btor
+rw106 -rwl 0 -o src/tests/log/rw106.log src/tests/log/rw106.btor
+rw106 -rwl 1 -o src/tests/log/rw106.log src/tests/log/rw106.btor
+rw107 -rwl 0 -o src/tests/log/rw107.log src/tests/log/rw107.btor
+rw107 -rwl 1 -o src/tests/log/rw107.log src/tests/log/rw107.btor
+rw108 -rwl 0 -o src/tests/log/rw108.log src/tests/log/rw108.btor
+rw108 -rwl 1 -o src/tests/log/rw108.log src/tests/log/rw108.btor
+rw109 -rwl 0 -o src/tests/log/rw109.log src/tests/log/rw109.btor
+rw109 -rwl 1 -o src/tests/log/rw109.log src/tests/log/rw109.btor
+rw110 -rwl 0 -o src/tests/log/rw110.log src/tests/log/rw110.btor
+rw110 -rwl 1 -o src/tests/log/rw110.log src/tests/log/rw110.btor
+rw111 -rwl 0 -o src/tests/log/rw111.log src/tests/log/rw111.btor
+rw111 -rwl 1 -o src/tests/log/rw111.log src/tests/log/rw111.btor
+rw112 -rwl 0 -o src/tests/log/rw112.log src/tests/log/rw112.btor
+rw112 -rwl 1 -o src/tests/log/rw112.log src/tests/log/rw112.btor
+rw113 -rwl 0 -o src/tests/log/rw113.log src/tests/log/rw113.btor
+rw113 -rwl 1 -o src/tests/log/rw113.log src/tests/log/rw113.btor
+rw114 -rwl 0 -o src/tests/log/rw114.log src/tests/log/rw114.btor
+rw114 -rwl 1 -o src/tests/log/rw114.log src/tests/log/rw114.btor
+rw115 -rwl 0 -o src/tests/log/rw115.log src/tests/log/rw115.btor
+rw115 -rwl 1 -o src/tests/log/rw115.log src/tests/log/rw115.btor
+rw116 -rwl 0 -o src/tests/log/rw116.log src/tests/log/rw116.btor
+rw116 -rwl 1 -o src/tests/log/rw116.log src/tests/log/rw116.btor
+rw117 -rwl 0 -o src/tests/log/rw117.log src/tests/log/rw117.btor
+rw117 -rwl 1 -o src/tests/log/rw117.log src/tests/log/rw117.btor
+rw118 -rwl 0 -o src/tests/log/rw118.log src/tests/log/rw118.btor
+rw118 -rwl 1 -o src/tests/log/rw118.log src/tests/log/rw118.btor
+rw119 -rwl 0 -o src/tests/log/rw119.log src/tests/log/rw119.btor
+rw119 -rwl 1 -o src/tests/log/rw119.log src/tests/log/rw119.btor
+rw120 -rwl 0 -o src/tests/log/rw120.log src/tests/log/rw120.btor
+rw120 -rwl 1 -o src/tests/log/rw120.log src/tests/log/rw120.btor
+rw121 -rwl 0 -o src/tests/log/rw121.log src/tests/log/rw121.btor
+rw121 -rwl 1 -o src/tests/log/rw121.log src/tests/log/rw121.btor
+rw122 -rwl 0 -o src/tests/log/rw122.log src/tests/log/rw122.btor
+rw122 -rwl 1 -o src/tests/log/rw122.log src/tests/log/rw122.btor
+rw123 -rwl 0 -o src/tests/log/rw123.log src/tests/log/rw123.btor
+rw123 -rwl 1 -o src/tests/log/rw123.log src/tests/log/rw123.btor
+rw124 -rwl 0 -o src/tests/log/rw124.log src/tests/log/rw124.btor
+rw124 -rwl 1 -o src/tests/log/rw124.log src/tests/log/rw124.btor
+rw125 -rwl 0 -o src/tests/log/rw125.log src/tests/log/rw125.btor
+rw125 -rwl 3 -o src/tests/log/rw125.log src/tests/log/rw125.btor
+rw126 -rwl 0 -o src/tests/log/rw126.log src/tests/log/rw126.btor
+rw126 -rwl 3 -o src/tests/log/rw126.log src/tests/log/rw126.btor
+rw127 -rwl 0 -o src/tests/log/rw127.log src/tests/log/rw127.btor
+rw127 -rwl 3 -o src/tests/log/rw127.log src/tests/log/rw127.btor
+rw128 -rwl 0 -o src/tests/log/rw128.log src/tests/log/rw128.btor
+rw128 -rwl 3 -o src/tests/log/rw128.log src/tests/log/rw128.btor
+rw129 -rwl 0 -o src/tests/log/rw129.log src/tests/log/rw129.btor
+rw129 -rwl 3 -o src/tests/log/rw129.log src/tests/log/rw129.btor
+rw130 -rwl 0 -o src/tests/log/rw130.log src/tests/log/rw130.btor
+rw130 -rwl 1 -o src/tests/log/rw130.log src/tests/log/rw130.btor
+rw131 -rwl 0 -o src/tests/log/rw131.log src/tests/log/rw131.btor
+rw131 -rwl 1 -o src/tests/log/rw131.log src/tests/log/rw131.btor
+rw132 -rwl 0 -o src/tests/log/rw132.log src/tests/log/rw132.btor
+rw132 -rwl 1 -o src/tests/log/rw132.log src/tests/log/rw132.btor
+rw133 -rwl 0 -o src/tests/log/rw133.log src/tests/log/rw133.btor
+rw133 -rwl 1 -o src/tests/log/rw133.log src/tests/log/rw133.btor
+rw134 -rwl 0 -o src/tests/log/rw134.log src/tests/log/rw134.btor
+rw134 -rwl 3 -o src/tests/log/rw134.log src/tests/log/rw134.btor
+rw135 -rwl 0 -o src/tests/log/rw135.log src/tests/log/rw135.btor
+rw135 -rwl 3 -o src/tests/log/rw135.log src/tests/log/rw135.btor
+rw136 -rwl 0 -o src/tests/log/rw136.log src/tests/log/rw136.btor
+rw136 -rwl 3 -o src/tests/log/rw136.log src/tests/log/rw136.btor
+rw137 -rwl 0 -o src/tests/log/rw137.log src/tests/log/rw137.btor
+rw137 -rwl 3 -o src/tests/log/rw137.log src/tests/log/rw137.btor
+rw138 -rwl 0 -o src/tests/log/rw138.log src/tests/log/rw138.btor
+rw138 -rwl 3 -o src/tests/log/rw138.log src/tests/log/rw138.btor
+rw139 -rwl 0 -o src/tests/log/rw139.log src/tests/log/rw139.btor
+rw139 -rwl 3 -o src/tests/log/rw139.log src/tests/log/rw139.btor
+rw140 -rwl 0 -o src/tests/log/rw140.log src/tests/log/rw140.btor
+rw140 -rwl 3 -o src/tests/log/rw140.log src/tests/log/rw140.btor
+rw141 -rwl 0 -o src/tests/log/rw141.log src/tests/log/rw141.btor
+rw141 -rwl 3 -o src/tests/log/rw141.log src/tests/log/rw141.btor
+rw142 -rwl 0 -o src/tests/log/rw142.log src/tests/log/rw142.btor
+rw142 -rwl 3 -o src/tests/log/rw142.log src/tests/log/rw142.btor
+rw143 -rwl 0 -o src/tests/log/rw143.log src/tests/log/rw143.btor
+rw143 -rwl 3 -o src/tests/log/rw143.log src/tests/log/rw143.btor
+rw144 -rwl 0 -o src/tests/log/rw144.log src/tests/log/rw144.btor
+rw144 -rwl 3 -o src/tests/log/rw144.log src/tests/log/rw144.btor
+rw145 -rwl 0 -o src/tests/log/rw145.log src/tests/log/rw145.btor
+rw145 -rwl 3 -o src/tests/log/rw145.log src/tests/log/rw145.btor
+rw146 -rwl 0 -o src/tests/log/rw146.log src/tests/log/rw146.btor
+rw146 -rwl 3 -o src/tests/log/rw146.log src/tests/log/rw146.btor
+rw147 -rwl 0 -o src/tests/log/rw147.log src/tests/log/rw147.btor
+rw147 -rwl 3 -o src/tests/log/rw147.log src/tests/log/rw147.btor
+rw148 -rwl 0 -o src/tests/log/rw148.log src/tests/log/rw148.btor
+rw148 -rwl 3 -o src/tests/log/rw148.log src/tests/log/rw148.btor
+rw149 -rwl 0 -o src/tests/log/rw149.log src/tests/log/rw149.btor
+rw149 -rwl 3 -o src/tests/log/rw149.log src/tests/log/rw149.btor
+rw150 -rwl 0 -o src/tests/log/rw150.log src/tests/log/rw150.btor
+rw150 -rwl 3 -o src/tests/log/rw150.log src/tests/log/rw150.btor
+rw151 -rwl 0 -o src/tests/log/rw151.log src/tests/log/rw151.btor
+rw151 -rwl 3 -o src/tests/log/rw151.log src/tests/log/rw151.btor
+rw152 -rwl 0 -o src/tests/log/rw152.log src/tests/log/rw152.btor
+rw152 -rwl 3 -o src/tests/log/rw152.log src/tests/log/rw152.btor
+rw153 -rwl 0 -o src/tests/log/rw153.log src/tests/log/rw153.btor
+rw153 -rwl 3 -o src/tests/log/rw153.log src/tests/log/rw153.btor
+rw154 -rwl 0 -o src/tests/log/rw154.log src/tests/log/rw154.btor
+rw154 -rwl 1 -o src/tests/log/rw154.log src/tests/log/rw154.btor
+rw155 -rwl 0 -o src/tests/log/rw155.log src/tests/log/rw155.btor
+rw155 -rwl 1 -o src/tests/log/rw155.log src/tests/log/rw155.btor
+rw156 -rwl 0 -o src/tests/log/rw156.log src/tests/log/rw156.btor
+rw156 -rwl 1 -o src/tests/log/rw156.log src/tests/log/rw156.btor
+rw157 -o src/tests/log/rw157.log src/tests/log/rw157.btor
+rw158 -rwl 1 -o src/tests/log/rw158.log src/tests/log/rw158.btor
+rw159 -rwl 1 -o src/tests/log/rw159.log src/tests/log/rw159.btor
+rw160 -rwl 1 -o src/tests/log/rw160.log src/tests/log/rw160.btor
+rw161 -rwl 1 -o src/tests/log/rw161.log src/tests/log/rw161.btor
+rw162 -rwl 1 -o src/tests/log/rw162.log src/tests/log/rw162.btor
+rw163 -rwl 1 -o src/tests/log/rw163.log src/tests/log/rw163.btor
+rw164 -rwl 1 -o src/tests/log/rw164.log src/tests/log/rw164.btor
+rw165 -rwl 1 -o src/tests/log/rw165.log src/tests/log/rw165.btor
+rw166 -rwl 1 -o src/tests/log/rw166.log src/tests/log/rw166.btor
+rw167 -rwl 1 -o src/tests/log/rw167.log src/tests/log/rw167.btor
+rw168 -rwl 1 -o src/tests/log/rw168.log src/tests/log/rw168.btor
+rw169 -rwl 1 -o src/tests/log/rw169.log src/tests/log/rw169.btor
+rw170 -rwl 1 -o src/tests/log/rw170.log src/tests/log/rw170.btor
+rw171 -rwl 1 -o src/tests/log/rw171.log src/tests/log/rw171.btor
+rw172 -rwl 1 -o src/tests/log/rw172.log src/tests/log/rw172.btor
+rw173 -rwl 1 -o src/tests/log/rw173.log src/tests/log/rw173.btor
+rw174 -rwl 1 -o src/tests/log/rw174.log src/tests/log/rw174.btor
+rw175 -rwl 1 -o src/tests/log/rw175.log src/tests/log/rw175.btor
+rw176 -rwl 1 -o src/tests/log/rw176.log src/tests/log/rw176.btor
+rw177 -rwl 1 -o src/tests/log/rw177.log src/tests/log/rw177.btor
+rw178 -rwl 3 -o src/tests/log/rw178.log src/tests/log/rw178.btor
+rw179 -rwl 3 -o src/tests/log/rw179.log src/tests/log/rw179.btor
+rw180 -rwl 3 -o src/tests/log/rw180.log src/tests/log/rw180.btor
+rw181 -rwl 3 -o src/tests/log/rw181.log src/tests/log/rw181.btor
+rw182 -rwl 3 -o src/tests/log/rw182.log src/tests/log/rw182.btor
+rw183 -rwl 3 -o src/tests/log/rw183.log src/tests/log/rw183.btor
+rw184 -rwl 3 -o src/tests/log/rw184.log src/tests/log/rw184.btor
+rw185 -rwl 3 -o src/tests/log/rw185.log src/tests/log/rw185.btor
+rw186 -rwl 3 -o src/tests/log/rw186.log src/tests/log/rw186.btor
+rw187 -rwl 3 -o src/tests/log/rw187.log src/tests/log/rw187.btor
+rw188 -rwl 3 -o src/tests/log/rw188.log src/tests/log/rw188.btor
+rw189 -rwl 3 -o src/tests/log/rw189.log src/tests/log/rw189.btor
+rw190 -rwl 3 -o src/tests/log/rw190.log src/tests/log/rw190.btor
+rw191 -rwl 3 -o src/tests/log/rw191.log src/tests/log/rw191.btor
+rw192 -rwl 3 -o src/tests/log/rw192.log src/tests/log/rw192.btor
+rw193 -rwl 3 -o src/tests/log/rw193.log src/tests/log/rw193.btor
+rw194 -rwl 3 -o src/tests/log/rw194.log src/tests/log/rw194.btor
+rw195 -rwl 3 -o src/tests/log/rw195.log src/tests/log/rw195.btor
+rw196 -rwl 3 -o src/tests/log/rw196.log src/tests/log/rw196.btor
+rw197 -rwl 3 -o src/tests/log/rw197.log src/tests/log/rw197.btor
+rw198 -rwl 3 -o src/tests/log/rw198.log src/tests/log/rw198.btor
+rw199 -rwl 3 -o src/tests/log/rw199.log src/tests/log/rw199.btor
+rw200 -rwl 3 -o src/tests/log/rw200.log src/tests/log/rw200.btor
+rw201 -rwl 3 -o src/tests/log/rw201.log src/tests/log/rw201.btor
+rw202 -rwl 3 -o src/tests/log/rw202.log src/tests/log/rw202.btor
+rw203 -rwl 3 -o src/tests/log/rw203.log src/tests/log/rw203.btor
+rw204 -rwl 3 -o src/tests/log/rw204.log src/tests/log/rw204.btor
+rw205 -rwl 3 -o src/tests/log/rw205.log src/tests/log/rw205.btor
+rw206 -rwl 3 -o src/tests/log/rw206.log src/tests/log/rw206.btor
+rw207 -rwl 3 -o src/tests/log/rw207.log src/tests/log/rw207.btor
+rw208 -rwl 3 -o src/tests/log/rw208.log src/tests/log/rw208.btor
+rw209 -rwl 3 -o src/tests/log/rw209.log src/tests/log/rw209.btor
+rw210 -rwl 3 -o src/tests/log/rw210.log src/tests/log/rw210.btor
+rw211 -rwl 3 -o src/tests/log/rw211.log src/tests/log/rw211.btor
+rw212 -rwl 3 -o src/tests/log/rw212.log src/tests/log/rw212.smt
+rw213 -rwl 3 -o src/tests/log/rw213.log src/tests/log/rw213.smt
+rw214 -rwl 3 -o src/tests/log/rw214.log src/tests/log/rw214.smt
+rw215 -rwl 3 -o src/tests/log/rw215.log src/tests/log/rw215.smt
+rw216 -rwl 3 -o src/tests/log/rw216.log src/tests/log/rw216.smt
+rw217 -rwl 3 -o src/tests/log/rw217.log src/tests/log/rw217.smt2
+rw218 -rwl 3 -o src/tests/log/rw218.log src/tests/log/rw218.smt2
+rw217 -rwl 3 -o src/tests/log/rw217.log src/tests/log/rw217.smt2
+rw219 -rwl 3 -o src/tests/log/rw219.log src/tests/log/rw219.smt2
+rw220 -rwl 3 -o src/tests/log/rw220.log src/tests/log/rw220.smt2
+rw221 -rwl 3 -o src/tests/log/rw221.log src/tests/log/rw221.smt2
+rww1 -rwl 3 -o src/tests/log/rww1.log src/tests/log/rww1.btor
+rwr1 -rwl 3 -bra -o src/tests/log/rwr1.log src/tests/log/rwr1.btor
+hd1 -rwl 0 -o src/tests/log/hd1.log src/tests/log/hd1.btor
+hd1 -rwl 1 -o src/tests/log/hd1.log src/tests/log/hd1.btor
+hd2 -rwl 0 -o src/tests/log/hd2.log src/tests/log/hd2.btor
+hd2 -rwl 1 -o src/tests/log/hd2.log src/tests/log/hd2.btor
+hd3 -rwl 0 -o src/tests/log/hd3.log src/tests/log/hd3.btor
+hd3 -rwl 1 -o src/tests/log/hd3.log src/tests/log/hd3.btor
+hd4 -rwl 0 -o src/tests/log/hd4.log src/tests/log/hd4.btor
+hd4 -rwl 1 -o src/tests/log/hd4.log src/tests/log/hd4.btor
+hd5 -rwl 0 -o src/tests/log/hd5.log src/tests/log/hd5.btor
+hd5 -rwl 1 -o src/tests/log/hd5.log src/tests/log/hd5.btor
+hd6 -rwl 0 -o src/tests/log/hd6.log src/tests/log/hd6.btor
+hd6 -rwl 1 -o src/tests/log/hd6.log src/tests/log/hd6.btor
+hd7 -rwl 0 -o src/tests/log/hd7.log src/tests/log/hd7.btor
+hd7 -rwl 1 -o src/tests/log/hd7.log src/tests/log/hd7.btor
+hd8 -rwl 0 -o src/tests/log/hd8.log src/tests/log/hd8.btor
+hd8 -rwl 1 -o src/tests/log/hd8.log src/tests/log/hd8.btor
+hd9 -rwl 0 -o src/tests/log/hd9.log src/tests/log/hd9.btor
+hd9 -rwl 1 -o src/tests/log/hd9.log src/tests/log/hd9.btor
+hd10 -rwl 0 -o src/tests/log/hd10.log src/tests/log/hd10.btor
+hd10 -rwl 1 -o src/tests/log/hd10.log src/tests/log/hd10.btor
+hd11 -rwl 0 -o src/tests/log/hd11.log src/tests/log/hd11.btor
+hd11 -rwl 1 -o src/tests/log/hd11.log src/tests/log/hd11.btor
+hd12 -rwl 0 -o src/tests/log/hd12.log src/tests/log/hd12.btor
+hd12 -rwl 1 -o src/tests/log/hd12.log src/tests/log/hd12.btor
+hd13 -rwl 0 -o src/tests/log/hd13.log src/tests/log/hd13.btor
+hd13 -rwl 1 -o src/tests/log/hd13.log src/tests/log/hd13.btor
+hd14 -rwl 0 -o src/tests/log/hd14.log src/tests/log/hd14.btor
+hd14 -rwl 1 -o src/tests/log/hd14.log src/tests/log/hd14.btor
+hd15 -rwl 0 -o src/tests/log/hd15.log src/tests/log/hd15.btor
+hd15 -rwl 1 -o src/tests/log/hd15.log src/tests/log/hd15.btor
+hd16 -rwl 0 -o src/tests/log/hd16.log src/tests/log/hd16.btor
+hd16 -rwl 1 -o src/tests/log/hd16.log src/tests/log/hd16.btor
+hd17 -rwl 0 -o src/tests/log/hd17.log src/tests/log/hd17.btor
+hd17 -rwl 1 -o src/tests/log/hd17.log src/tests/log/hd17.btor
+hd18 -rwl 0 -o src/tests/log/hd18.log src/tests/log/hd18.btor
+hd18 -rwl 1 -o src/tests/log/hd18.log src/tests/log/hd18.btor
+hd19 -o src/tests/log/hd19.log src/tests/log/hd19.btor
+hd20 -o src/tests/log/hd20.log src/tests/log/hd20.btor
+hd21 -o src/tests/log/hd21.log src/tests/log/hd21.btor
+proxybug -o src/tests/log/proxybug.log src/tests/log/proxybug.btor
+prim8bugreduced -o src/tests/log/prim8bugreduced.log src/tests/log/prim8bugreduced.btor
+bubsort002un -o src/tests/log/bubsort002un.log src/tests/log/bubsort002un.smt
+selsort002un -o src/tests/log/selsort002un.log src/tests/log/selsort002un.smt
+swapmem002se -o src/tests/log/swapmem002se.log src/tests/log/swapmem002se.smt
+swapmem002ue -o src/tests/log/swapmem002ue.log src/tests/log/swapmem002ue.smt
+wchains002se -o src/tests/log/wchains002se.log src/tests/log/wchains002se.smt
+wchains002ue -o src/tests/log/wchains002ue.log src/tests/log/wchains002ue.smt
+dubreva002ue -o src/tests/log/dubreva002ue.log src/tests/log/dubreva002ue.smt
+binarysearch32s016 -o src/tests/log/binarysearch32s016.log src/tests/log/binarysearch32s016.smt
+countbits016 -o src/tests/log/countbits016.log src/tests/log/countbits016.smt
+fifo32bc04k05 -o src/tests/log/fifo32bc04k05.log src/tests/log/fifo32bc04k05.smt
+fifo32ia04k05 -o src/tests/log/fifo32ia04k05.log src/tests/log/fifo32ia04k05.smt
+fifo32in04k05 -o src/tests/log/fifo32in04k05.log src/tests/log/fifo32in04k05.smt
+nextpoweroftwo016 -o src/tests/log/nextpoweroftwo016.log src/tests/log/nextpoweroftwo016.smt
+memcpy02 -o src/tests/log/memcpy02.log src/tests/log/memcpy02.smt
+regrw8simp -o src/tests/log/regrw8simp.log src/tests/log/regrw8simp.btor
+regprim11simp -o src/tests/log/regprim11simp.log src/tests/log/regprim11simp.btor
+#regexit0basic -o src/tests/log/regexit0basic.log src/tests/log/regexit0basic.btor
+#nextcounter1 -o src/tests/log/nextcounter1.log src/tests/log/nextcounter1.btor
+#nextcounter2 -o src/tests/log/nextcounter2.log src/tests/log/nextcounter2.btor
+#nextcounter3 -o src/tests/log/nextcounter3.log src/tests/log/nextcounter3.btor
+#nextcounter4 -o src/tests/log/nextcounter4.log src/tests/log/nextcounter4.btor
+#nextcounter5 -o src/tests/log/nextcounter5.log src/tests/log/nextcounter5.btor
+#nextautomata1 -o src/tests/log/nextautomata1.log src/tests/log/nextautomata1.btor
+#nextautomata2 -o src/tests/log/nextautomata2.log src/tests/log/nextautomata2.btor
+#nextautomata3 -o src/tests/log/nextautomata3.log src/tests/log/nextautomata3.btor
+#nextautomata4 -o src/tests/log/nextautomata4.log src/tests/log/nextautomata4.btor
+#nextarray1 -o src/tests/log/nextarray1.log src/tests/log/nextarray1.btor
+#nextarray2 -o src/tests/log/nextarray2.log src/tests/log/nextarray2.btor
+#nextarray3 -o src/tests/log/nextarray3.log src/tests/log/nextarray3.btor
+#nextarray4 -o src/tests/log/nextarray4.log src/tests/log/nextarray4.btor
+#nextarray5 -o src/tests/log/nextarray5.log src/tests/log/nextarray5.btor
+#nextarray6 -o src/tests/log/nextarray6.log src/tests/log/nextarray6.btor
+#nextarray7 -o src/tests/log/nextarray7.log src/tests/log/nextarray7.btor
+#nextarray8 -o src/tests/log/nextarray8.log src/tests/log/nextarray8.btor
+#nextarray8 -rwl 0 -o src/tests/log/nextarray8.log src/tests/log/nextarray8.btor
+#nextarrayinput1 -rwl 0 -o src/tests/log/nextarrayinput1.log src/tests/log/nextarrayinput1.btor
+regpicoprepsqrt4 -o src/tests/log/regpicoprepsqrt4.log src/tests/log/regpicoprepsqrt4.btor
+substcyclic1 -o src/tests/log/substcyclic1.log src/tests/log/substcyclic1.btor
+lin0 -o src/tests/log/lin0.log src/tests/log/lin0.btor
+lin1 -o src/tests/log/lin1.log src/tests/log/lin1.btor
+lin2 -o src/tests/log/lin2.log src/tests/log/lin2.btor
+lin3 -o src/tests/log/lin3.log src/tests/log/lin3.btor
+lin4 -o src/tests/log/lin4.log src/tests/log/lin4.btor
+twocomplementassub -o src/tests/log/twocomplementassub.log src/tests/log/twocomplementassub.btor
+regsubslapd149921red -o src/tests/log/regsubslapd149921red.log src/tests/log/regsubslapd149921red.btor
+inc -rwl 0 -o src/tests/log/inc.log src/tests/log/inc.btor
+inc -o src/tests/log/inc.log src/tests/log/inc.btor
+dec -rwl 0 -o src/tests/log/dec.log src/tests/log/dec.btor
+dec -o src/tests/log/dec.log src/tests/log/dec.btor
+regrembeddedconstraint1 -rwl 0 -o src/tests/log/regrembeddedconstraint1.log src/tests/log/regrembeddedconstraint1.btor
+regrembeddedconstraint1 -rwl 1 -o src/tests/log/regrembeddedconstraint1.log src/tests/log/regrembeddedconstraint1.btor
+regrembeddedconstraint1 -rwl 2 -o src/tests/log/regrembeddedconstraint1.log src/tests/log/regrembeddedconstraint1.btor
+regrembeddedconstraint1 -rwl 3 -o src/tests/log/regrembeddedconstraint1.log src/tests/log/regrembeddedconstraint1.btor
+regrembeddedconstraint2 -rwl 0 -o src/tests/log/regrembeddedconstraint2.log src/tests/log/regrembeddedconstraint2.btor
+regrembeddedconstraint2 -rwl 1 -o src/tests/log/regrembeddedconstraint2.log src/tests/log/regrembeddedconstraint2.btor
+regrembeddedconstraint2 -rwl 2 -o src/tests/log/regrembeddedconstraint2.log src/tests/log/regrembeddedconstraint2.btor
+regrembeddedconstraint2 -rwl 3 -o src/tests/log/regrembeddedconstraint2.log src/tests/log/regrembeddedconstraint2.btor
+regrembeddedconstraint3 -rwl 0 -o src/tests/log/regrembeddedconstraint3.log src/tests/log/regrembeddedconstraint3.btor
+regrembeddedconstraint3 -rwl 1 -o src/tests/log/regrembeddedconstraint3.log src/tests/log/regrembeddedconstraint3.btor
+regrembeddedconstraint3 -rwl 2 -o src/tests/log/regrembeddedconstraint3.log src/tests/log/regrembeddedconstraint3.btor
+regrembeddedconstraint3 -rwl 3 -o src/tests/log/regrembeddedconstraint3.log src/tests/log/regrembeddedconstraint3.btor
+regrembeddedconstraint4 -rwl 0 -o src/tests/log/regrembeddedconstraint4.log src/tests/log/regrembeddedconstraint4.btor
+regrembeddedconstraint4 -rwl 1 -o src/tests/log/regrembeddedconstraint4.log src/tests/log/regrembeddedconstraint4.btor
+regrembeddedconstraint4 -rwl 2 -o src/tests/log/regrembeddedconstraint4.log src/tests/log/regrembeddedconstraint4.btor
+regrembeddedconstraint4 -rwl 3 -o src/tests/log/regrembeddedconstraint4.log src/tests/log/regrembeddedconstraint4.btor
+regrembeddedconstraint5 -rwl 0 -o src/tests/log/regrembeddedconstraint5.log src/tests/log/regrembeddedconstraint5.btor
+regrembeddedconstraint5 -rwl 1 -o src/tests/log/regrembeddedconstraint5.log src/tests/log/regrembeddedconstraint5.btor
+regrembeddedconstraint5 -rwl 2 -o src/tests/log/regrembeddedconstraint5.log src/tests/log/regrembeddedconstraint5.btor
+regrembeddedconstraint5 -rwl 3 -o src/tests/log/regrembeddedconstraint5.log src/tests/log/regrembeddedconstraint5.btor
+regrembeddedconstraint6 -rwl 0 -o src/tests/log/regrembeddedconstraint6.log src/tests/log/regrembeddedconstraint6.btor
+regrembeddedconstraint6 -rwl 1 -o src/tests/log/regrembeddedconstraint6.log src/tests/log/regrembeddedconstraint6.btor
+regrembeddedconstraint6 -rwl 2 -o src/tests/log/regrembeddedconstraint6.log src/tests/log/regrembeddedconstraint6.btor
+regrembeddedconstraint6 -rwl 3 -o src/tests/log/regrembeddedconstraint6.log src/tests/log/regrembeddedconstraint6.btor
+regrembeddedconstraint7 -rwl 0 -o src/tests/log/regrembeddedconstraint7.log src/tests/log/regrembeddedconstraint7.btor
+regrembeddedconstraint7 -rwl 1 -o src/tests/log/regrembeddedconstraint7.log src/tests/log/regrembeddedconstraint7.btor
+regrembeddedconstraint7 -rwl 2 -o src/tests/log/regrembeddedconstraint7.log src/tests/log/regrembeddedconstraint7.btor
+regrembeddedconstraint7 -rwl 3 -o src/tests/log/regrembeddedconstraint7.log src/tests/log/regrembeddedconstraint7.btor
+regrembeddedconstraint8 -rwl 0 -o src/tests/log/regrembeddedconstraint8.log src/tests/log/regrembeddedconstraint8.btor
+regrembeddedconstraint8 -rwl 1 -o src/tests/log/regrembeddedconstraint8.log src/tests/log/regrembeddedconstraint8.btor
+regrembeddedconstraint8 -rwl 2 -o src/tests/log/regrembeddedconstraint8.log src/tests/log/regrembeddedconstraint8.btor
+regrembeddedconstraint8 -rwl 3 -o src/tests/log/regrembeddedconstraint8.log src/tests/log/regrembeddedconstraint8.btor
+regrembeddedconstraint9 -rwl 0 -o src/tests/log/regrembeddedconstraint9.log src/tests/log/regrembeddedconstraint9.btor
+regrembeddedconstraint9 -rwl 1 -o src/tests/log/regrembeddedconstraint9.log src/tests/log/regrembeddedconstraint9.btor
+regrembeddedconstraint9 -rwl 2 -o src/tests/log/regrembeddedconstraint9.log src/tests/log/regrembeddedconstraint9.btor
+regrembeddedconstraint9 -rwl 3 -o src/tests/log/regrembeddedconstraint9.log src/tests/log/regrembeddedconstraint9.btor
+regrembeddedconstraint10 -rwl 0 -o src/tests/log/regrembeddedconstraint10.log src/tests/log/regrembeddedconstraint10.btor
+regrembeddedconstraint10 -rwl 1 -o src/tests/log/regrembeddedconstraint10.log src/tests/log/regrembeddedconstraint10.btor
+regrembeddedconstraint10 -rwl 2 -o src/tests/log/regrembeddedconstraint10.log src/tests/log/regrembeddedconstraint10.btor
+regrembeddedconstraint10 -rwl 3 -o src/tests/log/regrembeddedconstraint10.log src/tests/log/regrembeddedconstraint10.btor
+regrembeddedconstraint11 -rwl 0 -o src/tests/log/regrembeddedconstraint11.log src/tests/log/regrembeddedconstraint11.btor
+regrembeddedconstraint11 -rwl 1 -o src/tests/log/regrembeddedconstraint11.log src/tests/log/regrembeddedconstraint11.btor
+regrembeddedconstraint11 -rwl 2 -o src/tests/log/regrembeddedconstraint11.log src/tests/log/regrembeddedconstraint11.btor
+regrembeddedconstraint11 -rwl 3 -o src/tests/log/regrembeddedconstraint11.log src/tests/log/regrembeddedconstraint11.btor
+regrembeddedconstraint12 -rwl 0 -o src/tests/log/regrembeddedconstraint12.log src/tests/log/regrembeddedconstraint12.btor
+regrembeddedconstraint12 -rwl 1 -o src/tests/log/regrembeddedconstraint12.log src/tests/log/regrembeddedconstraint12.btor
+regrembeddedconstraint12 -rwl 2 -o src/tests/log/regrembeddedconstraint12.log src/tests/log/regrembeddedconstraint12.btor
+regrembeddedconstraint12 -rwl 3 -o src/tests/log/regrembeddedconstraint12.log src/tests/log/regrembeddedconstraint12.btor
+regrembeddedconstraint13 -rwl 0 -o src/tests/log/regrembeddedconstraint13.log src/tests/log/regrembeddedconstraint13.btor
+regrembeddedconstraint13 -rwl 1 -o src/tests/log/regrembeddedconstraint13.log src/tests/log/regrembeddedconstraint13.btor
+regrembeddedconstraint13 -rwl 2 -o src/tests/log/regrembeddedconstraint13.log src/tests/log/regrembeddedconstraint13.btor
+regrembeddedconstraint13 -rwl 3 -o src/tests/log/regrembeddedconstraint13.log src/tests/log/regrembeddedconstraint13.btor
+regrembeddedconstraint14 -rwl 0 -o src/tests/log/regrembeddedconstraint14.log src/tests/log/regrembeddedconstraint14.btor
+regrembeddedconstraint14 -rwl 1 -o src/tests/log/regrembeddedconstraint14.log src/tests/log/regrembeddedconstraint14.btor
+regrembeddedconstraint14 -rwl 2 -o src/tests/log/regrembeddedconstraint14.log src/tests/log/regrembeddedconstraint14.btor
+regrembeddedconstraint14 -rwl 3 -o src/tests/log/regrembeddedconstraint14.log src/tests/log/regrembeddedconstraint14.btor
+regrbfs1 -rwl 3 -o src/tests/log/regrbfs1.log src/tests/log/regrbfs1.btor
+regrbfs1 -rwl 2 -o src/tests/log/regrbfs1.log src/tests/log/regrbfs1.btor
+regrbfs1 -rwl 1 -o src/tests/log/regrbfs1.log src/tests/log/regrbfs1.btor
+regrbfs1 -rwl 0 -o src/tests/log/regrbfs1.log src/tests/log/regrbfs1.btor
+regrmark1 -rwl 3 -o src/tests/log/regrmark1.log src/tests/log/regrmark1.btor
+regrmark1 -rwl 2 -o src/tests/log/regrmark1.log src/tests/log/regrmark1.btor
+regrmark1 -rwl 1 -o src/tests/log/regrmark1.log src/tests/log/regrmark1.btor
+regrmark1 -rwl 0 -o src/tests/log/regrmark1.log src/tests/log/regrmark1.btor
+regrmark2 -rwl 3 -o src/tests/log/regrmark2.log src/tests/log/regrmark2.btor
+regrmark2 -rwl 2 -o src/tests/log/regrmark2.log src/tests/log/regrmark2.btor
+regrmark2 -rwl 1 -o src/tests/log/regrmark2.log src/tests/log/regrmark2.btor
+regrmark2 -rwl 0 -o src/tests/log/regrmark2.log src/tests/log/regrmark2.btor
+regrmark3 -rwl 3 -o src/tests/log/regrmark3.log src/tests/log/regrmark3.btor
+regrmark3 -rwl 2 -o src/tests/log/regrmark3.log src/tests/log/regrmark3.btor
+regrmark3 -rwl 1 -o src/tests/log/regrmark3.log src/tests/log/regrmark3.btor
+regrmark3 -rwl 0 -o src/tests/log/regrmark3.log src/tests/log/regrmark3.btor
+regr3vl1 -rwl 3 -o src/tests/log/regr3vl1.log src/tests/log/regr3vl1.btor
+regr3vl1 -rwl 2 -o src/tests/log/regr3vl1.log src/tests/log/regr3vl1.btor
+regr3vl1 -rwl 1 -o src/tests/log/regr3vl1.log src/tests/log/regr3vl1.btor
+regr3vl1 -rwl 0 -o src/tests/log/regr3vl1.log src/tests/log/regr3vl1.btor
+regr3vl2 -rwl 3 -o src/tests/log/regr3vl2.log src/tests/log/regr3vl2.btor
+regr3vl2 -rwl 2 -o src/tests/log/regr3vl2.log src/tests/log/regr3vl2.btor
+regr3vl2 -rwl 1 -o src/tests/log/regr3vl2.log src/tests/log/regr3vl2.btor
+regr3vl2 -rwl 0 -o src/tests/log/regr3vl2.log src/tests/log/regr3vl2.btor
+regr3vl3 -rwl 3 -o src/tests/log/regr3vl3.log src/tests/log/regr3vl3.btor
+regr3vl3 -rwl 2 -o src/tests/log/regr3vl3.log src/tests/log/regr3vl3.btor
+regr3vl3 -rwl 1 -o src/tests/log/regr3vl3.log src/tests/log/regr3vl3.btor
+regr3vl3 -rwl 0 -o src/tests/log/regr3vl3.log src/tests/log/regr3vl3.btor
+regr3vl4 -rwl 3 -o src/tests/log/regr3vl4.log src/tests/log/regr3vl4.btor
+regr3vl4 -rwl 2 -o src/tests/log/regr3vl4.log src/tests/log/regr3vl4.btor
+regr3vl4 -rwl 1 -o src/tests/log/regr3vl4.log src/tests/log/regr3vl4.btor
+regr3vl4 -rwl 0 -o src/tests/log/regr3vl4.log src/tests/log/regr3vl4.btor
+regrexpleak1 -rwl 3 -o src/tests/log/regrexpleak1.log src/tests/log/regrexpleak1.btor
+regrexpleak1 -rwl 2 -o src/tests/log/regrexpleak1.log src/tests/log/regrexpleak1.btor
+regrexpleak1 -rwl 1 -o src/tests/log/regrexpleak1.log src/tests/log/regrexpleak1.btor
+regrexpleak1 -rwl 0 -o src/tests/log/regrexpleak1.log src/tests/log/regrexpleak1.btor
+regrexpleak2 -rwl 3 -o src/tests/log/regrexpleak2.log src/tests/log/regrexpleak2.btor
+regrexpleak2 -rwl 2 -o src/tests/log/regrexpleak2.log src/tests/log/regrexpleak2.btor
+regrexpleak2 -rwl 1 -o src/tests/log/regrexpleak2.log src/tests/log/regrexpleak2.btor
+regrexpleak2 -rwl 0 -o src/tests/log/regrexpleak2.log src/tests/log/regrexpleak2.btor
+regrpointerchasing1 -o src/tests/log/regrpointerchasing1.log src/tests/log/regrpointerchasing1.btor
+3vl1 -rwl 2 -o src/tests/log/3vl1.log src/tests/log/3vl1.btor
+3vl1 -rwl 0 -o src/tests/log/3vl1.log src/tests/log/3vl1.btor
+3vl2 -rwl 2 -o src/tests/log/3vl2.log src/tests/log/3vl2.btor
+3vl2 -rwl 0 -o src/tests/log/3vl2.log src/tests/log/3vl2.btor
+3vl3 -rwl 2 -o src/tests/log/3vl3.log src/tests/log/3vl3.btor
+3vl3 -rwl 0 -o src/tests/log/3vl3.log src/tests/log/3vl3.btor
+3vl4 -rwl 2 -o src/tests/log/3vl4.log src/tests/log/3vl4.btor
+3vl4 -rwl 0 -o src/tests/log/3vl4.log src/tests/log/3vl4.btor
+3vl5 -rwl 2 -o src/tests/log/3vl5.log src/tests/log/3vl5.btor
+3vl5 -rwl 0 -o src/tests/log/3vl5.log src/tests/log/3vl5.btor
+3vl6 -rwl 2 -o src/tests/log/3vl6.log src/tests/log/3vl6.btor
+3vl6 -rwl 0 -o src/tests/log/3vl6.log src/tests/log/3vl6.btor
+udivtheorem1 -o src/tests/log/udivtheorem1.log src/tests/log/udivtheorem1.btor
+uremtheorem1 -o src/tests/log/uremtheorem1.log src/tests/log/uremtheorem1.btor
+ulttheorem1 -o src/tests/log/ulttheorem1.log src/tests/log/ulttheorem1.btor
+ultsubst1 -rwl 0 -o src/tests/log/ultsubst1.log src/tests/log/ultsubst1.btor
+ultsubst1 -rwl 2 -o src/tests/log/ultsubst1.log src/tests/log/ultsubst1.btor
+ultsubst2 -rwl 0 -o src/tests/log/ultsubst2.log src/tests/log/ultsubst2.btor
+ultsubst2 -rwl 2 -o src/tests/log/ultsubst2.log src/tests/log/ultsubst2.btor
+ultsubst3 -rwl 0 -o src/tests/log/ultsubst3.log src/tests/log/ultsubst3.btor
+ultsubst3 -rwl 2 -o src/tests/log/ultsubst3.log src/tests/log/ultsubst3.btor
+ultsubst4 -rwl 0 -o src/tests/log/ultsubst4.log src/tests/log/ultsubst4.btor
+ultsubst4 -rwl 2 -o src/tests/log/ultsubst4.log src/tests/log/ultsubst4.btor
+ultsubst5 -rwl 0 -o src/tests/log/ultsubst5.log src/tests/log/ultsubst5.btor
+ultsubst5 -rwl 2 -o src/tests/log/ultsubst5.log src/tests/log/ultsubst5.btor
+ultsubst6 -rwl 0 -o src/tests/log/ultsubst6.log src/tests/log/ultsubst6.btor
+ultsubst6 -rwl 2 -o src/tests/log/ultsubst6.log src/tests/log/ultsubst6.btor
+ultsubst7 -rwl 0 -o src/tests/log/ultsubst7.log src/tests/log/ultsubst7.btor
+ultsubst7 -rwl 2 -o src/tests/log/ultsubst7.log src/tests/log/ultsubst7.btor
+ultsubst8 -rwl 0 -o src/tests/log/ultsubst8.log src/tests/log/ultsubst8.btor
+ultsubst8 -rwl 2 -o src/tests/log/ultsubst8.log src/tests/log/ultsubst8.btor
+ultsubst9 -rwl 0 -o src/tests/log/ultsubst9.log src/tests/log/ultsubst9.btor
+ultsubst9 -rwl 2 -o src/tests/log/ultsubst9.log src/tests/log/ultsubst9.btor
+slicesubst1 -rwl 0 -o src/tests/log/slicesubst1.log src/tests/log/slicesubst1.btor
+slicesubst1 -rwl 2 -o src/tests/log/slicesubst1.log src/tests/log/slicesubst1.btor
+regrdomabst1 -o src/tests/log/regrdomabst1.log src/tests/log/regrdomabst1.btor
+regrdomabst2 -o src/tests/log/regrdomabst2.log src/tests/log/regrdomabst2.btor
+regrdomabst3 -o src/tests/log/regrdomabst3.log src/tests/log/regrdomabst3.btor
+regrdomabst4 -o src/tests/log/regrdomabst4.log src/tests/log/regrdomabst4.btor
+problem_130 -m -o src/tests/log/problem_130.log src/tests/log/problem_130.smt
+distri1 -o src/tests/log/distri1.log src/tests/log/distri1.btor
+distri2 -o src/tests/log/distri2.log src/tests/log/distri2.btor
+distri3 -o src/tests/log/distri3.log src/tests/log/distri3.btor
+distri4 -o src/tests/log/distri4.log src/tests/log/distri4.btor
+distri5 -o src/tests/log/distri5.log src/tests/log/distri5.btor
+distri6 -o src/tests/log/distri6.log src/tests/log/distri6.btor
+distri7 -o src/tests/log/distri7.log src/tests/log/distri7.btor
+distri8 -o src/tests/log/distri8.log src/tests/log/distri8.btor
+redor3 -o src/tests/log/redor3.log src/tests/log/redor3.btor
+redand3twice -o src/tests/log/redand3twice.log src/tests/log/redand3twice.btor
+painc -I -o src/tests/log/painc.log src/tests/log/painc.smt
+sult -o src/tests/log/sult.log src/tests/log/sult.btor
+sult2 -o src/tests/log/sult2.log src/tests/log/sult2.btor
+concatslice1 -rwl 1 -db -o src/tests/log/concatslice1.log src/tests/log/concatslice1.btor
+concatslice2 -rwl 1 -db -o src/tests/log/concatslice2.log src/tests/log/concatslice2.btor
+regaddnorm1 -db -o src/tests/log/regaddnorm1.log src/tests/log/regaddnorm1.btor
+regaddnorm2 -db -o src/tests/log/regaddnorm2.log src/tests/log/regaddnorm2.btor
+regnegadd1 -db -o src/tests/log/regnegadd1.log src/tests/log/regnegadd1.btor
+sc12fuzzcheck2 -o src/tests/log/sc12fuzzcheck2.log src/tests/log/sc12fuzzcheck2.smt2
+regmismatch src/tests/log/regmismatch.smt2 > src/tests/log/regmismatch.log 2>&1
+regrbetacache1 -bra -o src/tests/log/regrbetacache1.log src/tests/log/regrbetacache1.btor
+regrbetacache2 -bra -o src/tests/log/regrbetacache2.log src/tests/log/regrbetacache2.btor
+regrencparamapps -o src/tests/log/regrencparamapps.log src/tests/log/regrencparamapps.smt2
+nestedfun1 -rwl 2 -o src/tests/log/nestedfun1.log src/tests/log/nestedfun1.smt2
+regrcollectprem -o src/tests/log/regrcollectprem.log src/tests/log/regrcollectprem.btor
+regrlemmaloop_embeddedconstraints -rwl 1 -o src/tests/log/regrlemmaloop_embeddedconstraints.log src/tests/log/regrlemmaloop_embeddedconstraints.btor
+addnegmul1 -o src/tests/log/addnegmul1.log src/tests/log/addnegmul1.btor
+normaddneg0 -o src/tests/log/normaddneg0.log src/tests/log/normaddneg0.btor
+normaddneg1 -o src/tests/log/normaddneg1.log src/tests/log/normaddneg1.btor
+normaddneg2 -o src/tests/log/normaddneg2.log src/tests/log/normaddneg2.btor
+normaddneg3 -o src/tests/log/normaddneg3.log src/tests/log/normaddneg3.btor
+exactlyone -o src/tests/log/exactlyone.log src/tests/log/exactlyone.btor
+normalize_add_incomplete -db -o src/tests/log/normalize_add_incomplete.log src/tests/log/normalize_add_incomplete.btor
+normalize_mul_incomplete -db -o src/tests/log/normalize_mul_incomplete.log src/tests/log/normalize_mul_incomplete.btor
+normalize_and_incomplete -db -o src/tests/log/normalize_and_incomplete.log src/tests/log/normalize_and_incomplete.btor

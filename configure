@@ -18,7 +18,7 @@ gcov=no
 gprof=no
 python=no
 
-ROOT="\$(ROOT)"
+ROOT="`pwd|sed -e 's, ,\\ ,g'`"
 
 #--------------------------------------------------------------------------#
 
@@ -132,14 +132,21 @@ fi
 
 #--------------------------------------------------------------------------#
 
-SRCDIRS=". simplifier parser dumper utils"
+BINDIR="bin"
+BUILDIR="build"
+TESTDIR="tests"
+SRCDIR="src"
+
+SRCDIRS="src src/btorfmt src/dumper src/parser src/simplifier src/tests src/utils"
 if [ $python = yes ]
 then
-  SRCDIRS="$SRCDIRS api/python"
+  SRCDIRS="$SRCDIRS $SRCDIR/api/python"
 fi
 
-TARGETS="boolector"
-[ $shared = yes ] && TARGETS="$TARGETS libboolector.so"
+#--------------------------------------------------------------------------#
+
+TARGETS="$BINDIR/boolector"
+[ $shared = yes ] && TARGETS="$TARGETS $BUILDIR/libboolector.so"
 
 #--------------------------------------------------------------------------#
 
@@ -190,17 +197,18 @@ fi
 
 #--------------------------------------------------------------------------#
 
-LIBS=""
+LIBS="-L$BUILDIR"
 OBJS=""
-INCS=""
+INCS="-I$SRCDIR -I$BUILDIR "
+LDEPS="$BUILDIR/libboolector.a"
 
 LIBZ=no
 LIBM=no
 LIBSTDCPP=no
+RPATHS="-rpath=$ROOT/$BUILDIR"
 if [ $shared = yes ]
 then
-  LIBS="-Wl\,-rpath=$ROOT/."
-  LDEPS="libboolector.so"
+  LDEPS="$BUILDIR/libboolector.so"
   LIBSTDCPP=yes
 fi
 
@@ -240,10 +248,10 @@ else
     [ X"$LDEPS" = X ] || LDEPS="$LDEPS "
     [ X"$LIBS" = X ] || LIBS="$LIBS "
     CFLAGS="${CFLAGS}-DBTOR_USE_PICOSAT"
-    #if [ $shared = yes ]		
-    if false
+    RPATHS="${RPATHS}\,-rpath=$ROOT/../picosat/"
+    if [ $shared = yes ]		
     then
-      LIBS="${LIBS}-L../picosat -Wl\,-rpath=$ROOT/../picosat/ -lpicosat"
+      LIBS="${LIBS}-L../picosat -lpicosat"
       LDEPS="${LDEPS}../picosat/libpicosat.so"
     else
       LIBS="${LIBS}-L../picosat -lpicosat"
@@ -398,10 +406,11 @@ else
     [ X"$LIBS" = X ] || LIBS="$LIBS "
     [ X"$INCS" = X ] || INCS="$INCS "
     CFLAGS="${CFLAGS}-DBTOR_USE_MINISAT"
-    OBJS="${OBJS}btorminisat.o"
+    OBJS="${OBJS}$BUILDIR/btorminisat.o"
+    RPATHS="${RPATHS}\,-rpath=$ROOT/../minisat/build/dynamic/lib"
     if [ $shared = yes ]
     then
-      LIBS="${LIBS}-L../minisat/build/dynamic/lib -Wl\,-rpath=$ROOT/../minisat/build/dynamic/lib -lminisat"
+      LIBS="${LIBS}-L../minisat/build/dynamic/lib -lminisat"
       LDEPS="${LDEPS}../minisat/build/dynamic/lib/libminisat.so"
     else
       LIBS="${LIBS}-L../minisat/build/release/lib -lminisat"
@@ -446,6 +455,8 @@ fi
 
 #--------------------------------------------------------------------------#
 
+LIBS="-Wl\,${RPATHS} ${LIBS}"
+
 if [ $python = yes ]
 then
   # set default python command if no PYTHON environment variable was set
@@ -455,20 +466,24 @@ then
   [ $? -gt 0 ] && die "Python command '$PYTHON' does not exist"
 
   py_libraries="boolector"
-  py_library_dirs="."
+  py_library_dirs="$BUILDIR"
+  py_inc_dirs=""
   if [ $lingeling = yes ]; then
     py_libraries="$py_libraries lgl"
     py_library_dirs="$py_library_dirs ../lingeling"
+    py_inc_dirs="$py_inc_dirs ../lingeling"
   fi
   if [ $picosat = yes ]; then
     py_libraries="$py_libraries picosat"
     py_library_dirs="$py_library_dirs ../picosat"
+    py_inc_dirs="$py_inc_dirs ../picosat"
   fi
   if [ $minisat = yes ]; then
     py_libraries="$py_libraries minisat"
     py_library_dirs="$py_library_dirs ../minisat/build/dynamic/lib"
+    py_inc_dirs="$py_inc_dirs ../minisat/build/dynamic/lib"
   fi
-  OBJS="api/python/boolector_py.o $OBJS" 
+  OBJS="$BUILDIR/api/python/boolector_py.o $OBJS" 
   pyinc=`$PYTHON -c "import sysconfig; print(sysconfig.get_config_var('CONFINCLUDEPY'))"`
   pylib=`$PYTHON -c "import sysconfig; print(sysconfig.get_config_var('BINLIBDEST'))"`
   pyld=`basename $pyinc`
@@ -480,14 +495,16 @@ from distutils.core import setup
 from distutils.extension import Extension
 from Cython.Distutils import build_ext
 cwd=os.getcwd()
+incdirs=["$SRCDIR"]
+incdirs.extend("$py_inc_dirs".split())
 ext_modules=[
     Extension("boolector",
-              sources=[cwd+"/api/python/boolector.pyx"],
-              include_dirs=[cwd],
+              sources=["$SRCDIR/api/python/boolector.pyx"],
+              include_dirs=incdirs,
               library_dirs=[cwd+"/"+s for s in "$py_library_dirs".split()],
               libraries="$py_libraries".split(),
               extra_compile_args=[s for s in "$CFLAGS".split() if "-D" in s],
-	      extra_link_args=["-Wl,-rpath="+":".join([cwd+"/"+s for s in "$py_library_dirs".split()])]
+       extra_link_args=["-Wl,-rpath="+":".join([cwd+"/"+s for s in "$py_library_dirs".split()])]
     )
 ]
 setup(cmdclass={'build_ext': build_ext}, ext_modules=ext_modules)
@@ -497,15 +514,14 @@ cat > python.mk <<EOF
 
 all: python
 
-python: boolector_py setup.py
-	$PYTHON setup.py build_ext -i
-	@echo "Compiled Boolector Python module. Please read api/python/README on how to use the module"
-
-boolector_py: api/python/boolector_py.h api/python/boolector_py.c
+python: \$(BUILDIR)/api/python/boolector_py.o setup.py
+	$PYTHON setup.py build_ext -b $BUILDIR -t $BUILDIR/api/python/tmp
+	@echo "Compiled Boolector Python module. Please read $SRCDIR/api/python/README on how to use the module"
 
 python-clean:
-	rm -rf build
-	rm -f api/python/boolector.c boolector.cpython*.so
+	rm -rf build/api/python/boolector_py.o
+	rm -f \$(SRCDIR)/api/python/boolector.c boolector.cpython*.so
+	rm -f \$(SRCDIR)/api/python/boolector.pix
 
 python-clean-mk:
 	rm -f python.mk setup.py
@@ -513,9 +529,16 @@ python-clean-mk:
 clean: python-clean python-clean-mk
 
 EOF
+
+opts=`grep "BTOR_OPT.*," $SRCDIR/btortypes.h | awk 'BEGIN{i=0} { gsub(",", "="); print $1i; i += 1}'`
+cat > $SRCDIR/api/python/boolector.pix << EOF
+$opts
+EOF
+
 else
   touch python.mk
 fi
+
 
 #--------------------------------------------------------------------------#
 
@@ -528,7 +551,6 @@ msg "LIBS=$LIBS"
 msg "OBJS=$OBJS"
 msg "INCS=$INCS"
 
-rm -f makefile
 sed \
   -e "s,@CC@,$CC," \
   -e "s,@CXX@,$CXX," \
@@ -538,6 +560,11 @@ sed \
   -e "s,@LDEPS@,$LDEPS," \
   -e "s,@OBJS@,$OBJS," \
   -e "s,@TARGETS@,$TARGETS," \
+  -e "s,@SRCDIR@,$SRCDIR," \
   -e "s,@SRCDIRS@,$SRCDIRS," \
+  -e "s,@BUILDIR@,$BUILDIR," \
+  -e "s,@BINDIR@,$BINDIR," \
+  -e "s,@TESTDIR@,$TESTDIR," \
+  -e "s,@ROOT@,$ROOT,"\
   makefile.in > makefile
 msg "makefile generated"
