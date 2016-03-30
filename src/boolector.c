@@ -2772,12 +2772,60 @@ boolector_get_sort (Btor *btor, const BoolectorNode *node)
   BtorSortId res;
 
   BTOR_ABORT_ARG_NULL (btor);
+  BTOR_ABORT_ARG_NULL (node);
   exp = BTOR_IMPORT_BOOLECTOR_NODE (node);
   BTOR_TRAPI_UNFUN (exp);
   res = BTOR_REAL_ADDR_NODE (exp)->sort_id;
   BTOR_TRAPI_RETURN_SORT (res);
 #ifndef NDEBUG
   BTOR_CHKCLONE_RES_SORT (res, get_sort, node);
+#endif
+  return BTOR_EXPORT_BOOLECTOR_SORT (res);
+}
+
+BoolectorSort
+boolector_fun_get_domain_sort (Btor *btor, const BoolectorNode *node)
+{
+  BtorNode *exp;
+  BtorSortId res;
+
+  BTOR_ABORT_ARG_NULL (btor);
+  BTOR_ABORT_ARG_NULL (node);
+  exp = BTOR_IMPORT_BOOLECTOR_NODE (node);
+  BTOR_ABORT (!BTOR_IS_FUN_NODE (BTOR_REAL_ADDR_NODE (exp)),
+              "node must be a function node");
+  BTOR_TRAPI_UNFUN (exp);
+  res = ((BtorFunSort) btor_get_sort_by_id (&btor->sorts_unique_table,
+                                            BTOR_REAL_ADDR_NODE (exp)->sort_id)
+             ->fun)
+            .domain->id;
+  BTOR_TRAPI_RETURN_SORT (res);
+#ifndef NDEBUG
+  BTOR_CHKCLONE_RES_SORT (res, fun_get_domain_sort, node);
+#endif
+  return BTOR_EXPORT_BOOLECTOR_SORT (res);
+}
+
+BoolectorSort
+boolector_fun_get_codomain_sort (Btor *btor, const BoolectorNode *node)
+{
+  BtorNode *exp;
+  BtorSortId res;
+
+  BTOR_ABORT_ARG_NULL (btor);
+  BTOR_ABORT_ARG_NULL (node);
+  exp = BTOR_IMPORT_BOOLECTOR_NODE (node);
+  printf ("adsf %s\n", node2string (exp));
+  BTOR_ABORT (!BTOR_IS_FUN_NODE (BTOR_REAL_ADDR_NODE (exp)),
+              "node must be a function node");
+  BTOR_TRAPI_UNFUN (exp);
+  res = ((BtorFunSort) btor_get_sort_by_id (&btor->sorts_unique_table,
+                                            BTOR_REAL_ADDR_NODE (exp)->sort_id)
+             ->fun)
+            .codomain->id;
+  BTOR_TRAPI_RETURN_SORT (res);
+#ifndef NDEBUG
+  BTOR_CHKCLONE_RES_SORT (res, fun_get_codomain_sort, node);
 #endif
   return BTOR_EXPORT_BOOLECTOR_SORT (res);
 }
