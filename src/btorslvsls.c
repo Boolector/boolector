@@ -29,25 +29,26 @@
 
 #include <math.h>
 
-#define BTOR_SLS_MAXSTEPS_CFACT 100  // TODO best value? used by Z3 (c4)
-// TODO best restart scheme? used by Z3
+/* same restart scheme as in Z3 */
+#define BTOR_SLS_MAXSTEPS_CFACT 100 /* same as in Z3 (c4) */
 #define BTOR_SLS_MAXSTEPS(i) \
   (BTOR_SLS_MAXSTEPS_CFACT * ((i) &1u ? 1 : 1 << ((i) >> 1)))
 
-#define BTOR_SLS_SCORE_CFACT 0.5      // TODO best value? used by Z3 (c1)
-#define BTOR_SLS_SCORE_F_CFACT 0.025  // TODO best value? used by Z3 (c3)
-#define BTOR_SLS_SELECT_CFACT 20      // TODO best value? used by Z3 (c2)
+#define BTOR_SLS_SCORE_CFACT 0.5     /* same as in Z3 (c1) */
+#define BTOR_SLS_SCORE_F_CFACT 0.025 /* same as in Z3 (c3) */
+#define BTOR_SLS_SELECT_CFACT 20     /* same as in Z3 (c2) */
 
-#define BTOR_SLS_PROB_SCORE_F 20  // = 0.05 TODO best value? used by Z3 (sp)
+#define BTOR_SLS_PROB_SCORE_F 50 /* = 0.05 (same as in Z3 (sp)) */
 
-/* choose move with one candidate rather than group wise move for random walk */
-#define BTOR_SLS_PROB_SINGLE_VS_GW 20
-/* randomize all candidates rather than one only */
-#define BTOR_SLS_PROB_RAND_ALL_VS_ONE 1
-/* start ranges from MSB rather than LSB */
-#define BTOR_SLS_PROB_RANGE_MSB_VS_LSB 1
-/* start segments from MSB rather than LSB */
-#define BTOR_SLS_PROB_SEG_MSB_VS_LSB 1
+/* choose move with one candidate rather than group-wise move
+ * for random walk (prob=0.05) */
+#define BTOR_SLS_PROB_SINGLE_VS_GW 50
+/* randomize all candidates rather than one only (prob=0.5) */
+#define BTOR_SLS_PROB_RAND_ALL_VS_ONE 500
+/* start ranges from MSB rather than LSB (prob=0.5) */
+#define BTOR_SLS_PROB_RANGE_MSB_VS_LSB 500
+/* start segments from MSB rather than LSB (prob=0.5) */
+#define BTOR_SLS_PROB_SEG_MSB_VS_LSB 500
 
 /*------------------------------------------------------------------------*/
 
@@ -809,7 +810,7 @@ update_assertion_weights (Btor *btor)
 
   slv = BTOR_SLS_SOLVER (btor);
 
-  if (!btor_pick_rand_rng (&btor->rng, 0, BTOR_SLS_PROB_SCORE_F))
+  if (btor_pick_with_prob_rng (&btor->rng, BTOR_SLS_PROB_SCORE_F))
   {
     /* decrease the weight of all satisfied assertions */
     btor_init_node_hash_table_iterator (&it, slv->roots);
@@ -1131,7 +1132,7 @@ select_flip_range_move (Btor *btor, BtorNodePtrStack *candidates, int gw)
       b = btor_add_ptr_hash_table (cans, can);
 
       /* range from MSB rather than LSB with given prob */
-      if (btor_pick_rand_rng (&btor->rng, 0, BTOR_SLS_PROB_RANGE_MSB_VS_LSB))
+      if (btor_pick_with_prob_rng (&btor->rng, BTOR_SLS_PROB_RANGE_MSB_VS_LSB))
       {
         clo = ass->width - 1 - cup;
         cup = ass->width - 1;
@@ -1214,7 +1215,7 @@ select_flip_segment_move (Btor *btor, BtorNodePtrStack *candidates, int gw)
         b = btor_add_ptr_hash_table (cans, can);
 
         /* range from MSB rather than LSB with given prob */
-        if (btor_pick_rand_rng (&btor->rng, 0, BTOR_SLS_PROB_SEG_MSB_VS_LSB))
+        if (btor_pick_with_prob_rng (&btor->rng, BTOR_SLS_PROB_SEG_MSB_VS_LSB))
         {
           ctmp = clo;
           clo  = ass->width - 1 - cup;
@@ -1287,7 +1288,7 @@ select_rand_range_move (Btor *btor, BtorNodePtrStack *candidates, int gw)
       }
 
       /* range from MSB rather than LSB with given prob */
-      if (btor_pick_rand_rng (&btor->rng, 0, BTOR_SLS_PROB_RANGE_MSB_VS_LSB))
+      if (btor_pick_with_prob_rng (&btor->rng, BTOR_SLS_PROB_RANGE_MSB_VS_LSB))
       {
         clo = ass->width - 1 - cup;
         cup = ass->width - 1;
@@ -1371,7 +1372,8 @@ select_move (Btor *btor, BtorNodePtrStack *candidates)
   assert (btor);
   assert (candidates);
 
-  int i, r, done, randomizeall;
+  int i, r, done;
+  bool randomizeall;
   double rd, sum;
   BtorNode *can;
   BtorBitVector *neigh;
@@ -1445,10 +1447,10 @@ select_move (Btor *btor, BtorNodePtrStack *candidates)
     assert (slv->max_move == BTOR_SLS_MOVE_DONE);
 
     /* randomize if no best move was found */
-    randomizeall =
-        btor_get_opt (btor, BTOR_OPT_SLS_MOVE_RAND_ALL)
-            ? btor_pick_rand_rng (&btor->rng, 0, BTOR_SLS_PROB_RAND_ALL_VS_ONE)
-            : 0;
+    randomizeall = btor_get_opt (btor, BTOR_OPT_SLS_MOVE_RAND_ALL)
+                       ? btor_pick_with_prob_rng (&btor->rng,
+                                                  BTOR_SLS_PROB_RAND_ALL_VS_ONE)
+                       : false;
 
     if (randomizeall)
     {
@@ -1546,7 +1548,7 @@ select_random_move (Btor *btor, BtorNodePtrStack *candidates)
 
   /* select candidate(s) */
   if (btor_get_opt (btor, BTOR_OPT_SLS_MOVE_GW)
-      && !btor_pick_rand_rng (&btor->rng, 0, BTOR_SLS_PROB_SINGLE_VS_GW))
+      && btor_pick_with_prob_rng (&btor->rng, BTOR_SLS_PROB_SINGLE_VS_GW))
   {
     pcans       = candidates;
     slv->max_gw = 1;
@@ -1695,9 +1697,8 @@ move (Btor *btor, int nmoves)
     slv->max_gw    = -1;
 
     if (btor_get_opt (btor, BTOR_OPT_SLS_MOVE_RAND_WALK)
-        && !btor_pick_rand_rng (
+        && btor_pick_with_prob_rng (
                &btor->rng,
-               0,
                btor_get_opt (btor, BTOR_OPT_SLS_MOVE_RAND_WALK_PROB)))
     {
     SLS_MOVE_RAND_WALK:
