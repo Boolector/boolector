@@ -11,15 +11,17 @@
 #ifndef BTORRNG_H_INCLUDED
 #define BTORRNG_H_INCLUDED
 
+#include <stdint.h>
+
 struct BtorRNG
 {
-  unsigned z, w;
+  uint32_t z, w;
 };
 typedef struct BtorRNG BtorRNG;
 
-void btor_init_rng (BtorRNG* rng, unsigned seed);
-unsigned btor_rand_rng (BtorRNG* rng);
-unsigned btor_pick_rand_rng (BtorRNG* rng, unsigned from, unsigned to);
+void btor_init_rng (BtorRNG* rng, uint32_t seed);
+uint32_t btor_rand_rng (BtorRNG* rng);
+uint32_t btor_pick_rand_rng (BtorRNG* rng, uint32_t from, uint32_t to);
 double btor_pick_rand_dbl_rng (BtorRNG* rng, double from, double to);
 
 #endif

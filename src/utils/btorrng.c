@@ -16,11 +16,11 @@
 #endif
 
 void
-btor_init_rng (BtorRNG* rng, unsigned seed)
+btor_init_rng (BtorRNG* rng, uint32_t seed)
 {
   assert (rng);
 
-  rng->w = (unsigned) seed;
+  rng->w = seed;
   rng->z = ~rng->w;
   rng->w <<= 1;
   rng->z <<= 1;
@@ -30,7 +30,7 @@ btor_init_rng (BtorRNG* rng, unsigned seed)
   rng->z *= 1000632769u;
 }
 
-unsigned
+uint32_t
 btor_rand_rng (BtorRNG* rng)
 {
   assert (rng);
@@ -39,13 +39,13 @@ btor_rand_rng (BtorRNG* rng)
   return (rng->z << 16) + rng->w; /* 32-bit result */
 }
 
-unsigned
-btor_pick_rand_rng (BtorRNG* rng, unsigned from, unsigned to)
+uint32_t
+btor_pick_rand_rng (BtorRNG* rng, uint32_t from, uint32_t to)
 {
   assert (rng);
   assert (from <= to && to < UINT_MAX);
 
-  unsigned res;
+  uint32_t res;
 
   res = btor_rand_rng (rng);
   res %= to - from + 1;
