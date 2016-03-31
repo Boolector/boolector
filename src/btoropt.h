@@ -45,6 +45,8 @@ typedef struct BtorOpt BtorOpt;
 
 #define BTOR_VERBOSITY_MAX 4
 
+#define BTOR_PROB_MAX 1000
+
 enum BtorOptSatEngines
 {
   BTOR_SAT_ENGINE_MIN,

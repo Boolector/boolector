@@ -956,9 +956,8 @@ cons_mul_bv (Btor *btor,
     else
     {
       ctz_bvmul = btor_get_num_trailing_zeros_bv (bvmul);
-      r         = btor_pick_rand_rng (&btor->rng, 0, 9);
       /* choose res as 2^n with prob 0.1 */
-      if (r < 1)
+      if (btor_pick_with_prob_rng (&btor->rng, 100))
       {
         btor_free_bv (btor->mm, res);
         res = btor_new_bv (btor->mm, bw);
@@ -967,7 +966,7 @@ cons_mul_bv (Btor *btor,
       }
       /* choose res as bvmul / 2^n with prob 0.1
        * (note: bw not necessarily power of 2 -> do not use srl) */
-      else if (r < 2)
+      else if (btor_pick_with_prob_rng (&btor->rng, 100))
       {
         btor_free_bv (btor->mm, res);
         r   = btor_pick_rand_rng (&btor->rng, 1, ctz_bvmul);
@@ -2092,7 +2091,7 @@ inv_udiv_bv (Btor *btor,
       /* bve = bvudiv = 2^bw - 1 -> choose either e[1] = 0 or e[1] = 1
        * with prob 0.5 */
       if (!btor_compare_bv (bve, bvudiv)
-          && btor_pick_rand_rng (&btor->rng, 0, 1))
+          && btor_pick_with_prob_rng (&btor->rng, 500))
         res = btor_one_bv (mm, bw);
       /* bvudiv = 2^bw - 1 and bve != bvudiv -> e[1] = 0 */
       else
@@ -2142,7 +2141,7 @@ inv_udiv_bv (Btor *btor,
       /* if bvudiv is a divisor of bve, choose e[1] = bve / bvudiv
        * with prob = 0.5 and a bve s.t. bve / e[1] = bvudiv otherwise */
       tmp = btor_urem_bv (mm, bve, bvudiv);
-      if (btor_is_zero_bv (tmp) && btor_pick_rand_rng (rng, 0, 1))
+      if (btor_is_zero_bv (tmp) && btor_pick_with_prob_rng (rng, 500))
       {
         btor_free_bv (mm, tmp);
         res = btor_udiv_bv (mm, bve, bvudiv);
@@ -2226,7 +2225,7 @@ inv_udiv_bv (Btor *btor,
       /* ^^----------------------------------------------------------^^ */
       else
       {
-        if (btor_pick_rand_rng (rng, 0, 1))
+        if (btor_pick_with_prob_rng (rng, 500))
           res = btor_mul_bv (mm, bve, bvudiv);
         else
         {
@@ -2358,7 +2357,8 @@ inv_urem_bv (Btor *btor,
       if (cmp == 0)
       {
         /* choose e[1] = 0 with prob = 0.25*/
-        if (!btor_pick_rand_rng (&btor->rng, 0, 3)) res = btor_new_bv (mm, bw);
+        if (!btor_pick_with_prob_rng (&btor->rng, 250))
+          res = btor_new_bv (mm, bw);
         /* bvurem < res <= 2^bw - 1 */
         else
         {
@@ -2398,7 +2398,7 @@ inv_urem_bv (Btor *btor,
          * with prob = 0.5 */
         else
         {
-          if (!btor_pick_rand_rng (&btor->rng, 0, 1))
+          if (!btor_pick_with_prob_rng (&btor->rng, 500))
           {
             res = btor_copy_bv (mm, sub);
           }
@@ -2517,7 +2517,7 @@ inv_urem_bv (Btor *btor,
     {
       /* choose simplest solution (0 <= res < bve -> res = bvurem)
        * with prob 0.5 */
-      if (btor_pick_rand_rng (&btor->rng, 0, 1))
+      if (btor_pick_with_prob_rng (&btor->rng, 500))
       {
       BVUREM_EQ_0:
         res = btor_copy_bv (mm, bvurem);
@@ -2694,16 +2694,17 @@ inv_slice_bv (Btor *btor,
   assert (bvslice);
   assert (!BTOR_IS_BV_CONST_NODE (BTOR_REAL_ADDR_NODE (slice->e[0])));
 
-  uint32_t i, r, upper, lower;
+  uint32_t i, upper, lower;
   BtorNode *e;
   BtorBitVector *res;
   BtorMemMgr *mm;
+  bool b;
 
   mm = btor->mm;
   e  = slice->e[0];
   assert (e);
 
-  r = btor_pick_rand_rng (&btor->rng, 0, 1);
+  b = btor_pick_with_prob_rng (&btor->rng, 500);
 
   upper = btor_slice_get_upper (slice);
   lower = btor_slice_get_lower (slice);
@@ -2713,7 +2714,7 @@ inv_slice_bv (Btor *btor,
   for (i = 0; i < lower; i++)
     btor_set_bit_bv (res,
                      i,
-                     r ? btor_get_bit_bv (bve, i)
+                     b ? btor_get_bit_bv (bve, i)
                        : (int) btor_pick_rand_rng (&btor->rng, 0, 1));
   /* set sliced bits to propagated value */
   for (i = lower; i <= upper; i++)
@@ -2722,7 +2723,7 @@ inv_slice_bv (Btor *btor,
   for (i = upper + 1; i < res->width; i++)
     btor_set_bit_bv (res,
                      i,
-                     r ? btor_get_bit_bv (bve, i)
+                     b ? btor_get_bit_bv (bve, i)
                        : (int) btor_pick_rand_rng (&btor->rng, 0, 1));
 
 #ifndef NDEBUG
@@ -2760,8 +2761,8 @@ btor_select_move_prop (Btor *btor,
       btor_bv_to_uint64_bv ((BtorBitVector *) btor_get_bv_model (btor, root))
       == 0);
 
+  bool b;
   int i, nconst, eidx, idx;
-  uint32_t r, p, pcond;
   BtorNode *cur, *real_cur;
   BtorBitVector *bve[3], *bvcur, *bvenew, *tmp;
 
@@ -2779,9 +2780,6 @@ btor_select_move_prop (Btor *btor,
   }
   else
   {
-    p     = btor_get_opt (btor, BTOR_OPT_PROP_USE_INV_VALUE_PROB);
-    pcond = btor_get_opt (btor, BTOR_OPT_PROP_FLIP_COND_PROB);
-
     for (;;)
     {
       real_cur = BTOR_REAL_ADDR_NODE (cur);
@@ -2814,11 +2812,9 @@ btor_select_move_prop (Btor *btor,
 #endif
       /* we either select a consistent or inverse value
        * as path assignment, depending on the given probability p
-       * -> if r < p then inverse else consistent */
-      r = btor_pick_rand_rng (
-          &btor->rng,
-          btor_get_opt_min (btor, BTOR_OPT_PROP_USE_INV_VALUE_PROB),
-          btor_get_opt_max (btor, BTOR_OPT_PROP_USE_INV_VALUE_PROB) - 1);
+       * -> if b then inverse else consistent */
+      b = btor_pick_with_prob_rng (
+          &btor->rng, btor_get_opt (btor, BTOR_OPT_PROP_USE_INV_VALUE_PROB));
 
       /* select path and determine path assignment */
       switch (real_cur->kind)
@@ -2827,72 +2823,71 @@ btor_select_move_prop (Btor *btor,
           eidx = select_path_add (btor, real_cur, bvcur, bve);
           idx  = eidx ? 0 : 1;
           assert (eidx >= 0);
-          bvenew = r < p ? inv_add_bv (btor, real_cur, bvcur, bve[idx], eidx)
-                         : cons_add_bv (btor, real_cur, bvcur, bve[idx], eidx);
+          bvenew = b ? inv_add_bv (btor, real_cur, bvcur, bve[idx], eidx)
+                     : cons_add_bv (btor, real_cur, bvcur, bve[idx], eidx);
           break;
         case BTOR_AND_NODE:
           eidx = select_path_and (btor, real_cur, bvcur, bve);
           idx  = eidx ? 0 : 1;
           assert (eidx >= 0);
-          bvenew = r < p ? inv_and_bv (btor, real_cur, bvcur, bve[idx], eidx)
-                         : cons_and_bv (btor, real_cur, bvcur, bve[idx], eidx);
+          bvenew = b ? inv_and_bv (btor, real_cur, bvcur, bve[idx], eidx)
+                     : cons_and_bv (btor, real_cur, bvcur, bve[idx], eidx);
           break;
         case BTOR_BEQ_NODE:
           eidx = select_path_eq (btor, real_cur, bvcur, bve);
           idx  = eidx ? 0 : 1;
           assert (eidx >= 0);
-          bvenew = r < p ? inv_eq_bv (btor, real_cur, bvcur, bve[idx], eidx)
-                         : cons_eq_bv (btor, real_cur, bvcur, bve[idx], eidx);
+          bvenew = b ? inv_eq_bv (btor, real_cur, bvcur, bve[idx], eidx)
+                     : cons_eq_bv (btor, real_cur, bvcur, bve[idx], eidx);
           break;
         case BTOR_ULT_NODE:
           eidx = select_path_ult (btor, real_cur, bvcur, bve);
           idx  = eidx ? 0 : 1;
           assert (eidx >= 0);
-          bvenew = r < p ? inv_ult_bv (btor, real_cur, bvcur, bve[idx], eidx)
-                         : cons_ult_bv (btor, real_cur, bvcur, bve[idx], eidx);
+          bvenew = b ? inv_ult_bv (btor, real_cur, bvcur, bve[idx], eidx)
+                     : cons_ult_bv (btor, real_cur, bvcur, bve[idx], eidx);
           break;
         case BTOR_SLL_NODE:
           eidx = select_path_sll (btor, real_cur, bvcur, bve);
           idx  = eidx ? 0 : 1;
           assert (eidx >= 0);
-          bvenew = r < p ? inv_sll_bv (btor, real_cur, bvcur, bve[idx], eidx)
-                         : cons_sll_bv (btor, real_cur, bvcur, bve[idx], eidx);
+          bvenew = b ? inv_sll_bv (btor, real_cur, bvcur, bve[idx], eidx)
+                     : cons_sll_bv (btor, real_cur, bvcur, bve[idx], eidx);
           break;
         case BTOR_SRL_NODE:
           eidx = select_path_srl (btor, real_cur, bvcur, bve);
           idx  = eidx ? 0 : 1;
           assert (eidx >= 0);
-          bvenew = r < p ? inv_srl_bv (btor, real_cur, bvcur, bve[idx], eidx)
-                         : cons_srl_bv (btor, real_cur, bvcur, bve[idx], eidx);
+          bvenew = b ? inv_srl_bv (btor, real_cur, bvcur, bve[idx], eidx)
+                     : cons_srl_bv (btor, real_cur, bvcur, bve[idx], eidx);
           break;
         case BTOR_MUL_NODE:
           eidx = select_path_mul (btor, real_cur, bvcur, bve);
           idx  = eidx ? 0 : 1;
           assert (eidx >= 0);
-          bvenew = r < p ? inv_mul_bv (btor, real_cur, bvcur, bve[idx], eidx)
-                         : cons_mul_bv (btor, real_cur, bvcur, bve[idx], eidx);
+          bvenew = b ? inv_mul_bv (btor, real_cur, bvcur, bve[idx], eidx)
+                     : cons_mul_bv (btor, real_cur, bvcur, bve[idx], eidx);
           break;
         case BTOR_UDIV_NODE:
           eidx = select_path_udiv (btor, real_cur, bvcur, bve);
           idx  = eidx ? 0 : 1;
           assert (eidx >= 0);
-          bvenew = r < p ? inv_udiv_bv (btor, real_cur, bvcur, bve[idx], eidx)
-                         : cons_udiv_bv (btor, real_cur, bvcur, bve[idx], eidx);
+          bvenew = b ? inv_udiv_bv (btor, real_cur, bvcur, bve[idx], eidx)
+                     : cons_udiv_bv (btor, real_cur, bvcur, bve[idx], eidx);
           break;
         case BTOR_UREM_NODE:
           eidx = select_path_urem (btor, real_cur, bvcur, bve);
           idx  = eidx ? 0 : 1;
           assert (eidx >= 0);
-          bvenew = r < p ? inv_urem_bv (btor, real_cur, bvcur, bve[idx], eidx)
-                         : cons_urem_bv (btor, real_cur, bvcur, bve[idx], eidx);
+          bvenew = b ? inv_urem_bv (btor, real_cur, bvcur, bve[idx], eidx)
+                     : cons_urem_bv (btor, real_cur, bvcur, bve[idx], eidx);
           break;
         case BTOR_CONCAT_NODE:
           eidx = select_path_concat (btor, real_cur, bvcur, bve);
           idx  = eidx ? 0 : 1;
           assert (eidx >= 0);
-          bvenew = r < p
-                       ? inv_concat_bv (btor, real_cur, bvcur, bve[idx], eidx)
-                       : cons_concat_bv (btor, real_cur, bvcur, bve[idx], eidx);
+          bvenew = b ? inv_concat_bv (btor, real_cur, bvcur, bve[idx], eidx)
+                     : cons_concat_bv (btor, real_cur, bvcur, bve[idx], eidx);
           break;
         default:
           assert (real_cur->kind == BTOR_SLICE_NODE);
@@ -2924,12 +2919,12 @@ btor_select_move_prop (Btor *btor,
         {
           /* either assume that cond is fixed and propagate bvenew
            * to enabled path, or flip condition */
+
           tmp = (BtorBitVector *) btor_get_bv_model (btor, real_cur->e[0]);
-          r   = btor_pick_rand_rng (
-              &btor->rng,
-              btor_get_opt_min (btor, BTOR_OPT_PROP_FLIP_COND_PROB),
-              btor_get_opt_max (btor, BTOR_OPT_PROP_FLIP_COND_PROB) - 1);
-          if (r < pcond)
+
+          if (btor_pick_with_prob_rng (
+                  &btor->rng,
+                  btor_get_opt (btor, BTOR_OPT_PROP_FLIP_COND_PROB)))
           {
             /* flip condition */
             btor_free_bv (btor->mm, bvenew);
