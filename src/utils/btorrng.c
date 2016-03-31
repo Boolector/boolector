@@ -9,10 +9,12 @@
  */
 
 #include "utils/btorrng.h"
+
 #include <assert.h>
 #include <limits.h>
 #ifndef NDEBUG
 #include <float.h>
+#include "btoropt.h"
 #endif
 
 void
@@ -64,4 +66,16 @@ btor_pick_rand_dbl_rng (BtorRNG* rng, double from, double to)
   res = (double) btor_rand_rng (rng) / UINT_MAX;
   res = from + res * (to - from);
   return res;
+}
+
+bool
+btor_pick_with_prob_rng (BtorRNG* rng, uint32_t prob)
+{
+  assert (rng);
+  assert (prob <= BTOR_PROB_MAX);
+
+  uint32_t r;
+
+  r = btor_pick_rand_rng (rng, 0, prob - 1);
+  return r < prob;
 }
