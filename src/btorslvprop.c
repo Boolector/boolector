@@ -1883,46 +1883,6 @@ inv_mul_bv (Btor *btor,
       else
       {
         res = cons_mul_bv (btor, mul, bvmul, bve, eidx);
-#if 0
-	      /* bvmul odd -> do not choose even value for res 
-	       * bvmul even -> choose either odd or even value for res */
-	      if (lsbvmul || btor_pick_rand_rng (&btor->rng, 0, 1))
-		{
-		  /* res odd */
-		  res = btor_new_random_bv (mm, &btor->rng, bw);
-		  if (!btor_get_bit_bv (res, 0)) btor_set_bit_bv (res, 0, 1);
-		}
-	      else
-		{
-		  /* res even */
-		  r = btor_pick_rand_rng (&btor->rng, 0, 9);
-		  for (i = 0; i < bw; i++)
-		    if (btor_get_bit_bv (bvmul, i)) break;
-		  /* choose res as 2^n with prob 0.4 */
-		  if (r < 4)
-		    {
-		      res = btor_new_bv (mm, bw);
-		      btor_set_bit_bv (
-			  res, btor_pick_rand_rng (&btor->rng, 1, i), 1);
-		    }
-		  /* choose res as bvmul / 2^n with prob 0.4
-		   * (note: bw not necessarily power of 2 -> do not use srl) */
-		  else if (r < 8)
-		    {
-		      r = btor_pick_rand_rng (&btor->rng, 1, i);
-		      tmp = btor_slice_bv (mm, bvmul, bw-1, r);
-		      res = btor_uext_bv (mm, tmp, r);
-		      btor_free_bv (mm, tmp);
-		    }
-		  /* choose random even value with prob 0.2 */
-		  else
-		    {
-		      res = btor_new_random_bv (mm, &btor->rng, bw);
-		      if (btor_get_bit_bv (res, 0)) btor_set_bit_bv (res, 0, 0);
-		      btor_set_bit_bv (res, i, 1);
-		    }
-		}
-#endif
         BTOR_INC_REC_CONF_STATS (btor, 1);
       }
 #ifndef NDEBUG
