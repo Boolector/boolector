@@ -1137,8 +1137,6 @@ cons_concat_bv (Btor *btor,
                 int eidx)
 {
   assert (btor);
-  assert (btor_get_opt (btor, BTOR_OPT_ENGINE) == BTOR_ENGINE_SLS
-          || btor_get_opt (btor, BTOR_OPT_ENGINE) == BTOR_ENGINE_PROP);
   assert (concat);
   assert (BTOR_IS_REGULAR_NODE (concat));
   assert (bvconcat);
@@ -1268,8 +1266,6 @@ inv_add_bv (Btor *btor,
             int eidx)
 {
   assert (btor);
-  assert (btor_get_opt (btor, BTOR_OPT_ENGINE) == BTOR_ENGINE_SLS
-          || btor_get_opt (btor, BTOR_OPT_ENGINE) == BTOR_ENGINE_PROP);
   assert (add);
   assert (BTOR_IS_REGULAR_NODE (add));
   assert (bvadd);
@@ -1305,8 +1301,6 @@ inv_and_bv (Btor *btor,
             int eidx)
 {
   assert (btor);
-  assert (btor_get_opt (btor, BTOR_OPT_ENGINE) == BTOR_ENGINE_SLS
-          || btor_get_opt (btor, BTOR_OPT_ENGINE) == BTOR_ENGINE_PROP);
   assert (and);
   assert (BTOR_IS_REGULAR_NODE (and));
   assert (bvand);
@@ -1340,7 +1334,7 @@ inv_and_bv (Btor *btor,
     {
       btor_free_bv (btor->mm, res);
       /* check for non-recoverable conflict */
-      if (btor_get_opt (btor, BTOR_OPT_ENGINE) == BTOR_ENGINE_SLS
+      if (btor_get_opt (btor, BTOR_OPT_PROP_NO_MOVE_ON_CONFLICT)
           && BTOR_IS_BV_CONST_NODE (BTOR_REAL_ADDR_NODE (e)))
       {
         res = non_rec_conf (btor, bve, bvand, eidx, "AND");
@@ -1386,8 +1380,6 @@ inv_eq_bv (
     Btor *btor, BtorNode *eq, BtorBitVector *bveq, BtorBitVector *bve, int eidx)
 {
   assert (btor);
-  assert (btor_get_opt (btor, BTOR_OPT_ENGINE) == BTOR_ENGINE_SLS
-          || btor_get_opt (btor, BTOR_OPT_ENGINE) == BTOR_ENGINE_PROP);
   assert (eq);
   assert (BTOR_IS_REGULAR_NODE (eq));
   assert (bveq);
@@ -1435,8 +1427,6 @@ inv_ult_bv (Btor *btor,
             int eidx)
 {
   assert (btor);
-  assert (btor_get_opt (btor, BTOR_OPT_ENGINE) == BTOR_ENGINE_SLS
-          || btor_get_opt (btor, BTOR_OPT_ENGINE) == BTOR_ENGINE_PROP);
   assert (ult);
   assert (BTOR_IS_REGULAR_NODE (ult));
   assert (bvult);
@@ -1473,7 +1463,7 @@ inv_ult_bv (Btor *btor,
     {
     BVULT_CONF:
       /* check for non-recoverable conflict */
-      if (btor_get_opt (btor, BTOR_OPT_ENGINE) == BTOR_ENGINE_SLS
+      if (btor_get_opt (btor, BTOR_OPT_PROP_NO_MOVE_ON_CONFLICT)
           && BTOR_IS_BV_CONST_NODE (BTOR_REAL_ADDR_NODE (e)))
       {
         res = non_rec_conf (btor, bve, bvult, eidx, "<");
@@ -1548,8 +1538,6 @@ inv_sll_bv (Btor *btor,
             int eidx)
 {
   assert (btor);
-  assert (btor_get_opt (btor, BTOR_OPT_ENGINE) == BTOR_ENGINE_SLS
-          || btor_get_opt (btor, BTOR_OPT_ENGINE) == BTOR_ENGINE_PROP);
   assert (sll);
   assert (BTOR_IS_REGULAR_NODE (sll));
   assert (bvsll);
@@ -1606,7 +1594,7 @@ inv_sll_bv (Btor *btor,
           assert (btor_is_zero_bv (bvsll));
         BVSLL_CONF:
           /* check for non-recoverable conflict */
-          if (btor_get_opt (btor, BTOR_OPT_ENGINE) == BTOR_ENGINE_SLS
+          if (btor_get_opt (btor, BTOR_OPT_PROP_NO_MOVE_ON_CONFLICT)
               && BTOR_IS_BV_CONST_NODE (BTOR_REAL_ADDR_NODE (e)))
           {
             res = non_rec_conf (btor, bve, bvsll, eidx, "<<");
@@ -1689,8 +1677,6 @@ inv_srl_bv (Btor *btor,
             int eidx)
 {
   assert (btor);
-  assert (btor_get_opt (btor, BTOR_OPT_ENGINE) == BTOR_ENGINE_SLS
-          || btor_get_opt (btor, BTOR_OPT_ENGINE) == BTOR_ENGINE_PROP);
   assert (srl);
   assert (BTOR_IS_REGULAR_NODE (srl));
   assert (bvsrl);
@@ -1747,7 +1733,7 @@ inv_srl_bv (Btor *btor,
           assert (btor_is_zero_bv (bvsrl));
         BVSRL_CONF:
           /* check for non-recoverable conflict */
-          if (btor_get_opt (btor, BTOR_OPT_ENGINE) == BTOR_ENGINE_SLS
+          if (btor_get_opt (btor, BTOR_OPT_PROP_NO_MOVE_ON_CONFLICT)
               && BTOR_IS_BV_CONST_NODE (BTOR_REAL_ADDR_NODE (e)))
           {
             res = non_rec_conf (btor, bve, bvsrl, eidx, ">>");
@@ -1830,8 +1816,6 @@ inv_mul_bv (Btor *btor,
             int eidx)
 {
   assert (btor);
-  assert (btor_get_opt (btor, BTOR_OPT_ENGINE) == BTOR_ENGINE_SLS
-          || btor_get_opt (btor, BTOR_OPT_ENGINE) == BTOR_ENGINE_PROP);
   assert (mul);
   assert (BTOR_IS_REGULAR_NODE (mul));
   assert (bvmul);
@@ -1892,7 +1876,7 @@ inv_mul_bv (Btor *btor,
     {
     BVMUL_CONF:
       /* check for non-recoverable conflict */
-      if (btor_get_opt (btor, BTOR_OPT_ENGINE) == BTOR_ENGINE_SLS
+      if (btor_get_opt (btor, BTOR_OPT_PROP_NO_MOVE_ON_CONFLICT)
           && BTOR_IS_BV_CONST_NODE (BTOR_REAL_ADDR_NODE (e)))
       {
         res = non_rec_conf (btor, bve, bvmul, eidx, "*");
@@ -2061,8 +2045,6 @@ inv_udiv_bv (Btor *btor,
              int eidx)
 {
   assert (btor);
-  assert (btor_get_opt (btor, BTOR_OPT_ENGINE) == BTOR_ENGINE_SLS
-          || btor_get_opt (btor, BTOR_OPT_ENGINE) == BTOR_ENGINE_PROP);
   assert (udiv);
   assert (BTOR_IS_REGULAR_NODE (udiv));
   assert (bvudiv);
@@ -2133,7 +2115,7 @@ inv_udiv_bv (Btor *btor,
       {
       BVUDIV_CONF:
         /* check for non-recoverable conflict */
-        if (btor_get_opt (btor, BTOR_OPT_ENGINE) == BTOR_ENGINE_SLS
+        if (btor_get_opt (btor, BTOR_OPT_PROP_NO_MOVE_ON_CONFLICT)
             && BTOR_IS_BV_CONST_NODE (BTOR_REAL_ADDR_NODE (e)))
         {
           res = non_rec_conf (btor, bve, bvudiv, eidx, "/");
@@ -2304,8 +2286,6 @@ inv_urem_bv (Btor *btor,
              int eidx)
 {
   assert (btor);
-  assert (btor_get_opt (btor, BTOR_OPT_ENGINE) == BTOR_ENGINE_SLS
-          || btor_get_opt (btor, BTOR_OPT_ENGINE) == BTOR_ENGINE_PROP);
   assert (urem);
   assert (BTOR_IS_REGULAR_NODE (urem));
   assert (bvurem);
@@ -2350,7 +2330,7 @@ inv_urem_bv (Btor *btor,
       {
       BVUREM_CONF:
         /* check for non-recoverable conflict */
-        if (btor_get_opt (btor, BTOR_OPT_ENGINE) == BTOR_ENGINE_SLS
+        if (btor_get_opt (btor, BTOR_OPT_PROP_NO_MOVE_ON_CONFLICT)
             && BTOR_IS_BV_CONST_NODE (BTOR_REAL_ADDR_NODE (e)))
         {
           res = non_rec_conf (btor, bve, bvurem, eidx, "%");
@@ -2624,8 +2604,6 @@ inv_concat_bv (Btor *btor,
                int eidx)
 {
   assert (btor);
-  assert (btor_get_opt (btor, BTOR_OPT_ENGINE) == BTOR_ENGINE_SLS
-          || btor_get_opt (btor, BTOR_OPT_ENGINE) == BTOR_ENGINE_PROP);
   assert (concat);
   assert (BTOR_IS_REGULAR_NODE (concat));
   assert (bvconcat);
@@ -2656,7 +2634,7 @@ inv_concat_bv (Btor *btor,
     {
     BVCONCAT_CONF:
       /* check for non-recoverable conflict */
-      if (btor_get_opt (btor, BTOR_OPT_ENGINE) == BTOR_ENGINE_SLS
+      if (btor_get_opt (btor, BTOR_OPT_PROP_NO_MOVE_ON_CONFLICT)
           && BTOR_IS_BV_CONST_NODE (BTOR_REAL_ADDR_NODE (e)))
       {
         res = non_rec_conf (btor, bve, bvconcat, eidx, "o");
@@ -2711,8 +2689,6 @@ inv_slice_bv (Btor *btor,
               BtorBitVector *bve)
 {
   assert (btor);
-  assert (btor_get_opt (btor, BTOR_OPT_ENGINE) == BTOR_ENGINE_SLS
-          || btor_get_opt (btor, BTOR_OPT_ENGINE) == BTOR_ENGINE_PROP);
   assert (slice);
   assert (BTOR_IS_REGULAR_NODE (slice));
   assert (bvslice);

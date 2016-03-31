@@ -2185,6 +2185,8 @@ btor_new_sls_solver (Btor *btor)
   slv->kind = BTOR_SLS_SOLVER_KIND;
   slv->btor = btor;
 
+  btor_set_opt (slv->btor, BTOR_OPT_PROP_NO_MOVE_ON_CONFLICT, 1);
+
   slv->api.clone          = (BtorSolverClone) clone_sls_solver;
   slv->api.delet          = (BtorSolverDelete) delete_sls_solver;
   slv->api.sat            = (BtorSolverSat) sat_sls_solver;

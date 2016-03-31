@@ -511,6 +511,16 @@ enum BtorOption
   */
   BTOR_OPT_PROP_FLIP_COND_PROB,
 
+  /*!
+   * **BTOR_OPT_PROP_NO_MOVE_ON_CONFLICT**
+
+    | Do not perform a propagation move when running into a conflict during
+   inverse computation. | (This is the default behavior for the SLS engine when
+   propagation moves are enabled, where a conflict triggers a recovery by means
+   of a regular SLS move.)
+    */
+  BTOR_OPT_PROP_NO_MOVE_ON_CONFLICT,
+
   /* --------------------------------------------------------------------- */
   /*!
    **AIGProp Engine Options**:

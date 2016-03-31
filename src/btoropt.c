@@ -621,6 +621,17 @@ btor_init_opts (Btor *btor)
             "probability for choosing to flip the condition (rather than "
             "choosing the enabled path) for ITE during path selection "
             "for prop moves (interpreted as <n>%)");
+  init_opt (btor,
+            BTOR_OPT_PROP_NO_MOVE_ON_CONFLICT,
+            false,
+            true,
+            "prop:no-move-on-conflict",
+            0,
+            0,
+            0,
+            1,
+            "do not perform a propagation move when encountering a conflict"
+            "during inverse computation");
 
   /* AIGPROP engine ------------------------------------------------------- */
   init_opt (btor,
