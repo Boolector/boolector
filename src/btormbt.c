@@ -2852,6 +2852,7 @@ static void *
 btormbt_state_opt (BtorMBT *mbt, unsigned r)
 {
   int i, set_sat_solver = 1;
+  uint32_t opt_engine;
   BtorMBTBtorOpt *btoropt;
   RNG rng = initrng (r);
 
@@ -2939,6 +2940,16 @@ btormbt_state_opt (BtorMBT *mbt, unsigned r)
       if (pick (&rng, 0, NORM_VAL - 1) < mbt->p_print_model)
         mbt->print_model = 1;
     }
+  }
+
+  /* prop, sls and aigprop engine only support QF_BV */
+  opt_engine = boolector_get_opt (mbt->btor, BTOR_OPT_ENGINE);
+  if (opt_engine == BTOR_ENGINE_AIGPROP || opt_engine == BTOR_ENGINE_PROP
+      || opt_engine == BTOR_ENGINE_SLS)
+  {
+    g_btormbt->create_funs   = false;
+    g_btormbt->create_ufs    = false;
+    g_btormbt->create_arrays = false;
   }
 
   if (!mbt->inc && !mbt->mgen && pick (&rng, 0, NORM_VAL - 1) < mbt->p_dump)
