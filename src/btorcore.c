@@ -2798,7 +2798,11 @@ btor_substitute_terms (Btor *btor, BtorNode *root, BtorNodeMap *substs)
 
       if (real_cur->arity == 0)
       {
-        result = btor_copy_exp (btor, real_cur);
+        if (BTOR_IS_PARAM_NODE (real_cur))
+          result =
+              btor_param_exp (btor, btor_get_exp_width (btor, real_cur), 0);
+        else
+          result = btor_copy_exp (btor, real_cur);
       }
       else if (BTOR_IS_SLICE_NODE (real_cur))
       {
@@ -2823,6 +2827,7 @@ btor_substitute_terms (Btor *btor, BtorNode *root, BtorNodeMap *substs)
           btor_copy_exp (btor, result);
       BTOR_PUSH_STACK (mm, cleanup, result);
     PUSH_RESULT:
+      assert (real_cur->sort_id == BTOR_REAL_ADDR_NODE (result)->sort_id);
       BTOR_PUSH_STACK (mm, args, BTOR_COND_INVERT_NODE (cur, result));
     }
     else
