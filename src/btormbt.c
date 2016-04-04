@@ -396,11 +396,11 @@
 
 typedef struct RNG
 {
-  unsigned z, w;
+  uint32_t z, w;
 } RNG;
 
 static RNG
-initrng (unsigned seed)
+initrng (uint32_t seed)
 {
   RNG res;
   res.z = seed * 1000632769u;
@@ -408,7 +408,7 @@ initrng (unsigned seed)
   return res;
 }
 
-static unsigned
+static uint32_t
 nextrand (RNG *rng)
 {
   rng->z = 36969 * (rng->z & 65535) + (rng->z >> 16);
@@ -417,11 +417,11 @@ nextrand (RNG *rng)
 }
 
 static int
-pick (RNG *rng_ptr, unsigned from, unsigned to)
+pick (RNG *rng_ptr, uint32_t from, uint32_t to)
 {
   assert (from <= to);
 
-  unsigned tmp;
+  uint32_t tmp;
 
   to  = to == UINT_MAX ? UINT_MAX - 1 : to;
   tmp = nextrand (rng_ptr);
@@ -606,7 +606,7 @@ typedef enum BtorMBTExpType BtorMBTExpType;
 struct BtorMBTExp
 {
   BoolectorNode *exp;
-  unsigned parents; /* number of parents */
+  uint32_t parents; /* number of parents */
 };
 
 typedef struct BtorMBTExp BtorMBTExp;
@@ -772,8 +772,8 @@ btormbt_release_sort_stack (BtorMemMgr *mm, BoolectorSortStack *sortstack)
 struct BtorMBTStatistics
 {
   /* total numbers for all rounds */
-  unsigned num_sat;
-  unsigned num_unsat;
+  uint32_t num_sat;
+  uint32_t num_unsat;
   Op num_ops[BTORMBT_NUM_OPS];
 
   /* avg. numbers per round */
@@ -790,128 +790,128 @@ struct BtorMBT
 
   double start_time;
 
-  int seed;
+  uint32_t seed;
   bool seeded;
-  int rounds;
-  int bugs;
-  int forked;
-  int ppid; /* parent pid */
-  int verbosity;
+  uint32_t rounds;
+  uint32_t bugs;
+  uint32_t forked;
+  uint32_t ppid; /* parent pid */
+  uint32_t verbosity;
 
   bool quiet;
   bool terminal;
-  int quit_after_first;
-  int ext;
-  int shadow;
+  bool quit_after_first;
+  bool ext;
+  bool shadow;
   char *out;
   bool create_funs;
   bool create_ufs;
   bool create_arrays;
 
-  int g_max_rounds;
+  uint32_t max_rounds;
 
-  uint32_t g_min_bw;
-  uint32_t g_max_bw;
-  uint32_t g_min_index_bw;
-  uint32_t g_max_index_bw;
-  uint32_t g_min_muldiv_bw;
-  uint32_t g_max_muldiv_bw;
+  uint32_t min_bw;
+  uint32_t max_bw;
+  uint32_t min_index_bw;
+  uint32_t max_index_bw;
+  uint32_t min_muldiv_bw;
+  uint32_t max_muldiv_bw;
 
-  uint32_t g_min_sort_fun_arity;
-  uint32_t g_max_sort_fun_arity;
+  uint32_t min_sort_fun_arity;
+  uint32_t max_sort_fun_arity;
 
-  int g_min_inputs; /* min number of inputs in a round */
-  int g_max_inputs; /* max number of inputs in a round */
+  uint32_t min_inputs; /* min number of inputs in a round */
+  uint32_t max_inputs; /* max number of inputs in a round */
 
-  int g_min_vars_init; /* min number of variables (initial layer) */
-  int g_max_vars_init; /* max number of variables (initial layer) */
-  int g_min_vars;      /* min number of variables (after init. layer) */
-  int g_max_vars;      /* max number of variables (after init. layer) */
-  int g_min_vars_inc;  /* min number of variables (reinit inc step) */
-  int g_max_vars_inc;  /* max number of variables (reinit inc step) */
+  uint32_t min_vars_init; /* min number of variables (initial layer) */
+  uint32_t max_vars_init; /* max number of variables (initial layer) */
+  uint32_t min_vars;      /* min number of variables (after init. layer) */
+  uint32_t max_vars;      /* max number of variables (after init. layer) */
+  uint32_t min_vars_inc;  /* min number of variables (reinit inc step) */
+  uint32_t max_vars_inc;  /* max number of variables (reinit inc step) */
 
-  int g_min_consts_init; /* min number of constants (initial layer) */
-  int g_max_consts_init; /* max number of constants (initial layer) */
-  int g_min_consts;      /* min number of constants (after init. layer) */
-  int g_max_consts;      /* max number of constants (after init. layer) */
-  int g_min_consts_inc;  /* min number of constants (reinit inc step) */
-  int g_max_consts_inc;  /* max number of constants (reinit inc step) */
+  uint32_t min_consts_init; /* min number of constants (initial layer) */
+  uint32_t max_consts_init; /* max number of constants (initial layer) */
+  uint32_t min_consts;      /* min number of constants (after init. layer) */
+  uint32_t max_consts;      /* max number of constants (after init. layer) */
+  uint32_t min_consts_inc;  /* min number of constants (reinit inc step) */
+  uint32_t max_consts_inc;  /* max number of constants (reinit inc step) */
 
-  int g_min_arrays_init; /* min number of arrays (initial layer) */
-  int g_max_arrays_init; /* max number of arrays (initial layer) */
-  int g_min_arrays;      /* min number of arrays (after init. layer) */
-  int g_max_arrays;      /* max number of arrays (after init. layer) */
-  int g_min_arrays_inc;  /* min number of arrays (reinit inc step) */
-  int g_max_arrays_inc;  /* max number of arrays (reinit inc step) */
+  uint32_t min_arrays_init; /* min number of arrays (initial layer) */
+  uint32_t max_arrays_init; /* max number of arrays (initial layer) */
+  uint32_t min_arrays;      /* min number of arrays (after init. layer) */
+  uint32_t max_arrays;      /* max number of arrays (after init. layer) */
+  uint32_t min_arrays_inc;  /* min number of arrays (reinit inc step) */
+  uint32_t max_arrays_inc;  /* max number of arrays (reinit inc step) */
 
   /* add/release phase options */
-  int g_min_add_funs_init; /* min funs (initial layer) */
-  int g_max_add_funs_init; /* max funs (initial layer) */
-  int g_min_add_funs;      /* min funs (after init. layer) */
-  int g_max_add_funs;      /* max funs (after init. layer) */
-  int g_min_add_funs_inc;  /* min funs (reinit inc step) */
-  int g_max_add_funs_inc;  /* max funs (reinit inc step) */
+  uint32_t min_add_funs_init; /* min funs (initial layer) */
+  uint32_t max_add_funs_init; /* max funs (initial layer) */
+  uint32_t min_add_funs;      /* min funs (after init. layer) */
+  uint32_t max_add_funs;      /* max funs (after init. layer) */
+  uint32_t min_add_funs_inc;  /* min funs (reinit inc step) */
+  uint32_t max_add_funs_inc;  /* max funs (reinit inc step) */
 
-  int g_min_add_uf_init; /* min ufs (initial layer) */
-  int g_max_add_uf_init; /* max ufs (initial layer) */
-  int g_min_add_uf;      /* min ufs (after init. layer) */
-  int g_max_add_uf;      /* max ufs (after init. layer) */
-  int g_min_add_uf_inc;  /* min ufs (reinit inc step) */
-  int g_max_add_uf_inc;  /* max ufs (reinit inc step) */
+  uint32_t min_add_uf_init; /* min ufs (initial layer) */
+  uint32_t max_add_uf_init; /* max ufs (initial layer) */
+  uint32_t min_add_uf;      /* min ufs (after init. layer) */
+  uint32_t max_add_uf;      /* max ufs (after init. layer) */
+  uint32_t min_add_uf_inc;  /* min ufs (reinit inc step) */
+  uint32_t max_add_uf_inc;  /* max ufs (reinit inc step) */
 
-  int g_min_add_arrayops_init; /* min array ops (initial layer) */
-  int g_max_add_arrayops_init; /* max array ops (initial layer) */
-  int g_min_add_arrayops;      /* min array ops (after init. layer) */
-  int g_max_add_arrayops;      /* max array ops (after init. layer) */
-  int g_min_add_arrayops_inc;  /* min array ops (reinit inc step) */
-  int g_max_add_arrayops_inc;  /* max array ops (reinit inc step) */
+  uint32_t min_add_arrayops_init; /* min array ops (initial layer) */
+  uint32_t max_add_arrayops_init; /* max array ops (initial layer) */
+  uint32_t min_add_arrayops;      /* min array ops (after init. layer) */
+  uint32_t max_add_arrayops;      /* max array ops (after init. layer) */
+  uint32_t min_add_arrayops_inc;  /* min array ops (reinit inc step) */
+  uint32_t max_add_arrayops_inc;  /* max array ops (reinit inc step) */
 
-  int g_min_add_bitvecops_init; /* min bv ops (initial layer) */
-  int g_max_add_bitvecops_init; /* max bv ops (initial layer) */
-  int g_min_add_bitvecops;      /* min bv ops (after init. layer) */
-  int g_max_add_bitvecops;      /* max bv ops (after init. layer) */
-  int g_min_add_bitvecops_inc;  /* min bv ops (reinit inc step) */
-  int g_max_add_bitvecops_inc;  /* max bv ops (reinit inc step) */
+  uint32_t min_add_bitvecops_init; /* min bv ops (initial layer) */
+  uint32_t max_add_bitvecops_init; /* max bv ops (initial layer) */
+  uint32_t min_add_bitvecops;      /* min bv ops (after init. layer) */
+  uint32_t max_add_bitvecops;      /* max bv ops (after init. layer) */
+  uint32_t min_add_bitvecops_inc;  /* min bv ops (reinit inc step) */
+  uint32_t max_add_bitvecops_inc;  /* max bv ops (reinit inc step) */
 
-  int g_min_add_inputs_init; /* min inputs (initial layer) */
-  int g_max_add_inputs_init; /* max inputs (initial layer) */
-  int g_min_add_inputs;      /* min inputs (after init. layer) */
-  int g_max_add_inputs;      /* max inputs (after init. layer) */
-  int g_min_add_inputs_inc;  /* min inputs (reinit inc step) */
-  int g_max_add_inputs_inc;  /* max inputs (reinit inc step) */
+  uint32_t min_add_inputs_init; /* min inputs (initial layer) */
+  uint32_t max_add_inputs_init; /* max inputs (initial layer) */
+  uint32_t min_add_inputs;      /* min inputs (after init. layer) */
+  uint32_t max_add_inputs;      /* max inputs (after init. layer) */
+  uint32_t min_add_inputs_inc;  /* min inputs (reinit inc step) */
+  uint32_t max_add_inputs_inc;  /* max inputs (reinit inc step) */
 
-  int g_min_ops_init; /* min operations (initial layer) */
-  int g_max_ops_init; /* max operations (initial layer) */
-  int g_min_ops;      /* min operations (after init. layer) */
-  int g_max_ops;      /* max operations (after init. layer) */
-  int g_min_ops_inc;  /* min operations (reinit inc step) */
-  int g_max_ops_inc;  /* max operations (reinit inc step) */
+  uint32_t min_ops_init; /* min operations (initial layer) */
+  uint32_t max_ops_init; /* max operations (initial layer) */
+  uint32_t min_ops;      /* min operations (after init. layer) */
+  uint32_t max_ops;      /* max operations (after init. layer) */
+  uint32_t min_ops_inc;  /* min operations (reinit inc step) */
+  uint32_t max_ops_inc;  /* max operations (reinit inc step) */
 
-  int g_min_add_ops_init; /* min add ops (initial layer) */
-  int g_max_add_ops_init; /* max add ops (initial layer) */
-  int g_min_add_ops;      /* min add ops (after init. layer) */
-  int g_max_add_ops;      /* max add ops (after init. layer) */
-  int g_min_add_ops_inc;  /* min add ops (reinit inc step) */
-  int g_max_add_ops_inc;  /* max add ops (reinit inc step) */
+  uint32_t min_add_ops_init; /* min add ops (initial layer) */
+  uint32_t max_add_ops_init; /* max add ops (initial layer) */
+  uint32_t min_add_ops;      /* min add ops (after init. layer) */
+  uint32_t max_add_ops;      /* max add ops (after init. layer) */
+  uint32_t min_add_ops_inc;  /* min add ops (reinit inc step) */
+  uint32_t max_add_ops_inc;  /* max add ops (reinit inc step) */
 
-  int g_min_release_ops_init; /* min release ops (initial layer) */
-  int g_max_release_ops_init; /* max release ops (initial layer) */
-  int g_min_release_ops;      /* min release ops (after init. layer) */
-  int g_max_release_ops;      /* max release ops (after init. layer) */
-  int g_min_release_ops_inc;  /* min release ops (reinit inc step) */
-  int g_max_release_ops_inc;  /* max release ops (reinit inc step) */
+  uint32_t min_release_ops_init; /* min release ops (initial layer) */
+  uint32_t max_release_ops_init; /* max release ops (initial layer) */
+  uint32_t min_release_ops;      /* min release ops (after init. layer) */
+  uint32_t max_release_ops;      /* max release ops (after init. layer) */
+  uint32_t min_release_ops_inc;  /* min release ops (reinit inc step) */
+  uint32_t max_release_ops_inc;  /* max release ops (reinit inc step) */
 
-  int g_max_ops_lower; /* lower bound for current max_ops (for
-                           determining max_ass of current round) */
+  uint32_t max_ops_lower; /* lower bound for current max_ops_cur
+                             for determining max_ass_cur */
 
-  int g_min_asserts_lower; /* min number of assertions in a round
-                               for max_ops < g_max_ops_lower */
-  int g_max_asserts_lower; /* max number of assertions in a round
-                               for max_ops < g_max_ops_lower */
-  int g_min_asserts_upper; /* min number of assertions in a round
-                               for max_ops >= g_max_ops_lower */
-  int g_max_asserts_upper; /* max number of assertions in a round
-                               for max_ops >= g_max_ops_lower */
+  uint32_t min_asserts_lower; /* min number of assertions in a round
+                                 for max_ops_cur < max_ops_lower */
+  uint32_t max_asserts_lower; /* max number of assertions in a round
+                                 for max_ops_cur < max_ops_lower */
+  uint32_t min_asserts_upper; /* min number of assertions in a round
+                                 for max_ops_cur >= max_ops_lower */
+  uint32_t max_asserts_upper; /* max number of assertions in a round
+                                 for max_ops_cur >= max_ops_lower */
 
   /* propability options */
   int p_sort_bv;        /* probability of choosing an existing bv sort over
@@ -943,18 +943,18 @@ struct BtorMBT
   char *output_format; /* force output format for dumping/printing models */
 
   /* round counters */
-  int r_add_init;     /* number of add operations (wrt to number of release
-                         operations (initial layer) */
-  int r_release_init; /* number of release operations (wrt to number of
-                         add operations (initial layer) */
-  int r_add;          /* number of add operations (wrt to number of release
-                         operations (after initial layer) */
-  int r_release;      /* number of release operations (wrt to number of
-                         add operations (after initial layer) */
-  int r_add_inc;      /* number of add operations (wrt to number of release
-                         operations (reinit inc step) */
-  int r_release_inc;  /* number of release operations (wrt to number of
-                         add operations (reinit inc step) */
+  /* number of add ops wrt to number of release ops (initial layer) */
+  uint32_t r_add_init;
+  /* number of release ops wrt to number of add ops (initial layer) */
+  uint32_t r_release_init;
+  /* number of add ops wrt to number of release ops (after initial layer) */
+  uint32_t r_add;
+  /* number of release ops wrt to number of add ops (after initial layer) */
+  uint32_t r_release;
+  /* number of add ops wrt to number of release ops (reinit inc step) */
+  uint32_t r_add_inc;
+  /* number of release ops wrt to number of add ops (reinit inc step) */
+  uint32_t r_release_inc;
 
   BtorMBTExpStack *assumptions;
   BtorMBTExpStack *bo, *bv, *arr, *fun, *uf;
@@ -964,11 +964,11 @@ struct BtorMBT
 
   /* Note: no global settings after this point! Do not change order! */
 
-  int is_init;
+  bool is_init;
   int inc;
-  int mgen;
-  int dump;
-  int print_model;
+  bool mgen;
+  bool dump;
+  bool print_model;
 
   /* prob. distribution of variables, constants, arrays in current round */
   float p_var, p_const, p_array;
@@ -978,20 +978,20 @@ struct BtorMBT
    * array operations, macros, inputs in current round */
   float p_bitvec_fun, p_bitvec_uf, p_array_op, p_bitvec_op, p_input;
 
-  int ops;     /* number of operations in current round */
-  int asserts; /* number of produced asserts in current round */
-  int assumes; /* number of produced assumes in current round */
+  uint32_t ops;     /* number of operations in current round */
+  uint32_t asserts; /* number of produced asserts in current round */
+  uint32_t assumes; /* number of produced assumes in current round */
 
-  int max_inputs; /* max number of inputs in current round */
-  int max_ops;    /* max number of operations in current round */
-  int max_ass;    /* max number of asserts / assumes in current round */
+  uint32_t max_inputs_cur; /* max number of inputs in current round */
+  uint32_t max_ops_cur;    /* max number of operations in current round */
+  uint32_t max_ass_cur;    /* max number of ass(erts|umes) in current round */
 
-  int tot_asserts; /* total number of asserts in current round */
+  uint32_t tot_asserts; /* total number of asserts in current round */
 
   RNG rng;
 };
 
-typedef void *(*BtorMBTState) (BtorMBT *, unsigned rand);
+typedef void *(*BtorMBTState) (BtorMBT *, uint32_t rand);
 
 static BtorMBT *
 btormbt_new_btormbt (void)
@@ -1027,109 +1027,109 @@ btormbt_new_btormbt (void)
   }
   boolector_delete (tmpbtor);
 
-  mbt->g_max_rounds             = INT_MAX;
-  mbt->seed                     = -1;
-  mbt->seeded                   = false;
-  mbt->terminal                 = isatty (1) == 1;
-  mbt->ext                      = 0;
-  mbt->create_funs              = true;
-  mbt->create_ufs               = true;
-  mbt->create_arrays            = true;
-  mbt->g_min_bw                 = MIN_BITWIDTH;
-  mbt->g_max_bw                 = MAX_BITWIDTH;
-  mbt->g_min_index_bw           = MIN_INDEXWIDTH;
-  mbt->g_max_index_bw           = MAX_INDEXWIDTH;
-  mbt->g_min_muldiv_bw          = MIN_MULDIVWIDTH;
-  mbt->g_max_muldiv_bw          = MAX_MULDIVWIDTH;
-  mbt->g_min_sort_fun_arity     = MIN_SORT_FUN_ARITY;
-  mbt->g_max_sort_fun_arity     = MAX_SORT_FUN_ARITY;
-  mbt->g_min_inputs             = MIN_NLITS;
-  mbt->g_max_inputs             = MAX_NLITS;
-  mbt->g_min_vars_init          = MIN_NVARS_INIT;
-  mbt->g_max_vars_init          = MAX_NVARS_INIT;
-  mbt->g_min_vars               = MIN_NVARS;
-  mbt->g_max_vars               = MAX_NVARS;
-  mbt->g_min_vars_inc           = MIN_NVARS_INC;
-  mbt->g_max_vars_inc           = MAX_NVARS_INC;
-  mbt->g_min_consts_init        = MIN_NCONSTS_INIT;
-  mbt->g_max_consts_init        = MAX_NCONSTS_INIT;
-  mbt->g_min_consts             = MIN_NCONSTS;
-  mbt->g_max_consts             = MAX_NCONSTS;
-  mbt->g_min_consts_inc         = MIN_NCONSTS_INC;
-  mbt->g_max_consts_inc         = MAX_NCONSTS_INC;
-  mbt->g_min_arrays_init        = MIN_NARRS_INIT;
-  mbt->g_max_arrays_init        = MAX_NARRS_INIT;
-  mbt->g_min_arrays             = MIN_NARRS;
-  mbt->g_max_arrays             = MAX_NARRS;
-  mbt->g_min_arrays_inc         = MIN_NARRS_INC;
-  mbt->g_max_arrays_inc         = MAX_NARRS_INC;
-  mbt->g_min_add_funs_init      = MIN_NADDOPFUNS_INIT;
-  mbt->g_max_add_funs_init      = MAX_NADDOPFUNS_INIT;
-  mbt->g_min_add_funs           = MIN_NADDOPFUNS;
-  mbt->g_max_add_funs           = MAX_NADDOPFUNS;
-  mbt->g_min_add_funs_inc       = MIN_NADDOPFUNS_INC;
-  mbt->g_max_add_funs_inc       = MAX_NADDOPFUNS_INC;
-  mbt->g_min_add_uf_init        = MIN_NADDOPUF_INIT;
-  mbt->g_max_add_uf_init        = MAX_NADDOPUF_INIT;
-  mbt->g_min_add_uf             = MIN_NADDOPUF;
-  mbt->g_max_add_uf             = MAX_NADDOPUF;
-  mbt->g_min_add_uf_inc         = MIN_NADDOPUF_INC;
-  mbt->g_max_add_uf_inc         = MAX_NADDOPUF_INC;
-  mbt->g_min_add_arrayops_init  = MIN_NADDOPAFUNS_INIT;
-  mbt->g_max_add_arrayops_init  = MAX_NADDOPAFUNS_INIT;
-  mbt->g_min_add_arrayops       = MIN_NADDOPAFUNS;
-  mbt->g_max_add_arrayops       = MAX_NADDOPAFUNS;
-  mbt->g_min_add_arrayops_inc   = MIN_NADDOPAFUNS_INC;
-  mbt->g_max_add_arrayops_inc   = MAX_NADDOPAFUNS_INC;
-  mbt->g_min_add_bitvecops_init = MIN_NADDOPBFUNS_INIT;
-  mbt->g_max_add_bitvecops_init = MAX_NADDOPBFUNS_INIT;
-  mbt->g_min_add_bitvecops      = MIN_NADDOPBFUNS;
-  mbt->g_max_add_bitvecops      = MAX_NADDOPBFUNS;
-  mbt->g_min_add_bitvecops_inc  = MIN_NADDOPBFUNS_INC;
-  mbt->g_max_add_bitvecops_inc  = MAX_NADDOPBFUNS_INC;
-  mbt->g_min_add_inputs_init    = MIN_NADDOPLITS_INIT;
-  mbt->g_max_add_inputs_init    = MAX_NADDOPLITS_INIT;
-  mbt->g_min_add_inputs         = MIN_NADDOPLITS;
-  mbt->g_max_add_inputs         = MAX_NADDOPLITS;
-  mbt->g_min_add_inputs_inc     = MIN_NADDOPLITS_INC;
-  mbt->g_max_add_inputs_inc     = MAX_NADDOPLITS_INC;
-  mbt->g_min_ops_init           = MIN_NOPS_INIT;
-  mbt->g_max_ops_init           = MAX_NOPS_INIT;
-  mbt->g_min_ops                = MIN_NOPS;
-  mbt->g_max_ops                = MAX_NOPS;
-  mbt->g_min_ops_inc            = MIN_NOPS_INC;
-  mbt->g_max_ops_inc            = MAX_NOPS_INC;
-  mbt->g_min_add_ops_init       = MIN_NADDOPS_INIT;
-  mbt->g_max_add_ops_init       = MAX_NADDOPS_INIT;
-  mbt->g_min_add_ops            = MIN_NADDOPS;
-  mbt->g_max_add_ops            = MAX_NADDOPS;
-  mbt->g_min_add_ops_inc        = MIN_NADDOPS_INC;
-  mbt->g_max_add_ops_inc        = MAX_NADDOPS_INC;
-  mbt->g_min_release_ops_init   = MIN_NRELOPS_INIT;
-  mbt->g_max_release_ops_init   = MAX_NRELOPS_INIT;
-  mbt->g_min_release_ops        = MIN_NRELOPS;
-  mbt->g_max_release_ops        = MAX_NRELOPS;
-  mbt->g_min_release_ops_inc    = MIN_NRELOPS_INC;
-  mbt->g_max_release_ops_inc    = MAX_NRELOPS_INC;
-  mbt->g_min_asserts_lower      = MIN_NASSERTS_LOWER;
-  mbt->g_max_asserts_lower      = MAX_NASSERTS_LOWER;
-  mbt->g_min_asserts_upper      = MIN_NASSERTS_UPPER;
-  mbt->g_max_asserts_upper      = MAX_NASSERTS_UPPER;
-  mbt->p_sort_bv                = P_SORT_BV * NORM_VAL;
-  mbt->p_sort_fun               = P_SORT_BV * NORM_VAL;
-  mbt->p_assume                 = P_ASSUME * NORM_VAL;
-  mbt->p_param_exp              = P_PARAM_EXP * NORM_VAL;
-  mbt->p_param_arr_exp          = P_PARAM_ARR_EXP * NORM_VAL;
-  mbt->p_apply_fun              = P_APPLY_FUN * NORM_VAL;
-  mbt->p_apply_uf               = P_APPLY_UF * NORM_VAL;
-  mbt->p_rw                     = P_RW * NORM_VAL;
-  mbt->p_read                   = P_READ * NORM_VAL;
-  mbt->p_cond                   = P_COND * NORM_VAL;
-  mbt->p_eq                     = P_EQ * NORM_VAL;
-  mbt->p_inc                    = P_INC * NORM_VAL;
-  mbt->p_dump                   = P_DUMP * NORM_VAL;
-  mbt->p_print_model            = P_PRINT_MODEL * NORM_VAL;
-  mbt->p_model_format           = P_MODEL_FORMAT * NORM_VAL;
+  mbt->max_rounds             = UINT_MAX;
+  mbt->seed                   = -1;
+  mbt->seeded                 = false;
+  mbt->terminal               = isatty (1) == 1;
+  mbt->ext                    = false;
+  mbt->create_funs            = true;
+  mbt->create_ufs             = true;
+  mbt->create_arrays          = true;
+  mbt->min_bw                 = MIN_BITWIDTH;
+  mbt->max_bw                 = MAX_BITWIDTH;
+  mbt->min_index_bw           = MIN_INDEXWIDTH;
+  mbt->max_index_bw           = MAX_INDEXWIDTH;
+  mbt->min_muldiv_bw          = MIN_MULDIVWIDTH;
+  mbt->max_muldiv_bw          = MAX_MULDIVWIDTH;
+  mbt->min_sort_fun_arity     = MIN_SORT_FUN_ARITY;
+  mbt->max_sort_fun_arity     = MAX_SORT_FUN_ARITY;
+  mbt->min_inputs             = MIN_NLITS;
+  mbt->max_inputs             = MAX_NLITS;
+  mbt->min_vars_init          = MIN_NVARS_INIT;
+  mbt->max_vars_init          = MAX_NVARS_INIT;
+  mbt->min_vars               = MIN_NVARS;
+  mbt->max_vars               = MAX_NVARS;
+  mbt->min_vars_inc           = MIN_NVARS_INC;
+  mbt->max_vars_inc           = MAX_NVARS_INC;
+  mbt->min_consts_init        = MIN_NCONSTS_INIT;
+  mbt->max_consts_init        = MAX_NCONSTS_INIT;
+  mbt->min_consts             = MIN_NCONSTS;
+  mbt->max_consts             = MAX_NCONSTS;
+  mbt->min_consts_inc         = MIN_NCONSTS_INC;
+  mbt->max_consts_inc         = MAX_NCONSTS_INC;
+  mbt->min_arrays_init        = MIN_NARRS_INIT;
+  mbt->max_arrays_init        = MAX_NARRS_INIT;
+  mbt->min_arrays             = MIN_NARRS;
+  mbt->max_arrays             = MAX_NARRS;
+  mbt->min_arrays_inc         = MIN_NARRS_INC;
+  mbt->max_arrays_inc         = MAX_NARRS_INC;
+  mbt->min_add_funs_init      = MIN_NADDOPFUNS_INIT;
+  mbt->max_add_funs_init      = MAX_NADDOPFUNS_INIT;
+  mbt->min_add_funs           = MIN_NADDOPFUNS;
+  mbt->max_add_funs           = MAX_NADDOPFUNS;
+  mbt->min_add_funs_inc       = MIN_NADDOPFUNS_INC;
+  mbt->max_add_funs_inc       = MAX_NADDOPFUNS_INC;
+  mbt->min_add_uf_init        = MIN_NADDOPUF_INIT;
+  mbt->max_add_uf_init        = MAX_NADDOPUF_INIT;
+  mbt->min_add_uf             = MIN_NADDOPUF;
+  mbt->max_add_uf             = MAX_NADDOPUF;
+  mbt->min_add_uf_inc         = MIN_NADDOPUF_INC;
+  mbt->max_add_uf_inc         = MAX_NADDOPUF_INC;
+  mbt->min_add_arrayops_init  = MIN_NADDOPAFUNS_INIT;
+  mbt->max_add_arrayops_init  = MAX_NADDOPAFUNS_INIT;
+  mbt->min_add_arrayops       = MIN_NADDOPAFUNS;
+  mbt->max_add_arrayops       = MAX_NADDOPAFUNS;
+  mbt->min_add_arrayops_inc   = MIN_NADDOPAFUNS_INC;
+  mbt->max_add_arrayops_inc   = MAX_NADDOPAFUNS_INC;
+  mbt->min_add_bitvecops_init = MIN_NADDOPBFUNS_INIT;
+  mbt->max_add_bitvecops_init = MAX_NADDOPBFUNS_INIT;
+  mbt->min_add_bitvecops      = MIN_NADDOPBFUNS;
+  mbt->max_add_bitvecops      = MAX_NADDOPBFUNS;
+  mbt->min_add_bitvecops_inc  = MIN_NADDOPBFUNS_INC;
+  mbt->max_add_bitvecops_inc  = MAX_NADDOPBFUNS_INC;
+  mbt->min_add_inputs_init    = MIN_NADDOPLITS_INIT;
+  mbt->max_add_inputs_init    = MAX_NADDOPLITS_INIT;
+  mbt->min_add_inputs         = MIN_NADDOPLITS;
+  mbt->max_add_inputs         = MAX_NADDOPLITS;
+  mbt->min_add_inputs_inc     = MIN_NADDOPLITS_INC;
+  mbt->max_add_inputs_inc     = MAX_NADDOPLITS_INC;
+  mbt->min_ops_init           = MIN_NOPS_INIT;
+  mbt->max_ops_init           = MAX_NOPS_INIT;
+  mbt->min_ops                = MIN_NOPS;
+  mbt->max_ops                = MAX_NOPS;
+  mbt->min_ops_inc            = MIN_NOPS_INC;
+  mbt->max_ops_inc            = MAX_NOPS_INC;
+  mbt->min_add_ops_init       = MIN_NADDOPS_INIT;
+  mbt->max_add_ops_init       = MAX_NADDOPS_INIT;
+  mbt->min_add_ops            = MIN_NADDOPS;
+  mbt->max_add_ops            = MAX_NADDOPS;
+  mbt->min_add_ops_inc        = MIN_NADDOPS_INC;
+  mbt->max_add_ops_inc        = MAX_NADDOPS_INC;
+  mbt->min_release_ops_init   = MIN_NRELOPS_INIT;
+  mbt->max_release_ops_init   = MAX_NRELOPS_INIT;
+  mbt->min_release_ops        = MIN_NRELOPS;
+  mbt->max_release_ops        = MAX_NRELOPS;
+  mbt->min_release_ops_inc    = MIN_NRELOPS_INC;
+  mbt->max_release_ops_inc    = MAX_NRELOPS_INC;
+  mbt->min_asserts_lower      = MIN_NASSERTS_LOWER;
+  mbt->max_asserts_lower      = MAX_NASSERTS_LOWER;
+  mbt->min_asserts_upper      = MIN_NASSERTS_UPPER;
+  mbt->max_asserts_upper      = MAX_NASSERTS_UPPER;
+  mbt->p_sort_bv              = P_SORT_BV * NORM_VAL;
+  mbt->p_sort_fun             = P_SORT_BV * NORM_VAL;
+  mbt->p_assume               = P_ASSUME * NORM_VAL;
+  mbt->p_param_exp            = P_PARAM_EXP * NORM_VAL;
+  mbt->p_param_arr_exp        = P_PARAM_ARR_EXP * NORM_VAL;
+  mbt->p_apply_fun            = P_APPLY_FUN * NORM_VAL;
+  mbt->p_apply_uf             = P_APPLY_UF * NORM_VAL;
+  mbt->p_rw                   = P_RW * NORM_VAL;
+  mbt->p_read                 = P_READ * NORM_VAL;
+  mbt->p_cond                 = P_COND * NORM_VAL;
+  mbt->p_eq                   = P_EQ * NORM_VAL;
+  mbt->p_inc                  = P_INC * NORM_VAL;
+  mbt->p_dump                 = P_DUMP * NORM_VAL;
+  mbt->p_print_model          = P_PRINT_MODEL * NORM_VAL;
+  mbt->p_model_format         = P_MODEL_FORMAT * NORM_VAL;
   return mbt;
 }
 
@@ -1722,11 +1722,11 @@ btormbt_var (BtorMBT *mbt, RNG *rng, BtorMBTExpType type)
   if (type == BTORMBT_BO_T)
     width = 1;
   else if (type == BTORMBT_BV_T)
-    width = pick (rng, mbt->g_min_bw, mbt->g_max_bw);
+    width = pick (rng, mbt->min_bw, mbt->max_bw);
   else
   {
     assert (type = BTORMBT_BB_T);
-    width = pick (rng, 1, mbt->g_max_bw);
+    width = pick (rng, 1, mbt->max_bw);
   }
   s = boolector_bitvec_sort (mbt->btor, width);
   btormbt_push_node (mbt, boolector_var (mbt->btor, s, 0));
@@ -1748,7 +1748,7 @@ btormbt_const (BtorMBT *mbt, RNG *rng)
   width = 0;
   val   = 0;
 
-  if (op != TRUE && op != FALSE) width = pick (rng, 1, mbt->g_max_bw);
+  if (op != TRUE && op != FALSE) width = pick (rng, 1, mbt->max_bw);
 
   if (op == UINT || op == INT)
   {
@@ -1820,9 +1820,9 @@ btormbt_array (BtorMBT *mbt, RNG *rng)
   int ew, iw;
   BoolectorSort es, is, as;
 
-  // TODO (ma): remove ite here and use g_min_bw
-  ew = pick (rng, mbt->g_min_bw > 2 ? mbt->g_min_bw : 1, mbt->g_max_bw);
-  iw = pick (rng, mbt->g_min_index_bw, mbt->g_max_index_bw);
+  // TODO (ma): remove ite here and use min_bw
+  ew = pick (rng, mbt->min_bw > 2 ? mbt->min_bw : 1, mbt->max_bw);
+  iw = pick (rng, mbt->min_index_bw, mbt->max_index_bw);
   es = boolector_bitvec_sort (mbt->btor, ew);
   is = boolector_bitvec_sort (mbt->btor, iw);
   as = boolector_array_sort (mbt->btor, is, es);
@@ -1929,7 +1929,7 @@ btormbt_unary_op (BtorMBT *mbt, RNG *rng, Op op, BoolectorNode *e)
 
   upper = lower = 0;
   width         = boolector_get_width (mbt->btor, e);
-  assert (width <= mbt->g_max_bw);
+  assert (width <= mbt->max_bw);
 
   if (op == SLICE)
   {
@@ -1937,7 +1937,7 @@ btormbt_unary_op (BtorMBT *mbt, RNG *rng, Op op, BoolectorNode *e)
     lower = pick (rng, 0, upper);
   }
   else if (op == UEXT || op == SEXT)
-    upper = pick (rng, 0, mbt->g_max_bw - width);
+    upper = pick (rng, 0, mbt->max_bw - width);
 
   node = 0;
   switch (op)
@@ -1969,24 +1969,24 @@ btormbt_binary_op (
   BoolectorNode *node;
 
   e0_width = boolector_get_width (mbt->btor, e0);
-  assert (e0_width <= mbt->g_max_bw);
+  assert (e0_width <= mbt->max_bw);
   e1_width = boolector_get_width (mbt->btor, e1);
-  assert (e1_width <= mbt->g_max_bw);
+  assert (e1_width <= mbt->max_bw);
 
   if ((op >= XOR && op <= SMOD) || (op >= EQ && op <= SGTE))
   {
     /* modify e1_width equal to e0_width, guarded mul and div */
     if ((op >= UMULO && op <= SDIVO) || (op >= MUL && op <= SMOD))
     {
-      if (e0_width > mbt->g_max_muldiv_bw)
+      if (e0_width > mbt->max_muldiv_bw)
       {
-        e0       = modify_bv (mbt, rng, e0, mbt->g_max_muldiv_bw);
-        e0_width = mbt->g_max_muldiv_bw;
+        e0       = modify_bv (mbt, rng, e0, mbt->max_muldiv_bw);
+        e0_width = mbt->max_muldiv_bw;
       }
-      else if (e0_width < mbt->g_min_muldiv_bw)
+      else if (e0_width < mbt->min_muldiv_bw)
       {
-        e0       = modify_bv (mbt, rng, e0, mbt->g_max_muldiv_bw);
-        e0_width = mbt->g_max_muldiv_bw;
+        e0       = modify_bv (mbt, rng, e0, mbt->max_muldiv_bw);
+        e0_width = mbt->max_muldiv_bw;
       }
     }
     e1 = modify_bv (mbt, rng, e1, e0_width);
@@ -2001,7 +2001,7 @@ btormbt_binary_op (
   }
   else if (op == CONCAT)
   {
-    if (e0_width + e1_width > mbt->g_max_bw)
+    if (e0_width + e1_width > mbt->max_bw)
     {
       if (e0_width > 1)
       {
@@ -2079,8 +2079,8 @@ btormbt_ternary_op (BtorMBT *mbt,
   uint32_t e1w;
 
   e1w = boolector_get_width (mbt->btor, e1);
-  assert (e1w <= mbt->g_max_bw);
-  assert (boolector_get_width (mbt->btor, e2) <= mbt->g_max_bw);
+  assert (e1w <= mbt->max_bw);
+  assert (boolector_get_width (mbt->btor, e2) <= mbt->max_bw);
 
   /* bitvectors must have same bit width */
   e2 = modify_bv (mbt, rng, e2, e1w);
@@ -2322,7 +2322,7 @@ select_arr_exp (BtorMBT *mbt,
 /*------------------------------------------------------------------------*/
 
 static BoolectorSort
-btormbt_bv_sort (BtorMBT *mbt, unsigned r)
+btormbt_bv_sort (BtorMBT *mbt, uint32_t r)
 {
   int rand, len;
   RNG rng;
@@ -2351,7 +2351,7 @@ btormbt_bv_sort (BtorMBT *mbt, unsigned r)
 }
 
 static void
-init_domain (BtorMBT *mbt, unsigned r, BoolectorSortStack *sortstack)
+init_domain (BtorMBT *mbt, uint32_t r, BoolectorSortStack *sortstack)
 {
   int i, arity, rand;
   RNG rng;
@@ -2365,13 +2365,13 @@ init_domain (BtorMBT *mbt, unsigned r, BoolectorSortStack *sortstack)
     return;
   }
 
-  arity = pick (&rng, mbt->g_min_sort_fun_arity, mbt->g_max_sort_fun_arity);
+  arity = pick (&rng, mbt->min_sort_fun_arity, mbt->max_sort_fun_arity);
   for (i = 0; i < arity; i++)
     btormbt_push_sort_stack (mbt->mm, sortstack, btormbt_bv_sort (mbt, r));
 }
 
 static BoolectorSort
-btormbt_fun_sort (BtorMBT *mbt, unsigned r)
+btormbt_fun_sort (BtorMBT *mbt, uint32_t r)
 {
   int rand;
   RNG rng;
@@ -2527,9 +2527,9 @@ btormbt_param_array_op (BtorMBT *mbt, RNG *rng)
 }
 
 static void
-btormbt_bv_fun (BtorMBT *mbt, unsigned r, int nlevel)
+btormbt_bv_fun (BtorMBT *mbt, uint32_t r, int nlevel)
 {
-  int i, n, width, max_ops, rand;
+  int i, n, width, max_ops_cur, rand;
   BtorMBTExpStack *expstack;
   BtorMBTExpStack *tmpparambo, *tmpparambv, *tmpparamarr, *tmpparamfun;
   BoolectorNode *tmp, *fun, *e0, *e1, *e2;
@@ -2605,7 +2605,7 @@ btormbt_bv_fun (BtorMBT *mbt, unsigned r, int nlevel)
     for (i = 0; i < pick (&rng, MIN_NPARAMS, MAX_NPARAMS); i++)
     {
       // TODO (ma): remove ite here?
-      width = pick (&rng, mbt->g_min_bw > 2 ? mbt->g_min_bw : 1, mbt->g_max_bw);
+      width = pick (&rng, mbt->min_bw > 2 ? mbt->min_bw : 1, mbt->max_bw);
       s     = boolector_bitvec_sort (mbt->btor, width);
       tmp   = boolector_param (mbt->btor, s, 0);
       boolector_release_sort (mbt->btor, s);
@@ -2623,7 +2623,7 @@ btormbt_bv_fun (BtorMBT *mbt, unsigned r, int nlevel)
       rand = pick (&rng, 0, BTOR_COUNT_STACK (mbt->parambo->exps) - 1);
       tmp  = mbt->parambo->exps.start[rand]->exp;
       assert (boolector_get_width (mbt->btor, tmp) == 1);
-      modify_bv (mbt, &rng, tmp, pick (&rng, mbt->g_min_bw, mbt->g_max_bw));
+      modify_bv (mbt, &rng, tmp, pick (&rng, mbt->min_bw, mbt->max_bw));
     }
     if (BTOR_EMPTY_STACK (mbt->parambo->exps))
     {
@@ -2654,9 +2654,9 @@ btormbt_bv_fun (BtorMBT *mbt, unsigned r, int nlevel)
     }
 
     /* generate parameterized expressions */
-    max_ops = pick (&rng, 0, MAX_NPARAMOPS);
-    n       = 0;
-    while (n++ < max_ops)
+    max_ops_cur = pick (&rng, 0, MAX_NPARAMOPS);
+    n           = 0;
+    while (n++ < max_ops_cur)
     {
       rand = pick (&rng, 0, NORM_VAL - 1);
       if (rand < mbt->p_bitvec_fun)
@@ -2725,9 +2725,9 @@ btormbt_bv_fun (BtorMBT *mbt, unsigned r, int nlevel)
 }
 
 static void
-btormbt_bv_uf (BtorMBT *mbt, unsigned r)
+btormbt_bv_uf (BtorMBT *mbt, uint32_t r)
 {
-  unsigned len;
+  uint32_t len;
   int rand;
   RNG rng;
   BoolectorNode *uf, *arg, *apply;
@@ -2779,61 +2779,61 @@ btormbt_bv_uf (BtorMBT *mbt, unsigned r)
 
 /*------------------------------------------------------------------------*/
 
-static void *btormbt_state_new (BtorMBT *, unsigned);
-static void *btormbt_state_opt (BtorMBT *, unsigned);
-static void *btormbt_state_init (BtorMBT *, unsigned);
-static void *btormbt_state_main (BtorMBT *, unsigned);
-static void *btormbt_state_add (BtorMBT *, unsigned);
-static void *btormbt_state_bv_op (BtorMBT *, unsigned);
-static void *btormbt_state_arr_op (BtorMBT *, unsigned);
-static void *btormbt_state_bv_fun (BtorMBT *, unsigned);
-static void *btormbt_state_bv_uf (BtorMBT *, unsigned);
-static void *btormbt_state_input (BtorMBT *, unsigned);
-static void *btormbt_state_release (BtorMBT *, unsigned);
-static void *btormbt_state_assume_assert (BtorMBT *, unsigned);
-static void *btormbt_state_sat (BtorMBT *, unsigned);
-static void *btormbt_state_dump (BtorMBT *, unsigned);
-static void *btormbt_state_model_gen (BtorMBT *, unsigned);
-static void *btormbt_state_model_inc (BtorMBT *, unsigned);
-static void *btormbt_state_delete (BtorMBT *, unsigned);
+static void *btormbt_state_new (BtorMBT *, uint32_t);
+static void *btormbt_state_opt (BtorMBT *, uint32_t);
+static void *btormbt_state_init (BtorMBT *, uint32_t);
+static void *btormbt_state_main (BtorMBT *, uint32_t);
+static void *btormbt_state_add (BtorMBT *, uint32_t);
+static void *btormbt_state_bv_op (BtorMBT *, uint32_t);
+static void *btormbt_state_arr_op (BtorMBT *, uint32_t);
+static void *btormbt_state_bv_fun (BtorMBT *, uint32_t);
+static void *btormbt_state_bv_uf (BtorMBT *, uint32_t);
+static void *btormbt_state_input (BtorMBT *, uint32_t);
+static void *btormbt_state_release (BtorMBT *, uint32_t);
+static void *btormbt_state_assume_assert (BtorMBT *, uint32_t);
+static void *btormbt_state_sat (BtorMBT *, uint32_t);
+static void *btormbt_state_dump (BtorMBT *, uint32_t);
+static void *btormbt_state_model_gen (BtorMBT *, uint32_t);
+static void *btormbt_state_model_inc (BtorMBT *, uint32_t);
+static void *btormbt_state_delete (BtorMBT *, uint32_t);
 
 static void *
-btormbt_state_new (BtorMBT *mbt, unsigned r)
+btormbt_state_new (BtorMBT *mbt, uint32_t r)
 {
   RNG rng = initrng (r);
 
   /* number of initial inputs */
-  mbt->max_inputs = pick (&rng, mbt->g_min_inputs, mbt->g_max_inputs);
+  mbt->max_inputs_cur = pick (&rng, mbt->min_inputs, mbt->max_inputs);
   /* number of initial operations */
-  mbt->max_ops = pick (&rng, mbt->g_min_ops_init, mbt->g_max_ops_init);
+  mbt->max_ops_cur = pick (&rng, mbt->min_ops_init, mbt->max_ops_init);
 
   // TODO (ma): UFs
   init_pd_inputs (mbt,
-                  pick (&rng, mbt->g_min_vars_init, mbt->g_max_vars_init),
-                  pick (&rng, mbt->g_min_consts_init, mbt->g_max_consts_init),
-                  pick (&rng, mbt->g_min_arrays_init, mbt->g_max_arrays_init));
+                  pick (&rng, mbt->min_vars_init, mbt->max_vars_init),
+                  pick (&rng, mbt->min_consts_init, mbt->max_consts_init),
+                  pick (&rng, mbt->min_arrays_init, mbt->max_arrays_init));
 
   /* no delete operation at init */
   init_pd_ops (
       mbt,
-      pick (&rng, mbt->g_min_add_ops_init, mbt->g_max_add_ops_init),
-      pick (&rng, mbt->g_min_release_ops_init, mbt->g_max_release_ops_init));
+      pick (&rng, mbt->min_add_ops_init, mbt->max_add_ops_init),
+      pick (&rng, mbt->min_release_ops_init, mbt->max_release_ops_init));
 
   /* no additional inputs at init */
   init_pd_add (
       mbt,
-      pick (&rng, mbt->g_min_add_funs_init, mbt->g_max_add_funs_init),
-      pick (&rng, mbt->g_min_add_uf_init, mbt->g_max_add_uf_init),
-      pick (&rng, mbt->g_min_add_arrayops_init, mbt->g_max_add_arrayops_init),
-      pick (&rng, mbt->g_min_add_bitvecops_init, mbt->g_max_add_bitvecops_init),
-      pick (&rng, mbt->g_min_add_inputs_init, mbt->g_max_add_inputs_init));
+      pick (&rng, mbt->min_add_funs_init, mbt->max_add_funs_init),
+      pick (&rng, mbt->min_add_uf_init, mbt->max_add_uf_init),
+      pick (&rng, mbt->min_add_arrayops_init, mbt->max_add_arrayops_init),
+      pick (&rng, mbt->min_add_bitvecops_init, mbt->max_add_bitvecops_init),
+      pick (&rng, mbt->min_add_inputs_init, mbt->max_add_inputs_init));
 
   BTORMBT_LOG (1,
                "new: pick %d ops (add:rel=%0.1f%%:%0.1f%%), %d inputs",
-               mbt->max_ops,
+               mbt->max_ops_cur,
                mbt->p_add / 10,
                mbt->p_release / 10,
-               mbt->max_inputs);
+               mbt->max_inputs_cur);
 
   mbt->btor = boolector_new ();
   assert (mbt->btor);
@@ -2849,7 +2849,7 @@ btormbt_state_new (BtorMBT *mbt, unsigned r)
 }
 
 static void *
-btormbt_state_opt (BtorMBT *mbt, unsigned r)
+btormbt_state_opt (BtorMBT *mbt, uint32_t r)
 {
   int i, set_sat_solver = 1;
   uint32_t opt_engine;
@@ -2857,11 +2857,11 @@ btormbt_state_opt (BtorMBT *mbt, unsigned r)
   RNG rng = initrng (r);
 
   /* reset every round */
-  mbt->dump        = 0;
+  mbt->dump        = false;
   mbt->inc         = 0;
-  mbt->mgen        = 0;
-  mbt->print_model = 0;
-  mbt->ext         = 0;
+  mbt->mgen        = false;
+  mbt->print_model = false;
+  mbt->ext         = false;
 
   /* set random sat solver */
 #ifdef BTOR_USE_LINGELING
@@ -2936,9 +2936,9 @@ btormbt_state_opt (BtorMBT *mbt, unsigned r)
       mbt->inc = 1;
     else if (btoropt->kind == BTOR_OPT_MODEL_GEN && btoropt->val > 0)
     {
-      mbt->mgen = 1;
+      mbt->mgen = true;
       if (pick (&rng, 0, NORM_VAL - 1) < mbt->p_print_model)
-        mbt->print_model = 1;
+        mbt->print_model = true;
     }
   }
 
@@ -2953,16 +2953,16 @@ btormbt_state_opt (BtorMBT *mbt, unsigned r)
   }
 
   if (!mbt->inc && !mbt->mgen && pick (&rng, 0, NORM_VAL - 1) < mbt->p_dump)
-    mbt->dump = 1;
+    mbt->dump = true;
 
   /* make formulas extensional with probability of 0.1 */
-  if (pick (&rng, 0, 9)) mbt->ext = 1;
+  if (pick (&rng, 0, 9)) mbt->ext = true;
 
   return btormbt_state_init;
 }
 
 static void *
-btormbt_state_init (BtorMBT *mbt, unsigned r)
+btormbt_state_init (BtorMBT *mbt, uint32_t r)
 {
   int rand;
   RNG rng = initrng (r);
@@ -2970,7 +2970,7 @@ btormbt_state_init (BtorMBT *mbt, unsigned r)
   // TODO (ma): UFs?
   if (BTOR_COUNT_STACK (mbt->bo->exps) + BTOR_COUNT_STACK (mbt->bv->exps)
           + BTOR_COUNT_STACK (mbt->arr->exps)
-      < mbt->max_inputs)
+      < mbt->max_inputs_cur)
   {
     return btormbt_state_input;
   }
@@ -2985,7 +2985,7 @@ btormbt_state_init (BtorMBT *mbt, unsigned r)
   if (mbt->create_arrays && BTOR_COUNT_STACK (mbt->arr->exps) < 1)
     btormbt_array (mbt, &rng);
 
-  if (mbt->ops < mbt->max_ops)
+  if (mbt->ops < mbt->max_ops_cur)
   {
     mbt->ops++;
     BTORMBT_LOG_STATUS (2, "init");
@@ -3002,47 +3002,47 @@ btormbt_state_init (BtorMBT *mbt, unsigned r)
   mbt->arr->init_layer_size = BTOR_COUNT_STACK (mbt->arr->exps);
 
   /* adapt paramters for main */
-  mbt->ops     = 0;
-  mbt->max_ops = pick (&rng, mbt->g_min_ops, mbt->g_max_ops);
+  mbt->ops         = 0;
+  mbt->max_ops_cur = pick (&rng, mbt->min_ops, mbt->max_ops);
   /* how many operations should be assertions?
-   * -> max_ops and nass should be in relation (the more ops, the more
+   * -> max_ops_cur and nass should be in relation (the more ops, the more
    * assertions) in order to keep the sat/unsat ratio balanced */
-  if (mbt->max_ops < mbt->g_max_ops_lower)
-    mbt->max_ass = BTORMBT_MIN (
-        mbt->max_ops,
-        pick (&rng, mbt->g_min_asserts_lower, mbt->g_max_asserts_lower));
+  if (mbt->max_ops_cur < mbt->max_ops_lower)
+    mbt->max_ass_cur = BTORMBT_MIN (
+        mbt->max_ops_cur,
+        pick (&rng, mbt->min_asserts_lower, mbt->max_asserts_lower));
   else
-    mbt->max_ass =
-        pick (&rng, mbt->g_min_asserts_upper, mbt->g_max_asserts_upper);
+    mbt->max_ass_cur =
+        pick (&rng, mbt->min_asserts_upper, mbt->max_asserts_upper);
 
   init_pd_inputs (mbt,
-                  pick (&rng, mbt->g_min_vars, mbt->g_max_vars),
-                  pick (&rng, mbt->g_min_consts, mbt->g_max_consts),
-                  pick (&rng, mbt->g_min_arrays, mbt->g_max_arrays));
+                  pick (&rng, mbt->min_vars, mbt->max_vars),
+                  pick (&rng, mbt->min_consts, mbt->max_consts),
+                  pick (&rng, mbt->min_arrays, mbt->max_arrays));
   init_pd_ops (mbt,
-               pick (&rng, mbt->g_min_add_ops, mbt->g_max_add_ops),
-               pick (&rng, mbt->g_min_release_ops, mbt->g_max_release_ops));
+               pick (&rng, mbt->min_add_ops, mbt->max_add_ops),
+               pick (&rng, mbt->min_release_ops, mbt->max_release_ops));
   init_pd_add (mbt,
-               pick (&rng, mbt->g_min_add_funs, mbt->g_max_add_funs),
-               pick (&rng, mbt->g_min_add_uf, mbt->g_max_add_uf),
-               pick (&rng, mbt->g_min_add_arrayops, mbt->g_max_add_arrayops),
-               pick (&rng, mbt->g_min_add_bitvecops, mbt->g_max_add_bitvecops),
-               pick (&rng, mbt->g_min_add_inputs, mbt->g_max_add_inputs));
+               pick (&rng, mbt->min_add_funs, mbt->max_add_funs),
+               pick (&rng, mbt->min_add_uf, mbt->max_add_uf),
+               pick (&rng, mbt->min_add_arrayops, mbt->max_add_arrayops),
+               pick (&rng, mbt->min_add_bitvecops, mbt->max_add_bitvecops),
+               pick (&rng, mbt->min_add_inputs, mbt->max_add_inputs));
 
   BTORMBT_LOG (
       1,
       "main: pick %d ops (add:rel=%0.1f%%:%0.1f%%), ~%d asserts/assumes",
-      mbt->max_ops,
+      mbt->max_ops_cur,
       mbt->p_add / 10,
       mbt->p_release / 10,
-      mbt->max_ass);
+      mbt->max_ass_cur);
 
-  mbt->is_init = 1;
+  mbt->is_init = true;
   return btormbt_state_main;
 }
 
 static void *
-btormbt_state_main (BtorMBT *mbt, unsigned r)
+btormbt_state_main (BtorMBT *mbt, uint32_t r)
 {
   float rand;
   RNG rng = initrng (r);
@@ -3052,12 +3052,12 @@ btormbt_state_main (BtorMBT *mbt, unsigned r)
   assert (!mbt->create_arrays || BTOR_COUNT_STACK (mbt->arr->exps) > 0);
 
   /* main operations */
-  if (mbt->ops < mbt->max_ops)
+  if (mbt->ops < mbt->max_ops_cur)
   {
     mbt->ops++;
     BTORMBT_LOG_STATUS (2, "main");
     rand = pick (&rng, 0, NORM_VAL - 1);
-    if (rand < mbt->max_ass * NORM_VAL / mbt->max_ops)
+    if (rand < mbt->max_ass_cur * NORM_VAL / mbt->max_ops_cur)
       return btormbt_state_assume_assert;
     else
     {
@@ -3079,7 +3079,7 @@ btormbt_state_main (BtorMBT *mbt, unsigned r)
 }
 
 static void *
-btormbt_state_add (BtorMBT *mbt, unsigned r)
+btormbt_state_add (BtorMBT *mbt, uint32_t r)
 {
   int rand;
   void *next;
@@ -3105,7 +3105,7 @@ btormbt_state_add (BtorMBT *mbt, unsigned r)
 }
 
 static void *
-btormbt_state_bv_op (BtorMBT *mbt, unsigned r)
+btormbt_state_bv_op (BtorMBT *mbt, uint32_t r)
 {
   BoolectorNode *e0, *e1, *e2;
   RNG rng = initrng (r);
@@ -3144,7 +3144,7 @@ btormbt_state_bv_op (BtorMBT *mbt, unsigned r)
 }
 
 static void *
-btormbt_state_arr_op (BtorMBT *mbt, unsigned r)
+btormbt_state_arr_op (BtorMBT *mbt, uint32_t r)
 {
   int e0w, e0iw, rand;
   Op op;
@@ -3190,14 +3190,14 @@ btormbt_state_arr_op (BtorMBT *mbt, unsigned r)
 }
 
 static void *
-btormbt_state_bv_uf (BtorMBT *mbt, unsigned r)
+btormbt_state_bv_uf (BtorMBT *mbt, uint32_t r)
 {
   btormbt_bv_uf (mbt, r);
   return mbt->is_init ? btormbt_state_main : btormbt_state_init;
 }
 
 static void *
-btormbt_state_bv_fun (BtorMBT *mbt, unsigned r)
+btormbt_state_bv_fun (BtorMBT *mbt, uint32_t r)
 {
   assert (!mbt->parambo);
   assert (!mbt->parambv);
@@ -3213,7 +3213,7 @@ btormbt_state_bv_fun (BtorMBT *mbt, unsigned r)
 }
 
 static void *
-btormbt_state_input (BtorMBT *mbt, unsigned r)
+btormbt_state_input (BtorMBT *mbt, uint32_t r)
 {
   int rand;
   RNG rng = initrng (r);
@@ -3230,7 +3230,7 @@ btormbt_state_input (BtorMBT *mbt, unsigned r)
 }
 
 static void *
-btormbt_state_release (BtorMBT *mbt, unsigned r)
+btormbt_state_release (BtorMBT *mbt, uint32_t r)
 {
   int idx, rand;
   BoolectorNode *node;
@@ -3264,7 +3264,7 @@ btormbt_state_release (BtorMBT *mbt, unsigned r)
 }
 
 static void *
-btormbt_state_assume_assert (BtorMBT *mbt, unsigned r)
+btormbt_state_assume_assert (BtorMBT *mbt, uint32_t r)
 {
   int rand;
   BoolectorNode *node;
@@ -3299,7 +3299,7 @@ btormbt_state_assume_assert (BtorMBT *mbt, unsigned r)
 }
 
 static void *
-btormbt_state_dump (BtorMBT *mbt, unsigned r)
+btormbt_state_dump (BtorMBT *mbt, uint32_t r)
 {
   assert (!mbt->inc);
   assert (!mbt->mgen);
@@ -3327,7 +3327,7 @@ btormbt_state_dump (BtorMBT *mbt, unsigned r)
 }
 
 static void *
-btormbt_state_sat (BtorMBT *mbt, unsigned r)
+btormbt_state_sat (BtorMBT *mbt, uint32_t r)
 {
   int i, res, failed;
   RNG rng;
@@ -3390,7 +3390,7 @@ btormbt_state_sat (BtorMBT *mbt, unsigned r)
 }
 
 static void *
-btormbt_state_model_gen (BtorMBT *mbt, unsigned r)
+btormbt_state_model_gen (BtorMBT *mbt, uint32_t r)
 {
   (void) r;
   int i, size = 0;
@@ -3427,7 +3427,7 @@ btormbt_state_model_gen (BtorMBT *mbt, unsigned r)
 }
 
 static void *
-btormbt_state_model_inc (BtorMBT *mbt, unsigned r)
+btormbt_state_model_inc (BtorMBT *mbt, uint32_t r)
 {
   int i, rand;
   RNG rng;
@@ -3443,31 +3443,31 @@ btormbt_state_model_inc (BtorMBT *mbt, unsigned r)
   if (mbt->inc && rand < mbt->p_inc)
   {
     mbt->inc++;
-    mbt->ops     = 0; /* reset */
-    mbt->max_ass = mbt->max_ass - mbt->asserts;
-    mbt->assumes = 0; /* reset */
-    mbt->asserts = 0;
+    mbt->ops         = 0; /* reset */
+    mbt->max_ass_cur = mbt->max_ass_cur - mbt->asserts;
+    mbt->assumes     = 0; /* reset */
+    mbt->asserts     = 0;
 
-    mbt->max_ops = pick (&rng, mbt->g_min_ops_inc, mbt->g_max_ops_inc);
+    mbt->max_ops_cur = pick (&rng, mbt->min_ops_inc, mbt->max_ops_inc);
 
     init_pd_inputs (mbt,
-                    pick (&rng, mbt->g_min_vars_inc, mbt->g_max_vars_inc),
-                    pick (&rng, mbt->g_min_consts_inc, mbt->g_max_consts_inc),
-                    pick (&rng, mbt->g_min_arrays_inc, mbt->g_max_arrays_inc));
+                    pick (&rng, mbt->min_vars_inc, mbt->max_vars_inc),
+                    pick (&rng, mbt->min_consts_inc, mbt->max_consts_inc),
+                    pick (&rng, mbt->min_arrays_inc, mbt->max_arrays_inc));
     init_pd_ops (
         mbt,
-        pick (&rng, mbt->g_min_add_ops_inc, mbt->g_max_add_ops_inc),
-        pick (&rng, mbt->g_min_release_ops_inc, mbt->g_max_release_ops_inc));
+        pick (&rng, mbt->min_add_ops_inc, mbt->max_add_ops_inc),
+        pick (&rng, mbt->min_release_ops_inc, mbt->max_release_ops_inc));
     init_pd_add (
         mbt,
-        pick (&rng, mbt->g_min_add_funs_inc, mbt->g_max_add_funs_inc),
-        pick (&rng, mbt->g_min_add_uf_inc, mbt->g_max_add_uf_inc),
-        pick (&rng, mbt->g_min_add_arrayops_inc, mbt->g_max_add_arrayops_inc),
-        pick (&rng, mbt->g_min_add_bitvecops_inc, mbt->g_max_add_bitvecops_inc),
-        pick (&rng, mbt->g_min_add_inputs_inc, mbt->g_max_add_inputs_inc));
+        pick (&rng, mbt->min_add_funs_inc, mbt->max_add_funs_inc),
+        pick (&rng, mbt->min_add_uf_inc, mbt->max_add_uf_inc),
+        pick (&rng, mbt->min_add_arrayops_inc, mbt->max_add_arrayops_inc),
+        pick (&rng, mbt->min_add_bitvecops_inc, mbt->max_add_bitvecops_inc),
+        pick (&rng, mbt->min_add_inputs_inc, mbt->max_add_inputs_inc));
     BTORMBT_LOG (1,
                  "inc: pick %d ops (add:rel=%0.1f%%:%0.1f%%)",
-                 mbt->max_ops,
+                 mbt->max_ops_cur,
                  mbt->p_add / 10,
                  mbt->p_release / 10);
     if (mbt->inc) BTORMBT_LOG (1, "number of increments: %d", mbt->inc - 1);
@@ -3478,7 +3478,7 @@ btormbt_state_model_inc (BtorMBT *mbt, unsigned r)
 }
 
 static void *
-btormbt_state_delete (BtorMBT *mbt, unsigned r)
+btormbt_state_delete (BtorMBT *mbt, uint32_t r)
 {
   (void) r;
   assert (mbt);
@@ -3545,7 +3545,7 @@ run (BtorMBT *mbt)
   assert (mbt);
 
   BtorMBTState state, next;
-  unsigned rand;
+  uint32_t rand;
   int status, null;
   pid_t id;
 
@@ -3647,7 +3647,7 @@ main (int argc, char **argv)
     }
     else if (!strcmp (argv[i], "-s") || !strcmp (argv[i], "--shadow-clone"))
     {
-      g_btormbt->shadow = 1;
+      g_btormbt->shadow = true;
     }
     else if (!strcmp (argv[i], "-o") || !strcmp (argv[i], "--out"))
     {
@@ -3663,7 +3663,7 @@ main (int argc, char **argv)
     }
     else if (!strcmp (argv[i], "-f") || !strcmp (argv[i], "--quit-after-first"))
     {
-      g_btormbt->quit_after_first = 1;
+      g_btormbt->quit_after_first = true;
     }
     else if (!strcmp (argv[i], "-m"))
     {
@@ -3671,7 +3671,7 @@ main (int argc, char **argv)
       if (!isnumstr (argv[i]))
         btormbt_error ("argument '%s' to '-m' is not a number (try '-h')",
                        argv[i]);
-      g_btormbt->g_max_rounds = atoi (argv[i]);
+      g_btormbt->max_rounds = atoi (argv[i]);
     }
     else if (!strcmp (argv[i], "-t"))
     {
@@ -3716,7 +3716,7 @@ main (int argc, char **argv)
     }
     else if (!strcmp (argv[i], "-e") || !strcmp (argv[i], "--extensionality"))
     {
-      g_btormbt->ext = 1;
+      g_btormbt->ext = true;
     }
     /* boolector options */
     else if (!strcmp (argv[i], "-b"))
@@ -3748,8 +3748,8 @@ main (int argc, char **argv)
       if (++i == argc) btormbt_error ("argument to '--bw' missing (try '-h')");
       if (!isnumstr (argv[i]))
         btormbt_error ("argument to '--bw' is not a number (try '-h')");
-      g_btormbt->g_min_bw = atoi (argv[i]);
-      if (g_btormbt->g_min_bw < MIN_BITWIDTH)
+      g_btormbt->min_bw = atoi (argv[i]);
+      if (g_btormbt->min_bw < MIN_BITWIDTH)
         btormbt_error (
             "min value of '--bw' must not be less than %d "
             "(try '-h')",
@@ -3757,8 +3757,8 @@ main (int argc, char **argv)
       if (++i == argc) btormbt_error ("argument to '--bw' missing (try '-h')");
       if (!isnumstr (argv[i]))
         btormbt_error ("argument to '--bw' is not a number (try '-h')");
-      g_btormbt->g_max_bw = atoi (argv[i]);
-      if (g_btormbt->g_max_bw < g_btormbt->g_min_bw)
+      g_btormbt->max_bw = atoi (argv[i]);
+      if (g_btormbt->max_bw < g_btormbt->min_bw)
         btormbt_error (
             "min value for '--bw' must be less or equal than max value "
             "(try '-h')");
@@ -3769,8 +3769,8 @@ main (int argc, char **argv)
         btormbt_error ("argument to '--index-bw' missing (try '-h')");
       if (!isnumstr (argv[i]))
         btormbt_error ("argument to '--index-bw' is not a number (try '-h')");
-      g_btormbt->g_min_index_bw = atoi (argv[i]);
-      if (g_btormbt->g_min_index_bw < MIN_INDEXWIDTH)
+      g_btormbt->min_index_bw = atoi (argv[i]);
+      if (g_btormbt->min_index_bw < MIN_INDEXWIDTH)
         btormbt_error (
             "min value of '--index-bw' must not be less "
             "than %d (try '-h')",
@@ -3779,8 +3779,8 @@ main (int argc, char **argv)
         btormbt_error ("argument to '--index-bw' missing (try '-h')");
       if (!isnumstr (argv[i]))
         btormbt_error ("argument to '--index-bw' is not a number (try '-h')");
-      g_btormbt->g_max_index_bw = atoi (argv[i]);
-      if (g_btormbt->g_max_index_bw < g_btormbt->g_min_index_bw)
+      g_btormbt->max_index_bw = atoi (argv[i]);
+      if (g_btormbt->max_index_bw < g_btormbt->min_index_bw)
         btormbt_error (
             "min value of '--index-bw' must be less or equal than max value "
             "(try '-h')");
@@ -3791,8 +3791,8 @@ main (int argc, char **argv)
         btormbt_error ("argument to '--muldiv-bw' missing (try '-h')");
       if (!isnumstr (argv[i]))
         btormbt_error ("argument to '--muldiv-bw' is not a number (try '-h')");
-      g_btormbt->g_min_muldiv_bw = atoi (argv[i]);
-      if (g_btormbt->g_min_muldiv_bw < MIN_MULDIVWIDTH)
+      g_btormbt->min_muldiv_bw = atoi (argv[i]);
+      if (g_btormbt->min_muldiv_bw < MIN_MULDIVWIDTH)
         btormbt_error (
             "min value of '--muldiv-bw' must not be less "
             "than %d (try '-h')",
@@ -3801,8 +3801,8 @@ main (int argc, char **argv)
         btormbt_error ("argument to '--muldiv-bw' missing (try '-h')");
       if (!isnumstr (argv[i]))
         btormbt_error ("argument to '--muldiv-bw' is not a number (try '-h')");
-      g_btormbt->g_max_muldiv_bw = atoi (argv[i]);
-      if (g_btormbt->g_max_muldiv_bw < g_btormbt->g_min_muldiv_bw)
+      g_btormbt->max_muldiv_bw = atoi (argv[i]);
+      if (g_btormbt->max_muldiv_bw < g_btormbt->min_muldiv_bw)
         btormbt_error (
             "min value of '--muldiv-bw' must be less or equal than "
             "max value (try '-h')");
@@ -3814,13 +3814,13 @@ main (int argc, char **argv)
       if (!isnumstr (argv[i]))
         btormbt_error (
             "argument to '--sort-fun-arity' is not a number (try '-h')");
-      g_btormbt->g_min_sort_fun_arity = atoi (argv[i]);
+      g_btormbt->min_sort_fun_arity = atoi (argv[i]);
       if (++i == argc)
         btormbt_error ("argument to '--sort-fun-arity' missing (try '-h')");
       if (!isnumstr (argv[i]))
         btormbt_error (
             "argument to '--sort-fun-arity' is not a number (try '-h')");
-      g_btormbt->g_max_sort_fun_arity = atoi (argv[i]);
+      g_btormbt->max_sort_fun_arity = atoi (argv[i]);
     }
     else if (!strcmp (argv[i], "--inputs"))
     {
@@ -3828,12 +3828,12 @@ main (int argc, char **argv)
         btormbt_error ("argument to '--inputs' missing (try '-h')");
       if (!isnumstr (argv[i]))
         btormbt_error ("argument to '--inputs' is not a number (try '-h')");
-      g_btormbt->g_min_inputs = atoi (argv[i]);
+      g_btormbt->min_inputs = atoi (argv[i]);
       if (++i == argc)
         btormbt_error ("argument to '--inputs' missing (try '-h')");
       if (!isnumstr (argv[i]))
         btormbt_error ("argument to '--inputs' is not a number (try '-h')");
-      g_btormbt->g_max_inputs = atoi (argv[i]);
+      g_btormbt->max_inputs = atoi (argv[i]);
     }
     else if (!strcmp (argv[i], "--vars-init"))
     {
@@ -3841,12 +3841,12 @@ main (int argc, char **argv)
         btormbt_error ("argument to '--vars-init' missing (try '-h')");
       if (!isnumstr (argv[i]))
         btormbt_error ("argument to '--vars-init' is not a number (try '-h')");
-      g_btormbt->g_min_vars_init = atoi (argv[i]);
+      g_btormbt->min_vars_init = atoi (argv[i]);
       if (++i == argc)
         btormbt_error ("argument to '--vars-init' missing (try '-h')");
       if (!isnumstr (argv[i]))
         btormbt_error ("argument to '--vars-init' is not a number (try '-h')");
-      g_btormbt->g_max_vars_init = atoi (argv[i]);
+      g_btormbt->max_vars_init = atoi (argv[i]);
     }
     else if (!strcmp (argv[i], "--vars"))
     {
@@ -3854,12 +3854,12 @@ main (int argc, char **argv)
         btormbt_error ("argument to '--vars' missing (try '-h')");
       if (!isnumstr (argv[i]))
         btormbt_error ("argument to '--vars' is not a number (try '-h')");
-      g_btormbt->g_min_vars = atoi (argv[i]);
+      g_btormbt->min_vars = atoi (argv[i]);
       if (++i == argc)
         btormbt_error ("argument to '--vars' missing (try '-h')");
       if (!isnumstr (argv[i]))
         btormbt_error ("argument to '--vars' is not a number (try '-h')");
-      g_btormbt->g_max_vars = atoi (argv[i]);
+      g_btormbt->max_vars = atoi (argv[i]);
     }
     else if (!strcmp (argv[i], "--vars-inc"))
     {
@@ -3867,12 +3867,12 @@ main (int argc, char **argv)
         btormbt_error ("argument to '--vars-inc' missing (try '-h')");
       if (!isnumstr (argv[i]))
         btormbt_error ("argument to '--vars-inc' is not a number (try '-h')");
-      g_btormbt->g_min_vars_inc = atoi (argv[i]);
+      g_btormbt->min_vars_inc = atoi (argv[i]);
       if (++i == argc)
         btormbt_error ("argument to '--vars-inc' missing (try '-h')");
       if (!isnumstr (argv[i]))
         btormbt_error ("argument to '--vars-inc' is not a number (try '-h')");
-      g_btormbt->g_max_vars_inc = atoi (argv[i]);
+      g_btormbt->max_vars_inc = atoi (argv[i]);
     }
     else if (!strcmp (argv[i], "--consts-init"))
     {
@@ -3881,13 +3881,13 @@ main (int argc, char **argv)
       if (!isnumstr (argv[i]))
         btormbt_error (
             "argument to '--consts-init' is not a number (try '-h')");
-      g_btormbt->g_min_consts_init = atoi (argv[i]);
+      g_btormbt->min_consts_init = atoi (argv[i]);
       if (++i == argc)
         btormbt_error ("argument to '--consts-init' missing (try '-h')");
       if (!isnumstr (argv[i]))
         btormbt_error (
             "argument to '--consts-init' is not a number (try '-h')");
-      g_btormbt->g_max_consts_init = atoi (argv[i]);
+      g_btormbt->max_consts_init = atoi (argv[i]);
     }
     else if (!strcmp (argv[i], "--consts"))
     {
@@ -3895,12 +3895,12 @@ main (int argc, char **argv)
         btormbt_error ("argument to '--consts' missing (try '-h')");
       if (!isnumstr (argv[i]))
         btormbt_error ("argument to '--consts' is not a number (try '-h')");
-      g_btormbt->g_min_consts = atoi (argv[i]);
+      g_btormbt->min_consts = atoi (argv[i]);
       if (++i == argc)
         btormbt_error ("argument to '--consts' missing (try '-h')");
       if (!isnumstr (argv[i]))
         btormbt_error ("argument to '--consts' is not a number (try '-h')");
-      g_btormbt->g_max_consts = atoi (argv[i]);
+      g_btormbt->max_consts = atoi (argv[i]);
     }
     else if (!strcmp (argv[i], "--consts-inc"))
     {
@@ -3908,12 +3908,12 @@ main (int argc, char **argv)
         btormbt_error ("argument to '--consts-inc' missing (try '-h')");
       if (!isnumstr (argv[i]))
         btormbt_error ("argument to '--consts-inc' is not a number (try '-h')");
-      g_btormbt->g_min_consts_inc = atoi (argv[i]);
+      g_btormbt->min_consts_inc = atoi (argv[i]);
       if (++i == argc)
         btormbt_error ("argument to '--consts-inc' missing (try '-h')");
       if (!isnumstr (argv[i]))
         btormbt_error ("argument to '--consts-inc' is not a number (try '-h')");
-      g_btormbt->g_max_consts_inc = atoi (argv[i]);
+      g_btormbt->max_consts_inc = atoi (argv[i]);
     }
     else if (!strcmp (argv[i], "--arrays-init"))
     {
@@ -3922,13 +3922,13 @@ main (int argc, char **argv)
       if (!isnumstr (argv[i]))
         btormbt_error (
             "argument to '--arrays-init' is not a number (try '-h')");
-      g_btormbt->g_min_arrays_init = atoi (argv[i]);
+      g_btormbt->min_arrays_init = atoi (argv[i]);
       if (++i == argc)
         btormbt_error ("argument to '--arrays-init' missing (try '-h')");
       if (!isnumstr (argv[i]))
         btormbt_error (
             "argument to '--arrays-init' is not a number (try '-h')");
-      g_btormbt->g_max_arrays_init = atoi (argv[i]);
+      g_btormbt->max_arrays_init = atoi (argv[i]);
     }
     else if (!strcmp (argv[i], "--arrays"))
     {
@@ -3936,12 +3936,12 @@ main (int argc, char **argv)
         btormbt_error ("argument to '--arrays' missing (try '-h')");
       if (!isnumstr (argv[i]))
         btormbt_error ("argument to '--arrays' is not a number (try '-h')");
-      g_btormbt->g_min_arrays = atoi (argv[i]);
+      g_btormbt->min_arrays = atoi (argv[i]);
       if (++i == argc)
         btormbt_error ("argument to '--arrays' missing (try '-h')");
       if (!isnumstr (argv[i]))
         btormbt_error ("argument to '--arrays' is not a number (try '-h')");
-      g_btormbt->g_max_arrays = atoi (argv[i]);
+      g_btormbt->max_arrays = atoi (argv[i]);
     }
     else if (!strcmp (argv[i], "--arrays-inc"))
     {
@@ -3949,12 +3949,12 @@ main (int argc, char **argv)
         btormbt_error ("argument to '--arrays-inc' missing (try '-h')");
       if (!isnumstr (argv[i]))
         btormbt_error ("argument to '--arrays-inc' is not a number (try '-h')");
-      g_btormbt->g_min_arrays_inc = atoi (argv[i]);
+      g_btormbt->min_arrays_inc = atoi (argv[i]);
       if (++i == argc)
         btormbt_error ("argument to '--arrays-inc' missing (try '-h')");
       if (!isnumstr (argv[i]))
         btormbt_error ("argument to '--arrays-inc' is not a number (try '-h')");
-      g_btormbt->g_max_arrays_inc = atoi (argv[i]);
+      g_btormbt->max_arrays_inc = atoi (argv[i]);
     }
     else if (!strcmp (argv[i], "--add-funs-init"))
     {
@@ -3963,13 +3963,13 @@ main (int argc, char **argv)
       if (!isnumstr (argv[i]))
         btormbt_error (
             "argument to '--add-funs-init' is not a number (try '-h')");
-      g_btormbt->g_min_add_funs_init = atoi (argv[i]);
+      g_btormbt->min_add_funs_init = atoi (argv[i]);
       if (++i == argc)
         btormbt_error ("argument to '--add-funs-init' missing (try '-h')");
       if (!isnumstr (argv[i]))
         btormbt_error (
             "argument to '--add-funs-init' is not a number (try '-h')");
-      g_btormbt->g_max_add_funs_init = atoi (argv[i]);
+      g_btormbt->max_add_funs_init = atoi (argv[i]);
     }
     else if (!strcmp (argv[i], "--add-funs"))
     {
@@ -3977,12 +3977,12 @@ main (int argc, char **argv)
         btormbt_error ("argument to '--add-funs' missing (try '-h')");
       if (!isnumstr (argv[i]))
         btormbt_error ("argument to '--add-funs' is not a number (try '-h')");
-      g_btormbt->g_min_add_funs = atoi (argv[i]);
+      g_btormbt->min_add_funs = atoi (argv[i]);
       if (++i == argc)
         btormbt_error ("argument to '--add-funs' missing (try '-h')");
       if (!isnumstr (argv[i]))
         btormbt_error ("argument to '--add-funs' is not a number (try '-h')");
-      g_btormbt->g_max_add_funs = atoi (argv[i]);
+      g_btormbt->max_add_funs = atoi (argv[i]);
     }
     else if (!strcmp (argv[i], "--add-funs-inc"))
     {
@@ -3991,13 +3991,13 @@ main (int argc, char **argv)
       if (!isnumstr (argv[i]))
         btormbt_error (
             "argument to '--add-funs-inc' is not a number (try '-h')");
-      g_btormbt->g_min_add_funs_inc = atoi (argv[i]);
+      g_btormbt->min_add_funs_inc = atoi (argv[i]);
       if (++i == argc)
         btormbt_error ("argument to '--add-funs-inc' missing (try '-h')");
       if (!isnumstr (argv[i]))
         btormbt_error (
             "argument to '--add-funs-inc' is not a number (try '-h')");
-      g_btormbt->g_max_add_funs_inc = atoi (argv[i]);
+      g_btormbt->max_add_funs_inc = atoi (argv[i]);
     }
     else if (!strcmp (argv[i], "--add-arrayops-init"))
     {
@@ -4006,13 +4006,13 @@ main (int argc, char **argv)
       if (!isnumstr (argv[i]))
         btormbt_error (
             "argument to '--add-arrayops-init' is not a number (try '-h')");
-      g_btormbt->g_min_add_arrayops_init = atoi (argv[i]);
+      g_btormbt->min_add_arrayops_init = atoi (argv[i]);
       if (++i == argc)
         btormbt_error ("argument to '--add-arrayops-init' missing (try '-h')");
       if (!isnumstr (argv[i]))
         btormbt_error (
             "argument to '--add-arrayops-init' is not a number (try '-h')");
-      g_btormbt->g_max_add_arrayops_init = atoi (argv[i]);
+      g_btormbt->max_add_arrayops_init = atoi (argv[i]);
     }
     else if (!strcmp (argv[i], "--add-arrayops"))
     {
@@ -4021,13 +4021,13 @@ main (int argc, char **argv)
       if (!isnumstr (argv[i]))
         btormbt_error (
             "argument to '--add-arrayops' is not a number (try '-h')");
-      g_btormbt->g_min_add_arrayops = atoi (argv[i]);
+      g_btormbt->min_add_arrayops = atoi (argv[i]);
       if (++i == argc)
         btormbt_error ("argument to '--add-arrayops' missing (try '-h')");
       if (!isnumstr (argv[i]))
         btormbt_error (
             "argument to '--add-arrayops' is not a number (try '-h')");
-      g_btormbt->g_max_add_arrayops = atoi (argv[i]);
+      g_btormbt->max_add_arrayops = atoi (argv[i]);
     }
     else if (!strcmp (argv[i], "--add-arrayops-inc"))
     {
@@ -4036,13 +4036,13 @@ main (int argc, char **argv)
       if (!isnumstr (argv[i]))
         btormbt_error (
             "argument to '--add-arrayops-inc' is not a number (try '-h')");
-      g_btormbt->g_min_add_arrayops_inc = atoi (argv[i]);
+      g_btormbt->min_add_arrayops_inc = atoi (argv[i]);
       if (++i == argc)
         btormbt_error ("argument to '--add-arrayops-inc' missing (try '-h')");
       if (!isnumstr (argv[i]))
         btormbt_error (
             "argument to '--add-arrayops-inc' is not a number (try '-h')");
-      g_btormbt->g_max_add_arrayops_inc = atoi (argv[i]);
+      g_btormbt->max_add_arrayops_inc = atoi (argv[i]);
     }
     else if (!strcmp (argv[i], "--add-bitvecops-init"))
     {
@@ -4051,13 +4051,13 @@ main (int argc, char **argv)
       if (!isnumstr (argv[i]))
         btormbt_error (
             "argument to '--add-bitvecops-init' is not a number (try '-h')");
-      g_btormbt->g_min_add_bitvecops_init = atoi (argv[i]);
+      g_btormbt->min_add_bitvecops_init = atoi (argv[i]);
       if (++i == argc)
         btormbt_error ("argument to '--add-bitvecops-init' missing (try '-h')");
       if (!isnumstr (argv[i]))
         btormbt_error (
             "argument to '--add-bitvecops-init' is not a number (try '-h')");
-      g_btormbt->g_max_add_bitvecops_init = atoi (argv[i]);
+      g_btormbt->max_add_bitvecops_init = atoi (argv[i]);
     }
     else if (!strcmp (argv[i], "--add-bitvecops"))
     {
@@ -4066,13 +4066,13 @@ main (int argc, char **argv)
       if (!isnumstr (argv[i]))
         btormbt_error (
             "argument to '--add-bitvecops' is not a number (try '-h')");
-      g_btormbt->g_min_add_bitvecops = atoi (argv[i]);
+      g_btormbt->min_add_bitvecops = atoi (argv[i]);
       if (++i == argc)
         btormbt_error ("argument to '--add-bitvecops' missing (try '-h')");
       if (!isnumstr (argv[i]))
         btormbt_error (
             "argument to '--add-bitvecops' is not a number (try '-h')");
-      g_btormbt->g_max_add_bitvecops = atoi (argv[i]);
+      g_btormbt->max_add_bitvecops = atoi (argv[i]);
     }
     else if (!strcmp (argv[i], "--add-bitvecops-inc"))
     {
@@ -4081,13 +4081,13 @@ main (int argc, char **argv)
       if (!isnumstr (argv[i]))
         btormbt_error (
             "argument to '--add-bitvecops-inc' is not a number (try '-h')");
-      g_btormbt->g_min_add_bitvecops_inc = atoi (argv[i]);
+      g_btormbt->min_add_bitvecops_inc = atoi (argv[i]);
       if (++i == argc)
         btormbt_error ("argument to '--add-bitvecops-inc' missing (try '-h')");
       if (!isnumstr (argv[i]))
         btormbt_error (
             "argument to '--add-bitvecops-inc' is not a number (try '-h')");
-      g_btormbt->g_max_add_bitvecops_inc = atoi (argv[i]);
+      g_btormbt->max_add_bitvecops_inc = atoi (argv[i]);
     }
     else if (!strcmp (argv[i], "--add-inputs-init"))
     {
@@ -4096,13 +4096,13 @@ main (int argc, char **argv)
       if (!isnumstr (argv[i]))
         btormbt_error (
             "argument to '--add-inputs-init' is not a number (try '-h')");
-      g_btormbt->g_min_add_inputs_init = atoi (argv[i]);
+      g_btormbt->min_add_inputs_init = atoi (argv[i]);
       if (++i == argc)
         btormbt_error ("argument to '--add-inputs-init' missing (try '-h')");
       if (!isnumstr (argv[i]))
         btormbt_error (
             "argument to '--add-inputs-init' is not a number (try '-h')");
-      g_btormbt->g_max_add_inputs_init = atoi (argv[i]);
+      g_btormbt->max_add_inputs_init = atoi (argv[i]);
     }
     else if (!strcmp (argv[i], "--add-inputs"))
     {
@@ -4110,12 +4110,12 @@ main (int argc, char **argv)
         btormbt_error ("argument to '--add-inputs' missing (try '-h')");
       if (!isnumstr (argv[i]))
         btormbt_error ("argument to '--add-inputs' is not a number (try '-h')");
-      g_btormbt->g_min_add_inputs = atoi (argv[i]);
+      g_btormbt->min_add_inputs = atoi (argv[i]);
       if (++i == argc)
         btormbt_error ("argument to '--add-inputs' missing (try '-h')");
       if (!isnumstr (argv[i]))
         btormbt_error ("argument to '--add-inputs' is not a number (try '-h')");
-      g_btormbt->g_max_add_inputs = atoi (argv[i]);
+      g_btormbt->max_add_inputs = atoi (argv[i]);
     }
     else if (!strcmp (argv[i], "--add-inputs-inc"))
     {
@@ -4124,13 +4124,13 @@ main (int argc, char **argv)
       if (!isnumstr (argv[i]))
         btormbt_error (
             "argument to '--add-inputs-inc' is not a number (try '-h')");
-      g_btormbt->g_min_add_inputs_inc = atoi (argv[i]);
+      g_btormbt->min_add_inputs_inc = atoi (argv[i]);
       if (++i == argc)
         btormbt_error ("argument to '--add-inputs-inc' missing (try '-h')");
       if (!isnumstr (argv[i]))
         btormbt_error (
             "argument to '--add-inputs-inc' is not a number (try '-h')");
-      g_btormbt->g_max_add_inputs_inc = atoi (argv[i]);
+      g_btormbt->max_add_inputs_inc = atoi (argv[i]);
     }
     else if (!strcmp (argv[i], "--ops-init"))
     {
@@ -4138,23 +4138,23 @@ main (int argc, char **argv)
         btormbt_error ("argument to '--ops-init' missing (try '-h')");
       if (!isnumstr (argv[i]))
         btormbt_error ("argument to '--ops-init' is not a number (try '-h')");
-      g_btormbt->g_min_ops_init = atoi (argv[i]);
+      g_btormbt->min_ops_init = atoi (argv[i]);
       if (++i == argc)
         btormbt_error ("argument to '--ops-init' missing (try '-h')");
       if (!isnumstr (argv[i]))
         btormbt_error ("argument to '--ops-init' is not a number (try '-h')");
-      g_btormbt->g_max_ops_init = atoi (argv[i]);
+      g_btormbt->max_ops_init = atoi (argv[i]);
     }
     else if (!strcmp (argv[i], "--ops"))
     {
       if (++i == argc) btormbt_error ("argument to '--ops' missing (try '-h')");
       if (!isnumstr (argv[i]))
         btormbt_error ("argument to '--ops' is not a number (try '-h')");
-      g_btormbt->g_min_ops = atoi (argv[i]);
+      g_btormbt->min_ops = atoi (argv[i]);
       if (++i == argc) btormbt_error ("argument to '--ops' missing (try '-h')");
       if (!isnumstr (argv[i]))
         btormbt_error ("argument to '--ops' is not a number (try '-h')");
-      g_btormbt->g_max_ops = atoi (argv[i]);
+      g_btormbt->max_ops = atoi (argv[i]);
     }
     else if (!strcmp (argv[i], "--ops-inc"))
     {
@@ -4162,12 +4162,12 @@ main (int argc, char **argv)
         btormbt_error ("argument to '--ops-inc' missing (try '-h')");
       if (!isnumstr (argv[i]))
         btormbt_error ("argument to '--ops-inc' is not a number (try '-h')");
-      g_btormbt->g_min_ops_inc = atoi (argv[i]);
+      g_btormbt->min_ops_inc = atoi (argv[i]);
       if (++i == argc)
         btormbt_error ("argument to '--ops-inc' missing (try '-h')");
       if (!isnumstr (argv[i]))
         btormbt_error ("argument to '--ops-inc' is not a number (try '-h')");
-      g_btormbt->g_max_ops_inc = atoi (argv[i]);
+      g_btormbt->max_ops_inc = atoi (argv[i]);
     }
     else if (!strcmp (argv[i], "--add-ops-init"))
     {
@@ -4176,13 +4176,13 @@ main (int argc, char **argv)
       if (!isnumstr (argv[i]))
         btormbt_error (
             "argument to '--add-ops-init' is not a number (try '-h')");
-      g_btormbt->g_min_add_ops_init = atoi (argv[i]);
+      g_btormbt->min_add_ops_init = atoi (argv[i]);
       if (++i == argc)
         btormbt_error ("argument to '--add-ops-init' missing (try '-h')");
       if (!isnumstr (argv[i]))
         btormbt_error (
             "argument to '--add-ops-init' is not a number (try '-h')");
-      g_btormbt->g_max_add_ops_init = atoi (argv[i]);
+      g_btormbt->max_add_ops_init = atoi (argv[i]);
     }
     else if (!strcmp (argv[i], "--add-ops"))
     {
@@ -4190,12 +4190,12 @@ main (int argc, char **argv)
         btormbt_error ("argument to '--add-ops' missing (try '-h')");
       if (!isnumstr (argv[i]))
         btormbt_error ("argument to '--add-ops' is not a number (try '-h')");
-      g_btormbt->g_min_add_ops = atoi (argv[i]);
+      g_btormbt->min_add_ops = atoi (argv[i]);
       if (++i == argc)
         btormbt_error ("argument to '--add-ops' missing (try '-h')");
       if (!isnumstr (argv[i]))
         btormbt_error ("argument to '--add-ops' is not a number (try '-h')");
-      g_btormbt->g_max_add_ops = atoi (argv[i]);
+      g_btormbt->max_add_ops = atoi (argv[i]);
     }
     else if (!strcmp (argv[i], "--add-ops-inc"))
     {
@@ -4204,13 +4204,13 @@ main (int argc, char **argv)
       if (!isnumstr (argv[i]))
         btormbt_error (
             "argument to '--add-ops-inc' is not a number (try '-h')");
-      g_btormbt->g_min_add_ops_inc = atoi (argv[i]);
+      g_btormbt->min_add_ops_inc = atoi (argv[i]);
       if (++i == argc)
         btormbt_error ("argument to '--add-ops-inc' missing (try '-h')");
       if (!isnumstr (argv[i]))
         btormbt_error (
             "argument to '--add-ops-inc' is not a number (try '-h')");
-      g_btormbt->g_max_add_ops_inc = atoi (argv[i]);
+      g_btormbt->max_add_ops_inc = atoi (argv[i]);
     }
     else if (!strcmp (argv[i], "--release-ops-init"))
     {
@@ -4219,13 +4219,13 @@ main (int argc, char **argv)
       if (!isnumstr (argv[i]))
         btormbt_error (
             "argument to '--release-ops-init' is not a number (try '-h')");
-      g_btormbt->g_min_release_ops_init = atoi (argv[i]);
+      g_btormbt->min_release_ops_init = atoi (argv[i]);
       if (++i == argc)
         btormbt_error ("argument to '--release-ops-init' missing (try '-h')");
       if (!isnumstr (argv[i]))
         btormbt_error (
             "argument to '--release-ops-init' is not a number (try '-h')");
-      g_btormbt->g_max_release_ops_init = atoi (argv[i]);
+      g_btormbt->max_release_ops_init = atoi (argv[i]);
     }
     else if (!strcmp (argv[i], "--release-ops"))
     {
@@ -4234,13 +4234,13 @@ main (int argc, char **argv)
       if (!isnumstr (argv[i]))
         btormbt_error (
             "argument to '--release-ops' is not a number (try '-h')");
-      g_btormbt->g_min_release_ops = atoi (argv[i]);
+      g_btormbt->min_release_ops = atoi (argv[i]);
       if (++i == argc)
         btormbt_error ("argument to '--release-ops' missing (try '-h')");
       if (!isnumstr (argv[i]))
         btormbt_error (
             "argument to '--release-ops' is not a number (try '-h')");
-      g_btormbt->g_max_release_ops = atoi (argv[i]);
+      g_btormbt->max_release_ops = atoi (argv[i]);
     }
     else if (!strcmp (argv[i], "--release-ops-inc"))
     {
@@ -4249,13 +4249,13 @@ main (int argc, char **argv)
       if (!isnumstr (argv[i]))
         btormbt_error (
             "argument to '--release-ops-inc' is not a number (try '-h')");
-      g_btormbt->g_min_release_ops_inc = atoi (argv[i]);
+      g_btormbt->min_release_ops_inc = atoi (argv[i]);
       if (++i == argc)
         btormbt_error ("argument to '--release-ops-inc' missing (try '-h')");
       if (!isnumstr (argv[i]))
         btormbt_error (
             "argument to '--release-ops-inc' is not a number (try '-h')");
-      g_btormbt->g_max_release_ops_inc = atoi (argv[i]);
+      g_btormbt->max_release_ops_inc = atoi (argv[i]);
     }
     else if (!strcmp (argv[i], "--max-ops-lower"))
     {
@@ -4264,7 +4264,7 @@ main (int argc, char **argv)
       if (!isnumstr (argv[i]))
         btormbt_error (
             "argument to '--max-ops-lower' is not a number (try '-h')");
-      g_btormbt->g_max_ops_lower = atoi (argv[i]);
+      g_btormbt->max_ops_lower = atoi (argv[i]);
     }
     else if (!strcmp (argv[i], "--asserts-lower"))
     {
@@ -4273,13 +4273,13 @@ main (int argc, char **argv)
       if (!isnumstr (argv[i]))
         btormbt_error (
             "argument to '--asserts-lower' is not a number (try '-h')");
-      g_btormbt->g_min_asserts_lower = atoi (argv[i]);
+      g_btormbt->min_asserts_lower = atoi (argv[i]);
       if (++i == argc)
         btormbt_error ("argument to '--asserts-lower' missing (try '-h')");
       if (!isnumstr (argv[i]))
         btormbt_error (
             "argument to '--asserts-lower' is not a number (try '-h')");
-      g_btormbt->g_max_asserts_lower = atoi (argv[i]);
+      g_btormbt->max_asserts_lower = atoi (argv[i]);
     }
     else if (!strcmp (argv[i], "--asserts-upper"))
     {
@@ -4288,13 +4288,13 @@ main (int argc, char **argv)
       if (!isnumstr (argv[i]))
         btormbt_error (
             "argument to '--asserts-upper' is not a number (try '-h')");
-      g_btormbt->g_min_asserts_upper = atoi (argv[i]);
+      g_btormbt->min_asserts_upper = atoi (argv[i]);
       if (++i == argc)
         btormbt_error ("argument to '--asserts-upper' missing (try '-h')");
       if (!isnumstr (argv[i]))
         btormbt_error (
             "argument to '--asserts-upper' is not a number (try '-h')");
-      g_btormbt->g_max_asserts_upper = atoi (argv[i]);
+      g_btormbt->max_asserts_upper = atoi (argv[i]);
     }
     else if (!strcmp (argv[i], "--p-sort-bv"))
     {
@@ -4499,7 +4499,7 @@ main (int argc, char **argv)
   memset (g_btormbtstats, 0, sizeof (BtorMBTStatistics));
 
   mac = hashmac ();
-  for (g_btormbt->rounds = 0; g_btormbt->rounds < g_btormbt->g_max_rounds;
+  for (g_btormbt->rounds = 0; g_btormbt->rounds < g_btormbt->max_rounds;
        g_btormbt->rounds++)
   {
     if (!(prev & 1)) prev++;
