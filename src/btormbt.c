@@ -14,6 +14,7 @@
 #include "boolector.h"
 #include "btorcore.h"
 #include "utils/btormem.h"
+#include "utils/btorrng.h"
 #include "utils/btorstack.h"
 #include "utils/btorutil.h"
 // FIXME (ma): external sort handling?
@@ -391,44 +392,6 @@
 /*------------------------------------------------------------------------*/
 
 #define BTORMBT_MIN(x, y) ((x) < (y) ? (x) : (y))
-
-/*------------------------------------------------------------------------*/
-
-typedef struct RNG
-{
-  uint32_t z, w;
-} RNG;
-
-static RNG
-initrng (uint32_t seed)
-{
-  RNG res;
-  res.z = seed * 1000632769u;
-  res.w = seed * 2019164533u;
-  return res;
-}
-
-static uint32_t
-nextrand (RNG *rng)
-{
-  rng->z = 36969 * (rng->z & 65535) + (rng->z >> 16);
-  rng->w = 18000 * (rng->w & 65535) + (rng->w >> 16);
-  return (rng->z << 16) + rng->w; /* 32-bit result */
-}
-
-static int
-pick (RNG *rng_ptr, uint32_t from, uint32_t to)
-{
-  assert (from <= to);
-
-  uint32_t tmp;
-
-  to  = to == UINT_MAX ? UINT_MAX - 1 : to;
-  tmp = nextrand (rng_ptr);
-  tmp %= to - from + 1;
-  tmp += from;
-  return tmp;
-}
 
 /*------------------------------------------------------------------------*/
 
@@ -914,31 +877,40 @@ struct BtorMBT
                                  for max_ops_cur >= max_ops_lower */
 
   /* propability options */
-  int p_sort_bv;        /* probability of choosing an existing bv sort over
-                           creating a new one */
-  int p_sort_fun;       /* probability of choosing an existing fun sort over
-                           creating a new one */
-  int p_sort_fun_unary; /* probability of choosing a unary fun sort */
-  int p_assume;         /* probability of choosing an assumption over an
-                           an assertion in incremental mode */
-  int p_param_exp;      /* probability of choosing parameterized expressions
-                           over non-parameterized expressions */
-  int p_param_arr_exp;  /* probability of choosing parameterized expressions
-                           over non-parameterized array expressions */
-  int p_apply_fun;      /* probability of choosing an apply on an existing
-                           over an apply on a new function */
-  int p_apply_uf;       /* probability of choosing an apply on an existing
-                           over an apply on a new uninterpreted function */
-  int p_rw;             /* probability of choosing read/write over
-                           eq/ne/cond */
-  int p_read;           /* probability of choosing read over write */
-  int p_cond;           /* probability of choosing cond over eq/ne */
-  int p_eq;             /* probability of choosing eq over ne */
-  int p_inc;            /* probability of choosing an incremental step */
-  int p_dump;           /* probability of dumping formula and exit */
-  int p_print_model;    /* probability of printing the model after a sat call */
-  int p_model_format;   /* probability of using btor over smt2 format when
-                           printing a model */
+
+  /* choose an existing bv sort over creating a new one */
+  uint32_t p_sort_bv;
+  /* choose an existing fun sort over creating a new one */
+  uint32_t p_sort_fun;
+  /* choose a unary fun sort */
+  uint32_t p_sort_fun_unary;
+  /* choose an assumption over an assertion in incremental mode */
+  uint32_t p_assume;
+  /* choose parameterized over non-parameterized expressions */
+  uint32_t p_param_exp;
+  /* choose parameterized over non-parameterized array expressions */
+  uint32_t p_param_arr_exp;
+  /* choose an apply on an existing over an apply on a new function */
+  uint32_t p_apply_fun;
+  /* choose an apply on an existing over an apply on a new UF */
+  uint32_t p_apply_uf;
+  /* choose read/write over eq/ne/cond */
+  uint32_t p_rw;
+  /* choose read over write */
+  uint32_t p_read;
+  /* choose cond over eq/ne */
+  uint32_t p_cond;
+  /* choose eq over ne */
+  uint32_t p_eq;
+  /* choose an incremental step */
+  uint32_t p_inc;
+  /* dump formula and exit */
+  uint32_t p_dump;
+  /* print the model after a sat call */
+  uint32_t p_print_model;
+  /* use btor over smt2 format when printing a model */
+  uint32_t p_model_format;
+
   /* other options */
   char *output_format; /* force output format for dumping/printing models */
 
@@ -988,7 +960,7 @@ struct BtorMBT
 
   uint32_t tot_asserts; /* total number of asserts in current round */
 
-  RNG rng;
+  BtorRNG rng;
 };
 
 typedef void *(*BtorMBTState) (BtorMBT *);
@@ -1272,7 +1244,7 @@ mk_node (BtorMBT * mbt, Op op, BtorMBTNodeAttr attr)
 //	/* generate random binary string */
 //	BTOR_NEWN (mbt->mm, buff, width + 1);
 //	for (i = 0; i < width; i++)
-//	  buff[i] = pick (rng, 0, 1) ? '1' : '0';
+//	  buff[i] = btor_pick_rand_rng (rng, 0, 1) ? '1' : '0';
 //	buff[width] = '\0';
 //	node = boolector_const (mbt->btor, buff);
 //	BTOR_DELETEN (mbt->mm, buff, width + 1);
@@ -1683,13 +1655,13 @@ modify_bv (BtorMBT *mbt, BoolectorNode *e, uint32_t new_width)
   node      = 0;
   if (new_width < old_width)
   {
-    tmp  = pick (&mbt->rng, 0, old_width - new_width);
+    tmp  = btor_pick_rand_rng (&mbt->rng, 0, old_width - new_width);
     node = boolector_slice (mbt->btor, e, tmp + new_width - 1, tmp);
     g_btormbtstats->num_ops[SLICE]++;
   }
   else if (new_width > old_width)
   {
-    if (pick (&mbt->rng, 0, 1))
+    if (btor_pick_rand_rng (&mbt->rng, 0, 1))
     {
       node = boolector_uext (mbt->btor, e, new_width - old_width);
       g_btormbtstats->num_ops[UEXT]++;
@@ -1722,11 +1694,11 @@ btormbt_var (BtorMBT *mbt, BtorMBTExpType type)
   if (type == BTORMBT_BO_T)
     width = 1;
   else if (type == BTORMBT_BV_T)
-    width = pick (&mbt->rng, mbt->min_bw, mbt->max_bw);
+    width = btor_pick_rand_rng (&mbt->rng, mbt->min_bw, mbt->max_bw);
   else
   {
     assert (type = BTORMBT_BB_T);
-    width = pick (&mbt->rng, 1, mbt->max_bw);
+    width = btor_pick_rand_rng (&mbt->rng, 1, mbt->max_bw);
   }
   s = boolector_bitvec_sort (mbt->btor, width);
   btormbt_push_node (mbt, boolector_var (mbt->btor, s, 0));
@@ -1744,11 +1716,12 @@ btormbt_const (BtorMBT *mbt)
   Op op;
   BoolectorSort s;
 
-  op    = pick (&mbt->rng, CONST, INT);
+  op    = btor_pick_rand_rng (&mbt->rng, CONST, INT);
   width = 0;
   val   = 0;
 
-  if (op != TRUE && op != FALSE) width = pick (&mbt->rng, 1, mbt->max_bw);
+  if (op != TRUE && op != FALSE)
+    width = btor_pick_rand_rng (&mbt->rng, 1, mbt->max_bw);
 
   if (op == UINT || op == INT)
   {
@@ -1756,7 +1729,7 @@ btormbt_const (BtorMBT *mbt)
       val = (1 << width) - 1;
     else
       val = UINT_MAX - 1; /* UINT_MAX leads to divison by 0 in pick */
-    val = pick (&mbt->rng, 0, val);
+    val = btor_pick_rand_rng (&mbt->rng, 0, val);
   }
 
 #if 0
@@ -1766,7 +1739,7 @@ btormbt_const (BtorMBT *mbt)
       /* generate random binary string */
       BTOR_NEWN (mbt->mm, bits, width + 1);
       for (i = 0; i < width; i++)
-	bits[i] = pick (&mbt->rng, 0, 1) ? '1' : '0';
+	bits[i] = btor_pick_rand_rng (&mbt->rng, 0, 1) ? '1' : '0';
       bits[width] = '\0';
     }
 #endif
@@ -1781,7 +1754,8 @@ btormbt_const (BtorMBT *mbt)
     case CONST:
       /* generate random binary string */
       BTOR_NEWN (mbt->mm, bits, width + 1);
-      for (i = 0; i < width; i++) bits[i] = pick (&mbt->rng, 0, 1) ? '1' : '0';
+      for (i = 0; i < width; i++)
+        bits[i] = btor_pick_rand_rng (&mbt->rng, 0, 1) ? '1' : '0';
       bits[width] = '\0';
       node        = boolector_const (mbt->btor, bits);
       BTOR_DELETEN (mbt->mm, bits, width + 1);
@@ -1821,8 +1795,9 @@ btormbt_array (BtorMBT *mbt)
   BoolectorSort es, is, as;
 
   // TODO (ma): remove ite here and use min_bw
-  ew = pick (&mbt->rng, mbt->min_bw > 2 ? mbt->min_bw : 1, mbt->max_bw);
-  iw = pick (&mbt->rng, mbt->min_index_bw, mbt->max_index_bw);
+  ew = btor_pick_rand_rng (
+      &mbt->rng, mbt->min_bw > 2 ? mbt->min_bw : 1, mbt->max_bw);
+  iw = btor_pick_rand_rng (&mbt->rng, mbt->min_index_bw, mbt->max_index_bw);
   es = boolector_bitvec_sort (mbt->btor, ew);
   is = boolector_bitvec_sort (mbt->btor, iw);
   as = boolector_array_sort (mbt->btor, is, es);
@@ -1847,11 +1822,11 @@ btormbt_clause (BtorMBT * mbt, int ifrom, int ito)
   /* make clause with 3 boolean expressions */
   for (i = 0; i < 3; i++)
     {
-      idx = pick (&mbt->rng, ifrom, ito);
+      idx = btor_pick_rand_rng (&mbt->rng, ifrom, ito);
       if (e0 == NULL)
 	{
 	  e0 = expstack->exps.start[idx]->exp;
-	  if (pick (&mbt->rng, 0, 1))
+	  if (btor_pick_rand_rng (&mbt->rng, 0, 1))
 	    {
 	      e0 = boolector_not (mbt->btor, e0);
 	      btormbt_push_exp_stack (mbt->mm, mbt->cnf, e0);
@@ -1860,7 +1835,7 @@ btormbt_clause (BtorMBT * mbt, int ifrom, int ito)
       else
 	{
 	  e1 = expstack->exps.start[idx]->exp;
-	  if (pick (&mbt->rng, 0, 1))
+	  if (btor_pick_rand_rng (&mbt->rng, 0, 1))
 	    {
 	      e1 = boolector_not (mbt->btor, e1);
 	      btormbt_push_exp_stack (mbt->mm, mbt->cnf, e1);
@@ -1882,23 +1857,23 @@ btormbt_constraint (BtorMBT *mbt)
   /* select from init layer with lower probability */
   if (mbt->bo->init_layer_size
       && BTOR_COUNT_STACK (mbt->bo->exps) > mbt->bo->init_layer_size
-      && pick (&mbt->rng, 0, 4))
+      && btor_pick_rand_rng (&mbt->rng, 0, 4))
     start = mbt->bo->init_layer_size - 1;
   else
     start = 0;
 
   end       = BTOR_COUNT_STACK (mbt->bo->exps) - 1;
-  num_nodes = pick (&mbt->rng, 1, BTOR_MAX_UTIL (1, end - start));
+  num_nodes = btor_pick_rand_rng (&mbt->rng, 1, BTOR_MAX_UTIL (1, end - start));
   /* randomly choose 'num_nodes' nodes for the constraint */
   res = tmp = 0;
   for (i = 0; i < num_nodes; i++)
   {
-    pos = pick (&mbt->rng, start, end);
+    pos = btor_pick_rand_rng (&mbt->rng, start, end);
     node =
         boolector_copy (mbt->btor, BTOR_PEEK_STACK (mbt->bo->exps, pos)->exp);
 
     /* negate 'node' with probability 0.5 */
-    if (pick (&mbt->rng, 0, 1))
+    if (btor_pick_rand_rng (&mbt->rng, 0, 1))
     {
       tmp = boolector_not (mbt->btor, node);
       btormbt_release_node (mbt, node);
@@ -1933,11 +1908,11 @@ btormbt_unary_op (BtorMBT *mbt, Op op, BoolectorNode *e)
 
   if (op == SLICE)
   {
-    upper = pick (&mbt->rng, 0, width - 1);
-    lower = pick (&mbt->rng, 0, upper);
+    upper = btor_pick_rand_rng (&mbt->rng, 0, width - 1);
+    lower = btor_pick_rand_rng (&mbt->rng, 0, upper);
   }
   else if (op == UEXT || op == SEXT)
-    upper = pick (&mbt->rng, 0, mbt->max_bw - width);
+    upper = btor_pick_rand_rng (&mbt->rng, 0, mbt->max_bw - width);
 
   node = 0;
   switch (op)
@@ -2164,12 +2139,13 @@ select_exp (BtorMBT *mbt, BtorMBTExpType type, int force_param)
   assert ((!mbt->parambo && !mbt->parambv && !mbt->paramarr)
           || (mbt->parambo && mbt->parambv && mbt->paramarr));
 
-  int rand, idx, lower;
+  bool selected;
+  uint32_t rand, idx, lower;
   BtorMBTExpStack *expstack, *bo, *bv, *arr;
   BtorMBTExp *exp;
 
   /* choose between param. exps and non-param. exps */
-  rand = pick (&mbt->rng, 0, NORM_VAL - 1);
+  rand = btor_pick_rand_rng (&mbt->rng, 0, NORM_VAL - 1);
   if (force_param == -1
       || (force_param == 0 && rand >= mbt->p_param_exp)
       /* no parameterized expressions available */
@@ -2198,26 +2174,27 @@ select_exp (BtorMBT *mbt, BtorMBTExpType type, int force_param)
     default:
       assert (type == BTORMBT_BB_T);
       /* select target exp stack with prob. proportional to size */
-      rand =
-          pick (&mbt->rng,
-                0,
-                BTOR_COUNT_STACK (bo->exps) + BTOR_COUNT_STACK (bv->exps) - 1);
+      rand = btor_pick_rand_rng (
+          &mbt->rng,
+          0,
+          BTOR_COUNT_STACK (bo->exps) + BTOR_COUNT_STACK (bv->exps) - 1);
       expstack = rand < BTOR_COUNT_STACK (bo->exps) ? bo : bv;
   }
 
   assert (!BTOR_EMPTY_STACK (expstack->exps));
   /* select first nodes without parents (not yet referenced) */
-  idx = -1;
+  selected = false;
   while (expstack->last_pos_parents < BTOR_COUNT_STACK (expstack->exps))
   {
     if (expstack->exps.start[expstack->last_pos_parents]->parents <= 0)
     {
-      idx = expstack->last_pos_parents++;
+      idx      = expstack->last_pos_parents++;
+      selected = true;
       break;
     }
     expstack->last_pos_parents++;
   }
-  if (idx < 0)
+  if (!selected)
   {
     /* select random expression
      * select from initlayer with lower probability
@@ -2225,11 +2202,12 @@ select_exp (BtorMBT *mbt, BtorMBTExpType type, int force_param)
      * - from ragne (0 - n)         with p = 0.333 */
     if (expstack->init_layer_size
         && BTOR_COUNT_STACK (expstack->exps) > expstack->init_layer_size
-        && pick (&mbt->rng, 0, 3))
+        && btor_pick_rand_rng (&mbt->rng, 0, 3))
       lower = expstack->init_layer_size - 1;
     else
       lower = 0;
-    idx = pick (&mbt->rng, lower, BTOR_COUNT_STACK (expstack->exps) - 1);
+    idx = btor_pick_rand_rng (
+        &mbt->rng, lower, BTOR_COUNT_STACK (expstack->exps) - 1);
   }
   exp = BTOR_PEEK_STACK (expstack->exps, idx);
   exp->parents++;
@@ -2247,15 +2225,14 @@ select_arr_exp (BtorMBT *mbt,
                 uint32_t eiw,
                 int force_param)
 {
-  int rand;
-  uint32_t i, idx, sel_eew, sel_eiw;
+  uint32_t i, idx, sel_eew, sel_eiw, rand;
   BtorMBTExp *exp;
   BtorMBTExpStack *expstack;
   BoolectorNode *sel_e, *e[3];
   BoolectorSort es, is, as;
 
   /* choose between param. exps and non-param. array exps */
-  rand = pick (&mbt->rng, 0, NORM_VAL - 1);
+  rand = btor_pick_rand_rng (&mbt->rng, 0, NORM_VAL - 1);
   assert ((!mbt->parambo && !mbt->parambv && !mbt->paramarr)
           || (mbt->parambo && mbt->parambv && mbt->paramarr));
   if (force_param == -1 || (force_param == 0 && rand >= mbt->p_param_arr_exp)
@@ -2269,7 +2246,8 @@ select_arr_exp (BtorMBT *mbt,
   assert (!BTOR_EMPTY_STACK (expstack->exps));
 
   /* random search start idx */
-  idx = i = pick (&mbt->rng, 0, BTOR_COUNT_STACK (expstack->exps) - 1);
+  idx = i =
+      btor_pick_rand_rng (&mbt->rng, 0, BTOR_COUNT_STACK (expstack->exps) - 1);
   do
   {
     exp     = BTOR_PEEK_STACK (expstack->exps, i);
@@ -2291,7 +2269,7 @@ select_arr_exp (BtorMBT *mbt,
     e[0] = select_arr_exp (mbt, NULL, eew, eiw, -1);
     assert (boolector_get_index_width (mbt->btor, e[0]) == eiw);
     assert (boolector_get_width (mbt->btor, e[0]) == eew);
-    rand  = pick (&mbt->rng, 1, 2);
+    rand  = btor_pick_rand_rng (&mbt->rng, 1, 2);
     e[1]  = select_exp (mbt, BTORMBT_BV_T, rand == 1 ? 1 : 0);
     e[2]  = select_exp (mbt, BTORMBT_BV_T, rand == 2 ? 1 : 0);
     exp   = btormbt_array_op (mbt, WRITE, e[0], e[1], e[2]);
@@ -2320,25 +2298,27 @@ select_arr_exp (BtorMBT *mbt,
 static BoolectorSort
 btormbt_bv_sort (BtorMBT *mbt)
 {
-  int rand, len;
+  uint32_t rand, width;
   BoolectorNode *bv;
   BoolectorSort sort;
 
-  rand = pick (&mbt->rng, 0, NORM_VAL - 1);
+  rand = btor_pick_rand_rng (&mbt->rng, 0, NORM_VAL - 1);
 
   if (BTOR_COUNT_STACK (*mbt->bv_sorts) && rand < mbt->p_sort_bv)
   {
     /* use existing bv sort */
-    rand = pick (&mbt->rng, 0, BTOR_COUNT_STACK (*mbt->bv_sorts) - 1);
+    rand = btor_pick_rand_rng (
+        &mbt->rng, 0, BTOR_COUNT_STACK (*mbt->bv_sorts) - 1);
     sort = mbt->bv_sorts->start[rand];
   }
   else
   {
     /* create new bv sort */
-    rand = pick (&mbt->rng, 0, BTOR_COUNT_STACK (mbt->bv->exps) - 1);
-    bv   = mbt->bv->exps.start[rand]->exp;
-    len  = boolector_get_width (mbt->btor, bv);
-    sort = boolector_bitvec_sort (mbt->btor, len);
+    rand =
+        btor_pick_rand_rng (&mbt->rng, 0, BTOR_COUNT_STACK (mbt->bv->exps) - 1);
+    bv    = mbt->bv->exps.start[rand]->exp;
+    width = boolector_get_width (mbt->btor, bv);
+    sort  = boolector_bitvec_sort (mbt->btor, width);
     btormbt_push_sort_stack (mbt->mm, mbt->bv_sorts, sort);
   }
   return sort;
@@ -2347,9 +2327,10 @@ btormbt_bv_sort (BtorMBT *mbt)
 static void
 init_domain (BtorMBT *mbt, BoolectorSortStack *sortstack)
 {
-  int i, arity, rand;
+  int i, arity;
+  uint32_t rand;
 
-  rand = pick (&mbt->rng, 0, NORM_VAL - 1);
+  rand = btor_pick_rand_rng (&mbt->rng, 0, NORM_VAL - 1);
 
   if (rand < mbt->p_sort_fun_unary)
   {
@@ -2357,7 +2338,8 @@ init_domain (BtorMBT *mbt, BoolectorSortStack *sortstack)
     return;
   }
 
-  arity = pick (&mbt->rng, mbt->min_sort_fun_arity, mbt->max_sort_fun_arity);
+  arity = btor_pick_rand_rng (
+      &mbt->rng, mbt->min_sort_fun_arity, mbt->max_sort_fun_arity);
   for (i = 0; i < arity; i++)
     btormbt_push_sort_stack (mbt->mm, sortstack, btormbt_bv_sort (mbt));
 }
@@ -2365,16 +2347,17 @@ init_domain (BtorMBT *mbt, BoolectorSortStack *sortstack)
 static BoolectorSort
 btormbt_fun_sort (BtorMBT *mbt)
 {
-  int rand;
+  uint32_t rand;
   BoolectorSort sort, codomain;
   BoolectorSortStack *domain;
 
-  rand = pick (&mbt->rng, 0, NORM_VAL - 1);
+  rand = btor_pick_rand_rng (&mbt->rng, 0, NORM_VAL - 1);
 
   if (BTOR_COUNT_STACK (*mbt->fun_sorts) && rand < mbt->p_sort_fun)
   {
     /* use existing fun sort */
-    rand = pick (&mbt->rng, 0, BTOR_COUNT_STACK (*mbt->fun_sorts) - 1);
+    rand = btor_pick_rand_rng (
+        &mbt->rng, 0, BTOR_COUNT_STACK (*mbt->fun_sorts) - 1);
     sort = mbt->fun_sorts->start[rand];
   }
   else
@@ -2404,7 +2387,7 @@ btormbt_param_bv_op (BtorMBT *mbt, int op_from, int op_to)
   assert (op_from >= NOT && op_from <= COND);
   assert (op_to >= NOT && op_to <= COND);
 
-  op = pick (&mbt->rng, op_from, op_to);
+  op = btor_pick_rand_rng (&mbt->rng, op_from, op_to);
   if (is_unary_op (op))
   {
     e[0] = select_exp (mbt, BTORMBT_BB_T, 1);
@@ -2412,7 +2395,7 @@ btormbt_param_bv_op (BtorMBT *mbt, int op_from, int op_to)
   }
   else if (is_binary_op (op))
   {
-    rand = pick (&mbt->rng, 0, 1);
+    rand = btor_pick_rand_rng (&mbt->rng, 0, 1);
     for (i = 0; i < 2; i++)
       e[i] = select_exp (
           mbt,
@@ -2423,7 +2406,7 @@ btormbt_param_bv_op (BtorMBT *mbt, int op_from, int op_to)
   else
   {
     assert (is_ternary_op (op));
-    rand = pick (&mbt->rng, 0, 2);
+    rand = btor_pick_rand_rng (&mbt->rng, 0, 2);
     for (i = 0; i < 3; i++)
       e[i] = select_exp (
           mbt, i == 0 ? BTORMBT_BO_T : BTORMBT_BB_T, i == rand ? 1 : 0);
@@ -2439,7 +2422,7 @@ static void
 btormbt_param_array_op (BtorMBT *mbt)
 {
   bool force_param;
-  int rand;
+  uint32_t rand;
   BoolectorNode *e0, *e1, *e2;
   Op op;
 
@@ -2448,22 +2431,22 @@ btormbt_param_array_op (BtorMBT *mbt)
   force_param = BTOR_EMPTY_STACK (mbt->paramarr->exps) == 1;
 
   /* choose READ/WRITE with p = 0.666, else EQ/NE/COND */
-  if (pick (&mbt->rng, 0, 2))
+  if (btor_pick_rand_rng (&mbt->rng, 0, 2))
   {
     /* we need a parameterized array */
     if (force_param)
       op = WRITE;
     else
-      op = pick (&mbt->rng, READ, WRITE);
+      op = btor_pick_rand_rng (&mbt->rng, READ, WRITE);
   }
   else /* evenly distribute EQ, NE and COND */
   {
     /* parameterized EQ and NE not supported */
-    if (!mbt->ext || force_param || pick (&mbt->rng, 0, 2) == 0)
+    if (!mbt->ext || force_param || btor_pick_rand_rng (&mbt->rng, 0, 2) == 0)
       op = COND;
     else
     {
-      rand = pick (&mbt->rng, 0, NORM_VAL - 1);
+      rand = btor_pick_rand_rng (&mbt->rng, 0, NORM_VAL - 1);
       op   = rand < mbt->p_eq ? EQ : NE;
     }
   }
@@ -2472,25 +2455,29 @@ btormbt_param_array_op (BtorMBT *mbt)
   switch (op)
   {
     case WRITE:
-      rand = pick (&mbt->rng, 1, 2);
-      e0   = select_exp (
-          mbt, BTORMBT_ARR_T, force_param ? 1 : pick (&mbt->rng, 0, 1));
-      e1 = select_exp (mbt, BTORMBT_BV_T, rand == 1 ? 1 : 0);
-      e2 = select_exp (mbt, BTORMBT_BV_T, rand == 2 ? 1 : 0);
+      rand = btor_pick_rand_rng (&mbt->rng, 1, 2);
+      e0   = select_exp (mbt,
+                       BTORMBT_ARR_T,
+                       force_param ? 1 : btor_pick_rand_rng (&mbt->rng, 0, 1));
+      e1   = select_exp (mbt, BTORMBT_BV_T, rand == 1 ? 1 : 0);
+      e2   = select_exp (mbt, BTORMBT_BV_T, rand == 2 ? 1 : 0);
       break;
     case READ:
       assert (!force_param);
-      e0 = select_exp (mbt, BTORMBT_ARR_T, pick (&mbt->rng, 0, 1));
+      e0 =
+          select_exp (mbt, BTORMBT_ARR_T, btor_pick_rand_rng (&mbt->rng, 0, 1));
       e1 = select_exp (mbt, BTORMBT_BV_T, 1);
       break;
     case COND:
-      e0 = select_exp (
-          mbt, BTORMBT_ARR_T, force_param ? 1 : pick (&mbt->rng, 0, 1));
-      e1 = select_arr_exp (mbt,
-                           e0,
-                           boolector_get_width (mbt->btor, e0),
-                           boolector_get_index_width (mbt->btor, e0),
-                           force_param ? 1 : pick (&mbt->rng, 0, 1));
+      e0 = select_exp (mbt,
+                       BTORMBT_ARR_T,
+                       force_param ? 1 : btor_pick_rand_rng (&mbt->rng, 0, 1));
+      e1 = select_arr_exp (
+          mbt,
+          e0,
+          boolector_get_width (mbt->btor, e0),
+          boolector_get_index_width (mbt->btor, e0),
+          force_param ? 1 : btor_pick_rand_rng (&mbt->rng, 0, 1));
       assert (boolector_is_equal_sort (mbt->btor, e0, e1));
       e2 = select_exp (mbt, BTORMBT_BO_T, force_param);
       break;
@@ -2516,7 +2503,7 @@ btormbt_param_array_op (BtorMBT *mbt)
 static void
 btormbt_bv_fun (BtorMBT *mbt, int nlevel)
 {
-  int i, n, width, max_ops_cur, rand;
+  uint32_t i, n, width, max_ops_cur, rand;
   BtorMBTExpStack *expstack;
   BtorMBTExpStack *tmpparambo, *tmpparambv, *tmpparamarr, *tmpparamfun;
   BoolectorNode *tmp, *fun, *e0, *e1, *e2;
@@ -2526,26 +2513,29 @@ btormbt_bv_fun (BtorMBT *mbt, int nlevel)
 
   BTOR_INIT_STACK (param_widths);
   /* choose between apply on random existing and apply on new function */
-  rand = pick (&mbt->rng, 0, NORM_VAL - 1);
+  rand = btor_pick_rand_rng (&mbt->rng, 0, NORM_VAL - 1);
   /* use existing function */
   if (rand < mbt->p_apply_fun
       && (!BTOR_EMPTY_STACK (mbt->fun->exps)
           || (mbt->paramfun && !BTOR_EMPTY_STACK (mbt->paramfun->exps))))
   {
     /* pick fun from fun/paramfun with p = 0.5 if non-empty */
-    expstack = !BTOR_EMPTY_STACK (mbt->fun->exps)
-                   ? (mbt->paramfun && !BTOR_EMPTY_STACK (mbt->paramfun->exps)
-                          ? (pick (&mbt->rng, 0, 1) ? mbt->fun : mbt->paramfun)
-                          : mbt->fun)
-                   : mbt->paramfun;
-    rand = pick (&mbt->rng, 0, BTOR_COUNT_STACK (expstack->exps) - 1);
-    fun  = expstack->exps.start[rand]->exp;
+    expstack =
+        !BTOR_EMPTY_STACK (mbt->fun->exps)
+            ? (mbt->paramfun && !BTOR_EMPTY_STACK (mbt->paramfun->exps)
+                   ? (btor_pick_rand_rng (&mbt->rng, 0, 1) ? mbt->fun
+                                                           : mbt->paramfun)
+                   : mbt->fun)
+            : mbt->paramfun;
+    rand = btor_pick_rand_rng (
+        &mbt->rng, 0, BTOR_COUNT_STACK (expstack->exps) - 1);
+    fun = expstack->exps.start[rand]->exp;
 
     // FIXME (ma): sort workaround
     BtorSort *sort;
     sort = btor_get_sort_by_id (&mbt->btor->sorts_unique_table,
                                 ((BtorNode *) fun)->sort_id);
-    for (i = 0; i < (int) sort->fun.domain->tuple.num_elements; i++)
+    for (i = 0; i < sort->fun.domain->tuple.num_elements; i++)
     {
       BTOR_PUSH_STACK (
           mbt->mm,
@@ -2587,12 +2577,14 @@ btormbt_bv_fun (BtorMBT *mbt, int nlevel)
     /* choose function parameters */
     BTOR_INIT_STACK (params);
     // TODO (ma): make configurable
-    for (i = 0; i < pick (&mbt->rng, MIN_NPARAMS, MAX_NPARAMS); i++)
+    for (i = 0; i < btor_pick_rand_rng (&mbt->rng, MIN_NPARAMS, MAX_NPARAMS);
+         i++)
     {
       // TODO (ma): remove ite here?
-      width = pick (&mbt->rng, mbt->min_bw > 2 ? mbt->min_bw : 1, mbt->max_bw);
-      s     = boolector_bitvec_sort (mbt->btor, width);
-      tmp   = boolector_param (mbt->btor, s, 0);
+      width = btor_pick_rand_rng (
+          &mbt->rng, mbt->min_bw > 2 ? mbt->min_bw : 1, mbt->max_bw);
+      s   = boolector_bitvec_sort (mbt->btor, width);
+      tmp = boolector_param (mbt->btor, s, 0);
       boolector_release_sort (mbt->btor, s);
       BTOR_PUSH_STACK (mbt->mm, params, tmp);
       BTOR_PUSH_STACK (
@@ -2605,22 +2597,25 @@ btormbt_bv_fun (BtorMBT *mbt, int nlevel)
     if (BTOR_EMPTY_STACK (mbt->parambv->exps))
     {
       assert (!BTOR_EMPTY_STACK (mbt->parambo->exps));
-      rand = pick (&mbt->rng, 0, BTOR_COUNT_STACK (mbt->parambo->exps) - 1);
-      tmp  = mbt->parambo->exps.start[rand]->exp;
+      rand = btor_pick_rand_rng (
+          &mbt->rng, 0, BTOR_COUNT_STACK (mbt->parambo->exps) - 1);
+      tmp = mbt->parambo->exps.start[rand]->exp;
       assert (boolector_get_width (mbt->btor, tmp) == 1);
-      modify_bv (mbt, tmp, pick (&mbt->rng, mbt->min_bw, mbt->max_bw));
+      modify_bv (
+          mbt, tmp, btor_pick_rand_rng (&mbt->rng, mbt->min_bw, mbt->max_bw));
     }
     if (BTOR_EMPTY_STACK (mbt->parambo->exps))
     {
       assert (!BTOR_EMPTY_STACK (mbt->parambv->exps));
-      rand = pick (&mbt->rng, 0, BTOR_COUNT_STACK (mbt->parambv->exps) - 1);
-      tmp  = mbt->parambv->exps.start[rand]->exp;
+      rand = btor_pick_rand_rng (
+          &mbt->rng, 0, BTOR_COUNT_STACK (mbt->parambv->exps) - 1);
+      tmp = mbt->parambv->exps.start[rand]->exp;
       assert (boolector_get_width (mbt->btor, tmp) > 1);
       modify_bv (mbt, tmp, 1);
     }
     if (BTOR_EMPTY_STACK (mbt->paramarr->exps))
     {
-      rand = pick (&mbt->rng, 1, 2);
+      rand = btor_pick_rand_rng (&mbt->rng, 1, 2);
       e1   = select_exp (mbt, BTORMBT_BB_T, rand == 1 ? 1 : 0);
       e2   = select_exp (mbt, BTORMBT_BB_T, rand == 2 ? 1 : 0);
       e0   = select_arr_exp (mbt,
@@ -2638,11 +2633,11 @@ btormbt_bv_fun (BtorMBT *mbt, int nlevel)
     }
 
     /* generate parameterized expressions */
-    max_ops_cur = pick (&mbt->rng, 0, MAX_NPARAMOPS);
+    max_ops_cur = btor_pick_rand_rng (&mbt->rng, 0, MAX_NPARAMOPS);
     n           = 0;
     while (n++ < max_ops_cur)
     {
-      rand = pick (&mbt->rng, 0, NORM_VAL - 1);
+      rand = btor_pick_rand_rng (&mbt->rng, 0, NORM_VAL - 1);
       if (rand < mbt->p_bitvec_fun)
         btormbt_param_bv_op (mbt, NOT, COND);
       else if (rand < mbt->p_bitvec_fun + mbt->p_array_op)
@@ -2655,12 +2650,14 @@ btormbt_bv_fun (BtorMBT *mbt, int nlevel)
     expstack =
         !BTOR_EMPTY_STACK (mbt->parambo->exps)
             ? (!BTOR_EMPTY_STACK (mbt->parambv->exps)
-                   ? (pick (&mbt->rng, 0, 1) ? mbt->parambo : mbt->parambv)
+                   ? (btor_pick_rand_rng (&mbt->rng, 0, 1) ? mbt->parambo
+                                                           : mbt->parambv)
                    : mbt->parambo)
             : mbt->parambv;
     assert (!BTOR_EMPTY_STACK (expstack->exps));
-    rand = pick (&mbt->rng, 0, BTOR_COUNT_STACK (expstack->exps) - 1);
-    tmp  = BTOR_PEEK_STACK (expstack->exps, rand)->exp;
+    rand = btor_pick_rand_rng (
+        &mbt->rng, 0, BTOR_COUNT_STACK (expstack->exps) - 1);
+    tmp = BTOR_PEEK_STACK (expstack->exps, rand)->exp;
     fun =
         boolector_fun (mbt->btor, params.start, BTOR_COUNT_STACK (params), tmp);
 
@@ -2712,22 +2709,22 @@ btormbt_bv_fun (BtorMBT *mbt, int nlevel)
 static void
 btormbt_bv_uf (BtorMBT *mbt)
 {
-  uint32_t len;
-  int rand;
+  uint32_t width, rand;
   BoolectorNode *uf, *arg, *apply;
   BoolectorSort sort;
   BoolectorNodePtrStack stack;
   BtorTupleSortIterator it;
   BtorSortUniqueTable *sorts;
 
-  rand  = pick (&mbt->rng, 0, NORM_VAL - 1);
+  rand  = btor_pick_rand_rng (&mbt->rng, 0, NORM_VAL - 1);
   sorts = &mbt->btor->sorts_unique_table;
 
   /* use existing UF */
   if (BTOR_COUNT_STACK (mbt->uf->exps) && rand < mbt->p_apply_uf)
   {
-    rand = pick (&mbt->rng, 0, BTOR_COUNT_STACK (mbt->uf->exps) - 1);
-    uf   = mbt->uf->exps.start[rand]->exp;
+    rand =
+        btor_pick_rand_rng (&mbt->rng, 0, BTOR_COUNT_STACK (mbt->uf->exps) - 1);
+    uf = mbt->uf->exps.start[rand]->exp;
   }
   else /* create new UF */
   {
@@ -2744,17 +2741,17 @@ btormbt_bv_uf (BtorMBT *mbt)
       &it, sorts, btor_get_domain_fun_sort (sorts, ((BtorNode *) uf)->sort_id));
   while (btor_has_next_tuple_sort_iterator (&it))
   {
-    sort = btor_next_tuple_sort_iterator (&it);
-    len  = btor_get_width_bitvec_sort (sorts, sort);
-    arg  = select_exp (mbt, BTORMBT_BB_T, 0);
-    BTOR_PUSH_STACK (mbt->mm, stack, modify_bv (mbt, arg, len));
+    sort  = btor_next_tuple_sort_iterator (&it);
+    width = btor_get_width_bitvec_sort (sorts, sort);
+    arg   = select_exp (mbt, BTORMBT_BB_T, 0);
+    BTOR_PUSH_STACK (mbt->mm, stack, modify_bv (mbt, arg, width));
   }
 
   /* create apply on UF */
   apply =
       boolector_apply (mbt->btor, stack.start, BTOR_COUNT_STACK (stack), uf);
 
-  len = boolector_get_width (mbt->btor, apply);
+  width = boolector_get_width (mbt->btor, apply);
   btormbt_push_node (mbt, apply);
   g_btormbtstats->num_ops[APPLY]++;
   BTOR_RELEASE_STACK (mbt->mm, stack);
@@ -2784,31 +2781,42 @@ static void *
 btormbt_state_new (BtorMBT *mbt)
 {
   /* number of initial inputs */
-  mbt->max_inputs_cur = pick (&mbt->rng, mbt->min_inputs, mbt->max_inputs);
+  mbt->max_inputs_cur =
+      btor_pick_rand_rng (&mbt->rng, mbt->min_inputs, mbt->max_inputs);
   /* number of initial operations */
-  mbt->max_ops_cur = pick (&mbt->rng, mbt->min_ops_init, mbt->max_ops_init);
+  mbt->max_ops_cur =
+      btor_pick_rand_rng (&mbt->rng, mbt->min_ops_init, mbt->max_ops_init);
 
   // TODO (ma): UFs
-  init_pd_inputs (mbt,
-                  pick (&mbt->rng, mbt->min_vars_init, mbt->max_vars_init),
-                  pick (&mbt->rng, mbt->min_consts_init, mbt->max_consts_init),
-                  pick (&mbt->rng, mbt->min_arrays_init, mbt->max_arrays_init));
+  init_pd_inputs (
+      mbt,
+      btor_pick_rand_rng (&mbt->rng, mbt->min_vars_init, mbt->max_vars_init),
+      btor_pick_rand_rng (
+          &mbt->rng, mbt->min_consts_init, mbt->max_consts_init),
+      btor_pick_rand_rng (
+          &mbt->rng, mbt->min_arrays_init, mbt->max_arrays_init));
 
   /* no delete operation at init */
   init_pd_ops (
       mbt,
-      pick (&mbt->rng, mbt->min_add_ops_init, mbt->max_add_ops_init),
-      pick (&mbt->rng, mbt->min_release_ops_init, mbt->max_release_ops_init));
+      btor_pick_rand_rng (
+          &mbt->rng, mbt->min_add_ops_init, mbt->max_add_ops_init),
+      btor_pick_rand_rng (
+          &mbt->rng, mbt->min_release_ops_init, mbt->max_release_ops_init));
 
   /* no additional inputs at init */
   init_pd_add (
       mbt,
-      pick (&mbt->rng, mbt->min_add_funs_init, mbt->max_add_funs_init),
-      pick (&mbt->rng, mbt->min_add_uf_init, mbt->max_add_uf_init),
-      pick (&mbt->rng, mbt->min_add_arrayops_init, mbt->max_add_arrayops_init),
-      pick (
+      btor_pick_rand_rng (
+          &mbt->rng, mbt->min_add_funs_init, mbt->max_add_funs_init),
+      btor_pick_rand_rng (
+          &mbt->rng, mbt->min_add_uf_init, mbt->max_add_uf_init),
+      btor_pick_rand_rng (
+          &mbt->rng, mbt->min_add_arrayops_init, mbt->max_add_arrayops_init),
+      btor_pick_rand_rng (
           &mbt->rng, mbt->min_add_bitvecops_init, mbt->max_add_bitvecops_init),
-      pick (&mbt->rng, mbt->min_add_inputs_init, mbt->max_add_inputs_init));
+      btor_pick_rand_rng (
+          &mbt->rng, mbt->min_add_inputs_init, mbt->max_add_inputs_init));
 
   BTORMBT_LOG (1,
                "new: pick %d ops (add:rel=%0.1f%%:%0.1f%%), %d inputs",
@@ -2846,21 +2854,21 @@ btormbt_state_opt (BtorMBT *mbt)
 
   /* set random sat solver */
 #ifdef BTOR_USE_LINGELING
-  if (!mbt->shadow && pick (&mbt->rng, 0, 1) && set_sat_solver)
+  if (!mbt->shadow && btor_pick_rand_rng (&mbt->rng, 0, 1) && set_sat_solver)
   {
     boolector_set_sat_solver_lingeling (mbt->btor, 0, 0);
     set_sat_solver = 0;
   }
 #endif
 #ifdef BTOR_USE_PICOSAT
-  if (!mbt->shadow && pick (&mbt->rng, 0, 1) && set_sat_solver)
+  if (!mbt->shadow && btor_pick_rand_rng (&mbt->rng, 0, 1) && set_sat_solver)
   {
     boolector_set_sat_solver_picosat (mbt->btor);
     set_sat_solver = 0;
   }
 #endif
 #ifdef BTOR_USE_MINISAT
-  if (!mbt->shadow && pick (&mbt->rng, 0, 1) && set_sat_solver)
+  if (!mbt->shadow && btor_pick_rand_rng (&mbt->rng, 0, 1) && set_sat_solver)
     boolector_set_sat_solver_minisat (mbt->btor);
 #endif
 
@@ -2874,11 +2882,11 @@ btormbt_state_opt (BtorMBT *mbt)
       if (btoropt->kind == BTOR_OPT_INCREMENTAL
           || btoropt->kind == BTOR_OPT_MODEL_GEN)
       {
-        if (pick (&mbt->rng, 0, 1)) continue;
+        if (btor_pick_rand_rng (&mbt->rng, 0, 1)) continue;
       }
       else /* choose other options with probability 0.1 */
       {
-        if (pick (&mbt->rng, 0, 9)) continue;
+        if (btor_pick_rand_rng (&mbt->rng, 0, 9)) continue;
       }
 
       /* avoid invalid option combinations */
@@ -2902,7 +2910,7 @@ btormbt_state_opt (BtorMBT *mbt)
           && boolector_get_opt (mbt->btor, BTOR_OPT_FUN_JUST))
         continue;
 
-      btoropt->val = pick (&mbt->rng, btoropt->min, btoropt->max);
+      btoropt->val = btor_pick_rand_rng (&mbt->rng, btoropt->min, btoropt->max);
     }
     BTORMBT_LOG (1,
                  "opt: set boolector option '%s' to '%d'",
@@ -2918,7 +2926,7 @@ btormbt_state_opt (BtorMBT *mbt)
     else if (btoropt->kind == BTOR_OPT_MODEL_GEN && btoropt->val > 0)
     {
       mbt->mgen = true;
-      if (pick (&mbt->rng, 0, NORM_VAL - 1) < mbt->p_print_model)
+      if (btor_pick_rand_rng (&mbt->rng, 0, NORM_VAL - 1) < mbt->p_print_model)
         mbt->print_model = true;
     }
   }
@@ -2934,11 +2942,11 @@ btormbt_state_opt (BtorMBT *mbt)
   }
 
   if (!mbt->inc && !mbt->mgen
-      && pick (&mbt->rng, 0, NORM_VAL - 1) < mbt->p_dump)
+      && btor_pick_rand_rng (&mbt->rng, 0, NORM_VAL - 1) < mbt->p_dump)
     mbt->dump = true;
 
   /* make formulas extensional with probability of 0.1 */
-  if (pick (&mbt->rng, 0, 9)) mbt->ext = true;
+  if (btor_pick_rand_rng (&mbt->rng, 0, 9)) mbt->ext = true;
 
   return btormbt_state_init;
 }
@@ -2968,7 +2976,7 @@ btormbt_state_init (BtorMBT *mbt)
   {
     mbt->ops++;
     BTORMBT_LOG_STATUS (2, "init");
-    rand = pick (&mbt->rng, 0, NORM_VAL - 1);
+    rand = btor_pick_rand_rng (&mbt->rng, 0, NORM_VAL - 1);
     if (rand < mbt->p_add)
       return btormbt_state_add;
     else
@@ -2982,31 +2990,38 @@ btormbt_state_init (BtorMBT *mbt)
 
   /* adapt paramters for main */
   mbt->ops         = 0;
-  mbt->max_ops_cur = pick (&mbt->rng, mbt->min_ops, mbt->max_ops);
+  mbt->max_ops_cur = btor_pick_rand_rng (&mbt->rng, mbt->min_ops, mbt->max_ops);
   /* how many operations should be assertions?
    * -> max_ops_cur and nass should be in relation (the more ops, the more
    * assertions) in order to keep the sat/unsat ratio balanced */
   if (mbt->max_ops_cur < mbt->max_ops_lower)
     mbt->max_ass_cur = BTORMBT_MIN (
         mbt->max_ops_cur,
-        pick (&mbt->rng, mbt->min_asserts_lower, mbt->max_asserts_lower));
+        btor_pick_rand_rng (
+            &mbt->rng, mbt->min_asserts_lower, mbt->max_asserts_lower));
   else
-    mbt->max_ass_cur =
-        pick (&mbt->rng, mbt->min_asserts_upper, mbt->max_asserts_upper);
+    mbt->max_ass_cur = btor_pick_rand_rng (
+        &mbt->rng, mbt->min_asserts_upper, mbt->max_asserts_upper);
 
-  init_pd_inputs (mbt,
-                  pick (&mbt->rng, mbt->min_vars, mbt->max_vars),
-                  pick (&mbt->rng, mbt->min_consts, mbt->max_consts),
-                  pick (&mbt->rng, mbt->min_arrays, mbt->max_arrays));
-  init_pd_ops (mbt,
-               pick (&mbt->rng, mbt->min_add_ops, mbt->max_add_ops),
-               pick (&mbt->rng, mbt->min_release_ops, mbt->max_release_ops));
-  init_pd_add (mbt,
-               pick (&mbt->rng, mbt->min_add_funs, mbt->max_add_funs),
-               pick (&mbt->rng, mbt->min_add_uf, mbt->max_add_uf),
-               pick (&mbt->rng, mbt->min_add_arrayops, mbt->max_add_arrayops),
-               pick (&mbt->rng, mbt->min_add_bitvecops, mbt->max_add_bitvecops),
-               pick (&mbt->rng, mbt->min_add_inputs, mbt->max_add_inputs));
+  init_pd_inputs (
+      mbt,
+      btor_pick_rand_rng (&mbt->rng, mbt->min_vars, mbt->max_vars),
+      btor_pick_rand_rng (&mbt->rng, mbt->min_consts, mbt->max_consts),
+      btor_pick_rand_rng (&mbt->rng, mbt->min_arrays, mbt->max_arrays));
+  init_pd_ops (
+      mbt,
+      btor_pick_rand_rng (&mbt->rng, mbt->min_add_ops, mbt->max_add_ops),
+      btor_pick_rand_rng (
+          &mbt->rng, mbt->min_release_ops, mbt->max_release_ops));
+  init_pd_add (
+      mbt,
+      btor_pick_rand_rng (&mbt->rng, mbt->min_add_funs, mbt->max_add_funs),
+      btor_pick_rand_rng (&mbt->rng, mbt->min_add_uf, mbt->max_add_uf),
+      btor_pick_rand_rng (
+          &mbt->rng, mbt->min_add_arrayops, mbt->max_add_arrayops),
+      btor_pick_rand_rng (
+          &mbt->rng, mbt->min_add_bitvecops, mbt->max_add_bitvecops),
+      btor_pick_rand_rng (&mbt->rng, mbt->min_add_inputs, mbt->max_add_inputs));
 
   BTORMBT_LOG (
       1,
@@ -3034,12 +3049,12 @@ btormbt_state_main (BtorMBT *mbt)
   {
     mbt->ops++;
     BTORMBT_LOG_STATUS (2, "main");
-    rand = pick (&mbt->rng, 0, NORM_VAL - 1);
+    rand = btor_pick_rand_rng (&mbt->rng, 0, NORM_VAL - 1);
     if (rand < mbt->max_ass_cur * NORM_VAL / mbt->max_ops_cur)
       return btormbt_state_assume_assert;
     else
     {
-      rand = pick (&mbt->rng, 0, NORM_VAL - 1);
+      rand = btor_pick_rand_rng (&mbt->rng, 0, NORM_VAL - 1);
       if (rand < mbt->p_add)
         return btormbt_state_add;
       else
@@ -3062,7 +3077,7 @@ btormbt_state_add (BtorMBT *mbt)
   int rand;
   void *next;
 
-  rand = pick (&mbt->rng, 0, NORM_VAL - 1);
+  rand = btor_pick_rand_rng (&mbt->rng, 0, NORM_VAL - 1);
 
   if (rand < mbt->p_bitvec_op)
     next = btormbt_state_bv_op;
@@ -3086,7 +3101,7 @@ btormbt_state_bv_op (BtorMBT *mbt)
 {
   BoolectorNode *e0, *e1, *e2;
 
-  Op op = pick (&mbt->rng, NOT, COND);
+  Op op = btor_pick_rand_rng (&mbt->rng, NOT, COND);
 
   if (is_unary_op (op))
   {
@@ -3116,11 +3131,11 @@ btormbt_state_bv_op (BtorMBT *mbt)
 static void *
 btormbt_state_arr_op (BtorMBT *mbt)
 {
-  int e0w, e0iw, rand;
+  uint32_t e0w, e0iw, rand;
   Op op;
   BoolectorNode *e0, *e1, *e2;
 
-  rand = pick (&mbt->rng, 0, NORM_VAL - 1);
+  rand = btor_pick_rand_rng (&mbt->rng, 0, NORM_VAL - 1);
 
   e0   = select_exp (mbt, BTORMBT_ARR_T, 0);
   e0w  = boolector_get_width (mbt->btor, e0);
@@ -3131,7 +3146,7 @@ btormbt_state_arr_op (BtorMBT *mbt)
   /* use read/write with p=0.666 else EQ/NE/COND */
   if (rand < mbt->p_rw)
   {
-    rand = pick (&mbt->rng, 0, NORM_VAL - 1);
+    rand = btor_pick_rand_rng (&mbt->rng, 0, NORM_VAL - 1);
     op   = rand < mbt->p_read ? READ : WRITE;
     e1   = select_exp (mbt, BTORMBT_BV_T, 0);
     if (op == WRITE) e2 = select_exp (mbt, BTORMBT_BV_T, 0);
@@ -3140,12 +3155,12 @@ btormbt_state_arr_op (BtorMBT *mbt)
   else
   {
     /* select EQ/NE/COND with same propability */
-    rand = pick (&mbt->rng, 0, NORM_VAL - 1);
+    rand = btor_pick_rand_rng (&mbt->rng, 0, NORM_VAL - 1);
     if (!mbt->ext || rand < mbt->p_cond)
       op = COND;
     else
     {
-      rand = pick (&mbt->rng, 0, NORM_VAL - 1);
+      rand = btor_pick_rand_rng (&mbt->rng, 0, NORM_VAL - 1);
       op   = rand < mbt->p_eq ? EQ : NE;
     }
     e1 = select_arr_exp (mbt, e0, e0w, e0iw, op == EQ || op == NE ? -1 : 0);
@@ -3185,7 +3200,7 @@ btormbt_state_input (BtorMBT *mbt)
   int rand;
 
   // TODO (ma): UFs?
-  rand = pick (&mbt->rng, 0, NORM_VAL - 1);
+  rand = btor_pick_rand_rng (&mbt->rng, 0, NORM_VAL - 1);
   if (mbt->create_arrays && rand < mbt->p_array) btormbt_array (mbt);
   if (rand < mbt->p_var)
     btormbt_var (mbt, BTORMBT_BB_T);
@@ -3203,11 +3218,11 @@ btormbt_state_release (BtorMBT *mbt)
   BtorMBTExpStack *stack;
 
   /* select target exp stack with probabilty proportional to size */
-  rand =
-      pick (&mbt->rng,
-            0,
-            BTOR_COUNT_STACK (mbt->bo->exps) + BTOR_COUNT_STACK (mbt->bv->exps)
-                + BTOR_COUNT_STACK (mbt->arr->exps) - 1);
+  rand = btor_pick_rand_rng (&mbt->rng,
+                             0,
+                             BTOR_COUNT_STACK (mbt->bo->exps)
+                                 + BTOR_COUNT_STACK (mbt->bv->exps)
+                                 + BTOR_COUNT_STACK (mbt->arr->exps) - 1);
   if (rand < BTOR_COUNT_STACK (mbt->bo->exps))
     stack = mbt->bo;
   else if (rand < BTOR_COUNT_STACK (mbt->bo->exps)
@@ -3217,7 +3232,7 @@ btormbt_state_release (BtorMBT *mbt)
     stack = mbt->arr;
   if (BTOR_COUNT_STACK (stack->exps) > 1)
   {
-    idx  = pick (&mbt->rng, 0, BTOR_COUNT_STACK (stack->exps) - 1);
+    idx = btor_pick_rand_rng (&mbt->rng, 0, BTOR_COUNT_STACK (stack->exps) - 1);
     node = BTOR_PEEK_STACK (stack->exps, idx)->exp;
     assert (stack != mbt->bo || boolector_get_width (mbt->btor, node) == 1);
     assert (stack != mbt->bv || boolector_get_width (mbt->btor, node) > 1);
@@ -3231,7 +3246,7 @@ btormbt_state_release (BtorMBT *mbt)
 static void *
 btormbt_state_assume_assert (BtorMBT *mbt)
 {
-  int rand;
+  uint32_t rand;
   BoolectorNode *node;
 
 #if 0
@@ -3239,13 +3254,13 @@ btormbt_state_assume_assert (BtorMBT *mbt)
   /* select from init layer with lower probability */
   lower = mbt->bo->init_layer_size
     && BTOR_COUNT_STACK (mbt->bo->exps) > mbt->bo->init_layer_size
-          && pick (&mbt->rng, 0, 4) ?  mbt->bo->init_layer_size - 1 : 0;
+          && btor_pick_rand_rng (&mbt->rng, 0, 4) ?  mbt->bo->init_layer_size - 1 : 0;
   node = btormbt_clause (mbt, &mbt->rng, lower, BTOR_COUNT_STACK (mbt->bo->exps) - 1);
   assert (!BTOR_REAL_ADDR_NODE (node)->parameterized);
 #else
   node = btormbt_constraint (mbt);
 #endif
-  rand = pick (&mbt->rng, 0, NORM_VAL - 1);
+  rand = btor_pick_rand_rng (&mbt->rng, 0, NORM_VAL - 1);
   if (mbt->inc && rand < mbt->p_assume)
   {
     boolector_assume (mbt->btor, node);
@@ -3279,7 +3294,8 @@ btormbt_state_dump (BtorMBT *mbt)
   }
   else
   {
-    if (pick (&mbt->rng, 0, 1) && !BTOR_COUNT_STACK (mbt->uf->exps))
+    if (btor_pick_rand_rng (&mbt->rng, 0, 1)
+        && !BTOR_COUNT_STACK (mbt->uf->exps))
       boolector_dump_btor (mbt->btor, stdout);
     else
       boolector_dump_smt2 (mbt->btor, stdout);
@@ -3293,7 +3309,7 @@ btormbt_state_sat (BtorMBT *mbt)
   int i, res, failed;
   BoolectorNode *ass;
 
-  if (mbt->shadow && !pick (&mbt->rng, 0, 50))
+  if (mbt->shadow && !btor_pick_rand_rng (&mbt->rng, 0, 50))
   {
     BTORMBT_LOG (1, "cloning...");
     /* cleanup done by boolector */
@@ -3313,7 +3329,7 @@ btormbt_state_sat (BtorMBT *mbt)
     g_btormbtstats->num_sat++;
     if (mbt->print_model)
     {
-      if (pick (&mbt->rng, 0, NORM_VAL - 1) < mbt->p_model_format)
+      if (btor_pick_rand_rng (&mbt->rng, 0, NORM_VAL - 1) < mbt->p_model_format)
         boolector_print_model (mbt->btor, "btor", stdout);
       else
         boolector_print_model (mbt->btor, "smt2", stdout);
@@ -3386,9 +3402,10 @@ btormbt_state_model_gen (BtorMBT *mbt)
 static void *
 btormbt_state_model_inc (BtorMBT *mbt)
 {
-  int i, rand;
+  int i;
+  uint32_t rand;
 
-  rand = pick (&mbt->rng, 0, NORM_VAL - 1);
+  rand = btor_pick_rand_rng (&mbt->rng, 0, NORM_VAL - 1);
 
   /* release cnf expressions */
   for (i = 0; i < BTOR_COUNT_STACK (mbt->cnf->exps); i++)
@@ -3403,24 +3420,34 @@ btormbt_state_model_inc (BtorMBT *mbt)
     mbt->assumes     = 0; /* reset */
     mbt->asserts     = 0;
 
-    mbt->max_ops_cur = pick (&mbt->rng, mbt->min_ops_inc, mbt->max_ops_inc);
+    mbt->max_ops_cur =
+        btor_pick_rand_rng (&mbt->rng, mbt->min_ops_inc, mbt->max_ops_inc);
 
-    init_pd_inputs (mbt,
-                    pick (&mbt->rng, mbt->min_vars_inc, mbt->max_vars_inc),
-                    pick (&mbt->rng, mbt->min_consts_inc, mbt->max_consts_inc),
-                    pick (&mbt->rng, mbt->min_arrays_inc, mbt->max_arrays_inc));
+    init_pd_inputs (
+        mbt,
+        btor_pick_rand_rng (&mbt->rng, mbt->min_vars_inc, mbt->max_vars_inc),
+        btor_pick_rand_rng (
+            &mbt->rng, mbt->min_consts_inc, mbt->max_consts_inc),
+        btor_pick_rand_rng (
+            &mbt->rng, mbt->min_arrays_inc, mbt->max_arrays_inc));
     init_pd_ops (
         mbt,
-        pick (&mbt->rng, mbt->min_add_ops_inc, mbt->max_add_ops_inc),
-        pick (&mbt->rng, mbt->min_release_ops_inc, mbt->max_release_ops_inc));
+        btor_pick_rand_rng (
+            &mbt->rng, mbt->min_add_ops_inc, mbt->max_add_ops_inc),
+        btor_pick_rand_rng (
+            &mbt->rng, mbt->min_release_ops_inc, mbt->max_release_ops_inc));
     init_pd_add (
         mbt,
-        pick (&mbt->rng, mbt->min_add_funs_inc, mbt->max_add_funs_inc),
-        pick (&mbt->rng, mbt->min_add_uf_inc, mbt->max_add_uf_inc),
-        pick (&mbt->rng, mbt->min_add_arrayops_inc, mbt->max_add_arrayops_inc),
-        pick (
+        btor_pick_rand_rng (
+            &mbt->rng, mbt->min_add_funs_inc, mbt->max_add_funs_inc),
+        btor_pick_rand_rng (
+            &mbt->rng, mbt->min_add_uf_inc, mbt->max_add_uf_inc),
+        btor_pick_rand_rng (
+            &mbt->rng, mbt->min_add_arrayops_inc, mbt->max_add_arrayops_inc),
+        btor_pick_rand_rng (
             &mbt->rng, mbt->min_add_bitvecops_inc, mbt->max_add_bitvecops_inc),
-        pick (&mbt->rng, mbt->min_add_inputs_inc, mbt->max_add_inputs_inc));
+        btor_pick_rand_rng (
+            &mbt->rng, mbt->min_add_inputs_inc, mbt->max_add_inputs_inc));
     BTORMBT_LOG (1,
                  "inc: pick %d ops (add:rel=%0.1f%%:%0.1f%%)",
                  mbt->max_ops_cur,

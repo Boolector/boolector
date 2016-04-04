@@ -45,11 +45,13 @@ uint32_t
 btor_pick_rand_rng (BtorRNG* rng, uint32_t from, uint32_t to)
 {
   assert (rng);
-  assert (from <= to && to < UINT_MAX);
+  assert (from <= to);
 
   uint32_t res;
 
-  res = btor_rand_rng (rng);
+  from = from == UINT_MAX ? UINT_MAX - 1 : from;
+  to   = to == UINT_MAX ? UINT_MAX - 1 : to;
+  res  = btor_rand_rng (rng);
   res %= to - from + 1;
   res += from;
   return res;
