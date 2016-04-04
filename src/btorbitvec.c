@@ -1490,7 +1490,7 @@ btor_new_bv_tuple (BtorMemMgr *mm, uint32_t arity)
 void
 btor_add_to_bv_tuple (BtorMemMgr *mm,
                       BtorBitVectorTuple *t,
-                      BtorBitVector *bv,
+                      const BtorBitVector *bv,
                       uint32_t pos)
 {
   assert (mm);

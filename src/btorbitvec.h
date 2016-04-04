@@ -215,7 +215,7 @@ size_t btor_size_bv_tuple (BtorBitVectorTuple *t);
 
 void btor_add_to_bv_tuple (BtorMemMgr *mm,
                            BtorBitVectorTuple *t,
-                           BtorBitVector *bv,
+                           const BtorBitVector *bv,
                            uint32_t pos);
 
 int btor_compare_bv_tuple (BtorBitVectorTuple *t0, BtorBitVectorTuple *t1);
