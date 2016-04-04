@@ -9,12 +9,12 @@
  */
 
 #include "utils/btorrng.h"
+#include "btoropt.h"
 
 #include <assert.h>
 #include <limits.h>
 #ifndef NDEBUG
 #include <float.h>
-#include "btoropt.h"
 #endif
 
 void
