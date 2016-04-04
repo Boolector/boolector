@@ -76,6 +76,6 @@ btor_pick_with_prob_rng (BtorRNG* rng, uint32_t prob)
 
   uint32_t r;
 
-  r = btor_pick_rand_rng (rng, 0, prob - 1);
+  r = btor_pick_rand_rng (rng, 0, BTOR_PROB_MAX);
   return r < prob;
 }

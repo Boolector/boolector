@@ -2317,7 +2317,7 @@ inv_urem_bv (Btor *btor,
       if (cmp == 0)
       {
         /* choose e[1] = 0 with prob = 0.25*/
-        if (!btor_pick_with_prob_rng (&btor->rng, 250))
+        if (btor_pick_with_prob_rng (&btor->rng, 250))
           res = btor_new_bv (mm, bw);
         /* bvurem < res <= 2^bw - 1 */
         else
@@ -2358,7 +2358,7 @@ inv_urem_bv (Btor *btor,
          * with prob = 0.5 */
         else
         {
-          if (!btor_pick_with_prob_rng (&btor->rng, 500))
+          if (btor_pick_with_prob_rng (&btor->rng, 500))
           {
             res = btor_copy_bv (mm, sub);
           }
