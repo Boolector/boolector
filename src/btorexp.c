@@ -4448,13 +4448,27 @@ btor_set_symbol_exp (Btor *btor, BtorNode *exp, const char *symbol)
   assert (btor);
   assert (exp);
   assert (btor == BTOR_REAL_ADDR_NODE (exp)->btor);
-  assert (symbol);
-  assert (!btor_get_ptr_hash_table (btor->symbols, (char *) symbol));
+  assert (!symbol || !btor_get_ptr_hash_table (btor->symbols, (char *) symbol));
 
   BtorPtrHashBucket *b;
   char *sym;
 
   exp = BTOR_REAL_ADDR_NODE (exp);
+
+  /* delete symbol for 'exp' and remove from symbol tables */
+  if (!symbol)
+  {
+    if ((b = btor_get_ptr_hash_table (btor->node2symbol, exp)))
+    {
+      sym = b->data.as_str;
+      assert (sym);
+      btor_remove_ptr_hash_table (btor->node2symbol, exp, 0, 0);
+      btor_remove_ptr_hash_table (btor->symbols, sym, 0, 0);
+      btor_freestr (btor->mm, sym);
+    }
+    return;
+  }
+
   sym = btor_strdup (btor->mm, symbol);
   btor_add_ptr_hash_table (btor->symbols, sym)->data.as_ptr = exp;
   b = btor_get_ptr_hash_table (btor->node2symbol, exp);
