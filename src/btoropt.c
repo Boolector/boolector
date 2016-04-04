@@ -20,6 +20,7 @@
 #include "btormodel.h"
 #include "utils/btorhashptr.h"
 #include "utils/btoriter.h"
+#include "utils/btorrng.h"
 
 /*------------------------------------------------------------------------*/
 
@@ -898,7 +899,11 @@ btor_set_opt (Btor *btor, BtorOption opt, uint32_t val)
   if (val < o->min) val = o->min;
   o->val = val;
 
-  if (opt == BTOR_OPT_MODEL_GEN)
+  if (opt == BTOR_OPT_SEED)
+  {
+    btor_init_rng (&btor->rng, val);
+  }
+  else if (opt == BTOR_OPT_MODEL_GEN)
   {
     if (!val && btor_get_opt (btor, opt)) btor_delete_model (btor);
     assert (!val || !btor_get_opt (btor, BTOR_OPT_UCOPT));
