@@ -69,17 +69,16 @@ btor_skolemize_node (Btor *btor, BtorNode *root)
       {
         if (BTOR_IS_PARAM_NODE (real_cur))
         {
+          symbol = btor_get_symbol_exp (btor, real_cur);
+          buf    = 0;
           if (btor_param_is_exists_var (real_cur))
           {
-            symbol = btor_get_symbol_exp (btor, real_cur);
             if (symbol)
             {
               len = strlen (symbol) + 5;
               buf = btor_malloc (mm, len);
               sprintf (buf, "sk(%s)", symbol);
             }
-            else
-              buf = 0;
 
             /* substitute param with skolem function */
             if (BTOR_COUNT_STACK (quants) > 0)
@@ -114,11 +113,20 @@ btor_skolemize_node (Btor *btor, BtorNode *root)
             else
               result =
                   btor_var_exp (btor, btor_get_exp_width (btor, real_cur), buf);
-            btor_freestr (mm, buf);
           }
           else
+          {
+            if (symbol)
+            {
+              len = strlen (symbol) + 3;
+              buf = btor_malloc (mm, len);
+              sprintf (buf, "%s!0", symbol);
+            }
             result =
-                btor_param_exp (btor, btor_get_exp_width (btor, real_cur), 0);
+                btor_param_exp (btor, btor_get_exp_width (btor, real_cur), buf);
+          }
+
+          if (buf) btor_freestr (mm, buf);
         }
         else
           result = btor_copy_exp (btor, real_cur);
