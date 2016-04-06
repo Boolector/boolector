@@ -3053,9 +3053,10 @@ btormbt_state_main (BtorMBT *mbt)
   {
     mbt->ops++;
     BTORMBT_LOG_STATUS (2, "main");
-    if (btor_pick_with_prob_rng (
-            &mbt->rng,
-            ((double) mbt->max_ass_cur / mbt->max_ops_cur) * BTOR_PROB_MAX))
+    if (mbt->max_ass_cur > mbt->max_ops_cur
+        || btor_pick_with_prob_rng (
+               &mbt->rng,
+               ((double) mbt->max_ass_cur / mbt->max_ops_cur) * BTOR_PROB_MAX))
       return btormbt_state_assume_assert;
     else if (btor_pick_with_prob_rng (&mbt->rng, mbt->p_add))
       return btormbt_state_add;
