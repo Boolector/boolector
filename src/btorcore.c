@@ -2759,12 +2759,11 @@ btor_substitute_terms (Btor *btor, BtorNode *root, BtorNodeMap *substs)
   BtorMemMgr *mm;
   BtorNode *cur, *real_cur, *subst, *result, **e;
   BtorNodePtrStack visit, args, cleanup;
-  BtorIntHashTable *mark, *cache;
+  BtorIntHashTable *mark;
   BtorIntHashTableData *d;
 
-  mm    = btor->mm;
-  mark  = btor_new_int_hash_map (mm);
-  cache = btor_new_int_hash_map (mm);
+  mm   = btor->mm;
+  mark = btor_new_int_hash_map (mm);
   BTOR_INIT_STACK (visit);
   BTOR_INIT_STACK (args);
   BTOR_INIT_STACK (cleanup);
@@ -2789,10 +2788,8 @@ btor_substitute_terms (Btor *btor, BtorNode *root, BtorNodeMap *substs)
       for (i = real_cur->arity - 1; i >= 0; i--)
         BTOR_PUSH_STACK (mm, visit, real_cur->e[i]);
     }
-    else if (d->as_int == 0)
+    else if (!d->as_ptr)
     {
-      d->as_int = 1;
-
       args.top -= real_cur->arity;
       e = args.top;
 
@@ -2822,9 +2819,8 @@ btor_substitute_terms (Btor *btor, BtorNode *root, BtorNodeMap *substs)
           result = btor_create_exp (btor, real_cur->kind, e, real_cur->arity);
       }
       for (i = 0; i < real_cur->arity; i++) btor_release_exp (btor, e[i]);
-      assert (!btor_get_int_hash_map (cache, real_cur->id));
-      btor_add_int_hash_map (cache, real_cur->id)->as_ptr =
-          btor_copy_exp (btor, result);
+
+      d->as_ptr = btor_copy_exp (btor, result);
       BTOR_PUSH_STACK (mm, cleanup, result);
     PUSH_RESULT:
       assert (real_cur->sort_id == BTOR_REAL_ADDR_NODE (result)->sort_id);
@@ -2832,9 +2828,7 @@ btor_substitute_terms (Btor *btor, BtorNode *root, BtorNodeMap *substs)
     }
     else
     {
-      assert (d->as_int == 1);
-      d = btor_get_int_hash_map (cache, real_cur->id);
-      assert (d);
+      assert (d->as_ptr);
       result = btor_copy_exp (btor, d->as_ptr);
       goto PUSH_RESULT;
     }
@@ -2847,7 +2841,6 @@ btor_substitute_terms (Btor *btor, BtorNode *root, BtorNodeMap *substs)
   BTOR_RELEASE_STACK (mm, cleanup);
   BTOR_RELEASE_STACK (mm, visit);
   BTOR_RELEASE_STACK (mm, args);
-  btor_delete_int_hash_map (cache);
   btor_delete_int_hash_map (mark);
   return result;
 }
