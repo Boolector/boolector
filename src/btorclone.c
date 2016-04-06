@@ -1408,8 +1408,8 @@ btor_clone_formula (Btor *btor)
   return clone_aux_btor (btor, 0, true, false);
 }
 
-static BtorSortId
-recursively_rebuild_sort_clone (Btor *btor, Btor *clone, BtorSortId sort)
+BtorSortId
+btor_recursively_rebuild_sort_clone (Btor *btor, Btor *clone, BtorSortId sort)
 {
   uint32_t i;
   BtorSort *s;
@@ -1615,7 +1615,8 @@ btor_recursively_rebuild_exp_clone (Btor *btor,
           }
           else
           {
-            sort = recursively_rebuild_sort_clone (btor, clone, cur->sort_id);
+            sort =
+                btor_recursively_rebuild_sort_clone (btor, clone, cur->sort_id);
             cur_clone = btor_uf_exp (clone, sort, symbol);
             btor_release_sort (&clone->sorts_unique_table, sort);
           }

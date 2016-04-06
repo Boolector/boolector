@@ -34,6 +34,10 @@ BtorNode *btor_recursively_rebuild_exp_clone (Btor *btor,
                                               BtorNodeMap *exp_map,
                                               int rewrite_level);
 
+BtorSortId btor_recursively_rebuild_sort_clone (Btor *btor,
+                                                Btor *clone,
+                                                BtorSortId sort);
+
 /* helpers for hash table cloning */
 void *btor_clone_key_as_node (BtorMemMgr *mm, const void *map, const void *key);
 
