@@ -469,14 +469,14 @@ enum BtorOption
   /* --------------------------------------------------------------------- */
 
   /*!
-    * **BTOR_OPT_PROP_MOVE_RESTARTS**
+    * **BTOR_OPT_PROP_USE_RESTARTS**
 
       Enable (``value``: 1) or disable (``value``: 0) restarts.
   */
   BTOR_OPT_PROP_USE_RESTARTS,
 
   /*!
-    * **BTOR_OPT_PROP_MOVE_RESTARTS**
+    * **BTOR_OPT_PROP_USE_RESTARTS**
 
       | Enable (``value``: 1) or disable (``value``: 0) heuristic (bandit
     scheme) for selecting root constraints. | If enabled, root constraint
@@ -510,6 +510,41 @@ enum BtorOption
     propagation.
   */
   BTOR_OPT_PROP_FLIP_COND_PROB,
+
+  /*!
+   * **BTOR_OPT_PROP_NO_MOVE_ON_CONFLICT**
+
+    | Do not perform a propagation move when running into a conflict during
+   inverse computation. | (This is the default behavior for the SLS engine when
+   propagation moves are enabled, where a conflict triggers a recovery by means
+   of a regular SLS move.)
+    */
+  BTOR_OPT_PROP_NO_MOVE_ON_CONFLICT,
+
+  /* --------------------------------------------------------------------- */
+  /*!
+   **AIGProp Engine Options**:
+   */
+  /* --------------------------------------------------------------------- */
+
+  /*!
+    * **BTOR_OPT_AIGPROP_USE_RESTARTS**
+
+      Enable (``value``: 1) or disable (``value``: 0) restarts.
+  */
+  BTOR_OPT_AIGPROP_USE_RESTARTS,
+
+  /*!
+    * **BTOR_OPT_AIGPROP_USE_RESTARTS**
+
+      | Enable (``value``: 1) or disable (``value``: 0) heuristic (bandit
+    scheme) for selecting root constraints. | If enabled, root constraint
+    selection via bandit scheme is based on a scoring scheme similar to the one
+    employed in the SLS engine. | If disabled, candidate root constraints are
+    selected randomly.
+  */
+  BTOR_OPT_AIGPROP_USE_BANDIT,
+
   /* EF engine ---------------------------------------------------------- */
   BTOR_OPT_EF_MINISCOPING,
   BTOR_OPT_EF_DUAL_PROP,
@@ -517,6 +552,7 @@ enum BtorOption
   BTOR_OPT_EF_CER,
   BTOR_OPT_EF_SYNTH,
   BTOR_OPT_EF_SYMQINST,
+
   /* internal options --------------------------------------------------- */
 
   BTOR_OPT_SORT_EXP,

@@ -16,6 +16,7 @@ LDEPS=@LDEPS@
 VERSION=$(shell cat VERSION)
 LIBOBJS=$(filter-out $(BUILDIR)/btormain.o $(BUILDIR)/btormbt.o $(BUILDIR)/btoruntrace.o, $(subst $(SRCDIR), $(BUILDIR), $(patsubst %.c,%.o,$(foreach d,$(SRCDIRS),$(wildcard $(d)/btor[a-z]*.c)))))
 LIBOBJS+=$(BUILDIR)/boolector.o $(BUILDIR)/utils/boolectormap.o $(OBJS)
+LIBOBJS+=$(BUILDIR)/aigprop.o
 SRCS=$(foreach d,$(SRCDIRS),$(wildcard $(d)/*.[c|h|cc]))
 TARGETS=@TARGETS@
 ROOT=@ROOT@

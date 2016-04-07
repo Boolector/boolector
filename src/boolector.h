@@ -1512,6 +1512,28 @@ int boolector_get_id (Btor *btor, BoolectorNode *node);
 */
 BoolectorSort boolector_get_sort (Btor *btor, const BoolectorNode *node);
 
+/*!
+  Get the domain sort of given function node ``node``.
+  The result does not have to be released.
+
+  :param btor: Boolector instance.
+  :param node: Boolector function node.
+  :return: Domain sort of function ``node``.
+*/
+BoolectorSort boolector_fun_get_domain_sort (Btor *btor,
+                                             const BoolectorNode *node);
+
+/*!
+  Get the codomain sort of given function node ``node``.
+  The result does not have to be released.
+
+  :param btor: Boolector instance.
+  :param node: Boolector function node.
+  :return: Codomain sort of function ``node``.
+*/
+BoolectorSort boolector_fun_get_codomain_sort (Btor *btor,
+                                               const BoolectorNode *node);
+
 // TODO (ma): obsolete with BoolectorNode * -> id
 /*!
   Retrieve the node belonging to Boolector instance ``btor`` that matches
@@ -1877,11 +1899,8 @@ void boolector_print_model (Btor *btor, char *format, FILE *file);
   :param btor: Boolector instance.
   :return: Sort of type Boolean.
 
-  .. note:
-    Currently, sorts in Boolector are used for uninterpreted functions, only.
-
   .. seealso::
-    boolector_uf
+    boolector_var, boolector_param
 */
 BoolectorSort boolector_bool_sort (Btor *btor);
 
@@ -1892,11 +1911,8 @@ BoolectorSort boolector_bool_sort (Btor *btor);
   :param width: Bit width.
   :return: Bit vector sort of bit width ``width``.
 
-  .. note::
-    Currently, sorts in Boolector are used for uninterpreted functions, only.
-
   .. seealso::
-    boolector_uf
+    boolector_var, boolector_param
 */
 BoolectorSort boolector_bitvec_sort (Btor *btor, int width);
 

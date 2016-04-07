@@ -298,6 +298,10 @@ BtorAIGVec *btor_exp_to_aigvec (Btor *btor,
  * shortens path to it */
 BtorNode *btor_simplify_exp (Btor *btor, BtorNode *exp);
 
+void btor_synthesize_exp (Btor *btor,
+                          BtorNode *exp,
+                          BtorPtrHashTable *backannotation);
+
 /* Finds most simplified expression and shortens path to it */
 BtorNode *btor_pointer_chase_simplified_exp (Btor *btor, BtorNode *exp);
 

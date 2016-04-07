@@ -16,6 +16,7 @@
 #include "btorclone.h"
 #include "btormodel.h"
 #include "btorrewrite.h"
+#include "btorslvaigprop.h"
 #include "btorslvef.h"
 #include "btorslvfun.h"
 #include "btorslvprop.h"
@@ -84,7 +85,6 @@
 /*------------------------------------------------------------------------*/
 
 static BtorAIG *exp_to_aig (Btor *, BtorNode *);
-static void synthesize_exp (Btor *, BtorNode *, BtorPtrHashTable *);
 
 #ifdef BTOR_CHECK_MODEL
 static void check_model (Btor *, Btor *, BtorPtrHashTable *);
@@ -3268,9 +3268,11 @@ DONE:
 
 /* bit vector skeleton is always encoded, i.e., if BTOR_IS_SYNTH_NODE is true,
  * then it is also encoded. with option lazy_synthesize enabled,
- * 'synthesize_exp' stops at feq and apply nodes */
-static void
-synthesize_exp (Btor *btor, BtorNode *exp, BtorPtrHashTable *backannotation)
+ * 'btor_synthesize_exp' stops at feq and apply nodes */
+void
+btor_synthesize_exp (Btor *btor,
+                     BtorNode *exp,
+                     BtorPtrHashTable *backannotation)
 {
   BtorNodePtrStack exp_stack;
   BtorNode *cur, *value, *args;
@@ -3631,8 +3633,11 @@ btor_add_again_assumptions (Btor *btor)
     aig = exp_to_aig (btor, cur);
     btor_aig_to_sat (amgr, aig);
     if (aig == BTOR_AIG_TRUE) continue;
-    assert (BTOR_GET_CNF_ID_AIG (aig) != 0);
-    btor_assume_sat (smgr, BTOR_GET_CNF_ID_AIG (aig));
+    if (btor_is_initialized_sat (smgr))
+    {
+      assert (BTOR_GET_CNF_ID_AIG (aig) != 0);
+      btor_assume_sat (smgr, BTOR_GET_CNF_ID_AIG (aig));
+    }
     btor_release_aig (amgr, aig);
   }
 
@@ -3680,21 +3685,25 @@ btor_sat_btor (Btor *btor, int lod_limit, int sat_limit)
   bool check = true;
 #endif
   BtorSolverResult res;
+  uint32_t engine;
+
+  engine = btor_get_opt (btor, BTOR_OPT_ENGINE);
 
   if (!btor->slv)
   {
-    if (btor_get_opt (btor, BTOR_OPT_ENGINE) == BTOR_ENGINE_SLS
-        && btor->ufs->count == 0
+    if (engine == BTOR_ENGINE_SLS && btor->ufs->count == 0
         && (btor_get_opt (btor, BTOR_OPT_BETA_REDUCE_ALL)
             || btor->lambdas->count == 0))
       btor->slv = btor_new_sls_solver (btor);
-    else if ((btor_get_opt (btor, BTOR_OPT_ENGINE) == BTOR_ENGINE_PROP)
-             && btor->ufs->count == 0
+    else if (engine == BTOR_ENGINE_PROP && btor->ufs->count == 0
              && (btor_get_opt (btor, BTOR_OPT_BETA_REDUCE_ALL)
                  || btor->lambdas->count == 0))
       btor->slv = btor_new_prop_solver (btor);
-    else if (btor_get_opt (btor, BTOR_OPT_ENGINE) == BTOR_ENGINE_EF
-             && btor->quantifiers->count > 0)
+    else if (engine == BTOR_ENGINE_AIGPROP)
+      btor->slv = btor_new_aigprop_solver (btor);
+    else if ((btor_get_opt (btor, BTOR_OPT_ENGINE) == BTOR_ENGINE_EF
+              && btor->quantifiers->count > 0)
+             || btor->quantifiers->count > 0)
     {
       btor->slv = btor_new_ef_solver (btor);
 #ifndef NDEBUG
@@ -3703,8 +3712,7 @@ btor_sat_btor (Btor *btor, int lod_limit, int sat_limit)
     }
     else
     {
-      BTOR_ABORT (btor->quantifiers->count > 0,
-                  "function engine cannot handle quantifiers");
+      assert (engine == BTOR_ENGINE_FUN);
       btor->slv = btor_new_fun_solver (btor);
       // TODO (ma): make options for lod_limit and sat_limit
       BTOR_FUN_SOLVER (btor)->lod_limit = lod_limit;
@@ -3795,6 +3803,7 @@ btor_sat_btor (Btor *btor, int lod_limit, int sat_limit)
     {
       case BTOR_ENGINE_SLS:
       case BTOR_ENGINE_PROP:
+      case BTOR_ENGINE_AIGPROP:
         btor->slv->api.generate_model (
             btor->slv, btor_get_opt (btor, BTOR_OPT_MODEL_GEN) == 2, false);
         break;
@@ -3816,6 +3825,7 @@ btor_sat_btor (Btor *btor, int lod_limit, int sat_limit)
         {
           case BTOR_ENGINE_SLS:
           case BTOR_ENGINE_PROP:
+          case BTOR_ENGINE_AIGPROP:
             btor->slv->api.generate_model (btor->slv, false, false);
             break;
           default: btor->slv->api.generate_model (btor->slv, false, true);
@@ -3917,7 +3927,7 @@ exp_to_aig (Btor *btor, BtorNode *exp)
 
   amgr = btor_get_aig_mgr_btor (btor);
 
-  synthesize_exp (btor, exp, 0);
+  btor_synthesize_exp (btor, exp, 0);
   av = BTOR_REAL_ADDR_NODE (exp)->av;
 
   assert (av);
@@ -3943,7 +3953,7 @@ btor_exp_to_aigvec (Btor *btor, BtorNode *exp, BtorPtrHashTable *backannotation)
 
   avmgr = btor->avmgr;
 
-  synthesize_exp (btor, exp, backannotation);
+  btor_synthesize_exp (btor, exp, backannotation);
   result = BTOR_REAL_ADDR_NODE (exp)->av;
   assert (result);
 

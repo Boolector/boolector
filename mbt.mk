@@ -1,4 +1,3 @@
-
 all: $(BINDIR)/btoruntrace $(BINDIR)/btormbt
 
 $(BINDIR)/btormbt: $(BUILDIR)/btormbt.o $(LDEPS)

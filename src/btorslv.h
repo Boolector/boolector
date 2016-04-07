@@ -21,6 +21,7 @@ enum BtorSolverKind
   BTOR_FUN_SOLVER_KIND,
   BTOR_SLS_SOLVER_KIND,
   BTOR_PROP_SOLVER_KIND,
+  BTOR_AIGPROP_SOLVER_KIND,
   BTOR_EF_SOLVER_KIND,
 };
 typedef enum BtorSolverKind BtorSolverKind;

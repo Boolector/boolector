@@ -20,6 +20,7 @@
 #include "btormodel.h"
 #include "utils/btorhashptr.h"
 #include "utils/btoriter.h"
+#include "utils/btorrng.h"
 
 /*------------------------------------------------------------------------*/
 
@@ -36,7 +37,7 @@ getenv_value (const char *lname)
   uname[3] = 'R';
   for (i = 4, j = 0; i < sizeof (uname); i++, j++)
   {
-    if (lname[j] == '_' || lname[j] == ':')
+    if (lname[j] == '-' || lname[j] == '_' || lname[j] == ':')
     {
       i -= 1;
       continue;
@@ -103,9 +104,6 @@ void
 btor_init_opts (Btor *btor)
 {
   assert (btor);
-
-  // btor->options = btor_new_ptr_hash_table (
-  //    btor->mm, (BtorHashPtr) btor_hash_str, (BtorCmpPtr) strcmp);
 
   BTOR_CNEWN (btor->mm, btor->options, BTOR_OPT_NUM_OPTS);
   btor->str2opt = btor_new_ptr_hash_table (
@@ -466,9 +464,9 @@ btor_init_opts (Btor *btor)
             false,
             "sls:move-rand-walk-prob",
             0,
-            10,
+            100,
             0,
-            INT_MAX,
+            BTOR_PROB_MAX,
             "probability for choosing random walks "
             "(interpreted as 1:<n>)");
   init_opt (btor,
@@ -607,9 +605,9 @@ btor_init_opts (Btor *btor)
             false,
             "prop:use-inv-value-prob",
             0,
-            99,
+            990,
             0,
-            100,
+            BTOR_PROB_MAX,
             "probability for producing inverse rather than consistent values "
             "(interpreted as <n>%)");
   init_opt (btor,
@@ -618,12 +616,45 @@ btor_init_opts (Btor *btor)
             false,
             "prop:flip-cond-prob",
             0,
-            10,
-            0,
             100,
+            0,
+            BTOR_PROB_MAX,
             "probability for choosing to flip the condition (rather than "
             "choosing the enabled path) for ITE during path selection "
             "for prop moves (interpreted as <n>%)");
+  init_opt (btor,
+            BTOR_OPT_PROP_NO_MOVE_ON_CONFLICT,
+            false,
+            true,
+            "prop:no-move-on-conflict",
+            0,
+            0,
+            0,
+            1,
+            "do not perform a propagation move when encountering a conflict"
+            "during inverse computation");
+
+  /* AIGPROP engine ------------------------------------------------------- */
+  init_opt (btor,
+            BTOR_OPT_PROP_USE_RESTARTS,
+            false,
+            true,
+            "aigprop:use-restarts",
+            0,
+            0,
+            0,
+            1,
+            "use restarts");
+  init_opt (btor,
+            BTOR_OPT_PROP_USE_BANDIT,
+            false,
+            true,
+            "aigprop:use-bandit",
+            0,
+            0,
+            0,
+            1,
+            "use bandit scheme for constraint selection");
 
   /* EF engine ----------------------------------------------------------- */
   init_opt (btor,
@@ -931,7 +962,11 @@ btor_set_opt (Btor *btor, BtorOption opt, uint32_t val)
   if (val < o->min) val = o->min;
   o->val = val;
 
-  if (opt == BTOR_OPT_MODEL_GEN)
+  if (opt == BTOR_OPT_SEED)
+  {
+    btor_init_rng (&btor->rng, val);
+  }
+  else if (opt == BTOR_OPT_MODEL_GEN)
   {
     if (!val && btor_get_opt (btor, opt)) btor_delete_model (btor);
     assert (!val || !btor_get_opt (btor, BTOR_OPT_UCOPT));

@@ -3695,8 +3695,13 @@ define_fun_smt2 (BtorSMT2Parser *parser)
                 fun->coo.y);
     else
     {
-      if (boolector_get_sort (parser->btor, fun->exp) != sort)
+      if ((BTOR_IS_FUN_NODE (BTOR_REAL_ADDR_NODE (fun->exp))
+           && boolector_fun_get_codomain_sort (parser->btor, fun->exp) != sort)
+          || (!BTOR_IS_FUN_NODE (BTOR_REAL_ADDR_NODE (fun->exp))
+              && boolector_get_sort (parser->btor, fun->exp) != sort))
+      {
         return !perr_smt2 (parser, "invalid sort, expected");
+      }
       BTOR_MSG (boolector_get_btor_msg (parser->btor),
                 2,
                 "parsed '%s' as bit-vector at line %d column %d",
