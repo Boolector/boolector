@@ -37,7 +37,7 @@ getenv_value (const char *lname)
   uname[3] = 'R';
   for (i = 4, j = 0; i < sizeof (uname); i++, j++)
   {
-    if (lname[j] == '_' || lname[j] == ':')
+    if (lname[j] == '-' || lname[j] == '_' || lname[j] == ':')
     {
       i -= 1;
       continue;
