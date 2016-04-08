@@ -1311,7 +1311,7 @@ delete_ef_solver (BtorEFSolver *slv)
 }
 
 static BtorNodeMap *
-synthesize_model (BtorEFSolver *slv, BtorPtrHashTable *synth_aborts)
+synthesize_model (BtorEFSolver *slv, BtorPtrHashTable *synth_funs)
 {
   bool opt_synth_fun;
   uint32_t max_level;
@@ -1323,6 +1323,7 @@ synthesize_model (BtorEFSolver *slv, BtorPtrHashTable *synth_aborts)
   const BtorPtrHashTable *uf_model;
   BtorPtrHashTable *inputs;
   BtorPtrHashBucket *b;
+  double sum = 0;
 
   e_solver      = slv->e_solver;
   f_solver      = slv->f_solver;
@@ -1377,11 +1378,13 @@ synthesize_model (BtorEFSolver *slv, BtorPtrHashTable *synth_aborts)
 #endif
     double start = btor_time_stamp ();
     best_match   = 0;
+    b            = btor_get_ptr_hash_table (synth_funs, e_uf_fs);
     if (opt_synth_fun)
     {
       inputs = btor_new_ptr_hash_table (f_solver->mm, 0, 0);
       prepare_inputs (slv, e_uf_fs, model, inputs);
-      if ((b = btor_get_ptr_hash_table (synth_aborts, e_uf_fs)))
+      /* last synthesize step failed and no candidate was found */
+      if (b && !b->data.as_ptr)
         max_level = 2;
       else
         max_level = 0;
@@ -1398,38 +1401,66 @@ synthesize_model (BtorEFSolver *slv, BtorPtrHashTable *synth_aborts)
     else
       synth_fun = 0;
 
+    if (!b) b = btor_add_ptr_hash_table (synth_funs, e_uf_fs);
+
     if (!synth_fun)
     {
       printf ("NO CANDIDATE FOUND for %s in %.2fs\n",
               node2string (e_uf_fs),
               btor_time_stamp () - start);
-      if (!(b = btor_get_ptr_hash_table (synth_aborts, e_uf_fs)))
-        b = btor_add_ptr_hash_table (synth_aborts, e_uf_fs);
-      b->data.as_int += 1;
       slv->stats.synth_aborts++;
-      synth_fun = generate_lambda_model_from_fun_model (
-          f_solver, e_uf_fs, uf_model, best_match);
+      // FIXME: using best_match only oftern produces true_exp refinements
+      if (false && best_match)
+      {
+        printf ("USE BEST MATCH\n");
+        synth_fun = btor_copy_exp (f_solver, best_match);
+      }
+      else
+      {
+        if (best_match) btor_dump_smt2_node (f_solver, stdout, best_match, -1);
+        synth_fun = generate_lambda_model_from_fun_model (
+            f_solver, e_uf_fs, uf_model, best_match);
+      }
       if (best_match) btor_release_exp (f_solver, best_match);
+
+      if (b->data.as_ptr != 0)
+      {
+        btor_release_exp (f_solver, b->data.as_ptr);
+        b->data.as_ptr = 0;
+      }
     }
-#if 0
-      else if (!btor_get_ptr_hash_table (synth_fun_cache, synth_fun))
-	{
-	  slv->stats.synth_funs++;
-	  btor_add_ptr_hash_table (synth_fun_cache,
-				   btor_copy_exp (f_solver, synth_fun));
-	}
-#endif
     else
     {
       printf ("CANDIDATE FOUND for %s in %.2fs\n",
               node2string (e_uf_fs),
               btor_time_stamp () - start);
-      btor_dump_smt2_node (f_solver, stdout, synth_fun, -1);
-      slv->stats.synth_funs_reused++;
+      if (b->data.as_ptr != synth_fun)
+      {
+        printf ("NEW\n");
+        slv->stats.synth_funs++;
+      }
+      else
+      {
+        printf ("NOT CHANGED\n");
+        slv->stats.synth_funs_reused++;
+      }
+
+      /* save synthesized function for next iteration (if changed) */
+      if (b->data.as_ptr != synth_fun)
+      {
+        if (b->data.as_ptr) btor_release_exp (f_solver, b->data.as_ptr);
+        b->data.as_ptr = btor_copy_exp (f_solver, synth_fun);
+      }
     }
+    //      if (btor_time_stamp () - start >= 1)
+    //	{
+    //      btor_dump_smt2_node (f_solver, stdout, synth_fun, -1);
+    //	}
     assert (e_uf_fs->sort_id == synth_fun->sort_id);
     btor_map_node (model, e_uf_fs, synth_fun);
+    sum += btor_time_stamp () - start;
   }
+  printf ("SUM: %.2f\n", sum);
   return model;
 }
 
@@ -1463,19 +1494,16 @@ sat_ef_solver (BtorEFSolver *slv)
   BtorNode *g, *cur_uf, *cur_synth_fun;
   BtorNodeMap *map;
   BtorHashTableIterator it;
-  BtorPtrHashTable *synth_fun_cache, *synth_funs;
-  BtorPtrHashTable *synth_aborts;
+  BtorPtrHashTable *synth_funs;
   BtorNodeMap *synth_fun_model;
 
   // TODO (ma): incremental support
   setup_forall_solver (slv);
   setup_exists_solver (slv);
 
-  e_solver = slv->e_solver;
-  f_solver = slv->f_solver;
-  //  synth_fun_cache = btor_new_ptr_hash_table (f_solver->mm, 0, 0);
-  synth_aborts = btor_new_ptr_hash_table (f_solver->mm, 0, 0);
-  // synth_fun_model = 0;
+  e_solver   = slv->e_solver;
+  f_solver   = slv->f_solver;
+  synth_funs = btor_new_ptr_hash_table (f_solver->mm, 0, 0);
 
   btor_set_opt (f_solver, BTOR_OPT_PRETTY_PRINT, 1);
   g = btor_copy_exp (f_solver, slv->f_formula);
@@ -1497,7 +1525,7 @@ sat_ef_solver (BtorEFSolver *slv)
     printf (
         "**************************** NEW ITERATION "
         "*****************************\n");
-    map = synthesize_model (slv, synth_aborts);
+    map = synthesize_model (slv, synth_funs);
     slv->time.synth += btor_time_stamp () - start;
     g = btor_substitute_terms (f_solver, slv->f_formula, map);
     delete_exists_model (map);
@@ -1513,7 +1541,6 @@ sat_ef_solver (BtorEFSolver *slv)
     {
       // TODO: map contains the actual model need to pass it to
       // f_synth_fun_models?
-      //	  btor_release_exp (f_solver, g);
       res = BTOR_RESULT_SAT;
       break;
     }
@@ -1539,7 +1566,13 @@ sat_ef_solver (BtorEFSolver *slv)
     btor_release_exp (f_solver, btor_next_node_hash_table_iterator (&hit));
   btor_delete_ptr_hash_table (synth_fun_cache);
 #endif
-  btor_delete_ptr_hash_table (synth_aborts);
+  btor_init_node_hash_table_iterator (&it, synth_funs);
+  while (btor_has_next_node_hash_table_iterator (&it))
+  {
+    cur_synth_fun = btor_next_data_node_hash_table_iterator (&it)->as_ptr;
+    if (cur_synth_fun) btor_release_exp (f_solver, cur_synth_fun);
+  }
+  btor_delete_ptr_hash_table (synth_funs);
   slv->btor->last_sat_result = res;
   return res;
 }
