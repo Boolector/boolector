@@ -636,7 +636,7 @@ btor_init_opts (Btor *btor)
 
   /* AIGPROP engine ------------------------------------------------------- */
   init_opt (btor,
-            BTOR_OPT_PROP_USE_RESTARTS,
+            BTOR_OPT_AIGPROP_USE_RESTARTS,
             false,
             true,
             "aigprop:use-restarts",
@@ -646,7 +646,7 @@ btor_init_opts (Btor *btor)
             1,
             "use restarts");
   init_opt (btor,
-            BTOR_OPT_PROP_USE_BANDIT,
+            BTOR_OPT_AIGPROP_USE_BANDIT,
             false,
             true,
             "aigprop:use-bandit",
