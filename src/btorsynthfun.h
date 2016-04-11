@@ -18,7 +18,7 @@
 BtorNode* btor_synthesize_fun (Btor* btor,
                                BtorNode* uf,
                                const BtorPtrHashTable* model,
-                               BtorPtrHashTable* synth_fun_cache,
+                               BtorNode* prev_synth_fun,
                                BtorPtrHashTable* additional_inputs,
                                BtorNode** best_match,
                                uint32_t limit,

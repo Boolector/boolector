@@ -460,7 +460,7 @@ BtorNode *
 btor_synthesize_fun (Btor *btor,
                      BtorNode *uf,
                      const BtorPtrHashTable *uf_model,
-                     BtorPtrHashTable *synth_fun_cache,
+                     BtorNode *prev_synth_fun,
                      BtorPtrHashTable *additional_inputs,
                      BtorNode **best_match,
                      uint32_t limit,
@@ -594,24 +594,14 @@ btor_synthesize_fun (Btor *btor,
             uf_model->count);
 
   /* check previously synthesized functions */
-  if (0 && synth_fun_cache)
+  if (prev_synth_fun)
   {
-    assert (uf);
-    btor_init_node_hash_table_iterator (&hit, synth_fun_cache);
-    while (btor_has_next_node_hash_table_iterator (&hit))
+    do
     {
-      p = btor_next_node_hash_table_iterator (&hit);
-      assert (BTOR_IS_REGULAR_NODE (p));
-      assert (BTOR_IS_LAMBDA_NODE (p));
-      // TODO: this is broken right now as p is a fun and candidate sort is
-      // the codomain...
-      if (p->sort_id == uf->sort_id)  // candidate_sort) //uf->sort_id)
-      {
-        candidate_exp = btor_apply_and_reduce (
-            btor, BTOR_COUNT_STACK (params), params.start, p);
-        CHECK_CANDIDATE (candidate_exp);
-      }
-    }
+      candidate_exp = btor_apply_and_reduce (
+          btor, BTOR_COUNT_STACK (params), params.start, prev_synth_fun);
+      CHECK_CANDIDATE (candidate_exp);
+    } while (0);
   }
 
   if (additional_inputs)
