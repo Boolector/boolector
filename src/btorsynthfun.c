@@ -469,7 +469,7 @@ btor_synthesize_fun (Btor *btor,
   bool found_candidate;
   double start, delta;
   int32_t id;
-  uint32_t i, j, k, *tuple, cur_level, cur_num_checks, sig_matches;
+  uint32_t i, j, k, *tuple, cur_level, cur_num_checks = 0, sig_matches;
   uint32_t sig_best_candidate = 0;
   uint32_t num_init_exps, num_un_exps, num_bin_exps, num_ter_exps, num_checks;
   BtorNodePtrStack params, *exps;
