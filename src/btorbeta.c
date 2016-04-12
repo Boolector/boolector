@@ -638,7 +638,7 @@ btor_beta_reduce_partial_aux (Btor *btor,
   BtorMemMgr *mm;
   BtorNode *cur, *real_cur, *cur_parent, *next, *result, **e, *args, *cur_args;
   BtorNodePtrStack stack, arg_stack;
-  BtorPtrHashTable *cache, *mark, *t;
+  BtorPtrHashTable *cache, *t;
   BtorPtrHashBucket *b;
   BtorParamCacheTuple *tup;
   BtorHashTableIterator it;
@@ -656,9 +656,6 @@ btor_beta_reduce_partial_aux (Btor *btor,
   cache = btor_new_ptr_hash_table (mm,
                                    (BtorHashPtr) btor_hash_param_cache_tuple,
                                    (BtorCmpPtr) btor_compare_param_cache_tuple);
-  mark  = btor_new_ptr_hash_table (mm,
-                                  (BtorHashPtr) btor_hash_exp_by_id,
-                                  (BtorCmpPtr) btor_compare_exp_by_id);
 
   real_cur = BTOR_REAL_ADDR_NODE (exp);
 
@@ -688,7 +685,7 @@ btor_beta_reduce_partial_aux (Btor *btor,
       {
         next = btor_param_get_assigned_exp (real_cur);
         assert (next);
-        if (BTOR_IS_INVERTED_NODE (cur)) next = BTOR_INVERT_NODE (next);
+        next = BTOR_COND_INVERT_NODE (cur, next);
         BTOR_PUSH_STACK (mm, arg_stack, btor_copy_exp (btor, next));
         continue;
       }
@@ -884,17 +881,6 @@ btor_beta_reduce_partial_aux (Btor *btor,
           continue;
       }
 
-      next = BTOR_REAL_ADDR_NODE (result);
-      for (i = 0; mark->count > 0 && i < next->arity; i++)
-      {
-        if (btor_get_ptr_hash_table (mark, BTOR_REAL_ADDR_NODE (next->e[i])))
-        {
-          if (!btor_get_ptr_hash_table (mark, next))
-            btor_add_ptr_hash_table (mark, btor_copy_exp (btor, next));
-          break;
-        }
-      }
-
       /* cache rebuilt parameterized node with current arguments */
       tup = btor_new_param_cache_tuple (btor, real_cur);
       assert (!btor_get_ptr_hash_table (cache, tup));
@@ -955,14 +941,9 @@ btor_beta_reduce_partial_aux (Btor *btor,
     btor_delete_param_cache_tuple (btor, tup);
   }
 
-  btor_init_node_hash_table_iterator (&it, mark);
-  while (btor_has_next_node_hash_table_iterator (&it))
-    btor_release_exp (btor, btor_next_node_hash_table_iterator (&it));
-
   BTOR_RELEASE_STACK (mm, stack);
   BTOR_RELEASE_STACK (mm, arg_stack);
   btor_delete_ptr_hash_table (cache);
-  btor_delete_ptr_hash_table (mark);
 
   BTORLOG (2,
            "%s: result %s (%d)",
