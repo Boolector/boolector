@@ -88,7 +88,6 @@ extern const char *const g_btor_op2str[BTOR_NUM_OPS_NODE];
     BtorNodeKind kind : 5;     /* kind of expression */                 \
     uint8_t mark : 2;          /* for DAG traversal */                  \
     uint8_t aux_mark : 2;      /* auxiliary mark flag */                \
-    uint8_t beta_mark : 2;     /* mark for beta_reduce */               \
     uint8_t eval_mark : 2;     /* mark for eval_exp */                  \
     uint8_t clone_mark : 2;    /* mark for clone_exp_tree */            \
     uint8_t constraint : 1;    /* top level constraint ? */             \
