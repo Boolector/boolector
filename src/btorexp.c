@@ -489,6 +489,24 @@ hash_binder_exp (Btor *btor, BtorNode *body)
       continue;
     }
 
+    /* paramterized lambda already hashed, we can use already computed hash
+     * value instead of recomputing it */
+    if (BTOR_IS_LAMBDA_NODE (real_cur))
+    {
+      hash += btor_get_ptr_hash_table (btor->lambdas, real_cur)->data.as_int;
+      hash += real_cur->kind;
+      hash += real_cur->e[0]->kind;
+      continue;
+    }
+    else if (BTOR_IS_QUANTIFIER_NODE (real_cur))
+    {
+      hash +=
+          btor_get_ptr_hash_table (btor->quantifiers, real_cur)->data.as_int;
+      hash += real_cur->kind;
+      hash += real_cur->e[0]->kind;
+      continue;
+    }
+
     btor_add_int_hash_table (marked, real_cur->id);
     hash += BTOR_IS_INVERTED_NODE (cur) ? -real_cur->kind : real_cur->kind;
     for (i = 0; i < real_cur->arity; i++)
@@ -4320,7 +4338,7 @@ btor_is_array_exp (Btor *btor, BtorNode *exp)
   assert (btor == BTOR_REAL_ADDR_NODE (exp)->btor);
 
   exp = btor_simplify_exp (btor, exp);
-  return exp->is_array == 1;
+  return BTOR_REAL_ADDR_NODE (exp)->is_array == 1;
 }
 
 bool

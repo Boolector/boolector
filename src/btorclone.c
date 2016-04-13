@@ -1552,9 +1552,14 @@ btor_recursively_rebuild_exp_clone (Btor *btor,
   int i, rwl;
   char *symbol;
   BtorNode *real_exp, *cur, *cur_clone, *e[3];
-  BtorNodePtrStack work_stack, unmark_stack;
-  BtorSortId sort;
+  BtorNodePtrStack work_stack;
+  BtorIntHashTable *mark;
+  BtorMemMgr *mm;
   BtorPtrHashBucket *b;
+  BtorSortId sort;
+
+  mm   = btor->mm;
+  mark = btor_new_int_hash_table (mm);
 
   /* in some cases we may want to rebuild the expressions with a certain
    * rewrite level */
@@ -1562,30 +1567,24 @@ btor_recursively_rebuild_exp_clone (Btor *btor,
   if (rwl > 0) btor_set_opt (clone, BTOR_OPT_REWRITE_LEVEL, rewrite_level);
 
   BTOR_INIT_STACK (work_stack);
-  BTOR_INIT_STACK (unmark_stack);
 
   real_exp = BTOR_REAL_ADDR_NODE (exp);
-  BTOR_PUSH_STACK (btor->mm, work_stack, real_exp);
+  BTOR_PUSH_STACK (mm, work_stack, real_exp);
   while (!BTOR_EMPTY_STACK (work_stack))
   {
     cur = BTOR_REAL_ADDR_NODE (BTOR_POP_STACK (work_stack));
 
     if (btor_mapped_node (exp_map, cur)) continue;
 
-    // TODO (ma): clone_mark is never set to 2
-    if (cur->clone_mark == 2) continue;
-
-    if (cur->clone_mark == 0)
+    if (!btor_contains_int_hash_table (mark, cur->id))
     {
-      cur->clone_mark = 1;
-      BTOR_PUSH_STACK (btor->mm, unmark_stack, cur);
-      BTOR_PUSH_STACK (btor->mm, work_stack, cur);
+      btor_add_int_hash_table (mark, cur->id);
+      BTOR_PUSH_STACK (mm, work_stack, cur);
       for (i = 0; i < cur->arity; i++)
-        BTOR_PUSH_STACK (btor->mm, work_stack, cur->e[i]);
+        BTOR_PUSH_STACK (mm, work_stack, cur->e[i]);
     }
     else
     {
-      assert (cur->clone_mark == 1);
       assert (!btor_mapped_node (exp_map, cur));
       assert (!BTOR_IS_PROXY_NODE (cur));
       for (i = 0; i < cur->arity; i++)
@@ -1693,11 +1692,8 @@ btor_recursively_rebuild_exp_clone (Btor *btor,
     }
   }
 
-  while (!BTOR_EMPTY_STACK (unmark_stack))
-    BTOR_POP_STACK (unmark_stack)->clone_mark = 0;
-
-  BTOR_RELEASE_STACK (btor->mm, work_stack);
-  BTOR_RELEASE_STACK (btor->mm, unmark_stack);
+  BTOR_RELEASE_STACK (mm, work_stack);
+  btor_delete_int_hash_table (mark);
 
   /* reset rewrite_level to original value */
   btor_set_opt (clone, BTOR_OPT_REWRITE_LEVEL, rwl);

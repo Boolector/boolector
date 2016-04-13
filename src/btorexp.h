@@ -88,16 +88,10 @@ extern const char *const g_btor_op2str[BTOR_NUM_OPS_NODE];
   struct                                                                   \
   {                                                                        \
     BtorNodeKind kind : 5;        /* kind of expression */                 \
-    uint8_t mark : 2;             /* for DAG traversal */                  \
-    uint8_t aux_mark : 2;         /* auxiliary mark flag */                \
-    uint8_t beta_mark : 2;        /* mark for beta_reduce */               \
-    uint8_t eval_mark : 2;        /* mark for eval_exp */                  \
-    uint8_t clone_mark : 2;       /* mark for clone_exp_tree */            \
     uint8_t constraint : 1;       /* top level constraint ? */             \
     uint8_t erased : 1;           /* for debugging purposes */             \
     uint8_t disconnected : 1;     /* for debugging purposes */             \
     uint8_t unique : 1;           /* in unique table? */                   \
-    uint8_t bytes;                /* allocated bytes */                    \
     uint8_t parameterized : 1;    /* param as sub expression ? */          \
     uint8_t lambda_below : 1;     /* lambda as sub expression ? */         \
     uint8_t quantifier_below : 1; /* quantifier as sub expression ? */     \
@@ -105,6 +99,7 @@ extern const char *const g_btor_op2str[BTOR_NUM_OPS_NODE];
     uint8_t propagated : 1;       /* is set during propagation */          \
     uint8_t is_array : 1;         /* function represents array ? */        \
     uint8_t arity : 2;            /* arity of operator (at most 3) */      \
+    uint8_t bytes;                /* allocated bytes */                    \
     int32_t id;                   /* unique expression id */               \
     uint32_t refs;                /* reference counter (incl. ext_refs) */ \
     uint32_t ext_refs;            /* external references counter */        \

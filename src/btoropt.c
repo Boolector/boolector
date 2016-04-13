@@ -966,6 +966,13 @@ btor_set_opt (Btor *btor, BtorOption opt, uint32_t val)
   {
     btor_init_rng (&btor->rng, val);
   }
+  else if (opt == BTOR_OPT_ENGINE)
+  {
+    if (val == BTOR_ENGINE_SLS)
+      btor_set_opt (btor, BTOR_OPT_PROP_NO_MOVE_ON_CONFLICT, 1);
+    else if (val == BTOR_ENGINE_PROP)
+      btor_set_opt (btor, BTOR_OPT_PROP_NO_MOVE_ON_CONFLICT, 0);
+  }
   else if (opt == BTOR_OPT_MODEL_GEN)
   {
     if (!val && btor_get_opt (btor, opt)) btor_delete_model (btor);

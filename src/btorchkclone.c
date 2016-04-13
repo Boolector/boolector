@@ -459,10 +459,6 @@ btor_chkclone_exp (BtorNode *exp, BtorNode *clone)
   assert (real_exp->btor->clone == real_clone->btor);
 
   BTOR_CHKCLONE_EXP (kind);
-  BTOR_CHKCLONE_EXP (mark);
-  BTOR_CHKCLONE_EXP (aux_mark);
-  BTOR_CHKCLONE_EXP (beta_mark);
-  BTOR_CHKCLONE_EXP (eval_mark);
   BTOR_CHKCLONE_EXP (constraint);
   BTOR_CHKCLONE_EXP (erased);
   BTOR_CHKCLONE_EXP (disconnected);

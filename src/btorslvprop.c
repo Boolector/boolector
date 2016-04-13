@@ -20,6 +20,7 @@
 #include "btoropt.h"
 #include "btorslvsls.h"  // currently needed, TODO maybe get rid of in the future
 
+#include "utils/btorhashint.h"
 #include "utils/btorhashptr.h"
 #include "utils/btoriter.h"
 #include "utils/btormisc.h"
@@ -2715,7 +2716,6 @@ btor_select_move_prop (Btor *btor,
                        BtorBitVector **assignment)
 {
   assert (btor);
-  assert (btor_check_id_table_mark_unset_dbg (btor));
   assert (root);
   assert (
       btor_bv_to_uint64_bv ((BtorBitVector *) btor_get_bv_model (btor, root))
@@ -2925,7 +2925,6 @@ static void
 reset_cone (Btor *btor, BtorNode *exp)
 {
   assert (btor);
-  assert (btor_check_id_table_mark_unset_dbg (btor));
   assert (exp);
   assert (BTOR_IS_REGULAR_NODE (exp));
 
@@ -2933,7 +2932,8 @@ reset_cone (Btor *btor, BtorNode *exp)
   BtorNodeIterator nit;
   BtorPtrHashTable *bv_model, *score;
   BtorPtrHashBucket *b;
-  BtorNodePtrStack stack, unmark_stack;
+  BtorNodePtrStack stack;
+  BtorIntHashTable *cache;
   BtorPropSolver *slv;
 
   bv_model = btor->bv_model;
@@ -2944,16 +2944,15 @@ reset_cone (Btor *btor, BtorNode *exp)
   assert (!btor_get_opt (btor, BTOR_OPT_PROP_USE_BANDIT) || score);
 
   BTOR_INIT_STACK (stack);
-  BTOR_INIT_STACK (unmark_stack);
+  cache = btor_new_int_hash_table (btor->mm);
 
   BTOR_PUSH_STACK (btor->mm, stack, exp);
   while (!BTOR_EMPTY_STACK (stack))
   {
     cur = BTOR_POP_STACK (stack);
     assert (BTOR_IS_REGULAR_NODE (cur));
-    if (cur->mark) continue;
-    cur->mark = 1;
-    BTOR_PUSH_STACK (btor->mm, unmark_stack, cur);
+    if (btor_contains_int_hash_table (cache, cur->id)) continue;
+    btor_add_int_hash_table (cache, cur->id);
 
     /* reset previous assignment */
     if ((b = btor_get_ptr_hash_table (bv_model, cur)))
@@ -2983,12 +2982,8 @@ reset_cone (Btor *btor, BtorNode *exp)
       BTOR_PUSH_STACK (btor->mm, stack, btor_next_parent_iterator (&nit));
   }
 
-  /* cleanup */
-  while (!BTOR_EMPTY_STACK (unmark_stack))
-    BTOR_POP_STACK (unmark_stack)->mark = 0;
-
   BTOR_RELEASE_STACK (btor->mm, stack);
-  BTOR_RELEASE_STACK (btor->mm, unmark_stack);
+  btor_delete_int_hash_table (cache);
 }
 
 static void
