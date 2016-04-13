@@ -128,14 +128,17 @@ btor_optimize_unconstrained (Btor *btor)
   BtorMemMgr *mm;
   BtorIntHashTable *ucs;  /* unconstrained candidate nodes */
   BtorIntHashTable *ucsp; /* parameterized unconstrained candidate nodes */
-  start = btor_time_stamp ();
+  BtorIntHashTable *mark;
+  BtorIntHashTableData *d;
 
   if (btor->bv_vars->count == 0 && btor->ufs->count == 0) return;
 
-  mm = btor->mm;
+  start = btor_time_stamp ();
+  mm    = btor->mm;
   BTOR_INIT_STACK (stack);
   BTOR_INIT_STACK (roots);
 
+  mark = btor_new_int_hash_map (mm);
   ucs  = btor_new_int_hash_table (mm);
   ucsp = btor_new_int_hash_table (mm);
   btor_init_substitutions (btor);
@@ -164,9 +167,9 @@ btor_optimize_unconstrained (Btor *btor)
   {
     cur = BTOR_POP_STACK (stack);
     assert (BTOR_IS_REGULAR_NODE (cur));
-    if (cur->mark == 0)
+    if (!btor_contains_int_hash_map (mark, cur->id))
     {
-      cur->mark = 1;
+      btor_add_int_hash_map (mark, cur->id);
       if (!cur->parents)
         BTOR_PUSH_STACK (mm, roots, cur);
       else
@@ -185,25 +188,26 @@ btor_optimize_unconstrained (Btor *btor)
   {
     cur = BTOR_POP_STACK (stack);
     assert (BTOR_IS_REGULAR_NODE (cur));
+    d = btor_get_int_hash_map (mark, cur->id);
 
-    if (!cur->mark) continue;
+    if (!d) continue;
 
     assert (!BTOR_IS_BV_CONST_NODE (cur));
     assert (!BTOR_IS_BV_VAR_NODE (cur));
     assert (!BTOR_IS_UF_NODE (cur));
     assert (!BTOR_IS_PARAM_NODE (cur));
 
-    if (cur->mark == 1)
+    if (d->as_int == 0)
     {
-      cur->mark = 2;
+      d->as_int = 1;
       BTOR_PUSH_STACK (mm, stack, cur);
       for (i = cur->arity - 1; i >= 0; i--)
         BTOR_PUSH_STACK (mm, stack, BTOR_REAL_ADDR_NODE (cur->e[i]));
     }
     else
     {
-      assert (cur->mark == 2);
-      cur->mark = 0;
+      assert (d->as_int == 1);
+      btor_remove_int_hash_map (mark, cur->id, 0);
 
       /* check if parameterized term can be unconstrained */
       isuc = true;
@@ -307,6 +311,7 @@ btor_optimize_unconstrained (Btor *btor)
       }
     }
   }
+  btor_delete_int_hash_map (mark);
 
   num_ucs = btor->substitutions->count;
   btor_substitute_and_rebuild (btor, btor->substitutions);
