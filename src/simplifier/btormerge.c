@@ -83,7 +83,6 @@ btor_merge_lambdas (Btor *btor)
 {
   assert (btor);
   assert (btor_get_opt (btor, BTOR_OPT_REWRITE_LEVEL) > 0);
-  assert (btor_check_id_table_mark_unset_dbg (btor));
 
   unsigned num_merged_lambdas = 0;
   int i;

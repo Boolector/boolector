@@ -397,7 +397,6 @@ compute_sls_scores_aux (Btor *btor,
   assert (BTOR_SLS_SOLVER (btor)->roots);
   assert (bv_model);
   assert (fun_model);
-  assert (btor_check_id_table_mark_unset_dbg (btor));
 
   int i;
   BtorNode *cur, *real_cur;
@@ -580,7 +579,6 @@ static void
 select_candidates (Btor *btor, BtorNode *root, BtorNodePtrStack *candidates)
 {
   assert (btor);
-  assert (btor_check_id_table_mark_unset_dbg (btor));
   assert (root);
   assert (candidates);
 

@@ -86,7 +86,6 @@ extern const char *const g_btor_op2str[BTOR_NUM_OPS_NODE];
   struct                                                                \
   {                                                                     \
     BtorNodeKind kind : 5;     /* kind of expression */                 \
-    uint8_t mark : 2;          /* for DAG traversal */                  \
     uint8_t constraint : 1;    /* top level constraint ? */             \
     uint8_t erased : 1;        /* for debugging purposes */             \
     uint8_t disconnected : 1;  /* for debugging purposes */             \
